@@ -636,6 +636,8 @@ const TALK_MORE = {
 };
 
 /* ---------------------------------------------------------------- choosing what to talk about */
+/* more topics can be added from later files: [key, weight(n), line(n)] (a weight of 0 skips it) */
+const EXTRA_TOPICS = [];
 function topicLine(n) {
     const id = n.id, r = rel(id), t = TALK[id] || { chat: [] };
     const own = () => {
@@ -675,6 +677,7 @@ function topicLine(n) {
         ['gossip', S.flags.metJoe && id !== 'joe' ? 0.5 : 0, () => (JOE_GOSSIP[id] || rpick(GOSSIP_EXTRA))],
         ['early', id !== 'cuke' ? 0.3 : 0, () => rpick(EARLY_JOKES)],
         ['lost', 0.9, () => lostHint(n)],
+        ...EXTRA_TOPICS.map(([k, w, fn]) => [k, w(n), () => fn(n)]),
     ];
     for (let tries = 0; tries < 8; tries++) {
         const avail = topics.filter(([k, w]) => w > 0 && k !== r.lastTopic);
