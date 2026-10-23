@@ -4,7 +4,7 @@ const Assets = {
     atlas: null, frames: window.ATLAS_JSON || {}, groundImg: {},
     dyn: {},             // sprites made while playing (pottery): name -> { c: canvas, w, h, ax, ay }
     load() {
-        const jobs = [loadImg(window.ATLAS_PNG).then(i => { this.atlas = i; })];
+        const jobs = [loadImg(window.ATLAS_PNG).then(i => { this.atlas = i; if (i) for (const f of ASSET_MAKERS) try { f(); } catch (e) { console.error('could not make a sprite', e); } })];
         jobs.push(this.groundFor(Clock.season()));
         return Promise.all(jobs);
     },
@@ -41,6 +41,8 @@ const Assets = {
     },
 };
 
+/* sprites made from the atlas once it has loaded (later files add to this) */
+const ASSET_MAKERS = [];
 function loadImg(src) { return new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
 /* a PNG (bytes) with its PLTE chunk replaced by a palette given as a hex string ("rrggbb" per entry) -> blob URL */
 const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();

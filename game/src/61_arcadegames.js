@@ -539,132 +539,211 @@ function goldFruit(id) {
     goldCache[id] = c;
     return c;
 }
+/* Fruit Catch, remade: the trees shake before they drop something (and a shadow on the grass shows where it'll land),
+   each fruit falls its own way, ten in a row starts a Fever (everything golden, double points), and power-ups help.
+   Every 25 fruit is a new round, a little faster; a round with no hearts lost is a Perfect round. */
+const FRUIT_TREES = [18, 68, 118];
+const FRUIT_KINDS = {
+    apple: { pts: 10, vy: 1, col: '#e0405a' }, mango: { pts: 10, vy: 1, col: '#ffb53a' }, cherry: { pts: 10, vy: 1.05, col: '#d8283f', pair: true },
+    peach: { pts: 15, vy: 0.9, col: '#ffa98a', sway: 1 }, lychee: { pts: 15, vy: 0.6, col: '#f4e6ea', sway: 0.5 }, coconut: { pts: 25, vy: 1.7, col: '#8a5a3a' },
+};
+const FRUIT_POWERS = { basket: 'BIG BASKET', honey: 'SLOW HONEY', magnet: 'FRUIT MAGNET' };
 function FruitGame() {
-    this.x = ARCADE_W / 2; this.vx = 0; this.items = []; this.t = 0; this.score = 0; this.hearts = 5; this.combo = 0;
-    this.caught = 0; this.over = false; this.pops = []; this.splats = []; this.spawnT = 40; this.hurt = 0; this.happy = 0;
-    this.clouds = [[20, 34], [92, 48]];
+    this.x = ARCADE_W / 2; this.vx = 0; this.items = []; this.t = 0; this.score = 0; this.hearts = 5; this.combo = 0; this.best = 0;
+    this.caught = 0; this.over = false; this.pops = []; this.splats = []; this.bits = []; this.spawnT = 50; this.hurt = 0; this.happy = 0;
+    this.clouds = [[20, 34], [92, 48]]; this.round = 1; this.roundCaught = 0; this.roundHurt = false; this.banner = 90;
+    this.juice = 0; this.fever = 0; this.power = null; this.powerT = 0; this.shakes = [0, 0, 0]; this.pile = []; this.quake = 0;
 }
 FruitGame.prototype = {
-    level() { return Math.min(1, this.t / (60 * 120)); },
+    speed() { return Math.min(1.9, 0.75 + (this.round - 1) * 0.12) * (this.power === 'honey' ? 0.55 : 1); },
+    reach() { return this.power === 'basket' ? 18 : 11; },
     move(inp) {
-        const H = inp.held;
-        const dir = (H.right ? 1 : 0) - (H.left ? 1 : 0);
-        if (dir) this.vx = clamp(this.vx + dir * 0.4, -2.6, 2.6);
-        else this.vx *= 0.68;
-        if (inp.pointer.down) this.vx = clamp((inp.pointer.x - this.x) * 0.3, -3.2, 3.2);
+        const H = inp.held, dir = (H.right ? 1 : 0) - (H.left ? 1 : 0);
+        if (dir) this.vx = clamp(this.vx + dir * 0.9, -3.4, 3.4); else this.vx *= 0.5;
+        if (inp.pointer.down) this.vx = clamp(inp.pointer.x - this.x, -4, 4);
         this.x = clamp(this.x + this.vx, 12, ARCADE_W - 12);
+    },
+    /* a tree shakes, then lets go: the item is born in its leaves */
+    queue() {
+        const sp = this.speed(), r = R(), lvl = this.round;
+        let kind;
+        if (r < 0.035) kind = 'power';
+        else if (r < 0.085) kind = 'gold';
+        else if (lvl >= 2 && r < 0.085 + Math.min(0.16, 0.04 * lvl)) kind = R() < 0.5 ? 'bee' : 'rotten';
+        else kind = rpick(lvl < 2 ? ['apple', 'mango', 'cherry', 'peach'] : Object.keys(FRUIT_KINDS));
+        const tree = Math.floor(R() * 3), x = clamp(FRUIT_TREES[tree] + (R() - 0.5) * 34, 10, ARCADE_W - 10);
+        this.shakes[tree] = 26;
+        const it = { kind, id: FRUIT_KINDS[kind] ? kind : rpick(GD.fruit), x, x0: x, y: 14, vy: 0, t: -26, ph: R() * 6, sp };
+        if (kind === 'power') it.power = rpick(Object.keys(FRUIT_POWERS));
+        this.items.push(it);
+        if (kind === 'cherry') this.items.push(Object.assign({}, it, { x: clamp(x + (x > ARCADE_W / 2 ? -12 : 12), 10, ARCADE_W - 10), t: -32 }));
+        this.spawnT = Math.round(lerp(64, 22, Math.min(1, (lvl - 1) / 8)) * (0.75 + R() * 0.5) * (this.fever ? 0.6 : 1) / (this.power === 'honey' ? 0.7 : 1));
     },
     update(inp) {
         this.t++;
         this.move(inp);
-        if (--this.spawnT <= 0) {
-            const lv = this.level();
-            this.spawnT = Math.round(lerp(72, 20, lv) * (0.8 + R() * 0.4));
-            const roll = R();
-            const kind = roll < 0.06 ? 'gold' : this.t > 540 && roll < 0.06 + lerp(0.06, 0.2, lv) ? 'bee' : 'fruit';
-            this.items.push({ kind, id: rpick(GD.fruit), x: 12 + R() * (ARCADE_W - 24), y: 20, vy: lerp(0.55, 1.45, lv) * (kind === 'bee' ? 0.75 : 1) + R() * 0.3, t: 0, ph: R() * 6 });
-        }
-        const bx = this.x, by = FRUIT_GROUND - 28;
+        if (this.banner) this.banner--;
+        if (--this.spawnT <= 0 && !this.banner) this.queue();
+        const bx = this.x, by = FRUIT_GROUND - 28, reach = this.reach();
         for (const it of this.items) {
-            it.t++;
-            it.vy += 0.01;
+            if (++it.t < 0) continue;                                    // still in the leaves
+            const k = FRUIT_KINDS[it.kind];
+            const fall = (k ? k.vy : it.kind === 'bee' ? 0.7 : 1) * it.sp;
+            it.vy = Math.min(it.vy + 0.035 * fall, 2.8 * fall);
             it.y += it.vy;
-            if (it.kind === 'bee') it.x = clamp(it.x + Math.sin(it.t / 11 + it.ph) * 0.9, 8, ARCADE_W - 8);
-            if (!it.done && it.y >= by - 4 && it.y <= by + 6 && Math.abs(it.x - bx) <= 11) { it.done = true; this.got(it); }
+            if (k && k.sway) it.x = clamp(it.x0 + Math.sin(it.t / 16 + it.ph) * 10 * k.sway, 8, ARCADE_W - 8);
+            if (it.kind === 'bee') it.x = clamp(it.x + Math.sign(bx - it.x) * 0.35 + Math.sin(it.t / 9 + it.ph) * 0.8, 8, ARCADE_W - 8);
+            if (this.power === 'magnet' && it.kind !== 'bee' && it.kind !== 'rotten') it.x += clamp(bx - it.x, -0.9, 0.9);
+            if (!it.done && it.y >= by - 5 && it.y <= by + 7 && Math.abs(it.x - bx) <= reach) { it.done = true; this.got(it); }
             if (!it.done && it.y > FRUIT_GROUND - 2) { it.done = true; this.missed(it); }
         }
         this.items = this.items.filter(i => !i.done);
         this.pops = this.pops.filter(p => ++p.t < 30);
         this.splats = this.splats.filter(s => ++s.t < 70);
+        for (const b of this.bits) { b.x += b.vx; b.y += b.vy; b.vy += 0.12; b.t++; }
+        this.bits = this.bits.filter(b => b.t < 26);
         for (const c of this.clouds) { c[0] += 0.05; if (c[0] > ARCADE_W + 20) c[0] = -20; }
+        for (let i = 0; i < 3; i++) if (this.shakes[i]) this.shakes[i]--;
         if (this.hurt) this.hurt--;
         if (this.happy) this.happy--;
-        if (this.hearts <= 0) this.over = true;
+        if (this.quake) this.quake--;
+        if (this.fever && --this.fever === 0) this.pops.push({ text: 'FEVER OVER', x: ARCADE_W / 2, y: 60, t: 0, col: '#ffffff' });
+        if (this.powerT && --this.powerT === 0) this.power = null;
+        if (this.hearts <= 0) { this.over = true; Sfx.play('gameover'); }
     },
+    splash(it, n, col) { for (let i = 0; i < n; i++) this.bits.push({ x: it.x, y: it.y, vx: (R() - 0.5) * 3, vy: -R() * 2.5, t: 0, col }); },
     got(it) {
-        if (it.kind === 'bee') {
-            this.hearts--; this.hurt = 40; this.combo = 0;
+        if (it.kind === 'bee' || it.kind === 'rotten') {
+            this.hearts--; this.hurt = 40; this.combo = 0; this.juice = 0; this.roundHurt = true; this.quake = 10;
             Sfx.play('ouch');
-            this.pops.push({ text: 'BZZ! OUCH', x: it.x, y: it.y - 8, t: 0, col: '#ff9aa8' });
+            this.pops.push({ text: it.kind === 'bee' ? 'BZZ! OUCH' : 'EW! ROTTEN', x: it.x, y: it.y - 8, t: 0, col: '#ff9aa8' });
             return;
         }
-        this.combo++; this.caught++;
-        let pts = it.kind === 'gold' ? 50 : 10;
+        if (it.kind === 'power') {
+            this.power = it.power; this.powerT = 60 * 9;
+            Sfx.play('levelup');
+            this.pops.push({ text: FRUIT_POWERS[it.power] + '!', x: it.x, y: it.y - 10, t: 0, col: '#8cf0ff' });
+            return;
+        }
+        this.combo++; this.caught++; this.roundCaught++; this.best = Math.max(this.best, this.combo);
+        const k = FRUIT_KINDS[it.kind];
+        let pts = it.kind === 'gold' ? 50 : k.pts;
         if (this.combo % 10 === 0) pts += 5 * this.combo;
+        if (this.fever) pts *= 2;
         this.score += pts;
         this.happy = 14;
+        if (it.kind === 'coconut') this.quake = 6;
         if (it.kind === 'gold' && this.hearts < 5) this.hearts++;
-        Sfx.play(it.kind === 'gold' ? 'gold' : 'catch');
-        this.pops.push({ text: (this.combo % 10 === 0 ? this.combo + ' IN A ROW +' : '+') + pts, x: it.x, y: it.y - 10, t: 0, col: it.kind === 'gold' ? '#ffd84a' : '#ffffff' });
+        this.pile.push(it.kind === 'gold' ? 'gold' : it.id); if (this.pile.length > 4) this.pile.shift();
+        this.splash(it, 6, it.kind === 'gold' ? '#ffd84a' : k.col);
+        if (!this.fever && ++this.juice >= 10) { this.fever = 60 * 8; this.juice = 0; Sfx.play('fanfare'); this.pops.push({ text: 'FRUIT FEVER!', x: ARCADE_W / 2, y: 56, t: 0, col: '#ffd84a' }); }
+        else Sfx.play(it.kind === 'gold' ? 'gold' : 'catch');
+        const word = this.combo % 10 === 0 ? `${this.combo} IN A ROW +${pts}` : this.combo >= 5 && R() < 0.25 ? rpick(['NICE', 'JUICY', 'SWEET', 'YUM']) + ' +' + pts : '+' + pts;
+        this.pops.push({ text: word, x: it.x, y: it.y - 10, t: 0, col: it.kind === 'gold' || this.fever ? '#ffd84a' : '#ffffff' });
+        if (this.roundCaught >= 25) this.nextRound();
+    },
+    nextRound() {
+        if (!this.roundHurt) { const b = 100 * this.round; this.score += b; this.pops.push({ text: `PERFECT ROUND +${b}`, x: ARCADE_W / 2, y: 70, t: 0, col: '#8cf0ff' }); Sfx.play('fanfare'); }
+        this.round++; this.roundCaught = 0; this.roundHurt = false; this.banner = 80;
     },
     missed(it) {
-        if (it.kind === 'bee') return;
-        this.hearts--; this.hurt = 30; this.combo = 0;
+        if (it.kind === 'bee' || it.kind === 'rotten' || it.kind === 'power') return;
+        this.hearts--; this.hurt = 30; this.combo = 0; this.juice = 0; this.roundHurt = true;
         Sfx.play('splat');
-        this.splats.push({ x: it.x, id: it.id, t: 0 });
+        this.splats.push({ x: it.x, id: it.id, t: 0, col: it.kind === 'gold' ? '#ffd84a' : (FRUIT_KINDS[it.kind] || {}).col });
     },
     idle(inp) { this.move(inp); },
+    drawItem(g, it) {
+        const x = Math.round(it.x), y = Math.round(it.y);
+        if (it.t < 0) { if (Math.floor(it.t / 4) % 2) { g.fillStyle = 'rgba(255,255,255,0.7)'; g.fillRect(x, 13, 1, 1); } return; }
+        if (it.kind === 'bee') {
+            const flap = Math.floor(it.t / 3) % 2;
+            g.fillStyle = 'rgba(255,255,255,0.85)'; g.fillRect(x - 3, y - 5 + flap, 3, 2); g.fillRect(x + 1, y - 5 + flap, 3, 2);
+            g.fillStyle = '#ffd84a'; g.fillRect(x - 4, y - 3, 8, 5);
+            g.fillStyle = '#2d2230'; g.fillRect(x - 2, y - 3, 1, 5); g.fillRect(x + 1, y - 3, 1, 5); g.fillRect(x + 4, y - 1, 1, 1); g.fillRect(x - 3, y - 2, 1, 1);
+        } else if (it.kind === 'rotten') {
+            g.fillStyle = '#6b5a3a'; g.fillRect(x - 4, y - 3, 8, 7); g.fillStyle = '#4a3e28'; g.fillRect(x - 2, y - 1, 2, 2); g.fillRect(x + 1, y + 1, 2, 1);
+            g.fillStyle = '#2d2230'; const f = it.t / 5; g.fillRect(x + Math.round(Math.sin(f) * 6), y - 7 + Math.round(Math.cos(f * 1.3) * 2), 1, 1); g.fillRect(x - Math.round(Math.cos(f) * 5), y - 6, 1, 1);
+        } else if (it.kind === 'power') {
+            const p = Math.floor(it.t / 6) % 2;
+            g.fillStyle = p ? '#8cf0ff' : '#ffffff'; g.fillRect(x - 5, y - 5, 10, 10);
+            g.fillStyle = '#3b2a45'; g.fillRect(x - 4, y - 4, 8, 8);
+            pxText(g, { basket: 'B', honey: 'H', magnet: 'M' }[it.power], x - 1, y - 2, p ? '#ffffff' : '#8cf0ff');
+        } else if (it.kind === 'gold' || this.fever) {
+            g.drawImage(goldFruit(FRUIT_KINDS[it.kind] ? (GD.fruit.includes(it.id) ? it.id : 'peach') : it.id), x - 8, y - 8);
+            if (Math.floor(it.t / 5) % 2) { g.fillStyle = '#ffffff'; g.fillRect(x + 5, y - 8, 1, 3); g.fillRect(x + 4, y - 7, 3, 1); }
+        } else if (Assets.has('fruit_' + it.id)) spr(g, 'fruit_' + it.id, x, y + 5);
+        else { g.fillStyle = FRUIT_KINDS[it.kind].col; g.fillRect(x - 4, y - 4, 8, 8); }
+    },
     draw(g, t) {
+        const fever = this.fever > 0, qx = this.quake ? Math.round((R() - 0.5) * 3) : 0;
+        g.save(); g.translate(qx, 0);
         const sky = g.createLinearGradient(0, 0, 0, FRUIT_GROUND);
-        sky.addColorStop(0, '#7fd3e8'); sky.addColorStop(1, '#e4f6fb');
-        g.fillStyle = sky; g.fillRect(0, 0, ARCADE_W, ARCADE_H);
+        if (fever) { sky.addColorStop(0, '#ffcf57'); sky.addColorStop(1, '#fff1c4'); } else { sky.addColorStop(0, '#7fd3e8'); sky.addColorStop(1, '#e4f6fb'); }
+        g.fillStyle = sky; g.fillRect(-4, 0, ARCADE_W + 8, ARCADE_H);
         g.fillStyle = '#ffffff';
         for (const [cx, cy] of this.clouds) { g.fillRect(Math.round(cx) - 8, cy, 16, 4); g.fillRect(Math.round(cx) - 5, cy - 3, 9, 3); }
-        // the trees along the top
-        for (const [cx, r] of [[18, 26], [68, 30], [118, 26]]) {
-            g.fillStyle = '#3f7a2e'; g.beginPath(); g.ellipse(cx, 6, r, 16, 0, 0, Math.PI * 2); g.fill();
-            g.fillStyle = '#5fa63e'; g.beginPath(); g.ellipse(cx - 4, 3, r - 6, 11, 0, 0, Math.PI * 2); g.fill();
-            g.fillStyle = '#ff7a6a'; g.fillRect(cx - 9, 10, 2, 2); g.fillRect(cx + 6, 6, 2, 2); g.fillStyle = '#ffc53a'; g.fillRect(cx + 1, 13, 2, 2);
+        // the trees along the top (a shaking tree is about to drop something)
+        FRUIT_TREES.forEach((cx, i) => {
+            const r = i === 1 ? 30 : 26, sh = this.shakes[i] ? Math.round(Math.sin(this.shakes[i] * 1.7) * 2) : 0;
+            g.fillStyle = fever ? '#c98a2e' : '#3f7a2e'; g.beginPath(); g.ellipse(cx + sh, 6, r, 16, 0, 0, Math.PI * 2); g.fill();
+            g.fillStyle = fever ? '#ffd84a' : '#5fa63e'; g.beginPath(); g.ellipse(cx - 4 + sh, 3, r - 6, 11, 0, 0, Math.PI * 2); g.fill();
+            g.fillStyle = '#ff7a6a'; g.fillRect(cx - 9 + sh, 10, 2, 2); g.fillRect(cx + 6 + sh, 6, 2, 2); g.fillStyle = '#ffc53a'; g.fillRect(cx + 1 + sh, 13, 2, 2);
+            if (this.shakes[i] && this.shakes[i] % 6 < 3) { g.fillStyle = '#7acc5e'; g.fillRect(cx - 12 + sh * 2, 18 + (26 - this.shakes[i]) / 2, 2, 1); g.fillRect(cx + 10 - sh, 20 + (26 - this.shakes[i]) / 3, 2, 1); }
+        });
+        // grass, and where things are going to land
+        g.fillStyle = fever ? '#c9b24a' : '#8cc152'; g.fillRect(-4, FRUIT_GROUND - 2, ARCADE_W + 8, ARCADE_H - FRUIT_GROUND + 2);
+        g.fillStyle = fever ? '#a8903a' : '#6fa03e'; g.fillRect(-4, FRUIT_GROUND - 2, ARCADE_W + 8, 1);
+        for (const it of this.items) {
+            if (it.kind === 'bee' || it.kind === 'power') continue;
+            const k = Math.max(0, Math.min(1, (it.y + 20) / FRUIT_GROUND));
+            g.fillStyle = it.kind === 'rotten' ? `rgba(90,60,40,${0.25 + k * 0.3})` : `rgba(40,60,20,${0.2 + k * 0.35})`;
+            const w = Math.round(3 + k * 5);
+            g.fillRect(Math.round(it.x0 != null && FRUIT_KINDS[it.kind] && FRUIT_KINDS[it.kind].sway ? it.x : it.x) - w, FRUIT_GROUND - 1, w * 2, 1);
         }
-        // grass
-        g.fillStyle = '#8cc152'; g.fillRect(0, FRUIT_GROUND - 2, ARCADE_W, ARCADE_H - FRUIT_GROUND + 2);
-        g.fillStyle = '#6fa03e'; g.fillRect(0, FRUIT_GROUND - 2, ARCADE_W, 1);
         for (const s of this.splats) {
             g.globalAlpha = Math.max(0, 1 - s.t / 70);
-            g.fillStyle = { peach: '#ffa98a', cherry: '#d8283f', mango: '#ffb53a', lychee: '#f4e6ea', apple: '#e0405a', coconut: '#8a5a3a' }[s.id] || '#e0405a';
+            g.fillStyle = s.col || '#e0405a';
             g.fillRect(Math.round(s.x) - 4, FRUIT_GROUND - 3, 9, 2); g.fillRect(Math.round(s.x) - 2, FRUIT_GROUND - 4, 5, 1);
             g.globalAlpha = 1;
         }
-        // falling things
-        for (const it of this.items) {
-            const x = Math.round(it.x), y = Math.round(it.y);
-            if (it.kind === 'bee') {
-                const flap = Math.floor(it.t / 3) % 2;
-                g.fillStyle = 'rgba(255,255,255,0.85)'; g.fillRect(x - 3, y - 5 + flap, 3, 2); g.fillRect(x + 1, y - 5 + flap, 3, 2);
-                g.fillStyle = '#ffd84a'; g.fillRect(x - 4, y - 3, 8, 5);
-                g.fillStyle = '#2d2230'; g.fillRect(x - 2, y - 3, 1, 5); g.fillRect(x + 1, y - 3, 1, 5); g.fillRect(x + 4, y - 1, 1, 1);
-                g.fillRect(x - 3, y - 2, 1, 1);
-            } else if (it.kind === 'gold') {
-                g.drawImage(goldFruit(it.id), x - 8, y - 8);
-                if (Math.floor(it.t / 5) % 2) { g.fillStyle = '#ffffff'; g.fillRect(x + 5, y - 8, 1, 3); g.fillRect(x + 4, y - 7, 3, 1); }
-            } else spr(g, 'fruit_' + it.id, x, y + 5);
-        }
-        // Sarah with her basket held high
+        for (const it of this.items) this.drawItem(g, it);
+        for (const b of this.bits) { g.fillStyle = b.col; g.fillRect(Math.round(b.x), Math.round(b.y), 2, 2); }
+        // Sarah (or whoever's playing) with the basket held high
         const blink = this.hurt && Math.floor(this.hurt / 4) % 2;
         if (!blink) {
             const bob = Math.abs(this.vx) > 0.4 ? Math.floor(t / 6) % 2 : 0;
-            const sx = Math.round(this.x), sy = FRUIT_GROUND - bob;
+            const sx = Math.round(this.x), sy = FRUIT_GROUND - bob, reach = this.reach();
             g.fillStyle = 'rgba(40,60,20,0.35)'; g.fillRect(sx - 6, FRUIT_GROUND, 12, 2);
             spr(g, sarahSprite(S.player.outfit, 'down_cheer'), sx, sy, this.vx < -0.4);
             const by = sy - 30;
-            g.fillStyle = '#8a5a2b'; g.fillRect(sx - 10, by, 21, 7);
-            g.fillStyle = '#c9954f'; g.fillRect(sx - 9, by + 1, 19, 5);
-            g.fillStyle = '#a8753a'; for (let k = -8; k < 10; k += 3) g.fillRect(sx + k, by + 2, 1, 3);
-            g.fillStyle = '#e8c48a'; g.fillRect(sx - 9, by + 1, 19, 1);
-            if (this.happy) { g.fillStyle = '#ffd84a'; g.fillRect(sx - 12, by - 3, 1, 1); g.fillRect(sx + 12, by - 4, 1, 1); }
+            // what's been caught peeks over the rim
+            this.pile.forEach((id, i) => { const px = sx - 6 + i * 4; if (id === 'gold') { g.fillStyle = '#ffd84a'; g.fillRect(px, by - 2, 4, 3); } else { g.fillStyle = (FRUIT_KINDS[id] || {}).col || '#e0405a'; g.fillRect(px, by - 2, 4, 3); } });
+            g.fillStyle = this.power === 'basket' ? '#3a6ea8' : '#8a5a2b'; g.fillRect(sx - reach + 1, by, reach * 2 - 1, 7);
+            g.fillStyle = this.power === 'basket' ? '#6ab0e8' : '#c9954f'; g.fillRect(sx - reach + 2, by + 1, reach * 2 - 3, 5);
+            g.fillStyle = '#a8753a'; for (let k2 = -reach + 3; k2 < reach - 1; k2 += 3) g.fillRect(sx + k2, by + 2, 1, 3);
+            g.fillStyle = '#e8c48a'; g.fillRect(sx - reach + 2, by + 1, reach * 2 - 3, 1);
+            if (this.happy) { g.fillStyle = '#ffd84a'; g.fillRect(sx - reach - 1, by - 3, 1, 1); g.fillRect(sx + reach + 1, by - 4, 1, 1); }
         }
         popText(g, this.pops, 0, 0);
-        // hud
+        g.restore();
+        // hud: hearts, score, the juice meter, round, power-up time
         for (let i = 0; i < 5; i++) pxText(g, '*', 5 + i * 9, 5, i < this.hearts ? '#e0405a' : 'rgba(59,42,69,0.3)', 2);
         pxShadow(g, pxNum(this.score), ARCADE_W - 5, 5, '#ffffff', 1, 'right', '#3b2a45');
         pxShadow(g, 'BEST ' + pxNum(Math.max(this.score, arc().best.fruit || 0)), ARCADE_W - 5, 13, '#ffd84a', 1, 'right', '#3b2a45');
-        if (this.combo >= 5) pxShadow(g, this.combo + ' IN A ROW', ARCADE_W / 2, 24, '#ffffff', 1, 'center', '#3b2a45');
+        g.fillStyle = 'rgba(59,42,69,0.45)'; g.fillRect(5, 18, 42, 4);
+        g.fillStyle = fever ? (Math.floor(t / 4) % 2 ? '#ffffff' : '#ffd84a') : '#ff7aa8';
+        g.fillRect(6, 19, fever ? Math.round(40 * this.fever / 480) : Math.round(40 * this.juice / 10), 2);
+        pxShadow(g, fever ? 'FEVER x2' : 'JUICE', 5, 24, fever ? '#ffd84a' : '#ffffff', 1, 'left', '#3b2a45');
+        if (this.power) pxShadow(g, `${FRUIT_POWERS[this.power]} ${Math.ceil(this.powerT / 60)}`, ARCADE_W / 2, 32, '#8cf0ff', 1, 'center', '#3b2a45');
+        if (this.combo >= 5) pxShadow(g, this.combo + ' IN A ROW', ARCADE_W / 2, 40, '#ffffff', 1, 'center', '#3b2a45');
+        if (this.banner) pxShadow(g, 'ROUND ' + this.round, ARCADE_W / 2, 66, '#ffffff', 2, 'center', '#3b2a45');
     },
 };
 ARCADE_GAMES.fruit = {
     name: 'Fruit Catch', fee: PLAY_FEE, tune: 'fruit', glow: '#ff9ec0',
     help: '\u2190 \u2192 move (or drag on the screen)',
-    how: "Fruit falls from the trees. Catch it in Sarah's basket! Every fruit you drop costs a heart, and so does a bee. Golden fruit is worth extra and mends a heart.",
+    how: "Watch the trees: one shakes, then drops something (its shadow shows where). Catch the fruit, dodge bees and rotten fruit. Ten in a row starts a Fruit Fever: double points! Golden fruit mends a heart, and B, H and M boxes are power-ups. Every 25 fruit is a new round.",
     buttons: [
         { k: 'left', label: '\u25c0', keys: MOVE_KEYS.left, side: 'L', aria: 'Move left' },
         { k: 'right', label: '\u25b6', keys: MOVE_KEYS.right, side: 'R', aria: 'Move right' },
@@ -673,7 +752,7 @@ ARCADE_GAMES.fruit = {
     tickets(g) { return g.score > 0 ? Math.max(1, Math.floor(g.score / 50)) : 0; },
     result(g) {
         const best = arc().best.fruit || 0;
-        return { title: g.score >= best && g.score > 0 ? 'New best!' : 'Game over', lines: [`${fmtNum(g.score)} points \u00b7 ${g.caught} ${plural(g.caught, 'fruit')} caught`, `Best: ${fmtNum(Math.max(best, g.score))}`] };
+        return { title: g.score >= best && g.score > 0 ? 'New best!' : 'Game over', lines: [`${fmtNum(g.score)} points \u00b7 round ${g.round} \u00b7 ${g.caught} ${plural(g.caught, 'fruit')} caught`, `Best: ${fmtNum(Math.max(best, g.score))} \u00b7 longest streak ${g.best}`] };
     },
 };
 

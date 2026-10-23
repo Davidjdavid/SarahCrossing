@@ -4,6 +4,7 @@
    The games all run inside one cabinet overlay drawn here; their rules live in 61_arcadegames.js. */
 
 const ARCADE_GAMES = {};
+const ARCADE_CABS = ['blocks', 'capsules', 'fruit', 'stack', 'surf', 'garden', 'noodle'];      // the cabinet games, in the room's order
 const ARCADE_W = 136, ARCADE_H = 152;
 const PLAY_FEE = 50, CLAW_FEE = 100;
 const PRIZES = [
@@ -353,19 +354,20 @@ const Arcade = {
 };
 
 /* ---------------------------------------------------------------- the room */
-ROOMS.arcade = { w: 13, h: 7, wall: 'wall_arcade', floor: 'floor_arcade', music: 'arcade', name: 'The Arcade', staff: 'chili',
-    staffAt: [11, 0], staffStand: [11, 2], guest: [5, 4, 2], guestSpots: [[0, 1], [2, 1], [4, 1], [6, 1], [8, 4], [9, 4], [2, 5]],
+ROOMS.arcade = { w: 17, h: 7, wall: 'wall_arcade', floor: 'floor_arcade', music: 'arcade', name: 'The Arcade', staff: 'chili',
+    staffAt: [15, 0], staffStand: [15, 2], guest: [5, 4, 2], guestSpots: [[0, 1], [2, 1], [4, 1], [6, 1], [8, 1], [10, 1], [12, 1], [11, 4], [12, 4], [2, 5]],
     build: a => buildArcadeRoom(a),
     closedSign: 'THE ARCADE. Open {hours:arcade}. The machines are asleep. Chili tucked them in.' };
 function buildArcadeRoom(a) {
     const items = layoutItems([
-        ['poster_blocks', 1, 'wall'], ['poster_capsules', 3, 'wall'], ['poster_fruit', 5, 'wall'], ['poster_stack', 7, 'wall'], ['neon_game', 8, 'wall'], ['hiscore_board', 10, 'wall'],
-        ['clock_wall', 12, 'wall'],
-        ['cab_blocks', 0, 0], ['cab_capsules', 2, 0], ['cab_fruit', 4, 0], ['cab_stack', 6, 0], ['claw_machine', 8, 3],
-        ['counter_prize', 10, 1], ['plush_goat', 10, 1], ['trophy_arcade', 12, 1], ['snack_machine', 12, 4],
-        ['arcade_stool', 1, 4], ['cafe_table', 2, 4], ['arcade_stool', 3, 4], ['plant_monstera', 0, 6], ['plant_monstera', 12, 6]]);
+        ['poster_blocks', 1, 'wall'], ['poster_capsules', 3, 'wall'], ['poster_fruit', 5, 'wall'], ['poster_stack', 7, 'wall'], ['clock_wall', 9, 'wall'],
+        ['hiscore_board', 13, 'wall'], ['neon_game', 15, 'wall'],
+        ['cab_blocks', 0, 0], ['cab_capsules', 2, 0], ['cab_fruit', 4, 0], ['cab_stack', 6, 0], ['cab_surf', 8, 0], ['cab_garden', 10, 0], ['cab_noodle', 12, 0],
+        ['claw_machine', 11, 3], ['counter_prize', 14, 1], ['plush_goat', 14, 1], ['trophy_arcade', 16, 1], ['snack_machine', 16, 4],
+        ['arcade_stool', 1, 4], ['cafe_table', 2, 4], ['arcade_stool', 3, 4], ['plant_monstera', 0, 6], ['plant_monstera', 16, 6]]);
     const use = {
         cab_blocks: () => arcadeCabinet('blocks'), cab_capsules: () => arcadeCabinet('capsules'), cab_fruit: () => arcadeCabinet('fruit'), cab_stack: () => arcadeCabinet('stack'),
+        cab_surf: () => arcadeCabinet('surf'), cab_garden: () => arcadeCabinet('garden'), cab_noodle: () => arcadeCabinet('noodle'),
         poster_stack: () => UI.say(null, 'A poster: "SNACK STACK. Two of the same snack squish into a bigger snack. Can you make a watermelon?" There is a very happy watermelon on it.'),
         claw_machine: () => clawMachine(), counter_prize: () => prizeDesk(), prize_shelf: () => prizeDesk(), hiscore_board: () => showHiScores(),
         snack_machine: () => snackMachine(),
@@ -407,6 +409,15 @@ function drawCabinetScreen(ctx, e) {
     } else if (d.arcade === 'fruit') {
         ctx.fillStyle = ['#d8283f', '#ffc53a', '#ffa98a'][Math.floor(k / 4) % 3];
         ctx.fillRect(x0 + 5 + (Math.floor(k / 4) * 3) % 6, y0 + 7 + (k % 4), 1, 1);
+    } else if (d.arcade === 'surf') {
+        ctx.fillStyle = '#e8f8ff'; ctx.fillRect(x0 + 4 + (k % 8), y0 + 12, 2, 1);
+        ctx.fillStyle = '#ff7a6a'; ctx.fillRect(x0 + 6, y0 + 10 - [0, 1, 2, 1][k % 4], 3, 1);
+    } else if (d.arcade === 'garden') {
+        const h = Math.floor(k / 3) % 3;
+        ctx.fillStyle = '#a8743a'; ctx.fillRect(x0 + 5 + h * 2, y0 + 10 - (k % 3 ? 1 : 0), 2, 2);
+    } else if (d.arcade === 'noodle') {
+        ctx.fillStyle = '#ffe08a';
+        for (let i = 0; i < 3; i++) ctx.fillRect(x0 + 5 + ((k - i + 24) % 6), y0 + 9 + (Math.floor((k - i + 24) / 6) % 2) * 2, 1, 1);
     }
     if (G.lamps > 0.2) {
         ctx.fillStyle = 'rgba(160,220,255,0.25)';
@@ -586,7 +597,7 @@ function arcadeRivals() {
 async function showHiScores() {
     const A = arc();
     const P = UI.open({ title: 'High scores' });
-    for (const id of ['blocks', 'capsules', 'fruit', 'stack']) {
+    for (const id of ARCADE_CABS) {
         const rows = HISCORE_RIVALS[id].map(([n, s, note]) => ({ n, s, note }));
         const rv = A.rival[id];
         if (rv) { const o = rows.find(q => q.n === rv.who); if (o) { o.s = Math.max(o.s, rv.score); o.note = rv.beatenDay ? 'beaten by you!' : 'topped your score!'; } }

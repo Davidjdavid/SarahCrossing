@@ -383,3 +383,32 @@ test('Wonton can be talked to from every side of the hot spring (and a tap walks
   assert.deepEqual(res, { awake: true, standFree: true, below: true, above: true, left: true, right: true });
   await page.context().close();
 });
+
+test('every arcade cabinet starts, plays and ends, and the arcade has a cabinet for each', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => __dbg.setTime(10, 23, 14));
+  await page.evaluate(() => enterRoom('arcade'));
+  await page.waitForFunction(() => G.area && G.area.id === 'arcade');
+  const cabs = await page.evaluate(() => ({ list: ARCADE_CABS, inRoom: G.area.items.filter((i) => FURN[i.id] && FURN[i.id].arcade && FURN[i.id].arcade !== 'claw').map((i) => FURN[i.id].arcade), sprites: ARCADE_CABS.every((id) => Assets.has('f_cab_' + id)) }));
+  assert.deepEqual(cabs.inRoom.sort(), [...cabs.list].sort());
+  assert.ok(cabs.sprites, 'every cabinet has a picture');
+  for (const id of cabs.list) {
+    await page.evaluate((id) => __dbg.arcade(id), id);
+    await page.waitForFunction(() => Arcade.state === 'play', null, { timeout: 5000 });
+    // a few seconds of mashing every button and tapping the screen
+    for (let i = 0; i < 25; i++) {
+      await page.evaluate(() => { for (const b of Arcade.def.buttons) Arcade.tap[b.k] = Math.random() < 0.3; Arcade.tap.screen = Math.random() < 0.2; Object.assign(Arcade.pointer, { x: Math.random() * ARCADE_W, y: Math.random() * ARCADE_H, down: Math.random() < 0.5 }); });
+      await page.waitForTimeout(60);
+    }
+    await page.evaluate(() => { Arcade.g.over = true; });
+    await page.waitForFunction(() => Arcade.state === 'over', null, { timeout: 5000 });
+    await page.evaluate(() => Arcade.close(true));
+  }
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});

@@ -550,7 +550,7 @@ function upcomingHoliday() {
 }
 function arcadeLine(n) {
     const A = arc(), c = [];
-    for (const g of ['blocks', 'capsules', 'fruit', 'stack']) {
+    for (const g of ARCADE_CABS) {
         const best = A.best[g] || 0, rv = A.rival && A.rival[g];
         const name = ARCADE_GAMES[g] ? ARCADE_GAMES[g].name : g;
         if (rv && rv.score > best && rv.who !== n.id.toUpperCase()) c.push(`Did you hear? ${cap(rv.who.toLowerCase())} beat your ${name} score! ${fmtNum(rv.score)}! ${rv.who === 'CHILI' ? "He's unbearable about it." : "They're telling everyone."} Go get it back!`);

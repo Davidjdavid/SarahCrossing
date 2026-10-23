@@ -119,7 +119,7 @@ const Requests = {
         if (t.want && t.want.length) add(W(0.5, 2, 1), rr => ({ kind: 'bring', item: rpick(t.want, rr) }));
         add(W(0.3, 1.2, 1), () => ({ kind: 'type', type: 'dish' }));
         add(W(0.3, 1, 0.8), () => ({ kind: 'type', type: 'fish' }));
-        if (S.stats.arcade) add(W(0.3, 1, 1.2), rr => { const g = rpick(['blocks', 'capsules', 'fruit', 'stack'], rr); return { kind: 'arcade', game: g, score: ARC_TARGET[g][tier] }; });
+        if (S.stats.arcade) add(W(0.3, 1, 1.2), rr => { const g = rpick(ARCADE_CABS, rr); return { kind: 'arcade', game: g, score: ARC_TARGET[g][tier] }; });
         add(W(0, 0.6, 1.2), () => ({ kind: 'type', type: 'acc' }));
         add(W(0, 0.4, 1), () => ({ kind: 'sew' }));
         add(W(0, 0.4, 0.9), () => ({ kind: 'type', type: 'gem' }));

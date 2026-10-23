@@ -900,7 +900,7 @@ function appArcade() {
         r.appendChild(tt);
         L.appendChild(r);
     };
-    for (const id of ['blocks', 'capsules', 'fruit', 'stack'].filter(k => ARCADE_GAMES[k])) {
+    for (const id of ARCADE_CABS.filter(k => ARCADE_GAMES[k])) {
         const plays = A.plays[id] || 0;
         row('f_cab_' + id, ARCADE_GAMES[id].name, plays ? `Best ${fmtNum(A.best[id] || 0)} \u00b7 played ${plays} ${plural(plays, 'time')}` : 'Not played yet. The first game is free.');
     }

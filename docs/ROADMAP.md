@@ -24,8 +24,12 @@ Status: [x] done, [~] in progress, [ ] not started.
   - [ ] later: doing things together (fishing, minigames), more lines for everyone
 
 ## Art (pick a style first)
-- [~] Six sample styles to compare: Stardew-like, handheld classic, tamagotchi-colorful, 3D
-  diorama, classic cozy, experimental storybook paper
+- [x] Six sample styles to compare: Stardew-like, handheld classic, tamagotchi-colorful, 3D
+  diorama, classic cozy, experimental storybook paper (David liked Stardew-like and classic cozy;
+  the 3D and the portraits were too cutesy, and the game needs Animal Crossing's camera to work on
+  phones: placing decor, finding dig spots, seeing decor behind buildings)
+- [~] Three more samples with Animal Crossing's perspective in 2D: rolling-log pixel art, clean flat
+  illustration, cozy pixel art with the Animal Crossing camera (no portraits, less cutesy)
 - [ ] Redraw everything in the chosen style: real pixel art with shading, much larger characters
   (room to design clothes), character portraits in conversations
 - [ ] Must look good on phone, laptop and desktop (layout, text size, touch and mouse/keyboard)
@@ -46,8 +50,12 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] Way, way more content
 
 ## Games
-- [ ] A few more arcade games
-- [ ] Remake the fruit catching game so it's actually fun
+- [x] A few more arcade games: Surf's Up (Kai's wave: jump rocks, grab shells), Gopher Garden (bonk
+  the gophers, never Cuke) and Noodle Slurp (Basil's noodle grows as it slurps); the arcade is wider
+  to fit their cabinets, which can be won at the prize counter like the others
+- [x] Remake the fruit catching game so it's actually fun: trees shake before they drop, a shadow shows
+  where things land, fruits fall their own ways, juice meter and Fruit Fever, power-ups, rounds with
+  Perfect bonuses, snappier movement
 
 ## Bugs
 - [x] Talking to Wonton in the hot spring: the spot you have to stand in is too hard to hit (fixed: any side of the rim works, and a tap walks below it)
