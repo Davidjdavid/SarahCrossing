@@ -138,6 +138,7 @@ const Mover = {
     on: false, id: null, x: 0, y: 0, res: null, look: false, chk: null, things: null,
     run(id) { return new Promise(res => this.start(id, res)); },
     start(id, res) {
+        if (visitorStop('build')) { res(null); return; }
         const b = W0.buildings[id], a = G.areas.island;
         this.on = true; this.id = id; this.res = res; this.look = false;
         this.things = thingsMap(a, id);

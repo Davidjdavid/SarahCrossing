@@ -334,6 +334,7 @@ function linePts(x0, y0, x1, y1) {
 }
 /* painting at an easel (the museum's art corner, or one at home) */
 async function paintAtEasel(where) {
+    if (visitorStop('any')) return;
     const res = await Painter.run();
     if (!res) return;
     const A = artState();
@@ -469,6 +470,7 @@ function pickOwned(title, ids) {
 }
 function takeOwned(id) { return removeItem(id, 1) > 0 || fromStorage(id, 1); }
 async function donateArt(id, fresh) {
+    if (visitorStop('museum')) return;
     const A = artState(), p = A.pieces[id];
     if (!p) return;
     if (!fresh && !takeOwned(id)) return;
@@ -481,7 +483,7 @@ async function donateArt(id, fresh) {
     await donationThanks(`"${p.name}"`);
 }
 async function donatePot(id) {
-    if (!takeOwned(id)) return;
+    if (visitorStop('museum') || !takeOwned(id)) return;
     const A = artState();
     A.pots.push(id);
     S.stats.donated = (S.stats.donated || 0) + 1;

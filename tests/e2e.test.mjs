@@ -27,9 +27,11 @@ after(async () => {
 });
 
 /** A new "device": its own browser storage, logged in, on the title screen. */
-async function device({ debug = true } = {}) {
+async function device({ debug = true, who = 'sarah' } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1000, height: 640 } });
   if (debug) await ctx.addInitScript(() => { window.__DEBUG = true; });
+  // this device has already said who's playing (the picker has its own test)
+  if (who) await ctx.addInitScript((w) => { if (!localStorage.getItem('sc-who')) localStorage.setItem('sc-who', w); }, who);
   const page = await ctx.newPage();
   page.problems = [];
   page.on('pageerror', (e) => page.problems.push(e.message));
@@ -78,8 +80,12 @@ test('the password page lets the right password in', async () => {
   assert.match(await page.textContent('.msg'), /not it/);
   await page.fill('#password', 'pw');
   await page.click('button[type=submit]');
+  // a new device asks who's playing first
+  await page.waitForSelector('#panel:not([hidden]) .whobtn');
+  assert.deepEqual(await page.$$eval('.whobtn b', (bs) => bs.map((b) => b.textContent)), ['Sarah', 'David', 'James', 'John', 'Joe']);
+  await page.click('.whobtn:has-text("Sarah")');
   await title(page);
-  assert.deepEqual(await buttons(page), ['Start', 'Import a save']);
+  assert.deepEqual(await buttons(page), ['Start', 'Import a save', 'Change player']);
   await ctx.close();
 });
 
@@ -88,7 +94,7 @@ test('a save code from the old game comes in as an island, and plays', async () 
   await importCode(page, OLD_SAVE);
   await page.waitForLoadState('load');
   await title(page);
-  assert.deepEqual(await buttons(page), ['Continue', 'Islands', 'Import a save']);
+  assert.deepEqual(await buttons(page), ['Continue', 'Islands', 'Import a save', 'Change player']);
   assert.match(await page.textContent('#ttag'), /Welcome back to Imported Isle/);
   assert.match(await page.textContent('#tsync'), /Saved online/);
   await play(page);
@@ -309,4 +315,47 @@ test('a brand-new island is made on the server once the intro is done', async ()
   assert.equal(await page.evaluate(() => localStorage.getItem('sc-current')), islands[0].id);
   assert.deepEqual(page.problems, []);
   await page.context().close();
+});
+
+test('playing together: David visits Sarah, they see each other, and his things are his own', async () => {
+  const sarah = await device();
+  await play(sarah);
+  const islandBefore = await serverState(sarah);
+  const david = await device({ who: 'david' });
+  assert.match(await david.textContent('#ttag'), /Welcome to .*, David!/);
+  const db = await buttons(david);
+  assert.ok(db.includes('Continue') && db.includes('Change player') && !db.includes('Import a save') && !db.includes('Start'), db.join());
+  await play(david);
+  // he starts with his own pocket and sand dollars, at the boat
+  assert.equal(await david.textContent('#money'), '1,000');
+  assert.equal(await david.evaluate(() => S.playerName), 'David');
+  // they see each other (and David's NPC self steps aside while he plays)
+  await until(() => sarah.evaluate(() => Online.others.has('david')));
+  await until(() => david.evaluate(() => Online.others.has('sarah')));
+  assert.equal(await sarah.evaluate(() => NPCs.get('david').sleeping), true);
+  const at = await sarah.evaluate(() => [G.player.x, G.player.y]);
+  await david.evaluate(([x, y]) => { G.player.x = x + 20; G.player.y = y; }, at);
+  await until(() => sarah.evaluate(() => { const o = Online.others.get('david'); return o && o.area === G.area.id && Math.abs(o.x - G.player.x - 20) < 2; }));
+  // he says hi; she sees the bubble
+  await david.evaluate(() => Online.say('Hi sis!'));
+  await until(() => sarah.evaluate(() => [...document.querySelectorAll('#bubbles .chatb')].some((b) => b.textContent === 'Hi sis!')));
+  // a gift by letter
+  await david.evaluate(() => addItem('peach', 1, true));
+  await david.evaluate(() => { Online.giftTo('sarah'); });
+  await david.click('#panel .slot');
+  await david.click('#panel button:has-text("Send it")');
+  await until(() => sarah.evaluate(() => S.mail.some((m) => m.from === 'david' && m.gift === 'peach')));
+  // his money is his; Sarah's island isn't touched by his game
+  await david.evaluate(() => { S.money += 500; Save.touch(); return Cloud.flush(); });
+  const people = await david.evaluate(async () => (await (await fetch(`/api/islands/${Cloud.id}/people`)).json()).people);
+  assert.equal(people.find((p) => p.who === 'david').money, 1500);
+  assert.equal((await serverState(sarah)).state.money, islandBefore.state.money);
+  // changing the island is Sarah's job
+  assert.equal(await david.evaluate(() => visitorStop('build')), true);
+  assert.equal(await sarah.evaluate(() => visitorStop('build')), false);
+  // the neighbors have their own lines for him
+  assert.ok(await david.evaluate(() => VISIT_TALK.maki.hi.david.length > 0));
+  assert.deepEqual(david.problems.filter((p) => !/404/.test(p)), []);
+  await sarah.context().close();
+  await david.context().close();
 });

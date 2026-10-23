@@ -72,6 +72,13 @@ async function goHome() {
     if (playingAGame()) { UI.toast('Finish (or quit) the game first.'); return; }
     unstick();
     Sfx.play('door');
+    if (Online.visitor()) {
+        const [tx, ty] = Online.arrival(Online.who());
+        await fadeTo(async () => { setArea('island', (tx + 0.5) * TILE, (ty + 0.6) * TILE, 'down'); });
+        UI.toast(Online.who() === 'joe' ? 'Back home. The kettle is still warm.' : 'Back at the boat.', 'app_gohome');
+        Save.touch();
+        return;
+    }
     await fadeTo(async () => {
         const a = ensureArea('home');
         setArea('home', (a.doorTile[0] + 0.5) * TILE, (a.doorTile[1] - 0.2) * TILE, 'up');
@@ -82,7 +89,8 @@ async function goHome() {
 }
 async function askGoHome() {
     UI.close(true);
-    const k = await UI.ask(null, G.area.id === 'home' ? "Sarah is already home. Pop back to the front door anyway?" : 'Go home? Sarah will zip straight through her front door. (Handy if she ever gets stuck somewhere.)', ['Go home', 'Stay here']);
+    const k = await UI.ask(null, Online.visitor() ? (Online.who() === 'joe' ? 'Go home? Joe zips straight to his front door.' : 'Go back to the boat? (Handy if you ever get stuck somewhere.)')
+        : G.area.id === 'home' ? "Sarah is already home. Pop back to the front door anyway?" : 'Go home? Sarah will zip straight through her front door. (Handy if she ever gets stuck somewhere.)', ['Go home', 'Stay here']);
     if (k === 0) await goHome();
 }
 /* H twice (within a couple of seconds) on a keyboard */

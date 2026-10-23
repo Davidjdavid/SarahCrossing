@@ -27,12 +27,16 @@ async function boot(hotData) {
     const hot = window.claude && window.claude.hot;
     const hotState = hotData && hotData.state;
     const opened = await opening;
+    // a visitor sees Sarah's handmade things (in her house, in the museum) too
+    if (Online.visitor() && Online.island) for (const f of [registerAllPottery, registerAllArt, registerAllDesigns]) { try { f(Online.island); } catch (e) { console.error('Sarah\'s things:', f.name, e); } }
     S = (hotState && migrate(hotState)) || Save.load(opened && opened.state) || newState();
     // an island that won't load stays untouched on the server; this device starts fresh instead of saving over it
     if (opened && !S.started) { Cloud.broken = Cloud.island || { summary: { islandName: opened.state.islandName } }; Save.wipe(); }
     if (!S.started) S = newState();
     Cloud.ready();
     Cloud.loadPhotos();
+    Online.connect();
+    Online.fetchMail();
     initWorld();
     G.player = makePlayer(S.player.x, S.player.y, S.player.dir);
     G.area = G.areas.island;
@@ -150,13 +154,23 @@ function showTitle() {
     b.innerHTML = '';
     const has = S && S.started;
     // the islands live online: new islands, switching and backups are in Islands (6x_islands.js)
-    if (has) b.appendChild(btn('Continue', 'green', () => continueGame()));
-    else b.appendChild(btn('Start', 'green', () => startNew()));
-    if (has || Cloud.list.length) b.appendChild(btn('Islands', 'alt', () => IslandList.open()));
-    b.appendChild(btn('Import a save', 'alt', () => IslandList.importPanel()));
-    $('#ttag').textContent = has ? `Welcome back to ${S.islandName}. It's ${Clock.fmt().s} here.` : 'An island that runs on Sarah time.';
+    const visitor = Online.visitor(), nm = Online.name(Online.who());
+    if (visitor) {
+        // a visitor plays on Sarah's island; only she starts islands or brings them in
+        if (has) b.appendChild(btn('Continue', 'green', () => continueGame()));
+        if (Cloud.list.length > 1) b.appendChild(btn('Islands', 'alt', () => IslandList.open()));
+    } else {
+        if (has) b.appendChild(btn('Continue', 'green', () => continueGame()));
+        else b.appendChild(btn('Start', 'green', () => startNew()));
+        if (has || Cloud.list.length) b.appendChild(btn('Islands', 'alt', () => IslandList.open()));
+        b.appendChild(btn('Import a save', 'alt', () => IslandList.importPanel()));
+    }
+    b.appendChild(btn(Online.me ? 'Change player' : "Who's playing?", 'alt', () => IslandList.who()));
+    $('#ttag').textContent = visitor ? (has ? `Welcome to ${S.islandName}, ${nm}! It's ${Clock.fmt().s} here.` : `Hi ${nm}! Sarah hasn't started her island yet. Check back soon!`)
+        : has ? `Welcome back to ${S.islandName}. It's ${Clock.fmt().s} here.` : 'An island that runs on Sarah time.';
     IslandList.syncNote();
     if (Cloud.fork) IslandList.fork();
+    else if (!Online.me) IslandList.who();
     // drift the camera over the island behind the title
     G.titleCam = { t: 0 };
 }
@@ -359,6 +373,7 @@ function render() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     Dance.draw(ctx);
     Karaoke.draw(ctx);
+    Online.update();
     Bubbles.update();
     BigMap.tick();
 }

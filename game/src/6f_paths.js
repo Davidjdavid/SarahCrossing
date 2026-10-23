@@ -194,6 +194,7 @@ const PathTool = {
     on: false, style: 'dirt', look: false, cursor: [0, 0], painting: false, last: null, changed: 0,
     open() {
         if (this.on || G.mode !== 'play') return;
+        if (visitorStop('build')) return;
         if (G.area.id !== 'island') { UI.toast('Paths go outside! Head out onto the island first.'); return; }
         UI.close(true); UI.hideDialog();
         this.on = true; this.changed = 0; this.look = false;

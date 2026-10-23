@@ -10,14 +10,15 @@ function dailyCheck(force) {
     try { Requests.tick(); dayStatsTick(); arcadeRivals(); } catch (e) { console.error(e); }
     const r = mulberry(hash32(S.seed + ':mail:' + day));
     if (!first) {
-        if (r() < 0.22) { const m = rpick(HARVARD_MAIL, r); sendMail({ from: 'harvard', subject: m.subject, body: fillText(m.body) }); }
-        if (r() < 0.2 && S.flags.metJoe) {
+        // Harvard's letters and Joe's poems are for Sarah
+        if (r() < 0.22 && !Online.visitor()) { const m = rpick(HARVARD_MAIL, r); sendMail({ from: 'harvard', subject: m.subject, body: fillText(m.body) }); }
+        if (r() < 0.2 && S.flags.metJoe && !Online.visitor()) {
             const [title, lines] = rpick(JOE_POEMS, r);
             const intro = rpick(['Hi! I wrote a new poem and I had to send it right away.', 'Hey you. Couldn\'t sleep, so I wrote something.', "Good morning! I've been up since six. A new poem, fresh from the desk."], r);
             sendMail({ from: 'joe', subject: `A new poem: "${title}"`, body: `${intro}\n\n"${title}"\n${lines.join('\n')}\n\nSee you later!\n- Joe`,
                 gift: r() < 0.4 ? rpick(['rose_vase', 'framed_poem', 'sonnet_stack', 'typewriter'], r) : null });
         }
-        if (G.events.has('valentine') && !S.flags['val' + day]) {
+        if (G.events.has('valentine') && !S.flags['val' + day] && !Online.visitor()) {
             S.flags['val' + day] = true;
             sendMail({ from: 'joe', subject: "Happy Valentine's Day", body: "Hi,\nHappy Valentine's Day! I made you a card. It has a frog on it. The frog is holding a heart. The frog is not me. (The frog is me.)\nThere's a heart lamp too. Coco said you have to give a lamp. I don't know why. It's a nice lamp.\n\nOkay bye!\nJoe\n\nP.S. Please don't show Coco.", gift: 'heart_lamp' });
         }
@@ -122,6 +123,7 @@ function decorateIsland(a) {
 
 /* ---------------------------------------------------------------- birthday */
 async function birthdayParty() {
+    if (Online.visitor()) return;                       // it's Sarah's birthday (her visitors can still say so)
     const year = Clock.dayDate().getFullYear();
     if (S.flags['bday' + year] || !S.birthday) return;
     S.flags['bday' + year] = true;

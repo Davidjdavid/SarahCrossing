@@ -229,7 +229,7 @@ function addClamSpot(a, c, i) {
 function isChoppable(e) { return e && (e.kind === 'tree' || e.kind === 'fruittree') && e.tx != null; }
 async function chopTree(e) {
     const p = G.player;
-    if (G.busy) return;
+    if (G.busy || visitorStop('chop')) return;
     G.busy++;
     try {
         faceToward(p, e);
@@ -278,7 +278,7 @@ async function fellTree(e) {
 function forestAt(a, tx, ty) { return a.ents.find(e => e.forest && e.tx === tx && e.ty === ty); }
 async function digAt(tx, ty) {
     const a = G.area, p = G.player, F = forest();
-    if (G.busy) return;
+    if (G.busy || visitorStop('dig')) return;
     if (a.id !== 'island') { await UI.say(null, "Sarah can't dig in here. The floor would be very upset."); return; }
     const e = forestAt(a, tx, ty);
     const [fx, fy] = tileFoot(tx, ty);
@@ -467,6 +467,7 @@ function shovelFront() {
 }
 /* tapping the ground while holding the shovel: walk next to that tile and dig it */
 function tapDig(tx, ty) {
+    if (visitorStop('dig')) return true;
     const a = G.area, p = G.player;
     const sx = Math.floor(p.x / TILE), sy = Math.floor((p.y - 2) / TILE);
     let best = null;

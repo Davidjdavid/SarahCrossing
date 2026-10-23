@@ -420,6 +420,7 @@ function targetFor(n, dh) {
         return { key: 'sleep', sleep: true };
     }
     if (!S.flags.introDone) return { key: 'sleep', sleep: true };
+    if (Online.isHere(n.id)) return { key: 'online', sleep: true };       // the real David (or Joe...) is playing: their NPC steps aside
     const seg = planNow(n.id, dh);
     if (!seg) return { key: 'sleep', sleep: true };
     // Sarah said yes to lunch or hanging out: that's where they're headed

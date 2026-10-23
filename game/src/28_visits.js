@@ -47,7 +47,7 @@ const Visits = {
         return v;
     },
     check() {
-        if (!S || !S.started || G.mode !== 'play' || !S.flags.introDone) return;
+        if (!S || !S.started || G.mode !== 'play' || !S.flags.introDone || Online.visitor()) return;     // people knock on Sarah's door
         const v = this.today();
         if (v.state !== 'pending') return;
         const dh = dayHour();

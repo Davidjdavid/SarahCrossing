@@ -209,6 +209,7 @@ const Decor = {
     on: false, held: null, sel: null, cursor: [2, 3], tab: 'furniture',
     async enter() {
         if (G.area.id !== 'home' || this.on) return;
+        if (visitorStop('decorate')) return;
         this.on = true;
         G.decor = true;
         G.player.hidden = true;

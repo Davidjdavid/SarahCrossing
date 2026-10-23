@@ -27,6 +27,7 @@ async function doMove(m) {
     if (!p || G.busy) return;
     G.busy++;
     const mv = MOVES[m];
+    Online.did(m);
     p.emote = mv.emote; p.emoteT = 70;
     const d0 = p.dir;
     p.dir = 'down';
@@ -50,7 +51,7 @@ async function doMove(m) {
     for (const n of NPCs.here()) {
         if (Math.hypot(n.x - p.x, n.y - p.y) < 60) { n.emote = rpick(['note', 'heart', 'laugh', 'sparkle']); n.emoteT = 60; }
     }
-    if (m === 'yawn') UI.toast(`Sarah yawns. It's only ${Clock.fmt().s}, though.`);
+    if (m === 'yawn') UI.toast(`${S.playerName || 'Sarah'} yawns. It's only ${Clock.fmt().s}, though.`);
     G.busy--;
 }
 

@@ -100,6 +100,7 @@ function spawnDrop(id, x, y, persist) {
     return e;
 }
 async function pickUp(e) {
+    if (e.dropRef && visitorStop('take')) return;
     const p = G.player;
     faceToward(p, e);
     p.pose = 'pick'; p.poseT = 14;
@@ -219,6 +220,7 @@ function drawPlot(ctx, e) {
     if (st === 3) spr(ctx, pl.seed.startsWith('flower_') ? ITEMS[pl.seed].icon : 'veg_' + pl.seed, e.x, e.y - (pl.seed.startsWith('flower_') ? 1 : 3));
 }
 async function usePlot(i) {
+    if (visitorStop('farm')) return;
     const pl = S.plots[i];
     const st = plotStage(pl);
     if (!pl) {

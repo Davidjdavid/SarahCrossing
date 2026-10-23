@@ -134,7 +134,7 @@ function pocketActions(i, s, redraw) {
     } else if (!['tool'].includes(it.type)) {
         out.push(btn('Send home', 'alt', () => { const n = removeSlot(i); toStorage(s.id, n); UI.toast(`Sent to your house storage`, it.icon); redraw(); }));
     }
-    if (G.area.id === 'island' && it.type !== 'tool' && !importantItem(s.id)) out.push(btn('Drop', 'alt', () => {
+    if (G.area.id === 'island' && it.type !== 'tool' && !importantItem(s.id) && !Online.visitor()) out.push(btn('Drop', 'alt', () => {
         removeSlot(i, 1);
         const p = G.player;
         spawnDrop(s.id, p.x + (p.dir === 'left' ? -10 : p.dir === 'right' ? 10 : 0), p.y + (p.dir === 'up' ? -8 : 6));
@@ -236,6 +236,10 @@ function appMail(box) {
     const P = UI.open({ title: box ? 'Mailbox' : 'Mail', phone: !box, back: box ? null : backToPhone });
     const list = el('div', 'list');
     const mails = S.mail.filter(x => x.day <= Clock.dayNum()).reverse();
+    // letters to the other people who play (13_online.js)
+    const write = btn('Write a letter', 'green', () => Online.writeLetter());
+    write.style.marginBottom = '10px';
+    P.body.appendChild(write);
     if (!mails.length) list.appendChild(el('p', 'muted', 'No mail yet. Neighbors write when they get to know you.'));
     for (const m of mails) {
         const r = el('button', 'row' + (m.read ? '' : ' unread'));
@@ -251,6 +255,7 @@ function appMail(box) {
     P.body.appendChild(list);
 }
 function mailFromName(m) {
+    if (PEOPLE.includes(m.from) && !NPC_DEFS[m.from]) return Online.name(m.from);
     if (m.from === 'harvard') return 'Harvard (probably)';
     if (m.from === 'fortune') return "Fortune's Goods";
     if (m.from === 'shop') return 'IslandMart (online)';
@@ -482,8 +487,8 @@ function appSettings() {
     list.appendChild(toggle('Sound effects', () => Audio2.sfxOn, v => { Audio2.sfxOn = v; Audio2.savePrefs(); }));
     list.appendChild(toggle('Neighbors can text me first', () => !(S.settings && S.settings.npcTexts === false), v => { S.settings = S.settings || {}; S.settings.npcTexts = v; Save.touch(); }));
     b.appendChild(list);
-    b.appendChild(islandNameSetting());
-    b.appendChild(clockSetting());
+    // the island's name and clock are Sarah's to set
+    if (!Online.visitor()) { b.appendChild(islandNameSetting()); b.appendChild(clockSetting()); }
     b.appendChild(zoomSetting());
     b.appendChild(el('h3', null, '')).style.margin = '8px 0 0';
     const note = el('p', 'muted', Cloud.problem === 'offline' ? "Can't reach the island server right now. Your island is kept on this device and saves online once the connection is back."
@@ -516,7 +521,7 @@ function appSettings() {
     isl.appendChild(btn('Your islands', 'alt', () => IslandList.open(true)));
     b.appendChild(isl);
     b.appendChild(el('p', 'muted', 'Controls: arrows or WASD walk, Shift runs, E / Space / Enter talks and uses things, I opens the pocket, P opens the phone, M opens the map, Q does a dance move, - and + zoom, H twice goes home. On a phone, tap where you want to go or what you want to use, and pinch to zoom.'));
-    b.appendChild(secretsSection());
+    if (!Online.visitor()) b.appendChild(secretsSection());
 }
 /* the island clock: pick the time it is on the island; it keeps running from there */
 function clockSetting() {
@@ -821,6 +826,7 @@ function openCooking(wok) {
 
 /* ---------------------------------------------------------------- wardrobe */
 function openWardrobe(fromPhone) {
+    if (visitorStop('look')) return;
     const P = UI.open({ title: 'Wardrobe', phone: false, back: fromPhone === true ? backToPhone : null });
     const draw = () => {
         P.body.innerHTML = '';

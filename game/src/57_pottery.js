@@ -160,7 +160,7 @@ function buildStudioRoom(a) {
 function sullyVoice() { const s = NPCs.get('sully'); return s && !s.sleeping && s.area === 'studio' ? 'sully' : null; }
 function sullySays(text) { const sp = sullyVoice(); return UI.say(sp, sp ? bostonize(text) : text.replace(/\bkid\b/gi, 'Sarah')); }
 function shelfPieces() { return Object.values(pottery().pieces).filter(p => p.state === 'green' || p.state === 'glazed').sort((a, b) => a.n - b.n); }
-function newPieceId() { const P = pottery(); return 'pot_' + (P.seq++); }
+function newPieceId() { const P = pottery(); return (Online.visitor() ? `pot_${Online.who()}` : 'pot_') + (P.seq++); }      // visitors' pots never share a name with Sarah's
 function savePiece(p) {
     const P = pottery();
     p.n = p.n || P.seq;

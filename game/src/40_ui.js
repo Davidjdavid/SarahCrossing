@@ -4,6 +4,7 @@ const UI = {
     modal: false, dialogOpen: false, _adv: null, _typing: false, _full: '', _chooser: null,
     speakerInfo(sp) {
         if (!sp) return null;
+        if (sp === 'sarah' && Online.visitor()) { const d = NPC_DEFS[Online.who()]; return { name: d.name, color: d.color, icon: `${d.human}_down_stand`, voice: d.voice, wave: d.wave }; }
         if (sp === 'sarah') return { name: S.playerName || 'Sarah', color: '#b3263a', icon: sarahSprite(S.player.outfit, 'down_happy'), voice: 520, wave: 'sine' };
         if (typeof sp === 'object') return sp;
         const d = NPC_DEFS[sp];

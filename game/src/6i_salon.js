@@ -107,6 +107,7 @@ function lookFrame(outfit, dir, body, face, L) {
 /* the sprite name for a frame of Sarah ("down_stand", "side_hug"...) in an outfit, in her look */
 const SARAH_FRAMES = {};
 function sarahSprite(outfit, frame) {
+    if (Online.visitor()) return personFrame(Online.who(), frame);          // a visitor, as themselves
     outfit = outfit || 'crimson';
     const L = look(), custom = !!(S.designs && S.designs[outfit]);
     if (!custom && lookIsDefault(L)) return `sarah_${outfit}_${frame}`;
@@ -124,7 +125,7 @@ function sarahSprite(outfit, frame) {
 
 /* ---------------------------------------------------------------- the salon chair */
 const Salon = {
-    run() { return new Promise(res => this.start(res)); },
+    run() { return visitorStop('look') ? Promise.resolve(null) : new Promise(res => this.start(res)); },
     start(res) {
         this.res = res;
         this.L = look();

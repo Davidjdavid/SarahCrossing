@@ -167,7 +167,7 @@ const HOUSE_TIPS = { maki: 'dark greens and navy. Nothing fussy', kai: 'ocean bl
     cuke: 'bright, fresh greens', sully: 'crimson and brick. Very Boston', david: 'rainbow. Or pink. Or purple. Mostly rainbow', joe: 'calm blues and grays',
     ginger: 'gingerbread browns and brick', brulee: 'caramel, gold and cream', mac: 'cheddar yellow and a nice bowl blue' };
 const ExtEditor = {
-    run(id) { return new Promise(res => this.start(id, res)); },
+    run(id) { return visitorStop('build') ? Promise.resolve(null) : new Promise(res => this.start(id, res)); },
     start(id, res) {
         this.id = id; this.res = res;
         this.L = houseLook(id);

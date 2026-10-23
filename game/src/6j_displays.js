@@ -175,6 +175,7 @@ const IslandEdit = {
     on: false, held: null, look: false, cursor: [0, 0], msg: '',
     open(opts) {
         if (this.on || G.mode !== 'play') return;
+        if (visitorStop('build')) return;
         if (G.area.id !== 'island') { UI.toast('Island edit works outside. Head out onto the island first.'); return; }
         UI.close(true); UI.hideDialog();
         this.on = true; this.held = null; this.look = false; this.msg = '';

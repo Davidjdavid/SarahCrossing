@@ -34,7 +34,8 @@ async function talkTo(n) {
     else faceToward(p, n);
     try {
         const id = n.id;
-        if (await Invites.talk(n)) { /* a lunch, a hangout, news or a present Sarah said yes to */ }
+        if (Online.visitor() && await visitorTalk(n)) { /* a visitor's own conversation (6y_visitors.js) */ }
+        else if (await Invites.talk(n)) { /* a lunch, a hangout, news or a present Sarah said yes to */ }
         else if (id === 'goat') await goatTalk(n);
         else if (id === 'fortune') await fortuneTalk(n);
         else if (id === 'floss') { rel('floss').met = true; await flossTalk(n); }

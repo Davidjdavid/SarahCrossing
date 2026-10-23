@@ -7,6 +7,7 @@
 const CLOUD_CURRENT = 'sc-current';          // which island this device plays: an island id, or '' for a new one
 const CLOUD_DEVICE = 'sc-device';            // a random id for this browser
 const CLOUD_COPY = 'sc-island-';             // + island id (or 'new'): { id, rev, pending, at, state }
+const CLOUD_PERSON = 'sc-person-';           // + island id + '-' + who: a visitor's own copy (13_online.js), the same way
 const CLOUD_PUSH_EVERY = 20e3;               // ordinary saves reach the server at most this often (ms)
 
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -58,18 +59,23 @@ const Cloud = {
         return this.list;
     },
 
+    /* what this device saves: Sarah's game saves the island; a visitor's game saves their own things on it */
+    docUrl() { return Online.visitor() ? `/api/islands/${encodeURIComponent(this.id)}/people/${Online.who()}` : '/api/islands/' + encodeURIComponent(this.id); },
+    docJson() { return JSON.stringify(Online.visitor() ? Online.personOf(S) : S); },
+    photosUrl() { return Online.visitor() ? this.docUrl() + '/photos' : `/api/islands/${encodeURIComponent(this.id)}/photos`; },
+
     /* ---------------------------------------------------------------- this device's copy */
-    copyKey(id) { return CLOUD_COPY + (id || 'new'); },
+    copyKey(id) { return Online.visitor() ? `${CLOUD_PERSON}${id}-${Online.who()}` : CLOUD_COPY + (id || 'new'); },
     readCopy(id) {
         try { const c = JSON.parse(lsGet(this.copyKey(id)) || 'null'); return c && c.state && typeof c.state === 'object' ? c : null; } catch (e) { return null; }
     },
     writeCopy(pending, json) {
-        const text = `{"id":${JSON.stringify(this.id)},"rev":${this.rev},"pending":${!!pending},"at":${Date.now()},"state":${json || JSON.stringify(S)}}`;
+        const text = `{"id":${JSON.stringify(this.id)},"rev":${this.rev},"pending":${!!pending},"at":${Date.now()},"state":${json || this.docJson()}}`;
         if (lsSet(this.copyKey(this.id), text)) return true;
         // storage is full: let go of other islands' copies the server already has, and try once more
         try {
             for (const k of Object.keys(localStorage)) {
-                if (!k.startsWith(CLOUD_COPY) || k === this.copyKey(this.id)) continue;
+                if (!(k.startsWith(CLOUD_COPY) || k.startsWith(CLOUD_PERSON)) || k === this.copyKey(this.id)) continue;
                 const c = JSON.parse(localStorage.getItem(k) || 'null');
                 if (!c || !c.pending) localStorage.removeItem(k);
             }
@@ -95,6 +101,7 @@ const Cloud = {
             if (current == null || (current && !this.list.some(i => i.id === current))) current = this.list.length ? this.list[0].id : '';
             lsSet(CLOUD_CURRENT, current);
         }
+        if (Online.visitor()) return this.bootVisitor(current, reached);
         if (!current) {
             // a new island that was started while the server couldn't be reached
             const c = this.readCopy(null);
@@ -131,6 +138,36 @@ const Cloud = {
         return { state: server.state };
     },
 
+    /* a visitor's game: Sarah's island (from the server, or this device's last look at it) with the visitor's own
+       things on top (theirs from the server, or this device's copy if it's newer). Null when there's no island yet. */
+    async bootVisitor(current, reached) {
+        if (!current) return null;
+        this.id = current;
+        this.island = this.list.find(i => i.id === current) || null;
+        let isl = null, person = null, missing = false;
+        if (reached) {
+            try {
+                const r = await this.api('GET', '/api/islands/' + encodeURIComponent(current));
+                isl = r.state; this.island = r.island;
+                lsSet('sc-view-' + current, JSON.stringify(isl));
+            } catch (e) { if (e.status === 401) return this.toLogin(); this.offline(); }
+            if (isl) {
+                try { const r = await this.api('GET', this.docUrl()); person = r.state; this.rev = r.rev; } catch (e) {
+                    if (e.status === 401) return this.toLogin();
+                    if (e.status === 404) missing = true; else this.offline();
+                }
+            }
+        }
+        if (!isl) { try { isl = JSON.parse(lsGet('sc-view-' + current) || 'null'); } catch (e) { isl = null; } }
+        if (!isl) { this.id = null; return null; }
+        Online.island = isl;
+        const copy = this.readCopy(current);
+        if (copy && copy.pending && (!person || copy.rev === this.rev || missing)) { person = copy.state; this.rev = copy.rev; this.seq = 1; }
+        else if (copy && !person) { person = copy.state; this.rev = copy.rev; }
+        if (!person) { person = Online.newPerson(Online.who()); this.rev = 0; this.seq = 1; }
+        return { state: Online.merge(isl, person) };
+    },
+
     /* boot has set S: progress this device kept but never sent (offline, or the page closed mid-save) goes now */
     ready() { if (this.seq !== this.sentSeq) this.push(false); },
 
@@ -149,17 +186,20 @@ const Cloud = {
         this.timer = setTimeout(() => { this.timer = 0; this.push(false); }, wait);
     },
     async push(urgent) {
-        if (this.leaving || this.problem === 'conflict' || this.problem === 'login' || this.problem === 'big' || this.fork || !S || !S.started) return;
+        if (this.leaving || this.problem === 'conflict' || this.problem === 'login' || this.problem === 'big' || this.problem === 'gone' || this.fork || !S || !S.started) return;
         if (this.seq === this.sentSeq) return;
         if (this.busy) { this.again = true; return; }
         clearTimeout(this.timer); this.timer = 0;
         this.busy = true;
-        const seq = this.seq, json = JSON.stringify(S), wasNew = !this.id;
+        const visitor = Online.visitor();
+        if (visitor && !this.id) return;
+        const seq = this.seq, json = this.docJson(), wasNew = !this.id;
         const body = `{"baseRev":${this.rev},"device":${JSON.stringify(this.device)},"state":${json}}`;
         try {
             const r = wasNew ? await this.api('POST', '/api/islands', body, { keepalive: urgent })
-                : await this.api('PUT', '/api/islands/' + encodeURIComponent(this.id), body, { keepalive: urgent });
-            this.id = r.island.id; this.rev = r.rev; this.island = r.island;
+                : await this.api('PUT', this.docUrl(), body, { keepalive: urgent });
+            this.rev = r.rev;
+            if (!visitor) { this.id = r.island.id; this.island = r.island; }
             this.sentSeq = seq; this.lastPush = Date.now(); this.retryMs = 0;
             if (wasNew) { lsDel(this.copyKey(null)); lsSet(CLOUD_CURRENT, this.id); if (Photos.list().length) Photos.send(); }
             // newer changes since this one was sent stay pending (the copy is redone from S, with the new rev)
@@ -167,8 +207,9 @@ const Cloud = {
             if (this.problem) { const was = this.problem; this.problem = null; if (was === 'offline' && G.mode === 'play') UI.toast('Back online. The island is saved.'); }
             this.online = true; Save.ok = true;
         } catch (e) {
-            if (e.status === 409) this.conflict(e.data && e.data.island);
+            if (e.status === 409) this.conflict(e.data && (e.data.island || e.data.person));
             else if (e.status === 401) { this.problem = 'login'; this.tell('login', 'Log in again to keep saving online. (Your island is kept on this device until then.)'); }
+            else if (e.status === 404 && visitor) { this.problem = 'gone'; this.tell('gone', "This island isn't on the server anymore. Your things are kept on this device."); }
             else if (e.status === 404 && !wasNew) {
                 // deleted on another device: keep Sarah's island anyway, as a new one
                 this.id = null; this.rev = 0;
@@ -212,7 +253,8 @@ const Cloud = {
     },
     /* back to this tab after a while: if the island moved on elsewhere, say so before Sarah plays on an old copy */
     async check() {
-        if (!this.id || this.problem === 'conflict' || this.fork || G.mode === 'title') return;
+        // (a visitor's island moves on whenever Sarah plays: that's not a problem, 13_online.js shows it)
+        if (!this.id || Online.visitor() || this.problem === 'conflict' || this.fork || G.mode === 'title') return;
         try { await this.refreshList(); } catch (e) { return; }
         const now = this.list.find(i => i.id === this.id);
         if (now && now.rev > this.rev && this.seq === this.sentSeq && !this.busy) this.conflict(now);
@@ -221,9 +263,9 @@ const Cloud = {
     async overwrite() {
         this.problem = null;
         this.seq++;
-        const json = JSON.stringify(S);
-        const r = await this.api('PUT', '/api/islands/' + encodeURIComponent(this.id), `{"baseRev":${this.rev},"force":true,"device":${JSON.stringify(this.device)},"state":${json}}`);
-        this.rev = r.rev; this.island = r.island; this.sentSeq = this.seq; this.lastPush = Date.now();
+        const json = this.docJson();
+        const r = await this.api('PUT', this.docUrl(), `{"baseRev":${this.rev},"force":true,"device":${JSON.stringify(this.device)},"state":${json}}`);
+        this.rev = r.rev; if (r.island) this.island = r.island; this.sentSeq = this.seq; this.lastPush = Date.now();
         this.writeCopy(false, json);
     },
     /* forget this device's copy of the island, so the next load takes the server's */
@@ -232,14 +274,14 @@ const Cloud = {
     /* ---------------------------------------------------------------- the album */
     async loadPhotos() {
         if (!this.id) return;
-        try { const r = await this.api('GET', `/api/islands/${encodeURIComponent(this.id)}/photos`); Photos.got(r.photos || []); } catch (e) { /* the copy on this device will do */ }
+        try { const r = await this.api('GET', this.photosUrl()); Photos.got(r.photos || []); } catch (e) { /* the copy on this device will do */ }
     },
 
     /* ---------------------------------------------------------------- problems, for the server log */
     report(message, stack) {
         if (this.reports >= 12) return;
         this.reports++;
-        this.api('POST', '/api/log', { message: String(message).slice(0, 600), stack: String(stack || '').slice(0, 3000), island: this.id || '' }).catch(() => {});
+        this.api('POST', '/api/log', { message: String(message).slice(0, 600), stack: String(stack || '').slice(0, 3000), island: (this.id || '') + (Online.visitor() ? ' as ' + Online.who() : '') }).catch(() => {});
     },
 };
 

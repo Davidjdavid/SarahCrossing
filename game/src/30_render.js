@@ -124,6 +124,7 @@ function drawWorld() {
     for (const n of NPCs.here()) if (!n.hidden) list.push(n);
     if (a.id === 'island') { for (const c of Critters.ents()) list.push(c); for (const s of SeaSky.ents()) list.push(s); for (const b of Flutter.ents()) list.push(b); }
     if (G.player && !G.player.hidden) list.push(G.player);
+    for (const o of Online.here()) list.push(o);
     for (const f of G.fx) if (f.sorted) list.push(f);
     list.sort((p, q) => (p.sy != null ? p.sy : p.y) - (q.sy != null ? q.sy : q.y));
     for (const e of list) drawEnt(ctx, e);
@@ -320,7 +321,7 @@ function drawWeather(ctx, v) {
 /* emote bubbles + the little "you can use this" marker */
 function drawOverheads(ctx) {
     const p = G.player;
-    const all = NPCs.here().concat(p ? [p] : []);
+    const all = NPCs.here().concat(p ? [p] : [], Online.here());
     for (const e of all) {
         if (!e.emote) continue;
         const bx = Math.round(e.x), by = Math.round(e.y) - (e.npc ? (e.h || 18) + 8 : 32);

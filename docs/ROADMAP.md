@@ -14,12 +14,14 @@ Status: [x] done, [~] in progress, [ ] not started.
 ## Online
 - [x] On a server with its own address, password, saves online, backups, save import
 - [x] Beta site for trying things (pushes go there; live only when asked)
-- [~] **Multiplayer**: play as Sarah, David, James, John or Joe
-  - each has their own profile on the island: pocket, money, friendships, mail, collections
-  - visitors arrive at the dock; Joe starts at his house; their NPC selves step aside while they play
-  - see each other live, chat, emote, give gifts, send mail
-  - neighbors talk differently to each person (separate dialogue for everyone)
+- [x] **Multiplayer**: play as Sarah, David, James, John or Joe (picked per device on the title screen)
+  - each visitor has their own save on the island: pocket, money, friendships, mail, collections;
+    the island itself is Sarah's (only her game changes it; visitors are told so, kindly)
+  - visitors arrive at the boat; Joe starts at his house; their NPC selves step aside while they play
+  - see each other live with name tags, chat bubbles, dance moves; give gifts; write letters
+  - neighbors greet and chat with each person in their own way, and tell visitors how Sarah's doing
   - placeholders: everyone uses their current sprite until the new art
+  - [ ] later: doing things together (fishing, minigames), more lines for everyone
 
 ## Art (pick a style first)
 - [~] Six sample styles to compare: Stardew-like, handheld classic, tamagotchi-colorful, 3D

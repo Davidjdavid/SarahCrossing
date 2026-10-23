@@ -206,7 +206,7 @@ function sewName(d) {
 
 /* ---------------------------------------------------------------- the studio */
 const Sewing = {
-    run(d) { return new Promise(res => this.start(d, res)); },
+    run(d) { return visitorStop('look') ? Promise.resolve(null) : new Promise(res => this.start(d, res)); },
     start(d, res) {
         this.d = JSON.parse(JSON.stringify(d || newDesign()));
         if (!this.d.print) this.d.print = new Array(PRINT_W * PRINT_H).fill(null);

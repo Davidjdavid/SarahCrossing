@@ -53,6 +53,27 @@ const IslandList = {
     },
     busyRow(P, text) { P.body.innerHTML = ''; P.body.appendChild(el('p', 'muted', text)); },
 
+    /* ---------------------------------------------------------------- who's playing on this device */
+    who() {
+        const P = this.panel({ title: "Who's playing?" });
+        P.body.appendChild(el('p', 'muted', 'This device remembers who you are. You can change it on the title screen.'));
+        const grid = el('div', 'whogrid');
+        for (const who of PEOPLE) {
+            const b = el('button', 'whobtn' + (Online.me === who ? ' sel' : ''));
+            b.type = 'button';
+            b.appendChild(iconCanvas(who === 'sarah' ? 'sarah_crimson_down_happy' : `${who}_down_stand`, 64));
+            b.appendChild(el('b', null, Online.name(who)));
+            b.appendChild(el('span', null, who === 'sarah' ? "It's her island" : who === 'joe' ? 'Lives on the island' : 'Visiting'));
+            b.addEventListener('click', () => {
+                Sfx.ui('ok');
+                if (who === Online.who()) { lsSet(WHO_KEY, who); Online.me = who; UI.close(true); showTitle(); Online.connect(); return; }
+                Online.become(who);
+            });
+            grid.appendChild(b);
+        }
+        P.body.appendChild(grid);
+    },
+
     /* ---------------------------------------------------------------- the title screen's note */
     syncNote() {
         let n = $('#tsync');
@@ -60,6 +81,7 @@ const IslandList = {
         let t = '';
         if (Cloud.broken) t = `Couldn't open ${this.name(Cloud.broken)}. It's safe on the server: open Islands to try a backup.`;
         else if (Cloud.problem === 'offline') t = S && S.started ? "Offline: playing this device's copy. It saves online once the connection is back." : "Can't reach the island server right now.";
+        else if (Online.visitor() && S && S.started) t = `Playing as ${Online.name(Online.who())} on Sarah's island`;
         else if (S && S.started && Cloud.island) t = `Saved online · last played ${agoText(Cloud.island.updatedAt)}${this.deviceText(Cloud.island.device)}`;
         n.textContent = t;
         n.hidden = !t;
@@ -68,10 +90,13 @@ const IslandList = {
     /* ---------------------------------------------------------------- the list */
     async open(fromPhone) {
         const back = fromPhone ? appSettings : null;
-        const P = this.panel({ title: 'Your islands', phone: !!fromPhone, back, foot: true });
+        const visitor = Online.visitor();
+        const P = this.panel({ title: visitor ? 'Islands' : 'Your islands', phone: !!fromPhone, back, foot: !visitor });
         this.busyRow(P, 'Looking for your islands...');
-        P.foot.appendChild(btn('New island', 'alt', () => this.startNew()));
-        P.foot.appendChild(btn('Import a save', 'alt', () => this.importPanel(fromPhone)));
+        if (!visitor) {
+            P.foot.appendChild(btn('New island', 'alt', () => this.startNew()));
+            P.foot.appendChild(btn('Import a save', 'alt', () => this.importPanel(fromPhone)));
+        }
         try { await Cloud.refreshList(); } catch (e) {
             if (e.status === 401) return Cloud.toLogin();
             this.busyRow(P, "Can't reach the island server right now. Try again in a moment.");
@@ -91,7 +116,7 @@ const IslandList = {
             const facts = this.facts(isl.summary);
             t.appendChild(el('span', null, `${facts ? facts + ' · ' : ''}played ${agoText(isl.updatedAt)}${this.deviceText(isl.device)}`));
             r.appendChild(t);
-            r.addEventListener('click', () => { Sfx.ui('tick'); this.detail(isl, fromPhone); });
+            r.addEventListener('click', () => { Sfx.ui('tick'); if (visitor) { if (isl.id !== Cloud.id) this.switchTo(isl.id); } else this.detail(isl, fromPhone); });
             L.appendChild(r);
         }
         P.body.appendChild(L);

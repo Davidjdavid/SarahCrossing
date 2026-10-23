@@ -136,7 +136,7 @@ function migrate(st) {
    with a copy on this device */
 const Photos = {
     cache: null, timer: 0,
-    key() { return PHOTO_KEY + (Cloud.id || 'new'); },
+    key() { return PHOTO_KEY + (Cloud.id || 'new') + (Online.visitor() ? '-' + Online.who() : ''); },
     list() {
         if (!this.cache) { try { this.cache = JSON.parse(lsGet(this.key()) || '[]'); } catch (e) { this.cache = []; } }
         return this.cache.slice();
@@ -157,7 +157,7 @@ const Photos = {
         clearTimeout(this.timer);
         this.timer = setTimeout(() => {
             if (!Cloud.id) return;        // a new island: sent once the island itself is on the server
-            Cloud.api('PUT', `/api/islands/${encodeURIComponent(Cloud.id)}/photos`, { photos: this.list() }).catch(e => console.warn('photos not saved online', e));
+            Cloud.api('PUT', Cloud.photosUrl(), { photos: this.list() }).catch(e => console.warn('photos not saved online', e));
         }, 1200);
     },
 };

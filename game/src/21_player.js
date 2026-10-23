@@ -283,6 +283,7 @@ function frontTarget(p) {
     };
     G.area.ents.forEach(consider);
     NPCs.here().forEach(consider);
+    Online.here().forEach(consider);
     return best;
 }
 function tryInteract(e) {

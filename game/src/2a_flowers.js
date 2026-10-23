@@ -74,6 +74,7 @@ async function flowerPlantMenu(e) {
 }
 /* planting seeds in a freshly dug hole */
 async function plantFlowersInHole(e, seedIds) {
+    if (visitorStop('plant')) return;
     const a = G.area, h = e.hole, F = flowerState(), forestF = forest();
     let sid = seedIds[0];
     if (seedIds.length > 1) {
