@@ -50,5 +50,5 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] Remake the fruit catching game so it's actually fun
 
 ## Bugs
-- [ ] Talking to Wonton in the hot spring: the spot you have to stand in is too hard to hit
+- [x] Talking to Wonton in the hot spring: the spot you have to stand in is too hard to hit (fixed: any side of the rim works, and a tap walks below it)
 - [ ] A light test pass at the very end (David played it for a week and reported bugs as he went)

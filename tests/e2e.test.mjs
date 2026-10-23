@@ -359,3 +359,27 @@ test('playing together: David visits Sarah, they see each other, and his things 
   await sarah.context().close();
   await david.context().close();
 });
+
+test('Wonton can be talked to from every side of the hot spring (and a tap walks somewhere you can stand)', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => __dbg.setTime(10, 23, 12));
+  const res = await page.evaluate(() => {
+    const n = NPCs.get('wonton');
+    const [wx, wy] = W0.wonton;
+    const out = { awake: !n.sleeping, standFree: !G.area.blockedAt(n.stand[0], n.stand[1]) };
+    for (const [k, [tx, ty, dir]] of Object.entries({ below: [wx, wy + 3, 'up'], above: [wx, wy - 3, 'down'], left: [wx - 5, wy, 'right'], right: [wx + 4, wy, 'left'] })) {
+      const p = G.player;
+      p.x = (Math.floor(tx) + 0.5) * TILE; p.y = (Math.floor(ty) + 0.6) * TILE; p.dir = dir;
+      const t = frontTarget(p);
+      out[k] = !G.area.blockedAt(Math.floor(tx), Math.floor(ty)) && !!t && t.id === 'wonton';
+    }
+    return out;
+  });
+  assert.deepEqual(res, { awake: true, standFree: true, below: true, above: true, left: true, right: true });
+  await page.context().close();
+});

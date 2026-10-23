@@ -557,7 +557,9 @@ function updateNPC(n) {
     if (n.emoteT > 0 && --n.emoteT === 0) n.emote = null;
     const d = n.def;
     n.hit.x = n.x - 9; n.hit.y = n.y - n.h - 4; n.hit.w = 18; n.hit.h = n.h + 8;
-    if (d.spring) { const [wx, wy] = W0.wonton; n.hit = { x: (wx - 3) * TILE, y: (wy - 3.6) * TILE, w: 6 * TILE, h: 4.6 * TILE }; n.stand = [Math.floor(wx), Math.floor(wy) + 2]; }
+    // Wonton sits in the middle of the spring, behind its rock rim: he can be talked to from any side of the rim,
+    // and a tap walks Sarah to the open ground just below it (the rim itself can't be stood on)
+    if (d.spring) { const [wx, wy] = W0.wonton; n.hit = { x: (wx - 5) * TILE, y: (wy - 4) * TILE, w: 10.5 * TILE, h: 8 * TILE }; n.stand = [Math.floor(wx), Math.floor(wy) + 3]; }
     else n.stand = (n.want && n.want.stand) || null;          // staff are talked to across their counter
     if (n.talking || n.script) { n.moving = false; return; }
     const a = G.area;
