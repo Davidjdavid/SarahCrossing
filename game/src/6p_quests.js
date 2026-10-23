@@ -1,5 +1,5 @@
 /* ---- 6p_quests.js ---- */
-/* The island's five old mysteries, each tied to one of the quiet old buildings:
+/* The island's old mysteries, each tied to one of the quiet old buildings (a hidden sixth, the arcade's back room, is in 6z_backroom.js):
    1. The barn: an old trunk hides a pirate's note. It leads to buried treasure on the beach (bring a shovel).
    2. The lighthouse: near midnight, the old keeper's ghost haunts the lamp room. He misses his wife's clam chowder.
    3. The goat: be its friend (hugs, three different days) and it starts a chain of trades around the island.
@@ -51,7 +51,7 @@ const Quests = {
     heard(q) { this.st(q).heard = true; },
     /* rumors for Talk (they also put the mystery on the To-do list) */
     rumor(n) {
-        const open = QUEST_IDS.filter(q => !this.done(q) && (q !== 'star' || this.lamp()));
+        const open = QUEST_IDS.filter(q => !this.done(q) && (q !== 'star' || this.lamp()) && (q !== 'backroom' || backRoomReady()));
         if (!open.length) return null;
         const q = rpick(open);
         const s = this.stage(q);
@@ -74,7 +74,7 @@ const Quests = {
     },
     doneText(q) {
         return { treasure: 'Captain Gouda\'s treasure is yours.', ghost: 'The old keeper is at peace, and the lighthouse shines every night.', goat: 'The goat has its golden bell.',
-            windmill: 'The moonstone grinds moon flour. Pick some up in the windmill every day.', star: 'The star said hi back.' }[q];
+            windmill: 'The moonstone grinds moon flour. Pick some up in the windmill every day.', star: 'The star said hi back.', backroom: BACK_DONE }[q];
     },
     hint(q) {
         const s = this.stage(q);
@@ -93,6 +93,7 @@ const Quests = {
                 const got = this.st('windmill').cogs || [];
                 return `Cogs found: ${got.length} of 3. Ginger remembers: one in a crate on the farm, one in a hollow of the oldest tree in the forest, and one washed out to sea.`;
             }
+            case 'backroom': return backHint(s);
             case 'star': return s === 2 ? 'The star answered! Something fell on the mountain top. Go look!' : s === 1 ? "Answer the blinking star (short, short, long) from the lighthouse's great lamp, at night."
                 : 'A rumor: some nights one star over the mountain blinks. Look through the telescope at the lookout, at night.';
         }
@@ -102,6 +103,7 @@ const Quests = {
     options(n) {
         const out = [], id = n.id;
         if (!S) return out;
+        out.push(...backOptions(n), ...festOptions(n));
         // the trading chain
         const gs = this.stage('goat');
         if (gs >= 1 && !this.done('goat')) {
@@ -373,6 +375,7 @@ function buildLighthouseRoom(a) {
             if (Quests.stage('windmill') >= 1 && !(Quests.st('windmill').cogs || []).includes('chest') && !Quests.done('windmill')) { await Quests.findCog('chest'); return; }
             await UI.say(null, rpick(['An old sea chest. Rope, a lantern wick, a very old sandwich (fossilized). Sarah closes it.', 'A sea chest full of things that washed up on the beach. Sea glass, a spoon, a boot. The keeper kept everything.']));
         };
+        else if (it.id === 'lh_desk') it.use = async () => { if (!(await backKeyHunt())) await UI.say(null, rpick(LH_LINES.lh_desk)); };
         else if (LH_LINES[it.id]) it.use = () => UI.say(null, rpick(LH_LINES[it.id]));
     });
     a.items = items;

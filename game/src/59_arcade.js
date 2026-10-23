@@ -380,6 +380,7 @@ function buildArcadeRoom(a) {
     items.forEach(it => { if (use[it.id]) it.use = use[it.id]; });
     a.items = items;
     placeFurniture(a, items);
+    addBackDoor(a);
 }
 /* a cabinet's screen keeps playing its attract mode */
 function drawCabinetScreen(ctx, e) {
@@ -415,6 +416,14 @@ function drawCabinetScreen(ctx, e) {
     } else if (d.arcade === 'garden') {
         const h = Math.floor(k / 3) % 3;
         ctx.fillStyle = '#a8743a'; ctx.fillRect(x0 + 5 + h * 2, y0 + 10 - (k % 3 ? 1 : 0), 2, 2);
+    } else if (d.arcade === 'dumpling') {
+        ctx.fillStyle = ['#ff8aa8', '#7acc5e', '#ffd84a', '#7ab0ff'][Math.floor(k / 5) % 4];
+        ctx.fillRect(x0 + 6, y0 + 7 + (k % 5), 2, 2);
+    } else if (d.arcade === 'sushi') {
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(x0 + 5 + (k % 2) * 3, y0 + 9, 3, 1);
+        ctx.fillStyle = '#ff8a6a'; ctx.fillRect(x0 + 8 - (k % 2) * 3, y0 + 9, 3, 1);
+    } else if (d.arcade === 'fortune') {
+        ctx.fillStyle = '#ffd84a'; ctx.fillRect(x0 + 5 + Math.round(Math.abs(Math.sin(k / 3)) * 5), y0 + 7 + (k % 6), 1, 1);
     } else if (d.arcade === 'noodle') {
         ctx.fillStyle = '#ffe08a';
         for (let i = 0; i < 3; i++) ctx.fillRect(x0 + 5 + ((k - i + 24) % 6), y0 + 9 + (Math.floor((k - i + 24) / 6) % 2) * 2, 1, 1);
@@ -532,7 +541,7 @@ function prizeCounter() {
             P.body.appendChild(head);
             const L = el('div', 'list');
             L.style.marginTop = '10px';
-            for (const [id, cost] of PRIZES) {
+            for (const [id, cost] of PRIZES.filter(p => !(FURN[p[0]] && FURN[p[0]].back) || backRoomOpen())) {
                 const f = FURN[id];
                 const r = el('div', 'row');
                 r.appendChild(iconCanvas(ITEMS[id].icon, 40));
@@ -597,7 +606,7 @@ function arcadeRivals() {
 async function showHiScores() {
     const A = arc();
     const P = UI.open({ title: 'High scores' });
-    for (const id of ARCADE_CABS) {
+    for (const id of arcadeCabs()) {
         const rows = HISCORE_RIVALS[id].map(([n, s, note]) => ({ n, s, note }));
         const rv = A.rival[id];
         if (rv) { const o = rows.find(q => q.n === rv.who); if (o) { o.s = Math.max(o.s, rv.score); o.note = rv.beatenDay ? 'beaten by you!' : 'topped your score!'; } }

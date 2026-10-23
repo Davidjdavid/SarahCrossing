@@ -132,6 +132,7 @@ async function shakeTree(e) {
     Sfx.play('rustle');
     Critters.startle(e.x, e.y - 20, 70);
     await waitFrames(16);
+    if (festShake(e)) return;
     if (e.kind === 'fruittree' && e.fruit && treeHasFruit(e)) {
         S.trees[e.id] = Clock.dayNum();
         const spots = [[-10, 10], [10, 11], [0, 16]].concat(bonusOn('harvest') ? [[-4, 20], [6, 19]] : []);

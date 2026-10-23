@@ -271,7 +271,7 @@ async function cheatGate() {
     G.busy++;
     let go = false;
     try {
-        let k = await UI.ask('phone', 'Unlock everything? You get every item, outfit, recipe, poem, song and move, every hidden treasure, all five mysteries solved, best friends with everyone, and everyone in your contacts.', ['Go on...', 'Never mind'], { keep: true });
+        let k = await UI.ask('phone', 'Unlock everything? You get every item, outfit, recipe, poem, song and move, every hidden treasure, every mystery solved, best friends with everyone, and everyone in your contacts.', ['Go on...', 'Never mind'], { keep: true });
         if (k !== 0) return;
         k = await UI.ask('phone', 'Warning: this is PERMANENT. There is no undo and no way back. Every surprise on the island gets spoiled, and this island stays in cheat mode forever.', ['I understand', 'Never mind'], { keep: true });
         if (k !== 0) return;
@@ -327,7 +327,7 @@ function unlockEverything() {
     // every special find (hairstyles, patterns, accessories, keepsakes, songs, moves, treasures)
     for (const id of Object.keys(SPECIALS)) if (!hasSpecial(id)) { specials()[id] = { day, how: 'Cheat mode' }; try { applySpecial(id); } catch (e) { console.error(e); } }
     for (const id of Object.keys(SONGS)) if (!S.dance.songs[id]) S.dance.songs[id] = { best: 0, rank: 'C', paid: -1, cleared: true };
-    // the five mysteries
+    // the mysteries
     for (const q of QUEST_IDS) { const s = Quests.st(q); s.stage = Math.max(s.stage || 0, 3); s.done = true; s.doneDay = s.doneDay || day; }
     // clothes straight into the wardrobe; one of everything else into the house storage; the tools into the pocket
     for (const [id, it] of Object.entries(ITEMS)) {
@@ -363,7 +363,7 @@ async function spoilerGate() {
     G.busy++;
     let ok = false;
     try {
-        let k = await UI.ask('phone', 'The spoiler guide says exactly how to find every hidden thing on the island: the five mysteries, secret songs and moves, special treasures, trophies and more.', ['Keep going', 'Never mind'], { keep: true });
+        let k = await UI.ask('phone', 'The spoiler guide says exactly how to find every hidden thing on the island: the mysteries, secret songs and moves, special treasures, trophies and more.', ['Keep going', 'Never mind'], { keep: true });
         if (k === 0) k = await UI.ask('phone', 'Spoiler warning! Finding these on your own is half the fun. Are you sure you want to peek?', ['Show me the guide', 'Keep it a secret'], { keep: true });
         ok = k === 0;
     } finally { UI.hideDialog(); G.busy--; }
@@ -379,7 +379,7 @@ const QUEST_GUIDE = {
 const POOL_ANSWER = 'Luck! It can turn up in a fishing crate, in a sparkling tree (shake it), sometimes after cooking, or as a thank-you for a favor. Keep doing those and it will show up.';
 function specialAnswer(sp) {
     if (sp.src === 'pool') return POOL_ANSWER;
-    if (sp.src.startsWith('quest:')) { const q = sp.src.slice(6); return `A reward for solving "${(QUEST_GUIDE[q] || [q])[0]}". See The five mysteries.`; }
+    if (sp.src.startsWith('quest:')) { const q = sp.src.slice(6); return `A reward for solving "${(QUEST_GUIDE[q] || [q])[0]}". See Mysteries.`; }
     return sp.hint || POOL_ANSWER;
 }
 function songHow(id) {

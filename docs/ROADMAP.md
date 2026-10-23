@@ -49,13 +49,19 @@ Status: [x] done, [~] in progress, [ ] not started.
   characters visit and ask to move in, and Sarah picks where their house goes
 - [ ] A secret character
 - [ ] Way more dialogue, better dialogue, conversations that react to what's going on
-- [ ] Way more holiday events
+- [~] Way more holiday events: holidays with things to do (on top of the 45 with decorations and chatter):
+  Egg Hunt (Easter weekend: eggs in the grass, in trees, buried, on the hook; Cece trades them),
+  Fish-Off (Kai, four times a year), Beach Cleanup (Earth Day, Ocean Day), Trick-or-Treat (Halloween
+  night, candy from Fortune), Toy Day deliveries (December 24), Feast Cook-Off (Mac judges a dish)
 - [ ] Way, way more content
 
 ## Games
 - [x] A few more arcade games: Surf's Up (Kai's wave: jump rocks, grab shells), Gopher Garden (bonk
   the gophers, never Cuke) and Noodle Slurp (Basil's noodle grows as it slurps); the arcade is wider
   to fit their cabinets, which can be won at the prize counter like the others
+- [~] The arcade's back room: a hidden mystery for later in the game (Chili, Sully, the lighthouse,
+  a key) opens the island's first arcade with three classic cabinets: Dumpling Drop (a Puyo Puyo
+  clone), Sushi Swap (Tetris Attack) and Fortune Falls (Peggle). Room and mystery done; games coming
 - [x] Remake the fruit catching game so it's actually fun: trees shake before they drop, a shadow shows
   where things land, fruits fall their own ways, juice meter and Fruit Fever, power-ups, rounds with
   Perfect bonuses, snappier movement

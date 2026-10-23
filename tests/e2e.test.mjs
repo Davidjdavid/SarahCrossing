@@ -443,3 +443,81 @@ test('shops grow: a letter, a day closed, then a bigger shop with more stock, a 
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
+
+test('the arcade back room: a hidden mystery from Chili to Sully to the lighthouse, then the door opens', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => __dbg.setTime(10, 23, 15));
+  const res = await page.evaluate(async () => {
+    const chili = NPCs.get('chili');
+    chili.area = 'arcade';
+    const out = { hidden: backOptions(chili).length === 0 && !Quests.todo().some((t) => t.title === 'The locked door') };
+    S.startDay -= 20;
+    for (const id of ARCADE_CABS) arc().plays[id] = 1;
+    // answer every line as soon as it is asked
+    const say = UI.say;
+    UI.say = async () => {};
+    try {
+      await backOptions(chili)[0].fn();
+      await backOptions(NPCs.get('sully'))[0].fn();
+      await backKeyHunt();
+      out.key = pocketCount('q_arcadekey');
+      await enterRoom('arcade');
+      await backDoor();
+    } finally { UI.say = say; }
+    out.area = G.area.id;
+    out.done = Quests.done('backroom');
+    out.keyGone = pocketCount('q_arcadekey') === 0;
+    return out;
+  });
+  assert.deepEqual(res, { hidden: true, key: 1, area: 'arcade_back', done: true, keyGone: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('holiday events: eggs to find on the Egg Hunt (gone the next day), and a Fish-Off with Kai', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const say = UI.say;
+    UI.say = async () => {};
+    const out = {};
+    try {
+      const egghunt = HOLIDAYS.find((h) => h.id === 'egghunt');
+      const [m, d] = holidayStart(egghunt, new Date().getFullYear());
+      __dbg.setTime(m, d, 10); dailyCheck(true); festTick();
+      const a = G.areas.island;
+      out.eggs = a.ents.filter((e) => e.kind === 'item' && /^egg_/.test(e.id)).length;
+      for (const e of a.ents.filter((e) => e.kind === 'item' && /^egg_/.test(e.id)).slice(0, 3)) await pickUp(e);
+      const money = S.money;
+      await eggsToCece();
+      out.paid = S.money - money;
+      out.recipe = S.recipes.includes('pancakes');
+      __dbg.setTime(m, d + 3, 10); dailyCheck(true); festTick();
+      out.left = S.drops.filter((x) => /^egg_/.test(x.id)).length;
+      const fo = HOLIDAYS.find((h) => h.id === 'fishoff' && h.m === 10);
+      const [fm, fd] = holidayStart(fo, new Date().getFullYear());
+      __dbg.setTime(fm, fd, 10); dailyCheck(true);
+      __dbg.give('rod');
+      out.open = FishOff.open();
+      await FishOff.start();
+      for (const id of ['tuna', 'tuna', 'salmon', 'octopus', 'tuna']) FishOff.caught(id);
+      FishOff.end = Date.now() - 1;
+      await FishOff.finish();
+      out.trophy = ownedCount('fish_trophy');
+      out.again = festOptions(NPCs.get('kai')).length;
+    } finally { UI.say = say; }
+    return out;
+  });
+  assert.deepEqual(res, { eggs: 8, paid: 240, recipe: true, left: 0, open: true, trophy: 1, again: 0 });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});

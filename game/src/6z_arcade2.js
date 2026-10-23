@@ -393,7 +393,7 @@ ARCADE_GAMES.noodle = {
 
 /* ---------------------------------------------------------------- the cabinets themselves */
 /* new furniture (they can be won at the prize counter, like the others, and played at home for free) */
-const CAB_HUE = { surf: 200, garden: 95, noodle: 45 };
+const CAB_HUE = { surf: 200, garden: 95, noodle: 45 }, CAB_RECOLOR = ['surf', 'garden', 'noodle'];
 for (const [id, name] of [['surf', "Surf's Up"], ['garden', 'Gopher Garden'], ['noodle', 'Noodle Slurp']]) {
     ITEMS['cab_' + id] = { name: `${name} cabinet`, type: 'furniture', price: 2400, icon: 'f_cab_' + id };
     FURN['cab_' + id] = { id: 'cab_' + id, name: `${name} cabinet`, w: 1, h: 1, kind: 'floor', price: 2400, sets: ['arcade'], prize: 1, arcade: id, anim: 1, light: 22 };
@@ -404,7 +404,7 @@ ASSET_MAKERS.push(() => {
     const base = Assets.frames.f_cab_fruit;
     if (!base) return;
     const [sx, sy, w, h, ax, ay] = base;
-    for (const id of ['surf', 'garden', 'noodle']) {
+    for (const id of CAB_RECOLOR) {
         const c = document.createElement('canvas');
         c.width = w; c.height = h;
         const g = c.getContext('2d');

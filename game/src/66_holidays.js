@@ -86,7 +86,7 @@ const NPC_DAY = {
 
 /* ---------------------------------------------------------------- which days are which */
 function thanksgiving(y) { const d = new Date(Date.UTC(y, 10, 1)); const first = (4 - d.getUTCDay() + 7) % 7 + 1; return [11, first + 21]; }
-function holidayStart(h, y) { return h.rule === 'thanks' ? thanksgiving(y) : [h.m, h.d]; }
+function holidayStart(h, y) { return h.rule === 'thanks' ? thanksgiving(y) : h.rule && HOLIDAY_RULES[h.rule] ? HOLIDAY_RULES[h.rule](y, h) : [h.m, h.d]; }
 /* holidays on a given date (month 1-12) */
 function holidaysOn(y, m, d) {
     const out = [];

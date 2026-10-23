@@ -636,7 +636,7 @@ function shopBuy(startTab) {
             furniture: () => st.furn.concat(st.walls, st.floors),
             week: () => (st.week ? st.week.ids : []),
             garden: () => GD.veg.map(v => 'seed_' + v).concat(GD.flowerKinds.map(k => 'seed_fl_' + k)),
-            pantry: () => GD.staples.slice(),
+            pantry: () => GD.staples.slice().concat(candyOnSale() ? ['candy'] : []),
             tools: () => TOOL_STOCK.slice().concat(nextBag() ? [nextBag()] : []),
         };
         const draw = () => {
@@ -906,7 +906,7 @@ function appArcade() {
         r.appendChild(tt);
         L.appendChild(r);
     };
-    for (const id of ARCADE_CABS.filter(k => ARCADE_GAMES[k])) {
+    for (const id of arcadeCabs()) {
         const plays = A.plays[id] || 0;
         row('f_cab_' + id, ARCADE_GAMES[id].name, plays ? `Best ${fmtNum(A.best[id] || 0)} \u00b7 played ${plays} ${plural(plays, 'time')}` : 'Not played yet. The first game is free.');
     }
