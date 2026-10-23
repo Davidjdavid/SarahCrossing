@@ -412,3 +412,34 @@ test('every arcade cabinet starts, plays and ends, and the arcade has a cabinet 
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
+
+test('shops grow: a letter, a day closed, then a bigger shop with more stock, a sale and a free gift', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => __dbg.setTime(10, 23, 11));
+  const res = await page.evaluate(() => {
+    const out = { before: [shopLevel('shop'), shopStock().furn.length] };
+    shopsTick();
+    out.early = S.shops.shop.reno;                      // not enough yet: nothing happens
+    S.startDay -= 10; S.shops.shop.spent = 20000;
+    shopsTick();
+    out.letter = S.mail.some((m) => m.from === 'fortune' && /closed tomorrow/i.test(m.subject));
+    S.shops.shop.reno = Clock.dayNum();
+    out.closed = !roomOpen('shop');
+    S.shops.shop.reno = Clock.dayNum() - 1;
+    shopsTick();
+    const st = shopStock();
+    out.after = [shopLevel('shop'), st.furn.length, shopName('shop'), hoursText('shop')];
+    out.gift = [shopPrice(st.furn[0], 'shop'), shopPrice('seed_' + GD.veg[0], 'shop') > 0];
+    shopState('shop').gift = null;
+    out.sale = shopPrice(st.sale, 'shop') < ITEMS[st.sale].price;
+    return out;
+  });
+  assert.deepEqual(res, { before: [1, 5], early: undefined, letter: true, closed: true, after: [2, 7, "Fortune's Goods & More", '7 AM to 11 PM'], gift: [0, true], sale: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});

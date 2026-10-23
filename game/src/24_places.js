@@ -45,6 +45,11 @@ async function enterBuilding(id) {
         Bus.emit('enter', 'club');
         return;
     }
+    if (shopReno(id)) {
+        await UI.say('sign', id === 'shop' ? "CLOSED FOR RENOVATION. Back tomorrow, BIGGER. (Lots of hammering inside. Fortune is supervising. Ginger is ignoring the supervising.)"
+            : 'CLOSED TODAY. "Something fabulous is happening. Come back tomorrow, darling." You can hear Clementine telling Ginger to move a shelf one inch to the left.');
+        return;
+    }
     if (id === 'shop') {
         if (roomOpen('shop')) { await enterRoom('shop'); return; }
         await UI.say('sign', "FORTUNE'S GOODS. Open {hours:shop}. Closed now. Fortune is asleep inside a larger fortune cookie.");

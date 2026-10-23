@@ -41,12 +41,16 @@ const SET_NAMES = { cottage: 'Cottage', beach: 'Beach', nightowl: 'Night owl', s
 function shopStock() {
     const r = mulberry(hash32(S.seed + ':shop:' + Clock.dayNum()));
     const buyable = Object.values(FURN).filter(f => f.price > 0 && f.id !== 'kitchenette' && !f.fixture && !f.prize);
-    const furn = shuffled(buyable, r).slice(0, 5).map(f => f.id);
-    const walls = shuffled(GD.walls.filter(w => ITEMS[w].price > 0), r).slice(0, 1);
-    const floors = shuffled(GD.floors.filter(w => ITEMS[w].price > 0), r).slice(0, 1);
-    const clothes = shuffled(GD.outfits.filter(o => ITEMS['out_' + o].price > 0).map(o => 'out_' + o), r).slice(0, 4)
-        .concat(shuffled(GD.accs.map(a => 'acc_' + a), r).slice(0, 3));
+    const L = shopLevel('shop') - 1, B = shopLevel('boutique') - 1, U = SHOP_UP.shop, V = SHOP_UP.boutique;
+    const furn = shuffled(buyable, r).slice(0, U.furn[L]).map(f => f.id);
+    const walls = shuffled(GD.walls.filter(w => ITEMS[w].price > 0), r).slice(0, U.walls[L]);
+    const floors = shuffled(GD.floors.filter(w => ITEMS[w].price > 0), r).slice(0, U.floors[L]);
+    const outfits = shuffled(GD.outfits.filter(o => ITEMS['out_' + o].price > 0).map(o => 'out_' + o), r).slice(0, V.outfits[B]);
+    const clothes = outfits.concat(shuffled(GD.accs.map(a => 'acc_' + a), r).slice(0, V.accs[B]));
     const hot = rpick(Object.keys(ITEMS).filter(id => ['fruit', 'shell', 'fish', 'veg', 'dish'].includes(ITEMS[id].type) && ITEMS[id].price >= 100 && id !== 'boot'), r);
-    return { furn, walls, floors, clothes, hot };
+    // the bigger shops' daily sale (its own dice, so the stock above doesn't change)
+    const r2 = mulberry(hash32(S.seed + ':sale:' + Clock.dayNum()));
+    const sale = L >= 1 ? rpick(furn, r2) : null, look = B >= 1 ? rpick(outfits, r2) : null;
+    return { furn, walls, floors, clothes, hot, sale, look, week: weekSet() };
 }
 

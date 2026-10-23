@@ -19,11 +19,12 @@ function newState() {
         mail: [], mailSeq: 1,
         dance: { songs: {}, moves: ['wave', 'happy', 'laugh', 'heart', 'yawn'] },
         council: { best: 0, lastDay: -1, plaques: [] },
-        flags: { news9: true, v9: 1, news10: true, v10: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
+        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
         pottery: { seq: 1, pieces: {}, kiln: [], made: 0 },
         arcade: { tickets: 0, best: {}, plays: {}, free: {}, won: 0, claw: null, reach: {}, rival: {} },
         rope: { best: 0, day: -1, trophy: false },
         karaoke: { best: {}, day: -1, trophy: false },
+        shops: { shop: { spent: 0, level: 1 }, boutique: { spent: 0, level: 1 } },
     };
 }
 
@@ -114,6 +115,10 @@ function migrate(st) {
         if (!st.wardrobe.accs.includes('glasses')) st.wardrobe.accs.push('glasses');
     }
     if (st.player.eyes && !FACE_ACCS.has(st.player.eyes)) st.player.eyes = null;
+    // the shops grow with Sarah's shopping: counted from now, with a head start for what she has already bought
+    if (!st.shops || typeof st.shops !== 'object') st.shops = base.shops;
+    for (const k of ['shop', 'boutique']) if (!st.shops[k] || typeof st.shops[k] !== 'object') st.shops[k] = { spent: 0, level: 1 };
+    if (!st.flags.shops1) { st.flags.shops1 = 1; st.shops.shop.spent = Math.max(st.shops.shop.spent || 0, (st.stats.bought || 0) * 300); }
     if (st.npcs && st.npcs.joe && !(st.npcs.joe.pts >= 100)) st.npcs.joe.pts = 100;
     if (st.karaoke && !st.karaoke.best) st.karaoke.best = {};
     for (const k of ['specials', 'quests', 'cookLog']) if (st[k] != null && typeof st[k] !== 'object') st[k] = undefined;

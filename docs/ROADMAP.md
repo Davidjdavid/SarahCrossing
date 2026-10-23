@@ -39,7 +39,10 @@ Status: [x] done, [~] in progress, [ ] not started.
   mountain, beach, a dedicated farm area (crops grow there, not in scattered squares), and more
 - [ ] Everything on a grid (placing things, walking, collisions)
 - [ ] Less clutter: fewer, better placed things by default
-- [ ] Shop upgrades after a number of days played and money spent
+- [x] Shop upgrades after a number of days played and money spent: Fortune's Goods (then "& More",
+  then Fortune's Emporium) and Clementine's (then Atelier, then Maison Clementine) each grow twice;
+  a letter, a day closed for the work, a grand reopening with a free gift; bigger rooms, more stock,
+  a daily sale, longer hours, a set of the week, better selling prices
 
 ## Neighbors and story
 - [ ] New people: meet new vendors by meeting requirements; after some days and play time, new

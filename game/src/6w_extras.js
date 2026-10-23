@@ -421,6 +421,8 @@ function spoilerEntries(sec) {
         out.push(['The Cutest House on the Island', "The Cozy Council's top rating. They love lights, rugs, soft things and plants, furniture that matches a theme, and a new wallpaper and floor.", ((S.council && S.council.best) || 0) >= 27]);
     }
     if (sec === 'secrets') {
+        const need = (id, lv) => SHOP_UP[id].need[lv];
+        out.push(['Bigger shops', `Shop at Fortune's and Clementine's and they grow, twice each. Fortune's: after ${need('shop', 1).days} days and ${fmtNum(need('shop', 1).spent)} sand dollars spent there, then ${need('shop', 2).days} days and ${fmtNum(need('shop', 2).spent)}. Clementine's: ${need('boutique', 1).days} days and ${fmtNum(need('boutique', 1).spent)}, then ${need('boutique', 2).days} days and ${fmtNum(need('boutique', 2).spent)}. Each time: more stock, a daily sale, longer hours and a grand-opening gift.`, shopLevel('shop') >= 3 && shopLevel('boutique') >= 3]);
         out.push(['Gems', 'One to three gems sparkle on the mountain top every day. Fortune loves buying them.', false]);
         out.push(['Sparkling trees', 'A tree that sparkles has something hidden in it. Shake it!', false]);
         out.push(['The money tree', 'Dig at the glowing spot (it moves every day), bury some sand dollars in the hole, and a money tree grows. Shake it for three bags of sand dollars.', false]);

@@ -13,10 +13,11 @@ function fmtOpen(dh) {
     if (h < 0.01) return 'midnight';
     return fmtClock(h);
 }
-function hoursText(id) { const h = ROOM_HOURS[id]; return h ? `${fmtOpen(h[0])} to ${fmtOpen(h[1])}` : 'any time'; }
+function hoursText(id) { const h = roomHours(id); return h ? `${fmtOpen(h[0])} to ${fmtOpen(h[1])}` : 'any time'; }
 function roomOpen(id, dh) {
-    const h = ROOM_HOURS[id];
+    const h = roomHours(id);
     if (!h) return true;
+    if (shopReno(id)) return false;
     dh = dh == null ? dayHour() : dh;
     return dh >= h[0] && dh < h[1];
 }
@@ -207,6 +208,7 @@ function roomItems(id) {
 }
 function buildRoom(id) {
     const R = ROOMS[id];
+    if (R.resize) R.resize(R);
     const a = new Area(id, R.w + 2, R.h + 4);
     for (let y = 0; y < a.h; y++) for (let x = 0; x < a.w; x++) a.blocked[y * a.w + x] = x >= 1 && x <= R.w && y >= 2 && y <= R.h + 1 ? 0 : 1;
     a.floor = { x0: 1, y0: 2, w: R.w, h: R.h };
@@ -412,23 +414,24 @@ function buildShopRoom(a) {
     const fixed = layoutItems([
         ['shelf_wall', 0, 'wall'], ['sign_shop', 2, 'wall'], ['window_wall', 7, 'wall'], ['clock_wall', 11, 'wall'],
         ['counter_shop', 0, 1], ['cookie_jar', 0, 1], ['register', 2, 1], ['rack_tools', 0, 3], ['shelf_grocery', 0, 5],
-        ['plant_monstera', 14, 6], ['sunflower', 3, 6]]);
+        ['plant_monstera', ...shopCorner().plant], ['sunflower', 3, 6]]);
     fixed.forEach(it => { if (it.id === 'counter_shop') it.use = 'counter'; else if (it.id === 'rack_tools') it.use = 'tools'; else if (it.id === 'shelf_grocery') it.use = 'grocery'; });
     // today's furniture on the stages (wall things go up on the wall over a stage in the top row)
-    const furn = st.furn.slice(0, 5);
+    const slots = shopSlots();
+    const furn = st.furn.slice(0, slots.length);
     const wallFirst = furn.filter(id => FURN[id].kind === 'wall').concat(furn.filter(id => FURN[id].kind !== 'wall'));
     const items = fixed.slice();
     const stages = [], boards = [];
-    const all = [0, 1, 2, 3, 4];
+    const all = slots.map((_, i) => i);
     const used = new Set();
     for (const id of wallFirst) {
         const d = FURN[id];
         const si = all.find(i => !used.has(i));
         if (si == null) continue;
         used.add(si);
-        const [sx, sy] = SHOP_SLOTS[si];
+        const [sx, sy] = slots[si];
         const [ax, ay] = toArea(sx, sy);
-        stages.push({ x: ax, y: ay, id });
+        stages.push({ x: ax, y: ay, id, sale: id === st.sale });
         if (d.kind === 'wall') {
             // wall things hang on a display board standing on the stage
             boards.push([ax, ay, id, d]);
@@ -442,7 +445,7 @@ function buildShopRoom(a) {
         items.push({ id, x: ax + Math.floor((3 - d.w) / 2), y: ay + (2 - Math.min(2, d.h)), use: 'buy', sale: true });
     }
     // the last stage: today's flooring on the floor, today's wallpaper on an easel
-    const [fx0, fy0] = toArea(12, 3);
+    const [fx0, fy0] = toArea(...shopCorner().floor);
     if (st.floors[0]) stages.push({ x: fx0, y: fy0, id: st.floors[0], floor: true });
     a.items = items;
     placeFurniture(a, items);
@@ -484,6 +487,11 @@ function buildShopRoom(a) {
             ctx.fillStyle = '#ead2ab';
             ctx.fillRect(x + 1, y + 2 * TILE - 5, 3 * TILE - 2, 3);
             spr(ctx, 'price_tag', x + 5, y + 2 * TILE - 2);
+            if (s.sale) {
+                // Fortune's pick: a red ribbon across the corner
+                ctx.fillStyle = '#d8283f'; ctx.fillRect(x + 3 * TILE - 15, y + 2 * TILE - 9, 13, 6);
+                ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 3 * TILE - 13, y + 2 * TILE - 7, 9, 2);
+            }
         }
     };
 }
@@ -491,12 +499,12 @@ function buildShopRoom(a) {
 async function buyItemAsk(id, sp) {
     const it = ITEMS[id];
     if (!it) return;
-    const price = it.price || 100;
+    const shop = shopHere(), price = shopPrice(id, shop);
     const f = NPCs.get('fortune');
     sp = sp !== undefined ? sp : (f && !f.sleeping && f.area === 'shop' ? 'fortune' : null);
     const d = FURN[id];
     const about = d ? ` ${SET_NAMES[d.sets[0]] || ''} set \u00b7 ${d.w}\u00d7${d.kind === 'wall' ? 1 : d.h}${d.kind === 'wall' ? ' wall' : d.kind === 'top' ? ' tabletop' : d.kind === 'rug' ? ' rug' : ''}.` : '';
-    const k = await UI.ask(sp, `${it.name}.${about} ${fmtNum(price)} sand dollars.`, [`Buy it (${fmtNum(price)})`, 'Just looking']);
+    const k = await UI.ask(sp, `${it.name}.${about} ${price ? fmtNum(price) + ' sand dollars.' : ''}${priceNote(id, shop)}`, [price ? `Buy it (${fmtNum(price)})` : 'Take it (free)', 'Just looking']);
     if (k !== 0) return;
     await buyNow(id, price, sp);
 }
@@ -505,6 +513,7 @@ async function buyNow(id, price, sp) {
     if (S.money < price) { Sfx.ui('nope'); await UI.say(sp, "Hmm, not quite enough sand dollars. Shells, fruit and fish add up fast!"); return false; }
     if (it.type === 'bag') {
         addMoney(-price, true);
+        noteSpend(shopHere(), price);
         upgradeBag();
         Sfx.play('fanfare');
         G.player.pose = 'cheer'; G.player.poseT = 30;
@@ -519,6 +528,7 @@ async function buyNow(id, price, sp) {
     if (id === 'rod') S.flags.rodBought = true;
     Sfx.play('buy');
     S.stats.bought = (S.stats.bought || 0) + 1;
+    shopPaid(shopHere(), id, price);
     if (sp === 'fortune') { const f = NPCs.get('fortune'); if (f) { f.emote = 'sparkle'; f.emoteT = 50; } }
     await UI.say(sp, home ? rpick(["Thank you! It'll be at your house. The delivery is instant. The delivery is also me.", 'Great choice! Sent to your house already!'])
         : rpick(['Thank you! Enjoy!', 'Great choice!', "Pleasure doing business! May your cookies always crack evenly."]));
@@ -541,7 +551,8 @@ function buildBoutiqueRoom(a) {
     const items = layoutItems([
         ['window_wall', 0, 'wall'], ['fabric_shelf', 3, 'wall'], ['sign_boutique', 6, 'wall'], ['window_wall', 9, 'wall'],
         ['clothes_rack', 0, 0], ['sewing_table', 3, 0], ['counter_boutique', 8, 1], ['register', 8, 1], ['orange_vase', 10, 1], ['acc_table', 6, 3],
-        ['mirror_stand', 10, 3], ['plant_monstera', 0, 5], ['plant_monstera', 10, 5]]);
+        ['mirror_stand', 10, 3], ['plant_monstera', 0, 5], ['plant_monstera', 10, 5],
+        ...[['window_wall', 12, 'wall'], ['window_wall', 14, 'wall']].slice(0, shopLevel('boutique') - 1)]);
     items.forEach(it => {
         if (it.id === 'counter_boutique') it.use = 'counter'; else if (it.id === 'acc_table') it.use = 'acc'; else if (it.id === 'mirror_stand') it.use = 'mirror';
         else if (it.id === 'sewing_table') it.use = () => sewingMachine();
@@ -550,8 +561,9 @@ function buildBoutiqueRoom(a) {
     a.items = items;
     placeFurniture(a, items);
     // mannequins wearing today's outfits
-    const outfits = st.clothes.filter(id => ITEMS[id].type === 'outfit').slice(0, 4);
-    [[1, 1], [3, 1], [1, 4], [3, 4]].forEach(([fx, fy], i) => {
+    const spots = boutiqueSpots();
+    const outfits = st.clothes.filter(id => ITEMS[id].type === 'outfit').slice(0, spots.length);
+    spots.forEach(([fx, fy], i) => {
         const id = outfits[i];
         if (!id) return;
         const [x, y] = toArea(fx, fy);
@@ -578,10 +590,11 @@ async function mannequinAsk(id) {
     const it = ITEMS[id], sp = boutiqueVoice();
     const owned = S.wardrobe.outfits.includes(it.wear);
     const trying = S.player.outfit === it.wear && G.tryOn;
-    const opts = [`Buy it (${fmtNum(it.price)})`, trying ? 'Take it off' : 'Try it on', 'Just looking'];
-    const k = await UI.ask(sp, `${it.name}.${owned ? ' (Already in your wardrobe.)' : ''} ${fmtNum(it.price)} sand dollars.`, opts);
+    const price = shopPrice(id, 'boutique');
+    const opts = [price ? `Buy it (${fmtNum(price)})` : 'Take it (free)', trying ? 'Take it off' : 'Try it on', 'Just looking'];
+    const k = await UI.ask(sp, `${it.name}.${owned ? ' (Already in your wardrobe.)' : ''} ${price ? fmtNum(price) + ' sand dollars.' : ''}${priceNote(id, 'boutique')}`, opts);
     if (k === 0) {
-        if (await buyNow(id, it.price, sp)) {
+        if (await buyNow(id, price, sp)) {
             if (trying) {
                 // she was already wearing it: straight into the wardrobe
                 if (!S.wardrobe.outfits.includes(it.wear)) S.wardrobe.outfits.push(it.wear);
@@ -606,10 +619,10 @@ async function accTable() {
     const sp = boutiqueVoice();
     const st = shopStock();
     const accs = st.clothes.filter(id => ITEMS[id].type === 'acc');
-    const opts = accs.map(id => `${itemName(id)} (${fmtNum(ITEMS[id].price)})`).concat(['Just looking']);
+    const opts = accs.map(id => `${itemName(id)} (${shopPrice(id, 'boutique') ? fmtNum(shopPrice(id, 'boutique')) : 'free'})`).concat(['Just looking']);
     const k = await UI.ask(sp, sp ? 'The accessories, darling. They finish a look. Or start one.' : 'A glass table of accessories. A tiny sign: "Honor system, darling."', opts);
     if (k >= accs.length) return;
-    await buyNow(accs[k], ITEMS[accs[k]].price, sp);
+    await buyNow(accs[k], shopPrice(accs[k], 'boutique'), sp);
 }
 /* leaving the boutique in something you didn't buy puts it back */
 Bus.on('leave', from => {
@@ -660,7 +673,7 @@ async function roomChecks() {
         }
         return;
     }
-    if (ROOM_HOURS[a.id] && !roomOpen(a.id)) {
+    if (roomHours(a.id) && !roomOpen(a.id)) {
         G.busy++;
         const n = R.staff && NPCs.get(R.staff);
         const sp = n && n.area === a.id ? R.staff : null;

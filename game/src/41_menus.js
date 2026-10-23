@@ -612,7 +612,7 @@ async function fortuneTalk(n) {
         const opts = ['Talk', 'Buy', 'Sell', 'See you!'];
         const k = await UI.ask('fortune', rpick(['What can I do for you?', 'Buying? Selling? Just here for the fortune? Everyone is just here for the fortune.', 'Take your time! Island time!']), opts, { keep: true });
         const c = opts[k];
-        if (c === 'Talk') { await justTalk(n, () => rpick(FORTUNE_CHAT)); continue; }
+        if (c === 'Talk') { await justTalk(n, () => (R() < 0.5 && shopTalk('shop')) || rpick(FORTUNE_CHAT)); continue; }
         UI.hideDialog();
         if (c === 'Buy') { await shopBuy(); }
         else if (c === 'Sell') { await shopSell(); }
@@ -631,16 +631,17 @@ function shopBuy(startTab) {
         const st = shopStock();
         const tabs = el('div', 'tabs');
         let tab = startTab || 'furniture';
-        const P = UI.open({ title: "Fortune's Goods \u00b7 Buy", tabs, foot: true, onClose: res });
+        const P = UI.open({ title: `${shopName('shop')} \u00b7 Buy`, tabs, foot: true, onClose: res });
         const lists = {
             furniture: () => st.furn.concat(st.walls, st.floors),
+            week: () => (st.week ? st.week.ids : []),
             garden: () => GD.veg.map(v => 'seed_' + v).concat(GD.flowerKinds.map(k => 'seed_fl_' + k)),
             pantry: () => GD.staples.slice(),
             tools: () => TOOL_STOCK.slice().concat(nextBag() ? [nextBag()] : []),
         };
         const draw = () => {
             tabs.innerHTML = '';
-            for (const [k, label] of [['furniture', 'Furniture'], ['garden', 'Seeds'], ['pantry', 'Pantry'], ['tools', 'Tools']]) {
+            for (const [k, label] of [['furniture', 'Furniture'], st.week ? ['week', 'Set of the week'] : null, ['garden', 'Seeds'], ['pantry', 'Pantry'], ['tools', 'Tools']].filter(Boolean)) {
                 const b = el('button', 'tab' + (k === tab ? ' on' : ''), label);
                 b.type = 'button';
                 b.addEventListener('click', () => { tab = k; draw(); });
@@ -650,19 +651,20 @@ function shopBuy(startTab) {
             const list = el('div', 'list');
             for (const id of lists[tab]()) {
                 const it = ITEMS[id];
-                const price = (it.price || 100) * (it.flower && G.events.has('flowerfest') ? 0.5 : 1);
+                const price = Math.round(shopPrice(id, 'shop') * (it.flower && G.events.has('flowerfest') ? 0.5 : 1));
+                const note = priceNote(id, 'shop');
                 const row = el('button', 'row');
                 row.type = 'button';
                 row.appendChild(iconCanvas(it.icon, 40));
                 const t = el('div', 't');
                 t.appendChild(el('b', null, it.name));
                 const f = FURN[id];
-                t.appendChild(el('span', null, f ? `${SET_NAMES[f.sets[0]]} \u00b7 ${f.w}\u00d7${f.kind === 'wall' ? 1 : f.h}${f.kind === 'wall' ? ' wall' : f.kind === 'top' ? ' tabletop' : f.kind === 'rug' ? ' rug' : ''}` : it.type === 'bag' ? `+10 pocket slots (you have ${pocketSize()})` : ITEM_TYPES[it.type]));
+                t.appendChild(el('span', null, (f ? `${SET_NAMES[f.sets[0]]} \u00b7 ${f.w}\u00d7${f.kind === 'wall' ? 1 : f.h}${f.kind === 'wall' ? ' wall' : f.kind === 'top' ? ' tabletop' : f.kind === 'rug' ? ' rug' : ''}` : it.type === 'bag' ? `+10 pocket slots (you have ${pocketSize()})` : ITEM_TYPES[it.type]) + (note ? ' \u00b7' + note : '')));
                 row.appendChild(t);
-                row.appendChild(el('span', 'price', fmtNum(price)));
+                row.appendChild(el('span', 'price', price ? fmtNum(price) : 'Free'));
                 row.addEventListener('click', () => {
                     if (S.money < price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return; }
-                    if (it.type === 'bag') { addMoney(-price, true); upgradeBag(); Sfx.play('fanfare'); UI.toast(`${it.name}! Your pocket now holds ${pocketSize()} things.`, it.icon); draw(); return; }
+                    if (it.type === 'bag') { addMoney(-price, true); noteSpend('shop', price); upgradeBag(); Sfx.play('fanfare'); UI.toast(`${it.name}! Your pocket now holds ${pocketSize()} things.`, it.icon); draw(); return; }
                     const big = ['furniture', 'wall', 'floor'].includes(it.type);
                     addMoney(-price, true);
                     if (big) { toStorage(id, 1); UI.toast(`${it.name} delivered to your house`, it.icon); }
@@ -670,13 +672,15 @@ function shopBuy(startTab) {
                     if (id === 'rod') S.flags.rodBought = true;
                     Sfx.play('buy');
                     S.stats.bought = (S.stats.bought || 0) + 1;
+                    shopPaid('shop', id, price);
                     draw();
                 });
                 list.appendChild(row);
             }
             P.body.appendChild(list);
             P.foot.innerHTML = '';
-            P.foot.appendChild(el('span', 'grow', tab === 'furniture' ? 'New furniture every day. Furniture goes straight to your house. Clothes are at Clementine\'s.' : `${fmtNum(S.money)} sand dollars`));
+            P.foot.appendChild(el('span', 'grow', tab === 'furniture' ? 'New furniture every day. Furniture goes straight to your house. Clothes are at Clementine\'s.'
+                : tab === 'week' && st.week ? `The ${SET_NAMES[st.week.set]} set, 15% off all week. ${fmtNum(S.money)} sand dollars` : `${fmtNum(S.money)} sand dollars`));
         };
         draw();
     });
@@ -684,7 +688,7 @@ function shopBuy(startTab) {
 function shopClothes(staffed) {
     return new Promise(res => {
         const st = shopStock();
-        const P = UI.open({ title: "Clementine's \u00b7 Clothes", foot: true, onClose: res });
+        const P = UI.open({ title: `${shopName('boutique')} \u00b7 Clothes`, foot: true, onClose: res });
         const draw = () => {
             P.body.innerHTML = '';
             const list = el('div', 'list');
@@ -696,15 +700,17 @@ function shopClothes(staffed) {
                 row.appendChild(iconCanvas(it.icon, 40));
                 const t = el('div', 't');
                 t.appendChild(el('b', null, it.name));
-                t.appendChild(el('span', null, (it.type === 'outfit' ? 'Outfit' : 'Accessory') + (owned ? ' \u00b7 already in your wardrobe' : '')));
+                const price = shopPrice(id, 'boutique'), note = priceNote(id, 'boutique');
+                t.appendChild(el('span', null, (it.type === 'outfit' ? 'Outfit' : 'Accessory') + (owned ? ' \u00b7 already in your wardrobe' : '') + (note ? ' \u00b7' + note : '')));
                 row.appendChild(t);
-                row.appendChild(el('span', 'price', fmtNum(it.price)));
+                row.appendChild(el('span', 'price', price ? fmtNum(price) : 'Free'));
                 row.addEventListener('click', () => {
-                    if (S.money < it.price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return; }
-                    addMoney(-it.price, true);
+                    if (S.money < price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return; }
+                    addMoney(-price, true);
                     receive(id, 1);
                     Sfx.play('buy');
                     S.stats.bought = (S.stats.bought || 0) + 1;
+                    shopPaid('boutique', id, price);
                     if (staffed && R() < 0.4) UI.toast(rpick(['Clementine: "Iconic choice."', 'Clementine: "Darling. Yes."', 'Clementine: "That is so you. Or it will be."']));
                     draw();
                 });
@@ -746,7 +752,7 @@ function appPoems() {
 function shopSell() {
     return new Promise(res => {
         const st = shopStock();
-        const P = UI.open({ title: "Fortune's Goods \u00b7 Sell", foot: true, onClose: res });
+        const P = UI.open({ title: `${shopName('shop')} \u00b7 Sell`, foot: true, onClose: res });
         const draw = () => {
             P.body.innerHTML = '';
             P.body.appendChild(el('p', 'muted', `Hot item today: ${itemName(st.hot)}. Fortune pays double.`));
@@ -758,7 +764,7 @@ function shopSell() {
                 if (unsellable(s.id)) { if (ITEMS[s.id].type !== 'tool') kept++; return; }
                 any = true;
                 const hot = s.id === st.hot;
-                const each = Math.round(sellPrice(s.id) * (hot ? 2 : 1) * (bonusOn('haggler') ? 1.25 : 1));
+                const each = Math.round(sellPrice(s.id) * (hot ? 2 : 1) * (bonusOn('haggler') ? 1.25 : 1) * sellBonus());
                 const row = el('div', 'row');
                 row.appendChild(iconCanvas(itemIcon(s.id), 40));
                 const t = el('div', 't');

@@ -244,7 +244,7 @@ function openBoard(fromPhone) {
                 };
                 const dh = dayHour();
                 const hl = h => { const x = h % 24; return x === 12 ? 'noon' : x === 0 ? 'midnight' : fmtDayHour(h); };
-                for (const [id, name, , extra] of PLACE_HOURS) { const h = ROOM_HOURS[id]; addRow(name, `${hl(h[0])} to ${hl(h[1])}`, roomOpen(id), extra); }
+                for (const [id, name, , extra] of PLACE_HOURS) { const h = roomHours(id); addRow(name, `${hl(h[0])} to ${hl(h[1])}`, roomOpen(id), extra); }
                 addRow("Basil's noodle cart", '8 PM to 1 AM, in the plaza', hourIn(Clock.hourF(), 20, 25), '');
                 addRow('Club Wasabi', 'Always open. Gets going after 9 PM', true, 'Karaoke every night.');
                 addRow('Joe at the pier', 'Sunset, around 6 PM', dh >= 18 && dh < 19.6, 'He may read you a poem.');
