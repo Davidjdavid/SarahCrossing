@@ -1,21 +1,29 @@
 #!/usr/bin/env bash
 # Installs one built release of the game and makes it live.
 #
-#   sudo bash deploy/install-release.sh release.tgz
+#   sudo bash deploy/install-release.sh release.tgz [live|beta]
 #
 # release.tgz holds dist/ (the built game, with dist/build.json naming the
 # version) and server/, as packed by the GitHub "Deploy" workflow. It goes into
-# /srv/sarahcrossing/releases/<version>/ and "current" points at it. If the
-# server doesn't come back healthy with the new version, the previous release
-# is put back. The newest 5 releases are kept.
+# /srv/sarahcrossing/releases/<version>/ (beta: /srv/sarahcrossing-beta/...) and
+# "current" points at it. If the server doesn't come back healthy with the new
+# version, the previous release is put back. The newest 5 releases are kept.
 #
 # Run setup.sh first (the workflow always does).
 set -euo pipefail
 
-SC_ROOT=${SC_ROOT:-/srv/sarahcrossing}
+INSTANCE=${INSTANCE:-${2:-live}}
+case $INSTANCE in
+  live) NAME=sarahcrossing PORT=${PORT:-8090} ;;
+  beta) NAME=sarahcrossing-beta PORT=${PORT:-8091} ;;
+  *)
+    echo "install-release.sh: the second argument is live or beta, not $INSTANCE" >&2
+    exit 1
+    ;;
+esac
+SC_ROOT=${SC_ROOT:-/srv/$NAME}
 SC_USER=${SC_USER:-sarahcrossing}
-PORT=${PORT:-8090}
-SERVICE=sarahcrossing
+SERVICE=$NAME
 KEEP=5
 RELEASES="$SC_ROOT/releases"
 
@@ -25,7 +33,7 @@ die() {
   exit 1
 }
 
-[ $# -eq 1 ] || die "usage: sudo bash $0 <release.tgz>"
+[ $# -ge 1 ] || die "usage: sudo bash $0 <release.tgz> [live|beta]"
 tarball=$1
 [ "$(id -u)" -eq 0 ] || die "run it with sudo"
 [ -f "$tarball" ] || die "no such file: $tarball"

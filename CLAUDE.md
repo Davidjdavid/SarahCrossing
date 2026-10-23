@@ -46,4 +46,7 @@ docs/DEPLOY.md for the server.
 ## Checks
 
 `npm test` (fast) and `npm run test:e2e` (Chromium via Playwright, ~2 min). Run both before pushing;
-CI and the deploy run them too. Pushes to `main` or `claude/serene-mendel-8428vr` deploy.
+CI and the deploy run them too. Pushes to `claude/serene-mendel-8428vr` deploy to the beta site
+(https://beta.sarahcrossing.com, its own islands); the live site (Sarah's island) only changes when
+the Deploy workflow is run by hand with target `live` (or on a push to `main`). Never deploy live
+unless asked.

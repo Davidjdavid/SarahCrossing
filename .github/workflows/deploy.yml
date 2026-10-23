@@ -1,17 +1,31 @@
-# Tests the game, then puts it on the EC2 server at https://sarahcrossing.com
-# (the domain is in deploy/site.json). Setting it up: docs/DEPLOY.md.
+# Tests the game, then puts it on the EC2 server (the domain is in
+# deploy/site.json). Setting it up: docs/DEPLOY.md.
 #
-# - Every push to main or claude/serene-mendel-8428vr deploys.
-# - Actions > Deploy > Run workflow deploys any branch by hand.
-# - Until the EC2_HOST, EC2_SSH_KEY and SITE_PASSWORD secrets exist, it only
-#   builds and tests (and says so).
+# Two sites, each with its own islands:
+# - beta: https://beta.sarahcrossing.com, for trying things. Every push to
+#   claude/serene-mendel-8428vr goes here.
+# - live: https://sarahcrossing.com, Sarah's island. Changes only when asked:
+#   Actions > Deploy > Run workflow, "live" (or a push to main).
+# Until the EC2_HOST, EC2_SSH_KEY and SITE_PASSWORD secrets exist, it only
+# builds and tests (and says so).
 
 name: Deploy
+run-name: Deploy to ${{ inputs.target || (github.ref_name == 'main' && 'live') || 'beta' }}
 
 on:
   push:
     branches: [main, claude/serene-mendel-8428vr]
   workflow_dispatch:
+    inputs:
+      target:
+        description: Which site
+        type: choice
+        options: [beta, live]
+        default: beta
+      copy_live_islands:
+        description: "Beta only: first replace the beta site's islands with a copy of the live ones"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,6 +41,7 @@ jobs:
     timeout-minutes: 30
     env:
       HAS_SERVER: ${{ secrets.EC2_HOST != '' && secrets.EC2_SSH_KEY != '' && secrets.SITE_PASSWORD != '' }}
+      TARGET: ${{ inputs.target || (github.ref_name == 'main' && 'live') || 'beta' }}
 
     steps:
       - name: Get the code
@@ -40,6 +55,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Which site
+        run: |
+          domain=$(jq -r .domain deploy/site.json)
+          if [ "$TARGET" = beta ]; then domain="beta.$domain"; port=8091; else port=8090; fi
+          echo "DOMAIN=$domain" >> "$GITHUB_ENV"
+          echo "PORT=$port" >> "$GITHUB_ENV"
+          echo "Deploying to $TARGET: https://$domain"
 
       # ------------------------------------------------ build and test
       - name: Build
@@ -78,27 +101,31 @@ jobs:
         if: env.HAS_SERVER == 'true'
         env:
           SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+          COPY_ISLANDS: ${{ inputs.copy_live_islands && 'yes' || 'no' }}
         run: |
-          domain=$(jq -r .domain deploy/site.json)
+          name=sarahcrossing
+          if [ "$TARGET" = beta ]; then name=sarahcrossing-beta; fi
+          copy=true
+          if [ "$TARGET" = beta ] && [ "$COPY_ISLANDS" = yes ]; then copy="sudo bash /tmp/sc-deploy/copy-islands.sh"; fi
           ssh sc 'rm -rf /tmp/sc-deploy && mkdir -p /tmp/sc-deploy'
-          scp -q release.tgz deploy/setup.sh deploy/install-release.sh sc:/tmp/sc-deploy/
+          scp -q release.tgz deploy/setup.sh deploy/install-release.sh deploy/copy-islands.sh sc:/tmp/sc-deploy/
           # The password goes over ssh's input, never on a command line.
-          printf '%s' "$SITE_PASSWORD" | ssh sc 'umask 077 && cat > /tmp/sarahcrossing-password'
+          printf '%s' "$SITE_PASSWORD" | ssh sc "umask 077 && cat > /tmp/$name-password"
           # Set up the server (quick when nothing changed), install the release, tidy up.
-          # shellcheck disable=SC2029 # $domain is meant to expand here.
-          ssh sc "sudo bash /tmp/sc-deploy/setup.sh '$domain' && sudo bash /tmp/sc-deploy/install-release.sh /tmp/sc-deploy/release.tgz; status=\$?; rm -rf /tmp/sc-deploy /tmp/sarahcrossing-password; exit \$status"
+          # shellcheck disable=SC2029 # these are meant to expand here.
+          ssh sc "sudo bash /tmp/sc-deploy/setup.sh '$DOMAIN' $TARGET && $copy && sudo bash /tmp/sc-deploy/install-release.sh /tmp/sc-deploy/release.tgz $TARGET; status=\$?; rm -rf /tmp/sc-deploy /tmp/$name-password; exit \$status"
 
-      - name: Check the live site
+      - name: Check the site
         if: env.HAS_SERVER == 'true'
         run: |
-          domain=$(jq -r .domain deploy/site.json)
+          domain=$DOMAIN
           version=$(jq -r .version dist/build.json)
           # The first deploy can take a few minutes while Caddy gets the HTTPS certificate.
           for try in $(seq 1 18); do
             if curl -fsS --max-time 10 "https://$domain/healthz" | grep -q "\"version\":\"$version\""; then
               echo "Live at https://$domain/ ($version)"
               {
-                echo "### Deployed to https://$domain/"
+                echo "### Deployed to $TARGET: https://$domain/"
                 echo "Version \`$version\`"
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0
@@ -120,7 +147,7 @@ jobs:
       - name: What the server says (only when the deploy failed)
         if: failure() && steps.connect.outcome == 'success'
         run: |
-          domain=$(jq -r .domain deploy/site.json)
+          domain=$DOMAIN
           server_ip=$(ssh sc 'curl -fsS --max-time 5 https://checkip.amazonaws.com' 2>/dev/null | tr -d '[:space:]' || true)
           a=$(dig +short A "$domain" | tail -n 1)
           aaaa=$(dig +short AAAA "$domain" | tail -n 1)
@@ -134,8 +161,11 @@ jobs:
           else
             echo "No AAAA (IPv6) record: good."
           fi
-          ssh sc 'set +e
-            echo "== Services (caddy, game server)"; systemctl is-active caddy sarahcrossing
-            echo "== The game server answering on the server itself"; curl -fsS --max-time 5 http://127.0.0.1:8090/healthz; echo
-            echo "== Caddy log, newest last"; sudo journalctl -u caddy -n 60 --no-pager -o cat
-            echo "== Game server log, newest last"; sudo journalctl -u sarahcrossing -n 30 --no-pager -o cat' || true
+          service=sarahcrossing
+          if [ "$TARGET" = beta ]; then service=sarahcrossing-beta; fi
+          # shellcheck disable=SC2029 # these are meant to expand here.
+          ssh sc "set +e
+            echo '== Services (caddy, game server)'; systemctl is-active caddy $service
+            echo '== The game server answering on the server itself'; curl -fsS --max-time 5 http://127.0.0.1:$PORT/healthz; echo
+            echo '== Caddy log, newest last'; sudo journalctl -u caddy -n 60 --no-pager -o cat
+            echo '== Game server log, newest last'; sudo journalctl -u $service -n 30 --no-pager -o cat" || true

@@ -1,12 +1,16 @@
 # Putting the game online
 
-Once this is set up, the game lives at **https://sarahcrossing.com**:
+Once this is set up, there are two sites on the server, each with its own islands:
+
+| Site | What it's for | Gets a new version |
+|---|---|---|
+| **https://sarahcrossing.com** (live) | Sarah's island | only when you ask: **Actions > Deploy > Run workflow**, pick **live** |
+| **https://beta.sarahcrossing.com** (beta) | trying new things first | every push to `claude/serene-mendel-8428vr` (about 5 minutes, once its tests pass) |
 
 - **Password:** every visitor types the password once. After that, their browser remembers it for years.
+  (Both sites use the same password, but each asks once.)
 - **Islands:** saved on the server as you play, so an island follows you from phone to laptop.
   Each island keeps its own backups (hourly for two days, then daily for two months).
-- **Every push** to `main` (or to `claude/serene-mendel-8428vr`) puts the new version online
-  in about 4 minutes, once its tests pass.
 
 How it works: when you push, GitHub builds the game, tests it (including playing it in a real
 browser) and copies it to your EC2 server. On the server, **Caddy** handles HTTPS (it gets the
@@ -109,6 +113,17 @@ then the **Advanced DNS** tab):
 4. A **green tick** means it's live. Open <https://sarahcrossing.com>, type the password, and the
    title screen appears. A **red cross**: see [Troubleshooting](#troubleshooting).
 
+## The beta site
+
+Add one more DNS record, like the two in step 3: **A Record**, Host `beta`, Value your Elastic IP.
+
+- **To try a change:** it's on https://beta.sarahcrossing.com a few minutes after the push.
+- **To try it on the real islands:** **Actions > Deploy > Run workflow**, pick **beta** and tick
+  **copy live islands to beta**. Beta's islands are replaced with a copy of the live ones (Sarah's
+  island included); the live site isn't touched, and nothing played on beta goes back to it.
+- **When it's good:** **Actions > Deploy > Run workflow**, pick the branch and **live**. That
+  version goes to sarahcrossing.com.
+
 ## 6. Bring in Sarah's island
 
 In the **old** one-page Sarah Crossing, get the island out either way:
@@ -152,7 +167,8 @@ Instance Connect** tab, username `ubuntu`, **Connect**. Or from PowerShell:
 `ssh -i "C:\Users\<you>\Downloads\<your-key>.pem" ubuntu@sarahcrossing.com`
 
 ```
-/srv/sarahcrossing/
+/srv/sarahcrossing/       the live site (the beta site is the same, in /srv/sarahcrossing-beta,
+                          service sarahcrossing-beta, port 8091)
   current ->            the live release
   releases/<version>/   the newest 5 releases (dist/ is the game, server/ the game server)
   password              the password (from the SITE_PASSWORD secret)

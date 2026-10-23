@@ -4,26 +4,42 @@
 # "sarahcrossing" user, the /srv/sarahcrossing folders, the password, the
 # systemd service, a nightly backup and the site's part of the Caddyfile.
 #
-#   sudo bash deploy/setup.sh <domain>          e.g. sudo bash deploy/setup.sh sarahcrossing.com
+#   sudo bash deploy/setup.sh <domain> [live|beta]
+#
+#   e.g. sudo bash deploy/setup.sh sarahcrossing.com            Sarah's island (live)
+#        sudo bash deploy/setup.sh beta.sarahcrossing.com beta  the test site
+#
+# The live site and the beta site are two copies side by side, each with its own
+# islands: live is /srv/sarahcrossing on port 8090, beta /srv/sarahcrossing-beta
+# on port 8091.
 #
 # The GitHub "Deploy" workflow runs it on every deploy, so it's safe to run
 # again: whatever is already in place is left alone.
 #
 # It can share a server with other sites (Dr Hazelwood, Settlers...): it has its
-# own port (8090), user and folders, and in /etc/caddy/Caddyfile it only ever
-# changes the lines between "# BEGIN sarahcrossing" and "# END sarahcrossing".
+# own ports, user and folders, and in /etc/caddy/Caddyfile it only ever changes
+# the lines between "# BEGIN <name>" and "# END <name>" (the name being
+# sarahcrossing or sarahcrossing-beta).
 #
-# The password comes from /tmp/sarahcrossing-password (written by the deploy,
-# then moved into place); without one, the one already on the server is kept.
+# The password comes from /tmp/<name>-password (written by the deploy, then moved
+# into place); without one, the one already on the server is kept.
 set -euo pipefail
 
-SC_ROOT=${SC_ROOT:-/srv/sarahcrossing}
+INSTANCE=${INSTANCE:-${2:-live}}
+case $INSTANCE in
+  live) NAME=sarahcrossing PORT=${PORT:-8090} ;;
+  beta) NAME=sarahcrossing-beta PORT=${PORT:-8091} ;;
+  *)
+    echo "setup.sh: the second argument is live or beta, not $INSTANCE" >&2
+    exit 1
+    ;;
+esac
+SC_ROOT=${SC_ROOT:-/srv/$NAME}
 SC_USER=${SC_USER:-sarahcrossing}
-PORT=${PORT:-8090}
-SERVICE=sarahcrossing
+SERVICE=$NAME
 CADDYFILE=${CADDYFILE:-/etc/caddy/Caddyfile}
-BACKUPS=/var/backups/sarahcrossing
-NEW_PASSWORD=/tmp/sarahcrossing-password
+BACKUPS=/var/backups/$NAME
+NEW_PASSWORD=/tmp/$NAME-password
 
 export DEBIAN_FRONTEND=noninteractive
 # Waits for apt if Ubuntu is busy updating itself (common right after a reboot).
@@ -49,12 +65,12 @@ write_if_changed() {
   rm -f "$tmp"
 }
 
-# The site's lines for the Caddyfile, between its markers.
+# The site's lines for the Caddyfile, between its markers. (Live also sends www. to the plain domain.)
 caddy_block() {
-  printf '%s\n' "# BEGIN sarahcrossing (written by Sarah Crossing's deploy/setup.sh; changes in here are replaced on the next deploy)"
-  printf '%s {\n\tencode zstd gzip\n\treverse_proxy 127.0.0.1:%s\n}\n\n' "$DOMAIN" "$PORT"
-  printf 'www.%s {\n\tredir https://%s{uri} permanent\n}\n' "$DOMAIN" "$DOMAIN"
-  printf '%s\n' "# END sarahcrossing"
+  printf '%s\n' "# BEGIN $NAME (written by Sarah Crossing's deploy/setup.sh; changes in here are replaced on the next deploy)"
+  printf '%s {\n\tencode zstd gzip\n\treverse_proxy 127.0.0.1:%s\n}\n' "$DOMAIN" "$PORT"
+  if [ "$INSTANCE" = live ]; then printf '\nwww.%s {\n\tredir https://%s{uri} permanent\n}\n' "$DOMAIN" "$DOMAIN"; fi
+  printf '%s\n' "# END $NAME"
 }
 
 # Ubuntu's welcome page, or the bare ":80" a fresh install starts with: nothing worth keeping.
@@ -69,9 +85,10 @@ new_caddyfile() {
   local current=$1
   if [ -f "$current" ] && ! caddyfile_is_stock "$current"; then
     # (the blank line that separated the old block from what follows goes with it)
-    awk 'function blank(s) { return s ~ /^[[:space:]]*$/ }
-      /^# BEGIN sarahcrossing/ { skip = 1; next }
-      /^# END sarahcrossing/ { skip = 0; gap = 1; next }
+    awk -v begin="# BEGIN $NAME" -v end="# END $NAME" 'function blank(s) { return s ~ /^[[:space:]]*$/ }
+      function marks(s, m) { return s == m || index(s, m " ") == 1 }
+      marks($0, begin) { skip = 1; next }
+      marks($0, end) { skip = 0; gap = 1; next }
       skip { next }
       { if (gap && blank($0) && (n == 0 || blank(lines[n]))) { gap = 0; next } gap = 0; lines[++n] = $0 }
       END { while (n > 0 && blank(lines[n])) n--; for (i = 1; i <= n; i++) print lines[i]; if (n > 0) print "" }' "$current"
@@ -79,14 +96,15 @@ new_caddyfile() {
   caddy_block
 }
 
-# Lets tests/deploy.test.mjs try the Caddyfile handling without a server.
+# Lets tests/deploy.test.mjs try the Caddyfile handling without a server:
+#   INSTANCE=live|beta bash deploy/setup.sh --caddyfile-only <domain> <Caddyfile>
 if [ "${1:-}" = "--caddyfile-only" ]; then
   DOMAIN=$2
   new_caddyfile "$3"
   exit 0
 fi
 
-[ "$(id -u)" -eq 0 ] || die "run it with sudo: sudo bash $0 <domain>"
+[ "$(id -u)" -eq 0 ] || die "run it with sudo: sudo bash $0 <domain> [live|beta]"
 DOMAIN=$(printf '%s' "${1:-}" | tr -d '[:space:]' | tr 'A-Z' 'a-z')
 DOMAIN=${DOMAIN#www.}
 [[ $DOMAIN =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$ ]] || die "give the domain, like: sudo bash $0 sarahcrossing.com"
@@ -216,7 +234,7 @@ rm -f "$NEW_PASSWORD"
 if write_if_changed "/etc/systemd/system/$SERVICE.service" 644 <<UNIT; then
 # Written by Sarah Crossing's deploy/setup.sh; changes here are replaced on the next deploy.
 [Unit]
-Description=Sarah Crossing game server
+Description=Sarah Crossing game server ($INSTANCE)
 After=network.target
 StartLimitIntervalSec=0
 
@@ -251,7 +269,7 @@ fi
 write_if_changed "/etc/systemd/system/$SERVICE-backup.service" 644 <<UNIT || true
 # Written by Sarah Crossing's deploy/setup.sh.
 [Unit]
-Description=Back up the Sarah Crossing islands
+Description=Back up the Sarah Crossing islands ($INSTANCE)
 
 [Service]
 Type=oneshot
@@ -260,7 +278,7 @@ UNIT
 write_if_changed "/etc/systemd/system/$SERVICE-backup.timer" 644 <<UNIT || true
 # Written by Sarah Crossing's deploy/setup.sh.
 [Unit]
-Description=Nightly Sarah Crossing backup
+Description=Nightly Sarah Crossing backup ($INSTANCE)
 
 [Timer]
 OnCalendar=*-*-* 09:23:00

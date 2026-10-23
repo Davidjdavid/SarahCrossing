@@ -12,15 +12,30 @@ before(() => (tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sc-deploy-'))));
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
 /** What setup.sh would make the Caddyfile, from one that starts as `text` (null: no file). */
-function caddyfile(text, domain = 'sarahcrossing.com') {
+function caddyfile(text, domain = 'sarahcrossing.com', instance = 'live') {
   const file = path.join(tmp, 'Caddyfile');
   fs.rmSync(file, { force: true });
   if (text !== null) fs.writeFileSync(file, text);
-  return execFileSync('bash', [path.join(ROOT, 'deploy/setup.sh'), '--caddyfile-only', domain, file], { encoding: 'utf8' });
+  return execFileSync('bash', [path.join(ROOT, 'deploy/setup.sh'), '--caddyfile-only', domain, file], { encoding: 'utf8', env: { ...process.env, INSTANCE: instance } });
 }
 
 test('the deploy scripts are valid bash', () => {
-  for (const f of ['setup.sh', 'install-release.sh']) execFileSync('bash', ['-n', path.join(ROOT, 'deploy', f)]);
+  for (const f of ['setup.sh', 'install-release.sh', 'copy-islands.sh']) execFileSync('bash', ['-n', path.join(ROOT, 'deploy', f)]);
+});
+
+test('the beta site has its own block and port, and live and beta keep out of each other', () => {
+  const beta = caddyfile(null, 'beta.sarahcrossing.com', 'beta');
+  assert.match(beta, /^# BEGIN sarahcrossing-beta /);
+  assert.match(beta, /^beta\.sarahcrossing\.com \{\n\tencode zstd gzip\n\treverse_proxy 127\.0\.0\.1:8091\n\}$/m);
+  assert.doesNotMatch(beta, /www\./);
+  // live on a server that has beta: beta stays; beta on a server that has live: live stays
+  const both = caddyfile(beta, 'sarahcrossing.com', 'live');
+  assert.ok(both.startsWith(beta + '\n# BEGIN sarahcrossing ('), both);
+  assert.equal(caddyfile(both, 'beta.sarahcrossing.com', 'beta').split('# BEGIN').length - 1, 2);
+  const again = caddyfile(caddyfile(both, 'beta.sarahcrossing.com', 'beta'), 'sarahcrossing.com', 'live');
+  assert.match(again, /reverse_proxy 127\.0\.0\.1:8090/);
+  assert.match(again, /reverse_proxy 127\.0\.0\.1:8091/);
+  assert.equal(again.split('# BEGIN').length - 1, 2);
 });
 
 test('a new server gets just this site', () => {
