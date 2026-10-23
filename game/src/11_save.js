@@ -121,6 +121,8 @@ function migrate(st) {
     for (const k of ['shop', 'boutique']) if (!st.shops[k] || typeof st.shops[k] !== 'object') st.shops[k] = { spent: 0, level: 1 };
     if (!st.flags.shops1) { st.flags.shops1 = 1; st.shops.shop.spent = Math.max(st.shops.shop.spent || 0, (st.stats.bought || 0) * 300); }
     if (st.npcs && st.npcs.joe && !(st.npcs.joe.pts >= 100)) st.npcs.joe.pts = 100;
+    // personal moments a close friend has shared (6z_talk_more.js): a count, missing means none yet
+    for (const r of Object.values(st.npcs || {})) if (r && r.shared != null && !(r.shared >= 0)) r.shared = 0;
     if (st.karaoke && !st.karaoke.best) st.karaoke.best = {};
     for (const k of ['specials', 'quests', 'cookLog']) if (st[k] != null && typeof st[k] !== 'object') st[k] = undefined;
     if (st.tasks && !Array.isArray(st.tasks.list)) st.tasks = undefined;

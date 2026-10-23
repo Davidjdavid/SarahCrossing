@@ -48,7 +48,11 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] New people: meet new vendors by meeting requirements; after some days and play time, new
   characters visit and ask to move in, and Sarah picks where their house goes
 - [ ] A secret character
-- [ ] Way more dialogue, better dialogue, conversations that react to what's going on
+- [~] Way more dialogue, better dialogue, conversations that react to what's going on: about 1,340
+  new lines (27+ everyday lines per neighbor, plus topics that react to the hour, weather, season,
+  where they stand, friendship, Sarah's outfit, what she did today, her records, holidays, solved
+  mysteries and who's nearby), and two personal moments per neighbor for close friends. More to come
+  with the new residents
 - [~] Way more holiday events: holidays with things to do (on top of the 45 with decorations and chatter):
   Egg Hunt (Easter weekend: eggs in the grass, in trees, buried, on the hook; Cece trades them),
   Fish-Off (Kai, four times a year), Beach Cleanup (Earth Day, Ocean Day), Trick-or-Treat (Halloween
