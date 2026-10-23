@@ -59,10 +59,9 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] A few more arcade games: Surf's Up (Kai's wave: jump rocks, grab shells), Gopher Garden (bonk
   the gophers, never Cuke) and Noodle Slurp (Basil's noodle grows as it slurps); the arcade is wider
   to fit their cabinets, which can be won at the prize counter like the others
-- [~] The arcade's back room: a hidden mystery for later in the game (Chili, Sully, the lighthouse,
+- [x] The arcade's back room: a hidden mystery for later in the game (Chili, Sully, the lighthouse,
   a key) opens the island's first arcade with three classic cabinets: Dumpling Drop (a Puyo Puyo
-  clone), Sushi Swap (Tetris Attack) and Fortune Falls (Peggle). Room, mystery, Dumpling Drop and
-  Sushi Swap done; Fortune Falls coming
+  clone), Sushi Swap (Tetris Attack) and Fortune Falls (Peggle)
 - [x] Remake the fruit catching game so it's actually fun: trees shake before they drop, a shadow shows
   where things land, fruits fall their own ways, juice meter and Fruit Fever, power-ups, rounds with
   Perfect bonuses, snappier movement
