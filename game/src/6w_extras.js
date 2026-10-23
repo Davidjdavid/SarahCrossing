@@ -95,7 +95,7 @@ function trackName(id) {
     return TRACK_NAMES[id] || (SONGS[id] ? `${SONGS[id].name} (club)` : cap(id));
 }
 function jukeboxTracks() {
-    return Object.keys(TRACK_NAMES).filter(id => TUNES[id]).concat(Object.keys(SONGS).filter(id => DANCE_TUNES[id] && songUnlocked(id)));
+    return Object.keys(TRACK_NAMES).filter(id => TUNES[id] && (!BACK_CABS.includes(id) || backRoomOpen())).concat(Object.keys(SONGS).filter(id => DANCE_TUNES[id] && songUnlocked(id)));
 }
 function musicPlaceKey(id) { return !id ? 'island' : id.startsWith('h_') ? 'houses' : id === 'lamproom' ? 'lighthouse' : id; }
 /* Sarah's music choices: "play now" beats everything, then a minigame's rule, then the place, then the hour (outside) */

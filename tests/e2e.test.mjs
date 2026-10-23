@@ -397,7 +397,10 @@ test('every arcade cabinet starts, plays and ends, and the arcade has a cabinet 
   const cabs = await page.evaluate(() => ({ list: ARCADE_CABS, inRoom: G.area.items.filter((i) => FURN[i.id] && FURN[i.id].arcade && FURN[i.id].arcade !== 'claw').map((i) => FURN[i.id].arcade), sprites: ARCADE_CABS.every((id) => Assets.has('f_cab_' + id)) }));
   assert.deepEqual(cabs.inRoom.sort(), [...cabs.list].sort());
   assert.ok(cabs.sprites, 'every cabinet has a picture');
-  for (const id of cabs.list) {
+  // and the back room's, once its door is open
+  const all = await page.evaluate(() => { Quests.finish('backroom'); return arcadeCabs(); });
+  assert.ok(all.length > cabs.list.length, 'the back room adds cabinets');
+  for (const id of all) {
     await page.evaluate((id) => __dbg.arcade(id), id);
     await page.waitForFunction(() => Arcade.state === 'play', null, { timeout: 5000 });
     // a few seconds of mashing every button and tapping the screen
