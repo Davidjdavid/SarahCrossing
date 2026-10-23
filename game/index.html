@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sarah Crossing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&family=Caveat:wght@600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="game" aria-label="Sarah Crossing, the island"></canvas>
+  <div id="ui">
+    <div class="hud-left" id="hudL" hidden>
+      <div class="pill clock" id="clock">7:00<span class="ampm">AM</span></div>
+      <div class="sub" id="dateline"></div>
+      <div class="bonuspill" id="bonuspill" hidden></div>
+    </div>
+    <div class="hud-right" id="hudR" hidden>
+      <div class="pill money"><i class="coin" aria-hidden="true"></i><span id="money">0</span></div>
+      <div class="hud-mini">
+        <button class="mbtn" id="bRun" type="button" aria-label="Run (R)" aria-pressed="false" title="Run on/off (R)"><span class="ic" data-icon="ui_run"></span></button>
+        <button class="mbtn" id="bMap" type="button" aria-label="Map (M)"><span class="ic" data-icon="app_map"></span></button>
+        <button class="mbtn" id="bZoomOut" type="button" aria-label="Zoom out (-)">&#8722;</button>
+        <button class="mbtn" id="bZoomIn" type="button" aria-label="Zoom in (+)">+</button>
+      </div>
+    </div>
+    <div class="hint kbonly" id="hint" hidden></div>
+    <div class="hud-buttons" id="hudB" hidden>
+      <button class="hbtn" id="bTool" type="button" aria-label="Tools (hold the axe or shovel)"><span class="ic" data-icon="ui_hand"></span>Tools</button>
+      <button class="hbtn" id="bMoves" type="button" aria-label="Dance moves"><span class="ic" data-icon="ui_moves"></span>Moves</button>
+      <button class="hbtn" id="bPocket" type="button" aria-label="Pocket"><span class="ic" data-icon="ui_pocket"></span>Pocket</button>
+      <button class="hbtn big" id="bPhone" type="button" aria-label="Phone"><span class="ic" data-icon="ui_phone"></span>Phone</button>
+    </div>
+    <div id="toasts" aria-live="polite"></div>
+    <div id="scrim" hidden></div>
+    <div id="panel" role="dialog" aria-modal="true" hidden></div>
+    <div id="dialog" hidden aria-live="polite">
+      <div class="choices" id="choices"></div>
+      <div class="bubble" id="bubble"><div class="nametag" id="nametag" hidden></div><div id="dtext"></div><i class="next" id="dnext" hidden></i></div>
+    </div>
+    <div id="dancepads" hidden>
+      <button class="pad" type="button" data-lane="0" aria-label="Left">&#8592;</button>
+      <button class="pad" type="button" data-lane="1" aria-label="Down">&#8595;</button>
+      <span class="padgap"></span>
+      <button class="pad" type="button" data-lane="2" aria-label="Up">&#8593;</button>
+      <button class="pad" type="button" data-lane="3" aria-label="Right">&#8594;</button>
+    </div>
+    <div id="karaokepads" hidden>
+      <div class="kp-pitch"><button class="pad" type="button" data-k="up" aria-label="Pitch up">&#9650;</button><button class="pad" type="button" data-k="down" aria-label="Pitch down">&#9660;</button></div>
+      <button class="pad sing" type="button" data-k="sing" aria-label="Sing (hold)">SING</button>
+    </div>
+    <div id="dancehud" hidden><div class="song" id="dsong"></div><div class="score" id="dscore"></div><div class="lyric" id="dlyric"></div><div class="count" id="dcount"></div><div class="judge" id="djudge"></div><div class="combo" id="dcombo"></div><div class="tip" id="dtip"></div></div>
+    <div id="photobar" hidden></div>
+    <div id="title" hidden>
+      <div class="titlecard">
+        <h1 class="logo">Sarah<span>Crossing</span></h1>
+        <p class="tag" id="ttag">An island that runs on Sarah time.</p>
+        <div class="tbtns" id="tbtns"></div>
+        <p class="tnote" id="tnote">Sound starts with your first tap.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

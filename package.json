@@ -1,0 +1,12 @@
+{
+  "name": "sarah-crossing",
+  "private": true,
+  "type": "module",
+  "description": "Sarah Crossing: a cozy island game, online, with saves kept on the server.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  }
+}
