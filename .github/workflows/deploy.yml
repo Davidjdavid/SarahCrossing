@@ -1,0 +1,141 @@
+# Tests the game, then puts it on the EC2 server at https://sarahcrossing.com
+# (the domain is in deploy/site.json). Setting it up: docs/DEPLOY.md.
+#
+# - Every push to main or claude/serene-mendel-8428vr deploys.
+# - Actions > Deploy > Run workflow deploys any branch by hand.
+# - Until the EC2_HOST, EC2_SSH_KEY and SITE_PASSWORD secrets exist, it only
+#   builds and tests (and says so).
+
+name: Deploy
+
+on:
+  push:
+    branches: [main, claude/serene-mendel-8428vr]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time. A push made during a deploy waits for it.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      HAS_SERVER: ${{ secrets.EC2_HOST != '' && secrets.EC2_SSH_KEY != '' && secrets.SITE_PASSWORD != '' }}
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ------------------------------------------------ build and test
+      - name: Build
+        run: npm run build
+
+      - name: Server, storage, build and deploy-script tests
+        run: npm test
+
+      - name: The game in a browser
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+      - name: Package the release
+        run: |
+          # The end-to-end tests rebuilt dist/; build once more so the version is this deploy's.
+          npm run build
+          tar -czf release.tgz dist server
+
+      # ------------------------------------------------ deploy
+      - name: Not deploying (no server secrets yet)
+        if: env.HAS_SERVER != 'true'
+        run: |
+          echo "::notice title=Built and tested, but not deployed::Add the EC2_HOST, EC2_SSH_KEY and SITE_PASSWORD secrets (docs/DEPLOY.md, step 4) and every push will deploy."
+
+      - name: Connect to the server
+        id: connect
+        if: env.HAS_SERVER == 'true'
+        uses: ./.github/actions/connect
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          user: ${{ secrets.EC2_USER || 'ubuntu' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Install on the server
+        if: env.HAS_SERVER == 'true'
+        env:
+          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+        run: |
+          domain=$(jq -r .domain deploy/site.json)
+          ssh sc 'rm -rf /tmp/sc-deploy && mkdir -p /tmp/sc-deploy'
+          scp -q release.tgz deploy/setup.sh deploy/install-release.sh sc:/tmp/sc-deploy/
+          # The password goes over ssh's input, never on a command line.
+          printf '%s' "$SITE_PASSWORD" | ssh sc 'umask 077 && cat > /tmp/sarahcrossing-password'
+          # Set up the server (quick when nothing changed), install the release, tidy up.
+          # shellcheck disable=SC2029 # $domain is meant to expand here.
+          ssh sc "sudo bash /tmp/sc-deploy/setup.sh '$domain' && sudo bash /tmp/sc-deploy/install-release.sh /tmp/sc-deploy/release.tgz; status=\$?; rm -rf /tmp/sc-deploy /tmp/sarahcrossing-password; exit \$status"
+
+      - name: Check the live site
+        if: env.HAS_SERVER == 'true'
+        run: |
+          domain=$(jq -r .domain deploy/site.json)
+          version=$(jq -r .version dist/build.json)
+          # The first deploy can take a few minutes while Caddy gets the HTTPS certificate.
+          for try in $(seq 1 18); do
+            if curl -fsS --max-time 10 "https://$domain/healthz" | grep -q "\"version\":\"$version\""; then
+              echo "Live at https://$domain/ ($version)"
+              {
+                echo "### Deployed to https://$domain/"
+                echo "Version \`$version\`"
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "https://$domain/ isn't answering with the new version yet (try $try of 18), waiting..."
+            # After failed tries Caddy waits longer and longer before asking for a certificate
+            # again (for example after a DNS fix). Restarting it once makes it ask right away.
+            if [ "$try" = 4 ]; then
+              echo "Restarting Caddy so it asks for the HTTPS certificate again now."
+              ssh sc 'sudo systemctl restart caddy' || true
+            fi
+            sleep 10
+          done
+          echo "::error::The game was installed, but https://$domain/healthz doesn't answer. Check that the domain points at the server and ports 80 and 443 are open (docs/DEPLOY.md, Troubleshooting). The next step shows what the server says."
+          exit 1
+
+      # Only when something went wrong after connecting: what the server says, so the
+      # cause shows up here instead of needing a terminal on the server.
+      - name: What the server says (only when the deploy failed)
+        if: failure() && steps.connect.outcome == 'success'
+        run: |
+          domain=$(jq -r .domain deploy/site.json)
+          server_ip=$(ssh sc 'curl -fsS --max-time 5 https://checkip.amazonaws.com' 2>/dev/null | tr -d '[:space:]' || true)
+          a=$(dig +short A "$domain" | tail -n 1)
+          aaaa=$(dig +short AAAA "$domain" | tail -n 1)
+          echo "== DNS, seen from GitHub"
+          if [ -z "$a" ]; then echo "The domain has no A (IPv4) record."
+          elif [ "$a" = "$server_ip" ]; then echo "The domain's A record points at this server: yes"
+          else echo "The domain's A record points at this server: NO (it points somewhere else)"; fi
+          if [ -n "$aaaa" ]; then
+            echo "The domain also has an AAAA (IPv6) record. Let's Encrypt checks that address first;"
+            echo "unless it is this server's IPv6 address, remove it in the DNS settings."
+          else
+            echo "No AAAA (IPv6) record: good."
+          fi
+          ssh sc 'set +e
+            echo "== Services (caddy, game server)"; systemctl is-active caddy sarahcrossing
+            echo "== The game server answering on the server itself"; curl -fsS --max-time 5 http://127.0.0.1:8090/healthz; echo
+            echo "== Caddy log, newest last"; sudo journalctl -u caddy -n 60 --no-pager -o cat
+            echo "== Game server log, newest last"; sudo journalctl -u sarahcrossing -n 30 --no-pager -o cat' || true

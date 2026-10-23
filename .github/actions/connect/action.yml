@@ -1,0 +1,60 @@
+# Sets up `ssh sc` (and scp) to the EC2 server, for the Deploy workflow.
+name: Connect to the server
+description: Sets up ssh to the game server as "sc".
+inputs:
+  host:
+    description: EC2_HOST
+    required: true
+  user:
+    description: EC2_USER
+    required: false
+    default: ubuntu
+  key:
+    description: EC2_SSH_KEY
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        EC2_HOST: ${{ inputs.host }}
+        EC2_USER: ${{ inputs.user }}
+        EC2_SSH_KEY: ${{ inputs.key }}
+      run: |
+        # Copy-pasted secrets can pick up spaces or Windows line endings; drop them.
+        host=$(printf '%s' "$EC2_HOST" | tr -d '[:space:]')
+        user=$(printf '%s' "${EC2_USER:-ubuntu}" | tr -d '[:space:]')
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        printf '%s\n' "$EC2_SSH_KEY" | tr -d '\r' > ~/.ssh/sc_ec2
+        chmod 600 ~/.ssh/sc_ec2
+
+        # Remember the server's identity (trusting whatever answers the first time).
+        for try in 1 2 3 4 5; do
+          keys=$(ssh-keyscan -T 15 "$host" 2>/dev/null || true)
+          if [ -n "$keys" ]; then break; fi
+          echo "The server didn't answer on port 22 (try $try of 5), waiting..."
+          sleep 10
+        done
+        if [ -z "$keys" ]; then
+          echo "::error::Can't reach the server on port 22. Is it running, and is port 22 open in its AWS security group? (docs/DEPLOY.md, step 2)"
+          exit 1
+        fi
+        echo "$keys" >> ~/.ssh/known_hosts
+
+        # "ssh sc" and "scp ... sc:" in the next steps use these settings.
+        cat > ~/.ssh/config <<CONFIG
+        Host sc
+          HostName $host
+          User $user
+          IdentityFile ~/.ssh/sc_ec2
+          IdentitiesOnly yes
+          BatchMode yes
+          StrictHostKeyChecking yes
+          ConnectTimeout 20
+          ServerAliveInterval 15
+        CONFIG
+        ssh sc true || {
+          echo "::error::The server refused the key. Check EC2_USER (usually ubuntu) and that EC2_SSH_KEY is the whole .pem file (docs/DEPLOY.md, step 4)."
+          exit 1
+        }

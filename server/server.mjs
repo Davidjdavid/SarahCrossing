@@ -13,6 +13,7 @@
 //   DATA_DIR        islands, backups and the cookie secret, default ./data
 //   SITE_PASSWORD   the password players type once. Required when NODE_ENV=production;
 //                   without it (on a computer) there's no login.
+//   SITE_PASSWORD_FILE  or a file holding it (what the server setup uses)
 //
 // API (JSON; writes need the header "X-Sarah: 1", which other sites can't send):
 //   GET    /api/islands                      every island, most recently played first
@@ -44,7 +45,7 @@ const HOST = process.env.HOST || '127.0.0.1';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const STATIC_DIR = path.resolve(process.env.STATIC_DIR || path.join(ROOT, 'dist'));
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
-const PASSWORD = process.env.SITE_PASSWORD || '';
+const PASSWORD = process.env.SITE_PASSWORD || readPasswordFile();
 const PRODUCTION = process.env.NODE_ENV === 'production';
 
 const COOKIE = 'sc_access';
@@ -87,6 +88,17 @@ class HttpError extends Error {
   constructor(status, message) {
     super(message);
     this.status = status;
+  }
+}
+
+function readPasswordFile() {
+  const file = process.env.SITE_PASSWORD_FILE;
+  if (!file) return '';
+  try {
+    return fs.readFileSync(file, 'utf8').replace(/\r?\n$/, '');
+  } catch (err) {
+    console.error(`Can't read the password file ${file}: ${err.message}`);
+    return '';
   }
 }
 
@@ -494,8 +506,10 @@ async function handle(req, res) {
     return sendLoginPage(res, 200, next);
   }
 
-  // The tab icon works before logging in (the login page shows it too).
+  // The icons and the home-screen manifest work before logging in (the login page shows the
+  // icon too, and phones fetch them without the login cookie).
   if (pathname === '/favicon.png' || pathname === '/favicon.ico') return serveStatic(req, res, '/favicon.png');
+  if (/^\/assets\/(icon-\d+|manifest)-[0-9a-f]{10}\.(png|webmanifest)$/.test(pathname)) return serveStatic(req, res, pathname);
 
   if (!hasAccess(req)) {
     if (pathname.startsWith('/api/')) return sendJson(res, 401, { error: 'Log in first', login: '/login' });

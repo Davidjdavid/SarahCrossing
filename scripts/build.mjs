@@ -18,6 +18,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { makeIcon } from './icon.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const GAME = path.join(ROOT, 'game');
@@ -61,8 +62,49 @@ const data = [
 const dataJs = emit('data', '.js', data);
 const styleCss = emit('style', '.css', read('style.css'));
 
+// ---------------------------------------------------------------- icons
+// Sarah herself, on the sea's blue: the browser tab and the phone's home screen.
+const ICON_FRAME = readJson('assets/atlas.json').sarah_crimson_down_happy;
+const ICON_BG = '#7fd3e8';
+fs.writeFileSync(path.join(DIST, 'favicon.png'), makeIcon(read('assets/atlas.png'), ICON_FRAME, 64, ICON_BG, 0.9));
+const icon180 = emit('icon-180', '.png', makeIcon(read('assets/atlas.png'), ICON_FRAME, 180, ICON_BG));
+const icon192 = emit('icon-192', '.png', makeIcon(read('assets/atlas.png'), ICON_FRAME, 192, ICON_BG));
+const icon512 = emit('icon-512', '.png', makeIcon(read('assets/atlas.png'), ICON_FRAME, 512, ICON_BG));
+const manifest = emit(
+  'manifest',
+  '.webmanifest',
+  JSON.stringify({
+    name: 'Sarah Crossing',
+    short_name: 'Sarah Crossing',
+    start_url: '/',
+    scope: '/',
+    display: 'fullscreen',
+    background_color: '#1e2447',
+    theme_color: '#1e2447',
+    icons: [
+      { src: '/' + icon192, sizes: '192x192', type: 'image/png' },
+      { src: '/' + icon512, sizes: '512x512', type: 'image/png' },
+    ],
+  }),
+);
+
 // ---------------------------------------------------------------- page
 let page = read('index.html').toString('utf8');
+// Added to the home screen, the game opens full screen, like an app.
+page = page.replace(
+  '<title>Sarah Crossing</title>',
+  [
+    '<title>Sarah Crossing</title>',
+    '<meta name="theme-color" content="#1e2447">',
+    '<meta name="mobile-web-app-capable" content="yes">',
+    '<meta name="apple-mobile-web-app-capable" content="yes">',
+    '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">',
+    '<meta name="apple-mobile-web-app-title" content="Sarah Crossing">',
+    '<link rel="icon" href="favicon.png">',
+    `<link rel="apple-touch-icon" href="${icon180}">`,
+    `<link rel="manifest" href="${manifest}">`,
+  ].join('\n'),
+);
 for (const [from, to] of [
   ['href="style.css"', `href="${styleCss}"`],
   ['src="data.js"', `src="${dataJs}"`],

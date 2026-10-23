@@ -45,6 +45,18 @@ test('without the password: pages go to the login, the API says 401', async () =
   assert.match(await loginPage.text(), /Sarah<span>Crossing/);
 });
 
+test('the icons and the home-screen manifest are there before logging in', async () => {
+  assert.equal((await fetch(srv.url + '/favicon.png')).status, 200);
+  const html = await (await fetch(srv.url + '/', { headers: { cookie } })).text();
+  for (const re of [/href="(assets\/manifest-[^"]+)"/, /href="(assets\/icon-180-[^"]+)"/]) {
+    const res = await fetch(`${srv.url}/${re.exec(html)[1]}`);
+    assert.equal(res.status, 200, re.source);
+  }
+  // but not the game itself
+  const js = /src="(assets\/game-[^"]+)"/.exec(html)[1];
+  assert.equal((await fetch(`${srv.url}/${js}`, { redirect: 'manual' })).status, 302);
+});
+
 test('a wrong password is refused, and too many tries wait a minute', async () => {
   for (let i = 0; i < 10; i++) {
     const res = await fetch(srv.url + '/login', { method: 'POST', body: new URLSearchParams({ password: 'nope' }), redirect: 'manual', headers: { 'X-Forwarded-For': '10.0.0.9' } });

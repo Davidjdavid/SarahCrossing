@@ -19,10 +19,22 @@ const asset = (re) => re.exec(page())[1];
 
 test('the page points at files that exist, named by their content', () => {
   const refs = [...page().matchAll(/(?:src|href)="(assets\/[^"]+)"/g)].map((m) => m[1]);
-  assert.equal(refs.length, 3, refs.join());
+  assert.equal(refs.length, 5, refs.join());
   for (const ref of refs) {
-    assert.match(ref, /-[0-9a-f]{10}\.(js|css)$/);
+    assert.match(ref, /-[0-9a-f]{10}\.(js|css|png|webmanifest)$/);
     assert.ok(fs.existsSync(path.join(dist, ref)), ref);
+  }
+});
+
+test('icons for the browser tab and the home screen, and the manifest that names them', () => {
+  assert.equal(fs.readFileSync(path.join(dist, 'favicon.png')).subarray(1, 4).toString(), 'PNG');
+  const manifest = JSON.parse(fs.readFileSync(path.join(dist, asset(/href="(assets\/manifest-[^"]+)"/)), 'utf8'));
+  assert.equal(manifest.name, 'Sarah Crossing');
+  for (const icon of manifest.icons) {
+    const png = fs.readFileSync(path.join(dist, icon.src.slice(1)));
+    const [w, h] = icon.sizes.split('x').map(Number);
+    assert.equal(png.readUInt32BE(16), w);
+    assert.equal(png.readUInt32BE(20), h);
   }
 });
 

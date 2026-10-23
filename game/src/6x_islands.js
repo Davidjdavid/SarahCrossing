@@ -301,9 +301,10 @@ const IslandList = {
         const show = () => {
             if (Cloud.problem !== 'conflict') return;
             if (G.mode !== 'title' && (UI.modal || UI.dialogOpen || G.busy || Watchdog.minigame())) { setTimeout(show, 1000); return; }
-            const P = this.panel({ title: 'Played somewhere else', foot: true });
+            // it has to be answered: closed any other way, it comes back
+            const P = this.panel({ title: 'Played somewhere else', foot: true, onClose: () => { if (Cloud.problem === 'conflict') setTimeout(show, 600); } });
             P.head.querySelector('.x').remove();
-            UI._onClose = null;
+            $('#scrim').onclick = null;
             const where = other ? `${agoText(other.updatedAt)}${this.deviceText(other.device)}` : 'on another device';
             P.body.appendChild(el('p', null, `${this.name(other || Cloud.island)} was saved ${where}${other && this.facts(other.summary) ? ' (' + this.facts(other.summary) + ')' : ''}, after this one opened it.`));
             P.body.appendChild(el('p', 'muted', 'Load that one to carry on from there. Or keep this one; the other is kept in the island’s backups.'));
@@ -312,7 +313,7 @@ const IslandList = {
             P.foot.appendChild(btn('Load that one', 'green', () => { Cloud.dropCopy(); this.leave(); }));
             P.foot.appendChild(btn('Keep this one', 'alt', async () => {
                 msg.textContent = 'Saving...';
-                try { await Cloud.overwrite(); UI.close(true); UI.toast("Kept this one. The other is in the island's backups."); }
+                try { await Cloud.overwrite(); UI.close(true); if (G.mode === 'title') showTitle(); else UI.toast("Kept this one. The other is in the island's backups."); }
                 catch (e) { Cloud.problem = 'conflict'; msg.textContent = "Couldn't reach the island server. Try again in a moment."; }
             }));
         };
@@ -321,9 +322,10 @@ const IslandList = {
     /* at boot: this device has progress the server never got, and the island was also saved somewhere else */
     fork() {
         const { copy, server } = Cloud.fork;
-        const P = this.panel({ title: 'Two versions of your island', foot: true });
+        // it has to be answered: closed any other way, it comes back
+        const P = this.panel({ title: 'Two versions of your island', foot: true, onClose: () => { if (Cloud.fork) setTimeout(() => { if (Cloud.fork && $('#panel').hidden) this.fork(); }, 600); } });
         P.head.querySelector('.x').remove();
-        UI._onClose = null;
+        $('#scrim').onclick = null;
         const sum = { day: copy.state.day && copy.state.startDay ? copy.state.day - copy.state.startDay + 1 : null, money: copy.state.money };
         P.body.appendChild(el('p', null, `This device has progress on ${this.name(server.island)} from ${agoText(copy.at)} that never reached the server (${this.facts(sum)}).`));
         P.body.appendChild(el('p', null, `The island was also saved ${agoText(server.island.updatedAt)}${this.deviceText(server.island.device)} (${this.facts(server.island.summary)}).`));

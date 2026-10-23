@@ -1,0 +1,25 @@
+# Checks every push and pull request: the server and storage tests, the build,
+# and the real game in a browser (importing saves made by the old one-page game).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Browser for the end-to-end tests
+        run: npx playwright install --with-deps chromium
+      - name: Server, storage, build and deploy-script tests
+        run: npm test
+      - name: The game in a browser
+        run: npm run test:e2e
