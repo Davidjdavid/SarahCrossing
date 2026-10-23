@@ -1,0 +1,52 @@
+# Roadmap: Sarah Crossing, the real game
+
+The one-page game was a gag gift that Sarah loved. This is everything David asked for to turn
+it into a polished, much bigger game. **Nothing goes to the live site (Sarah's island) until it's
+all done**; it's built and tried on https://beta.sarahcrossing.com.
+
+Sarah's island must keep loading through every change (see CLAUDE.md, "Old saves must always
+load"). Where a change can't keep something (a new map can't keep things placed on the old
+ground), the save migration says what starts fresh, as the one-page game did when the island
+first grew: her house, money, friends, collections and everything she made always stay.
+
+Status: [x] done, [~] in progress, [ ] not started.
+
+## Online
+- [x] On a server with its own address, password, saves online, backups, save import
+- [x] Beta site for trying things (pushes go there; live only when asked)
+- [~] **Multiplayer**: play as Sarah, David, James, John or Joe
+  - each has their own profile on the island: pocket, money, friendships, mail, collections
+  - visitors arrive at the dock; Joe starts at his house; their NPC selves step aside while they play
+  - see each other live, chat, emote, give gifts, send mail
+  - neighbors talk differently to each person (separate dialogue for everyone)
+  - placeholders: everyone uses their current sprite until the new art
+
+## Art (pick a style first)
+- [~] Six sample styles to compare: Stardew-like, handheld classic, tamagotchi-colorful, 3D
+  diorama, classic cozy, experimental storybook paper
+- [ ] Redraw everything in the chosen style: real pixel art with shading, much larger characters
+  (room to design clothes), character portraits in conversations
+- [ ] Must look good on phone, laptop and desktop (layout, text size, touch and mouse/keyboard)
+
+## The island
+- [ ] A much larger island, laid out in districts: shopping/commercial, residential, forest,
+  mountain, beach, a dedicated farm area (crops grow there, not in scattered squares), and more
+- [ ] Everything on a grid (placing things, walking, collisions)
+- [ ] Less clutter: fewer, better placed things by default
+- [ ] Shop upgrades after a number of days played and money spent
+
+## Neighbors and story
+- [ ] New people: meet new vendors by meeting requirements; after some days and play time, new
+  characters visit and ask to move in, and Sarah picks where their house goes
+- [ ] A secret character
+- [ ] Way more dialogue, better dialogue, conversations that react to what's going on
+- [ ] Way more holiday events
+- [ ] Way, way more content
+
+## Games
+- [ ] A few more arcade games
+- [ ] Remake the fruit catching game so it's actually fun
+
+## Bugs
+- [ ] Talking to Wonton in the hot spring: the spot you have to stand in is too hard to hit
+- [ ] A light test pass at the very end (David played it for a week and reported bugs as he went)

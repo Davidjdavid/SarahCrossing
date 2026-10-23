@@ -26,6 +26,14 @@
 //   POST   /api/islands/<id>/restore {name}  put a backup back -> {island, rev}
 //   GET    /api/islands/<id>/photos          {photos}
 //   PUT    /api/islands/<id>/photos {photos}
+//   GET    /api/islands/<id>/people          who has visited (summaries) and who's there now
+//   GET    /api/islands/<id>/people/<who>    a visitor's own save on the island {person, rev, state}
+//   PUT    /api/islands/<id>/people/<who> {state, baseRev, force?}   (baseRev 0 the first time)
+//   GET|PUT /api/islands/<id>/people/<who>/photos   a visitor's album
+//   POST   /api/islands/<id>/mail {to, from, subject, body, gift?}   a letter to someone
+//   GET    /api/islands/<id>/mail/<who>      letters waiting for them
+//   DELETE /api/islands/<id>/mail/<who>?upTo=<seq>   delivered: take them out
+//   GET    /api/live/<id>?who=<who>          WebSocket: who's there, live (server/live.mjs)
 //   POST   /api/log            {message, ...}   a problem in the game, for the server log
 // Request bodies may be gzip-compressed (Content-Encoding: gzip).
 
@@ -37,6 +45,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import zlib from 'node:zlib';
 import { IslandError, Islands } from './islands.mjs';
+import { Live } from './live.mjs';
 
 const gunzip = promisify(zlib.gunzip);
 
@@ -362,7 +371,7 @@ async function login(req, res) {
 
 // --------------------------------------------------------------------- API
 
-const ISLAND_ROUTE = /^\/api\/islands(?:\/([^/]+)(?:\/(backups|restore|photos)(?:\/([^/]+))?)?)?\/?$/;
+const ISLAND_ROUTE = /^\/api\/islands(?:\/([^/]+)(?:\/(backups|restore|photos|people|mail)(?:\/([^/]+)(?:\/(photos))?)?)?)?\/?$/;
 
 /** What the game gets back about an island (everything but the state). */
 const islandInfo = (rec) => ({ id: rec.id, rev: rec.rev, createdAt: rec.createdAt, updatedAt: rec.updatedAt, device: rec.device || null, summary: rec.summary });
@@ -384,7 +393,8 @@ async function handleApi(req, res, pathname) {
 
   const m = ISLAND_ROUTE.exec(pathname);
   if (!m) throw new HttpError(404, 'No such API');
-  const [, id, sub, name] = m;
+  const [, id, sub, name, sub2] = m;
+  if (sub2 && sub !== 'people') throw new HttpError(404, 'No such API');
 
   if (!id) {
     if (method === 'GET' || method === 'HEAD') return sendJson(res, 200, { islands: await islands.list(), version: VERSION });
@@ -405,6 +415,8 @@ async function handleApi(req, res, pathname) {
       const body = await readJson(req, MAX_SAVE_BYTES);
       const reason = body.reason === 'import' ? 'before-import' : 'auto';
       const rec = await islands.save(id, body.state, { baseRev: body.baseRev, device: deviceOf(req, body), force: body.force === true, reason });
+      // visitors on the island see the change (game/src/13_online.js refreshes their copy of it)
+      live.broadcast(id, { t: 'island', rev: rec.rev });
       return sendJson(res, 200, { island: islandInfo(rec), rev: rec.rev });
     }
     if (method === 'DELETE') {
@@ -425,7 +437,49 @@ async function handleApi(req, res, pathname) {
     if (method !== 'POST') throw new HttpError(405, 'Use POST');
     const body = await readJson(req, MAX_SMALL_BYTES);
     const rec = await islands.restore(id, body.name, { device: deviceOf(req, body) });
+    live.broadcast(id, { t: 'island', rev: rec.rev });
     return sendJson(res, 200, { island: islandInfo(rec), rev: rec.rev });
+  }
+
+  if (sub === 'people') {
+    if (!name) {
+      if (method !== 'GET' && method !== 'HEAD') throw new HttpError(405, 'Use GET');
+      return sendJson(res, 200, { people: await islands.people(id), here: live.here(id) });
+    }
+    if (sub2 === 'photos') {
+      if (method === 'GET' || method === 'HEAD') return sendJson(res, 200, { photos: await islands.photos(id, name) });
+      if (method === 'PUT') {
+        const body = await readJson(req, MAX_PHOTOS_BYTES);
+        await islands.setPhotos(id, body.photos, name);
+        return sendJson(res, 200, { ok: true });
+      }
+      throw new HttpError(405, 'Use GET or PUT');
+    }
+    if (method === 'GET' || method === 'HEAD') {
+      const rec = await islands.person(id, name);
+      return sendJson(res, 200, { person: { who: rec.who, rev: rec.rev, updatedAt: rec.updatedAt, device: rec.device || null }, rev: rec.rev, state: rec.state });
+    }
+    if (method === 'PUT') {
+      const body = await readJson(req, MAX_SAVE_BYTES);
+      const rec = await islands.savePerson(id, name, body.state, { baseRev: body.baseRev, device: deviceOf(req, body), force: body.force === true });
+      return sendJson(res, 200, { person: { who: rec.who, rev: rec.rev, updatedAt: rec.updatedAt, device: rec.device }, rev: rec.rev });
+    }
+    throw new HttpError(405, 'Use GET or PUT');
+  }
+
+  if (sub === 'mail') {
+    if (!name) {
+      if (method !== 'POST') throw new HttpError(405, 'Use POST');
+      const letter = await islands.post(id, await readJson(req, MAX_SMALL_BYTES));
+      live.sendTo(id, letter.to, { t: 'mail' });
+      return sendJson(res, 201, { letter });
+    }
+    if (method === 'GET' || method === 'HEAD') return sendJson(res, 200, { letters: await islands.mail(id, name) });
+    if (method === 'DELETE') {
+      const upTo = Number(new URL(req.url, 'http://site.invalid').searchParams.get('upTo'));
+      return sendJson(res, 200, { letters: await islands.takeMail(id, name, upTo) });
+    }
+    throw new HttpError(405, 'Use GET or DELETE');
   }
 
   if (sub === 'photos' && !name) {
@@ -531,6 +585,12 @@ const server = http.createServer((req, res) => {
     else sendText(res, status, body.error);
   });
 });
+const live = new Live({
+  hasAccess,
+  islandExists: (id) => islands.get(id).then(() => true, () => false),
+  log: (m) => console.error(`${new Date().toISOString()} ${m}`),
+});
+live.attach(server);
 server.requestTimeout = 120_000;
 server.headersTimeout = 30_000;
 server.keepAliveTimeout = 65_000;

@@ -180,3 +180,79 @@ test("the game's problem reports end up in the server log", async () => {
 test('in production the server will not start without a password', async () => {
   await assert.rejects(() => startServer({ password: '', env: { NODE_ENV: 'production' } }), /SITE_PASSWORD/);
 });
+
+// ------------------------------------------------------------------ visitors
+
+/** A live connection to an island, collecting what it's sent. */
+function live(island, who, withCookie = true) {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(`${srv.url.replace('http', 'ws')}/api/live/${island}?who=${who}`, withCookie ? { headers: { cookie } } : undefined);
+    ws.got = [];
+    ws.onmessage = (e) => ws.got.push(JSON.parse(e.data));
+    ws.onopen = () => resolve(ws);
+    ws.onerror = () => reject(new Error('refused'));
+  });
+}
+const settle = () => new Promise((r) => setTimeout(r, 150));
+
+test('visitors keep their own save on an island, with the same rev rules', async () => {
+  const { island } = await (await api('POST', '/api/islands', { state: fakeState() })).json();
+  assert.equal((await api('GET', `/api/islands/${island.id}/people/david`)).status, 404);
+  const first = await api('PUT', `/api/islands/${island.id}/people/david`, { baseRev: 0, state: { money: 5 } });
+  assert.equal(first.status, 200);
+  assert.equal((await first.json()).rev, 1);
+  assert.equal((await api('PUT', `/api/islands/${island.id}/people/david`, { baseRev: 0, state: { money: 6 } })).status, 409);
+  assert.equal((await api('PUT', `/api/islands/${island.id}/people/david`, { baseRev: 1, state: { money: 7 } })).status, 200);
+  assert.equal((await (await api('GET', `/api/islands/${island.id}/people/david`)).json()).state.money, 7);
+  const { people } = await (await api('GET', `/api/islands/${island.id}/people`)).json();
+  assert.deepEqual(people.map((p) => [p.who, p.money]), [['david', 7]]);
+  assert.equal((await api('PUT', `/api/islands/${island.id}/people/Not-A-Name`, { baseRev: 0, state: {} })).status, 404);
+  // their album is theirs, not the island's
+  await api('PUT', `/api/islands/${island.id}/people/david/photos`, { photos: [{ url: 'data:image/jpeg;base64,AAAA', t: 1 }] });
+  assert.equal((await (await api('GET', `/api/islands/${island.id}/photos`)).json()).photos.length, 0);
+  assert.equal((await (await api('GET', `/api/islands/${island.id}/people/david/photos`)).json()).photos.length, 1);
+});
+
+test('mail between people: posted, waiting, taken out once delivered', async () => {
+  const { island } = await (await api('POST', '/api/islands', { state: fakeState() })).json();
+  const sent = await api('POST', `/api/islands/${island.id}/mail`, { to: 'sarah', from: 'james', subject: 'Fore!', body: 'A golf ball for you.', gift: 'clam' });
+  assert.equal(sent.status, 201);
+  await api('POST', `/api/islands/${island.id}/mail`, { to: 'sarah', from: 'john', subject: 'Objection', body: '<b>no html</b>', gift: '../bad' });
+  const { letters } = await (await api('GET', `/api/islands/${island.id}/mail/sarah`)).json();
+  assert.deepEqual(letters.map((l) => [l.seq, l.from, l.gift]), [[1, 'james', 'clam'], [2, 'john', null]]);
+  await api('DELETE', `/api/islands/${island.id}/mail/sarah?upTo=1`);
+  assert.deepEqual((await (await api('GET', `/api/islands/${island.id}/mail/sarah`)).json()).letters.map((l) => l.seq), [2]);
+  assert.equal((await api('POST', `/api/islands/${island.id}/mail`, { to: 'sarah', from: '', subject: 'x' })).status, 404);
+});
+
+test('live: who is there, where they are, what they say; island saves and letters reach them', async () => {
+  const { island } = await (await api('POST', '/api/islands', { state: fakeState() })).json();
+  await assert.rejects(() => live(island.id, 'david', false), /refused/);
+  const sarah = await live(island.id, 'sarah');
+  sarah.send(JSON.stringify({ t: 'state', area: 'island', x: 10, y: 20, dir: 'down', evil: 'x' }));
+  await settle();
+  const david = await live(island.id, 'david');
+  await settle();
+  assert.deepEqual(david.got[0], { t: 'here', people: [{ who: 'sarah', area: 'island', x: 10, y: 20, dir: 'down' }] });
+  assert.deepEqual(sarah.got.at(-1), { t: 'join', who: 'david' });
+  david.send(JSON.stringify({ t: 'say', text: 'Hi sis!' }));
+  david.send(JSON.stringify({ t: 'emote', e: 'wave' }));
+  await settle();
+  assert.deepEqual(sarah.got.slice(-2), [{ t: 'say', who: 'david', text: 'Hi sis!' }, { t: 'emote', who: 'david', e: 'wave' }]);
+  // Sarah saves: David hears about it; a letter for Sarah: she hears about it
+  await api('PUT', `/api/islands/${island.id}`, { state: fakeState(), baseRev: 1 });
+  await api('POST', `/api/islands/${island.id}/mail`, { to: 'sarah', from: 'david', subject: 'Hi' });
+  await settle();
+  assert.deepEqual(david.got.at(-1), { t: 'island', rev: 2 });
+  assert.deepEqual(sarah.got.at(-1), { t: 'mail' });
+  // David opens the game somewhere else: the old connection is replaced
+  const closed = new Promise((r) => (david.onclose = (e) => r(e.code)));
+  const david2 = await live(island.id, 'david');
+  assert.equal(await closed, 4000);
+  const { here } = await (await api('GET', `/api/islands/${island.id}/people`)).json();
+  assert.deepEqual(here.sort(), ['david', 'sarah']);
+  const left = new Promise((r) => { const t = setInterval(() => { if (sarah.got.some((m) => m.t === 'leave')) { clearInterval(t); r(); } }, 20); });
+  david2.close();
+  await left;
+  sarah.close();
+});

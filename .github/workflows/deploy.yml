@@ -61,7 +61,7 @@ jobs:
           domain=$(jq -r .domain deploy/site.json)
           if [ "$TARGET" = beta ]; then domain="beta.$domain"; port=8091; else port=8090; fi
           echo "DOMAIN=$domain" >> "$GITHUB_ENV"
-          echo "PORT=$port" >> "$GITHUB_ENV"
+          echo "SITE_PORT=$port" >> "$GITHUB_ENV"
           echo "Deploying to $TARGET: https://$domain"
 
       # ------------------------------------------------ build and test
@@ -166,6 +166,6 @@ jobs:
           # shellcheck disable=SC2029 # these are meant to expand here.
           ssh sc "set +e
             echo '== Services (caddy, game server)'; systemctl is-active caddy $service
-            echo '== The game server answering on the server itself'; curl -fsS --max-time 5 http://127.0.0.1:$PORT/healthz; echo
+            echo '== The game server answering on the server itself'; curl -fsS --max-time 5 http://127.0.0.1:$SITE_PORT/healthz; echo
             echo '== Caddy log, newest last'; sudo journalctl -u caddy -n 60 --no-pager -o cat
             echo '== Game server log, newest last'; sudo journalctl -u $service -n 30 --no-pager -o cat" || true

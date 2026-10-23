@@ -3,11 +3,18 @@
 //   <dir>/islands/<id>/island.json    { id, rev, createdAt, updatedAt, device, summary, state }
 //   <dir>/islands/<id>/photos.json    { photos: [{ url, t }] }   the phone camera's album
 //   <dir>/islands/<id>/backups/       earlier copies of island.json (see "backups" below)
+//   <dir>/islands/<id>/people/<who>.json          a visitor's own things on this island
+//                                                 (pocket, money, friends...): { who, rev, updatedAt, device, state }
+//   <dir>/islands/<id>/people/<who>.photos.json   their photo album
+//   <dir>/islands/<id>/people/backups/            a copy of each visitor a day, kept two weeks
+//   <dir>/islands/<id>/mail/<who>.json            letters waiting for someone: { seq, letters: [...] }
 //   <dir>/trash/<id>--<time>/         deleted islands, kept for TRASH_DAYS days
 //
 // `state` is the game's save object (S in game/src/11_save.js), exactly as the
 // game sent it. `rev` goes up by one on every save; a save names the rev it was
 // based on, so a device that missed a newer save can't write over it (409).
+// Visitors (David, James, John, Joe) play on Sarah's island: the island is hers,
+// so their saves only hold what's theirs (game/src/13_online.js splits them).
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -26,8 +33,12 @@ const KEEP_SPECIAL_MS = 90 * DAY;
 const KEEP_SPECIAL_MAX = 50;
 const TRASH_DAYS = 30;
 const MAX_PHOTOS = 24;
+const PERSON_BACKUP_DAYS = 14;
+const MAX_LETTERS = 200;
 
 const ID = /^[A-Za-z0-9_-]{6,40}$/;
+/** Who someone is: a lower-case name ("david"). */
+export const WHO = /^[a-z]{2,20}$/;
 const BACKUP_NAME = /^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)_([a-z-]+)_r(\d+)\.json$/;
 const BACKUP_REASONS = new Set(['auto', 'before-import', 'before-restore', 'before-overwrite']);
 
@@ -294,26 +305,172 @@ export class Islands {
     });
   }
 
-  async photos(id) {
+  /** The album: the island's (Sarah's), or a visitor's when `who` is given. */
+  async photos(id, who) {
     await this.read(id);
     try {
-      return JSON.parse(await fsp.readFile(path.join(this.folder(id), 'photos.json'), 'utf8')).photos;
+      return JSON.parse(await fsp.readFile(this.photosFile(id, who), 'utf8')).photos;
     } catch (err) {
       if (err.code === 'ENOENT') return [];
       throw err;
     }
   }
 
-  async setPhotos(id, photos) {
+  photosFile(id, who) {
+    if (who === undefined) return path.join(this.folder(id), 'photos.json');
+    return path.join(this.folder(id), 'people', `${this.who(who)}.photos.json`);
+  }
+
+  who(who) {
+    if (typeof who !== 'string' || !WHO.test(who)) throw new IslandError(404, 'No such person');
+    return who;
+  }
+
+  async setPhotos(id, photos, who) {
     if (!Array.isArray(photos) || photos.length > MAX_PHOTOS) throw new IslandError(400, `Photos must be a list of at most ${MAX_PHOTOS}`);
     for (const p of photos) {
       if (!p || typeof p.url !== 'string' || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p.url) || !finite(p.t)) {
         throw new IslandError(400, 'A photo must be { url: "data:image/...", t: <time> }');
       }
     }
+    const file = this.photosFile(id, who);
     return this.queued(id, async () => {
       await this.read(id);
-      await writeAtomic(path.join(this.folder(id), 'photos.json'), JSON.stringify({ photos: photos.map((p) => ({ url: p.url, t: p.t })) }));
+      await fsp.mkdir(path.dirname(file), { recursive: true });
+      await writeAtomic(file, JSON.stringify({ photos: photos.map((p) => ({ url: p.url, t: p.t })) }));
+    });
+  }
+
+  // ------------------------------------------------------------------ visitors
+
+  /** A visitor's own save on this island, or 404 if they haven't been yet. */
+  async person(id, who) {
+    await this.read(id);
+    try {
+      return JSON.parse(await fsp.readFile(path.join(this.folder(id), 'people', `${this.who(who)}.json`), 'utf8'));
+    } catch (err) {
+      if (err.code === 'ENOENT') throw new IslandError(404, 'Not here yet');
+      throw err;
+    }
+  }
+
+  /** Save a visitor's things. The first save names baseRev 0; after that, the same rev rules as islands. */
+  async savePerson(id, who, state, { baseRev, device, force = false } = {}) {
+    if (state === null || typeof state !== 'object' || Array.isArray(state)) throw new IslandError(400, 'A save must be an object');
+    this.who(who);
+    const dir = path.join(this.folder(id), 'people');
+    const file = path.join(dir, `${who}.json`);
+    return this.queued(id, async () => {
+      await this.read(id);
+      let cur = null;
+      try {
+        cur = JSON.parse(await fsp.readFile(file, 'utf8'));
+      } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+      }
+      const curRev = cur ? cur.rev : 0;
+      if (!force && baseRev !== curRev) throw new IslandError(409, 'Saved from somewhere else in the meantime', { person: cur && { who, rev: cur.rev, updatedAt: cur.updatedAt, device: cur.device || null } });
+      await fsp.mkdir(path.join(dir, 'backups'), { recursive: true });
+      if (cur) await this.personBackup(dir, who, cur);
+      const rec = { who, rev: curRev + 1, updatedAt: this.tick(), device: checkDevice(device), state };
+      await writeAtomic(file, JSON.stringify(rec));
+      return rec;
+    });
+  }
+
+  /** One copy of a visitor per day (the first save of the day keeps yesterday's), for two weeks. */
+  async personBackup(dir, who, cur) {
+    const day = new Date(this.now()).toISOString().slice(0, 10);
+    const name = `${who}-${day}.json`;
+    const backups = path.join(dir, 'backups');
+    if (fs.existsSync(path.join(backups, name))) return;
+    await writeAtomic(path.join(backups, name), JSON.stringify(cur));
+    for (const f of await fsp.readdir(backups)) {
+      const m = /^([a-z]+)-(\d{4}-\d{2}-\d{2})\.json$/.exec(f);
+      if (m && this.now() - Date.parse(m[2]) > PERSON_BACKUP_DAYS * DAY) await fsp.rm(path.join(backups, f), { force: true });
+    }
+  }
+
+  /** Who has been to this island, with their summaries (not their saves). */
+  async people(id) {
+    await this.read(id);
+    const dir = path.join(this.folder(id), 'people');
+    const out = [];
+    let names = [];
+    try {
+      names = await fsp.readdir(dir);
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+    for (const f of names) {
+      const m = /^([a-z]{2,20})\.json$/.exec(f);
+      if (!m) continue;
+      try {
+        const { state, ...rest } = JSON.parse(await fsp.readFile(path.join(dir, f), 'utf8'));
+        out.push({ ...rest, money: finite(state && state.money) });
+      } catch (err) {
+        this.log(`visitor ${id}/${f} is unreadable: ${err.message}`);
+      }
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------------ mail between people
+
+  mailFile(id, who) {
+    return path.join(this.folder(id), 'mail', `${this.who(who)}.json`);
+  }
+
+  async readMail(id, who) {
+    try {
+      return JSON.parse(await fsp.readFile(this.mailFile(id, who), 'utf8'));
+    } catch (err) {
+      if (err.code === 'ENOENT') return { seq: 0, letters: [] };
+      throw err;
+    }
+  }
+
+  /** Letters waiting for `who`, oldest first; each has a seq. */
+  async mail(id, who) {
+    await this.read(id);
+    return (await this.readMail(id, who)).letters;
+  }
+
+  /** Post a letter (and maybe a gift) to someone on this island. */
+  async post(id, letter) {
+    const to = this.who(letter && letter.to);
+    const from = this.who(letter.from);
+    const clean = {
+      to,
+      from,
+      subject: text(letter.subject, 80) || 'A letter',
+      body: typeof letter.body === 'string' ? letter.body.replace(/[\u0000-\u0008\u000b-\u001f\u007f]+/g, '').slice(0, 2000) : '',
+      gift: typeof letter.gift === 'string' && /^[a-z0-9_]{1,40}$/.test(letter.gift) ? letter.gift : null,
+    };
+    return this.queued(id, async () => {
+      await this.read(id);
+      const box = await this.readMail(id, to);
+      if (box.letters.length >= MAX_LETTERS) throw new IslandError(429, `${to}'s mailbox is full`);
+      const rec = { ...clean, seq: box.seq + 1, at: this.tick() };
+      box.seq = rec.seq;
+      box.letters.push(rec);
+      await fsp.mkdir(path.dirname(this.mailFile(id, to)), { recursive: true });
+      await writeAtomic(this.mailFile(id, to), JSON.stringify(box));
+      return rec;
+    });
+  }
+
+  /** The letters up to `upTo` have been delivered into `who`'s game: take them out of the box. */
+  async takeMail(id, who, upTo) {
+    if (!Number.isInteger(upTo) || upTo < 0) throw new IslandError(400, 'upTo must be a letter number');
+    return this.queued(id, async () => {
+      await this.read(id);
+      const box = await this.readMail(id, who);
+      const left = box.letters.filter((l) => l.seq > upTo);
+      if (left.length === box.letters.length) return box.letters;
+      box.letters = left;
+      await writeAtomic(this.mailFile(id, who), JSON.stringify(box));
+      return left;
     });
   }
 

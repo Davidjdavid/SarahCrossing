@@ -27,8 +27,8 @@ set -euo pipefail
 
 INSTANCE=${INSTANCE:-${2:-live}}
 case $INSTANCE in
-  live) NAME=sarahcrossing PORT=${PORT:-8090} ;;
-  beta) NAME=sarahcrossing-beta PORT=${PORT:-8091} ;;
+  live) NAME=sarahcrossing PORT=8090 ;;
+  beta) NAME=sarahcrossing-beta PORT=8091 ;;
   *)
     echo "setup.sh: the second argument is live or beta, not $INSTANCE" >&2
     exit 1
