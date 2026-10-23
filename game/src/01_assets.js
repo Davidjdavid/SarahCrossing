@@ -13,7 +13,7 @@ const Assets = {
     groundFor(season) {
         if (this.groundImg[season]) return Promise.resolve(this.groundImg[season]);
         if (this._gjob && this._gjob.season === season) return this._gjob.p;
-        const p = loadImg(pngWithPalette(window.GROUND_IDX, window.GROUND_PAL[season])).then(i => {
+        const p = this.groundBytes().then(png => png ? loadImg(pngWithPalette(png, window.GROUND_PAL[season])) : null).then(i => {
             if (i) { for (const k of Object.keys(this.groundImg)) if (k !== season) delete this.groundImg[k]; this.groundImg[season] = i; }
             if (this._gjob && this._gjob.p === p) this._gjob = null;
             return i;
@@ -29,15 +29,23 @@ const Assets = {
         return Object.values(this.groundImg)[0] || null;
     },
     has(name) { return !!this.frames[name] || !!this.dyn[name]; },
+    /* the ground's indexed PNG (assets/ground-*.png), fetched once and recolored for each season */
+    groundBytes() {
+        if (!this._gbytes) {
+            this._gbytes = fetch(window.GROUND_PNG)
+                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+                .then(b => new Uint8Array(b))
+                .catch(e => { console.error('could not load the ground', e); this._gbytes = null; return null; });
+        }
+        return this._gbytes;
+    },
 };
 
 function loadImg(src) { return new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
-/* a PNG (base64) with its PLTE chunk replaced by a palette given as a hex string ("rrggbb" per entry) -> blob URL */
+/* a PNG (bytes) with its PLTE chunk replaced by a palette given as a hex string ("rrggbb" per entry) -> blob URL */
 const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
 function crc32(bytes, from, to) { let c = 0xffffffff; for (let i = from; i < to; i++) c = CRC_TABLE[(c ^ bytes[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
-function pngWithPalette(b64, hex) {
-    const bin = atob(b64), src = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) src[i] = bin.charCodeAt(i);
+function pngWithPalette(src, hex) {
     const n = hex.length / 6, pal = new Uint8Array(n * 3);
     for (let i = 0; i < n * 3; i++) pal[i] = parseInt(hex.substr(i * 2, 2), 16);
     const parts = [src.subarray(0, 8)];

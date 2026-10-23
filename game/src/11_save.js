@@ -1,7 +1,6 @@
 /* ---- 11_save.js ---- */
-/* Save data: one object, kept in this browser (localStorage) with a save code for moving devices */
-const SAVE_KEY = 'sarah-crossing-save-v2';
-const PHOTO_KEY = 'sarah-crossing-photos-v1';
+/* Save data: one object, kept online with the island (12_cloud.js), plus a save code / save file to take anywhere */
+const PHOTO_KEY = 'sc-photos-';              // + island id (or 'new'): this device's copy of the album
 let S = null;
 
 function newState() {
@@ -30,17 +29,15 @@ function newState() {
 
 const Save = {
     dirty: false, last: 0, ok: true,
-    exists() { try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } },
-    load() {
-        let raw = null;
+    exists() { return !!(S && S.started); },
+    /* a raw save (from the server, this device or a save file) made ready to play, or null if it can't be */
+    load(raw) {
+        if (!raw) return null;
         try {
-            raw = localStorage.getItem(SAVE_KEY);
-            if (!raw) return null;
-            return migrate(JSON.parse(raw));
+            return migrate(raw);
         } catch (e) {
-            // keep a copy of what was there, so a bad load can't be saved over and lost
+            // the island stays on the server (and in its backups) untouched until something is saved over it
             console.error('could not load the save', e);
-            try { if (raw) localStorage.setItem(SAVE_KEY + '-backup', raw); } catch (e2) { /* storage full or blocked */ }
             return null;
         }
     },
@@ -48,19 +45,19 @@ const Save = {
     write(force) {
         if (!S || !S.started) return;
         if (!force && !this.dirty) return;
-        try {
-            if (G && G.player) {
-                const p = G.player;
-                S.player.area = G.area.id; S.player.x = p.x; S.player.y = p.y; S.player.dir = p.dir;
-            }
-            localStorage.setItem(SAVE_KEY, JSON.stringify(S));
-            this.dirty = false; this.ok = true; this.last = performance.now();
-        } catch (e) { this.ok = false; }
+        if (G.mode === 'title' && !this.dirty) return;      // nothing has moved since the island was loaded
+        if (G && G.player) {
+            const p = G.player;
+            S.player.area = G.area.id; S.player.x = p.x; S.player.y = p.y; S.player.dir = p.dir;
+        }
+        this.dirty = false; this.last = performance.now();
+        Cloud.saved(force);
     },
-    wipe() { try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(PHOTO_KEY); } catch (e) { /* storage blocked */ } },
-    async exportCode() {
-        this.write(true);
-        const json = JSON.stringify(S);
+    /* the next save starts a new island (the one before stays on the server) */
+    wipe() { Cloud.id = null; Cloud.rev = 0; Cloud.island = null; lsSet(CLOUD_CURRENT, ''); lsDel(CLOUD_COPY + 'new'); Photos.cache = []; },
+    async exportCode(st) {
+        if (!st) { this.write(true); st = S; }
+        const json = JSON.stringify(st);
         try {
             if (window.CompressionStream) {
                 const cs = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate'));
@@ -135,15 +132,33 @@ function migrate(st) {
     return st;
 }
 
-/* the small photo album lives in its own key so saves stay light */
+/* the small photo album lives apart from the save so saves stay light: on the server next to the island,
+   with a copy on this device */
 const Photos = {
-    list() { try { return JSON.parse(localStorage.getItem(PHOTO_KEY) || '[]'); } catch (e) { return []; } },
+    cache: null, timer: 0,
+    key() { return PHOTO_KEY + (Cloud.id || 'new'); },
+    list() {
+        if (!this.cache) { try { this.cache = JSON.parse(lsGet(this.key()) || '[]'); } catch (e) { this.cache = []; } }
+        return this.cache.slice();
+    },
+    keep(l) { this.cache = l; lsSet(this.key(), JSON.stringify(l)); this.send(); },
     add(url) {
         const l = this.list();
         l.unshift({ url, t: Date.now() });
         while (l.length > 12) l.pop();
-        try { localStorage.setItem(PHOTO_KEY, JSON.stringify(l)); return true; } catch (e) { return false; }
+        this.keep(l);
+        return true;
     },
-    remove(i) { const l = this.list(); l.splice(i, 1); try { localStorage.setItem(PHOTO_KEY, JSON.stringify(l)); } catch (e) { /* ignore */ } },
+    remove(i) { const l = this.list(); l.splice(i, 1); this.keep(l); },
+    /* the server's album, when the island loads */
+    got(l) { if (Array.isArray(l)) { this.cache = l; lsSet(this.key(), JSON.stringify(l)); } },
+    /* to the server, a moment after the last change */
+    send() {
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => {
+            if (!Cloud.id) return;        // a new island: sent once the island itself is on the server
+            Cloud.api('PUT', `/api/islands/${encodeURIComponent(Cloud.id)}/photos`, { photos: this.list() }).catch(e => console.warn('photos not saved online', e));
+        }, 1200);
+    },
 };
 

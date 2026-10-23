@@ -21,12 +21,18 @@ async function boot(hotData) {
     Zoom.load();
     Render.init();
     Audio2.loadPrefs();
+    const opening = Cloud.boot();          // the island, from the server, while the pictures load
     await Assets.load();
     fillIcons(document);
     const hot = window.claude && window.claude.hot;
     const hotState = hotData && hotData.state;
-    S = (hotState && migrate(hotState)) || Save.load() || newState();
+    const opened = await opening;
+    S = (hotState && migrate(hotState)) || Save.load(opened && opened.state) || newState();
+    // an island that won't load stays untouched on the server; this device starts fresh instead of saving over it
+    if (opened && !S.started) { Cloud.broken = Cloud.island || { summary: { islandName: opened.state.islandName } }; Save.wipe(); }
     if (!S.started) S = newState();
+    Cloud.ready();
+    Cloud.loadPhotos();
     initWorld();
     G.player = makePlayer(S.player.x, S.player.y, S.player.dir);
     G.area = G.areas.island;
@@ -143,20 +149,14 @@ function showTitle() {
     const b = $('#tbtns');
     b.innerHTML = '';
     const has = S && S.started;
-    if (has) {
-        b.appendChild(btn('Continue', 'green', () => continueGame()));
-        b.appendChild(btn('New island', 'alt', () => {
-            b.innerHTML = '';
-            $('#ttag').textContent = 'Start over? The island saved in this browser will be replaced.';
-            b.appendChild(btn('Yes, new island', '', () => { Save.wipe(); S = newState(); initWorld(); startNew(); }));
-            b.appendChild(btn('Keep my island', 'alt', () => { $('#ttag').textContent = 'An island that runs on Sarah time.'; showTitle(); }));
-        }));
-    } else {
-        b.appendChild(btn('Start', 'green', () => startNew()));
-    }
-    b.appendChild(btn('Load a save code', 'alt', () => loadCodePanel(true)));
-    b.appendChild(btn('Load a save file', 'alt', () => loadSaveFile()));
+    // the islands live online: new islands, switching and backups are in Islands (6x_islands.js)
+    if (has) b.appendChild(btn('Continue', 'green', () => continueGame()));
+    else b.appendChild(btn('Start', 'green', () => startNew()));
+    if (has || Cloud.list.length) b.appendChild(btn('Islands', 'alt', () => IslandList.open()));
+    b.appendChild(btn('Import a save', 'alt', () => IslandList.importPanel()));
     $('#ttag').textContent = has ? `Welcome back to ${S.islandName}. It's ${Clock.fmt().s} here.` : 'An island that runs on Sarah time.';
+    IslandList.syncNote();
+    if (Cloud.fork) IslandList.fork();
     // drift the camera over the island behind the title
     G.titleCam = { t: 0 };
 }

@@ -1,0 +1,312 @@
+// The real game in a real browser (Chromium, through Playwright), against the real server:
+// logging in, bringing in saves from the old one-page game, saving online, two devices, going offline.
+//
+// Needs the browser: npx playwright install chromium
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { after, before, test } from 'node:test';
+import { chromium } from 'playwright';
+import { ROOT, startServer } from './helpers.mjs';
+
+const OLD_SAVE = fs.readFileSync(path.join(ROOT, 'tests/fixtures/old-game-save.txt'), 'utf8');
+const OLD_UNLOCKED = fs.readFileSync(path.join(ROOT, 'tests/fixtures/old-game-unlocked.txt'), 'utf8');
+
+let srv;
+let browser;
+
+before(async () => {
+  execFileSync(process.execPath, ['scripts/build.mjs'], { cwd: ROOT, stdio: 'ignore' });
+  srv = await startServer();
+  browser = await chromium.launch();
+});
+after(async () => {
+  await browser?.close();
+  await srv?.stop();
+});
+
+/** A new "device": its own browser storage, logged in, on the title screen. */
+async function device({ debug = true } = {}) {
+  const ctx = await browser.newContext({ viewport: { width: 1000, height: 640 } });
+  if (debug) await ctx.addInitScript(() => { window.__DEBUG = true; });
+  const page = await ctx.newPage();
+  page.problems = [];
+  page.on('pageerror', (e) => page.problems.push(e.message));
+  page.on('console', (m) => { if (m.type() === 'error') page.problems.push(m.text()); });
+  await page.goto(srv.url + '/');
+  if (page.url().includes('/login')) {
+    await page.fill('#password', 'pw');
+    await page.click('button[type=submit]');
+  }
+  await title(page);
+  return page;
+}
+async function title(page) {
+  await page.waitForSelector('#title:not([hidden]) #tbtns button', { timeout: 30000 });
+}
+const buttons = (page) => page.$$eval('#tbtns button', (bs) => bs.map((b) => b.textContent));
+async function play(page) {
+  await page.click('#tbtns button:has-text("Continue")');
+  await page.waitForFunction(() => G.mode === 'play', null, { timeout: 15000 });
+}
+const islandsOnServer = async (page) => page.evaluate(async () => (await (await fetch('/api/islands')).json()).islands);
+/** What the server has for the island this page is playing. */
+const serverState = (page) => page.evaluate(async () => (await (await fetch('/api/islands/' + Cloud.id)).json()));
+/** Save now and wait until the server has it. */
+async function saveNow(page) {
+  await page.evaluate(async () => { Save.touch(); Save.write(true); await Cloud.flush(); });
+}
+/** Wait (in Node) until `fn` comes back truthy. */
+async function until(fn, ms = 10000) {
+  for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 200))) if (await fn()) return;
+  throw new Error('timed out waiting');
+}
+async function importCode(page, code) {
+  await page.click('#tbtns button:has-text("Import a save")');
+  await page.fill('#loadcode', code);
+  await page.click('button:has-text("Import this code")');
+}
+
+test('the password page lets the right password in', async () => {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  await page.goto(srv.url + '/');
+  assert.match(page.url(), /\/login/);
+  await page.fill('#password', 'wrong');
+  await page.click('button[type=submit]');
+  assert.match(await page.textContent('.msg'), /not it/);
+  await page.fill('#password', 'pw');
+  await page.click('button[type=submit]');
+  await title(page);
+  assert.deepEqual(await buttons(page), ['Start', 'Import a save']);
+  await ctx.close();
+});
+
+test('a save code from the old game comes in as an island, and plays', async () => {
+  const page = await device();
+  await importCode(page, OLD_SAVE);
+  await page.waitForLoadState('load');
+  await title(page);
+  assert.deepEqual(await buttons(page), ['Continue', 'Islands', 'Import a save']);
+  assert.match(await page.textContent('#ttag'), /Welcome back to Imported Isle/);
+  assert.match(await page.textContent('#tsync'), /Saved online/);
+  await play(page);
+  assert.equal(await page.textContent('#money'), '12,345');
+  // the handmade frog pot from the old game is still a real item
+  const pots = await page.evaluate(() => S.pocket.filter((s) => s && /^pot/.test(s.id)).length + Object.keys(S.storage).filter((k) => /^pot/.test(k)).length);
+  assert.ok(pots >= 1, 'the handmade pot came along');
+  const islands = await islandsOnServer(page);
+  assert.equal(islands.length, 1);
+  assert.equal(islands[0].summary.islandName, 'Imported Isle');
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('playing saves online: another device carries on where this one stopped', async () => {
+  const phone = await device();
+  await play(phone);
+  await phone.evaluate(() => { __dbg.give('mango', 2); S.money += 1000; });
+  await saveNow(phone);
+  const saved = await serverState(phone);
+  assert.equal(saved.state.money, 13345);
+
+  const laptop = await device();
+  assert.match(await laptop.textContent('#tsync'), /last played .* on an? /);
+  await play(laptop);
+  assert.equal(await laptop.textContent('#money'), '13,345');
+  assert.ok(await laptop.evaluate(() => S.pocket.some((s) => s && s.id === 'mango')));
+  await phone.context().close();
+  await laptop.context().close();
+});
+
+test('two devices on one island: the second save is stopped, and the player picks', async () => {
+  const a = await device();
+  const b = await device();
+  await play(a);
+  await play(b);
+  await a.evaluate(() => { S.money = 777; });
+  await saveNow(a);
+  await b.evaluate(() => { S.money = 1; Save.touch(); Save.write(true); });
+  await b.waitForSelector('#panel:not([hidden]) h2:has-text("Played somewhere else")', { timeout: 10000 });
+  assert.equal((await serverState(a)).state.money, 777, 'the stale device did not write over the newer save');
+  await b.click('button:has-text("Load that one")');
+  await b.waitForLoadState('load');
+  await title(b);
+  await play(b);
+  assert.equal(await b.textContent('#money'), '777');
+
+  // and the other choice: keep this one (the newer one goes into the backups)
+  await b.evaluate(() => { S.money = 555; });
+  await saveNow(b);
+  await a.evaluate(() => { S.money = 888; Save.touch(); Save.write(true); });
+  await a.waitForSelector('#panel:not([hidden]) h2:has-text("Played somewhere else")', { timeout: 10000 });
+  await a.click('button:has-text("Keep this one")');
+  await a.waitForFunction(() => Cloud.problem === null && Cloud.seq === Cloud.sentSeq);
+  assert.equal((await serverState(a)).state.money, 888);
+  const backups = await a.evaluate(async () => (await (await fetch(`/api/islands/${Cloud.id}/backups`)).json()).backups);
+  assert.ok(backups.some((x) => x.reason === 'before-overwrite' && x.summary.money === 555), JSON.stringify(backups));
+  await a.context().close();
+  await b.context().close();
+});
+
+test('coming back to an old tab: it says the island moved on before playing on', async () => {
+  const a = await device();
+  const b = await device();
+  await play(a);
+  await play(b);
+  await a.evaluate(() => { S.money = 4242; });
+  await saveNow(a);
+  // b's tab comes back into view
+  await b.evaluate(() => Cloud.check());
+  await b.waitForSelector('#panel:not([hidden]) h2:has-text("Played somewhere else")', { timeout: 10000 });
+  await a.context().close();
+  await b.context().close();
+});
+
+test('offline: the island is kept on the device and reaches the server later', async () => {
+  const page = await device();
+  await play(page);
+  await page.route('**/api/**', (route) => route.abort());
+  await page.evaluate(() => { S.money = 31337; Save.touch(); Save.write(true); });
+  await page.waitForFunction(() => Cloud.problem === 'offline');
+  // the page closes before the connection comes back
+  const ctx = page.context();
+  await page.close();
+  const again = await ctx.newPage();
+  await again.goto(srv.url + '/');
+  await title(again);
+  // the copy on this device was newer than the server's, so it's the one loaded and sent
+  await again.waitForFunction(() => Cloud.seq === Cloud.sentSeq && !Cloud.busy, null, { timeout: 15000 });
+  assert.equal((await serverState(again)).state.money, 31337);
+  await ctx.close();
+});
+
+test('the same island imported again: replace it (kept as a backup) or keep both', async () => {
+  const page = await device();
+  const before = (await islandsOnServer(page)).length;
+  await importCode(page, OLD_UNLOCKED);
+  await page.waitForSelector('#panel:not([hidden]) button:has-text("Replace it")');
+  assert.match(await page.textContent('#panel'), /already here/);
+  await page.click('button:has-text("Replace it")');
+  await page.waitForLoadState('load');
+  await title(page);
+  const islands = await islandsOnServer(page);
+  assert.equal(islands.length, before, 'replaced, not added');
+  assert.equal(islands[0].summary.cheat, true, 'the unlocked save is the island now');
+  const backups = await page.evaluate(async () => (await (await fetch(`/api/islands/${Cloud.id}/backups`)).json()).backups);
+  assert.equal(backups[0].reason, 'before-import');
+
+  await importCode(page, OLD_SAVE);
+  await page.click('button:has-text("Keep both")');
+  await page.waitForLoadState('load');
+  await title(page);
+  assert.equal((await islandsOnServer(page)).length, before + 1);
+  await page.context().close();
+});
+
+test('a save file from the old game comes in too', async () => {
+  const page = await device();
+  const file = path.join(srv.dataDir, 'sarah-crossing-Imported-Isle-2026-10-23.txt');
+  fs.writeFileSync(file, OLD_SAVE);
+  await page.click('#tbtns button:has-text("Import a save")');
+  const chooser = page.waitForEvent('filechooser');
+  await page.click('button:has-text("Choose a save file")');
+  await (await chooser).setFiles(file);
+  await page.waitForSelector('#panel:not([hidden]) button:has-text("Keep both")');
+  await page.click('button:has-text("Keep both")');
+  await page.waitForLoadState('load');
+  await title(page);
+  await play(page);
+  assert.equal(await page.textContent('#money'), '12,345');
+  await page.context().close();
+});
+
+test('islands list: switch islands, start a new one; backups can be put back', async () => {
+  const page = await device();
+  const islands = await islandsOnServer(page);
+  assert.ok(islands.length >= 2);
+  await page.click('#tbtns button:has-text("Islands")');
+  await page.waitForSelector('#panel .list .row');
+  assert.equal(await page.locator('#panel .list .row').count(), islands.length);
+  // pick one that isn't being played
+  const playing = await page.evaluate(() => Cloud.id);
+  const other = islands.find((i) => i.id !== playing);
+  await page.click(`#panel .list .row[data-island="${other.id}"]`);
+  await page.click('button:has-text("Play this island")');
+  await page.waitForLoadState('load');
+  await title(page);
+  assert.equal(await page.evaluate(() => Cloud.id), other.id);
+
+  // backups of the island imported over (it has a "before-import" one)
+  const replaced = (await islandsOnServer(page)).find((i) => i.summary.cheat);
+  await page.click('#tbtns button:has-text("Islands")');
+  await page.waitForSelector('#panel .list .row');
+  await page.click(`#panel .list .row[data-island="${replaced.id}"]`);
+  await page.click('button:has-text("Backups")');
+  await page.waitForSelector('#panel .list .row');
+  await page.locator('#panel .list .row', { hasText: 'Before a save file replaced it' }).first().click();
+  await page.click('button:has-text("Put this one back")');
+  await page.waitForLoadState('load');
+  await title(page);
+  const now = (await islandsOnServer(page)).find((i) => i.id === replaced.id);
+  assert.equal(now.summary.cheat, false, 'the island from before the import is back');
+
+  // a new island: back at the title with Start
+  await page.click('#tbtns button:has-text("Islands")');
+  await page.click('#panel button:has-text("New island")');
+  await page.waitForLoadState('load');
+  await title(page);
+  assert.equal((await buttons(page))[0], 'Start');
+  await page.context().close();
+});
+
+test('the photo album is kept online with the island', async () => {
+  const page = await device();
+  await play(page);
+  await page.evaluate(() => { Photo.start(); Photo.snap(); Photo.stop(); });
+  const id = await page.evaluate(() => Cloud.id);
+  await until(async () => (await page.evaluate(async () => (await (await fetch(`/api/islands/${Cloud.id}/photos`)).json()).photos.length)) === 1);
+  // another device playing the same island sees the photo
+  const other = await device();
+  await other.evaluate((id) => localStorage.setItem('sc-current', id), id);
+  await other.reload();
+  await title(other);
+  await until(() => other.evaluate(() => Photos.list().length === 1));
+  await page.context().close();
+  await other.context().close();
+});
+
+test('a problem in the game shows up in the server log', async () => {
+  const page = await device();
+  await page.evaluate(() => setTimeout(() => { throw new Error('kaboom in the test'); }));
+  await new Promise((r) => setTimeout(r, 1000));
+  assert.match(srv.log(), /game problem: .*kaboom in the test/);
+  await page.context().close();
+});
+
+test('a brand-new island is made on the server once the intro is done', async () => {
+  const page = await device();
+  const before = (await islandsOnServer(page)).length;
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.click('#tbtns button:has-text("Start")');
+  await page.waitForFunction(() => IntroScene.on);
+  await page.evaluate(() => IntroScene._finish());
+  // talk through the welcome, filling in the island's name when asked
+  for (let i = 0; i < 80 && !(await page.evaluate(() => G.mode === 'play')); i++) {
+    if (await page.locator('#islandname').isVisible().catch(() => false)) {
+      await page.fill('#islandname', 'Brand New Isle');
+      await page.click("button:has-text(\"That's everything\")");
+    } else await page.evaluate(() => UI.advance());
+    await page.waitForTimeout(150);
+  }
+  await until(() => page.evaluate(() => !!Cloud.id && Cloud.seq === Cloud.sentSeq));
+  const islands = await islandsOnServer(page);
+  assert.equal(islands.length, before + 1);
+  assert.equal(islands[0].summary.islandName, 'Brand New Isle');
+  assert.equal(await page.evaluate(() => localStorage.getItem('sc-current')), islands[0].id);
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});

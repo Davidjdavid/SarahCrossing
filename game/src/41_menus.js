@@ -486,10 +486,11 @@ function appSettings() {
     b.appendChild(clockSetting());
     b.appendChild(zoomSetting());
     b.appendChild(el('h3', null, '')).style.margin = '8px 0 0';
-    const note = el('p', 'muted', Save.ok ? 'Your island saves in this browser as you play.' : 'This browser is not letting the page save. Use a save code to keep your island.');
+    const note = el('p', 'muted', Cloud.problem === 'offline' ? "Can't reach the island server right now. Your island is kept on this device and saves online once the connection is back."
+        : 'Your island saves online as you play, so it follows you to any device.');
     b.appendChild(note);
     const codeBox = el('div', 'field');
-    codeBox.appendChild(el('span', null, 'Save code (to move to another device)'));
+    codeBox.appendChild(el('span', null, 'Save code (a backup you can copy anywhere)'));
     const ta = el('textarea');
     ta.id = 'savecode';
     ta.readOnly = true;
@@ -507,25 +508,13 @@ function appSettings() {
     b.appendChild(row);
     const dl = el('div');
     dl.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:8px';
-    Caps.downloads().then(d => {
-        if (!d) return;
-        dl.appendChild(btn('Save a backup file', 'alt', async () => {
-            const code = await Save.exportCode();
-            try { await d.save({ filename: `sarah-crossing-${Clock.dayDate().toISOString().slice(0, 10)}.txt`, data: code }); UI.toast('Backup saved'); }
-            catch (e) { if (e && e.code !== 'declined') UI.toast('Could not save the file here.'); }
-        }));
-    });
+    dl.appendChild(btn('Save a backup file', 'alt', () => saveGameFile()));
     b.appendChild(dl);
-    const danger = el('div');
-    danger.style.cssText = 'margin-top:18px;padding-top:12px;border-top:2px dashed var(--line)';
-    danger.appendChild(el('p', 'muted', 'Start over wipes this island from this browser.'));
-    danger.appendChild(btn('Start a new island', 'alt', () => {
-        danger.innerHTML = '';
-        danger.appendChild(el('p', 'muted', 'Really start over? Your house, friends and collection on this browser will be gone.'));
-        danger.appendChild(btn('Yes, start over', '', () => { Save.wipe(); location.reload(); }));
-        danger.appendChild(btn('Keep my island', 'alt', () => appSettings()));
-    }));
-    b.appendChild(danger);
+    const isl = el('div');
+    isl.style.cssText = 'margin-top:18px;padding-top:12px;border-top:2px dashed var(--line)';
+    isl.appendChild(el('p', 'muted', 'Switch to another island, start a new one, or put a backup back. (Nothing is wiped: every island stays online.)'));
+    isl.appendChild(btn('Your islands', 'alt', () => IslandList.open(true)));
+    b.appendChild(isl);
     b.appendChild(el('p', 'muted', 'Controls: arrows or WASD walk, Shift runs, E / Space / Enter talks and uses things, I opens the pocket, P opens the phone, M opens the map, Q does a dance move, - and + zoom, H twice goes home. On a phone, tap where you want to go or what you want to use, and pinch to zoom.'));
     b.appendChild(secretsSection());
 }
@@ -582,26 +571,8 @@ function clockChanged() {
     decorateIsland(G.areas.island);
     Plans.reset(); NPCs.place(true); Music.update(true); HUD.update();
 }
-function loadCodePanel(fromTitle) {
-    const P = UI.open({ title: 'Load a save code', phone: !fromTitle, back: fromTitle ? null : appSettings, foot: true });
-    const f = el('div', 'field');
-    f.appendChild(el('span', null, 'Paste a save code'));
-    const ta = el('textarea');
-    ta.id = 'loadcode';
-    f.appendChild(ta);
-    P.body.appendChild(f);
-    const msg = el('p', 'muted', 'This replaces the island in this browser.');
-    P.body.appendChild(msg);
-    P.foot.appendChild(btn('Load island', 'green', async () => {
-        try {
-            const st = await Save.importCode(ta.value);
-            S = st;
-            S.started = true;
-            Save.write(true);
-            location.reload();
-        } catch (e) { msg.textContent = "That code didn't work. Check that you copied the whole thing (it starts with SC)."; }
-    }));
-}
+/* a save code (or file) comes in as an island of its own, or replaces the same island: see 6x_islands.js */
+function loadCodePanel(fromTitle) { IslandList.importPanel(!fromTitle); }
 
 /* ---------------------------------------------------------------- shop */
 async function fortuneTalk(n) {

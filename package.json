@@ -7,6 +7,14 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "start": "node server/server.mjs",
+    "dev": "node scripts/build.mjs && node server/server.mjs",
+    "test": "node --test tests/islands.test.mjs tests/server.test.mjs tests/build.test.mjs",
+    "test:e2e": "node scripts/build.mjs && node --test --test-concurrency=1 tests/e2e.test.mjs",
+    "check": "npm test && npm run test:e2e"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }

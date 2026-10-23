@@ -215,36 +215,21 @@ function quitToTitle() {
 function appSaveQuit() {
     const P = UI.open({ title: 'Save & quit', phone: true, back: backToPhone });
     P.body.appendChild(el('p', null, 'Save your island as a file, then head back to the title screen.'));
-    P.body.appendChild(el('p', 'muted', 'Your island also saves itself in this browser as you play. A save file is a backup you can keep, and load on any device from the title screen.'));
+    P.body.appendChild(el('p', 'muted', 'Your island also saves itself online as you play. A save file is an extra backup you can keep, and bring back in from the title screen (Import a save).'));
     const msg = el('p', 'muted', '');
     const row = el('div');
     row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px';
     row.appendChild(btn('Save a file & quit', 'green', async () => {
         const ok = await saveGameFile();
-        if (ok) quitToTitle(); else msg.textContent = "The file wasn't saved. Try again, or quit without one (the island is still saved in this browser).";
+        if (ok) quitToTitle(); else msg.textContent = "The file wasn't saved. Try again, or quit without one (the island is still saved online).";
     }));
     row.appendChild(btn('Just save a file', 'alt', () => saveGameFile()));
     row.appendChild(btn('Quit without a file', 'alt', () => quitToTitle()));
     P.body.appendChild(row);
     P.body.appendChild(msg);
 }
-/* the title screen's "Load a save file" */
-function loadSaveFile() {
-    const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = '.txt,text/plain';
-    inp.addEventListener('change', async () => {
-        const f = inp.files && inp.files[0];
-        if (!f) return;
-        try {
-            const st = await Save.importCode((await f.text()).trim());
-            S = st;
-            S.started = true;
-            Save.write(true);
-            location.reload();
-        } catch (e) { $('#ttag').textContent = "That file didn't work. Pick a save file made by Sarah Crossing."; }
-    });
-    inp.click();
-}
+/* "Load a save file": the file comes in as an island of its own, or replaces the same island (6x_islands.js) */
+function loadSaveFile() { IslandList.chooseFile(); }
 
 /* ---------------------------------------------------------------- Settings: the island's name, and the secrets */
 function islandNameSetting() {
