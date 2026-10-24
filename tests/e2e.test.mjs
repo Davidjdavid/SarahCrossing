@@ -543,7 +543,7 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
     await title(page);
     await page.evaluate(() => __dbg.quickStart());
     await page.waitForFunction(() => G.mode === 'play', null, { timeout: 60000 });
-    await page.waitForFunction(() => R3.ok && R3.active() && R3.cards.size > 20, null, { timeout: 60000 });
+    await page.waitForFunction(() => R3.ok && R3.active() && R3.cards.size > 5, null, { timeout: 60000 });
     const island = await page.evaluate(() => {
       const want = [G.player.x + 40, G.player.y + 24];
       const q = R3.project(want[0], want[1], 0);
@@ -553,7 +553,11 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
     assert.equal(island.shown, 'block');
     assert.ok(island.err < 1, `a tap lands where it points (off by ${island.err})`);
     await page.evaluate(() => enterRoom('arcade'));
-    await page.waitForFunction(() => G.area.id === 'arcade' && R3.areaId === 'arcade' && R3.wall, null, { timeout: 30000 });
+    await page.waitForFunction(() => (G.area.id === 'arcade' && R3.areaId === 'arcade' && R3.wall) || R3.failed, null, { timeout: 30000 });
+    assert.equal(await page.evaluate(() => R3.failed), false, 'HD-2D kept going into a room');
+    await page.evaluate(() => leaveInterior());
+    await page.waitForFunction(() => (G.area.id === 'island' && R3.areaId === 'island') || R3.failed, null, { timeout: 30000 });
+    assert.equal(await page.evaluate(() => R3.failed), false, 'and back out onto the island');
     // decorating at home uses the flat view with its grid
     await page.evaluate(async () => { await goHome(); });
     await page.waitForFunction(() => G.area.id === 'home', null, { timeout: 30000 });
@@ -563,4 +567,31 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
     await page.waitForFunction(() => !R3.active() && localStorage.getItem('sc_gfx') === 'classic', null, { timeout: 10000 });
     assert.deepEqual(problems, []);
   } finally { await b3.close(); }
+});
+
+test('hold to walk: keeping a finger (or the mouse) down keeps Sarah walking towards it, and letting go stops her', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.waitForTimeout(500);
+  const start = await page.evaluate(() => [G.player.x, G.player.y]);
+  const pt = await page.evaluate(() => { const c = document.getElementById('game').getBoundingClientRect(); return [c.left + (G.player.x + 50 - G.cam.x) / G.view.w * c.width, c.top + (G.player.y - G.cam.y) / G.view.h * c.height]; });
+  await page.mouse.move(pt[0], pt[1]);
+  await page.mouse.down();
+  await page.mouse.move(pt[0] + 420, pt[1], { steps: 6 });
+  await page.waitForTimeout(1800);
+  const held = await page.evaluate(() => [G.player.x, !!(G.hold && G.hold.steer)]);
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  const after = await page.evaluate(() => G.player.x);
+  await page.waitForTimeout(500);
+  const later = await page.evaluate(() => G.player.x);
+  assert.ok(held[1], 'holding steers');
+  assert.ok(held[0] - start[0] > 80, `walked ${held[0] - start[0]}px while held`);
+  assert.ok(Math.abs(later - after) < 3, 'stops when let go');
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
 });

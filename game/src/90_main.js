@@ -496,7 +496,21 @@ function bindInput() {
         if (Fishing.st) { Fishing.press(); return; }
         if (Sky.star && Math.hypot(Sky.star.x - wx, Sky.star.y - wy) < 40) { Sky.wish(); return; }
         if (G.busy) return;
-        tapWorld(wx, wy);
+        // a tap walks there (or talks, picks up...); keeping the finger down keeps walking towards it
+        const acted = tapWorld(wx, wy);
+        const h = G.hold = { id: ev.pointerId, cx: ev.clientX, cy: ev.clientY, t: performance.now(), steer: false, acted: acted === 'act' };
+        h.world = () => toWorld({ clientX: h.cx, clientY: h.cy });
+    });
+    // after a moment held down on open ground (or once the finger moves anywhere), the tap becomes steering
+    setInterval(() => { const h = G.hold; if (h && !h.steer && !h.acted && performance.now() - h.t > 260) h.steer = true; }, 60);
+    const endHold = ev => { if (G.hold && (!ev || ev.pointerId === G.hold.id)) { if (G.hold.steer && G.player) G.player.path = null; G.hold = null; } };
+    addEventListener('pointerup', endHold);
+    addEventListener('pointercancel', endHold);
+    addEventListener('blur', () => endHold());
+    // a held finger is followed wherever it goes (over the buttons too)
+    addEventListener('pointermove', ev => {
+        const h = G.hold;
+        if (h && ev.pointerId === h.id) { if (!h.steer && Math.hypot(ev.clientX - h.cx, ev.clientY - h.cy) > 14) h.steer = true; h.cx = ev.clientX; h.cy = ev.clientY; }
     });
     cv.addEventListener('pointermove', ev => {
         if (IslandEdit.on) { if (G.pinching) return; const [wx, wy] = toWorld(ev); IslandEdit.move(wx, wy, ev); return; }
@@ -597,17 +611,17 @@ function tapWorld(wx, wy) {
     const nightNow = hourIn(Clock.hourF(), 21, 27);
     for (const e of a.ents) if (e.interact && !(e.onlyNight && !nightNow) && inHit(e, wx, wy, e.kind === 'item' ? 5 : 0)) cands.push([e.kind === 'item' ? 1 : e.kind === 'building' ? 3 : 2, e]);
     cands.sort((p, q) => p[0] - q[0] || Math.abs(p[1].y - wy) - Math.abs(q[1].y - wy));
-    if (cands.length) { approach(cands[0][1]); return; }
+    if (cands.length) { approach(cands[0][1]); return 'act'; }
     // indoors, a tap on (or around) the doorway walks out the door
     if (a.interior && a.doorTile) {
         const [dx, dy] = a.doorTile;
         if (Math.abs(wx / TILE - (dx + 0.5)) < 1.4 && wy / TILE > dy - 0.45) {
-            if (walkTo(dx, dy, () => { if (G.area === a && !G.busy) leaveInterior(); })) return;
+            if (walkTo(dx, dy, () => { if (G.area === a && !G.busy) leaveInterior(); })) return 'act';
         }
     }
     const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
     const w = a.waterAt(tx, ty);
-    if (heldTool() === 'shovel' && a.id === 'island' && !w && !a.blockedAt(tx, ty) && tapDig(tx, ty)) return;
+    if (heldTool() === 'shovel' && a.id === 'island' && !w && !a.blockedAt(tx, ty) && tapDig(tx, ty)) return 'act';
     if (w && w !== 'h') {
         // walk to the nearest shore tile, face the water, cast
         let best = null;
@@ -623,7 +637,7 @@ function tapWorld(wx, wy) {
                 startFishing(tx, ty, w);
             });
         }
-        return;
+        return 'act';
     }
     if (!walkTo(tx, ty, null, wx, wy)) {
         const f = a.nearestFree(tx, ty, 4);

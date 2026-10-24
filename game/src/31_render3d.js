@@ -10,7 +10,7 @@ const R3 = {
     ok: false, want: true, drawingCard: false, failed: false,
     renderer: null, scene: null, camera: null, canvas: null,
     sun: null, hemi: null, fill: null, lamps: [], sky: null, sea: null,
-    ground: null, wall: null, cards: new Map(), pool: {}, poolUsed: {}, areaId: null, t0: 0,
+    ground: null, wall: null, cards: new Map(), chunks: new Map(), pool: {}, poolUsed: {}, areaId: null, t0: 0, view: null, measured: 0,
     target: { x: 0, z: 0 }, quality: 1, slow: [], stepped: false,
     /* the device can do it and the player hasn't turned it off */
     load() {
@@ -43,7 +43,10 @@ const R3 = {
             r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
             r.setClearColor(0x3a8fd0, 1);
             this.renderer = r;
-            this.phone = Math.min(screen.width, screen.height) < 600;
+            // phones and tablets get the handheld rules: less drawn at once, fewer shadow updates, a lighter picture
+            let coarse = false;
+            try { coarse = matchMedia('(pointer: coarse)').matches; } catch (e) { /* old browser */ }
+            this.phone = coarse || Math.min(screen.width, screen.height) < 600;
             Post3.init(r);
             const scene = new THREE.Scene();
             scene.fog = new THREE.Fog(0xcfe2e8, 40, 140);
@@ -61,7 +64,8 @@ const R3 = {
             this.fill = new THREE.DirectionalLight(0xffe2c4, 0.14);
             this.fill.position.set(0.2, 0.5, 1);
             scene.add(this.hemi, this.fill);
-            for (let i = 0; i < 6; i++) { const l = new THREE.PointLight(0xffd8a0, 0, 7, 1.6); l.visible = false; scene.add(l); this.lamps.push(l); }
+            // always six lamps (dimmed to nothing by day): changing how many lights there are would recompile every material
+        for (let i = 0; i < 6; i++) { const l = new THREE.PointLight(0xffd8a0, 0, 7, 1.6); l.position.set(0, -50, 0); scene.add(l); this.lamps.push(l); }
             this.sky = r3Sky(scene);
             this.sea = r3Sea(scene);
             this.ok = true;
@@ -129,14 +133,14 @@ const R3 = {
         return { x: sx, y: sy, s: Math.abs((Q.x - P.x) / 2 * v.w) / TILE, behind: P.z > 1 };
     },
     /* overlay canvas pixels -> world pixels on the (bent) ground */
-    unproject(sx, sy) {
+    unproject(sx, sy, orNull) {
         const v = G.view, cam = this.camera;
         const ndc = new THREE.Vector3(sx / v.w * 2 - 1, 1 - sy / v.h * 2, 0.5).unproject(cam);
         const o = cam.position, dir = ndc.sub(o).normalize();
         const f = t => { const yy = o.y + dir.y * t, zz = o.z + dir.z * t, bd = Math.max(0, R3U.uBendZ.value - zz); return yy + R3U.uBendK.value * bd * bd; };
         let lo = 0, hi = 0;
         for (let t = 0.5; t < 600; t *= 1.25) { if (f(t) <= 0) { hi = t; break; } lo = t; }
-        if (!hi) return [G.player.x, G.player.y];
+        if (!hi) return orNull ? null : [G.player.x, G.player.y];
         for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (f(m) > 0) lo = m; else hi = m; }
         return [(o.x + dir.x * hi) * TILE, (o.z + dir.z * hi) / R3_ZS * TILE];
     },
@@ -154,11 +158,12 @@ const R3 = {
         try {
             if (this.areaId !== a.id || this.ground === null) this.newArea(a);
             this.placeCamera(false);
+            if (!this.view || G.frame % 4 === 0) this.updateView();
             this.updateGround(a);
             this.updateLight(a);
             this.updateCards(a);
             R3U.uTime.value = (performance.now() - this.t0) / 1000;
-            if (G.frame % 2 === 0) this.renderer.shadowMap.needsUpdate = true;
+            if (G.frame % (this.phone ? 3 : 2) === 0) this.renderer.shadowMap.needsUpdate = true;
             Post3.render(this.scene, this.camera, R3U.uTime.value, this.grade);
             this.overlay();
             this.watchSpeed();
@@ -185,9 +190,12 @@ const R3 = {
         for (const c of this.cards.values()) this.dropCard(c);
         this.cards.clear();
         for (const k of Object.keys(this.pool)) for (const c of this.pool[k]) c.mesh.visible = false;
-        if (this.ground) { this.scene.remove(this.ground.mesh); this.ground.mesh.geometry.dispose(); this.ground.mat.dispose(); this.ground.tex.dispose(); }
+        if (this.ground && this.ground.mesh) { this.scene.remove(this.ground.mesh); this.ground.mesh.geometry.dispose(); this.ground.mat.dispose(); this.ground.tex.dispose(); }
+        this.ground = null;
         if (this.wall) { this.scene.remove(this.wall.mesh); this.wall.mesh.geometry.dispose(); this.wall.mat.dispose(); this.wall.tex.dispose(); this.wall = null; }
-        this.ground = r3Ground(this.scene, a);
+        for (const ch of this.chunks.values()) dropChunk(ch);
+        this.chunks.clear();
+        this.ground = a.interior ? r3Ground(this.scene, a) : { chunked: true, at: null };
         if (a.interior) this.wall = r3Wall(this.scene, a);
         this.sky.visible = !a.interior;
         this.sea.visible = !a.interior;
@@ -199,6 +207,7 @@ const R3 = {
 
     /* ---------------------------------------------------------------- the ground: a window of the flat picture, redrawn now and then */
     updateGround(a) {
+        if (!a.interior) return this.updateChunks(a);
         const g = this.ground, cx = this.target.x * TILE, cy = this.target.z / R3_ZS * TILE;
         const far = Math.hypot(cx - (g.at ? g.at[0] : 1e9), cy - (g.at ? g.at[1] : 1e9)) > 6 * TILE;
         if (!a.interior && !far && G.frame % 30 !== 0 && !g.dirty) return;
@@ -236,6 +245,59 @@ const R3 = {
         g.tex.needsUpdate = true;
     },
 
+    /* the island's ground: 16x16-tile pieces, painted when they come into view (and refreshed one at a time, so
+       paths and things on the ground show up), dropped when far away */
+    updateChunks(a) {
+        const V = this.view;
+        const cx0 = Math.max(0, Math.floor(V.x0 / R3_CHUNK)), cx1 = Math.min(Math.ceil(a.w * TILE / R3_CHUNK) - 1, Math.floor(V.x1 / R3_CHUNK));
+        const cy0 = Math.max(0, Math.floor(V.y0 / R3_CHUNK)), cy1 = Math.min(Math.ceil(a.h * TILE / R3_CHUNK) - 1, Math.floor(V.y1 / R3_CHUNK));
+        let made = 0;
+        const want = new Set();
+        for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+            const k = cx + ',' + cy;
+            want.add(k);
+            let ch = this.chunks.get(k);
+            if (!ch) {
+                if (made >= (this.phone ? 2 : 4) && this.chunks.size) continue;        // a few new pieces a frame, nearest first next time
+                ch = makeChunk(this.scene, cx, cy);
+                this.chunks.set(k, ch);
+                paintChunk(ch, a);
+                made++;
+            }
+            ch.mesh.visible = true;
+            ch.used = G.frame;
+        }
+        for (const [k, ch] of this.chunks) if (!want.has(k)) { ch.mesh.visible = false; if (G.frame - ch.used > 600 && this.chunks.size > 40) { dropChunk(ch); this.chunks.delete(k); } }
+        // one visible piece repainted every few frames (or all of them after the flat view was used to change things)
+        if (this.ground.dirty) { for (const ch of this.chunks.values()) ch.stale = true; this.ground.dirty = false; }
+        if (G.frame % 6 === 0) {
+            const vis = [...this.chunks.values()].filter(ch => ch.mesh.visible);
+            const stale = vis.find(ch => ch.stale);
+            const ch = stale || vis[(this._rr = ((this._rr || 0) + 1)) % Math.max(1, vis.length)];
+            if (ch) { paintChunk(ch, a); ch.stale = false; }
+        }
+    },
+    /* how far anything is drawn (fog fades things out before it): the handheld games' trick, shorter on phones */
+    farTiles() { return (this.phone ? R3_FAR.phone : R3_FAR.full) * this.dist() / 13; },
+    /* the part of the world on screen (with some room around it), in world pixels */
+    updateView() {
+        const v = G.view;
+        let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, missed = false;
+        // a few points down the screen: the top ones may look past the horizon (then the far edge is as far as anything shows)
+        for (const fy of [0, 0.08, 0.18, 0.32, 0.55, 1]) for (const fx of [0, 0.5, 1]) {
+            const w = this.unproject(fx * v.w, fy * v.h, true);
+            if (!w) { missed = true; continue; }
+            x0 = Math.min(x0, w[0]); x1 = Math.max(x1, w[0]); y0 = Math.min(y0, w[1]); y1 = Math.max(y1, w[1]);
+        }
+        const tx = this.target.x * TILE, ty = this.target.z / R3_ZS * TILE, far = this.farTiles() * TILE;
+        if (missed || y0 > ty - 6 * TILE) y0 = ty - far;
+        if (missed) { const half = far * Math.max(0.7, this.camera.aspect) * 0.75; x0 = Math.min(x0, tx - half); x1 = Math.max(x1, tx + half); }
+        y0 = Math.max(y0, ty - far);
+        x0 = Math.max(x0, tx - far); x1 = Math.min(x1, tx + far);
+        const m = 2 * TILE;
+        this.view = { x0: x0 - m, x1: x1 + m, y0: y0 - m, y1: y1 + 3 * TILE };
+    },
+
     /* ---------------------------------------------------------------- the light: the island's hour and weather */
     updateLight(a) {
         const h = Clock.hourF();
@@ -253,7 +315,8 @@ const R3 = {
         this.hemi.groundColor.setRGB(0.54, 0.49, 0.34).lerp(tint, dark * 0.8);
         const fog = new THREE.Color(0.74, 0.86, 0.94).lerp(new THREE.Color(0.62, 0.66, 0.7), gray).lerp(tint, dark * 0.85);
         this.scene.fog.color.copy(fog);
-        if (a.interior) { this.scene.fog.near = 200; this.scene.fog.far = 400; } else { this.scene.fog.near = 40; this.scene.fog.far = 150; }
+        if (a.interior) { this.scene.fog.near = 200; this.scene.fog.far = 400; }
+        else { const f = this.farTiles() * R3_ZS, d = this.dist(); this.scene.fog.near = d + f * 0.45; this.scene.fog.far = d + f * 0.98; }
         this.renderer.setClearColor(a.interior ? 0x231b2e : fog, 1);
         if (this.sky.material.uniforms) {
             const u = this.sky.material.uniforms;
@@ -263,11 +326,12 @@ const R3 = {
         }
         this.grade = { dark, gray };
         // lamps: the nearest few light up at night
+        if (G.frame % 15 !== 0 && this._lampsFor === a.id) return;
+        this._lampsFor = a.id;
         const lit = L.lamps > 0.02 ? lightSources(a).map(s => ({ s, d: Math.hypot(s[0] / TILE - this.target.x, s[1] / TILE * R3_ZS - this.target.z) })).sort((p, q) => p.d - q.d).slice(0, this.lamps.length) : [];
         this.lamps.forEach((l, i) => {
             const o = lit[i];
-            l.visible = !!o;
-            if (!o) return;
+            if (!o) { l.intensity = 0; return; }
             const [x, y, r, c] = o.s;
             l.position.set(x / TILE, 1.4, y / TILE * R3_ZS + 0.3);
             l.distance = Math.max(4, r / TILE * 2.2);
@@ -279,15 +343,23 @@ const R3 = {
     /* ---------------------------------------------------------------- the cards */
     updateCards(a) {
         const nightNow = hourIn(Clock.hourF(), 21, 27);
-        const tx = this.target.x * TILE, ty = this.target.z / R3_ZS * TILE;
-        const reach = this.dist() / 13;
-        const x0 = tx - 34 * TILE * reach, x1 = tx + 34 * TILE * reach, y0 = ty - 44 * TILE * reach, y1 = ty + 16 * TILE * reach;
+        const V = this.view, wide = a.interior ? 1e9 : 0;
+        // only what's on screen (and a little around it): like the handheld games, a few dozen things at a time
+        const near = e => wide || !(e.x < V.x0 - 2 * TILE || e.x > V.x1 + 2 * TILE || e.y < V.y0 || e.y > V.y1 + 4 * TILE);
         const seen = new Set();
-        const near = e => !(e.x < x0 || e.x > x1 || e.y < y0 || e.y > y1);
+        this.measured = 0;
+        const tx = G.player.x, ty = G.player.y;
+        const todo = [];
         for (const e of a.ents) {
             if (e.hidden || e.layer === 0 || (e.onlyNight && !nightNow) || !near(e)) continue;
             seen.add(e);
+            if (!this.cards.has(e)) { todo.push(e); continue; }
             this.staticCard(e, a);
+        }
+        // new things are measured a few at a time, nearest first, so walking somewhere new never hitches
+        if (todo.length) {
+            todo.sort((p, q) => Math.abs(p.x - tx) + Math.abs(p.y - ty) - Math.abs(q.x - tx) - Math.abs(q.y - ty));
+            for (const e of todo.slice(0, this.phone ? 6 : 12)) this.staticCard(e, a);
         }
         for (const c of this.cards.values()) if (!seen.has(c.e)) { if (++c.away > 120) { this.dropCard(c); this.cards.delete(c.e); } else c.mesh.visible = false; }
         // people, critters and anything that moves: pooled cards, drawn fresh every frame
@@ -316,8 +388,15 @@ const R3 = {
             this.cards.set(e, c);
         }
         c.away = 0;
-        const due = sig != null ? sig !== c.sig : G.frame - c.drawn >= (e.anim || e.kind === 'item' ? 4 : 12);
-        if (due) { drawCard(c, e); c.sig = sig; c.drawn = G.frame; }
+        const key = sig != null ? sig : `${e.frame}|${e.shake || 0}|${e.fresh || 0}|${e.flip}`;
+        const every = e.anim || e.kind === 'item' ? 4 : 12;
+        const due = sig != null ? sig !== c.sig : (key !== c.sig || (!c.still && G.frame - c.drawn >= every) || G.frame - c.drawn >= 300);
+        if (due) {
+            drawCard(c, e);
+            // a hand-drawn thing whose picture came out the same three times running is treated as still
+            if (sig == null) { const h = cardHash(c); c.same = h === c.hash ? (c.same || 0) + 1 : 0; c.hash = h; c.still = c.same >= 3 && !e.anim; }
+            c.sig = key; c.drawn = G.frame;
+        }
         placeCard(c, e, a);
         // trees and statues go see-through while Sarah is behind them
         const fade = seeThroughRaw(e);
@@ -358,6 +437,7 @@ const R3 = {
 };
 /* the camera: a little steeper indoors so the back wall shows; the world bends away after a few tiles */
 const R3_CAM = { fov: 46, pitch: 25, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.0042 };
+const R3_FAR = { phone: 17, full: 27 };     // tiles ahead that get drawn (at the normal zoom)
 const R3_ZS = 1.25;         // the flat art is drawn for a steeper view: stretch the ground a little in depth
 const R3_VS = 1.12;         // and stand cards a little taller so they don't look squashed from this angle
 
@@ -495,11 +575,56 @@ function r3Sky(scene) {
     return s;
 }
 
+/* ---------------------------------------------------------------- the island's ground, in pieces */
+const R3_CHUNK = 256;
+function makeChunk(scene, cx, cy) {
+    const cv = document.createElement('canvas');
+    cv.width = R3_CHUNK; cv.height = R3_CHUNK;
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    const tex = new THREE.CanvasTexture(cv);
+    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.generateMipmaps = true; tex.anisotropy = 4;
+    const mat = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.02, color: 0xd8d8d8 }), { key: 'ground' });
+    const s = R3_CHUNK / TILE;
+    const geo = new THREE.PlaneGeometry(s, s * R3_ZS, 6, 6);
+    geo.rotateX(-Math.PI / 2);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(cx * s + s / 2, 0, (cy * s + s / 2) * R3_ZS);
+    mesh.receiveShadow = true;
+    mesh.renderOrder = -2;
+    scene.add(mesh);
+    return { cx, cy, cv, ctx, tex, mat, mesh, used: G.frame, stale: false };
+}
+function paintChunk(ch, a) {
+    const ctx = ch.ctx, x0 = ch.cx * R3_CHUNK, y0 = ch.cy * R3_CHUNK, N = R3_CHUNK;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, N, N);
+    const img = Assets.ground(a.bgSeason);
+    if (img) { const w = Math.min(N, img.width - x0), h = Math.min(N, img.height - y0); if (w > 0 && h > 0) ctx.drawImage(img, x0, y0, w, h, 0, 0, w, h); }
+    drawPaths(ctx, a, { x: x0, y: y0 }, { w: N, h: N });
+    ctx.translate(-x0, -y0);
+    R3.drawingCard = true;
+    try {
+        for (const d of a.decals) if (d.x > x0 - 48 && d.x < x0 + N + 48 && d.y > y0 - 16 && d.y < y0 + N + 48) spr(ctx, d.frame, d.x, d.y);
+        for (const e of a.ents) if (e.layer === 0 && !e.hidden && e.x > x0 - 64 && e.x < x0 + N + 64 && e.y > y0 - 32 && e.y < y0 + N + 64) drawEnt(ctx, e);
+    } finally { R3.drawingCard = false; }
+    ch.tex.needsUpdate = true;
+}
+function dropChunk(ch) { R3.scene.remove(ch.mesh); ch.mesh.geometry.dispose(); ch.mat.dispose(); ch.tex.dispose(); }
+/* a quick fingerprint of a card's pixels (every 7th one) */
+function cardHash(c) {
+    let d;
+    try { d = c.ctx.getImageData(0, 0, c.w, c.h).data; } catch (e) { return Math.random(); }
+    let h = 0;
+    for (let i = 3; i < d.length; i += 28) h = (h * 31 + d[i] + d[i - 1] * 7 + d[i - 3] * 3) | 0;
+    return h;
+}
+
 /* ---------------------------------------------------------------- cards */
 function makeCard(w, h, ax, ay, scene) {
     const cv = document.createElement('canvas');
     cv.width = w; cv.height = h;
-    const ctx = cv.getContext('2d');
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
     ctx.imageSmoothingEnabled = false;
     const tex = new THREE.CanvasTexture(cv);
     tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
@@ -546,7 +671,15 @@ function placeCard(c, e, a) {
 }
 /* how big something is, measured once: draw it into a big scratch canvas and find where the pixels are */
 const R3_SCRATCH = { cv: null, ctx: null, W: 288, H: 320, AX: 144, AY: 280 };
+const R3_SIZES = new Map();
 function measureEnt(e) {
+    const same = e.frame && e.kind !== 'building' ? `${e.kind}|${e.frame}|${e.draw ? 1 : 0}` : null;
+    if (same && R3_SIZES.has(same)) return R3_SIZES.get(same);
+    const b = measureEnt0(e);
+    if (same && b) R3_SIZES.set(same, b);
+    return b;
+}
+function measureEnt0(e) {
     if (e.frame && !e.draw) {
         const f = Assets.frames[e.frame] || (Assets.dyn[e.frame] && [0, 0, Assets.dyn[e.frame].w, Assets.dyn[e.frame].h, Assets.dyn[e.frame].ax, Assets.dyn[e.frame].ay]);
         if (f) { const sx = 3; return { w: f[2] + sx * 2, h: f[3] + 2, ax: f[4] + sx, ay: f[5] + 1 }; }
@@ -652,7 +785,7 @@ const Post3 = (() => {
     }
     function target(w, h, ms) {
         const o = { type: hdr ? THREE.HalfFloatType : THREE.UnsignedByteType, format: THREE.RGBAFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: !!ms, stencilBuffer: false };
-        if (ms && R.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget) { const t = new THREE.WebGLMultisampleRenderTarget(w, h, o); t.samples = 4; return t; }
+        if (ms && !R3.phone && R.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget) { const t = new THREE.WebGLMultisampleRenderTarget(w, h, o); t.samples = 4; return t; }
         return new THREE.WebGLRenderTarget(w, h, o);
     }
     function resize(W_, H_) {

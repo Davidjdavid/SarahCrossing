@@ -136,6 +136,30 @@ function updatePlayer(p) {
     }
     let dx = 0, dy = 0;
     const k = G.keys;
+    const hold = G.hold && G.hold.steer ? G.hold : null;
+    if (hold && !p.sit) {
+        // a finger held down: walk towards it (and run when it's far ahead); if something's in the way, go around it
+        const [wx, wy] = hold.world();
+        const ddx = wx - p.x, ddy = wy - (p.y - 4), d = Math.hypot(ddx, ddy);
+        const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
+        if (hold.around) {
+            // following a way around: look again when the finger moves to another tile, or the way runs out
+            if (!p.path || (hold.around !== tx + ',' + ty && G.frame % 20 === 0)) { hold.around = null; p.path = null; }
+        }
+        if (!hold.around && d > 5) {
+            p.path = null; p.onArrive = null;
+            const sp = (d > 6 * TILE || (S.settings && S.settings.run) ? 2.1 : 1.35) * bonusSpeed();
+            const ux = ddx / d, uy = ddy / d, x0 = p.x, y0 = p.y;
+            movePlayer(p, ux * sp, 0); movePlayer(p, 0, uy * sp);
+            if (Math.abs(ux) > Math.abs(uy)) p.dir = ux > 0 ? 'right' : 'left'; else p.dir = uy > 0 ? 'down' : 'up';
+            p.moving = true; p.run = sp > 1.5; p.anim++;
+            hold.stuck = Math.hypot(p.x - x0, p.y - y0) < sp * 0.35 ? (hold.stuck || 0) + 1 : 0;
+            if (hold.stuck > 8 && d > TILE && !G.area.blockedAt(tx, ty) && walkTo(tx, ty, null, wx, wy)) { hold.around = tx + ',' + ty; hold.stuck = 0; }
+            afterMove(p);
+            return;
+        }
+        if (!hold.around) return;
+    }
     if (k.ArrowLeft || k.KeyA) dx -= 1;
     if (k.ArrowRight || k.KeyD) dx += 1;
     if (k.ArrowUp || k.KeyW) dy -= 1;
