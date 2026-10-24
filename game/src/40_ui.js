@@ -35,7 +35,7 @@ const UI = {
         bub.classList.toggle('letter', !!opts.letter);
         if (info) {
             tag.hidden = false;
-            tag.style.background = info.color || '#6e5a78';
+            tag.style.setProperty('--tag', info.color || '#6e5a78');
             tag.textContent = '';
             if (info.icon && Assets.has(info.icon)) tag.appendChild(iconCanvas(info.icon, 22));
             tag.appendChild(document.createTextNode(info.name));

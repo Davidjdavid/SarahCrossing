@@ -83,6 +83,8 @@ const R3 = {
     show(on) {
         if (!this.canvas) return;
         this.canvas.style.display = on ? 'block' : 'none';
+        /* the HUD and dialogue take the art sample's dark glass while the HD-2D view shows */
+        if (this.shown !== on) { this.shown = on; document.body.classList.toggle('hd2d', on); }
     },
     resize() {
         if (!this.ok) return;
@@ -228,6 +230,8 @@ const R3 = {
         let t = this.tufts;
         if (a.interior || a.id !== 'island' || !this.view) { if (t) t.mesh.visible = false; return; }
         const season = a.bgSeason || Clock.season();
+        const gk = R3_GRASS[season] || R3_GRASS.summer;
+        R3U.uGrass.value.set(gk[0], gk[1], gk[2], 1);
         if (t && t.season !== season) { this.scene.remove(t.mesh); t.geo.dispose(); t.mat.dispose(); t.tex.dispose(); t = this.tufts = null; }
         if (!t) t = this.tufts = r3Tufts(this.scene, season);
         t.mesh.visible = true;
@@ -333,10 +337,10 @@ const R3 = {
         this.hemi.intensity = 0.38 + 0.08 * day;
         this.hemi.color.setRGB(0.69, 0.79, 0.93).lerp(tint, dark * 0.8);
         this.hemi.groundColor.setRGB(0.54, 0.49, 0.34).lerp(tint, dark * 0.8);
-        const fog = new THREE.Color(0.74, 0.86, 0.94).lerp(new THREE.Color(0.62, 0.66, 0.7), gray).lerp(tint, dark * 0.85);
+        const fog = new THREE.Color(R3_FOG.col[0], R3_FOG.col[1], R3_FOG.col[2]).lerp(new THREE.Color(0.62, 0.66, 0.7), gray).lerp(tint, dark * 0.85);
         this.scene.fog.color.copy(fog);
         if (a.interior) { this.scene.fog.near = 200; this.scene.fog.far = 400; }
-        else { const f = this.farTiles() * R3_ZS, d = this.dist(); this.scene.fog.near = d + f * 0.45; this.scene.fog.far = d + f * 0.98; }
+        else { const f = this.farTiles() * R3_ZS, d = this.dist(); this.scene.fog.near = d + f * R3_FOG.near; this.scene.fog.far = d + f * R3_FOG.far; }
         this.renderer.setClearColor(a.interior ? 0x231b2e : fog, 1);
         if (this.sky.material.uniforms) {
             const u = this.sky.material.uniforms;
@@ -472,8 +476,9 @@ const R3 = {
     },
 };
 /* the camera: a little steeper indoors so the back wall shows; the world bends away after a few tiles */
-const R3_CAM = { fov: 46, pitch: 25, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.0042 };
+const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.0042 };
 const R3_FAR = { phone: 17, full: 27 };     // tiles ahead that get drawn (at the normal zoom)
+const R3_FOG = { col: [0.6, 0.77, 0.92], near: 0.6, far: 0.98 };     // a clear blue haze far off, like the sky behind it
 const R3_ZS = 1.25;         // the flat art is drawn for a steeper view: stretch the ground a little in depth
 const R3_VS = 1.12;         // and stand cards a little taller so they don't look squashed from this angle
 
@@ -484,7 +489,7 @@ function hasWebGL() {
 /* ---------------------------------------------------------------- shared shader bits (bend, cloud shade, depth-of-field amount) */
 const R3U = {
     uBendK: { value: 0.0024 }, uBendZ: { value: 0 }, uTime: { value: 0 },
-    uDof: { value: new THREE_V4(22, 70, 8.5, 5.5) },
+    uDof: { value: new THREE_V4(22, 70, 8.5, 5.5) }, uGrass: { value: new THREE_V4(1, 1, 1, 0) },
 };
 function THREE_V4(a, b, c, d) { return typeof THREE !== 'undefined' ? new THREE.Vector4(a, b, c, d) : { x: a, y: b, z: c, w: d, set() {} }; }
 const R3_GLSL = `
@@ -625,7 +630,7 @@ function r3Sky(scene) {
 }
 
 /* ---------------------------------------------------------------- the island's ground, in pieces */
-const R3_CHUNK = 256;
+const R3_CHUNK = 240, R3_PAD = 8, R3_CHUNKPX = R3_CHUNK + 2 * R3_PAD;     // world pixels a piece, and its 256-pixel picture with a margin
 /* ---------------------------------------------------------------- grass */
 /* tufts of grass on the grass near the camera, swaying in the breeze: one instanced mesh (one draw for all of them),
    refilled as the view moves; four shapes of tuft, in the season's colors */
@@ -635,7 +640,7 @@ function r3TuftCanvas(season) {
     const S = 24, V = 4, cv = document.createElement('canvas');
     cv.width = S * V; cv.height = S;
     const g = cv.getContext('2d'), img = g.createImageData(S * V, S), d = img.data;
-    const cols = { spring: ['#4f9a36', '#a6dc72'], summer: ['#3f8a30', '#8fd05e'], fall: ['#6f8a34', '#dcc05a'], winter: ['#7f9a86', '#dfeae0'] }[season] || ['#3f8a30', '#8fd05e'];
+    const cols = { spring: ['#4f9a36', '#a6dc72'], summer: ['#3f8a30', '#8fd05e'], fall: ['#557f2c', '#c2c858'], winter: ['#7f9a86', '#dfeae0'] }[season] || ['#3f8a30', '#8fd05e'];
     const A = hdRgb(cols[0]), B = hdRgb(cols[1]);
     const put = (x, y, c) => { x = Math.round(x); y = Math.round(y); if (x < 0 || y < 0 || x >= S * V || y >= S) return; const i = (y * S * V + x) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255; };
     for (let v = 0; v < V; v++) {
@@ -649,8 +654,14 @@ function r3TuftCanvas(season) {
                 if (t < 0.45) put(x + 1, y, [c[0] * 0.85, c[1] * 0.85, c[2] * 0.85]);       // thicker at the root, shaded side
             }
         }
-        // a tiny flower in one of them, spring and summer
-        if (v === 3 && (season === 'spring' || season === 'summer')) { const f = hdRgb(season === 'spring' ? '#f4a6c8' : '#f6e27a'); for (const [x, y] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) put(v * S + 14 + x, 7 + y, f); put(v * S + 14, 7, [255, 255, 255]); }
+        // tiny flowers in two of them (white daisies, and the season's own color) but in winter
+        if (v >= 2 && season !== 'winter') {
+            const f = hdRgb(v === 2 ? '#f6f2ea' : { spring: '#f4a6c8', summer: '#f6e27a', fall: '#c7a4ea' }[season] || '#f6e27a'), mid = v === 2 ? [246, 214, 92] : [255, 255, 255];
+            const fx = v * S + (v === 2 ? 9 : 14), fy = v === 2 ? 9 : 7;
+            for (let dy = 0; dy < 8; dy++) put(fx, fy + 2 + dy, A);
+            for (const [x, y] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) put(fx + x, fy + y, f);
+            put(fx, fy, mid);
+        }
     }
     g.putImageData(img, 0, 0);
     return cv;
@@ -719,9 +730,17 @@ function r3WaterMap() {
     R3_WMAP = t;
     return t;
 }
-const R3_WATER_HEAD = 'uniform sampler2D uWater; uniform vec2 uWsz;\n';
+const R3_WATER_HEAD = 'uniform sampler2D uWater; uniform vec2 uWsz; uniform vec4 uGrass;\n';
+/* the grass a little deeper and greener than the flat art's (the art sample's lush look; fall's olive turns yellow-green) */
+const R3_GRASS = { spring: [0.93, 0.94, 0.9], summer: [0.93, 0.92, 0.88], fall: [0.8, 0.95, 0.86], winter: [1, 1, 1] };
 const R3_WATER_GLSL = `
 {
+    // fine detail over the island picture (one picture pixel is a lot of screen up close): speckles and soft patches
+    vec2 dp = vWp.xz;
+    gl_FragColor.rgb *= 1.0 + (r3n(dp * 5.3) - 0.5) * 0.11 + (r3n(dp * 13.7 + 7.3) - 0.5) * 0.08 + (r3n(dp * 0.55 + 2.1) - 0.5) * 0.08;
+    vec3 al = diffuseColor.rgb;
+    float gm = smoothstep(1.3, 1.6, al.g / max(al.b, 0.02)) * step(al.r, al.g * 1.04);
+    gl_FragColor.rgb *= mix(vec3(1.0), uGrass.rgb, gm);
     vec4 wm = texture2D(uWater, vec2(vWp.x / uWsz.x, vWp.z / ${R3_ZS.toFixed(3)} / uWsz.y));
     float w = smoothstep(0.45, 0.8, wm.r);
     vec3 col = gl_FragColor.rgb;
@@ -773,7 +792,7 @@ function r3GroundH(x, y) {
 }
 function makeChunk(scene, cx, cy) {
     const cv = document.createElement('canvas');
-    cv.width = R3_CHUNK; cv.height = R3_CHUNK;
+    cv.width = R3_CHUNKPX; cv.height = R3_CHUNKPX;
     const ctx = cv.getContext('2d');
     ctx.imageSmoothingEnabled = false;
     const tex = new THREE.CanvasTexture(cv);
@@ -782,6 +801,8 @@ function makeChunk(scene, cx, cy) {
     const s = R3_CHUNK / TILE;
     const geo = new THREE.PlaneGeometry(s, s * R3_ZS, s, s);
     geo.rotateX(-Math.PI / 2);
+    const UV = geo.attributes.uv;
+    for (let i = 0; i < UV.count; i++) UV.setXY(i, (R3_PAD + UV.getX(i) * R3_CHUNK) / R3_CHUNKPX, (R3_PAD + UV.getY(i) * R3_CHUNK) / R3_CHUNKPX);
     // raised where the island is higher (one vertex per tile corner)
     const P = geo.attributes.position;
     for (let i = 0; i < P.count; i++) P.setY(i, r3GroundH((cx * s + s / 2 + P.getX(i)) * TILE, (cy * s + s / 2 + P.getZ(i) / R3_ZS) * TILE));
@@ -794,11 +815,11 @@ function makeChunk(scene, cx, cy) {
     return { cx, cy, cv, ctx, tex, mat, mesh, used: G.frame, stale: false };
 }
 function paintChunk(ch, a) {
-    const ctx = ch.ctx, x0 = ch.cx * R3_CHUNK, y0 = ch.cy * R3_CHUNK, N = R3_CHUNK;
+    const ctx = ch.ctx, x0 = ch.cx * R3_CHUNK - R3_PAD, y0 = ch.cy * R3_CHUNK - R3_PAD, N = R3_CHUNKPX;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, N, N);
     const img = Assets.ground(a.bgSeason);
-    if (img) { const w = Math.min(N, img.width - x0), h = Math.min(N, img.height - y0); if (w > 0 && h > 0) ctx.drawImage(img, x0, y0, w, h, 0, 0, w, h); }
+    if (img && (!ch.base || ch.baseOf !== img)) { ch.base = r3SoftGround(img, x0, y0, N); ch.baseOf = img; }
+    if (ch.base) ctx.putImageData(ch.base, 0, 0); else ctx.clearRect(0, 0, N, N);
     drawPaths(ctx, a, { x: x0, y: y0 }, { w: N, h: N });
     ctx.translate(-x0, -y0);
     R3.drawingCard = true;
@@ -807,6 +828,56 @@ function paintChunk(ch, a) {
         for (const e of a.ents) if (e.layer === 0 && !e.hidden && e.x > x0 - 64 && e.x < x0 + N + 64 && e.y > y0 - 32 && e.y < y0 + N + 64) drawEnt(ctx, e);
     } finally { R3.drawingCard = false; }
     ch.tex.needsUpdate = true;
+}
+/* the island picture's borders between grass, dirt, sand and water drawn wavy instead of in tile steps (the art
+   sample's soft paths): each pixel is taken from a spot nudged by a smooth noise field of the world position, except on
+   and next to cliffs, stairs and bridges, whose straight lines stay */
+const R3_SOFT = { amp: 4, hard: new Set(['c', 'w', 'b', 'x', 'o', 'h', 'W']) };
+let R3_SOFTMAP = null, R3_SOFTCV = null;
+function r3SoftField() {
+    if (R3_SOFTMAP) return R3_SOFTMAP;
+    // a 128-pixel repeating field: two octaves of value noise (16 and 5.33 pixel cells), in whole pixels
+    const S = 128, ox = new Int8Array(S * S), oy = new Int8Array(S * S), R = mulberry(4242);
+    const lat = (n) => { const a = new Float32Array(n * n); for (let i = 0; i < a.length; i++) a[i] = R() * 2 - 1; return a; };
+    const L1x = lat(8), L1y = lat(8), L2x = lat(24), L2y = lat(24);
+    const smp = (L, n, x, y) => { const c = S / n, fx = x / c, fy = y / c, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+        const u = tx * tx * (3 - 2 * tx), v = ty * ty * (3 - 2 * ty), at = (i, j) => L[((j % n) * n) + (i % n)];
+        return (at(ix, iy) * (1 - u) + at(ix + 1, iy) * u) * (1 - v) + (at(ix, iy + 1) * (1 - u) + at(ix + 1, iy + 1) * u) * v; };
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        ox[y * S + x] = Math.round((smp(L1x, 8, x, y) * 0.75 + smp(L2x, 24, x, y) * 0.25) * R3_SOFT.amp);
+        oy[y * S + x] = Math.round((smp(L1y, 8, x, y) * 0.75 + smp(L2y, 24, x, y) * 0.25) * R3_SOFT.amp);
+    }
+    return (R3_SOFTMAP = { S, ox, oy });
+}
+function r3SoftGround(img, x0, y0, N) {
+    const M = R3_SOFT.amp, SW = N + 2 * M;
+    if (!R3_SOFTCV) { R3_SOFTCV = document.createElement('canvas'); R3_SOFTCV.width = R3_SOFTCV.height = SW; R3_SOFTCV.g = R3_SOFTCV.getContext('2d', { willReadFrequently: true }); }
+    const g = R3_SOFTCV.g;
+    g.clearRect(0, 0, SW, SW);
+    const sx = Math.max(0, x0 - M), sy = Math.max(0, y0 - M), ex = Math.min(img.width, x0 - M + SW), ey = Math.min(img.height, y0 - M + SW);
+    if (ex > sx && ey > sy) g.drawImage(img, sx, sy, ex - sx, ey - sy, sx - (x0 - M), sy - (y0 - M), ex - sx, ey - sy);
+    const src = g.getImageData(0, 0, SW, SW).data, out = new ImageData(N, N), dst = out.data;
+    const F = r3SoftField(), FS = F.S, grid = W0.grid;
+    const hard = (wx, wy) => { const r = grid[Math.floor(wy / TILE)]; return !r || R3_SOFT.hard.has(r[Math.floor(wx / TILE)]); };
+    // which tiles are hard, with their neighbours (so nothing is pulled across a cliff's edge)
+    const tx0 = Math.floor((x0 - TILE) / TILE), ty0 = Math.floor((y0 - TILE) / TILE), TW = Math.ceil(N / TILE) + 3;
+    const nearHard = new Uint8Array(TW * TW);
+    for (let j = 0; j < TW; j++) for (let i = 0; i < TW; i++) {
+        let h = 0;
+        for (let dj = -1; dj <= 1 && !h; dj++) for (let di = -1; di <= 1 && !h; di++) if (hard((tx0 + i + di) * TILE, (ty0 + j + dj) * TILE)) h = 1;
+        nearHard[j * TW + i] = h;
+    }
+    for (let y = 0; y < N; y++) {
+        const wy = y0 + y, fy = ((wy % FS) + FS) % FS, tj = Math.floor(wy / TILE) - ty0;
+        for (let x = 0; x < N; x++) {
+            const wx = x0 + x, fi = fy * FS + (((wx % FS) + FS) % FS), ti = Math.floor(wx / TILE) - tx0;
+            let px = x + M, py = y + M;
+            if (!nearHard[tj * TW + ti]) { px += F.ox[fi]; py += F.oy[fi]; }
+            const si = (py * SW + px) * 4, di = (y * N + x) * 4;
+            dst[di] = src[si]; dst[di + 1] = src[si + 1]; dst[di + 2] = src[si + 2]; dst[di + 3] = src[si + 3];
+        }
+    }
+    return out;
 }
 function dropChunk(ch) { R3.scene.remove(ch.mesh); ch.mesh.geometry.dispose(); ch.mat.dispose(); ch.tex.dispose(); }
 /* a quick fingerprint of a card's pixels (every 7th one) */
@@ -923,20 +994,26 @@ function r3Volume(e, scene) {
     if (l < 0) return null;
     const xL = X(l), xR = X(r + 1), x0 = X(0), x1 = X(W);
     // the sides wear the wall's own color, row by row (the median across the front, so windows, doors and a barber's pole
-    // don't streak along them); the last row is the whole wall's color, for the gable ends and the back
-    const wh = Math.max(1, ay - top), side = document.createElement('canvas');
-    side.width = 1; side.height = wh + 1;
-    const sg = side.getContext('2d'), sd = sg.createImageData(1, wh + 1), all = [[], [], []];
+    // don't streak along them); then the whole wall's color, for the gable ends and the back; then a darker one for the
+    // roof's underside, which shows where the roof picture is see-through (a shop's flat roof behind its awning and sign)
+    const wh = Math.max(1, ay - top), side = document.createElement('canvas'), SH = wh + 2;
+    side.width = 1; side.height = SH;
+    const sg = side.getContext('2d'), sd = sg.createImageData(1, SH), all = [[], [], []];
     for (let y = 0; y < wh; y++) {
         const ch = [[], [], []];
         for (let x = l + k; x <= r - k; x++) { const i = ((top + y) * W + x) * 4; if (alpha[i + 3] > 128) for (let q = 0; q < 3; q++) { ch[q].push(alpha[i + q]); all[q].push(alpha[i + q]); } }
         for (let q = 0; q < 3; q++) { ch[q].sort((m, n) => m - n); sd.data[y * 4 + q] = ch[q].length ? ch[q][ch[q].length >> 1] : 128; }
         sd.data[y * 4 + 3] = 255;
     }
-    for (let q = 0; q < 3; q++) { all[q].sort((m, n) => m - n); sd.data[wh * 4 + q] = all[q].length ? Math.round(all[q][all[q].length >> 1] * 0.92) : 128; }
-    sd.data[wh * 4 + 3] = 255;
+    for (let q = 0; q < 3; q++) {
+        all[q].sort((m, n) => m - n);
+        const m = all[q].length ? all[q][all[q].length >> 1] : 128;
+        sd.data[wh * 4 + q] = Math.round(m * 0.92);
+        sd.data[(wh + 1) * 4 + q] = Math.round(m * 0.5 + [96, 92, 100][q] * 0.22);
+    }
+    sd.data[wh * 4 + 3] = sd.data[(wh + 1) * 4 + 3] = 255;
     sg.putImageData(sd, 0, 0);
-    const uL = 0.5, uR = 0.5, vWall = 0.5 / (wh + 1), SV = row => 1 - (Math.max(top, Math.min(ay, row)) - top + 0.5) / (wh + 1);
+    const uL = 0.5, uR = 0.5, vWall = 1.5 / SH, vRoof = 0.5 / SH, SV = row => 1 - (Math.max(top, Math.min(ay, row)) - top + 0.5) / SH;
     const sideQuads = [];                                                  // which faces wear the side picture
     const front = [0, 0.4, 0.92];                                         // lit a little like the ground, as the cards are
     if (sp.roof != null) {
@@ -953,6 +1030,10 @@ function r3Volume(e, scene) {
         sideQuads.push(pos.length / 3);
         tri([[xL, Hw, 0, uL, vWall], [xL, Hw, -D, uL, vWall], [xL, Hw + rise, -d, uL, vWall]], [-1, 0, 0]);
         tri([[xR, Hw, 0, uR, vWall], [xR, Hw + rise, -d, uR, vWall], [xR, Hw, -D, uR, vWall]], [1, 0, 0]);
+        // the roof's solid underside, just beneath both slopes
+        const e1 = 0.03, bn = [0, bd / bl, -rise / bl];
+        quad([[xL, Hw - e1, 0, uL, vRoof], [xR, Hw - e1, 0, uR, vRoof], [xR, Hw + rise - e1, -d, uR, vRoof], [xL, Hw + rise - e1, -d, uL, vRoof]], rn);
+        quad([[xL, Hw + rise - e1, -d, uL, vRoof], [xR, Hw + rise - e1, -d, uR, vRoof], [xR, Hw - e1, -D, uR, vRoof], [xL, Hw - e1, -D, uL, vRoof]], bn);
     } else {
         // the whole picture stands at the front (a sign or a pediment rises above the roof line); the roof is flat
         quad([[x0, 0, 0, 0, V(ay)], [x1, 0, 0, 1, V(ay)], [x1, ay * py, 0, 1, 1], [x0, ay * py, 0, 0, 1]], front);
@@ -1098,7 +1179,7 @@ const Post3 = (() => {
               float l = dot(col, vec3(0.299, 0.587, 0.114));
               col += (1.0 - smoothstep(0.0, 0.55, l)) * vec3(0.012, 0.022, 0.045);
               col *= mix(vec3(0.97, 0.99, 1.04), vec3(1.035, 1.0, 0.95), smoothstep(0.25, 0.9, l));
-              col = mix(vec3(l), col, 1.06 - gray * 0.25);
+              col = mix(vec3(l), col, 1.14 - gray * 0.3);
               col = col / (1.0 + max(col - 0.82, 0.0) * 0.9);
               vec2 q = vUv - 0.5; q.x *= aspect * 0.8;
               col *= mix(1.0, 0.8, smoothstep(0.35, 0.95, length(q)));

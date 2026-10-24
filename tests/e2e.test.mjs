@@ -548,9 +548,10 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
       const want = [G.player.x + 40, G.player.y + 24];
       const q = R3.project(want[0], want[1], 0);
       const back = R3.unproject(q.x, q.y);
-      return { shown: getComputedStyle(document.getElementById('game3d')).display, err: Math.hypot(back[0] - want[0], back[1] - want[1]) };
+      return { shown: getComputedStyle(document.getElementById('game3d')).display, err: Math.hypot(back[0] - want[0], back[1] - want[1]), glass: document.body.classList.contains('hd2d') };
     });
     assert.equal(island.shown, 'block');
+    assert.ok(island.glass, 'the HUD and dialogue wear the HD-2D look');
     assert.ok(island.err < 1, `a tap lands where it points (off by ${island.err})`);
     // people, neighbors and props have HD art: every outfit, frame, hair style and accessory draws, and Sarah's card has
     // three pixels to one (any error drawing them shows up in problems)
@@ -585,7 +586,7 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
     await page.evaluate(async () => { await goHome(); });
     await page.waitForFunction(() => G.area.id === 'home', null, { timeout: 30000 });
     await page.evaluate(() => { Decor.on = true; });
-    await page.waitForFunction(() => !R3.active() && getComputedStyle(document.getElementById('game3d')).display === 'none', null, { timeout: 10000 });
+    await page.waitForFunction(() => !R3.active() && getComputedStyle(document.getElementById('game3d')).display === 'none' && !document.body.classList.contains('hd2d'), null, { timeout: 10000 });
     await page.evaluate(() => { Decor.on = false; R3.setWant(false); });
     await page.waitForFunction(() => !R3.active() && localStorage.getItem('sc_gfx') === 'classic', null, { timeout: 10000 });
     assert.deepEqual(problems, []);
