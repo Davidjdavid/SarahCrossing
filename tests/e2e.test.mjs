@@ -555,6 +555,13 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
     // big pictures are drawn by the worker (off the main thread), and arrive
     await page.waitForFunction(() => HDW.w && HDW.n > 5 && HDW.pend.size === 0, null, { timeout: 60000 });
     assert.equal(await page.evaluate(() => HDW.failed), false, 'the HD worker kept going');
+    // on a computer the water reflects (phones skip it: this small window counts as one); by night the houses' windows
+    // are lit; the ponds have lily pads
+    await page.waitForFunction(() => R3.phone || R3.stepped || R3U.uRefl.value === 1, null, { timeout: 20000 });
+    await page.evaluate(() => { __dbg.setTime(10, 24, 21.5); __dbg.at('pond'); });
+    await page.waitForFunction(() => [...R3.cards.values()].some(c => c.glow && c.glow.emissiveIntensity > 0.3), null, { timeout: 30000 });
+    await page.waitForFunction(() => R3.lilies && R3.lilies.mesh.count > 0, null, { timeout: 30000 });
+    await page.evaluate(() => { __dbg.setTime(10, 24, 10.4); __dbg.at('home'); });
     assert.ok(island.err < 1, `a tap lands where it points (off by ${island.err})`);
     // people, neighbors and props have HD art: every outfit, frame, hair style and accessory draws, and Sarah's card has
     // three pixels to one (any error drawing them shows up in problems)
