@@ -36,13 +36,17 @@ Status: [x] done, [~] in progress, [ ] not started.
   in 3D with sun, shadows, depth of field and a horizon; edit modes and the minigames keep the flat
   view with the grid; a Graphics switch in Settings; the classic view without WebGL; chunked ground,
   drawing distance and fog, phone rules, hold to walk
-- [~] HD-2D step 2: everything drawn with three times the detail (32_hd.js and the 32*_hd_*.js files):
-  people built from a skeleton (any outfit, sewn design, salon look and accessory, every pose and side),
-  the food neighbors, hair styles, accessories, trees, houses (from their looks, so Ginger's repaints
-  work), the shops and landmarks; still to do: outdoor decorations, furniture, items, floors and walls
+- [x] HD-2D step 2: everything drawn with three times the detail (32_hd.js and the 32*_hd_*.js files):
+  people built from a skeleton (any outfit, sewn design, salon look and accessory, every pose and side,
+  eight directions, walk, run, idle fidgets), the food neighbors, hair styles, accessories, trees, houses
+  (from their looks, so Ginger's repaints work), the shops and landmarks, outdoor decorations, wildlife,
+  boats, items, tools, emotes; drawn off the main thread by a worker so walking stays smooth
+- [x] The world in 3D like the sample: buildings as real shapes, the plateau and mountain raised with
+  cliffs, moving water with reflections (computers), swaying grass, greener colors, soft path edges
 - [ ] HD-2D step 3: the bigger island with districts and the farm, in the new look
-- [ ] HD-2D step 4: furniture, items and the inside of buildings redrawn
-- [ ] HD-2D step 5: a HUD that matches, and a layout made for an upright phone
+- [x] HD-2D step 4: furniture, floors and walls, and the inside of buildings redrawn
+- [~] HD-2D step 5: a HUD that matches (done: the sample's dark glass and serif type in HD-2D), and a
+  layout made for an upright phone
 - [ ] Must look good on phone, laptop and desktop (layout, text size, touch and mouse/keyboard)
 
 ## The island
