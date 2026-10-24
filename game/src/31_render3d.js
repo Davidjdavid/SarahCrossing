@@ -387,6 +387,7 @@ const R3 = {
             u.uZen.value.setRGB(0.25, 0.5, 0.8).lerp(new THREE.Color(0.08, 0.1, 0.25), dark).lerp(new THREE.Color(0.5, 0.55, 0.6), gray);
             u.uMid.value.setRGB(0.53, 0.74, 0.89).lerp(tint, dark * 0.9).lerp(new THREE.Color(0.66, 0.7, 0.74), gray);
             u.uHor.value.copy(fog);
+            u.uDay.value = day * (1 - gray * 0.4);
         }
         this.grade = { dark, gray };
         // lamps: the nearest few light up at night
@@ -656,9 +657,9 @@ function r3Sea(scene) {
 function r3Sky(scene) {
     const mat = new THREE.ShaderMaterial({
         side: THREE.BackSide, depthWrite: false, fog: false,
-        uniforms: { uZen: { value: new THREE.Color('#3f80cc') }, uMid: { value: new THREE.Color('#86bce4') }, uHor: { value: new THREE.Color('#d2e5ec') }, uTime: R3U.uTime },
+        uniforms: { uZen: { value: new THREE.Color('#3f80cc') }, uMid: { value: new THREE.Color('#86bce4') }, uHor: { value: new THREE.Color('#d2e5ec') }, uTime: R3U.uTime, uDay: { value: 1 } },
         vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); vec4 p = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * p; }',
-        fragmentShader: `uniform vec3 uZen, uMid, uHor; uniform float uTime; varying vec3 vDir;
+        fragmentShader: `uniform vec3 uZen, uMid, uHor; uniform float uTime, uDay; varying vec3 vDir;
             float h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
             float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
             void main(){
@@ -669,7 +670,8 @@ function r3Sky(scene) {
               c = mix(c, uZen, smoothstep(0.05, 0.4, y));
               vec2 q = vDir.xz / max(0.08, y + 0.12) * 1.6 + vec2(uTime * 0.01, 0.0);
               float cl = n(q) * 0.6 + n(q * 2.3) * 0.3 + n(q * 5.1) * 0.1;
-              c = mix(c, vec3(1.0), smoothstep(0.6, 0.78, cl) * smoothstep(0.0, 0.08, y) * 0.75);
+              // (white by day; by night only a little lighter than the sky)
+              c = mix(c, mix(c * 1.35 + 0.04, vec3(1.0), uDay), smoothstep(0.6, 0.78, cl) * smoothstep(0.0, 0.08, y) * 0.75);
               gl_FragColor = vec4(c, 1.0);
             }` });
     const s = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), mat);
