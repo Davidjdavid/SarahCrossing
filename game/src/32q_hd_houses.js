@@ -93,6 +93,16 @@ function hdH_house(s, L) {
     hdH_finish(g);
 }
 
+/* where a house's window glass is, in HD pixels (keep in step with the windows hdH_house draws): lit at night in the
+   HD-2D view */
+function hdH_winRects(L) {
+    const w = L.w, h = L.h, wt = Math.floor(h * 0.42), dw = 10, dh = 15, dx = (L.doorX != null ? L.doorX : Math.floor(w / 2)) - 5, out = [];
+    const win = (wx, wy) => { if (wy + 10 > h - 4 - dh && wx + 10 > dx - 1 && wx < dx + dw + 1) return; out.push([3 * wx, 3 * wy + 3, 30, 24]); };
+    if (L.level >= 2) { for (const wx of [6, Math.floor(w / 2) - 5, w - 16]) win(wx, wt + 5); for (const wx of [6, w - 16]) win(wx, h - 21); }
+    else for (const wx of [6, w - 16]) win(wx, wt + 6);
+    return out;
+}
+
 /* ---------------------------------------------------------------- walls */
 function hdH_wall(g) {
     const { s, L, w, h, wt, WT, GY } = g, W = g.W, wall = L.wall, p = L.pattern || 'plain', top = 3 * (h - 7);

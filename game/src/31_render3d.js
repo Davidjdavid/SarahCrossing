@@ -220,8 +220,9 @@ const R3 = {
         const g = new THREE.PlaneGeometry(0.01, 0.01), cv = document.createElement('canvas');
         cv.width = cv.height = 2;
         const tex = new THREE.CanvasTexture(cv), keep = this._warm = [];
-        for (const [faded, at] of [[0, 0.5], [1, 0.05], [0, 0], [1, 0]]) {
+        for (const [faded, at, glow] of [[0, 0.5], [1, 0.05], [0, 0], [1, 0], [0, 0.5, 1], [1, 0.05, 1]]) {
             const m = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: at, side: THREE.DoubleSide, color: 0xdedede }), { key: 'card' });
+            if (glow) { m.emissiveMap = tex; m.emissive = new THREE.Color(0xffffff); }
             if (faded) { m.transparent = true; m.opacity = 0.5; m.depthWrite = false; }
             const me = new THREE.Mesh(g, m);
             me.castShadow = me.receiveShadow = true; me.customDepthMaterial = r3Depth(tex); me.frustumCulled = false;
@@ -403,6 +404,14 @@ const R3 = {
             u.uDay.value = day * (1 - gray * 0.4);
         }
         this.grade = { dark, gray };
+        // lit windows: from dusk, brighter as it gets darker, until whoever lives there goes to bed (Sarah leaves hers on)
+        const glow = a.interior ? 0 : Math.max(0, Math.min(1, (dark - 0.25) / 0.45)) * 0.85;
+        this._glow = glow;
+        for (const c of this.cards.values()) {
+            if (!c.glow) continue;
+            const id = c.e && c.e.id, n = id && id.startsWith('h_') ? NPCs.get(id.slice(2)) : null;
+            c.glow.emissiveIntensity = !n || !n.sleeping ? glow : 0;
+        }
         // lamps: the nearest few light up at night
         if (G.frame % 15 !== 0 && this._lampsFor === a.id) return;
         this._lampsFor = a.id;
@@ -1284,7 +1293,24 @@ function r3Volume(e, scene) {
     mesh.add(pm, sm);
     scene.add(mesh);
     const c = { vol: true, frame: e.frame, e, mesh, mat, tex, depth, res: k, away: 0, fade: 1 };
-    c.dispose = () => { scene.remove(mesh); geo.dispose(); sgeo.dispose(); mat.dispose(); smat.dispose(); tex.dispose(); stex.dispose(); depth.dispose(); };
+    // a house's windows light up at night (where its look put them), glowing warm through the bloom
+    const dyn = Assets.dyn[e.frame], L = k < 2 || typeof hdH_winRects !== 'function' ? null : dyn && dyn.key ? JSON.parse(dyn.key)
+        : typeof HOUSE_BASE !== 'undefined' && HOUSE_BASE[e.id] ? houseLook(e.id) : null;
+    let gtex = null;
+    if (L && L.w * 3 === W && L.h * 3 === H) {
+        const gc = document.createElement('canvas'), gg = gc.getContext('2d');
+        gc.width = W; gc.height = H;
+        gg.fillStyle = '#000'; gg.fillRect(0, 0, W, H);
+        for (const [x, y, w, h] of hdH_winRects(L)) {
+            const gr = gg.createRadialGradient(x + w / 2, y + h * 0.6, 2, x + w / 2, y + h / 2, w * 0.7);
+            gr.addColorStop(0, '#fff0b8'); gr.addColorStop(1, '#f2a040');
+            gg.fillStyle = gr; gg.fillRect(x + 2, y + 2, w - 4, h - 4);
+        }
+        gtex = new THREE.CanvasTexture(gc);
+        mat.emissiveMap = gtex; mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 0;
+        c.glow = mat;
+    }
+    c.dispose = () => { scene.remove(mesh); geo.dispose(); sgeo.dispose(); mat.dispose(); smat.dispose(); tex.dispose(); stex.dispose(); depth.dispose(); if (gtex) gtex.dispose(); };
     c.setFade = v => {
         if (v === c.fade) return;
         c.fade = v;
