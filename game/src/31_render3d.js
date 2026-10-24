@@ -409,6 +409,8 @@ const R3 = {
         this._glow = glow;
         const hr = Clock.hourF(), late = hr >= 0 && hr < 5;
         for (const c of this.cards.values()) {
+            // holiday lanterns (jack-o'-lanterns, paper lanterns, heart lamps) glow too
+            if (c.e && c.e.holiday && c.e.light && c.mat && c.mat.emissive) { c.mat.emissive.setRGB(0.55, 0.32, 0.12).multiplyScalar(glow * 0.8); continue; }
             if (!c.glow) continue;
             const id = c.e && c.e.id, n = id && id.startsWith('h_') ? NPCs.get(id.slice(2)) : null;
             // (shops until midnight, the club all night)
