@@ -6,7 +6,7 @@ let S = null;
 function newState() {
     const seed = Math.random().toString(36).slice(2, 10);
     return {
-        v: 1, mapV: 3, seed, created: Date.now(), started: false,
+        v: 1, mapV: 4, seed, created: Date.now(), started: false,
         islandName: '', birthday: null,
         money: 800,
         pocket: new Array(20).fill(null),
@@ -95,19 +95,49 @@ const Save = {
 function migrate(st) {
     if (!st || typeof st !== 'object') return null;
     const base = newState();
+    if (st.mapV === undefined) st.mapV = 3;       // (saves from before the map had a number were all on map 3's island)
     for (const k of Object.keys(base)) if (st[k] === undefined) st[k] = base[k];
     for (const k of ['player', 'wardrobe', 'house', 'shells', 'dance', 'council', 'arcade', 'rope', 'karaoke']) {
         for (const kk of Object.keys(base[k])) if (st[k][kk] === undefined) st[k][kk] = base[k][kk];
     }
     // the island got bigger (map 3, twice the size): anything tied to old spots on the ground starts fresh
     // (Sarah's things, money, friends, house and everything she's made all stay)
-    if (st.mapV !== 3) {
+    if (!(st.mapV >= 3)) {
         st.mapV = 3;
         st.player.area = 'island';
         st.player.x = (W0.spots.plaza.x + 0.5) * TILE; st.player.y = (W0.spots.plaza.y + 3.6) * TILE;
         st.forest = undefined; st.drops = []; st.shells = { day: -1, taken: [] }; st.flowers = undefined;
         st.paths = undefined; st.cleared = undefined; st.buildMoved = undefined; st.deco = undefined;
         if (st.lost) st.lost.cur = null;
+    }
+    // a whole new island, three times the size (map 4): Sarah's progress all comes along (money, her things, her house,
+    // friends, unlocks, days played). What was laid out on the old island's ground starts fresh; anything of hers that
+    // was out on it (things set down, displays, flowers and trees she planted) waits in her storage, with a letter.
+    if (st.mapV === 3) {
+        st.mapV = 4;
+        const back = {}, give = (id, n) => { if (id && ITEMS[id]) back[id] = (back[id] || 0) + (n || 1); };
+        for (const d of st.drops || []) if (!d.area || d.area === 'island') give(d.id);
+        st.drops = (st.drops || []).filter(d => d.area && d.area !== 'island');
+        for (const p of (st.deco && st.deco.placed) || []) give(p.id);
+        for (const f of (st.flowers && st.flowers.planted) || []) give('seed_fl_' + f.kind);
+        for (const t of (st.forest && st.forest.planted) || []) {
+            if (t.kind === 'money') st.money += t.amount || 0;
+            else give(t.kind === 'fruit' ? t.fruit : t.kind === 'palm' ? 'coconut' : 'sapling');
+        }
+        for (const [id, n] of Object.entries(back)) st.storage[id] = (st.storage[id] || 0) + n;
+        st.forest = undefined; st.shells = { day: -1, taken: [] }; st.flowers = undefined;
+        st.paths = undefined; st.cleared = undefined; st.buildMoved = undefined; st.deco = undefined;
+        if (st.lost) st.lost.cur = null;
+        if (st.player.area === 'island') { st.player.x = (W0.spots.plaza.x + 0.5) * TILE; st.player.y = (W0.spots.plaza.y + 2.6) * TILE; }
+        if (st.started) {
+            const n = Object.values(back).reduce((a, b) => a + b, 0);
+            st.mail.push({ id: st.mailSeq++, from: 'Ginger', subject: 'The island grew!', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
+                body: 'Sarah! Big news. Really big. The crew and I rebuilt the whole island, and it\'s about three times the size now.\n\n'
+                    + 'There\'s a mountain with a trail all the way up to a telescope, a forest you could get lost in (please don\'t), a real farm, '
+                    + 'a stone plaza in town, and a river with waterfalls. Your house, your things and all your friends came along on the boat.'
+                    + (n ? `\n\nAnything you'd left out on the old island's ground (${n} thing${n === 1 ? '' : 's'}) is waiting in your storage.` : '')
+                    + '\n\nGo explore. It\'ll take a while.\n- Ginger' });
+        }
     }
     // the final update: glasses get their own slot (so Sarah can wear a hat too), and Joe is always her best friend
     if (!st.flags.v9) {

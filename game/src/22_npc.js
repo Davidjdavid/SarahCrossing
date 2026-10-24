@@ -430,6 +430,8 @@ function targetFor(n, dh) {
     return Object.assign({ key: seg.spot + '@' + seg.a.toFixed(2) }, where, { spot: seg.spot });
 }
 
+/* close enough to Sarah to be seen walking (on the big island, neighbors far off just get where they're going) */
+function nearSarah(area, x, y) { const p = G.player; return !!p && !!G.area && G.area.id === area && Math.abs(p.x - x) < 44 * TILE && Math.abs(p.y - y) < 36 * TILE; }
 /* send an NPC toward a target (walking when Sarah can see it, otherwise just placing them) */
 function moveTo(n, want, force) {
     const prevKey = n.spotKey;
@@ -441,7 +443,7 @@ function moveTo(n, want, force) {
     n.anchor = want.anchor || null;
     n.radius = want.r || 0;
     const here = G.area && G.area.id;
-    const visible = !n.sleeping && n.area === here;
+    const visible = !n.sleeping && n.area === here && nearSarah(n.area, n.x, n.y);
     if (want.sleep) {
         if (visible && !force && n.area === 'island' && (n.def.house || n.def.visitor)) {
             // walk home and go inside (visitors head back to the boat at the end of the pier)
@@ -462,8 +464,8 @@ function moveTo(n, want, force) {
     const gt = [Math.floor(dpx / TILE), Math.floor((dpy - 2) / TILE)];
     if (n.sleeping) {
         // waking up: come out of the front door (visitors step off the boat at the end of the pier)
-        if (want.area === 'island' && here === 'island' && (n.def.house || n.def.visitor)) {
-            const [tx, ty] = n.def.visitor ? visitorDoor(n.id, 'wake') : doorTileOf(n.def.house);
+        const [tx, ty] = want.area === 'island' && here === 'island' && (n.def.house || n.def.visitor) ? (n.def.visitor ? visitorDoor(n.id, 'wake') : doorTileOf(n.def.house)) : [0, 0];
+        if (want.area === 'island' && here === 'island' && (n.def.house || n.def.visitor) && (nearSarah('island', (tx + 0.5) * TILE, ty * TILE) || nearSarah('island', dpx, dpy))) {
             n.area = 'island'; n.sleeping = false;
             n.x = (tx + 0.5) * TILE; n.y = (ty + 0.5) * TILE + 4;
             if (!walkNpc(n, gt[0], gt[1], () => arriveAt(n, want))) place();
@@ -473,7 +475,7 @@ function moveTo(n, want, force) {
         return;
     }
     if (n.area === want.area) {
-        if (!walkNpc(n, gt[0], gt[1], () => arriveAt(n, want))) place();
+        if ((!visible && !nearSarah(want.area, dpx, dpy)) || !walkNpc(n, gt[0], gt[1], () => arriveAt(n, want))) place();
         return;
     }
     // changing areas: leave through a door Sarah can see, or come in through one
@@ -485,7 +487,7 @@ function moveTo(n, want, force) {
     }
     if (want.area === here) {
         const door = entryDoor(here, n.area);
-        if (door) {
+        if (door && (nearSarah(here, (door[0] + 0.5) * TILE, door[1] * TILE) || nearSarah(here, dpx, dpy))) {
             n.area = here; n.sleeping = false;
             n.x = (door[0] + 0.5) * TILE; n.y = (door[1] + 0.5) * TILE + 4;
             if (walkNpc(n, gt[0], gt[1], () => arriveAt(n, want))) return;

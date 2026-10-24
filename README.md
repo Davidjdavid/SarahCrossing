@@ -36,6 +36,7 @@ server/
   server.mjs           the game server: password, the islands API, the game's files
   islands.mjs          islands on disk: saves, revs, backups, trash, photos
 scripts/build.mjs      builds dist/ (what the server serves)
+scripts/make-island.mjs  makes the island (world.json + ground pieces) from scripts/island/
 deploy/                server setup and release install, run by .github/workflows/deploy.yml
 tests/                 npm test (server, storage, build, deploy scripts); npm run test:e2e (the game
                        in Chromium, importing saves made by the one-page game)

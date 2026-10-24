@@ -15,6 +15,13 @@ docs/DEPLOY.md for the server.
   that say why. Helpers to know: `el(tag, cls, text)`, `btn(label, cls, fn)`, `chip()`,
   `UI.open({title, phone, back, foot})`, `UI.say/ask`, `UI.toast`, `Save.touch()` after changing `S`.
 - `S` is the save (the island's whole state). `newState()` and `migrate()` are in `11_save.js`.
+- The island (`game/assets/world.json` and its ground picture in pieces, `game/assets/ground/`) is made by
+  `node scripts/make-island.mjs`, from `scripts/island/` (`layout.mjs` lays out the coast, heights, districts, roads,
+  buildings, trees and named spots; `paint.mjs` paints the ground with the first island's textures, kept in
+  `scripts/island/source/`). Change the generator and run it again rather than editing world.json by hand; the same
+  seed always makes the same island. `--preview out.png` draws a quick map of the layout, `--png out.png` the painted
+  ground, without touching game/. Moving things on the island means old saves need a `migrate()` step (map 4 is this
+  island: progress stays, what was laid out on the old island's ground starts fresh and Sarah's things come back).
 - **Old saves must always load.** Sarah's island came from the one-page game and lives on the
   server; any change to the shape of `S` needs a step in `migrate()` that upgrades older saves.
   `tests/fixtures/` has saves made by the one-page game; the end-to-end tests import them.

@@ -101,12 +101,48 @@ test('a save code from the old game comes in as an island, and plays', async () 
   assert.match(await page.textContent('#tsync'), /Saved online/);
   await play(page);
   assert.equal(await page.textContent('#money'), '12,345');
+  // it's on the new, bigger island, with a letter about it
+  const moved = await page.evaluate(() => ({ mapV: S.mapV, letter: S.mail.some((m) => m.from === 'Ginger' && /grew/.test(m.subject)), w: G.areas.island.w }));
+  assert.deepEqual(moved, { mapV: 4, letter: true, w: JSON.parse(fs.readFileSync(path.join(ROOT, 'game/assets/world.json'), 'utf8')).w });
   // the handmade frog pot from the old game is still a real item
   const pots = await page.evaluate(() => S.pocket.filter((s) => s && /^pot/.test(s.id)).length + Object.keys(S.storage).filter((k) => /^pot/.test(k)).length);
   assert.ok(pots >= 1, 'the handmade pot came along');
   const islands = await islandsOnServer(page);
   assert.equal(islands.length, 1);
   assert.equal(islands[0].summary.islandName, 'Imported Isle');
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('the island grew: a save from the smaller island keeps everything, and what was out on its ground comes back', async () => {
+  const page = await device();
+  await title(page);
+  const r = await page.evaluate(() => {
+    const disp = Object.keys(DISPLAYS)[0];
+    const st = Object.assign(newState(), {
+      mapV: 3, started: true, money: 5000, storage: { peach: 1 },
+      player: { area: 'island', x: 3 * TILE, y: 3 * TILE, dir: 'up', outfit: 'crimson', acc: null, eyes: 'glasses' },
+      drops: [{ id: 'peach', x: 40, y: 40, area: 'island' }, { id: 'apple', x: 10, y: 10, area: 'home' }],
+      deco: { moved: { 2: { x: 1, y: 1 } }, gone: { 3: true }, placed: [{ id: disp, x: 5, y: 5, text: '' }] },
+      flowers: { picked: {}, planted: [{ x: 9, y: 9, kind: 'tulip', ci: 0, day: 1, pickDay: -1 }] },
+      forest: { chopped: { dt1_1: true }, planted: [{ kind: 'fruit', fruit: 'apple' }, { kind: 'money', amount: 1000 }, { kind: 'tree' }], holes: [], wood: { day: -1, n: {} }, glow: { day: -1, dug: false }, clams: { day: -1, dug: [] } },
+      paths: { t: { '1,1': 'stone' }, auto: {} }, buildMoved: { shop: { x: 1, y: 1 } }, cleared: { pr1: true },
+      npcs: { joe: { pts: 100 } }, house: { level: 2, wall: 'wall_cream', floor: 'floor_wood', items: [{ id: 'chair', x: 1, y: 1 }] },
+    });
+    const m = migrate(st);
+    return { mapV: m.mapV, money: m.money, storage: m.storage, disp, drops: m.drops, gone: [m.paths, m.buildMoved, m.deco, m.flowers, m.forest, m.cleared].map((v) => v === undefined),
+      at: [Math.round(m.player.x / TILE), Math.round(m.player.y / TILE)], plaza: [W0.spots.plaza.x, W0.spots.plaza.y], friend: m.npcs.joe.pts, house: m.house.level + ':' + m.house.items.length,
+      letter: m.mail.filter((x) => x.from === 'Ginger').map((x) => /2 things|5 things/.test(x.body) ? 'count' : x.body) };
+  });
+  assert.equal(r.mapV, 4);
+  assert.equal(r.money, 6000, 'the buried sand dollars come back');
+  assert.deepEqual(r.storage, { peach: 2, [r.disp]: 1, seed_fl_tulip: 1, apple: 1, sapling: 1 });
+  assert.deepEqual(r.drops, [{ id: 'apple', x: 10, y: 10, area: 'home' }], "what's indoors stays where it was");
+  assert.deepEqual(r.gone, [true, true, true, true, true, true]);
+  assert.ok(Math.abs(r.at[0] - r.plaza[0]) <= 1 && Math.abs(r.at[1] - r.plaza[1]) <= 3, `Sarah starts at the plaza (${r.at} by ${r.plaza})`);
+  assert.equal(r.friend, 100);
+  assert.equal(r.house, '2:1');
+  assert.deepEqual(r.letter, ['count']);
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

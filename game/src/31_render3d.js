@@ -828,6 +828,7 @@ function r3Tufts(scene, season) {
     scene.add(mesh);
     return { mesh, geo, mat, tex, aVar, season, at: null };
 }
+const R3_ROADS = new Set(['p', 'd', 'c', 'b', 'w']);
 function r3FillTufts(t, a, V) {
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3();
     const x0 = Math.max(0, Math.floor(V.x0 / TILE) - 1), x1 = Math.min(a.w - 1, Math.ceil(V.x1 / TILE) + 1);
@@ -837,6 +838,8 @@ function r3FillTufts(t, a, V) {
     // nearest rows first, so if there are more than fit, the far ones (smallest on screen) go without
     for (let ty = y1; ty >= y0 && n < cap; ty--) for (let tx = x0; tx <= x1 && n < cap; tx++) {
         if (W0.grid[ty][tx] !== 'g' || a.blocked[ty * a.w + tx] || isPathish(tx, ty)) continue;
+        // (none beside a road either: winding roads and streets are drawn over the edges of the tiles beside them)
+        if (R3_ROADS.has(W0.grid[ty - 1] && W0.grid[ty - 1][tx]) || R3_ROADS.has(W0.grid[ty + 1] && W0.grid[ty + 1][tx]) || R3_ROADS.has(W0.grid[ty][tx - 1]) || R3_ROADS.has(W0.grid[ty][tx + 1])) continue;
         const h = hash32(tx + ',' + ty), k = (dense ? [2, 3, 2, 4, 3, 1] : [1, 2, 2, 3, 1, 0])[h % 6];
         for (let i = 0; i < k && n < cap; i++) {
             const hh = hash32(h + ':' + i), fx = (tx + 0.15 + (hh % 70) / 100) * TILE, fy = (ty + 0.2 + ((hh >> 8) % 70) / 100) * TILE, s = 0.75 + ((hh >> 16) % 50) / 100;

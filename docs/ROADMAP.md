@@ -47,7 +47,12 @@ Status: [x] done, [~] in progress, [ ] not started.
   in the evening, planes and balloons overhead, shopkeepers over their counters, things on rooms' walls;
   the weather and night sky too: sharp rain, round snowflakes and a pale snowy sky, turning petals and
   leaves, glowing fireflies, fireworks in the sky, the lighthouse beam, shooting stars you can tap
-- [ ] HD-2D step 3: the bigger island with districts and the farm, in the new look
+- [~] HD-2D step 3: the bigger island with districts and the farm, in the new look (done: a new island three times
+  the size, made by scripts/make-island.mjs: a town with a round stone plaza and curving streets, a neighborhood of
+  scattered houses with the forest grown all round it and a maze of trails through it, a farm up on the uplands, a
+  mountain with a trail winding up five terraces to the telescope and a river falling down it; old saves keep their
+  progress and get their things back. Still to come: places to discover over days, the new vendors, the sailor and
+  the balloon's passenger)
 - [x] HD-2D step 4: furniture, floors and walls, and the inside of buildings redrawn
 - [~] HD-2D step 5: a HUD that matches (done: the sample's dark glass and serif type in HD-2D), and a
   layout made for an upright phone (done: the camera frames Sarah low with the world above her, and the
@@ -55,7 +60,7 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] Must look good on phone, laptop and desktop (layout, text size, touch and mouse/keyboard)
 
 ## The island
-- [ ] A much larger island, laid out in districts: shopping/commercial, residential, forest,
+- [x] A much larger island, laid out in districts: shopping/commercial, residential, forest,
   mountain, beach, a dedicated farm area (crops grow there, not in scattered squares), and more
 - [ ] Everything on a grid (placing things, walking, collisions)
 - [ ] Less clutter: fewer, better placed things by default
