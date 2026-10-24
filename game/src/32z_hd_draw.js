@@ -137,20 +137,20 @@ function hdRemoteSarah(look) {
 function hdWarm() {
     if (!G.player) return;
     const sp = Online.visitor() ? hdFolkSpec(Online.who()) : hdSarahSpec(), key = JSON.stringify(sp);
-    if (hdWarm.key !== key) { hdWarm.key = key; hdWarm.i = 0; }
-    // the way she's facing first: walking, running and standing; then every other way
+    // the way she's facing first: walking, running and standing; then every other way (made again when her look or the
+    // way she faces changes, and gone through from the start)
     const face = G.player._hd ? HD_DIR8[G.player._hd.face][0] : 'down', dirs = [face].concat(['down', 'dside', 'side', 'uside', 'up'].filter(d => d !== face));
-    if (!hdWarm.list || hdWarm.list.face !== face || hdWarm.i === 0) {
+    if (!hdWarm.list || hdWarm.list.face !== face || hdWarm.list.key !== key) {
         hdWarm.list = [];
         for (const d of dirs) { for (let i = 0; i < 8; i++) hdWarm.list.push(`${d}:walk:${i}`); for (let i = 0; i < 4; i++) hdWarm.list.push(`${d}:idle:${i}:0`); for (let i = 0; i < 6; i++) hdWarm.list.push(`${d}:run:${i}`); }
-        hdWarm.list.face = face;
+        hdWarm.list.face = face; hdWarm.list.key = key;
+        hdWarm.i = 0; hdWarm.wi = 0;
     }
     // with the worker running: her frames (blinking too, standing), the neighbors here and the remastered things here,
     // nearest first, are sent to it a few at a time, so they're ready before they're needed
     const a = G.area, p = G.player;
     if (hdWarm.area !== a) { hdWarm.area = a; hdWarm.todo = [...new Set(a.ents.filter(e => e.frame && HD_SPR[e.frame]).sort((q, r) => Math.hypot(q.x - p.x, q.y - p.y) - Math.hypot(r.x - p.x, r.y - p.y)).map(e => e.frame))]; }
     if (HDW.w) {
-        if (hdWarm.wk !== key) { hdWarm.wk = key; hdWarm.wi = 0; }
         while (HDW.pend.size < 4 && hdWarm.wi < hdWarm.list.length * 2) {
             const j = hdWarm.wi++, fr = hdWarm.list[j >> 1], blink = !!(j & 1);
             if (blink && !fr.includes(':idle:')) continue;
@@ -167,6 +167,7 @@ function hdWarm() {
     }
     // her frames and the things around her take turns, while there's drawing time left this frame
     if (!hdBudget()) return;
+    if (HDW.w) return;                       // (the worker draws them ahead; what's needed before then is drawn when needed)
     if (G.frame % 4 === 0) while (hdWarm.i < hdWarm.list.length) { const k = hdWarm.list[hdWarm.i++]; if (!HD_CACHE.has('p|' + k + '|0|' + key)) { hdPersonFrame(sp, k, false); return; } }
     const n = NPCs.here().find(n => !n.hidden && !n.def.human && HD_NPC[n.def.sprite] && !HD_CACHE.has(`n|${n.def.sprite}|1|${npcWearing(n.id) || ''}|0`));
     if (n) { hdNpcFrame(n.def.sprite, 1, npcWearing(n.id)); return; }

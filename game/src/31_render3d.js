@@ -344,10 +344,13 @@ const R3 = {
         // one visible piece repainted every few frames (or all of them after the flat view was used to change things, or
         // the season changed the ground: then two a frame until they're done)
         const img = Assets.ground(a.bgSeason);
-        if (this.ground.dirty || this._gimg !== img) { for (const ch of this.chunks.values()) ch.stale = true; this.ground.dirty = false; this._gimg = img; }
-        const vis = [...this.chunks.values()].filter(ch => ch.mesh.visible), stale = vis.filter(ch => ch.stale);
-        if (stale.length) for (const ch of stale.slice(0, this.phone ? 1 : 2)) { paintChunk(ch, a); ch.stale = false; }
-        else if (G.frame % 6 === 0) {
+        if (this.ground.dirty || this._gimg !== img) { for (const ch of this.chunks.values()) ch.stale = true; this.ground.dirty = false; this._gimg = img; this._stale = true; }
+        if (this._stale) {
+            const stale = [...this.chunks.values()].filter(ch => ch.mesh.visible && ch.stale);
+            for (const ch of stale.slice(0, this.phone ? 1 : 2)) { paintChunk(ch, a); ch.stale = false; }
+            this._stale = stale.length > (this.phone ? 1 : 2);
+        } else if ((this._rt = (this._rt || 0) + 1) % 6 === 0) {
+            const vis = [...this.chunks.values()].filter(ch => ch.mesh.visible);
             const ch = vis[(this._rr = ((this._rr || 0) + 1)) % Math.max(1, vis.length)];
             if (ch) paintChunk(ch, a);
         }
@@ -406,9 +409,8 @@ const R3 = {
         this.grade = { dark, gray };
         // lit windows: from dusk, brighter as it gets darker, until whoever lives there goes to bed (Sarah leaves hers on)
         const glow = a.interior ? 0 : Math.max(0, Math.min(1, (dark - 0.25) / 0.45)) * 0.85;
-        this._glow = glow;
         const hr = Clock.hourF(), late = hr >= 0 && hr < 5;
-        for (const c of this.cards.values()) {
+        if (glow !== this._glow || (this._glowT = (this._glowT || 0) + 1) % 10 === 0) for (const c of this.cards.values()) {
             // holiday lanterns (jack-o'-lanterns, paper lanterns, heart lamps) glow too
             if (c.e && c.e.holiday && c.e.light && c.mat && c.mat.emissive) { c.mat.emissive.setRGB(0.55, 0.32, 0.12).multiplyScalar(glow * 0.8); continue; }
             if (!c.glow) continue;
@@ -416,6 +418,7 @@ const R3 = {
             // (shops until midnight, the club all night)
             c.glow.emissiveIntensity = n ? (n.sleeping ? 0 : glow) : id === 'home' || id === 'club' || !late ? glow : 0;
         }
+        this._glow = glow;
         // lamps: the nearest few light up at night
         if (G.frame % 15 !== 0 && this._lampsFor === a.id) return;
         this._lampsFor = a.id;
@@ -709,12 +712,12 @@ function r3Sky(scene) {
 
 /* ---------------------------------------------------------------- the water's mirror */
 /* on computers (not phones), the trees, houses and people standing by the sea, the ponds and the river show upside down in
-   the water: the scene drawn again from a camera below the surface at a third of the size, every other frame, without the
+   the water (at sea level: water up on the plateaus doesn't): the scene drawn again from a camera below the surface at a third of the size, every other frame, without the
    ground and the sea; the water looks it up where each point of it would see (the art sample's trick) */
 const R3Mirror = {
     rt: null, cam: null, bias: null, n: 0,
     render(r3, a) {
-        const on = !r3.phone && !a.interior && a.id === 'island' && !r3.stepped;
+        const on = !r3.phone && !a.interior && a.id === 'island' && !(r3.quality < 1);
         R3U.uRefl.value = on && this.rt ? 1 : 0;
         if (!on || (this.n++ & 1)) return;
         const R = r3.renderer, sz = R.getDrawingBufferSize(new THREE.Vector2()), w = Math.max(1, Math.round(sz.x / 3)), h = Math.max(1, Math.round(sz.y / 3));
@@ -1211,9 +1214,11 @@ function r3Volume(e, scene) {
         // no HD art: today's sprite
         const fr = Assets.frames[e.frame], dy = Assets.dyn[e.frame];
         if (!fr && !dy) return null;
-        const cv = document.createElement('canvas');
-        if (fr) { cv.width = fr[2]; cv.height = fr[3]; cv.getContext('2d').drawImage(Assets.atlas, fr[0], fr[1], fr[2], fr[3], 0, 0, fr[2], fr[3]); f = { c: cv, w: fr[2], h: fr[3], ax: fr[4], ay: fr[5] }; }
-        else { cv.width = dy.w; cv.height = dy.h; cv.getContext('2d').drawImage(dy.c, 0, 0); f = { c: cv, w: dy.w, h: dy.h, ax: dy.ax, ay: dy.ay }; }
+        // (a canvas kept in ordinary memory: its pixels are read just below, and reading one the browser put on the graphics
+        // card stalls until the card catches up)
+        const cv = document.createElement('canvas'), cg = () => cv.getContext('2d', { willReadFrequently: true });
+        if (fr) { cv.width = fr[2]; cv.height = fr[3]; cg().drawImage(Assets.atlas, fr[0], fr[1], fr[2], fr[3], 0, 0, fr[2], fr[3]); f = { c: cv, w: fr[2], h: fr[3], ax: fr[4], ay: fr[5] }; }
+        else { cv.width = dy.w; cv.height = dy.h; cg().drawImage(dy.c, 0, 0); f = { c: cv, w: dy.w, h: dy.h, ax: dy.ax, ay: dy.ay }; }
         k = 1;
     }
     const W = f.w, H = f.h, ay = f.ay, px = 1 / k / TILE, py = R3_VS / k / TILE, D = e.b.h * R3_ZS;

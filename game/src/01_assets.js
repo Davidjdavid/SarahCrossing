@@ -82,7 +82,7 @@ function spr(ctx, name, x, y, flip, alpha) {
     } else if (R3.over && hdHas(name)) {
         // drawn over the 3D view (the fishing line's bobber, planes and gulls): the HD art too
         const hf = hdNamed(name);
-        if (hf) { hdDraw(ctx, hf, x, y, flip, alpha); return; }
+        if (hf) { const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true; hdDraw(ctx, hf, x, y, flip, alpha); ctx.imageSmoothingEnabled = sm; return; }
     }
     const f = Assets.frames[name];
     if (!f) { const d = Assets.dyn[name]; if (d) sprDyn(ctx, d, x, y, flip, alpha); return; }

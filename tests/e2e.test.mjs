@@ -557,7 +557,7 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
     assert.equal(await page.evaluate(() => HDW.failed), false, 'the HD worker kept going');
     // on a computer the water reflects (phones skip it: this small window counts as one); by night the houses' windows
     // are lit; the ponds have lily pads
-    await page.waitForFunction(() => R3.phone || R3.stepped || R3U.uRefl.value === 1, null, { timeout: 20000 });
+    await page.waitForFunction(() => R3.phone || R3.quality < 1 || R3U.uRefl.value === 1, null, { timeout: 20000 });
     await page.evaluate(() => { __dbg.setTime(10, 24, 21.5); __dbg.at('pond'); });
     await page.waitForFunction(() => [...R3.cards.values()].some(c => c.glow && c.glow.emissiveIntensity > 0.3), null, { timeout: 30000 });
     await page.waitForFunction(() => R3.lilies && R3.lilies.mesh.count > 0, null, { timeout: 30000 });

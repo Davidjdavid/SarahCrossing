@@ -275,7 +275,7 @@ const HDW = {
             this.w.onerror = e => { console.error('HD worker stopped', e.message || e); this.stop(); };
             this.w.postMessage({ init: true, GD: GD, LOOK_DEFAULT: LOOK_DEFAULT });
             return true;
-        } catch (e) { console.error('no HD worker', e); this.failed = true; this.w = null; return false; }
+        } catch (e) { console.error('no HD worker', e); if (this.w) this.w.terminate(); this.failed = true; this.w = null; return false; }
     },
     stop() { if (this.w) this.w.terminate(); this.w = null; this.failed = true; this.pend.clear(); this.keys.clear(); },
     /* sent to the worker (or already on its way): the caller shows today's sprite for now */
@@ -292,7 +292,7 @@ const HDW = {
         if (!m.buf) { this.bad.add(key); return; }                // (drawn on the main thread next time)
         const c = hdCanvas(m.w, m.h);
         c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.buf), m.w, m.h), 0, 0);
-        HD_CACHE.delete(key);
+        if (HD_CACHE.has(key)) { const old = HD_CACHE.get(key); HD_CACHE.delete(key); HD_CACHE_BYTES.now -= old ? old.bytes : 0; }
         hdCached(key, () => ({ c, w: m.w, h: m.h, ax: m.ax, ay: m.ay, wins: m.wins }));
     },
 };
