@@ -44,11 +44,14 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] The world in 3D like the sample: buildings as real shapes, the plateau and mountain raised with
   cliffs, moving water with reflections (computers), swaying grass, greener colors, soft path edges,
   blue sky and clouds over the island's rolling edge, lily pads and cattails on the ponds, windows lit
-  in the evening, planes and balloons overhead, shopkeepers over their counters, things on rooms' walls
+  in the evening, planes and balloons overhead, shopkeepers over their counters, things on rooms' walls;
+  the weather and night sky too: sharp rain, round snowflakes and a pale snowy sky, turning petals and
+  leaves, glowing fireflies, fireworks in the sky, the lighthouse beam, shooting stars you can tap
 - [ ] HD-2D step 3: the bigger island with districts and the farm, in the new look
 - [x] HD-2D step 4: furniture, floors and walls, and the inside of buildings redrawn
 - [~] HD-2D step 5: a HUD that matches (done: the sample's dark glass and serif type in HD-2D), and a
-  layout made for an upright phone (done: the camera frames Sarah low with the world above her)
+  layout made for an upright phone (done: the camera frames Sarah low with the world above her, and the
+  date line wraps clear of the buttons)
 - [ ] Must look good on phone, laptop and desktop (layout, text size, touch and mouse/keyboard)
 
 ## The island
