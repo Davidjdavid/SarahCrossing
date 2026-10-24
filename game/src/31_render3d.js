@@ -281,12 +281,22 @@ const R3 = {
             ctx.drawImage(bg, 0, top, bg.width, bg.height - top, 0, top, bg.width, bg.height - top);
         }
         ctx.setTransform(k, 0, 0, k, 0, 0);
+        // things hung on the back wall (shelves, signs, clocks, mirrors) go on the wall that stands up, not on the floor
+        // behind it; the rest lies on the floor
+        const w = this.wall, top = w && a.floor ? a.floor.y0 * TILE : -1;
+        if (w) {
+            w.ctx.setTransform(1, 0, 0, 1, 0, 0);
+            w.ctx.clearRect(0, 0, w.cv.width, w.cv.height);
+            if (bg) w.ctx.drawImage(bg, 0, 0, w.cv.width, w.cv.height, 0, 0, w.cv.width, w.cv.height);
+            w.ctx.setTransform(k, 0, 0, k, 0, 0);
+        }
         this.drawingCard = true; this.hdCard = k > 1;
         try {
             if (a.drawUnder) a.drawUnder(ctx);
             for (const d of a.decals) spr(ctx, d.frame, d.x, d.y);
-            for (const e of a.ents) if (e.layer === 0 && !e.hidden) drawEnt(ctx, e);
+            for (const e of a.ents) if (e.layer === 0 && !e.hidden) drawEnt(e.y < top ? w.ctx : ctx, e);
         } finally { this.drawingCard = false; this.hdCard = false; }
+        if (w) w.tex.needsUpdate = true;
         g.mesh.position.set(g.cv.width / k / TILE / 2, 0, g.cv.height / k / TILE / 2 * R3_ZS);
         g.tex.needsUpdate = true;
     },
