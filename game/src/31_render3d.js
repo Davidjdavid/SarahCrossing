@@ -1050,6 +1050,8 @@ function placeCard(c, e, a) {
     let lift = r3GroundH(e.x, e.y), z = e.y / TILE * R3_ZS;
     // indoors, things on the back wall hang on it
     if (a.interior && a.floor && e.y < a.floor.y0 * TILE + 2) { lift = (a.floor.y0 * TILE - e.y) / TILE * R3_VS * 1.6; z = a.floor.y0 * TILE / TILE * R3_ZS + 0.01; }
+    // a shopkeeper at the counter along the back wall stands on a step behind it, so they show over it as in the flat view
+    else if (a.interior && e.npc && a.room && a.room.staff === e.id && a.floor && e.y < (a.floor.y0 + 1.5) * TILE) lift += 0.5 * R3_VS;
     c.mesh.position.set(Math.round(e.x) / TILE, lift, z + 0.001 * ((e.x * 7) % 3));
     c.mesh.visible = true;
 }
