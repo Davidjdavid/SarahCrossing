@@ -78,7 +78,7 @@ function spr(ctx, name, x, y, flip, alpha) {
         if (name === 'shadow_s') return;
         if (R3.sig) { R3.sig.push(name, x, y, flip ? 1 : 0, alpha); R3.sigN++; }
         // a remastered prop, or a neighbor drawn by its frame name (the council, the keeper's ghost): in an HD card, the HD art
-        if (hdHas(name)) { R3.hdSeen = true; if (R3.hdCard) { const hf = hdNamed(name); if (hf) { hdDraw(ctx, hf, x, y, flip); return; } } }
+        if (hdHas(name)) { R3.hdSeen = true; if (R3.hdCard) { const hf = hdNamed(name); if (hf) { hdDraw(ctx, hf, x, y, flip, alpha); return; } } }
     }
     const f = Assets.frames[name];
     if (!f) { const d = Assets.dyn[name]; if (d) sprDyn(ctx, d, x, y, flip, alpha); return; }

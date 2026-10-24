@@ -394,8 +394,8 @@ const R3 = {
         for (const n of NPCs.here()) if (!n.hidden) movers.push(['p', n]);
         if (G.player && !G.player.hidden) movers.push(['p', G.player]);
         for (const o of Online.here()) movers.push(['p', o]);
-        // critters near the ground get HD cards (three pixels to one); high fliers, boats and planes the big plain ones
-        if (a.id === 'island') { for (const c of Critters.ents()) movers.push([(c.alt || 0) > 30 ? 'f' : 'c', c]); for (const s of SeaSky.ents()) movers.push(['f', s]); for (const b of Flutter.ents()) movers.push([(b.alt || 0) > 30 ? 'f' : 'c', b]); }
+        // critters get HD cards (three pixels to one; tall ones for high fliers), and so do boats and dolphins
+        if (a.id === 'island') { for (const c of Critters.ents()) movers.push([(c.alt || 0) > 30 ? 'h' : 'c', c]); for (const s of SeaSky.ents()) movers.push([s.alt ? 'f' : 's', s]); for (const b of Flutter.ents()) movers.push([(b.alt || 0) > 30 ? 'h' : 'c', b]); }
         for (const f of G.fx) if (f.sorted) movers.push(['f', f]);
         for (const [k, e] of movers) if (near(e)) this.movingCard(k, e, a);
         for (const k of Object.keys(this.pool)) this.pool[k].forEach((c, i) => { if (i >= this.poolUsed[k]) c.mesh.visible = false; });
@@ -447,7 +447,11 @@ const R3 = {
         const i = this.poolUsed[k] = (this.poolUsed[k] || 0) + 1;
         let c = list[i - 1];
         // people get three canvas pixels to a world pixel, for the HD art (32_hd.js)
-        if (!c) { c = k === 'p' ? makeCard(48, 72, 24, 62, this.scene, HD_K) : k === 'c' ? makeCard(48, 64, 24, 56, this.scene, HD_K) : makeCard(80, 150, 40, 140, this.scene); c.pooled = true; list.push(c); }
+        if (!c) {
+            c = k === 'p' ? makeCard(48, 72, 24, 62, this.scene, HD_K) : k === 'c' ? makeCard(48, 64, 24, 56, this.scene, HD_K) : k === 'h' ? makeCard(48, 150, 24, 140, this.scene, HD_K)
+                : k === 's' ? makeCard(64, 44, 32, 36, this.scene, HD_K) : makeCard(80, 150, 40, 140, this.scene);
+            c.pooled = true; list.push(c);
+        }
         drawCard(c, e);
         placeCard(c, e, a);
         c.setFade(1);

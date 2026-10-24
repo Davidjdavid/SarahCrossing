@@ -230,12 +230,14 @@ function hdCached(key, make) {
     return f;
 }
 /* draw a frame at a world spot (x, y = the anchor), into a canvas scaled HD_K to one (an R3 card) */
-function hdDraw(ctx, f, x, y, flip) {
+function hdDraw(ctx, f, x, y, flip, alpha) {
     if (!f) return;
-    if (R3.sig) { R3.sig.push(f.key, x, y, flip ? 1 : 0); R3.sigN++; }
+    if (R3.sig) { R3.sig.push(f.key, x, y, flip ? 1 : 0, alpha); R3.sigN++; }
     const k = HD_K, dx = Math.round(x * k) / k - (flip ? f.w - 1 - f.ax : f.ax) / k, dy = Math.round(y * k) / k - f.ay / k;
+    if (alpha != null && alpha < 1) ctx.globalAlpha = alpha;          // (fading critters, as today's sprites do)
     if (flip) { ctx.save(); ctx.translate(dx + f.w / k, dy); ctx.scale(-1, 1); ctx.drawImage(f.c, 0, 0, f.w / k, f.h / k); ctx.restore(); }
     else ctx.drawImage(f.c, dx, dy, f.w / k, f.h / k);
+    if (alpha != null && alpha < 1) ctx.globalAlpha = 1;
 }
 /* a sprite name as an HD frame, when there is one: a remastered prop (HD_SPR) or a neighbor ("floret_1") */
 function hdNamed(name, now) {
