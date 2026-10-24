@@ -830,8 +830,19 @@ function r3FillTufts(t, a, V) {
 const R3_LILY_MAX = 400;
 function r3LilyCanvas() {
     const S = 32, cv = document.createElement('canvas');
-    cv.width = S * 3; cv.height = S;
+    cv.width = S * 5; cv.height = S;
     const g = cv.getContext('2d');
+    // cells 3 and 4: cattails for the banks (stems, leaves, a brown head)
+    for (let v = 3; v < 5; v++) {
+        const R = mulberry(v * 131 + 7);
+        for (let k = 0; k < 5; k++) {
+            const x = v * S + 6 + k * 5 + (R() - 0.5) * 3, top = 4 + R() * 10, lean = (R() - 0.5) * 4;
+            g.strokeStyle = k % 2 ? '#5f8f3a' : '#4a7a30'; g.lineWidth = 1.4;
+            g.beginPath(); g.moveTo(x, S); g.quadraticCurveTo(x + lean * 0.3, (S + top) / 2, x + lean, top); g.stroke();
+            if (k % 2 === 0 || v === 4) { g.fillStyle = '#7a4a26'; g.beginPath(); g.ellipse(x + lean, top + 3, 1.6, 3.6, lean * 0.05, 0, Math.PI * 2); g.fill(); g.fillStyle = 'rgba(255,220,180,0.35)'; g.fillRect(x + lean - 1, top + 1, 1, 3); }
+        }
+        for (let k = 0; k < 3; k++) { const x = v * S + 8 + k * 8, lean = (R() - 0.5) * 10; g.strokeStyle = '#6fa045'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x, S); g.quadraticCurveTo(x + lean * 0.4, S - 10, x + lean, S - 16 - R() * 6); g.stroke(); }
+    }
     for (let v = 0; v < 3; v++) {
         const cx = v * S + S / 2, cy = S / 2, r = S * 0.42, notch = 0.5 + v * 1.7;
         g.save(); g.translate(cx, cy);
@@ -865,9 +876,10 @@ function r3Lilies(scene) {
     mat.onBeforeCompile = sh => {
         ob(sh);
         sh.vertexShader = sh.vertexShader
-            .replace('#include <uv_vertex>', '#include <uv_vertex>\nvUv.x = (vUv.x + aVar) / 3.0;')
+            .replace('#include <uv_vertex>', '#include <uv_vertex>\nvUv.x = (vUv.x + aVar) / 5.0;')
             .replace('vec4 bw = modelMatrix * vec4(transformed, 1.0);', `vec4 bw = modelMatrix * instanceMatrix * vec4(transformed, 1.0);
-            bw.y += sin(uTime * 1.3 + bw.x * 1.7 + bw.z * 1.1) * 0.012;      // a gentle bob on the water`);
+            if (aVar < 2.5) bw.y += sin(uTime * 1.3 + bw.x * 1.7 + bw.z * 1.1) * 0.012;      // a gentle bob on the water
+            else bw.x += sin(uTime * 1.4 + bw.x * 0.9 + bw.z * 0.7) * 0.05 * uv.y;              // reeds sway at the top`);
     };
     const mesh = new THREE.InstancedMesh(geo, mat, R3_LILY_MAX);
     mesh.receiveShadow = true; mesh.castShadow = false; mesh.frustumCulled = false; mesh.count = 0;
@@ -880,11 +892,11 @@ function r3FillLilies(l, a, V) {
     const y0 = Math.max(1, Math.floor(V.y0 / TILE)), y1 = Math.min(a.h - 2, Math.ceil(V.y1 / TILE));
     let n = 0;
     for (let ty = y1; ty >= y0 && n < R3_LILY_MAX; ty--) for (let tx = x0; tx <= x1 && n < R3_LILY_MAX; tx++) {
-        // pond tiles a little way from the bank, about one in three
+        // pond tiles with water all round (the rim tiles are drawn half as bank), about one in two
         if (a.waterAt(tx, ty) !== 'p') continue;
         const wet = [[-1, 0], [1, 0], [0, -1], [0, 1]].filter(([dx, dy]) => a.waterAt(tx + dx, ty + dy) === 'p').length;
         const h = hash32('lily' + tx + ',' + ty);
-        if (wet < 3 || h % 3) continue;
+        if (wet < 4 || h % 2) continue;
         const fx = (tx + 0.2 + (h >> 4) % 60 / 100) * TILE, fy = (ty + 0.2 + (h >> 10) % 60 / 100) * TILE, s = 0.42 + (h >> 16) % 30 / 100;
         ps.set(fx / TILE, r3GroundH(fx, fy) + 0.03, fy / TILE * R3_ZS);
         q.setFromAxisAngle(up, ((h >> 20) % 628) / 100);
@@ -892,6 +904,25 @@ function r3FillLilies(l, a, V) {
         m.compose(ps, q, sc);
         l.mesh.setMatrixAt(n, m);
         l.aVar.setX(n, (h >> 7) % 7 === 0 ? 2 : (h >> 3) % 2);
+        n++;
+    }
+    // cattails on the grass along the ponds' banks, standing up and facing the camera
+    const qs = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+    for (let ty = y1; ty >= y0 && n < R3_LILY_MAX; ty--) for (let tx = x0; tx <= x1 && n < R3_LILY_MAX; tx++) {
+        if (W0.grid[ty][tx] !== 'g' || a.waterAt(tx, ty) || a.blocked[ty * a.w + tx]) continue;
+        const nb = [[-1, 0], [1, 0], [0, -1], [0, 1]].find(([dx, dy]) => a.waterAt(tx + dx, ty + dy) === 'p');
+        if (!nb) continue;
+        const h = hash32('reed' + tx + ',' + ty);
+        if (h % 2) continue;
+        // at the side of the tile by the water
+        const fx = (tx + 0.5 + nb[0] * 0.32 + ((h >> 4) % 30 - 15) / 100) * TILE, fy = (ty + 0.55 + nb[1] * 0.3) * TILE, s = 0.6 + (h >> 12) % 30 / 100;
+        ps.set(fx / TILE, r3GroundH(fx, fy), fy / TILE * R3_ZS);
+        sc.set(s, 1, s * 1.1);
+        m.compose(ps, qs, sc);
+        // (the flat plane stood up: its far edge at the top, the near edge on the ground)
+        m.multiply(new THREE.Matrix4().makeTranslation(0, 0, -0.5));
+        l.mesh.setMatrixAt(n, m);
+        l.aVar.setX(n, 3 + (h >> 9) % 2);
         n++;
     }
     l.mesh.count = n;
