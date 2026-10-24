@@ -46,6 +46,8 @@ const sources = fs
   .sort();
 const code = sources.map((f) => read(`src/${f}`).toString('utf8')).join('');
 const gameJs = emit('game', '.js', code);
+// three.js (r128, MIT): draws the island in HD-2D where the device has WebGL (31_render3d.js)
+const threeJs = emit('three', '.js', read('vendor/three.min.js'));
 
 // ---------------------------------------------------------------- data
 const atlasPng = emit('atlas', '.png', read('assets/atlas.png'));
@@ -109,6 +111,7 @@ for (const [from, to] of [
   ['href="style.css"', `href="${styleCss}"`],
   ['src="data.js"', `src="${dataJs}"`],
   ['src="game.js"', `src="${gameJs}"`],
+  ['src="three.js"', `src="${threeJs}"`],
 ]) {
   if (!page.includes(from)) throw new Error(`game/index.html has no ${from}`);
   page = page.replace(from, to);

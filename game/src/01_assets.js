@@ -74,6 +74,7 @@ function pngWithPalette(src, hex) {
 
 /* draw a frame so its anchor lands on (x, y) */
 function spr(ctx, name, x, y, flip, alpha) {
+    if (name === 'shadow_s' && R3.drawingCard) return;
     const f = Assets.frames[name];
     if (!f) { const d = Assets.dyn[name]; if (d) sprDyn(ctx, d, x, y, flip, alpha); return; }
     const [sx, sy, w, h, ax, ay] = f;

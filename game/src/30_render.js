@@ -4,7 +4,7 @@ const Render = {
     canvas: null, ctx: null, lc: null, lctx: null,
     init() {
         this.canvas = $('#game');
-        this.ctx = this.canvas.getContext('2d', { alpha: false });
+        this.ctx = this.canvas.getContext('2d');      // see-through: HD-2D draws under it
         this.lc = document.createElement('canvas');
         this.lctx = this.lc.getContext('2d');
         addEventListener('resize', () => this.resize());
@@ -69,6 +69,11 @@ const Zoom = {
     /* keep the canvas at the right scale (zoom locks and unlocks as games start and rooms change) */
     tick() { if (Render.canvas && Render.wantScale() !== G.view.scale) { Render.resize(); updateCam(true); } },
 };
+function screenOf(x, y, lift) {
+    const cs = G.view.cssScale;
+    if (R3.active()) { const p = R3.project(x, y, lift || 0); return [p.x * cs, p.y * cs]; }
+    return [(x - G.cam.x) * cs, (y - (lift || 0) - G.cam.y) * cs];
+}
 function updateCam(snap) {
     const a = G.area, v = G.view, p = G.player;
     if (!a || !p) return;
@@ -158,6 +163,7 @@ function drawEnt(ctx, e) {
 }
 /* trees go see-through when Sarah walks behind them */
 function seeThrough(e) {
+    if (R3.drawingCard) return 1;          // HD-2D fades the whole card instead
     const p = G.player;
     if (!p || p.hidden || !(e.kind === 'tree' || e.kind === 'fruittree' || e.kind === 'bigtree' || e.kind === 'oldtree' || e.kind === 'statue')) return 1;
     const big = e.kind === 'bigtree' || e.kind === 'oldtree';

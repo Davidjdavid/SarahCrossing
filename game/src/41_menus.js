@@ -486,6 +486,8 @@ function appSettings() {
     list.appendChild(toggle('Music', () => Audio2.musicOn, v => { Audio2.musicOn = v; Audio2.savePrefs(); Music.update(true); }));
     list.appendChild(toggle('Sound effects', () => Audio2.sfxOn, v => { Audio2.sfxOn = v; Audio2.savePrefs(); }));
     list.appendChild(toggle('Neighbors can text me first', () => !(S.settings && S.settings.npcTexts === false), v => { S.settings = S.settings || {}; S.settings.npcTexts = v; Save.touch(); }));
+    // HD-2D, or the classic flat view (kept per device; phones without WebGL always use the classic view)
+    if (R3.available()) list.appendChild(toggle('HD-2D graphics', () => R3.want, v => R3.setWant(v)));
     b.appendChild(list);
     // the island's name and clock are Sarah's to set
     if (!Online.visitor()) { b.appendChild(islandNameSetting()); b.appendChild(clockSetting()); }

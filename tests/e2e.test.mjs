@@ -30,6 +30,8 @@ after(async () => {
 async function device({ debug = true, who = 'sarah' } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1000, height: 640 } });
   if (debug) await ctx.addInitScript(() => { window.__DEBUG = true; });
+  // the classic view (HD-2D has its own test: software WebGL is slow)
+  await ctx.addInitScript(() => { if (!localStorage.getItem('sc_gfx')) localStorage.setItem('sc_gfx', 'classic'); });
   // this device has already said who's playing (the picker has its own test)
   if (who) await ctx.addInitScript((w) => { if (!localStorage.getItem('sc-who')) localStorage.setItem('sc-who', w); }, who);
   const page = await ctx.newPage();
@@ -523,4 +525,42 @@ test('holiday events: eggs to find on the Egg Hunt (gone the next day), and a Fi
   assert.deepEqual(res, { eggs: 8, paid: 240, recipe: true, left: 0, open: true, trophy: 1, again: 0 });
   assert.deepEqual(page.problems, []);
   await page.context().close();
+});
+
+test('HD-2D: the island and rooms draw in 3D, taps land where they point, and the edit modes and the classic view still work', async () => {
+  const { chromium: chromium3d } = await import('playwright');
+  const b3 = await chromium3d.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  try {
+    const ctx = await b3.newContext({ viewport: { width: 800, height: 500 } });
+    await ctx.addInitScript(() => { window.__DEBUG = true; localStorage.setItem('sc-who', 'sarah'); localStorage.setItem('sc-current', ''); });
+    const page = await ctx.newPage();
+    const problems = [];
+    page.on('pageerror', (e) => problems.push(e.message));
+    page.on('console', (m) => { if (m.type() === 'error') problems.push(m.text()); });
+    await page.goto(srv.url + '/');
+    await page.fill('#password', 'pw');
+    await page.click('button[type=submit]');
+    await title(page);
+    await page.evaluate(() => __dbg.quickStart());
+    await page.waitForFunction(() => G.mode === 'play', null, { timeout: 60000 });
+    await page.waitForFunction(() => R3.ok && R3.active() && R3.cards.size > 20, null, { timeout: 60000 });
+    const island = await page.evaluate(() => {
+      const want = [G.player.x + 40, G.player.y + 24];
+      const q = R3.project(want[0], want[1], 0);
+      const back = R3.unproject(q.x, q.y);
+      return { shown: getComputedStyle(document.getElementById('game3d')).display, err: Math.hypot(back[0] - want[0], back[1] - want[1]) };
+    });
+    assert.equal(island.shown, 'block');
+    assert.ok(island.err < 1, `a tap lands where it points (off by ${island.err})`);
+    await page.evaluate(() => enterRoom('arcade'));
+    await page.waitForFunction(() => G.area.id === 'arcade' && R3.areaId === 'arcade' && R3.wall, null, { timeout: 30000 });
+    // decorating at home uses the flat view with its grid
+    await page.evaluate(async () => { await goHome(); });
+    await page.waitForFunction(() => G.area.id === 'home', null, { timeout: 30000 });
+    await page.evaluate(() => { Decor.on = true; });
+    await page.waitForFunction(() => !R3.active() && getComputedStyle(document.getElementById('game3d')).display === 'none', null, { timeout: 10000 });
+    await page.evaluate(() => { Decor.on = false; R3.setWant(false); });
+    await page.waitForFunction(() => !R3.active() && localStorage.getItem('sc_gfx') === 'classic', null, { timeout: 10000 });
+    assert.deepEqual(problems, []);
+  } finally { await b3.close(); }
 });

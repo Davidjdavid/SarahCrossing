@@ -284,9 +284,9 @@ const Bubbles = {
     hide(n) { const b = this.map.get(n); if (b) { b.remove(); this.map.delete(n); } },
     clear() { for (const b of this.map.values()) b.remove(); this.map.clear(); },
     place(n, b) {
-        const v = G.view, cs = v.cssScale;
-        const top = n.y - (n.def.human ? 30 : (n.def.h || 16) + 8) - (isSeated(n) ? -4 : 0);
-        b.style.transform = `translate(${Math.round((n.x - G.cam.x) * cs)}px, ${Math.round((top - G.cam.y) * cs)}px) translate(-50%, -100%)`;
+        const lift = (n.def.human ? 30 : (n.def.h || 16) + 8) + (isSeated(n) ? -4 : 0);
+        const [sx, sy] = screenOf(n.x, n.y, lift);
+        b.style.transform = `translate(${Math.round(sx)}px, ${Math.round(sy)}px) translate(-50%, -100%)`;
     },
     update() {
         if (!this.map.size) return;

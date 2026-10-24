@@ -30,8 +30,15 @@ Status: [x] done, [~] in progress, [ ] not started.
   phones: placing decor, finding dig spots, seeing decor behind buildings)
 - [~] Three more samples with Animal Crossing's perspective in 2D: rolling-log pixel art, clean flat
   illustration, cozy pixel art with the Animal Crossing camera (no portraits, less cutesy)
-- [ ] Redraw everything in the chosen style: real pixel art with shading, much larger characters
-  (room to design clothes), character portraits in conversations
+- [x] Round 2 (Animal Crossing camera) and round 3 (Pocket Camp proportions, no visible tiles):
+  David picked **HD-2D** (pixel-art people in a softly lit 3D world)
+- [~] HD-2D step 1: the new engine with today's art (31_render3d.js, three.js): the island and rooms
+  in 3D with sun, shadows, depth of field and a horizon; edit modes and the minigames keep the flat
+  view with the grid; a Graphics switch in Settings; the classic view without WebGL
+- [ ] HD-2D step 2: new characters (48x72, layered so outfits, sewing, hairstyles and visitors work)
+- [ ] HD-2D step 3: the bigger island with districts and the farm, in the new look
+- [ ] HD-2D step 4: furniture, items and the inside of buildings redrawn
+- [ ] HD-2D step 5: a HUD that matches, and a layout made for an upright phone
 - [ ] Must look good on phone, laptop and desktop (layout, text size, touch and mouse/keyboard)
 
 ## The island
@@ -66,6 +73,12 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] The arcade's back room: a hidden mystery for later in the game (Chili, Sully, the lighthouse,
   a key) opens the island's first arcade with three classic cabinets: Dumpling Drop (a Puyo Puyo
   clone), Sushi Swap (Tetris Attack) and Fortune Falls (Peggle)
+- [ ] **Later (in about two weeks; very important to David):** once the back room is open and every
+  arcade game has been played, a fourth cabinet in the back room turns out to be broken, with a quest
+  to fix it. Inside: a recreation of a lost Pogo game from around 2005 that was only up around
+  Valentine's Day. It used screenshots of The Sims 1: you made choices on a date and got a letter
+  grade at the end for how well it went. Sarah loved it but never won, and it was taken down and
+  lost. Get every detail David remembers (screens, choices, grading) before building it.
 - [x] Remake the fruit catching game so it's actually fun: trees shake before they drop, a shadow shows
   where things land, fruits fall their own ways, juice meter and Fruit Fever, power-ups, rounds with
   Perfect bonuses, snappier movement

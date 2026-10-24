@@ -203,12 +203,12 @@ const Online = {
         if (!box) { box = el('div'); box.id = 'nametags'; $('#game').after(box); }
         // (while someone's chat bubble is up, it shows who's talking: their tag steps aside)
         const here = G.mode === 'play' && !UI.modal ? this.here().filter(o => !o.sayT) : [];
-        const cs = G.view.cssScale;
         for (const t of [...box.children]) if (!here.some(o => o.who === t.dataset.who)) t.remove();
         for (const o of here) {
             let t = box.querySelector(`[data-who="${o.who}"]`);
             if (!t) { t = el('div', 'ptag', this.name(o.who)); t.dataset.who = o.who; t.style.background = o.who === 'sarah' ? '#b3263a' : (NPC_DEFS[o.who] || {}).color || '#6e5a78'; box.appendChild(t); }
-            t.style.transform = `translate(${Math.round((o.x - G.cam.x) * cs)}px, ${Math.round((o.y - 34 - G.cam.y) * cs)}px) translate(-50%, -100%)`;
+            const [sx, sy] = screenOf(o.x, o.y, 34);
+            t.style.transform = `translate(${Math.round(sx)}px, ${Math.round(sy)}px) translate(-50%, -100%)`;
         }
     },
     /* where this device's player is: sent when it changes (and now and then anyway, so newcomers see them) */

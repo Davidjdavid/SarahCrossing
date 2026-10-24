@@ -20,6 +20,8 @@ function initWorld() {
 async function boot(hotData) {
     Zoom.load();
     Render.init();
+    R3.load();
+    if (R3.want) R3.init();
     Audio2.loadPrefs();
     const opening = Cloud.boot();          // the island, from the server, while the pictures load
     await Assets.load();
@@ -360,6 +362,20 @@ function update() {
     G.showPrompt = !G.touchUsed;
 }
 function render() {
+    const hd = R3.active();
+    R3.show(hd);
+    if (hd && R3.render()) {
+        const ctx = Render.ctx;
+        if (Fishing.st) { R3.localTransform(ctx, G.player.x, G.player.y, 0); Fishing.draw(ctx); }
+        ctx.setTransform(1, 0, 0, 1, -G.cam.x, -G.cam.y);
+        Sky.draw(ctx);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        Online.update();
+        Bubbles.update();
+        BigMap.tick();
+        return;
+    }
+    R3.show(false);
     drawWorld();
     const ctx = Render.ctx;
     ctx.setTransform(1, 0, 0, 1, -G.cam.x, -G.cam.y);
@@ -459,6 +475,7 @@ function bindInput() {
     addEventListener('pointerdown', ev => { if (ev.pointerType === 'touch' && !G.touchUsed) { G.touchUsed = true; $('#hint').hidden = true; } }, true);
     const toWorld = ev => {
         const r = cv.getBoundingClientRect();
+        if (R3.active()) return R3.unproject((ev.clientX - r.left) / r.width * cv.width, (ev.clientY - r.top) / r.height * cv.height);
         const x = (ev.clientX - r.left) / r.width * cv.width + G.cam.x;
         const y = (ev.clientY - r.top) / r.height * cv.height + G.cam.y;
         return [x, y];

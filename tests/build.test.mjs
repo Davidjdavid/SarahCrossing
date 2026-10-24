@@ -19,7 +19,7 @@ const asset = (re) => re.exec(page())[1];
 
 test('the page points at files that exist, named by their content', () => {
   const refs = [...page().matchAll(/(?:src|href)="(assets\/[^"]+)"/g)].map((m) => m[1]);
-  assert.equal(refs.length, 5, refs.join());
+  assert.equal(refs.length, 6, refs.join());
   for (const ref of refs) {
     assert.match(ref, /-[0-9a-f]{10}\.(js|css|png|webmanifest)$/);
     assert.ok(fs.existsSync(path.join(dist, ref)), ref);
