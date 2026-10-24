@@ -261,7 +261,7 @@ const BigMap = {
             ['Pond', sp.pond.x + 0.5, sp.pond.y - 3], ['Farm', sp.farm.x + 0.5, sp.farm.y + 5], ['Forest', sp.forest.x + 0.5, sp.forest.y - 2],
             ['Mountain', sp.mountain.x + 0.5, sp.mountain.y - 6], ['Lookout', sp.lookout.x + 0.5, sp.lookout.y - 2], ['Waterfall', sp.waterfall.x + 4, sp.waterfall.y - 4],
             ['Hot spring', W0.wonton[0], W0.wonton[1] - 4], ['Beach', sp.beach.x, sp.beach.y + 2], ['Campsite', sp.campsite.x + 0.5, sp.campsite.y - 5],
-            ['Bonfire', sp.bonfire.x + 0.5, sp.bonfire.y + 4], ["David's statue", sp.statue.x + 0.5, sp.statue.y + 2], ['Market Lane', sp.boardwalk.x, sp.boardwalk.y + 2],
+            ['Bonfire', sp.bonfire.x + 0.5, sp.bonfire.y + 4], ["David's statue", sp.statue.x + 0.5, sp.statue.y + 2], ['Market Lane', sp.boardwalk.x, sp.boardwalk.y - 4.5],
             ['Old tree', sp.oldtree.x, sp.oldtree.y + 3], ['East meadow', sp.eastmeadow.x, sp.eastmeadow.y + 3], ['The glade', sp.meadow.x + 0.5, sp.meadow.y - 4]];
         if (W0.props.some(p => p.kind === 'windmill')) { const w = W0.props.find(p => p.kind === 'windmill'); places.push(['Windmill', w.x + 1.5, w.y - 3]); }
         for (const [t, x, y] of places) label(x * K, y * K, t, '#c8f0a0');

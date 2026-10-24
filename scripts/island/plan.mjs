@@ -3,7 +3,8 @@
 // makes the same island. Coordinates are tiles, north at the top: higher ground is always north of its edge (every cliff
 // faces south, east or west), stairs go where a path crosses a cliff, bridges where it crosses the river.
 //
-//   - the town square above the dock: the Post Office, Town Hall and Bank along its top, shops round it, Market Lane east
+//   - the town square above the dock: Fortune's, the Post Office, Town Hall, Bank and museum along its top; east of it two
+//     rows of shops with an alley between them (the first row's doors open on the alley, the second's on Market Lane)
 //   - the neighborhood to the west, one step above the beach, round a ring of flower beds and a village green
 //   - the farm up a level in the north-west, with a point looking over a bay and a narrow stair down to a hidden cove
 //   - the forest in the middle: loops round the pond, the old tree and a glade, a cliff walk along its edge
@@ -32,8 +33,8 @@ export const PLAN = {
     { pts: [[173,63.5],[176,70],[182.5,80],[187,91.5],[188,102.5],[186,110],[184.5,113],[184.5,119],[182,126],[180,134]], w: 3 },
   ],
   ponds: [{ x: 173, y: 27.5, rx: 3, ry: 2 }, { x: 98.5, y: 56, rx: 4.5, ry: 2.9 }, { x: 83, y: 45.5, rx: 1.6, ry: 1.1 }, { x: 174, y: 67.5, rx: 2.8, ry: 1.8 }],
-  plaza: { x0: 93, y0: 89, x1: 141, y1: 113 },
-  streets: [{ pts: [[141,108],[152,108.5],[165,108],[176,107]], w: 3 }, { pts: [[117,113],[117,125]], w: 4 }],
+  plaza: { x0: 93, y0: 89, x1: 139, y1: 113 },
+  streets: [{ pts: [[139,104.5],[152,104.5],[165,104],[182,104]], w: 3 }, { pts: [[139,97],[160,97],[182,97]], w: 2 }, { pts: [[117,113],[117,125]], w: 4 }],
   pier: { x: 116, y0: 124, y1: 146 },
   // paths (p), hiking trails (d)
   paths: [
@@ -58,7 +59,7 @@ export const PLAN = {
     // town to the orchard, the river, the lighthouse (and down to its beach) and up to the hot spring
     { pts: [[141.5,90],[147,85],[158,82],[170,83],[178,90],[182,99],[182,104]] },
     { pts: [[170,83],[174,77],[173,72.5]], w: 1.6 },
-    { pts: [[176,107],[183,104],[193,102],[201,103],[208,107],[209.5,111.5]] },
+    { pts: [[182,104],[186,103],[193,102],[201,103],[208,107],[209.5,111.5]] },
     { pts: [[209.5,111.5],[204,113.5],[203,116],[203,121]] },
     { pts: [[197,102],[197,92],[199,80],[201,74],[201,68],[197,66]] },
     // the neighborhood
@@ -87,7 +88,7 @@ export const PLAN = {
   // crops are copied from the first island's fields (x, y there)
   fields: [{ x: 25, y: 33, crop: 'cabbage' }, { x: 38, y: 38, crop: 'wheat' }, { x: 63, y: 35, crop: 'pumpkin' }],
   goatpen: { x: 24, y: 45, w: 8, h: 6 },
-  lawns: [{ x: 73, y: 89, w: 10, h: 6 }, { x: 144, y: 111, w: 20, h: 3 }, { x: 204, y: 80, w: 10, h: 10 }],
+  lawns: [{ x: 73, y: 89, w: 10, h: 6 }, { x: 144, y: 108, w: 20, h: 4 }, { x: 204, y: 80, w: 10, h: 10 }],
   forests: [
     { poly: [[78,40],[100,36],[150,36],[158,46],[160,58],[150,66],[132,76],[112,76],[94,72],[84,66],[76,54]], p: 0.58, kind: 'mixed' },
     { poly: [[103,6],[150,6],[150,32],[103,32]], p: 0.42, kind: 'mixed' },
@@ -95,7 +96,7 @@ export const PLAN = {
   ],
   clearings: [{ x: 120, y: 57, r: 5 }, { x: 98.5, y: 56, r: 6.5 }, { x: 141, y: 47, r: 5.5 }, { x: 84, y: 46, r: 2.8 }, { x: 103.5, y: 46, r: 3 }, { x: 126, y: 18, r: 9 }, { x: 173, y: 27.5, r: 4.5 }, { x: 198, y: 15, r: 4.5 }, { x: 173, y: 70, r: 3 }],
   noTree: [[86, 80, 182, 120], [22, 16, 76, 48], [10, 58, 27, 70]],
-  orchard: { x: 142, y: 80, w: 36, h: 17 },
+  orchard: { x: 142, y: 78, w: 36, h: 13 },
   sand: [[10, 61, 26, 69]],
   hotspring: { x: 193, y: 57 },
   oldTree: { x: 119, y: 56 },
@@ -108,14 +109,16 @@ export const PLAN = {
     { id: 'townhall', x: 113, y: 85, w: 7, h: 4, door: 3, sprite: 'townhall', front: 'townhallfront' },
     { id: 'bank', x: 123, y: 86, w: 5, h: 3, door: 2, sprite: 'bank', front: 'bankfront' },
     { id: 'museum', x: 131, y: 85, w: 7, h: 4, door: 3, sprite: 'museum', front: 'museumfront' },
-    { id: 'boutique', x: 94, y: 92, w: 4, h: 3, door: 2, sprite: 'boutique', front: 'boutiquefront' },
-    { id: 'salon', x: 94, y: 100, w: 4, h: 3, door: 2, sprite: 'salon', front: 'salonfront' },
-    { id: 'studio', x: 136, y: 92, w: 5, h: 3, door: 2, sprite: 'studio', front: 'studiofront' },
-    { id: 'displays', x: 136, y: 100, w: 5, h: 3, door: 2, sprite: 'displays', front: 'displaysfront' },
-    { id: 'restaurant', x: 144, y: 103, w: 5, h: 3, door: 2, sprite: 'restaurant', front: 'restaurantfront' },
-    { id: 'arcade', x: 151, y: 103, w: 5, h: 3, door: 2, sprite: 'arcade', front: 'arcadefront' },
-    { id: 'club', x: 158, y: 103, w: 6, h: 3, door: 3, sprite: 'club', front: 'clubfront' },
-    { id: 'builder', x: 166, y: 103, w: 5, h: 3, door: 2, sprite: 'builder', front: 'builderfront' },
+    // the alley: the first row's doors open on it, the second row's backs face it across a strip of planters
+    { id: 'boutique', x: 143, y: 93, w: 4, h: 3, door: 2, sprite: 'boutique', front: 'boutiquefront' },
+    { id: 'salon', x: 149, y: 93, w: 4, h: 3, door: 2, sprite: 'salon', front: 'salonfront' },
+    { id: 'studio', x: 155, y: 93, w: 5, h: 3, door: 2, sprite: 'studio', front: 'studiofront' },
+    { id: 'displays', x: 162, y: 93, w: 5, h: 3, door: 2, sprite: 'displays', front: 'displaysfront' },
+    // Market Lane
+    { id: 'restaurant', x: 143, y: 100, w: 5, h: 3, door: 2, sprite: 'restaurant', front: 'restaurantfront' },
+    { id: 'arcade', x: 150, y: 100, w: 5, h: 3, door: 2, sprite: 'arcade', front: 'arcadefront' },
+    { id: 'club', x: 157, y: 100, w: 6, h: 3, door: 3, sprite: 'club', front: 'clubfront' },
+    { id: 'builder', x: 165, y: 100, w: 5, h: 3, door: 2, sprite: 'builder', front: 'builderfront' },
     { id: 'lighthouse', x: 208, y: 108, w: 3, h: 3, door: 1, sprite: 'lighthouse', front: 'lighthousefront' },
     { id: 'barn', x: 52, y: 23, w: 5, h: 3, door: 2, sprite: 'barn' },
     { id: 'home', x: 57, y: 81, w: 4, h: 3, door: 2, sprite: 'house_sarah', link: [[59.5,90.7]] },
@@ -133,18 +136,22 @@ export const PLAN = {
     { id: 'h_cuke', x: 191, y: 92, w: 3, h: 3, door: 1, link: [[192.5,95],[193,101.6]] },
     { id: 'h_kai', x: 50, y: 117, w: 3, h: 3, door: 1 },
   ],
-  // room kept for what's coming: the café, the sailor's and the balloonist's houses, a bait shop
-  lots: { cafe: { x: 174, y: 103, w: 4, h: 3 }, sailor: { x: 124, y: 123, w: 3, h: 3 }, balloonist: { x: 205, y: 94, w: 3, h: 3 }, bait: { x: 106, y: 121, w: 4, h: 3 } },
+  // room kept for what's coming: the café and a shop at the ends of the two rows, the sailor's and the balloonist's houses,
+  // a bait shop
+  lots: { cafe: { x: 169, y: 93, w: 4, h: 3 }, market: { x: 172, y: 100, w: 4, h: 3 }, sailor: { x: 124, y: 123, w: 3, h: 3 }, balloonist: { x: 205, y: 94, w: 3, h: 3 }, bait: { x: 106, y: 121, w: 4, h: 3 } },
   props: [
     // the square
     { kind: 'fountain', x: 116, y: 101 }, { kind: 'flowerbed', x: 127, y: 95 }, { kind: 'flowerbed', x: 104, y: 106 }, { kind: 'flowerbed', x: 128, y: 106 },
-    { kind: 'bench', x: 111, y: 108 }, { kind: 'bench', x: 121, y: 108 }, { kind: 'bench', x: 95, y: 110 }, { kind: 'bench', x: 129, y: 91 },
+    { kind: 'bench', x: 111, y: 108 }, { kind: 'bench', x: 121, y: 108 }, { kind: 'bench', x: 95, y: 110 }, { kind: 'bench', x: 129, y: 91 }, { kind: 'bench', x: 100, y: 96 },
     { kind: 'statue_david', x: 99, y: 107 }, { kind: 'plaque', x: 100, y: 109 }, { kind: 'board', x: 108, y: 92 },
     { kind: 'drinkfountain', x: 112, y: 92 }, { kind: 'trashcan', x: 102, y: 112 }, { kind: 'trashcan', x: 133, y: 112 },
     { kind: 'lamp', x: 93, y: 89 }, { kind: 'lamp', x: 141, y: 89 }, { kind: 'lamp', x: 93, y: 113 }, { kind: 'lamp', x: 141, y: 113 }, { kind: 'lamp', x: 111, y: 89 }, { kind: 'lamp', x: 121, y: 89 },
     { kind: 'sign_island', x: 120, y: 123 }, { kind: 'tackle', x: 118, y: 129 }, { kind: 'viewer', x: 114, y: 123 },
     // Market Lane
-    { kind: 'sign_club', x: 164, y: 105 }, { kind: 'bench', x: 165, y: 111 }, { kind: 'lamp', x: 150, y: 110 }, { kind: 'lamp', x: 172, y: 110 }, { kind: 'lamp', x: 143, y: 106 },
+    { kind: 'sign_club', x: 163, y: 102 }, { kind: 'bench', x: 166, y: 108 }, { kind: 'lamp', x: 148, y: 106 }, { kind: 'lamp', x: 164, y: 106 }, { kind: 'lamp', x: 177, y: 106 },
+    // the alley
+    { kind: 'flowerbed', x: 146, y: 98 }, { kind: 'bench', x: 152, y: 98 }, { kind: 'flowerbed', x: 159, y: 98 }, { kind: 'lamp', x: 156, y: 98 }, { kind: 'lamp', x: 168, y: 98 },
+    { kind: 'flowerbed', x: 133, y: 99 },
     // the neighborhood
     { kind: 'mailbox', x: 61, y: 84 }, { kind: 'bench', x: 49, y: 91 }, { kind: 'lamp', x: 56, y: 100 }, { kind: 'lamp', x: 70, y: 99 }, { kind: 'lamp', x: 86, y: 105 },
     { kind: 'lamp', x: 42, y: 101 }, { kind: 'lamp', x: 24, y: 98 }, { kind: 'lamp', x: 52, y: 79 }, { kind: 'lamp', x: 76, y: 82 },
@@ -174,7 +181,7 @@ export const PLAN = {
   spots: {
     plaza: [117, 97, 4], plaza_w: [104, 98, 1], plaza_e: [130, 104, 2], bench_w: [112, 109, 1], bench_e: [122, 109, 1], board: [108, 93, 1],
     garden: [64, 85, 2], village: [50, 98, 3], statue: [100, 111, 2], bench_statue: [96, 111, 1], bench_museum: [130, 92, 1],
-    boardwalk: [160, 108, 3], bench_boardwalk: [166, 112, 1],
+    boardwalk: [156, 109, 3], bench_boardwalk: [167, 109, 1], alley: [161, 97, 2],
     beach_w: [44, 121, 3], beach: [90, 124, 4], bench_beach: [87, 122, 1], beach_e: [142, 125, 3], beach_far: [196, 122, 3], harbor: [128, 122, 3],
     pier: [117, 126, 1], pier_end: [117, 145, 0], bonfire: [65, 125, 2],
     pond: [99, 65, 2], bench_pond: [102, 65, 1], forest: [109, 62, 3], oldtree: [120, 60, 2], meadow: [141, 44, 3], bench_meadow: [141, 49, 1],

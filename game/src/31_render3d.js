@@ -335,6 +335,7 @@ const R3 = {
        paths and things on the ground show up), dropped when far away */
     updateChunks(a) {
         const V = this.view;
+        r3Palette(a.bgSeason || Clock.season());           // (the fine art's colors follow the season)
         const cx0 = Math.max(0, Math.floor(V.x0 / R3_CHUNK)), cx1 = Math.min(Math.ceil(a.w * TILE / R3_CHUNK) - 1, Math.floor(V.x1 / R3_CHUNK));
         const cy0 = Math.max(0, Math.floor(V.y0 / R3_CHUNK)), cy1 = Math.min(Math.ceil(a.h * TILE / R3_CHUNK) - 1, Math.floor(V.y1 / R3_CHUNK));
         let made = 0;
@@ -584,6 +585,7 @@ function hasWebGL() {
 const R3U = {
     uBendK: { value: 0.0024 }, uBendZ: { value: 0 }, uTime: { value: 0 },
     uDof: { value: new THREE_V4(22, 70, 8.5, 5.5) }, uGrass: { value: new THREE_V4(1, 1, 1, 0) }, uShadow: { value: 1 },
+    uDetOn: { value: 1 },
 };
 function THREE_V4(a, b, c, d) { return typeof THREE !== 'undefined' ? new THREE.Vector4(a, b, c, d) : { x: a, y: b, z: c, w: d, set() {} }; }
 const R3_GLSL = `
@@ -609,6 +611,7 @@ function r3Patch(mat, o) {
             vDofZ = -mvPosition.z;
             gl_Position = projectionMatrix * mvPosition;`);
         let fs = R3_GLSL + (o.fhead || '') + sh.fragmentShader;
+        if (o.fmap) fs = fs.replace('#include <map_fragment>', '#include <map_fragment>\n' + o.fmap);
         // (the sun's shadows fade out at dusk: in a Lambert material they darken every light, the lamps' too)
         fs = fs.replace('reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask();',
             'reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * mix(1.0, getShadowMask(), uShadow)' + (o.noCloud ? ';' : ' * cloudShade(vWp.xz);'));
@@ -616,6 +619,7 @@ function r3Patch(mat, o) {
         sh.fragmentShader = fs;
     };
     mat.customProgramCacheKey = () => (o.key || 'r3') + mat.type;
+    if (o.derivatives) mat.extensions = { derivatives: true };
     return mat;
 }
 /* the bent world's shadows too (and pushed away from the sun a touch, so a card never shades itself in stripes) */
@@ -991,14 +995,17 @@ const R3_WATER_HEAD = 'uniform sampler2D uWater; uniform vec2 uWsz; uniform vec4
 const R3_GRASS = { spring: [0.93, 0.94, 0.9], summer: [0.93, 0.92, 0.88], fall: [0.8, 0.95, 0.86], winter: [1, 1, 1] };
 const R3_WATER_GLSL = `
 {
-    // fine detail over the island picture (one picture pixel is a lot of screen up close): speckles and soft patches
-    vec2 dp = vWp.xz;
-    gl_FragColor.rgb *= 1.0 + (r3n(dp * 5.3) - 0.5) * 0.11 + (r3n(dp * 13.7 + 7.3) - 0.5) * 0.08 + (r3n(dp * 0.55 + 2.1) - 0.5) * 0.08;
-    vec3 al = diffuseColor.rgb;
-    float gm = smoothstep(1.3, 1.6, al.g / max(al.b, 0.02)) * step(al.r, al.g * 1.04);
-    gl_FragColor.rgb *= mix(vec3(1.0), uGrass.rgb, gm);
+    // where the picture shows (not the fine art: 31a_ground3d.js), some detail over it: speckles and soft patches
+    if (r3Proc < 0.5) {
+        vec2 dp = vWp.xz;
+        gl_FragColor.rgb *= 1.0 + (r3n(dp * 5.3) - 0.5) * 0.11 + (r3n(dp * 13.7 + 7.3) - 0.5) * 0.08 + (r3n(dp * 0.55 + 2.1) - 0.5) * 0.08;
+        vec3 al = diffuseColor.rgb;
+        float gm = smoothstep(1.3, 1.6, al.g / max(al.b, 0.02)) * step(al.r, al.g * 1.04);
+        gl_FragColor.rgb *= mix(vec3(1.0), uGrass.rgb, gm);
+    }
     vec4 wm = texture2D(uWater, vec2(vWp.x / uWsz.x, vWp.z / ${R3_ZS.toFixed(3)} / uWsz.y));
-    float w = smoothstep(0.45, 0.8, wm.r);
+    // (never up a cliff: the water's map is by tiles, and a cliff's foot stands on the edge of one)
+    float w = smoothstep(0.45, 0.8, wm.r) * smoothstep(0.72, 0.9, abs(normalize(cross(dFdx(vWp), dFdy(vWp))).y));
     vec3 col = gl_FragColor.rgb;
     if (w > 0.0) {
         vec2 p = vWp.xz;
@@ -1025,12 +1032,9 @@ function r3Corners() {
     if (R3_HC && R3_HC.src === W0.height) return R3_HC;
     const Wt = W0.w, Ht = W0.h, Hs = W0.height || [];
     const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || !Hs[y]) ? 0 : +Hs[y][x] || 0;
-    const sea = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && W0.grid[y][x] === '~' && L(x, y) === 0;
     const C = new Float32Array((Wt + 1) * (Ht + 1));
     for (let vy = 0; vy <= Ht; vy++) for (let vx = 0; vx <= Wt; vx++) {
-        // a corner is as high as the highest tile touching it (at the coast, the sea's: the land slopes down to the water
-        // rather than the sea standing up as a wall)...
-        if (sea(vx - 1, vy - 1) || sea(vx, vy - 1) || sea(vx - 1, vy) || sea(vx, vy)) { C[vy * (Wt + 1) + vx] = 0; continue; }
+        // a corner is as high as the highest tile touching it (at the sea, r3Fine cuts the land off along the coast)...
         let h = Math.max(L(vx - 1, vy - 1), L(vx, vy - 1), L(vx - 1, vy), L(vx, vy));
         // ...or, in the band below a cliff edge, part of the way down from it
         const low = Math.max(L(vx - 1, vy), L(vx, vy));
@@ -1043,27 +1047,85 @@ function r3Corners() {
     R3_HC = { src: W0.height, C, W: Wt + 1, H: Ht + 1 };
     return R3_HC;
 }
+/* the same on a finer grid (R3_FS points a tile, as the ground's mesh has), and where raised ground meets the sea it
+   ends in a cliff along a smooth outline of the island (the land blurred twice, cut at a level, with a little wobble)
+   instead of in tile steps; the cliff stands in the rim of tiles nobody walks on */
+const R3_FS = 3;
+let R3_FH = null;
+function r3Fine() {
+    if (R3_FH && R3_FH.src === W0.height) return R3_FH;
+    const g = r3Corners(), Wt = W0.w, Ht = W0.h, FW = Wt * R3_FS + 1, FHt = Ht * R3_FS + 1, H = new Float32Array(FW * FHt);
+    let land = new Float32Array(Wt * Ht);
+    for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) land[y * Wt + x] = W0.grid[y][x] === '~' ? 0 : 1;
+    const coast = new Uint8Array(Wt * Ht);
+    for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
+        if (!land[y * Wt + x]) continue;
+        for (let dy = -2; dy <= 2 && !coast[y * Wt + x]; dy++) for (let dx = -2; dx <= 2; dx++) { const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= Wt || yy >= Ht || !land[yy * Wt + xx]) { coast[y * Wt + x] = 1; break; } }
+    }
+    for (let pass = 0; pass < 2; pass++) {
+        const out = new Float32Array(Wt * Ht);
+        for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
+            let sum = 0;
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = Math.max(0, Math.min(Wt - 1, x + dx)), yy = Math.max(0, Math.min(Ht - 1, y + dy)); sum += land[yy * Wt + xx]; }
+            out[y * Wt + x] = sum / 9;
+        }
+        land = out;
+    }
+    const field = (x, y) => {           // (tile units; the blurred land is at the tiles' centers)
+        const fx = Math.max(0, Math.min(Wt - 1.001, x - 0.5)), fy = Math.max(0, Math.min(Ht - 1.001, y - 0.5)), ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy, i = iy * Wt + ix;
+        return (land[i] * (1 - tx) + land[i + 1] * tx) * (1 - ty) + (land[i + Wt] * (1 - tx) + land[i + Wt + 1] * tx) * ty;
+    };
+    const C = g.C;
+    for (let fy = 0; fy < FHt; fy++) for (let fx = 0; fx < FW; fx++) {
+        const x = fx / R3_FS, y = fy / R3_FS, ix = Math.min(g.W - 2, Math.floor(x)), iy = Math.min(g.H - 2, Math.floor(y)), tx = x - ix, ty = y - iy, i = iy * g.W + ix;
+        let h = (C[i] * (1 - tx) + C[i + 1] * tx) * (1 - ty) + (C[i + g.W] * (1 - tx) + C[i + g.W + 1] * tx) * ty;
+        // (a point that only touches sea stays at sea level, whatever the land round it)
+        if (h > 0) {
+            const xs = fx % R3_FS ? [Math.floor(x)] : [Math.floor(x) - 1, Math.floor(x)], ys = fy % R3_FS ? [Math.floor(y)] : [Math.floor(y) - 1, Math.floor(y)];
+            let any = false;
+            for (const yy of ys) for (const xx of xs) if (xx >= 0 && yy >= 0 && xx < Wt && yy < Ht && W0.grid[yy][xx] !== '~') any = true;
+            if (!any) h = 0;
+        }
+        if (h > 0) {
+            const cx = Math.min(Wt - 1, Math.floor(x)), cy = Math.min(Ht - 1, Math.floor(y));
+            let near = false;
+            for (let dy = -1; dy <= 0 && !near; dy++) for (let dx = -1; dx <= 0; dx++) { const xx = cx + dx, yy = cy + dy; if (xx >= 0 && yy >= 0 && coast[yy * Wt + xx]) { near = true; break; } }
+            if (near || coast[cy * Wt + cx]) {
+                const f = field(x, y) + Math.sin(x * 1.37 + y * 0.71) * Math.sin(y * 1.13 - x * 0.53) * 0.05, t = Math.max(0, Math.min(1, (f - 0.5) / 0.22));
+                h *= t * t * (3 - 2 * t);
+            }
+        }
+        H[fy * FW + fx] = h;
+    }
+    R3_FH = { src: W0.height, H, W: FW, Ht: FHt };
+    return R3_FH;
+}
 /* the ground's height (world units) under a spot in world pixels, on the island (rooms are flat) */
 function r3GroundH(x, y) {
     if (!G.area || G.area.interior || G.area.id !== 'island' || !W0.height) return 0;
-    const g = r3Corners(), fx = Math.max(0, Math.min(g.W - 1.001, x / TILE)), fy = Math.max(0, Math.min(g.H - 1.001, y / TILE));
-    const ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy, C = g.C, i = iy * g.W + ix;
-    return ((C[i] * (1 - tx) + C[i + 1] * tx) * (1 - ty) + (C[i + g.W] * (1 - tx) + C[i + g.W + 1] * tx) * ty) * R3_LEVEL;
+    const g = r3Fine(), fx = Math.max(0, Math.min(g.W - 1.001, x / TILE * R3_FS)), fy = Math.max(0, Math.min(g.Ht - 1.001, y / TILE * R3_FS));
+    const ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy, H = g.H, i = iy * g.W + ix;
+    return ((H[i] * (1 - tx) + H[i + 1] * tx) * (1 - ty) + (H[i + g.W] * (1 - tx) + H[i + g.W + 1] * tx) * ty) * R3_LEVEL;
 }
 function makeChunk(scene, cx, cy) {
     const cv = document.createElement('canvas');
     cv.width = R3_CHUNKPX; cv.height = R3_CHUNKPX;
-    const ctx = cv.getContext('2d');
+    // (its pixels are read back after painting, to see what was drawn over the ground)
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
     ctx.imageSmoothingEnabled = false;
     const tex = new THREE.CanvasTexture(cv);
     tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.generateMipmaps = true; tex.anisotropy = 4;
-    const mat = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.02, color: 0xd8d8d8 }), { key: 'groundw', uniforms: { uWater: { value: r3WaterMap() }, uWsz: { value: new THREE.Vector2(W0.w, W0.h) } }, fhead: R3_WATER_HEAD, fend: R3_WATER_GLSL });
+    const D = r3Detail(), kinds = r3KindsTex();
+    const mat = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.02, color: 0xd8d8d8 }), { key: 'groundw', derivatives: true,
+        uniforms: { uWater: { value: r3WaterMap() }, uWsz: { value: new THREE.Vector2(W0.w, W0.h) }, uKinds: { value: kinds }, uDetA: { value: D.a }, uDetB: { value: D.b },
+            uPal: { value: r3Palette(G.area && G.area.bgSeason || Clock.season()) }, uDetOn: R3U.uDetOn },
+        fhead: R3_WATER_HEAD + R3_GROUND_HEAD, fmap: R3_GROUND_GLSL, fend: R3_WATER_GLSL });
     const s = R3_CHUNK / TILE;
-    const geo = new THREE.PlaneGeometry(s, s * R3_ZS, s, s);
+    const geo = new THREE.PlaneGeometry(s, s * R3_ZS, s * R3_FS, s * R3_FS);
     geo.rotateX(-Math.PI / 2);
     const UV = geo.attributes.uv;
     for (let i = 0; i < UV.count; i++) UV.setXY(i, (R3_PAD + UV.getX(i) * R3_CHUNK) / R3_CHUNKPX, (R3_PAD + UV.getY(i) * R3_CHUNK) / R3_CHUNKPX);
-    // raised where the island is higher (one vertex per tile corner)
+    // raised where the island is higher (R3_FS vertices a tile)
     const P = geo.attributes.position;
     for (let i = 0; i < P.count; i++) P.setY(i, r3GroundH((cx * s + s / 2 + P.getX(i)) * TILE, (cy * s + s / 2 + P.getZ(i) / R3_ZS) * TILE));
     geo.computeVertexNormals();
@@ -1072,12 +1134,13 @@ function makeChunk(scene, cx, cy) {
     mesh.receiveShadow = true;
     mesh.renderOrder = -2;
     scene.add(mesh);
-    return { cx, cy, cv, ctx, tex, mat, mesh, used: G.frame, stale: false };
+    return { cx, cy, cv, ctx, tex, mat, mesh, kinds, used: G.frame, stale: false };
 }
 function paintChunk(ch, a) {
     const ctx = ch.ctx, x0 = ch.cx * R3_CHUNK - R3_PAD, y0 = ch.cy * R3_CHUNK - R3_PAD, N = R3_CHUNKPX;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (!ch.base || ch.baseOf !== a.bgSeason || ch.partial) { const sg = r3SoftGround(a.bgSeason, x0, y0, N); ch.base = sg.img; ch.partial = !sg.all; ch.baseOf = a.bgSeason; }
+    const of = a.bgSeason + '|' + (S.pathsV || 0);
+    if (!ch.base || ch.baseOf !== of || ch.partial) { const sg = r3SoftGround(a.bgSeason, x0, y0, N); ch.base = sg.img; ch.cls = sg.cls; ch.partial = !sg.all; ch.baseOf = of; }
     if (ch.base) ctx.putImageData(ch.base, 0, 0); else ctx.clearRect(0, 0, N, N);
     drawPaths(ctx, a, { x: x0, y: y0 }, { w: N, h: N });
     ctx.translate(-x0, -y0);
@@ -1086,6 +1149,7 @@ function paintChunk(ch, a) {
         for (const d of a.decals) if (d.x > x0 - 48 && d.x < x0 + N + 48 && d.y > y0 - 16 && d.y < y0 + N + 48) spr(ctx, d.frame, d.x, d.y);
         for (const e of a.ents) if (e.layer === 0 && !e.hidden && e.x > x0 - 64 && e.x < x0 + N + 64 && e.y > y0 - 32 && e.y < y0 + N + 64) drawEnt(ctx, e);
     } finally { R3.drawingCard = false; }
+    if (ch.base && ch.cls) r3ChunkKinds(ch, ch.cls, ch.base);
     ch.tex.needsUpdate = true;
 }
 /* the island picture's borders between grass, dirt, sand and water drawn wavy instead of in tile steps (the art
@@ -1116,7 +1180,7 @@ function r3SoftGround(season, x0, y0, N) {
     const all = Ground.draw(g, season, x0 - M, y0 - M, SW, SW, 0, 0);
     const src = g.getImageData(0, 0, SW, SW).data, out = new ImageData(N, N), dst = out.data;
     const F = r3SoftField(), FS = F.S, grid = W0.grid;
-    const hard = (wx, wy) => { const r = grid[Math.floor(wy / TILE)]; return !r || R3_SOFT.hard.has(r[Math.floor(wx / TILE)]); };
+    const hard = (wx, wy) => { const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE), r = grid[ty]; return !r || R3_SOFT.hard.has(r[tx]) || r3IsRamp(tx, ty); };
     // which tiles are hard, with their neighbours (so nothing is pulled across a cliff's edge)
     const tx0 = Math.floor((x0 - TILE) / TILE), ty0 = Math.floor((y0 - TILE) / TILE), TW = Math.ceil(N / TILE) + 3;
     const nearHard = new Uint8Array(TW * TW);
@@ -1124,6 +1188,14 @@ function r3SoftGround(season, x0, y0, N) {
         let h = 0;
         for (let dj = -1; dj <= 1 && !h; dj++) for (let di = -1; di <= 1 && !h; di++) if (hard((tx0 + i + di) * TILE, (ty0 + j + dj) * TILE)) h = 1;
         nearHard[j * TW + i] = h;
+    }
+    // the kind of ground under each pixel (31a_ground3d.js), from the tile its picture is taken from
+    const KW = Math.ceil(SW / TILE) + 4, kx0 = Math.floor((x0 - M) / TILE) - 1, ky0 = Math.floor((y0 - M) / TILE) - 1, cls = new Uint8Array(N * N);
+    const K = { t: new Uint8Array(KW * KW), wet: new Uint8Array(KW * KW), w: KW, x0: kx0, y0: ky0 };
+    for (let j = 0; j < KW; j++) for (let i = 0; i < KW; i++) {
+        const tx = kx0 + i, ty = ky0 + j, c = r3ClassAt(tx, ty), r = grid[ty], g = r ? r[tx] : '~', k = j * KW + i;
+        K.t[k] = c;
+        K.wet[k] = c !== R3_MAT.keep ? 0 : '~orhW'.includes(g) && !(S && S.paths && S.paths.t[tx + ',' + ty]) ? 1 : 2;
     }
     for (let y = 0; y < N; y++) {
         const wy = y0 + y, fy = ((wy % FS) + FS) % FS, tj = Math.floor(wy / TILE) - ty0;
@@ -1133,11 +1205,12 @@ function r3SoftGround(season, x0, y0, N) {
             if (!nearHard[tj * TW + ti]) { px += F.ox[fi]; py += F.oy[fi]; }
             const si = (py * SW + px) * 4, di = (y * N + x) * 4;
             dst[di] = src[si]; dst[di + 1] = src[si + 1]; dst[di + 2] = src[si + 2]; dst[di + 3] = src[si + 3];
+            cls[y * N + x] = r3KindAt(K, x0 - M + px + 0.5, y0 - M + py + 0.5, src[si], src[si + 1], src[si + 2]);
         }
     }
-    return { img: out, all };
+    return { img: out, all, cls };
 }
-function dropChunk(ch) { R3.scene.remove(ch.mesh); ch.mesh.geometry.dispose(); ch.mat.dispose(); ch.tex.dispose(); }
+function dropChunk(ch) { R3.scene.remove(ch.mesh); ch.mesh.geometry.dispose(); ch.mat.dispose(); ch.tex.dispose(); if (ch.kinds) ch.kinds.dispose(); }
 /* a quick fingerprint of a card's pixels (every 7th one) */
 function cardHash(c) {
     let d;
@@ -1259,8 +1332,9 @@ function r3Volume(e, scene) {
     const xL = X(l), xR = X(r + 1), x0 = X(0), x1 = X(W);
     // the sides wear the wall's own color, row by row (the median across the front, so windows, doors and a barber's pole
     // don't streak along them); then the whole wall's color, for the gable ends and the back; then a darker one for the
-    // roof's underside, which shows where the roof picture is see-through (a shop's flat roof behind its awning and sign)
-    const wh = Math.max(1, ay - top), side = document.createElement('canvas'), SH = wh + 2;
+    // roof's underside, which shows where the roof picture is see-through (a shop's flat roof behind its awning and sign);
+    // then a flat roof's top, a gray touched with the wall's color
+    const wh = Math.max(1, ay - top), side = document.createElement('canvas'), SH = wh + 3;
     side.width = 1; side.height = SH;
     const sg = side.getContext('2d'), sd = sg.createImageData(1, SH), all = [[], [], []];
     for (let y = 0; y < wh; y++) {
@@ -1274,10 +1348,11 @@ function r3Volume(e, scene) {
         const m = all[q].length ? all[q][all[q].length >> 1] : 128;
         sd.data[wh * 4 + q] = Math.round(m * 0.92);
         sd.data[(wh + 1) * 4 + q] = Math.round(m * 0.5 + [96, 92, 100][q] * 0.22);
+        sd.data[(wh + 2) * 4 + q] = Math.round(m * 0.3 + [150, 146, 150][q] * 0.7);
     }
-    sd.data[wh * 4 + 3] = sd.data[(wh + 1) * 4 + 3] = 255;
+    sd.data[wh * 4 + 3] = sd.data[(wh + 1) * 4 + 3] = sd.data[(wh + 2) * 4 + 3] = 255;
     sg.putImageData(sd, 0, 0);
-    const uL = 0.5, uR = 0.5, vWall = 1.5 / SH, vRoof = 0.5 / SH, SV = row => 1 - (Math.max(top, Math.min(ay, row)) - top + 0.5) / SH;
+    const uL = 0.5, uR = 0.5, vWall = 2.5 / SH, vRoof = 1.5 / SH, vFlat = 0.5 / SH, SV = row => 1 - (Math.max(top, Math.min(ay, row)) - top + 0.5) / SH;
     const sideQuads = [];                                                  // which faces wear the side picture
     const front = [0, 0.4, 0.92];                                         // lit a little like the ground, as the cards are
     if (sp.roof != null) {
@@ -1301,14 +1376,14 @@ function r3Volume(e, scene) {
     } else {
         // the whole picture stands at the front (a sign or a pediment rises above the roof line); the roof is flat
         quad([[x0, 0, 0, 0, V(ay)], [x1, 0, 0, 1, V(ay)], [x1, ay * py, 0, 1, 1], [x0, ay * py, 0, 0, 1]], front);
-        const uc = U((l + r) / 2);
-        quad([[xL, Hw, 0, uc, vWall], [xR, Hw, 0, uc, vWall], [xR, Hw, -D, uc, vWall], [xL, Hw, -D, uc, vWall]], [0, 1, 0]);
     }
     // side walls and the back wall
     const s0 = pos.length / 3;
     quad([[xL, 0, -D, uL, SV(ay)], [xL, 0, 0, uL, SV(ay)], [xL, Hw, 0, uL, SV(top)], [xL, Hw, -D, uL, SV(top)]], [-1, 0, 0]);
     quad([[xR, 0, 0, uR, SV(ay)], [xR, 0, -D, uR, SV(ay)], [xR, Hw, -D, uR, SV(top)], [xR, Hw, 0, uR, SV(top)]], [1, 0, 0]);
     quad([[xR, 0, -D, uR, SV(ay)], [xL, 0, -D, uL, SV(ay)], [xL, Hw, -D, uL, SV(top)], [xR, Hw, -D, uR, SV(top)]], [0, 0, -1]);
+    // a flat roof's top (solid: the picture's own pixels up there are mostly see-through)
+    if (sp.roof == null) quad([[xL, Hw, 0, uL, vFlat], [xR, Hw, 0, uR, vFlat], [xR, Hw, -D, uR, vFlat], [xL, Hw, -D, uL, vFlat]], [0, 1, 0]);
     // two meshes: the picture (front, roof, a flat top: see-through where the picture is), and the side color (gable ends,
     // side and back walls: solid)
     const pick = (from, to) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos.slice(from * 3, to * 3), 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv.slice(from * 2, to * 2), 2)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm.slice(from * 3, to * 3), 3)); return g; };

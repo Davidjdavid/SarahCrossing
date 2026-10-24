@@ -24,8 +24,9 @@ docs/DEPLOY.md for the server.
   than editing world.json by hand; the same seed always makes the same island. Higher ground is always north of its
   edge (cliffs face south, east or west) and doors are on a building's south side. `--preview out.png` draws a quick
   map of the layout, `--png out.png` the painted ground, without touching game/. Moving things on the island means old
-  saves need a `migrate()` step (map 5 is this island: progress stays, what was laid out on the old island's ground
-  starts fresh and Sarah's things come back).
+  saves need a `migrate()` step (map 6 is this island, map 5 the same before its shops moved into two rows along an
+  alley: progress stays, what was laid out on the old island's ground starts fresh and Sarah's things come back).
+  Raised ground ends at the sea in a rim nobody walks on (in 3D the sea cliff stands there).
 - The Town Hall, Post Office and Bank (`24b_civic.js`) are signs for now, with stand-in pictures until their art.
 - **Old saves must always load.** Sarah's island came from the one-page game and lives on the
   server; any change to the shape of `S` needs a step in `migrate()` that upgrades older saves.
@@ -45,8 +46,9 @@ docs/DEPLOY.md for the server.
   version in `HD_SPR[name]` (exactly 3x the old frame and anchor): `spr()` uses it in HD cards.
 - Buildings are real shapes wearing their HD picture (`r3Volume`; windows glow at night from the house
   look or the shop picture's `wins`); the island's height levels stand up as plateaus with cliffs
-  (`r3GroundH`); water moves and, on computers, reflects (`R3Mirror`); the grass is greener than the
-  flat art and its borders wavy (`R3_GRASS`, `r3SoftGround`); tufts, lily pads and cattails are
+  (`r3GroundH`, on a grid three points a tile, the sea cliffs along a smooth outline: `r3Fine`); water moves and, on
+  computers, reflects (`R3Mirror`); the ground up close is fine pixel art by kind (grass, dirt, cobbles, sand, stone
+  walls on anything steep, stairs: `31a_ground3d.js`) where the painted picture would smear; tufts, lily pads and cattails are
   instanced meshes refilled as the view moves. Tune the camera, bend and haze in `R3_CAM` / `R3_FOG`.
 - Houses and `HD_SPR` pictures are drawn by a worker (`HDW` in 32_hd.js; the build makes
   `assets/hdw-*.js` from 2b_exterior.js and the 32*.js files, so those files must not touch the page

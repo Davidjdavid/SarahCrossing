@@ -81,8 +81,17 @@ class Island {
         let v;
         if (x <= P[0][0]) v = P[0][1]; else if (x >= P[P.length - 1][0]) v = P[P.length - 1][1];
         else { let i = 0; while (P[i + 1][0] < x) i++; const t = (x - P[i][0]) / (P[i + 1][0] - P[i][0]), s = t * t * (3 - 2 * t); v = P[i][1] + (P[i + 1][1] - P[i][1]) * s; }
-        b[x] = Math.round(v + (n(x / 7, 0.5) * 1.1 + n(x / 19, 4.5) * 1.4) * ro);
-        if (x > lv.x0 && !lv.steep) b[x] = Math.max(b[x - 1] - 2, Math.min(b[x - 1] + 2, b[x]));
+        b[x] = Math.round(v + (n(x / 13, 0.5) * 0.8 + n(x / 31, 4.5) * 1.5) * ro);
+        if (x > lv.x0 && !lv.steep) b[x] = Math.max(b[x - 1] - 1, Math.min(b[x - 1] + 1, b[x]));
+      }
+      // no little teeth: a step in the edge holds for at least four columns (in 3D every step is a corner in the wall)
+      if (!lv.steep) for (let pass = 0; pass < 3; pass++) {
+        let x = lv.x0;
+        while (x <= lv.x1) {
+          let e = x; while (e + 1 <= lv.x1 && b[e + 1] === b[x]) e++;
+          if (e - x + 1 < 4 && x > lv.x0 && e < lv.x1) { const to = b[x - 1]; for (let i = x; i <= e; i++) b[i] = to; }
+          x = e + 1;
+        }
       }
       return { L: lv.L, b };
     });
@@ -116,6 +125,14 @@ class Island {
   raise() {
     this.lvl.fill(0); this.face.fill(0);
     for (const e of this.edges) for (let x = 0; x < W; x++) for (let y = 0; y <= e.b[x] && y < H; y++) { const k = this.i(x, y); if (this.land[k] && this.lvl[k] < e.L) this.lvl[k] = e.L; }
+    // a slot of low ground three columns wide or less between two higher pieces is filled in (nobody could get into it,
+    // and in 3D it's a crack between two walls)
+    for (let y = 0; y < H; y++) for (let x = 1; x < W - 1; x++) {
+      const k = this.i(x, y); if (!this.land[k] || this.lvl[k] >= this.lvl[k - 1]) continue;
+      let e = x; while (e + 1 < W && e - x < 3 && this.land[k + e + 1 - x] && this.lvl[k + e + 1 - x] === this.lvl[k]) e++;
+      const r = this.i(e + 1, y);
+      if (e - x < 3 && e + 1 < W && this.land[r] && this.lvl[r] > this.lvl[k]) { const to = Math.min(this.lvl[k - 1], this.lvl[r]); for (let i = x; i <= e; i++) this.lvl[this.i(i, y)] = to; }
+    }
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const k = this.i(x, y); if (!this.land[k]) continue; const h = this.lvl[k];
       if (this.isLand(x, y - 1) && this.L(x, y - 1) > h) this.face[k] = 1;
@@ -161,9 +178,10 @@ class Island {
     for (let k = 0; k < W * H; k++) {
       if (!this.land[k]) { this.ter[k] = SEA; this.coll[k] = 1; continue; }
       const l = this.lvl[k];
-      // beaches on the low ground; raised land meets the sea with a rim of rock (a little sea cliff)
+      // beaches on the low ground; raised land meets the sea with a rock rim on the flat map
       this.ter[k] = sand[k] || (l === 0 && this.landD[k] <= 14) ? 's' : this.landD[k] <= 1 ? 'm' : 'g';
-      if (this.face[k]) this.coll[k] = 1;
+      // (in 3D that rim is where the sea cliff stands, so nobody walks on it)
+      if (this.face[k] || (l > 0 && this.landD[k] <= 1)) this.coll[k] = 1;
     }
     for (const [x, y] of this.ramps) { const k = this.i(x, y); this.ter[k] = 'd'; this.coll[k] = 0; }
     for (const w of this.waterfalls) for (const [x, y] of w.tiles) { const k = this.i(x, y); this.ter[k] = 'W'; this.coll[k] = 1; this.occ[k] = 1; }

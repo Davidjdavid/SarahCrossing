@@ -6,7 +6,7 @@ let S = null;
 function newState() {
     const seed = Math.random().toString(36).slice(2, 10);
     return {
-        v: 1, mapV: 5, seed, created: Date.now(), started: false,
+        v: 1, mapV: 6, seed, created: Date.now(), started: false,
         islandName: '', birthday: null,
         money: 800,
         pocket: new Array(20).fill(null),
@@ -113,11 +113,11 @@ function migrate(st) {
     // a whole new island, three times the size (map 4): Sarah's progress all comes along (money, her things, her house,
     // friends, unlocks, days played). What was laid out on the old island's ground starts fresh; anything of hers that
     // was out on it (things set down, displays, flowers and trees she planted) waits in her storage, with a letter.
-    // a new island (map 4 was the first big one, on the beta site only; map 5 is Harbor Square): progress stays, what was
-    // laid out on the old island's ground comes back to storage
-    if (st.mapV === 3 || st.mapV === 4) {
+    // a new island (map 4 was the first big one, on the beta site only; map 5 is Harbor Square, map 6 the same with its
+    // shops in two rows along an alley): progress stays, what was laid out on the old island's ground comes back to storage
+    if (st.mapV === 3 || st.mapV === 4 || st.mapV === 5) {
         const from = st.mapV;
-        st.mapV = 5;
+        st.mapV = 6;
         delete st.explored; delete st.places;
         const back = {}, give = (id, n) => { if (id && ITEMS[id]) back[id] = (back[id] || 0) + (n || 1); };
         for (const d of st.drops || []) if (!d.area || d.area === 'island') give(d.id);
@@ -135,10 +135,15 @@ function migrate(st) {
         if (st.player.area === 'island') { st.player.x = (W0.spots.plaza.x + 0.5) * TILE; st.player.y = (W0.spots.plaza.y + 2.6) * TILE; }
         if (st.started) {
             const n = Object.values(back).reduce((a, b) => a + b, 0);
-            st.mail.push({ id: st.mailSeq++, from: 'ginger', subject: from === 4 ? 'We rebuilt it again!' : 'The island grew!', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
+            const stuff = n ? `\n\nAnything you'd left out on the ground (${n} thing${n === 1 ? '' : 's'}) is waiting in your storage.` : '';
+            if (from === 5) st.mail.push({ id: st.mailSeq++, from: 'ginger', subject: 'The shops moved!', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
+                body: 'Sarah! The crew and I moved the shops off the square. They\'re in two rows just east of it now, with a little alley between them: '
+                    + 'Clementine\'s, the salon, Sully\'s studio and Waffle\'s open on the alley, and Mac\'s, the arcade, the club and my workshop on Market Lane. '
+                    + 'The square has a lot more room to breathe.' + stuff + '\n- Ginger' });
+            else st.mail.push({ id: st.mailSeq++, from: 'ginger', subject: from === 4 ? 'We rebuilt it again!' : 'The island grew!', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
                 body: (from === 4 ? 'Sarah! Don\'t be mad. The crew and I rebuilt the island one more time, and this time it\'s right.\n\n'
                     : 'Sarah! Big news. Really big. The crew and I rebuilt the whole island, and it\'s a lot bigger now.\n\n')
-                    + 'There\'s a proper town square with a Town Hall, a Post Office and a Bank (I\'m still finishing the insides), shops all round it, '
+                    + 'There\'s a proper town square with a Town Hall, a Post Office and a Bank (I\'m still finishing the insides), two rows of shops along an alley next to it, '
                     + 'a farm up the hill, a forest with trails that loop, a campsite, and a mountain with a trail all the way up to the lookout. '
                     + 'Your house, your things and all your friends came along on the boat.'
                     + (n ? `\n\nAnything you'd left out on the old island's ground (${n} thing${n === 1 ? '' : 's'}) is waiting in your storage.` : '')

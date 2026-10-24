@@ -170,13 +170,21 @@ function seeThrough(e) {
     return Math.round(e.seeF * 50) / 50;
 }
 /* how see-through something should be with Sarah where she is: trees, statues, tents and buildings she's behind */
+/* how tall a building's picture stands above its door line (world pixels) */
+function bldTall(e) {
+    if (e._tall != null && e._tallOf === e.frame) return e._tall;
+    const fr = Assets.frames[e.frame], dy = Assets.dyn[e.frame];
+    e._tallOf = e.frame;
+    return (e._tall = fr ? fr[5] : dy ? dy.ay : e.b.h * TILE);
+}
 function seeThroughWant(e) {
     const p = G.player;
     if (!p || p.hidden) return 1;
     const k = e.kind;
     if (k === 'building' && e.b) {
-        const b = e.b, half = b.w * TILE / 2 + 6;
-        return p.y < e.y - 2 && p.y > e.y - b.h * TILE - 36 && Math.abs(p.x - e.x) < half ? 0.5 : 1;
+        // (in 3D a building stands up and hides more of the ground behind it: about 1.6 times its picture's height)
+        const b = e.b, half = b.w * TILE / 2 + 6, deep = Math.max(b.h * TILE + 36, R3.drawingCard || R3.active() ? bldTall(e) * 1.6 + 16 : 0);
+        return p.y < e.y - 2 && p.y > e.y - deep && Math.abs(p.x - e.x) < half ? 0.5 : 1;
     }
     if (k === 'tent') return p.y < e.y && p.y > e.y - 40 && Math.abs(p.x - e.x) < 26 ? 0.5 : 1;
     if (!(k === 'tree' || k === 'fruittree' || k === 'bigtree' || k === 'oldtree' || k === 'statue' || k === 'palm')) return 1;

@@ -103,7 +103,7 @@ test('a save code from the old game comes in as an island, and plays', async () 
   assert.equal(await page.textContent('#money'), '12,345');
   // it's on the new, bigger island, with a letter about it
   const moved = await page.evaluate(() => ({ mapV: S.mapV, letter: S.mail.some((m) => m.from === 'ginger' && /grew/.test(m.subject)), w: G.areas.island.w }));
-  assert.deepEqual(moved, { mapV: 5, letter: true, w: JSON.parse(fs.readFileSync(path.join(ROOT, 'game/assets/world.json'), 'utf8')).w });
+  assert.deepEqual(moved, { mapV: 6, letter: true, w: JSON.parse(fs.readFileSync(path.join(ROOT, 'game/assets/world.json'), 'utf8')).w });
   // the handmade frog pot from the old game is still a real item
   const pots = await page.evaluate(() => S.pocket.filter((s) => s && /^pot/.test(s.id)).length + Object.keys(S.storage).filter((k) => /^pot/.test(k)).length);
   assert.ok(pots >= 1, 'the handmade pot came along');
@@ -134,7 +134,7 @@ test('the island grew: a save from the smaller island keeps everything, and what
       at: [Math.round(m.player.x / TILE), Math.round(m.player.y / TILE)], plaza: [W0.spots.plaza.x, W0.spots.plaza.y], friend: m.npcs.joe.pts, house: m.house.level + ':' + m.house.items.length,
       letter: m.mail.filter((x) => x.from === 'ginger').map((x) => /2 things|5 things/.test(x.body) ? 'count' : x.body) };
   });
-  assert.equal(r.mapV, 5);
+  assert.equal(r.mapV, 6);
   assert.equal(r.money, 6000, 'the buried sand dollars come back');
   assert.deepEqual(r.storage, { peach: 2, [r.disp]: 1, seed_fl_tulip: 1, apple: 1, sapling: 1 });
   assert.deepEqual(r.drops, [{ id: 'apple', x: 10, y: 10, area: 'home' }], "what's indoors stays where it was");
@@ -143,6 +143,13 @@ test('the island grew: a save from the smaller island keeps everything, and what
   assert.equal(r.friend, 100);
   assert.equal(r.house, '2:1');
   assert.deepEqual(r.letter, ['count']);
+  // a save from Harbor Square before its shops moved into two rows (map 5): the same, with a shorter letter
+  const r5 = await page.evaluate(() => {
+    const st = Object.assign(newState(), { mapV: 5, started: true, storage: {}, deco: { moved: {}, gone: {}, placed: [{ id: Object.keys(DISPLAYS)[0], x: 5, y: 5, text: '' }] } });
+    const m = migrate(st);
+    return { mapV: m.mapV, deco: m.deco === undefined, stored: Object.values(m.storage).reduce((a, b) => a + b, 0), letter: m.mail.map((x) => x.subject) };
+  });
+  assert.deepEqual(r5, { mapV: 6, deco: true, stored: 1, letter: ['The shops moved!'] });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
@@ -520,7 +527,7 @@ test('the arcade back room: a hidden mystery from Chili to Sully to the lighthou
   await page.context().close();
 });
 
-test('the island: every spot and door can be walked to (the mountain, the forest loops, the Ridge Trail), the cove only down its stair from the farm, and the square has its Town Hall, Post Office and Bank', async () => {
+test('the island: every spot and door can be walked to (the mountain, the forest loops, the Ridge Trail), no open ground is out of reach, nobody walks off a sea cliff, the cove only down its stair from the farm, the square has its Town Hall, Post Office and Bank, and the shops stand in two rows along an alley', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
   await page.reload();
@@ -544,11 +551,23 @@ test('the island: every spot and door can be walked to (the mountain, the forest
     // the cove: its stair is the only way down (block it and the beach can't be reached)
     const coveStair = W0.ramps.filter(([x, y]) => x >= 15 && x <= 21 && y >= 58 && y <= 63);
     const cove = [16, 65], shut = walk(new Set(coveStair.map(([x, y]) => x + ',' + y)));
-    return { spots, doors, stair: coveStair.length, cove: can(...cove, 1), coveShut: shut(...cove, 1), civic: ['townhall', 'postoffice', 'bank'].map((id) => !!(W0.buildings[id] && Assets.dyn[W0.buildings[id].sprite])),
+    // any open ground can be reached, and raised ground ends at the sea in a rim nobody stands on (in 3D it's the cliff)
+    let pockets = 0, seaEdge = 0;
+    for (let y = 1; y < a.h - 1; y++) for (let x = 1; x < a.w - 1; x++) {
+      if (a.blockedAt(x, y)) continue;
+      if (!can(x, y, 0)) pockets++;
+      if (+W0.height[y][x] > 0 && [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]].some(([dx, dy]) => W0.grid[y + dy][x + dx] === '~')) seaEdge++;
+    }
+    const B = W0.buildings, rowA = ['boutique', 'salon', 'studio', 'displays'], rowB = ['restaurant', 'arcade', 'club', 'builder'];
+    const rows = rowA.every((id) => B[id].y === B.boutique.y) && rowB.every((id) => B[id].y === B.restaurant.y) && B.restaurant.y > B.boutique.y + B.boutique.h;
+    return { pockets, seaEdge, rows, spots, doors, stair: coveStair.length, cove: can(...cove, 1), coveShut: shut(...cove, 1), civic: ['townhall', 'postoffice', 'bank'].map((id) => !!(W0.buildings[id] && Assets.dyn[W0.buildings[id].sprite])),
       cuke: !!W0.buildings.h_cuke, square: ['shop', 'postoffice', 'townhall', 'bank', 'museum'].every((id) => W0.buildings[id].y + W0.buildings[id].h === W0.plaza[1]) };
   });
   assert.deepEqual(r.spots, [], 'every spot the neighbors use can be walked to');
   assert.deepEqual(r.doors, [], 'every door can be walked to');
+  assert.equal(r.pockets, 0, 'no open ground that nobody can get to');
+  assert.equal(r.seaEdge, 0, 'nobody can walk out onto the rim of a sea cliff');
+  assert.ok(r.rows, 'the shops stand in two rows, the alley between them');
   assert.ok(r.stair >= 3 && r.cove && !r.coveShut, `the cove is reached only by its stair from the farm (${JSON.stringify(r)})`);
   assert.deepEqual(r.civic, [true, true, true], 'the Town Hall, the Post Office and the Bank stand on the square, with pictures');
   assert.ok(r.cuke && r.square, 'Cuke has a house; the civic row opens onto the square');
