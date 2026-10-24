@@ -1431,7 +1431,7 @@ function r3Weather() {
         for (const q of Weather.parts) {
             ctx.setTransform(s, 0, 0, s, q.x * s, q.y * s); ctx.rotate(q.p + Math.sin(t / 30 + q.p) * 1.2);
             ctx.fillStyle = pet ? (q.s > 1 ? '#ffd1e1' : '#f7a8c4') : (q.s > 1 ? '#e39a3b' : '#c8702d');
-            ctx.beginPath(); ctx.ellipse(0, 0, pet ? 1.3 : 1.6, (pet ? 0.75 : 0.9) * Math.abs(Math.cos(t / 22 + q.p)) + 0.25, 0, 0, 6.283); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(0, 0, pet ? 1.9 : 2.1, (pet ? 1.1 : 1.2) * Math.abs(Math.cos(t / 22 + q.p)) + 0.35, 0, 0, 6.283); ctx.fill();
         }
     }
     ctx.globalAlpha = 1;
