@@ -561,6 +561,9 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
     await page.evaluate(() => { __dbg.setTime(10, 24, 21.5); __dbg.at('pond'); });
     await page.waitForFunction(() => [...R3.cards.values()].some(c => c.glow && c.glow.emissiveIntensity > 0.3), null, { timeout: 30000 });
     await page.waitForFunction(() => R3.lilies && R3.lilies.mesh.count > 0, null, { timeout: 30000 });
+    // rain is drawn sharp on a canvas of its own at the screen's resolution
+    await page.evaluate(() => { G.weather = 'rain'; });
+    await page.waitForFunction(() => Weather.kind === 'rain' && R3.wxOn && getComputedStyle(R3.wx).display === 'block', null, { timeout: 20000 });
     await page.evaluate(() => { __dbg.setTime(10, 24, 10.4); __dbg.at('home'); });
     assert.ok(island.err < 1, `a tap lands where it points (off by ${island.err})`);
     // people, neighbors and props have HD art: every outfit, frame, hair style and accessory draws, and Sarah's card has

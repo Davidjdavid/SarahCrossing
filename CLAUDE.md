@@ -40,6 +40,9 @@ docs/DEPLOY.md for the server.
   `assets/hdw-*.js` from 2b_exterior.js and the 32*.js files, so those files must not touch the page
   at load time). Until a picture arrives the card shows today's sprite. `hdNamed(name, true)` draws
   at once on the main thread (tests, sheets).
+- What the flat view draws over the world (effects, emotes, sky things) goes on the overlay canvas, placed with
+  `R3.project` / `R3.localTransform`; anything drawn with `G.cam` would land in the wrong place. The weather and the
+  lighthouse beam are drawn sharp on `R3.wx`, a canvas at the screen's resolution (`r3Sharp`).
 - While the HD-2D view shows, `body.hd2d` gives the HUD and dialogue the art sample's dark glass and
   serif type (style.css, end).
 - The classic 16x24 art stays the source for menus, icons, the classic view and the flat modes.
