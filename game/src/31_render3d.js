@@ -107,6 +107,9 @@ const R3 = {
         const a = G.area, p = G.player;
         let tx = p.x, ty = p.y - 10;
         if (G.camTarget) { tx = G.camTarget[0]; ty = G.camTarget[1]; }
+        // on an upright phone, look a little ahead (north) so Sarah stands in the lower part of the screen with the world
+        // above her, as in the art sample, rather than over a half-screen of ground at her feet
+        else if (this.camera.aspect < 1) ty -= (1 - this.camera.aspect) * R3_CAM.lead * TILE;
         if (a.interior) { tx = a.w * TILE / 2; ty = (a.floor.y0 + a.floor.h * 0.55) * TILE; }
         const X = tx / TILE, Z = ty / TILE * R3_ZS, GH = a.interior ? 0 : r3GroundH(tx, ty + 10);
         if (snap || this.areaId !== a.id) { this.target.x = X; this.target.z = Z; this.camH = GH; }
@@ -515,7 +518,7 @@ const R3 = {
     },
 };
 /* the camera: a little steeper indoors so the back wall shows; the world bends away after a few tiles */
-const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.0042 };
+const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.0042, lead: 4 };
 const R3_FAR = { phone: 17, full: 27 };     // tiles ahead that get drawn (at the normal zoom)
 const R3_FOG = { col: [0.6, 0.77, 0.92], near: 0.6, far: 0.98 };     // a clear blue haze far off, like the sky behind it
 const R3_ZS = 1.25;         // the flat art is drawn for a steeper view: stretch the ground a little in depth
