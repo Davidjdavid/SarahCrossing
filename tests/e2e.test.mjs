@@ -552,6 +552,9 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
     });
     assert.equal(island.shown, 'block');
     assert.ok(island.glass, 'the HUD and dialogue wear the HD-2D look');
+    // big pictures are drawn by the worker (off the main thread), and arrive
+    await page.waitForFunction(() => HDW.w && HDW.n > 5 && HDW.pend.size === 0, null, { timeout: 60000 });
+    assert.equal(await page.evaluate(() => HDW.failed), false, 'the HD worker kept going');
     assert.ok(island.err < 1, `a tap lands where it points (off by ${island.err})`);
     // people, neighbors and props have HD art: every outfit, frame, hair style and accessory draws, and Sarah's card has
     // three pixels to one (any error drawing them shows up in problems)

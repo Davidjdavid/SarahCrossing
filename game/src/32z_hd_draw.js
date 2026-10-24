@@ -145,14 +145,16 @@ function hdWarm() {
         for (const d of dirs) { for (let i = 0; i < 8; i++) hdWarm.list.push(`${d}:walk:${i}`); for (let i = 0; i < 4; i++) hdWarm.list.push(`${d}:idle:${i}:0`); for (let i = 0; i < 6; i++) hdWarm.list.push(`${d}:run:${i}`); }
         hdWarm.list.face = face;
     }
+    // the remastered things here, nearest first, sent to the worker a few at a time (when it's running)
+    const a = G.area, p = G.player;
+    if (hdWarm.area !== a) { hdWarm.area = a; hdWarm.todo = [...new Set(a.ents.filter(e => e.frame && HD_SPR[e.frame]).sort((q, r) => Math.hypot(q.x - p.x, q.y - p.y) - Math.hypot(r.x - p.x, r.y - p.y)).map(e => e.frame))]; }
+    if (HDW.w) while (HDW.pend.size < 3 && hdWarm.todo.length) { const nm = hdWarm.todo.shift(); if (!HD_CACHE.has('s|' + nm)) HDW.use('s|' + nm, 'spr', nm); }
     // her frames and the things around her take turns, while there's drawing time left this frame
     if (!hdBudget()) return;
     if (G.frame % 4 === 0) while (hdWarm.i < hdWarm.list.length) { const k = hdWarm.list[hdWarm.i++]; if (!HD_CACHE.has('p|' + k + '|0|' + key)) { hdPersonFrame(sp, k, false); return; } }
     const n = NPCs.here().find(n => !n.hidden && !n.def.human && HD_NPC[n.def.sprite] && !HD_CACHE.has(`n|${n.def.sprite}|1|${npcWearing(n.id) || ''}|0`));
     if (n) { hdNpcFrame(n.def.sprite, 1, npcWearing(n.id)); return; }
-    // then the remastered things here, nearest first, before they come into view
-    const a = G.area;
-    if (hdWarm.area !== a) { hdWarm.area = a; const p = G.player; hdWarm.todo = [...new Set(a.ents.filter(e => e.frame && HD_SPR[e.frame]).sort((q, r) => Math.hypot(q.x - p.x, q.y - p.y) - Math.hypot(r.x - p.x, r.y - p.y)).map(e => e.frame))]; }
-    const nm = hdWarm.todo && hdWarm.todo.shift();
+    // then (with no worker) the remastered things here, nearest first, before they come into view
+    const nm = !HDW.w && hdWarm.todo.shift();
     if (nm) hdNamed(nm, true);
 }

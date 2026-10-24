@@ -49,11 +49,16 @@ test('the game code is game/src joined in file-name order, and is valid JavaScri
 test('the data script holds the sprites, world and game data, and points at the pictures', () => {
   const window = {};
   new Function('window', fs.readFileSync(path.join(dist, asset(/src="(assets\/data-[^"]+)"/)), 'utf8'))(window);
-  assert.deepEqual(Object.keys(window).sort(), ['ATLAS_JSON', 'ATLAS_PNG', 'GAMEDATA', 'GROUND_PAL', 'GROUND_PNG', 'WORLD_JSON']);
+  assert.deepEqual(Object.keys(window).sort(), ['ATLAS_JSON', 'ATLAS_PNG', 'GAMEDATA', 'GROUND_PAL', 'GROUND_PNG', 'HDW_JS', 'WORLD_JSON']);
   for (const k of ['ATLAS_PNG', 'GROUND_PNG']) {
     const png = fs.readFileSync(path.join(dist, window[k]));
     assert.equal(png.subarray(1, 4).toString(), 'PNG', k);
   }
+  // the HD drawing worker: the house looks and the 32*.js files, a script that parses
+  const hdw = path.join(dist, window.HDW_JS);
+  assert.match(window.HDW_JS, /^assets\/hdw-[0-9a-f]{10}\.js$/);
+  execFileSync(process.execPath, ['--check', hdw]);
+  assert.ok(fs.readFileSync(hdw, 'utf8').includes('HD_SPR'));
   assert.deepEqual(window.GAMEDATA, JSON.parse(fs.readFileSync(path.join(ROOT, 'game/assets/gamedata.json'), 'utf8')));
   assert.ok(window.ATLAS_JSON.sarah_crimson_down_stand);
   assert.equal(window.WORLD_JSON.grid.length, window.WORLD_JSON.h);

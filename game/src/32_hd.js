@@ -243,17 +243,71 @@ function hdNamed(name, now) {
     if (name.charCodeAt(0) === 104 && name.startsWith('hx_') && typeof hdHouseFrame === 'function') {
         const x = Assets.dyn[name];
         if (!x || !x.key) return null;
-        if (!now && !HD_CACHE.has('h|' + x.key) && !hdBudget()) return null;
+        if (!now && !HD_CACHE.has('h|' + x.key) && (HDW.use('h|' + x.key, 'house', x.key) || !hdBudget())) return null;
         return hdHouseFrame(x.key);
     }
     const d = HD_SPR[name];
     if (d) {
         // not drawn yet and this frame's drawing time is spent: today's sprite for now (the card is redrawn soon)
-        if (!now && !HD_CACHE.has('s|' + name) && !hdBudget()) return null;
-        return hdCached('s|' + name, () => { const s = new HDSprite(d.w, d.h); d.draw(s); return { c: s.canvas(), w: d.w, h: d.h, ax: d.ax, ay: d.ay }; });
+        if (!now && !HD_CACHE.has('s|' + name) && (HDW.use('s|' + name, 'spr', name) || !hdBudget())) return null;
+        return hdCached('s|' + name, () => { const s = hdSprSprite(name); return { c: s.canvas(), w: d.w, h: d.h, ax: d.ax, ay: d.ay }; });
     }
     const m = /^([a-z]+)_([01])$/.exec(name);
     return m && HD_NPC[m[1]] ? hdNpcFrame(m[1], m[2] === '1') : null;
+}
+function hdSprSprite(name) { const d = HD_SPR[name], s = new HDSprite(d.w, d.h); d.draw(s); return s; }
+
+/* ---------------------------------------------------------------- big pictures drawn off the main thread */
+/* the houses and remastered props (a shop takes tens of milliseconds to draw, more on a phone) are drawn by a worker
+   running this same drawing code (the build makes it: assets/hdw-*.js), so walking somewhere new never waits for them:
+   until a picture arrives, the card shows today's sprite (a building waits a moment). Without workers, or for a picture
+   the worker couldn't draw, they're drawn here within the frame's drawing time as before. */
+const HDW = {
+    w: null, failed: false, n: 0, pend: new Map(), keys: new Set(), bad: new Set(),
+    on() {
+        if (this.w) return true;
+        if (this.failed || typeof window === 'undefined' || typeof Worker === 'undefined' || !window.HDW_JS) return false;
+        try {
+            this.w = new Worker(window.HDW_JS);
+            this.w.onmessage = e => this.got(e.data);
+            this.w.onerror = e => { console.error('HD worker stopped', e.message || e); this.stop(); };
+            this.w.postMessage({ init: true, GD: GD, LOOK_DEFAULT: LOOK_DEFAULT });
+            return true;
+        } catch (e) { console.error('no HD worker', e); this.failed = true; this.w = null; return false; }
+    },
+    stop() { if (this.w) this.w.terminate(); this.w = null; this.failed = true; this.pend.clear(); this.keys.clear(); },
+    /* sent to the worker (or already on its way): the caller shows today's sprite for now */
+    use(key, kind, arg) {
+        if (this.bad.has(key) || !this.on()) return false;
+        if (!this.keys.has(key)) { const id = ++this.n; this.pend.set(id, key); this.keys.add(key); this.w.postMessage({ id, kind, arg }); }
+        R3.hdPending = true;
+        return true;
+    },
+    got(m) {
+        const key = this.pend.get(m.id);
+        if (key == null) return;
+        this.pend.delete(m.id); this.keys.delete(key);
+        if (!m.buf) { this.bad.add(key); return; }                // (drawn on the main thread next time)
+        const c = hdCanvas(m.w, m.h);
+        c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.buf), m.w, m.h), 0, 0);
+        HD_CACHE.delete(key);
+        hdCached(key, () => ({ c, w: m.w, h: m.h, ax: m.ax, ay: m.ay }));
+    },
+};
+/* the worker's side: draw what's asked and send the pixels back */
+if (typeof document === 'undefined' && typeof importScripts === 'function') {
+    onmessage = e => {
+        const m = e.data;
+        if (m.init) { GD = m.GD; LOOK_DEFAULT = m.LOOK_DEFAULT; return; }
+        try {
+            let s, ax, ay;
+            if (m.kind === 'spr') { const d = HD_SPR[m.arg]; s = hdSprSprite(m.arg); ax = d.ax; ay = d.ay; }
+            else { const L = JSON.parse(m.arg); s = new HDSprite(L.w * 3, L.h * 3); hdH_house(s, L); ax = 3 * Math.floor(L.w / 2); ay = 3 * (L.h - 3); }
+            const buf = new Uint8ClampedArray(s.w * s.h * 4);
+            s.render(buf);
+            postMessage({ id: m.id, w: s.w, h: s.h, ax, ay, buf: buf.buffer }, [buf.buffer]);
+        } catch (err) { postMessage({ id: m.id, err: String(err && err.message || err) }); }
+    };
 }
 /* is there HD art for a sprite name (without drawing it)? */
 function hdHas(name) {

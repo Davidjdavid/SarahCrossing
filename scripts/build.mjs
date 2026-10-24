@@ -10,6 +10,7 @@
 //   assets/style-<hash>.css     game/style.css
 //   assets/atlas-<hash>.png     the sprites
 //   assets/ground-<hash>.png    the island ground (recolored per season in the browser)
+//   assets/hdw-<hash>.js        the HD drawing code again, as a worker (big pictures drawn off the main thread)
 //   build.json                  { version, commit, builtAt }
 //
 // A file's name changes whenever its content does, so browsers can keep the
@@ -46,6 +47,12 @@ const sources = fs
   .sort();
 const code = sources.map((f) => read(`src/${f}`).toString('utf8')).join('');
 const gameJs = emit('game', '.js', code);
+// the HD pictures' drawing code again, as a worker that draws big pictures off the main thread (32_hd.js, HDW): the
+// house looks and every 32*.js file, with stand-ins for the few game globals they touch (G, R3; GD and LOOK_DEFAULT
+// arrive in its first message)
+const hdwFiles = ['2b_exterior.js'].concat(sources.filter((f) => f.startsWith('32')));
+const hdwJs = emit('hdw', '.js', "'use strict';\nconst G = { frame: 0, t: 0 }, R3 = { phone: false, drawingCard: false, hdCard: false, hdPending: false };\nlet GD = null, LOOK_DEFAULT = null;\n"
+  + hdwFiles.map((f) => read(`src/${f}`).toString('utf8')).join(''));
 // three.js (r128, MIT): draws the island in HD-2D where the device has WebGL (31_render3d.js)
 const threeJs = emit('three', '.js', read('vendor/three.min.js'));
 
@@ -55,6 +62,7 @@ const groundPng = emit('ground', '.png', read('assets/ground.png'));
 const data = [
   `window.ATLAS_PNG = ${JSON.stringify(atlasPng)};`,
   `window.GROUND_PNG = ${JSON.stringify(groundPng)};`,
+  `window.HDW_JS = ${JSON.stringify(hdwJs)};`,
   `window.ATLAS_JSON = ${JSON.stringify(readJson('assets/atlas.json'))};`,
   `window.GROUND_PAL = ${JSON.stringify(readJson('assets/ground-palettes.json'))};`,
   `window.WORLD_JSON = ${JSON.stringify(readJson('assets/world.json'))};`,
