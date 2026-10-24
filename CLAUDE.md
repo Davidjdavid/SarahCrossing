@@ -16,15 +16,17 @@ docs/DEPLOY.md for the server.
   `UI.open({title, phone, back, foot})`, `UI.say/ask`, `UI.toast`, `Save.touch()` after changing `S`.
 - `S` is the save (the island's whole state). `newState()` and `migrate()` are in `11_save.js`.
 - The island (`game/assets/world.json` and its ground picture in pieces, `game/assets/ground/`) is made by
-  `node scripts/make-island.mjs`, from `scripts/island/` (`layout.mjs` lays out the coast, heights, districts, roads,
-  buildings, trees and named spots; `paint.mjs` paints the ground with the first island's textures, kept in
-  `scripts/island/source/`). Change the generator and run it again rather than editing world.json by hand; the same
-  seed always makes the same island. `--preview out.png` draws a quick map of the layout, `--png out.png` the painted
-  ground, without touching game/. Moving things on the island means old saves need a `migrate()` step (map 4 is this
-  island: progress stays, what was laid out on the old island's ground starts fresh and Sarah's things come back).
-- Exploring (`6zx_explore.js`): the island map is clouded until Sarah has been near (`S.explored`, a bitset of 4x4-tile
-  cells), and the generator's `W0.places` are found by going there, some only at night, dawn, in rain, snow or one
-  season (`S.places`); each pays a little and every ten a neighbor sends a gift.
+  `node scripts/make-island.mjs`, from `scripts/island/`: `plan.mjs` is the layout David picked (Harbor Square: the
+  coast, each level's edge, rivers, ponds, the square, every path and trail, buildings, props and the neighbors' spots,
+  in tiles), `layout.mjs` turns it into tiles (cliffs, stairs where a path crosses one, waterfalls, straight bridges,
+  trees and flowers) and checks every door, staircase and spot can be walked to from the pier, `paint.mjs` paints the
+  ground with the first island's textures, kept in `scripts/island/source/`. Change the plan and run it again rather
+  than editing world.json by hand; the same seed always makes the same island. Higher ground is always north of its
+  edge (cliffs face south, east or west) and doors are on a building's south side. `--preview out.png` draws a quick
+  map of the layout, `--png out.png` the painted ground, without touching game/. Moving things on the island means old
+  saves need a `migrate()` step (map 5 is this island: progress stays, what was laid out on the old island's ground
+  starts fresh and Sarah's things come back).
+- The Town Hall, Post Office and Bank (`24b_civic.js`) are signs for now, with stand-in pictures until their art.
 - **Old saves must always load.** Sarah's island came from the one-page game and lives on the
   server; any change to the shape of `S` needs a step in `migrate()` that upgrades older saves.
   `tests/fixtures/` has saves made by the one-page game; the end-to-end tests import them.

@@ -103,7 +103,7 @@ test('a save code from the old game comes in as an island, and plays', async () 
   assert.equal(await page.textContent('#money'), '12,345');
   // it's on the new, bigger island, with a letter about it
   const moved = await page.evaluate(() => ({ mapV: S.mapV, letter: S.mail.some((m) => m.from === 'ginger' && /grew/.test(m.subject)), w: G.areas.island.w }));
-  assert.deepEqual(moved, { mapV: 4, letter: true, w: JSON.parse(fs.readFileSync(path.join(ROOT, 'game/assets/world.json'), 'utf8')).w });
+  assert.deepEqual(moved, { mapV: 5, letter: true, w: JSON.parse(fs.readFileSync(path.join(ROOT, 'game/assets/world.json'), 'utf8')).w });
   // the handmade frog pot from the old game is still a real item
   const pots = await page.evaluate(() => S.pocket.filter((s) => s && /^pot/.test(s.id)).length + Object.keys(S.storage).filter((k) => /^pot/.test(k)).length);
   assert.ok(pots >= 1, 'the handmade pot came along');
@@ -134,7 +134,7 @@ test('the island grew: a save from the smaller island keeps everything, and what
       at: [Math.round(m.player.x / TILE), Math.round(m.player.y / TILE)], plaza: [W0.spots.plaza.x, W0.spots.plaza.y], friend: m.npcs.joe.pts, house: m.house.level + ':' + m.house.items.length,
       letter: m.mail.filter((x) => x.from === 'ginger').map((x) => /2 things|5 things/.test(x.body) ? 'count' : x.body) };
   });
-  assert.equal(r.mapV, 4);
+  assert.equal(r.mapV, 5);
   assert.equal(r.money, 6000, 'the buried sand dollars come back');
   assert.deepEqual(r.storage, { peach: 2, [r.disp]: 1, seed_fl_tulip: 1, apple: 1, sapling: 1 });
   assert.deepEqual(r.drops, [{ id: 'apple', x: 10, y: 10, area: 'home' }], "what's indoors stays where it was");
@@ -520,32 +520,44 @@ test('the arcade back room: a hidden mystery from Chili to Sully to the lighthou
   await page.context().close();
 });
 
-test('exploring the big island: the map is clouded until Sarah has been there, and places are found by going (some only at night)', async () => {
+test('the island: every spot and door can be walked to (the mountain, the forest loops, the Ridge Trail), the cove only down its stair from the farm, and the square has its Town Hall, Post Office and Bank', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
   await page.reload();
   await title(page);
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
-  await page.evaluate(() => { UI.say = async () => {}; __dbg.setTime(5, 12, 11); G.weather = 'sunny'; });
-  const visit = (id) => page.evaluate((id) => { const p = W0.places.find((q) => q.id === id); __dbg.teleport('island', p.x, p.y, 'down'); }, id);
-  const before = await page.evaluate(() => ({ seen: Explore.share(), found: Explore.count(), money: S.money, places: W0.places.length, night: W0.places.filter((p) => p.when === 'night').length }));
-  assert.ok(before.places >= 30 && before.night >= 2, `the island has places to find (${before.places}, ${before.night} by night)`);
-  await visit('summit');
-  await page.waitForFunction(() => Explore.found('summit'), null, { timeout: 20000 });
-  await visit('fairyring');
-  await page.waitForTimeout(1500);
-  assert.equal(await page.evaluate(() => Explore.found('fairyring')), false, "the fairy ring can't be found by day");
-  await page.evaluate(() => __dbg.setTime(5, 12, 22.5));
-  await page.waitForFunction(() => Explore.found('fairyring'), null, { timeout: 20000 });
-  const after = await page.evaluate(() => { Save.write(true); return { seen: Explore.share(), found: Explore.count(), money: S.money, kept: S.explored.length > 0, places: Object.keys(S.places) }; });
-  assert.ok(after.seen > before.seen, 'walking about clears the clouds');
-  assert.ok(after.found >= before.found + 2 && after.places.includes('summit') && after.places.includes('fairyring'));
-  assert.ok(after.money >= before.money + 600, 'finding places pays (more for the night-only ones)');
-  assert.ok(after.kept, 'what Sarah has seen is kept in the save');
-  // the map shows the count and only what she's seen
+  const r = await page.evaluate(() => {
+    // walk the island as the game blocks it (ground, buildings, props, trees), from the square
+    const a = G.areas.island, walk = (blocked) => {
+      const seen = new Uint8Array(a.w * a.h), st = [[W0.spots.plaza.x, W0.spots.plaza.y]];
+      seen[W0.spots.plaza.y * a.w + W0.spots.plaza.x] = 1;
+      while (st.length) {
+        const [x, y] = st.pop();
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy, k = ny * a.w + nx; if (!seen[k] && !a.blockedAt(nx, ny) && !blocked.has(nx + ',' + ny)) { seen[k] = 1; st.push([nx, ny]); } }
+      }
+      return (x, y, r) => { for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (seen[(y + dy) * a.w + x + dx]) return true; return false; };
+    };
+    const can = walk(new Set());
+    const spots = Object.entries(W0.spots).filter(([, s]) => !can(s.x, s.y, Math.max(1, s.r))).map(([k]) => k);
+    const doors = Object.entries(W0.buildings).filter(([, b]) => !can(b.x + b.door, b.y + b.h, 0)).map(([k]) => k);
+    // the cove: its stair is the only way down (block it and the beach can't be reached)
+    const coveStair = W0.ramps.filter(([x, y]) => x >= 15 && x <= 21 && y >= 58 && y <= 63);
+    const cove = [16, 65], shut = walk(new Set(coveStair.map(([x, y]) => x + ',' + y)));
+    return { spots, doors, stair: coveStair.length, cove: can(...cove, 1), coveShut: shut(...cove, 1), civic: ['townhall', 'postoffice', 'bank'].map((id) => !!(W0.buildings[id] && Assets.dyn[W0.buildings[id].sprite])),
+      cuke: !!W0.buildings.h_cuke, square: ['shop', 'postoffice', 'townhall', 'bank', 'museum'].every((id) => W0.buildings[id].y + W0.buildings[id].h === W0.plaza[1]) };
+  });
+  assert.deepEqual(r.spots, [], 'every spot the neighbors use can be walked to');
+  assert.deepEqual(r.doors, [], 'every door can be walked to');
+  assert.ok(r.stair >= 3 && r.cove && !r.coveShut, `the cove is reached only by its stair from the farm (${JSON.stringify(r)})`);
+  assert.deepEqual(r.civic, [true, true, true], 'the Town Hall, the Post Office and the Bank stand on the square, with pictures');
+  assert.ok(r.cuke && r.square, 'Cuke has a house; the civic row opens onto the square');
+  // their doors are signs for now
+  const said = await page.evaluate(async () => { const out = []; UI.say = async (who, t) => { out.push(t); }; await enterBuilding('townhall'); await enterBuilding('bank'); return out; });
+  assert.ok(/TOWN HALL/.test(said[0]) && /BANK/.test(said[1]));
+  // no clouds on the map, no places counter
   await page.evaluate(() => BigMap.open());
-  assert.match(await page.textContent('.bm-found'), /\d+ of \d+ places found/);
+  assert.equal(await page.$('.bm-found'), null);
   await page.evaluate(() => BigMap.close());
   assert.deepEqual(page.problems, []);
   await page.context().close();

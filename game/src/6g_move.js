@@ -8,7 +8,8 @@ const ATTACHED = { home: ['mailbox'], club: ['sign_club'] };
 const FRONT_SPOTS = { shop: ['shopfront'], boutique: ['boutiquefront'], arcade: ['arcadefront'], studio: ['studiofront'], restaurant: ['restaurantfront'],
     museum: ['museumfront'], builder: ['builderfront'], club: ['clubfront'], salon: ['salonfront'], displays: ['displaysfront'] };
 const BLD_NAMES = { home: 'your house', shop: "Fortune's shop", boutique: "Clementine's", studio: 'the pottery studio', arcade: 'the arcade', club: 'Club Wasabi',
-    builder: "Ginger's workshop", museum: 'the museum', restaurant: "Mac's", barn: 'the barn', windmill: 'the windmill', salon: 'the salon', displays: "Waffle's shop" };
+    builder: "Ginger's workshop", museum: 'the museum', restaurant: "Mac's", barn: 'the barn', windmill: 'the windmill', salon: 'the salon', displays: "Waffle's shop",
+    townhall: 'the Town Hall', postoffice: 'the Post Office', bank: 'the Bank' };
 function bldName(id) { return BLD_NAMES[id] || (id.startsWith('h_') && NPC_DEFS[id.slice(2)] ? `${NPC_DEFS[id.slice(2)].name}'s house` : id); }
 /* where everything started (world.json), so saved moves can be laid over it */
 const W0_ORIG = { buildings: JSON.parse(JSON.stringify(W0.buildings)), props: W0.props.map(p => Object.assign({}, p)), spots: JSON.parse(JSON.stringify(W0.spots)) };

@@ -60,6 +60,7 @@ async function enterBuilding(id) {
         await UI.say('sign', "CLEMENTINE'S. Open {hours:boutique}. Closed now. The mannequins are resting. They work very hard.");
         return;
     }
+    if (CIVIC_SIGNS[id]) { await UI.say('sign', CIVIC_SIGNS[id]); return; }
     if (ROOMS[id] && ROOMS[id].owner) { await visitHouse(id); return; }
     if (id === 'barn') { await enterRoom('barn'); return; }
     if (!ROOMS[id] && !id.startsWith('h_')) { await UI.say('sign', 'Opening soon! There is a lot of hammering going on inside.'); return; }

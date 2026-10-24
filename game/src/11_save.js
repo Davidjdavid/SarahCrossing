@@ -6,7 +6,7 @@ let S = null;
 function newState() {
     const seed = Math.random().toString(36).slice(2, 10);
     return {
-        v: 1, mapV: 4, seed, created: Date.now(), started: false,
+        v: 1, mapV: 5, seed, created: Date.now(), started: false,
         islandName: '', birthday: null,
         money: 800,
         pocket: new Array(20).fill(null),
@@ -26,7 +26,6 @@ function newState() {
         karaoke: { best: {}, day: -1, trophy: false },
         shops: { shop: { spent: 0, level: 1 }, boutique: { spent: 0, level: 1 } },
         fest: {},
-        explored: '', places: {},
     };
 }
 
@@ -49,7 +48,6 @@ const Save = {
         if (!S || !S.started) return;
         if (!force && !this.dirty) return;
         if (G.mode === 'title' && !this.dirty) return;      // nothing has moved since the island was loaded
-        if (typeof Explore !== 'undefined') Explore.keep();
         if (G && G.player) {
             const p = G.player;
             S.player.area = G.area.id; S.player.x = p.x; S.player.y = p.y; S.player.dir = p.dir;
@@ -115,8 +113,12 @@ function migrate(st) {
     // a whole new island, three times the size (map 4): Sarah's progress all comes along (money, her things, her house,
     // friends, unlocks, days played). What was laid out on the old island's ground starts fresh; anything of hers that
     // was out on it (things set down, displays, flowers and trees she planted) waits in her storage, with a letter.
-    if (st.mapV === 3) {
-        st.mapV = 4;
+    // a new island (map 4 was the first big one, on the beta site only; map 5 is Harbor Square): progress stays, what was
+    // laid out on the old island's ground comes back to storage
+    if (st.mapV === 3 || st.mapV === 4) {
+        const from = st.mapV;
+        st.mapV = 5;
+        delete st.explored; delete st.places;
         const back = {}, give = (id, n) => { if (id && ITEMS[id]) back[id] = (back[id] || 0) + (n || 1); };
         for (const d of st.drops || []) if (!d.area || d.area === 'island') give(d.id);
         st.drops = (st.drops || []).filter(d => d.area && d.area !== 'island');
@@ -133,12 +135,14 @@ function migrate(st) {
         if (st.player.area === 'island') { st.player.x = (W0.spots.plaza.x + 0.5) * TILE; st.player.y = (W0.spots.plaza.y + 2.6) * TILE; }
         if (st.started) {
             const n = Object.values(back).reduce((a, b) => a + b, 0);
-            st.mail.push({ id: st.mailSeq++, from: 'ginger', subject: 'The island grew!', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
-                body: 'Sarah! Big news. Really big. The crew and I rebuilt the whole island, and it\'s about three times the size now.\n\n'
-                    + 'There\'s a mountain with a trail all the way up to a telescope, a forest you could get lost in (please don\'t), a real farm, '
-                    + 'a stone plaza in town, and a river with waterfalls. Your house, your things and all your friends came along on the boat.'
+            st.mail.push({ id: st.mailSeq++, from: 'ginger', subject: from === 4 ? 'We rebuilt it again!' : 'The island grew!', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
+                body: (from === 4 ? 'Sarah! Don\'t be mad. The crew and I rebuilt the island one more time, and this time it\'s right.\n\n'
+                    : 'Sarah! Big news. Really big. The crew and I rebuilt the whole island, and it\'s a lot bigger now.\n\n')
+                    + 'There\'s a proper town square with a Town Hall, a Post Office and a Bank (I\'m still finishing the insides), shops all round it, '
+                    + 'a farm up the hill, a forest with trails that loop, a campsite, and a mountain with a trail all the way up to the lookout. '
+                    + 'Your house, your things and all your friends came along on the boat.'
                     + (n ? `\n\nAnything you'd left out on the old island's ground (${n} thing${n === 1 ? '' : 's'}) is waiting in your storage.` : '')
-                    + '\n\nGo explore. It\'ll take a while.\n- Ginger' });
+                    + '\n\nGo have a look around. Try the Ridge Trail.\n- Ginger' });
         }
     }
     // the final update: glasses get their own slot (so Sarah can wear a hat too), and Joe is always her best friend

@@ -1206,7 +1206,8 @@ function placeCard(c, e, a) {
    a flat roof (arcade, club, museum) is a flat top at that row, with anything above it (signs, the pediment) standing
    up at the front */
 const R3_VOL = { shop: { roof: 28 }, boutique: { roof: 29 }, salon: { roof: 29 }, studio: { roof: 29 }, builder: { roof: 29 }, restaurant: { roof: 31 },
-    displays: { roof: 31 }, barn: { roof: 30 }, arcade: { flat: 12 }, club: { flat: 13 }, museum: { flat: 27 } };
+    displays: { roof: 31 }, barn: { roof: 30 }, arcade: { flat: 12 }, club: { flat: 13 }, museum: { flat: 27 },
+    postoffice: { roof: 28 }, bank: { roof: 29 }, townhall: { flat: 27 } };
 function r3VolSpec(e) {
     if (e.kind !== 'building' || !e.b) return null;
     if (typeof HOUSE_BASE !== 'undefined' && HOUSE_BASE[e.id]) {

@@ -165,9 +165,9 @@ export function paintGround(P, world, srcDir) {
     if (!L) return null;
     const x = X / T, y = Y / T;
     for (const si of L) {
-      const sh = P.shapes[si], dx = (x - sh.cx) / sh.rx, dy = (y - sh.cy) / sh.ry;
+      const sh = P.shapes[si], dx = Math.abs((x - sh.cx) / sh.rx), dy = Math.abs((y - sh.cy) / sh.ry), e = sh.p || 2;
       const wob = sh.kind === 'o' ? sh.n(x / 2, y / 2) * 0.22 : ne(X / 9, Y / 9) * 0.04;
-      if (dx * dx + dy * dy + wob < 1) return sh.kind;
+      if (dx ** e + dy ** e + wob < 1) return sh.kind;
     }
     return null;
   };
@@ -231,14 +231,14 @@ export function paintGround(P, world, srcDir) {
   }
 
   // ---------------------------------------------------------------- copied whole
-  // stairs: grass ones up to the uplands, rock ones up the mountain (3 x 2 tiles)
+  // stairs: grass ones, or rock ones where the ground above is rock (3 x 2 tiles)
   for (const r of P.ramps) {
-    const [sx, sy] = r.L >= 2 ? [124, 25] : [79, 43];
+    const [sx, sy] = ter(r.x, r.y) === 'm' ? [124, 25] : [79, 43];
     for (let j = 0; j < 2; j++) for (let i = 0; i < 3; i++) copyTile(sx + i, sy + j, r.x - 1 + i, r.y + 1 + j);
   }
   // waterfalls (2 x 2)
   for (const f of P.falls) {
-    const [sx, sy] = f.L >= 2 ? [138, 25] : [126, 43];
+    const [sx, sy] = ter(f.x - 1, f.y) === 'm' ? [138, 25] : [126, 43];
     for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) copyTile(sx + i, sy + j, f.x + i, f.y + 1 + j);
   }
   // fields, the hot spring and anything else copied as a block
