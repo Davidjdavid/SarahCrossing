@@ -48,6 +48,7 @@ const R3 = {
             try { coarse = matchMedia('(pointer: coarse)').matches; } catch (e) { /* old browser */ }
             this.phone = coarse || Math.min(screen.width, screen.height) < 600;
             Post3.init(r);
+            Object.assign(R3U, { tRefl: { value: null }, uReflMat: { value: new THREE.Matrix4() }, uRefl: { value: 0 } });
             const scene = new THREE.Scene();
             scene.fog = new THREE.Fog(0xcfe2e8, 40, 140);
             this.scene = scene;
@@ -184,6 +185,7 @@ const R3 = {
             this.updateCards(a);
             R3U.uTime.value = (performance.now() - this.t0) / 1000;
             if (G.frame % (this.phone ? 3 : 2) === 0) this.renderer.shadowMap.needsUpdate = true;
+            R3Mirror.render(this, a);
             Post3.render(this.scene, this.camera, R3U.uTime.value, this.grade);
             this.overlay();
             this.watchSpeed();
@@ -592,8 +594,10 @@ function r3Wall(scene, a) {
     return { cv, ctx, tex, mat, mesh, from: a.bg };
 }
 function r3Sea(scene) {
-    const mat = r3Patch(new THREE.MeshLambertMaterial({ color: 0x2f7fc0 }), { key: 'sea', noCloud: false,
-        fend: 'float sp = step(0.985, r3n(vWp.xz * 1.7 + vec2(uTime * 0.4, uTime * 0.13))); gl_FragColor.rgb += sp * 0.35;' });
+    const mat = r3Patch(new THREE.MeshLambertMaterial({ color: 0x2f7fc0 }), { key: 'sea', noCloud: false, fhead: R3_MIRROR_HEAD,
+        fend: `float sp = step(0.985, r3n(vWp.xz * 1.7 + vec2(uTime * 0.4, uTime * 0.13))); gl_FragColor.rgb += sp * 0.35;
+            vec2 sq = vWp.xz * 1.3 + vec2(uTime * 0.25, uTime * 0.11);
+            ${r3MirrorGlsl('gl_FragColor.rgb', 'vec2((r3n(sq) - 0.5) * 0.3, (r3n(sq + 9.0) - 0.5) * 0.15)', '0.3')}` });
     const geo = new THREE.PlaneGeometry(2400, 2400, 80, 80);
     geo.rotateX(-Math.PI / 2);
     const m = new THREE.Mesh(geo, mat);
@@ -627,6 +631,51 @@ function r3Sky(scene) {
     s.onBeforeRender = () => { s.position.copy(R3.camera.position); };
     scene.add(s);
     return s;
+}
+
+/* ---------------------------------------------------------------- the water's mirror */
+/* on computers (not phones), the trees, houses and people standing by the sea, the ponds and the river show upside down in
+   the water: the scene drawn again from a camera below the surface at a third of the size, every other frame, without the
+   ground and the sea; the water looks it up where each point of it would see (the art sample's trick) */
+const R3Mirror = {
+    rt: null, cam: null, bias: null, n: 0,
+    render(r3, a) {
+        const on = !r3.phone && !a.interior && a.id === 'island' && !r3.stepped;
+        R3U.uRefl.value = on && this.rt ? 1 : 0;
+        if (!on || (this.n++ & 1)) return;
+        const R = r3.renderer, sz = R.getDrawingBufferSize(new THREE.Vector2()), w = Math.max(1, Math.round(sz.x / 3)), h = Math.max(1, Math.round(sz.y / 3));
+        if (!this.rt || this.rt.width !== w || this.rt.height !== h) {
+            if (this.rt) this.rt.dispose();
+            this.rt = new THREE.WebGLRenderTarget(w, h, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+            this.cam = new THREE.PerspectiveCamera();
+            this.bias = new THREE.Matrix4().set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1);
+        }
+        const cam = this.cam, main = r3.camera;
+        cam.copy(main);
+        cam.position.y = -main.position.y;
+        cam.rotation.set(-main.rotation.x, 0, 0);
+        cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+        R3U.uReflMat.value.copy(this.bias).multiply(cam.projectionMatrix).multiply(cam.matrixWorldInverse);
+        // (no ground, sea or grass in the mirror; and the world unbent, as the water's own points are looked up)
+        const hide = [r3.sea]; for (const ch of r3.chunks.values()) if (ch.mesh.visible) hide.push(ch.mesh);
+        if (r3.tufts && r3.tufts.mesh.visible) hide.push(r3.tufts.mesh);
+        for (const m of hide) m.visible = false;
+        const bk = R3U.uBendK.value, was = R.shadowMap.needsUpdate;
+        R3U.uBendK.value = 0; R3U.uRefl.value = 0; R.shadowMap.needsUpdate = false;
+        R.setRenderTarget(this.rt); R.clear(); R.render(r3.scene, cam); R.setRenderTarget(null);
+        R3U.uBendK.value = bk; R3U.uRefl.value = 1; R.shadowMap.needsUpdate = was;
+        for (const m of hide) m.visible = true;
+        R3U.tRefl.value = this.rt.texture;
+    },
+};
+/* the reflection mixed into water (GLSL: uses vWp, a ripple offset q, and the water color col) */
+const R3_MIRROR_HEAD = 'uniform sampler2D tRefl; uniform mat4 uReflMat; uniform float uRefl;\n';
+function r3MirrorGlsl(col, ripple, amt) {
+    return `if (uRefl > 0.5 && vWp.y < 0.35) {
+        vec4 rp = uReflMat * vec4(vWp.x + ${ripple}.x, 0.0, vWp.z + ${ripple}.y, 1.0);
+        vec3 rc = texture2D(tRefl, clamp(rp.xy / rp.w, 0.001, 0.999)).rgb;
+        ${col} = mix(${col}, rc * vec3(0.86, 0.94, 1.0), ${amt});
+    }`;
 }
 
 /* ---------------------------------------------------------------- the island's ground, in pieces */
@@ -714,14 +763,14 @@ function r3FillTufts(t, a, V) {
 
 /* ---------------------------------------------------------------- the island's water */
 /* the river, ponds, the spring and the waterfalls move: ripples drifting downstream, light on the crests, sparkles,
-   a little foam along the banks (the water map: one texel a tile, red = water, green = flowing, blue = falling) */
+   a little foam along the banks, the sea's edge too (the water map: one texel a tile, red = water, green = flowing, blue = falling) */
 let R3_WMAP = null;
 function r3WaterMap() {
     if (R3_WMAP && R3_WMAP.src === W0.water) return R3_WMAP;
     const Wt = W0.w, Ht = W0.h, d = new Uint8Array(Wt * Ht * 4);
     for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
         const c = W0.water[y] ? W0.water[y][x] : '.', g = W0.grid[y] ? W0.grid[y][x] : '', i = (y * Wt + x) * 4;
-        const fall = g === 'W', wet = c === 'r' || c === 'p' || c === 'h' || fall;
+        const fall = g === 'W', wet = c === 'r' || c === 'p' || c === 'h' || fall || g === '~';
         d[i] = wet ? 255 : 0; d[i + 1] = c === 'r' || fall ? 255 : 0; d[i + 2] = fall ? 255 : 0; d[i + 3] = 255;
     }
     const t = new THREE.DataTexture(d, Wt, Ht, THREE.RGBAFormat);
@@ -730,7 +779,7 @@ function r3WaterMap() {
     R3_WMAP = t;
     return t;
 }
-const R3_WATER_HEAD = 'uniform sampler2D uWater; uniform vec2 uWsz; uniform vec4 uGrass;\n';
+const R3_WATER_HEAD = 'uniform sampler2D uWater; uniform vec2 uWsz; uniform vec4 uGrass;\n' + R3_MIRROR_HEAD;
 /* the grass a little deeper and greener than the flat art's (the art sample's lush look; fall's olive turns yellow-green) */
 const R3_GRASS = { spring: [0.93, 0.94, 0.9], summer: [0.93, 0.92, 0.88], fall: [0.8, 0.95, 0.86], winter: [1, 1, 1] };
 const R3_WATER_GLSL = `
@@ -749,6 +798,7 @@ const R3_WATER_GLSL = `
         vec2 q = p * 2.1 + vec2(uTime * 0.12, uTime * (0.18 + wm.g * 0.7 + wm.b * 3.0));
         float n = r3n(q) * 0.6 + r3n(q * 2.3 + 5.1) * 0.4, rip = smoothstep(0.55, 0.86, n);
         vec3 wc = mix(col * vec3(0.84, 0.92, 1.03), col, 0.55 + 0.45 * rip) + vec3(0.18, 0.22, 0.24) * rip * 0.45;
+        ${r3MirrorGlsl('wc', 'vec2((n - 0.5) * 0.22, (r3n(q * 1.7 + 3.0) - 0.5) * 0.12)', '0.34 * (1.0 - wm.b)')}
         wc += step(0.972, r3n(p * 9.0 + vec2(uTime * 0.7, uTime * 0.35))) * 0.42;
         // falling water: white streaks rushing down
         wc = mix(wc, vec3(0.92, 0.97, 1.0), wm.b * smoothstep(0.45, 0.8, r3n(vec2(p.x * 7.0, p.y * 1.4 - uTime * 2.6))) * 0.75);
