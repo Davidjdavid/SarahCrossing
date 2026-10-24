@@ -350,9 +350,11 @@ const R3 = {
         }
         for (const [k, ch] of this.chunks) if (!want.has(k)) { ch.mesh.visible = false; if (G.frame - ch.used > 600 && this.chunks.size > 40) { dropChunk(ch); this.chunks.delete(k); } }
         // one visible piece repainted every few frames (or all of them after the flat view was used to change things, or
-        // the season changed the ground: then two a frame until they're done)
-        const img = Assets.ground(a.bgSeason);
-        if (this.ground.dirty || this._gimg !== img) { for (const ch of this.chunks.values()) ch.stale = true; this.ground.dirty = false; this._gimg = img; this._stale = true; }
+        // the season changed the ground: then two a frame until they're done; and any painted before the ground's pieces
+        // under them had arrived, once they have)
+        Ground.around(a.bgSeason, (V.x0 + V.x1) / 2, (V.y0 + V.y1) / 2, Math.max(V.x1 - V.x0, V.y1 - V.y0) / 2 + R3_CHUNK);
+        if (this.ground.dirty || this._gseason !== a.bgSeason) { for (const ch of this.chunks.values()) ch.stale = true; this.ground.dirty = false; this._gseason = a.bgSeason; this._stale = true; }
+        if (this._gver !== Ground.ver) { this._gver = Ground.ver; for (const ch of this.chunks.values()) if (ch.partial) { ch.stale = true; this._stale = true; } }
         if (this._stale) {
             const stale = [...this.chunks.values()].filter(ch => ch.mesh.visible && ch.stale);
             for (const ch of stale.slice(0, this.phone ? 1 : 2)) { paintChunk(ch, a); ch.stale = false; }
@@ -1062,8 +1064,7 @@ function makeChunk(scene, cx, cy) {
 function paintChunk(ch, a) {
     const ctx = ch.ctx, x0 = ch.cx * R3_CHUNK - R3_PAD, y0 = ch.cy * R3_CHUNK - R3_PAD, N = R3_CHUNKPX;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const img = Assets.ground(a.bgSeason);
-    if (img && (!ch.base || ch.baseOf !== img)) { ch.base = r3SoftGround(img, x0, y0, N); ch.baseOf = img; }
+    if (!ch.base || ch.baseOf !== a.bgSeason || ch.partial) { const sg = r3SoftGround(a.bgSeason, x0, y0, N); ch.base = sg.img; ch.partial = !sg.all; ch.baseOf = a.bgSeason; }
     if (ch.base) ctx.putImageData(ch.base, 0, 0); else ctx.clearRect(0, 0, N, N);
     drawPaths(ctx, a, { x: x0, y: y0 }, { w: N, h: N });
     ctx.translate(-x0, -y0);
@@ -1094,13 +1095,12 @@ function r3SoftField() {
     }
     return (R3_SOFTMAP = { S, ox, oy });
 }
-function r3SoftGround(img, x0, y0, N) {
+function r3SoftGround(season, x0, y0, N) {
     const M = R3_SOFT.amp, SW = N + 2 * M;
     if (!R3_SOFTCV) { R3_SOFTCV = document.createElement('canvas'); R3_SOFTCV.width = R3_SOFTCV.height = SW; R3_SOFTCV.g = R3_SOFTCV.getContext('2d', { willReadFrequently: true }); }
     const g = R3_SOFTCV.g;
     g.clearRect(0, 0, SW, SW);
-    const sx = Math.max(0, x0 - M), sy = Math.max(0, y0 - M), ex = Math.min(img.width, x0 - M + SW), ey = Math.min(img.height, y0 - M + SW);
-    if (ex > sx && ey > sy) g.drawImage(img, sx, sy, ex - sx, ey - sy, sx - (x0 - M), sy - (y0 - M), ex - sx, ey - sy);
+    const all = Ground.draw(g, season, x0 - M, y0 - M, SW, SW, 0, 0);
     const src = g.getImageData(0, 0, SW, SW).data, out = new ImageData(N, N), dst = out.data;
     const F = r3SoftField(), FS = F.S, grid = W0.grid;
     const hard = (wx, wy) => { const r = grid[Math.floor(wy / TILE)]; return !r || R3_SOFT.hard.has(r[Math.floor(wx / TILE)]); };
@@ -1122,7 +1122,7 @@ function r3SoftGround(img, x0, y0, N) {
             dst[di] = src[si]; dst[di + 1] = src[si + 1]; dst[di + 2] = src[si + 2]; dst[di + 3] = src[si + 3];
         }
     }
-    return out;
+    return { img: out, all };
 }
 function dropChunk(ch) { R3.scene.remove(ch.mesh); ch.mesh.geometry.dispose(); ch.mat.dispose(); ch.tex.dispose(); }
 /* a quick fingerprint of a card's pixels (every 7th one) */

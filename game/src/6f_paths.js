@@ -72,9 +72,10 @@ const PathTex = {
             let c = this.cache.get(key);
             if (!c) {
                 c = document.createElement('canvas'); c.width = c.height = TILE;
-                const img = Assets.groundImg[season];
-                if (sp && img) c.getContext('2d').drawImage(img, sp[0] * TILE, sp[1] * TILE, TILE, TILE, 0, 0, TILE, TILE);
-                if (img) this.cache.set(key, c); else Assets.groundFor(season);          // (the season's ground is still loading)
+                // (from the piece of the baked ground the tile is in; not kept until that piece has loaded)
+                const P = Ground.G.size, img = sp ? Ground.piece(season, Math.floor(sp[1] * TILE / P) * Ground.G.cols + Math.floor(sp[0] * TILE / P)) : null;
+                if (img) c.getContext('2d').drawImage(img, (sp[0] * TILE) % P, (sp[1] * TILE) % P, TILE, TILE, 0, 0, TILE, TILE);
+                if (img || !sp) this.cache.set(key, c);
             }
             return c;
         }

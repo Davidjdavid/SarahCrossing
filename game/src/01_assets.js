@@ -1,43 +1,92 @@
 /* ---- 01_assets.js ---- */
-/* Sprite atlas, the seasonal ground and drawing helpers */
+/* Sprite atlas, the seasonal ground (in pieces) and drawing helpers */
 const Assets = {
-    atlas: null, frames: window.ATLAS_JSON || {}, groundImg: {},
+    atlas: null, frames: window.ATLAS_JSON || {},
     dyn: {},             // sprites made while playing (pottery): name -> { c: canvas, w, h, ax, ay }
     load() {
-        const jobs = [loadImg(window.ATLAS_PNG).then(i => { this.atlas = i; if (i) for (const f of ASSET_MAKERS) try { f(); } catch (e) { console.error('could not make a sprite', e); } })];
-        jobs.push(this.groundFor(Clock.season()));
-        return Promise.all(jobs);
-    },
-    /* the ground for a season: one indexed PNG for the whole year, recolored by swapping in that season's palette.
-       Only the season on screen stays in memory. Resolves with the image (and keeps it in groundImg). */
-    groundFor(season) {
-        if (this.groundImg[season]) return Promise.resolve(this.groundImg[season]);
-        if (this._gjob && this._gjob.season === season) return this._gjob.p;
-        const p = this.groundBytes().then(png => png ? loadImg(pngWithPalette(png, window.GROUND_PAL[season])) : null).then(i => {
-            if (i) { for (const k of Object.keys(this.groundImg)) if (k !== season) delete this.groundImg[k]; this.groundImg[season] = i; }
-            if (this._gjob && this._gjob.p === p) this._gjob = null;
-            return i;
-        });
-        this._gjob = { season, p };
-        return p;
-    },
-    /* the best ground to draw right now (the right season once it has loaded) */
-    ground(season) {
-        const g = this.groundImg[season];
-        if (g) return g;
-        this.groundFor(season);
-        return Object.values(this.groundImg)[0] || null;
+        return loadImg(window.ATLAS_PNG).then(i => { this.atlas = i; if (i) for (const f of ASSET_MAKERS) try { f(); } catch (e) { console.error('could not make a sprite', e); } });
     },
     has(name) { return !!this.frames[name] || !!this.dyn[name]; },
-    /* the ground's indexed PNG (assets/ground-*.png), fetched once and recolored for each season */
-    groundBytes() {
-        if (!this._gbytes) {
-            this._gbytes = fetch(window.GROUND_PNG)
-                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
-                .then(b => new Uint8Array(b))
-                .catch(e => { console.error('could not load the ground', e); this._gbytes = null; return null; });
+};
+
+/* the island ground: indexed PNG pieces (window.GROUND: size, cols, rows, urls), one picture for the whole year recolored
+   for each season by swapping in its palette. Only the pieces near what's drawn are fetched and decoded, and only a few
+   dozen are kept, so the island can be big and still fit on a phone. `ver` goes up as pieces arrive: whatever was drawn
+   without them gets drawn again. */
+const Ground = {
+    G: window.GROUND || { size: 512, cols: 0, rows: 0, urls: [] }, bytes: new Map(), imgs: new Map(), jobs: new Map(), ver: 0, maps: {},
+    max() { if (!this._max) { let c = false; try { c = matchMedia('(pointer: coarse)').matches; } catch (e) { /* old browser */ } this._max = c ? 20 : 48; } return this._max; },
+    fetch(url) {
+        if (!this.bytes.has(url)) {
+            this.bytes.set(url, fetch(url).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); }).then(b => new Uint8Array(b))
+                .catch(e => { console.error('could not load the ground', url, e); this.bytes.delete(url); return null; }));
         }
-        return this._gbytes;
+        return this.bytes.get(url);
+    },
+    /* a picture recolored for the season (blob URLs let go once decoded) */
+    recolor(url, season) {
+        return this.fetch(url).then(png => {
+            if (!png) return null;
+            const u = pngWithPalette(png, window.GROUND_PAL[season]);
+            return loadImg(u).then(i => { URL.revokeObjectURL(u); return i; });
+        });
+    },
+    /* piece i (row * cols + col) for the season, or null while it loads (the load is started) */
+    piece(season, i) {
+        const k = season + '|' + i, have = this.imgs.get(k);
+        if (have) { have.used = ++this.clock; return have.img; }
+        if (!this.jobs.has(k) && this.G.urls[i]) {
+            this.jobs.set(k, this.recolor(this.G.urls[i], season).then(img => {
+                this.jobs.delete(k);
+                if (!img) return;
+                this.imgs.set(k, { img, used: ++this.clock, season });
+                this.ver++;
+                // keep the newest few dozen; another season's pieces go first
+                while (this.imgs.size > this.max()) {
+                    let worst = null, wk = null;
+                    for (const [kk, v] of this.imgs) if (!worst || (v.season !== season) > (worst.season !== season) || ((v.season !== season) === (worst.season !== season) && v.used < worst.used)) { worst = v; wk = kk; }
+                    this.imgs.delete(wk);
+                }
+            }));
+        }
+        return null;
+    },
+    clock: 0,
+    /* the same piece in any season, to show while the right one loads */
+    anyPiece(i) { for (const [k, v] of this.imgs) if (k.endsWith('|' + i)) return v.img; return null; },
+    /* draw the ground's rectangle (sx, sy, w, h) at (dx, dy), k screen pixels to a ground pixel; true when every piece
+       drawn was the right season's (otherwise draw again once `ver` changes) */
+    draw(ctx, season, sx, sy, w, h, dx, dy, k) {
+        const P = this.G.size, gw = this.G.w || 0, gh = this.G.h || 0;
+        k = k || 1;
+        const x0 = Math.max(0, sx), y0 = Math.max(0, sy), x1 = Math.min(gw, sx + w), y1 = Math.min(gh, sy + h);
+        let all = true;
+        for (let r = Math.floor(y0 / P); r * P < y1; r++) for (let c = Math.floor(x0 / P); c * P < x1; c++) {
+            const i = r * this.G.cols + c;
+            let img = this.piece(season, i);
+            if (!img) { all = false; img = this.anyPiece(i); }
+            if (!img) continue;
+            const px = c * P, py = r * P, ax = Math.max(x0, px), ay = Math.max(y0, py), bx = Math.min(x1, px + img.width), by = Math.min(y1, py + img.height);
+            if (bx > ax && by > ay) ctx.drawImage(img, ax - px, ay - py, bx - ax, by - ay, dx + (ax - sx) * k, dy + (ay - sy) * k, (bx - ax) * k, (by - ay) * k);
+        }
+        return all;
+    },
+    /* start fetching the pieces around a spot (world pixels), before they're needed */
+    around(season, x, y, r) {
+        r = r || 600;
+        const P = this.G.size;
+        for (let row = Math.max(0, Math.floor((y - r) / P)); row <= Math.min(this.G.rows - 1, Math.floor((y + r) / P)); row++)
+            for (let c = Math.max(0, Math.floor((x - r) / P)); c <= Math.min(this.G.cols - 1, Math.floor((x + r) / P)); c++) this.piece(season, row * this.G.cols + c);
+    },
+    /* the whole island at half size (the island map), for a season; null while it loads */
+    map(season) {
+        const m = this.maps[season];
+        if (m && m.img) return m.img;
+        if (!m && this.G.map) {
+            const job = this.maps[season] = { img: null };
+            this.recolor(this.G.map, season).then(img => { for (const kk of Object.keys(this.maps)) if (kk !== season) delete this.maps[kk]; job.img = img; if (!img) delete this.maps[season]; });
+        }
+        return null;
     },
 };
 

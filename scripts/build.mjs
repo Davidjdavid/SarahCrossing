@@ -9,7 +9,8 @@
 //   assets/data-<hash>.js       the sprite table, world and game data (game/assets/*.json)
 //   assets/style-<hash>.css     game/style.css
 //   assets/atlas-<hash>.png     the sprites
-//   assets/ground-<hash>.png    the island ground (recolored per season in the browser)
+//   assets/ground-*-<hash>.png  the island ground in pieces, and a half-size copy for the map (recolored per season in
+//                               the browser; game/assets/ground/, made by scripts/make-island.mjs)
 //   assets/hdw-<hash>.js        the HD drawing code again, as a worker (big pictures drawn off the main thread)
 //   build.json                  { version, commit, builtAt }
 //
@@ -58,10 +59,13 @@ const threeJs = emit('three', '.js', read('vendor/three.min.js'));
 
 // ---------------------------------------------------------------- data
 const atlasPng = emit('atlas', '.png', read('assets/atlas.png'));
-const groundPng = emit('ground', '.png', read('assets/ground.png'));
+// the ground: pieces in rows (r<row>c<col>.png), each its own file so only those near Sarah are fetched
+const gman = readJson('assets/ground/ground.json');
+const ground = Object.assign({}, gman, { map: emit('ground-map', '.png', read('assets/ground/map.png')), urls: [] });
+for (let r = 0; r < gman.rows; r++) for (let c = 0; c < gman.cols; c++) ground.urls.push(emit(`ground-r${r}c${c}`, '.png', read(`assets/ground/r${r}c${c}.png`)));
 const data = [
   `window.ATLAS_PNG = ${JSON.stringify(atlasPng)};`,
-  `window.GROUND_PNG = ${JSON.stringify(groundPng)};`,
+  `window.GROUND = ${JSON.stringify(ground)};`,
   `window.HDW_JS = ${JSON.stringify(hdwJs)};`,
   `window.ATLAS_JSON = ${JSON.stringify(readJson('assets/atlas.json'))};`,
   `window.GROUND_PAL = ${JSON.stringify(readJson('assets/ground-palettes.json'))};`,

@@ -29,9 +29,9 @@ game/
   style.css            the look
   src/*.js             the game, one file per part, joined in file-name order by the build
                        (00_core ... 90_main; 11_save + 12_cloud are saving, 6x_islands the island list)
-  assets/              sprites (atlas.png + atlas.json), the island ground (ground.png, recolored
-                       per season by ground-palettes.json), world.json (the map), gamedata.json
-                       (items, furniture, recipes...)
+  assets/              sprites (atlas.png + atlas.json), the island ground (ground/: indexed PNG pieces
+                       and a half-size copy for the map, recolored per season by ground-palettes.json),
+                       world.json (the map), gamedata.json (items, furniture, recipes...)
 server/
   server.mjs           the game server: password, the islands API, the game's files
   islands.mjs          islands on disk: saves, revs, backups, trash, photos

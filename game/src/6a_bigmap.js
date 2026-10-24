@@ -85,9 +85,10 @@ const BigMap = {
         c.width = a.w * K; c.height = a.h * K;
         const g = c.getContext('2d');
         g.imageSmoothingEnabled = true;
-        const img = Assets.ground(a.bgSeason);
+        const img = Ground.map(a.bgSeason);
         if (img) g.drawImage(img, 0, 0, c.width, c.height);
-        if (!img || img !== Assets.groundImg[a.bgSeason]) this.baseKey = '';        // not the right season yet: build again later
+        else this.baseKey = '';        // (still loading: built again once it's here, see draw)
+        this.baseOk = !!img;
         if (typeof drawPathsOnMap === 'function') drawPathsOnMap(g, K);
         // trees and bushes as little dots
         for (const e of a.ents) {
@@ -185,6 +186,7 @@ const BigMap = {
     },
     draw() {
         if (!this.on) return;
+        if (this.base && !this.baseOk && Ground.map(G.areas.island.bgSeason)) this.build();
         const g = this.g, dpr = this.dpr, z = this.z;
         g.setTransform(1, 0, 0, 1, 0, 0);
         const ox = this.W / 2 - this.cx * z, oy = this.H / 2 - this.cy * z;

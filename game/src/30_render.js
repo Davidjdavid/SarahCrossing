@@ -98,12 +98,8 @@ function drawWorld() {
     ctx.fillRect(0, 0, v.w, v.h);
     // ground
     if (a.id === 'island') {
-        const img = Assets.ground(a.bgSeason);
-        if (img) {
-            const sx = clamp(cam.x, 0, img.width - 1), sy = clamp(cam.y, 0, img.height - 1);
-            const w = Math.min(v.w, img.width - sx), h = Math.min(v.h, img.height - sy);
-            ctx.drawImage(img, sx, sy, w, h, sx - cam.x, sy - cam.y, w, h);
-        }
+        Ground.draw(ctx, a.bgSeason, cam.x, cam.y, v.w, v.h, 0, 0);
+        Ground.around(a.bgSeason, cam.x + v.w / 2, cam.y + v.h / 2, Math.max(v.w, v.h) / 2 + 160);
         drawPaths(ctx, a, cam, v);
         drawWaterSparkles(ctx, a, cam, v);
     } else if (a.bg) {

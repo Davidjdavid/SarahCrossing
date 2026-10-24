@@ -49,10 +49,14 @@ test('the game code is game/src joined in file-name order, and is valid JavaScri
 test('the data script holds the sprites, world and game data, and points at the pictures', () => {
   const window = {};
   new Function('window', fs.readFileSync(path.join(dist, asset(/src="(assets\/data-[^"]+)"/)), 'utf8'))(window);
-  assert.deepEqual(Object.keys(window).sort(), ['ATLAS_JSON', 'ATLAS_PNG', 'GAMEDATA', 'GROUND_PAL', 'GROUND_PNG', 'HDW_JS', 'WORLD_JSON']);
-  for (const k of ['ATLAS_PNG', 'GROUND_PNG']) {
-    const png = fs.readFileSync(path.join(dist, window[k]));
-    assert.equal(png.subarray(1, 4).toString(), 'PNG', k);
+  assert.deepEqual(Object.keys(window).sort(), ['ATLAS_JSON', 'ATLAS_PNG', 'GAMEDATA', 'GROUND', 'GROUND_PAL', 'HDW_JS', 'WORLD_JSON']);
+  // the ground: every piece, and the map's copy, is a picture; together they cover the island
+  const G = window.GROUND;
+  assert.equal(G.urls.length, G.cols * G.rows);
+  assert.ok(G.cols * G.size >= window.WORLD_JSON.w * 16 && G.rows * G.size >= window.WORLD_JSON.h * 16, 'the pieces cover the island');
+  for (const f of [window.ATLAS_PNG, G.map, ...G.urls]) {
+    const png = fs.readFileSync(path.join(dist, f));
+    assert.equal(png.subarray(1, 4).toString(), 'PNG', f);
   }
   // the HD drawing worker: the house looks and the 32*.js files, a script that parses
   const hdw = path.join(dist, window.HDW_JS);
