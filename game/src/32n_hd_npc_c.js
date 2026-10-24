@@ -61,7 +61,7 @@ const hdC_kit = {
 
 /* the goat: side-on, head at the right, Sarah's goat on the farm. Shaggy white coat, tan horns, a little beard. */
 HD_NPC.goat = {
-    side: true, hat: [33, 42, 13], eye: [32, 46, 2], squashDy: 3,
+    side: true, hat: [33, 42, 13], eye: [32, 46, 2], faceX: 44, squashDy: 3,
     draw(s, f) {
         const by = f.squash ? 3 : 0, wd = f.squash ? 1 : 0;
         const fur = hdPal('#6b6570', '#cfc8c8', '#f2eee6', '#f9f7f1', '#ffffff');

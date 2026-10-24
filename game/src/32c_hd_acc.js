@@ -4,7 +4,8 @@
    dir, cx and top (the middle of the head and the top of the hair, where a hat rests), w (the head's width), eyeY,
    eyeDx, eyeX and faceX. Everything is drawn for a person's head (24 wide) and scaled to a neighbor's; the light, the
    form and the outlines are worked out per pixel like the rest, so only the shapes and the material are drawn here.
-   Tall hats rise up to 16 pixels above a.top. */
+   rise: how far a hat reaches above a.top on a person (up to 15, the wizard's hat and the toque; a third more on the
+   biggest neighbors), which is how much room the frame needs above the head. */
 
 /* a pen for drawing around a head: x from the middle of the head, y down from where a hat rests, both as on a person's
    head; on other heads they scale, and a hat widens more than it grows taller. wide: the accessory's width on a
@@ -79,12 +80,13 @@ function hdAccEyes(a) {
     const y = a.eyeY + 0.5;
     if (a.dir === 'side') return { side: true, x: a.person ? a.faceX - 2.5 : a.eyeX + a.eyeDx + 0.5, y, face: a.faceX };
     const c = (a.eyeX != null ? a.eyeX : a.cx) + 0.5;
-    return { l: c - a.eyeDx, r: c + a.eyeDx, c, y, dx: a.eyeDx };
+    return { l: c - a.eyeDx, r: c + a.eyeDx, c, y };
 }
-/* an eye accessory's pen: centered between the eyes (or on the near eye), y from the eye line, scaled by the eye gap */
+/* an eye accessory's pen: centered between the eyes (or on the near eye), y from the eye line; on a neighbor it grows
+   a little with the eye gap (big faces have big eyes). half: half the eye gap in the pen's units */
 function hdAccEyePen(s, a) {
-    const E = hdAccEyes(a), k = a.person ? 1 : Math.max(0.85, Math.min(1.5, a.eyeDx / 6));
-    return Object.assign(hdAccPen(s, { w: 24 * k, cx: E.side ? E.x : E.c, top: E.y }), { E });
+    const E = hdAccEyes(a), k = a.person ? 1 : Math.max(0.9, Math.min(1.35, a.eyeDx / 7));
+    return Object.assign(hdAccPen(s, { w: 24 * k, cx: E.side ? E.x : E.c, top: E.y }), { E, half: E.side ? 0 : (E.r - E.l) / 2 / k });
 }
 
 /* ---------------------------------------------------------------- on the eyes */
@@ -92,7 +94,7 @@ function hdAccEyePen(s, a) {
 function hdAccSpecs(s, a, dark) {
     const P = hdAccEyePen(s, a), E = P.E;
     const frame = dark ? ['#3c3548', '#1e1b24', '#0f0d13'] : ['#6c6278', '#3a3340', '#211c26'];
-    const lens = dark ? (u, v, px, py) => (u + v < -0.6 && u + v > -1.15 ? '#8a80a8' : v < -0.2 ? '#3a3448' : v < 0.45 ? '#2a2634' : '#1e1b24') : null;
+    const lens = dark ? (u, v) => (u + v < -0.6 && u + v > -1.15 ? '#8a80a8' : v < -0.2 ? '#3a3448' : v < 0.45 ? '#2a2634' : '#1e1b24') : null;
     const hw = dark ? 4 : 3.5, t = dark ? -2.6 : -2.5, b = dark ? 2.6 : 3, r = dark ? 1.4 : 1.6;
     if (E.side) {
         // the near lens, a little narrower side-on, and the arm back to the ear
@@ -103,7 +105,7 @@ function hdAccSpecs(s, a, dark) {
         if (!dark) { P.px(0.6, -1.3, '#f4fbff'); P.px(1.4, -0.4, '#d8ecf6'); }
         return;
     }
-    const half = (E.r - E.l) / 2;
+    const half = P.half;
     for (const sx of [-1, 1]) {
         const cx = sx * half;
         hdAccRim(s, P, hdAccBox(cx - hw, t, cx + hw, b, r), cx - hw, t, cx + hw, b, frame, lens);
@@ -112,8 +114,8 @@ function hdAccSpecs(s, a, dark) {
         if (!dark) { P.px(cx + 1.4, -1.5, '#f4fbff'); P.px(cx + 2.1, -0.6, '#d8ecf6'); }
     }
     // the bridge over the nose, a little high
-    for (let x = -half + hw; x < half - hw; x += 1) { P.px(x + 0.5, -1.6, frame[1]); if (dark) P.px(x + 0.5, -0.6, frame[2]); }
-    P.px(-0.5, -2.5, frame[0]); P.px(0.5, -2.5, frame[0]);
+    for (let x = -half + hw; x < half - hw; x += 1) { P.px(x + 0.5, dark ? -1.6 : -0.9, frame[1]); if (dark) P.px(x + 0.5, -0.6, frame[2]); }
+    if (dark) { P.px(-0.5, -2.5, frame[0]); P.px(0.5, -2.5, frame[0]); }
 }
 HD_ACC.glasses = { eye: true, draw(s, a) { hdAccSpecs(s, a, false); } };
 HD_ACC.sunglasses = { eye: true, draw(s, a) { hdAccSpecs(s, a, true); } };
@@ -122,13 +124,14 @@ HD_ACC.sunglasses = { eye: true, draw(s, a) { hdAccSpecs(s, a, true); } };
 HD_ACC.monocle = {
     eye: true,
     draw(s, a) {
-        const P = hdAccEyePen(s, a), E = P.E, gold = ['#ffe07a', '#d09a28', '#7a5410'];
-        const x = E.side ? 0.2 : (E.r - E.l) / 2, rx = E.side ? 2.3 : 3.5, ry = 3.5;
+        const P = hdAccEyePen(s, a), E = P.E, gold = ['#ffe58a', '#d49a24', '#7a520e'];
+        const x = E.side ? 0.2 : P.half, rx = E.side ? 2.3 : 3.5, ry = 3.5;
         const ring = (u, v) => ((u - x) / rx) ** 2 + (v / ry) ** 2 <= 1;
         hdAccRim(s, P, ring, x - rx, -ry, x + rx, ry, gold, (u, v) => (u < -0.3 && u > -0.8 && v < -0.3 && v > -0.85 ? '#ffffff' : null));
         // the chain: links in two shades, falling in a soft curve
-        const ch = E.side ? [[0.4, 4.2], [0, 5.2], [-0.6, 6.2], [-1.4, 7.1], [-2.3, 7.9], [-3.3, 8.6], [-4.4, 9.2]] : [[x + 2.6, 3.6], [x + 3.1, 4.6], [x + 3.4, 5.6], [x + 3.4, 6.6], [x + 3.2, 7.6], [x + 2.8, 8.6], [x + 2.2, 9.5]];
-        ch.forEach(([u, v], i) => P.px(u, v, i % 2 ? gold[2] : gold[1]));
+        const ch = E.side ? [[0.4, 4.2], [0, 5.2], [-0.6, 6.2], [-1.4, 7.1], [-2.3, 7.9], [-3.3, 8.6], [-4.4, 9.2]]
+            : [[x + 2.6, 3.6], [x + 3.1, 4.6], [x + 3.4, 5.6], [x + 3.4, 6.6], [x + 3.2, 7.6], [x + 2.8, 8.6], [x + 2.2, 9.5]];
+        ch.forEach(([u, v], i) => P.px(u, v, i % 2 ? gold[2] : '#ecb83c'));
     },
 };
 
@@ -136,7 +139,7 @@ HD_ACC.monocle = {
 HD_ACC.mustache = {
     eye: true,
     draw(s, a) {
-        const P = hdAccEyePen(s, a), E = P.E, dy = a.person ? 4.6 : Math.max(4.6, a.eyeDx * 0.55);
+        const P = hdAccEyePen(s, a), E = P.E, dy = a.person ? 4.6 : 3.9 / P.k;
         const m = s.add(hdPal('#1c0f09', '#2c1a10', '#3a2418', '#553624', '#6e4a30'), { layer: 1, R: 1.6, grad: 0.35 });
         if (E.side) {
             // under the nose, curling up at the back of the cheek
@@ -144,7 +147,8 @@ HD_ACC.mustache = {
             P.poly(m, [[x + 0.6, dy - 0.6], [x - 2, dy - 0.8], [x - 4, dy - 0.2], [x - 5.4, dy - 1.6], [x - 5.8, dy - 2.8], [x - 6.6, dy - 1.4], [x - 5.6, dy + 0.8], [x - 3, dy + 1.6], [x - 0.4, dy + 1.2]]);
             return;
         }
-        const side = sx => [[0, dy - 0.7], [sx * 2.5, dy - 0.9], [sx * 4.6, dy - 0.2], [sx * 5.8, dy - 1.2], [sx * 6, dy - 2.6], [sx * 6.9, dy - 1.6], [sx * 6.6, dy + 0.4], [sx * 5, dy + 1.5], [sx * 2.6, dy + 1.6], [0, dy + 0.9]];
+        const side = sx => [[0, dy - 0.7], [sx * 2.4, dy - 0.9], [sx * 4.3, dy - 0.2], [sx * 5.4, dy - 1.2], [sx * 5.6, dy - 2.6], [sx * 6.5, dy - 1.6],
+            [sx * 6.2, dy + 0.4], [sx * 4.7, dy + 1.5], [sx * 2.5, dy + 1.6], [0, dy + 0.9]];
         P.poly(m, side(-1)); P.poly(m, side(1));
         // combed strands and a parting in the middle
         P.mod(-0.5, dy - 0.2, -1); P.mod(0.5, dy - 0.2, -1);
@@ -155,21 +159,23 @@ HD_ACC.mustache = {
 /* ---------------------------------------------------------------- on the head */
 /* the straw sunhat with a pink band: a woven crown, a wide brim, the band tied in a bow at the back */
 HD_ACC.sunhat = {
+    rise: 5,
     draw(s, a) {
         const P = hdAccPen(s, a, 35), side = a.dir === 'side', up = a.dir === 'up';
         const straw = hdPal('#8a6a3a', '#d0aa60', '#f2d58a', '#f8e4a8', '#fff2c4'), pink = hdPal('#8a2a44', '#c84a66', '#e0607a', '#f08498', '#ffb4c4');
         const brim = s.add(straw, { layer: 1, R: 3, grad: 0.3 }), crown = s.add(straw, { layer: 2, R: 6, grad: 0.32 }), band = s.add(pink, { layer: 3, R: 1.5, grad: 0.15 });
         const ox = side ? -0.8 : 0, c = x => Math.max(0, 1 - ((x - ox) / 9.8) ** 2);
         P.el(brim, 0, 6.8, 17, 3.9);
-        P.el(crown, ox, 0.4, 9.2, 4.5);
-        P.poly(crown, [[ox - 9.2, 0.4], [ox + 9.2, 0.4], [ox + 9.9, 6], [ox + 5, 6.9], [ox, 7.2], [ox - 5, 6.9], [ox - 9.9, 6]]);
+        // the crown: a soft dome with steep sides
+        const prof = [[9.9, 6], [9.6, 2], [8.8, -0.8], [7, -2.9], [4.2, -4], [1.4, -4.4]];
+        P.poly(crown, prof.map(([x, y]) => [ox - x, y]).concat(prof.slice().reverse().map(([x, y]) => [ox + x, y])).concat([[ox + 5, 6.9], [ox, 7.2], [ox - 5, 6.9]]));
         P.poly(band, hdAccCurve(ox - 9.7, ox + 9.7, x => 3 + 0.8 * c(x)).concat(hdAccCurve(ox + 9.9, ox - 9.9, x => 5.7 + 1 * c(x))));
         // the weave: rows of plaits round the crown, rings round the brim and its rolled edge catching the light
         hdAccTex(s, P, crown, (x, y, d) => { const row = Math.floor(y + 10); if (row % 3 === 0 && (Math.floor(x + 20) + row) % 3 !== 0) d(1); });
         hdAccTex(s, P, brim, (x, y, d) => {
             const t = Math.hypot(x / 17, (y - 6.8) / 3.9);
             if (Math.abs(t - 0.72) < 0.06) d(-1);
-            else if (t > 0.84 && y > 6.8) d(1);
+            else if (t > 0.84 && y > 7.8) d(1);
             else if (Math.abs(t - 0.86) < 0.05 && Math.floor(x + 30) % 3 === 0) d(-1);
         });
         if (up || side) {
@@ -188,19 +194,20 @@ HD_ACC.sunhat = {
 
 /* the lilac knit beanie: ribbed cuff, a knit crown and a pom on top */
 HD_ACC.beanie = {
+    rise: 10,
     draw(s, a) {
         const P = hdAccPen(s, a, 27), side = a.dir === 'side';
         const lilac = hdPal('#3a2d52', '#5f4aa6', '#7a63c4', '#9d8be0', '#b9adee'), cuffC = hdPal('#5c4f84', '#c3b8e2', '#e2dcf4', '#f2eefc', '#ffffff');
-        const dome = s.add(lilac, { layer: 1, R: 7, grad: 0.3 }), cuff = s.add(cuffC, { layer: 2, R: 2.5, grad: 0.2 }), pom = s.add(lilac, { layer: 3, R: 3.5, grad: 0.3, bias: 0.16 });
+        const pomC = hdPal('#4a3c74', '#8a78d4', '#ab9cea', '#c6bbf4', '#e2dcfc');
+        const dome = s.add(lilac, { layer: 1, R: 7, grad: 0.3 }), cuff = s.add(cuffC, { layer: 2, R: 2.5, grad: 0.2 }), pom = s.add(pomC, { layer: 3, R: 3.5, grad: 0.3 });
         const ox = side ? -0.6 : 0, c = x => Math.max(0, 1 - ((x - ox) / 13) ** 2);
         const arc = [];
         for (let i = 0; i <= 16; i++) { const t = Math.PI + Math.PI * i / 16; arc.push([ox + Math.cos(t) * 12.4, 5.2 + Math.sin(t) * 9]); }
         P.poly(dome, arc.concat([[ox + 12.4, 7], [ox - 12.4, 7]]));
         P.poly(cuff, hdAccCurve(ox - 12.9, ox + 12.9, x => 4.6 + 0.9 * c(x)).concat(hdAccCurve(ox + 13, ox - 13, x => 8.8 + 1.1 * c(x))));
         P.el(cuff, ox - 12.6, 6.9, 0.9, 2.2); P.el(cuff, ox + 12.6, 6.9, 0.9, 2.2);
-        // the pom: a fluffy ball, ragged at the edge
-        P.el(pom, ox, -6.4, 3.9, 3.5);
-        for (let i = 0; i < 10; i++) { const t = i / 10 * Math.PI * 2 + 0.2; P.el(pom, ox + Math.cos(t) * 3.7, -6.4 + Math.sin(t) * 3.2, 0.95, 0.95); }
+        // the pom: a ball of fluffy yarn
+        P.el(pom, ox, -6.3, 4.4, 3.45);
         // knit: the crown's ribs gather towards the top, a row of stitches under them; the cuff's ribs stand straight
         hdAccTex(s, P, dome, (x, y, d) => {
             const sq = (y - 7) / (7 + 3.8), rib = (x - ox) / (1 - sq * 0.55);
@@ -208,12 +215,13 @@ HD_ACC.beanie = {
             if (f < 0.3) d(-1); else if (f > 0.55 && f < 0.75 && y > -1) d(1);
         });
         hdAccTex(s, P, cuff, (x, y, d) => { const f = Math.floor(x - ox + 40); if (f % 2 === 0) d(-1); });
-        hdAccTex(s, P, pom, (x, y, d) => { if ((Math.floor(x * 1.3 + 9) * 3 + Math.floor(y + 20) * 5) % 4 === 0) d(-1); });
+        hdAccTex(s, P, pom, (x, y, d) => { const h = (Math.floor(x + 20) * 7 + Math.floor(y + 20) * 13) % 5; if (h === 0) d(-1); else if (h === 3 && x + y < -5) d(1); });
     },
 };
 
 /* a pink flower tucked over her left ear (from behind, on the other side; side-on, behind the ear) */
 HD_ACC.flower = {
+    rise: 0,
     draw(s, a) {
         const P = hdAccPen(s, a, 12, 1.4), d = a.dir;
         const x = d === 'down' ? 9.6 : d === 'up' ? -9.6 : -4.6, y = d === 'side' ? 8.4 : 7.8;
@@ -227,6 +235,7 @@ HD_ACC.flower = {
 
 /* headphones: a padded band over the top, pink cups over the ears */
 HD_ACC.headphones = {
+    rise: 3,
     draw(s, a) {
         const P = hdAccPen(s, a, 30), side = a.dir === 'side';
         const dark = hdPal('#141218', '#24212a', '#2e2a33', '#45404d', '#5e5868'), pink = hdPal('#7a2438', '#c24660', '#e0607a', '#f08498', '#ffb0c0');
@@ -234,10 +243,9 @@ HD_ACC.headphones = {
         if (side) {
             // the near cup over the ear, the band straight up over the crown
             const band = s.add(dark, { layer: 1, R: 2, grad: 0.2 }), slide = s.add(steel, { layer: 2, R: 1 }), pad = s.add(dark, { layer: 3, R: 2 }), cup = s.add(pink, { layer: 4, R: 3, grad: 0.25 });
-            const ex = a.person ? 21.5 - P.cx : -2, top = s.add(pink, { layer: 2, R: 1.5, grad: 0.2 });
-            const path = [[ex - 0.2, 10.6], [ex, 6], [ex + 0.4, 2], [ex + 1.2, -0.4], [ex + 2.4, -1.6]];
-            for (let i = 0; i + 1 < path.length; i++) P.line(band, path[i][0], path[i][1], path[i + 1][0], path[i + 1][1], 1.2);
-            P.line(top, ex + 0.6, 0.8, ex + 2, -1, 1);
+            // the band goes over the head edge-on, so from the side it's a strip up to the top of the hair
+            const ex = a.person ? 21.5 - P.cx : -2;
+            P.line(band, ex - 0.2, 10.6, ex + 0.1, 3, 1.2); P.line(band, ex + 0.1, 3, ex + 0.6, -0.4, 1.2, 1.1);
             P.line(slide, ex - 0.2, 8.2, ex - 0.2, 10.4, 0.9);
             P.el(pad, ex - 0.6, 15.6, 3.3, 4.6);
             P.el(cup, ex + 0.3, 15.6, 3.1, 4.3);
@@ -260,6 +268,7 @@ HD_ACC.headphones = {
 
 /* a striped party hat, a little askew, with a pom on top */
 HD_ACC.partyhat = {
+    rise: 14,
     draw(s, a) {
         const P = hdAccPen(s, a, 15, 1.3), d = a.dir;
         const pink = hdPal('#9a4060', '#e07a9a', '#f59ab5', '#ffbcd0', '#ffdce6'), blue = hdPal('#1e6a80', '#36a2bc', '#4ec3d9', '#7ad6e6', '#b0ecf4');
@@ -271,13 +280,14 @@ HD_ACC.partyhat = {
         // spiral stripes in blue
         hdAccTex(s, P, cone, (x, y) => { const u = (x - bx) - (y - 2) * (tip - bx) / -11.8; if ((((y * 0.9 + u * 0.75) / 2.6) % 2 + 2) % 2 < 1) s.recolor(Math.floor(P.X(x)), Math.floor(P.Y(y)), blue); });
         // the pom: a fluffy ball
-        P.el(pom, tip, -11, 2.4, 2.3);
-        for (let i = 0; i < 7; i++) { const t = i / 7 * Math.PI * 2 + 0.3; P.el(pom, tip + Math.cos(t) * 2.3, -11 + Math.sin(t) * 2.1, 0.8, 0.8); }
+        P.el(pom, tip, -11.2, 2.7, 2.5);
+        P.mod(tip + 0.6, -10.2, -1); P.mod(tip - 0.4, -11.6, 1);
     },
 };
 
 /* a little gold crown with rubies, sitting on top; drawn pixel by pixel, as small jewelry reads best that way */
 HD_ACC.crown = {
+    rise: 6,
     draw(s, a) {
         const P = hdAccPen(s, a, 15, 1), up = a.dir === 'up';
         const pal = { o: '#a8701c', O: '#6e420c', D: '#d09a2c', G: '#ffcf40', L: '#ffe27a', W: '#fff6c8', R: '#e0405a', r: '#a01c34', p: '#ff9aa8' };
@@ -289,6 +299,7 @@ HD_ACC.crown = {
 
 /* a red bow on the back of her head (it peeks out on the side from the front) */
 HD_ACC.bow = {
+    rise: 0,
     draw(s, a) {
         const P = hdAccPen(s, a, 15, 1.3), d = a.dir;
         const red = hdPal('#7a1428', '#b82840', '#e0405a', '#f06878', '#ff8fa3');
@@ -299,7 +310,7 @@ HD_ACC.bow = {
         // the loops: a bow-tie, flared at the ends with a notch, pinched at the knot, the inside of each loop in shadow
         for (const sx of [-1, 1]) {
             const lp = s.add(red, { layer: 2, R: 2.4, grad: 0.3 });
-            P.poly(lp, [[x + sx * 0.9, y - 1], [x + sx * 3, y - 2.5], [x + sx * 5.6, y - 3.7], [x + sx * 7.1, y - 3.3], [x + sx * 6.4, y - 0.2], [x + sx * 7.1, y + 2.8], [x + sx * 5.4, y + 3.3], [x + sx * 3, y + 2.3], [x + sx * 0.9, y + 1]]);
+            P.poly(lp, [[0.9, -1], [3, -2.5], [5.6, -3.7], [7.1, -3.3], [6.4, -0.2], [7.1, 2.8], [5.4, 3.3], [3, 2.3], [0.9, 1]].map(([u, v]) => [x + sx * u, y + v]));
             for (const [u, v] of [[1.8, 0.6], [2.8, 0.8], [2.8, 1.6], [3.8, 1.2], [1.8, -0.4]]) P.mod(x + sx * u, y + v, -1);
             P.mod(x + sx * 4.4, y - 2.4, 1); P.mod(x + sx * 5.4, y - 2.6, 1); P.mod(x + sx * 3.4, y - 1.6, 1);
         }
@@ -309,6 +320,7 @@ HD_ACC.bow = {
 
 /* a silver tiara with a pink jewel, on the front of the head */
 HD_ACC.tiara = {
+    rise: 4,
     draw(s, a) {
         const P = hdAccPen(s, a, 17, 1.1), up = a.dir === 'up', side = a.dir === 'side';
         const silver = hdPal('#5e6684', '#a4aec6', '#dfe6f2', '#eef2f8', '#ffffff'), gem = hdPal('#8a1a50', '#d63a80', '#ff5a9e', '#ff8cbc', '#ffc0dc');
@@ -318,7 +330,7 @@ HD_ACC.tiara = {
             P.line(tia, -5.4, 1.6, -1, 0.4, 0.8); P.line(tia, -1, 0.4, 3.4, 0.8, 0.8); P.line(tia, 3.4, 0.8, 6.6, 2.8, 0.8);
             P.poly(tia, [[4.6, 2.4], [5.2, -1.2], [5.8, -3.2], [6.6, -1], [7, 2.8]]);
             P.poly(tia, [[0.6, 1], [1.4, -1.4], [2.4, 1]]); P.poly(tia, [[-3.6, 1.4], [-3, -0.4], [-2.2, 1]]);
-            P.px(5.8, -3.6, '#ffffff');
+            P.px(5.8, -2.6, '#ffffff');
             const g = s.add(gem, { layer: 2, R: 1, bias: 0.1 }); P.el(g, 6.2, 0.2, 0.7, 1.3);
             return;
         }
@@ -327,7 +339,7 @@ HD_ACC.tiara = {
         // the middle point holds the jewel, smaller points beside it, beads at the tips
         P.poly(tia, [[ox - 2.6, 2.4], [ox - 2.2, -0.6], [ox, -4], [ox + 2.2, -0.6], [ox + 2.6, 2.4]]);
         for (const sx of [-1, 1]) { P.poly(tia, [[ox + sx * 3.6, 2.2], [ox + sx * 4.8, -0.8], [ox + sx * 6, 2.6]]); P.poly(tia, [[ox + sx * 6.6, 3], [ox + sx * 7.4, 1.2], [ox + sx * 8.2, 3.6]]); }
-        P.px(ox, -3.6, '#ffffff');
+        P.px(ox, -3.2, '#ffffff');
         if (up) return;
         const g = s.add(gem, { layer: 2, R: 1.2, grad: 0.3, bias: 0.08 });
         P.el(g, ox, 0.2, 1.2, 1.7);
@@ -338,6 +350,7 @@ HD_ACC.tiara = {
 
 /* a crown of pink and yellow flowers with leaves */
 HD_ACC.flowercrown = {
+    rise: 4,
     draw(s, a) {
         const P = hdAccPen(s, a, 26, 1.3), side = a.dir === 'side';
         const leafC = hdPal('#244a24', '#3d7a34', '#5aa04a', '#78bc5e', '#9ed47a');
@@ -360,12 +373,14 @@ HD_ACC.flowercrown = {
 
 /* the black pirate hat: gold trim, a skull and crossbones in front */
 HD_ACC.piratehat = {
+    rise: 5,
     draw(s, a) {
         const P = hdAccPen(s, a, 33), d = a.dir, side = d === 'side';
         const felt = hdPal('#08060c', '#1a1422', '#2e2536', '#433853', '#5a4c6e'), gold = hdPal('#6e5014', '#b08a2c', '#d8b040', '#ecc860', '#fff0a0');
         const hat = s.add(felt, { layer: 1, R: 5, grad: 0.25 }), trim = s.add(gold, { layer: 2, R: 1, grad: 0.3 });
         const w = side ? 14.2 : 15.6, ox = side ? -1 : 0;
-        P.poly(hat, [[ox - w, 8.4], [ox - w + 0.6, 5.2], [ox - w + 2.6, 1.6], [ox - w * 0.66, -1.6], [ox - w * 0.34, -3.6], [ox, -4.4], [ox + w * 0.34, -3.6], [ox + w * 0.66, -1.6], [ox + w - 2.6, 1.6], [ox + w - 0.6, 5.2], [ox + w, 8.4], [ox + w - 2, 10], [ox, 10.4], [ox - w + 2, 10]]);
+        P.poly(hat, [[ox - w, 8.4], [ox - w + 0.6, 5.2], [ox - w + 2.6, 1.6], [ox - w * 0.66, -1.6], [ox - w * 0.34, -3.6], [ox, -4.4], [ox + w * 0.34, -3.6],
+            [ox + w * 0.66, -1.6], [ox + w - 2.6, 1.6], [ox + w - 0.6, 5.2], [ox + w, 8.4], [ox + w - 2, 10], [ox, 10.4], [ox - w + 2, 10]]);
         // the turned-down corners at the ends
         P.poly(hat, [[ox - w, 8], [ox - w + 3.2, 9.6], [ox - w + 1.4, 12.2], [ox - w - 0.6, 11]]);
         P.poly(hat, [[ox + w, 8], [ox + w - 3.2, 9.6], [ox + w - 1.4, 12.2], [ox + w + 0.6, 11]]);
@@ -381,6 +396,7 @@ HD_ACC.piratehat = {
 
 /* the purple wizard hat: a tall cone with a bent tip, gold stars and a moon, a wide brim */
 HD_ACC.wizardhat = {
+    rise: 15,
     draw(s, a) {
         const P = hdAccPen(s, a, 36), d = a.dir, side = d === 'side';
         const felt = hdPal('#231a40', '#46328a', '#5a3fa8', '#7d62d4', '#9a84e4'), brimC = hdPal('#1a1230', '#382870', '#46328a', '#5f48b0', '#7a64cc');
@@ -398,9 +414,14 @@ HD_ACC.wizardhat = {
         // a band where the cone meets the brim, then stars and a moon
         const band = s.add(hdPal('#6e5014', '#b08a2c', '#e0b84a', '#f2d070', '#fff0a8'), { layer: 3, R: 1, grad: 0.3 });
         P.poly(band, hdAccCurve(bx - 9.2, bx + 9.2, x => 2.4 + 0.9 * (1 - ((x - bx) / 9.2) ** 2)).concat(hdAccCurve(bx + 9.5, bx - 9.5, x => 4.2 + 1.1 * (1 - ((x - bx) / 9.5) ** 2))));
-        const star = (x, y, big) => { P.px(x, y, '#fff4b0'); P.px(x - 1, y, '#ffd84a'); P.px(x + 1, y, '#ffd84a'); P.px(x, y - 1, '#ffd84a'); P.px(x, y + 1, '#e0a820'); if (big) { P.px(x - 2, y, '#e0a820'); P.px(x + 2, y, '#e0a820'); P.px(x, y - 2, '#ffd84a'); P.px(x, y + 2, '#c08818'); } };
+        const star = (x, y, big) => {
+            P.px(x, y, '#fff4b0'); P.px(x - 1, y, '#ffd84a'); P.px(x + 1, y, '#ffd84a'); P.px(x, y - 1, '#ffd84a'); P.px(x, y + 1, '#e0a820');
+            if (big) { P.px(x - 2, y, '#e0a820'); P.px(x + 2, y, '#e0a820'); P.px(x, y - 2, '#ffd84a'); P.px(x, y + 2, '#c08818'); }
+        };
         if (side) { star(-3.4, -3.2, 1); star(1.6, -7.6); star(4.6, 0); }
-        else { star(-4.2, -1.4, 1); star(3.6, -6.2); star(4.8, 0.2); star(-0.4, -9.8); if (d === 'down') { P.px(-1.4, -5, '#ffe680'); P.px(-2.2, -4.2, '#ffd84a'); P.px(-2.4, -3.2, '#ffd84a'); P.px(-1.8, -2.4, '#e0a820'); } }
+        else { star(-4.2, -1.4, 1); star(3.6, -6.2); star(4.8, 0.2); star(-0.4, -9.8); }
+        // a crescent moon on the front
+        if (d === 'down') { P.px(-1.4, -5, '#ffe680'); P.px(-2.2, -4.2, '#ffd84a'); P.px(-2.4, -3.2, '#ffd84a'); P.px(-1.8, -2.4, '#e0a820'); }
         // a soft fold down the cone
         hdAccTex(s, P, cone, (x, y, dd) => { const t = (5.6 - y) / 20, cx = bx + (tx - bx) * t * t * t; if (Math.abs(x - cx - 2.4 * (1 - t)) < 0.5) dd(1); });
     },
@@ -408,6 +429,7 @@ HD_ACC.wizardhat = {
 
 /* black cat ears with pink insides */
 HD_ACC.catears = {
+    rise: 6,
     draw(s, a) {
         const P = hdAccPen(s, a, 22, 1.4), d = a.dir;
         const fur = hdPal('#120e16', '#1f1925', '#2a2230', '#3c3346', '#52475e'), pink = hdPal('#a04a6a', '#e07a9e', '#ff9ec0', '#ffbcd4', '#ffdce8');
@@ -428,6 +450,7 @@ HD_ACC.catears = {
 
 /* a glowing gold halo floating over the head */
 HD_ACC.halo = {
+    rise: 12,
     draw(s, a) {
         const P = hdAccPen(s, a, 19, 1.2), side = a.dir === 'side';
         const glow = hdPal('#e0a828', '#f6c840', '#ffdc58', '#ffee98', '#fffce6');
@@ -443,6 +466,7 @@ HD_ACC.halo = {
 
 /* little ridged goat horns, curving up and out from the top of the head */
 HD_ACC.goathorns = {
+    rise: 6,
     draw(s, a) {
         const P = hdAccPen(s, a, 28, 1.4), d = a.dir;
         const horn = hdPal('#7a6a4c', '#b8a888', '#eadfc6', '#f4ecda', '#fffaf0');
@@ -466,6 +490,7 @@ HD_ACC.goathorns = {
 
 /* the white chef's toque: a pleated band and three puffs on top */
 HD_ACC.chefhat = {
+    rise: 15,
     draw(s, a) {
         const P = hdAccPen(s, a, 27), side = a.dir === 'side';
         const white = hdPal('#8a86a0', '#cfcfdc', '#ececf4', '#f8f8fc', '#ffffff'), bandC = hdPal('#86829c', '#c8c8d6', '#e2e2ec', '#f2f2f8', '#ffffff');

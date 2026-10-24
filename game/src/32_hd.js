@@ -35,7 +35,7 @@ function hdRamp(hex) {
     if (r) return r;
     const base = hdRgb(hex), [h, s, l] = hdHsl(base), grey = s < 0.08;
     const sh = (dh, ds, nl) => hdFromHsl(grey ? h : hdHue(h, dh > 0 ? 50 : 265, Math.abs(dh)), grey ? s + (dh < 0 ? 0.06 : 0) : s + ds, nl);
-    r = [sh(-10, 0.04, l * 0.42), sh(-5, 0.05, l * (l > 0.8 ? 0.8 : 0.74)), base, sh(4, 0, l + Math.min(0.1, (1 - l) * 0.55)), sh(9, 0.06, l + Math.min(0.19, (1 - l) * 0.85))];
+    r = [sh(-10, Math.min(0.04, 0.72 - s), l * 0.42), sh(-5, Math.min(0.05, 0.88 - s), l * (l > 0.8 ? 0.8 : 0.74)), base, sh(4, 0, l + Math.min(0.1, (1 - l) * 0.55)), sh(9, 0.06, l + Math.min(0.19, (1 - l) * 0.85))];
     HD_RAMPS.set(key, r);
     return r;
 }
@@ -45,7 +45,8 @@ function hdSkin(hex) {
     let r = HD_RAMPS.get(key);
     if (r) return r;
     const [h, s, l] = hdHsl(hdRgb(hex)), bl = l - 0.06 * Math.min(1, l / 0.5);
-    r = [hdFromHsl(h - 8, s + 0.1, bl * 0.48), hdFromHsl(h - 4, s + 0.08, bl * 0.86), hdFromHsl(h - 1, s + 0.04, bl), hdRgb(hex), hdFromHsl(h + 3, s, Math.min(0.95, l + 0.05))];
+    // (light skin is very saturated in HSL terms: the dark shades get much less, or the outline turns red)
+    r = [hdFromHsl(h - 6, Math.min(s, 0.42), bl * 0.46), hdFromHsl(h - 4, Math.min(s + 0.04, 0.62), bl * 0.86), hdFromHsl(h - 1, s + 0.04, bl), hdRgb(hex), hdFromHsl(h + 3, s, Math.min(0.95, l + 0.05))];
     HD_RAMPS.set(key, r);
     return r;
 }
@@ -54,7 +55,7 @@ function hdPal(...hs) { return hs.map(hdRgb); }
 
 /* ---------------------------------------------------------------- the sprite: parts, then per-pixel shading */
 class HDSprite {
-    constructor(w, h) { this.w = w; this.h = h; const n = w * h; this.part = new Int16Array(n).fill(-1); this.parts = []; this.det = []; this.mods = new Int8Array(n); this.alt = null; this.alts = []; this.dy = 0; this.dx = 0; }
+    constructor(w, h) { this.w = w; this.h = h; const n = w * h; this.part = new Int16Array(n).fill(-1); this.parts = []; this.det = []; this.mods = new Int8Array(n); this.alt = null; this.alts = []; this.dy = 0; this.dx = 0; this.warp = null; }
     /* mat: a ramp (hdRamp/hdPal) or one hex color; o: layer (higher is in front), R (roundness radius), grad (top-to-bottom
        light), bias (lighter/darker), cast (shadow cast onto lower layers below it), flat, k (form strength) */
     add(mat, o) {
@@ -63,28 +64,46 @@ class HDSprite {
         this.parts.push({ mat, layer: o.layer || 0, R: o.R || 5, bias: o.bias || 0, cast: o.cast || 0, flat: o.flat || 0, grad: o.grad === undefined ? 0.18 : o.grad, k: o.k || 1.25 });
         return this.parts.length - 1;
     }
-    plot(id, x, y) { x = Math.round(x + this.dx); y = Math.round(y + this.dy); if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; this.part[y * this.w + x] = id; }
+    /* a 3/4 view: everything drawn is squeezed on one side of x = c and moved by sh (warp = { c, kl, kr, sh } or null),
+       so a front or back drawing turns a little to one side */
+    X(x) { const w = this.warp; return w ? w.c + w.sh + (x - w.c) * (x < w.c ? w.kl : w.kr) : x; }
+    K(x) { const w = this.warp; return w ? (x < w.c ? w.kl : w.kr) : 1; }
+    _p(id, x, y) { x = Math.round(x + this.dx); y = Math.round(y + this.dy); if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; this.part[y * this.w + x] = id; }
+    plot(id, x, y) { this._p(id, this.warp ? this.X(x + 0.5) - 0.5 : x, y); }
     at(x, y) { if (x < 0 || y < 0 || x >= this.w || y >= this.h) return -1; return this.part[y * this.w + x]; }
-    ellipse(id, cx, cy, rx, ry) {
+    _ellipse(id, cx, cy, rx, ry) {
         for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
-            const u = (x + 0.5 - cx) / rx, v = (y + 0.5 - cy) / ry; if (u * u + v * v <= 1) this.plot(id, x, y);
+            const u = (x + 0.5 - cx) / rx, v = (y + 0.5 - cy) / ry; if (u * u + v * v <= 1) this._p(id, x, y);
         }
     }
+    ellipse(id, cx, cy, rx, ry) {
+        if (!this.warp) return this._ellipse(id, cx, cy, rx, ry);
+        const pts = [];
+        for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; pts.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); }
+        this.poly(id, pts);
+    }
     poly(id, pts) {
+        if (this.warp) pts = pts.map(p => [this.X(p[0]), p[1]]);
         let y0 = 1e9, y1 = -1e9; for (const p of pts) { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
         for (let y = Math.floor(y0); y <= Math.ceil(y1); y++) {
             const yc = y + 0.5, xs = [];
             for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; if ((a[1] <= yc && b[1] > yc) || (b[1] <= yc && a[1] > yc)) xs.push(a[0] + (yc - a[1]) / (b[1] - a[1]) * (b[0] - a[0])); }
             xs.sort((p, q) => p - q);
-            for (let i = 0; i + 1 < xs.length; i += 2) for (let x = Math.round(xs[i]); x < Math.round(xs[i + 1]); x++) this.plot(id, x, y);
+            for (let i = 0; i + 1 < xs.length; i += 2) for (let x = Math.round(xs[i]); x < Math.round(xs[i + 1]); x++) this._p(id, x, y);
         }
     }
-    rect(id, x, y, w, h) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.plot(id, x + i, y + j); }
+    rect(id, x, y, w, h) { if (this.warp) return this.poly(id, [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]); for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this._p(id, x + i, y + j); }
     /* a thick line between two points (limbs, strands); r may taper to r1 */
-    line(id, x0, y0, x1, y1, r, r1) { r1 = r1 == null ? r : r1; const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2) + 1; for (let i = 0; i <= n; i++) { const t = i / n; const rr = r + (r1 - r) * t; this.ellipse(id, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, rr, rr); } }
+    line(id, x0, y0, x1, y1, r, r1) {
+        r1 = r1 == null ? r : r1;
+        const k0 = this.K(x0), k1 = this.K(x1);
+        if (this.warp) { x0 = this.X(x0); x1 = this.X(x1); }
+        const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2) + 1;
+        for (let i = 0; i <= n; i++) { const t = i / n, rr = r + (r1 - r) * t, k = k0 + (k1 - k0) * t; this._ellipse(id, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, rr * (k < 1 ? 0.5 + k / 2 : 1), rr); }
+    }
     erase(x, y) { this.plot(-1, x, y); }
     /* nudge the shade of one pixel (+1 lighter, -1 darker) */
-    mod(x, y, d) { x = Math.round(x + this.dx); y = Math.round(y + this.dy); if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.mods[y * this.w + x] += d; }
+    mod(x, y, d) { if (this.warp) x = this.X(x + 0.5) - 0.5; x = Math.round(x + this.dx); y = Math.round(y + this.dy); if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.mods[y * this.w + x] += d; }
     /* paint a pixel of a part in another material with the same shading (patterns, prints, two-tone hair) */
     recolor(x, y, mat) {
         x = Math.round(x + this.dx); y = Math.round(y + this.dy);
@@ -98,7 +117,7 @@ class HDSprite {
     /* which part a pixel belongs to, and the pixels of a part (for recoloring) */
     each(id, fn) { for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) if (this.part[y * this.w + x] === id) fn(x, y); }
     /* exact pixels drawn last (eyes, mouth, buttons): c is a hex color or [r,g,b] */
-    px(x, y, c) { if (c) this.det.push([Math.round(x + this.dx), Math.round(y + this.dy), hdRgb(c)]); }
+    px(x, y, c) { if (c) this.det.push([Math.round((this.warp ? this.X(x + 0.5) - 0.5 : x) + this.dx), Math.round(y + this.dy), hdRgb(c)]); }
     /* the shaded picture into an RGBA buffer (w*h*4) at column ox (or a fresh one) */
     render(out, ox, OW) {
         const W = this.w, H = this.h, P = this.part, n = W * H;
@@ -210,21 +229,47 @@ function hdNamed(name) {
 function hdOn() { return R3.drawingCard && R3.hdCard; }
 
 /* a neighbor's frame (with an accessory they're wearing), cached: { c, w, h, ax, ay } */
-function hdNpcFrame(id, squash, acc, blink) {
+function hdNpcFrame(id, squash, acc, blink, sway) {
     const def = HD_NPC[id];
     if (!def) return null;
+    if (sway) return hdCached(`n|${id}|${squash ? 1 : 0}|${acc || ''}|${blink ? 1 : 0}|${sway}`, () => hdSway(hdNpcFrame(id, squash, acc, blink), sway));
     return hdCached(`n|${id}|${squash ? 1 : 0}|${acc || ''}|${blink ? 1 : 0}`, () => {
-        const h = def.h || 72, ay = def.ay || 69;
-        const s = new HDSprite(48, h);
+        const h0 = def.h || 72, ay0 = def.ay || 69;
+        const s = new HDSprite(48, h0);
         def.draw(s, { squash: squash ? 1 : 0, blink: blink ? 1 : 0 });
-        const c = s.canvas(), A = acc && HD_ACC[acc];
+        let c = s.canvas();
+        const A = acc && HD_ACC[acc];
+        // a hat on a head near the top of the frame (the ghost's) gets room above it
+        const room = A && !A.eye && def.hat ? Math.max(0, Math.ceil((A.rise || 0) * 1.35) - def.hat[1] + 1) : 0, h = h0 + room;
+        if (room) { const t = document.createElement('canvas'); t.width = 48; t.height = h; t.getContext('2d').drawImage(c, 0, room); c = t; }
         if (A && def.hat && def.eye) {
             const sq = squash ? (def.squashDy != null ? def.squashDy : 2) : 0;
-            const a = { dir: def.side ? 'side' : 'down', cx: def.hat[0], top: def.hat[1] + sq, w: def.hat[2], eyeX: def.eye[0], eyeY: def.eye[1] + sq, eyeDx: def.eye[2], faceX: def.eye[0] + def.eye[2] + 4, person: false };
+            const a = { dir: def.side ? 'side' : 'down', cx: def.hat[0], top: def.hat[1] + sq, w: def.hat[2], eyeX: def.eye[0], eyeY: def.eye[1] + sq, eyeDx: def.eye[2], faceX: def.faceX || def.eye[0] + def.eye[2] + 4, person: false };
             const s2 = new HDSprite(48, h);
+            s2.dy = room;
             A.draw(s2, a);
             hdStack(c, s2.canvas());
         }
-        return { c, w: 48, h, ax: 24, ay };
+        return { c, w: 48, h, ax: 24, ay: ay0 + room };
     });
+}
+/* a frame leaning a little to one side (an idle sway): the top shifts by up to two pixels, the feet stay put */
+function hdSway(f, k) {
+    if (!f) return null;
+    const c = document.createElement('canvas'); c.width = f.w; c.height = f.h;
+    const g = c.getContext('2d'), src = f.c.getContext('2d').getImageData(0, 0, f.w, f.h), out = g.createImageData(f.w, f.h);
+    let top = 0;
+    for (; top < f.h; top++) { let any = false; for (let x = 0; x < f.w; x++) if (src.data[(top * f.w + x) * 4 + 3]) { any = true; break; } if (any) break; }
+    const base = f.ay - 3;
+    for (let y = 0; y < f.h; y++) {
+        const sh = Math.round(k * 2 * Math.max(0, Math.min(1, (base - y) / Math.max(1, base - top))));
+        for (let x = 0; x < f.w; x++) {
+            const sx = x - sh;
+            if (sx < 0 || sx >= f.w) continue;
+            const i = (y * f.w + x) * 4, j = (y * f.w + sx) * 4;
+            out.data[i] = src.data[j]; out.data[i + 1] = src.data[j + 1]; out.data[i + 2] = src.data[j + 2]; out.data[i + 3] = src.data[j + 3];
+        }
+    }
+    g.putImageData(out, 0, 0);
+    return { c, w: f.w, h: f.h, ax: f.ax, ay: f.ay };
 }

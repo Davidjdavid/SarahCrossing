@@ -80,33 +80,71 @@ function hdFolkSpec(who, acc) {
 }
 
 /* ---------------------------------------------------------------- the skeleton */
-/* where everything is for a side (down, side, up) and a body pose; the side view faces right */
-function hdPose(dir, body) {
-    const J = { dir, body, fx: 24, fy: 20.5, top: 30, waist: 46, hip: 49, dy: 0,
+/* the animations, and how many frames each has: walking and running cycles, and standing (breathing) */
+const HD_ANIM = { idle: 4, walk: 8, run: 6 };
+const HD_JOINTS = ['shL', 'elL', 'hdL', 'shR', 'elR', 'hdR', 'hpL', 'knL', 'anL', 'ftL', 'hpR', 'knR', 'anR', 'ftR'];
+/* where everything is for a side and a pose. dir: down, dside (three-quarters front), side, uside (three-quarters back), up;
+   the side views face right (they're flipped for left). body: idle, walk, run (with a phase), or one of the poses
+   (cheer, left, right, pick, sit, hug); the old frame names' stand/walkA/walkB are idle 0 / walk 2 / walk 6 */
+function hdPose(dir, body, ph) {
+    if (body === 'stand') { body = 'idle'; ph = ph || 0; }
+    if (body === 'walkA' || body === 'walkB') { ph = body === 'walkA' ? 2 : 6; body = 'walk'; }
+    if (dir === 'dside' || dir === 'uside') {
+        // three-quarters: halfway between the front (or back) and the side; the near side is L, as side-on
+        const a = hdPose(dir === 'dside' ? 'down' : 'up', body, ph), b = hdPose('side', body, ph), J = Object.assign({}, a);
+        const near = dir === 'dside' ? a : hdSwapLR(a);
+        for (const k of HD_JOINTS) J[k] = [near[k][0] * 0.5 + b[k][0] * 0.5, near[k][1] * 0.5 + b[k][1] * 0.5];
+        J.dir = dir; J.fx = 24; J.dy = Math.round(a.dy * 0.5 + b.dy * 0.5); J.sway = b.sway; J.bounce = b.bounce; J.lean = b.lean * 0.6;
+        return J;
+    }
+    const J = { dir, body, ph: ph || 0, fx: 24, fy: 20.5, top: 30, waist: 46, hip: 49, dy: 0, sway: 0, bounce: 0, lean: 0,
         shL: [16, 31.5], elL: [13, 40], hdL: [14, 48.5], shR: [32, 31.5], elR: [35, 40], hdR: [34, 48.5],
         hpL: [20, 49], knL: [20, 57.5], anL: [19.8, 66], ftL: [19.5, 71], hpR: [28, 49], knR: [28, 57.5], anR: [28.2, 66], ftR: [28.5, 71] };
-    const walkA = body === 'walkA', walkB = body === 'walkB';
+    const walk = body === 'walk', run = body === 'run', t = (J.ph / (HD_ANIM[body] || 1)) * Math.PI * 2, sn = Math.sin(t), cs = Math.cos(t);
+    if (body === 'idle') {
+        // breathing: shoulders and head rise a pixel and settle; the hair stirs
+        J.dy = [0, 0, -1, -1][J.ph % 4]; J.sway = [0, 0.4, 0.7, 0.3][J.ph % 4];
+        J.hdL[1] += J.dy * -0.5; J.hdR[1] += J.dy * -0.5;
+    }
     if (dir === 'side') {
         Object.assign(J, { fx: 25, shL: [24.5, 32], elL: [24.5, 40], hdL: [25, 48], shR: [24, 32], elR: [24, 40], hdR: [24.5, 47.5],
             hpL: [24.5, 49], knL: [24.8, 57.5], anL: [24.8, 66], ftL: [25, 71], hpR: [23.2, 49], knR: [23, 57.5], anR: [22.8, 66], ftR: [23, 71] });
+        if (body === 'idle') { J.hdL[1] -= J.dy * 0.5; J.hdR[1] -= J.dy * 0.5; }
         // L is the near side (towards us), R the far side
-        if (walkA || walkB) {
-            const near = walkA ? 1 : -1;
-            J.knL = [24.8 + 2.6 * near, 57]; J.anL = [24.8 + 5.4 * near, 65.3]; J.ftL = [24.8 + 5.6 * near, 71 - (near < 0 ? 2 : 0)];
-            J.knR = [23 - 2.6 * near, 57]; J.anR = [23 - 5.4 * near, 65.3]; J.ftR = [23 - 5.6 * near, 71 - (near > 0 ? 2 : 0)];
-            J.elL = [24.5 - 1.6 * near, 40]; J.hdL = [25 - 4.4 * near, 47]; J.elR = [24 + 1.6 * near, 40]; J.hdR = [24.5 + 4.4 * near, 47];
-            J.dy = 1;
+        if (walk || run) {
+            const A = run ? 7.5 : 5.6, lift = run ? 4.5 : 2.6;
+            for (const [k, ph0, hx] of [['L', 0, 24.8], ['R', Math.PI, 23]]) {
+                const f = Math.sin(t + ph0), up = Math.max(0, Math.cos(t + ph0)) * lift;
+                J['an' + k] = [hx + A * f + up * 0.3, 65.6 - up]; J['ft' + k] = [hx + A * f * 1.05 + up * 0.4, 71 - up];
+                J['kn' + k] = [hx + A * 0.46 * f + up * (run ? 1.1 : 0.7), 57.5 - up * 0.45];
+            }
+            if (run) {
+                // leaning in, arms bent and pumping
+                J.lean = 1.5;
+                for (const [k, sg] of [['L', -1], ['R', 1]]) { const sh = J['sh' + k]; sh[0] += 1.2; J['el' + k] = [sh[0] + 3.4 * sg * sn, sh[1] + 6.5]; J['hd' + k] = [J['el' + k][0] + 3, J['el' + k][1] - 2.5 + Math.abs(sn) * 1.5]; }
+                J.dy = Math.abs(sn) > 0.7 ? 1 : -1; J.bounce = J.dy < 0 ? 1 : 0; J.sway = -0.9;
+            } else {
+                J.elL = [24.5 - 1.6 * sn, 40]; J.hdL = [25 - 4.4 * sn, 47 + Math.abs(sn) * 0.5]; J.elR = [24 + 1.6 * sn, 40]; J.hdR = [24.5 + 4.4 * sn, 47 + Math.abs(sn) * 0.5];
+                J.dy = Math.abs(sn) > 0.5 ? 1 : 0; J.bounce = J.dy ? 0 : 1; J.sway = -0.5 - 0.3 * Math.abs(cs);
+            }
         }
         if (body === 'hug') { J.elL = [28.5, 37.5]; J.hdL = [35, 37]; J.elR = [28, 37]; J.hdR = [34.5, 36]; }
         return J;
     }
-    if (walkA || walkB) {
-        // one foot lifts (shorter leg, raised shoe), the opposite arm swings forward (hand a little higher)
-        const lift = walkA ? 'R' : 'L', fwd = walkA ? 'L' : 'R';
-        J['an' + lift][1] -= 3; J['ft' + lift][1] -= 3; J['kn' + lift][1] -= 1.5;
-        J['hd' + fwd][1] -= 2; J['el' + fwd][1] -= 1;
-        J['hd' + lift][0] += lift === 'L' ? -1 : 1;
-        J.dy = 1;
+    if (walk || run) {
+        // front or back: the lifting foot rises (a shorter leg, a raised shoe), the other arm swings forward
+        const lift = run ? 4.5 : 3, lR = Math.max(0, sn) * lift, lL = Math.max(0, -sn) * lift;
+        J.anR[1] -= lR; J.ftR[1] -= lR; J.knR[1] -= lR * 0.5; J.knR[0] += lR * 0.25;
+        J.anL[1] -= lL; J.ftL[1] -= lL; J.knL[1] -= lL * 0.5; J.knL[0] -= lL * 0.25;
+        if (run) {
+            for (const [k, sg] of [['L', -1], ['R', 1]]) { const sh = J['sh' + k]; J['el' + k] = [sh[0] + sg * 3.2, sh[1] + 6]; J['hd' + k] = [sh[0] + sg * 1.2, sh[1] + 9.5 - (k === 'L' ? lR : lL) * 0.8]; }
+            J.dy = Math.abs(sn) > 0.7 ? 1 : -1; J.bounce = J.dy < 0 ? 1 : 0;
+        } else {
+            J.hdL[1] -= lR * 0.6; J.elL[1] -= lR * 0.3; J.hdR[1] -= lL * 0.6; J.elR[1] -= lL * 0.3;
+            J.hdL[0] -= lL * 0.3; J.hdR[0] += lR * 0.3;
+            J.dy = Math.abs(sn) > 0.5 ? 1 : 0; J.bounce = J.dy ? 0 : 1;
+        }
+        J.sway = 0.5 * sn;
     }
     if (body === 'cheer') { J.elL = [10.5, 26.5]; J.hdL = [8, 19.5]; J.elR = [37.5, 26.5]; J.hdR = [40, 19.5]; }
     if (body === 'left' || body === 'right') {
@@ -114,6 +152,7 @@ function hdPose(dir, body) {
         const L = body === 'left';
         J.elL = [9.5, 31]; J.hdL = [5, 29 + (L ? -3 : 1)]; J.elR = [38.5, 31]; J.hdR = [43, 29 + (L ? 1 : -3)];
         if (L) { J.knL = [16.5, 56.5]; J.anL = [13, 63]; J.ftL = [12, 69.5]; } else { J.knR = [31.5, 56.5]; J.anR = [35, 63]; J.ftR = [36, 69.5]; }
+        J.sway = L ? -0.8 : 0.8;
     }
     if (body === 'pick') {
         // crouching to pick something up: everything lower, knees out, hands down in front
@@ -127,25 +166,40 @@ function hdPose(dir, body) {
     }
     return J;
 }
+/* the same pose with left and right swapped (the back view's near side is on the other side) */
+function hdSwapLR(J) {
+    const o = Object.assign({}, J);
+    for (const k of HD_JOINTS) { const m = k.endsWith('L') ? k.slice(0, -1) + 'R' : k.slice(0, -1) + 'L'; o[k] = [48 - J[m][0], J[m][1]]; }
+    return o;
+}
+/* the 3/4 views' squeeze: the head turns more than the body */
+function hdWarps(dir) {
+    if (dir === 'dside') return { head: { c: 24, kl: 1, kr: 0.7, sh: 2 }, body: { c: 24, kl: 1, kr: 0.82, sh: 1 } };
+    if (dir === 'uside') return { head: { c: 24, kl: 0.7, kr: 1, sh: -1.5 }, body: { c: 24, kl: 0.82, kr: 1, sh: -0.5 } };
+    return { head: null, body: null };
+}
 
 /* ---------------------------------------------------------------- drawing a person */
 const HD_EYEDK = '#2b1b19', HD_EYEL = '#5a3a30';
 function hdPersonSprite(spec, dir, body, face, o) {
     o = o || {};
-    const s = new HDSprite(HD_W, HD_H), J = hdPose(dir, body), L = spec.look, C = spec.clothes;
-    const st = HD_STYLE[C.style] || HD_STYLE.toppants, side = dir === 'side', up = dir === 'up';
+    const s = new HDSprite(HD_W, HD_H), J = hdPose(dir, body, o.ph), L = spec.look, C = spec.clothes;
+    const st = HD_STYLE[C.style] || HD_STYLE.toppants, side = dir === 'side', up = dir === 'up' || dir === 'uside';
+    const turned = side || dir === 'dside' || dir === 'uside', W = hdWarps(dir);       // turned: the far arm and leg go behind
     const skin = hdSkin(L.skin), hands = [skin[1], skin[1], skin[2], skin[3], skin[4]], top = hdRamp(C.top), bot = hdRamp(C.bottom || C.top), trim = hdRamp(C.trim || C.top), shoe = hdRamp(C.shoes || '#3a2a22');
     const g = hdHeadGeo(J, L);
     const hair = HD_HAIR[L.hair] || HD_HAIR.waves;
     const fabric = [];                     // parts that take the pattern
     const by = J.dy;
     // hair that falls behind the body
+    s.warp = W.head;
     if (hair && hair.back) hair.back(s, g);
+    s.warp = W.body;
     if (st.cape && !up) hdCape(s, J, trim, side);
-    // legs and feet (the far leg first, so the near one overlaps it in the side view)
+    // legs and feet (the far leg first, so the near one overlaps it when turned)
     const legMat = st.skirt && st.legs !== 'tights' ? skin : st.legs === 'tights' ? (C.style === 'tutu' ? hdRamp('#f4e6ea') : bot) : bot;
-    for (const k of side ? ['R', 'L'] : ['L', 'R']) {
-        const far = side && k === 'R';
+    for (const k of turned ? ['R', 'L'] : ['L', 'R']) {
+        const far = turned && k === 'R';
         const leg = s.add(legMat, { layer: far ? 0 : 1, R: 3.5, grad: 0.1, bias: far ? -0.12 : 0 });
         const hp = J['hp' + k], kn = J['kn' + k], an = J['an' + k];
         const wide = st.legs === 'flare' ? 1.2 : 0;
@@ -172,8 +226,8 @@ function hdPersonSprite(spec, dir, body, face, o) {
         if (st.cuffs || st.wrap) { const cuff = s.add(trim, { layer: far ? 0 : 4, R: 2 }); s.line(cuff, el[0] + (hd[0] - el[0]) * 0.72, el[1] + (hd[1] - el[1]) * 0.72, el[0] + (hd[0] - el[0]) * 0.82, el[1] + (hd[1] - el[1]) * 0.82, 2.4 + w, 2.6 + w); }
         s.dy = 0;
     };
-    // side-on, the far arm swings behind the body (hidden when it hangs straight)
-    if (side && (Math.abs(J.hdR[0] - J.shR[0]) >= 2.5 || body === 'hug')) arm('R', true);
+    // turned, the far arm swings behind the body (side-on it's hidden while it hangs straight)
+    if (turned && (!side || Math.abs(J.hdR[0] - J.shR[0]) >= 2.5 || body === 'hug')) arm('R', true);
     // the body
     const torso = s.add(top, { layer: 3, R: 6, grad: 0.22 });
     fabric.push(torso);
@@ -191,43 +245,45 @@ function hdPersonSprite(spec, dir, body, face, o) {
         if (side) s.poly(coat, [[19.5, J.waist - 2 + by], [29.6, J.waist - 2 + by], [30.5, J.hip + 6 + by], [18.8, J.hip + 6 + by]]);
         else s.poly(coat, [[16, J.waist - 2 + by], [32, J.waist - 2 + by], [33, J.hip + 6 + by], [15, J.hip + 6 + by]]);
     }
-    s.dy = by;
-    if (side) s.poly(neck, [[21.8, g.fy + 4.5], [26.6, g.fy + 4.5], [26.6, J.top + 2], [21.8, J.top + 2]]);
-    else s.poly(neck, [[21, g.fy + 4.5], [27, g.fy + 4.5], [27, J.top + 1], [25, J.top + 3], [23, J.top + 3], [21, J.top + 1]]);
-    s.dy = 0;
-    // arms (the far one side-on was drawn behind the body)
-    for (const k of side ? ['L'] : ['L', 'R']) arm(k, false);
+    // the neck (g.fy already moves with the body)
+    if (side) s.poly(neck, [[21.8 + J.lean, g.fy + 4.5], [26.6 + J.lean, g.fy + 4.5], [26.6 + J.lean * 0.6, J.top + by + 2], [21.8 + J.lean * 0.6, J.top + by + 2]]);
+    else s.poly(neck, [[21, g.fy + 4.5], [27, g.fy + 4.5], [27, J.top + by + 1], [25, J.top + by + 3], [23, J.top + by + 3], [21, J.top + by + 1]]);
+    // arms (the far one, when turned, was drawn behind the body)
+    for (const k of turned ? ['L'] : ['L', 'R']) arm(k, false);
     // the clothes' details (under the hair that falls in front, and under the chin)
     s.dy = by;
     hdClothesDetail(s, J, st, C, { top, bot, trim, skin, side, up });
-    // the head
-    hdHead(s, g, skin, face, o);
+    if (C.print && (dir === 'down' || dir === 'dside') && !J.sitting) { s.dy = 0; hdPrint(s, J, C.print); }
     s.dy = 0;
+    // the head, the hair over it, the face
+    s.warp = W.head;
+    hdHead(s, g, skin, face, o);
     if (hair && hair.front) hair.front(s, g);
     // two-tone hair: the ends in the tip color
     if (L.tipCol && L.tipCol !== L.hairCol) hdTips(s, g, hdRamp(L.tipCol));
     if (C.pat && C.pat !== 'none' && C.patCol) hdPattern(s, fabric, C, st, J);
-    if (C.print && dir === 'down' && !J.sitting) hdPrint(s, J, C.print);
-    s.dy = by;
-    if (dir !== 'up') hdFace(s, g, L, face, o);
-    s.dy = 0;
+    if (!up) hdFace(s, g, L, face, o);
+    s.warp = null;
     return s;
 }
 
 /* the head's shape and where the face goes */
 function hdHeadGeo(J, L) {
-    const side = J.dir === 'side';
-    return { J, dir: J.dir, body: J.body, fx: J.fx, fy: J.fy + J.dy, side, up: J.dir === 'up', H: hdRamp(L.hairCol), look: L,
-        top: J.fy + J.dy - 16, crownY: J.fy + J.dy - 11, chin: J.fy + J.dy + 8, left: J.fx - 9.5, right: J.fx + 9.5 };
+    const side = J.dir === 'side', up = J.dir === 'up' || J.dir === 'uside', fx = J.fx + (side ? J.lean : 0), fy = J.fy + J.dy;
+    // hair and faces are drawn from the front, the side or the back; the 3/4 views squeeze a front or back drawing
+    return { J, dir: side ? 'side' : up ? 'up' : 'down', view: J.dir, body: J.body, fx, fy, side, up, H: hdRamp(L.hairCol), look: L,
+        sway: J.sway || 0, bounce: J.bounce || 0, top: fy - 16, crownY: fy - 11, chin: fy + 8, left: fx - 9.5, right: fx + 9.5 };
 }
 function hdHead(s, g, skin, face, o) {
     const fx = g.fx, fy = g.fy;
     const head = s.add(skin, g.side ? { layer: 5, R: 7, grad: 0.14, flat: 1, bias: 0.02 } : { layer: 5, R: 7, grad: 0.12 });
     if (g.side) {
+        const odx = s.dx; s.dx += fx - 25;                // drawn for a head at x 25 (it leans forward when running)
         const ear = s.add(skin, { layer: 5, R: 2, bias: -0.04 });
         s.poly(head, [[16, fy - 8.5], [30, fy - 9], [33, fy - 6.5], [33.6, fy - 3], [35, fy + 0.5], [33.6, fy + 2], [33.4, fy + 4], [32, fy + 6.5], [29, fy + 8.3], [25, fy + 8.1], [21, fy + 6], [17.5, fy + 2.5], [16, fy - 2.5]]);
         s.ellipse(ear, 21.5, fy - 0.5, 1.8, 2.5);
         s.mod(21.5, fy - 0.5, -1);
+        s.dx = odx;
         return;
     }
     const ear = s.add(skin, { layer: 4, R: 2 });
@@ -242,9 +298,10 @@ function hdFace(s, g, L, face, o) {
     const blushC = L.blush === false ? null : hdFromHsl(hdHsl(hdRgb(deep ? '#b0404e' : '#f08a8a'))[0], 0.6, deep ? 0.42 : 0.74);
     const mouth = '#9b4b47', mouthIn = '#7a3238';
     if (g.side) {
-        const ex = 30;
+        const ex = 30, odx = s.dx, lk = Math.max(0, o.look || 0) * 0.6;
+        s.dx += fx - 25;
         if (blink || happy) { s.px(ex - 1, fy - 1, HD_EYEDK); s.px(ex, fy - 1.5, HD_EYEDK); s.px(ex + 1, fy - 1, HD_EYEDK); }
-        else { s.px(ex, fy - 3, HD_EYEDK); s.px(ex + 1, fy - 3, HD_EYEDK); s.px(ex, fy - 2, HD_EYEDK); s.px(ex + 1, fy - 2, iris); s.px(ex, fy - 1, iris); s.px(ex + 1, fy - 1, HD_EYEL); s.px(ex - 1, fy - 3, HD_EYEL); }
+        else { s.px(ex, fy - 3, HD_EYEDK); s.px(ex + 1, fy - 3, HD_EYEDK); s.px(ex + lk, fy - 2, HD_EYEDK); s.px(ex + 1 + lk, fy - 2, iris); s.px(ex + lk, fy - 1, iris); s.px(ex + 1, fy - 1, HD_EYEL); s.px(ex - 1, fy - 3, HD_EYEL); }
         s.px(ex - 1, fy - 5, g.H[1]); s.px(ex, fy - 5, g.H[1]); s.px(ex + 1, fy - 5.5, g.H[1]);
         s.px(34, fy + 1, skinR[1]);
         if (happy) { s.px(31, fy + 4, mouth); s.px(32, fy + 4, mouth); s.px(33, fy + 3.5, mouth); s.px(32, fy + 5, mouthIn); }
@@ -252,9 +309,10 @@ function hdFace(s, g, L, face, o) {
         if (blushC) { s.px(28, fy + 2, blushC); s.px(29, fy + 2, blushC); }
         if (L.freckles) for (const [x, y] of [[30, 1], [32, 0.5], [31, 2]]) s.px(x, fy + y, skinR[0]);
         if (L.beard) hdBeard(s, g, L.beard);
+        s.dx = odx;
         return;
     }
-    const lx = fx - 6, rx = fx + 4;          // left edge of each eye (3 wide)
+    const lx = fx - 6, rx = fx + 4, lk = o.look || 0;          // left edge of each eye (3 wide); a glance moves the irises
     if (happy) {
         // smiling eyes: little upside-down arcs
         for (const x0 of [lx, rx]) { s.px(x0, fy - 1, HD_EYEDK); s.px(x0 + 1, fy - 2, HD_EYEDK); s.px(x0 + 2, fy - 1, HD_EYEDK); }
@@ -263,15 +321,15 @@ function hdFace(s, g, L, face, o) {
     } else {
         for (const x0 of [lx, rx]) {
             for (let i = 0; i < 3; i++) s.px(x0 + i, fy - 2.5, HD_EYEDK);
-            s.px(x0 + 0.5, fy - 1.5, HD_EYEDK); s.px(x0 + 1.5, fy - 1.5, iris); s.px(x0 + 0.5, fy - 0.5, iris); s.px(x0 + 1.5, fy - 0.5, HD_EYEL);
+            s.px(x0 + 0.5 + lk, fy - 1.5, HD_EYEDK); s.px(x0 + 1.5 + lk, fy - 1.5, iris); s.px(x0 + 0.5 + lk, fy - 0.5, iris); s.px(x0 + 1.5 + lk, fy - 0.5, HD_EYEL);
         }
         s.px(lx - 1, fy - 2.5, HD_EYEL); s.px(rx + 3, fy - 2.5, HD_EYEL);           // lashes at the outer corners
-        s.px(lx + 0.5, fy - 1.5, '#fbf4ea');                                         // a glint
-        s.px(rx + 0.5, fy - 1.5, '#fbf4ea');
+        s.px(lx + 0.5 + lk, fy - 1.5, '#fbf4ea');                                    // a glint
+        s.px(rx + 0.5 + lk, fy - 1.5, '#fbf4ea');
     }
     // brows
-    for (const x of [lx, lx + 1, lx + 2]) s.px(x, fy - 5, g.H[1]); s.px(lx + 3, fy - 5, g.H[2]);
-    for (const x of [rx, rx + 1, rx + 2]) s.px(x, fy - 5, g.H[1]); s.px(rx - 1, fy - 5, g.H[2]);
+    for (const x of [lx, lx + 1, lx + 2]) s.px(x, fy - 5, g.H[2]); s.px(lx + 3, fy - 5, g.H[3]);
+    for (const x of [rx, rx + 1, rx + 2]) s.px(x, fy - 5, g.H[2]); s.px(rx - 1, fy - 5, g.H[3]);
     // nose and mouth
     s.px(fx, fy + 2.5, skinR[1]);
     if (happy) {
@@ -299,7 +357,8 @@ function hdBeard(s, g, col) {
 /* the torso: shoulders to hips */
 function hdTorso(s, J, id, side, by) {
     const t = J.top + by, b = J.hip + by, m = (t + b) / 2;
-    if (side) s.poly(id, [[21, t], [27, t], [29.5, t + 2.5], [30, t + 9], [29.2, b - 3], [29.6, b], [19.4, b], [19, b - 3], [19, t + 9], [19.6, t + 2.5]]);
+    const l = J.lean || 0;
+    if (side) s.poly(id, [[21 + l, t], [27 + l, t], [29.5 + l, t + 2.5], [30 + l * 0.6, t + 9], [29.2, b - 3], [29.6, b], [19.4, b], [19, b - 3], [19 + l * 0.6, t + 9], [19.6 + l, t + 2.5]]);
     else s.poly(id, [[17, t], [31, t], [33, t + 2], [32, m], [31, b - 3], [32, b], [16, b], [17, b - 3], [16, m], [15, t + 2]]);
 }
 /* skirts: knee length, to the floor, or a tutu */
@@ -476,7 +535,7 @@ function hdPrint(s, J, print) {
     for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
         const c = print[py * W + px];
         if (!c) continue;
-        for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) s.recolor(x0 + px * 2 + dx, y0 + py * 2 + dy, c);
+        for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) s.recolor(Math.round(s.X(x0 + px * 2 + dx + 0.5) - 0.5), y0 + py * 2 + dy, c);
     }
 }
 
@@ -489,25 +548,37 @@ const HD_FRAMES = {
     down_happy: ['down', 'stand', 'happy'], down_cheer: ['down', 'cheer', 'happy'], down_left: ['down', 'left', 'happy'], down_right: ['down', 'right', 'happy'],
     down_pick: ['down', 'pick', 'normal'], side_happy: ['side', 'stand', 'happy'], side_hug: ['side', 'hug', 'happy'], down_sit: ['down', 'sit', 'normal'],
 };
+/* a frame's name: one of the old ones ("down_walkA") or side:animation:phase[:glance] ("dside:walk:3", "down:idle:2:1")
+   -> [dir, body, face, phase, glance] */
+function hdFrameSpec(frame) {
+    if (frame.indexOf(':') > 0) { const [dir, body, ph, look] = frame.split(':'); return [dir, body, 'normal', +ph || 0, +look || 0]; }
+    const f = HD_FRAMES[frame] || HD_FRAMES.down_stand;
+    return [f[0], f[1], f[2], 0, 0];
+}
 /* a whole frame of a person (with accessories) as a canvas: { c, w, h, ax, ay } */
 function hdPersonFrame(spec, frame, blink) {
-    const fr = HD_FRAMES[frame] || HD_FRAMES.down_stand;
     const key = 'p|' + frame + '|' + (blink ? 1 : 0) + '|' + JSON.stringify(spec);
     return hdCached(key, () => {
-        const [dir, body, face] = fr;
-        const c = hdPersonSprite(spec, dir, body, face, { blink }).canvas();
+        const [dir, body, face, ph, look] = hdFrameSpec(frame), up = dir === 'up' || dir === 'uside';
+        // a tall hat (a wizard's, a chef's toque) needs room above the frame: 18 more rows, like the old 16x30 hats
+        const hat = spec.acc && HD_ACC[spec.acc], room = hat && !hat.eye && hat.rise > 2 ? 18 : 0, H = HD_H + room;
+        let c = hdPersonSprite(spec, dir, body, face, { blink, ph, look }).canvas();
+        if (room) { const t = document.createElement('canvas'); t.width = HD_W; t.height = H; t.getContext('2d').drawImage(c, 0, room); c = t; }
         for (const id of [spec.eyes, spec.acc]) {
             const A = id && HD_ACC[id];
-            if (!A || (A.eye && dir === 'up')) continue;
-            const s = new HDSprite(HD_W, HD_H);
-            A.draw(s, hdAccAt(hdPose(dir, body), dir));
+            if (!A || (A.eye && up)) continue;
+            const s = new HDSprite(HD_W, H);
+            s.dy = room;
+            s.warp = hdWarps(dir).head;                 // a 3/4 view squeezes the front or back accessory like the head
+            A.draw(s, hdAccAt(hdPose(dir, body, ph), dir));
+            s.warp = null;
             hdStack(c, s.canvas());
         }
-        return { c, w: HD_W, h: HD_H, ax: HD_AX, ay: HD_AY };
+        return { c, w: HD_W, h: H, ax: HD_AX, ay: HD_AY + room };
     });
 }
 /* where an accessory goes on a person: the top of the head (over the hair), its width, the eye line */
 function hdAccAt(J, dir) {
-    const fy = J.fy + J.dy;
-    return { dir, cx: dir === 'side' ? 24 : 24, top: fy - 17, w: 24, eyeY: fy - 1.5, eyeDx: 5, faceX: 33.5, person: true };
+    const fy = J.fy + J.dy, side = dir === 'side', l = side ? J.lean || 0 : 0;
+    return { dir: side ? 'side' : dir === 'up' || dir === 'uside' ? 'up' : 'down', cx: 24 + l, top: fy - 17, w: 24, eyeY: fy - 1.5, eyeDx: 5, faceX: 33.5 + l, person: true };
 }
