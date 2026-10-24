@@ -366,7 +366,7 @@ function render() {
     R3.show(hd);
     if (hd && R3.render()) {
         const ctx = Render.ctx;
-        if (Fishing.st) { R3.localTransform(ctx, G.player.x, G.player.y, 0); Fishing.draw(ctx); }
+        if (Fishing.st) { R3.localTransform(ctx, G.player.x, G.player.y, 0); R3.over = true; try { Fishing.draw(ctx); } finally { R3.over = false; } }
         ctx.setTransform(1, 0, 0, 1, -G.cam.x, -G.cam.y);
         Sky.draw(ctx);
         ctx.setTransform(1, 0, 0, 1, 0, 0);

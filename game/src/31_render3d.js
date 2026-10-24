@@ -508,6 +508,7 @@ const R3 = {
         ctx.clearRect(0, 0, v.w, v.h);
         // things written for the flat view, each drawn where it now stands
         for (const f of G.fx) if (!f.sorted && !f.screen && f.x != null) { this.localTransform(ctx, f.x, f.y || 0, 0); f.draw(ctx); }
+        r3SkyThings(ctx);
         r3Overheads(ctx);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         drawWeather(ctx, v);
@@ -1207,6 +1208,23 @@ function r3OverSpr(ctx, name) {
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(f.c, -f.ax / HD_K, -f.ay / HD_K, f.w / HD_K, f.h / HD_K);
     ctx.imageSmoothingEnabled = was;
+}
+/* planes, balloons and the gull flock crossing the sky (the classic view's SeaSky.drawSky), each over where it flies */
+function r3SkyThings(ctx) {
+    if (!G.area || G.area.id !== 'island' || typeof SeaSky === 'undefined') return;
+    const v = G.view, put = (x, y, lift) => { const q = R3.project(x, y, lift); if (q.x < -300 || q.y < -300 || q.x > v.w + 300 || q.y > v.h + 300) return false; ctx.setTransform(q.s, 0, 0, q.s, q.x, q.y); return true; };
+    R3.over = true;
+    try {
+        for (const s of SeaSky.sky) {
+            if (s.kind === 'plane') { if (put(s.x, s.y, 64)) { ctx.rotate(Math.atan2(s.vy, s.vx) + Math.PI / 2); spr(ctx, 'sky_plane', 0, 0); } }
+            else if (s.kind === 'balloon') { if (put(s.x, s.y, 48)) spr(ctx, 'sky_balloon', 0, Math.sin(s.t / 50) * 2); }
+        }
+        const f = SeaSky.flock;
+        if (f) for (let i = 0; i < f.n; i++) {
+            const ang = f.t / (80 + i * 9) + i * 2.1, x = f.cx + Math.cos(ang) * (34 + i * 9), y = f.cy + Math.sin(ang) * (12 + i * 3);
+            if (put(x, y, 40)) spr(ctx, `cr_gull_fly${Math.floor((f.t + i * 7) / 8) % 2}`, 0, 0, Math.sin(ang) > 0);
+        }
+    } finally { R3.over = false; ctx.setTransform(1, 0, 0, 1, 0, 0); }
 }
 /* emotes, "talk" prompts and the little "!" by doors, over the 3D view */
 function r3Overheads(ctx) {
