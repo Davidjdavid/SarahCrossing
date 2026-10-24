@@ -31,9 +31,11 @@ docs/DEPLOY.md for the server.
   from a skeleton in 32a_hd_people.js (any look, outfit, sewn design and accessory: `hdPersonFrame`);
   neighbors are `HD_NPC`, hair `HD_HAIR`, accessories `HD_ACC`, and any atlas sprite can get an HD
   version in `HD_SPR[name]` (exactly 3x the old frame and anchor): `spr()` uses it in HD cards.
-- Buildings are real shapes wearing their HD picture (`r3Volume`); the island's height levels stand up
-  as plateaus with cliffs (`r3GroundH`); water moves and, on computers, reflects (`R3Mirror`); the grass
-  is greener than the flat art and its borders wavy (`R3_GRASS`, `r3SoftGround`).
+- Buildings are real shapes wearing their HD picture (`r3Volume`; windows glow at night from the house
+  look or the shop picture's `wins`); the island's height levels stand up as plateaus with cliffs
+  (`r3GroundH`); water moves and, on computers, reflects (`R3Mirror`); the grass is greener than the
+  flat art and its borders wavy (`R3_GRASS`, `r3SoftGround`); tufts, lily pads and cattails are
+  instanced meshes refilled as the view moves. Tune the camera, bend and haze in `R3_CAM` / `R3_FOG`.
 - Houses and `HD_SPR` pictures are drawn by a worker (`HDW` in 32_hd.js; the build makes
   `assets/hdw-*.js` from 2b_exterior.js and the 32*.js files, so those files must not touch the page
   at load time). Until a picture arrives the card shows today's sprite. `hdNamed(name, true)` draws
