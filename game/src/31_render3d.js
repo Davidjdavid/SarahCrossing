@@ -282,7 +282,7 @@ const R3 = {
             want.add(k);
             let ch = this.chunks.get(k);
             if (!ch) {
-                if (made >= (this.phone ? 2 : 4) && this.chunks.size) continue;        // a few new pieces a frame, nearest first next time
+                if (made >= (this.phone ? 1 : 3) && this.chunks.size) continue;        // a few new pieces a frame (each one a few ms), nearest first next time
                 ch = makeChunk(this.scene, cx, cy);
                 this.chunks.set(k, ch);
                 paintChunk(ch, a);
@@ -1108,6 +1108,15 @@ function measureEnt0(e) {
 /* trees and statues: see-through while Sarah walks behind (the classic view does it while drawing) */
 function seeThroughRaw(e) { const was = R3.drawingCard; R3.drawingCard = false; try { return seeThrough(e); } finally { R3.drawingCard = was; } }
 
+/* a sprite over the 3D view at the transform's scale: the HD version when there is one (smoothly scaled down a third) */
+function r3OverSpr(ctx, name) {
+    const f = hdHas(name) ? hdNamed(name) : null;
+    if (!f) return spr(ctx, name, 0, 0);
+    const was = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(f.c, -f.ax / HD_K, -f.ay / HD_K, f.w / HD_K, f.h / HD_K);
+    ctx.imageSmoothingEnabled = was;
+}
 /* emotes, "talk" prompts and the little "!" by doors, over the 3D view */
 function r3Overheads(ctx) {
     const p = G.player;
@@ -1117,20 +1126,20 @@ function r3Overheads(ctx) {
         const lift = e.npc ? (e.h || 18) + 8 : 32;
         const q = R3.project(e.x, e.y, lift);
         ctx.setTransform(q.s, 0, 0, q.s, q.x, q.y);
-        spr(ctx, 'emote_' + e.emote, 0, 0);
+        r3OverSpr(ctx, 'emote_' + e.emote);
     }
     if (p && !G.busy && !UI.modal && G.showPrompt) {
         const t = frontTarget(p);
         if (t && t.npc) {
             const q = R3.project(t.x, t.y, (t.h || 18) + 6 - Math.sin(G.t / 8));
             ctx.setTransform(q.s, 0, 0, q.s, q.x, q.y);
-            spr(ctx, 'prompt', 0, 0);
+            r3OverSpr(ctx, 'prompt');
         }
     }
     if (p && !G.busy && !UI.modal && !UI.dialogOpen && !p.emote && !p.sit && nearDoor(p)) {
         const q = R3.project(p.x, p.y, 34 - Math.sin(G.t / 9));
         ctx.setTransform(q.s, 0, 0, q.s, q.x, q.y);
-        spr(ctx, 'prompt', 0, 0);
+        r3OverSpr(ctx, 'prompt');
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
