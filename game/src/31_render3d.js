@@ -39,6 +39,12 @@ const R3 = {
             cv.setAttribute('aria-hidden', 'true');
             $('#app').insertBefore(cv, $('#game'));
             this.canvas = cv;
+            // rain and snow get a canvas of their own at the screen's resolution (the overlay is in game pixels), under the
+            // overlay so fades still cover it
+            const wx = document.createElement('canvas');
+            wx.id = 'wx3d'; wx.setAttribute('aria-hidden', 'true');
+            $('#app').insertBefore(wx, $('#game'));
+            this.wx = wx;
             const r = new THREE.WebGLRenderer({ canvas: cv, antialias: false, alpha: false, powerPreference: 'high-performance' });
             r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
             r.setClearColor(0x3a8fd0, 1);
@@ -83,7 +89,7 @@ const R3 = {
     },
     show(on) {
         if (!this.canvas) return;
-        this.canvas.style.display = on ? 'block' : 'none';
+        this.canvas.style.display = this.wx.style.display = on ? 'block' : 'none';
         /* the HUD and dialogue take the art sample's dark glass while the HD-2D view shows */
         if (this.shown !== on) { this.shown = on; document.body.classList.toggle('hd2d', on); }
     },
@@ -95,6 +101,8 @@ const R3 = {
         this.renderer.setPixelRatio(p);
         this.renderer.setSize(w, h, false);
         this.canvas.style.width = w + 'px'; this.canvas.style.height = h + 'px';
+        const wp = Math.min(devicePixelRatio || 1, 2);
+        this.wx.width = Math.round(w * wp); this.wx.height = Math.round(h * wp); this.wx.style.width = w + 'px'; this.wx.style.height = h + 'px';
         this.camera.aspect = w / Math.max(1, h);
         this.camera.updateProjectionMatrix();
         Post3.resize(Math.round(w * p), Math.round(h * p));
@@ -401,8 +409,10 @@ const R3 = {
         this.renderer.setClearColor(a.interior ? 0x231b2e : fog, 1);
         if (this.sky.material.uniforms) {
             const u = this.sky.material.uniforms;
-            u.uZen.value.setRGB(0.25, 0.5, 0.8).lerp(new THREE.Color(0.08, 0.1, 0.25), dark).lerp(new THREE.Color(0.5, 0.55, 0.6), gray);
-            u.uMid.value.setRGB(0.53, 0.74, 0.89).lerp(tint, dark * 0.9).lerp(new THREE.Color(0.66, 0.7, 0.74), gray);
+            // (a snowy day's sky is an even pale white, though the light stays bright)
+            const snow = !a.interior && G.weather === 'snow' ? 0.6 * day : 0, pale = new THREE.Color(0.8, 0.85, 0.91);
+            u.uZen.value.setRGB(0.25, 0.5, 0.8).lerp(new THREE.Color(0.08, 0.1, 0.25), dark).lerp(new THREE.Color(0.5, 0.55, 0.6), gray).lerp(pale, snow);
+            u.uMid.value.setRGB(0.53, 0.74, 0.89).lerp(tint, dark * 0.9).lerp(new THREE.Color(0.66, 0.7, 0.74), gray).lerp(pale, snow);
             u.uHor.value.copy(fog);
             u.uDay.value = day * (1 - gray * 0.4);
         }
@@ -541,10 +551,9 @@ const R3 = {
         // things written for the flat view, each drawn where it now stands
         for (const f of G.fx) if (!f.sorted && !f.screen && f.x != null) { this.localTransform(ctx, f.x, f.y || 0, 0); f.draw(ctx); }
         r3SkyThings(ctx);
-        r3Fireflies(ctx);
         r3Overheads(ctx);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        drawWeather(ctx, v);
+        r3Weather();
         if (G.area.id === 'island') r3FlutterLights(ctx);
         for (const f of G.fx) if (f.screen) f.draw(ctx);
         if (G.flash) { ctx.fillStyle = `rgba(255,246,214,${G.flash})`; ctx.fillRect(0, 0, v.w, v.h); }
@@ -1394,21 +1403,38 @@ function r3SkyThings(ctx) {
         }
     } finally { R3.over = false; ctx.setTransform(1, 0, 0, 1, 0, 0); }
 }
-/* fireflies on firefly-season nights (the flat view's little dots): lights drifting over the grass around Sarah, blinking */
-function r3Fireflies(ctx) {
-    const a = G.area;
-    if (!a || a.id !== 'island' || Weather.kind !== 'fireflies') return;
-    const t = R3U.uTime.value, cx = R3.target.x * TILE, cy = R3.target.z / R3_ZS * TILE, v = G.view;
-    for (let i = 0; i < 22; i++) {
-        const blink = Math.sin(t * (1.3 + (i % 5) * 0.21) + i * 2.3);
-        if (blink < 0.2) continue;
-        const x = cx + Math.sin(t * 0.13 + i * 1.71) * 150 + Math.sin(t * 0.41 + i) * 18, y = cy + Math.cos(t * 0.11 + i * 2.13) * 110 + Math.cos(t * 0.37 + i * 0.7) * 14;
-        const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
-        if (!W0.grid[ty] || W0.grid[ty][tx] !== 'g') continue;
-        const q = R3.project(x, y, 8 + Math.sin(t * 0.9 + i) * 5);
-        if (q.x < 0 || q.y < 0 || q.x > v.w || q.y > v.h) continue;
-        r3Glow(ctx, q, (blink - 0.2) / 0.8);
+/* rain, snow, petals and leaves (the flat view's Weather.parts, in game pixels on the screen) drawn sharp on their own canvas */
+function r3Weather() {
+    const cv = R3.wx, k = Weather.kind, ctx = cv.getContext('2d');
+    if (R3.wxOn) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); R3.wxOn = false; }
+    if (!k || k === 'fireflies' || !Weather.parts.length) return;
+    R3.wxOn = true;
+    const s = cv.width / G.view.w, t = G.t;
+    ctx.globalAlpha = 1 - 0.5 * (G.lightStrength || 0);
+    if (k === 'rain') {
+        // a streak behind each drop, as long as it falls in a frame or so
+        ctx.strokeStyle = 'rgba(205,225,250,0.5)'; ctx.lineWidth = Math.max(1, s * 0.3); ctx.lineCap = 'round';
+        ctx.beginPath();
+        for (const q of Weather.parts) { const x = q.x * s, y = q.y * s; ctx.moveTo(x, y); ctx.lineTo(x + 1.8 * q.s * s, y - 7.5 * q.s * s); }
+        ctx.stroke();
+    } else if (k === 'snow') {
+        // round flakes, the nearer (faster) ones bigger, each with a faint halo
+        for (const [al, m] of [[0.22, 2.1], [0.92, 1]]) {
+            ctx.fillStyle = `rgba(255,255,255,${al})`;
+            ctx.beginPath();
+            for (const q of Weather.parts) { const x = q.x * s, y = q.y * s, r = (0.3 + q.s * 0.45) * s * m; ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, 6.283); }
+            ctx.fill();
+        }
+    } else {
+        // petals and leaves turn as they fall
+        const pet = k === 'petals';
+        for (const q of Weather.parts) {
+            ctx.setTransform(s, 0, 0, s, q.x * s, q.y * s); ctx.rotate(q.p + Math.sin(t / 30 + q.p) * 1.2);
+            ctx.fillStyle = pet ? (q.s > 1 ? '#ffd1e1' : '#f7a8c4') : (q.s > 1 ? '#e39a3b' : '#c8702d');
+            ctx.beginPath(); ctx.ellipse(0, 0, pet ? 1.3 : 1.6, (pet ? 0.75 : 0.9) * Math.abs(Math.cos(t / 22 + q.p)) + 0.25, 0, 0, 6.283); ctx.fill();
+        }
     }
+    ctx.globalAlpha = 1;
 }
 /* one firefly's soft light at a projected spot */
 function r3Glow(ctx, q, al) {

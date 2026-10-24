@@ -293,8 +293,10 @@ function updateWeather() {
     }
     const dx = G.cam.x - (Weather.cx || G.cam.x), dy = G.cam.y - (Weather.cy || G.cam.y);
     Weather.cx = G.cam.x; Weather.cy = G.cam.y;
+    // a jump (a door, a teleport) scatters them again instead of bunching them all at one edge
+    const jump = Math.abs(dx) > v.w / 2 || Math.abs(dy) > v.h / 2;
     for (const q of Weather.parts) {
-        q.x -= dx; q.y -= dy;
+        if (jump) { q.x = R() * v.w; q.y = R() * v.h; } else { q.x -= dx; q.y -= dy; }
         if (k === 'rain') { q.x -= 1.2 * q.s; q.y += 5 * q.s; }
         else if (k === 'snow') { q.x += Math.sin(G.t / 40 + q.p) * 0.3; q.y += 0.45 * q.s; }
         else if (k === 'petals' || k === 'leaves') { q.x += 0.5 * q.s + Math.sin(G.t / 30 + q.p) * 0.4; q.y += 0.35 * q.s; }
@@ -306,7 +308,7 @@ function updateWeather() {
 }
 function drawWeather(ctx, v) {
     const k = Weather.kind;
-    if (!k || (k === 'fireflies' && R3.shown)) return;        // (the HD-2D view has its own, glowing: r3Fireflies)
+    if (!k) return;
     // drawn after the lighting so rain still shows at night; fireflies make their own light
     ctx.globalAlpha = k === 'fireflies' ? 1 : 1 - 0.5 * (G.lightStrength || 0);
     for (const q of Weather.parts) {
