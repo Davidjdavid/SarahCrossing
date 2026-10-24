@@ -105,11 +105,12 @@ const R3 = {
         let tx = p.x, ty = p.y - 10;
         if (G.camTarget) { tx = G.camTarget[0]; ty = G.camTarget[1]; }
         if (a.interior) { tx = a.w * TILE / 2; ty = (a.floor.y0 + a.floor.h * 0.55) * TILE; }
-        const X = tx / TILE, Z = ty / TILE * R3_ZS;
-        if (snap || this.areaId !== a.id) { this.target.x = X; this.target.z = Z; }
-        else { this.target.x += (X - this.target.x) * 0.14; this.target.z += (Z - this.target.z) * 0.14; }
+        const X = tx / TILE, Z = ty / TILE * R3_ZS, GH = a.interior ? 0 : r3GroundH(tx, ty + 10);
+        if (snap || this.areaId !== a.id) { this.target.x = X; this.target.z = Z; this.camH = GH; }
+        else { this.target.x += (X - this.target.x) * 0.14; this.target.z += (Z - this.target.z) * 0.14; this.camH += (GH - (this.camH || 0)) * 0.08; }
         const pr = this.pitch(), d = this.dist(), cam = this.camera;
-        cam.position.set(this.target.x, R3_CAM.ly + d * Math.sin(pr), this.target.z + d * Math.cos(pr));
+        // (up on the plateau, the camera rises with her)
+        cam.position.set(this.target.x, R3_CAM.ly + d * Math.sin(pr) + (this.camH || 0), this.target.z + d * Math.cos(pr));
         cam.rotation.set(-pr, 0, 0);
         cam.updateMatrixWorld();
         R3U.uBendZ.value = this.target.z - (a.interior ? 999 : R3_CAM.bendStart);
@@ -139,9 +140,9 @@ const R3 = {
     project(x, y, lift) {
         const v = G.view;
         const P = this._p || (this._p = new THREE.Vector3()), Q = this._q || (this._q = new THREE.Vector3());
-        const Z = y / TILE * R3_ZS, bd = Math.max(0, R3U.uBendZ.value - Z), drop = R3U.uBendK.value * bd * bd;
-        P.set(x / TILE, (lift || 0) / TILE * R3_VS - drop, Z).project(this.camera);
-        Q.set(x / TILE + 1, (lift || 0) / TILE * R3_VS - drop, Z).project(this.camera);
+        const Z = y / TILE * R3_ZS, bd = Math.max(0, R3U.uBendZ.value - Z), drop = R3U.uBendK.value * bd * bd, gh = r3GroundH(x, y);
+        P.set(x / TILE, (lift || 0) / TILE * R3_VS - drop + gh, Z).project(this.camera);
+        Q.set(x / TILE + 1, (lift || 0) / TILE * R3_VS - drop + gh, Z).project(this.camera);
         const sx = (P.x + 1) / 2 * v.w, sy = (1 - P.y) / 2 * v.h;
         return { x: sx, y: sy, s: Math.abs((Q.x - P.x) / 2 * v.w) / TILE, behind: P.z > 1 };
     },
@@ -150,9 +151,10 @@ const R3 = {
         const v = G.view, cam = this.camera;
         const ndc = new THREE.Vector3(sx / v.w * 2 - 1, 1 - sy / v.h * 2, 0.5).unproject(cam);
         const o = cam.position, dir = ndc.sub(o).normalize();
-        const f = t => { const yy = o.y + dir.y * t, zz = o.z + dir.z * t, bd = Math.max(0, R3U.uBendZ.value - zz); return yy + R3U.uBendK.value * bd * bd; };
+        // (the ground is bent away towards the horizon, and raised where the island is higher: march along until below it)
+        const f = t => { const yy = o.y + dir.y * t, zz = o.z + dir.z * t, bd = Math.max(0, R3U.uBendZ.value - zz); return yy + R3U.uBendK.value * bd * bd - r3GroundH((o.x + dir.x * t) * TILE, zz / R3_ZS * TILE); };
         let lo = 0, hi = 0;
-        for (let t = 0.5; t < 600; t *= 1.25) { if (f(t) <= 0) { hi = t; break; } lo = t; }
+        for (let t = 0.5; t < 600; t += Math.max(0.25, t * 0.04)) { if (f(t) <= 0) { hi = t; break; } lo = t; }
         if (!hi) return orNull ? null : [G.player.x, G.player.y];
         for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (f(m) > 0) lo = m; else hi = m; }
         return [(o.x + dir.x * hi) * TILE, (o.z + dir.z * hi) / R3_ZS * TILE];
@@ -379,6 +381,16 @@ const R3 = {
     /* a card for something that stays put: its size is measured once, it is redrawn when it changes */
     staticCard(e, a) {
         let c = this.cards.get(e);
+        // buildings are real shapes: walls, a roof that slopes back, sides you see in perspective (r3Volume)
+        if (e.kind === 'building' && !a.interior && (c ? c.vol : r3VolSpec(e))) {
+            if (c && c.frame !== e.frame) { this.dropCard(c); this.cards.delete(e); c = null; }
+            if (!c) { c = r3Volume(e, this.scene); if (!c) return; this.cards.set(e, c); }
+            c.away = 0;
+            c.mesh.position.set(Math.round(e.x) / TILE, r3GroundH(e.x, e.y - 1), e.y / TILE * R3_ZS);
+            c.mesh.visible = true;
+            c.setFade(seeThroughRaw(e));
+            return;
+        }
         const sig = e.draw ? null : `${e.frame}|${e.flip}|${e.shake || 0}`;
         if (!c) {
             const b = measureEnt(e);
@@ -417,6 +429,7 @@ const R3 = {
         c.mesh.castShadow = !(e.alt > 6);
     },
     dropCard(c) {
+        if (c.dispose) return c.dispose();
         this.scene.remove(c.mesh);
         c.mesh.geometry.dispose(); c.mat.dispose(); c.tex.dispose(); if (c.depth) c.depth.dispose();
     },
@@ -477,7 +490,7 @@ function r3Patch(mat, o) {
             vec4 mvPosition = viewMatrix * bw;
             vDofZ = -mvPosition.z;
             gl_Position = projectionMatrix * mvPosition;`);
-        let fs = R3_GLSL + sh.fragmentShader;
+        let fs = R3_GLSL + (o.fhead || '') + sh.fragmentShader;
         if (!o.noCloud) fs = fs.replace('reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask();',
             'reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask() * cloudShade(vWp.xz);');
         fs = fs.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + (o.fend || '') + (o.dofFixed != null ? `\ngl_FragColor.a = ${o.dofFixed.toFixed(2)};` : '\ngl_FragColor.a = dofA(vDofZ);'));
@@ -594,6 +607,76 @@ function r3Sky(scene) {
 
 /* ---------------------------------------------------------------- the island's ground, in pieces */
 const R3_CHUNK = 256;
+/* ---------------------------------------------------------------- the island's water */
+/* the river, ponds, the spring and the waterfalls move: ripples drifting downstream, light on the crests, sparkles,
+   a little foam along the banks (the water map: one texel a tile, red = water, green = flowing, blue = falling) */
+let R3_WMAP = null;
+function r3WaterMap() {
+    if (R3_WMAP && R3_WMAP.src === W0.water) return R3_WMAP;
+    const Wt = W0.w, Ht = W0.h, d = new Uint8Array(Wt * Ht * 4);
+    for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
+        const c = W0.water[y] ? W0.water[y][x] : '.', g = W0.grid[y] ? W0.grid[y][x] : '', i = (y * Wt + x) * 4;
+        const fall = g === 'W', wet = c === 'r' || c === 'p' || c === 'h' || fall;
+        d[i] = wet ? 255 : 0; d[i + 1] = c === 'r' || fall ? 255 : 0; d[i + 2] = fall ? 255 : 0; d[i + 3] = 255;
+    }
+    const t = new THREE.DataTexture(d, Wt, Ht, THREE.RGBAFormat);
+    t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearFilter; t.needsUpdate = true;
+    t.src = W0.water;
+    R3_WMAP = t;
+    return t;
+}
+const R3_WATER_HEAD = 'uniform sampler2D uWater; uniform vec2 uWsz;\n';
+const R3_WATER_GLSL = `
+{
+    vec4 wm = texture2D(uWater, vec2(vWp.x / uWsz.x, vWp.z / ${R3_ZS.toFixed(3)} / uWsz.y));
+    float w = smoothstep(0.45, 0.8, wm.r);
+    vec3 col = gl_FragColor.rgb;
+    if (w > 0.0) {
+        vec2 p = vWp.xz;
+        vec2 q = p * 2.1 + vec2(uTime * 0.12, uTime * (0.18 + wm.g * 0.7 + wm.b * 3.0));
+        float n = r3n(q) * 0.6 + r3n(q * 2.3 + 5.1) * 0.4, rip = smoothstep(0.55, 0.86, n);
+        vec3 wc = mix(col * vec3(0.84, 0.92, 1.03), col, 0.55 + 0.45 * rip) + vec3(0.18, 0.22, 0.24) * rip * 0.45;
+        wc += step(0.972, r3n(p * 9.0 + vec2(uTime * 0.7, uTime * 0.35))) * 0.42;
+        // falling water: white streaks rushing down
+        wc = mix(wc, vec3(0.92, 0.97, 1.0), wm.b * smoothstep(0.45, 0.8, r3n(vec2(p.x * 7.0, p.y * 1.4 - uTime * 2.6))) * 0.75);
+        // foam just inside the bank
+        float foam = smoothstep(0.42, 0.55, wm.r) * smoothstep(0.78, 0.6, wm.r);
+        wc = mix(wc, vec3(0.94, 0.97, 1.0), foam * smoothstep(0.4, 0.85, r3n(p * 5.0 + vec2(0.0, uTime * 0.4))) * 0.6);
+        gl_FragColor.rgb = mix(col, wc, w);
+    }
+}`;
+
+/* ---------------------------------------------------------------- the island's height */
+/* the plateau (level 1) and the mountain (level 2) stand up, R3_LEVEL units a level; where a higher level ends going
+   south, the two rows painted as a stone face (and the stairs, and the waterfalls) become the cliff, sloping down */
+const R3_LEVEL = 2.0, R3_BAND = 2;
+let R3_HC = null;
+function r3Corners() {
+    if (R3_HC && R3_HC.src === W0.height) return R3_HC;
+    const Wt = W0.w, Ht = W0.h, Hs = W0.height || [];
+    const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || !Hs[y]) ? 0 : +Hs[y][x] || 0;
+    const C = new Float32Array((Wt + 1) * (Ht + 1));
+    for (let vy = 0; vy <= Ht; vy++) for (let vx = 0; vx <= Wt; vx++) {
+        // a corner is as high as the highest tile touching it...
+        let h = Math.max(L(vx - 1, vy - 1), L(vx, vy - 1), L(vx - 1, vy), L(vx, vy));
+        // ...or, in the band below a cliff edge, part of the way down from it
+        const low = Math.max(L(vx - 1, vy), L(vx, vy));
+        for (let k = 2; k <= R3_BAND; k++) {
+            const u = Math.max(L(vx - 1, vy - k), L(vx, vy - k));
+            if (u > low && Math.max(L(vx - 1, vy - k + 1), L(vx, vy - k + 1)) <= low) { h = Math.max(h, low + (u - low) * (1 - (k - 1) / R3_BAND)); break; }
+        }
+        C[vy * (Wt + 1) + vx] = h;
+    }
+    R3_HC = { src: W0.height, C, W: Wt + 1, H: Ht + 1 };
+    return R3_HC;
+}
+/* the ground's height (world units) under a spot in world pixels, on the island (rooms are flat) */
+function r3GroundH(x, y) {
+    if (!G.area || G.area.interior || G.area.id !== 'island' || !W0.height) return 0;
+    const g = r3Corners(), fx = Math.max(0, Math.min(g.W - 1.001, x / TILE)), fy = Math.max(0, Math.min(g.H - 1.001, y / TILE));
+    const ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy, C = g.C, i = iy * g.W + ix;
+    return ((C[i] * (1 - tx) + C[i + 1] * tx) * (1 - ty) + (C[i + g.W] * (1 - tx) + C[i + g.W + 1] * tx) * ty) * R3_LEVEL;
+}
 function makeChunk(scene, cx, cy) {
     const cv = document.createElement('canvas');
     cv.width = R3_CHUNK; cv.height = R3_CHUNK;
@@ -601,10 +684,14 @@ function makeChunk(scene, cx, cy) {
     ctx.imageSmoothingEnabled = false;
     const tex = new THREE.CanvasTexture(cv);
     tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.generateMipmaps = true; tex.anisotropy = 4;
-    const mat = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.02, color: 0xd8d8d8 }), { key: 'ground' });
+    const mat = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.02, color: 0xd8d8d8 }), { key: 'groundw', uniforms: { uWater: { value: r3WaterMap() }, uWsz: { value: new THREE.Vector2(W0.w, W0.h) } }, fhead: R3_WATER_HEAD, fend: R3_WATER_GLSL });
     const s = R3_CHUNK / TILE;
-    const geo = new THREE.PlaneGeometry(s, s * R3_ZS, 6, 6);
+    const geo = new THREE.PlaneGeometry(s, s * R3_ZS, s, s);
     geo.rotateX(-Math.PI / 2);
+    // raised where the island is higher (one vertex per tile corner)
+    const P = geo.attributes.position;
+    for (let i = 0; i < P.count; i++) P.setY(i, r3GroundH((cx * s + s / 2 + P.getX(i)) * TILE, (cy * s + s / 2 + P.getZ(i) / R3_ZS) * TILE));
+    geo.computeVertexNormals();
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(cx * s + s / 2, 0, (cy * s + s / 2) * R3_ZS);
     mesh.receiveShadow = true;
@@ -693,12 +780,123 @@ function drawCard(c, e) {
     c.tex.needsUpdate = true;
 }
 function placeCard(c, e, a) {
-    let lift = 0, z = e.y / TILE * R3_ZS;
+    let lift = r3GroundH(e.x, e.y), z = e.y / TILE * R3_ZS;
     // indoors, things on the back wall hang on it
     if (a.interior && a.floor && e.y < a.floor.y0 * TILE + 2) { lift = (a.floor.y0 * TILE - e.y) / TILE * R3_VS * 1.6; z = a.floor.y0 * TILE / TILE * R3_ZS + 0.01; }
     c.mesh.position.set(Math.round(e.x) / TILE, lift, z + 0.001 * ((e.x * 7) % 3));
     c.mesh.visible = true;
 }
+/* ---------------------------------------------------------------- buildings in 3D */
+/* where each building's walls end and its roof begins (rows of today's sprite): a roof slopes back over the footprint;
+   a flat roof (arcade, club, museum) is a flat top at that row, with anything above it (signs, the pediment) standing
+   up at the front */
+const R3_VOL = { shop: { roof: 28 }, boutique: { roof: 29 }, salon: { roof: 29 }, studio: { roof: 29 }, builder: { roof: 29 }, restaurant: { roof: 31 },
+    displays: { roof: 31 }, barn: { roof: 30 }, arcade: { flat: 12 }, club: { flat: 13 }, museum: { flat: 27 } };
+function r3VolSpec(e) {
+    if (e.kind !== 'building' || !e.b) return null;
+    if (typeof HOUSE_BASE !== 'undefined' && HOUSE_BASE[e.id]) {
+        // houses come from their look (drawHouse): walls from 42% down, the roof above
+        const L = houseLook(e.id), wt = Math.floor(L.h * 0.42), st = L.style || 'gable';
+        return st === 'flat' ? { flat: wt - 8 } : { roof: st === 'thatch' ? wt + 4 : wt + 3 };
+    }
+    return R3_VOL[e.frame] || null;
+}
+/* a building as one mesh wearing its picture: the front wall is the picture's lower part, the roof its upper part tilted
+   back to a ridge halfway over the footprint, the side walls and gable ends take the colors at the picture's edges */
+function r3Volume(e, scene) {
+    const sp = r3VolSpec(e);
+    let f = hdNamed(e.frame), k = HD_K;
+    if (!f) {
+        // no HD art: today's sprite
+        const fr = Assets.frames[e.frame], dy = Assets.dyn[e.frame];
+        if (!fr && !dy) return null;
+        const cv = document.createElement('canvas');
+        if (fr) { cv.width = fr[2]; cv.height = fr[3]; cv.getContext('2d').drawImage(Assets.atlas, fr[0], fr[1], fr[2], fr[3], 0, 0, fr[2], fr[3]); f = { c: cv, w: fr[2], h: fr[3], ax: fr[4], ay: fr[5] }; }
+        else { cv.width = dy.w; cv.height = dy.h; cv.getContext('2d').drawImage(dy.c, 0, 0); f = { c: cv, w: dy.w, h: dy.h, ax: dy.ax, ay: dy.ay }; }
+        k = 1;
+    }
+    const W = f.w, H = f.h, ay = f.ay, px = 1 / k / TILE, py = R3_VS / k / TILE, D = e.b.h * R3_ZS;
+    const alpha = f.c.getContext('2d').getImageData(0, 0, W, H).data;
+    const edges = row => { row = Math.max(0, Math.min(H - 1, Math.round(row))); let l = -1, r = -1; for (let x = 0; x < W; x++) if (alpha[(row * W + x) * 4 + 3] > 128) { if (l < 0) l = x; r = x; } return [l, r]; };
+    const V = row => 1 - row / H, U = x => (x + 0.5) / W, X = x => (x - f.ax) * px;
+    const pos = [], uv = [], nrm = [];
+    // one flat four-cornered face: corners in order, each [x, y, z, u, v]; n = its normal
+    const quad = (c, n) => { for (const i of [0, 1, 2, 0, 2, 3]) { pos.push(c[i][0], c[i][1], c[i][2]); uv.push(c[i][3], c[i][4]); nrm.push(n[0], n[1], n[2]); } };
+    const tri = (c, n) => { for (const i of [0, 1, 2]) { pos.push(c[i][0], c[i][1], c[i][2]); uv.push(c[i][3], c[i][4]); nrm.push(n[0], n[1], n[2]); } };
+    const top = sp.roof != null ? sp.roof * k : sp.flat * k;            // where the walls stop (canvas rows)
+    const Hw = (ay - top) * py, [l, r] = edges((top + ay) / 2);
+    if (l < 0) return null;
+    const xL = X(l), xR = X(r + 1), x0 = X(0), x1 = X(W);
+    // the sides wear the wall's own color, row by row (the median across the front, so windows, doors and a barber's pole
+    // don't streak along them); the last row is the whole wall's color, for the gable ends and the back
+    const wh = Math.max(1, ay - top), side = document.createElement('canvas');
+    side.width = 1; side.height = wh + 1;
+    const sg = side.getContext('2d'), sd = sg.createImageData(1, wh + 1), all = [[], [], []];
+    for (let y = 0; y < wh; y++) {
+        const ch = [[], [], []];
+        for (let x = l + k; x <= r - k; x++) { const i = ((top + y) * W + x) * 4; if (alpha[i + 3] > 128) for (let q = 0; q < 3; q++) { ch[q].push(alpha[i + q]); all[q].push(alpha[i + q]); } }
+        for (let q = 0; q < 3; q++) { ch[q].sort((m, n) => m - n); sd.data[y * 4 + q] = ch[q].length ? ch[q][ch[q].length >> 1] : 128; }
+        sd.data[y * 4 + 3] = 255;
+    }
+    for (let q = 0; q < 3; q++) { all[q].sort((m, n) => m - n); sd.data[wh * 4 + q] = all[q].length ? Math.round(all[q][all[q].length >> 1] * 0.92) : 128; }
+    sd.data[wh * 4 + 3] = 255;
+    sg.putImageData(sd, 0, 0);
+    const uL = 0.5, uR = 0.5, vWall = 0.5 / (wh + 1), SV = row => 1 - (Math.max(top, Math.min(ay, row)) - top + 0.5) / (wh + 1);
+    const sideQuads = [];                                                  // which faces wear the side picture
+    const front = [0, 0.4, 0.92];                                         // lit a little like the ground, as the cards are
+    if (sp.roof != null) {
+        // the front wall, then the roof sloping back to the ridge
+        quad([[x0, 0, 0, 0, V(ay)], [x1, 0, 0, 1, V(ay)], [x1, Hw, 0, 1, V(top)], [x0, Hw, 0, 0, V(top)]], front);
+        const tanP = Math.tan(R3_CAM.pitch * Math.PI / 180), Vc = top * py;
+        let d = D / 2, rise = Vc - d * tanP;
+        if (rise < Vc * 0.3) { rise = Vc * 0.3; d = (Vc - rise) / tanP; }
+        const rl = Math.hypot(d, rise), rn = [0, d / rl, rise / rl];
+        quad([[x0, Hw, 0, 0, V(top)], [x1, Hw, 0, 1, V(top)], [x1, Hw + rise, -d, 1, 1], [x0, Hw + rise, -d, 0, 1]], rn);
+        const bd = D - d, bl = Math.hypot(bd, rise);
+        quad([[x0, Hw + rise, -d, 0, 1], [x1, Hw + rise, -d, 1, 1], [x1, Hw, -D, 1, V(top)], [x0, Hw, -D, 0, V(top)]], [0, bd / bl, -rise / bl]);
+        // gable ends above the side walls
+        sideQuads.push(pos.length / 3);
+        tri([[xL, Hw, 0, uL, vWall], [xL, Hw, -D, uL, vWall], [xL, Hw + rise, -d, uL, vWall]], [-1, 0, 0]);
+        tri([[xR, Hw, 0, uR, vWall], [xR, Hw + rise, -d, uR, vWall], [xR, Hw, -D, uR, vWall]], [1, 0, 0]);
+    } else {
+        // the whole picture stands at the front (a sign or a pediment rises above the roof line); the roof is flat
+        quad([[x0, 0, 0, 0, V(ay)], [x1, 0, 0, 1, V(ay)], [x1, ay * py, 0, 1, 1], [x0, ay * py, 0, 0, 1]], front);
+        const uc = U((l + r) / 2);
+        quad([[xL, Hw, 0, uc, vWall], [xR, Hw, 0, uc, vWall], [xR, Hw, -D, uc, vWall], [xL, Hw, -D, uc, vWall]], [0, 1, 0]);
+    }
+    // side walls and the back wall
+    const s0 = pos.length / 3;
+    quad([[xL, 0, -D, uL, SV(ay)], [xL, 0, 0, uL, SV(ay)], [xL, Hw, 0, uL, SV(top)], [xL, Hw, -D, uL, SV(top)]], [-1, 0, 0]);
+    quad([[xR, 0, 0, uR, SV(ay)], [xR, 0, -D, uR, SV(ay)], [xR, Hw, -D, uR, SV(top)], [xR, Hw, 0, uR, SV(top)]], [1, 0, 0]);
+    quad([[xR, 0, -D, uR, SV(ay)], [xL, 0, -D, uL, SV(ay)], [xL, Hw, -D, uL, SV(top)], [xR, Hw, -D, uR, SV(top)]], [0, 0, -1]);
+    // two meshes: the picture (front, roof, a flat top: see-through where the picture is), and the side color (gable ends,
+    // side and back walls: solid)
+    const pick = (from, to) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos.slice(from * 3, to * 3), 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv.slice(from * 2, to * 2), 2)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm.slice(from * 3, to * 3), 3)); return g; };
+    const g0 = sideQuads.length ? sideQuads[0] : s0, geo = pick(0, g0), sgeo = pick(g0, pos.length / 3);
+    const tex = new THREE.CanvasTexture(f.c);
+    tex.magFilter = k > 1 && R3.texLinear ? THREE.LinearFilter : THREE.NearestFilter; tex.minFilter = k > 1 ? THREE.LinearFilter : THREE.NearestFilter; tex.generateMipmaps = false;
+    const mat = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide, color: 0xdedede }), { key: 'card' });
+    const stex = new THREE.CanvasTexture(side);
+    stex.magFilter = THREE.NearestFilter; stex.minFilter = THREE.NearestFilter; stex.generateMipmaps = false;
+    const smat = r3Patch(new THREE.MeshLambertMaterial({ map: stex, side: THREE.DoubleSide, color: 0xdedede }), { key: 'card' });
+    const pm = new THREE.Mesh(geo, mat), sm = new THREE.Mesh(sgeo, smat);
+    for (const m of [pm, sm]) { m.castShadow = true; m.receiveShadow = true; }
+    const depth = r3Depth(tex);
+    pm.customDepthMaterial = depth;
+    const mesh = new THREE.Group();
+    mesh.add(pm, sm);
+    scene.add(mesh);
+    const c = { vol: true, frame: e.frame, e, mesh, mat, tex, depth, res: k, away: 0, fade: 1 };
+    c.dispose = () => { scene.remove(mesh); geo.dispose(); sgeo.dispose(); mat.dispose(); smat.dispose(); tex.dispose(); stex.dispose(); depth.dispose(); };
+    c.setFade = v => {
+        if (v === c.fade) return;
+        c.fade = v;
+        for (const m of [mat, smat]) { m.transparent = v < 1; m.opacity = v; m.depthWrite = v >= 1; m.needsUpdate = true; }
+        mat.alphaTest = v < 1 ? 0.05 : 0.5;
+    };
+    return c;
+}
+
 /* how big something is, measured once: draw it into a big scratch canvas and find where the pixels are */
 const R3_SCRATCH = { cv: null, ctx: null, W: 288, H: 320, AX: 144, AY: 280 };
 const R3_SIZES = new Map();
