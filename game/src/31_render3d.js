@@ -184,6 +184,7 @@ const R3 = {
             hdWarm();
             this.updateGround(a);
             this.updateTufts(a);
+            this.updateLilies(a);
             this.updateLight(a);
             this.updateCards(a);
             R3U.uTime.value = (performance.now() - this.t0) / 1000;
@@ -265,6 +266,16 @@ const R3 = {
             t.at = [cx, cy, V.x1 - V.x0];
             r3FillTufts(t, a, V);
         }
+    },
+    /* lily pads on the ponds (not in winter), refilled with the grass */
+    updateLilies(a) {
+        let l = this.lilies;
+        const on = !a.interior && a.id === 'island' && this.view && (a.bgSeason || Clock.season()) !== 'winter';
+        if (!on) { if (l) l.mesh.visible = false; return; }
+        if (!l) l = this.lilies = r3Lilies(this.scene);
+        l.mesh.visible = true;
+        const t = this.tufts;
+        if (t && t.at && l.at !== t.at) { l.at = t.at; r3FillLilies(l, a, this.view); }
     },
 
     /* ---------------------------------------------------------------- a room's floor (with three pixels to one for the HD art) */
@@ -709,6 +720,7 @@ const R3Mirror = {
         // (no ground, sea or grass in the mirror; and the world unbent, as the water's own points are looked up)
         const hide = [r3.sea]; for (const ch of r3.chunks.values()) if (ch.mesh.visible) hide.push(ch.mesh);
         if (r3.tufts && r3.tufts.mesh.visible) hide.push(r3.tufts.mesh);
+        if (r3.lilies && r3.lilies.mesh.visible) hide.push(r3.lilies.mesh);
         for (const m of hide) m.visible = false;
         const bk = R3U.uBendK.value, was = R.shadowMap.needsUpdate;
         R3U.uBendK.value = 0; R3U.uRefl.value = 0; R.shadowMap.needsUpdate = false;
@@ -811,6 +823,80 @@ function r3FillTufts(t, a, V) {
     t.mesh.count = n;
     t.mesh.instanceMatrix.needsUpdate = true;
     t.aVar.needsUpdate = true;
+}
+
+/* ---------------------------------------------------------------- lily pads */
+/* floating on the ponds as in the art sample: round pads with a notch, a few with a pink flower, bobbing a little */
+const R3_LILY_MAX = 400;
+function r3LilyCanvas() {
+    const S = 32, cv = document.createElement('canvas');
+    cv.width = S * 3; cv.height = S;
+    const g = cv.getContext('2d');
+    for (let v = 0; v < 3; v++) {
+        const cx = v * S + S / 2, cy = S / 2, r = S * 0.42, notch = 0.5 + v * 1.7;
+        g.save(); g.translate(cx, cy);
+        // the pad: a disc with a wedge cut out, darker at the rim, a highlight towards the top left
+        g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, r, notch + 0.38, notch + Math.PI * 2 - 0.38); g.closePath();
+        const gr = g.createRadialGradient(-r * 0.35, -r * 0.35, 1, 0, 0, r);
+        gr.addColorStop(0, '#9fd46a'); gr.addColorStop(0.65, '#5f9e3c'); gr.addColorStop(1, '#3d7030');
+        g.fillStyle = gr; g.fill();
+        g.strokeStyle = 'rgba(40,80,30,0.8)'; g.lineWidth = 1; g.stroke();
+        // veins
+        g.strokeStyle = 'rgba(200,240,150,0.35)'; g.lineWidth = 0.8;
+        for (let k = 0; k < 6; k++) { const a = notch + 0.6 + k * 0.9; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * r * 0.85, Math.sin(a) * r * 0.85); g.stroke(); }
+        if (v === 2) {
+            // a pink water lily on this one
+            for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; g.fillStyle = k % 2 ? '#f7b6cf' : '#f28cb4'; g.beginPath(); g.ellipse(Math.cos(a) * 4, Math.sin(a) * 4 - 1, 4.2, 2.2, a, 0, Math.PI * 2); g.fill(); }
+            g.fillStyle = '#ffe27a'; g.beginPath(); g.arc(0, -1, 2.2, 0, Math.PI * 2); g.fill();
+        }
+        g.restore();
+    }
+    return cv;
+}
+function r3Lilies(scene) {
+    const tex = new THREE.CanvasTexture(r3LilyCanvas());
+    tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+    const geo = new THREE.PlaneGeometry(1, 1);
+    geo.rotateX(-Math.PI / 2);
+    const aVar = new THREE.InstancedBufferAttribute(new Float32Array(R3_LILY_MAX), 1);
+    geo.setAttribute('aVar', aVar);
+    const mat = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, color: 0xdedede }), { key: 'lily', vhead: 'attribute float aVar;\n' });
+    const ob = mat.onBeforeCompile;
+    mat.onBeforeCompile = sh => {
+        ob(sh);
+        sh.vertexShader = sh.vertexShader
+            .replace('#include <uv_vertex>', '#include <uv_vertex>\nvUv.x = (vUv.x + aVar) / 3.0;')
+            .replace('vec4 bw = modelMatrix * vec4(transformed, 1.0);', `vec4 bw = modelMatrix * instanceMatrix * vec4(transformed, 1.0);
+            bw.y += sin(uTime * 1.3 + bw.x * 1.7 + bw.z * 1.1) * 0.012;      // a gentle bob on the water`);
+    };
+    const mesh = new THREE.InstancedMesh(geo, mat, R3_LILY_MAX);
+    mesh.receiveShadow = true; mesh.castShadow = false; mesh.frustumCulled = false; mesh.count = 0;
+    scene.add(mesh);
+    return { mesh, geo, mat, tex, aVar, at: null };
+}
+function r3FillLilies(l, a, V) {
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+    const x0 = Math.max(1, Math.floor(V.x0 / TILE)), x1 = Math.min(a.w - 2, Math.ceil(V.x1 / TILE));
+    const y0 = Math.max(1, Math.floor(V.y0 / TILE)), y1 = Math.min(a.h - 2, Math.ceil(V.y1 / TILE));
+    let n = 0;
+    for (let ty = y1; ty >= y0 && n < R3_LILY_MAX; ty--) for (let tx = x0; tx <= x1 && n < R3_LILY_MAX; tx++) {
+        // pond tiles a little way from the bank, about one in three
+        if (a.waterAt(tx, ty) !== 'p') continue;
+        const wet = [[-1, 0], [1, 0], [0, -1], [0, 1]].filter(([dx, dy]) => a.waterAt(tx + dx, ty + dy) === 'p').length;
+        const h = hash32('lily' + tx + ',' + ty);
+        if (wet < 3 || h % 3) continue;
+        const fx = (tx + 0.2 + (h >> 4) % 60 / 100) * TILE, fy = (ty + 0.2 + (h >> 10) % 60 / 100) * TILE, s = 0.42 + (h >> 16) % 30 / 100;
+        ps.set(fx / TILE, r3GroundH(fx, fy) + 0.03, fy / TILE * R3_ZS);
+        q.setFromAxisAngle(up, ((h >> 20) % 628) / 100);
+        sc.set(s, 1, s * R3_ZS);
+        m.compose(ps, q, sc);
+        l.mesh.setMatrixAt(n, m);
+        l.aVar.setX(n, (h >> 7) % 7 === 0 ? 2 : (h >> 3) % 2);
+        n++;
+    }
+    l.mesh.count = n;
+    l.mesh.instanceMatrix.needsUpdate = true;
+    l.aVar.needsUpdate = true;
 }
 
 /* ---------------------------------------------------------------- the island's water */
