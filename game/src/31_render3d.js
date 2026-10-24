@@ -121,7 +121,11 @@ const R3 = {
         if (a.interior) { tx = a.w * TILE / 2; ty = (a.floor.y0 + a.floor.h * 0.55) * TILE; }
         const X = tx / TILE, Z = ty / TILE * R3_ZS, GH = a.interior ? 0 : r3GroundH(tx, ty + 10);
         if (snap || this.areaId !== a.id) { this.target.x = X; this.target.z = Z; this.camH = GH; }
-        else { this.target.x += (X - this.target.x) * 0.14; this.target.z += (Z - this.target.z) * 0.14; this.camH += (GH - (this.camH || 0)) * 0.08; }
+        else {
+            // (the same follow however often the screen redraws)
+            const f = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60)), k = 1 - Math.pow(0.86, f), kh = 1 - Math.pow(0.92, f);
+            this.target.x += (X - this.target.x) * k; this.target.z += (Z - this.target.z) * k; this.camH += (GH - (this.camH || 0)) * kh;
+        }
         const pr = this.pitch(), d = this.dist(), cam = this.camera;
         // (up on the plateau, the camera rises with her)
         cam.position.set(this.target.x, R3_CAM.ly + d * Math.sin(pr) + (this.camH || 0), this.target.z + d * Math.cos(pr));
@@ -186,9 +190,12 @@ const R3 = {
         const a = G.area;
         try {
             if (this.areaId !== a.id || this.ground === null) this.newArea(a);
+            // (drawn more often than the game steps: what's done every few steps is done once for that step)
+            const step = this._step !== G.frame;
+            this._step = G.frame;
             this.placeCamera(false);
-            if (!this.view || G.frame % 4 === 0) this.updateView();
-            if (G.frame % 30 === 0) this.texelSize();
+            if (!this.view || (step && G.frame % 4 === 0)) this.updateView();
+            if (step && G.frame % 30 === 0) this.texelSize();
             hdWarm();
             this.updateGround(a);
             this.updateTufts(a);
@@ -196,7 +203,7 @@ const R3 = {
             this.updateLight(a);
             this.updateCards(a);
             R3U.uTime.value = (performance.now() - this.t0) / 1000;
-            if (G.frame % (this.phone ? 3 : 2) === 0 && this.shadowsOn !== false) this.renderer.shadowMap.needsUpdate = true;
+            if (step && G.frame % (this.phone ? 3 : 2) === 0 && this.shadowsOn !== false) this.renderer.shadowMap.needsUpdate = true;
             if (!this.warmed) this.warmPrograms();
             R3Mirror.render(this, a);
             Post3.render(this.scene, this.camera, R3U.uTime.value, this.grade);
@@ -532,7 +539,7 @@ const R3 = {
                 : k === 's' ? makeCard(64, 44, 32, 36, this.scene, HD_K) : makeCard(80, 150, 40, 140, this.scene);
             c.pooled = true; list.push(c);
         }
-        drawCard(c, e);
+        if (c.lastE !== e || c.lastF !== G.frame) { drawCard(c, e); c.lastE = e; c.lastF = G.frame; }
         placeCard(c, e, a);
         c.setFade(1);
         c.mesh.castShadow = !(e.alt > 6);
@@ -1018,9 +1025,12 @@ function r3Corners() {
     if (R3_HC && R3_HC.src === W0.height) return R3_HC;
     const Wt = W0.w, Ht = W0.h, Hs = W0.height || [];
     const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || !Hs[y]) ? 0 : +Hs[y][x] || 0;
+    const sea = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && W0.grid[y][x] === '~' && L(x, y) === 0;
     const C = new Float32Array((Wt + 1) * (Ht + 1));
     for (let vy = 0; vy <= Ht; vy++) for (let vx = 0; vx <= Wt; vx++) {
-        // a corner is as high as the highest tile touching it...
+        // a corner is as high as the highest tile touching it (at the coast, the sea's: the land slopes down to the water
+        // rather than the sea standing up as a wall)...
+        if (sea(vx - 1, vy - 1) || sea(vx, vy - 1) || sea(vx - 1, vy) || sea(vx, vy)) { C[vy * (Wt + 1) + vx] = 0; continue; }
         let h = Math.max(L(vx - 1, vy - 1), L(vx, vy - 1), L(vx - 1, vy), L(vx, vy));
         // ...or, in the band below a cliff edge, part of the way down from it
         const low = Math.max(L(vx - 1, vy), L(vx, vy));
@@ -1340,7 +1350,7 @@ function r3Volume(e, scene) {
     c.setFade = v => {
         if (v === c.fade) return;
         c.fade = v;
-        for (const m of [mat, smat]) { m.transparent = v < 1; m.opacity = v; m.depthWrite = v >= 1; m.needsUpdate = true; }
+        for (const m of [mat, smat]) { const was = m.transparent; m.transparent = v < 1; m.opacity = v; m.depthWrite = v >= 1; if (was !== m.transparent) m.needsUpdate = true; }
         mat.alphaTest = v < 1 ? 0.05 : 0.5;
     };
     return c;

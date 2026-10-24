@@ -161,7 +161,8 @@ class Island {
     for (let k = 0; k < W * H; k++) {
       if (!this.land[k]) { this.ter[k] = SEA; this.coll[k] = 1; continue; }
       const l = this.lvl[k];
-      this.ter[k] = sand[k] || (l === 0 && this.landD[k] <= 14) || (l <= 1 && this.landD[k] <= 2) ? 's' : 'g';
+      // beaches on the low ground; raised land meets the sea with a rim of rock (a little sea cliff)
+      this.ter[k] = sand[k] || (l === 0 && this.landD[k] <= 14) ? 's' : this.landD[k] <= 1 ? 'm' : 'g';
       if (this.face[k]) this.coll[k] = 1;
     }
     for (const [x, y] of this.ramps) { const k = this.i(x, y); this.ter[k] = 'd'; this.coll[k] = 0; }

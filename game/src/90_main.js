@@ -299,9 +299,24 @@ function loop(t) {
     if (dt > 250) dt = STEP;
     acc += dt;
     let n = 0;
-    while (acc >= STEP && n < 4) { update(); acc -= STEP; n++; }
+    while (acc >= STEP && n < 4) { keepSteps(); update(); acc -= STEP; n++; }
     if (n >= 4) acc = 0;
-    if (n) render();
+    // drawn on every refresh, not only after a step (60 steps a second land unevenly on a screen's refreshes, which
+    // reads as jumpy), with whoever's walking placed between their last two steps; a phone draws after steps only
+    if (n || (G.frame > 0 && !R3.phone)) renderBetween(Math.min(1, acc / STEP), dt);
+}
+/* everyone who walks: where they were before this step */
+function walkers() { const out = G.player ? [G.player] : []; if (G.area && G.mode !== 'title') for (const n of NPCs.here()) out.push(n); return out; }
+function keepSteps() { for (const m of walkers()) { m.ix = m.x; m.iy = m.y; } }
+function renderBetween(t, dt) {
+    G.frameMs = dt;
+    const moved = [];
+    for (const m of walkers()) {
+        if (m.ix == null || (m.ix === m.x && m.iy === m.y) || Math.abs(m.x - m.ix) + Math.abs(m.y - m.iy) > 2 * TILE) continue;
+        moved.push(m, m.x, m.y);
+        m.x = m.ix + (m.x - m.ix) * t; m.y = m.iy + (m.y - m.iy) * t;
+    }
+    try { render(); } finally { for (let i = 0; i < moved.length; i += 3) { moved[i].x = moved[i + 1]; moved[i].y = moved[i + 2]; } }
 }
 function update() {
     G.frame++; G.t++;

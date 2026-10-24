@@ -160,11 +160,29 @@ function drawEnt(ctx, e) {
 /* trees go see-through when Sarah walks behind them */
 function seeThrough(e) {
     if (R3.drawingCard) return 1;          // HD-2D fades the whole card instead
+    const want = seeThroughWant(e);
+    if (e.seeF == null) { if (want === 1) return 1; e.seeF = 1; e.seeT = performance.now(); }
+    // (eased over about a quarter of a second, by the clock, so it looks the same on any screen)
+    const now = performance.now(), k = 1 - Math.pow(0.0008, Math.min(0.25, (now - e.seeT) / 1000));
+    e.seeT = now;
+    e.seeF += (want - e.seeF) * k;
+    if (Math.abs(want - e.seeF) < 0.02) e.seeF = want;
+    return Math.round(e.seeF * 50) / 50;
+}
+/* how see-through something should be with Sarah where she is: trees, statues, tents and buildings she's behind */
+function seeThroughWant(e) {
     const p = G.player;
-    if (!p || p.hidden || !(e.kind === 'tree' || e.kind === 'fruittree' || e.kind === 'bigtree' || e.kind === 'oldtree' || e.kind === 'statue')) return 1;
-    const big = e.kind === 'bigtree' || e.kind === 'oldtree';
+    if (!p || p.hidden) return 1;
+    const k = e.kind;
+    if (k === 'building' && e.b) {
+        const b = e.b, half = b.w * TILE / 2 + 6;
+        return p.y < e.y - 2 && p.y > e.y - b.h * TILE - 36 && Math.abs(p.x - e.x) < half ? 0.5 : 1;
+    }
+    if (k === 'tent') return p.y < e.y && p.y > e.y - 40 && Math.abs(p.x - e.x) < 26 ? 0.5 : 1;
+    if (!(k === 'tree' || k === 'fruittree' || k === 'bigtree' || k === 'oldtree' || k === 'statue' || k === 'palm')) return 1;
+    const big = k === 'bigtree' || k === 'oldtree';
     if (p.y >= e.y || p.y < e.y - (big ? 84 : 46) || Math.abs(p.x - e.x) > (big ? 32 : 15)) return 1;
-    return 0.55;
+    return 0.45;
 }
 
 function drawWaterSparkles(ctx, a, cam, v) {
