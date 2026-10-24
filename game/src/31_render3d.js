@@ -39,8 +39,8 @@ const R3 = {
             cv.setAttribute('aria-hidden', 'true');
             $('#app').insertBefore(cv, $('#game'));
             this.canvas = cv;
-            // rain and snow get a canvas of their own at the screen's resolution (the overlay is in game pixels), under the
-            // overlay so fades still cover it
+            // the weather and the lighthouse beam get a canvas of their own at the screen's resolution (the overlay is in game
+            // pixels), under the overlay so fades still cover it
             const wx = document.createElement('canvas');
             wx.id = 'wx3d'; wx.setAttribute('aria-hidden', 'true');
             $('#app').insertBefore(wx, $('#game'));
@@ -553,7 +553,7 @@ const R3 = {
         r3SkyThings(ctx);
         r3Overheads(ctx);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        r3Weather();
+        r3Sharp();
         if (G.area.id === 'island') r3FlutterLights(ctx);
         for (const f of G.fx) if (f.screen) f.draw(ctx);
         if (G.flash) { ctx.fillStyle = `rgba(255,246,214,${G.flash})`; ctx.fillRect(0, 0, v.w, v.h); }
@@ -1392,24 +1392,59 @@ function r3SkyThings(ctx) {
     const v = G.view, put = (x, y, lift) => { const q = R3.project(x, y, lift); if (q.x < -300 || q.y < -300 || q.x > v.w + 300 || q.y > v.h + 300) return false; ctx.setTransform(q.s, 0, 0, q.s, q.x, q.y); return true; };
     R3.over = true;
     try {
+        // (drawn over the lit 3D picture, so darkened by hand at night; a plane's wingtip lights blink)
+        const dark = G.lightStrength || 0;
+        if (dark > 0.05) ctx.filter = `brightness(${1 - dark * 0.65})`;
         for (const s of SeaSky.sky) {
-            if (s.kind === 'plane') { if (put(s.x, s.y, 64)) { ctx.rotate(Math.atan2(s.vy, s.vx) + Math.PI / 2); spr(ctx, 'sky_plane', 0, 0); } }
-            else if (s.kind === 'balloon') { if (put(s.x, s.y, 48)) spr(ctx, 'sky_balloon', 0, Math.sin(s.t / 50) * 2); }
+            if (s.kind === 'plane') {
+                if (!put(s.x, s.y, 64)) continue;
+                ctx.rotate(Math.atan2(s.vy, s.vx) + Math.PI / 2); spr(ctx, 'sky_plane', 0, 0);
+                if (dark >= 0.3 && !((s.t >> 4) % 2)) { ctx.filter = 'none'; for (const [lx, ly, col] of [[-15, -2, '#ff4a4a'], [14, -2, '#6aff6a']]) { ctx.fillStyle = col; ctx.fillRect(lx - 1, ly - 1, 2, 2); } ctx.filter = `brightness(${1 - dark * 0.65})`; }
+            } else if (s.kind === 'balloon') { if (put(s.x, s.y, 48)) spr(ctx, 'sky_balloon', 0, Math.sin(s.t / 50) * 2); }
         }
         const f = SeaSky.flock;
         if (f) for (let i = 0; i < f.n; i++) {
             const ang = f.t / (80 + i * 9) + i * 2.1, x = f.cx + Math.cos(ang) * (34 + i * 9), y = f.cy + Math.sin(ang) * (12 + i * 3);
             if (put(x, y, 40)) spr(ctx, `cr_gull_fly${Math.floor((f.t + i * 7) / 8) % 2}`, 0, 0, Math.sin(ang) > 0);
         }
-    } finally { R3.over = false; ctx.setTransform(1, 0, 0, 1, 0, 0); }
+    } finally { R3.over = false; ctx.filter = 'none'; ctx.setTransform(1, 0, 0, 1, 0, 0); }
 }
-/* rain, snow, petals and leaves (the flat view's Weather.parts, in game pixels on the screen) drawn sharp on their own canvas */
-function r3Weather() {
-    const cv = R3.wx, k = Weather.kind, ctx = cv.getContext('2d');
+/* the lighthouse's beam once its lamp is lit again (the flat view's Beam): two beams turning from the lantern room */
+function r3Beam(ctx, sc) {
+    const b = W0.buildings.lighthouse, dark = G.lightStrength || 0;
+    if (!b || G.area.id !== 'island' || !Quests.lamp() || dark < 0.25) return false;
+    const p = R3.project((b.x + b.w / 2) * TILE, (b.y + b.h) * TILE, 100), q = { x: p.x * sc, y: p.y * sc, s: p.s * sc };
+    if (p.behind) return false;
+    const k = Math.min(1, (dark - 0.25) * 2), ang = (G.t / 170) % (Math.PI * 2), len = 420 * q.s;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const dir of [ang, ang + Math.PI]) {
+        const g = ctx.createLinearGradient(q.x, q.y, q.x + Math.cos(dir) * len, q.y + Math.sin(dir) * len * 0.45);
+        g.addColorStop(0, `rgba(255,240,170,${0.32 * k})`); g.addColorStop(1, 'rgba(255,240,170,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(q.x, q.y);
+        ctx.lineTo(q.x + Math.cos(dir - 0.09) * len, q.y + Math.sin(dir - 0.09) * len * 0.45);
+        ctx.lineTo(q.x + Math.cos(dir + 0.09) * len, q.y + Math.sin(dir + 0.09) * len * 0.45);
+        ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = k;
+    ctx.setTransform(q.s, 0, 0, q.s, q.x, q.y);
+    r3OverSpr(ctx, 'lighthouse_glow');
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    return true;
+}
+/* the lighthouse beam and the weather, drawn sharp on a canvas of their own at the screen's resolution */
+function r3Sharp() {
+    const cv = R3.wx, ctx = cv.getContext('2d'), sc = cv.width / G.view.w;
     if (R3.wxOn) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); R3.wxOn = false; }
-    if (!k || k === 'fireflies' || !Weather.parts.length) return;
-    R3.wxOn = true;
-    const s = cv.width / G.view.w, t = G.t;
+    if (r3Beam(ctx, sc)) R3.wxOn = true;
+    if (r3Weather(ctx, sc)) R3.wxOn = true;
+}
+/* rain, snow, petals and leaves (the flat view's Weather.parts, in game pixels on the screen) */
+function r3Weather(ctx, s) {
+    const k = Weather.kind, t = G.t;
+    if (!k || k === 'fireflies' || !Weather.parts.length) return false;
     ctx.globalAlpha = 1 - 0.5 * (G.lightStrength || 0);
     if (k === 'rain') {
         // a streak behind each drop, as long as it falls in a frame or so
@@ -1433,8 +1468,10 @@ function r3Weather() {
             ctx.fillStyle = pet ? (q.s > 1 ? '#ffd1e1' : '#f7a8c4') : (q.s > 1 ? '#e39a3b' : '#c8702d');
             ctx.beginPath(); ctx.ellipse(0, 0, pet ? 1.9 : 2.1, (pet ? 1.1 : 1.2) * Math.abs(Math.cos(t / 22 + q.p)) + 0.35, 0, 0, 6.283); ctx.fill();
         }
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
     ctx.globalAlpha = 1;
+    return true;
 }
 /* one firefly's soft light at a projected spot */
 function r3Glow(ctx, q, al) {
