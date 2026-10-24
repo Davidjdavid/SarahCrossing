@@ -571,7 +571,7 @@ function hdPersonFrame(spec, frame, blink) {
         // a tall hat (a wizard's, a chef's toque) needs room above the frame: 18 more rows, like the old 16x30 hats
         const hat = spec.acc && HD_ACC[spec.acc], room = hat && !hat.eye && hat.rise > 2 ? 18 : 0, H = HD_H + room;
         let c = hdPersonSprite(spec, dir, body, face, { blink, ph, look }).canvas();
-        if (room) { const t = document.createElement('canvas'); t.width = HD_W; t.height = H; t.getContext('2d').drawImage(c, 0, room); c = t; }
+        if (room) { const t = hdCanvas(HD_W, H); t.getContext('2d').drawImage(c, 0, room); c = t; }
         for (const id of [spec.eyes, spec.acc]) {
             const A = id && HD_ACC[id];
             if (!A || (A.eye && up)) continue;

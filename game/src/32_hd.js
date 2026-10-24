@@ -182,12 +182,19 @@ class HDSprite {
         return out;
     }
     canvas() {
-        const c = document.createElement('canvas'); c.width = this.w; c.height = this.h;
-        const g = c.getContext('2d'), img = g.createImageData(this.w, this.h);
+        const c = hdCanvas(this.w, this.h), g = c.getContext('2d'), img = g.createImageData(this.w, this.h);
         this.render(img.data);
         g.putImageData(img, 0, 0);
         return c;
     }
+}
+/* a canvas kept in ordinary memory: HD pictures are copied into cards (more canvases in memory) all the time, and one the
+   browser had put on the graphics card would have to be read back every time (a stall each frame on phones) */
+function hdCanvas(w, h) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d', { willReadFrequently: true }).imageSmoothingEnabled = false;
+    return c;
 }
 /* one sprite drawn over another (an accessory over a person): both the same size */
 function hdStack(base, over) {
@@ -208,7 +215,10 @@ const HD_CACHE_BYTES = { now: 0, max: 48e6 };
 function hdCached(key, make) {
     if (HD_CACHE.has(key)) { const f = HD_CACHE.get(key); HD_CACHE.delete(key); HD_CACHE.set(key, f); return f; }
     let f;
+    const t0 = performance.now();
     try { f = make(); if (f) { f.key = key; f.bytes = f.w * f.h * 4; } } catch (e) { console.error(e); f = null; }
+    if (HD_BUDGET.frame !== G.frame) { HD_BUDGET.frame = G.frame; HD_BUDGET.used = 0; }
+    HD_BUDGET.used += performance.now() - t0;
     HD_CACHE.set(key, f);                    // a drawing that failed stays null (it isn't tried again every frame)
     HD_CACHE_BYTES.now += f ? f.bytes : 0;
     // the least recently used go first, once the pictures take more than a phone should hold
@@ -228,13 +238,38 @@ function hdDraw(ctx, f, x, y, flip) {
     else ctx.drawImage(f.c, dx, dy, f.w / k, f.h / k);
 }
 /* a sprite name as an HD frame, when there is one: a remastered prop (HD_SPR) or a neighbor ("floret_1") */
-function hdNamed(name) {
+function hdNamed(name, now) {
     // a house drawn from its look (Sarah's, and any Ginger repainted): the HD house from the same look
-    if (name.charCodeAt(0) === 104 && name.startsWith('hx_') && typeof hdHouseFrame === 'function') { const x = Assets.dyn[name]; return x && x.key ? hdHouseFrame(x.key) : null; }
+    if (name.charCodeAt(0) === 104 && name.startsWith('hx_') && typeof hdHouseFrame === 'function') {
+        const x = Assets.dyn[name];
+        if (!x || !x.key) return null;
+        if (!now && !HD_CACHE.has('h|' + x.key) && !hdBudget()) return null;
+        return hdHouseFrame(x.key);
+    }
     const d = HD_SPR[name];
-    if (d) return hdCached('s|' + name, () => { const s = new HDSprite(d.w, d.h); d.draw(s); return { c: s.canvas(), w: d.w, h: d.h, ax: d.ax, ay: d.ay }; });
+    if (d) {
+        // not drawn yet and this frame's drawing time is spent: today's sprite for now (the card is redrawn soon)
+        if (!now && !HD_CACHE.has('s|' + name) && !hdBudget()) return null;
+        return hdCached('s|' + name, () => { const s = new HDSprite(d.w, d.h); d.draw(s); return { c: s.canvas(), w: d.w, h: d.h, ax: d.ax, ay: d.ay }; });
+    }
     const m = /^([a-z]+)_([01])$/.exec(name);
     return m && HD_NPC[m[1]] ? hdNpcFrame(m[1], m[2] === '1') : null;
+}
+/* is there HD art for a sprite name (without drawing it)? */
+function hdHas(name) {
+    if (HD_SPR[name]) return true;
+    if (name.startsWith('hx_')) return typeof hdHouseFrame === 'function' && !!(Assets.dyn[name] && Assets.dyn[name].key);
+    const m = /^([a-z]+)_([01])$/.exec(name);
+    return !!(m && HD_NPC[m[1]]);
+}
+/* how much time drawing new HD pictures may take each frame: the rest wait for the next frames, so walking somewhere new
+   never stalls a frame (the time used is counted in hdCached, reset at the start of every frame) */
+const HD_BUDGET = { used: 0, max: 8, frame: -1 };
+function hdBudget() {
+    if (HD_BUDGET.frame !== G.frame) { HD_BUDGET.frame = G.frame; HD_BUDGET.used = 0; HD_BUDGET.max = R3.phone ? 6 : 10; }
+    if (HD_BUDGET.used < HD_BUDGET.max) return true;
+    R3.hdPending = true;
+    return false;
 }
 /* is the HD art in use for the card being drawn right now? */
 function hdOn() { return R3.drawingCard && R3.hdCard; }
@@ -252,7 +287,7 @@ function hdNpcFrame(id, squash, acc, blink, sway) {
         const A = acc && HD_ACC[acc];
         // a hat on a head near the top of the frame (the ghost's) gets room above it
         const room = A && !A.eye && def.hat ? Math.max(0, Math.ceil((A.rise || 0) * 1.35) - def.hat[1] + 1) : 0, h = h0 + room;
-        if (room) { const t = document.createElement('canvas'); t.width = 48; t.height = h; t.getContext('2d').drawImage(c, 0, room); c = t; }
+        if (room) { const t = hdCanvas(48, h); t.getContext('2d').drawImage(c, 0, room); c = t; }
         if (A && def.hat && def.eye) {
             const sq = squash ? (def.squashDy != null ? def.squashDy : 2) : 0;
             const a = { dir: def.side ? 'side' : 'down', cx: def.hat[0], top: def.hat[1] + sq, w: def.hat[2], eyeX: def.eye[0], eyeY: def.eye[1] + sq, eyeDx: def.eye[2], faceX: def.faceX || def.eye[0] + def.eye[2] + 4, person: false };
@@ -267,7 +302,7 @@ function hdNpcFrame(id, squash, acc, blink, sway) {
 /* a frame leaning a little to one side (an idle sway): the top shifts by up to two pixels, the feet stay put */
 function hdSway(f, k) {
     if (!f) return null;
-    const c = document.createElement('canvas'); c.width = f.w; c.height = f.h;
+    const c = hdCanvas(f.w, f.h);
     const g = c.getContext('2d'), src = f.c.getContext('2d').getImageData(0, 0, f.w, f.h), out = g.createImageData(f.w, f.h);
     let top = 0;
     for (; top < f.h; top++) { let any = false; for (let x = 0; x < f.w; x++) if (src.data[(top * f.w + x) * 4 + 3]) { any = true; break; } if (any) break; }

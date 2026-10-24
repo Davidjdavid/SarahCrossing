@@ -177,6 +177,7 @@ const R3 = {
             if (G.frame % 30 === 0) this.texelSize();
             hdWarm();
             this.updateGround(a);
+            this.updateTufts(a);
             this.updateLight(a);
             this.updateCards(a);
             R3U.uTime.value = (performance.now() - this.t0) / 1000;
@@ -220,6 +221,21 @@ const R3 = {
         this.t0 = this.t0 || performance.now();
         this.placeCamera(true);
         this.ground.at = null;
+    },
+
+    /* grass on the island: refilled when the view has moved a couple of tiles, redrawn when the season changes */
+    updateTufts(a) {
+        let t = this.tufts;
+        if (a.interior || a.id !== 'island' || !this.view) { if (t) t.mesh.visible = false; return; }
+        const season = a.bgSeason || Clock.season();
+        if (t && t.season !== season) { this.scene.remove(t.mesh); t.geo.dispose(); t.mat.dispose(); t.tex.dispose(); t = this.tufts = null; }
+        if (!t) t = this.tufts = r3Tufts(this.scene, season);
+        t.mesh.visible = true;
+        const V = this.view, cx = (V.x0 + V.x1) / 2, cy = (V.y0 + V.y1) / 2;
+        if (!t.at || Math.abs(cx - t.at[0]) > 2 * TILE || Math.abs(cy - t.at[1]) > 2 * TILE || Math.abs(V.x1 - V.x0 - t.at[2]) > 3 * TILE) {
+            t.at = [cx, cy, V.x1 - V.x0];
+            r3FillTufts(t, a, V);
+        }
     },
 
     /* ---------------------------------------------------------------- a room's floor (with three pixels to one for the HD art) */
@@ -407,7 +423,10 @@ const R3 = {
         const every = e.anim || e.kind === 'item' ? 4 : 12;
         const due = sig != null ? sig !== c.sig : (key !== c.sig || (!c.still && G.frame - c.drawn >= every) || G.frame - c.drawn >= 300);
         if (due) {
+            R3.hdPending = false;
             drawCard(c, e);
+            // its HD picture wasn't ready (this frame's drawing time was spent): draw it again soon
+            if (R3.hdPending) { c.sig = '(waiting)'; c.drawn = G.frame; placeCard(c, e, a); c.setFade(seeThroughRaw(e)); return; }
             // a hand-drawn thing whose picture came out the same three times running is treated as still
             if (sig == null) { const h = cardHash(c); c.same = h === c.hash ? (c.same || 0) + 1 : 0; c.hash = h; c.still = c.same >= 3 && !e.anim; }
             c.sig = key; c.drawn = G.frame;
@@ -607,6 +626,81 @@ function r3Sky(scene) {
 
 /* ---------------------------------------------------------------- the island's ground, in pieces */
 const R3_CHUNK = 256;
+/* ---------------------------------------------------------------- grass */
+/* tufts of grass on the grass near the camera, swaying in the breeze: one instanced mesh (one draw for all of them),
+   refilled as the view moves; four shapes of tuft, in the season's colors */
+const R3_TUFT_MAX = 2600;
+function r3TuftCanvas(season) {
+    // drawn blade by blade (darker at the root, lighter at the tip): a shaded outline would turn blades this thin black
+    const S = 24, V = 4, cv = document.createElement('canvas');
+    cv.width = S * V; cv.height = S;
+    const g = cv.getContext('2d'), img = g.createImageData(S * V, S), d = img.data;
+    const cols = { spring: ['#4f9a36', '#a6dc72'], summer: ['#3f8a30', '#8fd05e'], fall: ['#6f8a34', '#dcc05a'], winter: ['#7f9a86', '#dfeae0'] }[season] || ['#3f8a30', '#8fd05e'];
+    const A = hdRgb(cols[0]), B = hdRgb(cols[1]);
+    const put = (x, y, c) => { x = Math.round(x); y = Math.round(y); if (x < 0 || y < 0 || x >= S * V || y >= S) return; const i = (y * S * V + x) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255; };
+    for (let v = 0; v < V; v++) {
+        const R = mulberry(v * 977 + 31), n = 4 + v;
+        for (let i = 0; i < n; i++) {
+            const bx = v * S + 12 + (R() - 0.5) * 12, len = 7 + R() * 11, lean = (R() - 0.5) * 9, shade = 0.75 + R() * 0.4;
+            for (let t = 0; t <= 1.0001; t += 1 / (len * 2)) {
+                const x = bx + lean * t * t, y = 23.5 - len * t, k = Math.min(1, t * 1.15) * shade;
+                const c = [A[0] + (B[0] - A[0]) * k, A[1] + (B[1] - A[1]) * k, A[2] + (B[2] - A[2]) * k];
+                put(x, y, c);
+                if (t < 0.45) put(x + 1, y, [c[0] * 0.85, c[1] * 0.85, c[2] * 0.85]);       // thicker at the root, shaded side
+            }
+        }
+        // a tiny flower in one of them, spring and summer
+        if (v === 3 && (season === 'spring' || season === 'summer')) { const f = hdRgb(season === 'spring' ? '#f4a6c8' : '#f6e27a'); for (const [x, y] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) put(v * S + 14 + x, 7 + y, f); put(v * S + 14, 7, [255, 255, 255]); }
+    }
+    g.putImageData(img, 0, 0);
+    return cv;
+}
+function r3Tufts(scene, season) {
+    const tex = new THREE.CanvasTexture(r3TuftCanvas(season));
+    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+    const geo = new THREE.PlaneGeometry(0.56, 0.56);
+    geo.translate(0, 0.27, 0);
+    const nrm = geo.attributes.normal;
+    for (let i = 0; i < nrm.count; i++) nrm.setXYZ(i, 0, 0.62, 0.78);                 // lit like the ground they grow in
+    const aVar = new THREE.InstancedBufferAttribute(new Float32Array(R3_TUFT_MAX), 1);
+    geo.setAttribute('aVar', aVar);
+    const mat = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide, color: 0xd8d8d8 }), { key: 'tuft', vhead: 'attribute float aVar;\n' });
+    const ob = mat.onBeforeCompile;
+    mat.onBeforeCompile = sh => {
+        ob(sh);
+        sh.vertexShader = sh.vertexShader
+            .replace('#include <uv_vertex>', '#include <uv_vertex>\nvUv.x = (vUv.x + aVar) * 0.25;')
+            .replace('vec4 bw = modelMatrix * vec4(transformed, 1.0);', `vec4 bw = modelMatrix * instanceMatrix * vec4(transformed, 1.0);
+            bw.x += sin(uTime * 1.6 + bw.x * 0.9 + bw.z * 0.7) * 0.07 * uv.y;      // the tips sway, the roots stay put`);
+    };
+    const mesh = new THREE.InstancedMesh(geo, mat, R3_TUFT_MAX);
+    mesh.receiveShadow = true; mesh.castShadow = false; mesh.frustumCulled = false; mesh.count = 0;
+    scene.add(mesh);
+    return { mesh, geo, mat, tex, aVar, season, at: null };
+}
+function r3FillTufts(t, a, V) {
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3();
+    const x0 = Math.max(0, Math.floor(V.x0 / TILE) - 1), x1 = Math.min(a.w - 1, Math.ceil(V.x1 / TILE) + 1);
+    const y0 = Math.max(0, Math.floor(V.y0 / TILE) - 1), y1 = Math.min(a.h - 1, Math.ceil(V.y1 / TILE) + 2);
+    let n = 0;
+    for (let ty = y0; ty <= y1 && n < R3_TUFT_MAX; ty++) for (let tx = x0; tx <= x1 && n < R3_TUFT_MAX; tx++) {
+        if (W0.grid[ty][tx] !== 'g' || a.blocked[ty * a.w + tx] || isPathish(tx, ty)) continue;
+        const h = hash32(tx + ',' + ty), k = h % 6 < 3 ? 1 : h % 6 < 5 ? 2 : 0;
+        for (let i = 0; i < k && n < R3_TUFT_MAX; i++) {
+            const hh = hash32(h + ':' + i), fx = (tx + 0.15 + (hh % 70) / 100) * TILE, fy = (ty + 0.2 + ((hh >> 8) % 70) / 100) * TILE, s = 0.75 + ((hh >> 16) % 50) / 100;
+            ps.set(fx / TILE, r3GroundH(fx, fy), fy / TILE * R3_ZS);
+            sc.set(s, s, 1);                     // (not mirrored: a flipped quad would face away from the sun and go dark)
+            m.compose(ps, q, sc);
+            t.mesh.setMatrixAt(n, m);
+            t.aVar.setX(n, (hh >> 12) % 4);
+            n++;
+        }
+    }
+    t.mesh.count = n;
+    t.mesh.instanceMatrix.needsUpdate = true;
+    t.aVar.needsUpdate = true;
+}
+
 /* ---------------------------------------------------------------- the island's water */
 /* the river, ponds, the spring and the waterfalls move: ripples drifting downstream, light on the crests, sparkles,
    a little foam along the banks (the water map: one texel a tile, red = water, green = flowing, blue = falling) */
@@ -806,6 +900,7 @@ function r3VolSpec(e) {
 function r3Volume(e, scene) {
     const sp = r3VolSpec(e);
     let f = hdNamed(e.frame), k = HD_K;
+    if (!f && hdHas(e.frame)) return null;                 // its HD picture is waiting for drawing time: try again next frame
     if (!f) {
         // no HD art: today's sprite
         const fr = Assets.frames[e.frame], dy = Assets.dyn[e.frame];
@@ -910,7 +1005,7 @@ function measureEnt(e) {
 function measureEnt0(e) {
     if (e.frame && !e.draw) {
         const f = Assets.frames[e.frame] || (Assets.dyn[e.frame] && [0, 0, Assets.dyn[e.frame].w, Assets.dyn[e.frame].h, Assets.dyn[e.frame].ax, Assets.dyn[e.frame].ay]);
-        if (f) { const sx = 3; return { w: f[2] + sx * 2, h: f[3] + 2, ax: f[4] + sx, ay: f[5] + 1, hd: !!hdNamed(e.frame) }; }
+        if (f) { const sx = 3; return { w: f[2] + sx * 2, h: f[3] + 2, ax: f[4] + sx, ay: f[5] + 1, hd: hdHas(e.frame) }; }
     }
     const S0 = R3_SCRATCH;
     if (!S0.cv) { S0.cv = document.createElement('canvas'); S0.cv.width = S0.W; S0.cv.height = S0.H; S0.ctx = S0.cv.getContext('2d', { willReadFrequently: true }); S0.ctx.imageSmoothingEnabled = false; }

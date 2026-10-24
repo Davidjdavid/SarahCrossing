@@ -135,7 +135,7 @@ function hdRemoteSarah(look) {
 /* draw ahead, one frame at a time while nothing else is new: Sarah's whole set and the neighbors in view, so the first
    step in a new direction doesn't wait for a drawing */
 function hdWarm() {
-    if (G.frame % 2 || !G.player) return;
+    if (!G.player) return;
     const sp = Online.visitor() ? hdFolkSpec(Online.who()) : hdSarahSpec(), key = JSON.stringify(sp);
     if (hdWarm.key !== key) { hdWarm.key = key; hdWarm.i = 0; }
     // the way she's facing first: walking, running and standing; then every other way
@@ -145,12 +145,14 @@ function hdWarm() {
         for (const d of dirs) { for (let i = 0; i < 8; i++) hdWarm.list.push(`${d}:walk:${i}`); for (let i = 0; i < 4; i++) hdWarm.list.push(`${d}:idle:${i}:0`); for (let i = 0; i < 6; i++) hdWarm.list.push(`${d}:run:${i}`); }
         hdWarm.list.face = face;
     }
-    while (hdWarm.i < hdWarm.list.length) { const k = hdWarm.list[hdWarm.i++]; if (!HD_CACHE.has('p|' + k + '|0|' + key)) { hdPersonFrame(sp, k, false); return; } }
+    // her frames and the things around her take turns, while there's drawing time left this frame
+    if (!hdBudget()) return;
+    if (G.frame % 4 === 0) while (hdWarm.i < hdWarm.list.length) { const k = hdWarm.list[hdWarm.i++]; if (!HD_CACHE.has('p|' + k + '|0|' + key)) { hdPersonFrame(sp, k, false); return; } }
     const n = NPCs.here().find(n => !n.hidden && !n.def.human && HD_NPC[n.def.sprite] && !HD_CACHE.has(`n|${n.def.sprite}|1|${npcWearing(n.id) || ''}|0`));
     if (n) { hdNpcFrame(n.def.sprite, 1, npcWearing(n.id)); return; }
     // then the remastered things here, nearest first, before they come into view
     const a = G.area;
     if (hdWarm.area !== a) { hdWarm.area = a; const p = G.player; hdWarm.todo = [...new Set(a.ents.filter(e => e.frame && HD_SPR[e.frame]).sort((q, r) => Math.hypot(q.x - p.x, q.y - p.y) - Math.hypot(r.x - p.x, r.y - p.y)).map(e => e.frame))]; }
     const nm = hdWarm.todo && hdWarm.todo.shift();
-    if (nm) hdNamed(nm);
+    if (nm) hdNamed(nm, true);
 }
