@@ -306,7 +306,7 @@ function updateWeather() {
 }
 function drawWeather(ctx, v) {
     const k = Weather.kind;
-    if (!k) return;
+    if (!k || (k === 'fireflies' && R3.shown)) return;        // (the HD-2D view has its own, glowing: r3Fireflies)
     // drawn after the lighting so rain still shows at night; fireflies make their own light
     ctx.globalAlpha = k === 'fireflies' ? 1 : 1 - 0.5 * (G.lightStrength || 0);
     for (const q of Weather.parts) {

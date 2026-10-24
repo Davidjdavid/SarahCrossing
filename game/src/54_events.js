@@ -254,11 +254,19 @@ function firework(x, y) {
     Sfx.play('firework');
     const cols = ['#ff5aa8', '#ffd84a', '#4ec3d9', '#8cc152', '#ffffff', '#ff6a3a'];
     const c = rpick(cols);
+    // in the HD-2D view the sky is the top of the screen (the flat view's spot would be on the ground): burst there, as soft sparks
+    const hd = R3.shown && !G.area.interior;
+    if (hd) { const v = G.view; x = v.w * (0.15 + R() * 0.7); y = v.h * (0.05 + R() * 0.15); }
     for (let i = 0; i < 36; i++) {
         const a = (i / 36) * Math.PI * 2, sp = 1.2 + R() * 0.5;
-        G.fx.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, life: 50, c, glow: true,
+        G.fx.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, life: 50, c, glow: true, screen: hd,
             update() { this.x += this.vx; this.y += this.vy; this.vx *= 0.96; this.vy = this.vy * 0.96 + 0.03; },
-            draw(ctx) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = this.c; ctx.globalAlpha = 1 - this.t / this.life; ctx.fillRect(Math.round(this.x), Math.round(this.y), 2, 2); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; } });
+            draw(ctx) {
+                ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = this.c; ctx.globalAlpha = 1 - this.t / this.life;
+                if (!hd) ctx.fillRect(Math.round(this.x), Math.round(this.y), 2, 2);
+                else { ctx.beginPath(); ctx.arc(this.x, this.y, 0.9, 0, 7); ctx.fill(); ctx.globalAlpha *= 0.3; ctx.beginPath(); ctx.arc(this.x, this.y, 2.2, 0, 7); ctx.fill(); }
+                ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+            } });
     }
 }
 

@@ -473,12 +473,11 @@ function bindInput() {
     // phones and tablets: tap controls from the start
     try { if (matchMedia('(hover: none) and (pointer: coarse)').matches) G.touchUsed = true; } catch (e) { /* old browser */ }
     addEventListener('pointerdown', ev => { if (ev.pointerType === 'touch' && !G.touchUsed) { G.touchUsed = true; $('#hint').hidden = true; } }, true);
+    const toScreen = ev => { const r = cv.getBoundingClientRect(); return [(ev.clientX - r.left) / r.width * cv.width, (ev.clientY - r.top) / r.height * cv.height]; };
     const toWorld = ev => {
-        const r = cv.getBoundingClientRect();
-        if (R3.active()) return R3.unproject((ev.clientX - r.left) / r.width * cv.width, (ev.clientY - r.top) / r.height * cv.height);
-        const x = (ev.clientX - r.left) / r.width * cv.width + G.cam.x;
-        const y = (ev.clientY - r.top) / r.height * cv.height + G.cam.y;
-        return [x, y];
+        const [x, y] = toScreen(ev);
+        if (R3.active()) return R3.unproject(x, y);
+        return [x + G.cam.x, y + G.cam.y];
     };
     cv.addEventListener('pointerdown', ev => {
         Audio2.unlock();
@@ -494,7 +493,7 @@ function bindInput() {
         if (IslandEdit.on) { IslandEdit.down(wx, wy, ev); return; }
         if (G.mode !== 'play' || Dance.on || Photo.on || UI.modal) return;
         if (Fishing.st) { Fishing.press(); return; }
-        if (Sky.star && Math.hypot(Sky.star.x - wx, Sky.star.y - wy) < 40) { Sky.wish(); return; }
+        if (Sky.star) { const [sx, sy] = toScreen(ev); if (Math.hypot(Sky.star.x - G.cam.x - sx, Sky.star.y - G.cam.y - sy) < 40) { Sky.wish(); return; } }
         if (G.busy) return;
         // a tap walks there (or talks, picks up...); keeping the finger down keeps walking towards it
         const acted = tapWorld(wx, wy);

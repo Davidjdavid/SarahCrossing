@@ -541,10 +541,11 @@ const R3 = {
         // things written for the flat view, each drawn where it now stands
         for (const f of G.fx) if (!f.sorted && !f.screen && f.x != null) { this.localTransform(ctx, f.x, f.y || 0, 0); f.draw(ctx); }
         r3SkyThings(ctx);
+        r3Fireflies(ctx);
         r3Overheads(ctx);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         drawWeather(ctx, v);
-        if (G.area.id === 'island') Flutter.drawLights(ctx);
+        if (G.area.id === 'island') r3FlutterLights(ctx);
         for (const f of G.fx) if (f.screen) f.draw(ctx);
         if (G.flash) { ctx.fillStyle = `rgba(255,246,214,${G.flash})`; ctx.fillRect(0, 0, v.w, v.h); }
         if (G.fade) { ctx.fillStyle = `rgba(20,16,40,${G.fade})`; ctx.fillRect(0, 0, v.w, v.h); }
@@ -1392,6 +1393,39 @@ function r3SkyThings(ctx) {
             if (put(x, y, 40)) spr(ctx, `cr_gull_fly${Math.floor((f.t + i * 7) / 8) % 2}`, 0, 0, Math.sin(ang) > 0);
         }
     } finally { R3.over = false; ctx.setTransform(1, 0, 0, 1, 0, 0); }
+}
+/* fireflies on firefly-season nights (the flat view's little dots): lights drifting over the grass around Sarah, blinking */
+function r3Fireflies(ctx) {
+    const a = G.area;
+    if (!a || a.id !== 'island' || Weather.kind !== 'fireflies') return;
+    const t = R3U.uTime.value, cx = R3.target.x * TILE, cy = R3.target.z / R3_ZS * TILE, v = G.view;
+    for (let i = 0; i < 22; i++) {
+        const blink = Math.sin(t * (1.3 + (i % 5) * 0.21) + i * 2.3);
+        if (blink < 0.2) continue;
+        const x = cx + Math.sin(t * 0.13 + i * 1.71) * 150 + Math.sin(t * 0.41 + i) * 18, y = cy + Math.cos(t * 0.11 + i * 2.13) * 110 + Math.cos(t * 0.37 + i * 0.7) * 14;
+        const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
+        if (!W0.grid[ty] || W0.grid[ty][tx] !== 'g') continue;
+        const q = R3.project(x, y, 8 + Math.sin(t * 0.9 + i) * 5);
+        if (q.x < 0 || q.y < 0 || q.x > v.w || q.y > v.h) continue;
+        r3Glow(ctx, q, (blink - 0.2) / 0.8);
+    }
+}
+/* one firefly's soft light at a projected spot */
+function r3Glow(ctx, q, al) {
+    const r = q.s * 6.5, g = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, r);
+    g.addColorStop(0, `rgba(255,250,170,${0.95 * al})`); g.addColorStop(0.35, `rgba(220,255,120,${0.45 * al})`); g.addColorStop(1, 'rgba(200,255,100,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fill();
+}
+/* the night's fireflies (Flutter.flies, drawn by the flat view as dots on its own camera) where they fly in the 3D world */
+function r3FlutterLights(ctx) {
+    const v = G.view;
+    for (const f of Flutter.flies) {
+        const glow = 0.5 + 0.5 * Math.sin(f.ph * 2);
+        if (glow < 0.15) continue;
+        const q = R3.project(f.x, f.y, 10 + Math.sin(f.ph) * 4);
+        if (q.x < 0 || q.y < 0 || q.x > v.w || q.y > v.h) continue;
+        r3Glow(ctx, q, glow);
+    }
 }
 /* emotes, "talk" prompts and the little "!" by doors, over the 3D view */
 function r3Overheads(ctx) {
