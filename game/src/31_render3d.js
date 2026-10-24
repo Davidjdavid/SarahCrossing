@@ -470,7 +470,7 @@ const R3 = {
         let c = this.cards.get(e);
         // buildings are real shapes: walls, a roof that slopes back, sides you see in perspective (r3Volume)
         if (e.kind === 'building' && !a.interior && (c ? c.vol : r3VolSpec(e))) {
-            if (c && c.frame !== e.frame) { this.dropCard(c); this.cards.delete(e); c = null; }
+            if (c && (c.frame !== e.frame || (c.waiting && (c.tries = (c.tries || 0) + 1) % 10 === 0 && hdNamed(e.frame)))) { this.dropCard(c); this.cards.delete(e); c = null; }
             if (!c) { c = r3Volume(e, this.scene); if (!c) return; this.cards.set(e, c); }
             c.away = 0;
             c.mesh.position.set(Math.round(e.x) / TILE, r3GroundH(e.x, e.y - 1), e.y / TILE * R3_ZS);
@@ -1205,7 +1205,8 @@ function r3VolSpec(e) {
 function r3Volume(e, scene) {
     const sp = r3VolSpec(e);
     let f = hdNamed(e.frame), k = HD_K;
-    if (!f && hdHas(e.frame)) return null;                 // its HD picture is waiting for drawing time: try again next frame
+    // (its HD picture still on its way: built with today's sprite for now, and again when the picture arrives)
+    const waiting = !f && hdHas(e.frame);
     if (!f) {
         // no HD art: today's sprite
         const fr = Assets.frames[e.frame], dy = Assets.dyn[e.frame];
@@ -1296,7 +1297,7 @@ function r3Volume(e, scene) {
     const mesh = new THREE.Group();
     mesh.add(pm, sm);
     scene.add(mesh);
-    const c = { vol: true, frame: e.frame, e, mesh, mat, tex, depth, res: k, away: 0, fade: 1 };
+    const c = { vol: true, frame: e.frame, e, mesh, mat, tex, depth, res: k, away: 0, fade: 1, waiting };
     // windows light up at night (a house's where its look put them, a shop's where its picture drew them), glowing warm
     // through the bloom
     const dyn = Assets.dyn[e.frame], L = k < 2 || typeof hdH_winRects !== 'function' ? null : dyn && dyn.key ? JSON.parse(dyn.key)
