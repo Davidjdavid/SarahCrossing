@@ -327,13 +327,15 @@ const R3 = {
             ch.used = G.frame;
         }
         for (const [k, ch] of this.chunks) if (!want.has(k)) { ch.mesh.visible = false; if (G.frame - ch.used > 600 && this.chunks.size > 40) { dropChunk(ch); this.chunks.delete(k); } }
-        // one visible piece repainted every few frames (or all of them after the flat view was used to change things)
-        if (this.ground.dirty) { for (const ch of this.chunks.values()) ch.stale = true; this.ground.dirty = false; }
-        if (G.frame % 6 === 0) {
-            const vis = [...this.chunks.values()].filter(ch => ch.mesh.visible);
-            const stale = vis.find(ch => ch.stale);
-            const ch = stale || vis[(this._rr = ((this._rr || 0) + 1)) % Math.max(1, vis.length)];
-            if (ch) { paintChunk(ch, a); ch.stale = false; }
+        // one visible piece repainted every few frames (or all of them after the flat view was used to change things, or
+        // the season changed the ground: then two a frame until they're done)
+        const img = Assets.ground(a.bgSeason);
+        if (this.ground.dirty || this._gimg !== img) { for (const ch of this.chunks.values()) ch.stale = true; this.ground.dirty = false; this._gimg = img; }
+        const vis = [...this.chunks.values()].filter(ch => ch.mesh.visible), stale = vis.filter(ch => ch.stale);
+        if (stale.length) for (const ch of stale.slice(0, this.phone ? 1 : 2)) { paintChunk(ch, a); ch.stale = false; }
+        else if (G.frame % 6 === 0) {
+            const ch = vis[(this._rr = ((this._rr || 0) + 1)) % Math.max(1, vis.length)];
+            if (ch) paintChunk(ch, a);
         }
     },
     /* how far anything is drawn (fog fades things out before it): the handheld games' trick, shorter on phones */
