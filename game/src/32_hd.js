@@ -252,7 +252,7 @@ function hdNamed(name, now) {
     if (d) {
         // not drawn yet and this frame's drawing time is spent: today's sprite for now (the card is redrawn soon)
         if (!now && !HD_CACHE.has('s|' + name) && (HDW.use('s|' + name, 'spr', name) || !hdBudget())) return null;
-        return hdCached('s|' + name, () => { const s = hdSprSprite(name); return { c: s.canvas(), w: d.w, h: d.h, ax: d.ax, ay: d.ay }; });
+        return hdCached('s|' + name, () => { const s = hdSprSprite(name); return { c: s.canvas(), w: d.w, h: d.h, ax: d.ax, ay: d.ay, wins: s.wins }; });
     }
     const m = /^([a-z]+)_([01])$/.exec(name);
     return m && HD_NPC[m[1]] ? hdNpcFrame(m[1], m[2] === '1') : null;
@@ -293,7 +293,7 @@ const HDW = {
         const c = hdCanvas(m.w, m.h);
         c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.buf), m.w, m.h), 0, 0);
         HD_CACHE.delete(key);
-        hdCached(key, () => ({ c, w: m.w, h: m.h, ax: m.ax, ay: m.ay }));
+        hdCached(key, () => ({ c, w: m.w, h: m.h, ax: m.ax, ay: m.ay, wins: m.wins }));
     },
 };
 /* the worker's side: draw what's asked and send the pixels back */
@@ -316,7 +316,7 @@ if (typeof document === 'undefined' && typeof importScripts === 'function') {
             else { const L = JSON.parse(m.arg); s = new HDSprite(L.w * 3, L.h * 3); hdH_house(s, L); ax = 3 * Math.floor(L.w / 2); ay = 3 * (L.h - 3); }
             const buf = new Uint8ClampedArray(s.w * s.h * 4);
             s.render(buf);
-            postMessage({ id: m.id, w: s.w, h: s.h, ax, ay, buf: buf.buffer }, [buf.buffer]);
+            postMessage({ id: m.id, w: s.w, h: s.h, ax, ay, wins: s.wins, buf: buf.buffer }, [buf.buffer]);
         } catch (err) { postMessage({ id: m.id, err: String(err && err.message || err) }); }
     };
 }

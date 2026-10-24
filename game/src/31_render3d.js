@@ -407,10 +407,12 @@ const R3 = {
         // lit windows: from dusk, brighter as it gets darker, until whoever lives there goes to bed (Sarah leaves hers on)
         const glow = a.interior ? 0 : Math.max(0, Math.min(1, (dark - 0.25) / 0.45)) * 0.85;
         this._glow = glow;
+        const hr = Clock.hourF(), late = hr >= 0 && hr < 5;
         for (const c of this.cards.values()) {
             if (!c.glow) continue;
             const id = c.e && c.e.id, n = id && id.startsWith('h_') ? NPCs.get(id.slice(2)) : null;
-            c.glow.emissiveIntensity = !n || !n.sleeping ? glow : 0;
+            // (shops until midnight, the club all night)
+            c.glow.emissiveIntensity = n ? (n.sleeping ? 0 : glow) : id === 'home' || id === 'club' || !late ? glow : 0;
         }
         // lamps: the nearest few light up at night
         if (G.frame % 15 !== 0 && this._lampsFor === a.id) return;
@@ -1293,15 +1295,17 @@ function r3Volume(e, scene) {
     mesh.add(pm, sm);
     scene.add(mesh);
     const c = { vol: true, frame: e.frame, e, mesh, mat, tex, depth, res: k, away: 0, fade: 1 };
-    // a house's windows light up at night (where its look put them), glowing warm through the bloom
+    // windows light up at night (a house's where its look put them, a shop's where its picture drew them), glowing warm
+    // through the bloom
     const dyn = Assets.dyn[e.frame], L = k < 2 || typeof hdH_winRects !== 'function' ? null : dyn && dyn.key ? JSON.parse(dyn.key)
         : typeof HOUSE_BASE !== 'undefined' && HOUSE_BASE[e.id] ? houseLook(e.id) : null;
+    const wins = k < 2 ? null : f.wins && f.wins.length ? f.wins : L && L.w * 3 === W && L.h * 3 === H ? hdH_winRects(L) : null;
     let gtex = null;
-    if (L && L.w * 3 === W && L.h * 3 === H) {
+    if (wins) {
         const gc = document.createElement('canvas'), gg = gc.getContext('2d');
         gc.width = W; gc.height = H;
         gg.fillStyle = '#000'; gg.fillRect(0, 0, W, H);
-        for (const [x, y, w, h] of hdH_winRects(L)) {
+        for (const [x, y, w, h] of wins) {
             const gr = gg.createRadialGradient(x + w / 2, y + h * 0.6, 2, x + w / 2, y + h / 2, w * 0.7);
             gr.addColorStop(0, '#fff0b8'); gr.addColorStop(1, '#f2a040');
             gg.fillStyle = gr; gg.fillRect(x + 2, y + 2, w - 4, h - 4);

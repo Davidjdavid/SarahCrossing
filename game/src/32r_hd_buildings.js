@@ -114,6 +114,7 @@ function hdP_window(s, x, y, w, h, o) {
     const t = o.t || 3;
     s.rect(fr, x, y, w, h);
     s.rect(gl, x + t, y + t, w - 2 * t, h - 2 * t);
+    (s.wins || (s.wins = [])).push([x + t + s.dx, y + t + s.dy, w - 2 * t, h - 2 * t]);      // (lit at night in the HD-2D view)
     if (o.inside) o.inside(gl, x + t, y + t, w - 2 * t, h - 2 * t);
     if (o.bars !== false) {
         const bx = x + Math.floor(w / 2) - 1, by = y + Math.floor(h / 2) - 1;
