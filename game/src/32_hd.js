@@ -191,7 +191,7 @@ class HDSprite {
 /* a canvas kept in ordinary memory: HD pictures are copied into cards (more canvases in memory) all the time, and one the
    browser had put on the graphics card would have to be read back every time (a stall each frame on phones) */
 function hdCanvas(w, h) {
-    const c = document.createElement('canvas');
+    const c = typeof document === 'undefined' ? new OffscreenCanvas(w, h) : document.createElement('canvas');      // (the worker has no page)
     c.width = w; c.height = h;
     c.getContext('2d', { willReadFrequently: true }).imageSmoothingEnabled = false;
     return c;
@@ -301,7 +301,16 @@ if (typeof document === 'undefined' && typeof importScripts === 'function') {
     onmessage = e => {
         const m = e.data;
         if (m.init) { GD = m.GD; LOOK_DEFAULT = m.LOOK_DEFAULT; return; }
+        if (typeof OffscreenCanvas === 'undefined' && (m.kind === 'person' || m.kind === 'npc')) { postMessage({ id: m.id, err: 'no OffscreenCanvas' }); return; }
         try {
+            if (m.kind === 'person' || m.kind === 'npc') {
+                // people and neighbors are put together on canvases (hats, glasses): drawn as on the page, then sent
+                const a = m.arg, f = m.kind === 'person' ? hdPersonFrame(a.spec, a.frame, a.blink) : hdNpcFrame(a.id, a.squash, a.acc, a.blink);
+                const buf = f.c.getContext('2d').getImageData(0, 0, f.w, f.h).data.buffer;
+                HD_CACHE.clear(); HD_CACHE_BYTES.now = 0;
+                postMessage({ id: m.id, w: f.w, h: f.h, ax: f.ax, ay: f.ay, buf }, [buf]);
+                return;
+            }
             let s, ax, ay;
             if (m.kind === 'spr') { const d = HD_SPR[m.arg]; s = hdSprSprite(m.arg); ax = d.ax; ay = d.ay; }
             else { const L = JSON.parse(m.arg); s = new HDSprite(L.w * 3, L.h * 3); hdH_house(s, L); ax = 3 * Math.floor(L.w / 2); ay = 3 * (L.h - 3); }

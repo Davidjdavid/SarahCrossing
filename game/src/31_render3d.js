@@ -184,7 +184,8 @@ const R3 = {
             this.updateLight(a);
             this.updateCards(a);
             R3U.uTime.value = (performance.now() - this.t0) / 1000;
-            if (G.frame % (this.phone ? 3 : 2) === 0) this.renderer.shadowMap.needsUpdate = true;
+            if (G.frame % (this.phone ? 3 : 2) === 0 && this.shadowsOn !== false) this.renderer.shadowMap.needsUpdate = true;
+            if (!this.warmed) this.warmPrograms();
             R3Mirror.render(this, a);
             Post3.render(this.scene, this.camera, R3U.uTime.value, this.grade);
             this.overlay();
@@ -207,6 +208,25 @@ const R3 = {
         const avg = this.slow.slice(40).reduce((s, d) => s + d, 0) / (this.slow.length - 40);
         this.stepped = true;
         if (avg > 24) { this.quality = 0.6; this.resize(); }
+    },
+    /* every kind of card material made once, up front: a material that shows up later in a new way (a tree going
+       see-through the first time, a building's sides) would otherwise be compiled in the middle of a walk */
+    warmPrograms() {
+        this.warmed = true;
+        const g = new THREE.PlaneGeometry(0.01, 0.01), cv = document.createElement('canvas');
+        cv.width = cv.height = 2;
+        const tex = new THREE.CanvasTexture(cv), keep = this._warm = [];
+        for (const [faded, at] of [[0, 0.5], [1, 0.05], [0, 0], [1, 0]]) {
+            const m = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: at, side: THREE.DoubleSide, color: 0xdedede }), { key: 'card' });
+            if (faded) { m.transparent = true; m.opacity = 0.5; m.depthWrite = false; }
+            const me = new THREE.Mesh(g, m);
+            me.castShadow = me.receiveShadow = true; me.customDepthMaterial = r3Depth(tex); me.frustumCulled = false;
+            me.position.set(this.target.x, -50, this.target.z);
+            this.scene.add(me); keep.push(me);
+        }
+        try { this.renderer.compile(this.scene, this.camera); } catch (e) { console.error(e); }
+        // (taken out again, the materials kept so their programs stay)
+        for (const me of keep) this.scene.remove(me);
     },
     newArea(a) {
         for (const c of this.cards.values()) this.dropCard(c);
@@ -335,7 +355,10 @@ const R3 = {
         const day = 1 - dark, gray = L.gray;
         this.sun.intensity = a.interior ? 0.32 : (0.72 * day + 0.04) * (1 - gray * 1.6);
         this.sun.color.setRGB(1, 0.92 + 0.04 * day, 0.78 + 0.12 * day).lerp(tint, dark * 0.6);
-        this.sun.castShadow = a.interior ? true : day > 0.15;
+        // the sun always casts shadows (switching that off at dusk would rebuild every material at once, a long stall): they
+        // fade out as the light goes, and by night the shadow map isn't redrawn
+        R3U.uShadow.value = a.interior ? 1 : Math.max(0, Math.min(1, (day - 0.1) / 0.2));
+        this.shadowsOn = R3U.uShadow.value > 0;
         this.hemi.intensity = 0.38 + 0.08 * day;
         this.hemi.color.setRGB(0.69, 0.79, 0.93).lerp(tint, dark * 0.8);
         this.hemi.groundColor.setRGB(0.54, 0.49, 0.34).lerp(tint, dark * 0.8);
@@ -495,11 +518,11 @@ function hasWebGL() {
 /* ---------------------------------------------------------------- shared shader bits (bend, cloud shade, depth-of-field amount) */
 const R3U = {
     uBendK: { value: 0.0024 }, uBendZ: { value: 0 }, uTime: { value: 0 },
-    uDof: { value: new THREE_V4(22, 70, 8.5, 5.5) }, uGrass: { value: new THREE_V4(1, 1, 1, 0) },
+    uDof: { value: new THREE_V4(22, 70, 8.5, 5.5) }, uGrass: { value: new THREE_V4(1, 1, 1, 0) }, uShadow: { value: 1 },
 };
 function THREE_V4(a, b, c, d) { return typeof THREE !== 'undefined' ? new THREE.Vector4(a, b, c, d) : { x: a, y: b, z: c, w: d, set() {} }; }
 const R3_GLSL = `
-uniform float uBendK; uniform float uBendZ; uniform float uTime; uniform vec4 uDof;
+uniform float uBendK; uniform float uBendZ; uniform float uTime; uniform vec4 uDof; uniform float uShadow;
 varying float vDofZ; varying vec3 vWp;
 float r3h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float r3n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -521,8 +544,9 @@ function r3Patch(mat, o) {
             vDofZ = -mvPosition.z;
             gl_Position = projectionMatrix * mvPosition;`);
         let fs = R3_GLSL + (o.fhead || '') + sh.fragmentShader;
-        if (!o.noCloud) fs = fs.replace('reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask();',
-            'reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask() * cloudShade(vWp.xz);');
+        // (the sun's shadows fade out at dusk: in a Lambert material they darken every light, the lamps' too)
+        fs = fs.replace('reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask();',
+            'reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * mix(1.0, getShadowMask(), uShadow)' + (o.noCloud ? ';' : ' * cloudShade(vWp.xz);'));
         fs = fs.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + (o.fend || '') + (o.dofFixed != null ? `\ngl_FragColor.a = ${o.dofFixed.toFixed(2)};` : '\ngl_FragColor.a = dofA(vDofZ);'));
         sh.fragmentShader = fs;
     };

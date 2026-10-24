@@ -145,10 +145,26 @@ function hdWarm() {
         for (const d of dirs) { for (let i = 0; i < 8; i++) hdWarm.list.push(`${d}:walk:${i}`); for (let i = 0; i < 4; i++) hdWarm.list.push(`${d}:idle:${i}:0`); for (let i = 0; i < 6; i++) hdWarm.list.push(`${d}:run:${i}`); }
         hdWarm.list.face = face;
     }
-    // the remastered things here, nearest first, sent to the worker a few at a time (when it's running)
+    // with the worker running: her frames (blinking too, standing), the neighbors here and the remastered things here,
+    // nearest first, are sent to it a few at a time, so they're ready before they're needed
     const a = G.area, p = G.player;
     if (hdWarm.area !== a) { hdWarm.area = a; hdWarm.todo = [...new Set(a.ents.filter(e => e.frame && HD_SPR[e.frame]).sort((q, r) => Math.hypot(q.x - p.x, q.y - p.y) - Math.hypot(r.x - p.x, r.y - p.y)).map(e => e.frame))]; }
-    if (HDW.w) while (HDW.pend.size < 3 && hdWarm.todo.length) { const nm = hdWarm.todo.shift(); if (!HD_CACHE.has('s|' + nm)) HDW.use('s|' + nm, 'spr', nm); }
+    if (HDW.w) {
+        if (hdWarm.wk !== key) { hdWarm.wk = key; hdWarm.wi = 0; }
+        while (HDW.pend.size < 4 && hdWarm.wi < hdWarm.list.length * 2) {
+            const j = hdWarm.wi++, fr = hdWarm.list[j >> 1], blink = !!(j & 1);
+            if (blink && !fr.includes(':idle:')) continue;
+            const k = 'p|' + fr + '|' + (blink ? 1 : 0) + '|' + key;
+            if (!HD_CACHE.has(k)) HDW.use(k, 'person', { spec: sp, frame: fr, blink });
+        }
+        for (const n of NPCs.here()) {
+            if (HDW.pend.size >= 4) break;
+            if (n.hidden || n.def.human || !HD_NPC[n.def.sprite]) continue;
+            const acc = npcWearing(n.id) || '';
+            for (const [sq, bl] of [[1, 0], [0, 0], [1, 1], [0, 1]]) { const k = `n|${n.def.sprite}|${sq}|${acc}|${bl}`; if (!HD_CACHE.has(k)) HDW.use(k, 'npc', { id: n.def.sprite, squash: sq, acc: acc || null, blink: bl }); }
+        }
+        while (HDW.pend.size < 4 && hdWarm.todo.length) { const nm = hdWarm.todo.shift(); if (!HD_CACHE.has('s|' + nm)) HDW.use('s|' + nm, 'spr', nm); }
+    }
     // her frames and the things around her take turns, while there's drawing time left this frame
     if (!hdBudget()) return;
     if (G.frame % 4 === 0) while (hdWarm.i < hdWarm.list.length) { const k = hdWarm.list[hdWarm.i++]; if (!HD_CACHE.has('p|' + k + '|0|' + key)) { hdPersonFrame(sp, k, false); return; } }
