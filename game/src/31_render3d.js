@@ -521,7 +521,7 @@ const R3 = {
     },
 };
 /* the camera: a little steeper indoors so the back wall shows; the world bends away after a few tiles */
-const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.0042, lead: 4 };
+const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.007, lead: 4, skyDrop: 0.22 };
 const R3_FAR = { phone: 17, full: 27 };     // tiles ahead that get drawn (at the normal zoom)
 const R3_FOG = { col: [0.6, 0.77, 0.92], near: 0.6, far: 0.98 };     // a clear blue haze far off, like the sky behind it
 const R3_ZS = 1.25;         // the flat art is drawn for a steeper view: stretch the ground a little in depth
@@ -662,10 +662,12 @@ function r3Sky(scene) {
             float h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
             float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
             void main(){
-              float y = clamp(vDir.y, -0.2, 1.0);
-              vec3 c = mix(uHor, uMid, smoothstep(-0.03, 0.035, y));
-              c = mix(c, uZen, smoothstep(0.035, 0.35, y));
-              vec2 q = vDir.xz / max(0.08, vDir.y + 0.12) * 1.6 + vec2(uTime * 0.01, 0.0);
+              // (the world bends away below the true horizon, so the sky's horizon is lowered to meet it: blue sky and
+              // clouds over the island's rolling edge, not haze)
+              float y = clamp(vDir.y + ${R3_CAM.skyDrop.toFixed(3)}, -0.2, 1.0);
+              vec3 c = mix(uHor, uMid, smoothstep(-0.03, 0.05, y));
+              c = mix(c, uZen, smoothstep(0.05, 0.4, y));
+              vec2 q = vDir.xz / max(0.08, y + 0.12) * 1.6 + vec2(uTime * 0.01, 0.0);
               float cl = n(q) * 0.6 + n(q * 2.3) * 0.3 + n(q * 5.1) * 0.1;
               c = mix(c, vec3(1.0), smoothstep(0.6, 0.78, cl) * smoothstep(0.0, 0.08, y) * 0.75);
               gl_FragColor = vec4(c, 1.0);
