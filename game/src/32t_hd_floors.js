@@ -103,10 +103,6 @@ function hdW_gaps(T, gap, raised, dy, dx) {
         if (sh) T.mod(x, y, -1, gap);
     });
 }
-/* loose flecks over a part: n lighter and m darker single pixels, scattered by the hash */
-function hdW_fleck(T, id, light, dark, seed) {
-    T.each(id, (x, y) => { const r = hdW_hash(x, y, seed); if (r < light) T.mod(x, y, 1, id); else if (r > 1 - dark) T.mod(x, y, -1, id); });
-}
 /* wood grain along a board: a few long streaks broken into runs, each run a pixel to one side or the other (most
    darker, one in four lighter); vert: the board stands upright (wall paneling) */
 function hdW_grain(T, id, x0, y0, len, ht, seed, per, vert) {
@@ -123,22 +119,15 @@ function hdW_grain(T, id, x0, y0, len, ht, seed, per, vert) {
         }
     }
 }
-/* a knot in a board: a dark eye with a lit rim above it */
-function hdW_knot(T, id, cx, cy, rx, ry, vert) {
+/* a knot in a board: a dark eye (with a lit rim above it on a floor board) */
+function hdW_knot(T, id, cx, cy, rx, ry, vert, mat) {
     if (id == null) id = T.at(cx, cy);
+    if (mat) return T.each(id, (x, y) => { const u = (x + 0.5 - cx) / rx, v = (y + 0.5 - cy) / ry; if (u * u + v * v <= 1) T.rec(x, y, mat, id); });
     for (let y = Math.floor(cy - ry - 1); y <= cy + ry + 1; y++) for (let x = Math.floor(cx - rx - 2); x <= cx + rx + 2; x++) {
         const u = (x + 0.5 - cx) / rx, v = (y + 0.5 - cy) / ry, q = u * u + v * v;
         if (q <= 0.35) T.mod(x, y, -2, id); else if (q <= 1) T.mod(x, y, -1, id); else if (q <= 1.9 && v < -0.3 && !vert) T.mod(x, y, 1, id);
     }
 }
-/* mottling: shade -1 where the noise is low and +1 where it is high (lo, hi are the fractions of the range) */
-function hdW_mottle(T, id, cell, seed, lo, hi, cell2) {
-    T.each(id, (x, y) => {
-        const v = cell2 ? hdW_noise(x, y, cell, seed) * 0.65 + hdW_noise(x, y, cell2, seed + 1) * 0.35 : hdW_noise(x, y, cell, seed);
-        if (v < lo) T.mod(x, y, -1, id); else if (v > 1 - hi) T.mod(x, y, 1, id);
-    });
-}
-
 /* specks gathered in soft clumps (the noise sets how likely a speck is): carpet pile, a lawn, sand, today's flecks */
 function hdW_speck(T, id, seed, dark, light, cell) {
     T.each(id, (x, y) => {
@@ -213,7 +202,7 @@ const HDW_FLOORS = {
     checker: T => hdW_checker(T, '#ffffff', '#f7a8c4'),
     salon: T => hdW_checker(T, '#ffffff', '#f7d6ea'),
     diner: T => hdW_checker(T, '#fbf8f2', '#3b3f52'),
-    /* a dance floor: dark glass panels in a dark frame, a soft glow in the middle and a glint at the lit corner */
+    /* a dance floor: dark glass panels in a dark frame, catching the light at their top left with a glint across it */
     disco: T => {
         const fr = T.add(hdW_r('#1c1a24', 0.05), { flat: 1 });
         T.rect(fr, 0, 0, 48, 48);
@@ -253,8 +242,8 @@ const HDW_FLOORS = {
         });
         const bd = T.add(hdPal('#46602a', '#5a7731', '#6b8a3a', '#7a9a47', '#8eae58'), { flat: 1, layer: 1 });
         T.rect(bd, 0, 0, 48, 3); T.rect(bd, 0, 45, 48, 3); T.rect(bd, 0, 0, 3, 48); T.rect(bd, 45, 0, 3, 48);
-        /* the binding cloth: a fine woven line along its middle */
-        T.each(bd, (x, y) => { const vert = (x < 3 || x > 44) && y > 2 && y < 45, c = vert ? x : y; if ((c === 47 || c === 0) && ((vert ? y : x) % 2 === 0)) T.mod(x, y, -1, bd); });
+        /* two mats' bindings meet along the middle of the band */
+        T.each(bd, (x, y) => { const vert = (x < 3 || x > 44) && y > 2 && y < 45, c = vert ? x : y; if (c === 47) T.mod(x, y, -1, bd); });
         hdW_bevel(T, [bd]);
     },
     /* polished marble slabs with soft veins where today's run */
@@ -359,7 +348,7 @@ const HDW_FLOORS = {
     studio: T => {
         const g = T.add(hdPal('#9a968e', '#aaa69e', '#b8b4ac', '#c4c0b9', '#cfccc5'), { flat: 1 });
         T.rect(g, 0, 0, 48, 48);
-        const cols = ['#a8a49c', '#a8a49c', '#a8a49c', '#9a8a7a', '#9a8a7a', '#c8c4bc', '#c8c4bc', '#c8c4bc', '#c98f6b'];
+        const cols = ['#a8a49c', '#a8a49c', '#a8a49c', '#9a8a7a', '#c8c4bc', '#c8c4bc', '#c8c4bc', '#c8c4bc', '#c98f6b'];
         for (let i = 0; i < 64; i++) {
             const x = hdW_hash(i, 1, 70) * 48, y = hdW_hash(i, 2, 70) * 48, c = cols[i % cols.length], sz = hdW_hash(i, 4, 70);
             const id = T.add(hdW_r(c, 0.05), { flat: 1 });
@@ -370,7 +359,7 @@ const HDW_FLOORS = {
         }
         hdW_speck(T, g, 72, 0.03, 0.03, 6);
     },
-    /* the workshop's concrete: aggregate, faint trowel marks and a saw-cut joint along each row */
+    /* the workshop's concrete: specks of aggregate and a saw-cut joint along each row (today's bottom line) */
     workshop: T => {
         const g = T.add(hdPal('#a89880', '#b8a890', '#c8b8a0', '#d2c3ac', '#ddd0ba'), { flat: 1 });
         T.rect(g, 0, 0, 48, 48);
@@ -389,7 +378,7 @@ const HDW_FLOORS = {
         const B = hdW_boards(T, '#9a6d3f', '#b98a5a', [[0, 21, 0], [24, 21, 0]], { jw: 0, per: 7, seed: 90 });
         const sm = [hdPal('#8a6a28', '#b8963a', '#d4b048', '#e2c25c', '#f0d878'), hdPal('#a8862f', '#d4b048', '#e8c860', '#f2dc80', '#fff2b4'), hdPal('#b8963a', '#e8c860', '#f2dc80', '#fff0a8', '#fff8d0')];
         const S = new Set();
-        for (let i = 0; i < 120; i++) {
+        for (let i = 0; i < 100; i++) {
             const long = i < 10, x = hdW_hash(i, 1, 91) * 48, y = hdW_hash(i, 2, 91) * 48, a = (hdW_hash(i, 3, 91) - 0.5) * (long ? 1.3 : 0.7), l = long ? 6 + hdW_hash(i, 4, 91) * 4 : 2 + hdW_hash(i, 4, 91) * 3;
             const id = T.add(sm[i % 3], { flat: 1, layer: 1 });
             S.add(id);
@@ -449,7 +438,7 @@ function hdW_rail(T, mat, y, h, o) {
     return id;
 }
 /* soft paper or plaster texture */
-function hdW_paper(T, id, seed, amt) { hdW_speck(T, id, seed, amt || 0.015, amt || 0.015, 6); }
+function hdW_paper(T, id, seed, amt) { hdW_speck(T, id, seed, 0, amt || 0.012, 6); }
 /* a little four-point twinkle: a bright middle, arms in the color, a faint glow between them */
 function hdW_twinkle(T, x, y, col, big) {
     const c = hdRgb(col), lit = hdW_mixC(c, [255, 255, 255], 0.6);
@@ -464,28 +453,30 @@ const HDW_WALLS = {
     cream: T => { const b = hdW_body(T, '#fbead6', 84); hdW_paper(T, b, 1); hdW_skirt(T, '#fceede', '#c3b4aa'); },
     /* pale mint with little leaves in today's two columns */
     mint: T => {
-        const b = hdW_body(T, '#dcf2e6', 84); hdW_paper(T, b, 2);
+        hdW_body(T, '#dcf2e6', 84);
         const lf = hdPal('#5fa883', '#86c9a6', '#9cd8b8', '#b2e4ca', '#c8eed9');
         [12, 36].forEach((cx, c) => [10.5, 28.5, 46.5, 64.5].forEach((cy, r) => {
+            /* a little leaf, tipped up or down in turn, its stem to the left */
             const id = T.add(lf, { flat: 1 }), f = (r + c) % 2 ? -1 : 1;
-            T.poly(id, [[cx - 3.5, cy + 0.6 * f], [cx - 1, cy - 1.6], [cx + 3.5, cy - 0.6 * f], [cx + 1, cy + 1.6]]);
-            for (let k = -2; k <= 2; k++) T.mod(cx + k, cy - Math.round(k * 0.2 * f), k < 0 ? 1 : -1, id);
+            T.poly(id, [[cx - 3, cy + 0.5 * f], [cx - 1, cy - 1.3], [cx + 1.5, cy - 1.5 - 0.5 * f], [cx + 3.5, cy - 0.8 * f], [cx + 1.5, cy + 1.3 - 0.4 * f], [cx - 1, cy + 1.4]]);
             hdW_bevel(T, [id], { t: 1, l: 0, b: -1, r: 0 });
+            for (let k = -2; k <= 2; k++) T.mod(cx + k, Math.floor(cy) - (k > 0 && f > 0 ? 1 : 0), 1, id);
+            T.px(Math.floor(cx) - 4, Math.floor(cy + 0.5 * f + 0.5), '#86c9a6');
         }));
         hdW_skirt(T, '#e3f5eb', '#acbab6');
     },
     /* pink stripes, each edged with a fine darker line */
     pinkstripe: T => {
-        const b = hdW_body(T, '#ffe0ea', 84); hdW_paper(T, b, 3);
+        hdW_body(T, '#ffe0ea', 84);
         for (const x of [6, 30]) {
             const id = T.add(hdW_r('#ffc8d8', 0.035), { flat: 1 }); T.rect(id, x, -HDW_M, 6, 84 + HDW_M);
-            for (let y = -HDW_M; y < 84; y++) { T.mod(x, y, -1, id); T.mod(x + 5, y, -1, id); if (y % 4 === 0) T.mod(x + 3, y, 1, id); }
+            for (let y = -HDW_M; y < 84; y++) { T.mod(x, y, -1, id); T.mod(x + 5, y, -1, id); T.mod(x + 2, y, 1, id); }
         }
         hdW_skirt(T, '#ffe6ee', '#c6acb9');
     },
     /* polka dots where today's are, each with a soft lit rim */
     polka: T => {
-        const b = hdW_body(T, '#fff0f6', 84); hdW_paper(T, b, 4);
+        hdW_body(T, '#fff0f6', 84);
         [[10.5, 10.5, '#bfe6ff'], [34.5, 22.5, '#bfe6ff'], [16.5, 37.5, '#fff0a0'], [40.5, 49.5, '#fff0a0'], [7.5, 61.5, '#ffd0e0'], [28.5, 73.5, '#bfe6ff']].forEach(([x, y, c]) => {
             const id = T.add(hdW_r(c, 0.05), { flat: 1 }); T.ellipse(id, x, y, 4.6, 4.6);
             T.each(id, (px, py) => { const u = px + 0.5 - x, v = py + 0.5 - y, r = Math.hypot(u, v); if (r > 3.2 && u + v < -2) T.mod(px, py, 1); else if (r > 3.4 && u + v > 3) T.mod(px, py, -1); });
@@ -506,19 +497,27 @@ const HDW_WALLS = {
     /* bamboo canes in today's three columns, the nodes on today's rows */
     bamboo: T => {
         const b = hdW_body(T, '#e8e4c8', 84); hdW_paper(T, b, 6);
-        const cane = hdPal('#7f7f44', '#adad6c', '#c8c88a', '#d9d9a2', '#e8e8bc'), node = hdPal('#6f6f38', '#8f8f4c', '#a8a860', '#bcbc76', '#d0d08e'), ids = [];
+        const cane = hdPal('#7f7f44', '#adad6c', '#c8c88a', '#d9d9a2', '#e8e8bc'), node = hdPal('#6f6f38', '#8f8f4c', '#a8a860', '#bcbc76', '#d0d08e');
+        const shade = [-1, 1, 2, 1, 0, 0, 0, -1, -1];      // round, lit from the left
         for (const x of [3, 18, 33]) {
-            const ys = [-HDW_M, 23, 50, 74, 84];
-            for (let i = 0; i + 1 < ys.length; i++) { const id = T.add(cane, { R: 4, k: 0.8 }); T.rect(id, x, ys[i], 9, ys[i + 1] - ys[i]); ids.push(id); }
-            for (const y of [21, 48, 72]) { const n = T.add(node, { R: 1.5, k: 0.9 }); T.rect(n, x - 1, y, 11, 2); T.rect(n, x, y + 2, 9, 1); }
+            const id = T.add(cane, { flat: 1 });
+            T.rect(id, x, -HDW_M, 9, 84 + HDW_M);
+            for (let y = -HDW_M; y < 84; y++) for (let k = 0; k < 9; k++) if (shade[k]) T.mod(x + k, y, shade[k], id);
+            for (const y of [21, 48, 72]) {
+                const n = T.add(node, { flat: 1 });
+                T.rect(n, x - 1, y, 11, 2);
+                for (let k = 0; k < 11; k++) { T.mod(x - 1 + k, y, k < 4 ? 1 : 0, n); T.mod(x - 1 + k, y + 1, k < 2 ? 0 : -1, n); }
+                for (let k = 0; k < 9; k++) { T.mod(x + k, y + 2, -1, id); T.mod(x + k, y - 1, 1, id); }
+            }
             for (let y = -HDW_M; y < 84; y++) T.mod(x + 9, y, -1, b);
         }
         hdW_skirt(T, '#ede9d3', '#b4afa0');
     },
     /* red barn boards, a white rail across them */
     barn: T => {
-        const V = hdW_vboards(T, '#b8433a', '#9f3b37', [0, 12, 24, 36], -HDW_M, 84, { seed: 7, per: 6 });
-        for (const [x, y] of [[44, 10], [8, 16], [32, 37], [20, 64]]) hdW_knot(T, null, x, y, 1.2, 2, true);
+        const V = hdW_vboards(T, '#b8433a', '#9f3b37', [0, 12, 24, 36], -HDW_M, 84, { seed: 7, per: 9, d: 0.02 });
+        const kn = hdW_r('#903635', 0.05);   // today's knots: small dark ovals
+        for (const [x, y] of [[44, 10], [8, 16], [32, 37], [20, 64]]) hdW_knot(T, null, x, y, 1.6, 2.2, true, kn);
         const rail = T.add(hdW_r('#fbf6ee', 0.04), { flat: 1 });
         T.rect(rail, 0, 51, 48, 6);
         for (let x = 0; x < 48; x++) { T.mod(x, 51, 1, rail); T.mod(x, 56, -1, rail); T.mod(x, 57, -1); T.mod(x, 58, -1); }
@@ -542,7 +541,7 @@ const HDW_WALLS = {
     shiplap: T => {
         const g = T.add(hdW_r('#a8d0e0', 0.05), { flat: 1 }); T.rect(g, 0, -HDW_M, 48, 84 + HDW_M);
         const ids = [];
-        for (let k = -1; k < 7; k++) { const id = T.add(hdW_r(hdW_shift('#cfe8f2', [0, -0.01, 0.008][(k + 3) % 3]), 0.025), { flat: 1 }); T.rect(id, 0, 12 * k, 48, 10); hdW_grain(T, id, 0, 12 * k, 48, 10, k + 20, 7); ids.push(id); }
+        for (let k = -1; k < 7; k++) { const id = T.add(hdW_r(hdW_shift('#cfe8f2', [0, -0.008, 0.006][(k + 3) % 3]), 0.022), { flat: 1 }); T.rect(id, 0, 12 * k, 48, 10); hdW_grain(T, id, 0, 12 * k, 48, 10, k + 20, 10); ids.push(id); }
         hdW_bevel(T, ids, { t: 1, l: 0, b: -1, r: 0 });
         hdW_gaps(T, g, ids, 1, 0);
         hdW_skirt(T, '#d9edf5', '#a2b2bf');
@@ -595,13 +594,13 @@ const HDW_WALLS = {
         for (let x = 0; x < 48; x++) { T.mod(x, 60, 2, band); T.mod(x, 61, 2, band); T.mod(x, 62, 1, band); T.mod(x, 71, -1, band); T.mod(x, 72, -1); }
         const st = T.add(hdW_r('#8a8070', 0.05), { flat: 1 }); T.rect(st, 0, 78, 48, 6);
         for (let x = 0; x < 48; x++) { T.mod(x, 78, 1, st); T.mod(x, 83, -1, st); }
-        hdW_speck(T, st, 18, 0.08, 0.06, 6);
+        hdW_speck(T, st, 18, 0.04, 0.03, 6);
         hdW_skirt(T, null, '#beb8b8', 84, { crease: false });
     },
     /* the arcade: dark wall, a neon stripe, little angles of confetti where today's are */
     arcade: T => {
         const b = hdW_body(T, '#241a44', 84, 0.05);
-        hdW_speck(T, b, 30, 0.04, 0.025, 6);
+        for (let i = 0; i < 12; i++) T.mod(Math.floor(hdW_hash(i, 1, 30) * 48), Math.floor(hdW_hash(i, 2, 30) * 82), 1, b);
         const st = T.add(hdPal('#2c2258', '#3a2e70', '#4a3a86', '#6a58b0', '#8c7ad0'), { flat: 1 });
         T.rect(st, 0, 36, 48, 3);
         for (let x = 0; x < 48; x++) { T.mod(x, 37, 1, st); T.mod(x, 35, 1, b); T.mod(x, 39, 1, b); }
@@ -614,13 +613,10 @@ const HDW_WALLS = {
     },
     /* little cherry blossoms where today's flowers are */
     blossom: T => {
-        const b = hdW_body(T, '#fff4f6', 84); hdW_paper(T, b, 31);
+        hdW_body(T, '#fff4f6', 84);
         const pet = hdPal('#e07a98', '#f39ab4', '#ffb3c8', '#ffc6d6', '#ffdbe5');
         [[10.5, 16.5], [34.5, 34.5], [16.5, 58.5], [37.5, 70.5]].forEach(([cx, cy], k) => {
-            for (let i = 0; i < 5; i++) {
-                const a = -Math.PI / 2 + i * 2 * Math.PI / 5 + k * 0.35, id = T.add(pet, { R: 1.5, k: 0.7 });
-                T.ellipse(id, cx + Math.cos(a) * 2.4, cy + Math.sin(a) * 2.4, 1.9, 1.9);
-            }
+            for (const [dx, dy] of [[0, -2.6], [2.6, 0], [0, 2.6], [-2.6, 0]]) { const id = T.add(pet, { R: 1.6, k: 0.8 }); T.ellipse(id, cx + dx, cy + dy, 1.9, 1.9); }
             const x = Math.floor(cx), y = Math.floor(cy);
             T.px(x - 1, y - 1, '#ffe680'); T.px(x, y - 1, '#ffd84a'); T.px(x - 1, y, '#ffd84a'); T.px(x, y, '#e8b432');
         });
@@ -628,7 +624,7 @@ const HDW_WALLS = {
     },
     /* the boutique: fine double pinstripes and little orange dots */
     boutique: T => {
-        const b = hdW_body(T, '#fff4ee', 84); hdW_paper(T, b, 32);
+        hdW_body(T, '#fff4ee', 84);
         const st = T.add(hdW_r('#ffd8b8', 0.04), { flat: 1 });
         for (const x of [9, 11, 33, 35]) T.rect(st, x, -HDW_M, 1, 84 + HDW_M);
         [[22.5, 25.5], [46.5, 43.5], [22.5, 61.5]].forEach(([cx, cy]) => {
@@ -664,17 +660,22 @@ const HDW_WALLS = {
     },
     /* the diner: cream above a chrome strip and padded red ribs */
     diner: T => {
-        const b = hdW_body(T, '#fbf6ee', 42); hdW_paper(T, b, 34);
+        hdW_body(T, '#fbf6ee', 42);
         const rib = hdPal('#8a1424', '#b8283a', '#d9364a', '#e5505f', '#f27482'), gap = T.add(hdW_r('#b8283a', 0.05), { flat: 1 });
         T.rect(gap, 0, 48, 48, 36);
-        for (let i = 0; i < 4; i++) { const id = T.add(rib, { R: 3.5, k: 0.9 }); T.rect(id, 12 * i + 2, 47, 10, 37); }
+        const shade = [0, 1, 1, 1, 0, 0, 0, -1, -1, -1];  // padded, lit from the left
+        for (let i = 0; i < 4; i++) {
+            const id = T.add(rib, { flat: 1 }), x = 12 * i + 2;
+            T.rect(id, x, 48, 10, 36);
+            for (let y = 48; y < 84; y++) for (let k = 0; k < 10; k++) T.mod(x + k, y, shade[k] + (y === 48 || y === 49 ? -1 : y === 83 ? -1 : 0), id);
+        }
         hdW_rail(T, hdPal('#7a8496', '#b8c2d0', '#e8eef6', '#f4f7fb', '#ffffff'), 42, 6, { R: 2.4, cast: 2 });
         hdW_skirt(T, '#fcf8f1', '#c3bcbc');
     },
     /* the disco: dark velvet with little sparkles where today's dots are */
     disco: T => {
         const b = hdW_body(T, '#2a2238', 84, 0.05);
-        hdW_speck(T, b, 35, 0.04, 0.015, 6);
+        for (let i = 0; i < 14; i++) T.mod(Math.floor(hdW_hash(i, 1, 35) * 48), Math.floor(hdW_hash(i, 2, 35) * 82), 1, b);
         [[28, 10, '#ff5aa8'], [10, 13, '#4ec3d9'], [34, 25, '#4ec3d9'], [19, 43, '#ffd84a'], [40, 58, '#ffd84a'], [7, 67, '#ff5aa8']].forEach(([x, y, c], i) => hdW_twinkle(T, x, y, c, i % 2 === 0));
         hdW_skirt(T, '#554e60', '#1c1830');
     },
@@ -699,7 +700,7 @@ const HDW_WALLS = {
     },
     /* the gallery: a gold picture rail, plain walls for the paintings, a chair rail over paneled wainscot */
     gallery: T => {
-        const b = hdW_body(T, '#f7f2ea', 60); hdW_paper(T, b, 37);
+        hdW_body(T, '#f7f2ea', 60);
         const cove = T.add(hdPal('#8a6a20', '#b8922e', '#d9b44a', '#e8c868', '#f2d880'), { flat: 1 });
         T.rect(cove, 0, 9, 48, 3);
         const bead = T.add(hdPal('#a8862f', '#dcbc5a', '#f2d880', '#faeaa8', '#fff6d4'), { R: 1.6, k: 1 });
@@ -739,9 +740,9 @@ const HDW_WALLS = {
     },
     /* the salon: lilac stripes with little hearts, a purple trim along the foot */
     salon: T => {
-        const b = hdW_body(T, '#f6e8fa', 78); hdW_paper(T, b, 39);
+        hdW_body(T, '#f6e8fa', 78);
         const st = T.add(hdW_r('#ecd6f6', 0.035), { flat: 1 });
-        for (const x of [0, 24]) { T.rect(st, x, -HDW_M, 9, 78 + HDW_M); for (let y = -HDW_M; y < 78; y++) T.mod(x + 4, y, 1, st); }
+        for (const x of [0, 24]) { T.rect(st, x, -HDW_M, 9, 78 + HDW_M); for (let y = -HDW_M; y < 78; y++) { T.mod(x, y, -1, st); T.mod(x + 8, y, -1, st); } }
         [[18, 21], [42, 51], [18, 75]].forEach(([cx, cy]) => {
             const id = T.add(hdPal('#d0708e', '#f096be', '#ffb3d9', '#ffc8e4', '#ffe0f0'), { R: 1.6, k: 0.8 });
             T.ellipse(id, cx - 1.5, cy - 1.2, 1.8, 1.8); T.ellipse(id, cx + 1.5, cy - 1.2, 1.8, 1.8); T.poly(id, [[cx - 3.3, cy - 0.8], [cx + 3.3, cy - 0.8], [cx, cy + 3]]);

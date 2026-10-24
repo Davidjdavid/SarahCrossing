@@ -147,6 +147,14 @@ function hdPose(dir, body, ph) {
         J.sway = 0.5 * sn;
     }
     if (body === 'cheer') { J.elL = [10.5, 26.5]; J.hdL = [8, 19.5]; J.elR = [37.5, 26.5]; J.hdR = [40, 19.5]; }
+    if (body === 'stretch') {
+        // a big stretch after standing about: arms up overhead (ph 0 to 2), up on her toes at the top
+        const k = Math.min(2, J.ph) / 2;
+        // (a V, out past the hair: arms straight up would go behind it)
+        J.elL = [13 - k * 4.5, 40 - k * 19]; J.hdL = [14 - k * 8.5, 48.5 - k * 40]; J.elR = [35 + k * 4.5, 40 - k * 19]; J.hdR = [34 + k * 8.5, 48.5 - k * 40];
+        if (k === 1) { J.dy = -1; J.anL[1] -= 1; J.anR[1] -= 1; J.ftL[1] -= 0.5; J.ftR[1] -= 0.5; }
+        J.sway = k * 0.5;
+    }
     if (body === 'left' || body === 'right') {
         // a dance step: arms out, one leg kicked to the side
         const L = body === 'left';
@@ -551,7 +559,7 @@ const HD_FRAMES = {
 /* a frame's name: one of the old ones ("down_walkA") or side:animation:phase[:glance] ("dside:walk:3", "down:idle:2:1")
    -> [dir, body, face, phase, glance] */
 function hdFrameSpec(frame) {
-    if (frame.indexOf(':') > 0) { const [dir, body, ph, look] = frame.split(':'); return [dir, body, 'normal', +ph || 0, +look || 0]; }
+    if (frame.indexOf(':') > 0) { const [dir, body, ph, look] = frame.split(':'); return [dir, body, body === 'stretch' && +ph >= 1 ? 'happy' : 'normal', +ph || 0, +look || 0]; }
     const f = HD_FRAMES[frame] || HD_FRAMES.down_stand;
     return [f[0], f[1], f[2], 0, 0];
 }

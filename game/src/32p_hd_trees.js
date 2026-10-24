@@ -7,17 +7,15 @@
 /* a small seeded hash in [0, 1) (scatter without Math.random) */
 const hdT_h = (x, y, k) => { let h = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(k | 0, 1442695041); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
-/* today's silhouette, blurred at three times the size: spans 'y0:a-b,c-d|a-b|...' in old pixels; 0.5 is the edge;
-   dx, dy shift it (HD pixels) */
-function hdT_field(W, H, spec, dx, dy) {
+/* today's silhouette, blurred at three times the size: spans 'y0:a-b,c-d|a-b|...' in old pixels; 0.5 is the edge */
+function hdT_field(W, H, spec) {
     const [y0s, rows] = spec.split(':'), y0 = +y0s, F = new Float32Array(W * H), G = new Float32Array(W * H);
-    dx = dx || 0; dy = dy || 0;
     let bx0 = W, bx1 = 0, by0 = H, by1 = 0;
     rows.split('|').forEach((row, j) => {
         for (const sp of row.split(',')) {
             if (!sp) continue;
             const [a, b] = sp.split('-').map(Number);
-            for (let y = (y0 + j) * 3 + dy; y < (y0 + j) * 3 + 3 + dy; y++) for (let x = a * 3 + dx; x < b * 3 + 3 + dx; x++) if (x >= 0 && y >= 0 && x < W && y < H) {
+            for (let y = (y0 + j) * 3; y < (y0 + j) * 3 + 3; y++) for (let x = a * 3; x < b * 3 + 3; x++) if (x < W && y < H) {
                 F[y * W + x] = 1; bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); by0 = Math.min(by0, y); by1 = Math.max(by1, y);
             }
         }
@@ -39,16 +37,16 @@ function hdT_grid(W, H, cell, seed) {
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { px[j * nx + i] = i - 1 + 0.1 + hdT_h(i - 1, j - 1, seed) * 0.8; py[j * nx + i] = j - 1 + 0.1 + hdT_h(i - 1, j - 1, seed + 1) * 0.8; }
     return { cell, nx, px, py };
 }
-const hdT_CELL = [0, false, 0, 0];
+const hdT_CELL = [0, false, 0];
 function hdT_cells(x, y, G) {
     const gx = x / G.cell, gy = y / (G.cell * 0.85), ix = Math.floor(gx), iy = Math.floor(gy), PX = G.px, PY = G.py;
-    let d1 = 81, d2 = 81, fx = 0, fy = 0, fk = 0;
+    let d1 = 81, d2 = 81, fx = 0, fy = 0;
     for (let b = 0; b <= 2; b++) for (let a = 0; a <= 2; a++) {
         const k = (iy + b) * G.nx + ix + a, ex = gx - PX[k], ey = gy - PY[k], d = ex * ex + ey * ey;
-        if (d < d1) { d2 = d1; d1 = d; fx = ex; fy = ey; fk = k; } else if (d < d2) d2 = d;
+        if (d < d1) { d2 = d1; d1 = d; fx = ex; fy = ey; } else if (d < d2) d2 = d;
     }
     d1 = Math.sqrt(d1);
-    hdT_CELL[0] = -(fx * 0.8 + fy) * 0.7; hdT_CELL[1] = Math.sqrt(d2) - d1 < 0.12; hdT_CELL[2] = d1; hdT_CELL[3] = fk;
+    hdT_CELL[0] = -(fx * 0.8 + fy) * 0.7; hdT_CELL[1] = Math.sqrt(d2) - d1 < 0.12; hdT_CELL[2] = d1;
     return hdT_CELL;
 }
 
@@ -74,17 +72,17 @@ function hdT_tone(s, V, mix, T, lw, seed) {
 
 /* a leafy crown on today's silhouette: clump centers on a jittered grid (spacing sp), each clump a part (lower ones in
    front, so a clump behind gets a dark seam), shaded per pixel as its own ball and as part of the whole crown's ball,
-   with small leaf clusters on top. The edge bulges where a clump sits and dips between them. o: { mat, sp, cell, seed,
-   layer, lift (lighter/darker), crown (how much the whole crown's ball counts), cut: [deep, shadow, base, light] limits }
-   returns { ids, cl, box, sh (the shade 1..4 per pixel) } */
+   with small leaf clusters (cell px) on top. The edge bulges where a clump sits and dips between them. o: { mat, sp,
+   cell, seed, layer, crown (how much the whole crown's ball counts), mix (see hdT_tone), seam, seamK (the shade under
+   a clump), leaf (the share of leaf texture) } returns { ids, cl, box, sh (the shade 1..4 per pixel) } */
 function hdT_crown(s, spec, o) {
-    const W = s.w, H = s.h, seed = o.seed || 1, sp = o.sp || 18, cell = o.cell || 4.5, F = hdT_field(W, H, spec, o.dx, o.dy);
+    const W = s.w, H = s.h, seed = o.seed || 1, sp = o.sp || 18, cell = o.cell || 4.5, F = hdT_field(W, H, spec);
     let x0 = W, x1 = 0, y0 = H, y1 = 0;
     for (let y = F.box[1]; y <= F.box[3]; y++) for (let x = F.box[0]; x <= F.box[2]; x++) if (F[y * W + x] >= 0.5) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
     const cx = (x0 + x1 + 1) / 2, cy = (y0 + y1 + 1) / 2, rx = (x1 - x0 + 1) / 2, ry = (y1 - y0 + 1) / 2;
     /* clump centers: rows of a jittered hex grid, kept where they land well inside */
-    const cl = o.clumps ? o.clumps.map(([x, y, r]) => ({ x, y, r })) : [];
-    if (!o.clumps) for (let j = 0, y = y0 + sp * 0.42; y < y1; j++, y += sp * 0.8) for (let x = x0 + (j % 2 ? sp * 0.5 : 0) + sp * 0.25; x < x1; x += sp) {
+    const cl = [];
+    for (let j = 0, y = y0 + sp * 0.42; y < y1; j++, y += sp * 0.8) for (let x = x0 + (j % 2 ? sp * 0.5 : 0) + sp * 0.25; x < x1; x += sp) {
         const px = x + (hdT_h(j, x, seed) - 0.5) * sp * 0.45, py = y + (hdT_h(x, j, seed + 1) - 0.5) * sp * 0.35;
         if (F[Math.round(py) * W + Math.round(px)] > 0.8) cl.push({ x: px, y: py, r: sp * (0.74 + hdT_h(j, x, seed + 2) * 0.2) });
     }
@@ -101,7 +99,7 @@ function hdT_crown(s, spec, o) {
         const R = c.r * 1.07 + cell * 0.25; c.pc = Math.cos(i * 1.7); c.ps = Math.sin(i * 1.7);
         for (let y = Math.max(0, Math.floor(c.y - R)); y <= Math.min(H - 1, Math.ceil(c.y + R)); y++) for (let x = Math.max(0, Math.floor(c.x - R)); x <= Math.min(W - 1, Math.ceil(c.x + R)); x++) {
             const ddx = x + 0.5 - c.x, ddy = y + 0.5 - c.y, dd = ddx * ddx + ddy * ddy;
-            if (dd > R * R) continue;
+            if (dd > R * R || F[y * W + x] < 0.25) continue;
             const d = Math.sqrt(dd) || 1, u = ddx / d, v = ddy / d, u2 = u * u, v2 = v * v;
             const s5 = v * (5 * u2 * u2 - 10 * u2 * v2 + v2 * v2), c5 = u * (u2 * u2 - 10 * u2 * v2 + 5 * v2 * v2), r = c.r * (1 + 0.06 * (s5 * c.pc + c5 * c.ps));
             const k = y * W + x, re = r + (0.45 - D1[k]) * cell * 0.45;
@@ -130,6 +128,8 @@ function hdT_crown(s, spec, o) {
     const P = s.part, pe = pi + ids.length;
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
         const i = y * W + x, p = P[i]; if (V[i] <= -9) continue;
+        /* deep inside one clump: nothing in front below */
+        if (y + sd < H && x > 0 && x + 2 < W && P[i + sd * W] === p && P[i + sd * W + 2] === p && P[i + sd * W - 1] === p && P[i + W + 2] === p && P[i + W - 1] === p) continue;
         let m = 0;
         for (let dy = 1; dy <= sd && y + dy < H; dy++) for (let dx = -1; dx <= 2; dx++) {
             if (x + dx < 0 || x + dx >= W) continue;
@@ -200,7 +200,7 @@ function hdT_snow(s, c, o) {
     return snow;
 }
 
-/* ---------------------------------------------------------------- the season colors (today's, plus an outline and a sparkle) */
+/* ---------------------------------------------------------------- the season colors (today's four, under a dark outline of each) */
 const hdT_LEAF = {
     spring: hdPal('#2b5e33', '#3f8a48', '#53a855', '#6cc563', '#9be083'),
     summer: hdPal('#21512f', '#2f7040', '#3e8e4a', '#4fae55', '#7fcf6e'),
@@ -229,8 +229,8 @@ const hdT_PINE = hdPal('#10362a', '#185238', '#23704a', '#2f8a5a', '#4aa874');
 const hdT_PINE_W = hdPal('#132f27', '#1f4a3a', '#2f604e', '#3f7a62', '#548f74');
 /* tiers: [top of the part (hidden under the tier above), visible top, half width there, bottom, half width at the bottom] */
 const hdT_TIERS = [[0, 0, 4.5, 20, 16.5], [14, 21, 13.5, 38, 25.5], [32, 39, 15, 59, 34.5], [53, 60, 18, 80, 40.5]];
-/* a tiered pine: cx the middle, tiers as above (scaled by k about the top), each tier a part in front of the one below;
-   needles in drooping rows like a fishbone, lit from the left, shaded under the tier above; snow on the shoulders */
+/* a tiered pine: cx the middle, tiers as above, each tier a part in front of the one below; needles in drooping rows
+   like a fishbone, lit from the left, shaded under the tier above */
 function hdT_pine(s, cx, tiers, o) {
     o = o || {};
     const W = s.w, seed = o.seed || 3, mat = o.mat || hdT_PINE, dy = o.dy || 0;
@@ -248,9 +248,9 @@ function hdT_pine(s, cx, tiers, o) {
                 /* the bottom: a row of needle tips, drooping toward the ends */
                 const tip = yb + Math.abs(u) * 1.6 + (((x + i) % 4 + 4) % 4 < 2 ? 1.5 : 0) + (hdT_h(x >> 1, i, seed + 1) - 0.5);
                 if (y > tip) continue;
-                if (s.at(x, y) >= 0 && s.at(x, y) < ids[0] + tiers.length && s.at(x, y) >= ids[0] && s.at(x, y) < ids[i]) continue;
+                const q = s.at(x, y); if (q >= ids[0] && q < ids[i]) continue;          /* the tier above stays in front */
                 s.plot(ids[i], x, y);
-                /* needle rows: lines sloping down and out from the middle, a gap every 4 */
+                /* needle rows: lines sloping down and out from the middle, a gap every 5 */
                 const w = y - Math.abs(x + 0.5 - cx) * 0.5 + hdT_h(Math.floor((y - Math.abs(x - cx) * 0.5) / 5), x >> 3, seed + 2) * 1.5, m = ((w % 5) + 5) % 5;
                 V[y * W + x] = -u * 0.8 + (y < yt ? 0.1 : 0.2 - f * 0.25) + (m < 1 ? -0.12 : 0) + (tip - y < 2 ? -0.6 : tip - y < 4 ? -0.25 : 0);
                 T[y * W + x] = m < 1 && hdT_h(x, y, seed + 3) < 0.75 ? (u > -0.4 ? -1 : 0) : m > 1.2 && m < 2.4 && u < 0.2 && hdT_h(x, y, seed + 4) < 0.6 ? 1 : 0;
@@ -263,7 +263,7 @@ function hdT_pine(s, cx, tiers, o) {
         for (let k = 1; k <= 6; k++) { const q = s.at(x, y - k); if (q === ids[i - 1]) { V[y * W + x] -= k <= 2 ? 1.4 : 0.55; break; } if (q !== p) break; }
     }
     hdT_tone(s, V, o.mix || [0.12, 0.4, 0.8], T, 1, seed);
-    return { ids, tops: tiers.map(t => t[1] + dy), bots: tiers.map(t => t[3] + dy), box: [Math.round(cx - tiers[tiers.length - 1][4] - 3), Math.round(tiers[0][0] + dy), Math.round(cx + tiers[tiers.length - 1][4] + 3), Math.round(tiers[tiers.length - 1][3] + dy + 3)] };
+    return { ids, cx, tops: tiers.map(t => t[1] + dy), bots: tiers.map(t => t[3] + dy), box: [Math.round(cx - tiers[tiers.length - 1][4] - 3), Math.round(tiers[0][0] + dy), Math.round(cx + tiers[tiers.length - 1][4] + 3), Math.round(tiers[tiers.length - 1][3] + dy + 3)] };
 }
 /* snow on a pine: on each tier's shoulders and its top, open sky (or the tier above) just over it */
 function hdT_pineSnow(s, c, o) {
@@ -273,8 +273,8 @@ function hdT_pineSnow(s, c, o) {
         const p = s.at(x, y); if (!set.has(p)) continue;
         const i = p - ids[0], top = c.tops[i], th = o.th || 3.5;
         /* a cap on the top; a band on each tier's shoulders, just under the tier above and out to its tips */
-        let on = i === 0 && y < top + 7 - Math.abs(x - 48) * 0.6;
-        if (i > 0 && y >= c.bots[i - 1] && y <= c.bots[i - 1] + th + 1 + Math.abs(x - 48) * 0.04) on = true;
+        let on = i === 0 && y < top + 7 - Math.abs(x - c.cx) * 0.6;
+        if (i > 0 && y >= c.bots[i - 1] && y <= c.bots[i - 1] + th + 1 + Math.abs(x - c.cx) * 0.04) on = true;
         for (let k = 1; k <= th + 1 && !on; k++) { const q = s.at(x, y - k); if ((set.has(q) && q < p && k <= th) || (q < 0 && y < top + 7 && k <= 2)) on = true; }
         if (on && hdT_h(x >> 1, y >> 2, 4) > 0.08) cells.push(x, y);
     }
@@ -296,7 +296,7 @@ function hdT_root(s, id, x0, y0, x1, y1, r) { s.line(id, x0, y0, x1, y1, r, Math
 function hdT_bigTree(s, season) {
     const bark = s.add(hdT_BARK, { layer: 0, R: 3, grad: 0.05, k: 1.6 });
     hdT_root(s, bark, 86, 199, 70, 205, 3.5); hdT_root(s, bark, 106, 200, 118, 205, 3);
-    const t = hdT_trunk(s, hdT_BARK, 96, 150, 204, 28, { flare: 4, streaks: 5, flareAt: 0.75, layer: 1 });
+    hdT_trunk(s, hdT_BARK, 96, 150, 204, 28, { flare: 4, streaks: 5, flareAt: 0.75, layer: 1 });
     /* the old crack that runs down the trunk into the root on the left */
     for (let i = 0; i <= 30; i++) { const x = 104 - i * 0.62, y = 177 + i * 0.75 + Math.sin(i * 0.5) * 0.8; s.mod(x, y, -2); if (i % 3) s.mod(x + 1, y, 1); }
     const c = hdT_crown(s, hdT_BIG, { mat: hdT_LEAF[season], sp: 44, cell: 7.5, seed: 41, layer: 2, crown: 0.7 });
@@ -431,7 +431,7 @@ function hdT_frond(s, id, p, w, seed, plain) {
         const tooth = plain ? 0 : (((i + seed) % 5) < 3 ? ww * 0.38 : 0) * (t > 0.08 ? 1 : 0);
         for (let k = -ww * 0.5; k <= ww * 0.5 + tooth; k += 0.5) { const b = Math.max(0, k - ww * 0.3); s.plot(id, x + nx * k + dx * b * 0.6, y + ny * k + dy * b * 0.6); }
     }
-    /* the midrib, and the cuts between leaflets */
+    /* the midrib */
     for (let i = 3; i < n - 3; i++) { const [x, y] = pts[i]; s.mod(x, y - 1, -1); }
 }
 function hdT_palm(s, nuts) {
@@ -578,7 +578,7 @@ function hdT_oldBroad(s, season, v) {
 function hdT_oldPine(s, season) {
     const root = s.add(hdT_OLDBARK, { layer: 0, R: 2.5, grad: 0.05, k: 1.5 });
     hdT_roots(s, root, 96, 34, 252);
-    const tr = hdT_trunk(s, hdT_OLDBARK, 96, 140, 252, 34, { flare: 6, streaks: 6, layer: 1 });
+    hdT_trunk(s, hdT_OLDBARK, 96, 140, 252, 34, { flare: 6, streaks: 6, layer: 1 });
     const c = hdT_pine(s, 96.5, [[0, 0, 6, 29, 27], [22, 31, 15, 56, 43.5], [48, 60, 18, 86, 55.5], [78, 90, 21, 116, 67.5], [108, 120, 24, 146, 76.5]], { seed: 91, mat: hdT_OLDPINE[season] });
     hdT_under(s, c, 10);
     if (season === 'winter') hdT_pineSnow(s, c, { th: 4.5 });

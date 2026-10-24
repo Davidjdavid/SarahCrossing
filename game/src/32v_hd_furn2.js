@@ -91,15 +91,17 @@ function hdF2_over(s, fn) {
    wide, and a glow that fades out over the pixels around it (onto whatever is drawn there, taken as 'under') */
 function hdF2_glow(s, pts, c, under, rad, core) {
     const W = s.w, H = s.h, on = new Uint8Array(W * H), d = new Float32Array(W * H).fill(99);
-    for (const [x, y] of pts) if (x >= 0 && y >= 0 && x < W && y < H) on[y * W + x] = 1;
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let bx0 = W, by0 = H, bx1 = 0, by1 = 0;
+    for (const [x, y] of pts) if (x >= 0 && y >= 0 && x < W && y < H) { on[y * W + x] = 1; bx0 = Math.min(bx0, x); by0 = Math.min(by0, y); bx1 = Math.max(bx1, x); by1 = Math.max(by1, y); }
+    bx0 = Math.max(0, bx0 - rad); by0 = Math.max(0, by0 - rad); bx1 = Math.min(W - 1, bx1 + rad); by1 = Math.min(H - 1, by1 + rad);
+    for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
         if (on[y * W + x]) continue;
         let m = 99;
         for (let j = -rad; j <= rad; j++) for (let i = -rad; i <= rad; i++) { const xx = x + i, yy = y + j; if (xx >= 0 && yy >= 0 && xx < W && yy < H && on[yy * W + xx]) m = Math.min(m, Math.hypot(i, j)); }
         d[y * W + x] = m;
     }
     const C = hdRgb(c), hot = hdF2_mix(C, '#ffffff', core == null ? 0.62 : core);
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
         const i = y * W + x;
         if (on[i]) { const inner = on[i - 1] && on[i + 1] && (y === 0 || on[i - W]) && on[i + W]; const mid = (on[i - 1] && on[i + 1]) || (on[i - W] && on[i + W]); s.px(x, y, inner || mid ? hot : C); }
         else if (d[i] <= rad) s.px(x, y, hdF2_mix(under, C, 0.55 * Math.pow(1 - (d[i] - 1) / rad, 1.6)));
@@ -481,7 +483,7 @@ hdF2_reg('f_millstone', 32, 44, 16, 43, s => {
     const W = hdPal('#3a2414', '#6e4a2a', '#a8733f', '#bc8650', '#cc9a62');
     const tub = s.add(W, { layer: 1, R: 6, k: 1.1, grad: 0.1 }); hdF2_rr(s, tub, 0, 82, 96, 44, 3);
     for (const x of [24, 48, 72]) { hdF2_vl(s, tub, x, 86, 124, -2); hdF2_vl(s, tub, x + 1, 86, 124, 1); }
-    hdF2_grain(s, tub, 13, 5, true, 0, 86, 95, 125);
+    hdF2_grain(s, tub, 13, 8, true, 0, 86, 95, 125);
     /* the stone: its round top seen from above with the furrows cut from the middle, the rough edge below */
     const SIDE = hdPal('#4a4650', '#76727c', '#8a8690', '#9c98a2', '#b0acb6'), TOP = hdPal('#5a5662', '#98949e', '#b8b4bc', '#cac6ce', '#dedae2');
     const side = s.add(SIDE, { layer: 3, R: 5, k: 1.1, grad: 0.1, cast: 3 });
@@ -611,7 +613,7 @@ hdF2_reg('f_lh_cot', 32, 24, 16, 23, s => {
     const blanket = s.add(BL, { layer: 3, R: 5, k: 1.1, grad: 0.25 }); hdF2_rr(s, blanket, 29, 17, 63, 19, 3);
     const turn = s.add(hdPal('#2e4570', '#46649a', '#5a7aa8', '#6e8ebc', '#88a6d0'), { layer: 4, R: 2, k: 1.2, grad: 0.2, cast: 2 }); hdF2_rr(s, turn, 29, 16, 63, 5, 2);
     /* the wool: soft folds running across, a stitched edge */
-    hdF2_later(s, () => hdF2_each(s, blanket, (x, y) => { const v = Math.sin(x * 0.2 + y * 0.12 + Math.sin(x * 0.07) * 2); if (v > 0.86) s.mod(x, y, 1); else if (v < -0.9) s.mod(x, y, -1); }));
+    hdF2_later(s, () => hdF2_each(s, blanket, (x, y) => { const v = Math.sin(x * 0.2 + y * 0.12 + Math.sin(x * 0.07) * 2); if (v < -0.88) s.mod(x, y, -1); else if (hdF2_h(x, y, 63) < 0.06) s.mod(x, y, 1); }));
     for (let x = 32; x < 90; x += 3) hdF2_m(s, blanket, x, 33, -1);
     const pillow = s.add(hdPal('#9aa0b0', '#d8dce6', '#f6f6f8', '#ffffff', '#ffffff'), { layer: 5, R: 6, k: 1.2, grad: 0.25, cast: 1 }); hdF2_rr(s, pillow, 6, 12, 27, 15, 6);
     hdF2_m(s, pillow, 18, 19, -1); hdF2_m(s, pillow, 19, 20, -1); hdF2_m(s, pillow, 20, 20, -1);
@@ -841,7 +843,8 @@ const HDF2_CAPS = {
     A: ['.#.', '#.#', '###', '#.#', '#.#'], B: ['##.', '#.#', '##.', '#.#', '##.'], C: ['.##', '#..', '#..', '#..', '.##'], E: ['###', '#..', '##.', '#..', '###'],
     H: ['#.#', '#.#', '###', '#.#', '#.#'], I: ['###', '.#.', '.#.', '.#.', '###'], J: ['..#', '..#', '..#', '#.#', '.#.'], K: ['#.#', '#.#', '##.', '#.#', '#.#'],
     L: ['#..', '#..', '#..', '#..', '###'], M: ['#.#', '###', '###', '#.#', '#.#'], O: ['.#.', '#.#', '#.#', '#.#', '.#.'], R: ['##.', '#.#', '##.', '#.#', '#.#'],
-    S: ['.##', '#..', '.#.', '..#', '##.'], Y: ['#.#', '#.#', '.#.', '.#.', '.#.'],
+    S: ['.##', '#..', '.#.', '..#', '##.'], Y: ['#.#', '#.#', '.#.', '.#.', '.#.'], N: ['##.', '#.#', '#.#', '#.#', '#.#'], T: ['###', '.#.', '.#.', '.#.', '.#.'],
+    P: ['##.', '#.#', '##.', '#..', '#..'], F: ['###', '#..', '##.', '#..', '#..'], U: ['#.#', '#.#', '#.#', '#.#', '.##'],
     0: ['.#.', '#.#', '#.#', '#.#', '.#.'], 1: ['.#.', '##.', '.#.', '.#.', '###'], 2: ['##.', '..#', '.#.', '#..', '###'], 3: ['##.', '..#', '.#.', '..#', '##.'],
     4: ['#.#', '#.#', '###', '..#', '..#'], 5: ['###', '#..', '##.', '..#', '##.'], 6: ['.##', '#..', '##.', '#.#', '.#.'], 7: ['###', '..#', '.#.', '.#.', '.#.'],
     8: ['.#.', '#.#', '.#.', '#.#', '.#.'], 9: ['.#.', '#.#', '.##', '..#', '##.'],
@@ -1088,8 +1091,8 @@ hdF2_reg('f_nameplate', 16, 16, 8, 15, s => {
 hdF2_reg('f_noren', 32, 16, 16, 15, s => {
     const NV = hdPal('#121a30', '#1e2c4e', '#2c3e66', '#3a4e7a', '#4c6290');
     for (let k = 0; k < 4; k++) {
-        const p = s.add(NV, { layer: 1, R: 3, k: 1, grad: 0.2 }), x0 = k * 24 + 2;
-        s.rect(p, x0, 5, 21, 38); s.rect(p, x0 + 1, 43, 19, 1);
+        const p = s.add(NV, { layer: 1, R: 3, k: 1, grad: 0.2 }), x0 = k * 24 + (k ? 1 : 0), w = k ? 22 : 23;
+        s.rect(p, x0, 5, w, 38); s.rect(p, x0 + 1, 43, w - 2, 1);
         /* soft folds hanging down each panel, the hem a little darker */
         hdF2_later(s, () => hdF2_each(s, p, (x, y) => { const f = Math.sin((x - x0) * 0.62 + 0.5); if (f > 0.75) s.mod(x, y, 1); else if (f < -0.8) s.mod(x, y, -1); if (y >= 39) s.mod(x, y, -1); }));
     }
@@ -1149,4 +1152,275 @@ hdF2_reg('f_party_console', 16, 16, 8, 15, s => {
     const p1 = s.add(hdRamp('#e0405a'), { layer: 4, R: 2.5, k: 1.3, grad: 0.3 }); hdF2_rr(s, p1, 7, 35, 8, 6, 2);
     const p2 = s.add(hdRamp('#ffd84a'), { layer: 4, R: 2.5, k: 1.3, grad: 0.3 }); hdF2_rr(s, p2, 33, 35, 8, 6, 2);
     s.px(10, 37, '#ffb0b8'); s.px(36, 37, '#fff4c0'); s.px(23, 37, '#7fd3e8'); s.px(24, 37, '#7fd3e8');
+});
+
+/* ---------------------------------------------------------------- rugs, plants and plaques */
+/* the pastel rug: soft pink weave with rows of yellow, green and blue squares stitched on */
+hdF2_reg('f_pastel_rug', 32, 32, 16, 31, s => {
+    const rug = s.add(hdPal('#c88aa4', '#f2b8cc', '#ffd0e0', '#ffdce8', '#ffe8f0'), { layer: 0, R: 4, k: 0.6, grad: 0.06 }); hdF2_rr(s, rug, 0, 0, 96, 96, 6);
+    /* the weave: a fine pattern of lighter and darker stitches, a stitched line round the edge */
+    hdF2_later(s, () => hdF2_each(s, rug, (x, y) => { if ((x % 4 === 0 && y % 4 === 1) || (x % 4 === 2 && y % 4 === 3)) s.mod(x, y, -1); }));
+    hdF2_later(s, () => hdF2_each(s, rug, (x, y) => { const e = Math.min(x, y, 95 - x, 95 - y); if (e === 4 && (x + y) % 3) s.mod(x, y, -1); }));
+    const cols = { c: '#fff0a0', d: '#c8f0c8', e: '#bfe6ff' }, rows = ['cdecd', 'decde', 'ecdec', 'cdecd', 'decde'];
+    rows.forEach((r, j) => [...r].forEach((k, i) => {
+        /* each square stitched into the weave (the rug's own shading, a darker running stitch round it) */
+        const P = hdF2_soft(cols[k]), x0 = 9 + i * 18, y0 = 9 + j * 18;
+        for (let y = y0; y < y0 + 9; y++) for (let x = x0; x < x0 + 9; x++) {
+            const edge = x === x0 || y === y0 || x === x0 + 8 || y === y0 + 8;
+            if (edge && (x === x0 || x === x0 + 8) && (y === y0 || y === y0 + 8)) continue;
+            hdF2_rc(s, rug, x, y, P); if (edge && (x + y) % 2) hdF2_m(s, rug, x, y, -1); else if (!edge && x - x0 + y - y0 < 5) hdF2_m(s, rug, x, y, 1);
+        }
+    }));
+});
+
+/* the display pedestal: a white plaster column with a wide top and foot */
+hdF2_reg('f_pedestal', 16, 28, 8, 27, s => {
+    const WH = hdPal('#a49a8e', '#ddd2c6', '#f7efe6', '#fcf8f2', '#ffffff');
+    const col = s.add(WH, { layer: 1, R: 9, k: 1.1, grad: 0.08 }); s.rect(col, 9, 44, 30, 32);
+    const foot = s.add(hdPal('#9a8e80', '#cfc2b4', '#dcd0c4', '#e8dfd4', '#f4eee6'), { layer: 2, R: 2, k: 1.2, grad: 0.2 }); hdF2_rr(s, foot, 4, 75, 40, 7, 1);
+    const top = s.add(hdPal('#b8ada0', '#ede4d8', '#ffffff', '#ffffff', '#ffffff'), { layer: 3, R: 2, k: 1, grad: 0.15, cast: 3 }); hdF2_rr(s, top, 3, 31, 42, 10, 1);
+    const edge = s.add(hdPal('#9a8e80', '#d4c8ba', '#e8dccf', '#f2eae0', '#faf6f0'), { layer: 3, R: 1.5, k: 1.2, cast: 3 }); hdF2_rr(s, edge, 3, 40, 42, 5, 1);
+    hdF2_speck(s, col, 251, 0.025, -1, 9, 44, 38, 75);
+    hdF2_drop(s, edge, 3);
+});
+
+/* the little cactus: a ribbed green cactus with two arms and spines, a pink flower on top, a terracotta pot */
+hdF2_reg('f_plant_cactus', 16, 16, 8, 15, s => {
+    const GR = hdPal('#1c4a1c', '#2e7a2c', '#4a9a3c', '#5aa844', '#7cc45a');
+    const pot = s.add(hdPal('#7a3418', '#b85a32', '#e0784a', '#ec9468', '#f6b48a'), { layer: 3, R: 6, k: 1.3, grad: 0.15 }); s.poly(pot, [[15, 33], [33, 33], [31, 46], [17, 46]]);
+    const rim = s.add(hdPal('#8a3e1c', '#cc6c40', '#f29a6a', '#f8b48a', '#fcd0ac'), { layer: 4, R: 2, k: 1.3, grad: 0.25, cast: 2 }); hdF2_rr(s, rim, 14, 32, 20, 4, 1);
+    const trunk = s.add(GR, { layer: 2, R: 5, k: 1.4, grad: 0.15 }); hdF2_rr(s, trunk, 18, 7, 12, 27, 5);
+    const armL = s.add(GR, { layer: 1, R: 3, k: 1.4, grad: 0.15 }); hdF2_rr(s, armL, 9, 12, 7, 12, 3); s.rect(armL, 12, 19, 8, 5);
+    const armR = s.add(GR, { layer: 1, R: 3, k: 1.4, grad: 0.15 }); hdF2_rr(s, armR, 32, 11, 7, 11, 3); s.rect(armR, 28, 17, 7, 5);
+    /* ribs down each part, white spines on the ribs */
+    for (const [id, x0, x1, y0, y1] of [[trunk, 19, 29, 9, 33], [armL, 10, 15, 13, 22], [armR, 33, 38, 12, 20]]) for (let x = x0 + 2; x < x1; x += 3) for (let y = y0; y <= y1; y++) { hdF2_m(s, id, x, y, -1); if ((y + x) % 5 === 0) s.px(x + 1, y, '#e8f4d0'); }
+    hdF2_over(s, o => {
+        const fl = o.add(hdPal('#a8406a', '#e877a0', '#ff9ec0', '#ffb8d0', '#ffd4e2'), { layer: 1, R: 2, k: 1.2, grad: 0.3 });
+        for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2 - Math.PI / 2; o.ellipse(fl, 24 + Math.cos(a) * 2.6, 6 + Math.sin(a) * 2.2, 2, 1.8); }
+    });
+    s.px(24, 6, '#ffd84a'); s.px(23, 6, '#ffe890');
+    hdF2_drop(s, rim, 2);
+});
+
+/* the monstera: big split leaves on long stems over a woven basket pot */
+hdF2_reg('f_plant_monstera', 16, 28, 8, 27, s => {
+    const pot = s.add(hdPal('#8a6c48', '#d0ae86', '#e8c8a0', '#f0d6b4', '#f8e6cc'), { layer: 1, R: 6, k: 1.2, grad: 0.12 }); hdF2_rr(s, pot, 12, 57, 24, 21, 2);
+    const rim = s.add(hdPal('#6e5234', '#ac8a62', '#c9a47a', '#d8b68e', '#e6c8a4'), { layer: 2, R: 2, k: 1.3, grad: 0.25, cast: 2 }); hdF2_rr(s, rim, 11, 52, 26, 7, 2);
+    /* the basket weave */
+    hdF2_later(s, () => hdF2_each(s, pot, (x, y) => { const b = Math.floor((y - 57) / 4); if ((y - 57) % 4 === 3) s.mod(x, y, -1); else if ((x + b * 2) % 4 === 0) s.mod(x, y, -1); }));
+    const ST = hdPal('#1c4a1c', '#2c6a2a', '#3f8f3a', '#56a84a', '#6cc063');
+    const stem = s.add(ST, { layer: 0, R: 1, k: 1.2 });
+    for (const [x, y] of [[24, 8], [14, 22], [34, 23], [9, 38], [39, 38], [24, 30]]) s.line(stem, 24, 54, x, y, 1);
+    /* the leaves: [cx, cy, rx, ry, tilt], back ones first; each a heart with its midrib, slits from the edge and a hole or two */
+    const LV = [hdPal('#143c14', '#245a22', '#357a32', '#3f8f3a', '#56a84a'), hdPal('#1a4a1a', '#2e7a2c', '#3f8f3a', '#56a84a', '#6cc063')];
+    const leaves = [[24, 10, 8, 10, 0, 0], [15, 21, 9, 8, -0.6, 0], [33, 22, 9, 8, 0.6, 0], [10, 37, 10, 8, -0.8, 1], [38, 37, 9.5, 8, 0.8, 1], [24, 30, 9, 9, 0.05, 1]];
+    leaves.forEach(([cx, cy, rx, ry, t, f], k) => {
+        const id = s.add(LV[f], { layer: 3 + k * 0.1, R: 4, k: 1.2, grad: 0.25, cast: 1 });
+        const ct = Math.cos(t), st = Math.sin(t);
+        for (let y = Math.floor(cy - ry - 3); y <= cy + ry + 3; y++) for (let x = Math.floor(cx - rx - 3); x <= cx + rx + 3; x++) {
+            const dx = x + 0.5 - cx, dy = y + 0.5 - cy, u = dx * ct + dy * st, v = -dx * st + dy * ct;
+            const notch = v > ry * 0.6 && Math.abs(u) < rx * 0.16, r = Math.hypot(u / rx, v / ry), cut = r > 0.62 && ((Math.atan2(v, Math.abs(u)) / Math.PI * 7 + 7) % 1) < 0.1;
+            if (r <= 1 && !notch && !cut) s.plot(id, x, y);
+        }
+        hdF2_later(s, () => hdF2_each(s, id, (x, y) => {
+            const dx = x + 0.5 - cx, dy = y + 0.5 - cy, u = dx * ct + dy * st, v = -dx * st + dy * ct, r = Math.hypot(u / rx, v / ry);
+            if (Math.abs(u) < 0.7 && v < ry * 0.6) s.mod(x, y, 1);
+            const a = Math.atan2(v, Math.abs(u)), slit = ((a / Math.PI * 7 + 7) % 1);
+            if (r > 0.5 && slit < 0.14) s.mod(x, y, -1);
+            if (Math.abs(r - 0.42) < 0.08 && slit > 0.45 && slit < 0.6 && Math.abs(u) > 2) s.mod(x, y, -2);
+        }));
+    });
+});
+
+/* a broccoli in relief on a round medal in a dark wooden square (the bronze and silver plaques) */
+function hdF2_plaque(s, M) {
+    const fr = s.add(hdPal('#2a180c', '#4c3220', '#6b4a2a', '#82603a', '#96744a'), { layer: 1, R: 3, k: 1.3, grad: 0.15 }); hdF2_rr(s, fr, 0, 0, 48, 48, 6);
+    hdF2_grain(s, fr, 221, 3, false, 0, 0, 47, 47);
+    const disc = s.add(M, { layer: 2, R: 5, k: 1.3, grad: 0.2 }); hdF2_rr(s, disc, 8, 8, 32, 32, 7);
+    hdF2_later(s, () => hdF2_each(s, disc, (x, y) => { const e = Math.min(x - 8, y - 8, 39 - x, 39 - y); if (e === 2) s.mod(x, y, x + y < 48 ? -1 : 1); }));
+    /* the broccoli sunk into the metal: three florets over a stem, the lower right of each hollow catching the light */
+    const D = hdRamp(hdF2_mix(M[1], M[2], 0.35)), F = [[19.5, 20, 4], [24, 17, 4.6], [28.5, 20, 4], [24, 22, 4.4]];
+    hdF2_later(s, () => {
+        const inB = (x, y) => F.some(([cx, cy, r]) => Math.hypot(x + 0.5 - cx, y + 0.5 - cy) < r) || (y >= 24 && y <= 32 && Math.abs(x + 0.5 - 24) < 2.8 - (y - 24) * 0.06);
+        for (let y = 10; y < 38; y++) for (let x = 10; x < 38; x++) {
+            if (!inB(x, y) || s.at(x, y) !== disc) continue;
+            s.recolor(x, y, D);
+            if (!inB(x - 1, y) || !inB(x, y - 1)) s.mod(x, y, -2); else if (!inB(x + 1, y) || !inB(x, y + 1)) s.mod(x, y, 1);
+            else if (y < 24 && F.some(([cx, cy, r]) => Math.abs(Math.hypot(x + 0.5 - cx, y + 0.5 - cy) - r * 0.5) < 0.5 && x + 0.5 < cx)) s.mod(x, y, 1);
+        }
+    });
+}
+hdF2_reg('f_plaque_bronze', 16, 16, 8, 15, s => hdF2_plaque(s, hdPal('#5a3416', '#97653f', '#cd8a4a', '#e0a464', '#f0c088')));
+hdF2_reg('f_plaque_silver', 16, 16, 8, 15, s => hdF2_plaque(s, hdPal('#5a6070', '#949cae', '#c8ced8', '#dde2ea', '#f4f6fa')));
+
+/* the golden broccoli trophy: a gold broccoli with bumpy florets on a stem, on a wooden plinth */
+hdF2_reg('f_plaque_gold', 16, 16, 8, 15, s => {
+    const G = HDF2_GOLD;
+    const stem = s.add(G, { layer: 1, R: 3, k: 1.5, grad: 0.1 }); s.poly(stem, [[20, 20], [28, 20], [26, 34], [22, 34]]);
+    const head = s.add(G, { layer: 2, R: 6, k: 1.4, grad: 0.2, cast: 2 });
+    for (const [x, y, r] of [[17, 12, 5.5], [24, 7.5, 6.5], [31, 12, 5.5], [20, 16, 5.5], [28, 16, 5.5], [24, 13, 6]]) s.ellipse(head, x, y, r, r);
+    /* each floret its own bump: a lit crown, a darker crease between them */
+    hdF2_later(s, () => hdF2_each(s, head, (x, y) => {
+        let best = 9, sec = 9; for (const [cx, cy, r] of [[17, 12, 5.5], [24, 7.5, 6.5], [31, 12, 5.5], [20, 16, 5.5], [28, 16, 5.5], [24, 13, 6]]) { const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) / r; if (d < best) { sec = best; best = d; } else if (d < sec) sec = d; }
+        if (sec - best < 0.1) s.mod(x, y, -1); else if (best < 0.45 && hdF2_h(x, y, 231) < 0.5) s.mod(x, y, 1);
+    }));
+    const plinth = s.add(hdPal('#2e1a0e', '#5e3a22', '#8a5a33', '#a4723f', '#bc8a52'), { layer: 3, R: 3, k: 1.2, grad: 0.25 }); hdF2_rr(s, plinth, 12, 34, 24, 12, 2);
+    const plate = s.add(G, { layer: 4, R: 1, k: 1, grad: 0.3 }); hdF2_rr(s, plate, 17, 38, 14, 4, 1);
+    hdF2_grain(s, plinth, 241, 3, false, 12, 34, 35, 45);
+    s.px(21, 4, '#ffffff'); s.px(20, 5, '#fff3c0'); s.px(22, 5, '#fff3c0');
+    hdF2_drop(s, head, 2);
+});
+
+/* ---------------------------------------------------------------- the neighbors, small: photos and plushies */
+/* a neighbor's (or one of the island's people's) HD drawing, its parts not yet shaded: null if there is none */
+function hdF2_who(who) {
+    if (typeof HD_NPC !== 'undefined' && HD_NPC[who]) { const d = HD_NPC[who], s = new HDSprite(48, d.h || 72); d.draw(s, { squash: 0, blink: 0 }); return { s, eye: d.eye, hat: d.hat, side: d.side, faceX: d.faceX }; }
+    if (typeof hdFolkSpec === 'function' && typeof hdPersonSprite === 'function') {
+        const sp = hdFolkSpec(who);
+        if (sp) return { s: hdPersonSprite(sp, 'down', 'stand', 'normal', {}), eye: [24, 20, 5], hat: [24, 4, 24], person: true };
+    }
+    return null;
+}
+/* the drawing made small: its parts sampled onto a grid k times as fine (each part keeps its material, its roundness
+   scaled), shaded afresh at the new size, and laid over s as finished pixels inside the box x0..x1, y0..y1. Source
+   pixel (sx, sy) lands at (ox + sx * kx, oy + sy * ky) (k is one scale, or [kx, ky] for a squatter copy). Exact pixels (eyes, mouths) are sampled with them, a few
+   bright ones (glints) kept even where the sampling would drop them. */
+function hdF2_mini(s, src, k, ox, oy, x0, y0, x1, y1, fn) {
+    const B = src.s, W = B.w, H = B.h, o = new HDSprite(s.w, s.h), map = new Map(), det = new Map(), kx = k[0] || k, ky = k[1] || k;
+    k = (kx + ky) / 2;
+    for (const [x, y, c] of B.det) det.set(y * W + x, c);
+    const part = p => { if (!map.has(p)) { const q = B.parts[p]; map.set(p, o.add(q.mat, { layer: q.layer, R: Math.max(1, q.R * k), bias: q.bias, cast: Math.round(q.cast * k), flat: q.flat, grad: q.grad, k: q.k })); } return map.get(p); };
+    const dets = [];
+    for (let ty = 0; ty < s.h; ty++) for (let tx = 0; tx < s.w; tx++) {
+        const sx = Math.floor((tx + 0.5 - ox) / kx), sy = Math.floor((ty + 0.5 - oy) / ky);
+        if (sx < 0 || sy < 0 || sx >= W || sy >= H) continue;
+        const i = sy * W + sx, p = B.part[i];
+        if (p >= 0) { o.plot(part(p), tx, ty); if (B.mods[i]) o.mod(tx, ty, B.mods[i]); if (B.alt && B.alt[i] >= 0) o.recolor(tx, ty, B.alts[B.alt[i]]); }
+        if (det.has(i)) dets.push([tx, ty, det.get(i)]);
+    }
+    /* glints: a white source pixel whose target pixel took something else */
+    for (const [key, c] of det) if (c[0] > 245 && c[1] > 245 && c[2] > 245) {
+        const tx = Math.floor(ox + (key % W + 0.5) * kx), ty = Math.floor(oy + (((key / W) | 0) + 0.5) * ky);
+        if (!dets.some(d => d[0] === tx && d[1] === ty && d[2][0] > 245)) dets.push([tx, ty, c]);
+    }
+    for (const d of dets) o.px(d[0], d[1], d[2]);
+    if (fn) fn(o);
+    const buf = o.render(), Wt = s.w;
+    for (let y = Math.max(0, y0); y <= Math.min(s.h - 1, y1); y++) for (let x = Math.max(0, x0); x <= Math.min(Wt - 1, x1); x++) {
+        const j = (y * Wt + x) * 4; if (buf[j + 3]) s.px(x, y, [buf[j], buf[j + 1], buf[j + 2]]);
+    }
+}
+
+/* a neighbor's photo in a light wooden frame: the sky behind them, their face and top half, a glint on the glass.
+   look: [scale, where their eyes sit in the window (y), x offset] */
+const HDF2_PHOTO = { david: [0.92, 25, 0], joe: [0.92, 25, 0], ginger: [0.78, 26, 0], sully: [0.7, 29, 0], kai: [0.68, 29, 0], cece: [0.74, 29, 0] };
+function hdF2_photo(s, who) {
+    const WD = hdPal('#6e5228', '#a8844a', '#c9a462', '#dabb7e', '#e8d09c');
+    const fr = s.add(WD, { layer: 1, R: 2, k: 1.3, grad: 0.15 }); hdF2_rr(s, fr, 3, 0, 42, 48, 2);
+    hdF2_grain(s, fr, 261, 3, true, 3, 0, 44, 47);
+    const sky = s.add(hdPal('#6aa8cc', '#9cd2f0', '#bfe6ff', '#d4eeff', '#e8f6ff'), { layer: 2, R: 2, k: -0.6, grad: 0.5, bias: 0.04 }); s.rect(sky, 9, 6, 30, 33);
+    /* a soft cloud in the corner */
+    for (const [x, y] of [[13, 10], [14, 10], [15, 10], [12, 11], [13, 11], [14, 11], [15, 11], [16, 11], [17, 11], [34, 14], [35, 14], [33, 15], [34, 15], [35, 15], [36, 15]]) s.px(x, y, '#f0faff');
+    const src = hdF2_who(who);
+    if (src) {
+        const L = HDF2_PHOTO[who] || [0.68, 30, 0], k = L[0], cx = src.side ? 30 : src.eye[0];
+        hdF2_mini(s, src, k, 24 + L[2] - cx * k, L[1] - src.eye[1] * k, 9, 6, 38, 38);
+    }
+    /* the frame's inner bevel, the glass's glint */
+    hdF2_later(s, () => {
+        for (let x = 8; x < 40; x++) { s.px(x, 5, '#8a6a38'); s.px(x, 39, '#f0dcae'); }
+        for (let y = 5; y < 40; y++) { s.px(8, y, '#8a6a38'); s.px(39, y, '#e2c890'); }
+        for (let j = 0; j < 12; j++) for (let i = 0; i < 12; i++) { const q = i + j * 0.7 - 8; if (q >= 0 && q < 1.2) s.px(9 + i, 6 + j, '#ffffff'); }
+    });
+}
+for (const who of ['basil', 'brulee', 'cece', 'chili', 'clementine', 'coco', 'cuke', 'david', 'ginger', 'joe', 'kai', 'mac', 'maki', 'sully', 'wonton'])
+    hdF2_reg('f_photo_' + who, 16, 16, 8, 15, s => hdF2_photo(s, who));
+
+/* a plushie of a neighbor: their drawing made small and soft (a fuzzy fabric, gentler shading), a sewn-in tag */
+function hdF2_plush(s, who) {
+    const src = hdF2_who(who);
+    if (!src) return;
+    const B = src.s;
+    let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1;
+    for (let y = 0; y < B.h; y++) for (let x = 0; x < B.w; x++) if (B.part[y * B.w + x] >= 0) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    /* as wide as today's plushie, and a little squat, as stuffed toys are */
+    const kx = Math.min(1.05, 42 / (x1 - x0 + 1)), ky = Math.min(kx * 0.92, 44 / (y1 - y0 + 1)), cx = (x0 + x1 + 1) / 2;
+    hdF2_mini(s, src, [kx, ky], 23.5 - cx * kx, 47.5 - (y1 + 1) * ky, 0, 0, 47, 47, o => {
+        for (const q of o.parts) { q.k *= 0.8; q.R = Math.max(1, q.R * 1.2); }
+        /* the fuzz of the fabric */
+        for (let y = 0; y < o.h; y++) for (let x = 0; x < o.w; x++) if (o.at(x, y) >= 0) { const r = hdF2_h(x, y, 271); if (r < 0.05) o.mod(x, y, 1); else if (r > 0.96) o.mod(x, y, -1); }
+    });
+    /* the tag sewn into a seam at the lower right */
+    hdF2_over(s, o => {
+        const tag = o.add(hdPal('#9a96a4', '#dcdae4', '#ffffff', '#ffffff', '#ffffff'), { layer: 1, R: 1.5, k: 1, grad: 0.3 }); o.poly(tag, [[38, 40], [45, 39], [46, 46], [39, 47]]);
+        const loop = o.add(hdRamp('#e0405a'), { layer: 2, R: 1, k: 1 }); o.rect(loop, 36, 40, 3, 4);
+    });
+    for (const [x, y] of [[41, 42], [42, 42], [43, 42], [41, 44], [42, 44]]) s.px(x, y, '#f0a0ac');
+}
+for (const who of ['cece', 'chili', 'coco', 'goat', 'kai', 'maki', 'sully', 'wonton']) hdF2_reg('f_plush_' + who, 16, 16, 8, 15, s => hdF2_plush(s, who));
+
+/* ---------------------------------------------------------------- the arcade posters */
+/* a poster: white paper taped to the wall, the game's picture in a window (bg), its name in lavender under it */
+function hdF2_poster(s, bg, name) {
+    const pap = s.add(hdPal('#a49a98', '#e8e0dc', '#fff7f1', '#fffbf8', '#ffffff'), { layer: 1, R: 2, k: 0.8, grad: 0.1 }); hdF2_rr(s, pap, 3, 0, 42, 48, 1);
+    hdF2_speck(s, pap, 281, 0.03, -1, 3, 0, 44, 47);
+    const win = s.add(typeof bg === 'string' ? hdRamp(bg) : bg, { layer: 2, R: 2, flat: 1, grad: 0.2 }); s.rect(win, 9, 6, 30, 30);
+    hdF2_later(s, () => {
+        for (const [x, y] of hdF2_capsPts(name, 14, 38)) s.px(x, y, '#9a82b4');
+        /* tape at the top corners, a little curl at the bottom right */
+        for (const [x0, y0] of [[2, 0], [38, 0]]) for (let j = 0; j < 4; j++) for (let i = 0; i < 8; i++) s.px(x0 + i, y0 + j, (i + j) % 3 ? '#f4ecc8' : '#e8dcb0');
+        s.px(44, 47, '#d8d0cc'); s.px(43, 47, '#e8e0dc'); s.px(44, 46, '#e8e0dc');
+    });
+    return win;
+}
+/* a block made of pixel cells, each with a lit top-left edge and a dark bottom-right (the falling-block games) */
+function hdF2_cells(s, cells, col, n) {
+    const r = hdRamp(col);
+    for (const [cx, cy] of cells) for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) s.px(cx + i, cy + j, i === 0 || j === 0 ? r[4] : i === n - 1 || j === n - 1 ? r[1] : i === 1 && j === 1 ? r[4] : r[2]);
+}
+hdF2_reg('f_poster_blocks', 16, 16, 8, 15, s => {
+    hdF2_poster(s, hdPal('#1e0810', '#2c0e18', '#3a1420', '#461a28', '#542030'), 'BENTO');
+    hdF2_later(s, () => {
+        /* today's pieces, each square of four pixels a bevelled block */
+        const P = (pts, c) => hdF2_cells(s, pts.map(([x, y]) => [x * 3, y * 3]), c, 6);
+        P([[5, 3], [5, 5], [7, 5]], '#f28a4a'); P([[3, 7], [7, 9]], '#e0405a'); P([[7, 7], [9, 9]], '#a27ad9'); P([[3, 9], [5, 9]], '#ffd45a');
+        for (let x = 9; x < 39; x += 2) s.px(x, 35, '#5a2838');
+    });
+});
+hdF2_reg('f_poster_capsules', 16, 16, 8, 15, s => {
+    hdF2_poster(s, hdPal('#080a18', '#0e1226', '#141a33', '#1c2442', '#262e52'), 'SPICE');
+    hdF2_over(s, o => {
+        const body = o.add(hdPal('#6e1420', '#b0283a', '#e0405a', '#ee6676', '#f88a96'), { layer: 1, R: 5, k: 1.3, grad: 0.2 }); hdF2_rr(o, body, 13, 12, 22, 16, 6);
+        const st = o.add(hdPal('#1c4a1c', '#2c6a2a', '#3f8a3a', '#56a84a', '#6cc063'), { layer: 2, R: 1.5, k: 1.2 }); hdF2_rr(o, st, 21, 8, 6, 6, 2); o.rect(st, 23, 6, 2, 3);
+    });
+    hdF2_later(s, () => {
+        for (const ex of [17, 26]) { for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) s.px(ex + i, 16 + j, '#ffffff'); s.px(ex + 1, 18, '#2d2230'); s.px(ex + 2, 18, '#2d2230'); s.px(ex + 1, 19, '#2d2230'); s.px(ex + 2, 19, '#2d2230'); }
+        for (let i = 0; i < 4; i++) s.px(22 + i, 23 + (i === 0 || i === 3 ? 0 : 1), '#6e1420');
+        s.px(15, 14, '#ffffff'); s.px(16, 14, '#ffc0c8');
+        for (let x = 12; x < 21; x++) { s.px(x, 31, '#ffd45a'); s.px(x, 32, '#e0b040'); }
+        for (let x = 21; x < 30; x++) { s.px(x, 31, '#8cc152'); s.px(x, 32, '#6ea03e'); }
+    });
+});
+hdF2_reg('f_poster_fruit', 16, 16, 8, 15, s => {
+    hdF2_poster(s, hdPal('#3a8aa0', '#5ab4cc', '#7fd3e8', '#9cdeef', '#bce8f4'), 'FRUIT');
+    hdF2_over(s, o => {
+        const ap = o.add(hdPal('#6e1420', '#b0283a', '#e0405a', '#ee6676', '#ff9aa8'), { layer: 1, R: 6, k: 1.3, grad: 0.15 }); o.ellipse(ap, 21, 20, 6.5, 7.5); o.ellipse(ap, 27, 20, 6.5, 7.5);
+        const st = o.add(hdPal('#2a180c', '#4a3018', '#6b4a2a', '#82603a', '#96744a'), { layer: 2, R: 1, k: 1 }); o.line(st, 24, 13, 23, 9, 1);
+        const lf = o.add(hdPal('#2a5e22', '#4a9a3c', '#6cbf4a', '#88d066', '#a8e088'), { layer: 2, R: 1.5, k: 1.2, grad: 0.3 }); o.poly(lf, [[25, 11], [30, 7], [33, 9], [28, 12]]);
+        const bk = o.add(hdPal('#5e3a1a', '#9a6a34', '#c9954f', '#d8a866', '#e6bc80'), { layer: 3, R: 2, k: 1.2, grad: 0.2 }); s.rect(bk, 0, 0, 0, 0); o.poly(bk, [[12, 29], [36, 29], [33, 36], [15, 36]]);
+        for (let x = 13; x < 36; x += 3) for (let y = 30; y < 36; y++) o.mod(x, y, -1);
+        o.mod(20, 32, 1);
+    });
+    s.px(19, 15, '#ffffff'); s.px(18, 16, '#ffffff'); s.px(19, 16, '#ffd0d8');
+});
+hdF2_reg('f_poster_stack', 16, 16, 8, 15, s => {
+    hdF2_poster(s, hdPal('#140a1e', '#1e122c', '#2a1a3a', '#36224a', '#422a5a'), 'SNACK');
+    hdF2_over(s, o => {
+        const base = o.add(hdPal('#1c4a1c', '#3a7a34', '#5aa04a', '#72b660', '#8ccc78'), { layer: 1, R: 5, k: 1.3, grad: 0.2 }); o.ellipse(base, 24, 29, 10, 6.5); o.rect(base, 14, 26, 21, 4);
+        const pk = o.add(hdPal('#9a3a62', '#e277a0', '#ff9ec0', '#ffb8d0', '#ffd4e2'), { layer: 2, R: 4, k: 1.3, grad: 0.2 }); o.ellipse(pk, 18.5, 21, 6.5, 5.5);
+        const rd = o.add(hdPal('#6e1420', '#a81c30', '#d8283f', '#e8505e', '#f47a86'), { layer: 3, R: 4, k: 1.3, grad: 0.2 }); o.ellipse(rd, 29.5, 20, 6.5, 6);
+        const sp = o.add(hdPal('#2a5e22', '#5a9a3c', '#8cc152', '#a4d06c', '#bce08a'), { layer: 4, R: 1.5, k: 1.2, grad: 0.3 }); o.poly(sp, [[22, 16], [20, 10], [24, 9], [26, 16]]); o.poly(sp, [[24, 12], [28, 8], [30, 10], [26, 14]]);
+    });
+    hdF2_dots(s, [[15, 18], [16, 18], [27, 16], [26, 17]], '#ffffff');
+    for (const [x, y] of [[18, 28], [24, 30], [29, 27], [21, 32], [27, 32]]) s.px(x, y, '#a8dc90');
 });

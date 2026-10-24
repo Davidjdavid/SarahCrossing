@@ -38,11 +38,20 @@ function hdMotion(e, moving) {
 function hdMoveFrame(e, moving, run, seed) {
     const m = hdMotion(e, moving), [dir, flip] = HD_DIR8[m.face];
     if (moving) {
+        m.still = null;
         const anim = run ? 'run' : 'walk', n = HD_ANIM[anim], len = run ? 34 : 26;     // world pixels per stride cycle
         return [`${dir}:${anim}:${Math.floor(m.dist / len * n) % n}`, flip];
     }
     // standing: breathing, and now and then a glance one way or the other
     const t = G.t + seed * 37, ph = Math.floor(t / 34) % 4, gl = t % 520 < 100 ? ((Math.floor(t / 520) + seed) % 3) - 1 : 0;
+    // standing about a while (facing us): every so often a look around, or a big stretch
+    if (m.still == null) m.still = G.t;
+    const idle = G.t - m.still;
+    if (dir === 'down' && idle > 600) {
+        const c = (idle - 600) % 900, kind = (Math.floor((idle - 600) / 900) + seed) % 2;
+        if (kind === 0 && c < 130) return c < 65 ? ['dside:idle:0:0', true] : ['dside:idle:0:0', false];
+        if (kind === 1 && c < 96) return [`down:stretch:${c < 12 || c >= 84 ? 0 : c < 24 || c >= 72 ? 1 : 2}`, false];
+    }
     return [`${dir}:idle:${ph}:${dir === 'up' || dir === 'uside' ? 0 : gl}`, flip];
 }
 

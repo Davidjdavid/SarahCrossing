@@ -120,54 +120,65 @@ class HDSprite {
     px(x, y, c) { if (c) this.det.push([Math.round((this.warp ? this.X(x + 0.5) - 0.5 : x) + this.dx), Math.round(y + this.dy), hdRgb(c)]); }
     /* the shaded picture into an RGBA buffer (w*h*4) at column ox (or a fresh one) */
     render(out, ox, OW) {
-        const W = this.w, H = this.h, P = this.part, n = W * H;
+        // (written for speed: big sprites are tens of thousands of pixels and phones draw them while you walk)
+        const W = this.w, H = this.h, P = this.part, n = W * H, parts = this.parts, np = parts.length;
         OW = OW || W; ox = ox || 0;
         if (!out) out = new Uint8ClampedArray(W * H * 4);
-        const dist = new Float32Array(n), q = [];
-        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-            const i = y * W + x, p = P[i]; if (p < 0) continue;
-            if (this.at(x - 1, y) !== p || this.at(x + 1, y) !== p || this.at(x, y - 1) !== p || this.at(x, y + 1) !== p) { dist[i] = 1; q.push(i); }
+        const pL = new Float32Array(np), pC = new Float32Array(np), pR = new Float32Array(np), pK = new Float32Array(np), pG = new Float32Array(np), pB = new Float32Array(np), pF = new Uint8Array(np);
+        for (let i = 0; i < np; i++) { const t = parts[i]; pL[i] = t.layer; pC[i] = t.cast; pR[i] = t.R; pK[i] = t.k; pG[i] = t.grad; pB[i] = t.bias; pF[i] = t.flat ? 1 : 0; }
+        // distance from each pixel to the edge of its own part (4-neighbour, breadth first)
+        const dist = new Float32Array(n), q = new Int32Array(n);
+        let qn = 0;
+        for (let y = 0; y < H; y++) for (let x = 0, i = y * W; x < W; x++, i++) {
+            const p = P[i]; if (p < 0) continue;
+            if (x === 0 || x === W - 1 || y === 0 || y === H - 1 || P[i - 1] !== p || P[i + 1] !== p || P[i - W] !== p || P[i + W] !== p) { dist[i] = 1; q[qn++] = i; }
         }
-        for (let qi = 0; qi < q.length; qi++) {
-            const i = q[qi], x = i % W, y = (i / W) | 0, p = P[i];
-            for (let k = 0; k < 4; k++) {
-                const nx = x + (k === 0 ? 1 : k === 1 ? -1 : 0), ny = y + (k === 2 ? 1 : k === 3 ? -1 : 0);
-                if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
-                const j = ny * W + nx; if (P[j] === p && dist[j] === 0) { dist[j] = dist[i] + 1; q.push(j); }
-            }
+        for (let qi = 0; qi < qn; qi++) {
+            const i = q[qi], p = P[i], d = dist[i] + 1, x = i % W;
+            if (x < W - 1 && P[i + 1] === p && dist[i + 1] === 0) { dist[i + 1] = d; q[qn++] = i + 1; }
+            if (x > 0 && P[i - 1] === p && dist[i - 1] === 0) { dist[i - 1] = d; q[qn++] = i - 1; }
+            if (i + W < n && P[i + W] === p && dist[i + W] === 0) { dist[i + W] = d; q[qn++] = i + W; }
+            if (i >= W && P[i - W] === p && dist[i - W] === 0) { dist[i - W] = d; q[qn++] = i - W; }
         }
-        const bnd = this.parts.map(() => [1e9, -1e9]);
-        for (let i = 0; i < n; i++) { const p = P[i]; if (p < 0) continue; const y = (i / W) | 0; if (y < bnd[p][0]) bnd[p][0] = y; if (y > bnd[p][1]) bnd[p][1] = y; }
-        const hgt = new Float32Array(n);
-        for (let i = 0; i < n; i++) { const p = P[i]; if (p < 0) continue; const t = Math.min(1, (dist[i] - 0.5) / this.parts[p].R); hgt[i] = 1 - (1 - t) * (1 - t); }
-        const H_ = (x, y, p) => (x < 0 || y < 0 || x >= W || y >= H || P[y * W + x] !== p) ? 0 : hgt[y * W + x];
-        const idx = new Int8Array(n);
-        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-            const i = y * W + x, p = P[i]; if (p < 0) continue; const pt = this.parts[p];
-            const gx = H_(x + 1, y, p) - H_(x - 1, y, p), gy = H_(x, y + 1, p) - H_(x, y - 1, p);
-            let nx = -gx * pt.k, ny = -gy * pt.k, nz = 1; const l = Math.hypot(nx, ny, nz); nx /= l; ny /= l; nz /= l;
-            let s = nx * HD_LIGHT[0] + ny * HD_LIGHT[1] + nz * HD_LIGHT[2];
-            const b = bnd[p], yr = b[1] > b[0] ? (y - b[0]) / (b[1] - b[0]) : 0.5;
-            s += (0.5 - yr) * pt.grad + pt.bias;
-            if (pt.flat) s = 0.62 + pt.bias + (0.5 - yr) * pt.grad;
-            let k = s < 0.5 ? 1 : s < 0.7 ? 2 : s < 0.86 ? 3 : 4;
+        // each part's top and bottom (for the top-lit gradient) and the rounded height field
+        const b0 = new Int32Array(np).fill(1e9), b1 = new Int32Array(np).fill(-1e9), hgt = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+            const p = P[i]; if (p < 0) continue;
+            const y = (i / W) | 0; if (y < b0[p]) b0[p] = y; if (y > b1[p]) b1[p] = y;
+            const t = Math.min(1, (dist[i] - 0.5) / pR[p]); hgt[i] = 1 - (1 - t) * (1 - t);
+        }
+        const LX = HD_LIGHT[0], LY = HD_LIGHT[1], LZ = HD_LIGHT[2], mods = this.mods, idx = new Int8Array(n);
+        for (let y = 0; y < H; y++) for (let x = 0, i = y * W; x < W; x++, i++) {
+            const p = P[i]; if (p < 0) continue;
+            const hr = x < W - 1 && P[i + 1] === p ? hgt[i + 1] : 0, hl = x > 0 && P[i - 1] === p ? hgt[i - 1] : 0;
+            const hd = y < H - 1 && P[i + W] === p ? hgt[i + W] : 0, hu = y > 0 && P[i - W] === p ? hgt[i - W] : 0;
+            const k = pK[p], nx = -(hr - hl) * k, ny = -(hd - hu) * k;
+            const yr = b1[p] > b0[p] ? (y - b0[p]) / (b1[p] - b0[p]) : 0.5;
+            let s = pF[p] ? 0.62 + pB[p] + (0.5 - yr) * pG[p] : (nx * LX + ny * LY + LZ) / Math.sqrt(nx * nx + ny * ny + 1) + (0.5 - yr) * pG[p] + pB[p];
+            let c = s < 0.5 ? 1 : s < 0.7 ? 2 : s < 0.86 ? 3 : 4;
+            const lay = pL[p];
             // a shadow cast by a part in front, just above (hair over the forehead, a chin over the neck)
-            for (let d = 1; d <= 2; d++) { const a = this.at(x, y - d); if (a >= 0 && a !== p && this.parts[a].layer > pt.layer && this.parts[a].cast >= d) { k--; break; } }
+            for (let d = 1; d <= 2; d++) { if (y < d) break; const a = P[i - d * W]; if (a >= 0 && a !== p && pL[a] > lay && pC[a] >= d) { c--; break; } }
             // a part tucked behind a neighbour darkens along the seam
-            for (let kk = 0; kk < 4; kk++) { const a = this.at(x + (kk === 0 ? 1 : kk === 1 ? -1 : 0), y + (kk === 2 ? 1 : kk === 3 ? -1 : 0)); if (a >= 0 && a !== p && this.parts[a].layer > pt.layer) { k--; break; } }
-            k += this.mods[i];
-            idx[i] = k < 1 ? 1 : k > 4 ? 4 : k;
+            let a = x < W - 1 ? P[i + 1] : -1;
+            if (!(a >= 0 && a !== p && pL[a] > lay)) { a = x > 0 ? P[i - 1] : -1; if (!(a >= 0 && a !== p && pL[a] > lay)) { a = y < H - 1 ? P[i + W] : -1; if (!(a >= 0 && a !== p && pL[a] > lay)) a = y > 0 ? P[i - W] : -1; } }
+            if (a >= 0 && a !== p && pL[a] > lay) c--;
+            c += mods[i];
+            idx[i] = c < 1 ? 1 : c > 4 ? 4 : c;
         }
         // the silhouette: the darkest shade on the shadowed sides, a softer one where it faces the light
-        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-            const i = y * W + x; if (P[i] < 0) continue;
-            const r = this.at(x + 1, y) < 0, b = this.at(x, y + 1) < 0, l = this.at(x - 1, y) < 0, t = this.at(x, y - 1) < 0;
+        for (let y = 0; y < H; y++) for (let x = 0, i = y * W; x < W; x++, i++) {
+            if (P[i] < 0) continue;
+            const r = x === W - 1 || P[i + 1] < 0, b = y === H - 1 || P[i + W] < 0, l = x === 0 || P[i - 1] < 0, t = y === 0 || P[i - W] < 0;
             if (r || b) idx[i] = 0; else if (l || t) idx[i] = Math.max(1, idx[i] - 1) === 1 ? 0 : Math.max(1, idx[i] - 2);
         }
-        const put = (x, y, c) => { const o = (y * OW + ox + x) * 4; out[o] = c[0]; out[o + 1] = c[1]; out[o + 2] = c[2]; out[o + 3] = 255; };
-        const A = this.alt;
-        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y * W + x, p = P[i]; if (p >= 0) put(x, y, (A && A[i] >= 0 ? this.alts[A[i]] : this.parts[p].mat)[idx[i]]); }
-        for (const [x, y, c] of this.det) if (x >= 0 && y >= 0 && x < W && y < H) put(x, y, c);
+        const A = this.alt, alts = this.alts;
+        for (let y = 0; y < H; y++) for (let x = 0, i = y * W; x < W; x++, i++) {
+            const p = P[i]; if (p < 0) continue;
+            const c = (A && A[i] >= 0 ? alts[A[i]] : parts[p].mat)[idx[i]], o = (y * OW + ox + x) * 4;
+            out[o] = c[0]; out[o + 1] = c[1]; out[o + 2] = c[2]; out[o + 3] = 255;
+        }
+        for (const [x, y, c] of this.det) if (x >= 0 && y >= 0 && x < W && y < H) { const o = (y * OW + ox + x) * 4; out[o] = c[0]; out[o + 1] = c[1]; out[o + 2] = c[2]; out[o + 3] = 255; }
         return out;
     }
     canvas() {

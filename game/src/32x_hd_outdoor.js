@@ -71,14 +71,31 @@ function hdE_alpha(s, a) {
         return out;
     };
 }
+/* an ellipse with a ragged edge (heaped earth, a patch of sand): amp is how far the edge wanders */
+function hdE_blob(s, id, cx, cy, rx, ry, amp, seed) {
+    for (let y = Math.floor(cy - ry - 2); y <= cy + ry + 2; y++) for (let x = Math.floor(cx - rx - 2); x <= cx + rx + 2; x++) {
+        const u = (x + 0.5 - cx) / rx, v = (y + 0.5 - cy) / ry, n = (hdE_vn(x * 0.35, y * 0.45, seed) - 0.5) * 2 * amp;
+        if (u * u + v * v < 1 + n) s.plot(id, x, y);
+    }
+}
 /* register one drawing under several frame names: [name, w, h, ax, ay, args...] in today's pixels */
 function hdE_reg(list, fn) { for (const [n, w, h, ax, ay, ...args] of list) HD_SPR[n] = { w: w * 3, h: h * 3, ax: ax * 3, ay: ay * 3, draw(s) { fn(s, ...args); } }; }
 
 /* ---------------------------------------------------------------- shared colors */
 const hdE_GREEN = '#4f9a3f', hdE_LEAFC = '#6cc063';
 const hdE_WHITE = hdPal('#7c7490', '#cfcade', '#eeecf4', '#fbfaff', '#ffffff');
+/* a gentler ramp than hdRamp's (petals, small bright things: its deep saturated shadow would swamp a small shape) */
+const hdE_SOFT = new Map();
+function hdE_soft(hex) {
+    let r = hdE_SOFT.get(hex);
+    if (r) return r;
+    const [h, sat, l] = hdHsl(hdRgb(hex));
+    r = [hdFromHsl(h - 10, sat * 0.8, l * 0.48), hdFromHsl(h - 5, sat * 0.95, l * 0.84), hdRgb(hex), hdFromHsl(h + 4, sat, l + (1 - l) * 0.32), hdFromHsl(h + 8, sat, l + (1 - l) * 0.62)];
+    hdE_SOFT.set(hex, r);
+    return r;
+}
 /* a ramp for a petal color: white gets a cool grey one (hdRamp would leave it flat) */
-const hdE_pet = c => c === '#ffffff' ? hdE_WHITE : hdRamp(c);
+const hdE_pet = c => c === '#ffffff' ? hdE_WHITE : hdE_soft(c);
 
 /* ---------------------------------------------------------------- planted flowers (fl_*: the bloom on a stem with two leaves) */
 /* the stem from the bloom down to the ground, a leaf out to each side as today's */
@@ -91,19 +108,24 @@ function hdE_stem(s, top) {
     /* the midribs */
     for (let t = 0.2; t < 0.85; t += 0.1) { s.mod(19 - 8.5 * t, 40.5 - 7.5 * t + 0.5, -1); s.mod(20 + 8.5 * t, 43 - 6.5 * t + 0.5, -1); }
 }
-/* a daisy: a ring of slim petals (every other one over its neighbors) round a domed middle */
+/* a daisy: a ring of slim petals (every other one tucked under its neighbors, a gap at the tips) round a domed middle */
 function hdE_daisy(s, pet, eye) {
     hdE_stem(s, 26);
-    const P = hdE_pet(pet), cx = 19.5, cy = 18.5;
-    for (let i = 0; i < 14; i++) {
-        const a = i / 14 * Math.PI * 2 - Math.PI / 2, p = s.add(P, { layer: 1 + (i % 2), R: 2, k: 1.3, grad: 0.05 });
-        hdE_petal(s, p, cx, cy, a, 2, 11.3, 2.5, 0.92, 0.55);
+    const P = hdE_pet(pet), cx = 19.5, cy = 18;
+    /* the undersides of the petals, seen in the gaps between them */
+    const under = s.add(P, { layer: 0, R: 2, flat: 1, bias: -0.3 });
+    s.ellipse(under, cx, cy, 8.5, 8);
+    for (let i = 0; i < 12; i++) {
+        const a = i / 12 * Math.PI * 2 - Math.PI / 2 + 0.13, p = s.add(P, { layer: 1 + (i % 2), R: 1.5, k: 1.4, grad: 0.05, bias: 0.04 });
+        hdE_petal(s, p, cx, cy, a, 2.5, 11.6, 1.75, 0.93, 0.6);
+        /* the vein down the middle, near the base */
+        for (let r = 5; r < 8; r++) s.mod(cx + Math.cos(a) * r, cy + Math.sin(a) * 0.93 * r, -1);
     }
     const e = s.add(hdRamp(eye), { layer: 4, R: 3, k: 1.8, cast: 1 });
-    s.ellipse(e, cx, cy, 4.6, 4.3);
+    s.ellipse(e, cx, cy, 4.7, 4.4);
     /* the florets: a few dimples, a spark of light */
-    for (const [x, y] of [[18, 18], [21, 17], [20, 20], [17, 20], [22, 19]]) s.mod(x, y, -1);
-    s.mod(17, 16, 1); s.mod(18, 16, 1);
+    for (const [x, y] of [[19, 18], [21, 17], [20, 20], [17, 19], [22, 19]]) s.mod(x, y, -1);
+    s.mod(17, 15, 1); s.mod(18, 15, 1);
 }
 /* a tulip: the back petal's tip between the two front ones, the cup darker toward its base */
 function hdE_tulip(s, col, deep) {
@@ -122,40 +144,40 @@ function hdE_tulip(s, col, deep) {
     /* the sheen on each front petal */
     for (const [x, y] of [[11, 9], [11, 10], [12, 12], [23, 11], [23, 12], [24, 14]]) s.mod(x, y, 1);
 }
-/* a cosmos: eight broad petals with notched tips round a small middle */
+/* a cosmos: eight broad petals with ragged tips round a small middle */
 function hdE_cosmos(s, pet, eye) {
     hdE_stem(s, 26);
     const P = hdE_pet(pet), cx = 19.5, cy = 18.5;
+    const under = s.add(P, { layer: 0, R: 2, flat: 1, bias: -0.3 });
+    s.ellipse(under, cx, cy, 8.5, 7.5);
     for (let i = 0; i < 8; i++) {
-        const a = i / 8 * Math.PI * 2 - Math.PI / 2 + 0.2, p = s.add(P, { layer: 1 + (i % 2), R: 3, k: 1.3, grad: 0.05 });
-        hdE_petal(s, p, cx, cy, a, 1.5, 13, 4.6, 0.86, 0.62, 1.8);
+        const a = i / 8 * Math.PI * 2 - Math.PI / 2, p = s.add(P, { layer: 1 + (i % 2), R: 2, k: 1.3, grad: 0.05, bias: 0.04 });
+        hdE_petal(s, p, cx, cy, a, 2, 13.2, 3.0, 0.84, 0.7, 1.1);
         /* a crease down the middle of each petal */
-        for (let r = 5; r < 11; r++) s.mod(cx + Math.cos(a) * r, cy + Math.sin(a) * 0.86 * r, -1);
+        for (let r = 5; r < 10; r++) s.mod(cx + Math.cos(a) * r, cy + Math.sin(a) * 0.84 * r, -1);
     }
     const e = s.add(hdRamp(eye), { layer: 4, R: 2, k: 1.8, cast: 1 });
-    s.ellipse(e, cx, cy, 3.4, 3.2);
-    s.mod(18, 17, 1); s.mod(20, 20, -1);
+    s.ellipse(e, cx, cy, 3.6, 3.3);
+    s.mod(18, 17, 1); s.mod(19, 17, 1); s.mod(20, 20, -1);
 }
-/* a lily: three petals curling up and out, the cup in front with its stamens */
+/* a lily: three pointed petals (the middle one behind), the cup in front, the stamens standing out of the throat */
 function hdE_lily(s, pet, dot) {
     hdE_stem(s, 27);
     const P = hdE_pet(pet);
-    const mid = s.add(P, { layer: 0, R: 3, k: 1.3, bias: -0.06 });
-    hdE_leaf(s, mid, 19.5, 22, 19.5, 3.3, 4.2, 0.55);
-    const l = s.add(P, { layer: 1, R: 3, k: 1.3 }), r = s.add(P, { layer: 1, R: 3, k: 1.3, bias: -0.03 });
-    hdE_leaf(s, l, 17, 24, 9.2, 3.5, 4.2, 0.5, -1.6);
-    hdE_leaf(s, r, 22, 24, 29.8, 3.5, 4.2, 0.5, 1.6);
+    const mid = s.add(P, { layer: 0, R: 3, k: 1.3, bias: -0.08 });
+    hdE_leaf(s, mid, 19.5, 22, 19.5, 3.2, 3.8, 0.5);
+    const l = s.add(P, { layer: 1, R: 3, k: 1.3, bias: 0.04 }), r = s.add(P, { layer: 1, R: 3, k: 1.3 });
+    hdE_leaf(s, l, 17.5, 25, 9.3, 3.4, 4.2, 0.55, -1.4);
+    hdE_leaf(s, r, 21.5, 25, 29.7, 3.4, 4.2, 0.55, 1.4);
     const cup = s.add(P, { layer: 2, R: 5, k: 1.2, grad: 0.3, cast: 1 });
-    s.poly(cup, [[8, 15], [12, 17], [19.5, 18], [27, 17], [31, 15], [30.5, 21], [27.5, 25.5], [23, 28.5], [16, 28.5], [11.5, 25.5], [8.5, 21]]);
-    /* the throat in shadow, the stamens: thin stalks with the colored tips */
+    s.poly(cup, [[9, 13.5], [13, 16.5], [19.5, 17.5], [26, 16.5], [30, 13.5], [29.5, 20], [26.5, 25], [22.5, 28.6], [16.5, 28.6], [12.5, 25], [9.5, 20]]);
+    /* the throat in shadow, a stripe of the deeper color up each petal */
     for (let x = 14; x < 26; x++) s.mod(x, 18 + (Math.abs(x - 19.5) < 4 ? 1 : 0), -1);
-    const D = hdRamp(dot);
-    for (const [x0, y0, x1, y1] of [[19.5, 18.5, 19.5, 11.5], [18, 19, 15.5, 16], [21, 19, 23.5, 16]]) {
-        for (let t = 0; t <= 1; t += 0.2) s.recolor(Math.round(x0 + (x1 - x0) * t - 0.5), Math.round(y0 + (y1 - y0) * t - 0.5), hdE_GREEN);
-    }
-    hdE_over(s, o => { for (const [x, y] of [[19.5, 11.5], [15.3, 15.6], [23.7, 15.6]]) { const a = o.add(D, { R: 1, k: 1.6 }); o.ellipse(a, x, y, 1.9, 1.7); } });
-    /* freckles low on the cup, as today's two dots */
-    for (const [x, y] of [[16, 23], [23, 23]]) { s.recolor(x, y, D); s.recolor(x + 1, y, D); s.recolor(x, y + 1, D); }
+    hdE_over(s, o => {
+        const D = hdRamp(dot), f = o.add(hdE_pet(pet), { layer: 0, R: 1, bias: -0.2, flat: 1 });
+        for (const [x, y] of [[16.5, 13], [19.5, 10.5], [22.5, 13]]) { o.line(f, 19.5, 18, x, y + 1, 0.5); }
+        for (const [x, y] of [[16.5, 13], [19.5, 10.5], [22.5, 13]]) { const a = o.add(D, { layer: 1, R: 1, k: 1.6 }); o.ellipse(a, x, y, 1.8, 1.5); }
+    });
 }
 hdE_reg([
     ['fl_daisy_0', 12, 16, 6, 15, '#ffffff', '#ffd84a'], ['fl_daisy_1', 12, 16, 6, 15, '#fff27a', '#b8862d'], ['fl_daisy_2', 12, 16, 6, 15, '#ffb8d6', '#ffd84a'],
@@ -176,28 +198,28 @@ const hdE_TRIO = [[31.5, 16.5], [13.5, 22.5], [25.5, 34.5]];
 function hdE_trio(s, kind, col, eye) {
     const stem = s.add(hdE_GREEN, { layer: 0, R: 1, k: 1.4 }), leaf = s.add(hdE_LEAFC, { layer: 1, R: 1.5, k: 1.3 });
     for (const [x, y] of hdE_TRIO) {
-        s.line(stem, x, y + 2, x, y + 8.6, 0.9);
+        s.line(stem, x, y + 2, x, y + 8.4, 1.1);
         const d = x < 20 ? -1 : 1;
         hdE_leaf(s, leaf, x, y + 8, x + d * 4.5, y + 5, 1.6, 0.45);
     }
     hdE_over(s, o => {
         for (const [x, y] of hdE_TRIO) {
-            const P = hdRamp(col);
+            const P = hdE_pet(col);
             if (kind === 'tulip') {
-                const b = o.add(P, { layer: 0, R: 2, bias: -0.1 }), l = o.add(P, { layer: 1, R: 2, grad: 0.3 }), r = o.add(P, { layer: 2, R: 2, grad: 0.3, bias: -0.04 });
-                o.poly(b, [[x - 2.5, y - 1], [x, y - 4.6], [x + 2.5, y - 1], [x + 2.5, y + 2], [x - 2.5, y + 2]]);
-                o.poly(l, [[x + 0.5, y + 3.6], [x - 3, y + 2.6], [x - 4, y - 1], [x - 3.6, y - 4.4], [x - 1, y - 1.5], [x + 0.5, y]]);
-                o.poly(r, [[x - 0.5, y + 3.6], [x + 3, y + 2.6], [x + 4, y - 1], [x + 3.6, y - 4.4], [x + 1, y - 1.5], [x - 0.5, y]]);
+                /* a little cup: three tips, a crease where the front petals meet */
+                const t = o.add(P, { R: 2.5, k: 1.1, grad: 0.35, bias: 0.1 });
+                o.poly(t, [[x - 0.5, y + 3.8], [x - 3, y + 3], [x - 4, y - 0.5], [x - 3.8, y - 4.6], [x - 1.8, y - 2.4], [x, y - 4.8], [x + 1.8, y - 2.4], [x + 3.8, y - 4.6], [x + 4, y - 0.5], [x + 3, y + 3], [x + 0.5, y + 3.8]]);
+                for (let j = -2; j < 3; j++) o.mod(x, y + j, -1);
+                o.mod(x - 2, y - 1, 1); o.mod(x - 2, y, 1);
                 continue;
             }
-            /* five round petals (a violet's two above, three below), the eye */
-            const n = 5, rot = kind === 'violet' ? Math.PI / 2 : -Math.PI / 2;
-            for (let i = 0; i < n; i++) {
-                const a = rot + i / n * Math.PI * 2, p = o.add(kind === 'daisy' ? hdE_WHITE : P, { layer: 1 + (i % 2), R: 2, k: 1.3 });
-                o.ellipse(p, x + Math.cos(a) * 2.6, y + Math.sin(a) * 2.4, kind === 'poppy' ? 2.9 : 2.4, kind === 'poppy' ? 2.7 : 2.2);
-            }
-            const e = o.add(hdRamp(eye), { layer: 3, R: 1, k: 1.5 });
-            o.ellipse(e, x, y, 1.5, 1.4);
+            /* five round petals in one piece (a violet's two above, three below), a fine line between them, the eye */
+            const n = 5, rot = kind === 'violet' ? Math.PI / 2 : -Math.PI / 2, pr = kind === 'poppy' ? 2.8 : 2.35;
+            const p = o.add(P, { R: 2, k: 1.1, bias: 0.1, grad: 0.1 });
+            for (let i = 0; i < n; i++) { const a = rot + i / n * Math.PI * 2; o.ellipse(p, x + Math.cos(a) * 2.6, y + Math.sin(a) * 2.4, pr, pr * 0.92); }
+            for (let i = 0; i < n; i++) { const a = rot + (i + 0.5) / n * Math.PI * 2; for (let r = 2; r < 4.5; r += 0.7) o.mod(x + Math.cos(a) * r - 0.5, y + Math.sin(a) * r - 0.5, -1); }
+            const e = o.add(hdRamp(eye), { R: 1, k: 1.5, bias: 0.05 });
+            o.ellipse(e, x, y, 1.6, 1.5);
         }
     });
 }
@@ -209,7 +231,7 @@ hdE_reg([
 /* ---------------------------------------------------------------- the sprout (a planted flower, before it blooms) */
 HD_SPR.sprout = { w: 48, h: 48, ax: 24, ay: 39, draw(s) {
     const st = s.add(hdE_GREEN, { layer: 0, R: 1, k: 1.5, grad: 0.1 });
-    s.line(st, 25.5, 21, 25.5, 42.5, 1.4);
+    s.line(st, 25.5, 21, 25.5, 42.5, 1.6);
     const l = s.add(hdE_LEAFC, { layer: 1, R: 3, k: 1.3, grad: 0.15 }), r = s.add('#5aa844', { layer: 1, R: 3, k: 1.3, grad: 0.15 });
     hdE_leaf(s, l, 25, 22, 11, 19.5, 4.6, 0.5, -1.5);
     hdE_leaf(s, r, 26, 20, 35.5, 14.5, 3.8, 0.5, 1.2);
@@ -267,27 +289,26 @@ hdE_reg([['plot_0', 16, 16, 8, 14, 0], ['plot_1', 16, 16, 8, 14, 1], ['plot_2', 
 /* ---------------------------------------------------------------- holes, the filled mound, the dig spot */
 /* a dug hole: the earth heaped round its lip, the far wall in light, the bottom dark, a few clods thrown out */
 function hdE_hole(s, a, b, c) {
-    const lip = s.add(hdRamp(a), { layer: 1, R: 4, k: 1.2, cast: 2 });
-    s.ellipse(lip, 24, 18, 18.5, 11.5);
-    hdE_speck(s, lip, 21, 0.14, 0.1);
+    const lip = s.add(hdE_soft(a), { layer: 1, R: 3, k: 1.1, cast: 2, grad: 0.15 });
+    hdE_blob(s, lip, 24, 18, 18, 11, 0.14, 3);
     const wall = s.add(hdRamp(b), { layer: 0, R: 2, k: 1, flat: 1, grad: 0.5, bias: 0.04 });
-    s.ellipse(wall, 24, 18.5, 14.5, 8.3);
+    hdE_blob(s, wall, 24, 18.5, 14.3, 8.2, 0.08, 4);
     const deep = s.add(hdRamp(c), { layer: 0, R: 3, k: 1, flat: 1, grad: 0.2, bias: -0.04 });
-    s.ellipse(deep, 24, 21.5, 11.2, 5.4);
-    hdE_speck(s, wall, 22, 0.12, 0.06);
-    const clod = s.add(hdRamp(a), { layer: 2, R: 1, k: 1.5 });
+    s.ellipse(deep, 24, 21.5, 11, 5.3);
+    hdE_speck(s, lip, 21, 0.1, 0.08);
+    const clod = s.add(hdE_soft(a), { layer: 2, R: 1, k: 1.5 });
     for (const [x, y, r] of [[43.5, 10.5, 1.8], [4.5, 28.5, 1.8], [40.5, 31.5, 1.5], [7, 25, 1.1]]) s.ellipse(clod, x, y, r * 1.2, r);
 }
 hdE_reg([['hole', 16, 12, 8, 9, '#8a5a3a', '#5a3a26', '#3a2518'], ['hole_sand', 16, 12, 8, 9, '#d9b877', '#b8955e', '#77603c']], hdE_hole);
 HD_SPR.mound = { w: 48, h: 36, ax: 24, ay: 27, draw(s) {
     /* the hole filled back in: loose earth heaped up, a few clods on top */
-    const base = s.add(hdRamp('#6b4a2a'), { layer: 0, R: 3, k: 1.1 });
+    const base = s.add(hdPal('#3a2618', '#5a3e24', '#6b4a2a', '#785434', '#86603a'), { layer: 0, R: 3, k: 1.1 });
     s.ellipse(base, 24, 23, 19.5, 6.5);
-    const heap = s.add(hdRamp('#8a5a3a'), { layer: 1, R: 6, k: 1.3, grad: 0.25, cast: 1 });
-    s.ellipse(heap, 24, 18.5, 16.5, 7.5);
-    hdE_speck(s, heap, 31, 0.14, 0.12);
-    const clod = s.add(hdRamp('#a8733f'), { layer: 2, R: 1.5, k: 1.5 });
-    for (const [x, y, r] of [[17, 15, 2], [29, 14, 1.6], [33, 19, 1.8], [22, 19, 1.2]]) s.ellipse(clod, x, y, r * 1.25, r);
+    const heap = s.add(hdPal('#4a3020', '#74492e', '#8a5a3a', '#9a6840', '#a8733f'), { layer: 1, R: 7, k: 1.2, grad: 0.25, cast: 1 });
+    hdE_blob(s, heap, 24, 18.5, 16.5, 7.5, 0.1, 6);
+    hdE_speck(s, heap, 31, 0.06, 0.03);
+    /* lighter crumbs of earth on top, as today's */
+    for (const [x, y] of [[18, 14], [30, 13], [33, 18], [22, 17], [26, 20], [14, 18]]) { s.px(x, y, '#b07a46'); s.px(x + 1, y, '#a8733f'); s.px(x, y + 1, '#7a5034'); s.px(x + 1, y + 1, '#6b4a2a'); }
 } };
 HD_SPR.digspot = { w: 48, h: 30, ax: 24, ay: 15, draw(s) {
     /* sand turned dark where something is buried: a patch with a ragged edge and a few grains, see-through like today's */
@@ -302,7 +323,7 @@ HD_SPR.digspot = { w: 48, h: 30, ax: 24, ay: 15, draw(s) {
         const u = (x + 0.5 - 24) / 16, v = (y + 0.5 - 15.5) / 7.5, n = hdE_vn(x * 0.3, y * 0.4, 9) * 0.35;
         if (u * u + v * v < 0.75 + n) s.plot(mid, x, y);
     }
-    hdE_speck(s, sand, 41, 0.1, 0.08); hdE_speck(s, mid, 42, 0.14, 0.06);
+    hdE_speck(s, sand, 41, 0.1, 0.06); hdE_speck(s, mid, 42, 0.12, 0.05);
     hdE_alpha(s, 185);
 } };
 
@@ -316,38 +337,42 @@ function hdE_crack(s, x, y, dx, dy, n, seed) {
         x += dx + (r < 0.3 ? -1 : r > 0.7 ? 1 : 0) * (dy ? 1 : 0); y += dy + (r < 0.3 ? 1 : 0) * (dx ? 1 : 0);
     }
 }
+/* nudge the shade of every pixel of part id inside a polygon (a facet on one rounded form: no seam, no bevel) */
+function hdE_region(s, id, pts, d) {
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const [x, y] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    for (let y = Math.floor(y0); y <= y1; y++) for (let x = Math.floor(x0); x <= x1; x++) {
+        let inside = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y + 0.5) !== (yj > y + 0.5) && x + 0.5 < (xj - xi) * (y + 0.5 - yi) / (yj - yi) + xi) inside = !inside; }
+        if (inside && s.at(x, y) === id) s.mod(x, y, d);
+    }
+}
+/* a stone: one rounded form lit from the top left, its planes in today's three greys (light, the mid ring, the dark
+   facet low on the right), a few pits and cracks; polygons in today's pixels */
+function hdE_rock(s, outline, R, lit, dark, cracks, seed) {
+    const k3 = pts => pts.map(([x, y]) => [x * 3, y * 3]);
+    const body = s.add(hdE_STONE, { layer: 0, R, k: 1.3, grad: 0.1, bias: 0.03 });
+    s.poly(body, k3(outline));
+    hdE_region(s, body, k3(lit), 1); hdE_region(s, body, k3(dark), -1);
+    hdE_speck(s, body, seed, 0.035, 0.02);
+    for (const c of cracks) hdE_crack(s, ...c);
+    return body;
+}
 HD_SPR.rock = { w: 54, h: 42, ax: 27, ay: 36, draw(s) {
-    /* the body, rounded on top; the shaded face on the right; the darker facet low on the right */
-    const body = s.add(hdE_STONE, { layer: 0, R: 9, k: 1.3, grad: 0.25 });
-    s.poly(body, [[12, 6.5], [42, 6.5], [50, 11], [54, 18.5], [54, 30], [48, 36], [39, 41.5], [12, 41.5], [5, 36], [0, 30], [0, 18], [5, 11]]);
-    const face = s.add(hdE_STONE, { layer: 1, R: 6, k: 1.2, bias: -0.14, grad: 0.2 });
-    s.poly(face, [[33, 9], [42, 8], [50, 12], [53.5, 19], [53.5, 30], [47.5, 35.5], [40, 40], [24, 40], [27, 33], [33.5, 28], [36, 20]]);
-    const low = s.add(hdE_STONE, { layer: 2, R: 4, k: 1.2, bias: -0.24 });
-    s.poly(low, [[25, 24.5], [46, 24.5], [48, 28.5], [45, 33], [38, 36], [26, 36], [23, 31]]);
-    hdE_speck(s, body, 51, 0.08, 0.05); hdE_speck(s, face, 52, 0.09, 0.04); hdE_speck(s, low, 53, 0.08, 0.03);
-    hdE_crack(s, 19, 13, 1, 1, 5, 3);
-    /* the light catching the top */
-    for (const [x, y] of [[11, 11], [12, 11], [13, 10], [14, 10], [15, 10], [10, 12]]) s.mod(x, y, 1);
+    hdE_rock(s, [[4, 2.2], [14, 2.2], [16.6, 3.6], [18, 6], [18, 10], [16, 12], [13, 13.8], [5, 13.8], [2, 12], [0, 10], [0, 6], [1.6, 3.6]], 5,
+        [[3, 3], [10.5, 3], [12.5, 5], [12.5, 7.5], [11, 8.6], [9, 9.4], [4, 9.4], [2.6, 8], [2, 6], [2.2, 4]],
+        [[9, 8], [15, 8], [16.2, 9], [16.2, 10.4], [15, 11.6], [14, 12.4], [9, 12.4], [8, 11], [8, 9]],
+        [[19, 15, 1, 1, 4, 3], [33, 9, 1, 1, 4, 4]], 51);
 } };
 HD_SPR.boulder = { w: 102, h: 78, ax: 51, ay: 72, draw(s) {
-    const body = s.add(hdE_STONE, { layer: 0, R: 14, k: 1.25, grad: 0.25 });
-    s.poly(body, [[19, 9.5], [66, 9.5], [76, 13], [85, 20], [92, 26], [97, 33], [99, 44], [96, 54], [90, 60], [80, 65], [70, 68.5], [26, 68.5], [16, 64], [8, 58], [3, 48], [3, 34], [8, 24], [11, 16]]);
-    /* the big shaded face down the right, split from the lit top by a crack */
-    const face = s.add(hdE_STONE, { layer: 1, R: 10, k: 1.2, bias: -0.14, grad: 0.2 });
-    s.poly(face, [[56, 12], [66, 11], [77, 14], [86, 21], [93, 28], [97.5, 35], [98.5, 45], [95.5, 53], [89, 59], [80, 64], [70, 67], [45, 67], [44, 58], [52, 50], [64, 46], [69, 40], [66, 28], [62, 21]]);
-    const low = s.add(hdE_STONE, { layer: 2, R: 8, k: 1.2, bias: -0.22 });
-    s.poly(low, [[42, 46], [62, 43], [76, 42], [86, 45], [90, 51], [86, 58], [76, 63], [62, 66], [46, 66], [40, 60], [38, 52]]);
-    const side = s.add(hdE_STONE, { layer: 1, R: 8, k: 1.2, bias: -0.1 });
-    s.poly(side, [[4, 33], [10, 31], [16, 38], [20, 48], [28, 56], [40, 60], [44, 67], [26, 67], [16, 63], [9, 57], [4, 48]]);
-    hdE_speck(s, body, 61, 0.08, 0.05); hdE_speck(s, face, 62, 0.09, 0.04); hdE_speck(s, low, 63, 0.08, 0.03); hdE_speck(s, side, 64, 0.08, 0.03);
-    hdE_crack(s, 61, 24, 1, 2, 8, 5); hdE_crack(s, 69, 40, 2, 1, 6, 8);
-    /* moss on the lit top: a soft cushion with tufts round its edge */
-    hdE_over(s, o => {
-        const moss = o.add(hdPal('#3c5a2c', '#5e8c40', '#7cb05a', '#94c466', '#b0d878'), { R: 4, k: 1.3, grad: 0.3 });
-        for (let y = 0; y < 30; y++) for (let x = 0; x < 70; x++) {
-            const u = (x + 0.5 - 27) / 19, v = (y + 0.5 - 16.5) / 6.5, n = hdE_vn(x * 0.4, y * 0.5, 11) * 0.4;
-            if (u * u + v * v < 0.8 + n && s.at(x, y) >= 0 && s.at(x, y - 2) >= 0 && s.at(x - 2, y) >= 0) o.plot(moss, x, y);
-        }
-        hdE_each(o, moss, (x, y, i) => { const r = hdE_h(x >> 1, y >> 1, 12); if (r < 0.14) o.mods[i] -= 1; else if (r > 0.82) o.mods[i] += 1; });
-    });
+    const body = hdE_rock(s, [[4, 4.6], [6, 3.2], [22, 3.2], [25, 4.4], [27, 5.6], [29.4, 7.4], [31, 9.4], [32.6, 11.6], [33, 15], [32, 18], [30, 20], [27, 21.8], [24, 22.8], [9, 22.8], [5.4, 21.2], [3, 19.4], [1, 16], [1, 11], [2.6, 8.4], [3.4, 6]], 6,
+        [[4, 4], [17, 4], [20, 6], [22, 8.2], [22.4, 12], [20, 14], [18, 15], [16, 16], [9, 16], [7, 15], [5, 13], [4, 12], [4, 8]],
+        [[18, 14], [26, 14], [28, 15], [29.4, 16.4], [30, 17.4], [30, 19], [29, 20.4], [27.4, 21.4], [26, 22], [18, 22], [16, 21], [15, 20], [14, 19], [14, 17], [15, 16], [16, 15]],
+        [[60, 24, 1, 2, 7, 5], [66, 37, 1, 1, 5, 6], [30, 44, 2, 1, 5, 9], [74, 22, 1, 1, 4, 7]], 61);
+    /* moss on the lit top: the stone's own form in green, mottled, its edge ragged */
+    const MOSS = hdPal('#2e4a26', '#4e7a38', '#7cb05a', '#8cc062', '#9ccc6a');
+    for (let y = 9; y < 26; y++) for (let x = 8; x < 50; x++) {
+        const u = (x + 0.5 - 27) / 16.5, v = (y + 0.5 - 15) / 5.6, n = (hdE_vn(x * 0.45, y * 0.6, 11) - 0.5) * 0.7;
+        if (u * u + v * v < 0.85 + n && s.at(x, y) === body) { s.recolor(x, y, MOSS); const m = hdE_vn(x * 0.5, y * 0.7, 14); if (m < 0.3) s.mod(x, y, -1); else if (m > 0.8) s.mod(x, y, 1); }
+    }
 } };

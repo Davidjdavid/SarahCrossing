@@ -102,11 +102,11 @@ hdF3_def('f_register', 16, 16, 8, 15, s => {
 /* ---------------------------------------------------------------- the salon */
 /* the styling chair: a deep pink tufted back, a plump seat, chrome arms, on a pump stem and a domed foot */
 hdF3_def('f_salon_chair', 16, 28, 8, 27, s => {
-    const PINK = hdRamp('#e05599');
+    const PINK = hdF3_soft('#e05599');
     hdF3_box(s, HDF3_CHROME, 21, 58, 6, 13, { layer: 0, R: 2, k: 1.8 });
     const foot = s.add(hdRamp('#6b6f88'), { layer: 1, R: 4, grad: 0.4 }); s.ellipse(foot, 24, 75, 18, 4); s.rect(foot, 13, 70, 22, 5); s.ellipse(foot, 24, 70.5, 11, 3);
     const back = hdF3_box(s, PINK, 6, 9, 36, 34, { layer: 1, R: 7, grad: 0.15 }, 10);
-    const pad = hdF3_box(s, hdRamp('#ff8ac2'), 14, 17, 20, 21, { layer: 2, R: 5, grad: 0.2, bias: -0.04 }, 5);
+    const pad = hdF3_box(s, hdF3_soft('#ff8ac2'), 14, 17, 20, 21, { layer: 2, R: 5, grad: 0.2, bias: -0.04 }, 5);
     const seat = hdF3_box(s, PINK, 3, 36, 42, 24, { layer: 3, R: 6, grad: 0.3, cast: 2 }, 8);
     /* the seat's top seen from above, lit; a welt where it turns down to the front */
     hdF3_hl(s, seat, 9, 38, 38, 1); hdF3_hl(s, seat, 6, 41, 45, -1);
@@ -130,9 +130,9 @@ hdF3_def('f_salon_desk', 32, 28, 16, 27, s => {
 hdF3_def('f_salon_dryer', 16, 28, 8, 27, s => {
     hdF3_box(s, HDF3_CHROME, 21, 36, 6, 35, { layer: 0, R: 2, k: 1.8 });
     const foot = s.add(hdRamp('#8a8ea8'), { layer: 1, R: 4, grad: 0.4 }); s.ellipse(foot, 24, 75, 12.5, 3.5); s.rect(foot, 15, 71, 18, 4); s.ellipse(foot, 24, 71, 6, 2.5);
-    const bell = s.add(hdRamp('#b37cf0'), { layer: 2, R: 9, grad: 0.25, cast: 2, k: 1.1 });
+    const bell = s.add(hdPal('#5a3488', '#9862d8', '#b37cf0', '#c89cf6', '#e2c8ff'), { layer: 2, R: 9, grad: 0.25, cast: 2, k: 1.1 });
     s.ellipse(bell, 24, 23.5, 24, 14.5); s.ellipse(bell, 24, 15.5, 15, 10);
-    const mouth = s.add(hdRamp('#6a3a90'), { layer: 1, R: 6, grad: -0.3, bias: -0.06 });
+    const mouth = s.add(hdF3_soft('#6a3a90'), { layer: 1, R: 6, grad: -0.3, bias: -0.06 });
     s.ellipse(mouth, 24, 32, 16.5, 6.5);
     /* the gloss on the bell */
     hdF3_later(s, () => hdF3_each(s, bell, (x, y, i) => { const u = (x - 16) / 7, v = (y - 13) / 3.2; if (u * u + v * v < 1) s.mods[i] += 1; }));
@@ -188,8 +188,8 @@ hdF3_def('f_salon_sink', 32, 28, 16, 27, s => {
     /* doors on the cabinet: two panels under the basin, two under the chair */
     for (const [x, w] of [[8, 19], [29, 19], [52, 17], [72, 17]]) { hdF3_hl(s, cab, x, x + w, 48, -1); hdF3_hl(s, cab, x, x + w, 68, -1); hdF3_vl(s, cab, x, 48, 68, -1); hdF3_vl(s, cab, x + w, 48, 68, -1); hdF3_vl(s, cab, x + 1, 49, 67, 1); }
     for (const x of [24, 32, 66, 75]) { s.px(x, 57, '#9a9ab0'); s.px(x, 58, '#9a9ab0'); }
-    const back = hdF3_box(s, hdRamp('#e05599'), 51, 15, 39, 23, { layer: 2, R: 7, grad: 0.2 }, 8);
-    const seat = hdF3_box(s, hdRamp('#b83d7c'), 51, 36, 39, 9, { layer: 3, R: 3, grad: 0.15, cast: 2 }, 3);
+    const back = hdF3_box(s, hdF3_soft('#e05599'), 51, 15, 39, 23, { layer: 2, R: 7, grad: 0.2 }, 8);
+    const seat = hdF3_box(s, hdF3_soft('#b83d7c'), 51, 36, 39, 9, { layer: 3, R: 3, grad: 0.15, cast: 2 }, 3);
     hdF3_hl(s, seat, 54, 86, 37, 1);
     const bowl = s.add(hdF3_soft('#e8e8f0'), { layer: 3, R: 4, grad: 0.3, cast: 1 });
     hdF3_rr(s, bowl, 6, 31, 42, 14, 5);
@@ -288,12 +288,12 @@ function hdF3_tome(o, x, y, w, h, col, top) {
 hdF3_def('f_shelf_wall', 32, 16, 16, 15, s => {
     hdF3_over(s, o => {
         for (const x of [11, 80]) { const b = o.add(hdRamp('#7a5234'), { R: 1, layer: 0 }); o.poly(b, [[x, 38], [x + 5, 38], [x + 5, 44], [x + 3, 44]]); }
-        hdF3_tome(o, 9, 18, 12, 15, '#f2c262', '#f6d491');
-        hdF3_tome(o, 24, 9, 12, 24, '#e0405a', '#e9798c');
-        hdF3_tome(o, 39, 12, 12, 21, '#4f86c6', '#84aad7');
-        hdF3_tome(o, 54, 15, 12, 18, '#8cc152', '#aed486');
-        hdF3_tome(o, 69, 18, 12, 15, '#ffd84a', '#ffe480');
-        hdF3_tome(o, 84, 9, 12, 24, '#b37cf0', '#caa3f4');
+        hdF3_tome(o, 8, 18, 14, 15, '#f2c262', '#f6d491');
+        hdF3_tome(o, 23, 9, 14, 24, '#e0405a', '#e9798c');
+        hdF3_tome(o, 38, 12, 14, 21, '#4f86c6', '#84aad7');
+        hdF3_tome(o, 53, 15, 14, 18, '#8cc152', '#aed486');
+        hdF3_tome(o, 68, 18, 14, 15, '#ffd84a', '#ffe480');
+        hdF3_tome(o, 83, 9, 13, 24, '#b37cf0', '#caa3f4');
         const top = o.add(hdF3_soft('#b08050'), { R: 1, layer: 3, grad: 0, bias: 0.05 }); o.rect(top, 3, 32, 90, 3);
         const pl = o.add(hdF3_soft('#9a6b3a'), { R: 2, layer: 4, grad: 0.1 }); o.rect(pl, 3, 34, 90, 5);
         hdF3_wood(o, pl, 12, false, 0.8);
@@ -303,13 +303,15 @@ hdF3_def('f_shelf_wall', 32, 16, 16, 15, s => {
 hdF3_def('f_spice_rack', 32, 16, 16, 15, s => {
     hdF3_over(s, o => {
         const SP = ['#e2382b', '#ffc53a', '#8a5a33', '#5aa844', '#f28a2a', '#6a3a8a'];
+        const back = o.add(hdF3_soft('#6b4a2a'), { R: 2, layer: 0, grad: -0.3 }); o.rect(back, 3, 14, 90, 22);
+        hdF3_wood(o, back, 77, true, 0.5);
         for (let k = 0; k < 6; k++) {
-            const x = 9 + k * 15;
-            const g = o.add(HDF3_GLASS, { R: 3, k: 0.9, layer: 1, grad: 0.2 }); hdF3_rr(o, g, x, 19, 9, 17, 2);
-            const sp = o.add(hdRamp(SP[k]), { R: 3, k: 1, layer: 2, grad: 0.1 }); hdF3_rr(o, sp, x + 1, 25, 7, 10, 1);
+            const x = 8 + k * 15;
+            const g = o.add(HDF3_GLASS, { R: 3, k: 0.9, layer: 1, grad: 0.2 }); hdF3_rr(o, g, x, 19, 11, 17, 2);
+            const sp = o.add(hdRamp(SP[k]), { R: 3, k: 1, layer: 2, grad: 0.1 }); hdF3_rr(o, sp, x + 1, 25, 9, 10, 1);
             hdF3_speck(o, sp, k, 0.12, 1);
-            const lid = o.add(hdRamp('#c8a070'), { R: 1, layer: 3 }); o.rect(lid, x, 17, 9, 3);
-            o.px(x + 1, 21, '#ffffff'); o.px(x + 1, 22, '#ffffff'); o.px(x + 1, 26, hdF3_mix(SP[k], '#ffffff', 0.6));
+            const lid = o.add(hdRamp('#c8a070'), { R: 1, layer: 3 }); o.rect(lid, x, 17, 11, 3);
+            o.px(x + 1, 21, '#ffffff'); o.px(x + 1, 22, '#ffffff'); o.px(x + 2, 26, hdF3_mix(SP[k], '#ffffff', 0.6));
         }
         for (const y of [8, 35]) {
             const r = o.add(hdF3_soft('#9a6b3a'), { R: 2, layer: 4, grad: 0.15 }); hdF3_rr(o, r, 0, y, 96, 7, 2);
@@ -637,8 +639,8 @@ hdF3_def('f_wok_stove', 32, 28, 16, 27, s => {
 });
 /* the rice cooker: a domed lid with a grey knob, a cream body, a red panel and a little green light */
 hdF3_def('f_rice_cooker', 16, 16, 8, 15, s => {
-    const body = s.add(hdF3_soft('#f7f3ea'), { layer: 1, R: 7, k: 1, grad: 0.15 }); hdF3_rr(s, body, 9, 16, 30, 26, 6); s.rect(body, 12, 38, 24, 4);
-    const lid = s.add(hdF3_soft('#e8eef6'), { layer: 2, R: 6, k: 1.1, grad: 0.2, cast: 2 }); s.ellipse(lid, 24, 18, 15, 9); s.rect(lid, 9, 17, 30, 3);
+    const body = s.add(hdF3_soft('#f7f3ea'), { layer: 1, R: 7, k: 1, grad: 0.15 }); hdF3_rr(s, body, 9, 16, 30, 24, 3); hdF3_rr(s, body, 12, 36, 24, 6, 2);
+    const lid = s.add(hdF3_soft('#e8eef6'), { layer: 2, R: 5, k: 1.1, grad: 0.2, cast: 2 }); s.ellipse(lid, 24, 15.5, 14.5, 7); s.rect(lid, 10, 15, 28, 4);
     const knob = s.add(hdRamp('#8a96a8'), { layer: 3, R: 2, k: 1.4 }); hdF3_rr(s, knob, 21, 3, 6, 6, 2);
     const panel = s.add(hdRamp('#e0405a'), { layer: 3, R: 2, k: 1.2 }); hdF3_rr(s, panel, 13, 27, 21, 6, 2);
     hdF3_hl(s, panel, 15, 31, 28, 1);
@@ -656,7 +658,7 @@ hdF3_def('f_steamer_stack', 16, 16, 8, 15, s => {
     }
     /* the lid: a low woven dome */
     const lid = s.add(hdF3_soft('#c9a060'), { layer: 5, R: 4, k: 1, grad: 0.25, cast: 2 }); s.ellipse(lid, 24, 7, 19, 7); s.rect(lid, 5, 5, 38, 4);
-    hdF3_later(s, () => hdF3_each(s, lid, (x, y, i) => { if (y > 1 && (((x + y * 2) % 6 === 0) || ((x - y * 2 + 60) % 6 === 0))) s.mods[i] -= 1; }));
+    hdF3_later(s, () => hdF3_each(s, lid, (x, y, i) => { if (y > 1 && y % 3 === 0) s.mods[i] -= 1; }));
     hdF3_box(s, hdF3_soft('#f2d098'), 3, 7, 42, 3, { layer: 6, R: 1, grad: 0 }, 1);
 });
 /* the sushi conveyor: a steel frame round a slatted belt carrying salmon nigiri (the belt's moving plates are drawn
@@ -741,11 +743,11 @@ hdF3_def('f_prize_shelf', 32, 16, 16, 15, s => {
 hdF3_def('f_pottery_shelf', 32, 16, 16, 15, s => {
     hdF3_over(s, o => {
         const V = (col, pts, seed) => { const p = o.add(hdRamp(col), { R: 4, k: 1.2, layer: 1, grad: 0.12 }); o.poly(p, pts); hdF3_speck(o, p, seed, 0.04, -1); return p; };
-        V('#2f5da8', [[12, 12], [17, 12], [17, 15], [21, 20], [21, 33], [19, 36], [10, 36], [8, 33], [8, 20], [12, 15]], 1);
-        V('#e0784a', [[32, 3], [37, 3], [37, 10], [41, 14], [41, 34], [39, 36], [30, 36], [28, 34], [28, 14], [32, 10]], 2);
-        V('#8fc4a1', [[45, 15], [51, 15], [54, 19], [54, 33], [52, 36], [44, 36], [42, 33], [42, 19]], 3);
-        V('#f4efe6', [[62, 9], [68, 9], [71, 13], [72, 33], [70, 36], [61, 36], [59, 33], [59, 13]], 4);
-        V('#b39ae0', [[80, 18], [87, 18], [90, 22], [90, 33], [88, 36], [79, 36], [77, 33], [77, 22]], 5);
+        V('#2f5da8', [[12, 12], [17, 12], [17, 15], [22, 20], [22, 33], [20, 36], [9, 36], [7, 33], [7, 20], [12, 15]], 1);
+        V('#e0784a', [[32, 3], [37, 3], [37, 10], [42, 14], [42, 34], [40, 36], [29, 36], [27, 34], [27, 14], [32, 10]], 2);
+        V('#8fc4a1', [[45, 15], [52, 15], [55, 19], [55, 33], [53, 36], [44, 36], [42, 33], [42, 19]], 3);
+        V('#f4efe6', [[62, 9], [68, 9], [72, 13], [73, 33], [71, 36], [60, 36], [58, 33], [58, 13]], 4);
+        V('#b39ae0', [[80, 18], [87, 18], [91, 22], [91, 33], [89, 36], [78, 36], [76, 33], [76, 22]], 5);
         /* glaze bands and lips */
         for (const [x0, x1, y, c] of [[9, 20, 24, '#a8c4f0'], [29, 40, 22, '#f8b088'], [43, 53, 26, '#d0ecd8'], [60, 71, 20, '#c8a070'], [78, 89, 27, '#e4d8f8']]) for (let x = x0; x <= x1; x++) { o.recolor(x, y, c); o.recolor(x, y + 1, c); }
         const top = o.add(hdF3_soft('#b08050'), { R: 1, layer: 5, grad: 0, bias: 0.05 }); o.rect(top, 3, 35, 90, 2);
@@ -773,8 +775,8 @@ hdF3_def('f_skates_display', 16, 28, 8, 27, s => {
     hdF3_wood(s, block, 61, false, 0.7); hdF3_hl(s, block, 5, 42, 60, 1); hdF3_hl(s, block, 5, 42, 61, 1);
     hdF3_over(s, o => {
         const W = hdPal('#7a7088', '#d8d4e4', '#f6f4fa', '#ffffff', '#ffffff');
-        for (const [dx, L] of [[18, 1], [0, 2]]) {
-            const boot = o.add(W, { R: 4, k: 1.2, layer: L, grad: 0.15 }); hdF3_rr(o, boot, 9 + dx, 21, 13, 27, 3); hdF3_rr(o, boot, 9 + dx, 41, 22 + (dx ? 4 : 0), 13, 5);
+        for (const [dx, L] of [[15, 1], [0, 2]]) {
+            const boot = o.add(W, { R: 4, k: 1.2, layer: L, grad: 0.15 }); hdF3_rr(o, boot, 9 + dx, 21, 13, 27, 3); hdF3_rr(o, boot, 9 + dx, 41, 22 - (dx ? 1 : 0), 13, 5);
             const cuff = o.add(hdRamp('#ff5a6a'), { R: 1, layer: L }); o.rect(cuff, 9 + dx, 21, 13, 3);
             for (let y = 28; y < 42; y += 4) { o.px(14 + dx, y, '#c8c4d4'); o.px(17 + dx, y, '#c8c4d4'); }
             const plate = o.add(HDF3_CHROME, { R: 1, layer: L }); o.rect(plate, 9 + dx, 54, 22, 2);
@@ -862,8 +864,8 @@ hdF3_def('f_shell_lamp', 16, 16, 8, 15, s => {
     const base = s.add(hdF3_soft('#c9a47a'), { layer: 2, R: 3, k: 1.2, grad: 0.3 }); hdF3_rr(s, base, 12, 37, 24, 8, 3);
     const shade = s.add(hdPal('#c07850', '#ffb89a', '#ffd0b0', '#ffe2cc', '#fff4e8'), { layer: 3, R: 4, k: 1, grad: 0.15, cast: 2 });
     s.poly(shade, [[22, 1], [26, 1], [47, 21], [46, 24], [2, 24], [1, 21]]);
-    /* the shell's ribs fanning out from the top, and its scalloped hem */
-    hdF3_later(s, () => hdF3_each(s, shade, (x, y, i) => { const a = (x - 24) / (y + 2); if (Math.abs(((a * 6 + 60) % 1) - 0.5) > 0.42 && y > 4) s.mods[i] -= 1; if ((y % 6) === 2) s.mods[i] -= 1; }));
+    /* the shell's bands in two peaches, and its scalloped hem */
+    hdF3_later(s, () => hdF3_each(s, shade, (x, y, i) => { if (Math.floor((y + 1) / 3) % 2) s.recolor(x, y, hdPal('#b86c48', '#f2a080', '#ffb89a', '#ffcab0', '#ffe2d0')); }));
     for (let x = 4; x < 46; x += 6) { s.erase(x, 24); s.erase(x + 1, 24); }
 });
 /* the shell mirror: a scalloped peach frame with eight pearls round a round glass */
@@ -1087,8 +1089,11 @@ hdF3_def('f_sack_cart', 16, 28, 8, 27, s => {
     const bar = s.add(F, { layer: 1, R: 2, k: 1.5 }); hdF3_rr(s, bar, 4, 1, 40, 7, 3);
     for (const x of [9, 36]) { const u = s.add(F, { layer: 1, R: 2, k: 1.6 }); s.rect(u, x, 6, 4, 64); }
     const toe = s.add(F, { layer: 3, R: 1, k: 1.4 }); s.rect(toe, 9, 66, 31, 4);
-    const sack = s.add(hdF3_soft('#f4efe6'), { layer: 2, R: 7, k: 1, grad: 0.15 }); s.poly(sack, [[16, 30], [32, 30], [36, 36], [36, 64], [12, 64], [12, 36]]); hdF3_rr(s, sack, 12, 40, 24, 26, 5);
-    const tie = s.add(hdF3_soft('#e8dcc8'), { layer: 3, R: 2 }); s.poly(tie, [[18, 30], [30, 30], [27, 27], [21, 27]]); s.rect(tie, 15, 26, 18, 2);
+    const sack = s.add(hdF3_soft('#f4efe6'), { layer: 2, R: 7, k: 1, grad: 0.15 }); hdF3_rr(s, sack, 11, 34, 26, 32, 7); s.poly(sack, [[14, 38], [34, 38], [31, 33], [17, 33]]);
+    const top = s.add(hdF3_soft('#ece4d6'), { layer: 3, R: 3, k: 1.1, grad: 0.2 }); s.poly(top, [[17, 32], [31, 32], [33, 27], [29, 29], [26, 26], [22, 28], [19, 26], [15, 28]]);
+    const tie = s.add(hdRamp('#b08a5a'), { layer: 4, R: 1 }); s.rect(tie, 17, 31, 14, 3);
+    /* creases where the sack slumps */
+    for (const [x, y0, y1] of [[18, 40, 50], [29, 38, 46], [24, 58, 63]]) hdF3_vl(s, sack, x, y0, y1, -1);
     const stripe = s.add(hdRamp('#4f86c6'), { layer: 3, R: 1, grad: 0 }); s.rect(stripe, 12, 54, 24, 3);
     hdF3_speck(s, sack, 7, 0.05, -1);
     const axle = s.add(F, { layer: 2, R: 1 }); s.rect(axle, 13, 72, 22, 3);
@@ -1097,11 +1102,11 @@ hdF3_def('f_sack_cart', 16, 28, 8, 27, s => {
 /* the sawhorse: a beam on splayed legs with an offcut block lying on top */
 hdF3_def('f_sawhorse', 16, 28, 8, 27, s => {
     const L = hdF3_soft('#8a5a33'), Lf = hdF3_soft('#a8733f');
-    for (const [x0, x1] of [[16, 9], [30, 37]]) { const l = s.add(L, { layer: 0, R: 2, k: 1.5 }); s.line(l, x0, 44, x1, 80, 2); }
+    for (const [x0, x1] of [[16, 9], [30, 37]]) { const l = s.add(L, { layer: 0, R: 2, k: 1.5 }); s.line(l, x0, 44, x1, 80, 2.4); }
     const beam = hdF3_box(s, hdF3_soft('#d9a46a'), 3, 36, 42, 9, { layer: 1, R: 2, grad: 0.2 }, 1);
     const btop = hdF3_box(s, hdF3_soft('#f0c890'), 3, 35, 42, 3, { layer: 2, R: 1, grad: 0 }, 1);
     hdF3_wood(s, beam, 101, false, 0.8);
-    for (const [x0, x1] of [[10, 2], [37, 45]]) { const l = s.add(Lf, { layer: 3, R: 2, k: 1.5 }); s.line(l, x0, 43, x1, 80, 2); hdF3_wood(s, l, x0, true, 0.6); }
+    for (const [x0, x1] of [[10, 2.5], [37, 44.5]]) { const l = s.add(Lf, { layer: 3, R: 2, k: 1.5 }); s.line(l, x0, 43, x1, 80, 2.6); hdF3_wood(s, l, x0, true, 0.6); }
     const blk = hdF3_box(s, hdF3_soft('#c98a55'), 12, 24, 24, 12, { layer: 3, R: 2, grad: 0.15, cast: 2 }, 1);
     const bt = hdF3_box(s, hdF3_soft('#e0a870'), 12, 21, 24, 4, { layer: 4, R: 1, grad: 0 }, 1);
     hdF3_wood(s, blk, 102, false, 0.8);
@@ -1245,7 +1250,7 @@ hdF3_def('f_veggie_planter', 32, 28, 16, 27, s => {
 /* the wheelbarrow: a red tray of pumpkins, wooden handles reaching back to the left, the wheel at the front */
 hdF3_def('f_wheelbarrow', 32, 24, 16, 23, s => {
     const H = hdF3_soft('#8a5a33');
-    const h1 = s.add(H, { layer: 0, R: 2, k: 1.5 }); s.line(h1, 24, 40, 7, 57, 1.5); s.ellipse(h1, 7, 57, 2, 2);
+    const h1 = s.add(H, { layer: 0, R: 2, k: 1.5 }); s.line(h1, 22, 38, 3, 53, 1.7); s.ellipse(h1, 3, 53, 2.2, 2.2);
     const legs = s.add(hdRamp('#4a4450'), { layer: 0, R: 1, k: 1.4 }); s.rect(legs, 27, 46, 3, 16); s.rect(legs, 51, 46, 3, 16);
     const wheel = s.add(hdRamp('#2d2a30'), { layer: 1, R: 4, k: 1.3 }); s.ellipse(wheel, 73.5, 52.5, 11, 10.5);
     const tire = s.add(hdRamp('#4a4652'), { layer: 2, R: 2 }); s.ellipse(tire, 73.5, 52.5, 6.5, 6.2);
@@ -1254,11 +1259,126 @@ hdF3_def('f_wheelbarrow', 32, 24, 16, 23, s => {
     const under = s.add(hdF3_soft('#962c21'), { layer: 2, R: 2, grad: 0.1 }); s.poly(under, [[16, 42], [68, 42], [62, 48], [22, 48]]);
     const tray = s.add(hdF3_soft('#c0392b'), { layer: 3, R: 4, grad: 0.2, cast: 2 }); s.poly(tray, [[9, 24], [78, 24], [69, 44], [16, 44]]);
     const lip = s.add(hdF3_soft('#e0584a'), { layer: 4, R: 2, grad: 0 }); s.rect(lip, 8, 23, 71, 4);
-    const h2 = s.add(H, { layer: 5, R: 2, k: 1.5 }); s.line(h2, 18, 44, 0, 60, 1.5); s.ellipse(h2, 0.5, 60, 2, 2);
+    const h2 = s.add(H, { layer: 5, R: 2, k: 1.5 }); s.line(h2, 18, 44, 1, 60, 1.7); s.ellipse(h2, 1.5, 60, 2.2, 2.2);
     hdF3_over(s, o => {
         hdF3_pumpkin(o, 25, 18, 9, 7.5, '#f28a2a', 1, '#5a9e3c');
         hdF3_pumpkin(o, 42, 17, 9, 8, '#f7a040', 1, '#5a9e3c');
         hdF3_pumpkin(o, 59, 18, 9, 7.5, '#e87a20', 1, '#5a9e3c');
     });
     for (let x = 12; x < 74; x++) s.mod(x, 27, -1);
+});
+
+/* ---------------------------------------------------------------- boards on the wall */
+/* the paint swatch board: a wooden frame round a cream panel, two rows of paint chips in today's colors */
+hdF3_def('f_swatch_board', 32, 20, 16, 19, s => {
+    hdF3_sign(s, 0, 0, 96, 60, 3, '#a8865c', '#fbf6ee', 5, 141);
+    hdF3_over(s, o => {
+        const A = ['#c8505a', '#f7962d', '#ffd84a', '#8cc152', '#4ec3d9', '#4f86c6', '#b37cf0', '#ff9ec0'];
+        const B = ['#fbe7d0', '#d9a46a', '#8a5a3c', '#4a4450', '#dcf2e6', '#d4ebf7', '#e2d4f7', '#ffd1ea'];
+        for (const [row, y] of [[A, 12], [B, 33]]) for (let k = 0; k < 8; k++) {
+            const x = 9 + k * 9 + Math.floor(k / 2) * 3;
+            const c = o.add(hdF3_soft(row[k]), { R: 1, k: 1.2, flat: 1, grad: 0.25, cast: 1 }); o.rect(c, x, y, 9, 15);
+            o.px(x + 1, y + 1, hdF3_mix(row[k], '#ffffff', 0.5));
+        }
+    });
+});
+/* the farm tools wall: a planked board with a lantern, a coil of rope, a pitchfork, a rake and a whetstone tray */
+hdF3_def('f_tool_wall', 32, 24, 16, 23, s => {
+    const board = hdF3_box(s, hdF3_soft('#a8733f'), 0, 6, 96, 57, { layer: 1, R: 2, grad: 0.12, flat: 0 }, 2);
+    hdF3_wood(s, board, 151, false, 0.7);
+    for (const x of [18, 48, 78]) { const b = s.add(hdF3_soft('#8a5a33'), { layer: 2, R: 2, k: 1.4, grad: 0.1 }); s.rect(b, x, 7, 4, 55); hdF3_wood(s, b, x, true, 0.6); }
+    const top = hdF3_box(s, hdF3_soft('#8a5a33'), 0, 6, 96, 5, { layer: 3, R: 2, grad: 0.2 }, 2);
+    const bot = hdF3_box(s, hdF3_soft('#8a5a33'), 0, 58, 96, 5, { layer: 3, R: 2, grad: 0.1 }, 2);
+    hdF3_over(s, o => {
+        /* the lantern: a dark cage round a warm glow, hung from a hook */
+        const cage = o.add(hdRamp('#4a4450'), { R: 2, k: 1.3, layer: 1 }); hdF3_rr(o, cage, 27, 16, 15, 22, 3); o.rect(cage, 32, 13, 5, 4);
+        const glow = o.add(hdPal('#c08020', '#f0b030', '#ffd35a', '#ffe68a', '#fff8d0'), { R: 3, k: 0.7, layer: 2, grad: -0.3 }); hdF3_rr(o, glow, 30, 20, 9, 14, 2);
+        o.rect(-1, 34, 20, 1, 14);
+        /* the coil of rope */
+        const rope = o.add(hdRamp('#d8bc90'), { R: 3, k: 1.2, layer: 1 }); o.ellipse(rope, 62.5, 29, 9.5, 9);
+        o.ellipse(-1, 62.5, 29, 3.5, 3.2);
+        hdF3_later(o, () => hdF3_each(o, rope, (x, y, i) => { const r = Math.hypot(x + 0.5 - 62.5, y + 0.5 - 29); if (Math.round(r) % 3 === 0) o.mods[i] -= 1; }));
+        /* the pitchfork, tines down past the board */
+        const M = HDF3_CHROME;
+        const pf = o.add(M, { R: 1, k: 1.4, layer: 1 }); o.rect(pf, 9, 51, 21, 3); for (const x of [9, 15, 21, 27]) o.rect(pf, x, 51, 3, 18);
+        const ph = o.add(hdRamp('#8a5a33'), { R: 1, k: 1.4, layer: 0 }); o.rect(ph, 18, 30, 3, 22);
+        /* the rake */
+        const rk = o.add(M, { R: 1, k: 1.4, layer: 1 }); o.rect(rk, 36, 60, 27, 3); for (let x = 36; x < 63; x += 6) o.rect(rk, x, 62, 2, 8);
+        /* the whetstone tray */
+        const tr = o.add(hdRamp('#8a96a8'), { R: 2, k: 1.3, layer: 1 }); hdF3_rr(o, tr, 69, 53, 18, 8, 1);
+        const st = o.add(hdRamp('#6b6570'), { R: 1, layer: 2 }); o.rect(st, 72, 53, 12, 3);
+    });
+});
+
+/* ---------------------------------------------------------------- rugs (lying flat in the floor) */
+/* the rainbow rug: six woven stripes inside a white edge */
+hdF3_def('f_rainbow_rug', 32, 32, 16, 31, s => {
+    const edge = s.add(hdPal('#b8b0c0', '#e8e4ee', '#ffffff', '#ffffff', '#ffffff'), { layer: 1, R: 2, flat: 1, grad: 0.1 }); hdF3_rr(s, edge, 0, 0, 96, 96, 2);
+    const C = ['#ff5a6a', '#ffa24a', '#ffd84a', '#5ed17a', '#4ea8f0', '#b37cf0'];
+    for (let k = 0; k < 6; k++) {
+        const p = s.add(hdF3_soft(C[k]), { layer: 2, R: 2, flat: 1, grad: 0.14 }); s.rect(p, 3, 3 + k * 15, 90, 15);
+        /* the weave: a faint rib where each stripe meets the next */
+        hdF3_hl(s, p, 3, 92, 3 + k * 15, 1);
+    }
+});
+/* the round rug: a braided rag rug in three pinks */
+hdF3_def('f_rug_round', 32, 32, 16, 31, s => {
+    const P = [['#e0647a', 47.5, 41.5], ['#f7a8b8', 34, 29.5], ['#fff0f4', 21, 18]];
+    P.forEach(([c, rx, ry], k) => { const p = s.add(hdF3_soft(c), { layer: 1 + k, R: 3, flat: 1, grad: 0.15 }); s.ellipse(p, 48, 47.5, rx, ry); });
+    /* the braid: coil after coil, each catching the light on its upper side */
+    hdF3_later(s, () => { for (let y = 0; y < 96; y++) for (let x = 0; x < 96; x++) { const i = y * 96 + x; if (s.part[i] < 0) continue; const u = (x + 0.5 - 48) / 48, v = (y + 0.5 - 47.5) / 42, r = Math.hypot(u, v) * 11, f = r - Math.floor(r); if (f < 0.11) s.mods[i] -= 1; else if (f > 0.25 && f < 0.5 && u + v < -0.05) s.mods[i] += 1; } });
+});
+/* the tatami: two mats of woven rush, a dark green cloth edge round each */
+hdF3_def('f_tatami', 32, 32, 16, 31, s => {
+    for (const x0 of [0, 48]) {
+        const edge = s.add(hdF3_soft('#6b8a3a'), { layer: 1, R: 2, flat: 1, grad: 0.1 }); s.rect(edge, x0, 0, 48, 96);
+        const mat = s.add(hdPal('#6b7a30', '#aab468', '#c9d08a', '#d6dca0', '#e4e8b8'), { layer: 2, R: 2, flat: 1, grad: 0.15 }); s.rect(mat, x0 + 3, 3, 42, 90);
+        for (let y = 3; y < 93; y++) for (let x = x0 + 3; x < x0 + 45; x++) { if (y % 3 === 2) hdF3_m(s, mat, x, y, -1); else if (y % 3 === 0 && (x * 7 + y) % 11 === 0) hdF3_m(s, mat, x, y, 1); }
+    }
+});
+
+/* ---------------------------------------------------------------- Gerald the tractor */
+/* a wheel: a dark tyre with tread notches round its edge, a yellow rim with spokes, a bronze hub */
+function hdF3_wheel(s, cx, cy, r, rr, hx, layer) {
+    const tyre = s.add(hdPal('#141218', '#1e1c22', '#2d2a30', '#3e3b44', '#56525e'), { layer, R: 6, k: 1.1, grad: 0.15 }); s.ellipse(tyre, cx, cy, r, r);
+    hdF3_later(s, () => hdF3_each(s, tyre, (x, y, i) => { const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy), a = Math.atan2(y + 0.5 - cy, x + 0.5 - cx); if (d > r - 1.5 && Math.abs(Math.sin(a * Math.round(r * 0.6))) < 0.35) s.erase(x, y); else if (d > r - 5 && Math.abs(Math.sin(a * Math.round(r * 0.6))) < 0.25) s.mods[i] -= 1; }));
+    const rim = s.add(hdPal('#7a5a10', '#c49a28', '#e8c040', '#f4d870', '#fff0b0'), { layer: layer + 1, R: rr * 0.5, k: 1.1 }); s.ellipse(rim, hx, cy, rr, rr);
+    hdF3_later(s, () => hdF3_each(s, rim, (x, y, i) => { const d = Math.hypot(x + 0.5 - hx, y + 0.5 - cy), a = Math.atan2(y + 0.5 - cy, x + 0.5 - hx); if (d < rr - 2 && d > rr * 0.3 && Math.abs(Math.sin(a * 3)) < 0.22) s.mods[i] -= 1; if (Math.abs(d - (rr - 3)) < 0.6) s.mods[i] -= 1; }));
+    const hub = s.add(hdRamp('#8a6a2a'), { layer: layer + 2, R: 2, k: 1.3 }); s.ellipse(hub, hx, cy, rr * 0.28, rr * 0.28);
+}
+hdF3_def('f_tractor', 48, 44, 24, 43, s => {
+    /* the rear wheel, and the front one */
+    hdF3_wheel(s, 38.5, 91.5, 32.5, 18, 40.5, 1);
+    /* the body: dark chassis under the hood, the hood with its light top, a side panel, the grille and its headlight */
+    const ch = hdF3_box(s, hdRamp('#2d2a30'), 54, 84, 75, 12, { layer: 2, R: 2 });
+    const hood = hdF3_box(s, hdF3_soft('#4a9a52'), 57, 57, 70, 35, { layer: 3, R: 4, grad: 0.15 }, 3);
+    const htop = hdF3_box(s, hdF3_soft('#7ec87a'), 68, 56, 59, 6, { layer: 4, R: 2, grad: 0, bias: 0.04 }, 2);
+    const pan = hdF3_box(s, hdF3_soft('#3f8a3a'), 75, 66, 30, 15, { layer: 4, R: 2, grad: 0.1 }, 1);
+    hdF3_hl(s, pan, 76, 103, 66, -1); hdF3_hl(s, hood, 58, 125, 90, -1); hdF3_hl(s, hood, 58, 125, 91, -1);
+    for (let y = 69; y < 79; y += 3) hdF3_hl(s, pan, 78, 101, y, -1);
+    const grille = hdF3_box(s, hdRamp('#4a4450'), 123, 51, 15, 45, { layer: 5, R: 3, k: 1.2 }, 3);
+    for (let y = 54; y < 93; y += 4) { hdF3_rc(s, grille, 125, y, '#6b6570'); for (let x = 125; x < 136; x++) { hdF3_rc(s, grille, x, y, '#6b6570'); hdF3_rc(s, grille, x, y + 1, '#6b6570'); } }
+    const lamp = s.add(hdPal('#a07010', '#e8b830', '#ffd35a', '#ffe88a', '#fffbe0'), { layer: 6, R: 2, k: 1.2 }); hdF3_rr(s, lamp, 130, 68, 6, 8, 2);
+    /* the fender arching over the rear wheel */
+    const fen = s.add(hdF3_soft('#3f8a3a'), { layer: 5, R: 3, k: 1.2, grad: 0.2, cast: 2 });
+    for (let y = 40; y < 80; y++) for (let x = 0; x < 72; x++) { const d = Math.hypot(x + 0.5 - 39, y + 0.5 - 96), a = Math.atan2(y + 0.5 - 96, x + 0.5 - 39) * 180 / Math.PI; if (d > 35 && d < 43 && a > -147 && a < -55) s.plot(fen, x, y); }
+    s.rect(fen, 50, 54, 10, 8);
+    hdF3_later(s, () => hdF3_each(s, fen, (x, y, i) => { const d = Math.hypot(x + 0.5 - 39, y + 0.5 - 96); if (d < 37) s.mods[i] -= 1; if (d > 41) s.mods[i] += 1; }));
+    hdF3_wheel(s, 115.5, 106.5, 17, 9.5, 116, 7);
+    /* the exhaust pipe with its cap and a wisp of smoke */
+    const pipe = hdF3_box(s, hdRamp('#4a4450'), 105, 15, 9, 44, { layer: 3, R: 3, k: 1.6 });
+    const cap = hdF3_box(s, hdRamp('#2d2a30'), 101, 11, 18, 7, { layer: 4, R: 2, k: 1.3 }, 2);
+    hdF3_over(s, o => { const P = hdPal('#a8a8b8', '#d0d0dc', '#e4e4ec', '#f0f0f6', '#ffffff'); for (const [x, y, r] of [[111.5, 5.5, 2.6], [115.5, 1.8, 1.8]]) { const p = o.add(P, { R: 2, k: 0.8 }); o.ellipse(p, x, y, r, r * 0.9); } });
+    /* the seat: an upholstered back and cushion on the fender */
+    const back = hdF3_box(s, hdF3_soft('#6b4225'), 18, 21, 12, 27, { layer: 6, R: 3, grad: 0.15 }, 3);
+    const cush = hdF3_box(s, hdF3_soft('#6b4225'), 20, 38, 33, 11, { layer: 7, R: 3, grad: 0.2, cast: 2 }, 3);
+    const ctop = hdF3_box(s, hdF3_soft('#8a5a33'), 22, 36, 30, 4, { layer: 8, R: 1, grad: 0, bias: 0.05 }, 2);
+    hdF3_vl(s, back, 20, 24, 44, 1);
+    /* the steering wheel on its column */
+    const col = s.add(hdRamp('#2d2a30'), { layer: 4, R: 1, k: 1.5 }); s.line(col, 62, 35, 57, 57, 1.6);
+    const sw = s.add(hdRamp('#3a3640'), { layer: 5, R: 2, k: 1.3 }); s.ellipse(sw, 63, 31, 11.5, 4.5);
+    s.ellipse(-1, 63, 31, 7.5, 1.6);
+    /* rust spots and bolts */
+    for (const [x, y] of [[81, 63], [61, 81], [99, 87]]) { s.px(x, y, '#a8733f'); s.px(x + 1, y, '#8a5a33'); s.px(x, y + 1, '#8a5a33'); s.px(x + 1, y + 1, '#a8733f'); }
+    for (const [x, y] of [[60, 60], [123, 60], [60, 87]]) { s.px(x, y, '#2f6a34'); s.px(x - 1, y - 1, '#8ad888'); }
 });

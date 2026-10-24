@@ -33,6 +33,20 @@ function hdF1_fin(s, soft) {
     s.f1m = s.f1r = s.f1q = null;
 }
 
+/* a shadow cast straight down by part id onto lower parts, depth rows under its lower edge */
+function hdF1_drop(s, id, depth) { hdF1_later(s, () => {
+    const W = s.w, L = s.parts[id].layer, done = new Uint8Array(W * s.h);
+    for (let y = 0; y < s.h; y++) for (let x = 0; x < W; x++) {
+        if (s.part[y * W + x] !== id || s.at(x, y + 1) === id) continue;
+        for (let d = 1; d <= depth; d++) {
+            const p = s.at(x, y + d);
+            if (p < 0 || p === id) break;
+            if (s.parts[p].layer >= L || done[(y + d) * W + x]) continue;
+            done[(y + d) * W + x] = 1;
+            s.mod(x, y + d, -1);
+        }
+    }
+}); }
 /* a part filled with a rectangle (or a rounded one, r) */
 function hdF1_box(s, mat, x, y, w, h, o, r) { const id = s.add(mat, o); hdF1_rr(s, id, x, y, w, h, r || 0); return id; }
 function hdF1_rr(s, id, x, y, w, h, r) {
@@ -52,6 +66,16 @@ function hdF1_grain(s, id, x0, y0, w, h, seed, sp, vert) {
         if (t - row * sp >= 1) continue;
         if (hdF1_h(Math.floor((u + row * 7) / (vert ? 22 : 15)), row, seed) < (vert ? 0.55 : 0.42)) continue;
         hdF1_m(s, id, x0 + i, y0 + j, -1);
+    }
+}
+/* raised panels between seams every step columns from x0: a dark seam, a lit edge right of it, a soft shade on the far
+   side, lit along the top and shaded along the bottom */
+function hdF1_panels(s, id, x0, y0, x1, y1, step, seed) {
+    for (let x = x0; x <= x1; x++) {
+        const r = ((x - x0) % step + step) % step, k = Math.floor((x - x0) / step);
+        const d = r === 0 ? -2 : r === 1 || r === 2 ? 1 : r === step - 1 ? -1 : 0;
+        if (d) for (let y = y0; y <= y1; y++) hdF1_m(s, id, x, y, d);
+        if (r === 0) for (let i = 1; i < step - 1; i++) { hdF1_m(s, id, x + i, y0, 1); hdF1_m(s, id, x + i, y1, -1); }
     }
 }
 /* specks of a lighter (d > 0) or darker shade: stone, hay, felt */
@@ -111,20 +135,6 @@ function hdF1_cab(s, k) {
     hdF1_drop(s, mq, 2);
     hdF1_fin(s);
 }
-/* a shadow cast straight down by part id onto lower parts, depth rows under its lower edge */
-function hdF1_drop(s, id, depth) { hdF1_later(s, () => {
-    const W = s.w, L = s.parts[id].layer, done = new Uint8Array(W * s.h);
-    for (let y = 0; y < s.h; y++) for (let x = 0; x < W; x++) {
-        if (s.part[y * W + x] !== id || s.at(x, y + 1) === id) continue;
-        for (let d = 1; d <= depth; d++) {
-            const p = s.at(x, y + d);
-            if (p < 0 || p === id) break;
-            if (s.parts[p].layer >= L || done[(y + d) * W + x]) continue;
-            done[(y + d) * W + x] = 1;
-            s.mod(x, y + d, -1);
-        }
-    }
-}); }
 const HDF1_CABS = {
     fruit: { body: '#8cc152', side: '#709547', marq: '#ff9ec0', band: '#ffc0d6', deckTop: '#a3cd75', deck: '#7ba64b', door: '#81af4e', ball: '#ff7a8a', stick: '#e0405a', b1: '#ffd84a', b2: '#4ec3d9' },
     blocks: { body: '#4a74c9', side: '#3e5ba0', marq: '#ffd45a', band: '#ffe394', deckTop: '#6e90d4', deck: '#4365b1', door: '#456ab9', ball: '#ff7a8a', stick: '#e0405a', b1: '#ffd84a', b2: '#4ec3d9' },
@@ -198,8 +208,7 @@ HD_SPR.f_counter_shop = {
         const [t, e] = hdF1_top(s, '#ecd2a4', '#b87e50', 0, 21, 144, 24, 3);
         const bd = hdF1_box(s, hdPal('#7a4a14', '#c88a2a', '#e9a93b', '#f4c25a', '#fbd98a'), 0, 51, 144, 6, { layer: 3, R: 1.5, grad: 0.3, cast: 2 });
         hdF1_grain(s, t, 0, 25, 144, 19, 3, 4);
-        hdF1_grain(s, fr, 0, 58, 144, 26, 5, 9, true);
-        for (let x = 18; x < 140; x += 24) { hdF1_vl(s, fr, x, 60, 81, -1); hdF1_vl(s, fr, x + 1, 60, 81, 1); hdF1_vl(s, fr, x - 1, 60, 81, -1); }
+        hdF1_panels(s, fr, -6, 60, 142, 81, 24, 5);
         hdF1_hl(s, fr, 1, 142, 81, 1);
         hdF1_drop(s, bd, 2); hdF1_drop(s, e, 2);
         hdF1_fin(s);
@@ -259,8 +268,7 @@ HD_SPR.f_disp_counter = {
         const t = hdF1_box(s, hdF1_soft('#8a5a33'), 0, 24, 144, 15, { layer: 4, R: 2, grad: 0.2, cast: 2 });
         const lip = hdF1_box(s, hdF1_soft('#a8733f'), 0, 24, 144, 4, { layer: 4.5, R: 1, grad: 0.2 });
         hdF1_grain(s, t, 0, 28, 144, 10, 8, 4);
-        hdF1_grain(s, fr, 0, 40, 144, 31, 9, 9, true);
-        for (let x = 18; x < 140; x += 24) { hdF1_vl(s, fr, x - 1, 41, 71, -1); hdF1_vl(s, fr, x, 41, 71, -1); hdF1_vl(s, fr, x + 1, 41, 71, 1); }
+        hdF1_panels(s, fr, -6, 41, 142, 71, 24, 9);
         hdF1_box(s, hdF1_soft('#6b4a2a'), 0, 72, 144, 9, { layer: 3, R: 1, grad: 0.15 });
         hdF1_drop(s, t, 2);
         hdF1_fin(s);
@@ -415,7 +423,7 @@ function hdF1_bed(s, o) {
     else hdF1_hl(s, hb, 2, 93, 7, 1);
     const sh = hdF1_box(s, hdF1_soft(o.sheet), 0, 27, 96, 30, { layer: 3, R: 2, grad: 0.15 });
     for (const x of [10, 49]) {
-        const p = s.add(hdF1_soft(o.pillow), { layer: 4, R: 5, grad: 0.25, cast: 2, k: 1 });
+        const pm = hdF1_soft(o.pillow), p = s.add([pm[0], hdF1_mix(pm[1], pm[2], 0.4), pm[2], [255, 255, 255], [255, 255, 255]], { layer: 4, R: 5, grad: 0.2, cast: 2, k: 1 });
         hdF1_rr(s, p, x + 1, 27, 35, 21, 5);
         hdF1_m(s, p, x + 18, 33, -1); hdF1_m(s, p, x + 18, 34, -1); hdF1_m(s, p, x + 17, 40, -1);
     }
@@ -423,7 +431,7 @@ function hdF1_bed(s, o) {
     const fold = hdF1_box(s, hdRamp(o.fold), 0, 53, 96, 6, { layer: 6, R: 2.5, grad: 0.3, cast: 2 });
     const fr = hdF1_box(s, hdF1_soft(o.front), 0, 96, 96, 36, { layer: 4.5, R: 2, grad: 0.12 });
     /* soft wrinkles where the blanket bends over the edge, and a couple across the top */
-    for (const [x, y, n] of [[10, 72, 16], [58, 80, 20]]) for (let i = 0; i < n; i++) { const yy = y + Math.round(Math.sin(i / n * Math.PI) * 2); hdF1_m(s, bl, x + i, yy, -1); if (i > 2 && i < n - 3) hdF1_m(s, bl, x + i, yy - 1, 1); }
+    for (let x = 1; x < 95; x++) hdF1_m(s, bl, x, 94, -1);
     for (const x of [30, 66]) for (let y = 104; y < 129; y++) { hdF1_m(s, fr, x, y, -1); hdF1_m(s, fr, x - 1, y, 1); }
     hdF1_hl(s, fr, 1, 94, 98, 1);
     /* the weighted blanket's pockets: dashed stitching in a grid */
@@ -952,7 +960,10 @@ HD_SPR.f_disp_fountain = {
         hdF1_later(s, () => s.each(wt, (x, y) => { const u = (x + 0.5 - 48) / 42, v = (y + 0.5 - 74) / 15, r = u * u + v * v; if (r < 0.62) s.recolor(x, y, hdPal('#3a7aa8', '#6aaed8', '#8fd0f0', '#b0e0f6', '#e0f6ff')); }));
         for (const [x, y, w] of [[20, 70, 8], [62, 67, 10], [36, 82, 9], [70, 80, 6]]) for (let i = 0; i < w; i++) hdF1_m(s, wt, x + i, y, 2);
         const rim = s.add(HDF1_STONE, { layer: 3, R: 2, grad: 0.2 });
-        for (let y = 56; y < 100; y++) for (let x = 0; x < 96; x++) { const u = (x + 0.5 - 48) / 48, v = (y + 0.5 - 77) / 20, u2 = (x + 0.5 - 48) / 43, v2 = (y + 0.5 - 74) / 15.5; if ((u * u + v * v <= 1 || (y >= 77 && y <= 80 && x > 0 && x < 95)) && (u2 * u2 + v2 * v2 > 1) && y >= 73) s.plot(rim, x, y); }
+        for (let y = 73; y < 100; y++) for (let x = 0; x < 96; x++) {
+            const u = (x + 0.5 - 48) / 48, v = (y + 0.5 - 77) / 20, u2 = (x + 0.5 - 48) / 43, v2 = (y + 0.5 - 74) / 15.5;
+            if ((u * u + v * v <= 1 || (y >= 77 && y <= 80 && x > 0 && x < 95)) && u2 * u2 + v2 * v2 > 1) s.plot(rim, x, y);
+        }
         const rf = s.add(HDF1_STONE, { layer: 3.2, R: 3, grad: 0.15 });
         for (let y = 77; y < 99; y++) for (let x = 2; x < 94; x++) { const u = (x + 0.5 - 48) / 46, v = (y + 0.5 - 81) / 17; if (u * u + v * v <= 1 && y >= 84) s.plot(rf, x, y); }
         /* the pedestal and the upper bowl, water spilling from its lip */
@@ -1069,12 +1080,12 @@ HD_SPR.f_bonsai = {
     w: 48, h: 48, ax: 24, ay: 45,
     draw(s) {
         const pot = s.add(hdPal('#24365a', '#34508a', '#4a6aa0', '#6484b4', '#86a2c8'), { layer: 1, R: 2.5, grad: 0.2 });
-        s.poly(pot, [[13, 33], [35, 33], [33, 44], [15, 44]]);
-        const rim = hdF1_box(s, hdPal('#24365a', '#34508a', '#4a6aa0', '#6484b4', '#86a2c8'), 12, 31, 24, 4, { layer: 2, R: 1.5, grad: 0.4 }, 1);
-        const sl = s.add(hdPal('#2e1e14', '#4a3222', '#5e4230', '#74543c', '#8a6a4a'), { layer: 1.5, R: 1, grad: 0 }); s.rect(sl, 14, 31, 20, 2);
+        s.poly(pot, [[12, 33], [42, 33], [40, 44], [14, 44]]);
+        const rim = hdF1_box(s, hdPal('#24365a', '#34508a', '#4a6aa0', '#6484b4', '#86a2c8'), 11, 30, 32, 4, { layer: 2, R: 1.5, grad: 0.4 }, 1);
+        hdF1_hl(s, pot, 14, 39, 40, -1);
         /* a twisted trunk, then cloud-pruned pads of needles */
         const tr = s.add(hdPal('#3a2214', '#5e3c22', '#7a5234', '#946a48', '#aa825c'), { layer: 3, R: 2, grad: 0.1 });
-        s.line(tr, 24, 33, 20, 26, 2.4, 1.8); s.line(tr, 20, 26, 23, 21, 1.8, 1.5); s.line(tr, 23, 21, 29, 17, 1.5, 1.2); s.line(tr, 21, 23, 14, 18, 1.2, 0.9);
+        s.line(tr, 25, 31, 20, 26, 2.4, 1.8); s.line(tr, 20, 26, 23, 21, 1.8, 1.5); s.line(tr, 23, 21, 29, 17, 1.5, 1.2); s.line(tr, 21, 23, 14, 18, 1.2, 0.9);
         const pads = [[21, 11, 13, 7], [34, 8, 10, 6], [10, 14, 9, 6], [30, 15, 10, 5]];
         for (const [x, y, rx, ry] of pads) { const p = s.add(hdPal('#163e1a', '#2a6a2c', '#3f8f3a', '#5aa850', '#7cc46a'), { layer: 4 + y * 0.01, R: 5, grad: 0.4 }); s.ellipse(p, x, y, rx, ry); hdF1_leaves(s, p, x - rx, y - ry, rx * 2 + 1, ry * 2 + 1, x * 7 + y, 3); }
         hdF1_fin(s);
@@ -1141,7 +1152,9 @@ HD_SPR.f_clock_wall = {
         const fc = s.add(hdF1_soft('#fff7f1'), { layer: 2, R: 6, grad: 0.15, bias: 0.02 });
         s.ellipse(fc, 24, 24, 16.5, 16);
         hdF1_later(s, () => s.each(fc, (x, y) => { const d = Math.hypot(x + 0.5 - 24, y + 0.5 - 24); if (d > 15) s.mod(x, y, -1); }));
-        for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, r = k % 3 ? 13.5 : 13; s.px(Math.round(24 + Math.sin(a) * r - 0.5), Math.round(24 - Math.cos(a) * r - 0.5), '#8a7a7a'); if (!(k % 3)) s.px(Math.round(24 + Math.sin(a) * (r - 1) - 0.5), Math.round(24 - Math.cos(a) * (r - 1) - 0.5), '#8a7a7a'); }
+        /* the hour marks, longer at twelve, three, six and nine */
+        const mark = (a, r) => s.px(Math.round(24 + Math.sin(a) * r - 0.5), Math.round(24 - Math.cos(a) * r - 0.5), '#8a7a7a');
+        for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; mark(a, k % 3 ? 13.5 : 13); if (!(k % 3)) mark(a, 12); }
         /* the hands at three o'clock */
         for (let y = 12; y < 24; y++) { s.px(23, y, '#3b2a45'); if (y > 15) s.px(24, y, '#3b2a45'); }
         for (let x = 23; x < 33; x++) { s.px(x, 23, '#3b2a45'); s.px(x, 24, x < 31 ? '#3b2a45' : '#5a4a64'); }
@@ -1274,7 +1287,11 @@ HD_SPR.f_framed_poem = {
         const [x, y, w, h] = hdF1_frame(s, hdPal('#6a4a1e', '#a88440', '#c9a462', '#dcbc80', '#ecd4a0'), 0, 0, 48, 48, 5);
         hdF1_paper(s, '#fff7f1', x, y, w, h);
         /* four lines of handwriting, the last a little short, and a small red heart */
-        for (const [ly, lw, sd] of [[13, 21, 1], [19, 24, 2], [25, 18, 3], [31, 21, 4]]) for (let i = 0; i < lw; i++) { const dy = Math.round(Math.sin(i * 1.3 + sd) * 0.6); if (hdF1_h(i, ly, sd) > 0.15) s.px(12 + i, ly + dy, '#8a7a9a'); if (hdF1_h(i, ly, sd + 9) > 0.7) s.px(12 + i, ly + dy - 1, '#b0a4bc'); }
+        for (const [ly, lw, sd] of [[13, 21, 1], [19, 24, 2], [25, 18, 3], [31, 21, 4]]) for (let i = 0; i < lw; i++) {
+            const dy = Math.round(Math.sin(i * 1.3 + sd) * 0.6);
+            if (hdF1_h(i, ly, sd) > 0.15) s.px(12 + i, ly + dy, '#8a7a9a');
+            if (hdF1_h(i, ly, sd + 9) > 0.7) s.px(12 + i, ly + dy - 1, '#b0a4bc');
+        }
         hdF1_dots(s, [[33, 34], [35, 34], [32, 35], [33, 35], [34, 35], [35, 35], [36, 35], [33, 36], [34, 36], [35, 36], [34, 37]], '#e0405a');
         s.px(33, 35, '#ff8a9a');
         hdF1_fin(s);
@@ -1344,7 +1361,12 @@ function hdF1_paint(s, id, fn, seed) {
         if (r > 0.95) s.mod(x, y, 1); else if (r < 0.03) s.mod(x, y, -1);
     }));
 }
-function hdF1_canvas(s, x, y, w, h) { const c = hdF1_box(s, hdPal('#3a2e40', '#7a6e80', '#b0a8b0', '#c8c0c8', '#e0dce0'), x, y, w, h, { layer: 1, flat: 1, grad: 0 }); hdF1_later(s, () => { for (let i = x; i < x + w; i++) { s.mod(i, y, -1); s.mod(i, y + 1, -1); } for (let j = y; j < y + h; j++) s.mod(x, j, -1); }); return c; }
+/* the canvas inside a frame, shaded along the frame's top and left */
+function hdF1_canvas(s, x, y, w, h) {
+    const c = hdF1_box(s, hdPal('#3a2e40', '#7a6e80', '#b0a8b0', '#c8c0c8', '#e0dce0'), x, y, w, h, { layer: 1, flat: 1, grad: 0 });
+    hdF1_later(s, () => { for (let i = x; i < x + w; i++) { s.mod(i, y, -1); s.mod(i, y + 1, -1); } for (let j = y; j < y + h; j++) s.mod(x, j, -1); });
+    return c;
+}
 HD_SPR.f_art_goat = {
     w: 96, h: 78, ax: 48, ay: 75,
     draw(s) {
@@ -1480,7 +1502,11 @@ HD_SPR.f_chalkboard = {
         const ch = (x, y, c) => s.px(x, y, c || '#e8eef6');
         for (let x = 12; x < 33; x++) { if (hdF1_h(x, 1, 3) > 0.15) ch(x, 16); if (hdF1_h(x, 2, 3) > 0.6) ch(x, 17, '#a8b8b0'); }
         for (let x = 12; x < 45; x++) { if (hdF1_h(x, 3, 3) > 0.15) ch(x, 25); if (hdF1_h(x, 4, 3) > 0.6) ch(x, 26, '#a8b8b0'); }
-        for (let i = 0; i <= 22; i++) { const t = i / 22; ch(Math.round(55 + t * 24), Math.round(15 + t * 16)); ch(Math.round(79 - t * 24), Math.round(15 + t * 16)); if (i % 3) { ch(Math.round(56 + t * 24), Math.round(15 + t * 16)); ch(Math.round(78 - t * 24), Math.round(15 + t * 16)); } }
+        for (let i = 0; i <= 22; i++) {
+            const t = i / 22, y = Math.round(15 + t * 16);
+            ch(Math.round(55 + t * 24), y); ch(Math.round(79 - t * 24), y);
+            if (i % 3) { ch(Math.round(56 + t * 24), y); ch(Math.round(78 - t * 24), y); }
+        }
         /* the chalk tray with a stick of chalk */
         const tr = hdF1_box(s, hdPal('#3e2410', '#62401e', '#8a5a33', '#a0703e', '#b88650'), 3, 40, 90, 5, { layer: 3, R: 1.5, grad: 0.3, cast: 2 });
         const ck = hdF1_box(s, hdF1_soft('#f4f4f0'), 62, 38, 9, 3, { layer: 4, R: 1, grad: 0.3 });
@@ -1546,7 +1572,9 @@ HD_SPR.f_feed_sacks = {
         const b = hdF1_sack(s, bur, 50, 27, 46, 48, { layer: 1.5, tie });
         const c = hdF1_sack(s, bur, 25, 3, 46, 45, { layer: 3, tie });
         /* burlap weave, and the green feed labels */
-        for (const [id, x0, y0, w, h] of [[a, 0, 27, 45, 48], [b, 50, 27, 46, 48], [c, 25, 3, 46, 45]]) for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if ((x + y * 2) % 6 === 0 && y % 2 === 0 && hdF1_h(x, y, 7) > 0.5) hdF1_m(s, id, x, y, 1); else if (hdF1_h(x, y, 8) < 0.025) hdF1_m(s, id, x, y, -1);
+        for (const [id, x0, y0, w, h] of [[a, 0, 27, 45, 48], [b, 50, 27, 46, 48], [c, 25, 3, 46, 45]]) for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) {
+            if ((x + y * 2) % 6 === 0 && y % 2 === 0 && hdF1_h(x, y, 7) > 0.5) hdF1_m(s, id, x, y, 1); else if (hdF1_h(x, y, 8) < 0.025) hdF1_m(s, id, x, y, -1);
+        }
         for (const [id, x0, x1, y] of [[a, 6, 32, 51], [b, 59, 87, 51], [c, 31, 57, 30]]) for (let yy = y; yy < y + 6; yy++) for (let x = x0; x <= x1; x++) hdF1_rc(s, id, x, yy, band);
         hdF1_drop(s, c, 3);
         hdF1_fin(s);
