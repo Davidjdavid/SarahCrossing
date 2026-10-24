@@ -311,13 +311,15 @@ const R3 = {
         const cx0 = Math.max(0, Math.floor(V.x0 / R3_CHUNK)), cx1 = Math.min(Math.ceil(a.w * TILE / R3_CHUNK) - 1, Math.floor(V.x1 / R3_CHUNK));
         const cy0 = Math.max(0, Math.floor(V.y0 / R3_CHUNK)), cy1 = Math.min(Math.ceil(a.h * TILE / R3_CHUNK) - 1, Math.floor(V.y1 / R3_CHUNK));
         let made = 0;
-        const want = new Set();
-        for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+        const want = new Set(), order = [], mx = this.target.x * TILE / R3_CHUNK - 0.5, my = this.target.z / R3_ZS * TILE / R3_CHUNK - 0.5;
+        for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) order.push([cx, cy, (cx - mx) * (cx - mx) + (cy - my) * (cy - my)]);
+        order.sort((p, q) => p[2] - q[2]);                  // nearest first: after a jump, the ground at Sarah's feet comes first
+        for (const [cx, cy] of order) {
             const k = cx + ',' + cy;
             want.add(k);
             let ch = this.chunks.get(k);
             if (!ch) {
-                if (made >= (this.phone ? 1 : 3) && this.chunks.size) continue;        // a few new pieces a frame (each one a few ms), nearest first next time
+                if (made >= (this.phone ? 1 : 3) && this.chunks.size) continue;        // a few new pieces a frame (each one a few ms)
                 ch = makeChunk(this.scene, cx, cy);
                 this.chunks.set(k, ch);
                 paintChunk(ch, a);
@@ -731,7 +733,7 @@ const R3_CHUNK = 240, R3_PAD = 8, R3_CHUNKPX = R3_CHUNK + 2 * R3_PAD;     // wor
 /* ---------------------------------------------------------------- grass */
 /* tufts of grass on the grass near the camera, swaying in the breeze: one instanced mesh (one draw for all of them),
    refilled as the view moves; four shapes of tuft, in the season's colors */
-const R3_TUFT_MAX = 2600;
+const R3_TUFT_MAX = 6000, R3_TUFT_PHONE = 2600;      // (computers get them denser)
 function r3TuftCanvas(season) {
     // drawn blade by blade (darker at the root, lighter at the tip): a shaded outline would turn blades this thin black
     const S = 24, V = 4, cv = document.createElement('canvas');
@@ -791,10 +793,12 @@ function r3FillTufts(t, a, V) {
     const x0 = Math.max(0, Math.floor(V.x0 / TILE) - 1), x1 = Math.min(a.w - 1, Math.ceil(V.x1 / TILE) + 1);
     const y0 = Math.max(0, Math.floor(V.y0 / TILE) - 1), y1 = Math.min(a.h - 1, Math.ceil(V.y1 / TILE) + 2);
     let n = 0;
-    for (let ty = y0; ty <= y1 && n < R3_TUFT_MAX; ty++) for (let tx = x0; tx <= x1 && n < R3_TUFT_MAX; tx++) {
+    const cap = R3.phone ? R3_TUFT_PHONE : R3_TUFT_MAX, dense = !R3.phone;
+    // nearest rows first, so if there are more than fit, the far ones (smallest on screen) go without
+    for (let ty = y1; ty >= y0 && n < cap; ty--) for (let tx = x0; tx <= x1 && n < cap; tx++) {
         if (W0.grid[ty][tx] !== 'g' || a.blocked[ty * a.w + tx] || isPathish(tx, ty)) continue;
-        const h = hash32(tx + ',' + ty), k = h % 6 < 3 ? 1 : h % 6 < 5 ? 2 : 0;
-        for (let i = 0; i < k && n < R3_TUFT_MAX; i++) {
+        const h = hash32(tx + ',' + ty), k = (dense ? [2, 3, 2, 4, 3, 1] : [1, 2, 2, 3, 1, 0])[h % 6];
+        for (let i = 0; i < k && n < cap; i++) {
             const hh = hash32(h + ':' + i), fx = (tx + 0.15 + (hh % 70) / 100) * TILE, fy = (ty + 0.2 + ((hh >> 8) % 70) / 100) * TILE, s = 0.75 + ((hh >> 16) % 50) / 100;
             ps.set(fx / TILE, r3GroundH(fx, fy), fy / TILE * R3_ZS);
             sc.set(s, s, 1);                     // (not mirrored: a flipped quad would face away from the sun and go dark)
