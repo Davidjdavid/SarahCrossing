@@ -181,11 +181,14 @@ const Online = {
         }
         if (b) b.hidden = !show;
     },
-    frameOf(o) {
+    frameKey(o) {
         const side = o.dir === 'left' || o.dir === 'right', d = side ? 'side' : o.dir;
         let b = 'stand';
         if (o.walking) { const k = Math.floor(o.anim / (o.run ? 5 : 8)) % 4; b = k === 1 ? 'walkA' : k === 3 ? 'walkB' : 'stand'; }
-        const f = o.sit ? 'down_sit' : `${d}_${b}`;
+        return o.sit ? 'down_sit' : `${d}_${b}`;
+    },
+    frameOf(o) {
+        const f = this.frameKey(o);
         if (o.who === 'sarah') {
             const outfit = o.look && o.look.outfit, nm = `sarah_${outfit}_${f}`;
             return Assets.has(nm) ? nm : `sarah_crimson_${f}`;
@@ -193,6 +196,7 @@ const Online = {
         return personFrame(o.who, f);
     },
     drawOther(ctx, o) {
+        if (hdOn() && hdDrawOther(ctx, o)) return;
         const y = Math.round(o.y) - (o.hop || 0);
         spr(ctx, 'shadow_s', o.x, o.y + 1);
         spr(ctx, this.frameOf(o), o.x, y, o.dir === 'left');
@@ -217,7 +221,7 @@ const Online = {
         if (!p || !this.ws || this.ws.readyState !== 1 || !G.area) return;
         if (G.mode === 'title' && !force) return;
         const st = { t: 'state', area: G.mode === 'play' ? G.area.id : null, x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10, dir: p.dir,
-            moving: !!p.moving, run: !!p.run, sit: !!p.sit, look: this.who() === 'sarah' ? { outfit: S.player.outfit } : null };
+            moving: !!p.moving, run: !!p.run, sit: !!p.sit, look: this.who() === 'sarah' ? { outfit: S.player.outfit, hd: hdSarahSpec() } : null };
         const key = JSON.stringify(st), now = Date.now();
         if (!force && key === this.lastState && now - this.stateAt < 5000) return;
         if (!force && now - this.stateAt < ONLINE_STATE_EVERY) return;

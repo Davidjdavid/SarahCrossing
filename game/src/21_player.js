@@ -7,24 +7,26 @@ function makePlayer(x, y, dir) {
         goal: null, onArrive: null, stuck: 0, run: false, bob: 0, emote: null, emoteT: 0 };
 }
 
-function playerFrame(p) {
-    const o = S.player.outfit || 'crimson';
+/* which of Sarah's frames ("down_walkA", "side_hug"...) she's in right now */
+function playerFrameKey(p) {
     const side = p.dir === 'left' || p.dir === 'right';
     const d = side ? 'side' : p.dir;
     if (p.pose) {
         const byPose = { pick: 'down_pick', cheer: 'down_cheer', happy: side ? 'side_happy' : 'down_happy', left: 'down_left', right: 'down_right', hug: 'side_hug' };
-        if (byPose[p.pose]) return sarahSprite(o, byPose[p.pose]);
-        if (p.pose === 'fish') return sarahSprite(o, `${d}_stand`);
-        if (p.pose === 'walk') { const k = Math.floor(p.anim / 4) % 4; return sarahSprite(o, `${d}_${k === 1 ? 'walkA' : k === 3 ? 'walkB' : 'stand'}`); }
+        if (byPose[p.pose]) return byPose[p.pose];
+        if (p.pose === 'fish') return `${d}_stand`;
+        if (p.pose === 'walk') { const k = Math.floor(p.anim / 4) % 4; return `${d}_${k === 1 ? 'walkA' : k === 3 ? 'walkB' : 'stand'}`; }
     }
     let b = 'stand';
     if (p.moving) {
         const k = Math.floor(p.anim / (p.run ? 5 : 8)) % 4;
         b = k === 1 ? 'walkA' : k === 3 ? 'walkB' : 'stand';
     }
-    return sarahSprite(o, `${d}_${b}`);
+    return `${d}_${b}`;
 }
+function playerFrame(p) { return sarahSprite(S.player.outfit || 'crimson', playerFrameKey(p)); }
 function drawPlayer(ctx, p) {
+    if (hdOn() && hdDrawPlayer(ctx, p)) return;           // the HD-2D view's bigger Sarah
     const flip = p.dir === 'left';
     if (p.pose === 'hug') {
         const y = Math.round(p.y);

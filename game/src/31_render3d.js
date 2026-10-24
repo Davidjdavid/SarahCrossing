@@ -7,7 +7,7 @@
    The grid is still the grid: the 2D renderer (30_render.js) draws the edit modes (moving buildings, paths,
    decorating), the dance floor, karaoke, jump rope and photos, and every device without WebGL. */
 const R3 = {
-    ok: false, want: true, drawingCard: false, failed: false,
+    ok: false, want: true, drawingCard: false, hdCard: false, hdSeen: false, sig: null, sigN: 0, failed: false,
     renderer: null, scene: null, camera: null, canvas: null,
     sun: null, hemi: null, fill: null, lamps: [], sky: null, sea: null,
     ground: null, wall: null, cards: new Map(), chunks: new Map(), pool: {}, poolUsed: {}, areaId: null, t0: 0, view: null, measured: 0,
@@ -122,6 +122,19 @@ const R3 = {
         this.sun.position.copy(sd).multiplyScalar(50).add(this.sun.target.position);
         this.sun.target.updateMatrixWorld();
     },
+    /* how big an HD pixel is on the screen: below about two screen pixels, nearest-pixel sampling makes uneven pixels
+       (some one wide, some two), so the HD cards are smoothed instead */
+    texelSize() {
+        const p = G.player;
+        if (!p) return;
+        const q = this.project(p.x, p.y, 0), px = q.s * (G.view.cssScale || 1) * this.renderer.getPixelRatio() / HD_K;
+        const lin = px < 2.2;
+        if (lin === this.texLinear) return;
+        this.texLinear = lin;
+        const f = lin ? THREE.LinearFilter : THREE.NearestFilter;
+        const all = [...this.cards.values()].concat(...Object.values(this.pool));
+        for (const c of all) if (c.res > 1) { c.tex.magFilter = f; c.tex.needsUpdate = true; }
+    },
     /* world pixels (x, y, and a height above the ground) -> overlay canvas pixels, and how many of those make one world pixel there */
     project(x, y, lift) {
         const v = G.view;
@@ -159,6 +172,8 @@ const R3 = {
             if (this.areaId !== a.id || this.ground === null) this.newArea(a);
             this.placeCamera(false);
             if (!this.view || G.frame % 4 === 0) this.updateView();
+            if (G.frame % 30 === 0) this.texelSize();
+            hdWarm();
             this.updateGround(a);
             this.updateLight(a);
             this.updateCards(a);
@@ -205,43 +220,30 @@ const R3 = {
         this.ground.at = null;
     },
 
-    /* ---------------------------------------------------------------- the ground: a window of the flat picture, redrawn now and then */
+    /* ---------------------------------------------------------------- a room's floor (with three pixels to one for the HD art) */
     updateGround(a) {
         if (!a.interior) return this.updateChunks(a);
-        const g = this.ground, cx = this.target.x * TILE, cy = this.target.z / R3_ZS * TILE;
-        const far = Math.hypot(cx - (g.at ? g.at[0] : 1e9), cy - (g.at ? g.at[1] : 1e9)) > 6 * TILE;
-        if (!a.interior && !far && G.frame % 30 !== 0 && !g.dirty) return;
-        if (a.interior && g.at && G.frame % 20 !== 0 && !g.dirty) return;
-        g.dirty = false;
-        const W = g.cv.width, H = g.cv.height;
-        // the window sits a little north of the camera's target: more of the far ground shows than the near
-        const x0 = a.interior ? 0 : Math.round(cx - W / 2), y0 = a.interior ? 0 : Math.round(cy - H * 0.62);
-        g.at = [cx, cy];
-        const ctx = g.ctx;
+        const g = this.ground;
+        if (g.at && G.frame % 60 !== 0 && !g.dirty) return;
+        g.dirty = false; g.at = [0, 0];
+        const k = g.k, ctx = g.ctx, bg = r3RoomBg(a, k);
+        // a new wallpaper or floor (decorating): the back wall too
+        if (this.wall && this.wall.from !== a.bg) { this.scene.remove(this.wall.mesh); this.wall.mesh.geometry.dispose(); this.wall.mat.dispose(); this.wall.tex.dispose(); this.wall = r3Wall(this.scene, a); }
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, W, H);
-        const cam = { x: x0, y: y0 }, v = { w: W, h: H };
-        if (a.id === 'island') {
-            const img = Assets.ground(a.bgSeason);
-            if (img) {
-                const sx = clamp(x0, 0, img.width), sy = clamp(y0, 0, img.height);
-                const w = Math.min(W - (sx - x0), img.width - sx), h = Math.min(H - (sy - y0), img.height - sy);
-                if (w > 0 && h > 0) ctx.drawImage(img, sx, sy, w, h, sx - x0, sy - y0, w, h);
-            }
-            drawPaths(ctx, a, cam, v);
-        } else if (a.bg) {
+        ctx.clearRect(0, 0, g.cv.width, g.cv.height);
+        if (bg) {
             // the floor only: the back wall stands up on its own (r3Wall)
-            const top = a.floor ? a.floor.y0 * TILE : 0;
-            ctx.drawImage(a.bg, 0, top, a.bg.width, a.bg.height - top, 0, top, a.bg.width, a.bg.height - top);
+            const top = a.floor ? a.floor.y0 * TILE * k : 0;
+            ctx.drawImage(bg, 0, top, bg.width, bg.height - top, 0, top, bg.width, bg.height - top);
         }
-        ctx.translate(-x0, -y0);
-        this.drawingCard = true;
+        ctx.setTransform(k, 0, 0, k, 0, 0);
+        this.drawingCard = true; this.hdCard = k > 1;
         try {
             if (a.drawUnder) a.drawUnder(ctx);
             for (const d of a.decals) spr(ctx, d.frame, d.x, d.y);
             for (const e of a.ents) if (e.layer === 0 && !e.hidden) drawEnt(ctx, e);
-        } finally { this.drawingCard = false; }
-        g.mesh.position.set(x0 / TILE + W / TILE / 2, 0, (y0 / TILE + H / TILE / 2) * R3_ZS);
+        } finally { this.drawingCard = false; this.hdCard = false; }
+        g.mesh.position.set(g.cv.width / k / TILE / 2, 0, g.cv.height / k / TILE / 2 * R3_ZS);
         g.tex.needsUpdate = true;
     },
 
@@ -380,7 +382,7 @@ const R3 = {
         if (!c) {
             const b = measureEnt(e);
             if (!b) return;
-            c = makeCard(b.w, b.h, b.ax, b.ay, this.scene);
+            c = makeCard(b.w, b.h, b.ax, b.ay, this.scene, b.hd ? HD_K : 1);
             c.e = e; c.sig = undefined; c.drawn = -999;
             const tall = b.ay - Math.max(0, b.ay - b.h);
             if (tall <= 20 && b.w >= 22) c.mesh.rotation.x = -0.95;
@@ -406,7 +408,8 @@ const R3 = {
         const list = this.pool[k] || (this.pool[k] = []);
         const i = this.poolUsed[k] = (this.poolUsed[k] || 0) + 1;
         let c = list[i - 1];
-        if (!c) { c = k === 'p' ? makeCard(48, 72, 24, 62, this.scene) : makeCard(80, 150, 40, 140, this.scene); list.push(c); }
+        // people get three canvas pixels to a world pixel, for the HD art (32_hd.js)
+        if (!c) { c = k === 'p' ? makeCard(48, 72, 24, 62, this.scene, HD_K) : makeCard(80, 150, 40, 140, this.scene); c.pooled = true; list.push(c); }
         drawCard(c, e);
         placeCard(c, e, a);
         c.setFade(1);
@@ -498,10 +501,23 @@ function r3Depth(tex) {
 }
 
 /* ---------------------------------------------------------------- the ground, the back wall, the sea, the sky */
+/* how many canvas pixels to a world pixel a room's floor and wall get (three for the HD art, if the texture fits) */
+function r3RoomK(a) { return Math.max(1, Math.min(HD_K, Math.floor(2048 / Math.max(a.w, a.h) / TILE))); }
+/* the room's picture (floor, back wall, edges) at that scale, rebuilt when the room's own picture is */
+function r3RoomBg(a, k) {
+    if (k === 1 || !a.bg) return a.bg;
+    if (a.bgHD && a.bgHD.from === a.bg && a.bgHD.k === k) return a.bgHD.c;
+    const was = [R3.drawingCard, R3.hdCard];
+    R3.drawingCard = true; R3.hdCard = true;
+    let c;
+    try { c = buildRoomBg(a, k); } finally { R3.drawingCard = was[0]; R3.hdCard = was[1]; }
+    a.bgHD = { from: a.bg, k, c };
+    return c;
+}
 function r3Ground(scene, a) {
-    const W = a.interior ? Math.min(2048, a.w * TILE) : 1024, H = a.interior ? Math.min(2048, a.h * TILE) : 1024;
+    const W = Math.min(2048, a.w * TILE), H = Math.min(2048, a.h * TILE), k = r3RoomK(a);
     const cv = document.createElement('canvas');
-    cv.width = W; cv.height = H;
+    cv.width = W * k; cv.height = H * k;
     const ctx = cv.getContext('2d');
     ctx.imageSmoothingEnabled = false;
     const tex = new THREE.CanvasTexture(cv);
@@ -517,16 +533,16 @@ function r3Ground(scene, a) {
     mesh.receiveShadow = true;
     mesh.renderOrder = -2;
     scene.add(mesh);
-    return { cv, ctx, tex, mat, mesh, at: null, dirty: true };
+    return { cv, ctx, tex, mat, mesh, k, at: null, dirty: true };
 }
 /* indoors: the back wall stands up behind the floor */
 function r3Wall(scene, a) {
-    const top = a.floor.y0 * TILE, W = a.w * TILE;
+    const top = a.floor.y0 * TILE, W = a.w * TILE, k = r3RoomK(a), bg = r3RoomBg(a, k);
     const cv = document.createElement('canvas');
-    cv.width = W; cv.height = top;
+    cv.width = W * k; cv.height = top * k;
     const ctx = cv.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(a.bg, 0, 0, W, top, 0, 0, W, top);
+    ctx.drawImage(bg, 0, 0, W * k, top * k, 0, 0, W * k, top * k);
     const tex = new THREE.CanvasTexture(cv);
     tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
     const mat = r3Patch(new THREE.MeshLambertMaterial({ map: tex }), { key: 'wall' });
@@ -535,7 +551,7 @@ function r3Wall(scene, a) {
     mesh.position.set(W / TILE / 2, top / TILE * R3_VS * 0.8, top / TILE * R3_ZS - 0.02);
     mesh.receiveShadow = true;
     scene.add(mesh);
-    return { cv, ctx, tex, mat, mesh };
+    return { cv, ctx, tex, mat, mesh, from: a.bg };
 }
 function r3Sea(scene) {
     const mat = r3Patch(new THREE.MeshLambertMaterial({ color: 0x2f7fc0 }), { key: 'sea', noCloud: false,
@@ -614,20 +630,21 @@ function dropChunk(ch) { R3.scene.remove(ch.mesh); ch.mesh.geometry.dispose(); c
 /* a quick fingerprint of a card's pixels (every 7th one) */
 function cardHash(c) {
     let d;
-    try { d = c.ctx.getImageData(0, 0, c.w, c.h).data; } catch (e) { return Math.random(); }
+    try { d = c.ctx.getImageData(0, 0, c.cv.width, c.cv.height).data; } catch (e) { return Math.random(); }
     let h = 0;
     for (let i = 3; i < d.length; i += 28) h = (h * 31 + d[i] + d[i - 1] * 7 + d[i - 3] * 3) | 0;
     return h;
 }
 
 /* ---------------------------------------------------------------- cards */
-function makeCard(w, h, ax, ay, scene) {
+function makeCard(w, h, ax, ay, scene, res) {
+    res = res || 1;
     const cv = document.createElement('canvas');
-    cv.width = w; cv.height = h;
+    cv.width = w * res; cv.height = h * res;
     const ctx = cv.getContext('2d', { willReadFrequently: true });
     ctx.imageSmoothingEnabled = false;
     const tex = new THREE.CanvasTexture(cv);
-    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+    tex.magFilter = res > 1 && R3.texLinear ? THREE.LinearFilter : THREE.NearestFilter; tex.minFilter = res > 1 ? THREE.LinearFilter : THREE.NearestFilter; tex.generateMipmaps = false;
     const gw = w / TILE, gh = h / TILE * R3_VS;
     const geo = new THREE.PlaneGeometry(gw, gh);
     // the anchor (the spot it stands on) goes to the mesh's origin
@@ -640,7 +657,11 @@ function makeCard(w, h, ax, ay, scene) {
     const depth = r3Depth(tex);
     mesh.customDepthMaterial = depth;
     scene.add(mesh);
-    const c = { cv, ctx, tex, mat, mesh, depth, w, h, ax, ay, away: 0, fade: 1 };
+    const c = { cv, ctx, tex, mat, mesh, depth, w, h, ax, ay, res, away: 0, fade: 1, rawN: 0, imgN: 0 };
+    // count what's drawn by hand (not through spr or hdDraw), so a card whose picture didn't change isn't sent again
+    for (const m of ['fillRect', 'strokeRect', 'fill', 'stroke', 'fillText', 'putImageData']) { const f = ctx[m]; ctx[m] = function () { c.rawN++; return f.apply(ctx, arguments); }; }
+    const di = ctx.drawImage;
+    ctx.drawImage = function () { c.imgN++; return di.apply(ctx, arguments); };
     c.setFade = f => {
         if (f === c.fade) return;
         c.fade = f;
@@ -650,16 +671,24 @@ function makeCard(w, h, ax, ay, scene) {
     return c;
 }
 function drawCard(c, e) {
-    const ctx = c.ctx;
+    const ctx = c.ctx, r = c.res, ex = Math.round(e.x), ey = Math.round(e.y);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.clearRect(0, 0, c.w, c.h);
-    ctx.setTransform(1, 0, 0, 1, c.ax - Math.round(e.x), c.ay - Math.round(e.y));
-    R3.drawingCard = true;
+    ctx.clearRect(0, 0, c.cv.width, c.cv.height);
+    ctx.setTransform(r, 0, 0, r, r * (c.ax - ex), r * (c.ay - ey));
+    R3.drawingCard = true; R3.hdCard = r > 1;
+    if (c.pooled) { R3.sig = [ex, ey]; R3.sigN = 0; c.rawN = 0; c.imgN = 0; }
     try { drawEnt(ctx, e); if (e.kind === 'player' && G.held) spr(ctx, itemIcon(G.held), e.x, e.y - 28); }
     catch (err) { console.error(err); }
-    finally { R3.drawingCard = false; }
+    finally { R3.drawingCard = false; R3.hdCard = false; }
+    if (c.pooled) {
+        // the same pictures in the same places as last time, and nothing drawn by hand: the texture is still right
+        const sig = R3.sig.join(','), same = sig === c.lastSig && !c.rawN && c.imgN <= R3.sigN;
+        R3.sig = null;
+        c.lastSig = c.rawN || c.imgN > R3.sigN ? null : sig;
+        if (same) return;
+    }
     c.tex.needsUpdate = true;
 }
 function placeCard(c, e, a) {
@@ -682,7 +711,7 @@ function measureEnt(e) {
 function measureEnt0(e) {
     if (e.frame && !e.draw) {
         const f = Assets.frames[e.frame] || (Assets.dyn[e.frame] && [0, 0, Assets.dyn[e.frame].w, Assets.dyn[e.frame].h, Assets.dyn[e.frame].ax, Assets.dyn[e.frame].ay]);
-        if (f) { const sx = 3; return { w: f[2] + sx * 2, h: f[3] + 2, ax: f[4] + sx, ay: f[5] + 1 }; }
+        if (f) { const sx = 3; return { w: f[2] + sx * 2, h: f[3] + 2, ax: f[4] + sx, ay: f[5] + 1, hd: !!hdNamed(e.frame) }; }
     }
     const S0 = R3_SCRATCH;
     if (!S0.cv) { S0.cv = document.createElement('canvas'); S0.cv.width = S0.W; S0.cv.height = S0.H; S0.ctx = S0.cv.getContext('2d', { willReadFrequently: true }); S0.ctx.imageSmoothingEnabled = false; }
@@ -690,15 +719,16 @@ function measureEnt0(e) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, S0.W, S0.H);
     ctx.setTransform(1, 0, 0, 1, S0.AX - Math.round(e.x), S0.AY - Math.round(e.y));
-    R3.drawingCard = true;
+    R3.drawingCard = true; R3.hdSeen = false;
     try { drawEnt(ctx, e); } catch (err) { console.error(err); } finally { R3.drawingCard = false; }
+    const hd = R3.hdSeen;                     // drew something that has HD art: the card gets three pixels to one
     const d = ctx.getImageData(0, 0, S0.W, S0.H).data;
     let x0 = S0.W, y0 = S0.H, x1 = -1, y1 = -1;
     for (let y = 0; y < S0.H; y++) for (let x = 0; x < S0.W; x++) if (d[(y * S0.W + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-    if (x1 < 0) return { w: 16, h: 16, ax: 8, ay: 15 };
+    if (x1 < 0) return { w: 16, h: 16, ax: 8, ay: 15, hd };
     // a little room to move (shaking trees, swinging signs)
     x0 = Math.max(0, x0 - 4); x1 = Math.min(S0.W - 1, x1 + 4); y0 = Math.max(0, y0 - 4); y1 = Math.min(S0.H - 1, Math.max(y1, S0.AY) + 1);
-    return { w: x1 - x0 + 1, h: y1 - y0 + 1, ax: S0.AX - x0, ay: S0.AY - y0 };
+    return { w: x1 - x0 + 1, h: y1 - y0 + 1, ax: S0.AX - x0, ay: S0.AY - y0, hd };
 }
 /* trees and statues: see-through while Sarah walks behind (the classic view does it while drawing) */
 function seeThroughRaw(e) { const was = R3.drawingCard; R3.drawingCard = false; try { return seeThrough(e); } finally { R3.drawingCard = was; } }

@@ -645,6 +645,7 @@ function npcFrame(n) {
     return [`${d.sprite}_${squash}`, n.flip, 'down', !!squash];
 }
 function drawNPC(ctx, n) {
+    if (hdOn() && hdDrawNPC(ctx, n)) { if (n.def.spring) springWater(ctx, n); return; }       // the HD-2D view's art
     const [f, flip, dir, squashed] = npcFrame(n);
     if (isSeated(n)) {
         const y = Math.round(n.y - n.hop);
@@ -677,16 +678,18 @@ function drawNPC(ctx, n) {
     spr(ctx, f, n.x, y, flip);
     const acc = npcWearing(n.id);
     if (acc) drawNpcAcc(ctx, n, acc, y, flip, dir, squashed);
-    if (n.def.spring) {
-        // the water line: Wonton is sitting in the (not soup) spring
-        ctx.fillStyle = 'rgba(166,236,224,0.92)';
-        ctx.fillRect(Math.round(n.x) - 9, y - 5, 18, 7);
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.fillRect(Math.round(n.x) - 8 + (G.t >> 4) % 4, y - 5, 5, 1);
-        const dh = dayHour();
-        if (dh < NPC_DEFS.wonton.wake || dh >= NPC_DEFS.wonton.bed) n.emote = 'zzz';
-        else if (n.emote === 'zzz') n.emote = null;
-    }
+    if (n.def.spring) springWater(ctx, n);
+}
+/* the water line: Wonton is sitting in the (not soup) spring */
+function springWater(ctx, n) {
+    const y = Math.round(n.y - n.hop);
+    ctx.fillStyle = 'rgba(166,236,224,0.92)';
+    ctx.fillRect(Math.round(n.x) - 9, y - 5, 18, 7);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillRect(Math.round(n.x) - 8 + (G.t >> 4) % 4, y - 5, 5, 1);
+    const dh = dayHour();
+    if (dh < NPC_DEFS.wonton.wake || dh >= NPC_DEFS.wonton.bed) n.emote = 'zzz';
+    else if (n.emote === 'zzz') n.emote = null;
 }
 
 /* ---------------------------------------------------------------- accessories friends have given */

@@ -21,6 +21,18 @@ docs/DEPLOY.md for the server.
 - With `window.__DEBUG = true` set before the page loads, `window.__dbg` (quick start, teleport,
   give items, set the time...) and `window.__game` exist. The end-to-end tests use them.
 
+## The HD-2D view (31_render3d.js, 32*_hd*.js)
+
+- `R3` draws the island and rooms in 3D (three.js r128 in `game/vendor`): the ground as textures,
+  everything standing as a card drawn by its usual 2D draw code. The edit modes and minigames use the
+  flat view; without WebGL (or with "HD-2D graphics" off in Settings) everything is the classic view.
+- In HD-2D, people and remastered props are drawn with three times the detail into cards with three
+  canvas pixels to a world pixel. `HDSprite` (32_hd.js) shades filled parts per pixel. People are built
+  from a skeleton in 32a_hd_people.js (any look, outfit, sewn design and accessory: `hdPersonFrame`);
+  neighbors are `HD_NPC`, hair `HD_HAIR`, accessories `HD_ACC`, and any atlas sprite can get an HD
+  version in `HD_SPR[name]` (exactly 3x the old frame and anchor): `spr()` uses it in HD cards.
+- The classic 16x24 art stays the source for menus, icons, the classic view and the flat modes.
+
 ## Saving (11_save.js, 12_cloud.js, 6x_islands.js)
 
 - `Save.write()` keeps a copy on the device (`localStorage`, marked pending) and sends the island to

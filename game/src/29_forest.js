@@ -44,17 +44,19 @@ function updateToolButton() {
 }
 
 /* drawn with Sarah: the tool she's carrying, or mid-swing */
+/* how far out from Sarah's middle her hands are: the HD-2D view's Sarah is slimmer than the 16px one */
+function toolDx(dx) { return hdOn() ? Math.round(dx * 0.6) : dx; }
 function drawToolUnder(ctx, p, y) {
     const t = heldTool();
     if (!t || p.hidden) return;
     if (p.tool) {
         const side = p.dir === 'left' || p.dir === 'right';
-        if (p.tool.kind === 'axe' && p.tool.t < 10 && side) spr(ctx, 'axe_up', p.x + (p.dir === 'left' ? 5 : -5), y - 15, p.dir === 'left');
+        if (p.tool.kind === 'axe' && p.tool.t < 10 && side) spr(ctx, 'axe_up', p.x + toolDx(p.dir === 'left' ? 5 : -5), y - 15, p.dir === 'left');
         return;
     }
     if (p.pose) return;
-    if (p.dir === 'up') spr(ctx, 'carry_' + t, p.x - 7, y - 1);
-    else if (p.dir === 'left' || p.dir === 'right') spr(ctx, 'carry_' + t, p.x + (p.dir === 'left' ? 5 : -5), y, p.dir === 'left');
+    if (p.dir === 'up') spr(ctx, 'carry_' + t, p.x + toolDx(-7), y - 1);
+    else if (p.dir === 'left' || p.dir === 'right') spr(ctx, 'carry_' + t, p.x + toolDx(p.dir === 'left' ? 5 : -5), y, p.dir === 'left');
 }
 function drawToolOver(ctx, p, y) {
     const t = heldTool();
@@ -63,17 +65,17 @@ function drawToolOver(ctx, p, y) {
     if (p.tool) {
         const k = p.tool.kind, ph = p.tool.t < (k === 'axe' ? 10 : 12) ? 0 : 1;
         if (k === 'axe') {
-            if (side) { if (ph === 1) spr(ctx, 'axe_fwd', p.x + (flip ? -3 : 3), y - 13, flip); }
+            if (side) { if (ph === 1) spr(ctx, 'axe_fwd', p.x + toolDx(flip ? -3 : 3), y - 13, flip); }
             else if (p.dir === 'up') spr(ctx, 'axe_up', p.x + 1, y - (ph ? 27 : 19));
-            else spr(ctx, 'axe_up', p.x + 2, y - (ph ? 2 : 21));
+            else spr(ctx, 'axe_up', p.x + toolDx(2), y - (ph ? 2 : 21));
         } else {
-            if (ph === 0) spr(ctx, 'shovel_dig', p.x + (side ? (flip ? -4 : 4) : 3), y - 3, flip);
-            else spr(ctx, 'shovel_up', p.x + (side ? (flip ? -8 : 8) : 7), y - 1, flip);
+            if (ph === 0) spr(ctx, 'shovel_dig', p.x + toolDx(side ? (flip ? -4 : 4) : 3), y - 3, flip);
+            else spr(ctx, 'shovel_up', p.x + toolDx(side ? (flip ? -8 : 8) : 7), y - 1, flip);
         }
         return;
     }
     if (p.pose || p.dir !== 'down') return;
-    spr(ctx, 'carry_' + t, p.x + 7, y - 1);
+    spr(ctx, 'carry_' + t, p.x + toolDx(7), y - 1);
 }
 /* one swing of a tool (the player can't move meanwhile) */
 async function toolSwing(kind, onHit) {

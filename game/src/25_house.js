@@ -1,11 +1,13 @@
 /* ---- 25_house.js ---- */
 /* Sarah's house: room drawing, furniture, decorating, and the club room */
 const WALL_ROWS = 2;
-function buildRoomBg(a) {
+function buildRoomBg(a, k) {
+    // k: canvas pixels to a world pixel (the HD-2D view draws rooms with three; then it's only returned)
     const c = document.createElement('canvas');
-    c.width = a.w * TILE; c.height = a.h * TILE;
+    c.width = a.w * TILE * (k || 1); c.height = a.h * TILE * (k || 1);
     const g = c.getContext('2d');
     g.imageSmoothingEnabled = false;
+    if (k) g.scale(k, k);
     g.fillStyle = '#231b2e';
     g.fillRect(0, 0, c.width, c.height);
     const f = a.floor;
@@ -32,6 +34,7 @@ function buildRoomBg(a) {
     g.fillRect(dx * TILE + 2, dy * TILE - 3, 12, 9);
     g.fillStyle = a.club ? '#3a1a3a' : '#f2c94c';
     g.fillRect(dx * TILE + 3, dy * TILE - 2, 10, 5);
+    if (k) return c;
     a.bg = c;
 }
 

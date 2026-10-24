@@ -552,6 +552,26 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
     });
     assert.equal(island.shown, 'block');
     assert.ok(island.err < 1, `a tap lands where it points (off by ${island.err})`);
+    // people, neighbors and props have HD art: every outfit, frame, hair style and accessory draws, and Sarah's card has
+    // three pixels to one (any error drawing them shows up in problems)
+    const hd = await page.evaluate(() => {
+      let made = 0, want = 0;
+      const tryOne = f => { want++; if (f && f.c && f.c.width) made++; };
+      for (const o of Object.keys(GD.sarahTpl.hair.outfits)) for (const f of Object.keys(HD_FRAMES)) tryOne(hdPersonFrame({ look: look(), clothes: hdOutfit(o), eyes: 'glasses', acc: 'sunhat' }, f));
+      for (const h of Object.keys(HD_HAIR)) for (const f of ['down_stand', 'side_walkA', 'up_stand']) tryOne(hdPersonFrame({ look: Object.assign(look(), { hair: h }), clothes: hdOutfit('crimson'), eyes: null, acc: null }, f));
+      for (const a of Object.keys(HD_ACC)) for (const f of ['down_stand', 'side_stand', 'up_stand']) tryOne(hdPersonFrame({ look: look(), clothes: hdOutfit('hoodie'), eyes: null, acc: a }, f));
+      for (const w of Object.keys(HD_FOLKS)) tryOne(hdPersonFrame(hdFolkSpec(w), 'down_walkA'));
+      for (const id of Object.keys(HD_NPC)) { tryOne(hdNpcFrame(id, 0)); tryOne(hdNpcFrame(id, 1, 'crown', true)); }
+      for (const n of Object.keys(HD_SPR)) tryOne(hdNamed(n));
+      // Sarah as a visitor sees her (her look comes over the network: odd values fall back to defaults)
+      tryOne(hdPersonFrame(hdRemoteSarah({ outfit: 'crimson', hd: hdSarahSpec() }), 'side_walkB'));
+      tryOne(hdPersonFrame(hdRemoteSarah({ outfit: 7, hd: { look: { hair: '<b>', skin: 'red', hairCol: [1] }, clothes: { style: 'x y', top: '#zzzzzz', print: [{}, 3] }, acc: {} } }), 'down_stand'));
+      return { made, want, npcs: Object.keys(HD_NPC).length, sarah: [...HD_CACHE.keys()].some(k => k.startsWith('p|')), card: R3.pool.p && R3.pool.p[0].cv.width };
+    });
+    assert.equal(hd.made, hd.want, 'every HD frame draws');
+    assert.ok(hd.npcs >= 20, `the neighbors have HD art (${hd.npcs})`);
+    assert.ok(hd.sarah, 'Sarah is drawn with the HD art');
+    assert.equal(hd.card, 144, "a person's card has three pixels to one");
     await page.evaluate(() => enterRoom('arcade'));
     await page.waitForFunction(() => (G.area.id === 'arcade' && R3.areaId === 'arcade' && R3.wall) || R3.failed, null, { timeout: 30000 });
     assert.equal(await page.evaluate(() => R3.failed), false, 'HD-2D kept going into a room');

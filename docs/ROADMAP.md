@@ -32,10 +32,14 @@ Status: [x] done, [~] in progress, [ ] not started.
   illustration, cozy pixel art with the Animal Crossing camera (no portraits, less cutesy)
 - [x] Round 2 (Animal Crossing camera) and round 3 (Pocket Camp proportions, no visible tiles):
   David picked **HD-2D** (pixel-art people in a softly lit 3D world)
-- [~] HD-2D step 1: the new engine with today's art (31_render3d.js, three.js): the island and rooms
+- [x] HD-2D step 1: the new engine with today's art (31_render3d.js, three.js): the island and rooms
   in 3D with sun, shadows, depth of field and a horizon; edit modes and the minigames keep the flat
-  view with the grid; a Graphics switch in Settings; the classic view without WebGL
-- [ ] HD-2D step 2: new characters (48x72, layered so outfits, sewing, hairstyles and visitors work)
+  view with the grid; a Graphics switch in Settings; the classic view without WebGL; chunked ground,
+  drawing distance and fog, phone rules, hold to walk
+- [~] HD-2D step 2: everything drawn with three times the detail (32_hd.js and the 32*_hd_*.js files):
+  people built from a skeleton (any outfit, sewn design, salon look and accessory, every pose and side),
+  the food neighbors, hair styles, accessories, trees, houses (from their looks, so Ginger's repaints
+  work), the shops and landmarks; still to do: outdoor decorations, furniture, items, floors and walls
 - [ ] HD-2D step 3: the bigger island with districts and the farm, in the new look
 - [ ] HD-2D step 4: furniture, items and the inside of buildings redrawn
 - [ ] HD-2D step 5: a HUD that matches, and a layout made for an upright phone
