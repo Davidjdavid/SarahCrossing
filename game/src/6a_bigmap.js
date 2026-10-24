@@ -24,6 +24,7 @@ const BigMap = {
             top.appendChild(bk);
         }
         top.appendChild(el('h2', null, S.islandName || 'The island'));
+        if (W0.places) top.appendChild(el('div', 'bm-found', `${Explore.count()} of ${W0.places.length} places found \u00b7 ${Math.round(Explore.share() * 100)}% explored`));
         const x = el('button', 'bm-x', '\u00d7');
         x.type = 'button'; x.setAttribute('aria-label', 'Close the map');
         x.addEventListener('click', () => this.close());
@@ -194,6 +195,7 @@ const BigMap = {
         g.setTransform(dpr * z, 0, 0, dpr * z, dpr * ox, dpr * oy);
         g.imageSmoothingEnabled = z < 1;
         g.drawImage(this.base, 0, 0);
+        mapFog(this, g, ox, oy, z);                      // clouds where Sarah hasn't been yet
         g.setTransform(dpr, 0, 0, dpr, 0, 0);
         const S2 = (mx, my) => [ox + mx * z, oy + my * z];
         const K = this.BASE_K;
@@ -217,7 +219,10 @@ const BigMap = {
         };
         // whose house is whose: the owner's little face on the roof, always
         const faceSize = clamp(9 * K * z * 0.3, 18, 30);
+        // (only what Sarah has seen: the rest is under the clouds)
+        const seen = (mx, my) => !W0.places || Explore.seen(Math.floor(mx / K / EXPLORE_CELL), Math.floor(my / K / EXPLORE_CELL));
         const face = (id, mx, my) => {
+            if (!seen(mx, my)) return;
             const d = NPC_DEFS[id];
             const f = d && Assets.frames[d.human ? `${d.human}_down_stand` : `${d.sprite}_0`];
             if (!f) return;
@@ -248,15 +253,22 @@ const BigMap = {
         g.beginPath(); g.arc(px, py, 5.5, 0, 7); g.fill();
         label((px - ox) / z, (py + 18 - oy) / z, G.area.id === 'island' ? 'Sarah' : 'Sarah (inside)', '#ffd1dc', false, true);
         for (const [id, b] of Object.entries(W0.buildings)) {
-            if (names[id]) label((b.x + b.w / 2) * K, (b.y - 0.2) * K, names[id], id === 'home' ? '#ffd1dc' : '#ffe9a8', id === 'home');
+            if (names[id] && seen((b.x + b.w / 2) * K, (b.y + b.h / 2) * K)) label((b.x + b.w / 2) * K, (b.y - 0.2) * K, names[id], id === 'home' ? '#ffd1dc' : '#ffe9a8', id === 'home');
         }
         // then the neighbors' houses, named right under the owner's face ("Maki's"; zoomed in: "Maki's house")
         for (const [id, b] of houses) {
+            if (!seen((b.x + b.w / 2) * K, (b.y + b.h / 2) * K)) continue;
             const nm = NPC_DEFS[id.slice(2)].name, text = small ? `${nm}'s` : `${nm}'s house`;
             if (!label((b.x + b.w / 2) * K, (b.y + b.h * 0.3) * K, text, '#fff7f1', false, false, faceSize * 0.62 + 10))
                 label((b.x + b.w / 2) * K, (b.y + b.h * 0.3) * K, text, '#fff7f1', false, false, -faceSize * 0.62 - 10);
         }
         const sp = W0.spots;
+        // the places Sarah has found (on an island made with them); older maps name their usual spots
+        if (W0.places) {
+            for (const p of W0.places) if (Explore.found(p.id) && p.id !== 'garden') label((p.x + 0.5) * K, (p.y - 1.5) * K, p.name, p.when && p.when !== 'start' ? '#d8c8ff' : '#c8f0a0');
+            mapExtras(this, g, ox, oy, z);
+            return;
+        }
         const places = [['Plaza', sp.plaza.x + 0.5, sp.plaza.y - 2.5], ['Pier', sp.pier.x + 0.5, sp.pier.y + 3], ['Orchard', sp.orchard.x + 0.5, sp.orchard.y - 3],
             ['Pond', sp.pond.x + 0.5, sp.pond.y - 3], ['Farm', sp.farm.x + 0.5, sp.farm.y + 5], ['Forest', sp.forest.x + 0.5, sp.forest.y - 2],
             ['Mountain', sp.mountain.x + 0.5, sp.mountain.y - 6], ['Lookout', sp.lookout.x + 0.5, sp.lookout.y - 2], ['Waterfall', sp.waterfall.x + 4, sp.waterfall.y - 4],

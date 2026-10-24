@@ -330,6 +330,7 @@ function update() {
     Flutter.update();
     bonusTick();
     Extras.tick();
+    Explore.tick();
     if (G.mode === 'play' && S && !document.hidden) S.stats.playMs = (S.stats.playMs || 0) + STEP;
     if (G.frame % 600 === 0 && G.mode === 'play') { HUD.bonus(); checkSpecialMilestones(); }
     if (G.frame % 30 === 15) pumpSpecials();

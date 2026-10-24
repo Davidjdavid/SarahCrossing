@@ -22,6 +22,9 @@ docs/DEPLOY.md for the server.
   seed always makes the same island. `--preview out.png` draws a quick map of the layout, `--png out.png` the painted
   ground, without touching game/. Moving things on the island means old saves need a `migrate()` step (map 4 is this
   island: progress stays, what was laid out on the old island's ground starts fresh and Sarah's things come back).
+- Exploring (`6zx_explore.js`): the island map is clouded until Sarah has been near (`S.explored`, a bitset of 4x4-tile
+  cells), and the generator's `W0.places` are found by going there, some only at night, dawn, in rain, snow or one
+  season (`S.places`); each pays a little and every ten a neighbor sends a gift.
 - **Old saves must always load.** Sarah's island came from the one-page game and lives on the
   server; any change to the shape of `S` needs a step in `migrate()` that upgrades older saves.
   `tests/fixtures/` has saves made by the one-page game; the end-to-end tests import them.

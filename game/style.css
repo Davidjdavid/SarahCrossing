@@ -366,6 +366,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 #bigmap .bm-canvas:active { cursor: grabbing; }
 .bm-top { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 12px) 0 calc(env(safe-area-inset-left, 0px) + 14px); pointer-events: none; }
 .bm-top h2 { margin: 0; flex: 1; font: 600 22px/1.1 var(--display); color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
+.bm-found { position: absolute; left: calc(env(safe-area-inset-left, 0px) + 14px); top: calc(env(safe-area-inset-top, 0px) + 40px); font: 600 13px/1.2 var(--display); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45), 0 0 6px rgba(0, 0, 0, 0.35); }
 .bm-x { pointer-events: auto; appearance: none; border: 0; cursor: pointer; width: 44px; height: 44px; border-radius: 50%; background: var(--paper); box-shadow: var(--shadow); font: 700 22px/1 var(--display); color: var(--ink); }
 .bm-tools { position: absolute; right: calc(env(safe-area-inset-right, 0px) + 12px); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); display: flex; gap: 8px; }
 .bm-tools .mbtn { width: 48px; height: 48px; }

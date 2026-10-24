@@ -26,6 +26,7 @@ function newState() {
         karaoke: { best: {}, day: -1, trophy: false },
         shops: { shop: { spent: 0, level: 1 }, boutique: { spent: 0, level: 1 } },
         fest: {},
+        explored: '', places: {},
     };
 }
 
@@ -48,6 +49,7 @@ const Save = {
         if (!S || !S.started) return;
         if (!force && !this.dirty) return;
         if (G.mode === 'title' && !this.dirty) return;      // nothing has moved since the island was loaded
+        if (typeof Explore !== 'undefined') Explore.keep();
         if (G && G.player) {
             const p = G.player;
             S.player.area = G.area.id; S.player.x = p.x; S.player.y = p.y; S.player.dir = p.dir;
@@ -131,7 +133,7 @@ function migrate(st) {
         if (st.player.area === 'island') { st.player.x = (W0.spots.plaza.x + 0.5) * TILE; st.player.y = (W0.spots.plaza.y + 2.6) * TILE; }
         if (st.started) {
             const n = Object.values(back).reduce((a, b) => a + b, 0);
-            st.mail.push({ id: st.mailSeq++, from: 'Ginger', subject: 'The island grew!', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
+            st.mail.push({ id: st.mailSeq++, from: 'ginger', subject: 'The island grew!', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
                 body: 'Sarah! Big news. Really big. The crew and I rebuilt the whole island, and it\'s about three times the size now.\n\n'
                     + 'There\'s a mountain with a trail all the way up to a telescope, a forest you could get lost in (please don\'t), a real farm, '
                     + 'a stone plaza in town, and a river with waterfalls. Your house, your things and all your friends came along on the boat.'

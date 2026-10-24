@@ -102,7 +102,7 @@ test('a save code from the old game comes in as an island, and plays', async () 
   await play(page);
   assert.equal(await page.textContent('#money'), '12,345');
   // it's on the new, bigger island, with a letter about it
-  const moved = await page.evaluate(() => ({ mapV: S.mapV, letter: S.mail.some((m) => m.from === 'Ginger' && /grew/.test(m.subject)), w: G.areas.island.w }));
+  const moved = await page.evaluate(() => ({ mapV: S.mapV, letter: S.mail.some((m) => m.from === 'ginger' && /grew/.test(m.subject)), w: G.areas.island.w }));
   assert.deepEqual(moved, { mapV: 4, letter: true, w: JSON.parse(fs.readFileSync(path.join(ROOT, 'game/assets/world.json'), 'utf8')).w });
   // the handmade frog pot from the old game is still a real item
   const pots = await page.evaluate(() => S.pocket.filter((s) => s && /^pot/.test(s.id)).length + Object.keys(S.storage).filter((k) => /^pot/.test(k)).length);
@@ -132,7 +132,7 @@ test('the island grew: a save from the smaller island keeps everything, and what
     const m = migrate(st);
     return { mapV: m.mapV, money: m.money, storage: m.storage, disp, drops: m.drops, gone: [m.paths, m.buildMoved, m.deco, m.flowers, m.forest, m.cleared].map((v) => v === undefined),
       at: [Math.round(m.player.x / TILE), Math.round(m.player.y / TILE)], plaza: [W0.spots.plaza.x, W0.spots.plaza.y], friend: m.npcs.joe.pts, house: m.house.level + ':' + m.house.items.length,
-      letter: m.mail.filter((x) => x.from === 'Ginger').map((x) => /2 things|5 things/.test(x.body) ? 'count' : x.body) };
+      letter: m.mail.filter((x) => x.from === 'ginger').map((x) => /2 things|5 things/.test(x.body) ? 'count' : x.body) };
   });
   assert.equal(r.mapV, 4);
   assert.equal(r.money, 6000, 'the buried sand dollars come back');
@@ -516,6 +516,37 @@ test('the arcade back room: a hidden mystery from Chili to Sully to the lighthou
     return out;
   });
   assert.deepEqual(res, { hidden: true, key: 1, area: 'arcade_back', done: true, keyGone: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('exploring the big island: the map is clouded until Sarah has been there, and places are found by going (some only at night)', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => { UI.say = async () => {}; __dbg.setTime(5, 12, 11); G.weather = 'sunny'; });
+  const visit = (id) => page.evaluate((id) => { const p = W0.places.find((q) => q.id === id); __dbg.teleport('island', p.x, p.y, 'down'); }, id);
+  const before = await page.evaluate(() => ({ seen: Explore.share(), found: Explore.count(), money: S.money, places: W0.places.length, night: W0.places.filter((p) => p.when === 'night').length }));
+  assert.ok(before.places >= 30 && before.night >= 2, `the island has places to find (${before.places}, ${before.night} by night)`);
+  await visit('summit');
+  await page.waitForFunction(() => Explore.found('summit'), null, { timeout: 20000 });
+  await visit('fairyring');
+  await page.waitForTimeout(1500);
+  assert.equal(await page.evaluate(() => Explore.found('fairyring')), false, "the fairy ring can't be found by day");
+  await page.evaluate(() => __dbg.setTime(5, 12, 22.5));
+  await page.waitForFunction(() => Explore.found('fairyring'), null, { timeout: 20000 });
+  const after = await page.evaluate(() => { Save.write(true); return { seen: Explore.share(), found: Explore.count(), money: S.money, kept: S.explored.length > 0, places: Object.keys(S.places) }; });
+  assert.ok(after.seen > before.seen, 'walking about clears the clouds');
+  assert.ok(after.found >= before.found + 2 && after.places.includes('summit') && after.places.includes('fairyring'));
+  assert.ok(after.money >= before.money + 600, 'finding places pays (more for the night-only ones)');
+  assert.ok(after.kept, 'what Sarah has seen is kept in the save');
+  // the map shows the count and only what she's seen
+  await page.evaluate(() => BigMap.open());
+  assert.match(await page.textContent('.bm-found'), /\d+ of \d+ places found/);
+  await page.evaluate(() => BigMap.close());
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

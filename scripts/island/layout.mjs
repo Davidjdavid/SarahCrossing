@@ -37,6 +37,7 @@ export function makeIsland(seed = 7) {
   I.bridges();
   I.greenery();
   I.furnish();
+  I.places();
   return I.output();
 }
 
@@ -933,6 +934,61 @@ class Island {
       if (R() < 0.3) this.maybe('flowerbed', b.x + b.w + 1, b.y + 1);
     }
   }
+  /* ---------------------------------------------------------------- places to find (the map names them once found) */
+  places() {
+    const P = this.placesOut = [];
+    // when: night, dawn, rain, snow or a season; such places can only be found then, so finding them all takes days
+    // ('start': known from the start, the places Sarah arrives at and lives)
+    const add = (id, name, at, r, when, note) => { if (at) P.push(Object.assign({ id, name, x: Math.round(at.x), y: Math.round(at.y), r: r || 4 }, when ? { when } : {}, note ? { note } : {})); };
+    const s = this.spots, g = this.glades || [];
+    const xy = (x, y) => ({ x, y });
+    add('plaza', 'The Plaza', s.plaza, 6, 'start');
+    add('pier', 'The Pier', s.pier, 3, 'start');
+    add('statue', "David's Square", s.statue, 4);
+    add('boardwalk', 'The Boardwalk', s.boardwalk, 5);
+    add('harbor', 'The Harbor', s.harbor, 4);
+    add('pond', 'Lily Pond', s.pond, 4);
+    add('garden', 'Home', s.garden, 4, 'start');
+    add('campsite', 'The Campsite', s.campsite, 6, null, 'Tents, a fire ring, and a sign about raccoons.');
+    add('oldtree', 'The Old Giants', s.oldtree, 5, null, 'Trees older than anyone remembers. Nobody brings an axe here.');
+    add('picnic', 'Picnic Clearing', s.picnic_forest, 4);
+    const glade = [['fairyring', 'Fairy Ring', 'night', 'A ring of mushrooms, glowing softly. Sarah does not step inside. Just in case.'],
+      ['mossy', 'Mossy Hollow', null, 'Soft green moss everywhere. It is very quiet here.'],
+      ['whisper', 'Whispering Glade', 'dawn', 'At dawn the wind in the leaves sounds like someone almost saying your name.'],
+      ['fern', 'Fern Grotto', 'rain', 'In the rain the ferns stand up tall and the whole glade smells green.'],
+      ['owl', "Owl's Roost", 'night', 'Something up in the dark branches says "hoo." Sarah says "hi."'],
+      ['bluebell', 'Bluebell Dell', 'spring', 'Bluebells, as far as you can see. Which is about twelve feet. Still.']];
+    glade.forEach(([id, name, when, note], i) => { if (g[i]) add(id, name, g[i], 3, when, note); });
+    add('farm', 'The Farm', s.farm, 6);
+    add('windmill', 'Windmill Hill', xy(this.windmill.x + 1, this.windmill.y + 3), 4);
+    add('goatpen', "The Goat's Pen", s.goatpen, 4);
+    add('meadow', 'The Meadow', s.meadow, 7);
+    add('eastmeadow', 'East Meadow', s.eastmeadow, 6);
+    add('orchard', 'The Orchard', s.orchard, 6);
+    add('river', 'Riverside', s.river, 4);
+    add('waterfall', 'The Falls', s.waterfall, 5);
+    add('spring', 'The Hot Spring', s.spring, 5);
+    add('trailhead', 'The Trailhead', xy(this.trailhead[0], this.trailhead[1]), 4);
+    add('cascade', 'The Cascade', xy(this.riverX - 3, this.bottoms[3][this.riverX] + 4), 4, null, 'Waterfall after waterfall, all the way down the mountain.');
+    add('lake', 'Mountain Lake', xy(this.lake.x + 4, this.lake.y + this.lake.h + 2), 4, null, 'A still lake high on the mountain. The sky is in it twice.');
+    add('mistyledge', 'Misty Ledge', s.mountain, 4, 'rain', 'The cloud comes right down to the path. Sarah is, briefly, in the sky.');
+    const t4 = this.trail[3];
+    add('eaglerock', 'Eagle Rock', xy(t4.x - 6, this.bottoms[4][t4.x - 6] - 3), 4, null, 'A big flat rock with the whole island below it.');
+    add('summit', 'The Summit', s.summit, 4, null, 'The top of the island. Everything is down from here.');
+    add('lookout', 'The Lookout', s.lookout, 3);
+    add('snowypeak', 'Snowy Peak', s.summit, 5, 'snow', 'Snow on the summit, and not a single footprint but Sarah\'s.');
+    add('lighthouse', 'Lighthouse Point', s.lighthousefront, 5);
+    add('bonfire', 'Bonfire Beach', s.bonfire, 5);
+    add('beach', 'Sandy Beach', s.beach, 6);
+    add('fardunes', 'The Far Dunes', s.beach_far, 5);
+    // the coves and the north shore: wherever there's land nearest the spot planned
+    const landNear = (x, y) => { for (let d = 0; d < 20; d++) for (let dy = -d; dy <= d; dy++) for (let dx = -d; dx <= d; dx++) { const k = this.i(x + dx, y + dy); if (this.isLand(x + dx, y + dy) && !this.coll[k] && !this.face[k]) return xy(x + dx, y + dy); } return null; };
+    add('westcove', 'West Cove', landNear(20, 134), 5);
+    add('eastcove', 'East Cove', landNear(252, 146), 5);
+    add('moonbay', 'Moonlit Bay', landNear(140, 18), 6, 'night', 'The moon on the water, and the whole north sea quiet.');
+    add('beacon', 'The Beacon', s.lighthousefront, 6, 'night', 'At night the lighthouse beam sweeps right over Sarah\'s head.');
+    add('sunrise', 'Sunrise Shore', landNear(252, 120), 5, 'dawn', 'The sun comes up out of the sea right here. Worth the early alarm.');
+  }
   fitsSand(x, y, w, h) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { if (this.T(x + i, y + j) !== 's' || this.occ[this.i(x + i, y + j)]) return false; } return true; }
 
   /* ---------------------------------------------------------------- world.json */
@@ -971,7 +1027,7 @@ class Island {
         pier: pe, camp: this.camp, tent: { w: 3, h: 2 },
         treasure: { x: p.x, y: p.y + 4, palm: [p.x, p.y] }, gemSpots: this.gemSpots, ramps: this.ramps,
         reach: rows((k) => (reach.has(k) ? '1' : '0')),
-        lots: this.lots, glades: this.glades,
+        lots: this.lots, glades: this.glades, places: this.placesOut,
       },
       paint: {
         W, H, ter: this.ter, lvl: this.lvl, face: this.face, land: this.land, blocks: this.blocks, strokes: this.strokes, shapes: this.shapes, under: this.under,
