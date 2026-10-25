@@ -156,7 +156,10 @@ docs/DEPLOY.md for the server.
   far back it stands; a picked wild flower's model is hidden until it grows back, Basil's cart by day); the test area
   has a showcase of the props on the lawn below the pond and a town of the other buildings to the south; `EnvWalls`
   (33h_env_walls.js) lays the wall pieces along every south, east and west face of higher ground, and `EnvContact`
-  (33i_env_contact.js) darkens the ground softly under things. Until the models arrive the new look draws its own, and
+  (33i_env_contact.js) darkens the ground softly under things (and `EnvGlow` lays a warm pool of light under every lamp,
+  lantern and lit doorway at night). Ponds and streams (`EnvGround.shapeWater`) and the beaches (`shapeShore`) meet the
+  water along a blurred outline, not the tiles' steps; the depth map behind the water's shader also says where it flows
+  (streams' current streaks) and where it's the hot spring (milky, steaming). Until the models arrive the new look draws its own, and
   builds again once they have.
 
 ## Saving (11_save.js, 12_cloud.js, 6x_islands.js)

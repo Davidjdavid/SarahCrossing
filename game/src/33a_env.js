@@ -391,6 +391,48 @@ const EnvGround = {
             }
         }
     },
+    /* the beaches' waterline smooth too: where the low ground meets the sea, the tiles' outline blurred is the shore (a
+       curve, not the tiles' staircase on a diagonal coast); the sand slopes down to it and on under the water. Only beach
+       and sea floor are touched, away from the raised ground's sea cliffs and from streams running out to sea. */
+    shapeShore(h, W, Hn) {
+        const R = ENV.RES, Wt = W0.w, Ht = W0.h, BASE = ENV.BASE;
+        const tileOf = (i, n) => Math.max(0, Math.min(n - 1, Math.floor(i / R - 0.001)));
+        const sea = (x, y) => x < 0 || y < 0 || x >= Wt || y >= Ht || this.waterAt(x, y) === 1;
+        const low = (x, y) => sea(x, y) || (this.waterAt(x, y) === 0 && !(+W0.height[y][x]));
+        // (a tile is reshaped only if it and all round it are beach or sea)
+        const ok = new Uint8Array(Wt * Ht);
+        let any = false;
+        for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
+            let s = 0, all = true;
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!low(x + dx, y + dy)) all = false; else if (sea(x + dx, y + dy)) s++; }
+            if (all && s > 0 && s < 9) { ok[y * Wt + x] = 1; any = true; }
+        }
+        if (!any) return;
+        // the sea's share round each point, blurred over about a tile (running sums: the whole island in a few ms)
+        const m = new Float32Array(W * Hn), t = new Float32Array(Math.max(W, Hn)), r = R;
+        for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) m[y * W + x] = sea(tileOf(x + 0.5, Wt), tileOf(y + 0.5, Ht)) ? 1 : 0;
+        const line = (get, set, n) => {
+            for (let pass = 0; pass < 2; pass++) {
+                let acc = 0;
+                for (let i = -r; i <= r; i++) acc += get(Math.max(0, Math.min(n - 1, i)));
+                for (let i = 0; i < n; i++) { t[i] = acc / (2 * r + 1); acc += get(Math.min(n - 1, i + r + 1)) - get(Math.max(0, i - r)); }
+                for (let i = 0; i < n; i++) set(i, t[i]);
+            }
+        };
+        for (let y = 0; y < Hn; y++) line(i => m[y * W + i], (i, v) => { m[y * W + i] = v; }, W);
+        for (let x = 0; x < W; x++) line(i => m[i * W + x], (i, v) => { m[i * W + x] = v; }, Hn);
+        for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) {
+            const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht);
+            if (!ok[ty * Wt + tx]) continue;
+            const k = y * W + x, mv = m[k], h0 = h[k];
+            if (mv <= 0.02 || mv >= 0.98) continue;
+            // the shore's profile: the beach's height inland, down to the waterline where the blurred outline is halfway,
+            // then on down under the water as the sea floor does
+            const hs = mv < 0.5 ? BASE * Math.min(1, (0.5 - mv) / 0.35) : -0.5 * Math.min(1, (mv - 0.5) / 0.4);
+            if (sea(tx, ty)) h[k] = Math.max(h0, hs);
+            else if (Math.abs(h0 - BASE) < 0.02) h[k] = Math.min(h0, hs);
+        }
+    },
     heightAt(u, v) {
         const g = this.grid;
         if (!g) return 0;
@@ -497,6 +539,7 @@ const EnvGround = {
         for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) h[y * W + x] = this.sample(C, x / R, y / R);
         lap('heights');
         this.shapeWater(h, W, Hn);
+        this.shapeShore(h, W, Hn);
         lap('water');
         this.grid = { h, W, Hn };
         const T = EnvTex, wall = T.wall(), sand = T.sand();
