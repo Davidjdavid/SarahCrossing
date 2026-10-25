@@ -474,7 +474,11 @@ const EnvDolls = {
                 if (eye === 'sunglasses') this.piece(head, 'disc', this.mat('#1c1c24', 0.25), s * 0.38 * R, eyeY, fz, 0.2 * R, 0.02 * R, 0.2 * R, Math.PI / 2);
             }
             this.piece(head, 'box', dark, 0, eyeY + 0.03 * R, fz + 0.02 * R, 0.2 * R, 0.035 * R, 0.035 * R);
-        } else if (eye === 'monocle') this.piece(head, 'ring', this.mat('#c8a040', 0.35), 0.38 * R, eyeY, fz, 0.22 * R, 0.22 * R, 0.22 * R);
+        } else if (eye === 'monocle') {
+            this.piece(head, 'ring', this.mat('#d8b040', 0.3), 0.38 * R, eyeY, fz + 0.02 * R, 0.26 * R, 0.26 * R, 0.4 * R);
+            this.piece(head, 'disc', this.mat('#d8eef8', 0.15), 0.38 * R, eyeY, fz + 0.01 * R, 0.24 * R, 0.01 * R, 0.24 * R, Math.PI / 2);
+            this.piece(head, 'box', this.mat('#d8b040', 0.3), 0.62 * R, eyeY - 0.5 * R, fz - 0.05 * R, 0.02 * R, 0.6 * R, 0.02 * R, 0, 0, 0.3);
+        }
         else if (eye === 'mustache') this.piece(head, 'ball', this.mat(L.hairCol || '#3a2418'), 0, -0.36 * R, 0.9 * R, 0.4 * R, 0.12 * R, 0.14 * R);
         const top = 1.02 * R, acc = spec.acc;
         const gold = this.mat('#e8c048', 0.35);
@@ -483,14 +487,14 @@ const EnvDolls = {
             beanie: () => { this.piece(head, 'ball', this.mat('#c84a5a'), 0, top * 0.35, -0.05 * R, 1.08 * R, 0.92 * R, 1.08 * R); this.piece(head, 'ring', this.mat('#e8e0d8'), 0, top * 0.25, 0, 1.05 * R, 1.05 * R, 1.05 * R, Math.PI / 2 - 0.3); this.piece(head, 'ball', this.mat('#e8e0d8'), 0, top * 1.25, -0.2 * R, 0.25 * R); },
             partyhat: () => { this.piece(head, 'cone', this.mat('#4ab0e0'), 0.2 * R, top * 1.35, 0, 0.42 * R, 0.85 * R, 0.42 * R, 0, 0, -0.25); this.piece(head, 'ball', this.mat('#f8d040'), 0.42 * R, top * 1.78, 0, 0.13 * R); },
             crown: () => { this.piece(head, 'disc', gold, 0, top * 0.95, 0, 0.62 * R, 0.3 * R, 0.62 * R); for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; this.piece(head, 'cone', gold, Math.sin(a) * 0.55 * R, top * 1.22, Math.cos(a) * 0.55 * R, 0.1 * R, 0.25 * R, 0.1 * R); } },
-            tiara: () => { this.piece(head, 'band', gold, 0, top * 0.72, 0.15 * R, 0.82 * R, 0.82 * R, 0.82 * R, Math.PI / 2 - 0.5); this.piece(head, 'ball', this.mat('#f088c0', 0.3), 0, top * 0.92, 0.72 * R, 0.1 * R); },
-            bow: () => { for (const s of [-1, 1]) this.piece(head, 'ball', this.mat('#e8506a'), 0.55 * R + s * 0.18 * R, top * 0.85, 0.2 * R, 0.2 * R, 0.13 * R, 0.08 * R); this.piece(head, 'ball', this.mat('#c83a52'), 0.55 * R, top * 0.85, 0.24 * R, 0.07 * R); },
-            flower: () => { for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; this.piece(head, 'ball', this.mat('#f8f4f8'), 0.72 * R + Math.cos(a) * 0.1 * R, top * 0.55 + Math.sin(a) * 0.1 * R, 0.5 * R, 0.08 * R, 0.08 * R, 0.04 * R); } this.piece(head, 'ball', this.mat('#f8d040'), 0.72 * R, top * 0.55, 0.53 * R, 0.05 * R); },
+            tiara: () => { this.piece(head, 'ring', gold, 0, top * 0.74, 0.12 * R, 0.84 * R, 0.84 * R, 0.84 * R, Math.PI / 2 - 0.5); for (const s of [-1, 0, 1]) this.piece(head, 'cone', gold, s * 0.3 * R, top * 0.98 - Math.abs(s) * 0.08 * R, 0.66 * R - Math.abs(s) * 0.08 * R, 0.08 * R, (s ? 0.18 : 0.26) * R, 0.05 * R); this.piece(head, 'ball', this.mat('#f088c0', 0.3), 0, top * 0.9, 0.74 * R, 0.13 * R); },
+            bow: () => { for (const s of [-1, 1]) this.piece(head, 'ball', this.mat('#ec4a6c'), 0.55 * R + s * 0.3 * R, top * 0.9, 0.3 * R, 0.32 * R, 0.22 * R, 0.13 * R, 0, 0, s * 0.3); this.piece(head, 'ball', this.mat('#c83a52'), 0.55 * R, top * 0.9, 0.36 * R, 0.11 * R); },
+            flower: () => { for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; this.piece(head, 'ball', this.mat('#f6a8c8'), 0.74 * R + Math.cos(a) * 0.17 * R, top * 0.62 + Math.sin(a) * 0.17 * R, 0.56 * R, 0.13 * R, 0.13 * R, 0.06 * R); } this.piece(head, 'ball', this.mat('#f8d040'), 0.74 * R, top * 0.62, 0.62 * R, 0.08 * R); },
             flowercrown: () => { for (let k = 0; k < 9; k++) { const a = k / 9 * Math.PI * 2; this.piece(head, 'ball', this.mat(['#f088a8', '#f8f4f8', '#f8d040', '#b494e0'][k % 4]), Math.sin(a) * 0.86 * R, top * 0.62 - Math.cos(a) * 0.14 * R, Math.cos(a) * 0.86 * R, 0.13 * R); } },
-            headphones: () => { this.piece(head, 'ring', this.mat('#2a2a34'), 0, 0.15 * R, 0, 1.1 * R, 1.1 * R, 1.1 * R, 0, Math.PI / 2); for (const s of [-1, 1]) this.piece(head, 'ball', this.mat('#e84a6a'), s * 1.05 * R, -0.1 * R, 0, 0.16 * R, 0.28 * R, 0.28 * R); },
+            headphones: () => { this.piece(head, 'ring', this.mat('#2a2a34'), 0, 0.15 * R, 0, 1.12 * R, 1.12 * R, 1.12 * R, 0, Math.PI / 2); for (const s of [-1, 1]) { this.piece(head, 'ball', this.mat('#e84a6a'), s * 1.06 * R, -0.12 * R, 0, 0.2 * R, 0.36 * R, 0.36 * R); this.piece(head, 'ball', this.mat('#2a2a34'), s * 1.16 * R, -0.12 * R, 0, 0.1 * R, 0.24 * R, 0.24 * R); } },
             piratehat: () => { this.piece(head, 'disc', this.mat('#2a2228'), 0, top * 0.75, 0, 1.25 * R, 0.08 * R, 0.85 * R); this.piece(head, 'ball', this.mat('#2a2228'), 0, top * 0.82, -0.05 * R, 0.9 * R, 0.6 * R, 0.85 * R); this.piece(head, 'ball', this.mat('#f4f0e6'), 0, top * 1.0, 0.78 * R, 0.12 * R); },
             wizardhat: () => { this.piece(head, 'disc', this.mat('#4a3a98'), 0, top * 0.7, 0, 1.3 * R, 0.06 * R, 1.3 * R); this.piece(head, 'cone', this.mat('#4a3a98'), 0, top * 1.45, -0.15 * R, 0.75 * R, 1.6 * R, 0.75 * R, -0.25); this.piece(head, 'ball', this.mat('#f8d040'), 0, top * 1.1, 0.7 * R, 0.1 * R); },
-            catears: () => { for (const s of [-1, 1]) this.piece(head, 'cone', this.mat(L.hairCol || '#5a3622'), s * 0.6 * R, top * 1.02, -0.05 * R, 0.24 * R, 0.4 * R, 0.14 * R, 0, 0, -s * 0.35); },
+            catears: () => { for (const s of [-1, 1]) { this.piece(head, 'cone', this.mat('#3a3036'), s * 0.6 * R, top * 1.05, -0.05 * R, 0.28 * R, 0.46 * R, 0.14 * R, 0, 0, -s * 0.35); this.piece(head, 'cone', this.mat('#f0a0b4'), s * 0.6 * R, top * 1.02, 0.06 * R, 0.16 * R, 0.3 * R, 0.06 * R, 0, 0, -s * 0.35); } },
             halo: () => { this.piece(head, 'band', this.mat('#fff0a0', 0.2), 0, top * 1.45, 0, 0.7 * R, 0.7 * R, 0.7 * R, Math.PI / 2); },
             goathorns: () => { for (const s of [-1, 1]) this.piece(head, 'cone', this.mat('#d8c8a8'), s * 0.55 * R, top * 1.05, -0.2 * R, 0.15 * R, 0.55 * R, 0.15 * R, -0.6, 0, -s * 0.5); },
             chefhat: () => { this.piece(head, 'disc', this.mat('#fbfbf6'), 0, top * 1.05, -0.05 * R, 0.8 * R, 0.55 * R, 0.8 * R); this.piece(head, 'ball', this.mat('#fbfbf6'), 0, top * 1.55, -0.05 * R, 1.0 * R, 0.6 * R, 1.0 * R); },
