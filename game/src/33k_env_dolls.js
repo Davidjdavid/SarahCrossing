@@ -209,7 +209,7 @@ const EnvDolls = {
         let y = gy + hop, z = e.y / TILE * R3_ZS;
         if (seat) { y = gy + 0.36; z += 0.1; }
         else if (lounge) y = gy - 0.02;
-        else if (e.def && e.def.spring) y = gy - 0.2;
+        else if (e.def && e.def.spring) { const w = Env.waterH(e.x, e.y); y = (w != null ? w : gy) - 0.32; }
         root.position.set(e.x / TILE, y, z);
         root.rotation.y = d.ang;
         // the step: feet swinging in turn, the body rocking side to side, squashed as it lands and stretched in the air

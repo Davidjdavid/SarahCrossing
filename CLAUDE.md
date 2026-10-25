@@ -64,7 +64,7 @@ docs/DEPLOY.md for the server.
   serif type (style.css, end).
 - The classic 16x24 art stays the source for menus, icons, the classic view and the flat modes.
 
-## The new 3D look: the test area (?lab) and Sarah's island on beta (33a–33l)
+## The new 3D look: the test area (?lab) and Sarah's island on beta (33a–33m)
 
 - `?lab` in the address opens a small test island laid out like the concept art (`scripts/island/plan-lab.mjs`, made
   with `node scripts/make-island.mjs --plan lab` into `game/assets/lab/`). It runs on a throwaway save that is never
@@ -100,6 +100,11 @@ docs/DEPLOY.md for the server.
   own objects with their origins at the joints, so they waddle, hop, step and blink (`EnvDolls.poseFolk`); a gift hat
   or glasses sits at `anchor_hat` / `anchor_eyes` (`EnvModels` keeps each part's name and origin, an anchor's scale).
   The council's broccoli and the old keeper are made too, for the rooms.
+- The wildlife (birds, gulls, the owl, squirrels, rabbits, deer, crabs, ducks, frogs, butterflies) are toys from
+  `critters.py` (`critter_<kind>`), posed by `EnvCritters` (33m_env_critters.js) from the game's own critters and
+  Flutter's butterflies: wings fold or flap, birds peck, the owl blinks, ducks float at `Env.waterH`. While the models
+  are still downloading, `Env.cover` shows a moment of getting the island ready (at most 25 s) instead of the old look.
+  On a grey day the new look's light is soft (the sun dimmer, shadows faint: `soft` in `updateLight`).
 - Rooms in the new look (`EnvRoom`, 33l_env_room.js): the dolls and folks go indoors too (`EnvDolls.attach` moves them
   between the island's group and the room's), and the room is a box you look into: the back wall wears the HD view's
   wall picture (so what's hung there shows), the side walls one tile of its paper repeated, skirting boards, dark cut
@@ -126,7 +131,7 @@ docs/DEPLOY.md for the server.
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
-  steps): the game loads every model at once, so keep `game/assets/models/` light (about 35 MB now). `doll.py` was the
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 36 MB now). `doll.py` was the
   mock-up of the people as dolls. `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height

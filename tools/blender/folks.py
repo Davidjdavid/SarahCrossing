@@ -1012,9 +1012,10 @@ FOLKS = {'maki': maki, 'kai': kai, 'basil': basil, 'wonton': wonton, 'chili': ch
 
 
 # ---------------------------------------------------------------- making the objects
-def objects(f):
+def objects(f, scale=K, prefix='folk'):
     """The folk's parts as objects at the game's scale (each part's origin at its joint), and its anchors."""
-    mat, gl = vmat(f'folk_{f.name}', rough=0.62), None
+    K = scale
+    mat, gl = vmat(f'{prefix}_{f.name}', rough=0.62), None
     out = []
     for key, (mb, o) in f.parts.items():
         if not mb.v:
@@ -1025,7 +1026,7 @@ def objects(f):
         name = f'{f.name}_{key}'
         m = mat
         if key.startswith('eye') or key == 'gloss':
-            gl = gl or vmat(f'folk_{f.name}_gloss', rough=0.4)
+            gl = gl or vmat(f'{prefix}_{f.name}_gloss', rough=0.4)
             m = gl
         ob = mb2.obj(name, m)
         ob.location = o * K

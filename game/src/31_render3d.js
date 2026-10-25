@@ -209,6 +209,7 @@ const R3 = {
             // (and indoors, the room: 33l_env_room.js)
             const room = !env && typeof EnvRoom !== 'undefined' && EnvRoom.active(a) && EnvRoom.update(this, a);
             if (!room && typeof EnvRoom !== 'undefined') EnvRoom.hide(this);
+            Env.cover(a);
             if (env) this.hideOldGround();
             else { this.updateGround(a); this.updateTufts(a); this.updateLilies(a); }
             this.updateLight(a);
@@ -449,13 +450,15 @@ const R3 = {
         G.lightStrength = dark;
         const tint = new THREE.Color(L.col[0] / 255, L.col[1] / 255, L.col[2] / 255);
         const day = 1 - dark, gray = L.gray;
-        this.sun.intensity = a.interior ? 0.32 : (0.72 * day + 0.04) * (1 - gray * 1.6);
+        // (in the new look a grey day's light is soft all round: the sun dimmer, its shadows faint, the sky's light up)
+        const soft = Env.on && !a.interior ? gray : 0;
+        this.sun.intensity = a.interior ? 0.32 : (0.72 * day + 0.04) * (1 - gray * 1.6) * (1 - soft * 1.8);
         this.sun.color.setRGB(1, 0.92 + 0.04 * day, 0.78 + 0.12 * day).lerp(tint, dark * 0.6);
         // the sun always casts shadows (switching that off at dusk would rebuild every material at once, a long stall): they
         // fade out as the light goes, and by night the shadow map isn't redrawn
-        R3U.uShadow.value = a.interior ? 1 : Math.max(0, Math.min(1, (day - 0.1) / 0.2));
+        R3U.uShadow.value = a.interior ? 1 : Math.max(0, Math.min(1, (day - 0.1) / 0.2)) * (1 - soft * 3);
         this.shadowsOn = R3U.uShadow.value > 0;
-        this.hemi.intensity = 0.38 + 0.08 * day;
+        this.hemi.intensity = 0.38 + 0.08 * day + soft * 0.5 * day;
         this.hemi.color.setRGB(0.69, 0.79, 0.93).lerp(tint, dark * 0.8);
         this.hemi.groundColor.setRGB(0.54, 0.49, 0.34).lerp(tint, dark * 0.8);
         const fog = new THREE.Color(R3_FOG.col[0], R3_FOG.col[1], R3_FOG.col[2]).lerp(new THREE.Color(0.62, 0.66, 0.7), gray).lerp(tint, dark * 0.85);
@@ -542,7 +545,7 @@ const R3 = {
         if (a.id === 'island') { for (const c of Critters.ents()) movers.push([(c.alt || 0) > 30 ? 'h' : 'c', c]); for (const s of SeaSky.ents()) movers.push([s.alt ? 'f' : 's', s]); for (const b of Flutter.ents()) movers.push([(b.alt || 0) > 30 ? 'h' : 'c', b]); }
         for (const f of G.fx) if (f.sorted) movers.push(['f', f]);
         // (people drawn as dolls in the new look have no card)
-        for (const [k, e] of movers) if (near(e) && !((env || room) && typeof EnvDolls !== 'undefined' && EnvDolls.draws(e))) this.movingCard(k, e, a);
+        for (const [k, e] of movers) if (near(e) && !((env || room) && typeof EnvDolls !== 'undefined' && EnvDolls.draws(e)) && !(env && typeof EnvCritters !== 'undefined' && EnvCritters.draws(e))) this.movingCard(k, e, a);
         for (const k of Object.keys(this.pool)) this.pool[k].forEach((c, i) => { if (i >= this.poolUsed[k]) c.mesh.visible = false; });
     },
     /* a card for something that stays put: its size is measured once, it is redrawn when it changes */
@@ -1615,7 +1618,9 @@ function r3SkyThings(ctx) {
 function r3Beam(ctx, sc) {
     const b = W0.buildings.lighthouse, dark = G.lightStrength || 0;
     if (!b || G.area.id !== 'island' || !Quests.lamp() || dark < 0.25) return false;
-    const p = R3.project((b.x + b.w / 2) * TILE, (b.y + b.h) * TILE, 100), q = { x: p.x * sc, y: p.y * sc, s: p.s * sc };
+    // (in the new look from the model's lantern: 5.36 tiles up, 1.45 behind the front, EnvBuild.BUILDINGS)
+    const p = Env.on ? R3.project((b.x + b.w / 2) * TILE, (b.y + b.h - 1.45 / R3_ZS) * TILE, 5.36 * TILE / R3_VS) : R3.project((b.x + b.w / 2) * TILE, (b.y + b.h) * TILE, 100);
+    const q = { x: p.x * sc, y: p.y * sc, s: p.s * sc };
     if (p.behind) return false;
     const k = Math.min(1, (dark - 0.25) * 2), ang = (G.t / 170) % (Math.PI * 2), len = 420 * q.s;
     ctx.setTransform(1, 0, 0, 1, 0, 0);

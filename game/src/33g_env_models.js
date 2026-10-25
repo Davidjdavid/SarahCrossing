@@ -7,7 +7,7 @@
    as they are, like the game's other pictures (no color-space conversion), and colors kept in a mesh are turned back
    into the colors as painted. */
 const EnvModels = {
-    models: {}, textures: {}, ready: false, failed: false, _p: null,
+    models: {}, textures: {}, ready: false, failed: false, _p: null, done: 0, total: 1,
     phone() { try { return matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 600; } catch (e) { return false; } },
     /* the names to fetch: each model once, its phone version on phones */
     names() {
@@ -17,13 +17,15 @@ const EnvModels = {
     load() {
         if (this._p) return this._p;
         if (typeof THREE === 'undefined' || !THREE.GLTFLoader || !window.MODELS) { this.failed = true; return (this._p = Promise.resolve(false)); }
-        const loader = new THREE.GLTFLoader(), tl = new THREE.TextureLoader();
+        const loader = new THREE.GLTFLoader(), tl = new THREE.TextureLoader(), names = this.names();
+        // (how far along, for the moment of getting the island ready: Env.cover)
+        this.total = names.length + Object.keys(window.TEXTURES || {}).length;
         // (the ground's surfaces too: repeating, sharp at a slant, their colors as they are; the file's top row is north)
         const texs = Object.entries(window.TEXTURES || {}).map(([n, url]) => new Promise((ok, bad) => tl.load(url, t => {
             t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; t.flipY = false; t.encoding = THREE.LinearEncoding; t.needsUpdate = true;
-            this.textures[n] = t; ok();
+            this.textures[n] = t; this.done++; ok();
         }, undefined, bad)));
-        this._p = Promise.all(this.names().map(n => new Promise((ok, bad) => loader.load(window.MODELS[n], g => ok([n, g]), undefined, bad))).concat(texs))
+        this._p = Promise.all(names.map(n => new Promise((ok, bad) => loader.load(window.MODELS[n], g => { this.done++; ok([n, g]); }, undefined, bad))).concat(texs))
             .then(list => {
                 for (const it of list) if (it) { const [n, g] = it; this.models[n.replace(/_lod\d$/, '')] = this.prepare(g.scene, n); }
                 this.ready = true;
@@ -78,8 +80,8 @@ const EnvModels = {
         if (m.normalMap) { opts.normalMap = m.normalMap; opts.normalScale = (m.normalScale ? m.normalScale.clone() : new THREE.Vector2(1, 1)).multiplyScalar(/^pine_/.test(name) ? 1.7 : 1); }
         // the windows glow at night (EnvBuild's tick turns them up), their curtains brightest
         if (glass) { opts.emissive = new THREE.Color(0xffd890); opts.emissiveMap = m.map || null; opts.emissiveIntensity = 0.0; }
-        // (the folks are people: never see-through)
-        const see = !/^folk_/.test(name);
+        // (the folks and the critters are alive: never see-through)
+        const see = !/^(folk|critter)_/.test(name);
         const out = r3Patch(new THREE.MeshStandardMaterial(opts), { key: glass ? 'envmodelglass' : see ? 'envmodel' : 'envfolk', see });
         out.name = m.name || name;
         if (glass) this.glassMats.push(out);

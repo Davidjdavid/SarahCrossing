@@ -55,6 +55,30 @@ const Env = {
         U.set(v.x, v.y, -vz, 0.24);
         R3U.uSeeA.value = cam.aspect;
     },
+    /* while the models are still on their way to Sarah's island (or a room), a moment of getting the island ready over
+       the view instead of the old look showing first; at most 25 s (then the old look, and the new one when they come) */
+    cover(a) {
+        const M = typeof EnvModels !== 'undefined' ? EnvModels : null;
+        const want = !LAB && ENV_ISLAND && this.want() && !!M && !M.ready && !M.failed && !!a && (a.id === 'island' || !!a.interior) && G.mode === 'play';
+        if (want && !this._coverT) this._coverT = performance.now();
+        const show = want && performance.now() - this._coverT < 25000;
+        let el = this._cover;
+        if (!show && !el) return;
+        if (!el) {
+            el = this._cover = document.createElement('div');
+            el.id = 'envload';
+            el.innerHTML = '<div class="card"><div>Getting the island ready</div><div class="bar"><i></i></div></div>';
+            const app = document.getElementById('app'), ui = document.getElementById('ui');
+            if (app && ui) app.insertBefore(el, ui); else document.body.appendChild(el);
+        }
+        if (show) {
+            el.hidden = false; el.classList.remove('gone');
+            el.querySelector('i').style.width = Math.round(100 * M.done / Math.max(1, M.total)) + '%';
+        } else if (!el.hidden && !el.classList.contains('gone')) {
+            el.classList.add('gone');
+            setTimeout(() => { if (el.classList.contains('gone')) el.hidden = true; }, 600);
+        }
+    },
     hide() {
         R3U.uSee.value.w = 0;
         if (this.on && R3.sea && G.area && !G.area.interior) R3.sea.visible = true;      // (the HD-2D view's own sea back)
@@ -86,7 +110,7 @@ const Env = {
         for (const [name, B] of [['water', typeof EnvWater !== 'undefined' && EnvWater], ['trees', typeof EnvTrees !== 'undefined' && EnvTrees],
             ['build', typeof EnvBuild !== 'undefined' && EnvBuild], ['walls', typeof EnvWalls !== 'undefined' && EnvWalls], ['grass', typeof EnvGrass !== 'undefined' && EnvGrass],
             ['contact', typeof EnvContact !== 'undefined' && EnvContact], ['decals', typeof EnvDecals !== 'undefined' && EnvDecals],
-            ['dolls', typeof EnvDolls !== 'undefined' && EnvDolls]]) {
+            ['dolls', typeof EnvDolls !== 'undefined' && EnvDolls], ['critters', typeof EnvCritters !== 'undefined' && EnvCritters]]) {
             if (!B) continue;
             const t1 = performance.now();
             const p = B.build(group, a);
@@ -141,6 +165,14 @@ const Env = {
         if (k === 'bush' || (typeof EnvBuild !== 'undefined' && (EnvBuild.props[k] || EnvBuild.propModel(e)))) return true;
         if (e.holiday && /pumpkin/.test(e.frame || '')) return true;
         return false;
+    },
+    /* the water's surface at a spot (world pixels), or null where there's none: the sea at 0, a stream or pond at its level */
+    waterH(x, y) {
+        if (!this.ground || (G.area && G.area.interior)) return null;
+        const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE), w = EnvGround.waterAt(tx, ty);
+        if (w === 1) return 0;
+        if (w === 2) return ENV.BASE + (+W0.height[ty][tx] || 0) * ENV.LV - 0.14;
+        return null;
     },
     /* the ground's height under a spot (world pixels), for people and cards standing on it */
     groundH(x, y) {
