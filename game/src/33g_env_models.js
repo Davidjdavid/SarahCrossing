@@ -62,6 +62,8 @@ const EnvModels = {
         }
     },
     material(m, name) {
+        // (flames: unlit, their own colors)
+        if (/glow/i.test(m.name || '')) { const b = r3Patch(new THREE.MeshBasicMaterial({ vertexColors: true }), { key: 'envmodelglow' }); b.name = m.name; return b; }
         const glass = /glass/i.test(m.name || '');
         if (m.map) m.map.encoding = THREE.LinearEncoding;
         const opts = { map: m.map || null, color: m.map ? 0xffffff : m.color, roughness: glass ? 0.35 : /gloss/.test(m.name || '') ? 0.5 : 0.92, metalness: 0, vertexColors: !m.map && !!m.vertexColors };
@@ -96,7 +98,7 @@ const EnvModels = {
         if (m._inst) return m._inst;
         const c = m.clone();
         c.onBeforeCompile = null;
-        m._inst = r3Patch(c, { key: (m.emissiveMap ? 'envmodelglass' : 'envmodel') + 'i', inst: true });
+        m._inst = r3Patch(c, { key: (m.isMeshBasicMaterial ? 'envmodelglow' : m.emissiveMap ? 'envmodelglass' : 'envmodel') + 'i', inst: true });
         if (m.emissiveMap) this.glassMats.push(m._inst);
         return m._inst;
     },

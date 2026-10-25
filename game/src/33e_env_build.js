@@ -7,13 +7,33 @@
 const EnvBuild = {
     /* the props this draws (the rest stay HD cards) */
     props: { bench: 1, lamp: 1, mailbox: 1, fence: 1, flowerbed: 1 },
+    /* the island's other props, made in Blender (tools/blender/props_island.py): kind -> [model, its size against the
+       prop's footprint, how far back from the prop's foot its middle stands (tiles)] */
+    PROP_MODELS: {
+        fountain: ['fountain', 0.8, 0.55], drinkfountain: ['drinkfountain', 1, 0.45], board: ['board', 1, 0.4], plaque: ['plaque', 1, 0.45],
+        trashcan: ['trashcan', 1, 0.45], statue_david: ['statue_david', 1.35, 1.0], sign_trail: ['signpost_trail', 1, 0.45], sign_farm: ['signpost_farm', 1, 0.45],
+        sign_camp: ['signpost_camp', 1, 0.45], sign_bonfire: ['signpost_bonfire', 1, 0.45], sign_club: ['signpost_club', 1, 0.45], sign_island: ['signboard', 1, 0.45],
+        windmill: ['windmill', 1, 1.2], well: ['well', 1, 0.5], scarecrow: ['scarecrow', 1, 0.45], hay: ['hay', 1, 0.45], crate: ['crate', 1, 0.45],
+        wheelbarrow: ['wheelbarrow', 1, 0.5], trough: ['trough', 1.3, 0.45], birdhouse: ['birdhouse', 1, 0.45], flamingo: ['flamingo', 1, 0.45],
+        log: ['log', 1.4, 0.45], campfire: ['campfire', 1, 0.45], bonfire: ['bonfire', 1, 0.5], picnic: ['picnic', 1.25, 0.6], telescope: ['telescope', 1, 0.45],
+        viewer: ['viewer', 1, 0.45], tackle: ['tackle', 1, 0.45], driftwood: ['driftwood', 1, 0.45], icecream: ['icecream', 1.3, 0.55],
+        sandcastle: ['sandcastle', 1, 0.45], volleyball: ['volleyball', 1, 0.4], boulder: ['rock_a', 1.7, 0.5], tent: [null, 1.3, 1.0], rock: [null, 1, 0.45],
+    },
+    /* the model a prop is drawn with in the new look, when it has one and it has arrived ([name, size, back]) */
+    propModel(e) {
+        const P = this.PROP_MODELS[e.kind];
+        if (!P || typeof EnvModels === 'undefined') return null;
+        const n = e.kind === 'tent' ? 'tent_' + ((e.tent || 0) % 3) : e.kind === 'rock' ? (hash32('rk' + e.x + ',' + e.y) % 2 ? 'rock_a' : 'rock_b') : P[0];
+        return EnvModels.has(n) ? [n, P[1], P[2]] : null;
+    },
     build(group, a) {
         const P = this.parts = {};
         const part = (name) => P[name] || (P[name] = { p: [], n: [], uv: [], c: [], idx: [] });
         this.part = part;
         // the furniture made in Blender (bench, lamp, mailbox, fence, planter, pumpkins), gathered and drawn instanced
         const placed = {}, has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
-        this.model = (n, x, y, z, rot) => { if (!has(n)) return false; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y, z, rot || 0)); return true; };
+        this.model = (n, x, y, z, rot, sc) => { if (!has(n)) return false; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y, z, rot || 0, sc || 1)); return true; };
+        const mills = [];
         // (wild flowers can be picked and grow back: each one's model, kept by its spot, is hidden while it's gone)
         const picks = [];
         for (const e of a.ents) {
@@ -23,6 +43,11 @@ const EnvBuild = {
                 // and Fortune's (its door half a tile right of its middle)
                 else if (e.id === 'shop' && has('shop')) { const A = this.at(e); for (const m of EnvModels.place(group, 'shop', EnvModels.mat4(A.door - 0.5, A.y, A.z1 - 1.3))) m.userData.shared = true; }
                 else if (e.id === 'home' || /^h_/.test(e.id || '')) this.cottage(e, houseLook(e.id)); else this.shop(e);
+            }
+            else if (this.propModel(e)) {
+                const [n, sc, back] = this.propModel(e), f = this.foot(e);
+                this.model(n, f.x, f.y, f.z - back * R3_ZS, 0, sc);
+                if (n === 'windmill') mills.push(placed[n][placed[n].length - 1]);
             }
             else if (e.kind === 'bench') this.bench(e);
             else if (e.kind === 'lamp') this.lamp(e);
@@ -52,13 +77,19 @@ const EnvBuild = {
             group.add(m);
             meshes.push(m);
         }
+        // (a windmill's sails sit on its hub, turning)
+        const hub = mills.length && has('windmill_sails') && (EnvModels.models.windmill.anchors.hub || [])[0];
+        const sails = hub ? mills.map(M => M.clone().multiply(new THREE.Matrix4().makeTranslation(hub.x, hub.y, hub.z))) : [];
+        if (sails.length) placed.windmill_sails = sails.map(M => M.clone());
         const inst = {};
         for (const [n, list] of Object.entries(placed)) for (const m of (inst[n] = EnvModels.instances(group, n, list))) { m.userData.shared = true; meshes.push(m); }
+        const spin = new THREE.Matrix4(), turned = new THREE.Matrix4();
         this.glass = mats.glass;
         const none = new THREE.Matrix4().makeScale(0, 0, 0);
         let frame = 0;
         return { meshes, tick: (r3, a) => {
             const g = R3._glow || 0; this.glass.emissiveIntensity = 0.15 + g * 1.4; if (typeof EnvModels !== 'undefined') EnvModels.glow(g);
+            if (sails.length) { spin.makeRotationZ(-performance.now() / 2400); sails.forEach((M, i) => { for (const m of inst.windmill_sails || []) { m.setMatrixAt(i, turned.multiplyMatrices(M, spin)); m.instanceMatrix.needsUpdate = true; } }); }
             if (!picks.length || frame++ % 20) return;
             const live = new Set();
             for (const e of a.ents) if (e.wildFlower) live.add(e.flowerIdx);

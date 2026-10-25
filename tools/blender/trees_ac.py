@@ -29,10 +29,16 @@ class MB:
 
     def add(self, pts, cols, nrms, faces):
         b = len(self.v)
-        self.v += [Vector(p) for p in pts]
+        P = [Vector(p) for p in pts]
+        N = [Vector(n).normalized() for n in nrms]
+        self.v += P
         self.c += [Vector(c) for c in cols]
-        self.n += [Vector(n).normalized() for n in nrms]
-        self.f += [tuple(b + k for k in f) for f in faces]
+        self.n += N
+        # every triangle wound to face the way its vertices' normals do (the game draws only fronts)
+        for f in faces:
+            g = (P[f[1]] - P[f[0]]).cross(P[f[2]] - P[f[0]])
+            want = N[f[0]] + N[f[1]] + N[f[2]]
+            self.f.append(tuple(b + k for k in (f if g.dot(want) >= 0 else (f[0], f[2], f[1]))))
 
     def obj(self, name, mat):
         me = bpy.data.meshes.new(name)

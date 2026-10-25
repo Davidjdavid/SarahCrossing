@@ -70,7 +70,7 @@ const Env = {
         if (!this.on) return false;
         const k = e.kind;
         if (k === 'tree' || k === 'palm' || k === 'fruittree' || k === 'bigtree' || k === 'oldtree' || k === 'building' || k === 'waterfall' || e.wildFlower) return true;
-        if (k === 'bush' || (typeof EnvBuild !== 'undefined' && EnvBuild.props[k])) return true;
+        if (k === 'bush' || (typeof EnvBuild !== 'undefined' && (EnvBuild.props[k] || EnvBuild.propModel(e)))) return true;
         if (e.holiday && /pumpkin/.test(e.frame || '')) return true;
         return false;
     },

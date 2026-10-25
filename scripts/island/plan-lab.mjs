@@ -41,6 +41,17 @@ export const PLAN = {
     { kind: 'bench', x: 28, y: 22 }, { kind: 'lamp', x: 30, y: 22 }, { kind: 'mailbox', x: 29, y: 20 },
     { kind: 'fence', x: 23, y: 21, w: 2 },
     { kind: 'bush', x: 25, y: 22 }, { kind: 'bush', x: 33, y: 25 }, { kind: 'bush', x: 23, y: 29 }, { kind: 'bush', x: 33, y: 31 },
+    // a showcase of the island's other props on the lawn below the pond (for reviewing the new models), the windmill
+    // up in the woods, the volleyball court on the south lawn
+    { kind: 'well', x: 7, y: 32 }, { kind: 'scarecrow', x: 9, y: 32 }, { kind: 'hay', x: 11, y: 32 }, { kind: 'hay', x: 12, y: 32 }, { kind: 'crate', x: 13, y: 32 },
+    { kind: 'wheelbarrow', x: 16, y: 32 }, { kind: 'trough', x: 20, y: 32 },
+    { kind: 'fountain', x: 7, y: 35 }, { kind: 'birdhouse', x: 10, y: 35 }, { kind: 'flamingo', x: 11, y: 35 }, { kind: 'sign_trail', x: 13, y: 35 },
+    { kind: 'sign_farm', x: 14, y: 35 }, { kind: 'board', x: 16, y: 35 }, { kind: 'trashcan', x: 18, y: 35 }, { kind: 'drinkfountain', x: 20, y: 35 }, { kind: 'plaque', x: 21, y: 35 },
+    { kind: 'tent', x: 7, y: 37, tent: 1 }, { kind: 'campfire', x: 11, y: 37 }, { kind: 'log', x: 12, y: 37 }, { kind: 'picnic', x: 15, y: 37 },
+    { kind: 'telescope', x: 19, y: 37 }, { kind: 'statue_david', x: 21, y: 37 },
+    { kind: 'driftwood', x: 11, y: 40 }, { kind: 'rock', x: 13, y: 39 }, { kind: 'sandcastle', x: 16, y: 39 }, { kind: 'tackle', x: 18, y: 39 },
+    { kind: 'viewer', x: 20, y: 40 }, { kind: 'icecream', x: 22, y: 40 }, { kind: 'bonfire', x: 30, y: 40 },
+    { kind: 'windmill', x: 11, y: 11 }, { kind: 'volleyball', x: 25, y: 36 },
   ],
   trees: [
     // up behind the wall

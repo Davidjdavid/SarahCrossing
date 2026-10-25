@@ -80,13 +80,18 @@ docs/DEPLOY.md for the server.
   game's camera and sun for previews, baking, GLB export). Blender runs as a Python module: `pip install bpy` (Blender
   5.x, about 1 GB, fine in a venv), then `python tools/blender/cottage.py --preview DIR` (or `shop.py`,
   `stone_wall.py`, `props.py` for the bench, lamp, mailbox, fences, planter and pumpkins, `trees_ac.py` for the trees,
-  fruit, palms and bushes, `vegetation.py` for the pines, sunflowers and wild flower clumps; most take `--only NAME`)
+  fruit, palms and bushes, `vegetation.py` for the pines, sunflowers and wild flower clumps, `props_island.py` for every
+  other kind of prop on Sarah's island; most take `--only NAME`)
   writes `game/assets/models/<name>.glb` (plus `<name>_lod1.glb` for phones where there is one) and previews from the
   game's camera into DIR. Each script models the detail in full (every needle tuft, shingle, board, stone) and bakes it
   (color, the dark between things, a normal map) onto a lighter mesh; a fixed seed makes the same model every time.
   Look at the previews beside the concept before bringing a model in. The trees, palms and bushes follow Animal
   Crossing's (the reference David picked): every leaf is geometry with its colors in the mesh, shaded smoothly as its
   lobe, no baking; fruit is its own model, hung at the tree's anchors (empties named `anchor_fruit_N` in the file).
+  `props_island.py` builds the island's props the same way, from `kit.py` (rounded boxes, turned shapes, tubes, slabs,
+  each painted as it's made: wood grain, stone mottle, darker underneath), in the dollhouse look: a part named `*_glow`
+  (flames) is drawn unlit, `*_water` is water, and the windmill's sails are their own model, turned at its `anchor_hub`.
+  `doll.py` is the mock-up of the people as dolls (not in the game yet).
   `ground_textures.py` bakes the ground's surfaces the same way (the plaza's flagstones with grass between them, the
   dirt path, the lawn: color, normal and height, each 4 tiles square and wrapping) into `game/assets/textures/`,
   shipped as `window.TEXTURES`; the ground's shader uses the height to let grass reach into the gaps and ragged edges.
@@ -99,10 +104,11 @@ docs/DEPLOY.md for the server.
   instanced mesh per part. Colors kept in a mesh arrive as glTF's linear values and are turned back into the colors as
   painted (`EnvModels.srgb`). The trees (autumn crowns in autumn), palms, pines and bushes replace the code-built ones
   and follow the game: a shaken tree sways, picked fruit and chopped trees go (`EnvTrees.tick`); the cottage Sarah's
-  house, the shop Fortune's, and the props and flowers theirs (a picked wild flower's model is hidden until it grows
-  back); `EnvWalls` (33h_env_walls.js) lays the wall pieces along every south, east and west face of higher ground, and
-  `EnvContact` (33i_env_contact.js) darkens the ground softly under things. Until the models arrive the new look draws
-  its own, and builds again once they have.
+  house, the shop Fortune's, and the props and flowers theirs (`EnvBuild.PROP_MODELS`: kind, size against its
+  footprint, how far back it stands; a picked wild flower's model is hidden until it grows back); the test area has a
+  showcase of the props on the lawn below the pond; `EnvWalls` (33h_env_walls.js) lays the wall pieces along every
+  south, east and west face of higher ground, and `EnvContact` (33i_env_contact.js) darkens the ground softly under
+  things. Until the models arrive the new look draws its own, and builds again once they have.
 
 ## Saving (11_save.js, 12_cloud.js, 6x_islands.js)
 
