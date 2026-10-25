@@ -81,7 +81,7 @@ def leaf(mb, P, u, s, nrm, L, W, col, centre, shape=LEAF_R, droop=0.1):
         p = P + u * (x * L) + s * (y * L * W) + nrm * (-abs(y) * L * 0.2 + x * x * L * droop)
         pts.append(p)
         out = (p - centre).normalized()
-        nrms.append(out * 0.72 + nrm * 0.28 + s * (y * 0.9))
+        nrms.append(out * 0.84 + nrm * 0.16 + s * (y * 0.5))       # (shaded mostly as the lobe: a soft round crown)
         k = (0.62 + 0.46 * x ** 0.8) * (1.08 if i < 4 and 0 < i < 3 else 1.0) * (0.96 if i >= 4 else 1.0)
         cols.append(col * k)
     mb.add(pts, cols, nrms, LEAF_F)
@@ -103,7 +103,7 @@ def lobe(mb, rng, c, r, L, tone, others=(), squash=0.92, W=1.1, shape=LEAF_R, ro
         nrm = s.cross(u).normalized()
         if nrm.z < 0:
             s, nrm = -s, -nrm
-        leaf(mb, top - u * L * 0.3 + Vector((0, 0, 0.02)), u, s, nrm, L * 0.95, W, tone(Vector((0, 0, 1)), 1.0, rng), c, shape)
+        leaf(mb, top - u * L * 0.3 + Vector((0, 0, 0.02)), u, s, nrm, L * 0.95, W, tone(Vector((0, 0, 1)), 1.0, rng, top), c, shape)
     th = rows_from
     row = 0
     while th < rows_to:
@@ -125,7 +125,7 @@ def lobe(mb, rng, c, r, L, tone, others=(), squash=0.92, W=1.1, shape=LEAF_R, ro
             h = 0.5 + 0.5 * math.cos(th)
             # (in the creases between lobes, and on the undersides, the leaves are in shade)
             crease = min([max(0.0, min(1.0, ((p - oc).length - orr) / (r * 0.5))) for oc, orr in others] or [1.0])
-            col = tone(out, h, rng) * (0.62 + 0.38 * crease)
+            col = tone(out, h, rng, p) * (0.62 + 0.38 * crease)
             leaf(mb, p - down * L * 0.22, u, s, nrm, L * rng.uniform(0.94, 1.08), W, col, c, shape)
         th += L * lap / r
         row += 1
@@ -206,34 +206,48 @@ WINTER = dict(dark='#1e4a2c', light='#4e8a52', snow='#f4f8fc', fill='#1a3a24')
 FALL = dict(leaves=[('#f6c840', 0.34), ('#f09432', 0.3), ('#de602c', 0.14), ('#bcb846', 0.14), ('#74a848', 0.08)], fill='#7a4218')
 
 
+def patch(cols, w, p, rng, scale=1.6, jump=0.12):
+    """A color from the list (by weight) chosen by a smooth noise over the crown, so colors come in patches as they do
+    on a real tree, and now and then a leaf of another color."""
+    if p is None or rng.random() < jump:
+        return rng.choices(cols, weights=w)[0]
+    t = max(0.0, min(0.999, 0.5 + 0.62 * noise.noise(p * scale + Vector((3.1, 7.7, 1.3)))))
+    acc, tot = 0.0, sum(w)
+    for c, k in zip(cols, w):
+        acc += k / tot
+        if t < acc:
+            return c
+    return cols[-1]
+
+
 def tone_fn(season):
     if season == 'spring':
         cols, w = zip(*SPRING['leaves'])
         cols = [rgb(c) for c in cols]
-        def tone(out, h, rng):
-            t = 0.62 + 0.38 * max(0.0, out.dot(LIGHT)) + 0.15 * h + rng.uniform(-0.06, 0.06)
-            return rng.choices(cols, weights=w)[0] * min(1.08, t)
+        def tone(out, h, rng, p=None):
+            t = 0.62 + 0.38 * max(0.0, out.dot(LIGHT)) + 0.15 * h + rng.uniform(-0.04, 0.04)
+            return patch(cols, w, p, rng) * min(1.08, t)
         return tone
     if season == 'winter':
         dark, light, snow = rgb(WINTER['dark']), rgb(WINTER['light']), rgb(WINTER['snow'])
-        def tone(out, h, rng):
+        def tone(out, h, rng, p=None):
             # snow lying on the leaves that face the sky; dark green below
             if out.z > 0.42 + rng.uniform(-0.12, 0.12):
                 return snow * (0.9 + 0.1 * max(0.0, out.dot(LIGHT)))
-            t = 0.2 + 0.5 * max(0.0, out.dot(LIGHT)) + 0.2 * h + rng.uniform(-0.08, 0.08)
+            t = 0.2 + 0.5 * max(0.0, out.dot(LIGHT)) + 0.2 * h + rng.uniform(-0.05, 0.05)
             return dark.lerp(light, max(0.0, min(1.0, t)))
         return tone
     if season == 'summer':
         dark, light = rgb(GREEN['dark']), rgb(GREEN['light'])
-        def tone(out, h, rng):
-            t = 0.25 + 0.45 * max(0.0, out.dot(LIGHT)) + 0.32 * h + rng.uniform(-0.08, 0.08)
+        def tone(out, h, rng, p=None):
+            t = 0.25 + 0.45 * max(0.0, out.dot(LIGHT)) + 0.32 * h + rng.uniform(-0.05, 0.05)
             return dark.lerp(light, max(0.0, min(1.0, t)))
         return tone
     cols, w = zip(*FALL['leaves'])
     cols = [rgb(c) for c in cols]
-    def tone(out, h, rng):
-        base = rng.choices(cols, weights=w)[0]
-        t = 0.5 + 0.45 * max(0.0, out.dot(LIGHT)) + 0.22 * h + rng.uniform(-0.08, 0.08)
+    def tone(out, h, rng, p=None):
+        base = patch(cols, w, p, rng)
+        t = 0.5 + 0.45 * max(0.0, out.dot(LIGHT)) + 0.22 * h + rng.uniform(-0.05, 0.05)
         return base * min(1.12, t)
     return tone
 
@@ -243,7 +257,7 @@ def broadleaf(name, spec, season='summer', lod=0):
     mb = MB()
     trunk(mb, random.Random(spec['seed']), spec['height'], spec['r0'], spec['r1'], seg=28 if lod == 0 else 16, rings=26 if lod == 0 else 14)
     lobes = [(Vector(l[:3]), l[3]) for l in spec['lobes']]
-    L = 0.5 if lod == 0 else 0.66
+    L = 0.34 if lod == 0 else 0.48        # (leaves a third of a lobe's radius: a leafy crown, not big shards)
     tone = tone_fn(season)
     fillc = rgb({'summer': GREEN['fill'], 'spring': SPRING['fill'], 'winter': WINTER['fill']}.get(season, FALL['fill']))
     for i, (c, r) in enumerate(lobes):
@@ -506,7 +520,7 @@ def bush(name, spec, lod=0):
 
     mix = spec.get('mix')
 
-    def tone(out, h, rng):
+    def tone(out, h, rng, p=None):
         t = 0.25 + 0.45 * max(0.0, out.dot(LIGHT)) + 0.3 * h + rng.uniform(-0.1, 0.1)
         if mix:
             cols, w = zip(*mix)

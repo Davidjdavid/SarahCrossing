@@ -56,6 +56,19 @@ const EnvWalls = {
             // a corner where the wall turns north at either end
             if (east.has(R.e + ',' + R.y)) put('wall_corner', EnvModels.mat4(R.e - 0.1, y0, z + 0.02, 0, 1, R.d, 1));
             if (west.has((R.s - 1) + ',' + R.y)) put('wall_corner', EnvModels.mat4(R.s - 0.6, y0, z + 0.02, 0, 1, R.d, 1));
+            // where the higher ground juts a tile further south just past the run's end (or before its start), the wall
+            // turns along the jut's side and meets the next run round a corner, instead of stopping with its end showing
+            const z2 = (R.y + 2) * ZS - this.BACK + 0.02;
+            if (L(R.e, R.y) > R.l && !open(R.e, R.y)) {
+                const d = L(R.e, R.y) - R.l;
+                put('wall1_a', EnvModels.mat4(R.e + this.BACK, y0, (R.y + 1) * ZS, -Math.PI / 2, ZS, d, 1));
+                put('wall_corner', EnvModels.mat4(R.e - 0.6, y0, z2, 0, 1, d, 1));
+            } else if (!east.has(R.e + ',' + R.y)) put('wall_corner', EnvModels.mat4(R.e - 0.35, y0, z + 0.03, 0, 1, R.d, 1));    // (a free end: a post of big stones)
+            if (L(R.s - 1, R.y) > R.l && !open(R.s - 1, R.y)) {
+                const d = L(R.s - 1, R.y) - R.l;
+                put('wall1_b', EnvModels.mat4(R.s - this.BACK, y0, (R.y + 2) * ZS, Math.PI / 2, ZS, d, 1));
+                put('wall_corner', EnvModels.mat4(R.s - 0.1, y0, z2, 0, 1, d, 1));
+            } else if (!west.has((R.s - 1) + ',' + R.y)) put('wall_corner', EnvModels.mat4(R.s - 0.35, y0, z + 0.03, 0, 1, R.d, 1));
         }
         // (an east face looks east: the piece turned a quarter, its length running north; a west face the other way)
         for (const R of runs(east, 'y')) {

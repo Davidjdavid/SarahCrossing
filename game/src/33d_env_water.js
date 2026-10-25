@@ -10,8 +10,8 @@ const EnvWater = {
         const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || G.waterAt(x, y) === 1) ? -1 : +W0.height[y][x] || 0;
         const wet = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && G.waterAt(x, y) === 2;
         const surf = (x, y) => wet(x, y) ? BASE + L(x, y) * LV - 0.14 : 0;           // a water tile's surface (the sea's is 0)
-        // how deep the water is everywhere (8 pixels a tile, 4 on a big island): red is depth, green which water (sea or not)
-        const P = Wt * Ht > 20000 ? 4 : 8, N = Wt * P, M = Ht * P, d = new Uint8Array(N * M * 4);
+        // how deep the water is everywhere (8 pixels a tile, so the shore is a smooth line): red is depth, green which water (sea or not)
+        const P = 8, N = Wt * P, M = Ht * P, d = new Uint8Array(N * M * 4);
         for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) {
             const u = (x + 0.5) / P, v = (y + 0.5) / P, tx = Math.floor(u), ty = Math.floor(v);
             let s = 0, sea = 1;
@@ -211,7 +211,10 @@ EnvWater.FPRE = `
     vec2 duv = vec2(tp.x / uMapSz.x, 1.0 - tp.y / uMapSz.y);
     vec4 dd = (duv.x > 0.0 && duv.x < 1.0 && duv.y > 0.0 && duv.y < 1.0) ? texture2D(tDepth, duv) : vec4(1.0, 1.0, 0.0, 1.0);
     float d0 = dd.r * 2.55, isSea = dd.g;
-    if (d0 < 0.004) discard;
+    // (streams and ponds end a little short of the bank, along the depth's smooth line, not where the bank's triangles
+    // happen to cut the surface in a zigzag)
+    if (d0 < (isSea > 0.5 ? 0.004 : 0.04)) discard;
+    if (isSea < 0.5) d0 -= 0.036;
     // (streams and ponds are shallow but clear and colored like deeper water, as in the concept; clear right at the edge)
     float depth = isSea < 0.5 ? d0 * 1.5 + 0.08 * smoothstep(0.0, 0.12, d0) : d0;
     // ripples: two layers of noise drifting (the sea rolls in from the south; streams run)
@@ -219,7 +222,7 @@ EnvWater.FPRE = `
     vec2 q1 = tp * 1.9 + fl * uTime, q2 = tp * 3.7 - fl.yx * uTime * 0.8;
     float h1 = r3n(q1) * 0.6 + r3n(q2) * 0.4;
     vec2 g = vec2(r3n(q1 + vec2(0.05, 0.0)) - r3n(q1 - vec2(0.05, 0.0)), r3n(q1 + vec2(0.0, 0.05)) - r3n(q1 - vec2(0.0, 0.05)));
-    vec3 n = normalize(vec3(-g.x * 2.2, 1.0, -g.y * 2.2));
+    vec3 n = normalize(vec3(-g.x * 1.4, 1.0, -g.y * 1.4));
     // color by depth: sand showing through at the edge, then turquoise, then blue
     vec3 bed = texture2D(tSand, tp * 0.25).rgb * vec3(0.72, 0.86, 0.84);
     vec3 shallow = vec3(0.26, 0.74, 0.74), mid = vec3(0.13, 0.56, 0.68), deep = vec3(0.07, 0.38, 0.6);
@@ -234,12 +237,12 @@ EnvWater.FPRE = `
     vec3 Rf = reflect(-V, n);
     float sp = pow(max(0.0, dot(Rf, normalize(uSunDir))), 90.0);
     wc += uSunCol * sp * 1.6 * clamp(lit, 0.2, 1.0);
-    wc += (h1 - 0.5) * 0.08;
+    wc += (h1 - 0.5) * 0.05;
     // foam where it meets the shore (and on the sea, waves washing in)
     float foam = smoothstep(isSea > 0.5 ? 0.1 : 0.05, 0.0, d0) * smoothstep(0.35, 0.65, r3n(tp * 5.0 + vec2(uTime * 0.3, 0.0)) + 0.25) * (isSea > 0.5 ? 1.0 : 0.6);
     if (isSea > 0.5) foam += smoothstep(0.06, 0.0, abs(fract(depth * 2.2 - uTime * 0.18) - 0.5) - 0.44) * smoothstep(0.8, 0.1, depth) * 0.7;
     // (a pond's or stream's edge drawn as a clean pale line, as the concept and Animal Crossing outline their water)
-    if (isSea < 0.5) foam = max(foam, smoothstep(0.05, 0.015, d0) * (0.7 + 0.3 * r3n(tp * 9.0 + uTime * 0.25)));
+    if (isSea < 0.5) foam = max(foam, smoothstep(0.035, 0.012, d0) * (0.45 + 0.2 * r3n(tp * 9.0 + uTime * 0.25)));
     wc = mix(wc, vec3(0.96, 0.98, 1.0), clamp(foam, 0.0, 0.9));
     gl_FragColor.rgb = wc;
 }`;

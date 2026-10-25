@@ -137,7 +137,7 @@ docs/DEPLOY.md for the server.
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
-  steps): the game loads every model at once, so keep `game/assets/models/` light (about 43 MB now, 7 of it furniture). `doll.py` was the
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 44 MB now, 7 of it furniture). `doll.py` was the
   mock-up of the people as dolls. `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height

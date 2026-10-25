@@ -379,13 +379,13 @@ const EnvGround = {
             for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) if (wet(x, y) && lvl(x, y) === L) { tx0 = Math.min(tx0, x); tx1 = Math.max(tx1, x); ty0 = Math.min(ty0, y); ty1 = Math.max(ty1, y); }
             const X0 = Math.max(0, (tx0 - 2) * R), Y0 = Math.max(0, (ty0 - 2) * R), X1 = Math.min(W - 1, (tx1 + 3) * R), Y1 = Math.min(Hn - 1, (ty1 + 3) * R);
             for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) { const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht); if (wet(tx, ty) && lvl(tx, ty) === L) m[y * W + x] = 1; }
-            blur(m, 2, X0, Y0, X1, Y1);
+            blur(m, 3, X0, Y0, X1, Y1);       // (wide, so the banks curve round instead of following the tiles)
             for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) {
                 const k = y * W + x, mv = m[k];
                 if (mv < 0.02) continue;
                 const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht), h0 = h[k];
                 if (lvl(tx, ty) !== L || h0 > surf + 0.3 || h0 < surf - 1.2) continue;
-                const u = x / R, v = y / R, wv = mv + (vn(u / 1.5, v / 1.5) * 0.65 + vn(u / 0.55 + 17, v / 0.55) * 0.35 - 0.5) * 0.32;
+                const u = x / R, v = y / R, wv = mv + (vn(u / 1.8, v / 1.8) * 0.8 + vn(u / 0.7 + 17, v / 0.7) * 0.2 - 0.5) * 0.2;
                 if (wv > 0.5) h[k] = surf - Math.min(0.75, (wv - 0.5) * 2.2);                     // the bed
                 else if (wv > 0.25) { const t = (wv - 0.25) / 0.25; h[k] = Math.min(h0, surf + (h0 - surf) * (1 - t * t * (3 - 2 * t))); }   // the bank
             }
