@@ -677,7 +677,11 @@ function r3Patch(mat, o) {
             gl_Position = projectionMatrix * mvPosition;${o.see ? '\n            vSee = gl_Position;' : ''}`);
         let fs = R3_GLSL + (o.see ? 'varying vec4 vSee;\n' : '') + (o.fhead || '') + sh.fragmentShader;
         // (see-through round Sarah: in front of her and near her on screen, every other pixel left out, fewer at the edge)
+        // (and anything right in front of the camera, in the near blur, fades away the same way, as Animal Crossing fades
+        // a tree between you and the view: a faint ghost, not a big blurred blob across the bottom of the screen)
         if (o.see) fs = fs.replace('void main() {', `void main() {
+            float nf = uDof.z > uDof.w ? smoothstep(uDof.z, uDof.w, vDofZ) : 0.0;
+            if (nf > 0.0) { vec2 fc = mod(floor(gl_FragCoord.xy), 2.0); if (nf * 0.85 > fc.x * 0.5 + fc.y * 0.25 + 0.15) discard; }
             if (uSee.w > 0.0 && vDofZ < uSee.z - 0.8) {
                 vec2 sd = (vSee.xy / vSee.w - uSee.xy) * vec2(uSeeA, 1.0);
                 float sr = length(sd) / uSee.w, ch = mod(floor(gl_FragCoord.x) + floor(gl_FragCoord.y), 2.0);
