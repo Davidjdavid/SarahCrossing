@@ -45,7 +45,7 @@ const Save = {
     },
     touch() { this.dirty = true; },
     write(force) {
-        if (!S || !S.started) return;
+        if (!S || !S.started || LAB) return;
         if (!force && !this.dirty) return;
         if (G.mode === 'title' && !this.dirty) return;      // nothing has moved since the island was loaded
         if (G && G.player) {

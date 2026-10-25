@@ -529,3 +529,6 @@ body.hd2d #nametags .ptag { font: 600 13px/1 var(--display2); letter-spacing: 0.
   body.hd2d .clock { font-size: 23px; }
 }
 @media (prefers-reduced-motion: reduce) { body.hd2d .bubble .next { animation: none; } }
+
+/* the test area's button for comparing the new 3D look with the old one */
+.labswitch { margin-top: 8px; font-size: 13px; padding: 6px 12px; pointer-events: auto; }

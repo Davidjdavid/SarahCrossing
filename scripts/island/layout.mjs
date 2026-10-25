@@ -9,14 +9,16 @@ import { rng, noise, hash } from './rand.mjs';
 import { PLAN } from './plan.mjs';
 
 const SRC = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'source/world.json'), 'utf8'));
-export const W = PLAN.w, H = PLAN.h;
+// (the size of the plan being laid out: the island's, or another plan's such as the test area's, plan-lab.mjs)
+export let W = PLAN.w, H = PLAN.h;
 const SEA = '~';
 // the first island's fields, copied whole for their crops
 const CROPS = { wheat: { x: 26, y: 9, w: 8, h: 4 }, cabbage: { x: 35, y: 8, w: 9, h: 5 }, corn: { x: 13, y: 20, w: 7, h: 7 }, pumpkin: { x: 36, y: 34, w: 9, h: 4 }, sunflower: { x: 51, y: 16, w: 7, h: 5 } };
 const SPRING = { sx: 141, sy: 49, w: 10, h: 7 };
 
-export function makeIsland(seed = PLAN.seed) {
-  const I = new Island(PLAN, seed);
+export function makeIsland(seed = PLAN.seed, plan = PLAN) {
+  W = plan.w; H = plan.h;
+  const I = new Island(plan, seed);
   I.shape();
   I.heights();
   I.terrain();
@@ -174,12 +176,12 @@ class Island {
   /* ---------------------------------------------------------------- the ground's kinds */
   terrain() {
     const sand = new Uint8Array(W * H);
-    for (const [a, b, c, d] of this.P.sand) for (let y = b; y <= d; y++) for (let x = a; x <= c; x++) if (this.in(x, y)) sand[this.i(x, y)] = 1;
+    for (const [a, b, c, d] of this.P.sand || []) for (let y = b; y <= d; y++) for (let x = a; x <= c; x++) if (this.in(x, y)) sand[this.i(x, y)] = 1;
     for (let k = 0; k < W * H; k++) {
       if (!this.land[k]) { this.ter[k] = SEA; this.coll[k] = 1; continue; }
       const l = this.lvl[k];
       // beaches on the low ground; raised land meets the sea with a rock rim on the flat map
-      this.ter[k] = sand[k] || (l === 0 && this.landD[k] <= 14) ? 's' : this.landD[k] <= 1 ? 'm' : 'g';
+      this.ter[k] = sand[k] || (l === 0 && this.landD[k] <= (this.P.beachD || 14)) ? 's' : this.landD[k] <= 1 ? 'm' : 'g';
       // (in 3D that rim is where the sea cliff stands, so nobody walks on it)
       if (this.face[k] || (l > 0 && this.landD[k] <= 1)) this.coll[k] = 1;
     }
@@ -216,7 +218,7 @@ class Island {
       this.buildingsOut[b.id] = { x: b.x, y: b.y, w: b.w, h: b.h, door: b.door, sprite };
       if (b.front) this.spots[b.front] = { x: b.x + b.door, y: b.y + b.h + 1, r: 1 };
     }
-    for (const l of Object.values(this.P.lots)) for (let j = -1; j <= l.h; j++) for (let i = -1; i <= l.w; i++) { const k = this.i(l.x + i, l.y + j); this.keep[k] = 1; if (!this.occ[k]) this.occ[k] = 2; }
+    for (const l of Object.values(this.P.lots || {})) for (let j = -1; j <= l.h; j++) for (let i = -1; i <= l.w; i++) { const k = this.i(l.x + i, l.y + j); this.keep[k] = 1; if (!this.occ[k]) this.occ[k] = 2; }
   }
 
   /* ---------------------------------------------------------------- paths, trails, streets and the square */
@@ -280,7 +282,7 @@ class Island {
 
   /* ---------------------------------------------------------------- fields, the hot spring, the garden, the pier */
   ground() {
-    for (const f of this.P.fields) {
+    for (const f of this.P.fields || []) {
       const s = CROPS[f.crop];
       this.copyBlock(s.x, s.y, s.w, s.h, f.x, f.y);
       for (let j = 0; j < s.h; j++) for (let i = 0; i < s.w; i++) this.occ[this.i(f.x + i, f.y + j)] = 1;
@@ -288,17 +290,26 @@ class Island {
       this.fields.push({ x: f.x, y: f.y, w: s.w, h: s.h, crop: f.crop });
       this.prop('fence', f.x, f.y + s.h, { w: s.w });
     }
+    // (a smaller plan may leave out the hot spring, the garden or the pier)
     const hs = this.P.hotspring;
-    this.copyBlock(SPRING.sx, SPRING.sy, SPRING.w, SPRING.h, hs.x, hs.y);
-    for (let j = -1; j <= SPRING.h; j++) for (let i = -1; i <= SPRING.w; i++) this.keep[this.i(hs.x + i, hs.y + j)] = 1;
-    this.wonton = [hs.x + (146 - SPRING.sx), hs.y + (52.9 - SPRING.sy)];
+    this.wonton = null;
+    if (hs) {
+      this.copyBlock(SPRING.sx, SPRING.sy, SPRING.w, SPRING.h, hs.x, hs.y);
+      for (let j = -1; j <= SPRING.h; j++) for (let i = -1; i <= SPRING.w; i++) this.keep[this.i(hs.x + i, hs.y + j)] = 1;
+      this.wonton = [hs.x + (146 - SPRING.sx), hs.y + (52.9 - SPRING.sy)];
+    }
     const gd = this.P.garden;
-    for (const [dx, dy] of [[0, 0], [2, 0], [4, 0], [0, 2], [2, 2], [4, 2]]) { this.plots.push({ x: gd.x + dx, y: gd.y + dy }); this.occ[this.i(gd.x + dx, gd.y + dy)] = 1; }
-    for (let j = -1; j <= 4; j++) for (let i = -1; i <= 6; i++) this.keep[this.i(gd.x + i, gd.y + j)] = 1;
+    if (gd) {
+      for (const [dx, dy] of [[0, 0], [2, 0], [4, 0], [0, 2], [2, 2], [4, 2]]) { this.plots.push({ x: gd.x + dx, y: gd.y + dy }); this.occ[this.i(gd.x + dx, gd.y + dy)] = 1; }
+      for (let j = -1; j <= 4; j++) for (let i = -1; i <= 6; i++) this.keep[this.i(gd.x + i, gd.y + j)] = 1;
+    }
     const pe = this.P.pier;
-    this.pier = { x0: pe.x, x1: pe.x + 1, y0: pe.y0, y1: pe.y1 };
-    for (let y = pe.y0; y <= pe.y1; y++) for (let x = pe.x; x <= pe.x + 1; x++) { const k = this.i(x, y); if (this.land[k]) continue; this.ter[k] = 'w'; this.coll[k] = 0; }
-    this.pierStart = pe.y0; while (this.land[this.i(pe.x, this.pierStart)]) this.pierStart++;
+    this.pier = null;
+    if (pe) {
+      this.pier = { x0: pe.x, x1: pe.x + 1, y0: pe.y0, y1: pe.y1 };
+      for (let y = pe.y0; y <= pe.y1; y++) for (let x = pe.x; x <= pe.x + 1; x++) { const k = this.i(x, y); if (this.land[k]) continue; this.ter[k] = 'w'; this.coll[k] = 0; }
+      this.pierStart = pe.y0; while (this.land[this.i(pe.x, this.pierStart)]) this.pierStart++;
+    }
   }
   copyBlock(sx, sy, w, h, x, y) {
     this.blocks.push({ sx, sy, w, h, x, y });
@@ -319,32 +330,36 @@ class Island {
   furnish() {
     const P = this.P;
     for (const p of P.props) { const { kind, x, y, ...rest } = p; this.prop(kind, x, y, Object.keys(rest).length ? rest : null); }
-    // the goat pen: a fence round it with a gap at the bottom
+    // the goat pen: a fence round it with a gap at the bottom (each of these is left out of a plan without it)
     const G = P.goatpen;
-    this.goatpen = { ...G };
-    this.prop('fence', G.x, G.y, { w: G.w });
-    this.prop('fence', G.x, G.y + G.h - 1, { w: 3 }); this.prop('fence', G.x + G.w - 3, G.y + G.h - 1, { w: 3 });
-    for (let j = 1; j < G.h - 1; j++) { this.prop('fence', G.x, G.y + j, { w: 1 }); this.prop('fence', G.x + G.w - 1, G.y + j, { w: 1 }); }
-    for (let j = 0; j < G.h; j++) for (let i = 0; i < G.w; i++) this.keep[this.i(G.x + i, G.y + j)] = 1;
+    this.goatpen = G ? { ...G } : null;
+    if (G) {
+      this.prop('fence', G.x, G.y, { w: G.w });
+      this.prop('fence', G.x, G.y + G.h - 1, { w: 3 }); this.prop('fence', G.x + G.w - 3, G.y + G.h - 1, { w: 3 });
+      for (let j = 1; j < G.h - 1; j++) { this.prop('fence', G.x, G.y + j, { w: 1 }); this.prop('fence', G.x + G.w - 1, G.y + j, { w: 1 }); }
+      for (let j = 0; j < G.h; j++) for (let i = 0; i < G.w; i++) this.keep[this.i(G.x + i, G.y + j)] = 1;
+    }
     const wm = P.props.find(p => p.kind === 'windmill');
-    this.windmill = { x: wm.x, y: wm.y, w: 3, h: 2, door: 1 };
+    this.windmill = wm ? { x: wm.x, y: wm.y, w: 3, h: 2, door: 1 } : null;
     const ot = P.oldTree;
-    this.oldTrees.push({ x: ot.x, y: ot.y, v: 0 });
-    for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) this.occ[this.i(ot.x + i, ot.y + j)] = 1;
-    this.bigTree = { ...P.bigTree };
-    for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) this.occ[this.i(P.bigTree.x + i, P.bigTree.y + j)] = 1;
+    if (ot) {
+      this.oldTrees.push({ x: ot.x, y: ot.y, v: 0 });
+      for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) this.occ[this.i(ot.x + i, ot.y + j)] = 1;
+    }
+    this.bigTree = P.bigTree ? { ...P.bigTree } : null;
+    if (P.bigTree) for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) this.occ[this.i(P.bigTree.x + i, P.bigTree.y + j)] = 1;
     const c = P.cart;
-    this.cart = { x: c.x + 0.5, y: c.y, tiles: [[c.x - 1, c.y], [c.x, c.y], [c.x + 1, c.y]], basil: [c.x + 2.45, c.y + 0.85] };
-    this.rope = { a: [P.rope.x, P.rope.y], b: [P.rope.x + 6, P.rope.y], mid: [P.rope.x + 3, P.rope.y] };
+    this.cart = c ? { x: c.x + 0.5, y: c.y, tiles: [[c.x - 1, c.y], [c.x, c.y], [c.x + 1, c.y]], basil: [c.x + 2.45, c.y + 0.85] } : null;
+    this.rope = P.rope ? { a: [P.rope.x, P.rope.y], b: [P.rope.x + 6, P.rope.y], mid: [P.rope.x + 3, P.rope.y] } : null;
     const st = P.props.find(p => p.kind === 'statue_david');
-    this.statue = { x: st.x, y: st.y, w: 3, h: 2 };
+    this.statue = st ? { x: st.x, y: st.y, w: 3, h: 2 } : null;
     const bf = P.props.find(p => p.kind === 'bonfire');
-    this.bonfire = { x: bf.x, y: bf.y };
-    this.camp = { ...P.camp };
+    this.bonfire = bf ? { x: bf.x, y: bf.y } : null;
+    this.camp = P.camp ? { ...P.camp } : null;
     for (const [name, [x, y, r]] of Object.entries(P.spots)) this.spots[name] = { x, y, r };
     for (const s of Object.values(this.spots)) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (this.in(s.x + dx, s.y + dy)) this.keep[this.i(s.x + dx, s.y + dy)] = 1;
-    for (const c of P.clearings) for (let y = Math.floor(c.y - c.r); y <= c.y + c.r; y++) for (let x = Math.floor(c.x - c.r); x <= c.x + c.r; x++) if (this.in(x, y) && (x + 0.5 - c.x) ** 2 + (y + 0.5 - c.y) ** 2 <= c.r * c.r) this.keep[this.i(x, y)] = 1;
-    for (const [a, b, c2, d] of P.noTree) for (let y = b; y <= d; y++) for (let x = a; x <= c2; x++) if (this.in(x, y)) this.keep[this.i(x, y)] = 1;
+    for (const c of P.clearings || []) for (let y = Math.floor(c.y - c.r); y <= c.y + c.r; y++) for (let x = Math.floor(c.x - c.r); x <= c.x + c.r; x++) if (this.in(x, y) && (x + 0.5 - c.x) ** 2 + (y + 0.5 - c.y) ** 2 <= c.r * c.r) this.keep[this.i(x, y)] = 1;
+    for (const [a, b, c2, d] of P.noTree || []) for (let y = b; y <= d; y++) for (let x = a; x <= c2; x++) if (this.in(x, y)) this.keep[this.i(x, y)] = 1;
   }
 
   /* ---------------------------------------------------------------- trees, fruit trees, palms, flowers, gems */
@@ -353,24 +368,26 @@ class Island {
     const nearRoad = (x, y, r = 1) => { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if ('pdcw'.includes(this.T(x + i, y + j))) return true; return false; };
     const free = (k) => this.land[k] && !this.face[k] && !this.occ[k] && this.ter[k] === 'g';
     const lawn = new Uint8Array(W * H);
-    for (const l of P.lawns) for (let j = 0; j < l.h; j++) for (let i = 0; i < l.w; i++) lawn[this.i(l.x + i, l.y + j)] = 1;
+    for (const l of P.lawns || []) for (let j = 0; j < l.h; j++) for (let i = 0; i < l.w; i++) lawn[this.i(l.x + i, l.y + j)] = 1;
     // the orchard: fruit trees in loose rows
-    const FRUITS = ['peach', 'cherry', 'mango', 'lychee', 'apple'], o = P.orchard;
+    const FRUITS = ['peach', 'cherry', 'mango', 'lychee', 'apple'], o = P.orchard || { x: -9, y: -9, w: 0, h: 0 };
     for (let y = o.y + 1, row = 0; y < o.y + o.h; y += 3, row++) for (let x = o.x + 1 + (row % 2) * 2; x < o.x + o.w; x += 4) {
       const k = this.i(x, y); if (!free(k) || nearRoad(x, y)) continue;
       this.fruitTrees.push({ x, y, fruit: FRUITS[(row + x) % 5] }); this.occ[k] = 1;
     }
     const inOrchard = (x, y) => x >= o.x - 1 && x <= o.x + o.w && y >= o.y - 1 && y <= o.y + o.h;
+    // trees the plan puts exactly (a small composed scene), before the scattered ones
+    for (const t of P.trees || []) { const k = this.i(t.x, t.y); if (this.land[k] && !this.occ[k]) { this.trees.push({ x: t.x, y: t.y, kind: t.kind }); this.occ[k] = 1; } }
     // trees: thick in the woods, a line of them along cliff tops, a few anywhere else; never two side by side
     const order = []; for (let k = 0; k < W * H; k++) order.push(k);
     for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
     for (const k of order) {
       const x = k % W, y = (k / W) | 0;
       if (!free(k) || this.keep[k] || lawn[k] || nearRoad(x, y) || inOrchard(x, y)) continue;
-      let p = 0.022, kind = null;
-      for (const f of P.forests) if (pip(f.poly, x + 0.5, y + 0.5)) { p = Math.max(p, f.p); kind = f.kind; }
-      if (this.in(x, y + 1) && this.face[this.i(x, y + 1)] === 1) p += 0.22;
-      if (this.landD[k] <= 3 && this.lvl[k] >= 1) p += 0.12;
+      let p = P.treeChance != null ? P.treeChance : 0.022, kind = null;
+      for (const f of P.forests || []) if (pip(f.poly, x + 0.5, y + 0.5)) { p = Math.max(p, f.p); kind = f.kind; }
+      if (this.in(x, y + 1) && this.face[this.i(x, y + 1)] === 1 && P.treeChance == null) p += 0.22;
+      if (this.landD[k] <= 3 && this.lvl[k] >= 1 && P.treeChance == null) p += 0.12;
       if (R() >= p) continue;
       let crowd = false;
       for (let j = -1; j <= 1 && !crowd; j++) for (let i = -1; i <= 1; i++) if ((i || j) && this.in(x + i, y + j) && this.occ[this.i(x + i, y + j)] === 1) { crowd = true; break; }
@@ -379,8 +396,9 @@ class Island {
       const t = l >= 3 && kind !== 'mixed' ? (r < 0.78 ? 'pine' : 'oak') : kind === 'pine' ? (r < 0.6 ? 'pine' : 'oak') : kind === 'mixed' ? (r < 0.3 ? 'pine' : 'oak') : (r < 0.14 ? 'blossom' : r < 0.24 ? 'pine' : 'oak');
       this.occ[k] = 1; this.trees.push({ x, y, kind: t });
     }
-    // palms along the beaches
-    for (const k of order) {
+    // palms along the beaches (or exactly where the plan says)
+    for (const q of P.palms || []) { this.palms.push({ x: q.x, y: q.y, coconut: !!q.coconut }); this.occ[this.i(q.x, q.y)] = 1; }
+    if (!P.palms) for (const k of order) {
       const x = k % W, y = (k / W) | 0;
       if (this.ter[k] !== 's' || this.occ[k] || this.keep[k] || nearRoad(x, y) || this.landD[k] < 2 || this.landD[k] > 6 || R() > 0.05) continue;
       if (this.palms.some(q => Math.abs(q.x - x) + Math.abs(q.y - y) < 7)) continue;
@@ -389,8 +407,8 @@ class Island {
     // flowers: beds where the plan says, a few anywhere
     const FK = ['tulip', 'daisy', 'cosmos', 'lily'];
     const flower = (x, y) => { const k = this.i(x, y); if (!this.in(x, y) || !free(k) || lawn[k] || this.occ[k]) return; this.flowers.push({ x, y, kind: FK[hash(x, y, 1) % 4], color: hash(x, y, 2) % 3 }); this.occ[k] = 3; };
-    for (const f of P.flowers) for (let i = 0; i < f.n * 3; i++) { const a = R() * Math.PI * 2, d = Math.sqrt(R()) * f.r; flower(Math.floor(f.x + Math.cos(a) * d), Math.floor(f.y + Math.sin(a) * d)); }
-    for (let k = 0; k < W * H; k++) if (free(k) && !this.keep[k] && !lawn[k] && hash(k, this.seed, 6) % 1000 < 12) flower(k % W, (k / W) | 0);
+    for (const f of P.flowers || []) for (let i = 0; i < f.n * 3; i++) { const a = R() * Math.PI * 2, d = Math.sqrt(R()) * f.r; flower(Math.floor(f.x + Math.cos(a) * d), Math.floor(f.y + Math.sin(a) * d)); }
+    if (P.wildFlowers !== false) for (let k = 0; k < W * H; k++) if (free(k) && !this.keep[k] && !lawn[k] && hash(k, this.seed, 6) % 1000 < 12) flower(k % W, (k / W) | 0);
     // gems hide up the mountain, off the trails
     for (const k of order) {
       if (this.gemSpots.length >= 14) break;
@@ -415,7 +433,7 @@ class Island {
       for (let j = 0; j < (PROP_ROWS[p.kind] || 1); j++) for (let i = 0; i < w; i++) put(p.x + i, p.y + j);
     }
     for (const t of [...this.trees, ...this.fruitTrees, ...this.palms]) put(t.x, t.y);
-    for (const t of [...this.oldTrees, this.bigTree]) for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) put(t.x + i, t.y + j);
+    for (const t of [...this.oldTrees, this.bigTree].filter(Boolean)) for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) put(t.x + i, t.y + j);
     const seen = this.flood(this.i(start[0], start[1]), (k) => !bl[k]);
     const near = (x, y, r) => { for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (seen.has(this.i(x + dx, y + dy))) return true; return false; };
     const bad = [];
@@ -424,7 +442,7 @@ class Island {
     for (const [x, y] of this.ramps) if (!seen.has(this.i(x, y)) && !bl[this.i(x, y)]) bad.push(`stairs ${x},${y}`);
     for (const pl of this.plots) if (!near(pl.x, pl.y + 1, 1)) bad.push('plot');
     for (const p of this.props.filter(q => q.kind === 'tent')) if (!seen.has(this.i(p.x + 1, p.y + 2))) bad.push('tent ' + p.tent);
-    if (!seen.has(this.i(this.windmill.x + this.windmill.door, this.windmill.y + this.windmill.h))) bad.push('windmill door');
+    if (this.windmill && !seen.has(this.i(this.windmill.x + this.windmill.door, this.windmill.y + this.windmill.h))) bad.push('windmill door');
     if (bad.length) throw new Error("can't walk to: " + [...new Set(bad)].join(', '));
     this.gemSpots = this.gemSpots.filter(([x, y]) => near(x, y, 1));
     return seen;
@@ -432,7 +450,8 @@ class Island {
 
   /* ---------------------------------------------------------------- world.json */
   output() {
-    const pe = this.pier, end = pe.y1;
+    // (no pier: everything starts where the plan says)
+    const pe = this.pier || { x0: this.P.start[0], x1: this.P.start[0] + 1, y0: this.P.start[1], y1: this.P.start[1] + 6.5 }, end = pe.y1;
     const intro = { sarah: [pe.x0 + 0.6, end - 3.6], fortune: [pe.x0 + 1.1, end - 5.4], joe: [pe.x0 + 1.8, end - 3.5], start: [pe.x0 + 0.6, end - 6.5] };
     for (let k = 0; k < W * H; k++) { const t = this.ter[k]; if ('~orhxWF'.includes(t)) this.coll[k] = 1; if (t === 'w') this.coll[k] = 0; }
     for (const [x, y] of this.ramps) this.coll[this.i(x, y)] = 0;
@@ -452,13 +471,13 @@ class Island {
         buildings: this.buildingsOut,
         fruitTrees: this.fruitTrees, palms: this.palms, bigTree: this.bigTree, props: this.props, plots: this.plots, trees: this.trees, flowers: this.flowers,
         plaza: this.plazaRect, spots: this.spots, cart: this.cart, intro, boat: [pe.x0, end], wonton: this.wonton,
-        river: this.riverLine.filter((_, i) => i % 40 === 0).map(([x, y]) => [+x.toFixed(1), +y.toFixed(1)]),
+        river: (this.riverLine || []).filter((_, i) => i % 40 === 0).map(([x, y]) => [+x.toFixed(1), +y.toFixed(1)]),
         rope: this.rope, waterfalls: this.waterfalls, fields: this.fields, windmill: this.windmill, stubs: this.stubs,
         squares: [this.plazaRect], statue: this.statue, bonfire: this.bonfire, goatpen: this.goatpen, oldTrees: this.oldTrees,
-        pier: pe, camp: this.camp, tent: { w: 3, h: 2 },
+        pier: this.pier, camp: this.camp, tent: { w: 3, h: 2 },
         treasure: { x: palm.x, y: palm.y + 3, palm: [palm.x, palm.y] }, gemSpots: this.gemSpots, ramps: this.ramps,
         reach: rows((k) => (reach.has(k) ? '1' : '0')),
-        lots: this.P.lots,
+        lots: this.P.lots || {},
       },
       paint: {
         W, H, ter: this.ter, lvl: this.lvl, face: this.face, land: this.land, blocks: this.blocks, strokes: this.strokes, shapes: this.shapes, under: this.under,

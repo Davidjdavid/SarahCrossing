@@ -1,0 +1,276 @@
+/* ---- 33e_env_build.js ---- */
+/* Buildings and the things round them for the new 3D look (33a_env.js): Sarah's cottage (cream plaster, a clay-tile roof
+   with eaves and a chimney, framed windows with flower boxes, a red door with a wreath, in the colors of her house's look)
+   and Fortune's shop (blue boards, a slate roof, a striped awning over the window, her sign); benches, lamp posts,
+   mailboxes, picket fences, flower beds, flowers and pumpkins. Every part is a box or a slope in world units, colored per
+   corner, so all the plaster on the island is one mesh, all the roofs another, and so on. Windows glow at night. */
+const EnvBuild = {
+    /* the props this draws (the rest stay HD cards) */
+    props: { bench: 1, lamp: 1, mailbox: 1, fence: 1, flowerbed: 1 },
+    build(group, a) {
+        const P = this.parts = {};
+        const part = (name) => P[name] || (P[name] = { p: [], n: [], uv: [], c: [], idx: [] });
+        this.part = part;
+        for (const e of a.ents) {
+            if (e.kind === 'building' && e.b) { if (e.id === 'home' || /^h_/.test(e.id || '')) this.cottage(e, houseLook(e.id)); else this.shop(e); }
+            else if (e.kind === 'bench') this.bench(e);
+            else if (e.kind === 'lamp') this.lamp(e);
+            else if (e.kind === 'mailbox') this.mailbox(e);
+            else if (e.kind === 'fence') this.fence(e, a);
+            else if (e.kind === 'flowerbed') this.flowerbed(e);
+            else if (e.wildFlower) this.flower(e);
+            else if (e.holiday && /pumpkin/.test(e.frame || '')) this.pumpkin(e);
+        }
+        const T = EnvTex, mats = {
+            plaster: this.mat(T.plaster(), 0.9), roof: this.mat(T.roofTiles(), 0.8), slate: this.mat(T.slate(), 0.75), wood: this.mat(T.wood(), 0.85),
+            boards: this.mat(T.boards(), 0.85), stone: this.mat(T.wall(), 0.95), plain: this.mat(null, 0.7), glass: this.glassMat(), cloth: this.mat(null, 0.95, true),
+            sign: this.signMat(),
+        };
+        const meshes = [];
+        for (const [name, b] of Object.entries(P)) {
+            if (!b.p.length) continue;
+            const g = new THREE.BufferGeometry();
+            g.setAttribute('position', new THREE.Float32BufferAttribute(b.p, 3));
+            g.setAttribute('normal', new THREE.Float32BufferAttribute(b.n, 3));
+            g.setAttribute('uv', new THREE.Float32BufferAttribute(b.uv, 2));
+            g.setAttribute('color', new THREE.Float32BufferAttribute(b.c, 3));
+            g.setIndex(b.idx);
+            g.computeBoundingSphere();
+            const m = new THREE.Mesh(g, mats[name] || mats.plain);
+            m.castShadow = true; m.receiveShadow = true;
+            group.add(m);
+            meshes.push(m);
+        }
+        this.glass = mats.glass;
+        return { meshes, tick: () => { const g = R3._glow || 0; this.glass.emissiveIntensity = 0.15 + g * 1.4; } };
+    },
+    mat(t, rough, cloth) {
+        const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: rough, metalness: 0, map: t ? t.map : null, normalMap: t ? t.normal : null, side: cloth ? THREE.DoubleSide : THREE.FrontSide });
+        if (t) m.normalScale = new THREE.Vector2(0.8, 0.8);
+        return r3Patch(m, { key: 'envbld' + (t ? 't' : '') + (cloth ? 'c' : '') });
+    },
+    glassMat() {
+        return r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.15, metalness: 0.1, emissive: new THREE.Color(0xffd890), emissiveIntensity: 0.15 }), { key: 'envglass' });
+    },
+    /* Fortune's sign, painted on a canvas */
+    signMat() {
+        const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+        const g = cv.getContext('2d');
+        g.fillStyle = '#3b2a20'; g.fillRect(0, 0, 256, 64);
+        g.strokeStyle = '#d9a64a'; g.lineWidth = 4; g.strokeRect(4, 4, 248, 56);
+        g.fillStyle = '#f2c96a'; g.font = 'bold 34px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText("FORTUNE'S", 128, 34);
+        const t = new THREE.CanvasTexture(cv);
+        return r3Patch(new THREE.MeshStandardMaterial({ map: t, roughness: 0.8, metalness: 0 }), { key: 'envsign' });
+    },
+
+    /* ---------------------------------------------------------------- building blocks (world units) */
+    col(c) { return Array.isArray(c) ? c : EnvTex.hex(c).map(v => v / 255); },
+    /* a flat four-cornered face: corners in order (counter-clockwise from outside), its normal, uv per corner, a color */
+    quad(name, c, n, uv, color) {
+        const b = this.part(name), base = b.p.length / 3, k = this.col(color);
+        for (let i = 0; i < 4; i++) { b.p.push(...c[i]); b.n.push(...n); b.uv.push(...uv[i]); b.c.push(...k); }
+        b.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    },
+    /* a box from (x0,y0,z0) to (x1,y1,z1); uvs in world units times s (textures repeat per unit) */
+    box(name, x0, y0, z0, x1, y1, z1, color, s, skip) {
+        s = s || 1; skip = skip || {};
+        const Q = (k, c, n, w, h) => { if (!skip[k]) this.quad(name, c, n, [[0, 0], [w * s, 0], [w * s, h * s], [0, h * s]], color); };
+        const w = x1 - x0, h = y1 - y0, d = z1 - z0;
+        Q('front', [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], [0, 0, 1], w, h);
+        Q('back', [[x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0]], [0, 0, -1], w, h);
+        Q('left', [[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]], [-1, 0, 0], d, h);
+        Q('right', [[x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1]], [1, 0, 0], d, h);
+        Q('top', [[x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0]], [0, 1, 0], w, d);
+        Q('bottom', [[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]], [0, -1, 0], w, d);
+    },
+    /* where a building stands: its footprint in world units, and the ground's height there */
+    at(e) {
+        const b = e.b, x0 = b.x, x1 = b.x + b.w, z0 = b.y * R3_ZS, z1 = (b.y + b.h) * R3_ZS;
+        return { x0, x1, z0, z1, y: Env.groundH((b.x + b.w / 2) * TILE, (b.y + b.h) * TILE - 1), cx: (x0 + x1) / 2, door: b.x + b.door + 0.5 };
+    },
+    /* a gable roof over x0..x1, z0..z1, its eaves at y and its ridge h higher, overhanging by o (tiles or slate) */
+    roof(name, x0, x1, z0, z1, y, h, o, color, trim) {
+        const zc = (z0 + z1) / 2, X0 = x0 - o, X1 = x1 + o, Z0 = z0 - o, Z1 = z1 + o, top = y + h, yl = y - o * h / ((z1 - z0) / 2);
+        const sl = Math.hypot(zc - Z1, top - yl), nf = [0, (Z1 - zc) / sl, (top - yl) / sl], nb = [0, (zc - Z0) / sl, -(top - yl) / sl];
+        // front slope, back slope (uv: across, down the slope)
+        const k = 0.42, U = (X1 - X0) * k, V = sl * k;
+        this.quad(name, [[X0, yl, Z1], [X1, yl, Z1], [X1, top, zc], [X0, top, zc]], nf, [[0, V], [U, V], [U, 0], [0, 0]], color);
+        this.quad(name, [[X1, yl, Z0], [X0, yl, Z0], [X0, top, zc], [X1, top, zc]], [0, nb[1], nb[2]], [[0, V], [U, V], [U, 0], [0, 0]], color);
+        // the roof's thickness: boards along the eaves and up the gables
+        const t = 0.09;
+        this.box('plain', X0, yl - t, Z1 - 0.04, X1, yl, Z1 + 0.02, trim);
+        // barge boards up both gables (front half and back half, each side), facing out
+        for (const [xe, sx] of [[X0, -1], [X1, 1]]) for (const zE of [Z1, Z0]) {
+            const lo = [[xe, yl - t, zE], [xe, top - t, zc], [xe, top + 0.02, zc], [xe, yl, zE]];
+            this.quad('plain', sx > 0 === zE < zc ? lo : [lo[3], lo[2], lo[1], lo[0]], [sx, 0, 0], [[0, 0], [1, 0], [1, 1], [0, 1]], trim);
+        }
+        // a ridge cap
+        this.box(name, X0 + 0.05, top - 0.04, zc - 0.09, X1 - 0.05, top + 0.08, zc + 0.09, this.col(color).map(v => v * 0.82), 1);
+        return { top, zc };
+    },
+    /* the triangles under a gable roof, at x (facing left or right) */
+    gable(name, x, z0, z1, y, h, color, dir) {
+        const zc = (z0 + z1) / 2, b = this.part(name), base = b.p.length / 3, k = this.col(color);
+        const pts = dir < 0 ? [[x, y, z0], [x, y, z1], [x, y + h, zc]] : [[x, y, z1], [x, y, z0], [x, y + h, zc]];
+        for (const p of pts) { b.p.push(...p); b.n.push(dir, 0, 0); b.uv.push(p[2], p[1]); b.c.push(...k); }
+        b.idx.push(base, base + 1, base + 2);
+    },
+    /* a window on the front wall at (x, y) (its middle), w by h, framed, with a cross, a sill and a flower box */
+    window(x, y, z, w, h, trim, opt) {
+        opt = opt || {};
+        const f = 0.07;
+        this.box('glass', x - w / 2, y - h / 2, z - 0.02, x + w / 2, y + h / 2, z + 0.01, [0.42, 0.6, 0.72]);
+        this.box('plain', x - w / 2 - f, y + h / 2, z - 0.02, x + w / 2 + f, y + h / 2 + f, z + 0.07, trim);
+        this.box('plain', x - w / 2 - f, y - h / 2 - f, z - 0.02, x + w / 2 + f, y - h / 2, z + 0.1, trim);
+        this.box('plain', x - w / 2 - f, y - h / 2, z - 0.02, x - w / 2, y + h / 2, z + 0.06, trim);
+        this.box('plain', x + w / 2, y - h / 2, z - 0.02, x + w / 2 + f, y + h / 2, z + 0.06, trim);
+        this.box('plain', x - 0.025, y - h / 2, z, x + 0.025, y + h / 2, z + 0.04, trim);
+        this.box('plain', x - w / 2, y - 0.025, z, x + w / 2, y + 0.025, z + 0.04, trim);
+        if (opt.shutters) for (const sx of [-1, 1]) this.box('wood', x + sx * (w / 2 + f + 0.15) - 0.13, y - h / 2, z - 0.01, x + sx * (w / 2 + f + 0.15) + 0.13, y + h / 2, z + 0.05, opt.shutters, 2);
+        if (opt.box) {
+            const by = y - h / 2 - f - 0.2;
+            this.box('wood', x - w / 2 - 0.05, by, z, x + w / 2 + 0.05, by + 0.2, z + 0.24, opt.box, 2);
+            const r = mulberry(hash32('fb' + x + y));
+            for (let i = 0; i < 7; i++) { const fx = x - w / 2 + 0.05 + (i + 0.5) / 7 * (w - 0.1), c = ['#f04a6a', '#ffd34a', '#ffffff', '#ff7ab8', '#b07af0'][r() * 5 | 0]; this.box('plain', fx - 0.05, by + 0.2, z + 0.06, fx + 0.05, by + 0.32 + r() * 0.06, z + 0.16, '#3f8a34'); this.box('plain', fx - 0.07, by + 0.3 + r() * 0.05, z + 0.05, fx + 0.07, by + 0.42, z + 0.19, c); }
+        }
+    },
+
+    /* ---------------------------------------------------------------- the buildings */
+    cottage(e, L) {
+        const A = this.at(e), y = A.y, inset = 0.5, x0 = A.x0 + inset, x1 = A.x1 - inset, z0 = A.z0 + 0.5, z1 = A.z1 - 0.2, H = 1.22, RH = 1.02;
+        const wall = L.wall || '#fbe7d0', roofC = L.roof || '#c8505a', trim = L.trim || '#ffffff', door = L.door || '#b3263a';
+        // a stone footing, the plaster walls, white corners
+        this.box('stone', x0 - 0.05, y - 0.3, z0 - 0.05, x1 + 0.05, y + 0.22, z1 + 0.05, '#b8b0a4', 1.6);
+        this.box('plaster', x0, y + 0.22, z0, x1, y + H, z1, wall, 1);
+        for (const cx of [x0, x1]) for (const cz of [z0, z1]) this.box('plain', cx - 0.07, y + 0.22, cz - 0.07, cx + 0.07, y + H, cz + 0.07, trim);
+        this.gable('plaster', x0, z0, z1, y + H, RH, wall, -1);
+        this.gable('plaster', x1, z0, z1, y + H, RH, wall, 1);
+        const R = this.roof('roof', x0, x1, z0, z1, y + H, RH, 0.26, roofC, trim);
+        // a chimney through the back of the roof, on the right
+        const chx = x1 - 0.75, chz = z0 + 0.7;
+        this.box('stone', chx - 0.18, y + H + 0.4, chz - 0.18, chx + 0.18, R.top + 0.38, chz + 0.18, '#a5584a', 1.8);
+        this.box('stone', chx - 0.22, R.top + 0.38, chz - 0.22, chx + 0.22, R.top + 0.46, chz + 0.22, '#7a6a60', 1.8);
+        // the door: frame, door, a little window in it, a knob, a step; a wreath
+        const dx = A.door, fz = z1;
+        this.box('plain', dx - 0.32, y + 0.2, fz - 0.02, dx + 0.32, y + 1.04, fz + 0.06, trim);
+        this.box('wood', dx - 0.26, y + 0.2, fz, dx + 0.26, y + 0.98, fz + 0.08, door, 2);
+        this.box('plain', dx + 0.15, y + 0.56, fz + 0.08, dx + 0.2, y + 0.61, fz + 0.13, '#e8c65a');
+        this.box('stone', dx - 0.4, y - 0.05, fz, dx + 0.4, y + 0.12, fz + 0.3, '#c8c0b2', 1.6);
+        this.wreath(dx, y + 0.74, fz + 0.12);
+        // windows either side, shutters and flower boxes
+        const shutters = L.shutters ? '#3f7a52' : null;
+        for (const wx of [x0 + (dx - x0) * 0.45, dx + (x1 - dx) * 0.55]) this.window(wx, y + 0.76, fz, 0.42, 0.42, trim, { box: L.boxes === 0 ? null : '#8a5a33', shutters: shutters || '#4a7a5a' });
+    },
+    wreath(x, y, z) {
+        for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2, r = 0.15; this.box('plain', x + Math.cos(a) * r - 0.045, y + Math.sin(a) * r - 0.045, z, x + Math.cos(a) * r + 0.045, y + Math.sin(a) * r + 0.045, z + 0.06, i % 3 ? '#2f6a2a' : '#3f8a34'); }
+        this.box('plain', x - 0.06, y - 0.2, z + 0.04, x + 0.06, y - 0.12, z + 0.09, '#d0302a');
+    },
+    shop(e) {
+        const A = this.at(e), y = A.y, x0 = A.x0 + 0.45, x1 = A.x1 - 0.45, z0 = A.z0 + 0.5, z1 = A.z1 - 0.2, H = 1.36;
+        const wall = '#5b86bd', trim = '#f2f0ea', roofC = '#7d8ea8', door = '#2f7a4a';
+        this.box('stone', x0 - 0.05, y - 0.3, z0 - 0.05, x1 + 0.05, y + 0.2, z1 + 0.05, '#a8a094', 1.6);
+        this.box('boards', x0, y + 0.2, z0, x1, y + H, z1, wall, 1.2);
+        for (const cx of [x0, x1]) for (const cz of [z0, z1]) this.box('plain', cx - 0.07, y + 0.2, cz - 0.07, cx + 0.07, y + H, cz + 0.07, trim);
+        this.gable('boards', x0, z0, z1, y + H, 1.05, wall, -1);
+        this.gable('boards', x1, z0, z1, y + H, 1.05, wall, 1);
+        this.roof('slate', x0, x1, z0, z1, y + H, 1.05, 0.28, roofC, trim);
+        const dx = A.door, fz = z1;
+        // the door (glass in the top half), its frame and step
+        this.box('plain', dx - 0.32, y + 0.2, fz - 0.02, dx + 0.32, y + 1.08, fz + 0.06, trim);
+        this.box('wood', dx - 0.26, y + 0.2, fz, dx + 0.26, y + 1.02, fz + 0.08, door, 2);
+        this.box('glass', dx - 0.17, y + 0.6, fz + 0.07, dx + 0.17, y + 0.94, fz + 0.1, [0.5, 0.66, 0.76]);
+        this.box('stone', dx - 0.5, y - 0.05, fz, dx + 0.5, y + 0.1, fz + 0.36, '#c8c0b2', 1.6);
+        // the shop window (on the side of the door with more room), under a striped awning
+        const left = dx - x0 > x1 - dx, wx0 = left ? x0 + 0.25 : dx + 0.5, wx1 = left ? dx - 0.5 : x1 - 0.25, wy0 = y + 0.42, wy1 = y + 0.98;
+        this.box('glass', wx0, wy0, fz - 0.02, wx1, wy1, fz + 0.01, [0.48, 0.64, 0.74]);
+        this.box('plain', wx0 - 0.07, wy1, fz - 0.02, wx1 + 0.07, wy1 + 0.08, fz + 0.07, trim);
+        this.box('plain', wx0 - 0.07, wy0 - 0.12, fz - 0.02, wx1 + 0.07, wy0, fz + 0.14, trim);
+        for (const xx of [wx0 - 0.07, wx1, (wx0 + wx1) / 2 - 0.035]) this.box('plain', xx, wy0, fz - 0.02, xx + 0.07, wy1, fz + 0.06, trim);
+        this.awning(Math.min(wx0, dx - 0.5) - 0.15, Math.max(wx1, dx + 0.5) + 0.15, wy1 + 0.18, fz, ['#3f9a5a', '#f4f2ea']);
+        // the sign over it all
+        const sw = Math.min(2.4, x1 - x0 - 0.4), scx = A.cx;
+        this.box('wood', scx - sw / 2 - 0.06, y + H - 0.04, fz + 0.02, scx + sw / 2 + 0.06, y + H + 0.42, fz + 0.1, '#5a3e28');
+        this.quad('sign', [[scx - sw / 2, y + H, fz + 0.11], [scx + sw / 2, y + H, fz + 0.11], [scx + sw / 2, y + H + 0.38, fz + 0.11], [scx - sw / 2, y + H + 0.38, fz + 0.11]], [0, 0, 1], [[0, 0], [1, 0], [1, 1], [0, 1]], [1, 1, 1]);
+        // a chalkboard beside the door
+        const bx = left ? dx + 0.75 : dx - 0.75;
+        this.box('wood', bx - 0.24, y, fz + 0.45, bx + 0.24, y + 0.75, fz + 0.52, '#6a4a2a');
+        this.box('plain', bx - 0.19, y + 0.14, fz + 0.52, bx + 0.19, y + 0.68, fz + 0.54, '#2a3a32');
+    },
+    /* a striped awning sloping out from the wall over x0..x1 at height y */
+    awning(x0, x1, y, z, cols) {
+        const n = Math.round((x1 - x0) / 0.26), out = 0.7, drop = 0.42;
+        for (let i = 0; i < n; i++) {
+            const a = x0 + (x1 - x0) * i / n, b = x0 + (x1 - x0) * (i + 1) / n, c = cols[i % 2];
+            const sl = Math.hypot(out, drop), nn = [0, out / sl, drop / sl];
+            this.quad('cloth', [[a, y - drop, z + out], [b, y - drop, z + out], [b, y, z + 0.02], [a, y, z + 0.02]], nn, [[0, 0], [1, 0], [1, 1], [0, 1]], c);
+            // the scalloped edge
+            this.quad('cloth', [[a, y - drop - 0.14, z + out + 0.01], [b, y - drop - 0.14, z + out + 0.01], [b, y - drop, z + out + 0.01], [a, y - drop, z + out + 0.01]], [0, 0, 1], [[0, 0], [1, 0], [1, 1], [0, 1]], c);
+        }
+    },
+
+    /* ---------------------------------------------------------------- things round the buildings */
+    foot(e) { return { x: e.x / TILE, z: e.y / TILE * R3_ZS, y: Env.groundH(e.x, e.y) }; },
+    bench(e) {
+        const f = this.foot(e), x = f.x, z = f.z - 0.2, y = f.y, w = 1.7;
+        for (let i = 0; i < 3; i++) this.box('wood', x - w / 2, y + 0.42, z - 0.22 + i * 0.15, x + w / 2, y + 0.48, z - 0.1 + i * 0.15, '#b07a46', 2);
+        for (let i = 0; i < 3; i++) this.box('wood', x - w / 2, y + 0.58 + i * 0.16, z - 0.3, x + w / 2, y + 0.7 + i * 0.16, z - 0.24, '#a8703e', 2);
+        for (const sx of [-1, 1]) { const lx = x + sx * (w / 2 - 0.12); this.box('plain', lx - 0.04, y, z + 0.14, lx + 0.04, y + 0.45, z + 0.2, '#2c2a2e'); this.box('plain', lx - 0.04, y, z - 0.3, lx + 0.04, y + 1.05, z - 0.24, '#2c2a2e'); this.box('plain', lx - 0.04, y + 0.38, z - 0.3, lx + 0.04, y + 0.44, z + 0.2, '#2c2a2e'); }
+    },
+    lamp(e) {
+        const f = this.foot(e), x = f.x, z = f.z - 0.1, y = f.y;
+        this.box('plain', x - 0.14, y, z - 0.14, x + 0.14, y + 0.18, z + 0.14, '#2a2830');
+        this.box('plain', x - 0.05, y, z - 0.05, x + 0.05, y + 2.1, z + 0.05, '#2a2830');
+        this.box('plain', x - 0.17, y + 2.1, z - 0.17, x + 0.17, y + 2.16, z + 0.17, '#2a2830');
+        this.box('glass', x - 0.13, y + 2.16, z - 0.13, x + 0.13, y + 2.5, z + 0.13, [0.95, 0.85, 0.55]);
+        for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) this.box('plain', x + sx * 0.13 - 0.025, y + 2.16, z + sz * 0.13 - 0.025, x + sx * 0.13 + 0.025, y + 2.5, z + sz * 0.13 + 0.025, '#2a2830');
+        this.box('plain', x - 0.2, y + 2.5, z - 0.2, x + 0.2, y + 2.56, z + 0.2, '#2a2830');
+        this.box('plain', x - 0.1, y + 2.56, z - 0.1, x + 0.1, y + 2.66, z + 0.1, '#2a2830');
+    },
+    mailbox(e) {
+        const f = this.foot(e), x = f.x, z = f.z - 0.1, y = f.y;
+        this.box('wood', x - 0.05, y, z - 0.05, x + 0.05, y + 0.85, z + 0.05, '#6a4a2a', 2);
+        this.box('plain', x - 0.18, y + 0.85, z - 0.32, x + 0.18, y + 1.12, z + 0.2, '#3f7fd0');
+        this.box('plain', x - 0.18, y + 1.12, z - 0.32, x + 0.18, y + 1.18, z + 0.2, '#3570b8');
+        this.box('plain', x + 0.18, y + 0.95, z - 0.1, x + 0.22, y + 1.32, z - 0.06, '#d8302a');
+    },
+    /* a white picket fence along this tile, joining its neighbours */
+    fence(e, a) {
+        const f = this.foot(e), x = f.x, z = f.z - 0.35, y = f.y;
+        for (let i = 0; i < 4; i++) { const px = x - 0.5 + (i + 0.5) / 4; this.box('plain', px - 0.05, y, z - 0.03, px + 0.05, y + 0.68, z + 0.03, '#f4f2ea'); this.box('plain', px - 0.035, y + 0.68, z - 0.03, px + 0.035, y + 0.74, z + 0.03, '#f4f2ea'); }
+        for (const ry of [0.22, 0.5]) this.box('plain', x - 0.5, y + ry, z - 0.06, x + 0.5, y + ry + 0.06, z - 0.03, '#e2dfd6');
+        // sunflowers behind it, as in the concept
+        const r = mulberry(hash32('sf' + e.x + e.y));
+        for (let i = 0; i < 2; i++) { const sx = x - 0.3 + i * 0.55 + (r() - 0.5) * 0.1, sh = 0.95 + r() * 0.35; this.box('plain', sx - 0.025, y, z - 0.25, sx + 0.025, y + sh, z - 0.2, '#4a8a34'); this.box('plain', sx - 0.13, y + sh - 0.13, z - 0.24, sx + 0.13, y + sh + 0.13, z - 0.19, '#ffc93a'); this.box('plain', sx - 0.06, y + sh - 0.06, z - 0.19, sx + 0.06, y + sh + 0.06, z - 0.16, '#6a3a1a'); }
+    },
+    flowerbed(e) {
+        const f = this.foot(e), x = f.x, z = f.z - 0.35, y = f.y;
+        this.box('wood', x - 0.9, y, z - 0.35, x + 0.9, y + 0.28, z + 0.25, '#8a5a33', 2);
+        const r = mulberry(hash32('bed' + e.x));
+        for (let i = 0; i < 16; i++) { const fx = x - 0.75 + r() * 1.5, fz = z - 0.25 + r() * 0.42, c = ['#f04a6a', '#ffd34a', '#ffffff', '#ff7ab8', '#b07af0', '#ff8a3a'][r() * 6 | 0]; this.box('plain', fx - 0.08, y + 0.3, fz - 0.08, fx + 0.08, y + 0.42 + r() * 0.08, fz + 0.08, c); }
+    },
+    /* a clump of flowers where a wild flower grows */
+    flower(e) {
+        const f = this.foot(e), r = mulberry(hash32('fl' + e.x + ',' + e.y)), kind = (e.id || '').split('_')[1] || '';
+        const pal = { tulip: ['#e8324a', '#ffcf3a', '#ff7ab8'], daisy: ['#ffffff', '#fff6d0', '#ffe14a'], cosmos: ['#ff7ab8', '#e0559a', '#ffffff'], lily: ['#ffffff', '#ffb0c8', '#ffd04a'] }[kind] || ['#ffffff', '#ff7ab8', '#ffd34a', '#b07af0'];
+        for (let i = 0; i < 4; i++) {
+            const fx = f.x + (r() - 0.5) * 0.6, fz = f.z - 0.2 + (r() - 0.5) * 0.45, h = 0.22 + r() * 0.2, c = pal[r() * pal.length | 0];
+            this.box('plain', fx - 0.015, f.y, fz - 0.015, fx + 0.015, f.y + h, fz + 0.015, '#3f8a34');
+            this.box('plain', fx - 0.07, f.y + h, fz - 0.07, fx + 0.07, f.y + h + 0.05, fz + 0.07, c);
+            this.box('plain', fx - 0.025, f.y + h + 0.05, fz - 0.025, fx + 0.025, f.y + h + 0.07, fz + 0.025, '#f8c83a');
+        }
+    },
+    /* a pumpkin: a squat orange ball with ribs, a stem */
+    pumpkin(e) {
+        const f = this.foot(e), r = mulberry(hash32('pk' + e.x + ',' + e.y)), s = 0.17 + r() * 0.07, b = this.part('plain'), base = b.p.length / 3;
+        const seg = 14, rings = 7, col = [0.93, 0.48, 0.12], cx = f.x, cy = f.y + s * 0.7, cz = f.z - 0.1;
+        for (let j = 0; j <= rings; j++) for (let i = 0; i <= seg; i++) {
+            const th = j / rings * Math.PI, ph = i / seg * Math.PI * 2, rib = 1 - 0.1 * Math.pow(Math.abs(Math.cos(ph * 4)), 0.5);
+            const nx = Math.sin(th) * Math.cos(ph), ny = Math.cos(th), nz = Math.sin(th) * Math.sin(ph);
+            b.p.push(cx + nx * s * rib * 1.15, cy + ny * s * 0.75, cz + nz * s * rib * 1.15); b.n.push(nx, ny, nz); b.uv.push(0, 0);
+            const k = 0.82 + 0.18 * rib; b.c.push(col[0] * k, col[1] * k, col[2] * k);
+        }
+        for (let j = 0; j < rings; j++) for (let i = 0; i < seg; i++) { const a0 = base + j * (seg + 1) + i, a1 = a0 + 1, b0 = a0 + seg + 1, b1 = b0 + 1; b.idx.push(a0, a1, b0, a1, b1, b0); }
+        this.box('wood', cx - 0.025, cy + s * 0.7, cz - 0.025, cx + 0.025, cy + s * 0.7 + 0.09, cz + 0.025, '#5a7a2a', 2);
+    },
+};

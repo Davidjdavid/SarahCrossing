@@ -109,16 +109,17 @@ const R3 = {
     },
 
     /* ---------------------------------------------------------------- the camera and the bend */
-    dist() { return R3_CAM.dist * [0.78, 1, 1.32, 1.7][G.area && G.area.interior ? Math.min(Zoom.level(), 1) : Zoom.level()]; },
-    pitch() { return (G.area && G.area.interior ? R3_CAM.pitchIn : R3_CAM.pitch) * Math.PI / 180; },
+    dist() { return (Env.on ? ENV.cam.dist : R3_CAM.dist) * [0.78, 1, 1.32, 1.7][G.area && G.area.interior ? Math.min(Zoom.level(), 1) : Zoom.level()]; },
+    pitch() { return (G.area && G.area.interior ? R3_CAM.pitchIn : Env.on ? ENV.cam.pitch : R3_CAM.pitch) * Math.PI / 180; },
     placeCamera(snap) {
         const a = G.area, p = G.player;
         let tx = p.x, ty = p.y - 10;
         if (G.camTarget) { tx = G.camTarget[0]; ty = G.camTarget[1]; }
         // on an upright phone, look a little ahead (north) so Sarah stands in the lower part of the screen with the world
         // above her, as in the art sample, rather than over a half-screen of ground at her feet
-        else if (this.camera.aspect < 1) ty -= (1 - this.camera.aspect) * R3_CAM.lead * TILE;
+        else if (this.camera.aspect < 1 && !(Env.on && !a.interior)) ty -= (1 - this.camera.aspect) * R3_CAM.lead * TILE;
         if (a.interior) { tx = a.w * TILE / 2; ty = (a.floor.y0 + a.floor.h * 0.55) * TILE; }
+        else if (Env.on && !G.camTarget) ty -= ENV.cam.ahead * (this.camera.aspect < 1 ? 0.5 : 1) * TILE;
         const X = tx / TILE, Z = ty / TILE * R3_ZS, GH = a.interior ? 0 : r3GroundH(tx, ty + 10);
         if (snap || this.areaId !== a.id) { this.target.x = X; this.target.z = Z; this.camH = GH; }
         else {
@@ -126,15 +127,17 @@ const R3 = {
             const f = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60)), k = 1 - Math.pow(0.86, f), kh = 1 - Math.pow(0.92, f);
             this.target.x += (X - this.target.x) * k; this.target.z += (Z - this.target.z) * k; this.camH += (GH - (this.camH || 0)) * kh;
         }
-        const pr = this.pitch(), d = this.dist(), cam = this.camera;
+        // (the new look on an upright phone: a wider view, or there's room for little more than Sarah)
+        const pr = this.pitch(), d = this.dist(), cam = this.camera, fov = Env.on && !a.interior ? ENV.cam.fov * (cam.aspect < 1 ? 1.25 : 1) : R3_CAM.fov;
+        if (cam.fov !== fov) { cam.fov = fov; cam.updateProjectionMatrix(); }
         // (up on the plateau, the camera rises with her)
         cam.position.set(this.target.x, R3_CAM.ly + d * Math.sin(pr) + (this.camH || 0), this.target.z + d * Math.cos(pr));
         cam.rotation.set(-pr, 0, 0);
         cam.updateMatrixWorld();
         R3U.uBendZ.value = this.target.z - (a.interior ? 999 : R3_CAM.bendStart);
         R3U.uBendK.value = a.interior ? 0 : R3_CAM.bendK;
-        const k = d / 13;
-        R3U.uDof.value.set(22 * k, 70 * k, 8.5 * k, 5.5 * k);
+        const k = d / 13, df = Env.on && !a.interior ? ENV.dof : [22, 70, 8.5, 5.5];
+        R3U.uDof.value.set(df[0] * k, df[1] * k, df[2] * k, df[3] * k);
         // the sun's shadow box follows the camera
         const sd = new THREE.Vector3(-0.55, 0.78, 0.32).normalize();
         this.sun.target.position.set(this.target.x, 0, this.target.z - 4);
@@ -197,9 +200,11 @@ const R3 = {
             if (!this.view || (step && G.frame % 4 === 0)) this.updateView();
             if (step && G.frame % 30 === 0) this.texelSize();
             hdWarm();
-            this.updateGround(a);
-            this.updateTufts(a);
-            this.updateLilies(a);
+            // the new 3D look (33a_env.js, the test area for now) draws the ground, trees, buildings and props itself
+            const env = Env.active(a) && Env.update(this, a);
+            if (!env) Env.hide();
+            if (env) this.hideOldGround();
+            else { this.updateGround(a); this.updateTufts(a); this.updateLilies(a); }
             this.updateLight(a);
             this.updateCards(a);
             R3U.uTime.value = (performance.now() - this.t0) / 1000;
@@ -216,6 +221,12 @@ const R3 = {
             this.failed = true; this.ok = false; this.show(false);
             return false;
         }
+    },
+    /* the HD-2D ground, grass and lily pads out of the way while the new look draws its own */
+    hideOldGround() {
+        for (const ch of this.chunks.values()) ch.mesh.visible = false;
+        if (this.tufts) this.tufts.mesh.visible = false;
+        if (this.lilies) this.lilies.mesh.visible = false;
     },
     /* if this device struggles, step down once: a smaller picture */
     watchSpeed() {
@@ -455,7 +466,7 @@ const R3 = {
             u.uHor.value.copy(fog);
             u.uDay.value = day * (1 - gray * 0.4);
         }
-        this.grade = { dark, gray };
+        this.grade = { dark, gray, warm: Env.on && !a.interior ? 1 - dark : 0 };
         // lit windows: from dusk, brighter as it gets darker, until whoever lives there goes to bed (Sarah leaves hers on)
         const glow = a.interior ? 0 : Math.max(0, Math.min(1, (dark - 0.25) / 0.45)) * 0.85;
         const hr = Clock.hourF(), late = hr >= 0 && hr < 5;
@@ -478,7 +489,8 @@ const R3 = {
             const [x, y, r, c] = o.s;
             l.position.set(x / TILE, 1.4, y / TILE * R3_ZS + 0.3);
             l.distance = Math.max(4, r / TILE * 2.2);
-            l.intensity = L.lamps * (a.interior ? 0.9 : 1.2);
+            // (the new look's ground takes light like a real surface: softer lamps, or the square goes white round them)
+            l.intensity = L.lamps * (a.interior ? 0.9 : Env.on ? 0.6 : 1.2);
             l.color.set(c === 'pink' ? 0xff6ab0 : c === 'fire' ? 0xff9a50 : 0xffd8a0);
         });
     },
@@ -493,8 +505,9 @@ const R3 = {
         this.measured = 0;
         const tx = G.player.x, ty = G.player.y;
         const todo = [];
+        const env = Env.on && !a.interior;
         for (const e of a.ents) {
-            if (e.hidden || e.layer === 0 || (e.onlyNight && !nightNow) || !near(e)) continue;
+            if (e.hidden || e.layer === 0 || (e.onlyNight && !nightNow) || !near(e) || (env && Env.takes(e))) continue;
             seen.add(e);
             if (!this.cards.has(e)) { todo.push(e); continue; }
             this.staticCard(e, a);
@@ -639,8 +652,9 @@ function r3Patch(mat, o) {
     o = o || {};
     mat.onBeforeCompile = sh => {
         Object.assign(sh.uniforms, R3U, o.uniforms || {});
+        if (o.vbody) sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n' + o.vbody);
         sh.vertexShader = R3_GLSL + (o.vhead || '') + sh.vertexShader.replace('#include <project_vertex>', `
-            vec4 bw = modelMatrix * vec4(transformed, 1.0);
+            vec4 bw = modelMatrix * ${o.inst ? 'instanceMatrix * ' : ''}vec4(transformed, 1.0);
             vWp = bw.xyz;
             float bd = max(0.0, uBendZ - bw.z); bw.y -= uBendK * bd * bd;
             vec4 mvPosition = viewMatrix * bw;
@@ -648,10 +662,12 @@ function r3Patch(mat, o) {
             gl_Position = projectionMatrix * mvPosition;`);
         let fs = R3_GLSL + (o.fhead || '') + sh.fragmentShader;
         if (o.fmap) fs = fs.replace('#include <map_fragment>', '#include <map_fragment>\n' + o.fmap);
+        if (o.fnormal) fs = fs.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + o.fnormal);
+        if (o.fpre) fs = fs.replace('#include <tonemapping_fragment>', o.fpre + '\n#include <tonemapping_fragment>');
         // (the sun's shadows fade out at dusk: in a Lambert material they darken every light, the lamps' too)
         fs = fs.replace('reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask();',
             'reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * mix(1.0, getShadowMask(), uShadow)' + (o.noCloud ? ';' : ' * cloudShade(vWp.xz);'));
-        fs = fs.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + (o.fend || '') + (o.dofFixed != null ? `\ngl_FragColor.a = ${o.dofFixed.toFixed(2)};` : '\ngl_FragColor.a = dofA(vDofZ);'));
+        fs = fs.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + (o.fend || '') + (o.noDof ? '' : o.dofFixed != null ? `\ngl_FragColor.a = ${o.dofFixed.toFixed(2)};` : '\ngl_FragColor.a = dofA(vDofZ);'));
         sh.fragmentShader = fs;
     };
     mat.customProgramCacheKey = () => (o.key || 'r3') + mat.type;
@@ -1139,6 +1155,7 @@ function r3Fine() {
 /* the ground's height (world units) under a spot in world pixels, on the island (rooms are flat) */
 function r3GroundH(x, y) {
     if (!G.area || G.area.interior || G.area.id !== 'island' || !W0.height) return 0;
+    if (Env.on) return Env.groundH(x, y);
     const g = r3Fine(), fx = Math.max(0, Math.min(g.W - 1.001, x / TILE * R3_FS)), fy = Math.max(0, Math.min(g.Ht - 1.001, y / TILE * R3_FS));
     const ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy, H = g.H, i = iy * g.W + ix;
     return ((H[i] * (1 - tx) + H[i + 1] * tx) * (1 - ty) + (H[i + g.W] * (1 - tx) + H[i + g.W + 1] * tx) * ty) * R3_LEVEL;
@@ -1354,6 +1371,9 @@ function placeCard(c, e, a) {
     // a shopkeeper at the counter along the back wall stands on a step behind it, so they show over it as in the flat view
     else if (a.interior && e.npc && a.room && a.room.staff === e.id && a.floor && e.y < (a.floor.y0 + 1.5) * TILE) lift += 0.5 * R3_VS;
     c.mesh.position.set(Math.round(e.x) / TILE, lift, z + 0.001 * ((e.x * 7) % 3));
+    // in the new 3D look people stand a little bigger against the world, as in the concept
+    const big = Env.on && !a.interior && (e.kind === 'player' || e.npc) ? ENV.people : 1;
+    if (c.mesh.scale.x !== big) c.mesh.scale.setScalar(big);
     c.mesh.visible = true;
 }
 /* ---------------------------------------------------------------- buildings in 3D */
@@ -1702,7 +1722,7 @@ const Post3 = (() => {
             void main(){ vec3 c = (texture2D(t, vUv + px * vec2(-1.0,-1.0)).rgb + texture2D(t, vUv + px * vec2(1.0,-1.0)).rgb + texture2D(t, vUv + px * vec2(-1.0,1.0)).rgb + texture2D(t, vUv + px * vec2(1.0,1.0)).rgb) * 0.25;
               float l = max(c.r, max(c.g, c.b)); gl_FragColor = vec4(c * smoothstep(th, th + 0.35, l), 1.0); }`,
             { t: { value: null }, px: { value: new THREE.Vector2() }, th: { value: 0.78 } });
-        mats.comp = pass(`uniform sampler2D tS, tA, tC, tE; uniform float time, aspect, bloom, dark, gray; uniform vec2 res; varying vec2 vUv;
+        mats.comp = pass(`uniform sampler2D tS, tA, tC, tE; uniform float time, aspect, bloom, dark, gray, warm; uniform vec2 res; varying vec2 vUv;
             float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
             void main(){
               vec4 s = texture2D(tS, vUv);
@@ -1723,13 +1743,15 @@ const Post3 = (() => {
               col += (1.0 - smoothstep(0.0, 0.55, l)) * vec3(0.012, 0.022, 0.045);
               col *= mix(vec3(0.97, 0.99, 1.04), vec3(1.035, 1.0, 0.95), smoothstep(0.25, 0.9, l));
               col = mix(vec3(l), col, 1.14 - gray * 0.3);
+              /* the new 3D look: the concept's golden afternoon (warmer light, softer greens, shadows lifted a touch) */
+              col = mix(col, col * vec3(1.06, 1.0, 0.88) + vec3(0.02, 0.012, 0.0), warm * 0.8);
               col = col / (1.0 + max(col - 0.82, 0.0) * 0.9);
               vec2 q = vUv - 0.5; q.x *= aspect * 0.8;
               col *= mix(1.0, 0.8, smoothstep(0.35, 0.95, length(q)));
               col += (h(vUv * res + fract(time)) - 0.5) / 255.0 * 1.5;
               gl_FragColor = vec4(col, 1.0);
             }`, { tS: { value: null }, tA: { value: null }, tC: { value: null }, tE: { value: null }, time: { value: 0 }, aspect: { value: 1 }, bloom: { value: 0.6 },
-                dark: { value: 0 }, gray: { value: 0 }, res: { value: new THREE.Vector2() } });
+                dark: { value: 0 }, gray: { value: 0 }, warm: { value: 0 }, res: { value: new THREE.Vector2() } });
     }
     function target(w, h, ms) {
         const o = { type: hdr ? THREE.HalfFloatType : THREE.UnsignedByteType, format: THREE.RGBAFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: !!ms, stencilBuffer: false };
@@ -1760,7 +1782,7 @@ const Post3 = (() => {
         const c = mats.comp.uniforms;
         c.tS.value = rtScene.texture; c.tA.value = A.texture; c.tC.value = C.texture; c.tE.value = E.texture;
         c.time.value = time; c.aspect.value = w / h; c.res.value.set(w, h);
-        c.dark.value = grade ? grade.dark : 0; c.gray.value = grade ? grade.gray : 0;
+        c.dark.value = grade ? grade.dark : 0; c.gray.value = grade ? grade.gray : 0; c.warm.value = grade && grade.warm || 0;
         run(mats.comp, null);
     }
     return { init, resize, render };

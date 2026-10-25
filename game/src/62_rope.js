@@ -43,7 +43,7 @@ const Rope = {
     /* the rope appears when both turners are in place, and goes away when they leave */
     sync() {
         const isl = G.areas && G.areas.island;
-        if (!isl) return;
+        if (!isl || !ROPE_TILES) return;            // (no jump rope in a world without the plaza's spot for it)
         const live = !!this.turners();
         const has = this.ent && isl.ents.includes(this.ent);
         const my = ROPE_TILES.mid[1];

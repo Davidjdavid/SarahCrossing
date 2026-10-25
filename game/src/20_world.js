@@ -76,6 +76,9 @@ function findPath(area, sx, sy, gx, gy, maxNodes) {
 
 /* ---------------------------------------------------------------- the island */
 const W0 = window.WORLD_JSON;
+/* the test area for the new 3D look (?lab in the address: scripts/island/plan-lab.mjs): a small world of its own,
+   played without saving and without the neighbors' days (Joe and Maki stand on the cobbles, as in the concept art) */
+const LAB = !!window.IS_LAB;
 function tileFoot(tx, ty) { return [(tx + 0.5) * TILE, (ty + 1) * TILE - 2]; }
 
 function buildIsland() {
@@ -120,7 +123,7 @@ function buildIsland() {
         const [fx, fy] = tileFoot(p.x, p.y);
         a.add(makePalm(`pa${p.x}_${p.y}`, fx, fy, p.coconut, p.x, p.y));
     }
-    {
+    if (W0.bigTree) {
         const t = W0.bigTree;
         for (let y = t.y; y < t.y + 2; y++) for (let x = t.x; x < t.x + 2; x++) a.block(x, y);
         const e = a.add({ kind: 'bigtree', frame: `tree_big_${season}`, x: (t.x + 1) * TILE, y: (t.y + 2) * TILE - 1 });
@@ -145,12 +148,14 @@ function buildIsland() {
     addDockedBoat(a);
     // Basil's noodle cart only rolls out at night
     const C = W0.cart;
-    const cart = a.add({ kind: 'cart', frame: 'noodle_cart', x: C.x * TILE, y: (C.y + 1) * TILE - 2, onlyNight: true });
-    cart.hit = { x: (C.x - 1.9) * TILE, y: (C.y - 1.4) * TILE, w: 3.8 * TILE, h: 2.6 * TILE };
-    cart.interact = () => { const b = NPCs.get('basil'); if (b && b.spotKey === 'cart' && !b.sleeping) talkTo(b); else talkSign('cart'); };
-    cart.tiles = C.tiles;
-    cart.solid = false;
-    G.cart = cart;
+    if (C) {
+        const cart = a.add({ kind: 'cart', frame: 'noodle_cart', x: C.x * TILE, y: (C.y + 1) * TILE - 2, onlyNight: true });
+        cart.hit = { x: (C.x - 1.9) * TILE, y: (C.y - 1.4) * TILE, w: 3.8 * TILE, h: 2.6 * TILE };
+        cart.interact = () => { const b = NPCs.get('basil'); if (b && b.spotKey === 'cart' && !b.sleeping) talkTo(b); else talkSign('cart'); };
+        cart.tiles = C.tiles;
+        cart.solid = false;
+        G.cart = cart;
+    }
     // the waterfalls: moving water over the painted rock, and spray at the foot
     for (const wf of W0.waterfalls) addWaterfall(a, wf);
     addWildFlowers(a);

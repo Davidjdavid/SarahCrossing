@@ -11,6 +11,7 @@
 //   assets/atlas-<hash>.png     the sprites
 //   assets/ground-*-<hash>.png  the island ground in pieces, and a half-size copy for the map (recolored per season in
 //                               the browser; game/assets/ground/, made by scripts/make-island.mjs)
+//   assets/lab-*-<hash>.png     the test area's ground (game/assets/lab/, made by make-island.mjs --plan lab; ?lab)
 //   assets/hdw-<hash>.js        the HD drawing code again, as a worker (big pictures drawn off the main thread)
 //   build.json                  { version, commit, builtAt }
 //
@@ -63,6 +64,11 @@ const atlasPng = emit('atlas', '.png', read('assets/atlas.png'));
 const gman = readJson('assets/ground/ground.json');
 const ground = Object.assign({}, gman, { map: emit('ground-map', '.png', read('assets/ground/map.png')), urls: [] });
 for (let r = 0; r < gman.rows; r++) for (let c = 0; c < gman.cols; c++) ground.urls.push(emit(`ground-r${r}c${c}`, '.png', read(`assets/ground/r${r}c${c}.png`)));
+// the test area for the new 3D look (scripts/island/plan-lab.mjs): its own small world and ground, played instead of
+// the island with ?lab in the address (never saved anywhere)
+const lman = readJson('assets/lab/ground/ground.json');
+const labGround = Object.assign({}, lman, { map: emit('lab-map', '.png', read('assets/lab/ground/map.png')), urls: [] });
+for (let r = 0; r < lman.rows; r++) for (let c = 0; c < lman.cols; c++) labGround.urls.push(emit(`lab-r${r}c${c}`, '.png', read(`assets/lab/ground/r${r}c${c}.png`)));
 const data = [
   `window.ATLAS_PNG = ${JSON.stringify(atlasPng)};`,
   `window.GROUND = ${JSON.stringify(ground)};`,
@@ -71,6 +77,8 @@ const data = [
   `window.GROUND_PAL = ${JSON.stringify(readJson('assets/ground-palettes.json'))};`,
   `window.WORLD_JSON = ${JSON.stringify(readJson('assets/world.json'))};`,
   `window.GAMEDATA = ${JSON.stringify(readJson('assets/gamedata.json'))};`,
+  `window.LAB = { world: ${JSON.stringify(readJson('assets/lab/world.json'))}, ground: ${JSON.stringify(labGround)} };`,
+  "if (window.location && /[?&]lab(=|&|$)/.test(window.location.search)) { window.IS_LAB = true; window.WORLD_JSON = window.LAB.world; window.GROUND = window.LAB.ground; }",
   '',
 ].join('\n');
 const dataJs = emit('data', '.js', data);

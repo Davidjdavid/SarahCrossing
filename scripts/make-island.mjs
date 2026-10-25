@@ -2,8 +2,9 @@
 // game/assets/ground/ (its picture, in pieces), from scripts/island/ (layout.mjs lays it out, paint.mjs paints it with
 // the first island's textures from scripts/island/source/). The same seed always makes the same island.
 //
-//   node scripts/make-island.mjs [--seed N] [--preview out.png | --png out.png]
+//   node scripts/make-island.mjs [--seed N] [--plan lab] [--preview out.png | --png out.png]
 //
+// --plan lab makes the test area for the new 3D look instead (scripts/island/plan-lab.mjs, into game/assets/lab/).
 // --preview only draws a quick map of the layout (one color per kind of ground, dots for trees and props), and --png
 // only the painted ground in summer's colors (with the map next to it as out.json), without writing into game/.
 import fs from 'node:fs';
@@ -17,9 +18,12 @@ const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : def; };
 const seed = +opt('--seed', 7);
 const preview = opt('--preview', null);
+const lab = opt('--plan', '') === 'lab';
+const plan = lab ? (await import('./island/plan-lab.mjs')).PLAN : undefined;
+const OUT = path.join(ROOT, lab ? 'game/assets/lab' : 'game/assets');
 
 const t0 = Date.now();
-const { world, paint } = makeIsland(seed);
+const { world, paint } = makeIsland(lab ? plan.seed : seed, plan);
 console.log(`laid out ${world.w}x${world.h} in ${Date.now() - t0} ms: ${Object.keys(world.buildings).length} buildings, ${world.trees.length} trees, ${world.fruitTrees.length} fruit trees, ${world.palms.length} palms, ${world.props.length} props, ${world.flowers.length} flowers, ${Object.keys(world.spots).length} spots`);
 
 if (preview) {
@@ -62,6 +66,6 @@ if (png) {
   console.log(`painted in ${Date.now() - t0} ms -> ${png}`);
   process.exit(0);
 }
-writeGround(path.join(ROOT, 'game/assets/ground'), g.w, g.h, g.px, g.pal);
-fs.writeFileSync(path.join(ROOT, 'game/assets/world.json'), formatJson(world, 1));
+writeGround(path.join(OUT, 'ground'), g.w, g.h, g.px, g.pal);
+fs.writeFileSync(path.join(OUT, 'world.json'), formatJson(world, 1));
 console.log(`painted and written in ${Date.now() - t0} ms`);

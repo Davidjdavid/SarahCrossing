@@ -64,6 +64,19 @@ docs/DEPLOY.md for the server.
   serif type (style.css, end).
 - The classic 16x24 art stays the source for menus, icons, the classic view and the flat modes.
 
+## The new 3D look: the test area (?lab, 33a–33f)
+
+- `?lab` in the address opens a small test island laid out like the concept art (`scripts/island/plan-lab.mjs`, made
+  with `node scripts/make-island.mjs --plan lab` into `game/assets/lab/`). It runs on a throwaway save that is never
+  written (`LAB` in 20_world.js; `Save.write` returns), with Joe and Maki on the square and everyone else asleep.
+  Sarah's island doesn't use any of this until David approves the look for the whole island.
+- There `Env` (33a_env.js) draws the world as real 3D, built once when the area loads: the ground from half-tile
+  height cells with a stone wall on anything steep (`EnvGround`), procedural surfaces (`EnvTex`), trees (`EnvTrees`),
+  water (`EnvWater`), buildings and props (`EnvBuild`) and grass (`EnvGrass`). R3 still draws people, critters and
+  anything `Env.takes(e)` leaves out, and its post pass (bloom, depth of field, the warm grade). Tune it in `ENV`
+  (a level's height, the camera, depth of field, how big people stand).
+- The button under the clock (`localStorage sc-env-next = 0`) draws the test area the old way, for comparing.
+
 ## Saving (11_save.js, 12_cloud.js, 6x_islands.js)
 
 - `Save.write()` keeps a copy on the device (`localStorage`, marked pending) and sends the island to

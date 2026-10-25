@@ -49,12 +49,16 @@ test('the game code is game/src joined in file-name order, and is valid JavaScri
 test('the data script holds the sprites, world and game data, and points at the pictures', () => {
   const window = {};
   new Function('window', fs.readFileSync(path.join(dist, asset(/src="(assets\/data-[^"]+)"/)), 'utf8'))(window);
-  assert.deepEqual(Object.keys(window).sort(), ['ATLAS_JSON', 'ATLAS_PNG', 'GAMEDATA', 'GROUND', 'GROUND_PAL', 'HDW_JS', 'WORLD_JSON']);
+  assert.deepEqual(Object.keys(window).sort(), ['ATLAS_JSON', 'ATLAS_PNG', 'GAMEDATA', 'GROUND', 'GROUND_PAL', 'HDW_JS', 'LAB', 'WORLD_JSON']);
   // the ground: every piece, and the map's copy, is a picture; together they cover the island
   const G = window.GROUND;
   assert.equal(G.urls.length, G.cols * G.rows);
   assert.ok(G.cols * G.size >= window.WORLD_JSON.w * 16 && G.rows * G.size >= window.WORLD_JSON.h * 16, 'the pieces cover the island');
-  for (const f of [window.ATLAS_PNG, G.map, ...G.urls]) {
+  // the test area (?lab) has its own small world and ground
+  const L = window.LAB;
+  assert.ok(L.ground.cols * L.ground.size >= L.world.w * 16 && L.ground.rows * L.ground.size >= L.world.h * 16, "the test area's pieces cover it");
+  assert.ok(L.world.buildings.home && L.world.buildings.shop && L.world.waterfalls.length, 'the test area has the cottage, the shop and a waterfall');
+  for (const f of [window.ATLAS_PNG, G.map, ...G.urls, L.ground.map, ...L.ground.urls]) {
     const png = fs.readFileSync(path.join(dist, f));
     assert.equal(png.subarray(1, 4).toString(), 'PNG', f);
   }

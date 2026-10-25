@@ -5,6 +5,17 @@ const STARTER_HOUSE = [
     { id: 'lamp_floor', x: 7, y: 2 }, { id: 'dresser', x: 5, y: 5 }, { id: 'chair_wood', x: 3, y: 2 }, { id: 'laptop', x: 5, y: 5, on: 4 },
 ];
 
+/* the test area's island (?lab): a fresh one each visit, standing on the cobbles in front of the cottage */
+function labState() {
+    const st = newState();
+    st.started = true; st.flags.introDone = true; st.flags.metJoe = true;
+    st.islandName = 'the test area'; st.birthday = { m: 3, d: 14 };
+    st.house.items = STARTER_HOUSE.map(o => Object.assign({ flip: false }, o));
+    st.day = Clock.dayNum(); st.startDay = st.day;
+    for (const id of ['joe', 'maki', 'fortune']) st.npcs[id] = { met: true, pts: 40, talkDay: -1, giftDay: -1, gifts: 0, favor: null, photo: false, letter: false, last: '' };
+    st.player.x = 26.8 * TILE; st.player.y = 27.0 * TILE; st.player.dir = 'down';
+    return st;
+}
 function initWorld() {
     applyBuildingMoves();
     G.weather = todayWeather();
@@ -23,7 +34,7 @@ async function boot(hotData) {
     R3.load();
     if (R3.want) R3.init();
     Audio2.loadPrefs();
-    const opening = Cloud.boot();          // the island, from the server, while the pictures load
+    const opening = LAB ? Promise.resolve(null) : Cloud.boot();          // the island, from the server, while the pictures load
     await Assets.load();
     fillIcons(document);
     const hot = window.claude && window.claude.hot;
@@ -31,20 +42,22 @@ async function boot(hotData) {
     const opened = await opening;
     // a visitor sees Sarah's handmade things (in her house, in the museum) too
     if (Online.visitor() && Online.island) for (const f of [registerAllPottery, registerAllArt, registerAllDesigns]) { try { f(Online.island); } catch (e) { console.error('Sarah\'s things:', f.name, e); } }
-    S = (hotState && migrate(hotState)) || Save.load(opened && opened.state) || newState();
+    S = LAB ? labState() : (hotState && migrate(hotState)) || Save.load(opened && opened.state) || newState();
     // an island that won't load stays untouched on the server; this device starts fresh instead of saving over it
     if (opened && !S.started) { Cloud.broken = Cloud.island || { summary: { islandName: opened.state.islandName } }; Save.wipe(); }
     if (!S.started) S = newState();
-    Cloud.ready();
-    Cloud.loadPhotos();
-    Online.connect();
-    Online.fetchMail();
+    if (!LAB) {
+        Cloud.ready();
+        Cloud.loadPhotos();
+        Online.connect();
+        Online.fetchMail();
+    }
     initWorld();
     G.player = makePlayer(S.player.x, S.player.y, S.player.dir);
     G.area = G.areas.island;
     bindInput();
     try { if (hot && hot.snapshot) hot.snapshot(() => ({ state: S && S.started ? S : null })); } catch (e) { /* optional */ }
-    showTitle();
+    if (LAB) continueGame(); else showTitle();
     requestAnimationFrame(loop);
     if (DEBUG) window.__dbg = {
         quickStart(opts) {
@@ -192,6 +205,13 @@ async function continueGame() {
     HUD.show(true);
     HUD.update();
     updateToolButton();
+    if (LAB) {
+        Music.update(true); UI.toast('The test area for the new 3D look. Nothing here is saved.');
+        // (a button to see the same place drawn the old way, and back: the page starts again, as nothing here is kept)
+        const now = Env.want();
+        document.getElementById('hudL').appendChild(btn(now ? 'Show the old look' : 'Show the new look', 'labswitch', () => { lsSet('sc-env-next', now ? '0' : '1'); location.reload(); }));
+        return;
+    }
     const newDay = dailyCheck();
     newsCheck();
     Music.update(true);

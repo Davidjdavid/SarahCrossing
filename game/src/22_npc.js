@@ -411,6 +411,8 @@ const NPCs = {
     },
 };
 
+/* the test area's cast: where they stand (tiles), beside Sarah on the cobbles */
+const LAB_CAST = { joe: [28.4, 27.0], maki: [30.0, 27.1] };
 /* what an NPC wants to be doing at island-hour dh */
 function targetFor(n, dh) {
     const d = n.def;
@@ -420,6 +422,7 @@ function targetFor(n, dh) {
         return { key: 'sleep', sleep: true };
     }
     if (!S.flags.introDone) return { key: 'sleep', sleep: true };
+    if (LAB) { const at = LAB_CAST[n.id]; return at ? { key: 'lab', area: 'island', x: at[0] * TILE, y: at[1] * TILE, fixed: true, face: 'down' } : { key: 'sleep', sleep: true }; }
     if (Online.isHere(n.id)) return { key: 'online', sleep: true };       // the real David (or Joe...) is playing: their NPC steps aside
     const seg = planNow(n.id, dh);
     if (!seg) return { key: 'sleep', sleep: true };
