@@ -64,7 +64,7 @@ docs/DEPLOY.md for the server.
   serif type (style.css, end).
 - The classic 16x24 art stays the source for menus, icons, the classic view and the flat modes.
 
-## The new 3D look: the test area (?lab) and Sarah's island on beta (33a–33j)
+## The new 3D look: the test area (?lab) and Sarah's island on beta (33a–33l)
 
 - `?lab` in the address opens a small test island laid out like the concept art (`scripts/island/plan-lab.mjs`, made
   with `node scripts/make-island.mjs --plan lab` into `game/assets/lab/`). It runs on a throwaway save that is never
@@ -100,6 +100,11 @@ docs/DEPLOY.md for the server.
   own objects with their origins at the joints, so they waddle, hop, step and blink (`EnvDolls.poseFolk`); a gift hat
   or glasses sits at `anchor_hat` / `anchor_eyes` (`EnvModels` keeps each part's name and origin, an anchor's scale).
   The council's broccoli and the old keeper are made too, for the rooms.
+- Rooms in the new look (`EnvRoom`, 33l_env_room.js): the dolls and folks go indoors too (`EnvDolls.attach` moves them
+  between the island's group and the room's), and the room is a box you look into: the back wall wears the HD view's
+  wall picture (so what's hung there shows), the side walls one tile of its paper repeated, skirting boards, dark cut
+  tops, a sill with the doorway. The floor and the furniture are still the HD view's until the furniture's models come
+  (`EnvRoom.takes`).
 - The important things are models made in Blender, not in code: `tools/blender/*.py` (`common.py` has the helpers: the
   game's camera and sun for previews, baking, GLB export). Blender runs as a Python module: `pip install bpy` (Blender
   5.x, about 1 GB, fine in a venv), then `python tools/blender/cottage.py --preview DIR` (or `shop.py`,

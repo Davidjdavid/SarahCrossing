@@ -18,7 +18,17 @@ const EnvDolls = {
         return { meshes: [], tick: (r3, a) => this.tick(r3, a) };
     },
     /* (the HD-2D view asks: is this one a doll right now? then it draws no card) */
-    draws(e) { return Env.on && this.drawn.has(e); },
+    draws(e) { return (Env.on || (typeof EnvRoom !== 'undefined' && EnvRoom.on)) && this.drawn.has(e); },
+    /* the dolls go where the new look is drawing: the island, or the room Sarah is in */
+    attach(parent) {
+        if (this.group && this.group.parent === parent) return;
+        for (const d of this.dolls.values()) this.drop(d);
+        this.dolls = new Map();
+        this.drawn = new Set();
+        if (!this.group) this.group = new THREE.Group();
+        if (this.group.parent) this.group.parent.remove(this.group);
+        parent.add(this.group);
+    },
     /* who's a doll and how they look: Sarah (or whoever is visiting as themselves), the island's people (the food folks
        stay as they are), and friends playing along online */
     specOf(e) {
@@ -153,6 +163,7 @@ const EnvDolls = {
             if (kind) { p.local = p.local || p.geometry.clone().translate(-p.at.x, -p.at.y, -p.at.z); geo = p.local; }
             const mesh = new THREE.Mesh(geo, p.material);
             mesh.castShadow = true; mesh.receiveShadow = true;
+            mesh.userData.shared = true;        // (the model's: kept when the island is built again)
             if (!kind) { body.add(mesh); continue; }
             const g = new THREE.Group();
             g.position.copy(p.at);

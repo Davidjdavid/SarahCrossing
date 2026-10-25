@@ -206,6 +206,9 @@ const R3 = {
             // the new 3D look (33a_env.js, the test area for now) draws the ground, trees, buildings and props itself
             const env = Env.active(a) && Env.update(this, a);
             if (!env) Env.hide();
+            // (and indoors, the room: 33l_env_room.js)
+            const room = !env && typeof EnvRoom !== 'undefined' && EnvRoom.active(a) && EnvRoom.update(this, a);
+            if (!room && typeof EnvRoom !== 'undefined') EnvRoom.hide(this);
             if (env) this.hideOldGround();
             else { this.updateGround(a); this.updateTufts(a); this.updateLilies(a); }
             this.updateLight(a);
@@ -509,9 +512,9 @@ const R3 = {
         this.measured = 0;
         const tx = G.player.x, ty = G.player.y;
         const todo = [];
-        const env = Env.on && !a.interior;
+        const env = Env.on && !a.interior, room = a.interior && typeof EnvRoom !== 'undefined' && EnvRoom.on;
         for (const e of a.ents) {
-            if (e.hidden || e.layer === 0 || (e.onlyNight && !nightNow) || !near(e) || (env && Env.takes(e))) continue;
+            if (e.hidden || e.layer === 0 || (e.onlyNight && !nightNow) || !near(e) || (env && Env.takes(e)) || (room && EnvRoom.takes(e))) continue;
             seen.add(e);
             if (!this.cards.has(e)) { todo.push(e); continue; }
             this.staticCard(e, a);
@@ -539,7 +542,7 @@ const R3 = {
         if (a.id === 'island') { for (const c of Critters.ents()) movers.push([(c.alt || 0) > 30 ? 'h' : 'c', c]); for (const s of SeaSky.ents()) movers.push([s.alt ? 'f' : 's', s]); for (const b of Flutter.ents()) movers.push([(b.alt || 0) > 30 ? 'h' : 'c', b]); }
         for (const f of G.fx) if (f.sorted) movers.push(['f', f]);
         // (people drawn as dolls in the new look have no card)
-        for (const [k, e] of movers) if (near(e) && !(env && typeof EnvDolls !== 'undefined' && EnvDolls.draws(e))) this.movingCard(k, e, a);
+        for (const [k, e] of movers) if (near(e) && !((env || room) && typeof EnvDolls !== 'undefined' && EnvDolls.draws(e))) this.movingCard(k, e, a);
         for (const k of Object.keys(this.pool)) this.pool[k].forEach((c, i) => { if (i >= this.poolUsed[k]) c.mesh.visible = false; });
     },
     /* a card for something that stays put: its size is measured once, it is redrawn when it changes */

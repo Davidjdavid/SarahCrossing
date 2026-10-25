@@ -34,6 +34,7 @@ const Env = {
         }
         this.on = true;
         this.built.group.visible = true;
+        if (typeof EnvDolls !== 'undefined') EnvDolls.attach(this.built.group);
         const ts = performance.now();
         try { this.stream(r3, a); }
         catch (e) { console.error('the new 3D look stopped (using the HD-2D view)', e); this.failed = true; this.teardown(r3); return false; }
@@ -143,7 +144,7 @@ const Env = {
     },
     /* the ground's height under a spot (world pixels), for people and cards standing on it */
     groundH(x, y) {
-        if (!this.ground) return 0;
+        if (!this.ground || (G.area && G.area.interior)) return 0;
         const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
         if (W0.grid[ty] && W0.grid[ty][tx] === 'w') return EnvGround.deckH(tx, ty);
         return EnvGround.heightAt(x / TILE, y / TILE);
