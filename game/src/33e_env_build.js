@@ -42,6 +42,8 @@ const EnvBuild = {
                 if (e.id === 'home' && has('cottage')) { const A = this.at(e); for (const m of EnvModels.place(group, 'cottage', EnvModels.mat4(A.door, A.y, A.z1 - 1.25))) m.userData.shared = true; }
                 // and Fortune's (its door half a tile right of its middle)
                 else if (e.id === 'shop' && has('shop')) { const A = this.at(e); for (const m of EnvModels.place(group, 'shop', EnvModels.mat4(A.door - 0.5, A.y, A.z1 - 1.3))) m.userData.shared = true; }
+                // the neighbors' houses from the kit of parts, painted from each house's look
+                else if (/^h_/.test(e.id || '') && this.house(group, e, houseLook(e.id))) { /* built */ }
                 else if (e.id === 'home' || /^h_/.test(e.id || '')) this.cottage(e, houseLook(e.id)); else this.shop(e);
             }
             else if (this.propModel(e)) {
@@ -194,6 +196,31 @@ const EnvBuild = {
     },
 
     /* ---------------------------------------------------------------- the buildings */
+    /* a neighbor's house from the kit made in Blender (tools/blender/houses.py): the body and roof of its style, the
+       walls' pattern, its add-ons, each part's role (wall, roof, trim, door) painted in the house's own colors, so the
+       look Ginger changes is the look you see; false when the parts haven't arrived */
+    house(group, e, L) {
+        const has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
+        const st = ['gable', 'peaked', 'tiled', 'flat', 'thatch'].includes(L.style) ? L.style : 'gable';
+        const names = ['house_body_' + st, 'house_roof_' + st + (L.roof === 'rainbow' ? '_rainbow' : '')];
+        if (!names.every(has)) return false;
+        if (L.pattern && L.pattern !== 'plain') names.push('house_pattern_' + L.pattern);
+        const sig = { bakery: 'awning', lantern: 'lamps' }[L.sig];
+        for (const ad of ['boxes', 'shutters', 'lamps', 'plants', 'chimney', 'awning', 'band', 'wreath']) if (L[ad] || sig === ad) names.push('house_' + ad);
+        const A = this.at(e), M = EnvModels.mat4(A.door, A.y, A.z1 - 1.1);
+        for (const n of names) {
+            if (!has(n)) continue;
+            for (const m of EnvModels.place(group, n, M)) {
+                m.userData.shared = true;
+                const role = ((m.material.name || '').match(/house_(wall|roof|trim|door)(?!_rainbow)/) || [])[1];
+                if (!role || /rainbow/.test(m.material.name)) continue;
+                const c = L[role];
+                if (!c || c === 'rainbow') continue;
+                m.material = EnvModels.tinted(m.material, c); m.userData.ownMat = true;
+            }
+        }
+        return true;
+    },
     cottage(e, L) {
         const A = this.at(e), y = A.y, inset = 0.5, x0 = A.x0 + inset, x1 = A.x1 - inset, z0 = A.z0 + 0.5, z1 = A.z1 - 0.2, H = 1.22, RH = 1.02;
         const wall = L.wall || '#fbe7d0', roofC = L.roof || '#c8505a', trim = L.trim || '#ffffff', door = L.door || '#b3263a';

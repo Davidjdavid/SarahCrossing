@@ -44,7 +44,7 @@ const Env = {
         if (!b) return;
         r3.scene.remove(b.group);
         // (the models' geometry and materials are kept for the next build)
-        b.group.traverse(o => { if (o.userData.shared) return; if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); });
+        b.group.traverse(o => { if (o.userData.shared) { if (o.userData.ownMat) o.material.dispose(); return; } if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); });
     },
     build(r3, a) {
         const t0 = performance.now();

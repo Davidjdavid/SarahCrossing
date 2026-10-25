@@ -36,6 +36,9 @@ export const PLAN = {
   buildings: [
     { id: 'home', x: 25, y: 17, w: 4, h: 3, door: 2, sprite: 'house_sarah' },
     { id: 'shop', x: 30, y: 16, w: 4, h: 3, door: 2, sprite: 'shop', front: 'shopfront' },
+    // two neighbors' houses up in the woods (for the houses made from the kit of parts)
+    { id: 'h_joe', x: 6, y: 11, w: 3, h: 3, door: 1 },
+    { id: 'h_maki', x: 15, y: 15, w: 3, h: 3, door: 1 },
   ],
   props: [
     { kind: 'bench', x: 28, y: 22 }, { kind: 'lamp', x: 30, y: 22 }, { kind: 'mailbox', x: 29, y: 20 },
@@ -55,7 +58,7 @@ export const PLAN = {
   ],
   trees: [
     // up behind the wall
-    { x: 4, y: 16, kind: 'pine' }, { x: 8, y: 12, kind: 'pine' }, { x: 13, y: 17, kind: 'pine' }, { x: 17, y: 14, kind: 'pine' }, { x: 19, y: 18, kind: 'oak' },
+    { x: 4, y: 16, kind: 'pine' }, { x: 13, y: 17, kind: 'pine' }, { x: 17, y: 14, kind: 'pine' }, { x: 19, y: 18, kind: 'oak' },
     { x: 11, y: 8, kind: 'pine' }, { x: 15, y: 9, kind: 'pine' }, { x: 20, y: 11, kind: 'pine' }, { x: 24, y: 15, kind: 'pine' }, { x: 3, y: 10, kind: 'pine' },
     { x: 6, y: 6, kind: 'oak' }, { x: 10, y: 15, kind: 'oak' }, { x: 18, y: 8, kind: 'oak' }, { x: 21, y: 16, kind: 'oak' }, { x: 25, y: 11, kind: 'oak' },
     { x: 15, y: 13, kind: 'oak' }, { x: 7, y: 18, kind: 'pine' },

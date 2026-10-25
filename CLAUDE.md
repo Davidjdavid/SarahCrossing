@@ -80,21 +80,24 @@ docs/DEPLOY.md for the server.
   game's camera and sun for previews, baking, GLB export). Blender runs as a Python module: `pip install bpy` (Blender
   5.x, about 1 GB, fine in a venv), then `python tools/blender/cottage.py --preview DIR` (or `shop.py`,
   `stone_wall.py`, `props.py` for the bench, lamp, mailbox, fences, planter and pumpkins, `trees_ac.py` for the trees,
-  fruit, palms and bushes, `vegetation.py` for the pines, sunflowers and wild flower clumps, `props_island.py` for every
-  other kind of prop on Sarah's island; most take `--only NAME`)
-  writes `game/assets/models/<name>.glb` (plus `<name>_lod1.glb` for phones where there is one) and previews from the
-  game's camera into DIR. Each script models the detail in full (every needle tuft, shingle, board, stone) and bakes it
-  (color, the dark between things, a normal map) onto a lighter mesh; a fixed seed makes the same model every time.
-  Look at the previews beside the concept before bringing a model in. The trees, palms and bushes follow Animal
-  Crossing's (the reference David picked): every leaf is geometry with its colors in the mesh, shaded smoothly as its
-  lobe, no baking; fruit is its own model, hung at the tree's anchors (empties named `anchor_fruit_N` in the file).
-  `props_island.py` builds the island's props the same way, from `kit.py` (rounded boxes, turned shapes, tubes, slabs,
-  each painted as it's made: wood grain, stone mottle, darker underneath), in the dollhouse look: a part named `*_glow`
-  (flames) is drawn unlit, `*_water` is water, and the windmill's sails are their own model, turned at its `anchor_hub`.
-  `doll.py` is the mock-up of the people as dolls (not in the game yet).
-  `ground_textures.py` bakes the ground's surfaces the same way (the plaza's flagstones with grass between them, the
-  dirt path, the lawn: color, normal and height, each 4 tiles square and wrapping) into `game/assets/textures/`,
-  shipped as `window.TEXTURES`; the ground's shader uses the height to let grass reach into the gaps and ragged edges.
+  fruit, palms and bushes, `vegetation.py` for the pines, sunflowers and wild flower clumps, `props_island.py` for
+  every other kind of prop on Sarah's island; most take `--only NAME`) writes `game/assets/models/<name>.glb` (plus
+  `<name>_lod1.glb` for phones where there is one) and previews from the game's camera into DIR. Each script models the
+  detail in full (every needle tuft, shingle, board, stone) and bakes it (color, the dark between things, a normal map)
+  onto a lighter mesh; a fixed seed makes the same model every time. Look at the previews beside the concept before
+  bringing a model in. The trees, palms and bushes follow Animal Crossing's (the reference David picked): every leaf is
+  geometry with its colors in the mesh, shaded smoothly as its lobe, no baking; fruit is its own model, hung at the
+  tree's anchors (empties named `anchor_fruit_N` in the file). `props_island.py` builds the island's props the same
+  way, from `kit.py` (rounded boxes, turned shapes, tubes, slabs, each painted as it's made: wood grain, stone mottle,
+  darker underneath), in the dollhouse look: a part named `*_glow` (flames) is drawn unlit, `*_water` is water, and the
+  windmill's sails are their own model, turned at its `anchor_hub`. `houses.py` makes the neighbors' houses as a kit (a
+  body and roof per style, a skin per wall pattern, the add-ons), each part shaded in greys and named by role
+  (`house_wall`, `house_roof`, `house_trim`, `house_door`): `EnvBuild.house` puts a house together from its look and
+  paints each role in the house's own colors (`EnvModels.tinted`), so what Ginger changes is what you see. `doll.py` is
+  the mock-up of the people as dolls (not in the game yet). `ground_textures.py` bakes the ground's surfaces the same
+  way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
+  square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height
+  to let grass reach into the gaps and ragged edges.
 - Models: one unit is one tile, Blender's -y is the game's south (the front), z up; trees and props stand on their foot,
   the cottage on its middle with the door at x 0 on the front (the shop's door is at x 0.5), a wall piece runs from x 0
   to its length with its face toward -y, from the lower ground (z 0) to the upper (z 1.5, `ENV.LV`).

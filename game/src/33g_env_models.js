@@ -77,6 +77,14 @@ const EnvModels = {
         return out;
     },
     glassMats: [],
+    /* a copy of a model's material in another color (a house painted in its own look); a plain clone would lose the
+       view's patch (the bend, depth of field, shadows) */
+    tinted(m, color) {
+        const c = m.clone();
+        c.onBeforeCompile = null;
+        c.color.set(color);
+        return r3Patch(c, { key: 'envmodel' });
+    },
     /* one model at many places (each a Matrix4 in the world): an instanced mesh per part */
     instances(group, name, matrices, o) {
         o = o || {};
