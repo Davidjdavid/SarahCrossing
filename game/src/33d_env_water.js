@@ -27,7 +27,7 @@ const EnvWater = {
         }
         const depthTex = new THREE.DataTexture(d, N, M, THREE.RGBAFormat);
         depthTex.magFilter = depthTex.minFilter = THREE.LinearFilter; depthTex.generateMipmaps = false; depthTex.needsUpdate = true;
-        const sand = EnvTex.sand(), uniforms = { tDepth: { value: depthTex }, uMapSz: { value: new THREE.Vector2(Wt, Ht) }, tSand: { value: sand.map }, uSunDir: { value: new THREE.Vector3(-0.55, 0.78, 0.32).normalize() }, uSky: { value: new THREE.Color(0.62, 0.8, 0.95) }, uSunCol: { value: new THREE.Color(1, 0.95, 0.85) }, uLite: this.lite };
+        const sand = EnvTex.sand(), uniforms = { tDepth: { value: depthTex }, uMapSz: { value: new THREE.Vector2(Wt, Ht) }, tSand: { value: sand.map }, uSunDir: { value: new THREE.Vector3(-0.55, 0.78, 0.32).normalize() }, uSky: { value: new THREE.Color(0.62, 0.8, 0.95) }, uSunCol: { value: new THREE.Color(1, 0.95, 0.85) }, uLite: this.lite, uRain: EnvGround.rain };
         const mat = r3Patch(new THREE.MeshLambertMaterial({ color: 0xffffff }), { key: 'envwater', uniforms, fhead: EnvWater.FHEAD, fpre: EnvWater.FPRE });
         const meshes = [];
         // the sea: one big sheet at sea level (beyond the island too), a point every tile over the island and further apart
@@ -258,7 +258,7 @@ const EnvWater = {
 };
 /* the water's color: deep or shallow (and over sand where it's shallow), ripples moving, foam at the shore, a glint of sun */
 EnvWater.FHEAD = `
-uniform sampler2D tDepth; uniform vec2 uMapSz; uniform sampler2D tSand; uniform vec3 uSunDir; uniform vec3 uSky; uniform vec3 uSunCol; uniform float uLite;
+uniform sampler2D tDepth; uniform vec2 uMapSz; uniform sampler2D tSand; uniform vec3 uSunDir; uniform vec3 uSky; uniform vec3 uSunCol; uniform float uLite; uniform float uRain;
 `;
 EnvWater.FPRE = `
 {
@@ -304,6 +304,12 @@ EnvWater.FPRE = `
     float sp = pow(max(0.0, dot(Rf, normalize(uSunDir))), 90.0);
     wc += uSunCol * sp * 1.6 * clamp(lit, 0.2, 1.0);
     wc += (h1 - 0.5) * 0.05;
+    // raindrops: a ring spreading and fading in each little cell of the surface, each at its own moment
+    if (uRain > 0.01) {
+        vec2 q = tp * 3.0, cell = floor(q);
+        float t = fract(uTime * 0.8 + r3h(cell)), rd = length(fract(q) - 0.25 - 0.5 * vec2(r3h(cell + 7.0), r3h(cell + 13.0)));
+        wc += smoothstep(0.035, 0.0, abs(rd - t * 0.3)) * (1.0 - t) * 0.3 * uRain * (0.3 + 0.7 * clamp(lit, 0.0, 1.0));
+    }
     // foam where it meets the shore (and on the sea, waves washing in)
     float foam = smoothstep(isSea > 0.5 ? 0.1 : 0.05, 0.0, d0) * smoothstep(0.35, 0.65, r3n(tp * 5.0 + vec2(uTime * 0.3, 0.0)) + 0.25) * (isSea > 0.5 ? 1.0 : 0.6);
     if (isSea > 0.5) foam += smoothstep(0.06, 0.0, abs(fract(depth * 2.2 - uTime * 0.18) - 0.5) - 0.44) * smoothstep(0.8, 0.1, depth) * 0.7;

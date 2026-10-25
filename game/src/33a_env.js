@@ -562,7 +562,7 @@ const EnvGround = {
             tGrass: { value: B('lawn', 'col', () => T.grass().map) }, tDirt: { value: B('path', 'col', () => T.dirt().map) }, tCob: { value: B('flagstones', 'col', () => T.cobble().map) }, tSand: { value: sand.map }, tWall: { value: wall.map },
             nGrass: { value: B('lawn', 'nrm', () => T.grass().normal) }, nDirt: { value: B('path', 'nrm', () => T.dirt().normal) }, nCob: { value: B('flagstones', 'nrm', () => T.cobble().normal) }, nSand: { value: sand.normal }, nWall: { value: wall.normal },
             hCob: { value: B('flagstones', 'hgt', () => flat) }, hDirt: { value: B('path', 'hgt', () => flat) },
-            uSeason: { value: new THREE.Vector4(1, 1, 1, 0) },
+            uSeason: { value: new THREE.Vector4(1, 1, 1, 0) }, uRainW: this.rain,
         };
         lap('tex');
         this._season = null;                // (new uniforms: the season's colors go in on the first frame)
@@ -571,8 +571,12 @@ const EnvGround = {
         return { meshes: this.meshes, tick: (r3, a) => {
             const s = a.bgSeason || Clock.season();
             if (s !== this._season) { this._season = s; uniforms.uSeason.value.set(...({ spring: [1, 1.04, 0.92], summer: [1, 1, 1], fall: [1.08, 1.0, 0.78], winter: [1.3, 1.32, 1.4] }[s] || [1, 1, 1]), s === 'winter' ? 1 : 0); }
+            // (the ground gets wet over a few seconds of rain and dries off more slowly after)
+            const wet = G.weather === 'rain' ? 1 : 0, R = this.rain;
+            R.value += (wet - R.value) * (wet > R.value ? 0.01 : 0.003);
         } };
     },
+    rain: { value: 0 },     // (how wet everything is: the ground darkens, puddles shine, rings on the water)
     /* a piece of ground: its pictures, then its mesh (R points a tile, normals from the whole island's heights, no seams) */
     *chunkSteps(c) {
         const M = EnvChunk.MARGIN, wx0 = c.x0 - M, wy0 = c.y0 - M, ww = c.w + 2 * M, wh = c.h + 2 * M;
@@ -632,7 +636,7 @@ const EnvGround = {
    from the kinds picture (blended, with ragged edges so grass reaches over paths), each kind from its own surface;
    anything steep is the stone wall, laid in courses across its face */
 EnvGround.FHEAD = `
-uniform sampler2D uKinds; uniform vec2 uMapSz; uniform vec2 uOrg; uniform vec2 uSz; uniform vec4 uSeason;
+uniform sampler2D uKinds; uniform vec2 uMapSz; uniform vec2 uOrg; uniform vec2 uSz; uniform vec4 uSeason; uniform float uRainW;
 uniform sampler2D tGrass; uniform sampler2D tDirt; uniform sampler2D tCob; uniform sampler2D tSand; uniform sampler2D tWall;
 uniform sampler2D nGrass; uniform sampler2D nDirt; uniform sampler2D nCob; uniform sampler2D nSand; uniform sampler2D nWall;
 uniform sampler2D hCob; uniform sampler2D hDirt; uniform sampler2D uWet;
@@ -674,6 +678,12 @@ EnvGround.FMAP = `
     col *= 1.0 - 0.18 * w.x * (w.y + w.z) * 4.0;
     // soft patches of lighter and darker over everything
     col *= 0.92 + 0.16 * r3n(tp * 0.21 + 7.0);
+    // rain: everything darker where it's wet, and puddles on the paths and the square, the sky's grey in them
+    if (uRainW > 0.0) {
+        float pud = smoothstep(0.6, 0.68, r3n(tp * 0.55 + 31.0) * 0.7 + r3n(tp * 1.7) * 0.3) * (w.y + w.z) * uRainW;
+        col *= 1.0 - 0.2 * uRainW;
+        col = mix(col, vec3(0.42, 0.46, 0.5), pud * 0.55);
+    }
     // winter: snow lying over the lawn, thinner on the paths
     col = mix(col, vec3(0.9, 0.93, 0.98) * (0.94 + 0.08 * r3n(tp * 3.1)), uSeason.w * clamp(w.x * 0.9 + (w.y + w.z) * 0.55 + w.w * 0.3, 0.0, 0.92));
     // walls
