@@ -23,9 +23,14 @@ const EnvDolls = {
        stay as they are), and friends playing along online */
     specOf(e) {
         if (e === G.player) return Online.visitor() ? hdFolkSpec(Online.who()) : hdSarahSpec();
-        if (e.def) return e.def.human ? hdFolkSpec(e.def.human, npcWearing(e.id)) : null;
+        if (e.def) { if (e.def.human) return hdFolkSpec(e.def.human, npcWearing(e.id)); const f = this.folkOf(e); return f ? { folk: f, acc: npcWearing(e.id) } : null; }
         if (e.who) return e.who === 'sarah' ? hdRemoteSarah(e.look) : hdFolkSpec(e.who);
         return null;
+    },
+    /* a food folk's model (folk_maki...: tools/blender/folks.py), once the models are in */
+    folkOf(e) {
+        const id = e.def && e.def.sprite;
+        return id && typeof EnvModels !== 'undefined' && EnvModels.has('folk_' + id) ? id : null;
     },
     /* sitting: Sarah on a bench, a neighbor seated or lounging */
     sitting(e) { return !!e.sit || (!!e.def && (isSeated(e) || isLounging(e))); },
@@ -34,7 +39,7 @@ const EnvDolls = {
     tick(r3, a) {
         this.drawn.clear();
         const v = r3.view, near = (e) => !v || (e.x > v.x0 - 32 && e.x < v.x1 + 32 && e.y > v.y0 - 32 && e.y < v.y1 + 64);
-        const who = [G.player].concat(NPCs.here().filter(n => n.def && n.def.human), Online.here());
+        const who = [G.player].concat(NPCs.here().filter(n => n.def && (n.def.human || this.folkOf(n))), Online.here());
         for (const [e, d] of this.dolls) if (!who.includes(e)) { this.drop(d); this.dolls.delete(e); }
         for (const e of who) {
             if (e && !near(e)) { const d1 = this.dolls.get(e); if (d1) d1.root.visible = false; continue; }
@@ -45,14 +50,14 @@ const EnvDolls = {
             const key = JSON.stringify(spec);
             let d = d0;
             if (d && d.key !== key) { this.drop(d); d = null; }
-            if (!d) { d = this.make(spec); d.key = key; this.dolls.set(e, d); this.group.add(d.root); }
-            this.pose(d, e);
+            if (!d) { d = spec.folk ? this.makeFolk(spec) : this.make(spec); d.key = key; this.dolls.set(e, d); this.group.add(d.root); }
+            if (d.folk) this.poseFolk(d, e); else this.pose(d, e);
             this.drawn.add(e);
         }
     },
     drop(d) {
         if (d.root.parent) d.root.parent.remove(d.root);
-        for (const t of d.textures) t.dispose();
+        for (const t of d.textures || []) t.dispose();
         if (d.faceMat) d.faceMat.dispose();
         if (d.hairMat) d.hairMat.dispose();
     },
@@ -130,6 +135,96 @@ const EnvDolls = {
         g.rotation.set(kind === 'rod' ? 1.2 : 0.35, 0, 0);
         d.parts.armR.add(g);
         return g;
+    },
+
+    /* ---------------------------------------------------------------- the food folks */
+    /* a folk put together from its model: the body, and the parts that move about their joints (feet that step, eyes
+       that shut, the gingerbread builder's arms and legs, the goat's legs); a hat or glasses a friend gave at the
+       model's anchors */
+    makeFolk(spec) {
+        const M = EnvModels.models['folk_' + spec.folk], pre = spec.folk + '_';
+        const d = { folk: spec.folk, parts: { eyes: [], feet: [], arms: [], legs: [] } }, P = d.parts;
+        const root = d.root = new THREE.Group(), body = P.body = new THREE.Group();
+        root.add(body);
+        for (const p of M.parts) {
+            const key = p.node.startsWith(pre) ? p.node.slice(pre.length) : p.node;
+            const kind = /^eye_/.test(key) ? 'eyes' : /^foot_/.test(key) ? 'feet' : /^arm_/.test(key) ? 'arms' : /^leg_/.test(key) ? 'legs' : null;
+            let geo = p.geometry;
+            if (kind) { p.local = p.local || p.geometry.clone().translate(-p.at.x, -p.at.y, -p.at.z); geo = p.local; }
+            const mesh = new THREE.Mesh(geo, p.material);
+            mesh.castShadow = true; mesh.receiveShadow = true;
+            if (!kind) { body.add(mesh); continue; }
+            const g = new THREE.Group();
+            g.position.copy(p.at);
+            g.add(mesh);
+            // (the feet and legs stay on the ground when the body squashes; eyes, arms go with it)
+            (kind === 'feet' || kind === 'legs' ? root : body).add(g);
+            g.userData.side = /_l$|_fl$|_bl$/.test(key) ? -1 : 1;
+            g.userData.back = /_b[lr]$/.test(key);
+            P[kind].push(g);
+        }
+        // a gift: a hat on top, glasses on the face (made as a doll's, sized to the folk)
+        const acc = spec.acc, L = { hairCol: '#5a3a2a' };
+        if (acc) {
+            const eye = EYE_ACCS.has(acc), A = M.anchors[eye ? 'eyes' : 'hat'], s = M.sizes[eye ? 'eyes' : 'hat'] || 1;
+            if (A) {
+                const g = new THREE.Group(), R = DOLL.R, k = eye ? 3.0 * s : 1.9 * s;
+                g.scale.setScalar(k);
+                if (eye) g.position.set(A[0].x, A[0].y + 0.05 * R * k, A[0].z - 0.86 * R * k);
+                else g.position.set(A[0].x, A[0].y - 0.8 * 1.02 * R * k, A[0].z);
+                body.add(g);
+                this.extras(d, g, eye ? { eyes: acc } : { acc }, L);
+            }
+        }
+        return d;
+    },
+    /* how a folk moves: a waddle and a hop as it walks (the HD pictures' hop), each foot stepping, a slow breath
+       standing; it turns to where it's going, sits on a bench with its feet out, cheers with a bounce */
+    poseFolk(d, e) {
+        const walk = !!(e.moving || e.walking || e.glide), run = walk && !!(e.run || e.jog), t = G.t, P = d.parts;
+        const m = hdMotion(e, walk), seed = hdSeed(e.id || 0), seat = isSeated(e), lounge = isLounging(e);
+        const Q = e.pose && e.pose !== 'walk' ? e.pose : null;
+        const face = seat || lounge || Q === 'cheer' || Q === 'happy' ? 2 : m.face;
+        const ang = [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][face];
+        if (d.ang == null) d.ang = ang;
+        let da = ang - d.ang;
+        while (da > Math.PI) da -= Math.PI * 2;
+        while (da < -Math.PI) da += Math.PI * 2;
+        d.ang += da * 0.3;
+        const root = d.root;
+        root.visible = true;
+        // where it stands: on the ground (a bench's seat, a blanket, down in the spring's water for Wonton)
+        const gy = Env.groundH(e.x, e.y), hop = (e.hop || 0) / TILE * 0.6;
+        let y = gy + hop, z = e.y / TILE * R3_ZS;
+        if (seat) { y = gy + 0.36; z += 0.1; }
+        else if (lounge) y = gy - 0.02;
+        else if (e.def && e.def.spring) y = gy - 0.2;
+        root.position.set(e.x / TILE, y, z);
+        root.rotation.y = d.ang;
+        // the step: feet swinging in turn, the body rocking side to side, squashed as it lands and stretched in the air
+        const ph = m.dist / (run ? 20 : 15) * Math.PI * 2, sw = walk ? Math.sin(ph) : 0, air = walk ? Math.min(1, (e.hop || 0) / 3) : 0;
+        const br = Math.sin(t / 24 + seed);
+        let sq = walk ? 0.05 * air - 0.05 * (1 - air) : 0.012 * br, lean = 0, roll = walk ? sw * 0.07 : 0, lift = 0;
+        if (Q === 'cheer' || Q === 'happy') { const b = Math.abs(Math.sin(t / 6)); lift = b * 0.12; sq = 0.06 * b - 0.04 * (1 - b); }
+        else if (Q === 'hug') lean = 0.25;
+        else if (Q === 'pick') lean = 0.35;
+        else if (Q === 'left' || Q === 'right') roll = Q === 'left' ? 0.15 : -0.15;
+        if (e.dancer) { const b = Math.abs(Math.sin(t / 9 + e.x)); sq = 0.05 * b - 0.03; roll = Math.sin(t / 18 + e.x) * 0.1; }
+        root.position.y += lift;
+        const k = 0.35, ease = (o, key, v) => { o[key] += (v - o[key]) * k; };
+        ease(P.body.scale, 'y', 1 + sq); ease(P.body.scale, 'x', 1 - sq * 0.5); ease(P.body.scale, 'z', 1 - sq * 0.5);
+        ease(P.body.rotation, 'x', lean); ease(P.body.rotation, 'z', roll);
+        const out = seat || lounge;
+        for (const f of P.feet) ease(f.rotation, 'x', out ? -1.2 : sw * 0.7 * f.userData.side);
+        for (const l of P.legs) ease(l.rotation, 'x', out ? -1.3 : sw * 0.6 * l.userData.side * (l.userData.back ? -1 : 1));
+        for (const a of P.arms) {
+            const up = Q === 'cheer' || Q === 'happy';
+            ease(a.rotation, 'z', up ? a.userData.side * -0.9 : 0);
+            ease(a.rotation, 'y', walk ? sw * 0.35 : 0);
+        }
+        // the eyes shut for a moment every few seconds
+        const blink = hdBlinkNow(seed);
+        for (const g of P.eyes) g.scale.y = blink ? 0.1 : 1;
     },
 
     /* ---------------------------------------------------------------- materials and shapes */

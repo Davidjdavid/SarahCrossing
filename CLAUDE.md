@@ -88,14 +88,18 @@ docs/DEPLOY.md for the server.
   ('F') get soil ridges and their crop (`crops.py`), the hot spring a rim of stones, and what lies flat on the ground
   (plots, the volleyball court, dug holes) is drawn by its 2D drawing into a picture laid on the ground (`EnvDecals`).
   Trees, buildings and props in front of Sarah go see-through round her (`see` in `r3Patch`, `R3U.uSee`).
-- People are dolls in the new look (`EnvDolls`, 33k_env_dolls.js; David's pick): Sarah, the island's people (the food
-  folks are still their HD cards) and friends online, each put together in code from the same look and clothes as the
+- People are dolls in the new look (`EnvDolls`, 33k_env_dolls.js; David's pick): Sarah, the island's people and friends
+  online, each put together in code from the same look and clothes as the
   HD pictures (`hdSarahSpec`, `hdFolkSpec`), so the tailor and the salon change them at once: a round head with its face
   painted on a picture (it blinks), hair from rounded pieces per style (`EnvDolls.HAIR`, dyed tips as a fade), a body cut
   for each clothes style (`HD_STYLE`: sleeves, legs, skirts, bibs, lapels...), glasses and hats. The limbs swing at the
   joints as they walk and run, and each of the game's poses (cheer, pick, sit, a tool's swing...) is a set of joint
   angles the doll eases into (`EnvDolls.POSES`); the axe, shovel and rod are in the hand. A doll's person has no card
-  (`EnvDolls.draws`).
+  (`EnvDolls.draws`). The food folks are painted toys from `folks.py` (`folk_<sprite>`), made after their HD pictures
+  in the pictures' own pixels: the feet, eyes (and the gingerbread builder's arms and legs, the goat's legs) are their
+  own objects with their origins at the joints, so they waddle, hop, step and blink (`EnvDolls.poseFolk`); a gift hat
+  or glasses sits at `anchor_hat` / `anchor_eyes` (`EnvModels` keeps each part's name and origin, an anchor's scale).
+  The council's broccoli and the old keeper are made too, for the rooms.
 - The important things are models made in Blender, not in code: `tools/blender/*.py` (`common.py` has the helpers: the
   game's camera and sun for previews, baking, GLB export). Blender runs as a Python module: `pip install bpy` (Blender
   5.x, about 1 GB, fine in a venv), then `python tools/blender/cottage.py --preview DIR` (or `shop.py`,
@@ -117,7 +121,7 @@ docs/DEPLOY.md for the server.
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
-  steps): the game loads every model at once, so keep `game/assets/models/` light (about 30 MB now). `doll.py` was the
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 35 MB now). `doll.py` was the
   mock-up of the people as dolls. `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height

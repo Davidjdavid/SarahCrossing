@@ -35,19 +35,26 @@ const EnvModels = {
     has(name) { return this.ready && !!this.models[name]; },
     /* a loaded scene as parts, each geometry in the model's own space (y up, its front toward +z) */
     prepare(scene, name) {
-        const parts = [], anchors = {};
+        const parts = [], anchors = {}, sizes = {};
         scene.updateMatrixWorld(true);
         scene.traverse(o => {
-            // (named empties mark spots on a model: anchor_fruit_0.. where its fruit hangs)
-            if (/^anchor_/.test(o.name)) { const k = o.name.replace(/^anchor_/, '').replace(/_\d+$/, ''); (anchors[k] = anchors[k] || []).push(new THREE.Vector3().setFromMatrixPosition(o.matrixWorld)); return; }
+            // (named empties mark spots on a model: anchor_fruit_0.. where its fruit hangs; their scale a size there)
+            if (/^anchor_/.test(o.name)) {
+                const k = o.name.replace(/^anchor_/, '').replace(/_\d+$/, '');
+                (anchors[k] = anchors[k] || []).push(new THREE.Vector3().setFromMatrixPosition(o.matrixWorld));
+                sizes[k] = new THREE.Vector3().setFromMatrixScale(o.matrixWorld).x;
+                return;
+            }
             if (!o.isMesh) return;
             const g = o.geometry.clone();
             g.applyMatrix4(o.matrixWorld);
             this.srgb(g);
             g.computeBoundingSphere();
-            for (const m of [].concat(o.material)) parts.push({ geometry: g, material: this.material(m, name), glass: /glass/i.test(m.name || '') });
+            // (each part keeps its object's name and origin: a folk's feet and eyes move about theirs)
+            const at = new THREE.Vector3().setFromMatrixPosition(o.matrixWorld);
+            for (const m of [].concat(o.material)) parts.push({ geometry: g, material: this.material(m, name), glass: /glass/i.test(m.name || ''), node: o.name, at });
         });
-        return { parts, name, anchors };
+        return { parts, name, anchors, sizes };
     },
     /* colors kept in a mesh arrive as glTF's linear values: turned back into the colors as painted, which is how the
        game shows its pictures (a mesh's colors would otherwise come out darker and more saturated than designed) */
@@ -71,7 +78,9 @@ const EnvModels = {
         if (m.normalMap) { opts.normalMap = m.normalMap; opts.normalScale = (m.normalScale ? m.normalScale.clone() : new THREE.Vector2(1, 1)).multiplyScalar(/^pine_/.test(name) ? 1.7 : 1); }
         // the windows glow at night (EnvBuild's tick turns them up), their curtains brightest
         if (glass) { opts.emissive = new THREE.Color(0xffd890); opts.emissiveMap = m.map || null; opts.emissiveIntensity = 0.0; }
-        const out = r3Patch(new THREE.MeshStandardMaterial(opts), { key: glass ? 'envmodelglass' : 'envmodel', see: true });
+        // (the folks are people: never see-through)
+        const see = !/^folk_/.test(name);
+        const out = r3Patch(new THREE.MeshStandardMaterial(opts), { key: glass ? 'envmodelglass' : see ? 'envmodel' : 'envfolk', see });
         out.name = m.name || name;
         if (glass) this.glassMats.push(out);
         return out;
