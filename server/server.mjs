@@ -79,7 +79,8 @@ const MIME = {
   '.txt': 'text/plain; charset=utf-8',
 };
 
-// The game draws on canvases, makes images from blobs and data URLs, and loads its fonts from Google.
+// The game draws on canvases, makes images from blobs and data URLs, and loads its fonts from Google. (blob: in
+// connect-src: three.js's glTF loader reads the pictures packed in a model through blob URLs the page itself made.)
 const GAME_CSP = [
   "default-src 'self'",
   "script-src 'self'",
@@ -87,7 +88,7 @@ const GAME_CSP = [
   'font-src https://fonts.gstatic.com',
   "img-src 'self' data: blob:",
   "media-src 'self' data: blob:",
-  "connect-src 'self'",
+  "connect-src 'self' blob:",
   "base-uri 'none'",
   "form-action 'self'",
   "frame-ancestors 'none'",

@@ -55,8 +55,12 @@ const gameJs = emit('game', '.js', code);
 const hdwFiles = ['2b_exterior.js'].concat(sources.filter((f) => f.startsWith('32')));
 const hdwJs = emit('hdw', '.js', "'use strict';\nconst G = { frame: 0, t: 0 }, R3 = { phone: false, drawingCard: false, hdCard: false, hdPending: false };\nlet GD = null, LOOK_DEFAULT = null;\n"
   + hdwFiles.map((f) => read(`src/${f}`).toString('utf8')).join(''));
-// three.js (r128, MIT): draws the island in HD-2D where the device has WebGL (31_render3d.js)
-const threeJs = emit('three', '.js', read('vendor/three.min.js'));
+// three.js (r128, MIT): draws the island in HD-2D where the device has WebGL (31_render3d.js), with its glTF loader for
+// the models made in Blender (tools/blender/, game/assets/models/; 33g_env_models.js)
+const threeJs = emit('three', '.js', Buffer.concat([read('vendor/three.min.js'), Buffer.from('\n'), read('vendor/GLTFLoader.js')]));
+// the models (GLB files), by name
+const models = {};
+for (const f of fs.readdirSync(path.join(GAME, 'assets/models')).filter((f) => f.endsWith('.glb')).sort()) models[f.slice(0, -4)] = emit(`model-${f.slice(0, -4)}`, '.glb', read(`assets/models/${f}`));
 
 // ---------------------------------------------------------------- data
 const atlasPng = emit('atlas', '.png', read('assets/atlas.png'));
@@ -77,6 +81,7 @@ const data = [
   `window.GROUND_PAL = ${JSON.stringify(readJson('assets/ground-palettes.json'))};`,
   `window.WORLD_JSON = ${JSON.stringify(readJson('assets/world.json'))};`,
   `window.GAMEDATA = ${JSON.stringify(readJson('assets/gamedata.json'))};`,
+  `window.MODELS = ${JSON.stringify(models)};`,
   `window.LAB = { world: ${JSON.stringify(readJson('assets/lab/world.json'))}, ground: ${JSON.stringify(labGround)} };`,
   "if (window.location && /[?&]lab(=|&|$)/.test(window.location.search)) { window.IS_LAB = true; window.WORLD_JSON = window.LAB.world; window.GROUND = window.LAB.ground; }",
   '',

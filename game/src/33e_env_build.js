@@ -12,7 +12,11 @@ const EnvBuild = {
         const part = (name) => P[name] || (P[name] = { p: [], n: [], uv: [], c: [], idx: [] });
         this.part = part;
         for (const e of a.ents) {
-            if (e.kind === 'building' && e.b) { if (e.id === 'home' || /^h_/.test(e.id || '')) this.cottage(e, houseLook(e.id)); else this.shop(e); }
+            if (e.kind === 'building' && e.b) {
+                // Sarah's cottage is the one modelled in Blender (its door on the door's tile, its front wall on the front edge)
+                if (e.id === 'home' && typeof EnvModels !== 'undefined' && EnvModels.has('cottage')) { const A = this.at(e); for (const m of EnvModels.place(group, 'cottage', EnvModels.mat4(A.door, A.y, A.z1 - 1.25))) m.userData.shared = true; }
+                else if (e.id === 'home' || /^h_/.test(e.id || '')) this.cottage(e, houseLook(e.id)); else this.shop(e);
+            }
             else if (e.kind === 'bench') this.bench(e);
             else if (e.kind === 'lamp') this.lamp(e);
             else if (e.kind === 'mailbox') this.mailbox(e);
@@ -42,7 +46,7 @@ const EnvBuild = {
             meshes.push(m);
         }
         this.glass = mats.glass;
-        return { meshes, tick: () => { const g = R3._glow || 0; this.glass.emissiveIntensity = 0.15 + g * 1.4; } };
+        return { meshes, tick: () => { const g = R3._glow || 0; this.glass.emissiveIntensity = 0.15 + g * 1.4; if (typeof EnvModels !== 'undefined') EnvModels.glow(g); } };
     },
     mat(t, rough, cloth) {
         const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: rough, metalness: 0, map: t ? t.map : null, normalMap: t ? t.normal : null, side: cloth ? THREE.DoubleSide : THREE.FrontSide });

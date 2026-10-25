@@ -26,7 +26,7 @@ export const PLAN = {
   plaza: { x0: 25, y0: 25, x1: 30, y1: 28 },
   streets: [],
   paths: [
-    { pts: [[26.5,20.4],[26.6,22.6],[26.8,24.6]], w: 1.6 },
+    { pts: [[27.5,20.4],[27.4,22.6],[27.1,24.6]], w: 1.6 },
     { pts: [[31.5,19.4],[31.1,22.4],[30.1,24.8]], w: 1.6 },
     { pts: [[30.4,27.4],[33,28.2],[34.6,28.6]], w: 1.6 },
     { pts: [[26,28.6],[25.2,31],[24.6,34]], w: 1.6 },
@@ -34,11 +34,11 @@ export const PLAN = {
     { pts: [[24.8,30],[18,30.5],[12,28],[10,23],[10,15]], w: 1.6 },
   ],
   buildings: [
-    { id: 'home', x: 25, y: 17, w: 4, h: 3, door: 1, sprite: 'house_sarah' },
+    { id: 'home', x: 25, y: 17, w: 4, h: 3, door: 2, sprite: 'house_sarah' },
     { id: 'shop', x: 30, y: 16, w: 4, h: 3, door: 1, sprite: 'shop', front: 'shopfront' },
   ],
   props: [
-    { kind: 'bench', x: 28, y: 22 }, { kind: 'lamp', x: 30, y: 22 }, { kind: 'mailbox', x: 27, y: 20 },
+    { kind: 'bench', x: 28, y: 22 }, { kind: 'lamp', x: 30, y: 22 }, { kind: 'mailbox', x: 29, y: 20 },
     { kind: 'fence', x: 23, y: 21, w: 2 },
     { kind: 'bush', x: 25, y: 22 }, { kind: 'bush', x: 33, y: 25 }, { kind: 'bush', x: 23, y: 29 }, { kind: 'bush', x: 33, y: 31 },
   ],
@@ -52,7 +52,7 @@ export const PLAN = {
     { x: 27, y: 11, kind: 'pine' }, { x: 30, y: 9, kind: 'pine' }, { x: 33, y: 11, kind: 'pine' }, { x: 32, y: 6, kind: 'pine' }, { x: 28, y: 5, kind: 'pine' },
     { x: 28, y: 14, kind: 'oak' }, { x: 26, y: 14, kind: 'oak' }, { x: 29, y: 12, kind: 'oak' }, { x: 32, y: 14, kind: 'pine' }, { x: 31, y: 13, kind: 'oak' }, { x: 34, y: 14, kind: 'oak' }, { x: 26, y: 8, kind: 'oak' }, { x: 30, y: 3, kind: 'oak' },
     // round the cottage and the shop, by the stream and the pond, in front
-    { x: 24, y: 18, kind: 'oak' }, { x: 29, y: 17, kind: 'oak' },  { x: 18, y: 24, kind: 'oak' }, { x: 17, y: 28, kind: 'pine' },
+    { x: 24, y: 18, kind: 'oak' },  { x: 18, y: 24, kind: 'oak' }, { x: 17, y: 28, kind: 'pine' },
     { x: 19, y: 33, kind: 'oak' }, { x: 28, y: 35, kind: 'pine' }, { x: 33, y: 35, kind: 'oak' }, { x: 15, y: 31, kind: 'oak' },
   ],
   palms: [{ x: 33, y: 21, coconut: true }, { x: 34, y: 26 }, { x: 36, y: 33, coconut: true }],

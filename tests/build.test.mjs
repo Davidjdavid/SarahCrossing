@@ -49,7 +49,10 @@ test('the game code is game/src joined in file-name order, and is valid JavaScri
 test('the data script holds the sprites, world and game data, and points at the pictures', () => {
   const window = {};
   new Function('window', fs.readFileSync(path.join(dist, asset(/src="(assets\/data-[^"]+)"/)), 'utf8'))(window);
-  assert.deepEqual(Object.keys(window).sort(), ['ATLAS_JSON', 'ATLAS_PNG', 'GAMEDATA', 'GROUND', 'GROUND_PAL', 'HDW_JS', 'LAB', 'WORLD_JSON']);
+  assert.deepEqual(Object.keys(window).sort(), ['ATLAS_JSON', 'ATLAS_PNG', 'GAMEDATA', 'GROUND', 'GROUND_PAL', 'HDW_JS', 'LAB', 'MODELS', 'WORLD_JSON']);
+  // the models made in Blender (tools/blender/): every one a GLB, the tree, the cottage and the wall among them
+  for (const name of ['tree_maple_orange', 'cottage', 'wall2_a', 'wall_corner']) assert.ok(window.MODELS[name], name);
+  for (const f of Object.values(window.MODELS)) assert.equal(fs.readFileSync(path.join(dist, f)).subarray(0, 4).toString(), 'glTF', f);
   // the ground: every piece, and the map's copy, is a picture; together they cover the island
   const G = window.GROUND;
   assert.equal(G.urls.length, G.cols * G.rows);

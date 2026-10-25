@@ -21,6 +21,8 @@ const Env = {
     active(a) { return this.want() && !!a && a.id === 'island' && !a.interior; },
     /* the HD-2D view asks every frame: draw the island the new way? (builds it the first time) */
     update(r3, a) {
+        // (built before the Blender models had arrived: build it again with them)
+        if (this.built && this.built.noModels && typeof EnvModels !== 'undefined' && EnvModels.ready) this.teardown(r3);
         if (!this.built) {
             try { this.build(r3, a); }
             catch (e) { console.error('the new 3D look could not be built (using the HD-2D view)', e); this.failed = true; this.teardown(r3); return false; }
@@ -40,17 +42,20 @@ const Env = {
         this.built = null; this.on = false;
         if (!b) return;
         r3.scene.remove(b.group);
-        b.group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); });
+        // (the models' geometry and materials are kept for the next build)
+        b.group.traverse(o => { if (o.userData.shared) return; if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); });
     },
     build(r3, a) {
         const t0 = performance.now();
         const group = new THREE.Group();
         r3.scene.add(group);
-        this.built = { group, tick: [], parts: {} };
+        const models = typeof EnvModels !== 'undefined';
+        if (models) EnvModels.load();
+        this.built = { group, tick: [], parts: {}, noModels: models && !EnvModels.ready && !EnvModels.failed };
         this.ground = EnvGround.build(group);
         this.built.parts.ground = this.ground;
         for (const [name, B] of [['water', typeof EnvWater !== 'undefined' && EnvWater], ['trees', typeof EnvTrees !== 'undefined' && EnvTrees],
-            ['build', typeof EnvBuild !== 'undefined' && EnvBuild], ['grass', typeof EnvGrass !== 'undefined' && EnvGrass]]) {
+            ['build', typeof EnvBuild !== 'undefined' && EnvBuild], ['walls', typeof EnvWalls !== 'undefined' && EnvWalls], ['grass', typeof EnvGrass !== 'undefined' && EnvGrass]]) {
             if (!B) continue;
             const p = B.build(group, a);
             this.built.parts[name] = p;
