@@ -44,10 +44,12 @@ const EnvBuild = {
         const nights = [];
         // (wild flowers can be picked and grow back: each one's model, kept by its spot, is hidden while it's gone)
         const picks = [];
+        // (the tops of the chimneys: the cottage's and the kit's, where cottage.py and houses.py put them)
+        const chimneys = this.chimneys = [];
         for (const e of a.ents) {
             if (e.kind === 'building' && e.b) {
                 // Sarah's cottage is the one modelled in Blender (its door on the door's tile, its front wall on the front edge)
-                if (e.id === 'home' && has('cottage')) { const A = this.at(e); for (const m of EnvModels.place(group, 'cottage', EnvModels.mat4(A.door, A.y, A.z1 - 1.25))) m.userData.shared = true; }
+                if (e.id === 'home' && has('cottage')) { const A = this.at(e); for (const m of EnvModels.place(group, 'cottage', EnvModels.mat4(A.door, A.y, A.z1 - 1.25))) m.userData.shared = true; chimneys.push([A.door + 0.95, A.y + 3.55, A.z1 - 1.25 - 0.42]); }
                 // and Fortune's (its door half a tile right of its middle)
                 else if (e.id === 'shop' && has('shop')) { const A = this.at(e); for (const m of EnvModels.place(group, 'shop', EnvModels.mat4(A.door - 0.5, A.y, A.z1 - 1.3))) m.userData.shared = true; }
                 // the island's other buildings, each its own model
@@ -72,6 +74,8 @@ const EnvBuild = {
         }
         this.decks();
         this.fields();
+        // smoke from the chimneys in autumn and winter
+        if (this.season === 'fall' || this.season === 'winter') EnvWater.smoke(group, chimneys);
         // the hot spring's rim of stones
         if (this.model && typeof EnvModels !== 'undefined' && EnvModels.has('rock_a')) for (let y = 0; y < W0.h; y++) for (let x = 0; x < W0.w; x++) {
             if (W0.grid[y][x] !== 'x') continue;
@@ -296,6 +300,7 @@ const EnvBuild = {
         const sig = { bakery: 'awning', lantern: 'lamps' }[L.sig];
         for (const ad of ['boxes', 'shutters', 'lamps', 'plants', 'chimney', 'awning', 'band', 'wreath']) if (L[ad] || sig === ad) names.push('house_' + ad);
         const A = this.at(e), M = EnvModels.mat4(A.door, A.y, A.z1 - 1.1);
+        if (names.includes('house_chimney') && this.chimneys) this.chimneys.push([A.door + 0.7, A.y + 2.95, A.z1 - 1.1 - 0.35]);
         for (const n of names) {
             if (!has(n)) continue;
             for (const m of EnvModels.place(group, n, M)) {

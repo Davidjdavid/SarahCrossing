@@ -174,6 +174,22 @@ const EnvWater = {
         m.renderOrder = 2;
         group.add(m); meshes.push(m);
     },
+    /* smoke from the chimneys in the cold months: grey puffs drifting off with the breeze (toward us more than up, or the
+       camera, looking down, would lose it above the roof) */
+    smoke(group, spots) {
+        if (!spots.length) return null;
+        const r = mulberry(hash32('smoke')), list = [];
+        for (const [x, y, z] of spots) for (let i = 0; i < 5; i++) list.push([x + (r() - 0.5) * 0.1, y + 0.1, z, 0.13 + r() * 0.06]);
+        const mat = r3Patch(new THREE.MeshBasicMaterial({ map: this.puff(), color: 0xccc8c4, transparent: true, depthWrite: false, opacity: 0.62 }), {
+            key: 'envsmoke', uniforms: { uLite: this.lite }, vhead: 'attribute float aPh; attribute vec3 aC; varying float vPh;\n',
+            vbody: 'vPh = aPh; float k = fract(uTime * 0.07 + aPh); transformed = aC + (position - aC) * (1.0 + k * 2.2); transformed.y += k * 0.95; transformed.z += k * 0.6; transformed.x += k * 0.4 + k * k * 0.6 + sin(uTime * 0.4 + aPh * 6.3) * 0.06 * k;',
+            fhead: 'varying float vPh; uniform float uLite;\n', fpre: 'float k = fract(uTime * 0.07 + vPh); gl_FragColor.a *= smoothstep(0.0, 0.1, k) * (1.0 - k); gl_FragColor.rgb *= uLite;', noDof: true,
+        });
+        const m = new THREE.Mesh(this.puffGeo(list, r), mat);
+        m.renderOrder = 2; m.frustumCulled = false;
+        group.add(m);
+        return m;
+    },
     /* spray at a waterfall's foot: a few soft white puffs that rise and fade */
     spray(group, x, y, z, w, meshes) {
         const tex = this.puff();
