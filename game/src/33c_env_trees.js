@@ -3,7 +3,10 @@
    each clump a lumpy ball, its surface covered in little cards of leaves (so the edge is leafy, not a smooth ball) that
    are lit as if they were the ball's own skin. The light that reaches each spot picks a tone from the tree's colors (deep
    rust in the shade up to pale gold where the sun hits, in autumn), in steps, as a painter would. Pines are tiers of
-   ragged skirts of needles, palms a ringed, leaning trunk with drooping fronds. All of a kind is one mesh. */
+   ragged skirts of needles, palms a ringed, leaning trunk with drooping fronds. All of a kind is one mesh.
+   That is the fallback: once the Blender models are in (the usual case) the trees, fruit, palms, bushes and pines are
+   those, in the style of Animal Crossing, drawn instanced, and they shake, lose their fruit and fall to the axe with the
+   game's own trees. */
 const EnvTrees = {
     /* the colors a crown can take, darkest first (each tree picks a row) */
     PALS: {
@@ -26,29 +29,50 @@ const EnvTrees = {
         const trees = a.ents.filter(e => e.kind === 'tree' || e.kind === 'palm' || e.kind === 'fruittree' || e.kind === 'bigtree' || e.kind === 'oldtree');
         const bushes = a.ents.filter(e => e.kind === 'bush');
         const F = this.buf(), B = this.buf();
-        // in autumn the broadleaf trees are the maples made in Blender (three of them, turned and sized a little apart)
+        // the trees, palms and bushes made in Blender in the style of Animal Crossing (tools/blender/trees_ac.py), turning
+        // with the season; the pines too (vegetation.py)
         const has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
-        const maples = season === 'fall' && has('tree_maple_orange') ? ['tree_maple_orange', 'tree_maple_amber', 'tree_maple_red'].filter(has) : null;
-        // the pines and the bushes are made in Blender too (the bushes orange in autumn, green the rest of the year)
-        const pines = ['pine_a', 'pine_b'].filter(has), shrubs = (season === 'fall' ? ['bush_autumn', 'bush_autumn_b'] : ['bush_green']).filter(has);
-        const placed = {}, put = (list, x, y, z, r, s) => { const n = list[(r() * list.length) | 0]; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y - 0.03, z, r() * Math.PI * 2, s)); };
+        const rounds = (season === 'fall' ? ['tree_round_a_fall', 'tree_round_b_fall'] : ['tree_round_a', 'tree_round_b']).filter(has);
+        const palms = ['palm_ac', 'palm_ac_b'].filter(has), pines = ['pine_a', 'pine_b'].filter(has);
+        const shrubs = ({ fall: ['bush_fall', 'bush_fall', 'bush_holly'], winter: ['bush_holly'], spring: ['bush_azalea', 'bush_round'], summer: ['bush_hibiscus', 'bush_round'] }[season] || ['bush_round']).filter(has);
+        const placed = {}, live = [];
+        const put = (list, x, y, z, r, s, turn) => {
+            const n = list[(r() * list.length) | 0], M = EnvModels.mat4(x, y - 0.03, z, turn == null ? r() * Math.PI * 2 : turn, s);
+            (placed[n] = placed[n] || []).push(M);
+            return { n, i: placed[n].length - 1, M };
+        };
+        // fruit hangs at the tree's anchors (turned and sized with it); a fruit tree is turned only a little, so its
+        // fruit stays on the side toward the camera
+        const hang = (t, fruit) => {
+            const A = EnvModels.models[t.n].anchors.fruit || [], fn = 'fruit_' + fruit, k = fruit === 'coconut' ? 1.35 : 1.9;
+            if (!has(fn)) return [];
+            // (big, as Animal Crossing hangs them: fruit is what you come to a tree for)
+            return A.map((p, j) => {
+                const M = t.M.clone().multiply(new THREE.Matrix4().makeTranslation(p.x, p.y - 0.06 * k, p.z)).multiply(new THREE.Matrix4().makeRotationY(j * 2.1)).multiply(new THREE.Matrix4().makeScale(k, k, k));
+                (placed[fn] = placed[fn] || []).push(M);
+                return { n: fn, i: placed[fn].length - 1, M };
+            });
+        };
         for (const e of trees) {
             const x = e.x / TILE, z = e.y / TILE * R3_ZS, y = Env.groundH(e.x, e.y), r = mulberry(hash32('tree' + Math.round(e.x) + ',' + Math.round(e.y)));
             // (a palm is a tree or a fruit tree wearing a palm picture)
             const kind = e.kind === 'palm' || /^palm/.test(e.frame || '') ? 'palm' : /pine/.test(e.frame || '') || e.pine || e.treeKind === 'pine' ? 'pine' : 'broad';
-            const big = e.kind === 'bigtree' || e.kind === 'oldtree' ? 1.5 : 1;
-            if (kind === 'pine') { if (pines.length) put(pines, x, y, z, r, 0.8 + r() * 0.22); else this.pine(F, B, x, y, z, r); }
-            else if (kind === 'palm') this.palm(F, B, x, y, z, r, e);
-            else if (maples) put(maples, x, y, z, r, big * (0.86 + r() * 0.2));
+            const big = e.kind === 'bigtree' || e.kind === 'oldtree' ? 1.4 : 1, fruit = e.kind === 'fruittree' && e.fruit;
+            let t = null;
+            if (kind === 'pine') { if (pines.length) t = put(pines, x, y, z, r, 0.8 + r() * 0.22); else this.pine(F, B, x, y, z, r); }
+            else if (kind === 'palm') { if (palms.length) t = put(palms, x, y, z, r, 0.9 + r() * 0.15, fruit ? (r() - 0.5) * 1.2 : null); else this.palm(F, B, x, y, z, r, e); }
+            else if (rounds.length) t = put(rounds, x, y, z, r, big * (0.9 + r() * 0.15), fruit ? (r() - 0.5) * 0.6 : null);
             else this.broad(F, B, x, y, z, r, big);
+            if (t) live.push({ e, t, fruit: fruit ? hang(t, fruit) : [], on: true, ripe: true, shook: false });
         }
         for (const e of bushes) {
             const r = mulberry(hash32('bush' + e.x + ',' + e.y)), x = e.x / TILE, y = Env.groundH(e.x, e.y), z = e.y / TILE * R3_ZS;
-            if (shrubs.length) put(shrubs, x, y + 0.02, z, r, 0.9 + r() * 0.25); else this.bush(F, x, y, z, r);
+            if (shrubs.length) put(shrubs, x, y + 0.02, z, r, 0.95 + r() * 0.25); else this.bush(F, x, y, z, r);
         }
-        const models = [];
-        // (the leaves have their shade baked in: taking the shadow map too, a crown darkens itself twice)
-        for (const [n, list] of Object.entries(placed)) for (const m of EnvModels.instances(group, n, list)) { m.userData.shared = true; if (!/bark|trunk/.test(m.material.name)) m.receiveShadow = false; models.push(m); }
+        const models = [], inst = {};
+        // (the leaves have their shade painted in: taking the shadow map too, a crown darkens itself twice)
+        for (const [n, list] of Object.entries(placed)) for (const m of (inst[n] = EnvModels.instances(group, n, list))) { m.userData.shared = true; if (!/bark|trunk|gloss/.test(m.material.name)) m.receiveShadow = false; models.push(m); }
+        this.live = live; this.inst = inst;
         const fm = this.foliageMat(leaf, pal), bm = this.barkMat();
         const fMesh = new THREE.Mesh(this.geo(F), fm), bMesh = new THREE.Mesh(this.geo(B), bm);
         fMesh.customDepthMaterial = this.depthMat(leaf);
@@ -56,7 +80,38 @@ const EnvTrees = {
         // the crown gets is its own shading)
         fMesh.castShadow = true; fMesh.receiveShadow = false; bMesh.castShadow = true; bMesh.receiveShadow = true;
         group.add(fMesh, bMesh);
-        return { meshes: [fMesh, bMesh].concat(models), count: trees.length };
+        let frame = 0;
+        return { meshes: [fMesh, bMesh].concat(models), count: trees.length, tick: (r3, a) => this.tick(a, frame++) };
+    },
+    /* the trees follow the game: one shaken sways (its fruit with it), a chopped one is gone, picked fruit is gone until
+       it grows back */
+    tick(a, frame) {
+        const live = this.live, inst = this.inst, none = this._none || (this._none = new THREE.Matrix4().makeScale(0, 0, 0));
+        if (!live || !live.length) return;
+        const set = (o, M) => { for (const m of inst[o.n] || []) { m.setMatrixAt(o.i, M); m.instanceMatrix.needsUpdate = true; } };
+        const W = this._w || (this._w = new THREE.Matrix4()), R = this._r || (this._r = new THREE.Matrix4());
+        // (by id: the island's things are made again when Sarah comes back out of a building)
+        let ids = null;
+        if (frame % 15 === 0) { ids = new Map(); for (const e of a.ents) if (e.id) ids.set(e.id, e); }
+        for (const L of live) {
+            if (ids && L.e.id) {
+                const cur = ids.get(L.e.id);
+                if (cur) L.e = cur;
+                const on = !!cur, ripe = on && L.fruit.length > 0 && treeHasFruit(L.e);
+                if (on !== L.on) { L.on = on; set(L.t, on ? L.t.M : none); }
+                if (L.fruit.length && ripe !== L.ripe) { L.ripe = ripe; for (const f of L.fruit) set(f, ripe ? f.M : none); }
+            }
+            if (!L.on) continue;
+            const sh = L.e.shake || 0;
+            if (sh > 0 || L.shook) {
+                // a sway about the foot of the trunk, side to side, dying away
+                const ang = sh > 0 ? Math.sin(sh * 1.3) * 0.035 * Math.min(1, sh / 12) : 0;
+                R.makeRotationZ(ang);
+                set(L.t, W.multiplyMatrices(L.t.M, R));
+                if (L.ripe) for (const f of L.fruit) { W.multiplyMatrices(L.t.M, R).multiply(new THREE.Matrix4().copy(L.t.M).invert().multiply(f.M)); set(f, W); }
+                L.shook = sh > 0;
+            }
+        }
     },
 
     /* ---------------------------------------------------------------- geometry, gathered into one buffer per material */

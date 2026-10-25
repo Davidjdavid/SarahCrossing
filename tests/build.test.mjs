@@ -51,7 +51,7 @@ test('the data script holds the sprites, world and game data, and points at the 
   new Function('window', fs.readFileSync(path.join(dist, asset(/src="(assets\/data-[^"]+)"/)), 'utf8'))(window);
   assert.deepEqual(Object.keys(window).sort(), ['ATLAS_JSON', 'ATLAS_PNG', 'GAMEDATA', 'GROUND', 'GROUND_PAL', 'HDW_JS', 'LAB', 'MODELS', 'TEXTURES', 'WORLD_JSON']);
   // the models made in Blender (tools/blender/): every one a GLB, the tree, the cottage and the wall among them
-  for (const name of ['tree_maple_orange', 'cottage', 'shop', 'wall2_a', 'wall_corner', 'bench', 'lamp', 'pine_a', 'pine_a_lod1', 'bush_autumn', 'bush_green', 'sunflowers', 'flowers_mixed']) assert.ok(window.MODELS[name], name);
+  for (const name of ['tree_round_a', 'tree_round_b_fall', 'tree_round_a_lod1', 'palm_ac', 'fruit_apple', 'fruit_coconut', 'bush_round', 'bush_fall', 'cottage', 'shop', 'wall2_a', 'wall_corner', 'bench', 'lamp', 'pine_a', 'pine_a_lod1', 'sunflowers', 'flowers_mixed']) assert.ok(window.MODELS[name], name);
   for (const f of Object.values(window.MODELS)) assert.equal(fs.readFileSync(path.join(dist, f)).subarray(0, 4).toString(), 'glTF', f);
   // and the ground's surfaces: a color, a normal map and a height for each
   for (const s of ['flagstones', 'path', 'lawn']) for (const k of ['col', 'nrm', 'hgt']) assert.ok(window.TEXTURES[`${s}_${k}`], `${s}_${k}`);

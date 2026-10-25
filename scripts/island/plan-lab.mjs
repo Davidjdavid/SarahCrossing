@@ -56,6 +56,8 @@ export const PLAN = {
     { x: 19, y: 33, kind: 'oak' }, { x: 28, y: 35, kind: 'pine' }, { x: 33, y: 35, kind: 'oak' }, { x: 15, y: 31, kind: 'oak' },
   ],
   palms: [{ x: 33, y: 21, coconut: true }, { x: 34, y: 26 }, { x: 36, y: 33, coconut: true }],
+  // a few fruit trees in front, toward the beach
+  orchard: { x: 28, y: 31, w: 7, h: 5 },
   flowers: [{ x: 28, y: 20, r: 1, n: 3 }, { x: 25, y: 23, r: 1.2, n: 3 }, { x: 29, y: 31, r: 2.5, n: 5 }, { x: 23, y: 25, r: 1, n: 2 }],
   spots: {
     plaza: [27, 26, 2], pond: [20, 30, 1], beach: [35, 31, 1], waterfall: [24, 23, 1], summit: [10, 12, 1],

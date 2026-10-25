@@ -1,9 +1,9 @@
-"""The island's plants as the concept paints them: pines (stacked skirts of dark needles, lighter at the tips), round
-autumn bushes (orange leaf clumps like the maples', smaller) and green ones, sunflowers (three together, as behind the
-cottage's fence) and clumps of wild flowers (tulips, daisies, cosmos, lilies and a mixed one).
+"""The island's pines (stacked skirts of dark needles, lighter at the tips), sunflowers (three together, as behind the
+cottage's fence) and clumps of wild flowers (tulips, daisies, cosmos, lilies and a mixed one). (The broadleaf trees,
+palms and bushes are trees_ac.py.)
 
-The pines and bushes are modelled in full (every branch, every leaf clump) and baked onto a light mesh as the maples
-are; the sunflowers bake their own shade; the flower clumps are small enough to keep their colors in the mesh.
+The pines are modelled in full (every branch, every needle tuft) and baked onto a light mesh; the sunflowers bake their
+own shade; the flower clumps are small enough to keep their colors in the mesh.
 
     python tools/blender/vegetation.py [--preview DIR] [--only NAME]
 """
@@ -13,7 +13,6 @@ import bpy, bmesh
 import numpy as np
 from mathutils import Vector, Matrix, Euler, noise
 from common import *
-from tree_autumn import puff_points, leafy_material, crown_low
 from props import vcol_mat, bake_self
 
 LIGHT = Vector((-0.45, -0.3, 0.84)).normalized()
@@ -57,6 +56,61 @@ def bark(bm, col, x, y, z0, z1, r0, r1, c0='#4a3424', c1='#6e5038', sides=8):
     for v in res['verts']:
         k = 0.5 + 0.5 * noise.noise(v.co * 9)
         v[col] = mix(hex_rgb(c0), hex_rgb(c1), k)
+
+
+# ---------------------------------------------------------------- baking a crown
+def leafy_material():
+    """The puffs' color with leaves in it: a fine speckle of lighter and darker leaves, darker where leaves overlap."""
+    m = material('crown_high', vcol='Col', rough=1)
+    nt = m.node_tree
+    bsdf = nt.nodes['Principled BSDF']
+    vc = [n for n in nt.nodes if n.bl_idname == 'ShaderNodeVertexColor'][0]
+    tc = nt.nodes.new('ShaderNodeTexCoord')
+    nz = nt.nodes.new('ShaderNodeTexNoise')
+    nz.inputs['Scale'].default_value = 38
+    nz.inputs['Detail'].default_value = 3
+    nt.links.new(tc.outputs['Object'], nz.inputs['Vector'])
+    vo = nt.nodes.new('ShaderNodeTexVoronoi')
+    vo.inputs['Scale'].default_value = 26
+    vo.feature = 'DISTANCE_TO_EDGE'
+    nt.links.new(tc.outputs['Object'], vo.inputs['Vector'])
+    # speckle: 0.8..1.12 from the noise; leaf edges a touch darker
+    sp = nt.nodes.new('ShaderNodeMapRange')
+    sp.inputs['From Min'].default_value, sp.inputs['From Max'].default_value = 0.3, 0.7
+    sp.inputs['To Min'].default_value, sp.inputs['To Max'].default_value = 0.72, 1.16
+    nt.links.new(nz.outputs['Fac'], sp.inputs['Value'])
+    ed = nt.nodes.new('ShaderNodeMapRange')
+    ed.inputs['From Min'].default_value, ed.inputs['From Max'].default_value = 0.0, 0.08
+    ed.inputs['To Min'].default_value, ed.inputs['To Max'].default_value = 0.7, 1.0
+    nt.links.new(vo.outputs['Distance'], ed.inputs['Value'])
+    k = nt.nodes.new('ShaderNodeMath')
+    k.operation = 'MULTIPLY'
+    nt.links.new(sp.outputs['Result'], k.inputs[0])
+    nt.links.new(ed.outputs['Result'], k.inputs[1])
+    mul = nt.nodes.new('ShaderNodeVectorMath')
+    mul.operation = 'SCALE'
+    nt.links.new(vc.outputs['Color'], mul.inputs[0])
+    nt.links.new(k.outputs['Value'], mul.inputs['Scale'])
+    nt.links.new(mul.outputs['Vector'], bsdf.inputs['Base Color'])
+    return m
+
+
+def crown_low(high, ratio, name):
+    """The crown as one closed surface (the puffs fused) at game weight."""
+    me = high.data.copy()
+    o = link(bpy.data.objects.new(name, me))
+    o.data.materials.clear()
+    select_only(o)
+    o.data.remesh_voxel_size = 0.035
+    bpy.ops.object.voxel_remesh()
+    # smooth away the leaf bumps (the normal map has them) so the simplified outline keeps clusters, not spikes
+    sm = o.modifiers.new('sm', 'SMOOTH')
+    sm.factor, sm.iterations = 0.6, 3
+    m = o.modifiers.new('dec', 'DECIMATE')
+    m.ratio = ratio
+    apply_modifiers(o)
+    shade_smooth(o)
+    return o
 
 
 # ---------------------------------------------------------------- pines
@@ -135,71 +189,6 @@ def pine(name, spec):
         decimate_to(lo, faces)
         out[lod] = bake_low(hi, lo, 1024 if lod == 0 else 512, name, extrusion=0.12, max_dist=0.3)
     return hi, tr, out
-
-
-# ---------------------------------------------------------------- bushes
-BUSHES = {
-    'bush_autumn': dict(seed=31, pal=['#ffd25a', '#ffa832', '#f47c1e', '#d85618', '#a63a10', '#6e220a'], w=0.62, h=0.5),
-    'bush_autumn_b': dict(seed=43, pal=['#ffc04a', '#fb8e2a', '#e8641c', '#c44416', '#902c0e', '#5e1a08'], w=0.55, h=0.46),
-    'bush_green': dict(seed=53, pal=['#b4d870', '#86bc4c', '#5e9c3c', '#40802f', '#2a6024', '#1a4218'], w=0.56, h=0.44),
-}
-
-
-def bush_lobes(rng, w, h):
-    L = [(Vector((0, 0, h * 0.82)), Vector((w, w * 0.92, h * 0.84)))]
-    k = rng.randint(5, 7)
-    for i in range(k):
-        a = i / k * math.tau + rng.uniform(-0.3, 0.3)
-        d = w * rng.uniform(0.5, 0.7)
-        rr = w * rng.uniform(0.42, 0.56)
-        L.append((Vector((math.cos(a) * d, math.sin(a) * d * 0.85, h * rng.uniform(0.55, 1.05))), Vector((rr, rr * 0.92, rr * 0.82))))
-    return L
-
-
-def bush_high(rng, spec):
-    bm = bmesh.new()
-    col = bm.verts.layers.float_color.new('Col')
-    pal = [hex_rgb(c) for c in spec['pal']]
-    L = bush_lobes(rng, spec['w'], spec['h'])
-    pts = puff_points(rng, L, 0.2)
-    zs = [p.z for p, _ in pts]
-    z0, z1 = min(zs), max(zs)
-    for p, g in pts:
-        hgt = (p.z - z0) / max(0.01, z1 - z0)
-        r = rng.uniform(0.13, 0.22)
-        c = p - g * r * rng.uniform(0.25, 0.5)
-        base = (1 - hgt) * 1.0 + 0.8 + rng.uniform(-0.4, 0.4)
-        res = bmesh.ops.create_icosphere(bm, subdivisions=4, radius=r, matrix=Matrix.Translation(c))
-        seed = Vector((rng.random() * 50, rng.random() * 50, rng.random() * 50))
-        for v in res['verts']:
-            dn = (v.co - c).normalized()
-            f1 = noise.voronoi(dn * (r / 0.045) + seed, distance_metric='DISTANCE')[0][0]
-            peak = (1 - min(1.0, f1 * 1.6)) ** 1.5
-            v.co = c + dn * (r + 0.04 * peak + 0.06 * r * noise.noise(dn * 2 + seed))
-            # the lowest clusters sink into shade where they meet the ground
-            tone = base - dn.dot(LIGHT) * 2.0 + (1 - peak) * 0.85 + max(0.0, 0.25 - v.co.z) * 4
-            cc = tone_color(pal, tone)
-            k = 0.96 + 0.08 * noise.noise(dn * 4 + seed)
-            v[col] = (cc[0] * k, cc[1] * k, cc[2] * k, 1)
-    for c, r in L:
-        res = bmesh.ops.create_icosphere(bm, subdivisions=3, radius=1, matrix=Matrix.Translation(c) @ Matrix.Diagonal((r.x * 0.85, r.y * 0.85, r.z * 0.85, 1)))
-        for v in res['verts']:
-            v[col] = pal[-2]
-    o = mesh_obj('bush_high', bm)
-    shade_smooth(o)
-    o.data.materials.append(leafy_material())
-    return o
-
-
-def bush(name, spec):
-    rng = random.Random(spec['seed'])
-    hi = bush_high(rng, spec)
-    out = {}
-    for lod, faces in enumerate((2400, 800)):
-        lo = crown_low(hi, 1.0, f'{name}_low{lod}')
-        decimate_to(lo, faces)
-        out[lod] = bake_low(hi, lo, 512 if lod == 0 else 256, name, extrusion=0.08, max_dist=0.2, ao_floor=0.58)
-    return hi, None, out
 
 
 # ---------------------------------------------------------------- sunflowers
@@ -409,16 +398,6 @@ if __name__ == '__main__':
         export([lods[1], tr1], name + '_lod1')
         lods[1].hide_render = tr1.hide_render = True
         shown['trees'].append([lods[0], tr])
-        print('built', name)
-    for name, spec in BUSHES.items():
-        if not want(name):
-            continue
-        hi, _, lods = bush(name, spec)
-        hi.hide_render = True
-        export([lods[0]], name)
-        export([lods[1]], name + '_lod1')
-        lods[1].hide_render = True
-        shown['small'].append(lods[0])
         print('built', name)
     if want('sunflowers'):
         o = sunflowers()

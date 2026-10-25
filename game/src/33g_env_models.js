@@ -1,10 +1,11 @@
 /* ---- 33g_env_models.js ---- */
-/* The models made in Blender (tools/blender/*.py, game/assets/models/*.glb) for the new 3D look: the autumn maples, the
-   cottage, the stone wall's pieces. Loaded once (in the test area, from the start, so they're usually there before the
+/* The models made in Blender (tools/blender/*.py, game/assets/models/*.glb) for the new 3D look: trees, buildings, walls,
+   furniture, plants, props. Loaded once (in the test area, from the start, so they're usually there before the
    island is), each turned into parts (a geometry and a material) whose materials join the rest of the view (the bend
    toward the horizon, depth of field, shadows); a model placed many times is drawn as one instanced mesh per part.
    Phones load the lighter version of a model where there is one (name_lod1). The colors in the models' pictures are used
-   as they are, like the game's other pictures (no color-space conversion). */
+   as they are, like the game's other pictures (no color-space conversion), and colors kept in a mesh are turned back
+   into the colors as painted. */
 const EnvModels = {
     models: {}, textures: {}, ready: false, failed: false, _p: null,
     phone() { try { return matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 600; } catch (e) { return false; } },
@@ -34,26 +35,38 @@ const EnvModels = {
     has(name) { return this.ready && !!this.models[name]; },
     /* a loaded scene as parts, each geometry in the model's own space (y up, its front toward +z) */
     prepare(scene, name) {
-        const parts = [];
+        const parts = [], anchors = {};
         scene.updateMatrixWorld(true);
         scene.traverse(o => {
+            // (named empties mark spots on a model: anchor_fruit_0.. where its fruit hangs)
+            if (/^anchor_/.test(o.name)) { const k = o.name.replace(/^anchor_/, '').replace(/_\d+$/, ''); (anchors[k] = anchors[k] || []).push(new THREE.Vector3().setFromMatrixPosition(o.matrixWorld)); return; }
             if (!o.isMesh) return;
             const g = o.geometry.clone();
             g.applyMatrix4(o.matrixWorld);
+            this.srgb(g);
             g.computeBoundingSphere();
             for (const m of [].concat(o.material)) parts.push({ geometry: g, material: this.material(m, name), glass: /glass/i.test(m.name || '') });
         });
-        return { parts, name };
+        return { parts, name, anchors };
+    },
+    /* colors kept in a mesh arrive as glTF's linear values: turned back into the colors as painted, which is how the
+       game shows its pictures (a mesh's colors would otherwise come out darker and more saturated than designed) */
+    srgb(g) {
+        const c = g.attributes.color;
+        if (!c) return;
+        const a = c.array, max = a instanceof Uint16Array ? 65535 : a instanceof Uint8Array ? 255 : 1, n = c.itemSize;
+        for (let i = 0; i < a.length; i++) {
+            if (n === 4 && i % 4 === 3) continue;
+            const v = a[i] / max, s = v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+            a[i] = max === 1 ? s : Math.round(s * max);
+        }
     },
     material(m, name) {
         const glass = /glass/i.test(m.name || '');
         if (m.map) m.map.encoding = THREE.LinearEncoding;
-        const opts = { map: m.map || null, color: m.map ? 0xffffff : m.color, roughness: glass ? 0.35 : 0.92, metalness: 0, vertexColors: !m.map && !!m.vertexColors };
-        // (the concept's autumn leaves are lit high-key, brighter than anything round them: their crowns a little more)
-        const lift = /bark/.test(m.name || '') ? 1 : /^tree_maple/.test(name) ? 1.4 : /^bush_autumn/.test(name) ? 1.1 : 1;
-        if (lift !== 1 && m.map) opts.color = new THREE.Color(lift, lift, lift);
-        // (the maples', pines' and bushes' leaf clumps are mostly in the normal map: a little stronger than baked, as the concept's are crisp)
-        if (m.normalMap) { opts.normalMap = m.normalMap; opts.normalScale = (m.normalScale ? m.normalScale.clone() : new THREE.Vector2(1, 1)).multiplyScalar(/^(tree_|pine_|bush_)/.test(name) ? 1.7 : 1); }
+        const opts = { map: m.map || null, color: m.map ? 0xffffff : m.color, roughness: glass ? 0.35 : /gloss/.test(m.name || '') ? 0.5 : 0.92, metalness: 0, vertexColors: !m.map && !!m.vertexColors };
+        // (the pines' needle tufts are mostly in the normal map: a little stronger than baked, as the concept's are crisp)
+        if (m.normalMap) { opts.normalMap = m.normalMap; opts.normalScale = (m.normalScale ? m.normalScale.clone() : new THREE.Vector2(1, 1)).multiplyScalar(/^pine_/.test(name) ? 1.7 : 1); }
         // the windows glow at night (EnvBuild's tick turns them up), their curtains brightest
         if (glass) { opts.emissive = new THREE.Color(0xffd890); opts.emissiveMap = m.map || null; opts.emissiveIntensity = 0.0; }
         const out = r3Patch(new THREE.MeshStandardMaterial(opts), { key: glass ? 'envmodelglass' : 'envmodel' });
