@@ -10,15 +10,17 @@ const EnvWater = {
         const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || G.waterAt(x, y) === 1) ? -1 : +W0.height[y][x] || 0;
         const wet = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && G.waterAt(x, y) === 2;
         const surf = (x, y) => wet(x, y) ? BASE + L(x, y) * LV - 0.14 : 0;           // a water tile's surface (the sea's is 0)
-        // how deep the water is everywhere (8 pixels a tile, so the shore is a smooth line): red is depth, green which water (sea or not)
+        // how deep the water is everywhere (8 pixels a tile, so the shore is a smooth line): red is depth, green which water
+        // (sea or not), blue how much of it round here is a stream's (which flows) rather than a pond's
         const P = 8, N = Wt * P, M = Ht * P, d = new Uint8Array(N * M * 4);
+        const runs = (x, y) => { const c = W0.grid[y] && W0.grid[y][x]; return c === 'r' || c === 'w' || c === 'W'; };
         for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) {
             const u = (x + 0.5) / P, v = (y + 0.5) / P, tx = Math.floor(u), ty = Math.floor(v);
-            let s = 0, sea = 1;
+            let s = 0, sea = 1, nw = 0, nr = 0;
             // inland water: the surface of the nearest water tile round here
-            for (let dy = -1; dy <= 1 && sea; dy++) for (let dx = -1; dx <= 1; dx++) if (wet(tx + dx, ty + dy)) { s = surf(tx + dx, ty + dy); sea = 0; break; }
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (wet(tx + dx, ty + dy)) { if (sea) s = surf(tx + dx, ty + dy); sea = 0; nw++; if (runs(tx + dx, ty + dy)) nr++; }
             const depth = s - G.heightAt(u, v), o = ((M - 1 - y) * N + x) * 4;
-            d[o] = Math.max(0, Math.min(255, Math.round(depth * 100))); d[o + 1] = sea ? 255 : 0; d[o + 2] = 0; d[o + 3] = 255;
+            d[o] = Math.max(0, Math.min(255, Math.round(depth * 100))); d[o + 1] = sea ? 255 : 0; d[o + 2] = nw ? Math.round(nr / nw * 255) : 0; d[o + 3] = 255;
         }
         const depthTex = new THREE.DataTexture(d, N, M, THREE.RGBAFormat);
         depthTex.magFilter = depthTex.minFilter = THREE.LinearFilter; depthTex.generateMipmaps = false; depthTex.needsUpdate = true;
@@ -183,8 +185,12 @@ const EnvWater = {
                 const yy = Env.groundH((x + 0.5) * TILE, (y + 0.5) * TILE);
                 if (by.some(([dx, dy]) => W0.grid[y + dy][x + dx] === 'o') && r() < 0.22 && has('reeds')) put('reeds', x + 0.3 + r() * 0.4, yy - 0.02, (y + 0.3 + r() * 0.4) * R3_ZS, r() * 6.28, 0.9 + r() * 0.4);
                 else if (by.some(([dx, dy]) => W0.grid[y + dy][x + dx] === 'o') && r() < 0.22) for (let k = 0; k < 3; k++) { const cx = x + 0.3 + r() * 0.4, cz = (y + 0.3 + r() * 0.4) * R3_ZS, h = 0.4 + r() * 0.3; box(reeds, cx - 0.014, yy, cz - 0.014, cx + 0.014, yy + h, cz + 0.014, '#5a8a3a'); box(reeds, cx - 0.032, yy + h - 0.15, cz - 0.032, cx + 0.032, yy + h - 0.02, cz + 0.032, '#7a4a28'); }
-                if (r() < 0.6 && has('pebbles')) put('pebbles', x + r(), yy - 0.02, (y + r()) * R3_ZS, r() * 6.28, 0.8 + r() * 0.5);
-                else if (r() < 0.6) { const sx = x + r(), sz = (y + r()) * R3_ZS, s = 0.08 + r() * 0.1; box(reeds, sx - s, yy - 0.05, sz - s * 0.8, sx + s, yy + s * 0.7, sz + s * 0.8, ['#9a958c', '#aca69c', '#8d887f'][r() * 3 | 0]); }
+                // (each on the ground where it lies: the bank slopes away to the water, so the tile's middle would leave it floating)
+                if (r() < 0.6) {
+                    const sx = x + 0.15 + r() * 0.7, sy = y + 0.15 + r() * 0.7, sh = Env.groundH(sx * TILE, sy * TILE), sz = sy * R3_ZS;
+                    if (has('pebbles')) put('pebbles', sx, sh - 0.03, sz, r() * 6.28, 0.7 + r() * 0.4);
+                    else { const s = 0.08 + r() * 0.1; box(reeds, sx - s, sh - 0.05, sz - s * 0.8, sx + s, sh + s * 0.7, sz + s * 0.8, ['#9a958c', '#aca69c', '#8d887f'][r() * 3 | 0]); }
+                }
             }
         }
         for (const [n, list] of Object.entries(placed)) for (const m of EnvModels.instances(group, n, list)) { m.userData.shared = true; meshes.push(m); }
@@ -218,16 +224,24 @@ EnvWater.FPRE = `
     // (streams and ponds are shallow but clear and colored like deeper water, as in the concept; clear right at the edge)
     float depth = isSea < 0.5 ? d0 * 1.5 + 0.08 * smoothstep(0.0, 0.12, d0) : d0;
     // ripples: two layers of noise drifting (the sea rolls in from the south; streams run)
+    // (the island's streams all run south, so theirs drift that way; a stream's ripples are small, not the sea's swell)
     vec2 fl = isSea > 0.5 ? vec2(0.03, -0.09) : vec2(0.02, 0.25);
-    vec2 q1 = tp * 1.9 + fl * uTime, q2 = tp * 3.7 - fl.yx * uTime * 0.8;
+    float rs = isSea > 0.5 ? 1.0 : 1.8;
+    vec2 q1 = tp * 1.9 * rs + fl * uTime, q2 = tp * 3.7 * rs - fl.yx * uTime * 0.8;
     float h1 = r3n(q1) * 0.6 + r3n(q2) * 0.4;
     vec2 g = vec2(r3n(q1 + vec2(0.05, 0.0)) - r3n(q1 - vec2(0.05, 0.0)), r3n(q1 + vec2(0.0, 0.05)) - r3n(q1 - vec2(0.0, 0.05)));
-    vec3 n = normalize(vec3(-g.x * 1.4, 1.0, -g.y * 1.4));
-    // color by depth: sand showing through at the edge, then turquoise, then blue
+    vec3 n = normalize(vec3(-g.x * 1.4, 1.0, -g.y * 1.4) * vec3(isSea > 0.5 ? 1.0 : 0.7, 1.0, isSea > 0.5 ? 1.0 : 0.7));
+    // color by depth: sand showing through at the edge, then turquoise, then blue (a stream bluer, its bed barely showing)
     vec3 bed = texture2D(tSand, tp * 0.25).rgb * vec3(0.72, 0.86, 0.84);
     vec3 shallow = vec3(0.26, 0.74, 0.74), mid = vec3(0.13, 0.56, 0.68), deep = vec3(0.07, 0.38, 0.6);
+    if (isSea < 0.5) { bed = mix(bed, vec3(0.3, 0.62, 0.66), 0.6); shallow = vec3(0.24, 0.66, 0.76); mid = vec3(0.13, 0.5, 0.7); deep = vec3(0.09, 0.4, 0.66); }
     float k1 = smoothstep(0.0, 0.16, depth), k2 = smoothstep(0.3, 1.4, depth);
     vec3 wc = mix(mix(bed, shallow, k1 * 0.9), mix(mid, deep, k2), smoothstep(0.12, 0.7, depth));
+    // a stream's current: faint pale streaks drawn out along it, sliding downstream (none on a pond's still water)
+    if (isSea < 0.5) {
+        float run = r3n(vec2(tp.x * 3.2, tp.y * 0.7 - uTime * 0.42)) * 0.65 + r3n(vec2(tp.x * 7.5 + 5.0, tp.y * 1.6 - uTime * 0.7)) * 0.35;
+        wc = mix(wc, vec3(0.78, 0.92, 0.96), smoothstep(0.6, 0.78, run) * 0.32 * dd.b * smoothstep(0.04, 0.2, d0));
+    }
     // the light it gets (shadows from the Lambert pass), the sky's reflection at a slant, the sun's glint
     float lit = dot(gl_FragColor.rgb, vec3(0.3, 0.59, 0.11)) / 0.9;
     wc *= 0.55 + 0.5 * clamp(lit, 0.0, 1.2);
@@ -242,7 +256,7 @@ EnvWater.FPRE = `
     float foam = smoothstep(isSea > 0.5 ? 0.1 : 0.05, 0.0, d0) * smoothstep(0.35, 0.65, r3n(tp * 5.0 + vec2(uTime * 0.3, 0.0)) + 0.25) * (isSea > 0.5 ? 1.0 : 0.6);
     if (isSea > 0.5) foam += smoothstep(0.06, 0.0, abs(fract(depth * 2.2 - uTime * 0.18) - 0.5) - 0.44) * smoothstep(0.8, 0.1, depth) * 0.7;
     // (a pond's or stream's edge drawn as a clean pale line, as the concept and Animal Crossing outline their water)
-    if (isSea < 0.5) foam = max(foam, smoothstep(0.035, 0.012, d0) * (0.45 + 0.2 * r3n(tp * 9.0 + uTime * 0.25)));
+    if (isSea < 0.5) foam = max(foam, smoothstep(0.026, 0.008, d0) * (0.6 + 0.2 * r3n(tp * 9.0 + uTime * 0.25)));
     wc = mix(wc, vec3(0.96, 0.98, 1.0), clamp(foam, 0.0, 0.9));
     gl_FragColor.rgb = wc;
 }`;
