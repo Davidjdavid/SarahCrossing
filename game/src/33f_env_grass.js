@@ -4,18 +4,28 @@
    breeze; thicker along the edges of paths, where they lean over; and little flowers in patches (white, yellow, pink,
    lilac), as in the concept. Phones get fewer. */
 const EnvGrass = {
+    /* (the grass comes with each piece of ground: Env's chunks call chunk()) */
     build(group, a) {
-        const season = a.bgSeason || Clock.season();
-        if (season === 'winter') return { meshes: [] };
-        const phone = R3.phone, Wt = W0.w, Ht = W0.h, G = EnvGround, r = mulberry(777);
-        const kinds = this.kindAt();
+        this.season = a.bgSeason || Clock.season();
+        this.meshes = [];
+        this.mats = null;
+        // the tiles trees stand on (grass grows round them, though the tile is blocked)
+        this.treeAt = new Set();
+        for (const e of a.ents) if (e.kind === 'tree') this.treeAt.add(Math.floor(e.x / TILE) + ',' + Math.floor(e.y / TILE));
+        return { meshes: this.meshes };
+    },
+    /* the tufts and flowers on one piece */
+    chunk(c, a) {
+        const season = this.season;
+        if (season === 'winter') return;
+        const phone = R3.phone, Wt = W0.w, Ht = W0.h, G = EnvGround, r = mulberry(hash32('grass' + c.cx + ',' + c.cy));
         // where the grass grows: open grass (not under a building, a prop, water, a cliff)
-        const blocked = (x, y) => { const a2 = G.area || a; return a.blockedAt(Math.floor(x), Math.floor(y)) && !a.ents.some(e => e.kind === 'tree' && Math.floor(e.x / TILE) === Math.floor(x) && Math.floor(e.y / TILE) === Math.floor(y)); };
+        const blocked = (x, y) => a.blockedAt(Math.floor(x), Math.floor(y)) && !this.treeAt.has(Math.floor(x) + ',' + Math.floor(y));
         const per = Math.round((phone ? 4 : 11) * (window.__envDbg && window.__envDbg.grass != null ? window.__envDbg.grass : 1)), tufts = [], flowers = [];
-        const fnoise = EnvTex.noise(256, 12, 991);
-        for (let ty = 0; ty < Ht; ty++) for (let tx = 0; tx < Wt; tx++) {
+        const fnoise = this.fnoise || (this.fnoise = EnvTex.noise(256, 12, 991));
+        for (let ty = c.y0; ty < c.y0 + c.h; ty++) for (let tx = c.x0; tx < c.x0 + c.w; tx++) {
             for (let k = 0; k < per; k++) {
-                const x = tx + r(), y = ty + r(), g = kinds(x, y);
+                const x = tx + r(), y = ty + r(), g = G.grassAt(x, y);
                 if (g < 0.35) continue;
                 if (this.steep(x, y)) continue;
                 if (G.wetAt(x, y) > 0.1) continue;           // (not on a pond's or stream's damp bank)
@@ -27,13 +37,7 @@ const EnvGrass = {
                 if (!phone && patch > 0.62 && r() < (patch - 0.62) * 1.8) flowers.push([x + (r() - 0.5) * 0.3, y + (r() - 0.5) * 0.3, r() * 4 | 0]);
             }
         }
-        const meshes = [this.tuftMesh(group, tufts, season, r), this.flowerMesh(group, flowers, r)].filter(Boolean);
-        return { meshes, count: tufts.length };
-    },
-    /* how much of the ground at a point is grass (0..1), from the ground's kinds picture */
-    kindAt() {
-        const t = EnvGround.uniforms.uKinds.value, d = t.image.data, N = t.image.width, M = t.image.height, P = N / W0.w;
-        return (x, y) => { const px = Math.max(0, Math.min(N - 1, Math.floor(x * P))), py = M - 1 - Math.max(0, Math.min(M - 1, Math.floor(y * P))); return d[(py * N + px) * 4] / 255; };
+        for (const m of [this.tuftMesh(c.group, tufts, season, r), this.flowerMesh(c.group, flowers, r)]) if (m) { c.meshes.push(m); this.meshes.push(m); }
     },
     steep(x, y) { const h0 = EnvGround.heightAt(x, y), e = 0.15; return Math.abs(EnvGround.heightAt(x + e, y) - h0) > 0.12 || Math.abs(EnvGround.heightAt(x, y + e) - h0) > 0.12; },
     /* one tuft: blades curving up and out from a small clump (aT: how far up the blade) */
@@ -57,7 +61,7 @@ const EnvGrass = {
     },
     tuftMesh(group, tufts, season, r) {
         if (!tufts.length) return null;
-        const geo = this.tuftGeo(R3.phone ? 4 : 6, r);
+        const geo = this.tuftGeo(R3.phone ? 4 : 6, mulberry(4242));
         const base = { spring: [0.42, 0.72, 0.28], summer: [0.36, 0.64, 0.24], fall: [0.46, 0.66, 0.24] }[season] || [0.36, 0.64, 0.24];
         const mat = r3Patch(new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }), {
             key: 'envgrass', inst: true,

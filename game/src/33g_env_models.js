@@ -63,7 +63,7 @@ const EnvModels = {
     },
     material(m, name) {
         // (flames: unlit, their own colors)
-        if (/glow/i.test(m.name || '')) { const b = r3Patch(new THREE.MeshBasicMaterial({ vertexColors: true }), { key: 'envmodelglow' }); b.name = m.name; return b; }
+        if (/glow/i.test(m.name || '')) { const b = r3Patch(new THREE.MeshBasicMaterial({ vertexColors: true }), { key: 'envmodelglow', see: true }); b.name = m.name; return b; }
         const glass = /glass/i.test(m.name || '');
         if (m.map) m.map.encoding = THREE.LinearEncoding;
         const opts = { map: m.map || null, color: m.map ? 0xffffff : m.color, roughness: glass ? 0.35 : /gloss/.test(m.name || '') ? 0.5 : 0.92, metalness: 0, vertexColors: !m.map && !!m.vertexColors };
@@ -71,7 +71,7 @@ const EnvModels = {
         if (m.normalMap) { opts.normalMap = m.normalMap; opts.normalScale = (m.normalScale ? m.normalScale.clone() : new THREE.Vector2(1, 1)).multiplyScalar(/^pine_/.test(name) ? 1.7 : 1); }
         // the windows glow at night (EnvBuild's tick turns them up), their curtains brightest
         if (glass) { opts.emissive = new THREE.Color(0xffd890); opts.emissiveMap = m.map || null; opts.emissiveIntensity = 0.0; }
-        const out = r3Patch(new THREE.MeshStandardMaterial(opts), { key: glass ? 'envmodelglass' : 'envmodel' });
+        const out = r3Patch(new THREE.MeshStandardMaterial(opts), { key: glass ? 'envmodelglass' : 'envmodel', see: true });
         out.name = m.name || name;
         if (glass) this.glassMats.push(out);
         return out;
@@ -83,7 +83,7 @@ const EnvModels = {
         const c = m.clone();
         c.onBeforeCompile = null;
         c.color.set(color);
-        return r3Patch(c, { key: 'envmodel' });
+        return r3Patch(c, { key: 'envmodel', see: true });
     },
     /* one model at many places (each a Matrix4 in the world): an instanced mesh per part */
     instances(group, name, matrices, o) {
@@ -106,7 +106,7 @@ const EnvModels = {
         if (m._inst) return m._inst;
         const c = m.clone();
         c.onBeforeCompile = null;
-        m._inst = r3Patch(c, { key: (m.isMeshBasicMaterial ? 'envmodelglow' : m.emissiveMap ? 'envmodelglass' : 'envmodel') + 'i', inst: true });
+        m._inst = r3Patch(c, { key: (m.isMeshBasicMaterial ? 'envmodelglow' : m.emissiveMap ? 'envmodelglass' : 'envmodel') + 'i', inst: true, see: true });
         if (m.emissiveMap) this.glassMats.push(m._inst);
         return m._inst;
     },
@@ -132,5 +132,5 @@ const EnvModels = {
         return m.compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(sx || 1, sy == null ? (sx || 1) : sy, sz == null ? (sx || 1) : sz));
     },
 };
-/* (in the test area, start fetching them at once) */
-if (window.IS_LAB) setTimeout(() => EnvModels.load(), 0);
+/* (in the test area, and on Sarah's island where the new look is on, start fetching them at once) */
+if (window.IS_LAB || ENV_ISLAND) setTimeout(() => EnvModels.load(), 0);

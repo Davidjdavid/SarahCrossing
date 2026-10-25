@@ -639,10 +639,13 @@ const R3U = {
     uBendK: { value: 0.0024 }, uBendZ: { value: 0 }, uTime: { value: 0 },
     uDof: { value: new THREE_V4(22, 70, 8.5, 5.5) }, uGrass: { value: new THREE_V4(1, 1, 1, 0) }, uShadow: { value: 1 },
     uDetOn: { value: 1 },
+    // where Sarah is on screen (x, y in clip space, how far from the camera, how big a circle) and the screen's aspect:
+    // the new look's trees and buildings in front of her go see-through round her (o.see)
+    uSee: { value: new THREE_V4(0, 0, 0, 0) }, uSeeA: { value: 1 },
 };
 function THREE_V4(a, b, c, d) { return typeof THREE !== 'undefined' ? new THREE.Vector4(a, b, c, d) : { x: a, y: b, z: c, w: d, set() {} }; }
 const R3_GLSL = `
-uniform float uBendK; uniform float uBendZ; uniform float uTime; uniform vec4 uDof; uniform float uShadow;
+uniform float uBendK; uniform float uBendZ; uniform float uTime; uniform vec4 uDof; uniform float uShadow; uniform vec4 uSee; uniform float uSeeA;
 varying float vDofZ; varying vec3 vWp;
 float r3h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float r3n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -657,14 +660,21 @@ function r3Patch(mat, o) {
     mat.onBeforeCompile = sh => {
         Object.assign(sh.uniforms, R3U, o.uniforms || {});
         if (o.vbody) sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n' + o.vbody);
-        sh.vertexShader = R3_GLSL + (o.vhead || '') + sh.vertexShader.replace('#include <project_vertex>', `
+        sh.vertexShader = R3_GLSL + (o.see ? 'varying vec4 vSee;\n' : '') + (o.vhead || '') + sh.vertexShader.replace('#include <project_vertex>', `
             vec4 bw = modelMatrix * ${o.inst ? 'instanceMatrix * ' : ''}vec4(transformed, 1.0);
             vWp = bw.xyz;
             float bd = max(0.0, uBendZ - bw.z); bw.y -= uBendK * bd * bd;
             vec4 mvPosition = viewMatrix * bw;
             vDofZ = -mvPosition.z;
-            gl_Position = projectionMatrix * mvPosition;`);
-        let fs = R3_GLSL + (o.fhead || '') + sh.fragmentShader;
+            gl_Position = projectionMatrix * mvPosition;${o.see ? '\n            vSee = gl_Position;' : ''}`);
+        let fs = R3_GLSL + (o.see ? 'varying vec4 vSee;\n' : '') + (o.fhead || '') + sh.fragmentShader;
+        // (see-through round Sarah: in front of her and near her on screen, every other pixel left out, fewer at the edge)
+        if (o.see) fs = fs.replace('void main() {', `void main() {
+            if (uSee.w > 0.0 && vDofZ < uSee.z - 0.8) {
+                vec2 sd = (vSee.xy / vSee.w - uSee.xy) * vec2(uSeeA, 1.0);
+                float sr = length(sd) / uSee.w, ch = mod(floor(gl_FragCoord.x) + floor(gl_FragCoord.y), 2.0);
+                if (sr < 0.7 ? ch > 0.5 : sr < 1.0 && ch > 0.5 && mod(floor(gl_FragCoord.y * 0.5), 2.0) > 0.5) discard;
+            }`);
         if (o.fmap) fs = fs.replace('#include <map_fragment>', '#include <map_fragment>\n' + o.fmap);
         if (o.fnormal) fs = fs.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + o.fnormal);
         if (o.fpre) fs = fs.replace('#include <tonemapping_fragment>', o.fpre + '\n#include <tonemapping_fragment>');

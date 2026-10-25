@@ -11,9 +11,9 @@ const EnvWalls = {
         if (typeof EnvModels === 'undefined' || !EnvModels.has('wall2_a')) return { meshes: [] };
         const Wt = W0.w, Ht = W0.h, LV = ENV.LV, BASE = ENV.BASE, ZS = R3_ZS;
         const g = (x, y) => (W0.grid[y] && W0.grid[y][x]) || '~';
-        const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || g(x, y) === '~') ? -1 : +W0.height[y][x] || 0;
+        const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || EnvGround.waterAt(x, y) === 1) ? -1 : +W0.height[y][x] || 0;
         const ramp = new Set((W0.ramps || []).map(([x, y]) => x + ',' + y));
-        const open = (x, y) => ramp.has(x + ',' + y) || 'Wrho'.includes(g(x, y));
+        const open = (x, y) => ramp.has(x + ',' + y) || 'Wrhow'.includes(g(x, y));
         // the faces, tile by tile: [x, y, low level, levels up]
         const south = new Map(), east = new Map(), west = new Map();
         for (let y = 1; y < Ht - 1; y++) for (let x = 0; x < Wt; x++) {

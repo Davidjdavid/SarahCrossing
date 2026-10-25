@@ -70,6 +70,14 @@ const EnvBuild = {
             else if (e.wildFlower) { const n = this.flower(e); if (n) picks.push({ idx: e.flowerIdx, n, i: placed[n].length - 1, on: true }); }
             else if (e.holiday && /pumpkin/.test(e.frame || '')) this.pumpkin(e);
         }
+        this.decks();
+        this.fields();
+        // the hot spring's rim of stones
+        if (this.model && typeof EnvModels !== 'undefined' && EnvModels.has('rock_a')) for (let y = 0; y < W0.h; y++) for (let x = 0; x < W0.w; x++) {
+            if (W0.grid[y][x] !== 'x') continue;
+            const r = mulberry(hash32('rim' + x + ',' + y));
+            for (let k = 0; k < 2; k++) { const px = x + 0.25 + r() * 0.5, pz = y + 0.25 + r() * 0.5; this.model(r() < 0.5 ? 'rock_a' : 'rock_b', px, EnvGround.heightAt(px, pz) - 0.05, pz * R3_ZS, r() * 6.28, 0.55 + r() * 0.35); }
+        }
         const T = EnvTex, mats = {
             plaster: this.mat(T.plaster(), 0.9), roof: this.mat(T.roofTiles(), 0.8), slate: this.mat(T.slate(), 0.75), wood: this.mat(T.wood(), 0.85),
             boards: this.mat(T.boards(), 0.85), stone: this.mat(T.wall(), 0.95), plain: this.mat(null, 0.7), glass: this.glassMat(), cloth: this.mat(null, 0.95, true),
@@ -121,13 +129,75 @@ const EnvBuild = {
             }
         } };
     },
+    /* the farm's fields: ridges of tilled soil in rows, the field's crop along them (crops.py), young in spring, full
+       grown by autumn, the bare soil in winter */
+    fields() {
+        if (!this.model || !(W0.fields || []).length || typeof EnvModels === 'undefined' || !EnvModels.has('crop_soil')) return;
+        const ZS = R3_ZS, season = this.season, grow = { spring: 0.55, summer: 0.85, fall: 1, winter: 0 }[season] ?? 1;
+        for (const f of W0.fields) {
+            const r = mulberry(hash32('field' + f.x + ',' + f.y)), crop = 'crop_' + f.crop, has = grow > 0 && EnvModels.has(crop);
+            for (let ty = f.y; ty < f.y + f.h; ty++) for (const off of [0.28, 0.76]) {
+                const z = ty + off;
+                for (let tx = f.x; tx < f.x + f.w; tx++) {
+                    if (!(W0.grid[ty] && W0.grid[ty][tx] === 'F')) continue;
+                    this.model('crop_soil', tx + 0.5, EnvGround.heightAt(tx + 0.5, z) - 0.02, z * ZS, 0, 1);
+                    if (!has) continue;
+                    const per = f.crop === 'wheat' ? 3 : f.crop === 'pumpkin' ? (r() < 0.6 ? 1 : 0) : 2;
+                    for (let k = 0; k < per; k++) {
+                        const x = tx + (k + 0.5) / per + (r() - 0.5) * 0.08;
+                        this.model(crop, x, EnvGround.heightAt(x, z) + 0.06, z * ZS, r() * Math.PI * 2, grow * (0.85 + r() * 0.3));
+                    }
+                }
+            }
+        }
+    },
+    /* the bridges and the pier: planks across the way you walk, a beam under each side; a bridge has a rail along each
+       side (posts and two rails), the pier stands on posts down into the sea */
+    decks() {
+        const g = (x, y) => W0.grid[y] && W0.grid[y][x], seen = new Set(), ZS = R3_ZS;
+        for (let y = 0; y < W0.h; y++) for (let x = 0; x < W0.w; x++) {
+            if (g(x, y) !== 'w' || seen.has(x + ',' + y)) continue;
+            const run = [], q = [[x, y]];
+            seen.add(x + ',' + y);
+            while (q.length) {
+                const [cx, cy] = q.pop();
+                run.push([cx, cy]);
+                for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = cx + dx, ny = cy + dy, k = nx + ',' + ny; if (g(nx, ny) === 'w' && !seen.has(k)) { seen.add(k); q.push([nx, ny]); } }
+            }
+            const xs = run.map(t => t[0]), ys = run.map(t => t[1]), x0 = Math.min(...xs), x1 = Math.max(...xs) + 1, y0 = Math.min(...ys), y1 = Math.max(...ys) + 1;
+            const sea = EnvGround.waterAt(x, y) === 1, top = EnvGround.deckH(x, y), mx = Math.floor((x0 + x1) / 2), my = Math.floor((y0 + y1) / 2);
+            // the way across: north to south where there's ground at both ends (a pier: along its length)
+            const dry = (tx, ty) => g(tx, ty) && g(tx, ty) !== 'w' && !EnvGround.waterAt(tx, ty);
+            const ns = sea ? y1 - y0 >= x1 - x0 : dry(mx, y0 - 1) && dry(mx, y1);
+            const r = mulberry(hash32('deck' + x + ',' + y));
+            // (in "along/across" terms: a from a0 to a1 is the way across, c from c0 to c1 the width)
+            const [a0, a1, c0, c1] = ns ? [y0, y1, x0, x1] : [x0, x1, y0, y1];
+            const bx = (a, c, a2, c2, yb, yt, col) => ns ? this.box('wood', c, yb, a * ZS, c2, yt, a2 * ZS, col, 2) : this.box('wood', a, yb, c * ZS, a2, yt, c2 * ZS, col, 2);
+            for (let a = a0; a < a1 - 0.01; a += 0.25) {
+                const k = 0.88 + r() * 0.2, col = '#' + [0xa8 * k, 0x7a * k, 0x48 * k].map(v => Math.min(255, Math.round(v)).toString(16).padStart(2, '0')).join('');
+                bx(a + 0.012, c0 + 0.03, a + 0.238, c1 - 0.03, top - 0.06, top, col);
+            }
+            for (const c of [c0 + 0.3, c1 - 0.3]) bx(a0, c - 0.07, a1, c + 0.07, top - 0.24, top - 0.06, '#6e4a2a');
+            if (sea) {
+                // posts down into the sea every two tiles, each side
+                for (let a = a0 + 0.5; a < a1; a += 2) for (const c of [c0 + 0.12, c1 - 0.12]) bx(a - 0.08, c - 0.08, a + 0.08, c + 0.08, -1.8, top + 0.12, '#5e4026');
+            } else {
+                // a rail each side: posts every tile, a top rail and a middle one
+                for (const c of [c0 + 0.06, c1 - 0.06]) {
+                    for (let a = a0; a <= a1 + 0.01; a += 1) bx(Math.min(a1 - 0.1, Math.max(a0, a - 0.05)), c - 0.05, Math.min(a1, Math.max(a0 + 0.1, a + 0.05)), c + 0.05, top - 0.06, top + 0.62, '#7a5432');
+                    bx(a0, c - 0.045, a1, c + 0.045, top + 0.54, top + 0.62, '#8f6438');
+                    bx(a0, c - 0.03, a1, c + 0.03, top + 0.28, top + 0.34, '#8f6438');
+                }
+            }
+        }
+    },
     mat(t, rough, cloth) {
         const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: rough, metalness: 0, map: t ? t.map : null, normalMap: t ? t.normal : null, side: cloth ? THREE.DoubleSide : THREE.FrontSide });
         if (t) m.normalScale = new THREE.Vector2(0.8, 0.8);
-        return r3Patch(m, { key: 'envbld' + (t ? 't' : '') + (cloth ? 'c' : '') });
+        return r3Patch(m, { key: 'envbld' + (t ? 't' : '') + (cloth ? 'c' : ''), see: true });
     },
     glassMat() {
-        return r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.15, metalness: 0.1, emissive: new THREE.Color(0xffd890), emissiveIntensity: 0.15 }), { key: 'envglass' });
+        return r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.15, metalness: 0.1, emissive: new THREE.Color(0xffd890), emissiveIntensity: 0.15 }), { key: 'envglass', see: true });
     },
     /* Fortune's sign, painted on a canvas */
     signMat() {

@@ -212,6 +212,11 @@ async function continueGame() {
         document.getElementById('hudL').appendChild(btn(now ? 'Show the old look' : 'Show the new look', 'labswitch', () => { lsSet('sc-env-next', now ? '0' : '1'); location.reload(); }));
         return;
     }
+    // (on the beta site Sarah's island is in the new look too: the same button, the island saved before the page starts again)
+    if (ENV_ISLAND) {
+        const now = Env.want();
+        document.getElementById('hudL').appendChild(btn(now ? 'Show the old look' : 'Show the new look', 'labswitch', () => { lsSet('sc-env-next', now ? '0' : '1'); Save.write(true); location.reload(); }));
+    }
     const newDay = dailyCheck();
     newsCheck();
     Music.update(true);

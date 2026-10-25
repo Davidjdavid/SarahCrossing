@@ -312,7 +312,7 @@ const EnvTrees = {
     /* the crown's material: lit like everything else (sun, sky, shadows), then the light it gets picks the tone */
     foliageMat(leaf, pal) {
         const m = r3Patch(new THREE.MeshLambertMaterial({ map: leaf, alphaTest: 0.5, side: THREE.DoubleSide, color: 0xffffff }), {
-            key: 'envleaf', uniforms: { tPal: { value: pal }, uPalRows: { value: this.palRows } },
+            key: 'envleaf', see: true, uniforms: { tPal: { value: pal }, uPalRows: { value: this.palRows } },
             vhead: 'attribute float aShade; attribute float aTone; varying float vShade; varying float vTone;\n', vbody: 'vShade = aShade; vTone = aTone;',
             fhead: 'uniform sampler2D tPal; uniform float uPalRows; varying float vShade; varying float vTone;\n',
             fpre: EnvTrees.FPRE,
@@ -322,7 +322,7 @@ const EnvTrees = {
     barkMat() {
         const bark = EnvTex.bark();
         return r3Patch(new THREE.MeshStandardMaterial({ map: bark.map, normalMap: bark.normal, roughness: 0.95, metalness: 0, color: 0xc8b8a8 }), {
-            key: 'envbark', vhead: 'attribute float aShade; attribute float aTone; varying float vTone;\n', vbody: 'vTone = aTone;',
+            key: 'envbark', see: true, vhead: 'attribute float aShade; attribute float aTone; varying float vTone;\n', vbody: 'vTone = aTone;',
             fhead: 'varying float vTone;\n', fmap: '{ if (vTone > 1.5) diffuseColor.rgb = vec3(0.42, 0.27, 0.13); else if (vTone > 0.5) diffuseColor.rgb *= vec3(1.15, 1.02, 0.85); }',
         });
     },

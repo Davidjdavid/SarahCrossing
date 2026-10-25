@@ -7,11 +7,11 @@
 const EnvWater = {
     build(group, a) {
         const Wt = W0.w, Ht = W0.h, G = EnvGround, LV = ENV.LV, BASE = ENV.BASE;
-        const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || W0.grid[y][x] === '~') ? -1 : +W0.height[y][x] || 0;
-        const wet = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && 'orh'.includes(W0.grid[y][x]);
+        const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || G.waterAt(x, y) === 1) ? -1 : +W0.height[y][x] || 0;
+        const wet = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && G.waterAt(x, y) === 2;
         const surf = (x, y) => wet(x, y) ? BASE + L(x, y) * LV - 0.14 : 0;           // a water tile's surface (the sea's is 0)
-        // how deep the water is everywhere (8 pixels a tile): red is depth, green which water (sea or not)
-        const P = 8, N = Wt * P, M = Ht * P, d = new Uint8Array(N * M * 4);
+        // how deep the water is everywhere (8 pixels a tile, 4 on a big island): red is depth, green which water (sea or not)
+        const P = Wt * Ht > 20000 ? 4 : 8, N = Wt * P, M = Ht * P, d = new Uint8Array(N * M * 4);
         for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) {
             const u = (x + 0.5) / P, v = (y + 0.5) / P, tx = Math.floor(u), ty = Math.floor(v);
             let s = 0, sea = 1;

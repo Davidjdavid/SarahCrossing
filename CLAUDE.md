@@ -64,18 +64,30 @@ docs/DEPLOY.md for the server.
   serif type (style.css, end).
 - The classic 16x24 art stays the source for menus, icons, the classic view and the flat modes.
 
-## The new 3D look: the test area (?lab, 33a–33f)
+## The new 3D look: the test area (?lab) and Sarah's island on beta (33a–33j)
 
 - `?lab` in the address opens a small test island laid out like the concept art (`scripts/island/plan-lab.mjs`, made
   with `node scripts/make-island.mjs --plan lab` into `game/assets/lab/`). It runs on a throwaway save that is never
   written (`LAB` in 20_world.js; `Save.write` returns), with Joe and Maki on the square and everyone else asleep.
-  Sarah's island doesn't use any of this until David approves the look for the whole island.
+  David approved the look for the whole island (25 October): it's on Sarah's island on beta (below), the live site
+  keeps the HD-2D view until he says so.
 - There `Env` (33a_env.js) draws the world as real 3D, built once when the area loads: the ground from half-tile
   height cells with a stone wall on anything steep (`EnvGround`), procedural surfaces (`EnvTex`), trees (`EnvTrees`),
   water (`EnvWater`), buildings and props (`EnvBuild`) and grass (`EnvGrass`). R3 still draws people, critters and
   anything `Env.takes(e)` leaves out, and its post pass (bloom, depth of field, the warm grade). Tune it in `ENV`
   (a level's height, the camera, depth of field, how big people stand).
 - The button under the clock (`localStorage sc-env-next = 0`) draws the test area the old way, for comparing.
+- Sarah's island is in the new look on the beta site (`ENV_ISLAND`: the beta host, or `localStorage sc-env-island` 1 or
+  0 anywhere; the tests run without it), once the models have loaded (the HD-2D view till then), with the same button.
+  The island is big, so the ground and grass come in pieces (`EnvChunk`, `ENV.CHUNK` tiles): each piece's pictures
+  (kinds, damp banks) and mesh are made the first time it nears the view, those on screen at once, the next ones a few
+  milliseconds a frame (`Env.stream`), and made again when Sarah's paths change; only pieces near the view are shown, and
+  every instanced thing shows only its copies near the view (`EnvCull`: keeps the full list, so moving a copy still works
+  through `setMatrixAt`). `EnvGround.water()` says what water each tile shows: the planks of a bridge or the pier ('w')
+  stand over the river or sea, drawn by `EnvBuild.decks`, and people stand on them (`Env.groundH`). The farm's fields
+  ('F') get soil ridges and their crop (`crops.py`), the hot spring a rim of stones, and what lies flat on the ground
+  (plots, the volleyball court, dug holes) is drawn by its 2D drawing into a picture laid on the ground (`EnvDecals`).
+  Trees, buildings and props in front of Sarah go see-through round her (`see` in `r3Patch`, `R3U.uSee`).
 - The important things are models made in Blender, not in code: `tools/blender/*.py` (`common.py` has the helpers: the
   game's camera and sun for previews, baking, GLB export). Blender runs as a Python module: `pip install bpy` (Blender
   5.x, about 1 GB, fine in a venv), then `python tools/blender/cottage.py --preview DIR` (or `shop.py`,
