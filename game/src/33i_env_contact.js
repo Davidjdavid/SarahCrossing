@@ -43,3 +43,36 @@ const EnvContact = {
         return (this._t = new THREE.CanvasTexture(cv));
     },
 };
+/* Warm pools of light on the ground at night round the street lamps, lanterns and lit doorways: the scene has only a few
+   real lights (the nearest), so these show where every light falls. One instanced quad lying on the ground per light,
+   added to what's under it, coming up as the lamps come on. */
+const EnvGlow = {
+    build(group, a) {
+        const list = [];
+        for (const e of a.ents) {
+            if (e.light && !e.furn) list.push([e.x / TILE, e.y / TILE + 0.15, Math.max(1.6, e.light.r / TILE * 1.05), e.holiday ? 0.7 : 1, 0xffc27a]);
+            else if (e.kind === 'building' && e.b) { const b = e.b; list.push([b.x + b.w / 2, b.y + b.h + 0.35, Math.min(2.2, b.w * 0.42), 0.55, e.id === 'club' ? 0xff6ab0 : 0xffc27a]); }
+        }
+        if (!list.length) return { meshes: [] };
+        const geo = new THREE.PlaneGeometry(2, 2);
+        geo.rotateX(-Math.PI / 2);
+        const mat = new THREE.MeshBasicMaterial({ map: EnvContact.tex(), color: 0xffffff, transparent: true, depthWrite: false, opacity: 0 });
+        // (added to the ground's color; the picture's alpha, the depth of field's, left alone)
+        Object.assign(mat, { blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor });
+        mat.polygonOffset = true; mat.polygonOffsetFactor = -3; mat.polygonOffsetUnits = -3;
+        const m = new THREE.InstancedMesh(geo, r3Patch(mat, { key: 'envglow', inst: true, noDof: true, noCloud: true }), list.length);
+        const M = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3(), c = new THREE.Color();
+        list.forEach(([x, y, r, k, col], i) => {
+            p.set(x, EnvGround.heightAt(x, y) + 0.03, y * R3_ZS);
+            s.set(r, 1, r * 0.9);
+            M.compose(p, q, s); m.setMatrixAt(i, M);
+            m.setColorAt(i, c.set(col).multiplyScalar(k));
+        });
+        m.instanceMatrix.needsUpdate = true;
+        if (m.instanceColor) m.instanceColor.needsUpdate = true;
+        m.renderOrder = 1; m.frustumCulled = false;
+        m.visible = false;
+        group.add(m);
+        return { meshes: [m], tick: () => { const k = G.lamps || 0; m.visible = k > 0.02 && m.count > 0; mat.opacity = k * 0.34; } };
+    },
+};

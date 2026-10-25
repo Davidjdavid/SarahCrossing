@@ -5,26 +5,29 @@
    rolls in) and the sun glinting off it. Waterfalls are sheets of falling streaks with spray at the foot. Lily pads on
    the ponds, cattails and stones along the banks. */
 const EnvWater = {
+    lite: { value: 1 },     // (how bright the unlit white water is: falls, foam, spray, steam dim by night)
     build(group, a) {
         const Wt = W0.w, Ht = W0.h, G = EnvGround, LV = ENV.LV, BASE = ENV.BASE;
         const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || G.waterAt(x, y) === 1) ? -1 : +W0.height[y][x] || 0;
         const wet = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && G.waterAt(x, y) === 2;
         const surf = (x, y) => wet(x, y) ? BASE + L(x, y) * LV - 0.14 : 0;           // a water tile's surface (the sea's is 0)
         // how deep the water is everywhere (8 pixels a tile, so the shore is a smooth line): red is depth, green which water
-        // (sea or not), blue how much of it round here is a stream's (which flows) rather than a pond's
+        // (sea or not), blue how much of it round here is a stream's (which flows) rather than a pond's, alpha the hot spring
         const P = 8, N = Wt * P, M = Ht * P, d = new Uint8Array(N * M * 4);
         const runs = (x, y) => { const c = W0.grid[y] && W0.grid[y][x]; return c === 'r' || c === 'w' || c === 'W'; };
+        const hot = (x, y) => W0.grid[y] && W0.grid[y][x] === 'h';
         for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) {
             const u = (x + 0.5) / P, v = (y + 0.5) / P, tx = Math.floor(u), ty = Math.floor(v);
-            let s = 0, sea = 1, nw = 0, nr = 0;
+            let s = 0, sea = 1, nw = 0, nr = 0, nh = 0;
             // inland water: the surface of the nearest water tile round here
-            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (wet(tx + dx, ty + dy)) { if (sea) s = surf(tx + dx, ty + dy); sea = 0; nw++; if (runs(tx + dx, ty + dy)) nr++; }
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (wet(tx + dx, ty + dy)) { if (sea) s = surf(tx + dx, ty + dy); sea = 0; nw++; if (runs(tx + dx, ty + dy)) nr++; if (hot(tx + dx, ty + dy)) nh++; }
             const depth = s - G.heightAt(u, v), o = ((M - 1 - y) * N + x) * 4;
-            d[o] = Math.max(0, Math.min(255, Math.round(depth * 100))); d[o + 1] = sea ? 255 : 0; d[o + 2] = nw ? Math.round(nr / nw * 255) : 0; d[o + 3] = 255;
+            // (alpha: lower where the water is the hot spring's)
+            d[o] = Math.max(0, Math.min(255, Math.round(depth * 100))); d[o + 1] = sea ? 255 : 0; d[o + 2] = nw ? Math.round(nr / nw * 255) : 0; d[o + 3] = nw ? 255 - Math.round(nh / nw * 128) : 255;
         }
         const depthTex = new THREE.DataTexture(d, N, M, THREE.RGBAFormat);
         depthTex.magFilter = depthTex.minFilter = THREE.LinearFilter; depthTex.generateMipmaps = false; depthTex.needsUpdate = true;
-        const sand = EnvTex.sand(), uniforms = { tDepth: { value: depthTex }, uMapSz: { value: new THREE.Vector2(Wt, Ht) }, tSand: { value: sand.map }, uSunDir: { value: new THREE.Vector3(-0.55, 0.78, 0.32).normalize() }, uSky: { value: new THREE.Color(0.62, 0.8, 0.95) }, uSunCol: { value: new THREE.Color(1, 0.95, 0.85) } };
+        const sand = EnvTex.sand(), uniforms = { tDepth: { value: depthTex }, uMapSz: { value: new THREE.Vector2(Wt, Ht) }, tSand: { value: sand.map }, uSunDir: { value: new THREE.Vector3(-0.55, 0.78, 0.32).normalize() }, uSky: { value: new THREE.Color(0.62, 0.8, 0.95) }, uSunCol: { value: new THREE.Color(1, 0.95, 0.85) }, uLite: this.lite };
         const mat = r3Patch(new THREE.MeshLambertMaterial({ color: 0xffffff }), { key: 'envwater', uniforms, fhead: EnvWater.FHEAD, fpre: EnvWater.FPRE });
         const meshes = [];
         // the sea: one big sheet at sea level (beyond the island too), a point every tile over the island and further apart
@@ -61,7 +64,7 @@ const EnvWater = {
         }
         // waterfalls
         // (see-through at its sides and its foot, which breaks up into the spray)
-        const fallMat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, depthWrite: false }), { key: 'envfall', fhead: 'varying vec3 vFall;\n', vhead: 'attribute vec3 aFall; varying vec3 vFall;\n', vbody: 'vFall = aFall;', fpre: EnvWater.FALL, noDof: true });
+        const fallMat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, depthWrite: false }), { key: 'envfall', uniforms: { uLite: this.lite }, fhead: 'varying vec3 vFall; uniform float uLite;\n', vhead: 'attribute vec3 aFall; varying vec3 vFall;\n', vbody: 'vFall = aFall;', fpre: EnvWater.FALL, noDof: true });
         const fp = [], fi = [], fa = [], falls = [];
         for (const wf of W0.waterfalls || []) {
             // (as wide as the stream, not the tiles it covers: the wall shows either side, as in the concept)
@@ -102,7 +105,10 @@ const EnvWater = {
         if (falls.length && typeof EnvModels !== 'undefined' && EnvModels.has('falls_rocks'))
             for (const m of EnvModels.instances(group, 'falls_rocks', falls.map(([x, y, z, sc, rot]) => EnvModels.mat4(x, y, z, rot, sc)))) { m.userData.shared = true; meshes.push(m); }
         this.banks(group, a, wet, surf, meshes);
-        return { meshes, tick: (r3) => { if (r3.sun) uniforms.uSunDir.value.copy(r3.sun.position).sub(r3.sun.target.position).normalize(); if (r3.hemi) uniforms.uSky.value.copy(r3.hemi.color); if (r3.sea) r3.sea.visible = false; } };
+        const springs = [];
+        for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) if (W0.grid[y][x] === 'h') springs.push([x, surf(x, y), y * R3_ZS]);
+        this.steam(group, springs, meshes);
+        return { meshes, tick: (r3) => { if (r3.sun) uniforms.uSunDir.value.copy(r3.sun.position).sub(r3.sun.target.position).normalize(); if (r3.hemi) uniforms.uSky.value.copy(r3.hemi.color).multiplyScalar(1 - 0.65 * ((r3.grade && r3.grade.dark) || 0)); this.lite.value = 1 - 0.68 * ((r3.grade && r3.grade.dark) || 0); if (r3.sea) r3.sea.visible = false; } };
     },
     /* where a waterfall lands: a pool of foam on the water, bubbles drifting and rings spreading out from the fall */
     pool(group, x, y, z, rx, meshes) {
@@ -115,41 +121,68 @@ const EnvWater = {
         geo.setAttribute('aSp', new THREE.Float32BufferAttribute(sp, 2));
         geo.setIndex(idx);
         const mat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false }), {
-            key: 'envpool', vhead: 'attribute vec2 aSp; varying vec2 vSp;\n', vbody: 'vSp = aSp;', fhead: 'varying vec2 vSp;\n', noDof: true,
+            key: 'envpool', uniforms: { uLite: this.lite }, vhead: 'attribute vec2 aSp; varying vec2 vSp;\n', vbody: 'vSp = aSp;', fhead: 'varying vec2 vSp; uniform float uLite;\n', noDof: true,
             fpre: `{
                 vec2 q = vSp; q.y += 0.55;                       // (the rings start from the fall, at the pool's back)
                 float d = length(vec2(vSp.x, (vSp.y + 0.35) * 0.8));
                 float rings = smoothstep(0.1, 0.0, abs(fract(length(q) * 2.6 - uTime * 0.55) - 0.5) - 0.36);
                 float bub = smoothstep(0.52, 0.74, r3n(vWp.xz * 5.0 + vec2(0.0, uTime * 0.7)) * 0.6 + r3n(vWp.xz * 11.0 - uTime * 0.4) * 0.4);
                 float a = (rings * 0.5 + bub * 0.85) * smoothstep(1.0, 0.55, length(vSp)) + smoothstep(0.5, 0.0, d) * 0.8;
-                gl_FragColor = vec4(vec3(0.97, 0.99, 1.0), clamp(a, 0.0, 0.92));
+                gl_FragColor = vec4(vec3(0.97, 0.99, 1.0) * uLite, clamp(a, 0.0, 0.92));
             }`,
         });
         const m = new THREE.Mesh(geo, mat);
         m.renderOrder = 1;
         group.add(m); meshes.push(m);
     },
-    /* spray at a waterfall's foot: a few soft white puffs that rise and fade */
-    spray(group, x, y, z, w, meshes) {
+    /* a soft white puff, for spray and steam */
+    puff() {
+        if (this._puff) return this._puff;
         const cv = document.createElement('canvas'); cv.width = cv.height = 64;
         const g = cv.getContext('2d'), gr = g.createRadialGradient(32, 32, 2, 32, 32, 30);
         gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(0.5, 'rgba(240,250,255,0.55)'); gr.addColorStop(1, 'rgba(240,250,255,0)');
         g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
-        const tex = new THREE.CanvasTexture(cv);
-        const pos = [], uv = [], ph = [], idx = [], r = mulberry(hash32('spray' + x));
-        for (let i = 0; i < 18; i++) {
-            const px = x + (r() - 0.5) * w * 1.1, pz = z + r() * 0.35, s = 0.16 + r() * 0.22, b = pos.length / 3;
-            for (const [cx, cy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { pos.push(px + cx * s, y + 0.15 + cy * s * 0.8, pz); uv.push((cx + 1) / 2, (cy + 1) / 2); ph.push(r()); }
+        return (this._puff = new THREE.CanvasTexture(cv));
+    },
+    /* puffs as quads facing the camera's way: each [x, y, z, size], with its own moment in the cycle */
+    puffGeo(list, r) {
+        const pos = [], uv = [], ph = [], ctr = [], idx = [];
+        for (const [px, py, pz, s] of list) {
+            const b = pos.length / 3, k = r();
+            for (const [cx, cy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { pos.push(px + cx * s, py + cy * s * 0.8, pz); uv.push((cx + 1) / 2, (cy + 1) / 2); ph.push(k); ctr.push(px, py, pz); }
             idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
         }
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
         geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
         geo.setAttribute('aPh', new THREE.Float32BufferAttribute(ph, 1));
+        geo.setAttribute('aC', new THREE.Float32BufferAttribute(ctr, 3));
         geo.setIndex(idx);
+        return geo;
+    },
+    /* steam off the hot spring: wisps that drift up slowly, swelling and thinning out */
+    steam(group, spots, meshes) {
+        if (!spots.length) return;
+        const r = mulberry(hash32('steam')), list = [];
+        for (const [x, y, z] of spots) for (let i = 0; i < 3; i++) list.push([x + 0.2 + r() * 0.6, y + 0.12, z + (0.2 + r() * 0.6) * R3_ZS, 0.2 + r() * 0.16]);
+        const mat = r3Patch(new THREE.MeshBasicMaterial({ map: this.puff(), color: 0xfff8f0, transparent: true, depthWrite: false, opacity: 0.5 }), {
+            key: 'envsteam', vhead: 'attribute float aPh; attribute vec3 aC; varying float vPh;\n',
+            vbody: 'vPh = aPh; float k = fract(uTime * 0.09 + aPh); transformed = aC + (position - aC) * (1.0 + k * 1.2); transformed.y += k * 1.1; transformed.x += sin(uTime * 0.5 + aPh * 6.3) * 0.08 * k;',
+            uniforms: { uLite: this.lite }, fhead: 'varying float vPh; uniform float uLite;\n', fpre: 'gl_FragColor.a *= sin(3.14159 * fract(uTime * 0.09 + vPh)); gl_FragColor.rgb *= uLite;', noDof: true,
+        });
+        const m = new THREE.Mesh(this.puffGeo(list, r), mat);
+        m.renderOrder = 2;
+        group.add(m); meshes.push(m);
+    },
+    /* spray at a waterfall's foot: a few soft white puffs that rise and fade */
+    spray(group, x, y, z, w, meshes) {
+        const tex = this.puff();
+        const r = mulberry(hash32('spray' + x)), list = [];
+        for (let i = 0; i < 18; i++) list.push([x + (r() - 0.5) * w * 1.1, y + 0.15, z + r() * 0.35, 0.16 + r() * 0.22]);
+        const geo = this.puffGeo(list, r);
         const mat = r3Patch(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.6 }), {
-            key: 'envspray', vhead: 'attribute float aPh; varying float vPh;\n', vbody: 'vPh = aPh; float k = fract(uTime * 0.3 + aPh); transformed.y += k * 0.45; transformed.xz += (transformed.xz - position.xz) * k * 0.6;', fhead: 'varying float vPh;\n',
-            fpre: 'gl_FragColor.a *= 1.0 - fract(uTime * 0.35 + vPh);', noDof: true,
+            key: 'envspray', vhead: 'attribute float aPh; attribute vec3 aC; varying float vPh;\n', vbody: 'vPh = aPh; float k = fract(uTime * 0.3 + aPh); transformed = aC + (position - aC) * (1.0 + k * 0.6); transformed.y += k * 0.45;', fhead: 'varying float vPh; uniform float uLite;\n',
+            uniforms: { uLite: this.lite }, fpre: 'float k = fract(uTime * 0.3 + vPh); gl_FragColor.a *= smoothstep(0.0, 0.12, k) * (1.0 - k); gl_FragColor.rgb *= uLite;', noDof: true,
         });
         const m = new THREE.Mesh(geo, mat);
         m.renderOrder = 2;
@@ -209,7 +242,7 @@ const EnvWater = {
 };
 /* the water's color: deep or shallow (and over sand where it's shallow), ripples moving, foam at the shore, a glint of sun */
 EnvWater.FHEAD = `
-uniform sampler2D tDepth; uniform vec2 uMapSz; uniform sampler2D tSand; uniform vec3 uSunDir; uniform vec3 uSky; uniform vec3 uSunCol;
+uniform sampler2D tDepth; uniform vec2 uMapSz; uniform sampler2D tSand; uniform vec3 uSunDir; uniform vec3 uSky; uniform vec3 uSunCol; uniform float uLite;
 `;
 EnvWater.FPRE = `
 {
@@ -235,6 +268,9 @@ EnvWater.FPRE = `
     vec3 bed = texture2D(tSand, tp * 0.25).rgb * vec3(0.72, 0.86, 0.84);
     vec3 shallow = vec3(0.26, 0.74, 0.74), mid = vec3(0.13, 0.56, 0.68), deep = vec3(0.07, 0.38, 0.6);
     if (isSea < 0.5) { bed = mix(bed, vec3(0.3, 0.62, 0.66), 0.6); shallow = vec3(0.24, 0.66, 0.76); mid = vec3(0.13, 0.5, 0.7); deep = vec3(0.09, 0.4, 0.66); }
+    // (the hot spring milky and pale, as mineral water is)
+    float hot = clamp((1.0 - dd.a) * 2.0, 0.0, 1.0);
+    if (hot > 0.0) { vec3 milk = vec3(0.5, 0.82, 0.84); bed = mix(bed, milk, hot); shallow = mix(shallow, milk, hot); mid = mix(mid, vec3(0.36, 0.72, 0.8), hot); deep = mix(deep, vec3(0.3, 0.64, 0.76), hot); }
     float k1 = smoothstep(0.0, 0.16, depth), k2 = smoothstep(0.3, 1.4, depth);
     vec3 wc = mix(mix(bed, shallow, k1 * 0.9), mix(mid, deep, k2), smoothstep(0.12, 0.7, depth));
     // a stream's current: faint pale streaks drawn out along it, sliding downstream (none on a pond's still water)
@@ -244,7 +280,7 @@ EnvWater.FPRE = `
     }
     // the light it gets (shadows from the Lambert pass), the sky's reflection at a slant, the sun's glint
     float lit = dot(gl_FragColor.rgb, vec3(0.3, 0.59, 0.11)) / 0.9;
-    wc *= 0.55 + 0.5 * clamp(lit, 0.0, 1.2);
+    wc *= (0.3 + 0.72 * clamp(lit, 0.0, 1.2)) * (0.55 + 0.45 * uLite);      // (and darker still by night, as the ground is)
     vec3 V = normalize(cameraPosition - vWp);
     float fres = pow(1.0 - max(0.0, dot(n, V)), 3.0);
     wc = mix(wc, uSky * 1.05, fres * 0.38);
@@ -257,7 +293,7 @@ EnvWater.FPRE = `
     if (isSea > 0.5) foam += smoothstep(0.06, 0.0, abs(fract(depth * 2.2 - uTime * 0.18) - 0.5) - 0.44) * smoothstep(0.8, 0.1, depth) * 0.7;
     // (a pond's or stream's edge drawn as a clean pale line, as the concept and Animal Crossing outline their water)
     if (isSea < 0.5) foam = max(foam, smoothstep(0.026, 0.008, d0) * (0.6 + 0.2 * r3n(tp * 9.0 + uTime * 0.25)));
-    wc = mix(wc, vec3(0.96, 0.98, 1.0), clamp(foam, 0.0, 0.9));
+    wc = mix(wc, vec3(0.96, 0.98, 1.0) * (0.3 + 0.7 * clamp(lit, 0.0, 1.0)), clamp(foam, 0.0, 0.9));
     gl_FragColor.rgb = wc;
 }`;
 /* a waterfall's sheet: glassy water over the lip, then streaks rushing down faster as it falls, see-through at its
@@ -276,5 +312,5 @@ EnvWater.FALL = `
     float edge = smoothstep(0.0, 0.16, u) * smoothstep(1.0, 0.84, u);
     float foot = 1.0 - smoothstep(0.78, 1.0, tn + (r3n(vec2(u * 9.0, uTime * 1.3)) - 0.5) * 0.18);
     float a = (0.8 + 0.18 * streak) * mix(0.5, 1.0, edge) * foot;
-    gl_FragColor = vec4(col, clamp(a, 0.0, 0.97));
+    gl_FragColor = vec4(col * uLite, clamp(a, 0.0, 0.97));
 }`;
