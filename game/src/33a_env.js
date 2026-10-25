@@ -55,6 +55,7 @@ const Env = {
         this.built = { group, tick: [], parts: {}, noModels: models && !EnvModels.ready && !EnvModels.failed };
         this.ground = EnvGround.build(group);
         this.built.parts.ground = this.ground;
+        if (this.ground.tick) this.built.tick.push(this.ground.tick);     // (the season's colors)
         for (const [name, B] of [['water', typeof EnvWater !== 'undefined' && EnvWater], ['trees', typeof EnvTrees !== 'undefined' && EnvTrees],
             ['build', typeof EnvBuild !== 'undefined' && EnvBuild], ['walls', typeof EnvWalls !== 'undefined' && EnvWalls], ['grass', typeof EnvGrass !== 'undefined' && EnvGrass],
             ['contact', typeof EnvContact !== 'undefined' && EnvContact]]) {
@@ -279,6 +280,7 @@ const EnvGround = {
             uSeason: { value: new THREE.Vector4(1, 1, 1, 0) },
         };
         this.uniforms = uniforms;
+        this._season = null;                // (new uniforms: the season's colors go in on the first frame)
         const mat = r3Patch(new THREE.MeshStandardMaterial({ roughness: 0.94, metalness: 0, color: 0xffffff }), {
             key: 'envground', uniforms,
             vhead: 'attribute float aAO; varying float vAO; varying vec3 vNw;\n',
@@ -368,6 +370,8 @@ EnvGround.FMAP = `
     col *= 1.0 - 0.18 * w.x * (w.y + w.z) * 4.0;
     // soft patches of lighter and darker over everything
     col *= 0.92 + 0.16 * r3n(tp * 0.21 + 7.0);
+    // winter: snow lying over the lawn, thinner on the paths
+    col = mix(col, vec3(0.9, 0.93, 0.98) * (0.94 + 0.08 * r3n(tp * 3.1)), uSeason.w * clamp(w.x * 0.9 + (w.y + w.z) * 0.55 + w.w * 0.3, 0.0, 0.92));
     // walls
     vec3 nw = normalize(vNw);
     envSteep = smoothstep(0.4, 0.62, 1.0 - abs(nw.y));

@@ -32,7 +32,10 @@ const EnvTrees = {
         // the trees, palms and bushes made in Blender in the style of Animal Crossing (tools/blender/trees_ac.py), turning
         // with the season; the pines too (vegetation.py)
         const has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
-        const rounds = (season === 'fall' ? ['tree_round_a_fall', 'tree_round_b_fall'] : ['tree_round_a', 'tree_round_b']).filter(has);
+        // (cherry blossom in spring, green in summer, the leaves turning in autumn, snow on them in winter)
+        const suf = { spring: '_spring', fall: '_fall', winter: '_winter' }[season] || '';
+        let rounds = ['tree_round_a' + suf, 'tree_round_b' + suf].filter(has);
+        if (!rounds.length) rounds = ['tree_round_a', 'tree_round_b'].filter(has);
         const palms = ['palm_ac', 'palm_ac_b'].filter(has), pines = ['pine_a', 'pine_b'].filter(has);
         const shrubs = ({ fall: ['bush_fall', 'bush_fall', 'bush_holly'], winter: ['bush_holly'], spring: ['bush_azalea', 'bush_round'], summer: ['bush_hibiscus', 'bush_round'] }[season] || ['bush_round']).filter(has);
         const placed = {}, live = [];

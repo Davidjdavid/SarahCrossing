@@ -27,6 +27,7 @@ const EnvBuild = {
         return EnvModels.has(n) ? [n, P[1], P[2]] : null;
     },
     build(group, a) {
+        this.season = a.bgSeason || Clock.season();
         const P = this.parts = {};
         const part = (name) => P[name] || (P[name] = { p: [], n: [], uv: [], c: [], idx: [] });
         this.part = part;
@@ -332,6 +333,7 @@ const EnvBuild = {
     },
     /* sunflowers behind a fence, as in the concept */
     sunflowers(e, x, y, z) {
+        if (this.season === 'spring' || this.season === 'winter') return;       // (they bloom in summer and autumn)
         if (this.model('sunflowers', x + 0.05, y, z - 0.3)) return;
         const r = mulberry(hash32('sf' + e.x + e.y));
         for (let i = 0; i < 2; i++) { const sx = x - 0.3 + i * 0.55 + (r() - 0.5) * 0.1, sh = 0.95 + r() * 0.35; this.box('plain', sx - 0.025, y, z - 0.25, sx + 0.025, y + sh, z - 0.2, '#4a8a34'); this.box('plain', sx - 0.13, y + sh - 0.13, z - 0.24, sx + 0.13, y + sh + 0.13, z - 0.19, '#ffc93a'); this.box('plain', sx - 0.06, y + sh - 0.06, z - 0.19, sx + 0.06, y + sh + 0.06, z - 0.16, '#6a3a1a'); }

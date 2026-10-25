@@ -201,10 +201,28 @@ TREES = {
     'tree_round_b': dict(seed=8, lobes=[(-0.66, 0.04, 2.25, 0.86), (0.7, 0.0, 2.32, 0.8), (-0.04, 0.16, 3.0, 0.76), (0.1, 0.58, 2.45, 0.8)], height=2.6, r0=0.34, r1=0.28),
 }
 GREEN = dict(dark='#2a6a2e', light='#8cd05c', fill='#24552a')
+SPRING = dict(leaves=[('#ffc8dc', 0.36), ('#ffb0cc', 0.26), ('#fff0f4', 0.22), ('#f48ab0', 0.1), ('#8ccc6a', 0.06)], fill='#b06a84')
+WINTER = dict(dark='#1e4a2c', light='#4e8a52', snow='#f4f8fc', fill='#1a3a24')
 FALL = dict(leaves=[('#f6c840', 0.34), ('#f09432', 0.3), ('#de602c', 0.14), ('#bcb846', 0.14), ('#74a848', 0.08)], fill='#7a4218')
 
 
 def tone_fn(season):
+    if season == 'spring':
+        cols, w = zip(*SPRING['leaves'])
+        cols = [rgb(c) for c in cols]
+        def tone(out, h, rng):
+            t = 0.62 + 0.38 * max(0.0, out.dot(LIGHT)) + 0.15 * h + rng.uniform(-0.06, 0.06)
+            return rng.choices(cols, weights=w)[0] * min(1.08, t)
+        return tone
+    if season == 'winter':
+        dark, light, snow = rgb(WINTER['dark']), rgb(WINTER['light']), rgb(WINTER['snow'])
+        def tone(out, h, rng):
+            # snow lying on the leaves that face the sky; dark green below
+            if out.z > 0.42 + rng.uniform(-0.12, 0.12):
+                return snow * (0.9 + 0.1 * max(0.0, out.dot(LIGHT)))
+            t = 0.2 + 0.5 * max(0.0, out.dot(LIGHT)) + 0.2 * h + rng.uniform(-0.08, 0.08)
+            return dark.lerp(light, max(0.0, min(1.0, t)))
+        return tone
     if season == 'summer':
         dark, light = rgb(GREEN['dark']), rgb(GREEN['light'])
         def tone(out, h, rng):
@@ -221,13 +239,13 @@ def tone_fn(season):
 
 
 def broadleaf(name, spec, season='summer', lod=0):
-    rng = random.Random(spec['seed'] + (100 if season != 'summer' else 0))
+    rng = random.Random(spec['seed'] + {'summer': 0, 'fall': 100, 'spring': 200, 'winter': 300}[season])
     mb = MB()
     trunk(mb, random.Random(spec['seed']), spec['height'], spec['r0'], spec['r1'], seg=28 if lod == 0 else 16, rings=26 if lod == 0 else 14)
     lobes = [(Vector(l[:3]), l[3]) for l in spec['lobes']]
     L = 0.5 if lod == 0 else 0.66
     tone = tone_fn(season)
-    fillc = rgb(GREEN['fill'] if season == 'summer' else FALL['fill'])
+    fillc = rgb({'summer': GREEN['fill'], 'spring': SPRING['fill'], 'winter': WINTER['fill']}.get(season, FALL['fill']))
     for i, (c, r) in enumerate(lobes):
         fill(mb, c, r * 0.93, fillc, sub=2 if lod == 0 else 1)
         others = [(oc, orr) for k, (oc, orr) in enumerate(lobes) if k != i]
@@ -559,8 +577,8 @@ if __name__ == '__main__':
     shown = []
     reset()
     for name, spec in TREES.items():
-        for season in ('summer', 'fall'):
-            nm = name + ('' if season == 'summer' else '_fall')
+        for season in ('summer', 'fall', 'spring', 'winter'):
+            nm = name + ('' if season == 'summer' else '_' + season)
             if not want(nm):
                 continue
             for lod in (0, 1):
