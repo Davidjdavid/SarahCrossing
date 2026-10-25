@@ -155,7 +155,8 @@ docs/DEPLOY.md for the server.
   front wall stands), and the props and flowers theirs (`EnvBuild.PROP_MODELS`: kind, size against its footprint, how
   far back it stands; a picked wild flower's model is hidden until it grows back, Basil's cart by day); the test area
   has a showcase of the props on the lawn below the pond and a town of the other buildings to the south; `EnvWalls`
-  (33h_env_walls.js) lays the wall pieces along every south, east and west face of higher ground, and `EnvContact`
+  (33h_env_walls.js) lays the wall pieces along every south, east and west face of higher ground (a staircase gets stone
+  steps, `EnvBuild.stairs`, climbed a step at a time: `EnvGround.stairH`), and `EnvContact`
   (33i_env_contact.js) darkens the ground softly under things (and `EnvGlow` lays a warm pool of light under every lamp,
   lantern and lit doorway at night). Ponds and streams (`EnvGround.shapeWater`) and the beaches (`shapeShore`) meet the
   water along a blurred outline, not the tiles' steps; the depth map behind the water's shader also says where it flows

@@ -179,6 +179,8 @@ const Env = {
         if (!this.ground || (G.area && G.area.interior)) return 0;
         const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
         if (W0.grid[ty] && W0.grid[ty][tx] === 'w') return EnvGround.deckH(tx, ty);
+        const st = EnvGround.stairs && EnvGround.stairs.get(tx + ',' + ty);
+        if (st) return EnvGround.stairH(st, y / TILE);
         return EnvGround.heightAt(x / TILE, y / TILE);
     },
 };
@@ -289,6 +291,13 @@ const EnvGround = {
         return k;
     },
     waterAt(x, y) { return x < 0 || y < 0 || x >= W0.w || y >= W0.h ? 1 : this.water()[y * W0.w + x]; },
+    stairs: null,           // (each staircase tile's steps, from EnvBuild.stairs)
+    /* the top of the step under a spot (v in tiles, north to south) on a staircase: up one step at a time, eased over the
+       front of each so feet don't snap */
+    stairH(S, v) {
+        const f = Math.max(0, Math.min(0.999, (v - S.top) / 2)) * S.n, i = Math.floor(f), k = f - i, rise = (S.hi - S.lo) / S.n;
+        return S.hi - (i + Math.max(0, (k - 0.75) / 0.25)) * rise;
+    },
     /* the top of the planks of a bridge or the pier */
     deckH(tx, ty) { return ENV.BASE + (+W0.height[ty][tx] || 0) * ENV.LV + 0.06; },
     /* half-tile cells: the level each shows (in height units) */
@@ -458,7 +467,8 @@ const EnvGround = {
                 if (kd === R3_MAT.keep && wk === 2) kd = 7;                             // a stream or pond bed
                 if (kd === R3_MAT.keep && W0.grid[ty] && W0.grid[ty][tx] === 'F') kd = R3_MAT.dirt;   // (a field: its soil)
                 if (kd === R3_MAT.keep && W0.grid[ty] && W0.grid[ty][tx] === 'x') kd = R3_MAT.cobble; // (the hot spring's stone rim)
-                if (kd === R3_MAT.stairs || kd === R3_MAT.rock) kd = R3_MAT.grass;
+                if (kd === R3_MAT.rock) kd = R3_MAT.grass;
+                if (kd === R3_MAT.stairs) kd = R3_MAT.dirt;             // (under the steps: no grass growing up through them)
                 const o = ((M - 1 - y) * N + x) * 4;
                 d[o] = kd === 1 ? 255 : 0; d[o + 1] = kd === 2 ? 255 : 0; d[o + 2] = kd === 3 ? 255 : 0; d[o + 3] = kd === 4 ? 255 : kd === 7 ? 128 : 0;
             }

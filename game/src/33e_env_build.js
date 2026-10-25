@@ -74,6 +74,7 @@ const EnvBuild = {
         }
         this.decks();
         this.fields();
+        this.stairs();
         // smoke from the chimneys in autumn and winter
         if (this.season === 'fall' || this.season === 'winter') EnvWater.smoke(group, chimneys);
         // the hot spring's rim of stones
@@ -135,6 +136,39 @@ const EnvBuild = {
     },
     /* the farm's fields: ridges of tilled soil in rows, the field's crop along them (crops.py), young in spring, full
        grown by autumn, the bare soil in winter */
+    /* stone steps where a path climbs from one level to the next: the ground there is a plain slope from the top of the
+       wall to its foot over the two rows of the staircase, and the steps stand on it, a riser showing at each one's front.
+       People walk up them step by step (Env.groundH asks EnvGround.stairH). */
+    stairs() {
+        const R = W0.ramps || [], ZS = R3_ZS, LV = ENV.LV, BASE = ENV.BASE, N = 8;
+        const L = (x, y) => +((W0.height[y] || [])[x]) || 0, key = (x, y) => x + ',' + y;
+        const all = new Set(R.map(([x, y]) => key(x, y))), seen = new Set(), at = EnvGround.stairs = new Map();
+        for (const [sx, sy] of R) {
+            if (seen.has(key(sx, sy))) continue;
+            // the run: the staircase's tiles, side by side and front to back
+            const run = [], q = [[sx, sy]];
+            seen.add(key(sx, sy));
+            while (q.length) {
+                const [x, y] = q.pop();
+                run.push([x, y]);
+                for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (all.has(key(x + dx, y + dy)) && !seen.has(key(x + dx, y + dy))) { seen.add(key(x + dx, y + dy)); q.push([x + dx, y + dy]); }
+            }
+            const x0 = Math.min(...run.map(p => p[0])), x1 = Math.max(...run.map(p => p[0])) + 1, ym = Math.min(...run.map(p => p[1]));
+            // (the same slope as EnvGround.cells: from the upper level at the top row's back to the lower at the foot)
+            const top = L(x0, ym - 1) > L(x0, ym) ? ym : ym - 1, hi = BASE + Math.max(L(x0, top - 1), L(x0, ym)) * LV, lo = BASE + L(x0, top + 1) * LV;
+            if (hi - lo < 0.5) continue;
+            const S = { top, hi, lo, n: N };
+            for (const [x, y] of run) at.set(key(x, y), S);
+            const r = mulberry(hash32('st' + x0 + ',' + top)), d = 2 * ZS / N, rise = (hi - lo) / N;
+            for (let i = 0; i < N; i++) {
+                const yt = hi - i * rise, za = top * ZS + i * d - (i ? 0.02 : 0.1), zb = top * ZS + (i + 1) * d + 0.03;
+                // (pale worn slabs on top, the risers in shade)
+                const k = 0.94 + r() * 0.1, c = (v) => '#' + [v[0], v[1], v[2]].map(n => Math.round(Math.min(255, n * k)).toString(16).padStart(2, '0')).join('');
+                this.box('plain', x0 + 0.06, yt - rise - 0.3, za, x1 - 0.06, yt - 0.001, zb, c([150, 142, 130]), 1, { back: true, bottom: true, top: true });
+                this.box('plain', x0 + 0.04, yt - 0.045, za, x1 - 0.04, yt, zb + 0.025, c([206, 198, 184]), 1, { back: true, bottom: true });
+            }
+        }
+    },
     fields() {
         if (!this.model || !(W0.fields || []).length || typeof EnvModels === 'undefined' || !EnvModels.has('crop_soil')) return;
         const ZS = R3_ZS, season = this.season, grow = { spring: 0.55, summer: 0.85, fall: 1, winter: 0 }[season] ?? 1;
