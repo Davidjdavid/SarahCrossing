@@ -4,7 +4,7 @@ plan.mjs): the square's fountain, drinking fountain, notice board, plaque, trash
 farm's windmill (its sails a model of their own, to turn), well, scarecrow, hay, crate, wheelbarrow and trough; the
 neighborhood's birdhouses and flamingos; the forest's logs, tents, campfire and picnic table; the lookout's telescope
 and the harbor's coin viewer and tackle; the beach's driftwood, rocks, bonfire, ice cream stand, sandcastle and
-volleyball net; Basil's cart; barrels.
+volleyball net; Basil's noodle cart; barrels.
 
 Colors are in the mesh (no baking). A part named *_glow (flames) is drawn unlit; *_water is water.
 
@@ -17,6 +17,8 @@ from mathutils import Vector, Matrix, Euler, noise
 from common import *
 from trees_ac import MB, vmat, rgb, bmesh_ico, anchor_empties
 from kit import col_fn, shade, rbox, lathe, cyl, ball, tube, slab, plank_row, flame, rocks, xform, rot
+import kit
+kit.DETAIL['lite'] = True
 
 WOOD = '#a8743e'
 WOOD_D = '#7a5230'
@@ -545,43 +547,81 @@ def volleyball():
     return [(mb, 'main')]
 
 
-def cart():
-    """Basil's cart: a wooden cart on two big wheels, a striped awning, crates of vegetables."""
-    mb, top = MB(), MB()
-    plank_row(mb, -0.8, 0.8, -0.45, 0.45, 0.5, 0.58, 5, WOOD, along='x', seed=8)
-    for s in (-1, 1):
-        rbox(mb, -0.8, s * 0.45 - 0.03, 0.58, 0.8, s * 0.45 + 0.03, 0.82, wood(WOOD_L, 'x'), r=0.015)
-    for x in (-0.8, 0.8):
-        rbox(mb, x - 0.03, -0.45, 0.58, x + 0.03, 0.45, 0.82, wood(WOOD_L, 'y'), r=0.015)
-    for s in (-1, 1):
-        m = len(mb.v)
-        lathe(mb, [(0.0, -0.04), (0.33, -0.04), (0.36, -0.02), (0.36, 0.02), (0.33, 0.04), (0.0, 0.04)], wood(WOOD_D, 'x'), seg=24, cap_top=False)
-        xform(mb, m, Matrix.Translation((0.1, s * 0.52, 0.36)) @ Euler((math.pi / 2, 0, 0)).to_matrix().to_4x4())
-        for k in range(6):
-            a = k / 6 * math.pi
-            tube(mb, [(0.1 + math.cos(a) * 0.32, s * 0.53, 0.36 + math.sin(a) * 0.32), (0.1 - math.cos(a) * 0.32, s * 0.53, 0.36 - math.sin(a) * 0.32)], 0.012, wood(WOOD_D), seg=4)
-    rbox(mb, -0.85, -0.04, 0.0, -0.75, 0.04, 0.55, wood(WOOD_D), r=0.015)
-    for x in (-0.75, 0.75):
-        for s in (-1, 1):
-            rbox(mb, x - 0.025, s * 0.42 - 0.025, 0.82, x + 0.025, s * 0.42 + 0.025, 1.7, wood(WOOD_D), r=0.01)
-    G, Wt = rgb('#3f9a5a'), rgb('#f6f2e8')
+def noodle_cart():
+    """Basil's noodle cart (out at night): a red-orange plank body on four small wheels, its counter with a pot of broth
+    steaming, bowls and chopsticks, a cream sign with a bowl of noodles on it, a red cloth roof on two posts with a
+    scalloped valance, a paper lantern lit under it, Joe's poem taped to the side, two stools."""
+    mb, lamp = MB(), MB()
+    RED, ORANGE = '#c9542e', '#e8763c'
+    # the body: planks standing side by side, a darker plinth, the counter on top overhanging the front
+    for k in range(11):
+        x0 = -1.1 + k * 0.2
+        rbox(mb, x0 + 0.005, -0.42, 0.3, x0 + 0.195, 0.42, 1.0, col_fn(tuple(rgb(RED) * (0.92 + 0.1 * ((k * 7) % 3) / 2)), grain='z', seed=k), r=0.012)
+    rbox(mb, -1.12, -0.44, 0.24, 1.12, 0.44, 0.32, shade('#8a3a20'), r=0.02)
+    rbox(mb, -1.18, -0.56, 1.0, 1.18, 0.5, 1.08, col_fn(ORANGE, grain='x'), r=0.02)
+    # the sign: a cream panel, a red bowl with noodles hanging over its rim, chopsticks, steam
+    rbox(mb, -0.78, -0.45, 0.42, 0.78, -0.42, 0.9, shade('#fff1e4'), r=0.02)
+    m = len(mb.v)
+    slab(mb, [(-0.2, 0.0), (0.2, 0.0), (0.16, -0.08), (0.08, -0.13), (-0.08, -0.13), (-0.16, -0.08)], 0.012, shade(RED), axis='y', at=-0.006)
+    for k in range(5):
+        tube(mb, [(-0.12 + k * 0.06, -0.012, 0.0), (-0.1 + k * 0.06, -0.012, 0.06), (-0.13 + k * 0.06, -0.012, 0.11)], 0.008, shade('#e8c070'), seg=4)
+    for d in (0.0, 0.03):
+        tube(mb, [(0.04 + d, -0.014, 0.08), (0.22 + d, -0.014, 0.2)], 0.007, shade('#7a3a20'), seg=4)
+    for x in (-0.07, 0.03):
+        tube(mb, [(x, -0.012, 0.15), (x + 0.02, -0.012, 0.19), (x - 0.01, -0.012, 0.23), (x + 0.01, -0.012, 0.27)], 0.007, shade('#d8b8a8'), seg=4)
+    xform(mb, m, Matrix.Translation((0, -0.45, 0.56)))
+    # four little wheels, front and back
+    for x in (-0.72, 0.72):
+        for y in (-0.47, 0.47):
+            m = len(mb.v)
+            lathe(mb, [(0.0, -0.035), (0.2, -0.035), (0.22, -0.015), (0.22, 0.015), (0.2, 0.035), (0.0, 0.035)], shade('#2d2832'), seg=22, cap_top=False)
+            lathe(mb, [(0.0, 0.036), (0.07, 0.036), (0.07, 0.05), (0.0, 0.05)], shade('#7a7686'), seg=12, cap_top=False)
+            xform(mb, m, Matrix.Translation((x, y + (-0.02 if y < 0 else 0.02), 0.22)) @ Euler((math.pi / 2 if y < 0 else -math.pi / 2, 0, 0)).to_matrix().to_4x4())
+    # a push handle at the right
+    tube(mb, [(1.12, -0.3, 0.8), (1.42, -0.3, 0.86), (1.42, 0.3, 0.86), (1.12, 0.3, 0.8)], 0.025, wood(WOOD_D, 'x'), seg=6)
+    # the posts and the roof: a red cloth sloping back, a scalloped valance in front
+    for x in (-1.08, 1.08):
+        rbox(mb, x - 0.045, 0.32, 1.08, x + 0.045, 0.41, 2.08, wood(WOOD_D), r=0.015)
+        rbox(mb, x - 0.045, -0.5, 1.08, x + 0.045, -0.42, 1.95, wood(WOOD_D), r=0.015)
 
-    def awning(p, n):
-        return (G if int(math.floor((p.x + 2) / 0.2)) % 2 else Wt) * (0.88 + 0.12 * max(0.0, n.z))
-    # two sloping striped panels and a scalloped valance along the front
-    for s in (-1, 1):
-        m = len(top.v)
-        rbox(top, -0.98, 0.0, -0.012, 0.98, 0.58, 0.012, awning, r=0.01, mid=10)
-        xform(top, m, Matrix.Translation((0, 0, 1.86)) @ Euler((-0.32 if s > 0 else math.pi + 0.32, 0, 0)).to_matrix().to_4x4())
-    for k in range(10):
-        x = -0.9 + k * 0.2
-        ball(top, (x, -0.57, 1.66), (0.1, 0.012, 0.05), shade('#3f9a5a' if k % 2 == 0 else '#f6f2e8'), sub=2)
-    rng = random.Random(9)
-    for x, c in ((-0.45, '#f08a20'), (0.0, '#d8302a'), (0.45, '#7ab83a')):
-        rbox(mb, x - 0.2, -0.3, 0.58, x + 0.2, 0.3, 0.72, wood(WOOD_L, 'x'), r=0.015)
-        for k in range(6):
-            ball(mb, (x + rng.uniform(-0.13, 0.13), rng.uniform(-0.22, 0.22), 0.76 + rng.uniform(0, 0.03)), 0.065, shade(c), sub=2)
-    return [(mb, 'main'), (top, 'awning')]
+    def cloth(p, n):
+        k = int(math.floor((p.x + 2) / 0.24)) % 2
+        return rgb('#e0405a') * (0.84 + 0.1 * k + 0.08 * abs(n.z))
+    m = len(mb.v)
+    rbox(mb, -1.3, 0.0, -0.025, 1.3, 1.26, 0.025, cloth, r=0.015, mid=10)
+    xform(mb, m, Matrix.Translation((0, -0.7, 2.0)) @ Euler((math.atan2(0.16, 1.25), 0, 0)).to_matrix().to_4x4())
+    rbox(mb, -1.32, -0.73, 1.86, 1.32, -0.69, 2.02, cloth, r=0.012, mid=10)
+    for k in range(11):
+        ball(mb, (-1.2 + k * 0.24, -0.71, 1.86), (0.12, 0.02, 0.07), shade('#e0405a' if k % 2 == 0 else '#c8304a'), sub=2)
+    # the paper lantern, lit, hanging from the roof: dark caps, a red word down it
+    tube(mb, [(-0.55, -0.55, 1.98), (-0.55, -0.55, 1.82)], 0.006, shade('#3f3a4a'), seg=4)
+    lathe(lamp, [(0.0, 1.5), (0.1, 1.5), (0.15, 1.56), (0.17, 1.66), (0.15, 1.76), (0.1, 1.8), (0.0, 1.8)], shade('#ffd35a'), c=(-0.55, -0.55, 0), seg=16)
+    for z in (1.48, 1.8):
+        lathe(mb, [(0.0, z), (0.085, z), (0.085, z + 0.03), (0.0, z + 0.03)], shade('#3a3340'), c=(-0.55, -0.55, 0), seg=12)
+    for z in (1.58, 1.66, 1.74):
+        rbox(lamp, -0.57, -0.73, z - 0.02, -0.53, -0.7, z + 0.02, shade('#c0302a'), r=0.006)
+    # the counter's things: a pot of broth steaming, a stack of bowls, chopsticks in a cup, a bottle
+    lathe(mb, [(0.0, 1.08), (0.22, 1.08), (0.24, 1.12), (0.24, 1.36), (0.26, 1.38), (0.22, 1.38), (0.22, 1.34), (0.0, 1.34)], shade('#8a8a94'), c=(0.45, 0.05, 0), seg=20)
+    for k, (dx, dz) in enumerate(((0.0, 0.0), (0.06, 0.12), (-0.04, 0.24))):
+        ball(mb, (0.45 + dx, 0.05, 1.46 + dz), 0.07 + 0.015 * k, shade('#f4f0ec'), sub=2)
+    for k in range(4):
+        lathe(mb, [(0.0, 1.08 + k * 0.05), (0.08, 1.08 + k * 0.05), (0.13, 1.13 + k * 0.05), (0.12, 1.135 + k * 0.05), (0.0, 1.11 + k * 0.05)], shade('#fbf6ee' if k % 2 else '#e0405a'), c=(-0.3, -0.15, 0), seg=16)
+    lathe(mb, [(0.0, 1.08), (0.05, 1.08), (0.05, 1.22), (0.0, 1.22)], shade('#2a5a8a'), c=(0.0, -0.25, 0), seg=10)
+    for k in range(6):
+        tube(mb, [(0.0 + (k % 3 - 1) * 0.015, -0.25 + (k // 3 - 0.5) * 0.02, 1.15), (0.0 + (k % 3 - 1) * 0.03, -0.25 + (k // 3 - 0.5) * 0.04, 1.36)], 0.006, wood(WOOD_L), seg=4)
+    lathe(mb, [(0.0, 1.08), (0.045, 1.08), (0.045, 1.24), (0.02, 1.28), (0.02, 1.33), (0.0, 1.33)], shade('#7a2a1a'), c=(0.88, -0.2, 0), seg=10)
+    # Joe's poem taped to the side
+    rbox(mb, 1.12, -0.22, 0.5, 1.13, 0.12, 0.88, shade('#fbfbf6'), r=0.004)
+    for k in range(5):
+        rbox(mb, 1.13, -0.18, 0.8 - k * 0.06, 1.135, 0.04 - (k % 2) * 0.06, 0.81 - k * 0.06, shade('#5a6a8a'), r=0.002)
+    rbox(mb, 1.13, -0.1, 0.86, 1.137, -0.02, 0.9, shade('#e8e0b8'), r=0.002)
+    # two stools in front
+    for x in (-0.45, 0.35):
+        lathe(mb, [(0.0, 0.5), (0.16, 0.5), (0.17, 0.53), (0.16, 0.56), (0.0, 0.56)], col_fn('#c8945a', grain='x'), c=(x, -0.85, 0), seg=16)
+        for k in range(3):
+            a = k / 3 * math.tau + 0.3
+            tube(mb, [(x + math.cos(a) * 0.12, -0.85 + math.sin(a) * 0.12, 0.0), (x + math.cos(a) * 0.06, -0.85 + math.sin(a) * 0.06, 0.5)], 0.02, wood(WOOD_D), seg=5)
+    return [(mb, 'main'), (lamp, 'glow')]
 
 
 def barrel():
@@ -686,7 +726,7 @@ PROPS = {
     'tent_0': lambda: tent_ac(('#f08a3a', '#f4b060')), 'tent_1': lambda: tent_ac(('#3aa0a8', '#6ac8c8')), 'tent_2': lambda: tent_ac(('#e8c040', '#f4dc78')),
     'campfire': campfire, 'bonfire': lambda: campfire(True), 'picnic': picnic, 'telescope': telescope, 'viewer': viewer, 'tackle': tackle,
     'driftwood': driftwood, 'rock_a': lambda: rock(1), 'rock_b': lambda: rock(7), 'icecream': icecream, 'sandcastle': sandcastle,
-    'volleyball': volleyball, 'cart': cart, 'barrel': barrel,
+    'volleyball': volleyball, 'noodle_cart': noodle_cart, 'barrel': barrel,
     'reeds': reeds, 'lilypad': lilypad, 'lilypad_flower': lambda: lilypad(True), 'pebbles': pebbles, 'falls_rocks': falls_rocks,
 }
 

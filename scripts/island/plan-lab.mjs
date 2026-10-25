@@ -8,14 +8,16 @@
 //     stream that runs down to a pond with lily pads
 //   - the beach down the right side, the sea beyond it, palms leaning over
 //   - autumn trees round the cottage and the shop, pines here and there, a bench and a lamp by the path
+//   - south of it all, a town of the island's other buildings along three streets (for reviewing their models): the
+//     town hall, post office, bank, museum and lighthouse; the shops; the club, Ginger's workshop and the barn
 
 export const PLAN = {
-  w: 50, h: 44, seed: 21,
+  w: 50, h: 68, seed: 21,
   start: [27, 23],                       // (no pier: where Sarah starts)
   beachD: 2,                             // only the low ground near the sea is beach
   treeChance: 0, wildFlowers: false,     // every tree where it's put, nothing scattered
   // laid out to the concept's proportions: everything you see there is within a few steps of the cobbles
-  coast: [[4,3],[24,2],[32,3],[33,10],[33.4,16],[34,20],[34.8,25],[36.3,30],[38,37],[35,42],[26,42],[9,41],[3,30],[3,14]],
+  coast: [[4,3],[24,2],[32,3],[33,10],[33.4,16],[34,20],[34.8,25],[36.3,30],[38,37],[44,40],[48,46],[48.4,56],[46,64],[30,66],[10,65.4],[4,58],[4,44],[3,30],[3,14]],
   levels: [
     { L: 1, x0: 0, x1: 24, pts: [[0,20],[24,20]], steep: true, rough: 0 },
     { L: 1, x0: 25, x1: 36, pts: [[25,16],[36,16]], steep: true, rough: 0 },
@@ -32,6 +34,10 @@ export const PLAN = {
     { pts: [[26,28.6],[25.2,31],[24.6,34]], w: 1.6 },
     // round the pond and up the stairs at the far left to the higher ground
     { pts: [[24.8,30],[18,30.5],[12,28],[10,23],[10,15]], w: 1.6 },
+    // down to the town and its three streets, joined at the ends and in the middle
+    { pts: [[24.6,34],[23.4,39],[22.4,43],[22.2,48.6]], w: 1.6 },
+    { pts: [[5.4,48.6],[46,48.6]], w: 1.5 }, { pts: [[5.4,54.6],[44,54.6]], w: 1.5 }, { pts: [[6,60.6],[33,60.6]], w: 1.5 },
+    { pts: [[5.4,48.6],[5.4,54.6]], w: 1.4 }, { pts: [[23.2,48.6],[23.2,60.6]], w: 1.4 }, { pts: [[45.6,48.6],[44.2,54.6]], w: 1.4 },
   ],
   buildings: [
     { id: 'home', x: 25, y: 17, w: 4, h: 3, door: 2, sprite: 'house_sarah' },
@@ -39,6 +45,21 @@ export const PLAN = {
     // two neighbors' houses up in the woods (for the houses made from the kit of parts)
     { id: 'h_joe', x: 6, y: 11, w: 3, h: 3, door: 1 },
     { id: 'h_maki', x: 15, y: 15, w: 3, h: 3, door: 1 },
+    // the town
+    { id: 'townhall', x: 7, y: 44, w: 7, h: 4, door: 3, sprite: 'townhall', front: 'townhallfront' },
+    { id: 'postoffice', x: 15, y: 45, w: 5, h: 3, door: 2, sprite: 'postoffice', front: 'postofficefront' },
+    { id: 'bank', x: 25, y: 45, w: 5, h: 3, door: 2, sprite: 'bank', front: 'bankfront' },
+    { id: 'museum', x: 31, y: 44, w: 7, h: 4, door: 3, sprite: 'museum', front: 'museumfront' },
+    { id: 'lighthouse', x: 41, y: 45, w: 3, h: 3, door: 1, sprite: 'lighthouse', front: 'lighthousefront' },
+    { id: 'boutique', x: 7, y: 51, w: 4, h: 3, door: 2, sprite: 'boutique', front: 'boutiquefront' },
+    { id: 'salon', x: 12, y: 51, w: 4, h: 3, door: 2, sprite: 'salon', front: 'salonfront' },
+    { id: 'studio', x: 17, y: 51, w: 5, h: 3, door: 2, sprite: 'studio', front: 'studiofront' },
+    { id: 'displays', x: 25, y: 51, w: 5, h: 3, door: 2, sprite: 'displays', front: 'displaysfront' },
+    { id: 'restaurant', x: 31, y: 51, w: 5, h: 3, door: 2, sprite: 'restaurant', front: 'restaurantfront' },
+    { id: 'arcade', x: 37, y: 51, w: 5, h: 3, door: 2, sprite: 'arcade', front: 'arcadefront' },
+    { id: 'club', x: 8, y: 57, w: 6, h: 3, door: 3, sprite: 'club', front: 'clubfront' },
+    { id: 'builder', x: 16, y: 57, w: 5, h: 3, door: 2, sprite: 'builder', front: 'builderfront' },
+    { id: 'barn', x: 26, y: 57, w: 5, h: 3, door: 2, sprite: 'barn' },
   ],
   props: [
     { kind: 'bench', x: 28, y: 22 }, { kind: 'lamp', x: 30, y: 22 }, { kind: 'mailbox', x: 29, y: 20 },
@@ -55,6 +76,9 @@ export const PLAN = {
     { kind: 'driftwood', x: 11, y: 40 }, { kind: 'rock', x: 13, y: 39 }, { kind: 'sandcastle', x: 16, y: 39 }, { kind: 'tackle', x: 18, y: 39 },
     { kind: 'viewer', x: 20, y: 40 }, { kind: 'icecream', x: 22, y: 40 }, { kind: 'bonfire', x: 30, y: 40 },
     { kind: 'windmill', x: 11, y: 11 }, { kind: 'volleyball', x: 25, y: 36 },
+    // lamps and benches along the town's streets
+    { kind: 'lamp', x: 14, y: 50 }, { kind: 'lamp', x: 30, y: 50 }, { kind: 'lamp', x: 21, y: 56 }, { kind: 'lamp', x: 36, y: 56 },
+    { kind: 'bench', x: 39, y: 50 }, { kind: 'bench', x: 31, y: 56 }, { kind: 'hay', x: 32, y: 58 }, { kind: 'trough', x: 33, y: 59 },
   ],
   trees: [
     // up behind the wall
@@ -68,10 +92,15 @@ export const PLAN = {
     // round the cottage and the shop, by the stream and the pond, in front
     { x: 24, y: 18, kind: 'oak' },  { x: 18, y: 24, kind: 'oak' }, { x: 17, y: 28, kind: 'pine' },
     { x: 19, y: 33, kind: 'oak' }, { x: 28, y: 35, kind: 'pine' }, { x: 33, y: 35, kind: 'oak' }, { x: 15, y: 31, kind: 'oak' },
+    // round the town
+    { x: 6, y: 42, kind: 'oak' }, { x: 15, y: 42, kind: 'oak' }, { x: 29, y: 42, kind: 'pine' }, { x: 39, y: 43, kind: 'oak' },
+    { x: 43, y: 52, kind: 'oak' }, { x: 6, y: 58, kind: 'pine' }, { x: 37, y: 59, kind: 'oak' }, { x: 41, y: 58, kind: 'pine' },
   ],
   palms: [{ x: 33, y: 21, coconut: true }, { x: 34, y: 26 }, { x: 36, y: 33, coconut: true }],
   // a few fruit trees in front, toward the beach
   orchard: { x: 28, y: 31, w: 7, h: 5 },
+  // Basil's noodle cart (out at night) on the town's middle street
+  cart: { x: 40, y: 56 },
   flowers: [{ x: 28, y: 20, r: 1, n: 3 }, { x: 25, y: 23, r: 1.2, n: 3 }, { x: 29, y: 31, r: 2.5, n: 5 }, { x: 23, y: 25, r: 1, n: 2 }],
   spots: {
     plaza: [27, 26, 2], pond: [20, 30, 1], beach: [35, 31, 1], waterfall: [24, 23, 1], summit: [10, 12, 1],

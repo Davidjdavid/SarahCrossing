@@ -21,6 +21,8 @@ from mathutils import Vector, Matrix, Euler, noise
 from common import *
 from trees_ac import MB, vmat, rgb, bmesh_ico
 from kit import col_fn, shade, rbox, lathe, cyl, ball, tube, slab, plank_row, xform, rot
+import kit
+kit.DETAIL['lite'] = True
 
 W, D, H = 2.7, 2.1, 1.55          # the walls: across, deep, high
 FOOT = 0.14

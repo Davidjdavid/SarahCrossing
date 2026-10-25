@@ -18,7 +18,12 @@ const EnvBuild = {
         log: ['log', 1.4, 0.45], campfire: ['campfire', 1, 0.45], bonfire: ['bonfire', 1, 0.5], picnic: ['picnic', 1.25, 0.6], telescope: ['telescope', 1, 0.45],
         viewer: ['viewer', 1, 0.45], tackle: ['tackle', 1, 0.45], driftwood: ['driftwood', 1, 0.45], icecream: ['icecream', 1.3, 0.55],
         sandcastle: ['sandcastle', 1, 0.45], volleyball: ['volleyball', 1, 0.4], boulder: ['rock_a', 1.7, 0.5], tent: [null, 1.3, 1.0], rock: [null, 1, 0.45],
+        cart: ['noodle_cart', 1, 0.5],
     },
+    /* the island's other buildings, made in Blender (tools/blender/buildings.py, model bld_<id>): id -> how far in front
+       of its middle its front wall stands (each stands with its front wall on its footprint's front edge) */
+    BUILDINGS: { postoffice: 1.3, bank: 1.3, townhall: 1.65, museum: 1.65, boutique: 1.3, salon: 1.3, studio: 1.3, displays: 1.3,
+        restaurant: 1.3, arcade: 1.3, club: 1.3, builder: 1.3, lighthouse: 1.4, barn: 1.5 },
     /* the model a prop is drawn with in the new look, when it has one and it has arrived ([name, size, back]) */
     propModel(e) {
         const P = this.PROP_MODELS[e.kind];
@@ -35,6 +40,8 @@ const EnvBuild = {
         const placed = {}, has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
         this.model = (n, x, y, z, rot, sc) => { if (!has(n)) return false; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y, z, rot || 0, sc || 1)); return true; };
         const mills = [];
+        // (Basil's noodle cart is only out at night: its model is hidden by day)
+        const nights = [];
         // (wild flowers can be picked and grow back: each one's model, kept by its spot, is hidden while it's gone)
         const picks = [];
         for (const e of a.ents) {
@@ -43,6 +50,8 @@ const EnvBuild = {
                 if (e.id === 'home' && has('cottage')) { const A = this.at(e); for (const m of EnvModels.place(group, 'cottage', EnvModels.mat4(A.door, A.y, A.z1 - 1.25))) m.userData.shared = true; }
                 // and Fortune's (its door half a tile right of its middle)
                 else if (e.id === 'shop' && has('shop')) { const A = this.at(e); for (const m of EnvModels.place(group, 'shop', EnvModels.mat4(A.door - 0.5, A.y, A.z1 - 1.3))) m.userData.shared = true; }
+                // the island's other buildings, each its own model
+                else if (this.BUILDINGS[e.id] && has('bld_' + e.id)) { const A = this.at(e); for (const m of EnvModels.place(group, 'bld_' + e.id, EnvModels.mat4(A.cx, A.y, A.z1 - this.BUILDINGS[e.id] - 0.05))) m.userData.shared = true; }
                 // the neighbors' houses from the kit of parts, painted from each house's look
                 else if (/^h_/.test(e.id || '') && this.house(group, e, houseLook(e.id))) { /* built */ }
                 else if (e.id === 'home' || /^h_/.test(e.id || '')) this.cottage(e, houseLook(e.id)); else this.shop(e);
@@ -51,6 +60,7 @@ const EnvBuild = {
                 const [n, sc, back] = this.propModel(e), f = this.foot(e);
                 this.model(n, f.x, f.y, f.z - back * R3_ZS, 0, sc);
                 if (n === 'windmill') mills.push(placed[n][placed[n].length - 1]);
+                if (e.onlyNight) nights.push({ n, i: placed[n].length - 1, on: true });
             }
             else if (e.kind === 'bench') this.bench(e);
             else if (e.kind === 'lamp') this.lamp(e);
@@ -93,7 +103,14 @@ const EnvBuild = {
         return { meshes, tick: (r3, a) => {
             const g = R3._glow || 0; this.glass.emissiveIntensity = 0.15 + g * 1.4; if (typeof EnvModels !== 'undefined') EnvModels.glow(g);
             if (sails.length) { spin.makeRotationZ(-performance.now() / 2400); sails.forEach((M, i) => { for (const m of inst.windmill_sails || []) { m.setMatrixAt(i, turned.multiplyMatrices(M, spin)); m.instanceMatrix.needsUpdate = true; } }); }
-            if (!picks.length || frame++ % 20) return;
+            if (frame++ % 20) return;
+            const night = hourIn(Clock.hourF(), 21, 27);
+            for (const p of nights) {
+                if (p.on === night) continue;
+                p.on = night;
+                for (const m of inst[p.n] || []) { m.setMatrixAt(p.i, night ? placed[p.n][p.i] : none); m.instanceMatrix.needsUpdate = true; }
+            }
+            if (!picks.length) return;
             const live = new Set();
             for (const e of a.ents) if (e.wildFlower) live.add(e.flowerIdx);
             for (const p of picks) {

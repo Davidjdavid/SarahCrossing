@@ -93,8 +93,12 @@ docs/DEPLOY.md for the server.
   windmill's sails are their own model, turned at its `anchor_hub`. `houses.py` makes the neighbors' houses as a kit (a
   body and roof per style, a skin per wall pattern, the add-ons), each part shaded in greys and named by role
   (`house_wall`, `house_roof`, `house_trim`, `house_door`): `EnvBuild.house` puts a house together from its look and
-  paints each role in the house's own colors (`EnvModels.tinted`), so what Ginger changes is what you see. `doll.py` is
-  the mock-up of the people as dolls (not in the game yet). `ground_textures.py` bakes the ground's surfaces the same
+  paints each role in the house's own colors (`EnvModels.tinted`), so what Ginger changes is what you see.
+  `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
+  Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
+  named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 30 MB now). `doll.py` is the
+  mock-up of the people as dolls (not in the game yet). `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height
   to let grass reach into the gaps and ragged edges.
@@ -107,11 +111,13 @@ docs/DEPLOY.md for the server.
   instanced mesh per part. Colors kept in a mesh arrive as glTF's linear values and are turned back into the colors as
   painted (`EnvModels.srgb`). The trees (autumn crowns in autumn), palms, pines and bushes replace the code-built ones
   and follow the game: a shaken tree sways, picked fruit and chopped trees go (`EnvTrees.tick`); the cottage Sarah's
-  house, the shop Fortune's, and the props and flowers theirs (`EnvBuild.PROP_MODELS`: kind, size against its
-  footprint, how far back it stands; a picked wild flower's model is hidden until it grows back); the test area has a
-  showcase of the props on the lawn below the pond; `EnvWalls` (33h_env_walls.js) lays the wall pieces along every
-  south, east and west face of higher ground, and `EnvContact` (33i_env_contact.js) darkens the ground softly under
-  things. Until the models arrive the new look draws its own, and builds again once they have.
+  house, the shop Fortune's, the other buildings theirs (`EnvBuild.BUILDINGS`: how far in front of its middle the
+  front wall stands), and the props and flowers theirs (`EnvBuild.PROP_MODELS`: kind, size against its footprint, how
+  far back it stands; a picked wild flower's model is hidden until it grows back, Basil's cart by day); the test area
+  has a showcase of the props on the lawn below the pond and a town of the other buildings to the south; `EnvWalls`
+  (33h_env_walls.js) lays the wall pieces along every south, east and west face of higher ground, and `EnvContact`
+  (33i_env_contact.js) darkens the ground softly under things. Until the models arrive the new look draws its own, and
+  builds again once they have.
 
 ## Saving (11_save.js, 12_cloud.js, 6x_islands.js)
 

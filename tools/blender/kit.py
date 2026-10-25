@@ -34,8 +34,16 @@ def shade(c):
     return col_fn(c, under=0.0)
 
 
+# lite: lighter rounded boxes (each rounded edge in two steps, no rows across a short side) for models placed once
+# with hundreds of small pieces (buildings, house skins), where the full rounding would weigh megabytes
+DETAIL = {'lite': False}
+
+
 def _axis_vals(a0, a1, r, n_mid=2):
     r = min(r, (a1 - a0) / 2 * 0.999)
+    if DETAIL['lite']:
+        n_mid = n_mid if a1 - a0 > 0.4 else 0
+        return [a0, a0 + r] + [a0 + r + (a1 - a0 - 2 * r) * k / (n_mid + 1) for k in range(1, n_mid + 1)] + [a1 - r, a1]
     out = [a0, a0 + r * 0.29, a0 + r * 0.71, a0 + r]
     for k in range(1, n_mid + 1):
         out.append(a0 + r + (a1 - a0 - 2 * r) * k / (n_mid + 1))
