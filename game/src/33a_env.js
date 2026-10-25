@@ -131,6 +131,48 @@ const EnvGround = {
         else { sx = tx * tx * (3 - 2 * tx); sy = ty * ty * (3 - 2 * ty); }
         return (a * (1 - sx) + b * sx) * (1 - sy) + (c * (1 - sx) + d * sx) * sy;
     },
+    /* ponds and streams with natural shores: where the water tiles' outline, blurred and pushed about by a noise, crosses
+       a half is the waterline (round corners, wobbly edges instead of the tiles' square steps); the bed deepens from it
+       and the bank rises gently back to the ground. Only ground at the water's own level is touched (not the walls by a
+       waterfall), and only within a few tenths of a tile of the tiles' edges, so where people can walk stays the same. */
+    shapeWater(h, W, Hn) {
+        const R = ENV.RES, Wt = W0.w, Ht = W0.h, LV = ENV.LV, BASE = ENV.BASE;
+        const wet = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && 'orh'.includes(W0.grid[y][x]);
+        const lvl = (x, y) => +W0.height[Math.max(0, Math.min(Ht - 1, y))][Math.max(0, Math.min(Wt - 1, x))] || 0;
+        const tileOf = (i, n) => Math.max(0, Math.min(n - 1, Math.floor(i / R - 0.001)));
+        const levels = new Set();
+        for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) if (wet(x, y)) levels.add(lvl(x, y));
+        if (!levels.size) return;
+        // value noise (two octaves, about a tile and a half and half a tile across)
+        const hs = (a, b) => { let n = Math.imul(a, 374761393) + Math.imul(b, 668265263) | 0; n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n ^ (n >>> 16)) >>> 0) / 4294967296; };
+        const vn = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+            return (hs(xi, yi) * (1 - u) + hs(xi + 1, yi) * u) * (1 - v) + (hs(xi, yi + 1) * (1 - u) + hs(xi + 1, yi + 1) * u) * v; };
+        const blur = (m, r) => {
+            const t = new Float32Array(W * Hn);
+            for (let pass = 0; pass < 2; pass++) for (const horiz of [true, false]) {
+                for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) {
+                    let s = 0, c = 0;
+                    for (let k = -r; k <= r; k++) { const xx = horiz ? x + k : x, yy = horiz ? y : y + k; if (xx < 0 || yy < 0 || xx >= W || yy >= Hn) continue; s += m[yy * W + xx]; c++; }
+                    t[y * W + x] = s / c;
+                }
+                m.set(t);
+            }
+        };
+        for (const L of levels) {
+            const surf = BASE + L * LV - 0.14, m = new Float32Array(W * Hn);
+            for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) { const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht); if (wet(tx, ty) && lvl(tx, ty) === L) m[y * W + x] = 1; }
+            blur(m, 2);
+            for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) {
+                const k = y * W + x, mv = m[k];
+                if (mv < 0.02) continue;
+                const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht), h0 = h[k];
+                if (lvl(tx, ty) !== L || h0 > surf + 0.3 || h0 < surf - 1.2) continue;
+                const u = x / R, v = y / R, wv = mv + (vn(u / 1.5, v / 1.5) * 0.65 + vn(u / 0.55 + 17, v / 0.55) * 0.35 - 0.5) * 0.32;
+                if (wv > 0.5) h[k] = surf - Math.min(0.75, (wv - 0.5) * 2.2);                     // the bed
+                else if (wv > 0.25) { const t = (wv - 0.25) / 0.25; h[k] = Math.min(h0, surf + (h0 - surf) * (1 - t * t * (3 - 2 * t))); }   // the bank
+            }
+        }
+    },
     heightAt(u, v) {
         const g = this.grid;
         if (!g) return 0;
@@ -176,6 +218,7 @@ const EnvGround = {
     build(group) {
         const C = this.cells(), R = ENV.RES, Wt = W0.w, Ht = W0.h, W = Wt * R + 1, Hn = Ht * R + 1, h = new Float32Array(W * Hn);
         for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) h[y * W + x] = this.sample(C, x / R, y / R);
+        this.shapeWater(h, W, Hn);
         this.grid = { h, W, Hn };
         // shade where the ground is hemmed in (the foot of a wall, a stream's banks): darker, as the sky reaches it less
         const ao = new Float32Array(W * Hn);

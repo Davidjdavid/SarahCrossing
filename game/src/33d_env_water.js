@@ -25,18 +25,26 @@ const EnvWater = {
         const sand = EnvTex.sand(), uniforms = { tDepth: { value: depthTex }, uMapSz: { value: new THREE.Vector2(Wt, Ht) }, tSand: { value: sand.map }, uSunDir: { value: new THREE.Vector3(-0.55, 0.78, 0.32).normalize() }, uSky: { value: new THREE.Color(0.62, 0.8, 0.95) }, uSunCol: { value: new THREE.Color(1, 0.95, 0.85) } };
         const mat = r3Patch(new THREE.MeshLambertMaterial({ color: 0xffffff }), { key: 'envwater', uniforms, fhead: EnvWater.FHEAD, fpre: EnvWater.FPRE });
         const meshes = [];
-        // the sea: one big sheet at sea level (beyond the island too)
-        const seaGeo = new THREE.PlaneGeometry(Wt + 400, (Ht + 400) * R3_ZS, 1, 1);
-        seaGeo.rotateX(-Math.PI / 2);
+        // the sea: one big sheet at sea level (beyond the island too), a point every tile over the island and further apart
+        // out to sea. (It needs the points: the view bends the world down towards the horizon at each point, and a sheet of
+        // four corners bent only there sank under the sand as the camera moved, so the sea came and went.)
+        const ax = (n) => { const o = []; for (let v = -20; v <= n + 20; v++) o.push(v); for (let st = 1.3, v = -20; v > -300; st *= 1.3) o.unshift(v -= st); for (let st = 1.3, v = n + 20; v < n + 300; st *= 1.3) o.push(v += st); return o; };
+        const xs = ax(Wt), zs = ax(Ht), sp = [], si = [];
+        for (const z of zs) for (const x of xs) sp.push(x, 0, z * R3_ZS);
+        for (let j = 0; j < zs.length - 1; j++) for (let i = 0; i < xs.length - 1; i++) { const a0 = j * xs.length + i, b0 = a0 + 1, c0 = a0 + xs.length, d0 = c0 + 1; si.push(a0, c0, b0, b0, c0, d0); }
+        const seaGeo = new THREE.BufferGeometry();
+        seaGeo.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
+        seaGeo.setAttribute('normal', new THREE.Float32BufferAttribute(new Array(sp.length / 3).fill(0).flatMap(() => [0, 1, 0]), 3));
+        seaGeo.setIndex(si);
+        seaGeo.computeBoundingSphere();
         const sea = new THREE.Mesh(seaGeo, mat);
-        sea.position.set(Wt / 2, 0, Ht / 2 * R3_ZS);
         sea.receiveShadow = true; sea.renderOrder = -1;
         group.add(sea); meshes.push(sea);
         // streams and ponds: a tile-sized sheet over each water tile, reaching a little past it (the banks rise through it)
         const pos = [], idx = [];
         for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
             if (!wet(x, y)) continue;
-            const s = surf(x, y), e = 0.45, b = pos.length / 3;
+            const s = surf(x, y), e = 0.7, b = pos.length / 3;
             pos.push(x - e, s, (y - e) * R3_ZS, x + 1 + e, s, (y - e) * R3_ZS, x + 1 + e, s, (y + 1 + e) * R3_ZS, x - e, s, (y + 1 + e) * R3_ZS);
             idx.push(b, b + 3, b + 2, b, b + 2, b + 1);
         }
@@ -153,10 +161,10 @@ EnvWater.FPRE = `
     vec2 tp = vec2(vWp.x, vWp.z / ${R3_ZS.toFixed(3)});
     vec2 duv = vec2(tp.x / uMapSz.x, 1.0 - tp.y / uMapSz.y);
     vec4 dd = (duv.x > 0.0 && duv.x < 1.0 && duv.y > 0.0 && duv.y < 1.0) ? texture2D(tDepth, duv) : vec4(1.0, 1.0, 0.0, 1.0);
-    float depth = dd.r * 2.55, isSea = dd.g;
-    if (depth < 0.004) discard;
-    // (streams and ponds are shallow but clear and colored like deeper water, as in the concept)
-    if (isSea < 0.5) depth = depth * 1.5 + 0.08;
+    float d0 = dd.r * 2.55, isSea = dd.g;
+    if (d0 < 0.004) discard;
+    // (streams and ponds are shallow but clear and colored like deeper water, as in the concept; clear right at the edge)
+    float depth = isSea < 0.5 ? d0 * 1.5 + 0.08 * smoothstep(0.0, 0.12, d0) : d0;
     // ripples: two layers of noise drifting (the sea rolls in from the south; streams run)
     vec2 fl = isSea > 0.5 ? vec2(0.03, -0.09) : vec2(0.02, 0.25);
     vec2 q1 = tp * 1.9 + fl * uTime, q2 = tp * 3.7 - fl.yx * uTime * 0.8;
@@ -179,7 +187,7 @@ EnvWater.FPRE = `
     wc += uSunCol * sp * 1.6 * clamp(lit, 0.2, 1.0);
     wc += (h1 - 0.5) * 0.08;
     // foam where it meets the shore (and on the sea, waves washing in)
-    float foam = smoothstep(isSea > 0.5 ? 0.1 : 0.05, 0.0, depth) * smoothstep(0.35, 0.65, r3n(tp * 5.0 + vec2(uTime * 0.3, 0.0)) + 0.25) * (isSea > 0.5 ? 1.0 : 0.6);
+    float foam = smoothstep(isSea > 0.5 ? 0.1 : 0.05, 0.0, d0) * smoothstep(0.35, 0.65, r3n(tp * 5.0 + vec2(uTime * 0.3, 0.0)) + 0.25) * (isSea > 0.5 ? 1.0 : 0.6);
     if (isSea > 0.5) foam += smoothstep(0.06, 0.0, abs(fract(depth * 2.2 - uTime * 0.18) - 0.5) - 0.44) * smoothstep(0.8, 0.1, depth) * 0.7;
     wc = mix(wc, vec3(0.96, 0.98, 1.0), clamp(foam, 0.0, 0.9));
     gl_FragColor.rgb = wc;
