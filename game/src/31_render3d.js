@@ -223,10 +223,12 @@ const R3 = {
         const now = performance.now();
         if (this._last) this.slow.push(now - this._last);
         this._last = now;
-        if (this.slow.length < 150) return;
-        const avg = this.slow.slice(40).reduce((s, d) => s + d, 0) / (this.slow.length - 40);
+        if (this.slow.length < 240) return;
+        // (the typical frame once the first few seconds are over: a hitch while things load used to tip the average over
+        // and leave the picture coarse for the rest of the visit)
+        const fr = this.slow.slice(90).sort((p, q) => p - q), med = fr[fr.length >> 1];
         this.stepped = true;
-        if (avg > 24) { this.quality = 0.6; this.resize(); }
+        if (med > 24) { this.quality = 0.6; this.resize(); }
     },
     /* every kind of card material made once, up front: a material that shows up later in a new way (a tree going
        see-through the first time, a building's sides) would otherwise be compiled in the middle of a walk */
@@ -339,7 +341,7 @@ const R3 = {
         const cx0 = Math.max(0, Math.floor(V.x0 / R3_CHUNK)), cx1 = Math.min(Math.ceil(a.w * TILE / R3_CHUNK) - 1, Math.floor(V.x1 / R3_CHUNK));
         const cy0 = Math.max(0, Math.floor(V.y0 / R3_CHUNK)), cy1 = Math.min(Math.ceil(a.h * TILE / R3_CHUNK) - 1, Math.floor(V.y1 / R3_CHUNK));
         let made = 0;
-        const want = new Set(), order = [], mx = this.target.x * TILE / R3_CHUNK - 0.5, my = this.target.z / R3_ZS * TILE / R3_CHUNK - 0.5;
+        const t0 = performance.now(), want = new Set(), order = [], mx = this.target.x * TILE / R3_CHUNK - 0.5, my = this.target.z / R3_ZS * TILE / R3_CHUNK - 0.5;
         for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) order.push([cx, cy, (cx - mx) * (cx - mx) + (cy - my) * (cy - my)]);
         order.sort((p, q) => p[2] - q[2]);                  // nearest first: after a jump, the ground at Sarah's feet comes first
         for (const [cx, cy] of order) {
@@ -347,19 +349,44 @@ const R3 = {
             want.add(k);
             let ch = this.chunks.get(k);
             if (!ch) {
-                if (made >= (this.phone ? 1 : 3) && this.chunks.size) continue;        // a few new pieces a frame (each one a few ms)
+                // one new piece a frame (each one a few ms), two on a computer if the first was quick: walking sideways
+                // uncovers a whole column of them, and painting them all at once is what made it hitch
+                if (made && this.chunks.size && (made >= (this.phone ? 1 : 2) || performance.now() - t0 > 4)) continue;
                 ch = makeChunk(this.scene, cx, cy);
                 this.chunks.set(k, ch);
                 paintChunk(ch, a);
                 made++;
             }
+            if (ch.job) { while (!ch.job.next().done); ch.job = null; if (this._job && this._job.ch === ch) this._job = null; }      // (half painted)
             ch.mesh.visible = true;
             ch.used = G.frame;
+            if (ch.stale) this._stale = true;               // (out of sight when the season changed: repaint it now)
+        }
+        // the ring of pieces just outside the view is kept, and on frames with nothing else to make, the missing pieces of it
+        // are made ahead, nearest first: walking on finds the ground already painted
+        const ring = [], nx = Math.ceil(a.w * TILE / R3_CHUNK) - 1, ny = Math.ceil(a.h * TILE / R3_CHUNK) - 1;
+        for (let cy = Math.max(0, cy0 - 1); cy <= Math.min(ny, cy1 + 1); cy++) for (let cx = Math.max(0, cx0 - 1); cx <= Math.min(nx, cx1 + 1); cx++) {
+            const k = cx + ',' + cy;
+            if (want.has(k)) continue;
+            want.add(k);
+            const ch = this.chunks.get(k);
+            if (ch) { ch.mesh.visible = false; ch.used = G.frame; } else ring.push([cx, cy, (cx - mx) * (cx - mx) + (cy - my) * (cy - my)]);
+        }
+        if (!made && this._job) {
+            // (painted a few milliseconds a frame, so making ground ahead never costs a frame)
+            const j = this._job, ts = performance.now();
+            while (performance.now() - ts < (this.phone ? 2 : 3)) if (j.it.next().done) { j.ch.job = null; this._job = null; break; }
+            made++;
+        } else if (!made && ring.length && !this._stale) {
+            const [cx, cy] = ring.sort((p, q) => p[2] - q[2])[0], ch = makeChunk(this.scene, cx, cy);
+            this.chunks.set(cx + ',' + cy, ch);
+            ch.mesh.visible = false; ch.used = G.frame;
+            ch.job = paintChunkSteps(ch, a); this._job = { ch, it: ch.job };
+            made++;
         }
         for (const [k, ch] of this.chunks) if (!want.has(k)) { ch.mesh.visible = false; if (G.frame - ch.used > 600 && this.chunks.size > 40) { dropChunk(ch); this.chunks.delete(k); } }
-        // one visible piece repainted every few frames (or all of them after the flat view was used to change things, or
-        // the season changed the ground: then two a frame until they're done; and any painted before the ground's pieces
-        // under them had arrived, once they have)
+        // repainting: all of them after the flat view was used to change things, or the season changed the ground (two a
+        // frame until they're done), and any painted before the ground's pieces under them had arrived, once they have
         Ground.around(a.bgSeason, (V.x0 + V.x1) / 2, (V.y0 + V.y1) / 2, Math.max(V.x1 - V.x0, V.y1 - V.y0) / 2 + R3_CHUNK);
         if (this.ground.dirty || this._gseason !== a.bgSeason) { for (const ch of this.chunks.values()) ch.stale = true; this.ground.dirty = false; this._gseason = a.bgSeason; this._stale = true; }
         if (this._gver !== Ground.ver) { this._gver = Ground.ver; for (const ch of this.chunks.values()) if (ch.partial) { ch.stale = true; this._stale = true; } }
@@ -367,10 +394,12 @@ const R3 = {
             const stale = [...this.chunks.values()].filter(ch => ch.mesh.visible && ch.stale);
             for (const ch of stale.slice(0, this.phone ? 1 : 2)) { paintChunk(ch, a); ch.stale = false; }
             this._stale = stale.length > (this.phone ? 1 : 2);
-        } else if ((this._rt = (this._rt || 0) + 1) % 6 === 0) {
+        } else if (!made) {
+            // otherwise a piece is painted again only when something drawn into it changed (a plot, something lying on
+            // the ground, Sarah's paths): one piece checked a frame, which costs next to nothing
             const vis = [...this.chunks.values()].filter(ch => ch.mesh.visible);
             const ch = vis[(this._rr = ((this._rr || 0) + 1)) % Math.max(1, vis.length)];
-            if (ch) paintChunk(ch, a);
+            if (ch && !ch.job && r3ChunkSig(ch, a) !== ch.sig) paintChunk(ch, a);
         }
     },
     /* how far anything is drawn (fog fades things out before it): the handheld games' trick, shorter on phones */
@@ -473,7 +502,14 @@ const R3 = {
         // new things are measured a few at a time, nearest first, so walking somewhere new never hitches
         if (todo.length) {
             todo.sort((p, q) => Math.abs(p.x - tx) + Math.abs(p.y - ty) - Math.abs(q.x - tx) - Math.abs(q.y - ty));
-            for (const e of todo.slice(0, this.phone ? 6 : 12)) this.staticCard(e, a);
+            // (within a few milliseconds, and one building a frame: a building's shape takes the longest to make)
+            const t0 = performance.now(), cap = this.phone ? 6 : 12, budget = this.phone ? 3 : 5;
+            let n = 0, vols = 0;
+            for (const e of todo) {
+                if (n >= cap || (n && performance.now() - t0 > budget)) break;
+                if (e.kind === 'building' && !a.interior && r3VolSpec(e) && vols++) continue;
+                this.staticCard(e, a); n++;
+            }
         }
         for (const c of this.cards.values()) if (!seen.has(c.e)) { if (++c.away > 120) { this.dropCard(c); this.cards.delete(c.e); } else c.mesh.visible = false; }
         // people, critters and anything that moves: pooled cards, drawn fresh every frame
@@ -1136,11 +1172,13 @@ function makeChunk(scene, cx, cy) {
     scene.add(mesh);
     return { cx, cy, cv, ctx, tex, mat, mesh, kinds, used: G.frame, stale: false };
 }
-function paintChunk(ch, a) {
+function paintChunk(ch, a) { const it = paintChunkSteps(ch, a); while (!it.next().done); }
+/* a piece painted a step at a time (a few milliseconds each), for pieces made ahead, out of sight */
+function* paintChunkSteps(ch, a) {
     const ctx = ch.ctx, x0 = ch.cx * R3_CHUNK - R3_PAD, y0 = ch.cy * R3_CHUNK - R3_PAD, N = R3_CHUNKPX;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
     const of = a.bgSeason + '|' + (S.pathsV || 0);
-    if (!ch.base || ch.baseOf !== of || ch.partial) { const sg = r3SoftGround(a.bgSeason, x0, y0, N); ch.base = sg.img; ch.cls = sg.cls; ch.partial = !sg.all; ch.baseOf = of; }
+    if (!ch.base || ch.baseOf !== of || ch.partial) { const sg = yield* r3SoftGroundSteps(a.bgSeason, x0, y0, N); ch.base = sg.img; ch.cls = sg.cls; ch.partial = !sg.all; ch.baseOf = of; yield; }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (ch.base) ctx.putImageData(ch.base, 0, 0); else ctx.clearRect(0, 0, N, N);
     drawPaths(ctx, a, { x: x0, y: y0 }, { w: N, h: N });
     ctx.translate(-x0, -y0);
@@ -1151,6 +1189,20 @@ function paintChunk(ch, a) {
     } finally { R3.drawingCard = false; }
     if (ch.base && ch.cls) r3ChunkKinds(ch, ch.cls, ch.base);
     ch.tex.needsUpdate = true;
+    ch.sig = r3ChunkSig(ch, a);
+}
+/* what's drawn into a piece of ground that can change: things lying on it, the plots and what grows in them, Sarah's
+   paths (the piece is painted again when this changes) */
+function r3ChunkSig(ch, a) {
+    const x0 = ch.cx * R3_CHUNK - R3_PAD, y0 = ch.cy * R3_CHUNK - R3_PAD, N = R3_CHUNKPX;
+    let s = (S.pathsV || 0) + ':' + a.decals.length;
+    for (const d of a.decals) if (d.x > x0 - 48 && d.x < x0 + N + 48 && d.y > y0 - 16 && d.y < y0 + N + 48) s += '|' + d.frame + d.x + ',' + d.y;
+    for (const e of a.ents) {
+        if (e.layer !== 0 || e.kind === 'waterfall' || !(e.x > x0 - 64 && e.x < x0 + N + 64 && e.y > y0 - 32 && e.y < y0 + N + 64)) continue;
+        s += '|' + e.kind + (e.frame || '') + (e.x | 0) + ',' + (e.y | 0) + (e.hidden ? 'h' : '');
+        if (e.kind === 'plot') { const pl = S.plots[e.idx]; s += pl ? plotStage(pl) + pl.seed : '-'; }
+    }
+    return s;
 }
 /* the island picture's borders between grass, dirt, sand and water drawn wavy instead of in tile steps (the art
    sample's soft paths): each pixel is taken from a spot nudged by a smooth noise field of the world position, except on
@@ -1172,7 +1224,8 @@ function r3SoftField() {
     }
     return (R3_SOFTMAP = { S, ox, oy });
 }
-function r3SoftGround(season, x0, y0, N) {
+function r3SoftGround(season, x0, y0, N) { const it = r3SoftGroundSteps(season, x0, y0, N); let r; while (!(r = it.next()).done); return r.value; }
+function* r3SoftGroundSteps(season, x0, y0, N) {
     const M = R3_SOFT.amp, SW = N + 2 * M;
     if (!R3_SOFTCV) { R3_SOFTCV = document.createElement('canvas'); R3_SOFTCV.width = R3_SOFTCV.height = SW; R3_SOFTCV.g = R3_SOFTCV.getContext('2d', { willReadFrequently: true }); }
     const g = R3_SOFTCV.g;
@@ -1197,20 +1250,39 @@ function r3SoftGround(season, x0, y0, N) {
         K.t[k] = c;
         K.wet[k] = c !== R3_MAT.keep ? 0 : '~orhW'.includes(g) && !(S && S.paths && S.paths.t[tx + ',' + ty]) ? 1 : 2;
     }
+    // a tile whose neighbours are all its own kind (most of them: the middle of a lawn, of a path) is that kind all over,
+    // without weighing the nine round it for every pixel (255: work it out)
+    const uni = new Uint8Array(KW * KW).fill(255);
+    for (let j = 1; j < KW - 1; j++) for (let i = 1; i < KW - 1; i++) {
+        const k = j * KW + i, raw = K.t[k], c = raw & 15;
+        if (K.wet[k] === 2) { uni[k] = R3_MAT.keep; continue; }
+        if (c === R3_MAT.stairs) continue;
+        let same = true;
+        for (let dj = -1; dj <= 1 && same; dj++) for (let di = -1; di <= 1; di++) { const n = k + dj * KW + di; if ((K.t[n] & 15) !== c || K.wet[n] === 1) { same = false; break; } }
+        if (same) uni[k] = (c >= 1 && c <= 5 ? c : R3_MAT.keep) | (raw & 16);
+    }
+    yield;
+    // (what each column and row works out to, once: the loop below runs for every pixel of every piece)
+    const colF = new Int32Array(N), colT = new Int32Array(N), kCol = new Int32Array(SW), kRow = new Int32Array(SW);
+    for (let x = 0; x < N; x++) { const wx = x0 + x; colF[x] = ((wx % FS) + FS) % FS; colT[x] = Math.floor(wx / TILE) - tx0; }
+    for (let q = 0; q < SW; q++) { kCol[q] = Math.floor((x0 - M + q + 0.5) / TILE) - kx0; kRow[q] = (Math.floor((y0 - M + q + 0.5) / TILE) - ky0) * KW; }
+    const src32 = new Uint32Array(src.buffer, src.byteOffset, SW * SW), dst32 = new Uint32Array(dst.buffer, dst.byteOffset, N * N);
     for (let y = 0; y < N; y++) {
-        const wy = y0 + y, fy = ((wy % FS) + FS) % FS, tj = Math.floor(wy / TILE) - ty0;
+        if (y && y % 64 === 0) yield;
+        const wy = y0 + y, fy = (((wy % FS) + FS) % FS) * FS, tj = (Math.floor(wy / TILE) - ty0) * TW;
         for (let x = 0; x < N; x++) {
-            const wx = x0 + x, fi = fy * FS + (((wx % FS) + FS) % FS), ti = Math.floor(wx / TILE) - tx0;
+            const fi = fy + colF[x];
             let px = x + M, py = y + M;
-            if (!nearHard[tj * TW + ti]) { px += F.ox[fi]; py += F.oy[fi]; }
-            const si = (py * SW + px) * 4, di = (y * N + x) * 4;
-            dst[di] = src[si]; dst[di + 1] = src[si + 1]; dst[di + 2] = src[si + 2]; dst[di + 3] = src[si + 3];
-            cls[y * N + x] = r3KindAt(K, x0 - M + px + 0.5, y0 - M + py + 0.5, src[si], src[si + 1], src[si + 2]);
+            if (!nearHard[tj + colT[x]]) { px += F.ox[fi]; py += F.oy[fi]; }
+            const sp = py * SW + px, dp = y * N + x;
+            dst32[dp] = src32[sp];
+            const u = uni[kRow[py] + kCol[px]];
+            cls[dp] = u !== 255 ? u : r3KindAt(K, x0 - M + px + 0.5, y0 - M + py + 0.5, src[sp * 4], src[sp * 4 + 1], src[sp * 4 + 2]);
         }
     }
     return { img: out, all, cls };
 }
-function dropChunk(ch) { R3.scene.remove(ch.mesh); ch.mesh.geometry.dispose(); ch.mat.dispose(); ch.tex.dispose(); if (ch.kinds) ch.kinds.dispose(); }
+function dropChunk(ch) { if (R3._job && R3._job.ch === ch) R3._job = null; R3.scene.remove(ch.mesh); ch.mesh.geometry.dispose(); ch.mat.dispose(); ch.tex.dispose(); if (ch.kinds) ch.kinds.dispose(); }
 /* a quick fingerprint of a card's pixels (every 7th one) */
 function cardHash(c) {
     let d;

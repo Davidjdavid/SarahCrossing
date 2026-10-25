@@ -50,6 +50,9 @@ docs/DEPLOY.md for the server.
   computers, reflects (`R3Mirror`); the ground up close is fine pixel art by kind (grass, dirt, cobbles, sand, stone
   walls on anything steep, stairs: `31a_ground3d.js`) where the painted picture would smear; tufts, lily pads and cattails are
   instanced meshes refilled as the view moves. Tune the camera, bend and haze in `R3_CAM` / `R3_FOG`.
+- The ground's pieces (15 tiles square) are made just before they come into view, painted a few milliseconds a frame
+  (`paintChunkSteps`), and painted again only when something drawn into them changes (`r3ChunkSig`: plots, things on the
+  ground, Sarah's paths). Never paint pieces on a timer or several in one frame: that is what made walking hitch.
 - Houses and `HD_SPR` pictures are drawn by a worker (`HDW` in 32_hd.js; the build makes
   `assets/hdw-*.js` from 2b_exterior.js and the 32*.js files, so those files must not touch the page
   at load time). Until a picture arrives the card shows today's sprite. `hdNamed(name, true)` draws
