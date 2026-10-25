@@ -451,14 +451,15 @@ const R3 = {
         const tint = new THREE.Color(L.col[0] / 255, L.col[1] / 255, L.col[2] / 255);
         const day = 1 - dark, gray = L.gray;
         // (in the new look a grey day's light is soft all round: the sun dimmer, its shadows faint, the sky's light up)
-        const soft = Env.on && !a.interior ? gray : 0;
-        this.sun.intensity = a.interior ? 0.32 : (0.72 * day + 0.04) * (1 - gray * 1.6) * (1 - soft * 1.8);
+        const soft = Env.on && !a.interior ? gray : 0, room = a.interior && typeof EnvRoom !== 'undefined' && EnvRoom.on;
+        // (a room in the new look is lit brighter and warmer: its models have colors of their own to show)
+        this.sun.intensity = a.interior ? (room ? 0.5 : 0.32) : (0.72 * day + 0.04) * (1 - gray * 1.6) * (1 - soft * 1.8);
         this.sun.color.setRGB(1, 0.92 + 0.04 * day, 0.78 + 0.12 * day).lerp(tint, dark * 0.6);
         // the sun always casts shadows (switching that off at dusk would rebuild every material at once, a long stall): they
         // fade out as the light goes, and by night the shadow map isn't redrawn
         R3U.uShadow.value = a.interior ? 1 : Math.max(0, Math.min(1, (day - 0.1) / 0.2)) * (1 - soft * 3);
         this.shadowsOn = R3U.uShadow.value > 0;
-        this.hemi.intensity = 0.38 + 0.08 * day + soft * 0.5 * day;
+        this.hemi.intensity = room ? 0.56 : 0.38 + 0.08 * day + soft * 0.5 * day;
         this.hemi.color.setRGB(0.69, 0.79, 0.93).lerp(tint, dark * 0.8);
         this.hemi.groundColor.setRGB(0.54, 0.49, 0.34).lerp(tint, dark * 0.8);
         const fog = new THREE.Color(R3_FOG.col[0], R3_FOG.col[1], R3_FOG.col[2]).lerp(new THREE.Color(0.62, 0.66, 0.7), gray).lerp(tint, dark * 0.85);
@@ -475,7 +476,7 @@ const R3 = {
             u.uHor.value.copy(fog);
             u.uDay.value = day * (1 - gray * 0.4);
         }
-        this.grade = { dark, gray, warm: Env.on && !a.interior ? 1 - dark : 0 };
+        this.grade = { dark, gray, warm: Env.on && !a.interior ? 1 - dark : room ? 0.75 : 0 };
         // lit windows: from dusk, brighter as it gets darker, until whoever lives there goes to bed (Sarah leaves hers on)
         const glow = a.interior ? 0 : Math.max(0, Math.min(1, (dark - 0.25) / 0.45)) * 0.85;
         const hr = Clock.hourF(), late = hr >= 0 && hr < 5;
@@ -1393,6 +1394,8 @@ function placeCard(c, e, a) {
     if (a.interior && a.floor && e.y < a.floor.y0 * TILE + 2) { lift = (a.floor.y0 * TILE - e.y) / TILE * R3_VS * 1.6; z = a.floor.y0 * TILE / TILE * R3_ZS + 0.01; }
     // a shopkeeper at the counter along the back wall stands on a step behind it, so they show over it as in the flat view
     else if (a.interior && e.npc && a.room && a.room.staff === e.id && a.floor && e.y < (a.floor.y0 + 1.5) * TILE) lift += 0.5 * R3_VS;
+    // (in the new look's rooms, a thing on a table that's a model stands on the model's top)
+    else if (a.interior && e.furn && typeof EnvRoom !== 'undefined') { const P = EnvRoom.place(e); if (P) { lift = P.y; z = P.z; } }
     c.mesh.position.set(Math.round(e.x) / TILE, lift, z + 0.001 * ((e.x * 7) % 3));
     // in the new 3D look people stand a little bigger against the world, as in the concept, and things lying about
     // (shells, dropped things) smaller: a tile-wide sand dollar looks like a loaf beside the miniature benches

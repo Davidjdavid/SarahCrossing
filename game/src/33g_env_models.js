@@ -18,17 +18,23 @@ const EnvModels = {
         if (this._p) return this._p;
         if (typeof THREE === 'undefined' || !THREE.GLTFLoader || !window.MODELS) { this.failed = true; return (this._p = Promise.resolve(false)); }
         const loader = new THREE.GLTFLoader(), tl = new THREE.TextureLoader(), names = this.names();
-        // (how far along, for the moment of getting the island ready: Env.cover)
-        this.total = names.length + Object.keys(window.TEXTURES || {}).length;
         // (the ground's surfaces too: repeating, sharp at a slant, their colors as they are; the file's top row is north)
         const texs = Object.entries(window.TEXTURES || {}).map(([n, url]) => new Promise((ok, bad) => tl.load(url, t => {
             t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; t.flipY = false; t.encoding = THREE.LinearEncoding; t.needsUpdate = true;
             this.textures[n] = t; this.done++; ok();
         }, undefined, bad)));
-        this._p = Promise.all(names.map(n => new Promise((ok, bad) => loader.load(window.MODELS[n], g => { this.done++; ok([n, g]); }, undefined, bad))).concat(texs))
+        // (the rooms' furniture comes after: the island never waits for it, and a piece shows its picture till it's in)
+        const later = names.filter(n => /^furn_/.test(n)), first = names.filter(n => !/^furn_/.test(n));
+        this.total = first.length + Object.keys(window.TEXTURES || {}).length;
+        const get = n => new Promise((ok, bad) => loader.load(window.MODELS[n], g => ok([n, g]), undefined, bad));
+        this._p = Promise.all(first.map(n => get(n).then(r => { this.done++; return r; })).concat(texs))
             .then(list => {
                 for (const it of list) if (it) { const [n, g] = it; this.models[n.replace(/_lod\d$/, '')] = this.prepare(g.scene, n); }
                 this.ready = true;
+                // then the furniture, a few at a time
+                let i = 0;
+                const next = () => { const n = later[i++]; if (!n) return; get(n).then(([n, g]) => { this.models[n] = this.prepare(g.scene, n); this.furnN = (this.furnN || 0) + 1; }).catch(e => console.warn('a piece of furniture could not be loaded', n, e)).then(next); };
+                for (let k = 0; k < 4; k++) next();
                 return true;
             })
             .catch(e => { console.error('the models could not be loaded (the new look draws its own)', e); this.failed = true; return false; });
@@ -74,6 +80,8 @@ const EnvModels = {
         // (flames: unlit, their own colors)
         if (/glow/i.test(m.name || '')) { const b = r3Patch(new THREE.MeshBasicMaterial({ vertexColors: true }), { key: 'envmodelglow', see: true }); b.name = m.name; return b; }
         const glass = /glass/i.test(m.name || '');
+        // (a display case's glass: see-through, a faint sheen)
+        if (/_clear$/.test(m.name || '')) { const c = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: !!m.vertexColors, color: m.color, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.28, depthWrite: false }), { key: 'envmodelclear' }); c.name = m.name; return c; }
         if (m.map) m.map.encoding = THREE.LinearEncoding;
         const opts = { map: m.map || null, color: m.map ? 0xffffff : m.color, roughness: glass ? 0.35 : /gloss/.test(m.name || '') ? 0.5 : 0.92, metalness: 0, vertexColors: !m.map && !!m.vertexColors };
         // (the pines' needle tufts are mostly in the normal map: a little stronger than baked, as the concept's are crisp)

@@ -5,7 +5,7 @@
    and a sill across the front with a gap for the doorway. The furniture still stands up as the HD view's pictures
    until its models are made (EnvRoom.takes). */
 const EnvRoom = {
-    on: false, built: null,
+    on: false, built: null, rk: 0,
     WH: 2.3,            // the walls' height (world units; a tile is one across)
     active(a) { return !!a && a.interior && Env.want() && typeof EnvModels !== 'undefined' && EnvModels.ready; },
     /* the HD-2D view asks every frame indoors: draw this room the new way? */
@@ -24,6 +24,7 @@ const EnvRoom = {
             const B = this.built.back;
             if (B.map !== r3.wall.tex) { B.map = B.emissiveMap = r3.wall.tex; B.needsUpdate = true; }
         }
+        this.furniture(r3, a);
         EnvDolls.attach(this.built.group);
         EnvDolls.tick(r3, a);
         R3U.uSee.value.w = 0;
@@ -31,8 +32,50 @@ const EnvRoom = {
     },
     /* (built again when the room changes size or paper: the house grows, Sarah changes the wallpaper) */
     sig(a) { return [a.id, a.w, a.h, a.club ? 'disco' : a.wallId || S.house.wall, a.club ? 'disco' : a.floorId || S.house.floor].join('|'); },
-    /* what the room draws itself (nothing yet: the furniture's models come next) */
-    takes(e) { return false; },
+    /* what the room draws itself: the furniture made in Blender (furniture.py), not what's hung on the wall, a rug, or a
+       piece drawn moving (an arcade cabinet's screen, the disco floor) */
+    model(e) {
+        if (!e.furn || !e.def || e.draw || e.def.kind === 'wall' || e.def.kind === 'rug') return null;
+        // (a plush is its folk's own model, small)
+        const n = /^plush_/.test(e.item.id) ? 'folk_' + e.item.id.slice(6) : 'furn_' + e.item.id;
+        return EnvModels.has(n) ? n : null;
+    },
+    PLUSH: 0.34,
+    takes(e) { return this.on && !!this.built && !!this.built.placed && this.built.placed.has(e); },
+    /* where a picture still drawn the HD way stands: a thing on a table that's a model stands on its top */
+    place(e) {
+        if (!this.on || !e.furn || e.def.kind !== 'top' || e.item.on == null || !this.built) return null;
+        const host = this.built.hosts && this.built.hosts.get(e.item.on);
+        return host ? { y: host.top, z: host.z } : null;
+    },
+    /* the furniture: built again whenever it changes (moved, added, the shop's stock of the day) */
+    furniture(r3, a) {
+        const B = this.built, list = a.ents.filter(e => e.furn && this.model(e));
+        // (each piece by its own entity: the room makes them afresh when it's rearranged or restocked)
+        const sig = list.map(e => (e._rk || (e._rk = ++this.rk)) + ':' + e.item.id + ',' + e.item.x + ',' + e.item.y + (e.flip ? 'f' : '')).join('|') + '#' + (EnvModels.furnN || 0);
+        if (sig === B.furnSig) return;
+        B.furnSig = sig;
+        if (B.furn) { B.group.remove(B.furn); B.furn = null; }
+        const g = B.furn = new THREE.Group();
+        B.group.add(g);
+        B.hosts = new Map();
+        B.placed = new Set();
+        // (pieces standing on others go after them, so their table's top is known)
+        list.sort((p, q) => (p.def.kind === 'top' && p.item.on != null ? 1 : 0) - (q.def.kind === 'top' && q.item.on != null ? 1 : 0));
+        for (const e of list) {
+            const n = this.model(e), d = e.def, it = e.item, h = d.kind === 'top' ? 1 : d.h;
+            const host = d.kind === 'top' && it.on != null ? B.hosts.get(it.on) : null;
+            if (d.kind === 'top' && it.on != null && !host) continue;     // (on a table still drawn as a picture: a picture too)
+            const x = it.x + d.w / 2, z = host ? host.z : (it.y + h / 2) * R3_ZS, y = host ? host.top : 0;
+            const m = new THREE.Matrix4().makeTranslation(x, y, z);
+            if (e.flip) m.multiply(new THREE.Matrix4().makeScale(-1, 1, 1));
+            if (/^folk_/.test(n)) m.multiply(new THREE.Matrix4().makeScale(this.PLUSH, this.PLUSH, this.PLUSH));
+            for (const mesh of EnvModels.place(g, n, m)) mesh.userData.shared = true;
+            B.placed.add(e);
+            const top = EnvModels.models[n].anchors.top;
+            if (top) B.hosts.set(e.idx, { top: top[0].y, z });
+        }
+    },
     hide(r3) {
         if (!this.on) return;
         this.on = false;
@@ -45,7 +88,8 @@ const EnvRoom = {
         if (!b) return;
         if (EnvDolls.group && EnvDolls.group.parent === b.group) b.group.remove(EnvDolls.group);
         r3.scene.remove(b.group);
-        b.group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); });
+        // (the furniture's geometry and materials are the models', kept for the next room)
+        b.group.traverse(o => { if (o.userData.shared) return; if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); });
         for (const t of b.textures) t.dispose();
     },
     build(r3, a, sig) {

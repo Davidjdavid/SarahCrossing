@@ -108,8 +108,14 @@ docs/DEPLOY.md for the server.
 - Rooms in the new look (`EnvRoom`, 33l_env_room.js): the dolls and folks go indoors too (`EnvDolls.attach` moves them
   between the island's group and the room's), and the room is a box you look into: the back wall wears the HD view's
   wall picture (so what's hung there shows), the side walls one tile of its paper repeated, skirting boards, dark cut
-  tops, a sill with the doorway. The floor and the furniture are still the HD view's until the furniture's models come
-  (`EnvRoom.takes`).
+  tops, a sill with the doorway; it's lit brighter and warmer than the HD view's rooms. The floor pieces of furniture
+  are models from `furniture.py` (`furn_<id>`: the kit in `furn_kit.py`, the pieces in `furn_a.py`..`furn_d.py`, one
+  file per batch; `--batch furn_b` builds one), placed on their footprints by `EnvRoom.furniture` (built again when the
+  room changes); a plush is its folk's model, small. What a model doesn't cover stays the HD view's picture: what's
+  hung on the wall (on the back wall's picture), rugs (on the floor), pieces drawn moving (arcade cabinets, the disco
+  floor), and the small things on tables, which stand on the model's top (`anchor_top`, `EnvRoom.place`). The
+  furniture loads after the island's models, so the island never waits for it. Glass is a part named `*_clear`
+  (see-through).
 - The important things are models made in Blender, not in code: `tools/blender/*.py` (`common.py` has the helpers: the
   game's camera and sun for previews, baking, GLB export). Blender runs as a Python module: `pip install bpy` (Blender
   5.x, about 1 GB, fine in a venv), then `python tools/blender/cottage.py --preview DIR` (or `shop.py`,
@@ -131,7 +137,7 @@ docs/DEPLOY.md for the server.
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
-  steps): the game loads every model at once, so keep `game/assets/models/` light (about 36 MB now). `doll.py` was the
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 43 MB now, 7 of it furniture). `doll.py` was the
   mock-up of the people as dolls. `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height

@@ -58,7 +58,8 @@ const EnvWater = {
             group.add(m); meshes.push(m);
         }
         // waterfalls
-        const fallMat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }), { key: 'envfall', fhead: 'varying vec2 vFall;\n', vhead: 'attribute vec2 aFall; varying vec2 vFall;\n', vbody: 'vFall = aFall;', fpre: EnvWater.FALL, dofFixed: null });
+        // (see-through at its sides and its foot, which breaks up into the spray)
+        const fallMat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, depthWrite: false }), { key: 'envfall', fhead: 'varying vec3 vFall;\n', vhead: 'attribute vec3 aFall; varying vec3 vFall;\n', vbody: 'vFall = aFall;', fpre: EnvWater.FALL, noDof: true });
         const fp = [], fi = [], fa = [], falls = [];
         for (const wf of W0.waterfalls || []) {
             // (as wide as the stream, not the tiles it covers: the wall shows either side, as in the concept)
@@ -68,11 +69,14 @@ const EnvWater = {
             const path = [], cz = z - 0.12, cy = top - 0.1, rr = 0.22;
             for (let k = 0; k <= 5; k++) { const an = k / 5 * Math.PI / 2; path.push([cz - 0.25 * (k === 0 ? 1 : 0) + rr * Math.sin(an), cy + rr * Math.cos(an)]); }
             for (let k = 1; k <= 10; k++) { const t = k / 10; path.push([cz + rr + 0.14 * t * t, cy - (cy - bot) * t]); }
-            let along = 0;
-            const cols = 8, b0 = fp.length / 3;
+            let along = 0, total = 0;
+            path.forEach(([pz, py], j) => { if (j) total += Math.hypot(pz - path[j - 1][0], py - path[j - 1][1]); });
+            const cols = 10, b0 = fp.length / 3;
             path.forEach(([pz, py], j) => {
                 if (j) along += Math.hypot(pz - path[j - 1][0], py - path[j - 1][1]);
-                for (let i = 0; i <= cols; i++) { const u = i / cols; fp.push(x0 + 0.04 + (x1 - x0 - 0.08) * u, py, pz + 0.05 * Math.sin(Math.PI * u)); fa.push(u, along); }
+                // (a little wider than the stream at the foot, as falling water spreads)
+                const spread = 0.06 * (along / total);
+                for (let i = 0; i <= cols; i++) { const u = i / cols; fp.push(x0 + 0.02 - spread + (x1 - x0 - 0.04 + 2 * spread) * u, py, pz + 0.06 * Math.sin(Math.PI * u)); fa.push(u, along, along / total); }
             });
             for (let j = 0; j < path.length - 1; j++) for (let i = 0; i < cols; i++) { const a0 = b0 + j * (cols + 1) + i; fi.push(a0, a0 + cols + 1, a0 + 1, a0 + 1, a0 + cols + 1, a0 + cols + 2); }
             const foot = path[path.length - 1][0];
@@ -86,9 +90,10 @@ const EnvWater = {
         if (fp.length) {
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3));
-            g.setAttribute('aFall', new THREE.Float32BufferAttribute(fa, 2));
+            g.setAttribute('aFall', new THREE.Float32BufferAttribute(fa, 3));
             g.setIndex(fi);
             const m = new THREE.Mesh(g, fallMat);
+            m.renderOrder = 1;
             group.add(m); meshes.push(m);
         }
         // mossy rocks either side of each fall's foot and on its lip (made in Blender)
@@ -130,8 +135,8 @@ const EnvWater = {
         g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
         const tex = new THREE.CanvasTexture(cv);
         const pos = [], uv = [], ph = [], idx = [], r = mulberry(hash32('spray' + x));
-        for (let i = 0; i < 14; i++) {
-            const px = x + (r() - 0.5) * w, pz = z + r() * 0.4, s = 0.35 + r() * 0.35, b = pos.length / 3;
+        for (let i = 0; i < 18; i++) {
+            const px = x + (r() - 0.5) * w * 1.1, pz = z + r() * 0.35, s = 0.16 + r() * 0.22, b = pos.length / 3;
             for (const [cx, cy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { pos.push(px + cx * s, y + 0.15 + cy * s * 0.8, pz); uv.push((cx + 1) / 2, (cy + 1) / 2); ph.push(r()); }
             idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
         }
@@ -140,8 +145,8 @@ const EnvWater = {
         geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
         geo.setAttribute('aPh', new THREE.Float32BufferAttribute(ph, 1));
         geo.setIndex(idx);
-        const mat = r3Patch(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.85 }), {
-            key: 'envspray', vhead: 'attribute float aPh; varying float vPh;\n', vbody: 'vPh = aPh; transformed.y += fract(uTime * 0.35 + aPh) * 0.5;', fhead: 'varying float vPh;\n',
+        const mat = r3Patch(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.6 }), {
+            key: 'envspray', vhead: 'attribute float aPh; varying float vPh;\n', vbody: 'vPh = aPh; float k = fract(uTime * 0.3 + aPh); transformed.y += k * 0.45; transformed.xz += (transformed.xz - position.xz) * k * 0.6;', fhead: 'varying float vPh;\n',
             fpre: 'gl_FragColor.a *= 1.0 - fract(uTime * 0.35 + vPh);', noDof: true,
         });
         const m = new THREE.Mesh(geo, mat);
@@ -238,14 +243,21 @@ EnvWater.FPRE = `
     wc = mix(wc, vec3(0.96, 0.98, 1.0), clamp(foam, 0.0, 0.9));
     gl_FragColor.rgb = wc;
 }`;
-/* a waterfall's sheet: streaks rushing down, lighter at the edges and at the foot */
+/* a waterfall's sheet: glassy water over the lip, then streaks rushing down faster as it falls, see-through at its
+   sides, its foot breaking up raggedly into the spray */
 EnvWater.FALL = `
 {
-    float t = vFall.y, u = vFall.x;
-    float s1 = r3n(vec2(u * 18.0, t * 1.5 - uTime * 3.2)), s2 = r3n(vec2(u * 41.0 + 3.0, t * 2.4 - uTime * 4.1));
-    float streak = smoothstep(0.35, 0.75, s1 * 0.6 + s2 * 0.4);
-    vec3 col = mix(vec3(0.42, 0.74, 0.86), vec3(0.95, 0.99, 1.0), streak * 0.85 + 0.1);
-    float edge = smoothstep(0.0, 0.12, u) * smoothstep(1.0, 0.88, u);
-    col = mix(vec3(0.9, 0.96, 1.0), col, edge * 0.8 + 0.2);
-    gl_FragColor.rgb = col;
+    float t = vFall.y, u = vFall.x, tn = vFall.z;
+    float sp = t * 1.6 - uTime * (1.6 + 2.6 * tn);
+    float s1 = r3n(vec2(u * 16.0, sp)), s2 = r3n(vec2(u * 37.0 + 3.0, sp * 1.5 - uTime * 0.8));
+    float streak = smoothstep(0.38, 0.78, s1 * 0.6 + s2 * 0.4);
+    // over the lip it's smooth clear water, turning white as it falls
+    float white = smoothstep(0.08, 0.5, tn);
+    vec3 deep = vec3(0.36, 0.68, 0.82), lite = vec3(0.96, 0.99, 1.0);
+    vec3 col = mix(deep, lite, clamp(streak * (0.45 + 0.5 * white) + 0.15 + 0.3 * white, 0.0, 1.0));
+    col += vec3(0.12) * smoothstep(0.06, 0.0, abs(tn - 0.04));       // (the light catching the lip)
+    float edge = smoothstep(0.0, 0.16, u) * smoothstep(1.0, 0.84, u);
+    float foot = 1.0 - smoothstep(0.78, 1.0, tn + (r3n(vec2(u * 9.0, uTime * 1.3)) - 0.5) * 0.18);
+    float a = (0.8 + 0.18 * streak) * mix(0.5, 1.0, edge) * foot;
+    gl_FragColor = vec4(col, clamp(a, 0.0, 0.97));
 }`;

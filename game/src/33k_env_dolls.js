@@ -44,6 +44,11 @@ const EnvDolls = {
     },
     /* sitting: Sarah on a bench, a neighbor seated or lounging */
     sitting(e) { return !!e.sit || (!!e.def && (isSeated(e) || isLounging(e))); },
+    /* a shopkeeper behind the counter along the back wall stands on a step there, so they show over it */
+    step(e) {
+        const a = G.area;
+        return a && a.interior && e.npc && a.room && a.room.staff === e.id && a.floor && e.y < (a.floor.y0 + 1.5) * TILE ? 0.38 : 0;
+    },
     /* (every pose is a doll's now; only someone hidden has none) */
     canPose(e) { return !e.hidden; },
     tick(r3, a) {
@@ -108,7 +113,7 @@ const EnvDolls = {
         const root = d.root;
         root.visible = true;
         // (sitting on a bench: the seat's height, legs out in front)
-        const gy = Env.groundH(e.x, e.y), sitY = Q && Q.sit ? gy + 0.46 - 0.4 * DOLL.H : gy;
+        const gy = Env.groundH(e.x, e.y) + this.step(e), sitY = Q && Q.sit ? gy + 0.46 - 0.4 * DOLL.H : gy;
         root.position.set(e.x / TILE, sitY + (e.hop || 0) / TILE, e.y / TILE * R3_ZS + (Q && Q.sit ? 0.12 : 0));
         root.rotation.y = d.ang;
         // where the joints want to be
@@ -205,7 +210,7 @@ const EnvDolls = {
         const root = d.root;
         root.visible = true;
         // where it stands: on the ground (a bench's seat, a blanket, down in the spring's water for Wonton)
-        const gy = Env.groundH(e.x, e.y), hop = (e.hop || 0) / TILE * 0.6;
+        const gy = Env.groundH(e.x, e.y) + this.step(e), hop = (e.hop || 0) / TILE * 0.6;
         let y = gy + hop, z = e.y / TILE * R3_ZS;
         if (seat) { y = gy + 0.36; z += 0.1; }
         else if (lounge) y = gy - 0.02;
