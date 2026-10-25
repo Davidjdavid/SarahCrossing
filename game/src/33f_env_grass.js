@@ -18,6 +18,7 @@ const EnvGrass = {
                 const x = tx + r(), y = ty + r(), g = kinds(x, y);
                 if (g < 0.35) continue;
                 if (this.steep(x, y)) continue;
+                if (G.wetAt(x, y) > 0.1) continue;           // (not on a pond's or stream's damp bank)
                 if (blocked(x, y) && r() < 0.85) continue;
                 const edge = g < 0.75;                        // at a path's edge: a bit taller, leaning out
                 tufts.push([x, y, edge]);

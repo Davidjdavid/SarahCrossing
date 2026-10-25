@@ -59,20 +59,29 @@ const EnvWater = {
         }
         // waterfalls
         const fallMat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }), { key: 'envfall', fhead: 'varying vec2 vFall;\n', vhead: 'attribute vec2 aFall; varying vec2 vFall;\n', vbody: 'vFall = aFall;', fpre: EnvWater.FALL, dofFixed: null });
-        const fp = [], fi = [], fa = [];
+        const fp = [], fi = [], fa = [], falls = [];
         for (const wf of W0.waterfalls || []) {
             // (as wide as the stream, not the tiles it covers: the wall shows either side, as in the concept)
             const xs = wf.tiles.map(t => t[0]), ys = wf.tiles.map(t => t[1]), mx = (Math.min(...xs) + Math.max(...xs) + 1) / 2, hw = Math.min(0.6, (Math.max(...xs) + 1 - Math.min(...xs)) / 2), x0 = mx - hw, x1 = mx + hw, rowTop = Math.min(...ys);
             const top = BASE + wf.level * LV - 0.14, bot = BASE + (L(Math.floor(mx), rowTop + 2) >= 0 ? L(Math.floor(mx), rowTop + 2) : 0) * LV - 0.14, z = (rowTop + 1) * R3_ZS;
-            // a lip curving over the edge, then the sheet, bulging out a little as it falls
-            const rows = 10;
-            for (let j = 0; j <= rows; j++) {
-                const t = j / rows, yy = top + 0.06 - (top - bot) * t * t * 0 - (top - bot) * t, zz = z + 0.08 + Math.sin(t * Math.PI * 0.5) * 0.28 - (j === 0 ? 0.35 : 0);
-                for (const [xx, u] of [[x0 + 0.05, 0], [x1 - 0.05, 1]]) { fp.push(xx, yy, zz); fa.push(u, t * (top - bot)); }
-            }
-            const base = fp.length / 3 - (rows + 1) * 2;
-            for (let j = 0; j < rows; j++) { const a0 = base + j * 2; fi.push(a0, a0 + 2, a0 + 1, a0 + 1, a0 + 2, a0 + 3); }
-            this.spray(group, (x0 + x1) / 2, bot, z + 0.45, x1 - x0, meshes);
+            // the water curls over a rounded lip, then falls, bulging out a little in the middle and leaning out as it goes
+            const path = [], cz = z - 0.12, cy = top - 0.1, rr = 0.22;
+            for (let k = 0; k <= 5; k++) { const an = k / 5 * Math.PI / 2; path.push([cz - 0.25 * (k === 0 ? 1 : 0) + rr * Math.sin(an), cy + rr * Math.cos(an)]); }
+            for (let k = 1; k <= 10; k++) { const t = k / 10; path.push([cz + rr + 0.14 * t * t, cy - (cy - bot) * t]); }
+            let along = 0;
+            const cols = 8, b0 = fp.length / 3;
+            path.forEach(([pz, py], j) => {
+                if (j) along += Math.hypot(pz - path[j - 1][0], py - path[j - 1][1]);
+                for (let i = 0; i <= cols; i++) { const u = i / cols; fp.push(x0 + 0.04 + (x1 - x0 - 0.08) * u, py, pz + 0.05 * Math.sin(Math.PI * u)); fa.push(u, along); }
+            });
+            for (let j = 0; j < path.length - 1; j++) for (let i = 0; i < cols; i++) { const a0 = b0 + j * (cols + 1) + i; fi.push(a0, a0 + cols + 1, a0 + 1, a0 + 1, a0 + cols + 1, a0 + cols + 2); }
+            const foot = path[path.length - 1][0];
+            // (on whatever is there: the foot's water or the ground beside it)
+            const gh = (x, zz) => Math.max(bot, EnvGround.heightAt(x, zz / R3_ZS));
+            this.pool(group, (x0 + x1) / 2, gh((x0 + x1) / 2, foot + 0.5) + 0.02, foot + 0.5, hw + 0.45, meshes);
+            for (const [x, zz, sc, rot] of [[x0 - 0.32, foot + 0.1, 0.75, 0.4], [x1 + 0.32, foot + 0.15, 0.65, 2.8], [x0 - 0.18, z - 0.45, 0.45, 1.2], [x1 + 0.2, z - 0.5, 0.4, 4.0]])
+                falls.push([x, gh(x, zz) - 0.04, zz, sc, rot]);
+            this.spray(group, (x0 + x1) / 2, bot, foot + 0.4, x1 - x0, meshes);
         }
         if (fp.length) {
             const g = new THREE.BufferGeometry();
@@ -82,8 +91,36 @@ const EnvWater = {
             const m = new THREE.Mesh(g, fallMat);
             group.add(m); meshes.push(m);
         }
+        // mossy rocks either side of each fall's foot and on its lip (made in Blender)
+        if (falls.length && typeof EnvModels !== 'undefined' && EnvModels.has('falls_rocks'))
+            for (const m of EnvModels.instances(group, 'falls_rocks', falls.map(([x, y, z, sc, rot]) => EnvModels.mat4(x, y, z, rot, sc)))) { m.userData.shared = true; meshes.push(m); }
         this.banks(group, a, wet, surf, meshes);
         return { meshes, tick: (r3) => { if (r3.sun) uniforms.uSunDir.value.copy(r3.sun.position).sub(r3.sun.target.position).normalize(); if (r3.hemi) uniforms.uSky.value.copy(r3.hemi.color); if (r3.sea) r3.sea.visible = false; } };
+    },
+    /* where a waterfall lands: a pool of foam on the water, bubbles drifting and rings spreading out from the fall */
+    pool(group, x, y, z, rx, meshes) {
+        const pos = [], sp = [], idx = [], n = 24;
+        pos.push(x, y + 0.02, z); sp.push(0, 0);
+        for (let i = 0; i <= n; i++) { const an = i / n * Math.PI * 2; pos.push(x + Math.cos(an) * rx, y + 0.02, z + Math.sin(an) * 0.55); sp.push(Math.cos(an), Math.sin(an)); }
+        for (let i = 0; i < n; i++) idx.push(0, i + 2, i + 1);
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        geo.setAttribute('aSp', new THREE.Float32BufferAttribute(sp, 2));
+        geo.setIndex(idx);
+        const mat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false }), {
+            key: 'envpool', vhead: 'attribute vec2 aSp; varying vec2 vSp;\n', vbody: 'vSp = aSp;', fhead: 'varying vec2 vSp;\n', noDof: true,
+            fpre: `{
+                vec2 q = vSp; q.y += 0.55;                       // (the rings start from the fall, at the pool's back)
+                float d = length(vec2(vSp.x, (vSp.y + 0.35) * 0.8));
+                float rings = smoothstep(0.1, 0.0, abs(fract(length(q) * 2.6 - uTime * 0.55) - 0.5) - 0.36);
+                float bub = smoothstep(0.52, 0.74, r3n(vWp.xz * 5.0 + vec2(0.0, uTime * 0.7)) * 0.6 + r3n(vWp.xz * 11.0 - uTime * 0.4) * 0.4);
+                float a = (rings * 0.5 + bub * 0.85) * smoothstep(1.0, 0.55, length(vSp)) + smoothstep(0.5, 0.0, d) * 0.8;
+                gl_FragColor = vec4(vec3(0.97, 0.99, 1.0), clamp(a, 0.0, 0.92));
+            }`,
+        });
+        const m = new THREE.Mesh(geo, mat);
+        m.renderOrder = 1;
+        group.add(m); meshes.push(m);
     },
     /* spray at a waterfall's foot: a few soft white puffs that rise and fade */
     spray(group, x, y, z, w, meshes) {
@@ -114,6 +151,9 @@ const EnvWater = {
     /* lily pads on still water, cattails and stones along the banks */
     banks(group, a, wet, surf, meshes) {
         const r = mulberry(4401), Wt = W0.w, Ht = W0.h, pads = { p: [], c: [], idx: [] }, reeds = { p: [], c: [], idx: [] };
+        // (lily pads, cattails and pebbles made in Blender where they've arrived, else boxes)
+        const has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n), placed = {};
+        const put = (n, x, y, z, rot, s) => { (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y, z, rot, s)); return true; };
         const box = (B, x0, y0, z0, x1, y1, z1, col) => {
             const b = B.p.length / 3, k = EnvTex.hex(col).map(v => v / 255);
             const v = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
@@ -125,6 +165,7 @@ const EnvWater = {
             // lily pads: on pond tiles away from the edge
             if (g === 'o' && [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dy]) => W0.grid[y + dy][x + dx] === 'o') && r() < 0.55) {
                 const s = surf(x, y) + 0.015, cx = x + 0.2 + r() * 0.6, cz = (y + 0.2 + r() * 0.6) * R3_ZS, rad = 0.2 + r() * 0.12, b = pads.p.length / 3, notch = r() * 6.28;
+                if (has('lilypad')) { put(r() < 0.3 && has('lilypad_flower') ? 'lilypad_flower' : 'lilypad', cx, s, cz, notch, rad / 0.26); continue; }
                 pads.p.push(cx, s, cz); pads.c.push(0.28, 0.56, 0.24);
                 for (let i = 0; i <= 12; i++) { const an = notch + 0.35 + i / 12 * (Math.PI * 2 - 0.7); pads.p.push(cx + Math.cos(an) * rad, s, cz + Math.sin(an) * rad * 0.9); const k = 0.85 + r() * 0.3; pads.c.push(0.33 * k, 0.66 * k, 0.28 * k); }
                 for (let i = 0; i < 12; i++) pads.idx.push(b, b + 2 + i, b + 1 + i);
@@ -135,10 +176,13 @@ const EnvWater = {
             const by = [[1, 0], [-1, 0], [0, 1], [0, -1]];
             if (!wet(x, y) && W0.grid[y][x] === 'g' && by.some(([dx, dy]) => wet(x + dx, y + dy))) {
                 const yy = Env.groundH((x + 0.5) * TILE, (y + 0.5) * TILE);
-                if (by.some(([dx, dy]) => W0.grid[y + dy][x + dx] === 'o') && r() < 0.22) for (let k = 0; k < 3; k++) { const cx = x + 0.3 + r() * 0.4, cz = (y + 0.3 + r() * 0.4) * R3_ZS, h = 0.4 + r() * 0.3; box(reeds, cx - 0.014, yy, cz - 0.014, cx + 0.014, yy + h, cz + 0.014, '#5a8a3a'); box(reeds, cx - 0.032, yy + h - 0.15, cz - 0.032, cx + 0.032, yy + h - 0.02, cz + 0.032, '#7a4a28'); }
-                if (r() < 0.6) { const sx = x + r(), sz = (y + r()) * R3_ZS, s = 0.08 + r() * 0.1; box(reeds, sx - s, yy - 0.05, sz - s * 0.8, sx + s, yy + s * 0.7, sz + s * 0.8, ['#9a958c', '#aca69c', '#8d887f'][r() * 3 | 0]); }
+                if (by.some(([dx, dy]) => W0.grid[y + dy][x + dx] === 'o') && r() < 0.22 && has('reeds')) put('reeds', x + 0.3 + r() * 0.4, yy - 0.02, (y + 0.3 + r() * 0.4) * R3_ZS, r() * 6.28, 0.9 + r() * 0.4);
+                else if (by.some(([dx, dy]) => W0.grid[y + dy][x + dx] === 'o') && r() < 0.22) for (let k = 0; k < 3; k++) { const cx = x + 0.3 + r() * 0.4, cz = (y + 0.3 + r() * 0.4) * R3_ZS, h = 0.4 + r() * 0.3; box(reeds, cx - 0.014, yy, cz - 0.014, cx + 0.014, yy + h, cz + 0.014, '#5a8a3a'); box(reeds, cx - 0.032, yy + h - 0.15, cz - 0.032, cx + 0.032, yy + h - 0.02, cz + 0.032, '#7a4a28'); }
+                if (r() < 0.6 && has('pebbles')) put('pebbles', x + r(), yy - 0.02, (y + r()) * R3_ZS, r() * 6.28, 0.8 + r() * 0.5);
+                else if (r() < 0.6) { const sx = x + r(), sz = (y + r()) * R3_ZS, s = 0.08 + r() * 0.1; box(reeds, sx - s, yy - 0.05, sz - s * 0.8, sx + s, yy + s * 0.7, sz + s * 0.8, ['#9a958c', '#aca69c', '#8d887f'][r() * 3 | 0]); }
             }
         }
+        for (const [n, list] of Object.entries(placed)) for (const m of EnvModels.instances(group, n, list)) { m.userData.shared = true; meshes.push(m); }
         for (const B of [pads, reeds]) {
             if (!B.p.length) continue;
             const g = new THREE.BufferGeometry();
@@ -189,6 +233,8 @@ EnvWater.FPRE = `
     // foam where it meets the shore (and on the sea, waves washing in)
     float foam = smoothstep(isSea > 0.5 ? 0.1 : 0.05, 0.0, d0) * smoothstep(0.35, 0.65, r3n(tp * 5.0 + vec2(uTime * 0.3, 0.0)) + 0.25) * (isSea > 0.5 ? 1.0 : 0.6);
     if (isSea > 0.5) foam += smoothstep(0.06, 0.0, abs(fract(depth * 2.2 - uTime * 0.18) - 0.5) - 0.44) * smoothstep(0.8, 0.1, depth) * 0.7;
+    // (a pond's or stream's edge drawn as a clean pale line, as the concept and Animal Crossing outline their water)
+    if (isSea < 0.5) foam = max(foam, smoothstep(0.05, 0.015, d0) * (0.7 + 0.3 * r3n(tp * 9.0 + uTime * 0.25)));
     wc = mix(wc, vec3(0.96, 0.98, 1.0), clamp(foam, 0.0, 0.9));
     gl_FragColor.rgb = wc;
 }`;

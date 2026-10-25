@@ -594,6 +594,89 @@ def barrel():
     return [(mb, 'main')]
 
 
+# ---------------------------------------------------------------- the water's edges
+def reeds():
+    """A clump of cattails: long blades leaning out, velvety brown heads on stems."""
+    mb = MB()
+    rng = random.Random(11)
+    for k in range(9):
+        a = rng.uniform(0, math.tau)
+        base = Vector((math.cos(a) * 0.06, math.sin(a) * 0.06, 0))
+        lean = Vector((math.cos(a), math.sin(a), 0)) * rng.uniform(0.08, 0.25)
+        h = rng.uniform(0.45, 0.8)
+        # a blade: a thin strip curving out
+        side = Vector((-math.sin(a), math.cos(a), 0))
+        pts, cols, ns, faces = [], [], [], []
+        for j in range(6):
+            t = j / 5
+            c = base + lean * t * t + Vector((0, 0, h * t))
+            w = 0.03 * (1 - t) + 0.004
+            pts += [c - side * w, c + side * w]
+            col = rgb('#4a7a30').lerp(rgb('#8ab850'), t)
+            cols += [col, col]
+            nn = Vector((math.cos(a), math.sin(a), 0.4)).normalized()
+            ns += [nn, nn]
+        for j in range(5):
+            i = j * 2
+            faces += [(i, i + 1, i + 3), (i, i + 3, i + 2)]
+        mb.add(pts, cols, ns, faces)
+        mb.add(pts, [c * 0.8 for c in cols], [-n for n in ns], faces)
+    for k in range(4):
+        a = rng.uniform(0, math.tau)
+        b = Vector((math.cos(a) * 0.05, math.sin(a) * 0.05, 0))
+        top = b + Vector((math.cos(a) * 0.06, math.sin(a) * 0.06, rng.uniform(0.6, 0.85)))
+        tube(mb, [b, b.lerp(top, 0.5), top], 0.008, shade('#5a8a3a'), seg=5)
+        ball(mb, top - Vector((0, 0, 0.08)), (0.028, 0.028, 0.08), col_fn('#6a3e22', mottle=0.06), sub=2)
+    return [(mb, 'main')]
+
+
+def lilypad(flower=False):
+    mb = MB()
+    pts, cols, ns, faces = [Vector((0, 0, 0.01))], [rgb('#3a7a30')], [Vector((0, 0, 1))], []
+    n = 18
+    for j in range(n + 1):
+        a = 0.35 + j / n * (math.tau - 0.7)
+        r = 0.26 * (1 + 0.04 * math.sin(a * 5))
+        pts.append(Vector((math.cos(a) * r, math.sin(a) * r, 0.0)))
+        cols.append(rgb('#4c9a3a').lerp(rgb('#6ab84a'), 0.5 + 0.5 * math.sin(a * 3)))
+        ns.append(Vector((0, 0, 1)))
+    for j in range(n):
+        faces.append((0, 1 + j, 2 + j))
+    mb.add(pts, cols, ns, faces)
+    # veins
+    for j in range(5):
+        a = 0.6 + j / 4 * (math.tau - 1.2)
+        tube(mb, [(0, 0, 0.012), (math.cos(a) * 0.22, math.sin(a) * 0.22, 0.012)], 0.004, shade('#7ac860'), seg=3)
+    if flower:
+        for ring, (cnt, L, c, tilt) in enumerate(((8, 0.085, '#f8c0d4', 0.5), (6, 0.065, '#ffdce8', 0.9))):
+            for k in range(cnt):
+                a = (k + ring * 0.5) / cnt * math.tau
+                d = Vector((math.cos(a), math.sin(a), tilt)).normalized()
+                ball(mb, Vector((-0.06, 0.04, 0.04)) + d * L * 0.6, (0.035, 0.035, 0.02), shade(c), sub=2)
+        ball(mb, (-0.06, 0.04, 0.07), 0.025, shade('#ffd84a'), sub=2)
+    return [(mb, 'main')]
+
+
+def pebbles():
+    mb = MB()
+    rng = random.Random(21)
+    for k in range(5):
+        a, d = rng.uniform(0, math.tau), rng.uniform(0, 0.22)
+        c = (math.cos(a) * d, math.sin(a) * d, -0.01)
+        rocks(mb, c, rng.uniform(0.05, 0.11), color=rng.choice(['#a8a298', '#968f86', '#b8b2a6', '#8a8aa0']), seed=k)
+    return [(mb, 'main')]
+
+
+def falls_rocks():
+    """Rocks to sit either side of a waterfall: a big mossy one and two small, dark and wet."""
+    mb = MB()
+    rocks(mb, (0, 0, -0.05), 0.42, color='#7a7a74', seed=31)
+    rocks(mb, (0.36, -0.22, -0.03), 0.18, color='#6e6e6a', seed=32)
+    rocks(mb, (-0.3, -0.25, -0.03), 0.14, color='#86847c', seed=33)
+    ball(mb, (-0.05, 0.05, 0.19), (0.2, 0.16, 0.08), col_fn('#5a8a3a', mottle=0.1), sub=2)
+    return [(mb, 'main')]
+
+
 PROPS = {
     'fountain': fountain, 'drinkfountain': drinkfountain, 'board': board, 'plaque': plaque, 'trashcan': trashcan, 'statue_david': statue,
     'signpost_trail': lambda: sign('trail'), 'signpost_farm': lambda: sign('farm'), 'signpost_camp': lambda: sign('camp'),
@@ -604,6 +687,7 @@ PROPS = {
     'campfire': campfire, 'bonfire': lambda: campfire(True), 'picnic': picnic, 'telescope': telescope, 'viewer': viewer, 'tackle': tackle,
     'driftwood': driftwood, 'rock_a': lambda: rock(1), 'rock_b': lambda: rock(7), 'icecream': icecream, 'sandcastle': sandcastle,
     'volleyball': volleyball, 'cart': cart, 'barrel': barrel,
+    'reeds': reeds, 'lilypad': lilypad, 'lilypad_flower': lambda: lilypad(True), 'pebbles': pebbles, 'falls_rocks': falls_rocks,
 }
 
 

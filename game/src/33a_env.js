@@ -222,6 +222,33 @@ const EnvGround = {
         t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true;
         return t;
     },
+    /* how near each spot is to a pond's or stream's water (8 pixels a tile, softened over about half a tile): the bank
+       there is damp, pebbly earth */
+    wetTex() {
+        const Wt = W0.w, Ht = W0.h, P = 8, N = Wt * P, M = Ht * P, v = new Float32Array(N * M), d = new Uint8Array(N * M * 4);
+        for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) { const g = W0.grid[Math.floor(y / P)][Math.floor(x / P)]; v[y * N + x] = g === 'o' || g === 'r' ? 1 : 0; }
+        const tmp = new Float32Array(N * M), R = 5;
+        for (let pass = 0; pass < 2; pass++) for (const horiz of [true, false]) {
+            for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) {
+                let s = 0, c = 0;
+                for (let k = -R; k <= R; k++) { const xx = horiz ? x + k : x, yy = horiz ? y : y + k; if (xx < 0 || yy < 0 || xx >= N || yy >= M) continue; s += v[yy * N + xx]; c++; }
+                tmp[y * N + x] = s / c;
+            }
+            v.set(tmp);
+        }
+        for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) d[((M - 1 - y) * N + x) * 4] = Math.round(v[y * N + x] * 255);
+        this.wet = { v, N, M, P };
+        const t = new THREE.DataTexture(d, N, M, THREE.RGBAFormat);
+        t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true;
+        return t;
+    },
+    /* how wet the bank is at a spot (tiles): 0 away from ponds and streams, 1 in them */
+    wetAt(x, y) {
+        const w = this.wet;
+        if (!w) return 0;
+        const i = Math.max(0, Math.min(w.N - 1, Math.floor(x * w.P))), j = Math.max(0, Math.min(w.M - 1, Math.floor(y * w.P)));
+        return w.v[j * w.N + i];
+    },
     build(group) {
         const C = this.cells(), R = ENV.RES, Wt = W0.w, Ht = W0.h, W = Wt * R + 1, Hn = Ht * R + 1, h = new Float32Array(W * Hn);
         for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) h[y * W + x] = this.sample(C, x / R, y / R);
@@ -248,6 +275,7 @@ const EnvGround = {
             tGrass: { value: B('lawn', 'col', grass.map) }, tDirt: { value: B('path', 'col', dirt.map) }, tCob: { value: B('flagstones', 'col', cob.map) }, tSand: { value: sand.map }, tWall: { value: wall.map },
             nGrass: { value: B('lawn', 'nrm', grass.normal) }, nDirt: { value: B('path', 'nrm', dirt.normal) }, nCob: { value: B('flagstones', 'nrm', cob.normal) }, nSand: { value: sand.normal }, nWall: { value: wall.normal },
             hCob: { value: B('flagstones', 'hgt', flat) }, hDirt: { value: B('path', 'hgt', flat) },
+            uWet: { value: this.wetTex() },
             uSeason: { value: new THREE.Vector4(1, 1, 1, 0) },
         };
         this.uniforms = uniforms;
@@ -302,7 +330,7 @@ EnvGround.FHEAD = `
 uniform sampler2D uKinds; uniform vec2 uMapSz; uniform vec4 uSeason;
 uniform sampler2D tGrass; uniform sampler2D tDirt; uniform sampler2D tCob; uniform sampler2D tSand; uniform sampler2D tWall;
 uniform sampler2D nGrass; uniform sampler2D nDirt; uniform sampler2D nCob; uniform sampler2D nSand; uniform sampler2D nWall;
-uniform sampler2D hCob; uniform sampler2D hDirt;
+uniform sampler2D hCob; uniform sampler2D hDirt; uniform sampler2D uWet;
 varying float vAO; varying vec3 vNw;
 vec4 envW; float envSteep; vec3 envWallN; vec2 envWallUv;
 `;
@@ -332,6 +360,10 @@ EnvGround.FMAP = `
     // a stream or pond bed: sand and pebbles, darker
     if (bed > 0.5 && tot < 0.05) col = mix(cs, cd, 0.5) * 0.7;
     if (tot < 0.05 && bed < 0.5) col = cs * 0.85;
+    // a pond's or stream's bank: damp, pebbly earth between the grass and the water, its edge ragged
+    float wetv = texture2D(uWet, vec2(tp.x / uMapSz.x, 1.0 - tp.y / uMapSz.y)).r;
+    float bank = smoothstep(0.06, 0.32, wetv + (rag - 0.5) * 0.3) * step(0.05, tot);
+    col = mix(col, cd * vec3(0.58, 0.54, 0.48), bank * 0.85);
     // darker where grass meets a path (a little shadow under the overhang)
     col *= 1.0 - 0.18 * w.x * (w.y + w.z) * 4.0;
     // soft patches of lighter and darker over everything
