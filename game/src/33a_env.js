@@ -12,8 +12,9 @@ const ENV = {
     RES: 4,             // height points a tile
     CHUNK: 16,          // tiles a ground piece
     cam: { dist: 12.2, pitch: 34, fov: 44, ahead: 2.0 },
-    dof: [17, 46, 7.6, 5.2],   // where the background starts to blur (and fully), where the foreground does
-    people: 1.3,        // how much bigger people stand than in the classic HD-2D view     // the concept's framing: Sarah low in the picture, the world ahead of her
+    dof: [25, 62, 7.6, 5.2],   // where the background starts to blur (and fully), where the foreground does (the concept keeps the trees behind the houses sharp)
+    people: 1.3,        // how much bigger people stand than in the classic HD-2D view
+    items: 0.6,         // and things lying on the ground
 };
 const Env = {
     on: false, built: null, failed: false,
@@ -55,7 +56,8 @@ const Env = {
         this.ground = EnvGround.build(group);
         this.built.parts.ground = this.ground;
         for (const [name, B] of [['water', typeof EnvWater !== 'undefined' && EnvWater], ['trees', typeof EnvTrees !== 'undefined' && EnvTrees],
-            ['build', typeof EnvBuild !== 'undefined' && EnvBuild], ['walls', typeof EnvWalls !== 'undefined' && EnvWalls], ['grass', typeof EnvGrass !== 'undefined' && EnvGrass]]) {
+            ['build', typeof EnvBuild !== 'undefined' && EnvBuild], ['walls', typeof EnvWalls !== 'undefined' && EnvWalls], ['grass', typeof EnvGrass !== 'undefined' && EnvGrass],
+            ['contact', typeof EnvContact !== 'undefined' && EnvContact]]) {
             if (!B) continue;
             const p = B.build(group, a);
             this.built.parts[name] = p;
@@ -238,10 +240,14 @@ const EnvGround = {
         }
         const T = EnvTex, cob = T.cobble(), wall = T.wall(), grass = T.grass(), dirt = T.dirt(), sand = T.sand();
         const kinds = this.kinds();
+        // the surfaces baked in Blender (the concept's flagstones, the path, the lawn) where they've loaded, else our own
+        const X = typeof EnvModels !== 'undefined' ? EnvModels.textures : {}, B = (n, k, f) => X[n + '_' + k] || f;
+        const flat = this.flatTex || (this.flatTex = Object.assign(new THREE.DataTexture(new Uint8Array([128, 128, 128, 255]), 1, 1, THREE.RGBAFormat), { needsUpdate: true }));
         const uniforms = {
             uKinds: { value: kinds }, uMapSz: { value: new THREE.Vector2(Wt, Ht) },
-            tGrass: { value: grass.map }, tDirt: { value: dirt.map }, tCob: { value: cob.map }, tSand: { value: sand.map }, tWall: { value: wall.map },
-            nGrass: { value: grass.normal }, nDirt: { value: dirt.normal }, nCob: { value: cob.normal }, nSand: { value: sand.normal }, nWall: { value: wall.normal },
+            tGrass: { value: B('lawn', 'col', grass.map) }, tDirt: { value: B('path', 'col', dirt.map) }, tCob: { value: B('flagstones', 'col', cob.map) }, tSand: { value: sand.map }, tWall: { value: wall.map },
+            nGrass: { value: B('lawn', 'nrm', grass.normal) }, nDirt: { value: B('path', 'nrm', dirt.normal) }, nCob: { value: B('flagstones', 'nrm', cob.normal) }, nSand: { value: sand.normal }, nWall: { value: wall.normal },
+            hCob: { value: B('flagstones', 'hgt', flat) }, hDirt: { value: B('path', 'hgt', flat) },
             uSeason: { value: new THREE.Vector4(1, 1, 1, 0) },
         };
         this.uniforms = uniforms;
@@ -296,6 +302,7 @@ EnvGround.FHEAD = `
 uniform sampler2D uKinds; uniform vec2 uMapSz; uniform vec4 uSeason;
 uniform sampler2D tGrass; uniform sampler2D tDirt; uniform sampler2D tCob; uniform sampler2D tSand; uniform sampler2D tWall;
 uniform sampler2D nGrass; uniform sampler2D nDirt; uniform sampler2D nCob; uniform sampler2D nSand; uniform sampler2D nWall;
+uniform sampler2D hCob; uniform sampler2D hDirt;
 varying float vAO; varying vec3 vNw;
 vec4 envW; float envSteep; vec3 envWallN; vec2 envWallUv;
 `;
@@ -308,8 +315,12 @@ EnvGround.FMAP = `
     // ragged edges: grass pushes into the others where a fine noise says so
     float rag = r3n(tp * 1.6 + 11.0) * 0.4 + r3n(tp * 5.3) * 0.36 + r3n(tp * 13.1 + 3.0) * 0.24;
     float tot = k.r + k.g + k.b + sandW * k.a;
-    // grass where the softened weight, pushed about by the noise, passes a half: a ragged edge a few pixels soft
-    float gw = smoothstep(0.38, 0.62, k.r + (rag - 0.5) * 0.75);
+    // grass where the softened weight, pushed about by the noise, passes a half: a ragged edge a few pixels soft. Where
+    // the square or a path meets the grass, what stands up (the flagstones, the pebbles) keeps longest and the gaps go
+    // green first, so the stones straggle out into the lawn as in the concept
+    vec2 u4h = tp * 0.25;
+    float hard = (k.b * texture2D(hCob, u4h).r + k.g * texture2D(hDirt, u4h).r * 0.8) / max(0.001, k.b + k.g);
+    float gw = smoothstep(0.4, 0.6, k.r + (rag - 0.5) * 0.45 - (k.b + k.g > 0.04 ? (hard - 0.42) * 0.55 : 0.0));
     vec4 w = vec4(gw, k.g, k.b, sandW * k.a);
     float o = w.y + w.z + w.w;
     if (o < 0.01) w.x = 1.0; else w.yzw *= (1.0 - gw) / o;

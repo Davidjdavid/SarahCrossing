@@ -61,6 +61,9 @@ const threeJs = emit('three', '.js', Buffer.concat([read('vendor/three.min.js'),
 // the models (GLB files), by name
 const models = {};
 for (const f of fs.readdirSync(path.join(GAME, 'assets/models')).filter((f) => f.endsWith('.glb')).sort()) models[f.slice(0, -4)] = emit(`model-${f.slice(0, -4)}`, '.glb', read(`assets/models/${f}`));
+// the ground's surfaces baked in Blender (tools/blender/ground_textures.py), by name (flagstones_col, path_nrm...)
+const textures = {};
+for (const f of fs.readdirSync(path.join(GAME, 'assets/textures')).filter((f) => /\.(jpg|png)$/.test(f)).sort()) { const ext = path.extname(f); textures[f.slice(0, -ext.length)] = emit(`tex-${f.slice(0, -ext.length)}`, ext, read(`assets/textures/${f}`)); }
 
 // ---------------------------------------------------------------- data
 const atlasPng = emit('atlas', '.png', read('assets/atlas.png'));
@@ -82,6 +85,7 @@ const data = [
   `window.WORLD_JSON = ${JSON.stringify(readJson('assets/world.json'))};`,
   `window.GAMEDATA = ${JSON.stringify(readJson('assets/gamedata.json'))};`,
   `window.MODELS = ${JSON.stringify(models)};`,
+  `window.TEXTURES = ${JSON.stringify(textures)};`,
   `window.LAB = { world: ${JSON.stringify(readJson('assets/lab/world.json'))}, ground: ${JSON.stringify(labGround)} };`,
   "if (window.location && /[?&]lab(=|&|$)/.test(window.location.search)) { window.IS_LAB = true; window.WORLD_JSON = window.LAB.world; window.GROUND = window.LAB.ground; }",
   '',

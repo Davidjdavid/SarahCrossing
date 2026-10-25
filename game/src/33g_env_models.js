@@ -6,7 +6,7 @@
    Phones load the lighter version of a model where there is one (name_lod1). The colors in the models' pictures are used
    as they are, like the game's other pictures (no color-space conversion). */
 const EnvModels = {
-    models: {}, ready: false, failed: false, _p: null,
+    models: {}, textures: {}, ready: false, failed: false, _p: null,
     phone() { try { return matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 600; } catch (e) { return false; } },
     /* the names to fetch: each model once, its phone version on phones */
     names() {
@@ -16,10 +16,15 @@ const EnvModels = {
     load() {
         if (this._p) return this._p;
         if (typeof THREE === 'undefined' || !THREE.GLTFLoader || !window.MODELS) { this.failed = true; return (this._p = Promise.resolve(false)); }
-        const loader = new THREE.GLTFLoader();
-        this._p = Promise.all(this.names().map(n => new Promise((ok, bad) => loader.load(window.MODELS[n], g => ok([n, g]), undefined, bad))))
+        const loader = new THREE.GLTFLoader(), tl = new THREE.TextureLoader();
+        // (the ground's surfaces too: repeating, sharp at a slant, their colors as they are; the file's top row is north)
+        const texs = Object.entries(window.TEXTURES || {}).map(([n, url]) => new Promise((ok, bad) => tl.load(url, t => {
+            t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; t.flipY = false; t.encoding = THREE.LinearEncoding; t.needsUpdate = true;
+            this.textures[n] = t; ok();
+        }, undefined, bad)));
+        this._p = Promise.all(this.names().map(n => new Promise((ok, bad) => loader.load(window.MODELS[n], g => ok([n, g]), undefined, bad))).concat(texs))
             .then(list => {
-                for (const [n, g] of list) this.models[n.replace(/_lod\d$/, '')] = this.prepare(g.scene, n);
+                for (const it of list) if (it) { const [n, g] = it; this.models[n.replace(/_lod\d$/, '')] = this.prepare(g.scene, n); }
                 this.ready = true;
                 return true;
             })
@@ -43,9 +48,12 @@ const EnvModels = {
     material(m, name) {
         const glass = /glass/i.test(m.name || '');
         if (m.map) m.map.encoding = THREE.LinearEncoding;
-        const opts = { map: m.map || null, color: m.map ? 0xffffff : m.color, roughness: glass ? 0.35 : 0.92, metalness: 0 };
-        // (the maples' leaf clumps are mostly in the normal map: a little stronger than baked, as the concept's are crisp)
-        if (m.normalMap) { opts.normalMap = m.normalMap; opts.normalScale = (m.normalScale ? m.normalScale.clone() : new THREE.Vector2(1, 1)).multiplyScalar(/^tree_/.test(name) ? 1.7 : 1); }
+        const opts = { map: m.map || null, color: m.map ? 0xffffff : m.color, roughness: glass ? 0.35 : 0.92, metalness: 0, vertexColors: !m.map && !!m.vertexColors };
+        // (the concept's autumn leaves are lit high-key, brighter than anything round them: their crowns a little more)
+        const lift = /bark/.test(m.name || '') ? 1 : /^tree_maple/.test(name) ? 1.4 : /^bush_autumn/.test(name) ? 1.1 : 1;
+        if (lift !== 1 && m.map) opts.color = new THREE.Color(lift, lift, lift);
+        // (the maples', pines' and bushes' leaf clumps are mostly in the normal map: a little stronger than baked, as the concept's are crisp)
+        if (m.normalMap) { opts.normalMap = m.normalMap; opts.normalScale = (m.normalScale ? m.normalScale.clone() : new THREE.Vector2(1, 1)).multiplyScalar(/^(tree_|pine_|bush_)/.test(name) ? 1.7 : 1); }
         // the windows glow at night (EnvBuild's tick turns them up), their curtains brightest
         if (glass) { opts.emissive = new THREE.Color(0xffd890); opts.emissiveMap = m.map || null; opts.emissiveIntensity = 0.0; }
         const out = r3Patch(new THREE.MeshStandardMaterial(opts), { key: glass ? 'envmodelglass' : 'envmodel' });

@@ -27,7 +27,7 @@ export const PLAN = {
   streets: [],
   paths: [
     { pts: [[27.5,20.4],[27.4,22.6],[27.1,24.6]], w: 1.6 },
-    { pts: [[31.5,19.4],[31.1,22.4],[30.1,24.8]], w: 1.6 },
+    { pts: [[32.5,19.4],[31.8,22.4],[30.4,24.8]], w: 1.6 },
     { pts: [[30.4,27.4],[33,28.2],[34.6,28.6]], w: 1.6 },
     { pts: [[26,28.6],[25.2,31],[24.6,34]], w: 1.6 },
     // round the pond and up the stairs at the far left to the higher ground
@@ -35,7 +35,7 @@ export const PLAN = {
   ],
   buildings: [
     { id: 'home', x: 25, y: 17, w: 4, h: 3, door: 2, sprite: 'house_sarah' },
-    { id: 'shop', x: 30, y: 16, w: 4, h: 3, door: 1, sprite: 'shop', front: 'shopfront' },
+    { id: 'shop', x: 30, y: 16, w: 4, h: 3, door: 2, sprite: 'shop', front: 'shopfront' },
   ],
   props: [
     { kind: 'bench', x: 28, y: 22 }, { kind: 'lamp', x: 30, y: 22 }, { kind: 'mailbox', x: 29, y: 20 },

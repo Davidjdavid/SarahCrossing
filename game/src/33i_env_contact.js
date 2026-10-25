@@ -1,0 +1,45 @@
+/* ---- 33i_env_contact.js ---- */
+/* Soft dark patches on the ground right under things (trees, bushes, props, buildings) in the new 3D look, as the concept
+   grounds them: the sun's shadow falls off to one side, this is the light the sky can't reach underneath. One instanced
+   quad lying on the ground per thing, darkest in the middle; it leaves the picture's alpha (the depth of field's) alone. */
+const EnvContact = {
+    build(group, a) {
+        const list = [];
+        const add = (x, z, rx, rz, k) => list.push([x, z, rx, rz, k == null ? 1 : k]);
+        for (const e of a.ents) {
+            const x = e.x / TILE, z = e.y / TILE * R3_ZS, k = e.kind;
+            if (k === 'tree' || k === 'fruittree' || k === 'palm') add(x, z, /^palm/.test(e.frame || '') ? 0.7 : 1.25, 1.0, 0.9);
+            else if (k === 'bigtree' || k === 'oldtree') add(x, z, 1.8, 1.5, 0.9);
+            else if (k === 'bush') add(x, z, 0.7, 0.55, 0.9);
+            else if (k === 'bench') add(x, z - 0.1, 0.85, 0.5, 0.8);
+            else if (k === 'lamp' || k === 'mailbox') add(x, z, 0.38, 0.32, 0.8);
+            else if (k === 'building' && e.b) { const b = e.b; add(b.x + b.w / 2, (b.y + b.h - 0.4) * R3_ZS, b.w * 0.62, 0.9, 1); }
+        }
+        if (!list.length) return { meshes: [] };
+        const geo = new THREE.PlaneGeometry(2, 2);
+        geo.rotateX(-Math.PI / 2);
+        const mat = new THREE.MeshBasicMaterial({ map: this.tex(), color: 0x10140a, transparent: true, depthWrite: false, opacity: 0.42 });
+        Object.assign(mat, { blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor });
+        mat.polygonOffset = true; mat.polygonOffsetFactor = -2; mat.polygonOffsetUnits = -2;
+        const m = new THREE.InstancedMesh(geo, r3Patch(mat, { key: 'envcontact', inst: true, noDof: true, noCloud: true }), list.length);
+        const M = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
+        list.forEach(([x, z, rx, rz, k], i) => {
+            p.set(x, EnvGround.heightAt(x, z / R3_ZS) + 0.025, z);
+            s.set(rx, 1, rz * k);
+            M.compose(p, q, s); m.setMatrixAt(i, M);
+        });
+        m.instanceMatrix.needsUpdate = true;
+        m.renderOrder = 1; m.frustumCulled = false;
+        group.add(m);
+        return { meshes: [m] };
+    },
+    /* a soft round patch (alpha falling off from the middle) */
+    tex() {
+        if (this._t) return this._t;
+        const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+        const g = cv.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.45, 'rgba(255,255,255,0.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+        return (this._t = new THREE.CanvasTexture(cv));
+    },
+};

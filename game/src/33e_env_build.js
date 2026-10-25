@@ -11,10 +11,17 @@ const EnvBuild = {
         const P = this.parts = {};
         const part = (name) => P[name] || (P[name] = { p: [], n: [], uv: [], c: [], idx: [] });
         this.part = part;
+        // the furniture made in Blender (bench, lamp, mailbox, fence, planter, pumpkins), gathered and drawn instanced
+        const placed = {}, has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
+        this.model = (n, x, y, z, rot) => { if (!has(n)) return false; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y, z, rot || 0)); return true; };
+        // (wild flowers can be picked and grow back: each one's model, kept by its spot, is hidden while it's gone)
+        const picks = [];
         for (const e of a.ents) {
             if (e.kind === 'building' && e.b) {
                 // Sarah's cottage is the one modelled in Blender (its door on the door's tile, its front wall on the front edge)
-                if (e.id === 'home' && typeof EnvModels !== 'undefined' && EnvModels.has('cottage')) { const A = this.at(e); for (const m of EnvModels.place(group, 'cottage', EnvModels.mat4(A.door, A.y, A.z1 - 1.25))) m.userData.shared = true; }
+                if (e.id === 'home' && has('cottage')) { const A = this.at(e); for (const m of EnvModels.place(group, 'cottage', EnvModels.mat4(A.door, A.y, A.z1 - 1.25))) m.userData.shared = true; }
+                // and Fortune's (its door half a tile right of its middle)
+                else if (e.id === 'shop' && has('shop')) { const A = this.at(e); for (const m of EnvModels.place(group, 'shop', EnvModels.mat4(A.door - 0.5, A.y, A.z1 - 1.3))) m.userData.shared = true; }
                 else if (e.id === 'home' || /^h_/.test(e.id || '')) this.cottage(e, houseLook(e.id)); else this.shop(e);
             }
             else if (e.kind === 'bench') this.bench(e);
@@ -22,7 +29,7 @@ const EnvBuild = {
             else if (e.kind === 'mailbox') this.mailbox(e);
             else if (e.kind === 'fence') this.fence(e, a);
             else if (e.kind === 'flowerbed') this.flowerbed(e);
-            else if (e.wildFlower) this.flower(e);
+            else if (e.wildFlower) { const n = this.flower(e); if (n) picks.push({ idx: e.flowerIdx, n, i: placed[n].length - 1, on: true }); }
             else if (e.holiday && /pumpkin/.test(e.frame || '')) this.pumpkin(e);
         }
         const T = EnvTex, mats = {
@@ -45,8 +52,23 @@ const EnvBuild = {
             group.add(m);
             meshes.push(m);
         }
+        const inst = {};
+        for (const [n, list] of Object.entries(placed)) for (const m of (inst[n] = EnvModels.instances(group, n, list))) { m.userData.shared = true; meshes.push(m); }
         this.glass = mats.glass;
-        return { meshes, tick: () => { const g = R3._glow || 0; this.glass.emissiveIntensity = 0.15 + g * 1.4; if (typeof EnvModels !== 'undefined') EnvModels.glow(g); } };
+        const none = new THREE.Matrix4().makeScale(0, 0, 0);
+        let frame = 0;
+        return { meshes, tick: (r3, a) => {
+            const g = R3._glow || 0; this.glass.emissiveIntensity = 0.15 + g * 1.4; if (typeof EnvModels !== 'undefined') EnvModels.glow(g);
+            if (!picks.length || frame++ % 20) return;
+            const live = new Set();
+            for (const e of a.ents) if (e.wildFlower) live.add(e.flowerIdx);
+            for (const p of picks) {
+                const on = live.has(p.idx);
+                if (on === p.on) continue;
+                p.on = on;
+                for (const m of inst[p.n] || []) { m.setMatrixAt(p.i, on ? placed[p.n][p.i] : none); m.instanceMatrix.needsUpdate = true; }
+            }
+        } };
     },
     mat(t, rough, cloth) {
         const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: rough, metalness: 0, map: t ? t.map : null, normalMap: t ? t.normal : null, side: cloth ? THREE.DoubleSide : THREE.FrontSide });
@@ -217,12 +239,14 @@ const EnvBuild = {
     foot(e) { return { x: e.x / TILE, z: e.y / TILE * R3_ZS, y: Env.groundH(e.x, e.y) }; },
     bench(e) {
         const f = this.foot(e), x = f.x, z = f.z - 0.2, y = f.y, w = 1.7;
+        if (this.model('bench', x, y, z + 0.05)) return;
         for (let i = 0; i < 3; i++) this.box('wood', x - w / 2, y + 0.42, z - 0.22 + i * 0.15, x + w / 2, y + 0.48, z - 0.1 + i * 0.15, '#b07a46', 2);
         for (let i = 0; i < 3; i++) this.box('wood', x - w / 2, y + 0.58 + i * 0.16, z - 0.3, x + w / 2, y + 0.7 + i * 0.16, z - 0.24, '#a8703e', 2);
         for (const sx of [-1, 1]) { const lx = x + sx * (w / 2 - 0.12); this.box('plain', lx - 0.04, y, z + 0.14, lx + 0.04, y + 0.45, z + 0.2, '#2c2a2e'); this.box('plain', lx - 0.04, y, z - 0.3, lx + 0.04, y + 1.05, z - 0.24, '#2c2a2e'); this.box('plain', lx - 0.04, y + 0.38, z - 0.3, lx + 0.04, y + 0.44, z + 0.2, '#2c2a2e'); }
     },
     lamp(e) {
         const f = this.foot(e), x = f.x, z = f.z - 0.1, y = f.y;
+        if (this.model('lamp', x, y, z)) return;
         this.box('plain', x - 0.14, y, z - 0.14, x + 0.14, y + 0.18, z + 0.14, '#2a2830');
         this.box('plain', x - 0.05, y, z - 0.05, x + 0.05, y + 2.1, z + 0.05, '#2a2830');
         this.box('plain', x - 0.17, y + 2.1, z - 0.17, x + 0.17, y + 2.16, z + 0.17, '#2a2830');
@@ -233,6 +257,7 @@ const EnvBuild = {
     },
     mailbox(e) {
         const f = this.foot(e), x = f.x, z = f.z - 0.1, y = f.y;
+        if (this.model('mailbox', x, y, z)) return;
         this.box('wood', x - 0.05, y, z - 0.05, x + 0.05, y + 0.85, z + 0.05, '#6a4a2a', 2);
         this.box('plain', x - 0.18, y + 0.85, z - 0.32, x + 0.18, y + 1.12, z + 0.2, '#3f7fd0');
         this.box('plain', x - 0.18, y + 1.12, z - 0.32, x + 0.18, y + 1.18, z + 0.2, '#3570b8');
@@ -241,21 +266,30 @@ const EnvBuild = {
     /* a white picket fence along this tile, joining its neighbours */
     fence(e, a) {
         const f = this.foot(e), x = f.x, z = f.z - 0.35, y = f.y;
+        // (the concept's garden fences are rustic split rails)
+        if (this.model('fence_rustic', x, y, z)) { this.sunflowers(e, x, y, z); return; }
         for (let i = 0; i < 4; i++) { const px = x - 0.5 + (i + 0.5) / 4; this.box('plain', px - 0.05, y, z - 0.03, px + 0.05, y + 0.68, z + 0.03, '#f4f2ea'); this.box('plain', px - 0.035, y + 0.68, z - 0.03, px + 0.035, y + 0.74, z + 0.03, '#f4f2ea'); }
         for (const ry of [0.22, 0.5]) this.box('plain', x - 0.5, y + ry, z - 0.06, x + 0.5, y + ry + 0.06, z - 0.03, '#e2dfd6');
-        // sunflowers behind it, as in the concept
+        this.sunflowers(e, x, y, z);
+    },
+    /* sunflowers behind a fence, as in the concept */
+    sunflowers(e, x, y, z) {
+        if (this.model('sunflowers', x + 0.05, y, z - 0.3)) return;
         const r = mulberry(hash32('sf' + e.x + e.y));
         for (let i = 0; i < 2; i++) { const sx = x - 0.3 + i * 0.55 + (r() - 0.5) * 0.1, sh = 0.95 + r() * 0.35; this.box('plain', sx - 0.025, y, z - 0.25, sx + 0.025, y + sh, z - 0.2, '#4a8a34'); this.box('plain', sx - 0.13, y + sh - 0.13, z - 0.24, sx + 0.13, y + sh + 0.13, z - 0.19, '#ffc93a'); this.box('plain', sx - 0.06, y + sh - 0.06, z - 0.19, sx + 0.06, y + sh + 0.06, z - 0.16, '#6a3a1a'); }
     },
     flowerbed(e) {
         const f = this.foot(e), x = f.x, z = f.z - 0.35, y = f.y;
+        if (this.model('planter', x, y, z)) return;
         this.box('wood', x - 0.9, y, z - 0.35, x + 0.9, y + 0.28, z + 0.25, '#8a5a33', 2);
         const r = mulberry(hash32('bed' + e.x));
         for (let i = 0; i < 16; i++) { const fx = x - 0.75 + r() * 1.5, fz = z - 0.25 + r() * 0.42, c = ['#f04a6a', '#ffd34a', '#ffffff', '#ff7ab8', '#b07af0', '#ff8a3a'][r() * 6 | 0]; this.box('plain', fx - 0.08, y + 0.3, fz - 0.08, fx + 0.08, y + 0.42 + r() * 0.08, fz + 0.08, c); }
     },
-    /* a clump of flowers where a wild flower grows */
+    /* a clump of flowers where a wild flower grows (the model's name when it is one) */
     flower(e) {
         const f = this.foot(e), r = mulberry(hash32('fl' + e.x + ',' + e.y)), kind = (e.id || '').split('_')[1] || '';
+        const n = { tulip: 'flowers_tulip', daisy: 'flowers_daisy', cosmos: 'flowers_cosmos', lily: 'flowers_lily' }[kind] || 'flowers_mixed';
+        if (this.model(n, f.x, f.y, f.z - 0.2, r() * Math.PI * 2)) return n;
         const pal = { tulip: ['#e8324a', '#ffcf3a', '#ff7ab8'], daisy: ['#ffffff', '#fff6d0', '#ffe14a'], cosmos: ['#ff7ab8', '#e0559a', '#ffffff'], lily: ['#ffffff', '#ffb0c8', '#ffd04a'] }[kind] || ['#ffffff', '#ff7ab8', '#ffd34a', '#b07af0'];
         for (let i = 0; i < 4; i++) {
             const fx = f.x + (r() - 0.5) * 0.6, fz = f.z - 0.2 + (r() - 0.5) * 0.45, h = 0.22 + r() * 0.2, c = pal[r() * pal.length | 0];
@@ -266,6 +300,7 @@ const EnvBuild = {
     },
     /* a pumpkin: a squat orange ball with ribs, a stem */
     pumpkin(e) {
+        if (this.model('pumpkins', e.x / TILE, Env.groundH(e.x, e.y), e.y / TILE * R3_ZS - 0.1, (hash32('pk' + e.x) % 7) * 0.9)) return;
         const f = this.foot(e), r = mulberry(hash32('pk' + e.x + ',' + e.y)), s = 0.17 + r() * 0.07, b = this.part('plain'), base = b.p.length / 3;
         const seg = 14, rings = 7, col = [0.93, 0.48, 0.12], cx = f.x, cy = f.y + s * 0.7, cz = f.z - 0.1;
         for (let j = 0; j <= rings; j++) for (let i = 0; i <= seg; i++) {

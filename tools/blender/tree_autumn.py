@@ -163,18 +163,26 @@ def bark_image(rng, name):
 
 def crown_high(rng, L, pal):
     """The crown at full detail, as the concept paints it: some thirty clusters of leaves over the crown's outline, each
-    covered in small leaf bumps, lighter and yellower on top and deeper orange underneath (painted in, as the concept's
-    light is), with gaps between clusters; balls inside close it."""
+    covered in small leaf clumps, lighter and yellower on top and deeper orange underneath (painted in, as the concept's
+    light is), every small clump lit on its own top and shaded under (the concept's cauliflower texture), with gaps
+    between clusters; balls inside close it."""
     bm = bmesh.new()
     col = bm.verts.layers.float_color.new('Col')
+    lay_base = bm.verts.layers.float.new('base')
+    lay_peak = bm.verts.layers.float.new('peak')
+    lay_lit = bm.verts.layers.float.new('lit')
     pts = puff_points(rng, L, 0.36)
     zs = [p.z for p, _ in pts]
     z0, z1 = min(zs), max(zs)
     pal = [hex_rgb(c) for c in pal]
     light = Vector((-0.45, -0.3, 0.84)).normalized()
+    shaded = []
 
     def cluster(c, r, base, detail=4, shade=True):
+        n0 = len(bm.verts)
         res = bmesh.ops.create_icosphere(bm, subdivisions=detail, radius=r, matrix=Matrix.Translation(c))
+        if shade:
+            shaded.append((n0, len(bm.verts)))
         seed = Vector((rng.random() * 50, rng.random() * 50, rng.random() * 50))
         for v in res['verts']:
             dn = (v.co - c).normalized()
@@ -184,25 +192,30 @@ def crown_high(rng, L, pal):
             bump = 0.058 * peak + 0.07 * r * noise.noise(dn * 2.0 + seed)
             v.co = c + dn * (r + bump)
             if shade:
-                # painted form: lit side toward the yellows, the underside toward the darkest orange
-                lit = dn.dot(light)
-                # (the hollows between leaf clumps go a shade deeper, toward the saturated dark orange, not toward brown)
-                tone = min(len(pal) - 1.001, max(0.0, base - lit * 2.1 + (1 - peak) * 0.85))
+                v[lay_base], v[lay_peak], v[lay_lit] = base, peak, dn.dot(light)
             else:
-                tone = len(pal) - 1.2
-            i = int(tone)
-            cc = mix(pal[i], pal[i + 1], tone - i)
-            k = 0.96 + 0.08 * noise.noise(dn * 4 + seed)
-            v[col] = (cc[0] * k, cc[1] * k, cc[2] * k, 1)
+                cc = mix(pal[-2], pal[-1], 0.2)
+                v[col] = (cc[0], cc[1], cc[2], 1)
 
     for p, g in pts:
         h = (p.z - z0) / max(0.01, z1 - z0)
         r = rng.uniform(0.22, 0.4) * (0.9 + 0.2 * h)
         # higher clusters a little lighter; each cluster its own shade of orange
-        base = (1 - h) * 1.1 + 1.7 + rng.uniform(-0.55, 0.55)
+        base = (1 - h) * 0.9 + 1.5 + rng.uniform(-0.5, 0.5)
         cluster(p - g * r * rng.uniform(0.2, 0.55), r, base)
     for c, r in L:
         cluster(c, min(r.x, r.y, r.z) * 0.9, 0, detail=3, shade=False)
+    # now every leaf clump's own slope: its side toward the sun lighter, its underside a shade deeper
+    bm.normal_update()
+    bm.verts.ensure_lookup_table()
+    for v in (bm.verts[i] for a, b in shaded for i in range(a, b)):
+        own = v.normal.dot(light) - v[lay_lit]
+        tone = v[lay_base] - v[lay_lit] * 1.8 - own * 1.3 + (1 - v[lay_peak]) * 0.75
+        tone = min(len(pal) - 1.001, max(0.0, tone))
+        i = int(tone)
+        cc = mix(pal[i], pal[i + 1], tone - i)
+        k = 0.96 + 0.08 * noise.noise(v.co * 9)
+        v[col] = (cc[0] * k, cc[1] * k, cc[2] * k, 1)
     o = mesh_obj('crown_high', bm)
     shade_smooth(o)
     o.data.materials.append(leafy_material())
@@ -287,7 +300,7 @@ def build(name, spec, lod_ratios=(None,), tex=1024):
         # the color with the gaps between puffs darkened (the concept's crisp separations)
         a = image_array(diff)
         o = image_array(ao)[..., :1]
-        a[..., :3] *= (0.38 + 0.62 * o ** 1.3)
+        a[..., :3] *= (0.56 + 0.44 * o ** 1.3)
         colimg = image_from_array(lo.name + '_col', a)
         lo.data.materials.clear()
         lo.data.materials.append(material(lo.name + '_mat', image=colimg, normal=nrm, rough=1))

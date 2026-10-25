@@ -27,21 +27,28 @@ const EnvTrees = {
         const bushes = a.ents.filter(e => e.kind === 'bush');
         const F = this.buf(), B = this.buf();
         // in autumn the broadleaf trees are the maples made in Blender (three of them, turned and sized a little apart)
-        const maples = season === 'fall' && typeof EnvModels !== 'undefined' && EnvModels.has('tree_maple_orange') ? ['tree_maple_orange', 'tree_maple_amber', 'tree_maple_red'].filter(n => EnvModels.has(n)) : null;
-        const placed = {};
+        const has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
+        const maples = season === 'fall' && has('tree_maple_orange') ? ['tree_maple_orange', 'tree_maple_amber', 'tree_maple_red'].filter(has) : null;
+        // the pines and the bushes are made in Blender too (the bushes orange in autumn, green the rest of the year)
+        const pines = ['pine_a', 'pine_b'].filter(has), shrubs = (season === 'fall' ? ['bush_autumn', 'bush_autumn_b'] : ['bush_green']).filter(has);
+        const placed = {}, put = (list, x, y, z, r, s) => { const n = list[(r() * list.length) | 0]; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y - 0.03, z, r() * Math.PI * 2, s)); };
         for (const e of trees) {
             const x = e.x / TILE, z = e.y / TILE * R3_ZS, y = Env.groundH(e.x, e.y), r = mulberry(hash32('tree' + Math.round(e.x) + ',' + Math.round(e.y)));
             // (a palm is a tree or a fruit tree wearing a palm picture)
             const kind = e.kind === 'palm' || /^palm/.test(e.frame || '') ? 'palm' : /pine/.test(e.frame || '') || e.pine || e.treeKind === 'pine' ? 'pine' : 'broad';
             const big = e.kind === 'bigtree' || e.kind === 'oldtree' ? 1.5 : 1;
-            if (kind === 'pine') this.pine(F, B, x, y, z, r);
+            if (kind === 'pine') { if (pines.length) put(pines, x, y, z, r, 0.8 + r() * 0.22); else this.pine(F, B, x, y, z, r); }
             else if (kind === 'palm') this.palm(F, B, x, y, z, r, e);
-            else if (maples) { const n = maples[(r() * maples.length) | 0]; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y - 0.03, z, r() * Math.PI * 2, big * (0.86 + r() * 0.2))); }
+            else if (maples) put(maples, x, y, z, r, big * (0.86 + r() * 0.2));
             else this.broad(F, B, x, y, z, r, big);
         }
+        for (const e of bushes) {
+            const r = mulberry(hash32('bush' + e.x + ',' + e.y)), x = e.x / TILE, y = Env.groundH(e.x, e.y), z = e.y / TILE * R3_ZS;
+            if (shrubs.length) put(shrubs, x, y + 0.02, z, r, 0.9 + r() * 0.25); else this.bush(F, x, y, z, r);
+        }
         const models = [];
-        for (const [n, list] of Object.entries(placed)) for (const m of EnvModels.instances(group, n, list)) { m.userData.shared = true; models.push(m); }
-        for (const e of bushes) { const r = mulberry(hash32('bush' + e.x + ',' + e.y)); this.bush(F, e.x / TILE, Env.groundH(e.x, e.y), e.y / TILE * R3_ZS, r); }
+        // (the leaves have their shade baked in: taking the shadow map too, a crown darkens itself twice)
+        for (const [n, list] of Object.entries(placed)) for (const m of EnvModels.instances(group, n, list)) { m.userData.shared = true; if (!/bark|trunk/.test(m.material.name)) m.receiveShadow = false; models.push(m); }
         const fm = this.foliageMat(leaf, pal), bm = this.barkMat();
         const fMesh = new THREE.Mesh(this.geo(F), fm), bMesh = new THREE.Mesh(this.geo(B), bm);
         fMesh.customDepthMaterial = this.depthMat(leaf);

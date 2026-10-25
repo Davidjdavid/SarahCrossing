@@ -143,6 +143,9 @@ const R3 = {
         this.sun.target.position.set(this.target.x, 0, this.target.z - 4);
         this.sun.position.copy(sd).multiplyScalar(50).add(this.sun.target.position);
         this.sun.target.updateMatrixWorld();
+        // (the new look's camera is closer: a smaller shadow box, so the same map gives finer shadows)
+        const sb = Env.on && !a.interior ? 17 : 26, sc = this.sun.shadow.camera;
+        if (sc.right !== sb) { Object.assign(sc, { left: -sb, right: sb, top: sb, bottom: -sb }); sc.updateProjectionMatrix(); }
     },
     /* how big an HD pixel is on the screen: below about two screen pixels, nearest-pixel sampling makes uneven pixels
        (some one wide, some two), so the HD cards are smoothed instead */
@@ -487,7 +490,8 @@ const R3 = {
             const o = lit[i];
             if (!o) { l.intensity = 0; return; }
             const [x, y, r, c] = o.s;
-            l.position.set(x / TILE, 1.4, y / TILE * R3_ZS + 0.3);
+            // (the new look's lamps are taller: the light comes from their lanterns)
+            l.position.set(x / TILE, Env.on && !a.interior ? r3GroundH(x, y) + 2.55 : 1.4, y / TILE * R3_ZS + (Env.on ? 0.1 : 0.3));
             l.distance = Math.max(4, r / TILE * 2.2);
             // (the new look's ground takes light like a real surface: softer lamps, or the square goes white round them)
             l.intensity = L.lamps * (a.interior ? 0.9 : Env.on ? 0.6 : 1.2);
@@ -1371,8 +1375,9 @@ function placeCard(c, e, a) {
     // a shopkeeper at the counter along the back wall stands on a step behind it, so they show over it as in the flat view
     else if (a.interior && e.npc && a.room && a.room.staff === e.id && a.floor && e.y < (a.floor.y0 + 1.5) * TILE) lift += 0.5 * R3_VS;
     c.mesh.position.set(Math.round(e.x) / TILE, lift, z + 0.001 * ((e.x * 7) % 3));
-    // in the new 3D look people stand a little bigger against the world, as in the concept
-    const big = Env.on && !a.interior && (e.kind === 'player' || e.npc) ? ENV.people : 1;
+    // in the new 3D look people stand a little bigger against the world, as in the concept, and things lying about
+    // (shells, dropped things) smaller: a tile-wide sand dollar looks like a loaf beside the miniature benches
+    const big = Env.on && !a.interior ? (e.kind === 'player' || e.npc ? ENV.people : e.kind === 'item' ? ENV.items : 1) : 1;
     if (c.mesh.scale.x !== big) c.mesh.scale.setScalar(big);
     c.mesh.visible = true;
 }
@@ -1745,6 +1750,9 @@ const Post3 = (() => {
               col = mix(vec3(l), col, 1.14 - gray * 0.3);
               /* the new 3D look: the concept's golden afternoon (warmer light, softer greens, shadows lifted a touch) */
               col = mix(col, col * vec3(1.06, 1.0, 0.88) + vec3(0.02, 0.012, 0.0), warm * 0.8);
+              /* (measured against the concept: its picture is softer than ours, less saturated, a little darker and flatter) */
+              float lw = dot(col, vec3(0.299, 0.587, 0.114));
+              col = mix(col, mix(vec3(0.42), mix(vec3(lw), col, 0.84), 0.93) * 0.96, warm);
               col = col / (1.0 + max(col - 0.82, 0.0) * 0.9);
               vec2 q = vUv - 0.5; q.x *= aspect * 0.8;
               col *= mix(1.0, 0.8, smoothstep(0.35, 0.95, length(q)));

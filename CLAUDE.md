@@ -79,19 +79,26 @@ docs/DEPLOY.md for the server.
 - The important things are models made in Blender, not in code: `tools/blender/*.py` (`common.py` has the helpers:
   the game's camera and sun for previews, baking, GLB export). Blender runs as a Python module: `pip install bpy`
   (Blender 5.x, about 1 GB, fine in a venv), then `python tools/blender/tree_autumn.py --preview DIR` (or
-  `cottage.py`, `stone_wall.py`) writes `game/assets/models/<name>.glb` (plus `<name>_lod1.glb` for phones where there
-  is one) and previews from the game's camera into DIR. Each script models the detail in full (every leaf clump,
-  shingle, stone) and bakes it (color, the dark between things, a normal map) onto a lighter mesh; a fixed seed makes
-  the same model every time. Look at the previews beside the concept before bringing a model in.
-- Models: one unit is one tile, Blender's -y is the game's south (the front), z up; trees stand on their trunk's foot,
-  the cottage on its middle with the door at x 0 on the front, a wall piece runs from x 0 to its length with its face
-  toward -y, from the lower ground (z 0) to the upper (z 1.5, `ENV.LV`).
+  `cottage.py`, `shop.py`, `stone_wall.py`, `props.py` for the bench, lamp, mailbox, fences, planter and pumpkins,
+  `vegetation.py` for the pines, bushes, sunflowers and wild flower clumps; most take `--only NAME`) writes
+  `game/assets/models/<name>.glb` (plus `<name>_lod1.glb` for phones where there is one) and previews from the game's
+  camera into DIR. Each script models the detail in full (every leaf clump, shingle, board, stone) and bakes it (color,
+  the dark between things, a normal map) onto a lighter mesh; a fixed seed makes the same model every time. Look at the
+  previews beside the concept before bringing a model in. `ground_textures.py` bakes the ground's surfaces the same way
+  (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
+  square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height
+  to let grass reach into the gaps and ragged edges.
+- Models: one unit is one tile, Blender's -y is the game's south (the front), z up; trees and props stand on their foot,
+  the cottage on its middle with the door at x 0 on the front (the shop's door is at x 0.5), a wall piece runs from x 0
+  to its length with its face toward -y, from the lower ground (z 0) to the upper (z 1.5, `ENV.LV`).
 - In the game `EnvModels` (33g_env_models.js) loads them (the build ships each with a hashed name in `window.MODELS`;
   the server's CSP allows `blob:` in connect-src for the pictures inside them), gives their materials the view's bend,
   depth of field and shadows (`r3Patch`), uses their colors as they are, and draws a model placed many times as one
-  instanced mesh per part. The autumn maples replace the broadleaf trees in autumn, the cottage replaces Sarah's house,
-  and `EnvWalls` (33h_env_walls.js) lays the wall pieces along every south, east and west face of higher ground. Until
-  the models arrive the new look draws its own, and builds again once they have.
+  instanced mesh per part. The autumn maples replace the broadleaf trees in autumn, the pines and bushes theirs (the
+  bushes orange in autumn), the cottage Sarah's house, the shop Fortune's, and the props and flowers theirs (a picked wild
+  flower's model is hidden until it grows back); `EnvWalls` (33h_env_walls.js) lays the wall pieces along every south,
+  east and west face of higher ground, and `EnvContact` (33i_env_contact.js) darkens the ground softly under things.
+  Until the models arrive the new look draws its own, and builds again once they have.
 
 ## Saving (11_save.js, 12_cloud.js, 6x_islands.js)
 
