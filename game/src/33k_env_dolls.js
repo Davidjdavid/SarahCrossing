@@ -77,6 +77,7 @@ const EnvDolls = {
     drop(d) {
         if (d.root.parent) d.root.parent.remove(d.root);
         for (const t of d.textures || []) t.dispose();
+        for (const g of d.geos || []) g.dispose();
         if (d.faceMat) d.faceMat.dispose();
         if (d.hairMat) d.hairMat.dispose();
     },
@@ -255,8 +256,52 @@ const EnvDolls = {
     mat(hex, rough) {
         const k = hex + '|' + (rough || 0.75);
         let m = this.mats.get(k);
-        if (!m) { m = r3Patch(new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: rough || 0.75, metalness: 0 }), { key: 'envdoll' }); this.mats.set(k, m); }
+        if (!m) { m = r3Patch(new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: rough || 0.75, metalness: 0 }), { key: 'envdoll' }); m.userData.plain = true; this.mats.set(k, m); }
         return m;
+    },
+    /* a doll's pieces merged: every plain-colored piece of a joint (the body, a leg, an arm, the head) into one mesh with
+       its colors in it, the hair into one: a handful of draws a doll instead of forty */
+    bake(d) {
+        const P = d.parts;
+        if (!this.vc) this.vc = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0 }), { key: 'envdollvc' });
+        d.geos = [];
+        for (const g of [P.body, P.legL, P.legR, P.armL, P.armR, P.head]) {
+            if (!g) continue;
+            const plain = g.children.filter(m => m.isMesh && m.material.userData.plain), hair = g.children.filter(m => m.isMesh && m.material === d.hairMat);
+            for (const [list, mat] of [[plain, this.vc], [hair, d.hairMat]]) {
+                if (!list.length) continue;
+                const geo = this.merge(list);
+                for (const m of list) { g.remove(m); if (m.material === d.hairMat) m.geometry.dispose(); }
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.castShadow = true; mesh.receiveShadow = true;
+                g.add(mesh);
+                d.geos.push(geo);
+            }
+        }
+    },
+    merge(list) {
+        const pos = [], nor = [], col = [], idx = [], v = new THREE.Vector3(), n3 = new THREE.Matrix3();
+        let base = 0;
+        for (const m of list) {
+            m.updateMatrix();
+            const g = m.geometry, Pa = g.attributes.position, Na = g.attributes.normal, Ca = g.attributes.color, c = m.material.color;
+            n3.getNormalMatrix(m.matrix);
+            for (let i = 0; i < Pa.count; i++) {
+                v.fromBufferAttribute(Pa, i).applyMatrix4(m.matrix); pos.push(v.x, v.y, v.z);
+                v.fromBufferAttribute(Na, i).applyMatrix3(n3).normalize(); nor.push(v.x, v.y, v.z);
+                if (Ca) col.push(Ca.getX(i), Ca.getY(i), Ca.getZ(i)); else col.push(c.r, c.g, c.b);
+            }
+            if (g.index) for (let i = 0; i < g.index.count; i++) idx.push(base + g.index.getX(i));
+            else for (let i = 0; i < Pa.count; i++) idx.push(base + i);
+            base += Pa.count;
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+        geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+        geo.setIndex(idx);
+        geo.computeBoundingSphere();
+        return geo;
     },
     geo(kind) {
         if (this.geos[kind]) return this.geos[kind];
@@ -361,6 +406,7 @@ const EnvDolls = {
         for (const s of [-1, 1]) this.piece(head, 'ball', skin, s * DOLL.R * 0.97, -DOLL.R * 0.1, 0, 0.028, 0.034, 0.022);
         this.hair(d, head, L);
         this.extras(d, head, spec, L);
+        this.bake(d);
         return d;
     },
 
