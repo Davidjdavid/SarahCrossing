@@ -35,13 +35,17 @@ const EnvDolls = {
         if (e === G.player) return Online.visitor() ? hdFolkSpec(Online.who()) : hdSarahSpec();
         if (e.def) { if (e.def.human) return hdFolkSpec(e.def.human, npcWearing(e.id)); const f = this.folkOf(e); return f ? { folk: f, acc: npcWearing(e.id) } : null; }
         if (e.who) return e.who === 'sarah' ? hdRemoteSarah(e.look) : hdFolkSpec(e.who);
+        if (e.kind === 'judge' || e.kind === 'ghost') { const f = this.folkOf(e); return f ? { folk: f } : null; }
         return null;
     },
     /* a food folk's model (folk_maki...: tools/blender/folks.py), once the models are in */
     folkOf(e) {
-        const id = e.def && e.def.sprite;
+        // (and in the rooms, the Cozy Council's judges and the old keeper's ghost)
+        const id = e.def ? e.def.sprite : e.kind === 'judge' ? String(e.frame || '').split('_')[0] : e.kind === 'ghost' ? 'ghost' : null;
         return id && typeof EnvModels !== 'undefined' && EnvModels.has('folk_' + id) ? id : null;
     },
+    /* those who aren't neighbors but stand in a room now and then: the council's judges, the ghost near midnight */
+    guests(a) { return a && a.interior ? a.ents.filter(e => (e.kind === 'judge' || (e.kind === 'ghost' && typeof Quests !== 'undefined' && Quests.ghostHere())) && this.folkOf(e)) : []; },
     /* sitting: Sarah on a bench, a neighbor seated or lounging */
     sitting(e) { return !!e.sit || (!!e.def && (isSeated(e) || isLounging(e))); },
     /* a shopkeeper behind the counter along the back wall stands on a step there, so they show over it */
@@ -54,7 +58,7 @@ const EnvDolls = {
     tick(r3, a) {
         this.drawn.clear();
         const v = r3.view, near = (e) => !v || (e.x > v.x0 - 32 && e.x < v.x1 + 32 && e.y > v.y0 - 32 && e.y < v.y1 + 64);
-        const who = [G.player].concat(NPCs.here().filter(n => n.def && (n.def.human || this.folkOf(n))), Online.here());
+        const who = [G.player].concat(NPCs.here().filter(n => n.def && (n.def.human || this.folkOf(n))), Online.here(), this.guests(a));
         for (const [e, d] of this.dolls) if (!who.includes(e)) { this.drop(d); this.dolls.delete(e); }
         for (const e of who) {
             if (e && !near(e)) { const d1 = this.dolls.get(e); if (d1) d1.root.visible = false; continue; }
@@ -166,8 +170,11 @@ const EnvDolls = {
             const kind = /^eye_/.test(key) ? 'eyes' : /^foot_/.test(key) ? 'feet' : /^arm_/.test(key) ? 'arms' : /^leg_/.test(key) ? 'legs' : null;
             let geo = p.geometry;
             if (kind) { p.local = p.local || p.geometry.clone().translate(-p.at.x, -p.at.y, -p.at.z); geo = p.local; }
-            const mesh = new THREE.Mesh(geo, p.material);
-            mesh.castShadow = true; mesh.receiveShadow = true;
+            let mat = p.material;
+            // (the old keeper is a ghost: a little see-through)
+            if (spec.folk === 'ghost') mat = p._ghost || (p._ghost = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, metalness: 0, transparent: true, opacity: 0.78, depthWrite: false }), { key: 'envghost', noDof: true }));
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.castShadow = spec.folk !== 'ghost'; mesh.receiveShadow = true;
             mesh.userData.shared = true;        // (the model's: kept when the island is built again)
             if (!kind) { body.add(mesh); continue; }
             const g = new THREE.Group();
@@ -215,6 +222,7 @@ const EnvDolls = {
         if (seat) { y = gy + 0.36; z += 0.1; }
         else if (lounge) y = gy - 0.02;
         else if (e.def && e.def.spring) { const w = Env.waterH(e.x, e.y); y = (w != null ? w : gy) - 0.32; }
+        else if (e.kind === 'ghost') y = gy + 0.18 + Math.sin(G.t / 13) * 0.06;
         root.position.set(e.x / TILE, y, z);
         root.rotation.y = d.ang;
         // the step: feet swinging in turn, the body rocking side to side, squashed as it lands and stretched in the air

@@ -41,7 +41,7 @@ const EnvRoom = {
         return EnvModels.has(n) ? n : null;
     },
     PLUSH: 0.34,
-    takes(e) { return this.on && !!this.built && !!this.built.placed && this.built.placed.has(e); },
+    takes(e) { return this.on && ((!!this.built && !!this.built.placed && this.built.placed.has(e)) || ((e.kind === 'judge' || e.kind === 'ghost') && EnvDolls.drawn.has(e))); },
     /* where a picture still drawn the HD way stands: a thing on a table that's a model stands on its top */
     place(e) {
         if (!this.on || !e.furn || e.def.kind !== 'top' || e.item.on == null || !this.built) return null;
