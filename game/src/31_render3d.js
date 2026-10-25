@@ -816,6 +816,8 @@ const R3Mirror = {
         const hide = [r3.sea]; for (const ch of r3.chunks.values()) if (ch.mesh.visible) hide.push(ch.mesh);
         if (r3.tufts && r3.tufts.mesh.visible) hide.push(r3.tufts.mesh);
         if (r3.lilies && r3.lilies.mesh.visible) hide.push(r3.lilies.mesh);
+        // (nor the new look's ground, grass and the soft shade under things)
+        if (typeof Env !== 'undefined' && Env.on && Env.built) for (const k of ['ground', 'grass', 'contact']) { const p = Env.built.parts[k]; if (p && p.meshes) for (const m of p.meshes) if (m.visible) hide.push(m); }
         for (const m of hide) m.visible = false;
         const bk = R3U.uBendK.value, was = R.shadowMap.needsUpdate;
         R3U.uBendK.value = 0; R3U.uRefl.value = 0; R.shadowMap.needsUpdate = false;
