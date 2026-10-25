@@ -84,7 +84,8 @@ const Env = {
         if (this.ground.tick) this.built.tick.push(this.ground.tick);     // (the season's colors)
         for (const [name, B] of [['water', typeof EnvWater !== 'undefined' && EnvWater], ['trees', typeof EnvTrees !== 'undefined' && EnvTrees],
             ['build', typeof EnvBuild !== 'undefined' && EnvBuild], ['walls', typeof EnvWalls !== 'undefined' && EnvWalls], ['grass', typeof EnvGrass !== 'undefined' && EnvGrass],
-            ['contact', typeof EnvContact !== 'undefined' && EnvContact], ['decals', typeof EnvDecals !== 'undefined' && EnvDecals]]) {
+            ['contact', typeof EnvContact !== 'undefined' && EnvContact], ['decals', typeof EnvDecals !== 'undefined' && EnvDecals],
+            ['dolls', typeof EnvDolls !== 'undefined' && EnvDolls]]) {
             if (!B) continue;
             const t1 = performance.now();
             const p = B.build(group, a);

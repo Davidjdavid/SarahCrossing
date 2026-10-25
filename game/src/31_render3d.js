@@ -538,7 +538,8 @@ const R3 = {
         // critters get HD cards (three pixels to one; tall ones for high fliers), and so do boats and dolphins
         if (a.id === 'island') { for (const c of Critters.ents()) movers.push([(c.alt || 0) > 30 ? 'h' : 'c', c]); for (const s of SeaSky.ents()) movers.push([s.alt ? 'f' : 's', s]); for (const b of Flutter.ents()) movers.push([(b.alt || 0) > 30 ? 'h' : 'c', b]); }
         for (const f of G.fx) if (f.sorted) movers.push(['f', f]);
-        for (const [k, e] of movers) if (near(e)) this.movingCard(k, e, a);
+        // (people drawn as dolls in the new look have no card)
+        for (const [k, e] of movers) if (near(e) && !(env && typeof EnvDolls !== 'undefined' && EnvDolls.draws(e))) this.movingCard(k, e, a);
         for (const k of Object.keys(this.pool)) this.pool[k].forEach((c, i) => { if (i >= this.poolUsed[k]) c.mesh.visible = false; });
     },
     /* a card for something that stays put: its size is measured once, it is redrawn when it changes */
