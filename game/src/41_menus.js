@@ -488,6 +488,8 @@ function appSettings() {
     list.appendChild(toggle('Neighbors can text me first', () => !(S.settings && S.settings.npcTexts === false), v => { S.settings = S.settings || {}; S.settings.npcTexts = v; Save.touch(); }));
     // HD-2D, or the classic flat view (kept per device; phones without WebGL always use the classic view)
     if (R3.available()) list.appendChild(toggle('HD-2D graphics', () => R3.want, v => R3.setWant(v)));
+    // (the new 3D look can draw the tiles on the ground, kept per device)
+    if (R3.available() && typeof Env !== 'undefined' && Env.want()) list.appendChild(toggle('Show the tile grid', () => EnvGround.gridOn.value > 0, v => { EnvGround.gridOn.value = v ? 1 : 0; lsSet('sc-grid', v ? '1' : '0'); }));
     b.appendChild(list);
     // the island's name and clock are Sarah's to set
     if (!Online.visitor()) { b.appendChild(islandNameSetting()); b.appendChild(clockSetting()); }

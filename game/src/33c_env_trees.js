@@ -57,7 +57,8 @@ const EnvTrees = {
             });
         };
         for (const e of trees) {
-            const x = e.x / TILE, z = e.y / TILE * R3_ZS, y = Env.groundH(e.x, e.y), r = mulberry(hash32('tree' + Math.round(e.x) + ',' + Math.round(e.y)));
+            // (in the middle of its tile)
+            const T = Env.tileSpot(e), x = T.x, z = T.z, y = T.y, r = mulberry(hash32('tree' + Math.round(e.x) + ',' + Math.round(e.y)));
             // (a palm is a tree or a fruit tree wearing a palm picture)
             const kind = e.kind === 'palm' || /^palm/.test(e.frame || '') ? 'palm' : /pine/.test(e.frame || '') || e.pine || e.treeKind === 'pine' ? 'pine' : 'broad';
             const big = e.kind === 'bigtree' || e.kind === 'oldtree' ? 1.4 : 1, fruit = e.kind === 'fruittree' && e.fruit;
@@ -66,12 +67,14 @@ const EnvTrees = {
             else if (kind === 'palm') { if (palms.length) t = put(palms, x, y, z, r, 0.9 + r() * 0.15, fruit ? (r() - 0.5) * 1.2 : null); else this.palm(F, B, x, y, z, r, e); }
             // (a round tree faces the camera, as Animal Crossing's do: its two low lobes level side by side, the third on top;
             // only turned a touch, and each its own size)
-            else if (rounds.length) t = put(rounds, x, y, z, r, big * (0.84 + r() * 0.26), (r() - 0.5) * 0.3);
+            // (sized to the grid: the island keeps a free tile between trees, so a crown about two and a half tiles across
+            // just meets its neighbor's instead of merging into one blob)
+            else if (rounds.length) t = put(rounds, x, y, z, r, big * (0.76 + r() * 0.16), (r() - 0.5) * 0.3);
             else this.broad(F, B, x, y, z, r, big);
             if (t) live.push({ e, t, fruit: fruit ? hang(t, fruit) : [], on: true, ripe: true, shook: false });
         }
         for (const e of bushes) {
-            const r = mulberry(hash32('bush' + e.x + ',' + e.y)), x = e.x / TILE, y = Env.groundH(e.x, e.y), z = e.y / TILE * R3_ZS;
+            const r = mulberry(hash32('bush' + e.x + ',' + e.y)), T = Env.tileSpot(e), x = T.x, y = T.y, z = T.z;
             if (shrubs.length) put(shrubs, x, y + 0.02, z, r, 0.95 + r() * 0.25); else this.bush(F, x, y, z, r);
         }
         const models = [], inst = {};

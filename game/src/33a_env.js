@@ -179,6 +179,18 @@ const Env = {
         if (w === 2) return ENV.BASE + EnvGround.waterLevel(tx, ty) * ENV.LV - 0.14;
         return null;
     },
+    /* where something standing on the tile grid stands in the new look: the middle of its tile (or its footprint), as
+       Animal Crossing stands its trees and furniture, not on the tile's south edge where the 2D art drew its feet.
+       { x, z } in world units and the ground's height there (y) */
+    tileSpot(e) {
+        let tx, ty, w = 1, h = 1;
+        if (e.tx != null && e.ty != null) { tx = e.tx; ty = e.ty; }
+        else if (e.px != null && e.py != null) { tx = e.px; ty = e.py; w = (typeof PROP_SIZE !== 'undefined' && PROP_SIZE[e.kind]) || 1; h = (typeof PROP_ROWS !== 'undefined' && PROP_ROWS[e.kind]) || 1; }
+        else { tx = Math.floor(e.x / TILE); ty = Math.floor((e.y - 3) / TILE); }
+        if (e.kind === 'bigtree' || e.kind === 'oldtree') { w = 2; h = 2; tx = Math.round(e.x / TILE) - 1; ty = Math.round(e.y / TILE) - 2; }
+        const x = tx + w / 2, v = ty + h / 2;
+        return { x, z: v * R3_ZS, y: this.groundH(x * TILE, v * TILE) };
+    },
     /* the ground's height under a spot (world pixels), for people and cards standing on it */
     groundH(x, y) {
         if (!this.ground || (G.area && G.area.interior)) return 0;
@@ -601,7 +613,7 @@ const EnvGround = {
             tGrass: { value: T.lawn().map }, tDirt: { value: B('path', 'col', () => T.dirt().map) }, tCob: { value: B('flagstones', 'col', () => T.cobble().map) }, tSand: { value: sand.map }, tWall: { value: wall.map },
             nGrass: { value: T.lawn().normal }, nDirt: { value: B('path', 'nrm', () => T.dirt().normal) }, nCob: { value: B('flagstones', 'nrm', () => T.cobble().normal) }, nSand: { value: sand.normal }, nWall: { value: wall.normal },
             hCob: { value: B('flagstones', 'hgt', () => flat) }, hDirt: { value: B('path', 'hgt', () => flat) },
-            uSeason: { value: new THREE.Vector4(1, 1, 1, 0) }, uRainW: this.rain,
+            uSeason: { value: new THREE.Vector4(1, 1, 1, 0) }, uRainW: this.rain, uGrid: this.gridOn,
         };
         lap('tex');
         this._season = null;                // (new uniforms: the season's colors go in on the first frame)
@@ -616,6 +628,7 @@ const EnvGround = {
         } };
     },
     rain: { value: 0 },     // (how wet everything is: the ground darkens, puddles shine, rings on the water)
+    gridOn: { value: lsGet('sc-grid') === '1' ? 1 : 0 },   // (the tiles drawn on the ground: for placing things, and checking things sit on them)
     /* a piece of ground: its pictures, then its mesh (R points a tile, normals from the whole island's heights, no seams) */
     *chunkSteps(c) {
         const M = EnvChunk.MARGIN, wx0 = c.x0 - M, wy0 = c.y0 - M, ww = c.w + 2 * M, wh = c.h + 2 * M;
@@ -675,7 +688,7 @@ const EnvGround = {
    from the kinds picture (blended, with ragged edges so grass reaches over paths), each kind from its own surface;
    anything steep is the stone wall, laid in courses across its face */
 EnvGround.FHEAD = `
-uniform sampler2D uKinds; uniform vec2 uMapSz; uniform vec2 uOrg; uniform vec2 uSz; uniform vec4 uSeason; uniform float uRainW;
+uniform sampler2D uKinds; uniform vec2 uMapSz; uniform vec2 uOrg; uniform vec2 uSz; uniform vec4 uSeason; uniform float uRainW; uniform float uGrid;
 uniform sampler2D tGrass; uniform sampler2D tDirt; uniform sampler2D tCob; uniform sampler2D tSand; uniform sampler2D tWall;
 uniform sampler2D nGrass; uniform sampler2D nDirt; uniform sampler2D nCob; uniform sampler2D nSand; uniform sampler2D nWall;
 uniform sampler2D hCob; uniform sampler2D hDirt; uniform sampler2D uWet;
@@ -734,6 +747,11 @@ EnvGround.FMAP = `
     envWallUv = (ew ? vec2(vWp.z / ${R3_ZS.toFixed(3)}, -vWp.y) : vec2(vWp.x, -vWp.y)) * 0.25;
     vec3 cw = texture2D(tWall, envWallUv).rgb;
     col = mix(col, cw, envSteep);
+    // the tiles' lines (when shown): thin and soft, on flat ground only
+    if (uGrid > 0.0) {
+        vec2 gd = abs(fract(tp + 0.5) - 0.5) / fwidth(tp);
+        col = mix(col, vec3(1.0, 0.98, 0.9), uGrid * 0.55 * (1.0 - smoothstep(0.6, 1.6, min(gd.x, gd.y))) * (1.0 - envSteep));
+    }
     diffuseColor.rgb = col * vAO;
 }`;
 /* (the surfaces' bumps: blended like their colors, turned onto the ground or onto the wall's face) */

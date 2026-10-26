@@ -38,7 +38,7 @@ const EnvBuild = {
         this.part = part;
         // the furniture made in Blender (bench, lamp, mailbox, fence, planter, pumpkins), gathered and drawn instanced
         const placed = {}, has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
-        this.model = (n, x, y, z, rot, sc) => { if (!has(n)) return false; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y, z, rot || 0, sc || 1)); return true; };
+        this.model = (n, x, y, z, rot, sc, sy, sz) => { if (!has(n)) return false; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y, z, rot || 0, sc || 1, sy, sz)); return true; };
         const mills = [];
         // (Basil's noodle cart is only out at night: its model is hidden by day)
         const nights = [];
@@ -465,8 +465,17 @@ const EnvBuild = {
     },
     /* a white picket fence along this tile, joining its neighbours */
     fence(e, a) {
-        const f = this.foot(e), x = f.x, z = f.z - 0.35, y = f.y;
-        // (the concept's garden fences are rustic split rails)
+        const f = Env.tileSpot(e), x = f.x, z = f.z, y = f.y;
+        // (the concept's garden fences are rustic split rails, joined tile to tile on the grid: a rail from this tile's
+        // middle to the next fence's east and south, so runs go round corners and down the sides; one on its own stands
+        // across its tile)
+        const F = fenceTiles(), tx = Math.floor(x), ty = Math.floor(z / R3_ZS), has = (i, j) => F.has(i + ',' + j);
+        const rail = (cx, cv, turn) => this.model('fence_rustic', cx, Env.groundH(cx * TILE, cv * TILE), cv * R3_ZS, turn ? Math.PI / 2 : 0, turn ? R3_ZS : 1, 1, 1);
+        let drawn = false;
+        if (has(tx + 1, ty)) drawn = rail(tx + 1, ty + 0.5, false) || drawn;
+        if (has(tx, ty + 1)) drawn = rail(tx + 0.5, ty + 1, true) || drawn;
+        if (!drawn && !has(tx - 1, ty) && !has(tx, ty - 1)) drawn = rail(tx + 0.5, ty + 0.5, false);
+        if (drawn || has(tx - 1, ty) || has(tx, ty - 1)) { this.fenceSide(e, x, y, z); return; }
         if (!this.model('fence_rustic', x, y, z)) {
             for (let i = 0; i < 4; i++) { const px = x - 0.5 + (i + 0.5) / 4; this.box('plain', px - 0.05, y, z - 0.03, px + 0.05, y + 0.68, z + 0.03, '#f4f2ea'); this.box('plain', px - 0.035, y + 0.68, z - 0.03, px + 0.035, y + 0.74, z + 0.03, '#f4f2ea'); }
             for (const ry of [0.22, 0.5]) this.box('plain', x - 0.5, y + ry, z - 0.06, x + 0.5, y + ry + 0.06, z - 0.03, '#e2dfd6');
@@ -509,8 +518,9 @@ const EnvBuild = {
     },
     /* a clump of flowers where a wild flower grows (the model's name when it is one) */
     flower(e) {
-        const f = this.foot(e), r = mulberry(hash32('fl' + e.x + ',' + e.y)), kind = (e.id || '').split('_')[1] || '';
+        const f = Env.tileSpot(e), r = mulberry(hash32('fl' + e.x + ',' + e.y)), kind = (e.id || '').split('_')[1] || '';
         const n = { tulip: 'flowers_tulip', daisy: 'flowers_daisy', cosmos: 'flowers_cosmos', lily: 'flowers_lily' }[kind] || 'flowers_mixed';
+        f.z += 0.2;     // (the clumps below are placed from the foot's old spot)
         if (this.model(n, f.x, f.y, f.z - 0.2, r() * Math.PI * 2)) return n;
         const pal = { tulip: ['#e8324a', '#ffcf3a', '#ff7ab8'], daisy: ['#ffffff', '#fff6d0', '#ffe14a'], cosmos: ['#ff7ab8', '#e0559a', '#ffffff'], lily: ['#ffffff', '#ffb0c8', '#ffd04a'] }[kind] || ['#ffffff', '#ff7ab8', '#ffd34a', '#b07af0'];
         for (let i = 0; i < 4; i++) {

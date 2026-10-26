@@ -8,9 +8,10 @@ const EnvContact = {
         const add = (x, z, rx, rz, k) => list.push([x, z, rx, rz, k == null ? 1 : k]);
         for (const e of a.ents) {
             const x = e.x / TILE, z = e.y / TILE * R3_ZS, k = e.kind;
-            if (k === 'tree' || k === 'fruittree' || k === 'palm') add(x, z, /^palm/.test(e.frame || '') ? 0.7 : 1.25, 1.0, 0.9);
-            else if (k === 'bigtree' || k === 'oldtree') add(x, z, 1.8, 1.5, 0.9);
-            else if (k === 'bush') add(x, z, 0.7, 0.55, 0.9);
+            const T = k === 'tree' || k === 'fruittree' || k === 'palm' || k === 'bigtree' || k === 'oldtree' || k === 'bush' ? Env.tileSpot(e) : null;
+            if (k === 'tree' || k === 'fruittree' || k === 'palm') add(T.x, T.z, /^palm/.test(e.frame || '') ? 0.7 : 1.25, 1.0, 0.9);
+            else if (k === 'bigtree' || k === 'oldtree') add(T.x, T.z, 1.8, 1.5, 0.9);
+            else if (k === 'bush') add(T.x, T.z, 0.7, 0.55, 0.9);
             else if (k === 'bench') add(x, z - 0.1, 0.85, 0.5, 0.8);
             else if (k === 'lamp' || k === 'mailbox') add(x, z, 0.38, 0.32, 0.8);
             else if (k === 'building' && e.b) { const b = e.b; add(b.x + b.w / 2, (b.y + b.h - 0.4) * R3_ZS, b.w * 0.62, 0.9, 1); }
