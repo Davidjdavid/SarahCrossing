@@ -462,11 +462,13 @@ async function arcadeCabinet(id) {
     const free = !A.free[id];
     const best = A.best[id] ? ` Your best: ${fmtNum(A.best[id])}.` : '';
     const lv = levelChoices(id);
-    const opts = [free ? 'Play (free!)' : `Play (${fmtNum(def.fee)})`].concat(lv.length ? [`Start at level ${lv[lv.length - 1]}`] : [], lv.length > 2 ? ['Pick a level'] : [], ['How do I play?', 'Not now']);
+    const vs = typeof Versus !== 'undefined' && Versus.has(id) ? [`Play a neighbor (${fmtNum(def.fee)})`] : [];
+    const opts = [free ? 'Play (free!)' : `Play (${fmtNum(def.fee)})`].concat(vs, lv.length ? [`Start at level ${lv[lv.length - 1]}`] : [], lv.length > 2 ? ['Pick a level'] : [], ['How do I play?', 'Not now']);
     const k = await UI.ask(sp, free ? `${def.name}! Your first game is on the house.${best}` : `${def.name}. ${fmtNum(def.fee)} sand dollars a game.${best}`, opts);
     const c = opts[k];
     if (c === 'How do I play?') { await UI.say(sp, def.how); return arcadeCabinet(id); }
     if (c === 'Not now') return;
+    if (c && c.startsWith('Play a neighbor')) return arcadeVersus(id, sp);
     let level = 1;
     if (c && c.startsWith('Start at level')) level = lv[lv.length - 1];
     if (c === 'Pick a level') {
@@ -478,6 +480,18 @@ async function arcadeCabinet(id) {
     if (free) A.free[id] = true; else addMoney(-def.fee, true);
     UI.hideDialog();
     const res = await Arcade.start(id, { level });
+    await afterArcade(res);
+}
+/* two players: one of the neighbors here plays you, side by side (6zv_versus.js) */
+async function arcadeVersus(id, sp) {
+    const def = ARCADE_GAMES[id], who = Versus.rivals('arcade');
+    if (!who.length) { await UI.say(sp, sp ? "Nobody's around to play right now. Come back when it's busier! Afternoons are spicy." : 'Nobody is around to play right now.'); return; }
+    const how = s => (s >= 0.75 ? 'a whiz' : s >= 0.55 ? 'pretty good' : s >= 0.4 ? 'okay' : 'just learning');
+    const j = await UI.ask(sp, 'Who do you want to play?', who.map(w => `${Online.name(w)} (${how(VS_SKILL[w])})`).concat(['Never mind']));
+    if (j >= who.length) return;
+    if (S.money < def.fee) { Sfx.ui('nope'); await UI.say(sp, 'Not enough sand dollars.'); return; }
+    addMoney(-def.fee, true);
+    const res = await versusPlay(id, who[j]);
     await afterArcade(res);
 }
 async function afterArcade(res) {

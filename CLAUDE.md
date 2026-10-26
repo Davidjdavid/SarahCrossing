@@ -217,6 +217,16 @@ docs/DEPLOY.md for the server.
   original (by its exact text, nearest its old line; quotes and `${}` handled); his notes and his edits to the new lines
   land in `docs/dialogue/notes-from-david.json`.
 
+## Two-player games (6zv_versus.js)
+
+- Every arcade game but Fortune Falls and the claw has a two-player mode (`versusDef(id)` makes `vs_<id>`: two boards
+  side by side in one cabinet): "Play a neighbor" at a cabinet picks one of the neighbors in the arcade, whose board an
+  opponent brain plays at their own skill (`VS_SKILL`). `Versus.ADAPT[id]` says how a game is played two-handed:
+  Bento Blocks, Spice Capsules, Dumpling Drop and Sushi Swap send junk across (`hook` reports what a board sends,
+  `junk` puts it on the other, `ready` says when it can land, `done` a board that wins outright); Surf's Up, Gopher
+  Garden, Fruit Catch, Snack Stack and Noodle Slurp are races (`race`, on `VS_RACE` or the game's own clock). The other
+  board plays silently (`Versus.quiet`). Playing a neighbor earns a little friendship once a day.
+
 ## Saving (11_save.js, 12_cloud.js, 6x_islands.js)
 
 - `Save.write()` keeps a copy on the device (`localStorage`, marked pending) and sends the island to
