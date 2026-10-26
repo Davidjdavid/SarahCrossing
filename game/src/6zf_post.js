@@ -197,6 +197,8 @@ function postTick() {
     if (paper) {
         sendMail({ from: 'post', subject: `The ${S.islandName || 'Island'} Gazette`, body: `Today's paper: ${paper.stories[0][0].toLowerCase()}, and more inside.`, paper: day });
     }
+    // old papers leave the mailbox after two weeks (they're all in the archive), and the Post Office's own read notes after a month
+    S.mail = S.mail.filter(m => !(m.paper != null && m.day < day - 14) && !(m.from === 'post' && m.read && (m.claimed || !m.gift) && m.day < day - 30));
     Save.touch();
 }
 /* a letter arrives: friendship, the present (or not), and a reply in the mail */
@@ -243,6 +245,10 @@ function postLostOptions(n) {
         return true;
     } }];
 }
+
+/* the mailbox's colors (tools/blender/props.py MAILBOX_COLORS: a model each); green is the one it came with */
+const MAILBOX_COLORS = [[null, 'Green', '#3d7a4a'], ['red', 'Red', '#c8463a'], ['blue', 'Blue', '#3d6fb6'], ['yellow', 'Yellow', '#e8b83a'],
+    ['pink', 'Pink', '#e88aaa'], ['white', 'White', '#ece6dc'], ['black', 'Black', '#3b2f32']];
 
 /* ---------------------------------------------------------------- the screens */
 CIVIC_LIVE.letter = {
@@ -340,5 +346,38 @@ CIVIC_LIVE.archive = {
             Q.body.className = 'pbody cv';
             paperView(Q.body, p);
         });
+    },
+};
+CIVIC_LIVE.mailbox = {
+    draw(b, f, redraw) {
+        const P = post(), cur = P.box || null, pick = this.pick !== undefined ? this.pick : cur;
+        const col = (MAILBOX_COLORS.find(c => c[0] === pick) || MAILBOX_COLORS[0])[2];
+        // (the mailbox in the color picked: a rounded box on a post, its flag up)
+        const prev = el('div', 'cv-mailbox'), cv = document.createElement('canvas');
+        cv.width = 160; cv.height = 120; prev.appendChild(cv); b.appendChild(prev);
+        const g = cv.getContext('2d');
+        g.fillStyle = '#8a5a34'; g.fillRect(74, 62, 12, 54); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(80, 62, 6, 54);
+        g.fillStyle = col; g.beginPath(); g.moveTo(40, 66); g.lineTo(40, 40); g.arc(68, 40, 28, Math.PI, 0); g.lineTo(96, 66); g.closePath(); g.fill();
+        g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(46, 30, 44, 5); g.fillStyle = 'rgba(0,0,0,0.15)'; g.fillRect(40, 60, 56, 6);
+        g.lineWidth = 3; g.strokeStyle = 'rgba(59,42,42,0.5)'; g.strokeRect(40, 40, 18, 26);
+        g.fillStyle = pick === 'red' ? '#f4c040' : '#d8433b'; g.fillRect(100, 26, 5, 34); g.fillRect(100, 26, 18, 10);
+        b.appendChild(el('div', 'cv-h', 'Color'));
+        const sw = el('div', 'swatches');
+        for (const [k, name, c] of MAILBOX_COLORS) {
+            const s = el('button', 'swatch' + (k === pick ? ' on' : '')); s.type = 'button'; s.style.background = c; s.title = name; s.setAttribute('aria-label', name);
+            s.addEventListener('click', () => { this.pick = k; redraw(); });
+            sw.appendChild(s);
+        }
+        b.appendChild(sw);
+        CV.note(b, 'Painting your mailbox is free. New mailbox styles (a cottage, a lighthouse, a fish) are coming.');
+        if (Online.visitor()) { CV.banner(b, 'info', 'This is ' + Online.name('sarah') + "'s mailbox. You can look, though!"); return; }
+        const save = btn('Paint it', 'green', () => {
+            P.box = pick;
+            this.pick = undefined;
+            Sfx.play('fanfare'); Save.touch(); redraw();
+            UI.toast(`Your mailbox is ${(MAILBOX_COLORS.find(c => c[0] === pick) || MAILBOX_COLORS[0])[1].toLowerCase()} now.`, 'mailbox');
+        });
+        save.disabled = pick === cur;
+        f.appendChild(save);
     },
 };

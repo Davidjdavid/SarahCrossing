@@ -33,11 +33,14 @@ function townOrd() {
     return T.next && Clock.dayNum() >= T.from ? T.next : T.now;
 }
 /* when the neighbors wake and go to bed (22_npc.js makePlan), and the shops' hours (6z_shops.js roomHours) */
-function townWake(wake, bed) {
+function townWake(wake, bed, id) {
     const o = townOrd();
-    if (o === 'early') return [wake - 1.5, bed - 1];
-    if (o === 'night') return [wake + 1, Math.min(28.5, bed + 1.5)];
-    return [wake, bed];
+    if (o === 'early') { wake -= 1.5; bed -= 1; }
+    if (o === 'night') { wake += 1; bed += 1.5; }
+    // (a good friend's own hours, asked for at the Town Hall's Residents)
+    const sc = CIVIC_PREVIEW && id && S && S.town && S.town.sched && S.town.sched[id];
+    if (sc) { wake += sc.w || 0; bed += sc.b || 0; }
+    return [Math.max(5, wake), Math.min(28.5, Math.max(wake + 4, bed))];
 }
 function townHours(id, h) {
     const o = townOrd();
@@ -289,6 +292,45 @@ function flagCanvas(scale) {
     cells.forEach((v, i) => { g.fillStyle = FLAG_PAL[v]; g.fillRect((i % FLAG_W) * k, Math.floor(i / FLAG_W) * k, k, k); });
     return c;
 }
+/* Residents: for good friends (three hearts), when they wake and go to bed, and what they wear today (catchphrases come
+   with the friendship update) */
+CIVIC_LIVE.residents = {
+    draw(b, f, redraw) {
+        const T = town(), ids = NEIGHBORS.filter(id => S.npcs[id] && S.npcs[id].met && NPC_DEFS[id]);
+        if (!ids.length) { CV.empty(b, 'Meet the neighbors first!', 'app_friends'); return; }
+        const pick = ids.includes(this.pick) ? this.pick : ids[0], d = NPC_DEFS[pick], h = Math.min(5, hearts(pick));
+        const who = el('div', 'st-row');
+        for (const id of ids) who.appendChild(chip(NPC_DEFS[id].name, () => { this.pick = id; redraw(); }, id === pick ? 'on' : ''));
+        b.appendChild(who);
+        const l = CV.list(b);
+        CV.row(l, d.human ? `${d.human}_down_stand` : `${d.sprite}_0`, d.name, '\u2665'.repeat(h) + '\u2661'.repeat(5 - h));
+        if (h < 3) { CV.banner(b, 'warn', `${d.name} needs to be good friends with you first (three hearts).`); return; }
+        if (townVisitorNote(b)) return;
+        const sc = (T.sched = T.sched || {})[pick] || { w: 0, b: 0 };
+        const row = (label, key, base) => {
+            const r = el('div', 'st-row'); r.appendChild(el('b', null, `${label}: ${fmtOpen(base + (sc[key] || 0))}`));
+            for (const [t, dv] of [['Earlier', -0.5], ['Later', 0.5]]) r.appendChild(chip(t, () => {
+                const v = Math.max(-2, Math.min(2, (sc[key] || 0) + dv));
+                T.sched[pick] = Object.assign({ w: 0, b: 0 }, sc, { [key]: v }); Save.touch(); redraw();
+            }));
+            b.appendChild(r);
+        };
+        CV.h(b, 'Their hours');
+        row('Wakes up', 'w', d.wake); row('Goes to bed', 'b', d.bed);
+        CV.note(b, 'Up to two hours either way. It starts tomorrow (today they already have plans).');
+        if (sc.w || sc.b) f.appendChild(btn('Back to their own hours', 'alt', () => { delete T.sched[pick]; Save.touch(); redraw(); }));
+        const r = S.npcs[pick];
+        CV.h(b, 'What they wear');
+        if (!r.accs || !r.accs.length) CV.note(b, `Give ${d.name} a hat or glasses as a present and they can wear it.`);
+        else {
+            const now = npcWearing(pick), w = el('div', 'st-row');
+            for (const acc of [null].concat(r.accs)) w.appendChild(chip(acc ? cap(acc.replace(/_/g, ' ')) : 'Nothing today', () => { r.wearDay = Clock.dayNum(); r.wearing = acc; Save.touch(); redraw(); }, acc === now ? 'on' : ''));
+            b.appendChild(w);
+            CV.note(b, 'Just for today: tomorrow they pick for themselves again.');
+        }
+        CV.field(b, 'Catchphrase (coming with the friendship update)', '', 'Not yet', { max: 16 }).disabled = true;
+    },
+};
 CIVIC_LIVE.backups = {
     draw(b, f) {
         if (!Cloud.id) { CV.banner(b, 'info', 'This island is only on this device, so there are no backups on the island server.'); return; }

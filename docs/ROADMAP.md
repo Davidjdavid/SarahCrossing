@@ -174,7 +174,7 @@ Office's and the Bank's keepers are still to be picked.
 - [x] Package tracking for things ordered from the computer
 - [x] Lost mail quests: deliver misplaced packages and letters
 - [x] Special deliveries: now and then a mysterious package with something rare
-- [ ] Customize the look and color of the mailbox
+- [~] Customize the look and color of the mailbox (colors done; new mailbox styles still to make)
 
 ### Town Hall
 - [x] Town flag designer: draw a pixel-art flag shown round the island
@@ -185,8 +185,8 @@ Office's and the Bank's keepers are still to be picked.
 - [x] Town history (a timeline of milestones), island statistics (days played, fish caught, items, money...), island
   records (biggest fish, best day, longest friendship), town achievements with commemorative rewards
 - [x] Rename landmarks (beaches, mountains, forests...)
-- [ ] Residents: customize catchphrases, reset or change clothes and accessories, adjust schedules (when they wake,
-  go home, where they go)
+- [~] Residents: customize catchphrases, reset or change clothes and accessories, adjust schedules (when they wake,
+  go home, where they go) (hours and what they wear today work; catchphrases come with the friendship update)
 - [x] Missed holidays: if Sarah didn't play on a major holiday (the Egg Hunt, say), the Town Hall lets her hold it the
   next day she plays, for up to a week after (so it never lands on another holiday: no Easter at Christmas)
 - [x] Town anniversary: a monthly island day

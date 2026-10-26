@@ -28,6 +28,9 @@ const Env = {
         // (built before the Blender models had arrived, or for another season: build it again)
         if (this.built && this.built.noModels && typeof EnvModels !== 'undefined' && EnvModels.ready) this.teardown(r3);
         if (this.built && this.built.season !== (a.bgSeason || Clock.season())) this.teardown(r3);
+        // (back outside after something built from the save changed indoors: a house redone or grown, the mailbox painted)
+        if (this.built && G.frame - (this.seen || 0) > 1 && this.built.look !== this.look()) this.teardown(r3);
+        this.seen = G.frame;
         if (!this.built) {
             try { this.build(r3, a); }
             catch (e) { console.error('the new 3D look could not be built (using the HD-2D view)', e); this.failed = true; this.teardown(r3); return false; }
@@ -44,6 +47,8 @@ const Env = {
         if (DEBUG) { const T = window.__envT || (window.__envT = { n: 0, ms: 0, max: 0 }); const d = performance.now() - ts; T.n++; T.ms += d; T.max = Math.max(T.max, d); }
         return true;
     },
+    /* what the island's 3D is built from in the save that changes indoors (Ginger's work, the Post Office's paint) */
+    look() { return S ? JSON.stringify([S.exteriors || null, S.house && S.house.level, S.post && S.post.box || null]) : ''; },
     /* where Sarah is on screen, for the see-through round her (trees and buildings in front of her) */
     seeThrough(r3) {
         const p = G.player, U = R3U.uSee.value;
@@ -104,7 +109,7 @@ const Env = {
         const models = typeof EnvModels !== 'undefined';
         if (models) EnvModels.load();
         EnvCull.reset();
-        this.built = { group, tick: [], parts: {}, chunks: new Map(), textures: [], area: a, season: a.bgSeason || Clock.season(), noModels: models && !EnvModels.ready && !EnvModels.failed };
+        this.built = { group, tick: [], parts: {}, chunks: new Map(), textures: [], area: a, season: a.bgSeason || Clock.season(), noModels: models && !EnvModels.ready && !EnvModels.failed, look: this.look() };
         const tg = performance.now();
         this.ground = EnvGround.build(group);
         if (DEBUG) console.log(`  ground: ${Math.round(performance.now() - tg)} ms`);

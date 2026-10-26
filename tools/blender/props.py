@@ -197,11 +197,12 @@ def lamp():
     return bake_self(o, glass='glass')
 
 
-def mailbox():
-    """The concept's green mailbox: a wooden post and arm, a round-topped box, a red flag raised."""
+def mailbox(color='#3d7a4a', door='#346a40', flag='#c8302a', name='mailbox'):
+    """The concept's green mailbox: a wooden post and arm, a round-topped box, a red flag raised. (The other colors are
+    the Post Office's: Sarah can have hers painted.)"""
     post = wood_mat('mb_post', '#7a5432')
-    paint = paint_mat('mb_paint', '#3d7a4a', 0.06, 0.5)
-    red = paint_mat('mb_flag', '#c8302a', 0.05, 0.5)
+    paint = paint_mat('mb_paint', color, 0.06, 0.5)
+    red = paint_mat('mb_flag', flag, 0.05, 0.5)
     parts = [cube('post', -0.05, -0.05, 0, 0.05, 0.05, 0.86, post, 0.01), cube('arm', -0.06, -0.24, 0.8, 0.06, 0.16, 0.86, post, 0.01)]
     # the box: a half round on a box, along y, from the front (-y) back
     bpy.ops.mesh.primitive_cylinder_add(vertices=20, radius=0.13, depth=0.5, location=(0, -0.05, 1.0), rotation=(math.pi / 2, 0, 0))
@@ -209,13 +210,18 @@ def mailbox():
     top.data.materials.append(paint)
     parts.append(top)
     parts.append(cube('box', -0.13, -0.3, 0.86, 0.13, 0.2, 1.0, paint, 0.01))
-    parts.append(cube('door', -0.115, -0.315, 0.88, 0.115, -0.3, 1.1, paint_mat('mb_door', '#346a40', 0.05), 0.005))
+    parts.append(cube('door', -0.115, -0.315, 0.88, 0.115, -0.3, 1.1, paint_mat('mb_door', door, 0.05), 0.005))
     parts.append(cube('handle', -0.02, -0.33, 1.0, 0.02, -0.31, 1.03, paint_mat('mb_handle', '#d8c070'), 0.004))
     parts.append(cube('flagpost', 0.13, -0.02, 0.95, 0.15, 0.02, 1.32, red, 0.004))
     parts.append(cube('flag', 0.135, 0.02, 1.2, 0.145, 0.16, 1.32, red, 0.004))
-    o = join(parts, 'mailbox')
+    o = join(parts, name)
     shade_smooth(o)
     return bake_self(o)
+
+
+# the colors the Post Office paints mailboxes (game/src/6zf_post.js MAILBOX_COLORS): body, door, flag
+MAILBOX_COLORS = {'red': ('#c8463a', '#a8362c', '#f4c040'), 'blue': ('#3d6fb6', '#335d98', '#c8302a'), 'yellow': ('#e8b83a', '#c89a2a', '#c8302a'),
+                  'pink': ('#e88aaa', '#c86f8e', '#c8302a'), 'white': ('#ece6dc', '#d0c8bc', '#c8302a'), 'black': ('#3b2f32', '#2a2124', '#c8302a')}
 
 
 def fence_picket():
@@ -363,6 +369,8 @@ def pumpkins():
 
 PROPS = {'bench': bench, 'lamp': lamp, 'mailbox': mailbox, 'fence_picket': fence_picket, 'fence_rustic': fence_rustic,
          'planter': planter, 'pumpkins': pumpkins}
+for _k, (_c, _d, _f) in MAILBOX_COLORS.items():
+    PROPS['mailbox_' + _k] = (lambda c=_c, d=_d, f=_f, n='mailbox_' + _k: mailbox(c, d, f, n))
 
 
 def preview(path, objs):

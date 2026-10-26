@@ -485,7 +485,9 @@ const EnvBuild = {
     },
     mailbox(e) {
         const f = this.foot(e), x = f.x, z = f.z - 0.1, y = f.y;
-        if (this.model('mailbox', x, y, z)) return;
+        // (Sarah's mailbox: the Post Office can paint it: 6zf_post.js)
+        const c = S && S.post && S.post.box, own = c && typeof EnvModels !== 'undefined' && EnvModels.has('mailbox_' + c);
+        if (this.model(own ? 'mailbox_' + c : 'mailbox', x, y, z)) return;
         this.box('wood', x - 0.05, y, z - 0.05, x + 0.05, y + 0.85, z + 0.05, '#6a4a2a', 2);
         this.box('plain', x - 0.18, y + 0.85, z - 0.32, x + 0.18, y + 1.12, z + 0.2, '#3f7fd0');
         this.box('plain', x - 0.18, y + 1.12, z - 0.32, x + 0.18, y + 1.18, z + 0.2, '#3570b8');

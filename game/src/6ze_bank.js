@@ -13,10 +13,10 @@ function bank() {
     if (!B.flow) B.flow = { in: {}, out: {}, since: Clock.dayNum() };
     return B;
 }
-/* this week's interest, in percent a day (between 0.1 and 0.5) */
+/* this week's interest, in percent a day (between 0.05 and 0.25: about a tenth more in a month) */
 function bankRate(day) {
     const r = mulberry(hash32((S.seed || '') + ':rate:' + Math.floor((day == null ? Clock.dayNum() : day) / 7)))();
-    return Math.round((0.1 + r * 0.4) * 100) / 100;
+    return Math.round((0.05 + r * 0.2) * 100) / 100;
 }
 /* each morning: the interest on what's saved (and on what's put toward goals), for every day since the last time */
 function bankTick() {

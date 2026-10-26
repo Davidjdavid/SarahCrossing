@@ -54,8 +54,9 @@ docs/DEPLOY.md for the server.
   `/api/world?zip=`, `/api/market`; free services with no key: zippopotam.us, open-meteo.com, news feeds, stooq.com;
   kept for the day; `WORLD_FAKE=1` answers with made-up data, as the tests do), and island jobs (`6zi_jobs.js`: three a
   day at the Town Hall: packages to deliver through the talk menu, leaves to sweep off the square, the dock sign to
-  repaint, shells, fruit or fish to hand in). Still samples: residents' catchphrases (for the friendship update) and
-  mailbox styles. Their
+  repaint, shells, fruit or fish to hand in). The Post Office paints Sarah's mailbox (`MAILBOX_COLORS`: a model each,
+  `mailbox_<color>` from props.py), and Residents lets Sarah nudge a good friend's hours (`S.town.sched`, through
+  `townWake`) and pick what they wear today. Still to come: catchphrases (the friendship update) and mailbox styles. Their
   morning work runs in `dailyCheck` (`bankTick`, `postYesterday`/`postTick`, `townTick`); the Bank and the post are each
   person's own (`PERSON_KEYS`), the town is the island's.
 - **Old saves must always load.** Sarah's island came from the one-page game and lives on the
@@ -118,6 +119,8 @@ docs/DEPLOY.md for the server.
   stand over the river or sea, drawn by `EnvBuild.decks`, and people stand on them (`Env.groundH`). The farm's fields
   ('F') get soil ridges and their crop (`crops.py`), the hot spring a rim of stones, and what lies flat on the ground
   (plots, the volleyball court, dug holes) is drawn by its 2D drawing into a picture laid on the ground (`EnvDecals`).
+  The island's 3D is built once, and built again when Sarah comes back outside after something it's made from changed
+  indoors (`Env.look`: the houses' looks, the house's size, the mailbox's color).
   Everything standing on the grid stands in the middle of its tile or footprint (`Env.tileSpot`), fences join tile to
   tile, and the ground's kinds, banks and shore follow the tiles (straight along tile lines, corners rounded, a little
   wobble): Settings > Show the tile grid draws the tiles (`EnvGround.gridOn`, `sc-grid`).
