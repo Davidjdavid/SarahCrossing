@@ -5,7 +5,8 @@ darker underneath), nothing baked.
 A piece stands on its footprint (w tiles across, h deep, its middle at the origin, -y the front, z up, one unit a
 tile); things that other things stand on mark their top with an empty (anchor_top). Each is one model, furn_<id>:
 its painted parts, a glossy part (glass, glaze, screens: furn_<id>_gloss) and a lit part (bulbs, flames:
-furn_<id>_glow, drawn unlit). The kit (table, chair, bed, sofa, cabinet, shelf, counter, lamp, plant...) makes the
+furn_<id>_glow, drawn unlit); a wall piece (furn_f.py) may have a face the game paints with the piece's own picture
+(furn_<id>_pic, or furn_<id>_picglow unlit). The kit (table, chair, bed, sofa, cabinet, shelf, counter, lamp, plant...) makes the
 common shapes; the pieces are in furn_*.py, each a function taking a Piece and filling it.
 
     python tools/blender/furniture.py [--batch furn_a] [--preview DIR] [--only bed_simple,table_wood]
@@ -18,7 +19,7 @@ from trees_ac import vmat
 from furn_kit import ITEMS, Piece
 # the pieces register themselves as their files are read (only the batch asked for, when one is)
 _b = sys.argv[sys.argv.index('--batch') + 1] if '--batch' in sys.argv else None
-for _m in ([_b] if _b else ['furn_a', 'furn_b', 'furn_c', 'furn_d', 'furn_e']):
+for _m in ([_b] if _b else ['furn_a', 'furn_b', 'furn_c', 'furn_d', 'furn_e', 'furn_f']):
     try:
         __import__(_m)
     except ModuleNotFoundError:
@@ -28,7 +29,7 @@ for _m in ([_b] if _b else ['furn_a', 'furn_b', 'furn_c', 'furn_d', 'furn_e']):
 # ---------------------------------------------------------------- export
 def objects(P):
     out = []
-    for part, mb, rough in (('main', P.main, 0.75), ('gloss', P.gloss, 0.3), ('glow', P.glow, 0.5), ('clear', P.clear, 0.1)):
+    for part, mb, rough in (('main', P.main, 0.75), ('gloss', P.gloss, 0.3), ('glow', P.glow, 0.5), ('clear', P.clear, 0.1), ('pic', P.pic, 0.8), ('picglow', P.picglow, 0.5)):
         if not mb.v:
             continue
         out.append(mb.obj(f'furn_{P.id}_{part}', vmat(f'furn_{P.id}' + ('' if part == 'main' else '_' + part), rough=rough)))

@@ -29,6 +29,7 @@ class Piece:
     def __init__(self, id, w, h):
         self.id, self.w, self.h = id, w, h
         self.main, self.gloss, self.glow, self.clear = MB(), MB(), MB(), MB()
+        self.pic, self.picglow = MB(), MB()      # (a wall piece's face that the game paints with its picture)
         self.anchors = {}
         self.rng = random.Random(sum(map(ord, id)))
 

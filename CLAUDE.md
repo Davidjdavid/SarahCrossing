@@ -134,12 +134,17 @@ docs/DEPLOY.md for the server.
   between the island's group and the room's), and the room is a box you look into: the back wall wears the HD view's
   wall picture (so what's hung there shows), the side walls one tile of its paper repeated, skirting boards, dark cut
   tops, a sill with the doorway; it's lit brighter and warmer than the HD view's rooms. The floor pieces of furniture
-  are models from `furniture.py` (`furn_<id>`: the kit in `furn_kit.py`, the pieces in `furn_a.py`..`furn_d.py`, one
+  are models from `furniture.py` (`furn_<id>`: the kit in `furn_kit.py`, the pieces in `furn_a.py`..`furn_f.py`, one
   file per batch; `--batch furn_b` builds one), placed on their footprints by `EnvRoom.furniture` (built again when the
   room changes); a plush is its folk's model, small; the little things on tables are models too (`furn_e.py`), standing
-  on their table's top (`anchor_top`). What has no model of its own yet is a thick cut-out of its picture
-  (`EnvRoom.cutout`: the picture on the front, the same shape twice behind it a shade darker): what's hung on the back
-  wall (taken off the wall's picture, `EnvRoom.hangs`) and any small thing still without a model. Rugs stay pictures on
+  on their table's top (`anchor_top`). What hangs on the walls is made in `furn_f.py` against the back wall (its middle
+  at the origin, its back on the wall, as big as its picture), hung where its picture was (taken off the wall's
+  picture, `EnvRoom.hangs`); the shaped ones are models through and through (the clock, the window, mirrors, curtains,
+  shelves, the life ring...), and what carries words or a painting (signs, posters, framed pictures, menu boards, neon)
+  is a frame or board whose face, a part named `*_pic` (`*_picglow` unlit), wears the piece's own picture
+  (`EnvRoom.picMat`, `picUV`), so the lettering and art stay as drawn. What has no model of its own yet (the museum's
+  paintings, the neighbors' photos, a small thing still without one) is a thick cut-out of its picture
+  (`EnvRoom.cutout`: the picture on the front, the same shape twice behind it a shade darker). Rugs stay pictures on
   the floor, and pieces drawn moving (arcade cabinets, the disco floor) keep their pictures. The
   furniture loads after the island's models, so the island never waits for it. Glass is a part named `*_clear`
   (see-through).

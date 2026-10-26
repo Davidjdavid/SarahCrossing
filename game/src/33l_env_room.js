@@ -77,6 +77,32 @@ const EnvRoom = {
         g.add(out);
         return out;
     },
+    /* (round things keep round: the wall's height stretch shared both ways) */
+    ROUND: new Set(['clock_wall', 'shell_mirror', 'disco_ball', 'lh_lifering', 'lh_barometer', 'gear_wall']),
+    /* a wall piece's face: its picture across the face's quad, the quad's corners its picture's */
+    picUV(geo) {
+        if (geo.attributes.uv) return;
+        geo.computeBoundingBox();
+        const b = geo.boundingBox, pos = geo.attributes.position, uv = new Float32Array(pos.count * 2);
+        for (let i = 0; i < pos.count; i++) { uv[i * 2] = (pos.getX(i) - b.min.x) / (b.max.x - b.min.x || 1); uv[i * 2 + 1] = (pos.getY(i) - b.min.y) / (b.max.y - b.min.y || 1); }
+        geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    },
+    picMat(frame, P, glow) {
+        const B = this.built, key = 'pic|' + frame + (glow ? '|glow' : '');
+        B.picMats = B.picMats || new Map();
+        if (B.picMats.has(key)) return B.picMats.get(key);
+        let tex = B.cutTex.get('cut|' + frame);
+        if (!tex) {
+            tex = new THREE.CanvasTexture(P.c);
+            tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.anisotropy = 4;
+            B.cutTex.set('cut|' + frame, tex); B.textures.push(tex);
+        }
+        // (neon glows: unlit; the rest takes the room's light like the furniture, a touch lifted as the pictures are)
+        const mat = glow ? r3Patch(new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.5 }), { key: 'envpicglow' })
+            : r3Patch(new THREE.MeshStandardMaterial({ map: tex, alphaTest: 0.5, roughness: 0.85, metalness: 0, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.12 }), { key: 'envpic' });
+        B.picMats.set(key, mat);
+        return mat;
+    },
     takes(e) { return this.on && ((!!this.built && !!this.built.placed && this.built.placed.has(e)) || ((e.kind === 'judge' || e.kind === 'ghost') && EnvDolls.drawn.has(e))); },
     /* where a picture still drawn the HD way stands: a thing on a table that's a model stands on its top */
     place(e) {
@@ -101,6 +127,7 @@ const EnvRoom = {
         // (pieces standing on others go after them, so their table's top is known)
         list.sort((p, q) => (p.def.kind === 'top' && p.item.on != null ? 1 : 0) - (q.def.kind === 'top' && q.item.on != null ? 1 : 0));
         for (const e of list) {
+            if (e.def.kind === 'wall') continue;
             const n = this.model(e), d = e.def, it = e.item, h = d.kind === 'top' ? 1 : d.h;
             const host = d.kind === 'top' && it.on != null ? B.hosts.get(it.on) : null;
             if (d.kind === 'top' && it.on != null && !host) continue;     // (on a table still drawn as a picture: a picture too)
@@ -115,6 +142,25 @@ const EnvRoom = {
         }
         B.cutTex = B.cutTex || new Map();
         const f = a.floor, wallPx = f.y0 * TILE, H = this.WH, z0 = f.y0 * R3_ZS;
+        // what hangs on the wall and has a model (furn_f.py): on the back wall where its picture was, as tall as the
+        // picture on the wall's height; a face it carries (a sign's, a poster's, a painting's) wears the picture itself
+        const k = H * TILE / wallPx;
+        for (const e of list) {
+            const P = e.def.kind === 'wall' && this.pic(e.frame);
+            if (!P) continue;
+            const n = this.model(e), left = e.x - P.ax, top = e.y - P.ay, sq = this.ROUND.has(e.item.id) ? Math.sqrt(k) : 0;
+            const m = new THREE.Matrix4().makeTranslation((left + P.w / 2) / TILE, H * (1 - (top + P.h / 2) / wallPx), z0 + 0.01);
+            m.multiply(new THREE.Matrix4().makeScale((e.flip ? -1 : 1) * (sq || 1), sq || k, sq || 1));
+            for (const p of EnvModels.models[n].parts) {
+                const face = /_pic(glow)?$/.exec(p.material.name || '');
+                if (face) this.picUV(p.geometry);
+                const mesh = new THREE.Mesh(p.geometry, face ? this.picMat(e.frame, P, !!face[1]) : p.material);
+                mesh.matrixAutoUpdate = false; mesh.matrix.copy(m);
+                mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.shared = true;
+                g.add(mesh);
+            }
+            B.placed.add(e);
+        }
         for (const e of cuts) {
             const P = this.pic(e.frame), d = e.def, it = e.item;
             if (!P) continue;
