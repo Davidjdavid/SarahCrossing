@@ -419,6 +419,8 @@ function render() {
     drawWorld();
     const ctx = Render.ctx;
     ctx.setTransform(1, 0, 0, 1, -G.cam.x, -G.cam.y);
+    // (placing things on the island: the tiles drawn, as indoors)
+    if (PathTool.on || Mover.on || IslandEdit.on) drawTileGrid(ctx);
     Decor.draw(ctx);
     PathTool.draw(ctx);
     Mover.draw(ctx);

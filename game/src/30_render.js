@@ -88,6 +88,16 @@ function updateCam(snap) {
     G.cam.x = Math.round(G.camF[0]); G.cam.y = Math.round(G.camF[1]);
 }
 
+/* the tile grid over the part of the island on screen (the flat view's camera already applied), soft lines */
+function drawTileGrid(ctx) {
+    const a = G.area, v = G.view, x0 = Math.max(0, Math.floor(G.cam.x / TILE)), y0 = Math.max(0, Math.floor(G.cam.y / TILE));
+    const x1 = Math.min(a.w, Math.ceil((G.cam.x + v.w) / TILE)), y1 = Math.min(a.h, Math.ceil((G.cam.y + v.h) / TILE));
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = x0; x <= x1; x++) { ctx.moveTo(x * TILE + 0.5, y0 * TILE); ctx.lineTo(x * TILE + 0.5, y1 * TILE); }
+    for (let y = y0; y <= y1; y++) { ctx.moveTo(x0 * TILE, y * TILE + 0.5); ctx.lineTo(x1 * TILE, y * TILE + 0.5); }
+    ctx.stroke();
+}
 function drawWorld() {
     const ctx = Render.ctx, v = G.view, a = G.area, cam = G.cam;
     if (!a) return;

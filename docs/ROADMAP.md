@@ -112,7 +112,10 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] Trees like Animal Crossing's (round full canopies, natural trunks), fruit you can see, better palms, more
   variety in size and shape, forests with clusters and clearings; smoother path edges by buildings and stairs
 - [ ] Ground and grass colors that change with the seasons, like the trees (next week)
-- [ ] Decorating on the island: the move/decorate mode switches to the classic view with a tile grid to place things
+- [x] Decorating on the island: the move/decorate mode switches to the classic view with a tile grid to place things
+- [~] The island on a grid (David's pick, 26 October): everything stands in its tile, fences join, half tiles where
+  water, the sea or a path makes a stair-step (part walkable, still one tile), the ground's edges drawn from the tiles,
+  a tile grid to show in Settings. Still to come: whatever the layout needs redrawn to sit better on the grid
 - [ ] Rooms: what's hung on walls and the small things on tables as models (the arcade games, jump rope, volleyball
   and the other minigames keep their 2D look, and so can the arcade cabinets)
 
