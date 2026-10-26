@@ -113,7 +113,8 @@ const Env = {
         for (const [name, B] of [['water', typeof EnvWater !== 'undefined' && EnvWater], ['trees', typeof EnvTrees !== 'undefined' && EnvTrees],
             ['build', typeof EnvBuild !== 'undefined' && EnvBuild], ['walls', typeof EnvWalls !== 'undefined' && EnvWalls],
             ['contact', typeof EnvContact !== 'undefined' && EnvContact], ['glow', typeof EnvGlow !== 'undefined' && EnvGlow], ['decals', typeof EnvDecals !== 'undefined' && EnvDecals],
-            ['dolls', typeof EnvDolls !== 'undefined' && EnvDolls], ['critters', typeof EnvCritters !== 'undefined' && EnvCritters]]) {
+            ['dolls', typeof EnvDolls !== 'undefined' && EnvDolls], ['critters', typeof EnvCritters !== 'undefined' && EnvCritters],
+            ['sea', typeof EnvSea !== 'undefined' && EnvSea], ['items', typeof EnvItems !== 'undefined' && EnvItems]]) {
             if (!B) continue;
             const t1 = performance.now();
             const p = B.build(group, a);
@@ -169,6 +170,8 @@ const Env = {
         if (k === 'tree' || k === 'palm' || k === 'fruittree' || k === 'bigtree' || k === 'oldtree' || k === 'building' || k === 'waterfall' || e.wildFlower) return true;
         if (k === 'bush' || (typeof EnvBuild !== 'undefined' && (EnvBuild.props[k] || EnvBuild.propModel(e)))) return true;
         if (e.holiday && /pumpkin/.test(e.frame || '')) return true;
+        if (typeof EnvSea !== 'undefined' && EnvSea.takes(e)) return true;
+        if (typeof EnvItems !== 'undefined' && EnvItems.takes(e)) return true;
         return false;
     },
     /* the water's surface at a spot (world pixels), or null where there's none: the sea at 0, a stream or pond at its level */

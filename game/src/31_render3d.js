@@ -543,7 +543,7 @@ const R3 = {
         if (G.player && !G.player.hidden) movers.push(['p', G.player]);
         for (const o of Online.here()) movers.push(['p', o]);
         // critters get HD cards (three pixels to one; tall ones for high fliers), and so do boats and dolphins
-        if (a.id === 'island') { for (const c of Critters.ents()) movers.push([(c.alt || 0) > 30 ? 'h' : 'c', c]); for (const s of SeaSky.ents()) movers.push([s.alt ? 'f' : 's', s]); for (const b of Flutter.ents()) movers.push([(b.alt || 0) > 30 ? 'h' : 'c', b]); }
+        if (a.id === 'island') { for (const c of Critters.ents()) movers.push([(c.alt || 0) > 30 ? 'h' : 'c', c]); for (const s of SeaSky.ents()) if (!(env && typeof EnvSea !== 'undefined' && EnvSea.draws(s))) movers.push([s.alt ? 'f' : 's', s]); for (const b of Flutter.ents()) movers.push([(b.alt || 0) > 30 ? 'h' : 'c', b]); }
         for (const f of G.fx) if (f.sorted) movers.push(['f', f]);
         // (people drawn as dolls in the new look have no card)
         for (const [k, e] of movers) if (near(e) && !((env || room) && typeof EnvDolls !== 'undefined' && EnvDolls.draws(e)) && !(env && typeof EnvCritters !== 'undefined' && EnvCritters.draws(e))) this.movingCard(k, e, a);
@@ -1608,6 +1608,8 @@ function r3OverSpr(ctx, name) {
 /* planes, balloons and the gull flock crossing the sky (the classic view's SeaSky.drawSky), each over where it flies */
 function r3SkyThings(ctx) {
     if (!G.area || G.area.id !== 'island' || typeof SeaSky === 'undefined') return;
+    // (in the new look they're toys in the scene: EnvSea)
+    if (typeof EnvSea !== 'undefined' && EnvSea.sky()) return;
     const v = G.view, put = (x, y, lift) => { const q = R3.project(x, y, lift); if (q.x < -300 || q.y < -300 || q.x > v.w + 300 || q.y > v.h + 300) return false; ctx.setTransform(q.s, 0, 0, q.s, q.x, q.y); return true; };
     R3.over = true;
     try {

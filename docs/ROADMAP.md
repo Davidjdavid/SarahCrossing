@@ -126,6 +126,18 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] Rooms: what's hung on walls and the small things on tables as models (the arcade games, jump rope, volleyball
   and the other minigames keep their 2D look, and so can the arcade cabinets)
 
+## Friendship, deeper (David, 27 October: for a later addition)
+- [ ] Nicknames: once a neighbor is a good enough friend they ask if they can call Sarah something (their own idea, or
+  she suggests one), and use it from then on; she can ask them to change it
+- [ ] Catchphrases: every neighbor has one, said at the end of lines; after raising friendship Sarah can give them a new
+  one (and they react to it in their own way)
+- [ ] A more in-depth friendship system: more than hearts going up. Friendship that grows from many kinds of time spent
+  together (talking, gifts they actually like, favors, games together, visits, outings), and fades a little if she's
+  away a long time; milestones that unlock things (a photo, a nickname, sharing something personal, a gift for her
+  house, asking her advice, coming to her for help, inviting her places, a best-friend moment); neighbors who remember
+  what she did and bring it up; friendships between the neighbors themselves that shift with the island drama
+- [ ] And so on: David will add more ideas here
+
 ## Late in development (David's notes for much later)
 Some of these need things that don't exist yet (a town flag, records kept over time); add them when we get here.
 

@@ -119,6 +119,11 @@ docs/DEPLOY.md for the server.
   Flutter's butterflies: wings fold or flap, birds peck, the owl blinks, ducks float at `Env.waterH`. While the models
   are still downloading, `Env.cover` shows a moment of getting the island ready (at most 25 s) instead of the old look.
   On a grey day the new look's light is soft (the sun dimmer, shadows faint: `soft` in `updateLight`).
+- The small and far-off things are toys too, from `tools/blender/small_things.py`: shells and gems lying on the island
+  (`item_<id>`; fruit uses the trees' `fruit_<id>`), drawn by `EnvItems` (33p_env_items.js) in place of their pictures;
+  Sarah's sailboat at the pier, the boats crossing the sea, dolphins, planes (the propeller its own model,
+  `sky_plane_prop`), hot air balloons and the gull flock, posed from SeaSky's own things by `EnvSea` (33o_env_sea.js),
+  the planes and balloons small and high so they read as up in the sky (their shadows cross the ground below).
 - Rooms in the new look (`EnvRoom`, 33l_env_room.js): the dolls and folks go indoors too (`EnvDolls.attach` moves them
   between the island's group and the room's), and the room is a box you look into: the back wall wears the HD view's
   wall picture (so what's hung there shows), the side walls one tile of its paper repeated, skirting boards, dark cut
