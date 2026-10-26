@@ -142,8 +142,9 @@ docs/DEPLOY.md for the server.
   picture, `EnvRoom.hangs`); the shaped ones are models through and through (the clock, the window, mirrors, curtains,
   shelves, the life ring...), and what carries words or a painting (signs, posters, framed pictures, menu boards, neon)
   is a frame or board whose face, a part named `*_pic` (`*_picglow` unlit), wears the piece's own picture
-  (`EnvRoom.picMat`, `picUV`), so the lettering and art stay as drawn. What has no model of its own yet (the museum's
-  paintings, the neighbors' photos, a small thing still without one) is a thick cut-out of its picture
+  (`EnvRoom.picMat`, `picUV`), so the lettering and art stay as drawn. A neighbor's painting for the museum borrows the gilt
+  frame (`furn_empty_frame`) and a photo of a neighbor the photo frame (`furn_photo_frame`), each wearing its own picture.
+  What has no model of its own yet is a thick cut-out of its picture
   (`EnvRoom.cutout`: the picture on the front, the same shape twice behind it a shade darker). Rugs stay pictures on
   the floor, and pieces drawn moving (arcade cabinets, the disco floor) keep their pictures. The
   furniture loads after the island's models, so the island never waits for it. Glass is a part named `*_clear`

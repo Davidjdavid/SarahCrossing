@@ -455,3 +455,13 @@ def laptop(P):
     rbox(P.glow, -0.14, -0.012, 0.015, 0.14, -0.009, 0.185, col_fn('#a8d8f8', under=0.0), r=0.004, mid=0)
     xform(P.glow, m, Matrix.Translation((0, 0.09, 0.012)) @ Matrix.Rotation(-0.25, 4, 'X'))
     rbox(mb, -0.13, -0.09, 0.018, 0.13, 0.02, 0.022, shade('#3a3a42'), r=0.003, mid=0)
+
+
+@item('photo_frame', 1, 1)
+def photo_frame(P):
+    """a photo of a neighbor standing on a table (each photo_<who> uses this, its own picture on the face: furn_<id>_pic)"""
+    rbox(P.main, -0.255, 0.0, 0.0, 0.255, 0.04, 0.6, wood('#a8844a'), r=0.02, mid=1)
+    m = len(P.main.v)
+    rbox(P.main, -0.04, 0.0, 0.0, 0.04, 0.02, 0.42, wood('#8a6a38'), r=0.008, mid=0)
+    xform(P.main, m, Matrix.Translation((0, 0.04, 0.0)) @ Matrix.Rotation(-0.35, 4, 'X'))
+    P.pic.add([(-0.3, -0.003, 0.0), (0.3, -0.003, 0.0), (0.3, -0.003, 0.6), (-0.3, -0.003, 0.6)], [(1, 1, 1)] * 4, [(0, -1, 0)] * 4, [(0, 1, 2), (0, 2, 3)])

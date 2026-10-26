@@ -39,6 +39,8 @@ const EnvRoom = {
         // (a plush is its folk's own model, small)
         const n = /^plush_/.test(e.item.id) ? 'folk_' + e.item.id.slice(6) : 'furn_' + e.item.id;
         if (EnvModels.has(n)) return n;
+        // (a neighbor's photo stands in the photo frame, wearing its own picture)
+        if (/^photo_/.test(e.item.id) && EnvModels.has('furn_photo_frame')) return 'furn_photo_frame';
         // (a painting with no model of its own, a neighbor's art for the museum, hangs in the gilt frame, its picture inside)
         return e.def.kind === 'wall' && e.def.art && EnvModels.has('furn_empty_frame') ? 'furn_empty_frame' : null;
     },
@@ -79,6 +81,18 @@ const EnvRoom = {
         g.add(out);
         return out;
     },
+    /* a piece's model at a place; a face it carries (*_pic, *_picglow) wears the piece's own picture */
+    parts(g, e, n, m, P) {
+        for (const p of EnvModels.models[n].parts) {
+            const face = /_pic(glow)?$/.exec(p.material.name || ''), pic = face && (P || this.pic(e.frame));
+            if (face && !pic) continue;
+            if (face) this.picUV(p.geometry);
+            const mesh = new THREE.Mesh(p.geometry, face ? this.picMat(e.frame, pic, !!face[1]) : p.material);
+            mesh.matrixAutoUpdate = false; mesh.matrix.copy(m);
+            mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.shared = true;
+            g.add(mesh);
+        }
+    },
     /* (round things keep round: the wall's height stretch shared both ways) */
     ROUND: new Set(['clock_wall', 'shell_mirror', 'disco_ball', 'lh_lifering', 'lh_barometer', 'gear_wall']),
     /* a wall piece's face: its picture across the face's quad, the quad's corners its picture's */
@@ -91,7 +105,7 @@ const EnvRoom = {
     },
     picMat(frame, P, glow) {
         const B = this.built, key = 'pic|' + frame + (glow ? '|glow' : '');
-        B.picMats = B.picMats || new Map();
+        B.picMats = B.picMats || new Map(); B.cutTex = B.cutTex || new Map();
         if (B.picMats.has(key)) return B.picMats.get(key);
         let tex = B.cutTex.get('cut|' + frame);
         if (!tex) {
@@ -137,7 +151,7 @@ const EnvRoom = {
             const m = new THREE.Matrix4().makeTranslation(x, y, z);
             if (e.flip) m.multiply(new THREE.Matrix4().makeScale(-1, 1, 1));
             if (/^folk_/.test(n)) m.multiply(new THREE.Matrix4().makeScale(this.PLUSH, this.PLUSH, this.PLUSH));
-            for (const mesh of EnvModels.place(g, n, m)) mesh.userData.shared = true;
+            this.parts(g, e, n, m);
             B.placed.add(e);
             const top = EnvModels.models[n].anchors.top;
             if (top) B.hosts.set(e.idx, { top: top[0].y, z });
@@ -155,14 +169,7 @@ const EnvRoom = {
             const fx = n === 'furn_' + e.item.id ? 1 : P.w / TILE / 2, fy = n === 'furn_' + e.item.id ? 1 : P.h / TILE / 1.625;
             const m = new THREE.Matrix4().makeTranslation((left + P.w / 2) / TILE, H * (1 - (top + P.h / 2) / wallPx), z0 + 0.01);
             m.multiply(new THREE.Matrix4().makeScale((e.flip ? -1 : 1) * (sq || 1) * fx, (sq || k) * fy, sq || 1));
-            for (const p of EnvModels.models[n].parts) {
-                const face = /_pic(glow)?$/.exec(p.material.name || '');
-                if (face) this.picUV(p.geometry);
-                const mesh = new THREE.Mesh(p.geometry, face ? this.picMat(e.frame, P, !!face[1]) : p.material);
-                mesh.matrixAutoUpdate = false; mesh.matrix.copy(m);
-                mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.shared = true;
-                g.add(mesh);
-            }
+            this.parts(g, e, n, m, P);
             B.placed.add(e);
         }
         for (const e of cuts) {
