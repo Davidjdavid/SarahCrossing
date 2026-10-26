@@ -281,6 +281,10 @@ const trickOn = () => festOn('halloween') && hourIn(Clock.hourF(), 17, 24);
 const COSTUMES = { maki: 'a ghost (a sheet with rice on it)', kai: 'a pirate. "Arr, dude."', basil: 'a vampire. A calm one.', wonton: 'a soup. To face his fears.',
     chili: 'the sun. Obviously.', coco: 'a detective. She already knows everything.', cece: 'a witch. A very apologetic witch.', clementine: 'a pumpkin. Couture.',
     cuke: 'a mummy. Wrapped in sweatbands.', sully: 'a lobster. "It\'s a Boston thing, kid."', ginger: 'a robot made of cardboard. Load-bearing.', brulee: 'the Mona Lisa.', mac: 'a chef. He is always dressed as a chef.' };
+/* and what each one wears for it in the new look (EnvDolls' costume pieces, 33k_env_dolls.js), from five till midnight */
+const COSTUME_ACC = { maki: 'ghosthood', kai: 'piratehat', basil: 'bathat', wonton: 'soupbowl', chili: 'sunrays', coco: 'deerstalker', cece: 'witchhat',
+    clementine: 'pumpkinhat', cuke: 'mummywrap', sully: 'lobsterclaws', ginger: 'robotbox', brulee: 'goldframe', mac: 'chefhat' };
+function halloweenCostume(id) { return trickOn() ? COSTUME_ACC[id] || null : null; }
 function trickOption(n) {
     if (!trickOn() || !NEIGHBORS.includes(n.id)) return null;
     const st = festDay('treat');

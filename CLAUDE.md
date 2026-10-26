@@ -157,6 +157,9 @@ docs/DEPLOY.md for the server.
   lanterns, the lunar and red lanterns and heart lamps (the furniture's own models, loaded with the island's:
   `EnvModels.OUTDOOR`) and bunting (`bunting`, `bunting_green` from props_island.py); the island's 3D is built again when
   the day's decorations change (`Env.look`).
+- On Halloween night (5 PM to midnight, `trickOn`) the neighbors' dolls and toys wear their costumes (`COSTUME_ACC` in
+  6z_festivals.js, pieces in `EnvDolls`' hat table: a ghost hood, a bat, a soup bowl, sun rays, a deerstalker, a witch's
+  hat, a pumpkin, mummy wraps, lobster claws, a cardboard robot box, a gold frame); the 2D views don't draw them.
 - The small and far-off things are toys too, from `tools/blender/small_things.py`: shells and gems lying on the island
   (`item_<id>`; fruit uses the trees' `fruit_<id>`), drawn by `EnvItems` (33p_env_items.js) in place of their pictures;
   everything else Sarah can carry comes from `pocket_things.py` (`item_<its picture>`: wood, presents, money bags, the
