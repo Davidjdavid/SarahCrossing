@@ -499,7 +499,8 @@ test('games with the neighbors: "Let\'s play!" in the talk menu, tag, hide-and-s
   await title(page);
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
-  await page.evaluate(() => { __dbg.setTime(6, 10, 11); G.weather = 'sun'; __dbg.at('plaza'); });
+  // (the new day settles first: its own weather could be rain, and nobody plays tag in the rain)
+  await page.evaluate(() => { __dbg.setTime(6, 10, 11); dailyCheck(); G.weather = 'sunny'; __dbg.at('plaza'); });
   const bring = (area) => page.evaluate((area) => { const n = NPCs.get('coco'), P = G.player; Object.assign(n, { sleeping: false, area, path: null, x: P.x + 22, y: P.y, talking: false, script: false }); }, area);
   // talk through whatever she says until a choice with this option comes up, and pick it
   const choose = async (label) => {
