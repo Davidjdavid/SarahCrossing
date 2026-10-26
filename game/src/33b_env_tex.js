@@ -119,19 +119,28 @@ const EnvTex = {
         }, 6);
     },
     /* the lawn as Animal Crossing drew it on the GameCube: a deep green ground scattered with little diamond-shaped leaves
-       in lighter and darker greens, each a touch lit on its upper side (repeats every 4 tiles, about five leaves a tile;
-       tinted by the season in the shader) */
-    lawn() {
-        return this.make('lawn', 512, (h, col) => {
+       in lighter and darker greens, each a touch lit on its upper side (repeats every 4 tiles, about five leaves a tile).
+       Its colors go with the season, as the trees' do: fresh yellow-greens in spring, deep greens in summer, gold and olive
+       in fall with fallen leaves among the grass (orange, red, brown), and dull greens under winter's snow */
+    LAWN: {
+        spring: { base: '#5aa83c', deep: '#489438', tones: ['#bce274', '#a2d664', '#88c654', '#70b448', '#56983e'] },
+        summer: { base: '#3a8436', deep: '#2c6c2e', tones: ['#80c457', '#6cb44c', '#5aa444', '#4c963e', '#336f30'] },
+        fall: { base: '#6a8a34', deep: '#56722e', tones: ['#c2b450', '#a8a446', '#8e983e', '#76883a', '#5c7232'], fallen: ['#d8782e', '#c4532a', '#e2a53c', '#9c5c2a'] },
+        winter: { base: '#56704a', deep: '#465e3e', tones: ['#8aa070', '#7a9264', '#6c865a', '#5e7a52', '#4c6646'] },
+    },
+    lawn(season) {
+        const P = this.LAWN[season] || this.LAWN.summer;
+        return this.make('lawn_' + (this.LAWN[season] ? season : 'summer'), 512, (h, col) => {
             const n = 512, cell = 22, cols = Math.round(n / cell), C = n / cols, r = mulberry(61), nz = this.noise(n, 16, 62), fine = this.noise(n, 96, 63);
-            const base = this.hex('#3a8436'), deep = this.hex('#2c6c2e');
-            const tones = [this.hex('#80c457'), this.hex('#6cb44c'), this.hex('#5aa444'), this.hex('#4c963e'), this.hex('#336f30')];
-            // the leaves: one in most cells of a jittered grid, each its own size, turn and green
+            const base = this.hex(P.base), deep = this.hex(P.deep);
+            const tones = P.tones.map(c => this.hex(c)), fallen = (P.fallen || []).map(c => this.hex(c));
+            // the leaves: one in most cells of a jittered grid, each its own size, turn and green (in fall, one in ten fallen)
             const leaves = [];
             for (let j = 0; j < cols; j++) for (let i = 0; i < cols; i++) {
                 if (r() < 0.12) continue;
-                const t = r(), tone = t < 0.3 ? 0 : t < 0.55 ? 1 : t < 0.75 ? 2 : t < 0.9 ? 3 : 4;
-                leaves.push({ x: (i + 0.5 + (r() - 0.5) * 0.8) * C, y: (j + 0.5 + (r() - 0.5) * 0.8) * C, s: C * (0.26 + r() * 0.16), a: Math.PI / 4 + (r() - 0.5) * 0.5, c: tones[tone], k: 0.92 + r() * 0.16 });
+                const t = r(), tone = t < 0.3 ? 0 : t < 0.55 ? 1 : t < 0.75 ? 2 : t < 0.9 ? 3 : 4, f = r(), down = fallen.length && f < 0.1;
+                leaves.push({ x: (i + 0.5 + (r() - 0.5) * 0.8) * C, y: (j + 0.5 + (r() - 0.5) * 0.8) * C, s: C * (0.26 + r() * 0.16) * (down ? 0.85 : 1), a: Math.PI / 4 + (r() - 0.5) * (down ? 2.4 : 0.5),
+                    c: down ? fallen[Math.floor(f * 40) % fallen.length] : tones[tone], k: 0.92 + r() * 0.16 });
             }
             const grid = new Map();
             for (const L of leaves) { const k = Math.floor(L.x / C) + ',' + Math.floor(L.y / C); (grid.get(k) || grid.set(k, []).get(k)).push(L); }

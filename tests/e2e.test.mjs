@@ -101,11 +101,11 @@ test('a save code from the old game comes in as an island, and plays', async () 
   assert.match(await page.textContent('#tsync'), /Saved online/);
   await play(page);
   assert.equal(await page.textContent('#money'), '12,345');
-  // it's on the new, bigger island, with a letter about it
-  const moved = await page.evaluate(() => ({ mapV: S.mapV, letter: S.mail.some((m) => m.from === 'ginger' && /grew/.test(m.subject)), w: G.areas.island.w }));
-  assert.deepEqual(moved, { mapV: 6, letter: true, w: JSON.parse(fs.readFileSync(path.join(ROOT, 'game/assets/world.json'), 'utf8')).w });
-  // the handmade frog pot from the old game is still a real item
-  const pots = await page.evaluate(() => S.pocket.filter((s) => s && /^pot/.test(s.id)).length + Object.keys(S.storage).filter((k) => /^pot/.test(k)).length);
+  // it's on today's island, a fresh start with a letter about it (the old island kept inside the save)
+  const moved = await page.evaluate(() => ({ mapV: S.mapV, letter: S.mail.some((m) => m.from === 'fortune' && /fresh start/.test(m.subject)), w: G.areas.island.w, kept: !!S.before7 }));
+  assert.deepEqual(moved, { mapV: 7, letter: true, w: JSON.parse(fs.readFileSync(path.join(ROOT, 'game/assets/world.json'), 'utf8')).w, kept: true });
+  // the handmade frog pot from the old game is still a real item, kept with the old island
+  const pots = await page.evaluate(() => { const o = S.before7; return o.pocket.filter((s) => s && /^pot/.test(s.id)).length + Object.keys(o.storage).filter((k) => /^pot/.test(k)).length; });
   assert.ok(pots >= 1, 'the handmade pot came along');
   const islands = await islandsOnServer(page);
   assert.equal(islands.length, 1);
@@ -114,42 +114,41 @@ test('a save code from the old game comes in as an island, and plays', async () 
   await page.context().close();
 });
 
-test('the island grew: a save from the smaller island keeps everything, and what was out on its ground comes back', async () => {
+test('a save from an older island: a fresh start that keeps her stats, money and name, with the old save inside', async () => {
   const page = await device();
   await title(page);
   const r = await page.evaluate(() => {
     const disp = Object.keys(DISPLAYS)[0];
     const st = Object.assign(newState(), {
-      mapV: 3, started: true, money: 5000, storage: { peach: 1 },
+      mapV: 3, started: true, money: 5000, storage: { peach: 1 }, islandName: 'Old Isle', playerName: 'Sarah', stats: { fish: 12, hugs: 3 }, startDay: 100,
       player: { area: 'island', x: 3 * TILE, y: 3 * TILE, dir: 'up', outfit: 'crimson', acc: null, eyes: 'glasses' },
       drops: [{ id: 'peach', x: 40, y: 40, area: 'island' }, { id: 'apple', x: 10, y: 10, area: 'home' }],
       deco: { moved: { 2: { x: 1, y: 1 } }, gone: { 3: true }, placed: [{ id: disp, x: 5, y: 5, text: '' }] },
-      flowers: { picked: {}, planted: [{ x: 9, y: 9, kind: 'tulip', ci: 0, day: 1, pickDay: -1 }] },
-      forest: { chopped: { dt1_1: true }, planted: [{ kind: 'fruit', fruit: 'apple' }, { kind: 'money', amount: 1000 }, { kind: 'tree' }], holes: [], wood: { day: -1, n: {} }, glow: { day: -1, dug: false }, clams: { day: -1, dug: [] } },
-      paths: { t: { '1,1': 'stone' }, auto: {} }, buildMoved: { shop: { x: 1, y: 1 } }, cleared: { pr1: true },
-      npcs: { joe: { pts: 100 } }, house: { level: 2, wall: 'wall_cream', floor: 'floor_wood', items: [{ id: 'chair', x: 1, y: 1 }] },
+      forest: { chopped: { dt1_1: true }, planted: [{ kind: 'money', amount: 1000 }], holes: [], wood: { day: -1, n: {} }, glow: { day: -1, dug: false }, clams: { day: -1, dug: [] } },
+      npcs: { joe: { pts: 100 }, kai: { met: true, pts: 80 } }, house: { level: 2, wall: 'wall_cream', floor: 'floor_wood', items: [{ id: 'chair', x: 1, y: 1 }] },
     });
     const m = migrate(st);
-    return { mapV: m.mapV, money: m.money, storage: m.storage, disp, drops: m.drops, gone: [m.paths, m.buildMoved, m.deco, m.flowers, m.forest, m.cleared].map((v) => v === undefined),
-      at: [Math.round(m.player.x / TILE), Math.round(m.player.y / TILE)], plaza: [W0.spots.plaza.x, W0.spots.plaza.y], friend: m.npcs.joe.pts, house: m.house.level + ':' + m.house.items.length,
-      letter: m.mail.filter((x) => x.from === 'ginger').map((x) => /2 things|5 things/.test(x.body) ? 'count' : x.body) };
+    return { mapV: m.mapV, money: m.money, stats: m.stats, name: m.islandName + '/' + m.playerName, startDay: m.startDay, storage: m.storage, drops: m.drops, house: m.house.level,
+      friends: Object.keys(m.npcs).sort(), joe: m.npcs.joe.pts, at: [Math.floor(m.player.x / TILE), Math.floor(m.player.y / TILE)], boat: W0.boat,
+      letter: m.mail.map((x) => x.subject), old: m.before7 && [m.before7.mapV, m.before7.house.level, m.before7.npcs.kai.pts, m.before7.storage.peach] };
   });
-  assert.equal(r.mapV, 6);
-  assert.equal(r.money, 6000, 'the buried sand dollars come back');
-  assert.deepEqual(r.storage, { peach: 2, [r.disp]: 1, seed_fl_tulip: 1, apple: 1, sapling: 1 });
-  assert.deepEqual(r.drops, [{ id: 'apple', x: 10, y: 10, area: 'home' }], "what's indoors stays where it was");
-  assert.deepEqual(r.gone, [true, true, true, true, true, true]);
-  assert.ok(Math.abs(r.at[0] - r.plaza[0]) <= 1 && Math.abs(r.at[1] - r.plaza[1]) <= 3, `Sarah starts at the plaza (${r.at} by ${r.plaza})`);
-  assert.equal(r.friend, 100);
-  assert.equal(r.house, '2:1');
-  assert.deepEqual(r.letter, ['count']);
-  // a save from Harbor Square before its shops moved into two rows (map 5): the same, with a shorter letter
-  const r5 = await page.evaluate(() => {
-    const st = Object.assign(newState(), { mapV: 5, started: true, storage: {}, deco: { moved: {}, gone: {}, placed: [{ id: Object.keys(DISPLAYS)[0], x: 5, y: 5, text: '' }] } });
-    const m = migrate(st);
-    return { mapV: m.mapV, deco: m.deco === undefined, stored: Object.values(m.storage).reduce((a, b) => a + b, 0), letter: m.mail.map((x) => x.subject) };
+  assert.equal(r.mapV, 7);
+  assert.equal(r.money, 6000, 'her money comes along (the sand dollars she buried too)');
+  assert.deepEqual(r.stats, { fish: 12, hugs: 3 });
+  assert.equal(r.name, 'Old Isle/Sarah');
+  assert.equal(r.startDay, 100, 'how long she has lived here stays');
+  assert.deepEqual([r.storage, r.drops, r.house], [{}, [], 0], 'everything else starts new');
+  assert.deepEqual([r.friends, r.joe], [['fortune', 'joe'], 100]);
+  assert.deepEqual(r.at, r.boat, 'she steps off the boat');
+  assert.deepEqual(r.letter, ['A fresh start!']);
+  assert.deepEqual(r.old, [6, 2, 80, 2], 'the old save is kept whole inside the new one');
+  // Harbor Square (map 6) and a new island that never started: the same, and nothing to do
+  const r6 = await page.evaluate(() => {
+    const a = migrate(Object.assign(newState(), { mapV: 6, started: true, money: 77, storage: { peach: 3 } }));
+    const b = migrate(Object.assign(newState(), { mapV: 6, started: false }));
+    return [a.mapV, a.money, Object.keys(a.storage).length, !!a.before7, b.mapV, !!b.before7, newState().mapV];
   });
-  assert.deepEqual(r5, { mapV: 6, deco: true, stored: 1, letter: ['The shops moved!'] });
+  assert.deepEqual(r6, [7, 77, 0, true, 7, false, 7]);
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

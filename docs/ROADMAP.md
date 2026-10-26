@@ -5,9 +5,9 @@ it into a polished, much bigger game. **Nothing goes to the live site (Sarah's i
 all done**; it's built and tried on https://beta.sarahcrossing.com.
 
 Sarah's island must keep loading through every change (see CLAUDE.md, "Old saves must always
-load"). Where a change can't keep something (a new map can't keep things placed on the old
-ground), the save migration says what starts fresh, as the one-page game did when the island
-first grew: her house, money, friends, collections and everything she made always stay.
+load"). For the remade game David decided (27 October) that a save brings over only Sarah's
+stats and money (and her name, the island's name and her birthday); the rest starts fresh, and
+the whole old save is kept inside the new one in case it's ever wanted back.
 
 Status: [x] done, [~] in progress, [ ] not started.
 
@@ -64,7 +64,8 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] A much larger island, laid out in districts: shopping/commercial, residential, forest,
   mountain, beach, a dedicated farm area (crops grow there, not in scattered squares), and more
 - [ ] Everything on a grid (placing things, walking, collisions)
-- [ ] Less clutter: fewer, better placed things by default
+- [~] Less clutter: fewer, better placed things by default (27 October: trees in groves with clearings, open lawns,
+  wild flowers in small patches; the new island is a fresh start for saves, keeping only stats and money, David's call)
 - [x] Shop upgrades after a number of days played and money spent: Fortune's Goods (then "& More",
   then Fortune's Emporium) and Clementine's (then Atelier, then Maison Clementine) each grow twice;
   a letter, a day closed for the work, a grand reopening with a free gift; bigger rooms, more stock,

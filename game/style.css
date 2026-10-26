@@ -531,7 +531,6 @@ body.hd2d #nametags .ptag { font: 600 13px/1 var(--display2); letter-spacing: 0.
 @media (prefers-reduced-motion: reduce) { body.hd2d .bubble .next { animation: none; } }
 
 /* the test area's button for comparing the new 3D look with the old one */
-.labswitch { margin-top: 8px; font-size: 13px; padding: 6px 12px; pointer-events: auto; }
 
 /* the new look getting the island ready (its models still on their way: Env.cover) */
 #envload { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;

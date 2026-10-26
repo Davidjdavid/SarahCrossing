@@ -91,6 +91,11 @@ const EnvModels = {
         // (only what's tall enough to hide Sarah fades in front of her: the folks and critters, the furniture, the
         // flowers and the low props never do)
         const see = this.tall(name);
+        // (the grass along a wall's top and the moss in it go with the season, like the lawn: R3U.uGrassTint)
+        if (/^wall/.test(name)) return Object.assign(r3Patch(new THREE.MeshStandardMaterial(opts), { key: 'envwall', fhead: 'uniform vec4 uGrassTint;\n', fmap: `
+            float gm = smoothstep(0.015, 0.06, diffuseColor.g - max(diffuseColor.r, diffuseColor.b));
+            diffuseColor.rgb = mix(diffuseColor.rgb, min(diffuseColor.rgb * uGrassTint.rgb, vec3(1.0)), gm);
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.88, 0.91, 0.96), gm * uGrassTint.w);` }), { name: m.name || name });
         const out = r3Patch(new THREE.MeshStandardMaterial(opts), { key: glass ? 'envmodelglass' : see ? 'envmodel' : 'envfolk', see });
         out.name = m.name || name;
         if (glass) this.glassMats.push(out);
@@ -127,7 +132,9 @@ const EnvModels = {
         if (m._inst) return m._inst;
         const c = m.clone();
         c.onBeforeCompile = null;
-        m._inst = r3Patch(c, { key: (m.isMeshBasicMaterial ? 'envmodelglow' : m.emissiveMap ? 'envmodelglass' : 'envmodel') + 'i', inst: true, see: !!(m._r3o && m._r3o.see) });
+        // (with the original's options, so a wall's seasonal grass comes along)
+        const o = m._r3o || {};
+        m._inst = r3Patch(c, Object.assign({}, o, { key: (o.key || (m.isMeshBasicMaterial ? 'envmodelglow' : m.emissiveMap ? 'envmodelglass' : 'envmodel')) + 'i', inst: true, see: !!o.see }));
         if (m.emissiveMap) this.glassMats.push(m._inst);
         return m._inst;
     },

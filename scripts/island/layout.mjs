@@ -5,7 +5,7 @@
 // and spot can be walked to from the pier (it stops with an error if not).
 import fs from 'node:fs';
 import path from 'node:path';
-import { rng, noise, hash } from './rand.mjs';
+import { rng, noise, hash, fbm } from './rand.mjs';
 import { PLAN } from './plan.mjs';
 
 const SRC = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'source/world.json'), 'utf8'));
@@ -378,22 +378,30 @@ class Island {
     const inOrchard = (x, y) => x >= o.x - 1 && x <= o.x + o.w && y >= o.y - 1 && y <= o.y + o.h;
     // trees the plan puts exactly (a small composed scene), before the scattered ones
     for (const t of P.trees || []) { const k = this.i(t.x, t.y); if (this.land[k] && !this.occ[k]) { this.trees.push({ x: t.x, y: t.y, kind: t.kind }); this.occ[k] = 1; } }
-    // trees: thick in the woods, a line of them along cliff tops, a few anywhere else; never two side by side
+    // trees grow in groves with clearings between them, the way a real wood does: a slow noise across the island says
+    // where. In the woods the groves are thick and the clearings small; on open ground only the strongest spots get a
+    // little stand of trees, and the rest stays lawn; along cliff tops and the high coast the trees come in broken runs.
+    // A grove is mostly one kind (a second noise picks it). Never two trees side by side. (A plan that sets treeChance,
+    // like the test area's, scatters them evenly instead.)
+    const grove = fbm(this.seed + 41, 11, 3), kindN = fbm(this.seed + 43, 16, 2);
+    const smooth = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
     const order = []; for (let k = 0; k < W * H; k++) order.push(k);
     for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+    const even = P.treeChance != null;
     for (const k of order) {
       const x = k % W, y = (k / W) | 0;
       if (!free(k) || this.keep[k] || lawn[k] || nearRoad(x, y) || inOrchard(x, y)) continue;
-      let p = P.treeChance != null ? P.treeChance : 0.022, kind = null;
-      for (const f of P.forests || []) if (pip(f.poly, x + 0.5, y + 0.5)) { p = Math.max(p, f.p); kind = f.kind; }
-      if (this.in(x, y + 1) && this.face[this.i(x, y + 1)] === 1 && P.treeChance == null) p += 0.22;
-      if (this.landD[k] <= 3 && this.lvl[k] >= 1 && P.treeChance == null) p += 0.12;
+      const g = grove(x, y) * 0.5 + 0.5;
+      let p = even ? P.treeChance : 0.16 * smooth(0.6, 0.72, g), kind = null;
+      for (const f of P.forests || []) if (pip(f.poly, x + 0.5, y + 0.5)) { p = Math.max(p, even ? f.p : f.p * 1.5 * smooth(0.32, 0.55, g)); kind = f.kind; }
+      if (!even && this.in(x, y + 1) && this.face[this.i(x, y + 1)] === 1) p += 0.3 * smooth(0.45, 0.6, g);
+      if (!even && this.landD[k] <= 3 && this.lvl[k] >= 1) p += 0.16 * smooth(0.5, 0.62, g);
       if (R() >= p) continue;
       let crowd = false;
       for (let j = -1; j <= 1 && !crowd; j++) for (let i = -1; i <= 1; i++) if ((i || j) && this.in(x + i, y + j) && this.occ[this.i(x + i, y + j)] === 1) { crowd = true; break; }
       if (crowd) continue;
-      const l = this.lvl[k], r = R();
-      const t = l >= 3 && kind !== 'mixed' ? (r < 0.78 ? 'pine' : 'oak') : kind === 'pine' ? (r < 0.6 ? 'pine' : 'oak') : kind === 'mixed' ? (r < 0.3 ? 'pine' : 'oak') : (r < 0.14 ? 'blossom' : r < 0.24 ? 'pine' : 'oak');
+      const l = this.lvl[k], r = even ? R() : (kindN(x, y) * 0.5 + 0.5) * 0.8 + R() * 0.2;
+      const t = l >= 3 && kind !== 'mixed' ? (r < 0.78 ? 'pine' : 'oak') : kind === 'pine' ? (r < 0.6 ? 'pine' : 'oak') : kind === 'mixed' ? (r < 0.3 ? 'pine' : 'oak') : (r > 0.86 ? 'blossom' : r < 0.2 ? 'pine' : 'oak');
       this.occ[k] = 1; this.trees.push({ x, y, kind: t });
     }
     // palms along the beaches (or exactly where the plan says)
@@ -408,7 +416,18 @@ class Island {
     const FK = ['tulip', 'daisy', 'cosmos', 'lily'];
     const flower = (x, y) => { const k = this.i(x, y); if (!this.in(x, y) || !free(k) || lawn[k] || this.occ[k]) return; this.flowers.push({ x, y, kind: FK[hash(x, y, 1) % 4], color: hash(x, y, 2) % 3 }); this.occ[k] = 3; };
     for (const f of P.flowers || []) for (let i = 0; i < f.n * 3; i++) { const a = R() * Math.PI * 2, d = Math.sqrt(R()) * f.r; flower(Math.floor(f.x + Math.cos(a) * d), Math.floor(f.y + Math.sin(a) * d)); }
-    if (P.wildFlowers !== false) for (let k = 0; k < W * H; k++) if (free(k) && !this.keep[k] && !lawn[k] && hash(k, this.seed, 6) % 1000 < 12) flower(k % W, (k / W) | 0);
+    // wild flowers come in little patches of one kind and color (where a grove thins out, by a path), not one here and one there
+    const patch = (x, y, n) => { const kind = FK[hash(x, y, 7) % 4], color = hash(x, y, 8) % 3;
+      for (let i = 0; i < n * 2 && n > 0; i++) { const a = R() * Math.PI * 2, d = Math.sqrt(R()) * 1.7, fx = Math.round(x + Math.cos(a) * d), fy = Math.round(y + Math.sin(a) * d), before = this.flowers.length;
+        flower(fx, fy); if (this.flowers.length > before) { Object.assign(this.flowers[before], { kind, color }); n--; } } };
+    if (P.wildFlowers !== false && !even) for (const k of order) {
+      const x = k % W, y = (k / W) | 0;
+      if (!free(k) || this.keep[k] || lawn[k] || hash(k, this.seed, 6) % 1000 >= 5) continue;
+      const g = grove(x, y) * 0.5 + 0.5;
+      if (g > 0.66 || (g < 0.4 && !nearRoad(x, y, 3))) continue;
+      patch(x, y, 3 + hash(k, 9) % 4);
+    }
+    else if (P.wildFlowers !== false) for (let k = 0; k < W * H; k++) if (free(k) && !this.keep[k] && !lawn[k] && hash(k, this.seed, 6) % 1000 < 12) flower(k % W, (k / W) | 0);
     // gems hide up the mountain, off the trails
     for (const k of order) {
       if (this.gemSpots.length >= 14) break;

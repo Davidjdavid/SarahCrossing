@@ -650,6 +650,7 @@ const R3U = {
     // where Sarah is on screen (x, y in clip space, how far from the camera, how big a circle) and the screen's aspect:
     // the new look's trees and buildings in front of her go see-through round her (o.see)
     uSee: { value: new THREE_V4(0, 0, 0, 0) }, uSeeA: { value: 1 },
+    uGrassTint: { value: new THREE_V4(1, 1, 1, 0) },     // (grass on models, as the lawn has it this season: color, then snow)
 };
 function THREE_V4(a, b, c, d) { return typeof THREE !== 'undefined' ? new THREE.Vector4(a, b, c, d) : { x: a, y: b, z: c, w: d, set() {} }; }
 const R3_GLSL = `
@@ -686,7 +687,7 @@ function r3Patch(mat, o) {
             // the camera or in front of Sarah goes by the thing as a whole, not each pixel's depth: a crown sliced by
             // that line would lose its front leaves and show its dark inside)
             r3Fade = uDof.z > uDof.w ? smoothstep(uDof.z + 0.8, uDof.w + 1.4, vObjZ) : 0.0;
-            if (uSee.w > 0.0 && vObjZ < uSee.z - 0.8) {
+            if (uSee.w > 0.0 && vObjZ < uSee.z + 0.1) {
                 vec2 sd = (vSee.xy / vSee.w - uSee.xy) * vec2(uSeeA, 1.0);
                 r3Fade = max(r3Fade, 0.74 * (1.0 - smoothstep(0.6, 1.0, length(sd) / uSee.w)));
             }

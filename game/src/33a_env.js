@@ -4,8 +4,8 @@
    world itself: ground with stone walls that stand straight up, a beach that runs down under the water, stream and pond
    beds you can see into (33d_env_water.js), trees with real crowns of leaves (33c_env_trees.js), houses and shops with
    roofs, windows and doors you can see round (33e_env_build.js), a lawn of little leaves as the GameCube game drew it
-   (EnvTex.lawn), all lit by the same sun, sky and lamps. People (and anything that moves) are still the HD cards. "HD-2D graphics" stays the
-   fallback: with the new look off (localStorage sc-env-next = 0) the test area is drawn the old way, for comparing. */
+   (EnvTex.lawn), all lit by the same sun, sky and lamps. People are dolls (33k_env_dolls.js). The HD-2D view stays the
+   fallback while the models load, and without WebGL the classic view. */
 const ENV = {
     LV: 1.5,            // a level's height (world units; a tile is one unit across)
     BASE: 0.25,         // the low ground's height above the sea
@@ -20,7 +20,7 @@ const ENV = {
 const ENV_ISLAND = (() => { const v = lsGet('sc-env-island'); return v === '1' ? true : v === '0' ? false : /^beta\./.test((window.location && location.hostname) || ''); })();
 const Env = {
     on: false, built: null, failed: false,
-    want() { return (LAB || ENV_ISLAND) && !this.failed && lsGet('sc-env-next') !== '0'; },
+    want() { return (LAB || ENV_ISLAND) && !this.failed; },
     /* (on Sarah's island only once the Blender models have arrived: the island stays in the HD-2D view till then) */
     active(a) { return this.want() && !!a && a.id === 'island' && !a.interior && (LAB || (typeof EnvModels !== 'undefined' && EnvModels.ready)); },
     /* the HD-2D view asks every frame: draw the island the new way? (builds it the first time) */
@@ -638,8 +638,8 @@ const EnvGround = {
         // (shared by every piece's material; each piece adds its own pictures and where they lie)
         this.uniforms = {
             uMapSz: { value: new THREE.Vector2(Wt, Ht) },
-            tGrass: { value: T.lawn().map }, tDirt: { value: B('path', 'col', () => T.dirt().map) }, tCob: { value: B('flagstones', 'col', () => T.cobble().map) }, tSand: { value: sand.map }, tWall: { value: wall.map },
-            nGrass: { value: T.lawn().normal }, nDirt: { value: B('path', 'nrm', () => T.dirt().normal) }, nCob: { value: B('flagstones', 'nrm', () => T.cobble().normal) }, nSand: { value: sand.normal }, nWall: { value: wall.normal },
+            tGrass: { value: T.lawn(Clock.season()).map }, tDirt: { value: B('path', 'col', () => T.dirt().map) }, tCob: { value: B('flagstones', 'col', () => T.cobble().map) }, tSand: { value: sand.map }, tWall: { value: wall.map },
+            nGrass: { value: T.lawn(Clock.season()).normal }, nDirt: { value: B('path', 'nrm', () => T.dirt().normal) }, nCob: { value: B('flagstones', 'nrm', () => T.cobble().normal) }, nSand: { value: sand.normal }, nWall: { value: wall.normal },
             hCob: { value: B('flagstones', 'hgt', () => flat) }, hDirt: { value: B('path', 'hgt', () => flat) },
             uSeason: { value: new THREE.Vector4(1, 1, 1, 0) }, uRainW: this.rain, uGrid: this.gridOn,
         };
@@ -649,7 +649,14 @@ const EnvGround = {
         const uniforms = this.uniforms;
         return { meshes: this.meshes, tick: (r3, a) => {
             const s = a.bgSeason || Clock.season();
-            if (s !== this._season) { this._season = s; uniforms.uSeason.value.set(...({ spring: [1, 1.04, 0.92], summer: [1, 1, 1], fall: [1.08, 1.0, 0.78], winter: [1.3, 1.32, 1.4] }[s] || [1, 1, 1]), s === 'winter' ? 1 : 0); }
+            if (s !== this._season) {
+                // (the lawn's own colors for the season; winter's snow lies over it)
+                this._season = s;
+                const L = EnvTex.lawn(s);
+                uniforms.tGrass.value = L.map; uniforms.nGrass.value = L.normal;
+                uniforms.uSeason.value.set(...(s === 'winter' ? [1.1, 1.12, 1.18] : [1, 1, 1]), s === 'winter' ? 1 : 0);
+                R3U.uGrassTint.value.set(...({ spring: [1.25, 1.15, 1.05, 0], fall: [1.75, 1.05, 0.95, 0], winter: [1.3, 0.9, 1.25, 0.8] }[s] || [1, 1, 1, 0]));
+            }
             // (the ground gets wet over a few seconds of rain and dries off more slowly after)
             const wet = G.weather === 'rain' ? 1 : 0, R = this.rain;
             R.value += (wet - R.value) * (wet > R.value ? 0.01 : 0.003);
@@ -786,7 +793,8 @@ EnvGround.FMAP = `
 EnvGround.FNORMAL = `
 {
     vec2 tp = vec2(vWp.x, vWp.z / ${R3_ZS.toFixed(3)}) * 0.25;
-    vec3 tn = (texture2D(nGrass, tp).xyz * envW.x + texture2D(nDirt, tp).xyz * envW.y + texture2D(nCob, tp).xyz * envW.z + texture2D(nSand, tp).xyz * envW.w) * 2.0 - 1.0;
+    // (under winter's snow the lawn's little leaves hardly show)
+    vec3 tn = (mix(texture2D(nGrass, tp).xyz, vec3(0.5, 0.5, 1.0), uSeason.w * 0.85) * envW.x + texture2D(nDirt, tp).xyz * envW.y + texture2D(nCob, tp).xyz * envW.z + texture2D(nSand, tp).xyz * envW.w) * 2.0 - 1.0;
     vec3 wn = texture2D(nWall, envWallUv).xyz * 2.0 - 1.0;
     vec3 N = normalize(vNw);
     // on the ground: across is +x, down the picture is +z (the pictures keep the slope going down them in green)

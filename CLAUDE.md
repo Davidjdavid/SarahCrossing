@@ -20,12 +20,15 @@ docs/DEPLOY.md for the server.
   coast, each level's edge, rivers, ponds, the square, every path and trail, buildings, props and the neighbors' spots,
   in tiles), `layout.mjs` turns it into tiles (cliffs, stairs where a path crosses one, waterfalls, straight bridges,
   trees and flowers) and checks every door, staircase and spot can be walked to from the pier, `paint.mjs` paints the
-  ground with the first island's textures, kept in `scripts/island/source/`. Change the plan and run it again rather
+  ground with the first island's textures, kept in `scripts/island/source/`. Trees grow in groves with clearings (a slow
+  noise says where: thick in the woods, little stands on open ground, broken runs along cliff tops) and wild flowers in
+  small patches of one kind, so the island never looks evenly sprinkled. Change the plan and run it again rather
   than editing world.json by hand; the same seed always makes the same island. Higher ground is always north of its
   edge (cliffs face south, east or west) and doors are on a building's south side. `--preview out.png` draws a quick
   map of the layout, `--png out.png` the painted ground, without touching game/. Moving things on the island means old
-  saves need a `migrate()` step (map 6 is this island, map 5 the same before its shops moved into two rows along an
-  alley: progress stays, what was laid out on the old island's ground starts fresh and Sarah's things come back).
+  saves need a `migrate()` step (map 7 is this island: its woods in groves and clearings; coming from an older map is a
+  fresh start that keeps only Sarah's stats and money, plus her name, the island's, her birthday and how long she's
+  lived here, David's call; the whole old save is kept inside the new one as `before7`).
   Raised ground ends at the sea in a rim nobody walks on (in 3D the sea cliff stands there). Half tiles (`cut` in
   world.json, `cuts()` in layout.mjs): where the sea, a river or a pond meets land in a stair-step, or a path turns or
   runs on a slant, the step's outer corner tile is cut along its diagonal (a, b, c, d: its NW, NE, SE, SW corner is the
@@ -81,9 +84,9 @@ docs/DEPLOY.md for the server.
   Animal Crossing's (`EnvTex.lawn`, David's pick: no 3D tufts, no flowers but the ones you can pick). R3 still draws people, critters and
   anything `Env.takes(e)` leaves out, and its post pass (bloom, depth of field, the warm grade). Tune it in `ENV`
   (a level's height, the camera, depth of field, how big people stand).
-- The button under the clock (`localStorage sc-env-next = 0`) draws the test area the old way, for comparing.
 - Sarah's island is in the new look on the beta site (`ENV_ISLAND`: the beta host, or `localStorage sc-env-island` 1 or
-  0 anywhere; the tests run without it), once the models have loaded (the HD-2D view till then), with the same button.
+  0 anywhere; the tests run without it), once the models have loaded (the HD-2D view till then). There is no switch
+  back to the old look any more (David: "we don't need to see the old version when we play").
   The island is big, so the ground comes in pieces (`EnvChunk`, `ENV.CHUNK` tiles): each piece's pictures
   (kinds, damp banks) and mesh are made the first time it nears the view, those on screen at once, the next ones a few
   milliseconds a frame (`Env.stream`), and made again when Sarah's paths change; only pieces near the view are shown, and

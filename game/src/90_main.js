@@ -207,15 +207,7 @@ async function continueGame() {
     updateToolButton();
     if (LAB) {
         Music.update(true); UI.toast('The test area for the new 3D look. Nothing here is saved.');
-        // (a button to see the same place drawn the old way, and back: the page starts again, as nothing here is kept)
-        const now = Env.want();
-        document.getElementById('hudL').appendChild(btn(now ? 'Show the old look' : 'Show the new look', 'labswitch', () => { lsSet('sc-env-next', now ? '0' : '1'); location.reload(); }));
         return;
-    }
-    // (on the beta site Sarah's island is in the new look too: the same button, the island saved before the page starts again)
-    if (ENV_ISLAND) {
-        const now = Env.want();
-        document.getElementById('hudL').appendChild(btn(now ? 'Show the old look' : 'Show the new look', 'labswitch', () => { lsSet('sc-env-next', now ? '0' : '1'); Save.write(true); location.reload(); }));
     }
     const newDay = dailyCheck();
     newsCheck();

@@ -6,7 +6,7 @@ let S = null;
 function newState() {
     const seed = Math.random().toString(36).slice(2, 10);
     return {
-        v: 1, mapV: 6, seed, created: Date.now(), started: false,
+        v: 1, mapV: 7, seed, created: Date.now(), started: false,
         islandName: '', birthday: null,
         money: 800,
         pocket: new Array(20).fill(null),
@@ -148,6 +148,33 @@ function migrate(st) {
                     + 'Your house, your things and all your friends came along on the boat.'
                     + (n ? `\n\nAnything you'd left out on the old island's ground (${n} thing${n === 1 ? '' : 's'}) is waiting in your storage.` : '')
                     + '\n\nGo have a look around. Try the Ridge Trail.\n- Ginger' });
+        }
+    }
+    // a fresh start on the remade island (map 7: its woods regrown in groves and clearings, 27 October). David's call:
+    // only Sarah's stats and money come along, and who she is (her name, the island's, her birthday, how long she's been
+    // here); everything else starts new. The whole old save is kept inside the new one (before7), in case it's wanted.
+    if (st.mapV === 6) {
+        st.mapV = 7;
+        if (st.started) {
+            const old = JSON.parse(JSON.stringify(st));
+            old.mapV = 6;
+            const keep = {};
+            for (const k of ['money', 'stats', 'islandName', 'playerName', 'birthday', 'seed', 'created', 'day', 'startDay', 'lastDay']) if (st[k] !== undefined) keep[k] = st[k];
+            for (const k of Object.keys(st)) delete st[k];
+            Object.assign(st, newState(), keep, { started: true, before7: old });
+            st.flags.introDone = true; st.flags.metJoe = true;
+            // (cheat mode, once used, stays marked: it goes with her records)
+            if (old.flags && old.flags.cheat) st.flags.cheat = old.flags.cheat;
+            st.house.items = STARTER_HOUSE.map(o => Object.assign({ flip: false }, o));
+            const met = { met: true, talkDay: -1, giftDay: -1, gifts: 0, favor: null, photo: false, letter: false, last: '' };
+            st.npcs = { joe: Object.assign({ pts: 100 }, met), fortune: Object.assign({ pts: 0 }, met) };
+            const [bx, by] = W0.boat || W0.intro.start;
+            st.player.x = (bx + 0.5) * TILE; st.player.y = (by + 0.6) * TILE; st.player.dir = 'down';
+            st.mail.push({ id: st.mailSeq++, from: 'fortune', subject: 'A fresh start!', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
+                body: `Sarah! Welcome back to ${st.islandName || 'the island'}. Ginger's crew made the whole island new: the woods grew back in groves, `
+                    + 'there\'s room to breathe everywhere, and every house and shop got a fresh start.\n\n'
+                    + `Your savings came along on the boat (${fmtNum(st.money)} sand dollars), and so did your records: every fish, every hug, every day. `
+                    + 'Everything else is brand new, so go say hi to everyone. They can\'t wait to meet you. Again!\n- Fortune' });
         }
     }
     // the final update: glasses get their own slot (so Sarah can wear a hat too), and Joe is always her best friend
