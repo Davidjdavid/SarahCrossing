@@ -303,7 +303,7 @@ CIVIC_LIVE.residents = {
         for (const id of ids) who.appendChild(chip(NPC_DEFS[id].name, () => { this.pick = id; redraw(); }, id === pick ? 'on' : ''));
         b.appendChild(who);
         const l = CV.list(b);
-        CV.row(l, d.human ? `${d.human}_down_stand` : `${d.sprite}_0`, d.name, '\u2665'.repeat(h) + '\u2661'.repeat(5 - h));
+        CV.row(l, d.human ? `${d.human}_down_stand` : `${d.sprite}_0`, d.name, null, el('span', 'cv-hearts', '\u2665'.repeat(h) + '\u2661'.repeat(5 - h)));
         if (h < 3) { CV.banner(b, 'warn', `${d.name} needs to be good friends with you first (three hearts).`); return; }
         if (townVisitorNote(b)) return;
         const sc = (T.sched = T.sched || {})[pick] || { w: 0, b: 0 };

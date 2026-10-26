@@ -153,6 +153,8 @@ const Arcade = {
             (b.side === 'L' ? padL : padR).appendChild(bt);
         }
         pads.appendChild(padL); pads.appendChild(padR);
+        // (six buttons don't fit a phone held upright at the usual size: the snowball fight's)
+        if (padL.children.length + padR.children.length > 5) pads.classList.add('many');
         const card = el('div', 'ar-card');
         card.hidden = true;
         root.appendChild(top); root.appendChild(mid); root.appendChild(pads); root.appendChild(card);
