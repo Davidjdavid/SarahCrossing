@@ -35,10 +35,12 @@ const EnvRoom = {
     /* what the room draws itself: the furniture made in Blender (furniture.py), not what's hung on the wall, a rug, or a
        piece drawn moving (an arcade cabinet's screen, the disco floor) */
     model(e) {
-        if (!e.furn || !e.def || e.draw || e.def.kind === 'wall' || e.def.kind === 'rug') return null;
+        if (!e.furn || !e.def || e.draw || e.def.kind === 'rug') return null;
         // (a plush is its folk's own model, small)
         const n = /^plush_/.test(e.item.id) ? 'folk_' + e.item.id.slice(6) : 'furn_' + e.item.id;
-        return EnvModels.has(n) ? n : null;
+        if (EnvModels.has(n)) return n;
+        // (a painting with no model of its own, a neighbor's art for the museum, hangs in the gilt frame, its picture inside)
+        return e.def.kind === 'wall' && e.def.art && EnvModels.has('furn_empty_frame') ? 'furn_empty_frame' : null;
     },
     PLUSH: 0.34,
     /* what hangs on the back wall: drawn here as a piece of its own (EnvRoom.cutout), not painted on the wall's picture */
@@ -149,8 +151,10 @@ const EnvRoom = {
             const P = e.def.kind === 'wall' && this.pic(e.frame);
             if (!P) continue;
             const n = this.model(e), left = e.x - P.ax, top = e.y - P.ay, sq = this.ROUND.has(e.item.id) ? Math.sqrt(k) : 0;
+            // (the gilt frame borrowed by another painting: fitted to that picture)
+            const fx = n === 'furn_' + e.item.id ? 1 : P.w / TILE / 2, fy = n === 'furn_' + e.item.id ? 1 : P.h / TILE / 1.625;
             const m = new THREE.Matrix4().makeTranslation((left + P.w / 2) / TILE, H * (1 - (top + P.h / 2) / wallPx), z0 + 0.01);
-            m.multiply(new THREE.Matrix4().makeScale((e.flip ? -1 : 1) * (sq || 1), sq || k, sq || 1));
+            m.multiply(new THREE.Matrix4().makeScale((e.flip ? -1 : 1) * (sq || 1) * fx, (sq || k) * fy, sq || 1));
             for (const p of EnvModels.models[n].parts) {
                 const face = /_pic(glow)?$/.exec(p.material.name || '');
                 if (face) this.picUV(p.geometry);

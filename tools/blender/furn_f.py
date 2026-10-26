@@ -271,20 +271,23 @@ def pottery_shelf(P):
 def pegboard(P):
     H = 1.25
     rbox(P.main, -0.98, -0.04, -H / 2, 0.98, 0.0, H / 2, wood('#d8b47a'), r=0.02, mid=1)
+    for (x0, x1, z0, z1) in ((-1.0, 1.0, H / 2 - 0.06, H / 2), (-1.0, 1.0, -H / 2, -H / 2 + 0.06), (-1.0, -0.94, -H / 2, H / 2), (0.94, 1.0, -H / 2, H / 2)):
+        rbox(P.main, x0, -0.06, z0, x1, 0.0, z1, wood('#9a6a3a'), r=0.012, mid=1)
     for i in range(9):
         for j in range(6):
             x, z = -0.86 + i * 0.215, -0.5 + j * 0.2
-            slab(P.main, circle(0.012, 6, x, z), 0.002, shade('#7a5a3a'), axis='y', at=-0.042)
-    # a hammer, a wrench, a saw, a screwdriver, a roll of tape
-    rbox(P.main, -0.8, -0.07, -0.2, -0.75, -0.04, 0.3, wood('#b07a48'), r=0.012, mid=0)
-    rbox(P.gloss, -0.9, -0.09, 0.22, -0.66, -0.05, 0.32, metal('#8a8e98'), r=0.015, mid=0)
-    tube(P.gloss, [(-0.48, -0.06, -0.25), (-0.46, -0.06, 0.2)], 0.022, metal('#a8acb4'), seg=6)
-    hoop(P.gloss, 0.05, 0.016, metal('#a8acb4'), -0.06, cx=-0.46, cz=0.25)
-    rbox(P.gloss, -0.25, -0.06, -0.15, 0.15, -0.045, 0.2, metal('#c8ccd4'), r=0.01, mid=0)
-    rbox(P.main, 0.12, -0.08, -0.05, 0.24, -0.04, 0.12, paint('#c84a3a'), r=0.02, mid=1)
-    tube(P.main, [(0.45, -0.06, -0.25), (0.45, -0.06, 0.1)], 0.022, paint('#3a6ac8'), seg=6)
-    tube(P.gloss, [(0.45, -0.06, 0.1), (0.45, -0.06, 0.3)], 0.008, metal('#c8ccd4'), seg=4)
-    hoop(P.main, 0.07, 0.03, paint('#f0c030'), -0.07, cx=0.72, cz=-0.2, seg=16)
+            slab(P.main, circle(0.014, 6, x, z), 0.002, shade('#7a5a3a'), axis='y', at=-0.042)
+    # a hammer, a wrench, a saw, a tape measure, a screwdriver, a roll of tape: as big and bright as the picture's
+    rbox(P.main, -0.79, -0.09, -0.3, -0.71, -0.04, 0.24, wood('#b07a48'), r=0.02, mid=1)
+    rbox(P.gloss, -0.92, -0.12, 0.18, -0.6, -0.05, 0.34, metal('#9a9ea8'), r=0.025, mid=1)
+    tube(P.gloss, [(-0.46, -0.07, -0.32), (-0.44, -0.07, 0.16)], 0.035, metal('#b8bcc4'), seg=8)
+    hoop(P.gloss, 0.075, 0.028, metal('#b8bcc4'), -0.07, cx=-0.44, cz=0.25, seg=16)
+    rbox(P.gloss, -0.27, -0.07, -0.18, 0.12, -0.045, 0.22, metal('#d0d4dc'), r=0.015, mid=0)
+    rbox(P.main, -0.33, -0.1, 0.04, -0.2, -0.04, 0.26, wood('#9a5a2a'), r=0.03, mid=1)
+    rbox(P.main, 0.16, -0.12, -0.12, 0.34, -0.04, 0.18, paint('#d0443a'), r=0.035, mid=1)
+    tube(P.main, [(0.52, -0.07, -0.34), (0.52, -0.07, 0.08)], 0.035, paint('#3a6ad8'), seg=8)
+    tube(P.gloss, [(0.52, -0.07, 0.08), (0.52, -0.07, 0.32)], 0.012, metal('#c8ccd4'), seg=6)
+    hoop(P.main, 0.08, 0.04, paint('#f0c030'), -0.08, cx=0.78, cz=-0.22, seg=18)
 
 
 @item('tool_wall', 2, 1)
