@@ -818,6 +818,23 @@ def mailbox_fish():
     return [(body, 'body'), (main, 'main')]
 
 
+# ---------------------------------------------------------------- things seen only at certain times (33q_env_sights.js)
+def fairy_mushroom():
+    """A toadstool from the ring that comes up in the woods at night: a pale stem, a round cap that glows aqua (drawn
+    unlit), paler spots, darker gills under it."""
+    main, glow = MB(), MB()
+    lathe(main, [(0.022, 0.0), (0.019, 0.04), (0.016, 0.08), (0.02, 0.1)], col_fn('#efe6d0', under=0.3), seg=12)
+    lathe(main, [(0.02, 0.098), (0.06, 0.092), (0.064, 0.096)], shade('#b8b098'), seg=18, cap_top=False)
+    top, low = rgb('#a8fff0'), rgb('#38b8d8')
+
+    def cap(p, n):
+        t = max(0.0, min(1.0, (p.z - 0.095) / 0.06))
+        spot = noise.noise(p * 70) > 0.42
+        return rgb('#f0fff8') if spot and t > 0.2 else low.lerp(top, t)
+    lathe(glow, [(0.064, 0.096), (0.066, 0.104), (0.058, 0.125), (0.04, 0.143), (0.018, 0.152), (0.0, 0.154)], cap, seg=18)
+    return [(main, 'main'), (glow, 'glow')]
+
+
 PROPS = {
     'fountain': fountain, 'drinkfountain': drinkfountain, 'board': board, 'plaque': plaque, 'trashcan': trashcan, 'statue_david': statue,
     'signpost_trail': lambda: sign('trail'), 'signpost_farm': lambda: sign('farm'), 'signpost_camp': lambda: sign('camp'),
@@ -828,7 +845,7 @@ PROPS = {
     'campfire': campfire, 'bonfire': lambda: campfire(True), 'picnic': picnic, 'telescope': telescope, 'viewer': viewer, 'tackle': tackle,
     'driftwood': driftwood, 'rock_a': lambda: rock(1), 'rock_b': lambda: rock(7), 'icecream': icecream, 'sandcastle': sandcastle,
     'volleyball': volleyball, 'noodle_cart': noodle_cart, 'barrel': barrel,
-    'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
+    'fairy_mushroom': fairy_mushroom, 'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
     'reeds': reeds, 'lilypad': lilypad, 'lilypad_flower': lambda: lilypad(True), 'pebbles': pebbles, 'falls_rocks': falls_rocks,
 }
 

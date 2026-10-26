@@ -54,8 +54,7 @@ Status: [x] done, [~] in progress, [ ] not started.
   above the dock with the Town Hall, Post Office and Bank, Market Lane, a neighborhood with room between the houses,
   the farm up the hill with a hidden cove below it, a forest of looping trails, the campsite, the Ridge Trail and a
   mountain trail to the lookout; old saves keep their progress and get their things back. Still to come: the Town
-  Hall, Post Office and Bank's art and insides, things to see at different times, the new vendors, the sailor and the
-  balloon's passenger)
+  Hall, Post Office and Bank's art and insides, the new vendors, the sailor and the balloon's passenger)
 - [x] HD-2D step 4: furniture, floors and walls, and the inside of buildings redrawn
 - [~] HD-2D step 5: a HUD that matches (done: the sample's dark glass and serif type in HD-2D), and a
   layout made for an upright phone (done: the camera frames Sarah low with the world above her, and the
@@ -129,6 +128,9 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] Everything a 3D model in the dollhouse look but the minigames (David, 27 October): palms redone, walls without corner
   posts, stairs that match their paths, shells, gems and things dropped on the ground, the sailboat, the planes,
   balloons, boats and dolphins
+- [x] Things to see at certain times, never announced (26 October): a glowing toadstool ring in the woods at night, a
+  rainbow at the falls the morning after rain, the northern lights on some clear winter nights, sea turtle hatchlings on
+  some summer dawns (and the owl at night, the deer)
 - [x] Rooms: what's hung on walls and the small things on tables as models (the arcade games, jump rope, volleyball
   and the other minigames keep their 2D look, and so can the arcade cabinets)
 

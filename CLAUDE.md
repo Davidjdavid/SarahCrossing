@@ -146,6 +146,13 @@ docs/DEPLOY.md for the server.
   Flutter's butterflies: wings fold or flap, birds peck, the owl blinks, ducks float at `Env.waterH`. While the models
   are still downloading, `Env.cover` shows a moment of getting the island ready (at most 25 s) instead of the old look.
   On a grey day the new look's light is soft (the sun dimmer, shadows faint: `soft` in `updateLight`).
+- Things Sarah happens to see, never announced (no popups, nothing to win: `EnvSights`, 33q_env_sights.js): a ring of
+  glowing toadstools (`fairy_mushroom` from props_island.py, its cap `*_glow`) in the clearing by the old tree on autumn
+  nights and the night of a rainy day; a rainbow in the mist at the falls' foot the morning after rain when the sun's out
+  (`todayWeather(day)` takes another day); the northern lights low over the north horizon on some clear winter nights (in
+  the sky's shader, `uAur` in `r3Sky`, their green on everything in `updateLight`); sea turtle hatchlings
+  (`critter_turtle`, flippers that paddle) scrambling from a nest on the far beach into the sea on some summer dawns.
+  "Some" is a coin toss per day (`EnvSights.lucky`), the same all day. The owl at night and the deer are the wildlife's.
 - The small and far-off things are toys too, from `tools/blender/small_things.py`: shells and gems lying on the island
   (`item_<id>`; fruit uses the trees' `fruit_<id>`), drawn by `EnvItems` (33p_env_items.js) in place of their pictures;
   everything else Sarah can carry comes from `pocket_things.py` (`item_<its picture>`: wood, presents, money bags, the

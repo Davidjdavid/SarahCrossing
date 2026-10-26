@@ -61,12 +61,13 @@ function todayEvents() {
     return ev;
 }
 
-/* weather is decided once per island day */
-function todayWeather() {
+/* weather is decided once per island day (today's, or another day's: yesterday's rain makes this morning's rainbow) */
+function todayWeather(day) {
+    const dn = day == null ? Clock.dayNum() : day;
     // a registered zip code: that town's forecast for the day (6zh_world.js)
-    const zd = S && S.zip && S.zip.days && S.zip.days[Clock.dayNum()];
+    const zd = S && S.zip && S.zip.days && S.zip.days[dn];
     if (zd && CIVIC_PREVIEW) return zd.sky;
-    const r = mulberry(hash32((S.seed || 'x') + ':w:' + Clock.dayNum()));
+    const r = mulberry(hash32((S.seed || 'x') + ':w:' + dn));
     const season = Clock.season();
     const x = r();
     if (season === 'winter') return x < 0.28 ? 'snow' : x < 0.5 ? 'cloudy' : 'sunny';

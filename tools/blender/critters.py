@@ -1,6 +1,7 @@
 """The island's wildlife as little painted toys for the new 3D look, after their pictures (6k_wildlife.js): robins,
 bluebirds and sparrows pecking in the grass, gulls on the beach, an owl at night, squirrels, rabbits and the odd deer in
-the woods, crabs on the sand, ducks on the pond, frogs, and butterflies in four colors. Made like the folks (folks.py):
+the woods, crabs on the sand, ducks on the pond, frogs, butterflies in four colors, and the sea turtle hatchlings of
+summer dawns. Made like the folks (folks.py):
 colors in the mesh, soft and rounded, the parts that move their own objects with their origins at the joints (wing_l /
 wing_r flap, eye_l / eye_r blink). Built in hundredths of a tile, -y the front (the head), z up, feet on the ground.
 
@@ -247,9 +248,41 @@ def butterfly(name, col, edge):
     return f
 
 
+def turtle():
+    """A sea turtle hatchling (the far beach on summer dawns: 33q_env_sights.js): a shell of dark scutes with pale seams
+    on a cream underside, a round head, four flippers that paddle (fin_fl, fin_fr, fin_bl, fin_br, each from its
+    shoulder)."""
+    f = Folk('turtle')
+    base, seam, rim = rgb('#46563a'), rgb('#b4bc8a'), rgb('#62724a')
+
+    plates = [(0, y) for y in (-5.2, -2.0, 1.2, 4.4, 7.4)] + [(sx * 4.0, y) for sx in (-1, 1) for y in (-3.6, -0.2, 3.2, 6.4)]
+
+    def shell(p, n, u=0, v=0):
+        # the scutes: five down the middle, four each side, the rim of small ones round the edge; pale seams between
+        r = math.hypot(p.x / 6.4, (p.y - 1.0) / 8.4)
+        d = sorted(math.hypot(p.x - x, (p.y - y) * 0.9) for x, y in plates)
+        if r > 0.84:
+            c = seam if abs(math.sin(math.atan2(p.y - 1.0, p.x) * 11)) < 0.18 or r < 0.87 else rim
+        else:
+            c = seam if d[1] - d[0] < 0.42 else base * (1.08 - 0.05 * min(d[0], 3.0))
+        return c * (0.96 + 0.06 * noise.noise(p * 0.5))
+    surf(f.body, superq(0, 1.0, 3.0, 6.4, 8.4, 3.4, 0.8, 1.0), shell, nu=64, nv=30)
+    surf(f.body, superq(0, 1.0, 1.7, 5.6, 7.4, 1.7, 1.0, 1.0), shade('#e6dcb8'), nu=24, nv=10)
+    ball(f.body, (0, -8.6, 3.4), (2.5, 3.0, 2.2), two_tone('#5e6c48', '#d8d0a8', -0.3), sub=3)
+    ball(f.body, (0, 10.0, 1.8), (0.9, 1.8, 0.6), shade('#4a5636'), sub=1)
+    eyes(f, 1.75, -10.6, 4.4, 0.75)
+    fin = shade('#3e4a30')
+    for s, sfx in ((-1, 'l'), (1, 'r')):
+        o = Vector((s * 4.6, -4.2, 2.0))
+        ball(f.part('fin_f' + sfx, o), o + Vector((s * 3.8, 1.4, -0.7)), (4.4, 1.7, 0.55), fin, sub=2)
+        o = Vector((s * 3.8, 6.4, 1.8))
+        ball(f.part('fin_b' + sfx, o), o + Vector((s * 1.6, 1.6, -0.6)), (2.2, 1.5, 0.5), fin, sub=2)
+    return f
+
+
 CRITTERS = {
     'robin': robin, 'bluebird': bluebird, 'sparrow': sparrow, 'gull': gull, 'owl': owl, 'squirrel': squirrel,
-    'rabbit': rabbit, 'deer': deer, 'crab': crab, 'duck': duck, 'frog': frog,
+    'rabbit': rabbit, 'deer': deer, 'crab': crab, 'duck': duck, 'frog': frog, 'turtle': turtle,
     'butterfly0': lambda: butterfly('butterfly0', '#f6d040', '#c88a20'), 'butterfly1': lambda: butterfly('butterfly1', '#f6a2c4', '#d86a9a'),
     'butterfly2': lambda: butterfly('butterfly2', '#a8d4f4', '#5a9ad8'), 'butterfly3': lambda: butterfly('butterfly3', '#fbfaf6', '#c8c4bc'),
 }

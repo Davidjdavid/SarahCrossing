@@ -462,7 +462,11 @@ const R3 = {
         this.hemi.intensity = room ? 0.56 : 0.38 + 0.08 * day + soft * 0.5 * day;
         this.hemi.color.setRGB(0.69, 0.79, 0.93).lerp(tint, dark * 0.8);
         this.hemi.groundColor.setRGB(0.54, 0.49, 0.34).lerp(tint, dark * 0.8);
+        // (the northern lights' green falls faintly on everything: 33q_env_sights.js)
+        const aur = !a.interior && this.sky.material.uniforms && this.sky.material.uniforms.uAur ? this.sky.material.uniforms.uAur.value : 0;
+        if (aur > 0.001) { const g = new THREE.Color(0.32, 0.95, 0.62); this.hemi.color.lerp(g, 0.22 * aur); this.hemi.groundColor.lerp(g, 0.12 * aur); this.hemi.intensity += 0.1 * aur; }
         const fog = new THREE.Color(R3_FOG.col[0], R3_FOG.col[1], R3_FOG.col[2]).lerp(new THREE.Color(0.62, 0.66, 0.7), gray).lerp(tint, dark * 0.85);
+        if (aur > 0.001) fog.lerp(new THREE.Color(0.1, 0.32, 0.3), 0.25 * aur);
         this.scene.fog.color.copy(fog);
         if (a.interior) { this.scene.fog.near = 200; this.scene.fog.far = 400; }
         else { const f = this.farTiles() * R3_ZS, d = this.dist(); this.scene.fog.near = d + f * R3_FOG.near; this.scene.fog.far = d + f * R3_FOG.far; }
@@ -794,9 +798,9 @@ function r3Sea(scene) {
 function r3Sky(scene) {
     const mat = new THREE.ShaderMaterial({
         side: THREE.BackSide, depthWrite: false, fog: false,
-        uniforms: { uZen: { value: new THREE.Color('#3f80cc') }, uMid: { value: new THREE.Color('#86bce4') }, uHor: { value: new THREE.Color('#d2e5ec') }, uTime: R3U.uTime, uDay: { value: 1 } },
+        uniforms: { uZen: { value: new THREE.Color('#3f80cc') }, uMid: { value: new THREE.Color('#86bce4') }, uHor: { value: new THREE.Color('#d2e5ec') }, uTime: R3U.uTime, uDay: { value: 1 }, uAur: { value: 0 } },
         vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); vec4 p = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * p; }',
-        fragmentShader: `uniform vec3 uZen, uMid, uHor; uniform float uTime, uDay; varying vec3 vDir;
+        fragmentShader: `uniform vec3 uZen, uMid, uHor; uniform float uTime, uDay, uAur; varying vec3 vDir;
             float h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
             float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
             void main(){
@@ -809,6 +813,16 @@ function r3Sky(scene) {
               float cl = n(q) * 0.6 + n(q * 2.3) * 0.3 + n(q * 5.1) * 0.1;
               // (white by day; by night only a little lighter than the sky)
               c = mix(c, mix(c * 1.35 + 0.04, vec3(1.0), uDay), smoothstep(0.6, 0.78, cl) * smoothstep(0.0, 0.08, y) * 0.75);
+              // the northern lights on some winter nights (33q_env_sights.js): folded curtains of green going violet at
+              // the top, low over the north horizon, drifting and flickering in rays
+              if (uAur > 0.001) {
+                float az = atan(vDir.x, -vDir.z);
+                float band = smoothstep(-0.05, -0.015, y) * (1.0 - smoothstep(0.06, 0.3, y));
+                float fold = n(vec2(az * 5.0 + uTime * 0.015, uTime * 0.006)) * 0.7 + n(vec2(az * 13.0 - uTime * 0.02, 1.7)) * 0.3;
+                float rays = 0.6 + 0.4 * sin(az * 60.0 + n(vec2(az * 4.0, uTime * 0.04)) * 8.0);
+                float k = band * smoothstep(0.3, 0.75, fold) * rays * smoothstep(-0.3, 0.4, -vDir.z);
+                c += mix(vec3(0.2, 0.95, 0.55), vec3(0.62, 0.32, 0.95), smoothstep(0.02, 0.2, y)) * k * uAur * 1.1;
+              }
               gl_FragColor = vec4(c, 1.0);
             }` });
     const s = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), mat);
