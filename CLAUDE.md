@@ -55,8 +55,9 @@ docs/DEPLOY.md for the server.
   kept for the day; `WORLD_FAKE=1` answers with made-up data, as the tests do), and island jobs (`6zi_jobs.js`: three a
   day at the Town Hall: packages to deliver through the talk menu, leaves to sweep off the square, the dock sign to
   repaint, shells, fruit or fish to hand in). The Post Office paints Sarah's mailbox (`MAILBOX_COLORS`: a model each,
-  `mailbox_<color>` from props.py), and Residents lets Sarah nudge a good friend's hours (`S.town.sched`, through
-  `townWake`) and pick what they wear today. Still to come: catchphrases (the friendship update) and mailbox styles. Their
+  `mailbox_<color>` from props.py) and sells it in other styles (`MAILBOX_STYLES`: `mailbox_<style>` from props_island.py,
+  whose part named `*_body` takes the paint), and Residents lets Sarah nudge a good friend's hours (`S.town.sched`, through
+  `townWake`) and pick what they wear today. Still to come: catchphrases (the friendship update). Their
   morning work runs in `dailyCheck` (`bankTick`, `postYesterday`/`postTick`, `townTick`); the Bank and the post are each
   person's own (`PERSON_KEYS`), the town is the island's.
 - **Old saves must always load.** Sarah's island came from the one-page game and lives on the

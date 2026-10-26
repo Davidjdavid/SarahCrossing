@@ -48,7 +48,7 @@ const Env = {
         return true;
     },
     /* what the island's 3D is built from in the save that changes indoors (Ginger's work, the Post Office's paint) */
-    look() { return S ? JSON.stringify([S.exteriors || null, S.house && S.house.level, S.post && S.post.box || null]) : ''; },
+    look() { return S ? JSON.stringify([S.exteriors || null, S.house && S.house.level, S.post && S.post.box || null, S.post && S.post.style || null]) : ''; },
     /* where Sarah is on screen, for the see-through round her (trees and buildings in front of her) */
     seeThrough(r3) {
         const p = G.player, U = R3U.uSee.value;

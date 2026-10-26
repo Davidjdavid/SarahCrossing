@@ -249,6 +249,45 @@ function postLostOptions(n) {
 /* the mailbox's colors (tools/blender/props.py MAILBOX_COLORS: a model each); green is the one it came with */
 const MAILBOX_COLORS = [[null, 'Green', '#3d7a4a'], ['red', 'Red', '#c8463a'], ['blue', 'Blue', '#3d6fb6'], ['yellow', 'Yellow', '#e8b83a'],
     ['pink', 'Pink', '#e88aaa'], ['white', 'White', '#ece6dc'], ['black', 'Black', '#3b2f32']];
+/* and its styles (tools/blender/props_island.py mailbox_<style>, their bodies take the paint): paid for once, then Sarah's */
+const MAILBOX_STYLES = [[null, 'Classic', 0], ['cottage', 'Cottage', 3000], ['fish', 'Fish', 4000], ['lighthouse', 'Lighthouse', 5000]];
+
+/* the mailbox in a style and color, for the Post Office's screen */
+function mailboxCanvas(style, col) {
+    const cv = document.createElement('canvas'); cv.width = 160; cv.height = 120;
+    const g = cv.getContext('2d'), dark = 'rgba(0,0,0,0.15)', lite = 'rgba(255,255,255,0.25)';
+    const post = () => { g.fillStyle = '#8a5a34'; g.fillRect(74, 62, 12, 54); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(80, 62, 6, 54); };
+    const flag = (x, y, h) => { g.fillStyle = '#d8433b'; g.fillRect(x, y, 5, h); g.fillRect(x, y, 18, 10); };
+    if (style === 'cottage') {
+        post(); flag(106, 40, 24);
+        g.fillStyle = col; g.fillRect(46, 40, 60, 28); g.fillStyle = dark; g.fillRect(46, 62, 60, 6);
+        g.fillStyle = '#7a4a3a'; g.beginPath(); g.moveTo(38, 42); g.lineTo(76, 14); g.lineTo(114, 42); g.closePath(); g.fill();
+        g.fillStyle = '#b0583e'; g.fillRect(92, 14, 8, 16);
+        g.fillStyle = '#f2e8d2'; g.beginPath(); g.moveTo(68, 68); g.lineTo(68, 52); g.arc(76, 52, 8, Math.PI, 0); g.lineTo(84, 68); g.fill();
+    } else if (style === 'lighthouse') {
+        g.fillStyle = '#c4bcae'; g.fillRect(54, 108, 52, 8);
+        for (let i = 0; i < 6; i++) { const y0 = 108 - i * 14, w0 = 34 - i * 2.4, w1 = 34 - (i + 1) * 2.4; g.fillStyle = i % 2 ? '#f4f0e8' : col; g.beginPath(); g.moveTo(80 - w0 / 2 - 6, y0); g.lineTo(80 + w0 / 2 + 6, y0); g.lineTo(80 + w1 / 2 + 6, y0 - 14); g.lineTo(80 - w1 / 2 - 6, y0 - 14); g.fill(); }
+        g.fillStyle = '#34343a'; g.fillRect(62, 22, 36, 5); g.fillStyle = '#ffe08a'; g.fillRect(70, 10, 20, 12);
+        g.fillStyle = '#c8302a'; g.beginPath(); g.moveTo(66, 10); g.lineTo(80, 0); g.lineTo(94, 10); g.fill();
+        g.fillStyle = '#2a2420'; g.fillRect(72, 48, 16, 4); g.fillStyle = '#a8743e'; g.fillRect(76, 98, 8, 10);
+    } else if (style === 'fish') {
+        post(); flag(104, 30, 26);
+        g.fillStyle = col; g.beginPath(); g.ellipse(76, 50, 34, 20, 0, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.moveTo(104, 50); g.lineTo(126, 34); g.lineTo(120, 50); g.lineTo(126, 66); g.fill();
+        g.beginPath(); g.moveTo(64, 32); g.lineTo(84, 22); g.lineTo(90, 32); g.fill();
+        g.fillStyle = dark; g.fillRect(48, 62, 56, 4); g.fillStyle = lite; g.fillRect(56, 36, 36, 4);
+        g.fillStyle = '#e88a7a'; g.beginPath(); g.arc(44, 52, 8, 0, Math.PI * 2); g.fill(); g.fillStyle = '#2a2020'; g.beginPath(); g.arc(43, 52, 5, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#fff'; g.beginPath(); g.arc(58, 44, 6, 0, Math.PI * 2); g.fill(); g.fillStyle = '#1e1a1a'; g.beginPath(); g.arc(57, 44, 3, 0, Math.PI * 2); g.fill();
+    } else {
+        // (the one it came with: a rounded box on a post, its flag up)
+        post();
+        g.fillStyle = col; g.beginPath(); g.moveTo(40, 66); g.lineTo(40, 40); g.arc(68, 40, 28, Math.PI, 0); g.lineTo(96, 66); g.closePath(); g.fill();
+        g.fillStyle = lite; g.fillRect(46, 30, 44, 5); g.fillStyle = dark; g.fillRect(40, 60, 56, 6);
+        g.lineWidth = 3; g.strokeStyle = 'rgba(59,42,42,0.5)'; g.strokeRect(40, 40, 18, 26);
+        g.fillStyle = col === '#c8463a' ? '#f4c040' : '#d8433b'; g.fillRect(100, 26, 5, 34); g.fillRect(100, 26, 18, 10);
+    }
+    return cv;
+}
 
 /* ---------------------------------------------------------------- the screens */
 CIVIC_LIVE.letter = {
@@ -350,17 +389,17 @@ CIVIC_LIVE.archive = {
 };
 CIVIC_LIVE.mailbox = {
     draw(b, f, redraw) {
-        const P = post(), cur = P.box || null, pick = this.pick !== undefined ? this.pick : cur;
-        const col = (MAILBOX_COLORS.find(c => c[0] === pick) || MAILBOX_COLORS[0])[2];
-        // (the mailbox in the color picked: a rounded box on a post, its flag up)
-        const prev = el('div', 'cv-mailbox'), cv = document.createElement('canvas');
-        cv.width = 160; cv.height = 120; prev.appendChild(cv); b.appendChild(prev);
-        const g = cv.getContext('2d');
-        g.fillStyle = '#8a5a34'; g.fillRect(74, 62, 12, 54); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(80, 62, 6, 54);
-        g.fillStyle = col; g.beginPath(); g.moveTo(40, 66); g.lineTo(40, 40); g.arc(68, 40, 28, Math.PI, 0); g.lineTo(96, 66); g.closePath(); g.fill();
-        g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(46, 30, 44, 5); g.fillStyle = 'rgba(0,0,0,0.15)'; g.fillRect(40, 60, 56, 6);
-        g.lineWidth = 3; g.strokeStyle = 'rgba(59,42,42,0.5)'; g.strokeRect(40, 40, 18, 26);
-        g.fillStyle = pick === 'red' ? '#f4c040' : '#d8433b'; g.fillRect(100, 26, 5, 34); g.fillRect(100, 26, 18, 10);
+        const P = post(), owned = [null].concat(P.styles || []);
+        const cur = P.box || null, curS = P.style || null;
+        const pick = this.pick !== undefined ? this.pick : cur, pickS = this.pickS !== undefined ? this.pickS : curS;
+        const colOf = k => (MAILBOX_COLORS.find(c => c[0] === k) || MAILBOX_COLORS[0]), styleOf = k => (MAILBOX_STYLES.find(c => c[0] === k) || MAILBOX_STYLES[0]);
+        const prev = el('div', 'cv-mailbox');
+        prev.appendChild(mailboxCanvas(pickS, colOf(pick)[2]));
+        b.appendChild(prev);
+        b.appendChild(el('div', 'cv-h', 'Style'));
+        const st = el('div', 'st-row');
+        for (const [k, name, price] of MAILBOX_STYLES) st.appendChild(chip(owned.includes(k) ? name : `${name} · ${fmtNum(price)}`, () => { this.pickS = k; redraw(); }, k === pickS ? 'on' : ''));
+        b.appendChild(st);
         b.appendChild(el('div', 'cv-h', 'Color'));
         const sw = el('div', 'swatches');
         for (const [k, name, c] of MAILBOX_COLORS) {
@@ -369,15 +408,21 @@ CIVIC_LIVE.mailbox = {
             sw.appendChild(s);
         }
         b.appendChild(sw);
-        CV.note(b, 'Painting your mailbox is free. New mailbox styles (a cottage, a lighthouse, a fish) are coming.');
+        CV.note(b, 'Painting is free. A new style is paid for once, then it\'s yours to switch back to any time.');
         if (Online.visitor()) { CV.banner(b, 'info', 'This is ' + Online.name('sarah') + "'s mailbox. You can look, though!"); return; }
-        const save = btn('Paint it', 'green', () => {
-            P.box = pick;
-            this.pick = undefined;
+        const say = bankMsg(b), buy = !owned.includes(pickS), price = styleOf(pickS)[2];
+        const go = btn(buy ? `Buy the ${styleOf(pickS)[1].toLowerCase()} · ${fmtNum(price)}` : 'Paint it', 'green', () => {
+            if (buy) {
+                if (S.money < price) return say('err', `The ${styleOf(pickS)[1].toLowerCase()} is ${fmtNum(price)} sand dollars, and you have ${fmtNum(S.money)}.`);
+                addMoney(-price, true, 'Post Office');
+                P.styles = (P.styles || []).concat([pickS]);
+            }
+            P.box = pick; P.style = pickS;
+            this.pick = this.pickS = undefined;
             Sfx.play('fanfare'); Save.touch(); redraw();
-            UI.toast(`Your mailbox is ${(MAILBOX_COLORS.find(c => c[0] === pick) || MAILBOX_COLORS[0])[1].toLowerCase()} now.`, 'mailbox');
+            UI.toast(pickS ? `Your mailbox is a ${colOf(pick)[1].toLowerCase()} ${styleOf(pickS)[1].toLowerCase()} now.` : `Your mailbox is ${colOf(pick)[1].toLowerCase()} now.`, 'mailbox');
         });
-        save.disabled = pick === cur;
-        f.appendChild(save);
+        go.disabled = !buy && pick === cur && pickS === curS;
+        f.appendChild(go);
     },
 };

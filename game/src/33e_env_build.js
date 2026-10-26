@@ -66,7 +66,7 @@ const EnvBuild = {
             }
             else if (e.kind === 'bench') this.bench(e);
             else if (e.kind === 'lamp') this.lamp(e);
-            else if (e.kind === 'mailbox') this.mailbox(e);
+            else if (e.kind === 'mailbox') this.mailbox(e, group);
             else if (e.kind === 'fence') this.fence(e, a);
             else if (e.kind === 'flowerbed') this.flowerbed(e);
             else if (e.wildFlower) { const n = this.flower(e); if (n) picks.push({ idx: e.flowerIdx, n, i: placed[n].length - 1, on: true }); }
@@ -483,11 +483,19 @@ const EnvBuild = {
         this.box('plain', x - 0.2, y + 2.5, z - 0.2, x + 0.2, y + 2.56, z + 0.2, '#2a2830');
         this.box('plain', x - 0.1, y + 2.56, z - 0.1, x + 0.1, y + 2.66, z + 0.1, '#2a2830');
     },
-    mailbox(e) {
+    mailbox(e, group) {
         const f = this.foot(e), x = f.x, z = f.z - 0.1, y = f.y;
-        // (Sarah's mailbox: the Post Office can paint it: 6zf_post.js)
-        const c = S && S.post && S.post.box, own = c && typeof EnvModels !== 'undefined' && EnvModels.has('mailbox_' + c);
-        if (this.model(own ? 'mailbox_' + c : 'mailbox', x, y, z)) return;
+        // (Sarah's mailbox: the Post Office paints it and sells other styles, whose body takes the paint: 6zf_post.js)
+        const P = S && S.post, c = P && P.box, has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
+        if (P && P.style && has('mailbox_' + P.style)) {
+            const col = (MAILBOX_COLORS.find(k => k[0] === (c || null)) || MAILBOX_COLORS[0])[2];
+            for (const m of EnvModels.place(group, 'mailbox_' + P.style, EnvModels.mat4(x, y, z))) {
+                m.userData.shared = true;
+                if (/_body/.test(m.material.name || '')) { m.material = EnvModels.tinted(m.material, col); m.userData.ownMat = true; }
+            }
+            return;
+        }
+        if (this.model(c && has('mailbox_' + c) ? 'mailbox_' + c : 'mailbox', x, y, z)) return;
         this.box('wood', x - 0.05, y, z - 0.05, x + 0.05, y + 0.85, z + 0.05, '#6a4a2a', 2);
         this.box('plain', x - 0.18, y + 0.85, z - 0.32, x + 0.18, y + 1.12, z + 0.2, '#3f7fd0');
         this.box('plain', x - 0.18, y + 1.12, z - 0.32, x + 0.18, y + 1.18, z + 0.2, '#3570b8');

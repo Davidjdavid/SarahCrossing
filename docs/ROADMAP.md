@@ -119,9 +119,9 @@ Status: [x] done, [~] in progress, [ ] not started.
   bridges and run on over waterfalls into pools, bending banks, stairs with side walls, the GameCube-style lawn instead
   of 3D grass (no flowers in it but the pickable ones), tilled fields, fences without sunflowers everywhere, smaller
   falling leaves, a smooth see-through (no dots) for things in front of Sarah
-- [ ] Trees like Animal Crossing's (round full canopies, natural trunks), fruit you can see, better palms, more
+- [x] Trees like Animal Crossing's (round full canopies, natural trunks), fruit you can see, better palms, more
   variety in size and shape, forests with clusters and clearings; smoother path edges by buildings and stairs
-- [ ] Ground and grass colors that change with the seasons, like the trees (next week)
+- [x] Ground and grass colors that change with the seasons, like the trees
 - [x] Decorating on the island: the move/decorate mode switches to the classic view with a tile grid to place things
 - [~] The island on a grid (David's pick, 26 October): everything stands in its tile, fences join, half tiles where
   water, the sea or a path makes a stair-step (part walkable, still one tile), the ground's edges drawn from the tiles,
@@ -174,7 +174,7 @@ Office's and the Bank's keepers are still to be picked.
 - [x] Package tracking for things ordered from the computer
 - [x] Lost mail quests: deliver misplaced packages and letters
 - [x] Special deliveries: now and then a mysterious package with something rare
-- [~] Customize the look and color of the mailbox (colors done; new mailbox styles still to make)
+- [x] Customize the look and color of the mailbox (seven colors, free; a cottage, a fish and a lighthouse to buy once, painted in the color picked)
 
 ### Town Hall
 - [x] Town flag designer: draw a pixel-art flag shown round the island

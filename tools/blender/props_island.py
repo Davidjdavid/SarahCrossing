@@ -717,6 +717,107 @@ def falls_rocks():
     return [(mb, 'main')]
 
 
+# ---------------------------------------------------------------- the Post Office's mailbox styles
+# (game/src/6zf_post.js MAILBOX_STYLES) the part named body is painted in white and greys, and the game multiplies in
+# the color Sarah picked for her mailbox (MAILBOX_COLORS); the rest keeps its own colors
+def mb_post(mb, top=0.86):
+    rbox(mb, -0.045, -0.045, 0, 0.045, 0.045, top, wood(WOOD_D), r=0.012)
+    rbox(mb, -0.07, -0.2, top - 0.06, 0.07, 0.16, top, wood(WOOD_D, 'y'), r=0.01)
+
+
+def mb_flag(mb, x, y, z, h=0.36):
+    rbox(mb, x - 0.012, y - 0.02, z, x + 0.012, y + 0.02, z + h, shade('#c8302a'), r=0.004)
+    rbox(mb, x - 0.008, y + 0.02, z + h - 0.12, x + 0.008, y + 0.17, z + h, shade('#c8302a'), r=0.004)
+
+
+def mailbox_cottage():
+    """A little house on a post: walls in the mailbox's color, a shingled roof, a round-topped door for the letters,
+    a window each side, a chimney."""
+    body, main = MB(), MB()
+    mb_post(main)
+    rbox(body, -0.16, -0.22, 0.86, 0.16, 0.2, 1.14, col_fn('#ffffff', grain='z', under=0.1), r=0.015)
+    # the roof: two boards of shingles, a darker line under each row; a brick chimney
+    tile = rgb('#7a4a3a')
+    gable(main, -0.16, 0.16, -0.22, 0.2, 1.13, 0.15, lambda p, n: tile * (0.82 if int((p.z - 1.1) / 0.03) % 2 else 1.0), over=0.05, t=0.035)
+    rbox(main, 0.06, 0.02, 1.18, 0.12, 0.08, 1.34, stone('#b0583e', 3), r=0.008)
+    # the door: cream, round topped, a brass knob; a window each side, white framed
+    slab(main, [(-0.07, 0.88), (0.07, 0.88)] + [(math.cos(i * math.pi / 8) * 0.07, 1.02 + math.sin(i * math.pi / 8) * 0.07) for i in range(9)],
+         0.02, col_fn(CREAM, grain='z'), axis='y', at=-0.235)
+    ball(main, (0.04, -0.24, 0.96), 0.012, shade('#d8b860'), sub=1)
+    for sx in (-1, 1):
+        rbox(main, sx * 0.16 - 0.01, -0.08, 0.96, sx * 0.16 + 0.01, 0.06, 1.08, shade('#ffffff'), r=0.005)
+        rbox(main, sx * 0.16 - 0.015, -0.06, 0.98, sx * 0.16 + 0.015, 0.04, 1.06, shade('#6a8aa8'), r=0.003)
+    mb_flag(main, 0.17, 0.06, 0.9, 0.22)
+    return [(body, 'body'), (main, 'main')]
+
+
+def mailbox_lighthouse():
+    """A lighthouse as tall as a mailbox: bands of the mailbox's color and white, a slot for the letters, a little
+    gallery, the lamp lit, a red cap."""
+    body, main = MB(), MB()
+    rbox(main, -0.2, -0.2, 0, 0.2, 0.2, 0.06, stone(STONE, 5), r=0.015)
+    r = lambda z: 0.16 - z * 0.055
+    z, k = 0.06, 0
+    while z < 1.0:
+        z1 = min(1.0, z + 0.16)
+        lathe(body if k % 2 == 0 else main, [(r(z), z), (r(z1), z1)], col_fn('#ffffff', under=0.0), seg=24, cap_top=False)
+        z, k = z1, k + 1
+    # the slot on the front, with a flap
+    rbox(main, -0.07, -r(0.78) - 0.018, 0.74, 0.07, -r(0.78) + 0.01, 0.8, shade('#2a2420'), r=0.006)
+    rbox(main, -0.075, -r(0.8) - 0.026, 0.79, 0.075, -r(0.8) + 0.0, 0.815, shade('#d8b860'), r=0.005)
+    # the door
+    slab(main, [(-0.04, 0.06), (0.04, 0.06)] + [(math.cos(i * math.pi / 6) * 0.04, 0.2 + math.sin(i * math.pi / 6) * 0.04) for i in range(7)],
+         0.02, col_fn(WOOD, grain='z'), axis='y', at=-r(0.12) - 0.012)
+    # the gallery, its rail, the lamp room and the cap
+    cyl(main, 0, 0, 1.0, 1.03, 0.14, color=shade(IRON), seg=24)
+    for i in range(12):
+        a = i / 12 * math.tau
+        rbox(main, math.cos(a) * 0.13 - 0.006, math.sin(a) * 0.13 - 0.006, 1.03, math.cos(a) * 0.13 + 0.006, math.sin(a) * 0.13 + 0.006, 1.1, shade(IRON), r=0.002)
+    tube(main, [(math.cos(i / 24 * math.tau) * 0.13, math.sin(i / 24 * math.tau) * 0.13, 1.1) for i in range(25)], 0.008, shade(IRON), seg=5)
+    glow = MB()
+    cyl(glow, 0, 0, 1.03, 1.16, 0.075, color=shade('#ffe08a'), seg=16)
+    for i in range(6):
+        a = i / 6 * math.tau
+        rbox(main, math.cos(a) * 0.078 - 0.007, math.sin(a) * 0.078 - 0.007, 1.03, math.cos(a) * 0.078 + 0.007, math.sin(a) * 0.078 + 0.007, 1.16, shade(IRON), r=0.002)
+    lathe(main, [(0.1, 1.16), (0.1, 1.18), (0.03, 1.27), (0.0, 1.28)], shade('#c8302a'), seg=20)
+    ball(main, (0, 0, 1.3), 0.02, shade(IRON), sub=1)
+    return [(body, 'body'), (main, 'main'), (glow, 'glow')]
+
+
+def mailbox_fish():
+    """A fat fish on a post, mouth open for the letters: its body in the mailbox's color with scales, its fins a shade
+    darker, big eyes."""
+    body, main = MB(), MB()
+    mb_post(main, 0.82)
+    sc = col_fn('#ffffff', under=0.0)
+
+    def scales(p, n):
+        # rows of scales from behind the head to the tail, each row offset from the last
+        row = (p.y + 0.15) * 20
+        k = 1.0 if p.y < -0.15 else 0.9 + 0.1 * math.cos((row + 0.5 * (int(row) % 2) + math.atan2(p.z - 1.0, p.x) * 1.5) * math.tau)
+        return sc(p, n) * k
+    ball(body, (0, 0.0, 1.0), (0.14, 0.27, 0.15), scales, sub=4)
+    g = col_fn('#b4b4b4', under=0.0)
+    # the tail, the fin on top and the two at its sides (outlines across y and z)
+    m = len(body.v)
+    slab(body, [(0.22, 0.0), (0.38, 0.14), (0.42, 0.1), (0.4, 0.0), (0.42, -0.1), (0.38, -0.14)], 0.03, g, axis='x', at=-0.015)
+    xform(body, m, Matrix.Translation((0, 0, 1.0)))
+    m = len(body.v)
+    slab(body, [(-0.08, 0.13), (0.06, 0.12), (0.12, 0.2), (0.0, 0.22)], 0.025, g, axis='x', at=-0.0125)
+    xform(body, m, Matrix.Translation((0, 0, 1.0)))
+    for sx in (-1, 1):
+        ball(body, (sx * 0.13, -0.02, 0.93), (0.02, 0.07, 0.035), g, sub=2)
+        ball(main, (sx * 0.1, -0.17, 1.05), (0.04, 0.04, 0.045), shade('#ffffff'), sub=2)
+        ball(main, (sx * 0.125, -0.185, 1.05), (0.02, 0.022, 0.026), shade('#1e1a1a'), sub=2)
+    # the mouth: a dark round opening and a lip round it
+    m = len(main.v)
+    lathe(main, [(0.06, 0.0), (0.075, 0.015), (0.06, 0.03)], shade('#e88a7a'), c=(0, -0.26, 0.98), seg=16, cap_top=False)
+    xform(main, m, rot(x=math.pi / 2, at=(0, -0.26, 0.98)))
+    ball(main, (0, -0.272, 0.98), (0.055, 0.01, 0.055), shade('#2a2020'), sub=2)
+    mb_flag(main, 0.16, 0.08, 0.88, 0.3)
+    return [(body, 'body'), (main, 'main')]
+
+
 PROPS = {
     'fountain': fountain, 'drinkfountain': drinkfountain, 'board': board, 'plaque': plaque, 'trashcan': trashcan, 'statue_david': statue,
     'signpost_trail': lambda: sign('trail'), 'signpost_farm': lambda: sign('farm'), 'signpost_camp': lambda: sign('camp'),
@@ -727,6 +828,7 @@ PROPS = {
     'campfire': campfire, 'bonfire': lambda: campfire(True), 'picnic': picnic, 'telescope': telescope, 'viewer': viewer, 'tackle': tackle,
     'driftwood': driftwood, 'rock_a': lambda: rock(1), 'rock_b': lambda: rock(7), 'icecream': icecream, 'sandcastle': sandcastle,
     'volleyball': volleyball, 'noodle_cart': noodle_cart, 'barrel': barrel,
+    'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
     'reeds': reeds, 'lilypad': lilypad, 'lilypad_flower': lambda: lilypad(True), 'pebbles': pebbles, 'falls_rocks': falls_rocks,
 }
 
