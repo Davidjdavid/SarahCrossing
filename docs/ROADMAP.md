@@ -133,6 +133,13 @@ Status: [x] done, [~] in progress, [ ] not started.
   some summer dawns (and the owl at night, the deer)
 - [x] Rooms: what's hung on walls and the small things on tables as models (the arcade games, jump rope, volleyball
   and the other minigames keep their 2D look, and so can the arcade cabinets)
+- [~] Characters and props as cozy handcrafted toys after New Horizons (David, 26 October): the style test is in the test
+  area (Sarah from a doll kit with sculpted hair and sixteen painted expressions, Maki, Kai and Ginger redone, five
+  props, acting: Sarah's arms-out run, tag's glances back, stumbles and celebrations, faces while talking). Waiting on
+  David's word, then in batches: every hair style sculpted, outfit details, the other folks, the props and furniture,
+  acting for the other games, lighter versions for phones (docs/STYLE.md)
+- [ ] Graphics settings (David, 26 October, for later): a quality setting and a draw distance, each with its own default
+  for laptops and phones, so the look can go up if the server or the devices get faster
 
 ## Friendship, deeper (David, 27 October: for a later addition)
 - [ ] Nicknames: once a neighbor is a good enough friend they ask if they can call Sarah something (their own idea, or

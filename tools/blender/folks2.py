@@ -278,12 +278,15 @@ def ginger():
         surf(mb, superq(0, 0, -5.2, 4.3, T * 0.92, 6.6, 0.7, 0.8), bake, nu=32, nv=16)
         xform(mb, m, Matrix.Translation(o) @ Euler((0, s * 0.12, 0)).to_matrix().to_4x4())
         tube(mb, [o + Vector((s * 1.0 + (k - 2) * 1.5, -T * 0.95, -8.6 + 0.8 * (k % 2))) for k in range(5)], 0.55, icing, seg=6)
-    # the yellow hard hat: a dome, a ridge over it, a brim all round, a little shine
+    # the yellow hard hat: a dome, a ridge over it, a brim all round, a little shine; tipped back on the head, so the
+    # face shows from the game's camera above
     hat = soft(mottle('#f4b828', 0.04, 0.5), under=0.0, top=0.14)
+    m = len(f.body.v)
     surf(f.body, superq(0, 0, 45.2, 11.6, 10.4, 9.2, 1.0, 1.0), hat, nu=48, nv=18, caps=(False, True))
-    lathe(f.body, [(16.2, 44.4), (16.4, 45.3), (11.6, 46.0), (0.0, 46.0)], hat, seg=48, cap_top=False, sy=0.9)
-    lathe(f.body, [(16.2, 44.4), (0.0, 44.4)], lambda p, n, *_: rgb('#c88c18'), seg=48, cap_top=False, sy=0.9)
+    lathe(f.body, [(15.2, 44.4), (15.4, 45.3), (11.6, 46.0), (0.0, 46.0)], hat, seg=48, cap_top=False, sy=0.9)
+    lathe(f.body, [(15.2, 44.4), (0.0, 44.4)], lambda p, n, *_: rgb('#c88c18'), seg=48, cap_top=False, sy=0.9)
     tube(f.body, [(0, -10.6, 46.6), (0, -6.6, 52.0), (0, 0, 54.6), (0, 6.6, 52.0), (0, 10.6, 46.6)], 1.4, shade('#e4a41e'), seg=10)
+    xform(f.body, m, Matrix.Translation((0, 1.5, 45.0)) @ Matrix.Rotation(-0.32, 4, 'X') @ Matrix.Translation((0, 0, -45.0)))
     tree = f.bvh()
     face_patch(f, 0, 37.0, 22, tree=tree, lift=0.2)
     f.anchor('eyes', f.hit(0, 38.0, tree=tree)[0], 0.8)
