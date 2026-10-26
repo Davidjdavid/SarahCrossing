@@ -41,6 +41,42 @@ const EnvRoom = {
         return EnvModels.has(n) ? n : null;
     },
     PLUSH: 0.34,
+    /* what hangs on the back wall: drawn here as a piece of its own (EnvRoom.cutout), not painted on the wall's picture */
+    hangs(e) { return this.on && !!e.furn && !!e.def && e.def.kind === 'wall' && !e.draw; },
+    /* a piece's own picture (its HD art if it has one): the canvas and where its anchor is, in world pixels */
+    pic(frame) {
+        const hf = typeof hdHas === 'function' && hdHas(frame) ? hdNamed(frame, true) : null;
+        if (hf && hf.c) return { c: hf.c, w: hf.w / HD_K, h: hf.h / HD_K, ax: hf.ax / HD_K, ay: hf.ay / HD_K };
+        const f = Assets.frames[frame];
+        if (!f) return null;
+        const [sx, sy, w, h, ax, ay] = f, c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(Assets.atlas, sx, sy, w, h, 0, 0, w, h);
+        return { c, w, h, ax, ay };
+    },
+    /* a piece with no model of its own, as a thick cut-out of its picture: the picture on the front, the same shape a
+       shade darker twice behind it, so it has an edge and stands off the wall (what's hung there) or stands up on its
+       own (a thing on a table) the way a dollhouse's little pieces are cut from card */
+    cutout(g, e, P, w, h) {
+        const B = this.built, key = 'cut|' + e.frame;
+        let tex = B.cutTex.get(key);
+        if (!tex) {
+            tex = new THREE.CanvasTexture(P.c);
+            tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.anisotropy = 4;
+            B.cutTex.set(key, tex); B.textures.push(tex);
+        }
+        const geo = new THREE.PlaneGeometry(w, h), out = new THREE.Group();
+        for (const [z, front] of [[0, true], [-0.018, false], [-0.036, false]]) {
+            const mat = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, color: front ? 0xd8d2ca : 0x5a524a, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: front ? 0.32 : 0.06, side: THREE.DoubleSide }), { key: 'envcut' });
+            const m = new THREE.Mesh(geo, mat);
+            m.position.z = z;
+            m.castShadow = false; m.receiveShadow = front;
+            out.add(m);
+        }
+        if (e.flip) out.scale.x = -1;
+        g.add(out);
+        return out;
+    },
     takes(e) { return this.on && ((!!this.built && !!this.built.placed && this.built.placed.has(e)) || ((e.kind === 'judge' || e.kind === 'ghost') && EnvDolls.drawn.has(e))); },
     /* where a picture still drawn the HD way stands: a thing on a table that's a model stands on its top */
     place(e) {
@@ -51,11 +87,13 @@ const EnvRoom = {
     /* the furniture: built again whenever it changes (moved, added, the shop's stock of the day) */
     furniture(r3, a) {
         const B = this.built, list = a.ents.filter(e => e.furn && this.model(e));
+        // (and what has no model yet: what hangs on the wall, and the little things on tables, as thick cut-outs)
+        const cuts = a.ents.filter(e => e.furn && e.def && !e.draw && !this.model(e) && (e.def.kind === 'wall' || e.def.kind === 'top'));
         // (each piece by its own entity: the room makes them afresh when it's rearranged or restocked)
-        const sig = list.map(e => (e._rk || (e._rk = ++this.rk)) + ':' + e.item.id + ',' + e.item.x + ',' + e.item.y + (e.flip ? 'f' : '')).join('|') + '#' + (EnvModels.furnN || 0);
+        const sig = list.concat(cuts).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + e.item.id + ',' + e.item.x + ',' + e.item.y + (e.flip ? 'f' : '')).join('|') + '#' + (EnvModels.furnN || 0);
         if (sig === B.furnSig) return;
         B.furnSig = sig;
-        if (B.furn) { B.group.remove(B.furn); B.furn = null; }
+        if (B.furn) { B.group.remove(B.furn); B.furn.traverse(o => { if (o.userData.shared) return; if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); }); B.furn = null; }
         const g = B.furn = new THREE.Group();
         B.group.add(g);
         B.hosts = new Map();
@@ -74,6 +112,26 @@ const EnvRoom = {
             B.placed.add(e);
             const top = EnvModels.models[n].anchors.top;
             if (top) B.hosts.set(e.idx, { top: top[0].y, z });
+        }
+        B.cutTex = B.cutTex || new Map();
+        const f = a.floor, wallPx = f.y0 * TILE, H = this.WH, z0 = f.y0 * R3_ZS;
+        for (const e of cuts) {
+            const P = this.pic(e.frame), d = e.def, it = e.item;
+            if (!P) continue;
+            if (d.kind === 'wall') {
+                // where its picture was on the back wall's picture, standing a little off the wall
+                const left = e.x - P.ax, top = e.y - P.ay, w = P.w / TILE, h = P.h / wallPx * H;
+                const o = this.cutout(g, e, P, w, h);
+                o.position.set((left + P.w / 2) / TILE, H * (1 - (top + P.h / 2) / wallPx), z0 + 0.05);
+            } else {
+                // a thing on a table (or the floor): standing up on its top, its foot where its picture's was
+                const host = it.on != null ? B.hosts.get(it.on) : null;
+                if (it.on != null && !host) continue;
+                const w = P.w / TILE, h = P.h / TILE * R3_VS;
+                const o = this.cutout(g, e, P, w, h);
+                o.position.set(it.x + d.w / 2 + (P.w / 2 - P.ax) / TILE, (host ? host.top : 0) + h / 2 - (P.h - P.ay) / TILE * R3_VS, (host ? host.z : (it.y + 0.5) * R3_ZS) + 0.02);
+            }
+            B.placed.add(e);
         }
     },
     hide(r3) {

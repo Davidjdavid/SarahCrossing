@@ -344,7 +344,7 @@ const R3 = {
         try {
             if (a.drawUnder) a.drawUnder(ctx);
             for (const d of a.decals) spr(ctx, d.frame, d.x, d.y);
-            for (const e of a.ents) if (e.layer === 0 && !e.hidden) drawEnt(e.y < top ? w.ctx : ctx, e);
+            for (const e of a.ents) if (e.layer === 0 && !e.hidden && !(typeof EnvRoom !== 'undefined' && EnvRoom.hangs(e))) drawEnt(e.y < top ? w.ctx : ctx, e);
         } finally { this.drawingCard = false; this.hdCard = false; }
         if (w) w.tex.needsUpdate = true;
         g.mesh.position.set(g.cv.width / k / TILE / 2, 0, g.cv.height / k / TILE / 2 * R3_ZS);
