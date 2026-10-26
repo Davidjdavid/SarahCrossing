@@ -14,7 +14,7 @@ function addWildFlowers(a) {
     W0.flowers.forEach((f, idx) => {
         if (isCleared('wf' + idx)) return;
         const pk = F.picked[idx];
-        if (pk != null && day - pk < FLOWER_REGROW && !(G.events && G.events.has('flowerfest') && pk < day)) return;
+        if (pk != null && day - pk < (townOrd() === 'nature' ? 1 : FLOWER_REGROW) && !(G.events && G.events.has('flowerfest') && pk < day)) return;
         const id = `flower_${f.kind}_${f.color}`;
         const [fx, fy] = tileFoot(f.x, f.y);
         const e = makeItemEnt(id, fx, fy + 1, { flowerIdx: idx, wildFlower: true });

@@ -7,7 +7,7 @@ function dailyCheck(force) {
     S.day = day;
     G.weather = todayWeather();
     G.events = todayEvents();
-    try { postYesterday(); Requests.tick(); dayStatsTick(); arcadeRivals(); shopsTick(); festTick(); bankTick(); postTick(); } catch (e) { console.error(e); }
+    try { postYesterday(); Requests.tick(); dayStatsTick(); arcadeRivals(); shopsTick(); festTick(); bankTick(); postTick(); townTick(); } catch (e) { console.error(e); }
     const r = mulberry(hash32(S.seed + ':mail:' + day));
     if (!first) {
         // Harvard's letters and Joe's poems are for Sarah

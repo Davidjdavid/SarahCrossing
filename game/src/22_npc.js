@@ -119,7 +119,7 @@ function makePlan(id, day) {
     const d = NPC_DEFS[id];
     const r = mulberry(hash32(S.seed + ':plan:' + id + ':' + day));
     const jit = () => (r() - 0.5) * 0.6;               // a window of about half an hour, different every day
-    let wake = d.wake + jit(), bed = d.bed + jit();
+    let [wake, bed] = townWake(d.wake + jit(), d.bed + jit());       // (the Town Hall's ordinance can move them: 6zg_townhall.js)
     const segs = [];
     if (d.dj) { segs.push({ a: 5, b: 29, spot: 'club' }); return { day, wake: 5, bed: 29, segs }; }
     if (d.visitor) return visitorPlan(id, day, r);

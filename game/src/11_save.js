@@ -27,6 +27,7 @@ function newState() {
         games: {},
         bank: {},
         post: {},
+        town: {},
         shops: { shop: { spent: 0, level: 1 }, boutique: { spent: 0, level: 1 } },
         fest: {},
     };

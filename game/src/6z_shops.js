@@ -33,7 +33,7 @@ function shopLevel(id) { return SHOP_UP[id] ? Math.max(1, Math.min(3, shopState(
 function shopName(id) { return SHOP_UP[id] ? SHOP_UP[id].names[shopLevel(id) - 1] : (ROOMS[id] && ROOMS[id].name) || id; }
 /* closed today for the building work? */
 function shopReno(id) { const s = SHOP_UP[id] && shopState(id); return !!(s && s.reno != null && s.reno === Clock.dayNum()); }
-function roomHours(id) { return SHOP_UP[id] ? SHOP_UP[id].hours[shopLevel(id) - 1] : ROOM_HOURS[id]; }
+function roomHours(id) { return townHours(id, SHOP_UP[id] ? SHOP_UP[id].hours[shopLevel(id) - 1] : ROOM_HOURS[id]); }
 function daysPlayed() { const d = Clock.dayNum(); return d - (S.startDay || d) + 1; }
 
 /* what Sarah has spent at a shop counts toward its next level */
@@ -97,6 +97,7 @@ function shopsTick() {
         const U = SHOP_UP[id], s = shopState(id);
         if (s.reno != null && day > s.reno) {
             s.level = Math.min(3, (s.level || 1) + 1); s.reno = null; s.grand = s.level; s.gift = day;
+            townLog(`${shopName(id)} reopens, bigger.`);
             sendMail({ from: U.owner, subject: `${U.names[s.level - 1]} is OPEN`, body: REOPEN_MAIL[id](s.level) });
             continue;
         }

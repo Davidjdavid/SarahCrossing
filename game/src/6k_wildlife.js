@@ -90,7 +90,7 @@ const Critters = {
     update() {
         const a = G.areas.island;
         if (!a || G.area !== a || G.mode !== 'play') { if (this.list.length && G.area && G.area !== a) this.list = []; return; }
-        if (++this.spawnT >= 50) { this.spawnT = 0; if (this.list.length < this.max) this.spawn(); }
+        if (++this.spawnT >= 50) { this.spawnT = 0; if (this.list.length < this.max * (townOrd() === 'nature' ? 1.5 : 1)) this.spawn(); }
         const p = G.player, cam = G.cam, v = G.view;
         for (const c of this.list) {
             c.t++;

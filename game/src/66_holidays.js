@@ -107,8 +107,10 @@ function holidaysOn(y, m, d) {
     return out;
 }
 function holidaysToday() {
-    const d = Clock.dayDate();
-    return holidaysOn(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    const d = Clock.dayDate(), held = townHeld();           // (a missed holiday held late: 6zg_townhall.js)
+    const out = holidaysOn(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    if (held && !out.includes(held)) out.push(held);
+    return out;
 }
 function holidayIcon(h) { return h.icon || (h.npc && NPC_DEFS[h.npc] ? (NPC_DEFS[h.npc].sprite || h.npc) + '_0' : 'ui_present'); }
 function holidayName(h) { return h.name; }

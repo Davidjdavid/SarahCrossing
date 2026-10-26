@@ -10,7 +10,8 @@ function forest() {
     return F;
 }
 const GROW_DAYS = 3;
-function plantStage(pl) { return clamp(Clock.dayNum() - pl.day, 0, GROW_DAYS); }
+function growDays() { return townOrd() === 'nature' ? 2 : GROW_DAYS; }       // (Nature Conservation: 6zg_townhall.js)
+function plantStage(pl) { return clamp(Clock.dayNum() - pl.day, 0, growDays()); }
 
 /* ---------------------------------------------------------------- holding tools */
 const HELD_TOOLS = ['axe', 'shovel'];
@@ -132,7 +133,7 @@ function addPlanted(a, pl) {
     const [fx, fy] = tileFoot(pl.x, pl.y);
     const season = a.season || Clock.season();
     let e;
-    if (st >= GROW_DAYS) {
+    if (st >= growDays()) {
         if (pl.kind === 'fruit') e = makeFruitTree(pl.id, fx, fy, pl.fruit, pl.x, pl.y);
         else if (pl.kind === 'palm') e = makePalm(pl.id, fx, fy, pl.fruit === 'coconut', pl.x, pl.y);
         else if (pl.kind === 'money' && !pl.paid) {
@@ -147,7 +148,7 @@ function addPlanted(a, pl) {
     } else {
         e = { kind: 'young', id: pl.id, tx: pl.x, ty: pl.y, x: fx, y: fy, frame: st === 0 ? 'sprout' : st === 1 ? `sapling_${season}` : `young_${season}` };
         e.hit = { x: pl.x * TILE, y: fy - (st === 0 ? 12 : st === 1 ? 24 : 32), w: TILE, h: st === 0 ? 14 : st === 1 ? 26 : 34 };
-        e.interact = () => heldTool() === 'shovel' ? digAt(pl.x, pl.y) : UI.say(null, `${pl.kind === 'money' ? 'A young tree. It glints a little.' : pl.kind === 'fruit' ? `A young ${itemName(pl.fruit).toLowerCase()} tree.` : 'A young tree.'} It'll be fully grown in ${GROW_DAYS - st} ${plural(GROW_DAYS - st, 'day')}. (No watering needed. This island doesn't do chores.)`);
+        e.interact = () => heldTool() === 'shovel' ? digAt(pl.x, pl.y) : UI.say(null, `${pl.kind === 'money' ? 'A young tree. It glints a little.' : pl.kind === 'fruit' ? `A young ${itemName(pl.fruit).toLowerCase()} tree.` : 'A young tree.'} It'll be fully grown in ${growDays() - st} ${plural(growDays() - st, 'day')}. (No watering needed. This island doesn't do chores.)`);
     }
     e.forest = true; e.planted = pl;
     a.add(e);
@@ -440,8 +441,8 @@ async function holeMenu(e) {
     Sfx.play('plant');
     S.stats.planted = (S.stats.planted || 0) + 1;
     Save.touch();
-    UI.toast(plant.kind === 'money' ? `Sarah buried ${fmtNum(plant.amount)} sand dollars. Something shiny might grow in ${GROW_DAYS} days.`
-        : `Planted! It'll be a full-grown ${plant.kind === 'fruit' ? itemName(plant.fruit).toLowerCase() + ' tree' : plant.kind === 'palm' ? 'palm' : 'tree'} in ${GROW_DAYS} days.`, plant.item ? itemIcon(plant.item) : 'ui_coin');
+    UI.toast(plant.kind === 'money' ? `Sarah buried ${fmtNum(plant.amount)} sand dollars. Something shiny might grow in ${growDays()} days.`
+        : `Planted! It'll be a full-grown ${plant.kind === 'fruit' ? itemName(plant.fruit).toLowerCase() + ' tree' : plant.kind === 'palm' ? 'palm' : 'tree'} in ${growDays()} days.`, plant.item ? itemIcon(plant.item) : 'ui_coin');
 }
 /* shaking a money tree: three bags, then it's an ordinary tree */
 async function shakeMoneyTree(e) {

@@ -91,6 +91,7 @@ async function houseExpand() {
         addMoney(-cost, true, 'House');
     }
     S.house.level++;
+    townLog(['The house gets a bigger room.', 'The house grows a second floor.', 'The house gets even bigger.', 'The house becomes the biggest on the island, porch and all.'][lvl]);
     if (G.areas.home) G.areas.home.stale = true;
     await constructionTime();
     applyExteriors(G.areas.island);

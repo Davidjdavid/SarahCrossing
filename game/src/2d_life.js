@@ -225,7 +225,8 @@ const Chats = {
             if (gone) { this.end(c); continue; }
             if (--c.t <= 0) this.next(c);
         }
-        if (G.frame % 40 !== 0 || UI.modal || G.busy) return;
+        const spirit = townOrd() === 'spirit';         // (Community Spirit: they stop to chat more)
+        if (G.frame % (spirit ? 20 : 40) !== 0 || UI.modal || G.busy) return;
         const here = NPCs.here().filter(n => this.free(n));
         if (here.length < 2) return;
         // two people close together start talking
@@ -239,7 +240,7 @@ const Chats = {
             if (R() < 0.6) { R() < 0.5 ? this.start(A, B) : this.start(B, A); return; }
         }
         // or somebody spots a friend a little way off and walks over
-        if (R() < 0.55) {
+        if (R() < (spirit ? 0.85 : 0.55)) {
             const A = rpick(here.filter(n => !n.fixed && n.anchor));
             if (!A) return;
             const B = here.filter(n => n !== A && !n.chat && Math.hypot(n.x - A.x, n.y - A.y) < 170 && Math.hypot(n.x - A.x, n.y - A.y) > 34)

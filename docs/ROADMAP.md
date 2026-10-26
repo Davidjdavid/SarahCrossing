@@ -147,8 +147,9 @@ Status: [x] done, [~] in progress, [ ] not started.
 ## Late in development (David's notes for much later)
 Some of these need things that don't exist yet (a town flag, records kept over time); add them when we get here.
 
-The screens are drawn already (on beta: walk into the Town Hall, the Post Office or the Bank and use the counter), every one
-in each state it can be in, with sample numbers; the Post Office's and the Bank's keepers are still to be picked.
+On beta, walk into the Town Hall, the Post Office or the Bank and use the counter: the ticked ones below work for real (the
+island paper has only the island's own news until the zip code works); the rest still show sample numbers. The Post
+Office's and the Bank's keepers are still to be picked.
 
 ### The real world, by zip code
 - [ ] Sarah sets a zip code: the island's time zone, that day's weather forecast (not live: the day's prediction),
@@ -157,38 +158,38 @@ in each state it can be in, with sample numbers; the Post Office's and the Bank'
   with stories about what Sarah and the neighbors actually did
 
 ### Bank
-- [ ] Savings account: deposit and withdraw, daily interest (weekly rates)
+- [x] Savings account: deposit and withdraw, daily interest (weekly rates)
 - [ ] Stock portfolio from real stocks (a few global ones from a free API): invest, see performance graphs and
   historical returns, dividends from eligible stocks
-- [ ] Pay off house upgrade loans
-- [ ] Savings goals with progress trackers for expensive purchases
-- [ ] Financial statements: lifetime earnings, spending, investments, income sources
-- [ ] Safety deposit box for valuable or sentimental items
+- [x] Pay off house upgrade loans
+- [x] Savings goals with progress trackers for expensive purchases
+- [x] Financial statements: lifetime earnings, spending, investments, income sources
+- [x] Safety deposit box for valuable or sentimental items
 
 ### Post Office
-- [ ] Send physical letters to neighbors (besides texting), with presents attached
-- [ ] Newspaper archive: keep and reread past papers
-- [ ] Postcard collection from fictional places
-- [ ] Package tracking for things ordered from the computer
+- [x] Send physical letters to neighbors (besides texting), with presents attached
+- [x] Newspaper archive: keep and reread past papers
+- [x] Postcard collection from fictional places
+- [x] Package tracking for things ordered from the computer
 - [ ] Lost mail quests: deliver misplaced packages and letters
-- [ ] Special deliveries: now and then a mysterious package with something rare
+- [x] Special deliveries: now and then a mysterious package with something rare
 - [ ] Customize the look and color of the mailbox
 
 ### Town Hall
-- [ ] Town flag designer: draw a pixel-art flag shown round the island
-- [ ] Town ordinances: Early Bird (shops and neighbors start earlier), Night Owl (shops open later), Community Spirit
+- [x] Town flag designer: draw a pixel-art flag shown round the island
+- [x] Town ordinances: Early Bird (shops and neighbors start earlier), Night Owl (shops open later), Community Spirit
   (neighbors socialize more), Nature Conservation (more wildlife and growth, trees grow faster, neighbors plant
   flowers where there aren't enough)
-- [ ] Town census: every resident, birthday, personality, friendship and more
-- [ ] Town history (a timeline of milestones), island statistics (days played, fish caught, items, money...), island
+- [x] Town census: every resident, birthday, personality, friendship and more
+- [x] Town history (a timeline of milestones), island statistics (days played, fish caught, items, money...), island
   records (biggest fish, best day, longest friendship), town achievements with commemorative rewards
-- [ ] Rename landmarks (beaches, mountains, forests...)
+- [x] Rename landmarks (beaches, mountains, forests...)
 - [ ] Residents: customize catchphrases, reset or change clothes and accessories, adjust schedules (when they wake,
   go home, where they go)
-- [ ] Missed holidays: if Sarah didn't play on a major holiday (the Egg Hunt, say), the Town Hall lets her hold it the
+- [x] Missed holidays: if Sarah didn't play on a major holiday (the Egg Hunt, say), the Town Hall lets her hold it the
   next day she plays, for up to a week after (so it never lands on another holiday: no Easter at Christmas)
-- [ ] Town anniversary: a monthly island day
-- [ ] Save management: make backups or restore an earlier save (the server keeps backups already)
+- [x] Town anniversary: a monthly island day
+- [x] Save management: make backups or restore an earlier save (the server keeps backups already)
 
 ## Bugs
 - [x] Talking to Wonton in the hot spring: the spot you have to stand in is too hard to hit (fixed: any side of the rim works, and a tap walks below it)

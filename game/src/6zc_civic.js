@@ -20,7 +20,8 @@ if (CIVIC_PREVIEW) {
 /* the Town Hall: the front desk at the back with the Council behind it, the island's flags either side, the rope for the
    line, benches to wait on, the records on a shelf */
 function buildTownHall(a) {
-    const items = layoutItems([
+    const flag = townFlagSprite();
+    const items = layoutItems([...(flag ? [['island_flag', 9, 'wall']] : []),
         ['window_wall', 0, 'wall'], ['plaque_bronze', 3, 'wall'], ['clock_wall', 7, 'wall'], ['plaque_silver', 11, 'wall'], ['window_wall', 13, 'wall'],
         ['disp_flag', 2, 0], ['museum_desk', 6, 1], ['nameplate', 6, 1], ['paper_pile', 8, 1], ['disp_flag', 11, 0],
         ['shelf_book', 0, 0], ['shelf_book', 13, 0], ['velvet_rope', 4, 3], ['velvet_rope', 9, 3],

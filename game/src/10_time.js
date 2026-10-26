@@ -55,7 +55,7 @@ const LUNAR_NEW_YEAR = { 2026: [2, 17], 2027: [2, 6], 2028: [1, 26], 2029: [2, 1
 /* what's special about today (island date) */
 function todayEvents() {
     const d = Clock.dayDate();
-    const ev = new Set(holidaysOn(d.getFullYear(), d.getMonth() + 1, d.getDate()).map(h => h.id));
+    const ev = new Set(holidaysToday().map(h => h.id));
     if (d.getMonth() === 5 || d.getMonth() === 6) ev.add('fireflies');
     refreshHolidayChat();
     return ev;

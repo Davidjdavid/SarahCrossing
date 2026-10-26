@@ -40,7 +40,17 @@ docs/DEPLOY.md for the server.
   and each counter lists the building's screens (`6zd_civic_screens.js`, `CIVIC_SCREENS`): every feature in docs/ROADMAP.md's
   "Late in development" drawn with sample numbers in each state it can be in (works, loading, no internet, service down,
   empty, not enough money...), with the on-screen words from the dialogue sheet (`new-civic.mjs`). The preview's foot has
-  a button per state; `__dbg.civic(id, state)` opens one. The features themselves come at the very end.
+  a button per state; `__dbg.civic(id, state)` opens one. Most now work for real (`CIVIC_LIVE[id]`, drawn first as
+  "Yours"; the samples stay in the buttons): the Bank (`6ze_bank.js`: savings with interest each morning, goals, the
+  statement from `moneyFlow`, since every `addMoney(n, quiet, why)` says why, the safety deposit box, the house loan
+  Ginger offers), the Post Office (`6zf_post.js`: letters to neighbors delivered next morning with replies, postcards,
+  special deliveries, the island paper each morning with an archive, order tracking) and the Town Hall (`6zg_townhall.js`:
+  ordinances through `townWake`/`townHours`/`townOrd`, the census, the history `townLog` writes as things happen,
+  records, statistics, achievements, landmark names on the map (`placeName`), holding a missed holiday (`townHeld`,
+  joined into `holidaysToday`), the flag (a wall piece in the Town Hall), backups). Still samples: the zip code and the
+  real world's weather and news, the market, residents' catchphrases, mailbox styles and the island jobs. Their
+  morning work runs in `dailyCheck` (`bankTick`, `postYesterday`/`postTick`, `townTick`); the Bank and the post are each
+  person's own (`PERSON_KEYS`), the town is the island's.
 - **Old saves must always load.** Sarah's island came from the one-page game and lives on the
   server; any change to the shape of `S` needs a step in `migrate()` that upgrades older saves.
   `tests/fixtures/` has saves made by the one-page game; the end-to-end tests import them.
