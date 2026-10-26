@@ -121,6 +121,12 @@ docs/DEPLOY.md for the server.
   On a grey day the new look's light is soft (the sun dimmer, shadows faint: `soft` in `updateLight`).
 - The small and far-off things are toys too, from `tools/blender/small_things.py`: shells and gems lying on the island
   (`item_<id>`; fruit uses the trees' `fruit_<id>`), drawn by `EnvItems` (33p_env_items.js) in place of their pictures;
+  everything else Sarah can carry comes from `pocket_things.py` (`item_<its picture>`: wood, presents, money bags, the
+  eggs, tools, keepsakes, quest things, what the neighbors lose, the vegetables picked), and what has no model of its
+  own lies as a stand-in for its kind, as in Animal Crossing (`EnvItems.model`): a leaf for furniture, wallpaper, floors
+  and accessories, a folded shirt painted in the outfit's colors and a fish in the fish's (`*_top`/`*_trim` parts,
+  `EnvItems.tint`), a seed packet, a sack, a covered dish. The `item_` models load after the island, before the
+  furniture; a thing to be found still twinkles;
   Sarah's sailboat at the pier, the boats crossing the sea, dolphins, planes (the propeller its own model,
   `sky_plane_prop`), hot air balloons and the gull flock, posed from SeaSky's own things by `EnvSea` (33o_env_sea.js),
   the planes and balloons small and high so they read as up in the sky (their shadows cross the ground below).
@@ -144,7 +150,7 @@ docs/DEPLOY.md for the server.
   game's camera and sun for previews, baking, GLB export). Blender runs as a Python module: `pip install bpy` (Blender
   5.x, about 1 GB, fine in a venv), then `python tools/blender/cottage.py --preview DIR` (or `shop.py`,
   `stone_wall.py`, `props.py` for the bench, lamp, mailbox, fences, planter and pumpkins, `trees_ac.py` for the trees,
-  fruit, palms and bushes, `vegetation.py` for the pines, sunflowers and wild flower clumps, `props_island.py` for
+  fruit, palms and bushes, `vegetation.py` for the pines, sunflowers and wild flower clumps (with lighter `_lod1` clumps for phones), `props_island.py` for
   every other kind of prop on Sarah's island; most take `--only NAME`) writes `game/assets/models/<name>.glb` (plus
   `<name>_lod1.glb` for phones where there is one) and previews from the game's camera into DIR. Each script models the
   detail in full (every needle tuft, shingle, board, stone) and bakes it (color, the dark between things, a normal map)
@@ -161,7 +167,7 @@ docs/DEPLOY.md for the server.
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
-  steps): the game loads every model at once, so keep `game/assets/models/` light (about 44 MB now, 7 of it furniture). `doll.py` was the
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 50 MB now, 7 of it furniture, 3 the small things). `doll.py` was the
   mock-up of the people as dolls. `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height

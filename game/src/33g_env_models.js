@@ -23,17 +23,19 @@ const EnvModels = {
             t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; t.flipY = false; t.encoding = THREE.LinearEncoding; t.needsUpdate = true;
             this.textures[n] = t; this.done++; ok();
         }, undefined, bad)));
-        // (the rooms' furniture comes after: the island never waits for it, and a piece shows its picture till it's in)
-        const later = names.filter(n => /^furn_/.test(n)), first = names.filter(n => !/^furn_/.test(n));
+        // (the rooms' furniture and the things lying about come after: the island never waits for them, and each shows its
+        // picture till it's in)
+        const after = n => /^(furn_|item_)/.test(n), first = names.filter(n => !after(n));
+        const later = names.filter(n => /^item_/.test(n)).concat(names.filter(n => /^furn_/.test(n)));   // (the small things first: they lie about outdoors)
         this.total = first.length + Object.keys(window.TEXTURES || {}).length;
         const get = n => new Promise((ok, bad) => loader.load(window.MODELS[n], g => ok([n, g]), undefined, bad));
         this._p = Promise.all(first.map(n => get(n).then(r => { this.done++; return r; })).concat(texs))
             .then(list => {
                 for (const it of list) if (it) { const [n, g] = it; this.models[n.replace(/_lod\d$/, '')] = this.prepare(g.scene, n); }
                 this.ready = true;
-                // then the furniture, a few at a time
+                // then the furniture and the things, a few at a time
                 let i = 0;
-                const next = () => { const n = later[i++]; if (!n) return; get(n).then(([n, g]) => { this.models[n] = this.prepare(g.scene, n); this.furnN = (this.furnN || 0) + 1; }).catch(e => console.warn('a piece of furniture could not be loaded', n, e)).then(next); };
+                const next = () => { const n = later[i++]; if (!n) return; get(n).then(([n, g]) => { this.models[n] = this.prepare(g.scene, n); if (/^furn_/.test(n)) this.furnN = (this.furnN || 0) + 1; }).catch(e => console.warn('a model could not be loaded', n, e)).then(next); };
                 for (let k = 0; k < 4; k++) next();
                 return true;
             })
