@@ -63,6 +63,9 @@ function todayEvents() {
 
 /* weather is decided once per island day */
 function todayWeather() {
+    // a registered zip code: that town's forecast for the day (6zh_world.js)
+    const zd = S && S.zip && S.zip.days && S.zip.days[Clock.dayNum()];
+    if (zd && CIVIC_PREVIEW) return zd.sky;
     const r = mulberry(hash32((S.seed || 'x') + ':w:' + Clock.dayNum()));
     const season = Clock.season();
     const x = r();

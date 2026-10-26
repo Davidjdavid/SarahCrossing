@@ -396,6 +396,8 @@ function update() {
         }
     }
     if (G.frame % 300 === 0 && G.mode === 'play') Save.write();
+    if (G.frame % 3600 === 1800 && G.mode === 'play') worldFetch();
+    if (G.frame % 120 === 90 && G.mode === 'play' && CIVIC_PREVIEW) Jobs.tick();        // (a zip code not looked up yet today: 6zh_world.js)
     G.showPrompt = !G.touchUsed;
 }
 function render() {

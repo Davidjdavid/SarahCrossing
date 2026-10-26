@@ -264,3 +264,31 @@ test('live: who is there, where they are, what they say; island saves and letter
   await left;
   sarah.close();
 });
+
+test('the real world: a zip code\'s place, forecast and headlines, and the market (made-up data: WORLD_FAKE)', async () => {
+  const w = await startServer({ env: { WORLD_FAKE: '1' } });
+  try {
+    const c = await login(w.url);
+    const get = (p) => fetch(w.url + p, { headers: { cookie: c } });
+    const ok = await get('/api/world?zip=02134');
+    assert.equal(ok.status, 200);
+    const body = await ok.json();
+    assert.equal(body.place, 'Allston');
+    assert.equal(body.state, 'MA');
+    assert.ok(['sunny', 'cloudy', 'rain', 'snow'].includes(body.days[0].sky));
+    assert.ok(Array.isArray(body.news.local) && Array.isArray(body.news.world));
+    assert.equal((await get('/api/world?zip=12')).status, 400);
+    assert.equal((await get('/api/world?zip=00000')).status, 404);
+    assert.equal((await fetch(w.url + '/api/world?zip=02134')).status, 401, 'needs the password like the rest');
+    const m = await (await get('/api/market')).json();
+    assert.equal(m.stocks.length, 8);
+    for (const s of m.stocks) assert.equal(s.closes.length, 60);
+  } finally { await w.stop(); }
+});
+
+test('the real world\'s helpers: weather codes and news feed titles', async () => {
+  const { skyOf, feedTitles } = await import('../server/world.mjs');
+  assert.deepEqual([0, 1, 2, 45, 61, 80, 95, 71, 86].map(skyOf), ['sunny', 'sunny', 'cloudy', 'cloudy', 'rain', 'rain', 'rain', 'snow', 'snow']);
+  const xml = '<rss><channel><title>Feed</title><item><title><![CDATA[Park plants &amp; waters 500 trees - The Daily Paper]]></title></item><item><title>Frog &#39;found&#39;</title></item><item><title>Frog &#39;found&#39;</title></item></channel></rss>';
+  assert.deepEqual(feedTitles(xml), ['Park plants & waters 500 trees', "Frog 'found'"]);
+});

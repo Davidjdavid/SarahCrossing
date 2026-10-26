@@ -299,7 +299,7 @@ function addProp(a, p) {
     if (p.kind === 'blanket') { e.frame = 'picnic_blanket'; e.layer = 0; e.y = p.y * TILE + 23; e.hit = { x: p.x * TILE, y: p.y * TILE, w: w * TILE, h: 2 * TILE }; }
     if (p.kind === 'telescope') e.interact = () => useTelescope();
     if (p.kind === 'board') e.interact = () => readBoard();
-    if (p.kind === 'sign_island') e.interact = () => talkSign('island');
+    if (p.kind === 'sign_island') e.interact = async () => { if (!(await Jobs.paint())) talkSign('island'); };     // (an island job to repaint it: 6zi_jobs.js)
     if (p.kind === 'sign_club') e.interact = () => talkSign('club');
     if (p.kind === 'mailbox') { e.interact = () => openMailbox(); G.mailbox = e; e.draw = ctx => spr(ctx, unreadMail() ? 'mailbox_flag' : 'mailbox', e.x, e.y); }
     if (p.kind === 'bench' || p.kind === 'log') e.interact = () => sitOnBench(e);

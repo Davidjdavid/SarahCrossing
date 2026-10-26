@@ -157,6 +157,7 @@ async function neighborTalk(n) {
         if (r.hugDay !== day) add('Hug', async () => { await hugFlow(n); return true; });
         for (const o of Requests.options(n)) add(o.label, o.fn);
         for (const o of Quests.options(n)) add(o.label, o.fn);
+        for (const o of civicOptions(n)) add(o.label, o.fn);
         for (const o of Drama.options(n)) add(o.label, async () => { await Drama.choose(n, o); return true; });
         if (id === 'sully' && n.area === 'studio') add('Pottery tips?', async () => { await UI.say(id, rpick(POTTERY_TIPS).map(bostonize), { keep: true }); return true; });
         if (id === 'chili' && n.area === 'arcade') add('Prize counter', async () => { UI.hideDialog(); await prizeCounter(); return false; });
@@ -447,6 +448,7 @@ async function joeTalk(n) {
         });
         for (const o of Requests.options(n)) add(o.label, o.fn);
         for (const o of Quests.options(n)) add(o.label, o.fn);
+        for (const o of civicOptions(n)) add(o.label, o.fn);
         for (const o of Drama.options(n)) add(o.label, async () => { await Drama.choose(n, o); return true; });
         if (hasLostFor('joe')) add(`Found your ${ITEMS[S.lost.cur.id].what}!`, async () => { await returnLost(n); return true; });
         if (IslandGames.list(n).length) add("Let's play!", () => IslandGames.offer(n));

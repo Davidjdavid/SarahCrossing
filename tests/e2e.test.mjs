@@ -568,6 +568,52 @@ test('games with the neighbors: "Let\'s play!" in the talk menu, tag, hide-and-s
   await page.context().close();
 });
 
+test('beta civic buildings: savings with interest, a letter delivered with a reply, an ordinance that moves the hours, a job', async () => {
+  const page = await device();
+  await page.evaluate(() => { localStorage.setItem('sc-current', ''); localStorage.setItem('sc-civic', '1'); });
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  assert.equal(await page.evaluate(() => CIVIC_PREVIEW), true);
+  await page.evaluate(() => { S.money = 40000; for (const id of ['coco', 'kai', 'maki']) rel(id).met = true; dayStatsTick(); });
+  // the Bank: put 5,000 in; three mornings later it has grown
+  await page.evaluate(() => civicScreen('savings'));
+  await page.locator('#panel input').first().fill('5000');
+  await page.click('#panel button:has-text("Put in")');
+  assert.deepEqual(await page.evaluate(() => [S.money, S.bank.savings]), [35000, 5000]);
+  await page.evaluate(() => { S.bank.day -= 3; bankTick(); });
+  assert.ok(await page.evaluate(() => S.bank.savings > 5000 && S.bank.flow.in.Interest > 0), 'interest paid');
+  // the Post Office: a letter to Coco arrives the next morning, and she writes back
+  await page.evaluate(() => civicScreen('letter'));
+  await page.click('#panel .chip:has-text("Coco")');
+  await page.locator('#panel textarea').fill('Dear Coco,\nThanks for showing me the crabs. They were very polite.\nYour friend,\nSarah');
+  await page.click('#panel button:has-text("Mail it")');
+  assert.equal(await page.evaluate(() => S.post.sent.length), 1);
+  await page.evaluate(() => { S.post.sent[0].day -= 1; S.dayStats.day -= 1; postYesterday(); postTick(); });
+  assert.deepEqual(await page.evaluate(() => [S.post.sent.length, S.mail.some((m) => m.from === 'coco'), S.post.papers.length > 0]), [0, true, true]);
+  // the Town Hall: Night Owl keeps the shop open later, from the next morning
+  const before = await page.evaluate(() => roomHours('shop')[1]);
+  await page.evaluate(() => civicScreen('ordinance'));
+  await page.click('#panel .row:has-text("Night Owl")');
+  await page.click('#panel button:has-text("Enact")');
+  assert.equal(await page.evaluate(() => [S.town.ord.next, roomHours('shop')[1]].join()), `night,${before}`);
+  await page.evaluate(() => { S.town.ord.from = Clock.dayNum(); });
+  assert.equal(await page.evaluate(() => roomHours('shop')[1]), Math.min(28.5, before + 3));
+  // an island job: sweep the square, pile by pile, and get paid
+  await page.evaluate(() => { const j = jobsState().offered.find((o) => o.kind === 'sweep') || { id: 'sweep', kind: 'sweep', n: 8 }; Jobs.take(j); Jobs.tick(); });
+  const piles = await page.evaluate(() => G.areas.island.ents.filter((e) => e.jobPile).length);
+  assert.ok(piles >= 4, String(piles));
+  const money0 = await page.evaluate(() => S.money);
+  await page.evaluate(() => { for (const e of G.areas.island.ents.filter((q) => q.jobPile)) e.interact(); });
+  assert.ok(await page.evaluate((m) => !Jobs.active() && S.money > m, money0), 'paid for the job');
+  // and the Town Hall itself opens, with the Council at the desk
+  await page.evaluate(() => { __dbg.setTime(10, 27, 11); enterRoom('townhall'); });
+  await page.waitForFunction(() => G.area && G.area.id === 'townhall');
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('shops grow: a letter, a day closed, then a bigger shop with more stock, a sale and a free gift', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));

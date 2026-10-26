@@ -147,19 +147,20 @@ Status: [x] done, [~] in progress, [ ] not started.
 ## Late in development (David's notes for much later)
 Some of these need things that don't exist yet (a town flag, records kept over time); add them when we get here.
 
-On beta, walk into the Town Hall, the Post Office or the Bank and use the counter: the ticked ones below work for real (the
-island paper has only the island's own news until the zip code works); the rest still show sample numbers. The Post
+On beta, walk into the Town Hall, the Post Office or the Bank and use the counter: the ticked ones below work for real; the
+rest still show sample numbers. (The zip code's weather and news and the market's prices come from free services the
+server asks once a day.) The Post
 Office's and the Bank's keepers are still to be picked.
 
 ### The real world, by zip code
-- [ ] Sarah sets a zip code: the island's time zone, that day's weather forecast (not live: the day's prediction),
+- [x] Sarah sets a zip code: the island's time zone, that day's weather forecast (not live: the day's prediction),
   local news, fetched once a day from free APIs
-- [ ] The post office mails a newspaper every day: real headlines and tidbits, the weather, and an island section
+- [x] The post office mails a newspaper every day: real headlines and tidbits, the weather, and an island section
   with stories about what Sarah and the neighbors actually did
 
 ### Bank
 - [x] Savings account: deposit and withdraw, daily interest (weekly rates)
-- [ ] Stock portfolio from real stocks (a few global ones from a free API): invest, see performance graphs and
+- [x] Stock portfolio from real stocks (a few global ones from a free API): invest, see performance graphs and
   historical returns, dividends from eligible stocks
 - [x] Pay off house upgrade loans
 - [x] Savings goals with progress trackers for expensive purchases
@@ -171,7 +172,7 @@ Office's and the Bank's keepers are still to be picked.
 - [x] Newspaper archive: keep and reread past papers
 - [x] Postcard collection from fictional places
 - [x] Package tracking for things ordered from the computer
-- [ ] Lost mail quests: deliver misplaced packages and letters
+- [x] Lost mail quests: deliver misplaced packages and letters
 - [x] Special deliveries: now and then a mysterious package with something rare
 - [ ] Customize the look and color of the mailbox
 
@@ -190,6 +191,7 @@ Office's and the Bank's keepers are still to be picked.
   next day she plays, for up to a week after (so it never lands on another holiday: no Easter at Christmas)
 - [x] Town anniversary: a monthly island day
 - [x] Save management: make backups or restore an earlier save (the server keeps backups already)
+- [x] Island jobs: three small jobs a day for sand dollars (deliveries, sweeping the square, repainting the dock sign, bringing in shells, fruit or fish)
 
 ## Bugs
 - [x] Talking to Wonton in the hot spring: the spot you have to stand in is too hard to hit (fixed: any side of the rim works, and a tap walks below it)

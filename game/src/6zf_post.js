@@ -134,7 +134,7 @@ function postMakePaper() {
     const bits = [`${who} was spotted ${rpick(['humming near the pier', 'reading on a bench', 'arguing with a seagull, and losing', 'admiring a cloud', 'jogging, briefly', 'looking for a lost button'], r)}.`];
     try { bits.push(`Fortune's hot item today: ${itemName(shopStock().hot)}. She pays double.`); } catch (e) { /* the shop isn't up yet */ }
     const poem = typeof JOE_POEMS !== 'undefined' ? rpick(JOE_POEMS, r) : null;
-    const paper = { day, sky: G.weather || 'sunny', hols, stories, bits, ad: rpick(PAPER_ADS, r), poem: poem ? [poem[0], poem[1].slice(0, 4)] : null };
+    const paper = { day, sky: G.weather || 'sunny', hols, stories, bits, ad: rpick(PAPER_ADS, r), poem: poem ? [poem[0], poem[1].slice(0, 4)] : null, world: zipPage() };
     P.papers.push(paper);
     while (P.papers.length > POST_PAPERS) P.papers.shift();
     return paper;
@@ -143,8 +143,13 @@ function paperView(b, p) {
     const pp = el('div', 'cv-paper');
     pp.appendChild(el('h3', null, `The ${S.islandName || 'Island'} Gazette`));
     pp.appendChild(el('div', 'cv-dateline', dayDate(p.day) + (p.hols.length ? ' · ' + p.hols.join(', ') : '')));
-    const sky = PAPER_SKY[p.sky] || PAPER_SKY.sunny;
-    const w = el('div', 'cv-weather'); w.appendChild(el('b', null, `Weather: ${sky[0]}`)); w.appendChild(el('span', null, sky[1])); pp.appendChild(w);
+    const W = p.world, sky = PAPER_SKY[(W && W.sky) || p.sky] || PAPER_SKY.sunny;
+    const w = el('div', 'cv-weather');
+    w.appendChild(el('b', null, W && W.sky ? `Weather in ${W.town}: ${sky[0]}, high ${W.hi}°, low ${W.lo}°` : `Weather: ${sky[0]}`));
+    w.appendChild(el('span', null, sky[1])); pp.appendChild(w);
+    // the real world's page, once the island has a zip code (6zh_world.js)
+    if (W && W.local && W.local.length) { pp.appendChild(el('h4', null, `${W.town} news`)); for (const t of W.local) { const s = el('div', 'cv-story'); s.appendChild(el('span', null, t)); pp.appendChild(s); } }
+    if (W && W.world && W.world.length) { pp.appendChild(el('h4', null, 'The world')); for (const t of W.world) { const s = el('div', 'cv-story'); s.appendChild(el('span', null, t)); pp.appendChild(s); } }
     pp.appendChild(el('h4', null, 'Yesterday on the island'));
     for (const [h, t] of p.stories) { const s = el('div', 'cv-story'); s.appendChild(el('b', null, h)); s.appendChild(el('span', null, fillText(t))); pp.appendChild(s); }
     pp.appendChild(el('h4', null, 'Around town'));
@@ -180,6 +185,13 @@ function postTick() {
             sendMail({ from: 'post', subject: 'A special delivery', body: "A package came for you. No return address. No note. Just a stamp with a little star on it.\nThe Post Office doesn't know who sent it. The Post Office has theories.", gift: rpick(rare, r) });
         }
     }
+    // a letter for a neighbor that came to Sarah's mailbox by mistake (to take round), or one left too long goes back
+    if (P.lost && P.lost.day < day - 3) { removeItem('lost_mail', pocketCount('lost_mail')); P.lost = null; }
+    if (!P.lost && met.length && r() < 0.12) {
+        const to = rpick(met, r);
+        P.lost = { to, day };
+        sendMail({ from: 'post', subject: `A letter for ${NPC_DEFS[to].name}?`, body: `This came to your mailbox by mistake. It's addressed to ${NPC_DEFS[to].name}. The handwriting is very loopy.\nCould you take it to them? We'd be ever so grateful.\n- The Post Office`, gift: 'lost_mail' });
+    }
     // the paper
     const paper = postMakePaper();
     if (paper) {
@@ -210,6 +222,26 @@ function postDeliver(L) {
     const close = rpick(['Your friend,', 'See you on the island,', 'Write back soon,', 'Love,'], r);
     const body = [open, giftLine, id === 'joe' ? 'I wrote you something back:\n' + (typeof JOE_POEMS !== 'undefined' ? rpick(JOE_POEMS, r)[1].slice(0, 4).join('\n') : '') : (ps ? 'P.S. ' + voiced(id, ps) : ''), `${close}\n${d.name}`].filter(Boolean).join('\n\n');
     sendMail({ from: id, subject: rpick(['Re: your letter', 'Thank you!', 'A letter back!'], r), body, gift: back });
+}
+
+/* the lost letter: in the addressee's talk menu (with the island jobs: civicOptions) */
+ITEMS.lost_mail = { name: 'A letter (not yours)', type: 'quest', price: 0, icon: 'app_mail' };
+function postLostOptions(n) {
+    const P = S.post, L = P && P.lost;
+    if (!L || L.to !== n.id || !pocketCount('lost_mail')) return [];
+    return [{ label: 'This came to me by mistake', fn: async () => {
+        removeItem('lost_mail', 1);
+        P.lost = null;
+        addPts(n.id, 2);
+        S.stats.lostMail = (S.stats.lostMail || 0) + 1;
+        n.emote = 'heart'; n.emoteT = 70;
+        await UI.say(n.id, voiced(n.id, rpick(["My letter! I've been waiting for this! Thank you for bringing it all this way.", "Oh! That's mine! The Post Office mixes us up. It happens. It happens a lot. Thank you!", 'A letter for me? From... oh! I know who this is from. Thank you, really!'])), { keep: true });
+        const pay = 100 * rint(2, 5);
+        addMoney(pay, true, 'Favors');
+        await UI.say(n.id, voiced(n.id, `Here, ${fmtNum(pay)} sand dollars. For the stamp you didn't need. And the walk.`), { keep: true });
+        Save.touch();
+        return true;
+    } }];
 }
 
 /* ---------------------------------------------------------------- the screens */
@@ -294,7 +326,7 @@ CIVIC_LIVE.gazette = {
         const p = P.papers[P.papers.length - 1] || postMakePaper();
         if (!p) { CV.empty(b, "Today's paper isn't out yet."); return; }
         paperView(b, p);
-        CV.note(b, 'The real world\'s news and weather join the paper once you register your zip code at the Town Hall.');
+        if (!zipState()) CV.note(b, 'The real world\'s news and weather join the paper once you register your zip code at the Town Hall.');
     },
 };
 CIVIC_LIVE.archive = {

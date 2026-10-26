@@ -47,8 +47,15 @@ docs/DEPLOY.md for the server.
   special deliveries, the island paper each morning with an archive, order tracking) and the Town Hall (`6zg_townhall.js`:
   ordinances through `townWake`/`townHours`/`townOrd`, the census, the history `townLog` writes as things happen,
   records, statistics, achievements, landmark names on the map (`placeName`), holding a missed holiday (`townHeld`,
-  joined into `holidaysToday`), the flag (a wall piece in the Town Hall), backups). Still samples: the zip code and the
-  real world's weather and news, the market, residents' catchphrases, mailbox styles and the island jobs. Their
+  joined into `holidaysToday`), the flag (a wall piece in the Town Hall), backups) and the real world (`6zh_world.js`: a zip
+  code registered at the Town Hall gives the island that town's time if Sarah wants (`zipUseTime`), the day's forecast
+  as its weather (`todayWeather`) and headlines in the paper; the Bank's market has real companies' closing prices,
+  ten sand dollars to the dollar, with dividends on the 1st). The server looks the world up (`server/world.mjs`:
+  `/api/world?zip=`, `/api/market`; free services with no key: zippopotam.us, open-meteo.com, news feeds, stooq.com;
+  kept for the day; `WORLD_FAKE=1` answers with made-up data, as the tests do), and island jobs (`6zi_jobs.js`: three a
+  day at the Town Hall: packages to deliver through the talk menu, leaves to sweep off the square, the dock sign to
+  repaint, shells, fruit or fish to hand in). Still samples: residents' catchphrases (for the friendship update) and
+  mailbox styles. Their
   morning work runs in `dailyCheck` (`bankTick`, `postYesterday`/`postTick`, `townTick`); the Bank and the post are each
   person's own (`PERSON_KEYS`), the town is the island's.
 - **Old saves must always load.** Sarah's island came from the one-page game and lives on the
@@ -275,6 +282,7 @@ docs/DEPLOY.md for the server.
   `before-restore` and `before-overwrite` copies (90 days).
 - `server.mjs`: the password (cookie signed with `DATA_DIR/secret`), the JSON API (writes need the
   header `X-Sarah: 1`), the built game from `STATIC_DIR` (hashed asset names, cached forever).
+- `world.mjs`: the real world for the Town Hall's zip code and the Bank's market (see above).
   Problems in the browser are posted to `/api/log` and end up in the server log.
 
 ## Checks

@@ -35,6 +35,8 @@
 //   DELETE /api/islands/<id>/mail/<who>?upTo=<seq>   delivered: take them out
 //   GET    /api/live/<id>?who=<who>          WebSocket: who's there, live (server/live.mjs)
 //   POST   /api/log            {message, ...}   a problem in the game, for the server log
+//   GET    /api/world?zip=<5 digits>          the place, its time zone, today's forecast, headlines (server/world.mjs)
+//   GET    /api/market                        a few real companies' last 60 closing prices
 // Request bodies may be gzip-compressed (Content-Encoding: gzip).
 
 import crypto from 'node:crypto';
@@ -46,6 +48,7 @@ import { promisify } from 'node:util';
 import zlib from 'node:zlib';
 import { IslandError, Islands } from './islands.mjs';
 import { Live } from './live.mjs';
+import { market, world, WorldError } from './world.mjs';
 
 const gunzip = promisify(zlib.gunzip);
 
@@ -390,6 +393,18 @@ async function handleApi(req, res, pathname) {
       logLine(req, 'game problem', `${where ? where + ': ' : ''}${body.message ?? ''}${body.stack ? ' | ' + body.stack : ''} | ${deviceName(req)} | ${VERSION}`);
     }
     return sendJson(res, 200, { ok: true });
+  }
+
+  // the real world (a zip code's weather and news, the market): looked up once a day, for every island
+  if (pathname === '/api/world' || pathname === '/api/market') {
+    if (method !== 'GET') throw new HttpError(405, 'Use GET');
+    try {
+      const zip = new URL(req.url, 'http://site.invalid').searchParams.get('zip');
+      return sendJson(res, 200, pathname === '/api/world' ? await world(zip) : await market());
+    } catch (err) {
+      if (err instanceof WorldError) throw new HttpError(err.status, err.message);
+      throw err;
+    }
   }
 
   const m = ISLAND_ROUTE.exec(pathname);
