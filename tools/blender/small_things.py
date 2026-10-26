@@ -1,7 +1,8 @@
 """The small things and the far-off things as miniatures, in the dollhouse look of the props (props_island.py): the
 shells and gems lying on the island (item_<id>: a clam, a scallop, a turban, a cowrie, a branch of coral, a conch, a
 piece of sea glass, a pearl in its shell, a starfish, a message in a bottle; quartz and amethyst as crystal clusters,
-the cut gems as gems), the boats out at sea (sea_sail, sea_sailb, sea_fish, sea_ferry), Sarah's sailboat at the pier
+the cut gems as gems; the volleyball, item_vbball), what grows in the garden plots (plot_seed, plot_sprout, then the
+vegetables grown, veg_<id>), the boats out at sea (sea_sail, sea_sailb, sea_fish, sea_ferry), Sarah's sailboat at the pier
 (boat_docked), a dolphin (sea_dolphin), and what goes over: a little plane (sky_plane, its propeller its own part
 sky_plane_prop to spin) and a hot air balloon (sky_balloon).
 
@@ -381,7 +382,125 @@ def sky_balloon():
     return [(mb, 'main'), (env, 'envelope')]
 
 
+# ---------------------------------------------------------------- the volleyball, and what grows in the garden plots
+def vbball():
+    mb = MB()
+
+    def panels(p, n):
+        a = math.atan2(n.y, n.x)
+        k = int((a / math.tau + 0.5) * 6 + (0.5 if n.z > 0.3 else 0)) % 3
+        return rgb(['#f6f4ee', '#3a7ad8', '#f4c040'][k]) * (0.84 + 0.24 * max(0.0, n.dot(LIGHT)))
+    ball(mb, (0, 0, 0.13), 0.13, panels, sub=3)
+    return [(mb, 'main')]
+
+
+SOIL = '#6a4a30'
+LEAF, LEAF_L = '#3e8a34', '#6ab84a'
+
+
+def leafy(mb, c, n, length, width, lift, color=LEAF, color2=LEAF_L, seed=1, droop=0.3):
+    """a rosette of leaves from a point, each a long pointed blade curving out and down"""
+    rng = random.Random(seed)
+    c = Vector(c)
+    for k in range(n):
+        a = k / n * math.tau + rng.uniform(-0.2, 0.2)
+        d = Vector((math.cos(a), math.sin(a), 0))
+        side = Vector((-d.y, d.x, 0))
+        L = length * rng.uniform(0.8, 1.1)
+        pts = []
+        for j in range(5):
+            t = j / 4
+            pts.append(c + d * L * t + Vector((0, 0, lift * math.sin(t * math.pi * 0.8) - droop * L * t * t)))
+        for j in range(4):
+            w0 = width * math.sin(math.pi * (j / 4) ** 0.8 + 0.15) * (1 - j / 5)
+            w1 = width * math.sin(math.pi * ((j + 1) / 4) ** 0.8 + 0.15) * (1 - (j + 1) / 5)
+            q = [pts[j] - side * w0, pts[j] + side * w0, pts[j + 1] + side * w1, pts[j + 1] - side * w1]
+            n_ = (q[1] - q[0]).cross(q[3] - q[0]).normalized()
+            if n_.z < 0:
+                n_ = -n_
+            col = rgb(color).lerp(rgb(color2), (j + 0.5) / 4) * (0.86 + 0.22 * max(0.0, n_.dot(LIGHT)))
+            mb.add(q, [col] * 4, [n_ * 0.4 + Vector((0, 0, 0.8))] * 4, [(0, 1, 2), (0, 2, 3)])
+
+
+def stalk(mb, base, h, r=0.016, color=LEAF):
+    tube(mb, [Vector(base), Vector(base) + Vector((0.01, 0, h * 0.5)), Vector(base) + Vector((0, 0.01, h))], r, shade(color), seg=6, r1=r * 0.7)
+
+
+def plot_seed():
+    mb = MB()
+    lathe(mb, [(0.2, 0.0), (0.17, 0.035), (0.08, 0.06), (0.0, 0.065)], col_fn(SOIL, mottle=0.2), seg=14, cap_top=False)
+    for k in range(4):
+        a = k * 1.9
+        ball(mb, (math.cos(a) * 0.07, math.sin(a) * 0.07, 0.055), 0.012, shade('#e8d8a0'), sub=1)
+    return [(mb, 'main')]
+
+
+def plot_sprout():
+    mb = MB()
+    lathe(mb, [(0.2, 0.0), (0.17, 0.03), (0.08, 0.05), (0.0, 0.055)], col_fn(SOIL, mottle=0.2), seg=14, cap_top=False)
+    for k, (x, y) in enumerate(((-0.05, 0.02), (0.06, -0.03), (0.0, 0.07))):
+        stalk(mb, (x, y, 0.04), 0.1, 0.01, '#5aa840')
+        leafy(mb, (x, y, 0.14), 2, 0.07, 0.03, 0.02, '#5aa840', '#9ad860', seed=k, droop=0.1)
+    return [(mb, 'main')]
+
+
+def veg(kind):
+    mb, shine = MB(), MB()
+    if kind == 'bokchoy':
+        for k in range(7):
+            a = k / 7 * math.tau
+            d = Vector((math.cos(a), math.sin(a), 0))
+            tube(mb, [d * 0.02, d * 0.05 + Vector((0, 0, 0.12)), d * 0.08 + Vector((0, 0, 0.22))], 0.025, shade('#e8f4d0'), seg=6, r1=0.018)
+            ball(mb, d * 0.11 + Vector((0, 0, 0.3)), (0.07, 0.05, 0.1), shade('#3a8a34'), sub=2)
+    elif kind == 'greenonion':
+        for k in range(6):
+            a = k * 1.05
+            b = Vector((math.cos(a) * 0.04, math.sin(a) * 0.04, 0))
+            tube(mb, [b, b * 1.4 + Vector((0, 0, 0.1)), b * 1.8 + Vector((0, 0, 0.32)), b * 2.6 + Vector((0, 0, 0.42))], 0.016, lambda p, n: rgb('#f2f6e0').lerp(rgb('#4a9a3a'), min(1.0, p.z / 0.18)), seg=6, r1=0.008)
+    elif kind == 'thaibasil':
+        stalk(mb, (0, 0, 0), 0.3, 0.014, '#6a4a6a')
+        for k, z in enumerate((0.1, 0.18, 0.26, 0.32)):
+            leafy(mb, (0, 0, z), 3, 0.09 - z * 0.12, 0.04, 0.02, '#2e6a2e', '#5aa04a', seed=k + 3, droop=0.25)
+        ball(mb, (0, 0, 0.36), (0.02, 0.02, 0.05), shade('#9a5ab8'), sub=1)
+    elif kind == 'carrot':
+        lathe(mb, [(0.0, -0.02), (0.045, 0.02), (0.05, 0.06), (0.0, 0.07)], shade('#f08a2a'), seg=10, cap_top=True)
+        for k in range(5):
+            a = k / 5 * math.tau
+            tube(mb, [(0, 0, 0.06), (math.cos(a) * 0.05, math.sin(a) * 0.05, 0.2), (math.cos(a) * 0.1, math.sin(a) * 0.1, 0.3)], 0.01, shade('#4a9a3a'), seg=4)
+            ball(mb, (math.cos(a) * 0.1, math.sin(a) * 0.1, 0.3), (0.05, 0.05, 0.035), shade('#5aaa44'), sub=1)
+    elif kind == 'broccoli':
+        leafy(mb, (0, 0, 0.05), 5, 0.17, 0.06, 0.08, '#3a7a3a', '#6aa858', seed=7)
+        stalk(mb, (0, 0, 0), 0.22, 0.04, '#8ac06a')
+        for k in range(7):
+            a = k / 7 * math.tau
+            ball(mb, (math.cos(a) * 0.06, math.sin(a) * 0.06, 0.26), 0.055, col_fn('#3a8a3a', mottle=0.25), sub=2)
+        ball(mb, (0, 0, 0.29), 0.06, col_fn('#3a8a3a', mottle=0.25), sub=2)
+    else:
+        # a bushy plant with its fruit hanging: chili, cucumber, eggplant, tomato, edamame
+        stalk(mb, (0, 0, 0), 0.34, 0.016)
+        for k, z in enumerate((0.1, 0.2, 0.3)):
+            leafy(mb, (0, 0, z), 4, 0.12, 0.05, 0.03, seed=k * 3 + len(kind), droop=0.3)
+        fr = {'tomato': ('#e8342a', 'ball'), 'chili': ('#e8302a', 'pod'), 'cucumber': ('#3a8a34', 'long'), 'eggplant': ('#5a2a6a', 'long'), 'edamame': ('#7ac04a', 'pod')}[kind]
+        for k in range(4 if fr[1] == 'ball' else 3):
+            a = k / 3.5 * math.tau + 0.4
+            p = Vector((math.cos(a) * 0.1, math.sin(a) * 0.1 - 0.03, 0.12 + 0.07 * (k % 2)))
+            if fr[1] == 'ball':
+                ball(shine, p, 0.05, shade(fr[0]), sub=2)
+                ball(mb, p + Vector((0, 0, 0.05)), (0.025, 0.025, 0.01), shade('#3a7a2a'), sub=1)
+            elif fr[1] == 'long':
+                r0 = 0.04 if kind == 'eggplant' else 0.03
+                tube(shine, [p + Vector((0, 0, 0.02)), p - Vector((0, 0, 0.06)), p - Vector((0.01, 0, 0.13))], r0, shade(fr[0]), seg=8, r1=r0 * (1.3 if kind == 'eggplant' else 0.8))
+            else:
+                tube(shine, [p, p - Vector((0.01, 0, 0.05)), p - Vector((0.03, 0, 0.09))], 0.016, shade(fr[0]), seg=6, r1=0.006)
+    lathe(mb, [(0.18, 0.0), (0.15, 0.025), (0.06, 0.04), (0.0, 0.045)], col_fn(SOIL, mottle=0.2), seg=14, cap_top=False)
+    return [(mb, 'main'), (shine, 'gloss')] if shine.v else [(mb, 'main')]
+
+
+VEG = ['bokchoy', 'chili', 'cucumber', 'carrot', 'broccoli', 'eggplant', 'thaibasil', 'greenonion', 'tomato', 'edamame']
+
 THINGS = {
+    'item_vbball': vbball, 'plot_seed': plot_seed, 'plot_sprout': plot_sprout,
+    **{f'veg_{k}': (lambda k=k: veg(k)) for k in VEG},
     'item_shell_clam': shell_clam, 'item_shell_scallop': shell_scallop, 'item_shell_turban': shell_turban, 'item_shell_cowrie': shell_cowrie,
     'item_shell_coral': shell_coral, 'item_shell_conch': shell_conch, 'item_shell_seaglass': shell_seaglass, 'item_shell_pearl': shell_pearl,
     'item_shell_star': shell_star, 'item_shell_bottle': shell_bottle,

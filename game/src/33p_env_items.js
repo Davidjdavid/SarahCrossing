@@ -20,7 +20,17 @@ const EnvItems = {
         const icon = typeof itemIcon === 'function' ? itemIcon(id) : id;
         return EnvModels.has('item_' + icon) ? 'item_' + icon : EnvModels.has('item_' + id) ? 'item_' + id : null;
     },
-    takes(e) { return e.kind === 'item' && !!this.model(e.id); },
+    takes(e) { return (e.kind === 'item' && !!this.model(e.id)) || (e.kind === 'vbball' && EnvModels.has('item_vbball')); },
+    /* what's growing in a garden plot, as a model: the seeds' mound, a sprout, then the flower or the vegetable */
+    plant(e) {
+        if (typeof EnvModels === 'undefined' || !EnvModels.ready || typeof S === 'undefined') return null;
+        const pl = S.plots && S.plots[e.idx], st = plotStage(pl);
+        if (!st) return null;
+        if (st === 1) return EnvModels.has('plot_seed') ? 'plot_seed' : null;
+        if (st === 2) return EnvModels.has('plot_sprout') ? 'plot_sprout' : null;
+        const n = pl.seed.startsWith('flower_') ? 'flowers_' + pl.seed.split('_')[1] : 'veg_' + pl.seed;
+        return EnvModels.has(n) ? n : null;
+    },
     make(name) {
         const M = EnvModels.models[name], g = new THREE.Group();
         for (const p of M.parts) {
@@ -53,6 +63,28 @@ const EnvItems = {
             seen.add(e);
             const bob = e.fresh ? e.fresh * 0.4 / TILE : 0;
             d.position.set(e.x / TILE, Env.groundH(e.x, e.y - 2) + bob, (e.y - 3) / TILE * R3_ZS);
+        }
+        // the garden plots' plants, and the volleyball (bouncing when it's been hit, as its picture did)
+        for (const e of a.ents) {
+            if (e.kind !== 'plot' && e.kind !== 'vbball') continue;
+            if (v && (e.x < v.x0 - 48 || e.x > v.x1 + 48 || e.y < v.y0 - 48 || e.y > v.y1 + 96)) continue;
+            const name = e.kind === 'plot' ? this.plant(e) : 'item_vbball';
+            if (!name || !EnvModels.has(name)) continue;
+            let d = this.list.get(e);
+            if (d && d.userData.name !== name) { this.group.remove(d); d = null; }
+            if (!d) {
+                d = this.make(name); d.userData.name = name;
+                d.rotation.y = e.kind === 'plot' ? (e.idx * 1.7) % 6.28 : 0;
+                d.scale.setScalar(e.kind === 'plot' ? (/^flowers_/.test(name) ? 0.8 : 1.4) : 1.3);
+                this.list.set(e, d);
+            }
+            seen.add(e);
+            if (e.kind === 'plot') { const f = Env.tileSpot(e); d.position.set(f.x, f.y, f.z); }
+            else {
+                const b = e.bounce > 0 ? Math.abs(Math.sin(e.bounce-- / 5)) * 8 * (e.bounce / 30) : 0;
+                d.position.set(e.x / TILE, Env.groundH(e.x, e.y - 2) + b / TILE * R3_VS, (e.y - 2) / TILE * R3_ZS);
+                d.rotation.x = b * 0.2;
+            }
         }
         // clam spots and glints (drawn flat into the ground too; these are what moves)
         const t = G.t;

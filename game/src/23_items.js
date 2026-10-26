@@ -217,6 +217,8 @@ function plotStage(pl) {
 function drawPlot(ctx, e) {
     const pl = S.plots[e.idx];
     const st = plotStage(pl);
+    // (in the new look what grows is a model standing in the plot: here only its soil)
+    if (typeof Env !== 'undefined' && Env.on && typeof EnvItems !== 'undefined' && EnvItems.plant(e)) { spr(ctx, 'plot_0', e.x, e.y); return; }
     spr(ctx, `plot_${st}`, e.x, e.y);
     if (st === 3) spr(ctx, pl.seed.startsWith('flower_') ? ITEMS[pl.seed].icon : 'veg_' + pl.seed, e.x, e.y - (pl.seed.startsWith('flower_') ? 1 : 3));
 }
