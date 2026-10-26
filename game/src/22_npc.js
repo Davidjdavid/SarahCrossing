@@ -412,7 +412,7 @@ const NPCs = {
 };
 
 /* the test area's cast: where they stand (tiles), beside Sarah on the cobbles */
-const LAB_CAST = { joe: [28.4, 27.0], maki: [30.0, 27.1] };
+const LAB_CAST = { joe: [27.9, 27.2], maki: [29.3, 27.3], kai: [32.1, 27.5], ginger: [33.4, 27.6] };
 /* what an NPC wants to be doing at island-hour dh */
 function targetFor(n, dh) {
     const d = n.def;

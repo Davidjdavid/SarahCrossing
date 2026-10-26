@@ -7,13 +7,15 @@
    as they are, like the game's other pictures (no color-space conversion), and colors kept in a mesh are turned back
    into the colors as painted. */
 const EnvModels = {
-    OUTDOOR: new Set(['furn_lunar_lantern', 'furn_red_lantern', 'furn_heart_lamp']),
+    OUTDOOR: new Set(['furn_lunar_lantern', 'furn_red_lantern', 'furn_heart_lamp', 'furn_cafe_table']),
     models: {}, textures: {}, ready: false, failed: false, _p: null, done: 0, total: 1,
     phone() { try { return matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 600; } catch (e) { return false; } },
     /* the names to fetch: each model once, its phone version on phones */
     names() {
         const all = Object.keys(window.MODELS || {}), phone = this.phone();
-        return all.filter(n => phone ? !all.includes(n + '_lod1') : !/_lod\d$/.test(n));
+        // (the style test's models only where it's shown: 33ka_doll_kit.js)
+        const test = typeof STYLE2 !== 'undefined' && STYLE2;
+        return all.filter(n => (phone ? !all.includes(n + '_lod1') : !/_lod\d$/.test(n)) && (test || !/^(doll_|folk2_|style_)/.test(n)));
     },
     load() {
         if (this._p) return this._p;

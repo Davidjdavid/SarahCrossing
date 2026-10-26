@@ -44,6 +44,7 @@ const UI = {
         nx.hidden = true;
         this._typing = true;
         this._full = text;
+        this._sp = sp;          // (who's speaking: their doll's mouth moves, 33kb_doll_act.js)
         return new Promise(res => {
             let i = 0;
             const speed = opts.fast ? 3 : 1;

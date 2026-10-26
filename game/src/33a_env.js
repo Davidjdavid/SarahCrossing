@@ -123,7 +123,7 @@ const Env = {
             ['build', typeof EnvBuild !== 'undefined' && EnvBuild], ['walls', typeof EnvWalls !== 'undefined' && EnvWalls],
             ['contact', typeof EnvContact !== 'undefined' && EnvContact], ['glow', typeof EnvGlow !== 'undefined' && EnvGlow], ['decals', typeof EnvDecals !== 'undefined' && EnvDecals],
             ['dolls', typeof EnvDolls !== 'undefined' && EnvDolls], ['critters', typeof EnvCritters !== 'undefined' && EnvCritters],
-            ['sea', typeof EnvSea !== 'undefined' && EnvSea], ['items', typeof EnvItems !== 'undefined' && EnvItems], ['sights', typeof EnvSights !== 'undefined' && EnvSights]]) {
+            ['sea', typeof EnvSea !== 'undefined' && EnvSea], ['items', typeof EnvItems !== 'undefined' && EnvItems], ['sights', typeof EnvSights !== 'undefined' && EnvSights], ['style', typeof EnvStyle !== 'undefined' && EnvStyle]]) {
             if (!B) continue;
             const t1 = performance.now();
             const p = B.build(group, a);

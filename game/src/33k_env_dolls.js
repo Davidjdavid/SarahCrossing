@@ -67,11 +67,12 @@ const EnvDolls = {
             if (!e || !this.canPose(e)) { if (d0) d0.root.visible = false; continue; }
             const spec = this.specOf(e);
             if (!spec) continue;
-            const key = JSON.stringify(spec);
+            const key = JSON.stringify(spec) + (!spec.folk && this.kitReady && this.kitReady() ? '|kit' : '');
             let d = d0;
             if (d && d.key !== key) { this.drop(d); d = null; }
             if (!d) { d = spec.folk ? this.makeFolk(spec) : this.make(spec); d.key = key; this.dolls.set(e, d); this.group.add(d.root); }
-            if (d.folk) this.poseFolk(d, e); else this.pose(d, e);
+            if (d.folk) { if (d.v2) this.poseFolk2(d, e); else this.poseFolk(d, e); }
+            else if (d.v2) this.pose2(d, e); else this.pose(d, e);
             this.drawn.add(e);
         }
     },
@@ -79,7 +80,7 @@ const EnvDolls = {
         if (d.root.parent) d.root.parent.remove(d.root);
         for (const t of d.textures || []) t.dispose();
         for (const g of d.geos || []) g.dispose();
-        if (d.faceMat) d.faceMat.dispose();
+        if (d.faceMat && !d.v2) d.faceMat.dispose();
         if (d.hairMat) d.hairMat.dispose();
     },
 
@@ -125,7 +126,8 @@ const EnvDolls = {
         // where the joints want to be
         const ph = m.dist / (run ? 34 : 26) * Math.PI * 2, sw = walk ? Math.sin(ph) * (run ? 0.85 : 0.5) : 0;
         const br = walk || Q ? 0 : Math.sin(t / 22 + seed) * 0.5 + 0.5;
-        const W = { aLx: -sw * 0.85, aRx: sw * 0.85, aLz: -0.12 - br * 0.03, aRz: 0.12 + br * 0.03, lL: sw, lR: -sw,
+        const rest = d.v2 ? 0.22 : 0.12;
+        const W = { aLx: -sw * 0.85, aRx: sw * 0.85, aLz: -rest - br * 0.03, aRz: rest + br * 0.03, lL: sw, lR: -sw,
             bx: run ? 0.16 : walk ? 0.05 : 0, by: walk ? Math.abs(Math.cos(ph)) * (run ? 0.03 : 0.016) : br * 0.004, hx: -0.2 - (run ? 0.1 : 0), bz: 0 };
         if (Q) {
             // (cheering and the like bounce on the beat)
@@ -142,7 +144,8 @@ const EnvDolls = {
         if (tool !== d.tool) { if (d.toolMesh) { d.toolMesh.parent.remove(d.toolMesh); d.toolMesh = null; } d.tool = tool; if (tool) d.toolMesh = this.toolModel(d, tool); }
         // the eyes shut for a moment every few seconds
         const blink = hdBlinkNow(seed);
-        if (blink !== d.blink) { d.blink = blink; d.faceMat.map = blink ? d.faceShut : d.faceOpen; }
+        if (d.v2) this.setFace(d, blink ? 'blink' : d.expr || 'idle');
+        else if (blink !== d.blink) { d.blink = blink; d.faceMat.map = blink ? d.faceShut : d.faceOpen; }
     },
     /* a tool in the hand: the axe, the shovel, the fishing rod */
     toolModel(d, kind) {
@@ -163,12 +166,27 @@ const EnvDolls = {
        that shut, the gingerbread builder's arms and legs, the goat's legs); a hat or glasses a friend gave at the
        model's anchors */
     makeFolk(spec) {
-        const M = EnvModels.models['folk_' + spec.folk], pre = spec.folk + '_';
-        const d = { folk: spec.folk, parts: { eyes: [], feet: [], arms: [], legs: [] } }, P = d.parts;
+        // (the redone folks of the style test: 33ka_doll_kit.js)
+        const v2 = typeof STYLE2 !== 'undefined' && STYLE2 && EnvModels.has('folk2_' + spec.folk) && !!FOLK_FACES[spec.folk];
+        const M = EnvModels.models[(v2 ? 'folk2_' : 'folk_') + spec.folk], pre = spec.folk + '_';
+        const d = { folk: spec.folk, v2, geos: [], parts: { eyes: [], feet: [], arms: [], legs: [] } }, P = d.parts;
         const root = d.root = new THREE.Group(), body = P.body = new THREE.Group();
         root.add(body);
         for (const p of M.parts) {
             const key = p.node.startsWith(pre) ? p.node.slice(pre.length) : p.node;
+            // (the patch its face is painted on: its own copy, so the expression can change)
+            if (key === 'face') {
+                if (!v2) continue;
+                const geo = p.geometry.clone(), sheet = this.folkSheet(spec.folk);
+                d.faceUV = Float32Array.from(geo.attributes.uv.array);
+                const m = new THREE.Mesh(geo, sheet.mat);
+                m.renderOrder = 2;
+                body.add(m);
+                d.face = m;
+                d.geos.push(geo);
+                this.setFace(d, 'idle');
+                continue;
+            }
             const kind = /^eye_/.test(key) ? 'eyes' : /^foot_/.test(key) ? 'feet' : /^arm_/.test(key) ? 'arms' : /^leg_/.test(key) ? 'legs' : null;
             let geo = p.geometry;
             if (kind) { p.local = p.local || p.geometry.clone().translate(-p.at.x, -p.at.y, -p.at.z); geo = p.local; }
@@ -250,6 +268,7 @@ const EnvDolls = {
         }
         // the eyes shut for a moment every few seconds
         const blink = hdBlinkNow(seed);
+        if (d.v2) this.setFace(d, blink ? 'blink' : d.expr || 'idle');
         for (const g of P.eyes) g.scale.y = blink ? 0.1 : 1;
     },
 
@@ -266,7 +285,7 @@ const EnvDolls = {
         const P = d.parts;
         if (!this.vc) this.vc = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0 }), { key: 'envdollvc' });
         d.geos = [];
-        for (const g of [P.body, P.legL, P.legR, P.armL, P.armR, P.head]) {
+        for (const g of d.joints || [P.body, P.legL, P.legR, P.armL, P.armR, P.head]) {
             if (!g) continue;
             const plain = g.children.filter(m => m.isMesh && m.material.userData.plain), hair = g.children.filter(m => m.isMesh && m.material === d.hairMat);
             for (const [list, mat] of [[plain, this.vc], [hair, d.hairMat]]) {
@@ -314,6 +333,7 @@ const EnvDolls = {
             hcap: () => new THREE.SphereGeometry(1, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.58),
             cone: () => new THREE.ConeGeometry(1, 1, 14),
             ring: () => new THREE.TorusGeometry(1, 0.16, 8, 28),
+            ring2: () => new THREE.TorusGeometry(1, 0.085, 8, 36),
             band: () => new THREE.TorusGeometry(1, 0.08, 6, 28),
             disc: () => new THREE.CylinderGeometry(1, 1, 1, 28),
             box: () => new THREE.BoxGeometry(1, 1, 1),
@@ -345,6 +365,7 @@ const EnvDolls = {
 
     /* ---------------------------------------------------------------- putting one together */
     make(spec) {
+        if (this.kitReady && this.kitReady()) return this.make2(spec);
         const L = spec.look || LOOK_DEFAULT, C = spec.clothes || { style: 'toppants', top: '#c0303a', trim: '#f4f0e6', bottom: '#4d6d9f', shoes: '#f3f1ee' };
         const st = HD_STYLE[C.style] || HD_STYLE.toppants, skin = this.mat(L.skin || '#fbd9c6', 0.6), top = this.mat(C.top || '#c0303a'), trim = this.mat(C.trim || C.top || '#f4f0e6');
         const bottom = this.mat(C.bottom || C.top || '#4d6d9f'), shoes = this.mat(C.shoes || '#f3f1ee', 0.5);
@@ -476,7 +497,7 @@ const EnvDolls = {
         mullet: [['cap', 1.07], ['ball', 0, -0.75, -0.55, 0.78, 0.92, 0.42]],
     },
     hair(d, head, L) {
-        const list = this.HAIR[L.hair] || this.HAIR.bob, R = DOLL.R;
+        const list = this.HAIR[L.hair] || this.HAIR.bob, R = d.R || DOLL.R;
         const base = new THREE.Color(L.hairCol || '#5a3622'), tip = L.tipCol ? new THREE.Color(L.tipCol) : null;
         d.hairMat = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, metalness: 0 }), { key: 'envdollhair' });
         const meshes = [];
@@ -521,14 +542,15 @@ const EnvDolls = {
 
     /* glasses and hats */
     extras(d, head, spec, L) {
-        const R = DOLL.R, dark = this.mat('#3a2a2a', 0.4), eyeY = -0.05 * R, fz = 0.93 * R;
+        const R = d.R || DOLL.R, dark = this.mat(d.v2 ? '#5a3a2c' : '#3a2a2a', 0.4), E = d.eye || { x: 0.38, y: -0.05, z: 0.93 }, eyeY = E.y * R, fz = E.z * R, ex = E.x;
         const eye = spec.eyes;
         if (eye === 'glasses' || eye === 'sunglasses') {
+            const gr = (E.r || 0.2) * R;
             for (const s of [-1, 1]) {
-                this.piece(head, 'ring', dark, s * 0.38 * R, eyeY, fz, 0.2 * R, 0.2 * R, 0.2 * R);
-                if (eye === 'sunglasses') this.piece(head, 'disc', this.mat('#1c1c24', 0.25), s * 0.38 * R, eyeY, fz, 0.2 * R, 0.02 * R, 0.2 * R, Math.PI / 2);
+                this.piece(head, d.v2 ? 'ring2' : 'ring', dark, s * ex * R, eyeY, fz, gr, gr, gr);
+                if (eye === 'sunglasses') this.piece(head, 'disc', this.mat('#1c1c24', 0.25), s * ex * R, eyeY, fz, gr, 0.02 * R, gr, Math.PI / 2);
             }
-            this.piece(head, 'box', dark, 0, eyeY + 0.03 * R, fz + 0.02 * R, 0.2 * R, 0.035 * R, 0.035 * R);
+            this.piece(head, 'box', dark, 0, eyeY + 0.03 * R, fz + 0.02 * R, Math.max(0.06 * R, (ex * 2 - (E.r || 0.2) * 2) * R + 0.02 * R), 0.035 * R, 0.035 * R);
         } else if (eye === 'monocle') {
             this.piece(head, 'ring', this.mat('#d8b040', 0.3), 0.38 * R, eyeY, fz + 0.02 * R, 0.26 * R, 0.26 * R, 0.4 * R);
             this.piece(head, 'disc', this.mat('#d8eef8', 0.15), 0.38 * R, eyeY, fz + 0.01 * R, 0.24 * R, 0.01 * R, 0.24 * R, Math.PI / 2);

@@ -195,6 +195,20 @@ docs/DEPLOY.md for the server.
   karaoke stay in 3D there (`R3.active`): Sarah's doll dances the game's poses, while the arrows, judgements, lyrics and
   pitch bar are drawn flat over the scene (`Dance.draw`, `Karaoke.draw` on the overlay). The HD-2D view keeps the club and
   both games flat.
+- The style test (David, 26 October: characters and props redone as cozy handcrafted miniatures after Animal Crossing:
+  New Horizons; the rules it settled on are in docs/STYLE.md). In the test area only (`STYLE2`: `?lab`, or
+  `localStorage sc-style2` 1 or 0 anywhere; its models, `doll_*`, `folk2_*`, `style_*`, load only there) until David
+  approves it: people are chibi dolls from a Blender kit (`tools/blender/dolls.py`: `doll_kit` with each part in greys
+  named `<part>__<role>` and its origin at its joint, elbows and knees jointed on balls; `doll_hair`, the hair sculpted as
+  locks melted into one mass with grooves between them, its blue channel how far toward the dyed tips), put together and
+  painted by `EnvDolls.make2` (33ka_doll_kit.js); Maki, Kai and Ginger redone in `tools/blender/folks2.py` (`folk2_<id>`,
+  each with its own arms and accessory); every face is painted on a patch (`face__face`, a folk's `face` part) from a
+  sheet of sixteen expressions per look or folk (`FACES`, `faceSheet`/`folkSheet`, `personFace`, `FOLK_FACES`), changed
+  by moving the patch's UVs (`setFace`); how they act is 33kb_doll_act.js (`act`: faces from talking, a line's mood,
+  emotes and games, tag's glances back, stumbles and celebrations; `pose2`, `poseFolk2`, `FOLK_ACT`); five props in
+  `tools/blender/props2.py` (`style_bench`, `style_lamp`, `style_armchair`, `style_cake`, `style_shovel`, the shovel in
+  Sarah's hand too) stand in the test area's corner by the square (`EnvStyle`), with Kai and Ginger beside Maki and Joe
+  (`LAB_CAST`). `UI._sp` is who's speaking.
 - David's rule (27 October): everything in the world is a 3D model in the dollhouse look (things on the ground, in the sky
   and at sea, what's hung on walls and set on tables), except the minigames (cooking, the arcade cabinets, jump rope,
   volleyball and the like), which keep their 2D look.

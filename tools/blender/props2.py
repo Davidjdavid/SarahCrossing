@@ -1,0 +1,361 @@
+"""Five props in the style David set on 26 October (the style test): a park bench, a street lamp, an armchair, a strawberry
+shortcake and the shovel. Each is a miniature toy rather than a scale model: chunky (nothing so thin it vanishes at
+playing distance), every edge rounded, the part that says what it is made a little bigger (the bench's scrolled arms,
+the lamp's lantern, the chair's rolled arms and tufted back, the cake's layers and berries, the shovel's D-grip), warm
+painted colors a shade darker underneath, and each standing on its own feet, base or plate.
+
+Colors are in the mesh (no baking), as props_island.py's are; a part named *_glass glows at night (the lamp), *_gloss
+is a touch shinier (glaze, cream, a painted blade).
+
+    python tools/blender/props2.py [--preview DIR] [--only NAME]
+"""
+import sys, os, math, random
+sys.path.insert(0, os.path.dirname(__file__))
+import bpy
+from mathutils import Vector, Matrix, Euler, noise
+from common import *
+from trees_ac import MB, vmat, rgb
+from kit import col_fn, shade, rbox, lathe, cyl, ball, tube, slab, xform, rot
+from folks import surf, superq, revolve
+
+
+def paint(c, under=0.22, z0=0.0, z1=1.0, top=0.06, mottle=0.0, seed=0.0):
+    """A painted color: darker toward the bottom of the piece and on faces turned down, lighter on top, a faint mottle."""
+    base = rgb(c)
+    off = Vector((seed, seed * 1.3, seed * 0.7))
+
+    def f(p, n, *_):
+        k = 1.0 - under * max(0.0, 1 - (p.z - z0) / max(1e-3, z1 - z0)) ** 2
+        k *= 1.0 - 0.12 * max(0.0, -n.z) + top * max(0.0, n.z)
+        if mottle:
+            k *= 1 - mottle + 2 * mottle * (0.5 + 0.5 * noise.noise(p * 9 + off))
+        return base * k
+    return f
+
+
+def grain(c, axis='x', seed=0.0, z0=0.0, z1=1.0):
+    """Painted wood: a soft grain along the board, lighter on its top face, a worn lighter edge."""
+    base = rgb(c)
+    off = Vector((seed * 3.1, seed * 1.7, seed * 2.3))
+
+    def f(p, n, *_):
+        a = {'x': (p.y * 14, p.z * 14, p.x * 1.2), 'y': (p.x * 14, p.z * 14, p.y * 1.2), 'z': (p.x * 14, p.y * 14, p.z * 1.2)}[axis]
+        k = 0.9 + 0.16 * (0.5 + 0.5 * noise.noise(Vector(a) * 1.6 + off))
+        k *= 1.0 - 0.14 * max(0.0, -n.z) + 0.07 * max(0.0, n.z)
+        k *= 1.0 - 0.18 * max(0.0, 1 - (p.z - z0) / max(1e-3, z1 - z0)) ** 3
+        return base * k
+    return f
+
+
+def scroll(mb, c, s, r, turns, width, color, axis='x', seg=12):
+    """A curl (the end of an iron arm): a tube winding inward round c, in the plane across `axis`."""
+    pts = []
+    n = int(turns * 28)
+    for k in range(n + 1):
+        t = k / n
+        a = t * turns * math.tau
+        rr = r * (1 - 0.72 * t)
+        if axis == 'x':
+            pts.append(c + Vector((0, math.cos(a) * rr * s, math.sin(a) * rr)))
+        else:
+            pts.append(c + Vector((math.cos(a) * rr * s, 0, math.sin(a) * rr)))
+    tube(mb, pts, width, color, seg=seg, r1=width * 0.8)
+    ball(mb, pts[-1], width * 0.95, color, sub=2)
+
+
+# ---------------------------------------------------------------- the bench
+def bench():
+    """A park bench 1.8 long: three thick honey-colored seat planks and two for the back, on cast sides painted forest
+    green, each a front leg, a back leg sweeping up to hold the back, and an arm ending in a big scroll."""
+    mb = MB()
+    L, sh = 1.8, 0.46
+    tones = ['#c98a4a', '#d29452', '#c08044']
+    for i in range(3):
+        y0 = -0.24 + i * 0.15
+        rbox(mb, -L / 2, y0, sh - 0.075, L / 2, y0 + 0.13, sh, grain(tones[i], 'x', i * 2.3, sh - 0.1, sh), r=0.032)
+    for i in range(2):
+        m = len(mb.v)
+        rbox(mb, -L / 2 + 0.04, -0.035, -0.075, L / 2 - 0.04, 0.035, 0.075, grain(tones[(i + 1) % 3], 'x', 7 + i), r=0.03)
+        xform(mb, m, Matrix.Translation((0, 0.26 + i * 0.045, 0.68 + i * 0.19)) @ Matrix.Rotation(math.radians(-12), 4, 'X'))
+    green = paint('#2f5c4a', under=0.15, z0=0, z1=1.0, top=0.12)
+    for s in (-1, 1):
+        x = s * (L / 2 - 0.16)
+        # the front leg, a little splayed, and its foot
+        tube(mb, [(x, -0.2, 0.03), (x, -0.21, 0.2), (x, -0.2, sh - 0.06)], 0.034, green, seg=12)
+        ball(mb, (x, -0.2, 0.03), (0.055, 0.06, 0.03), green, sub=2)
+        # the back leg: down from the top of the back, a curve back to its foot
+        tube(mb, [(x, 0.28, 0.03), (x, 0.24, 0.25), (x, 0.24, sh - 0.04), (x, 0.3, 0.7), (x, 0.36, 1.02)], 0.034, green, seg=12)
+        ball(mb, (x, 0.28, 0.03), (0.055, 0.06, 0.03), green, sub=2)
+        ball(mb, (x, 0.36, 1.02), 0.042, green, sub=2)
+        # the rail under the seat
+        tube(mb, [(x, -0.26, sh - 0.1), (x, 0.28, sh - 0.1)], 0.026, green, seg=10)
+        # the arm: from the back leg forward over the seat, its end rolled into a scroll
+        tube(mb, [(x, 0.26, 0.66), (x, 0.0, 0.69), (x, -0.22, 0.68)], 0.03, green, seg=12)
+        tube(mb, [(x, -0.2, sh - 0.04), (x, -0.22, 0.56), (x, -0.24, 0.62)], 0.026, green, seg=10)
+        scroll(mb, Vector((x, -0.28, 0.62)), -1, 0.07, 1.1, 0.026, green)
+    return [(mb, 'main')]
+
+
+# ---------------------------------------------------------------- the street lamp
+def lamp():
+    """A street lamp 2.5 tall, chunky as a toy: a stepped, flared foot, a fat post with rings, scrolls holding a six-sided
+    lantern (its glass glows at night), a little domed roof and a finial; deep green with gold rings."""
+    mb, glass = MB(), MB()
+    green = paint('#2a4a40', under=0.12, z0=0, z1=2.5, top=0.14)
+    gold = paint('#d8aa48', under=0.0, top=0.2)
+    lathe(mb, [(0.2, 0.0), (0.21, 0.04), (0.2, 0.08), (0.16, 0.1), (0.15, 0.16), (0.12, 0.2), (0.09, 0.26), (0.075, 0.34)], green, seg=28)
+    lathe(mb, [(0.075, 0.34), (0.068, 1.0), (0.06, 1.9), (0.058, 1.98)], green, seg=24, cap_top=False)
+    for z, r in ((0.12, 0.17), (0.36, 0.085), (1.12, 0.075), (1.96, 0.08)):
+        lathe(mb, [(r - 0.01, z - 0.022), (r + 0.012, z - 0.01), (r + 0.012, z + 0.01), (r - 0.01, z + 0.022)], gold, seg=24, cap_top=False)
+    # the top of the post spreading into a cup, scrolls under the lantern
+    lathe(mb, [(0.058, 1.98), (0.09, 2.03), (0.15, 2.07), (0.17, 2.09), (0.0, 2.095)], green, seg=24, cap_top=False)
+    for k in range(4):
+        a = k * math.pi / 2 + math.pi / 4
+        d = Vector((math.cos(a), math.sin(a), 0))
+        pts = [Vector((0, 0, 1.86)) + d * 0.06, Vector((0, 0, 1.94)) + d * 0.14, Vector((0, 0, 2.04)) + d * 0.17]
+        tube(mb, pts, 0.018, green, seg=8)
+        ball(mb, pts[-1], 0.024, gold, sub=1)
+    # the lantern: six sides, the glass inside a frame of corner posts, a band top and bottom
+    z0, z1, R = 2.1, 2.42, 0.17
+    lathe(glass, [(R * 0.86, z0 + 0.005), (R * 0.94, z0 + 0.12), (R * 0.98, z1 - 0.04), (R * 0.9, z1 - 0.005)], col_fn('#fde8a8', under=0.0), seg=6, cap_top=True, cap_bot=True)
+    for k in range(6):
+        a = k * math.tau / 6
+        tube(mb, [(math.cos(a) * R * 0.92, math.sin(a) * R * 0.92, z0), (math.cos(a) * R * 1.0, math.sin(a) * R * 1.0, z0 + 0.15), (math.cos(a) * R * 0.98, math.sin(a) * R * 0.98, z1)], 0.016, green, seg=8)
+    lathe(mb, [(R * 0.9, z0 - 0.02), (R * 1.06, z0), (R * 1.06, z0 + 0.03), (R * 0.9, z0 + 0.035)], gold, seg=6, cap_top=False)
+    lathe(mb, [(R * 0.95, z1 - 0.01), (R * 1.12, z1), (R * 1.12, z1 + 0.035), (R * 0.95, z1 + 0.04)], green, seg=6, cap_top=False)
+    # the roof: a six-sided dome flaring at the eaves, a gold ball on top
+    lathe(mb, [(R * 1.32, z1 + 0.04), (R * 1.25, z1 + 0.07), (R * 0.95, z1 + 0.13), (R * 0.55, z1 + 0.2), (R * 0.2, z1 + 0.25), (0.0, z1 + 0.26)], green, seg=6, cap_top=False)
+    lathe(mb, [(R * 1.32, z1 + 0.04), (0.0, z1 + 0.04)], green, seg=6, cap_top=False)
+    ball(mb, (0, 0, z1 + 0.3), 0.045, gold, sub=2)
+    return [(mb, 'main'), (glass, 'glass')]
+
+
+# ---------------------------------------------------------------- the armchair
+def armchair():
+    """A plump armchair a tile wide: an overstuffed mustard body, arms rolled outward, a deep seat cushion with piping, a
+    tall back tufted with buttons, short turned walnut legs."""
+    mb = MB()
+    fab = rgb('#e2a43a')
+
+    def cloth(c=None, tuft=None):
+        base = rgb(c) if c else fab
+
+        def f(p, n, *_):
+            k = 0.92 + 0.06 * noise.noise(p * 22)
+            k *= 1.0 - 0.16 * max(0.0, -n.z) + 0.06 * max(0.0, n.z)
+            k *= 1.0 - 0.14 * max(0.0, 1 - p.z / 0.3) ** 2
+            if tuft:
+                for (tx, tz) in tuft:
+                    d = math.hypot(p.x - tx, p.z - tz)
+                    k *= 1 - 0.3 * math.exp(-(d / 0.045) ** 2)
+            return base * k
+        return f
+    W, D = 0.86, 0.8
+    # the legs
+    walnut = grain('#6a4024', 'z', 3.0, 0, 0.14)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            lathe(mb, [(0.032, 0.0), (0.038, 0.03), (0.028, 0.07), (0.036, 0.11), (0.042, 0.14)], walnut, c=(sx * (W / 2 - 0.08), sy * (D / 2 - 0.08), 0), seg=14)
+    # the body: a plump box from the legs to the seat, the skirt
+    rbox(mb, -W / 2, -D / 2, 0.13, W / 2, D / 2, 0.36, cloth(), r=0.07)
+    # the back: tall and puffy, leaning back a little, tufted
+    tufts = [(-0.15, 0.72), (0.15, 0.72), (0.0, 0.62), (-0.15, 0.52), (0.15, 0.52)]
+    m = len(mb.v)
+    surf(mb, superq(0, 0, 0, W / 2 - 0.02, 0.1, 0.34, 0.4, 0.45), lambda p, n, *_: cloth(tuft=[(tx, tz - 0.6) for tx, tz in tufts])(p + Vector((0, 0, 0.6)), n), nu=48, nv=24)
+    xform(mb, m, Matrix.Translation((0, D / 2 - 0.12, 0.62)) @ Matrix.Rotation(math.radians(-9), 4, 'X'))
+    for (tx, tz) in tufts:
+        p = Vector((tx, D / 2 - 0.22 - (tz - 0.62) * math.tan(math.radians(9)), tz))
+        ball(mb, p, (0.022, 0.014, 0.022), lambda q, nq, *_: rgb('#a86a10') * (0.9 + 0.2 * max(0.0, -nq.y)), sub=2)
+    # the seat cushion, deep and puffy, piped round its top edge
+    surf(mb, superq(0, -0.06, 0.41, W / 2 - 0.13, D / 2 - 0.1, 0.075, 0.35, 0.5), cloth('#e8ae44'), nu=40, nv=16)
+    pip = []
+    for k in range(41):
+        t = k / 40 * math.tau
+        x = (W / 2 - 0.13) * math.copysign(abs(math.cos(t)) ** 0.35, math.cos(t))
+        y = -0.06 + (D / 2 - 0.1) * math.copysign(abs(math.sin(t)) ** 0.35, math.sin(t))
+        pip.append((x, y, 0.445))
+    tube(mb, pip, 0.012, cloth('#f2c868'), seg=8)
+    # the arms: rolled outward, front caps showing the roll
+    for s in (-1, 1):
+        x = s * (W / 2 - 0.07)
+        m = len(mb.v)
+        surf(mb, superq(0, 0, 0, 0.085, D / 2 - 0.02, 0.17, 0.5, 0.55), cloth(), nu=32, nv=16)
+        xform(mb, m, Matrix.Translation((x, -0.01, 0.42)))
+        # (the roll's face at the front of the arm)
+        mm = len(mb.v)
+        lathe(mb, [(0.0, 0.0), (0.09, 0.0), (0.1, 0.018), (0.0, 0.022)], cloth('#eab550'), seg=24)
+        xform(mb, mm, Matrix.Translation((x + s * 0.02, -D / 2 + 0.0, 0.56)) @ Matrix.Rotation(math.pi / 2, 4, 'X'))
+        tube(mb, [(x + s * 0.02 + math.cos(a) * 0.05 * (1 - k / 22), -D / 2 - 0.02, 0.56 + math.sin(a) * 0.05 * (1 - k / 22)) for k, a in enumerate([k * 0.4 for k in range(16)])], 0.007, cloth('#c08420'), seg=6)
+    return [(mb, 'main')]
+
+
+# ---------------------------------------------------------------- the cake
+def cake():
+    """A strawberry shortcake on a cake stand: two golden sponge layers with cream and sliced berries between, a slice
+    cut out to show them, piped cream round the top with a whole strawberry on each swirl."""
+    mb, gl = MB(), MB()
+    # the stand: a white plate on a short foot
+    lathe(gl, [(0.12, 0.0), (0.13, 0.01), (0.08, 0.03), (0.05, 0.07), (0.05, 0.1), (0.2, 0.115), (0.28, 0.13), (0.29, 0.14), (0.27, 0.142), (0.0, 0.138)], paint('#f8f4ee', under=0.25, z0=0, z1=0.14), seg=48, cap_top=True)
+    R, b = 0.21, 0.142
+    cut0, cut1 = math.radians(-115), math.radians(-60)      # the slice taken out (toward the front)
+    sponge = lambda p, n, *_: rgb('#f2c878').lerp(rgb('#c88a3e'), max(0.0, min(1.0, (abs(n.x) + abs(n.y)) * 0.55 - 0.15))) * (0.94 + 0.08 * noise.noise(p * 40))
+    cream = lambda p, n, *_: rgb('#fffaf2') * (0.93 + 0.06 * max(0.0, n.z) - 0.06 * max(0.0, -n.z))
+    layers = [(b, b + 0.06, sponge), (b + 0.06, b + 0.085, cream), (b + 0.085, b + 0.15, sponge), (b + 0.15, b + 0.17, cream)]
+
+    def ring(z0, z1, col, r=R):
+        # a layer round the cake but for the cut, its top and the cut faces
+        n = 64
+        span = math.tau - (cut1 - cut0)
+        P, C, N, F = [], [], [], []
+        for k in range(n + 1):
+            a = cut1 + span * k / n
+            d = Vector((math.cos(a), math.sin(a), 0))
+            for z in (z0, z1):
+                p = Vector((d.x * r, d.y * r, z))
+                P.append(p); N.append(d); C.append(col(p, d))
+        for k in range(n):
+            a = 2 * k
+            F += [(a, a + 2, a + 3), (a, a + 3, a + 1)]
+        mb.add(P, C, N, F)
+        # the top (a fan from the middle)
+        P = [Vector((0, 0, z1))] + [Vector((math.cos(cut1 + span * k / n) * r, math.sin(cut1 + span * k / n) * r, z1)) for k in range(n + 1)]
+        up = Vector((0, 0, 1))
+        mb.add(P, [col(p, up) for p in P], [up] * len(P), [(0, 1 + k, 2 + k) for k in range(n)])
+        # the two cut faces
+        for a, sgn in ((cut0, 1), (cut1, -1)):
+            d = Vector((math.cos(a), math.sin(a), 0))
+            nn = Vector((-d.y, d.x, 0)) * sgn
+            P = [Vector((0, 0, z0)), Vector((0, 0, z1)), Vector((d.x * r, d.y * r, z1)), Vector((d.x * r, d.y * r, z0))]
+            mb.add(P, [col(p, nn) for p in P], [nn] * 4, [(0, 1, 2), (0, 2, 3)])
+    for z0, z1, col in layers:
+        ring(z0, z1, col)
+    # sliced berries peeking out of the cream between the layers, and on the cut faces
+    rng = random.Random(7)
+    berry = lambda p, n, *_: rgb('#e23848').lerp(rgb('#f6a0a8'), max(0.0, -n.z) * 0.6) * (0.92 + 0.1 * max(0.0, n.z))
+    for k in range(14):
+        a = cut1 + (math.tau - (cut1 - cut0)) * (k + 0.5) / 14
+        m = len(mb.v)
+        surf(mb, superq(0, 0, 0, 0.026, 0.008, 0.022), lambda p, n, u, v: rgb('#e83a4a').lerp(rgb('#fde0e0'), max(0.0, 1 - abs(n.y) * 1.4) * 0.0 + max(0.0, 0.7 - math.hypot(p.x, p.z) / 0.026)), nu=12, nv=8)
+        xform(mb, m, Matrix.Translation((math.cos(a) * (R - 0.004), math.sin(a) * (R - 0.004), b + 0.072)) @ Matrix.Rotation(a + math.pi / 2, 4, 'Z'))
+    for a in (cut0, cut1):
+        d = Vector((math.cos(a), math.sin(a), 0))
+        for t in (0.35, 0.7):
+            m = len(mb.v)
+            surf(mb, superq(0, 0, 0, 0.022, 0.006, 0.02), lambda p, n, u, v: rgb('#e83a4a').lerp(rgb('#fde4e4'), max(0.0, 0.75 - math.hypot(p.x, p.z) / 0.022)), nu=12, nv=8)
+            xform(mb, m, Matrix.Translation(d * R * t + Vector((0, 0, b + 0.072))) @ Matrix.Rotation(a, 4, 'Z'))
+    # piped cream swirls round the top, a strawberry on each
+    top = b + 0.17
+    n = 9
+    span = math.tau - (cut1 - cut0)
+    for k in range(n):
+        a = cut1 + span * (k + 0.5) / n
+        c = Vector((math.cos(a) * (R - 0.04), math.sin(a) * (R - 0.04), top))
+
+        def swirl(v):
+            return 0.038 * (1 - v) ** 0.8 + 0.004, top + v * 0.06
+        surf(mb, revolve(swirl, cx=c.x, cy=c.y, mod=lambda u, v: 1 + 0.18 * math.cos(u * math.tau * 6 + v * 7)), cream, nu=30, nv=10, caps=(True, True))
+        # the berry: point up, wide at the bottom, red with pale seeds, its green calyx flat on the cream
+        bc = c + Vector((0, 0, 0.05))
+        surf(mb, revolve(lambda v: (0.031 * (math.sin(min(1.0, v * 2.2) * math.pi / 2) ** 0.6) * (1 - v) ** 0.55, bc.z + v * 0.062), cx=bc.x, cy=bc.y),
+             lambda p, n, *_: (rgb('#e22c3e') * (0.86 + 0.18 * max(0.0, n.z))).lerp(rgb('#ffe890'), 0.85 if noise.noise(p * 260) > 0.58 else 0.0), nu=20, nv=12)
+        for j in range(5):
+            aa = j / 5 * math.tau + k
+            m = len(mb.v)
+            surf(mb, superq(0.016, 0, 0, 0.016, 0.006, 0.003), lambda p, n, *_: rgb('#4aa83a') * (0.9 + 0.15 * max(0.0, n.z)), nu=8, nv=4)
+            xform(mb, m, Matrix.Translation(bc + Vector((0, 0, 0.004))) @ Matrix.Rotation(aa, 4, 'Z') @ Matrix.Rotation(-0.25, 4, 'Y'))
+    return [(mb, 'main'), (gl, 'gloss')]
+
+
+# ---------------------------------------------------------------- the shovel
+def shovel():
+    """The shovel, standing on its blade (as it lies in the hand): a warm wooden shaft, a red D-grip, a rounded steel
+    blade with a rolled top edge, the socket riveted. 1.0 long; its origin where the hand holds it, under the grip."""
+    mb, gl = MB(), MB()
+    wood = grain('#c8874a', 'z', 2.0, 0.2, 1.0)
+    lathe(mb, [(0.03, 0.28), (0.028, 0.6), (0.027, 0.86), (0.03, 0.88)], wood, seg=16, cap_top=False)
+    # the grip: a D of red rubber
+    red = paint('#d8443a', under=0.0, top=0.16)
+    tube(mb, [(0.0, 0, 0.86), (-0.05, 0, 0.9), (-0.065, 0, 0.98), (-0.05, 0, 1.03)], 0.022, red, seg=12)
+    tube(mb, [(0.0, 0, 0.86), (0.05, 0, 0.9), (0.065, 0, 0.98), (0.05, 0, 1.03)], 0.022, red, seg=12)
+    tube(mb, [(-0.07, 0, 1.03), (0.07, 0, 1.03)], 0.026, red, seg=12)
+    for s in (-1, 1):
+        ball(mb, (s * 0.07, 0, 1.03), 0.027, red, sub=2)
+    # the socket and its rivets
+    steel = paint('#a8b2bc', under=0.1, z0=0, z1=0.36, top=0.25)
+    lathe(gl, [(0.034, 0.22), (0.036, 0.26), (0.032, 0.3), (0.031, 0.31)], steel, seg=16, cap_top=False)
+    for s in (-1, 1):
+        ball(gl, (0, s * 0.034, 0.27), 0.007, '#6a727a', sub=1)
+    # the blade: a rounded spade, cupped a little, with a rolled top edge
+    def bl(u, v):
+        # u across (-1..1), v from the tip (0) to the top (1)
+        half = 0.13 * (math.sin(min(1.0, v * 1.4) * math.pi / 2) ** 0.7)
+        x = u * half
+        z = 0.0 + v * 0.24
+        y = 0.03 * (u * u) - 0.012
+        return Vector((x, y, z))
+    P, C, N, F = [], [], [], []
+    nu, nv = 18, 14
+    for j in range(nv + 1):
+        for i in range(nu + 1):
+            u, v = -1 + 2 * i / nu, j / nv
+            p = bl(u, v)
+            P.append(p)
+    for side in (0, 1):
+        base = len(gl.v)
+        pts, cols, nrms = [], [], []
+        for j in range(nv + 1):
+            for i in range(nu + 1):
+                p = P[j * (nu + 1) + i] + Vector((0, 0.008 * side, 0))
+                n = Vector((0, -1 if side == 0 else 1, 0))
+                pts.append(p); nrms.append(n); cols.append(steel(p, n))
+        F = []
+        for j in range(nv):
+            for i in range(nu):
+                a = j * (nu + 1) + i
+                F += [(a, a + 1, a + nu + 2), (a, a + nu + 2, a + nu + 1)]
+        gl.add(pts, cols, nrms, F)
+    # (the rim round the blade's edge and the roll along its top)
+    outline = [bl(-1, 1 - k / nv) for k in range(nv + 1)] + [bl(-1 + 2 * i / nu, 0) for i in range(1, nu)] + [bl(1, k / nv) for k in range(nv + 1)]
+    tube(gl, [p + Vector((0, 0.004, 0)) for p in outline], 0.007, steel, seg=6)
+    tube(gl, [bl(-1 + 2 * i / nu, 1.0) + Vector((0, 0.004, 0.004)) for i in range(nu + 1)], 0.013, steel, seg=8)
+    # (the hand holds it under the grip)
+    for m in (mb, gl):
+        for i in range(len(m.v)):
+            m.v[i] = m.v[i] - Vector((0, 0, 0.8))
+    return [(mb, 'main'), (gl, 'gloss')]
+
+
+PROPS = {'style_bench': bench, 'style_lamp': lamp, 'style_armchair': armchair, 'style_cake': cake, 'style_shovel': shovel}
+
+
+def build(name):
+    return [mb.obj(f'{name}_{part}', vmat(f'{name}_{part}', rough=0.5 if part == 'gloss' else 0.75)) for mb, part in PROPS[name]() if mb.v]
+
+
+if __name__ == '__main__':
+    args = sys.argv[1:]
+    prev = args[args.index('--preview') + 1] if '--preview' in args else None
+    only = args[args.index('--only') + 1] if '--only' in args else None
+    reset()
+    shown = []
+    for name in PROPS:
+        if only and not name.startswith(only):
+            continue
+        objs = build(name)
+        export(objs, name)
+        shown.append((name, objs))
+        print('built', name, sum(len(o.data.vertices) for o in objs), 'vertices')
+    if prev and shown:
+        ground_plane(color='#a8d088')
+        light_rig()
+        xs = {'style_bench': 0, 'style_lamp': 1.7, 'style_armchair': 2.9, 'style_cake': 4.0, 'style_shovel': 4.8}
+        for name, objs in shown:
+            for o in objs:
+                o.location.x += xs.get(name, 0)
+                if name == 'style_shovel':
+                    o.location.z += 0.8
+        cam = camera((2.4, 0, 0.6), dist=6.4, pitch=20)
+        render(os.path.join(prev, 'props2.png'), size=(1400, 620), samples=32)
+        bpy.data.objects.remove(cam)
+        cam = camera((4.2, 0, 0.3), dist=2.2, pitch=26)
+        render(os.path.join(prev, 'props2_close.png'), size=(900, 600), samples=32)
