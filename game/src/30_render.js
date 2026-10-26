@@ -309,7 +309,7 @@ function updateWeather() {
     const v = G.view;
     if (k !== Weather.kind) { Weather.kind = k; Weather.parts = []; }
     if (!k) return;
-    const target = { rain: 90, snow: 60, petals: 14, leaves: 10, fireflies: 16 }[k];
+    const target = { rain: 90, snow: 60, petals: 12, leaves: 7, fireflies: 16 }[k];
     while (Weather.parts.length < target) {
         Weather.parts.push({ x: R() * v.w, y: R() * v.h, s: 0.5 + R(), p: R() * 6.28 });
     }

@@ -1675,12 +1675,13 @@ function r3Weather(ctx, s) {
             ctx.fill();
         }
     } else {
-        // petals and leaves turn as they fall
+        // petals and leaves turn as they fall (small and soft: a few drifting by, not confetti)
         const pet = k === 'petals';
+        ctx.globalAlpha *= 0.75;
         for (const q of Weather.parts) {
             ctx.setTransform(s, 0, 0, s, q.x * s, q.y * s); ctx.rotate(q.p + Math.sin(t / 30 + q.p) * 1.2);
-            ctx.fillStyle = pet ? (q.s > 1 ? '#ffd1e1' : '#f7a8c4') : (q.s > 1 ? '#e39a3b' : '#c8702d');
-            ctx.beginPath(); ctx.ellipse(0, 0, pet ? 1.9 : 2.1, (pet ? 1.1 : 1.2) * Math.abs(Math.cos(t / 22 + q.p)) + 0.35, 0, 0, 6.283); ctx.fill();
+            ctx.fillStyle = pet ? (q.s > 1 ? '#ffd1e1' : '#f7a8c4') : (q.s > 1 ? '#d99a4a' : '#c07a3e');
+            ctx.beginPath(); ctx.ellipse(0, 0, pet ? 1.3 : 1.1, (pet ? 0.75 : 0.62) * Math.abs(Math.cos(t / 22 + q.p)) + 0.22, 0, 0, 6.283); ctx.fill();
         }
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }

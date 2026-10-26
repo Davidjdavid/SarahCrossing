@@ -14,6 +14,7 @@ const EnvWalls = {
         const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || EnvGround.waterAt(x, y) === 1) ? -1 : +W0.height[y][x] || 0;
         const ramp = new Set((W0.ramps || []).map(([x, y]) => x + ',' + y));
         const open = (x, y) => ramp.has(x + ',' + y) || 'Wrhow'.includes(g(x, y));
+        const stairs = (x, y) => ramp.has(x + ',' + y) || ramp.has(x + ',' + (y + 1)) || ramp.has(x + ',' + (y - 1));
         // the faces, tile by tile: [x, y, low level, levels up]
         const south = new Map(), east = new Map(), west = new Map();
         for (let y = 1; y < Ht - 1; y++) for (let x = 0; x < Wt; x++) {
@@ -63,12 +64,12 @@ const EnvWalls = {
                 const d = L(R.e, R.y) - R.l;
                 put('wall1_a', EnvModels.mat4(R.e + this.BACK, y0, (R.y + 1) * ZS, -Math.PI / 2, ZS, d, 1));
                 put('wall_corner', EnvModels.mat4(R.e - 0.6, y0, z2, 0, 1, d, 1));
-            } else if (!east.has(R.e + ',' + R.y)) put('wall_corner', EnvModels.mat4(R.e - 0.35, y0, z + 0.03, 0, 1, R.d, 1));    // (a free end: a post of big stones)
+            } else if (!east.has(R.e + ',' + R.y) && !stairs(R.e, R.y)) put('wall_corner', EnvModels.mat4(R.e - 0.35, y0, z + 0.03, 0, 1, R.d, 1));    // (a free end: a post of big stones; by a staircase its side wall ends it)
             if (L(R.s - 1, R.y) > R.l && !open(R.s - 1, R.y)) {
                 const d = L(R.s - 1, R.y) - R.l;
                 put('wall1_b', EnvModels.mat4(R.s - this.BACK, y0, (R.y + 2) * ZS, Math.PI / 2, ZS, d, 1));
                 put('wall_corner', EnvModels.mat4(R.s - 0.1, y0, z2, 0, 1, d, 1));
-            } else if (!west.has((R.s - 1) + ',' + R.y)) put('wall_corner', EnvModels.mat4(R.s - 0.35, y0, z + 0.03, 0, 1, R.d, 1));
+            } else if (!west.has((R.s - 1) + ',' + R.y) && !stairs(R.s - 1, R.y)) put('wall_corner', EnvModels.mat4(R.s - 0.35, y0, z + 0.03, 0, 1, R.d, 1));
         }
         // (an east face looks east: the piece turned a quarter, its length running north; a west face the other way)
         for (const R of runs(east, 'y')) {

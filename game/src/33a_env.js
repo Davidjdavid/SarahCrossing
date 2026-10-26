@@ -3,8 +3,8 @@
    (31_render3d.js) stands flat pictures up as cards and lays the painted island on a height grid, this builds the
    world itself: ground with stone walls that stand straight up, a beach that runs down under the water, stream and pond
    beds you can see into (33d_env_water.js), trees with real crowns of leaves (33c_env_trees.js), houses and shops with
-   roofs, windows and doors you can see round (33e_env_build.js), grass and flowers (33f_env_grass.js), all lit by the
-   same sun, sky and lamps. People (and anything that moves) are still the HD cards. "HD-2D graphics" stays the
+   roofs, windows and doors you can see round (33e_env_build.js), a lawn of little leaves as the GameCube game drew it
+   (EnvTex.lawn), all lit by the same sun, sky and lamps. People (and anything that moves) are still the HD cards. "HD-2D graphics" stays the
    fallback: with the new look off (localStorage sc-env-next = 0) the test area is drawn the old way, for comparing. */
 const ENV = {
     LV: 1.5,            // a level's height (world units; a tile is one unit across)
@@ -108,7 +108,7 @@ const Env = {
         this.built.parts.ground = this.ground;
         if (this.ground.tick) this.built.tick.push(this.ground.tick);     // (the season's colors)
         for (const [name, B] of [['water', typeof EnvWater !== 'undefined' && EnvWater], ['trees', typeof EnvTrees !== 'undefined' && EnvTrees],
-            ['build', typeof EnvBuild !== 'undefined' && EnvBuild], ['walls', typeof EnvWalls !== 'undefined' && EnvWalls], ['grass', typeof EnvGrass !== 'undefined' && EnvGrass],
+            ['build', typeof EnvBuild !== 'undefined' && EnvBuild], ['walls', typeof EnvWalls !== 'undefined' && EnvWalls],
             ['contact', typeof EnvContact !== 'undefined' && EnvContact], ['glow', typeof EnvGlow !== 'undefined' && EnvGlow], ['decals', typeof EnvDecals !== 'undefined' && EnvDecals],
             ['dolls', typeof EnvDolls !== 'undefined' && EnvDolls], ['critters', typeof EnvCritters !== 'undefined' && EnvCritters]]) {
             if (!B) continue;
@@ -122,7 +122,7 @@ const Env = {
         group.traverse(o => { if (o.isInstancedMesh) EnvCull.track(o); });
         console.log(`the new 3D look built in ${Math.round(performance.now() - t0)} ms`);
     },
-    /* The ground and grass come in pieces (ENV.CHUNK tiles square), each made the first time it comes near the view:
+    /* The ground comes in pieces (ENV.CHUNK tiles square), each made the first time it comes near the view:
        those on screen at once (only when arriving or after a jump), the ones just beyond a few milliseconds a frame,
        so walking never waits on them. A piece is shown only while it's near the view, and so is each tree, prop and
        wall piece (EnvCull). A piece is made again when what it shows changes (Sarah's paths). */
@@ -171,7 +171,7 @@ const Env = {
         if (!this.ground || (G.area && G.area.interior)) return null;
         const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE), w = EnvGround.waterAt(tx, ty);
         if (w === 1) return 0;
-        if (w === 2) return ENV.BASE + (+W0.height[ty][tx] || 0) * ENV.LV - 0.14;
+        if (w === 2) return ENV.BASE + EnvGround.waterLevel(tx, ty) * ENV.LV - 0.14;
         return null;
     },
     /* the ground's height under a spot (world pixels), for people and cards standing on it */
@@ -215,7 +215,6 @@ const EnvChunk = {
     *steps(c, a) {
         c.textures = [];
         yield* EnvGround.chunkSteps(c);
-        if (typeof EnvGrass !== 'undefined') { yield; EnvGrass.chunk(c, a); }
     },
 };
 
@@ -269,28 +268,42 @@ const EnvGround = {
     water() {
         if (this._water && this._water.src === W0.grid) return this._water.k;
         const Wt = W0.w, Ht = W0.h, k = new Uint8Array(Wt * Ht), g = (x, y) => W0.grid[y] && W0.grid[y][x];
-        for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) { const c = g(x, y); k[y * Wt + x] = c === '~' ? 1 : c === 'o' || c === 'r' || c === 'h' ? 2 : 0; }
-        // each run of planks takes the water it stands in (the sea where it touches the sea)
+        // (a waterfall's tiles are the stream's: over the lip on the upper one, the pool at the foot on the lower)
+        const kind = (c) => c === '~' || c === undefined ? 1 : c === 'o' || c === 'r' || c === 'h' || c === 'W' ? 2 : 0;
+        for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) k[y * Wt + x] = kind(g(x, y));
+        // planks stand over the water only where it runs on under them: a bridge's middle over the river, not its ends on
+        // the banks; the pier's planks over the sea, not those on the beach. So the river keeps its own banks under a bridge.
         const seen = new Uint8Array(Wt * Ht);
         for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
             if (g(x, y) !== 'w' || seen[y * Wt + x]) continue;
             const run = [[x, y]], q = [[x, y]];
-            let sea = false;
             seen[y * Wt + x] = 1;
             while (q.length) {
                 const [cx, cy] = q.pop();
                 for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-                    const nx = cx + dx, ny = cy + dy, c = g(nx, ny);
-                    if (c === '~' || c === undefined) sea = true;
-                    if (c === 'w' && !seen[ny * Wt + nx]) { seen[ny * Wt + nx] = 1; run.push([nx, ny]); q.push([nx, ny]); }
+                    const nx = cx + dx, ny = cy + dy;
+                    if (g(nx, ny) === 'w' && !seen[ny * Wt + nx]) { seen[ny * Wt + nx] = 1; run.push([nx, ny]); q.push([nx, ny]); }
                 }
             }
-            for (const [rx, ry] of run) k[ry * Wt + rx] = sea ? 1 : 2;
+            const xs = run.map(t => t[0]), ys = run.map(t => t[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+            // (across the run: north and south of a bridge going east to west, east and west of one going north to south)
+            const wide = x1 - x0 >= y1 - y0, tall = y1 - y0 >= x1 - x0;
+            for (const [rx, ry] of run) {
+                const c = (wide ? [kind(g(rx, y0 - 1)), kind(g(rx, y1 + 1))] : []).concat(tall ? [kind(g(x0 - 1, ry)), kind(g(x1 + 1, ry))] : []);
+                k[ry * Wt + rx] = c.includes(1) ? 1 : c.includes(2) ? 2 : 0;
+            }
         }
         this._water = { src: W0.grid, k };
         return k;
     },
     waterAt(x, y) { return x < 0 || y < 0 || x >= W0.w || y >= W0.h ? 1 : this.water()[y * W0.w + x]; },
+    /* the level a stream's or pond's tile has its water at: its own, but a waterfall's upper row (the top of the cliff,
+       where the water goes over) the stream's above */
+    waterLevel(x, y) {
+        const h = +((W0.height[y] || [])[x]) || 0;
+        if (W0.grid[y] && W0.grid[y][x] === 'W') { const up = +((W0.height[y - 1] || [])[x]) || 0; if (up > h) return up; }
+        return h;
+    },
     stairs: null,           // (each staircase tile's steps, from EnvBuild.stairs)
     /* the top of the step under a spot (v in tiles, north to south) on a staircase: up one step at a time, eased over the
        front of each so feet don't snap */
@@ -361,7 +374,7 @@ const EnvGround = {
     shapeWater(h, W, Hn) {
         const R = ENV.RES, Wt = W0.w, Ht = W0.h, LV = ENV.LV, BASE = ENV.BASE;
         const wet = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && this.waterAt(x, y) === 2;
-        const lvl = (x, y) => +W0.height[Math.max(0, Math.min(Ht - 1, y))][Math.max(0, Math.min(Wt - 1, x))] || 0;
+        const lvl = (x, y) => this.waterLevel(Math.max(0, Math.min(Wt - 1, x)), Math.max(0, Math.min(Ht - 1, y)));
         const tileOf = (i, n) => Math.max(0, Math.min(n - 1, Math.floor(i / R - 0.001)));
         const levels = new Set();
         for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) if (wet(x, y)) levels.add(lvl(x, y));
@@ -387,16 +400,24 @@ const EnvGround = {
             let tx0 = 1e9, ty0 = 1e9, tx1 = -1, ty1 = -1;
             for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) if (wet(x, y) && lvl(x, y) === L) { tx0 = Math.min(tx0, x); tx1 = Math.max(tx1, x); ty0 = Math.min(ty0, y); ty1 = Math.max(ty1, y); }
             const X0 = Math.max(0, (tx0 - 2) * R), Y0 = Math.max(0, (ty0 - 2) * R), X1 = Math.min(W - 1, (tx1 + 3) * R), Y1 = Math.min(Hn - 1, (ty1 + 3) * R);
-            for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) { const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht); if (wet(tx, ty) && lvl(tx, ty) === L) m[y * W + x] = 1; }
+            // (a waterfall's two rows count for both levels' outlines, so the stream runs right to the lip and the pool right
+            // to the foot of the cliff, instead of each stopping short in a rounded end)
+            const fall = (tx, ty) => W0.grid[ty] && W0.grid[ty][tx] === 'W' && (lvl(tx, ty - 1) === L || lvl(tx, ty + 1) === L);
+            for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) { const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht); if (wet(tx, ty) && (lvl(tx, ty) === L || fall(tx, ty))) m[y * W + x] = 1; }
             blur(m, 3, X0, Y0, X1, Y1);       // (wide, so the banks curve round instead of following the tiles)
             for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) {
                 const k = y * W + x, mv = m[k];
                 if (mv < 0.02) continue;
                 const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht), h0 = h[k];
                 if (lvl(tx, ty) !== L || h0 > surf + 0.3 || h0 < surf - 1.2) continue;
-                const u = x / R, v = y / R, wv = mv + (vn(u / 1.8, v / 1.8) * 0.8 + vn(u / 0.7 + 17, v / 0.7) * 0.2 - 0.5) * 0.2;
+                // (a long slow wander and a smaller wobble on top: a straight run of stream tiles still gets banks that bend)
+                const u = x / R, v = y / R, wv = mv + (vn(u / 4 + 5, v / 4) * 0.6 + vn(u / 1.5, v / 1.5) * 0.28 + vn(u / 0.6 + 17, v / 0.6) * 0.12 - 0.5) * 0.55;
+                // (inside the water's own tiles too: where the wandering outline leaves a bit of a tile out, the bank comes up
+                // there, so the water's edge bends both ways instead of only bulging out of a straight channel)
+                const land = BASE + L * LV, inWet = wet(tx, ty) || h0 < land - 0.02;      // (or dug into by the channel next door)
                 if (wv > 0.5) h[k] = surf - Math.min(0.75, (wv - 0.5) * 2.2);                     // the bed
-                else if (wv > 0.25) { const t = (wv - 0.25) / 0.25; h[k] = Math.min(h0, surf + (h0 - surf) * (1 - t * t * (3 - 2 * t))); }   // the bank
+                else if (wv > 0.25) { const t = (wv - 0.25) / 0.25, top = inWet ? land : h0, hb = surf + (top - surf) * (1 - t * t * (3 - 2 * t)); h[k] = inWet ? hb : Math.min(h0, hb); }   // the bank
+                else if (inWet) h[k] = land;
             }
         }
     },
@@ -458,14 +479,27 @@ const EnvGround = {
             const tx = x0 - 2 + i, ty = y0 - 2 + j, c = r3ClassAt(tx, ty), g = W0.grid[ty] ? W0.grid[ty][tx] : '~', k = j * K.w + i;
             K.t[k] = c; K.wet[k] = c !== R3_MAT.keep ? 0 : g === undefined || g === 'W' || this.waterAt(tx, ty) ? 1 : 2;
         }
+        // (the top of a wall is raised to the higher ground beside it, though its tile is the lower one's: there the ground is
+        // the higher tile's kind, not the lower's, or a beach's sand would run along the top of every wall above it)
+        const lvl = (i, j) => i < 0 || j < 0 || i >= W0.w || j >= W0.h || this.waterAt(i, j) === 1 ? -1 : +W0.height[j][i] || 0;
+        const upper = (i, j, l) => {
+            for (const [di, dj] of [[0, -1], [-1, 0], [1, 0], [0, -2], [-1, -1], [1, -1]]) {
+                if (lvl(i + di, j + dj) <= l) continue;
+                const c = r3ClassAt(i + di, j + dj) & 15;
+                if (c !== R3_MAT.keep && c !== R3_MAT.stairs) return c === R3_MAT.rock ? R3_MAT.grass : c;
+            }
+            return R3_MAT.grass;
+        };
         for (let y = 0; y < M; y++) {
             for (let x = 0; x < N; x++) {
                 const wx = (x0 + (x + 0.5) / P) * TILE, wy = (y0 + (y + 0.5) / P) * TILE, ty = Math.floor(wy / TILE), tx = Math.floor(wx / TILE);
                 let kd = r3KindAt(K, wx, wy, 0, 0, 0) & 15;
-                const wk = this.waterAt(tx, ty);
+                const wk = this.waterAt(tx, ty), l = lvl(tx, ty);
+                if (wk === 0 && l >= 0 && kd !== R3_MAT.stairs && this.heightAt(wx / TILE, wy / TILE) > ENV.BASE + l * ENV.LV + 0.6) kd = upper(tx, ty, l);
+                if (kd === R3_MAT.keep && wk === 0 && l > 0) kd = R3_MAT.grass;             // (high ground without a kind of its own: lawn, not sand)
                 if (kd === R3_MAT.keep && wk === 1) kd = R3_MAT.sand;                   // the sea floor is sand
                 if (kd === R3_MAT.keep && wk === 2) kd = 7;                             // a stream or pond bed
-                if (kd === R3_MAT.keep && W0.grid[ty] && W0.grid[ty][tx] === 'F') kd = R3_MAT.dirt;   // (a field: its soil)
+                if (W0.grid[ty] && W0.grid[ty][tx] === 'F') kd = R3_MAT.dirt;                           // (a field: tilled soil, never lawn)
                 if (kd === R3_MAT.keep && W0.grid[ty] && W0.grid[ty][tx] === 'x') kd = R3_MAT.cobble; // (the hot spring's stone rim)
                 if (kd === R3_MAT.rock) kd = R3_MAT.grass;
                 if (kd === R3_MAT.stairs) kd = R3_MAT.dirt;             // (under the steps: no grass growing up through them)
@@ -559,8 +593,8 @@ const EnvGround = {
         // (shared by every piece's material; each piece adds its own pictures and where they lie)
         this.uniforms = {
             uMapSz: { value: new THREE.Vector2(Wt, Ht) },
-            tGrass: { value: B('lawn', 'col', () => T.grass().map) }, tDirt: { value: B('path', 'col', () => T.dirt().map) }, tCob: { value: B('flagstones', 'col', () => T.cobble().map) }, tSand: { value: sand.map }, tWall: { value: wall.map },
-            nGrass: { value: B('lawn', 'nrm', () => T.grass().normal) }, nDirt: { value: B('path', 'nrm', () => T.dirt().normal) }, nCob: { value: B('flagstones', 'nrm', () => T.cobble().normal) }, nSand: { value: sand.normal }, nWall: { value: wall.normal },
+            tGrass: { value: T.lawn().map }, tDirt: { value: B('path', 'col', () => T.dirt().map) }, tCob: { value: B('flagstones', 'col', () => T.cobble().map) }, tSand: { value: sand.map }, tWall: { value: wall.map },
+            nGrass: { value: T.lawn().normal }, nDirt: { value: B('path', 'nrm', () => T.dirt().normal) }, nCob: { value: B('flagstones', 'nrm', () => T.cobble().normal) }, nSand: { value: sand.normal }, nWall: { value: wall.normal },
             hCob: { value: B('flagstones', 'hgt', () => flat) }, hDirt: { value: B('path', 'hgt', () => flat) },
             uSeason: { value: new THREE.Vector4(1, 1, 1, 0) }, uRainW: this.rain,
         };
@@ -670,6 +704,8 @@ EnvGround.FMAP = `
     // a stream or pond bed: sand and pebbles, darker
     if (bed > 0.5 && tot < 0.05) col = mix(cs, cd, 0.5) * 0.7;
     if (tot < 0.05 && bed < 0.5) col = cs * 0.85;
+    // sand the waves reach: darker and wet just above the sea and under the shallows
+    col = mix(col, col * vec3(0.74, 0.72, 0.7), smoothstep(0.17, 0.02, vWp.y) * w.w);
     // a pond's or stream's bank: damp, pebbly earth between the grass and the water, its edge ragged
     float wetv = texture2D(uWet, vec2(kuv.x, 1.0 - kuv.y)).r;
     float bank = smoothstep(0.06, 0.32, wetv + (rag - 0.5) * 0.3) * step(0.05, tot);

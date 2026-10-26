@@ -73,13 +73,14 @@ docs/DEPLOY.md for the server.
   keeps the HD-2D view until he says so.
 - There `Env` (33a_env.js) draws the world as real 3D, built once when the area loads: the ground from half-tile
   height cells with a stone wall on anything steep (`EnvGround`), procedural surfaces (`EnvTex`), trees (`EnvTrees`),
-  water (`EnvWater`), buildings and props (`EnvBuild`) and grass (`EnvGrass`). R3 still draws people, critters and
+  water (`EnvWater`), buildings and props (`EnvBuild`); the lawn is a texture of little diamond leaves like the GameCube
+  Animal Crossing's (`EnvTex.lawn`, David's pick: no 3D tufts, no flowers but the ones you can pick). R3 still draws people, critters and
   anything `Env.takes(e)` leaves out, and its post pass (bloom, depth of field, the warm grade). Tune it in `ENV`
   (a level's height, the camera, depth of field, how big people stand).
 - The button under the clock (`localStorage sc-env-next = 0`) draws the test area the old way, for comparing.
 - Sarah's island is in the new look on the beta site (`ENV_ISLAND`: the beta host, or `localStorage sc-env-island` 1 or
   0 anywhere; the tests run without it), once the models have loaded (the HD-2D view till then), with the same button.
-  The island is big, so the ground and grass come in pieces (`EnvChunk`, `ENV.CHUNK` tiles): each piece's pictures
+  The island is big, so the ground comes in pieces (`EnvChunk`, `ENV.CHUNK` tiles): each piece's pictures
   (kinds, damp banks) and mesh are made the first time it nears the view, those on screen at once, the next ones a few
   milliseconds a frame (`Env.stream`), and made again when Sarah's paths change; only pieces near the view are shown, and
   every instanced thing shows only its copies near the view (`EnvCull`: keeps the full list, so moving a copy still works

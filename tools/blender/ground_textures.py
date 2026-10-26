@@ -3,7 +3,7 @@
 - flagstones: the concept's square paving, flat stones of four to six sides with softened corners, light warm and cool
   greys, each a little lighter on its top edge, moss and grass in the gaps, a few fallen leaves
 - path: packed brown earth, lighter where it's dusty, pebbles pressed into it, a few leaves and blades
-- lawn: grass blades in many greens, clover, tiny white, yellow, pink and lilac flowers
+- lawn: grass blades in many greens and clover (not shipped: the game's lawn is EnvTex.lawn, the GameCube's leaves)
 
 Each is modelled (stones, pebbles, blades as real geometry, wrapped round the tile's edges so the texture has no seams)
 and baked from above onto a 4 x 4 square: its color (with the shade between things), a normal map, and its height (where
@@ -309,7 +309,8 @@ def lawn(rng):
     return bm
 
 
-SURFACES = {'flagstones': flagstones, 'path': path, 'lawn': lawn}
+SURFACES = {'flagstones': flagstones, 'path': path}
+# (the lawn is kept for the record; the game draws its own, EnvTex.lawn)
 
 
 def height_material():

@@ -159,13 +159,28 @@ const EnvBuild = {
             if (hi - lo < 0.5) continue;
             const S = { top, hi, lo, n: N };
             for (const [x, y] of run) at.set(key(x, y), S);
-            const r = mulberry(hash32('st' + x0 + ',' + top)), d = 2 * ZS / N, rise = (hi - lo) / N;
+            const r = mulberry(hash32('st' + x0 + ',' + top)), d = 2 * ZS / N, rise = (hi - lo) / N, cw = 0.24;
+            // a stone wall down each side of the steps (where the cliff's wall ends): level with the top of the cliff as far
+            // as its face, then sloping down beside the steps to the foot, with a pale cap
+            const zB = top * ZS - 0.12, zW = (top + 1) * ZS - EnvWalls.BACK, zF = (top + 2) * ZS + 0.04, yb = lo - 0.4, yT = hi + 0.08, yF = lo + 0.3;
+            for (const [a, b] of [[x0, x0 + cw], [x1 - cw, x1]]) {
+                const sl = Math.hypot(zF - zW, yT - yF), ny = (zF - zW) / sl, nz = (yT - yF) / sl;
+                for (const [x, nx] of [[a, -1], [b, 1]]) {
+                    const pts = nx < 0 ? [[x, yb, zB], [x, yb, zW], [x, yT, zW], [x, yT, zB]] : [[x, yb, zW], [x, yb, zB], [x, yT, zB], [x, yT, zW]];
+                    this.quad('stone', pts, [nx, 0, 0], [[0, 0], [zW - zB, 0], [zW - zB, yT - yb], [0, yT - yb]], '#c2b9ac');
+                    const p2 = nx < 0 ? [[x, yb, zW], [x, yb, zF], [x, yF, zF], [x, yT, zW]] : [[x, yb, zF], [x, yb, zW], [x, yT, zW], [x, yF, zF]];
+                    this.quad('stone', p2, [nx, 0, 0], [[0, 0], [zF - zW, 0], [zF - zW, yF - yb], [0, yT - yb]], '#c2b9ac');
+                }
+                this.quad('stone', [[a, yb, zF], [b, yb, zF], [b, yF, zF], [a, yF, zF]], [0, 0, 1], [[0, 0], [cw, 0], [cw, yF - yb], [0, yF - yb]], '#b4ab9e');
+                this.quad('plain', [[a - 0.02, yT, zW], [b + 0.02, yT, zW], [b + 0.02, yT, zB], [a - 0.02, yT, zB]], [0, 1, 0], [[0, 0], [1, 0], [1, 1], [0, 1]], '#d2cabd');
+                this.quad('plain', [[a - 0.02, yF, zF], [b + 0.02, yF, zF], [b + 0.02, yT, zW], [a - 0.02, yT, zW]], [0, ny, nz], [[0, 0], [1, 0], [1, 1], [0, 1]], '#d2cabd');
+            }
             for (let i = 0; i < N; i++) {
                 const yt = hi - i * rise, za = top * ZS + i * d - (i ? 0.02 : 0.1), zb = top * ZS + (i + 1) * d + 0.03;
-                // (pale worn slabs on top, the risers in shade)
+                // (pale worn slabs on top, the risers in shade; fitted between the side walls)
                 const k = 0.94 + r() * 0.1, c = (v) => '#' + [v[0], v[1], v[2]].map(n => Math.round(Math.min(255, n * k)).toString(16).padStart(2, '0')).join('');
-                this.box('plain', x0 + 0.06, yt - rise - 0.3, za, x1 - 0.06, yt - 0.001, zb, c([150, 142, 130]), 1, { back: true, bottom: true, top: true });
-                this.box('plain', x0 + 0.04, yt - 0.045, za, x1 - 0.04, yt, zb + 0.025, c([206, 198, 184]), 1, { back: true, bottom: true });
+                this.box('plain', x0 + cw, yt - rise - 0.3, za, x1 - cw, yt - 0.001, zb, c([150, 142, 130]), 1, { back: true, bottom: true, top: true, left: true, right: true });
+                this.box('plain', x0 + cw, yt - 0.045, za, x1 - cw, yt, zb + 0.025, c([206, 198, 184]), 1, { back: true, bottom: true, left: true, right: true });
             }
         }
     },
@@ -452,10 +467,31 @@ const EnvBuild = {
     fence(e, a) {
         const f = this.foot(e), x = f.x, z = f.z - 0.35, y = f.y;
         // (the concept's garden fences are rustic split rails)
-        if (this.model('fence_rustic', x, y, z)) { this.sunflowers(e, x, y, z); return; }
-        for (let i = 0; i < 4; i++) { const px = x - 0.5 + (i + 0.5) / 4; this.box('plain', px - 0.05, y, z - 0.03, px + 0.05, y + 0.68, z + 0.03, '#f4f2ea'); this.box('plain', px - 0.035, y + 0.68, z - 0.03, px + 0.035, y + 0.74, z + 0.03, '#f4f2ea'); }
-        for (const ry of [0.22, 0.5]) this.box('plain', x - 0.5, y + ry, z - 0.06, x + 0.5, y + ry + 0.06, z - 0.03, '#e2dfd6');
-        this.sunflowers(e, x, y, z);
+        if (!this.model('fence_rustic', x, y, z)) {
+            for (let i = 0; i < 4; i++) { const px = x - 0.5 + (i + 0.5) / 4; this.box('plain', px - 0.05, y, z - 0.03, px + 0.05, y + 0.68, z + 0.03, '#f4f2ea'); this.box('plain', px - 0.035, y + 0.68, z - 0.03, px + 0.035, y + 0.74, z + 0.03, '#f4f2ea'); }
+            for (const ry of [0.22, 0.5]) this.box('plain', x - 0.5, y + ry, z - 0.06, x + 0.5, y + ry + 0.06, z - 0.03, '#e2dfd6');
+        }
+        this.fenceSide(e, x, y, z);
+    },
+    /* what grows by a fence, by where it is: the test area keeps the concept's sunflowers; a field's fence a clump of them
+       at its corners and bare rails between (the crop shows over them); the goat pen nothing (the goats would eat it);
+       anywhere else now and then flowers or a bush in a little run, mostly bare rails */
+    fenceSide(e, x, y, z) {
+        if (LAB) { this.sunflowers(e, x, y, z); return; }
+        const tx = Math.floor(e.x / TILE), ty = Math.floor(e.y / TILE), g = (i, j) => W0.grid[j] && W0.grid[j][i];
+        const P = W0.goatpen;
+        if (P && tx >= P.x && tx < P.x + P.w && ty >= P.y && ty < P.y + P.h) return;
+        if (g(tx, ty - 1) === 'F' || g(tx, ty - 2) === 'F') {
+            const corner = g(tx - 1, ty - 1) !== 'F' || g(tx + 1, ty - 1) !== 'F';
+            if (corner) this.sunflowers(e, x, y, z);
+            return;
+        }
+        // (runs of the same thing a few tiles long, not every tile its own)
+        const k = hash32('fs' + Math.floor(tx / 3) + ',' + ty) % 10, r = mulberry(hash32('fz' + tx + ',' + ty));
+        if (k < 5) return;
+        if (k < 8) { const n = ['flowers_mixed', 'flowers_daisy', 'flowers_cosmos', 'flowers_tulip'][hash32('ff' + ty + ',' + Math.floor(tx / 3)) % 4]; if (this.season !== 'winter') this.model(n, x + (r() - 0.5) * 0.3, y, z - 0.3, r() * 6.28, 0.8 + r() * 0.3); return; }
+        const b = ({ fall: 'bush_fall', winter: 'bush_holly', spring: 'bush_azalea', summer: 'bush_hibiscus' }[this.season]) || 'bush_round';
+        this.model(EnvModels.has(b) ? b : 'bush_round', x + (r() - 0.5) * 0.2, y, z - 0.42, r() * 6.28, 0.62 + r() * 0.2);
     },
     /* sunflowers behind a fence, as in the concept */
     sunflowers(e, x, y, z) {

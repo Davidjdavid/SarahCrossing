@@ -118,6 +118,46 @@ const EnvTex = {
             }
         }, 6);
     },
+    /* the lawn as Animal Crossing drew it on the GameCube: a deep green ground scattered with little diamond-shaped leaves
+       in lighter and darker greens, each a touch lit on its upper side (repeats every 4 tiles, about five leaves a tile;
+       tinted by the season in the shader) */
+    lawn() {
+        return this.make('lawn', 512, (h, col) => {
+            const n = 512, cell = 22, cols = Math.round(n / cell), C = n / cols, r = mulberry(61), nz = this.noise(n, 16, 62), fine = this.noise(n, 96, 63);
+            const base = this.hex('#3a8436'), deep = this.hex('#2c6c2e');
+            const tones = [this.hex('#80c457'), this.hex('#6cb44c'), this.hex('#5aa444'), this.hex('#4c963e'), this.hex('#336f30')];
+            // the leaves: one in most cells of a jittered grid, each its own size, turn and green
+            const leaves = [];
+            for (let j = 0; j < cols; j++) for (let i = 0; i < cols; i++) {
+                if (r() < 0.12) continue;
+                const t = r(), tone = t < 0.3 ? 0 : t < 0.55 ? 1 : t < 0.75 ? 2 : t < 0.9 ? 3 : 4;
+                leaves.push({ x: (i + 0.5 + (r() - 0.5) * 0.8) * C, y: (j + 0.5 + (r() - 0.5) * 0.8) * C, s: C * (0.26 + r() * 0.16), a: Math.PI / 4 + (r() - 0.5) * 0.5, c: tones[tone], k: 0.92 + r() * 0.16 });
+            }
+            const grid = new Map();
+            for (const L of leaves) { const k = Math.floor(L.x / C) + ',' + Math.floor(L.y / C); (grid.get(k) || grid.set(k, []).get(k)).push(L); }
+            for (let i = 0; i < n * n; i++) {
+                const x = i % n, y = (i / n) | 0, gx = Math.floor(x / C), gy = Math.floor(y / C);
+                // the ground between: deep green, a little darker in soft patches
+                let c = this.mix(base, deep, Math.max(0, nz(x, y) - 0.45) * 1.4), ht = 0;
+                for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+                    const list = grid.get((((gx + dx) % cols) + cols) % cols + ',' + (((gy + dy) % cols) + cols) % cols);
+                    if (!list) continue;
+                    for (const L of list) {
+                        // (wrapping round the picture's edges)
+                        let ox = x + 0.5 - L.x, oy = y + 0.5 - L.y;
+                        ox -= Math.round(ox / n) * n; oy -= Math.round(oy / n) * n;
+                        const u = ox * Math.cos(L.a) + oy * Math.sin(L.a), v = -ox * Math.sin(L.a) + oy * Math.cos(L.a), m = Math.max(Math.abs(u), Math.abs(v));
+                        if (m > L.s) continue;
+                        const edge = Math.min(1, (L.s - m) / 2.2), lit = -(ox + oy) / (L.s * 2.4);
+                        ht = Math.max(ht, 0.3 + edge * 0.4);
+                        c = this.mix(c, L.c.map(q => q * L.k * (1 + lit * 0.1)), edge);
+                    }
+                }
+                h[i] = ht;
+                this.put(col, i, c.map(q => q * (0.96 + (fine(x, y) - 0.5) * 0.08)));
+            }
+        }, 2);
+    },
     /* grass under the grass: deep greens in soft clumps, little blades and clover; tinted by the season in the shader */
     grass() {
         return this.make('grass', 256, (h, col) => {

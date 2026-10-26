@@ -8,7 +8,7 @@ const EnvWater = {
     lite: { value: 1 },     // (how bright the unlit white water is: falls, foam, spray, steam dim by night)
     build(group, a) {
         const Wt = W0.w, Ht = W0.h, G = EnvGround, LV = ENV.LV, BASE = ENV.BASE;
-        const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || G.waterAt(x, y) === 1) ? -1 : +W0.height[y][x] || 0;
+        const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || G.waterAt(x, y) === 1) ? -1 : G.waterAt(x, y) === 2 ? G.waterLevel(x, y) : +W0.height[y][x] || 0;
         const wet = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && G.waterAt(x, y) === 2;
         const surf = (x, y) => wet(x, y) ? BASE + L(x, y) * LV - 0.14 : 0;           // a water tile's surface (the sea's is 0)
         // how deep the water is everywhere (8 pixels a tile, so the shore is a smooth line): red is depth, green which water
@@ -18,17 +18,27 @@ const EnvWater = {
         const hot = (x, y) => W0.grid[y] && W0.grid[y][x] === 'h';
         for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) {
             const u = (x + 0.5) / P, v = (y + 0.5) / P, tx = Math.floor(u), ty = Math.floor(v);
-            let s = 0, sea = 1, nw = 0, nr = 0, nh = 0;
-            // inland water: the surface of the nearest water tile round here
-            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (wet(tx + dx, ty + dy)) { if (sea) s = surf(tx + dx, ty + dy); sea = 0; nw++; if (runs(tx + dx, ty + dy)) nr++; if (hot(tx + dx, ty + dy)) nh++; }
-            const depth = s - G.heightAt(u, v), o = ((M - 1 - y) * N + x) * 4;
+            let s = 0, sea = 1, nw = 0, nr = 0, nh = 0, lo = 1e9, hi = -1e9;
+            // inland water: the surface of the water tiles round here: the lowest one above the ground (by a waterfall the
+            // pool's under the cliff, the stream's on top of it)
+            const gh = G.heightAt(u, v);
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (wet(tx + dx, ty + dy)) {
+                const sf = surf(tx + dx, ty + dy);
+                if (sf > gh - 0.05) lo = Math.min(lo, sf);
+                hi = Math.max(hi, sf);
+                sea = 0; nw++; if (runs(tx + dx, ty + dy)) nr++; if (hot(tx + dx, ty + dy)) nh++;
+            }
+            if (!sea) s = lo < 1e9 ? lo : hi;
+            const depth = s - gh, o = ((M - 1 - y) * N + x) * 4;
             // (alpha: lower where the water is the hot spring's)
             d[o] = Math.max(0, Math.min(255, Math.round(depth * 100))); d[o + 1] = sea ? 255 : 0; d[o + 2] = nw ? Math.round(nr / nw * 255) : 0; d[o + 3] = nw ? 255 - Math.round(nh / nw * 128) : 255;
         }
         const depthTex = new THREE.DataTexture(d, N, M, THREE.RGBAFormat);
         depthTex.magFilter = depthTex.minFilter = THREE.LinearFilter; depthTex.generateMipmaps = false; depthTex.needsUpdate = true;
         const sand = EnvTex.sand(), uniforms = { tDepth: { value: depthTex }, uMapSz: { value: new THREE.Vector2(Wt, Ht) }, tSand: { value: sand.map }, uSunDir: { value: new THREE.Vector3(-0.55, 0.78, 0.32).normalize() }, uSky: { value: new THREE.Color(0.62, 0.8, 0.95) }, uSunCol: { value: new THREE.Color(1, 0.95, 0.85) }, uLite: this.lite, uRain: EnvGround.rain };
-        const mat = r3Patch(new THREE.MeshLambertMaterial({ color: 0xffffff }), { key: 'envwater', uniforms, fhead: EnvWater.FHEAD, fpre: EnvWater.FPRE });
+        // (see-through at its edges: its color laid over the ground, the ground's own depth of field kept in the alpha)
+        const mat = r3Patch(new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true }), { key: 'envwater', uniforms, fhead: EnvWater.FHEAD, fpre: EnvWater.FPRE, noDof: true });
+        Object.assign(mat, { blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor });
         const meshes = [];
         // the sea: one big sheet at sea level (beyond the island too), a point every tile over the island and further apart
         // out to sea. (It needs the points: the view bends the world down towards the horizon at each point, and a sheet of
@@ -49,8 +59,11 @@ const EnvWater = {
         const pos = [], idx = [];
         for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
             if (!wet(x, y)) continue;
-            const s = surf(x, y), e = 0.7, b = pos.length / 3;
-            pos.push(x - e, s, (y - e) * R3_ZS, x + 1 + e, s, (y - e) * R3_ZS, x + 1 + e, s, (y + 1 + e) * R3_ZS, x - e, s, (y + 1 + e) * R3_ZS);
+            // (reaching past the tile's sides into the bank, but not toward water at another level: the stream's sheet
+            // ends at a waterfall's lip and the pool's starts at its foot, neither hanging in the air over the drop)
+            const s = surf(x, y), b = pos.length / 3, other = (i, j) => wet(i, j) && Math.abs(surf(i, j) - s) > 0.1;
+            const eW = other(x - 1, y) ? 0 : 0.7, eE = other(x + 1, y) ? 0 : 0.7, eN = other(x, y - 1) ? 0 : 0.7, eS = other(x, y + 1) ? 0 : 0.7;
+            pos.push(x - eW, s, (y - eN) * R3_ZS, x + 1 + eE, s, (y - eN) * R3_ZS, x + 1 + eE, s, (y + 1 + eS) * R3_ZS, x - eW, s, (y + 1 + eS) * R3_ZS);
             idx.push(b, b + 3, b + 2, b, b + 2, b + 1);
         }
         if (pos.length) {
@@ -67,20 +80,22 @@ const EnvWater = {
         const fallMat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, depthWrite: false }), { key: 'envfall', uniforms: { uLite: this.lite }, fhead: 'varying vec3 vFall; uniform float uLite;\n', vhead: 'attribute vec3 aFall; varying vec3 vFall;\n', vbody: 'vFall = aFall;', fpre: EnvWater.FALL, noDof: true });
         const fp = [], fi = [], fa = [], falls = [];
         for (const wf of W0.waterfalls || []) {
-            // (as wide as the stream, not the tiles it covers: the wall shows either side, as in the concept)
-            const xs = wf.tiles.map(t => t[0]), ys = wf.tiles.map(t => t[1]), mx = (Math.min(...xs) + Math.max(...xs) + 1) / 2, hw = Math.min(0.6, (Math.max(...xs) + 1 - Math.min(...xs)) / 2), x0 = mx - hw, x1 = mx + hw, rowTop = Math.min(...ys);
+            // (as wide as the stream that feeds it: the water runs on over the lip at the width it had)
+            const xs = wf.tiles.map(t => t[0]), ys = wf.tiles.map(t => t[1]), mx = (Math.min(...xs) + Math.max(...xs) + 1) / 2, hw = (Math.max(...xs) + 1 - Math.min(...xs)) / 2 - 0.14, x0 = mx - hw, x1 = mx + hw, rowTop = Math.min(...ys);
             const top = BASE + wf.level * LV - 0.14, bot = BASE + (L(Math.floor(mx), rowTop + 2) >= 0 ? L(Math.floor(mx), rowTop + 2) : 0) * LV - 0.14, z = (rowTop + 1) * R3_ZS;
-            // the water curls over a rounded lip, then falls, bulging out a little in the middle and leaning out as it goes
-            const path = [], cz = z - 0.12, cy = top - 0.1, rr = 0.22;
-            for (let k = 0; k <= 5; k++) { const an = k / 5 * Math.PI / 2; path.push([cz - 0.25 * (k === 0 ? 1 : 0) + rr * Math.sin(an), cy + rr * Math.cos(an)]); }
-            for (let k = 1; k <= 10; k++) { const t = k / 10; path.push([cz + rr + 0.14 * t * t, cy - (cy - bot) * t]); }
+            // the stream's own surface running up to the lip (the sheet starts on it, clear, so there's no seam), curling over
+            // the edge, then falling, leaning out a little as it goes, down into the pool
+            const path = [], rr = 0.16, cz = z - 0.04 - rr, cy = top - rr;
+            for (let k = 0; k <= 3; k++) path.push([z - 0.75 + k * (0.75 - 0.04 - rr) / 3, top + 0.004]);
+            for (let k = 1; k <= 5; k++) { const an = k / 5 * Math.PI / 2; path.push([cz + rr * Math.sin(an), cy + rr * Math.cos(an)]); }
+            for (let k = 1; k <= 10; k++) { const t = k / 10; path.push([cz + rr + 0.16 * t * t, cy - (cy - bot + 0.06) * t]); }
             let along = 0, total = 0;
             path.forEach(([pz, py], j) => { if (j) total += Math.hypot(pz - path[j - 1][0], py - path[j - 1][1]); });
             const cols = 10, b0 = fp.length / 3;
             path.forEach(([pz, py], j) => {
                 if (j) along += Math.hypot(pz - path[j - 1][0], py - path[j - 1][1]);
-                // (a little wider than the stream at the foot, as falling water spreads)
-                const spread = 0.06 * (along / total);
+                // (a little wider at the foot, as falling water spreads)
+                const spread = 0.08 * Math.max(0, along / total - 0.3);
                 for (let i = 0; i <= cols; i++) { const u = i / cols; fp.push(x0 + 0.02 - spread + (x1 - x0 - 0.04 + 2 * spread) * u, py, pz + 0.06 * Math.sin(Math.PI * u)); fa.push(u, along, along / total); }
             });
             for (let j = 0; j < path.length - 1; j++) for (let i = 0; i < cols; i++) { const a0 = b0 + j * (cols + 1) + i; fi.push(a0, a0 + cols + 1, a0 + 1, a0 + 1, a0 + cols + 1, a0 + cols + 2); }
@@ -265,11 +280,12 @@ EnvWater.FPRE = `
     vec2 tp = vec2(vWp.x, vWp.z / ${R3_ZS.toFixed(3)});
     vec2 duv = vec2(tp.x / uMapSz.x, 1.0 - tp.y / uMapSz.y);
     vec4 dd = (duv.x > 0.0 && duv.x < 1.0 && duv.y > 0.0 && duv.y < 1.0) ? texture2D(tDepth, duv) : vec4(1.0, 1.0, 0.0, 1.0);
-    float d0 = dd.r * 2.55, isSea = dd.g;
-    // (streams and ponds end a little short of the bank, along the depth's smooth line, not where the bank's triangles
-    // happen to cut the surface in a zigzag)
-    if (d0 < (isSea > 0.5 ? 0.004 : 0.04)) discard;
-    if (isSea < 0.5) d0 -= 0.036;
+    float d0 = dd.r * 2.55, isSea = dd.g, d00 = d0;
+    // the edge: see-through over the sand or the bank, the water coming in over its first little depth (no line drawn
+    // round it); a stream's along the depth's smooth line, not where the bank's triangles happen to cut the surface
+    float edgeA = isSea > 0.5 ? smoothstep(0.0, 0.14, d0) : smoothstep(0.02, 0.1, d0);
+    if (edgeA <= 0.0) discard;
+    if (isSea < 0.5) d0 = max(0.0, d0 - 0.036);
     // (streams and ponds are shallow but clear and colored like deeper water, as in the concept; clear right at the edge)
     float depth = isSea < 0.5 ? d0 * 1.5 + 0.08 * smoothstep(0.0, 0.12, d0) : d0;
     // ripples: two layers of noise drifting (the sea rolls in from the south; streams run)
@@ -310,29 +326,36 @@ EnvWater.FPRE = `
         float t = fract(uTime * 0.8 + r3h(cell)), rd = length(fract(q) - 0.25 - 0.5 * vec2(r3h(cell + 7.0), r3h(cell + 13.0)));
         wc += smoothstep(0.035, 0.0, abs(rd - t * 0.3)) * (1.0 - t) * 0.3 * uRain * (0.3 + 0.7 * clamp(lit, 0.0, 1.0));
     }
-    // foam where it meets the shore (and on the sea, waves washing in)
-    float foam = smoothstep(isSea > 0.5 ? 0.1 : 0.05, 0.0, d0) * smoothstep(0.35, 0.65, r3n(tp * 5.0 + vec2(uTime * 0.3, 0.0)) + 0.25) * (isSea > 0.5 ? 1.0 : 0.6);
-    if (isSea > 0.5) foam += smoothstep(0.06, 0.0, abs(fract(depth * 2.2 - uTime * 0.18) - 0.5) - 0.44) * smoothstep(0.8, 0.1, depth) * 0.7;
-    // (a pond's or stream's edge drawn as a clean pale line, as the concept and Animal Crossing outline their water)
-    if (isSea < 0.5) foam = max(foam, smoothstep(0.026, 0.008, d0) * (0.6 + 0.2 * r3n(tp * 9.0 + uTime * 0.25)));
+    // surf: on the sea a thin broken line of foam washing up the sand and back, and now and then a faint wave further
+    // out; a stream's or pond's edge only a little lighter
+    float brk = smoothstep(0.38, 0.72, r3n(tp * 2.6 + vec2(uTime * 0.22, uTime * 0.05)));
+    float wash = 0.06 + 0.04 * sin(uTime * 0.55 + tp.x * 0.3 + tp.y * 0.17);
+    float foam = isSea > 0.5 ? smoothstep(0.03, 0.0, abs(d0 - wash)) * brk * 0.8 : smoothstep(0.035, 0.0, abs(d00 - 0.06)) * 0.22;
+    if (isSea > 0.5) foam += smoothstep(0.05, 0.0, abs(fract(depth * 2.0 - uTime * 0.16) - 0.5) - 0.46) * smoothstep(0.7, 0.25, depth) * 0.35 * brk;
     wc = mix(wc, vec3(0.96, 0.98, 1.0) * (0.3 + 0.7 * clamp(lit, 0.0, 1.0)), clamp(foam, 0.0, 0.9));
     gl_FragColor.rgb = wc;
+    gl_FragColor.a = clamp(max(edgeA, foam), 0.0, 1.0);
 }`;
 /* a waterfall's sheet: glassy water over the lip, then streaks rushing down faster as it falls, see-through at its
    sides, its foot breaking up raggedly into the spray */
 EnvWater.FALL = `
 {
     float t = vFall.y, u = vFall.x, tn = vFall.z;
-    float sp = t * 1.6 - uTime * (1.6 + 2.6 * tn);
+    // (the first stretch lies on the stream: clear there, coming in as the water speeds toward the lip)
+    float lip = 0.3, fallT = clamp((tn - lip) / (1.0 - lip), 0.0, 1.0);
+    float sp = t * 1.6 - uTime * (0.8 + 3.0 * fallT);
     float s1 = r3n(vec2(u * 16.0, sp)), s2 = r3n(vec2(u * 37.0 + 3.0, sp * 1.5 - uTime * 0.8));
     float streak = smoothstep(0.38, 0.78, s1 * 0.6 + s2 * 0.4);
-    // over the lip it's smooth clear water, turning white as it falls
-    float white = smoothstep(0.08, 0.5, tn);
-    vec3 deep = vec3(0.36, 0.68, 0.82), lite = vec3(0.96, 0.99, 1.0);
-    vec3 col = mix(deep, lite, clamp(streak * (0.45 + 0.5 * white) + 0.15 + 0.3 * white, 0.0, 1.0));
-    col += vec3(0.12) * smoothstep(0.06, 0.0, abs(tn - 0.04));       // (the light catching the lip)
-    float edge = smoothstep(0.0, 0.16, u) * smoothstep(1.0, 0.84, u);
-    float foot = 1.0 - smoothstep(0.78, 1.0, tn + (r3n(vec2(u * 9.0, uTime * 1.3)) - 0.5) * 0.18);
-    float a = (0.8 + 0.18 * streak) * mix(0.5, 1.0, edge) * foot;
+    // over the lip it's smooth glassy water, turning white as it falls
+    float white = smoothstep(0.05, 0.55, fallT);
+    vec3 deep = vec3(0.3, 0.62, 0.78), lite = vec3(0.96, 0.99, 1.0);
+    vec3 col = mix(deep, lite, clamp(streak * (0.35 + 0.6 * white) + 0.08 + 0.35 * white, 0.0, 1.0));
+    col += vec3(0.14) * smoothstep(0.08, 0.0, abs(tn - lip));       // (the light catching the lip)
+    // the sides ragged and thinning, not a cut edge; the foot breaking up into the pool's foam
+    float wob = (r3n(vec2(t * 2.5 - uTime * 1.4, u * 3.0)) - 0.5) * 0.14 * fallT;
+    float edge = smoothstep(0.0, 0.14, u + wob) * smoothstep(1.0, 0.86, u - wob);
+    float foot = 1.0 - smoothstep(0.82, 1.0, tn + (r3n(vec2(u * 9.0, uTime * 1.3)) - 0.5) * 0.14);
+    float a = (0.72 + 0.26 * streak) * mix(0.35, 1.0, edge) * foot * edge;
+    a *= mix(smoothstep(0.0, lip, tn) * 0.55, 1.0, smoothstep(lip - 0.05, lip + 0.05, tn));
     gl_FragColor = vec4(col * uLite, clamp(a, 0.0, 0.97));
 }`;
