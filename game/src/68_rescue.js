@@ -17,6 +17,9 @@ const Watchdog = {
         if (Arcade.on && !$('#arcade')) { Arcade.on = false; Arcade.state = 'off'; Arcade.g = null; Arcade.U = null; UI.modal = false; console.warn('watchdog: arcade flag without a cabinet'); }
         if (Decor.on && G.area && G.area.id !== 'home') { Decor.exit(); console.warn('watchdog: decorating outside the house'); }
         if (Photo.on && $('#photobar').hidden) { Photo.stop(); console.warn('watchdog: photo mode without its bar'); }
+        // (an edit mode whose panel was closed under it: its Done button is gone and the taps still go to it, so it comes back)
+        for (const T of [typeof IslandEdit !== 'undefined' && IslandEdit, typeof PathTool !== 'undefined' && PathTool, typeof Mover !== 'undefined' && Mover])
+            if (T && T.on && $('#panel').hidden && !UI.dialogOpen && !G.busy) { T.render(); console.warn('watchdog: an edit mode without its panel'); }
         const f = document.activeElement;
         if (f && f !== document.body && ['INPUT', 'TEXTAREA', 'SELECT'].includes(f.tagName) && !liveField(f)) f.blur();
     },
