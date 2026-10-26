@@ -541,3 +541,8 @@ body.hd2d #nametags .ptag { font: 600 13px/1 var(--display2); letter-spacing: 0.
     color: #fffaf0; font: 600 21px/1.2 var(--display2, Georgia, serif); letter-spacing: 0.02em; text-align: center; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); }
 #envload .bar { margin: 14px auto 0; width: 220px; max-width: 60vw; height: 8px; border-radius: 99px; background: rgba(255, 250, 240, 0.16); overflow: hidden; }
 #envload .bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #f6c86a, #f08a5a); transition: width 0.3s ease; }
+/* big screens (a desktop monitor): the HUD and the dialogue a size up, so they read as they do on a laptop */
+@media (min-width: 1700px) and (min-height: 940px) { .hud-left, .hud-right, .hud-buttons, .hint, #dialog, #toasts { zoom: 1.25; } }
+@media (min-width: 2300px) and (min-height: 1280px) { .hud-left, .hud-right, .hud-buttons, .hint, #dialog, #toasts { zoom: 1.6; } }
+/* (the keys' hint makes way for a dialogue, which would cover half of it) */
+#ui:has(#dialog:not([hidden])) .hint { visibility: hidden; }

@@ -192,10 +192,10 @@ def pine(name, spec):
 
 
 # ---------------------------------------------------------------- sunflowers
-def petal(bm, col, origin, frame, length, width, color, base, tilt=0.0):
+def petal(bm, col, origin, frame, length, width, color, base, tilt=0.0, seg=(8, 5)):
     """A petal: a flattened, slightly cupped ellipsoid from origin outward along frame[0]."""
     d, s, n = frame
-    res = bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=5, radius=1)
+    res = bmesh.ops.create_uvsphere(bm, u_segments=seg[0], v_segments=seg[1], radius=1)
     for v in res['verts']:
         p = v.co.copy()
         u = (p.x + 1) / 2
@@ -286,19 +286,25 @@ FLOWERS = {
 }
 
 
-def flower_clump(name, spec):
+def flower_clump(name, spec, lod=0):
     """A clump of wild flowers: leaves at the foot, five to eight blossoms on stems of different heights, the colors
-    darker toward the ground (the shade among the leaves is painted in, the clump is too small to bake)."""
+    darker toward the ground (the shade among the leaves is painted in, the clump is too small to bake). The phones'
+    version (lod 1) has the same blossoms in the same places, each petal and leaf a coarser shape, fewer petals to a
+    daisy."""
     rng = random.Random(spec['seed'])
     bm = bmesh.new()
     col = bm.verts.layers.float_color.new('Col')
+    seg = (8, 5) if lod == 0 else (5, 3)
     # leaves: blades and ovals fanning out from the middle
+    # (the same random numbers drawn either way, so the phones' clump has its blossoms in the same places)
     for k in range(15):
         a = k / 15 * math.tau + rng.uniform(-0.3, 0.3)
         d = Vector((math.cos(a), math.sin(a), rng.uniform(0.5, 1.5))).normalized()
         s = Vector((-math.sin(a), math.cos(a), 0))
         L = rng.uniform(0.13, 0.22)
-        res = bmesh.ops.create_uvsphere(bm, u_segments=6, v_segments=4, radius=1)
+        if lod and k % 3 == 2:
+            continue
+        res = bmesh.ops.create_uvsphere(bm, u_segments=6 if lod == 0 else 4, v_segments=4 if lod == 0 else 3, radius=1)
         for v in res['verts']:
             p = v.co.copy()
             u = (p.x + 1) / 2
@@ -334,20 +340,21 @@ def flower_clump(name, spec):
                 if s2.length < 1e-4:
                     s2 = sx
                 s2.normalize()
-                petal(bm, col, top - face * 0.01 + (sx * math.cos(an) + sy * math.sin(an)) * 0.012, (d, s2, -(d.cross(s2)).normalized()), 0.075, 0.05, c, cd)
+                petal(bm, col, top - face * 0.01 + (sx * math.cos(an) + sy * math.sin(an)) * 0.012, (d, s2, -(d.cross(s2)).normalized()), 0.075, 0.05, c, cd, seg=seg)
         elif spec['shape'] == 'lily':
             for k in range(6):
                 an = k / 6 * math.tau
                 d = ((sx * math.cos(an) + sy * math.sin(an)) * 0.9 + face * 0.6).normalized()
                 s2 = face.cross(d).normalized()
-                petal(bm, col, top, (d, s2, face), 0.075, 0.03, c, cd, tilt=-0.25)
+                petal(bm, col, top, (d, s2, face), 0.075, 0.03, c, cd, tilt=-0.25, seg=seg)
         else:
-            m = spec['petals']
+            m = spec['petals'] if lod == 0 else min(spec['petals'], 8)
+            jit = [rng.uniform(-0.05, 0.05) for _ in range(spec['petals'])]
             for k in range(m):
-                an = k / m * math.tau + rng.uniform(-0.05, 0.05)
+                an = k / m * math.tau + jit[k]
                 d = (sx * math.cos(an) + sy * math.sin(an))
                 s2 = face.cross(d).normalized()
-                petal(bm, col, top + d * 0.012, (d, s2, face), 0.05 if m > 9 else 0.055, 0.02 if m > 9 else 0.034, c, mix(c, cd, 0.5), tilt=0.12)
+                petal(bm, col, top + d * 0.012, (d, s2, face), 0.05 if spec['petals'] > 9 else 0.055, (0.02 if spec['petals'] > 9 else 0.034) * (1 if m == spec['petals'] else 1.3), c, mix(c, cd, 0.5), tilt=0.12, seg=seg)
         if spec.get('centre'):
             res = bmesh.ops.create_icosphere(bm, subdivisions=1, radius=1, matrix=Matrix.Translation(top + face * 0.006) @ Matrix.Diagonal((0.014, 0.014, 0.01, 1)))
             for v in res['verts']:
@@ -409,6 +416,9 @@ if __name__ == '__main__':
             continue
         o = flower_clump(name, spec)
         export([o], name)
+        o1 = flower_clump(name + '_lod1', spec, lod=1)
+        export([o1], name + '_lod1')
+        o1.hide_render = True
         shown['small'].append(o)
         print('built', name)
     if prev:
