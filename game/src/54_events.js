@@ -100,8 +100,17 @@ function decorateIsland(a) {
     for (const h of holidaysToday()) {
         if (!h.deco) continue;
         if (h.deco.startsWith('bunting')) {
-            for (const [x, y] of [[x0 + 2, y0 - 1], [x1 - 4, y0 - 1], [x0 + 2, y1 + 1], [x1 - 4, y1 + 1]]) {
-                const f = a.nearestFree(x, y, 2);
+            // (across three open tiles of the square, and the row behind them, near each of its four quarters)
+            const open3 = (x, y) => {
+                for (let r = 0; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+                    const tx = x + dx, ty = y + dy;
+                    if ([0, 1, 2].every(i => !a.blockedAt(tx + i, ty) && !a.blockedAt(tx + i, ty - 1))) return [tx, ty];
+                }
+                return null;
+            };
+            for (const [x, y] of [[x0 + 6, y0 + 3], [x1 - 8, y0 + 3], [x0 + 6, y1 - 3], [x1 - 8, y1 - 3]]) {
+                const f = open3(x, y);
                 if (!f) continue;
                 const e = a.add({ holiday: true, kind: 'deco', frame: h.deco, x: (f[0] + 1.5) * TILE, y: (f[1] + 1) * TILE - 2 });
                 e.hit = null;

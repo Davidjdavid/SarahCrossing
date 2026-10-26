@@ -47,8 +47,12 @@ const Env = {
         if (DEBUG) { const T = window.__envT || (window.__envT = { n: 0, ms: 0, max: 0 }); const d = performance.now() - ts; T.n++; T.ms += d; T.max = Math.max(T.max, d); }
         return true;
     },
-    /* what the island's 3D is built from in the save that changes indoors (Ginger's work, the Post Office's paint) */
-    look() { return S ? JSON.stringify([S.exteriors || null, S.house && S.house.level, S.post && S.post.box || null, S.post && S.post.style || null]) : ''; },
+    /* what the island's 3D is built from that changes while Sarah's indoors (Ginger's work, the Post Office's paint, the
+       day's holiday decorations) */
+    look() {
+        const isl = G.areas && G.areas.island, holi = isl ? isl.ents.filter(e => e.holiday).map(e => e.frame).join() : '';
+        return S ? JSON.stringify([S.exteriors || null, S.house && S.house.level, S.post && S.post.box || null, S.post && S.post.style || null, holi]) : '';
+    },
     /* where Sarah is on screen, for the see-through round her (trees and buildings in front of her) */
     seeThrough(r3) {
         const p = G.player, U = R3U.uSee.value;
@@ -174,7 +178,7 @@ const Env = {
         const k = e.kind;
         if (k === 'tree' || k === 'palm' || k === 'fruittree' || k === 'bigtree' || k === 'oldtree' || k === 'building' || k === 'waterfall' || e.wildFlower) return true;
         if (k === 'bush' || (typeof EnvBuild !== 'undefined' && (EnvBuild.props[k] || EnvBuild.propModel(e)))) return true;
-        if (e.holiday && /pumpkin/.test(e.frame || '')) return true;
+        if (e.holiday && (/pumpkin/.test(e.frame || '') || (typeof EnvBuild !== 'undefined' && EnvBuild.holidayModel(e)))) return true;
         if (typeof EnvSea !== 'undefined' && EnvSea.takes(e)) return true;
         if (typeof EnvItems !== 'undefined' && EnvItems.takes(e)) return true;
         return false;

@@ -7,6 +7,7 @@
    as they are, like the game's other pictures (no color-space conversion), and colors kept in a mesh are turned back
    into the colors as painted. */
 const EnvModels = {
+    OUTDOOR: new Set(['furn_lunar_lantern', 'furn_red_lantern', 'furn_heart_lamp']),
     models: {}, textures: {}, ready: false, failed: false, _p: null, done: 0, total: 1,
     phone() { try { return matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 600; } catch (e) { return false; } },
     /* the names to fetch: each model once, its phone version on phones */
@@ -25,8 +26,9 @@ const EnvModels = {
         }, undefined, bad)));
         // (the rooms' furniture and the things lying about come after: the island never waits for them, and each shows its
         // picture till it's in)
-        const after = n => /^(furn_|item_)/.test(n), first = names.filter(n => !after(n));
-        const later = names.filter(n => /^item_/.test(n)).concat(names.filter(n => /^furn_/.test(n)));   // (the small things first: they lie about outdoors)
+        // (but the lanterns the holidays put up on the island come with the island: 54_events.js decorateIsland)
+        const after = n => /^(furn_|item_)/.test(n) && !this.OUTDOOR.has(n), first = names.filter(n => !after(n));
+        const later = names.filter(n => /^item_/.test(n)).concat(names.filter(n => /^furn_/.test(n) && !this.OUTDOOR.has(n)));   // (the small things first: they lie about outdoors)
         this.total = first.length + Object.keys(window.TEXTURES || {}).length;
         const get = n => new Promise((ok, bad) => loader.load(window.MODELS[n], g => ok([n, g]), undefined, bad));
         this._p = Promise.all(first.map(n => get(n).then(r => { this.done++; return r; })).concat(texs))

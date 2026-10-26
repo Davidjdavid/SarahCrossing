@@ -153,6 +153,10 @@ docs/DEPLOY.md for the server.
   the sky's shader, `uAur` in `r3Sky`, their green on everything in `updateLight`); sea turtle hatchlings
   (`critter_turtle`, flippers that paddle) scrambling from a nest on the far beach into the sea on some summer dawns.
   "Some" is a coin toss per day (`EnvSights.lucky`), the same all day. The owl at night and the deer are the wildlife's.
+- The holidays' decorations on the island (54_events.js `decorateIsland`) are models too (`EnvBuild.holidayModel`): pumpkin
+  lanterns, the lunar and red lanterns and heart lamps (the furniture's own models, loaded with the island's:
+  `EnvModels.OUTDOOR`) and bunting (`bunting`, `bunting_green` from props_island.py); the island's 3D is built again when
+  the day's decorations change (`Env.look`).
 - The small and far-off things are toys too, from `tools/blender/small_things.py`: shells and gems lying on the island
   (`item_<id>`; fruit uses the trees' `fruit_<id>`), drawn by `EnvItems` (33p_env_items.js) in place of their pictures;
   everything else Sarah can carry comes from `pocket_things.py` (`item_<its picture>`: wood, presents, money bags, the

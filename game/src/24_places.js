@@ -82,6 +82,7 @@ async function leaveInterior() {
     const R0 = G.area.room;
     if (R0 && R0.exitTo) { Sfx.play('step'); await goRoom(R0.exitTo, R0.exitAt || [1, 1], 'down'); return; }
     const b = bldOf(G.area.building || from);
+    if (!b) return;                         // (already outside: a second tap on the door while the first was fading)
     Sfx.play('door');
     await fadeTo(async () => {
         setArea('island', (b.x + b.door + 0.5) * TILE, (b.y + b.h + 0.75) * TILE, 'down');

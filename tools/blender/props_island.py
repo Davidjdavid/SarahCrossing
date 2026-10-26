@@ -835,6 +835,23 @@ def fairy_mushroom():
     return [(main, 'main'), (glow, 'glow')]
 
 
+def bunting(cols):
+    """Holiday bunting across three tiles of the plaza (54_events.js decorateIsland): two posts, a rope sagging between
+    them, little triangle flags hanging along it in turn."""
+    mb = MB()
+    for sx in (-1.38, 1.38):
+        cyl(mb, sx, 0, 0, 1.32, 0.035, 0.03, wood(WOOD_D), seg=8, round_=0.01)
+        ball(mb, (sx, 0, 1.34), 0.045, shade('#e8c048'), sub=2)
+    rope = lambda x: 1.24 - 0.22 * (1 - (x / 1.38) ** 2)
+    tube(mb, [(x / 10 * 1.38, 0, rope(x / 10 * 1.38)) for x in range(-10, 11)], 0.008, shade('#f2ead8'), seg=5)
+    n = 11
+    for i in range(n):
+        x = -1.2 + i * 2.4 / (n - 1)
+        z = rope(x)
+        slab(mb, [(x - 0.095, z), (x, z - 0.22), (x + 0.095, z)], 0.012, shade(cols[i % len(cols)]), axis='y', at=-0.006)
+    return [(mb, 'main')]
+
+
 PROPS = {
     'fountain': fountain, 'drinkfountain': drinkfountain, 'board': board, 'plaque': plaque, 'trashcan': trashcan, 'statue_david': statue,
     'signpost_trail': lambda: sign('trail'), 'signpost_farm': lambda: sign('farm'), 'signpost_camp': lambda: sign('camp'),
@@ -845,7 +862,8 @@ PROPS = {
     'campfire': campfire, 'bonfire': lambda: campfire(True), 'picnic': picnic, 'telescope': telescope, 'viewer': viewer, 'tackle': tackle,
     'driftwood': driftwood, 'rock_a': lambda: rock(1), 'rock_b': lambda: rock(7), 'icecream': icecream, 'sandcastle': sandcastle,
     'volleyball': volleyball, 'noodle_cart': noodle_cart, 'barrel': barrel,
-    'fairy_mushroom': fairy_mushroom, 'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
+    'fairy_mushroom': fairy_mushroom, 'bunting': lambda: bunting(['#e85a5a', '#f8c040', '#5ab0e0', '#f088b0', '#7ac860']),
+    'bunting_green': lambda: bunting(['#3a9a4a', '#8ad070', '#f4f0e0', '#5ab85a']), 'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
     'reeds': reeds, 'lilypad': lilypad, 'lilypad_flower': lambda: lilypad(True), 'pebbles': pebbles, 'falls_rocks': falls_rocks,
 }
 

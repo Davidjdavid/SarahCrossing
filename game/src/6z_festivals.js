@@ -288,7 +288,9 @@ function trickOption(n) {
     if (st.done.includes(n.id)) return null;
     return { label: 'Trick or treat?', fn: async () => {
         st.done.push(n.id);
-        await UI.say(n.id, voiced(n.id, `TRICK OR TREAT! I'm ${COSTUMES[n.id]}`), { keep: true });
+        // (the costumes are told by the narrator: "Coco is dressed as a detective. She already knows everything.")
+        await UI.say(n.id, voiced(n.id, 'TRICK OR TREAT!'), { keep: true });
+        if (COSTUMES[n.id]) await UI.say(null, `${NPC_DEFS[n.id].name} is dressed as ${COSTUMES[n.id]}`, { keep: true });
         if (pocketCount('candy')) {
             removeItem('candy', 1);
             st.given = (st.given || 0) + 1;
