@@ -69,7 +69,7 @@ const EnvGhost = {
         this.key = key;
         cam.updateMatrixWorld();
         const V = cam.matrixWorldInverse.elements, Pm = cam.projectionMatrix.elements, asp = cam.aspect;
-        const nearZ = D.z > D.w ? D.z : 0, seeZ = U.w > 0 ? U.z - 0.8 : -1, v = r3.view;
+        const nearZ = D.z > D.w ? D.z + 0.8 : 0, seeZ = U.w > 0 ? U.z - 0.8 : -1, v = r3.view;
         const vx0 = v ? v.x0 / TILE - 4 : -1e9, vx1 = v ? v.x1 / TILE + 4 : 1e9, vy0 = v ? v.y0 / TILE - 4 : -1e9, vy1 = v ? v.y1 / TILE + 8 : 1e9;
         // could a sphere at (x, y, z) of radius r be fading? near the camera, or in front of Sarah and near her on screen
         const fades = (x, y, z, r) => {
@@ -80,7 +80,7 @@ const EnvGhost = {
             // (off the screen it can't show, faded or not)
             if (nx - rn * 1.2 > 1.05 || nx + rn * 1.2 < -1.05 || ny - rn > 1.05 || ny + rn < -1.05) return false;
             if (vz - r < nearZ) return true;
-            if (vz - r >= seeZ) return false;
+            if (vz - r >= seeZ + 1) return false;
             return Math.hypot((nx - U.x) * asp, ny - U.y) < U.w + rn * 1.2;
         };
         const live = [];

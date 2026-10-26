@@ -64,7 +64,9 @@ const EnvTrees = {
             let t = null;
             if (kind === 'pine') { if (pines.length) t = put(pines, x, y, z, r, 0.8 + r() * 0.22); else this.pine(F, B, x, y, z, r); }
             else if (kind === 'palm') { if (palms.length) t = put(palms, x, y, z, r, 0.9 + r() * 0.15, fruit ? (r() - 0.5) * 1.2 : null); else this.palm(F, B, x, y, z, r, e); }
-            else if (rounds.length) t = put(rounds, x, y, z, r, big * (0.9 + r() * 0.15), fruit ? (r() - 0.5) * 0.6 : null);
+            // (a round tree faces the camera, as Animal Crossing's do: its two low lobes level side by side, the third on top;
+            // only turned a touch, and each its own size)
+            else if (rounds.length) t = put(rounds, x, y, z, r, big * (0.84 + r() * 0.26), (r() - 0.5) * 0.3);
             else this.broad(F, B, x, y, z, r, big);
             if (t) live.push({ e, t, fruit: fruit ? hang(t, fruit) : [], on: true, ripe: true, shook: false });
         }

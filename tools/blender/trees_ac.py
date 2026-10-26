@@ -196,9 +196,10 @@ def trunk(mb, rng, height, r0, r1, roots=5, lean=0.06, cols=('#b0702e', '#d8964c
 # ---------------------------------------------------------------- broadleaf trees
 TREES = {
     # the reference's tree: two lobes side by side low down and a smaller one on top behind
-    'tree_round_a': dict(seed=3, lobes=[(-0.72, 0.0, 2.15, 0.9), (0.72, 0.02, 2.12, 0.88), (0.02, 0.32, 2.88, 0.74), (0.0, 0.55, 2.2, 0.8)], height=2.45, r0=0.36, r1=0.29),
+    # (the two low lobes level and alike, so the tree is symmetrical facing the camera, as the game keeps it)
+    'tree_round_a': dict(seed=3, lobes=[(-0.72, 0.0, 2.15, 0.9), (0.72, 0.0, 2.15, 0.9), (0.0, 0.32, 2.88, 0.74), (0.0, 0.55, 2.2, 0.8)], height=2.45, r0=0.36, r1=0.29),
     # taller, with a fourth lobe behind
-    'tree_round_b': dict(seed=8, lobes=[(-0.66, 0.04, 2.25, 0.86), (0.7, 0.0, 2.32, 0.8), (-0.04, 0.16, 3.0, 0.76), (0.1, 0.58, 2.45, 0.8)], height=2.6, r0=0.34, r1=0.28),
+    'tree_round_b': dict(seed=8, lobes=[(-0.68, 0.02, 2.28, 0.83), (0.68, 0.02, 2.28, 0.83), (0.0, 0.16, 3.0, 0.76), (0.0, 0.58, 2.45, 0.8)], height=2.6, r0=0.34, r1=0.28),
 }
 GREEN = dict(dark='#2a6a2e', light='#8cd05c', fill='#24552a')
 SPRING = dict(leaves=[('#ffc8dc', 0.36), ('#ffb0cc', 0.26), ('#fff0f4', 0.22), ('#f48ab0', 0.1), ('#8ccc6a', 0.06)], fill='#b06a84')
@@ -275,7 +276,7 @@ def fruit_anchors(lobes):
     top = max(lobes, key=lambda l: l[0].z)
     out = []
     for (c, r), d in zip(lowest + [top], (Vector((-0.25, -0.92, -0.25)), Vector((0.3, -0.9, -0.15)), Vector((0.12, -0.88, 0.1)))):
-        out.append(c + d.normalized() * (r + 0.04))
+        out.append(c + d.normalized() * (r + 0.13))      # (out past the leaves, so they never cover the fruit)
     return out
 
 

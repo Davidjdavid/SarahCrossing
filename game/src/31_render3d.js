@@ -668,22 +668,27 @@ function r3Patch(mat, o) {
     mat.onBeforeCompile = sh => {
         Object.assign(sh.uniforms, R3U, o.uniforms || {});
         if (o.vbody) sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n' + o.vbody);
-        sh.vertexShader = R3_GLSL + (o.see ? 'varying vec4 vSee;\n' : '') + (o.vhead || '') + sh.vertexShader.replace('#include <project_vertex>', `
+        sh.vertexShader = R3_GLSL + (o.see ? 'varying vec4 vSee; varying float vObjZ;\n' : '') + (o.vhead || '') + sh.vertexShader.replace('#include <project_vertex>', `
             vec4 bw = modelMatrix * ${o.inst ? 'instanceMatrix * ' : ''}vec4(transformed, 1.0);
             vWp = bw.xyz;
             float bd = max(0.0, uBendZ - bw.z); bw.y -= uBendK * bd * bd;
             vec4 mvPosition = viewMatrix * bw;
             vDofZ = -mvPosition.z;
-            gl_Position = projectionMatrix * mvPosition;${o.see ? '\n            vSee = gl_Position;' : ''}`);
-        let fs = R3_GLSL + (o.see ? 'varying vec4 vSee; float r3Fade;\n' : '') + (o.fhead || '') + sh.fragmentShader;
+            gl_Position = projectionMatrix * mvPosition;${o.see ? `
+            vSee = gl_Position;
+            vObjZ = -(viewMatrix * (modelMatrix * ${o.inst ? 'instanceMatrix * ' : ''}vec4(0.0, 1.6, 0.0, 1.0))).z;` : ''}`);
+        let fs = R3_GLSL + (o.see ? 'varying vec4 vSee; varying float vObjZ; float r3Fade;\n' : '') + (o.fhead || '') + sh.fragmentShader;
         // (see-through round Sarah: whatever stands in front of her near her on screen fades, and so does anything right in
         // front of the camera, in the near blur, as Animal Crossing fades a tree between you and the view. The main pass
         // leaves those pixels out; the ghost pass (EnvGhost, o.ghost) draws them again, only there, softly see-through)
         if (o.see) fs = fs.replace('void main() {', `void main() {
-            r3Fade = uDof.z > uDof.w ? smoothstep(uDof.z, uDof.w, vDofZ) * 0.9 : 0.0;
-            if (uSee.w > 0.0 && vDofZ < uSee.z - 0.8) {
+            // (right in front of the camera it fades all the way away; in front of Sarah, to a soft ghost. Whether it's near
+            // the camera or in front of Sarah goes by the thing as a whole, not each pixel's depth: a crown sliced by
+            // that line would lose its front leaves and show its dark inside)
+            r3Fade = uDof.z > uDof.w ? smoothstep(uDof.z + 0.8, uDof.w + 1.4, vObjZ) : 0.0;
+            if (uSee.w > 0.0 && vObjZ < uSee.z - 0.8) {
                 vec2 sd = (vSee.xy / vSee.w - uSee.xy) * vec2(uSeeA, 1.0);
-                r3Fade = max(r3Fade, 1.0 - smoothstep(0.6, 1.0, length(sd) / uSee.w));
+                r3Fade = max(r3Fade, 0.74 * (1.0 - smoothstep(0.6, 1.0, length(sd) / uSee.w)));
             }
             ${o.ghost ? 'if (r3Fade < 0.02) discard;' : 'if (r3Fade >= 0.02) discard;'}`);
         if (o.fmap) fs = fs.replace('#include <map_fragment>', '#include <map_fragment>\n' + o.fmap);
@@ -693,7 +698,7 @@ function r3Patch(mat, o) {
         fs = fs.replace('reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask();',
             'reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * mix(1.0, getShadowMask(), uShadow)' + (o.noCloud ? ';' : ' * cloudShade(vWp.xz);'));
         // (a ghost's alpha is how see-through it is: the picture's own alpha, the depth of field's, is kept by its blending)
-        fs = fs.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + (o.fend || '') + (o.ghost ? '\ngl_FragColor.a = 1.0 - 0.74 * r3Fade;' : o.noDof ? '' : o.dofFixed != null ? `\ngl_FragColor.a = ${o.dofFixed.toFixed(2)};` : '\ngl_FragColor.a = dofA(vDofZ);'));
+        fs = fs.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + (o.fend || '') + (o.ghost ? '\ngl_FragColor.a = 1.0 - r3Fade;' : o.noDof ? '' : o.dofFixed != null ? `\ngl_FragColor.a = ${o.dofFixed.toFixed(2)};` : '\ngl_FragColor.a = dofA(vDofZ);'));
         sh.fragmentShader = fs;
     };
     mat.customProgramCacheKey = () => (o.key || 'r3') + (o.ghost ? 'ghost' : '') + mat.type;
