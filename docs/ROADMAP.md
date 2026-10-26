@@ -197,4 +197,9 @@ Office's and the Bank's keepers are still to be picked.
 
 ## Bugs
 - [x] Talking to Wonton in the hot spring: the spot you have to stand in is too hard to hit (fixed: any side of the rim works, and a tap walks below it)
-- [ ] A light test pass at the very end (David played it for a week and reported bugs as he went)
+- [~] A light test pass at the very end (David played it for a week and reported bugs as he went). 26 October: a bot
+  played about 2,300 actions in the classic view, the HD-2D view and the new look (random places, hours, talk, buildings,
+  apps, civic screens, games, jobs, new days), every civic screen and the neighbor games were checked on three phone
+  sizes, and Halloween night was played through; fixed: the new look not showing Ginger's changes until a reload, edit
+  modes left on without their Done button, six-button games too wide for phones, the trick-or-treat costume lines,
+  holiday bunting against the shop fronts and flat in 3D, leaving a building twice, mail piling up, interest too high
