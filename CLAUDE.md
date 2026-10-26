@@ -130,9 +130,11 @@ docs/DEPLOY.md for the server.
   tops, a sill with the doorway; it's lit brighter and warmer than the HD view's rooms. The floor pieces of furniture
   are models from `furniture.py` (`furn_<id>`: the kit in `furn_kit.py`, the pieces in `furn_a.py`..`furn_d.py`, one
   file per batch; `--batch furn_b` builds one), placed on their footprints by `EnvRoom.furniture` (built again when the
-  room changes); a plush is its folk's model, small. What a model doesn't cover stays the HD view's picture: what's
-  hung on the wall (on the back wall's picture), rugs (on the floor), pieces drawn moving (arcade cabinets, the disco
-  floor), and the small things on tables, which stand on the model's top (`anchor_top`, `EnvRoom.place`). The
+  room changes); a plush is its folk's model, small; the little things on tables are models too (`furn_e.py`), standing
+  on their table's top (`anchor_top`). What has no model of its own yet is a thick cut-out of its picture
+  (`EnvRoom.cutout`: the picture on the front, the same shape twice behind it a shade darker): what's hung on the back
+  wall (taken off the wall's picture, `EnvRoom.hangs`) and any small thing still without a model. Rugs stay pictures on
+  the floor, and pieces drawn moving (arcade cabinets, the disco floor) keep their pictures. The
   furniture loads after the island's models, so the island never waits for it. Glass is a part named `*_clear`
   (see-through).
 - David's rule (27 October): everything in the world is a 3D model in the dollhouse look (things on the ground, in the sky
