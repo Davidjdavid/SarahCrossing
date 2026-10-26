@@ -174,6 +174,16 @@ docs/DEPLOY.md for the server.
   (streams' current streaks) and where it's the hot spring (milky, steaming). Until the models arrive the new look draws its own, and
   builds again once they have.
 
+## The dialogue spreadsheet (scripts/dialogue)
+
+- `node scripts/dialogue/export.mjs docs/dialogue/dialogue.xlsx` writes every line anyone reads (found by reading
+  game/src: `extract.mjs`; who says it and when, in plain words: the hand-written tables in `describe.mjs`) and the new
+  lines written ahead for features to come (`new-civic.mjs`: the zip code, the Post Office, the Bank, the Town Hall, each
+  outcome) into a spreadsheet for David (needs python3 with openpyxl). When he sends it back,
+  `node scripts/dialogue/apply.mjs his.xlsx` (`--dry` first) puts each "Your new line" into the code in place of its
+  original (by its exact text, nearest its old line; quotes and `${}` handled); his notes and his edits to the new lines
+  land in `docs/dialogue/notes-from-david.json`.
+
 ## Saving (11_save.js, 12_cloud.js, 6x_islands.js)
 
 - `Save.write()` keeps a copy on the device (`localStorage`, marked pending) and sends the island to

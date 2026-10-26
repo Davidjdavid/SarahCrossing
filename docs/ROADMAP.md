@@ -74,6 +74,9 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] New people: meet new vendors by meeting requirements; after some days and play time, new
   characters visit and ask to move in, and Sarah picks where their house goes
 - [ ] A secret character
+- [~] Every line in one spreadsheet for David to edit (docs/dialogue/dialogue.xlsx, 26 October: 6,694 lines with who
+  says them and when, plus 399 new lines for the zip code, Post Office, Bank and Town Hall in every outcome); his edits go
+  back in with scripts/dialogue/apply.mjs
 - [~] Way more dialogue, better dialogue, conversations that react to what's going on: about 1,340
   new lines (27+ everyday lines per neighbor, plus topics that react to the hour, weather, season,
   where they stand, friendship, Sarah's outfit, what she did today, her records, holidays, solved
