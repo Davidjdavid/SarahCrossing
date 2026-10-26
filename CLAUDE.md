@@ -226,6 +226,10 @@ docs/DEPLOY.md for the server.
   `junk` puts it on the other, `ready` says when it can land, `done` a board that wins outright); Surf's Up, Gopher
   Garden, Fruit Catch, Snack Stack and Noodle Slurp are races (`race`, on `VS_RACE` or the game's own clock). The other
   board plays silently (`Versus.quiet`). Playing a neighbor earns a little friendship once a day.
+- A friend online on the same island can be asked too ("Play <name>" at a cabinet: `VsNet.invite`): each side plays
+  its own board and sends a picture of it a few times a second (`vsSnap`, laid over the other side's copy of the game
+  with `Object.assign`), junk and leaving go across as messages (the live connection's `game` messages, passed only to
+  the one person they're for: server/live.mjs), and a friend who leaves mid-game hands you the win.
 
 ## Saving (11_save.js, 12_cloud.js, 6x_islands.js)
 

@@ -462,13 +462,21 @@ async function arcadeCabinet(id) {
     const free = !A.free[id];
     const best = A.best[id] ? ` Your best: ${fmtNum(A.best[id])}.` : '';
     const lv = levelChoices(id);
-    const vs = typeof Versus !== 'undefined' && Versus.has(id) ? [`Play a neighbor (${fmtNum(def.fee)})`] : [];
+    const vs = typeof Versus !== 'undefined' && Versus.has(id) ? [`Play a neighbor (${fmtNum(def.fee)})`].concat(VsNet.friends().map(w => `Play ${Online.name(w)} (${fmtNum(def.fee)})`)) : [];
     const opts = [free ? 'Play (free!)' : `Play (${fmtNum(def.fee)})`].concat(vs, lv.length ? [`Start at level ${lv[lv.length - 1]}`] : [], lv.length > 2 ? ['Pick a level'] : [], ['How do I play?', 'Not now']);
     const k = await UI.ask(sp, free ? `${def.name}! Your first game is on the house.${best}` : `${def.name}. ${fmtNum(def.fee)} sand dollars a game.${best}`, opts);
     const c = opts[k];
     if (c === 'How do I play?') { await UI.say(sp, def.how); return arcadeCabinet(id); }
     if (c === 'Not now') return;
     if (c && c.startsWith('Play a neighbor')) return arcadeVersus(id, sp);
+    const friend = c && VsNet.friends().find(w => c.startsWith(`Play ${Online.name(w)} (`));
+    if (friend) {
+        if (S.money < def.fee) { Sfx.ui('nope'); await UI.say(sp, 'Not enough sand dollars.'); return; }
+        UI.hideDialog();
+        if (!(await VsNet.invite(friend, id))) return;
+        addMoney(-def.fee, true);
+        return afterArcade(await VsNet.play(id, friend));
+    }
     let level = 1;
     if (c && c.startsWith('Start at level')) level = lv[lv.length - 1];
     if (c === 'Pick a level') {

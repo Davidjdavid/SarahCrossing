@@ -404,6 +404,38 @@ test('playing together: David visits Sarah, they see each other, and his things 
   await david.context().close();
 });
 
+test('two players online: Sarah asks David to play Bento Blocks; boards and junk cross; leaving hands over the win', async () => {
+  const sarah = await device();
+  await play(sarah);
+  await saveNow(sarah);
+  const david = await device({ who: 'david' });
+  await play(david);
+  await until(() => sarah.evaluate(() => VsNet.friends().includes('david')));
+  // she asks, he says yes
+  await sarah.evaluate(() => { window.__inv = VsNet.invite('david', 'blocks'); });
+  await until(() => david.evaluate(() => VsNet.prompt === 'sarah'));
+  await david.click('#choices .choice:has-text("Play!")');
+  assert.equal(await sarah.evaluate(() => window.__inv), true);
+  await sarah.evaluate(() => { VsNet.play('blocks', 'david'); });
+  await until(() => sarah.evaluate(() => Arcade.state === 'play' && !!VsNet.match));
+  await until(() => david.evaluate(() => Arcade.state === 'play' && !!VsNet.match));
+  // his pieces land on his board, and on her picture of it
+  for (let i = 0; i < 4; i++) { await david.keyboard.press('Space'); await david.waitForTimeout(400); }
+  const his = await david.evaluate(() => VsNet.match.me.grid.flat().filter(Boolean).length);
+  assert.ok(his >= 8, String(his));
+  await until(() => sarah.evaluate((n) => VsNet.match.op.grid.flat().filter(Boolean).length >= n, his));
+  // junk she sends turns up on his board as rows of grey
+  await sarah.evaluate(() => Online.game('david', { k: 'junk', n: 2 }));
+  await until(() => david.evaluate(() => VsNet.match.me.grid.flat().filter((c) => c === 'G').length >= 9));
+  // she leaves: he wins
+  await sarah.evaluate(() => Arcade.quit());
+  await until(() => david.evaluate(() => Arcade.state === 'over' && Arcade.result && Arcade.result.won === true));
+  assert.deepEqual(sarah.problems, []);
+  assert.deepEqual(david.problems.filter((m) => !/404/.test(m)), []);
+  await sarah.context().close();
+  await david.context().close();
+});
+
 test('Wonton can be talked to from every side of the hot spring (and a tap walks somewhere you can stand)', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));

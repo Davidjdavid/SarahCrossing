@@ -6,10 +6,12 @@
 //   { t: 'state', area, x, y, dir, moving, run, pose, look }   where they are (sent when it changes)
 //   { t: 'say', text }                                         a chat line (bubble over their head)
 //   { t: 'emote', e }                                          a dance move or emote
+//   { t: 'game', to, d }                                       a two-player game's moves, for one other person
 // To players:
 //   { t: 'here', people: [{ who, ...state }] }    on connecting: everyone else on the island
 //   { t: 'join', who, ...state } / { t: 'leave', who }
 //   { t: 'state' | 'say' | 'emote', who, ... }    what someone else did
+//   { t: 'game', from, d }                        a game message someone sent you (an invite, their board, junk)
 //   { t: 'island', rev }                          Sarah's island was saved (visitors refresh it)
 //   { t: 'mail' }                                 a letter is waiting for you
 // One connection per person per island: connecting again (another tab, another
@@ -239,6 +241,10 @@ export class Live {
     } else if (msg.t === 'emote') {
       const e = clean(msg.e, 30);
       if (e) this.broadcast(conn.island, { t: 'emote', who: conn.who, e }, conn);
+    } else if (msg.t === 'game') {
+      // passed on only to the one person it's for, on the same island (the frame size already bounds it)
+      const to = typeof msg.to === 'string' ? msg.to : '';
+      if (/^[a-z]{2,20}$/.test(to) && to !== conn.who && msg.d && typeof msg.d === 'object' && !Array.isArray(msg.d)) this.sendTo(conn.island, to, { t: 'game', from: conn.who, d: msg.d });
     }
   }
 

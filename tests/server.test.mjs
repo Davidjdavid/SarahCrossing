@@ -239,6 +239,14 @@ test('live: who is there, where they are, what they say; island saves and letter
   david.send(JSON.stringify({ t: 'emote', e: 'wave' }));
   await settle();
   assert.deepEqual(sarah.got.slice(-2), [{ t: 'say', who: 'david', text: 'Hi sis!' }, { t: 'emote', who: 'david', e: 'wave' }]);
+  // a two-player game's messages go to the one person they're for, from whoever sent them
+  const before = david.got.length;
+  sarah.send(JSON.stringify({ t: 'game', to: 'david', d: { k: 'invite', game: 'blocks' } }));
+  sarah.send(JSON.stringify({ t: 'game', to: 'sarah', d: { k: 'self' } }));
+  sarah.send(JSON.stringify({ t: 'game', to: 'david', d: 'not an object' }));
+  await settle();
+  assert.deepEqual(david.got.slice(before), [{ t: 'game', from: 'sarah', d: { k: 'invite', game: 'blocks' } }]);
+  assert.equal(sarah.got.filter((m) => m.t === 'game').length, 0);
   // Sarah saves: David hears about it; a letter for Sarah: she hears about it
   await api('PUT', `/api/islands/${island.id}`, { state: fakeState(), baseRev: 1 });
   await api('POST', `/api/islands/${island.id}/mail`, { to: 'sarah', from: 'david', subject: 'Hi' });

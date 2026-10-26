@@ -93,12 +93,15 @@ const Online = {
     },
     later() { clearTimeout(this.retryT); this.retry = Math.min(30e3, (this.retry || 1000) * 2); this.retryT = setTimeout(() => this.connect(), this.retry); },
     send(m) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(m)); },
+    /* a two-player game's message for one other person (6zv_versus.js) */
+    game(to, d) { this.send({ t: 'game', to, d }); },
     got(m) {
         if (m.t === 'here') { for (const p of m.people || []) this.add(p, true); return; }
         if (m.t === 'join') { this.add(m, false); return; }
         if (m.t === 'leave') { this.drop(m.who); return; }
         if (m.t === 'island') { if (this.visitor()) this.refreshIsland(m.rev); return; }
         if (m.t === 'mail') { this.fetchMail(); return; }
+        if (m.t === 'game') { if (typeof VsNet !== 'undefined') VsNet.got(m.from, m.d); return; }
         const o = this.others.get(m.who);
         if (!o) return;
         if (m.t === 'state') this.place(o, m);
@@ -123,6 +126,7 @@ const Online = {
         NPCs.place(false);
     },
     drop(who, quiet) {
+        if (typeof VsNet !== 'undefined') VsNet.gone(who);
         const o = this.others.get(who);
         if (!o) return;
         this.others.delete(who);

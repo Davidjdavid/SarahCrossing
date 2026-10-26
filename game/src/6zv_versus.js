@@ -39,13 +39,16 @@ const Versus = {
 /* a two-player match: two boards of one game, one yours, one the rival's */
 function VsMatch(id, opts) {
     const def = ARCADE_GAMES[id], A = Versus.ADAPT[id];
-    this.id = id; this.def = def; this.A = A; this.who = opts.rival; this.rivalName = Online.name ? Online.name(opts.rival) : cap(opts.rival);
+    this.id = id; this.def = def; this.A = A; this.remote = opts.remote || null; this.who = opts.rival || opts.remote; this.rivalName = Online.name(this.who);
     const o = Object.assign({}, opts, { level: A.level || 1, vs: true });
     this.me = def.create(o);
     this.op = Versus.quiet(() => def.create(o));
     this.junkMe = 0; this.junkOp = 0;
-    if (A.hook) { A.hook(this.me, n => { this.junkOp += n; this.flash = { side: 1, t: 30, n }; }); A.hook(this.op, n => { this.junkMe += n; this.flash = { side: 0, t: 30, n }; }); }
-    this.brain = A.brain(this.op, VS_SKILL[opts.rival] || 0.5);
+    // (online, junk goes over the live connection; the friend's board here is a picture of theirs, sent a few times a second)
+    if (A.hook) A.hook(this.me, n => { if (this.remote) Online.game(this.remote, { k: 'junk', n }); else this.junkOp += n; this.flash = { side: 1, t: 30, n }; });
+    if (A.hook && !this.remote) A.hook(this.op, n => { this.junkMe += n; this.flash = { side: 0, t: 30, n }; });
+    this.brain = this.remote ? null : A.brain(this.op, VS_SKILL[opts.rival] || 0.5);
+    if (this.remote) VsNet.match = this;
     this.score = 0; this.over = false; this.won = null;
     const mk = () => { const c = document.createElement('canvas'); c.width = def.w || ARCADE_W; c.height = def.h || ARCADE_H; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; return { c, g }; };
     this.cvMe = mk(); this.cvOp = mk();
@@ -59,9 +62,15 @@ VsMatch.prototype = {
         if (this.junkMe && this.A.ready(this.me)) { this.A.junk(this.me, this.junkMe); this.junkMe = 0; Sfx.play('land'); }
         if (this.junkOp && this.A.ready(this.op)) { Versus.quiet(() => this.A.junk(this.op, this.junkOp)); this.junkOp = 0; }
         this.me.update(inp);
-        const oi = this.brain.input();
-        oi.pointer = VS_NO_POINTER;
-        Versus.quiet(() => this.op.update(oi));
+        if (this.remote) {
+            if (this.snapIn) { Object.assign(this.op, this.snapIn); this.snapIn = null; }
+            if (this.left_ && !this.op.over) { this.op.over = true; this.op.score = Math.min(this.op.score || 0, (this.me.score || 0) - 1); }
+            if (this.t % 6 === 0 || this.me.over) Online.game(this.remote, { k: 'snap', s: vsSnap(this.me) });
+        } else {
+            const oi = this.brain.input();
+            oi.pointer = VS_NO_POINTER;
+            Versus.quiet(() => this.op.update(oi));
+        }
         this.score = this.me.score || 0;
         if (this.A.race) return this.raceCheck();
         const meDone = this.A.done && this.A.done(this.me), opDone = this.A.done && this.A.done(this.op);
@@ -99,6 +108,76 @@ VsMatch.prototype = {
     },
 };
 const VS_GAP = 4, VS_HEAD = 9, VS_NO_POINTER = { x: 0, y: 0, down: false, seen: false };
+/* a board as plain data, to send: what's drawn, without the sparkles and the links between pieces */
+const VS_SKIP = new Set(['pops', 'bits', 'puffs', 'rings', 'spray', 'touch', 'drag', 'word', 'calc', 'banner', 'talk', 'swipe', 'pile', 'groups']);
+function vsSnap(g) {
+    const seen = new WeakSet();
+    return JSON.parse(JSON.stringify(g, function (k, v) {
+        if (VS_SKIP.has(k) || typeof v === 'function') return undefined;
+        // (a sushi clearing keeps just its timing: the group it belongs to is shared by its pieces)
+        if (k === 'g' && v && typeof v === 'object' && 'flash' in v) return { t: v.t, flash: v.flash };
+        if (v && typeof v === 'object') { if (seen.has(v)) return undefined; seen.add(v); }
+        return v;
+    }));
+}
+
+/* playing a friend online: an invite, an answer, then each side plays its own board and sends it across */
+const VsNet = {
+    asking: null, match: null,
+    /* ask a friend on the island to play; resolves true when they say yes */
+    invite(to, id) {
+        if (this.asking) return Promise.resolve(false);
+        Online.game(to, { k: 'invite', game: id });
+        return new Promise(res => {
+            const P = UI.open({ title: `Asking ${Online.name(to)}...`, foot: true, onClose: () => this.answer(to, { k: 'decline', why: 'cancel' }) });
+            P.body.appendChild(el('p', 'muted', `${Online.name(to)} gets a message asking to play ${ARCADE_GAMES[id].name}. Waiting for an answer.`));
+            P.foot.appendChild(btn('Never mind', 'alt', () => UI.close()));
+            this.asking = { to, id, res, timer: setTimeout(() => this.answer(to, { k: 'decline', why: 'late' }), 30000) };
+        });
+    },
+    answer(from, d) {
+        const a = this.asking;
+        if (!a || a.to !== from) return;
+        clearTimeout(a.timer); this.asking = null;
+        if (d.why === 'cancel') Online.game(from, { k: 'cancel' });
+        else UI.close(true);
+        if (d.k !== 'accept') UI.toast(d.why === 'busy' ? `${Online.name(from)} is busy right now.` : d.why === 'late' ? `${Online.name(from)} didn't answer.` : d.why === 'cancel' ? 'Never mind, then.' : `${Online.name(from)} said not now.`);
+        a.res(d.k === 'accept');
+    },
+    got(from, d) {
+        if (!d || typeof d !== 'object') return;
+        if (d.k === 'invite') return this.invited(from, d.game);
+        if (d.k === 'accept' || d.k === 'decline') return this.answer(from, d);
+        if (d.k === 'cancel') { if (this.prompt === from) { this.prompt = null; UI.hideDialog(); UI.toast(`${Online.name(from)} changed their mind.`); } return; }
+        const m = this.match;
+        if (!m || m.remote !== from) return;
+        if (d.k === 'snap' && d.s && typeof d.s === 'object') m.snapIn = d.s;
+        else if (d.k === 'junk') m.junkMe += Math.max(0, Math.min(12, d.n | 0));
+        else if (d.k === 'leave') m.left_ = true;
+    },
+    /* a friend asks: play, or not now (busy in a game or a menu: they hear so) */
+    async invited(from, id) {
+        if (!Versus.has(id) || Arcade.on || UI.modal || G.busy || this.asking || this.match || G.mode !== 'play') { Online.game(from, { k: 'decline', why: 'busy' }); return; }
+        this.prompt = from;
+        G.busy++;
+        const k = await UI.ask(null, `${Online.name(from)} wants to play ${ARCADE_GAMES[id].name} with you! On the house.`, ['Play!', 'Not now']);
+        G.busy--;
+        if (this.prompt !== from) return;
+        this.prompt = null;
+        Online.game(from, { k: k === 0 ? 'accept' : 'decline' });
+        if (k === 0) { UI.hideDialog(); await this.play(id, from); }
+    },
+    async play(id, friend) {
+        const res = await Arcade.start(versusDef(id), { remote: friend, title: `${ARCADE_GAMES[id].name} \u00b7 vs ${Online.name(friend)}` });
+        this.match = null;
+        if (res) { S.stats.vsGames = (S.stats.vsGames || 0) + 1; if (res.won) S.stats.vsWins = (S.stats.vsWins || 0) + 1; Save.touch(); }
+        return res;
+    },
+    /* a friend left the island mid-game: you win */
+    gone(who) { if (this.match && this.match.remote === who) this.match.left_ = true; if (this.asking && this.asking.to === who) this.answer(who, { k: 'decline', why: 'late' }); },
+    /* the friends on the island right now */
+    friends() { return [...Online.others.values()].map(o => o.who).filter(w => w && w !== Online.who()); },
+};
 
 /* the cabinet's two-player version of a game: same buttons, twice as wide */
 function versusDef(id) {
@@ -112,6 +191,11 @@ function versusDef(id) {
         tickets(m) { return m.won ? 25 : 5; },
         result(m, opts) {
             const name = m.rivalName;
+            if (m.remote) {
+                if (m.quit) Online.game(m.remote, { k: 'leave' });
+                else Online.game(m.remote, { k: 'snap', s: vsSnap(m.me) });
+                return { title: m.won ? 'You win!' : `${name} wins!`, lines: [`You: ${fmtNum(m.me.score || 0)} \u00b7 ${name}: ${fmtNum(m.op.score || 0)}`, m.left_ ? `${name} had to go. That counts!` : m.won ? 'Good game!' : 'So close. Rematch?'] };
+            }
             return { title: m.won ? 'You win!' : `${name} wins!`, lines: [`You: ${fmtNum(m.me.score || 0)} · ${name}: ${fmtNum(m.op.score || 0)}`, m.won ? `${name}: "${vsLine(m.who, 'lose')}"` : `${name}: "${vsLine(m.who, 'win')}"`] };
         },
     };
