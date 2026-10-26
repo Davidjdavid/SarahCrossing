@@ -84,7 +84,7 @@ async function openCrate() {
     S.stats.crates = (S.stats.crates || 0) + 1;
     const sp = r < 0.3 ? poolSpecial(['poem', 'acc', 'emote', 'hair', 'sew', 'song', 'dance']) : null;
     if (sp) { await grantSpecial(sp, 'It was in a crate from the sea!'); return; }
-    if (r < 0.6) { const n = 100 * rint(3, 20); addMoney(n); await UI.say(null, `A soggy little bag of ${fmtNum(n)} sand dollars! Still good. Money is waterproof here.`); return; }
+    if (r < 0.6) { const n = 100 * rint(3, 20); addMoney(n, false, 'Found & gifts'); await UI.say(null, `A soggy little bag of ${fmtNum(n)} sand dollars! Still good. Money is waterproof here.`); return; }
     if (r < 0.8) { const g = weighted(GEM_WEIGHTS); receive(g, 1); await UI.say(null, `${cap(aOrAn(itemName(g)))} ${itemName(g).toLowerCase()}, wrapped in a handkerchief! Somebody lost this a long time ago.`); return; }
     const it = rpick(['conch', 'seaglass', 'pearl', 'coral', 'shell_lamp', 'shell_mirror', 'surfboard', 'beach_umbrella', 'boot', 'star']);
     receive(it, 1);

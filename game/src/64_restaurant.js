@@ -88,7 +88,7 @@ async function orderFood() {
     if (k === 2 || k < 0) return;
     if (S.money < price) { Sfx.ui('nope'); await UI.say(mac, mac ? "Ah, you're a little short. Tell you what, come back after some fishing. The kitchen will wait." : "Sarah doesn't have quite enough sand dollars for the honor jar."); return; }
     if (k === 1) {
-        addMoney(-price, true);
+        addMoney(-price, true, 'Food');
         receive(id, 1);
         markFresh(id, 1);
         Sfx.play('buy');
@@ -96,7 +96,7 @@ async function orderFood() {
             : 'Sarah drops the sand dollars in the honor jar. The jar seems pleased.');
         return;
     }
-    addMoney(-price, true);
+    addMoney(-price, true, 'Food');
     Sfx.play('buy');
     const guest = await maybeInvite();
     await eatHere(id, guest);

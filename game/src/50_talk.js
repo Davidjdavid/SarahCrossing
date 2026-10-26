@@ -573,7 +573,7 @@ async function noodleCart(n) {
     if (k === 1) { await UI.say('basil', chatLine(n)); return; }
     if (S.money < CART_PRICE) { await UI.say('basil', "You're a little short. It's okay. Sell Fortune a shell or two and come back. I'm here till one."); return; }
     const s = await UI.ask('basil', 'Spicy? Thai spicy or tourist spicy?', ['Thai spicy', 'Tourist spicy'], { keep: true });
-    addMoney(-CART_PRICE, true);
+    addMoney(-CART_PRICE, true, 'Food');
     S.flags.cart = { day, n: bought + 1 };
     Sfx.play('item');
     if (s === 0) {

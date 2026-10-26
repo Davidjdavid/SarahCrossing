@@ -512,7 +512,7 @@ async function buyNow(id, price, sp) {
     const it = ITEMS[id];
     if (S.money < price) { Sfx.ui('nope'); await UI.say(sp, "Hmm, not quite enough sand dollars. Shells, fruit and fish add up fast!"); return false; }
     if (it.type === 'bag') {
-        addMoney(-price, true);
+        addMoney(-price, true, buyWhy(id));
         noteSpend(shopHere(), price);
         upgradeBag();
         Sfx.play('fanfare');
@@ -522,7 +522,7 @@ async function buyNow(id, price, sp) {
     }
     const big = ['furniture', 'wall', 'floor'].includes(it.type);
     const home = big || !canAdd(id, 1);             // full pockets: it goes home to storage
-    addMoney(-price, true);
+    addMoney(-price, true, buyWhy(id));
     if (big) { toStorage(id, 1); UI.toast(`${it.name} delivered to your house`, it.icon); }
     else receive(id, 1);
     if (id === 'rod') S.flags.rodBought = true;

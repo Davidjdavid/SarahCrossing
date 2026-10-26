@@ -417,7 +417,7 @@ async function moveBuildingFlow() {
     const pend = pendingMove();
     if (pend) {
         const k = await UI.ask(gingerVoice(), `We're already moving ${bldName(pend.id)} tonight! One job at a time. Want to call it off? (Full refund.)`, ['Keep the plan', 'Call it off']);
-        if (k === 1) { cancelMove(); addMoney(MOVE_PRICE, true); await UI.say(gingerVoice(), 'Called off! Here are your sand dollars back. The stakes are coming down.'); }
+        if (k === 1) { cancelMove(); addMoney(MOVE_PRICE, true, 'House'); await UI.say(gingerVoice(), 'Called off! Here are your sand dollars back. The stakes are coming down.'); }
         return false;
     }
     UI.hideDialog();
@@ -437,7 +437,7 @@ async function moveBuildingFlow() {
     const spot = await Mover.run(id);
     let ok = false;
     if (spot) {
-        addMoney(-MOVE_PRICE, true);
+        addMoney(-MOVE_PRICE, true, 'House');
         scheduleMove(id, spot.x, spot.y);
         Sfx.play('fanfare');
         ok = true;

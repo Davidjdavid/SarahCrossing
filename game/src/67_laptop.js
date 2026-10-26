@@ -17,7 +17,7 @@ function boxBody(ids) {
 function laptopOrder(id) {
     const it = ITEMS[id];
     if (S.money < it.price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return false; }
-    addMoney(-it.price, true);
+    addMoney(-it.price, true, 'Orders');
     const box = pendingBox();
     if (box) { box.gifts = (box.gifts || []).concat([id]); box.body = boxBody(box.gifts); }
     else sendMail({ from: 'shop', subject: 'Your IslandMart order', body: boxBody([id]), gifts: [id], delay: 1 });

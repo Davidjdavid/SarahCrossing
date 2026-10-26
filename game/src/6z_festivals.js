@@ -197,16 +197,16 @@ async function eggsToCece() {
     for (let i = 0; i < 4; i++) { const c = pocketCount('egg_' + i); if (c) { removeItem('egg_' + i, c); n += c; } }
     const before = st.eggYear.given;
     st.eggYear.given += n;
-    addMoney(n * 80, true);
+    addMoney(n * 80, true, 'Prizes & tips');
     Sfx.play('sell');
     const lines = [`${n} ${plural(n, 'egg')}! Oh, they're beautiful. Sorry, I'm emotional. Here, ${fmtNum(n * 80)} sand dollars.`];
     if (before < 3 && st.eggYear.given >= 3) {
         if (!S.recipes.includes('pancakes')) { S.recipes.push('pancakes'); lines.push("And I'm teaching you my pancakes. Flour, eggs, cream, sugar. Don't tell anyone they're easy."); UI.toast('Learned a recipe: Pancakes', 'dish_pancakes'); }
-        else { addMoney(500, true); lines.push("You already know my pancakes, so here's a little extra. Sorry it's not more! It's 500!"); }
+        else { addMoney(500, true, 'Prizes & tips'); lines.push("You already know my pancakes, so here's a little extra. Sorry it's not more! It's 500!"); }
     }
     if (before < 8 && st.eggYear.given >= 8) {
         if (firstWin('golden_egg')) { toStorage('golden_egg', 1); lines.push('Eight eggs! You get the golden egg. I painted it myself. It took four days. Sorry. It went to your house.'); }
-        else { addMoney(1500, true); lines.push('Eight! Here, 1,500 extra. You already have my golden egg. Sorry there is only one golden egg.'); }
+        else { addMoney(1500, true, 'Prizes & tips'); lines.push('Eight! Here, 1,500 extra. You already have my golden egg. Sorry there is only one golden egg.'); }
     }
     lines.push(`(${st.eggYear.given} ${plural(st.eggYear.given, 'egg')} this year. ${st.eggYear.given < 3 ? 'At 3: a recipe.' : st.eggYear.given < 8 ? 'At 8: the golden egg.' : 'Every egg still gets you sand dollars!'})`);
     await UI.say('cece', lines, { keep: true });
@@ -250,9 +250,9 @@ const FishOff = {
         Sfx.play('fanfare');
         const win = this.pts >= FISHOFF_BEAT;
         const lines = [`Time! ${this.n} ${plural(this.n, 'catch', 'catches')}, ${this.pts} points.`];
-        if (win && firstWin('fish_trophy')) { toStorage('fish_trophy', 1); addMoney(1000, true); lines.push("You BEAT me! Dude. The trophy's yours. It's at your house. And 1,000 sand dollars. I'm not crying. It's sea spray."); }
-        else if (win) { addMoney(1500, true); lines.push("You beat me AGAIN. Here's 1,500. You've already got the trophy. You're the trophy now."); }
-        else { addMoney(200 + this.pts * 2, true); lines.push(`Not bad! My ${FISHOFF_BEAT} stands. Here's ${fmtNum(200 + this.pts * 2)} for showing up. Next Fish-Off: second Saturday in ${['January', 'April', 'July', 'October'][Math.floor(((Clock.dayDate().getMonth() + 3) % 12) / 3)]}.`); }
+        if (win && firstWin('fish_trophy')) { toStorage('fish_trophy', 1); addMoney(1000, true, 'Prizes & tips'); lines.push("You BEAT me! Dude. The trophy's yours. It's at your house. And 1,000 sand dollars. I'm not crying. It's sea spray."); }
+        else if (win) { addMoney(1500, true, 'Prizes & tips'); lines.push("You beat me AGAIN. Here's 1,500. You've already got the trophy. You're the trophy now."); }
+        else { addMoney(200 + this.pts * 2, true, 'Prizes & tips'); lines.push(`Not bad! My ${FISHOFF_BEAT} stands. Here's ${fmtNum(200 + this.pts * 2)} for showing up. Next Fish-Off: second Saturday in ${['January', 'April', 'July', 'October'][Math.floor(((Clock.dayDate().getMonth() + 3) % 12) / 3)]}.`); }
         await UI.say(NPCs.get('kai') && NPCs.get('kai').area === G.area.id ? 'kai' : null, lines);
         Save.touch();
     },
@@ -265,12 +265,12 @@ async function litterToCuke() {
     const st = festDay('litter');
     const before = st.given || 0;
     st.given = before + n;
-    addMoney(n * 60, true);
+    addMoney(n * 60, true, 'Prizes & tips');
     Sfx.play('sell');
     const lines = [`${n} ${plural(n, 'piece')} of litter! The beach says thank you! I said it for the beach! ${fmtNum(n * 60)} sand dollars!`];
     if (before < 10 && st.given >= 10) {
         if (firstWin('recycle_bin')) { toStorage('recycle_bin', 1); lines.push("All ten! A spotless beach! You get my recycling bin! It's at your house! It's GREAT for the heart!"); }
-        else { addMoney(800, true); lines.push('All ten AGAIN! Here, 800 more! You already have the bin! Two bins is too many bins!'); }
+        else { addMoney(800, true, 'Prizes & tips'); lines.push('All ten AGAIN! Here, 800 more! You already have the bin! Two bins is too many bins!'); }
     } else if (st.given < 10) lines.push(`${st.given} of 10 today. Keep going! Squats between pieces! Optional!`);
     await UI.say('cuke', lines, { keep: true });
     Save.touch();
@@ -295,10 +295,10 @@ function trickOption(n) {
             addPts(n.id, 3);
             n.emote = 'heart'; n.emoteT = 80;
             const lines = [voiced(n.id, rpick(['Candy! You are the best house on the island. You are not a house. You know what I mean.', 'Ooh, the good kind! Thank you!', 'Candy! Here, I made you something too.']))];
-            if (R() < 0.5) { addMoney(300, true); lines.push('(They slip you 300 sand dollars. Reverse trick-or-treating.)'); }
+            if (R() < 0.5) { addMoney(300, true, 'Prizes & tips'); lines.push('(They slip you 300 sand dollars. Reverse trick-or-treating.)'); }
             if (st.given === 5) {
                 if (firstWin('candy_bowl')) { toStorage('candy_bowl', 1); lines.push('Word gets around: five treats! Fortune sends a candy bowl to your house. "For next year. - F"'); }
-                else addMoney(1000, true);
+                else addMoney(1000, true, 'Prizes & tips');
             }
             await UI.say(n.id, lines, { keep: true });
         } else {
@@ -355,8 +355,8 @@ function toyOption(n) {
 async function toyThanks() {
     const st = toyList();
     st.thanked = true;
-    if (firstWin('toy_star')) { toStorage('toy_star', 1); addMoney(1000, true); await UI.say('fortune', ['All of them? You did it! Here: the Toy Day star lamp, for your house, and 1,000 sand dollars.', 'May your cookies always crack evenly. Especially today.'], { keep: true }); }
-    else { addMoney(2000, true); await UI.say('fortune', 'All delivered again! Here, 2,000 sand dollars. You already have the star lamp. It is still the brightest thing on the island.', { keep: true }); }
+    if (firstWin('toy_star')) { toStorage('toy_star', 1); addMoney(1000, true, 'Prizes & tips'); await UI.say('fortune', ['All of them? You did it! Here: the Toy Day star lamp, for your house, and 1,000 sand dollars.', 'May your cookies always crack evenly. Especially today.'], { keep: true }); }
+    else { addMoney(2000, true, 'Prizes & tips'); await UI.say('fortune', 'All delivered again! Here, 2,000 sand dollars. You already have the star lamp. It is still the brightest thing on the island.', { keep: true }); }
     Save.touch();
 }
 
@@ -376,7 +376,7 @@ async function cookOff() {
     Sfx.play('fanfare');
     const lines = [`*Mac takes a bite of your ${itemName(id).toLowerCase()}. He closes his eyes. He chews for a very long time.*`, `${score} out of 10! ${score >= 9 ? 'This is the best thing anyone has made in my restaurant. Including me. Especially me.' : score >= 7 ? "That's GOOD. That's really good." : 'Solid! Honest! Warm! Like a hug you can eat.'}`];
     const prize = score >= 8 ? 2000 : score >= 6 ? 800 : 300;
-    addMoney(prize, true);
+    addMoney(prize, true, 'Prizes & tips');
     if (score >= 8 && firstWin('golden_spoon')) { toStorage('golden_spoon', 1); lines.push(`First place! The golden spoon is yours (it went to your house), and ${fmtNum(prize)} sand dollars.`); }
     else lines.push(`Here's ${fmtNum(prize)} sand dollars. ${score >= 8 ? 'You already have my golden spoon. Polish it.' : 'An 8 or better wins the golden spoon.'}`);
     await UI.say('mac', lines, { keep: true });

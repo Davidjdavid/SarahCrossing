@@ -74,7 +74,7 @@ async function civicCounter(id) {
 }
 function civicMenu(id) {
     const P = UI.open({ title: ROOMS[id] ? ROOMS[id].name : 'The counter', foot: true });
-    P.body.appendChild(el('p', 'muted', CIVIC_PREVIEW ? 'Not open yet: these are the screens to come, with sample numbers. Try each one, and the buttons at the bottom show every way it can go.' : ''));
+    P.body.appendChild(el('p', 'muted', 'The ones marked "preview" aren\'t open yet: they show sample numbers. In every screen, the buttons at the bottom show every way it can go.'));
     const list = el('div', 'list');
     for (const s of CIVIC_MENUS[id]) {
         const S_ = CIVIC_SCREENS[s];
@@ -85,10 +85,11 @@ function civicMenu(id) {
         t.appendChild(el('b', null, S_.title));
         t.appendChild(el('span', null, S_.blurb));
         row.appendChild(t);
+        if (!CIVIC_LIVE[s]) row.appendChild(el('span', 'cv-pill', 'preview'));
         row.addEventListener('click', () => { Sfx.ui('tick'); civicScreen(s, null, () => civicMenu(id)); });
         list.appendChild(row);
     }
     P.body.appendChild(list);
-    P.foot.appendChild(el('span', 'grow', 'Every screen here is a preview.'));
+    P.foot.appendChild(el('span', 'grow', ''));
     P.foot.appendChild(btn('Done', 'alt', () => UI.close()));
 }

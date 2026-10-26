@@ -139,7 +139,7 @@ function displaysShop() {
                 row.appendChild(el('span', 'price', fmtNum(d.price)));
                 row.addEventListener('click', () => {
                     if (S.money < d.price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return; }
-                    addMoney(-d.price, true);
+                    addMoney(-d.price, true, 'Museum');
                     toStorage(id, 1);
                     Sfx.play('buy');
                     UI.toast(`${d.name} sent to your house. Set it up with Island edit!`, d.frame);

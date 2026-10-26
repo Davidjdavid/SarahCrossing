@@ -181,7 +181,7 @@ async function returnLost(n) {
     await UI.say(owner, voiced(owner, lines[owner] && (c.kind === 'notebook' || c.kind === 'diary' || c.kind === 'spoon' || c.kind === 'hammer' || c.kind === 'hotsauce' || owner === 'kai') ? lines[owner]
         : rpick([`My ${it.what}! You found it! Where was it? ${cap(lostWhere(c))}? I would NEVER have looked there.`, `You found my ${it.what}! Thank you, thank you, thank you!`])), { keep: true });
     const reward = 800 + (hash32(id + c.day) % 5) * 200;
-    addMoney(reward, true);
+    addMoney(reward, true, 'Favors');
     await UI.say(owner, voiced(owner, `Here, take this. ${fmtNum(reward)} sand dollars. It's a finder's fee. I insist.`), { keep: true });
     UI.toast(`+${fmtNum(reward)} sand dollars`, 'ui_coin');
     S.lost.cur = null; S.lost.done = (S.lost.done || 0) + 1;

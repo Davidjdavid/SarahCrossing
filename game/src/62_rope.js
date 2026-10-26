@@ -194,7 +194,7 @@ const Rope = {
             : n >= 10 ? `${n} jumps! Great form! Great cardio! Great everything!` : n >= 3 ? `${n} jumps! Nice! Warm-up's over. Next time, we go faster.`
                 : "Rope got you! It happens to everyone. It happens to me at 5 AM. Try again!";
         await UI.say(A.id, voiced(A.id, talk), { keep: true });
-        if (n >= 3) { const pay = n * 10; addMoney(pay, true); await UI.say(B.id, voiced(B.id, rpick([`Here, ${fmtNum(pay)} sand dollars. It's the plaza jump-rope fund. We just made it up.`, `The crowd chipped in ${fmtNum(pay)} sand dollars! The crowd is us.`])), { keep: true }); }
+        if (n >= 3) { const pay = n * 10; addMoney(pay, true, 'Prizes & tips'); await UI.say(B.id, voiced(B.id, rpick([`Here, ${fmtNum(pay)} sand dollars. It's the plaza jump-rope fund. We just made it up.`, `The crowd chipped in ${fmtNum(pay)} sand dollars! The crowd is us.`])), { keep: true }); }
         if (best && n >= 5) await UI.say(null, `New personal best: ${n} jumps!`, { keep: true });
         if (n >= 30 && !R0.trophy) {
             R0.trophy = true;

@@ -313,7 +313,7 @@ async function digAt(tx, ty) {
             a.remove(e); a.block(tx, ty, 0);
             F.planted = F.planted.filter(q => q !== pl);
             Save.touch();
-            if (pl.kind === 'money') { addMoney(pl.amount || 0, true); UI.toast(`Sarah dug up the little tree. The ${fmtNum(pl.amount || 0)} sand dollars were still down there.`, 'ui_coin'); }
+            if (pl.kind === 'money') { addMoney(pl.amount || 0, true, 'Money trees'); UI.toast(`Sarah dug up the little tree. The ${fmtNum(pl.amount || 0)} sand dollars were still down there.`, 'ui_coin'); }
             else receive(pl.kind === 'fruit' ? pl.fruit : 'sapling', 1);
         });
         return;
@@ -426,7 +426,7 @@ async function holeMenu(e) {
         return;
     }
     if (plant.item) removeItem(plant.item, 1);
-    if (plant.kind === 'money') addMoney(-plant.amount, true);
+    if (plant.kind === 'money') addMoney(-plant.amount, true, 'Money trees');
     a.remove(e);
     F.holes = F.holes.filter(q => q !== h);
     const r = mulberry(hash32(S.seed + ':look:' + h.x + ':' + h.y));

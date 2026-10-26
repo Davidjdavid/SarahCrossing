@@ -373,7 +373,7 @@ async function sewingMachine() {
     if (!d) return;
     const price = base ? SEW_ALTER : SEW_PRICE;
     if (S.money < price) return;
-    addMoney(-price, true);
+    addMoney(-price, true, 'Clothes');
     if (!id) { S.designSeq = (S.designSeq || 0) + 1; id = 'cu' + S.designSeq; }
     designs()[id] = d;
     registerDesign(id, d);

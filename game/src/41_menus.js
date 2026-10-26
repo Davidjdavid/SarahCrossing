@@ -259,6 +259,7 @@ function mailFromName(m) {
     if (m.from === 'harvard') return 'Harvard (probably)';
     if (m.from === 'fortune') return "Fortune's Goods";
     if (m.from === 'shop') return 'IslandMart (online)';
+    if (m.from === 'post') return 'The Post Office';
     return (NPC_DEFS[m.from] && NPC_DEFS[m.from].name) || m.from;
 }
 /* a letter can carry one gift (m.gift) or a whole order (m.gifts) */
@@ -268,9 +269,16 @@ function openLetter(m, box) {
     Save.touch();
     HUD.update();
     const gifts = mailGifts(m);
-    const P = UI.open({ title: m.subject, phone: !box, back: () => appMail(box), foot: gifts.length > 0 });
+    const P = UI.open({ title: m.subject, phone: !box, back: () => appMail(box), foot: gifts.length > 0 || m.paper != null });
+    // a postcard shows its picture; the paper opens to read (6zf_post.js)
+    const card = m.card && typeof POSTCARDS !== 'undefined' && POSTCARDS.find(c => c[0] === m.card);
+    if (card) { const cv = postcardCanvas(card, 288, 192); cv.className = 'postcard'; P.body.appendChild(cv); }
     const body = el('div', 'letterbody', fillText(m.body));
     P.body.appendChild(body);
+    if (m.paper != null) {
+        const p = post().papers.find(q => q.day === m.paper);
+        if (p) P.foot.appendChild(btn('Read the paper', 'green', () => { const Q = UI.open({ title: m.subject, phone: !box, back: () => openLetter(m, box) }); Q.body.className = 'pbody cv'; paperView(Q.body, p); }));
+    }
     if (gifts.length) {
         if (m.claimed) P.foot.appendChild(el('span', 'grow', `Came with: ${gifts.map(g => itemName(g)).join(', ')} (taken)`));
         else {
@@ -668,9 +676,9 @@ function shopBuy(startTab) {
                 row.appendChild(el('span', 'price', price ? fmtNum(price) : 'Free'));
                 row.addEventListener('click', () => {
                     if (S.money < price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return; }
-                    if (it.type === 'bag') { addMoney(-price, true); noteSpend('shop', price); upgradeBag(); Sfx.play('fanfare'); UI.toast(`${it.name}! Your pocket now holds ${pocketSize()} things.`, it.icon); draw(); return; }
+                    if (it.type === 'bag') { addMoney(-price, true, 'Shops'); noteSpend('shop', price); upgradeBag(); Sfx.play('fanfare'); UI.toast(`${it.name}! Your pocket now holds ${pocketSize()} things.`, it.icon); draw(); return; }
                     const big = ['furniture', 'wall', 'floor'].includes(it.type);
-                    addMoney(-price, true);
+                    addMoney(-price, true, buyWhy(id));
                     if (big) { toStorage(id, 1); UI.toast(`${it.name} delivered to your house`, it.icon); }
                     else receive(id, 1);
                     if (id === 'rod') S.flags.rodBought = true;
@@ -710,7 +718,7 @@ function shopClothes(staffed) {
                 row.appendChild(el('span', 'price', price ? fmtNum(price) : 'Free'));
                 row.addEventListener('click', () => {
                     if (S.money < price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return; }
-                    addMoney(-price, true);
+                    addMoney(-price, true, 'Clothes');
                     receive(id, 1);
                     Sfx.play('buy');
                     S.stats.bought = (S.stats.bought || 0) + 1;
@@ -775,8 +783,8 @@ function shopSell() {
                 t.appendChild(el('b', null, itemName(s.id) + (s.n > 1 ? ` \u00d7 ${s.n}` : '')));
                 t.appendChild(el('span', null, `${fmtNum(each)} each${hot ? ' \u00b7 HOT ITEM' : ''}`));
                 row.appendChild(t);
-                row.appendChild(btn('Sell 1', 'alt', () => { removeSlot(i, 1); addMoney(each, true); Sfx.play('sell'); S.stats.sold = (S.stats.sold || 0) + 1; draw(); }));
-                if (s.n > 1) row.appendChild(btn('All', '', () => { const n = removeSlot(i); addMoney(each * n, true); Sfx.play('sell'); S.stats.sold = (S.stats.sold || 0) + n; draw(); }));
+                row.appendChild(btn('Sell 1', 'alt', () => { removeSlot(i, 1); addMoney(each, true, sellWhy(s.id)); Sfx.play('sell'); S.stats.sold = (S.stats.sold || 0) + 1; draw(); }));
+                if (s.n > 1) row.appendChild(btn('All', '', () => { const n = removeSlot(i); addMoney(each * n, true, sellWhy(s.id)); Sfx.play('sell'); S.stats.sold = (S.stats.sold || 0) + n; draw(); }));
                 list.appendChild(row);
             });
             if (!any) list.appendChild(el('p', 'muted', 'Nothing to sell. Shake some trees, comb the beach, or go fishing!'));
@@ -870,7 +878,7 @@ function openWardrobe(fromPhone) {
 /* ---------------------------------------------------------------- mail helpers + bottles */
 function sendMail(m) {
     S.mail.push({ id: S.mailSeq++, from: m.from, subject: m.subject, body: m.body, gift: m.gift || null, gifts: m.gifts || null, read: false, claimed: false,
-        day: Clock.dayNum() + (m.delay || 0) });
+        day: Clock.dayNum() + (m.delay || 0), ...(m.card ? { card: m.card } : {}), ...(m.paper != null ? { paper: m.paper } : {}) });
     Save.touch();
 }
 async function openBottle() {

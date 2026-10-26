@@ -283,7 +283,7 @@ const Requests = {
             receive(f.id, 1);
         } else {
             await UI.say(say, voiced(say, t.pay ? "And here's the money back, with a little extra for your trouble!" : 'Here, take this. You earned it!'), { keep: true });
-            addMoney(money);
+            addMoney(money, false, 'Favors');
         }
         const up = addPts(n.id, [4, 6, 10][tier] + bonusCharm());
         UI.hideDialog();

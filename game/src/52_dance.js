@@ -298,7 +298,7 @@ const Dance = {
         const c = this.counts;
         await UI.say('wasabi', [`${song.name}: rank ${r.rank}! ${fmtNum(this.score)} points, best combo ${this.maxCombo}.`,
             `Perfect ${c.perfect}, great ${c.great}, good ${c.good}, missed ${c.miss}.`], { keep: true });
-        if (r.pay) { addMoney(r.pay, true); await UI.say('wasabi', `The crowd tipped you ${fmtNum(r.pay)} sand dollars!`, { keep: true }); }
+        if (r.pay) { addMoney(r.pay, true, 'Prizes & tips'); await UI.say('wasabi', `The crowd tipped you ${fmtNum(r.pay)} sand dollars!`, { keep: true }); }
         if (this.rival) await danceOffEnd(this.rival, this.score, this.rs);
         if (r.first && song.move) {
             const mv = song.move;

@@ -255,7 +255,7 @@ async function salonChair() {
     UI.hideDialog();
     const L = await Salon.run();
     if (!L) { await UI.say(v, v ? rpick(['Next time, sugar. The chair remembers you.', "No pressure! Hair is a journey."]) : 'No new look today. The chair understands.'); return; }
-    addMoney(-SALON_PRICE, true);
+    addMoney(-SALON_PRICE, true, 'Salon');
     const before = look();
     S.look = Object.assign({}, L);
     Save.touch();

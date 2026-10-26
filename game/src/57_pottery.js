@@ -278,7 +278,7 @@ async function fireNow(list) {
     if (k !== 0) return;
     if (S.money < pay) { await sullySays(`You're a little short, kid. Bring some wood (the axe gets ya three pieces a tree), or ${fmtNum(pay)} sand dollahs.`); return; }
     if (useWood) removeItem('wood', useWood);
-    if (pay) addMoney(-pay, true);
+    if (pay) addMoney(-pay, true, 'Pottery');
     const P = pottery(), ready = Clock.real().getTime() + KILN_MIN * 60000;
     for (const p of list) { p.state = 'kiln'; P.kiln.push({ id: p.id, ready }); }
     Sfx.play('timber');

@@ -265,7 +265,7 @@ const Arcade = {
     canPay() { return (this.opts.home || this.def.fee === 0 || S.money >= this.def.fee) && (!this.def.canPlay || this.def.canPlay(this.opts)); },
     again() {
         if (!this.canPay()) { Sfx.ui('nope'); return; }
-        if (!this.opts.home) addMoney(-this.def.fee, true);
+        if (!this.opts.home) addMoney(-this.def.fee, true, 'Arcade');
         Sfx.ui('ok');
         this.newGame();
     },
@@ -488,7 +488,7 @@ async function arcadeCabinet(id) {
         if (S.money < def.fee) { Sfx.ui('nope'); await UI.say(sp, 'Not enough sand dollars.'); return; }
         UI.hideDialog();
         if (!(await VsNet.invite(friend, id))) return;
-        addMoney(-def.fee, true);
+        addMoney(-def.fee, true, 'Arcade');
         return afterArcade(await VsNet.play(id, friend));
     }
     let level = 1;
@@ -499,7 +499,7 @@ async function arcadeCabinet(id) {
         level = lv[j];
     }
     if (!free && S.money < def.fee) { Sfx.ui('nope'); await UI.say(sp, sp ? "Not enough sand dollars. Go shake a tree. I'll wait. I'm very patient. For a chili." : 'Not enough sand dollars.'); return; }
-    if (free) A.free[id] = true; else addMoney(-def.fee, true);
+    if (free) A.free[id] = true; else addMoney(-def.fee, true, 'Arcade');
     UI.hideDialog();
     const res = await Arcade.start(id, { level });
     await afterArcade(res);
@@ -512,7 +512,7 @@ async function arcadeVersus(id, sp) {
     const j = await UI.ask(sp, 'Who do you want to play?', who.map(w => `${Online.name(w)} (${how(VS_SKILL[w])})`).concat(['Never mind']));
     if (j >= who.length) return;
     if (S.money < def.fee) { Sfx.ui('nope'); await UI.say(sp, 'Not enough sand dollars.'); return; }
-    addMoney(-def.fee, true);
+    addMoney(-def.fee, true, 'Arcade');
     const res = await versusPlay(id, who[j]);
     await afterArcade(res);
 }
@@ -536,7 +536,7 @@ async function clawMachine(home) {
             : `The claw machine. ${fmtNum(CLAW_FEE)} sand dollars a try. The plushies look a little nervous.`, [`Try it (${fmtNum(CLAW_FEE)})`, 'Not now']);
         if (k !== 0) return;
         if (S.money < CLAW_FEE) { Sfx.ui('nope'); await UI.say(sp, 'Not enough sand dollars.'); return; }
-        addMoney(-CLAW_FEE, true);
+        addMoney(-CLAW_FEE, true, 'Arcade');
         UI.hideDialog();
     }
     const res = await Arcade.start('claw', { home: !!home });

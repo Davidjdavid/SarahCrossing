@@ -78,10 +78,18 @@ async function houseExpand() {
     const [fw, fh] = HOUSE_SIZES[lvl + 1];
     const what = ['a bigger room, plus a little attic window', 'a whole second floor. Two stories! Very fancy', 'even more room, and a new attic window on top',
         'the biggest house on the island. And a porch. Finally, a porch'][lvl];
-    const k = await UI.ask('ginger', `Next up for your place: ${what}. The inside gets to ${fw} by ${fh}. ${fmtNum(cost)} sand dollars. Deal?`, [`Build it (${fmtNum(cost)})`, 'Not yet']);
-    if (k !== 0) return;
-    if (S.money < cost) { await UI.say('ginger', "Hmm, you're a little short. Fish, fruit and shells add up fast! Moonfish at night sell for a lot."); return; }
-    addMoney(-cost, true);
+    // (with the Bank open, the crew can build first and the Bank waits for the money: 6ze_bank.js)
+    const loan = typeof bankLoanOk === 'function' && bankLoanOk();
+    const k = await UI.ask('ginger', `Next up for your place: ${what}. The inside gets to ${fw} by ${fh}. ${fmtNum(cost)} sand dollars. Deal?`,
+        loan ? [`Build it (${fmtNum(cost)})`, 'Build it, pay later', 'Not yet'] : [`Build it (${fmtNum(cost)})`, 'Not yet']);
+    if (loan && k === 1) {
+        await UI.say('ginger', "Build now, pay later! The Bank covers it and you pay them back whenever. No interest. Pay at the teller's window.", { keep: true });
+        bankLend(['the bigger room', 'the second floor', 'the bigger second floor', 'the biggest house and its porch'][lvl], cost);
+    } else {
+        if (k !== 0) return;
+        if (S.money < cost) { await UI.say('ginger', "Hmm, you're a little short. Fish, fruit and shells add up fast! Moonfish at night sell for a lot." + (loan ? ' Or build it now and pay the Bank later.' : '')); return; }
+        addMoney(-cost, true, 'House');
+    }
     S.house.level++;
     if (G.areas.home) G.areas.home.stale = true;
     await constructionTime();
@@ -121,7 +129,7 @@ async function redoHouse(id) {
     const before = JSON.stringify(exteriors()[id] || {});
     if (JSON.stringify(diff) === before) { await UI.say(gingerVoice(), "That's exactly how it looks now! No charge. I'm very fair."); return false; }
     if (S.money < EXT_PRICE) { await UI.say(gingerVoice(), `That's ${fmtNum(EXT_PRICE)} for the job, and you're a little short. Come back after some fishing!`); return false; }
-    addMoney(-EXT_PRICE, true);
+    addMoney(-EXT_PRICE, true, 'House');
     if (Object.keys(diff).length) exteriors()[id] = diff; else delete exteriors()[id];
     await constructionTime();
     applyExteriors(G.areas.island);

@@ -64,11 +64,22 @@ function receive(id, n, quiet) {
     }
     return got;
 }
-function addMoney(n, quiet) {
+function addMoney(n, quiet, why) {
+    const was = S.money;
     S.money = Math.max(0, Math.min(9999999, S.money + n));
+    moneyFlow(S.money - was, why);
     Save.touch();
     HUD.update();
     if (!quiet && n > 0) UI.toast(`+${fmtNum(n)} sand dollars`, 'ui_coin');
+}
+
+/* where sand dollars come from and where they go, by why (every addMoney says: 'Fish', 'House', 'Prizes & tips'...),
+   for the Bank's statement (6ze_bank.js); money moved in and out of the Bank itself isn't earning or spending */
+function moneyFlow(d, why) {
+    if (!d || why === 'bank') return;
+    const B = S.bank || (S.bank = {}), F = B.flow || (B.flow = { in: {}, out: {}, since: Clock.dayNum() });
+    const side = d > 0 ? F.in : F.out, k = why || 'Other';
+    side[k] = (side[k] || 0) + Math.abs(d);
 }
 
 /* ---------------------------------------------------------------- things lying on the ground */
@@ -110,7 +121,7 @@ async function pickUp(e) {
     if (e.shellIdx != null) S.shells.taken.push(e.shellIdx);
     if (e.flowerIdx != null) flowerState().picked[e.flowerIdx] = Clock.dayNum();
     if (e.gemSpot != null && S.gems && !S.gems.taken.includes(e.gemSpot)) S.gems.taken.push(e.gemSpot);
-    if (e.id === 'money_bag') { addMoney(e.amount || 500); return; }
+    if (e.id === 'money_bag') { addMoney(e.amount || 500, false, 'Found & gifts'); return; }
     receive(e.id, 1);
     S.stats[ITEMS[e.id] ? ITEMS[e.id].type : 'x'] = (S.stats[ITEMS[e.id] ? ITEMS[e.id].type : 'x'] || 0) + 1;
     Bus.emit('got', e.id);
@@ -160,7 +171,7 @@ async function shakeTree(e) {
             leafFx(e.x, e.y);
             const id = hasSpecial('luckypenny') ? poolSpecial(null) : 'luckypenny';
             if (id) await grantSpecial(id, 'It fell out of a sparkling tree!');
-            else { addMoney(1000); }
+            else { addMoney(1000, false, 'Found & gifts'); }
             Save.touch();
         } else if (bonusOn('lucky') && R() < 0.5) {
             const bag = makeItemEnt('money_bag', e.x + 8, e.y + 12);

@@ -380,7 +380,7 @@ const Karaoke = {
         if (K.day !== day) {
             K.day = day;
             const pay = 150 + Math.round(acc * 35) * 10;
-            addMoney(pay, true);
+            addMoney(pay, true, 'Prizes & tips');
             await UI.say('wasabi', `The crowd tipped you ${fmtNum(pay)} sand dollars!`, { keep: true });
         }
         if ((rank === 'S' || rank === 'A') && !K.trophy) {

@@ -195,7 +195,7 @@ const Quests = {
             if (pocketCount('q_note')) removeItem('q_note', 1);
             Sfx.play('fanfare');
             await UI.say(null, ['CLUNK. The shovel hits wood. Sarah digs faster...', "It's a treasure chest! Captain Gouda's treasure! Gold coins, a ruby, a pirate hat and an old map, all packed in very old cheese paper."]);
-            addMoney(5000);
+            addMoney(5000, false, 'Favors');
             receive('gem_ruby', 1);
         });
         await grantSpecial('furn_treasure_chest', "Captain Gouda's treasure chest!");

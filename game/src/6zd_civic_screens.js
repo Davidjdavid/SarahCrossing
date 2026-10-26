@@ -448,11 +448,14 @@ const CIVIC_SCREENS = {
         foot: f => f.appendChild(btn('Put something in', 'green', () => {})) },
 };
 
-/* one screen, in one state (the preview: a button for each state at the foot) */
+/* the screens that work for real (6ze_bank.js and on): draw(body, foot, redraw, tab) */
+const CIVIC_LIVE = {};
+
+/* one screen, in one state (the preview: a button for each state at the foot; 'Yours' is the real one, where there is one) */
 function civicScreen(id, state, back) {
-    const S_ = CIVIC_SCREENS[id];
+    const S_ = CIVIC_SCREENS[id], L = CIVIC_LIVE[id];
     if (!S_) return;
-    let st = state || 'Works', tab = S_.tabs ? S_.tabs[0] : null;
+    let st = state || (L ? 'Yours' : 'Works'), tab = S_.tabs ? S_.tabs[0] : null;
     const tabs = S_.tabs ? el('div', 'tabs') : null;
     const P = UI.open({ title: S_.title, foot: true, tabs, back: back || null });
     const D = civicSample();
@@ -463,13 +466,16 @@ function civicScreen(id, state, back) {
             tabs.innerHTML = '';
             for (const t of S_.tabs) { const b = el('button', 'tab' + (t === tab ? ' on' : ''), t); b.type = 'button'; b.addEventListener('click', () => { tab = t; Sfx.ui('tick'); draw(); }); tabs.appendChild(b); }
         }
-        S_.draw(P.body, st, D, tab);
         P.foot.innerHTML = '';
-        if (S_.foot && st !== 'Loading') S_.foot(P.foot, st);
+        if (st === 'Yours') L.draw(P.body, P.foot, draw, tab);
+        else {
+            S_.draw(P.body, st, D, tab);
+            if (S_.foot && st !== 'Loading') S_.foot(P.foot, st);
+        }
         if (CIVIC_PREVIEW || window.__DEBUG) {
             const box = el('div', 'cv-states');
-            box.appendChild(el('span', null, 'Preview:'));
-            for (const s of S_.states) box.appendChild(chip(s, () => { st = s; draw(); }, s === st ? 'on' : ''));
+            box.appendChild(el('span', null, L ? 'Samples:' : 'Preview:'));
+            for (const s of (L ? ['Yours'] : []).concat(S_.states)) box.appendChild(chip(s, () => { st = s; draw(); }, s === st ? 'on' : ''));
             P.foot.appendChild(box);
         }
     };

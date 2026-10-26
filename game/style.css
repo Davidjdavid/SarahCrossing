@@ -601,6 +601,11 @@ body.hd2d #nametags .ptag { font: 600 13px/1 var(--display2); letter-spacing: 0.
 .cv-story { display: grid; gap: 1px; padding: 5px 0; border-bottom: 1px solid #e8dfcc; }
 .cv-story b { font: 700 16px/1.25 Georgia, serif; } .cv-story span { font: 13px/1.35 Georgia, serif; color: #6a5e50; }
 .cv-small { margin-top: 10px; font: italic 11px/1.4 Georgia, serif; color: #8a7e70; }
+.cv-weather { display: grid; gap: 1px; padding: 6px 0; border-bottom: 1px solid #e8dfcc; }
+.cv-weather b { font: 700 14px/1.2 var(--display); } .cv-weather span { font: 13px/1.35 Georgia, serif; color: #6a5e50; }
+.cv-poem { white-space: pre-line; font: italic 14px/1.45 Georgia, serif; color: #4a3e34; padding: 4px 0 4px 10px; border-left: 3px solid #e8dfcc; }
+.cv-msg:empty { display: none; }
+canvas.postcard { display: block; width: min(288px, 100%); height: auto; margin: 0 auto 10px; border-radius: 6px; box-shadow: 0 4px 12px rgba(59, 42, 69, 0.22); transform: rotate(-1deg); }
 .cv-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .cv-card { display: grid; gap: 4px; padding: 6px 6px 8px; background: #fff; border-radius: 6px; box-shadow: 0 3px 8px rgba(59, 42, 69, 0.18); transform: rotate(-1.2deg); }
 .cv-card:nth-child(2n) { transform: rotate(1.4deg); }
