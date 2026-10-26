@@ -448,6 +448,33 @@ class Island {
     return seen;
   }
 
+  /* ---------------------------------------------------------------- half tiles */
+  /* Where the sea, a river or a pond meets the land in a stair-step, or a path turns or runs on a slant, the tile at each
+     step's outer corner is cut along its diagonal: it stays one tile (for building and placing), but its corner
+     triangle is the other side's. A cut water tile's corner is bank or beach you can walk onto (the game's collision
+     knows: Area.solidPx); a cut path tile's corner is lawn. So a slanted shore or path runs as a straight diagonal and
+     corners come out rounded, as Animal Crossing's do. Letters: a the tile's north-west corner, b north-east, c
+     south-east, d south-west. */
+  cuts() {
+    this.cut = new Array(W * H).fill('');
+    const CORNERS = [['a', -1, -1], ['b', 1, -1], ['c', 1, 1], ['d', -1, 1]];
+    const waterOf = (t) => (t === '~' || t === 'r' || t === 'o' ? t : null);
+    const walk = (x, y, l) => { if (!this.in(x, y)) return false; const k = this.i(x, y); return 'sgpdc'.includes(this.ter[k]) && !this.coll[k] && !this.face[k] && this.lvl[k] === l && !this.rampSet.has(x + ',' + y); };
+    const pathy = (x, y) => this.in(x, y) && 'pdc'.includes(this.ter[this.i(x, y)]) && !this.rampSet.has(x + ',' + y);
+    const lawn = (x, y) => this.in(x, y) && 'gs'.includes(this.ter[this.i(x, y)]) && !this.face[this.i(x, y)];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const k = this.i(x, y), t = this.ter[k], wt = waterOf(t), l = this.lvl[k];
+      for (const [c, dx, dy] of CORNERS) {
+        if (wt) {
+          // (the corner's two sides and its diagonal are land at the water's own level; the far two sides are this water)
+          if (walk(x + dx, y, l) && walk(x, y + dy, l) && walk(x + dx, y + dy, l) && this.T(x - dx, y) === wt && this.T(x, y - dy) === wt) { this.cut[k] = c; break; }
+        } else if (pathy(x, y) && !this.rampSet.has(x + ',' + y)) {
+          if (lawn(x + dx, y) && lawn(x, y + dy) && lawn(x + dx, y + dy) && pathy(x - dx, y) && pathy(x, y - dy)) { this.cut[k] = c; break; }
+        }
+      }
+    }
+  }
+
   /* ---------------------------------------------------------------- world.json */
   output() {
     // (no pier: everything starts where the plan says)
@@ -457,6 +484,7 @@ class Island {
     for (const [x, y] of this.ramps) this.coll[this.i(x, y)] = 0;
     const start = [Math.floor(intro.start[0]), Math.floor(intro.start[1])];
     this.check(start);
+    this.cuts();
     const reach = this.flood(this.i(start[0], start[1]), (k) => !this.coll[k] && (this.land[k] || this.ter[k] === 'w'));
     const rows = (f) => { const out = []; for (let y = 0; y < H; y++) { let s = ''; for (let x = 0; x < W; x++) s += f(this.i(x, y)); out.push(s); } return out; };
     const water = (t) => (t === '~' ? 's' : t === 'o' ? 'p' : t === 'r' ? 'r' : t === 'h' ? 'h' : '.');
@@ -477,6 +505,7 @@ class Island {
         pier: this.pier, camp: this.camp, tent: { w: 3, h: 2 },
         treasure: { x: palm.x, y: palm.y + 3, palm: [palm.x, palm.y] }, gemSpots: this.gemSpots, ramps: this.ramps,
         reach: rows((k) => (reach.has(k) ? '1' : '0')),
+        cut: rows((k) => this.cut[k] || '.'),
         lots: this.P.lots || {},
       },
       paint: {

@@ -420,15 +420,19 @@ const EnvGround = {
             // (a waterfall's two rows count for both levels' outlines, so the stream runs right to the lip and the pool right
             // to the foot of the cliff, instead of each stopping short in a rounded end)
             const fall = (tx, ty) => W0.grid[ty] && W0.grid[ty][tx] === 'W' && (lvl(tx, ty - 1) === L || lvl(tx, ty + 1) === L);
-            for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) { const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht); if (wet(tx, ty) && (lvl(tx, ty) === L || fall(tx, ty))) m[y * W + x] = 1; }
-            blur(m, 3, X0, Y0, X1, Y1);       // (wide, so the banks curve round instead of following the tiles)
+            // (on the grid: a tile's water fills it, a half tile's only its water side)
+            for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) {
+                const fx = x / R, fy = y / R, tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht), c = this.cutAt(tx, ty);
+                if (wet(tx, ty) && (lvl(tx, ty) === L || fall(tx, ty)) && !(c && inCut(c, fx - tx, fy - ty))) m[y * W + x] = 1;
+            }
+            blur(m, 2, X0, Y0, X1, Y1);       // (the banks follow the tiles, their corners rounded)
             for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) {
                 const k = y * W + x, mv = m[k];
                 if (mv < 0.02) continue;
                 const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht), h0 = h[k];
                 if (lvl(tx, ty) !== L || h0 > surf + 0.3 || h0 < surf - 1.2) continue;
-                // (a long slow wander and a smaller wobble on top: a straight run of stream tiles still gets banks that bend)
-                const u = x / R, v = y / R, wv = mv + (vn(u / 4 + 5, v / 4) * 0.6 + vn(u / 1.5, v / 1.5) * 0.28 + vn(u / 0.6 + 17, v / 0.6) * 0.12 - 0.5) * 0.55;
+                // (a little wobble: the bank stays on its tiles' edge but isn't ruler-straight)
+                const u = x / R, v = y / R, wv = mv + (vn(u / 2.2 + 5, v / 2.2) * 0.6 + vn(u / 0.8, v / 0.8) * 0.4 - 0.5) * 0.24;
                 // (inside the water's own tiles too: where the wandering outline leaves a bit of a tile out, the bank comes up
                 // there, so the water's edge bends both ways instead of only bulging out of a straight channel)
                 const land = BASE + L * LV, inWet = wet(tx, ty) || h0 < land - 0.02;      // (or dug into by the channel next door)
@@ -444,6 +448,8 @@ const EnvGround = {
     shapeShore(h, W, Hn) {
         const R = ENV.RES, Wt = W0.w, Ht = W0.h, BASE = ENV.BASE;
         const tileOf = (i, n) => Math.max(0, Math.min(n - 1, Math.floor(i / R - 0.001)));
+        const hh = (a, b) => { let n = Math.imul(a, 374761393) + Math.imul(b, 668265263) | 0; n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n ^ (n >>> 16)) >>> 0) / 4294967296; };
+        const hs2 = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return (hh(xi, yi) * (1 - u) + hh(xi + 1, yi) * u) * (1 - v) + (hh(xi, yi + 1) * (1 - u) + hh(xi + 1, yi + 1) * u) * v; };
         const sea = (x, y) => x < 0 || y < 0 || x >= Wt || y >= Ht || this.waterAt(x, y) === 1;
         const low = (x, y) => sea(x, y) || (this.waterAt(x, y) === 0 && !(+W0.height[y][x]));
         // (a tile is reshaped only if it and all round it are beach or sea)
@@ -457,7 +463,10 @@ const EnvGround = {
         if (!any) return;
         // the sea's share round each point, blurred over about a tile (running sums: the whole island in a few ms)
         const m = new Float32Array(W * Hn), t = new Float32Array(Math.max(W, Hn)), r = R;
-        for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) m[y * W + x] = sea(tileOf(x + 0.5, Wt), tileOf(y + 0.5, Ht)) ? 1 : 0;
+        for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) {
+            const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht), c = this.cutAt(tx, ty);
+            m[y * W + x] = sea(tx, ty) && !(c && inCut(c, x / R - tx, y / R - ty)) ? 1 : 0;
+        }
         const line = (get, set, n) => {
             for (let pass = 0; pass < 2; pass++) {
                 let acc = 0;
@@ -471,7 +480,7 @@ const EnvGround = {
         for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) {
             const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht);
             if (!ok[ty * Wt + tx]) continue;
-            const k = y * W + x, mv = m[k], h0 = h[k];
+            const k = y * W + x, h0 = h[k], mv = m[k] + (hs2(x * 0.11, y * 0.11) - 0.5) * 0.16;   // (a little wobble along the shore)
             if (mv <= 0.02 || mv >= 0.98) continue;
             // the shore's profile: the beach's height inland, down to the waterline where the blurred outline is halfway,
             // then on down under the water as the sea floor does
@@ -510,8 +519,10 @@ const EnvGround = {
         for (let y = 0; y < M; y++) {
             for (let x = 0; x < N; x++) {
                 const wx = (x0 + (x + 0.5) / P) * TILE, wy = (y0 + (y + 0.5) / P) * TILE, ty = Math.floor(wy / TILE), tx = Math.floor(wx / TILE);
-                let kd = r3KindAt(K, wx, wy, 0, 0, 0) & 15;
-                const wk = this.waterAt(tx, ty), l = lvl(tx, ty);
+                // (each tile its own kind, on the grid: its edges where the tile's are, rounded by the softening below; a
+                // half tile's corner is its neighbor's kind)
+                let kd = this.kindPx(tx, ty, wx / TILE - tx, wy / TILE - ty);
+                const wk = this.waterAtPx(tx, ty, wx / TILE - tx, wy / TILE - ty), l = lvl(tx, ty);
                 if (wk === 0 && l >= 0 && kd !== R3_MAT.stairs && this.heightAt(wx / TILE, wy / TILE) > ENV.BASE + l * ENV.LV + 0.6) kd = upper(tx, ty, l);
                 if (kd === R3_MAT.keep && wk === 0 && l > 0) kd = R3_MAT.grass;             // (high ground without a kind of its own: lawn, not sand)
                 if (kd === R3_MAT.keep && wk === 1) kd = R3_MAT.sand;                   // the sea floor is sand
@@ -542,6 +553,23 @@ const EnvGround = {
         }
         Object.assign(out, { d, N, M, P });
     },
+    /* a tile's kind of ground at a spot in it (u, v 0..1): the tile's own, or in a half tile's cut corner its neighbor's
+       there (the one beside that corner, across or along) */
+    kindPx(tx, ty, u, v) {
+        const cl = (i, j) => r3ClassAt(i, j) & 15;
+        const c = this.cutAt(tx, ty);
+        if (c && inCut(c, u, v)) {
+            const dx = c === 'b' || c === 'c' ? 1 : -1, dy = c === 'c' || c === 'd' ? 1 : -1;
+            const a = cl(tx + dx, ty), b = cl(tx, ty + dy);
+            return a !== R3_MAT.keep ? a : b !== R3_MAT.keep ? b : cl(tx + dx, ty + dy);
+        }
+        return cl(tx, ty);
+    },
+    /* a half tile's cut (scripts/island/layout.mjs: a, b, c, d its north-west, north-east, south-east, south-west corner),
+       or null */
+    cutAt(tx, ty) { const r = W0.cut && W0.cut[ty], c = r && r[tx]; return c && c !== '.' ? c : null; },
+    /* the water at a spot in a tile (a cut water tile's corner is dry) */
+    waterAtPx(tx, ty, u, v) { const w = this.waterAt(tx, ty), c = w ? this.cutAt(tx, ty) : null; return c && inCut(c, u, v) ? 0 : w; },
     /* how near each spot of a window is to a pond's or stream's water (8 pixels a tile, softened over about half a tile):
        the bank there is damp, pebbly earth */
     *wetWin(out, x0, y0, w, h) {
@@ -549,7 +577,7 @@ const EnvGround = {
         let any = false;
         for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) {
             const tx = x0 + Math.floor(x / P), ty = y0 + Math.floor(y / P), g = W0.grid[ty] && W0.grid[ty][tx];
-            if (g !== 'h' && this.waterAt(tx, ty) === 2) { v[y * N + x] = 1; any = true; }
+            if (g !== 'h' && this.waterAtPx(tx, ty, (x % P + 0.5) / P, (y % P + 0.5) / P) === 2) { v[y * N + x] = 1; any = true; }
         }
         if (any) {
             const tmp = new Float32Array(N * M), R = 5;

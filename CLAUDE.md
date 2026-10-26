@@ -26,7 +26,11 @@ docs/DEPLOY.md for the server.
   map of the layout, `--png out.png` the painted ground, without touching game/. Moving things on the island means old
   saves need a `migrate()` step (map 6 is this island, map 5 the same before its shops moved into two rows along an
   alley: progress stays, what was laid out on the old island's ground starts fresh and Sarah's things come back).
-  Raised ground ends at the sea in a rim nobody walks on (in 3D the sea cliff stands there).
+  Raised ground ends at the sea in a rim nobody walks on (in 3D the sea cliff stands there). Half tiles (`cut` in
+  world.json, `cuts()` in layout.mjs): where the sea, a river or a pond meets land in a stair-step, or a path turns or
+  runs on a slant, the step's outer corner tile is cut along its diagonal (a, b, c, d: its NW, NE, SE, SW corner is the
+  other side's). It's still one tile for building and placing; a cut water tile's corner is ground you can walk onto
+  (`Area.solidPx`, `inCut`), and the new look draws the edge as a straight diagonal (`EnvGround.kindPx`, `cutAt`).
 - The Town Hall, Post Office and Bank (`24b_civic.js`) are signs for now, with stand-in pictures until their art.
 - **Old saves must always load.** Sarah's island came from the one-page game and lives on the
   server; any change to the shape of `S` needs a step in `migrate()` that upgrades older saves.
@@ -88,6 +92,9 @@ docs/DEPLOY.md for the server.
   stand over the river or sea, drawn by `EnvBuild.decks`, and people stand on them (`Env.groundH`). The farm's fields
   ('F') get soil ridges and their crop (`crops.py`), the hot spring a rim of stones, and what lies flat on the ground
   (plots, the volleyball court, dug holes) is drawn by its 2D drawing into a picture laid on the ground (`EnvDecals`).
+  Everything standing on the grid stands in the middle of its tile or footprint (`Env.tileSpot`), fences join tile to
+  tile, and the ground's kinds, banks and shore follow the tiles (straight along tile lines, corners rounded, a little
+  wobble): Settings > Show the tile grid draws the tiles (`EnvGround.gridOn`, `sc-grid`).
   Trees, buildings and houses in front of Sarah (and anything tall right in front of the camera) fade to a soft ghost
   (`see` in `r3Patch`, `R3U.uSee`): the main pass leaves those pixels out and `EnvGhost` (33n_env_ghost.js) draws them
   again in a second pass on layer 1, depth first then color, only for the few copies on screen that could be fading

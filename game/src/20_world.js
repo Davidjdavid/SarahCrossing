@@ -15,7 +15,14 @@ class Area {
     }
     blockedAt(tx, ty) { return tx < 0 || ty < 0 || tx >= this.w || ty >= this.h || this.blocked[ty * this.w + tx] !== 0; }
     block(tx, ty, v) { if (tx >= 0 && ty >= 0 && tx < this.w && ty < this.h) this.blocked[ty * this.w + tx] = v == null ? 1 : v; }
-    solidPx(px, py) { return this.blockedAt(Math.floor(px / TILE), Math.floor(py / TILE)); }
+    solidPx(px, py) {
+        const tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
+        if (!this.blockedAt(tx, ty)) return false;
+        // (a half tile: a cut water tile's corner is bank or beach, and only the ground's own collision blocks it)
+        const c = this.cut && this.cut[ty] && this.cut[ty][tx];
+        if (!c || c === '.' || this.blocked[ty * this.w + tx] !== 1 || (W0.coll[ty] && W0.coll[ty][tx] !== '1')) return true;
+        return !inCut(c, px / TILE - tx, py / TILE - ty);
+    }
     add(e) { this.ents.push(e); return e; }
     remove(e) { const i = this.ents.indexOf(e); if (i >= 0) this.ents.splice(i, 1); }
     waterAt(tx, ty) {
@@ -33,6 +40,12 @@ class Area {
         }
         return null;
     }
+}
+
+/* is a spot in a tile (u, v from its north-west corner, 0..1) in the triangle its cut gives the other side? a: the
+   north-west corner, b north-east, c south-east, d south-west (scripts/island/layout.mjs, cuts) */
+function inCut(c, u, v) {
+    return c === 'a' ? u + v < 1 : c === 'b' ? v < u : c === 'c' ? u + v > 1 : c === 'd' ? u < v : false;
 }
 
 /* A* on the tile grid, 8 directions without cutting corners. Returns tile list excluding the start. */
@@ -85,6 +98,7 @@ function buildIsland() {
     const a = new Area('island', W0.w, W0.h);
     a.water = W0.water;
     a.grid = W0.grid;
+    a.cut = W0.cut || null;
     for (let y = 0; y < a.h; y++) for (let x = 0; x < a.w; x++) a.blocked[y * a.w + x] = W0.coll[y][x] === '1' ? 1 : 0;
     const season = Clock.season();
     a.season = season;
