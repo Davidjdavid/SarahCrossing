@@ -218,7 +218,7 @@ const R3 = {
             if (step && G.frame % (this.phone ? 3 : 2) === 0 && this.shadowsOn !== false) this.renderer.shadowMap.needsUpdate = true;
             if (!this.warmed) this.warmPrograms();
             R3Mirror.render(this, a);
-            Post3.render(this.scene, this.camera, R3U.uTime.value, this.grade);
+            Post3.render(this.scene, this.camera, R3U.uTime.value, this.grade, env && typeof EnvGhost !== 'undefined' && EnvGhost.on);
             this.overlay();
             this.watchSpeed();
             return true;
@@ -675,29 +675,30 @@ function r3Patch(mat, o) {
             vec4 mvPosition = viewMatrix * bw;
             vDofZ = -mvPosition.z;
             gl_Position = projectionMatrix * mvPosition;${o.see ? '\n            vSee = gl_Position;' : ''}`);
-        let fs = R3_GLSL + (o.see ? 'varying vec4 vSee;\n' : '') + (o.fhead || '') + sh.fragmentShader;
-        // (see-through round Sarah: in front of her and near her on screen, every other pixel left out, fewer at the edge)
-        // (and anything right in front of the camera, in the near blur, fades away the same way, as Animal Crossing fades
-        // a tree between you and the view: a faint ghost, not a big blurred blob across the bottom of the screen)
+        let fs = R3_GLSL + (o.see ? 'varying vec4 vSee; float r3Fade;\n' : '') + (o.fhead || '') + sh.fragmentShader;
+        // (see-through round Sarah: whatever stands in front of her near her on screen fades, and so does anything right in
+        // front of the camera, in the near blur, as Animal Crossing fades a tree between you and the view. The main pass
+        // leaves those pixels out; the ghost pass (EnvGhost, o.ghost) draws them again, only there, softly see-through)
         if (o.see) fs = fs.replace('void main() {', `void main() {
-            float nf = uDof.z > uDof.w ? smoothstep(uDof.z, uDof.w, vDofZ) : 0.0;
-            if (nf > 0.0) { vec2 fc = mod(floor(gl_FragCoord.xy), 2.0); if (nf * 0.85 > fc.x * 0.5 + fc.y * 0.25 + 0.15) discard; }
+            r3Fade = uDof.z > uDof.w ? smoothstep(uDof.z, uDof.w, vDofZ) * 0.9 : 0.0;
             if (uSee.w > 0.0 && vDofZ < uSee.z - 0.8) {
                 vec2 sd = (vSee.xy / vSee.w - uSee.xy) * vec2(uSeeA, 1.0);
-                float sr = length(sd) / uSee.w, ch = mod(floor(gl_FragCoord.x) + floor(gl_FragCoord.y), 2.0);
-                if (sr < 0.7 ? ch > 0.5 : sr < 1.0 && ch > 0.5 && mod(floor(gl_FragCoord.y * 0.5), 2.0) > 0.5) discard;
-            }`);
+                r3Fade = max(r3Fade, 1.0 - smoothstep(0.6, 1.0, length(sd) / uSee.w));
+            }
+            ${o.ghost ? 'if (r3Fade < 0.02) discard;' : 'if (r3Fade >= 0.02) discard;'}`);
         if (o.fmap) fs = fs.replace('#include <map_fragment>', '#include <map_fragment>\n' + o.fmap);
         if (o.fnormal) fs = fs.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + o.fnormal);
         if (o.fpre) fs = fs.replace('#include <tonemapping_fragment>', o.fpre + '\n#include <tonemapping_fragment>');
         // (the sun's shadows fade out at dusk: in a Lambert material they darken every light, the lamps' too)
         fs = fs.replace('reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask();',
             'reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * mix(1.0, getShadowMask(), uShadow)' + (o.noCloud ? ';' : ' * cloudShade(vWp.xz);'));
-        fs = fs.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + (o.fend || '') + (o.noDof ? '' : o.dofFixed != null ? `\ngl_FragColor.a = ${o.dofFixed.toFixed(2)};` : '\ngl_FragColor.a = dofA(vDofZ);'));
+        // (a ghost's alpha is how see-through it is: the picture's own alpha, the depth of field's, is kept by its blending)
+        fs = fs.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + (o.fend || '') + (o.ghost ? '\ngl_FragColor.a = 1.0 - 0.74 * r3Fade;' : o.noDof ? '' : o.dofFixed != null ? `\ngl_FragColor.a = ${o.dofFixed.toFixed(2)};` : '\ngl_FragColor.a = dofA(vDofZ);'));
         sh.fragmentShader = fs;
     };
-    mat.customProgramCacheKey = () => (o.key || 'r3') + mat.type;
+    mat.customProgramCacheKey = () => (o.key || 'r3') + (o.ghost ? 'ghost' : '') + mat.type;
     if (o.derivatives) mat.extensions = { derivatives: true };
+    mat._r3o = o;
     return mat;
 }
 /* the bent world's shadows too (and pushed away from the sun a touch, so a card never shades itself in stripes) */
@@ -1804,8 +1805,15 @@ const Post3 = (() => {
         A = target(hw, hh); B = target(hw, hh); C = target(qw, qh); D = target(qw, qh); E = target(ew, eh); F = target(ew, eh);
     }
     function run(m, out) { quad.material = m; R.setRenderTarget(out); R.render(quad, ocam); }
-    function render(scene, camera, time, grade) {
+    function render(scene, camera, time, grade, ghosts) {
         R.setRenderTarget(rtScene); R.clear(); R.render(scene, camera);
+        // (then what's fading in front of Sarah, softly, over what the first pass drew: EnvGhost's copies, on layer 1)
+        if (ghosts) {
+            const ac = R.autoClear;
+            camera.layers.set(EnvGhost.LAYER); R.autoClear = false;
+            R.render(scene, camera);
+            camera.layers.set(0); R.autoClear = ac;
+        }
         const d = mats.down, b = mats.blur;
         d.uniforms.t.value = rtScene.texture; d.uniforms.px.value.set(0.5 / w, 0.5 / h); run(d, A);
         b.uniforms.t.value = A.texture; b.uniforms.dir.value.set(1 / A.width, 0); run(b, B);

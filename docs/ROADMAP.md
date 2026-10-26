@@ -102,6 +102,63 @@ Status: [x] done, [~] in progress, [ ] not started.
   where things land, fruits fall their own ways, juice meter and Fruit Fever, power-ups, rounds with
   Perfect bonuses, snappier movement
 
+## The new 3D look (on beta; David approved it for the whole island, the live site waits for his word)
+- [x] Models made in Blender (trees, buildings, houses, props, furniture, the food folks, wildlife), dolls for people,
+  rooms as dollhouse boxes, real water, stone walls, lamplight, rain, steam and smoke
+- [x] David's second list (26 October): no sand on cliff tops, a soft shoreline, rivers that keep their banks under
+  bridges and run on over waterfalls into pools, bending banks, stairs with side walls, the GameCube-style lawn instead
+  of 3D grass (no flowers in it but the pickable ones), tilled fields, fences without sunflowers everywhere, smaller
+  falling leaves, a smooth see-through (no dots) for things in front of Sarah
+- [ ] Trees like Animal Crossing's (round full canopies, natural trunks), fruit you can see, better palms, more
+  variety in size and shape, forests with clusters and clearings; smoother path edges by buildings and stairs
+- [ ] Ground and grass colors that change with the seasons, like the trees (next week)
+- [ ] Decorating on the island: the move/decorate mode switches to the classic view with a tile grid to place things
+- [ ] Rooms: what's hung on walls and the small things on tables as models (the arcade games, jump rope, volleyball
+  and the other minigames keep their 2D look, and so can the arcade cabinets)
+
+## Late in development (David's notes for much later)
+Some of these need things that don't exist yet (a town flag, records kept over time); add them when we get here.
+
+### The real world, by zip code
+- [ ] Sarah sets a zip code: the island's time zone, that day's weather forecast (not live: the day's prediction),
+  local news, fetched once a day from free APIs
+- [ ] The post office mails a newspaper every day: real headlines and tidbits, the weather, and an island section
+  with stories about what Sarah and the neighbors actually did
+
+### Bank
+- [ ] Savings account: deposit and withdraw, daily interest (weekly rates)
+- [ ] Stock portfolio from real stocks (a few global ones from a free API): invest, see performance graphs and
+  historical returns, dividends from eligible stocks
+- [ ] Pay off house upgrade loans
+- [ ] Savings goals with progress trackers for expensive purchases
+- [ ] Financial statements: lifetime earnings, spending, investments, income sources
+- [ ] Safety deposit box for valuable or sentimental items
+
+### Post Office
+- [ ] Send physical letters to neighbors (besides texting), with presents attached
+- [ ] Newspaper archive: keep and reread past papers
+- [ ] Postcard collection from fictional places
+- [ ] Package tracking for things ordered from the computer
+- [ ] Lost mail quests: deliver misplaced packages and letters
+- [ ] Special deliveries: now and then a mysterious package with something rare
+- [ ] Customize the look and color of the mailbox
+
+### Town Hall
+- [ ] Town flag designer: draw a pixel-art flag shown round the island
+- [ ] Town ordinances: Early Bird (shops and neighbors start earlier), Night Owl (shops open later), Community Spirit
+  (neighbors socialize more), Nature Conservation (more wildlife and growth, trees grow faster, neighbors plant
+  flowers where there aren't enough)
+- [ ] Town census: every resident, birthday, personality, friendship and more
+- [ ] Town history (a timeline of milestones), island statistics (days played, fish caught, items, money...), island
+  records (biggest fish, best day, longest friendship), town achievements with commemorative rewards
+- [ ] Rename landmarks (beaches, mountains, forests...)
+- [ ] Residents: customize catchphrases, reset or change clothes and accessories, adjust schedules (when they wake,
+  go home, where they go)
+- [ ] Missed holidays: if Sarah didn't play on a major holiday (the Egg Hunt, say), the Town Hall lets her hold it the
+  next day she plays, for up to a week after (so it never lands on another holiday: no Easter at Christmas)
+- [ ] Town anniversary: a monthly island day
+- [ ] Save management: make backups or restore an earlier save (the server keeps backups already)
+
 ## Bugs
 - [x] Talking to Wonton in the hot spring: the spot you have to stand in is too hard to hit (fixed: any side of the rim works, and a tap walks below it)
 - [ ] A light test pass at the very end (David played it for a week and reported bugs as he went)

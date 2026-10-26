@@ -88,7 +88,10 @@ docs/DEPLOY.md for the server.
   stand over the river or sea, drawn by `EnvBuild.decks`, and people stand on them (`Env.groundH`). The farm's fields
   ('F') get soil ridges and their crop (`crops.py`), the hot spring a rim of stones, and what lies flat on the ground
   (plots, the volleyball court, dug holes) is drawn by its 2D drawing into a picture laid on the ground (`EnvDecals`).
-  Trees, buildings and props in front of Sarah go see-through round her (`see` in `r3Patch`, `R3U.uSee`).
+  Trees, buildings and houses in front of Sarah (and anything tall right in front of the camera) fade to a soft ghost
+  (`see` in `r3Patch`, `R3U.uSee`): the main pass leaves those pixels out and `EnvGhost` (33n_env_ghost.js) draws them
+  again in a second pass on layer 1, depth first then color, only for the few copies on screen that could be fading
+  (`EnvModels.tall` decides which models take part). No dither patterns.
 - People are dolls in the new look (`EnvDolls`, 33k_env_dolls.js; David's pick): Sarah, the island's people and friends
   online, each put together in code from the same look and clothes as the
   HD pictures (`hdSarahSpec`, `hdFolkSpec`), so the tailor and the salon change them at once: a round head with its face

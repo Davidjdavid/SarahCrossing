@@ -247,10 +247,10 @@ const EnvBuild = {
     mat(t, rough, cloth) {
         const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: rough, metalness: 0, map: t ? t.map : null, normalMap: t ? t.normal : null, side: cloth ? THREE.DoubleSide : THREE.FrontSide });
         if (t) m.normalScale = new THREE.Vector2(0.8, 0.8);
-        return r3Patch(m, { key: 'envbld' + (t ? 't' : '') + (cloth ? 'c' : ''), see: true });
+        return r3Patch(m, { key: 'envbld' + (t ? 't' : '') + (cloth ? 'c' : '') });
     },
     glassMat() {
-        return r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.15, metalness: 0.1, emissive: new THREE.Color(0xffd890), emissiveIntensity: 0.15 }), { key: 'envglass', see: true });
+        return r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.15, metalness: 0.1, emissive: new THREE.Color(0xffd890), emissiveIntensity: 0.15 }), { key: 'envglass' });
     },
     /* Fortune's sign, painted on a canvas */
     signMat() {

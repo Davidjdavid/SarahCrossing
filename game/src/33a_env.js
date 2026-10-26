@@ -40,6 +40,7 @@ const Env = {
         catch (e) { console.error('the new 3D look stopped (using the HD-2D view)', e); this.failed = true; this.teardown(r3); return false; }
         for (const f of this.built.tick) f(r3, a);
         this.seeThrough(r3);
+        if (typeof EnvGhost !== 'undefined') EnvGhost.update(r3);
         if (DEBUG) { const T = window.__envT || (window.__envT = { n: 0, ms: 0, max: 0 }); const d = performance.now() - ts; T.n++; T.ms += d; T.max = Math.max(T.max, d); }
         return true;
     },
@@ -81,6 +82,7 @@ const Env = {
     },
     hide() {
         R3U.uSee.value.w = 0;
+        if (typeof EnvGhost !== 'undefined') EnvGhost.hide();
         if (this.on && R3.sea && G.area && !G.area.interior) R3.sea.visible = true;      // (the HD-2D view's own sea back)
         this.on = false;
         if (this.built) this.built.group.visible = false;
@@ -89,6 +91,7 @@ const Env = {
         const b = this.built;
         this.built = null; this.on = false;
         if (!b) return;
+        if (typeof EnvGhost !== 'undefined') EnvGhost.clear(r3);
         r3.scene.remove(b.group);
         // (the models' geometry and materials are kept for the next build)
         b.group.traverse(o => { if (o.userData.shared) { if (o.userData.ownMat) o.material.dispose(); return; } if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); });
@@ -120,6 +123,8 @@ const Env = {
         }
         // everything placed many times is shown only near the view (the island has hundreds of trees and props)
         group.traverse(o => { if (o.isInstancedMesh) EnvCull.track(o); });
+        // (and whatever can fade in front of Sarah gets its ghost: 33n_env_ghost.js)
+        if (typeof EnvGhost !== 'undefined') EnvGhost.collect(r3, group);
         console.log(`the new 3D look built in ${Math.round(performance.now() - t0)} ms`);
     },
     /* The ground comes in pieces (ENV.CHUNK tiles square), each made the first time it comes near the view:

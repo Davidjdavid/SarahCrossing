@@ -78,7 +78,7 @@ const EnvModels = {
     },
     material(m, name) {
         // (flames: unlit, their own colors)
-        if (/glow/i.test(m.name || '')) { const b = r3Patch(new THREE.MeshBasicMaterial({ vertexColors: true }), { key: 'envmodelglow', see: true }); b.name = m.name; return b; }
+        if (/glow/i.test(m.name || '')) { const b = r3Patch(new THREE.MeshBasicMaterial({ vertexColors: true }), { key: 'envmodelglow', see: this.tall(name) }); b.name = m.name; return b; }
         const glass = /glass/i.test(m.name || '');
         // (a display case's glass: see-through, a faint sheen)
         if (/_clear$/.test(m.name || '')) { const c = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: !!m.vertexColors, color: m.color, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.28, depthWrite: false }), { key: 'envmodelclear' }); c.name = m.name; return c; }
@@ -88,21 +88,23 @@ const EnvModels = {
         if (m.normalMap) { opts.normalMap = m.normalMap; opts.normalScale = (m.normalScale ? m.normalScale.clone() : new THREE.Vector2(1, 1)).multiplyScalar(/^pine_/.test(name) ? 1.7 : 1); }
         // the windows glow at night (EnvBuild's tick turns them up), their curtains brightest
         if (glass) { opts.emissive = new THREE.Color(0xffd890); opts.emissiveMap = m.map || null; opts.emissiveIntensity = 0.0; }
-        // (the folks and the critters are alive: never see-through)
-        const see = !/^(folk|critter)_/.test(name);
+        // (only what's tall enough to hide Sarah fades in front of her: the folks and critters, the furniture, the
+        // flowers and the low props never do)
+        const see = this.tall(name);
         const out = r3Patch(new THREE.MeshStandardMaterial(opts), { key: glass ? 'envmodelglass' : see ? 'envmodel' : 'envfolk', see });
         out.name = m.name || name;
         if (glass) this.glassMats.push(out);
         return out;
     },
     glassMats: [],
+    tall(name) { return /^(tree_|pine_|palm_|bld_|house_|cottage|shop|windmill)/.test(name || ''); },
     /* a copy of a model's material in another color (a house painted in its own look); a plain clone would lose the
        view's patch (the bend, depth of field, shadows) */
     tinted(m, color) {
         const c = m.clone();
         c.onBeforeCompile = null;
         c.color.set(color);
-        return r3Patch(c, { key: 'envmodel', see: true });
+        return r3Patch(c, { key: 'envmodel', see: !!(m._r3o && m._r3o.see) });
     },
     /* one model at many places (each a Matrix4 in the world): an instanced mesh per part */
     instances(group, name, matrices, o) {
@@ -125,7 +127,7 @@ const EnvModels = {
         if (m._inst) return m._inst;
         const c = m.clone();
         c.onBeforeCompile = null;
-        m._inst = r3Patch(c, { key: (m.isMeshBasicMaterial ? 'envmodelglow' : m.emissiveMap ? 'envmodelglass' : 'envmodel') + 'i', inst: true, see: true });
+        m._inst = r3Patch(c, { key: (m.isMeshBasicMaterial ? 'envmodelglow' : m.emissiveMap ? 'envmodelglass' : 'envmodel') + 'i', inst: true, see: !!(m._r3o && m._r3o.see) });
         if (m.emissiveMap) this.glassMats.push(m._inst);
         return m._inst;
     },
