@@ -82,6 +82,15 @@ color contrast, an accessory and how it moves, not small detail. So, in this ord
 
 ## Movement and acting (33kb_doll_act.js)
 
+- **Every model is built to move**: arms (and legs, feet) are their own parts with their origins at their joints, so
+  each folk walks, runs its own way, sits on a bench (feet out, hands in its lap), dances at the club (arms pumping,
+  rocking, a turn now and then), cheers, picks things up, hugs and strikes the dance game's poses. A new folk gets its
+  arms and feet before it's done, and its acting in `FOLK_ACT`.
+- **Standing on its tip**: a folk whose bottom comes to a point (Chili, Floss's cone) has its feet right at the base of
+  the tip, so nothing floats (David, 26 October).
+- **Behind a counter** a folk stands on a step stool, so its face shows over it.
+- **Talking**: the camera eases in on the two talking, a little lower, so faces and expressions read.
+
 - **Standing** is never still: breathing, weight shifting from one leg to the other, a look round now and then.
 - **Walking**: legs swing from the hips and bend at the knees coming forward, arms swing against them and bend at the
   elbows, the body bobs.

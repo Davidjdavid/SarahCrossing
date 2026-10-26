@@ -137,9 +137,12 @@ Status: [x] done, [~] in progress, [ ] not started.
   area (Sarah from a doll kit with sculpted hair and sixteen painted expressions, Maki, Kai and Ginger redone, five
   props, acting: Sarah's arms-out run, tag's glances back, stumbles and celebrations, faces while talking). David liked
   the direction with revisions; round 2 (26 October): Joe in a men's cut with his own curls, Kai's round bowl with his
-  face up where the camera sees it, the folks molded as soft single pieces, sized one by one. Waiting on his word on
-  round 2, then in batches: every hair style sculpted, outfit details, the other folks, the props and furniture,
-  acting for the other games, lighter versions for phones (docs/STYLE.md)
+  face up where the camera sees it, the folks molded as soft single pieces, sized one by one. Round 3 (David: "looks
+  good, make the rest"): every food folk, the goat, the council and the old keeper; David, James, John and Elizabeth's
+  hair and David's beard; the talk camera; stools behind counters; sitting, dancing and the dance game's poses for the
+  folks. Still to come, in batches: the other hair styles sculpted, outfit details, the props and furniture,
+  acting for the other games, lighter versions for phones, then the new characters on Sarah's island on beta
+  (docs/STYLE.md)
 - [ ] Graphics settings (David, 26 October, for later): a quality setting and a draw distance, each with its own default
   for laptops and phones, so the look can go up if the server or the devices get faster
 

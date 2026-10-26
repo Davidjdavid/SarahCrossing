@@ -114,6 +114,15 @@ const R3 = {
 
     /* ---------------------------------------------------------------- the camera and the bend */
     dist() { return (Env.on ? ENV.cam.dist : R3_CAM.dist) * [0.78, 1, 1.32, 1.7][G.area && G.area.interior ? Math.min(Zoom.level(), 1) : Zoom.level()]; },
+    /* who Sarah's talking with, if the talk camera should go in on them: in the new look (the island or a room in it), a
+       neighbor in this area mid-conversation, not while a game, a dance or the like holds the camera */
+    talkWith(a) {
+        if (!R3_TALK.on || !(Env.on || (a.interior && typeof EnvRoom !== 'undefined' && EnvRoom.on)) || G.camTarget || G.lockCam || Dance.on || Karaoke.on) return null;
+        if (typeof IslandGames !== 'undefined' && IslandGames.on) return null;
+        const p = G.player;
+        for (const n of NPCs.list) if (n.talking && !n.hidden && (n.area || G.area.id) === a.id && Math.hypot(n.x - p.x, n.y - p.y) < 4 * TILE) return n;
+        return null;
+    },
     pitch() { return (G.area && G.area.interior ? R3_CAM.pitchIn : Env.on ? ENV.cam.pitch : R3_CAM.pitch) * Math.PI / 180; },
     placeCamera(snap) {
         const a = G.area, p = G.player;
@@ -128,6 +137,12 @@ const R3 = {
             ty = G.camTarget[1]; tx = G.camTarget[0] + sh * 0.55;
         } else if (a.interior) { tx = a.w * TILE / 2; ty = (a.floor.y0 + a.floor.h * 0.55) * TILE; }
         else if (Env.on && !G.camTarget) ty -= ENV.cam.ahead * (this.camera.aspect < 1 ? 0.5 : 1) * TILE;
+        // the talk camera: while Sarah talks with someone, in towards the two of them (R3_TALK)
+        const tn = this.talkWith(a), f0 = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60));
+        this.talkK = snap ? (tn ? 1 : 0) : (this.talkK || 0) + ((tn ? 1 : 0) - (this.talkK || 0)) * (1 - Math.pow(1 - R3_TALK.ease, f0));
+        if (this.talkK < 0.002 && !tn) this.talkK = 0;
+        if (tn) this.talkAt = [(p.x + tn.x) / 2, (p.y + tn.y) / 2 - R3_TALK.up * TILE];
+        if (this.talkK && this.talkAt) { tx += (this.talkAt[0] - tx) * this.talkK; ty += (this.talkAt[1] - ty) * this.talkK; }
         const X = tx / TILE, Z = ty / TILE * R3_ZS, GH = a.interior ? 0 : r3GroundH(tx, ty + 10);
         if (snap || this.areaId !== a.id) { this.target.x = X; this.target.z = Z; this.camH = GH; }
         else {
@@ -136,7 +151,7 @@ const R3 = {
             this.target.x += (X - this.target.x) * k; this.target.z += (Z - this.target.z) * k; this.camH += (GH - (this.camH || 0)) * kh;
         }
         // (the new look on an upright phone: a wider view, or there's room for little more than Sarah)
-        const pr = this.pitch(), d = this.dist(), cam = this.camera, fov = Env.on && !a.interior ? ENV.cam.fov * (cam.aspect < 1 ? 1.25 : 1) : R3_CAM.fov;
+        const tk = this.talkK || 0, pr = this.pitch() - tk * R3_TALK.pitch * Math.PI / 180, d = this.dist() * (1 - tk * R3_TALK.near), cam = this.camera, fov = Env.on && !a.interior ? ENV.cam.fov * (cam.aspect < 1 ? 1.25 : 1) : R3_CAM.fov;
         if (cam.fov !== fov) { cam.fov = fov; cam.updateProjectionMatrix(); }
         // (up on the plateau, the camera rises with her)
         cam.position.set(this.target.x, R3_CAM.ly + d * Math.sin(pr) + (this.camH || 0), this.target.z + d * Math.cos(pr));
@@ -648,6 +663,10 @@ const R3 = {
     },
 };
 /* the camera: a little steeper indoors so the back wall shows; the world bends away after a few tiles */
+/* the talk camera (David, 26 October: "a zoom in feature with a camera on the two characters talking so you can better see
+   their models/expressions"): how much nearer it goes, how much lower it looks, how far above their feet it aims (tiles),
+   how quickly it eases in and back out (per frame at 60 a second) */
+const R3_TALK = { on: true, near: 0.48, pitch: 9, up: 0.35, ease: 0.07 };
 const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.007, lead: 4, skyDrop: 0.22 };
 const R3_FAR = { phone: 17, full: 27 };     // tiles ahead that get drawn (at the normal zoom)
 const R3_FOG = { col: [0.6, 0.77, 0.92], near: 0.6, far: 0.98 };     // a clear blue haze far off, like the sky behind it

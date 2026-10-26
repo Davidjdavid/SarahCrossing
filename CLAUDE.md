@@ -205,13 +205,19 @@ docs/DEPLOY.md for the server.
   the same kit (`torso_m`, `arm_m`... an open jacket over a shirt), Joe's curls (`hair_joecut`), a boy's face in
   `personFace` and stands 4% taller (David's notes on the test, 26 October: Joe looked too like Sarah); Maki, Kai and
   Ginger redone in `tools/blender/folks2.py` (`folk2_<id>`, each with its own arms, an accessory only where it suits, each
-  body molded from pieces melted into one soft surface by `sculpt`, sized one by one by `SIZE` so the face reads); every face is painted on a patch (`face__face`, a folk's `face` part) from a
+  body molded from pieces melted into one soft surface by `sculpt`, sized one by one by `SIZE` so the face reads), and then
+  the rest of the cast the same way (David, 26 October: every food folk, the goat, the Cozy Council and the old keeper;
+  Chili and Floss stand on their tips, their feet at its base; David, James, John and Elizabeth's hair and David's beard
+  sculpted in dolls.py: `HAIRS`); every face is painted on a patch (`face__face`, a folk's `face` part) from a
   sheet of sixteen expressions per look or folk (`FACES`, `faceSheet`/`folkSheet`, `personFace`, `FOLK_FACES`), changed
   by moving the patch's UVs (`setFace`); how they act is 33kb_doll_act.js (`act`: faces from talking, a line's mood,
   emotes and games, tag's glances back, stumbles and celebrations; `pose2`, `poseFolk2`, `FOLK_ACT`); five props in
   `tools/blender/props2.py` (`style_bench`, `style_lamp`, `style_armchair`, `style_cake`, `style_shovel`, the shovel in
   Sarah's hand too) stand in the test area's corner by the square (`EnvStyle`), with Kai and Ginger beside Maki and Joe
-  (`LAB_CAST`). `UI._sp` is who's speaking.
+  (`LAB_CAST`). `UI._sp` is who's speaking. While Sarah talks with someone in the new look the camera eases in on the
+  two of them, a little lower (`R3_TALK`, `R3.talkWith`); a folk working behind a counter stands on a step stool there
+  (`EnvStools`, 33kc_doll_stools.js, `style_stool`); the folks sit with their feet out and hands in their lap, dance
+  with their arms going, and strike the dance game's poses (`poseFolk2`).
 - David's rule (27 October): everything in the world is a 3D model in the dollhouse look (things on the ground, in the sky
   and at sea, what's hung on walls and set on tables), except the minigames (cooking, the arcade cabinets, jump rope,
   volleyball and the like), which keep their 2D look.
@@ -236,7 +242,7 @@ docs/DEPLOY.md for the server.
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
-  steps): the game loads every model at once, so keep `game/assets/models/` light (about 50 MB now, 7 of it furniture, 3 the small things). `doll.py` was the
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 74 MB now, 7 of it furniture, 3 the small things, 20 the style test's dolls and folks, which load only in the test area till they roll out). `doll.py` was the
   mock-up of the people as dolls. `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height

@@ -157,6 +157,8 @@ const EnvRoom = {
             const top = EnvModels.models[n].anchors.top;
             if (top) B.hosts.set(e.idx, { top: top[0].y, z });
         }
+        // (a stool behind the counter for a folk who works there: 33kc_doll_stools.js)
+        EnvStools.build(g, a);
         B.cutTex = B.cutTex || new Map();
         const f = a.floor, wallPx = f.y0 * TILE, H = this.WH, z0 = f.y0 * R3_ZS;
         // what hangs on the wall and has a model (furn_f.py): on the back wall where its picture was, as tall as the

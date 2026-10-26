@@ -22,6 +22,36 @@ const FOLK_FACES = {
     ginger: { eye: 'chip', X: 128, EY: 112, EX: 54, MY: 178, BY: 66, er: [20, 22], iris: '#22100a', iris2: '#5a3020', line: '#fdfbf6', shut: '#2a160e', lid: '#cc8440',
         brow: '#fdfbf6', browW: 1.1, mouth: '#fdfbf6', mouthIn: '#5a2a18', mouthRim: '#fdfbf6', blush: [84, 34, 15, 15], blushCol: '#f49ab0', restMouth: 'smile', ms: 1.3, w: 1.3 },
 };
+/* the rest of the folks, after their HD pictures: most have dark glossy eyes (a chip, with a shine), Coco, Cece, Floss and
+   Waffle white ones with a line round them; Clementine's and DJ Wasabi's eyes are behind their shades (noEyes: the brows
+   and mouth do the acting); Chili's brows are thick and cocky, Sully's bushy, Cece's worried, with her nervous sweat drop */
+(() => {
+    const chip = (lid, brow, extra) => Object.assign({ eye: 'chip', X: 128, EY: 118, EX: 84, MY: 166, BY: 82, er: [21, 25], iris: '#1c1214', iris2: '#4a2c22', line: '#2a1a16', shut: '#2a1a16', lid,
+        brow, browW: 0.95, mouth: '#3a1c18', mouthIn: '#5e1f26', blush: [96, 34, 18, 11], restMouth: 'smile', ms: 1.1, w: 1.15 }, extra || {});
+    const white = (lid, ring, extra) => Object.assign({ eye: 'white', X: 128, EY: 118, EX: 84, MY: 166, BY: 82, er: [22, 25], pupil: 0.58, ring, line: ring, shut: ring, lid,
+        brow: ring, browW: 0.9, mouth: ring, mouthIn: '#5a1424', blush: [96, 34, 18, 11], restMouth: 'smile', ms: 1.1, w: 1.15, lashes: true }, extra || {});
+    Object.assign(FOLK_FACES, {
+        basil: chip('#e8be74', '#a87038', { restMouth: 'grin', ms: 0.9 }),
+        wonton: chip('#f6e6c0', '#c8a070', { EX: 76, restMouth: 'grin', ms: 0.9 }),
+        chili: chip('#d8322a', '#3a1012', { EX: 66, browW: 1.55, browTilt: 0.45, browArch: 2, mouth: '#3a0e10', mouthIn: '#5a1418', blushCol: 'rgba(255,176,170,0.6)', restMouth: 'grin', ms: 1.0 }),
+        coco: white('#5e3826', '#1e1210', { sclera: '#fbf8f2', brow: '#8a5a3e', mouth: '#f2a2b8', mouthRim: '#f2a2b8', blushCol: 'rgba(242,138,184,0.6)' }),
+        cece: white('#faf0da', '#6a4430', { browTilt: -0.55, mouth: '#5a2a2a', sweat: true, ms: 0.9 }),
+        clementine: chip('#f0861e', '#a8501a', { noEyes: true, BY: 66, MY: 162, blush: [96, 25, 20, 12], mouth: '#7a3a1a', ms: 1.2 }),
+        cuke: chip('#3e8e3a', '#1e4a1c', { EX: 62, blush: null, blushHappy: [80, 34, 16, 10], mouthIn: '#4a1e22', restMouth: 'grin', ms: 1.3 }),
+        sully: chip('#f2c46a', '#4a2818', { browW: 1.65, browArch: 2, browLen: 18, mouth: '#4a2818', ms: 1.3 }),
+        brulee: chip('#fbe8b8', '#a87a48', { mouth: '#5a2a1a' }),
+        mac: chip('#f6c838', '#a8701a', { mouth: '#5a2a1a', ms: 1.2 }),
+        fortune: chip('#e8b45a', '#8a5a22', { EX: 76, mouth: '#5a2a1a' }),
+        floss: white('#f6a2cc', '#7a3a5a', { EX: 76, brow: '#c05a8a', blushCol: 'rgba(156,200,242,0.75)' }),
+        waffle: white('#e8a850', '#6a3a14', { EX: 74, mouth: '#7a3a1a' }),
+        wasabi: chip('#8cc43c', '#3a5a1a', { noEyes: true, BY: 70, MY: 165, blush: [100, 25, 20, 12], mouth: '#2e4a12', restMouth: 'smile', ms: 1.2 }),
+        goat: chip('#f2f0ea', null, { EX: 54, er: [34, 40], MY: 205, blush: [96, 46, 20, 13], ms: 0.6, w: 1.0 }),
+        floret: chip('#a8d48a', '#2a4a20', { EX: 60, rest: 0.42, browW: 1.4, browArch: 1, mouth: '#2a3a20', restMouth: 'flat', blush: null, blushHappy: [80, 34, 14, 9] }),
+        stalk: chip('#a8d48a', '#2a4a20', { EX: 60, lashes: true, mouth: '#2a3a20', mouthIn: '#2a3a20', teeth: true, restMouth: 'grin', ms: 1.0 }),
+        sprout: chip('#a8d48a', '#2a4a20', { EX: 56, er: [24, 28], mouthIn: '#5e1f26', restMouth: 'grin', ms: 0.8, blush: [84, 34, 18, 12] }),
+        ghost: chip('#d4e0fa', '#aebeea', { closed: true, shut: '#5a6aa8', line: '#5a6aa8', EX: 70, mouth: '#5a6aa8', blush: [90, 30, 18, 10], blushCol: 'rgba(244,150,170,0.45)' }),
+    });
+})();
 Object.assign(EnvDolls, {
     sheets: new Map(),
     kitReady() { return STYLE2 && typeof EnvModels !== 'undefined' && EnvModels.has('doll_kit'); },
@@ -115,6 +145,8 @@ Object.assign(EnvDolls, {
         const hairK = K['hair_' + L.hair + '__hair'];
         if (hairK) lists.get(head).push([hairK.geo, 'hair']);
         else this.hair(d, hc, L);
+        // (a beard, sculpted as the hair is, in the look's beard color: David's)
+        if (L.beard && K['beard_full__beard']) lists.get(head).push([K['beard_full__beard'].geo, c(L.beard)]);
         // (the patch the face is painted on: its own picture, one sheet per look, the expression chosen by its UVs)
         const fk = K['face__face'];
         if (fk) {
@@ -248,7 +280,10 @@ Object.assign(EnvDolls, {
         // an open eye: o.wide makes it bigger, o.lid (0..1) covers its top, sloping (o.slope > 0: down toward the outer
         // corner, sad; < 0 cross), o.look moves the iris, o.star / o.heart change the shine
         const eye = (s, o) => {
+            if (S.noEyes) return;
             o = o || {};
+            // (the old keeper's eyes stay shut in a smile, unless something surprises him)
+            if (S.closed && !o.wide && !o.heart && !o.star) { shut(s, true, o.dy); return; }
             const x = X + s * EX, y = EY + (o.dy || 0), rx = S.er[0] * (o.wide ? 1.06 : 1), ry = S.er[1] * (o.wide ? 1.14 : 1), lx = (o.look ? o.look[0] : 0), ly = (o.look ? o.look[1] : 0);
             const lid = o.lid != null ? o.lid : S.rest || 0;
             if (o.heart) {
@@ -305,6 +340,7 @@ Object.assign(EnvDolls, {
         };
         // a shut eye: a curve, up (laughing: ^) or down (resting, blinking), or sad (tilted)
         const shut = (s, happy, dy, sad) => {
+            if (S.noEyes) return;
             const x = X + s * EX, y = EY + (dy || 0) + (happy ? 4 : 2), k = S.er[0] / 21;
             g.strokeStyle = shutC; g.lineWidth = 6.5 * W;
             g.beginPath();
@@ -346,6 +382,8 @@ Object.assign(EnvDolls, {
         // ---- each expression
         blush(['happy', 'happytalk', 'joy', 'excited', 'love', 'cry'].includes(name) ? 1 : 0);
         freckles();
+        // (Cece's nervous sweat drop, at her temple, unless she's happy)
+        if (S.sweat && !['happy', 'happytalk', 'joy', 'excited', 'love'].includes(name)) { const x = X + EX + 30, y = EY - 26; g.fillStyle = '#8ec8f4'; g.beginPath(); g.moveTo(x, y - 12); g.quadraticCurveTo(x + 9, y + 2, x, y + 6); g.quadraticCurveTo(x - 9, y + 2, x, y - 12); g.fill(); ell(x - 2, y - 1, 2, 3, 'rgba(255,255,255,0.8)'); }
         if (S.nose) { const ny = EY + (MY - EY) * 0.52; g.strokeStyle = S.nose; g.lineWidth = 4.5; g.beginPath(); g.moveTo(X - 5, ny); g.quadraticCurveTo(X, ny + 5, X + 5, ny); g.stroke(); }
         switch (name) {
         case 'idle': brows(0, 0); eye(-1); eye(1); rest(); break;

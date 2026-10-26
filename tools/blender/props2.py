@@ -325,7 +325,26 @@ def shovel():
     return [(mb, 'main'), (gl, 'gloss')]
 
 
-PROPS = {'style_bench': bench, 'style_lamp': lamp, 'style_armchair': armchair, 'style_cake': cake, 'style_shovel': shovel}
+# ---------------------------------------------------------------- the step stool
+def stool():
+    """A sturdy wooden step stool for behind a counter, so a food folk working there is seen over it (David: "give them
+    chairs or stools ... for them to stand on"): a thick round seat 0.3 high, four splayed legs, a footrest ring, all
+    honey wood, the seat's top worn a little paler where feet go."""
+    mb = MB()
+    H, R = 0.3, 0.27
+    wood = grain('#c98a4a', 'x', 3.0, 0, H)
+    lathe(mb, [(R - 0.02, H - 0.06), (R, H - 0.045), (R + 0.004, H - 0.02), (R - 0.012, H), (0.0, H + 0.002)], lambda p, n: rgb('#d6a062').lerp(rgb('#e8bc84'), 0.6 * max(0.0, n.z)) * (0.94 + 0.06 * noise.noise(p * 12)), seg=40, cap_top=True, cap_bot=True)
+    for k in range(4):
+        a = math.pi / 4 + k * math.pi / 2
+        c, sn = math.cos(a), math.sin(a)
+        tube(mb, [(c * 0.15, sn * 0.15, H - 0.05), (c * 0.2, sn * 0.2, 0.02)], 0.032, wood, seg=10, r1=0.028)
+        ball(mb, (c * 0.2, sn * 0.2, 0.02), (0.034, 0.034, 0.022), wood, sub=2)
+    pts = [(math.cos(a) * 0.178, math.sin(a) * 0.178, 0.11) for a in (k / 24 * math.tau for k in range(25))]
+    tube(mb, pts, 0.016, wood, seg=8)
+    return [(mb, 'main')]
+
+
+PROPS = {'style_stool': stool, 'style_bench': bench, 'style_lamp': lamp, 'style_armchair': armchair, 'style_cake': cake, 'style_shovel': shovel}
 
 
 def build(name):

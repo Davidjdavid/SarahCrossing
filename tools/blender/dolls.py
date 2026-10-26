@@ -574,6 +574,129 @@ def hair_joecut():
     return mb
 
 
+def men_line(a):
+    """A man's hairline: high at the forehead, in at the temples, up over the ears (they show), low at the nape."""
+    pts = [(0.0, 0.6), (0.7, 0.5), (1.05, 0.34), (1.2, -0.1), (1.34, 0.2), (1.85, 0.16), (2.4, -0.18), (math.pi, -0.42)]
+    for (a0, z0), (a1, z1) in zip(pts, pts[1:]):
+        if a <= a1:
+            t = (a - a0) / (a1 - a0)
+            return z0 + (z1 - z0) * (t * t * (3 - 2 * t))
+    return pts[-1][1]
+
+
+def hair_davidcut():
+    """David's: a quiff, swept up off his forehead and back over his crown, highest at the front; the sides short and
+    brushed back, his ears showing."""
+    mb = MB()
+    LOCKS.clear()
+    shell(mb, men_line, r_out=1.045, wob=0.015)
+    C = HEAD
+    for i in range(5):
+        x = -0.5 + i / 4 * 1.0
+        k = 1 - abs(x) * 0.45
+        lock(mb, [H(x * 0.9, -0.8, 0.52), H(x * 0.95, -0.94, 0.9 * k + 0.1), H(x * 0.88, -0.52, 1.16 * k + 0.08), H(x * 0.8, 0.1, 1.14), H(x * 0.7, 0.62, 0.95)],
+             0.32 * HR, 0.26 * HR, 0.2 * HR, 0.12 * HR, flat_to=C, nv=30)
+    for s in (-1, 1):
+        for j in range(2):
+            z = 0.55 - j * 0.22
+            lock(mb, [H(s * 0.82, -0.5 + j * 0.1, z), H(s * 1.02, 0.0, z + 0.05), H(s * 0.92, 0.55, z - 0.05), H(s * 0.6, 0.85, z - 0.1)], 0.28 * HR, 0.22 * HR, 0.1 * HR, 0.08 * HR, flat_to=C, nv=24, curl_tip=False)
+    for i in range(4):
+        x = -0.45 + i * 0.3
+        lock(mb, [H(x, 0.55, 0.85), H(x * 1.05, 0.95, 0.35), H(x * 0.95, 0.95, -0.15)], 0.3 * HR, 0.24 * HR, 0.1 * HR, 0.07 * HR, flat_to=C, nv=20, curl_tip=False)
+    return mb
+
+
+def hair_jamescut():
+    """James's: short and a little tousled, parted on his left, the top swept over to his right with the ends lifting, a
+    few locks of fringe at his forehead; short at the sides."""
+    mb = MB()
+    LOCKS.clear()
+    shell(mb, men_line, r_out=1.045, wob=0.02)
+    C = HEAD
+    px = 0.38
+    for i in range(6):
+        y0 = -0.62 + i * 0.25
+        lock(mb, [H(px, y0, 1.0), H(0.05, y0 - 0.12, 1.12), H(-0.45, y0 - 0.15, 0.95), H(-0.82, y0 - 0.05, 0.62)], 0.3 * HR, 0.26 * HR, 0.17 * HR, 0.11 * HR, flat_to=C, nv=26)
+    for i in range(4):
+        y0 = -0.5 + i * 0.3
+        lock(mb, [H(px + 0.04, y0, 0.98), H(0.78, y0 + 0.02, 0.78), H(0.98, y0 + 0.1, 0.42)], 0.26 * HR, 0.22 * HR, 0.12 * HR, 0.09 * HR, flat_to=C, nv=20)
+    for (x0, x1) in ((0.22, -0.18), (0.0, -0.42), (-0.25, -0.62)):
+        lock(mb, [H(x0, -0.65, 0.88), H((x0 + x1) / 2, -0.95, 0.66), H(x1, -0.98, 0.5)], 0.22 * HR, 0.18 * HR, 0.14 * HR, 0.1 * HR, flat_to=C, nv=18)
+    for i in range(4):
+        x = -0.45 + i * 0.3
+        lock(mb, [H(x, 0.5, 0.88), H(x * 1.05, 0.95, 0.35), H(x * 0.95, 0.95, -0.15)], 0.3 * HR, 0.24 * HR, 0.11 * HR, 0.07 * HR, flat_to=C, nv=20, curl_tip=False)
+    return mb
+
+
+def hair_johncut():
+    """John's: short and neat, combed over from a side part on his right, a smooth fringe swept across above his brows."""
+    mb = MB()
+    LOCKS.clear()
+    shell(mb, men_line, r_out=1.04, wob=0.01)
+    C = HEAD
+    px = -0.4
+    for i in range(6):
+        y0 = -0.62 + i * 0.25
+        lock(mb, [H(px, y0, 1.0), H(0.05, y0 - 0.1, 1.08), H(0.5, y0 - 0.1, 0.92), H(0.86, y0, 0.58)], 0.32 * HR, 0.28 * HR, 0.12 * HR, 0.08 * HR, flat_to=C, nv=26, curl_tip=False)
+    lock(mb, [H(-0.42, -0.6, 0.92), H(0.0, -0.95, 0.72), H(0.48, -0.92, 0.6), H(0.72, -0.72, 0.52)], 0.3 * HR, 0.22 * HR, 0.14 * HR, 0.09 * HR, flat_to=C, nv=24, curl_tip=False)
+    for i in range(3):
+        y0 = -0.4 + i * 0.35
+        lock(mb, [H(px - 0.02, y0, 0.98), H(-0.8, y0 + 0.02, 0.76), H(-0.97, y0 + 0.1, 0.42)], 0.28 * HR, 0.24 * HR, 0.1 * HR, 0.07 * HR, flat_to=C, nv=20, curl_tip=False)
+    for i in range(4):
+        x = -0.45 + i * 0.3
+        lock(mb, [H(x, 0.5, 0.88), H(x * 1.05, 0.95, 0.35), H(x * 0.95, 0.95, -0.15)], 0.3 * HR, 0.24 * HR, 0.1 * HR, 0.07 * HR, flat_to=C, nv=20, curl_tip=False)
+    return mb
+
+
+def hair_sleek():
+    """Elizabeth's: long and straight from a middle part, framing her face and falling well past her shoulders, the ends
+    softly turned in."""
+    mb = MB()
+    LOCKS.clear()
+
+    def zline(a):
+        pts = [(0.0, 0.6), (0.6, 0.5), (1.1, 0.22), (1.5, -0.05), (2.1, -0.4), (math.pi, -0.62)]
+        for (a0, z0), (a1, z1) in zip(pts, pts[1:]):
+            if a <= a1:
+                t = (a - a0) / (a1 - a0)
+                return z0 + (z1 - z0) * (t * t * (3 - 2 * t))
+        return pts[-1][1]
+    shell(mb, zline, wob=0.015)
+    C = HEAD
+    for s in (-1, 1):
+        lock(mb, [H(s * 0.06, -0.55, 1.0), H(s * 0.55, -0.78, 0.72), H(s * 0.92, -0.58, 0.2), H(s * 0.98, -0.48, -0.55), H(s * 0.95, -0.45, -1.3), H(s * 0.85, -0.5, -1.55)],
+             0.38 * HR, 0.32 * HR, 0.18 * HR, 0.14 * HR, flat_to=C + Vector((0, 0.1, 0)), nv=44)
+        lock(mb, [H(s * 0.1, -0.2, 1.02), H(s * 0.72, -0.25, 0.8), H(s * 1.06, -0.18, 0.2), H(s * 1.1, -0.12, -0.6), H(s * 1.06, -0.15, -1.4), H(s * 0.96, -0.25, -1.62)],
+             0.42 * HR, 0.36 * HR, 0.22 * HR, 0.17 * HR, flat_to=C + Vector((0, 0.15, 0)), nv=44)
+        lock(mb, [H(s * 0.1, 0.2, 1.0), H(s * 0.7, 0.3, 0.75), H(s * 1.08, 0.32, 0.1), H(s * 1.1, 0.35, -0.7), H(s * 1.06, 0.3, -1.45), H(s * 0.98, 0.18, -1.66)],
+             0.44 * HR, 0.38 * HR, 0.24 * HR, 0.18 * HR, flat_to=C + Vector((0, 0.2, 0)), nv=44)
+    for i in range(7):
+        a = -0.95 + 1.9 * i / 6
+        x0 = math.sin(a) * 0.7
+        lock(mb, [H(x0 * 0.2, 0.4, 1.0), H(x0 * 1.05, 0.98, 0.42), H(x0 * 1.15, 1.08, -0.3), H(x0 * 1.15, 1.04, -1.0), H(x0 * 1.12, 0.98, -1.5), H(x0 * 1.05, 0.88, -1.72)],
+             0.46 * HR, 0.42 * HR, 0.24 * HR, 0.18 * HR, flat_to=C + Vector((0, -0.05, 0.1)), nv=44)
+    return mb
+
+
+def beard_full():
+    """A full beard, as David has: a soft mass along his jaw from below his ears to his chin, fuller at the chin, and a
+    mustache over his lip; it stays low on his face, the mouth left clear so the painted one shows."""
+    mb = MB()
+    LOCKS.clear()
+    C = HEAD
+
+    def jaw(a, z, out=1.04):
+        r = math.sqrt(max(0.0, 1 - z * z)) * out
+        return H(math.sin(a) * r * 1.05, -math.cos(a) * r, z)
+    for s in (-1, 1):
+        lock(mb, [jaw(s * 1.45, -0.05), jaw(s * 1.2, -0.42), jaw(s * 0.8, -0.74), jaw(s * 0.3, -0.92)], 0.36 * HR, 0.32 * HR, 0.15 * HR, 0.14 * HR, flat_to=C, nv=24, curl_tip=False)
+        lock(mb, [jaw(s * 1.3, -0.3), jaw(s * 0.95, -0.66), jaw(s * 0.5, -0.86), jaw(s * 0.1, -0.98)], 0.3 * HR, 0.28 * HR, 0.15 * HR, 0.14 * HR, flat_to=C, nv=24, curl_tip=False)
+        # the mustache: from under the nose out over the lip, the ends turned down a little
+        lock(mb, [jaw(s * 0.03, -0.37, 1.05), jaw(s * 0.2, -0.4, 1.06), jaw(s * 0.38, -0.47, 1.05), jaw(s * 0.46, -0.56, 1.04)], 0.13 * HR, 0.09 * HR, 0.08 * HR, 0.06 * HR, flat_to=C, nv=16, curl_tip=False)
+    lock(mb, [jaw(-0.42, -0.86), jaw(0.0, -1.0, 1.08), jaw(0.42, -0.86)], 0.34 * HR, 0.34 * HR, 0.16 * HR, 0.16 * HR, flat_to=C, nv=20, curl_tip=False)
+    return mb
+
+
 def melt(name, mb, voxel=0.0042, smooth=6, verts=6500, before=None):
     """A mass of overlapping pieces melted into one soft surface (as if sculpted in clay): voxel remeshed, smoothed,
     (before(o): worked on while it's still dense) then lightened."""
@@ -738,12 +861,17 @@ def build_kit():
     return objs
 
 
-def build_hair(styles=('waves', 'joecut')):
+HAIRS = {'waves': hair_waves, 'joecut': hair_joecut, 'davidcut': hair_davidcut, 'jamescut': hair_jamescut, 'johncut': hair_johncut, 'sleek': hair_sleek,
+         'beard': beard_full}
+
+
+def build_hair(styles=tuple(HAIRS)):
     out = []
     for st in styles:
-        mb = {'waves': hair_waves, 'joecut': hair_joecut}[st]()
-        # (curls melted a little softer, as a toy's are)
-        o = melt(f'hair_{st}__hair', mb, smooth=8 if st == 'joecut' else 4, verts=7500, before=lambda o: grooves(o))
+        mb = HAIRS[st]()
+        # (curls melted a little softer, as a toy's are; a beard is its own part, colored by the look's beard)
+        name = 'beard_full__beard' if st == 'beard' else f'hair_{st}__hair'
+        o = melt(name, mb, smooth=8 if st == 'joecut' else 4, verts=3000 if st == 'beard' else 7000, before=lambda o: grooves(o))
         # (the curls' deep folds a little lighter, or they read as holes)
         hair_colors(o, grooves(o, depth=0.0), dark=0.55 if st == 'joecut' else 0.75)
         # (its origin at the neck, where the head turns)

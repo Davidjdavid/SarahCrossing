@@ -11,6 +11,20 @@ const FOLK_ACT = {
     maki: { bounce: 0.55, arms: 0.45, sway: 0.25, look: 0.25, run: 'pump' },
     kai: { bounce: 1.35, arms: 1.4, sway: 1.3, look: 0.6, run: 'flail' },
     ginger: { bounce: 1.0, arms: 0.9, sway: 0.6, look: 0.45, run: 'out' },
+    basil: { bounce: 0.9, arms: 0.8, sway: 0.6, look: 0.4, run: 'pump' },
+    wonton: { bounce: 1.1, arms: 0.7, sway: 0.9, look: 0.5, run: 'out' },
+    chili: { bounce: 1.3, arms: 1.3, sway: 0.8, look: 0.6, run: 'flail' },
+    coco: { bounce: 0.8, arms: 0.7, sway: 0.7, look: 0.5, run: 'pump' },
+    cece: { bounce: 0.7, arms: 0.6, sway: 0.4, look: 0.7, run: 'pump' },
+    clementine: { bounce: 0.7, arms: 0.6, sway: 0.7, look: 0.3, run: 'out' },
+    cuke: { bounce: 1.0, arms: 1.2, sway: 0.5, look: 0.4, run: 'pump' },
+    sully: { bounce: 0.5, arms: 0.5, sway: 0.4, look: 0.3, run: 'pump' },
+    brulee: { bounce: 0.7, arms: 0.7, sway: 0.6, look: 0.5, run: 'out' },
+    mac: { bounce: 0.9, arms: 0.8, sway: 0.7, look: 0.4, run: 'pump' },
+    fortune: { bounce: 0.8, arms: 0.7, sway: 0.6, look: 0.4, run: 'pump' },
+    floss: { bounce: 1.2, arms: 1.0, sway: 1.0, look: 0.6, run: 'flail' },
+    waffle: { bounce: 0.8, arms: 0.7, sway: 0.5, look: 0.4, run: 'pump' },
+    wasabi: { bounce: 1.0, arms: 1.1, sway: 1.2, look: 0.5, run: 'out' },
 };
 /* the game's emotes as faces */
 const EMOTE_FACE = { heart: 'love', sparkle: 'excited', sweat: 'worried', bang: 'surprised', note: 'happy', spicy: 'determined', laugh: 'happytalk', zzz: 'sleepy', dots: 'idle' };
@@ -193,6 +207,10 @@ Object.assign(EnvDolls, {
         if (seat) { y = gy + 0.36; z += 0.1; }
         else if (lounge) y = gy - 0.02;
         else if (e.def && e.def.spring) { const w = Env.waterH(e.x, e.y); y = (w != null ? w : gy) - 0.32; }
+        // (the old keeper floats, bobbing)
+        else if (d.folk === 'ghost') y = gy + 0.18 + Math.sin(t / 13) * 0.06;
+        // (standing on a stool behind a counter: 33kc_doll_stools.js)
+        if (!seat && !lounge) y += EnvStools.height(e);
         const cj = A.cheer ? Math.sin((1 - A.cheer) * Math.PI) * 0.4 : 0;
         root.position.set(e.x / TILE, y + cj, z);
         root.rotation.y = d.ang + (A.cheer ? (1 - A.cheer) * Math.PI * 2 : 0);
@@ -202,9 +220,13 @@ Object.assign(EnvDolls, {
         let sq = walk ? (0.05 * air - 0.05 * (1 - air)) * F.bounce : 0.012 * br, lean = run ? 0.16 : walk ? 0.05 : 0, roll = walk ? s * 0.08 * F.sway : Math.sin(t / 40 + seed) * 0.02 * F.sway, lift = 0, yaw = A.look * F.look;
         if (Q === 'cheer' || Q === 'happy') { const b = Math.abs(Math.sin(t / 6)); lift = b * 0.12; sq = 0.06 * b - 0.04 * (1 - b); }
         else if (Q === 'hug') lean = 0.25;
-        else if (Q === 'pick') lean = 0.35;
-        else if (Q === 'left' || Q === 'right') roll = Q === 'left' ? 0.15 : -0.15;
-        if (e.dancer) { const b = Math.abs(Math.sin(t / 9 + e.x)); sq = 0.05 * b - 0.03; roll = Math.sin(t / 18 + e.x) * 0.1; }
+        else if (Q === 'pick') { lean = 0.35; sq = -0.04; }
+        else if (Q === 'left' || Q === 'right') { roll = Q === 'left' ? 0.18 : -0.18; lift = 0.04; }
+        // (dancing at the club: a bounce on the beat, rocking side to side, a little turn now and then)
+        const dance = !!e.dancer && !walk;
+        if (dance) { const b = Math.abs(Math.sin(t / 9 + e.x)); sq = 0.06 * b - 0.035; roll = Math.sin(t / 18 + e.x) * 0.14; lift = b * 0.05; yaw += Math.sin(t / 36 + e.x) * 0.35; }
+        // (sitting: leaning back a touch)
+        if (seat) lean = -0.08;
         if (A.stumble) { const k = Math.sin(A.stumble * Math.PI); lean += 0.7 * k; sq -= 0.05 * k; }
         if (A.cheer) { sq = 0.08 * Math.sin((1 - A.cheer) * Math.PI); }
         if (A.talking) sq += Math.abs(Math.sin(t / 3)) * 0.025;
@@ -218,8 +240,15 @@ Object.assign(EnvDolls, {
         // the arms: swinging as it walks; up for a cheer; each folk's own run (Maki pumps, Kai flails, Ginger holds them out)
         for (const a of P.arms) {
             const side = a.userData.side;
+            // (fwd turns an arm about the up axis: -side * k swings it forward, +side * k back)
             let up = 0, fwd = walk ? s * 0.45 * F.arms * side : Math.sin(t / 30 + seed) * 0.04;
-            if (Q === 'cheer' || Q === 'happy' || A.cheer) up = 1.25;
+            if (seat || lounge) { up = -0.15; fwd = -side * 0.7; }
+            if (Q === 'cheer' || A.cheer) up = 1.25;
+            else if (Q === 'happy') { up = 0.95; fwd = -side * 0.2; }
+            else if (Q === 'hug') { up = 0.3; fwd = -side * 1.15; }
+            else if (Q === 'pick') { up = -0.1; fwd = -side * 0.9; }
+            else if (Q === 'left' || Q === 'right') up = (Q === 'left') === (side < 0) ? 1.5 : 0.15;
+            else if (dance) { up = 0.85 + Math.sin(t / 9 + e.x + (side > 0 ? Math.PI : 0)) * 0.55 * F.arms; fwd = -side * 0.25; }
             else if (run && (A.mode === 'flee' || F.run === 'flail')) { up = 0.7 + Math.sin(ph * 2 + side) * 0.6 * F.arms; fwd = 0; }
             else if (run && F.run === 'out') up = 0.55;
             else if (run) { up = 0.15; fwd = s * 0.8 * side; }
