@@ -135,8 +135,10 @@ Status: [x] done, [~] in progress, [ ] not started.
   and the other minigames keep their 2D look, and so can the arcade cabinets)
 - [~] Characters and props as cozy handcrafted toys after New Horizons (David, 26 October): the style test is in the test
   area (Sarah from a doll kit with sculpted hair and sixteen painted expressions, Maki, Kai and Ginger redone, five
-  props, acting: Sarah's arms-out run, tag's glances back, stumbles and celebrations, faces while talking). Waiting on
-  David's word, then in batches: every hair style sculpted, outfit details, the other folks, the props and furniture,
+  props, acting: Sarah's arms-out run, tag's glances back, stumbles and celebrations, faces while talking). David liked
+  the direction with revisions; round 2 (26 October): Joe in a men's cut with his own curls, Kai's round bowl with his
+  face up where the camera sees it, the folks molded as soft single pieces, sized one by one. Waiting on his word on
+  round 2, then in batches: every hair style sculpted, outfit details, the other folks, the props and furniture,
   acting for the other games, lighter versions for phones (docs/STYLE.md)
 - [ ] Graphics settings (David, 26 October, for later): a quality setting and a draw distance, each with its own default
   for laptops and phones, so the look can go up if the server or the devices get faster

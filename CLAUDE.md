@@ -201,8 +201,11 @@ docs/DEPLOY.md for the server.
   approves it: people are chibi dolls from a Blender kit (`tools/blender/dolls.py`: `doll_kit` with each part in greys
   named `<part>__<role>` and its origin at its joint, elbows and knees jointed on balls; `doll_hair`, the hair sculpted as
   locks melted into one mass with grooves between them, its blue channel how far toward the dyed tips), put together and
-  painted by `EnvDolls.make2` (33ka_doll_kit.js); Maki, Kai and Ginger redone in `tools/blender/folks2.py` (`folk2_<id>`,
-  each with its own arms and accessory); every face is painted on a patch (`face__face`, a folk's `face` part) from a
+  painted by `EnvDolls.make2` (33ka_doll_kit.js); a look with `masc` (Joe, David, James, John) gets the men's cut from
+  the same kit (`torso_m`, `arm_m`... an open jacket over a shirt), Joe's curls (`hair_joecut`), a boy's face in
+  `personFace` and stands 4% taller (David's notes on the test, 26 October: Joe looked too like Sarah); Maki, Kai and
+  Ginger redone in `tools/blender/folks2.py` (`folk2_<id>`, each with its own arms, an accessory only where it suits, each
+  body molded from pieces melted into one soft surface by `sculpt`, sized one by one by `SIZE` so the face reads); every face is painted on a patch (`face__face`, a folk's `face` part) from a
   sheet of sixteen expressions per look or folk (`FACES`, `faceSheet`/`folkSheet`, `personFace`, `FOLK_FACES`), changed
   by moving the patch's UVs (`setFace`); how they act is 33kb_doll_act.js (`act`: faces from talking, a line's mood,
   emotes and games, tag's glances back, stumbles and celebrations; `pose2`, `poseFolk2`, `FOLK_ACT`); five props in

@@ -17,9 +17,9 @@ const FACES = ['idle', 'blink', 'talk', 'happy', 'happytalk', 'joy', 'surprised'
 const FOLK_FACES = {
     maki: { eye: 'white', X: 128, EY: 128, EX: 62, MY: 186, BY: 76, er: [24, 28], pupil: 0.5, rest: 0.13, line: '#efe9dc', shut: '#efe9dc', lidLine: '#efe9dc', lid: '#1d3830',
         brow: '#efe9dc', browW: 0.8, mouth: '#efe9dc', mouthIn: '#8a2a36', mouthRim: '#efe9dc', blush: [92, 30, 22, 12], restMouth: 'flat', w: 1.1 },
-    kai: { eye: 'white', X: 128, EY: 116, EX: 64, MY: 182, BY: 62, er: [30, 34], pupil: 0.6, look: -0.12, ring: '#1a2c58', line: '#1a2c58', lid: '#3c7ad0',
+    kai: { eye: 'white', X: 128, EY: 116, EX: 64, MY: 182, BY: 82, er: [28, 30], pupil: 0.6, look: -0.12, ring: '#1a2c58', line: '#1a2c58', lid: '#3c7ad0',
         brow: '#1a2c58', browW: 1.1, browLen: 18, mouth: '#1a2c58', mouthIn: '#3a1424', teeth: true, blush: [98, 32, 22, 13], restMouth: 'grin', ms: 1.35, w: 1.2 },
-    ginger: { eye: 'chip', X: 128, EY: 112, EX: 54, MY: 178, BY: 64, er: [19, 21], iris: '#22100a', iris2: '#5a3020', line: '#fdfbf6', shut: '#2a160e', lid: '#cc8440',
+    ginger: { eye: 'chip', X: 128, EY: 112, EX: 54, MY: 178, BY: 66, er: [20, 22], iris: '#22100a', iris2: '#5a3020', line: '#fdfbf6', shut: '#2a160e', lid: '#cc8440',
         brow: '#fdfbf6', browW: 1.1, mouth: '#fdfbf6', mouthIn: '#5a2a18', mouthRim: '#fdfbf6', blush: [84, 34, 15, 15], blushCol: '#f49ab0', restMouth: 'smile', ms: 1.3, w: 1.3 },
 };
 Object.assign(EnvDolls, {
@@ -57,10 +57,19 @@ Object.assign(EnvDolls, {
         const add = (g, name, col) => { if (!K[name]) return false; if (!lists.has(g)) lists.set(g, []); lists.get(g).push([K[name].geo, col]); return true; };
         // the body: the top, its hem and collar, the jeans' seat (or a skirt, built below)
         const one = !!st.one, skirt = st.skirt, legsCol = skirt && !st.legs ? skin : one && !skirt ? top : bottom;
-        add(body, 'torso__top', top);
-        add(body, 'hem__trim', st.knit || !one ? trim : top);
-        if (!st.straps) add(body, 'collar__trim', trim);
-        if (!skirt) add(body, 'hips__bottom', one ? top : bottom);
+        // (the men's cut, David's call: straighter, a touch broader at the shoulders, a jacket that's open over a shirt, and
+        // a touch taller)
+        const masc = !!L.masc && !skirt && !one;
+        if (masc) {
+            root.scale.setScalar(DOLL2.H * 1.04);
+            add(body, 'torso_m__top', top); add(body, 'hem_m__top', top); add(body, 'collar_m__trim', trim); add(body, 'hips_m__bottom', bottom);
+            if (st.lapels || st.open) { add(body, 'shirt_m__trim', trim); add(body, 'lapel_m__top', top); add(body, 'pocket_m__top', top); }
+        } else {
+            add(body, 'torso__top', top);
+            add(body, 'hem__trim', st.knit || !one ? trim : top);
+            if (!st.straps) add(body, 'collar__trim', trim);
+            if (!skirt) add(body, 'hips__bottom', one ? top : bottom);
+        }
         // legs: the thigh from the hip, the shin from the knee with the cuff (on trousers) and the shoe
         for (const k of ['l', 'r']) {
             const th = K['thigh_' + k + '__bottom'], sh = K['shin_' + k + '__bottom'];
@@ -68,18 +77,20 @@ Object.assign(EnvDolls, {
             const leg = joint(body, k === 'l' ? 'legL' : 'legR', th.at), knee = joint(leg, k === 'l' ? 'knL' : 'knR', sh.at, th.at);
             add(leg, 'thigh_' + k + '__bottom', legsCol);
             add(knee, 'shin_' + k + '__bottom', legsCol);
-            if (st.legs === 'pants' && !one) add(knee, 'shin_' + k + '__bottom2', role.bottom2);
+            if (st.legs === 'pants' && !one && !masc) add(knee, 'shin_' + k + '__bottom2', role.bottom2);
             add(knee, 'shin_' + k + '__shoes', shoes);
             add(knee, 'shin_' + k + '__sole', role.sole);
             if (C.skates) for (const w of [-0.04, 0.05]) this.piece(knee, 'disc', this.mat('#f2c84a', 0.4), (k === 'l' ? -1 : 1) * 0.004, -0.112 + 0.004, w - 0.02, 0.016, 0.036, 0.016, 0, 0, Math.PI / 2);
         }
         // arms: a long sleeve to a cuff, or bare (under a short or wide sleeve, built below), the mitten hand
-        const long = st.sleeves === 'long';
+        const long = st.sleeves === 'long', sl = masc && K['uarm_m_l__top'] ? 'm_' : '';
         for (const k of ['l', 'r']) {
-            const ua = K[(long ? 'uarm_' : 'uarm_bare_') + k + (long ? '__top' : '__skin')], fa = K[(long ? 'farm_' : 'farm_bare_') + k + (long ? '__top' : '__skin')];
+            const ua = K[(long ? 'uarm_' + sl : 'uarm_bare_') + k + (long ? '__top' : '__skin')], fa = K[(long ? 'farm_' + sl : 'farm_bare_') + k + (long ? '__top' : '__skin')];
             if (!ua || !fa) continue;
             const arm = joint(body, k === 'l' ? 'armL' : 'armR', ua.at), el = joint(arm, k === 'l' ? 'elL' : 'elR', fa.at, ua.at);
-            if (long) { add(arm, 'uarm_' + k + '__top', top); add(el, 'farm_' + k + '__top', top); add(el, 'farm_' + k + '__trim', trim); add(el, 'farm_' + k + '__skin', skin); }
+            // (the broader cut's shoulders a little further out)
+            if (masc) arm.position.x += (k === 'l' ? -1 : 1) * 0.005;
+            if (long) { add(arm, 'uarm_' + sl + k + '__top', top); add(el, 'farm_' + sl + k + '__top', top); add(el, 'farm_' + sl + k + '__trim', trim); add(el, 'farm_' + sl + k + '__skin', skin); }
             else {
                 add(arm, 'uarm_bare_' + k + '__skin', skin); add(el, 'farm_bare_' + k + '__skin', skin);
                 const s = k === 'l' ? -1 : 1;
@@ -179,7 +190,7 @@ Object.assign(EnvDolls, {
         d.faceNow = name;
     },
     /* the sheet of a look's sixteen faces (shared by every doll with that look) */
-    faceSheet(L) { return this.sheet('p|' + [L.skin, L.eyes, L.hairCol, L.blush ? 1 : 0, L.freckles ? 1 : 0].join('|'), this.personFace(L)); },
+    faceSheet(L) { return this.sheet('p|' + [L.skin, L.eyes, L.hairCol, L.blush ? 1 : 0, L.freckles ? 1 : 0, L.masc ? 1 : 0].join('|'), this.personFace(L)); },
     /* a folk's own sheet, from its face (FOLK_FACES) */
     folkSheet(id) { return FOLK_FACES[id] ? this.sheet('f|' + id, FOLK_FACES[id]) : null; },
     sheet(key, S) {
@@ -210,8 +221,14 @@ Object.assign(EnvDolls, {
        face at 128, 128 of the cell, 2.46 pixels a degree) */
     personFace(L) {
         const b = new THREE.Color(L.hairCol || '#5a3622').multiplyScalar(0.78);
-        return { eye: 'person', X: 128, EY: 143, EX: 43, MY: 199, BY: 102, er: [21, 30], iris: L.eyes || '#6c5236', line: '#1e1210', lashes: true,
+        const S = { eye: 'person', X: 128, EY: 143, EX: 43, MY: 199, BY: 102, er: [21, 30], iris: L.eyes || '#6c5236', line: '#1e1210', lashes: true,
             lid: L.skin || '#fbd9c6', brow: '#' + b.getHexString(), mouth: '#7a2a2e', ms: 1.2, blush: L.blush ? [66, 30, 21, 12] : null, blushHappy: [66, 30, 21, 12], freckles: !!L.freckles };
+        // a boy's face (still a chibi's): rounder eyes a little smaller and further apart, no lash line, a hint of lid,
+        // thicker straighter brows set lower, a little nose, a wider plainer mouth, the blush only when he's happy
+        if (L.masc) Object.assign(S, { EX: 46, er: [19, 25], lashes: false, rest: 0.08, BY: 108, browW: 1.75, browLen: 17, browArch: 2, ms: 1.3,
+            lidLine: '#2a1a16', mouth: '#6a2a28', blushHappy: [68, 30, 19, 10], brow: '#' + b.clone().multiplyScalar(0.85).getHexString(),
+            nose: '#' + new THREE.Color(L.skin || '#fbd9c6').multiplyScalar(0.74).getHexString() });
+        return S;
     },
     /* one face in a 256-pixel cell, in a style S (personFace, FOLK_FACES): each expression changes the eyes, brows and
        mouth, so they read at a glance at sixty pixels tall, as Animal Crossing's do */
@@ -305,7 +322,7 @@ Object.assign(EnvDolls, {
             for (const s of [-1, 1]) {
                 const x = X + s * EX, y = BY - (lift || 0) + (S.browSet || 0) * (tilt > 0 ? 0 : 0);
                 const ti = ((tilt || 0) + (S.browTilt || 0)) * 9;
-                g.beginPath(); g.moveTo(x - s * (bw - 1), y + ti); g.quadraticCurveTo(x + s * 1, y - 5 + ti * 0.4, x + s * bw, y + 1 - ti * 0.3); g.stroke();
+                g.beginPath(); g.moveTo(x - s * (bw - 1), y + ti); g.quadraticCurveTo(x + s * 1, y - (S.browArch != null ? S.browArch : 5) + ti * 0.4, x + s * bw, y + 1 - ti * 0.3); g.stroke();
             }
         };
         // mouths (in the style's colors; an open one dark inside with a tongue, edged when the body is dark)
@@ -329,6 +346,7 @@ Object.assign(EnvDolls, {
         // ---- each expression
         blush(['happy', 'happytalk', 'joy', 'excited', 'love', 'cry'].includes(name) ? 1 : 0);
         freckles();
+        if (S.nose) { const ny = EY + (MY - EY) * 0.52; g.strokeStyle = S.nose; g.lineWidth = 4.5; g.beginPath(); g.moveTo(X - 5, ny); g.quadraticCurveTo(X, ny + 5, X + 5, ny); g.stroke(); }
         switch (name) {
         case 'idle': brows(0, 0); eye(-1); eye(1); rest(); break;
         case 'blink': brows(0, 0); shut(-1); shut(1); rest(); break;

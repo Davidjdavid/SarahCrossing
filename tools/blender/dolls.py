@@ -20,8 +20,8 @@ from mathutils import Vector, Matrix, Euler, noise
 from mathutils.bvhtree import BVHTree
 from common import *
 from trees_ac import MB, vmat, rgb
-from folks import surf, superq, revolve
-from kit import lathe
+from folks import surf, superq, revolve, ball
+from kit import lathe, tube, rbox, xform
 
 # ---------------------------------------------------------------- the skeleton (doll units)
 HR = 0.215                          # the head's radius
@@ -276,6 +276,113 @@ def leg(s, k):
     surf(so, superq(c.x, c.y, 0.011, 0.044, 0.066, 0.011, 0.5, 0.35), lambda p, n, u, v: grey(0.94 - 0.18 * max(0.0, -n.z)), nu=36, nv=10)
 
 
+# ---------------------------------------------------------------- a boy's cut (Joe, David, James, John)
+def torso_m():
+    """A boy's top: straighter than the knit (no flare at the hem) and a little broader at the shoulders; an open jacket,
+    its lapels folded back, the shirt showing down the front between them, pocket flaps, a plain hem."""
+    sy = 0.86
+    pts_m = [(0.0, 0.262), (0.114, 0.262), (0.119, 0.272), (0.118, 0.30), (0.115, 0.36), (0.113, 0.42), (0.113, 0.47),
+             (0.113, 0.50), (0.109, 0.527), (0.092, 0.55), (0.057, 0.563), (0.0, 0.567)]
+
+    def prof(v):
+        x = v * (len(pts_m) - 1)
+        i = min(len(pts_m) - 2, int(x))
+        t = x - i
+        t = t * t * (3 - 2 * t)
+        a, b = pts_m[i], pts_m[i + 1]
+        return a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
+
+    def rz(z):
+        # (the body's radius at a height, from the profile)
+        best = min(range(len(pts_m) - 1), key=lambda i: abs((pts_m[i][1] + pts_m[i + 1][1]) / 2 - z))
+        a, b = pts_m[best], pts_m[best + 1]
+        t = max(0.0, min(1.0, (z - a[1]) / max(1e-6, b[1] - a[1])))
+        return a[0] + (b[0] - a[0]) * t
+
+    def front(x, z, lift):
+        r = max(0.02, rz(z))
+        y = -r * sy * math.sqrt(max(0.0, 1 - min(0.98, (x / r) ** 2)))
+        return Vector((x, y - lift, z))
+    surf(part('torso_m', 'top'), revolve(prof, sy=sy), lambda p, n, u, v: grey(0.93 - 0.1 * max(0.0, -n.z) ** 2
+         - 0.07 * max(0.0, 1 - abs(abs(p.x) - 0.1) / 0.03) * max(0.0, 1 - abs(p.z - 0.47) / 0.06)), nu=56, nv=30, caps=(True, True))
+    # the shirt down the front: a V from the neck to the chest
+    z_top, z_bot = 0.552, 0.37
+    w = lambda v: 0.036 * (1 - v) ** 0.9 + 0.003
+    P, C, N, F = [], [], [], []
+    nu, nv = 8, 14
+    for j in range(nv + 1):
+        v = j / nv
+        z = z_top + (z_bot - z_top) * v
+        for i in range(nu + 1):
+            x = (-1 + 2 * i / nu) * w(v)
+            q = front(x, z, 0.003)
+            P.append(q); N.append(Vector((x * 2, -1, 0.15)).normalized()); C.append(grey(0.95 - 0.1 * v))
+    for j in range(nv):
+        for i in range(nu):
+            a = j * (nu + 1) + i
+            F += [(a, a + 1, a + nu + 2), (a, a + nu + 2, a + nu + 1)]
+    part('shirt_m', 'trim').add(P, C, N, F)
+    # the shirt's collar round the neck, plain
+    def ring(u, v):
+        th, ph = u * math.tau, v * math.tau
+        R, r = 0.056, 0.009
+        rr = R + r * math.cos(ph)
+        return Vector((math.cos(th) * rr, math.sin(th) * rr * sy * 1.05, 0.557 + r * math.sin(ph)))
+    surf(part('collar_m', 'trim'), ring, lambda p, n, u, v: grey(0.93 - 0.15 * max(0.0, -n.z)), nu=48, nv=8, caps=(False, False))
+    # the lapels: folded back along each side of the V, standing a little proud, a rolled edge
+    lap = part('lapel_m', 'top')
+    for s in (-1, 1):
+        P, C, N, F = [], [], [], []
+        for j in range(nv + 1):
+            v = j / nv
+            z = z_top + (z_bot - z_top) * v
+            wi, wo = w(v), w(v) + 0.026 * (1 - 0.55 * v) + 0.004
+            for k in range(4):
+                x = s * (wi + (wo - wi) * k / 3)
+                q = front(x, z, 0.006 + 0.002 * math.sin(k / 3 * math.pi))
+                P.append(q); N.append(Vector((x * 1.5, -1, 0.25)).normalized()); C.append(grey(0.8 + 0.05 * k / 3))
+        for j in range(nv):
+            for k in range(3):
+                a = j * 4 + k
+                F += [(a, a + 1, a + 5), (a, a + 5, a + 4)]
+        lap.add(P, C, N, F)
+        tube(lap, [front(s * w(j / nv), z_top + (z_bot - z_top) * j / nv, 0.006) for j in range(nv + 1)], 0.004, lambda p, n: grey(0.86), seg=6)
+    # pocket flaps at the hips, a plain hem
+    for s in (-1, 1):
+        c = front(s * 0.065, 0.315, 0.002)
+        m = len(part('pocket_m', 'top').v)
+        rbox(part('pocket_m', 'top'), -0.026, -0.004, -0.009, 0.026, 0.004, 0.009, lambda p, n: grey(0.8 - 0.1 * max(0.0, -n.z)), r=0.004, mid=0)
+        xform(part('pocket_m', 'top'), m, Matrix.Translation(c) @ Matrix.Rotation(-s * 0.55, 4, 'Z'))
+    def hem_p(v):
+        return 0.119 + 0.003 * math.sin(v * math.pi), 0.258 + v * 0.03
+    surf(part('hem_m', 'top'), revolve(hem_p, sy=sy * 1.02), lambda p, n, u, v: grey(0.86 - 0.12 * max(0.0, -n.z)), nu=56, nv=6, caps=(True, False))
+
+
+def hips_m():
+    """Trousers' seat under a jacket."""
+    def prof(v):
+        z = 0.22 + v * 0.07
+        r = 0.1 + 0.01 * math.sin(min(1.0, v * 1.6) * math.pi / 2)
+        return (r if v < 0.98 else r * 0.5), z
+    surf(part('hips_m', 'bottom'), revolve(prof, sy=0.86), lambda p, n, u, v: grey(0.86 - 0.12 * max(0.0, -n.z)), nu=40, nv=10, caps=(True, True))
+
+
+def arm_m(s, k):
+    """A jacket's sleeve, a touch fuller, to a plain cuff with the shirt's showing under it, and the mitten hand."""
+    sh = Vector((s * SH.x, SH.y, SH.z))
+    el = sh + Vector((0, 0, -UPPER))
+    wr = el + Vector((0, 0, -FORE))
+    capsule(part(f'uarm_m_{k}', 'top', sh), sh, el, 0.045, 0.041, lambda p, n, u, v: grey(0.93 - 0.1 * max(0.0, -n.z) ** 2 - 0.06 * max(0.0, n.x * -s)))
+    fore = part(f'farm_m_{k}', 'top', el)
+    capsule(fore, el, wr + Vector((0, 0, 0.008)), 0.041, 0.04, lambda p, n, u, v: grey(0.92 - 0.1 * max(0.0, -n.z) ** 2 - 0.06 * max(0.0, n.x * -s)))
+    lathe(fore, [(0.04, wr.z + 0.012), (0.043, wr.z + 0.006), (0.043, wr.z - 0.002), (0.034, wr.z - 0.004)], lambda p, n: grey(0.85), c=(wr.x, wr.y, 0), seg=28, cap_top=False)
+    lathe(part(f'farm_m_{k}', 'trim', el), [(0.035, wr.z - 0.002), (0.036, wr.z - 0.009), (0.03, wr.z - 0.011)], lambda p, n: grey(0.93), c=(wr.x, wr.y, 0), seg=24, cap_top=False)
+    hand = part(f'farm_m_{k}', 'skin', el)
+    hc = wr + Vector((0, -0.002, -0.03))
+    surf(hand, superq(hc.x, hc.y, hc.z, 0.032, 0.036, 0.037, 0.9, 1.0), lambda p, n, u, v: grey(0.95 - 0.1 * max(0.0, -n.z) ** 2), nu=24, nv=16)
+    surf(hand, superq(hc.x - s * 0.012, hc.y - 0.027, hc.z + 0.006, 0.013, 0.014, 0.019), lambda p, n, u, v: grey(0.93), nu=14, nv=10)
+
+
 # ---------------------------------------------------------------- hair
 def lock(mb, path, w0, w1, t0, t1, col=lambda p, n, s: grey(0.9), seg=14, nv=40, flat_to=None, curl_tip=True):
     """One lock of hair along a smooth path (Catmull-Rom through the points): a flattened tube, w wide and t thick from
@@ -408,6 +515,65 @@ def hair_waves():
     return mb
 
 
+def hair_joecut():
+    """Joe's curls, cut as a boy's: short and close at the sides and back (his ears show, sideburns in front of them),
+    the curls on top, fullest at the front and tumbling a little onto the forehead. Each curl is a short lock wound into
+    a comma lying on the head, so the melted mass reads as curls, not as a pile of balls."""
+    mb = MB()
+    LOCKS.clear()
+    def zline(a):
+        pts = [(0.0, 0.6), (0.7, 0.5), (1.05, 0.34), (1.2, -0.12), (1.34, 0.2), (1.85, 0.16), (2.4, -0.18), (math.pi, -0.42)]
+        for (a0, z0), (a1, z1) in zip(pts, pts[1:]):
+            if a <= a1:
+                t = (a - a0) / (a1 - a0)
+                return z0 + (z1 - z0) * (t * t * (3 - 2 * t))
+        return pts[-1][1]
+    shell(mb, zline, r_out=1.045, wob=0.015)
+    rng = random.Random(12)
+
+    def curl(d, rc, lift=1.1, turn=None, droop=0.0):
+        # a comma: from its root it winds once round (a little less), shrinking, lifted off the head in the middle
+        d = d.normalized()
+        t1 = d.cross(Vector((0, 0, 1)))
+        t1 = t1.normalized() if t1.length > 1e-3 else Vector((1, 0, 0))
+        t2 = d.cross(t1).normalized()
+        a0 = rng.uniform(0, math.tau) if turn is None else turn
+        c0 = HEAD + d * HR * lift + Vector((0, 0, -droop * HR))
+        path = []
+        for k in range(7):
+            f = k / 6
+            th = a0 + f * 4.0
+            r = rc * (1 - 0.45 * f) * HR
+            path.append(c0 + (t1 * math.cos(th) + t2 * math.sin(th)) * r + d * HR * 0.05 * math.sin(f * math.pi))
+        w = rc * 1.15
+        lock(mb, path, w * HR, w * HR * 0.6, w * 0.75 * HR, w * 0.5 * HR, flat_to=HEAD, nv=20, seg=10)
+    # the top: curls spread evenly (golden angle) over the head above the hairline, smaller toward the sides and back
+    n = 42
+    for i in range(n):
+        t = (i + 0.5) / n
+        z = 1 - t * 0.82
+        th = i * 2.39996
+        rr = math.sqrt(max(0.0, 1 - z * z))
+        d = Vector((math.cos(th) * rr, math.sin(th) * rr, z))
+        a = abs(((th + math.pi / 2 + math.pi) % math.tau) - math.pi)
+        if z < zline(a) + 0.2:
+            continue
+        # (short at the sides and back: the curls there small and close to the head)
+        side = max(0.0, min(1.0, (z - 0.25) / 0.45))
+        back = max(0.0, d.y)
+        rc = (0.2 + 0.05 * rng.random()) * (0.6 + 0.4 * side) * (1 - 0.25 * back)
+        curl(d, rc, lift=1.04 + 0.06 * side * (1 - 0.6 * back))
+    # the front: a row of curls along the hairline, tumbling onto the forehead
+    for x, z, rc in ((-0.48, 0.56, 0.18), (-0.14, 0.63, 0.21), (0.22, 0.62, 0.2), (0.55, 0.52, 0.16)):
+        d = Vector((x, -math.sqrt(max(0.0, 1.0 - x * x - z * z)), z))
+        curl(d, rc, lift=1.06, droop=0.06)
+    # sideburns, short, in front of the ears
+    for s in (-1, 1):
+        lock(mb, [H(s * 0.84, -0.42, 0.36), H(s * 0.94, -0.34, 0.1), H(s * 0.98, -0.3, -0.12)], 0.11 * HR, 0.08 * HR, 0.06 * HR, 0.05 * HR,
+             flat_to=HEAD, nv=12, seg=10)
+    return mb
+
+
 def melt(name, mb, voxel=0.0042, smooth=6, verts=6500, before=None):
     """A mass of overlapping pieces melted into one soft surface (as if sculpted in clay): voxel remeshed, smoothed,
     (before(o): worked on while it's still dense) then lightened."""
@@ -463,7 +629,7 @@ def grooves(o, depth=0.0055):
     return out
 
 
-def hair_colors(o, groove=None):
+def hair_colors(o, groove=None, dark=0.75):
     """A melted hair's greys: darker in its grooves and underneath, a soft shine band across the crown (the toy's
     gloss); the blue channel how far down toward the tips (dyed tips follow it)."""
     me = o.data
@@ -487,7 +653,7 @@ def hair_colors(o, groove=None):
             hit = tree.ray_cast(p + n * 0.0015, d, 0.03)
             if hit[0] is not None:
                 occ += 1 - hit[3] / 0.03
-        ao = 1 - 0.75 * occ / max(1, tot)
+        ao = 1 - dark * occ / max(1, tot)
         if groove:
             ao *= 1 - 0.32 * groove[i]
         # the shine: a band round the crown, brightest facing up and toward us
@@ -563,18 +729,23 @@ def build_kit():
     sym(arm)
     sym(bare_arm)
     sym(leg)
+    torso_m()
+    hips_m()
+    sym(arm_m)
     objs = [part_obj(p) for p in PARTS.values()]
     bpy.context.view_layer.update()
     kit_ao([o for o in objs if 'bare' not in o.name])
     return objs
 
 
-def build_hair(styles=('waves',)):
+def build_hair(styles=('waves', 'joecut')):
     out = []
     for st in styles:
-        mb = {'waves': hair_waves}[st]()
-        o = melt(f'hair_{st}__hair', mb, smooth=4, verts=7500, before=lambda o: grooves(o))
-        hair_colors(o, grooves(o, depth=0.0))
+        mb = {'waves': hair_waves, 'joecut': hair_joecut}[st]()
+        # (curls melted a little softer, as a toy's are)
+        o = melt(f'hair_{st}__hair', mb, smooth=8 if st == 'joecut' else 4, verts=7500, before=lambda o: grooves(o))
+        # (the curls' deep folds a little lighter, or they read as holes)
+        hair_colors(o, grooves(o, depth=0.0), dark=0.55 if st == 'joecut' else 0.75)
         # (its origin at the neck, where the head turns)
         me = o.data
         for v in me.vertices:

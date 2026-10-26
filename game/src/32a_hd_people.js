@@ -56,13 +56,13 @@ function hdDesign(d) {
 /* ---------------------------------------------------------------- who */
 /* the island's people besides Sarah, as looks and clothes (their 16x24 sprites, three times over) */
 const HD_FOLKS = {
-    joe: { look: { hair: 'joecut', hairCol: '#3e2418', tipCol: null, skin: '#f1c7a8', eyes: '#2a1a14', blush: false },
+    joe: { look: { hair: 'joecut', hairCol: '#3e2418', tipCol: null, skin: '#f1c7a8', eyes: '#2a1a14', blush: false, masc: true },
         clothes: { style: 'jacket', top: '#c9962b', trim: '#efe6d2', bottom: '#5a3b2e', shoes: '#3a2a22' } },
-    david: { look: { hair: 'davidcut', hairCol: '#d8602a', tipCol: null, skin: '#fbd9c6', eyes: '#3f6fb8', blush: false, beard: '#c0502a' },
+    david: { look: { hair: 'davidcut', hairCol: '#d8602a', tipCol: null, skin: '#fbd9c6', eyes: '#3f6fb8', blush: false, beard: '#c0502a', masc: true },
         clothes: { style: 'jacket', top: '#e86aa8', trim: '#ffd1e7', bottom: '#f4f1ea', shoes: '#f4f1ea', skates: 1 } },
-    james: { look: { hair: 'jamescut', hairCol: '#7a5030', tipCol: null, skin: '#fbd9c6', eyes: '#4a2c1c', blush: false },
+    james: { look: { hair: 'jamescut', hairCol: '#7a5030', tipCol: null, skin: '#fbd9c6', eyes: '#4a2c1c', blush: false, masc: true },
         clothes: { style: 'jacket', top: '#4f9a62', trim: '#efe6d2', bottom: '#cdb98e', shoes: '#efeae0' }, eyes: 'glasses' },
-    john: { look: { hair: 'johncut', hairCol: '#241a1c', tipCol: null, skin: '#fbd9c6', eyes: '#2a1a14', blush: false },
+    john: { look: { hair: 'johncut', hairCol: '#241a1c', tipCol: null, skin: '#fbd9c6', eyes: '#2a1a14', blush: false, masc: true },
         clothes: { style: 'suit', top: '#253463', trim: '#c0303a', bottom: '#253463', shoes: '#2b2b33' }, eyes: 'glasses' },
     elizabeth: { look: { hair: 'sleek', hairCol: '#5a3622', tipCol: null, skin: '#fbd9c6', eyes: '#4a2c1c', blush: true },
         clothes: { style: 'toppants', top: '#4a78c8', trim: '#9ab8e8', bottom: '#2c3e66', shoes: '#efeae0' }, eyes: 'glasses' },
