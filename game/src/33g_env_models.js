@@ -102,7 +102,8 @@ const EnvModels = {
         return out;
     },
     glassMats: [],
-    tall(name) { return /^(tree_|pine_|palm_|bld_|house_|cottage|shop|windmill)/.test(name || ''); },
+    // (fruit too: it hangs on a tree, and must fade with it, or it would hang in the air where a tree was)
+    tall(name) { return /^(tree_|pine_|palm_|fruit_|bld_|house_|cottage|shop|windmill)/.test(name || ''); },
     /* a copy of a model's material in another color (a house painted in its own look); a plain clone would lose the
        view's patch (the bend, depth of field, shadows) */
     tinted(m, color) {

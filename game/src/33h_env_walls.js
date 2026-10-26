@@ -2,7 +2,7 @@
 /* The stone walls where one level of ground meets the next, in the new 3D look, from the wall pieces made in Blender
    (tools/blender/stone_wall.py): along every south, east and west face of higher ground, pieces of 2 and 1 tiles (their
    stone layouts mixed, so a long wall doesn't repeat) standing on the lower ground just in front of the ground's own steep
-   face, and a corner piece where a wall turns. Never across a waterfall (its sheet falls there), a stream or a staircase.
+   face, running on round a corner to meet the next wall (no corner posts). Never across a waterfall (its sheet falls there), a stream or a staircase.
    Where the faces are comes from EnvGround's rules: a south face at the far edge of the first row under higher ground, an
    east or west face down the middle of the column beside it. */
 const EnvWalls = {
@@ -54,22 +54,21 @@ const EnvWalls = {
         for (const R of runs(south, 'x')) {
             const r = mulberry(hash32('ws' + R.s + ',' + R.y)), z = (R.y + 1) * ZS - this.BACK, y0 = BASE + R.l * LV;
             fill(R.e - R.s, r, (n, i) => put(n, EnvModels.mat4(R.s + i, y0, z, 0, 1, R.d, 1)));
-            // a corner where the wall turns north at either end
-            if (east.has(R.e + ',' + R.y)) put('wall_corner', EnvModels.mat4(R.e - 0.1, y0, z + 0.02, 0, 1, R.d, 1));
-            if (west.has((R.s - 1) + ',' + R.y)) put('wall_corner', EnvModels.mat4(R.s - 0.6, y0, z + 0.02, 0, 1, R.d, 1));
+            // where the wall turns north at either end, it runs on a little to meet the side wall's face, so the corner
+            // closes without a post standing out (David: no stacks of big stones at the corners)
+            const reach = 0.5 - this.BACK + 0.04;
+            if (east.has(R.e + ',' + R.y)) put('wall1_a', EnvModels.mat4(R.e, y0, z, 0, reach, R.d, 1));
+            if (west.has((R.s - 1) + ',' + R.y)) put('wall1_b', EnvModels.mat4(R.s - reach, y0, z, 0, reach, R.d, 1));
             // where the higher ground juts a tile further south just past the run's end (or before its start), the wall
             // turns along the jut's side and meets the next run round a corner, instead of stopping with its end showing
-            const z2 = (R.y + 2) * ZS - this.BACK + 0.02;
             if (L(R.e, R.y) > R.l && !open(R.e, R.y)) {
                 const d = L(R.e, R.y) - R.l;
                 put('wall1_a', EnvModels.mat4(R.e + this.BACK, y0, (R.y + 1) * ZS, -Math.PI / 2, ZS, d, 1));
-                put('wall_corner', EnvModels.mat4(R.e - 0.6, y0, z2, 0, 1, d, 1));
-            } else if (!east.has(R.e + ',' + R.y) && !stairs(R.e, R.y)) put('wall_corner', EnvModels.mat4(R.e - 0.35, y0, z + 0.03, 0, 1, R.d, 1));    // (a free end: a post of big stones; by a staircase its side wall ends it)
+            }
             if (L(R.s - 1, R.y) > R.l && !open(R.s - 1, R.y)) {
                 const d = L(R.s - 1, R.y) - R.l;
                 put('wall1_b', EnvModels.mat4(R.s - this.BACK, y0, (R.y + 2) * ZS, Math.PI / 2, ZS, d, 1));
-                put('wall_corner', EnvModels.mat4(R.s - 0.1, y0, z2, 0, 1, d, 1));
-            } else if (!west.has((R.s - 1) + ',' + R.y) && !stairs(R.s - 1, R.y)) put('wall_corner', EnvModels.mat4(R.s - 0.35, y0, z + 0.03, 0, 1, R.d, 1));
+            }
         }
         // (an east face looks east: the piece turned a quarter, its length running north; a west face the other way)
         for (const R of runs(east, 'y')) {

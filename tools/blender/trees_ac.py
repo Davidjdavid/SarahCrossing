@@ -1,7 +1,7 @@
 """Trees, palms, fruit and bushes in the style of Animal Crossing (the reference David picked): a thick tan trunk with
 root flares, a crown of two or three round lobes covered in overlapping hanging leaves (each a three-pointed leaf with a
-raised vein, darker at its stem, lighter at its tip), rows lapping like shingles; a palm of stacked rings with arching
-fronds of hanging leaflets and a cluster of coconuts; glossy fruit; round shrubs of small leaves, some in flower.
+raised vein, darker at its stem, lighter at its tip), rows lapping like shingles; a palm with a curving ringed trunk and
+two tiers of broad arching fronds over a cluster of coconuts; glossy fruit; round shrubs of small leaves, some in flower.
 
 Every leaf is real geometry with its colors in the mesh (no baking), shaded smoothly as the whole lobe (each vertex's
 normal leans toward the lobe's surface), which is what gives the reference its soft, round light. Fruit is its own
@@ -410,95 +410,99 @@ FRUITS = ['fruit_apple', 'fruit_cherry', 'fruit_orange', 'fruit_pear', 'fruit_pe
 
 # ---------------------------------------------------------------- palms
 PALMS = {
-    'palm_ac': dict(seed=5, height=3.7, bend=0.9, fronds=7),
-    'palm_ac_b': dict(seed=12, height=3.3, bend=-0.7, fronds=6),
+    'palm_ac': dict(seed=5, height=3.7, bend=0.9, fronds=10),
+    'palm_ac_b': dict(seed=12, height=3.3, bend=-0.7, fronds=9),
 }
 
 
 def palm(name, spec, lod=0):
-    """Stacked rings up a curving trunk (each ring flaring at its top, lighter on its face, a darker band under its lip),
-    seven fronds arching up and over, each a rib with leaflets hanging down both sides."""
+    """A trunk that curves as it rises and narrows toward the top, banded in rings like overlapping scales (each ring a
+    touch wider at its top, light on its face, a dark line under its lip), flared at the foot; a crown of fronds in two
+    tiers, the young ones arching up, the older ones drooping lower and a little yellower, each a rib with broad
+    leaflets swept out and down both sides so the frond reads as a wide serrated blade from above."""
     rng = random.Random(spec['seed'])
     mb = MB()
     H, bend = spec['height'], spec['bend']
-    rings = 11
-    seg = 16 if lod == 0 else 10
-    axis = lambda t: Vector((bend * 0.55 * t * t, -0.12 * t, H * t))
-    lite, mid, dark = rgb('#f0c07a'), rgb('#d8944a'), rgb('#9a5a28')
-    for k in range(rings):
-        t0, t1 = k / rings, (k + 1) / rings
-        a0, a1 = axis(t0), axis(t1)
-        r0 = 0.27 - 0.1 * t0
-        r1 = r0 * 0.86
-        rl = r0 * 1.12
-        # each ring: from narrow at its foot to its flared lip
-        prof = [(0.0, r1), (0.55, r0 * 0.96), (0.9, rl), (1.0, r1 * 0.9)]
-        pts, cols, ns, faces = [], [], [], []
-        for pi, (f, rr) in enumerate(prof):
-            c = a0.lerp(a1, f)
-            for j in range(seg):
-                ph = j / seg * math.tau
-                d = Vector((math.cos(ph), math.sin(ph), 0))
-                pts.append(c + d * rr)
-                shade = 0.8 + 0.25 * max(0.0, d.dot(LIGHT))
-                col = (dark if pi == 0 else mid if pi == 1 else lite if pi == 2 else mid) * shade
-                cols.append(col)
-                ns.append(d + Vector((0, 0, 0.6 if pi >= 2 else -0.1)))
-        for pi in range(len(prof) - 1):
-            for j in range(seg):
-                a, b = pi * seg + j, pi * seg + (j + 1) % seg
-                faces += [(a, b, b + seg), (a, b + seg, a + seg)]
-        mb.add(pts, cols, ns, faces)
+    rings = 13
+    seg = 18 if lod == 0 else 10
+    steps_up = rings * (4 if lod == 0 else 2)
+    axis = lambda t: Vector((bend * 0.85 * t ** 1.8, -0.16 * t * t, H * t))
+    lite, mid, dark = rgb('#e8c48c'), rgb('#c8995e'), rgb('#7c5430')
+    pts, cols, ns, faces = [], [], [], []
+    for k in range(steps_up + 1):
+        t = k / steps_up
+        c = axis(t)
+        f = (t * rings) % 1.0                        # where on its ring: 0 at the foot, 1 at the lip
+        r = (0.25 - 0.09 * t) * (0.93 + 0.1 * f ** 1.6) * (1 + 0.38 * math.exp(-t * 14))
+        band = dark if f > 0.9 or f < 0.05 else lite.lerp(mid, 0.35 + 0.3 * (1 - f))
+        tan = (axis(min(1, t + 0.01)) - axis(max(0, t - 0.01))).normalized()
+        sx = Vector((0, 0, 1)).cross(tan).normalized() if abs(tan.z) < 0.999 else Vector((1, 0, 0))
+        if sx.length < 0.5:
+            sx = Vector((1, 0, 0))
+        sy = tan.cross(sx).normalized()
+        for j in range(seg):
+            ph = j / seg * math.tau
+            d = sx * math.cos(ph) + sy * math.sin(ph)
+            pts.append(c + d * r)
+            shade = 0.8 + 0.26 * max(0.0, d.dot(LIGHT))
+            cols.append(band * shade * rng.uniform(0.97, 1.03))
+            ns.append(d + tan * (0.35 if f > 0.6 else -0.05))
+    for k in range(steps_up):
+        for j in range(seg):
+            a0, b0 = k * seg + j, k * seg + (j + 1) % seg
+            faces += [(a0, b0, b0 + seg), (a0, b0 + seg, a0 + seg)]
+    mb.add(pts, cols, ns, faces)
     top = axis(1.0)
-    fill(mb, top + Vector((0, 0, -0.02)), 0.2, rgb('#7a8a3a'), squash=0.8, sub=2)
-    # fronds
+    fill(mb, top + Vector((0, 0, -0.04)), 0.22, rgb('#5c6a2c'), squash=0.85, sub=2)
+    # fronds, two tiers
     n = spec['fronds']
-    green_hi, green, green_lo = rgb('#9ee070'), rgb('#62bc48'), rgb('#3a8a36')
+    tiers = [dict(hi=rgb('#9ee46a'), mid=rgb('#56b84a'), lo=rgb('#2c7a34'), rise=(0.55, 0.75), droop=0.75, length=(1.6, 1.9)),
+             dict(hi=rgb('#b8dc62'), mid=rgb('#6ab042'), lo=rgb('#3a7a30'), rise=(0.2, 0.36), droop=1.15, length=(1.7, 2.05))]
     for i in range(n):
-        az = i / n * math.tau + rng.uniform(-0.2, 0.2)
+        T = tiers[i % 2]
+        az = i / n * math.tau + rng.uniform(-0.16, 0.16) + (0.5 / n * math.tau if i % 2 else 0)
         d = Vector((math.cos(az), math.sin(az), 0))
         side = Vector((0, 0, 1)).cross(d).normalized()
-        length = rng.uniform(1.5, 1.8)
-        rise = rng.uniform(0.4, 0.6)
-        steps = 10 if lod == 0 else 6
+        length = rng.uniform(*T['length'])
+        rise = rng.uniform(*T['rise'])
+        steps = 12 if lod == 0 else 6
         spine = []
         for k in range(steps + 1):
             t = k / steps
-            p = top + d * (length * t) + Vector((0, 0, rise * math.sin(t * math.pi * 0.75) - 0.9 * t * t))
-            spine.append(p)
-        # the rib, a thin strip
+            spine.append(top + d * (length * t) + Vector((0, 0, rise * math.sin(t * math.pi * 0.7) - T['droop'] * t ** 2.2)))
+        # the rib, a thin strip, a paler green than the leaflets
         for k in range(steps):
-            a, b = spine[k], spine[k + 1]
-            w = 0.035 * (1 - k / steps) + 0.01
-            mb.add([a - side * w, a + side * w, b + side * w * 0.8, b - side * w * 0.8], [rgb('#b8c860')] * 4, [Vector((0, 0, 1))] * 4, [(0, 1, 2), (0, 2, 3)])
-        # leaflets: hanging from the rib both sides, longest in the middle, angled down and out
-        m = 22 if lod == 0 else 12
+            a0, b0 = spine[k], spine[k + 1]
+            w = 0.028 * (1 - k / steps) + 0.008
+            mb.add([a0 - side * w, a0 + side * w, b0 + side * w * 0.8, b0 - side * w * 0.8], [rgb('#9cb452')] * 4, [Vector((0, 0, 1))] * 4, [(0, 1, 2), (0, 2, 3)])
+        # leaflets: broad blades swept toward the tip, out and a little down, longest just past the middle
+        m = 28 if lod == 0 else 13
+        twist = rng.uniform(-0.12, 0.12)
         for k in range(1, m):
             t = k / m
             idx = t * steps
             i0 = min(steps - 1, int(idx))
             p = spine[i0].lerp(spine[i0 + 1], idx - i0)
             fwd = (spine[i0 + 1] - spine[i0]).normalized()
-            ll = 0.6 * math.sin(math.pi * (0.12 + 0.88 * t)) ** 0.7 + 0.08
+            ll = 0.66 * math.sin(math.pi * (0.1 + 0.9 * t)) ** 0.6 + 0.1
             for sg in (-1, 1):
-                # broad leaflets falling away from the rib, swept toward the tip, lapping each other
-                out = (side * sg * 0.85 + Vector((0, 0, -0.55)) + fwd * 0.45).normalized()
-                s = fwd
-                nrm = out.cross(s).normalized()
+                out = (side * sg * 0.9 + Vector((0, 0, -0.32 - 0.25 * t + twist * sg)) + fwd * 0.4).normalized()
+                nrm = out.cross(fwd).normalized()
                 if nrm.z < 0:
                     nrm = -nrm
-                w = 0.17
-                q0 = p
-                mid = q0 + out * ll * 0.45 + Vector((0, 0, 0.03))
-                tip = q0 + out * ll + fwd * 0.06 - Vector((0, 0, 0.04))
-                pts = [q0 - s * w * 0.35, q0 + s * w * 0.35, mid + s * w * 0.5, mid - s * w * 0.5, tip]
-                lit = 0.88 + 0.22 * max(0.0, nrm.dot(LIGHT))
-                tone = rng.uniform(0.94, 1.06)
-                cs = [green_lo.lerp(green, 0.5), green_lo.lerp(green, 0.5), green.lerp(green_hi, 0.4), green.lerp(green_hi, 0.4), green_hi]
+                w = 0.2 * (1 - 0.35 * t)
+                mid_p = p + out * ll * 0.45 + Vector((0, 0, 0.035))
+                tip = p + out * ll + fwd * 0.08 - Vector((0, 0, 0.05 + 0.06 * t))
+                q = [p - fwd * w * 0.35, p + fwd * w * 0.35, mid_p + fwd * w * 0.5, mid_p - fwd * w * 0.5, tip]
+                lit = 0.86 + 0.24 * max(0.0, nrm.dot(LIGHT))
+                tone = rng.uniform(0.93, 1.07)
+                cs = [T['lo'], T['lo'].lerp(T['mid'], 0.4), T['mid'].lerp(T['hi'], 0.35), T['mid'], T['hi']]
                 up = Vector((0, 0, 1))
-                mb.add(pts, [c * lit * tone for c in cs], [nrm * 0.5 + up * 0.7 + out * 0.2] * 5, [(0, 1, 2), (0, 2, 3), (3, 2, 4)])
+                mb.add(q, [c * lit * tone for c in cs], [nrm * 0.45 + up * 0.75 + out * 0.2] * 5, [(0, 1, 2), (0, 2, 3), (3, 2, 4)])
     o = mb.obj(name, vmat(name + '_leaves'))
-    anchors = [top + Vector((math.cos(a) * 0.17, math.sin(a) * 0.17 - 0.06, -0.2)) for a in (-2.2, -1.2, -0.3)]
+    # (the coconuts sit in a cluster at the crown's heart, toward the front, where the game's camera sees them between the
+    # fronds' bases)
+    anchors = [top + Vector((math.cos(a) * 0.2, math.sin(a) * 0.2 - 0.05, -0.1 - 0.04 * k)) for k, a in enumerate((-2.25, -1.57, -0.9))]
     return o, anchors
 
 
