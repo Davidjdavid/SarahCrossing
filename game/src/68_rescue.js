@@ -21,7 +21,7 @@ const Watchdog = {
         if (f && f !== document.body && ['INPUT', 'TEXTAREA', 'SELECT'].includes(f.tagName) && !liveField(f)) f.blur();
     },
     minigame() {
-        return Dance.on || Karaoke.on || Rope.on || Arcade.on || Photo.on || Decor.on || Studio.on || !!Fishing.st ||
+        return Dance.on || Karaoke.on || Rope.on || Arcade.on || Photo.on || Decor.on || Studio.on || !!Fishing.st || !!IslandGames.on ||
             (typeof Mover !== 'undefined' && Mover.on) || (typeof PathTool !== 'undefined' && PathTool.on) || (typeof BigMap !== 'undefined' && BigMap.on) ||
             (typeof IslandEdit !== 'undefined' && IslandEdit.on);
     },
@@ -54,6 +54,7 @@ function unstick() {
     if (Decor.on) Decor.exit();
     if (Photo.on) Photo.stop();
     if (Fishing.st) Fishing.stop(true);
+    if (IslandGames.on) IslandGames.stop();
     if (typeof Mover !== 'undefined' && Mover.on) Mover.cancel(true);
     if (typeof PathTool !== 'undefined' && PathTool.on) PathTool.close();
     if (typeof BigMap !== 'undefined' && BigMap.on) BigMap.close();
@@ -65,7 +66,7 @@ function unstick() {
     const p = G.player;
     if (p) { p.path = null; p.onArrive = null; p.glide = null; p.sit = null; p.sy = undefined; p.pose = null; p.hidden = false; }
 }
-function playingAGame() { return Dance.on || Karaoke.on || Rope.on || Arcade.on; }
+function playingAGame() { return Dance.on || Karaoke.on || Rope.on || Arcade.on || !!IslandGames.on; }
 /* straight home: through Sarah's front door, whatever was going on */
 async function goHome() {
     if (G.mode !== 'play') return;

@@ -231,6 +231,20 @@ docs/DEPLOY.md for the server.
   with `Object.assign`), junk and leaving go across as messages (the live connection's `game` messages, passed only to
   the one person they're for: server/live.mjs), and a friend who leaves mid-game hands you the win.
 
+## Games with the neighbors (6zw_island_games.js, 6zx_field_games.js)
+
+- "Let's play!" in the talk menu (`IslandGames.list(n)`: what fits the place, the hour and the weather) starts a game
+  with that neighbor at their skill (`VS_SKILL`). Tag, hide-and-seek (Sarah hides or seeks) and the fishing derby are
+  played on the island: the neighbor's day waits (`n.script`), `IslandGames.tick` moves them (chasing and fleeing by
+  `steer`: the best of sixteen ways judged a little ahead; seeking along `findPath`), the dance HUD shows the clock
+  and the Leave button stops it. Hiding places are just north of trees, buildings and big props (out of the camera's
+  sight); the seeker sees Sarah when close, or further off with nothing solid between (`clear`).
+- Volleyball (by the court) and the snowball fight (in winter) are 2D games in the arcade's cabinet (`field` games:
+  no fee, tickets or high scores; `opts.onOver` hears every game). At the club, a dance-off puts the neighbor on the
+  floor beside Sarah (`Dance.start(id, { rival })`, their steps judged by skill) and a karaoke duet gives them every
+  other line (`Karaoke.start(poem, { duet })`, a second voice). Records are in `S.games`; a game together counts for
+  friendship once a day (`igFriend`). `__dbg.islandGame(kind, id, mode)` starts one.
+
 ## Saving (11_save.js, 12_cloud.js, 6x_islands.js)
 
 - `Save.write()` keeps a copy on the device (`localStorage`, marked pending) and sends the island to

@@ -21,7 +21,9 @@ Status: [x] done, [~] in progress, [ ] not started.
   - see each other live with name tags, chat bubbles, dance moves; give gifts; write letters
   - neighbors greet and chat with each person in their own way, and tell visitors how Sarah's doing
   - placeholders: everyone uses their current sprite until the new art
-  - [ ] later: doing things together (fishing, minigames), more lines for everyone
+  - [x] playing together: every arcade cabinet but Fortune Falls and the claw has a two-player mode, against a
+    neighbor (at their own skill) or a friend online on the same island
+  - [ ] later: more games with friends online (the island games below), more lines for everyone
 
 ## Art (pick a style first)
 - [x] Six sample styles to compare: Stardew-like, handheld classic, tamagotchi-colorful, 3D
@@ -105,6 +107,10 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] Remake the fruit catching game so it's actually fun: trees shake before they drop, a shadow shows
   where things land, fruits fall their own ways, juice meter and Fruit Fever, power-ups, rounds with
   Perfect bonuses, snappier movement
+- [x] Games with the neighbors ("Let's play!" when talking to them, by place, hour and weather): tag and
+  hide-and-seek (either way round) out on the island, a fishing derby by the water, beach volleyball at the court
+  and snowball fights in winter (2D, in the cabinet), a dance-off and karaoke duets at the club. No bug-catching
+  contest (bug catching isn't part of the game). A game together counts for friendship once a day
 
 ## The new 3D look (on beta; David approved it for the whole island, the live site waits for his word)
 - [x] Models made in Blender (trees, buildings, houses, props, furniture, the food folks, wildlife), dolls for people,
@@ -120,10 +126,10 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [~] The island on a grid (David's pick, 26 October): everything stands in its tile, fences join, half tiles where
   water, the sea or a path makes a stair-step (part walkable, still one tile), the ground's edges drawn from the tiles,
   a tile grid to show in Settings. Still to come: whatever the layout needs redrawn to sit better on the grid
-- [~] Everything a 3D model in the dollhouse look but the minigames (David, 27 October): palms redone, walls without corner
-  posts, stairs that match their paths (done); next: shells, gems and things dropped on the ground, the sailboat, the
-  planes, balloons, boats and dolphins, dig and clam spots
-- [ ] Rooms: what's hung on walls and the small things on tables as models (the arcade games, jump rope, volleyball
+- [x] Everything a 3D model in the dollhouse look but the minigames (David, 27 October): palms redone, walls without corner
+  posts, stairs that match their paths, shells, gems and things dropped on the ground, the sailboat, the planes,
+  balloons, boats and dolphins
+- [x] Rooms: what's hung on walls and the small things on tables as models (the arcade games, jump rope, volleyball
   and the other minigames keep their 2D look, and so can the arcade cabinets)
 
 ## Friendship, deeper (David, 27 October: for a later addition)

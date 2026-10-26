@@ -24,6 +24,7 @@ function newState() {
         arcade: { tickets: 0, best: {}, plays: {}, free: {}, won: 0, claw: null, reach: {}, rival: {} },
         rope: { best: 0, day: -1, trophy: false },
         karaoke: { best: {}, day: -1, trophy: false },
+        games: {},
         shops: { shop: { spent: 0, level: 1 }, boutique: { spent: 0, level: 1 } },
         fest: {},
     };

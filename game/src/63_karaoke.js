@@ -105,7 +105,7 @@ function karaokeMenu() {
         P.body.appendChild(L);
     });
 }
-async function karaokeNight() {
+async function karaokeNight(opts) {
     if (!S.flags.karaokeTold) {
         S.flags.karaokeTold = true;
         await UI.say('wasabi', ["KARAOKE! Joe gave me all his poems. ALL of them. There are a lot.",
@@ -114,7 +114,7 @@ async function karaokeNight() {
     UI.hideDialog();
     const poem = await karaokeMenu();
     if (!poem) return;
-    await Karaoke.start(poem);
+    await Karaoke.start(poem, opts);
 }
 
 const Karaoke = {
@@ -123,12 +123,18 @@ const Karaoke = {
         const p = G.player;
         this.poem = poem;
         this.watch = !!(opts && opts.watch);           // just listening: Sarah sings it herself, no pitch bar, no score
+        this.duet = (opts && opts.duet) || null;        // a duet: a neighbor sings every other line (6zw_island_games.js)
+        this.dHit = 0; this.dTot = 0;
         this.quitting = false;
         this.song = karaokeSong(poem);
         this.on = true; this.ready = false; this.held = false; this.up = false; this.down = false; this.v = 0.5; this.trail = []; this.sparks = []; this.hitF = 0; this.totF = 0; this.judgeT = 0; this.onKey = false; this.singF = 0;
         G.busy++;
         HUD.show(false);
-        await fadeTo(async () => { p.x = 7.5 * TILE; p.y = 6.9 * TILE; p.dir = 'down'; p.path = null; });
+        await fadeTo(async () => {
+            p.x = 7.5 * TILE; p.y = 6.9 * TILE; p.dir = 'down'; p.path = null;
+            const d = this.duet;
+            if (d) { if (d.chat) Chats.end(d.chat); d.script = true; d.path = null; d.x = 9.5 * TILE; d.y = 6.9 * TILE; d.dir = 'down'; d.flip = true; }
+        });
         const info = Music.startSong('karaoke', this.song.spec);
         this.duration = info.duration;
         this.lead = info.lead;
@@ -138,7 +144,7 @@ const Karaoke = {
         this.voiceOn();
         for (const s of ['#djudge', '#dcombo', '#dcount', '#dlyric']) { $(s).style.left = ''; $(s).style.top = ''; $(s).textContent = ''; }
         $('#dancehud').hidden = false;
-        $('#dsong').textContent = `"${poem[0]}" \u00b7 a poem by Joe`;
+        $('#dsong').textContent = `"${poem[0]}" \u00b7 a poem by Joe` + (this.duet ? ` \u00b7 a duet with ${this.duet.def.name}` : '');
         $('#dscore').textContent = '';
         $('#dtip').textContent = this.watch ? 'Just listening: Sarah sings it on her own.' : G.touchUsed ? '\u25b2 \u25bc set your pitch \u00b7 hold SING to sing' : '\u2191 \u2193 set your pitch (it stays put) \u00b7 hold Space to sing \u00b7 Esc to stop';
         if (this.watch) $('#dsong').textContent = `"${poem[0]}" \u00b7 a poem by Joe \u00b7 just listening`;
@@ -183,7 +189,10 @@ const Karaoke = {
         this.onKey = false;
         const singing = this.held;
         if (singing) this.singF++;
-        if (cur) {
+        // a duet: the other lines are theirs, sung as well as they sing (Sarah can hum along; it doesn't count)
+        const theirs = !!(this.duet && cur && cur.line % 2 === 1);
+        this.duetTick(theirs ? cur : null);
+        if (cur && !theirs) {
             cur.tot++; this.totF++;
             if (singing && Math.abs(this.v - this.norm(cur.midi)) <= tol) { cur.hit++; this.hitF++; this.onKey = true; }
         }
@@ -207,6 +216,27 @@ const Karaoke = {
         if (t > this.duration + 0.3) this.finish();
     },
     judge(text, col) { const e = $('#djudge'); e.textContent = text; e.style.color = col; this.judgeT = 36; },
+    duetTick(cur) {
+        const d = this.duet;
+        if (!d) return;
+        if (cur) {
+            if (cur.pq == null) cur.pq = clamp(0.45 + (VS_SKILL[d.id] || 0.5) * 0.5 + (R() - 0.5) * 0.3, 0.15, 1);
+            cur.tot++; this.dTot++;
+            if (R() < cur.pq) { cur.hit++; this.dHit++; }
+            d.pose = 'cheer'; d.hop = Math.abs(Math.sin(G.t / 6)) * 2;
+        } else d.pose = null;
+        // their voice: a second, softer one, a little off the note when they're unsure
+        const c = Audio2.ctx;
+        if (!c || !Audio2.sfxOn) return;
+        if (!this.vo2) {
+            const o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+            o.type = 'sine'; lp.type = 'lowpass'; lp.frequency.value = 1800; g.gain.value = 0;
+            o.connect(lp); lp.connect(g); g.connect(Audio2.sfx); o.start();
+            this.vo2 = { o, g };
+        }
+        if (cur) this.vo2.o.frequency.setTargetAtTime(mtof(cur.midi - (d.def.human ? 12 : 0) + (1 - cur.pq) * Math.sin(G.t / 7) * 0.8), c.currentTime, 0.03);
+        this.vo2.g.gain.setTargetAtTime(cur ? 0.08 : 0, c.currentTime, cur ? 0.02 : 0.05);
+    },
     voiceOn() {
         const c = Audio2.ctx;
         this.vo = null;
@@ -227,6 +257,9 @@ const Karaoke = {
         V.g.gain.setTargetAtTime(singing ? 0.1 : 0, c.currentTime, singing ? 0.02 : 0.05);
     },
     voiceOff() {
+        const V2 = this.vo2;
+        this.vo2 = null;
+        if (V2) { V2.g.gain.setTargetAtTime(0, Audio2.ctx.currentTime, 0.05); setTimeout(() => { try { V2.o.stop(); V2.g.disconnect(); } catch (e) { /* already gone */ } }, 400); }
         const V = this.vo;
         this.vo = null;
         if (!V) return;
@@ -255,7 +288,8 @@ const Karaoke = {
             if (xb < x0 || xa > x0 + W) continue;
             const y = yOf(this.norm(n.midi));
             const past = t >= n.t1, now = t >= n.t0 && t < n.t1;
-            ctx.fillStyle = past ? (n.tot && n.hit / n.tot >= 0.5 ? '#ffd84a' : 'rgba(184,160,200,0.5)') : now ? '#ffb3d9' : '#ff5aa8';
+            const duo = this.duet && n.line % 2 === 1;
+            ctx.fillStyle = past ? (n.tot && n.hit / n.tot >= 0.5 ? (duo ? '#9ef0ff' : '#ffd84a') : 'rgba(184,160,200,0.5)') : now ? (duo ? '#c8f4ff' : '#ffb3d9') : duo ? '#4ec3d9' : '#ff5aa8';
             ctx.fillRect(Math.round(xa) + 1, y - 2, Math.max(2, Math.round(xb - xa) - 2), 5);
             ctx.fillStyle = 'rgba(255,255,255,0.45)';
             ctx.fillRect(Math.round(xa) + 2, y - 2, Math.max(1, Math.round(xb - xa) - 4), 1);
@@ -288,14 +322,14 @@ const Karaoke = {
         let li = 0;
         for (let i = 0; i < lines.length; i++) if (t >= lines[i].t0 - 0.9) li = i;
         const L = lines[li];
-        const html = L.words.map(w => `<span class="${t >= w.t1 - 0.02 ? 'sung' : t >= w.t0 ? 'on' : ''}">${esc(w.text)}</span>`).join(' ');
+        const html = (this.duet && li % 2 === 1 ? `<em>${esc(this.duet.def.name)}:</em> ` : '') + L.words.map(w => `<span class="${t >= w.t1 - 0.02 ? 'sung' : t >= w.t0 ? 'on' : ''}">${esc(w.text)}</span>`).join(' ');
         const ly = $('#dlyric');
         if (this._ly !== html) { ly.innerHTML = html; this._ly = html; }
         const top = Math.round((y0 - 6) * cs - ly.offsetHeight) + 'px';
         if (ly.style.top !== top) ly.style.top = top;
         if (!ly.classList.contains('sing')) ly.classList.add('sing');
-        const acc = this.totF ? Math.round(this.hitF / this.totF * 100) : 0;
-        const sc = this.totF && !this.watch ? `${acc}% on key` : '';
+        const acc = this.totF + this.dTot ? Math.round((this.hitF + this.dHit) / (this.totF + this.dTot) * 100) : 0;
+        const sc = this.totF + this.dTot && !this.watch ? `${acc}% on key` : '';
         if ($('#dscore').textContent !== sc) $('#dscore').textContent = sc;
         const intro = this.lead - t;
         const cnt = intro > 0 ? (intro > this.beat * 3 ? 'Ready' : String(Math.ceil(intro / this.beat))) : '';
@@ -314,6 +348,7 @@ const Karaoke = {
         $('#dtip').textContent = '';
         HUD.show(true);
         G.player.pose = null;
+        if (this.duet) { this.duet.script = false; this.duet.pose = null; }
         if (this.watch || this.quitting) {
             // just listening, or left early: no score, no tips, no penalty
             if (this.quitting && !this.watch) UI.toast('Sarah left the stage early. No score this time.');
@@ -325,7 +360,7 @@ const Karaoke = {
         this.results();
     },
     async results() {
-        const acc = this.totF ? this.hitF / this.totF : 0;
+        const acc = this.totF + this.dTot ? (this.hitF + this.dHit) / (this.totF + this.dTot) : 0;
         const rank = acc >= 0.7 ? 'S' : acc >= 0.52 ? 'A' : acc >= 0.35 ? 'B' : 'C';
         const title = this.poem[0], K = S.karaoke, day = Clock.dayNum();
         const order = 'CBAS';
@@ -333,7 +368,9 @@ const Karaoke = {
         K.ranks = K.ranks || {};
         K.ranks[title] = K.best[title];
         S.stats.karaoke = (S.stats.karaoke || 0) + 1;
-        await UI.say('wasabi', `"${title}" by Joe! Rank ${rank}. You were on key ${Math.round(acc * 100)}% of the time.`, { keep: true });
+        if (this.duet) await UI.say('wasabi', `"${title}" by Joe, a duet with ${this.duet.def.name}! Rank ${rank}. The two of you were on key ${Math.round(acc * 100)}% of the time.`, { keep: true });
+        else await UI.say('wasabi', `"${title}" by Joe! Rank ${rank}. You were on key ${Math.round(acc * 100)}% of the time.`, { keep: true });
+        if (this.duet) await duetEnd(this.duet, rank);
         const joe = NPCs.get('joe');
         if (joe && !joe.sleeping && joe.area === 'club') {
             joe.emote = 'heart'; joe.emoteT = 90;

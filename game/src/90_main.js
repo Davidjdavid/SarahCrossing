@@ -114,6 +114,8 @@ async function boot(hotData) {
         arcade(id, opts) { Arcade.start(id, opts || {}); return Arcade.on; },
         tickets(n) { addTickets(n || 0, true); return arc().tickets; },
         rope() { const tw = Rope.turners(); if (!tw) return false; Rope.start(tw); return true; },
+        /* a game with a neighbor (6zw/6zx): tag, hide (mode 'hide' or 'seek'), derby, volley, snowball */
+        islandGame(kind, id, mode) { const n = NPCs.get(id); if (!n) return false; IslandGames.start(kind, n, mode); return true; },
         karaoke(title) { const poem = JOE_POEMS.concat([JOE_SUNSET_POEM]).find(p => p[0] === title) || JOE_POEMS[0]; Karaoke.start(poem); return poem[0]; },
         /* a finished pottery piece from a hand-building template, straight into the pocket */
         potPiece(kind, glaze) {
@@ -357,6 +359,7 @@ function update() {
     Dance.update();
     Karaoke.update();
     Rope.update();
+    IslandGames.tick();
     Arcade.update();
     Sky.update();
     Critters.update();

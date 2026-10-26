@@ -272,6 +272,7 @@ const Arcade = {
     gameOver() {
         this.state = 'over';
         if (this.def.kitchen) { this.cookOver(); return; }
+        if (this.def.field) { this.fieldOver(); return; }
         const g = this.g, def = this.def, A = arc();
         const home = !!this.opts.home;
         const tickets = !home && def.tickets ? def.tickets(g) * (bonusOn('tickets') ? 2 : 1) : 0;
@@ -309,6 +310,19 @@ const Arcade = {
         if (g.quit) { this.finish(); return; }
         const r = this.def.result(g, this.opts);
         this.card(r.title, r.lines, [[r.btn || 'Yum!', () => this.finish(), 'go']], r.icon);
+        this.cardReady = false;
+        setTimeout(() => { this.cardReady = true; }, 700);
+    },
+    /* an island game with a neighbor (6zx_field_games.js): no fee, no tickets, no high scores; whoever asked hears
+       about every game played (opts.onOver) */
+    fieldOver() {
+        const g = this.g;
+        this.result = { id: this.id, quit: !!g.quit, won: !!g.win, score: g.score || 0, op: g.opScore || 0 };
+        if (this.opts.onOver) this.opts.onOver(this.result);
+        if (g.quit) { this.finish(); return; }
+        const r = this.def.result(g, this.opts);
+        Sfx.play(g.win ? 'prize' : 'gameover');
+        this.card(r.title, r.lines, [['Play again', () => this.again(), 'go'], ['Done', () => this.finish(), 'alt']], r.icon);
         this.cardReady = false;
         setTimeout(() => { this.cardReady = true; }, 700);
     },

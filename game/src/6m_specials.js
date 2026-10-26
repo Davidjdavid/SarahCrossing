@@ -183,7 +183,7 @@ function earnSpecial(id, how) {
 }
 function uiIdle() {
     return G.mode === 'play' && !G.busy && !UI.modal && !UI.dialogOpen && !G.fade && !Arcade.on && !Studio.on && !Dance.on && !Karaoke.on && !SeaView.on
-        && !Decor.on && !Photo.on && !BigMap.on && !IslandEdit.on && !(Rope.on && Rope.state !== 'done');
+        && !Decor.on && !Photo.on && !BigMap.on && !IslandEdit.on && !(Rope.on && Rope.state !== 'done') && !IslandGames.on;
 }
 async function flushSpecials() {
     if (specialPumping) return;

@@ -98,6 +98,7 @@ const Dance = {
         const p = G.player;
         this.song = id;
         this.watch = !!(opts && opts.watch);           // just watching: Sarah dances it herself, no arrows, no score
+        this.rival = (opts && opts.rival) || null;      // a dance-off: a neighbor dances it beside her (6zw_island_games.js)
         this.quitting = false;
         this.on = true;
         this.ready = false;
@@ -105,7 +106,11 @@ const Dance = {
         G.busy++;
         HUD.show(false);
         const a = G.area;
-        await fadeTo(async () => { p.x = 7.5 * TILE; p.y = 6.9 * TILE; p.dir = 'down'; });
+        await fadeTo(async () => {
+            p.x = 7.5 * TILE; p.y = 6.9 * TILE; p.dir = 'down';
+            const r = this.rival;
+            if (r) { if (r.chat) Chats.end(r.chat); r.script = true; r.path = null; r.x = 9.5 * TILE; r.y = 6.9 * TILE; r.dir = 'down'; r.flip = true; }
+        });
         G.camTarget = [7.5 * TILE, 5.6 * TILE];
         const info = Music.startSong(id);
         this.info = info;
@@ -113,6 +118,7 @@ const Dance = {
         this.score = 0; this.combo = 0; this.maxCombo = 0; this.hype = 0.2; this.counts = { perfect: 0, great: 0, good: 0, miss: 0 };
         this.flash = []; this.judge = null;
         this.pressed = [false, false, false, false];
+        this.rs = 0; this.rcombo = 0; this.ri = 0;
         this.ready = true;
         $('#dancepads').hidden = !G.touchUsed || this.watch;
         $('#dancehud').hidden = false;
@@ -150,6 +156,7 @@ const Dance = {
         if (!this.on || !this.ready) return;
         const t = this.now();
         if (this.watch) for (const n of this.notes) if (!n.judged && t >= n.t) this.hit(n.lane, true);
+        if (this.rival) this.rivalTick(t);
         for (const n of this.notes) {
             if (!n.judged && t - n.t > 0.16) {
                 n.judged = 'miss'; this.counts.miss++; this.combo = 0;
@@ -162,6 +169,20 @@ const Dance = {
         // the crowd feels it
         for (const n of NPCs.here()) if (n.id !== 'wasabi') n.hop = Math.abs(Math.sin(G.t / 7 + n.x)) * (2 + this.hype * 4);
         if (t > this.info.duration + 0.4) this.finish();
+    },
+    /* the dance-off's other dancer: each step judged by their skill, scored the same way as Sarah's */
+    rivalTick(t) {
+        const r = this.rival, sk = VS_SKILL[r.id] || 0.5;
+        if (r.poseT > 0 && --r.poseT === 0) r.pose = null;
+        while (this.ri < this.notes.length && t >= this.notes[this.ri].t + 0.03) {
+            const n = this.notes[this.ri++], x = R();
+            const j = x < 0.25 + sk * 0.55 ? 'perfect' : x < 0.5 + sk * 0.42 ? 'great' : x < 0.62 + sk * 0.35 ? 'good' : 'miss';
+            if (j === 'miss') { this.rcombo = 0; continue; }
+            this.rcombo++;
+            this.rs += { perfect: 100, great: 70, good: 40 }[j] + Math.min(50, this.rcombo);
+            r.pose = ['left', 'pick', 'cheer', 'right'][n.lane]; r.poseT = 10;
+            if (this.rcombo % 10 === 0) { r.emote = 'note'; r.emoteT = 30; }
+        }
     },
     /* lanes sit beside the dance floor on wide screens and under it on tall ones */
     layout() {
@@ -225,6 +246,7 @@ const Dance = {
         place('#dcount', lx, (top + (targetY - top) * 0.3) * cs + 'px');
         place('#dlyric', L.roomCx * cs + 'px', L.wide ? 'calc(env(safe-area-inset-top, 0px) + 54px)' : (top - 30) * cs + 'px');
         set('#dscore', fmtNum(this.score));
+        if (this.rival) set('#dsong', `Dance-off · ${this.rival.def.name}: ${fmtNum(this.rs)}`);
         set('#dcombo', this.combo >= 4 ? `${this.combo} combo` : '');
         set('#djudge', this.judge ? this.judge.text : '', this.judge ? this.judge.col : null);
         const intro = this.info.lead - t;
@@ -240,6 +262,7 @@ const Dance = {
         G.camShift = null;
         $('#dancepads').hidden = true;
         $('#dancehud').hidden = true;
+        if (this.rival) { this.rival.script = false; this.rival.pose = null; }
         if (this.watch || this.quitting) {
             // just watching, or left early: no score, no tips, no penalty
             const left = this.quitting && !this.watch;
@@ -276,6 +299,7 @@ const Dance = {
         await UI.say('wasabi', [`${song.name}: rank ${r.rank}! ${fmtNum(this.score)} points, best combo ${this.maxCombo}.`,
             `Perfect ${c.perfect}, great ${c.great}, good ${c.good}, missed ${c.miss}.`], { keep: true });
         if (r.pay) { addMoney(r.pay, true); await UI.say('wasabi', `The crowd tipped you ${fmtNum(r.pay)} sand dollars!`, { keep: true }); }
+        if (this.rival) await danceOffEnd(this.rival, this.score, this.rs);
         if (r.first && song.move) {
             const mv = song.move;
             if (!S.dance.moves.includes(mv)) S.dance.moves.push(mv);

@@ -492,6 +492,82 @@ test('every arcade cabinet starts, plays and ends, and the arcade has a cabinet 
   await page.context().close();
 });
 
+test('games with the neighbors: "Let\'s play!" in the talk menu, tag, hide-and-seek, volleyball at the court, a dance-off at the club', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => { __dbg.setTime(6, 10, 11); G.weather = 'sun'; __dbg.at('plaza'); });
+  const bring = (area) => page.evaluate((area) => { const n = NPCs.get('coco'), P = G.player; Object.assign(n, { sleeping: false, area, path: null, x: P.x + 22, y: P.y, talking: false, script: false }); }, area);
+  // talk through whatever she says until a choice with this option comes up, and pick it
+  const choose = async (label) => {
+    await until(() => page.evaluate((label) => {
+      if (UI._chooser) {
+        const all = [...document.querySelectorAll('#choices .choice')], b = all.find((c) => c.textContent === label);
+        if (b) { b.click(); return true; }
+        // (a question of hers first, a favor or the like: the last answer is the polite no)
+        if (all.length && !all.some((c) => c.textContent === 'Talk' || c.textContent === 'Tag')) all[all.length - 1].click();
+        return false;
+      }
+      if (UI.dialogOpen) UI.advance();
+      // (meeting her the first time is just hello: talk to her again)
+      else if (!G.busy && label === "Let's play!") talkTo(NPCs.get('coco'));
+      return false;
+    }, label), 15000);
+  };
+  const talkThrough = (done) => until(() => page.evaluate((done) => { if (UI.dialogOpen && !UI._chooser) UI.advance(); return eval(done); }, done), 20000);
+  await bring('island');
+  await page.evaluate(() => { talkTo(NPCs.get('coco')); });
+  await choose("Let's play!");
+  await choose('Tag');
+  // tag: she counts to three while Coco runs, then it's on
+  await talkThrough("!!IslandGames.on && IslandGames.on.phase === 'play'");
+  const tag = await page.evaluate(() => ({ script: NPCs.get('coco').script, hud: !$('#dancehud').hidden, away: Math.hypot(NPCs.get('coco').x - G.player.x, NPCs.get('coco').y - G.player.y), it: IslandGames.on.it }));
+  assert.ok(tag.script && tag.hud && tag.it === 'sarah', JSON.stringify(tag));
+  assert.ok(tag.away > 30, 'Coco ran off while Sarah counted: ' + tag.away);
+  await page.keyboard.down('ArrowRight'); await page.waitForTimeout(600); await page.keyboard.up('ArrowRight');
+  await page.evaluate(() => { IslandGames.on.t = IG_TAG_FRAMES - 20; });
+  await talkThrough('!IslandGames.on && !G.busy');
+  assert.deepEqual(await page.evaluate(() => [S.games.tag.played, NPCs.get('coco').script, $('#dancehud').hidden]), [1, false, true]);
+  // hide-and-seek: Coco hides somewhere Sarah can walk to; walking up to her finds her
+  await bring('island');
+  await page.evaluate(() => __dbg.islandGame('hide', 'coco', 'seek'));
+  await talkThrough("!!IslandGames.on && IslandGames.on.phase === 'play'");
+  const hid = await page.evaluate(() => { const n = NPCs.get('coco'); return { d: Math.hypot(n.x - G.player.x, n.y - G.player.y) / 16, open: !G.area.blockedAt(Math.floor(n.x / 16), Math.floor((n.y - 2) / 16)) }; });
+  assert.ok(hid.d >= 4 && hid.open, JSON.stringify(hid));
+  await page.evaluate(() => { const n = NPCs.get('coco'); G.player.x = n.x; G.player.y = n.y + 10; });
+  await talkThrough('!IslandGames.on && !G.busy');
+  assert.equal(await page.evaluate(() => S.games.hide.won), 1);
+  // volleyball at the court: the game opens in the cabinet, and the score comes back
+  const court = await page.evaluate(() => { const c = W0.props.find((q) => q.kind === 'volleyball'); const f = G.areas.island.nearestFree(c.x + 3, c.y + 7, 5); __dbg.teleport('island', f[0], f[1]); return f; });
+  assert.ok(court, 'a place to stand by the court');
+  await bring('island');
+  assert.ok(await page.evaluate(() => IslandGames.list(NPCs.get('coco')).some((g) => g[0] === 'volley')), 'volleyball is offered by the court');
+  await page.evaluate(() => __dbg.islandGame('volley', 'coco'));
+  await talkThrough("Arcade.on && Arcade.id === 'volley' && Arcade.state === 'play'");
+  for (let i = 0; i < 15; i++) { await page.evaluate(() => { for (const b of Arcade.def.buttons) Arcade.tap[b.k] = Math.random() < 0.4; }); await page.waitForTimeout(60); }
+  await page.evaluate(() => { Arcade.g.score = 7; Arcade.g.pause = 1; });
+  await page.waitForFunction(() => Arcade.state === 'over');
+  await page.click('#arcade .ar-card button:has-text("Done")');
+  await talkThrough('!Arcade.on && !G.busy');
+  assert.deepEqual(await page.evaluate(() => [S.games.volley.played, S.games.volley.won, NPCs.get('coco').script]), [1, 1, false]);
+  // the club: a dance-off with Coco beside Sarah on the floor (left early: no score, and she's free again)
+  await page.evaluate(() => { __dbg.setTime(6, 12, 21); __dbg.teleport('club', 7, 9, 'up'); });
+  await bring('club');
+  assert.deepEqual(await page.evaluate(() => IslandGames.list(NPCs.get('coco')).map((g) => g[0])), ['danceoff', 'duet']);
+  await page.evaluate(() => { Dance.start(Object.keys(SONGS)[0], { rival: NPCs.get('coco') }); });
+  await page.waitForFunction(() => Dance.on && Dance.ready && Dance.now() > 3, null, { timeout: 20000 });
+  const off = await page.evaluate(() => ({ next: Math.abs(NPCs.get('coco').x - G.player.x) / 16, script: NPCs.get('coco').script, hud: $('#dsong').textContent }));
+  assert.ok(off.next <= 3 && off.script && /Dance-off/.test(off.hud), JSON.stringify(off));
+  await page.evaluate(() => Dance.quit());
+  await page.waitForFunction(() => !Dance.on && !G.busy);
+  assert.equal(await page.evaluate(() => NPCs.get('coco').script), false);
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('shops grow: a letter, a day closed, then a bigger shop with more stock, a sale and a free gift', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));

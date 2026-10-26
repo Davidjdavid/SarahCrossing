@@ -25,6 +25,7 @@ function partOfDay() { const h = Clock.hourF(); return h < 5 ? 'night' : h < 12 
 
 async function talkTo(n) {
     if (G.busy) return;
+    if (IslandGames.has(n)) { IslandGames.poke(n); return; }
     G.busy++;
     if (n.chat) Chats.end(n.chat);
     n.talking = true;
@@ -160,6 +161,7 @@ async function neighborTalk(n) {
         if (id === 'sully' && n.area === 'studio') add('Pottery tips?', async () => { await UI.say(id, rpick(POTTERY_TIPS).map(bostonize), { keep: true }); return true; });
         if (id === 'chili' && n.area === 'arcade') add('Prize counter', async () => { UI.hideDialog(); await prizeCounter(); return false; });
         if ((n.spotKey === 'rope_a' || n.spotKey === 'rope_b') && !!Rope.turners()) add('Jump rope!', async () => { setTimeout(() => Rope.ask(), 60); return false; });
+        if (IslandGames.list(n).length) add("Let's play!", () => IslandGames.offer(n));
         const work = WORK_MENUS[id] && n.area === WORK_MENUS[id].room ? WORK_MENUS[id] : null;
         if (work) add(work.label, async () => { await work.fn(n); return false; });
         if (hasLostFor(id)) add(`Found your ${ITEMS[S.lost.cur.id].what}!`, async () => { await returnLost(n); return true; });
@@ -447,6 +449,7 @@ async function joeTalk(n) {
         for (const o of Quests.options(n)) add(o.label, o.fn);
         for (const o of Drama.options(n)) add(o.label, async () => { await Drama.choose(n, o); return true; });
         if (hasLostFor('joe')) add(`Found your ${ITEMS[S.lost.cur.id].what}!`, async () => { await returnLost(n); return true; });
+        if (IslandGames.list(n).length) add("Let's play!", () => IslandGames.offer(n));
         add('See you later!', async () => { await UI.say('joe', rpick(JOE.bye)); return false; });
         const k = await UI.ask('joe', rpick(["What's up?", 'Anything else? I have time. I always have time.', 'So!', "Got time? I've got time. (Poems available.)"]), opts, { keep: true });
         if (!(await acts[k]())) return;
@@ -520,6 +523,7 @@ async function familyTalk(n) {
         if (r.hugDay !== day) add('Hug', async () => { await hugFlow(n); return true; });
         if (r.giftDay !== day) add('Here, a gift', async () => { await giftFlow(n); return !giftTaken(r); });
         for (const o of Drama.options(n)) add(o.label, async () => { await Drama.choose(n, o); return true; });
+        if (IslandGames.list(n).length) add("Let's play!", () => IslandGames.offer(n));
         add('See you!', async () => { await UI.say(id, rpick(['See you!', 'Bye, Sarah!', 'Later!'])); return false; });
         const k = await UI.ask(id, rpick(['Anyway!', "What's up?", 'So!']), opts, { keep: true });
         if (!(await acts[k]())) return;
