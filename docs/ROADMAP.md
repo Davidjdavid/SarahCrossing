@@ -120,6 +120,9 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [~] The island on a grid (David's pick, 26 October): everything stands in its tile, fences join, half tiles where
   water, the sea or a path makes a stair-step (part walkable, still one tile), the ground's edges drawn from the tiles,
   a tile grid to show in Settings. Still to come: whatever the layout needs redrawn to sit better on the grid
+- [~] Everything a 3D model in the dollhouse look but the minigames (David, 27 October): palms redone, walls without corner
+  posts, stairs that match their paths (done); next: shells, gems and things dropped on the ground, the sailboat, the
+  planes, balloons, boats and dolphins, dig and clam spots
 - [ ] Rooms: what's hung on walls and the small things on tables as models (the arcade games, jump rope, volleyball
   and the other minigames keep their 2D look, and so can the arcade cabinets)
 

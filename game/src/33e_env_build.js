@@ -87,6 +87,8 @@ const EnvBuild = {
             plaster: this.mat(T.plaster(), 0.9), roof: this.mat(T.roofTiles(), 0.8), slate: this.mat(T.slate(), 0.75), wood: this.mat(T.wood(), 0.85),
             boards: this.mat(T.boards(), 0.85), stone: this.mat(T.wall(), 0.95), plain: this.mat(null, 0.7), glass: this.glassMat(), cloth: this.mat(null, 0.95, true),
             sign: this.signMat(),
+            // (the steps wear the paths' own surfaces, so a staircase looks like part of the path it carries)
+            dirt: this.mat(this.surface('path', () => T.dirt()), 0.95), flags: this.mat(this.surface('flagstones', () => T.cobble()), 0.9),
         };
         const meshes = [];
         for (const [name, b] of Object.entries(P)) {
@@ -160,28 +162,53 @@ const EnvBuild = {
             const S = { top, hi, lo, n: N };
             for (const [x, y] of run) at.set(key(x, y), S);
             const r = mulberry(hash32('st' + x0 + ',' + top)), d = 2 * ZS / N, rise = (hi - lo) / N, cw = 0.24;
-            // a stone wall down each side of the steps (where the cliff's wall ends): level with the top of the cliff as far
-            // as its face, then sloping down beside the steps to the foot, with a pale cap
-            const zB = top * ZS - 0.12, zW = (top + 1) * ZS - EnvWalls.BACK, zF = (top + 2) * ZS + 0.04, yb = lo - 0.4, yT = hi + 0.08, yF = lo + 0.3;
+            // which path it carries: the plaza's flagstones get stone steps of the same stones; a dirt path or trail gets
+            // steps of packed earth held by a log at each edge, as a trail cut into a hillside has
+            const g = (x, y) => (W0.grid[y] && W0.grid[y][x]) || '';
+            let cob = 0, dirt = 0;
+            for (let x = x0; x < x1; x++) for (const y of [top - 1, top + 2]) { const k = g(x, y); if (k === 'c') cob++; else if (k === 'p' || k === 'd') dirt++; }
+            const stone = cob > dirt;
+            // the walls down each side (where the cliff's wall ends): the cliff's own stone, level with its top as far as
+            // its face, then sloping down beside the steps to the foot, capped with the same stone a shade darker
+            const zB = top * ZS - 0.12, zW = (top + 1) * ZS - EnvWalls.BACK, zF = (top + 2) * ZS + 0.04, yb = lo - 0.4, yT = hi + 0.06, yF = lo + 0.26;
+            const side = '#c4bbad', face = '#b4ab9e', cap = '#a69e92';
             for (const [a, b] of [[x0, x0 + cw], [x1 - cw, x1]]) {
                 const sl = Math.hypot(zF - zW, yT - yF), ny = (zF - zW) / sl, nz = (yT - yF) / sl;
                 for (const [x, nx] of [[a, -1], [b, 1]]) {
                     const pts = nx < 0 ? [[x, yb, zB], [x, yb, zW], [x, yT, zW], [x, yT, zB]] : [[x, yb, zW], [x, yb, zB], [x, yT, zB], [x, yT, zW]];
-                    this.quad('stone', pts, [nx, 0, 0], [[0, 0], [zW - zB, 0], [zW - zB, yT - yb], [0, yT - yb]], '#c2b9ac');
+                    this.quad('stone', pts, [nx, 0, 0], [[0, 0], [(zW - zB) * 0.5, 0], [(zW - zB) * 0.5, (yT - yb) * 0.5], [0, (yT - yb) * 0.5]], side);
                     const p2 = nx < 0 ? [[x, yb, zW], [x, yb, zF], [x, yF, zF], [x, yT, zW]] : [[x, yb, zF], [x, yb, zW], [x, yT, zW], [x, yF, zF]];
-                    this.quad('stone', p2, [nx, 0, 0], [[0, 0], [zF - zW, 0], [zF - zW, yF - yb], [0, yT - yb]], '#c2b9ac');
+                    this.quad('stone', p2, [nx, 0, 0], [[0, 0], [(zF - zW) * 0.5, 0], [(zF - zW) * 0.5, (yF - yb) * 0.5], [0, (yT - yb) * 0.5]], side);
                 }
-                this.quad('stone', [[a, yb, zF], [b, yb, zF], [b, yF, zF], [a, yF, zF]], [0, 0, 1], [[0, 0], [cw, 0], [cw, yF - yb], [0, yF - yb]], '#b4ab9e');
-                this.quad('plain', [[a - 0.02, yT, zW], [b + 0.02, yT, zW], [b + 0.02, yT, zB], [a - 0.02, yT, zB]], [0, 1, 0], [[0, 0], [1, 0], [1, 1], [0, 1]], '#d2cabd');
-                this.quad('plain', [[a - 0.02, yF, zF], [b + 0.02, yF, zF], [b + 0.02, yT, zW], [a - 0.02, yT, zW]], [0, ny, nz], [[0, 0], [1, 0], [1, 1], [0, 1]], '#d2cabd');
+                this.quad('stone', [[a, yb, zF], [b, yb, zF], [b, yF, zF], [a, yF, zF]], [0, 0, 1], [[0, 0], [cw * 0.5, 0], [cw * 0.5, (yF - yb) * 0.5], [0, (yF - yb) * 0.5]], face);
+                this.quad('stone', [[a - 0.015, yT, zW], [b + 0.015, yT, zW], [b + 0.015, yT, zB], [a - 0.015, yT, zB]], [0, 1, 0], [[0, 0], [0.12, 0], [0.12, (zW - zB) * 0.5], [0, (zW - zB) * 0.5]], cap);
+                this.quad('stone', [[a - 0.015, yF, zF], [b + 0.015, yF, zF], [b + 0.015, yT, zW], [a - 0.015, yT, zW]], [0, ny, nz], [[0, 0], [0.12, 0], [0.12, sl * 0.5], [0, sl * 0.5]], cap);
             }
+            const xa = x0 + cw, xb = x1 - cw;
             for (let i = 0; i < N; i++) {
                 const yt = hi - i * rise, za = top * ZS + i * d - (i ? 0.02 : 0.1), zb = top * ZS + (i + 1) * d + 0.03;
-                // (pale worn slabs on top, the risers in shade; fitted between the side walls)
-                const k = 0.94 + r() * 0.1, c = (v) => '#' + [v[0], v[1], v[2]].map(n => Math.round(Math.min(255, n * k)).toString(16).padStart(2, '0')).join('');
-                this.box('plain', x0 + cw, yt - rise - 0.3, za, x1 - cw, yt - 0.001, zb, c([150, 142, 130]), 1, { back: true, bottom: true, top: true, left: true, right: true });
-                this.box('plain', x0 + cw, yt - 0.045, za, x1 - cw, yt, zb + 0.025, c([206, 198, 184]), 1, { back: true, bottom: true, left: true, right: true });
+                const k = 0.93 + r() * 0.12, tint = (v) => '#' + v.map(n => Math.round(Math.min(255, n * k)).toString(16).padStart(2, '0')).join('');
+                if (stone) {
+                    // the flagstones' own stones on top, a riser of the same stone in shade
+                    this.box('stone', xa, yt - rise - 0.3, za, xb, yt - 0.04, zb, tint([150, 144, 134]), 0.5, { back: true, bottom: true, top: true, left: true, right: true });
+                    this.box('flags', xa, yt - 0.05, za, xb, yt, zb + 0.02, tint([255, 255, 255]), 0.25, { back: true, bottom: true, left: true, right: true });
+                } else {
+                    // packed earth (the path's own), and a log laid across its front edge, its bark darker underneath
+                    this.box('dirt', xa, yt - rise - 0.3, za, xb, yt - 0.02, zb, tint([236, 236, 236]), 0.25, { back: true, bottom: true, left: true, right: true });
+                    this.log(xa, xb, yt - rise * 0.42, zb - rise * 0.42, rise * 0.52, tint([138, 92, 54]));
+                }
             }
+        }
+    },
+    /* a log lying across, from x0 to x1 (its ends hidden in the stairs' side walls): eight sides, lit on top */
+    log(x0, x1, y, z, rr, color) {
+        const n = 8, c = this.col(color);
+        for (let j = 0; j < n; j++) {
+            const a0 = j / n * Math.PI * 2, a1 = (j + 1) / n * Math.PI * 2, s = (a) => [Math.sin(a), Math.cos(a)];
+            const [y0, z0] = s(a0), [y1, z1] = s(a1), lit = 0.7 + 0.35 * Math.max(0, (y0 + y1) / 2);
+            const k = '#' + c.map(v => Math.round(Math.min(255, v * 255 * lit)).toString(16).padStart(2, '0')).join('');
+            this.quad('plain', [[x0, y + y0 * rr, z + z0 * rr], [x1, y + y0 * rr, z + z0 * rr], [x1, y + y1 * rr, z + z1 * rr], [x0, y + y1 * rr, z + z1 * rr]],
+                [0, (y0 + y1) / 2, (z0 + z1) / 2], [[0, 0], [1, 0], [1, 1], [0, 1]], k);
         }
     },
     fields() {
@@ -244,6 +271,7 @@ const EnvBuild = {
             }
         }
     },
+    surface(n, f) { const X = typeof EnvModels !== 'undefined' ? EnvModels.textures : {}; return X[n + '_col'] ? { map: X[n + '_col'], normal: X[n + '_nrm'] || null } : f(); },
     mat(t, rough, cloth) {
         const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: rough, metalness: 0, map: t ? t.map : null, normalMap: t ? t.normal : null, side: cloth ? THREE.DoubleSide : THREE.FrontSide });
         if (t) m.normalScale = new THREE.Vector2(0.8, 0.8);

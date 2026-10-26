@@ -130,6 +130,9 @@ docs/DEPLOY.md for the server.
   floor), and the small things on tables, which stand on the model's top (`anchor_top`, `EnvRoom.place`). The
   furniture loads after the island's models, so the island never waits for it. Glass is a part named `*_clear`
   (see-through).
+- David's rule (27 October): everything in the world is a 3D model in the dollhouse look (things on the ground, in the sky
+  and at sea, what's hung on walls and set on tables), except the minigames (cooking, the arcade cabinets, jump rope,
+  volleyball and the like), which keep their 2D look.
 - The important things are models made in Blender, not in code: `tools/blender/*.py` (`common.py` has the helpers: the
   game's camera and sun for previews, baking, GLB export). Blender runs as a Python module: `pip install bpy` (Blender
   5.x, about 1 GB, fine in a venv), then `python tools/blender/cottage.py --preview DIR` (or `shop.py`,
@@ -169,8 +172,10 @@ docs/DEPLOY.md for the server.
   front wall stands), and the props and flowers theirs (`EnvBuild.PROP_MODELS`: kind, size against its footprint, how
   far back it stands; a picked wild flower's model is hidden until it grows back, Basil's cart by day); the test area
   has a showcase of the props on the lawn below the pond and a town of the other buildings to the south; `EnvWalls`
-  (33h_env_walls.js) lays the wall pieces along every south, east and west face of higher ground (a staircase gets stone
-  steps, `EnvBuild.stairs`, climbed a step at a time: `EnvGround.stairH`), and `EnvContact`
+  (33h_env_walls.js) lays the wall pieces along every south, east and west face of higher ground, running on round
+  corners to meet the next (no corner posts: David didn't like them); a staircase gets steps that match its path (the
+  flagstones' own stones on the square's paths, packed earth held by logs on dirt paths and trails) between walls of the
+  cliff's stone (`EnvBuild.stairs`, climbed a step at a time: `EnvGround.stairH`), and `EnvContact`
   (33i_env_contact.js) darkens the ground softly under things (and `EnvGlow` lays a warm pool of light under every lamp,
   lantern and lit doorway at night). Ponds and streams (`EnvGround.shapeWater`) and the beaches (`shapeShore`) meet the
   water along a blurred outline, not the tiles' steps; the depth map behind the water's shader also says where it flows
