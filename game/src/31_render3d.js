@@ -27,8 +27,12 @@ const R3 = {
     active() {
         if (!this.ok || !this.want || !G.area || !G.player) return false;
         if (G.mode !== 'play' && G.mode !== 'title') return false;
-        if (Decor.on || Mover.on || PathTool.on || IslandEdit.on || Dance.on || Karaoke.on || Rope.on || Photo.on) return false;
-        return !G.area.club;
+        if (Decor.on || Mover.on || PathTool.on || IslandEdit.on || Rope.on || Photo.on) return false;
+        // (the club, the dance floor and the karaoke stage are 3D in the new look, their arrows and words drawn flat over it;
+        // the HD-2D view keeps them flat)
+        const env = typeof Env !== 'undefined' && Env.want();
+        if ((Dance.on || Karaoke.on) && !env) return false;
+        return !G.area.club || env;
     },
     init() {
         if (this.ok || this.failed) return this.ok;
@@ -118,7 +122,11 @@ const R3 = {
         // on an upright phone, look a little ahead (north) so Sarah stands in the lower part of the screen with the world
         // above her, as in the art sample, rather than over a half-screen of ground at her feet
         else if (this.camera.aspect < 1 && !(Env.on && !a.interior)) ty -= (1 - this.camera.aspect) * R3_CAM.lead * TILE;
-        if (a.interior) { tx = a.w * TILE / 2; ty = (a.floor.y0 + a.floor.h * 0.55) * TILE; }
+        if (a.interior && (Dance.on || Karaoke.on) && G.camTarget) {
+            // (dancing or singing: nearer the floor, and to one side of the arrows on a wide screen)
+            const sh = G.camShift ? G.camShift[0] : 0;
+            ty = G.camTarget[1]; tx = G.camTarget[0] + sh * 0.55;
+        } else if (a.interior) { tx = a.w * TILE / 2; ty = (a.floor.y0 + a.floor.h * 0.55) * TILE; }
         else if (Env.on && !G.camTarget) ty -= ENV.cam.ahead * (this.camera.aspect < 1 ? 0.5 : 1) * TILE;
         const X = tx / TILE, Z = ty / TILE * R3_ZS, GH = a.interior ? 0 : r3GroundH(tx, ty + 10);
         if (snap || this.areaId !== a.id) { this.target.x = X; this.target.z = Z; this.camH = GH; }
@@ -444,7 +452,9 @@ const R3 = {
     /* ---------------------------------------------------------------- the light: the island's hour and weather */
     updateLight(a) {
         const h = Clock.hourF();
-        const L = a.interior ? { col: [60, 44, 90], alpha: Math.min(0.42, lightAt(h, 'sunny').alpha * 0.8), gray: 0, lamps: 1 } : lightAt(h, G.weather);
+        // (the club in the new look is lit for dancing at any hour: only a little of the night comes in)
+        const clubLit = a.club && typeof EnvRoom !== 'undefined' && EnvRoom.on;
+        const L = a.interior ? { col: [60, 44, 90], alpha: Math.min(clubLit ? 0.14 : 0.42, lightAt(h, 'sunny').alpha * 0.8), gray: 0, lamps: 1 } : lightAt(h, G.weather);
         G.lamps = L.lamps;
         const dark = Math.min(1, L.alpha * 1.65);
         G.lightStrength = dark;
@@ -462,6 +472,8 @@ const R3 = {
         this.hemi.intensity = room ? 0.56 : 0.38 + 0.08 * day + soft * 0.5 * day;
         this.hemi.color.setRGB(0.69, 0.79, 0.93).lerp(tint, dark * 0.8);
         this.hemi.groundColor.setRGB(0.54, 0.49, 0.34).lerp(tint, dark * 0.8);
+        // (the club in the new look: violet, and bright enough to see the dancers by)
+        if (a.club && room) { const v = new THREE.Color(0.78, 0.6, 1.0); this.hemi.color.lerp(v, 0.45); this.hemi.groundColor.lerp(v, 0.3); this.hemi.intensity += 0.22; }
         // (the northern lights' green falls faintly on everything: 33q_env_sights.js)
         const aur = !a.interior && this.sky.material.uniforms && this.sky.material.uniforms.uAur ? this.sky.material.uniforms.uAur.value : 0;
         if (aur > 0.001) { const g = new THREE.Color(0.32, 0.95, 0.62); this.hemi.color.lerp(g, 0.22 * aur); this.hemi.groundColor.lerp(g, 0.12 * aur); this.hemi.intensity += 0.1 * aur; }

@@ -25,13 +25,14 @@ const EnvRoom = {
             if (B.map !== r3.wall.tex) { B.map = B.emissiveMap = r3.wall.tex; B.needsUpdate = true; }
         }
         this.furniture(r3, a);
+        if (this.built.club) this.clubTick(a);
         EnvDolls.attach(this.built.group);
         EnvDolls.tick(r3, a);
         R3U.uSee.value.w = 0;
         return true;
     },
     /* (built again when the room changes size or paper: the house grows, Sarah changes the wallpaper) */
-    sig(a) { return [a.id, a.w, a.h, a.club ? 'disco' : a.wallId || S.house.wall, a.club ? 'disco' : a.floorId || S.house.floor].join('|'); },
+    sig(a) { return [a.id, a.w, a.h, a.club ? 'disco' + (EnvModels.has('furn_turntables') ? '+' : '') : a.wallId || S.house.wall, a.club ? 'disco' : a.floorId || S.house.floor].join('|'); },
     /* what the room draws itself: the furniture made in Blender (furniture.py), not what's hung on the wall, a rug, or a
        piece drawn moving (an arcade cabinet's screen, the disco floor) */
     model(e) {
@@ -119,7 +120,7 @@ const EnvRoom = {
         B.picMats.set(key, mat);
         return mat;
     },
-    takes(e) { return this.on && ((!!this.built && !!this.built.placed && this.built.placed.has(e)) || ((e.kind === 'judge' || e.kind === 'ghost') && EnvDolls.drawn.has(e))); },
+    takes(e) { return this.on && ((!!this.built && ((!!this.built.placed && this.built.placed.has(e)) || (!!this.built.club && this.built.club.placed.has(e)))) || ((e.kind === 'judge' || e.kind === 'ghost') && EnvDolls.drawn.has(e))); },
     /* where a picture still drawn the HD way stands: a thing on a table that's a model stands on its top */
     place(e) {
         if (!this.on || !e.furn || e.def.kind !== 'top' || e.item.on == null || !this.built) return null;
@@ -269,5 +270,97 @@ const EnvRoom = {
         const [dx] = a.doorTile, sill = 0.1;
         box(wood, (x0 - t + dx) / 2, sill / 2, z1 + 0.06, dx - x0 + t, sill, 0.12);
         box(wood, (dx + 1 + x1 + t) / 2, sill / 2, z1 + 0.06, x1 + t - dx - 1, sill, 0.12);
+        if (a.club) this.built.club = this.club(group, a);
+    },
+
+    /* ---------------------------------------------------------------- the club */
+    /* Club Wasabi (25_house.js buildClubContents): the DJ booth, the speakers and the disco ball as their models, the dance
+       floor's tiles lit from below in turn (faster while someone's dancing), beams of colored light sweeping from the
+       corners and the ball's sparkles turning over the floor and the back wall, by night or while dancing */
+    CLUB_COLS: ['#ff5aa8', '#4ec3d9', '#ffd84a', '#8cc152', '#b37cf0'],
+    club(group, a) {
+        const C = { placed: new Set(), g: new THREE.Group() }, H = this.WH, f = a.floor, z0 = f.y0 * R3_ZS;
+        group.add(C.g);
+        const put = (e, n, x, y, z, s) => {
+            if (!EnvModels.has(n)) return null;
+            const o = new THREE.Group();
+            o.position.set(x, y, z);
+            if (s) o.scale.setScalar(s);
+            for (const m of EnvModels.place(o, n, new THREE.Matrix4())) m.userData.shared = true;
+            C.g.add(o);
+            if (e) C.placed.add(e);
+            return o;
+        };
+        for (const e of a.ents) {
+            if (e.kind === 'booth' && e.frame === 'f_turntables') put(e, 'furn_turntables', e.x / TILE, 0, 2.5 * R3_ZS);
+            else if (e.kind === 'deco' && e.frame === 'f_speaker') put(e, 'furn_speaker', e.x / TILE, 0, 2.5 * R3_ZS);
+            else if (e.kind === 'deco' && e.frame === 'f_disco_ball') C.ball = put(e, 'furn_disco_ball', e.x / TILE, H - 0.55, z0 + 1.6);
+        }
+        // the dance floor: a tile of light in each square, its color changed in turn
+        const T = this.CLUB_FLOOR = { x0: 4, x1: 10, y0: 5, y1: 8 }, n = (T.x1 - T.x0 + 1) * (T.y1 - T.y0 + 1);
+        const geo = new THREE.BoxGeometry(0.92, 0.03, 0.92 * R3_ZS);
+        const mat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff }), { key: 'envclubfloor', inst: true });
+        const tiles = C.tiles = new THREE.InstancedMesh(geo, mat, n);
+        let i = 0;
+        for (let y = T.y0; y <= T.y1; y++) for (let x = T.x0; x <= T.x1; x++) { tiles.setMatrixAt(i, new THREE.Matrix4().makeTranslation(x + 0.5, 0.016, (y + 0.5) * R3_ZS)); tiles.setColorAt(i, new THREE.Color(0x4a3a5a)); i++; }
+        tiles.instanceMatrix.needsUpdate = true;
+        tiles.frustumCulled = false;
+        C.g.add(tiles);
+        C.cols = this.CLUB_COLS.map(c => new THREE.Color(c));
+        // beams from the back corners and the front ones, and the ball's sparkles
+        const add = (o) => { C.g.add(o); return o; };
+        const beamMat = (c) => r3Patch(new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }), { key: 'envclubbeam', noDof: true });
+        const bgeo = new THREE.ConeGeometry(0.55, 3.0, 18, 1, true).translate(0, -1.5, 0);
+        C.beams = [[f.x0 + 0.4, z0 + 0.3, '#ff5aa8'], [f.x0 + f.w - 0.4, z0 + 0.3, '#4ec3d9'], [f.x0 + 0.6, z0 + f.h * R3_ZS * 0.7, '#ffd84a'], [f.x0 + f.w - 0.6, z0 + f.h * R3_ZS * 0.7, '#b37cf0']].map(([x, z, c], k) => {
+            const m = add(new THREE.Mesh(bgeo, beamMat(c)));
+            m.position.set(x, H + 0.2, z); m.userData.k = k; m.renderOrder = 3;
+            return m;
+        });
+        const sp = r3Patch(new THREE.MeshBasicMaterial({ color: 0xfff6e0, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending }), { key: 'envclubspark', noDof: true });
+        const sgeo = new THREE.CircleGeometry(0.045, 8);
+        C.sparks = [];
+        for (let k = 0; k < 46; k++) {
+            const m = add(new THREE.Mesh(sgeo, sp));
+            m.userData.wall = k % 3 === 0; m.userData.a = k * 2.39; m.userData.r = 0.6 + (k * 0.37) % 3.4;
+            if (!m.userData.wall) m.rotation.x = -Math.PI / 2;
+            m.renderOrder = 3;
+            C.sparks.push(m);
+        }
+        C.sparkMat = sp;
+        return C;
+    },
+    clubTick(a) {
+        const C = this.built.club, T = this.CLUB_FLOOR, t = G.t, f = a.floor, z0 = f.y0 * R3_ZS, H = this.WH;
+        const dancing = Dance.on || Karaoke.on, lit = dancing || G.lamps > 0.3;
+        // (the 2D floor's own rhythm: a step every 8 frames while dancing, every 32 otherwise)
+        const step = t >> (dancing ? 3 : 5);
+        if (step !== C.step || lit !== C.lit) {
+            C.step = step; C.lit = lit;
+            let i = 0;
+            const dim = new THREE.Color(0x4a3a5a), c = new THREE.Color();
+            for (let y = T.y0; y <= T.y1; y++) for (let x = T.x0; x <= T.x1; x++) {
+                C.tiles.setColorAt(i++, lit ? c.copy(C.cols[(x + y + step) % C.cols.length]).multiplyScalar(0.85) : dim);
+            }
+            C.tiles.instanceColor.needsUpdate = true;
+        }
+        if (C.ball) C.ball.rotation.y = t / 90;
+        const cx = (T.x0 + T.x1 + 1) / 2, cz = (T.y0 + T.y1 + 1) / 2 * R3_ZS;
+        for (const b of C.beams) {
+            b.visible = lit;
+            if (!lit) continue;
+            const k = b.userData.k, an = t / (dancing ? 50 : 110) + k * 1.6;
+            const tx = cx + Math.cos(an) * 2.6, tz = cz + Math.sin(an * 1.3) * 1.2;
+            b.lookAt(tx, 0, tz); b.rotateX(-Math.PI / 2);
+            b.material.opacity = (dancing ? 0.13 : 0.08) * (0.75 + 0.25 * Math.sin(t / 9 + k));
+        }
+        const bx = C.ball ? C.ball.position.x : cx;
+        for (const m of C.sparks) {
+            m.visible = lit;
+            if (!lit) continue;
+            const an = m.userData.a + t / 160, r = m.userData.r;
+            if (m.userData.wall) m.position.set(bx + Math.cos(an) * r * 1.3, 0.5 + ((Math.sin(an) * 0.5 + 0.5) * (H - 0.8)), z0 + 0.02);
+            else m.position.set(bx + Math.cos(an) * r, 0.04, cz + Math.sin(an) * r * 0.55 * R3_ZS);
+        }
+        C.sparkMat.opacity = dancing ? 0.85 : 0.55;
     },
 };

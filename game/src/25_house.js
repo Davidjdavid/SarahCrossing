@@ -517,7 +517,7 @@ function buildClubContents(a) {
         a.block(x, 2);
     }
     a.add({ kind: 'deco', frame: 'f_neon_sign', x: 4 * TILE, y: WALL_ROWS * TILE - 5, layer: 0 });
-    a.add({ kind: 'deco', frame: 'f_neon_sign', x: 11 * TILE, y: WALL_ROWS * TILE - 5, layer: 0, flip: true });
+    a.add({ kind: 'deco', frame: 'f_neon_sign', x: 11 * TILE, y: WALL_ROWS * TILE - 5, layer: 0 });
     const ball = a.add({ kind: 'deco', frame: 'f_disco_ball', x: 7.5 * TILE, y: 24, layer: 2, light: { r: 60, y: 0 } });
     ball.def = furnDef('disco_ball');
     ball.draw = ctx => drawAnimatedFurn(ctx, ball);

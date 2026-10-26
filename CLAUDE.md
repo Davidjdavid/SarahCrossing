@@ -190,6 +190,11 @@ docs/DEPLOY.md for the server.
   the floor, and pieces drawn moving (arcade cabinets, the disco floor) keep their pictures. The
   furniture loads after the island's models, so the island never waits for it. Glass is a part named `*_clear`
   (see-through).
+- The club is a 3D room in the new look too (`EnvRoom.club`: the DJ booth, speakers and disco ball as their models, the dance
+  floor's tiles lit in turn, light beams and the ball's sparkles, lit for dancing at any hour), and the dance game and
+  karaoke stay in 3D there (`R3.active`): Sarah's doll dances the game's poses, while the arrows, judgements, lyrics and
+  pitch bar are drawn flat over the scene (`Dance.draw`, `Karaoke.draw` on the overlay). The HD-2D view keeps the club and
+  both games flat.
 - David's rule (27 October): everything in the world is a 3D model in the dollhouse look (things on the ground, in the sky
   and at sea, what's hung on walls and set on tables), except the minigames (cooking, the arcade cabinets, jump rope,
   volleyball and the like), which keep their 2D look.

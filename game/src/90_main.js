@@ -409,6 +409,9 @@ function render() {
         ctx.setTransform(1, 0, 0, 1, -G.cam.x, -G.cam.y);
         Sky.draw(ctx);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
+        // (the dance's arrows and the karaoke's words, flat over the 3D club)
+        Dance.draw(ctx);
+        Karaoke.draw(ctx);
         Online.update();
         Bubbles.update();
         BigMap.tick();
