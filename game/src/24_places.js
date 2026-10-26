@@ -60,6 +60,12 @@ async function enterBuilding(id) {
         await UI.say('sign', "CLEMENTINE'S. Open {hours:boutique}. Closed now. The mannequins are resting. They work very hard.");
         return;
     }
+    // (the civic buildings' insides, on beta for now: 6zc_civic.js)
+    if (typeof civicOpen === 'function' && civicOpen(id)) {
+        if (roomOpen(id)) { await enterRoom(id); return; }
+        await UI.say('sign', ROOMS[id].closedSign);
+        return;
+    }
     if (CIVIC_SIGNS[id]) { await UI.say('sign', CIVIC_SIGNS[id]); return; }
     if (ROOMS[id] && ROOMS[id].owner) { await visitHouse(id); return; }
     if (id === 'barn') { await enterRoom('barn'); return; }

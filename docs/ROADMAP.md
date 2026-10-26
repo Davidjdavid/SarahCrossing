@@ -141,6 +141,9 @@ Status: [x] done, [~] in progress, [ ] not started.
 ## Late in development (David's notes for much later)
 Some of these need things that don't exist yet (a town flag, records kept over time); add them when we get here.
 
+The screens are drawn already (on beta: walk into the Town Hall, the Post Office or the Bank and use the counter), every one
+in each state it can be in, with sample numbers; the Post Office's and the Bank's keepers are still to be picked.
+
 ### The real world, by zip code
 - [ ] Sarah sets a zip code: the island's time zone, that day's weather forecast (not live: the day's prediction),
   local news, fetched once a day from free APIs

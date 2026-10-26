@@ -34,7 +34,13 @@ docs/DEPLOY.md for the server.
   runs on a slant, the step's outer corner tile is cut along its diagonal (a, b, c, d: its NW, NE, SE, SW corner is the
   other side's). It's still one tile for building and placing; a cut water tile's corner is ground you can walk onto
   (`Area.solidPx`, `inCut`), and the new look draws the edge as a straight diagonal (`EnvGround.kindPx`, `cutAt`).
-- The Town Hall, Post Office and Bank (`24b_civic.js`) are signs for now, with stand-in pictures until their art.
+- The Town Hall, Post Office and Bank (`24b_civic.js`) are signs on the live site. On beta (`CIVIC_PREVIEW`: the beta host,
+  or `localStorage sc-civic` 1 or 0 anywhere; the tests run without it) they open into rooms (`6zc_civic.js`: the Cozy
+  Council at the Town Hall's desk, the Post Office and Bank counters waiting with a bell until David picks their keepers),
+  and each counter lists the building's screens (`6zd_civic_screens.js`, `CIVIC_SCREENS`): every feature in docs/ROADMAP.md's
+  "Late in development" drawn with sample numbers in each state it can be in (works, loading, no internet, service down,
+  empty, not enough money...), with the on-screen words from the dialogue sheet (`new-civic.mjs`). The preview's foot has
+  a button per state; `__dbg.civic(id, state)` opens one. The features themselves come at the very end.
 - **Old saves must always load.** Sarah's island came from the one-page game and lives on the
   server; any change to the shape of `S` needs a step in `migrate()` that upgrades older saves.
   `tests/fixtures/` has saves made by the one-page game; the end-to-end tests import them.

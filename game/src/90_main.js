@@ -60,6 +60,8 @@ async function boot(hotData) {
     if (LAB) continueGame(); else showTitle();
     requestAnimationFrame(loop);
     if (DEBUG) window.__dbg = {
+        /* a civic screen in one of its states (6zd_civic_screens.js) */
+        civic(id, state) { return civicScreen(id, state); },
         quickStart(opts) {
             opts = opts || {};
             Save.wipe();
