@@ -678,8 +678,35 @@ LOST = {'wallet': wallet, 'keys': keys, 'handheld': handheld, 'notebook': lambda
         'shell': lambda: lucky_shell(),
         'brush': brush, 'scarf': scarf, 'cap': cap, 'recipe': recipe, 'chopsticks': chopsticks}
 
+def leaf_pile():
+    """a heap of autumn leaves to sweep off the square (an island job: 6zi_jobs.js), a low mound of little leaves in
+    orange, red, gold and brown, some lying loose round its foot"""
+    mb, r = MB(), random.Random(11)
+    LEAF = [(-0.036, 0.0), (-0.01, -0.02), (0.03, -0.008), (0.038, 0.0), (0.03, 0.008), (-0.01, 0.02)]
+
+    def flat(c):
+        # (one face up, a fan round its middle: seen from above, as everything on the ground is)
+        col = rgb(c)
+        pts = [(0, 0, 0.001)] + [(x, y, 0) for x, y in LEAF]
+        mb.add(pts, [col * 1.06] + [col * 0.92] * len(LEAF), [(0, 0, 1)] * len(pts), [(0, 1 + i, 1 + (i + 1) % len(LEAF)) for i in range(len(LEAF))])
+    cols = ['#d8843a', '#c8502e', '#e8b040', '#9a5a2a', '#e06a30']
+    for k in range(70):
+        a, d = r.random() * math.tau, r.random() ** 0.6
+        x, y = math.cos(a) * d * 0.2, math.sin(a) * d * 0.15
+        z = 0.012 + 0.07 * (1 - d * d) + r.random() * 0.01
+        m = len(mb.v)
+        flat(cols[k % len(cols)])
+        turn(mb, m, (r.random() - 0.5) * 0.9, (r.random() - 0.5) * 0.9, r.random() * math.tau, (x, y, z))
+    for k in range(7):
+        a = r.random() * math.tau
+        m = len(mb.v)
+        flat(cols[k % len(cols)])
+        turn(mb, m, 0, 0, r.random() * math.tau, (math.cos(a) * 0.27, math.sin(a) * 0.2, 0.006))
+    return [(mb, 'main')]
+
+
 THINGS = {
-    'item_leaf': leaf_item, 'item_shirt': shirt, 'item_fish': fish, 'item_squid': squid, 'item_lobster': lobster, 'item_fish_boot': boot,
+    'item_leaf': leaf_item, 'item_ic_leafpile': leaf_pile, 'item_shirt': shirt, 'item_fish': fish, 'item_squid': squid, 'item_lobster': lobster, 'item_fish_boot': boot,
     'item_seedbag': seedbag, 'item_sack': sack, 'item_dish': dish, 'item_money_bag': money_bag,
     'item_ic_marsh_toasted': marshmallow, 'item_ic_marsh_burnt': lambda: marshmallow(True),
     **{f'item_ev_egg_{k}': (lambda k=k: egg(k)) for k in range(4)},
