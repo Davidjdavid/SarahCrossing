@@ -36,6 +36,7 @@ const EnvTrees = {
         const suf = { spring: '_spring', fall: '_fall', winter: '_winter' }[season] || '';
         let rounds = ['tree_round_a' + suf, 'tree_round_b' + suf].filter(has);
         if (!rounds.length) rounds = ['tree_round_a', 'tree_round_b'].filter(has);
+        const grand = ['tree_grand' + suf].filter(has).concat(['tree_grand'].filter(has)).slice(0, 1);
         const palms = ['palm_ac', 'palm_ac_b'].filter(has), pines = ['pine_a', 'pine_b'].filter(has);
         const shrubs = ({ fall: ['bush_fall', 'bush_fall', 'bush_holly'], winter: ['bush_holly'], spring: ['bush_azalea', 'bush_round'], summer: ['bush_hibiscus', 'bush_round'] }[season] || ['bush_round']).filter(has);
         const placed = {}, live = [];
@@ -70,14 +71,15 @@ const EnvTrees = {
             // (sized to the grid: the island keeps a free tile between trees, so a crown about two and a half tiles across
             // just meets its neighbor's instead of merging into one blob)
             // (the square's big tree stands in its raised ring of stones, props_island.py, on the soil inside: the ring
-            // round on the grid, stretched in depth as the ground is)
+            // round on the grid, stretched in depth as the ground is; it's the square's landmark, the grand tree twice as tall
+            // as any other, its crown shading the benches round it)
             else if (rounds.length) {
-                let ty = y;
-                if (e.kind === 'bigtree' && has('bigtree_planter')) {
-                    (placed.bigtree_planter = placed.bigtree_planter || []).push(EnvModels.mat4(x, y, z, 0, 1, 1, R3_ZS));
-                    ty = y + 0.27;
+                let ty = y, list = rounds, s = big * (0.76 + r() * 0.16);
+                if (e.kind === 'bigtree') {
+                    if (has('bigtree_planter')) { (placed.bigtree_planter = placed.bigtree_planter || []).push(EnvModels.mat4(x, y, z, 0, 1, 1, R3_ZS)); ty = y + 0.27; }
+                    if (grand.length) { list = grand; s = 1; }
                 }
-                t = put(rounds, x, ty, z, r, big * (0.76 + r() * 0.16), (r() - 0.5) * 0.3);
+                t = put(list, x, ty, z, r, s, (r() - 0.5) * 0.3);
             }
             else this.broad(F, B, x, y, z, r, big);
             if (t) live.push({ e, t, fruit: fruit ? hang(t, fruit) : [], on: true, ripe: true, shook: false });

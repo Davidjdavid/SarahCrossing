@@ -200,6 +200,12 @@ TREES = {
     'tree_round_a': dict(seed=3, lobes=[(-0.72, 0.0, 2.15, 0.9), (0.72, 0.0, 2.15, 0.9), (0.0, 0.32, 2.88, 0.74), (0.0, 0.55, 2.2, 0.8)], height=2.45, r0=0.36, r1=0.29),
     # taller, with a fourth lobe behind
     'tree_round_b': dict(seed=8, lobes=[(-0.68, 0.02, 2.28, 0.83), (0.68, 0.02, 2.28, 0.83), (0.0, 0.16, 3.0, 0.76), (0.0, 0.58, 2.45, 0.8)], height=2.6, r0=0.34, r1=0.28),
+    # the square's grand old tree, the island's landmark: twice as tall as the others, a crown of six lobes over five
+    # tiles across on a long bare trunk with limbs reaching up into it, roots spread wide in its planter (bigger leaves,
+    # so it's no heavier than two ordinary trees)
+    'tree_grand': dict(seed=21, lobes=[(-1.3, 0.05, 3.95, 1.32), (1.3, 0.05, 3.95, 1.32), (0.0, -0.32, 4.35, 1.28), (0.0, 0.5, 5.05, 1.22),
+                                      (-0.72, 0.8, 4.55, 1.08), (0.78, 0.82, 4.45, 1.08)], height=4.1, r0=0.4, r1=0.26, roots=7, lean=0.08,
+                       L=(0.48, 0.64), limbs=[(-1.0, 0.0, 3.7), (1.0, 0.05, 3.7), (0.0, -0.25, 4.0), (-0.4, 0.6, 4.4), (0.45, 0.62, 4.3)]),
 }
 GREEN = dict(dark='#2a6a2e', light='#8cd05c', fill='#24552a')
 SPRING = dict(leaves=[('#ffc8dc', 0.36), ('#ffb0cc', 0.26), ('#fff0f4', 0.22), ('#f48ab0', 0.1), ('#8ccc6a', 0.06)], fill='#b06a84')
@@ -253,12 +259,41 @@ def tone_fn(season):
     return tone
 
 
+def limb(mb, a, b, r0, r1, cols=('#b0702e', '#d8964c'), seg=10, rings=8):
+    """A branch from a to b, tapering, bowed a little upward, the trunk's colors (darker toward the crown)."""
+    dark, mid = (rgb(c) for c in cols)
+    d = (b - a)
+    up = Vector((0, 0, 1))
+    side = d.cross(up).normalized() if abs(d.normalized().z) < 0.98 else Vector((1, 0, 0))
+    norm2 = side.cross(d).normalized()
+    pts, cs, ns, faces = [], [], [], []
+    for k in range(rings + 1):
+        t = k / rings
+        c = a + d * t + up * (math.sin(t * math.pi) * d.length * 0.08)
+        r = r0 + (r1 - r0) * t
+        for j in range(seg):
+            ph = j / seg * math.tau
+            n = side * math.cos(ph) + norm2 * math.sin(ph)
+            pts.append(c + n * r); ns.append(n)
+            cs.append(mid.lerp(dark, 0.3 + 0.5 * t) * (0.85 + 0.15 * max(0.0, n.z)))
+    for k in range(rings):
+        for j in range(seg):
+            i0, i1 = k * seg + j, k * seg + (j + 1) % seg
+            faces.append((i0, i1, i1 + seg))
+            faces.append((i0, i1 + seg, i0 + seg))
+    mb.add(pts, cs, ns, faces)
+
+
 def broadleaf(name, spec, season='summer', lod=0):
     rng = random.Random(spec['seed'] + {'summer': 0, 'fall': 100, 'spring': 200, 'winter': 300}[season])
     mb = MB()
-    trunk(mb, random.Random(spec['seed']), spec['height'], spec['r0'], spec['r1'], seg=28 if lod == 0 else 16, rings=26 if lod == 0 else 14)
+    trunk(mb, random.Random(spec['seed']), spec['height'], spec['r0'], spec['r1'], roots=spec.get('roots', 5), lean=spec.get('lean', 0.06),
+          seg=28 if lod == 0 else 16, rings=26 if lod == 0 else 14)
+    top = spec['height'] * 0.66
+    for e in spec.get('limbs', []):
+        limb(mb, Vector((0, 0, top)), Vector(e), spec['r1'] * 0.75, 0.06, seg=10 if lod == 0 else 6, rings=8 if lod == 0 else 4)
     lobes = [(Vector(l[:3]), l[3]) for l in spec['lobes']]
-    L = 0.34 if lod == 0 else 0.48        # (leaves a third of a lobe's radius: a leafy crown, not big shards)
+    L = spec.get('L', (0.34, 0.48))[0 if lod == 0 else 1]        # (leaves a third of a lobe's radius: a leafy crown, not big shards)
     tone = tone_fn(season)
     fillc = rgb({'summer': GREEN['fill'], 'spring': SPRING['fill'], 'winter': WINTER['fill']}.get(season, FALL['fill']))
     for i, (c, r) in enumerate(lobes):

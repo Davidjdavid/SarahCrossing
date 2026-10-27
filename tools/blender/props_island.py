@@ -87,13 +87,17 @@ def fountain():
 
 
 def drinkfountain():
-    mb = MB()
-    rbox(mb, -0.16, -0.16, 0, 0.16, 0.16, 0.08, stone('#b8b0a2'), r=0.02)
-    lathe(mb, [(0.1, 0.08), (0.08, 0.7), (0.12, 0.74)], stone(), seg=16, cap_top=False)
-    lathe(mb, [(0.12, 0.74), (0.22, 0.8), (0.24, 0.86), (0.2, 0.86), (0.12, 0.8)], col_fn('#9aa4aa'), seg=20, cap_top=True)
-    tube(mb, [(0.0, 0.0, 0.84), (0.0, 0.0, 0.94), (0.05, 0.0, 0.98), (0.08, 0.0, 0.95)], 0.018, shade('#c8ccd0'), seg=6)
-    ball(mb, (0.0, -0.13, 0.66), 0.03, shade('#4a78c8'))
-    return [(mb, 'main')]
+    """An old park drinking fountain (David, 27 October: the stone one was lost against the cobbles): a dark granite step,
+    a fluted column painted green, a brass bowl and spout, a red button."""
+    mb, gl, water = MB(), MB(), MB()
+    rbox(mb, -0.2, -0.2, 0, 0.2, 0.2, 0.07, col_fn('#4e525a', mottle=0.12), r=0.025)
+    paint = lambda p, n, *_: rgb('#2f7a5c') * (0.8 + 0.2 * (math.sin(math.atan2(p.y, p.x) * 12) > 0) + 0.12 * max(0.0, n.z))
+    lathe(mb, [(0.15, 0.07), (0.15, 0.12), (0.11, 0.16), (0.09, 0.62), (0.11, 0.66), (0.14, 0.72)], paint, seg=24, cap_top=False)
+    lathe(gl, [(0.14, 0.72), (0.24, 0.8), (0.26, 0.87), (0.22, 0.87), (0.14, 0.82), (0.0, 0.81)], col_fn('#c99a3e', under=0.1), seg=24)
+    tube(gl, [(0.0, 0.0, 0.82), (0.0, 0.0, 0.95), (0.05, 0.0, 0.99), (0.09, 0.0, 0.96)], 0.02, shade('#d8aa48'), seg=8)
+    rbox(mb, -0.035, -0.13, 0.6, 0.035, -0.09, 0.66, shade('#d83a3a'), r=0.012)
+    tube(water, [(0.09, 0.0, 0.955), (0.12, 0.0, 0.94), (0.14, 0.0, 0.9), (0.15, 0.0, 0.86)], 0.012, col_fn('#9ad8f0'), seg=6, r1=0.006)
+    return [(mb, 'main'), (gl, 'gloss'), (water, 'water')]
 
 
 def board():

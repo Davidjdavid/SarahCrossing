@@ -275,9 +275,10 @@ docs/DEPLOY.md for the server.
   depth of field and shadows (`r3Patch`), uses their colors as they are, and draws a model placed many times as one
   instanced mesh per part. Colors kept in a mesh arrive as glTF's linear values and are turned back into the colors as
   painted (`EnvModels.srgb`). The trees (autumn crowns in autumn), palms, pines and bushes replace the code-built ones
-  and follow the game: a shaken tree sways, picked fruit and chopped trees go (`EnvTrees.tick`); the square's big tree
-  stands in a raised bed of stones (`bigtree_planter`, props_island.py; its 2x2 and the ring round it but the corners are
-  blocked, in the game and in layout.mjs); the cottage Sarah's
+  and follow the game: a shaken tree sways, picked fruit and chopped trees go (`EnvTrees.tick`); the square's big tree is
+  the grand tree, the island's landmark (`tree_grand`, trees_ac.py: twice as tall as the others, six lobes on a long bare
+  trunk with limbs), standing in a raised bed of stones (`bigtree_planter`, props_island.py; its 2x2 and the ring round it
+  but the corners are blocked, in the game and in layout.mjs); the cottage Sarah's
   house, the shop Fortune's, the other buildings theirs (`EnvBuild.BUILDINGS`: how far in front of its middle the
   front wall stands), and the props and flowers theirs (`EnvBuild.PROP_MODELS`: kind, size against its footprint, how
   far back it stands; a picked wild flower's model is hidden until it grows back, Basil's cart by day); the test area
