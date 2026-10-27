@@ -249,7 +249,7 @@ docs/DEPLOY.md for the server.
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
-  steps): the game loads every model at once, so keep `game/assets/models/` light (about 82 MB on disk now, 10 of it furniture, 30 the style test's dolls and folks with their phone versions; packed by the build, a computer fetches about 47 MB of it and a phone 40). `doll.py` was the
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 82 MB on disk now, 10 of it furniture, 30 the style test's dolls and folks with their phone versions; packed and gzipped by the build, a computer fetches about 23 MB of it and a phone 20). `doll.py` was the
   mock-up of the people as dolls. `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height
@@ -259,7 +259,8 @@ docs/DEPLOY.md for the server.
   to its length with its face toward -y, from the lower ground (z 0) to the upper (z 1.5, `ENV.LV`).
 - In the game `EnvModels` (33g_env_models.js) loads them (the build packs each smaller, `scripts/glb-pack.mjs`: positions,
   colors and picture spots in 16 bits, normals in 8, KHR_mesh_quantization, a part's positions scaled on its own node so
-  its origin stays put, and `EnvModels.unpack` makes them plain numbers again as they load; it ships each with a hashed name in `window.MODELS`;
+  its origin stays put, and `EnvModels.unpack` makes them plain numbers again as they load; it ships each with a hashed name in `window.MODELS`,
+  with a gzipped copy beside it that server.mjs sends to browsers that take gzip, since the proxy in front only compresses text;
   the server's CSP allows `blob:` in connect-src for the pictures inside them), gives their materials the view's bend,
   depth of field and shadows (`r3Patch`), uses their colors as they are, and draws a model placed many times as one
   instanced mesh per part. Colors kept in a mesh arrive as glTF's linear values and are turned back into the colors as
@@ -336,7 +337,8 @@ docs/DEPLOY.md for the server.
   while playing, all kept 2 days, then one a day for 60 days; plus `before-import`,
   `before-restore` and `before-overwrite` copies (90 days).
 - `server.mjs`: the password (cookie signed with `DATA_DIR/secret`), the JSON API (writes need the
-  header `X-Sarah: 1`), the built game from `STATIC_DIR` (hashed asset names, cached forever).
+  header `X-Sarah: 1`), the built game from `STATIC_DIR` (hashed asset names, cached forever; a model's `.gz` copy to a
+  browser that takes gzip).
 - `world.mjs`: the real world for the Town Hall's zip code and the Bank's market (see above).
   Problems in the browser are posted to `/api/log` and end up in the server log.
 

@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import http from 'node:http';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
 import zlib from 'node:zlib';
@@ -93,6 +94,29 @@ test('the game page and its files', async () => {
   assert.match(asset.headers.get('content-type'), /javascript/);
   const again = await fetch(srv.url + '/', { headers: { cookie, 'If-None-Match': page.headers.get('etag') } });
   assert.equal(again.status, 304);
+});
+
+test('a model goes gzipped to a browser that takes it, as it is to one that does not', async () => {
+  const html = await (await fetch(srv.url + '/', { headers: { cookie } })).text();
+  const data = await (await fetch(`${srv.url}/${/src="(assets\/data-[0-9a-f]{10}\.js)"/.exec(html)[1]}`, { headers: { cookie } })).text();
+  const model = /"(assets\/model-folk2_kai-[0-9a-f]{10}\.glb)"/.exec(data)[1];
+  // (node:http, so nothing is unzipped on the way)
+  const get = (headers) => new Promise((ok, bad) => http.get(`${srv.url}/${model}`, { headers: { cookie, ...headers } }, (res) => {
+    const parts = [];
+    res.on('data', (d) => parts.push(d));
+    res.on('end', () => ok({ res, body: Buffer.concat(parts) }));
+  }).on('error', bad));
+  const plain = await get({}), zipped = await get({ 'Accept-Encoding': 'gzip, deflate, br' });
+  assert.equal(plain.res.statusCode, 200);
+  assert.equal(plain.res.headers['content-encoding'], undefined);
+  assert.equal(plain.res.headers['content-type'], 'model/gltf-binary');
+  assert.equal(plain.body.subarray(0, 4).toString(), 'glTF');
+  assert.equal(zipped.res.headers['content-encoding'], 'gzip');
+  assert.equal(zipped.res.headers.vary, 'Accept-Encoding');
+  assert.ok(zipped.body.length < plain.body.length * 0.8, `${zipped.body.length} of ${plain.body.length}`);
+  assert.deepEqual(zlib.gunzipSync(zipped.body), plain.body);
+  assert.notEqual(zipped.res.headers.etag, plain.res.headers.etag);
+  assert.equal((await get({ 'Accept-Encoding': 'gzip', 'If-None-Match': zipped.res.headers.etag })).res.statusCode, 304);
 });
 
 test('files outside the game are never served', async () => {

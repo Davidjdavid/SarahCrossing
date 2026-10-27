@@ -118,4 +118,5 @@ color contrast, an accessory and how it moves, not small detail. So, in this ord
   talk camera in close), and phones get their own versions (`folk2_<id>_lod1`, `doll_kit_lod1`, `doll_hair_lod1`: a
   folk under about 9,000 points, a person under about 15,000 drawn). On Sarah's island with ten of them on screen, a
   phone draws about a quarter more than with the first dolls.
-- The build packs every model smaller (scripts/glb-pack.mjs), so what's fetched is about two thirds of the files.
+- The build packs every model smaller (scripts/glb-pack.mjs) and the server sends it gzipped, so what a phone downloads is
+  about a third of the files.

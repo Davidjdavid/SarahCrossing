@@ -80,6 +80,7 @@ const MIME = {
   '.ico': 'image/x-icon',
   '.webmanifest': 'application/manifest+json',
   '.txt': 'text/plain; charset=utf-8',
+  '.glb': 'model/gltf-binary',
 };
 
 // The game draws on canvases, makes images from blobs and data URLs, and loads its fonts from Google. (blob: in
@@ -543,20 +544,26 @@ async function serveStatic(req, res, pathname) {
     const etag = '"' + crypto.createHash('sha1').update(await fsp.readFile(file)).digest('base64url').slice(0, 20) + '"';
     etags.set(file, (cached = { mtimeMs: stat.mtimeMs, size: stat.size, etag }));
   }
+  // (a model goes gzipped to a browser that takes it: the build writes the copy beside it, and the proxy in front of
+  // the server only compresses text)
+  const gz = ext === '.glb' && immutable && /\bgzip\b/.test(String(req.headers['accept-encoding'] || '')) && (await fsp.stat(file + '.gz').then((s) => s.isFile(), () => false));
+  const etag = gz ? cached.etag.replace(/"$/, '-gz"') : cached.etag;
   const headers = {
     'Content-Type': MIME[ext] || 'application/octet-stream',
     'Cache-Control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
-    ETag: cached.etag,
+    ETag: etag,
   };
+  if (ext === '.glb') headers.Vary = 'Accept-Encoding';
+  if (gz) headers['Content-Encoding'] = 'gzip';
   if (isPage) {
     headers['Content-Security-Policy'] = GAME_CSP;
     headers['Referrer-Policy'] = 'no-referrer';
   }
-  if (req.headers['if-none-match'] === cached.etag) {
+  if (req.headers['if-none-match'] === etag) {
     res.writeHead(304, headers);
     return res.end();
   }
-  return send(res, 200, await fsp.readFile(file), headers);
+  return send(res, 200, await fsp.readFile(gz ? file + '.gz' : file), headers);
 }
 
 // ------------------------------------------------------------------ routes

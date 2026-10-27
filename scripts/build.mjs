@@ -13,7 +13,8 @@
 //                               the browser; game/assets/ground/, made by scripts/make-island.mjs)
 //   assets/lab-*-<hash>.png     the test area's ground (game/assets/lab/, made by make-island.mjs --plan lab; ?lab)
 //   assets/hdw-<hash>.js        the HD drawing code again, as a worker (big pictures drawn off the main thread)
-//   assets/model-*-<hash>.glb   the models made in Blender (game/assets/models/), packed smaller (glb-pack.mjs)
+//   assets/model-*-<hash>.glb   the models made in Blender (game/assets/models/), packed smaller (glb-pack.mjs),
+//                               each with a .gz copy for browsers that take gzip
 //   build.json                  { version, commit, builtAt }
 //
 // A file's name changes whenever its content does, so browsers can keep the
@@ -22,6 +23,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { makeIcon } from './icon.mjs';
 import { packGlb } from './glb-pack.mjs';
 
@@ -60,9 +62,15 @@ const hdwJs = emit('hdw', '.js', "'use strict';\nconst G = { frame: 0, t: 0 }, R
 // three.js (r128, MIT): draws the island in HD-2D where the device has WebGL (31_render3d.js), with its glTF loader for
 // the models made in Blender (tools/blender/, game/assets/models/; 33g_env_models.js)
 const threeJs = emit('three', '.js', Buffer.concat([read('vendor/three.min.js'), Buffer.from('\n'), read('vendor/GLTFLoader.js')]));
-// the models (GLB files), by name, their points packed small (glb-pack.mjs; the game unpacks them as it loads)
+// the models (GLB files), by name, their points packed small (glb-pack.mjs; the game unpacks them as it loads), each with
+// a gzipped copy beside it that the server sends to browsers that take it (half the size again; the proxy in front of the
+// server only compresses text)
 const models = {};
-for (const f of fs.readdirSync(path.join(GAME, 'assets/models')).filter((f) => f.endsWith('.glb')).sort()) models[f.slice(0, -4)] = emit(`model-${f.slice(0, -4)}`, '.glb', packGlb(read(`assets/models/${f}`)));
+for (const f of fs.readdirSync(path.join(GAME, 'assets/models')).filter((f) => f.endsWith('.glb')).sort()) {
+  const packed = packGlb(read(`assets/models/${f}`)), file = emit(`model-${f.slice(0, -4)}`, '.glb', packed);
+  fs.writeFileSync(path.join(DIST, file + '.gz'), zlib.gzipSync(packed, { level: 9 }));
+  models[f.slice(0, -4)] = file;
+}
 // the ground's surfaces baked in Blender (tools/blender/ground_textures.py), by name (flagstones_col, path_nrm...)
 const textures = {};
 for (const f of fs.readdirSync(path.join(GAME, 'assets/textures')).filter((f) => /\.(jpg|png)$/.test(f)).sort()) { const ext = path.extname(f); textures[f.slice(0, -ext.length)] = emit(`tex-${f.slice(0, -ext.length)}`, ext, read(`assets/textures/${f}`)); }

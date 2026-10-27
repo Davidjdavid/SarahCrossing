@@ -141,7 +141,7 @@ Status: [x] done, [~] in progress, [ ] not started.
   good, make the rest"): every food folk, the goat, the council and the old keeper; David, James, John and Elizabeth's
   hair and David's beard; the talk camera; stools behind counters; sitting, dancing and the dance game's poses for the
   folks. Round 4 (David: "do the lighter versions and hairstyles, then put them on beta"): the models packed smaller by
-  the build for everything (76 MB fetched before, 47 now; 40 on a phone), the characters from fewer points and phone
+  the build for everything and sent gzipped (a computer fetches 23 MB of models instead of 73, a phone 20 instead of 70), the characters from fewer points and phone
   versions of them; every salon style sculpted; the clothes' details (pleated and gathered skirts, a tutu, bare
   shoulders with straps, the overalls' bib, a hoodie's hood and pocket, buttons, belts, an obi, a cardigan's front, a
   collar, a cape); Fortune's fold and David's beard fuller; and the new characters on Sarah's island on beta. Still to
@@ -160,6 +160,22 @@ Status: [x] done, [~] in progress, [ ] not started.
   house, asking her advice, coming to her for help, inviting her places, a best-friend moment); neighbors who remember
   what she did and bring it up; friendships between the neighbors themselves that shift with the island drama
 - [ ] And so on: David will add more ideas here
+
+## A lived-in island (David, 27 October: for later)
+- [ ] Each neighbor plans their day every morning and lives it at set times, whether or not anyone is playing: say work,
+  lunch at home on their own, the Bank after work, picking some fruit, fishing, selling the catch, visiting a friend, bed.
+  Sarah could follow one all day and watch them do it. Worked out from the day and the hour, so wherever she looks in,
+  everyone is where their day has taken them. It only has to look real (no crops or stock actually tracked): the farmers
+  tend the fields, pack the produce and deliver it to the store each morning, and neighbors go and buy it
+- [ ] Vacations, now and then (rare, and marked on the calendar): a neighbor packs their bags, walks to the pier with
+  friends seeing them off, and a boat comes for them; friends get a postcard, good friends a souvenir in the mail, and they
+  come home after a few days
+- [ ] Much more said overhead: lines of each neighbor's own and plenty shared between them, so hearing the same thing twice
+  is rare
+- [ ] IslandMart's stock changes every week: so many of each kind (chairs, wall pieces, plants...), picked at random so a
+  week is never all chairs, so Sarah can't buy everything at the start. Many more pieces too: every piece of furniture in
+  four colors (the model's parts painted differently), named like "Large couch (pink)"
+- [ ] The achievements that unlock outfits, songs, recipes and the like much harder and spread out over a long time
 
 ## The museum, in rooms (David, 26 October: for later)
 - [ ] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings
