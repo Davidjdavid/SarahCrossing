@@ -125,9 +125,9 @@ function mugTarget(n, dh) {
 function mugSpot(day) {
     const a = G.areas && G.areas.island;
     if (!a) return null;
-    // (open grass with no tree beside it or just south of it, whose crown would hide the X from the camera)
+    // (open grass with no tree beside it or in the few tiles south of it, whose crown would hide the X from the camera)
     const trees = new Set(a.ents.filter(e => e.tx != null && (e.forest || e.kind === 'tree' || e.kind === 'young')).map(e => e.tx + ',' + e.ty));
-    const clear = (x, y) => { for (let dy = -1; dy <= 2; dy++) for (let dx = -1; dx <= 1; dx++) if (trees.has((x + dx) + ',' + (y + dy))) return false; return true; };
+    const clear = (x, y) => { for (let dy = -1; dy <= 3; dy++) for (let dx = -1; dx <= 1; dx++) if (trees.has((x + dx) + ',' + (y + dy))) return false; return true; };
     const grass = grassSpots(a).filter(([x, y]) => clear(x, y));
     if (!grass.length) return null;
     const r = mulberry(hash32(S.seed + ':mugx:' + day));
@@ -147,17 +147,18 @@ function mugRefresh(a) {
 }
 function addMugX(a, tx, ty) {
     const [fx, fy] = tileFoot(tx, ty);
-    const e = a.add({ kind: 'deco', mugX: true, digX: true, tx, ty, layer: 0, x: fx, y: fy - 3 });
+    const e = a.add({ kind: 'deco', mugX: true, digX: true, tx, ty, layer: 0, x: fx, y: fy - 3, decal: [36, 32, 18, 16] });
     e.hit = { x: tx * TILE, y: ty * TILE, w: TILE, h: TILE };
     e.draw = ctx => {
-        // an X scratched in the grass, a little earth turned at its ends (the old diggers' mark)
+        // an X scratched in the grass, a little earth turned at its ends (the old diggers' mark), big enough to read from
+        // the new look's low camera
         const x = Math.round(e.x), y = Math.round(e.y);
-        ctx.fillStyle = 'rgba(150,112,70,0.55)';
-        for (let i = -7; i <= 7; i++) { ctx.fillRect(x + i - 1, y + i - 1, 4, 4); ctx.fillRect(x + i - 1, y - i - 1, 4, 4); }
-        ctx.fillStyle = 'rgba(78,48,26,0.95)';
-        for (let i = -6; i <= 6; i++) { ctx.fillRect(x + i, y + i, 2, 2); ctx.fillRect(x + i, y - i, 2, 2); }
+        ctx.fillStyle = 'rgba(150,112,70,0.6)';
+        for (let i = -11; i <= 11; i++) { ctx.fillRect(x + i - 2, y + i * 0.8 - 2, 5, 5); ctx.fillRect(x + i - 2, y - i * 0.8 - 2, 5, 5); }
+        ctx.fillStyle = 'rgba(74,44,22,0.95)';
+        for (let i = -10; i <= 10; i++) { ctx.fillRect(x + i - 1, y + i * 0.8 - 1, 3, 3); ctx.fillRect(x + i - 1, y - i * 0.8 - 1, 3, 3); }
         ctx.fillStyle = 'rgba(170,128,80,0.9)';
-        for (const [dx, dy] of [[-9, -7], [8, -8], [-9, 7], [8, 7], [-3, -9], [3, 8]]) ctx.fillRect(x + dx, y + dy, 2, 1);
+        for (const [dx, dy] of [[-14, -10], [13, -11], [-14, 10], [13, 10], [-4, -12], [4, 12], [0, -4]]) ctx.fillRect(x + dx, y + dy, 3, 2);
     };
     e.interact = () => mugDig(a, e);
     return e;

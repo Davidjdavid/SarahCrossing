@@ -39,6 +39,7 @@ const EnvDecals = {
         const fr = e.frame && Assets.frames[e.frame];
         let w = 24, h = 32, ax = 12, ay = 24;
         if (fr) { w = fr[2]; h = fr[3]; ax = fr[4]; ay = fr[5]; }
+        else if (e.decal) [w, h, ax, ay] = e.decal;          // (a mark drawn in code saying how big it is: the museum's X)
         const K = this.SCALE, x0 = e.x - ax - 2, y0 = e.y - ay - 2, W = w + 4, H = h + 4;
         const cv = document.createElement('canvas');
         cv.width = W * K; cv.height = H * K;
@@ -63,6 +64,7 @@ const EnvDecals = {
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
         geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+        geo.setIndex(idx);
         geo.computeVertexNormals();
         const mat = r3Patch(new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5 }), { key: 'envdecal' });
         mat.polygonOffset = true; mat.polygonOffsetFactor = -3; mat.polygonOffsetUnits = -3;
