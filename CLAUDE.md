@@ -279,7 +279,9 @@ docs/DEPLOY.md for the server.
   two colors the third, `breedColor`). Hybrids (2ab_hybrids.js, `FLOWER_HYBRIDS`): two rarer colors of each kind, never
   from seeds (`flower_<kind>_3` and `_4`: blue and purple daisies, orange and black tulips, red and chocolate cosmos, red
   and black lilies): a quarter of the time colors 0 and 1 make the first, 1 and 2 the second; each picture is its kind's
-  repainted at load (`Assets.dyn`), its HD picture in 32x_hd_outdoor.js, its color in `EnvItems.PETALS`. In the new look the doll holds the room's can (`furn_watering_can`, `EnvDolls.canModel`) and
+  repainted at load (`Assets.dyn`), its HD picture in 32x_hd_outdoor.js, its color in `EnvItems.PETALS`. Roses
+  (2aa_roses.js) are a fifth kind from Fortune's seeds only (red, white, yellow; pink and blue hybrids), their pictures drawn
+  at load (`ROSE_HEAD` over the tulip's stem), `hdE_rose`, flowers.py's `flower_rose`. In the new look the doll holds the room's can (`furn_watering_can`, `EnvDolls.canModel`) and
   tips it in the `water` pose. The boat Sarah came on is `boat_home` (small_things.py), as big as a building, at the pier.
 - The camera's scrapbook (55a_scrapbook.js, David's note of 27 October): a photo's tags say what's in it (`Scrapbook.seen`:
   neighbors, buildings and landmarks, wildlife and what's at sea or in the sky, things lying about or furniture indoors,

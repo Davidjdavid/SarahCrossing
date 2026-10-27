@@ -471,6 +471,10 @@
     "flower_lily_1": {"name":"Orange lily","type":"flower","price":90,"icon":"fl_lily_1","kind":"lily"},
     "flower_lily_2": {"name":"Pink lily","type":"flower","price":90,"icon":"fl_lily_2","kind":"lily"},
     "seed_fl_lily": {"name":"Lily seeds","type":"seed","price":110,"icon":"seed_fl_lily","grows":"flower_lily_*","flower":"lily"},
+    "flower_rose_0": {"name":"Red rose","type":"flower","price":120,"icon":"fl_rose_0","kind":"rose"},
+    "flower_rose_1": {"name":"White rose","type":"flower","price":120,"icon":"fl_rose_1","kind":"rose"},
+    "flower_rose_2": {"name":"Yellow rose","type":"flower","price":120,"icon":"fl_rose_2","kind":"rose"},
+    "seed_fl_rose": {"name":"Rose seeds","type":"seed","price":150,"icon":"seed_fl_rose","grows":"flower_rose_*","flower":"rose"},
     "present": {"name":"Present","type":"special","price":0,"icon":"ui_present"},
     "bag_1": {"name":"Backpack","type":"bag","price":4800,"icon":"ic_bag1","slots":10},
     "bag_2": {"name":"Explorer backpack","type":"bag","price":12000,"icon":"ic_bag2","slots":10},
@@ -911,7 +915,7 @@
     "cream",
     "marshmallow"
   ],
-  "flowerKinds": ["daisy","tulip","cosmos","lily"],
+  "flowerKinds": ["daisy","tulip","cosmos","lily","rose"],
   "specialAccs": [
     "tiara",
     "flowercrown",

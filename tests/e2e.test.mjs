@@ -708,10 +708,14 @@ test('the watering can: Fortune sells one; flowers of a kind side by side, both 
     const pic = Assets.dyn.fl_lily_4, px0 = pic && pic.c.getContext('2d').getImageData(0, 0, pic.w, pic.h).data;
     let dark = 0; for (let k = 0; px0 && k < px0.length; k += 4) if (px0[k] === 0x4e && px0[k + 1] === 0x2a && px0[k + 2] === 0x4c) dark++;
     out.hybrid = { name: itemName('flower_lily_4'), dear: ITEMS.flower_tulip_3.price > ITEMS.flower_tulip_0.price, pic: dark > 10, hd: !!hdNamed('fl_lily_4', true), petals: EnvItems.petals('flower_daisy_3') };
+    // roses (2aa_roses.js): a fifth kind from Fortune's seeds, its pictures drawn at load, a pink and a blue rose to breed
+    out.rose = { seeds: GD.flowerKinds.includes('rose') && ITEMS.seed_fl_rose.grows === 'flower_rose_*', names: [0, 1, 2, 3, 4].map(i => itemName('flower_rose_' + i)),
+      pics: ['fl_rose_0', 'fl_rose_4', 'seed_fl_rose'].every(n => Assets.has(n)), hd: !!hdNamed('fl_rose_3', true), petals: EnvItems.petals('flower_rose_4') };
     return out;
   });
   assert.deepEqual(res, { stock: true, busy: true, wet: [true, true], kid: ['daisy', 1, true, true], breed: [3, 2, 4, 1, 4, 0, 3],
-    hybrid: { name: 'Black lily', dear: true, pic: true, hd: true, petals: '#8cbcff' } });
+    hybrid: { name: 'Black lily', dear: true, pic: true, hd: true, petals: '#8cbcff' },
+    rose: { seeds: true, names: ['Red rose', 'White rose', 'Yellow rose', 'Pink rose', 'Blue rose'], pics: true, hd: true, petals: '#7a9cff' } });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

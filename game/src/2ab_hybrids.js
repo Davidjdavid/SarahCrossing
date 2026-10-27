@@ -1,8 +1,8 @@
 /* ---- 2ab_hybrids.js ---- */
 /* Hybrid flowers (David, 27 October: "hybrid flower colors"): two rarer colors of each kind that never come from seeds,
    only from cross-breeding watered flowers (2a_flowers.js flowerBreed), as in Animal Crossing: a blue or purple daisy, an
-   orange or black tulip, a red or chocolate cosmos, a red or black lily. Each is an item of its own (flower_<kind>_3 and
-   _4), its picture the kind's picture repainted (from: which color's picture, map: its colors to the hybrid's), its HD
+   orange or black tulip, a red or chocolate cosmos, a red or black lily, a pink or blue rose. Each is an item of its own
+   (flower_<kind>_3 and _4), its picture the kind's picture repainted (from: which color's picture, map: its colors to the hybrid's), its HD
    picture in 32x_hd_outdoor.js and its color in the new look in EnvItems.PETALS.
    How they come: two seed colors side by side make the third (as before), but a quarter of the time the pair makes its
    hybrid instead: colors 0 and 1 the first, 1 and 2 the second (0 and 2 only ever make 1). Two of a hybrid make it again;
@@ -13,6 +13,8 @@ const FLOWER_HYBRIDS = {
     tulip: [{ name: 'Orange tulip', from: 0, map: { e0405a: 'ff8c32', b3263a: 'd25e18' } }, { name: 'Black tulip', from: 0, map: { e0405a: '5a3866', b3263a: '3a2046' } }],
     cosmos: [{ name: 'Red cosmos', from: 0, map: { ff8ac0: 'e03040' } }, { name: 'Chocolate cosmos', from: 0, map: { ff8ac0: '7a4028' } }],
     lily: [{ name: 'Red lily', from: 2, map: { ffb8d6: 'e83848', e0607a: 'b02230' } }, { name: 'Black lily', from: 2, map: { ffb8d6: '4e2a4c', e0607a: '2e1832' } }],
+    // (a rose's pictures are all drawn in 2aa_roses.js)
+    rose: [{ name: 'Pink rose', from: 0, map: {} }, { name: 'Blue rose', from: 0, map: {} }],
 };
 for (const [kind, hs] of Object.entries(FLOWER_HYBRIDS)) hs.forEach((h, i) => {
     const base = ITEMS[`flower_${kind}_0`];
@@ -35,7 +37,7 @@ function breedColor(a, b, r) {
 ASSET_MAKERS.push(() => {
     for (const [kind, hs] of Object.entries(FLOWER_HYBRIDS)) hs.forEach((h, i) => {
         const f = Assets.frames[`fl_${kind}_${h.from}`];
-        if (!f) return;
+        if (!f || Assets.dyn[`fl_${kind}_${3 + i}`]) return;
         const [x, y, w, hh, ax, ay] = f, c = document.createElement('canvas');
         c.width = w; c.height = hh;
         const g = c.getContext('2d');

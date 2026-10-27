@@ -207,7 +207,7 @@ Status: [x] done, [~] in progress, [ ] not started.
   red and chocolate cosmos, red and black lilies)
 - [x] The flowers as Animal Crossing's (David, 27 October: "flowers are kinda an important part"): rebuilt in Blender
   (flowers.py), thick soft petals, a tulip's cup, a lily's speckled star, a cosmos's notched petals
-- [ ] Roses, as a fifth kind of flower from seeds (the model is made: flowers.py's rose)
+- [x] Roses, as a fifth kind of flower from seeds (red, white and yellow; pink and blue hybrids)
 - [x] Neighbors turn round to face Sarah when she talks to them
 - [x] Lots of things they do when they're not busy, each its own animation: looking at the stars, eating a snack, sitting
   on the ground, on their phone, reading a book, painting, and more, so they feel alive (in the new look: the stars at

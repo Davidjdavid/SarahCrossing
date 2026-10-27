@@ -197,6 +197,24 @@ hdE_reg([
     ['fl_lily_3', 12, 16, 6, 15, '#e83848', '#b02230'], ['fl_lily_4', 12, 16, 6, 15, '#4e2a4c', '#2e1832'],
 ], hdE_lily);
 
+/* a rose (2aa_roses.js): a round cup of petals in rings, a deeper swirl from the heart out, over the tulip's stem */
+function hdE_rose(s, col, deep) {
+    hdE_stem(s, 26);
+    const P = hdRamp(col), D = hdRamp(deep), cx = 19.5, cy = 15.5;
+    const outer = s.add(P, { layer: 0, R: 3, k: 1.2, bias: -0.12 });
+    s.ellipse(outer, cx, cy, 11.5, 10.5);
+    const mid = s.add(P, { layer: 1, R: 3, k: 1.3, grad: 0.3 });
+    s.ellipse(mid, cx, cy - 1, 8.5, 7.5);
+    const inner = s.add(P, { layer: 2, R: 2, k: 1.3, grad: 0.3, bias: 0.05 });
+    s.ellipse(inner, cx, cy - 2, 5, 4.5);
+    for (let t = 0; t < 1; t += 0.004) { const a = t * Math.PI * 6, r = 0.6 + t * 10; s.recolor(cx + Math.cos(a) * r, cy - 1.5 + Math.sin(a) * r * 0.85, D); }
+    for (const [x, y] of [[13, 10], [14, 9], [24, 11], [25, 12]]) s.mod(x, y, 1);
+}
+hdE_reg([
+    ['fl_rose_0', 12, 16, 6, 15, '#d8283c', '#98182a'], ['fl_rose_1', 12, 16, 6, 15, '#ffffff', '#cfc6dc'], ['fl_rose_2', 12, 16, 6, 15, '#ffd84a', '#d8982a'],
+    ['fl_rose_3', 12, 16, 6, 15, '#ff9ec0', '#e0607a'], ['fl_rose_4', 12, 16, 6, 15, '#8cb4ff', '#5874d0'],
+], hdE_rose);
+
 /* ---------------------------------------------------------------- wild flowers (three little blooms on a tile) */
 /* where today's three blooms are (their middles, HD pixels) */
 const hdE_TRIO = [[31.5, 16.5], [13.5, 22.5], [25.5, 34.5]];

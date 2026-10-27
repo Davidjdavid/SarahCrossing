@@ -172,7 +172,7 @@ function flowerSeedIds() { return S.pocket.filter(s => s && ITEMS[s.id].flower).
 /* everyone likes flowers; some people have a favorite */
 const FLOWER_LOVES = { cece: ['flower_daisy_2', 'flower_tulip_2'], coco: ['flower_tulip_2', 'flower_lily_2'], clementine: ['flower_lily_1', 'flower_cosmos_2'],
     maki: ['flower_lily_0'], david: ['flower_cosmos_0', 'flower_cosmos_1', 'flower_cosmos_2'], cuke: ['flower_daisy_1'], sully: ['flower_tulip_0'],
-    kai: ['flower_lily_1'], basil: ['flower_daisy_0'], wonton: ['flower_lily_0'], chili: ['flower_tulip_0'] };
+    kai: ['flower_lily_1'], basil: ['flower_daisy_0'], wonton: ['flower_lily_0'], chili: ['flower_tulip_0', 'flower_rose_0'], brulee: ['flower_rose_0', 'flower_rose_1'] };
 for (const [id, list] of Object.entries(FLOWER_LOVES)) if (TALK[id]) TALK[id].loves = (TALK[id].loves || []).concat(list);
 for (const id of NEIGHBORS) if (TALK[id]) TALK[id].likes = (TALK[id].likes || []).concat(['flower']);
 
