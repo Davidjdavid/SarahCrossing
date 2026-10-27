@@ -37,7 +37,7 @@ Bus.on('enter', async id => {
     await waitFrames(20);
     await UI.say('ginger', ["Welcome to the workshop! Hard hats optional. Mine is not optional. Mine is part of me.",
         "Here's what I do: I make houses bigger. I repaint walls, swap roofs, add mailboxes, flower boxes, chimneys, the works.",
-        `Your house or anybody's. Want to surprise a neighbor? I'll redo their place too. ${fmtNum(EXT_PRICE)} sand dollars a job, any changes you like.`,
+        `Your house or a neighbor's. A new look costs ${fmtNum(EXT_PRICE)} sand dollars for the whole job.`,
         'Just talk to me at the bench whenever you want something built.']);
     G.busy--;
 });
@@ -76,7 +76,7 @@ async function builderMenu() {
 async function houseExpand() {
     const lvl = S.house.level, cost = HOUSE_EXPAND[lvl];
     const [fw, fh] = HOUSE_SIZES[lvl + 1];
-    const what = ['a bigger room, plus a little attic window', 'a whole second floor. Two stories! Very fancy', 'even more room, and a new attic window on top',
+    const what = ['a bigger room and a small attic window', 'a whole second floor. Two stories! Very fancy', 'more room and a new attic window',
         'the biggest house on the island. And a porch. Finally, a porch'][lvl];
     // (with the Bank open, the crew can build first and the Bank waits for the money: 6ze_bank.js)
     const loan = typeof bankLoanOk === 'function' && bankLoanOk();
@@ -286,15 +286,15 @@ const HOUSE_TASTE = {
     brulee: ['#e9b93b', '#fff1b8', '#f2b880', '#caa55f'], mac: ['#fff1b8', '#e9b93b', '#4f86c6', '#ffd84a'],
 };
 const HOUSE_LOVE_LINE = {
-    maki: 'My house. New colors. I have looked at it for twenty minutes. It is precisely right.',
+    maki: 'I have inspected the new colors in several kinds of light. This is my pleased face in all of them.',
     kai: 'Duuude, my shack looks SICK. Did you do that? You did that. Bowl-oha!',
-    basil: 'My house looks... balanced. Calm. Like a good curry. Thank you, {name}.',
-    chili: "My house got a glow-up and now it's HOT. Like, hotter. I'm blushing. I'm always blushing, but still.",
+    basil: 'I like the new colors, {name}. I walked past my own door twice. It\'s going to take some getting used to being this tasteful.',
+    chili: "My house looks good. I mean, it looked good before. But now other people might notice.",
     coco: "Oh my GOD, my house! Everyone is talking about it. Okay, I started it. But everyone is talking about it!",
-    cece: "You fixed up my house?! It's so pretty! I cried a little. Sorry! Happy crying!",
+    cece: "My house! You did that for me? Oh, thank you! I feel like I should bring it flowers.",
     clementine: 'Darling. My house. Finally, it looks like it knows who I am.',
     cuke: 'My house looks AMAZING! I jogged past it six times this morning! At 5 AM!',
-    sully: "Kid, my house looks wicked nice. The whole street's jealous. Well. Everybody's jealous.",
+    sully: "Kid, my house looks wicked nice. Gonna sit out front till somebody says somethin'.",
     david: "My house? Honey, it's a MOMENT. The goat is speechless. The goat is always speechless, but still.",
     joe: "Did you redo my house? It's beautiful. I'm writing a poem about it. It's about the door. It's a very good door.",
     ginger: "Ha! Hiring my own crew to redo MY house? Smart. It looks great. I'd know.",
@@ -310,7 +310,7 @@ async function houseReaction(n) {
     n.emote = loved ? 'heart' : 'sparkle'; n.emoteT = 80;
     let line;
     if (news.moved) line = rpick(["My house MOVED! I walked to the old spot this morning and just stood there. New view, though. I love the new view.",
-        "Did you have Ginger move my house? Overnight? I went to bed in one place and woke up in another! Best surprise ever."]);
+        "Ginger moved the house while I was asleep. I had to look out of three windows before I believed it."]);
     else if (news.restored) line = "My house looks like my house again! I missed it, honestly. Thank you for putting it back.";
     else if (loved) line = HOUSE_LOVE_LINE[id] || 'Did you redo my house? I LOVE it. I walked past it three times just to look.';
     else line = rpick(['Did you have Ginger fix up my house? That is so sweet. It is different! I like different. Mostly.',

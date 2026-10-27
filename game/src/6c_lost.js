@@ -175,7 +175,7 @@ async function returnLost(n) {
     G.player.pose = 'cheer'; G.player.poseT = 30;
     n.emote = 'heart'; n.emoteT = 120;
     Sfx.play('fanfare');
-    const lines = { joe: "My NOTEBOOK! All my poems! Thank you! Please don't read page twelve. There's nothing on page twelve. (There is a lot on page twelve.)",
+    const lines = { joe: "My notebook! Thank you. I was trying to remember the poems. Started mixing up which frog went with which log.",
         coco: "My DIARY! Did you read it? ...Don't answer that. Thank you. You're my favorite. Don't tell anyone. (Tell everyone.)",
         mac: 'My lucky spoon! Everything tastes better with it. EVERYTHING. Thank you!', ginger: 'My lucky hammer! Everything I build is a little crooked without it. Thank you!',
         chili: 'My hot sauce! My emergency hot sauce! Thank you. Want some? Careful. It is SO hot.', kai: "Duuude! You found it! You're, like, the best finder on the island!" };

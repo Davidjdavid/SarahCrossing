@@ -14,7 +14,7 @@ function dailyCheck(force) {
         if (r() < 0.22 && !Online.visitor()) { const m = rpick(HARVARD_MAIL, r); sendMail({ from: 'harvard', subject: m.subject, body: fillText(m.body) }); }
         if (r() < 0.2 && S.flags.metJoe && !Online.visitor()) {
             const [title, lines] = rpick(JOE_POEMS, r);
-            const intro = rpick(['Hi! I wrote a new poem and I had to send it right away.', 'Hey you. Couldn\'t sleep, so I wrote something.', "Good morning! I've been up since six. A new poem, fresh from the desk."], r);
+            const intro = rpick(['Hi! I wrote a new poem and I had to send it right away.', 'Hey you. Couldn\'t sleep, so I wrote something.', "Good morning! A fresh poem. I managed to keep the toast crumbs off this copy."], r);
             sendMail({ from: 'joe', subject: `A new poem: "${title}"`, body: `${intro}\n\n"${title}"\n${lines.join('\n')}\n\nSee you later!\n- Joe`,
                 gift: r() < 0.4 ? rpick(['rose_vase', 'framed_poem', 'sonnet_stack', 'typewriter'], r) : null });
         }
@@ -41,7 +41,7 @@ function dailyCheck(force) {
         }
         if (G.events.has('lunar') && !S.flags['lny' + day]) {
             S.flags['lny' + day] = true;
-            sendMail({ from: 'wonton', subject: 'Red envelope!', body: 'Happy Lunar New Year!\nHere is a red envelope. Inside: good luck, and 888 sand dollars. And no soup.\n- Wonton' });
+            sendMail({ from: 'wonton', subject: 'Red envelope!', body: 'Happy Lunar New Year!\nHere is a red envelope with 888 sand dollars. I kept it out of the spring. The envelope says thank you.\nWonton' });
             addMoney(888, true, 'Found & gifts');
         }
     }
@@ -61,8 +61,8 @@ function newsCheck() {
     sendMail({ from: 'fortune', subject: 'Big island news!', body: "Hello hello!\nSo much new on the island this week. The cookie told me to write it all down:\n\n" +
         "- The old lighthouse on the beach is open. People say it's haunted. I say bring a snack.\n" +
         "- Friends might ask you for little favors now. Your phone has a new To-do app to keep track.\n" +
-        "- Cooking is hands-on! The first time you make a dish, you really make it. Chop, stir, flip. Gold medals make two.\n" +
-        "- Special things are hidden all over: fishing crates, sparkly trees, favors, high scores, new recipes. The Collection app lists them.\n" +
+        "- Try cooking a new dish by hand: chop, stir, and flip. A gold medal makes two servings.\n" +
+        "- The Collection app keeps track of special finds from fishing, sparkling trees, favors, recipes, high scores, and more.\n" +
         "- Gems glint on the mountain top every day. The lookout telescope has the whole sea in it.\n" +
         "- The arcade has a new cabinet, Snack Stack. And Bento Blocks can hold a piece now!\n" +
         "- Eating at Mac's? Text a friend to join you. Joe always says yes.\n" +
@@ -76,12 +76,13 @@ function newsCheck10() {
     if (!S || !S.flags || S.flags.news10 || !S.flags.introDone) return;
     S.flags.news10 = true;
     sendMail({ from: 'fortune', subject: 'Island time, but earlier!', body: "Hello hello!\nA few little changes around the island:\n\n" +
-        `- Shops open around 8 AM now and close around 10 PM. Mine is open ${hoursText('shop')}. Everyone's up earlier too. Well. Most of us.\n` +
+        `- Shops open around 8 AM and close around 10 PM. Mine is open ${hoursText('shop')}. Check each shop for its own hours.
+` +
         "- If nobody's at a counter, it's the honor system! Leave the sand dollars in the jar. The jar keeps track. Somehow.\n" +
         "- There's a Run button now (the little shoe by the map, or press R). Zoom zoom.\n" +
         "- The map shows whose house is whose. No more knocking on the wrong door. (Coco LOVES when people knock on the wrong door.)\n" +
         "- Look around! A volleyball court on the beach, an ice cream cart on the Boardwalk, a fountain on Main Street, and more.\n" +
-        "- Full pockets? Whatever you pick up goes straight home to storage. Sand dollars always fit.\n\n" +
+        "- Full pockets? New finds go straight to your house storage. Sand dollars always fit.\n" +
         "That's all! Now go outside. It's a nice day. It's always a nice day.\n- Fortune" });
     Save.touch();
 }
@@ -275,8 +276,8 @@ async function birthdayParty() {
     await UI.say('everyone', 'SURPRISE! HAPPY BIRTHDAY, SARAH!', { keep: true });
     await UI.say('cece', "I made you a birthday cheesecake! It didn't crack! Well. It cracked a little. I fixed it. Sorry!", { keep: true });
     await UI.say('david', "Happy birthday, sister! You're a year more iconic. Here, a crown. Obviously.", { keep: true });
-    await UI.say('coco', 'I told everyone. Obviously. This is the one time that is a good thing.', { keep: true });
-    await UI.say('joe', "I wrote a birthday poem. It's about cake. Everything good is about cake.", { keep: true });
+    await UI.say('coco', 'I\'ve been keeping the party a secret. Do you know how difficult that is for me? Happy birthday!', { keep: true });
+    await UI.say('joe', "I wrote you a birthday poem. It has cake in it. There's cake here, too. I planned the whole experience.", { keep: true });
     await UI.say('joe', BIRTHDAY_POEM.join('\n'), { keep: true, letter: true });
     await UI.say('everyone', '*applause* (the goat also claps, somehow)', { keep: true });
     p.pose = 'cheer'; p.poseT = 60;

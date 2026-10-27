@@ -17,7 +17,7 @@ const SEW_NOTES = { dress: 'One color, top to hem. Add trim at the waist.', tops
     suit: 'A sharp suit: jacket, trousers, a crisp shirt and a tie.', muumuu: 'Long, breezy and flowery. Island formal.', gown: 'A flowing gown, all the way to the floor. Very red carpet.',
     robe: 'A long wizard robe with trim on the sleeves. Stars optional (but recommended).', jumpsuit: 'A disco jumpsuit with bell-bottoms and a big belt.',
     cape: 'A hero suit with a cape and a shiny emblem.', tutu: 'A leotard and a fluffy tutu. Twirl-ready.', sailor: 'A sailor dress with a collar and a little bow.',
-    spacesuit: 'A spacesuit with a glass helmet. For your next trip. Upwards.' };
+    spacesuit: 'A spacesuit with a glass helmet. Ready for a very ambitious walk.' };
 const SEW_EXTRA_PAL = { W: '#ffffff', Y: '#ffd84a', R: '#e0405a', B: '#bfe8ff' };
 const SEW_PARTS = {
     dress: [['top', 'Dress'], ['trim', 'Trim'], ['shoes', 'Shoes']], topskirt: [['top', 'Top'], ['bottom', 'Skirt'], ['trim', 'Trim'], ['shoes', 'Shoes']],

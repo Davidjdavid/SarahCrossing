@@ -140,7 +140,7 @@ function buildStudioRoom(a) {
     const items = layoutItems(rows);
     const use = { potters_wheel: () => potteryWheel(), glaze_table: () => glazeStation(), kiln: () => kilnStation(), work_table: () => handBuild(),
         display_shelf: () => UI.say('sully', bostonize("That's your shelf, kid. Your newest pieces go up there. Wicked nice.")),
-        clay_bin: () => UI.say(null, 'A bin of clay. A sign on it says: "WICKED GOOD CLAY. FREE. DON\'T GET WEIRD."') };
+        clay_bin: () => UI.say(null, 'A bin of clay. Sully\'s sign says: \'HELP YOURSELF. THE LUMPS ARE FREE. YOU DO THE MUG PART.\'') };
     items.forEach(it => { if (use[it.id]) it.use = use[it.id]; });
     a.items = items;
     placeFurniture(a, items);
@@ -408,21 +408,21 @@ function appPottery() {
 
 /* ---------------------------------------------------------------- pottery as a gift */
 const POT_LOVES = {
-    maki: { kind: ['plate'], line: 'A handmade plate. For sushi. It is perfectly flat. I may cry. Precisely.' },
-    kai: { color: ['b', 'c', 'n'], line: "Duuude, it's ocean colors! You MADE this? It's going right in the shack!" },
+    maki: { kind: ['plate'], line: 'You made this? For me? I shall use it. After I\'ve decided which way it should face. Please allow several days.' },
+    kai: { color: ['b', 'c', 'n'], line: "Dude, you MADE this? I'm moving the shell collection. No, the other shell collection. It's getting a good spot." },
     basil: { kind: ['bowl'], line: "A bowl. For noodles. Handmade. That's... that's really special. Thank you." },
     wonton: { kind: ['bowl'], line: 'A bowl! It is beautiful. It is NOT for soup. It is for... looking at. Thank you!' },
-    chili: { color: ['h', 'm'], line: "It's RED. It's hot. You made it? I'm blushing. I'm always blushing, but still." },
+    chili: { color: ['h', 'm'], line: "You made this? ...All right, this is good. Don't sound so surprised. I notice things besides peppers." },
     coco: { color: ['g', 'l'], line: "You MADE this?! It's gorgeous. I'm telling everyone. EVERYONE." },
-    cece: { kind: ['plate', 'dumpling', 'heartdish'], line: "You made this? For me? It's perfect. No cracks! Sorry, I'm crying!" },
-    clementine: { color: ['m', 'f'], line: 'Darling. Orange. Handmade. You understand me. You truly understand me.' },
-    cuke: { color: ['d', 'e'], line: "It's GREEN! And handmade! I'm so hydrated right now! Thank you!" },
+    cece: { kind: ['plate', 'dumpling', 'heartdish'], line: "You made it yourself? Oh! I'll put it somewhere safe. I mean, I'll USE it. Safely. How do people own nice things?" },
+    clementine: { color: ['m', 'f'], line: 'Darling. Handmade, just for me. I knew arriving empty-handed was the right decision.' },
+    cuke: { color: ['d', 'e'], line: "You MADE this! Thank you! I should've made you something! Can you make a jog? I'll think about it!" },
     sully: { kind: ['mug', 'cup'], line: "A mug! For my coffee! Kid, this is wicked nice. The handle's perfect. I'm proud of ya." },
     david: { color: ['o'], rainbow: true, line: 'Honey. It SPARKLES. Or it will in my house, because I will light it dramatically.' },
-    joe: { kind: ['slug', 'snail', 'frog', 'duck', 'sculpture'], line: "You made this? It's perfect. I'm going to write a poem about it. It'll probably be about a spoon." },
-    ginger: { kind: ['dollhouse', 'bighouse'], line: "A tiny house! You MADE this? The proportions are perfect. I'm putting it on my workbench." },
+    joe: { kind: ['slug', 'snail', 'frog', 'duck', 'sculpture'], line: "You made this? For me? I'm writing you a poem. We should warn Brulee. This could be a joint exhibition." },
+    ginger: { kind: ['dollhouse', 'bighouse'], line: "Handmade! Nice work! I'm going to put it on the workbench. I'll tell my tools to make some room." },
     brulee: { kind: ['vase', 'sculpture'], line: 'A vase! Handmade! This belongs in a museum. Luckily, I know a museum.' },
-    mac: { kind: ['bowl', 'plate'], line: "A bowl! For mac and cheese! I'm serving my very best batch in this. Every day." },
+    mac: { kind: ['bowl', 'plate'], line: "You made this? Come on in. I'm making you dinner. Don't argue. There are already two plates out." },
 };
 function potteryTier(npcId, itemId) {
     const P = S.pottery && S.pottery.pieces[itemId], pref = POT_LOVES[npcId];

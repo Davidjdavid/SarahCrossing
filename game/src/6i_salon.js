@@ -279,11 +279,11 @@ async function flossTalk(n) {
 const FLOSS_CHAT = [
     "I'm cotton candy, sugar. I've been having a good hair day since the day I was spun.",
     "Clementine sends everyone here after she dresses them. We call it the full makeover. She calls it 'finishing the job.'",
-    'David came in and asked for "more." More what? "More," he said. I respect it.',
+    'Clementine wanted \'just a touch more volume.\' We agreed to stop while she still fit through the door.',
     "Humidity is my nemesis. I live on an island. I know. I KNOW.",
     'Wonton asked for a trim. He is a dumpling. I trimmed his little fold. He left very happy.',
     "Everybody's hair tells a story. Joe's hair tells a poem. A beautiful one. About curls.",
-    "The secret to great hair? A good night's sleep. In bed by midnight, sugar. The hair knows.",
+    "The secret to great hair? Don't touch it when you leave. Everyone touches it. Sugar, I'm looking at your hand.",
 ];
 
 /* ---------------------------------------------------------------- the salon itself */
@@ -299,10 +299,10 @@ function buildSalonRoom(a) {
     items.forEach(it => {
         if (it.id === 'salon_chair') it.use = () => salonChair();
         else if (it.id === 'salon_desk') it.use = 'counter';
-        else if (it.id === 'salon_mirror') it.use = () => UI.say(null, lookIsDefault() ? 'Sarah checks the mirror. Same Sarah. Still great.' : 'Sarah checks the mirror. The new look? Honestly? Iconic.');
+        else if (it.id === 'salon_mirror') it.use = () => UI.say(null, lookIsDefault() ? 'Sarah checks the mirror. Same Sarah. Still great.' : 'Sarah checks the new look. Tilts left. Tilts right. Finds her angle. Remembers it for photographs.');
         else if (it.id === 'salon_dryer') it.use = () => UI.say(null, rpick(['A hood hair dryer. It hums like a very small airplane.', 'Sarah sits under the dryer for a second. Warm. Loud. Relaxing, somehow.']));
         else if (it.id === 'salon_sink') it.use = () => UI.say(null, 'A shampoo sink. It smells like strawberries and coconut and a little like cotton candy.');
-        else if (it.id === 'salon_shelf') it.use = () => UI.say(null, rpick(['Shelves of hair products: "Extra Fluff", "Sea Salt Spray", "Anti-Humidity (Please)".', 'Brushes, combs, a hundred bottles. One is labeled "For David Only."']));
+        else if (it.id === 'salon_shelf') it.use = () => UI.say(null, rpick(['Shelves of hair products: "Extra Fluff", "Sea Salt Spray", "Anti-Humidity (Please)".', 'Brushes, combs, and rows of bottles. One is labeled "EXTRA FLUFF. USE SPARINGLY."']));
         else if (it.id === 'salon_sofa') it.use = () => UI.say(null, 'A little pink sofa for waiting. There are magazines. They are all about hair.');
     });
     a.items = items;

@@ -10,8 +10,8 @@ const SHOP_UP = {
         hours: [[8, 22], [7, 23], [6, 24], [6, 24]], size: [[15, 7], [19, 7], [19, 9], [23, 9]],
         furn: [5, 7, 9, 12], walls: [1, 2, 2, 3], floors: [1, 2, 2, 3],
         perks: [null,
-            ['two more stages of furniture every day', 'two wallpapers and two floors', "Fortune's pick: one piece 30% off every day", 'open 7 AM to 11 PM'],
-            ['nine stages of furniture every day', 'a furniture set of the week, 15% off (at the counter)', 'Fortune pays 10% more for what you sell', 'open 6 AM to midnight'],
+            ['two more furniture choices each day', 'two wallpapers and two floors', "Fortune's pick: one piece 30% off every day", 'open 7 AM to 11 PM'],
+            ['nine furniture choices each day', 'a furniture set of the week, 15% off (at the counter)', 'Fortune pays 10% more for what you sell', 'open 6 AM to midnight'],
             ['twelve stages of furniture every day', 'three wallpapers and three floors', 'a bigger shop, all the way to the new back wall']],
     },
     boutique: {
@@ -163,6 +163,6 @@ function shopTalk(id) {
     if (!need || s.reno != null) return null;
     const k = Math.min(s.spent / need.spent, daysPlayed() / need.days);
     if (k < 0.5) return null;
-    if (id === 'shop') return k < 0.85 ? "Business is good. Really good. I've started sketching a bigger shop on the back of my fortunes." : "Almost there! A little more business and I'm calling Ginger. The shop's going to grow!";
-    return k < 0.85 ? "Darling, the racks are bursting. If this keeps up, the shop will simply have to become more." : 'Very close now, darling. One more good week of shopping and I am redecorating the whole building.';
+    if (id === 'shop') return k < 0.85 ? "Business is good. Really good. I've started sketching a bigger shop on the back of my fortunes." : "A few more good days like this and I'll ask Ginger about a bigger shop.";
+    return k < 0.85 ? "Darling, the racks are bursting. If this keeps up, the shop will simply have to become more." : 'I have some ideas for the shop. A little more business and I can put them into practice.';
 }

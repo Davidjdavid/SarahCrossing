@@ -26,21 +26,21 @@ function addTickets(n, quiet) {
     if (!quiet && n > 0) UI.toast(`+${n} ${plural(n, 'ticket')}`, 'ui_ticket');
 }
 const CHILI_ARCADE = [
-    "Welcome to the arcade! I run the prize counter. Hottest job on the island. I checked.",
-    "Bento Blocks tip: don't panic. Panic is spicy. Spicy is MY thing.",
-    "The claw machine is fair. Mostly. Emotionally, it's fair.",
-    "Kai played Fortune Falls for three hours yesterday. He says he was 'in the zone.' The zone was a nap.",
-    "Tickets never expire. Neither does my love of hot sauce.",
-    "Spice Capsules has chili bugs in it. I'm not saying I'm the inspiration. I'm the inspiration.",
-    "David beat my high score once. On skates. I'm still recovering.",
+    "Welcome! Tickets for prizes at this counter. If you're here about a high score, I reserve the right to look unimpressed.",
+    "Bento Blocks tip: leave yourself somewhere to put the next piece. I remember that just after I need it.",
+    "The claw machine is fair. It treats everybody like this.",
+    "Kai played Fortune Falls for three hours yesterday. I asked if he wanted a break. He thought he was taking one.",
+    "Tickets don't expire. I still have mine. I'm saving for the big prize. Yes, I work here. I have to win it like everybody else.",
+    "The Spice Capsules bug looks a little like me. I would like it recorded that I am much harder to clear.",
+    "Maki beat my high score. Said he'd 'noticed a pattern.' I'm trying to notice it too.",
 ];
 const PLUSH_SELF = {
-    maki: 'It is me. A very accurate me. The rice is perfectly placed. I will treasure it. Precisely.',
+    maki: 'A tiny me. The rice is in order. I see they consulted someone.',
     wonton: 'A tiny me! It is soft! It is NOT a dumpling in soup! I love it!',
-    chili: "Is that... ME? I'm blushing. I'm always blushing, but this is different. This is HOT.",
+    chili: "A little me? Huh. Does it come with the attitude, or do I have to teach it?",
     coco: "Oh my GOD, it's ME. Tiny me! I'm telling everyone. Tiny me is telling everyone too.",
     cece: "It's me! Soft me! Sorry, I'm crying. Tiny me isn't crying. She's doing great.",
-    kai: "Duuude. It's me. Tiny me. We're gonna surf together. Emotionally.",
+    kai: "Little Kai! Dude. You don't even have to go surfing. Your whole life can be the beach bag.",
     sully: "Kid. Is that me? That's wicked cute. Don't tell anybody I said 'cute.'",
 };
 function chiliVoice() { const c = NPCs.get('chili'); return c && !c.sleeping && c.area === 'arcade' ? 'chili' : null; }
@@ -54,7 +54,7 @@ const ARCADE_CHAT = {
     cuke: ['Jump rope in the plaza! Afternoons! Good for the heart! And the calves! And morale!'],
     basil: ["Karaoke at the club is so nice. Joe's poems with a beat? Magic. Pure magic."],
     clementine: ['The arcade carpet is a crime. A fabulous, glittering crime.'],
-    sully: ["Chili runs the prize countah. Wicked competitive. I won a plushie and he cried. Hot teahs, kid."],
+    sully: ["Won a plushie. Chili came over to check the machine. I said, 'It's fine, kid. I just won.' That didn't help."],
     wonton: ['There is a Wonton plushie in the claw machine! It is very soft. It is not in soup. I approve.',
         'Dumpling Drop has dumplings! They fall! They pop! Nobody goes in soup! It is my favorite game!'],
     coco: ["Have you done karaoke yet? Joe's poems, with MUSIC. I sang the frog one. Twice. People were moved. To tears."],
@@ -392,7 +392,7 @@ function buildArcadeRoom(a) {
         snack_machine: () => snackMachine(),
         poster_blocks: () => UI.say(null, 'A poster: "BENTO BLOCKS. Fill the box. Clear the rows. Stay calm. (Chili cannot stay calm.)"'),
         poster_capsules: () => UI.say(null, 'A poster: "SPICE CAPSULES. The bugs are loose! Line up four to catch them." The chili bug looks a lot like Chili.'),
-        plush_goat: () => UI.say(null, "A goat plushie guards the counter. It's a goat. Nothing else to say."),
+        plush_goat: () => UI.say(null, "A goat plushie sits at the counter, wearing a STAFF badge."),
         trophy_arcade: () => UI.say(null, `ARCADE CHAMPION. It's for sale, sort of: ${fmtNum(PRIZES.find(p => p[0] === 'trophy_arcade')[1])} tickets. Chili polishes it every hour.`),
     };
     items.forEach(it => { if (use[it.id]) it.use = use[it.id]; });
@@ -476,10 +476,10 @@ Bus.on('enter', async id => {
     await waitFrames(20);
     const c = NPCs.get('chili');
     c.emote = 'spicy'; c.emoteT = 80;
-    await UI.say('chili', ["Welcome to the arcade! I'm on the prize counter. Hottest job on the island. I checked.",
+    await UI.say('chili', ["Hey! Welcome to the arcade. I'm Chili. The prizes are over here. The records are mostly mine.",
         `The cabinets are ${PLAY_FEE} sand dollars a game, and your first game on each one is free. Play well, win tickets.`,
         'Bring the tickets to me for plushies, trophies, even the machines themselves. Then you can play at home. Free. Forever.',
-        `The claw machine is ${CLAW_FEE} a try. It's fair. Mostly. Emotionally, it's fair.`]);
+        `The claw machine is ${CLAW_FEE} a try. Line it up carefully. I've heard cheering helps, but I cannot prove it.`]);
     G.busy--;
 });
 
@@ -543,8 +543,8 @@ async function afterArcade(res) {
     if (res.newBest && sp && res.score >= 500) {
         const c = NPCs.get('chili');
         c.emote = 'spicy'; c.emoteT = 70;
-        await UI.say('chili', rpick(["NEW HIGH SCORE! Your name's going on the board. In very hot letters.", "Whoa. That's a high score. That's HOT. I'm writing it down.",
-            "High score! I felt that from over here. I'm sweating. I'm always sweating, but still."]));
+        await UI.say('chili', rpick(["NEW HIGH SCORE! I suppose I have to make room for your name now.", "That's a new record. Nice work. I'm writing it down before I talk myself out of it.",
+            "High score! Yes, I saw. You can stop looking at me like that. Well played."]));
     }
     Bus.emit('arcade', res);
 }
@@ -568,7 +568,7 @@ async function clawMachine(home) {
 }
 async function snackMachine() {
     await UI.say(null, rpick(['A snack machine. Every single bag says HOT CHIPS. Chili stocks it himself.',
-        'The snack machine hums. It only sells hot chips. There are eleven flavors of hot.', "A handwritten sign: 'OUT OF ORDER (TOO SPICY).' It's not out of order. It's just very spicy."]));
+        'The snack machine hums. It only sells hot chips. There are eleven flavors of hot.', "Chili's note on the snack machine says: 'THE RED ONES ARE NOT STRAWBERRY.'"]));
 }
 
 /* ---------------------------------------------------------------- prizes */
@@ -577,10 +577,10 @@ async function prizeDesk() {
     if (sp) {
         const met = rel('chili').met;
         await talkTo(NPCs.get('chili'));
-        if (!met) { await UI.say('chili', "Oh! And this is the prize counter. Tickets in, prizes out. It's hot. Everything's hot.", { keep: true }); UI.hideDialog(); await prizeCounter(); }
+        if (!met) { await UI.say('chili', "Prize counter. Tickets in, prizes out. No, compliments aren't tickets. I checked. For myself.", { keep: true }); UI.hideDialog(); await prizeCounter(); }
         return;
     }
-    await UI.say(null, 'Nobody at the counter. A sign says: "SELF-SERVE. HONOR SYSTEM. CHILI IS WATCHING." Chili is not here. But Chili is watching.');
+    await UI.say(null, 'A sign on the empty counter reads: "SELF-SERVE. LEAVE YOUR TICKETS. YES, I COUNT THEM. — CHILI."');
     return prizeCounter();
 }
 function prizeCounter() {
@@ -592,7 +592,7 @@ function prizeCounter() {
             head.appendChild(iconCanvas('ui_ticket', 48));
             const t = el('div');
             t.appendChild(el('b', null, `${fmtNum(A.tickets)} ${plural(A.tickets, 'ticket')}`));
-            t.appendChild(el('span', null, sp ? '"Everything is hot. The prizes. The carpet. Me." (Chili)' : 'Win tickets at the cabinets. Home machines play free, but pay no tickets.'));
+            t.appendChild(el('span', null, sp ? '"Come for the games. Stay until my high score starts to look possible." — Chili' : 'Win tickets at the cabinets. Home machines play free, but pay no tickets.'));
             head.appendChild(t);
             P.body.appendChild(head);
             const L = el('div', 'list');
@@ -855,7 +855,7 @@ ARCADE_GAMES.claw = {
     canPlay(opts) { return !!opts.home || clawPile(false).length > 0; },
     result(g, opts) {
         if (g.won) return { title: 'You won!', lines: [opts.home ? `The ${itemName(g.won)} goes right back in. It's your machine. Everybody wins.` : `A ${itemName(g.won)}! It's in your pocket.`], icon: ITEMS[g.won].icon };
-        return { title: 'So close!', lines: [rpick(['It slipped. They always slip. That is how they get you.', 'The claw grabbed a whole lot of air.', 'The plushie waved goodbye. Rude.'])] };
+        return { title: 'So close!', lines: [rpick(['It slipped. They always slip. That is how they get you.', 'The claw grabbed a whole lot of air.', 'The plushie tips back into the pile. Its stitched smile is unhelpful.'])] };
     },
 };
 

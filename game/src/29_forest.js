@@ -440,7 +440,7 @@ async function holeMenu(e) {
         plant = { kind: 'fruit', item: id, fruit: id };
     } else if (act === 'money') {
         const amts = [1000, 5000, 10000].filter(n => S.money >= n);
-        if (!amts.length) { await UI.say(null, "Sarah doesn't have 1,000 sand dollars to bury. The hole understands."); return; }
+        if (!amts.length) { await UI.say(null, "Sarah needs 1,000 sand dollars to bury here. She can come back with more."); return; }
         const j = await UI.ask(null, 'How many sand dollars? (Rumor has it the tree grows three bags of whatever you bury.)', amts.map(n => fmtNum(n)).concat(['Never mind']));
         if (j >= amts.length) return;
         plant = { kind: 'money', amount: amts[j] };
@@ -450,8 +450,8 @@ async function holeMenu(e) {
     if (palm && plant.kind !== 'money') plant.kind = 'palm';
     const why = canPlant(h.x, h.y, palm);
     if (why) {
-        await UI.say(null, why === 'path' ? "Not on a path. A tree here would be in everybody's way." : why === 'crowded' ? "It's too crowded here for a tree. Trees like a little room on every side." : why === 'sand' ? 'Palm trees want sand or grass. This is neither. Somehow.'
-            : plant.kind === 'fruit' ? 'Fruit trees need grass to grow. (Coconuts are fine on the beach.)' : 'Trees need grass to grow. On sand, a sapling turns into a palm. This is not sand.');
+        await UI.say(null, why === 'path' ? "Not on a path. A tree here would be in everybody's way." : why === 'crowded' ? "It's too crowded here for a tree. Trees like a little room on every side." : why === 'sand' ? 'Palm trees need sand or grass. Try another spot.'
+            : plant.kind === 'fruit' ? 'Fruit trees need grass to grow. (Coconuts are fine on the beach.)' : 'Trees need grass. On sand, this sapling would become a palm instead.');
         return;
     }
     if (plant.item) removeItem(plant.item, 1);

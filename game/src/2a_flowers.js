@@ -69,7 +69,7 @@ async function flowerPlantMenu(e) {
     }
     if (!flowerBloomed(pl)) { await UI.say(null, `A little ${pl.kind} sprout. It'll bloom tomorrow. It's trying its best.`); return; }
     if (pl.pickDay === day) {
-        await UI.say(null, rpick([`The ${name}s are blooming. Sarah already picked one today; they need until tomorrow.`, `Sarah admires her ${name}s. One a day, that's the deal.`]));
+        await UI.say(null, rpick([`The ${name}s are blooming. Sarah already picked one today; they need until tomorrow.`, `The ${name}s sway in the breeze. Sarah can pick another tomorrow.`]));
         return;
     }
     pl.pickDay = day;

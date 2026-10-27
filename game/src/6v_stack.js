@@ -144,7 +144,7 @@ StackGame.prototype = {
 ARCADE_GAMES.stack = {
     name: 'Snack Stack', fee: PLAY_FEE, tune: 'stack', glow: '#ff9ec0',
     help: '\u2190 \u2192 move \u00b7 Space (or \u2193) drops \u00b7 or tap where to drop',
-    how: 'Drop snacks into the box. When two of the same snack touch, they squish together into the next bigger snack: edamame, cherry, lychee, mochi, dumpling, peach, coconut, cheesecake, poke bowl, pumpkin, watermelon! Keep the pile under the line.',
+    how: 'Drop snacks into the box. Two matching snacks touching become the next larger snack. Keep the pile below the line.\n\nEdamame → cherry → lychee → mochi → dumpling → peach → coconut → cheesecake → poke bowl → pumpkin → watermelon.',
     buttons: [
         { k: 'left', label: '\u25c0', keys: MOVE_KEYS.left, side: 'L', aria: 'Move left' },
         { k: 'right', label: '\u25b6', keys: MOVE_KEYS.right, side: 'L', aria: 'Move right' },

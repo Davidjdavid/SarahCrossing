@@ -15,8 +15,8 @@ const ART_IDEAS = ['the sea at sunset', 'a goat. Just a goat', 'your favorite ne
     'your favorite snack', 'a self-portrait', 'a very happy fish', 'the club at 2 AM', 'a cozy room'];
 /* Brulee's own pieces, and the painters */
 const ART_STARTERS = {
-    art_stilllife: ['Still Life with Clementine', 'Brulee', 'Clementine insisted on being the fruit. She also insisted on being the bowl. We compromised.'],
-    art_seaside: ['Sunset at the Pier', 'Brulee', 'Painted from the pier at 6 PM. Joe was reading a poem the whole time. It is in the brushstrokes.'],
+    art_stilllife: ['Still Life with Clementine', 'Brulee', 'Clementine chose the fruit, the cloth, and the light. Brulee was allowed to choose the brush.'],
+    art_seaside: ['Sunset at the Pier', 'Brulee', 'The pier at six, with Joe reading beside the easel. The painting took three poems.'],
     art_goat: ['Portrait of a Goat', 'David', "It's a goat. Nothing else to say. (David says there is a lot else to say.)"],
 };
 
@@ -29,7 +29,7 @@ const NPC_ART = {
     maki: ['Grid No. 7', 'Every square is exactly the same size. Maki checked with a ruler. Twice.', 'black', P => {
         P.fill(4); for (let i = 0; i <= 8; i++) P.line(i * 4, 0, i * 4, 23, 1); for (let j = 0; j <= 6; j++) P.line(0, j * 4, 31, j * 4, 1);
         for (const [cx, cy, c] of [[1, 1, 5], [3, 2, 19], [5, 4, 10], [6, 1, 8], [2, 4, 13]]) P.rect(cx * 4 + 1, cy * 4 + 1, 3, 3, c); }],
-    coco: ['Self-Portrait with Glow', "Coco says this is her 'main character era.' It is a very good era.", 'gold', P => {
+    coco: ['Self-Portrait with Glow', "Coco asked whether the smile was too much. Then asked Brulee to make it a little larger.", 'gold', P => {
         P.fill(9); P.disc(16, 12, 8, 8); P.disc(16, 13, 7, 17); P.disc(13, 10, 2, 20); P.rect(13, 12, 1, 2, 1); P.rect(19, 12, 1, 2, 1);
         P.line(14, 16, 18, 16, 1); P.set(11, 15, 6); P.set(21, 15, 6); P.rect(9, 20, 2, 3, 17); P.rect(22, 21, 2, 2, 17); }],
     cece: ['Sorry (in Blue)', 'Cece apologized to the canvas before every brushstroke. It shows. It\'s lovely.', 'white', P => {
@@ -68,7 +68,7 @@ const NPC_ART = {
         P.rect(14, 9, 4, 4, 9); P.rect(15, 10, 2, 2, 8); P.line(19, 12, 19, 18, 20); }],
     wasabi: ['Zing', 'Wasabi painted it at the club at 2 AM. You can hear the bass if you look closely.', 'black', P => {
         P.fill(4); for (let k = 0; k < 3; k++) for (let x = 0; x < 32; x++) { const y = 5 + k * 7 + ((x % 8) < 4 ? (x % 4) : 4 - (x % 4)); P.set(x, y, k === 1 ? 22 : 10); P.set(x, y + 1, 11); } }],
-    joe: ['A Poem, Painted', 'Joe painted one of his poems. The words are too small to read, which somehow makes it even more beautiful.', 'gold', P => {
+    joe: ['A Poem, Painted', 'Joe\'s poem, painted. Visitors have been known to lean very close to read the last \'frog.\'', 'gold', P => {
         P.fill(9); for (let row = 0; row < 6; row++) for (let x = 4; x < 27 - (row % 3) * 3; x++) if (((x * 7 + row * 13) % 5) !== 0) P.set(x, 3 + row * 3, 1);
         P.disc(24, 19, 1, 5); P.disc(27, 19, 1, 5); P.line(23, 20, 25, 22, 5); P.line(28, 20, 26, 22, 5); P.set(25, 21, 5); P.rect(4, 21, 1, 2, 17); P.set(5, 22, 17); }],
 };
@@ -371,9 +371,9 @@ function critique(p) {
     if (painted < 25) return "Minimalism! Very brave. Very... empty. I love the confidence.";
     if (kinds >= 10) return 'So many colors! It is like a party in a frame. Magnifique.';
     const top = +Object.entries(cnt).filter(([k]) => k !== '0').sort((a, b) => b[1] - a[1])[0][0];
-    const fam = [[[12, 13, 14, 21], 'So much blue. Very ocean. Very feelings. I am moved.'], [[10, 11, 22], 'Green! Fresh, alive... I can almost smell the grass.'],
+    const fam = [[[12, 13, 14, 21], 'So much blue. I can almost hear the sea. ...No, that is the sea. Still, very good.'], [[10, 11, 22], 'Green! Fresh, alive... I can almost smell the grass.'],
         [[5, 6, 23], 'Such warmth! Such passion! Chili will say it is about him. It is not about him.'], [[7, 8, 9], 'It glows! Like sunshine. Like caramel. My two favorite things.'],
-        [[15, 16], 'Purple! Royal, mysterious. David will want to buy it. It is priceless.'], [[17, 18, 20, 19], 'Earthy. Cozy. Like a gingerbread house in autumn.'],
+        [[15, 16], 'Purple! Royal, mysterious. I shall have to stand a little taller beside it.'], [[17, 18, 20, 19], 'Earthy. Cozy. Like a gingerbread house in autumn.'],
         [[1, 2, 3], 'Dramatic! Moody! Very modern. I need to sit down.']].find(([set]) => set.includes(top));
     return fam ? fam[1] : 'I see... yes. Yes! I see it now. Wonderful.';
 }
@@ -649,7 +649,7 @@ Bus.on('enter', async id => {
     G.busy++;
     await waitFrames(20);
     await UI.say('brulee', ['Bienvenue to the museum! I am Brulee, the curator. Please do not tap me. Or the art.',
-        'Through the arches: paintings, pottery, the aquarium, photography, fashion and the island\'s history. Right now the gallery is mostly my work. And one goat, by David.',
+        'Through the arches: paintings, pottery, the aquarium, photography, fashion and the island\'s history. Most of the gallery is my work for now. I look forward to changing that.',
         'But this museum is for YOU. Paint at the easel in the corner, make pottery at Sully\'s, hang your photos, show your designs. Bring me the ones you love.',
         'I will hang them with great ceremony. Talk to me at the desk anytime.']);
     G.busy--;

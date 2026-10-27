@@ -773,7 +773,7 @@ CookGame.prototype = {
     },
 };
 const COOK_LINES = {
-    gold: ['Perfect! Fortune would put this in the shop window.', 'Chef Sarah! Even Maki would call this precise.', 'Wow. Joe is going to want a poem about this. He\'ll write a great one.', 'Restaurant quality. Mac would hire you on the spot.'],
+    gold: ['Perfect! Fortune would put this in the shop window.', 'Chef Sarah! Even Maki would call this precise.', 'Joe will want to write about this. Best let him finish the poem before offering a taste.', 'Restaurant quality. Mac would hire you on the spot.'],
     silver: ['Delicious! A little messy, a lot tasty.', 'So good! Practice makes perfect-er.', 'Yum! The kitchen smells amazing.'],
     bronze: ["It's... rustic! Still very tasty.", 'Every chef starts somewhere. This somewhere is yummy.', 'A little lumpy, a lot of love.'],
 };

@@ -4,14 +4,14 @@
    them down somewhere else. Nothing can go on a path or in front of a door, and nothing can cut off a door or one
    of the neighbors' favorite places. */
 const DISPLAYS = {
-    dp_lamp: { name: 'Street lamp', price: 1800, w: 1, frame: 'lamp', light: 44, talk: 'A street lamp. It hums a little at night. Cozy humming.' },
+    dp_lamp: { name: 'Street lamp', price: 1800, w: 1, frame: 'lamp', light: 44, talk: 'A street lamp. Moths gather in its glow at night.' },
     dp_lantern: { name: 'Stone lantern', price: 2200, w: 1, frame: 'd_lantern', light: 34, talk: 'A stone lantern. The candle inside never seems to run out. Island magic, probably.' },
-    dp_torch: { name: 'Tiki torch', price: 900, w: 1, frame: 'd_torch', torch: true, talk: 'A tiki torch. Very beach party.' },
+    dp_torch: { name: 'Tiki torch', price: 900, w: 1, frame: 'd_torch', torch: true, talk: 'A beach torch waits beside the path.' },
     dp_bench: { name: 'Park bench', price: 2400, w: 2, frame: 'bench', seat: true },
     dp_stonebench: { name: 'Stone bench', price: 2600, w: 2, frame: 'd_stonebench', seat: true },
     dp_log: { name: 'Log bench', price: 1200, w: 2, frame: 'log', seat: true },
     dp_hedge: { name: 'Square hedge', price: 800, w: 1, frame: 'd_hedge', talk: 'A very neat hedge. Somebody trims it with a ruler.' },
-    dp_hedge_round: { name: 'Round hedge', price: 800, w: 1, frame: 'd_hedge_round', talk: 'A round hedge. Perfectly round. Suspiciously round.' },
+    dp_hedge_round: { name: 'Round hedge', price: 800, w: 1, frame: 'd_hedge_round', talk: 'A round hedge. Sarah walks around it looking for a flat side. There has to be one.' },
     dp_hedge_long: { name: 'Long hedge', price: 1400, w: 2, frame: 'd_hedge_long', talk: 'A long hedge. Great for hiding behind. Sarah tries it. She is very visible.' },
     dp_topiary: { name: 'Bunny topiary', price: 3200, w: 1, frame: 'd_topiary', talk: 'A hedge shaped like a bunny. It has been trimmed with love. And tiny scissors.' },
     dp_planter: { name: 'Flower planter', price: 1500, w: 2, frame: 'flowerbed', talk: 'A planter full of flowers. The bees have opinions about it. Good ones.' },
@@ -25,7 +25,7 @@ const DISPLAYS = {
     dp_fence: { name: 'Picket fence', price: 300, w: 1, frame: 'd_fence', talk: 'A white picket fence. Very cute. Very neighborly.' },
     dp_flag: { name: 'Island flag', price: 1900, w: 1, frame: 'd_flag', flag: true },
     dp_picnic: { name: 'Picnic table', price: 3000, w: 3, frame: 'picnic', talk: 'A picnic table with a checkered cloth. It is always a good time for a picnic.' },
-    dp_flamingo: { name: 'Lawn flamingo', price: 500, w: 1, frame: 'd_flamingo', talk: 'A pink plastic flamingo. It is standing on one leg. It is doing its best.' },
+    dp_flamingo: { name: 'Lawn flamingo', price: 500, w: 1, frame: 'd_flamingo', talk: 'A plastic flamingo. Same pose every day. Sarah respects the commitment.' },
 };
 for (const [id, d] of Object.entries(DISPLAYS)) ITEMS[id] = { name: d.name, type: 'display', price: d.price, icon: d.frame };
 /* the island's own things that can be moved, and what they turn into if Sarah puts them away */

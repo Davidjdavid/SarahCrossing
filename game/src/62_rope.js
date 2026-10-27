@@ -8,7 +8,7 @@ const ROPE_TILES = W0.rope;                 // turner a, turner b, and the jumpe
 const ROPE_AIR = 26;                          // frames in the air per jump
 const ROPE_TALK_CUKE = ["Jump rope is the best cardio! After running. And more running.", "We've been turning since 2:30! My arms are SO awake!",
     'Jump in whenever you want! Timing is everything! Hydration is also everything!'];
-const ROPE_TALK = ["Cuke talked me into turning the rope. My arms are so tired. Jump in so it's worth it!", "We're turning the rope! Cuke says it's cardio. For the arms. Apparently.",
+const ROPE_TALK = ["Cuke talked me into turning the rope. My arms are so tired. Jump in so it's worth it!", "Cuke asked me to help turn. I said yes before I saw how long his warm-up was.",
     'Jump in! I promise not to trip you. Cuke might. By accident. Very enthusiastically.'];
 function ropeDay(day) {
     if (!S || !S.flags || !S.flags.introDone) return null;
@@ -195,7 +195,7 @@ const Rope = {
         const talk = A.id !== 'cuke' ? (n >= 20 ? "That was amazing! My arms gave up before your legs did!" : n >= 10 ? `${n} jumps! You make it look easy!`
             : n >= 3 ? `${n} jumps! Nice! Again sometime?` : 'The rope got you! It happens to everyone. Again sometime?')
             : n >= 20 ? "THAT WAS AMAZING! You're a natural! Were you up at 5 AM practicing? You don't have to answer."
-                : n >= 10 ? `${n} jumps! Great form! Great cardio! Great everything!` : n >= 3 ? `${n} jumps! Nice! Warm-up's over. Next time, we go faster.`
+                : n >= 10 ? `${n} jumps! Nice work! I nearly joined in and forgot I was holding the rope!` : n >= 3 ? `${n} jumps! Nice! Warm-up's over. Next time, we go faster.`
                     : "Rope got you! It happens to everyone. It happens to me at 5 AM. Try again!";
         await UI.say(A.id, voiced(A.id, talk), { keep: true });
         if (n >= 3) { const pay = n * 10; addMoney(pay, true, 'Prizes & tips'); await UI.say(B.id, voiced(B.id, rpick([`Here, ${fmtNum(pay)} sand dollars. It's the plaza jump-rope fund. We just made it up.`, `The crowd chipped in ${fmtNum(pay)} sand dollars! The crowd is us.`])), { keep: true }); }

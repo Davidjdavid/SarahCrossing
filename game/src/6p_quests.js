@@ -21,7 +21,7 @@ const QUEST_RUMORS = {
         "There's an old trunk in the barn, by the ladder. Coco says it's full of love letters. Coco says that about every trunk."],
     ghost: ['They say the old lighthouse keeper still climbs the stairs near midnight. Every night. Just to check on the light.',
         "Wonton says he saw a light moving at the top of the old lighthouse, around midnight. Wonton went back in the spring and didn't come out till morning.",
-        'The lighthouse keeper used to live there all alone, with his wife Martha. She made the best clam chowder on the whole coast. That\'s what Sully says.'],
+        'The old keeper\'s wife, Martha, used to bring him chowder up all those stairs. Sully says people still remember the recipe.'],
     goat: ["The goat seems a little lonely. It's a goat. But still. Maybe it needs a friend. Someone to pet it. A few times.", "Coco says the goat likes shiny things. And being petted. And cans. Mostly cans."],
     windmill: ['Ginger says the windmill has a second millstone. The moonstone. It used to grind moon flour. It hasn\'t turned in years.',
         "Something's wrong with the windmill's moonstone. Ginger says some cogs went missing a long time ago."],
@@ -164,7 +164,7 @@ const Quests = {
         Sfx.play('fanfare');
         n.emote = 'heart'; n.emoteT = 120;
         await UI.say(null, ['Sarah ties the golden bell around the goat\'s neck. The goat looks at her. The goat rings the bell. Once.',
-            "It's a goat. It's the happiest goat on the island.", 'The goat hums a little tune. Sarah could swear it is a waltz.']);
+            "The goat takes a step, listens to the bell, and takes another.", 'The goat hums a little tune. Sarah could swear it is a waltz.']);
         this.finish('goat');
         S.flags.goatBell = true;
         await grantSpecial('acc_goathorns', 'The goat wants you to have these. They are not its horns. It is unclear whose horns they are.');
@@ -420,6 +420,6 @@ async function goRoom(id, at, dir) {
     });
     Bus.emit('enter', id);
 }
-AREA_TALK.lighthouse = ["It's so quiet in here. Just the waves. And a clock, somewhere.", 'I heard the old keeper lived here for fifty years. Alone, except for Martha. And the chowder.',
-    "Don't go up to the lamp room at midnight. Or do! I'm not your mom. Coco might be, emotionally."];
+AREA_TALK.lighthouse = ["It's so quiet in here. Just the waves. And a clock, somewhere.", 'The keeper spent so many nights here. I like reading the ordinary little things he wrote in the logbook.',
+    "The lamp room at midnight? I'd go. I'm just waiting for someone braver to start up the stairs."];
 

@@ -641,7 +641,7 @@ FortuneGame.prototype = {
 ARCADE_GAMES.fortune = {
     name: 'Fortune Falls', fee: PLAY_FEE, tune: 'fortune', glow: '#ff8a1e',
     help: '\u2190 \u2192 aim (hold Shift or \u2193 for fine aim) \u00b7 or tap/drag the screen \u00b7 Space fires',
-    how: "Fortune's lucky pegboard! Aim the launcher and drop a sesame ball through the pegs: light up every orange fortune peg to clear the board, and the fewer that are left, the more everything scores. Catch the ball in the steamer basket for a free one, hit the purple peg for a big bonus, and a green peg makes a Double Dumpling (two balls!). Ten balls to start, and Fortune says your future looks bouncy.",
+    how: "Clear every orange fortune peg to finish the board. Aim the launcher and drop a sesame ball through the pegs. Each shot scores more as fewer orange pegs remain.\n\nCatch the ball in the steamer basket for a free ball. Purple pegs give a big bonus. Green pegs split the shot into two balls.\n\nYou start with ten balls. Take your time aiming.",
     buttons: [
         { k: 'left', label: '\u25c0', keys: MOVE_KEYS.left, side: 'L', aria: 'Aim left' },
         { k: 'right', label: '\u25b6', keys: MOVE_KEYS.right, side: 'L', aria: 'Aim right' },

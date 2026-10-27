@@ -2,12 +2,12 @@
 /* Neighbors drop by Sarah's house some afternoons and evenings: they knock, look around, say what they think,
    sometimes bring something, and head out. If Sarah's not home, they might leave a note. */
 const VISIT_KNOCK = {
-    maki: 'Knock knock. It is Maki. I was in the area. Precisely in the area. May I come in?',
+    maki: 'It\'s Maki. I was passing at a normal walking speed. May I come in?',
     kai: "Knock knock! It's Kai! Bowl-oha! Can I come in?",
     basil: "Hey, {name}. It's Basil. I brought good vibes and no noodles. Can I come in?",
-    chili: "Knock knock. It's Chili. I'm not here to check how spicy your house is. (I am.) Can I come in?",
+    chili: "It's Chili. Can I come in? If it helps, I've already decided I can.",
     coco: "Knock knock! It's Coco! I have NEWS. Well, I will once I see your house. Can I come in?",
-    cece: "Hi! It's Cece! Sorry! Is this a bad time? Can I come in? Sorry!",
+    cece: "Hi! It's Cece! Is this a good time? I brought a cake, but I can eat it on the step if you're busy.",
     clementine: "Darling, it's Clementine. I'm here to see your interiors. Can I come in?",
     cuke: "KNOCK KNOCK! It's Cuke! I jogged here! Can I come in?",
     sully: "Knock knock. It's Sully. Just passin' by. Mind if I come in, kid?",
@@ -20,11 +20,11 @@ const VISIT_KNOCK = {
 const VISIT_SET = { maki: 'sushi', kai: 'beach', basil: 'takeout', chili: 'takeout', coco: 'dessert', cece: 'dessert', clementine: 'cottage',
     cuke: 'garden', sully: 'crimson', david: 'rainbow', joe: 'poet', ginger: 'cottage', brulee: 'artist', mac: 'diner' };
 const VISIT_LOVE = {
-    maki: 'A proper sushi setup. I approve. Precisely.', kai: 'Beach vibes! You totally get it, dude.', basil: 'Takeout decor. Balanced. Homey. I love it.',
-    chili: "This is spicy decor. I'm blushing. I'm always blushing, but still.", coco: "Dessert vibes?! This house is DELICIOUS. I'm telling everyone.",
-    cece: "It's like a little bakery in here! I'm going to cry. Sorry!", clementine: 'Darling, the cottage look? Cozy. Classic. Correct.',
+    maki: 'Ah. A sushi setup. You\'ve made me feel very at home. Possibly too at home. May I straighten that?', kai: 'Beach vibes! You totally get it, dude.', basil: 'Takeout decor. Very nice. For a moment I thought I\'d come over to work.',
+    chili: "This room has some heat. I like it. You could go hotter. That's true of most rooms.", coco: "Dessert vibes?! This house is DELICIOUS. I'm telling everyone.",
+    cece: "It's like a little bakery! I'd be so happy here. I'd never get anything done. Oh, that's already true at mine.", clementine: 'Darling, the cottage look? Cozy. Classic. Correct.',
     cuke: 'Plants! Green things! Fresh air! This house is HYDRATED!', sully: "Hahvahd stuff! Wicked smaht. You fit right in, kid.",
-    david: 'RAINBOWS. In the home. Honey, I have never been prouder.', joe: 'Is that... poet stuff? In your house? I need to sit down. I am sitting down emotionally.',
+    david: 'RAINBOWS. In the home. Honey, I have never been prouder.', joe: 'You put out the poetry things! Near the good light, too. They\'ll write better here.',
     ginger: 'A cottage! Good bones. Solid beams. I could live here. I might.',
     brulee: "An artist's home! Easels, paintings... I feel like I'm at work, but relaxing.",
     mac: "Diner style! Checkered floor, red chairs... {name}, this is my dream. Can I cook here?",
@@ -86,13 +86,13 @@ const Visits = {
             n.moving = false; n.hop = 0;
             faceNpc(n, p); faceToward(p, n);
             n.emote = 'heart'; n.emoteT = 80;
-            await UI.say(id, voiced(id, n.def.family ? 'So this is your place! (PLACEHOLDER)' : rpick(["So this is your place! Oh, I love it.", "Wow! It's so YOU in here.", 'Look at this! Okay, give me the tour. Actually, I can see everything from here.'])), { keep: true });
+            await UI.say(id, voiced(id, n.def.family ? 'So this is your place! (PLACEHOLDER)' : rpick(["So this is your place! Nice! I never know what to do with my hands on a house tour.", "It looks so much like you in here. I mean that nicely. I'm looking at the nice part.", 'Look at this! Okay, give me the tour. Actually, I can see everything from here.'])), { keep: true });
             // something in the room catches their eye
             const items = S.house.items.map(it => furnDef(it.id)).filter(d => d && !d.food && !d.flower);
             const set = VISIT_SET[id];
             const fav = items.find(d => set && d.sets.includes(set));
             if (fav && VISIT_LOVE[id]) await UI.say(id, voiced(id, `Is that ${aOrAn(fav.name)} ${fav.name.toLowerCase()}? ${VISIT_LOVE[id]}`), { keep: true });
-            else if (items.length) { const d = rpick(items); await UI.say(id, voiced(id, `Ooh, ${aOrAn(d.name)} ${d.name.toLowerCase()}. ${rpick(['Very nice.', 'Where did you get that?', 'I want one. I am going to get one.', 'Classic.'])}`), { keep: true }); }
+            else if (items.length) { const d = rpick(items); await UI.say(id, voiced(id, `Ooh, ${aOrAn(d.name)} ${d.name.toLowerCase()}. ${rpick(['Very nice.', 'Where did you get that?', 'I hadn\'t thought of having one at home. Now I want one.', 'Classic.'])}`), { keep: true }); }
             const sc = councilScore();
             const verdict = sc.total >= 21 ? "Honestly? This might be the cutest house on the island. Don't tell Clementine I said that."
                 : sc.total >= 13 ? 'It feels really cozy in here. I could stay all day. I won\'t. But I could.'

@@ -221,7 +221,7 @@ BlocksGame.prototype = {
 ARCADE_GAMES.blocks = {
     name: 'Bento Blocks', fee: PLAY_FEE, tune: 'blocks', glow: '#ffd45a', levels: true,
     help: '\u2190 \u2192 move \u00b7 \u2191 turn \u00b7 \u2193 fast fall \u00b7 Space instant drop \u00b7 C (or Shift) hold',
-    how: 'Bento pieces fall into the box. Move and turn them so they fill a whole row: a full row clears. Clear four at once for a BENTO. Hold \u2193 to fall fast, press Space to drop it right away, and press C (or Shift) to put a piece on hold for later. Faster every ten rows. Once you reach a level you can start there next time.',
+    how: 'Move and turn the falling pieces to fill a row. Full rows clear; four at once make a BENTO.\n\nHold Down to fall faster. Space drops instantly. C or Shift holds a piece for later.\n\nThe game speeds up every ten rows. Reached levels stay available as starting points.',
     buttons: [
         { k: 'left', label: '\u25c0', keys: MOVE_KEYS.left, side: 'L', aria: 'Move left' },
         { k: 'down', label: '\u25bc', keys: MOVE_KEYS.down, side: 'L', aria: 'Fall faster' },
@@ -508,7 +508,7 @@ CapsuleGame.prototype = {
 ARCADE_GAMES.capsules = {
     name: 'Spice Capsules', fee: PLAY_FEE, tune: 'capsules', glow: '#8cc152', levels: true,
     help: '\u2190 \u2192 move \u00b7 \u2191 turn \u00b7 \u2193 fast fall \u00b7 Space instant drop',
-    how: 'Chili, mustard and wasabi bugs are loose in the bottle! Drop the capsules so four of one colour line up in a row or column (bugs count). Clear every bug to fill the next bottle. Chains score extra.',
+    how: 'Match four of one color in a row or column. Capsules and bugs both count.\n\nClear all the chili, mustard, and wasabi bugs to move to the next bottle. Set off chains for extra points.',
     buttons: [
         { k: 'left', label: '\u25c0', keys: MOVE_KEYS.left, side: 'L', aria: 'Move left' },
         { k: 'down', label: '\u25bc', keys: MOVE_KEYS.down, side: 'L', aria: 'Fall faster' },
@@ -743,7 +743,7 @@ FruitGame.prototype = {
 ARCADE_GAMES.fruit = {
     name: 'Fruit Catch', fee: PLAY_FEE, tune: 'fruit', glow: '#ff9ec0',
     help: '\u2190 \u2192 move (or drag on the screen)',
-    how: "Watch the trees: one shakes, then drops something (its shadow shows where). Catch the fruit, dodge bees and rotten fruit. Ten in a row starts a Fruit Fever: double points! Golden fruit mends a heart, and B, H and M boxes are power-ups. Every 25 fruit is a new round.",
+    how: "Watch for a shaking tree, then follow the falling shadow. Catch fruit; avoid bees and rotten fruit.\n\nTen catches in a row starts Fruit Fever for double points. Golden fruit restores a heart. B, H, and M boxes give power-ups. A new round begins every 25 fruit.",
     buttons: [
         { k: 'left', label: '\u25c0', keys: MOVE_KEYS.left, side: 'L', aria: 'Move left' },
         { k: 'right', label: '\u25b6', keys: MOVE_KEYS.right, side: 'R', aria: 'Move right' },

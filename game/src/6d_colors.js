@@ -89,7 +89,7 @@ function colorForm(U, opts) {
     const r2 = el('div', 'st-row');
     r2.appendChild(chip('Another name idea', () => { name.value = suggestName(pick.value, name.value); typed = true; }));
     U.tools.appendChild(r2);
-    U.tools.appendChild(el('p', 'muted', "The name is what everyone will call it: \"a Midnight Blueberry vase.\" Things you've already made keep their colors."));
+    U.tools.appendChild(el('p', 'muted', "Give the color a name, such as \"Midnight Blueberry.\" Neighbors will use it when describing your work. Finished pieces keep their existing colors."));
     const r3 = el('div', 'st-row');
     r3.appendChild(chip(edit ? 'Save changes' : 'Save my color', () => { const c = saveColor(pick.value, name.value, edit && edit.id); Sfx.play('item'); opts.done(c); }, 'go'));
     if (edit) r3.appendChild(chip('Delete it', () => { deleteColor(edit.id); Sfx.ui('tick'); opts.done(null); }));

@@ -151,7 +151,7 @@ const TEXT_REPEAT = {
         ["{name}. I am STILL {now}. I promise. I haven't moved. Well. I moved a little. Same place.", 'Still {now}. Still! Nothing has changed except my patience. (It\'s fine.)'],
         ["Are you okay? You keep asking where I am. I'm {now}! Just come over! I'll wait. I'm very good at waiting.", '*sends a little map with a big red X on it*']],
     next: [['Same plan as a minute ago! {next}', "My plans haven't changed! {next}"],
-        ["I'm a creature of habit. {next} Same as the last three times. I'm very consistent.", 'Still the plan! Writing it on my hand now so I remember. {next}'],
+        ["Same plan. {next} You may know it better than I do by now.", 'Still the plan! Writing it on my hand now so I remember. {next}'],
         ['*replies with a screenshot of the last text*', "At this point you know my schedule better than I do."]],
     hi: [['Hi again!', 'Hi! Hi. Hello! Hi!'], ["Hi! Hi. Hiiii. How many hi's is this? I'm counting.", 'HI. (This is getting fun.)'], ['*waves at the phone*', 'hi hi hi hi hi']],
 };
@@ -160,8 +160,8 @@ const TEXT_REPEAT_OWN = {
     coco: ["Girl, are you checking on me? I love it. I'm still {now}. Don't tell anyone where I am. Tell everyone."],
     cuke: ['STILL {NOW}!!! COME JOG WITH ME!!!'], sully: ['Kid. Same place. Relax. Have a frappe.'],
     joe: ["Still {now}! You keep texting me. That's nice. That's very nice. I'm smiling at my phone like a weirdo."], david: ['Honey, obsessed with me? Understandable. Still {now}.'],
-    clementine: ['Darling, persistence is attractive. Up to a point. We are at the point.'], chili: ["You keep texting me. I'm blushing. I'm always blushing. But it's the texts this time."],
-    cece: ["Sorry! Did I not answer? I'm still {now}! Sorry! Was that too much? Sorry!"], kai: ['Bro. Same spot. Chill. The spot is chill too.'],
+    clementine: ['Darling, persistence is attractive. Up to a point. We are at the point.'], chili: ["Still here. I was going to move, but then you'd have to ask again. I'm doing you a favor."],
+    cece: ["Still {now}! Did the first answer go through? I wasn't sure."], kai: ['Bro. Same spot. Chill. The spot is chill too.'],
 };
 function repeatReply(id, kind, rep) {
     const w = whereabouts(id), d = NPC_DEFS[id];

@@ -93,14 +93,14 @@ async function leaveInterior() {
 }
 
 const KNOCK = {
-    maki: 'A note on the door: "Out. Back soon. Please do not open. I am rolled very tight."',
-    kai: 'A surfboard leans on the door. A sign says: "Gone surfing (emotionally)."',
+    maki: 'Maki\'s note reads: "Out for a while. Please leave any messages flat under the door."',
+    kai: 'Kai\'s note says: \'BACK WHEN THE WAVES STOP.\' Somebody has written \'THEY DON\'T\' underneath.',
     basil: 'The door smells like lime and peanuts. Nobody answers.',
     chili: 'The doorknob is warm. Everything about this house is warm.',
     coco: 'A sign: "Ring for gossip. Knock for more gossip."',
     cece: 'A sign: "Baking. Or crying. Possibly both. Come back later!"',
     clementine: 'A sign: "Out being fabulous. Orange you glad you stopped by?"',
-    cuke: 'A sign: "Out running. Probably. It\'s always probably."',
+    cuke: 'Cuke\'s note reads: "OUT JOGGING! LOOK FOR THE WAVING CUCUMBER!"',
     david: 'The door is painted like a rainbow. A sign says: "NO SHOES. SKATES OK."',
     joe: 'A note on the door: "Out writing. Or napping. Probably napping. - Joe (Poet)"',
     sully: 'A sign on the door: "Knock loud. I got the radio on. - Sully"',
@@ -123,7 +123,7 @@ const SIGNS = {
     island: () => `Welcome to ${S.islandName || 'the island'}! Population: very cute. The time is ${Clock.fmt().s}.`,
     club: () => 'CLUB WASABI. Always open. Daytime is for practicing. The floor really gets going after 9 PM.',
     bigtree: () => 'The big tree. It has been here longer than anyone. It looks extremely relaxed about it.',
-    rock: () => 'A rock. It is doing its best.',
+    rock: () => 'A rock. Sarah turns it over. Still a rock. Worth checking.',
     flowerbed: () => 'Fortune planted these. They smell a little like fortune cookies, somehow.',
     spring: () => 'The hot spring. It is NOT soup. (Wonton would like that on the record.)',
     cart: () => "Basil's noodle cart. It opens at 8 PM and closes around 1 AM. Late-night noodles for everyone.",

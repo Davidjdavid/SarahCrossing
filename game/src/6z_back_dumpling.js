@@ -552,7 +552,7 @@ DumplingGame.prototype = {
 ARCADE_GAMES.dumpling = {
     name: 'Dumpling Drop', fee: PLAY_FEE, tune: 'dumpling', glow: '#ff8aa8',
     help: '\u2190 \u2192 move \u00b7 \u2193 faster \u00b7 \u2191 or X turns \u00b7 Z turns back \u00b7 or drag, tap and flick the screen',
-    how: "Wonton's steamer is filling up! Turn and steer the falling pairs so four or more dumplings of one colour touch: they pop, the rest drop down, and a pop that sets off another pop is a chain, worth LOTS. Chili keeps cranking up the heat, so burnt dumplings pile up in the tray on top and rain in after a pair that pops nothing (pops cool them off, chains cool lots), and a burnt one only clears when a pop happens right next to it. Keep the middle column clear, or it's steamer over!",
+    how: "Match four or more touching dumplings of one color to pop them. A pop that drops pieces into another match makes a chain for extra points.\n\nBurnt dumplings gather in the tray. They fall after a move that clears nothing. Make matches to reduce them; chains reduce more. Burnt dumplings on the board clear when a match pops beside them.\n\nKeep the middle column open. If it's blocked at the top, the game ends.",
     buttons: [
         { k: 'left', label: '\u25c0', keys: MOVE_KEYS.left, side: 'L', aria: 'Move left' },
         { k: 'down', label: '\u25bc', keys: MOVE_KEYS.down, side: 'L', aria: 'Drop faster' },

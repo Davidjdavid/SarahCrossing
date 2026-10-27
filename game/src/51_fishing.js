@@ -2,9 +2,9 @@
 /* Fishing: cast, wait for the nibbles, press on the big bite */
 const FISH_QUIPS = {
     tuna: 'The king of poke!', moonfish: 'It glows a little. A night owl fish!', sunrise: "It's so early. Why was it even awake?",
-    boot: "It's just a fish that gave up.", salmon: 'Nigiri time!', eel: 'Unagi! Slippery, delicious, rude.',
+    boot: "The sea has returned somebody's boot.", salmon: 'Nigiri time!', eel: 'Unagi! Slippery, delicious, rude.',
     pufferfish: 'It puffed up. Rude. Beautiful, but rude.', goldfish: 'A tiny golden legend!', koi: 'So elegant. Maki would approve.',
-    squid: 'Squid! It inked a little. Out of respect.', octopus: 'Eight arms. Zero chill.', shrimp: 'Sweet shrimp! Tom yum material.',
+    squid: 'A squid! It\'s left a small signature in ink.', octopus: 'Eight arms. Zero chill.', shrimp: 'Sweet shrimp! Tom yum material.',
     crawfish: 'Crawfish! Spicy boil energy.', yellowtail: 'Yellowtail! Very sushi.', mackerel: 'Mackerel! Classic.',
 };
 /* standing out on the pier (past the beach), where the big ones bite */

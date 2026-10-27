@@ -125,7 +125,7 @@ SurfGame.prototype = {
 ARCADE_GAMES.surf = {
     name: "Surf's Up", fee: PLAY_FEE, tune: 'surf', glow: '#7fd3e8',
     help: 'Space (or tap) jumps \u00b7 jump again in the air \u00b7 hold to float',
-    how: "Ride Kai's wave! Jump over rocks, duck under gulls (just don't jump into them), mind the jellyfish, and grab shells as you go. Shells in a row are worth more. Three wipeouts and the wave's over.",
+    how: "Ride Kai's wave. Jump over rocks, stay low under gulls, avoid jellyfish, and collect shells.\n\nCollect shells in a row for more points. Three wipeouts end the ride.",
     buttons: [{ k: 'jump', label: 'JUMP', keys: MOVE_KEYS.drop.concat(['ArrowUp', 'KeyW']), side: 'R', aria: 'Jump', wide: true }],
     create() { return new SurfGame(); },
     tickets(g) { return g.score > 0 ? Math.max(1, Math.floor(g.score / 40)) : 0; },
@@ -250,7 +250,7 @@ GardenGame.prototype = {
 ARCADE_GAMES.garden = {
     name: 'Gopher Garden', fee: PLAY_FEE, tune: 'garden', glow: '#8cc152',
     help: 'Tap a gopher \u00b7 or arrows + Space',
-    how: "Gophers are after Basil's garden! Bonk them as they pop up. Golden gophers are worth more and add time. Cuke pops up too (he's jogging through). Do NOT bonk Cuke. 45 seconds on the clock.",
+    how: "Bonk the gophers before they hide. Golden gophers score more and add time. Leave Cuke alone when he jogs through.\n\nYou have 45 seconds.",
     buttons: [
         { k: 'left', label: '\u25c0', keys: MOVE_KEYS.left, side: 'L', aria: 'Left' },
         { k: 'up', label: '\u25b2', keys: ['ArrowUp', 'KeyW'], side: 'L', aria: 'Up' },
@@ -376,7 +376,7 @@ NoodleGame.prototype = {
 ARCADE_GAMES.noodle = {
     name: 'Noodle Slurp', fee: PLAY_FEE, tune: 'noodle', glow: '#ffd84a',
     help: 'Arrows (or swipe) to steer',
-    how: "Steer Basil's noodle around the bowl and slurp up the greens: the noodle grows with every bite. Shrimp are worth extra, a lime shrinks you down, and a chili makes everything faster and worth double for a bit. Don't hit the bowl, and don't get tangled in yourself!",
+    how: "Steer the noodle and collect greens to grow. Shrimp give extra points. A lime makes the noodle shorter; a chili briefly doubles points and speeds things up.\n\nDon't hit the bowl or cross your own noodle.",
     buttons: [
         { k: 'left', label: '\u25c0', keys: MOVE_KEYS.left, side: 'L', aria: 'Left' },
         { k: 'right', label: '\u25b6', keys: MOVE_KEYS.right, side: 'L', aria: 'Right' },

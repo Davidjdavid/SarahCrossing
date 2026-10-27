@@ -396,7 +396,7 @@ function pickBuilding() {
         let done = false;
         const finish = v => { if (!done) { done = true; res(v); } };
         const P = UI.open({ title: 'Move which building?', onClose: () => finish(null) });
-        P.body.appendChild(el('p', 'muted', `${fmtNum(MOVE_PRICE)} sand dollars. The crew moves it overnight; it's in its new spot in the morning.`));
+        P.body.appendChild(el('p', 'muted', `${fmtNum(MOVE_PRICE)} sand dollars. The crew moves the building overnight. It will be ready in the morning.`));
         const list = el('div', 'list');
         for (const id of movableIds()) {
             const r = el('button', 'row');

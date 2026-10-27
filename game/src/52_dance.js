@@ -84,7 +84,7 @@ async function wasabiTalk(n) {
     const night = hourIn(Clock.hourF(), 21, 28);
     if (!r.met) {
         r.met = true;
-        await UI.say('wasabi', ["YOOO! Welcome to Club Wasabi! I'm DJ Wasabi. Too spicy? Never heard of her.",
+        await UI.say('wasabi', ["YOOO! Welcome to Club Wasabi! I'm DJ Wasabi. If you hear your favorite song, I meant to do that!",
             'The floor is open all day for practice. After 9 PM, the whole island shows up. Pick a track, superstar!'], { keep: true });
     } else {
         await UI.say('wasabi', night ? rpick(['The floor is PACKED tonight! Let\'s go!', "It's peak hours! Nobody leaves before midnight!", 'David has been here since 9. He shows no signs of stopping.'])

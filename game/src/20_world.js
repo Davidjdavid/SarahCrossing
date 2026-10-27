@@ -227,26 +227,26 @@ const PROP_TALK = {
     sign_land: () => 'LAND FOR SALE. A quiet plot in the neighborhood, with room for one cozy house. "Newcomers welcome! The crew will have it built in no time." - Ginger',
     sign_trail: () => 'THE RIDGE TRAIL. The farm, the campsite, the ridge, the lookout. "Wear good shoes. Bring a snack. Say hi to the pines." - Ginger',
     sign_bonfire: () => 'THE BONFIRE. Lit every evening. Bring a friend. Bring marshmallows. Do not bring Wonton near the fire; he gets steamy.',
-    picnic: () => rpick(['A picnic table. Someone carved "J+J+E+D WERE HERE" into it. Family vandalism. Very sweet.', 'A picnic table with a checkered cloth. It smells like pine and granola bars.']),
-    trough: () => rpick(["The goat's water trough. The goat drinks from it very loudly. On purpose.", 'A trough of fresh water. Ginger fills it every morning.']),
+    picnic: () => rpick(['Someone has carved a tiny smiling sun into the picnic table. The wood is smooth around it.', 'A picnic table with a checkered cloth. It smells like pine and granola bars.']),
+    trough: () => rpick(["The goat drinks from its trough. Loudly enough to count as conversation.", 'A trough of fresh water. Ginger fills it every morning.']),
     log: () => rpick(['A log bench by the fire. Good for sitting. Good for stories.', 'A log. Smooth on top from a lot of sitting.']),
     trashcan: () => rpick(['A trash can. It is very clean. Ginger power-washes it on Sundays. She says a clean bin is a happy bin.',
-        "A trash can. Somebody threw away a poem draft. It's Joe's. It's about a sock. Sarah puts it in her pocket. (Just kidding. It's a sock poem.)",
-        'A trash can with a little leaf sticker: RECYCLE, PLEASE. Cuke put the sticker on. Cuke put stickers on all of them.',
+        "A crumpled page lies on top: \"Sock. Sock. Rock?\" Joe has circled the question mark.",
+        'A leaf sticker reads \'RECYCLE, PLEASE.\' Cuke has added a second sticker: \'YOU CAN DO IT!\'',
         "Sarah peeks in the trash can. A banana peel, a napkin, and a note: 'I DID NOT eat the last cheesecake. - not Coco.'"]),
     fountain_grand: () => PROP_TALK.fountain(),
     fountain: () => rpick(['A little fountain on Main Street. Sarah tosses in a shell and makes a wish. The wish is a secret.',
         'The fountain burbles away. The bottom is covered in shells. Everyone on the island has made a wish here. Mostly for snacks.',
-        'A fountain. Wonton says it is "a very small hot spring, but cold, and on a stick." That is not what a fountain is.']),
+        'The fountain splashes into its little basin. Wonton has called it \'a bath with poor seating.\'']),
     drinkfountain: () => rpick(['A drinking fountain. Sarah takes a sip. Ice cold! Cuke taped a note to it: "HYDRATE!!!"',
-        "A drinking fountain. The water arcs up in a perfect little rainbow. Sarah drinks. Refreshing. Very island.",
+        "The water makes a little rainbow before Sarah takes a sip.",
         'Sarah presses the button. The water shoots straight up her nose. She looks around. Nobody saw. (The goat saw.)']),
     volleyball: () => rpick(["A beach volleyball court. Kai and Chili play here at sunset. The score is always 'a lot to a lot.'",
         "The volleyball net. Somebody wrote the rules on a board: 1. Have fun. 2. No spiking the goat. 3. See rule 1.",
         'A volleyball court drawn in the sand with rope. Sully refs sometimes. He calls everything "wicked out."']),
     vbball: () => rpick(['A volleyball. Sarah gives it a little bump. It goes straight up. It comes straight down. On her head. Nobody saw.',
         'Sarah serves the ball over the net! It lands in. Nobody is on the other side to return it. She wins. Undefeated.',
-        "The volleyball has a face drawn on it. Its name is Ball. Kai named it. Kai isn't great at names."]),
+        "A volleyball with a face. Kai named it Ball. The name tag is much fancier than the name."]),
     tackle: () => rpick(["Somebody's fishing tackle: a box of shiny lures, a bait bucket, and a rod leaning on the box. A note says: 'BACK SOON - KAI.'",
         'A tackle box full of lures. One is shaped like a tiny cheesecake. Cece says it works on the fancy fish.',
         "A bait bucket and a tackle box. The bucket has one very small fish in it. It seems happy. It's on a break."]),
@@ -264,7 +264,7 @@ const PROP_TALK = {
     viewer: () => rpick(['A coin-op sea viewer. Sarah drops in a sand dollar and looks: waves! A boat! A seagull, VERY close. It looks back.',
         'Sarah looks through the viewer. Way out at sea there is a little sailboat. Someone on it is waving. Sarah waves back.',
         "The viewer is pointed at the lighthouse. Sarah looks. Somebody's up there. Oh. It's the lamp. Probably."]),
-    flamingo: () => rpick(['A pink plastic flamingo, standing on one leg in the grass. It is doing its best.', 'A lawn flamingo. Someone gave it a tiny bow tie. Iconic.']),
+    flamingo: () => rpick(['A pink lawn flamingo balances on one leg. Its other leg has never been found.', 'The lawn flamingo has a tiny bow tie. Sarah has accidentally come to the garden underdressed.']),
 };
 /* every fence tile on the island (so each piece knows which way its neighbors are) */
 function fenceTiles() {
@@ -349,7 +349,7 @@ function addProp(a, p) {
 
 /* Sarah's sailboat, tied up stern-to at the end of the pier, bow out to sea (the boat from the opening scene) */
 const BOAT_TALK = ["Sarah's sailboat, tied up at the end of the pier. It brought her here at sunrise. It still smells like sunscreen and adventure.",
-    "The sailboat bobs at the pier. Its sail is furled up neat and tidy. Maybe another voyage someday. Not today. Today is for the island.",
+    "The boat rocks gently against its rope. Sarah checks the knot and stays to listen to the water.",
     "Sarah's boat. A gull is sitting on the boom like it owns the place. It does not own the place."];
 function addDockedBoat(a) {
     const pr = W0.pier;
@@ -486,9 +486,9 @@ async function useTelescope() {
 }
 function lookoutTelescope() {
     Sfx.play('pick');
-    const sights = ["Sarah looks through the telescope. She can see her house! It looks tiny. It looks CUTE.",
+    const sights = ["There's Sarah's house! She could wave at herself if she hurried.",
         'Through the telescope: the whole town, the pier, and Joe on the bench, writing something. Probably about the telescope.',
-        "Through the telescope: Cuke, jogging. Tiny Cuke. Tiny, energetic Cuke.",
+        "Cuke jogs through the little circle of the telescope. He's gone before Sarah can wave.",
         'Through the telescope: the farm, the windmill, and a lot of pumpkins that look extremely pleased with themselves.',
         "Through the telescope: the sea goes on forever. Somewhere out there, a boat is going somewhere. Good for it."];
     return rpick(sights);

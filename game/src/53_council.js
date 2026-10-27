@@ -36,7 +36,7 @@ const TIER_NAMES = ['Cute', 'Very cute', 'Adorable', 'The Cutest House on the Is
 async function appCouncil() {
     if (G.area.id !== 'home') {
         const P = UI.open({ title: 'The Cozy Council', phone: true, back: backToPhone });
-        P.body.appendChild(el('p', 'muted', 'The Cozy Council only evaluates in person. Go home and call them from your phone.'));
+        P.body.appendChild(el('p', 'muted', 'The Council visits your home in person. Go home, then call from your phone.'));
         if (S.council.best) P.body.appendChild(el('p', null, `Best score so far: ${S.council.best} / 30 (${TIER_NAMES[councilTier(S.council.best)]})`));
         return;
     }

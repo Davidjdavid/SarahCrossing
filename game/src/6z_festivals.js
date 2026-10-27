@@ -206,7 +206,7 @@ async function eggsToCece() {
     }
     if (before < 8 && st.eggYear.given >= 8) {
         if (firstWin('golden_egg')) { toStorage('golden_egg', 1); lines.push('Eight eggs! You get the golden egg. I painted it myself. It took four days. Sorry. It went to your house.'); }
-        else { addMoney(1500, true, 'Prizes & tips'); lines.push('Eight! Here, 1,500 extra. You already have my golden egg. Sorry there is only one golden egg.'); }
+        else { addMoney(1500, true, 'Prizes & tips'); lines.push('Eight eggs again! Here\'s an extra 1,500. You\'ve already got the golden egg, so I\'ll save you a second shelf.'); }
     }
     lines.push(`(${st.eggYear.given} ${plural(st.eggYear.given, 'egg')} this year. ${st.eggYear.given < 3 ? 'At 3: a recipe.' : st.eggYear.given < 8 ? 'At 8: the golden egg.' : 'Every egg still gets you sand dollars!'})`);
     await UI.say('cece', lines, { keep: true });
@@ -311,7 +311,7 @@ function trickOption(n) {
             const p = G.player;
             p.emote = 'sweat'; p.emoteT = 90;
             Sfx.play('ouch');
-            await UI.say(n.id, voiced(n.id, rpick(["No candy? Then... TRICK! *They put a paper bag on your head.* There. Now you're a costume too.", "No candy?! TRICK! *They tie your shoelaces together.* You aren't wearing laces. It was symbolic.",
+            await UI.say(n.id, voiced(n.id, rpick(["No candy? TRICK! A paper bag with a silly face lands on Sarah's head. Instant costume.", "No candy?! TRICK! *They tie your shoelaces together.* You aren't wearing laces. It was symbolic.",
                 "No candy... TRICK! *They say BOO very loudly.* Got you. Fortune sells candy, by the way. Just saying."])), { keep: true });
         }
         Save.touch();
@@ -326,7 +326,7 @@ function toyList() {
     return st;
 }
 const TOY_THANKS = { maki: 'A present? For me? I will open it precisely. Corner by corner.', kai: "A present! Dude! It's shaped like a surfboard! It's not a surfboard. It's socks. I love socks.",
-    basil: 'Oh, how kind. It feels balanced. Thank you.', wonton: 'A present! It is NOT a soup pot! I checked by shaking it! Thank you!',
+    basil: 'How kind. I always read the card first. It gives me another minute of having an unopened present.', wonton: 'A present! It is NOT a soup pot! I checked by shaking it! Thank you!',
     chili: "For me?! It's warm! Everything I hold is warm. Thank you!", coco: "A PRESENT. I'm telling everyone. I'm telling everyone RIGHT NOW.",
     cece: "For me? Oh no, I didn't get Fortune anything! Sorry! Thank you! Sorry!", clementine: 'Darling. The wrapping is orange. Fortune knows me.',
     cuke: "A PRESENT! I'm going to open it while jogging!", sully: "A present, kid? Wicked nice. Tell Fortune thanks.", ginger: "Ooh. Solid wrapping job. Good corners. Thanks!",

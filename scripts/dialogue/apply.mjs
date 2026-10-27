@@ -1,5 +1,5 @@
 // Puts David's edits from the dialogue spreadsheet (export.mjs) back into the game: every row of the Dialogue sheet
-// with something in "Your new line" replaces its original in the code, found by its exact original text nearest the
+// with something in "Your new line" (other than the original itself) replaces its original in the code, found by its exact original text nearest the
 // line it was on (so the code can have moved a little since the sheet was made). Quotes and escapes are written to
 // suit the original; in a template, {code} parts that were in the original go back as ${code}. Rows whose original
 // can't be found are listed and left alone. The New sheet's edits are written to a JSON file for when those features
@@ -53,7 +53,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
     const files = new Map(), missing = [], done = [];
     for (const e of edits.lines) {
-        if (e.new == null) continue;
+        // (a "new line" the same as the original is a row kept as it was: nothing to write)
+        if (e.new == null || String(e.new).replace(/\r\n/g, '\n').trim() === String(e.line).trim()) continue;
         const [file, ln] = String(e.src).split(':');
         const p = path.join(src, file);
         if (!fs.existsSync(p)) { missing.push(e); continue; }

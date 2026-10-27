@@ -27,7 +27,7 @@ QUEST_IDS.push('backroom');
 QUEST_INFO.backroom = { title: 'The locked door', icon: 'ic_lost_keys' };
 QUEST_RUMORS.backroom = ["Chili keeps looking at that STAFF ONLY door at the back of the arcade. He says it's just storage. He says it way too fast.",
     'Sully says the arcade used to be something else, a long time ago. Before Chili. Before the carpet.',
-    'I heard music coming from behind the locked door in the arcade once. Old music. Bleepy. Probably nothing! Probably a ghost!'];
+    'I heard old game music behind the arcade door. Chili said it was probably a box. Must be a very musical box.'];
 QUEST_ITEM_DESC.q_arcadekey = 'A small brass key on a ring shaped like a joystick. It says "BACK ROOM" on a paper tag.';
 ITEMS.q_arcadekey = { name: 'Old arcade key', type: 'quest', price: 0, icon: 'ic_lost_keys' };
 QUEST_GUIDE.backroom = ['The locked door', `1. Play every cabinet in the arcade at least once, and be on the island for ${BACK_READY_DAYS} days.\n2. Ask Chili, at the arcade, about the STAFF ONLY door at the back.\n3. Ask Sully about the back room: he gave the key to the old lighthouse keeper.\n4. Search the keeper's desk in the lighthouse.\n5. Open the door with the key.\nReward: the back room, with four classic cabinets: Fruit Catch, Gopher Garden, Surf's Up and Noodle Slurp.`];
@@ -128,7 +128,7 @@ function buildBackRoom(a) {
     const use = {
         cab_fruit: () => backCab('fruit'), cab_garden: () => backCab('garden'), cab_surf: () => backCab('surf'), cab_noodle: () => backCab('noodle'),
         neon_sign: () => UI.say(null, 'An old neon sign that says DANCE. Sully says there was dancing in here too, back in 1987, in front of the cabinets. The "N" is very tired.'),
-        clock_wall: () => UI.say(null, 'The clock stopped at 4:20. Nobody knows which day. Or which year.'),
+        clock_wall: () => UI.say(null, 'The clock has stopped at 4:15. A line of dust rests on the minute hand.'),
         shelf_wall: () => UI.say(null, 'Spare joysticks, a jar of very old tokens, and a high score list in pencil. The top name is "SULLY".'),
         sofa_pink: () => UI.say(null, 'A pink couch with a dent where someone sat watching the games for a very long time.'),
         toolbox: () => UI.say(null, "Ginger's old toolbox. A note inside: \"If you're reading this, the machines are fixed. You're welcome. - G\""),

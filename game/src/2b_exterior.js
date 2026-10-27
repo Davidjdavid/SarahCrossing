@@ -376,8 +376,8 @@ function applyExteriors(a) {
         const owner = id.slice(2);
         const e = a.add({ kind: 'xmailbox', xMailbox: true, frame: 'mailbox', x: (x + 0.5) * TILE, y: (y + 1) * TILE - 4, owner });
         e.hit = { x: x * TILE, y: y * TILE - 12, w: TILE, h: TILE + 8 };
-        e.interact = () => UI.say(null, rpick([`${NPC_DEFS[owner] ? NPC_DEFS[owner].name : 'Somebody'}'s mailbox. It's none of Sarah's business. (It's empty.)`,
-            `A little mailbox. Ginger put it up. ${NPC_DEFS[owner] ? NPC_DEFS[owner].name : 'Its owner'} checks it every day and is always a little disappointed.`]));
+        e.interact = () => UI.say(null, rpick([`${NPC_DEFS[owner] ? NPC_DEFS[owner].name : 'Somebody'}'s mailbox. Sarah leaves it for its owner.`,
+            `A tidy little mailbox. ${NPC_DEFS[owner] ? NPC_DEFS[owner].name : 'Its owner'} has worn a smooth patch into the latch.`]));
     }
 }
 

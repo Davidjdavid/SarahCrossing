@@ -243,13 +243,13 @@ async function petGoat(n) {
 /* ---------------------------------------------------------------- the goat is a goat */
 async function goatTalk(n) {
     const r = rel('goat'), day = Clock.dayNum();
-    await UI.say(null, "It's a goat. Nothing else to say.", { keep: true });
-    for (const o of Quests.options(n)) { const k0 = await UI.ask(null, 'The goat looks at you. It is a goat. It looks at your pocket.', [o.label, 'Not now'], { keep: true }); if (k0 === 0) { await o.fn(); return; } }
+    await UI.say(null, "It's a goat. It appears to have no further announcement.", { keep: true });
+    for (const o of Quests.options(n)) { const k0 = await UI.ask(null, 'The goat noses toward Sarah\'s pocket, then looks politely at her face.', [o.label, 'Not now'], { keep: true }); if (k0 === 0) { await o.fn(); return; } }
     const opts = ['Talk to the goat'].concat(r.hugDay !== day ? ['Pet the goat'] : [], r.giftDay !== day ? ['Give it something'] : [], ['Leave']);
-    const k = await UI.ask(null, 'The goat looks at you. It is a goat.', opts, { keep: true });
+    const k = await UI.ask(null, 'The goat waits. A fly settles on one ear and is gently flicked away.', opts, { keep: true });
     const c = opts[k];
-    if (c === 'Talk to the goat') await UI.say(null, rpick(['Sarah tells the goat about her day. The goat listens. The goat is a great listener. It is a goat.',
-        "Sarah says hi. The goat says nothing. It's a goat. Nothing else to say.", 'Sarah asks the goat how it is doing. The goat blinks once. That means "fine."',
+    if (c === 'Talk to the goat') await UI.say(null, rpick(['Sarah tells the goat about her day. It listens patiently, then eats the corner of her sleeve. A mixed review.',
+        "Sarah says hello. The goat says nothing. It has always been good at keeping a conversation short.", 'Sarah asks how the goat is doing. A slow blink seems like a reasonable answer.',
         'Sarah tells the goat one of Joe\'s poems. The goat chews thoughtfully. It clearly loved it.']), { keep: true });
     else if (c === 'Pet the goat') await petGoat(n);
     else if (c === 'Give it something') await giftFlow(n);
@@ -322,7 +322,7 @@ async function giftFlow(n) {
     UI.hideDialog();
     const itemId = await pickFromPocket('Give a gift', s => !importantItem(s.id) && !['lost', 'bag', 'quest'].includes(ITEMS[s.id].type) && s.id !== 'bottle',
         'Important things (quest items, keepsakes, photos, one-of-a-kind gifts) stay with you.');
-    if (!itemId) { await UI.say(id === 'goat' ? null : id, id === 'goat' ? 'The goat is fine with that. It is a goat.' : 'No worries!'); return; }
+    if (!itemId) { await UI.say(id === 'goat' ? null : id, id === 'goat' ? 'The goat seems content with that arrangement.' : 'No worries!'); return; }
     const r = rel(id), day = Clock.dayNum();
     const bad = id === 'goat' ? (['tool', 'keepsake', 'display'].includes(ITEMS[itemId].type) || itemId.startsWith('photo_') ? 'goat' : null)
         : id === 'joe' ? (['tool', 'keepsake', 'display'].includes(ITEMS[itemId].type) || itemId.startsWith('photo_') ? 'joe' : null)
@@ -331,7 +331,7 @@ async function giftFlow(n) {
         G.player.pose = null;
         n.emote = bad === 'joe' ? 'heart' : bad === 'ownphoto' || bad === 'keepsake' ? 'sparkle' : 'sweat'; n.emoteT = 80;
         Sfx.play(bad === 'joe' ? 'heart' : 'nope');
-        if (bad === 'goat') await UI.say(null, rpick([`The goat sniffs the ${itemName(itemId).toLowerCase()}. It's a goat. It looks at you. It looks at the ${itemName(itemId).toLowerCase()}. It gives it back.`,
+        if (bad === 'goat') await UI.say(null, rpick([`The goat sniffs the ${itemName(itemId).toLowerCase()} and backs away. Sarah keeps the ${itemName(itemId).toLowerCase()}.`,
             `The goat considers the ${itemName(itemId).toLowerCase()}. It does not eat it. That's how you know it's a bad idea.`]));
         else if (bad === 'joe') await UI.say('joe', fillItem(rpick(JOE_KEEP_IT), itemId));
         else if (NPC_DEFS[id].family) await UI.say(id, 'Oh! Thanks, Sarah! ...Actually, you keep this one. (PLACEHOLDER)');
@@ -347,7 +347,7 @@ async function giftFlow(n) {
     G.player.pose = 'cheer'; G.player.poseT = 24;
     Sfx.play('item');
     if (id === 'goat') {
-        await UI.say(null, selfPlush ? 'The goat looks at the goat plushie. The goat plushie looks at the goat. Nothing else to say.' : "You give the goat a gift. It's a goat. It seems fine with it.");
+        await UI.say(null, selfPlush ? 'The goat looks at the goat plushie. The plushie looks back. Neither will introduce itself.' : "The goat gives the gift a thorough sniff. Then gives Sarah's hand the same inspection.");
     } else if (selfPlush) {
         n.emote = 'heart'; n.emoteT = 90;
         await UI.say(id, voiced(id, PLUSH_SELF[id] || "It's ME! A tiny, soft me! I'm putting it where everyone can see it."));
@@ -387,7 +387,7 @@ async function offerWear(n, itemId) {
         Sfx.play('item');
         await UI.say(id === 'goat' ? null : id, WEAR_LINES[id] || 'How do I look?', { keep: true });
     } else {
-        await UI.say(id === 'goat' ? null : id, id === 'goat' ? 'The goat will think about it. It is a goat.' : "I'll save it for a special day. Or tomorrow. Tomorrow could be special.", { keep: true });
+        await UI.say(id === 'goat' ? null : id, id === 'goat' ? 'The goat stands very still while Sarah considers the fit.' : "I'll save it for a special day. Or tomorrow. Tomorrow could be special.", { keep: true });
     }
     Save.touch();
 }
@@ -527,11 +527,11 @@ function holidayLine(id) {
     if (ev.has('newyear')) return 'Happy New Year! My resolution: sleep in more. Nailed it already.';
     if (ev.has('lunar')) return 'Happy Lunar New Year! Wonton is handing out red envelopes at the spring!';
     if (ev.has('valentine')) return "Happy Valentine's Day! Joe's been making a card since dawn. It has a frog on it. Don't tell him I told you!";
-    if (ev.has('july4')) return 'Happy Fourth! Fireworks tonight over the beach! Some town called America sent them.';
+    if (ev.has('july4')) return 'Happy Fourth! Fireworks over the beach tonight. I hope we get a good spot.';
     if (ev.has('halloween')) return 'Happy Halloween! I dressed up as myself. Very scary. Very me.';
     if (ev.has('winterfest')) return 'Happy holidays, {name}! Cozy season! Blanket season! Soup season! (Sorry, Wonton.)';
     if (ev.has('nye')) return "It's New Year's Eve! Countdown at midnight in the plaza! Island midnight, obviously.";
-    if (ev.has('islandday')) return 'Happy Island Day, {name}! A whole year since you got here! Best year ever.';
+    if (ev.has('islandday')) return 'Happy Island Day, {name}! It feels good having you here.';
     return holidayHello(id);
 }
 

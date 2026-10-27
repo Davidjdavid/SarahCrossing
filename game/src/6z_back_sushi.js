@@ -483,7 +483,7 @@ SushiGame.prototype = {
 ARCADE_GAMES.sushi = {
     name: 'Sushi Swap', fee: PLAY_FEE, tune: 'sushi', glow: '#ff8a6a',
     help: 'Arrows move \u00b7 Space swaps \u00b7 C raises \u00b7 or tap and drag sushi',
-    how: "Maki's conveyor belt brings sushi up from the bottom, right on schedule. Swap the pair in the cursor to line up three of a kind in a row or column. Sushi that drops into a new match makes a chain, and four or more at once is a combo: both score big and stop the belt for a moment. Hold RAISE to bring more up yourself, but if the stack hits the top, you're stuffed.",
+    how: "Swap neighboring sushi to match three in a row or column. Falling sushi can create chains. Match four or more at once for a combo. Both earn extra points and briefly stop the belt.\n\nRaise the belt to bring up more sushi when you're ready. Keep the stack below the top.",
     buttons: [
         { k: 'left', label: '\u25c0', keys: MOVE_KEYS.left, side: 'L', aria: 'Cursor left' },
         { k: 'up', label: '\u25b2', keys: ['ArrowUp', 'KeyW'], side: 'L', aria: 'Cursor up' },

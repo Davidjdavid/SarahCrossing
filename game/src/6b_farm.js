@@ -10,15 +10,15 @@ const FARM_LINES = {
     feed_sacks: ["Chicken feed. There are no chickens. Ginger says 'yet.'", 'Sacks of feed. A note: "FOR THE CHICKENS (future)."'],
     milk_can: ["An old milk can. There are no cows. (There are no cows.) It's full of umbrellas now.", 'A milk can. Cuke uses it as a very loud drum at 5 AM.'],
     wheelbarrow: ["A wheelbarrow full of pumpkins, waiting to go to Fortune's.", 'The wheelbarrow squeaks a little. It is a friendly squeak.'],
-    tool_wall: ['A pitchfork, a rake and a hoe. Very farm. Very serious.', "Ginger's farm tools, all oiled and hung in size order."],
+    tool_wall: ['A pitchfork, a rake, and a hoe. Sarah tries leaning on each one. The rake is best for looking thoughtful.', "Ginger's farm tools, all oiled and hung in size order."],
     pegboard: ["Ginger's spare tools. Everything has an outline drawn around it, so she knows what's missing."],
     pumpkin_pile: ['Pumpkins. Summer pumpkins, fall pumpkins, all-year pumpkins. The farm is very committed.'],
     window_wall: ['Through the window: fields, the windmill, and a scarecrow named Steve waving at nobody.'],
     gear_wall: ['Big wooden gears, turning with the sails. Ginger oiled them. They hum a little. She tuned them.', 'The gears go round and round. Sarah watches them for a while. Very relaxing.'],
-    grain_hopper: ["Grain goes in the top, flour comes out the bottom. It's basically magic. (It's not magic.)"],
-    flour_sacks: ['Sacks of fresh flour. Cece comes by every morning for one. Sometimes two.', 'FLOUR. Each sack has a little wheat stamp on it. Cute.'],
+    grain_hopper: ["Grain goes in, flour comes out. Sarah watches for a while. The millstone is happy to keep explaining."],
+    flour_sacks: ['Sacks of fresh flour. Cece comes by every morning for one. Sometimes two.', 'Each sack of flour bears a small wheat stamp.'],
     sack_cart: ['A hand truck with a sack of flour on it, ready to roll down the hill.'],
-    millstone: ['The millstones turn slowly with the sails. Grind, grind. It smells like fresh bread in here.', 'The top stone turns on the bottom one. The whole windmill is really just a very big pepper grinder.'],
+    millstone: ['The millstones rumble as they turn. A powdery flour smell fills the room.', 'The top stone turns on the bottom one. The whole windmill is really just a very big pepper grinder.'],
 };
 function farmUse(ent) {
     const id = ent.def.id;
@@ -48,7 +48,7 @@ async function flourBin() {
     S.flags.flourDay = day;
     Sfx.play('pick');
     receive('flour', 2);
-    await UI.say(null, 'A barrel of fresh flour, with a sign: "TAKE A SCOOP. - the windmill." Sarah takes two bags of flour.');
+    await UI.say(null, 'A sign reads: "HELP YOURSELF: TWO BAGS A DAY. — GINGER." Sarah fills two bags.');
 }
 function wireFarm(a) {
     for (const it of a.items) it.use = ent => farmUse(ent);
@@ -99,8 +99,8 @@ const SNOOP_IN = ["Sarah lets herself in. Nobody locks their door on this island
     "The door swings open. It's quiet inside. It smells like somebody's house, which it is.", "Sarah tiptoes in. She doesn't know why she's tiptoeing. It just feels right."];
 const CAUGHT = {
     maki: "Oh. Sarah. You are in my house. ...Did you touch the rice cooker? I will know.", kai: "Duuude! You're in my shack! Welcome! Mi shack es su shack!",
-    basil: 'Oh, hello! Make yourself at home. You already did. Good.', chili: "Whoa, you're in here? It's so hot in here. Sorry. It's always hot in here.",
-    coco: "SARAH. You're in my HOUSE. This is the best gossip I've ever walked into.", cece: "Oh! Sarah! Hi! Sorry! Why am I sorry? You're in MY house! Sorry!",
+    basil: 'Oh, hello! Make yourself at home. You already did. Good.', chili: "You found the hot sauce shelf? Good. Wasn't sure I'd made it obvious enough with the other three hot sauce shelves.",
+    coco: "SARAH. You're in my HOUSE. This is the best gossip I've ever walked into.", cece: "Oh! Sarah! Hi! Sorry! ...Wait, why am I sorry? You're in my house. Come sit down.",
     clementine: 'Darling. You let yourself in. Bold. I respect it. Did you try anything on?', cuke: "SARAH! You're here! In my house! At this hour! Want some water?!",
     sully: "Kid! Whaddya doin' in heah? ...Ah, it's fine. Coffee's on. It's always on.", david: "HONEY. You broke into my house? Iconic. Mind the goat bed.",
     joe: "Oh, hi! You're in my house! Did you read the poem on the typewriter? Don't. It's not done. It's about you.", ginger: "Hey! Checking out the workshop? Don't touch the level. It's perfectly level.",

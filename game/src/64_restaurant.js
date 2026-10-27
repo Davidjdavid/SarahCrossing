@@ -110,7 +110,7 @@ function pickDish() {
         const finish = v => { if (!done) { done = true; res(v); } };
         const m = todaysMenu();
         const P = UI.open({ title: "Today at Mac's", onClose: () => finish(null) });
-        P.body.appendChild(el('p', 'muted', 'The menu changes every day. Eat here with whoever is around, or take it to go and give it as a gift.'));
+        P.body.appendChild(el('p', 'muted', 'A fresh menu each day. Eat here with whoever\'s around, invite a friend, or take your meal to go.'));
         const list = el('div', 'list');
         m.dishes.forEach((id, i) => {
             const row = el('button', 'row');
@@ -172,29 +172,29 @@ const INVITE_YES = {
     _: ['On my way! Save me a seat!', "Ooh, Mac's? Yes! Be right there!", 'Give me two minutes. Order something good!'],
     _fam: ['On my way! (PLACEHOLDER)', "Mac's? Be right there! (PLACEHOLDER)"],
     joe: ["For you? Always. I'm already walking. I'm practically running. Okay, I'm running.", "Dinner? With you? At the same table? ...Cool. Cool cool cool. Totally normal. On my way!"],
-    maki: ['I will be there in exactly four minutes.', 'Accepted. Please choose a table that is level.'],
+    maki: ['I will be there in exactly four minutes.', 'Yes. Please save me a chair that doesn\'t wobble.'],
     kai: ['Dude, YES. Paddling over. Walking. Walking over.'], basil: ["I'd love that. I'll bring an appetite. And a napkin."],
     wonton: ['Yes! As long as nobody orders soup near me.'], chili: ["I'm there. Tell Mac to warm up the hot sauce."],
     coco: ['OMG yes. I have SO much to tell you. Leaving now. Running. In heels. It is fine.'], cece: ['Me? Really? Yes! Sorry! I mean yes!'],
-    clementine: ['Darling, I thought you would never ask. Two minutes. I must accessorize.'], cuke: ['Yes! I will jog there! Stretching now!'],
-    sully: ["Kid, you had me at Mac's. Comin'."], ginger: ['Just finishing a bolt. Okay. Done. Coming!'], brulee: ['Magnifique. I am putting on my good scarf.'],
+    clementine: ['Of course, darling. Give me two minutes to choose an entirely effortless outfit.'], cuke: ['Yes! I will jog there! Stretching now!'],
+    sully: ["Kid, you had me at Mac's. Comin'."], ginger: ['Just tightening the last bolt. There. On my way!'], brulee: ['Magnifique. I am putting on my good scarf.'],
     david: ['Honey, YES. Skating over. Order me the dessert. Two of them.'], fortune: ['I foresee... myself... at Mac\'s. In five minutes.'],
     floss: ["Yes! Let me finish this blowout. I'll be right there."], waffle: ["Crispy yes. I'll be right over."],
 };
 const INVITE_NO = {
     _: ["Aw, I can't right now! Rain check?", 'I just ate! Next time, I promise!', "Ahh, I'm in the middle of something. Save me a bite?"],
     _fam: ["Can't right now! Next time! (PLACEHOLDER)"],
-    maki: ['Not today. My schedule is very precise. You are in it for tomorrow. Probably.'], kai: ["Duuude, I'm mid-nap. Mid-life. Next time!"],
+    maki: ['Not today. My schedule is very precise. You are in it for tomorrow. Probably.'], kai: ["Can't, dude. I'm halfway through a nap. If I stop now, I'll have to start over."],
     wonton: ['I am soaking. Soaking is serious. Another time!'], coco: ["Nooo, I can't! I'm literally in the middle of gossip. Next time!"],
-    cece: ["I can't, I'm so sorry! I'm so sorry! Next time! Sorry!"], sully: ["Can't, kid. Kiln's firing. Next time, I'm buyin'."],
+    cece: ["I can't! Something's in the oven. Several somethings. I didn't expect the first one to turn out well."], sully: ["Can't, kid. Kiln's firing. Next time, I'm buyin'."],
     clementine: ["Darling, I'm booked. Fashion never sleeps. Tomorrow?"], cuke: ["I'm doing laps! 40 more! Next time!"],
 };
 const INVITE_DINE = {
     _: ['Thanks for inviting me! This is so nice. Just us, and a whole lot of cheese.', 'You invited ME? This is the best day. Pass the bread.'],
     _fam: ['Thanks for inviting me, Sarah! (PLACEHOLDER)'],
-    joe: ["This is nice. Two friends. Eating. At a table. Friend dinner. (Joe has gone very pink.)", "I saved you the good napkin. I don't know why. It's just a napkin. (It's a very good napkin.)"],
+    joe: ["This is nice. Two friends. Eating. At a table. Friend dinner. (Joe has gone very pink.)", "Here, take this napkin. It's the one without the rhyme ideas on it."],
     maki: ['Thank you for the invitation. The seating is acceptable. The company is excellent.'], kai: ['Dude. Dinner buddies. This rules.'],
-    coco: ["Okay so. SO. I have news. But first: thank you for inviting me. You're the best. Now the news..."], cece: ["Thanks for asking me! Nobody ever... sorry. I'm just happy!"],
+    coco: ["Okay so. SO. I have news. But first: thank you for inviting me. You're the best. Now the news..."], cece: ["Thanks for asking me! I had something in the oven, so I made myself leave. Mac has an oven. I don't need to bring one."],
     sully: ["Thanks for the invite, kid. Means a lot. Don't tell anybody I said that."], david: ['Look at us! Out to dinner! The most stylish table in the building.'],
 };
 function inviteList() {
@@ -295,7 +295,7 @@ const DINE_TALK = {
     basil: ["Mac's cooking is so comforting. I'd never tell him, but I steal ideas for the cart."],
     wonton: ['I only order the things that are NOT soup. I have to be careful here.'],
     chili: ['I asked Mac to make it spicier. He made it cheesier. I respect it.'],
-    coco: ["Sit, sit! I have SO much to tell you. Okay, so. The goat? Nothing. It's a goat. But ALSO..."],
+    coco: ["Sit, sit! Start eating. I have a long story and I'd hate for you to get hungry halfway through."],
     cece: ['I made the dessert! Is it okay? Be honest. No, don\'t be honest. Say it\'s okay. Sorry!'],
     clementine: ['Darling. A table for two. How chic. Try the dessert, I insist.'],
     cuke: ["I already had breakfast. At 5. This is my second breakfast. It's 'lunch' to you!"],
@@ -303,7 +303,7 @@ const DINE_TALK = {
     david: ['Honey, sit. The lighting in here is so flattering. We look incredible eating soup.'],
     ginger: ["Lunch break! Mac's chairs are solid. I checked. Old habit."],
     brulee: ["Just one little dessert, I told myself. It is my third. Please do not tell Mac. He knows."],
-    joe: ["I'm writing a poem about this sandwich. It's only about the sandwich. Definitely. (It is not only about the sandwich.)"],
+    joe: ["I'm trying to write about the sandwich before I finish it. Going to be a very short poem."],
 };
 
 /* first time in: Mac says hi */

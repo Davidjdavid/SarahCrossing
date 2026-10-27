@@ -106,7 +106,7 @@ const Photo = {
         $('#ui').appendChild(fl);
         requestAnimationFrame(() => { fl.style.opacity = '0'; setTimeout(() => fl.remove(), 450); });
         Sfx.play('pick');
-        UI.toast((ok ? 'Saved to your album' : 'Photo taken (the album is full or storage is blocked)') + (fresh.length ? `. New in the scrapbook: ${fresh.slice(0, 3).map(t => t.label).join(', ')}${fresh.length > 3 ? '...' : ''}` : ''));
+        UI.toast((ok ? 'Saved to your album' : 'Photo taken, but not added to the album. It may be full, or browser storage may be blocked.') + (fresh.length ? `. New in the scrapbook: ${fresh.slice(0, 3).map(t => t.label).join(', ')}${fresh.length > 3 ? '...' : ''}` : ''));
         S.stats.photos = (S.stats.photos || 0) + 1;
         Caps.downloads().then(d => { if (d) this.offerSave(url); });
     },
@@ -130,7 +130,7 @@ const Photo = {
             const d = await Caps.downloads();
             if (!d) return;
             try { await d.save({ filename: `sarah-crossing-${Date.now()}.png`, data: dataUrlToBlob(url) }); UI.toast('Photo saved'); }
-            catch (e) { if (e && e.code === 'declined') return; UI.toast('Could not save here. Screenshot works too!'); }
+            catch (e) { if (e && e.code === 'declined') return; UI.toast('Couldn\'t save the photo. You can take a screenshot instead.'); }
             s.remove();
         });
         s.id = 'savephoto';

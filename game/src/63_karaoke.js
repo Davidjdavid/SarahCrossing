@@ -63,7 +63,7 @@ function karaokeSong(poem) {
 }
 
 const JOE_KARAOKE = {
-    S: "You sang my poem! Perfectly! I wrote that in four minutes and you made it sound like four whole minutes. I'm crying. Good crying.",
+    S: "You sang it perfectly! I wrote that in four minutes, and you made it sound like four whole minutes. Amazing.",
     A: "That's my poem! On a stage! With music! This is the best night of my life. Second best. The frog poem night was also good.",
     B: "You sang my poem! Some of the notes were in there! All of the words were! That's what counts in poetry.",
     C: "That was so brave! My poems are tricky to sing. They have a lot of feelings in them. Thank you for trying. I'm framing this moment. Somehow.",

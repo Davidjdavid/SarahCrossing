@@ -35,7 +35,7 @@ const DRAMAS = {
                 days: 3, auto: d => d.spread >= 2 ? 'found' : 'fizzle',
                 sum: '{A} might have a crush on {B}.',
                 gossip: ["{A} keeps 'accidentally' walking past {B}'s house. Four times today. Four.",
-                    'I saw {A} practicing saying hi to {B}. To a rock. The rock said nothing. Good for the rock.',
+                    '{A} was practicing a greeting for {B}. I pretended not to notice the part where the rock was answering.',
                     'Everyone knows {A} has a crush on {B}. Except {B}. {B} has no idea.'],
                 A: ["Oh, hi, {name}. Have you seen {B} today? No reason. I'm asking for a friend. The friend is me.",
                     'Do you think {B} likes... things? Like, in general? Like, me? Forget I said that.'],
@@ -51,7 +51,7 @@ const DRAMAS = {
             confess: {
                 days: 1, auto: d => d.rand < 0.75 ? 'couple' : 'kindno',
                 sum: '{A} is going to tell {B} how they feel.',
-                gossip: ["{A} is going to tell {B} how they feel! Today! I'm so nervous and it's not even about me."],
+                gossip: ["{A} is telling {B} today. I'm trying very hard not to hover nearby."],
                 A: ["I'm telling {B} today. My knees are shaking. I don't have knees. Something is shaking."],
                 B: ['{A} said they need to "talk to me about something." Is it bad? Did I do something?'],
             },
@@ -73,15 +73,15 @@ const DRAMAS = {
                 days: 5, end: true, date: true, enter: d => addCouple(d.cast.A, d.cast.B),
                 sum: '{A} and {B} are dating!',
                 gossip: ['{A} and {B} are DATING. I called it. Did I call it? I called it.',
-                    '{A} and {B} watched the sunset at the pier together. It was so cute I had to lie down.'],
-                A: ['{B} and I are... a thing now! Thanks for the nudge, {name}.', "Is it too soon to say {B} is perfect? It's not too soon. I checked."],
+                    'I passed {A} and {B} watching the sunset. They didn\'t even notice me waving.'],
+                A: ['{B} and I are dating, {name}. Thanks for helping me find the courage to ask.', "Is it too soon to say {B} is perfect? It's not too soon. I checked."],
                 B: ['{A} and I are dating! I know! Me! Dating!', "{A} left me a note. It just said 'hi.' I kept it."],
             },
             kindno: {
                 days: 3, end: true,
                 sum: '{A} told {B} how they feel. They\'re staying friends.',
                 gossip: ["{A} told {B} how they feel. {B} said they'd rather stay friends. They're still friends! Very mature. I'm furious."],
-                A: ["It's okay. {B} is a great friend. And I still have my dignity. Most of it."],
+                A: ["A little disappointed, but I'll be all right. {B} matters to me as a friend, too."],
                 B: ["I hope {A} is okay. I made them a card. It says 'friends!!' with two exclamation points. Is that too many?"],
             },
             fizzle: {
@@ -100,8 +100,8 @@ const DRAMAS = {
             fight: {
                 days: 2, auto: d => d.rand < 0.55 ? 'makeup' : 'split',
                 sum: '{A} and {B} had a fight about {thing}.',
-                gossip: ["{A} and {B} had a fight. About {thing}. It got loud. For a {Ak}, that's very loud.",
-                    '{A} and {B} walked past each other in the plaza and both pretended to look at a bird.'],
+                gossip: ["{A} and {B} disagreed about {thing}. I've never heard a {Ak} get so worked up about it.",
+                    '{A} and {B} passed without a word. I was halfway through waving and didn\'t know where to put my hand.'],
                 A: ["I'm not upset. I'm fine. I'm going to stand here and be fine at the ocean for a while.",
                     "{B} thinks they're right about {thing}. They're not. I'm not upset. Why would I be upset."],
                 B: ['Did {A} say anything about me? ...Not that I care. I care a normal amount.',
@@ -118,7 +118,7 @@ const DRAMAS = {
                 days: 3, end: true, date: true,
                 sum: '{A} and {B} made up.',
                 gossip: ["{A} and {B} made up! They're holding hands at the pier. It's disgusting. I love it."],
-                A: ["{B} and I made up. We agreed {thing} doesn't matter. (It does. But we agreed.)"],
+                A: ["{B} and I talked about {thing}. We still disagree, but we're listening to each other now."],
                 B: ["{A} and I are good again. Better than good. Don't tell anyone I said 'better than good.'"],
             },
             split: {
@@ -146,14 +146,14 @@ const DRAMAS = {
                     B: [{ label: "So... {A} said your {Bf} is 'a lot.'", need: 'heard', say: ["'A LOT'? My {Bf} is a normal amount! ...Is it a lot? It's not a lot. I'm going to go think about my {Bf}."], go: 'hurt' }],
                     A: [{ label: 'People are talking about what you said about {B}.', need: 'heard', say: ["Oh no. It came out wrong! I meant 'a lot' like 'a lot of FUN.' I have to fix this."], go: 'apology', helped: true }],
                 },
-                tell: { text: "{A} said {B}'s {Bf} is 'a lot.'", react: ["They said WHAT? About the {Bf}? Oh, that's going to be a thing.", "Oof. I'm not saying anything. (I'm saying something to everyone.)"] },
+                tell: { text: "{A} said {B}'s {Bf} is 'a lot.'", react: ["They said WHAT? About the {Bf}? Oh, that's going to be a thing.", "That might sound worse each time somebody repeats it. I'd rather they talked to each other."] },
             },
             hurt: {
                 days: 2, auto: 'apology',
                 sum: '{B} heard what {A} said. They\'re not speaking.',
                 gossip: ['{B} found out what {A} said. They waved at each other in a very cold way.'],
                 A: ["{B} is upset with me. I didn't mean it like that! I meant a GOOD 'a lot.'"],
-                B: ["I heard what {A} said about my {Bf}. It's fine. I'm going to go sit by the water and be a {Bk} about it."],
+                B: ["I heard what {A} said about my {Bf}. I'd rather be left to be a {Bk} in peace for a while."],
                 opts: { A: [{ label: '{B} is really hurt.', say: ["You're right. I'm going to apologize. With a card. With glitter. Glitter means it's serious."], go: 'apology', helped: true }] },
                 tell: { text: '{B} is upset about what {A} said.', react: ['Poor {B}. Poor {A}, too, honestly. Words are hard.'] },
             },
@@ -185,7 +185,7 @@ const DRAMAS = {
                 B: ["Oh, hi! Sorry if I've been out of it. {reason}"],
                 truthFrom: 'B',
                 opts: {
-                    A: [{ label: "{B} isn't mad at you!", need: f => f.truth, say: ["They're NOT? {reasonShort}? Oh, thank goodness. I made them an apology cake. Now it's just a cake. Great. Cake."], go: 'clear', helped: true }],
+                    A: [{ label: "{B} isn't mad at you!", need: f => f.truth, say: ["Oh! {reasonShort}? That's a relief. I made an apology cake. We can just enjoy the cake, then."], go: 'clear', helped: true }],
                     B: [{ label: '{A} thinks you\'re mad at them.', say: ["What?! I'm not mad! I have to go say hi. Loudly. With both arms."], go: 'clear', helped: true }],
                 },
                 tell: { text: '{A} thinks {B} is mad at them.', react: ["{B}? Mad? {B} doesn't get mad. {B} gets quiet. Oh no. Quiet is worse."] },
@@ -219,7 +219,7 @@ const DRAMAS = {
             after: {
                 days: 2, end: true,
                 sum: "{A}'s party was a hit.",
-                gossip: ["{A}'s party was SO fun. {C} danced on a bench. Somebody cried at a song. Great night."],
+                gossip: ["{A}'s party was lovely. {C} danced on a bench. I hadn't known that was an option."],
                 A: ['Thanks for coming to my party! Or, if you missed it, thanks for existing. Either way.'],
             },
         },
@@ -285,21 +285,21 @@ const DRAMAS = {
             start: {
                 days: 2, auto: 'contest', enter: d => { d.cday = Drama.today() + 2; },
                 sum: '{A} challenged {B} to a {contest}. It happens on {cdayName}.',
-                gossip: ['{A} challenged {B} to a {contest}. Winner gets bragging rights. Loser gets... also bragging rights? It is unclear.'],
+                gossip: ['{A} challenged {B} to a {contest}. They\'ve already begun discussing what counts as winning.'],
                 A: ["I'm going to win the {contest}. {B} doesn't stand a chance. Nothing personal. It's very personal."],
-                B: ['{A} thinks they can beat me at a {contest}? That is cute. That is so cute.'],
+                B: ['{A} thinks they can beat me at a {contest}. Well, I\'d hate to disappoint an audience.'],
                 opts: {
                     A: [{ label: 'Can I be the judge?', need: f => !f.judge, say: ["YES. You're the judge. Be fair. Be fair to me specifically."], flag: 'judge' }],
-                    B: [{ label: 'Can I be the judge?', need: f => !f.judge, say: ["You'll judge? Perfect. You have great taste. That's not a bribe. It's a fact."], flag: 'judge' }],
+                    B: [{ label: 'Can I be the judge?', need: f => !f.judge, say: ["You'd be a good judge. I've complete faith in your judgment. For now."], flag: 'judge' }],
                 },
                 tell: { text: '{A} challenged {B} to a {contest}.', react: ["A {contest}? I'm bringing snacks. I don't have a side. I have snacks."] },
             },
             contest: {
                 days: 1, auto: d => d.flags.winner ? 'result' : 'tie', contest: true,
                 sum: 'The {contest} is today.',
-                gossip: ['The {contest} is today! {A} versus {B}! I have snacks. I still do not have a side.'],
+                gossip: ['{A} versus {B} in the {contest} today. I think both have prepared a victory speech.'],
                 A: ['Today is the {contest}. I have been training. Mentally.'],
-                B: ["It's {contest} day. I'm calm. I'm very calm. I'm the calmest {Bk} on this island."],
+                B: ["It's {contest} day. I'm a very patient {Bk}. Right up until we find out who won."],
                 opts: {
                     A: [{ label: 'Time to pick a winner!', need: f => f.judge && !f.winner, judge: true }],
                     B: [{ label: 'Time to pick a winner!', need: f => f.judge && !f.winner, judge: true }],
@@ -315,7 +315,7 @@ const DRAMAS = {
             tie: {
                 days: 2, end: true,
                 sum: 'The {contest} ended in a tie.',
-                gossip: ['The {contest} ended in a tie. Coco declared herself the winner. Nobody knows how.'],
+                gossip: ['A tie in the {contest}. Coco says the audience won. She was most of the audience.'],
                 A: ['A tie. A TIE. I will accept this. For now.'],
                 B: ['We tied. Honestly? Fair. We are both incredible.'],
             },
@@ -328,7 +328,7 @@ const DRAMAS = {
             start: {
                 days: 3, auto: 'returned',
                 sum: "{A} borrowed {B}'s {item} and never gave it back.",
-                gossip: ["{A} borrowed {B}'s {item} two weeks ago and never gave it back. {B} is 'not upset.' {B} is very upset."],
+                gossip: ["{A} borrowed {B}'s {item} two weeks ago. {B} has begun finding reasons to mention it."],
                 A: ["Hey, {name}! I've been using this {item} as a doorstop. Works great. I think it's {B}'s? I should probably... no, it's fine."],
                 B: ["{A} borrowed my {item} two weeks ago. I'm not saying anything. I'm just saying it. Out loud. To you."],
                 opts: { A: [{ label: '{B} wants their {item} back.', say: ["OH NO. I totally forgot! It's holding my door open! I'll bring it back right now. With a snack. An apology snack."], go: 'returned', helped: true }] },
@@ -350,12 +350,12 @@ const DRAMAS = {
             plan: {
                 days: 2, auto: 'party',
                 sum: '{A} is throwing {B} a surprise party on {pday} at the {place}. Shh.',
-                gossip: ["Shh. {A} is throwing {B} a surprise party on {pday}. At the {place}. Don't tell {B}. DON'T."],
+                gossip: ["{A} is arranging a surprise for {B} on {pday}, at the {place}. I've been trusted with the bunting."],
                 A: ["Shh! I'm throwing {B} a surprise party on {pday}, at the {place}, 8 PM. Don't tell {B}! Can you keep a secret?"],
-                B: ['Everyone is acting weird around me. They stop talking when I walk by. Is it my {Bf}?'],
+                B: ['Everyone stops talking when I arrive. I checked my {Bf}. Nothing on it. Still no explanation.'],
                 opts: {
-                    A: [{ label: "I'll keep it a secret.", need: f => !f.promised, say: ["Thank you! You're so good at secrets. I'm... working on it. I've told four people. That's fine. That's normal."], flag: 'promised' }],
-                    B: [{ label: 'Nothing is happening on {pday}.', need: f => !f.spoiled && !f.lured, say: ["...Why would you say that? Now I think something's happening on {pday}. I'll be at the {place}. For no reason."], flag: 'lured' },
+                    A: [{ label: "I'll keep it a secret.", need: f => !f.promised, say: ["Thank you. I nearly told them myself yesterday. Had to change the subject to curtains."], flag: 'promised' }],
+                    B: [{ label: 'Nothing is happening on {pday}.', need: f => !f.spoiled && !f.lured, say: ["Nothing on {pday}? That's an unusual thing to announce. Perhaps I'll stop by the {place} and see this nothing."], flag: 'lured' },
                         { label: '{A} is planning you a surprise party!', need: f => !f.spoiled, say: ["WHAT? For me? ...Okay. I'm going to act SO surprised. Watch. *gasp* Like that? Too much?"], flag: 'spoiled' }],
                 },
                 tell: { text: '{A} is throwing {B} a surprise party on {pday}.', react: ["A SURPRISE party? I'm going. I'm terrible at surprises. I'm going to yell 'surprise' too early."] },
@@ -363,8 +363,8 @@ const DRAMAS = {
             party: {
                 days: 1, auto: 'after', gathering: true,
                 sum: "{B}'s surprise party is tonight at the {place}.",
-                gossip: ["{B}'s surprise party is tonight! 8 PM, the {place}. Act normal. ACT NORMAL."],
-                A: ["Tonight's the night! Get {B} to the {place} at 8. Or just come. {B} will show up. Probably."],
+                gossip: ["Surprise party for {B} tonight. The {place}, at 8 PM. I've hidden the decorations badly. Don't look behind me."],
+                A: ["Bring {B} to the {place} at eight if you see them. Everything else is ready. Except me. Give me a minute."],
                 B: ['Everyone keeps telling me to go to the {place} tonight. For no reason. Okay!'],
             },
             after: {
@@ -379,8 +379,8 @@ const DRAMAS = {
 };
 const PARTY_LINES = ["This is the best party on the island. It's the only party on the island. Still counts.",
     '{A} made a playlist. It is one song. It is a great song.', "I'm having so much fun. Is it too much fun? It's the right amount.",
-    'Somebody put hot sauce in the punch. It was Chili. It is always Chili.', "I've eaten nine snacks. I'm going for ten. Don't stop me.",
-    'Wasabi is DJing from his phone. The club never closes, even when it closes.'];
+    'Somebody put hot sauce in the punch. It was Chili. It is always Chili.', "These are good snacks. I keep going over to check they're still good.",
+    'Wasabi\'s playing music from his phone. He\'s still making all the introductions.'];
 
 /* ---------------------------------------------------------------- couples + helpers */
 function coupleOf(id) {
@@ -715,7 +715,7 @@ async function partyScene(d) {
     for (const n of guests) { n.emote = rpick(['note', 'heart', 'laugh']); n.emoteT = 120; }
     if (d.tpl === 'surprise') {
         await UI.say('everyone', `SURPRISE, ${NPC_DEFS[c.B].name.toUpperCase()}!`, { keep: true });
-        await UI.say(c.B, d.flags.spoiled ? "I'm SO surprised! (Sarah told me. I'm still surprised. It's a lot of people!)" : "WHAT?! For ME? I had NO idea! (I had a little idea.) I love you all!", { keep: true });
+        await UI.say(c.B, d.flags.spoiled ? "Surprise! Oh, wait, that's your bit. Sarah told me, but I still got excited." : "WHAT?! For ME? I had NO idea! (I had a little idea.) I love you all!", { keep: true });
     } else {
         await UI.say(c.A, voiced(c.A, rpick(["You made it! Welcome to the party! There's dip!", "{name}! Yes! Now it's a party. Snacks are over there. Music is everywhere."].map(t => Drama.fill(d, t)))), { keep: true });
     }

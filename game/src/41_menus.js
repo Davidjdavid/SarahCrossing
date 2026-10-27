@@ -321,7 +321,7 @@ function appFriends() {
     }
     if (!shown) list.appendChild(el('p', 'muted', "You haven't met anyone yet. Say hi to the neighbors!"));
     P.body.appendChild(list);
-    P.body.appendChild(el('p', 'muted', 'Chat every day and give gifts to fill hearts. Friends teach recipes, write letters, and at five hearts give you their photo.'));
+    P.body.appendChild(el('p', 'muted', 'Chat and give gifts to build friendship. Friends share recipes and letters. At five hearts, they give you their photo.'));
 }
 function lovesText(id) {
     const map = { maki: 'sushi', kai: 'poke bowls, tuna', basil: 'Thai food', wonton: 'dumplings (veggie!)', chili: 'anything very spicy',
@@ -398,7 +398,7 @@ function specialsTab(P) {
             row.appendChild(got ? iconCanvas(specialIcon(sp.id), 40) : el('div', 'sp-q', '?'));
             const t = el('div', 't');
             t.appendChild(el('b', null, got ? sp.name : '???'));
-            t.appendChild(el('span', null, got ? (specials()[sp.id].how || SPECIAL_BLURB[sp.cat]) : sp.hint ? 'Hint: ' + sp.hint : 'Keep exploring. It could turn up anywhere!'));
+            t.appendChild(el('span', null, got ? (specials()[sp.id].how || SPECIAL_BLURB[sp.cat]) : sp.hint ? 'Hint: ' + sp.hint : 'Keep exploring. There\'s more to find around the island.'));
             row.appendChild(t);
             grid.appendChild(row);
         }
@@ -525,7 +525,7 @@ function appSettings() {
         : 'Your island saves online as you play, so it follows you to any device.');
     b.appendChild(note);
     const codeBox = el('div', 'field');
-    codeBox.appendChild(el('span', null, 'Save code (a backup you can copy anywhere)'));
+    codeBox.appendChild(el('span', null, 'Save code (a backup you can copy)'));
     const ta = el('textarea');
     ta.id = 'savecode';
     ta.readOnly = true;
@@ -547,7 +547,7 @@ function appSettings() {
     b.appendChild(dl);
     const isl = el('div');
     isl.style.cssText = 'margin-top:18px;padding-top:12px;border-top:2px dashed var(--line)';
-    isl.appendChild(el('p', 'muted', 'Switch to another island, start a new one, or put a backup back. (Nothing is wiped: every island stays online.)'));
+    isl.appendChild(el('p', 'muted', 'Switch islands, start a new island, or restore a backup. Existing islands remain saved online.'));
     isl.appendChild(btn('Your islands', 'alt', () => IslandList.open(true)));
     b.appendChild(isl);
     b.appendChild(el('p', 'muted', 'Controls: arrows or WASD walk, Shift runs, E / Space / Enter talks and uses things, I opens the pocket, P opens the phone, M opens the map, Q does a dance move, - and + zoom, H twice goes home. On a phone, tap where you want to go or what you want to use, and pinch to zoom.'));
@@ -649,12 +649,12 @@ async function fortuneTalk(n) {
         else { await UI.say('fortune', rpick(['Come back soon! The fortune changes every day!', "Bye bye! May your cookies always crack evenly!", 'See you! Sleep in! It is good for you!'])); return; }
     }
 }
-const FORTUNE_CHAT = ["Business is good! Everyone on this island needs a lamp. Everyone ALWAYS needs a lamp.",
-    'I read my own fortune every morning. Today it said "sell more lamps." So.', "Cuke comes in at 8 AM on the dot, every day. I open at 8. He's been waiting outside since 4.",
+const FORTUNE_CHAT = ["Someone bought my display lamp yesterday. I had to put up a lamp to show where the lamp used to be.",
+    'My fortune said to try something new. I put the lamps on the other shelf. Had a few minutes of wondering where I\'d put the lamps.', "Cuke comes in at 8 AM on the dot, every day. I open at 8. He's been waiting outside since 4.",
     "When I'm on a break, the shop runs on the honor system. Everyone pays. Cuke overpays. Every time.",
     "Mac buys all my flour. Cece buys all my sugar. Together they buy all my eggs. It's a whole economy.",
     "The best time to sell fish is whenever you catch them. That's also my life advice.", "I found a fortune in a cookie once that said 'you are the cookie.' I think about it a lot.",
-    "Ginger fixed my counter last week. It's perfectly level now. The cookies roll off it slower. Very classy.",
+    "Ginger fixed my counter. The cookie jar used to wobble. I miss the little rattle, but I prefer the jar in one piece.",
     "I sleep in a big fortune cookie. Well. It's a bed shaped like one. Close enough!"];
 function shopBuy(startTab) {
     return new Promise(res => {
@@ -855,7 +855,7 @@ function openCooking(wok) {
         list.appendChild(soup);
         P.body.appendChild(list);
         P.foot.innerHTML = '';
-        P.foot.appendChild(el('span', 'grow', 'Ingredients come from your pocket and your house storage. New dishes are cooked by hand the first time. After that, Quick cook them or Play for a better medal (gold makes two).'));
+        P.foot.appendChild(el('span', 'grow', 'Ingredients can come from your pocket or house storage. Cook a new dish by hand the first time. Later, choose Quick cook or Play to try for a better medal. Gold makes two servings.'));
     };
     draw();
 }

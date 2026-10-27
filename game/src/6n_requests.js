@@ -88,7 +88,7 @@ const Requests = {
             case 'type': return { flower: 'Wildflowers grow all over the island (except in winter). Fortune sells seeds too.', dish: 'Cook anything at your kitchenette.',
                 fish: 'Any fish at all. Cast a line off the pier.', acc: "Clementine's boutique sells accessories. Any one will do!", gem: 'Gems show up on the mountain top every day, near the lookout.',
                 art: 'Paint something at the easel in the museum.' }[t.type];
-            case 'pottery': return `Sully's studio on Gallery Lane is open ${hoursText('studio')}. Any color! The kiln takes about a day.`;
+            case 'pottery': return `Sully's studio on Gallery Lane is open ${hoursText('studio')}. Any color is fine. Check with Sully for the firing time.`;
             case 'deliver': return `The package is in your pocket. ${where(t.to)}`;
             case 'tell': return t.state === 'reply' ? where(t.from) : where(t.to);
             case 'arcade': return t.state === 'ready' ? where(t.from) : `The arcade is on the Boardwalk. Your best in ${ARCADE_GAMES[t.game].name}: ${fmtNum(arc().best[t.game] || 0)}.`;
@@ -345,7 +345,7 @@ Bus.on('sewn', () => Requests.onSewn());
 function appTasks() {
     const P = UI.open({ title: 'To-do', phone: true, back: backToPhone });
     const T = Requests.st(), list = Requests.open();
-    P.body.appendChild(el('p', 'muted', list.length ? `Favors for friends (${list.length}). Finish them before they're due!` : 'No favors right now. Ask around: "Need anything?"'));
+    P.body.appendChild(el('p', 'muted', list.length ? `Favors for friends: ${list.length}. Check each one for its due date.` : 'No favors right now. Ask around: "Need anything?"'));
     const L = el('div', 'list');
     for (const t of list) {
         const row = el('div', 'row task');

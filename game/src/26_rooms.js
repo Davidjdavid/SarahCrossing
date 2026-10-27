@@ -290,11 +290,11 @@ const HOUSE_HELLO = {
     chili: ["Oh, you came in. It's hot in here. It's always hot in here.", "Welcome to the hottest house on the island. Literally. I checked."],
     coco: ["OH my GOD, come in! Sit anywhere! Not there. Anywhere else.", "Welcome to Gossip Headquarters. I mean, my house."],
     cece: ["Oh! Hi! Come in! Sorry about the mess! There's no mess. Sorry!", "Welcome! I just baked. I'm always just baking. Sorry!"],
-    clementine: ['Darling. Welcome. Try not to be jealous.', 'Come in. Everything is orange. You will get used to it.'],
+    clementine: ['Darling. Welcome. Try not to be jealous.', 'Come in, darling. Everything is orange. If you\'re finding it overwhelming, try being orange.'],
     cuke: ["GOOD MORNING! Oh wait, it's not. Come in anyway!", "Welcome! I've been up since 4! Have some water!"],
     sully: ["Get in heah, kid. Wipe your feet. Make yourself at home.", "C'mon in. Coffee's on. It's always on."],
     david: ["SISTER! Welcome to the most fabulous house on the island. Mind the goat bed.", 'Come in, come in! Shoes off, skates on.'],
-    joe: ["Oh, hi! Come in! Careful, don't step on the poems. Every one of them is precious.", "Welcome to my house! It's also my office. And my poetry library. It's one room."],
+    joe: ["Hi! Come in. Mind the pages by the chair; that's a poem still deciding what order to go in.", "Welcome to my house! It's also my office. And my poetry library. It's one room."],
     ginger: ["Come in, come in! Mind the sawdust. It's decorative.", "Welcome to my house! It's mostly workshop. The bed is the only thing I didn't build. I built it."],
     brulee: ['Entrez! Welcome. Look around. Everything is art if you squint.', 'Bienvenue! My little gallery. My little home. Same thing, really.'],
     mac: ["Come in! Sit! Are you hungry? You look hungry.", "Welcome, welcome! Don't mind the smell. It's cheese. It's always cheese."],
@@ -333,17 +333,17 @@ async function visitHouse(id) {
 
 /* ---------------------------------------------------------------- looking at other people's things */
 const HOUSE_FURN = {
-    maki: ['It is spotless. Precisely spotless.', 'Aligned to the millimeter. Maki would know if you moved it.', 'Not a grain of dust. Not a grain of rice, either.'],
+    maki: ['Spotless. Sarah feels dusty just standing near it.', 'Aligned to the millimeter. Maki would know if you moved it.', 'Not a grain of dust. Not a grain of rice, either.'],
     kai: ["It's a little sandy. Everything in here is a little sandy.", 'Very laid-back. Even the furniture looks relaxed.', 'There is a seashell on it. There is a seashell on everything.'],
-    basil: ['It smells faintly of lime and peanuts.', 'Balanced. Calm. A little spicy around the edges.', 'Basil has put a small herb pot near it. Of course he has.'],
-    chili: ["It's warm to the touch. Everything in here is.", 'Chili has labeled it: "HOT." Everything is labeled "HOT."', 'Spicy decor. Chili would say that is a compliment.'],
-    coco: ['There is a tiny notepad next to it. It says "WHO?" and "SINCE WHEN?"', 'Very chic. Very chocolate. Very Coco.', 'Coco has clearly rearranged this for maximum drama.'],
+    basil: ['It smells faintly of lime and peanuts.', 'Basil keeps a little room around everything. The furniture has a less crowded life than most people.', 'Basil has put a small herb pot near it. Of course he has.'],
+    chili: ["It's warm to the touch. Everything in here is.", 'Chili has labeled it: "HOT." Everything is labeled "HOT."', 'Chili calls this \'tastefully understated.\' There\'s a small flame painted on it.'],
+    coco: ['There is a tiny notepad next to it. It says "WHO?" and "SINCE WHEN?"', 'Chocolate brown with pink trim. It looks expensive. Coco would like Sarah to know that it was.', 'Coco has clearly rearranged this for maximum drama.'],
     cece: ["It's perfect. Cece still apologized for it.", 'There is a small sticky note on it: "sorry!"', 'Frosted, somehow. Cece bakes when she decorates.'],
-    clementine: ['Iconic. Unhinged. Both.', 'It is orange, or next to something orange. That is the rule here.', 'Styled within an inch of its life.'],
+    clementine: ['Clementine has arranged this so beautifully that touching it feels like applying for a permit.', 'It is orange, or next to something orange. That is the rule here.', 'Styled within an inch of its life.'],
     cuke: ["There's a water bottle next to it. Hydration station.", 'A little sticky note: "5 AM!!" Everything here has a 5 AM note.', 'Very clean. Very green. Very awake.'],
     sully: ["It's wicked sturdy. Sully built half of this himself.", 'There is a coffee ring on it. There is a coffee ring on everything.', 'A little Boston pennant is tucked behind it.'],
     david: ['It sparkles. Everything in here sparkles.', 'Honestly? Iconic.', 'There is glitter on it. There will be glitter on Sarah now, too.'],
-    joe: ["There's a poem taped to it. It's about the furniture.", 'A sticky note on it says "rhymes with: chair, bear, there, chair."', 'Covered in drafts. The top one is about a frog.'],
+    joe: ["Joe has taped a poem to the side. It begins: \"Furniture. Furniture. Hello.\"", 'A sticky note on it says "rhymes with: chair, bear, there, chair."', 'A page on top is titled "Frog, Revised." Underneath: "Still frog."'],
     ginger: ["Handmade. Ginger built it, of course. It's perfectly level. She checked.", 'There is a tiny pencil mark on it: "measured twice."', 'Sturdy. Suspiciously sturdy. It smells a little like cinnamon.'],
     brulee: ['Arranged like a gallery. There is a tiny label next to it with a title.', 'Very elegant. There is a crumb of caramel on it.', 'Brulee has dusted this today. And yesterday. And the day before.'],
     mac: ['It smells like butter. Everything here smells like butter.', 'There is a little cheese-shaped magnet on it.', 'Cozy and well loved. A napkin is folded on it, just in case.'],
@@ -385,7 +385,7 @@ async function roomUse(ent) {
     if (u === 'counter') { const n = NPCs.get(G.area.room.staff); if (n && !n.sleeping && n.area === G.area.id) return talkTo(n); return staffAway(); }
     if (u === 'tools') return buyTools();
     if (u === 'grocery') { UI.hideDialog(); return shopBuy('garden'); }
-    if (u === 'mirror') { await UI.say(null, rpick(['Sarah checks her outfit in the mirror. Iconic.', 'Sarah does a little spin in the mirror. Very good.'])); return openWardrobe(); }
+    if (u === 'mirror') { await UI.say(null, rpick(['Sarah checks herself in the mirror. The mirror has no notes.', 'Sarah does a little spin. The outfit works from the back, too. Good planning.'])); return openWardrobe(); }
     if (u === 'acc') return accTable();
     if (typeof u === 'function') return u(ent);
 }
@@ -622,7 +622,7 @@ async function mannequinAsk(id) {
         p.pose = 'happy'; p.poseT = 50; p.dir = 'down';
         p.emote = 'sparkle'; p.emoteT = 60;
         Sfx.play('item');
-        await UI.say(sp, sp ? rpick(['Darling. Yes. Turn around. Yes.', 'Oh, that is SO you. Or it will be, once you pay for it.', 'Iconic. I feel like I should be charging to look at you.'])
+        await UI.say(sp, sp ? rpick(['Darling. Yes. Turn around. Yes.', 'Oh, that is SO you. Or it will be, once you pay for it.', 'Lovely. Hold still a moment so I can admire my excellent recommendation.'])
             : 'Sarah tries it on. The mannequin seems to approve. It is hard to tell. It has no face.');
     }
 }
@@ -663,7 +663,7 @@ Bus.on('enter', id => {
     n.emote = 'note'; n.emoteT = 70;
     const hi = { shop: ['Welcome in!', 'Hello hello! Browse away!', "Welcome to Fortune's! Everything's fresh!"],
         boutique: ['Welcome, darling.', 'Darling! Browse. Touch. Buy.', 'Oh good, someone with taste.'],
-        arcade: ["Welcome to the arcade! Everything in here is HOT. The high scores. The carpet. Me.", 'Tickets at the counter! Games on the left! Heat everywhere!', "You're here! Play something. Win something. It's hot in here, sorry."] }[id] || ['Welcome!'];
+        arcade: ["Welcome to the arcade! Check the high scores. Preferably the ones with my name on them.", 'Tickets at the counter, games over there. Try to leave my records intact.', "Hey! Pick a game. I'll be over here, looking very calm about how well you do."] }[id] || ['Welcome!'];
     setTimeout(() => UI.toast(`${n.def.name}: "${voiced(n.id, rpick(hi))}"`, n.def.sprite + '_0'), 400);
 });
 let roomCheckT = 0;
@@ -696,24 +696,24 @@ async function roomChecks() {
 
 /* ---------------------------------------------------------------- furniture as a gift: it goes into their home */
 const FURN_GIFT = {
-    maki: ['I will find the precise spot for this. There is always a precise spot.', 'For my home? I will measure twice and place once.'],
+    maki: ['I will find the precise spot for this. There is always a precise spot.', 'I know a good spot. I\'ll show you next time you visit.'],
     kai: ["Duuude, this is going right in the shack. Come see it!", 'Sick! My place needed this. My place needed, like, everything.'],
-    basil: ["This will look perfect by the window. Come by and see it sometime.", 'Thank you. My home just got a little more balanced.'],
-    chili: ["This is going in my house. Next to the other hot things. Which is everything.", "Nice. It's going front and center."],
-    coco: ["Oh my GOD, it's going in the living room. Everyone will ask. I'll tell them everything.", "I'm putting this where EVERYONE can see it."],
-    cece: ["For my house? Oh! I'll find the perfect spot. Sorry, I'm crying. It's perfect.", "Thank you! It's going right next to the cheesecakes!"],
+    basil: ["This will look perfect by the window. Come by and see it sometime.", 'Thank you. I was going to rearrange the room anyway. I wasn\'t, but now I am.'],
+    chili: ["This is going by my chair. People can admire it while they pretend they didn't come over to borrow sauce.", "Nice. It's going front and center."],
+    coco: ["This needs to be somewhere visitors can see it. I want them to ask. I'll practice looking surprised.", "I'm putting this where EVERYONE can see it."],
+    cece: ["For my house? Oh! I'll clear a spot. The cake tins can move. They won't like it, but they can.", "Thank you! It's going right next to the cheesecakes!"],
     clementine: ["Darling. This is going somewhere very visible. It deserves an audience.", "I'll style it. Come see it styled."],
     cuke: ['I will put it up first thing tomorrow! At 4 AM!', "Oh nice! My house needed this! Come see it! Early!"],
     sully: ["Kid, this is goin' right in the living room. Wicked nice.", "Alright, this is goin' up tonight. Come see it."],
     david: ["Honey. It's going in the house. Next to the goat bed. It's an honor.", 'Oh, this is going in the collection. The collection is my whole house.'],
-    joe: ["I'm putting this in my house right away. I'll write a poem about it. Maybe about a spoon. Spoons are my specialty.", 'This is going right by my desk. My desk is also my bed. Well, near it.'],
+    joe: ["I'm putting this by my desk. I want it to see the writing process. Very few people have that privilege. Mostly the goat.", 'This is going right by my desk. My desk is also my bed. Well, near it.'],
     ginger: ["Ooh, this is going in the house. I'll build it a little shelf. I'll build the shelf a little shelf.", 'Nice craftsmanship! Going right in the front room.'],
     brulee: ['I will display it properly. With lighting. And a tiny label.', 'For my home? It will be the centerpiece. Magnifique.'],
     mac: ["This is going right by the kitchen. Everything good goes by the kitchen.", "For my place? Aww. Come over and eat next to it sometime."],
 };
 async function furnitureGift(n, itemId) {
     const id = n.id, d = n.def, t = ITEMS[itemId].type;
-    if (d.goat) { await UI.say(null, `The goat looks at the ${itemName(itemId).toLowerCase()}. It's a goat. Nothing else to say.`, { keep: true }); return; }
+    if (d.goat) { await UI.say(null, `The goat sniffs the ${itemName(itemId).toLowerCase()}. It appears to be considering where the grass would go.`, { keep: true }); return; }
     if (d.visitor) { await UI.say(id, d.family ? "I'll take it home on the boat! It's going to look great. (PLACEHOLDER)" : "Honey, it's coming home with me on the boat. It's going somewhere VERY visible.", { keep: true }); return; }
     if (!d.house || !ROOMS[d.house]) return;
     const r = rel(id);

@@ -88,18 +88,18 @@ async function openCrate() {
     if (r < 0.8) { const g = weighted(GEM_WEIGHTS); receive(g, 1); await UI.say(null, `${cap(aOrAn(itemName(g)))} ${itemName(g).toLowerCase()}, wrapped in a handkerchief! Somebody lost this a long time ago.`); return; }
     const it = rpick(['conch', 'seaglass', 'pearl', 'coral', 'shell_lamp', 'shell_mirror', 'surfboard', 'beach_umbrella', 'boot', 'star']);
     receive(it, 1);
-    await UI.say(null, it === 'boot' ? 'An old boot. Inside the crate. A boot in a box. The sea has a sense of humor.' : `${cap(aOrAn(itemName(it)))} ${itemName(it).toLowerCase()}! The sea gives nice presents.`);
+    await UI.say(null, it === 'boot' ? 'An old boot. In its own crate. Somebody packed very carefully for a disappointing discovery.' : `${cap(aOrAn(itemName(it)))} ${itemName(it).toLowerCase()}! The sea gives nice presents.`);
 }
 
 /* ---------------------------------------------------------------- food boosts */
 const BONUSES = {
     speed: { name: 'Speedy', icon: 'ui_moves', text: 'Sarah feels light on her feet! She walks and runs faster for a while.' },
     charm: { name: 'Charming', icon: 'emote_heart', text: 'Sarah feels extra charming! Chatting, gifts and favors make friends a little happier.' },
-    fisher: { name: 'Lucky angler', icon: 'tool_rod', text: 'Sarah feels fishy! Rare fish and crates bite more often.' },
+    fisher: { name: 'Lucky angler', icon: 'tool_rod', text: 'A lucky fishing day! Rare fish and crates are more likely to bite.' },
     harvest: { name: 'Green thumb', icon: 'tfruit_peach', text: 'Sarah feels fruity! Trees drop extra fruit when she shakes them.' },
-    lucky: { name: 'Lucky day', icon: 'ui_coin', text: "Sarah feels lucky! She keeps spotting sand dollars on the ground." },
-    haggler: { name: 'Haggler', icon: 'ui_coin', text: 'Sarah feels persuasive! Fortune pays a quarter more for everything.' },
-    tickets: { name: 'Arcade ace', icon: 'ui_ticket', text: 'Sarah feels unstoppable! Double tickets at the arcade.' },
+    lucky: { name: 'Lucky day', icon: 'ui_coin', text: "Feeling lucky! Sarah spots more sand dollars on the ground." },
+    haggler: { name: 'Haggler', icon: 'ui_coin', text: 'A good selling day! Fortune pays 25% more.' },
+    tickets: { name: 'Arcade ace', icon: 'ui_ticket', text: 'On a roll! Double tickets at the arcade.' },
     comber: { name: 'Beachcomber', icon: 'shell_conch', text: 'Sarah has a feeling about the beach. More shells washed up!' },
     wish: { name: 'Stargazer', icon: 'twinkle', text: 'Sarah feels starry! Shooting stars fall much more often tonight.' },
 };

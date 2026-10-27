@@ -209,7 +209,7 @@ function appMusic(tab) {
         const slots = tab === 'hours' ? Array.from({ length: 24 }, (_, h) => [h, fmtClock(h)]) : tab === 'places' ? MUSIC_PLACES : MUSIC_GAMES;
         const map = tab === 'hours' ? M.hours : tab === 'places' ? M.places : M.games;
         P.body.appendChild(el('p', 'muted', tab === 'hours' ? 'Change the music outside on the island at any hour.'
-            : tab === 'places' ? 'Change the music in any place. (A place beats an hour.)' : 'Change the music during a minigame. Dance and karaoke songs always play their own track.'));
+            : tab === 'places' ? 'Choose music for each place. A place setting overrides an hourly setting.' : 'Change the music during a minigame. Dance and karaoke songs always play their own track.'));
         const tracks = jukeboxTracks();
         const lib = MusicLib.games().length > 0;
         for (const [key, label] of slots) {
@@ -443,7 +443,7 @@ function secretsSection() {
     box.style.cssText = 'margin-top:18px;padding-top:12px;border-top:2px dashed var(--line)';
     box.appendChild(el('p', null, 'Secrets'));
     box.firstChild.style.cssText = 'font-weight:700;margin:0 0 4px';
-    box.appendChild(el('p', 'muted', 'Spoilers and a cheat. Both come with warnings.'));
+    box.appendChild(el('p', 'muted', 'A spoiler guide and an unlock-everything option. Each asks before showing or changing anything.'));
     const row = el('div');
     row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
     row.appendChild(btn('Spoiler guide', 'alt', () => spoilerGate()));
@@ -615,7 +615,7 @@ function spoilerEntries(sec) {
         out.push(['Shooting stars', 'On clear nights a shooting star sometimes crosses the sky. Press A (or tap it) to make a wish.', false]);
         out.push(['Crates and bottles', 'Fishing sometimes brings up a crate or a message in a bottle.', false]);
         out.push(['Clams', 'Dig on the beach with the shovel to find clams (for chowder).', false]);
-        out.push(['Food boosts', "Food Sarah cooks, and meals from Mac's or Basil's cart, always give a boost. Other food gives one 1 time in 10.", false]);
+        out.push(['Food boosts', "Homemade food, meals from Mac's, and bowls from Basil's cart always give a boost. Other food gives a boost 1 time in 10.", false]);
         out.push(['The ghost', "The old keeper's ghost is in the lighthouse lamp room from 11 PM to 1 AM, until his mystery is solved.", Quests.done('ghost')]);
     }
     return out;
@@ -782,7 +782,7 @@ async function clubMenu() {
         else await Karaoke.start(pick.poem, { watch: true });
         return;
     }
-    await UI.say('wasabi', 'Vibes are valid! The floor is here when you want it.');
+    await UI.say('wasabi', 'Enjoy the music. Give me a wave when you want a turn.');
 }
 function clubList(mode) {
     return new Promise(res => {

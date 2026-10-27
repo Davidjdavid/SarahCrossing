@@ -96,7 +96,7 @@ async function useBonfire() {
         return;
     }
     if (await roastMarshmallow()) return;
-    await UI.say(null, rpick(['Sarah warms her hands by the fire. The waves are loud and the fire is louder. It is perfect.',
+    await UI.say(null, rpick(['Sarah warms her hands by the fire. Sparks drift upward over the sound of the waves.',
         'The fire crackles. Somebody out there is playing a ukulele, badly. It adds to it.',
         "Sarah watches the sparks float up toward the stars. It's the best TV on the island.",
         "It would be perfect for marshmallows. Fortune sells them. Just saying."]));

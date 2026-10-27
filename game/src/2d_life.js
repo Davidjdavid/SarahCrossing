@@ -70,7 +70,7 @@ async function sitOnBench(e) {
     }
     await UI.say(null, rpick(['Sarah sits for a minute. The breeze smells like sea salt and somebody\'s noodles.',
         'Sarah sits on the bench. A cloud goes by. It looks like a dumpling. Wonton would not like that.',
-        'Sarah sits and does absolutely nothing for a while. It is fantastic.', 'A good bench. Sarah sits. The island keeps being the island.']));
+        'Sarah sits and does absolutely nothing for a while. It is fantastic.', 'Sarah settles on the bench. For a while, there\'s nothing she needs to do.']));
 }
 const BENCH_BUDDY = ['Oh, hi! Sit, sit. This is the best bench. I would know. I have tried them all.', 'Bench buddies! We just sit. That is the whole activity.',
     "Nice, right? I come here to think. Mostly about snacks.", "Shh. Listen. ...That's the island. It's doing nothing. I love it."];
@@ -90,7 +90,7 @@ const CHAT_LINES = [
     ['I had the weirdest dream.', 'Was it about soup?', '...How did you know?'],
     ['Is it early or late?', 'Yes.'],
     ['Joe read me a poem today.', 'Frog or spoon?', 'Both.', 'A classic.'],
-    ['The goat looked at me.', "It's a goat.", 'Nothing else to say.'],
+    ['The goat looked at me.', "It looked at me too.", 'We should compare notes.'],
     ['Noodles later?', "Basil's cart? Always."],
     ['I bought a hat.', 'Where is it?', 'In my heart.', '...Okay.'],
     ['The museum has new art!', 'Is it the goat again?', 'Not ONLY the goat.'],
@@ -104,16 +104,16 @@ const CHAT_LINES = [
     ['The windmill hums now.', 'Ginger tuned it.', 'Ginger tunes everything.'],
     ["I've been thinking.", 'Uh oh.', 'About snacks.', 'Oh, good.'],
     ['Wanna race to the pier?', 'No.', 'Fair.'],
-    ['Hi!', 'Hi!', "...That's all I had.", 'Perfect conversation.'],
+    ['Hi!', 'Hi!', "I'm going to stop while it's going well.", 'Perfect conversation.'],
     ["Fortune's cookie said 'good things.'", "Mine said 'more good things.'", "We're set."],
     ['Sarah waved at me!', 'She waved at me too!', "We're so popular."],
     ['I found a star fragment.', 'Did you make a wish?', 'For a nap.', 'Good wish.'],
     ["The flowers by the pond are blooming.", 'I picked one for my table.', 'So fancy.'],
     ["Brulee called my scarf 'a statement.'", 'Good or bad?', 'Unclear.'],
     ["What's for dinner?", 'Whatever Mac is making.', 'Perfect.'],
-    ['Did you hear the waterfall?', 'It never stops talking.', 'Relatable.'],
+    ['Did you hear the waterfall?', 'I can hear it from here.', 'Relatable.'],
     ['I tried the claw machine.', 'Win anything?', 'Humility.'],
-    ['Do you ever just sit?', "I'm sitting right now. Emotionally.", 'Same.'],
+    ['Do you ever just sit?', "I set aside a whole afternoon.", 'Same.'],
     ['I read a whole book today.', 'Which one?', 'The menu at Mac\'s.'],
     ['Do you think fish know they live in the ocean?', 'I think they suspect.', 'Deep.'],
     ['Jump rope this afternoon?', "Cuke's turning. He's a menace.", 'A wonderful menace.'],
@@ -189,7 +189,7 @@ const CHAT_RAIN = [['Rain again!', 'Great napping weather.', 'Every weather is n
 const CHAT_SNOW = [['Snow!', 'Snowball fight?', 'Gently.'], ['I made a snow dumpling.', 'Does Wonton know?', 'He must never know.'],
     ['I built a snowman by the square.', 'Does it have a name?', 'Snowjoe.', 'Does Joe know?', 'Joe made the hat.'], ['My nose is cold.', 'Mine too.', "Let's get cocoa."],
     ['The island looks like a cake.', 'Cece would frost it.', "And then apologize."], ['I caught a snowflake on my tongue!', 'What did it taste like?', 'Winter.']];
-const CHAT_NIGHT = [['Up late too?', 'Late? It\'s early.', 'Island time.'], ['The stars are out.', 'Show-offs.'], ["Cuke's been asleep for hours.", 'Weird of him.'],
+const CHAT_NIGHT = [['Up late too?', 'Late? It\'s early.', 'Island time.'], ['Look at that bright one.', 'Show-offs.'], ["Cuke's been asleep for hours.", 'Weird of him.'],
     ["Look, a shooting star!", 'Make a wish!', "I wished for pancakes.", 'Bold.'], ['The lighthouse is so pretty at night.', 'And spooky.', 'Pretty spooky.'],
     ["Can't sleep?", 'Too many thoughts.', 'About what?', 'Mostly snacks.'], ['Is the club still open?', "It's always open.", "Does Wasabi sleep?", 'Nobody knows.'],
     ['The moon is huge tonight.', "It's showing off.", 'Let it.']];
@@ -221,7 +221,7 @@ const CHAT_BY = {
     clementine: [['Darling. Orange is back.', 'Did it leave?', 'Never.']],
     kai: [["Surf's up, dude!", "We're on land.", "Mentally, surf's up."]],
     basil: [['Noodles tonight?', 'Always.', 'Balance.']],
-    maki: [['Your posture is precise today.', 'Thank you?', 'You are welcome. Precisely.']],
+    maki: [['You are standing very neatly.', 'Thank you?', 'Don\'t move. You\'re getting it.']],
     cece: [['Sorry! Hi! Sorry.', 'Why are you sorry?', "I don't know! Sorry!"]],
     ginger: [['Your porch is a little crooked.', "I don't have a porch.", '...Want one?']],
     brulee: [['You have the face of a painting.', 'Which one?', 'A good one.']],
@@ -268,13 +268,13 @@ const CHAT_BY_MORE = {
 for (const [id, list] of Object.entries(CHAT_BY_MORE)) (CHAT_BY[id] = CHAT_BY[id] || []).push(...list);
 /* the island's favorite topic: {name} and Joe. Very schoolyard. */
 const CHAT_JOE = [
-    ['Did you know {name} and Joe like like each other?', "Oh no way! That's crazy!"],
-    ['I saw {name} and Joe holding hands when they thought no one was looking!', "Oh no way! That's crazy!"],
+    ['Did you know {name} and Joe like like each other?', "You two are the last to notice."],
+    ['I saw {name} and Joe holding hands when they thought no one was looking!', "Aw. Good place for it."],
     ["Joe turned bright red when I said {name}'s name.", 'Oh no way!', 'I said it three more times.', "That's crazy!"],
-    ['{name} and Joe sat on the SAME bench. The same one.', "Oh no way! That's crazy!"],
-    ['Joe saved {name} the last cookie.', "Oh no way! That's crazy!", 'It was a BIG cookie.', 'Wow.'],
-    ['Do you think {name} LIKE likes Joe?', 'Everybody knows she does.', "Oh no way! That's crazy!"],
-    ['Joe wrote a poem with a heart on it.', 'Who was it for?', 'Guess.', "Oh no way! That's crazy!"],
+    ['{name} and Joe sat on the SAME bench. The same one.', "Did they leave room for you?"],
+    ['Joe saved {name} the last cookie.', "That's serious, then.", 'It was a BIG cookie.', 'Wow.'],
+    ['Do you think {name} LIKE likes Joe?', 'Everybody knows she does.', "I'd ask her, if I were you."],
+    ['Joe wrote a poem with a heart on it.', 'Who was it for?', 'Guess.', "I think I can guess."],
 ];
 /* and when Joe's in the chat, somebody always asks (they go first, Joe answers) */
 const CHAT_WITH_JOE = [

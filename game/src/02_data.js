@@ -25,7 +25,7 @@ function stackMax(id) {
 }
 
 const JOB_TITLES = [
-    'Associate Dean of Vibes', 'Senior Director of Email', 'Chief Spreadsheet Officer', 'Assistant to the Assistant Provost',
+    'Associate Dean of Very Specific Things', 'Senior Director of Email', 'Chief Spreadsheet Officer', 'Assistant to the Assistant Provost',
     'Professor of Meetings', 'Head of Strategic Initiatives Strategy', 'Vice President of Being Busy', 'Lead Something Coordinator',
     'Director of the Office of the Director', 'Special Projects Lead (projects unclear)', 'Keeper of the Crimson Calendar',
     'Program Manager of Programs', 'Deputy Dean of Deputy Deans', 'Associate Director of Associate Directing',
