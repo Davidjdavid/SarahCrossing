@@ -2023,6 +2023,9 @@ test("David's music: uploaded from the Music app's way, each hour a game at rand
     await MusicUpload.start([file('Game One/05 - 5 PM.wav')]);
     out.skipped = MusicUpload.job.skipped;
     __dbg.setTime(5, 12, 17);
+    // (a clear day: the island's own weather for 12 May depends on its seed, and rain picks the rain versions)
+    const tw0 = window.todayWeather;
+    window.todayWeather = () => 'sunny';
     const M = musicState();
     const pick = () => Music.pick();
     out.hourly = pick();
@@ -2070,6 +2073,7 @@ test("David's music: uploaded from the Music app's way, each hour a game at rand
     await MusicLib.load(true);
     out.after = MusicLib.tracks.length;
     out.back = pick();
+    window.todayWeather = tw0;
     return out;
   });
   assert.equal(res.paths, 'Game One/05 - 5 PM.wav,Game Two/Shop.wav');
