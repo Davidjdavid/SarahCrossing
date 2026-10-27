@@ -125,7 +125,10 @@ function mugTarget(n, dh) {
 function mugSpot(day) {
     const a = G.areas && G.areas.island;
     if (!a) return null;
-    const grass = grassSpots(a);
+    // (open grass with no tree beside it or just south of it, whose crown would hide the X from the camera)
+    const trees = new Set(a.ents.filter(e => e.tx != null && (e.forest || e.kind === 'tree' || e.kind === 'young')).map(e => e.tx + ',' + e.ty));
+    const clear = (x, y) => { for (let dy = -1; dy <= 2; dy++) for (let dx = -1; dx <= 1; dx++) if (trees.has((x + dx) + ',' + (y + dy))) return false; return true; };
+    const grass = grassSpots(a).filter(([x, y]) => clear(x, y));
     if (!grass.length) return null;
     const r = mulberry(hash32(S.seed + ':mugx:' + day));
     const [x, y] = grass[Math.floor(r() * grass.length)];
@@ -149,10 +152,12 @@ function addMugX(a, tx, ty) {
     e.draw = ctx => {
         // an X scratched in the grass, a little earth turned at its ends (the old diggers' mark)
         const x = Math.round(e.x), y = Math.round(e.y);
-        ctx.fillStyle = 'rgba(92,60,34,0.9)';
-        for (let i = -4; i <= 4; i++) { ctx.fillRect(x + i, y + i, 2, 2); ctx.fillRect(x + i, y - i, 2, 2); }
-        ctx.fillStyle = 'rgba(140,100,60,0.85)';
-        for (const [dx, dy] of [[-6, -5], [5, -5], [-6, 5], [5, 5]]) ctx.fillRect(x + dx, y + dy, 2, 1);
+        ctx.fillStyle = 'rgba(150,112,70,0.55)';
+        for (let i = -7; i <= 7; i++) { ctx.fillRect(x + i - 1, y + i - 1, 4, 4); ctx.fillRect(x + i - 1, y - i - 1, 4, 4); }
+        ctx.fillStyle = 'rgba(78,48,26,0.95)';
+        for (let i = -6; i <= 6; i++) { ctx.fillRect(x + i, y + i, 2, 2); ctx.fillRect(x + i, y - i, 2, 2); }
+        ctx.fillStyle = 'rgba(170,128,80,0.9)';
+        for (const [dx, dy] of [[-9, -7], [8, -8], [-9, 7], [8, 7], [-3, -9], [3, 8]]) ctx.fillRect(x + dx, y + dy, 2, 1);
     };
     e.interact = () => mugDig(a, e);
     return e;
