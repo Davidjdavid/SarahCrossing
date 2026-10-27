@@ -174,6 +174,11 @@ Status: [x] done, [~] in progress, [ ] not started.
   personal at four and five hearts, favors, and invitations by text to lunch, to hang out, to come by for news or a
   present; and the neighbors' own friendships: a bond between each two that the storylines move, chats raise a little
   and time mends, so close friends chat more, two who've fallen out don't for a few days, and they say so)
+- [ ] Friendship that shows (David's last list, 27 October): how close a neighbor is changes how they greet Sarah, what
+  they do with her and how they act around her; now and then they wave, come over, sit down beside her or say hello
+  without her starting it; conversations fit the moment better (friendship, place, weather, what's happened lately,
+  what they're doing right then); and they remember more kinds of things (gifts, earlier conversations, things done
+  together) and bring them up in more ways
 - [ ] And so on: David will add more ideas here
 
 ## A lived-in island (David, 27 October: for later)
@@ -360,6 +365,21 @@ Status: [x] done, [~] in progress, [ ] not started.
   hide-and-seek (volleyball wherever they are by day; jump rope on the square with a friend of theirs turning, Cuke if
   he's about; an arcade game on their handheld, two players; texts ask for them too)
 
+## David's last list for later (27 October, late)
+(Where this list repeated something already on the roadmap, it's folded into that item instead: memories and friendship
+under "Friendship, deeper", the testing under "Bugs", the town flag under the Town Hall.)
+- [ ] Menus and screens overhauled: better looking, consistent, easier to get around and use (the phone, the pockets,
+  the shops, the customizing screens, the dialogue boxes)
+- [ ] What renews (fruit, fish and the like) left lying on the ground is gone at 5 AM when the day turns over; anything
+  that matters (furniture and the like) goes to a lost and found instead
+- [ ] The Friends app: fuller profiles (personality, who they're friends with, what they like doing, memories with Sarah)
+- [ ] Final polish of the new look: every hairstyle, outfit, design, accessory and animation together with nothing
+  poking through; lighting indoors, in each season, weather and time of day; draw distance (nothing popping in or
+  vanishing; the worst of it fixed 27 October); ground, water, grass, trees, props and animations that don't match;
+  phones faster without the nearby scenery and people looking worse
+- [ ] The game as something played for months: tedious chores, awkward pacing, confusing screens, frustrating
+  activities
+
 ## The museum, in rooms (David, 26 October: for later)
 - [x] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings
   hung along the walls, pottery on plinths and in cases), walked through from the entrance hall (the hall has Brulee's
@@ -414,6 +434,8 @@ Office's and the Bank's keepers are still to be picked.
   Sarah; a day or two after it goes up, she can have it changed to David or to another of the island's characters or
   to an object instead
 - [x] Town flag designer: draw a pixel-art flag shown round the island
+- [ ] (David's last list, 27 October) The flag Sarah draws as a 3D flag flying over the Town Hall, and on a little
+  flagpole at the end of the pier
 - [x] Town ordinances: Early Bird (shops and neighbors start earlier), Night Owl (shops open later), Community Spirit
   (neighbors socialize more), Nature Conservation (more wildlife and growth, trees grow faster, neighbors plant
   flowers where there aren't enough)
@@ -432,7 +454,9 @@ Office's and the Bank's keepers are still to be picked.
 
 ## Bugs
 - [x] Talking to Wonton in the hot spring: the spot you have to stand in is too hard to hit (fixed: any side of the rim works, and a tap walks below it)
-- [~] A light test pass at the very end (David played it for a week and reported bugs as he went). 26 October: a bot
+- [~] A light test pass at the very end (David played it for a week and reported bugs as he went; David's last list,
+  27 October: every system, minigame, shop, way of talking, holiday and odd combination of things; old saves still
+  loading and progress hard to lose; long sessions for bugs, slowdowns, repetition and stalled progress). 26 October: a bot
   played about 2,300 actions in the classic view, the HD-2D view and the new look (random places, hours, talk, buildings,
   apps, civic screens, games, jobs, new days), every civic screen and the neighbor games were checked on three phone
   sizes, and Halloween night was played through; fixed: the new look not showing Ginger's changes until a reload, edit

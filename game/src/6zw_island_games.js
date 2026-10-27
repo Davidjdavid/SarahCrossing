@@ -622,7 +622,8 @@ const IG_ASK_ROPE = {
     _: ["Jump rope? {friend} and I'll turn! Meet us on the square.", "Let's do jump rope! I'll get {friend} to turn the other end."],
     cuke: ['JUMP ROPE! Best cardio! {friend} and I will turn! Square! Now!'],
 };
-async function igMaybeAsk(n, roll = R()) {
+// (the browser tests turn the chance off, window.__noAsk, so a talk menu they check is never swapped for an ask)
+async function igMaybeAsk(n, roll = window.__noAsk ? 1 : R()) {
     const id = n.id, r = rel(id), day = Clock.dayNum();
     if (r.igAskDay === day || NPC_DEFS[id].family || IslandGames.on) return false;
     const games = igAskGames(n);

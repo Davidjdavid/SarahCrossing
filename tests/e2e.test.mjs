@@ -29,7 +29,8 @@ after(async () => {
 /** A new "device": its own browser storage, logged in, on the title screen. */
 async function device({ debug = true, who = 'sarah' } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1000, height: 640 } });
-  if (debug) await ctx.addInitScript(() => { window.__DEBUG = true; });
+  // (no random "want to play?" in the middle of a talk a test is checking)
+  if (debug) await ctx.addInitScript(() => { window.__DEBUG = true; window.__noAsk = true; });
   // the classic view (HD-2D has its own test: software WebGL is slow)
   await ctx.addInitScript(() => { if (!localStorage.getItem('sc_gfx')) localStorage.setItem('sc_gfx', 'classic'); });
   // this device has already said who's playing (the picker has its own test)
