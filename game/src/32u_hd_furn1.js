@@ -145,6 +145,10 @@ for (const id in HDF1_CABS) HD_SPR['f_cab_' + id] = { w: 48, h: 90, ax: 24, ay: 
 /* the cabinets made in code from Fruit Catch's, turned round the hue wheel (CAB_HUE in 6z_arcade2.js, BACK_HUE in 6z_backroom.js) */
 for (const [id, hue] of [['surf', 200], ['garden', 95], ['noodle', 45], ['dumpling', 320], ['sushi', 150], ['fortune', 25]])
     HD_SPR['f_cab_' + id] = { w: 48, h: 90, ax: 24, ay: 87, draw(s) { hdF1_cab(s, Object.assign({}, HDF1_CABS.fruit, { hue })); } };
+/* the out-of-order one: dusty grey, its marquee unlit (the paper sign is drawCabinetScreen's) */
+HD_SPR.f_cab_broken = { w: 48, h: 90, ax: 24, ay: 87, draw(s) {
+    hdF1_cab(s, { body: '#7c808a', side: '#62666f', marq: '#50545e', band: '#5e626c', deckTop: '#8e929b', deck: '#6c707a', door: '#727680', ball: '#a4a8b0', stick: '#7c808a', b1: '#9ca0a8', b2: '#9ca0a8' });
+} };
 
 /* the claw machine: a pink marquee, a lilac frame round the glass case (the claw on its rail, five plushies on the
    prize shelf), the control panel, the prize chute and a lower panel */

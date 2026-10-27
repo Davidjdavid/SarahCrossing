@@ -460,7 +460,7 @@ test('Wonton can be talked to from every side of the hot spring (and a tap walks
   await page.context().close();
 });
 
-test('every arcade cabinet starts, plays and ends, and the arcade has a cabinet for each', async () => {
+test('every arcade cabinet starts, plays and ends, the arcade has a cabinet for each (and one out of order), and the back room keeps the old classics', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
   await page.reload();
@@ -470,12 +470,22 @@ test('every arcade cabinet starts, plays and ends, and the arcade has a cabinet 
   await page.evaluate(() => __dbg.setTime(10, 23, 14));
   await page.evaluate(() => enterRoom('arcade'));
   await page.waitForFunction(() => G.area && G.area.id === 'arcade');
-  const cabs = await page.evaluate(() => ({ list: ARCADE_CABS, inRoom: G.area.items.filter((i) => FURN[i.id] && FURN[i.id].arcade && FURN[i.id].arcade !== 'claw').map((i) => FURN[i.id].arcade), sprites: ARCADE_CABS.every((id) => Assets.has('f_cab_' + id)) }));
+  const cabs = await page.evaluate(() => ({ list: ARCADE_CABS, inRoom: G.area.items.filter((i) => FURN[i.id] && FURN[i.id].arcade && !['claw', 'broken'].includes(FURN[i.id].arcade)).map((i) => FURN[i.id].arcade),
+    broken: G.area.items.filter((i) => i.id === 'cab_broken').length, sprites: ARCADE_CABS.concat('broken').every((id) => Assets.has('f_cab_' + id)), now: arcadeCabs() }));
   assert.deepEqual(cabs.inRoom.sort(), [...cabs.list].sort());
+  assert.deepEqual(cabs.list, ['blocks', 'capsules', 'stack', 'dumpling', 'sushi', 'fortune'], "David's swap: the back room's games out front");
+  assert.equal(cabs.broken, 1, 'one cabinet out of order');
+  assert.deepEqual(cabs.now, cabs.list, 'the classics wait behind the locked door');
   assert.ok(cabs.sprites, 'every cabinet has a picture');
+  // the out-of-order one only says so
+  const broken = await page.evaluate(async () => { const said = []; const say = UI.say; UI.say = async (who, l) => { said.push([].concat(l).join(' ')); }; try { await G.area.items.find((i) => i.id === 'cab_broken').use(); } finally { UI.say = say; } return { said: said.join(' '), playing: Arcade.on }; });
+  assert.match(broken.said, /out of order/i);
+  assert.equal(broken.playing, false);
   // and the back room's, once its door is open
   const all = await page.evaluate(() => { Quests.finish('backroom'); return arcadeCabs(); });
-  assert.ok(all.length > cabs.list.length, 'the back room adds cabinets');
+  assert.deepEqual(all.slice(cabs.list.length), ['fruit', 'garden', 'surf', 'noodle'], 'the back room adds the four classics');
+  const back = await page.evaluate(async () => { await enterRoom('arcade_back'); return G.area.items.filter((i) => FURN[i.id] && FURN[i.id].arcade).map((i) => FURN[i.id].arcade); });
+  assert.deepEqual(back.sort(), ['fruit', 'garden', 'noodle', 'surf']);
   for (const id of all) {
     await page.evaluate((id) => __dbg.arcade(id), id);
     await page.waitForFunction(() => Arcade.state === 'play', null, { timeout: 5000 });

@@ -57,10 +57,11 @@ async function talkTo(n) {
 /* the old chat pool (still used for the noodle cart, benches and a few other places) */
 function chatLine(n) {
     const id = n.id, t = TALK[id], r = rel(id);
-    if (id === 'chili' && n.area === 'arcade' && R() < 0.6) return rpick(CHILI_ARCADE);
+    if (id === 'chili' && n.area === 'arcade' && R() < 0.6) return rpick(chiliLines());
     if (AREA_TALK[n.area] && !(ROOMS[n.area] && ROOMS[n.area].staff === id) && R() < 0.45) return rpick(AREA_TALK[n.area]);
     if ((n.spotKey === 'rope_a' || n.spotKey === 'rope_b') && R() < 0.7) return rpick(id === 'cuke' ? ROPE_TALK_CUKE : ROPE_TALK);
     const pool = t.chat.slice();
+    if (BACK_CHAT[id] && backRoomOpen()) pool.push(BACK_CHAT[id]);
     const w = G.weather, h = Clock.hourF();
     if ((w === 'rain' || w === 'snow') && t.rain) pool.push(...t.rain, ...t.rain);
     if ((h >= 21 || h < 4) && t.night) pool.push(...t.night, ...t.night);

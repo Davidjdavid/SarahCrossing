@@ -22,8 +22,8 @@ const AREA = {
     '6i_salon': 'The salon', '6j_displays': "Waffle's displays", '6l_intro': 'The opening', '6m_specials': 'Specials',
     '6n_requests': 'Favors', '6o_topics': 'Talking', '6p_quests': 'Mysteries', '6q_world': 'Around the island', '6r_seaview': 'The sea view',
     '6t_cooking': 'Cooking', '6u_outings': 'Outings', '6v_stack': 'Snack Stack (arcade)', '6w_extras': 'Extras', '6y_visitors': 'Visitors',
-    '6z_arcade2': 'Arcade games', '6z_back_dumpling': 'Dumpling Drop (back room)', '6z_back_fortune': 'Fortune Falls (back room)',
-    '6z_back_sushi': 'Sushi Swap (back room)', '6z_backroom': "The arcade's back room", '6z_festivals': 'Festivals', '6z_shops': 'Shop upgrades',
+    '6z_arcade2': "Arcade games (the back room's classics)", '6z_back_dumpling': 'Dumpling Drop (arcade)', '6z_back_fortune': 'Fortune Falls (arcade)',
+    '6z_back_sushi': 'Sushi Swap (arcade)', '6z_backroom': "The arcade's back room", '6z_festivals': 'Festivals', '6z_shops': 'Shop upgrades',
     '6z_talk_more': 'Talking',
 };
 
@@ -122,6 +122,8 @@ const T = {
     Sculpt: ['narr', 'Hand-building and sculpting pottery'],
     Glaze: ['narr', 'Glazing pottery'],
     CHILI_ARCADE: ['chili', 'Chili at the arcade'],
+    CHILI_BACK: ['chili', "Chili at the arcade, once the back room's open"],
+    BACK_CHAT: ['npc', "Talking about the back room's old games, once it's open"],
     PLUSH_SELF: ['npc', 'Seeing a plush of themselves'],
     ARCADE_CHAT: ['npc', 'Talking about the arcade'],
     Arcade: ['narr', 'An arcade cabinet'],

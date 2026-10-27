@@ -653,7 +653,7 @@ function topicLine(n) {
     const topics = [
         ['own', 5, own],
         ['area', AREA_TALK[n.area] && !(ROOMS[n.area] && ROOMS[n.area].staff === id) ? 2 : 0, () => rpick(AREA_TALK[n.area])],
-        ['chili_arcade', id === 'chili' && n.area === 'arcade' ? 2 : 0, () => rpick(CHILI_ARCADE)],
+        ['chili_arcade', id === 'chili' && n.area === 'arcade' ? 2 : 0, () => rpick(chiliLines())],
         ['rope', n.spotKey === 'rope_a' || n.spotKey === 'rope_b' ? 3 : 0, () => rpick(id === 'cuke' ? ROPE_TALK_CUKE : ROPE_TALK)],
         ['harvard', 1.2, () => rpick(R() < 0.55 ? HARVARD_FACTS : HARVARD_JOKES.concat(TITLE_GUESS))],
         ['boston', id === 'sully' ? 2.5 : 1, () => rpick(BOSTON_FACTS)],

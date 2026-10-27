@@ -1,5 +1,5 @@
 /* ---- 6z_back_fortune.js ---- */
-/* Fortune Falls: Fortune's pegboard for the arcade's back room (a Peggle-style game). Aim the launcher, drop a sesame
+/* Fortune Falls: Fortune's pegboard in the arcade (in the back room until David's swap) (a Peggle-style game). Aim the launcher, drop a sesame
    ball through the pegs and light every orange fortune peg to clear the board; lit pegs pop once the ball has left.
    The steamer basket at the bottom catches a free ball, the purple peg (it moves every shot) is a big bonus, a green
    peg splits the ball in two, and the last orange peg gets a slow-motion close-up, then Extreme Fever and the bonus

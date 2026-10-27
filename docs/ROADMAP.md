@@ -227,12 +227,20 @@ Status: [x] done, [~] in progress, [ ] not started.
   bridges and stairs. Everything on the grid, each tile walkable or not, would fix it
 - [ ] Fishing: Sarah reels in what she caught and holds it up over her head; the fishing rod a 3D model, not a picture
 - [ ] Market lane: more space between its top and bottom rows of shops, and the shops a bit further apart
-- [ ] The arcade swapped round: Fruit Catch, Gopher Garden (the whack-a-mole one), Surf's Up and Noodle Slurp (the
+- [x] The arcade swapped round: Fruit Catch, Gopher Garden (the whack-a-mole one), Surf's Up and Noodle Slurp (the
   snake one) go to the back room, and the back room's Dumpling Drop, Sushi Swap and Fortune Falls come out front. One
   cabinet in the front room is out of order: that's the special game David will remake from memory later
+  (done: the back room's story now hides the four old classics; the out-of-order cabinet at the end of the row, a
+  paper sign over its screen, waits for that game)
 - [ ] Music for each hour of the day, as Animal Crossing has (David will bring the tracks)
 - [ ] Holiday decorations that fit the day: bigger jack-o'-lanterns, and decorations round the square and on the shops and
   houses for the big holidays, seasons and events, up for longer and more elaborate the more the day matters
+- [ ] Fortune's shop moves onto the shopping street, and Fortune gets a house of their own; Sarah can shop there when it's
+  closed or Fortune isn't working, on the honor system, as at the other shops
+- [ ] An empty lot on the shopping street, to even out its places: a sign saying it's set aside for a new business, where
+  one of the neighbors still to come will open a coffee shop
+- [ ] Two "residential land for sale" signs somewhere on the island, with paths out to them: where the new neighbors
+  will live
 - [ ] The cliff edges, the island's sides and some of the sea look blocky. Once everything is on the grid, draw the tiles
   rounded like a tile sheet: the cliff sides are tiles nobody walks on, their 3D pieces with a little ground and
   see-through edges

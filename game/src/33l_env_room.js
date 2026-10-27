@@ -119,6 +119,7 @@ const EnvRoom = {
         const e = s.e, c = s.c, g = c.getContext('2d'), W = c.width, H = c.height, id = e.def.arcade;
         g.setTransform(1, 0, 0, 1, 0, 0);
         g.fillStyle = '#10121e'; g.fillRect(0, 0, W, H);
+        if (id === 'broken') return this.brokenScreen(s);
         const game = typeof ARCADE_GAMES !== 'undefined' && (ARCADE_GAMES[id] || ARCADE_GAMES['vs_' + id]);
         g.fillStyle = '#ffe9a8'; g.font = 'bold 8px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'top';
         if (game && game.name) g.fillText(String(game.name).toUpperCase(), W / 2, 3, W - 6);
@@ -128,6 +129,22 @@ const EnvRoom = {
         g.setTransform(1, 0, 0, 1, 0, 0);
         g.fillStyle = 'rgba(0,0,0,0.2)';
         for (let y = 0; y < H; y += 2) g.fillRect(0, y, W, 1);
+        s.tex.needsUpdate = true;
+    },
+    /* the out-of-order cabinet: a paper sign taped over the dark screen, the game underneath flickering now and then */
+    brokenScreen(s) {
+        const c = s.c, g = c.getContext('2d'), W = c.width, H = c.height, k = Math.floor(G.t / 10);
+        if (s.drawn && k % 23 && s.drawn !== 'flick') return;
+        s.drawn = k % 23 === 0 ? 'flick' : 'still';
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.fillStyle = '#0c0d14'; g.fillRect(0, 0, W, H);
+        if (k % 23 === 0) { g.fillStyle = 'rgba(78,195,217,0.5)'; g.fillRect(0, 8 + (k % 5) * 6, W, 3); }
+        g.save(); g.translate(W / 2, H / 2); g.rotate(-0.06);
+        g.fillStyle = '#f4ecd8'; g.fillRect(-26, -16, 52, 32);
+        g.fillStyle = 'rgba(220,210,170,0.8)'; g.fillRect(-30, -19, 12, 5); g.fillRect(18, -19, 12, 5);
+        g.fillStyle = '#c0283a'; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('OUT OF', 0, -6, 48); g.fillText('ORDER', 0, 7, 48);
+        g.restore();
         s.tex.needsUpdate = true;
     },
     /* a model's parts as a group of their own (the furniture's geometry and materials, kept for the next room) */

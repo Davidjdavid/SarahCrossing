@@ -1,5 +1,5 @@
 /* ---- 6z_back_sushi.js ---- */
-/* Sushi Swap, from the arcade's back room: Maki's conveyor-belt puzzle (a Panel de Pon game). Sushi rides up the belt
+/* Sushi Swap, out front in the arcade (from the back room until David's swap): Maki's conveyor-belt puzzle (a Panel de Pon game). Sushi rides up the belt
    from the bottom, the two-wide cursor swaps the pair it sits on, and three or more alike in a row or column pop.
    Sushi that drops into a new match makes a chain, four or more at once make a combo, and both pause the belt for a
    moment. It runs in the same cabinet overlay as the others (59_arcade.js). */

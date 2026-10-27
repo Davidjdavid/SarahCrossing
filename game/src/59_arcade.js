@@ -1,10 +1,11 @@
 /* ---- 59_arcade.js ---- */
-/* The arcade: Chili's prize counter, three cabinets (Bento Blocks, Spice Capsules, Fruit Catch), the claw machine and
-   tickets. Every machine can be won at the prize counter and played at home, free (home games don't pay tickets).
+/* The arcade: Chili's prize counter, the cabinets (Bento Blocks, Spice Capsules, Snack Stack, Dumpling Drop, Sushi Swap,
+   Fortune Falls, and one out of order), the claw machine and tickets; the old classics are in the back room
+   (6z_backroom.js). Every machine can be won at the prize counter and played at home, free (home games don't pay tickets).
    The games all run inside one cabinet overlay drawn here; their rules live in 61_arcadegames.js. */
 
 const ARCADE_GAMES = {};
-const ARCADE_CABS = ['blocks', 'capsules', 'fruit', 'stack', 'surf', 'garden', 'noodle'];      // the cabinet games, in the room's order
+const ARCADE_CABS = ['blocks', 'capsules', 'stack', 'dumpling', 'sushi', 'fortune'];      // the cabinet games out front, in the room's order
 const ARCADE_W = 136, ARCADE_H = 152;
 const PLAY_FEE = 50, CLAW_FEE = 100;
 const PRIZES = [
@@ -28,7 +29,7 @@ const CHILI_ARCADE = [
     "Welcome to the arcade! I run the prize counter. Hottest job on the island. I checked.",
     "Bento Blocks tip: don't panic. Panic is spicy. Spicy is MY thing.",
     "The claw machine is fair. Mostly. Emotionally, it's fair.",
-    "Kai played Fruit Catch for three hours yesterday. He says he was 'in the zone.' The zone was a nap.",
+    "Kai played Fortune Falls for three hours yesterday. He says he was 'in the zone.' The zone was a nap.",
     "Tickets never expire. Neither does my love of hot sauce.",
     "Spice Capsules has chili bugs in it. I'm not saying I'm the inspiration. I'm the inspiration.",
     "David beat my high score once. On skates. I'm still recovering.",
@@ -48,13 +49,14 @@ function chiliVoice() { const c = NPCs.get('chili'); return c && !c.sleeping && 
 const ARCADE_CHAT = {
     kai: ['Dude, Fruit Catch is basically surfing. With fruit. And no water. And no board. So, not surfing.'],
     david: ["I beat Chili's Bento Blocks score once. On skates. He's still not over it. Honestly? Neither am I."],
-    maki: ['Bento Blocks is the only game that respects me. Every row lines up. Precisely.'],
+    maki: ['Bento Blocks is the only game that respects me. Every row lines up. Precisely.', 'Sushi Swap rewards planning. Swap, wait, chain. Precisely.'],
     cece: ['I tried the claw machine. The plushie slipped and I apologized to it. It did not forgive me.'],
     cuke: ['Jump rope in the plaza! Afternoons! Good for the heart! And the calves! And morale!'],
     basil: ["Karaoke at the club is so nice. Joe's poems with a beat? Magic. Pure magic."],
     clementine: ['The arcade carpet is a crime. A fabulous, glittering crime.'],
     sully: ["Chili runs the prize countah. Wicked competitive. I won a plushie and he cried. Hot teahs, kid."],
-    wonton: ['There is a Wonton plushie in the claw machine! It is very soft. It is not in soup. I approve.'],
+    wonton: ['There is a Wonton plushie in the claw machine! It is very soft. It is not in soup. I approve.',
+        'Dumpling Drop has dumplings! They fall! They pop! Nobody goes in soup! It is my favorite game!'],
     coco: ["Have you done karaoke yet? Joe's poems, with MUSIC. I sang the frog one. Twice. People were moved. To tears."],
     ginger: ["I fixed the claw machine once. Now it's too fair. Chili is furious."],
     brulee: ["The arcade is very loud. But the colors! Like a painting that beeps."],
@@ -371,25 +373,25 @@ const Arcade = {
 
 /* ---------------------------------------------------------------- the room */
 ROOMS.arcade = { w: 17, h: 7, wall: 'wall_arcade', floor: 'floor_arcade', music: 'arcade', name: 'The Arcade', staff: 'chili',
-    staffAt: [15, 0], staffStand: [15, 2], guest: [5, 4, 2], guestSpots: [[0, 1], [2, 1], [4, 1], [6, 1], [8, 1], [10, 1], [12, 1], [11, 4], [12, 4], [2, 5]],
+    staffAt: [15, 0], staffStand: [15, 2], guest: [5, 4, 2], guestSpots: [[0, 1], [2, 1], [4, 1], [6, 1], [8, 1], [10, 1], [9, 4], [11, 4], [12, 4], [2, 5]],
     build: a => buildArcadeRoom(a),
     closedSign: 'THE ARCADE. Open {hours:arcade}. The machines are asleep. Chili tucked them in.' };
 function buildArcadeRoom(a) {
     const items = layoutItems([
-        ['poster_blocks', 1, 'wall'], ['poster_capsules', 3, 'wall'], ['poster_fruit', 5, 'wall'], ['poster_stack', 7, 'wall'], ['clock_wall', 9, 'wall'],
+        ['poster_blocks', 1, 'wall'], ['poster_capsules', 3, 'wall'], ['poster_stack', 5, 'wall'], ['clock_wall', 9, 'wall'],
         ['hiscore_board', 13, 'wall'], ['neon_game', 15, 'wall'],
-        ['cab_blocks', 0, 0], ['cab_capsules', 2, 0], ['cab_fruit', 4, 0], ['cab_stack', 6, 0], ['cab_surf', 8, 0], ['cab_garden', 10, 0], ['cab_noodle', 12, 0],
+        ['cab_blocks', 0, 0], ['cab_capsules', 2, 0], ['cab_stack', 4, 0], ['cab_dumpling', 6, 0], ['cab_sushi', 8, 0], ['cab_fortune', 10, 0], ['cab_broken', 12, 0],
         ['claw_machine', 11, 3], ['counter_prize', 14, 1], ['plush_goat', 14, 1], ['trophy_arcade', 16, 1], ['snack_machine', 16, 4],
         ['arcade_stool', 1, 4], ['cafe_table', 2, 4], ['arcade_stool', 3, 4], ['plant_monstera', 0, 6], ['plant_monstera', 16, 6]]);
     const use = {
-        cab_blocks: () => arcadeCabinet('blocks'), cab_capsules: () => arcadeCabinet('capsules'), cab_fruit: () => arcadeCabinet('fruit'), cab_stack: () => arcadeCabinet('stack'),
-        cab_surf: () => arcadeCabinet('surf'), cab_garden: () => arcadeCabinet('garden'), cab_noodle: () => arcadeCabinet('noodle'),
+        cab_blocks: () => arcadeCabinet('blocks'), cab_capsules: () => arcadeCabinet('capsules'), cab_stack: () => arcadeCabinet('stack'),
+        cab_dumpling: () => arcadeCabinet('dumpling'), cab_sushi: () => arcadeCabinet('sushi'), cab_fortune: () => arcadeCabinet('fortune'),
+        cab_broken: () => brokenCabinet(),
         poster_stack: () => UI.say(null, 'A poster: "SNACK STACK. Two of the same snack squish into a bigger snack. Can you make a watermelon?" There is a very happy watermelon on it.'),
         claw_machine: () => clawMachine(), counter_prize: () => prizeDesk(), prize_shelf: () => prizeDesk(), hiscore_board: () => showHiScores(),
         snack_machine: () => snackMachine(),
         poster_blocks: () => UI.say(null, 'A poster: "BENTO BLOCKS. Fill the box. Clear the rows. Stay calm. (Chili cannot stay calm.)"'),
         poster_capsules: () => UI.say(null, 'A poster: "SPICE CAPSULES. The bugs are loose! Line up four to catch them." The chili bug looks a lot like Chili.'),
-        poster_fruit: () => UI.say(null, 'A poster: "FRUIT CATCH. Catch the fruit. Not the bees. Never the bees."'),
         plush_goat: () => UI.say(null, "A goat plushie guards the counter. It's a goat. Nothing else to say."),
         trophy_arcade: () => UI.say(null, `ARCADE CHAMPION. It's for sale, sort of: ${fmtNum(PRIZES.find(p => p[0] === 'trophy_arcade')[1])} tickets. Chili polishes it every hour.`),
     };
@@ -397,6 +399,17 @@ function buildArcadeRoom(a) {
     a.items = items;
     placeFurniture(a, items);
     addBackDoor(a);
+}
+/* the cabinet at the end of the row is out of order: a paper sign taped over its screen (it's the game David is making
+   again from memory; until then nobody can play it) */
+FURN.cab_broken = { id: 'cab_broken', name: 'Out-of-order cabinet', w: 1, h: 1, kind: 'floor', price: 0, sets: ['fixture'], fixture: 1, arcade: 'broken' };
+ITEMS.cab_broken = { name: 'Out-of-order cabinet', type: 'furniture', price: 0, icon: 'f_cab_broken' };
+async function brokenCabinet() {
+    const sp = chiliVoice();
+    if (sp) return UI.say(sp, rpick(["That one? Out of order. Ginger says it needs a part nobody makes anymore. It was the BEST one. I miss it every day.",
+        "Out of order. Don't hit it. I tried. It didn't help. It did hurt my hand.", "Still out of order. It's coming back someday. I keep the sign straight so it knows we're waiting."]));
+    return UI.say(null, ['A cabinet with a paper sign taped over the screen: "OUT OF ORDER. Ginger is on it. - Chili"',
+        'Under the sign the screen flickers now and then, as if it remembers a game.']);
 }
 /* a cabinet's screen keeps playing its attract mode */
 function drawCabinetScreen(ctx, e) {
@@ -440,6 +453,11 @@ function drawCabinetScreen(ctx, e) {
         ctx.fillStyle = '#ff8a6a'; ctx.fillRect(x0 + 8 - (k % 2) * 3, y0 + 9, 3, 1);
     } else if (d.arcade === 'fortune') {
         ctx.fillStyle = '#ffd84a'; ctx.fillRect(x0 + 5 + Math.round(Math.abs(Math.sin(k / 3)) * 5), y0 + 7 + (k % 6), 1, 1);
+    } else if (d.arcade === 'broken') {
+        // the sign taped over the screen, and now and then a flicker of the game underneath
+        if (k % 23 === 0) { ctx.fillStyle = '#4ec3d9'; ctx.fillRect(x0 + 3, y0 + 6, 10, 1); }
+        ctx.fillStyle = '#f4ecd8'; ctx.fillRect(x0 + 4, y0 + 6, 8, 6);
+        ctx.fillStyle = '#c0283a'; ctx.fillRect(x0 + 5, y0 + 8, 6, 1); ctx.fillRect(x0 + 5, y0 + 10, 4, 1);
     } else if (d.arcade === 'noodle') {
         ctx.fillStyle = '#ffe08a';
         for (let i = 0; i < 3; i++) ctx.fillRect(x0 + 5 + ((k - i + 24) % 6), y0 + 9 + (Math.floor((k - i + 24) / 6) % 2) * 2, 1, 1);
@@ -626,7 +644,7 @@ function prizeNote(id) {
 const HISCORE_RIVALS = {
     blocks: [['CHILI', 12400, 'too hot to stop'], ['MAKI', 9100, 'every block exactly aligned'], ['DAVID', 7700, 'on skates']],
     capsules: [['CUKE', 8800, 'played at 5 AM'], ['COCO', 6200, 'told everyone'], ['KAI', 3100, 'says he was "vibing"']],
-    fruit: [['KAI', 1900, 'surf stance'], ['CECE', 1450, 'apologized to every fruit'], ['WONTON', 900, 'from the spring. somehow.']],
+    fruit: [['SULLY', 2600, 'set in 1987, in pencil'], ['KAI', 1900, 'surf stance'], ['CECE', 1450, 'apologized to every fruit'], ['WONTON', 900, 'from the spring. somehow.']],
     stack: [['MAC', 2600, 'made a poke bowl, got hungry'], ['BRULEE', 1800, 'arranged every snack by color'], ['CUKE', 1200, 'only stacked edamame']],
 };
 /* now and then somebody tries to top Sarah's best (and brags about it) */
@@ -634,7 +652,7 @@ function arcadeRivals() {
     const A = arc(), day = Clock.dayNum(), r = mulberry(hash32(S.seed + ':rival:' + day));
     for (const g of Object.keys(HISCORE_RIVALS)) {
         const best = A.best[g] || 0, cur = A.rival[g];
-        if (!best || (cur && !cur.beatenDay && day - cur.day < 3)) continue;
+        if (!best || (cur && !cur.beatenDay && day - cur.day < 3) || !arcadeCabs().includes(g)) continue;
         if (r() > 0.14) continue;
         const who = rpick(HISCORE_RIVALS[g], r)[0];
         const score = Math.ceil((best * (1.04 + r() * 0.12)) / 50) * 50;

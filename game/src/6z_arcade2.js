@@ -1,5 +1,5 @@
 /* ---- 6z_arcade2.js ---- */
-/* Three more cabinets for the arcade: Surf's Up (Kai's: one button, jump the rocks, grab the shells), Gopher Garden
+/* Three more cabinets, in the arcade's back room since David's swap (with Fruit Catch, the old classics): Surf's Up (Kai's: one button, jump the rocks, grab the shells), Gopher Garden
    (Basil and Cuke's: bonk the gophers, never bonk Cuke) and Noodle Slurp (Basil's: a noodle that grows as it slurps,
    don't bite your own tail). They run in the same cabinet overlay as the others (59_arcade.js). */
 
@@ -420,6 +420,20 @@ ASSET_MAKERS.push(() => {
         g.putImageData(img, 0, 0);
         Assets.dyn['f_cab_' + id] = { c, w, h, ax, ay };
     }
+    // the out-of-order one (59_arcade.js): grey and dim, its marquee dark
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.drawImage(Assets.atlas, sx, sy, w, h, 0, 0, w, h);
+    const img = g.getImageData(0, 0, w, h), d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+        if (!d[i + 3]) continue;
+        const [hh, ss, ll] = rgbToHsl(d[i], d[i + 1], d[i + 2]);
+        const [r, gg, b] = hslToRgb((hh + 0.6) % 1, ss * 0.18, ll * 0.82);
+        d[i] = r; d[i + 1] = gg; d[i + 2] = b;
+    }
+    g.putImageData(img, 0, 0);
+    Assets.dyn.f_cab_broken = { c, w, h, ax, ay };
 });
 function rgbToHsl(r, g, b) {
     r /= 255; g /= 255; b /= 255;
@@ -455,15 +469,16 @@ Object.assign(HISCORE_RIVALS, {
 Object.assign(ARC_TARGET, { surf: [500, 1000, 1800], garden: [500, 900, 1400], noodle: [300, 700, 1200] });
 Object.assign(TRACK_NAMES, { surf: "Surf's Up", garden: 'Gopher Garden', noodle: 'Noodle Slurp' });
 
-/* and everyone has something to say about them */
-CHILI_ARCADE.push(
-    "Three new cabinets! Surf's Up, Gopher Garden, Noodle Slurp. I tested every one. For safety. For hours.",
+/* and everyone has something to say about them, once the back room is open (they're its old classics: chiliLines,
+   chatLine) */
+const CHILI_BACK = [
+    "Fruit Catch, Surf's Up, Gopher Garden, Noodle Slurp. In the back room. This WHOLE time. I walked past them every day.",
     'Gopher Garden tip: the golden ones give you more time. Cuke gives you nothing but regret. Do not bonk Cuke.',
-    "Noodle Slurp is Basil's idea. The chili makes you go faster. I'm not saying I'm in the game. I'm in the game.");
-for (const [id, line] of Object.entries({
-    kai: "Surf's Up is legit, dude. I've got the high score. I've ALWAYS got the high score. It's my wave.",
-    basil: "There's a game about MY garden now! Gophers everywhere. And my noodle game! Slurp responsibly.",
-    cuke: "I'm in Gopher Garden! Jogging through! People keep bonking me! It's GREAT cardio! For them!",
-    mac: 'Noodle Slurp. A game where you eat noodles. Finally, a game that understands me.',
+    "Noodle Slurp has a chili in it that makes you go faster. They made it in 1987. 1987 knew about me. 1987 KNEW."];
+const BACK_CHAT = {
+    kai: "Surf's Up is legit, dude. Old school. I've got the high score now. It's my wave. It was always my wave.",
+    basil: "There's an old game about a garden in the arcade's back room! Gophers everywhere. And a noodle game! Slurp responsibly.",
+    cuke: "There's a cucumber in Gopher Garden! Jogging through! Since 1987! People keep bonking him! GREAT cardio! For them!",
+    mac: 'Noodle Slurp. A game where you eat noodles. They made it in 1987 and they were right.',
     maki: "In Noodle Slurp, never cross your own noodle. It's a rule for life, too.",
-})) if (TALK[id]) TALK[id].chat.push(line);
+};

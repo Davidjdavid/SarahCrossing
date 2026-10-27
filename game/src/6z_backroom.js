@@ -1,9 +1,10 @@
 /* ---- 6z_backroom.js ---- */
 /* The arcade's back room: a locked STAFF ONLY door between two cabinets. Behind it, the island's very first arcade,
-   with three old cabinets (Dumpling Drop, Sushi Swap, Fortune Falls). A hidden mystery, for later in the game: once
+   with four old cabinets (Fruit Catch, Gopher Garden, Surf's Up, Noodle Slurp: the classics; Dumpling Drop, Sushi Swap
+   and Fortune Falls are out front, David's swap of 27 October). A hidden mystery, for later in the game: once
    Sarah has played every cabinet out front and has been on the island two weeks, Chili admits it isn't "just
    storage". Sully remembers the key went to the lighthouse keeper, who kept everything. */
-const BACK_CABS = ['dumpling', 'sushi', 'fortune'];
+const BACK_CABS = ['fruit', 'garden', 'surf', 'noodle'];
 const BACK_READY_DAYS = 14;
 const BACK_DOOR = [11, 0];                 // the arcade's floor tile in front of the door (between two cabinets)
 
@@ -29,14 +30,19 @@ QUEST_RUMORS.backroom = ["Chili keeps looking at that STAFF ONLY door at the bac
     'I heard music coming from behind the locked door in the arcade once. Old music. Bleepy. Probably nothing! Probably a ghost!'];
 QUEST_ITEM_DESC.q_arcadekey = 'A small brass key on a ring shaped like a joystick. It says "BACK ROOM" on a paper tag.';
 ITEMS.q_arcadekey = { name: 'Old arcade key', type: 'quest', price: 0, icon: 'ic_lost_keys' };
-QUEST_GUIDE.backroom = ['The locked door', `1. Play every cabinet in the arcade at least once, and be on the island for ${BACK_READY_DAYS} days.\n2. Ask Chili, at the arcade, about the STAFF ONLY door at the back.\n3. Ask Sully about the back room: he gave the key to the old lighthouse keeper.\n4. Search the keeper's desk in the lighthouse.\n5. Open the door with the key.\nReward: the back room, with three classic cabinets: Dumpling Drop, Sushi Swap and Fortune Falls.`];
+QUEST_GUIDE.backroom = ['The locked door', `1. Play every cabinet in the arcade at least once, and be on the island for ${BACK_READY_DAYS} days.\n2. Ask Chili, at the arcade, about the STAFF ONLY door at the back.\n3. Ask Sully about the back room: he gave the key to the old lighthouse keeper.\n4. Search the keeper's desk in the lighthouse.\n5. Open the door with the key.\nReward: the back room, with four classic cabinets: Fruit Catch, Gopher Garden, Surf's Up and Noodle Slurp.`];
 function backHint(s) {
     return s === 3 ? 'You found the old arcade key. Try it on the STAFF ONLY door at the back of the arcade.'
         : s === 2 ? 'Sully gave the back-room key to the old lighthouse keeper, who kept everything. Search the lighthouse.'
             : s === 1 ? 'Chili says Sully has been on the island the longest. Ask Sully about the back room.'
                 : "A rumor: there's a locked STAFF ONLY door at the back of the arcade. Ask Chili about it.";
 }
-const BACK_DONE = 'The back room is open: the island\'s first arcade, three classic cabinets, good as new.';
+const BACK_DONE = 'The back room is open: the island\'s first arcade, four classic cabinets, good as new.';
+/* what Chili says at the counter: the back room's classics too, once it's open */
+function chiliLines() { return backRoomOpen() ? CHILI_ARCADE.concat(CHILI_BACK) : CHILI_ARCADE; }
+CHILI_ARCADE.push(
+    'Three new cabinets out front! Dumpling Drop, Sushi Swap, Fortune Falls. I tested every one. For safety. For hours.',
+    "Fortune Falls is Fortune's idea. The pegs light up when you hit them. I'm not saying the orange pegs are me. The orange pegs are me.");
 /* talk menu entries: Chili and Sully */
 function backOptions(n) {
     const out = [], s = Quests.stage('backroom');
@@ -50,7 +56,7 @@ function backOptions(n) {
         return true;
     } });
     if (n.id === 'sully' && s === 1) out.push({ label: "About the arcade's back room...", fn: async () => {
-        await UI.say('sully', ["The back room? Kid. That was the first arcade on this island. Three cabinets and a jukebox. Nineteen-eighty-somethin'.",
+        await UI.say('sully', ["The back room? Kid. That was the first arcade on this island. Four cabinets and a jukebox. Nineteen-eighty-somethin'.",
             'When they built the new place out front, the old machines went in the back and somebody locked the door. Me. I locked the door.',
             "I gave the key to the lighthouse keeper for safekeepin'. That guy kept everything. Logbooks, boots, a whole sandwich. Check his desk."], { keep: true });
         Quests.set('backroom', 2);
@@ -96,11 +102,11 @@ async function backDoor() {
         G.busy++;
         try {
             Sfx.play('door');
-            await UI.say(null, ['Sarah turns the old key. It sticks... then CLICK.', 'The door creaks open. Dust. A smell like 1987. And three shapes under sheets.']);
+            await UI.say(null, ['Sarah turns the old key. It sticks... then CLICK.', 'The door creaks open. Dust. A smell like 1987. And four shapes under sheets.']);
             removeItem('q_arcadekey', 1);
             Quests.finish('backroom');
             const c = NPCs.get('chili');
-            if (c && !c.sleeping && c.area === 'arcade') { c.emote = 'sparkle'; c.emoteT = 120; await UI.say('chili', ["WAIT. You opened it?! What's in there? Is it hot? Tell me it's hot.", 'Those are... the CLASSICS. Dumpling Drop! Sushi Swap! Fortune Falls! I thought those were legends!']); }
+            if (c && !c.sleeping && c.area === 'arcade') { c.emote = 'sparkle'; c.emoteT = 120; await UI.say('chili', ["WAIT. You opened it?! What's in there? Is it hot? Tell me it's hot.", "Those are... the CLASSICS. Fruit Catch! Gopher Garden! Surf's Up! Noodle Slurp! I thought those were legends!"]); }
         } finally { G.busy--; }
         await goRoom('arcade_back', [4, 3], 'up');
         return;
@@ -115,12 +121,13 @@ ROOMS.arcade_back = { w: 9, h: 5, wall: 'wall_brick', floor: 'floor_boards', mus
     building: 'arcade', build: a => buildBackRoom(a) };
 function buildBackRoom(a) {
     const items = layoutItems([
-        ['neon_sign', 1, 'wall'], ['shelf_wall', 4, 'wall'], ['clock_wall', 7, 'wall'],
-        ['cab_dumpling', 1, 0], ['cab_sushi', 3, 0], ['cab_fortune', 5, 0], ['toolbox', 7, 0],
+        ['clock_wall', 2, 'wall'], ['neon_sign', 3, 'wall'], ['shelf_wall', 5, 'wall'],
+        // (the four old cabinets in pairs either side, as they were pushed back to make room)
+        ['cab_fruit', 0, 0], ['cab_garden', 1, 0], ['cab_surf', 7, 0], ['cab_noodle', 8, 0], ['toolbox', 6, 0],
         ['lamp_floor', 0, 3], ['sofa_pink', 1, 3], ['rug_round', 3, 2]]);
     const use = {
-        cab_dumpling: () => backCab('dumpling'), cab_sushi: () => backCab('sushi'), cab_fortune: () => backCab('fortune'),
-        neon_sign: () => UI.say(null, 'An old neon sign: "THE ORIGINAL ARCADE, EST. 1987". Half the letters still glow. The "R" is very tired.'),
+        cab_fruit: () => backCab('fruit'), cab_garden: () => backCab('garden'), cab_surf: () => backCab('surf'), cab_noodle: () => backCab('noodle'),
+        neon_sign: () => UI.say(null, 'An old neon sign that says DANCE. Sully says there was dancing in here too, back in 1987, in front of the cabinets. The "N" is very tired.'),
         clock_wall: () => UI.say(null, 'The clock stopped at 4:20. Nobody knows which day. Or which year.'),
         shelf_wall: () => UI.say(null, 'Spare joysticks, a jar of very old tokens, and a high score list in pencil. The top name is "SULLY".'),
         sofa_pink: () => UI.say(null, 'A pink couch with a dent where someone sat watching the games for a very long time.'),
@@ -143,12 +150,18 @@ function backCab(id) {
     if (ARCADE_GAMES[id]) return arcadeCabinet(id);
     return UI.say(null, 'A cabinet under a dusty sheet. A note from Ginger is taped to it: "Still fixing this one. Soon! - G"');
 }
-/* the three old cabinets: furniture like the others (won at the prize counter once the door is open) */
+/* Dumpling Drop, Sushi Swap and Fortune Falls (out front since David's swap): furniture like the others, won at the prize
+   counter; the four old cabinets in the back room only once the door is open (back) */
 const BACK_HUE = { dumpling: 320, sushi: 150, fortune: 25 };
 for (const [id, name] of [['dumpling', 'Dumpling Drop'], ['sushi', 'Sushi Swap'], ['fortune', 'Fortune Falls']]) {
     ITEMS['cab_' + id] = { name: `${name} cabinet`, type: 'furniture', price: 2400, icon: 'f_cab_' + id };
-    FURN['cab_' + id] = { id: 'cab_' + id, name: `${name} cabinet`, w: 1, h: 1, kind: 'floor', price: 2400, sets: ['arcade'], prize: 1, arcade: id, anim: 1, light: 22, back: 1 };
-    PRIZES.splice(PRIZES.findIndex(p => p[0] === 'claw_machine'), 0, ['cab_' + id, 300]);
+    FURN['cab_' + id] = { id: 'cab_' + id, name: `${name} cabinet`, w: 1, h: 1, kind: 'floor', price: 2400, sets: ['arcade'], prize: 1, arcade: id, anim: 1, light: 22 };
+    PRIZES.splice(PRIZES.findIndex(p => p[0] === 'claw_machine'), 0, ['cab_' + id, 250]);
+}
+for (const id of BACK_CABS) {
+    FURN['cab_' + id].back = 1;
+    const P = PRIZES.find(p => p[0] === 'cab_' + id);
+    if (P) P[1] = 300;
 }
 Object.assign(CAB_HUE, BACK_HUE);
-CAB_RECOLOR.push(...BACK_CABS);
+CAB_RECOLOR.push('dumpling', 'sushi', 'fortune');

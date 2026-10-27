@@ -1,5 +1,5 @@
 /* ---- 6z_back_dumpling.js ---- */
-/* Dumpling Drop: Wonton's cabinet in the arcade's back room, a falling-pairs puzzle like the old classic. Pairs of
+/* Dumpling Drop: Wonton's cabinet in the arcade (in the back room until David's swap), a falling-pairs puzzle like the old classic. Pairs of
    dumplings drop into the steamer and turn around the one that blinks. Four or more of a colour touching are done and
    pop; what's left falls, and if that pops more it's a chain (chains score big). Chili keeps turning up the heat:
    burnt dumplings pile up in the tray over the steamer, pops cool them off (chains cool lots), the rest rain in after a
@@ -575,6 +575,6 @@ TUNES.dumpling = { bpm: 128, root: 62, scale: 'major', lead: 'pluck', chords: [1
         F: '6 . ^1 . 6 5 3 .', G: '5 . 3 . 2 . . .', H: '3 . 5 . 6 . ^1 .' },
     leadVol: 0.14, bass: 'x.ox.xo.', arp: 'x.x.x.x.', arpInstr: 'kalimba', arpVol: 0.035, drums: { kick: 'x...x...', snare: '....x...', shaker: 'oxoxoxox' }, drumVol: 0.22 };
 FIXED_TUNES.push('dumpling');
-HISCORE_RIVALS.dumpling = [['SULLY', 24000, 'set in 1987, in pencil'], ['WONTON', 15000, "it's his steamer"], ['MAKI', 8000, 'every pleat precisely folded']];
+HISCORE_RIVALS.dumpling = [['CHILI', 24000, 'played through his lunch break'], ['WONTON', 15000, "it's his steamer"], ['MAKI', 8000, 'every pleat precisely folded']];
 ARC_TARGET.dumpling = [2000, 5000, 10000];
 TRACK_NAMES.dumpling = 'Dumpling Drop';

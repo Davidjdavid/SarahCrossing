@@ -33,6 +33,8 @@ CABS = {    # each game's cabinet: its body, the marquee's light and the stripe 
     'surf': ('#3a9ad8', '#ffd84a', '#f2f0ea'), 'garden': ('#8a5a3a', '#7acc5e', '#ffd84a'),
     'noodle': ('#f2c84a', '#d84a3a', '#f2f0ea'), 'dumpling': ('#ff8aa8', '#ffffff', '#c0283a'),
     'sushi': ('#2a2a3a', '#ff8a6a', '#f2f0ea'), 'fortune': ('#d8283f', '#ffd84a', '#2a2228'),
+    # the out-of-order one: dusty grey, its marquee's light off (the sign over its screen is the game's picture)
+    'broken': ('#868a92', '#3a3c44', '#5c6068'),
 }
 
 
