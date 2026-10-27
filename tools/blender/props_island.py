@@ -852,6 +852,47 @@ def bunting(cols):
     return [(mb, 'main')]
 
 
+def bigtree_planter():
+    """The square's big tree stands in a raised ring of rounded stones (David, 27 October: not a giant tree on the
+    flagstones): two courses of stones under a capping, grass and soil inside with the tree's roots showing and little
+    flowers round the edge. About three tiles across (the tiles round the tree that nobody walks on: 20_world.js); the
+    game stretches it in depth to the grid and stands the tree on the soil at z 0.27."""
+    mb, r = MB(), random.Random(41)
+    R0, R1 = 1.42, 1.62
+    for course, (z0, z1, n, off) in enumerate(((0.0, 0.15, 30, 0.0), (0.15, 0.29, 29, 0.5))):
+        for k in range(n):
+            a0, a1 = (k + off + 0.04) / n * math.tau, (k + off + 0.96) / n * math.tau
+            c = r.choice(('#c4bcae', '#b8b0a2', '#cfc6b6', '#aea594'))
+            m = len(mb.v)
+            w = (a1 - a0) * (R0 + R1) / 2
+            rbox(mb, -w / 2, R0 + r.uniform(-0.01, 0.02), z0 + 0.005, w / 2, R1 + r.uniform(-0.02, 0.01), z1 - 0.004 + r.uniform(-0.01, 0.01), stone(c, seed=k + course * 9), r=0.035)
+            xform(mb, m, Matrix.Rotation((a0 + a1) / 2 - math.pi / 2, 4, 'Z'))
+    lathe(mb, [(R1 + 0.03, 0.28), (R1 + 0.04, 0.31), (R1 + 0.02, 0.33), (R0 - 0.02, 0.33), (R0 - 0.04, 0.31), (R0 - 0.03, 0.27)], stone('#d6cebe'), seg=48, cap_top=False)
+    # inside: soil darkening toward the wall, grass over it
+    lathe(mb, [(R0 - 0.02, 0.25), (R0 - 0.3, 0.262), (0.0, 0.27)], lambda p, n, *_: rgb('#6aa846').lerp(rgb('#7a5a38'), max(0.0, min(1.0, (math.hypot(p.x, p.y) - (R0 - 0.32)) / 0.28)) * 0.6) * (0.9 + 0.12 * noise.noise(p * 6)), seg=48)
+    for k in range(120):
+        a, q = r.uniform(0, math.tau), math.sqrt(r.uniform(0.04, 1.0)) * (R0 - 0.1)
+        x, y = math.cos(a) * q, math.sin(a) * q
+        lathe(mb, [(0.026, 0.0), (0.0, 0.07 + r.uniform(0, 0.04))], shade(r.choice(('#5f9a3a', '#6aa848', '#78b450'))), c=(x, y, 0.265), seg=5)
+    # the roots reaching out from the trunk into the soil
+    bark = col_fn('#7a5230', grain='z', under=0.0)
+    for k in range(6):
+        a = k / 6 * math.tau + r.uniform(-0.2, 0.2)
+        d, L = Vector((math.cos(a), math.sin(a), 0)), r.uniform(0.45, 0.8)
+        side = Vector((-d.y, d.x, 0)) * r.uniform(-0.12, 0.12)
+        tube(mb, [d * 0.12 + Vector((0, 0, 0.34)), d * L * 0.5 + side * 0.5 + Vector((0, 0, 0.3)), d * L * 0.8 + side + Vector((0, 0, 0.275)), d * L + side * 1.2 + Vector((0, 0, 0.262))], 0.06, bark, seg=7, r1=0.015)
+    # little flowers round the inside of the wall
+    for k in range(28):
+        a = k / 28 * math.tau + r.uniform(-0.08, 0.08)
+        q = R0 - 0.12 + r.uniform(-0.04, 0.03)
+        x, y = math.cos(a) * q, math.sin(a) * q
+        col = r.choice(('#f8f2f6', '#ffd84a', '#f48ab0', '#c8a0f0'))
+        ball(mb, (x, y, 0.335), (0.036, 0.036, 0.01), shade(col), sub=1)
+        ball(mb, (x, y, 0.342), 0.012, shade('#f8c040'), sub=1)
+        lathe(mb, [(0.008, 0.0), (0.006, 0.07)], shade('#4a8a30'), c=(x, y, 0.265), seg=4, cap_top=False)
+    return [(mb, 'main')]
+
+
 PROPS = {
     'fountain': fountain, 'drinkfountain': drinkfountain, 'board': board, 'plaque': plaque, 'trashcan': trashcan, 'statue_david': statue,
     'signpost_trail': lambda: sign('trail'), 'signpost_farm': lambda: sign('farm'), 'signpost_camp': lambda: sign('camp'),
@@ -864,7 +905,7 @@ PROPS = {
     'volleyball': volleyball, 'noodle_cart': noodle_cart, 'barrel': barrel,
     'fairy_mushroom': fairy_mushroom, 'bunting': lambda: bunting(['#e85a5a', '#f8c040', '#5ab0e0', '#f088b0', '#7ac860']),
     'bunting_green': lambda: bunting(['#3a9a4a', '#8ad070', '#f4f0e0', '#5ab85a']), 'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
-    'reeds': reeds, 'lilypad': lilypad, 'lilypad_flower': lambda: lilypad(True), 'pebbles': pebbles, 'falls_rocks': falls_rocks,
+    'bigtree_planter': bigtree_planter, 'reeds': reeds, 'lilypad': lilypad, 'lilypad_flower': lambda: lilypad(True), 'pebbles': pebbles, 'falls_rocks': falls_rocks,
 }
 
 

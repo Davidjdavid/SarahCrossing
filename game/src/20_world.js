@@ -139,10 +139,11 @@ function buildIsland() {
     }
     if (W0.bigTree) {
         const t = W0.bigTree;
-        for (let y = t.y; y < t.y + 2; y++) for (let x = t.x; x < t.x + 2; x++) a.block(x, y);
+        // (its 2x2 and the ring round it but the corners: the raised bed of stones it stands in, in the new look)
+        for (let y = t.y - 1; y < t.y + 3; y++) for (let x = t.x - 1; x < t.x + 3; x++) if ((x === t.x - 1 || x === t.x + 2) && (y === t.y - 1 || y === t.y + 2)) continue; else a.block(x, y);
         const e = a.add({ kind: 'bigtree', frame: `tree_big_${season}`, x: (t.x + 1) * TILE, y: (t.y + 2) * TILE - 1 });
         e.hit = { x: t.x * TILE - 16, y: t.y * TILE - 40, w: 64, h: 72 };
-        e.stand = [t.x, t.y + 2];
+        e.stand = [t.x, t.y + 3];
         e.interact = () => heldTool() === 'axe' ? UI.say(null, 'The big tree is too big. And too relaxed. Sarah puts the axe down.') : talkSign('bigtree');
         G.bigTree = e;
     }

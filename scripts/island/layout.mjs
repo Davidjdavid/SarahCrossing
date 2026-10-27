@@ -347,7 +347,10 @@ class Island {
       for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) this.occ[this.i(ot.x + i, ot.y + j)] = 1;
     }
     this.bigTree = P.bigTree ? { ...P.bigTree } : null;
-    if (P.bigTree) for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) this.occ[this.i(P.bigTree.x + i, P.bigTree.y + j)] = 1;
+    // (the big tree's 2x2 and the ring round it but the corners: the raised bed of stones it stands in)
+    const ring = (t) => { const out = []; for (let j = -1; j < 3; j++) for (let i = -1; i < 3; i++) if (!((i === -1 || i === 2) && (j === -1 || j === 2))) out.push([t.x + i, t.y + j]); return out; };
+    if (P.bigTree) for (const [x, y] of ring(P.bigTree)) this.occ[this.i(x, y)] = 1;
+    this.bigRing = ring;
     const c = P.cart;
     this.cart = c ? { x: c.x + 0.5, y: c.y, tiles: [[c.x - 1, c.y], [c.x, c.y], [c.x + 1, c.y]], basil: [c.x + 2.45, c.y + 0.85] } : null;
     this.rope = P.rope ? { a: [P.rope.x, P.rope.y], b: [P.rope.x + 6, P.rope.y], mid: [P.rope.x + 3, P.rope.y] } : null;
@@ -452,7 +455,8 @@ class Island {
       for (let j = 0; j < (PROP_ROWS[p.kind] || 1); j++) for (let i = 0; i < w; i++) put(p.x + i, p.y + j);
     }
     for (const t of [...this.trees, ...this.fruitTrees, ...this.palms]) put(t.x, t.y);
-    for (const t of [...this.oldTrees, this.bigTree].filter(Boolean)) for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) put(t.x + i, t.y + j);
+    for (const t of this.oldTrees) for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) put(t.x + i, t.y + j);
+    if (this.bigTree) for (const [x, y] of this.bigRing(this.bigTree)) put(x, y);
     const seen = this.flood(this.i(start[0], start[1]), (k) => !bl[k]);
     const near = (x, y, r) => { for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (seen.has(this.i(x + dx, y + dy))) return true; return false; };
     const bad = [];

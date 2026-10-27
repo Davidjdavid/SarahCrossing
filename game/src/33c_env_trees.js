@@ -69,7 +69,16 @@ const EnvTrees = {
             // only turned a touch, and each its own size)
             // (sized to the grid: the island keeps a free tile between trees, so a crown about two and a half tiles across
             // just meets its neighbor's instead of merging into one blob)
-            else if (rounds.length) t = put(rounds, x, y, z, r, big * (0.76 + r() * 0.16), (r() - 0.5) * 0.3);
+            // (the square's big tree stands in its raised ring of stones, props_island.py, on the soil inside: the ring
+            // round on the grid, stretched in depth as the ground is)
+            else if (rounds.length) {
+                let ty = y;
+                if (e.kind === 'bigtree' && has('bigtree_planter')) {
+                    (placed.bigtree_planter = placed.bigtree_planter || []).push(EnvModels.mat4(x, y, z, 0, 1, 1, R3_ZS));
+                    ty = y + 0.27;
+                }
+                t = put(rounds, x, ty, z, r, big * (0.76 + r() * 0.16), (r() - 0.5) * 0.3);
+            }
             else this.broad(F, B, x, y, z, r, big);
             if (t) live.push({ e, t, fruit: fruit ? hang(t, fruit) : [], on: true, ripe: true, shook: false });
         }

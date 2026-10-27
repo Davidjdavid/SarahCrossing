@@ -192,6 +192,38 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] Go back through the island, the shops, the houses and every room and look again at each prop and decoration in 3D:
   they came over one to one from the 2D pictures, so not everything looks good in 3D (and some didn't look great to begin
   with); redo or replace what doesn't
+- [ ] Outdoor decorations placed better: the notice board more in front of the square's big tree, and a lot of the lamp
+  posts moved to sit along the paths
+- [ ] Big outdoor-only furniture installed around the island (what it is still to decide)
+- [ ] The fountain on the square bigger, more detailed, and solid (Sarah and the neighbors walk through it now)
+- [ ] The giant David statue taken off the main square
+
+## David's notes from playing beta (27 October)
+- [x] Mac's: every seat a stool in the new look, so the round folks fit (and whoever's in a seat sits on it now)
+- [x] The square's big tree stands in a raised bed of stones (grass, roots and little flowers inside; nobody walks on it)
+- [x] Order again on the laptop: anything Sarah has ever had, but quest things, keepsakes, prizes, tools and one-of-a-kind
+  gifts
+- [ ] Flowers bigger and more flower-like: each kind easy to tell apart and its color easy to see
+- [ ] A watering can: water flowers, and two watered flowers side by side may cross-breed a new one next to them
+- [ ] Hats sit on the hair: right now nearly every hat clips through most hairstyles (the crown sinks in, hair pokes
+  through the sun hat's brim)
+- [ ] A scrapbook for the camera: a photo says what's in it (a neighbor, an item, furniture, a building, a special or
+  strange event, the weather...) in a little tag, and the scrapbook keeps each with a short bio. It counts what Sarah
+  has found but never shows a total, so it doesn't feel like something to complete
+- [ ] Shaking trees: Sarah shakes with her arms, the tree shakes a bit, then something falls. Now and then a neighbor
+  shakes a fruit tree and picks up what falls (fruit only, never anything important, and only once the island has
+  several fruit trees)
+- [ ] Shake a tree and talk to a neighbor from where Sarah stands, without jumping in front of them first (the jump can
+  land her somewhere she shouldn't be)
+- [ ] The plane flying by is a full-size plane far off, not a toy; cloud shadows drifting over now and then
+- [ ] Fruit, things on the ground, lights and animals pop in only a step away: show them from further off
+- [ ] A clearer sky: the haze shouldn't go all the way up
+- [ ] Walking: Sarah can walk a little way up cliff sides (only the camera moves), a little into rivers, and oddly over
+  bridges and stairs. Everything on the grid, each tile walkable or not, would fix it
+- [ ] Fishing: Sarah reels in what she caught and holds it up over her head; the fishing rod a 3D model, not a picture
+- [ ] The cliff edges, the island's sides and some of the sea look blocky. Once everything is on the grid, draw the tiles
+  rounded like a tile sheet: the cliff sides are tiles nobody walks on, their 3D pieces with a little ground and
+  see-through edges
 
 ## The museum, in rooms (David, 26 October: for later)
 - [ ] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings
