@@ -600,17 +600,44 @@ const IG_ASK = {
     cuke: ['Quick game of {game}? Great for the heart! The actual heart!'],
     coco: ["Girl, play {game} with me. I need something to talk about later."],
 };
+/* what they might ask for (David, 27 October late: "also ask if they want to play volleyball, jump rope, or any of the
+   arcade games"): what fits here and now, plus volleyball by day wherever they are (it's the court's game, played in the
+   cabinet's 2D view), jump rope with a friend turning, and one arcade game on their handheld (two players, 6zv_versus.js) */
+function igAskGames(n) {
+    const out = IslandGames.list(n);
+    if (!out.length || n.area !== 'island') return out;
+    const h = Clock.hourF(), wet = G.weather === 'rain' || G.weather === 'storm' || G.weather === 'snow';
+    if (h >= 7 && h < 20 && !wet && !out.some(g => g[0] === 'volley')) out.push(['volley', 'Volleyball']);
+    if (h >= 9 && h < 19 && !wet && ROPE_TILES && !Rope.on && !Rope.turners() && igRopeFriend(n)) out.push(['rope', 'Jump rope']);
+    const vs = Object.keys(Versus.ADAPT).filter(id => ARCADE_GAMES[id] && (!BACK_CABS.includes(id) || backRoomOpen()));
+    if (vs.length) { const id = vs[Math.floor(mulberry(hash32(n.id + ':vs:' + Clock.dayNum()))() * vs.length)]; out.push(['vs:' + id, ARCADE_GAMES[id].name]); }
+    return out;
+}
+const IG_ASK_VS = {
+    _: ["I've got {game} on my handheld. It does two players! Want to?", 'Two-player {game}? I brought my handheld. Just in case. I always bring it.'],
+    chili: ["I'm on a {game} streak! Handheld, two players, right now. Say yes!"],
+    joe: ["I downloaded {game} for us. Two players. I've been practicing. A normal amount."],
+};
+const IG_ASK_ROPE = {
+    _: ["Jump rope? {friend} and I'll turn! Meet us on the square.", "Let's do jump rope! I'll get {friend} to turn the other end."],
+    cuke: ['JUMP ROPE! Best cardio! {friend} and I will turn! Square! Now!'],
+};
 async function igMaybeAsk(n, roll = R()) {
     const id = n.id, r = rel(id), day = Clock.dayNum();
     if (r.igAskDay === day || NPC_DEFS[id].family || IslandGames.on) return false;
-    const games = IslandGames.list(n);
+    const games = igAskGames(n);
     if (!games.length || roll > IG_ASK_CHANCE) return false;
     r.igAskDay = day;
     const [kind, label] = rpick(games);
-    const pool = IG_ASK[id] || IG_ASK._;
-    const k = await UI.ask(id, voiced(id, rpick(pool).replace(/\{game\}/g, label.toLowerCase())), ["Sure, let's play!", 'Maybe later'], { keep: true });
+    const k = await UI.ask(id, voiced(id, igAskLine(n, kind, label)), ["Sure, let's play!", 'Maybe later'], { keep: true });
     if (k !== 0) { await UI.say(id, voiced(id, rpick(["Aw, okay! I'll ask again sometime.", 'No worries! Another time.'])), { keep: true }); return false; }
     return igBegin(n, kind);
+}
+function igAskLine(n, kind, label) {
+    const id = n.id;
+    if (kind.startsWith('vs:')) return rpick(IG_ASK_VS[id] || IG_ASK_VS._).replace(/\{game\}/g, label);
+    if (kind === 'rope') { const f = igRopeFriend(n); return rpick(IG_ASK_ROPE[id] || IG_ASK_ROPE._).replace('{friend}', f ? f.def.name : 'someone'); }
+    return rpick(IG_ASK[id] || IG_ASK._).replace(/\{game\}/g, label.toLowerCase());
 }
 /* start a game they asked for (false: the talk carries on) */
 async function igBegin(n, kind) {
@@ -619,6 +646,51 @@ async function igBegin(n, kind) {
         const m = await UI.ask(n.id, igLine(n.id, 'seekAsk'), ["I'll hide!", "I'll look for you!"], { keep: true });
         mode = m === 0 ? 'hide' : 'seek';
     }
+    if (kind === 'rope') { setTimeout(() => igRope(n), 60); return true; }
+    if (kind.startsWith('vs:')) { setTimeout(() => igHandheld(n, kind.slice(3)), 60); return true; }
     setTimeout(() => IslandGames.start(kind, n, mode), 60);
     return true;
+}
+/* an arcade game against them on their handheld (as at the arcade's cabinets: a little friendship once a day) */
+async function igHandheld(n, game) {
+    if (G.busy || Arcade.on) return;
+    if (n.chat) Chats.end(n.chat);
+    n.script = true;
+    faceNpc(n, G.player);
+    try { await versusPlay(game, n.id, { home: true }); } catch (e) { console.error(e); }
+    n.script = false;
+    UI.hideDialog();
+}
+/* who turns the other end with them: Cuke if he's about, else a close friend, else anyone up and outside nearby */
+function igRopeFriend(n) {
+    const free = m => m && m !== n && m.area === 'island' && !m.sleeping && !m.script && !m.talking && !m.def.shop && !m.def.spring && !m.def.family && VS_SKILL[m.id] && !(typeof awayNow === 'function' && awayNow(m.id));
+    const all = NPCs.here().filter(free);
+    const cuke = all.find(m => m.id === 'cuke');
+    if (cuke) return cuke;
+    const close = all.filter(m => bond(n.id, m.id) >= BOND_CLOSE);
+    return close[0] || all.sort((a, b) => Math.hypot(a.x - n.x, a.y - n.y) - Math.hypot(b.x - n.x, b.y - n.y))[0] || null;
+}
+/* jump rope on the square with them turning: a moment later (the screen dims) the two of them hold the rope there */
+async function igRope(n) {
+    const m = igRopeFriend(n);
+    if (!m || !ROPE_TILES || Rope.on || G.busy) return;
+    if (n.chat) Chats.end(n.chat);
+    if (m.chat) Chats.end(m.chat);
+    G.busy++;
+    for (let i = 1; i <= 10; i++) { G.fade = i / 10; await waitFrames(1); }
+    const place = (who, which) => { const sp = ropeSpot(which); who.script = true; who.path = null; who.x = sp.x; who.y = sp.y; who.dir = sp.face; who.moving = false; };
+    place(n, 'a'); place(m, 'b');
+    const p = G.player, [mx, my] = ROPE_TILES.mid;
+    p.path = null; p.x = (mx + 0.5) * TILE; p.y = (my + 1.5) * TILE + 4; p.dir = 'up';
+    Rope.forced = [n, m];
+    Rope.sync();
+    updateCam(true);
+    for (let i = 9; i >= 0; i--) { G.fade = i / 10; await waitFrames(1); }
+    G.fade = 0;
+    G.busy = Math.max(0, G.busy - 1);
+    try { await Rope.start([n, m]); } catch (e) { console.error(e); }
+    Rope.forced = null;
+    n.script = false; m.script = false;
+    Rope.sync();
+    igRec('rope').played++;
 }

@@ -37,6 +37,9 @@
 //   POST   /api/log            {message, ...}   a problem in the game, for the server log
 //   GET    /api/world?zip=<5 digits>          the place, its time zone, today's forecast, headlines (server/world.mjs)
 //   GET    /api/market                        a few real companies' last 60 closing prices
+//   GET    /api/music                         the music library {tracks, free} (server/music.mjs)
+//   PUT    /api/music/file?path=<game/file>   a track uploaded; DELETE /api/music/game?name= a game's folder
+//   GET    /music/<game/file>                 a track (with Range)
 // Request bodies may be gzip-compressed (Content-Encoding: gzip).
 
 import crypto from 'node:crypto';
@@ -48,6 +51,7 @@ import { promisify } from 'node:util';
 import zlib from 'node:zlib';
 import { IslandError, Islands } from './islands.mjs';
 import { Live } from './live.mjs';
+import { Music, MusicError } from './music.mjs';
 import { market, world, WorldError } from './world.mjs';
 
 const gunzip = promisify(zlib.gunzip);
@@ -57,8 +61,12 @@ const HOST = process.env.HOST || '127.0.0.1';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const STATIC_DIR = path.resolve(process.env.STATIC_DIR || path.join(ROOT, 'dist'));
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
+// David's music from the games: one folder the beta and live sites share (server/music.mjs)
+const MUSIC_DIR = path.resolve(process.env.MUSIC_DIR || path.join(DATA_DIR, 'music'));
 const PASSWORD = process.env.SITE_PASSWORD || readPasswordFile();
 const PRODUCTION = process.env.NODE_ENV === 'production';
+// (David uploads the music once, from the beta site: the live site only plays it)
+const MUSIC_UPLOADS = process.env.MUSIC_UPLOADS === '1' || (process.env.MUSIC_UPLOADS !== '0' && !PRODUCTION);
 
 const COOKIE = 'sc_access';
 const COOKIE_MAX_AGE = 10 * 365 * 24 * 60 * 60; // ten years, in seconds
@@ -122,6 +130,7 @@ if (PRODUCTION && !PASSWORD) {
 }
 
 const islands = new Islands(DATA_DIR);
+const music = new Music(MUSIC_DIR);
 
 /** The secret that signs the login cookie. Made once; replacing it logs everyone out. */
 function loadSecret() {
@@ -408,6 +417,21 @@ async function handleApi(req, res, pathname) {
     }
   }
 
+  // the music library: listed, a file at a time uploaded, a game's folder taken out
+  if (pathname === '/api/music' || pathname.startsWith('/api/music/')) {
+    const q = new URL(req.url, 'http://site.invalid').searchParams;
+    try {
+      if (pathname === '/api/music' && method === 'GET') return sendJson(res, 200, { ...(await music.list()), uploads: MUSIC_UPLOADS });
+      if (!MUSIC_UPLOADS && method !== 'GET') throw new HttpError(403, 'Music is uploaded from the beta site');
+      if (pathname === '/api/music/file' && method === 'PUT') return sendJson(res, 200, await music.put(q.get('path'), req));
+      if (pathname === '/api/music/game' && method === 'DELETE') return sendJson(res, 200, await music.removeGame(q.get('name')));
+    } catch (err) {
+      if (err instanceof MusicError) throw new HttpError(err.status, err.message);
+      throw err;
+    }
+    throw new HttpError(404, 'No such API');
+  }
+
   const m = ISLAND_ROUTE.exec(pathname);
   if (!m) throw new HttpError(404, 'No such API');
   const [, id, sub, name, sub2] = m;
@@ -595,6 +619,19 @@ async function handle(req, res) {
   }
 
   if (pathname.startsWith('/api/')) return handleApi(req, res, pathname);
+  if (pathname.startsWith('/music/')) {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return sendText(res, 405, 'Method not allowed', { Allow: 'GET, HEAD' });
+    let rel;
+    try {
+      rel = decodeURIComponent(pathname.slice(7));
+    } catch {
+      return sendText(res, 400, 'Bad path');
+    }
+    return music.send(req, res, rel).catch((err) => {
+      if (err instanceof MusicError) throw new HttpError(err.status, err.message);
+      throw err;
+    });
+  }
   return serveStatic(req, res, pathname);
 }
 
@@ -614,7 +651,8 @@ const live = new Live({
   log: (m) => console.error(`${new Date().toISOString()} ${m}`),
 });
 live.attach(server);
-server.requestTimeout = 120_000;
+// (long enough for a track of music uploaded over a slow connection)
+server.requestTimeout = 600_000;
 server.headersTimeout = 30_000;
 server.keepAliveTimeout = 65_000;
 

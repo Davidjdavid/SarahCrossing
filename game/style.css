@@ -449,6 +449,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .row.spoil .ans { color: var(--muted, #8a7a90); font-style: italic; }
 .row.spoil.open .ans { color: var(--ink); font-style: normal; white-space: pre-line; }
 .row.sel { box-shadow: inset 0 0 0 3px var(--gold); }
+textarea.mlist { width: 100%; font: 12px/1.4 ui-monospace, monospace; border: 2px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); }
+details.mlib { border: 2px solid var(--line); border-radius: 14px; background: var(--paper); }
+details.mlib > summary { cursor: pointer; padding: 10px 12px; font: 700 14px/1.2 var(--display); color: var(--ink); }
+details.mlib > .row { margin: 0 6px 6px; }
 .msel { flex: 0 0 auto; max-width: 48%; font: 600 13px/1.2 var(--display); padding: 6px 8px; border-radius: 10px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); }
 .holdbtn { width: 100%; padding: 16px; font-size: 18px; margin-top: 10px; touch-action: none; user-select: none; -webkit-user-select: none; }
 .holdbar { height: 10px; border-radius: 6px; background: var(--paper-2); margin: 10px 0 14px; overflow: hidden; }

@@ -192,6 +192,25 @@ docs/DEPLOY.md for the server.
   sound's brightness). The file stays on the device (IndexedDB `sc-songs`, `MySongs.put/get`), the dance with the island
   (`S.mysongs`: name, level, tempo, length, `steps` packed by `packSteps`); `Dance.start('my:<id>', { file })` plays it
   through `Music.startFile`, `songDef(id)` names any track. Her songs tip once a day between them (`S.dance.myPaid`).
+- David's music from the games (60a_music_lib.js, server/music.mjs, David's note of 27 October late): kept on the server,
+  never in GitHub, in one folder both sites share (`MUSIC_DIR`, /srv/sarahcrossing-music from deploy/setup.sh, outside
+  data/ so the nightly backups skip it), a folder a game; uploaded a file at a time from the Music app's "Your music"
+  (`MusicUpload`, `PUT /api/music/file`; what's there at the same size is skipped, so a cut-off upload carries on;
+  `musicUploadPaths` keeps each game's folder), listed by `/api/music` with each file's hour and weather read from its name
+  (`readTrackName`, `gameName`) and streamed from `/music/<path>` with Range. Outside and at home `Music.pickBase` plays
+  `lib:<path>`: the hour's track from a game picked at random for the hour (`MusicLib.hourly`, from the seed, day and
+  hour, so it's the same all hour; rain or snow versions on such days, `gameHour`), unless `S.music.lib` names one game
+  or 'tunes'; `libSkip` leaves games out of the mix; the hour, place and "play now" choices take `lib:<path>`, `hourly`
+  and `hgame:<game>` (`musicResolve`). A track plays through one of two audio elements routed into the music's volume
+  (`MusicFile`, readied in the first tap for phones); without the library the island's own tunes play. Uploads and
+  removing a game only where the server allows them (`MUSIC_UPLOADS`: 1 on beta from setup.sh, 0 on live, on outside
+  production; `/api/music` says `uploads`): David uploads once from beta, then the game's own tunes are to be swapped for
+  the soundtracks' tracks (he sends the list from "Copy the track list", `musicTrackList`). A player's own music stays
+  on their device (`OwnMusic`: IndexedDB sc-own-music, names in localStorage `sc-own-music`; `own:<id>`, and the club's
+  songs as `mysong:<id>`, `fileTrackOk`).
+- When a neighbor asks to play (`igAskGames`), it can also be volleyball wherever they are by day, jump rope on the
+  square with a friend turning (`igRope`, `igRopeFriend`: the screen dims and the two hold the rope, `Rope.forced`), or
+  an arcade game against them on their handheld (`igHandheld`, `versusPlay`); texted asks too.
 - More holidays to do (6zp_holiday_events.js; the first six are 6z_festivals.js): some nights everyone who's up goes out
   together (`GATHER`, `gatherOverride`, a `late` override that keeps them up past bed): New Year's Eve on the square from
   11 PM, the Fourth of July's fireworks from the beach, Stargazing Night at the lookout; Sarah coming by says hello to each,
@@ -547,6 +566,7 @@ docs/DEPLOY.md for the server.
   header `X-Sarah: 1`), the built game from `STATIC_DIR` (hashed asset names, cached forever; a model's `.gz` copy to a
   browser that takes gzip).
 - `world.mjs`: the real world for the Town Hall's zip code and the Bank's market (see above).
+- `music.mjs`: the music library (see above); docs/DEPLOY.md tells David how to upload it.
   Problems in the browser are posted to `/api/log` and end up in the server log.
 
 ## Checks

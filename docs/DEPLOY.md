@@ -155,6 +155,36 @@ Screen**. It gets Sarah's icon and opens full screen, like an app. (Android/Chro
   page was closed in between).
 - **Save & quit > Just save a file** still works, as an extra backup you keep yourself.
 
+## The music from the games
+
+The hourly music comes from your own files, kept on the server in one folder that the beta and live sites share
+(`/srv/sarahcrossing-music`). It's never put in GitHub: the files are far too big for it, and the repository isn't the
+password-protected place.
+
+1. **Make room first.** A new EC2 server's disk is usually 8 GB, and the game, the islands and their backups use some
+   of it. If your music is more than about 2 GB: in EC2, click **Volumes** (under Elastic Block Store), tick the
+   server's volume, **Actions > Modify volume**, make it 20 GB and click **Modify**. When its state says "optimizing" or
+   "completed", restart the server once (**Instances**, tick it, **Instance state > Reboot instance**): Ubuntu grows its
+   disk to the new size as it starts. The sites are back a minute later.
+2. **MP3 or M4A, not FLAC, where you have the choice.** FLAC plays too but takes about four times the room.
+3. Keep **each game's music in a folder named after the game** (as it downloads). The game reads the hour from each
+   file's name ("5 PM", "5 PM (Rainy)", "05 - 5 AM (Snowy)", "17:00", "Midnight", "Noon").
+4. Open the **beta** site on a computer (only beta takes uploads; live plays the same music): **Phone > Music > Your
+   music > Upload a folder** (under "The games' soundtracks"), and
+   pick the folder with all the games in it (or one game's folder). It sends the tracks one at a time and shows how far
+   it's got. Keep the page open until it says it's done. If it stops part way (the laptop sleeps, the Wi-Fi drops), do
+   the same again: what's already there is skipped. It stops by itself before the server's disk gets too full.
+
+Then, outside and in Sarah's house, each hour plays that hour's track from a game picked at random for the hour (the
+rain or snow version on a rainy or snowy day, where the game has one). **Your music** also has the hourly music set to one
+game always, games left out of the mix, and Remove for a game. **Play now** lists every track to put on repeat, and **By
+hour** and **By place** can pick a game for an hour, or the hour's music for a place. **Copy the track list** (beta)
+copies every track's name, to send to Claude, so the game's own tunes for the shops, the museum and so on can be
+swapped for the soundtracks' tracks.
+
+Anyone playing can also add music of their own (**Add music from this device**): it stays on that phone or computer,
+never on the server.
+
 ## Changing the password
 
 GitHub, **Settings > Secrets and variables > Actions**, click the pencil next to `SITE_PASSWORD`,

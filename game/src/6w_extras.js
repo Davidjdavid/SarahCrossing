@@ -90,10 +90,18 @@ function musicState() {
     M.hours = M.hours || {}; M.places = M.places || {}; M.games = M.games || {};
     return M;
 }
-function trackOk(id) { return id === 'silence' || !!TUNES[id] || (!!DANCE_TUNES[id] && !!SONGS[id] && songUnlocked(id)); }
+function trackOk(id) {
+    if (id && /^(lib|own|mysong):/.test(id)) return fileTrackOk(id);
+    return id === 'silence' || !!TUNES[id] || (!!DANCE_TUNES[id] && !!SONGS[id] && songUnlocked(id));
+}
 function trackName(id) {
     if (!id) return 'Nothing';
     if (id === 'silence') return 'Silence';
+    if (id === 'hourly') return "The hour's music (your music)";
+    if (id.startsWith('lib:')) return MusicLib.name(id.slice(4));
+    if (id.startsWith('own:')) return `${OwnMusic.name(id.slice(4))} (yours)`;
+    if (id.startsWith('mysong:')) { const m = MySongs.find(id.slice(7)); return `${m ? m.name : 'Your song'} (your song)`; }
+    if (id.startsWith('hgame:')) return `${id.slice(6)}, the hour's track`;
     return TRACK_NAMES[id] || (SONGS[id] ? `${SONGS[id].name} (club)` : cap(id));
 }
 function jukeboxTracks() {
@@ -103,15 +111,22 @@ function musicPlaceKey(id) { return !id ? 'island' : id.startsWith('h_') ? 'hous
 /* Sarah's music choices: "play now" beats everything, then a minigame's rule, then the place, then the hour (outside) */
 function musicRule(base) {
     if (!S || !S.started || !S.music || G.mode !== 'play' || G.introScene) return base;
-    const M = S.music, ok = id => !!id && trackOk(id);
-    if (ok(M.now)) return M.now;
+    const M = S.music, h = Math.floor(Clock.hourF()), res = id => musicResolve(id, h), ok = id => !!id && trackOk(res(id));
+    if (ok(M.now)) return res(M.now);
     const game = Arcade.on ? Arcade.id : Music.game;
-    if (game && M.games && ok(M.games[game])) return M.games[game];
+    if (game && M.games && ok(M.games[game])) return res(M.games[game]);
     if (Arcade.on) return base;
     const place = musicPlaceKey(G.area && G.area.id);
-    if (M.places && ok(M.places[place])) return M.places[place];
-    if (place === 'island' && M.hours) { const h = Math.floor(Clock.hourF()); if (ok(M.hours[h])) return M.hours[h]; }
+    if (M.places && ok(M.places[place])) return res(M.places[place]);
+    if (place === 'island' && M.hours && ok(M.hours[h])) return res(M.hours[h]);
     return base;
+}
+/* a choice that depends on the hour: 'hourly' (the hour's track from the library, a game at random), 'hgame:<game>'
+   (that game's track for the hour) */
+function musicResolve(id, h) {
+    if (id === 'hourly') { const p = MusicLib.hourly(h); return p ? 'lib:' + p : null; }
+    if (id && id.startsWith('hgame:')) { const p = MusicLib.gameHour(id.slice(6), h); return p ? 'lib:' + p : null; }
+    return id;
 }
 function appMusic(tab) {
     tab = tab || 'now';
@@ -122,7 +137,7 @@ function appMusic(tab) {
         : Music.song ? 'Now playing: a club song.' : `Now playing: ${trackName(cur)}${M.now ? ' (on repeat)' : ''}.`));
     const tabs = el('div', 'st-row');
     tabs.style.marginBottom = '10px';
-    for (const [k, label] of [['now', 'Play now'], ['hours', 'By hour'], ['places', 'By place'], ['games', 'Minigames']]) {
+    for (const [k, label] of [['now', 'Play now'], ['library', 'Your music'], ['hours', 'By hour'], ['places', 'By place'], ['games', 'Minigames']]) {
         const c = chip(label, () => { Sfx.ui('tick'); appMusic(k); });
         if (k === tab) c.classList.add('on');
         tabs.appendChild(c);
@@ -130,7 +145,8 @@ function appMusic(tab) {
     P.body.appendChild(tabs);
     const apply = () => { Save.touch(); Music.update(true); };
     const L = el('div', 'list');
-    if (tab === 'now') {
+    if (tab === 'library') appMusicLibrary(P, M, apply);
+    else if (tab === 'now') {
         P.body.appendChild(el('p', 'muted', 'Pick a song to play it now, everywhere, on repeat. (Club songs still play at the club.)'));
         if (M.now) {
             const r = el('div', 'row');
@@ -153,12 +169,49 @@ function appMusic(tab) {
             r.addEventListener('click', () => { M.now = id; Sfx.ui('ok'); apply(); appMusic('now'); });
             L.appendChild(r);
         }
+        // the player's own music (and their songs from the club), then every soundtrack, a game at a time (a group's
+        // list is made when it's opened)
+        const own = OwnMusic.list().map(t => ['own:' + t.id, t.name]).concat(MySongs.list().map(m => ['mysong:' + m.id, m.name]));
+        if (own.length) {
+            const det = el('details', 'mlib');
+            det.appendChild(el('summary', null, `Your own music (${own.length})`));
+            for (const [id, name] of own) {
+                const r = el('button', 'row' + (M.now === id ? ' sel' : ''));
+                r.type = 'button';
+                const tx = el('div', 't');
+                tx.appendChild(el('b', null, name));
+                tx.appendChild(el('span', null, M.now === id ? '\u266a Playing now' : id.startsWith('mysong:') ? 'Your song from the club' : 'Kept on this device'));
+                r.appendChild(tx);
+                r.addEventListener('click', () => { M.now = id; Sfx.ui('ok'); apply(); appMusic('now'); });
+                det.appendChild(r);
+            }
+            L.appendChild(det);
+        }
+        for (const g of MusicLib.games()) {
+            const det = el('details', 'mlib');
+            det.appendChild(el('summary', null, `${g} (${MusicLib.byGame[g].length})`));
+            det.addEventListener('toggle', () => {
+                if (!det.open || det.childNodes.length > 1) return;
+                for (const t of MusicLib.byGame[g]) {
+                    const id = 'lib:' + t.path, r = el('button', 'row' + (M.now === id ? ' sel' : ''));
+                    r.type = 'button';
+                    const tx = el('div', 't');
+                    tx.appendChild(el('b', null, t.name));
+                    tx.appendChild(el('span', null, M.now === id ? '\u266a Playing now' : t.hour != null ? `${fmtHour(t.hour)}${t.weather !== 'clear' ? `, ${t.weather === 'rain' ? 'rainy' : 'snowy'}` : ''}` : 'Tap to play'));
+                    r.appendChild(tx);
+                    r.addEventListener('click', () => { M.now = id; Sfx.ui('ok'); apply(); appMusic('now'); });
+                    det.appendChild(r);
+                }
+            });
+            L.appendChild(det);
+        }
     } else {
         const slots = tab === 'hours' ? Array.from({ length: 24 }, (_, h) => [h, fmtClock(h)]) : tab === 'places' ? MUSIC_PLACES : MUSIC_GAMES;
         const map = tab === 'hours' ? M.hours : tab === 'places' ? M.places : M.games;
         P.body.appendChild(el('p', 'muted', tab === 'hours' ? 'Change the music outside on the island at any hour.'
             : tab === 'places' ? 'Change the music in any place. (A place beats an hour.)' : 'Change the music during a minigame. Dance and karaoke songs always play their own track.'));
         const tracks = jukeboxTracks();
+        const lib = MusicLib.games().length > 0;
         for (const [key, label] of slots) {
             const r = el('div', 'row');
             const t = el('div', 't');
@@ -167,7 +220,10 @@ function appMusic(tab) {
             r.appendChild(t);
             const s = el('select', 'msel');
             s.setAttribute('aria-label', `Music for ${label}`);
-            for (const [v, name] of [['', 'Usual music'], ['silence', 'Silence']].concat(tracks.map(id => [id, trackName(id)]))) {
+            // (with David's music: the hour's track for a place, or a given game's track for an hour)
+            const extra = (!lib ? [] : tab === 'places' && key !== 'island' ? [['hourly', "The hour's music"]] : tab === 'hours' ? MusicLib.hourlyGames(key).map(g => ['hgame:' + g, g]) : [])
+                .concat(OwnMusic.list().map(t => ['own:' + t.id, `${t.name} (yours)`]));
+            for (const [v, name] of [['', 'Usual music'], ['silence', 'Silence']].concat(extra, tracks.map(id => [id, trackName(id)]))) {
                 const o = el('option', null, name);
                 o.value = v;
                 if ((map[key] || '') === v) o.selected = true;
@@ -183,6 +239,134 @@ function appMusic(tab) {
         }
     }
     P.body.appendChild(L);
+}
+
+/* "Your music": the player's own music, kept on this device (OwnMusic), then the soundtracks from the games on the
+   island's server (MusicLib): how the hour's music is picked, which games are in the mix; uploading them (once, by
+   David) and taking a game out only on the beta site, where the server takes uploads */
+function appMusicLibrary(P, M, apply) {
+    const B = P.body, h = Math.floor(Clock.hourF());
+    // the player's own
+    B.appendChild(el('h3', null, 'Your own music'));
+    const own = OwnMusic.list(), mine = MySongs.list();
+    B.appendChild(el('p', 'muted', own.length ? `${own.length} song${own.length === 1 ? '' : 's'} of your own, kept on this device. Tap one to play it, on repeat; By hour and By place can pick them too.`
+        : 'Add music from this device (MP3, M4A, OGG, WAV...) to play on the island. It stays on this device.'));
+    const OL = el('div', 'list');
+    for (const t of own) {
+        const id = 'own:' + t.id, r = el('div', 'row' + (M.now === id ? ' sel' : '')), tx = el('div', 't');
+        tx.appendChild(el('b', null, t.name));
+        tx.appendChild(el('span', null, M.now === id ? '\u266a Playing now, on repeat' : fmtBytes(t.size)));
+        r.appendChild(tx);
+        r.appendChild(btn(M.now === id ? 'Stop' : 'Play', 'green', () => { M.now = M.now === id ? null : id; Sfx.ui('ok'); apply(); appMusic('library'); }));
+        r.appendChild(btn('Remove', 'alt', async () => { if (M.now === id) M.now = null; await OwnMusic.remove(t.id); apply(); appMusic('library'); }));
+        OL.appendChild(r);
+    }
+    if (mine.length) OL.appendChild(el('p', 'muted', `Your ${mine.length} song${mine.length === 1 ? '' : 's'} from the club are in Play now too.`));
+    B.appendChild(OL);
+    const addRow = el('div', 'st-row'), inp = document.createElement('input');
+    inp.type = 'file'; inp.multiple = true; inp.hidden = true; inp.accept = 'audio/*,.mp3,.m4a,.aac,.ogg,.oga,.opus,.flac,.wav,.webm';
+    inp.addEventListener('change', async () => {
+        const n = await OwnMusic.add(inp.files);
+        UI.toast(n ? `Added ${n} song${n === 1 ? '' : 's'}!` : 'No music files there.');
+        if (P.body.isConnected) appMusic('library');
+    });
+    addRow.appendChild(inp);
+    addRow.appendChild(btn('Add music from this device', 'green', () => inp.click()));
+    B.appendChild(addRow);
+
+    // the soundtracks from the games, on the server
+    const games = MusicLib.games(), tracks = MusicLib.tracks || [], up = MusicLib.uploads;
+    if (!tracks.length && !up) return;
+    B.appendChild(el('h3', null, "The games' soundtracks"));
+    const hourly = tracks.filter(t => t.hour != null).length;
+    B.appendChild(el('p', 'muted', tracks.length ? `${fmtNum(tracks.length)} track${tracks.length === 1 ? '' : 's'} from ${games.length} game${games.length === 1 ? '' : 's'}, ${fmtNum(hourly)} of them for an hour of the day: outside and at home, each hour plays that hour's track from a game picked at random.${up && MusicLib.free != null ? ` The server has ${fmtBytes(MusicLib.free)} free.` : ''}`
+        : "None yet. Upload the games' music (a folder of games, each in its own folder) and the island plays each hour's track, from a game picked at random every hour."));
+    const L = el('div', 'list');
+    const hourGames = games.filter(g => MusicLib.byGame[g].some(t => t.hour != null));
+    if (hourGames.length) {
+        const r = el('div', 'row'), t = el('div', 't');
+        t.appendChild(el('b', null, 'Hourly music'));
+        const now = MusicLib.hourGame(h);
+        t.appendChild(el('span', null, now ? `This hour: ${now}` : "This hour: the island's own tune"));
+        r.appendChild(t);
+        const sel = el('select', 'msel');
+        sel.setAttribute('aria-label', 'Hourly music');
+        for (const [v, name] of [['', 'A game at random each hour']].concat(hourGames.map(g => [g, `Always ${g}`]), [['tunes', "The island's own tunes"]])) {
+            const o = el('option', null, name);
+            o.value = v;
+            if ((M.lib || '') === v) o.selected = true;
+            sel.appendChild(o);
+        }
+        sel.addEventListener('change', () => { if (sel.value) M.lib = sel.value; else delete M.lib; Sfx.ui('tick'); apply(); appMusic('library'); });
+        r.appendChild(sel);
+        L.appendChild(r);
+    }
+    for (const g of games) {
+        const ts = MusicLib.byGame[g], hrs = new Set(ts.filter(t => t.hour != null).map(t => t.hour)).size;
+        const wx = [...new Set(ts.filter(t => t.hour != null && t.weather !== 'clear').map(t => t.weather))];
+        const r = el('div', 'row'), t = el('div', 't');
+        t.appendChild(el('b', null, g));
+        t.appendChild(el('span', null, `${ts.length} track${ts.length === 1 ? '' : 's'}${hrs ? `, ${hrs} hour${hrs === 1 ? '' : 's'} of the day` : ''}${wx.length ? ` (with ${wx.join(' and ')})` : ''}`));
+        r.appendChild(t);
+        if (hrs) {
+            M.libSkip = M.libSkip || [];
+            const inMix = !M.libSkip.includes(g);
+            const c = chip(inMix ? 'In the mix' : 'Left out', () => {
+                if (inMix) M.libSkip.push(g); else M.libSkip = M.libSkip.filter(x => x !== g);
+                Sfx.ui('tick'); apply(); appMusic('library');
+            });
+            if (inMix) c.classList.add('on');
+            r.appendChild(c);
+        }
+        if (up) r.appendChild(btn('Remove', 'alt', () => {
+            r.replaceChildren(el('div', 't', `Take ${g} off the server? Its ${ts.length} track${ts.length === 1 ? '' : 's'} go for good (upload them again to have them back).`));
+            r.appendChild(btn('Remove it', 'alt', async () => {
+                try { await Cloud.api('DELETE', '/api/music/game?name=' + encodeURIComponent(g)); UI.toast(`${g} is off the island's music.`); } catch (e) { UI.toast("Couldn't remove it just now."); }
+                await MusicLib.load(true);
+                appMusic('library');
+            }));
+            r.appendChild(btn('Keep it', 'green', () => appMusic('library')));
+        }));
+        L.appendChild(r);
+    }
+    B.appendChild(L);
+    if (!up) return;
+    // uploading (the beta site): a folder (a game's, or one with a folder for each game) or some files
+    B.appendChild(el('p', 'muted', "Upload (beta only, once for both sites): MP3 or M4A files are best (FLAC works but takes four times the room). Each game's music in a folder named after the game; the hour is read from each file's name (\"5 PM\", \"5 PM (Rainy)\", \"17:00\"). It's kept on the island's server, never in GitHub."));
+    const status = el('p', 'muted');
+    const show = (job, last) => {
+        if (!job) { status.textContent = ''; return; }
+        status.textContent = job.done ? `Done: ${fmtNum(job.n - job.failed)} uploaded${job.skipped ? `, ${fmtNum(job.skipped)} already there` : ''}${job.failed ? `, ${job.failed} didn't go` : ''}.${job.err ? ' ' + job.err : ''}`
+            : `Uploading ${fmtNum(job.n + 1)} of ${fmtNum(job.of)} (${fmtBytes(job.bytes)} of ${fmtBytes(job.total)})${job.skipped ? `, ${fmtNum(job.skipped)} already there` : ''}: ${job.now}`;
+        if (last && status.isConnected) appMusic('library');
+    };
+    const pickers = el('div', 'st-row');
+    const pick = (label, folder) => {
+        const i2 = document.createElement('input');
+        i2.type = 'file'; i2.multiple = true; i2.hidden = true;
+        i2.accept = 'audio/*,.mp3,.m4a,.aac,.ogg,.oga,.opus,.flac,.wav,.webm';
+        if (folder) { i2.webkitdirectory = true; i2.setAttribute('webkitdirectory', ''); }
+        i2.addEventListener('change', () => { const f = i2.files; if (f && f.length) MusicUpload.start(f, show); });
+        pickers.appendChild(i2);
+        pickers.appendChild(btn(label, 'green', () => i2.click()));
+    };
+    pick('Upload a folder', true);
+    pick('Upload files', false);
+    const job = MusicUpload.job;
+    if (job && !job.done) pickers.appendChild(btn('Stop uploading', 'alt', () => { job.stop = true; Sfx.ui('close'); }));
+    // (the list of every track, to send to Claude so the game's tunes can be swapped for the soundtracks)
+    if (tracks.length) pickers.appendChild(btn('Copy the track list', 'alt', () => {
+        const text = musicTrackList();
+        const shown = () => { const ta = el('textarea', 'mlist'); ta.value = text; ta.readOnly = true; ta.rows = 8; B.appendChild(ta); ta.select(); };
+        try { navigator.clipboard.writeText(text).then(() => UI.toast('Track list copied!'), shown); } catch (e) { shown(); }
+    }));
+    B.appendChild(pickers);
+    B.appendChild(status);
+    if (job) { show(job); job.watch = show; }
+}
+/* every track as a line: game, hour and weather, file */
+function musicTrackList() {
+    return (MusicLib.tracks || []).map(t => `${t.game}\t${t.hour == null ? '-' : fmtHour(t.hour)}${t.weather !== 'clear' ? ' ' + t.weather : ''}\t${t.path}`).join('\n');
 }
 
 /* ---------------------------------------------------------------- Save & quit */
@@ -733,11 +917,11 @@ const Invites = {
         const inv = { n: I.seq++, id, kind, at: Date.now(), until: Date.now() + 60 * 60e3, state: 'asked' };
         if (kind === 'lunch') inv.spot = 'in_restaurant';
         if (kind === 'hang') { const sp = this.hangSpots(id); inv.spot = sp.length ? rpick(sp) : 'plaza'; }
-        if (kind === 'play') inv.game = rpick(['tag', 'hide']);
+        if (kind === 'play') inv.game = rpick(['tag', 'hide', 'volley', 'rope', 'vs']);
         const place = inv.spot ? placeName(id, inv.spot) : '';
         I.list.push(inv);
         I.n++; I.last = Date.now();
-        this.text(id, this.line(INV_LINES[kind], id).replace('{place}', place).replace('{game}', inv.game === 'hide' ? 'hide-and-seek' : 'tag'));
+        this.text(id, this.line(INV_LINES[kind], id).replace('{place}', place).replace('{game}', { hide: 'hide-and-seek', volley: 'volleyball', rope: 'jump rope', vs: 'a two-player arcade game' }[inv.game] || 'tag'));
         Save.touch();
         Sfx.ui('ok');
         UI.toast(`${NPC_DEFS[id].name} texted you!`, 'app_texts');
@@ -828,9 +1012,9 @@ const Invites = {
         } else if (inv.kind === 'play') {
             // (a game they asked for: the one they said if it fits here and now, or another that does)
             inv.state = 'done';
-            const games = IslandGames.list(n), g = games.find(x => x[0] === inv.game) || games[0];
+            const games = igAskGames(n), g = games.find(x => x[0] === inv.game || (inv.game === 'vs' && x[0].startsWith('vs:'))) || games[0];
             if (!g) { await UI.say(id, voiced(id, this.line({ _: ["You came! Let's play another time, though. Not the right spot for it.", 'Hi! Oh, not here. Next time, okay?'] }, id)), { keep: true }); Save.touch(); return true; }
-            await UI.say(id, voiced(id, this.line({ _: ['You came! Okay, {game}. Ready?', "Yay! Let's play {game}!"] }, id).replace('{game}', g[1].toLowerCase())), { keep: true });
+            await UI.say(id, voiced(id, this.line({ _: ['You came! Okay, {game}. Ready?', "Yay! Let's play {game}!"] }, id).replace('{game}', g[0].startsWith('vs:') ? g[1] : g[1].toLowerCase())), { keep: true });
             Save.touch();
             UI.hideDialog();
             await igBegin(n, g[0]);

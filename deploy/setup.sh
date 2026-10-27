@@ -220,6 +220,12 @@ fi
 # The game belongs to root, so the server can read but never change it; it only writes in data/.
 install -d -o root -g "$SC_USER" -m 750 "$SC_ROOT" "$SC_ROOT/releases"
 install -d -o "$SC_USER" -g "$SC_USER" -m 750 "$SC_ROOT/data"
+# David's music from the games, uploaded from the game's Music app: one folder both sites share, outside data/ so the
+# nightly backups don't copy gigabytes of it
+MUSIC_DIR=${MUSIC_DIR:-/srv/sarahcrossing-music}
+# (uploaded from the beta site; the live site only plays it)
+if [ "$INSTANCE" = beta ]; then MUSIC_UPLOADS=1; else MUSIC_UPLOADS=0; fi
+install -d -o "$SC_USER" -g "$SC_USER" -m 750 "$MUSIC_DIR"
 install -d -o root -g root -m 700 "$BACKUPS"
 
 # The password players type. Changing it logs everyone out (they type the new one once).
@@ -247,17 +253,19 @@ Environment=PORT=$PORT
 Environment=HOST=127.0.0.1
 Environment=STATIC_DIR=$SC_ROOT/current/dist
 Environment=DATA_DIR=$SC_ROOT/data
+Environment=MUSIC_DIR=$MUSIC_DIR
+Environment=MUSIC_UPLOADS=$MUSIC_UPLOADS
 Environment=SITE_PASSWORD_FILE=$SC_ROOT/password
 ExecStart=$NODE_BIN $SC_ROOT/current/server/server.mjs
 Restart=always
 RestartSec=2
 TimeoutStopSec=10
-# The server may only write its data folder.
+# The server may only write its data folder (and the music folder).
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=$SC_ROOT/data
+ReadWritePaths=$SC_ROOT/data $MUSIC_DIR
 
 [Install]
 WantedBy=multi-user.target

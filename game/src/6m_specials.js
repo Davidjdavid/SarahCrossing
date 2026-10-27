@@ -9,35 +9,35 @@ const SPECIALS = {};
 const POOL_HINT = 'Could turn up anywhere: a fishing crate, a sparkling tree, after cooking, or as thanks from a friend.';
 function defSpecial(id, cat, name, src, hint, extra) { SPECIALS[id] = Object.assign({ id, cat, name, src, hint: hint || POOL_HINT }, extra || {}); }
 // hairstyles: Floss learns them
-defSpecial('hair_mohawk', 'hair', 'Mohawk', 'score:capsules:8', 'Spicy! Reach level 8 in Spice Capsules.', { style: 'mohawk' });
+defSpecial('hair_mohawk', 'hair', 'Mohawk', 'score:capsules:10', 'Spicy! Reach level 10 in Spice Capsules.', { style: 'mohawk' });
 defSpecial('hair_bald', 'hair', 'Bald and shiny', 'pool', null, { style: 'bald' });
 defSpecial('hair_friar', 'hair', 'Friar', 'pool', null, { style: 'friar' });
 defSpecial('hair_buzz', 'hair', 'Buzz cut', 'pool', null, { style: 'buzz' });
-defSpecial('hair_pigtails', 'hair', 'Pigtails', 'score:rope:40', 'Hop to it: 40 jumps in a row at jump rope.', { style: 'pigtails' });
-defSpecial('hair_joecut', 'hair', "Joe's curls", 'joe:12', 'Listen to a dozen of Joe\'s poems. He gets his hair done somewhere...', { style: 'joecut' });
-defSpecial('hair_spacebuns', 'hair', 'Space buns', 'score:blocks:15000', 'Score 15,000 in Bento Blocks.', { style: 'spacebuns' });
-defSpecial('hair_afro', 'hair', 'Big and round', 'pool', null, { style: 'afro' });
-defSpecial('hair_mullet', 'hair', 'Mullet', 'pool', null, { style: 'mullet' });
+defSpecial('hair_pigtails', 'hair', 'Pigtails', 'score:rope:60', 'Hop to it: 60 jumps in a row at jump rope.', { style: 'pigtails' });
+defSpecial('hair_joecut', 'hair', "Joe's curls", 'joe:30', 'Listen to thirty of Joe\'s poems. He gets his hair done somewhere...', { style: 'joecut' });
+defSpecial('hair_spacebuns', 'hair', 'Space buns', 'score:blocks:50000', 'Score 50,000 in Bento Blocks.', { style: 'spacebuns' });
+defSpecial('hair_afro', 'hair', 'Big and round', 'score:dumpling:12000', 'Score 12,000 in Dumpling Drop. Big chains, big hair.', { style: 'afro' });
+defSpecial('hair_mullet', 'hair', 'Mullet', 'score:noodle:2000', 'Slurp up 2,000 in Noodle Slurp. Business in front...', { style: 'mullet' });
 // sewing patterns: new styles at Clementine's machine
 defSpecial('sew_suit', 'sew', 'Suit', 'pool', null, { style: 'suit' });
 defSpecial('sew_muumuu', 'sew', 'Muumuu', 'pool', null, { style: 'muumuu' });
 defSpecial('sew_gown', 'sew', 'Flowing gown', 'score:karaoke:S', 'Get an S at karaoke. Stars need gowns.', { style: 'gown' });
 defSpecial('sew_robe', 'sew', 'Wizard robe', 'pool', null, { style: 'robe' });
-defSpecial('sew_jumpsuit', 'sew', 'Disco jumpsuit', 'stat:dances:12', 'Dance your heart out at Club Wasabi (a dozen songs).', { style: 'jumpsuit' });
-defSpecial('sew_cape', 'sew', 'Hero cape', 'pool', null, { style: 'cape' });
+defSpecial('sew_jumpsuit', 'sew', 'Disco jumpsuit', 'stat:dances:40', 'Dance your heart out at Club Wasabi (forty songs).', { style: 'jumpsuit' });
+defSpecial('sew_cape', 'sew', 'Hero cape', 'score:surf:2500', 'Ride a wave to 2,500 in Surf\'s Up. Heroes surf.', { style: 'cape' });
 defSpecial('sew_tutu', 'sew', 'Tutu', 'pool', null, { style: 'tutu' });
 defSpecial('sew_sailor', 'sew', 'Sailor dress', 'pool', null, { style: 'sailor' });
 defSpecial('sew_spacesuit', 'sew', 'Spacesuit', 'quest:star', 'Somebody up there is blinking at the island...', { style: 'spacesuit' });
 // accessories
-defSpecial('acc_tiara', 'acc', 'Tiara', 'pool', null, { item: 'acc_tiara' });
-defSpecial('acc_flowercrown', 'acc', 'Flower crown', 'stat:flowers:25', 'Pick lots of flowers (25).', { item: 'acc_flowercrown' });
+defSpecial('acc_tiara', 'acc', 'Tiara', 'score:sushi:4000', 'Score 4,000 in Sushi Swap. Royalty chains.', { item: 'acc_tiara' });
+defSpecial('acc_flowercrown', 'acc', 'Flower crown', 'stat:flowers:100', 'Pick lots and lots of flowers (100).', { item: 'acc_flowercrown' });
 defSpecial('acc_piratehat', 'acc', 'Pirate hat', 'quest:treasure', 'Buried treasure is traditionally guarded by a hat.', { item: 'acc_piratehat' });
-defSpecial('acc_wizardhat', 'acc', 'Wizard hat', 'pool', null, { item: 'acc_wizardhat' });
-defSpecial('acc_catears', 'acc', 'Cat ears', 'score:fruit:900', 'Score 900 in Fruit Catch. Cats love catching things.', { item: 'acc_catears' });
+defSpecial('acc_wizardhat', 'acc', 'Wizard hat', 'score:garden:20000', 'Bonk your way to 20,000 in Gopher Garden. Magic.', { item: 'acc_wizardhat' });
+defSpecial('acc_catears', 'acc', 'Cat ears', 'score:fruit:4000', 'Score 4,000 in Fruit Catch. Cats love catching things.', { item: 'acc_catears' });
 defSpecial('acc_halo', 'acc', 'Halo', 'quest:ghost', 'Help someone at the lighthouse find peace.', { item: 'acc_halo' });
 defSpecial('acc_goathorns', 'acc', 'Goat horns', 'quest:goat', "Be the goat's friend. It's a goat. It will know.", { item: 'acc_goathorns' });
-defSpecial('acc_monocle', 'acc', 'Monocle', 'stat:donated:3', 'Very distinguished. Give the museum three pieces.', { item: 'acc_monocle' });
-defSpecial('acc_chefhat', 'acc', 'Chef hat', 'cookgold:5', 'Earn gold medals cooking five different dishes.', { item: 'acc_chefhat' });
+defSpecial('acc_monocle', 'acc', 'Monocle', 'stat:donated:15', 'Very distinguished. Give the museum fifteen pieces.', { item: 'acc_monocle' });
+defSpecial('acc_chefhat', 'acc', 'Chef hat', 'cookgold:12', 'Earn gold medals cooking twelve different dishes.', { item: 'acc_chefhat' });
 defSpecial('acc_mustache', 'acc', 'Fancy mustache', 'pool', null, { item: 'acc_mustache' });
 // keepsakes that inspire Joe
 defSpecial('moonrock', 'poem', 'Moon rock', 'pool', null, { item: 'moonrock' });
@@ -54,18 +54,18 @@ defSpecial('recipe_mochi', 'recipe', 'Mochi', 'pool', null, { recipe: 'mochi' })
 defSpecial('recipe_takoyaki', 'recipe', 'Takoyaki', 'pool', null, { recipe: 'takoyaki' });
 defSpecial('recipe_pancakes', 'recipe', 'Pancake stack', 'pool', null, { recipe: 'pancakes' });
 defSpecial('recipe_mooncakes', 'recipe', 'Moon cakes', 'quest:windmill', 'The old windmill could grind something special, if it worked.', { recipe: 'mooncakes' });
-defSpecial('recipe_shortcake', 'recipe', 'Cherry shortcake', 'score:stack:9', 'Stack snacks all the way up to a pumpkin in Snack Stack.', { recipe: 'shortcake' });
+defSpecial('recipe_shortcake', 'recipe', 'Cherry shortcake', 'score:stack:10', 'Squish snacks all the way up to a watermelon in Snack Stack.', { recipe: 'shortcake' });
 // songs for Club Wasabi
 defSpecial('song_goat', 'song', 'The Goat Waltz', 'quest:goat', "Be the goat's friend. It's a goat. It will know.", { song: 'goat' });
 defSpecial('song_starlight', 'song', 'Starlight', 'quest:star', 'Somebody up there is blinking at the island...', { song: 'starlight' });
 defSpecial('song_shanty', 'song', 'Lighthouse Shanty', 'quest:ghost', 'Help someone at the lighthouse find peace.', { song: 'shanty' });
 defSpecial('song_disco', 'song', 'Disco Cheesecake', 'pool', null, { song: 'discocake' });
 // dances and expressions (the Moves app)
-defSpecial('dance_robot', 'dance', 'The Robot', 'score:blocks:5L', 'Reach level 5 in Bento Blocks.', { move: 'robot' });
+defSpecial('dance_robot', 'dance', 'The Robot', 'score:blocks:12L', 'Reach level 12 in Bento Blocks.', { move: 'robot' });
 defSpecial('dance_twirl', 'dance', 'Twirl', 'pool', null, { move: 'twirl' });
 defSpecial('dance_moonwalk', 'dance', 'Moonwalk', 'pool', null, { move: 'moonwalk' });
-defSpecial('dance_floss', 'dance', 'The Floss', 'floss:2', 'Get your hair done a couple of times. Floss has a signature move.', { move: 'floss' });
-defSpecial('dance_sprinkler', 'dance', 'The Sprinkler', 'stat:harvests:10', 'Harvest the garden ten times.', { move: 'sprinkler' });
+defSpecial('dance_floss', 'dance', 'The Floss', 'floss:6', 'Get your hair done at Floss & Gloss six times. Floss has a signature move.', { move: 'floss' });
+defSpecial('dance_sprinkler', 'dance', 'The Sprinkler', 'stat:harvests:50', 'Harvest the garden fifty times.', { move: 'sprinkler' });
 defSpecial('emote_wink', 'emote', 'Wink', 'pool', null, { move: 'wink' });
 defSpecial('emote_idea', 'emote', 'Bright idea', 'pool', null, { move: 'idea' });
 defSpecial('emote_cool', 'emote', 'Too cool', 'pool', null, { move: 'cool' });

@@ -33,7 +33,10 @@ function ropeSpot(which) {
 
 const Rope = {
     on: false, ent: null, phase: 0, period: 72, jumps: 0, air: 0, state: 'off', t: 0,
+    forced: null,
     turners() {
+        // (a neighbor who asked Sarah to jump rope holds it with a friend, 6zw_island_games.js igRope)
+        if (this.forced) return this.forced;
         const rd = ropeDay();
         if (!rd) return null;
         const a = NPCs.get(rd.a), b = NPCs.get(rd.b);
@@ -188,11 +191,12 @@ const Rope = {
         const best = n > (R0.best || 0);
         if (best) R0.best = n;
         S.stats.rope = (S.stats.rope || 0) + 1;
-        const lines = [];
-        if (n >= 30) lines.push(`${n} jumps! Cuke is losing his mind. (Happily. Very hydrated.)`);
-        const talk = n >= 20 ? "THAT WAS AMAZING! You're a natural! Were you up at 5 AM practicing? You don't have to answer."
-            : n >= 10 ? `${n} jumps! Great form! Great cardio! Great everything!` : n >= 3 ? `${n} jumps! Nice! Warm-up's over. Next time, we go faster.`
-                : "Rope got you! It happens to everyone. It happens to me at 5 AM. Try again!";
+        // (Cuke's own way of putting it when he's turning; anyone else's otherwise)
+        const talk = A.id !== 'cuke' ? (n >= 20 ? "That was amazing! My arms gave up before your legs did!" : n >= 10 ? `${n} jumps! You make it look easy!`
+            : n >= 3 ? `${n} jumps! Nice! Again sometime?` : 'The rope got you! It happens to everyone. Again sometime?')
+            : n >= 20 ? "THAT WAS AMAZING! You're a natural! Were you up at 5 AM practicing? You don't have to answer."
+                : n >= 10 ? `${n} jumps! Great form! Great cardio! Great everything!` : n >= 3 ? `${n} jumps! Nice! Warm-up's over. Next time, we go faster.`
+                    : "Rope got you! It happens to everyone. It happens to me at 5 AM. Try again!";
         await UI.say(A.id, voiced(A.id, talk), { keep: true });
         if (n >= 3) { const pay = n * 10; addMoney(pay, true, 'Prizes & tips'); await UI.say(B.id, voiced(B.id, rpick([`Here, ${fmtNum(pay)} sand dollars. It's the plaza jump-rope fund. We just made it up.`, `The crowd chipped in ${fmtNum(pay)} sand dollars! The crowd is us.`])), { keep: true }); }
         if (best && n >= 5) await UI.say(null, `New personal best: ${n} jumps!`, { keep: true });
@@ -200,7 +204,8 @@ const Rope = {
             R0.trophy = true;
             receive('trophy_rope', 1);
             Sfx.play('fanfare');
-            await UI.say(A.id, "Thirty jumps! That's the plaza record! Here, take the trophy. We made it out of a water bottle. It's real now.", { keep: true });
+            await UI.say(A.id, A.id === 'cuke' ? "Thirty jumps! That's the plaza record! Here, take the trophy. We made it out of a water bottle. It's real now."
+                : "Thirty jumps! That's the plaza record! Cuke left a trophy for whoever got there. It's made of a water bottle. Here!", { keep: true });
         }
         if (R0.day !== Clock.dayNum()) {
             R0.day = Clock.dayNum();

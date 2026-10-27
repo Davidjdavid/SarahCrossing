@@ -49,6 +49,7 @@ async function boot(hotData) {
     if (!LAB) {
         Cloud.ready();
         Cloud.loadPhotos();
+        MusicLib.load();
         Online.connect();
         Online.fetchMail();
     }

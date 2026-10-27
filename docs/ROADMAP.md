@@ -201,7 +201,8 @@ Status: [x] done, [~] in progress, [ ] not started.
   catalog in a mix of kinds, everything she's had still in Order again; every piece IslandMart sells in its own colors and
   three more, its main color repainted in the picture and the model, "Sofa (mint)"; a wooden piece in light wood, dark wood
   and white; a plant keeps its leaves and changes its pot; each week the shop has each piece in one of its four)
-- [ ] The achievements that unlock outfits, songs, recipes and the like much harder and spread out over a long time
+- [~] The achievements that unlock outfits, songs, recipes and the like much harder and spread out over a long time
+  (27 October: every score and count raised a lot; see the late notes)
 - [x] Hybrid flower colors (David, 27 October): rarer colors that only come from cross-breeding (a blue daisy, a purple
   tulip...), each with its own picture and its own color in 3D (done: blue and purple daisies, orange and black tulips,
   red and chocolate cosmos, red and black lilies)
@@ -281,7 +282,8 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] The garden spots by Sarah's house are raised planter boxes now (they were lost under the grass); a community garden
   of eight beds by the farm that anyone can plant, where a grown crop turns up in none, one or two empty beds each
   morning; fruit trees round the farm
-- [ ] Music for each hour of the day, as Animal Crossing has (David will bring the tracks)
+- [x] Music for each hour of the day, as Animal Crossing has (David will bring the tracks) (the library is ready for them:
+  see the late notes below)
 - [x] Holiday decorations that fit the day: bigger jack-o'-lanterns, and decorations round the square and on the shops and
   houses for the big holidays, seasons and events, up for longer and more elaborate the more the day matters (Spooky
   Season done: carved jack-o'-lanterns that glow at every shop and house, hay bales of pumpkins at the square's corners,
@@ -320,6 +322,43 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] The collection: tapping an item opens its own little display: the item in 3D (turning), what it sells and buys for
   where that applies, where it comes from, and so on (in the new look its model turns; where the models aren't loaded, its
   picture big; first found, how many she has)
+
+## David's notes from playing beta (27 October, late)
+- [x] Music: David is downloading the music from every game (about 3 GB). It lives on the server, not in GitHub (a music
+  folder shared by beta and live, uploaded from the Music app); each hour outside plays that hour's track from a game picked
+  at random for the hour (rain and snow versions where a game has them), and the Music app sets it by hand: one game always,
+  a game for a given hour, or any track on repeat (Phone > Music > Your music > Upload a folder; steps in docs/DEPLOY.md;
+  at home too, as in Animal Crossing; games can be left out of the mix or removed; David uploads it once from beta, live
+  only plays it; anyone can add music of their own, kept on their device)
+- [ ] Once David's soundtracks are uploaded: go through them and swap the game's own tunes (the shops, the museum, the
+  club by day, the title...) for the soundtracks' tracks (he sends the list from "Copy the track list")
+- [ ] A new neighbor, the seafarer: a giant shrimp, a salty old sailor, found washed up on the shore, out cold, a week
+  after a new island is started or a save imported. He's building a new ship and needs something each day: ten logs
+  (chopping a tree gives one until he has enough), then ten home-cooked meals for the journey, then gems. He sails away
+  in a little cutscene and leaves a gift; a few days later his boat is back at the pier and he asks to move in. If Sarah
+  says yes he takes one of the plots for sale and works the farm (out in the fields every day), and brings new foods,
+  recipes and seeds
+- [ ] A new neighbor, the coffee shop's: an empty mug. Once enough has been given to the museum and the pottery hall is
+  full, the curator writes to thank Sarah, then tells of an old dig on the island that found part of a pot, and asks her
+  to look for the rest. An X dug-up spot turns up somewhere on the island once a day (not dug that day, it's somewhere
+  else the next); five pieces in all. Sully puts them back together at the museum: a giant mug. The next day, the first
+  time Sarah comes out, the mug visits: they were a living mug all along, and thank her. They talk about being a mug, being
+  caffeinated, and how odd it is that everyone else is food. They open the coffee shop on the alley's lot
+- [ ] The new neighbors and how they're found count as secret characters, and as the harder achievements
+- [x] The arcade's unlocks (hairstyles, clothes and the like) much harder: the watermelon in the Suika-like game, level 10
+  in Spice Capsules, and so on for every game (a watermelon in Snack Stack, level 10 in Spice Capsules, 50,000 and level 12
+  in Bento Blocks, 4,000 in Fruit Catch, 60 jumps at jump rope; five things that used to turn up by chance now come from
+  the back-room games: 12,000 in Dumpling Drop, 4,000 in Sushi Swap, 2,500 in Surf's Up, 20,000 in Gopher Garden, 2,000 in
+  Noodle Slurp; set against how the neighbors' best players score; and the other unlocks raised too: forty dances, a
+  hundred flowers, fifteen museum pieces, twelve gold medals cooking, thirty of Joe's poems, six salon visits, fifty
+  harvests)
+- [ ] Town projects, paid for from the town's projects fund: a swing set, a hammock on the beach, a park clock, a stone
+  tablet (a shrine) on top of the mountain, restoring the lighthouse (boards over its door until it's paid for; paying
+  starts the ghost's side quest), a bigger general store (more for sale, a bigger shop inside), and last and dearest, a
+  statue of Sarah
+- [x] When a neighbor asks to play, it's sometimes volleyball, jump rope or one of the arcade games, as well as tag and
+  hide-and-seek (volleyball wherever they are by day; jump rope on the square with a friend of theirs turning, Cuke if
+  he's about; an arcade game on their handheld, two players; texts ask for them too)
 
 ## The museum, in rooms (David, 26 October: for later)
 - [x] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings

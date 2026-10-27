@@ -322,3 +322,61 @@ test('the real world\'s helpers: weather codes and news feed titles', async () =
   const xml = '<rss><channel><title>Feed</title><item><title><![CDATA[Park plants &amp; waters 500 trees - The Daily Paper]]></title></item><item><title>Frog &#39;found&#39;</title></item><item><title>Frog &#39;found&#39;</title></item></channel></rss>';
   assert.deepEqual(feedTitles(xml), ['Park plants & waters 500 trees', "Frog 'found'"]);
 });
+
+test('the music library: uploaded a track at a time, listed with its hour and weather, streamed in ranges, a game taken out', async () => {
+  const up = (p, body, headers = {}) => api('PUT', '/api/music/file?path=' + encodeURIComponent(p), body, { 'Content-Type': 'audio/mpeg', ...headers });
+  assert.deepEqual((await (await api('GET', '/api/music')).json()).tracks, [], 'empty to begin with');
+  const bytes = Buffer.from(Array.from({ length: 1000 }, (_, i) => i % 251));
+  assert.equal((await up('Animal_Crossing_New_Horizons_OST_(2020)/05 - 5 PM (Rainy).mp3', bytes)).status, 200);
+  assert.equal((await up('Animal_Crossing_New_Horizons_OST_(2020)/06 - 5 PM.mp3', bytes)).status, 200);
+  assert.equal((await up('Wild World/Nook Shop.m4a', bytes)).status, 200);
+  assert.equal((await up('Wild World/cover.jpg', bytes)).status, 415, 'only music files');
+  assert.equal((await up('../outside.mp3', bytes)).status, 400, 'never outside the folder');
+  assert.equal((await up('a/b/c/d.mp3', bytes)).status, 400, 'two folders deep at most');
+  assert.equal((await fetch(srv.url + '/api/music/file?path=x.mp3', { method: 'PUT', headers: { cookie }, body: bytes })).status, 403, 'needs the X-Sarah header');
+  const { tracks, free } = await (await api('GET', '/api/music')).json();
+  assert.ok(free == null || free > 0);
+  assert.deepEqual(tracks.map((t) => [t.game, t.hour, t.weather, t.name]), [
+    ['Animal Crossing New Horizons', 17, 'rain', '5 PM (Rainy)'],
+    ['Animal Crossing New Horizons', 17, 'clear', '5 PM'],
+    ['Wild World', null, 'clear', 'Nook Shop'],
+  ]);
+  const url = srv.url + '/music/' + tracks[0].path.split('/').map(encodeURIComponent).join('/');
+  const whole = await fetch(url, { headers: { cookie } });
+  assert.equal(whole.status, 200);
+  assert.equal(whole.headers.get('content-type'), 'audio/mpeg');
+  assert.deepEqual(Buffer.from(await whole.arrayBuffer()), bytes);
+  const part = await fetch(url, { headers: { cookie, Range: 'bytes=100-199' } });
+  assert.equal(part.status, 206);
+  assert.equal(part.headers.get('content-range'), 'bytes 100-199/1000');
+  assert.deepEqual(Buffer.from(await part.arrayBuffer()), bytes.subarray(100, 200));
+  assert.equal((await fetch(url, { headers: { cookie, Range: 'bytes=5000-' } })).status, 416);
+  assert.equal((await fetch(url, { redirect: 'manual' })).status, 302, 'needs the password like the rest');
+  assert.equal((await fetch(srv.url + '/music/..%2F..%2Fsecret', { headers: { cookie } })).status, 404);
+  assert.equal((await api('DELETE', '/api/music/game?name=' + encodeURIComponent('Animal Crossing New Horizons'))).status, 200);
+  assert.deepEqual((await (await api('GET', '/api/music')).json()).tracks.map((t) => t.game), ['Wild World']);
+  assert.equal((await api('DELETE', '/api/music/game?name=Nope')).status, 404);
+});
+
+test('the music library reads hours from the names the soundtracks use', async () => {
+  const { readTrackName, gameName } = await import('../server/music.mjs');
+  const hours = ['05 - 1 AM.mp3', '5 AM (Sunny).mp3', '12 PM (Rainy).flac', '1-05. 5 PM (Snowy).mp3', '12 AM.mp3', 'Midnight.mp3', 'Noon.mp3', '17h00.mp3', '10_AM.mp3', 'Track 03 2 p.m.mp3', '01. Title Theme.mp3'].map((f) => readTrackName(f));
+  assert.deepEqual(hours.map((t) => t.hour), [1, 5, 12, 17, 0, 0, 12, 17, 10, 14, null]);
+  assert.deepEqual(hours.map((t) => t.weather).slice(0, 4), ['clear', 'clear', 'rain', 'snow']);
+  assert.equal(hours[10].name, 'Title Theme');
+  assert.equal(gameName('Animal_Crossing_New_Horizons_OST_(2020)_[MP3]'), 'Animal Crossing New Horizons');
+  assert.equal(gameName('Animal Crossing - Wild World'), 'Animal Crossing - Wild World');
+});
+
+test('the music library is uploaded from the beta site only: the live site plays it but refuses uploads', async () => {
+  const live = await startServer({ env: { MUSIC_UPLOADS: '0' } });
+  try {
+    const c = await login(live.url);
+    const list = await (await fetch(live.url + '/api/music', { headers: { cookie: c } })).json();
+    assert.equal(list.uploads, false);
+    const put = await fetch(live.url + '/api/music/file?path=' + encodeURIComponent('G/5 PM.mp3'), { method: 'PUT', headers: { cookie: c, 'X-Sarah': '1' }, body: Buffer.from('abc') });
+    assert.equal(put.status, 403);
+    assert.equal((await fetch(live.url + '/api/music/game?name=G', { method: 'DELETE', headers: { cookie: c, 'X-Sarah': '1' } })).status, 403);
+  } finally { await live.stop(); }
+  assert.equal((await (await api('GET', '/api/music')).json()).uploads, true, 'the test server (not production) takes uploads');
+});

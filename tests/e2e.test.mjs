@@ -1768,7 +1768,7 @@ test("David's evening notes: shaken fruit falls, fewer lamps (saves remapped), t
       out.ask2 = await igMaybeAsk(kai, 0);
       out.asked = asked.filter(a => /Sure, let's play!/.test(a)).length;
       const inv = Invites.send('kai', 'play');
-      out.text = !!inv && ['tag', 'hide'].includes(inv.game) && /tag|hide-and-seek/.test(textsOf('kai').slice(-1)[0].t);
+      out.text = !!inv && ['tag', 'hide', 'volley', 'rope', 'vs'].includes(inv.game) && /tag|hide-and-seek|volleyball|jump rope|arcade game/.test(textsOf('kai').slice(-1)[0].t);
     } finally { UI.ask = ask; UI.say = say; }
     // the collection: a found item opens its own display, its picture big (no 3D here), what it sells for, where from
     S.seen.sea_bass = S.seen.sea_bass || Clock.dayNum();
@@ -1995,6 +1995,160 @@ test('hold to walk: keeping a finger (or the mouse) down keeps Sarah walking tow
   assert.ok(held[1], 'holding steers');
   assert.ok(held[0] - start[0] > 80, `walked ${held[0] - start[0]}px while held`);
   assert.ok(Math.abs(later - after) < 3, 'stops when let go');
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test("David's music: uploaded from the Music app's way, each hour a game at random (the same all hour), set by hand, streamed from the server", async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play' && !G.busy);
+  const res = await page.evaluate(async () => {
+    // half a second of quiet as a WAV file
+    const n = 4000, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf), str = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true);
+    const file = (rel) => { const f = new File([buf], rel.split('/').pop(), { type: 'audio/wav' }); Object.defineProperty(f, 'webkitRelativePath', { value: 'Music/' + rel }); return f; };
+    const out = {};
+    // a picked folder with a folder for each game keeps each game's folder
+    out.paths = musicUploadPaths([file('Game One/05 - 5 PM.wav'), file('Game Two/Shop.wav')]).join();
+    await MusicUpload.start([file('Game One/05 - 5 PM.wav'), file('Game One/06 - 5 PM (Rainy).wav'), file('Game Two/5 PM.wav'), file('Game Two/Shop.wav'), file('Game Two/notes.txt')]);
+    out.games = MusicLib.games().join();
+    out.tracks = MusicLib.tracks.map(t => `${t.game}:${t.hour}:${t.weather}`).join();
+    // uploaded again, what's there already is skipped
+    await MusicUpload.start([file('Game One/05 - 5 PM.wav')]);
+    out.skipped = MusicUpload.job.skipped;
+    __dbg.setTime(5, 12, 17);
+    const M = musicState();
+    const pick = () => Music.pick();
+    out.hourly = pick();
+    out.same = pick() === out.hourly;
+    M.lib = 'Game Two'; out.always = pick();
+    M.lib = 'tunes'; out.tunes = pick();
+    M.lib = ''; M.libSkip = ['Game Two']; out.mix = pick();
+    M.libSkip = [];
+    M.hours[17] = 'hgame:Game One'; out.hourGame = pick();
+    delete M.hours[17];
+    M.now = 'lib:Game Two/Shop.wav'; out.now = pick();
+    M.now = null;
+    const tw = window.todayWeather;
+    window.todayWeather = () => 'rain'; M.lib = 'Game One'; out.rain = pick(); window.todayWeather = tw; M.lib = '';
+    // it plays from its file, through the music's volume
+    Audio2.unlock();
+    M.lib = 'Game Two';
+    Music.update(true);
+    const d = Music.cur && Music.cur.file;
+    out.playing = Music.cur && Music.cur.path;
+    if (d) { for (let i = 0; i < 50 && d.el.readyState < 1; i++) await new Promise(r => setTimeout(r, 100)); out.ready = d.el.readyState >= 1; }
+    // music of the player's own, kept on this device, plays from its file too
+    const added = await OwnMusic.add([new File([buf], 'My_Tune.wav', { type: 'audio/wav' })]);
+    const mine = OwnMusic.list()[0];
+    out.own = { n: added, name: mine.name, ok: trackOk('own:' + mine.id), named: trackName('own:' + mine.id) };
+    M.now = 'own:' + mine.id;
+    out.ownPick = pick() === 'own:' + mine.id;
+    Music.update(true);
+    const od = Music.cur && Music.cur.file;
+    for (let i = 0; i < 50 && od && !(od.el.src || '').startsWith('blob:'); i++) await new Promise(r => setTimeout(r, 100));
+    out.ownPlays = !!od && od.el.src.startsWith('blob:');
+    // the Music app shows it
+    appMusic('library');
+    out.ownApp = document.querySelector('#panel').textContent.includes('My Tune');
+    M.now = null;
+    await OwnMusic.remove(mine.id);
+    out.ownGone = OwnMusic.list().length === 0 && !trackOk('own:' + mine.id);
+    appMusic('library');
+    out.app = document.querySelector('#panel').textContent;
+    appMusic('now');
+    out.now2 = [...document.querySelectorAll('#panel details.mlib summary')].map(s => s.textContent).join('|');
+    UI.close();
+    M.lib = '';
+    for (const g of ['Game One', 'Game Two']) await Cloud.api('DELETE', '/api/music/game?name=' + encodeURIComponent(g));
+    await MusicLib.load(true);
+    out.after = MusicLib.tracks.length;
+    out.back = pick();
+    return out;
+  });
+  assert.equal(res.paths, 'Game One/05 - 5 PM.wav,Game Two/Shop.wav');
+  assert.equal(res.games, 'Game One,Game Two');
+  assert.equal(res.tracks, 'Game One:17:clear,Game One:17:rain,Game Two:17:clear,Game Two:null:clear');
+  assert.equal(res.skipped, 1);
+  assert.match(res.hourly, /^lib:Game (One\/05 - 5 PM|Two\/5 PM)\.wav$/);
+  assert.ok(res.same, 'the same game all hour');
+  assert.equal(res.always, 'lib:Game Two/5 PM.wav');
+  assert.ok(!res.tunes.startsWith('lib:'), "the island's own tunes when asked");
+  assert.equal(res.mix, 'lib:Game One/05 - 5 PM.wav', 'a game left out of the mix');
+  assert.equal(res.hourGame, 'lib:Game One/05 - 5 PM.wav');
+  assert.equal(res.now, 'lib:Game Two/Shop.wav');
+  assert.equal(res.rain, 'lib:Game One/06 - 5 PM (Rainy).wav', 'the rain version on a rainy day');
+  assert.equal(res.playing, 'Game Two/5 PM.wav');
+  assert.ok(res.ready, 'the server streams it to the audio element');
+  assert.match(res.app, /Hourly music/);
+  assert.match(res.app, /Game One/);
+  assert.match(res.app, /Upload a folder/);
+  assert.equal(res.now2, 'Game One (2)|Game Two (2)');
+  assert.deepEqual(res.own, { n: 1, name: 'My Tune', ok: true, named: 'My Tune (yours)' });
+  assert.ok(res.ownPick && res.ownPlays && res.ownApp && res.ownGone, JSON.stringify(res));
+  assert.match(res.app, /Copy the track list/);
+  assert.equal(res.after, 0);
+  assert.ok(!res.back.startsWith('lib:'));
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('asking to play: volleyball wherever they are by day, jump rope with a friend turning, an arcade game on their handheld', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play' && !G.busy);
+  const res = await page.evaluate(async () => {
+    const out = {};
+    const ask = UI.ask, say = UI.say;
+    UI.say = async () => {};
+    try {
+      __dbg.setTime(5, 12, 11);
+      G.weather = 'sunny';
+      const kai = NPCs.get('kai'), cuke = NPCs.get('cuke');
+      for (const n of [kai, cuke]) { rel(n.id).met = true; n.area = 'island'; n.want = null; n.sleeping = false; n.script = false; n.talking = false; }
+      kai.spotKey = 'plaza'; kai.x = G.player.x + 20; kai.y = G.player.y;
+      cuke.x = G.player.x + 40; cuke.y = G.player.y;
+      const games = igAskGames(kai).map(g => g[0]);
+      out.kinds = { volley: games.includes('volley'), rope: games.includes('rope'), vs: games.some(g => g.startsWith('vs:')), tag: games.includes('tag') };
+      out.friend = igRopeFriend(kai) && igRopeFriend(kai).id;
+      out.ropeLine = /Cuke/.test(igAskLine(kai, 'rope', 'Jump rope'));
+      const vs = games.find(g => g.startsWith('vs:'));
+      out.vsLine = igAskLine(kai, vs, ARCADE_GAMES[vs.slice(3)].name).includes(ARCADE_GAMES[vs.slice(3)].name);
+      // jump rope: the screen dims and the two of them hold the rope on the square
+      igRope(kai);
+      for (let i = 0; i < 300 && !(Rope.on && Rope.state === 'ready'); i++) await new Promise(r => setTimeout(r, 20));
+      out.rope = { on: Rope.on, cast: Rope.cast.map(n => n.id).join(), turners: (Rope.turners() || []).map(n => n.id).join(), held: kai.script && cuke.script };
+      Rope.quit();
+      for (let i = 0; i < 300 && (Rope.on || Rope.forced); i++) await new Promise(r => setTimeout(r, 20));
+      out.ropeDone = { off: !Rope.on, forced: Rope.forced, free: !kai.script && !cuke.script, played: S.games.rope.played };
+      // an arcade game on the handheld: the two-player cabinet game against them
+      UI.ask = async (who, t, choices) => choices.length - 1;
+      igHandheld(kai, vs.slice(3));
+      for (let i = 0; i < 300 && !Arcade.on; i++) await new Promise(r => setTimeout(r, 20));
+      out.arcade = { on: !!Arcade.on, id: Arcade.id };
+      if (Arcade.on) { Arcade.g.over = true; for (let i = 0; i < 250 && Arcade.state !== 'over'; i++) await new Promise(r => setTimeout(r, 20)); Arcade.finish(); }
+      for (let i = 0; i < 300 && (Arcade.on || kai.script); i++) await new Promise(r => setTimeout(r, 20));
+      out.arcadeDone = !Arcade.on && !kai.script;
+    } finally { UI.ask = ask; UI.say = say; }
+    return out;
+  });
+  assert.deepEqual(res.kinds, { volley: true, rope: true, vs: true, tag: true });
+  assert.equal(res.friend, 'cuke');
+  assert.ok(res.ropeLine);
+  assert.ok(res.vsLine);
+  assert.deepEqual(res.rope, { on: true, cast: 'kai,cuke', turners: 'kai,cuke', held: true });
+  assert.deepEqual(res.ropeDone, { off: true, forced: null, free: true, played: 1 });
+  assert.equal(res.arcade.on, true);
+  assert.match(res.arcade.id, /^vs_/);
+  assert.ok(res.arcadeDone);
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

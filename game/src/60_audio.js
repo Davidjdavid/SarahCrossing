@@ -25,6 +25,8 @@ const Audio2 = {
             for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
         }
         if (this.ctx.state === 'suspended') this.ctx.resume();
+        MusicFile.init();
+        MusicFile.resume();
         if (!this.started) { this.started = true; Music.update(true); }
     },
     ok() { return this.ctx && this.ctx.state === 'running'; },
@@ -368,6 +370,15 @@ const Music = {
     cur: null, want: null, song: null, over: null,
     pick() { return musicRule(this.pickBase()); },                   // Sarah's own choices (the Music app) come first
     pickBase() {
+        const tune = this.pickTune();
+        // outside and at home, the hour's track from David's music, a game picked at random (60a_music_lib.js)
+        if (tune !== this.over && S && S.started && !G.introScene && (!G.area || G.area.id === 'island' || G.area.id === 'home')) {
+            const p = MusicLib.hourly(Math.floor(Clock.hourF()));
+            if (p) return 'lib:' + p;
+        }
+        return tune;
+    },
+    pickTune() {
         if (this.over && TUNES[this.over]) return this.over;          // an arcade game's own tune
         if (G.introScene) return 'sunrise';                            // the opening, at sea
         if (!S || !S.started) return 'morning';
@@ -396,6 +407,12 @@ const Music = {
         const c = Audio2.ctx;
         this.stop();
         if (!c || !Audio2.musicOn || name === 'silence') return;
+        if (/^(lib|own|mysong):/.test(name)) {
+            // a track from a file (the soundtracks on the server, or the player's own); the island's tune if it can't play
+            const d = MusicFile.play(name);
+            if (d) { this.cur = { file: d, path: name.replace(/^lib:/, '') }; return; }
+            name = this.pickTune();
+        }
         const base = TUNES[name] || DANCE_TUNES[name];              // a club song can play on repeat from the Music app
         if (!base) return;
         // each hour gets its own small variation: key and tempo drift
@@ -413,7 +430,8 @@ const Music = {
     },
     stop() {
         const c = Audio2.ctx;
-        if (this.cur && c) {
+        if (this.cur && this.cur.file) MusicFile.stop(this.cur.file);
+        else if (this.cur && c) {
             const g = this.cur.gain;
             g.gain.cancelScheduledValues(c.currentTime);
             g.gain.setValueAtTime(g.gain.value, c.currentTime);
@@ -425,7 +443,7 @@ const Music = {
     tick() {
         const c = Audio2.ctx;
         const cur = this.cur;
-        if (!c || !cur) return;
+        if (!c || !cur || cur.file) return;
         const ahead = c.currentTime + 0.25;
         for (let guard = 0; guard < 200; guard++) {
             const comp = cur.comp, loopDur = comp.steps * comp.stepDur;
