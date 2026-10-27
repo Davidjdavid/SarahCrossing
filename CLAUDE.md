@@ -192,7 +192,11 @@ docs/DEPLOY.md for the server.
 - The holidays' decorations on the island (54_events.js `decorateIsland`) are models too (`EnvBuild.holidayModel`): pumpkin
   lanterns, the lunar and red lanterns and heart lamps (the furniture's own models, loaded with the island's:
   `EnvModels.OUTDOOR`) and bunting (`bunting`, `bunting_green` from props_island.py); the island's 3D is built again when
-  the day's decorations change (`Env.look`).
+  the day's decorations change (`Env.look`). A decoration can name its own model (`model3d`: Spooky Season's carved
+  `jack_o_lantern` / `jack_o_lantern_b`, whose faces are `*_glow`, the square's `jack_stack` hay bales and
+  `bunting_spooky`), and one put down with `stand()` is solid like a prop (`solidTile`, unblocked when the decorations come
+  down), never on a path. Spooky Season puts jack-o'-lanterns at every shop and building's front corners and by every
+  house's door; Halloween itself adds one by every lamp post.
 - On Halloween night (5 PM to midnight, `trickOn`) the neighbors' dolls and toys wear their costumes (`COSTUME_ACC` in
   6z_festivals.js, pieces in `EnvDolls`' hat table: a ghost hood, a bat, a soup bowl, sun rays, a deerstalker, a witch's
   hat, a pumpkin, mummy wraps, lobster claws, a cardboard robot box, a gold frame); the 2D views don't draw them.

@@ -180,7 +180,7 @@ const Scrapbook = {
                 t.appendChild(el('b', null, r.label || k.split(':')[1]));
                 const bio = this.bio(k);
                 if (bio) t.appendChild(el('span', null, bio));
-                t.appendChild(el('span', 'muted', ` In ${r.n} ${plural(r.n, 'photo')} · first ${dayDate(r.first)}`));
+                t.appendChild(el('span', 'scrap-meta', `In ${r.n} ${plural(r.n, 'photo')} · first ${dayDate(r.first)}`));
                 row.appendChild(t);
                 list.appendChild(row);
             }

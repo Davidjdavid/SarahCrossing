@@ -72,8 +72,8 @@ const EnvBuild = {
             else if (e.kind === 'fence') this.fence(e, a);
             else if (e.kind === 'flowerbed') this.flowerbed(e);
             else if (e.wildFlower) { const n = this.flower(e); if (n) picks.push({ idx: e.flowerIdx, n, i: placed[n].length - 1, on: true }); }
+            else if (e.holiday && this.holidayModel(e)) { const f = Env.tileSpot(e), n = this.holidayModel(e); this.model(n, f.x, f.y, f.z, 0, /^jack_o_lantern/.test(n) ? 1.3 : 1); }
             else if (e.holiday && /pumpkin/.test(e.frame || '')) this.pumpkin(e);
-            else if (e.holiday && this.holidayModel(e)) { const f = Env.tileSpot(e); this.model(this.holidayModel(e), f.x, f.y, f.z); }
         }
         this.decks();
         this.fields();
@@ -582,6 +582,8 @@ const EnvBuild = {
     /* the holidays' decorations on the island (54_events.js decorateIsland) that have a model: lanterns, heart lamps
        (the furniture's own) and bunting (props_island.py) */
     holidayModel(e) {
+        // (a decoration that names its own model: the jack-o'-lanterns, the hay bales of pumpkins, Spooky Season's bunting)
+        if (e.model3d && typeof EnvModels !== 'undefined' && EnvModels.has(e.model3d)) return e.model3d;
         const n = { f_lunar_lantern: 'furn_lunar_lantern', f_red_lantern: 'furn_red_lantern', f_heart_lamp: 'furn_heart_lamp', bunting: 'bunting', bunting_green: 'bunting_green' }[e.frame];
         return n && typeof EnvModels !== 'undefined' && EnvModels.has(n) ? n : null;
     },

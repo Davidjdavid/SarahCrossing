@@ -88,38 +88,51 @@ function newsCheck10() {
 
 /* holiday decorations on the island */
 function decorateIsland(a) {
+    // (what stood solid comes down with the rest)
+    for (const e of a.ents) if (e.holiday && e.solidTile) a.block(e.solidTile[0], e.solidTile[1], 0);
     a.ents = a.ents.filter(e => !e.holiday);
     const ev = G.events || new Set();
-    const put = (frame, tx, ty, light) => {
-        const e = a.add({ holiday: true, kind: 'deco', frame, x: (tx + 0.5) * TILE, y: (ty + 1) * TILE - 2 });
+    const put = (frame, tx, ty, light, model) => {
+        const e = a.add({ holiday: true, kind: 'deco', frame, x: (tx + 0.5) * TILE, y: (ty + 1) * TILE - 2, model3d: model || null });
         if (light) e.light = { r: 34, y: -12 };
+        return e;
+    };
+    // a decoration standing on the ground, solid like any prop: never on a path, the water or anything already there
+    const stand = (frame, tx, ty, light, model) => {
+        const c = groundChar(tx, ty);
+        if (a.blockedAt(tx, ty) || a.waterAt(tx, ty) || pathAt(tx, ty) || 'pdbw~'.includes(c) || a.ents.some(o => o.holiday && o.solidTile && o.solidTile[0] === tx && o.solidTile[1] === ty)) return null;
+        const e = put(frame, tx, ty, light, model);
+        a.block(tx, ty, 1); e.solidTile = [tx, ty];
+        return e;
     };
     const [x0, y0, x1, y1] = W0.plaza;
     const [hx, hy] = doorTileOf('home');
-    if (ev.has('spooky')) for (const [x, y] of [[x0, y0 + 2], [x1, y0 + 2], [x0, y1 - 2], [x1, y1 - 2], [hx - 2, hy + 1], [x0 - 4, y1 + 5], [W0.spots.pier.x - 1, W0.spots.pier.y - 4]]) put('f_pumpkin_lantern', x, y, true);
+    // Spooky Season (David, 27 October: decorations that fit the day, more the more it matters): big jack-o'-lanterns at
+    // every shop and building's front corners and by every house's door, hay bales piled with pumpkins at the square's
+    // corners, orange and purple bunting across it; on Halloween itself a jack-o'-lantern by every lamp post too
+    if (ev.has('spooky') || ev.has('halloween')) {
+        const jack = (k) => hash32('jack' + k) % 3 ? 'jack_o_lantern' : 'jack_o_lantern_b';
+        for (const [x, y] of [[x0 + 1, y0 + 1], [x1 - 1, y0 + 1], [x0 + 1, y1 - 1], [x1 - 1, y1 - 1]]) {
+            for (let r = 0; r <= 2; r++) if (stand('f_pumpkin_pile', x + (x < (x0 + x1) / 2 ? r : -r), y, true, 'jack_stack')) break;
+        }
+        for (const [id, b] of Object.entries(W0.buildings)) {
+            const row = b.y + b.h, door = b.x + b.door, house = id === 'home' || id.startsWith('h_');
+            const spots = id === 'home' ? [[door - 1, row], [door + 1, row]] : house ? [[door + (hash32(id) % 2 ? 1 : -1), row], [door - (hash32(id) % 2 ? 1 : -1), row]] : [[b.x, row], [b.x + b.w - 1, row]];
+            let n = 0;
+            for (const [x, y] of spots) if (x !== door && (!house || id === 'home' || !n) && stand('f_pumpkin_lantern', x, y, true, jack(id + x))) n++;
+        }
+        for (const [x, y] of [[x0 - 4, y1 + 5], [W0.spots.pier.x - 1, W0.spots.pier.y - 4]]) stand('f_pumpkin_lantern', x, y, true, jack(x + ',' + y));
+        bunting('bunting', 'bunting_spooky');
+        if (ev.has('halloween')) for (const p of W0.props) if (p.kind === 'lamp') { for (const dx of [1, -1]) if (stand('f_pumpkin_lantern', p.x + dx, p.y, true, jack(p.x + ',' + p.y))) break; }
+    }
     if (ev.has('lunar')) for (const [x, y] of [[x0 + 3, y0], [x1 - 3, y0], [x0 + 3, y1], [x1 - 3, y1], [W0.spots.spring.x - 2, W0.spots.spring.y]]) put('f_lunar_lantern', x, y, true);
     if (ev.has('lights')) for (const [x, y] of [[x0, y0 + 1], [x1, y0 + 1], [x0, y1 - 1], [x1, y1 - 1], [hx - 3, hy + 1], [hx + 3, hy + 1]]) put('f_red_lantern', x, y, true);
     if (ev.has('birthday')) for (const [x, y] of [[x0 + 4, y0 + 2], [x1 - 4, y0 + 2], [x0 + 7, y0 + 1]]) put('f_heart_lamp', x, y, true);
     // little holidays: bunting, lanterns or hearts around the plaza
     for (const h of holidaysToday()) {
         if (!h.deco) continue;
-        if (h.deco.startsWith('bunting')) {
-            // (across three open tiles of the square, and the row behind them, near each of its four quarters)
-            const open3 = (x, y) => {
-                for (let r = 0; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-                    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-                    const tx = x + dx, ty = y + dy;
-                    if ([0, 1, 2].every(i => !a.blockedAt(tx + i, ty) && !a.blockedAt(tx + i, ty - 1))) return [tx, ty];
-                }
-                return null;
-            };
-            for (const [x, y] of [[x0 + 6, y0 + 3], [x1 - 8, y0 + 3], [x0 + 6, y1 - 3], [x1 - 8, y1 - 3]]) {
-                const f = open3(x, y);
-                if (!f) continue;
-                const e = a.add({ holiday: true, kind: 'deco', frame: h.deco, x: (f[0] + 1.5) * TILE, y: (f[1] + 1) * TILE - 2 });
-                e.hit = null;
-            }
-        } else if (h.deco === 'lanterns') { for (const [x, y] of [[x0, y0 + 1], [x1, y0 + 1], [x0, y1 - 1], [x1, y1 - 1]]) put('f_lunar_lantern', x, y, true); }
+        if (h.deco.startsWith('bunting')) bunting(h.deco, h.deco);
+        else if (h.deco === 'lanterns') { for (const [x, y] of [[x0, y0 + 1], [x1, y0 + 1], [x0, y1 - 1], [x1, y1 - 1]]) put('f_lunar_lantern', x, y, true); }
         else if (h.deco === 'hearts') { for (const [x, y] of [[x0 + 3, y0 + 1], [x1 - 3, y0 + 1], [x0 + 3, y1 - 1], [x1 - 3, y1 - 1]]) put('f_heart_lamp', x, y, true); }
     }
     // a neighbor's party tonight: lanterns go up around the spot
@@ -130,6 +143,23 @@ function decorateIsland(a) {
         for (const [dx, dy] of [[-4, -3], [4, -3], [-4, 3], [4, 3]]) {
             const f = a.nearestFree(s.x + dx, s.y + dy, 2);
             if (f) put(deco, f[0], f[1], true);
+        }
+    }
+    // bunting across three open tiles of the square, and the row behind them, near each of its four quarters
+    function bunting(frame, model) {
+        const open3 = (x, y) => {
+            for (let r = 0; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+                if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+                const tx = x + dx, ty = y + dy;
+                if ([0, 1, 2].every(i => !a.blockedAt(tx + i, ty) && !a.blockedAt(tx + i, ty - 1))) return [tx, ty];
+            }
+            return null;
+        };
+        for (const [x, y] of [[x0 + 6, y0 + 3], [x1 - 8, y0 + 3], [x0 + 6, y1 - 3], [x1 - 8, y1 - 3]]) {
+            const f = open3(x, y);
+            if (!f) continue;
+            const e = a.add({ holiday: true, kind: 'deco', frame, x: (f[0] + 1.5) * TILE, y: (f[1] + 1) * TILE - 2, model3d: model });
+            e.hit = null;
         }
     }
 }

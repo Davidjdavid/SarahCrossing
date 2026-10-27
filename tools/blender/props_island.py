@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import bpy
 from mathutils import Vector, Matrix, Euler, noise
 from common import *
-from trees_ac import MB, vmat, rgb, bmesh_ico, anchor_empties
+from trees_ac import MB, vmat, rgb, bmesh_ico, anchor_empties, LIGHT
 from kit import col_fn, shade, rbox, lathe, cyl, ball, tube, slab, plank_row, flame, rocks, xform, rot
 import kit
 kit.DETAIL['lite'] = True
@@ -952,6 +952,134 @@ def bunting(cols):
     return [(mb, 'main')]
 
 
+def ribbed(mb, c, R, H, ribs=10, groove=0.1, lo='#c0581c', hi='#f2902e', seg=60, rings=22):
+    """A pumpkin's body: a squat ball of lobes with grooves between them, darker in the grooves and underneath, the top
+    dimpled where the stem goes (its middle at c, R across, H high)"""
+    P, C, N, F = [], [], [], []
+    cx, cy, cz = c
+    for j in range(rings + 1):
+        th = j / rings * math.pi                     # (0 at the bottom)
+        for i in range(seg + 1):
+            ph = i / seg * math.tau
+            lobe = abs(math.sin(ph * ribs / 2))
+            rib = 1 - groove * (1 - lobe ** 0.45)
+            dimple = 0.18 * math.exp(-((math.pi - th) / 0.42) ** 2) + 0.08 * math.exp(-(th / 0.4) ** 2)
+            x, y = math.sin(th) * math.cos(ph) * R * rib, math.sin(th) * math.sin(ph) * R * rib
+            z = -math.cos(th) * H * (1 - dimple)
+            n = Vector((x / (R * R), y / (R * R), z / (H * H))).normalized()
+            p = Vector((cx + x, cy + y, cz + z))
+            k = 0.62 + 0.38 * lobe ** 0.6
+            col = rgb(lo).lerp(rgb(hi), k) * (0.78 + 0.22 * math.sin(th) ** 0.5)
+            P.append(p); N.append(n); C.append(col * (0.84 + 0.24 * max(0.0, n.dot(LIGHT))))
+    for j in range(rings):
+        for i in range(seg):
+            a = j * (seg + 1) + i
+            F += [(a, a + 1, a + seg + 2), (a, a + seg + 2, a + seg + 1)]
+    mb.add(P, C, N, F)
+
+
+def stem(mb, top, r=0.05, h=0.14, lean=0.06, seed=0):
+    """A pumpkin's stem, curling a little, with a vine tendril and a leaf"""
+    rng = random.Random(seed)
+    t = Vector(top)
+    tube(mb, [t - Vector((0, 0, 0.03)), t + Vector((lean * 0.3, 0, h * 0.6)), t + Vector((lean, 0.01, h))], r, col_fn('#6a7a34', grain='z'), seg=8, r1=r * 0.6)
+    a0 = rng.uniform(0, math.tau)
+    tube(mb, [t + Vector((math.cos(a0 + k * 0.7) * (0.04 + k * 0.012), math.sin(a0 + k * 0.7) * (0.04 + k * 0.012), 0.01 + 0.012 * math.sin(k))) for k in range(10)], 0.006, shade('#5a8a30'), seg=4)
+    a1 = a0 + 2.2
+    tip = t + Vector((math.cos(a1) * 0.16, math.sin(a1) * 0.16, -0.02))
+    mid = (t + tip) / 2
+    sd = Vector((-math.sin(a1), math.cos(a1), 0)) * 0.05
+    for q in ((t, mid + sd, tip), (t, tip, mid - sd)):
+        P = [Vector(v) + Vector((0, 0, 0.012)) for v in q]
+        mb.add(P, [rgb('#5a9a38') * 1.05] * 3, [Vector((0, 0, 1))] * 3, [(0, 1, 2)])
+
+
+def jack_o_lantern(face='grin', R=0.36, H=0.29, seed=0):
+    """A big carved pumpkin for Spooky Season (David, 27 October: bigger jack-o'-lanterns, not a little pile): ribbed and
+    squat, a curling stem with a tendril and a leaf, a face cut into its front showing the candlelit inside (eyes, nose
+    and mouth a *_glow part, drawn unlit, so it glows at night), each hole edged dark where it's cut. About two thirds of
+    a tile across; its foot at z 0, its face toward the front (-y)."""
+    mb, glow = MB(), MB()
+    cz = H * 0.97
+    ribbed(mb, (0, 0, cz), R, H)
+    stem(mb, (0, 0, cz + H * 0.8), seed=seed)
+
+    def surf(u, v, off):
+        """the point on the front of the pumpkin at (x u, height v about its middle), off out from the skin"""
+        k = 1 - (u / R) ** 2 - (v / H) ** 2
+        return Vector((u, -R * math.sqrt(max(0.02, k)) * 0.97 - off, cz + v))
+
+    def shape(outline, scale=1.0, off=0.006, part=None, color='#ffd860'):
+        """a flat shape cut into the front (star-shaped about its middle), its edges split so it follows the skin"""
+        cu = sum(u for u, _ in outline) / len(outline)
+        cv = sum(v for _, v in outline) / len(outline)
+        ring = []
+        for k in range(len(outline)):
+            (u0, v0), (u1, v1) = outline[k], outline[(k + 1) % len(outline)]
+            for s in range(4):
+                f = s / 4
+                ring.append((cu + (u0 + (u1 - u0) * f - cu) * scale, cv + (v0 + (v1 - v0) * f - cv) * scale))
+        P = [surf(cu, cv, off)] + [surf(u, v, off) for u, v in ring]
+        n = Vector((0, -1, 0))
+        col = rgb(color)
+        (part or glow).add(P, [col] * len(P), [n] * len(P), [(0, (k + 1) % len(ring) + 1, k + 1) for k in range(len(ring))])
+    holes = []
+    if face == 'grin':
+        holes += [[(-0.22, 0.07), (-0.05, 0.08), (-0.13, 0.2)], [(0.05, 0.08), (0.22, 0.07), (0.13, 0.2)], [(-0.04, 0.0), (0.04, 0.0), (0, 0.06)]]
+    else:
+        circ = lambda cu, cv, r, n=10: [(cu + math.cos(a / n * math.tau) * r, cv + math.sin(a / n * math.tau) * r * 1.15) for a in range(n)]
+        holes += [circ(-0.12, 0.1, 0.06), circ(0.12, 0.1, 0.06), [(-0.035, 0.0), (0.035, 0.0), (0, 0.05)]]
+    for h in holes:
+        shape(h, 1.22, 0.003, mb, '#4a2410')
+        shape(h)
+    # the mouth: a wide grin with square teeth hanging from the top (a strip between two curves, the teeth's columns
+    # cut short), or a round 'oh'
+    if face == 'grin':
+        n = 14
+        top = [(-0.23 + 0.46 * k / n, -0.03 - 0.04 * math.sin(k / n * math.pi)) for k in range(n + 1)]
+        bot = [(-0.23 + 0.46 * k / n, -0.04 - 0.12 * math.sin(k / n * math.pi)) for k in range(n + 1)]
+        teeth = {4, 9}
+        for part, grow, off, color in ((mb, 0.014, 0.003, '#4a2410'), (glow, 0.0, 0.006, '#ffd860')):
+            P, Cc, Nn, Ff = [], [], [], []
+            for k in range(n + 1):
+                tu, tv = top[k]; bu, bv = bot[k]
+                if k in teeth or k - 1 in teeth:
+                    tv = (tv + bv) / 2 if part is glow else tv
+                P += [surf(tu, tv + grow, off), surf(bu, bv - grow, off)]
+            col = rgb(color)
+            for k in range(n):
+                a = k * 2
+                Ff += [(a, a + 2, a + 3), (a, a + 3, a + 1)]
+            part.add(P, [col] * len(P), [Vector((0, -1, 0))] * len(P), Ff)
+    else:
+        o = [(math.cos(a / 12 * math.tau) * 0.06, -0.08 + math.sin(a / 12 * math.tau) * 0.075) for a in range(12)]
+        shape(o, 1.22, 0.003, mb, '#4a2410')
+        shape(o)
+    return [(mb, 'main'), (glow, 'glow')]
+
+
+def jack_stack():
+    """The square's corners in Spooky Season: a hay bale with a jack-o'-lantern on top, a little pumpkin beside it there
+    and two more on the ground in front, about a tile across."""
+    out = hay()
+    mb = out[0][0]
+    for (x, y, r, h, sd) in ((0.25, 0.05, 0.13, 0.1, 3), (-0.5, -0.36, 0.16, 0.12, 4), (0.52, -0.4, 0.12, 0.095, 5)):
+        z = 0.5 + h * 0.97 if abs(y) < 0.2 else h * 0.97
+        ribbed(mb, (x, y, z), r, h, lo='#c8641e', hi='#f4a040', seg=36, rings=14)
+        stem(mb, (x, y, z + h * 0.8), r=0.02, h=0.06, lean=0.03, seed=sd)
+    (jm, _), (jg, _) = jack_o_lantern('grin', 0.25, 0.2, seed=8)
+    glow = MB()
+    merge(mb, jm, (-0.12, 0, 0.5))
+    merge(glow, jg, (-0.12, 0, 0.5))
+    return [(mb, 'main'), (glow, 'glow')]
+
+
+def merge(dst, src, off=(0, 0, 0)):
+    """one mesh's pieces added to another's, moved by off"""
+    o = Vector(off)
+    dst.add([v + o for v in src.v], src.c, src.n, src.f)
+
+
 def bigtree_planter():
     """The square's big tree stands in a raised ring of rounded stones (David, 27 October: not a giant tree on the
     flagstones): two courses of stones under a capping, grass and soil inside with the tree's roots showing and little
@@ -1004,7 +1132,8 @@ PROPS = {
     'driftwood': driftwood, 'rock_a': lambda: rock(1), 'rock_b': lambda: rock(7), 'icecream': icecream, 'sandcastle': sandcastle,
     'volleyball': volleyball, 'noodle_cart': noodle_cart, 'barrel': barrel,
     'fairy_mushroom': fairy_mushroom, 'bunting': lambda: bunting(['#e85a5a', '#f8c040', '#5ab0e0', '#f088b0', '#7ac860']),
-    'bunting_green': lambda: bunting(['#3a9a4a', '#8ad070', '#f4f0e0', '#5ab85a']), 'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
+    'bunting_green': lambda: bunting(['#3a9a4a', '#8ad070', '#f4f0e0', '#5ab85a']), 'bunting_spooky': lambda: bunting(['#f08a24', '#7a3ab8', '#2e2a36', '#f8c040']),
+    'jack_o_lantern': jack_o_lantern, 'jack_o_lantern_b': lambda: jack_o_lantern('oh', 0.3, 0.25, seed=3), 'jack_stack': jack_stack, 'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
     'bigtree_planter': bigtree_planter, 'reeds': reeds, 'lilypad': lilypad, 'lilypad_flower': lambda: lilypad(True), 'pebbles': pebbles, 'falls_rocks': falls_rocks,
 }
 

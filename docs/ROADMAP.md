@@ -243,8 +243,10 @@ Status: [x] done, [~] in progress, [ ] not started.
   of eight beds by the farm that anyone can plant, where a grown crop turns up in none, one or two empty beds each
   morning; fruit trees round the farm
 - [ ] Music for each hour of the day, as Animal Crossing has (David will bring the tracks)
-- [ ] Holiday decorations that fit the day: bigger jack-o'-lanterns, and decorations round the square and on the shops and
-  houses for the big holidays, seasons and events, up for longer and more elaborate the more the day matters
+- [~] Holiday decorations that fit the day: bigger jack-o'-lanterns, and decorations round the square and on the shops and
+  houses for the big holidays, seasons and events, up for longer and more elaborate the more the day matters (Spooky
+  Season done: carved jack-o'-lanterns that glow at every shop and house, hay bales of pumpkins at the square's corners,
+  orange and purple bunting, and on Halloween one by every lamp post; the winter holidays next)
 - [ ] Fortune's shop moves onto the shopping street, and Fortune gets a house of their own; Sarah can shop there when it's
   closed or Fortune isn't working, on the honor system, as at the other shops
 - [ ] An empty lot on the shopping street, to even out its places: a sign saying it's set aside for a new business, where
