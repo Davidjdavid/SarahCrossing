@@ -70,7 +70,8 @@ const Requests = {
         return 'A favor';
     },
     hint(t) {
-        const where = id => { const w = whereIs(id); return w ? `Right now ${NPC_DEFS[id].name} is ${w}.` : ''; };
+        // (where they are right now only on the beta site or with the debug tools: in the game, text them to find out)
+        const where = id => { if (!plansShown()) return `Not sure where ${NPC_DEFS[id].name} is? Text them!`; const w = whereIs(id); return w ? `Right now ${NPC_DEFS[id].name} is ${w}.` : ''; };
         switch (t.kind) {
             case 'bring': {
                 const it = ITEMS[t.item];

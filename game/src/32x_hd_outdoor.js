@@ -181,15 +181,20 @@ function hdE_lily(s, pet, dot) {
 }
 hdE_reg([
     ['fl_daisy_0', 12, 16, 6, 15, '#ffffff', '#ffd84a'], ['fl_daisy_1', 12, 16, 6, 15, '#fff27a', '#b8862d'], ['fl_daisy_2', 12, 16, 6, 15, '#ffb8d6', '#ffd84a'],
+    // (the hybrids: 2ab_hybrids.js)
+    ['fl_daisy_3', 12, 16, 6, 15, '#8cbcff', '#ffd84a'], ['fl_daisy_4', 12, 16, 6, 15, '#be8cf0', '#ffd84a'],
 ], hdE_daisy);
 hdE_reg([
     ['fl_tulip_0', 12, 16, 6, 15, '#e0405a', '#b3263a'], ['fl_tulip_1', 12, 16, 6, 15, '#ffd84a', '#e0a030'], ['fl_tulip_2', 12, 16, 6, 15, '#ff9ec0', '#e0607a'],
+    ['fl_tulip_3', 12, 16, 6, 15, '#ff8c32', '#d25e18'], ['fl_tulip_4', 12, 16, 6, 15, '#5a3866', '#3a2046'],
 ], hdE_tulip);
 hdE_reg([
     ['fl_cosmos_0', 12, 16, 6, 15, '#ff8ac0', '#ffd84a'], ['fl_cosmos_1', 12, 16, 6, 15, '#b37cf0', '#ffd84a'], ['fl_cosmos_2', 12, 16, 6, 15, '#f7962d', '#8a3a1a'],
+    ['fl_cosmos_3', 12, 16, 6, 15, '#e03040', '#ffd84a'], ['fl_cosmos_4', 12, 16, 6, 15, '#7a4028', '#ffd84a'],
 ], hdE_cosmos);
 hdE_reg([
     ['fl_lily_0', 12, 16, 6, 15, '#ffffff', '#ffd84a'], ['fl_lily_1', 12, 16, 6, 15, '#f7962d', '#8a3a1a'], ['fl_lily_2', 12, 16, 6, 15, '#ffb8d6', '#e0607a'],
+    ['fl_lily_3', 12, 16, 6, 15, '#e83848', '#b02230'], ['fl_lily_4', 12, 16, 6, 15, '#4e2a4c', '#2e1832'],
 ], hdE_lily);
 
 /* ---------------------------------------------------------------- wild flowers (three little blooms on a tile) */

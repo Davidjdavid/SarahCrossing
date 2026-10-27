@@ -22,7 +22,8 @@ function hdMotion(e, moving) {
     if (jump) { m.vx = m.vy = 0; m.face = m.want = d4; }
     else { m.vx = m.vx * 0.55 + dx * 0.45; m.vy = m.vy * 0.55 + dy * 0.45; m.dist += Math.hypot(dx, dy); }
     if (moving && Math.hypot(m.vx, m.vy) > 0.2) m.want = (Math.round(Math.atan2(m.vy, m.vx) / (Math.PI / 4)) + 8) % 8;
-    else if (e.dir !== m.dir) m.want = d4;      // turned to face something
+    else if (e.dir !== m.dir || m.went) m.want = d4;      // turned to face something, or stopped (to face the way they stand)
+    m.went = !!moving;
     m.dir = e.dir;
     // one step round every three ticks of game time (however slowly frames come)
     let steps = m.face === m.want ? 0 : Math.min(4, Math.floor((G.t - (m.turn || 0)) / 3));

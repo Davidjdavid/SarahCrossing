@@ -11,7 +11,7 @@ const ENV = {
     BASE: 0.25,         // the low ground's height above the sea
     RES: 4,             // height points a tile
     CHUNK: 16,          // tiles a ground piece
-    cam: { dist: 12.2, pitch: 34, fov: 44, ahead: 2.0 },
+    cam: { dist: 12.2, pitch: 34, fov: 44, ahead: 2.0, lead: [1.5, 3.6, 1.0] },    // lead: tiles the camera looks ahead of Sarah running sideways, down, up
     dof: [25, 62, 7.6, 5.2],   // where the background starts to blur (and fully), where the foreground does (the concept keeps the trees behind the houses sharp)
     people: 1.3,        // how much bigger people stand than in the classic HD-2D view
     items: 0.6,         // and things lying on the ground

@@ -82,7 +82,11 @@ docs/DEPLOY.md for the server.
   tile, the sea cliffs along a smooth outline: `r3Fine`); water moves and, on computers, reflects (`R3Mirror`); the
   ground up close is fine pixel art by kind (grass, dirt, cobbles, sand, stone walls on anything steep, stairs:
   `31a_ground3d.js`) where the painted picture would smear; tufts, lily pads and cattails are instanced meshes refilled
-  as the view moves. Tune the camera, bend and haze in `R3_CAM` / `R3_FOG`.
+  as the view moves. Tune the camera, bend and haze in `R3_CAM` / `R3_FOG`. In the new look the camera leads Sarah the way
+  she's moving, most when she runs toward the camera (`ENV.cam.lead`, `R3.lead`, eased in and out: David, 27 October,
+  running down she couldn't see what was coming), and things are drawn ahead out to where the haze has them
+  (`updateView`: a house beyond the ground at the top of the screen still stands up over the horizon, and used to blink
+  in and out there).
 - Settings > Picture quality and Draw distance (`GFX`, kept per device in `sc-quality` / `sc-far`): Auto is the device's
   own (phones lighter and shorter, a slow computer drops its quality by itself in `watchSpeed`); a pick stays as picked.
   Quality scales the pixels drawn (`R3.quality`; High keeps the water's reflections), distance scales `R3.farTiles()`,
@@ -160,6 +164,12 @@ docs/DEPLOY.md for the server.
   arm's furthest point, `handOf`); who likes what is `IDLE_LIKES`. A chat, Sarah talking to them or their day moving on
   ends it, and nobody busy with something starts a chat; walk up to them and they mention it (`IDLE_HELLO`). The flat
   views show them standing.
+- No hugs (David, 27 October): the talk menus have none; the goat is petted instead (`petGoat`, kept as `hugDay`), three
+  days of it its quest (`Quests.goatPet`); Hug Day is Kindness Day (id `hugday`), a chat counting double. Joe no longer
+  rates the house. Where a neighbor is and where they're going is for texting them (69_texts.js); their hours and today's
+  whole plan (the Friends app, `appDayPlan`) and a favor's "right now they're..." only show on beta or with the debug tools
+  (`plansShown()`, localStorage `sc-plans` 1 or 0). A food folk's facing follows their walk too (`stepNpc`) and stopping
+  turns them to the way they stand (`hdMotion`'s `went`), so Chili at the arcade counter faces the room.
 - Catchphrases (6zk_catchphrases.js): every neighbor has one (`CATCH`), said at the end of some of their lines (`voiced`'s
   `catchTail`); a good friend (four hearts) takes a new one from the talk menu ("New catchphrase?", `catchFlow`, typed in
   `askText`, tidied by `catchClean`) and reacts in their own way (`CATCH_REACT`); the Town Hall's Residents sets it too. Kept
@@ -217,7 +227,7 @@ docs/DEPLOY.md for the server.
   in `UI._line`, that neighbor's lines only), and "Call me something else?" changes it (`nickFlow`). Kept as
   `S.npcs[id].nick` and `nickAsked`.
 - Friendship, deeper (6zm_friendship.js): neighbors remember the last few things Sarah did with them (`remember(id, kind,
-  data)` from the gift, hug, favor, game, visit and lost-and-found flows; `S.npcs[id].mem`, eight at most) and some days
+  data)` from the gift, favor, game, visit and lost-and-found flows; `S.npcs[id].mem`, eight at most) and some days
   bring one from the last week up (`memoryLine`, said once). After three weeks without a word a friendship fades a point
   every other day, at most ten, never below the hearts it has (`friendshipTick` in `dailyCheck`; `faded`, `missed`), and
   they say they missed her (`MISSED_LINES`). Each heart brings something new, one a day (`friendMilestone`, after the
@@ -266,7 +276,10 @@ docs/DEPLOY.md for the server.
 - The watering can (`can`, a tool on Fortune's rack, 2a_flowers.js): it waters the tile in front of Sarah and one each side
   (`waterFront`, `waterTiles`; `pl.wet` is the day a planted flower was watered, darker soil in 2D and 3D). Each morning
   `flowerBreed` (in `dailyCheck`) may grow a new flower beside two watered ones of a kind (two of a color make it again,
-  two colors the third). In the new look the doll holds the room's can (`furn_watering_can`, `EnvDolls.canModel`) and
+  two colors the third, `breedColor`). Hybrids (2ab_hybrids.js, `FLOWER_HYBRIDS`): two rarer colors of each kind, never
+  from seeds (`flower_<kind>_3` and `_4`: blue and purple daisies, orange and black tulips, red and chocolate cosmos, red
+  and black lilies): a quarter of the time colors 0 and 1 make the first, 1 and 2 the second; each picture is its kind's
+  repainted at load (`Assets.dyn`), its HD picture in 32x_hd_outdoor.js, its color in `EnvItems.PETALS`. In the new look the doll holds the room's can (`furn_watering_can`, `EnvDolls.canModel`) and
   tips it in the `water` pose. The boat Sarah came on is `boat_home` (small_things.py), as big as a building, at the pier.
 - The camera's scrapbook (55a_scrapbook.js, David's note of 27 October): a photo's tags say what's in it (`Scrapbook.seen`:
   neighbors, buildings and landmarks, wildlife and what's at sea or in the sky, things lying about or furniture indoors,
@@ -275,8 +288,10 @@ docs/DEPLOY.md for the server.
   a short bio (`SCRAP_BIO`); the scrapbook counts each part but never says out of how many.
 - Clocks keep the time in the new look: a furniture piece's parts `*_hour` and `*_minute` (furn_kit's `P.hour`,
   `P.minute`, drawn pointing at 12) are turned by `EnvRoom.animate` to `Clock.hourF()`.
-- Flowers are one plant per kind (vegetation.py's `flower_<kind>`), the petals their own part painted in the flower's
-  color (`EnvItems.PETALS`, `petals(id)`): wild ones (`EnvBuild.flower`, instanced per color through
+- Flowers are one plant per kind (`tools/blender/flowers.py`'s `flower_<kind>`, after New Horizons' flowers, David's
+  note of 27 October: three big blooms over a leafy foot, every petal a thick soft piece made by `sheet`, a lens in
+  section; a tulip's cup, a lily's star with speckles and stamens, a cosmos's notched petals, a daisy's dome), the petals
+  their own part painted in the flower's color (`EnvItems.PETALS`, `petals(id)`): wild ones (`EnvBuild.flower`, instanced per color through
   `EnvModels.instances`' `tint`), planted ones and the plots' (`EnvItems`), a picked one lying on its side.
 - The wildlife (birds, gulls, the owl, squirrels, rabbits, deer, crabs, ducks, frogs, butterflies) are toys from
   `critters.py` (`critter_<kind>`), posed by `EnvCritters` (33m_env_critters.js) from the game's own critters and

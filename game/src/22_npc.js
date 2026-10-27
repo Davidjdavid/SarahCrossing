@@ -711,7 +711,8 @@ function stepNpc(n) {
     n.moving = true;
     n.anim++;
     if (Math.abs(dx) > 0.3) n.flip = dx < 0;
-    if (d.human) n.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    // (the food folks too: the new look turns them by it, so one who ran up to a counter faces the room once there)
+    n.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
     if (!d.human) n.hop = Math.abs(Math.sin(n.anim / (jog ? 4 : 6))) * 3;
     if (d.skates && n.anim % 3 === 0) G.fx.push(sparkleFx(n.x + (n.flip ? 6 : -6), n.y - 2));
 }

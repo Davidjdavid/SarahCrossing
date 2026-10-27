@@ -145,15 +145,7 @@ const EnvModels = {
         const M = this.models[name], out = [];
         if (!M || !matrices.length) return out;
         for (const p of M.parts) {
-            // (a part shaded in greys for painting, *_top or *_trim, in o.tint's color: a flower's petals)
-            let mat = p.material;
-            const role = o.tint && /_(top|trim)$/.exec(mat.name || '');
-            if (role && o.tint[role[1]]) {
-                const k = mat.uuid + o.tint[role[1]];
-                if (!this._tints.has(k)) this._tints.set(k, this.tinted(mat, o.tint[role[1]]));
-                mat = this._tints.get(k);
-            }
-            const mesh = new THREE.InstancedMesh(p.geometry, this.instMat(mat), matrices.length);
+            const mesh = new THREE.InstancedMesh(p.geometry, this.instMat(this.partMat(p, o.tint)), matrices.length);
             matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
             mesh.instanceMatrix.needsUpdate = true;
             mesh.castShadow = o.shadow !== false; mesh.receiveShadow = true;
@@ -162,6 +154,14 @@ const EnvModels = {
             out.push(mesh);
         }
         return out;
+    },
+    /* a part's material, a part shaded in greys for painting (*_top or *_trim) in tint's color: a flower's petals */
+    partMat(p, tint) {
+        const mat = p.material, role = tint && /_(top|trim)$/.exec(mat.name || '');
+        if (!role || !tint[role[1]]) return mat;
+        const k = mat.uuid + tint[role[1]];
+        if (!this._tints.has(k)) this._tints.set(k, this.tinted(mat, tint[role[1]]));
+        return this._tints.get(k);
     },
     /* (an instanced copy of a part's material: the bend has to read the instance's own matrix) */
     instMat(m) {
@@ -180,7 +180,7 @@ const EnvModels = {
         const M = this.models[name], out = [];
         if (!M) return out;
         for (const p of M.parts) {
-            const mesh = new THREE.Mesh(p.geometry, p.material);
+            const mesh = new THREE.Mesh(p.geometry, this.partMat(p, o.tint));
             mesh.matrixAutoUpdate = false;
             mesh.matrix.copy(matrix);
             mesh.castShadow = o.shadow !== false; mesh.receiveShadow = true;

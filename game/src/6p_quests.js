@@ -2,7 +2,7 @@
 /* The island's old mysteries, each tied to one of the quiet old buildings (a hidden sixth, the arcade's back room, is in 6z_backroom.js):
    1. The barn: an old trunk hides a pirate's note. It leads to buried treasure on the beach (bring a shovel).
    2. The lighthouse: near midnight, the old keeper's ghost haunts the lamp room. He misses his wife's clam chowder.
-   3. The goat: be its friend (hugs, three different days) and it starts a chain of trades around the island.
+   3. The goat: be its friend (pet it on three different days) and it starts a chain of trades around the island.
    4. The windmill: its moonstone has been still for years. Three cogs are missing, scattered around the island.
    5. The lookout: once the lighthouse shines again, a star over the mountain starts blinking. Answer it.
    Neighbors drop rumors and hints; the To-do app keeps track once Sarah is on the trail. */
@@ -22,7 +22,7 @@ const QUEST_RUMORS = {
     ghost: ['They say the old lighthouse keeper still climbs the stairs near midnight. Every night. Just to check on the light.',
         "Wonton says he saw a light moving at the top of the old lighthouse, around midnight. Wonton went back in the spring and didn't come out till morning.",
         'The lighthouse keeper used to live there all alone, with his wife Martha. She made the best clam chowder on the whole coast. That\'s what Sully says.'],
-    goat: ["The goat seems a little lonely. It's a goat. But still. Maybe it needs a hug. Maybe a few.", "Coco says the goat likes shiny things. And hugs. And cans. Mostly cans."],
+    goat: ["The goat seems a little lonely. It's a goat. But still. Maybe it needs a friend. Someone to pet it. A few times.", "Coco says the goat likes shiny things. And being petted. And cans. Mostly cans."],
     windmill: ['Ginger says the windmill has a second millstone. The moonstone. It used to grind moon flour. It hasn\'t turned in years.',
         "Something's wrong with the windmill's moonstone. Ginger says some cogs went missing a long time ago."],
     star: ['Some nights, one star over the mountain blinks. Like it\'s trying to say something.',
@@ -84,7 +84,7 @@ const Quests = {
             case 'ghost': return s === 1 ? `The keeper's ghost appears in the lamp room from 11 PM to 1 AM. He misses Martha's clam chowder.${S.recipes.includes('chowder') ? ' (You know the recipe!)' : ' (Sully knows chowder.)'}`
                 : 'A rumor: the old keeper still climbs the lighthouse stairs near midnight.';
             case 'goat': {
-                if (!s) { const d = (this.st('goat').hugDays || []).length; return `A rumor: the goat is lonely. Hug it on three different days. (${d} of 3)`; }
+                if (!s) { const d = (this.st('goat').hugDays || []).length; return `A rumor: the goat is lonely. Pet it on three different days. (${d} of 3)`; }
                 const step = TRADE_CHAIN[s - 1];
                 return step ? `You have the ${itemName(step[0]).toLowerCase()}. Maybe ${step[1] === 'goat' ? 'the goat' : NPC_DEFS[step[1]].name} would like it?` : '';
             }
@@ -141,7 +141,7 @@ const Quests = {
         UI.toast(`Traded the ${itemName(give).toLowerCase()} for the ${itemName(get).toLowerCase()}`, itemIcon(get));
     },
     /* ---------------------------------------------------------------- the goat */
-    goatHug() {
+    goatPet() {
         const s = this.st('goat'), day = Clock.dayNum();
         if (s.stage || this.done('goat')) return;
         s.hugDays = s.hugDays || [];

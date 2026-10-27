@@ -307,7 +307,8 @@ function appFriends() {
         row.appendChild(iconCanvas(d.human ? `${d.human}_down_stand` : `${d.sprite}_0`, 40));
         const t = el('div', 't');
         t.appendChild(el('b', null, d.name));
-        const wb = id === 'goat' || d.visitor ? null : wakeBed(id);
+        // (their hours and today's plan only on the beta site or with the debug tools: in the game, text them, 69_texts.js)
+        const wb = id === 'goat' || d.visitor || !plansShown() ? null : wakeBed(id);
         const partner = coupleOf(id);
         const tip = id === 'goat' ? "It's a goat. It lives at the farm now." : d.visitor ? (visitorsToday().includes(id) ? visitNote(id) : 'Family \u00b7 visits the island now and then')
             : (TALK[id] ? `Loves: ${lovesText(id)}` : id === 'joe' ? 'Likes: rhyming, takeout, frogs. (And you. Shh.)' : 'Family')
@@ -315,6 +316,7 @@ function appFriends() {
         t.appendChild(el('span', null, tip));
         row.appendChild(t);
         if (id !== 'goat') row.appendChild(el('span', 'hearts', heartStr(hearts(id))));
+        if (wb) { row.classList.add('tap'); row.onclick = () => { Sfx.ui('tick'); appDayPlan(id); }; }
         list.appendChild(row);
     }
     if (!shown) list.appendChild(el('p', 'muted', "You haven't met anyone yet. Say hi to the neighbors!"));

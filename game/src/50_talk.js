@@ -76,7 +76,7 @@ function chatLine(n) {
 /* ---------------------------------------------------------------- the rules of friendship
    - the first chat of the day makes a friend a little happier (a heart pops up)
    - after a real talk, Talk rests for five minutes (come back too soon and they say so)
-   - one hug a day, one gift a day (a gift that makes no sense gets handed back, with an explanation)
+   - one gift a day (a gift that makes no sense gets handed back, with an explanation)
    - Joe starts at five hearts and loves every gift. Friendship never goes down. */
 const TALK_REST_MS = 5 * 60 * 1000;
 function talkResting(r) { const now = Date.now(); return !!r.talkAt && now >= r.talkAt && now - r.talkAt < TALK_REST_MS; }
@@ -176,7 +176,6 @@ async function neighborTalk(n) {
         const add = (label, fn) => { opts.push(label); acts.push(fn); };
         if (!talkResting(r)) add('Talk', async () => { await justTalk(n, () => topicLine(n)); return true; });
         if (r.giftDay !== day) add('Here, a gift', async () => { await giftFlow(n); return !giftTaken(r); });
-        if (r.hugDay !== day) add('Hug', async () => { await hugFlow(n); return true; });
         // a good friend takes a new catchphrase (6zk_catchphrases.js)
         if (hearts(id) >= 4 && r.catchDay !== day && CATCH[id]) add('New catchphrase?', async () => { await catchFlow(n); return true; });
         if (r.nickAsked && hearts(id) >= 4 && r.nickDay !== day) add('Call me something else?', async () => { await nickFlow(n); return true; });
@@ -214,64 +213,26 @@ async function justTalk(n, pick) {
     S.stats.talks = (S.stats.talks || 0) + 1;
     if (r.chatDay !== day && r.met) {
         r.chatDay = day;
-        const up = addPts(id, 1 + bonusCharm());
+        const up = addPts(id, (1 + bonusCharm()) * (isHoliday('hugday') ? 2 : 1));
         if (up) { UI.hideDialog(); await heartUp(n, up); }
     }
     Save.touch();
 }
 
-/* ---------------------------------------------------------------- hugs (one a day) */
-async function hugFlow(n) {
-    const id = n.id, r = rel(id), day = Clock.dayNum(), p = G.player;
+/* ---------------------------------------------------------------- petting the goat (once a day; kept as hugDay, the
+   name older saves have, and three days of it are the goat's quest) */
+async function petGoat(n) {
+    const r = rel('goat'), day = Clock.dayNum(), p = G.player;
     UI.hideDialog();
-    // step in close, side by side
-    const side = p.x <= n.x ? -1 : 1;
-    const hx = n.x + side * 10, hy = n.y + 1;
-    if (!blockedFoot(G.area, hx, hy)) {
-        p.glide = { x: hx, y: hy, t: 0 };
-        for (let i = 0; i < 30 && p.glide; i++) await waitFrames(1);
-    }
-    p.dir = side < 0 ? 'right' : 'left';
-    if (n.def.human) n.dir = side < 0 ? 'left' : 'right'; else n.flip = side > 0;
-    // Joe and Sarah: with people around, that's PDA! (Joe gets flustered.) On their own, just a quiet little hug.
-    const watchers = id === 'joe' ? NPCs.here().filter(o => o !== n && !o.def.goat && !o.def.dj && Math.hypot(o.x - p.x, o.y - p.y) < 150) : [];
-    if (watchers.length) {
-        p.pose = 'hug'; p.poseT = 16;
-        await waitFrames(10);
-        n.emote = 'sweat'; n.emoteT = 90;
-        Sfx.play('nope');
-        for (let i = 0; i < 8; i++) { n.hop = Math.abs(Math.sin(i / 2)) * 2; await waitFrames(2); }
-        n.hop = 0;
-        p.pose = null; p.poseT = 0;
-        // Sarah takes a step back (a very normal amount of space, for two friends, in public)
-        const bx = n.x + side * 20;
-        if (!blockedFoot(G.area, bx, p.y)) { p.glide = { x: bx, y: p.y, t: 0 }; for (let i = 0; i < 20 && p.glide; i++) await waitFrames(1); }
-        p.dir = side < 0 ? 'right' : 'left';
-        const w = watchers.sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
-        w.emote = rpick(['heart', 'laugh', 'bang']); w.emoteT = 100;
-        if (!w.chat) { Bubbles.show(w, voiced(w.id, rpick(['Ooooh!', 'Awww!', 'I SAW that!', "Oh no way! That's crazy!"]))); setTimeout(() => { if (!w.chat) Bubbles.hide(w); }, 2400); }
-        await UI.say('joe', rpick(JOE.pda), { keep: true });
-        G.player.pose = 'cheer'; G.player.poseT = 24;
-        n.emote = 'heart'; n.emoteT = 60;
-    } else {
-        p.pose = 'hug'; p.poseT = 70;
-        n.emote = 'heart'; n.emoteT = 80;
-        Sfx.play('heart');
-        for (let i = 0; i < 12; i++) { n.hop = Math.abs(Math.sin(i / 2)) * 2; await waitFrames(2); }
-        n.hop = 0;
-        const lines = id === 'joe' ? JOE.hug : (FAMILY[id] && FAMILY[id].hug) || HUG[id] || ['Aww. Thank you!'];
-        const line = rpick(lines);
-        await UI.say(id === 'goat' || (id === 'joe' && line.startsWith('(')) ? null : id, line, { keep: true });
-    }
+    faceToward(p, n);
+    p.pose = 'pick'; p.poseT = 40;
+    n.emote = 'heart'; n.emoteT = 80;
+    Sfx.play('heart');
+    for (let i = 0; i < 10; i++) { n.hop = Math.abs(Math.sin(i / 2)) * 2; await waitFrames(2); }
+    n.hop = 0;
+    await UI.say(null, rpick(GOAT_PETS), { keep: true });
     p.pose = null; p.poseT = 0;
-    if (r.hugDay !== day) {
-        r.hugDay = day;
-        if (!watchers.length) remember(id, 'hug');
-        S.stats.hugs = (S.stats.hugs || 0) + 1;
-        const up = id === 'goat' ? 0 : addPts(id, isHoliday('hugday') ? 6 : 3);
-        if (id === 'goat') Quests.goatHug();
-        if (up) { UI.hideDialog(); await heartUp(n, up); }
-    }
+    if (r.hugDay !== day) { r.hugDay = day; Quests.goatPet(); }
 }
 
 /* ---------------------------------------------------------------- the goat is a goat */
@@ -279,13 +240,13 @@ async function goatTalk(n) {
     const r = rel('goat'), day = Clock.dayNum();
     await UI.say(null, "It's a goat. Nothing else to say.", { keep: true });
     for (const o of Quests.options(n)) { const k0 = await UI.ask(null, 'The goat looks at you. It is a goat. It looks at your pocket.', [o.label, 'Not now'], { keep: true }); if (k0 === 0) { await o.fn(); return; } }
-    const opts = ['Talk to the goat'].concat(r.hugDay !== day ? ['Hug the goat'] : [], r.giftDay !== day ? ['Give it something'] : [], ['Leave']);
+    const opts = ['Talk to the goat'].concat(r.hugDay !== day ? ['Pet the goat'] : [], r.giftDay !== day ? ['Give it something'] : [], ['Leave']);
     const k = await UI.ask(null, 'The goat looks at you. It is a goat.', opts, { keep: true });
     const c = opts[k];
     if (c === 'Talk to the goat') await UI.say(null, rpick(['Sarah tells the goat about her day. The goat listens. The goat is a great listener. It is a goat.',
         "Sarah says hi. The goat says nothing. It's a goat. Nothing else to say.", 'Sarah asks the goat how it is doing. The goat blinks once. That means "fine."',
         'Sarah tells the goat one of Joe\'s poems. The goat chews thoughtfully. It clearly loved it.']), { keep: true });
-    else if (c === 'Hug the goat') await hugFlow(n);
+    else if (c === 'Pet the goat') await petGoat(n);
     else if (c === 'Give it something') await giftFlow(n);
 }
 
@@ -467,13 +428,7 @@ async function joeTalk(n) {
         add('Tell me a poem', async () => { await recitePoem(n.spotKey === 'pier_end' && R() < 0.5); return true; });
         const ks = keepsakeForJoe();
         if (ks) add('Look what I found!', async () => { await joeKeepsakePoem(n, ks); return true; });
-        if (r.hugDay !== day) add('Hug', async () => { await hugFlow(n); return true; });
         if (r.giftDay !== day) add('Here, a gift', async () => { await giftFlow(n); return !giftTaken(r); });
-        if (S.house.items.length >= 3) add('What do you think of my house?', async () => {
-            const sc = councilScore();
-            await UI.say('joe', JOE.house[sc.total >= 21 ? 2 : sc.total >= 12 ? 1 : 0], { keep: true });
-            return true;
-        });
         for (const o of Requests.options(n)) add(o.label, o.fn);
         for (const o of Quests.options(n)) add(o.label, o.fn);
         for (const o of civicOptions(n)) add(o.label, o.fn);
@@ -551,7 +506,6 @@ async function familyTalk(n) {
         const opts = [], acts = [];
         const add = (label, fn) => { opts.push(label); acts.push(fn); };
         if (!talkResting(r)) add('Talk', async () => { await justTalk(n, () => rpick(f.chat)); return true; });
-        if (r.hugDay !== day) add('Hug', async () => { await hugFlow(n); return true; });
         if (r.giftDay !== day) add('Here, a gift', async () => { await giftFlow(n); return !giftTaken(r); });
         for (const o of Drama.options(n)) add(o.label, async () => { await Drama.choose(n, o); return true; });
         if (IslandGames.list(n).length) add("Let's play!", () => IslandGames.offer(n));

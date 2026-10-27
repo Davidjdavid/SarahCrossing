@@ -139,7 +139,20 @@ const R3 = {
             const sh = G.camShift ? G.camShift[0] : 0;
             ty = G.camTarget[1]; tx = G.camTarget[0] + sh * 0.55;
         } else if (a.interior) { tx = a.w * TILE / 2; ty = (a.floor.y0 + a.floor.h * 0.55) * TILE; }
-        else if (Env.on && !G.camTarget) ty -= ENV.cam.ahead * (this.camera.aspect < 1 ? 0.5 : 1) * TILE;
+        else if (Env.on && !G.camTarget) {
+            ty -= ENV.cam.ahead * (this.camera.aspect < 1 ? 0.5 : 1) * TILE;
+            // looking where she's going (David, 27 October: running down the screen, what was below her came into view too
+            // late to steer round): the camera leads her the way she's moving, most toward the camera, eased in and out
+            const L = this.lead || (this.lead = { x: p.x, y: p.y, vx: 0, vy: 0, ox: 0, oy: 0 }), f = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60));
+            let dx = p.x - L.x, dy = p.y - L.y;
+            L.x = p.x; L.y = p.y;
+            if (snap || this.areaId !== a.id || Math.hypot(dx, dy) > 12 * f) { dx = dy = 0; if (snap || this.areaId !== a.id) L.vx = L.vy = L.ox = L.oy = 0; }
+            const kv = 1 - Math.pow(0.85, f), ko = 1 - Math.pow(0.965, f), C = ENV.cam.lead;
+            L.vx += (dx / f - L.vx) * kv; L.vy += (dy / f - L.vy) * kv;
+            const sx = Math.max(-1, Math.min(1, L.vx / 2.1)), sy = Math.max(-1, Math.min(1, L.vy / 2.1));
+            L.ox += (sx * C[0] * TILE - L.ox) * ko; L.oy += (sy * (sy > 0 ? C[1] : C[2]) * TILE - L.oy) * ko;
+            tx += L.ox; ty += L.oy;
+        }
         // the talk camera: while Sarah talks with someone, in towards the two of them (R3_TALK)
         const tn = this.talkWith(a), f0 = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60));
         this.talkK = snap ? (tn ? 1 : 0) : (this.talkK || 0) + ((tn ? 1 : 0) - (this.talkK || 0)) * (1 - Math.pow(1 - R3_TALK.ease, f0));
@@ -462,6 +475,9 @@ const R3 = {
             x0 = Math.min(x0, w[0]); x1 = Math.max(x1, w[0]); y0 = Math.min(y0, w[1]); y1 = Math.max(y1, w[1]);
         }
         const tx = this.target.x * TILE, ty = this.target.z / R3_ZS * TILE, far = this.farTiles() * TILE;
+        // (ahead, as far as anything is drawn, not just to the ground at the top of the screen: a house or a tree beyond that
+        // still stands up over the horizon, and was cut off there, in and out as the camera moved, before the haze had it)
+        if (Env.on && !(G.area && G.area.interior)) y0 = ty - far;
         if (missed || y0 > ty - 6 * TILE) y0 = ty - far;
         if (missed) { const half = far * Math.max(0.7, this.camera.aspect) * 0.75; x0 = Math.min(x0, tx - half); x1 = Math.max(x1, tx + half); }
         y0 = Math.max(y0, ty - far);

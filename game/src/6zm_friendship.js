@@ -11,7 +11,6 @@ const MEM_KEEP = 8, FADE_AFTER = 21;
 const MEM_LINES = {
     gift: ["I still have the {item} you gave me {when}. It's my favorite thing right now.", 'Remember the {item}, {when}? I look at it every day. Well, most days.'],
     game: ['That {game} {when} was so much fun. Let\'s play again soon!', "I'm still thinking about our {game} {when}. Rematch?"],
-    hug: ['That hug {when}? I needed that. You give good hugs, {name}.', 'I was having a funny day {when}, and then you hugged me. It got un-funny. In a good way.'],
     favor: ['Thanks again for helping me out {when}. I won\'t forget it.', 'You really came through for me {when}. I tell everyone.'],
     visit: ['Thanks for coming over {when}! My house felt extra cozy with company.', 'You visited {when}! I tidied for an hour after. Before? No. After. It felt like a party.'],
     gather: ["That night {when}, everyone out together? I keep thinking about it. We should do that more.", 'Remember {when}, when the whole island was out? Best night in a while.'],

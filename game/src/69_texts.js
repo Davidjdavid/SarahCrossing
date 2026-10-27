@@ -72,6 +72,23 @@ function whereabouts(id) {
     if (d.visitor) out.leaves = saidTime(id, p.bed || 22, 'boat');
     return out;
 }
+/* a neighbor's whole day, laid out (David, 27 October: on the beta site or with the debug tools it's fine to see it; in the
+   game Sarah texts them to find out where they are and where they're going). localStorage sc-plans 1 or 0 to choose. */
+function plansShown() { const v = lsGet('sc-plans'); return v === '1' ? true : v === '0' ? false : !!window.__DEBUG || CIVIC_PREVIEW; }
+function appDayPlan(id) {
+    const d = NPC_DEFS[id], p = Plans.get(id), dh = dayHour();
+    const P = UI.open({ title: `${d.name}'s day`, phone: true, back: appFriends });
+    P.body.appendChild(el('p', 'muted', "Today's plan. (Only the beta site and the debug tools show this; in the game, text them to find out.)"));
+    const list = el('div', 'list');
+    const line = (when, what, now) => { const r = el('div', 'row' + (now ? ' on' : '')), t = el('div', 't'); t.appendChild(el('b', null, when)); t.appendChild(el('span', null, what + (now ? ' (now)' : ''))); r.appendChild(t); list.appendChild(r); };
+    if (p.away || awayNow(id)) line('All day', 'Off the island');
+    else {
+        line(fmtDayHour(p.wake), 'Wakes up', dh < p.wake);
+        for (const g of p.segs) line(`${fmtDayHour(g.a)} to ${fmtDayHour(g.b)}`, cap(placeName(id, g.spot)), dh >= g.a && dh < g.b);
+        line(fmtDayHour(p.bed), 'Goes to bed', dh >= p.bed);
+    }
+    P.body.appendChild(list);
+}
 const TEXT_ASK = [['where', 'Where are you?'], ['next', 'Where are you headed next?'], ['hi', 'Hi!'], ['help', 'Need a hand?']];
 function textReply(id, kind) {
     const w = whereabouts(id), d = NPC_DEFS[id], name = d.name;

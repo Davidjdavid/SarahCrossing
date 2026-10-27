@@ -215,12 +215,12 @@ const EnvRoom = {
         s.tex.needsUpdate = true;
     },
     /* a model's parts as a group of their own (the furniture's geometry and materials, kept for the next room) */
-    group(n, x, y, z, s, ry) {
+    group(n, x, y, z, s, ry, tint) {
         const o = new THREE.Group();
         o.position.set(x, y, z);
         if (s) o.scale.setScalar(s);
         if (ry) o.rotation.y = ry;
-        for (const m of EnvModels.place(o, n, new THREE.Matrix4())) m.userData.shared = true;
+        for (const m of EnvModels.place(o, n, new THREE.Matrix4(), { tint })) m.userData.shared = true;
         return o;
     },
     /* where a tabletop is: the top of whatever stands on that floor tile */
@@ -514,8 +514,9 @@ const EnvRoom = {
             if (d.flower && EnvModels.has('furn_flower_vase')) {
                 g.add(this.group('furn_flower_vase', x, y, z));
                 const vt = EnvModels.models.furn_flower_vase.anchors.top;
-                g.add(this.group(n, x, y + (vt ? vt[0].y : 0.15), z, 0.42));
-            } else g.add(this.group(n, x, y, z, EnvItems.size(n, 1.4) * 0.9));
+                // (the flower in its own color: a red tulip is red)
+                g.add(this.group(n, x, y + (vt ? vt[0].y : 0.15), z, 0.42, 0, EnvItems.tint(it.id)));
+            } else g.add(this.group(n, x, y, z, EnvItems.size(n, 1.4) * 0.9, 0, EnvItems.tint(it.id)));
             B.placed.add(e);
         }
         for (const e of rugs) if (this.rug(g, e)) B.placed.add(e);

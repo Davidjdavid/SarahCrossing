@@ -486,11 +486,6 @@ const JOE = {
         choc: ['truffles', "Truffles from Coco. She asked me a lot of questions. I answered none of them. I'm a vault."],
         lobster: ['lobster_roll', "A lobster roll! Sully made me promise to say 'lobstah.' Lobstah. There. I said it."],
     },
-    house: [
-        "Your place is really cozy. Maybe add a lamp? Everyone says 'add a lamp.' I don't know why. Lamps are nice.",
-        "I love your place. It feels like you. Also a little like a lamp store. In a good way.",
-        "Your house is amazing. The broccoli are going to lose it. Can the goat live here? That's not a poem. I'm asking for the goat.",
-    ],
     sunset: [
         "Look at that sunset. That's my muse right there. I wrote it a poem. It's about a clown, somehow.",
         "Every sunset I think, 'I should write about this.' Then I write about a sock. Every time.",
@@ -500,12 +495,6 @@ const JOE = {
         "'{t}.' A poem by Joe. That's me.", "This one's called '{t}.' I wrote it in the bath."],
     afterPoem: ["Thank you. Thank you. I'll be here all night.", "That one took me four hours.", "I think that's my best one. I say that every time. It's true every time.",
         "You can clap. Clapping is optional, but encouraged.", "I'm submitting that one to a magazine. The magazine is Coco. She said yes.", "Too beautiful? It's a lot. I know. Art is a lot."],
-    // hugs: just the two of them, it's a quiet little hug. With people around... that's PDA!
-    hug: ['...Hi.', 'Mm. Hi.', '(Joe hugs back. His ears go a little pink.)', '(A quick, quiet hug. Joe is smiling at his shoes.)'],
-    pda: ["Whoa, whoa! Not in front of everybody! That's PDA! Public... Display... of... Hugging. (He's smiling, though.)",
-        "Eep! People are LOOKING. We can't hug in public! That's PDA! ...How about a high five? High fives are allowed.",
-        "Not here! Everyone can see! That's PDA! Coco is going to tell the whole island! (Coco is already telling the whole island.)",
-        "PDA! That's PDA! We're in public! ...Okay, a very tiny side hug. For one second. There. Now nobody saw. (Everybody saw.)"],
 };
 /* Joe's poems: rhyming, childish, never about anything important. Add more any time. */
 const JOE_POEMS = [
@@ -601,7 +590,6 @@ const FAMILY = {
             "Joe wrote a poem about golf. It rhymed 'ball' with 'ball.' Twice. Hole in one.",
             "Is it weird that everyone here is food? It's a little weird. The cheesecake keeps apologizing to me.",
         ],
-        hug: ['Oh! A hug. Great. Good hug. Solid form.'],
     },
     john: {
         intro: ["I've reviewed your island. It's legally adorable.", "I brought you a framed copy of the contract. 'Siblings in Law.' Everybody's in it now. You're welcome."],
@@ -615,7 +603,6 @@ const FAMILY = {
             'I brought a briefcase to the beach. Old habits.',
             "The goat has retained counsel. It's me. The goat has not paid.",
         ],
-        hug: ['A hug. Noted for the record. Approved.'],
     },
     elizabeth: {
         intro: ["We finally got into a game! Well. You did. I'm a cameo. I'm being very normal about it.", "I brought you a party game console. Jackbox night is tonight. At your place. I've decided."],
@@ -628,28 +615,12 @@ const FAMILY = {
             "The goat keeps following me. Is that a sign? It's a goat. Nothing else to say.",
             "I told Coco I saw you and Joe holding hands. She said 'Oh no way! That's crazy!' Then she told everyone. My bad. (PLACEHOLDER)",
         ],
-        hug: ['Aww. Hug! Okay, now we have to do this every day. Those are the rules.'],
     },
 };
 
-/* hugs */
-const HUG = {
-    maki: ["A hug. Oh. I am... being held. Loosely. I'm allowing it. For three seconds. ...Four.", 'Please mind the rice. ...Okay. That was nice. Precisely nice.'],
-    kai: ['Bro! Hug! Yes! Group hug! Oh, it is just us. Still counts!', "Aloha means hello and hug. I think. Don't fact-check me."],
-    basil: ['Oh. A hug. That was very balanced. Salty, sweet, a little squeeze. Perfect.', 'Thank you. I needed that. The cart is a lot of standing.'],
-    wonton: ["A hug! You're so warm. Wait, that's me. I'm warm. We're both warm. Not soup warm.", "Careful, I'm a little damp! Thank you, though!"],
-    chili: ["Whoa! Okay! Hug! I'm blushing. I'm always blushing. But now for a reason.", "Careful, I'm spicy. ...You didn't even flinch. Respect."],
-    coco: ["Oh my GOD. A hug. I'm telling everyone. I'm telling them it was MY idea.", "Careful! I melt. ...Okay, I melted a little. Worth it."],
-    cece: ["A hug?! For me? I didn't crack, did I? I didn't. Okay. Thank you. Sorry! Thank you.", "Oh! That's so nice. I'm going to bake about this."],
-    clementine: ['Darling. A hug. Mind the peel. ...Fine. Squeeze. Just a little.', "I don't normally do hugs. I'm making an exception. Tell no one."],
-    cuke: ['HUG! Hugs are great for circulation! Also for friendship! Mostly circulation!', "Good morning hug! It's always morning somewhere!"],
-    sully: ["Whoa. Okay. Hug. Sure. ...Alright, that's enough, people are lookin'. ...Okay, one more second.", "Kid. KID. Watch the custahd. ...Yeah, alright. That was nice."],
-    david: ["HUG! Sister! You smell like the ocean and good decisions.", "Hug accepted. Sparkles transferred. You're welcome."],
-    goat: ["You hug the goat. It's a goat. It allows this.", "You hug the goat. It's a goat. It chews thoughtfully."],
-    ginger: ["Oof! Hug! Careful, I'm a little crumbly. ...Worth it.", 'Hugs are like good framing. They hold everything together.'],
-    brulee: ['Oh! A hug! Gently, the caramel. ...Ah. Merci. That was lovely.', 'A hug! And my top did not crack at all. This is a very good day.'],
-    mac: ["HUG! Come here. You're warm, I'm warm. It's a warm situation.", "Aww. You know who gives the best hugs? People who've eaten. Have you eaten?"],
-};
+/* petting the goat */
+const GOAT_PETS = ["Sarah pets the goat. It's a goat. It allows this.", "Sarah scratches the goat behind the ears. It's a goat. It chews thoughtfully.",
+    'Sarah pats the goat on the head. The goat leans in, just a little. It is a goat. It has feelings.'];
 /* when someone puts on an accessory Sarah gave them */
 const WEAR_LINES = {
     maki: 'It sits at a precise angle. I measured. I love it.', kai: 'Dude. I look SO good. Do I look good? I look good.',

@@ -14,7 +14,8 @@ const EnvItems = {
         pufferfish: '#d8c890', moonfish: '#c8d0e8', sunrise: '#f0a050', trout: '#8aa878', ayu: '#a8b098', catfish: '#7a6a5a', eel: '#5a6a4a',
         koi: '#f08040', goldfish: '#f0a020', squid: '#f0d8d0', octopus: '#e07a6a', shrimp: '#f0a088', crawfish: '#c84a3a', lobster: '#d8402a' },
     /* a flower's petals by its kind and color (flower_<kind>_<0..2>: the names in gamedata) */
-    PETALS: { daisy: ['#ffffff', '#ffd83a', '#ff9cc8'], tulip: ['#e8283c', '#ffd03a', '#ff86b4'], cosmos: ['#ff7ab8', '#a86ae8', '#ff9a3a'], lily: ['#ffffff', '#ff9a3a', '#ff9cc8'] },
+    // (3 and 4 are the hybrids: 2ab_hybrids.js)
+    PETALS: { daisy: ['#ffffff', '#ffd83a', '#ff9cc8', '#8cbcff', '#be8cf0'], tulip: ['#e8283c', '#ffd03a', '#ff86b4', '#ff8c32', '#5a3060'], cosmos: ['#ff7ab8', '#a86ae8', '#ff9a3a', '#e03040', '#8a4a30'], lily: ['#ffffff', '#ff9a3a', '#ff9cc8', '#e83848', '#6a3060'] },
     petals(id) { const m = /^flower_([a-z]+)_(\d)$/.exec(id || ''); return m && this.PETALS[m[1]] ? this.PETALS[m[1]][+m[2]] || null : null; },
     /* (how big each lies, against the shells': the big ones a little smaller) */
     SIZE: { item_lobster: 1.1, item_fish: 1.3, item_squid: 1.3, item_fish_boot: 1.25, item_dish: 1.3, item_ic_wood: 1.35, item_ui_present: 1.35, item_ic_package: 1.35 },

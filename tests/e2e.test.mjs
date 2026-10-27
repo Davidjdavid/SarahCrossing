@@ -666,7 +666,7 @@ test('shops grow: a letter, a day closed, then a bigger shop with more stock, a 
   await page.context().close();
 });
 
-test('the watering can: Fortune sells one; flowers of a kind side by side, both watered, grow a new one by morning (two colors make the third)', async () => {
+test('the watering can: Fortune sells one; flowers of a kind side by side, both watered, grow a new one by morning (two colors make the third, now and then a hybrid)', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
   await page.reload();
@@ -688,7 +688,7 @@ test('the watering can: Fortune sells one; flowers of a kind side by side, both 
       if (ok) spot = [px + dx, py + dy];
     }
     const [x, y] = spot;
-    const A = { x, y, kind: 'daisy', ci: 0, day: day - 3, pickDay: -1 }, B = { x: x + 1, y, kind: 'daisy', ci: 1, day: day - 3, pickDay: -1 };
+    const A = { x, y, kind: 'daisy', ci: 0, day: day - 3, pickDay: -1 }, B = { x: x + 1, y, kind: 'daisy', ci: 2, day: day - 3, pickDay: -1 };
     F.planted.push(A, B);
     addFlowerPlant(a, A); addFlowerPlant(a, B);
     // Sarah stands below them facing up and waters: the can's sweep reaches both
@@ -701,9 +701,17 @@ test('the watering can: Fortune sells one; flowers of a kind side by side, both 
     for (let n = 0; n < 20 && F.planted.length === 2; n++) { __dbg.nextDay(1); A.wet = B.wet = Clock.dayNum(); }
     const kid = F.planted[2];
     out.kid = kid && [kid.kind, kid.ci, (Math.abs(kid.x - x) <= 1 || Math.abs(kid.x - x - 1) <= 1) && Math.abs(kid.y - y) <= 1, G.areas.island.ents.some((e) => e.pl === kid)];
+    // hybrids (2ab_hybrids.js): colors 0 and 1 make the first now and then, 1 and 2 the second, 0 and 2 never; two of a
+    // hybrid make it again; each has its own item, repainted picture, HD picture and color in the new look
+    const lo = () => 0.1, hi = () => 0.9;
+    out.breed = [breedColor(0, 1, lo), breedColor(0, 1, hi), breedColor(1, 2, lo), breedColor(0, 2, lo), breedColor(4, 4, lo), breedColor(3, 0, hi), breedColor(3, 0, lo)];
+    const pic = Assets.dyn.fl_lily_4, px0 = pic && pic.c.getContext('2d').getImageData(0, 0, pic.w, pic.h).data;
+    let dark = 0; for (let k = 0; px0 && k < px0.length; k += 4) if (px0[k] === 0x4e && px0[k + 1] === 0x2a && px0[k + 2] === 0x4c) dark++;
+    out.hybrid = { name: itemName('flower_lily_4'), dear: ITEMS.flower_tulip_3.price > ITEMS.flower_tulip_0.price, pic: dark > 10, hd: !!hdNamed('fl_lily_4', true), petals: EnvItems.petals('flower_daisy_3') };
     return out;
   });
-  assert.deepEqual(res, { stock: true, busy: true, wet: [true, true], kid: ['daisy', 2, true, true] });
+  assert.deepEqual(res, { stock: true, busy: true, wet: [true, true], kid: ['daisy', 1, true, true], breed: [3, 2, 4, 1, 4, 0, 3],
+    hybrid: { name: 'Black lily', dear: true, pic: true, hd: true, petals: '#8cbcff' } });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
@@ -1384,15 +1392,15 @@ test('friendship: neighbors remember what Sarah did with them, fade a little aft
     UI.say = async (who, t) => { said.push(...[].concat(t).map(String)); };
     UI.ask = async (who, t, choices) => { if (choices.join() === ADVICE.maki.a.join()) { advice = choices; return 0; } return choices.length - 1; };
     try {
-      // memories: a hug and a game, brought up once, a few days on
+      // memories: a favor and a game, brought up once, a few days on
       const kai = NPCs.get('kai'), rk = rel('kai');
-      rk.met = true; rk.pts = HEARTS[1]; rk.hugDay = -1; rk.playDay = -1;
-      await hugFlow(kai);
+      rk.met = true; rk.pts = HEARTS[1]; rk.playDay = -1;
+      remember('kai', 'favor');
       await igFriend(kai, 'derby');
       out.kept = rk.mem.map(m => m.k).join();
       for (const m of rk.mem) m.day = day - 2;
       const a = memoryLine('kai'), b = memoryLine('kai'), c = memoryLine('kai');
-      out.mem = { game: /fishing derby the other day/.test(a), hug: /hug/i.test(b) && /the other day/.test(b), once: c === null };
+      out.mem = { game: /fishing derby the other day/.test(a), favor: /helping me out|came through/.test(b) && /the other day/.test(b), once: c === null };
       for (const m of rk.mem) { m.said = 0; m.day = day - 6; }
       let heard = false;
       for (let i = 0; i < 12 && !heard; i++) { rk.talkDay = -1; said.length = 0; await neighborTalk(kai); heard = said.some(l => /last week/.test(l)); }
@@ -1429,7 +1437,7 @@ test('friendship: neighbors remember what Sarah did with them, fade a little aft
     } finally { UI.say = say; UI.ask = ask; }
     return out;
   });
-  assert.deepEqual(res, { kept: 'hug,game', mem: { game: true, hug: true, once: true, talk: true },
+  assert.deepEqual(res, { kept: 'favor,game', mem: { game: true, favor: true, once: true, talk: true },
     fade: { cuke: 26, sully: true, hearts: true, missed: true, welcome: true },
     steps: ['fav', 'advice', 'gift', 'bff', '-'], joe: true, hang: true,
     names: ['on the bench by the pond', 'Pond', '255,128,0'] });
@@ -1657,6 +1665,63 @@ test("Sarah's pottery from the wheel is turned round in the new look: its own pr
       placed: Math.abs(o.position.x - 3.5) < 0.01, figure: EnvRoom.potOf(ef) === null };
   });
   assert.deepEqual(res, { turned: true, tall: true, wide: true, bands: true, placed: true, figure: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test("talking: no hugs (the goat is petted for its quest), Joe doesn't rate the house; a folk who ran up to a counter faces the room; plans only by text unless on beta; a flower in a vase in its color", async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, menus = [], day = Clock.dayNum(), say = UI.say, ask = UI.ask;
+    UI.say = async () => {};
+    UI.ask = async (who, t, choices) => { menus.push(choices.slice()); const k = choices.indexOf('Pet the goat'); return k >= 0 ? k : choices.length - 1; };
+    try {
+      for (const id of ['kai', 'joe', 'goat']) { const r = rel(id); r.met = true; r.pts = HEARTS[3]; }
+      S.house.items = S.house.items.concat([{ id: 'f_lamp', x: 1, y: 1 }, { id: 'f_lamp', x: 2, y: 1 }, { id: 'f_lamp', x: 3, y: 1 }]);
+      await neighborTalk(NPCs.get('kai'));
+      await joeTalk(NPCs.get('joe'));
+      const fam = NPCs.list.find(n => n.def.family);
+      if (fam) await familyTalk(fam);
+      out.hug = menus.some(m => m.some(c => /hug/i.test(c)));
+      out.house = menus.some(m => m.some(c => /think of my house/i.test(c)));
+      menus.length = 0;
+      await goatTalk(NPCs.get('goat'));
+      out.goat = { asked: menus.some(m => m.includes('Pet the goat')), petted: rel('goat').hugDay === day, quest: (Quests.st('goat').hugDays || []).length };
+      out.kindness = HOLIDAYS.find(h => h.id === 'hugday').name;
+    } finally { UI.say = say; UI.ask = ask; }
+    // Chili walks up to the counter (north) and stops there facing the room: the walk turns a folk too, and stopping
+    // turns them back to the way they stand
+    const n = NPCs.get('chili');
+    n.dir = 'down'; n._hd = null; n.path = [[Math.floor(n.x / TILE), Math.floor(n.y / TILE) - 2]];
+    hdMotion(n, false);
+    for (let i = 0; i < 20 && n.path; i++) { stepNpc(n); G.t += 3; hdMotion(n, true); }
+    out.walkUp = { dir: n.dir, face: n._hd.face };
+    n.path = null; n.dir = 'down';
+    for (let i = 0; i < 8; i++) { G.t += 3; hdMotion(n, false); }
+    out.stopped = n._hd.face === HD_DIR4.down;
+    // neighbors' hours and today's plan: shown on beta and with the debug tools, not in the game (text them instead)
+    const fr = () => { appFriends(); const t = document.querySelector('#panel .list').textContent; UI.close(); return t; };
+    localStorage.setItem('sc-plans', '0');
+    out.live = { hours: /up \d/.test(fr()), hint: Requests.hint({ kind: 'deliver', who: 'kai', to: 'cuke' }) };
+    localStorage.setItem('sc-plans', '1');
+    out.beta = { hours: /up \d/.test(fr()) };
+    appDayPlan('kai');
+    out.beta.plan = [...document.querySelectorAll('#panel .list .row')].length >= 3;
+    UI.close();
+    localStorage.removeItem('sc-plans');
+    // a flower on a table indoors wears its color (the vase's flower used to stand there white)
+    const m = new THREE.MeshStandardMaterial({ vertexColors: true }); m.name = 'flower_tulip_top';
+    out.vase = EnvModels.partMat({ material: m }, EnvItems.tint('flower_tulip_0')).color.getHexString() === new THREE.Color(EnvItems.petals('flower_tulip_0')).getHexString();
+    return out;
+  });
+  assert.deepEqual(res, { hug: false, house: false, goat: { asked: true, petted: true, quest: 1 }, kindness: 'Kindness Day',
+    walkUp: { dir: 'up', face: 6 }, stopped: true, vase: true, live: { hours: false, hint: res.live.hint }, beta: { hours: true, plan: true } });
+  assert.match(res.live.hint || '', /Text them/);
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

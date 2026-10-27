@@ -166,7 +166,7 @@ Status: [x] done, [~] in progress, [ ] not started.
   away a long time; milestones that unlock things (a photo, a nickname, sharing something personal, a gift for her
   house, asking her advice, coming to her for help, inviting her places, a best-friend moment); neighbors who remember
   what she did and bring it up; friendships between the neighbors themselves that shift with the island drama
-  (done: they remember the last few things she did with them, a gift they liked, a game, a hug, a favor, a visit,
+  (done: they remember the last few things she did with them, a gift they liked, a game, a favor, a visit,
   finding what they lost, and bring one up some days within the week; after three weeks away a friendship fades a
   point every other day, at most ten, never below the hearts they have, and they say they missed her; at two hearts
   their favorite spot (where they then invite her to hang out), at three they ask her advice, at four a gift for her
@@ -202,6 +202,12 @@ Status: [x] done, [~] in progress, [ ] not started.
   three more, its main color repainted in the picture and the model, "Sofa (mint)"; a wooden piece in light wood, dark wood
   and white; a plant keeps its leaves and changes its pot; each week the shop has each piece in one of its four)
 - [ ] The achievements that unlock outfits, songs, recipes and the like much harder and spread out over a long time
+- [x] Hybrid flower colors (David, 27 October): rarer colors that only come from cross-breeding (a blue daisy, a purple
+  tulip...), each with its own picture and its own color in 3D (done: blue and purple daisies, orange and black tulips,
+  red and chocolate cosmos, red and black lilies)
+- [x] The flowers as Animal Crossing's (David, 27 October: "flowers are kinda an important part"): rebuilt in Blender
+  (flowers.py), thick soft petals, a tulip's cup, a lily's speckled star, a cosmos's notched petals
+- [ ] Roses, as a fifth kind of flower from seeds (the model is made: flowers.py's rose)
 - [x] Neighbors turn round to face Sarah when she talks to them
 - [x] Lots of things they do when they're not busy, each its own animation: looking at the stars, eating a snack, sitting
   on the ground, on their phone, reading a book, painting, and more, so they feel alive (in the new look: the stars at
@@ -347,6 +353,10 @@ Office's and the Bank's keepers are still to be picked.
 - [x] Customize the look and color of the mailbox (seven colors, free; a cottage, a fish and a lighthouse to buy once, painted in the color picked)
 
 ### Town Hall
+- [ ] (David, 27 October: for later) Take David's statue off the island, and later bring a statue back as a town project:
+  Sarah saves up for it in the town's projects fund (with the Bank's investments), and when it's built it's a statue of
+  Sarah; a day or two after it goes up, she can have it changed to David or to another of the island's characters or
+  to an object instead
 - [x] Town flag designer: draw a pixel-art flag shown round the island
 - [x] Town ordinances: Early Bird (shops and neighbors start earlier), Night Owl (shops open later), Community Spirit
   (neighbors socialize more), Nature Conservation (more wildlife and growth, trees grow faster, neighbors plant

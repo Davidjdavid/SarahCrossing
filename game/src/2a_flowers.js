@@ -56,7 +56,9 @@ async function flowerPlantMenu(e) {
     const name = itemName(id).toLowerCase();
     if (heldTool() === 'can') { await waterTiles([[pl.x, pl.y]], e.x, e.y); return; }
     if (heldTool() === 'shovel') {
-        const k = await UI.ask(null, `Dig up the ${name}s? They'll go back in Sarah's pocket as seeds.`, ['Dig them up', 'Leave them']);
+        // (a hybrid's color only comes from breeding: as seeds it's just the kind again)
+        const k = await UI.ask(null, isHybrid(pl.ci) ? `Dig up the ${name}s? They'll go back in Sarah's pocket as plain ${pl.kind} seeds, and that color won't come back from them.`
+            : `Dig up the ${name}s? They'll go back in Sarah's pocket as seeds.`, ['Dig them up', 'Leave them']);
         if (k !== 0) return;
         F.planted = F.planted.filter(q => q !== pl);
         G.area.remove(e);
@@ -157,7 +159,7 @@ function flowerBreed() {
         for (const P of [A, B]) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (free(P.x + dx, P.y + dy)) spots.push([P.x + dx, P.y + dy]);
         if (!spots.length) continue;
         const [x, y] = spots[Math.floor(r() * spots.length)];
-        const ci = A.ci === B.ci ? A.ci : 3 - A.ci - B.ci;
+        const ci = breedColor(A.ci, B.ci, r);       // (and now and then a hybrid: 2ab_hybrids.js)
         const pl = { x, y, kind: A.kind, ci, day: day - 1, pickDay: -1, bred: day };
         A.bred = B.bred = day;
         F.planted.push(pl); at.set(x + ',' + y, pl); born.push(pl);
