@@ -138,6 +138,8 @@ async function neighborTalk(n) {
     // going on vacation soon, or just back (6zj_vacations.js)
     const vac = vacationLine(id);
     if (vac && r.vacDay !== day) { r.vacDay = day; await UI.say(id, voiced(id, vac), { keep: true }); }
+    // a red envelope on Lunar New Year (6zp_holiday_events.js)
+    await lunarHello(n, firstToday);
     // in the middle of something of their own: a book, an ice cream, the stars
     if (n.idleWas && IDLE_HELLO[n.idleWas]) await UI.say(id, voiced(id, rpick(IDLE_HELLO[n.idleWas])), { keep: true });
     n.idleWas = null;
@@ -181,6 +183,7 @@ async function neighborTalk(n) {
         for (const o of Requests.options(n)) add(o.label, o.fn);
         for (const o of Quests.options(n)) add(o.label, o.fn);
         for (const o of civicOptions(n)) add(o.label, o.fn);
+        for (const o of valentineOptions(n)) add(o.label, o.fn);     // (a valentine: 6zp_holiday_events.js)
         for (const o of Drama.options(n)) add(o.label, async () => { await Drama.choose(n, o); return true; });
         if (id === 'sully' && n.area === 'studio') add('Pottery tips?', async () => { await UI.say(id, rpick(POTTERY_TIPS).map(bostonize), { keep: true }); return true; });
         if (id === 'chili' && n.area === 'arcade') add('Prize counter', async () => { UI.hideDialog(); await prizeCounter(); return false; });
@@ -474,6 +477,7 @@ async function joeTalk(n) {
         for (const o of Requests.options(n)) add(o.label, o.fn);
         for (const o of Quests.options(n)) add(o.label, o.fn);
         for (const o of civicOptions(n)) add(o.label, o.fn);
+        for (const o of valentineOptions(n)) add(o.label, o.fn);     // (a valentine: 6zp_holiday_events.js)
         for (const o of Drama.options(n)) add(o.label, async () => { await Drama.choose(n, o); return true; });
         if (hasLostFor('joe')) add(`Found your ${ITEMS[S.lost.cur.id].what}!`, async () => { await returnLost(n); return true; });
         if (IslandGames.list(n).length) add("Let's play!", () => IslandGames.offer(n));

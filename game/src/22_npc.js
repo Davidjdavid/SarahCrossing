@@ -181,7 +181,7 @@ function makePlan(id, day) {
     else segs.push({ a: t, b: bed, spot: 'home' });                  // (right away: no gap to wander home in)
     if (d.early) { segs.push({ a: 28, b: 29, spot: 'jog' }); }
     // jump rope in the plaza, then today's storyline, may send people somewhere (the rope, a date, a party)
-    const o = (lunchOverride(id, day, d, work) || []).concat(errandOverride(id, day, d, work) || [], farmOverride(id, day) || [], catchOverride(id, day, work) || [], visitOverride(id, day) || [], ropeOverride(id, day) || [], Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || [], vacationOverride(id, day) || []);
+    const o = (lunchOverride(id, day, d, work) || []).concat(errandOverride(id, day, d, work) || [], farmOverride(id, day) || [], catchOverride(id, day, work) || [], shopOverride(id, day, d, work) || [], visitOverride(id, day) || [], ropeOverride(id, day) || [], Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || [], vacationOverride(id, day) || [], nyeOverride(id, day) || []);
     for (const [spot, a, b, extra] of o) {
         const more = [];
         for (const s of segs) {
@@ -194,6 +194,9 @@ function makePlan(id, day) {
         segs.push(...more, Object.assign({ a, b, spot, ov: true }, extra || {}));
     }
     const live = segs.filter(s => !s.dead && s.b > s.a).sort((x, y) => x.a - y.a);
+    // (staying up for it: New Year's Eve on the square, 6zp_holiday_events.js; home afterwards, then bed)
+    const late = live.filter(s => s.late).reduce((m, s) => Math.max(m, s.b), 0);
+    if (late > bed - 0.3) { for (let i = live.length - 1; i >= 0; i--) if (!live[i].late && live[i].b > late) live.splice(i, 1); bed = late + 0.5; live.push({ a: late, b: bed, spot: 'home' }); }
     // little stubs left where the day was trimmed around the rope or a storyline: fold them into a neighbor
     for (let i = 0; i < live.length; i++) {
         const s = live[i];
@@ -233,6 +236,16 @@ function farmOverride(id, day) {
     return [['farm', a, a + 1.1, { tend: true }], ['in_shop', a + 1.1, a + 1.5, { carry: 'crate' }]];
 }
 /* "fishing, selling the catch": some afternoons Kai fishes off the end of the pier, then takes his bucket to Fortune's */
+/* and the neighbors go and buy it: some mornings, after the delivery, a neighbor stops at Fortune's and walks home with a
+   tote of groceries (about one in four a day; never in the middle of work) */
+function shopOverride(id, day, d, work) {
+    if (id === FARMER || d.goat || d.dj || d.shop || d.spring || d.visitor || !d.house) return null;
+    const r = mulberry(hash32(S.seed + ':shop:' + id + ':' + day));
+    if (r() > 0.25) return null;
+    const a = 10.7 + r() * 0.9, b = a + 0.35 + r() * 0.2, c = b + 0.45;
+    if ((work || []).some(w => w.a < c && w.b > a)) return null;
+    return [['in_shop', a, b], ['home', b, c, { carry: 'groceries' }]];
+}
 const FISHER = 'kai';
 function catchOverride(id, day, work) {
     if (id !== FISHER) return null;

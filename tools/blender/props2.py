@@ -544,7 +544,32 @@ def bucket():
     return [(mb, 'main'), (gl, 'gloss')]
 
 
-PROPS = {'style_stool': stool, 'style_suitcase': suitcase, 'style_basket': basket, 'style_bucket': bucket, 'style_book': book, 'style_phone': phone, 'style_snack': snack, 'style_cup': cup, 'style_brush': brush, 'style_palette': palette, 'style_bench': bench, 'style_lamp': lamp, 'style_armchair': armchair, 'style_cake': cake, 'style_shovel': shovel, 'style_rod': rod}
+def grocery():
+    """Shopping at Fortune's after the farm's delivery (22_npc.js shopOverride): a canvas tote with a leek, a baguette and
+    a bunch of carrots poking out, carried by its two handles (the origin, where the handles meet; the bag hangs below)."""
+    mb = MB()
+    top, H, W, D = -0.1, 0.13, 0.085, 0.04
+    canvas = lambda p, n, *_: rgb('#efe4cc').lerp(rgb('#d9caa8'), 0.5 + 0.5 * math.sin(p.z * 240 + p.x * 90)) * (0.8 + 0.25 * max(0.0, n.z) + 0.08 * n.y)
+    rbox(mb, -W, -D, top - H, W, D, top, canvas, r=0.012)
+    # a band of green round the top, and Fortune's leaf printed on the front
+    rbox(mb, -W * 1.01, -D * 1.04, top - 0.03, W * 1.01, D * 1.04, top - 0.012, shade('#5a9a5a'), r=0.004)
+    ball(mb, (0, -D * 1.02, top - H * 0.6), 0.022, shade('#7ab86a'), sub=2)
+    # the handles, up from each side to meet over it
+    for s in (-1, 1):
+        tube(mb, [(s * W * 0.6, -D * 0.6, top), (s * W * 0.35, -D * 0.3, top + 0.06), (0, 0, top + 0.1)], 0.006, shade('#c8b48a'), seg=5)
+        tube(mb, [(s * W * 0.6, D * 0.6, top), (s * W * 0.35, D * 0.3, top + 0.06), (0, 0, top + 0.1)], 0.006, shade('#c8b48a'), seg=5)
+    # what's inside: a baguette, a leek with its green top, carrots
+    tube(mb, [(-0.05, 0.0, top - 0.06), (-0.035, 0.005, top + 0.07)], 0.016, paint('#d8a058', under=0.15), seg=8, r1=0.012)
+    tube(mb, [(0.035, -0.01, top - 0.06), (0.045, -0.01, top + 0.03)], 0.013, shade('#f2f0dc'), seg=8)
+    for a in (-0.4, 0.0, 0.4):
+        tube(mb, [(0.045, -0.01, top + 0.03), (0.045 + math.sin(a) * 0.03, -0.01, top + 0.09)], 0.01, shade('#4a9a3a'), seg=4, r1=0.003)
+    for (x, a) in ((0.0, 0.2), (0.012, -0.15)):
+        tube(mb, [(x, 0.015, top - 0.03), (x + math.sin(a) * 0.015, 0.015, top + 0.025)], 0.009, shade('#f0862a'), seg=6, r1=0.003)
+        tube(mb, [(x + math.sin(a) * 0.015, 0.015, top + 0.025), (x + math.sin(a) * 0.022, 0.015, top + 0.05)], 0.005, shade('#5aa84a'), seg=4)
+    return [(mb, 'main')]
+
+
+PROPS = {'style_stool': stool, 'style_suitcase': suitcase, 'style_basket': basket, 'style_bucket': bucket, 'style_grocery': grocery, 'style_book': book, 'style_phone': phone, 'style_snack': snack, 'style_cup': cup, 'style_brush': brush, 'style_palette': palette, 'style_bench': bench, 'style_lamp': lamp, 'style_armchair': armchair, 'style_cake': cake, 'style_shovel': shovel, 'style_rod': rod}
 
 
 def build(name):
@@ -567,7 +592,7 @@ if __name__ == '__main__':
     if prev and shown:
         ground_plane(color='#a8d088')
         light_rig()
-        xs = {'style_bench': 0, 'style_lamp': 1.7, 'style_armchair': 2.9, 'style_cake': 4.0, 'style_shovel': 4.8, 'style_rod': 4.2, 'style_basket': 4.0, 'style_bucket': 4.4, 'style_suitcase': 3.6}
+        xs = {'style_bench': 0, 'style_lamp': 1.7, 'style_armchair': 2.9, 'style_cake': 4.0, 'style_shovel': 4.8, 'style_rod': 4.2, 'style_basket': 4.0, 'style_bucket': 4.4, 'style_grocery': 4.2, 'style_suitcase': 3.6}
         for name, objs in shown:
             for o in objs:
                 o.location.x += xs.get(name, 0)
@@ -575,7 +600,7 @@ if __name__ == '__main__':
                     o.location.z += 0.8
                 if name == 'style_rod':
                     o.location.z += 0.2
-                if name in ('style_suitcase', 'style_basket', 'style_bucket'):      # (carried things hang below their handle)
+                if name in ('style_suitcase', 'style_basket', 'style_bucket', 'style_grocery'):      # (carried things hang below their handle)
                     o.location.z += 0.32
         cam = camera((2.4, 0, 0.6), dist=6.4, pitch=20)
         render(os.path.join(prev, 'props2.png'), size=(1400, 620), samples=32)

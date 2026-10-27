@@ -88,7 +88,9 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [~] Way more holiday events: holidays with things to do (on top of the 45 with decorations and chatter):
   Egg Hunt (Easter weekend: eggs in the grass, in trees, buried, on the hook; Cece trades them),
   Fish-Off (Kai, four times a year), Beach Cleanup (Earth Day, Ocean Day), Trick-or-Treat (Halloween
-  night, candy from Fortune), Toy Day deliveries (December 24), Feast Cook-Off (Mac judges a dish)
+  night, candy from Fortune), Toy Day deliveries (December 24), Feast Cook-Off (Mac judges a dish), New Year's Eve
+  (everyone on the square, a countdown to midnight, cheers and fireworks), Lunar New Year (a red envelope from every
+  neighbor), Valentine's Day (cards for the neighbors, truffles back from good friends)
 - [ ] Way, way more content
 
 ## Games
@@ -173,7 +175,7 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] And so on: David will add more ideas here
 
 ## A lived-in island (David, 27 October: for later)
-- [~] Each neighbor plans their day every morning and lives it at set times, whether or not anyone is playing: say work,
+- [x] Each neighbor plans their day every morning and lives it at set times, whether or not anyone is playing: say work,
   lunch at home on their own, the Bank after work, picking some fruit, fishing, selling the catch, visiting a friend, bed.
   Sarah could follow one all day and watch them do it. Worked out from the day and the hour, so wherever she looks in,
   everyone is where their day has taken them. It only has to look real (no crops or stock actually tracked): the farmers
@@ -182,7 +184,8 @@ Status: [x] done, [~] in progress, [ ] not started.
   Mac's, fishing where there's water, evenings visiting a friend at their house, an errand at the Bank or the Post
   Office after work (on beta, where those open into rooms), Cuke watering the farm's fields after the dawn jog and
   carrying a basket of vegetables to Fortune's each morning, and some afternoons Kai fishing off the end of the pier and
-  taking his bucket to the shop to sell)
+  taking his bucket to the shop to sell; and after the delivery some neighbors stop at Fortune's and walk home with a
+  tote of groceries)
 - [x] Vacations, now and then (rare, and marked on the calendar): a neighbor packs their bags, walks to the pier with
   friends seeing them off, and a boat comes for them; friends get a postcard, good friends a souvenir in the mail, and they
   come home after a few days (each neighbor about three times a year, one at a time, to a place of their own: Sully to

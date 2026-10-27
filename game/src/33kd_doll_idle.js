@@ -19,7 +19,8 @@ const IDLE_ACTS = {
     tend: { hand: 'furn_watering_can', face: 'happy' },
 };
 /* what's carried on the way somewhere: a suitcase to or from a vacation, the farm's basket to the shop, the catch */
-const CARRY = { suitcase: { hand: 'style_suitcase', face: 'happy' }, crate: { hand: 'style_basket', face: 'happy' }, catch: { hand: 'style_bucket', face: 'happy' } };
+const CARRY = { suitcase: { hand: 'style_suitcase', face: 'happy' }, crate: { hand: 'style_basket', face: 'happy' }, catch: { hand: 'style_bucket', face: 'happy' },
+    groceries: { hand: 'style_grocery', face: 'happy' } };
 /* what they say when Sarah comes up to them in the middle of it */
 const IDLE_HELLO = {
     stars: ['Did you see that one? It winked.', "I'm counting stars. I'm at four. I keep starting over.", 'Look up! The sky is showing off tonight.'],
@@ -33,6 +34,7 @@ const IDLE_HELLO = {
     tend: ["Morning! The tomatoes like a drink before it gets hot. So do I.", 'Water, sun, a little pep talk. That\'s farming. The pep talk is the important part.', "Don't step on the carrots! They're shy."],
     crate: ["Fresh from the farm! I'm taking it to Fortune's. Carrots, tomatoes, a cabbage. And a cucumber. Not me. A different cucumber.", 'Delivery! The shop gets the best of the fields every morning. You can buy it there!'],
     catch: ["Look at this haul, dude! Well. Two fish. A haul is a state of mind.", "Off to sell these at Fortune's. Bro. The bucket's heavy. Respectfully."],
+    groceries: ["Just did my shopping! Fortune had the farm's carrots in this morning. Still a little muddy. That's how you know.", "Groceries! I have a plan for dinner. The plan is: everything in this bag.", "I only went in for bread. Look at this bag. LOOK at it."],
 };
 /* who likes what (picked four times as often) */
 const IDLE_LIKES = { joe: 'book', brulee: 'paint', coco: 'phone', sully: 'cup', mac: 'snack', cece: 'snack', clementine: 'paint', kai: 'fish', cuke: 'stars', maki: 'book', chili: 'phone', ginger: 'cup', basil: 'ground', wonton: 'cup', david: 'phone', james: 'book', john: 'snack', elizabeth: 'paint' };
@@ -131,6 +133,7 @@ Object.assign(EnvDolls, {
         style_rod: [0, -0.02, 0.02, 1.2, 0, 0],
         style_basket: [0.02, -0.02, 0.02, 0, Math.PI / 2, 0],
         style_bucket: [0.02, -0.02, 0.02, 0, Math.PI / 2, 0],
+        style_grocery: [0.02, -0.02, 0.02, 0, Math.PI / 2, 0],
         furn_watering_can: [0.02, -0.06, 0.04, 0, -Math.PI / 2, 0],
     },
     /* a folk's hand: the point of its arm furthest from the shoulder */

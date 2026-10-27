@@ -181,6 +181,11 @@ docs/DEPLOY.md for the server.
   sound's brightness). The file stays on the device (IndexedDB `sc-songs`, `MySongs.put/get`), the dance with the island
   (`S.mysongs`: name, level, tempo, length, `steps` packed by `packSteps`); `Dance.start('my:<id>', { file })` plays it
   through `Music.startFile`, `songDef(id)` names any track. Her songs tip once a day between them (`S.dance.myPaid`).
+- More holidays to do (6zp_holiday_events.js; the first six are 6z_festivals.js): New Year's Eve gathers everyone who's up
+  on the square from 11 PM (`nyeOverride`, a `late` override that keeps them up past bed), a countdown fills the screen
+  ten seconds before island midnight and the square cheers at it, a little friendship with each neighbor there once a
+  year (`NewYear.tick`, every frame); Lunar New Year, a red envelope from each neighbor (`lunarHello`); Valentine's Day,
+  "Happy Valentine's!" in the talk menu, truffles back from a good friend (`valentineOptions`, `valentineGive`).
 - Karaoke has a request each night (`karaokeRequest`: one of the poems Sarah has, from the seed and the day), first in the
   list and on the board; the first time she sings it that night the crowd tips 200 more.
 - Most days a neighbor not working at noon goes home for lunch, some days to Mac's (`lunchOverride`, the first of
@@ -188,9 +193,11 @@ docs/DEPLOY.md for the server.
   at the other's house while the host stays home (`friendVisits`/`visitOverride`: from the day alone, so both plans agree);
   after work, some days, an errand at the Bank or the Post Office where those rooms are open (`errandOverride`). Each
   morning the farmer (`FARMER`, Cuke) waters the fields and carries a basket to Fortune's, and some afternoons the fisher
-  (`FISHER`, Kai) fishes off the pier and takes the catch to the shop (`farmOverride`, `catchOverride`): an override can
-  carry extras for its stretch of the day (`tend`, `fish`: what they do there, in `idleStart`; `carry`: what's in hand on
-  the way, `CARRY` in 33kd_doll_idle.js, props2.py's `style_basket`, `style_bucket`, the vacation's suitcase).
+  (`FISHER`, Kai) fishes off the pier and takes the catch to the shop (`farmOverride`, `catchOverride`); after the delivery
+  some neighbors stop at Fortune's and walk home with a tote of groceries (`shopOverride`, about one in four a day). An
+  override can carry extras for its stretch of the day (`tend`, `fish`: what they do there, in `idleStart`; `carry`: what's
+  in hand on the way, `CARRY` in 33kd_doll_idle.js, props2.py's `style_basket`, `style_bucket`, `style_grocery`, the
+  vacation's suitcase).
 - IslandMart on Sarah's laptop (67_laptop.js) sells a week's stock, new every Monday (`martWeek`, `laptopCatalog(tab, day)`:
   so many of each kind, `MART_WEEK`, floor pieces taken a kind at a time, `MART_GROUPS`), from the seed; Order again keeps
   everything she's ever had (`laptopAgain`). Each piece it sells comes in four colors (6zz_colors.js): its own and three more,

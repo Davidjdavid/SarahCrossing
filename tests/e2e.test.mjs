@@ -1004,7 +1004,18 @@ test('neighbors find things of their own to do (the stars only at night), a chat
     const cp = makePlan('cuke', Clock.dayNum() + 1), fs = cp.segs.find((s) => s.spot === 'farm' && s.tend), ds = cp.segs.find((s) => s.spot === 'in_shop' && s.carry === 'crate');
     let catches = 0;
     for (let d = 0; d < 20; d++) { const kp = makePlan('kai', Clock.dayNum() + d); if (kp.segs.some((s) => s.spot === 'pier_end' && s.fish) && kp.segs.some((s) => s.spot === 'in_shop' && s.carry === 'catch')) catches++; }
-    out.farm = { round: !!fs && !!ds && ds.a >= fs.b - 0.01, catches: catches >= 4 };
+    // and the neighbors go and buy it: after the delivery, a trip to Fortune's and home with a tote of groceries
+    let trips = 0, early = 0;
+    for (let d = 0; d < 14; d++) {
+      const day = Clock.dayNum() + d, del = makePlan('cuke', day).segs.find((s) => s.spot === 'in_shop' && s.carry === 'crate');
+      for (const id of NEIGHBORS) {
+        const segs = makePlan(id, day).segs, i = segs.findIndex((s) => s.spot === 'home' && s.carry === 'groceries');
+        if (i < 1) continue;
+        if (segs[i - 1].spot === 'in_shop') trips++;
+        if (!del || segs[i - 1].a < del.b - 0.01) early++;
+      }
+    }
+    out.farm = { round: !!fs && !!ds && ds.a >= fs.b - 0.01, catches: catches >= 4, shopping: trips >= 10 && !early && CARRY.groceries.hand === 'style_grocery' };
     // and once there, their day says what they do: watering, or a line in the water
     __dbg.setTime(6, 12, 9.5); free(n, 116, 110); n.want = Object.assign({}, n.want, { tend: true }); idleStart(n);
     out.farm.tend = !!n.idle && n.idle.kind === 'tend';
@@ -1033,7 +1044,7 @@ test('neighbors find things of their own to do (the stars only at night), a chat
     Chats.end(c);
     return out;
   });
-  assert.deepEqual(res, { night: true, noon: true, fish: true, lunch: true, visits: true, errands: true, farm: { round: true, catches: true, tend: true, fish: true }, busy: true, ended: true, chat: { talks: true, listens: true, text: true }, nods: true });
+  assert.deepEqual(res, { night: true, noon: true, fish: true, lunch: true, visits: true, errands: true, farm: { round: true, catches: true, shopping: true, tend: true, fish: true }, busy: true, ended: true, chat: { talks: true, listens: true, text: true }, nods: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
@@ -1506,6 +1517,60 @@ test('your own songs: the game finds the beat of a song from the device, writes 
   });
   assert.deepEqual(res, { bpm: [120, 120, 120], onBeat: true, easyOnBeats: true, more: true, lanes: true, pack: true,
     kept: { list: 1, name: 'Click Track', level: 'Easy', file: true }, relevel: true, plays: true, stopped: true, removed: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test("more holidays to do: New Year's Eve on the square with a countdown, red envelopes, valentines", async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    // everyone who's up gathers on the square, staying up for it; Cuke (early to bed) sleeps through it
+    const nye = Math.round(Date.UTC(2026, 11, 31) / 86400e3), kp = makePlan('kai', nye), seg = kp.segs.find((x) => x.spot === 'party:plaza');
+    out.plan = !!seg && seg.a <= 23.3 && seg.b >= 24.5 && kp.bed > seg.b && !makePlan('cuke', nye).segs.some((x) => x.spot === 'party:plaza') && !makePlan('kai', nye + 1).segs.some((x) => x.late);
+    // the countdown, then midnight
+    const say = UI.say, ask = UI.ask, real = Clock.island;
+    UI.say = async () => {}; UI.ask = async (w, t, c) => c.length - 1;
+    try {
+      const sq = W0.spots.plaza;
+      __dbg.teleport('island', sq.x, sq.y + 3);
+      let now = new Date(2026, 11, 31, 23, 59, 55);
+      Clock.island = () => new Date(now.getTime());
+      G.events = new Set(['nye']);
+      const n = NPCs.get('maki'), r = rel('maki');
+      r.met = true;
+      Object.assign(n, { area: 'island', x: G.player.x + 24, y: G.player.y, sleeping: false, script: false, path: null, chat: null, idle: null });
+      n.want = { area: 'island', x: n.x, y: n.y, party: true };
+      const pts = r.pts;
+      NewYear.done = null; NewYear.tick();
+      await wait(300);
+      out.count = document.querySelector('.nye-count').textContent;
+      now = new Date(2027, 0, 1, 0, 0, 1);
+      n.want = { area: 'island', x: n.x, y: n.y, party: true };
+      await wait(400);
+      out.midnight = { text: document.querySelector('.nye-count').textContent, pts: r.pts - pts, flag: !!S.flags.nye2027, mem: (r.mem || []).some((m) => m.k === 'newyear') };
+      Clock.island = real;
+      // Lunar New Year: a red envelope from each, once
+      G.events = new Set(['lunar']);
+      const m0 = S.money;
+      await lunarHello(NPCs.get('kai'), true); await lunarHello(NPCs.get('kai'), true);
+      out.lunar = S.money - m0;
+      // Valentine's Day: a card for a neighbor, truffles back from a good friend
+      G.events = new Set(['valentine']);
+      const c = NPCs.get('cece'), rc = rel('cece');
+      rc.met = true; rc.pts = HEARTS[3];
+      const opt = valentineOptions(c), had = pocketCount('truffles');
+      if (opt.length) await opt[0].fn();
+      out.val = { offered: opt.length === 1, pts: rc.pts - HEARTS[3], truffles: pocketCount('truffles') - had, once: valentineOptions(c).length === 0 };
+    } finally { UI.say = say; UI.ask = ask; Clock.island = real; G.events = todayEvents(); }
+    return out;
+  });
+  assert.deepEqual(res, { plan: true, count: '5', midnight: { text: 'Happy New Year!', pts: 3, flag: true, mem: true }, lunar: 88, val: { offered: true, pts: 4, truffles: 1, once: true } });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
