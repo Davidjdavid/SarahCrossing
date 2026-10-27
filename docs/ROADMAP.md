@@ -204,9 +204,11 @@ Status: [x] done, [~] in progress, [ ] not started.
   in hand; each neighbor has a favorite)
 - [x] Neighbors stopping close together to chat, one talking and the other listening, now and then nodding while
   looking at whoever's talking
-- [~] Songs and poems that rotate, so there's something new to check each day; many more songs; and a way to upload a
+- [x] Songs and poems that rotate, so there's something new to check each day; many more songs; and a way to upload a
   song and have a dance made for it (a karaoke request each night at the club, on the board, the crowd tipping extra
-  for it; sixteen more of Joe's poems, which are the karaoke songs too. Still to come: uploading a song for a dance)
+  for it; sixteen more of Joe's poems, which are the karaoke songs too; "Your songs" at the club: any music file from
+  her phone or computer, its beat found and a dance written for it at the level she picks, up to twelve, the file kept
+  on the device and the dance with the island)
 - [x] Sarah dances on her own between the steps in the dance game (an idle dance when no button is pressed), so it looks
   like dancing
 

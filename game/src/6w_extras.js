@@ -586,10 +586,11 @@ function museumPedestals() {
 
 /* ---------------------------------------------------------------- Club Wasabi: Dance, Karaoke, Just watch */
 async function clubMenu() {
-    const k = await UI.ask('wasabi', 'What are we doing, superstar?', ['Dance', 'Karaoke', 'Just watch', 'Just vibing']);
+    const k = await UI.ask('wasabi', 'What are we doing, superstar?', ['Dance', 'Your songs', 'Karaoke', 'Just watch', 'Just vibing']);
     if (k === 0) { UI.hideDialog(); const id = await clubList('dance'); if (id) await Dance.start(id); return; }
-    if (k === 1) { await karaokeNight(); return; }
-    if (k === 2) {
+    if (k === 1) { await mySongsMenu(); return; }        // (a dance made for a song from her device: 6zo_mysongs.js)
+    if (k === 2) { await karaokeNight(); return; }
+    if (k === 3) {
         UI.hideDialog();
         const pick = await clubList('watch');
         if (!pick) return;

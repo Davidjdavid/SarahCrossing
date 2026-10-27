@@ -175,6 +175,12 @@ docs/DEPLOY.md for the server.
   plaque). The museum's models are furn_h.py's (`museum_arch` with its name lettered on a `*_pic` plaque, `fish_tank`,
   `touch_pool`, `display_case`). `EnvRoom.pic` takes a picture made while playing (`Assets.dyn`, with `hi` a sharper copy
   for the new look), so Sarah's paintings and the photos hang as framed pictures there.
+- Sarah's own songs (6zo_mysongs.js): at the club, "Your songs" takes a music file from her device; `songChart` listens
+  to it (onsets from spectral flux, `songListen`; the tempo by autocorrelation and the beat's place, `songTempo`) and writes
+  a dance on that beat (Easy on the strong beats, Medium the beats and strong offbeats, Hard the eighths; arrows from the
+  sound's brightness). The file stays on the device (IndexedDB `sc-songs`, `MySongs.put/get`), the dance with the island
+  (`S.mysongs`: name, level, tempo, length, `steps` packed by `packSteps`); `Dance.start('my:<id>', { file })` plays it
+  through `Music.startFile`, `songDef(id)` names any track. Her songs tip once a day between them (`S.dance.myPaid`).
 - Karaoke has a request each night (`karaokeRequest`: one of the poems Sarah has, from the seed and the day), first in the
   list and on the board; the first time she sings it that night the crowd tips 200 more.
 - Most days a neighbor not working at noon goes home for lunch, some days to Mac's (`lunchOverride`, the first of

@@ -67,6 +67,8 @@ const SONGS = {
     shanty: { name: 'Lighthouse Shanty', level: 'Medium', special: 'song_shanty' },
     discocake: { name: 'Disco Cheesecake', level: 'Hard', special: 'song_disco' },
 };
+/* a track's name and level: the club's own, or one of Sarah's (6zo_mysongs.js) */
+function songDef(id) { return SONGS[id] || (String(id).startsWith('my:') && MySongs.def(id)) || { name: 'A song', level: '' }; }
 function songUnlocked(id) {
     const d = S.dance.songs;
     if (SONGS[id] && SONGS[id].special) return hasSpecial(SONGS[id].special);
@@ -112,7 +114,7 @@ const Dance = {
             if (r) { if (r.chat) Chats.end(r.chat); r.script = true; r.path = null; r.x = 9.5 * TILE; r.y = 6.9 * TILE; r.dir = 'down'; r.flip = true; }
         });
         G.camTarget = [7.5 * TILE, 5.6 * TILE];
-        const info = Music.startSong(id);
+        const info = opts && opts.file ? Music.startFile(opts.file) : Music.startSong(id);
         this.info = info;
         this.notes = info.chart.map(n => ({ t: n.t, lane: n.lane, hit: false, judged: null }));
         this.score = 0; this.combo = 0; this.maxCombo = 0; this.hype = 0.2; this.counts = { perfect: 0, great: 0, good: 0, miss: 0 };
@@ -122,7 +124,8 @@ const Dance = {
         this.ready = true;
         $('#dancepads').hidden = !G.touchUsed || this.watch;
         $('#dancehud').hidden = false;
-        $('#dsong').textContent = this.watch ? `${SONGS[id].name} \u00b7 just watching` : `${SONGS[id].name} \u00b7 ${SONGS[id].level}`;
+        const sg = songDef(id);
+        $('#dsong').textContent = this.watch ? `${sg.name} \u00b7 just watching` : `${sg.name} \u00b7 ${sg.level}`;
         await new Promise(res => { this._done = res; });
     },
     now() { return Music.songTime(); },
@@ -287,8 +290,10 @@ const Dance = {
         const order = 'CBAS';
         if (this.score > sd.best) sd.best = this.score;
         if (order.indexOf(rank) > order.indexOf(sd.rank)) sd.rank = rank;
-        const pay = sd.paid === Clock.dayNum() ? 0 : Math.round(this.score / 10 / 50) * 50 + 100;
-        sd.paid = Clock.dayNum();
+        // (Sarah's own songs tip once a day between them)
+        const mine = String(id).startsWith('my:'), paid = mine ? S.dance.myPaid : sd.paid;
+        const pay = paid === Clock.dayNum() ? 0 : Math.round(this.score / 10 / 50) * 50 + 100;
+        if (mine) S.dance.myPaid = Clock.dayNum(); else sd.paid = Clock.dayNum();
         S.stats.dances = (S.stats.dances || 0) + 1;
         Save.touch();
         G.camTarget = null;
@@ -298,7 +303,7 @@ const Dance = {
     },
     async results(r) {
         G.busy++;
-        const song = SONGS[this.song];
+        const song = songDef(this.song);
         const c = this.counts;
         await UI.say('wasabi', [`${song.name}: rank ${r.rank}! ${fmtNum(this.score)} points, best combo ${this.maxCombo}.`,
             `Perfect ${c.perfect}, great ${c.great}, good ${c.good}, missed ${c.miss}.`], { keep: true });

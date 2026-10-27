@@ -1457,6 +1457,59 @@ test("the neighbors' own friendships: storylines move them, chats and time mend 
   await page.context().close();
 });
 
+test('your own songs: the game finds the beat of a song from the device, writes a dance for it at each level, keeps it, and it plays', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    // a 24-second song at 120 beats a minute: a low thump on each beat, a higher click between, the first beat at 0.3 s
+    const sr = 22050, secs = 24, buf = new AudioBuffer({ length: sr * secs, sampleRate: sr, numberOfChannels: 2 });
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let k = 0; 0.3 + k * 0.25 < secs - 0.2; k++) {
+        const s0 = Math.round((0.3 + k * 0.25) * sr), beat = k % 2 === 0, f = beat ? (k % 4 ? 0.07 : 0.05) : 0.6;
+        for (let i = 0; i < 1500; i++) d[s0 + i] += Math.sin(i * f) * Math.exp(-i / (beat ? 400 : 120)) * (beat ? 0.8 : 0.25);
+      }
+    }
+    const out = {};
+    const charts = MYSONG_LEVELS.map(l => songChart(buf, l));
+    out.bpm = charts.map(c => Math.round(c.bpm));
+    const off = c => Math.max(...c.chart.map(s => { const x = (s.t - 0.3) / 0.25; return Math.abs(x - Math.round(x)) * 0.25; }));
+    out.onBeat = charts.every(c => off(c) < 0.035);
+    out.easyOnBeats = charts[0].chart.every(s => Math.round((s.t - 0.3) / 0.25) % 2 === 0);
+    out.more = charts[0].chart.length < charts[1].chart.length && charts[1].chart.length <= charts[2].chart.length;
+    out.lanes = charts.every(c => c.chart.every(s => s.lane >= 0 && s.lane <= 3) && new Set(c.chart.map(s => s.lane)).size >= 3);
+    out.pack = JSON.stringify(unpackSteps(packSteps(charts[1].chart))) === JSON.stringify(charts[1].chart);
+    // the file as a WAV, kept: the dance with the island, the file on the device
+    const pcm = buf.getChannelData(0), wav = new DataView(new ArrayBuffer(44 + pcm.length * 2));
+    const str = (o, t) => { for (let i = 0; i < t.length; i++) wav.setUint8(o + i, t.charCodeAt(i)); };
+    str(0, 'RIFF'); wav.setUint32(4, 36 + pcm.length * 2, true); str(8, 'WAVEfmt '); wav.setUint32(16, 16, true); wav.setUint16(20, 1, true); wav.setUint16(22, 1, true);
+    wav.setUint32(24, sr, true); wav.setUint32(28, sr * 2, true); wav.setUint16(32, 2, true); wav.setUint16(34, 16, true); str(36, 'data'); wav.setUint32(40, pcm.length * 2, true);
+    for (let i = 0; i < pcm.length; i++) wav.setInt16(44 + i * 2, Math.max(-1, Math.min(1, pcm[i])) * 32767, true);
+    const s = await MySongs.add(wav.buffer, 'Click Track', 'Easy');
+    out.kept = { list: S.mysongs.length, name: songDef('my:' + s.id).name, level: s.level, file: ((await MySongs.get(s.id)) || {}).byteLength === wav.buffer.byteLength };
+    out.relevel = (await MySongs.relevel(s, 'Hard')) && s.level === 'Hard' && unpackSteps(s.steps).length > charts[0].chart.length;
+    // it plays in the dance game
+    MySongs.dance(s, { watch: true });
+    await new Promise(r => setTimeout(r, 1500));
+    out.plays = Dance.on && Dance.notes.length === unpackSteps(s.steps).length && /Click Track/.test(document.querySelector('#dsong').textContent);
+    Dance.quit();
+    await new Promise(r => setTimeout(r, 300));
+    out.stopped = !Dance.on && !Music.song;
+    MySongs.remove(s);
+    await new Promise(r => setTimeout(r, 200));
+    out.removed = !S.mysongs.length && !(await MySongs.get(s.id));
+    return out;
+  });
+  assert.deepEqual(res, { bpm: [120, 120, 120], onBeat: true, easyOnBeats: true, more: true, lanes: true, pack: true,
+    kept: { list: 1, name: 'Click Track', level: 'Easy', file: true }, relevel: true, plays: true, stopped: true, removed: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('karaoke: a different request each night from the poems Sarah has, first on the list and on the board, and the crowd tips extra', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));

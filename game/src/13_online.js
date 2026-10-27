@@ -12,7 +12,7 @@ const WHO_KEY = 'sc-who';
 const PERSON_KEYS = ['money', 'pocket', 'storage', 'player', 'wardrobe', 'npcs', 'seen', 'recipes', 'mail', 'mailSeq', 'mailIn', 'dance',
     'stats', 'dayStats', 'poems', 'lastPoem', 'pottery', 'arcade', 'rope', 'karaoke', 'specials', 'quests', 'tasks', 'bag', 'day', 'startDay',
     'lastDay', 'playerName', 'cookLog', 'colors', 'colorSeq', 'designs', 'designSeq', 'look', 'bonus', 'texts', 'fresh', 'held', 'invites',
-    'inviteAt', 'invite', 'lost', 'music', 'shells', 'gems', 'trees', 'games', 'bank', 'post'];
+    'inviteAt', 'invite', 'lost', 'music', 'shells', 'gems', 'trees', 'games', 'bank', 'post', 'mysongs'];
 const ONLINE_STATE_EVERY = 120;          // ms between position updates while walking
 
 const Online = {

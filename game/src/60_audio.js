@@ -489,6 +489,22 @@ const Music = {
         }
         return { chart, duration, lead: 16 * sd, beat: sd * 2, lyrics };
     },
+    /* one of Sarah's own songs, from its file (6zo_mysongs.js): f is { buf, chart, beat, dur } */
+    startFile(f) {
+        this.stop();
+        this.cur = null;
+        const c = Audio2.ctx;
+        this.song = { chart: f.chart };
+        if (c && Audio2.musicOn) {
+            const src = c.createBufferSource();
+            src.buffer = f.buf;
+            src.connect(Audio2.music);
+            const t0 = c.currentTime + 0.3;
+            src.start(t0);
+            Object.assign(this.song, { t0, audio: true, src });
+        } else this.song.wall0 = performance.now() / 1000 + 0.3;
+        return { chart: f.chart, duration: f.dur, lead: f.chart.length ? f.chart[0].t : 2, beat: f.beat, lyrics: null };
+    },
     songTime() {
         const s = this.song;
         if (!s) return 0;
@@ -499,6 +515,7 @@ const Music = {
         return performance.now() / 1000 - s.wall0;
     },
     stopSong() {
+        if (this.song && this.song.src) { try { this.song.src.stop(); } catch (e) { /* already stopped */ } }
         this.song = null;
         this.stop();
         this.key = null;
