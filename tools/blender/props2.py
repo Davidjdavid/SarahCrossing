@@ -325,6 +325,44 @@ def shovel():
     return [(mb, 'main'), (gl, 'gloss')]
 
 
+# ---------------------------------------------------------------- the fishing rod
+def rod():
+    """The fishing rod in Sarah's hand (David, 27 October: a real rod, not a flat picture): a cork grip, a brass reel
+    seat with a little red reel hung under it, a varnished cane rod tapering to a white tip, gold whippings at its
+    joints and five line guides under it. 1.0 long from the hand (the origin, the middle of the grip) to the tip, which
+    is where the game ties the line (EnvFishing)."""
+    mb, gl = MB(), MB()
+    cork = lambda p, n: rgb('#c89a64').lerp(rgb('#a87a48'), max(0.0, noise.noise(p * 60)) * 0.8) * (0.88 + 0.12 * max(0.0, n.z))
+    lathe(mb, [(0.0, -0.13), (0.024, -0.128), (0.03, -0.1), (0.032, -0.02), (0.03, 0.06), (0.026, 0.1), (0.022, 0.11)], cork, seg=16, cap_top=False)
+    brass = paint('#d8aa48', under=0.05, top=0.2)
+    lathe(gl, [(0.024, -0.145), (0.026, -0.13), (0.02, -0.128), (0.0, -0.128)], brass, seg=16, cap_top=False)
+    lathe(gl, [(0.022, 0.1), (0.024, 0.12), (0.024, 0.17), (0.018, 0.18)], brass, seg=16, cap_top=False)
+    # the reel: a round red spool on a foot under the seat, a crank with a knob
+    red = paint('#d8443a', under=0.1, top=0.2)
+    tube(gl, [(0, -0.02, 0.145), (0, -0.05, 0.145)], 0.007, brass, seg=8)
+    m0 = len(mb.v)
+    lathe(mb, [(0.0, -0.022), (0.045, -0.022), (0.05, -0.012), (0.05, 0.012), (0.045, 0.022), (0.0, 0.022)], red, seg=24)
+    # (the spool's axis across the rod: lathe made it about z, turn it to x)
+    for i in range(m0, len(mb.v)):
+        v = mb.v[i]
+        mb.v[i] = Vector((v.z, v.y - 0.075, 0.145 - v.x))
+        mb.n[i] = Vector((mb.n[i].z, mb.n[i].y, -mb.n[i].x))
+    tube(gl, [(0.024, -0.075, 0.145), (0.034, -0.075, 0.145), (0.034, -0.105, 0.13)], 0.005, brass, seg=6)
+    ball(mb, (0.04, -0.105, 0.13), 0.011, '#f2ead8', sub=2)
+    # the cane, tapering, varnished brown going lighter, a white tip
+    cane = lambda p, n: rgb('#8a4a2a').lerp(rgb('#b8743a'), min(1.0, max(0.0, (p.z - 0.18) / 0.82))) * (0.82 + 0.18 * max(0.0, n.y * -1 + 0.4))
+    lathe(gl, [(0.016, 0.175), (0.013, 0.4), (0.009, 0.7), (0.006, 0.93), (0.005, 0.97)], cane, seg=12, cap_top=False)
+    lathe(mb, [(0.0058, 0.965), (0.005, 1.0), (0.0, 1.002)], '#f4f0e6', seg=10)
+    for z, r in ((0.32, 0.0145), (0.55, 0.012), (0.78, 0.0085)):
+        lathe(gl, [(r, z - 0.01), (r + 0.002, z - 0.008), (r + 0.002, z + 0.008), (r, z + 0.01)], brass, seg=12, cap_top=False)
+    # line guides: little rings on stalks under the cane (the reel's side)
+    for z, r, s in ((0.26, 0.016, 0.03), (0.44, 0.013, 0.026), (0.62, 0.011, 0.022), (0.8, 0.009, 0.018), (0.95, 0.007, 0.014)):
+        tube(gl, [(0, -r * 0.6, z), (0, -r - s, z)], 0.0025, '#c8ccd2', seg=5)
+        pts = [(math.cos(a) * s * 0.35, -r - s - math.sin(a) * s * 0.35 - s * 0.35, z) for a in (k / 10 * math.tau for k in range(11))]
+        tube(gl, pts, 0.0022, '#c8ccd2', seg=5)
+    return [(mb, 'main'), (gl, 'gloss')]
+
+
 # ---------------------------------------------------------------- the step stool
 def stool():
     """A sturdy wooden step stool for behind a counter, so a food folk working there is seen over it (David: "give them
@@ -344,7 +382,7 @@ def stool():
     return [(mb, 'main')]
 
 
-PROPS = {'style_stool': stool, 'style_bench': bench, 'style_lamp': lamp, 'style_armchair': armchair, 'style_cake': cake, 'style_shovel': shovel}
+PROPS = {'style_stool': stool, 'style_bench': bench, 'style_lamp': lamp, 'style_armchair': armchair, 'style_cake': cake, 'style_shovel': shovel, 'style_rod': rod}
 
 
 def build(name):
@@ -367,12 +405,14 @@ if __name__ == '__main__':
     if prev and shown:
         ground_plane(color='#a8d088')
         light_rig()
-        xs = {'style_bench': 0, 'style_lamp': 1.7, 'style_armchair': 2.9, 'style_cake': 4.0, 'style_shovel': 4.8}
+        xs = {'style_bench': 0, 'style_lamp': 1.7, 'style_armchair': 2.9, 'style_cake': 4.0, 'style_shovel': 4.8, 'style_rod': 4.2}
         for name, objs in shown:
             for o in objs:
                 o.location.x += xs.get(name, 0)
                 if name == 'style_shovel':
                     o.location.z += 0.8
+                if name == 'style_rod':
+                    o.location.z += 0.2
         cam = camera((2.4, 0, 0.6), dist=6.4, pitch=20)
         render(os.path.join(prev, 'props2.png'), size=(1400, 620), samples=32)
         bpy.data.objects.remove(cam)

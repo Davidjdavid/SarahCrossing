@@ -105,6 +105,7 @@ Object.assign(EnvDolls, {
         let pk = sit ? 'sit' : null;
         if (!pk && e.tool) { const k = e.tool.kind, ph = e.tool.t < (k === 'axe' ? 10 : 12) ? 0 : 1; pk = k === 'axe' ? 'axe' + ph : 'dig' + ph; }
         if (!pk && e.pose && e.pose !== 'walk') pk = e.pose;
+        if (e === G.player && G.held && !sit) pk = 'holdup';
         const Q = pk && this.POSES[pk];
         // which way: where it's going (smoothly), or the way it faces; a pose faces us; a glance looks back at whoever
         // it's running from
@@ -167,11 +168,24 @@ Object.assign(EnvDolls, {
         const tool = Q && Q.rod ? 'rod' : e === G.player ? heldTool() : null;
         if (tool !== d.tool) { if (d.toolMesh) { d.toolMesh.parent.remove(d.toolMesh); d.toolMesh = null; } d.tool = tool; if (tool) d.toolMesh = this.toolModel2(d, tool); }
         // the face: the acting's, a pose's, Sarah running for joy
-        const QF = { cheer: 'excited', happy: 'happy', left: 'joy', right: 'joy', hug: 'happy', fish: 'determined', shake: 'determined', axe0: 'determined', axe1: 'determined', dig0: 'determined', dig1: 'determined' };
+        const QF = { holdup: 'joy', cheer: 'excited', happy: 'happy', left: 'joy', right: 'joy', hug: 'happy', fish: 'determined', shake: 'determined', axe0: 'determined', axe1: 'determined', dig0: 'determined', dig1: 'determined' };
         this.showFace(d, e, A.face || (pk && QF[pk]) || (run && e === G.player ? 'happy' : null));
     },
     /* a tool in a redone doll's hand: the shovel the style test made (props2.py), the others as before */
     toolModel2(d, kind) {
+        // (the fishing rod, props2.py: held at its grip, pointing out forward and up; the line is tied at its tip: EnvFishing)
+        if (kind === 'rod' && EnvModels.has('style_rod')) {
+            const g = new THREE.Group();
+            for (const p of EnvModels.models.style_rod.parts) { const m = new THREE.Mesh(p.geometry, p.material); m.castShadow = true; g.add(m); }
+            g.scale.setScalar(1.05 / DOLL2.H);
+            g.position.set(0, -0.1, 0.01);
+            g.rotation.set(1.25, 0, 0);
+            d.rodTip = new THREE.Object3D();
+            d.rodTip.position.y = 1.0;
+            g.add(d.rodTip);
+            (d.parts.elR || d.parts.armR).add(g);
+            return g;
+        }
         if (kind === 'shovel' && EnvModels.has('style_shovel')) {
             const g = new THREE.Group();
             for (const p of EnvModels.models.style_shovel.parts) { const m = new THREE.Mesh(p.geometry, p.material); m.castShadow = true; g.add(m); }

@@ -107,6 +107,8 @@ const EnvDolls = {
         // (hands on the trunk, shaking it: she keeps facing the tree)
         shake: { aF: [-1.45, -1.45], aO: [0.28, 0.28], bend: 0.14, face: 1 },
         fish: { aF: [-0.95, -0.95], aO: [0.22, 0.22], rod: 1 },
+        // (a catch held up over the head with both hands, showing it off: EnvFishing)
+        holdup: { aF: [-2.45, -2.45], aO: [0.42, 0.42], hop: 1 },
         sit: { aF: [-0.55, -0.55], aO: [0.1, 0.1], legs: -1.5, sit: 1 },
         axe0: { aF: [-2.7, -2.7], aO: [0.12, 0.12], bend: -0.12 },
         axe1: { aF: [-0.75, -0.75], aO: [0.1, 0.1], bend: 0.3, sink: 0.02 },
@@ -120,6 +122,7 @@ const EnvDolls = {
         let pk = sit ? 'sit' : null;
         if (!pk && e.tool) { const k = e.tool.kind, ph = e.tool.t < (k === 'axe' ? 10 : 12) ? 0 : 1; pk = k === 'axe' ? 'axe' + ph : 'dig' + ph; }
         if (!pk && e.pose && e.pose !== 'walk') pk = e.pose;
+        if (e === G.player && G.held && !sit) pk = 'holdup';
         const Q = pk && this.POSES[pk];
         // the way it faces (a pose like cheering faces us, as the HD pictures do)
         const face = Q && !e.tool && !Q.rod && !Q.face && pk !== 'sit' ? 2 : m.face;
@@ -164,7 +167,7 @@ const EnvDolls = {
         const g = new THREE.Group(), wood = this.mat('#9a6a3a'), metal = this.mat('#a8adb4', 0.35);
         if (kind === 'axe') { this.piece(g, 'disc', wood, 0, 0.1, 0, 0.012, 0.36, 0.012); this.piece(g, 'box', metal, 0.035, 0.26, 0, 0.07, 0.06, 0.016); this.piece(g, 'box', this.mat('#c84a3a'), 0, 0.26, 0, 0.022, 0.07, 0.024); }
         else if (kind === 'shovel') { this.piece(g, 'disc', wood, 0, 0.0, 0, 0.011, 0.42, 0.011); this.piece(g, 'box', metal, 0, -0.24, 0, 0.07, 0.1, 0.012); this.piece(g, 'box', this.mat('#3a7ac8'), 0, 0.22, 0, 0.05, 0.02, 0.02); }
-        else if (kind === 'rod') { this.piece(g, 'disc', this.mat('#c8783a'), 0, 0.22, 0, 0.007, 0.5, 0.007); this.piece(g, 'disc', this.mat('#3a3a42', 0.4), 0.018, 0.04, 0, 0.022, 0.012, 0.022, 0, 0, Math.PI / 2); }
+        else if (kind === 'rod') { this.piece(g, 'disc', this.mat('#c8783a'), 0, 0.22, 0, 0.007, 0.5, 0.007); this.piece(g, 'disc', this.mat('#3a3a42', 0.4), 0.018, 0.04, 0, 0.022, 0.012, 0.022, 0, 0, Math.PI / 2); d.rodTip = new THREE.Object3D(); d.rodTip.position.y = 0.47; g.add(d.rodTip); }
         else return null;
         // held in the right hand (the +x arm), pointing forward for the rod, up along the arm for the others
         g.position.set(0, -0.245, 0.01);

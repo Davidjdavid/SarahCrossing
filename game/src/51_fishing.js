@@ -81,6 +81,14 @@ const Fishing = {
         this.stop(true);
         const id = s.fish;
         const p = G.player;
+        // (in the new look the catch flies up out of the water into Sarah's hands first, the rod still in them: EnvFishing)
+        if (id !== 'crate' && typeof EnvFishing !== 'undefined' && EnvFishing.on()) {
+            p.pose = 'fish'; p.poseT = 99999;
+            G.reel = { id, x: s.x, y: s.y, t0: performance.now() };
+            Sfx.play('reel');
+            G.busy++;
+            try { await new Promise(r => setTimeout(r, EnvFishing.FLY)); } finally { G.busy--; G.reel = null; }
+        }
         p.pose = 'cheer'; p.poseT = 70; p.dir = 'down';
         if (id === 'crate') { G.busy++; try { await openCrate(); } finally { G.busy--; } Bus.emit('fish', 'crate'); return; }
         Sfx.play('fanfare');

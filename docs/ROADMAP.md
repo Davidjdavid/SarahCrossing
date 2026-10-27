@@ -225,7 +225,7 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] Street lights light up more of the paths and the square at night
 - [ ] Walking: Sarah can walk a little way up cliff sides (only the camera moves), a little into rivers, and oddly over
   bridges and stairs. Everything on the grid, each tile walkable or not, would fix it
-- [ ] Fishing: Sarah reels in what she caught and holds it up over her head; the fishing rod a 3D model, not a picture
+- [x] Fishing: Sarah reels in what she caught and holds it up over her head; the fishing rod a 3D model, not a picture
 - [ ] Market lane: more space between its top and bottom rows of shops, and the shops a bit further apart
 - [x] The arcade swapped round: Fruit Catch, Gopher Garden (the whack-a-mole one), Surf's Up and Noodle Slurp (the
   snake one) go to the back room, and the back room's Dumpling Drop, Sushi Swap and Fortune Falls come out front. One

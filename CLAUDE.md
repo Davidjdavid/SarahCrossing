@@ -141,6 +141,16 @@ docs/DEPLOY.md for the server.
   own objects with their origins at the joints, so they waddle, hop, step and blink (`EnvDolls.poseFolk`); a gift hat
   or glasses sits at `anchor_hat` / `anchor_eyes` (`EnvModels` keeps each part's name and origin, an anchor's scale).
   The council's broccoli and the old keeper are made too, for the rooms.
+- Fishing in the new look is 3D (`EnvFishing`, 33r_env_fishing.js): the rod in Sarah's hand (`style_rod`, props2.py; the
+  line tied at its tip, `d.rodTip`), the line a thin tube sagging to the bobber, ripples at a nibble and the bite, the
+  fish's shadow drifting up; a catch flies up out of the water into her hands (`G.reel`) and is held up over her head
+  (`G.held`, the `holdup` pose) while she shows it off. The flat views keep `Fishing.draw`.
+- Hats fit the hair (`EnvDolls.hatFit`, `HAT_FIT` in 33ka_doll_kit.js): a covering hat grows to the hair at its band and
+  presses the hair above it down and in; what sits on top rests on the hair round a ring half a head out; what goes round
+  the head goes round the hair.
+- Flowers are one plant per kind (vegetation.py's `flower_<kind>`), the petals their own part painted in the flower's
+  color (`EnvItems.PETALS`, `petals(id)`): wild ones (`EnvBuild.flower`, instanced per color through
+  `EnvModels.instances`' `tint`), planted ones and the plots' (`EnvItems`), a picked one lying on its side.
 - The wildlife (birds, gulls, the owl, squirrels, rabbits, deer, crabs, ducks, frogs, butterflies) are toys from
   `critters.py` (`critter_<kind>`), posed by `EnvCritters` (33m_env_critters.js) from the game's own critters and
   Flutter's butterflies: wings fold or flap, birds peck, the owl blinks, ducks float at `Env.waterH`. While the models

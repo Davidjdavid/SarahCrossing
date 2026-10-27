@@ -68,7 +68,7 @@ function unstick() {
     if (typeof IslandEdit !== 'undefined' && IslandEdit.on) IslandEdit.close();
     UI.close(true);
     UI.hideDialog();
-    G.busy = 0; G.fade = 0; G.lockCam = false; G.camTarget = null; G.camShift = null; G.held = null; G.keys = {};
+    G.busy = 0; G.fade = 0; G.lockCam = false; G.camTarget = null; G.camShift = null; G.held = null; G.reel = null; G.keys = {};
     for (const n of NPCs.list) n.talking = false;
     const p = G.player;
     if (p) { p.path = null; p.onArrive = null; p.glide = null; p.sit = null; p.sy = undefined; p.pose = null; p.hidden = false; }
