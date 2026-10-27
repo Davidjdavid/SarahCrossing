@@ -12,6 +12,8 @@ const FOLK_ACT = {
     kai: { bounce: 1.35, arms: 1.4, sway: 1.3, look: 0.6, run: 'flail' },
     ginger: { bounce: 1.0, arms: 0.9, sway: 0.6, look: 0.45, run: 'out' },
     basil: { bounce: 0.9, arms: 0.8, sway: 0.6, look: 0.4, run: 'pump' },
+    scampi: { bounce: 0.6, arms: 0.75, sway: 1.1, look: 0.3, run: 'pump' },
+    mug: { bounce: 1.35, arms: 1.15, sway: 0.5, look: 0.85, run: 'flail' },
     wonton: { bounce: 1.1, arms: 0.7, sway: 0.9, look: 0.5, run: 'out' },
     chili: { bounce: 1.3, arms: 1.3, sway: 0.8, look: 0.6, run: 'flail' },
     coco: { bounce: 0.8, arms: 0.7, sway: 0.7, look: 0.5, run: 'pump' },
@@ -267,6 +269,8 @@ Object.assign(EnvDolls, {
         const cj = A.cheer ? Math.sin((1 - A.cheer) * Math.PI) * 0.4 : 0;
         root.position.set(e.x / TILE, y + cj, z);
         root.rotation.y = d.ang + (A.cheer ? (1 - A.cheer) * Math.PI * 2 : 0);
+        // (lying out cold on the sand: the seafarer, washed up, 6zr_seafarer.js)
+        if (e.want && e.want.lie) { root.rotation.x = -1.4; root.position.y += 0.14; } else if (root.rotation.x) root.rotation.x = 0;
         // the step: feet in turn, a waddle, squashed landing and stretched in the air (Kai's loose, Maki's neat)
         const ph = m.dist / (run ? 18 : 14) * Math.PI * 2, s = walk ? Math.sin(ph) : 0, air = walk ? Math.min(1, (e.hop || 0) / 3) : 0;
         const br = Math.sin(t / 24 + seed);

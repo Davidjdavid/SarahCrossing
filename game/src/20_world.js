@@ -108,6 +108,8 @@ function buildIsland() {
     for (let y = 0; y < a.h; y++) for (let x = 0; x < a.w; x++) a.blocked[y * a.w + x] = W0.coll[y][x] === '1' ? 1 : 0;
     const season = Clock.season();
     a.season = season;
+    // (a newcomer's house once they live here: 6zr_seafarer.js)
+    seaJoin(); mugJoin();
     // buildings + doors
     for (const [id, b] of Object.entries(W0.buildings)) {
         for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) a.block(x, y);
@@ -164,7 +166,8 @@ function buildIsland() {
             await oldTreeTalk(e);
         };
     }
-    W0.props.forEach((p, i) => { if (!isCleared('pr' + i) && !propGone(i)) { const e = addProp(a, p); if (e) e.propIdx = i; } });
+    // (a town project's prop only once it's built: 6zgb_projects.js)
+    W0.props.forEach((p, i) => { if (!isCleared('pr' + i) && !propGone(i) && (!p.project || projectBuilt(p.project)) && !(p.kind === 'sign_land' && (lotTaken(p.x, p.y) || mugLotTaken(p.x, p.y))) && !(p.kind === 'sign_lot' && cafeOpen())) { const e = addProp(a, p); if (e) e.propIdx = i; } });
     addPlacedDisplays(a);
     addDockedBoat(a);
     // Basil's noodle cart only rolls out at night
@@ -196,14 +199,16 @@ function buildIsland() {
     addForest(a);
     applyExteriors(a);
     addLostItem(a);
+    seaRefresh(a); mugRefresh(a);
     return a;
 }
 
 const PROP_SIZE = { bench: 2, flowerbed: 2, board: 1, lamp: 1, mailbox: 1, sign_island: 1, sign_club: 1, rock: 1, driftwood: 1, bush: 1,
     windmill: 3, boulder: 2, well: 1, hay: 1, crate: 1, scarecrow: 1, sign_farm: 1, telescope: 1, statue_david: 3, plaque: 1, bonfire: 2, log: 2,
     tent: 3, picnic: 3, campfire: 1, trough: 2, sign_camp: 1, sign_bonfire: 1, sign_trail: 1, blanket: 3,
-    trashcan: 1, fountain: 2, fountain_grand: 4, drinkfountain: 1, sign_lot: 1, sign_land: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1 };
-const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2, fountain_grand: 3 };
+    trashcan: 1, fountain: 2, fountain_grand: 4, drinkfountain: 1, sign_lot: 1, sign_land: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1,
+    swing_set: 3, hammock: 3, park_clock: 1, shrine_stone: 2, statue_sarah: 2 };
+const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2, fountain_grand: 3, statue_sarah: 2 };
 /* the little things around the island, and what Sarah finds when she looks at them */
 const KNICK_FRAME = { fountain: 'd_fountain', fountain_grand: 'd_fountain', flamingo: 'd_flamingo', sign_trail: 'sign_camp', sign_lot: 'sign_camp', sign_land: 'sign_camp' };
 const PROP_TALK = {
@@ -317,6 +322,7 @@ function addProp(a, p) {
     if (p.kind === 'bench' || p.kind === 'log') e.interact = () => sitOnBench(e);
     if (p.kind === 'statue_david') { e.hit = { x: p.x * TILE, y: p.y * TILE - 56, w: 3 * TILE, h: 2 * TILE + 56 }; e.interact = () => davidStatue(); }
     if (p.kind === 'plaque') e.interact = () => readPlaque();
+    if (p.project) projectProp(e, p);
     if (p.kind === 'bonfire') { e.draw = ctx => drawBonfire(ctx, e); e.interact = () => useBonfire(e); e.fire = true; G.bonfire = e; }
     if (p.kind === 'campfire') { e.draw = ctx => drawCampfire(ctx, e); e.interact = () => useCampfire(e); G.campfire = e; }
     if (p.kind === 'tent') { e.tent = p.tent || 0; e.hit = { x: p.x * TILE, y: p.y * TILE - 20, w: 3 * TILE, h: 2 * TILE + 20 }; e.draw = ctx => drawTent(ctx, e); e.interact = () => useTent(e); e.stand = [p.x + 1, p.y + 2]; }

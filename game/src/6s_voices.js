@@ -29,6 +29,8 @@ const VOICES = {
     james:  { f: 270, w: 'triangle', end: 0.94, dur: 0.06, vol: 0.075, gap: 0.06 },
     john:   { f: 240, w: 'triangle', end: 0.92, dur: 0.06, vol: 0.075, gap: 0.06 },
     elizabeth: { f: 470, w: 'sine', end: 1.0, dur: 0.06, vol: 0.07, gap: 0.055 },
+    scampi: { f: 150, w: 'sawtooth', end: 0.84, dur: 0.08, vib: [5, 9], filt: ['lowpass', 1000, 1.4], vol: 0.09, gap: 0.07 },   // gravelly, an old sea dog
+    mug:    { f: 540, w: 'triangle', end: 1.15, dur: 0.035, vib: [14, 10], vol: 0.06, gap: 0.035, bell: true },   // quick and clinky: a lot of coffee
     ghost:  { f: 330, w: 'sine', end: 0.9, dur: 0.2, vib: [5, 6], vol: 0.05, gap: 0.13, breath: 0.01, airy: true },   // a soft, airy "oooh"
     sarah:  { f: 520, w: 'sine', end: 1.0, dur: 0.05, vol: 0.05, gap: 0.055 },
 };

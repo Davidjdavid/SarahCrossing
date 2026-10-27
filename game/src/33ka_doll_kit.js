@@ -63,6 +63,8 @@ const FOLK_FACES = {
         floret: chip('#a8d48a', '#2a4a20', { EX: 60, rest: 0.42, browW: 1.4, browArch: 1, mouth: '#2a3a20', restMouth: 'flat', blush: null, blushHappy: [80, 34, 14, 9] }),
         stalk: chip('#a8d48a', '#2a4a20', { EX: 60, lashes: true, mouth: '#2a3a20', mouthIn: '#2a3a20', teeth: true, restMouth: 'grin', ms: 1.0 }),
         sprout: chip('#a8d48a', '#2a4a20', { EX: 56, er: [24, 28], mouthIn: '#5e1f26', restMouth: 'grin', ms: 0.8, blush: [84, 34, 18, 12] }),
+        scampi: chip('#e8603e', '#f4f0e6', { EX: 70, browW: 1.75, browArch: 2, browLen: 20, browTilt: 0.2, mouth: '#4a1810', mouthIn: '#5e1f26', restMouth: 'smile', ms: 1.15, blushCol: 'rgba(255,190,170,0.6)' }),
+        mug: chip('#f6eedc', '#5a3a2a', { EX: 64, mouth: '#4a2a1a', mouthIn: '#6a1e26', restMouth: 'grin', ms: 1.25, blushCol: 'rgba(240,140,150,0.6)' }),
         ghost: chip('#d4e0fa', '#aebeea', { closed: true, shut: '#5a6aa8', line: '#5a6aa8', EX: 70, mouth: '#5a6aa8', blush: [90, 30, 18, 10], blushCol: 'rgba(244,150,170,0.45)' }),
     });
 })();

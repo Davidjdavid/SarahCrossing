@@ -24,7 +24,7 @@ const AREA = {
     '6t_cooking': 'Cooking', '6u_outings': 'Outings', '6v_stack': 'Snack Stack (arcade)', '6w_extras': 'Extras', '6y_visitors': 'Visitors',
     '6z_arcade2': "Arcade games (the back room's classics)", '6z_back_dumpling': 'Dumpling Drop (arcade)', '6z_back_fortune': 'Fortune Falls (arcade)',
     '6z_back_sushi': 'Sushi Swap (arcade)', '6z_backroom': "The arcade's back room", '6z_festivals': 'Festivals', '6z_shops': 'Shop upgrades',
-    '6z_talk_more': 'Talking',
+    '6z_talk_more': 'Talking', '6zgb_projects': 'Town projects', '6zr_seafarer': 'Captain Scampi', '6zs_mug': "Mugsy and the café",
 };
 
 /* what a key on the way to a line means */
@@ -74,6 +74,9 @@ const T = {
     IG_ASK: ['npc', 'Now and then, asking Sarah to play a game when she talks to them'],
     IG_ASK_VS: ['npc', 'Asking Sarah to play an arcade game against them on their handheld'],
     IG_ASK_ROPE: ['npc', 'Asking Sarah to jump rope, with a friend of theirs turning'],
+    PROJECTS: ['label', 'A town project at the Town Hall: its name, where it goes and a line about it'],
+    PROJECT_DONE_LOG: ['label', "A line in the island's history when a town project is built"],
+    PROJECT_MAIL: ['floret', "The Cozy Council's letter the morning a town project is finished"],
     WEAR_LINES: ['any', 'A neighbor puts on an accessory Sarah gave them'],
     HARVARD_MAIL: ['narr', 'A letter from Harvard in the mail'],
     PROP_TALK: ['narr', (r, k) => `Sarah looks at something on the island: ${k.map(words).join(' ')}`],
@@ -290,6 +293,19 @@ const T = {
 /* functions (when no table says): who and when */
 const F = {
     lookoutTelescope: ['narr', 'Looking through the telescope at the lookout'], useTelescope: ['narr', 'Using the lookout telescope'],
+    boardedLighthouse: ['sign', 'The lighthouse door, boarded up until the town restores it'], swingOn: ['narr', 'Swinging on the swing set (a town project)'],
+    hammock: ['narr', 'Lying in the hammock on the beach (a town project)'], clock: ['narr', 'Looking at the park clock (a town project)'],
+    shrine: ['narr', 'The stone tablet on the mountain top: reading it, making a wish once a day (a town project)'], statue: ['narr', "Sarah's statue on the square (the last town project)"],
+    seaTalk: ['scampi', "Captain Scampi's story: found washed up, the day's job for his new ship (logs, meals, gems), asking to stay"],
+    seaDepart: ['scampi', 'Captain Scampi sails off in his new ship, with a parting gift (or a letter if Sarah missed it)'],
+    seaMoveIn: ['scampi', "Captain Scampi's letter the morning he moves in"], seaRefresh: ['narr', "Looking at Captain Scampi's wreck or his ship taking shape on the beach"],
+    pickSea: ['scampi', 'Captain Scampi, while his ship is being built'],
+    mugTick: ['brulee', "Brulee's letter once the museum has twenty gifts and a full pottery hall"], mugStory: ['brulee', "Brulee tells of the island's old dig and asks Sarah to find the pot's pieces"],
+    mugOptions: ['brulee', "Asking Brulee about the museum's old pot"], mugDig: ['narr', 'Digging up an X in the ground: a piece of the old pot'],
+    mugMend: ['brulee', 'Brulee fetches Sully, who mends the five pieces with gold: a giant mug'], mugVisit: ['mug', 'The day after it is mended, the mug comes to find Sarah: it was alive all along'],
+    mugAsk: ['mug', 'The mug asks to stay and open a coffee shop'], mugTalk: ['mug', 'The mug, before it moves in'], mugMoveIn: ['mug', "Mugsy's letter the morning the café opens"],
+    cafeMenu: ['mug', "Buying a coffee at Mugsy's"], buildCafeRoom: ['narr', "Looking at things in Mugsy's café"], coffeeBoost: ['narr', 'A coffee perks Sarah up'],
+    addMugX: ['narr', 'An X scratched in the ground'],
     buildIsland: ['narr', 'Trying to chop the big tree'], visitNote: ['label', 'A note that someone is visiting'],
     addItem: ['narr', 'Getting an item'], addMoney: ['narr', 'Getting sand dollars'], receive: ['narr', 'Pockets full'], shakeTree: ['narr', 'Shaking a tree'],
     usePlot: ['narr', 'A garden plot'], enterBuilding: ['narr', 'Going into a building'], knock: ['narr', "Knocking on a neighbor's door"],

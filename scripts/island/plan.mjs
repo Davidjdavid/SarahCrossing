@@ -111,6 +111,16 @@ export const PLAN = {
   garden: { x: 62, y: 81 },
   // the community garden below the farm's crossroads, and fruit trees round the farm's fields and the garden
   community: { x: 53, y: 45, cols: 4, rows: 2 },
+  // the town's projects (game/src/6zgb_projects.js): where each goes up once Sarah has paid for it at the Town Hall, held
+  // clear till then; layout.mjs finds the nearest clear footprint to each target on the same ground (g grass, s sand,
+  // c the square's flagstones)
+  projects: [
+    { id: 'swings', kind: 'swing_set', x: 74, y: 89, w: 3, h: 1, ground: 'g' },
+    { id: 'hammock', kind: 'hammock', x: 62, y: 119, w: 3, h: 1, ground: 's' },
+    { id: 'clock', kind: 'park_clock', x: 141, y: 95, w: 1, h: 1, ground: 'g' },
+    { id: 'shrine', kind: 'shrine_stone', x: 203, y: 15, w: 2, h: 1, ground: 'g' },
+    { id: 'statue', kind: 'statue_sarah', x: 110, y: 106, w: 2, h: 2, ground: 'c' },
+  ],
   fruitTrees: [[47, 38, 'apple'], [37, 43, 'cherry'], [66, 40, 'peach'], [70, 40, 'cherry'], [52, 49, 'mango'], [61, 49, 'apple']],
   buildings: [
     { id: 'postoffice', x: 103, y: 86, w: 5, h: 3, door: 2, sprite: 'postoffice', front: 'postofficefront' },

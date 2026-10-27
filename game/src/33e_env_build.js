@@ -19,11 +19,16 @@ const EnvBuild = {
         viewer: ['viewer', 1, 0.45], tackle: ['tackle', 1, 0.45], driftwood: ['driftwood', 1, 0.45], icecream: ['icecream', 1.3, 0.55],
         sandcastle: ['sandcastle', 1, 0.45], volleyball: ['volleyball', 1, 0.4], boulder: ['rock_a', 1.7, 0.5], tent: [null, 1.3, 1.0], rock: [null, 1, 0.45],
         cart: ['noodle_cart', 1, 0.5],
+        // (the town's projects, once built: 6zgb_projects.js)
+        swing_set: ['swing_set', 1, 0.5], hammock: ['hammock', 1, 0.45], park_clock: ['park_clock', 1, 0.45], shrine_stone: ['shrine_stone', 1, 0.45],
+        statue_sarah: ['statue_sarah', 0.9, 1.0],
     },
+    /* where the park clock's faces are on its model (props_island.py CLOCK_FACE, in the model's own axes: up y, front +z) */
+    CLOCK_FACE: [0, 2.06, 0.137],
     /* the island's other buildings, made in Blender (tools/blender/buildings.py, model bld_<id>): id -> how far in front
        of its middle its front wall stands (each stands with its front wall on its footprint's front edge) */
     BUILDINGS: { postoffice: 1.3, bank: 1.3, townhall: 1.65, museum: 1.65, boutique: 1.3, salon: 1.3, studio: 1.3, displays: 1.3,
-        restaurant: 1.3, arcade: 1.3, club: 1.3, builder: 1.3, lighthouse: 1.4, barn: 1.5 },
+        restaurant: 1.3, arcade: 1.3, club: 1.3, builder: 1.3, lighthouse: 1.4, barn: 1.5, cafe: 1.3 },
     /* the model a prop is drawn with in the new look, when it has one and it has arrived ([name, size, back]) */
     propModel(e) {
         const P = this.PROP_MODELS[e.kind];
@@ -39,7 +44,7 @@ const EnvBuild = {
         // the furniture made in Blender (bench, lamp, mailbox, fence, planter, pumpkins), gathered and drawn instanced
         const placed = this.placed = {}, has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
         this.model = (n, x, y, z, rot, sc, sy, sz) => { if (!has(n)) return false; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y, z, rot || 0, sc || 1, sy, sz)); return true; };
-        const mills = [];
+        const mills = [], swings = [], clocks = [];
         // (Basil's noodle cart is only out at night: its model is hidden by day)
         const nights = [];
         // (wild flowers can be picked and grow back: each one's model, kept by its spot, is hidden while it's gone)
@@ -48,6 +53,8 @@ const EnvBuild = {
         const chimneys = this.chimneys = [];
         for (const e of a.ents) {
             if (e.kind === 'building' && e.b) {
+                // (the lighthouse's door boarded up until the town restores it)
+                if (e.id === 'lighthouse' && typeof lighthouseOpen === 'function' && !lighthouseOpen()) { const A = this.at(e); this.model('door_boards', A.door, A.y + 0.14, A.z1 - 0.36, 0, 1); }
                 // Sarah's cottage is the one modelled in Blender (its door on the door's tile, its front wall on the front edge)
                 if (e.id === 'home' && has('cottage')) { const A = this.at(e); for (const m of EnvModels.place(group, 'cottage', EnvModels.mat4(A.door, A.y, A.z1 - 1.25))) m.userData.shared = true; chimneys.push([A.door + 0.95, A.y + 3.55, A.z1 - 1.25 - 0.42]); }
                 // and Fortune's (its door half a tile right of its middle)
@@ -62,10 +69,14 @@ const EnvBuild = {
                 const [n, sc, back] = this.propModel(e), f = this.foot(e);
                 this.model(n, f.x, f.y, f.z - back * R3_ZS, 0, sc);
                 if (n === 'windmill') mills.push(placed[n][placed[n].length - 1]);
+                if (n === 'swing_set') swings.push(placed[n][placed[n].length - 1]);
+                if (n === 'park_clock') clocks.push(placed[n][placed[n].length - 1]);
                 if (e.onlyNight) nights.push({ n, i: placed[n].length - 1, on: true });
             }
             // (a garden plot is a raised planter box, props_island.py; a bed in the community garden two ridges of tilled
             // soil, as the farm's fields have; what grows in either is EnvItems')
+            // (a thing a story puts on the island with a model of its own: the seafarer's wreck and ship; afloat if it floats)
+            else if (e.model3d && !e.holiday && has(e.model3d)) { const w = e.float ? Env.waterH(e.x, e.y) : null; this.model(e.model3d, e.x / TILE, w != null ? w - 0.28 : Env.groundH(e.x, e.y), e.y / TILE * R3_ZS, e.rot3d || 0, e.scale3d || 1); }
             else if (e.kind === 'plot' && e.c && has('crop_soil')) for (const off of [0.28, 0.76]) { const z = e.ty + off; this.model('crop_soil', e.tx + 0.5, EnvGround.heightAt(e.tx + 0.5, z) - 0.02, z * R3_ZS, 0, 1); }
             else if (e.kind === 'plot' && has('planter_box')) { const f = Env.tileSpot(e); this.model('planter_box', f.x, f.y, f.z, 0, 1); }
             else if (e.kind === 'bench') this.bench(e);
@@ -114,6 +125,16 @@ const EnvBuild = {
         const hub = mills.length && has('windmill_sails') && (EnvModels.models.windmill.anchors.hub || [])[0];
         const sails = hub ? mills.map(M => M.clone().multiply(new THREE.Matrix4().makeTranslation(hub.x, hub.y, hub.z))) : [];
         if (sails.length) placed.windmill_sails = sails.map(M => M.clone());
+        // (the swing set's seats hang from its top bar, swinging; the park clock's hands sit on both its faces)
+        const seatHub = swings.length && has('swing_set_sails') && (EnvModels.models.swing_set.anchors.hub || [])[0];
+        const seats = seatHub ? swings.map(M => M.clone().multiply(new THREE.Matrix4().makeTranslation(seatHub.x, seatHub.y, seatHub.z))) : [];
+        if (seats.length) placed.swing_set_sails = seats.map(M => M.clone());
+        const faces = [];
+        if (clocks.length && has('park_clock_hour') && has('park_clock_minute')) {
+            const [fx, fy, fz] = this.CLOCK_FACE;
+            for (const M of clocks) for (const back of [0, 1]) faces.push(M.clone().multiply(new THREE.Matrix4().makeTranslation(fx, fy, back ? -fz : fz)).multiply(new THREE.Matrix4().makeRotationY(back ? Math.PI : 0)));
+            placed.park_clock_hour = faces.map(M => M.clone()); placed.park_clock_minute = faces.map(M => M.clone());
+        }
         const inst = {};
         // (a key with a color after a bar is a model with its petals painted: a wild flower's)
         for (const [n, list] of Object.entries(placed)) { const [name, tint] = n.split('|'); for (const m of (inst[n] = EnvModels.instances(group, name, list, tint ? { tint: { top: tint } } : undefined))) { m.userData.shared = true; meshes.push(m); } }
@@ -124,6 +145,19 @@ const EnvBuild = {
         return { meshes, tick: (r3, a) => {
             const g = R3._glow || 0; this.glass.emissiveIntensity = 0.15 + g * 1.4; if (typeof EnvModels !== 'undefined') EnvModels.glow(g);
             if (sails.length) { spin.makeRotationZ(-performance.now() / 2400); sails.forEach((M, i) => { for (const m of inst.windmill_sails || []) { m.setMatrixAt(i, turned.multiplyMatrices(M, spin)); m.instanceMatrix.needsUpdate = true; } }); }
+            // (the swings: still but for a breath of wind, or swinging with Sarah on one: Projects.swing)
+            if (seats.length) {
+                const sw = typeof Projects !== 'undefined' && Projects.swing, th = sw ? Math.sin(sw.t / 22) * sw.amp : Math.sin(performance.now() / 1700) * 0.03;
+                spin.makeRotationX(th);
+                seats.forEach((M, i) => { for (const m of inst.swing_set_sails || []) { m.setMatrixAt(i, turned.multiplyMatrices(M, spin)); m.instanceMatrix.needsUpdate = true; } });
+            }
+            if (faces.length && frame % 20 === 0) {
+                const h = Clock.hourF() % 12;
+                for (const [n, a] of [['park_clock_hour', h / 12], ['park_clock_minute', h % 1]]) {
+                    spin.makeRotationZ(-a * Math.PI * 2);
+                    faces.forEach((M, i) => { for (const m of inst[n] || []) { m.setMatrixAt(i, turned.multiplyMatrices(M, spin)); m.instanceMatrix.needsUpdate = true; } });
+                }
+            }
             if (frame++ % 20) return;
             const night = hourIn(Clock.hourF(), 21, 27);
             for (const p of nights) {

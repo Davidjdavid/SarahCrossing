@@ -295,6 +295,7 @@ async function fellTree(e) {
     if (e.planted) F.planted = F.planted.filter(q => q !== e.planted);
     addStump(a, e.id, F.chopped[e.id]);
     spawnDrop('wood', e.x + 10, e.y + 8);
+    seaChop(e.x - 10, e.y + 8);
     dirtFx(e.x, e.y - 4, '#9a6b45');
     S.stats.felled = (S.stats.felled || 0) + 1;
     Save.touch();
@@ -308,6 +309,9 @@ async function digAt(tx, ty) {
     if (G.busy || visitorStop('dig')) return;
     if (a.id !== 'island') { await UI.say(null, "Sarah can't dig in here. The floor would be very upset."); return; }
     const e = forestAt(a, tx, ty);
+    // (an X scratched in the ground: the museum's old pot, 6zs_mug.js)
+    const x = a.ents.find(q => q.digX && q.tx === tx && q.ty === ty);
+    if (x) { await x.interact(); return; }
     const [fx, fy] = tileFoot(tx, ty);
     const sand = groundChar(tx, ty) === 's';
     const act = async fn => {

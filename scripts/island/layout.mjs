@@ -475,6 +475,35 @@ class Island {
       this.prop('fence', fx0, fy1, { w: gate - fx0 }); this.prop('fence', gate + 1, fy1, { w: fx1 - gate });
       this.community = { x: fx0, y: fy0, w: fx1 - fx0 + 1, h: fy1 - fy0 + 1, gate };
     }
+    // the town's projects: each on the nearest clear footprint to its target (the same level and ground, off the paths,
+    // clear of the neighbors' spots and of flowers, whose numbers saves keep; trees in the way go), with a tile to stand
+    // on in front. Their props come after the community garden's, so every other prop keeps its number; the game hides
+    // each until it's built
+    this.projects = {};
+    for (const pr of P.projects || []) {
+      const lv = this.L(pr.x, pr.y), ground = pr.ground || 'g';
+      const tree = (x, y) => this.trees.findIndex(t => t.x === x && t.y === y);
+      const nearSpot = (x, y) => Object.values(this.spots).some(sp => Math.abs(sp.x - x) <= Math.max(1, sp.r) && Math.abs(sp.y - y) <= Math.max(1, sp.r));
+      const ok = (x, y) => {
+        for (let j = 0; j <= pr.h; j++) for (let i = 0; i < pr.w; i++) {
+          const tx = x + i, ty = y + j, k = this.i(tx, ty), front = j === pr.h;
+          if (!this.in(tx, ty) || !this.land[k] || this.face[k] || this.coll[k] || this.L(tx, ty) !== lv) return false;
+          if (this.occ[k] === 3 || (this.occ[k] && tree(tx, ty) < 0)) return false;
+          if (!front && (this.ter[k] !== ground || nearSpot(tx, ty))) return false;
+        }
+        return true;
+      };
+      let at = null;
+      for (let r = 0; r <= 12 && !at; r++) for (let dy = -r; dy <= r && !at; dy++) for (let dx = -r; dx <= r && !at; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        if (ok(pr.x + dx, pr.y + dy)) at = [pr.x + dx, pr.y + dy];
+      }
+      if (!at) throw new Error(`no room for the project ${pr.id} near ${pr.x},${pr.y}`);
+      const [x, y] = at;
+      for (let j = -1; j <= pr.h; j++) for (let i = -1; i <= pr.w; i++) { const t = tree(x + i, y + j); if (t >= 0) { this.trees.splice(t, 1); this.occ[this.i(x + i, y + j)] = 0; } }
+      this.prop(pr.kind, x, y, { project: pr.id });
+      this.projects[pr.id] = { x, y, w: pr.w, h: pr.h, kind: pr.kind };
+    }
     for (const [x, y, fruit] of P.fruitTrees || []) {
       const k = this.i(x, y);
       if (!this.land[k] || this.face[k] || this.ter[k] !== 'g' || (this.occ[k] && this.occ[k] !== 3)) continue;
@@ -571,7 +600,7 @@ class Island {
         treasure: { x: palm.x, y: palm.y + 3, palm: [palm.x, palm.y] }, gemSpots: this.gemSpots, ramps: this.ramps,
         reach: rows((k) => (reach.has(k) ? '1' : '0')),
         cut: rows((k) => this.cut[k] || '.'),
-        lots: this.P.lots || {}, community: this.community || null,
+        lots: this.P.lots || {}, community: this.community || null, projects: this.projects || {},
       },
       paint: {
         W, H, ter: this.ter, lvl: this.lvl, face: this.face, land: this.land, blocks: this.blocks, strokes: this.strokes, shapes: this.shapes, under: this.under,
@@ -612,5 +641,6 @@ function dedupe(tiles) { const s = new Set(); return tiles.filter(([x, y]) => { 
 const PROP_W = { bench: 2, flowerbed: 2, board: 1, lamp: 1, mailbox: 1, sign_island: 1, sign_club: 1, sign_lot: 1, sign_land: 1, rock: 1, driftwood: 1, bush: 1,
   windmill: 3, boulder: 2, well: 1, hay: 1, crate: 1, scarecrow: 1, sign_farm: 1, telescope: 1, statue_david: 3, plaque: 1, bonfire: 2, log: 2,
   tent: 3, picnic: 3, campfire: 1, trough: 2, sign_camp: 1, sign_bonfire: 1, sign_trail: 1, blanket: 3,
-  trashcan: 1, fountain: 2, fountain_grand: 4, drinkfountain: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1 };
-const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2, fountain_grand: 3 };
+  trashcan: 1, fountain: 2, fountain_grand: 4, drinkfountain: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1,
+  swing_set: 3, hammock: 3, park_clock: 1, shrine_stone: 2, statue_sarah: 2 };
+const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2, fountain_grand: 3, statue_sarah: 2 };

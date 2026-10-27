@@ -4,13 +4,15 @@
    sale, longer hours and (at the top) a weekly treat. Only Sarah's shopping counts (the island is hers). */
 const SHOP_UP = {
     shop: {
-        owner: 'fortune', names: ["Fortune's Goods", "Fortune's Goods & More", "Fortune's Emporium"],
+        // (the fourth, the Department Store, comes from the town's project: 6zgb_projects.js)
+        owner: 'fortune', names: ["Fortune's Goods", "Fortune's Goods & More", "Fortune's Emporium", "Fortune's Department Store"],
         need: [null, { days: 7, spent: 20000 }, { days: 20, spent: 80000 }],
-        hours: [[8, 22], [7, 23], [6, 24]], size: [[15, 7], [19, 7], [19, 9]],
-        furn: [5, 7, 9], walls: [1, 2, 2], floors: [1, 2, 2],
+        hours: [[8, 22], [7, 23], [6, 24], [6, 24]], size: [[15, 7], [19, 7], [19, 9], [23, 9]],
+        furn: [5, 7, 9, 12], walls: [1, 2, 2, 3], floors: [1, 2, 2, 3],
         perks: [null,
             ['two more stages of furniture every day', 'two wallpapers and two floors', "Fortune's pick: one piece 30% off every day", 'open 7 AM to 11 PM'],
-            ['nine stages of furniture every day', 'a furniture set of the week, 15% off (at the counter)', 'Fortune pays 10% more for what you sell', 'open 6 AM to midnight']],
+            ['nine stages of furniture every day', 'a furniture set of the week, 15% off (at the counter)', 'Fortune pays 10% more for what you sell', 'open 6 AM to midnight'],
+            ['twelve stages of furniture every day', 'three wallpapers and three floors', 'a bigger shop, all the way to the new back wall']],
     },
     boutique: {
         owner: 'clementine', names: ["Clementine's", "Clementine's Atelier", 'Maison Clementine'],
@@ -29,7 +31,7 @@ function shopState(id) {
     if (!S.shops[id]) S.shops[id] = { spent: 0, level: 1 };
     return S.shops[id];
 }
-function shopLevel(id) { return SHOP_UP[id] ? Math.max(1, Math.min(3, shopState(id).level || 1)) : 1; }
+function shopLevel(id) { return SHOP_UP[id] ? Math.max(1, Math.min(SHOP_UP[id].names.length, shopState(id).level || 1)) : 1; }
 function shopName(id) { return SHOP_UP[id] ? SHOP_UP[id].names[shopLevel(id) - 1] : (ROOMS[id] && ROOMS[id].name) || id; }
 /* closed today for the building work? */
 function shopReno(id) { const s = SHOP_UP[id] && shopState(id); return !!(s && s.reno != null && s.reno === Clock.dayNum()); }
@@ -125,10 +127,10 @@ function shopSlots() {
     const lv = shopLevel('shop');
     if (lv === 1) return SHOP_SLOTS;
     const s = [[4, 0], [8, 0], [12, 0], [16, 0], [4, 3], [8, 3], [16, 3]];
-    return lv === 2 ? s : s.concat([[4, 6], [14, 6]]);
+    return lv === 2 ? s : lv === 3 ? s.concat([[4, 6], [14, 6]]) : s.concat([[4, 6], [14, 6], [20, 0], [20, 3], [8, 6]]);
 }
 /* where the floor-and-wallpaper stage goes, and the plant in the corner */
-function shopCorner() { const lv = shopLevel('shop'); return { floor: [12, 3], plant: lv === 1 ? [14, 6] : lv === 2 ? [18, 6] : [18, 8] }; }
+function shopCorner() { const lv = shopLevel('shop'); return { floor: [12, 3], plant: lv === 1 ? [14, 6] : lv === 2 ? [18, 6] : lv === 3 ? [18, 8] : [22, 8] }; }
 function boutiqueSpots() {
     const lv = shopLevel('boutique'), s = [[1, 1], [3, 1], [1, 4], [3, 4]];
     return lv === 1 ? s : lv === 2 ? s.concat([[12, 1], [12, 4]]) : s.concat([[12, 1], [12, 4], [14, 1], [14, 4]]);

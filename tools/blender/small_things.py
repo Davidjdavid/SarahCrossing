@@ -636,6 +636,29 @@ def veg(kind):
             a = k / 7 * math.tau
             ball(mb, (math.cos(a) * 0.06, math.sin(a) * 0.06, 0.26), 0.055, col_fn('#3a8a3a', mottle=0.25), sub=2)
         ball(mb, (0, 0, 0.29), 0.06, col_fn('#3a8a3a', mottle=0.25), sub=2)
+    elif kind == 'pumpkin':
+        # a sprawling vine: big round leaves low on the soil and the pumpkin sitting among them
+        for k in range(5):
+            a = k / 5 * math.tau + 0.3
+            d = Vector((math.cos(a), math.sin(a), 0))
+            tube(mb, [d * 0.02 + Vector((0, 0, 0.04)), d * 0.08 + Vector((0, 0, 0.07)), d * 0.13 + Vector((0, 0, 0.08))], 0.008, shade('#5a8a2a'), seg=5)
+            ball(mb, d * 0.14 + Vector((0, 0, 0.09)), (0.06, 0.06, 0.012), col_fn('#3e8a34', mottle=0.2), sub=2)
+        rib = lambda p, n: rgb('#f28a2a').lerp(rgb('#c8601a'), 0.6 * (0.5 + 0.5 * math.cos(math.atan2(p.y + 0.02, p.x - 0.01) * 8)) ** 6) * (0.84 + 0.16 * max(0.0, n.z))
+        ball(shine, (0.01, -0.02, 0.1), (0.09, 0.09, 0.065), rib, sub=3)
+        tube(mb, [(0.01, -0.02, 0.16), (0.016, -0.02, 0.19), (0.03, -0.016, 0.2)], 0.01, shade('#5a7a2a'), seg=6, r1=0.007)
+    elif kind == 'corn':
+        # a tall stalk with long leaves arching out and two cobs in their husks
+        stalk(mb, (0, 0, 0), 0.56, 0.02, '#5aa040')
+        for k, z in enumerate((0.1, 0.2, 0.3, 0.4, 0.48)):
+            a = k * 2.4
+            d = Vector((math.cos(a), math.sin(a), 0))
+            tube(mb, [Vector((0, 0, z)), d * 0.1 + Vector((0, 0, z + 0.06)), d * 0.2 + Vector((0, 0, z + 0.02)), d * 0.26 + Vector((0, 0, z - 0.06))], 0.016, lambda p, n: rgb('#4a9a3a').lerp(rgb('#7ac04a'), 0.5 + 0.5 * n.z), seg=4, r1=0.004)
+        for k, (a, z) in enumerate(((0.6, 0.26), (3.6, 0.34))):
+            d = Vector((math.cos(a), math.sin(a), 0))
+            tube(shine, [d * 0.02 + Vector((0, 0, z)), d * 0.05 + Vector((0, 0, z + 0.08))], 0.024, shade('#f6d040'), seg=8, r1=0.014)
+            tube(mb, [d * 0.015 + Vector((0, 0, z - 0.01)), d * 0.04 + Vector((0, 0, z + 0.05))], 0.028, shade('#8ac860'), seg=8, r1=0.012)
+            tube(mb, [d * 0.05 + Vector((0, 0, z + 0.08)), d * 0.07 + Vector((0, 0, z + 0.11))], 0.006, shade('#c8a060'), seg=4)
+        ball(mb, (0, 0, 0.58), (0.02, 0.02, 0.04), shade('#d8c070'), sub=1)
     else:
         # a bushy plant with its fruit hanging: chili, cucumber, eggplant, tomato, edamame
         stalk(mb, (0, 0, 0), 0.34, 0.016)
@@ -657,7 +680,7 @@ def veg(kind):
     return [(mb, 'main'), (shine, 'gloss')] if shine.v else [(mb, 'main')]
 
 
-VEG = ['bokchoy', 'chili', 'cucumber', 'carrot', 'broccoli', 'eggplant', 'thaibasil', 'greenonion', 'tomato', 'edamame']
+VEG = ['bokchoy', 'chili', 'cucumber', 'carrot', 'broccoli', 'eggplant', 'thaibasil', 'greenonion', 'tomato', 'edamame', 'pumpkin', 'corn']
 
 THINGS = {
     'item_vbball': vbball, 'plot_seed': plot_seed, 'plot_sprout': plot_sprout,

@@ -130,7 +130,8 @@ function makePlan(id, day) {
         segs.push({ a: 5, b: 8.5 + r() * 0.5, spot: 'jog' });
         wake = 5;
     }
-    const work = (d.work || []).map(([spot, a, b]) => ({ spot, a: a + jit() * 0.5, b: b + jit() * 0.5 }));
+    // (a work stretch can say what they do there: { tend: true } for the fields)
+    const work = (d.work || []).map(([spot, a, b, x]) => Object.assign({ spot, a: a + jit() * 0.5, b: b + jit() * 0.5 }, x || {}));
     const clubNight = d.club && r() < d.club;
     let t = segs.length ? segs[segs.length - 1].b : wake;
     if (!segs.length) {
@@ -142,7 +143,7 @@ function makePlan(id, day) {
     const homeAt = d.goat ? bed - 0.3 : bed - (0.5 + r() * 0.8);
     while (t < homeAt - 0.1) {
         const w = work.find(k => t >= k.a - 0.05 && t < k.b);
-        if (w) { segs.push({ a: t, b: Math.min(w.b, homeAt), spot: w.spot }); prev = w.spot; t = Math.min(w.b, homeAt); continue; }
+        if (w) { segs.push(Object.assign({ a: t, b: Math.min(w.b, homeAt), spot: w.spot }, w.tend ? { tend: true } : {})); prev = w.spot; t = Math.min(w.b, homeAt); continue; }
         const nextWork = work.filter(k => k.a > t).sort((x, y) => x.a - y.a)[0];
         const band = bandOf(t);
         let len = 0.6 + r() * 1.9;                      // anywhere from about half an hour to two and a half
@@ -504,6 +505,8 @@ function targetFor(n, dh) {
     if (!S.flags.introDone) return { key: 'sleep', sleep: true };
     if (LAB) { const at = LAB_CAST[n.id]; return at ? { key: 'lab', area: 'island', x: at[0] * TILE, y: at[1] * TILE, fixed: true, face: 'down' } : { key: 'sleep', sleep: true }; }
     if (Online.isHere(n.id)) return { key: 'online', sleep: true };       // the real David (or Joe...) is playing: their NPC steps aside
+    // (a neighbor still to come: out cold on the beach, building a ship, away at sea... 6zr_seafarer.js)
+    if (d.newcomer) { const t = newcomerTarget(n, dh); if (t) return t; }
     const seg = planNow(n.id, dh);
     if (!seg) return { key: 'sleep', sleep: true };
     // Sarah said yes to lunch or hanging out: that's where they're headed

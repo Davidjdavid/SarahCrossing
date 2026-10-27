@@ -314,6 +314,42 @@ docs/DEPLOY.md for the server.
   it never fades see-through like the tree's fruit does (`EnvModels.solid`). A material that fades (`see`) compiles to
   another program, so it needs its own key (`envmodel` against `envfolk`, `…glows`, `…glass` + `s`): two programs under one
   key get mixed up.
+- Town projects (6zgb_projects.js, `PROJECTS`): the Town Hall's Projects screen (`CIVIC_LIVE.projects`) takes money a bit at
+  a time (`projectPay`); paid off, it's built the next morning (`projectsTick`, a letter from Sir Floret): the swing set,
+  the hammock, the park clock, the stone tablet on the mountain top, the lighthouse restored (its door boarded,
+  `door_boards`, until then: `lighthouseOpen`, `boardedLighthouse`; an island whose keeper's story had begun keeps it
+  open), Fortune's Department Store (a fourth shop level, once the shop has grown twice) and, once all those are built,
+  Sarah's statue (`statue_sarah`, her doll in bronze). Where they stand is the plan's `projects` (`W0.projects`; their props
+  come after the community fence in `W0.props`, left out until built: `projectBuilt`); `Projects` has what each does
+  (`swingOn` swings Sarah, `Projects.swing` the seats in 3D at the frame's `anchor_hub`; the clock's hands turn with
+  `Clock.hourF()`; `shrine` a wish once a day). Kept as `S.town.proj` { paid, done, told }.
+- Captain Scampi, the seafarer (6zr_seafarer.js, David's note of 27 October late): a giant shrimp (`folk2_scampi`) found
+  washed up and out cold on the beach east of the pier a week after the island begins (`S.sea.from`; a save brought in
+  counts from the day it first loads this, `migrate`); a newcomer (`NPC_DEFS.scampi.newcomer`: `newcomerTarget` in
+  targetFor, `newcomerTalk` in talkTo) whose story is `S.sea.stage` (`seaTick` each morning, `seaTalk`): ten logs (a
+  felled tree drops a `ship_log` while he's short, `seaChop`), ten home-cooked meals, five gems, a day each; his wreck,
+  then the frame, then the ship stand on the beach (`seaRefresh`, `wreck` / `ship_frame` / `ship_scampi` from
+  props_island.py); he sails off the next morning (`seaDepart`: his compass, the boat out to sea as one of SeaSky's;
+  by himself with a letter if Sarah missed him), is back at the pier three days later and asks to stay; the next morning
+  he lives on the plot by the west lane (`land_a`, `h_scampi`, its FOR SALE sign gone: `lotTaken`), a neighbor
+  (`seaJoin`) who works the farm (`work` with `tend`) and one of the Collection's secret neighbors (`friend_scampi`). He
+  brings the far islands' things (`FAR_VEG`, `FAR_DISHES`, `farOk`: hidden till then): pumpkin and sweet corn seeds at
+  Fortune's, four recipes taught a heart at a time (`RECIPE_FROM.scampi`), their pictures drawn in code (`FAR_ICONS`),
+  their models in dishes.py, small_things.py and pocket_things.py. The dialogue sheet picks up any `NPC_DEFS.<id> = {
+  name }` as a neighbor.
+- Mugsy, the living mug (6zs_mug.js, David's note of 27 October late): once the museum has twenty gifts from Sarah and a
+  pot of hers on every pedestal of the pottery hall (`mugReady`), Brulee writes, and her talk menu tells of the old dig
+  (`mugOptions`, `mugStory`); then an X scratched in the grass turns up each day (`mugSpot` from the seed and the day,
+  `addMugX`, a ground decal in the new look; dug with the shovel by tapping it or from in front, `digAt`'s `digX` hook),
+  a piece (`mug_shard`) under each; five, and at the museum Brulee fetches Sully, who mends them with gold (`mugMend`): the
+  mug stands in the hall that day (`mugTarget`). The next day, the first time Sarah's out on the island (`mugCheck`, every
+  second from the main loop), it comes bounding up (`mugVisit`), alive all along, and asks to stay (`mugAsk`); the
+  morning after, Mugsy's café is open on the alley's lot (`W0.buildings.cafe`, `bld_cafe` from buildings.py; the COMING
+  SOON sign comes down: `cafeOpen`) and the mug lives on the plot by the farm lane (`land_b`, `h_mug`). The café
+  (`ROOMS.cafe`, `buildCafeRoom`, open 7 AM to 5 PM with Mugsy behind the counter) sells four coffees (`CAFE_MENU`,
+  `cafeMenu`: the first free, for here or to go; models `item_drink_*` in dishes.py), and a coffee always perks Sarah
+  up (`coffeeBoost`, the Speedy boost; `foodBonus` for one to go). Its model is `folk2_mug` (folks2.py), a secret
+  neighbor (`friend_mug`). Kept as `S.mug` { stage, found, dug, day, visited, free }.
 - Neighbors now and then ask Sarah to play when she talks to them (`igMaybeAsk`, `IG_ASK`, at most once a day each, about
   one talk in eight where a game fits), and rarely text to ask (Invites' kind `play`: say yes, then talk to them).
 - The collection's items each open a display of their own (41a_showcase.js, `itemShowcase`): the model turning on a

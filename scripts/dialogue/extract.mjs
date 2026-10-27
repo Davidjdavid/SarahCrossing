@@ -14,6 +14,8 @@ const SRC = path.join(ROOT, 'game/src');
 const npcSrc = fs.readFileSync(path.join(SRC, '22_npc.js'), 'utf8');
 const defs = npcSrc.slice(npcSrc.indexOf('const NPC_DEFS'), npcSrc.indexOf('\n};', npcSrc.indexOf('const NPC_DEFS')));
 export const NPCS = Object.fromEntries([...defs.matchAll(/^\s{4}(\w+):\s+\{\s*name: '([^']+)'/gm)].map(m => [m[1], m[2]]));
+// (and the neighbors who arrive later in the game, each in a file of their own: NPC_DEFS.<id> = { name: ... })
+for (const f of fs.readdirSync(SRC)) for (const m of fs.readFileSync(path.join(SRC, f), 'utf8').matchAll(/NPC_DEFS\.(\w+) = \{ name: '([^']+)'/g)) NPCS[m[1]] = m[2];
 NPCS.sarah = 'Sarah';
 const VISITORS = new Set(['david', 'james', 'john', 'joe', 'elizabeth', 'sarah']);
 

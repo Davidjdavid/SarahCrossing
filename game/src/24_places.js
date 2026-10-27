@@ -45,6 +45,7 @@ async function enterBuilding(id) {
         Bus.emit('enter', 'club');
         return;
     }
+    if (id === 'lighthouse' && !lighthouseOpen()) { await boardedLighthouse(); return; }
     if (shopReno(id)) {
         await UI.say('sign', id === 'shop' ? "CLOSED FOR RENOVATION. Back tomorrow, BIGGER. (Lots of hammering inside. Fortune is supervising. Ginger is ignoring the supervising.)"
             : 'CLOSED TODAY. "Something fabulous is happening. Come back tomorrow, darling." You can hear Clementine telling Ginger to move a shelf one inch to the left.');

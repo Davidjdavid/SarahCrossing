@@ -61,7 +61,7 @@ function todaysMenu() {
     if (todaysMenu.c && todaysMenu.c.day === day) return todaysMenu.c;
     const r = mulberry(hash32(S.seed + ':menu:' + day));
     const special = G.events && G.events.has('soupday') ? 'tomato_soup' : G.events && G.events.has('macday') ? 'mac_cheese' : MAC_SPECIALS[day % MAC_SPECIALS.length];
-    const pool = RECIPES.map(x => x.id).filter(id => !MAC_SPECIALS.includes(id) && !CECE_DESSERTS.includes(id) && ITEMS[id]);
+    const pool = RECIPES.map(x => x.id).filter(id => !MAC_SPECIALS.includes(id) && !CECE_DESSERTS.includes(id) && ITEMS[id] && farOk(id));
     const mains = shuffled(pool, r).slice(0, 3);
     const dessert = CECE_DESSERTS[Math.floor(r() * CECE_DESSERTS.length)];
     todaysMenu.c = { day, special, dishes: [special].concat(mains, [dessert]), dessert };

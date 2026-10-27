@@ -1309,6 +1309,350 @@ def bigtree_planter():
     return [(mb, 'main')]
 
 
+# ---------------------------------------------------------------- the town's projects (game/src/6zgb_projects.js)
+def swing_set():
+    """A wooden A-frame swing set three tiles wide; its two seats on their chains are a model of their own
+    (swing_set_sails), hung from the top bar at anchor_hub, so the game can swing them."""
+    mb, seats = MB(), MB()
+    TOP = 1.72
+    for x in (-1.32, 1.32):
+        for s in (-1, 1):
+            tube(mb, [(x, s * 0.56, 0.0), (x, s * 0.04, TOP - 0.04)], 0.055, wood(WOOD, seed=3 + s), seg=10)
+            rbox(mb, x - 0.09, s * 0.56 - 0.09, -0.01, x + 0.09, s * 0.56 + 0.09, 0.07, wood(WOOD_D), r=0.02)
+        rbox(mb, x - 0.035, -0.33, 0.62, x + 0.035, 0.33, 0.7, wood(WOOD_D), r=0.015)
+    tube(mb, [(-1.48, 0, TOP), (1.48, 0, TOP)], 0.075, wood(WOOD_L, 'x'), seg=12)
+    for x in (-1.48, 1.48):
+        ball(mb, (x, 0, TOP), (0.03, 0.085, 0.085), wood(WOOD_D), sub=2)
+    for x in (-0.62, 0.62):
+        for dx in (-0.25, 0.25):
+            tube(mb, [(x + dx, 0, TOP - 0.04), (x + dx, 0, TOP - 0.1)], 0.02, shade('#5a5a62'), seg=6)
+            # (the chains: a string of little links)
+            for k in range(14):
+                z = -0.1 - k * 0.088
+                ball(seats, (x + dx, 0, z), (0.014, 0.008 if k % 2 else 0.016, 0.03), shade('#8a8a92'), sub=1)
+        rbox(seats, x - 0.31, -0.14, -1.37, x + 0.31, 0.14, -1.3, wood('#d0503a' if x < 0 else '#3a8ad0', 'x'), r=0.03)
+    return [(mb, 'main')], [(seats, 'seats')], [(0, 0, TOP)]
+
+
+def hammock():
+    """A striped hammock slung between two posts on the beach, three tiles wide."""
+    mb, cloth = MB(), MB()
+    for x in (-1.32, 1.32):
+        tube(mb, [(x, 0, 0.0), (x, 0, 1.18)], 0.07, wood(WOOD_D, seed=x), seg=10)
+        ball(mb, (x, 0, 1.2), 0.085, wood(WOOD), sub=2)
+        lathe(mb, [(0.12, 0.0), (0.1, 0.06), (0.075, 0.08)], stone('#d8ccb0'), c=(x, 0, 0), seg=12, cap_top=False)
+        s = 1 if x > 0 else -1
+        for dy in (-0.14, 0.0, 0.14):
+            tube(mb, [(x - s * 0.04, 0, 1.02), (x - s * 0.4, dy, 0.8)], 0.012, shade('#efe2c4'), seg=5)
+    # the cloth: a sheet sagging between the two ends, narrow at them, curled up at its sides, in stripes
+    A, B = rgb('#e8604a'), rgb('#f4ecd8')
+    nu, nv = 28, 9
+    pts, cols, nrms, faces = [], [], [], []
+    for i in range(nu + 1):
+        u = i / nu
+        x = -0.94 + 1.88 * u
+        half = 0.06 + 0.3 * math.sin(math.pi * u) ** 0.6
+        zc = 0.8 - 0.4 * math.sin(math.pi * u)
+        for j in range(nv + 1):
+            v = j / nv * 2 - 1
+            y = v * half
+            z = zc + 0.12 * v * v * math.sin(math.pi * u)
+            pts.append((x, y, z))
+            col = A if int(u * 9) % 2 else B
+            cols.append(col)
+            nrms.append((0, -0.5 * v * math.sin(math.pi * u), 1))
+    for i in range(nu):
+        for j in range(nv):
+            a, b, c, d = i * (nv + 1) + j, (i + 1) * (nv + 1) + j, (i + 1) * (nv + 1) + j + 1, i * (nv + 1) + j + 1
+            faces += [(a, b, c), (a, c, d)]
+    cloth.add(pts, cols, nrms, faces)
+    # (and its underside, a shade darker)
+    pts2 = [(x, y, z - 0.02) for x, y, z in pts]
+    cloth.add(pts2, [c * 0.8 for c in cols], [(-n[0], -n[1], -n[2]) for n in nrms], faces)
+    # a cushion at the head end
+    ball(cloth, (-0.66, 0, 0.62), (0.14, 0.2, 0.06), shade('#f8d860'), sub=2)
+    return [(mb, 'main'), (cloth, 'cloth')]
+
+
+# the park clock's faces (the game hangs its hands there, park_clock_hour and park_clock_minute: EnvBuild.CLOCK_FACE)
+CLOCK_FACE = (0.0, 0.125, 2.06)
+
+
+def park_clock():
+    """A park clock: a green iron post with a round clock on top, a face to the front and one to the back, and a lamp
+    of a finial; its hands are models of their own, turned to the time."""
+    mb, glow = MB(), MB()
+    G = '#2e6a4a'
+    lathe(mb, [(0.3, 0.0), (0.3, 0.08), (0.24, 0.12), (0.2, 0.18), (0.13, 0.24), (0.1, 0.4)], col_fn(G, under=0.3), seg=24, cap_top=False)
+    lathe(mb, [(0.075, 0.38), (0.06, 1.0), (0.055, 1.6), (0.07, 1.68), (0.09, 1.72)], shade(G), seg=16, cap_top=False)
+    for z in (0.62, 1.2):
+        lathe(mb, [(0.06, z), (0.085, z + 0.02), (0.085, z + 0.05), (0.06, z + 0.07)], shade('#c8a048'), seg=16, cap_top=False)
+    cx, cy, cz = CLOCK_FACE
+    R = 0.36
+    # the case and both faces, turned upright from the lathe (its axis along y): the drum, the rims, the faces
+    lay = Matrix.Translation((cx, 0, cz)) @ Euler((math.pi / 2, 0, 0)).to_matrix().to_4x4()
+    m = len(mb.v)
+    lathe(mb, [(R + 0.06, -0.11), (R + 0.075, -0.09), (R + 0.075, 0.09), (R + 0.06, 0.11)], shade(G), seg=40, cap_top=False)
+    for z in (-0.11, 0.11):
+        lathe(mb, [(R + 0.06, z), (R + 0.0, z + (0.012 if z > 0 else -0.012))], shade('#c8a048'), seg=40, cap_top=False)
+    lathe(mb, [(R, cy), (0.0, cy)], shade('#f6f0de'), seg=40, cap_top=False)
+    lathe(mb, [(0.0, -cy), (R, -cy)], shade('#f6f0de'), seg=40, cap_top=False)
+    xform(mb, m, lay)
+    # the hour marks on both faces
+    for s in (-1, 1):
+        for k in range(12):
+            a = k / 12 * math.tau
+            x, z = math.cos(a) * 0.29, math.sin(a) * 0.29
+            dx, dz = (0.03, 0.011) if k in (0, 6) else (0.011, 0.03) if k in (3, 9) else (0.012, 0.012)
+            y = s * (cy + 0.003)
+            rbox(mb, cx + x - dx, y - 0.003, cz + z - dz, cx + x + dx, y + 0.003, cz + z + dz, shade('#2a2a2a'), r=0.002, mid=0)
+    # the cap and its little lamp
+    lathe(mb, [(0.2, cz + R + 0.04), (0.16, cz + R + 0.1), (0.06, cz + R + 0.2), (0.0, cz + R + 0.24)], shade(G), seg=20, cap_top=False, cap_bot=True)
+    lathe(mb, [(0.05, cz - R - 0.1), (0.07, cz - R - 0.04), (0.05, cz - R + 0.02)], shade(G), seg=12, cap_top=False)
+    ball(glow, (0, 0, cz + R + 0.3), 0.07, shade('#ffe8a0'), sub=2)
+    ball(mb, (0, 0, cz + R + 0.39), 0.03, shade('#c8a048'), sub=1)
+    return [(mb, 'main'), (glow, 'glow')]
+
+
+def park_clock_hand(kind):
+    """A hand of the park clock, pointing at 12 about the middle of its face (origin), a face's worth in front of it."""
+    mb = MB()
+    L, W = (0.27, 0.016) if kind == 'minute' else (0.18, 0.022)
+    for s in (-1, 1):
+        rbox(mb, -W, s * 0.012 - 0.005, -0.04, W, s * 0.012 + 0.005, L, shade('#22201e'), r=0.006, mid=0)
+    ball(mb, (0, 0, 0), (0.03, 0.022, 0.03), shade('#c8a048'), sub=1)
+    return [(mb, 'main')]
+
+
+def shrine_stone():
+    """The stone tablet on the mountain top: an old carved stele on a stepped base, mossy at its foot, with a stone
+    lantern each side and a little dish of offerings, two tiles wide."""
+    mb, glow = MB(), MB()
+    rbox(mb, -0.85, -0.42, 0.0, 0.85, 0.42, 0.12, stone('#a8a094', seed=1), r=0.04)
+    rbox(mb, -0.6, -0.3, 0.12, 0.6, 0.3, 0.24, stone('#b4ac9e', seed=2), r=0.04)
+    # the stele: rounded at the top
+    out = [(-0.34, 0.24)]
+    for k in range(13):
+        a = math.pi * k / 12
+        out.append((-0.34 + 0.34 * (1 - math.cos(a)), 1.22 + 0.2 * math.sin(a)))
+    out.append((0.34, 0.24))
+    slab(mb, out[::-1] if False else out, 0.16, stone('#c0b8a8', seed=4), axis='y', at=-0.08)
+    # its carving: rows of inset marks, and a sun at the top
+    r = random.Random(5)
+    for row in range(6):
+        z = 0.42 + row * 0.12
+        x = -0.24
+        while x < 0.22:
+            w = r.uniform(0.03, 0.08)
+            rbox(mb, x, -0.088, z, x + w, -0.08, z + 0.05, shade('#6e675c'), r=0.004, mid=0)
+            x += w + r.uniform(0.02, 0.05)
+    m = len(mb.v)
+    lathe(mb, [(0.09, 0.0), (0.0, 0.0)], shade('#6e675c'), c=(0, 0, 0), seg=16, cap_top=False)
+    xform(mb, m, Matrix.Translation((0, -0.088, 1.25)) @ Euler((math.pi / 2, 0, 0)).to_matrix().to_4x4())
+    for k in range(8):
+        a = k / 8 * math.tau
+        rbox(mb, math.cos(a) * 0.13 - 0.012, -0.088, 1.25 + math.sin(a) * 0.13 - 0.012, math.cos(a) * 0.13 + 0.012, -0.08, 1.25 + math.sin(a) * 0.13 + 0.012, shade('#6e675c'), r=0.004, mid=0)
+    # moss at its foot
+    for k in range(18):
+        x, y = r.uniform(-0.55, 0.55), r.choice((-0.3, 0.3)) + r.uniform(-0.04, 0.04)
+        ball(mb, (x, y, 0.24), (r.uniform(0.05, 0.1), 0.05, 0.035), shade(r.choice(('#5a8a3a', '#6a9a44', '#4e7a34'))), sub=1)
+    # two stone lanterns
+    for x in (-0.7, 0.7):
+        lathe(mb, [(0.1, 0.12), (0.08, 0.16), (0.05, 0.4), (0.09, 0.42), (0.12, 0.44)], stone('#b8b0a2'), c=(x, 0, 0), seg=10, cap_top=False)
+        rbox(mb, x - 0.09, -0.09, 0.44, x + 0.09, 0.09, 0.58, stone('#c4bcae'), r=0.02)
+        rbox(glow, x - 0.06, -0.095, 0.47, x + 0.06, 0.095, 0.55, shade('#ffd88a'), r=0.01, mid=0)
+        lathe(mb, [(0.16, 0.58), (0.14, 0.62), (0.05, 0.72), (0.0, 0.74)], stone('#a8a094'), c=(x, 0, 0), seg=6, cap_top=False)
+    # a dish of offerings: a peach and a little cup
+    lathe(mb, [(0.0, 0.24), (0.12, 0.25), (0.13, 0.28)], shade('#e8e0d0'), c=(0, -0.22, 0), seg=16, cap_top=False, cap_bot=True)
+    ball(mb, (-0.03, -0.22, 0.31), 0.045, shade('#f4a088'), sub=2)
+    lathe(mb, [(0.0, 0.25), (0.03, 0.25), (0.035, 0.3)], shade('#c84a3a'), c=(0.07, -0.22, 0), seg=10, cap_top=False, cap_bot=True)
+    return [(mb, 'main'), (glow, 'glow')]
+
+
+def statue_sarah():
+    """Sarah's statue, the town's last and grandest project: her in bronze (the doll kit) on a tall stone plinth with
+    steps, flowers round its foot and a brass plaque, two tiles square."""
+    mb = MB()
+    rbox(mb, -0.95, -0.95, 0, 0.95, 0.95, 0.14, stone('#a8a094'), r=0.04)
+    rbox(mb, -0.75, -0.75, 0.14, 0.75, 0.75, 0.3, stone('#b8b0a2'), r=0.04)
+    rbox(mb, -0.5, -0.5, 0.3, 0.5, 0.5, 1.0, stone('#ccc4b4'), r=0.04)
+    rbox(mb, -0.56, -0.56, 1.0, 0.56, 0.56, 1.1, stone('#b8b0a2'), r=0.04)
+    rbox(mb, -0.26, -0.515, 0.48, 0.26, -0.5, 0.74, col_fn('#c8a048'), r=0.006)
+    r = random.Random(9)
+    for k in range(26):
+        a = k / 26 * math.tau
+        x, y = math.cos(a) * 0.86, math.sin(a) * 0.86
+        x, y = max(-0.88, min(0.88, x * 1.2)), max(-0.88, min(0.88, y * 1.2))
+        col = r.choice(('#f8f2f6', '#ffd84a', '#f48ab0', '#e85a5a', '#c8a0f0'))
+        ball(mb, (x, y, 0.19), (0.05, 0.05, 0.02), shade(col), sub=1)
+        ball(mb, (x, y, 0.15), (0.06, 0.06, 0.03), shade('#5a9a3a'), sub=1)
+    return [(mb, 'main')], 'statue_doll:sarah'
+
+
+def door_boards():
+    """Boards nailed over the lighthouse door until the town restores it: two planks up, two across in an X, and a
+    notice; its back against the wall (y 0), facing -y, its middle at x 0."""
+    mb, pic = MB(), MB()
+    for x, seed in ((-0.2, 1), (0.2, 2)):
+        rbox(mb, x - 0.17, -0.06, 0.0, x + 0.17, 0.0, 1.32, wood('#9a7650', 'z', seed=seed), r=0.015)
+    for s in (-1, 1):
+        m = len(mb.v)
+        rbox(mb, -0.62, -0.12, -0.07, 0.62, -0.06, 0.07, wood('#b08458', 'x', seed=s + 4), r=0.015)
+        xform(mb, m, Matrix.Translation((0, 0, 0.68)) @ Euler((0, s * 0.82, 0)).to_matrix().to_4x4())
+    for x, z in ((-0.3, 0.32), (0.3, 0.32), (-0.3, 1.04), (0.3, 1.04), (0, 0.68)):
+        ball(mb, (x, -0.125, z), (0.016, 0.01, 0.016), shade('#5a5a60'), sub=1)
+    rbox(mb, -0.2, -0.135, 0.9, 0.2, -0.125, 1.18, shade('#f2e8d2'), r=0.008)
+    return [(mb, 'main')]
+
+
+# ---------------------------------------------------------------- Captain Scampi's ship (game/src/6zr_seafarer.js)
+def hull_shape(mb, L, B, D, color, z0=0.0, nu=26, nv=10, bow=0.85, inner=None):
+    """A boat's hull along x (the bow at +x, a flat transom at -x), its gunwale at z0 + D, its keel at z0; B the beam.
+    inner: the color of the hull's inside (the deck well), or None for a closed top."""
+    fn = color if callable(color) else shade(color)
+    pts, cols, nrms, faces = [], [], [], []
+
+    def half(u):
+        # wide aft, curving to a point at the bow
+        t = max(0.0, (u - 0.45) / 0.55)
+        return B / 2 * (1 - t ** 1.8) ** 0.55 if u > 0.45 else B / 2 * (0.82 + 0.18 * math.sin(u / 0.45 * math.pi / 2))
+    for i in range(nu + 1):
+        u = i / nu
+        x = -L / 2 + L * u
+        w = max(0.004, half(u))
+        sheer = 0.12 * max(0.0, (u - 0.6) / 0.4) ** 2      # (the bow rises a little)
+        for j in range(nv + 1):
+            a = math.pi * j / nv                              # from one gunwale, round under the keel, to the other
+            y = -math.cos(a) * w
+            z = z0 + D + sheer - math.sin(a) * (D + sheer) * (0.35 + 0.65 * min(1.0, w / (B / 2)))
+            p = Vector((x, y, z))
+            nn = Vector((0.0, -math.cos(a), -math.sin(a)))
+            pts.append(p); nrms.append(nn); cols.append(fn(p, nn))
+    for i in range(nu):
+        for j in range(nv):
+            a, b, c, d = i * (nv + 1) + j, (i + 1) * (nv + 1) + j, (i + 1) * (nv + 1) + j + 1, i * (nv + 1) + j + 1
+            faces += [(a, b, c), (a, c, d)]
+    mb.add(pts, cols, nrms, faces)
+    # the transom
+    tr = [pts[j] for j in range(nv + 1)]
+    mb.add(tr, [fn(q, Vector((-1, 0, 0))) for q in tr], [(-1, 0, 0)] * len(tr), [(0, j, j + 1) for j in range(1, nv)])
+    # the deck (or the inside, a shade darker)
+    top = [Vector((pts[i * (nv + 1)].x, 0, pts[i * (nv + 1)].z - 0.04)) for i in range(nu + 1)]
+    deck_fn = inner if inner else fn
+    dp, dc, dn, df = [], [], [], []
+    for i in range(nu + 1):
+        l, r = pts[i * (nv + 1)], pts[i * (nv + 1) + nv]
+        for q in (l, r):
+            qq = Vector((q.x, q.y * 0.94, q.z - 0.05))
+            dp.append(qq); dn.append((0, 0, 1)); dc.append(deck_fn(qq, Vector((0, 0, 1))) if callable(deck_fn) else shade(deck_fn)(qq, Vector((0, 0, 1))))
+    for i in range(nu):
+        a = i * 2
+        df += [(a, a + 2, a + 3), (a, a + 3, a + 1)]
+    mb.add(dp, dc, dn, df)
+    return half
+
+
+def wreck():
+    """What washed up with the captain: broken planks, a barrel, a coil of rope, a torn scrap of red sail, a lantern."""
+    mb = MB()
+    r = random.Random(4)
+    for k in range(6):
+        x, y, a = r.uniform(-1.2, 1.2), r.uniform(-0.8, 0.8), r.uniform(0, math.pi)
+        m = len(mb.v)
+        L = r.uniform(0.5, 1.0)
+        rbox(mb, -L / 2, -0.06, 0.0, L / 2, 0.06, 0.05, wood(r.choice((WOOD, WOOD_D, '#8a6a48')), 'x', seed=k), r=0.012)
+        xform(mb, m, Matrix.Translation((x, y, 0.01)) @ Euler((r.uniform(-0.1, 0.1), r.uniform(-0.1, 0.1), a)).to_matrix().to_4x4())
+    # a barrel on its side
+    m = len(mb.v)
+    lathe(mb, [(0.0, -0.22), (0.17, -0.22), (0.2, 0.0), (0.17, 0.22), (0.0, 0.22)], wood(WOOD, 'z'), seg=16, cap_top=False)
+    for z in (-0.13, 0.13):
+        lathe(mb, [(0.19, z - 0.015), (0.2, z), (0.19, z + 0.015)], shade(IRON), seg=16, cap_top=False)
+    xform(mb, m, Matrix.Translation((0.9, 0.5, 0.18)) @ Euler((0, math.pi / 2, 0.4)).to_matrix().to_4x4())
+    # rope, coiled
+    for k in range(3):
+        tube(mb, [(math.cos(a) * (0.16 + k * 0.03) - 0.7, math.sin(a) * (0.16 + k * 0.03) - 0.4, 0.03 + k * 0.02) for a in [t / 12 * math.tau for t in range(13)]], 0.022, shade('#d8c08a'), seg=6)
+    # a torn scrap of red sail, rumpled on the sand
+    for k in range(5):
+        ball(mb, (-0.2 + k * 0.12, 0.55 + 0.05 * math.sin(k), 0.02), (0.12, 0.09, 0.02), shade('#c83a2e'), sub=1)
+    # a ship's lantern on its side
+    m = len(mb.v)
+    lathe(mb, [(0.06, 0.0), (0.07, 0.02), (0.07, 0.14), (0.04, 0.18), (0.0, 0.2)], shade('#3a3a40'), seg=10, cap_top=False, cap_bot=True)
+    xform(mb, m, Matrix.Translation((0.3, -0.6, 0.07)) @ Euler((math.pi / 2, 0, 0.9)).to_matrix().to_4x4())
+    return [(mb, 'main')]
+
+
+def ship_frame():
+    """The new ship on the beach, half built: a keel on blocks with its ribs up, the first planks on, a stack of logs."""
+    mb = MB()
+    for x in (-1.0, 0.0, 1.0):
+        rbox(mb, x - 0.15, -0.18, 0.0, x + 0.15, 0.18, 0.2, wood(WOOD_D), r=0.02)
+    rbox(mb, -1.5, -0.06, 0.2, 1.4, 0.06, 0.3, wood(WOOD, 'x'), r=0.02)
+    tube(mb, [(1.4, 0, 0.25), (1.6, 0, 0.6), (1.65, 0, 0.95)], 0.05, wood(WOOD), seg=8)
+    for k in range(7):
+        x = -1.25 + k * 0.4
+        w = 0.5 * (1 - max(0.0, (x - 0.3) / 1.3) ** 1.8) ** 0.55 if x > 0.3 else 0.5
+        tube(mb, [(x, -w, 0.95), (x, -w * 0.9, 0.5), (x, -w * 0.4, 0.3), (x, 0, 0.27), (x, w * 0.4, 0.3), (x, w * 0.9, 0.5), (x, w, 0.95)], 0.035, wood('#c8945a'), seg=6)
+    for z, k in ((0.42, 0), (0.55, 1)):
+        for sgn in (-1, 1):
+            tube(mb, [(-1.3, sgn * 0.48, z), (0.3, sgn * 0.5, z), (1.0, sgn * 0.3, z + 0.05), (1.5, sgn * 0.05, z + 0.12)], 0.03, wood(WOOD_L, 'x', seed=k + sgn), seg=6)
+    for k in range(4):
+        m = len(mb.v)
+        lathe(mb, [(0.0, -0.45), (0.09, -0.45), (0.09, 0.45), (0.0, 0.45)], wood(WOOD_D, 'z', seed=k), seg=10, cap_top=False)
+        xform(mb, m, Matrix.Translation((-0.4 + (k % 2) * 0.2, 0.95 + (k // 2) * 0.0, 0.09 + (k // 2) * 0.16 + (k % 2) * 0.0)) @ Euler((0, math.pi / 2, 0.1 * k)).to_matrix().to_4x4())
+    return [(mb, 'main')]
+
+
+def ship_scampi():
+    """Captain Scampi's new ship: a little wooden sloop three tiles long, blue and white, a red sail with a shrimp on it, a
+    tiny cabin aft with a round window, a ship's wheel, a pennant at the masthead."""
+    mb, sail = MB(), MB()
+    hull_col = lambda p, n, *_: (rgb('#3a6ab8') if p.z < 0.42 else rgb('#f4efe2')) * (0.9 + 0.1 * max(0.0, -n.z * -1)) * (0.94 + 0.06 * noise.noise(p * 3))
+    hull_shape(mb, 3.0, 1.15, 0.62, hull_col, z0=0.0, inner=wood(WOOD_L, 'x'))
+    # a gold stripe along the side, the cabin, the wheel, the mast and boom
+    rbox(mb, -1.35, -0.42, 0.62, -0.45, 0.42, 1.0, wood('#f4efe2'), r=0.04)
+    rbox(mb, -1.42, -0.46, 1.0, -0.38, 0.46, 1.06, wood('#a84a32', 'x'), r=0.02)
+    lathe(mb, [(0.0, 0.0), (0.09, 0.0), (0.1, 0.012)], shade('#3a4a6a'), c=(-0.9, -0.425, 0.82), seg=14, cap_top=False, cap_bot=True)
+    m = len(mb.v)
+    for k in range(8):
+        a = k / 8 * math.tau
+        tube(mb, [(0, 0, 0), (math.cos(a) * 0.14, 0, math.sin(a) * 0.14)], 0.012, wood(WOOD_D), seg=4)
+    lathe(mb, [(0.15, -0.01), (0.15, 0.01)], wood(WOOD_D), seg=16, cap_top=False)
+    xform(mb, m, Matrix.Translation((-0.3, 0, 0.86)) @ Euler((0, 0, math.pi / 2)).to_matrix().to_4x4())
+    tube(mb, [(-0.3, 0, 0.6), (-0.3, 0, 0.78)], 0.025, wood(WOOD_D), seg=6)
+    tube(mb, [(0.35, 0, 0.6), (0.35, 0, 2.6)], 0.045, wood(WOOD, 'z'), seg=10, r1=0.032)
+    tube(mb, [(0.35, 0, 0.95), (-0.6, 0, 0.95)], 0.03, wood(WOOD_D, 'x'), seg=8)
+    # the sail: a triangle from the masthead to the boom's end, bellied a little, red with a white shrimp
+    nu, nv = 10, 10
+    pts, cols, nrms, faces = [], [], [], []
+    for i in range(nu + 1):
+        for j in range(nv + 1):
+            u, v = i / nu, j / nv
+            x = 0.33 - 0.92 * u * (1 - v)
+            z = 1.0 + 1.55 * v
+            y = -0.08 * math.sin(math.pi * u) * math.sin(math.pi * min(1.0, v * 1.2))
+            p = Vector((x, y, z))
+            sx, sz = (x + 0.15) / 0.3, (z - 1.45) / 0.3
+            white = (sx * sx + sz * sz) < 0.6 or ((sx + 1.0) ** 2 + (sz - 0.2) ** 2) < 0.12
+            pts.append(p); nrms.append((0, -1, 0)); cols.append(rgb('#f6f0e6') if white else rgb('#c8382c'))
+    for i in range(nu):
+        for j in range(nv):
+            a, b, c, d = i * (nv + 1) + j, (i + 1) * (nv + 1) + j, (i + 1) * (nv + 1) + j + 1, i * (nv + 1) + j + 1
+            faces += [(a, b, c), (a, c, d)]
+    sail.add(pts, cols, nrms, faces)
+    sail.add([Vector((q.x, q.y + 0.01, q.z)) for q in pts], [c * 0.82 for c in cols], [(0, 1, 0)] * len(pts), faces)
+    # the pennant and the ropes
+    slab(mb, [(0.35, 2.6), (0.75, 2.52), (0.35, 2.44)], 0.01, shade('#f4c440'), axis='y', at=-0.005)
+    tube(mb, [(0.35, 0, 2.55), (1.45, 0, 0.66)], 0.008, shade('#d8c08a'), seg=4)
+    tube(mb, [(0.35, 0, 2.55), (-1.3, 0, 1.0)], 0.008, shade('#d8c08a'), seg=4)
+    # a life ring on the cabin's side
+    m = len(mb.v)
+    for k in range(16):
+        a, b2 = k / 16 * math.tau, (k + 1) / 16 * math.tau
+        tube(mb, [(math.cos(a) * 0.1, 0, math.sin(a) * 0.1), (math.cos(b2) * 0.1, 0, math.sin(b2) * 0.1)], 0.028, shade('#f4f0e8' if k % 4 < 2 else '#d83a2e'), seg=6)
+    xform(mb, m, Matrix.Translation((-0.6, -0.44, 0.84)))
+    return [(mb, 'main'), (sail, 'sail')]
+
+
 PROPS = {
     'fountain': fountain, 'fountain_grand': fountain_grand, 'drinkfountain': drinkfountain, 'board': board, 'planter_box': planter_box, 'plaque': plaque, 'trashcan': trashcan, 'statue_david': statue,
     'signpost_trail': lambda: sign('trail'), 'signpost_farm': lambda: sign('farm'), 'signpost_camp': lambda: sign('camp'),
@@ -1326,20 +1670,28 @@ PROPS = {
     'bunting_harvest': lambda: bunting(['#c8641e', '#e8b040', '#9a3a2a', '#7a8a3a']), 'harvest_stack': harvest_stack,
     'sign_forsale': sign_forsale, 'sign_comingsoon': sign_comingsoon, 'grand_lights': grand_lights, 'grand_presents': grand_presents, 'snowman': snowman,
     'jack_o_lantern': jack_o_lantern, 'jack_o_lantern_b': lambda: jack_o_lantern('oh', 0.3, 0.25, seed=3), 'jack_stack': jack_stack, 'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
+    'swing_set': swing_set, 'hammock': hammock, 'park_clock': park_clock, 'park_clock_hour': lambda: park_clock_hand('hour'),
+    'park_clock_minute': lambda: park_clock_hand('minute'), 'shrine_stone': shrine_stone, 'statue_sarah': statue_sarah, 'door_boards': door_boards,
+    'wreck': wreck, 'ship_frame': ship_frame, 'ship_scampi': ship_scampi,
     'bigtree_planter': bigtree_planter, 'reeds': reeds, 'lilypad': lilypad, 'lilypad_flower': lambda: lilypad(True), 'pebbles': pebbles, 'falls_rocks': falls_rocks,
 }
 
 
-def statue_doll():
-    """David in bronze, from the doll kit, one arm up."""
+def statue_doll(who='david'):
+    """David in bronze, from the doll kit, one arm up (or Sarah, for hers)."""
     import doll
-    spec = {'look': dict(hair='spiky', hairCol='#a87a3a', skin='#b8863e', eyes='#5a3a1a', beard='#a87a3a'),
-            'clothes': dict(style='jacket', top='#a87a3a', trim='#c8964a', bottom='#9a6e34', shoes='#8a6230')}
-    parts = doll.doll(spec, 'statue_', pose=0.0)
+    if who == 'sarah':
+        spec = dict(doll.FOLKS['sarah'])
+        X = 'statue_sarah_'
+    else:
+        spec = {'look': dict(hair='spiky', hairCol='#a87a3a', skin='#b8863e', eyes='#5a3a1a', beard='#a87a3a'),
+                'clothes': dict(style='jacket', top='#a87a3a', trim='#c8964a', bottom='#9a6e34', shoes='#8a6230')}
+        X = 'statue_'
+    parts = doll.doll(spec, X, pose=0.0)
     # all of it cast in one bronze: each color's lightness picks a shade between dark and bright bronze
     dark, light = Vector(hex_rgb('#4a3014')[:3]), Vector(hex_rgb('#c89848')[:3])
     for o in parts:
-        o.matrix_world = Matrix.Translation((0, 0, 0.9)) @ Matrix.Diagonal((1.15, 1.15, 1.15, 1)) @ o.matrix_world
+        o.matrix_world = Matrix.Translation((0, 0, 1.1 if who == 'sarah' else 0.9)) @ Matrix.Diagonal((1.15, 1.15, 1.15, 1)) @ o.matrix_world
         ca = o.data.color_attributes.get('Col')
         if ca:
             for d in ca.data:
@@ -1368,8 +1720,8 @@ def build(name):
             continue
         mb, part = item
         objs.append(mb.obj(f'{name}_{part}', vmat(f'{name}_{part}', rough=0.35 if part == 'water' else 0.75)))
-    if extra == 'statue_doll':
-        objs += statue_doll()
+    if extra and extra.startswith('statue_doll'):
+        objs += statue_doll(extra.split(':')[1] if ':' in extra else 'david')
     return objs, sails, anchors
 
 

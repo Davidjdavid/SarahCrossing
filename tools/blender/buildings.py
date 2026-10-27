@@ -1,6 +1,6 @@
 """The island's other buildings as dollhouse pieces, after their pictures in the game: the post office, the bank and the
 town hall on the square, the museum, Clementine's boutique, Floss & Gloss, Sully's studio, Waffle's displays, Mac's
-restaurant, the arcade, the club, Ginger's workshop, the lighthouse and the barn. Each is a finished piece (its colors
+restaurant, the arcade, the club, Ginger's workshop, the lighthouse, the barn and Mugsy's café. Each is a finished piece (its colors
 are its own), built from the kit: walls with corner boards and a frieze, framed windows with flower boxes, doors, roofs
 of shingle courses (gable, hipped, mansard, gambrel), columns and pediments, awnings, neon, its name on its sign.
 A part named *_glow (neon) is drawn unlit; *_glass glows at night.
@@ -26,7 +26,7 @@ T = 0.08              # a roof's thickness
 
 # where the door is, from the footprint's middle (the plan's door column + 0.5 - w / 2)
 DOOR_X = {'postoffice': 0, 'bank': 0, 'townhall': 0, 'museum': 0, 'boutique': 0.5, 'salon': 0.5, 'studio': 0, 'displays': 0,
-          'restaurant': 0, 'arcade': 0, 'club': 0.5, 'builder': 0, 'lighthouse': 0, 'barn': 0}
+          'restaurant': 0, 'arcade': 0, 'club': 0.5, 'builder': 0, 'lighthouse': 0, 'barn': 0, 'cafe': 0.5}
 
 
 # ---------------------------------------------------------------- pieces
@@ -813,9 +813,65 @@ def barn():
     return [(mb, 'main'), (gl, 'glass')], []
 
 
+def cafe():
+    """Mugsy's, the coffee shop the living mug opens on the alley's lot (6zs_mug.js): cream walls, a striped awning, a
+    big steaming cup on the roof, two little tables out front and a chalkboard by the door"""
+    def deco(mb, gl, W, D, H, y0):
+        # the cup on the roof: cream with a blue band, a handle, coffee in it and a curl of steam
+        cz = H + 0.95
+        lathe(mb, [(0.0, 0.0), (0.2, 0.0), (0.24, 0.05), (0.27, 0.42), (0.26, 0.46), (0.22, 0.46), (0.2, 0.06), (0.0, 0.06)], lambda p, n: rgb('#3a6aa8') if 0.12 < p.z - cz < 0.2 else rgb('#f6eedc'), c=(-0.6, 0.15, cz), seg=20)
+        lathe(mb, [(0.215, 0.4), (0.0, 0.4)], shade('#6a3a1e'), c=(-0.6, 0.15, cz), seg=20)
+        tube(mb, [(-0.34, 0.15, cz + 0.36), (-0.2, 0.15, cz + 0.32), (-0.19, 0.15, cz + 0.16), (-0.33, 0.15, cz + 0.12)], 0.035, shade('#f6eedc'), seg=8)
+        tube(gl, [(-0.62, 0.15, cz + 0.5), (-0.52, 0.15, cz + 0.62), (-0.66, 0.15, cz + 0.74), (-0.56, 0.15, cz + 0.88)], 0.03, col_fn('#ffffff', under=0.0), seg=6, r1=0.012)
+        lathe(mb, [(0.0, H + 0.62), (0.32, H + 0.62), (0.3, H + 0.95), (0.0, H + 0.95)], col_fn('#8a5a34', grain='z'), c=(-0.6, 0.15, 0), seg=6)
+        # two round tables with chairs out front, on the side away from the door
+        for k, x in enumerate((-1.45, -0.65)):
+            ty = y0 - 0.75
+            lathe(mb, [(0.0, 0.0), (0.12, 0.0), (0.03, 0.04), (0.025, 0.42), (0.2, 0.43), (0.2, 0.46), (0.0, 0.46)], shade('#2e3634'), c=(x, ty, 0), seg=14)
+            lathe(mb, [(0.0, 0.46), (0.05, 0.46), (0.045, 0.5), (0.0, 0.52)], shade('#f6eedc'), c=(x + 0.06, ty, 0), seg=10)
+            for s in (-1, 1):
+                cx = x + s * 0.3
+                for (dx, dy) in ((-0.08, -0.08), (0.08, -0.08), (-0.08, 0.08), (0.08, 0.08)):
+                    tube(mb, [(cx + dx, ty + dy, 0), (cx + dx, ty + dy, 0.27)], 0.012, shade('#2e3634'), seg=4)
+                rbox(mb, cx - 0.11, ty - 0.11, 0.27, cx + 0.11, ty + 0.11, 0.3, col_fn('#c8945a', grain='x'), r=0.012)
+                rbox(mb, cx + s * 0.09, ty - 0.11, 0.3, cx + s * 0.11, ty + 0.11, 0.55, col_fn('#c8945a', grain='z'), r=0.01)
+        # an umbrella over the first table
+        ux, uy = -1.05, y0 - 0.75
+        tube(mb, [(ux, uy, 0.46), (ux, uy, 1.3)], 0.016, shade('#f4f0e6'), seg=6)
+        for k in range(8):
+            a0, a1 = k / 8 * math.tau, (k + 1) / 8 * math.tau
+            c = '#3a8a8a' if k % 2 else '#f6eedc'
+            pts = [Vector((ux, uy, 1.38)), Vector((ux + math.cos(a0) * 0.55, uy + math.sin(a0) * 0.55, 1.18)), Vector((ux + math.cos(a1) * 0.55, uy + math.sin(a1) * 0.55, 1.18))]
+            nrm = (pts[1] - pts[0]).cross(pts[2] - pts[0]).normalized()
+            if nrm.z < 0:
+                nrm = -nrm
+            mb.add(pts, [rgb(c)] * 3, [nrm] * 3, [(0, 1, 2), (0, 2, 1)])
+        # the chalkboard by the door
+        for s in (-1, 1):
+            q = [(1.45 - 0.2, y0 - 0.5 + s * 0.14, 0.0), (1.45 + 0.2, y0 - 0.5 + s * 0.14, 0.0), (1.45 + 0.2, y0 - 0.5 + s * 0.02, 0.66), (1.45 - 0.2, y0 - 0.5 + s * 0.02, 0.66)]
+            panel(mb, q, 0.03, col_fn('#8a5a34'), Vector((0, s, 0.25)))
+        panel(mb, [(1.29, y0 - 0.67, 0.12), (1.61, y0 - 0.67, 0.12), (1.61, y0 - 0.53, 0.6), (1.29, y0 - 0.53, 0.6)], 0.035, shade('#2e3634'), Vector((0, -1, 0.25)))
+        lathe(mb, [(0.0, 0.42), (0.05, 0.42), (0.055, 0.5), (0.0, 0.5)], shade('#f6eedc'), c=(1.45, y0 - 0.69, 0), seg=10, sx=1.0, sy=0.3)
+        for k in range(2):
+            z = 0.32 - k * 0.1
+            panel(mb, [(1.33, y0 - 0.68, z), (1.57 - k * 0.06, y0 - 0.68, z), (1.57 - k * 0.06, y0 - 0.675, z + 0.018), (1.33, y0 - 0.675, z + 0.018)], 0.012, shade('#f4f0e6'), Vector((0, -1, 0.25)))
+        # a round window up in the gable
+        m = len(mb.v)
+        lathe(mb, [(0.0, 0.0), (0.26, 0.0), (0.26, 0.05), (0.2, 0.05), (0.2, 0.02), (0.0, 0.02)], shade('#fbf6ec'), seg=24)
+        xform(mb, m, Matrix.Translation((0.0, y0 - 0.02, H + 0.5)) @ Euler((math.pi / 2, 0, 0)).to_matrix().to_4x4())
+        m = len(gl.v)
+        lathe(gl, [(0.2, 0.0), (0.0, 0.0)], col_fn('#ffe8b0', under=0.0), seg=24)
+        xform(gl, m, Matrix.Translation((0.0, y0 - 0.015, H + 0.5)) @ Euler((math.pi / 2, 0, 0)).to_matrix().to_4x4())
+        # a planter of herbs under the window
+        rbox(mb, -1.6, y0 - 0.3, 0, -0.95, y0 - 0.02, 0.24, col_fn('#8a5a34', grain='x'), r=0.02)
+        bush_by(mb, -1.28, y0 - 0.16, r=0.15, c='#5aa846', flowers=('#ffffff', '#f6c8d8'), seed=11, z=0.2)
+    return shopfront(3.5, 2.6, 1.8, '#f6ecd8', '#3a8a8a', "MUGSY'S", '#fff8ec', roof=('front', '#7a4a30', 0.95), aw=('#7a4a30', '#f6eedc'),
+                     deco=deco, door_x=0.5, wins=(-0.85,), box=('#f4f0e6', '#f6c8d8', '#ffffff'), sign_c='#3a8a8a', sign_b='#fff8ec', trim='#fbf6ec')
+
+
 BUILDINGS = {'postoffice': postoffice, 'bank': bank, 'townhall': townhall, 'museum': museum, 'boutique': boutique, 'salon': salon,
              'studio': studio, 'displays': displays, 'restaurant': restaurant, 'arcade': arcade, 'club': club, 'builder': builder,
-             'lighthouse': lighthouse, 'barn': barn}
+             'lighthouse': lighthouse, 'barn': barn, 'cafe': cafe}
 
 
 def build(name):

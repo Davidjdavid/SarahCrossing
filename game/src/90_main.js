@@ -380,6 +380,7 @@ function update() {
     if (G.frame % 10 === 0) Zoom.tick();
     if (G.frame % 60 === 30) roomChecks();
     if (G.frame % 90 === 45) Visits.check();
+    if (G.frame % 60 === 15) mugCheck();
     if (G.frame % 120 === 60) potteryTick();
     if (G.frame % 120 === 0) {
         Music.update(false);

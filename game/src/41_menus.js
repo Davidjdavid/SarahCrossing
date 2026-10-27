@@ -665,7 +665,7 @@ function shopBuy(startTab) {
         const lists = {
             furniture: () => st.furn.concat(st.walls, st.floors),
             week: () => (st.week ? st.week.ids : []),
-            garden: () => GD.veg.map(v => 'seed_' + v).concat(GD.flowerKinds.map(k => 'seed_fl_' + k)),
+            garden: () => GD.veg.map(v => 'seed_' + v).filter(farOk).concat(GD.flowerKinds.map(k => 'seed_fl_' + k)),
             pantry: () => GD.staples.slice().concat(candyOnSale() ? ['candy'] : []),
             tools: () => TOOL_STOCK.slice().concat(nextBag() ? [nextBag()] : []),
         };

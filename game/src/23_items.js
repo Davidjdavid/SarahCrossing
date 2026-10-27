@@ -271,7 +271,7 @@ function communityTick() {
     if (Online.visitor() || !W0.plots) return;
     const day = Clock.dayNum(), r = mulberry(hash32(S.seed + ':garden:' + day));
     const empty = W0.plots.map((p, i) => p.c && !S.plots[i] ? i : -1).filter(i => i >= 0);
-    const seeds = Object.keys(ITEMS).filter(id => ITEMS[id].type === 'seed' && ITEMS[id].grows);
+    const seeds = Object.keys(ITEMS).filter(id => ITEMS[id].type === 'seed' && ITEMS[id].grows && farOk(id));
     let n = Math.floor(r() * 3);
     while (n-- > 0 && empty.length && seeds.length) {
         const i = empty.splice(Math.floor(r() * empty.length), 1)[0], sid = seeds[Math.floor(r() * seeds.length)];

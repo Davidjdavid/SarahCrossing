@@ -359,6 +359,7 @@ const IslandEdit = {
             const c = W0.grid[ty][tx];
             if (c === 'w' || (c === 'F' && !fieldOk)) return c === 'w' ? "Not on the pier (or a bridge)." : "Not in the farm fields. Ginger would cry. (Scarecrows and hay are fine.)";
             if (doors.has(tx + ',' + ty)) return 'Keep the doorway clear!';
+            if (projectTile(tx, ty)) return 'The town is keeping this spot for one of its projects.';
             if (a.blockedAt(tx, ty)) return "Something's already there.";
             if (tx === ptx && ty === pty) return 'Sarah is standing there.';
         }

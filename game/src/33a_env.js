@@ -31,6 +31,8 @@ const Env = {
         if (this.built && this.built.season !== (a.bgSeason || Clock.season())) this.teardown(r3);
         // (back outside after something built from the save changed indoors: a house redone or grown, the mailbox painted)
         if (this.built && G.frame - (this.seen || 0) > 1 && this.built.look !== this.look()) this.teardown(r3);
+        // (a town project built overnight while Sarah was out: 6zgb_projects.js)
+        if (this.built && this.dirty) { this.dirty = false; this.teardown(r3); }
         this.seen = G.frame;
         if (!this.built) {
             try { this.build(r3, a); }
@@ -52,7 +54,7 @@ const Env = {
        day's holiday decorations) */
     look() {
         const isl = G.areas && G.areas.island, holi = isl ? isl.ents.filter(e => e.holiday).map(e => e.grand || e.model3d || e.frame).join() : '';
-        return S ? JSON.stringify([S.exteriors || null, S.house && S.house.level, S.post && S.post.box || null, S.post && S.post.style || null, holi]) : '';
+        return S ? JSON.stringify([S.exteriors || null, S.house && S.house.level, S.post && S.post.box || null, S.post && S.post.style || null, holi, projectsKey()]) : '';
     },
     /* where Sarah is on screen, for the see-through round her (trees and buildings in front of her) */
     seeThrough(r3) {

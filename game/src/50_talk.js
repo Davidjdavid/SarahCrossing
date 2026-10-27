@@ -47,6 +47,7 @@ async function talkTo(n) {
         else if (n.def.family) await familyTalk(n);
         else if (id === 'joe') await joeTalk(n);
         else if (id === 'basil' && n.spotKey === 'cart') await noodleCart(n);
+        else if (n.def.newcomer && await newcomerTalk(n)) { /* a neighbor still to come: their story (6zr_seafarer.js) */ }
         else await neighborTalk(n);
     } catch (e) { console.error(e); }
     UI.hideDialog();
@@ -185,7 +186,8 @@ async function neighborTalk(n) {
         for (const o of Requests.options(n)) add(o.label, o.fn);
         for (const o of Quests.options(n)) add(o.label, o.fn);
         for (const o of civicOptions(n)) add(o.label, o.fn);
-        for (const o of valentineOptions(n)) add(o.label, o.fn);     // (a valentine: 6zp_holiday_events.js)
+        for (const o of valentineOptions(n)) add(o.label, o.fn);
+        for (const o of mugOptions(n)) add(o.label, o.fn);          // (the museum's old pot: 6zs_mug.js)     // (a valentine: 6zp_holiday_events.js)
         for (const o of Drama.options(n)) add(o.label, async () => { await Drama.choose(n, o); return true; });
         if (id === 'sully' && n.area === 'studio') add('Pottery tips?', async () => { await UI.say(id, rpick(POTTERY_TIPS).map(bostonize), { keep: true }); return true; });
         if (id === 'chili' && n.area === 'arcade') add('Prize counter', async () => { UI.hideDialog(); await prizeCounter(); return false; });

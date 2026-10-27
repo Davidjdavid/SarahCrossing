@@ -509,6 +509,97 @@ def chili_crisp():
     return [(mb, 'main'), (gl, 'gloss')]
 
 
+# (Captain Scampi's dishes from his travels, 6zr_seafarer.js)
+def sailor_stew():
+    """a hearty stew in a blue-rimmed bowl: fish, carrot and tomato"""
+    out = soup_bowl('#b8743a', [('#f6ecd8', 0.024, 4), ('#f08a2a', 0.018, 4), ('#d8402a', 0.016, 3)], col='#f2f0ea', inside='#3a6aa8')
+    return out
+
+
+def fish_tacos():
+    """two soft tacos side by side on a plate, a lime wedge"""
+    mb, r = MB(), random.Random(41)
+    z = plate(mb, 0.135, '#f2f0ea')
+    shell = lambda p, n, *_: rgb('#f2cf80').lerp(rgb('#c8902e'), 0.25 + 0.15 * noise.noise(p * 90))
+    half = [(math.cos(t) * 0.048, math.sin(t) * 0.042) for t in [math.pi * (1 - k / 12) for k in range(13)]]
+    for s in (-1, 1):
+        x0 = s * 0.052
+        # the folded tortilla: two half rounds leaning apart, standing on the fold, the filling between
+        for side in (-1, 1):
+            m = len(mb.v)
+            slab(mb, half, 0.004, shell, axis='y', at=-0.002, r=0.0)
+            turn(mb, m, side * 0.32, 0, 0, (x0, side * 0.006, z + 0.002))
+        for k in range(6):
+            cube(mb, x0 - 0.03 + k * 0.012, r.uniform(-0.006, 0.006), z + 0.026 + r.uniform(0, 0.008), 0.014, r.choice(('#f6ecd8', '#f6ecd8', '#e8403a', '#8cc152')), r, h=0.012)
+        for k in range(4):
+            ball(mb, (x0 - 0.027 + k * 0.018, 0.0, z + 0.04), (0.011, 0.012, 0.005), shade('#8cc152'), sub=1)
+    m = len(mb.v)
+    ball(mb, (0, 0, 0), (0.022, 0.012, 0.012), lambda p, n: rgb('#9ad84a') if n.y < 0.3 else rgb('#e8f6c0'), sub=2)
+    turn(mb, m, 0, 0, 0.4, (0.07, -0.085, z + 0.01))
+    return [(mb, 'main')]
+
+
+def pumpkin_soup():
+    """orange and smooth, a swirl of cream, in a little pumpkin-colored bowl"""
+    return soup_bowl('#f2a03a', [('#c86a1e', 0.012, 3)], cream='#fbf8f2', herbs=True, col='#e8603e', inside='#f6f0e2')
+
+
+def grilled_corn():
+    """two cobs off the grill on a long plate, charred stripes and a dusting of chili"""
+    mb, r = MB(), random.Random(43)
+    rbox(mb, -0.12, -0.06, 0.0, 0.12, 0.06, 0.012, shade('#f2f0ea'), r=0.006)
+    for s in (-1, 1):
+        y = s * 0.026
+        kern = lambda p, n, y=y: (rgb('#7a4a1e') if (int((p.x + 0.2) * 70) % 4 == 0) else rgb('#f6d040').lerp(rgb('#d8a020'), 0.5 + 0.5 * noise.noise(p * 300))) * (0.86 + 0.14 * max(0.0, n.z))
+        m = len(mb.v)
+        tube(mb, [(-0.085, 0, 0), (0.0, 0, 0.002), (0.085, 0, 0)], 0.022, kern, seg=12, r1=0.018)
+        turn(mb, m, 0, 0, 0, (0.0, y, 0.034))
+        tube(mb, [(0.085, y, 0.034), (0.105, y, 0.034)], 0.01, shade('#e8d8a8'), seg=6)
+    sprinkle(mb, r, 0.06, 0.056, ['#d8402a', '#c03020'], n=14, s=0.004)
+    return [(mb, 'main')]
+
+
+# (Mugsy's café drinks, 6zs_mug.js: item_drink_<id>)
+def cafe_mug(top, foam=None, art=None, cream=None, drizzle=None, col='#f6eedc', band='#3a6aa8'):
+    """a café mug on its saucer: what's in it, latte art, whipped cream"""
+    mb, gl, r = MB(), MB(), random.Random(51)
+    lathe(mb, [(0.0, 0.0), (0.075, 0.0), (0.08, 0.008), (0.06, 0.012), (0.0, 0.012)], shade('#fbf8f2'), seg=28)
+    cup = lambda p, n, *_: rgb(band) if 0.045 < p.z < 0.055 else rgb(col) * (0.9 + 0.1 * max(0.0, -n.y * 0.5 + 0.5))
+    lathe(mb, [(0.0, 0.012), (0.034, 0.012), (0.042, 0.03), (0.046, 0.085), (0.044, 0.088), (0.04, 0.088), (0.038, 0.03), (0.0, 0.02)], cup, seg=28)
+    tube(mb, [(0.044, 0.0, 0.074), (0.07, 0.0, 0.07), (0.072, 0.0, 0.04), (0.044, 0.0, 0.034)], 0.007, shade(col), seg=6)
+    lathe(gl, [(0.04, 0.08), (0.0, 0.08)], C(top, mottle=0.03, under=0.0), seg=28)
+    if foam:
+        lathe(mb, [(0.039, 0.081), (0.025, 0.083), (0.0, 0.0835)], C(foam, mottle=0.02, under=0.0), seg=28)
+    if art:
+        # a heart poured in the foam
+        for k in range(14):
+            t = k / 14 * math.tau
+            x, y = 16 * math.sin(t) ** 3, 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
+            ball(mb, (x * 0.0011, y * 0.0011 + 0.002, 0.0838), (0.004, 0.004, 0.0006), shade(art), sub=1)
+    if cream:
+        for k, (q, z) in enumerate(((0.03, 0.09), (0.022, 0.102), (0.012, 0.112), (0.0, 0.12))):
+            lathe(mb, [(q + 0.006, z - 0.006), (q + 0.006, z), (q, z + 0.008), (0.0, z + 0.008)], C(cream, mottle=0.02, under=0.05), seg=20)
+        if drizzle:
+            tube(gl, [(math.cos(t) * (0.024 - t * 0.0018), math.sin(t) * (0.024 - t * 0.0018), 0.1 + t * 0.0018) for t in [k * 0.4 for k in range(28)]], 0.0022, shade(drizzle), seg=4)
+    return [(mb, 'main'), (gl, 'gloss')]
+
+
+def iced_coffee():
+    """a tall glass, coffee swirled with milk, ice cubes and a striped straw"""
+    mb, gl, r = MB(), MB(), random.Random(52)
+    # (the glass is only its foot and rim, so the swirl of milk shows: nothing in the game draws glass see-through)
+    lathe(gl, [(0.0, 0.0), (0.036, 0.0), (0.04, 0.004), (0.04, 0.01), (0.0, 0.01)], col_fn('#d8eef4', under=0.0), seg=24)
+    lathe(gl, [(0.041, 0.128), (0.045, 0.13), (0.045, 0.138), (0.042, 0.14), (0.04, 0.132)], col_fn('#e8f6fa', under=0.0), seg=24)
+    milk = lambda p, n, *_: rgb('#8a5a34').lerp(rgb('#ead8bc'), max(0.0, min(1.0, (p.z - 0.04) / 0.07 + 0.25 * math.sin(math.atan2(p.y, p.x) * 3)))) * (0.92 + 0.08 * max(0.0, -n.y))
+    lathe(mb, [(0.0, 0.01), (0.037, 0.01), (0.042, 0.13), (0.0, 0.13)], milk, seg=24)
+    for k in range(4):
+        a = k / 4 * math.tau + 0.3
+        cube(gl, math.cos(a) * 0.016, math.sin(a) * 0.016, 0.122 + (k % 2) * 0.006, 0.018, '#f4fbff', r, h=0.016)
+    straw = lambda p, n, *_: rgb('#e8403a') if int(p.z * 120) % 2 else rgb('#ffffff')
+    tube(mb, [(0.01, 0.0, 0.03), (0.016, 0.0, 0.17), (0.03, 0.0, 0.19)], 0.004, straw, seg=6)
+    return [(mb, 'main'), (gl, 'gloss')]
+
+
 DISHES = {
     'dish_nigiri': nigiri, 'dish_tuna_roll': maki_board, 'dish_spicy_tuna': lambda: maki_board(True), 'dish_unagi_don': don,
     'dish_ahi_poke': lambda: poke('#d8384a'), 'dish_salmon_poke': lambda: poke('#f28a6a'), 'dish_pad_thai': pad_thai,
@@ -522,6 +613,9 @@ DISHES = {
     'dish_tomato_soup': lambda: soup_bowl('#d8402a', [('#e8b860', 0.016, 4)], cream='#fbf8f2', herbs=False), 'dish_creme_brulee': creme_brulee, 'dish_ramen': ramen,
     'dish_mochi': mochi, 'dish_takoyaki': takoyaki, 'dish_pancakes': pancakes, 'dish_mooncakes': mooncakes,
     'dish_shortcake': lambda: cake_slice('#fffaf2', '#f6e0b8', crust='#e8b878', layers=[(0.45, '#fffaf2'), (0.5, '#e0303a')], cream='strawberry'),
+    'dish_sailor_stew': sailor_stew, 'dish_fish_tacos': fish_tacos, 'dish_pumpkin_soup': pumpkin_soup, 'dish_grilled_corn': grilled_corn,
+    'drink_latte': lambda: cafe_mug('#c8945a', foam='#f6ead8', art='#c8945a'), 'drink_mocha': lambda: cafe_mug('#5a3020', cream='#fbf6ee', drizzle='#5a3020', col='#f6eedc', band='#7a4a30'),
+    'drink_iced': iced_coffee, 'drink_matcha': lambda: cafe_mug('#8ac060', foam='#e8f4d8', art='#6aa040', col='#f6eedc', band='#3a8a8a'),
 }
 
 

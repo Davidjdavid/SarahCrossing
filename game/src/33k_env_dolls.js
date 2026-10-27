@@ -43,7 +43,8 @@ const EnvDolls = {
     folkOf(e) {
         // (and in the rooms, the Cozy Council's judges and the old keeper's ghost)
         const id = e.def ? e.def.sprite : e.kind === 'judge' ? String(e.frame || '').split('_')[0] : e.kind === 'ghost' ? 'ghost' : null;
-        return id && typeof EnvModels !== 'undefined' && EnvModels.has('folk_' + id) ? id : null;
+        // (a neighbor who came later, Captain Scampi or the mug, has only the redone model: 6zr_seafarer.js)
+        return id && typeof EnvModels !== 'undefined' && (EnvModels.has('folk_' + id) || (typeof STYLE2 !== 'undefined' && STYLE2 && EnvModels.has('folk2_' + id) && !!FOLK_FACES[id])) ? id : null;
     },
     /* those who aren't neighbors but stand in a room now and then: the council's judges, the ghost near midnight */
     guests(a) { return a && a.interior ? a.ents.filter(e => (e.kind === 'judge' || (e.kind === 'ghost' && typeof Quests !== 'undefined' && Quests.ghostHere())) && this.folkOf(e)) : []; },
@@ -280,6 +281,7 @@ const EnvDolls = {
         else if (e.kind === 'ghost') y = gy + 0.18 + Math.sin(G.t / 13) * 0.06;
         root.position.set(e.x / TILE, y, z);
         root.rotation.y = d.ang;
+        if (e.want && e.want.lie) { root.rotation.x = -1.4; root.position.y += 0.14; } else if (root.rotation.x) root.rotation.x = 0;
         // the step: feet swinging in turn, the body rocking side to side, squashed as it lands and stretched in the air
         const ph = m.dist / (run ? 20 : 15) * Math.PI * 2, sw = walk ? Math.sin(ph) : 0, air = walk ? Math.min(1, (e.hop || 0) / 3) : 0;
         const br = Math.sin(t / 24 + seed);

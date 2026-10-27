@@ -37,7 +37,7 @@ const IDLE_HELLO = {
     groceries: ["Just did my shopping! Fortune had the farm's carrots in this morning. Still a little muddy. That's how you know.", "Groceries! I have a plan for dinner. The plan is: everything in this bag.", "I only went in for bread. Look at this bag. LOOK at it."],
 };
 /* who likes what (picked four times as often) */
-const IDLE_LIKES = { joe: 'book', brulee: 'paint', coco: 'phone', sully: 'cup', mac: 'snack', cece: 'snack', clementine: 'paint', kai: 'fish', cuke: 'stars', maki: 'book', chili: 'phone', ginger: 'cup', basil: 'ground', wonton: 'cup', david: 'phone', james: 'book', john: 'snack', elizabeth: 'paint' };
+const IDLE_LIKES = { joe: 'book', brulee: 'paint', coco: 'phone', sully: 'cup', mac: 'snack', cece: 'snack', clementine: 'paint', kai: 'fish', cuke: 'stars', maki: 'book', chili: 'phone', ginger: 'cup', basil: 'ground', wonton: 'cup', david: 'phone', james: 'book', john: 'snack', elizabeth: 'paint', scampi: 'fish', mug: 'cup' };
 
 function idleStart(n) {
     const d = n.def, w = n.want;

@@ -1352,14 +1352,156 @@ def ghost():
     return f
 
 
+# ---------------------------------------------------------------- the new neighbors (David, 27 October late)
+def scampi():
+    """Captain Scampi, a giant shrimp and a salty old seafarer: a coral shell in overlapping bands down his front, curled
+    at the tail into a fan behind him, a pointed rostrum over his brow, long whiskery antennae swept back, a battered
+    captain's cap with a gold anchor, a blue neckerchief knotted at the front, a bushy white chin beard; little shrimp
+    arms and walking feet, and a row of swimmerets under his belly."""
+    f = Folk('scampi')
+    shell, light = rgb('#f0784e'), rgb('#ffc29a')
+
+    def prof(v):
+        # a soft capsule from his feet to the top of his head, a little fuller at the middle
+        if v < 0.12:
+            a = v / 0.12 * math.pi / 2
+            return 12.5 * math.sin(a) ** 0.7, 3.0 + 4.0 * (1 - math.cos(a))
+        if v < 0.8:
+            t = (v - 0.12) / 0.68
+            return 12.5 + 3.2 * math.sin(t * math.pi) ** 1.2, 7.0 + 30.0 * t
+        t = (v - 0.8) / 0.2
+        return 12.5 * math.cos(t * math.pi / 2) ** 0.7, 37.0 + 10.0 * math.sin(t * math.pi / 2)
+
+    def bands(p, n, u, v):
+        c = shell
+        if p.z < 30:
+            k = (p.z - 5.0) / 4.4
+            k -= math.floor(k)
+            c = c * (0.84 + 0.2 * k)
+            c = c.lerp(light, max(0.0, -n.y) * 0.4)
+        return c * (0.96 + 0.05 * noise.noise(p * 0.3))
+    def ridges(u, v):
+        # (each shell plate bulging a little at its bottom edge, down his front and sides)
+        z = prof(v)[1]
+        if z > 30 or z < 6:
+            return 1.0
+        k = (z - 5.0) / 4.4
+        k -= math.floor(k)
+        return 1.0 + 0.045 * k ** 3
+    surf(f.body, revolve(prof, sy=0.86, mod=ridges), soft(bands, under=0.15, z0=4, z1=44), nu=64, nv=48)
+    # the tail: curled out behind him, low down, as a fan of five rounded flukes
+    tail = soft(mottle('#f0784e', 0.06, 0.4), under=0.0)
+    surf(f.body, superq(0, 9.5, 9.0, 7.0, 5.0, 5.0), tail, nu=24, nv=12)
+    for k in range(5):
+        a = (k - 2) * 0.45
+        leaf(f.body, (math.sin(a) * 2.5, 12.5, 8.0), (math.sin(a) * 11.0, 19.0 + math.cos(a) * 2.0, 3.5 + abs(k - 2) * 1.4), 3.4, tail, t=0.9, bend=0.9)
+    sculpt(f, 'body', voxel=0.28, smooth=4, verts=10000, ao=0.3)
+    tree = f.bvh()
+    zt = top_z(tree, 0, 0)
+    # the antennae, sweeping up and back from under the cap's sides
+    for s in (-1, 1):
+        tube(f.body, [(s * 6.5, -7.0, zt - 4.0), (s * 9.0, -6.0, zt + 3.0), (s * 14.0, 0.0, zt + 9.0), (s * 19.0, 10.0, zt + 7.0), (s * 22.0, 18.0, zt + 1.0)], 0.6, shade('#d8603a'), seg=6, r1=0.22)
+    # the chin beard: a bushy white crescent round the bottom of his face, melted soft
+    beard = f.part('beard_tmp', (0, 0, 0))
+    bcol = lambda p, n, *_: rgb('#f8f4ea') * (0.9 + 0.1 * max(0.0, -n.y) + 0.04 * noise.noise(p * 1.2))
+    for k in range(7):
+        a = (k - 3) / 3 * 1.1
+        p, nn = f.hit(math.sin(a) * 9.0, 22.8 - math.cos(a) * 2.4, tree=tree)
+        surf(beard, superq(p.x, p.y - 0.8, p.z, 3.4, 2.4, 3.0), bcol, nu=16, nv=10)
+    sculpt(f, 'beard_tmp', voxel=0.3, smooth=6, verts=2500)
+    bm = f.parts.pop('beard_tmp')[0]
+    f.body.v += bm.v; f.body.c += bm.c; f.body.n += bm.n
+    base = len(f.body.v) - len(bm.v)
+    f.body.f += [tuple(base + i for i in fc) for fc in bm.f]
+    # the neckerchief: a smooth blue band round where his head meets his body, its knot and two ends at the front
+    scarf = lambda p, n, *_: rgb('#2f6ad0') * (0.86 + 0.18 * max(0.0, -n.y + n.z * 0.4))
+    r = side_x(f, 25.5, 1, 0.0, tree)
+    ring(f.body, Vector((0, 0, 25.5)), Vector((0, 0, 1)), r + 0.4, 1.7, scarf)
+    surf(f.body, superq(0, -r * 0.86 - 1.2, 25.0, 2.6, 1.8, 2.2), scarf, nu=14, nv=8)
+    for s in (-1, 1):
+        leaf(f.body, (s * 0.8, -r * 0.86 - 1.4, 23.8), (s * 3.4, -r * 0.86 - 2.2, 18.8), 1.9, scarf, t=0.5, bend=0.3)
+    # the captain's cap: a navy band, a white crown pushed back a little, a black peak, a gold anchor on the front
+    cap = len(f.body.v)
+    navy = soft(mottle('#22305a', 0.05, 0.5), under=0.0, top=0.1)
+    lathe(f.body, [(9.6, 0.0), (9.8, 3.2), (9.6, 3.4)], navy, seg=40, cap_top=False, cap_bot=True, sy=0.92)
+    lathe(f.body, [(9.4, 3.2), (12.2, 5.4), (12.0, 6.6), (6.0, 7.4), (0.0, 7.4)], soft(mottle('#f6f2e6', 0.04, 0.4), under=0.0, top=0.12), seg=40, cap_top=False, sy=0.92)
+    rbox(f.body, -7.0, -14.6, -0.4, 7.0, -8.0, 0.6, lambda p, n, *_: rgb('#1a1a20') * (0.8 + 0.3 * max(0.0, n.z)), r=0.4, mid=2)
+    rbox(f.body, -1.4, -9.4, 0.9, 1.4, -8.6, 3.0, lambda p, n, *_: rgb('#e8b838') * (0.9 + 0.2 * max(0.0, -n.y)), r=0.3, mid=0)
+    xform(f.body, cap, Matrix.Translation((0, 0.8, zt - 2.2)) @ Matrix.Rotation(-0.2, 4, 'X') @ Matrix.Diagonal((1.32, 1.32, 1.32, 1)))
+    # the swimmerets: a row of little legs under his belly
+    for k in range(3):
+        for s in (-1, 1):
+            tube(f.body, [(s * (3.0 + k * 1.6), -9.0, 11.0 - k * 1.4), (s * (3.6 + k * 1.6), -11.4, 8.0 - k * 1.2)], 0.8, shade('#e46848'), seg=6, r1=0.5)
+    tree = f.bvh()
+    face_patch(f, 0, 32.5, 23, tree=tree)
+    f.anchor('eyes', f.hit(0, 34.0, tree=tree)[0], 0.9)
+    arms(f, 21.0, lambda p, n, *_: shell * (0.9 + 0.12 * n.z), reach=5.4, drop=3.4, r0=2.2, r1=1.9, hand=lambda p, n, *_: light * (0.92 + 0.1 * n.z), hr=2.2, tree=tree, inset=1.2)
+    feet(f, x=6.5, w=3.0, d=3.8, h=2.2, z=2.0, col='#c8543a')
+    hat_anchor(f, zt + 6.0, 24)
+    return f
+
+
+def mug():
+    """The living mug, put back together from five old pieces: a big round cream mug with a blue band, its handle on its
+    right, gold seams where the pieces were mended (kintsugi), empty inside but for a coffee stain; little arms and feet."""
+    f = Folk('mug')
+    R, z0, z1 = 17.0, 3.0, 40.0
+
+    def prof(v):
+        # the outside: a rounded foot, then straight sides flaring a touch to the rim
+        if v < 0.1:
+            a = v / 0.1 * math.pi / 2
+            return R * math.sin(a) ** 0.5, z0 + 2.0 * (1 - math.cos(a))
+        t = (v - 0.1) / 0.9
+        return R + 1.2 * t, z0 + 2.0 + (z1 - z0 - 2.0) * t
+    cream, blue = rgb('#f6efe0'), rgb('#3f6fc0')
+
+    def col(p, n, u, v):
+        c = cream
+        if 11.5 < p.z < 15.5:
+            c = blue
+        elif 33.0 < p.z < 34.2:
+            c = blue
+        return c * (0.97 + 0.04 * noise.noise(p * 0.2))
+    surf(f.body, revolve(prof), soft(col, under=0.16, z0=3, z1=40), nu=72, nv=30, caps=(True, False))
+    # the rim, rolled over, and the inside going down to a floor with an old coffee stain
+    inside = lambda p, n, *_: rgb('#efe6d2') * (0.9 + 0.1 * max(0.0, n.z))
+    lathe(f.body, [(R + 1.2, z1), (R + 0.9, z1 + 0.7), (R - 0.2, z1 + 0.6), (R - 0.6, z1 - 0.2)], soft(col, under=0.0), seg=72, cap_top=False)
+    lathe(f.body, [(R - 0.6, z1 - 0.2), (R - 1.4, z1 - 6.0), (R - 1.8, 9.0), (R - 3.0, 7.6), (0.0, 7.6)], inside, seg=72, cap_top=False)
+    lathe(f.body, [(9.0, 7.7), (0.0, 7.7)], lambda p, n, *_: rgb('#8a5a34').lerp(rgb('#c49a6a'), max(0.0, min(1.0, (p.length - 4.0) / 5.0))), seg=40, cap_top=False)
+    # the handle, on his right: a thick loop
+    tube(f.body, [(R - 0.5, 0, 34.0), (R + 5.5, 0, 34.5), (R + 9.0, 0, 29.0), (R + 8.6, 0, 19.0), (R + 4.5, 0, 14.5), (R - 0.5, 0, 14.0)], 2.4, soft(col, under=0.0), seg=14)
+    # the gold seams where the five pieces were mended, kept off his face (the front, -y)
+    gold = lambda p, n, *_: rgb('#e8b838') * (0.9 + 0.25 * max(0.0, n.z * 0.5 - n.y * 0.5))
+    def on(th, z, r=None):
+        rr = (r or (R + 1.2 * max(0.0, (z - 5.0) / 35.0))) + 0.25
+        return (math.cos(th) * rr, math.sin(th) * rr, z)
+    seams = [
+        [(-2.35, 5.0), (-2.2, 12.0), (-2.45, 19.0), (-2.25, 27.0), (-2.4, 36.0), (-2.3, 40.0)],
+        [(-0.75, 5.0), (-0.95, 13.0), (-0.7, 21.0), (-0.9, 29.0), (-0.75, 40.0)],
+        [(-0.8, 22.0), (-0.2, 24.5), (0.6, 22.0), (1.4, 25.0), (2.2, 23.0)],
+        [(2.0, 40.0), (2.2, 33.0), (2.6, 30.0), (3.0, 34.0), (3.4, 40.0)],
+    ]
+    for sm in seams:
+        tube(f.body, [on(th, z) for th, z in sm], 0.38, gold, seg=6)
+    tree = f.bvh()
+    face_patch(f, 0, 24.0, 22, tree=tree)
+    f.anchor('eyes', f.hit(0, 25.5, tree=tree)[0], 0.9)
+    arms(f, 20.0, lambda p, n, *_: cream * (0.9 + 0.12 * n.z), reach=5.0, drop=3.6, r0=2.3, r1=2.0, y=-4.0, tree=tree, inset=1.4)
+    feet(f, x=8.0, w=3.2, d=3.8, h=2.2, z=1.6, col='#c8b898')
+    hat_anchor(f, z1 + 2.0, 30)
+    return f
+
+
 FOLKS2 = {'maki': maki, 'kai': kai, 'ginger': ginger, 'basil': basil, 'wonton': wonton, 'chili': chili, 'coco': coco, 'cece': cece,
           'clementine': clementine, 'cuke': cuke, 'sully': sully, 'brulee': brulee, 'mac': mac, 'fortune': fortune, 'floss': floss,
-          'waffle': waffle, 'wasabi': wasabi, 'goat': goat, 'floret': floret, 'stalk': stalk, 'sprout': sprout, 'ghost': ghost}
+          'waffle': waffle, 'wasabi': wasabi, 'goat': goat, 'floret': floret, 'stalk': stalk, 'sprout': sprout, 'ghost': ghost,
+          'scampi': scampi, 'mug': mug}
 # how big each stands: smaller than people, but each big enough that its face reads from the game's camera (a
 # gingerbread person is flat, so a little bigger again)
 SIZE = {'maki': 1.1, 'kai': 1.1, 'ginger': 1.2, 'basil': 1.1, 'wonton': 1.1, 'chili': 1.0, 'coco': 1.1, 'cece': 1.05, 'clementine': 1.08,
         'cuke': 1.0, 'sully': 1.05, 'brulee': 1.08, 'mac': 1.05, 'fortune': 1.1, 'floss': 1.1, 'waffle': 1.1, 'wasabi': 1.08,
-        'goat': 1.05, 'floret': 1.05, 'stalk': 1.05, 'sprout': 1.05, 'ghost': 1.0}
+        'goat': 1.05, 'floret': 1.05, 'stalk': 1.05, 'sprout': 1.05, 'ghost': 1.0, 'scampi': 1.12, 'mug': 1.05}
 
 
 def objects2(f, scale=K):

@@ -315,6 +315,9 @@ function migrate(st) {
     for (const k of Object.keys(st.storage)) if (!ITEMS[k]) delete st.storage[k];
     while (st.pocket.length < 20 + 10 * (st.bag || 0)) st.pocket.push(null);
     while (st.plots.length < 6) st.plots.push(null);
+    // the seafarer washes up a week after an island first loads with him in it (a new one: a week after it begins), so an
+    // older island brought in waits its week too (6zr_seafarer.js)
+    if (!st.sea) st.sea = { from: st.started ? Clock.dayNum() : (st.startDay || Clock.dayNum()), stage: 0, got: {} };
     return st;
 }
 

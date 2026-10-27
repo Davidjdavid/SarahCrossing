@@ -7,7 +7,7 @@
 const CATCH = {
     maki: 'precisely', kai: 'bro', basil: 'slurp', wonton: '(Not soup.)', chili: 'spicy', coco: 'obviously', cece: 'sorry!',
     clementine: 'très chic', cuke: 'hydrate!', sully: 'wicked', ginger: 'sturdy', brulee: 'magnifique', mac: 'eat up!',
-    david: 'iconic', joe: 'ribbit',
+    david: 'iconic', joe: 'ribbit', scampi: 'yarr', mug: 'brew-tiful',
 };
 /* how each takes to a new one ({c} is it) */
 const CATCH_REACT = {
@@ -25,6 +25,8 @@ const CATCH_REACT = {
     brulee: ["'{c}.' Ah. There's a certain... je ne sais quoi to it. Exquisite.", "I'll hang it in the museum of my mouth. Metaphorically."],
     mac: ["'{c}'! Ha! I love it. Now eat something. {c}!", "I'll say it to everyone who comes in. And then feed them."],
     david: ["'{c}'? Honey. It's ICONIC. Well, it's {c}. Same thing now.", "I'm putting it on a sparkly sign at the club."],
+    scampi: ["'{c}'? Har! That's got salt in it, that does. {c}!", "I'll bellow it off the end o' the pier at dawn. Scare the gulls."],
+    mug: ["'{c}'?! Oh my gosh. That's so good. I'm vibrating. Is it the coffee? It's the catchphrase. {c}!", "I'm going to say it to every customer. Twice. Three times if they look sleepy."],
     joe: ["'{c}'... Oh! I could rhyme with that. I'm going to write a poem about it.", "Thanks, {name}. It's the best one I've ever had. It's the only one I've ever had. Still."],
 };
 function catchOf(id) { const r = S && S.npcs && S.npcs[id]; return (r && r.catch) || CATCH[id] || null; }
