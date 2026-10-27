@@ -353,8 +353,9 @@ Office's and the Bank's keepers are still to be picked.
 - [x] Town history (a timeline of milestones), island statistics (days played, fish caught, items, money...), island
   records (biggest fish, best day, longest friendship), town achievements with commemorative rewards
 - [x] Rename landmarks (beaches, mountains, forests...)
-- [~] Residents: customize catchphrases, reset or change clothes and accessories, adjust schedules (when they wake,
-  go home, where they go) (hours, what they wear today and catchphrases work; where they go is still to come)
+- [x] Residents: customize catchphrases, reset or change clothes and accessories, adjust schedules (when they wake,
+  go home, where they go) (hours, what they wear today, catchphrases, and two places a good friend likes going in their
+  free time)
 - [x] Missed holidays: if Sarah didn't play on a major holiday (the Egg Hunt, say), the Town Hall lets her hold it the
   next day she plays, for up to a week after (so it never lands on another holiday: no Easter at Christmas)
 - [x] Town anniversary: a monthly island day

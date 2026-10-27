@@ -151,6 +151,7 @@ function makePlan(id, day) {
         else {
             const wts = Object.assign({}, BAND_BASE[band]);
             for (const [k, v] of Object.entries(d.fav || {})) wts[k] = (wts[k] || 0) + v * (band === 'morning' ? 0.6 : 1);
+            for (const k of townSpots(id)) wts[k] = (wts[k] || 0) + 3;          // (where Sarah asked at the Town Hall: 6zg_townhall.js)
             openIndoor(wts, t, d);
             if (band !== 'day') delete wts.meadow;
             // after dark nobody wanders off to the fields, the woods or the mountain (the bonfire is where the night is)

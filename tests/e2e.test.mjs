@@ -618,6 +618,16 @@ test('beta civic buildings: savings with interest, a letter delivered with a rep
   const money0 = await page.evaluate(() => S.money);
   await page.evaluate(() => { for (const e of G.areas.island.ents.filter((q) => q.jobPile)) e.interact(); });
   assert.ok(await page.evaluate((m) => !Jobs.active() && S.money > m, money0), 'paid for the job');
+  // Residents: a good friend's favorite places, picked at the Town Hall, fill more of their free time
+  const spots = await page.evaluate(() => {
+    const id = 'maki', count = () => { let n = 0; for (let d = 1; d <= 20; d++) n += makePlan(id, Clock.dayNum() + d).segs.filter((s) => s.spot === 'harbor' || s.spot === 'orchard').length; return n; };
+    rel(id).met = true; rel(id).pts = HEARTS[3];
+    const before = count();
+    CIVIC_LIVE.residents.pick = id; civicScreen('residents');
+    for (const name of ['The harbor', 'The orchard']) [...document.querySelectorAll('#panel .chip')].find((c) => c.textContent === name).click();
+    return { kept: (S.town.sched.maki.spots || []).join(), more: count() > before * 1.5 + 2 };
+  });
+  assert.deepEqual(spots, { kept: 'harbor,orchard', more: true });
   // and the Town Hall itself opens, with the Council at the desk
   await page.evaluate(() => { __dbg.setTime(10, 27, 11); enterRoom('townhall'); });
   await page.waitForFunction(() => G.area && G.area.id === 'townhall');

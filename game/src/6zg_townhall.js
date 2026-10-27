@@ -42,6 +42,13 @@ function townWake(wake, bed, id) {
     if (sc) { wake += sc.w || 0; bed += sc.b || 0; }
     return [Math.max(5, wake), Math.min(28.5, Math.max(wake + 4, bed))];
 }
+/* the places a good friend likes going in their free time, picked at the Residents screen (up to two) */
+const RES_SPOTS = { plaza: 'The square', beach: 'The beach', pier: 'The pier', pond: 'The pond', waterfall: 'The waterfall', meadow: 'The meadow', lookout: 'The lookout',
+    harbor: 'The harbor', boardwalk: 'The Boardwalk', orchard: 'The orchard', farm: 'The farm', oldtree: 'The old tree', statue: "David's statue", bonfire: 'The bonfire' };
+function townSpots(id) {
+    const sc = CIVIC_PREVIEW && id && S && S.town && S.town.sched && S.town.sched[id];
+    return sc && sc.spots ? sc.spots.filter(k => W0.spots[k]) : [];
+}
 function townHours(id, h) {
     const o = townOrd();
     if (!h || id === 'club' || (o !== 'early' && o !== 'night')) return h;
@@ -317,7 +324,17 @@ CIVIC_LIVE.residents = {
         CV.h(b, 'Their hours');
         row('Wakes up', 'w', d.wake); row('Goes to bed', 'b', d.bed);
         CV.note(b, 'Up to two hours either way. It starts tomorrow (today they already have plans).');
-        if (sc.w || sc.b) f.appendChild(btn('Back to their own hours', 'alt', () => { delete T.sched[pick]; Save.touch(); redraw(); }));
+        // where they like to go when they're free (two at most: they still go everywhere else too, just less)
+        CV.h(b, 'Where they like to go');
+        const mine = sc.spots || [], sp = el('div', 'st-row');
+        for (const k of Object.keys(RES_SPOTS).filter(k => W0.spots[k])) sp.appendChild(chip(landmarkName(k, RES_SPOTS[k]), () => {
+            const on = mine.includes(k), next = on ? mine.filter(x => x !== k) : mine.concat([k]).slice(-2);
+            T.sched[pick] = Object.assign({ w: 0, b: 0 }, sc, { spots: next }); if (!next.length) delete T.sched[pick].spots;
+            Save.touch(); redraw();
+        }, mine.includes(k) ? 'on' : ''));
+        b.appendChild(sp);
+        CV.note(b, mine.length ? `${d.name} will spend more of their free time there, from tomorrow.` : 'Pick up to two places they\'ll go more often when they\'re free.');
+        if (sc.w || sc.b || mine.length) f.appendChild(btn('Back to their own hours', 'alt', () => { delete T.sched[pick]; Save.touch(); redraw(); }));
         const r = S.npcs[pick];
         CV.h(b, 'What they wear');
         if (!r.accs || !r.accs.length) CV.note(b, `Give ${d.name} a hat or glasses as a present and they can wear it.`);
