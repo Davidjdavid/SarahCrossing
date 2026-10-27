@@ -104,6 +104,8 @@ const EnvDolls = {
         right: { aF: [-0.2, 0], aO: [0.25, 2.4], lean: -0.12 },
         pick: { aF: [-1.1, -1.1], aO: [0.2, 0.2], bend: 0.55, sink: 0.07, head: 0.25 },
         hug: { aF: [-1.35, -1.35], aO: [0.35, 0.35] },
+        // (hands on the trunk, shaking it: she keeps facing the tree)
+        shake: { aF: [-1.45, -1.45], aO: [0.28, 0.28], bend: 0.14, face: 1 },
         fish: { aF: [-0.95, -0.95], aO: [0.22, 0.22], rod: 1 },
         sit: { aF: [-0.55, -0.55], aO: [0.1, 0.1], legs: -1.5, sit: 1 },
         axe0: { aF: [-2.7, -2.7], aO: [0.12, 0.12], bend: -0.12 },
@@ -120,7 +122,7 @@ const EnvDolls = {
         if (!pk && e.pose && e.pose !== 'walk') pk = e.pose;
         const Q = pk && this.POSES[pk];
         // the way it faces (a pose like cheering faces us, as the HD pictures do)
-        const face = Q && !e.tool && !Q.rod && pk !== 'sit' ? 2 : m.face;
+        const face = Q && !e.tool && !Q.rod && !Q.face && pk !== 'sit' ? 2 : m.face;
         const ang = [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][sit ? 2 : face];
         if (d.ang == null) d.ang = ang;
         let da = ang - d.ang;

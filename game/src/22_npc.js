@@ -408,6 +408,7 @@ const NPCs = {
             updateNPC(n);
         }
         Chats.update();
+        TreeShakers.update();
     },
 };
 
@@ -631,7 +632,8 @@ function stepNpc(n) {
 }
 function faceNpc(n, o) {
     const dx = o.x - n.x, dy = o.y - n.y;
-    if (n.def.human) n.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    // (the food folks too: the new look turns them by it)
+    n.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
     n.flip = dx < 0;
 }
 

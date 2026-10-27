@@ -261,6 +261,63 @@ const Chats = {
     },
 };
 
+/* now and then a neighbor wanders over to a fruit tree, gives it a shake and picks up what falls (David, 27 October):
+   fruit only, never anything that matters, a couple of times a day at most, and only once the island has more than one
+   fruit tree with fruit on it */
+const TreeShakers = {
+    day: -1, n: 0,
+    LINES: ['Snack time!', 'Ooh, ripe ones!', "Don't mind me!", 'Just one or two...', 'Yum!'],
+    update() {
+        if (G.mode !== 'play' || G.area.id !== 'island' || UI.modal || G.busy || G.frame % 300 !== 150) return;
+        const day = Clock.dayNum();
+        if (this.day !== day) { this.day = day; this.n = 0; }
+        if (this.n >= 2 || R() > 0.3) return;
+        const a = G.area, trees = a.ents.filter(e => e.kind === 'fruittree' && e.fruit && e.id && treeHasFruit(e));
+        if (trees.length < 2) return;
+        const who = NPCs.here().filter(n => Chats.free(n) && !n.fixed && n.anchor && !n.def.human);
+        if (!who.length) return;
+        const n = rpick(who), p = G.player;
+        // (a tree near them, but not the one Sarah's standing at)
+        const t = trees.filter(e => Math.hypot(e.x - n.x, e.y - n.y) < 12 * TILE && Math.hypot(e.x - p.x, e.y - p.y) > 3 * TILE)
+            .sort((u, v) => Math.hypot(u.x - n.x, u.y - n.y) - Math.hypot(v.x - n.x, v.y - n.y))[0];
+        if (!t) return;
+        const tx = Math.floor(t.x / TILE), ty = Math.floor((t.y - 2) / TILE);
+        for (const [cx, cy] of [[tx, ty + 1], [tx - 1, ty], [tx + 1, ty]]) {
+            if (a.blockedAt(cx, cy)) continue;
+            const path = findPath(a, Math.floor(n.x / TILE), Math.floor((n.y - 2) / TILE), cx, cy, 2000);
+            if (!path || path.length > 24) continue;
+            this.n++;
+            n.path = path; n.dest = [(cx + 0.5) * TILE, (cy + 0.5) * TILE + 4];
+            n.chatCool = G.frame + 60 * 40;
+            n.onArrive = () => { if (!n.talking && !n.chat && treeHasFruit(t)) this.shake(n, t); };
+            return;
+        }
+    },
+    async shake(n, t) {
+        n.script = true; n.moving = false;
+        faceNpc(n, t);
+        n.pose = 'shake';
+        await waitFrames(6);
+        t.shake = 28;
+        const p = G.player, near = Math.hypot(t.x - p.x, t.y - p.y) < 10 * TILE;
+        if (near) Sfx.play('rustle');
+        await waitFrames(20);
+        if (!treeHasFruit(t)) { n.pose = null; n.script = false; return; }
+        S.trees[t.id] = Clock.dayNum();
+        Save.touch();
+        const drops = [[-8, 12], [8, 13]].map(([ox, oy]) => G.area.solidPx(t.x + ox, t.y + oy - 2) ? null : spawnDrop(t.fruit, t.x + ox, t.y + oy, false)).filter(Boolean);
+        n.pose = null;
+        await waitFrames(30);
+        // (whatever Sarah hasn't got to first)
+        n.pose = 'pick';
+        await waitFrames(16);
+        for (const d of drops) if (G.area.ents.includes(d)) G.area.remove(d);
+        n.pose = null; n.emote = 'heart'; n.emoteT = 50;
+        if (near && !n.chat) { Bubbles.show(n, voiced(n.id, rpick(this.LINES))); setTimeout(() => { if (!n.chat) Bubbles.hide(n); }, 2200); }
+        n.script = false;
+    },
+};
+
 /* speech bubbles are little HTML labels over the canvas, so the text stays sharp */
 const Bubbles = {
     root: null, map: new Map(),

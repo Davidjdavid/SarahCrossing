@@ -139,10 +139,13 @@ function treeHasFruit(e) {
 async function shakeTree(e) {
     const p = G.player;
     faceToward(p, e);
-    e.shake = 26;
+    // she takes hold and shakes it, the tree shakes, and only then does something fall
+    p.pose = 'shake'; p.poseT = 34;
+    await waitFrames(6);
+    e.shake = 28;
     Sfx.play('rustle');
     Critters.startle(e.x, e.y - 20, 70);
-    await waitFrames(16);
+    await waitFrames(20);
     if (festShake(e)) return;
     if (e.kind === 'fruittree' && e.fruit && treeHasFruit(e)) {
         S.trees[e.id] = Clock.dayNum();

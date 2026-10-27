@@ -30,9 +30,10 @@ async function talkTo(n) {
     if (n.chat) Chats.end(n.chat);
     n.talking = true;
     const p = G.player;
-    if (!n.def.spring && !n.def.shop && G.area === G.areas[n.area || G.area.id]) await stepAside(p, n);
-    if (!n.def.spring && !n.def.shop) { faceToward(p, n); if (n.def.human) n.dir = { left: 'right', right: 'left', up: 'down', down: 'up' }[p.dir]; else n.flip = p.x < n.x; }
-    else faceToward(p, n);
+    // (from wherever Sarah is: nobody steps round anyone first; the two of them turn to each other, the food folks too,
+    // so in the new look nobody talks with their back turned)
+    faceToward(p, n);
+    if (!n.def.spring && !n.def.shop) { faceToward(n, p); if (!n.def.human) n.flip = p.x < n.x; }
     try {
         const id = n.id;
         if (Online.visitor() && await visitorTalk(n)) { /* a visitor's own conversation (6y_visitors.js) */ }

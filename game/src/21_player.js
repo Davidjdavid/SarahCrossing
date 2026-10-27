@@ -15,6 +15,7 @@ function playerFrameKey(p) {
         const byPose = { pick: 'down_pick', cheer: 'down_cheer', happy: side ? 'side_happy' : 'down_happy', left: 'down_left', right: 'down_right', hug: 'side_hug' };
         if (byPose[p.pose]) return byPose[p.pose];
         if (p.pose === 'fish') return `${d}_stand`;
+        if (p.pose === 'shake') return `${d}_${(G.t >> 2) % 2 ? 'walkA' : 'walkB'}`;     // (shaking a tree: a little effort)
         if (p.pose === 'walk') { const k = Math.floor(p.anim / 4) % 4; return `${d}_${k === 1 ? 'walkA' : k === 3 ? 'walkB' : 'stand'}`; }
     }
     let b = 'stand';
@@ -244,10 +245,14 @@ function walkTo(tx, ty, cb, fx, fy) {
     return true;
 }
 
-/* walk next to an entity, face it, and use it */
+/* walk next to an entity, face it, and use it: right away if she's already beside it (a tree shaken, a neighbor talked
+   to from where she stands), otherwise to whichever side is the shortest walk */
+const REACH = 28;
 function approach(e) {
     const p = G.player, a = G.area;
     const ex = e.x, ey = e.y;
+    const use = () => { faceToward(p, e); tryInteract(e); };
+    if (!(heldTool() === 'axe' && isChoppable(e)) && Math.hypot(ex - p.x, ey - p.y) < REACH) { p.path = null; use(); return; }
     let cands;
     if (e.stand) cands = [e.stand];
     else {
@@ -269,12 +274,10 @@ function approach(e) {
         if (a.blockedAt(cx, cy)) continue;
         if (cx === sx && cy === sy) { best = { path: [], cx, cy }; break; }
         const path = findPath(a, sx, sy, cx, cy, 4000);
-        // the preferred spots win unless they're a much longer walk
-        if (path && (!best || path.length + 2 < best.path.length)) best = { path, cx, cy };
+        if (path && (!best || path.length < best.path.length)) best = { path, cx, cy };
     }
-    const use = () => { faceToward(p, e); tryInteract(e); };
     if (!best) {
-        if (Math.hypot(ex - p.x, ey - p.y) < 26) use();
+        if (Math.hypot(ex - p.x, ey - p.y) < REACH) use();
         return;
     }
     p.path = best.path;
@@ -336,22 +339,4 @@ function pressA() {
     if (under) tryInteract(under);
 }
 
-/* if Sarah is standing right in front of someone, step to the side so both faces show */
-async function stepAside(p, n) {
-    const dx = p.x - n.x, dy = p.y - n.y;
-    if (Math.abs(dx) >= 11 || dy < -3 || dy > 23) return;
-    const a = G.area;
-    const side = dx >= 0 ? 1 : -1;
-    const spots = [];
-    for (const off of [17, 14, 12]) spots.push([n.x + side * off, n.y + 1], [n.x - side * off, n.y + 1]);
-    spots.push([p.x, n.y + 25], [n.x, n.y + 25], [p.x, n.y - 18]);
-    for (const [x, y] of spots) {
-        if (blockedFoot(a, x, y)) continue;
-        if (NPCs.here().some(o => o !== n && Math.hypot(o.x - x, o.y - y) < 10)) continue;
-        p.dir = Math.abs(x - p.x) > Math.abs(y - p.y) ? (x > p.x ? 'right' : 'left') : (y > p.y ? 'down' : 'up');
-        p.glide = { x, y, t: 0 };
-        for (let i = 0; i < 45 && p.glide; i++) await waitFrames(1);
-        return;
-    }
-}
 

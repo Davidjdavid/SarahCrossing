@@ -110,7 +110,7 @@ Object.assign(EnvDolls, {
         // it's running from
         let ang;
         const sp = Math.hypot(m.vx, m.vy);
-        if (Q && !e.tool && !Q.rod && pk !== 'sit') ang = 0;
+        if (Q && !e.tool && !Q.rod && !Q.face && pk !== 'sit') ang = 0;
         else if (walk && sp > 0.3 && !sit) ang = Math.atan2(m.vx, m.vy);
         else ang = [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][sit && !this.atTable(e) ? 2 : m.face];
         if (d.ang == null) d.ang = ang;
@@ -152,6 +152,8 @@ Object.assign(EnvDolls, {
             Object.assign(W, { aLx: Q.aF[0], aRx: Q.aF[1], aLz: -Q.aO[0], aRz: Q.aO[1], lL: Q.legs || 0, lR: Q.legs || 0, kL: Q.sit ? 1.45 : Q.bend ? 0.4 : 0.05, kR: Q.sit ? 1.45 : Q.bend ? 0.4 : 0.05,
                 eL: Q.rod ? -0.6 : -0.2, eR: Q.rod ? -0.6 : -0.2, bx: Q.bend || 0, by: hop - (Q.sink || 0), hx: -0.06 + (Q.head || 0), bz: Q.lean || 0, hy: 0 });
             if (pk === 'hug') { W.eL = W.eR = -0.9; }
+            // shaking a tree: both arms pushing and pulling at the trunk, the body rocking with them
+            if (pk === 'shake') { const j = Math.sin(t * 1.7); W.aLx += j * 0.22; W.aRx += j * 0.22; W.eL = W.eR = -0.5 - j * 0.2; W.bz = j * 0.07; W.bx += j * 0.05; }
         }
         // (eased the same however often frames come)
         const k = 1 - Math.pow(0.7, Math.min(4, (G.frameMs || 16.7) / 16.7)), ease = (o, key, v) => { o[key] += (v - o[key]) * k; };
@@ -165,7 +167,7 @@ Object.assign(EnvDolls, {
         const tool = Q && Q.rod ? 'rod' : e === G.player ? heldTool() : null;
         if (tool !== d.tool) { if (d.toolMesh) { d.toolMesh.parent.remove(d.toolMesh); d.toolMesh = null; } d.tool = tool; if (tool) d.toolMesh = this.toolModel2(d, tool); }
         // the face: the acting's, a pose's, Sarah running for joy
-        const QF = { cheer: 'excited', happy: 'happy', left: 'joy', right: 'joy', hug: 'happy', fish: 'determined', axe0: 'determined', axe1: 'determined', dig0: 'determined', dig1: 'determined' };
+        const QF = { cheer: 'excited', happy: 'happy', left: 'joy', right: 'joy', hug: 'happy', fish: 'determined', shake: 'determined', axe0: 'determined', axe1: 'determined', dig0: 'determined', dig1: 'determined' };
         this.showFace(d, e, A.face || (pk && QF[pk]) || (run && e === G.player ? 'happy' : null));
     },
     /* a tool in a redone doll's hand: the shovel the style test made (props2.py), the others as before */
@@ -222,6 +224,7 @@ Object.assign(EnvDolls, {
         if (Q === 'cheer' || Q === 'happy') { const b = Math.abs(Math.sin(t / 6)); lift = b * 0.12; sq = 0.06 * b - 0.04 * (1 - b); }
         else if (Q === 'hug') lean = 0.25;
         else if (Q === 'pick') { lean = 0.35; sq = -0.04; }
+        else if (Q === 'shake') { lean = 0.18; roll = Math.sin(t * 1.7) * 0.12; }      // (shaking a fruit tree)
         else if (Q === 'left' || Q === 'right') { roll = Q === 'left' ? 0.18 : -0.18; lift = 0.04; }
         // (dancing at the club: a bounce on the beat, rocking side to side, a little turn now and then)
         const dance = !!e.dancer && !walk;
@@ -248,6 +251,7 @@ Object.assign(EnvDolls, {
             else if (Q === 'happy') { up = 0.95; fwd = -side * 0.2; }
             else if (Q === 'hug') { up = 0.3; fwd = -side * 1.15; }
             else if (Q === 'pick') { up = -0.1; fwd = -side * 0.9; }
+            else if (Q === 'shake') { up = 0.45 + Math.sin(t * 1.7) * 0.15; fwd = -side * 1.1; }
             else if (Q === 'left' || Q === 'right') up = (Q === 'left') === (side < 0) ? 1.5 : 0.15;
             else if (dance) { up = 0.85 + Math.sin(t / 9 + e.x + (side > 0 ? Math.PI : 0)) * 0.55 * F.arms; fwd = -side * 0.25; }
             else if (run && (A.mode === 'flee' || F.run === 'flail')) { up = 0.7 + Math.sin(ph * 2 + side) * 0.6 * F.arms; fwd = 0; }
