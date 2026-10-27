@@ -175,10 +175,12 @@ function buildIsland() {
     for (const wf of W0.waterfalls) addWaterfall(a, wf);
     addWildFlowers(a);
     addPlantedFlowers(a);
-    // garden plots
+    // garden plots: raised planter boxes (solid; Sarah plants from beside them), Sarah's by her house and the community
+    // garden's by the farm (c)
     W0.plots.forEach((p, idx) => {
         const [fx, fy] = tileFoot(p.x, p.y);
-        const e = a.add({ kind: 'plot', idx, x: fx, y: fy + 1, tx: p.x, ty: p.y, layer: 0 });
+        a.block(p.x, p.y);
+        const e = a.add({ kind: 'plot', idx, x: fx, y: fy + 1, tx: p.x, ty: p.y, layer: 0, c: !!p.c });
         e.hit = { x: p.x * TILE, y: p.y * TILE, w: TILE, h: TILE };
         e.stand = null;
         e.interact = () => usePlot(idx);

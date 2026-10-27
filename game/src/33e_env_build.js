@@ -64,6 +64,8 @@ const EnvBuild = {
                 if (n === 'windmill') mills.push(placed[n][placed[n].length - 1]);
                 if (e.onlyNight) nights.push({ n, i: placed[n].length - 1, on: true });
             }
+            // (a garden plot is a raised planter box, props_island.py; what grows in it is EnvItems')
+            else if (e.kind === 'plot' && has('planter_box')) { const f = Env.tileSpot(e); this.model('planter_box', f.x, f.y, f.z, 0, 1); }
             else if (e.kind === 'bench') this.bench(e);
             else if (e.kind === 'lamp') this.lamp(e);
             else if (e.kind === 'mailbox') this.mailbox(e, group);

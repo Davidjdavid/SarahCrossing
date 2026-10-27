@@ -29,6 +29,7 @@ export function makeIsland(seed = PLAN.seed, plan = PLAN) {
   I.ground();
   I.furnish();
   I.greenery();
+  I.additions();
   return I.output();
 }
 
@@ -303,6 +304,7 @@ class Island {
       for (const [dx, dy] of [[0, 0], [2, 0], [4, 0], [0, 2], [2, 2], [4, 2]]) { this.plots.push({ x: gd.x + dx, y: gd.y + dy }); this.occ[this.i(gd.x + dx, gd.y + dy)] = 1; }
       for (let j = -1; j <= 4; j++) for (let i = -1; i <= 6; i++) this.keep[this.i(gd.x + i, gd.y + j)] = 1;
     }
+
     const pe = this.P.pier;
     this.pier = null;
     if (pe) {
@@ -438,6 +440,28 @@ class Island {
       if (this.lvl[k] < 3 || x < 150 || !free(k) || this.keep[k] || nearRoad(x, y, 2)) continue;
       if (this.gemSpots.some(([gx, gy]) => Math.abs(gx - x) + Math.abs(gy - y) < 6)) continue;
       this.gemSpots.push([x, y]);
+    }
+  }
+
+  /* ---------------------------------------------------------------- added after everything grew */
+  /* What the plan added after the island was laid out and approved, placed last so the trees, flowers and palms grown
+     before stay exactly where they were (each draws from the same random numbers in turn): the community garden by the
+     farm (David, 27 October: raised beds anyone may plant, a free tile between them, after Sarah's own plots so hers keep
+     their numbers in the save; c marks them, the game plants what's left over each day) and fruit trees round the farm.
+     A wild flower in their way is taken up. */
+  additions() {
+    const P = this.P, clear = (x0, y0, x1, y1) => { this.flowers = this.flowers.filter(f => f.x < x0 || f.x > x1 || f.y < y0 || f.y > y1); };
+    const cg = P.community;
+    if (cg) {
+      clear(cg.x - 1, cg.y - 1, cg.x + cg.cols * 2 - 1, cg.y + cg.rows * 2);
+      for (let j = 0; j < cg.rows; j++) for (let i = 0; i < cg.cols; i++) { const x = cg.x + i * 2, y = cg.y + j * 2; this.plots.push({ x, y, c: 1 }); this.occ[this.i(x, y)] = 1; }
+      for (let j = -1; j <= cg.rows * 2; j++) for (let i = -1; i <= cg.cols * 2; i++) this.keep[this.i(cg.x + i, cg.y + j)] = 1;
+    }
+    for (const [x, y, fruit] of P.fruitTrees || []) {
+      const k = this.i(x, y);
+      if (!this.land[k] || this.face[k] || this.ter[k] !== 'g' || (this.occ[k] && this.occ[k] !== 3)) continue;
+      clear(x, y, x, y);
+      this.fruitTrees.push({ x, y, fruit }); this.occ[k] = 1;
     }
   }
 

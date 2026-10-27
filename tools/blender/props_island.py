@@ -100,6 +100,32 @@ def drinkfountain():
     return [(mb, 'main'), (gl, 'gloss'), (water, 'water')]
 
 
+def planter_box():
+    """A raised planter for growing crops (David, 27 October: the garden spots by Sarah's house were lost under the grass):
+    a box of honey planks on four corner posts, a cap rail round its top, dark crumbly soil heaped a little inside. As
+    wide as most of a tile, knee high to Sarah; what grows in it stands on the soil (its top at 0.3)."""
+    mb = MB()
+    H, R = 0.3, 0.42
+    for x0, y0, x1, y1, ax in ((-R, -R, R, -R + 0.05, 'x'), (-R, R - 0.05, R, R, 'x'), (-R, -R, -R + 0.05, R, 'y'), (R - 0.05, -R, R, R, 'y')):
+        for k, (z0, z1) in enumerate(((0.0, 0.13), (0.14, 0.27))):
+            rbox(mb, x0, y0, z0, x1, y1, z1, wood(WOOD if k else WOOD_D, ax), r=0.012)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            rbox(mb, sx * R - 0.04, sy * R - 0.04, 0, sx * R + 0.04, sy * R + 0.04, H + 0.02, wood(WOOD_D), r=0.015)
+    for x0, y0, x1, y1, ax in ((-R - 0.03, -R - 0.03, R + 0.03, -R + 0.05, 'x'), (-R - 0.03, R - 0.05, R + 0.03, R + 0.03, 'x'),
+                               (-R - 0.03, -R, -R + 0.05, R, 'y'), (R - 0.05, -R, R + 0.03, R, 'y')):
+        rbox(mb, x0, y0, H - 0.03, x1, y1, H, wood('#c08a52', ax), r=0.01)
+    # the soil: a low mound, crumbly and dark, a few lighter clods
+    soil = lambda p, n, *_: rgb('#4a3020').lerp(rgb('#6a4630'), 0.5 + 0.5 * noise.noise(p * 18)) * (0.82 + 0.18 * max(0.0, n.z))
+    rbox(mb, -R + 0.045, -R + 0.045, H - 0.09, R - 0.045, R - 0.045, H - 0.025, soil, r=0.02)
+    ball(mb, (0, 0, H - 0.035), (0.31, 0.31, 0.035), soil, sub=2)
+    rng = random.Random(5)
+    for _ in range(9):
+        x, y = rng.uniform(-0.28, 0.28), rng.uniform(-0.28, 0.28)
+        ball(mb, (x, y, H - 0.005), (0.03, 0.03, 0.015), shade('#7a5238'), sub=1)
+    return [(mb, 'main')]
+
+
 def board():
     """The notice board: a little roofed frame on two legs, papers pinned on cork."""
     mb = MB()
@@ -898,7 +924,7 @@ def bigtree_planter():
 
 
 PROPS = {
-    'fountain': fountain, 'drinkfountain': drinkfountain, 'board': board, 'plaque': plaque, 'trashcan': trashcan, 'statue_david': statue,
+    'fountain': fountain, 'drinkfountain': drinkfountain, 'board': board, 'planter_box': planter_box, 'plaque': plaque, 'trashcan': trashcan, 'statue_david': statue,
     'signpost_trail': lambda: sign('trail'), 'signpost_farm': lambda: sign('farm'), 'signpost_camp': lambda: sign('camp'),
     'signpost_club': lambda: sign('club'), 'signpost_bonfire': lambda: sign('bonfire'), 'signboard': signboard,
     'windmill': windmill, 'well': well, 'scarecrow': scarecrow, 'hay': hay, 'crate': crate, 'wheelbarrow': wheelbarrow, 'trough': trough,

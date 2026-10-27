@@ -103,6 +103,9 @@ export const PLAN = {
   bigTree: { x: 106, y: 96 },
   camp: { x: 126, y: 19 },
   garden: { x: 62, y: 81 },
+  // the community garden below the farm's crossroads, and fruit trees round the farm's fields and the garden
+  community: { x: 53, y: 45, cols: 4, rows: 2 },
+  fruitTrees: [[47, 38, 'apple'], [37, 43, 'cherry'], [66, 40, 'peach'], [70, 40, 'cherry'], [52, 49, 'mango'], [61, 49, 'apple']],
   buildings: [
     { id: 'shop', x: 95, y: 86, w: 5, h: 3, door: 2, sprite: 'shop', front: 'shopfront' },
     { id: 'postoffice', x: 103, y: 86, w: 5, h: 3, door: 2, sprite: 'postoffice', front: 'postofficefront' },

@@ -181,6 +181,18 @@ function migrate(st) {
                     + 'Everything else is brand new, so go say hi to everyone. They can\'t wait to meet you. Again!\n- Fortune' });
         }
     }
+    // the community garden and the fruit trees round the farm (27 October, added to map 7's island: nothing else moved):
+    // whatever of Sarah's stood on one of their tiles comes back to her storage
+    if (!st.flags.garden8) {
+        st.flags.garden8 = 1;
+        const busy = new Set(W0.plots.filter(p => p.c).concat((W0.fruitTrees || []).filter(t => t.x < 90 && t.y < 60)).map(p => p.x + ',' + p.y));
+        const on = (x, y, w, h) => { for (let j = 0; j < (h || 1); j++) for (let i = 0; i < (w || 1); i++) if (busy.has((x + i) + ',' + (y + j))) return true; return false; };
+        const back = (id, n) => { if (id && ITEMS[id]) st.storage[id] = (st.storage[id] || 0) + (n || 1); };
+        if (st.deco && st.deco.placed) st.deco.placed = st.deco.placed.filter(p => { const d = DISPLAYS[p.id]; if (!d || !on(p.x, p.y, d.w, displayRows(d))) return true; back(p.id); return false; });
+        if (st.flowers && st.flowers.planted) st.flowers.planted = st.flowers.planted.filter(f => { if (!on(f.x, f.y)) return true; back('seed_fl_' + f.kind); return false; });
+        if (st.forest && st.forest.planted) st.forest.planted = st.forest.planted.filter(t => { if (!on(t.x, t.y)) return true; if (t.kind === 'money') st.money += t.amount || 0; else back(t.kind === 'fruit' ? t.fruit : t.kind === 'palm' ? 'coconut' : 'sapling'); return false; });
+        if (st.drops) st.drops = st.drops.filter(d => { if ((d.area && d.area !== 'island') || !on(Math.floor(d.x / TILE), Math.floor(d.y / TILE))) return true; back(d.id); return false; });
+    }
     // the final update: glasses get their own slot (so Sarah can wear a hat too), and Joe is always her best friend
     if (!st.flags.v9) {
         st.flags.v9 = 1;

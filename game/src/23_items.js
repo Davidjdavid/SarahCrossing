@@ -232,9 +232,28 @@ function drawPlot(ctx, e) {
     const pl = S.plots[e.idx];
     const st = plotStage(pl);
     // (in the new look what grows is a model standing in the plot: here only its soil)
-    if (typeof Env !== 'undefined' && Env.on && typeof EnvItems !== 'undefined' && EnvItems.plant(e)) { spr(ctx, 'plot_0', e.x, e.y); return; }
-    spr(ctx, `plot_${st}`, e.x, e.y);
+    const env = typeof Env !== 'undefined' && Env.on && typeof EnvItems !== 'undefined' && EnvItems.plant(e);
+    spr(ctx, env ? 'plot_0' : `plot_${st}`, e.x, e.y);
+    // (a raised planter box: a wooden rim round the soil, its front a shade darker)
+    const bx = e.tx * TILE, by = e.ty * TILE;
+    ctx.fillStyle = '#c08a52'; ctx.fillRect(bx, by, TILE, 2); ctx.fillRect(bx, by, 2, TILE); ctx.fillRect(bx + TILE - 2, by, 2, TILE);
+    ctx.fillStyle = '#8a5a32'; ctx.fillRect(bx, by + TILE - 3, TILE, 3);
+    if (env) return;
     if (st === 3) spr(ctx, pl.seed.startsWith('flower_') ? ITEMS[pl.seed].icon : 'veg_' + pl.seed, e.x, e.y - (pl.seed.startsWith('flower_') ? 1 : 3));
+}
+/* the community garden by the farm (the plots marked c): anyone may plant there, and each morning Ginger's crew plants
+   what seeds were left over in the empty beds, grown and ready to pick: a third of mornings none, a third one bed, a
+   third two (David, 27 October) */
+function communityTick() {
+    if (Online.visitor() || !W0.plots) return;
+    const day = Clock.dayNum(), r = mulberry(hash32(S.seed + ':garden:' + day));
+    const empty = W0.plots.map((p, i) => p.c && !S.plots[i] ? i : -1).filter(i => i >= 0);
+    const seeds = Object.keys(ITEMS).filter(id => ITEMS[id].type === 'seed' && ITEMS[id].grows);
+    let n = Math.floor(r() * 3);
+    while (n-- > 0 && empty.length && seeds.length) {
+        const i = empty.splice(Math.floor(r() * empty.length), 1)[0], sid = seeds[Math.floor(r() * seeds.length)];
+        S.plots[i] = { seed: ITEMS[sid].grows.replace('*', String(Math.floor(r() * 3))), day: day - 2 };
+    }
 }
 async function usePlot(i) {
     if (visitorStop('farm')) return;
@@ -242,7 +261,7 @@ async function usePlot(i) {
     const st = plotStage(pl);
     if (!pl) {
         const seeds = S.pocket.filter(s => s && ITEMS[s.id].type === 'seed');
-        if (!seeds.length) { await UI.say(null, 'A garden plot. Fortune sells seeds at the shop.'); return; }
+        if (!seeds.length) { await UI.say(null, W0.plots[i] && W0.plots[i].c ? "A bed in the community garden. Anyone can plant here, and Ginger's crew plants whatever seeds are left over now and then. Fortune sells seeds at the shop." : 'A garden plot. Fortune sells seeds at the shop.'); return; }
         const opts = seeds.map(s => `${itemName(s.id)} (${s.n})`).concat(['Not now']);
         const k = await UI.ask(null, 'Plant something here?', opts);
         if (k >= seeds.length) return;

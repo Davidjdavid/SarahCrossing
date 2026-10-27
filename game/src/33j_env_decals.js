@@ -21,7 +21,7 @@ const EnvDecals = {
         if (!v) return;
         const seen = new Set();
         for (const e of a.ents) {
-            if (e.layer !== 0 || e.kind === 'waterfall') continue;
+            if (e.layer !== 0 || e.kind === 'waterfall' || (e.kind === 'plot' && EnvModels.has('planter_box'))) continue;
             if (e.x < v.x0 - 64 || e.x > v.x1 + 64 || e.y < v.y0 - 64 || e.y > v.y1 + 96) continue;
             seen.add(e);
             const s = this.sig(e);

@@ -232,6 +232,9 @@ Status: [x] done, [~] in progress, [ ] not started.
   cabinet in the front room is out of order: that's the special game David will remake from memory later
   (done: the back room's story now hides the four old classics; the out-of-order cabinet at the end of the row, a
   paper sign over its screen, waits for that game)
+- [x] The garden spots by Sarah's house are raised planter boxes now (they were lost under the grass); a community garden
+  of eight beds by the farm that anyone can plant, where a grown crop turns up in none, one or two empty beds each
+  morning; fruit trees round the farm
 - [ ] Music for each hour of the day, as Animal Crossing has (David will bring the tracks)
 - [ ] Holiday decorations that fit the day: bigger jack-o'-lanterns, and decorations round the square and on the shops and
   houses for the big holidays, seasons and events, up for longer and more elaborate the more the day matters

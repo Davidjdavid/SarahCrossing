@@ -7,7 +7,7 @@ function dailyCheck(force) {
     S.day = day;
     G.weather = todayWeather();
     G.events = todayEvents();
-    try { postYesterday(); Requests.tick(); dayStatsTick(); arcadeRivals(); shopsTick(); festTick(); bankTick(); postTick(); townTick(); worldFetch(); marketDividends(); } catch (e) { console.error(e); }
+    try { postYesterday(); Requests.tick(); dayStatsTick(); arcadeRivals(); shopsTick(); festTick(); bankTick(); postTick(); townTick(); worldFetch(); marketDividends(); communityTick(); } catch (e) { console.error(e); }
     const r = mulberry(hash32(S.seed + ':mail:' + day));
     if (!first) {
         // Harvard's letters and Joe's poems are for Sarah
@@ -21,6 +21,10 @@ function dailyCheck(force) {
         if (G.events.has('valentine') && !S.flags['val' + day] && !Online.visitor()) {
             S.flags['val' + day] = true;
             sendMail({ from: 'joe', subject: "Happy Valentine's Day", body: "Hi,\nHappy Valentine's Day! I made you a card. It has a frog on it. The frog is holding a heart. The frog is not me. (The frog is me.)\nThere's a heart lamp too. Coco said you have to give a lamp. I don't know why. It's a nice lamp.\n\nOkay bye!\nJoe\n\nP.S. Please don't show Coco.", gift: 'heart_lamp' });
+        }
+        if (!S.flags.gardenMail && !Online.visitor()) {
+            S.flags.gardenMail = true;
+            sendMail({ from: 'ginger', subject: 'A community garden!', body: "Sarah!\nThe crew and I built a community garden by the farm: eight raised beds just down the path from the crossroads, and we planted fruit trees round the fields while we were at it.\nAnyone can plant there. Whatever seeds we have left over, we pop into an empty bed, so check it in the mornings. Some days there's something ready to pick!\nAnd your garden plots by the house are proper planter boxes now. No more losing them in the grass.\n- Ginger" });
         }
         if (!S.flags.toolsMail) {
             S.flags.toolsMail = true;

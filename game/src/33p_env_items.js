@@ -137,7 +137,8 @@ const EnvItems = {
             const name = e.kind === 'plot' ? this.plant(e) : e.kind === 'gflower' ? this.planted(e) : 'item_vbball';
             if (!name || !EnvModels.has(name)) continue;
             // (a plot's flowers in one of their colors, a planted flower in its own)
-            const tint = /^flower_/.test(name) ? { top: e.kind === 'gflower' ? this.petals(`flower_${e.pl.kind}_${e.pl.ci}`) : (this.PETALS[name.slice(7)] || [])[e.idx % 3] } : null;
+            const pl = e.kind === 'plot' && S.plots[e.idx];
+            const tint = /^flower_/.test(name) ? { top: e.kind === 'gflower' ? this.petals(`flower_${e.pl.kind}_${e.pl.ci}`) : this.petals(pl && pl.seed) || (this.PETALS[name.slice(7)] || [])[e.idx % 3] } : null;
             const key = name + (tint ? tint.top : '');
             let d = this.list.get(e);
             if (d && d.userData.name !== key) { this.group.remove(d); d = null; }
@@ -148,7 +149,8 @@ const EnvItems = {
                 this.list.set(e, d);
             }
             seen.add(e);
-            if (e.kind === 'plot' || e.kind === 'gflower') { const f = Env.tileSpot(e); d.position.set(f.x, f.y, f.z); }
+            // (in a plot, on the planter box's soil)
+            if (e.kind === 'plot' || e.kind === 'gflower') { const f = Env.tileSpot(e); d.position.set(f.x, f.y + (e.kind === 'plot' && EnvModels.has('planter_box') ? 0.27 : 0), f.z); }
             else {
                 const b = e.bounce > 0 ? Math.abs(Math.sin(e.bounce-- / 5)) * 8 * (e.bounce / 30) : 0;
                 d.position.set(e.x / TILE, Env.groundH(e.x, e.y - 2) + b / TILE * R3_VS, (e.y - 2) / TILE * R3_ZS);

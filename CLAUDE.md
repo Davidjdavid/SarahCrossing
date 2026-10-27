@@ -148,6 +148,12 @@ docs/DEPLOY.md for the server.
 - Hats fit the hair (`EnvDolls.hatFit`, `HAT_FIT` in 33ka_doll_kit.js): a covering hat grows to the hair at its band and
   presses the hair above it down and in; what sits on top rests on the hair round a ring half a head out; what goes round
   the head goes round the hair.
+- Garden plots are raised planter boxes (`planter_box`, props_island.py; solid, planted from beside them), Sarah's six by
+  her house and the community garden's eight by the farm (`community` in plan.mjs, plots with `c`, after hers so her
+  plots keep their numbers): each morning `communityTick` plants a leftover seed, grown, in none, one or two empty beds (a
+  third of mornings each). The farm's fruit trees are the plan's `fruitTrees`. Both are placed by `layout.mjs`'s
+  `additions()`, after everything random has grown, so the rest of the island stays exactly as it was; the save step
+  `garden8` returns anything of Sarah's that stood on their tiles to her storage.
 - Flowers are one plant per kind (vegetation.py's `flower_<kind>`), the petals their own part painted in the flower's
   color (`EnvItems.PETALS`, `petals(id)`): wild ones (`EnvBuild.flower`, instanced per color through
   `EnvModels.instances`' `tint`), planted ones and the plots' (`EnvItems`), a picked one lying on its side.
