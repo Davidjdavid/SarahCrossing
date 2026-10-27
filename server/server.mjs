@@ -38,7 +38,8 @@
 //   GET    /api/world?zip=<5 digits>          the place, its time zone, today's forecast, headlines (server/world.mjs)
 //   GET    /api/market                        a few real companies' last 60 closing prices
 //   GET    /api/music                         the music library {tracks, free} (server/music.mjs)
-//   PUT    /api/music/file?path=<game/file>   a track uploaded; DELETE /api/music/game?name= a game's folder
+//   PUT    /api/music/file?path=<game/file>   a track uploaded; DELETE /api/music/game?name= a game's folder;
+//   POST   /api/music/tidy                    duplicate formats and non-music files deleted (also at start, on beta)
 //   GET    /music/<game/file>                 a track (with Range)
 // Request bodies may be gzip-compressed (Content-Encoding: gzip).
 
@@ -425,6 +426,7 @@ async function handleApi(req, res, pathname) {
       if (!MUSIC_UPLOADS && method !== 'GET') throw new HttpError(403, 'Music is uploaded from the beta site');
       if (pathname === '/api/music/file' && method === 'PUT') return sendJson(res, 200, await music.put(q.get('path'), req));
       if (pathname === '/api/music/game' && method === 'DELETE') return sendJson(res, 200, await music.removeGame(q.get('name')));
+      if (pathname === '/api/music/tidy' && method === 'POST') return sendJson(res, 200, await music.tidy());
     } catch (err) {
       if (err instanceof MusicError) throw new HttpError(err.status, err.message);
       throw err;
@@ -660,6 +662,14 @@ server.keepAliveTimeout = 65_000;
 const sweep = () => islands.sweep().catch((err) => console.error(`emptying the trash: ${err.message}`));
 sweep();
 setInterval(sweep, 24 * 3600_000).unref();
+
+// The music folder tidied once at start where music is uploaded (the beta site): duplicate formats and non-music files
+if (MUSIC_UPLOADS) {
+  music
+    .tidy()
+    .then((r) => r.removed && console.log(`music folder tidied: ${r.removed} files (${Math.round(r.bytes / 1e6)} MB) deleted`))
+    .catch((err) => console.error(`tidying the music folder: ${err.message}`));
+}
 
 server.listen(PORT, HOST, () => {
   console.log(`Sarah Crossing ${VERSION} on http://${HOST}:${server.address().port} (game ${STATIC_DIR}, data ${DATA_DIR}${PASSWORD ? '' : ', no password'})`);

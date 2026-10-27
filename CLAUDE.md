@@ -201,7 +201,15 @@ docs/DEPLOY.md for the server.
   `lib:<path>`: the hour's track from a game picked at random for the hour (`MusicLib.hourly`, from the seed, day and
   hour, so it's the same all hour; rain or snow versions on such days, `gameHour`), unless `S.music.lib` names one game
   or 'tunes'; `libSkip` leaves games out of the mix; the hour, place and "play now" choices take `lib:<path>`, `hourly`
-  and `hgame:<game>` (`musicResolve`). A track plays through one of two audio elements routed into the music's volume
+  and `hgame:<game>` (`musicResolve`). Games are named properly (`gameName`'s `GAME_NAMES`: "ACNL-OST-v4-MP3" is
+  Animal Crossing: New Leaf); a track in two formats is listed once (MP3 first, `FORMAT_RANK`) and the folder is tidied
+  (`Music.tidy`, `POST /api/music/tidy`: at start on beta and after each upload, the lesser formats and every file that
+  isn't music deleted); an hour's track is only the hour (`readTrackName`: "1200 AM" is midnight, a jingle, holiday or
+  countdown at an hour isn't one). Places and moments with a track of their own in the soundtracks play it
+  (`SOUNDTRACK`, `musicScene`: the shop by its size, the museum's rooms one track and the aquarium its own, the Town Hall,
+  the post office by day and by night, the boutique, salon, club, café and Ginger's workshop, holidays' hours, the New
+  Year countdown, hide-and-seek, by a town project the day it's done), and music that stays the same carries on through
+  a door (`Music.update`). A track plays through one of two audio elements routed into the music's volume
   (`MusicFile`, readied in the first tap for phones); without the library the island's own tunes play. Uploads and
   removing a game only where the server allows them (`MUSIC_UPLOADS`: 1 on beta from setup.sh, 0 on live, on outside
   production; `/api/music` says `uploads`): David uploads once from beta, then the game's own tunes are to be swapped for

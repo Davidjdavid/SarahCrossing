@@ -108,13 +108,13 @@ const CIVIC_SCREENS = {
     zip: { title: 'Your address', icon: 'app_map', blurb: 'Register your zip code: the real time, weather and news',
         states: ['Works', 'Loading', 'Found', 'Bad zip code', 'No internet', 'Service down'],
         draw(b, st, D) {
-            CV.note(b, "The island uses it for your time zone, the day's weather and local news. It's only kept in your island's save.");
+            CV.note(b, "Used for your time zone, local weather, and local news. Saved with your island.");
             CV.field(b, 'Your zip code (5 digits)', st === 'Works' ? '' : st === 'Bad zip code' ? '00000' : D.zip, '5 digits', { inputmode: 'numeric', max: 5, bad: st === 'Bad zip code' });
             if (st === 'Loading') CV.loading(b, 'Looking it up...');
             if (st === 'Found') { CV.banner(b, 'ok', CV.fill('Your island now keeps {town} time. Weather and news will come from {town}.', D)); CV.big(b, 'Now in ' + D.town, D.time, `${D.sky} · ${D.temp}° (high ${D.high}°, low ${D.low}°)`); }
             if (st === 'Bad zip code') CV.banner(b, 'err', "We couldn't find that zip code. Check the numbers and try again.");
             if (st === 'No internet') CV.banner(b, 'warn', 'No internet connection. Your zip code is saved and the island will look it up when it\'s back online. Until then it keeps your device\'s time.');
-            if (st === 'Service down') CV.banner(b, 'warn', "The service that turns zip codes into places isn't answering. Your zip code is saved; we'll try again later.");
+            if (st === 'Service down') CV.banner(b, 'warn', "The zip code service isn't available. Your number is saved; we'll try again later.");
         },
         foot: f => f.appendChild(btn('Register', 'green', () => {})) },
     ordinance: { title: 'Island ordinance', icon: 'app_calendar', blurb: 'Early Bird, Night Owl, Community Spirit, Nature Conservation',
@@ -227,7 +227,7 @@ const CIVIC_SCREENS = {
             const l = CV.list(b);
             CV.row(l, itemIcon('egg_0'), 'The Egg Hunt', st === 'Expired' ? 'Missed 9 days ago' : 'Missed 2 days ago · can still be held for 5 more days', st === 'Expired' ? el('span', 'cv-pill', 'Too late') : el('span', 'cv-pill ok', 'Hold it today'));
             if (st === 'Expired') CV.banner(b, 'warn', 'A missed holiday can be held up to a week after. This one was too long ago. Next year!');
-            else CV.note(b, CV.fill('Today: {holiday} (moved here by the Town Hall, because {name} missed it).', { holiday: 'The Egg Hunt', name: D.name }));
+            else CV.note(b, CV.fill('Today: {holiday}, rescheduled for {name} by the Town Hall.', { holiday: 'The Egg Hunt', name: D.name }));
         },
         foot: f => f.appendChild(btn('Hold it today', 'green', () => {})) },
     jobs: { title: 'Island jobs', icon: 'app_tasks', blurb: 'Small jobs for sand dollars: deliveries, sweeping, signs',
@@ -268,9 +268,9 @@ const CIVIC_SCREENS = {
             if (live) sec('World news', [['Scientists find a mushroom that glows blue', 'Read the full story'], ["A city's oldest bakery turns 200", 'Read the full story']]);
             if (live && st === 'Works') sec("Today's weather", [[`${D.sky}, ${D.temp}°`, `High ${D.high}°, low ${D.low}°`]]);
             sec('Island news', [[`${D.name} catches a 190 cm tuna off the pier`, 'Witnesses say she did a little dance.'], ['The Council rates a house "exquisite"', 'The Council would not say whose. It was ' + D.name + "'s."]]);
-            sec("Coco's Corner (gossip, lovingly)", [['Who left a present on Joe\'s doorstep?', 'Coco knows. Coco always knows.']]);
+            sec("Coco's Corner", [['Who left a present on Joe\'s doorstep?', 'Coco knows. Coco always knows.']]);
             if (live) sec('The markets (from the Bank)', [['Coffee chain up 2%, Toy maker down 1%', null]]);
-            p.appendChild(el('div', 'cv-small', 'Real headlines come from a free news service. The island news is written by the island.'));
+            p.appendChild(el('div', 'cv-small', 'Headlines from the wider world, alongside stories from the island.'));
             b.appendChild(p);
         } },
     archive: { title: 'The Gazette archive', icon: 'app_poems', blurb: 'Every paper kept, to read again',
@@ -375,7 +375,7 @@ const CIVIC_SCREENS = {
             if (st === 'Market closed') CV.banner(b, 'info', CV.fill('Market closed · Prices from {when} · Opens {opens}', D));
             if (st === 'No internet') CV.banner(b, 'warn', CV.fill('No internet connection: showing the last prices we have ({when}). Buying and selling are paused.', D));
             if (st === 'Service down') CV.banner(b, 'warn', CV.fill("The market data service isn't answering. Showing the last prices we have ({when}). Trading is paused.", D));
-            if (st === 'Old data') CV.banner(b, 'info', CV.fill('Prices from {when}. Newer ones will show up when the service answers.', { when: 'Friday' }));
+            if (st === 'Old data') CV.banner(b, 'info', CV.fill('Prices as of {when}. A new update hasn\'t arrived yet.', { when: 'Friday' }));
             // the one picked, big
             const series = {};
             for (const [n, p] of CV_STOCKS) series[n] = CV.walk(n, 40, p, 0.04);
@@ -396,7 +396,7 @@ const CIVIC_SCREENS = {
                 CV.row(l, null, n, CV.fill('{price} · {change} today', { price: fmtNum(Math.round(w[19])), change: `${c >= 0 ? '+' : ''}${c.toFixed(1)}%` }), CV.spark(w, 70, 26), () => {});
             }
             if (st === 'Not enough money') CV.banner(b, 'err', `Ten shares of Car maker cost ${fmtNum(2400)} sand dollars. You have ${fmtNum(Math.min(D.money, 1800))}.`);
-            CV.note(b, "Prices from a free market data service, turned into sand dollars. They're real, but a little behind (up to a day).");
+            CV.note(b, "Real market prices, converted to sand dollars and updated daily. Quotes may be up to a day old.");
         },
         foot: (f, st) => { const off = ['Market closed', 'No internet', 'Service down'].includes(st); const a = btn('Buy', 'green', () => {}), s = btn('Sell', 'alt', () => {}); a.disabled = s.disabled = off; f.appendChild(a); f.appendChild(s); } },
     loan: { title: 'House loan', icon: 'app_home', blurb: 'Pay off the house upgrades a little at a time',
@@ -413,7 +413,7 @@ const CIVIC_SCREENS = {
     goals: { title: 'Savings goals', icon: 'app_tasks', blurb: 'Save toward something big',
         states: ['Works', 'Empty'],
         draw(b, st, D) {
-            if (st === 'Empty') { CV.empty(b, 'No goals yet. Pick something expensive to save for: a house upgrade, an arcade cabinet, a whole new wardrobe.'); }
+            if (st === 'Empty') { CV.empty(b, 'No goals yet. Add something you\'d like to save for, and an amount to aim toward.'); }
             else {
                 const l = CV.list(b);
                 for (const [g, a, t] of [['The second floor', 62000, 148000], ['Arcade cabinet', 9000, 12000], ['Every hat at the boutique', 1500, 22000]]) {
@@ -435,7 +435,7 @@ const CIVIC_SCREENS = {
             CV.h(b, 'Where your sand dollars went');
             CV.bars(b, [['House', 152000, '#d8433b'], ['Furniture', 71300, '#9a6a3a'], ['Clothes', 38600, '#f49ac0'], ['Food', 14900, '#f4c040'], ['Stocks', 9600, '#5a5a8a']]);
         } },
-    vault: { title: 'Safety deposit box', icon: 'f_treasure_chest', blurb: 'Keep keepsakes and one-of-a-kind gifts safe',
+    vault: { title: 'Safe deposit box', icon: 'f_treasure_chest', blurb: 'Keep keepsakes and one-of-a-kind gifts safe',
         states: ['Works', 'Empty'],
         draw(b, st, D) {
             const kept = st === 'Empty' ? [] : ['compass', 'shipbottle', 'photo_joe', 'starcrystal', 'luckypenny'];

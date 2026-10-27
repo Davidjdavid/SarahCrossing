@@ -87,7 +87,7 @@ CIVIC_LIVE.goals = {
     draw(b, f, redraw) {
         bankTick();
         const B = bank();
-        if (!B.goals.length) CV.empty(b, 'No goals yet. Pick something expensive to save for: a house upgrade, an arcade cabinet, a whole new wardrobe.');
+        if (!B.goals.length) CV.empty(b, 'No goals yet. Add something you\'d like to save for, and an amount to aim toward.');
         else {
             const l = CV.list(b);
             for (const g of B.goals) {

@@ -2063,6 +2063,26 @@ test("David's music: uploaded from the Music app's way, each hour a game at rand
     M.now = null;
     await OwnMusic.remove(mine.id);
     out.ownGone = OwnMusic.list().length === 0 && !trackOk('own:' + mine.id);
+    // the soundtracks' own tracks for places (SOUNDTRACK): one format of a track goes up; the museum's rooms share a
+    // track, so it carries on through their doors, and the aquarium has its own
+    await MusicUpload.start([file('Game Three/Museum.wav'), file('Game Three/Museum (Aquarium Track).wav'), file('Game Three/Theme.wav'), file('Game Three/Theme.mp3')]);
+    out.three = MusicLib.byGame['Game Three'].map(t => t.path).sort().join();
+    const [ix, iy] = [G.player.x, G.player.y];
+    __dbg.enter('museum');
+    out.museum = Music.pick();
+    const cur0 = Music.cur;
+    __dbg.enter('museum_art');
+    out.museumArt = Music.pick();
+    out.carriedOn = !!cur0 && Music.cur === cur0;
+    __dbg.enter('museum_fish');
+    out.aquarium = Music.pick();
+    M.lib = 'tunes'; out.museumTunes = Music.pick();
+    // (its files stopped before they're taken off the server)
+    setArea('island', ix, iy);
+    await new Promise(r => setTimeout(r, 1500));
+    M.lib = '';
+    await Cloud.api('DELETE', '/api/music/game?name=' + encodeURIComponent('Game Three'));
+    await MusicLib.load(true);
     appMusic('library');
     out.app = document.querySelector('#panel').textContent;
     appMusic('now');
@@ -2097,6 +2117,12 @@ test("David's music: uploaded from the Music app's way, each hour a game at rand
   assert.deepEqual(res.own, { n: 1, name: 'My Tune', ok: true, named: 'My Tune (yours)' });
   assert.ok(res.ownPick && res.ownPlays && res.ownApp && res.ownGone, JSON.stringify(res));
   assert.match(res.app, /Copy the track list/);
+  assert.equal(res.three, 'Game Three/Museum (Aquarium Track).wav,Game Three/Museum.wav,Game Three/Theme.mp3');
+  assert.equal(res.museum, 'lib:Game Three/Museum.wav');
+  assert.equal(res.museumArt, res.museum);
+  assert.ok(res.carriedOn, 'the same music carries on into the next room');
+  assert.equal(res.aquarium, 'lib:Game Three/Museum (Aquarium Track).wav');
+  assert.ok(!res.museumTunes.startsWith('lib:'), "the island's own tunes when asked");
   assert.equal(res.after, 0);
   assert.ok(!res.back.startsWith('lib:'));
   assert.deepEqual(page.problems, []);

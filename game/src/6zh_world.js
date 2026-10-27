@@ -63,7 +63,7 @@ CIVIC_LIVE.zip = {
             CV.note(b, Z.useTime ? `The island keeps ${Z.place} time.` : `The island keeps its own clock (Settings), not ${Z.place} time.`);
         }
         if (Z && Z.err === 'offline') CV.banner(b, 'warn', "No internet connection. Your zip code is saved and the island will look it up when it's back online.");
-        if (Z && Z.err === 'down') CV.banner(b, 'warn', "The service that turns zip codes into places isn't answering. Your zip code is saved; we'll try again later.");
+        if (Z && Z.err === 'down') CV.banner(b, 'warn', "The zip code service isn't available. Your number is saved; we'll try again later.");
         if (townVisitorNote(b)) return;
         const inp = CV.field(b, Z ? 'A different zip code' : 'Your zip code (5 digits)', '', '5 digits', { inputmode: 'numeric', max: 5 });
         const say = bankMsg(b);

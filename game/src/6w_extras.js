@@ -132,7 +132,7 @@ function appMusic(tab) {
     tab = tab || 'now';
     const M = musicState();
     const P = UI.open({ title: 'Music', phone: true, back: backToPhone });
-    const cur = Music.song ? null : Music.cur ? (Music.key || '').split(':')[0] : 'silence';
+    const cur = Music.song ? null : Music.cur ? (Music.key || '').replace(/:\d+$/, '') : 'silence';
     P.body.appendChild(el('p', 'muted', !Audio2.musicOn ? 'Music is switched off in Settings, so nothing plays right now.'
         : Music.song ? 'Now playing: a club song.' : `Now playing: ${trackName(cur)}${M.now ? ' (on repeat)' : ''}.`));
     const tabs = el('div', 'st-row');

@@ -367,12 +367,16 @@ function tuneVariant(base, k) {
 
 /* ---------------------------------------------------------------- music player */
 const Music = {
-    cur: null, want: null, song: null, over: null,
+    cur: null, want: null, song: null, over: null, scene: null,
     pick() { return musicRule(this.pickBase()); },                   // Sarah's own choices (the Music app) come first
     pickBase() {
         const tune = this.pickTune();
+        if (G.introScene || (this.over && !this.scene)) return tune;
+        // the soundtracks' own track for the place or the moment (a shop, the museum, a holiday night: SOUNDTRACK)
+        const st = MusicLib.scene();
+        if (st) return 'lib:' + st;
         // outside and at home, the hour's track from David's music, a game picked at random (60a_music_lib.js)
-        if (tune !== this.over && S && S.started && !G.introScene && (!G.area || G.area.id === 'island' || G.area.id === 'home')) {
+        if (tune !== this.over && S && S.started && (!G.area || G.area.id === 'island' || G.area.id === 'home')) {
             const p = MusicLib.hourly(Math.floor(Clock.hourF()));
             if (p) return 'lib:' + p;
         }
@@ -399,7 +403,9 @@ const Music = {
         const want = this.pick();
         const hour = Math.floor(Clock.hourF());
         const key = want + ':' + (FIXED_TUNES.includes(want) || !TUNES[want] ? 0 : hour);
-        if (!force && key === this.key) return;
+        // (the same music carries on through a door: only what's playing changing, or the music being switched on or
+        // off, starts it again)
+        if (key === this.key && (!force || !!this.cur === !!(Audio2.ctx && Audio2.musicOn))) return;
         this.key = key;
         this.play(want, hour);
     },

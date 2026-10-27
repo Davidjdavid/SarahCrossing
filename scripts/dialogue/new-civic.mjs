@@ -20,9 +20,9 @@ function l(who, state, when, line) { cur.n++; L.push({ id: `NEW-${cur.prefix}-${
 sec('Zip code', 'ZIP');
 l('Sir Floret', 'Works', "Sarah asks at the Town Hall's front desk to register her address", 'Ah, a resident wishes to register! Splendid. The Council requires only one thing: your zip code. Five digits. No more, no less.');
 l('Dame Stalk', 'Works', 'Asking for the zip code', 'Your zip code, please. It tells the island where you are in the big world: your time, your weather, your news. I will file it under "important."');
-l('Little Sprout', 'Works', 'Asking for the zip code', "Ooh, are you going to tell us where you're from? I LOVE secrets. Wait, is it a secret? You don't have to tell me. TELL ME.");
+l('Little Sprout', 'Works', 'Asking for the zip code', "I get to find your town on the map! Dame Stalk gave me one little flag. I've been saving it for somewhere important.");
 l('On screen', 'Works', 'The zip code box', 'Your zip code (5 digits)');
-l('On screen', 'Works', 'Under the zip code box', "The island uses it for your time zone, the day's weather and local news. It's only kept in your island's save.");
+l('On screen', 'Works', 'Under the zip code box', "Used for your time zone, local weather, and local news. Saved with your island.");
 l('On screen', 'Loading', 'While the zip code is being looked up', 'Looking it up...');
 l('Dame Stalk', 'Loading', 'While the zip code is being looked up', 'One moment. I am consulting the big map. It is very big. It is a map.');
 l('Sir Floret', 'Works', 'The zip code was found', '{town}! A fine place. The Council has heard nothing but good things. The Council has heard nothing at all, but we assume.');
@@ -33,12 +33,12 @@ l('Dame Stalk', 'Bad zip code', 'Sarah typed something that is not five digits',
 l('Dame Stalk', 'Bad zip code', 'Five digits, but no such zip code', 'I cannot find {zip} anywhere. Not on the map, not under the map. Could there be a typo?');
 l('Little Sprout', 'Bad zip code', 'No such zip code', 'Is {zip} a real place? It SOUNDS like a real place. Maybe it moved.');
 l('On screen', 'Bad zip code', 'No such zip code', "We couldn't find that zip code. Check the numbers and try again.");
-l('Dame Stalk', 'No internet', "Sarah registers a zip code but there's no internet connection", 'The big map will not open. The island is not talking to the rest of the world right now. I will remember the number, and look it up the moment it can.');
+l('Dame Stalk', 'No internet', "Sarah registers a zip code but there's no internet connection", 'We\'re offline. I\'ve saved your zip code and will look it up when the connection returns.');
 l('On screen', 'No internet', "Can't look the zip code up", "No internet connection. Your zip code is saved and the island will look it up when it's back online. Until then it keeps your device's time.");
-l('Dame Stalk', 'Service down', "The place lookup service isn't answering", 'The map people are not answering. I have left a very polite message. We will try again tomorrow morning, automatically.');
-l('On screen', 'Service down', "The place lookup service isn't answering", "The service that turns zip codes into places isn't answering. Your zip code is saved; we'll try again later.");
+l('Dame Stalk', 'Service down', "The place lookup service isn't answering", 'The address service isn\'t answering. Your number is saved. I\'ll try again tomorrow morning.');
+l('On screen', 'Service down', "The place lookup service isn't answering", "The zip code service isn't available. Your number is saved; we'll try again later.");
 l('Sir Floret', 'Works', 'Sarah changes her zip code later', 'Moving, are we? Spiritually, at least. The Council will update its records. Dame Stalk will update the Council.');
-l('Dame Stalk', 'Works', 'Sarah removes her zip code', 'Removed. The island goes back to your device\'s clock. No weather from afar, no local news. Very peaceful. Very uninformed.');
+l('Dame Stalk', 'Works', 'Sarah removes her zip code', 'Removed. Back to your device\'s clock. No local weather or news until you register again. I shall leave a space in the filing cabinet. It will bother me.');
 l('Sir Floret', 'No zip code', 'A neighbor sends Sarah to the Town Hall because she has no zip code yet', 'Without a zip code, the island does not know where in the world it is. Philosophically troubling. Practically: no weather, no news. Visit the Town Hall!');
 l('Any neighbor', 'No zip code', "A neighbor mentions the newspaper's missing local section", "The paper didn't have any local news for you! You should tell the Town Hall your zip code. Dame Stalk LOVES filing things.");
 l('On screen', 'No zip code', 'Settings: the zip code line when none is set', 'Zip code: not set. Register one at the Town Hall.');
@@ -51,11 +51,11 @@ l('Island board', 'Works', "The island board: today's forecast", "Today in {town
 l('Island board', 'Works', 'The island board: a rainy forecast', 'Today in {town}: rain is likely ({chance}%). Umbrellas recommended. Ducks delighted.');
 l('Island board', 'Works', 'The island board: a snowy forecast', 'Today in {town}: snow! A high of {high}°. Bundle up. Build something.');
 l('Island board', 'Works', 'The island board: a hot forecast', 'Today in {town}: hot, up to {high}°. Wonton recommends the hot spring anyway.');
-l('Island board', 'Works', 'The island board: a stormy forecast', 'Today in {town}: thunderstorms possible. The island will do its best impression.');
+l('Island board', 'Works', 'The island board: a stormy forecast', '{town}: thunderstorms possible. Check the sky before a long outing.');
 l('Island board', 'Loading', 'The island board, while the forecast is still on its way', 'Checking the forecast...');
-l('Island board', 'No internet', "The island board, when the forecast couldn't be fetched (no internet)", "No forecast today: the island couldn't reach the weather service. The weather is the island's own.");
+l('Island board', 'No internet', "The island board, when the forecast couldn't be fetched (no internet)", "No forecast available. We couldn't reach the weather service. The island is using its own weather today.");
 l('Island board', 'Service down', "The island board, when the weather service didn't answer", "The weather service didn't answer this morning. Today's weather is the island's own. (It's doing great.)");
-l('Island board', 'Old data', "The island board, using yesterday's forecast", "Yesterday's forecast for {town} (today's didn't come through): {sky}, {high}°.");
+l('Island board', 'Old data', "The island board, using yesterday's forecast", "Yesterday's forecast for {town}: {sky}, {high}°. Today's update hasn't arrived.");
 l('Island board', 'No zip code', 'The island board when no zip code is set', 'Want the real forecast? Register your zip code at the Town Hall.');
 l('Kai', 'Works', 'A neighbor mentions the forecast: rain', 'Forecast says rain, dude. Rain is just the ocean visiting. Be nice to it.');
 l('Wonton', 'Works', 'A neighbor mentions the forecast: cold', 'It says it gets down to {low} tonight. The spring will be PERFECT. Come by. Bring a towel. Or don\'t. I\'m not your mom.');
@@ -75,10 +75,10 @@ l('On screen', 'Works', 'Section heading', 'News from {town}');
 l('On screen', 'Works', 'Section heading', 'World news');
 l('On screen', 'Works', 'Section heading', "Today's weather");
 l('On screen', 'Works', 'Section heading', 'Island news');
-l('On screen', 'Works', 'Section heading', "Coco's Corner (gossip, lovingly)");
+l('On screen', 'Works', 'Section heading', "Coco's Corner");
 l('On screen', 'Works', 'Section heading', 'The markets (from the Bank)');
 l('On screen', 'Works', 'Under a real news story', 'Read the full story');
-l('On screen', 'Works', 'The bottom of the front page', "Real headlines come from a free news service. The island news is written by the island.");
+l('On screen', 'Works', 'The bottom of the front page', "Headlines from the wider world, alongside stories from the island.");
 l('Narration', 'Works', 'The newspaper arrives in the mailbox in the morning', "This morning's paper is in the mailbox. It's still a little warm. Pita must have run.");
 l('On screen', 'Works', 'The Mail app: the paper in the list', "The {island} Gazette, {date}");
 l('Narration', 'Works', 'Island news: Sarah caught a lot of fish yesterday', 'LOCAL ANGLER STRIKES AGAIN. {name} reeled in {count} fish yesterday. Kai calls it "honestly kind of rude, bro (proud)."');
@@ -87,7 +87,7 @@ l('Narration', 'Works', 'Island news: Sarah cooked', 'KITCHEN NEWS. {name} cooke
 l('Narration', 'Works', 'Island news: a new painting in the museum', 'ART WORLD STUNNED. A new work, "{item}," now hangs in the museum. Brulee wept. Brulee always weeps. This time it was more.');
 l('Narration', 'Works', 'Island news: a neighbor\'s house was redone', "HOME MAKEOVER. {who}'s house got a new look from Ginger yesterday. {who} has walked past it {count} times.");
 l('Narration', 'Works', 'Island news: a holiday today', "TODAY: {holiday}! The square is decorated. Bring your best mood.");
-l('Narration', 'Works', 'Island news: a neighbor\'s birthday or day', "HAPPY {holiday}! It's {who}'s day. Say hi. Bring something. {who} will cry. Good crying.");
+l('Narration', 'Works', 'Island news: a neighbor\'s birthday or day', "HAPPY {holiday}! It's {who}'s day. {who} has been instructed to enjoy the attention. Please assist.");
 l('Narration', 'Works', 'Island news: an arcade record', 'NEW RECORD AT THE ARCADE. {name} scored {count} at {item}. Chili has been informed. Chili is "fine."');
 l('Narration', 'Works', 'Island news: a drama storyline (from the drama engine)', 'SOURCES SAY: things are tense between {A} and {B}. More as it develops. (Coco is on it.)');
 l('Narration', 'Works', 'Island news: a quiet day', 'A QUIET DAY. Nothing happened on {island} yesterday, and everybody enjoyed it very much.');
@@ -96,13 +96,13 @@ l('Coco', 'Works', "Coco's Corner: gossip about Sarah and Joe", 'Spotted: a cert
 l('Coco', 'Works', "Coco's Corner: general gossip", "Who has two thumbs and knows everything? Me. I don't have thumbs. I still know everything. Read on.");
 l('Coco', 'Works', "Coco's Corner: Sarah's outfit", "Fashion watch: {name} wore the {item} yesterday. Clementine said 'hm.' From Clementine, that is a standing ovation.");
 l('Coco', 'Works', "Coco's Corner: a slow day", "Nothing to report. NOTHING. I'm as upset as you are. Somebody do something. Anything. Please.");
-l('Narration', 'No internet', "The paper when the island couldn't reach the news (no internet)", "No news from the big world today: the presses couldn't reach it. Here's all the island news, though. It's the best news anyway.");
+l('Narration', 'No internet', "The paper when the island couldn't reach the news (no internet)", "We couldn't connect to the news service today. Island stories are available below.");
 l('Narration', 'Service down', "The paper when the news service didn't answer", "Our news service didn't answer this morning, so the world news is taking a day off. The island news never does.");
 l('Narration', 'Old data', "The paper using yesterday's headlines", "These headlines are from yesterday: today's didn't arrive in time. Old news is still news. It's just older.");
 l('Narration', 'No zip code', 'The paper when no zip code is set', 'Want news from your town? Register your zip code at the Town Hall and the Gazette will find it.');
 l('Narration', 'Service down', 'The paper when the weather service was down too', "No forecast this morning. Look out the window. That's the forecast.");
-l('Narration', 'Works', 'The paper on a day with no real headlines to show', 'The big world is quiet today. Enjoy it.');
-l('Pita', 'Works', "Pita, if Sarah asks why the paper's late", "The paper's late? Never! It's... fashionably on time. The presses were warm. I was warm. Everything was warm.");
+l('Narration', 'Works', 'The paper on a day with no real headlines to show', 'No new headlines were returned today. The island edition is below.');
+l('Pita', 'Works', "Pita, if Sarah asks why the paper's late", "The paper's late. I'm still delivering it. I can't run and say 'sorry' at the same time. I'll do both when I get there.");
 l('Any neighbor', 'Works', 'A neighbor talks about the morning paper', "Did you read the paper this morning? I read it twice. Once for the news and once for Coco's Corner. Mostly for Coco's Corner.");
 l('Joe', 'Works', 'Joe on the morning paper', "I read the paper this morning. There was a story about you. I cut it out. It's on my fridge. Is that weird? It's on my fridge.");
 l('Maki', 'Works', 'Maki on the morning paper', 'I read the paper in order. Front to back. Every word. Then I fold it into a very precise square. The square is the best part.');
@@ -132,11 +132,11 @@ l('Pita', 'Works', 'Sarah comes in just before closing', "We're closing in a few
 l('Pita', 'Works', 'Sending a letter: who to', 'Who\'s it for? I know every address on the island. I know every address by heart. Some of them by stomach.');
 l('On screen', 'Works', 'Sending a letter: the letter screen', 'Write your letter. Attach a present if you like.');
 l('On screen', 'Works', 'Sending a letter: the stamp price', 'Postage: {amount} sand dollars (free on Sundays)');
-l('Pita', 'Works', 'Sending a letter: done', "Into the pocket it goes! It'll be in {who}'s mailbox tomorrow morning. Maybe tonight. I get excited.");
+l('Pita', 'Works', 'Sending a letter: done', "Into the pocket! It'll reach {who}'s mailbox tomorrow morning. I've written 'DON'T FORGET' on my hand. That's made sorting a bit slower.");
 l('Pita', 'Works', 'Sending a letter with a present attached', 'A present, too! Oh, they\'re going to love it. I can tell. I\'m not peeking. I\'m a little peeking.');
 l('Pita', 'Not enough money', "Sending a letter without enough sand dollars for the stamp", "Oh, a stamp's {amount}, and your pocket's a bit light. Come back after some fishing! The letter will wait. Letters are patient.");
 l('Pita', 'Empty', 'Sending a letter with nothing written', "It's empty! That's a very mysterious letter. Want to write something first? Even just 'hi'?");
-l('Pita', 'Works', "Sending a letter to someone who's off the island (David, the family)", "To the mainland! Okay! That takes two days. The boat's slow. The boat is also me, swimming. Kidding. Mostly.");
+l('Pita', 'Works', "Sending a letter to someone who's off the island (David, the family)", "Mainland post. That takes two days. I'll put it in the next boat's sack.");
 l('Any neighbor', 'Works', 'A neighbor gets a letter from Sarah (when they next see her)', "I got your letter! I read it three times. Then I put it under my pillow. Is that what you do with letters? That's what I do now.");
 l('Any neighbor', 'Works', 'A neighbor gets a letter with a present', "Your letter came with a present! A letter AND a present! That's two things! I counted!");
 l('Maki', 'Works', 'Maki gets a letter from Sarah', 'Your letter arrived. I have filed it. Under "S," for "Sarah," and also under "L," for "lovely." It is the first thing filed twice.');
@@ -176,7 +176,7 @@ l('On screen', 'Works', 'Tracking: a special delivery (no tracking)', "A special
 l('On screen', 'Empty', 'Tracking: nothing on the way', 'Nothing on the way. Order from IslandMart on your laptop and it arrives in the next morning\'s mail.');
 l('Pita', 'Empty', 'Tracking: nothing on the way', "Nothing in the pocket for you right now! Order something on your laptop and I'll bring it first thing.");
 l('Pita', 'Works', 'Tracking: a big order', 'A big box! I can carry it. I can definitely carry it. I\'m going to need a running start.');
-l('Pita', 'Works', 'Tracking: a storm delays the boat', "The boat's waiting out the storm. Your package is safe and dry, and a day late. I'm so sorry. I'll bring it the second it lands.");
+l('Pita', 'Works', 'Tracking: a storm delays the boat', "The boat's waiting out the storm. Your package is safe and dry, but a day late. I'll deliver it when the boat arrives.");
 
 /* lost mail quests */
 l('Pita', 'Works', 'Lost mail: a letter needs delivering (a quest)', "Oh no, oh no. I found a letter in the bottom of my pocket. It's for {who}. It's from... last week. Could you take it to them? I can't face them. I'm too crumbly.");
@@ -203,7 +203,7 @@ l('Any neighbor', 'Works', "A neighbor notices Sarah's new mailbox", 'New mailbo
 
 /* the Post Office and the internet */
 l('Pita', 'No internet', 'Sarah asks about the paper on a day the island was offline', "The news wire was all quiet this morning. No world news. But I wrote the island news myself! Pita's Pocket Edition. It's mostly about the weather. And you.");
-l('Pita', 'Service down', 'Sarah asks about the paper on a day the news service was down', "The news people didn't send anything today. I knocked. Metaphorically. Tomorrow they'll send double. Probably not. But maybe!");
+l('Pita', 'Service down', 'Sarah asks about the paper on a day the news service was down', "The news service hasn't answered. I'll try again with tomorrow's edition. Today's island stories are ready.");
 
 /* ============================================================== the Bank (Penny) */
 sec('Bank', 'BANK');
@@ -216,7 +216,7 @@ l('Sarah', 'Works', "Penny's menu: a choice", 'Stocks');
 l('Sarah', 'Works', "Penny's menu: a choice", 'House loan');
 l('Sarah', 'Works', "Penny's menu: a choice", 'Savings goals');
 l('Sarah', 'Works', "Penny's menu: a choice", 'My statement');
-l('Sarah', 'Works', "Penny's menu: a choice", 'Safety deposit box');
+l('Sarah', 'Works', "Penny's menu: a choice", 'Safe deposit box');
 l('Sarah', 'Works', "Penny's menu: a choice", 'Never mind');
 l('Narration', 'Works', "The Bank door when it's closed", 'THE BANK OF {island}. Open {hours}. A sign: "Closed. Your money is asleep. Let it rest."');
 
@@ -240,38 +240,38 @@ l('Penny', 'Works', 'The weekly rate goes down (Monday)', "This week's interest 
 l('Penny', 'Works', 'Asked how interest works', 'Every morning, the Bank adds a little to whatever you have saved. The more you save, the more it adds. The rate changes every Monday. It\'s posted right here. In gold. Like me.');
 
 /* stocks */
-l('Penny', 'Works', 'Stocks: the first time', "Stocks! Little pieces of real companies, out in the big world. Their prices go up and down every day. Buy low, sell high. Or buy whatever makes you smile. I won't judge. I'll judge a little.");
-l('Penny', 'Works', 'Stocks: a warning, the first time', "A word of caution, dear: stocks can go down as well as up. Only invest sand dollars you won't miss. These are real prices, but it's island money. Nobody's actually rich. Except in spirit.");
+l('Penny', 'Works', 'Stocks: the first time', "These stocks follow company prices from the wider world. The prices can rise or fall. Let's see what your island portfolio looks like.");
+l('Penny', 'Works', 'Stocks: a warning, the first time', "You use island sand dollars here. Prices come from the real market, but these shares stay inside the game. Their value can go down as well as up.");
 l('On screen', 'Works', 'Stocks: heading', 'The market');
 l('On screen', 'Works', 'Stocks: a stock in the list', '{stock} · {price} · {change} today');
 l('On screen', 'Works', 'Stocks: your portfolio heading', 'Your portfolio');
 l('On screen', 'Works', 'Stocks: a holding', '{shares} shares of {stock} · worth {amount} · {change} since you bought');
 l('On screen', 'Works', 'Stocks: the graph buttons', ['1 week', '1 month', '1 year', 'Since you bought'].join(' | '));
-l('On screen', 'Works', 'Stocks: under the graph', "Prices from a free market data service, turned into sand dollars. They're real, but a little behind (up to a day).");
+l('On screen', 'Works', 'Stocks: under the graph', "Real market prices, converted to sand dollars and updated daily. Quotes may be up to a day old.");
 l('Sarah', 'Works', 'Stocks: a choice', 'Buy');
 l('Sarah', 'Works', 'Stocks: a choice', 'Sell');
 l('Penny', 'Works', 'Buying shares', '{shares} shares of {stock}, at {price} each. That\'s {amount} sand dollars. Shall I?');
 l('Penny', 'Works', 'Bought', "Done! You own a little piece of {stock} now. Tell your friends. Or don't. Some people are weird about it.");
-l('Penny', 'Works', 'Sold at a gain', 'Sold! You made {amount} sand dollars. Bought low, sold high. I\'m so proud I\'m practically melting. Not literally. Please don\'t open a window.');
-l('Penny', 'Works', 'Sold at a loss', "Sold. You lost {amount} on that one. It happens to everyone. It happened to me once. I bought a lot of a sunscreen company. Ironic.");
+l('Penny', 'Works', 'Sold at a gain', 'Sale complete. {amount} sand dollars. I\'ll enter that in the ledger. I do enjoy a number that needs extra room.');
+l('Penny', 'Works', 'Sold at a loss', "Sold at a loss of {amount}. Unfortunate. I've recorded it in ordinary ink. No need to give it gold ink as well.");
 l('Penny', 'Not enough money', "Buying more than Sarah can afford", "That's {amount}, and your pocket has {balance}. Try fewer shares, or come back after a good day of fishing.");
-l('Penny', 'Empty', 'Selling a stock Sarah has none of', "You don't own any {stock} yet. Can't sell what you haven't got! That's rule one. Rule two is don't eat the bank teller.");
+l('Penny', 'Empty', 'Selling a stock Sarah has none of', "You don't own any {stock} yet. I can only sell shares you have. A surprisingly important distinction in banking.");
 l('Penny', 'Works', 'A dividend is paid', '{stock} paid a dividend! That\'s a little thank-you for owning it: {amount} sand dollars, added to your savings.');
 l('Narration', 'Works', 'A dividend arrives (a line in the mail)', 'A letter from the Bank: {stock} paid you a dividend of {amount} sand dollars. It\'s in your savings.');
 l('Penny', 'Works', 'The portfolio is up a lot', "Your portfolio is up {change}! You have a real knack for this. Or real luck. Luck is also a knack.");
-l('Penny', 'Works', 'The portfolio is down a lot', "Your portfolio is down {change}. Deep breaths. Markets go down, and markets come back. Usually. Have a cookie. Not me. A different cookie.");
+l('Penny', 'Works', 'The portfolio is down a lot', "Your portfolio is down {change}. Here are the figures. I'll get the biscuit tin. It's the one without the lock.");
 l('Penny', 'Market closed', 'Stocks: the market is closed (night)', "The market's closed for the night, dear. Prices are what they were at closing. You can still look! Buying and selling opens again at {when}.");
 l('Penny', 'Market closed', 'Stocks: the market is closed (weekend)', "It's the weekend. The market's closed until Monday. Even money rests. Especially money.");
 l('Penny', 'Market closed', 'Stocks: the market is closed (holiday)', 'The market is closed today for a holiday out in the big world. Here, too, everybody gets a day off.');
 l('On screen', 'Market closed', 'Stocks: the closed banner', 'Market closed · Prices from {when} · Opens {opens}');
 l('On screen', 'Loading', 'Stocks: while prices load', 'Getting the latest prices...');
 l('Penny', 'Loading', 'Stocks: while prices load', 'One moment. I\'m reading the ticker. It\'s very long. It\'s mostly numbers. I love numbers.');
-l('Penny', 'No internet', 'Stocks: no internet', "I can't reach the market right now. No new prices. You can see your portfolio at the last prices I know, but buying and selling will have to wait.");
+l('Penny', 'No internet', 'Stocks: no internet', "I can't get new market prices. Your last portfolio values are available, but trades will have to wait for a fresh quote.");
 l('On screen', 'No internet', 'Stocks: no internet banner', "No internet connection: showing the last prices we have ({when}). Buying and selling are paused.");
-l('Penny', 'Service down', "Stocks: the market data service isn't answering", "The market people aren't answering today. Must be a busy day out there. Your stocks are safe; you just can't trade until they're back.");
+l('Penny', 'Service down', "Stocks: the market data service isn't answering", "The market service is unavailable. Your holdings haven't changed. Trading will resume when prices are available again.");
 l('On screen', 'Service down', "Stocks: the market data service isn't answering", "The market data service isn't answering. Showing the last prices we have ({when}). Trading is paused.");
-l('On screen', 'Old data', 'Stocks: prices are more than a day old', 'Prices from {when}. Newer ones will show up when the service answers.');
-l('On screen', 'Works', 'Stocks: the list of companies (placeholder until picked)', 'A handful of well-known global companies: a computer maker, a soda maker, a toy maker, a shoe maker, a coffee chain, a car maker, a game company, a streaming service.');
+l('On screen', 'Old data', 'Stocks: prices are more than a day old', 'Prices as of {when}. A new update hasn\'t arrived yet.');
+l('On screen', 'Works', 'Stocks: the list of companies (placeholder until picked)', 'A selection of companies from the real market. Choose one to see its price history and your holdings.');
 l('Kai', 'Works', 'A neighbor on stocks', 'I asked Penny if I could buy stock in waves. She said no. I said what about seaweed. She said no. I bought nothing. Peaceful.');
 l('Maki', 'Works', 'A neighbor on stocks', 'I have a portfolio. It is very balanced. Each stock gets exactly the same amount. When one grows, I sell a tiny bit. Penny says I am "her favorite kind of difficult."');
 l('Coco', 'Works', 'A neighbor on stocks', "I don't know anything about stocks. I know EVERYTHING about who owns which stocks. That's worth more, honestly.");
@@ -297,7 +297,7 @@ l('On screen', 'Works', 'Savings goals: heading', 'Savings goals');
 l('On screen', 'Works', 'Savings goals: a goal', '{goal} · {amount} of {total} ({count}%)');
 l('On screen', 'Works', 'Savings goals: new goal button', 'New goal');
 l('On screen', 'Works', 'Savings goals: the goal name box', 'What are you saving for?');
-l('On screen', 'Empty', 'Savings goals: none yet', 'No goals yet. Pick something expensive to save for: a house upgrade, an arcade cabinet, a whole new wardrobe.');
+l('On screen', 'Empty', 'Savings goals: none yet', 'No goals yet. Add something you\'d like to save for, and an amount to aim toward.');
 l('Penny', 'Works', 'A goal set', '{goal}! A fine thing to save for. I\'ve written it down. In gold ink. It\'s the only ink I have.');
 l('Penny', 'Works', 'Halfway to a goal', "Halfway to your {goal}! Keep going! I'm not allowed to cheer in the Bank. *very quiet cheering*");
 l('Penny', 'Works', 'A goal reached', 'You did it! You saved {total} for your {goal}! Go! Buy it! Run! Walk. No running in the Bank.');
@@ -308,11 +308,11 @@ l('On screen', 'Works', 'Statement: lines', ['Earned all time', 'Spent all time'
 l('On screen', 'Works', 'Statement: a chart', 'Where your sand dollars came from');
 l('On screen', 'Works', 'Statement: a chart', 'Where your sand dollars went');
 l('Penny', 'Works', 'Statement: opened', "Here's everything. Every sand dollar in, every sand dollar out. It's a beautiful story. Mostly about fish.");
-l('Penny', 'Works', 'Statement: Sarah spends a lot on one thing', 'I notice you\'ve spent {amount} on {item}. No judgment! It\'s lovely. You\'re lovely. That\'s a lot of {item}.');
+l('Penny', 'Works', 'Statement: Sarah spends a lot on one thing', 'You\'ve spent {amount} on {item}. I\'ll leave that figure here for you. I was going to ask if you liked {item}, but the statement has answered.');
 
 /* safety deposit box */
 l('Penny', 'Works', 'Safety deposit box: first time', "Your very own safety deposit box. For the precious things. The things you'd never sell. They'll be safe here. I'll guard them with my life. And my foil.");
-l('On screen', 'Works', 'Safety deposit box: heading', 'Safety deposit box');
+l('On screen', 'Works', 'Safety deposit box: heading', 'Safe deposit box');
 l('On screen', 'Works', 'Safety deposit box: count', '{count} of {total} spaces used');
 l('On screen', 'Empty', 'Safety deposit box: empty', 'Nothing in here yet. Keep keepsakes, photos and one-of-a-kind gifts safe here.');
 l('Penny', 'Works', 'Putting something in the box', "The {item}. Safe and sound. I'll dust it on Tuesdays.");
@@ -350,13 +350,13 @@ l('On screen', 'Works', 'Flag designer: the tools', ['Pencil', 'Fill', 'Eraser',
 l('On screen', 'Works', 'Flag designer: the buttons', ['Raise it!', 'Keep drawing', 'Start over'].join(' | '));
 l('Little Sprout', 'Works', 'The flag: Sarah raises a new one', "IT'S GOING UP! IT'S GOING UP! Everyone salute! I can't salute. I'm going to wiggle. That's my salute.");
 l('Sir Floret', 'Works', 'The flag: raised', 'Magnificent. It flies over the Town Hall, the pier and the lighthouse. The island has never looked more like itself.');
-l('Dame Stalk', 'Works', 'The flag: Sarah tries to raise an empty flag', 'That flag is blank. A blank flag means surrender. We have nothing to surrender. Please draw something.');
+l('Dame Stalk', 'Works', 'The flag: Sarah tries to raise an empty flag', 'That flag is blank. I admire a concise design, but this has gone too far. Please draw something before we raise it.');
 l('Any neighbor', 'Works', 'A neighbor notices the new flag', "New flag! I saw it from the beach! I stood up and put my hand on my heart. I don't know where my heart is. I put it somewhere.");
-l('Joe', 'Works', 'Joe notices the new flag', "I wrote a poem about the new flag. It goes: 'Flag. Flag. Flag.' It's a work in progress. It's very patriotic.");
+l('Joe', 'Works', 'Joe notices the new flag', "Wrote a flag poem. 'Flag. Flag. Flag.' The fourth line needs work. Possibly another flag.");
 l('Clementine', 'Works', 'Clementine notices the new flag', 'The new flag. Hm. Bold. I would have done it in orange. Everything is better in orange. But I respect it.');
 
 /* ordinances */
-l('Dame Stalk', 'Works', 'Ordinances: the first time', 'An ordinance is a rule for the whole island. One at a time. Choose carefully. Changing it costs a fee and a week of paperwork. I love paperwork.');
+l('Dame Stalk', 'Works', 'Ordinances: the first time', 'An ordinance changes the island\'s routine. We can keep one active at a time. There\'s a fee to change it and a week between changes.');
 l('On screen', 'Works', 'Ordinances: heading', 'Island ordinance');
 l('On screen', 'Works', 'Ordinance: Early Bird', 'Early Bird · Shops open and neighbors wake up earlier.');
 l('On screen', 'Works', 'Ordinance: Night Owl', 'Night Owl · Shops stay open later and neighbors stay up later.');
@@ -374,7 +374,7 @@ l('Cuke', 'Works', 'Cuke when Early Bird is on', 'EARLY BIRD! The best ordinance
 l('DJ Wasabi', 'Works', 'DJ Wasabi when Night Owl is on', 'NIGHT OWL, BABY! The club stays open till the sun complains! Spicy hours all night!');
 l('Coco', 'Works', 'Coco when Community Spirit is on', 'Everyone is out and talking all day now. I can barely keep up. I\'ve never been happier. I need a bigger notebook.');
 l('Basil', 'Works', 'Basil when Nature Conservation is on', 'I planted basil by the cart. Nature Conservation said I should. The basil is doing great. That\'s my cousin.');
-l('Maki', 'Works', 'Maki when Early Bird is on', 'Early Bird. My schedule has been adjusted by exactly ninety minutes. I have adjusted my label maker\'s schedule too. It does not have a schedule. It does now.');
+l('Maki', 'Works', 'Maki when Early Bird is on', 'Earlier hours. I\'ve adjusted the schedule. Moving everything on paper was considerably easier than moving myself.');
 
 /* census */
 l('Dame Stalk', 'Works', 'Census: opened', 'The census. Every resident, counted and noted. I counted them myself. Some of them twice, because they moved.');
@@ -413,7 +413,7 @@ l('On screen', 'Works', 'Residents: schedule options', ['Wakes up', 'Goes home',
 l('On screen', 'Works', 'Residents: needs friendship', 'They need to be good friends with you first (three hearts).');
 l('Any neighbor', 'Works', 'A neighbor agrees to a new catchphrase', '"{newname}"? I love it! I\'m going to say it all the time. {newname}! See? Already did.');
 l('Maki', 'Works', 'Maki agrees to a new schedule', 'A new schedule. Very well. I have printed it. I have laminated it. I have laminated the lamination.');
-l('Kai', 'Works', 'Kai agrees to new clothes', 'New fit? Dude. DUDE. I look so fresh. Like a poke bowl that just got poked.');
+l('Kai', 'Works', 'Kai agrees to new clothes', 'New fit? Dude. Nice! I should stand up straighter. ...Whoa. There\'s a lot of outfit when I do that.');
 l('Any neighbor', 'Works', 'A neighbor declines (not close enough yet)', "Hmm, I'd rather not yet. Let's be better friends first! Then you can pick my clothes. Probably. Maybe not my socks.");
 
 /* missed holidays */
@@ -424,9 +424,9 @@ l('Sir Floret', 'Works', 'A missed holiday: celebrated', 'So decreed! Today is {
 l('Little Sprout', 'Works', 'A missed holiday: celebrated', "*ding ding ding* IT'S {holiday}! AGAIN! FOR THE FIRST TIME!");
 l('Any neighbor', 'Works', 'A neighbor on a rescheduled holiday', "{holiday}, today? The Council said so! I already had mine but I'm having it again. Twice the fun!");
 l('Dame Stalk', 'Works', 'A missed holiday: "Maybe tomorrow"', 'Very well. The offer stands for {days} more days. After that, the holiday goes back to the calendar where it lives.');
-l('Dame Stalk', 'Expired', 'A missed holiday: more than a week ago', "{holiday} was more than a week ago. It's gone back to the calendar. It'll come around again next year. Holidays always come back. Like boomerangs. Festive boomerangs.");
-l('Dame Stalk', 'Not today', 'A missed holiday: today is already another holiday', "Today is already {other}. One holiday at a time, please. Two at once would be chaos. Glorious chaos. Still no.");
-l('On screen', 'Works', 'The island board: a rescheduled holiday', "Today: {holiday} (moved here by the Town Hall, because {name} missed it).");
+l('Dame Stalk', 'Expired', 'A missed holiday: more than a week ago', "{holiday} was more than a week ago. We can't move it now. It'll return next year. I admire its punctuality.");
+l('Dame Stalk', 'Not today', 'A missed holiday: today is already another holiday', "Today's already {other}. One celebration at a time. The decorations cupboard requires it.");
+l('On screen', 'Works', 'The island board: a rescheduled holiday', "Today: {holiday}, rescheduled for {name} by the Town Hall.");
 l('On screen', 'Empty', 'A missed holiday: none missed', 'No missed holidays. You were here for all of them!');
 
 /* the monthly anniversary */
@@ -442,28 +442,28 @@ l('On screen', 'Works', 'Island jobs: the pay', 'Pays {amount} sand dollars · a
 l('On screen', 'Empty', 'Island jobs: all done today', 'No more jobs today. Come back tomorrow!');
 l('Pita', 'Works', 'Job: sorting mail starts', 'You\'re helping! Okay. Letters go in the cubbies by name. Packages on the shelf. Anything that smells like cheese goes to Mac.');
 l('Pita', 'Works', 'Job: sorting mail done', 'All sorted! Faster than me! Don\'t tell anyone. Here: {amount} sand dollars. And a stamp. I give everyone a stamp.');
-l('Penny', 'Works', 'Job: counting coins starts', 'Coins in piles of ten, please. Exactly ten. I will check. I\'m sorry. I will check.');
+l('Penny', 'Works', 'Job: counting coins starts', 'Coins in piles of ten, please. I\'ll check afterward. Checking twice is one of the few hobbies I can do at work.');
 l('Penny', 'Works', 'Job: counting coins done', 'Every pile exactly ten. You have a banker\'s heart. Here\'s {amount} for your trouble.');
 l('Little Sprout', 'Works', 'Job: tidying the Town Hall done', "It's so clean! I can see my reflection in the floor! I'm SO green! Thank you! Here's {amount} sand dollars from the Council's jar!");
 l('Narration', 'Works', 'Job: reading the news to the goat', 'Sarah reads the goat the front page. The goat eats the sports section. It seems informed.');
 
 /* backups (save management) */
-l('Dame Stalk', 'Works', 'Backups: opened', 'The island is copied every hour while you play, and kept for days. If anything ever goes wrong, we can go back. I find that very calming.');
+l('Dame Stalk', 'Works', 'Backups: opened', 'An automatic island backup is made every hour while you play, and several days are kept. Choose a copy here if you need to restore one.');
 l('On screen', 'Works', 'Backups: heading', 'Island backups');
 l('On screen', 'Works', 'Backups: a backup in the list', '{when} · day {count} · {amount} sand dollars');
 l('On screen', 'Works', 'Backups: buttons', ['Make a backup now', 'Go back to this one'].join(' | '));
 l('Dame Stalk', 'Works', 'Backups: made one', 'A copy, made and filed. Labeled with today\'s date. Lovely.');
-l('Dame Stalk', 'Works', 'Backups: asking before going back', 'Going back to {when} means everything since then is undone. Everything. Even the good parts. Are you quite sure? (A copy of right now is kept, just in case.)');
-l('Dame Stalk', 'Works', 'Backups: went back', 'Done. The island is as it was on {when}. If anyone asks, nothing happened. Nothing did. It un-happened.');
+l('Dame Stalk', 'Works', 'Backups: asking before going back', 'Restore the island to {when}? All progress since then will be undone. A copy of the current island will be kept first.');
+l('Dame Stalk', 'Works', 'Backups: went back', 'Restored to {when}. Everything since then has been undone. I have filed the paperwork under \'Did Not Happen.\'');
 l('On screen', 'Loading', 'Backups: loading the list', 'Fetching the backups...');
-l('Dame Stalk', 'No internet', 'Backups: no internet', 'The backups are kept on the island server, and I can\'t reach it right now. Your island is safe on this device. Try again when you\'re back online.');
+l('Dame Stalk', 'No internet', 'Backups: no internet', 'I can\'t reach the backup server. Your current island is still saved on this device. Please try again when you\'re online.');
 l('On screen', 'No internet', 'Backups: no internet', "Can't reach the island server. Backups need a connection.");
-l('Dame Stalk', 'Service down', 'Backups: the server had a problem', 'The island server had a hiccup. Nothing is lost. Please try again in a minute. I\'ll be here. Filing.');
+l('Dame Stalk', 'Service down', 'Backups: the server had a problem', 'The backup service couldn\'t finish the request. Nothing has changed. Please try again in a minute.');
 l('On screen', 'Service down', 'Backups: the server had a problem', 'Something went wrong on the island server. Nothing was changed. Try again in a minute.');
 l('Dame Stalk', 'Not allowed', 'Backups: a visitor (not Sarah) tries it', 'Only {island}\'s own resident can roll the island back. Visitors are very welcome. Visitors do not get the big lever.');
 
 /* the Town Hall and the internet */
-l('Dame Stalk', 'No internet', 'Town Hall: anything that needs the outside world, offline', 'The outside world is not answering at the moment. Everything on the island still works. Only the far-away parts are resting.');
+l('Dame Stalk', 'No internet', 'Town Hall: anything that needs the outside world, offline', 'The outside services aren\'t answering. You can continue on the island; news, weather updates, and market prices will have to wait.');
 
 /* ============================================================== neighbors about the new buildings */
 sec('Around the new buildings', 'AROUND');
@@ -475,7 +475,7 @@ l('Kai', 'Works', 'Kai on the Bank', 'Penny said I should save for a rainy day. 
 l('Basil', 'Works', 'Basil on the Town Hall', 'The Council asked me to cater their meetings. They only eat... no, I won\'t say it. They\'re broccoli. I serve noodles. We have an arrangement.');
 l('Wonton', 'Works', 'Wonton on the Post Office', 'Pita delivers to the hot spring. In a little waterproof bag. On a little stick. It\'s the best service I\'ve ever had.');
 l('Chili', 'Works', 'Chili on the Bank', "Penny won't let me stand near the vault. Something about 'the chocolate.' I'm not THAT hot. I'm pretty hot.");
-l('Coco', 'Works', 'Coco on the Post Office', "I don't read other people's mail. I hold it up to the light. Very briefly. That's different. That's science.");
+l('Coco', 'Works', 'Coco on the Post Office', "I asked Pita if any interesting letters came today. Pita handed me a blank sheet and said, 'Write one.' Not what I meant. Quite good advice, annoyingly.");
 l('Cece', 'Works', 'Cece on the Bank', "I opened a savings account and then I apologized to Penny for taking up her time. She said that's what she's there for. Then I apologized for apologizing.");
 l('Clementine', 'Works', 'Clementine on the Town Hall', 'I offered to redesign the Council\'s robes. They said they don\'t wear robes. I said exactly. They\'re thinking about it.');
 l('Cuke', 'Works', 'Cuke on the Post Office', "I asked Pita if I could jog the mail route with them! They said yes! Pita is VERY slow! I jogged in circles around Pita! It was the best morning!");

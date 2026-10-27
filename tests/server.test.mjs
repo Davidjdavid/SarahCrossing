@@ -337,9 +337,9 @@ test('the music library: uploaded a track at a time, listed with its hour and we
   const { tracks, free } = await (await api('GET', '/api/music')).json();
   assert.ok(free == null || free > 0);
   assert.deepEqual(tracks.map((t) => [t.game, t.hour, t.weather, t.name]), [
-    ['Animal Crossing New Horizons', 17, 'rain', '5 PM (Rainy)'],
-    ['Animal Crossing New Horizons', 17, 'clear', '5 PM'],
-    ['Wild World', null, 'clear', 'Nook Shop'],
+    ['Animal Crossing: New Horizons', 17, 'rain', '5 PM (Rainy)'],
+    ['Animal Crossing: New Horizons', 17, 'clear', '5 PM'],
+    ['Animal Crossing: Wild World', null, 'clear', 'Nook Shop'],
   ]);
   const url = srv.url + '/music/' + tracks[0].path.split('/').map(encodeURIComponent).join('/');
   const whole = await fetch(url, { headers: { cookie } });
@@ -353,8 +353,8 @@ test('the music library: uploaded a track at a time, listed with its hour and we
   assert.equal((await fetch(url, { headers: { cookie, Range: 'bytes=5000-' } })).status, 416);
   assert.equal((await fetch(url, { redirect: 'manual' })).status, 302, 'needs the password like the rest');
   assert.equal((await fetch(srv.url + '/music/..%2F..%2Fsecret', { headers: { cookie } })).status, 404);
-  assert.equal((await api('DELETE', '/api/music/game?name=' + encodeURIComponent('Animal Crossing New Horizons'))).status, 200);
-  assert.deepEqual((await (await api('GET', '/api/music')).json()).tracks.map((t) => t.game), ['Wild World']);
+  assert.equal((await api('DELETE', '/api/music/game?name=' + encodeURIComponent('Animal Crossing: New Horizons'))).status, 200);
+  assert.deepEqual((await (await api('GET', '/api/music')).json()).tracks.map((t) => t.game), ['Animal Crossing: Wild World']);
   assert.equal((await api('DELETE', '/api/music/game?name=Nope')).status, 404);
 });
 
@@ -364,8 +364,34 @@ test('the music library reads hours from the names the soundtracks use', async (
   assert.deepEqual(hours.map((t) => t.hour), [1, 5, 12, 17, 0, 0, 12, 17, 10, 14, null]);
   assert.deepEqual(hours.map((t) => t.weather).slice(0, 4), ['clear', 'clear', 'rain', 'snow']);
   assert.equal(hours[10].name, 'Title Theme');
-  assert.equal(gameName('Animal_Crossing_New_Horizons_OST_(2020)_[MP3]'), 'Animal Crossing New Horizons');
-  assert.equal(gameName('Animal Crossing - Wild World'), 'Animal Crossing - Wild World');
+  // New Horizons' hours ("1200 AM"), New Leaf's names (the game in front of every track); jingles, holidays and
+  // countdowns at an hour are not that hour's track
+  const nh = ['02. 1200 AM (Sunny).flac', '03. 100 AM (Sunny).mp3', '12. 1000 AM (Sunny).mp3', '014 - Animal Crossing New Leaf (3DS) - 12 AM - Rainy.mp3', '49. Radio Jingle (Noon 3).flac', '14. Countdown (1130 PM).mp3', '18. New Year (1200 AM).mp3', "146 - Animal Crossing New Leaf (3DS) - New Year's Day (2 AM-6 AM).mp3"].map((f) => readTrackName(f));
+  assert.deepEqual(nh.map((t) => t.hour), [0, 1, 10, 0, null, null, null, null]);
+  assert.equal(nh[3].name, '12 AM - Rainy');
+  assert.equal(nh[3].weather, 'rain');
+  assert.equal(gameName('Animal_Crossing_New_Horizons_OST_(2020)_[MP3]'), 'Animal Crossing: New Horizons');
+  assert.equal(gameName('Animal Crossing - Wild World'), 'Animal Crossing: Wild World');
+  assert.equal(gameName('ACNL-OST-v4-MP3'), 'Animal Crossing: New Leaf');
+  assert.equal(gameName('acnr-soundtrack'), 'Animal Crossing: New Horizons');
+  assert.equal(gameName('Some-Game-OST-v2-MP3'), 'Some Game');
+  assert.equal(gameName('Zelda_Ocarina_OST_[FLAC]'), 'Zelda Ocarina');
+});
+
+test('the music folder is tidied: a track in two formats keeps its MP3, and files that are not music go', async () => {
+  const up = (p) => api('PUT', '/api/music/file?path=' + encodeURIComponent(p), Buffer.from('abcdef'), { 'Content-Type': 'audio/mpeg' });
+  for (const p of ['Tidy Game/Disc 1/01. 5 PM.mp3', 'Tidy Game/Disc 1/01. 5 PM.flac', 'Tidy Game/02. 6 PM.ogg', 'Tidy Game/02. 6 PM.flac']) assert.equal((await up(p)).status, 200);
+  const dir = path.join(srv.dataDir, 'music', 'Tidy Game');
+  fs.writeFileSync(path.join(dir, 'cover.jpg'), 'x');
+  fs.mkdirSync(path.join(dir, 'Scans'));
+  fs.writeFileSync(path.join(dir, 'Scans', 'back.png'), 'x');
+  const listed = (await (await api('GET', '/api/music')).json()).tracks.filter((t) => t.game === 'Tidy Game').map((t) => t.path);
+  assert.deepEqual(listed, ['Tidy Game/Disc 1/01. 5 PM.mp3', 'Tidy Game/02. 6 PM.ogg'], 'listed once each, before any tidy');
+  const r = await (await api('POST', '/api/music/tidy')).json();
+  assert.equal(r.removed, 4);
+  assert.deepEqual(fs.readdirSync(dir).sort(), ['02. 6 PM.ogg', 'Disc 1']);
+  assert.deepEqual(fs.readdirSync(path.join(dir, 'Disc 1')), ['01. 5 PM.mp3']);
+  assert.equal((await api('DELETE', '/api/music/game?name=Tidy%20Game')).status, 200);
 });
 
 test('the music library is uploaded from the beta site only: the live site plays it but refuses uploads', async () => {

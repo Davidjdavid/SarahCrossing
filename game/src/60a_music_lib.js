@@ -20,8 +20,18 @@ const MusicLib = {
         this.tracks = (r && r.tracks) || [];
         this.free = r ? r.free : null;
         this.uploads = !!(r && r.uploads);
-        this.byPath = {}; this.byGame = {};
-        for (const t of this.tracks) { this.byPath[t.path] = t; (this.byGame[t.game] = this.byGame[t.game] || []).push(t); }
+        this.byPath = {}; this.byGame = {}; this.byName = {};
+        for (const t of this.tracks) {
+            this.byPath[t.path] = t; (this.byGame[t.game] = this.byGame[t.game] || []).push(t);
+            const k = trackKey(t.name);
+            if (!this.byName[k]) this.byName[k] = t.path;
+        }
+        // (a game picked by a name the library no longer has: the games' names were tidied, 27 October)
+        if (S && S.music && this.tracks.length) {
+            const M = S.music;
+            if (M.lib && M.lib !== 'tunes' && !this.byGame[M.lib]) M.lib = '';
+            if (M.libSkip) M.libSkip = M.libSkip.filter(g => this.byGame[g]);
+        }
         if (typeof Music !== 'undefined') Music.update(true);
     },
     games() { return Object.keys(this.byGame || {}).sort((a, b) => a.localeCompare(b)); },
@@ -51,7 +61,85 @@ const MusicLib = {
     },
     /* what an hour's game is, for the Music app */
     hourGame(h) { const p = this.hourly(h); return p ? this.byPath[p].game : null; },
+    /* a SOUNDTRACK entry's track: the first of its names the library has */
+    track(key) {
+        for (const n of SOUNDTRACK[key] || []) { const p = this.byName && this.byName[trackKey(n)]; if (p && !this.bad[p]) return p; }
+        return null;
+    },
+    /* the soundtracks' track for where Sarah is and what's on, or null for the usual music (and always with the island's
+       own tunes picked in the Music app) */
+    scene() {
+        if (!this.tracks || !this.tracks.length || (S && S.music && S.music.lib === 'tunes')) return null;
+        const k = musicScene();
+        return k ? this.track(k) : null;
+    },
 };
+function trackKey(s) { return String(s).toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim(); }
+
+/* the places and moments the soundtracks have music of their own for (David, 27 October late: the game's tunes swapped
+   for the soundtracks' tracks): the tracks' names, the first the library has playing; without any of them the island's
+   tune plays as before. Every museum room but the aquarium shares one track, so walking between them it carries on. */
+const SOUNDTRACK = {
+    title: ['Main Theme', 'Opening Theme'],
+    shop: ['Nookling Junction', "Nook's Cranny", 'T&T Mart (Convenience Store)'],
+    shop2: ['T&T Mart (Convenience Store)', "Nook's Cranny"],
+    shop3: ['Super T&T (Supermarket)', 'T&T Mart (Convenience Store)'],
+    shop4: ['T&T Emporium (Department Store)', 'Super T&T (Supermarket)'],
+    boutique: ['Able Sisters - Sable and Mabel', 'Able Sisters'],
+    salon: ['Shampoodle'],
+    museum: ['Museum', 'Museum (Entrance)'],
+    aquarium: ['Museum (Aquarium Track)', 'Museum'],
+    townhall: ['Town Hall', 'Resident Services (Tent)'],
+    post: ['Post Office - Pelly', 'Post Office'],
+    postnight: ['Post Office - Phyllis', 'Post Office - Pelly', 'Post Office'],
+    club: ['Club LOL'],
+    cafe: ['The Roost Café', 'The Roost'],
+    builder: ["Nook's Homes"],
+    hide: ['Tortimer Island - Hide and Seek'],
+    ceremony: ['Dedication Ceremony (Public Works Project Completion)', 'Facility Completion Ceremony'],
+    bunny: ['Bunny Day (Easter, No SFX)', 'Bunny Day (Easter)', 'Bunny Day'],
+    halloween: ['Halloween'],
+    harvest: ['Harvest Festival (Thanksgiving)', 'Turkey Day'],
+    toyday: ['Toy Day (Christmas, No SFX)', 'Toy Day (Christmas)', 'Toy Day (Sunny)'],
+    toysnow: ['Toy Day (Snowy)', 'Toy Day (Christmas, No SFX)', 'Toy Day (Christmas)'],
+    fireworks: ['Fireworks', 'Fireworks Show'],
+    count60: ['New Year Countdown (1 Hour)', 'Countdown (1100 PM)'],
+    count30: ['New Year Countdown (30 Minutes)', 'Countdown (1130 PM)'],
+    count10: ['New Year Countdown (10 Minutes)', 'Countdown (1150 PM)'],
+    count5: ['New Year Countdown (5 Minutes)', 'Countdown (1155 PM)'],
+    newyear: ['Happy New Year!', 'New Year (Happy New Year)'],
+    newyear0: ['New Year (1200 AM)', "New Year's Day"],
+    newyear2: ["New Year's Day (2 AM-6 AM)", 'New Year (200 AM)', "New Year's Day"],
+    newyearday: ["New Year's Day"],
+};
+/* which of them is for now (a SOUNDTRACK key, or null) */
+function musicScene() {
+    if (!S || !S.started) return 'title';
+    if (Music.scene) return Music.scene;
+    const a = G.area ? G.area.id : 'island', h = Clock.hourF();
+    if (a === 'shop') { const l = shopLevel('shop'); return l > 1 ? 'shop' + l : 'shop'; }
+    if (a === 'museum_fish') return 'aquarium';
+    if (a === 'museum' || a.startsWith('museum_')) return 'museum';
+    if (a === 'postoffice') return h >= 6 && h < 18 ? 'post' : 'postnight';
+    if (['boutique', 'salon', 'townhall', 'club', 'cafe', 'builder'].includes(a)) return a;
+    if (a !== 'island') return null;
+    // outside: a holiday's own music for its hours
+    const d = Clock.dayDate(), mo = d.getMonth() + 1, dd = d.getDate(), hs = holidaysToday().map(x => x.id);
+    if (mo === 12 && dd === 31 && h >= 23) return h >= 23 + 55 / 60 ? 'count5' : h >= 23 + 50 / 60 ? 'count10' : h >= 23.5 ? 'count30' : 'count60';
+    if (mo === 1 && dd === 1) return h < 0.05 ? 'newyear' : h < 2 ? 'newyear0' : h < 6 ? 'newyear2' : 'newyearday';
+    if (hs.includes('toyday') && h >= 6) return todayWeather() === 'snow' ? 'toysnow' : 'toyday';
+    if (hs.includes('halloween') && trickOn()) return 'halloween';
+    if (hs.includes('july4') && h >= 20.8 && h < 23.2) return 'fireworks';
+    if ((hs.includes('harvest') || hs.includes('feastday')) && h >= 6) return 'harvest';
+    if (hs.includes('egghunt') && h >= 6 && h < 20) return 'bunny';
+    // by a town project the day it's finished: its dedication
+    const P = S.town && S.town.proj, p = G.player, day = Clock.dayNum();
+    if (P && P.done && p) for (const [id, on] of Object.entries(P.done)) {
+        const f = on === day && W0.projects && W0.projects[id];
+        if (f && Math.hypot(p.x / TILE - (f.x + f.w / 2), p.y / TILE - (f.y + f.h / 2)) < 9) return 'ceremony';
+    }
+    return null;
+}
 
 /* music a player adds of their own (David: "have the player be able to upload their own music"): kept on this device
    only, the files in IndexedDB (sc-own-music) and their names in localStorage, never on the server; played on repeat
@@ -199,7 +287,14 @@ const MusicUpload = {
     job: null,
     async start(fileList, onChange) {
         if (this.job && !this.job.done) { UI.toast('Music is already uploading.'); return; }
-        const all = Array.from(fileList || []).filter(f => MUSIC_FILE_RE.test(f.name));
+        // (a track there in two formats goes once, as an MP3 where there is one: the folder keeps one of each)
+        const rank = f => { const i = ['mp3', 'm4a', 'aac', 'ogg', 'opus', 'oga', 'webm', 'flac', 'wav'].indexOf((/\.([a-z0-9]+)$/i.exec(f.name) || [])[1].toLowerCase()); return i < 0 ? 99 : i; };
+        const one = new Map();
+        for (const f of Array.from(fileList || []).filter(f => MUSIC_FILE_RE.test(f.name))) {
+            const k = (f.webkitRelativePath || f.name).replace(/\.[^./]+$/, '');
+            if (!one.has(k) || rank(f) < rank(one.get(k))) one.set(k, f);
+        }
+        const all = [...one.values()];
         if (!all.length) { UI.toast('No music files there (MP3, M4A, OGG, FLAC or WAV).'); return; }
         const paths = musicUploadPaths(all);
         await MusicLib.load(true);
@@ -230,6 +325,8 @@ const MusicUpload = {
         }
         job.done = true;
         job.now = '';
+        // (and the folder tidied: the same tracks in other formats, covers and notes uploaded some other way)
+        await Cloud.api('POST', '/api/music/tidy').catch(() => null);
         await MusicLib.load(true);
         tell(true);
         UI.toast(job.err || (job.stop ? 'Upload stopped.' : `Music uploaded: ${fmtNum(job.n - job.failed)} track${job.n - job.failed === 1 ? '' : 's'}${job.failed ? ` (${job.failed} didn't go)` : ''}.`));

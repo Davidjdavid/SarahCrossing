@@ -105,6 +105,7 @@ const IslandGames = {
         for (const s of ['#djudge', '#dcombo', '#dcount', '#dlyric', '#dtip', '#dscore', '#dsong']) { $(s).style.left = ''; $(s).style.top = ''; $(s).textContent = ''; }
         $('#dancehud').hidden = false;
         Music.over = kind === 'hide' ? 'studio' : kind === 'derby' ? 'afternoon' : 'fruit';
+        Music.scene = kind === 'hide' ? 'hide' : null;
         Music.update(true);
         igRec(kind).played++;
         S.stats.islandGames = (S.stats.islandGames || 0) + 1;
@@ -155,7 +156,7 @@ const IslandGames = {
         $('#dancehud').hidden = true;
         for (const s of ['#djudge', '#dcount', '#dtip', '#dscore', '#dsong']) igHud(s, '');
         HUD.show(true);
-        Music.over = null;
+        Music.over = null; Music.scene = null;
         Music.update(true);
         G.fade = 0;
     },
