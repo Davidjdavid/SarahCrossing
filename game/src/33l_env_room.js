@@ -92,6 +92,60 @@ const EnvRoom = {
         g.add(out);
         return out;
     },
+    /* a pot Sarah threw on the wheel (57_pottery.js): turned from its own profile, the wheel's seven radii (profR), hollow at
+       the top, each band the glaze it has there (or the clay, before glazing), a handle or a spout if it has one; half
+       the size of its picture, as the tabletop things are. Her hand-built figures stay thick cut-outs. */
+    POT_K: 0.5,
+    potOf(e) { const p = e.def && e.def.pottery && S.pottery && S.pottery.pieces[e.item.id]; return p && p.prof && p.prof.r && p.prof.r.length > 2 ? p : null; },
+    pot(g, e) {
+        const p = this.potOf(e), B = this.built, it = e.item, d = e.def;
+        if (!p) return null;
+        const key = p.id + '|' + (p.glaze || '') + '|' + p.state, k = this.POT_K / TILE, h = p.h, W = POT_W;
+        B.potGeo = B.potGeo || new Map();
+        let G0 = B.potGeo.get(key);
+        if (!G0) {
+            const clay = new THREE.Color(p.state === 'green' ? CLAY_WET : CLAY_BISQUE);
+            const rowCol = y => { const c = p.glaze && p.glaze[Math.max(0, Math.min(h - 1, y)) * W + (W >> 1)]; return c && c !== '0' && GLAZES[c] ? new THREE.Color(GLAZES[c][0]) : clay; };
+            const pts = [], cols = [], N = Math.max(8, h);
+            const add = (r, y, col) => { pts.push(new THREE.Vector2(Math.max(0, r) * k, y * k)); cols.push(col); };
+            add(0, 0, rowCol(h - 1).clone().multiplyScalar(0.8));
+            for (let i = 0; i <= N; i++) {
+                const t = 1 - i / N, y = (1 - t) * h, row = Math.round(t * (h - 1));
+                add(profR(p.prof, t) * (i === 0 ? 0.86 : 1), y, rowCol(row));
+            }
+            // (the lip, and down inside: a plate barely, a vase most of the way)
+            const rTop = profR(p.prof, 0), depth = p.kind === 'plate' ? 0.5 : h * 0.7, inner = rowCol(0).clone().multiplyScalar(0.72);
+            add(rTop - 0.7, h - 0.2, rowCol(0));
+            for (let i = 1; i <= 4; i++) { const t = i / 4 * (depth / h); add(profR(p.prof, t) - 0.8, h - t * h, inner); }
+            add(0, h - depth, inner);
+            const geo = new THREE.LatheGeometry(pts, 22), n = geo.attributes.position.count, c = new Float32Array(n * 3);
+            for (let v = 0; v < n; v++) { const q = cols[v % pts.length]; c[v * 3] = q.r; c[v * 3 + 1] = q.g; c[v * 3 + 2] = q.b; }
+            geo.setAttribute('color', new THREE.BufferAttribute(c, 3));
+            geo.computeVertexNormals();
+            G0 = { geo, mid: rowCol(Math.round(h * 0.45)), top: rowCol(0) };
+            B.potGeo.set(key, G0);
+        }
+        const mat = r3Patch(new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0xffffff, emissiveIntensity: p.finish === 'matte' ? 0.04 : 0.1 }), { key: 'envpot' });
+        const o = new THREE.Group(), body = new THREE.Mesh(G0.geo, mat);
+        body.castShadow = true; body.receiveShadow = true;
+        o.add(body);
+        if (p.prof.handle) {
+            const rm = profR(p.prof, 0.45), hm = new THREE.Mesh(new THREE.TorusGeometry(h * 0.22 * k, 0.55 * k, 6, 12, Math.PI), r3Patch(new THREE.MeshLambertMaterial({ color: G0.mid }), { key: 'envpot' }));
+            hm.rotation.z = -Math.PI / 2; hm.position.set(rm * k, h * 0.55 * k, 0); hm.castShadow = true;
+            o.add(hm);
+        }
+        if (p.prof.spout) {
+            const sp = new THREE.Mesh(new THREE.ConeGeometry(1.1 * k, 2.6 * k, 8, 1, true), r3Patch(new THREE.MeshLambertMaterial({ color: G0.top, side: THREE.DoubleSide }), { key: 'envpot' }));
+            sp.rotation.z = Math.PI / 2.6; sp.position.set(-(profR(p.prof, 0) + 0.8) * k, (h - 1) * k, 0);
+            o.add(sp);
+        }
+        const host = it.on != null ? B.hosts.get(it.on) : null;
+        if (it.on != null && !host) return null;
+        o.position.set(it.x + d.w / 2, host ? host.top : 0, host ? host.z : (it.y + 0.5) * R3_ZS);
+        if (e.flip) o.scale.x = -1;
+        g.add(o);
+        return o;
+    },
     /* a piece's model at a place; a face it carries (*_pic, *_picglow) wears the piece's own picture */
     parts(g, e, n, m, P) {
         const B = this.built;
@@ -413,15 +467,17 @@ const EnvRoom = {
         // (food and flowers on tables: the things' own models, a vase for the flowers)
         const tops = a.ents.filter(e => e.furn && e.def && (e.def.food || e.def.flower));
         // (and what has no model yet: what hangs on the wall, and the little things on tables, as thick cut-outs)
-        const cuts = a.ents.filter(e => e.furn && e.def && !e.draw && !this.model(e) && !e.def.food && !e.def.flower && (e.def.kind === 'wall' || e.def.kind === 'top'));
+        const pots = a.ents.filter(e => e.furn && !e.draw && this.potOf(e));
+        const cuts = a.ents.filter(e => e.furn && e.def && !e.draw && !this.model(e) && !e.def.food && !e.def.flower && (e.def.kind === 'wall' || e.def.kind === 'top') && !pots.includes(e));
         // (rugs, the mannequins, and the fittings that aren't furniture: look3d says what they are)
         const rugs = a.ents.filter(e => e.furn && e.def && e.def.kind === 'rug'), mans = a.ents.filter(e => e.kind === 'mannequin' && e.sale), decos = a.ents.filter(e => e.look3d);
         // (each piece by its own entity: the room makes them afresh when it's rearranged or restocked)
-        const sig = list.concat(tops, cuts, rugs).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + e.item.id + ',' + e.item.x + ',' + e.item.y + (e.flip ? 'f' : '')).join('|')
+        const sig = list.concat(tops, cuts, rugs, pots).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + e.item.id + ',' + e.item.x + ',' + e.item.y + (e.flip ? 'f' : '')).join('|')
             + '|' + mans.concat(decos).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + (e.sale || '')).join('|') + '#' + (EnvModels.furnN || 0) + (EnvDolls.kitReady() ? 'k' : '');
         if (sig === B.furnSig) return;
         B.furnSig = sig;
         if (B.furn) { B.group.remove(B.furn); B.furn.traverse(o => this.dispose(o)); B.furn = null; }
+        B.potGeo = new Map();
         const g = B.furn = new THREE.Group();
         B.group.add(g);
         B.hosts = new Map();
@@ -463,6 +519,7 @@ const EnvRoom = {
             B.placed.add(e);
         }
         for (const e of rugs) if (this.rug(g, e)) B.placed.add(e);
+        for (const e of pots) if (this.pot(g, e)) B.placed.add(e);
         for (const e of mans) if (this.mannequin(g, e)) B.placed.add(e);
         for (const e of decos) if (this.deco(g, a, e)) B.placed.add(e);
         // (a stool behind the counter for a folk who works there: 33kc_doll_stools.js)

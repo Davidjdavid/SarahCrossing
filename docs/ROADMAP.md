@@ -219,9 +219,10 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] Rooms a bit taller, so windows, clocks and the like fit the walls better (in the new look: the walls go up past
   the picture with a picture rail and a cornice, so what hangs there has room above it and nothing is stretched)
 - [x] Clocks show the real time (in the new look: the wall clock's hands turn with the island's time)
-- [ ] Go back through the island, the shops, the houses and every room and look again at each prop and decoration in 3D:
+- [~] Go back through the island, the shops, the houses and every room and look again at each prop and decoration in 3D:
   they came over one to one from the 2D pictures, so not everything looks good in 3D (and some didn't look great to begin
-  with); redo or replace what doesn't
+  with); redo or replace what doesn't (so far: every piece of furniture and every prop on the island has a model of its
+  own, checked against the lists; Sarah's pots from the wheel are turned round from their own shape instead of a cut-out)
 - [x] Outdoor decorations placed better: the notice board in front of the square's big tree, and lamp posts along the
   paths into the square, down the steps to the dock, along Market Lane and up the trails (a save step brings back to
   Sarah's storage anything of hers that was in their way)

@@ -1575,6 +1575,39 @@ test("more holidays to do: New Year's Eve on the square with a countdown, red en
   await page.context().close();
 });
 
+test("Sarah's pottery from the wheel is turned round in the new look: its own profile, its glaze in bands, the handle", async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(() => {
+    const P = pottery(), prof = Object.assign({}, POT_PRESETS.Mug), h = prof.h, id = newPieceId();
+    // a mug: cobalt above the middle, plain clay below
+    const glaze = Array.from({ length: POT_W * h }, (_, i) => (Math.floor(i / POT_W) < h / 2 ? 'c' : '0')).join('');
+    const p = { id, kind: 'mug', base: 'Mug', name: 'Test mug', h, mask: profileMask(prof), glaze, state: 'done', stars: 2, big: false, prof, day: Clock.dayNum() };
+    P.pieces[id] = p; registerPiece(p);
+    const fig = { id: newPieceId(), kind: 'frog', name: 'Frog', h: 10, state: 'done', glaze: null };
+    P.pieces[fig.id] = fig;
+    const e = { furn: true, def: FURN[id], item: { id, x: 3, y: 2, on: null } }, ef = { furn: true, def: { pottery: true, kind: 'top', w: 1, h: 1 }, item: { id: fig.id, x: 4, y: 2, on: null } };
+    const was = EnvRoom.built;
+    EnvRoom.built = { hosts: new Map(), potGeo: new Map() };
+    const g = new THREE.Group(), o = EnvRoom.pot(g, e);
+    EnvRoom.built = was;
+    const body = o.children[0], box = new THREE.Box3().setFromObject(body), size = box.getSize(new THREE.Vector3());
+    const col = body.geometry.attributes.color.array, cob = new THREE.Color(GLAZES.c[0]), clay = new THREE.Color(CLAY_BISQUE);
+    let blue = 0, bare = 0;
+    for (let v = 0; v < col.length; v += 3) { if (Math.abs(col[v] - cob.r) < 0.01 && Math.abs(col[v + 2] - cob.b) < 0.01) blue++; if (Math.abs(col[v] - clay.r) < 0.01 && Math.abs(col[v + 1] - clay.g) < 0.01) bare++; }
+    const k = EnvRoom.POT_K / TILE;
+    return { turned: !!o && o.children.length === 2, tall: Math.abs(size.y - h * k) < k, wide: size.x > 7 * k && size.x < 10 * k, bands: blue > 20 && bare > 20,
+      placed: Math.abs(o.position.x - 3.5) < 0.01, figure: EnvRoom.potOf(ef) === null };
+  });
+  assert.deepEqual(res, { turned: true, tall: true, wide: true, bands: true, placed: true, figure: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('karaoke: a different request each night from the poems Sarah has, first on the list and on the board, and the crowd tips extra', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));

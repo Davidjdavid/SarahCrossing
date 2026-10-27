@@ -332,7 +332,9 @@ docs/DEPLOY.md for the server.
   is a frame or board whose face, a part named `*_pic` (`*_picglow` unlit), wears the piece's own picture
   (`EnvRoom.picMat`, `picUV`), so the lettering and art stay as drawn. A neighbor's painting for the museum borrows the gilt
   frame (`furn_empty_frame`) and a photo of a neighbor the photo frame (`furn_photo_frame`), each wearing its own picture.
-  What has no model of its own yet is a thick cut-out of its picture
+  Sarah's pots from the wheel are turned from their own profile (`EnvRoom.pot`: the wheel's seven radii through `profR`,
+  hollow at the top, each band in its glaze, a handle or spout), half their picture's size like the tabletop things; her
+  hand-built figures stay cut-outs. What has no model of its own yet is a thick cut-out of its picture
   (`EnvRoom.cutout`: the picture on the front, the same shape twice behind it a shade darker). What the 2D view draws
   moving is a model whose moving part is its own (`furn_g.py`, `EnvRoom.animate`): an arcade cabinet's screen (a part
   named `*_screen`) shows its game's name and attract animation drawn on a picture of its own (`EnvRoom.screen`), the claw
