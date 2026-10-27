@@ -288,7 +288,9 @@ docs/DEPLOY.md for the server.
   cliff's stone (`EnvBuild.stairs`, climbed a step at a time: `EnvGround.stairH`), and `EnvContact`
   (33i_env_contact.js) darkens the ground softly under things (and `EnvGlow` lays a warm pool of light under every lamp,
   lantern and lit doorway at night). Ponds and streams (`EnvGround.shapeWater`) and the beaches (`shapeShore`) meet the
-  water along a blurred outline, not the tiles' steps; the depth map behind the water's shader also says where it flows
+  water along a blurred outline, not the tiles' steps; never over ground people walk on, though: every point of a walkable tile stays above the
+  water (`keepDry`; Sarah's feet are a box as wide as her doll, `blockedFoot`), and a stream running out over the beach
+  comes down to the sea's level over its last tiles (`surfAt`) to meet it; the depth map behind the water's shader also says where it flows
   (streams' current streaks) and where it's the hot spring (milky, steaming). Until the models arrive the new look draws its own, and
   builds again once they have.
 

@@ -188,7 +188,7 @@ const Env = {
         if (!this.ground || (G.area && G.area.interior)) return null;
         const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE), w = EnvGround.waterAt(tx, ty);
         if (w === 1) return 0;
-        if (w === 2) return ENV.BASE + EnvGround.waterLevel(tx, ty) * ENV.LV - 0.14;
+        if (w === 2) return EnvGround.surfAt(tx, ty);
         return null;
     },
     /* where something standing on the tile grid stands in the new look: the middle of its tile (or its footprint), as
@@ -442,7 +442,8 @@ const EnvGround = {
                 const k = y * W + x, mv = m[k];
                 if (mv < 0.02) continue;
                 const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht), h0 = h[k];
-                if (lvl(tx, ty) !== L || h0 > surf + 0.3 || h0 < surf - 1.2) continue;
+                // (the sea's floor isn't a stream's bank: raised to the beach, it made a sandbar across a stream's mouth)
+                if (lvl(tx, ty) !== L || h0 > surf + 0.3 || h0 < surf - 1.2 || this.waterAt(tx, ty) === 1) continue;
                 // (a little wobble: the bank stays on its tiles' edge but isn't ruler-straight)
                 const u = x / R, v = y / R, wv = mv + (vn(u / 2.2 + 5, v / 2.2) * 0.6 + vn(u / 0.8, v / 0.8) * 0.4 - 0.5) * 0.24;
                 // (inside the water's own tiles too: where the wandering outline leaves a bit of a tile out, the bank comes up
@@ -452,7 +453,46 @@ const EnvGround = {
                 else if (wv > 0.25) { const t = (wv - 0.25) / 0.25, top = inWet ? land : h0, hb = surf + (top - surf) * (1 - t * t * (3 - 2 * t)); h[k] = inWet ? hb : Math.min(h0, hb); }   // the bank
                 else if (inWet) h[k] = land;
             }
+            // (but never where people walk: a dry tile's ground, edges and all, stays above the water, so the waterline
+            // bends only inside the water's own tiles and nobody walks into a stream)
+            this.keepDry(h, W, R, surf, (tx, ty) => !wet(tx, ty) && lvl(tx, ty) === L, wet, tx0 - 1, ty0 - 1, tx1 + 1, ty1 + 1);
         }
+    },
+    /* every height point of the walkable tiles (dry: which tiles count) that touch water (is) kept above its surface: on
+       the tile's edge just above, inside it a little more (half tiles and tiles nobody walks on are left as they are) */
+    keepDry(h, W, R, surf, dry, is, X0, Y0, X1, Y1) {
+        for (let ty = Math.max(0, Y0); ty <= Math.min(W0.h - 1, Y1); ty++) for (let tx = Math.max(0, X0); tx <= Math.min(W0.w - 1, X1); tx++) {
+            if (!dry(tx, ty) || this.cutAt(tx, ty) || (W0.coll[ty] && W0.coll[ty][tx] === '1') || this.dryIn(tx + 0.5, ty + 0.5, tx, ty, is) > 1) continue;
+            // (beside a stream's mouth, its water is a little above the sea's)
+            let s = surf;
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (is(tx + dx, ty + dy) && this.waterAt(tx + dx, ty + dy) === 2) s = Math.max(s, this.surfAt(tx + dx, ty + dy));
+            for (let j = 0; j <= R; j++) for (let i = 0; i <= R; i++) {
+                const k = (ty * R + j) * W + tx * R + i, edge = i === 0 || j === 0 || i === R || j === R;
+                h[k] = Math.max(h[k], s + (edge ? 0.01 : 0.04));
+            }
+        }
+    },
+    /* a stream's or pond's surface on a water tile (world units): its level's, but a stream running out over the beach
+       comes down to the sea's over its last few tiles, so it meets the sea instead of ending a step above it */
+    surfAt(x, y) {
+        const lv = this.waterLevel(x, y), s = ENV.BASE + lv * ENV.LV - 0.14;
+        if (lv) return s;
+        const d = this.seaNear(x, y);
+        return d < 3 ? Math.min(s, 0.02 + 0.03 * d) : s;
+    },
+    /* how many tiles from the sea a tile is (0 beside it), up to three (4: further) */
+    seaNear(x, y) {
+        for (let r = 1; r <= 4; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && this.waterAt(x + dx, y + dy) === 1) return r - 1;
+        return 4;
+    },
+    /* how far a spot (u, v, tiles) in tile tx, ty is from the nearest of the tiles round it that are water (by is) */
+    dryIn(u, v, tx, ty, is) {
+        let d = 9;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if ((dx || dy) && is(tx + dx, ty + dy)) {
+            const ex = Math.max(tx + dx - u, 0, u - (tx + dx + 1)), ey = Math.max(ty + dy - v, 0, v - (ty + dy + 1));
+            d = Math.min(d, Math.hypot(ex, ey));
+        }
+        return d;
     },
     /* the beaches' waterline smooth too: where the low ground meets the sea, the tiles' outline blurred is the shore (a
        curve, not the tiles' staircase on a diagonal coast); the sand slopes down to it and on under the water. Only beach
@@ -463,7 +503,9 @@ const EnvGround = {
         const hh = (a, b) => { let n = Math.imul(a, 374761393) + Math.imul(b, 668265263) | 0; n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n ^ (n >>> 16)) >>> 0) / 4294967296; };
         const hs2 = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return (hh(xi, yi) * (1 - u) + hh(xi + 1, yi) * u) * (1 - v) + (hh(xi, yi + 1) * (1 - u) + hh(xi + 1, yi + 1) * u) * v; };
         const sea = (x, y) => x < 0 || y < 0 || x >= Wt || y >= Ht || this.waterAt(x, y) === 1;
-        const low = (x, y) => sea(x, y) || (this.waterAt(x, y) === 0 && !(+W0.height[y][x]));
+        // (a stream's last few tiles over the beach count with the sea, so the shore curves round its mouth)
+        const mouth = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && this.waterAt(x, y) === 2 && !this.waterLevel(x, y) && this.seaNear(x, y) < 3;
+        const low = (x, y) => sea(x, y) || mouth(x, y) || (this.waterAt(x, y) === 0 && !(+W0.height[y][x]));
         // (a tile is reshaped only if it and all round it are beach or sea)
         const ok = new Uint8Array(Wt * Ht);
         let any = false;
@@ -477,7 +519,7 @@ const EnvGround = {
         const m = new Float32Array(W * Hn), t = new Float32Array(Math.max(W, Hn)), r = R;
         for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) {
             const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht), c = this.cutAt(tx, ty);
-            m[y * W + x] = sea(tx, ty) && !(c && inCut(c, x / R - tx, y / R - ty)) ? 1 : 0;
+            m[y * W + x] = (sea(tx, ty) || mouth(tx, ty)) && !(c && inCut(c, x / R - tx, y / R - ty)) ? 1 : 0;
         }
         const line = (get, set, n) => {
             for (let pass = 0; pass < 2; pass++) {
@@ -491,7 +533,7 @@ const EnvGround = {
         for (let x = 0; x < W; x++) line(i => m[i * W + x], (i, v) => { m[i * W + x] = v; }, Hn);
         for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) {
             const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht);
-            if (!ok[ty * Wt + tx]) continue;
+            if (!ok[ty * Wt + tx] || mouth(tx, ty)) continue;
             const k = y * W + x, h0 = h[k], mv = m[k] + (hs2(x * 0.11, y * 0.11) - 0.5) * 0.16;   // (a little wobble along the shore)
             if (mv <= 0.02 || mv >= 0.98) continue;
             // the shore's profile: the beach's height inland, down to the waterline where the blurred outline is halfway,
@@ -500,6 +542,8 @@ const EnvGround = {
             if (sea(tx, ty)) h[k] = Math.max(h0, hs);
             else if (Math.abs(h0 - BASE) < 0.02) h[k] = Math.min(h0, hs);
         }
+        // (the beach where people walk stays dry, edges and all: the sea comes up to the tiles' line and no further)
+        this.keepDry(h, W, R, 0, (tx, ty) => !sea(tx, ty) && !mouth(tx, ty) && ok[ty * Wt + tx], (x, y) => sea(x, y) || mouth(x, y), 0, 0, Wt - 1, Ht - 1);
     },
     heightAt(u, v) {
         const g = this.grid;

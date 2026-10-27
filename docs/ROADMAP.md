@@ -194,7 +194,9 @@ Status: [x] done, [~] in progress, [ ] not started.
   with); redo or replace what doesn't
 - [ ] Outdoor decorations placed better: the notice board more in front of the square's big tree, and a lot of the lamp
   posts moved to sit along the paths
-- [ ] Big outdoor-only furniture installed around the island (what it is still to decide)
+- [ ] Big outdoor-only furniture installed around the island (what it is still to decide). Some spots could be held back
+  from the grid (nothing can be placed there) until Sarah has given enough to the town, and then the town builds
+  something there: a coffee shop, a set of swings, and the like
 - [ ] The fountain on the square bigger, more detailed, and solid (Sarah and the neighbors walk through it now)
 - [ ] The giant David statue taken off the main square
 
@@ -221,6 +223,10 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] Walking: Sarah can walk a little way up cliff sides (only the camera moves), a little into rivers, and oddly over
   bridges and stairs. Everything on the grid, each tile walkable or not, would fix it
 - [ ] Fishing: Sarah reels in what she caught and holds it up over her head; the fishing rod a 3D model, not a picture
+- [ ] Market lane: more space between its top and bottom rows of shops, and the shops a bit further apart
+- [ ] The arcade swapped round: Fruit Catch, Gopher Garden (the whack-a-mole one), Surf's Up and Noodle Slurp (the
+  snake one) go to the back room, and the back room's Dumpling Drop, Sushi Swap and Fortune Falls come out front. One
+  cabinet in the front room is out of order: that's the special game David will remake from memory later
 - [ ] The cliff edges, the island's sides and some of the sea look blocky. Once everything is on the grid, draw the tiles
   rounded like a tile sheet: the cliff sides are tiles nobody walks on, their 3D pieces with a little ground and
   see-through edges

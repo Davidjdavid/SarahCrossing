@@ -10,7 +10,7 @@ const EnvWater = {
         const Wt = W0.w, Ht = W0.h, G = EnvGround, LV = ENV.LV, BASE = ENV.BASE;
         const L = (x, y) => (x < 0 || y < 0 || x >= Wt || y >= Ht || G.waterAt(x, y) === 1) ? -1 : G.waterAt(x, y) === 2 ? G.waterLevel(x, y) : +W0.height[y][x] || 0;
         const wet = (x, y) => x >= 0 && y >= 0 && x < Wt && y < Ht && G.waterAt(x, y) === 2;
-        const surf = (x, y) => wet(x, y) ? BASE + L(x, y) * LV - 0.14 : 0;           // a water tile's surface (the sea's is 0)
+        const surf = (x, y) => wet(x, y) ? G.surfAt(x, y) : 0;           // a water tile's surface (the sea's is 0)
         // how deep the water is everywhere (8 pixels a tile, so the shore is a smooth line): red is depth, green which water
         // (sea or not), blue how much of it round here is a stream's (which flows) rather than a pond's, alpha the hot spring
         const P = 8, N = Wt * P, M = Ht * P, d = new Uint8Array(N * M * 4);
@@ -61,7 +61,7 @@ const EnvWater = {
             if (!wet(x, y)) continue;
             // (reaching past the tile's sides into the bank, but not toward water at another level: the stream's sheet
             // ends at a waterfall's lip and the pool's starts at its foot, neither hanging in the air over the drop)
-            const s = surf(x, y), b = pos.length / 3, other = (i, j) => wet(i, j) && Math.abs(surf(i, j) - s) > 0.1;
+            const s = surf(x, y), b = pos.length / 3, other = (i, j) => (wet(i, j) && Math.abs(surf(i, j) - s) > 0.1) || G.waterAt(i, j) === 1;
             const eW = other(x - 1, y) ? 0 : 0.7, eE = other(x + 1, y) ? 0 : 0.7, eN = other(x, y - 1) ? 0 : 0.7, eS = other(x, y + 1) ? 0 : 0.7;
             pos.push(x - eW, s, (y - eN) * R3_ZS, x + 1 + eE, s, (y - eN) * R3_ZS, x + 1 + eE, s, (y + 1 + eS) * R3_ZS, x - eW, s, (y + 1 + eS) * R3_ZS);
             idx.push(b, b + 3, b + 2, b, b + 2, b + 1);

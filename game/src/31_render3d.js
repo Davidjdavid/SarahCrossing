@@ -143,7 +143,9 @@ const R3 = {
         if (this.talkK < 0.002 && !tn) this.talkK = 0;
         if (tn) this.talkAt = [(p.x + tn.x) / 2, (p.y + tn.y) / 2 - R3_TALK.up * TILE];
         if (this.talkK && this.talkAt) { tx += (this.talkAt[0] - tx) * this.talkK; ty += (this.talkAt[1] - ty) * this.talkK; }
-        const X = tx / TILE, Z = ty / TILE * R3_ZS, GH = a.interior ? 0 : r3GroundH(tx, ty + 10);
+        // (the camera rises and falls with the ground under Sarah's feet, not with where it looks: looking ahead past the
+        // foot of a cliff, the ground up top used to lift it as if she were climbing)
+        const X = tx / TILE, Z = ty / TILE * R3_ZS, GH = a.interior ? 0 : G.camTarget ? r3GroundH(tx, ty + 10) : r3GroundH(p.x, p.y);
         if (snap || this.areaId !== a.id) { this.target.x = X; this.target.z = Z; this.camH = GH; }
         else {
             // (the same follow however often the screen redraws)

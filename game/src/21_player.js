@@ -83,8 +83,10 @@ function sarahPreview(px, frame) {
     return base;
 }
 
+/* Sarah's feet: a box round the spot she stands on, as wide as the doll the new look draws there and a couple of pixels
+   below it too, so she stops just short of a wall, a stair's side or the water instead of standing half in it */
 function blockedFoot(a, x, y) {
-    return a.solidPx(x - 4, y - 3) || a.solidPx(x + 3, y - 3) || a.solidPx(x - 4, y) || a.solidPx(x + 3, y);
+    return a.solidPx(x - 5, y - 4) || a.solidPx(x + 5, y - 4) || a.solidPx(x - 5, y + 2) || a.solidPx(x + 5, y + 2);
 }
 
 function movePlayer(p, dx, dy) {
