@@ -224,6 +224,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .muted { color: var(--ink-soft); font: 700 14px/1.4 var(--body); }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .photo { width: 100%; border-radius: 16px; image-rendering: pixelated; display: block; }
+.phototags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.phototags .pill { font-size: 13px; padding: 5px 11px; box-shadow: none; background: var(--paper-2); }
 
 /* ------------------------------------------------------------ title */
 #title {

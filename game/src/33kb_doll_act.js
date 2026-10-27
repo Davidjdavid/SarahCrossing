@@ -103,7 +103,7 @@ Object.assign(EnvDolls, {
         const m = hdMotion(e, walk), P = d.parts, sit = this.sitting(e), seed = e === G.player ? 1 : hdSeed(e.id || e.who || 0);
         const A = this.act(e, d);
         let pk = sit ? 'sit' : null;
-        if (!pk && e.tool) { const k = e.tool.kind, ph = e.tool.t < (k === 'axe' ? 10 : 12) ? 0 : 1; pk = k === 'axe' ? 'axe' + ph : 'dig' + ph; }
+        if (!pk && e.tool) { const k = e.tool.kind, ph = e.tool.t < (k === 'axe' ? 10 : 12) ? 0 : 1; pk = k === 'axe' ? 'axe' + ph : k === 'can' ? 'water' : 'dig' + ph; }
         if (!pk && e.pose && e.pose !== 'walk') pk = e.pose;
         if (e === G.player && G.held && !sit) pk = 'holdup';
         const Q = pk && this.POSES[pk];
@@ -148,6 +148,13 @@ Object.assign(EnvDolls, {
         if (A.cheer) Object.assign(W, { aLz: -2.6, aRz: 2.6, aLx: 0, aRx: 0, eL: -0.2, eR: -0.2 });
         // talking: a nod with the words, a hand that talks too
         if (A.talking && !walk && !Q) { W.hx += Math.sin(t / 3.2) * 0.05; W.aRx = -0.45 + Math.sin(t / 7) * 0.15; W.aRz = 0.4; W.eR = -0.9; }
+        // dancing on her own between the dance game's steps: bobbing on the beat, hips swaying, arms going (the dance-off's
+        // other dancer too)
+        if (!Q && !walk && typeof Dance !== 'undefined' && Dance.on && Dance.ready && Dance.info && (e === G.player || e === Dance.rival)) {
+            const ph = Music.songTime() / (Dance.info.beat || 0.5) * Math.PI, b = Math.abs(Math.sin(ph)), sw = Math.sin(ph / 2);
+            Object.assign(W, { by: -b * 0.025, kL: 0.12 + b * 0.3, kR: 0.12 + b * 0.3, lL: -b * 0.12, lR: -b * 0.12, bz: sw * 0.09, bx: 0.04, hz: -sw * 0.07, hx: -0.02 - b * 0.07, hy: sw * 0.15,
+                aLx: -0.55 + sw * 0.45, aRx: -0.55 - sw * 0.45, aLz: -0.35, aRz: 0.35, eL: -1.25 + b * 0.2, eR: -1.25 + b * 0.2 });
+        }
         if (Q) {
             const hop = Q.hop ? Math.abs(Math.sin(t / 6)) * 0.035 : 0;
             Object.assign(W, { aLx: Q.aF[0], aRx: Q.aF[1], aLz: -Q.aO[0], aRz: Q.aO[1], lL: Q.legs || 0, lR: Q.legs || 0, kL: Q.sit ? 1.45 : Q.bend ? 0.4 : 0.05, kR: Q.sit ? 1.45 : Q.bend ? 0.4 : 0.05,
@@ -168,7 +175,7 @@ Object.assign(EnvDolls, {
         const tool = Q && Q.rod ? 'rod' : e === G.player ? heldTool() : null;
         if (tool !== d.tool) { if (d.toolMesh) { d.toolMesh.parent.remove(d.toolMesh); d.toolMesh = null; } d.tool = tool; if (tool) d.toolMesh = this.toolModel2(d, tool); }
         // the face: the acting's, a pose's, Sarah running for joy
-        const QF = { holdup: 'joy', cheer: 'excited', happy: 'happy', left: 'joy', right: 'joy', hug: 'happy', fish: 'determined', shake: 'determined', axe0: 'determined', axe1: 'determined', dig0: 'determined', dig1: 'determined' };
+        const QF = { holdup: 'joy', cheer: 'excited', happy: 'happy', left: 'joy', right: 'joy', hug: 'happy', fish: 'determined', shake: 'determined', axe0: 'determined', axe1: 'determined', dig0: 'determined', dig1: 'determined', water: 'happy' };
         this.showFace(d, e, A.face || (pk && QF[pk]) || (run && e === G.player ? 'happy' : null));
     },
     /* a tool in a redone doll's hand: the shovel the style test made (props2.py), the others as before */
@@ -196,6 +203,7 @@ Object.assign(EnvDolls, {
             (d.parts.elR || d.parts.armR).add(g);
             return g;
         }
+        if (kind === 'can') return this.canModel(d, d.parts.elR || d.parts.armR, -0.1);
         const g = this.toolModel(d, kind);
         if (g && d.parts.elR) { g.parent.remove(g); g.position.set(0, -0.11, 0.01); d.parts.elR.add(g); g.scale.setScalar(0.85); }
         return g;

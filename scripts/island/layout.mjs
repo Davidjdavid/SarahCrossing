@@ -383,6 +383,17 @@ class Island {
     const inOrchard = (x, y) => x >= o.x - 1 && x <= o.x + o.w && y >= o.y - 1 && y <= o.y + o.h;
     // trees the plan puts exactly (a small composed scene), before the scattered ones
     for (const t of P.trees || []) { const k = this.i(t.x, t.y); if (this.land[k] && !this.occ[k]) { this.trees.push({ x: t.x, y: t.y, kind: t.kind }); this.occ[k] = 1; } }
+    // the island's greenery as it was approved (27 October), kept: every tree, palm, wild flower and gem spot where it
+    // grew, so a change to the town (a street moved, a building) takes out only what's now in its way instead of growing
+    // the woods again from the random numbers, which shift with any change to which tiles are free
+    if (P.greenery) {
+      const G0 = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, P.greenery), 'utf8'));
+      for (const t of G0.trees) { const k = this.i(t.x, t.y); if (free(k) && !nearRoad(t.x, t.y) && !lawn[k] && !inOrchard(t.x, t.y)) { this.trees.push(t); this.occ[k] = 1; } }
+      for (const q of G0.palms) { const k = this.i(q.x, q.y); if (this.ter[k] === 's' && !this.occ[k] && !nearRoad(q.x, q.y)) { this.palms.push(q); this.occ[k] = 1; } }
+      for (const f of G0.flowers) { const k = this.i(f.x, f.y); if (free(k) && !lawn[k]) { this.flowers.push(f); this.occ[k] = 3; } }
+      for (const [x, y] of G0.gemSpots) if (free(this.i(x, y))) this.gemSpots.push([x, y]);
+      return;
+    }
     // trees grow in groves with clearings between them, the way a real wood does: a slow noise across the island says
     // where. In the woods the groves are thick and the clearings small; on open ground only the strongest spots get a
     // little stand of trees, and the rest stays lawn; along cliff tops and the high coast the trees come in broken runs.
@@ -594,5 +605,5 @@ function dedupe(tiles) { const s = new Set(); return tiles.filter(([x, y]) => { 
 const PROP_W = { bench: 2, flowerbed: 2, board: 1, lamp: 1, mailbox: 1, sign_island: 1, sign_club: 1, rock: 1, driftwood: 1, bush: 1,
   windmill: 3, boulder: 2, well: 1, hay: 1, crate: 1, scarecrow: 1, sign_farm: 1, telescope: 1, statue_david: 3, plaque: 1, bonfire: 2, log: 2,
   tent: 3, picnic: 3, campfire: 1, trough: 2, sign_camp: 1, sign_bonfire: 1, sign_trail: 1, blanket: 3,
-  trashcan: 1, fountain: 2, drinkfountain: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1 };
-const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2 };
+  trashcan: 1, fountain: 2, fountain_grand: 4, drinkfountain: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1 };
+const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2, fountain_grand: 3 };

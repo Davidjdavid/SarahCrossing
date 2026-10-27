@@ -156,6 +156,9 @@ const Dance = {
         if (!this.on || !this.ready) return;
         const t = this.now();
         if (this.watch) for (const n of this.notes) if (!n.judged && t >= n.t) this.hit(n.lane, true);
+        // (between the steps Sarah keeps dancing: a little bounce on the beat; the dolls dance it with their whole body)
+        const p = G.player;
+        p.hop = p.pose ? 0 : Math.abs(Math.sin(t / (this.info.beat || 0.5) * Math.PI)) * 1.5;
         if (this.rival) this.rivalTick(t);
         for (const n of this.notes) {
             if (!n.judged && t - n.t > 0.16) {
@@ -263,6 +266,7 @@ const Dance = {
         $('#dancepads').hidden = true;
         $('#dancehud').hidden = true;
         if (this.rival) { this.rival.script = false; this.rival.pose = null; }
+        G.player.hop = 0;
         if (this.watch || this.quitting) {
             // just watching, or left early: no score, no tips, no penalty
             const left = this.quitting && !this.watch;

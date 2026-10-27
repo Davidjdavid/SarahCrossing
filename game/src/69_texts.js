@@ -16,7 +16,7 @@ const PLACE_NAMES = {
     restaurantfront: "outside Mac's", museumfront: 'outside the museum', builderfront: "outside Ginger's workshop", clubfront: 'outside Club Wasabi',
     salonfront: 'outside the salon', displaysfront: "outside Waffle's", statue: "by David's statue", boardwalk: 'on the Boardwalk', harbor: 'down by the harbor',
     bonfire: 'at the bonfire on the beach', campsite: 'at the campsite', oldtree: 'by the big old tree in the forest', village: 'in the west village',
-    eastside: 'on the east side', bench_statue: "on a bench by David's statue", bench_boardwalk: 'on a bench on the Boardwalk',
+    eastside: 'on the east side', bench_statue: 'on a bench in the corner of the square', bench_boardwalk: 'on a bench on the Boardwalk',
     bench_eastmeadow: 'on the bench in the east meadow',
 };
 /* spots that are really the same place (a bench in the plaza is still the plaza) */

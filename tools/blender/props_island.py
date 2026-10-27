@@ -86,6 +86,76 @@ def fountain():
     return [(mb, 'stone'), (water, 'water')]
 
 
+def fountain_grand():
+    """The square's fountain (David, 27 October: the fountain larger, more detailed and not walked through): a round
+    basin on a granite step, its rim a moulded cap of pale stone, four bronze fish on the rim spouting into it, a few
+    lily pads; in the middle a turned pedestal carrying a wide scalloped bowl and a small one above it, water spilling
+    from both in arcs and a jet from the pinecone on top. 3.5 tiles across, its middle at the origin."""
+    mb, br, water = MB(), MB(), MB()
+    pale, dark = stone('#cfc6b6'), stone('#a89f90')
+    # the step and the basin wall, its cap moulded, a darker band at its foot
+    lathe(mb, [(1.62, 0.0), (1.76, 0.0), (1.78, 0.06), (1.7, 0.09), (1.66, 0.09)], col_fn('#6a6e76', mottle=0.15), seg=56, cap_top=False)
+    lathe(mb, [(1.66, 0.09), (1.66, 0.16), (1.62, 0.2), (1.62, 0.42), (1.68, 0.46), (1.7, 0.52), (1.66, 0.56), (1.5, 0.56), (1.47, 0.52), (1.48, 0.46)], pale, seg=56, cap_top=False)
+    lathe(mb, [(1.48, 0.46), (1.48, 0.12), (0.0, 0.12)], dark, seg=56, cap_top=False)
+    # the pedestal, its lower bowl (scalloped: its rim rises and falls), the upper column and bowl, the pinecone
+    lathe(mb, [(0.0, 0.12), (0.42, 0.12), (0.4, 0.2), (0.3, 0.26), (0.24, 0.5), (0.28, 0.56), (0.22, 0.62), (0.2, 0.95)], pale, seg=32, cap_top=False)
+    m = len(mb.v)
+    lathe(mb, [(0.2, 0.95), (0.4, 0.98), (0.7, 1.06), (0.9, 1.16), (0.94, 1.22), (0.9, 1.25), (0.82, 1.2)], pale, seg=48, cap_top=False)
+    for i in range(m, len(mb.v)):
+        v = mb.v[i]
+        r = math.hypot(v.x, v.y)
+        if r > 0.6:
+            mb.v[i] = Vector((v.x, v.y, v.z + 0.035 * math.cos(math.atan2(v.y, v.x) * 8) * (r - 0.6) / 0.34))
+    lathe(mb, [(0.82, 1.2), (0.0, 1.12)], dark, seg=48, cap_top=False)
+    lathe(mb, [(0.16, 1.12), (0.13, 1.3), (0.17, 1.36), (0.11, 1.42), (0.1, 1.6)], pale, seg=24, cap_top=False)
+    lathe(mb, [(0.1, 1.6), (0.26, 1.63), (0.44, 1.7), (0.47, 1.75), (0.43, 1.77), (0.38, 1.73)], pale, seg=32, cap_top=False)
+    lathe(mb, [(0.38, 1.73), (0.0, 1.69)], dark, seg=32, cap_top=False)
+    lathe(br, [(0.0, 1.74), (0.07, 1.76), (0.09, 1.84), (0.07, 1.92), (0.03, 1.98), (0.0, 2.0)], col_fn('#8a6a3a', under=0.1), seg=16)
+    # the water: the basin's, each bowl's, sheets spilling from the bowls, a jet from the top
+    lathe(water, [(1.49, 0.42), (0.36, 0.42)], col_fn('#6cbce0'), seg=56, cap_top=False)
+    lathe(water, [(0.83, 1.19), (0.0, 1.19)], col_fn('#82caea'), seg=48, cap_top=False)
+    lathe(water, [(0.39, 1.74), (0.0, 1.74)], col_fn('#8ad0ec'), seg=32, cap_top=False)
+    for k in range(16):
+        a = (k + 0.5) / 16 * math.tau
+        d = Vector((math.cos(a), math.sin(a), 0))
+        pts = [d * (0.92 + 0.3 * t) + Vector((0, 0, 1.2 - 0.78 * t * t)) for t in (0, 0.2, 0.4, 0.6, 0.8, 1.0)]
+        tube(water, pts, 0.04, col_fn('#a8e0f4'), seg=6, r1=0.022)
+    for k in range(8):
+        a = k / 8 * math.tau
+        d = Vector((math.cos(a), math.sin(a), 0))
+        pts = [d * (0.46 + 0.16 * t) + Vector((0, 0, 1.75 - 0.5 * t * t)) for t in (0, 0.25, 0.5, 0.75, 1.0)]
+        tube(water, pts, 0.03, col_fn('#b0e4f6'), seg=6, r1=0.018)
+    tube(water, [(0, 0, 1.98), (0, 0, 2.18), (0.02, 0, 2.26)], 0.03, col_fn('#c8eefa'), seg=8, r1=0.012)
+    for k in range(6):
+        a = k / 6 * math.tau
+        d = Vector((math.cos(a), math.sin(a), 0))
+        tube(water, [Vector((0, 0, 2.24)), d * 0.12 + Vector((0, 0, 2.28)), d * 0.24 + Vector((0, 0, 2.12)), d * 0.3 + Vector((0, 0, 1.9))], 0.016, col_fn('#c8eefa'), seg=5, r1=0.008)
+    # four bronze fish on the rim, leaping, mouths toward the middle, each spouting an arc into the basin
+    bronze = col_fn('#6a8a6a', under=0.12, mottle=0.1)
+    for k in range(4):
+        a = math.pi / 4 + k * math.pi / 2
+        d = Vector((math.cos(a), math.sin(a), 0))
+        base = d * 1.58 + Vector((0, 0, 0.56))
+        body = [base, base - d * 0.08 + Vector((0, 0, 0.14)), base - d * 0.18 + Vector((0, 0, 0.22)), base - d * 0.3 + Vector((0, 0, 0.2))]
+        tube(br, body, 0.07, bronze, seg=10, r1=0.045)
+        side = Vector((-d.y, d.x, 0))
+        for sgn in (-1, 1):
+            tube(br, [base + Vector((0, 0, 0.02)), base + d * 0.08 + side * sgn * 0.07 + Vector((0, 0, -0.02))], 0.02, bronze, seg=5, r1=0.008)
+        ball(br, base - d * 0.3 + Vector((0, 0, 0.2)), 0.05, bronze, sub=2)
+        mouth = base - d * 0.36 + Vector((0, 0, 0.19))
+        tube(water, [mouth, mouth - d * 0.18 + Vector((0, 0, 0.06)), mouth - d * 0.36 + Vector((0, 0, -0.04)), mouth - d * 0.46 + Vector((0, 0, -0.2))], 0.022, col_fn('#b0e4f6'), seg=6, r1=0.012)
+    # lily pads on the basin's water
+    rng = random.Random(3)
+    for k in range(5):
+        a = rng.uniform(0, math.tau)
+        r = rng.uniform(0.6, 1.25)
+        c = (math.cos(a) * r, math.sin(a) * r, 0.425)
+        lathe(br, [(0.0, 0.0), (0.12, 0.0), (0.12, 0.012), (0.0, 0.016)], col_fn('#4a9a3a'), c=c, seg=14)
+        if k % 2 == 0:
+            ball(br, (c[0], c[1], 0.46), (0.04, 0.04, 0.03), shade('#f4b8d0'), sub=1)
+    return [(mb, 'stone'), (br, 'bronze'), (water, 'water')]
+
+
 def drinkfountain():
     """An old park drinking fountain (David, 27 October: the stone one was lost against the cobbles): a dark granite step,
     a fluted column painted green, a brass bowl and spout, a red button."""
@@ -924,7 +994,7 @@ def bigtree_planter():
 
 
 PROPS = {
-    'fountain': fountain, 'drinkfountain': drinkfountain, 'board': board, 'planter_box': planter_box, 'plaque': plaque, 'trashcan': trashcan, 'statue_david': statue,
+    'fountain': fountain, 'fountain_grand': fountain_grand, 'drinkfountain': drinkfountain, 'board': board, 'planter_box': planter_box, 'plaque': plaque, 'trashcan': trashcan, 'statue_david': statue,
     'signpost_trail': lambda: sign('trail'), 'signpost_farm': lambda: sign('farm'), 'signpost_camp': lambda: sign('camp'),
     'signpost_club': lambda: sign('club'), 'signpost_bonfire': lambda: sign('bonfire'), 'signboard': signboard,
     'windmill': windmill, 'well': well, 'scarecrow': scarecrow, 'hay': hay, 'crate': crate, 'wheelbarrow': wheelbarrow, 'trough': trough,

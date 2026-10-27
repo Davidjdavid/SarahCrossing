@@ -176,29 +176,32 @@ Status: [x] done, [~] in progress, [ ] not started.
   week is never all chairs, so Sarah can't buy everything at the start. Many more pieces too: every piece of furniture in
   four colors (the model's parts painted differently), named like "Large couch (pink)"
 - [ ] The achievements that unlock outfits, songs, recipes and the like much harder and spread out over a long time
-- [ ] Neighbors turn round to face Sarah when she talks to them
+- [x] Neighbors turn round to face Sarah when she talks to them
 - [ ] Lots of things they do when they're not busy, each its own animation: looking at the stars, eating a snack, sitting
   on the ground, on their phone, reading a book, painting, and more, so they feel alive
 - [ ] Neighbors stopping close together to chat, one talking and the other listening, now and then nodding while
   looking at whoever's talking
 - [ ] Songs and poems that rotate, so there's something new to check each day; many more songs; and a way to upload a
   song and have a dance made for it
-- [ ] Sarah dances on her own between the steps in the dance game (an idle dance when no button is pressed), so it looks
+- [x] Sarah dances on her own between the steps in the dance game (an idle dance when no button is pressed), so it looks
   like dancing
 
 ## Rooms and props in 3D, another look (David, 27 October: for later)
 - [ ] Rooms a bit taller, so windows, clocks and the like fit the walls better
-- [ ] Clocks show the real time
+- [x] Clocks show the real time (in the new look: the wall clock's hands turn with the island's time)
 - [ ] Go back through the island, the shops, the houses and every room and look again at each prop and decoration in 3D:
   they came over one to one from the 2D pictures, so not everything looks good in 3D (and some didn't look great to begin
   with); redo or replace what doesn't
-- [ ] Outdoor decorations placed better: the notice board more in front of the square's big tree, and a lot of the lamp
-  posts moved to sit along the paths
+- [x] Outdoor decorations placed better: the notice board in front of the square's big tree, and lamp posts along the
+  paths into the square, down the steps to the dock, along Market Lane and up the trails (a save step brings back to
+  Sarah's storage anything of hers that was in their way)
 - [ ] Big outdoor-only furniture installed around the island (what it is still to decide). Some spots could be held back
   from the grid (nothing can be placed there) until Sarah has given enough to the town, and then the town builds
   something there: a coffee shop, a set of swings, and the like
-- [ ] The fountain on the square bigger, more detailed, and solid (Sarah and the neighbors walk through it now)
-- [ ] The giant David statue taken off the main square
+- [x] The fountain on the square bigger, more detailed, and solid: a grand fountain modeled in Blender, a moulded basin
+  with two bowls, water sheets, a jet and four bronze fish, four tiles wide and three deep, that nobody walks through
+- [x] The giant David statue taken off the main square: a flower bed stands there now, and the statue, smaller, is on
+  the lawn along Market Lane (the neighbors still talk about it, so it stayed on the island; easy to take away entirely)
 
 ## David's notes from playing beta (27 October)
 - [x] Mac's: every seat a stool in the new look, so the round folks fit (and whoever's in a seat sits on it now)
@@ -206,16 +209,18 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] Order again on the laptop: anything Sarah has ever had, but quest things, keepsakes, prizes, tools and one-of-a-kind
   gifts
 - [x] Flowers bigger and more flower-like: each kind easy to tell apart and its color easy to see
-- [ ] A watering can: water flowers, and two watered flowers side by side may cross-breed a new one next to them
+- [x] A watering can: water flowers, and two watered flowers side by side may cross-breed a new one next to them
+  (Fortune sells it on the tool rack; it waters the tile in front and one each side; two of a kind, both watered, may grow
+  a new one beside them by morning: two of one color make that color, two different colors the third)
 - [x] Hats sit on the hair: right now nearly every hat clips through most hairstyles (the crown sinks in, hair pokes
   through the sun hat's brim)
-- [ ] A scrapbook for the camera: a photo says what's in it (a neighbor, an item, furniture, a building, a special or
+- [x] A scrapbook for the camera: a photo says what's in it (a neighbor, an item, furniture, a building, a special or
   strange event, the weather...) in a little tag, and the scrapbook keeps each with a short bio. It counts what Sarah
   has found but never shows a total, so it doesn't feel like something to complete
-- [ ] Shaking trees: Sarah shakes with her arms, the tree shakes a bit, then something falls. Now and then a neighbor
+- [x] Shaking trees: Sarah shakes with her arms, the tree shakes a bit, then something falls. Now and then a neighbor
   shakes a fruit tree and picks up what falls (fruit only, never anything important, and only once the island has
   several fruit trees)
-- [ ] Shake a tree and talk to a neighbor from where Sarah stands, without jumping in front of them first (the jump can
+- [x] Shake a tree and talk to a neighbor from where Sarah stands, without jumping in front of them first (the jump can
   land her somewhere she shouldn't be)
 - [x] The plane flying by is a full-size plane far off, not a toy (a jet with its contrails, high over the far edge); cloud
   shadows drifting over now and then
@@ -223,10 +228,12 @@ Status: [x] done, [~] in progress, [ ] not started.
   come and go out of sight, the lamps' light fades in and out, the far edge fades into the haze when zoomed out)
 - [x] A clearer sky: the haze shouldn't go all the way up
 - [x] Street lights light up more of the paths and the square at night
-- [ ] Walking: Sarah can walk a little way up cliff sides (only the camera moves), a little into rivers, and oddly over
+- [x] Walking: Sarah can walk a little way up cliff sides (only the camera moves), a little into rivers, and oddly over
   bridges and stairs. Everything on the grid, each tile walkable or not, would fix it
 - [x] Fishing: Sarah reels in what she caught and holds it up over her head; the fishing rod a 3D model, not a picture
-- [ ] Market lane: more space between its top and bottom rows of shops, and the shops a bit further apart
+- [x] Market lane: more space between its top and bottom rows of shops, and the shops a bit further apart (the alley
+  between the rows has benches, lamps and flower beds, a lawn runs along the lane, and two empty lots wait at its east
+  end; a shop Sarah had moved goes to its new spot)
 - [x] The arcade swapped round: Fruit Catch, Gopher Garden (the whack-a-mole one), Surf's Up and Noodle Slurp (the
   snake one) go to the back room, and the back room's Dumpling Drop, Sushi Swap and Fortune Falls come out front. One
   cabinet in the front room is out of order: that's the special game David will remake from memory later
@@ -247,6 +254,9 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] The cliff edges, the island's sides and some of the sea look blocky. Once everything is on the grid, draw the tiles
   rounded like a tile sheet: the cliff sides are tiles nobody walks on, their 3D pieces with a little ground and
   see-through edges
+- [x] The boat Sarah came on is tiny: it should be as big as a building (now a cabin sailboat five tiles long, tied up
+  stern-to at the end of the pier with its fenders against it: a cabin with portholes, the wheel, the mast and rigging,
+  the mainsail furled under a blue cover, rails and a life ring)
 
 ## The museum, in rooms (David, 26 October: for later)
 - [ ] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings

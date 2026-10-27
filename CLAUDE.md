@@ -154,6 +154,26 @@ docs/DEPLOY.md for the server.
   third of mornings each). The farm's fruit trees are the plan's `fruitTrees`. Both are placed by `layout.mjs`'s
   `additions()`, after everything random has grown, so the rest of the island stays exactly as it was; the save step
   `garden8` returns anything of Sarah's that stood on their tiles to her storage.
+- The island's trees, palms, wild flowers and gem spots are frozen in `scripts/island/greenery.json` (the plan's
+  `greenery`): `layout.mjs` keeps them as they are, leaving out only what a building, prop, road or lawn now covers, so
+  moving a street or a shop never regrows the woods. Delete the file (and the plan's line) to grow them again from the seed.
+  The square (27 October): the grand fountain (`fountain_grand`, props_island.py, 4x3 and solid: `PROP_SIZE`/`PROP_ROWS`),
+  the notice board in front of the big tree, a flower bed where David's statue stood (the statue, smaller, is on the lawn
+  along Market Lane), lamps along the paths; the shops on the alley and Market Lane further apart, with benches, lamps and
+  flower beds in the alley and two empty lots at its east end. Save steps `square8` and `lane8` (a shop Sarah had moved
+  goes to its new spot) return whatever of hers was in the way.
+- The watering can (`can`, a tool on Fortune's rack, 2a_flowers.js): it waters the tile in front of Sarah and one each side
+  (`waterFront`, `waterTiles`; `pl.wet` is the day a planted flower was watered, darker soil in 2D and 3D). Each morning
+  `flowerBreed` (in `dailyCheck`) may grow a new flower beside two watered ones of a kind (two of a color make it again,
+  two colors the third). In the new look the doll holds the room's can (`furn_watering_can`, `EnvDolls.canModel`) and
+  tips it in the `water` pose. The boat Sarah came on is `boat_home` (small_things.py), as big as a building, at the pier.
+- The camera's scrapbook (55a_scrapbook.js, David's note of 27 October): a photo's tags say what's in it (`Scrapbook.seen`:
+  neighbors, buildings and landmarks, wildlife and what's at sea or in the sky, things lying about or furniture indoors,
+  the weather and time of day, the new look's sights, a holiday; plus the filter), kept with the photo (`Photos.add(url,
+  tags)`, the server keeps `tags`) and shown under it in the album. `S.scrap` keeps a page per thing (`{ n, first }`), with
+  a short bio (`SCRAP_BIO`); the scrapbook counts each part but never says out of how many.
+- Clocks keep the time in the new look: a furniture piece's parts `*_hour` and `*_minute` (furn_kit's `P.hour`,
+  `P.minute`, drawn pointing at 12) are turned by `EnvRoom.animate` to `Clock.hourF()`.
 - Flowers are one plant per kind (vegetation.py's `flower_<kind>`), the petals their own part painted in the flower's
   color (`EnvItems.PETALS`, `petals(id)`): wild ones (`EnvBuild.flower`, instanced per color through
   `EnvModels.instances`' `tint`), planted ones and the plots' (`EnvItems`), a picked one lying on its side.

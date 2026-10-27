@@ -1,7 +1,7 @@
 // The islands (save files) kept on the server, one folder per island:
 //
 //   <dir>/islands/<id>/island.json    { id, rev, createdAt, updatedAt, device, summary, state }
-//   <dir>/islands/<id>/photos.json    { photos: [{ url, t }] }   the phone camera's album
+//   <dir>/islands/<id>/photos.json    { photos: [{ url, t, tags? }] }   the phone camera's album
 //   <dir>/islands/<id>/backups/       earlier copies of island.json (see "backups" below)
 //   <dir>/islands/<id>/people/<who>.json          a visitor's own things on this island
 //                                                 (pocket, money, friends...): { who, rev, updatedAt, device, state }
@@ -332,12 +332,16 @@ export class Islands {
       if (!p || typeof p.url !== 'string' || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p.url) || !finite(p.t)) {
         throw new IslandError(400, 'A photo must be { url: "data:image/...", t: <time> }');
       }
+      // (what's in it: a few short tags, from the camera's scrapbook)
+      if (p.tags !== undefined && (!Array.isArray(p.tags) || p.tags.length > 16 || p.tags.some((t) => typeof t !== 'string' || t.length > 40))) {
+        throw new IslandError(400, "A photo's tags must be a list of at most 16 short words");
+      }
     }
     const file = this.photosFile(id, who);
     return this.queued(id, async () => {
       await this.read(id);
       await fsp.mkdir(path.dirname(file), { recursive: true });
-      await writeAtomic(file, JSON.stringify({ photos: photos.map((p) => ({ url: p.url, t: p.t })) }));
+      await writeAtomic(file, JSON.stringify({ photos: photos.map((p) => (p.tags && p.tags.length ? { url: p.url, t: p.t, tags: p.tags } : { url: p.url, t: p.t })) }));
     });
   }
 

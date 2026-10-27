@@ -325,6 +325,8 @@ function pressA() {
     const p = G.player;
     if (!p || G.busy || UI.modal) return;
     const e = frontTarget(p);
+    // holding the watering can: water what's in front (planted flowers drink it up; a wild one isn't picked)
+    if (heldTool() === 'can' && G.area.id === 'island' && (e ? e.gardenFlower || e.wildFlower : !G.area.waterAt(...probePoint(p, 14).map(v => Math.floor(v / TILE))))) { waterFront(); return; }
     if (e) { tryInteract(e); return; }
     // water in front: fish
     const [px, py] = probePoint(p, 14);

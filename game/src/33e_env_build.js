@@ -10,8 +10,8 @@ const EnvBuild = {
     /* the island's other props, made in Blender (tools/blender/props_island.py): kind -> [model, its size against the
        prop's footprint, how far back from the prop's foot its middle stands (tiles)] */
     PROP_MODELS: {
-        fountain: ['fountain', 0.8, 0.55], drinkfountain: ['drinkfountain', 1, 0.45], board: ['board', 1, 0.4], plaque: ['plaque', 1, 0.45],
-        trashcan: ['trashcan', 1, 0.45], statue_david: ['statue_david', 1.35, 1.0], sign_trail: ['signpost_trail', 1, 0.45], sign_farm: ['signpost_farm', 1, 0.45],
+        fountain: ['fountain', 0.8, 0.55], fountain_grand: ['fountain_grand', 1, 1.5], drinkfountain: ['drinkfountain', 1, 0.45], board: ['board', 1, 0.4], plaque: ['plaque', 1, 0.45],
+        trashcan: ['trashcan', 1, 0.45], statue_david: ['statue_david', 0.85, 1.0], sign_trail: ['signpost_trail', 1, 0.45], sign_farm: ['signpost_farm', 1, 0.45],
         sign_camp: ['signpost_camp', 1, 0.45], sign_bonfire: ['signpost_bonfire', 1, 0.45], sign_club: ['signpost_club', 1, 0.45], sign_island: ['signboard', 1, 0.45],
         windmill: ['windmill', 1, 1.2], well: ['well', 1, 0.5], scarecrow: ['scarecrow', 1, 0.45], hay: ['hay', 1, 0.45], crate: ['crate', 1, 0.45],
         wheelbarrow: ['wheelbarrow', 1, 0.5], trough: ['trough', 1.3, 0.45], birdhouse: ['birdhouse', 1, 0.45], flamingo: ['flamingo', 1, 0.45],

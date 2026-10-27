@@ -536,7 +536,7 @@ async function buyNow(id, price, sp) {
         : rpick(['Thank you! Enjoy!', 'Great choice!', "Pleasure doing business! May your cookies always crack evenly."]));
     return true;
 }
-const TOOL_STOCK = ['axe', 'shovel', 'sapling', 'rod'];
+const TOOL_STOCK = ['axe', 'shovel', 'can', 'sapling', 'rod'];
 async function buyTools() {
     const f = NPCs.get('fortune');
     const sp = f && !f.sleeping && f.area === 'shop' ? 'fortune' : null;

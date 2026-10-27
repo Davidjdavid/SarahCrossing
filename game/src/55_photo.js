@@ -44,6 +44,7 @@ const Photo = {
         mk(this.frame ? 'Frame: on' : 'Frame: off', 'alt', () => { this.frame = this.frame ? 0 : 1; this.showFrame(); this.bar(); });
         mk('Take photo', 'green', () => this.snap());
         mk('Album', 'alt', () => this.album());
+        mk('Scrapbook', 'alt', () => Scrapbook.open());
         mk('Done', '', () => this.stop());
         this.showFrame();
     },
@@ -71,6 +72,9 @@ const Photo = {
         HUD.show(true);
     },
     snap() {
+        // what's in it, before anything changes (the flash, the toast): its tags, and the scrapbook's pages
+        const seen = Scrapbook.seen(), tags = seen.map(t => t.label);
+        if (FILTERS[this.filter][0] !== 'none') tags.push(FILTERS[this.filter][1]);
         const src = $('#game');
         const k = 3;
         const c = document.createElement('canvas');
@@ -94,14 +98,15 @@ const Photo = {
         const tg = t.getContext('2d');
         tg.imageSmoothingEnabled = false;
         tg.drawImage(c, 0, 0, t.width, t.height);
-        const ok = Photos.add(t.toDataURL('image/jpeg', 0.85));
+        const ok = Photos.add(t.toDataURL('image/jpeg', 0.85), tags.slice(0, 16));
+        const fresh = Online.visitor() ? [] : Scrapbook.note(seen);
         this.last = url;
         const fl = el('div');
         fl.style.cssText = 'position:absolute;inset:0;background:#fff;opacity:0.85;transition:opacity 0.4s;pointer-events:none';
         $('#ui').appendChild(fl);
         requestAnimationFrame(() => { fl.style.opacity = '0'; setTimeout(() => fl.remove(), 450); });
         Sfx.play('pick');
-        UI.toast(ok ? 'Saved to your album' : 'Photo taken (the album is full or storage is blocked)');
+        UI.toast((ok ? 'Saved to your album' : 'Photo taken (the album is full or storage is blocked)') + (fresh.length ? `. New in the scrapbook: ${fresh.slice(0, 3).map(t => t.label).join(', ')}${fresh.length > 3 ? '...' : ''}` : ''));
         S.stats.photos = (S.stats.photos || 0) + 1;
         Caps.downloads().then(d => { if (d) this.offerSave(url); });
     },
@@ -133,7 +138,8 @@ const Photo = {
     },
     album() {
         const list = Photos.list();
-        const P = UI.open({ title: 'Album', onClose: () => { } });
+        const P = UI.open({ title: 'Album', onClose: () => { }, foot: true });
+        P.foot.appendChild(btn('Scrapbook', 'alt', () => Scrapbook.open(() => this.album())));
         if (!list.length) { P.body.appendChild(el('p', 'muted', 'No photos yet. Tap Take photo!')); return; }
         const grid = el('div');
         grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px';
@@ -154,8 +160,14 @@ const Photo = {
         if (!ph) return;
         const P = UI.open({ title: new Date(ph.t).toLocaleDateString(), back: () => this.album(), foot: true });
         const im = new Image();
-        im.src = ph.url; im.className = 'photo'; im.alt = 'Photo';
+        im.src = ph.url; im.className = 'photo'; im.alt = ph.tags && ph.tags.length ? 'Photo: ' + ph.tags.join(', ') : 'Photo';
         P.body.appendChild(im);
+        // (what's in it, as little tags)
+        if (ph.tags && ph.tags.length) {
+            const tg = el('div', 'phototags');
+            for (const t of ph.tags) tg.appendChild(el('span', 'pill', t));
+            P.body.appendChild(tg);
+        }
         Caps.downloads().then(d => {
             if (d) P.foot.appendChild(btn('Save to device', '', async () => {
                 try { await d.save({ filename: `sarah-crossing-${ph.t}.jpg`, data: dataUrlToBlob(ph.url) }); UI.toast('Photo saved'); } catch (e) { /* declined */ }

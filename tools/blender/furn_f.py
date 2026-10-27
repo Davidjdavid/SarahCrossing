@@ -89,8 +89,9 @@ def clock_wall(P):
         # (the quarters a longer mark across the rim's line, the hours a dot)
         dx, dz = (0.03, 0.012) if k in (0, 6) else (0.012, 0.03) if k in (3, 9) else (0.012, 0.012)
         rbox(P.main, x - dx, -0.066, z - dz, x + dx, -0.055, z + dz, shade('#3a2a24'), r=0.004, mid=0)
-    rbox(P.main, -0.015, -0.075, -0.01, 0.015, -0.062, 0.27, shade('#2a2220'), r=0.006, mid=0)
-    rbox(P.main, -0.01, -0.082, -0.015, 0.18, -0.07, 0.015, shade('#2a2220'), r=0.006, mid=0)
+    # (the hands, each pointing at 12: the game turns them to the time of day)
+    rbox(P.minute, -0.015, -0.075, -0.04, 0.015, -0.062, 0.27, shade('#2a2220'), r=0.006, mid=0)
+    rbox(P.hour, -0.016, -0.082, -0.03, 0.016, -0.07, 0.18, shade('#2a2220'), r=0.006, mid=0)
     ball(P.gloss, (0, -0.085, 0), (0.025, 0.012, 0.025), shade('#c8a048'), sub=1)
 
 

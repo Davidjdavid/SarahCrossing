@@ -15,6 +15,8 @@
 
 export const PLAN = {
   w: 224, h: 156, seed: 11,
+  // the trees, palms, wild flowers and gem spots as they grew on the approved island, kept from here on (layout.mjs)
+  greenery: 'greenery.json',
   coast: [[25,27],[43,14],[69,11],[101,10],[132,8],[164,7],[190,7],[208,13],[218,31],[216,56],[220,78],[215,100],[217,116],[208,127],[193,129],[177,126],[164,123],[150,125],[134,130],[119,131],[103,130],[85,129],[67,127],[49,125],[34,121],[20,113],[12,98],[12,86],[18,81],[27,79],[30,75],[26,71],[17,69],[12,64],[10,56],[11,46],[15,40]],
   // each level is everything north of its edge (a row per column, between the listed points); steep ones keep their
   // straight sides (the farm's point above the cove)
@@ -34,7 +36,8 @@ export const PLAN = {
   ],
   ponds: [{ x: 173, y: 27.5, rx: 3, ry: 2 }, { x: 98.5, y: 56, rx: 4.5, ry: 2.9 }, { x: 83, y: 45.5, rx: 1.6, ry: 1.1 }, { x: 174, y: 67.5, rx: 2.8, ry: 1.8 }],
   plaza: { x0: 93, y0: 89, x1: 139, y1: 113 },
-  streets: [{ pts: [[139,104.5],[152,104.5],[165,104],[182,104]], w: 3 }, { pts: [[139,97],[160,97],[182,97]], w: 2 }, { pts: [[117,113],[117,125]], w: 4 }],
+  // (Market Lane two tiles further south than at first, David's call on 27 October: more room between the two rows)
+  streets: [{ pts: [[139,106.5],[152,106.5],[165,106],[182,106]], w: 3 }, { pts: [[139,97],[160,97],[182,97]], w: 2 }, { pts: [[117,113],[117,125]], w: 4 }],
   pier: { x: 116, y0: 124, y1: 146 },
   // paths (p), hiking trails (d)
   paths: [
@@ -88,7 +91,7 @@ export const PLAN = {
   // crops are copied from the first island's fields (x, y there)
   fields: [{ x: 25, y: 33, crop: 'cabbage' }, { x: 38, y: 38, crop: 'wheat' }, { x: 63, y: 35, crop: 'pumpkin' }],
   goatpen: { x: 24, y: 45, w: 8, h: 6 },
-  lawns: [{ x: 73, y: 89, w: 10, h: 6 }, { x: 144, y: 108, w: 20, h: 4 }, { x: 204, y: 80, w: 10, h: 10 }],
+  lawns: [{ x: 73, y: 89, w: 10, h: 6 }, { x: 144, y: 110, w: 20, h: 3 }, { x: 204, y: 80, w: 10, h: 10 }],
   forests: [
     { poly: [[78,40],[100,36],[150,36],[158,46],[160,58],[150,66],[132,76],[112,76],[94,72],[84,66],[76,54]], p: 0.58, kind: 'mixed' },
     { poly: [[103,6],[150,6],[150,32],[103,32]], p: 0.42, kind: 'mixed' },
@@ -112,16 +115,17 @@ export const PLAN = {
     { id: 'townhall', x: 113, y: 85, w: 7, h: 4, door: 3, sprite: 'townhall', front: 'townhallfront' },
     { id: 'bank', x: 123, y: 86, w: 5, h: 3, door: 2, sprite: 'bank', front: 'bankfront' },
     { id: 'museum', x: 131, y: 85, w: 7, h: 4, door: 3, sprite: 'museum', front: 'museumfront' },
-    // the alley: the first row's doors open on it, the second row's backs face it across a strip of planters
+    // the alley: the first row's doors open on it, the second row's backs face it across a strip of planters (the shops
+    // three tiles apart, the rows six: David, 27 October)
     { id: 'boutique', x: 143, y: 93, w: 4, h: 3, door: 2, sprite: 'boutique', front: 'boutiquefront' },
-    { id: 'salon', x: 149, y: 93, w: 4, h: 3, door: 2, sprite: 'salon', front: 'salonfront' },
-    { id: 'studio', x: 155, y: 93, w: 5, h: 3, door: 2, sprite: 'studio', front: 'studiofront' },
-    { id: 'displays', x: 162, y: 93, w: 5, h: 3, door: 2, sprite: 'displays', front: 'displaysfront' },
+    { id: 'salon', x: 150, y: 93, w: 4, h: 3, door: 2, sprite: 'salon', front: 'salonfront' },
+    { id: 'studio', x: 157, y: 93, w: 5, h: 3, door: 2, sprite: 'studio', front: 'studiofront' },
+    { id: 'displays', x: 165, y: 93, w: 5, h: 3, door: 2, sprite: 'displays', front: 'displaysfront' },
     // Market Lane
-    { id: 'restaurant', x: 143, y: 100, w: 5, h: 3, door: 2, sprite: 'restaurant', front: 'restaurantfront' },
-    { id: 'arcade', x: 150, y: 100, w: 5, h: 3, door: 2, sprite: 'arcade', front: 'arcadefront' },
-    { id: 'club', x: 157, y: 100, w: 6, h: 3, door: 3, sprite: 'club', front: 'clubfront' },
-    { id: 'builder', x: 165, y: 100, w: 5, h: 3, door: 2, sprite: 'builder', front: 'builderfront' },
+    { id: 'restaurant', x: 143, y: 102, w: 5, h: 3, door: 2, sprite: 'restaurant', front: 'restaurantfront' },
+    { id: 'arcade', x: 151, y: 102, w: 5, h: 3, door: 2, sprite: 'arcade', front: 'arcadefront' },
+    { id: 'club', x: 159, y: 102, w: 6, h: 3, door: 3, sprite: 'club', front: 'clubfront' },
+    { id: 'builder', x: 168, y: 102, w: 5, h: 3, door: 2, sprite: 'builder', front: 'builderfront' },
     { id: 'lighthouse', x: 208, y: 108, w: 3, h: 3, door: 1, sprite: 'lighthouse', front: 'lighthousefront' },
     { id: 'barn', x: 52, y: 23, w: 5, h: 3, door: 2, sprite: 'barn' },
     { id: 'home', x: 57, y: 81, w: 4, h: 3, door: 2, sprite: 'house_sarah', link: [[59.5,90.7]] },
@@ -141,19 +145,28 @@ export const PLAN = {
   ],
   // room kept for what's coming: the café and a shop at the ends of the two rows, the sailor's and the balloonist's houses,
   // a bait shop
-  lots: { cafe: { x: 169, y: 93, w: 4, h: 3 }, market: { x: 172, y: 100, w: 4, h: 3 }, sailor: { x: 124, y: 123, w: 3, h: 3 }, balloonist: { x: 205, y: 94, w: 3, h: 3 }, bait: { x: 106, y: 121, w: 4, h: 3 } },
+  lots: { cafe: { x: 173, y: 93, w: 4, h: 3 }, market: { x: 176, y: 102, w: 4, h: 3 }, sailor: { x: 124, y: 123, w: 3, h: 3 }, balloonist: { x: 205, y: 94, w: 3, h: 3 }, bait: { x: 106, y: 121, w: 4, h: 3 } },
   props: [
     // the square
-    { kind: 'fountain', x: 116, y: 101 }, { kind: 'flowerbed', x: 127, y: 95 }, { kind: 'flowerbed', x: 104, y: 106 }, { kind: 'flowerbed', x: 128, y: 106 },
+    // (the grand fountain in the middle, solid, 4 by 3; the notice board in front of the big tree; where David's statue
+    // stood, a flower bed: David, 27 October)
+    { kind: 'fountain_grand', x: 115, y: 100 }, { kind: 'flowerbed', x: 127, y: 95 }, { kind: 'flowerbed', x: 104, y: 106 }, { kind: 'flowerbed', x: 128, y: 106 },
     { kind: 'bench', x: 111, y: 108 }, { kind: 'bench', x: 121, y: 108 }, { kind: 'bench', x: 95, y: 110 }, { kind: 'bench', x: 129, y: 91 }, { kind: 'bench', x: 100, y: 96 },
-    { kind: 'statue_david', x: 99, y: 107 }, { kind: 'plaque', x: 100, y: 109 }, { kind: 'board', x: 108, y: 92 },
+    { kind: 'flowerbed', x: 99, y: 107 }, { kind: 'board', x: 106, y: 100 },
     { kind: 'drinkfountain', x: 112, y: 92 }, { kind: 'trashcan', x: 102, y: 112 }, { kind: 'trashcan', x: 133, y: 112 },
     { kind: 'lamp', x: 93, y: 89 }, { kind: 'lamp', x: 141, y: 89 }, { kind: 'lamp', x: 93, y: 113 }, { kind: 'lamp', x: 141, y: 113 }, { kind: 'lamp', x: 111, y: 89 }, { kind: 'lamp', x: 121, y: 89 },
+    // (more lamps, so the square and the paths out of it are bright at night while the woods and hills stay dark: round
+    // the fountain, along the square's sides, down the pier street, out along the main paths)
+    { kind: 'lamp', x: 113, y: 98 }, { kind: 'lamp', x: 120, y: 104 }, { kind: 'lamp', x: 93, y: 101 }, { kind: 'lamp', x: 139, y: 101 }, { kind: 'lamp', x: 114, y: 112 },
+    { kind: 'lamp', x: 119, y: 112 }, { kind: 'lamp', x: 114, y: 116 }, { kind: 'lamp', x: 119, y: 116 }, { kind: 'lamp', x: 89, y: 109 }, { kind: 'lamp', x: 108, y: 84 },
+    { kind: 'lamp', x: 111, y: 78 }, { kind: 'lamp', x: 150, y: 86 }, { kind: 'lamp', x: 163, y: 80 },
     { kind: 'sign_island', x: 120, y: 123 }, { kind: 'tackle', x: 118, y: 129 }, { kind: 'viewer', x: 114, y: 123 },
     // Market Lane
-    { kind: 'sign_club', x: 163, y: 102 }, { kind: 'bench', x: 166, y: 108 }, { kind: 'lamp', x: 148, y: 106 }, { kind: 'lamp', x: 164, y: 106 }, { kind: 'lamp', x: 177, y: 106 },
+    // (David's statue, smaller, moved off the square to the Boardwalk's lawn: David, 27 October)
+    { kind: 'statue_david', x: 150, y: 110 }, { kind: 'plaque', x: 151, y: 112 },
+    { kind: 'sign_club', x: 165, y: 104 }, { kind: 'bench', x: 166, y: 110 }, { kind: 'lamp', x: 148, y: 108 }, { kind: 'lamp', x: 157, y: 108 }, { kind: 'lamp', x: 166, y: 108 }, { kind: 'lamp', x: 176, y: 108 },
     // the alley
-    { kind: 'flowerbed', x: 146, y: 98 }, { kind: 'bench', x: 152, y: 98 }, { kind: 'flowerbed', x: 159, y: 98 }, { kind: 'lamp', x: 156, y: 98 }, { kind: 'lamp', x: 168, y: 98 },
+    { kind: 'flowerbed', x: 145, y: 100 }, { kind: 'bench', x: 152, y: 100 }, { kind: 'lamp', x: 156, y: 100 }, { kind: 'flowerbed', x: 160, y: 100 }, { kind: 'lamp', x: 167, y: 100 }, { kind: 'flowerbed', x: 172, y: 100 },
     { kind: 'flowerbed', x: 133, y: 99 },
     // the neighborhood
     { kind: 'mailbox', x: 61, y: 84 }, { kind: 'bench', x: 49, y: 91 }, { kind: 'lamp', x: 56, y: 100 }, { kind: 'lamp', x: 70, y: 99 }, { kind: 'lamp', x: 86, y: 105 },
@@ -182,9 +195,9 @@ export const PLAN = {
   rope: { y: 105, x: 110 },
   // where the neighbors go (anything not given here comes from a building's front or a prop above)
   spots: {
-    plaza: [117, 97, 4], plaza_w: [104, 98, 1], plaza_e: [130, 104, 2], bench_w: [112, 109, 1], bench_e: [122, 109, 1], board: [108, 93, 1],
-    garden: [64, 85, 2], village: [50, 98, 3], statue: [100, 111, 2], bench_statue: [96, 111, 1], bench_museum: [130, 92, 1],
-    boardwalk: [156, 109, 3], bench_boardwalk: [167, 109, 1], alley: [161, 97, 2],
+    plaza: [117, 97, 4], plaza_w: [104, 98, 1], plaza_e: [130, 104, 2], bench_w: [112, 109, 1], bench_e: [122, 109, 1], board: [106, 101, 1],
+    garden: [64, 85, 2], village: [50, 98, 3], statue: [154, 113, 2], bench_statue: [96, 111, 1], bench_museum: [130, 92, 1],
+    boardwalk: [156, 111, 3], bench_boardwalk: [167, 111, 1], alley: [161, 98, 2],
     beach_w: [44, 121, 3], beach: [90, 124, 4], bench_beach: [87, 122, 1], beach_e: [142, 125, 3], beach_far: [196, 122, 3], harbor: [128, 122, 3],
     pier: [117, 126, 1], pier_end: [117, 145, 0], bonfire: [65, 125, 2],
     pond: [99, 65, 2], bench_pond: [102, 65, 1], forest: [109, 62, 3], oldtree: [120, 60, 2], meadow: [141, 44, 3], bench_meadow: [141, 49, 1],

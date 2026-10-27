@@ -149,6 +149,12 @@ test('photos are kept with the island and checked', async () => {
   assert.deepEqual(await islands.photos(rec.id), photos);
   await assert.rejects(() => islands.setPhotos(rec.id, [{ url: 'javascript:alert(1)', t: 1 }]), (err) => err.status === 400);
   await assert.rejects(() => islands.setPhotos(rec.id, 'nope'), (err) => err.status === 400);
+  // what's in a photo, as tags, is kept with it; anything else isn't
+  const tagged = [{ url: 'data:image/jpeg;base64,/9j/AAAA', t: 2, tags: ['Maki', 'The fountain', 'Sunny'] }];
+  await islands.setPhotos(rec.id, tagged);
+  assert.deepEqual(await islands.photos(rec.id), tagged);
+  await assert.rejects(() => islands.setPhotos(rec.id, [{ url: 'data:image/jpeg;base64,/9j/AAAA', t: 2, tags: ['x'.repeat(41)] }]), (err) => err.status === 400);
+  await assert.rejects(() => islands.setPhotos(rec.id, [{ url: 'data:image/jpeg;base64,/9j/AAAA', t: 2, tags: 'Maki' }]), (err) => err.status === 400);
 });
 
 test('saves to one island happen one at a time', async () => {

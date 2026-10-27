@@ -35,6 +35,12 @@ function addFlowerPlant(a, pl) {
     e.sy = e.y - 8;
     e.hit = { x: pl.x * TILE, y: pl.y * TILE - 6, w: TILE, h: TILE + 6 };
     e.draw = ctx => {
+        // (watered today: the soil round it darker, and a glint now and then)
+        if (watered(pl)) {
+            ctx.fillStyle = 'rgba(52,34,20,0.32)';
+            ctx.beginPath(); ctx.ellipse(e.x, e.y - 1, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
+            if ((G.t + pl.x * 13) % 80 < 10) { ctx.fillStyle = '#e8f6ff'; ctx.fillRect(e.x + 3, e.y - 9 - ((G.t + pl.x * 13) % 80 >> 2), 1, 1); }
+        }
         if (!flowerBloomed(pl)) { spr(ctx, 'sprout', e.x, e.y); return; }
         const icon = ITEMS[id].icon;
         const picked = pl.pickDay === Clock.dayNum();
@@ -48,6 +54,7 @@ function addFlowerPlant(a, pl) {
 async function flowerPlantMenu(e) {
     const pl = e.pl, day = Clock.dayNum(), id = `flower_${pl.kind}_${pl.ci}`, F = flowerState();
     const name = itemName(id).toLowerCase();
+    if (heldTool() === 'can') { await waterTiles([[pl.x, pl.y]], e.x, e.y); return; }
     if (heldTool() === 'shovel') {
         const k = await UI.ask(null, `Dig up the ${name}s? They'll go back in Sarah's pocket as seeds.`, ['Dig them up', 'Leave them']);
         if (k !== 0) return;
@@ -95,6 +102,69 @@ async function plantFlowersInHole(e, seedIds) {
     S.stats.planted = (S.stats.planted || 0) + 1;
     Save.touch();
     UI.toast(`Planted ${itemName(sid).toLowerCase()}. They'll bloom tomorrow.`, ITEMS[sid].icon);
+}
+/* ---------------------------------------------------------------- the watering can */
+/* Sarah waters the flowers she planted (the tile in front of her and the one each side of it: a sweep of the can). Two of
+   a kind side by side, both watered, may grow a new one beside them by the next morning (flowerBreed): two of one color
+   make that color again, two different colors make the third, so Sarah can grow the colors she wants. Nothing else
+   needs watering (this island doesn't do chores); wild flowers just get a drink. */
+ITEMS.can = { name: 'Watering can', type: 'tool', price: 600, icon: 'f_watering_can' };
+const BREED_CHANCE = 0.35, BREED_MAX = 8;
+function watered(pl) { return pl.wet === Clock.dayNum(); }
+function waterFront() {
+    const p = G.player, [px, py] = probePoint(p, 12), tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
+    const [sx, sy] = p.dir === 'up' || p.dir === 'down' ? [1, 0] : [0, 1];
+    return waterTiles([[tx, ty], [tx - sx, ty - sy], [tx + sx, ty + sy]], px, py + 5);
+}
+async function waterTiles(tiles, fx, fy) {
+    const p = G.player, day = Clock.dayNum();
+    if (G.busy || visitorStop('water')) return;
+    G.busy++;
+    try {
+        const dx = fx - p.x, dy = fy - p.y;
+        if (Math.abs(dx) + Math.abs(dy) > 4) p.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+        p.tool = { kind: 'can', t: 0 };
+        for (let i = 0; i < 34; i++) {
+            p.tool.t = i; p.pose = 'water'; p.poseT = 0;
+            if (i === 8) Sfx.play('pour');
+            if (i >= 8 && i < 30 && i % 2 === 0) waterFx(fx, fy);
+            await waitFrames(1);
+        }
+    } finally { p.tool = null; p.pose = null; G.busy--; }
+    let n = 0;
+    for (const pl of flowerState().planted) if (pl.wet !== day && tiles.some(([x, y]) => x === pl.x && y === pl.y)) { pl.wet = day; n++; }
+    if (n) { S.stats.watered = (S.stats.watered || 0) + n; Save.touch(); }
+}
+/* a few drops falling from the can's spout onto the ground in front */
+function waterFx(x, y) {
+    if (typeof EnvPour !== 'undefined' && EnvPour.on()) return;          // (the new look pours real drops)
+    for (let i = 0; i < 3; i++) G.fx.push({ x: x + rint(-5, 5), y: y - 16 + rint(-2, 2), vx: (R() - 0.5) * 0.3, vy: 0.6 + R() * 0.5, t: 0, life: 18, c: rpick(['#bfe6ff', '#8fd0f8', '#e8f6ff']),
+        update() { this.x += this.vx; this.y += this.vy; this.vy += 0.08; },
+        draw(ctx) { ctx.fillStyle = this.c; ctx.fillRect(Math.round(this.x), Math.round(this.y), 1, 2); } });
+}
+/* each morning: watered pairs of a kind (yesterday, both bloomed) may grow a new flower on a free bit of grass beside them */
+function flowerBreed() {
+    const a = G.areas && G.areas.island, F = S.flowers, day = Clock.dayNum();
+    if (!a || !F || !F.planted.length || Online.visitor()) return;
+    const r = mulberry(hash32(S.seed + ':bloom:' + day)), wet = F.planted.filter(pl => pl.wet === day - 1 && day - pl.day >= 2);
+    const at = new Map(F.planted.map(pl => [pl.x + ',' + pl.y, pl])), born = [];
+    const free = (x, y) => !at.has(x + ',' + y) && groundChar(x, y) === 'g' && !pathAt(x, y) && !a.waterAt(x, y) && !a.blockedAt(x, y)
+        && !a.ents.some(o => (o.tx === x && o.ty === y) || (o.kind === 'item' && Math.floor(o.x / TILE) === x && Math.floor((o.y - 2) / TILE) === y));
+    for (let i = 0; i < wet.length && born.length < BREED_MAX; i++) for (let j = i + 1; j < wet.length && born.length < BREED_MAX; j++) {
+        const A = wet[i], B = wet[j];
+        if (A.kind !== B.kind || Math.max(Math.abs(A.x - B.x), Math.abs(A.y - B.y)) !== 1 || A.bred === day || B.bred === day || r() >= BREED_CHANCE) continue;
+        const spots = [];
+        for (const P of [A, B]) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (free(P.x + dx, P.y + dy)) spots.push([P.x + dx, P.y + dy]);
+        if (!spots.length) continue;
+        const [x, y] = spots[Math.floor(r() * spots.length)];
+        const ci = A.ci === B.ci ? A.ci : 3 - A.ci - B.ci;
+        const pl = { x, y, kind: A.kind, ci, day: day - 1, pickDay: -1, bred: day };
+        A.bred = B.bred = day;
+        F.planted.push(pl); at.set(x + ',' + y, pl); born.push(pl);
+    }
+    if (!born.length) return;
+    S.stats.bred = (S.stats.bred || 0) + born.length;
+    for (const pl of born) addFlowerPlant(a, pl);
 }
 function flowerSeedIds() { return S.pocket.filter(s => s && ITEMS[s.id].flower).map(s => s.id).filter((v, i, arr) => arr.indexOf(v) === i); }
 /* everyone likes flowers; some people have a favorite */

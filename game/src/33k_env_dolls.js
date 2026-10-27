@@ -114,13 +114,15 @@ const EnvDolls = {
         axe1: { aF: [-0.75, -0.75], aO: [0.1, 0.1], bend: 0.3, sink: 0.02 },
         dig0: { aF: [-0.6, -0.6], aO: [0.15, 0.15], bend: 0.35, sink: 0.04 },
         dig1: { aF: [-1.5, -1.5], aO: [0.15, 0.15], bend: -0.05 },
+        // (watering: the can held out in the right hand and tipped forward, the left at her side)
+        water: { aF: [-0.25, -1.05], aO: [0.15, 0.18], bend: 0.1 },
     },
     pose(d, e) {
         const walk = !!(e.moving || e.walking || e.glide || e.pose === 'walk'), run = walk && !!e.run && !e.glide, t = G.t;
         const m = hdMotion(e, walk), P = d.parts, sit = this.sitting(e), seed = e === G.player ? 1 : hdSeed(e.id || e.who || 0);
         // which pose: sitting, a tool mid-swing, one of the game's poses (or none: standing, walking, running)
         let pk = sit ? 'sit' : null;
-        if (!pk && e.tool) { const k = e.tool.kind, ph = e.tool.t < (k === 'axe' ? 10 : 12) ? 0 : 1; pk = k === 'axe' ? 'axe' + ph : 'dig' + ph; }
+        if (!pk && e.tool) { const k = e.tool.kind, ph = e.tool.t < (k === 'axe' ? 10 : 12) ? 0 : 1; pk = k === 'axe' ? 'axe' + ph : k === 'can' ? 'water' : 'dig' + ph; }
         if (!pk && e.pose && e.pose !== 'walk') pk = e.pose;
         if (e === G.player && G.held && !sit) pk = 'holdup';
         const Q = pk && this.POSES[pk];
@@ -167,12 +169,28 @@ const EnvDolls = {
         const g = new THREE.Group(), wood = this.mat('#9a6a3a'), metal = this.mat('#a8adb4', 0.35);
         if (kind === 'axe') { this.piece(g, 'disc', wood, 0, 0.1, 0, 0.012, 0.36, 0.012); this.piece(g, 'box', metal, 0.035, 0.26, 0, 0.07, 0.06, 0.016); this.piece(g, 'box', this.mat('#c84a3a'), 0, 0.26, 0, 0.022, 0.07, 0.024); }
         else if (kind === 'shovel') { this.piece(g, 'disc', wood, 0, 0.0, 0, 0.011, 0.42, 0.011); this.piece(g, 'box', metal, 0, -0.24, 0, 0.07, 0.1, 0.012); this.piece(g, 'box', this.mat('#3a7ac8'), 0, 0.22, 0, 0.05, 0.02, 0.02); }
+        else if (kind === 'can') return this.canModel(d, d.parts.armR, -0.245);
         else if (kind === 'rod') { this.piece(g, 'disc', this.mat('#c8783a'), 0, 0.22, 0, 0.007, 0.5, 0.007); this.piece(g, 'disc', this.mat('#3a3a42', 0.4), 0.018, 0.04, 0, 0.022, 0.012, 0.022, 0, 0, Math.PI / 2); d.rodTip = new THREE.Object3D(); d.rodTip.position.y = 0.47; g.add(d.rodTip); }
         else return null;
         // held in the right hand (the +x arm), pointing forward for the rod, up along the arm for the others
         g.position.set(0, -0.245, 0.01);
         g.rotation.set(kind === 'rod' ? 1.2 : 0.35, 0, 0);
         d.parts.armR.add(g);
+        return g;
+    },
+
+    /* the watering can in the right hand, hanging from its handle at the hand (furn_e.py's, as big as it is in a room;
+       the spout points the way she faces, so swinging the arm forward tips it to pour) */
+    canModel(d, arm, hand) {
+        if (!EnvModels.has('furn_watering_can')) return null;
+        const g = new THREE.Group(), inner = new THREE.Group(), s = 1 / (d.v2 ? DOLL2.H : 1);
+        for (const p of EnvModels.models.furn_watering_can.parts) { const m = new THREE.Mesh(p.geometry, p.material); m.castShadow = true; inner.add(m); }
+        inner.position.set(0.05, -0.27, 0);
+        g.add(inner);
+        g.scale.setScalar(s);
+        g.rotation.y = -Math.PI / 2;
+        g.position.set(0, hand, 0.01);
+        arm.add(g);
         return g;
     },
 

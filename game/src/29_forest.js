@@ -14,7 +14,7 @@ function growDays() { return townOrd() === 'nature' ? 2 : GROW_DAYS; }       // 
 function plantStage(pl) { return clamp(Clock.dayNum() - pl.day, 0, growDays()); }
 
 /* ---------------------------------------------------------------- holding tools */
-const HELD_TOOLS = ['axe', 'shovel'];
+const HELD_TOOLS = ['axe', 'shovel', 'can'];
 function heldTool() {
     if (S.held && !pocketCount(S.held)) S.held = null;
     return S.held || null;
@@ -47,9 +47,27 @@ function updateToolButton() {
 /* drawn with Sarah: the tool she's carrying, or mid-swing */
 /* how far out from Sarah's middle her hands are: the HD-2D view's Sarah is slimmer than the 16px one */
 function toolDx(dx) { return hdOn() ? Math.round(dx * 0.6) : dx; }
+/* the watering can, small in her hand (it has no carried picture): turquoise, a loop handle, the spout to the right, its
+   foot at y; tilted to pour */
+function drawCan(ctx, x, y, flip, tilt) {
+    ctx.save();
+    ctx.translate(Math.round(x), Math.round(y));
+    if (flip) ctx.scale(-1, 1);
+    if (tilt) ctx.rotate(tilt);
+    ctx.fillStyle = '#1f6f72'; ctx.fillRect(-3, -5, 6, 5); ctx.fillRect(3, -3, 1, 1); ctx.fillRect(4, -4, 1, 1); ctx.fillRect(5, -5, 2, 1);
+    ctx.fillRect(-2, -7, 4, 1); ctx.fillRect(-3, -6, 1, 1); ctx.fillRect(2, -6, 1, 1);
+    ctx.fillStyle = '#4cc4c0'; ctx.fillRect(-2, -5, 4, 4);
+    ctx.fillStyle = '#9fe8e2'; ctx.fillRect(-2, -5, 1, 2);
+    ctx.restore();
+}
 function drawToolUnder(ctx, p, y) {
     const t = heldTool();
     if (!t || p.hidden) return;
+    if (t === 'can') {
+        if (p.dir === 'up' && !p.pose) drawCan(ctx, p.x + toolDx(-6), y - 1, true);
+        else if (!p.tool && !p.pose && (p.dir === 'left' || p.dir === 'right')) drawCan(ctx, p.x + toolDx(p.dir === 'left' ? 4 : -4), y - 1, p.dir === 'left');
+        return;
+    }
     if (p.tool) {
         const side = p.dir === 'left' || p.dir === 'right';
         if (p.tool.kind === 'axe' && p.tool.t < 10 && side) spr(ctx, 'axe_up', p.x + toolDx(p.dir === 'left' ? 5 : -5), y - 15, p.dir === 'left');
@@ -63,6 +81,12 @@ function drawToolOver(ctx, p, y) {
     const t = heldTool();
     if (!t || p.hidden) return;
     const flip = p.dir === 'left', side = p.dir === 'left' || p.dir === 'right';
+    if (t === 'can') {
+        // (pouring: held out in front, tipped; otherwise carried at her side)
+        if (p.tool) { const tip = Math.min(1, p.tool.t / 8) * 0.7; if (side) drawCan(ctx, p.x + toolDx(flip ? -8 : 8), y - 7, flip, tip); else if (p.dir === 'down') drawCan(ctx, p.x + toolDx(5), y - 5, false, tip); }
+        else if (!p.pose && p.dir === 'down') drawCan(ctx, p.x + toolDx(7), y - 1);
+        return;
+    }
     if (p.tool) {
         const k = p.tool.kind, ph = p.tool.t < (k === 'axe' ? 10 : 12) ? 0 : 1;
         if (k === 'axe') {

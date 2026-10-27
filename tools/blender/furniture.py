@@ -31,7 +31,7 @@ for _m in ([_b] if _b else ['furn_a', 'furn_b', 'furn_c', 'furn_d', 'furn_e', 'f
 def objects(P):
     out = []
     for part, mb, rough in (('main', P.main, 0.75), ('gloss', P.gloss, 0.3), ('glow', P.glow, 0.5), ('clear', P.clear, 0.1), ('pic', P.pic, 0.8), ('picglow', P.picglow, 0.5),
-                            ('screen', P.screen, 0.3), ('move', P.move, 0.6)):
+                            ('screen', P.screen, 0.3), ('move', P.move, 0.6), ('hour', P.hour, 0.5), ('minute', P.minute, 0.5)):
         if not mb.v:
             continue
         out.append(mb.obj(f'furn_{P.id}_{part}', vmat(f'furn_{P.id}' + ('' if part == 'main' else '_' + part), rough=rough)))

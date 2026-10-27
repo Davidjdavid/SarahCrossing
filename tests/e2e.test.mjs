@@ -656,6 +656,79 @@ test('shops grow: a letter, a day closed, then a bigger shop with more stock, a 
   await page.context().close();
 });
 
+test('the watering can: Fortune sells one; flowers of a kind side by side, both watered, grow a new one by morning (two colors make the third)', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play' && !G.busy);
+  const res = await page.evaluate(async () => {
+    const out = { stock: TOOL_STOCK.includes('can') && ITEMS.can.type === 'tool' };
+    receive('can', 1);
+    setHeld('can');
+    // a clear patch of grass near Sarah, with two daisies side by side (two colors), bloomed
+    const a = G.area, F = flowerState(), day = Clock.dayNum(), px = Math.floor(G.player.x / TILE), py = Math.floor(G.player.y / TILE);
+    const clear = (x, y) => groundChar(x, y) === 'g' && !pathAt(x, y) && !a.waterAt(x, y) && !a.blockedAt(x, y)
+      && !a.ents.some((o) => (o.tx === x && o.ty === y) || (o.kind === 'item' && Math.floor(o.x / TILE) === x && Math.floor((o.y - 2) / TILE) === y));
+    let spot = null;
+    for (let r = 2; r < 40 && !spot; r++) for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r && !spot; dx++) {
+      let ok = true;
+      for (let j = -1; j <= 2 && ok; j++) for (let i = -1; i <= 2 && ok; i++) ok = clear(px + dx + i, py + dy + j);
+      if (ok) spot = [px + dx, py + dy];
+    }
+    const [x, y] = spot;
+    const A = { x, y, kind: 'daisy', ci: 0, day: day - 3, pickDay: -1 }, B = { x: x + 1, y, kind: 'daisy', ci: 1, day: day - 3, pickDay: -1 };
+    F.planted.push(A, B);
+    addFlowerPlant(a, A); addFlowerPlant(a, B);
+    // Sarah stands below them facing up and waters: the can's sweep reaches both
+    G.player.x = (x + 0.5) * TILE; G.player.y = (y + 1.6) * TILE; G.player.dir = 'up';
+    pressA();
+    out.busy = G.busy > 0;
+    await new Promise((r) => { const t = setInterval(() => { if (!G.busy) { clearInterval(t); r(); } }, 50); });
+    out.wet = [watered(A), watered(B)];
+    // mornings until they've made one (a third of mornings or so), watered every day
+    for (let n = 0; n < 20 && F.planted.length === 2; n++) { __dbg.nextDay(1); A.wet = B.wet = Clock.dayNum(); }
+    const kid = F.planted[2];
+    out.kid = kid && [kid.kind, kid.ci, (Math.abs(kid.x - x) <= 1 || Math.abs(kid.x - x - 1) <= 1) && Math.abs(kid.y - y) <= 1, G.areas.island.ents.some((e) => e.pl === kid)];
+    return out;
+  });
+  assert.deepEqual(res, { stock: true, busy: true, wet: [true, true], kid: ['daisy', 2, true, true] });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test("the camera's scrapbook: a photo says what's in it, and the scrapbook keeps a page for each with a bio, counted but never out of a total", async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play' && !G.busy);
+  const res = await page.evaluate(() => {
+    __dbg.setTime(6, 12, 13);
+    // Sarah below the fountain, Maki beside her
+    const f = W0.props.find((p) => p.kind === 'fountain_grand');
+    G.player.x = (f.x + 2) * TILE; G.player.y = (f.y + 6) * TILE; G.player.dir = 'up';
+    const n = NPCs.get('maki');
+    n.area = 'island'; n.sleeping = false; n.hidden = false; n.x = G.player.x + 20; n.y = G.player.y; n.path = null;
+    updateCam(true);
+    Photo.start(); Photo.filter = 1; Photo.snap(); Photo.stop();
+    const tags = Photos.list()[0].tags;
+    Scrapbook.open();
+    const text = document.querySelector('#panel').textContent;
+    UI.close();
+    return { tags: ['Maki', 'The fountain', 'Golden hour'].filter((t) => tags.includes(t)), maki: S.scrap['npc:maki'], day: Clock.dayNum(), fountain: S.scrap['place:fountain'] && S.scrap['place:fountain'].n,
+      page: [/Neighbors · \d/.test(text), /rolled very tightly/.test(text), /In 1 photo/.test(text), /\d+ (of|out of) \d+/.test(text)] };
+  });
+  assert.deepEqual(res.tags, ['Maki', 'The fountain', 'Golden hour']);
+  assert.deepEqual(res.maki, { n: 1, first: res.day, label: 'Maki' });
+  assert.equal(res.fountain, 1);
+  assert.deepEqual(res.page, [true, true, true, false]);
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('the laptop: Order again lists what Sarah has had, but not quest things, keepsakes, prizes, tools or gifts, and orders one for tomorrow', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));

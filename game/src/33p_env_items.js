@@ -151,6 +151,17 @@ const EnvItems = {
             seen.add(e);
             // (in a plot, on the planter box's soil)
             if (e.kind === 'plot' || e.kind === 'gflower') { const f = Env.tileSpot(e); d.position.set(f.x, f.y + (e.kind === 'plot' && EnvModels.has('planter_box') ? 0.27 : 0), f.z); }
+            // (a planted flower watered today: the soil round it dark and damp)
+            if (e.kind === 'gflower') {
+                const on = typeof watered === 'function' && watered(e.pl);
+                let w = d.userData.wet;
+                if (on && !w) {
+                    w = d.userData.wet = new THREE.Mesh(new THREE.CircleGeometry(0.3, 20), r3Patch(new THREE.MeshBasicMaterial({ color: 0x2e1e10, transparent: true, opacity: 0.38, depthWrite: false }), { key: 'envwet', noDof: true, noEdge: true }));
+                    w.rotation.x = -Math.PI / 2; w.position.y = 0.012 / d.scale.y; w.scale.setScalar(1 / d.scale.x); w.renderOrder = 1;
+                    d.add(w);
+                }
+                if (w) w.visible = on;
+            }
             else {
                 const b = e.bounce > 0 ? Math.abs(Math.sin(e.bounce-- / 5)) * 8 * (e.bounce / 30) : 0;
                 d.position.set(e.x / TILE, Env.groundH(e.x, e.y - 2) + b / TILE * R3_VS, (e.y - 2) / TILE * R3_ZS);

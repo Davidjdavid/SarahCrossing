@@ -19,7 +19,7 @@ const EnvSea = {
     },
     /* (R3 asks: is this one a toy here? then it draws no card) */
     draws(e) { return Env.on && this.drawn.has(e); },
-    takes(e) { return e.kind === 'sailboat' && typeof EnvModels !== 'undefined' && EnvModels.has('boat_docked'); },
+    takes(e) { return e.kind === 'sailboat' && typeof EnvModels !== 'undefined' && EnvModels.has('boat_home'); },
     sky() { return Env.on && typeof EnvModels !== 'undefined' && EnvModels.has('sky_plane'); },
     make(name) {
         const M = EnvModels.models[name], g = new THREE.Group();
@@ -89,14 +89,15 @@ const EnvSea = {
         if (!a || a.id !== 'island' || typeof SeaSky === 'undefined') { this.group.visible = false; return; }
         this.group.visible = true;
         const v = r3.view, near = (x, y, m) => !v || (x > v.x0 - m && x < v.x1 + m && y > v.y0 - m && y < v.y1 + m * 2), t = G.t, seen = new Set();
-        // Sarah's sailboat, tied up stern-to at the pier's end, bow out to sea
+        // the boat Sarah came on, as big as a building, tied up stern-to at the pier's end (its fenders against the
+        // pier), bow out to sea, sitting in the water to a third of its hull's height
         const e = this.dock;
-        if (e && near(e.x, e.y, 64)) {
-            const d = this.show('dock', 'boat_docked', seen);
+        if (e && near(e.x, e.y, 160)) {
+            const d = this.show('dock', 'boat_home', seen);
             if (d) {
-                const pr = W0.pier;
-                d.position.set(pr.x1 + 1 + 1.05, Math.sin(t / 55) * 0.03 - 0.02, (pr.y1 - 1.6) * R3_ZS);
-                d.rotation.set(Math.sin(t / 70) * 0.03, 0, Math.sin(t / 55) * 0.015);
+                const pr = W0.pier, x = pr.x1 + 1 + 2.9, y = pr.y1 - 1.6, w = Env.waterH(x * TILE, y * TILE);
+                d.position.set(x, (w != null ? w : 0) - 0.34 + Math.sin(t / 70) * 0.025, y * R3_ZS);
+                d.rotation.set(Math.sin(t / 90) * 0.018, 0, Math.sin(t / 70) * 0.008);
             }
         }
         // boats crossing the sea

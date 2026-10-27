@@ -19,7 +19,7 @@ function newState() {
         mail: [], mailSeq: 1,
         dance: { songs: {}, moves: ['wave', 'happy', 'laugh', 'heart', 'yawn'] },
         council: { best: 0, lastDay: -1, plaques: [] },
-        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
+        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1, garden8: 1, square8: 1, lane8: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
         pottery: { seq: 1, pieces: {}, kiln: [], made: 0 },
         arcade: { tickets: 0, best: {}, plays: {}, free: {}, won: 0, claw: null, reach: {}, rival: {} },
         rope: { best: 0, day: -1, trophy: false },
@@ -28,6 +28,7 @@ function newState() {
         bank: {},
         post: {},
         town: {},
+        scrap: {},
         shops: { shop: { spent: 0, level: 1 }, boutique: { spent: 0, level: 1 } },
         fest: {},
     };
@@ -96,6 +97,17 @@ const Save = {
     },
 };
 
+/* anything of Sarah's standing on these tiles (a new part of the island is there now) back to her storage: displays,
+   flowers and trees she planted, things set down */
+function clearTiles(st, tiles) {
+    const busy = new Set(tiles.map(p => p.x + ',' + p.y));
+    const on = (x, y, w, h) => { for (let j = 0; j < (h || 1); j++) for (let i = 0; i < (w || 1); i++) if (busy.has((x + i) + ',' + (y + j))) return true; return false; };
+    const back = (id, n) => { if (id && ITEMS[id]) st.storage[id] = (st.storage[id] || 0) + (n || 1); };
+    if (st.deco && st.deco.placed) st.deco.placed = st.deco.placed.filter(p => { const d = DISPLAYS[p.id]; if (!d || !on(p.x, p.y, d.w, displayRows(d))) return true; back(p.id); return false; });
+    if (st.flowers && st.flowers.planted) st.flowers.planted = st.flowers.planted.filter(f => { if (!on(f.x, f.y)) return true; back('seed_fl_' + f.kind); return false; });
+    if (st.forest && st.forest.planted) st.forest.planted = st.forest.planted.filter(t => { if (!on(t.x, t.y)) return true; if (t.kind === 'money') st.money += t.amount || 0; else back(t.kind === 'fruit' ? t.fruit : t.kind === 'palm' ? 'coconut' : 'sapling'); return false; });
+    if (st.drops) st.drops = st.drops.filter(d => { if ((d.area && d.area !== 'island') || !on(Math.floor(d.x / TILE), Math.floor(d.y / TILE))) return true; back(d.id); return false; });
+}
 function migrate(st) {
     if (!st || typeof st !== 'object') return null;
     const base = newState();
@@ -185,13 +197,37 @@ function migrate(st) {
     // whatever of Sarah's stood on one of their tiles comes back to her storage
     if (!st.flags.garden8) {
         st.flags.garden8 = 1;
-        const busy = new Set(W0.plots.filter(p => p.c).concat((W0.fruitTrees || []).filter(t => t.x < 90 && t.y < 60)).map(p => p.x + ',' + p.y));
-        const on = (x, y, w, h) => { for (let j = 0; j < (h || 1); j++) for (let i = 0; i < (w || 1); i++) if (busy.has((x + i) + ',' + (y + j))) return true; return false; };
-        const back = (id, n) => { if (id && ITEMS[id]) st.storage[id] = (st.storage[id] || 0) + (n || 1); };
-        if (st.deco && st.deco.placed) st.deco.placed = st.deco.placed.filter(p => { const d = DISPLAYS[p.id]; if (!d || !on(p.x, p.y, d.w, displayRows(d))) return true; back(p.id); return false; });
-        if (st.flowers && st.flowers.planted) st.flowers.planted = st.flowers.planted.filter(f => { if (!on(f.x, f.y)) return true; back('seed_fl_' + f.kind); return false; });
-        if (st.forest && st.forest.planted) st.forest.planted = st.forest.planted.filter(t => { if (!on(t.x, t.y)) return true; if (t.kind === 'money') st.money += t.amount || 0; else back(t.kind === 'fruit' ? t.fruit : t.kind === 'palm' ? 'coconut' : 'sapling'); return false; });
-        if (st.drops) st.drops = st.drops.filter(d => { if ((d.area && d.area !== 'island') || !on(Math.floor(d.x / TILE), Math.floor(d.y / TILE))) return true; back(d.id); return false; });
+        clearTiles(st, W0.plots.filter(p => p.c).concat((W0.fruitTrees || []).filter(t => t.x < 90 && t.y < 60)));
+    }
+    // the square redone (27 October): the grand fountain, the notice board in front of the big tree, a flower bed where
+    // David's statue stood (it's on the Boardwalk's lawn now, smaller), more lamps; the same for whatever was in their way
+    if (!st.flags.square8) {
+        st.flags.square8 = 1;
+        const tiles = [];
+        for (const p of W0.props) {
+            if (!['fountain_grand', 'board', 'flowerbed', 'lamp', 'statue_david', 'plaque'].includes(p.kind) || p.x < 86 || p.x > 170 || p.y < 76 || p.y > 120) continue;
+            for (let j = 0; j < (PROP_ROWS[p.kind] || 1); j++) for (let i = 0; i < (PROP_SIZE[p.kind] || 1); i++) tiles.push({ x: p.x + i, y: p.y + j });
+        }
+        clearTiles(st, tiles);
+    }
+    // the shops on the alley and Market Lane further apart (27 October): a shop Sarah had moved goes to its new spot
+    // (so does anything she'd moved where one stands now), and whatever of hers was in the way comes back to storage
+    if (!st.flags.lane8) {
+        st.flags.lane8 = 1;
+        const lane = ['boutique', 'salon', 'studio', 'displays', 'restaurant', 'arcade', 'club', 'builder'], tiles = [];
+        for (const id of lane) { const b = W0_ORIG.buildings[id]; for (let j = -1; j <= b.h; j++) for (let i = 0; i < b.w; i++) tiles.push({ x: b.x + i, y: b.y + j }); }
+        for (const p of W0.props) if (p.x >= 140 && p.x <= 182 && p.y >= 92 && p.y <= 114) for (let i = 0; i < (PROP_SIZE[p.kind] || 1); i++) tiles.push({ x: p.x + i, y: p.y });
+        const busy = new Set(tiles.map(p => p.x + ',' + p.y));
+        if (st.buildMoved) for (const [id, to] of Object.entries(st.buildMoved)) {
+            const b = W0_ORIG.buildings[id];
+            let hit = lane.includes(id) || !b;
+            for (let j = 0; b && !hit && j < b.h; j++) for (let i = 0; i < b.w; i++) if (busy.has((to.x + i) + ',' + (to.y + j))) hit = true;
+            if (hit) delete st.buildMoved[id];
+        }
+        clearTiles(st, tiles);
+        if (st.started) st.mail.push({ id: st.mailSeq++, from: 'ginger', subject: 'More room on Market Lane', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
+            body: 'Sarah! The crew spread the shops out a bit. Every shop has room on each side now, the alley has benches and flower beds, '
+                + 'and Market Lane has a lawn along it with lamps. David\'s statue moved over there too, on the lawn.\n\nTwo lots at the east end are waiting for new shops. Any ideas?\n- Ginger' });
     }
     // the final update: glasses get their own slot (so Sarah can wear a hat too), and Joe is always her best friend
     if (!st.flags.v9) {
@@ -234,9 +270,9 @@ const Photos = {
         return this.cache.slice();
     },
     keep(l) { this.cache = l; lsSet(this.key(), JSON.stringify(l)); this.send(); },
-    add(url) {
+    add(url, tags) {
         const l = this.list();
-        l.unshift({ url, t: Date.now() });
+        l.unshift(tags && tags.length ? { url, t: Date.now(), tags } : { url, t: Date.now() });
         while (l.length > 12) l.pop();
         this.keep(l);
         return true;

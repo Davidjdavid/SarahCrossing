@@ -196,10 +196,10 @@ function buildIsland() {
 const PROP_SIZE = { bench: 2, flowerbed: 2, board: 1, lamp: 1, mailbox: 1, sign_island: 1, sign_club: 1, rock: 1, driftwood: 1, bush: 1,
     windmill: 3, boulder: 2, well: 1, hay: 1, crate: 1, scarecrow: 1, sign_farm: 1, telescope: 1, statue_david: 3, plaque: 1, bonfire: 2, log: 2,
     tent: 3, picnic: 3, campfire: 1, trough: 2, sign_camp: 1, sign_bonfire: 1, sign_trail: 1, blanket: 3,
-    trashcan: 1, fountain: 2, drinkfountain: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1 };
-const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2 };
+    trashcan: 1, fountain: 2, fountain_grand: 4, drinkfountain: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1 };
+const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2, fountain_grand: 3 };
 /* the little things around the island, and what Sarah finds when she looks at them */
-const KNICK_FRAME = { fountain: 'd_fountain', flamingo: 'd_flamingo', sign_trail: 'sign_camp' };
+const KNICK_FRAME = { fountain: 'd_fountain', fountain_grand: 'd_fountain', flamingo: 'd_flamingo', sign_trail: 'sign_camp' };
 const PROP_TALK = {
     windmill: () => "The windmill turns slowly. It grinds the island's flour. It also, according to Cuke, 'makes wind.' It does not.",
     scarecrow: () => rpick(["A scarecrow in a sun hat. The birds are not scared. The birds think it's a friend.", "The scarecrow has a little sign: 'HI. I'M STEVE.' Hi, Steve."]),
@@ -221,6 +221,7 @@ const PROP_TALK = {
         "A trash can. Somebody threw away a poem draft. It's Joe's. It's about a sock. Sarah puts it in her pocket. (Just kidding. It's a sock poem.)",
         'A trash can with a little leaf sticker: RECYCLE, PLEASE. Cuke put the sticker on. Cuke put stickers on all of them.',
         "Sarah peeks in the trash can. A banana peel, a napkin, and a note: 'I DID NOT eat the last cheesecake. - not Coco.'"]),
+    fountain_grand: () => PROP_TALK.fountain(),
     fountain: () => rpick(['A little fountain on Main Street. Sarah tosses in a shell and makes a wish. The wish is a secret.',
         'The fountain burbles away. The bottom is covered in shells. Everyone on the island has made a wish here. Mostly for snacks.',
         'A fountain. Wonton says it is "a very small hot spring, but cold, and on a stick." That is not what a fountain is.']),
@@ -296,9 +297,9 @@ function addProp(a, p) {
     let frame = KNICK_FRAME[p.kind] || p.kind;
     if (p.kind === 'bush') frame = `bush_${a.season || Clock.season()}`;
     const e = a.add({ kind: p.kind, frame, x: fx, y: fy, px: p.x, py: p.y });
-    e.hit = { x: p.x * TILE, y: p.y * TILE - 12, w: w * TILE, h: TILE + 12 };
+    e.hit = { x: p.x * TILE, y: p.y * TILE - 12, w: w * TILE, h: rows * TILE + 12 };
     if (p.kind === 'lamp') { e.light = { r: 44, y: -24 }; e.hit = null; }
-    if (p.kind === 'fountain') e.draw = ctx => drawFountain(ctx, e);
+    if (p.kind === 'fountain' || p.kind === 'fountain_grand') e.draw = ctx => drawFountain(ctx, e);
     if (p.kind === 'blanket') { e.frame = 'picnic_blanket'; e.layer = 0; e.y = p.y * TILE + 23; e.hit = { x: p.x * TILE, y: p.y * TILE, w: w * TILE, h: 2 * TILE }; }
     if (p.kind === 'telescope') e.interact = () => useTelescope();
     if (p.kind === 'board') e.interact = () => readBoard();

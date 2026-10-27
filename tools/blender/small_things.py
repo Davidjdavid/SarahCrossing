@@ -2,8 +2,8 @@
 shells and gems lying on the island (item_<id>: a clam, a scallop, a turban, a cowrie, a branch of coral, a conch, a
 piece of sea glass, a pearl in its shell, a starfish, a message in a bottle; quartz and amethyst as crystal clusters,
 the cut gems as gems; the volleyball, item_vbball), what grows in the garden plots (plot_seed, plot_sprout, then the
-vegetables grown, veg_<id>), the boats out at sea (sea_sail, sea_sailb, sea_fish, sea_ferry), Sarah's sailboat at the pier
-(boat_docked), a dolphin (sea_dolphin), and what goes over: a little plane (sky_plane, its propeller its own part
+vegetables grown, veg_<id>), the boats out at sea (sea_sail, sea_sailb, sea_fish, sea_ferry), the boat Sarah came on, at the
+pier (boat_home, as big as a building), a dolphin (sea_dolphin), and what goes over: a little plane (sky_plane, its propeller its own part
 sky_plane_prop to spin) and a hot air balloon (sky_balloon).
 
 Colors are in the mesh (no baking), a little darker underneath; glossy parts are named *_gloss, glass *_clear.
@@ -283,6 +283,129 @@ def sailboat(hull_c=('#f4efe4', '#3a6ab8'), sail_c='#fbf8f0', stripe='#e8443a', 
     return [(mb, 'main'), (sail, 'sail')]
 
 
+def ring(c, R, axis='y', n=24, a0=0.0, a1=math.tau):
+    """points round a circle (an arc from a0 to a1) about c, in the plane facing axis"""
+    pts = []
+    for k in range(n + 1):
+        a = a0 + (a1 - a0) * k / n
+        u, v = math.cos(a) * R, math.sin(a) * R
+        pts.append(Vector(c) + {'y': Vector((u, 0, v)), 'x': Vector((0, u, v)), 'z': Vector((u, v, 0))}[axis])
+    return pts
+
+
+def boat_home():
+    """The boat Sarah came on, tied up at the pier: a cabin sloop as big as one of the island's buildings (David, 27
+    October: the little one looked like a toy). White over red with a blue stripe like the opening scene's, a teak deck,
+    the cabin with brass portholes, the cockpit and its wheel, the mast with its rigging, the mainsail furled under a blue
+    cover on the boom and the jib rolled on the forestay, rails all round, a life ring and fenders at the stern. Stern at
+    x -L/2 (toward the pier), bow at +x; z 0 is the keel, the game sets the waterline about a third of the way up."""
+    mb, sail, glass = MB(), MB(), MB()
+    L, W, H = 5.4, 1.75, 1.0
+    rows = hull(mb, L, W, H, '#f6f1e6', '#b8263a', '#3a6ab8', sheer=0.3)
+    nk, ns = len(rows) - 1, len(rows[0]) - 1
+    TEAK, STEEL, ROPE = '#b07a48', '#d6d8da', '#5a5a5a'
+
+    def deck(x):
+        """the deck edge's half width and height at x"""
+        t = min(1.0, max(0.0, (x + L / 2) / L))
+        i = min(nk - 1, int(t * nk))
+        k = t * nk - i
+        p = rows[i][0].lerp(rows[i + 1][0], k)
+        return p.y, p.z
+    # the transom (the stern's flat face), and a toe rail of teak along the deck edge
+    facet(mb, [p.copy() for p in rows[0]], '#f6f1e6', gloss=0.1, out=(-1, 0, 0))
+    for j in (0, ns):
+        tube(mb, [rows[i][j] + Vector((0, 0, 0.02)) for i in range(nk + 1)], 0.035, col_fn(TEAK, grain='x'), seg=6)
+    tube(mb, [rows[0][0] + Vector((0, 0, 0.02)), rows[0][ns] + Vector((0, 0, 0.02))], 0.035, col_fn(TEAK, grain='y'), seg=6)
+    # a blue stripe round the hull just under the deck edge (the hull's own rings are too far apart to paint one)
+    for j in (0, ns):
+        tube(mb, [Vector((p.x, p.y * 0.995 + (0.012 if p.y > 0 else -0.012), p.z - 0.17)) for p in (rows[i][j] for i in range(nk + 1))], 0.04, shade('#3a6ab8'), seg=6)
+    # the cabin: cream sides, a teak roof, brass portholes, the companionway's doors aft and a hatch on top
+    cx0, cx1, cy, cz0, cz1 = -1.5, 0.5, 0.56, 0.9, 1.55
+    rbox(mb, cx0, -cy, cz0, cx1, cy, cz1, col_fn('#f4efe4', mottle=0.03), r=0.12)
+    rbox(mb, cx0 - 0.07, -cy - 0.06, cz1 - 0.04, cx1 + 0.07, cy + 0.06, cz1 + 0.07, col_fn(TEAK, grain='x'), r=0.04)
+    rbox(mb, cx0 + 0.05, -0.3, cz1 + 0.06, cx0 + 0.6, 0.3, cz1 + 0.15, col_fn(TEAK, grain='x'), r=0.03)
+    rbox(mb, cx0 - 0.04, -0.24, 1.0, cx0 + 0.02, 0.24, 1.47, col_fn('#8a5a34', grain='z'), r=0.02)
+    tube(mb, [(cx0 - 0.045, 0, 1.0), (cx0 - 0.045, 0, 1.47)], 0.006, shade('#5a3a20'), seg=4)
+    for side in (-1, 1):
+        for x in (-1.15, -0.55, 0.05):
+            y = side * (cy + 0.005)
+            tube(mb, ring((x, y, 1.25), 0.085, n=20), 0.018, shade('#d8a84a'), seg=6)
+            rbox(glass, x - 0.068, y - 0.006, 1.182, x + 0.068, y + 0.006, 1.318, shade('#9ad0ec'), r=0.06)
+        # grab rails along the roof
+        tube(mb, [(cx0 + 0.1, side * (cy - 0.06), cz1 + 0.07), (cx0 + 0.15, side * (cy - 0.06), cz1 + 0.13), (cx1 - 0.15, side * (cy - 0.06), cz1 + 0.13),
+                  (cx1 - 0.1, side * (cy - 0.06), cz1 + 0.07)], 0.014, col_fn(TEAK), seg=5)
+    # the cockpit: low teak coamings, a bench each side, the wheel on its pedestal (turned a little so it reads)
+    for side in (-1, 1):
+        rbox(mb, -2.45, side * 0.6 - 0.035, 0.95, cx0 + 0.02, side * 0.6 + 0.035, 1.2, col_fn(TEAK, grain='x'), r=0.02)
+        rbox(mb, -2.4, side * 0.42 - 0.13, 0.95, cx0, side * 0.42 + 0.13, 1.07, col_fn('#c89a64', grain='x'), r=0.025)
+    cyl(mb, -2.1, 0, 0.95, 1.42, 0.05, 0.035, color=shade('#e8e4dc'), seg=10)
+    wc = Vector((-2.16, 0, 1.56))
+    turn = Matrix.Rotation(math.radians(-50), 3, 'Z')
+    rim = [wc + turn @ (p - wc) for p in ring(wc, 0.24, axis='x', n=28)]
+    tube(mb, rim, 0.022, col_fn('#9a6234', grain='z'), seg=6)
+    for k in range(8):
+        a = k / 8 * math.tau
+        d = turn @ Vector((0, math.cos(a), math.sin(a)))
+        tube(mb, [wc, wc + d * 0.31], 0.012, col_fn('#9a6234'), seg=4)
+        ball(mb, wc + d * 0.32, 0.024, shade('#9a6234'), sub=1)
+    ball(mb, wc, 0.045, shade('#d8a84a'), sub=1)
+    # the mast, its spreaders and rigging; a pennant at the top
+    mx, mz = 0.95, 5.25
+    cyl(mb, mx, 0, 0.95, mz, 0.075, 0.048, color=col_fn('#c8945a', grain='z'), seg=10)
+    ball(mb, (mx, 0, mz + 0.02), 0.06, shade('#e8443a'), sub=1)
+    slab(mb, [(mx + 0.04, mz - 0.18), (mx + 0.04, mz - 0.02), (mx + 0.55, mz - 0.1)], 0.012, lambda p, n: lit('#e8443a', n, 0.2), axis='y', at=-0.006)
+    tube(mb, [(mx, -0.55, 3.4), (mx, 0.55, 3.4)], 0.022, col_fn('#c8945a', grain='y'), seg=6)
+    bow = Vector((L / 2 + 0.55, 0, deck(L / 2)[1] + 0.06))
+    tube(mb, [(L / 2 - 0.25, 0, deck(L / 2 - 0.25)[1] + 0.04), bow], 0.04, col_fn('#c8945a', grain='x'), seg=6)
+    for side in (-1, 1):
+        yd, zd = deck(mx)
+        tube(mb, [(mx, 0, mz - 0.25), (mx, side * 0.55, 3.4), (mx, side * (yd - 0.04), zd + 0.04)], 0.009, shade(ROPE), seg=4)
+        tube(mb, [(mx, 0, 3.4), (mx - 0.35, side * (yd - 0.04), deck(mx - 0.35)[1] + 0.04)], 0.008, shade(ROPE), seg=4)
+    tube(mb, [(mx, 0, mz - 0.1), bow], 0.009, shade(ROPE), seg=4)
+    tube(mb, [(mx, 0, mz - 0.05), (-L / 2 + 0.08, 0, H + 0.06)], 0.009, shade(ROPE), seg=4)
+    # the jib rolled up round the forestay
+    f0, f1 = Vector((mx, 0, mz - 0.1)), bow
+    tube(sail, [f1.lerp(f0, k) for k in (0.04, 0.3, 0.6, 0.86)], 0.07, shade('#fbf8f0'), seg=10, r1=0.025)
+    # the boom, the mainsail furled on it under its blue cover, with ties; the topping lift
+    bz = 1.95
+    tube(mb, [(mx - 0.02, 0, bz), (-2.35, 0, bz - 0.04)], 0.045, col_fn('#c8945a', grain='x'), seg=8)
+    tube(sail, [(mx - 0.08, 0, bz + 0.13), (-0.6, 0, bz + 0.13), (-2.15, 0, bz + 0.09)], 0.15, col_fn('#3a6ab8', mottle=0.04), seg=12, r1=0.08)
+    for x in (0.3, -0.5, -1.3, -1.95):
+        r = 0.155 - (0.3 - x) / 2.45 * 0.07
+        tube(mb, ring((x, 0, bz + 0.12), r + 0.01, axis='x', n=14), 0.012, shade('#f4efe4'), seg=4)
+    tube(mb, [(mx, 0, mz - 0.3), (-2.3, 0, bz)], 0.006, shade(ROPE), seg=3)
+    # rails: steel stanchions with two lifelines, a pulpit at the bow and a pushpit at the stern
+    xs = [-2.45 + k * 0.55 for k in range(9)]
+    for side in (-1, 1):
+        top, mid = [], []
+        for x in xs:
+            yd, zd = deck(x)
+            p = Vector((x, side * (yd - 0.07), zd))
+            cyl(mb, p.x, p.y, zd, zd + 0.36, 0.014, color=shade(STEEL), seg=6)
+            top.append(p + Vector((0, 0, 0.36))); mid.append(p + Vector((0, 0, 0.19)))
+        yb, zb = deck(L / 2 - 0.35)
+        nose = Vector((L / 2 - 0.05, 0, deck(L / 2)[1] + 0.4))
+        top.append(Vector((L / 2 - 0.35, side * (yb - 0.1), zb + 0.4)))
+        top.append(nose)
+        tube(mb, top, 0.011, shade(STEEL), seg=5)
+        tube(mb, mid, 0.008, shade(STEEL), seg=4)
+    ys, zs = deck(-L / 2 + 0.05)
+    tube(mb, [(-2.45, -(ys - 0.07), zs + 0.36), (-2.6, -0.3, zs + 0.38), (-2.6, 0.3, zs + 0.38), (-2.45, ys - 0.07, zs + 0.36)], 0.011, shade(STEEL), seg=5)
+    # the life ring on the rail facing the front, red and white
+    lr = ring((-1.95, -(deck(-1.95)[0] + 0.02), 1.22), 0.13, n=24)
+    for k in range(8):
+        tube(mb, lr[k * 3:k * 3 + 4], 0.038, shade('#e8443a' if k % 2 else '#fbf8f0'), seg=8)
+    # fenders hanging off the stern, ready for the pier
+    for y in (-0.42, 0.42):
+        cyl(mb, -L / 2 - 0.1, y, 0.5, 0.86, 0.075, color=shade('#f4f4f0'), seg=10, round_=0.05)
+        tube(mb, [(-L / 2 - 0.1, y, 0.86), (-L / 2 - 0.06, y, H + 0.04)], 0.008, shade('#e8e0c8'), seg=3)
+    # a coil of rope and a little bucket on the deck by the mast
+    tube(mb, ring((1.5, 0.3, deck(1.5)[1] + 0.03), 0.12, axis='z', n=16), 0.022, shade('#e8dcc0'), seg=5)
+    cyl(mb, 1.55, -0.32, deck(1.55)[1], deck(1.55)[1] + 0.14, 0.07, 0.09, color=shade('#3a8ad8'), seg=12)
+    return [(mb, 'main'), (sail, 'sail'), (glass, 'glass')]
+
+
 def sea_fish():
     mb, glass = MB(), MB()
     hull(mb, 2.0, 0.8, 0.36, '#e8e4dc', '#2e5a8a', '#e8b030')
@@ -545,7 +668,7 @@ THINGS = {
     **{f'item_gem_{k}': (lambda c=c, k=k: [(gem_cluster(*c) if k in ('quartz', 'amethyst') else gem_cut(*c), 'gloss')]) for k, c in GEMS.items()},
     'sea_sail': lambda: sailboat(), 'sea_sailb': lambda: sailboat(('#e8443a', '#7a2a24'), '#fff0d8', '#f6f0e4'),
     'sea_fish': sea_fish, 'sea_ferry': sea_ferry, 'sea_dolphin': sea_dolphin,
-    'boat_docked': lambda: sailboat(('#f4efe4', '#b8263a'), '#fbf8f0', '#3a6ab8', furled=True, L=2.0),
+    'boat_home': boat_home,
     'sky_plane': sky_plane, 'sky_jet': sky_jet, 'sky_balloon': sky_balloon,
 }
 

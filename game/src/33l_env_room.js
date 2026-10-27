@@ -100,6 +100,9 @@ const EnvRoom = {
             g.add(mesh);
             // (the claw riding along the top, a conveyor's plates)
             if (/_move$/.test(mn)) B.movers.push({ e, mesh, base: m.clone() });
+            // (a clock's hands, turned to the time of day; a mirrored piece's run the other way)
+            const hand = /_(hour|minute)$/.exec(mn);
+            if (hand) B.hands.push({ mesh, base: m.clone(), min: hand[1] === 'minute', dir: m.determinant() < 0 ? 1 : -1 });
         }
     },
     /* an arcade cabinet's screen: its game's name and its own little attract animation (the 2D one, blown up), drawn
@@ -279,6 +282,10 @@ const EnvRoom = {
             mv.mesh.matrix.copy(mv.base).multiply(new THREE.Matrix4().makeTranslation(dx, 0, 0));
         }
         if (B.lit && (t >> 4) !== B.litStep) { B.litStep = t >> 4; this.drawLit(); }
+        if (B.hands.length) {
+            const h = Clock.hourF() % 12, R = this._rot || (this._rot = new THREE.Matrix4());
+            for (const hd of B.hands) hd.mesh.matrix.copy(hd.base).multiply(R.makeRotationZ(hd.dir * (hd.min ? (h % 1) : h / 12) * Math.PI * 2));
+        }
         for (const pl of B.plates) {
             const dish = typeof seatDish === 'function' ? seatDish(pl.L.dish) : null;
             if (dish === pl.dish) continue;
@@ -343,7 +350,7 @@ const EnvRoom = {
         B.group.add(g);
         B.hosts = new Map();
         B.placed = new Set();
-        B.screens = []; B.movers = []; B.plates = []; B.tops = []; B.lit = null;
+        B.screens = []; B.movers = []; B.hands = []; B.plates = []; B.tops = []; B.lit = null;
         // (pieces standing on others go after them, so their table's top is known)
         list.sort((p, q) => (p.def.kind === 'top' && p.item.on != null ? 1 : 0) - (q.def.kind === 'top' && q.item.on != null ? 1 : 0));
         for (const e of list) {
