@@ -1,13 +1,38 @@
 /* ---- 67_laptop.js ---- */
-/* Sarah's laptop: IslandMart, the island's online shop. Every outfit, accessory, piece of furniture, wallpaper and
-   floor, in stock every day, and anything she's ever had, to order again. Orders come in tomorrow's mail, all in one box. */
+/* Sarah's laptop: IslandMart, the island's online shop. This week's stock of furniture, clothes, wallpaper and floors (new
+   every Monday: so many of each kind, picked from the seed, so a week is never all chairs and nobody can buy everything at
+   the start: David, 27 October), and anything she's ever had, to order again. Orders come in tomorrow's mail, in one box. */
 const LAPTOP_TABS = [['furniture', 'Furniture'], ['clothes', 'Clothes'], ['decor', 'Wallpaper & floors'], ['again', 'Order again'], ['orders', 'My orders']];
-function laptopCatalog(tab) {
+/* how many of each kind a week */
+const MART_WEEK = { floor: 12, wall: 4, rug: 2, top: 5, outfit: 5, acc: 6, walls: 5, floors: 5 };
+/* the kinds of floor furniture, taken in turn so the week's twelve are a mix */
+const MART_GROUPS = [['seat', /chair|stool|sofa|beanbag|cushion|hammock|bench/], ['table', /table|desk|counter|stand|case|conveyor|stove|fountain/],
+    ['store', /shelf|dresser|rack|cabinet|mirror|trunk|chest/], ['light', /lamp|lantern|light|projector/], ['plant', /plant|bonsai|cactus|herb|sunflower|planter/],
+    ['bed', /bed|tatami|futon/]];
+/* the week number (weeks start on Monday) and the days till the next */
+function martWeek(day) { return Math.floor(((day == null ? Clock.dayNum() : day) + 3) / 7); }
+function martDaysLeft() { return 7 - ((Clock.dayNum() + 3) % 7); }
+function laptopAll(tab) {
     const ok = id => ITEMS[id] && ITEMS[id].price > 0;
     if (tab === 'clothes') return Object.keys(ITEMS).filter(id => ok(id) && (ITEMS[id].type === 'outfit' || ITEMS[id].type === 'acc'));
     if (tab === 'decor') return GD.walls.concat(GD.floors).filter(ok);
-    return Object.keys(FURN).filter(id => ok(id) && !FURN[id].fixture && !FURN[id].prize && !FURN[id].pottery && !FURN[id].art && FURN[id].price > 0)
-        .sort((a, b) => (FURN[a].sets[0] || '').localeCompare(FURN[b].sets[0] || '') || ITEMS[a].price - ITEMS[b].price);
+    return Object.keys(FURN).filter(id => ok(id) && !FURN[id].fixture && !FURN[id].prize && !FURN[id].pottery && !FURN[id].art && FURN[id].price > 0);
+}
+/* this week's stock on a tab */
+function laptopCatalog(tab, day) {
+    const r = mulberry(hash32((S.seed || 'x') + ':mart:' + martWeek(day))), shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+    const all = laptopAll(tab), out = [];
+    if (tab === 'clothes') for (const t of ['outfit', 'acc']) out.push(...shuffle(all.filter(id => ITEMS[id].type === t)).slice(0, MART_WEEK[t]));
+    else if (tab === 'decor') { out.push(...shuffle(all.filter(id => GD.walls.includes(id))).slice(0, MART_WEEK.walls)); out.push(...shuffle(all.filter(id => GD.floors.includes(id))).slice(0, MART_WEEK.floors)); }
+    else {
+        for (const k of ['wall', 'rug', 'top']) out.push(...shuffle(all.filter(id => FURN[id].kind === k)).slice(0, MART_WEEK[k]));
+        // (floor pieces a kind at a time: a seat, a table, a shelf, a lamp, a plant, a bed, something else, round again)
+        const floor = all.filter(id => FURN[id].kind === 'floor'), groups = MART_GROUPS.map(([, re]) => shuffle(floor.filter(id => re.test(id)))), rest = shuffle(floor.filter(id => !MART_GROUPS.some(([, re]) => re.test(id))));
+        groups.push(rest);
+        for (let n = 0, i = 0; n < MART_WEEK.floor && groups.some(g => g.length); i++) { const g = groups[i % groups.length]; if (g.length) { out.push(g.shift()); n++; } }
+        out.sort((a, b) => (FURN[a].sets[0] || '').localeCompare(FURN[b].sets[0] || '') || ITEMS[a].price - ITEMS[b].price);
+    }
+    return out;
 }
 /* Order again (David, 27 October): anything Sarah has ever had (S.seen, and what's in her wardrobe), in this order,
    but not what's one of a kind or earned: quest things, keepsakes, lost things, gifts and holiday rewards
@@ -106,8 +131,9 @@ function openLaptop() {
                     list.appendChild(row(id, againPrice(id)));
                 }
             } else {
-                P.body.appendChild(el('p', 'muted', tab === 'clothes' ? 'Every outfit and accessory on the island. Clothes go to your pocket when the box comes; wear them from the wardrobe.'
-                    : tab === 'decor' ? 'Every wallpaper and floor. Put them up while decorating.' : 'The whole catalog, every day. Orders arrive in tomorrow\'s mail.'));
+                const left = martDaysLeft(), when = left === 1 ? 'tomorrow' : `in ${left} days`;
+                P.body.appendChild(el('p', 'muted', (tab === 'clothes' ? "This week's clothes. They go to your pocket when the box comes; wear them from the wardrobe."
+                    : tab === 'decor' ? "This week's wallpaper and floors. Put them up while decorating." : "This week's furniture. Orders arrive in tomorrow's mail.") + ` New stock every Monday (${when}). Anything you've had is always in Order again.`));
                 const list = el('div', 'list');
                 for (const id of laptopCatalog(tab)) list.appendChild(row(id, ITEMS[id].price));
                 P.body.appendChild(list);

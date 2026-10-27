@@ -151,8 +151,9 @@ Status: [x] done, [~] in progress, [ ] not started.
   Draw distance, each Auto, which is the device's own, or picked; kept per device)
 
 ## Friendship, deeper (David, 27 October: for a later addition)
-- [ ] Nicknames: once a neighbor is a good enough friend they ask if they can call Sarah something (their own idea, or
-  she suggests one), and use it from then on; she can ask them to change it
+- [x] Nicknames: once a neighbor is a good enough friend they ask if they can call Sarah something (their own idea, or
+  she suggests one), and use it from then on; she can ask them to change it (at four hearts; "Call me something
+  else?" in the talk menu)
 - [x] Catchphrases: every neighbor has one, said at the end of lines; after raising friendship Sarah can give them a new
   one (and they react to it in their own way) (at four hearts, from the talk menu; or at the Town Hall's Residents)
 - [ ] A more in-depth friendship system: more than hearts going up. Friendship that grows from many kinds of time spent
@@ -163,11 +164,14 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] And so on: David will add more ideas here
 
 ## A lived-in island (David, 27 October: for later)
-- [ ] Each neighbor plans their day every morning and lives it at set times, whether or not anyone is playing: say work,
+- [~] Each neighbor plans their day every morning and lives it at set times, whether or not anyone is playing: say work,
   lunch at home on their own, the Bank after work, picking some fruit, fishing, selling the catch, visiting a friend, bed.
   Sarah could follow one all day and watch them do it. Worked out from the day and the hour, so wherever she looks in,
   everyone is where their day has taken them. It only has to look real (no crops or stock actually tracked): the farmers
-  tend the fields, pack the produce and deliver it to the store each morning, and neighbors go and buy it
+  tend the fields, pack the produce and deliver it to the store each morning, and neighbors go and buy it (already: a
+  plan each morning worked out from the day and hour, work, shopping, benches, the club; now also lunch at home or at
+  Mac's, and fishing where there's water. Still to come: the Bank after work, selling the catch, visiting a friend's
+  house, the farm's deliveries)
 - [x] Vacations, now and then (rare, and marked on the calendar): a neighbor packs their bags, walks to the pier with
   friends seeing them off, and a boat comes for them; friends get a postcard, good friends a souvenir in the mail, and they
   come home after a few days (each neighbor about once every two and a half months, to a place of their own: Sully to
@@ -175,9 +179,11 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] Much more said overhead: lines of each neighbor's own and plenty shared between them, so hearing the same thing twice
   is rare (about a hundred conversations anyone can have, four to six of each neighbor's own, more for rain, snow,
   mornings, evenings, nights and each season; the last forty heard wait their turn)
-- [ ] IslandMart's stock changes every week: so many of each kind (chairs, wall pieces, plants...), picked at random so a
+- [~] IslandMart's stock changes every week: so many of each kind (chairs, wall pieces, plants...), picked at random so a
   week is never all chairs, so Sarah can't buy everything at the start. Many more pieces too: every piece of furniture in
-  four colors (the model's parts painted differently), named like "Large couch (pink)"
+  four colors (the model's parts painted differently), named like "Large couch (pink)" (the weekly stock is done: new
+  every Monday, a third of the catalog in a mix of kinds, everything she's had still in Order again; the colors are
+  still to come)
 - [ ] The achievements that unlock outfits, songs, recipes and the like much harder and spread out over a long time
 - [x] Neighbors turn round to face Sarah when she talks to them
 - [x] Lots of things they do when they're not busy, each its own animation: looking at the stars, eating a snack, sitting

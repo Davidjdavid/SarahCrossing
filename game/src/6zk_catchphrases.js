@@ -38,7 +38,7 @@ function catchTail(id) {
 /* keep what Sarah types tidy: a word or two, no strange characters, sixteen letters at most */
 function catchClean(v) { return String(v || '').replace(/[^\p{L}\p{N} '!?.,-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16); }
 /* a little text box over the game: resolves with what was typed, '' for "their own", or null when closed */
-function askText(title, label, value, max, own) {
+function askText(title, label, value, max, own, go) {
     return new Promise(res => {
         let done = false;
         const fin = v => { if (done) return; done = true; UI.close(true); res(v); };
@@ -50,7 +50,7 @@ function askText(title, label, value, max, own) {
         f.appendChild(inp);
         P.body.appendChild(f);
         const row = el('div', 'st-row');
-        row.appendChild(chip('Teach it', () => fin(catchClean(inp.value) || null), 'go'));
+        row.appendChild(chip(go || 'Teach it', () => fin(catchClean(inp.value) || null), 'go'));
         if (own) row.appendChild(chip(own, () => fin('')));
         row.appendChild(chip('Never mind', () => fin(null)));
         P.body.appendChild(row);

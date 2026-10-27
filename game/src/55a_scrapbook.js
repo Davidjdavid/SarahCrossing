@@ -56,6 +56,10 @@ const SCRAP_BIO = {
         waterfall: 'The falls, coming down off the mountain in steps.',
         camp: 'The campsite: tents, a campfire and a picnic table.',
         farm: 'The farm: fields, a scarecrow or two, and the community garden.',
+        treelights: 'The grand tree in its Winter Lights: colored bulbs on every bough and a gold star on top.',
+        snowman: 'A snowman with a carrot nose, a red scarf and a little top hat. Nobody admits to building it.',
+        cafelot: 'A lot on Market Lane, set aside for a coffee shop. Coming soon, says the sign.',
+        landsale: 'A plot of land for sale, where a new neighbor might live one day.',
     },
     wild: {
         bird: 'Little birds peck about in the grass and scatter at a run.', squirrel: 'Squirrels live in the woods. Always busy.',
@@ -94,10 +98,13 @@ const Scrapbook = {
             if (e.npc && NPC_DEFS[e.id] && on(e.x, e.y, 10)) add('npc:' + e.id, NPC_DEFS[e.id].name);
             else if (e.kind === 'building' && on(e.x, e.y - 8)) add('place:' + e.id, e.id.startsWith('h_') ? bldName(e.id) : cap(bldName(e.id)));
             else if (e.kind === 'bigtree' && on(e.x, e.y, 20)) add('place:bigtree', 'The grand tree');
+            // (the holidays' things: the tree lit up for the Winter Lights, a snowman)
+            else if (e.holiday && e.grand === 'grand_lights' && on(e.x, e.y - 1, 20)) add('place:treelights', 'The grand tree, lit up');
+            else if (e.holiday && e.model3d === 'snowman' && on(e.x, e.y)) add('place:snowman', 'A snowman');
             else if (e.kind === 'sailboat' && on(e.x, e.y)) add('place:boat', 'Sarah\'s boat');
             else if (e.px != null && on(e.x, e.y)) {
                 const P = { fountain_grand: ['fountain', 'The fountain'], statue_david: ['statue', 'David\'s statue'], windmill: ['windmill', 'The windmill'], well: ['well', 'The well'],
-                    tent: ['camp', 'The campsite'], scarecrow: ['farm', 'The farm'] }[e.kind];
+                    tent: ['camp', 'The campsite'], scarecrow: ['farm', 'The farm'], sign_lot: ['cafelot', 'The coffee shop lot'], sign_land: ['landsale', 'Land for sale'] }[e.kind];
                 if (P) add('place:' + P[0], P[1]);
             } else if (e.kind === 'item' && on(e.x, e.y) && ITEMS[e.id]) add('thing:' + e.id, itemName(e.id));
             else if (e.furn && e.item && ITEMS[e.item.id] && on(e.x, e.y)) add('thing:' + e.item.id, itemName(e.item.id));

@@ -181,7 +181,7 @@ function makePlan(id, day) {
     else segs.push({ a: t, b: bed, spot: 'home' });                  // (right away: no gap to wander home in)
     if (d.early) { segs.push({ a: 28, b: 29, spot: 'jog' }); }
     // jump rope in the plaza, then today's storyline, may send people somewhere (the rope, a date, a party)
-    const o = (ropeOverride(id, day) || []).concat(Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || [], vacationOverride(id, day) || []);
+    const o = (lunchOverride(id, day, d, work) || []).concat(ropeOverride(id, day) || [], Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || [], vacationOverride(id, day) || []);
     for (const [spot, a, b] of o) {
         const more = [];
         for (const s of segs) {
@@ -203,6 +203,17 @@ function makePlan(id, day) {
         else if (next && !next.ov && Math.abs(next.a - s.b) < 0.02) { next.a = s.a; live.splice(i--, 1); }
     }
     return { day, wake, bed, segs: live };
+}
+/* lunch (David, 27 October: neighbors who plan their day, "lunch at home on their own"): most days a neighbor who isn't
+   working at noon goes home for lunch, some days to Mac's (when it's open), now and then they skip it; anything planned
+   that day (the rope, a storyline, an invitation, an outing) comes first */
+function lunchOverride(id, day, d, work) {
+    if (d.goat || d.dj || d.shop || d.spring || d.visitor || !d.house) return null;
+    const r = mulberry(hash32(S.seed + ':lunch:' + id + ':' + day)), x = r(), a = 11.75 + r() * 0.75, b = a + 0.6 + r() * 0.3;
+    if ((work || []).some(w => w.a < b && w.b > a)) return null;
+    if (x < 0.6) return [['home', a, b]];
+    if (x < 0.85 && ROOMS.restaurant && roomOpen('restaurant', a) && roomOpen('restaurant', b)) return [['in_restaurant', a, b]];
+    return null;
 }
 /* Visitors don't live here: once in a while one of them comes over on the boat and stays a day, or camps a night or
    two in a tent at the campsite. Every visit is worked out from the island's seed, so it's the same whenever you look. */

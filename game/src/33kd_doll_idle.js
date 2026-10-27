@@ -13,6 +13,8 @@ const IDLE_ACTS = {
     ground: { hand: null, face: 'happy' },
     paint: { hand: 'style_brush', left: 'style_palette', stand: 'furn_easel', face: 'determined' },
     cup: { hand: 'style_cup', face: 'happy' },
+    // (a doll fishes in the game's own fishing pose, rod and all; a folk holds the rod out over the water)
+    fish: { hand: null, folkHand: 'style_rod', face: 'determined' },
 };
 const IDLE_BAGS = { hand: 'style_suitcase', face: 'happy' };
 /* what they say when Sarah comes up to them in the middle of it */
@@ -24,9 +26,10 @@ const IDLE_HELLO = {
     ground: ['Sit with me! The grass is soft today.', "I'm watching the clouds. That one's a dumpling.", 'Sometimes you just have to sit on the ground. It\'s the law.'],
     paint: ["Don't look yet! It's a surprise. It's the goat.", "I'm painting the island. It keeps moving. The clouds, mostly.", 'Does this look like a tree to you? Be honest. Be kind.'],
     cup: ["Cocoa? I'd share, but it's my third.", 'Nothing like something warm in a mug. Except maybe two mugs.', "Careful, it's hot. I learned that the hard way. Twice."],
+    fish: ["Shh! They're biting! ...Okay, they're not. But they might!", "I've caught three boots today. It's a boot day.", 'The trick is patience. And snacks. Mostly snacks.'],
 };
 /* who likes what (picked four times as often) */
-const IDLE_LIKES = { joe: 'book', brulee: 'paint', coco: 'phone', sully: 'cup', mac: 'snack', cece: 'snack', clementine: 'paint', kai: 'ground', cuke: 'stars', maki: 'book', chili: 'phone', ginger: 'cup', basil: 'ground', wonton: 'cup', david: 'phone', james: 'book', john: 'snack', elizabeth: 'paint' };
+const IDLE_LIKES = { joe: 'book', brulee: 'paint', coco: 'phone', sully: 'cup', mac: 'snack', cece: 'snack', clementine: 'paint', kai: 'fish', cuke: 'stars', maki: 'book', chili: 'phone', ginger: 'cup', basil: 'ground', wonton: 'cup', david: 'phone', james: 'book', john: 'snack', elizabeth: 'paint' };
 
 function idleStart(n) {
     const d = n.def, w = n.want;
@@ -41,6 +44,7 @@ function idleStart(n) {
         ground: out && !wet && h >= 9 && h < 19 && !pathAt(tx, ty) && 'gs'.includes(groundChar(tx, ty)),
         paint: out && !wet && h >= 8 && h < 18 && !!a && !a.blockedAt(tx, ty - 1),
         cup: h < 11 || h >= 17,
+        fish: out && h >= 6 && h < 20 && !!idleWater(n, a),
     };
     const like = IDLE_LIKES[n.id], pool = Object.keys(can).filter(k => can[k]).map(k => [k, k === like ? 4 : 1]);
     if (!pool.length) return;
@@ -48,7 +52,15 @@ function idleStart(n) {
     n.idle = { kind, until: G.t + 600 + rint(0, 900) };
     // (the painter faces the easel, its canvas toward us; the stargazer and the one on the grass face us)
     if (kind === 'paint') { n.dir = 'up'; n.flip = false; }
+    else if (kind === 'fish') { const w = idleWater(n, a); faceNpc(n, { x: (w[0] + 0.5) * TILE, y: (w[1] + 0.5) * TILE }); }
     else if (kind === 'stars' || kind === 'ground') n.dir = 'down';
+}
+
+/* water a tile or two from where they stand, straight ahead in one of the four ways (somewhere to cast a line) */
+function idleWater(n, a) {
+    const tx = Math.floor(n.x / TILE), ty = Math.floor((n.y - 2) / TILE);
+    for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) for (const k of [1, 2]) if (a && a.waterAt(tx + dx * k, ty + dy * k)) return [tx + dx * k, ty + dy * k];
+    return null;
 }
 
 Object.assign(EnvDolls, {
@@ -72,7 +84,7 @@ Object.assign(EnvDolls, {
                 if (!arm) return;
                 // (a folk is a chunky toy: what it holds is a little bigger, so it reads in its stubby hand)
                 const at = this.handOf(arm);
-                g.scale.setScalar(1.4);
+                g.scale.setScalar(name === 'style_rod' ? 0.8 : 1.4);
                 g.position.set(at.x + O[0] * side, at.y + O[1], at.z + O[2]);
                 arm.add(g);
             } else {
@@ -83,7 +95,7 @@ Object.assign(EnvDolls, {
             }
             d.idleThings.push(g);
         };
-        put(I.hand, 1);
+        put(d.folk ? I.folkHand || I.hand : I.hand, 1);
         put(I.left, -1);
         // the easel stands on the ground in front of them and a little to the side, turned toward them, so the canvas
         // shows past them (they face away from us to paint)
@@ -105,6 +117,7 @@ Object.assign(EnvDolls, {
         style_brush: [0, -0.02, 0.02, Math.PI, 0, 0],
         style_palette: [0, -0.02, 0.03, 0, 0, 0],
         style_suitcase: [0.02, -0.02, 0, 0, Math.PI / 2, 0],
+        style_rod: [0, -0.02, 0.02, 1.2, 0, 0],
     },
     /* a folk's hand: the point of its arm furthest from the shoulder */
     handOf(arm) {
@@ -141,6 +154,7 @@ Object.assign(EnvDolls, {
         if (k === 'stars') return { lean: -0.36, R: { up: 0.15, fwd: 0 }, L: { up: 0.15, fwd: 0 } };
         if (k === 'snack' || k === 'cup') { const b = k === 'snack' ? lift(170, 36) : lift(240, 54); return { lean: 0.06 * b, R: { up: 0.35 + 0.5 * b, fwd: -0.9 }, L: null }; }
         if (k === 'phone' || k === 'book') return { lean: 0.12, R: { up: 0.3, fwd: -1.0 }, L: { up: 0.3, fwd: -1.0 } };
+        if (k === 'fish') return { lean: 0.04, R: { up: 0.55 + Math.sin(t / 40 + seed) * 0.04, fwd: -1.1 }, L: { up: 0.4, fwd: -1.0 } };
         if (k === 'paint') return { lean: 0.05, R: { up: 0.5 + Math.sin(t / 9 + seed) * 0.15, fwd: -1.0 }, L: { up: 0.2, fwd: -0.4 } };
         return { lean: 0, R: null, L: null };
     },

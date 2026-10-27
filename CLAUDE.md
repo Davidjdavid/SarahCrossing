@@ -153,7 +153,8 @@ docs/DEPLOY.md for the server.
   hand going while their bubble is new), the other looks at them and nods now and then (`act`'s `listen`, `nod`). With
   nothing to do they find something of their own for a while (`idleStart` from updateNPC, 33kd_doll_idle.js `IDLE_ACTS`,
   `n.idle`): the stars at night, an ice cream, sitting on the grass, their phone, a book, painting at an easel, a mug of
-  cocoa, each with its own pose (`idleDoll`, `idleFolk`) and the thing in hand from props2.py (`style_book`,
+  cocoa, fishing where there's water a step or two ahead (`idleWater`; a doll in the game's fishing pose, a folk holding
+  the rod out), each with its own pose (`idleDoll`, `idleFolk`) and the thing in hand from props2.py (`style_book`,
   `style_phone`, `style_snack`, `style_cup`, `style_brush`, `style_palette`; `idleHold`, `HOLD`; a folk's hand is its
   arm's furthest point, `handOf`); who likes what is `IDLE_LIKES`. A chat, Sarah talking to them or their day moving on
   ends it, and nobody busy with something starts a chat; walk up to them and they mention it (`IDLE_HELLO`). The flat
@@ -162,6 +163,15 @@ docs/DEPLOY.md for the server.
   `catchTail`); a good friend (four hearts) takes a new one from the talk menu ("New catchphrase?", `catchFlow`, typed in
   `askText`, tidied by `catchClean`) and reacts in their own way (`CATCH_REACT`); the Town Hall's Residents sets it too. Kept
   as `S.npcs[id].catch` (missing: their own).
+- Most days a neighbor not working at noon goes home for lunch, some days to Mac's (`lunchOverride`, the first of
+  makePlan's overrides, so anything else planned that day wins).
+- IslandMart on Sarah's laptop (67_laptop.js) sells a week's stock, new every Monday (`martWeek`, `laptopCatalog(tab, day)`:
+  so many of each kind, `MART_WEEK`, floor pieces taken a kind at a time, `MART_GROUPS`), from the seed; Order again keeps
+  everything she's ever had (`laptopAgain`).
+- Nicknames (6zl_nicknames.js): at four hearts a neighbor asks once, the first time they see Sarah that day, if they can
+  call her something (`NICK_IDEAS`, or one she types, or her name; `nickAsk`); their lines then call her by it (`nickIn`
+  in `UI._line`, that neighbor's lines only), and "Call me something else?" changes it (`nickFlow`). Kept as
+  `S.npcs[id].nick` and `nickAsked`.
 - Vacations (6zj_vacations.js, `VAC`: each neighbor's place, postcard and souvenir): about once every 75 days each
   neighbor goes away for three to five days, worked out from the seed (`vacationOf`, `vacationIn`), never over their own
   day, a festival in `VAC_KEEP` or Sarah's birthday, one at a time. The plan (`vacationPlan`, after makePlan in `Plans.get`):

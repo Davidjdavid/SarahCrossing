@@ -104,6 +104,7 @@ const T = {
     VAC: ['npc', "A neighbor's postcard from their vacation (mail)"],
     CATCH: ['npc', "A neighbor's own catchphrase, said at the end of some of their lines"],
     CATCH_REACT: ['npc', 'A good friend takes the new catchphrase Sarah gave them ({c} is the catchphrase)'],
+    NICK_IDEAS: ['npc', 'The nickname a good friend would like to call Sarah'],
     CHAT_BY: ['npc', 'Starting a chat with another neighbor (speech bubbles)'],
     CHAT_JOE: ['any', 'Two neighbors chatting about Sarah and Joe (speech bubbles)'],
     CHAT_WITH_JOE: ['any', "A neighbor asks Joe about Sarah, Joe answers (speech bubbles)"],

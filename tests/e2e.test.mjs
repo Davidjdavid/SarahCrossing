@@ -786,6 +786,31 @@ test('the laptop: Order again lists what Sarah has had, but not quest things, ke
   await page.context().close();
 });
 
+test('IslandMart: a new stock every Monday, so many of each kind (never all chairs), the same all week', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(() => {
+    const today = Clock.dayNum(), monday = today - ((today + 3) % 7), key = (d) => ['furniture', 'clothes', 'decor'].map((t) => laptopCatalog(t, d).join()).join('|');
+    const f = laptopCatalog('furniture', monday), kinds = {};
+    for (const id of f) kinds[FURN[id].kind] = (kinds[FURN[id].kind] || 0) + 1;
+    const groups = new Set(f.filter((id) => FURN[id].kind === 'floor').map((id) => (MART_GROUPS.find(([, re]) => re.test(id)) || ['other'])[0]));
+    const clothes = laptopCatalog('clothes', monday), decor = laptopCatalog('decor', monday);
+    return {
+      kinds, mixed: groups.size >= 5,
+      clothes: [clothes.filter((id) => ITEMS[id].type === 'outfit').length, clothes.filter((id) => ITEMS[id].type === 'acc').length],
+      decor: [decor.filter((id) => GD.walls.includes(id)).length, decor.filter((id) => GD.floors.includes(id)).length],
+      week: key(monday) === key(monday + 6), next: key(monday) !== key(monday + 7), fewer: f.length < laptopAll('furniture').length,
+    };
+  });
+  assert.deepEqual(res, { kinds: { floor: 12, wall: 4, rug: 2, top: 5 }, mixed: true, clothes: [5, 6], decor: [5, 5], week: true, next: true, fewer: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('the arcade back room: a hidden mystery from Chili to Sully to the lighthouse, then the door opens', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
@@ -934,7 +959,19 @@ test('neighbors find things of their own to do (the stars only at night), a chat
     free(n, 116, 110);
     const night = kinds(22), noon = kinds(12);
     out.night = night.has('stars') && !night.has('snack');
-    out.noon = !noon.has('stars') && noon.has('snack') && [...noon].every((k) => IDLE_ACTS[k]);
+    out.noon = !noon.has('stars') && noon.has('snack') && !noon.has('fish') && [...noon].every((k) => IDLE_ACTS[k]);
+    // by the water a line goes in too (facing the water)
+    const a = G.areas.island; let edge = null;
+    for (let y = 40; y < 150 && !edge; y++) for (let x = 20; x < 200 && !edge; x++) if (!a.blockedAt(x, y) && !a.waterAt(x, y) && a.waterAt(x, y + 1) && !pathAt(x, y)) edge = [x, y];
+    __dbg.setTime(6, 12, 12); G.weather = 'sunny'; free(n, edge[0] + 0.5, edge[1] + 0.6);
+    let fish = false;
+    for (let i = 0; i < 200 && !fish; i++) { n.idle = null; idleStart(n); fish = !!n.idle && n.idle.kind === 'fish'; }
+    out.fish = fish && n.dir === 'down';
+    n.idle = null;
+    // lunch: most days home or at Mac's round noon
+    let lunches = 0;
+    for (let d = 0; d < 20; d++) { const p = makePlan('maki', Clock.dayNum() + d); if (p.segs.some((s) => (s.spot === 'home' || s.spot === 'in_restaurant') && s.a >= 11.7 && s.a <= 12.6)) lunches++; }
+    out.lunch = lunches >= 10;
     // busy with something: no chat; walking off ends it
     __dbg.setTime(6, 12, 12);
     free(n, 116, 110);
@@ -957,7 +994,7 @@ test('neighbors find things of their own to do (the stars only at night), a chat
     Chats.end(c);
     return out;
   });
-  assert.deepEqual(res, { night: true, noon: true, busy: true, ended: true, chat: { talks: true, listens: true, text: true }, nods: true });
+  assert.deepEqual(res, { night: true, noon: true, fish: true, lunch: true, busy: true, ended: true, chat: { talks: true, listens: true, text: true }, nods: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
@@ -1050,6 +1087,41 @@ test('catchphrases: each neighbor ends some lines with theirs; a good friend tak
     return out;
   });
   assert.deepEqual(res, { own: true, tidy: true, early: true, offered: true, taught: { kept: true, react: true, ends: true, once: true }, saved: true, back: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('nicknames: a good friend asks once if they can call Sarah something, uses it in their lines, and she can change it', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, n = NPCs.get('cece'), r = rel('cece'), nm = S.playerName || 'Sarah';
+    r.met = true; r.pts = HEARTS[4]; r.talkDay = -1;
+    const say = UI.say, ask = UI.ask, text = window.askText;
+    let asked = 0;
+    UI.say = async () => {};
+    UI.ask = async (who, t, choices) => { if (choices[0] === 'Sure, I love it!') { asked++; return 0; } return choices.length - 1; };
+    try {
+      await neighborTalk(n);
+      out.first = { asked, nick: r.nick };
+      r.talkDay = -1;
+      await neighborTalk(n);
+      out.once = asked === 1;
+      out.lines = { mine: nickIn('cece', 'Hi, {name}! ' + nm + ' is here.') === 'Hi, Sweetie! Sweetie is here.', others: nickIn('kai', 'Hi, {name}!') === 'Hi, {name}!' };
+      window.askText = async () => 'Sar-bear';
+      await nickFlow(n);
+      out.changed = r.nick === 'Sar-bear';
+      window.askText = async () => '';
+      await nickFlow(n);
+      out.back = !r.nick && nickIn('cece', 'Hi, {name}!') === 'Hi, {name}!';
+    } finally { UI.say = say; UI.ask = ask; window.askText = text; }
+    return out;
+  });
+  assert.deepEqual(res, { first: { asked: 1, nick: 'Sweetie' }, once: true, lines: { mine: true, others: true }, changed: true, back: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

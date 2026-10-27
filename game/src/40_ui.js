@@ -27,7 +27,8 @@ const UI = {
         return idx;
     },
     _line(sp, text, opts) {
-        text = fillText(text);
+        // (a good friend calls Sarah by the nickname they gave her: 6zl_nicknames.js)
+        text = fillText(typeof nickIn === 'function' ? nickIn(sp, text) : text);
         const box = $('#dialog'), tag = $('#nametag'), dt = $('#dtext'), nx = $('#dnext'), bub = $('#bubble');
         box.hidden = false;
         this.dialogOpen = true;

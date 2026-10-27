@@ -123,6 +123,8 @@ Object.assign(EnvDolls, {
         let pk = sit ? 'sit' : null;
         if (!pk && e.tool) { const k = e.tool.kind, ph = e.tool.t < (k === 'axe' ? 10 : 12) ? 0 : 1; pk = k === 'axe' ? 'axe' + ph : k === 'can' ? 'water' : 'dig' + ph; }
         if (!pk && e.pose && e.pose !== 'walk') pk = e.pose;
+        // (a neighbor fishing on their own, 33kd_doll_idle.js: the game's fishing pose, rod and all)
+        if (!pk && !walk && e.idle && e.idle.kind === 'fish') pk = 'fish';
         if (e === G.player && G.held && !sit) pk = 'holdup';
         const Q = pk && this.POSES[pk];
         // which way: where it's going (smoothly), or the way it faces; a pose faces us; a glance looks back at whoever

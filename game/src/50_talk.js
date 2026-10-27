@@ -138,6 +138,8 @@ async function neighborTalk(n) {
     // in the middle of something of their own: a book, an ice cream, the stars
     if (n.idleWas && IDLE_HELLO[n.idleWas]) await UI.say(id, voiced(id, rpick(IDLE_HELLO[n.idleWas])), { keep: true });
     n.idleWas = null;
+    // good friends now: can they call her something? (once: 6zl_nicknames.js)
+    if (firstToday && hearts(id) >= 4 && !r.nickAsked && NICK_IDEAS[id]) await nickAsk(n);
     // photo at five hearts
     if (hearts(id) >= 5 && !r.photo) {
         r.photo = true;
@@ -166,6 +168,7 @@ async function neighborTalk(n) {
         if (r.hugDay !== day) add('Hug', async () => { await hugFlow(n); return true; });
         // a good friend takes a new catchphrase (6zk_catchphrases.js)
         if (hearts(id) >= 4 && r.catchDay !== day && CATCH[id]) add('New catchphrase?', async () => { await catchFlow(n); return true; });
+        if (r.nickAsked && hearts(id) >= 4 && r.nickDay !== day) add('Call me something else?', async () => { await nickFlow(n); return true; });
         for (const o of Requests.options(n)) add(o.label, o.fn);
         for (const o of Quests.options(n)) add(o.label, o.fn);
         for (const o of civicOptions(n)) add(o.label, o.fn);
