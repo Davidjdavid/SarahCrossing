@@ -510,13 +510,21 @@ function editLabel(id, back) {
 }
 
 /* ---------------------------------------------------------------- the museum pedestals */
+/* what stands on the pottery hall's pedestals: Sarah picks (A.peds), or else her newest pieces (a pedestal added since she
+   last chose takes a piece that isn't out yet) */
 function museumPeds() {
-    const A = artState();
-    if (Array.isArray(A.peds)) return MUSEUM_PEDESTALS.map((_, i) => { const id = A.peds[i]; return id && FURN[id] ? id : null; });
-    const pots = A.pots.slice(-MUSEUM_PEDESTALS.length).reverse().filter(id => FURN[id]);
+    const A = artState(), n = MUSEUM_PEDESTALS.length;
+    if (Array.isArray(A.peds)) {
+        const out = MUSEUM_PEDESTALS.map((_, i) => { const id = A.peds[i]; return id && FURN[id] ? id : null; });
+        if (A.peds.length < n) { const rest = museumPedPool().filter(id => !out.includes(id)); for (let i = A.peds.length; i < n; i++) out[i] = rest.shift() || null; }
+        return out;
+    }
+    const pots = A.pots.slice(-n).reverse().filter(id => FURN[id]);
     if (!pots.length) return MUSEUM_PEDESTALS.map((_, i) => ['orange_vase', 'rose_vase'][i] || null);
     return MUSEUM_PEDESTALS.map((_, i) => pots[i] || null);
 }
+const PED_SPOT_NAMES = ['Back row, left of the middle', 'Back row, right of the middle', 'Back row, third from the left', 'Back row, third from the right',
+    'Back row, far left', 'Back row, far right', 'Front row, left of the middle', 'Front row, right of the middle', 'Front row, far left', 'Front row, far right'];
 function museumPedPool() {
     const A = artState();
     return [...new Set(A.pots.filter(id => FURN[id]).reverse().concat(['orange_vase', 'rose_vase'].filter(id => FURN[id])))];
@@ -524,13 +532,13 @@ function museumPedPool() {
 function museumPedestals() {
     return new Promise(res => {
         const A = artState();
-        if (!Array.isArray(A.peds)) A.peds = museumPeds();
+        if (!Array.isArray(A.peds) || A.peds.length < MUSEUM_PEDESTALS.length) A.peds = museumPeds();
         const P = UI.open({ title: 'The pedestals', onClose: () => { refreshMuseum(); Save.touch(); res(); } });
         let pick = null;
         const draw = () => {
             P.body.innerHTML = '';
             if (pick == null) {
-                P.body.appendChild(el('p', 'muted', 'Five pedestals, one under each painting. Pick one to choose what stands on it: any pottery you have donated, or one of Brulee\'s vases.'));
+                P.body.appendChild(el('p', 'muted', 'Ten pedestals in the pottery hall. Pick one to choose what stands on it: any pottery you have donated, or one of Brulee\'s vases.'));
                 const list = el('div', 'list');
                 MUSEUM_PEDESTALS.forEach((x, i) => {
                     const id = A.peds[i];
@@ -538,7 +546,7 @@ function museumPedestals() {
                     row.type = 'button';
                     row.appendChild(iconCanvas(id ? itemIcon(id) : 'f_pedestal', 40));
                     const t = el('div', 't');
-                    t.appendChild(el('b', null, WALL_SPOT_NAMES[i]));
+                    t.appendChild(el('b', null, PED_SPOT_NAMES[i]));
                     t.appendChild(el('span', null, id ? `"${itemName(id)}"` : 'An empty pedestal'));
                     row.appendChild(t);
                     row.addEventListener('click', () => { pick = i; Sfx.ui('tick'); draw(); });
@@ -547,7 +555,7 @@ function museumPedestals() {
                 P.body.appendChild(list);
                 return;
             }
-            P.body.appendChild(el('p', 'muted', `What should stand on the pedestal: ${WALL_SPOT_NAMES[pick].toLowerCase()}?`));
+            P.body.appendChild(el('p', 'muted', `What should stand on the pedestal: ${PED_SPOT_NAMES[pick].toLowerCase()}?`));
             const grid = el('div', 'grid');
             const put = id => {
                 const old = id ? A.peds.indexOf(id) : -1;

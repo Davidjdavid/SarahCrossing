@@ -296,7 +296,8 @@ const Photos = {
     add(url, tags) {
         const l = this.list();
         l.unshift(tags && tags.length ? { url, t: Date.now(), tags } : { url, t: Date.now() });
-        while (l.length > 12) l.pop();
+        // (twelve of its own: what hangs in the museum's photography wing, museum set, doesn't count and stays)
+        while (l.filter(p => p.museum == null).length > 12) l.splice(l.map(p => p.museum == null).lastIndexOf(true), 1);
         this.keep(l);
         return true;
     },

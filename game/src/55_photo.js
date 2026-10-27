@@ -150,6 +150,8 @@ const Photo = {
             const im = new Image();
             im.src = ph.url; im.className = 'photo'; im.alt = 'Photo ' + (i + 1);
             b.appendChild(im);
+            // (one hung in the museum's photography wing says so)
+            if (ph.museum != null) { b.style.position = 'relative'; const tag = el('span', 'pill', 'In the museum'); tag.style.cssText = 'position:absolute;left:6px;bottom:6px'; b.appendChild(tag); }
             b.addEventListener('click', () => this.view(i));
             grid.appendChild(b);
         });
@@ -163,6 +165,7 @@ const Photo = {
         im.src = ph.url; im.className = 'photo'; im.alt = ph.tags && ph.tags.length ? 'Photo: ' + ph.tags.join(', ') : 'Photo';
         P.body.appendChild(im);
         // (what's in it, as little tags)
+        if (ph.museum != null) P.body.appendChild(el('p', 'muted', `"${ph.title || 'A photo'}" hangs in the museum's photography wing. Deleting it here takes it down there too.`));
         if (ph.tags && ph.tags.length) {
             const tg = el('div', 'phototags');
             for (const t of ph.tags) tg.appendChild(el('span', 'pill', t));

@@ -192,6 +192,12 @@ test('photos are kept with the island', async () => {
   assert.equal((await api('PUT', `/api/islands/${island.id}/photos`, { photos })).status, 200);
   assert.deepEqual((await (await api('GET', `/api/islands/${island.id}/photos`)).json()).photos, photos);
   assert.equal((await api('PUT', `/api/islands/${island.id}/photos`, { photos: [{ url: 'https://x', t: 1 }] })).status, 400);
+  // one hung in the museum's photography wing: its spot, its card's name, a real photo uploaded
+  const hung = [{ url: 'data:image/jpeg;base64,/9j/4AAQ', t: 124, museum: 3, title: 'Grandma\'s garden', real: true }, { url: 'data:image/jpeg;base64,/9j/4AAQ', t: 125, tags: ['Joe'] }];
+  assert.equal((await api('PUT', `/api/islands/${island.id}/photos`, { photos: hung })).status, 200);
+  assert.deepEqual((await (await api('GET', `/api/islands/${island.id}/photos`)).json()).photos, hung);
+  assert.equal((await api('PUT', `/api/islands/${island.id}/photos`, { photos: [{ url: 'data:image/jpeg;base64,AAAA', t: 1, museum: 'wall' }] })).status, 400);
+  assert.equal((await api('PUT', `/api/islands/${island.id}/photos`, { photos: [{ url: 'data:image/jpeg;base64,AAAA', t: 1, title: 'x'.repeat(61) }] })).status, 400);
 });
 
 test("the game's problem reports end up in the server log", async () => {

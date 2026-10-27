@@ -163,12 +163,28 @@ docs/DEPLOY.md for the server.
   `catchTail`); a good friend (four hearts) takes a new one from the talk menu ("New catchphrase?", `catchFlow`, typed in
   `askText`, tidied by `catchClean`) and reacts in their own way (`CATCH_REACT`); the Town Hall's Residents sets it too. Kept
   as `S.npcs[id].catch` (missing: their own).
+- The museum is in rooms (65a_museum_wings.js, David's note of 26 October): the hall (65_museum.js: Brulee's desk, the easel
+  corner) has an archway for each wing on its back wall (`MUSEUM_WINGS`; the wall tile is open and walking up into it goes
+  through: `a.upDoors`, checked in `afterMove`; each wing's room has `exitTo: 'museum'`). The gallery (`MUSEUM_WALL`: five
+  on the wall, three easels), the pottery hall (`MUSEUM_PEDESTALS`, ten; an older save's shorter `hung`/`peds` lists fill
+  the new spots from what isn't out), the aquarium (`AQUARIUM`: every fish but the boot, from the start; in the new look
+  the fish swim in `furn_fish_tank`, `EnvRoom.animate`), photography (`MUSEUM_PHOTO_SPOTS`: an album photo with `museum`
+  set hangs there, `title` its card, `real` for one uploaded from the device, shrunk to 720 pixels; the album's twelve
+  don't count it, and the server keeps the fields), fashion (`MUSEUM_FORMS`: dress forms in copies of Sarah's designs,
+  `S.art.fashion`) and island history (`MUSEUM_HISTORY`: a case per old mystery, its keepsake once solved; a founding
+  plaque). The museum's models are furn_h.py's (`museum_arch` with its name lettered on a `*_pic` plaque, `fish_tank`,
+  `touch_pool`, `display_case`). `EnvRoom.pic` takes a picture made while playing (`Assets.dyn`, with `hi` a sharper copy
+  for the new look), so Sarah's paintings and the photos hang as framed pictures there.
 - Karaoke has a request each night (`karaokeRequest`: one of the poems Sarah has, from the seed and the day), first in the
   list and on the board; the first time she sings it that night the crowd tips 200 more.
 - Most days a neighbor not working at noon goes home for lunch, some days to Mac's (`lunchOverride`, the first of
   makePlan's overrides, so anything else planned that day wins), and some evenings two neighbors pair up for a visit, one
   at the other's house while the host stays home (`friendVisits`/`visitOverride`: from the day alone, so both plans agree);
-  after work, some days, an errand at the Bank or the Post Office where those rooms are open (`errandOverride`).
+  after work, some days, an errand at the Bank or the Post Office where those rooms are open (`errandOverride`). Each
+  morning the farmer (`FARMER`, Cuke) waters the fields and carries a basket to Fortune's, and some afternoons the fisher
+  (`FISHER`, Kai) fishes off the pier and takes the catch to the shop (`farmOverride`, `catchOverride`): an override can
+  carry extras for its stretch of the day (`tend`, `fish`: what they do there, in `idleStart`; `carry`: what's in hand on
+  the way, `CARRY` in 33kd_doll_idle.js, props2.py's `style_basket`, `style_bucket`, the vacation's suitcase).
 - IslandMart on Sarah's laptop (67_laptop.js) sells a week's stock, new every Monday (`martWeek`, `laptopCatalog(tab, day)`:
   so many of each kind, `MART_WEEK`, floor pieces taken a kind at a time, `MART_GROUPS`), from the seed; Order again keeps
   everything she's ever had (`laptopAgain`).

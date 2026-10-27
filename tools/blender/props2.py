@@ -500,7 +500,51 @@ def suitcase():
     return [(mb, 'main'), (gl, 'gloss')]
 
 
-PROPS = {'style_stool': stool, 'style_suitcase': suitcase, 'style_book': book, 'style_phone': phone, 'style_snack': snack, 'style_cup': cup, 'style_brush': brush, 'style_palette': palette, 'style_bench': bench, 'style_lamp': lamp, 'style_armchair': armchair, 'style_cake': cake, 'style_shovel': shovel, 'style_rod': rod}
+def basket():
+    """The farm's morning delivery (22_npc.js farmOverride): a woven basket heaped with the day's vegetables, carried by
+    its handle (the origin, at the top of the handle; the basket hangs below)."""
+    mb = MB()
+    top, H, R = -0.13, 0.12, 0.11
+    weave = lambda p, n, *_: rgb('#c8945a').lerp(rgb('#8a5a30'), 0.5 + 0.5 * math.sin(p.z * 160) * math.sin(math.atan2(p.y, p.x) * 18)) * (0.82 + 0.25 * max(0.0, n.z))
+    lathe(mb, [(R * 0.7, top - H), (R * 0.95, top - H + 0.02), (R, top - 0.03), (R * 1.04, top)], weave, seg=24, cap_bot=True, cap_top=False)
+    ring = [(math.cos(k / 24 * math.tau) * R * 1.04, math.sin(k / 24 * math.tau) * R * 1.04, top) for k in range(25)]
+    tube(mb, ring, 0.011, shade('#7a4a28'), seg=6)
+    # the handle, arching over
+    tube(mb, [(-R, 0, top), (-R * 0.8, 0, top + 0.06), (0, 0, top + 0.105), (R * 0.8, 0, top + 0.06), (R, 0, top)], 0.01, shade('#8a5a30'), seg=6)
+    # the vegetables: a cabbage, tomatoes, carrots poking out, a cucumber
+    ball(mb, (-0.035, 0.02, top + 0.005), 0.045, paint('#8ac85a', under=0.1), sub=2)
+    for (x, y) in ((0.04, -0.03), (0.055, 0.03), (0.0, -0.05)):
+        ball(mb, (x, y, top + 0.0), 0.026, paint('#e8402a', under=0.1), sub=2)
+    for (x, y, a) in ((0.03, 0.05, 0.4), (-0.06, -0.04, -0.5)):
+        tube(mb, [(x, y, top - 0.02), (x + math.sin(a) * 0.03, y, top + 0.05)], 0.012, shade('#f0862a'), seg=6, r1=0.004)
+        tube(mb, [(x + math.sin(a) * 0.03, y, top + 0.05), (x + math.sin(a) * 0.04, y, top + 0.08)], 0.006, shade('#5aa84a'), seg=4)
+    tube(mb, [(-0.07, 0.04, top - 0.01), (0.0, 0.06, top + 0.02), (0.06, 0.05, top + 0.005)], 0.016, paint('#3f8a3a', under=0.1), seg=8)
+    return [(mb, 'main')]
+
+
+def bucket():
+    """Kai's catch on its way to the shop (22_npc.js catchOverride): a tin pail of water with two fish tails sticking up
+    out of it, carried by its wire handle (the origin, at the top of the handle; the pail hangs below)."""
+    mb, gl = MB(), MB()
+    top, H, R = -0.12, 0.13, 0.085
+    tin = lambda p, n, *_: rgb('#9aa8b4').lerp(rgb('#d8e0e8'), max(0.0, min(1.0, 0.5 + n.x * 0.5))) * (0.85 + 0.2 * max(0.0, n.z))
+    lathe(gl, [(R * 0.8, top - H), (R * 0.82, top - H + 0.01), (R, top - 0.012), (R * 1.04, top)], tin, seg=24, cap_bot=True, cap_top=False)
+    for z in (top - H * 0.3, top - H * 0.75):
+        ring = [(math.cos(k / 24 * math.tau) * (R * 0.97 if z > top - H / 2 else R * 0.88), math.sin(k / 24 * math.tau) * (R * 0.97 if z > top - H / 2 else R * 0.88), z) for k in range(25)]
+        tube(gl, ring, 0.004, tin, seg=4)
+    cyl(mb, 0, 0, top - 0.034, top - 0.028, R * 0.95, R * 0.95, shade('#5ab0d8'), seg=24)
+    tube(gl, [(-R * 1.02, 0, top), (-R * 0.6, 0, top + 0.07), (0, 0, top + 0.1), (R * 0.6, 0, top + 0.07), (R * 1.02, 0, top)], 0.004, shade('#6a7480'), seg=4)
+    tube(mb, [(-0.02, 0, top + 0.085), (0.02, 0, top + 0.085)], 0.012, shade('#5a3a28'), seg=6)
+    # two fish, tails up out of the water
+    for (x, y, c, a) in ((-0.03, 0.01, '#4a7aa8', -0.25), (0.03, -0.015, '#e8907a', 0.3)):
+        tube(mb, [(x, y, top - 0.05), (x + math.sin(a) * 0.03, y, top + 0.03)], 0.018, paint(c, under=0.1), seg=8, r1=0.007)
+        tx, tz = x + math.sin(a) * 0.04, top + 0.045
+        for s in (-1, 1):
+            tube(mb, [(tx, y, tz - 0.01), (tx + s * 0.025, y, tz + 0.025)], 0.008, paint(c, under=0.1), seg=4, r1=0.003)
+    return [(mb, 'main'), (gl, 'gloss')]
+
+
+PROPS = {'style_stool': stool, 'style_suitcase': suitcase, 'style_basket': basket, 'style_bucket': bucket, 'style_book': book, 'style_phone': phone, 'style_snack': snack, 'style_cup': cup, 'style_brush': brush, 'style_palette': palette, 'style_bench': bench, 'style_lamp': lamp, 'style_armchair': armchair, 'style_cake': cake, 'style_shovel': shovel, 'style_rod': rod}
 
 
 def build(name):
@@ -523,7 +567,7 @@ if __name__ == '__main__':
     if prev and shown:
         ground_plane(color='#a8d088')
         light_rig()
-        xs = {'style_bench': 0, 'style_lamp': 1.7, 'style_armchair': 2.9, 'style_cake': 4.0, 'style_shovel': 4.8, 'style_rod': 4.2}
+        xs = {'style_bench': 0, 'style_lamp': 1.7, 'style_armchair': 2.9, 'style_cake': 4.0, 'style_shovel': 4.8, 'style_rod': 4.2, 'style_basket': 4.0, 'style_bucket': 4.4, 'style_suitcase': 3.6}
         for name, objs in shown:
             for o in objs:
                 o.location.x += xs.get(name, 0)
@@ -531,6 +575,8 @@ if __name__ == '__main__':
                     o.location.z += 0.8
                 if name == 'style_rod':
                     o.location.z += 0.2
+                if name in ('style_suitcase', 'style_basket', 'style_bucket'):      # (carried things hang below their handle)
+                    o.location.z += 0.32
         cam = camera((2.4, 0, 0.6), dist=6.4, pitch=20)
         render(os.path.join(prev, 'props2.png'), size=(1400, 620), samples=32)
         bpy.data.objects.remove(cam)

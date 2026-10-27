@@ -105,13 +105,17 @@ function artState() {
     if (!S.art) S.art = { seq: 1, pieces: {}, museum: [], pots: [] };
     return S.art;
 }
-/* what's on the five wall spots: Sarah picks (A.hung), or else her newest pieces, then Brulee's */
+/* what's in the gallery's spots: Sarah picks (A.hung), or else her newest pieces, then Brulee's, then the neighbors' (a
+   spot added since she last chose takes what isn't up yet) */
 function museumWall() {
-    const A = artState();
-    if (Array.isArray(A.hung)) return MUSEUM_WALL.map((_, i) => { const id = A.hung[i]; return id && museumCanHang(id) ? id : null; });
-    const shown = A.museum.slice(-MUSEUM_WALL.length).reverse().filter(id => FURN[id]);
-    const fill = shown.concat(Object.keys(ART_STARTERS)).slice(0, MUSEUM_WALL.length);
-    while (fill.length < MUSEUM_WALL.length) fill.push(null);
+    const A = artState(), n = MUSEUM_WALL.length;
+    if (Array.isArray(A.hung)) {
+        const out = MUSEUM_WALL.map((_, i) => { const id = A.hung[i]; return id && museumCanHang(id) ? id : null; });
+        if (A.hung.length < n) { const rest = museumPool().filter(id => !out.includes(id) && museumCanHang(id)); for (let i = A.hung.length; i < n; i++) out[i] = rest.shift() || null; }
+        return out;
+    }
+    const fill = museumPool().filter(id => museumCanHang(id)).slice(0, n);
+    while (fill.length < n) fill.push(null);
     return fill;
 }
 function museumHung(id) { return museumWall().includes(id); }
@@ -375,56 +379,36 @@ function critique(p) {
 }
 
 /* ---------------------------------------------------------------- the museum */
-ROOMS.museum = { w: 15, h: 8, wall: 'wall_gallery', floor: 'floor_parquet', music: 'museum', name: 'The Museum', staff: 'brulee',
-    staffAt: [12, 5], staffStand: [12, 7], guest: [7, 4, 2], build: a => buildMuseumRoom(a),
-    guestSpots: [[1, 1, 'up'], [4, 1, 'up'], [7, 1, 'up'], [10, 1, 'up'], [13, 1, 'up']],
+ROOMS.museum = { w: 17, h: 8, wall: 'wall_gallery', floor: 'floor_parquet', music: 'museum', name: 'The Museum', staff: 'brulee',
+    staffAt: [13, 5], staffStand: [13, 7], guest: [8, 5, 2], build: a => buildMuseumRoom(a),
+    guestSpots: [[5, 4, 'down'], [6, 4, 'down'], [10, 4, 'down'], [11, 4, 'down']],
     closedSign: 'THE MUSEUM. Open {hours:museum}. "Art is for everyone. Tapping the curator is for no one."' };
-const MUSEUM_WALL = [6, 3, 9, 0, 12];                 // where paintings hang, newest in the middle
-const MUSEUM_PEDESTALS = [7, 4, 10, 1, 13];           // pottery stands below them
+/* the gallery's spots (65a_museum_wings.js): five on the wall, the newest in the middle, then three easels */
+const MUSEUM_WALL = [[6, 'wall'], [3, 'wall'], [9, 'wall'], [0, 'wall'], [12, 'wall'], [1, 3], [6, 3], [11, 3]];
+/* the pottery hall's pedestals: the back row from the middle out, then the front row */
+const MUSEUM_PEDESTALS = [[5, 1], [7, 1], [3, 1], [9, 1], [1, 1], [11, 1], [4, 3], [8, 3], [2, 3], [10, 3]];
+/* the entrance hall: Brulee's desk, the easel corner, benches, and an archway into each wing on the back wall */
 function buildMuseumRoom(a) {
-    const A = artState();
-    const rows = [['museum_desk', 11, 6], ['art_supplies', 13, 6], ['museum_bench', 6, 5], ['easel', 1, 6], ['table_wood', 2, 6], ['art_supplies', 2, 6],
-        ['plant_monstera', 14, 7], ['plant_monstera', 0, 7]];
-    // paintings: whatever Sarah chose, or her newest first and then Brulee's own collection; empty frames wait for more
-    const fill = museumWall().map(id => { if (id && id.startsWith('art_by_')) npcArtPiece(id.slice(7)); return id || 'empty_frame'; });
-    MUSEUM_WALL.forEach((x, i) => rows.push([fill[i], x, 'wall']));
-    // pottery on the pedestals (big pieces stand on the floor): whatever Sarah chose, or her newest pieces
-    const peds = museumPeds();
-    MUSEUM_PEDESTALS.forEach((x, i) => {
-        const pid = peds[i];
-        if (pid && FURN[pid].kind === 'floor') { rows.push([pid, x, 3]); return; }
-        rows.push(['pedestal', x, 3]);
-        if (pid) rows.push([pid, x, 3]);
-    });
-    void A;
+    const rows = [['museum_desk', 12, 6], ['art_supplies', 14, 6], ['museum_bench', 5, 4], ['museum_bench', 10, 4], ['easel', 1, 6], ['table_wood', 2, 6], ['art_supplies', 2, 6],
+        ['plant_monstera', 0, 7], ['plant_monstera', 16, 7], ['plant_monstera', 2, 0], ['plant_monstera', 14, 0],
+        ['window_wall', 5, 'wall'], ['clock_wall', 8, 'wall'], ['window_wall', 11, 'wall']];
     const items = layoutItems(rows);
     items.forEach(it => {
         if (it.id === 'museum_desk') it.use = 'counter';
         else if (it.id === 'easel') it.use = () => museumEasel();
-        else if (FURN[it.id] && (FURN[it.id].art || ART_STARTERS[it.id])) it.use = () => viewArt(it.id);
-        else if (it.id === 'empty_frame') it.use = () => UI.say(null, 'An empty frame. A little card underneath says: "Reserved for Sarah." (Brulee can change what hangs on the walls.)');
-        else if (it.id === 'pedestal') it.use = () => UI.say(null, 'An empty pedestal. A card says: "For pottery made on this island. Ask Brulee!"');
-        else if (ITEMS[it.id] && ITEMS[it.id].pottery) it.use = () => UI.say(null, `On the pedestal: "${itemName(it.id)}." Pottery by Sarah.${labelOf(it.id) && labelOf(it.id).desc ? ` The little card says: "${labelOf(it.id).desc}"` : ' Brulee has polished it until it gleams.'}`);
-        else if (it.id === 'orange_vase' || it.id === 'rose_vase') it.use = () => UI.say(null, `On the pedestal: ${it.id === 'orange_vase' ? 'an orange vase' : 'a vase of roses'} from Brulee's own collection. It's keeping the spot warm until Sarah donates some pottery.`);
-        else if (it.id === 'museum_bench') it.use = () => UI.say(null, rpick(['Sarah sits on the gallery bench and looks at the art for a while. Very cultured.', 'A velvet bench. It is for looking at paintings. Sarah looks at paintings.']));
+        else if (it.id === 'museum_bench') it.use = () => UI.say(null, rpick(['Sarah sits on the bench in the hall. Six archways, six wings. Where first?', 'A velvet bench. From here Sarah can see into every wing. Very grand.']));
     });
     a.items = items;
     placeFurniture(a, items);
+    museumArches(a);
 }
 function bruleeVoice() { const b = NPCs.get('brulee'); return b && !b.sleeping && b.area === 'museum' ? 'brulee' : null; }
 async function museumEasel() {
     const k = await UI.ask(bruleeVoice(), bruleeVoice() ? 'The easel is free! Paint something? I will not look. (I will look.)' : 'An easel with a fresh canvas and a jar of brushes. Paint something?', ['Paint!', 'Not now']);
     if (k === 0) { UI.hideDialog(); await paintAndClose('museum'); }
 }
-/* rebuild the room around Sarah (after something new goes on display) */
-function refreshMuseum() {
-    if (G.area && G.area.id === 'museum') {
-        const p = G.player, x = p.x, y = p.y, dir = p.dir;
-        G.areas.museum = buildRoom('museum');
-        G.area = G.areas.museum;
-        p.x = x; p.y = y; p.dir = dir;
-    } else markRoomStale('museum');
-}
+/* rebuild the hall and the wings around Sarah (after something new goes on display) */
+function refreshMuseum() { for (const id of ['museum'].concat(MUSEUM_WINGS.map(W => W.id))) refreshRoomHere(id); }
 
 /* ---------------------------------------------------------------- donations */
 WORK_MENUS.brulee = { room: 'museum', label: 'Museum business', fn: () => museumMenu() };
@@ -560,17 +544,17 @@ function artThumb(id) {
     return iconCanvas('f_' + id, 48);
 }
 /* ---------------------------------------------------------------- choosing what hangs on the walls */
-const WALL_SPOT_NAMES = ['The middle', 'Left of the middle', 'Right of the middle', 'Far left', 'Far right'];
+const WALL_SPOT_NAMES = ['The middle', 'Left of the middle', 'Right of the middle', 'Far left', 'Far right', 'The left easel', 'The middle easel', 'The right easel'];
 function museumWalls() {
     return new Promise(res => {
         const A = artState();
-        if (!Array.isArray(A.hung)) A.hung = museumWall();
-        const P = UI.open({ title: 'The walls', onClose: () => { refreshMuseum(); Save.touch(); res(); } });
+        if (!Array.isArray(A.hung) || A.hung.length < MUSEUM_WALL.length) A.hung = museumWall();
+        const P = UI.open({ title: 'The gallery', onClose: () => { refreshMuseum(); Save.touch(); res(); } });
         let pick = null;
         const draw = () => {
             P.body.innerHTML = '';
             if (pick == null) {
-                P.body.appendChild(el('p', 'muted', 'Five spots on the gallery walls. Pick a spot to choose what hangs there. Anything you take down goes back into storage, safe and sound.'));
+                P.body.appendChild(el('p', 'muted', 'Eight spots in the gallery: five on the wall and three easels. Pick a spot to choose what hangs there. Anything you take down stays in the collection.'));
                 const list = el('div', 'list');
                 MUSEUM_WALL.forEach((x, i) => {
                     const id = A.hung[i], info = id && artInfo(id);
@@ -665,8 +649,8 @@ Bus.on('enter', async id => {
     G.busy++;
     await waitFrames(20);
     await UI.say('brulee', ['Bienvenue to the museum! I am Brulee, the curator. Please do not tap me. Or the art.',
-        'The walls are for paintings, the pedestals are for pottery. Right now it is mostly my work. And one goat, by David.',
-        'But this museum is for YOU. Paint at the easel in the corner, make pottery at Sully\'s, and bring me the ones you love.',
+        'Through the arches: paintings, pottery, the aquarium, photography, fashion and the island\'s history. Right now the gallery is mostly my work. And one goat, by David.',
+        'But this museum is for YOU. Paint at the easel in the corner, make pottery at Sully\'s, hang your photos, show your designs. Bring me the ones you love.',
         'I will hang them with great ceremony. Talk to me at the desk anytime.']);
     G.busy--;
 });

@@ -15,8 +15,11 @@ const IDLE_ACTS = {
     cup: { hand: 'style_cup', face: 'happy' },
     // (a doll fishes in the game's own fishing pose, rod and all; a folk holds the rod out over the water)
     fish: { hand: null, folkHand: 'style_rod', face: 'determined' },
+    // (only when their day says so: watering the farm's fields, 22_npc.js farmOverride)
+    tend: { hand: 'furn_watering_can', face: 'happy' },
 };
-const IDLE_BAGS = { hand: 'style_suitcase', face: 'happy' };
+/* what's carried on the way somewhere: a suitcase to or from a vacation, the farm's basket to the shop, the catch */
+const CARRY = { suitcase: { hand: 'style_suitcase', face: 'happy' }, crate: { hand: 'style_basket', face: 'happy' }, catch: { hand: 'style_bucket', face: 'happy' } };
 /* what they say when Sarah comes up to them in the middle of it */
 const IDLE_HELLO = {
     stars: ['Did you see that one? It winked.', "I'm counting stars. I'm at four. I keep starting over.", 'Look up! The sky is showing off tonight.'],
@@ -27,15 +30,21 @@ const IDLE_HELLO = {
     paint: ["Don't look yet! It's a surprise. It's the goat.", "I'm painting the island. It keeps moving. The clouds, mostly.", 'Does this look like a tree to you? Be honest. Be kind.'],
     cup: ["Cocoa? I'd share, but it's my third.", 'Nothing like something warm in a mug. Except maybe two mugs.', "Careful, it's hot. I learned that the hard way. Twice."],
     fish: ["Shh! They're biting! ...Okay, they're not. But they might!", "I've caught three boots today. It's a boot day.", 'The trick is patience. And snacks. Mostly snacks.'],
+    tend: ["Morning! The tomatoes like a drink before it gets hot. So do I.", 'Water, sun, a little pep talk. That\'s farming. The pep talk is the important part.', "Don't step on the carrots! They're shy."],
+    crate: ["Fresh from the farm! I'm taking it to Fortune's. Carrots, tomatoes, a cabbage. And a cucumber. Not me. A different cucumber.", 'Delivery! The shop gets the best of the fields every morning. You can buy it there!'],
+    catch: ["Look at this haul, dude! Well. Two fish. A haul is a state of mind.", "Off to sell these at Fortune's. Bro. The bucket's heavy. Respectfully."],
 };
 /* who likes what (picked four times as often) */
 const IDLE_LIKES = { joe: 'book', brulee: 'paint', coco: 'phone', sully: 'cup', mac: 'snack', cece: 'snack', clementine: 'paint', kai: 'fish', cuke: 'stars', maki: 'book', chili: 'phone', ginger: 'cup', basil: 'ground', wonton: 'cup', david: 'phone', james: 'book', john: 'snack', elizabeth: 'paint' };
 
 function idleStart(n) {
     const d = n.def, w = n.want;
-    if (n.fixed || !n.anchor || d.goat || d.spring || d.dj || d.shop || n.dancer || isSeated(n) || isLounging(n) || (w && (w.playing || w.sit || w.seat || w.jog || w.lounge || w.sleep || w.bags))) return;
+    if (n.fixed || !n.anchor || d.goat || d.spring || d.dj || d.shop || n.dancer || isSeated(n) || isLounging(n) || (w && (w.playing || w.sit || w.seat || w.jog || w.lounge || w.sleep || w.bags || w.carry))) return;
     const h = Clock.hourF(), out = n.area === 'island', wet = G.weather === 'rain' || G.weather === 'snow';
     const tx = Math.floor(n.x / TILE), ty = Math.floor((n.y - 2) / TILE), a = G.areas[n.area];
+    // (their day says what: watering the fields, or a line in the water where there's water ahead)
+    if (w && w.tend && out) { n.idle = { kind: 'tend', until: G.t + 900 + rint(0, 600) }; return; }
+    if (w && w.fish && out) { const wt = idleWater(n, a); if (wt) { n.idle = { kind: 'fish', until: G.t + 1200 + rint(0, 900) }; faceNpc(n, { x: (wt[0] + 0.5) * TILE, y: (wt[1] + 0.5) * TILE }); } return; }
     const can = {
         stars: out && (h >= 20.5 || h < 4.5) && G.weather !== 'rain' && G.weather !== 'cloudy',
         snack: h >= 11 && h < 20 && G.weather !== 'snow',
@@ -67,8 +76,8 @@ Object.assign(EnvDolls, {
     /* the thing in hand (and the painter's easel), put on or taken off as what they're doing changes; a suitcase for
        whoever's off on vacation or back from one (6zj_vacations.js) */
     idleHold(d, e) {
-        const bags = !!(e.want && e.want.bags);
-        const I = bags ? IDLE_BAGS : e.idle && !e.moving && IDLE_ACTS[e.idle.kind], key = bags ? 'bags' : I ? e.idle.kind : '';
+        const carry = e.want && (e.want.carry || (e.want.bags ? 'suitcase' : null));
+        const I = carry ? CARRY[carry] : e.idle && !e.moving && IDLE_ACTS[e.idle.kind], key = carry ? 'carry:' + carry : I ? e.idle.kind : '';
         if (d.idleKey === key) return;
         for (const g of d.idleThings || []) if (g.parent) g.parent.remove(g);
         d.idleThings = []; d.idleKey = key;
@@ -77,6 +86,8 @@ Object.assign(EnvDolls, {
         const model = (name) => { const g = new THREE.Group(); for (const p of EnvModels.models[name].parts) { const m = new THREE.Mesh(p.geometry, p.material); m.castShadow = true; g.add(m); } return g; };
         const put = (name, side) => {
             if (!name || !has(name)) return;
+            // (a doll holds the watering can the way Sarah does, hanging from its handle)
+            if (name === 'furn_watering_can' && !d.folk) { const g = this.canModel(d, d.parts.elR || d.parts.armR, -0.1); if (g) d.idleThings.push(g); return; }
             const g = model(name), O = this.HOLD[name] || [0, 0, 0, 0, 0, 0];
             g.rotation.set(O[3], O[4], O[5]);
             if (d.folk) {
@@ -84,7 +95,7 @@ Object.assign(EnvDolls, {
                 if (!arm) return;
                 // (a folk is a chunky toy: what it holds is a little bigger, so it reads in its stubby hand)
                 const at = this.handOf(arm);
-                g.scale.setScalar(name === 'style_rod' ? 0.8 : 1.4);
+                g.scale.setScalar(name === 'style_rod' ? 0.8 : name === 'furn_watering_can' ? 0.6 : 1.4);
                 g.position.set(at.x + O[0] * side, at.y + O[1], at.z + O[2]);
                 arm.add(g);
             } else {
@@ -118,6 +129,9 @@ Object.assign(EnvDolls, {
         style_palette: [0, -0.02, 0.03, 0, 0, 0],
         style_suitcase: [0.02, -0.02, 0, 0, Math.PI / 2, 0],
         style_rod: [0, -0.02, 0.02, 1.2, 0, 0],
+        style_basket: [0.02, -0.02, 0.02, 0, Math.PI / 2, 0],
+        style_bucket: [0.02, -0.02, 0.02, 0, Math.PI / 2, 0],
+        furn_watering_can: [0.02, -0.06, 0.04, 0, -Math.PI / 2, 0],
     },
     /* a folk's hand: the point of its arm furthest from the shoulder */
     handOf(arm) {
@@ -146,6 +160,7 @@ Object.assign(EnvDolls, {
             Object.assign(W, { aLx: -0.62, aRx: -0.62 - 0.2 * turn, eL: -1.25, eR: -1.25, aLz: -0.04, aRz: 0.04 + 0.3 * turn, hx: 0.26 });
         } else if (k === 'ground') Object.assign(W, { lL: -1.45, lR: -1.45, kL: 0.25, kR: 0.3, aLx: 0.55, aRx: 0.55, aLz: -0.45, aRz: 0.45, eL: -0.1, eR: -0.1, bx: -0.14, hx: -0.12, by: 0 });
         else if (k === 'paint') Object.assign(W, { aRx: -1.15 + Math.sin(t / 9 + seed) * 0.14, eR: -0.5, aRz: 0.15, aLx: -0.45, eL: -1.2, aLz: -0.35, hx: -0.04 });
+        else if (k === 'tend') Object.assign(W, { aRx: -0.45 - 0.3 * lift(150, 60), eR: -0.35, aRz: 0.12, hx: 0.22, bx: 0.06 });
     },
     /* a folk's: its arms ({ up, fwd } for the right, side +1, and the left), how it leans */
     idleFolk(e, t, seed) {
@@ -156,6 +171,7 @@ Object.assign(EnvDolls, {
         if (k === 'phone' || k === 'book') return { lean: 0.12, R: { up: 0.3, fwd: -1.0 }, L: { up: 0.3, fwd: -1.0 } };
         if (k === 'fish') return { lean: 0.04, R: { up: 0.55 + Math.sin(t / 40 + seed) * 0.04, fwd: -1.1 }, L: { up: 0.4, fwd: -1.0 } };
         if (k === 'paint') return { lean: 0.05, R: { up: 0.5 + Math.sin(t / 9 + seed) * 0.15, fwd: -1.0 }, L: { up: 0.2, fwd: -0.4 } };
+        if (k === 'tend') { const b = lift(150, 60); return { lean: 0.1 + 0.08 * b, R: { up: 0.3 + 0.3 * b, fwd: -0.9 }, L: null }; }
         return { lean: 0, R: null, L: null };
     },
 });

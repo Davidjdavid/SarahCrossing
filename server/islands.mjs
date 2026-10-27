@@ -1,7 +1,7 @@
 // The islands (save files) kept on the server, one folder per island:
 //
 //   <dir>/islands/<id>/island.json    { id, rev, createdAt, updatedAt, device, summary, state }
-//   <dir>/islands/<id>/photos.json    { photos: [{ url, t, tags? }] }   the phone camera's album
+//   <dir>/islands/<id>/photos.json    { photos: [{ url, t, tags?, museum?, title?, real? }] }   the phone camera's album (museum: hung in the museum)
 //   <dir>/islands/<id>/backups/       earlier copies of island.json (see "backups" below)
 //   <dir>/islands/<id>/people/<who>.json          a visitor's own things on this island
 //                                                 (pocket, money, friends...): { who, rev, updatedAt, device, state }
@@ -336,12 +336,23 @@ export class Islands {
       if (p.tags !== undefined && (!Array.isArray(p.tags) || p.tags.length > 16 || p.tags.some((t) => typeof t !== 'string' || t.length > 40))) {
         throw new IslandError(400, "A photo's tags must be a list of at most 16 short words");
       }
+      // (hung in the museum's photography wing: its spot, the name on its card, and whether it's a real photo uploaded)
+      if (p.museum !== undefined && (!Number.isInteger(p.museum) || p.museum < 0 || p.museum > 31)) throw new IslandError(400, "A photo's museum spot must be a small number");
+      if (p.title !== undefined && (typeof p.title !== 'string' || p.title.length > 60)) throw new IslandError(400, "A photo's title must be short");
+      if (p.real !== undefined && typeof p.real !== 'boolean') throw new IslandError(400, "A photo's real must be true or false");
     }
     const file = this.photosFile(id, who);
     return this.queued(id, async () => {
       await this.read(id);
       await fsp.mkdir(path.dirname(file), { recursive: true });
-      await writeAtomic(file, JSON.stringify({ photos: photos.map((p) => (p.tags && p.tags.length ? { url: p.url, t: p.t, tags: p.tags } : { url: p.url, t: p.t })) }));
+      await writeAtomic(file, JSON.stringify({ photos: photos.map((p) => {
+        const o = { url: p.url, t: p.t };
+        if (p.tags && p.tags.length) o.tags = p.tags;
+        if (p.museum !== undefined) o.museum = p.museum;
+        if (p.title) o.title = p.title;
+        if (p.real) o.real = true;
+        return o;
+      }) }));
     });
   }
 

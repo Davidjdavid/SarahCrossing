@@ -181,8 +181,8 @@ function makePlan(id, day) {
     else segs.push({ a: t, b: bed, spot: 'home' });                  // (right away: no gap to wander home in)
     if (d.early) { segs.push({ a: 28, b: 29, spot: 'jog' }); }
     // jump rope in the plaza, then today's storyline, may send people somewhere (the rope, a date, a party)
-    const o = (lunchOverride(id, day, d, work) || []).concat(errandOverride(id, day, d, work) || [], visitOverride(id, day) || [], ropeOverride(id, day) || [], Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || [], vacationOverride(id, day) || []);
-    for (const [spot, a, b] of o) {
+    const o = (lunchOverride(id, day, d, work) || []).concat(errandOverride(id, day, d, work) || [], farmOverride(id, day) || [], catchOverride(id, day, work) || [], visitOverride(id, day) || [], ropeOverride(id, day) || [], Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || [], vacationOverride(id, day) || []);
+    for (const [spot, a, b, extra] of o) {
         const more = [];
         for (const s of segs) {
             if (s.dead || !(s.b > a && s.a < b)) continue;
@@ -191,7 +191,7 @@ function makePlan(id, day) {
             else if (s.a < a) s.b = a;
             else s.a = b;
         }
-        segs.push(...more, { a, b, spot, ov: true });
+        segs.push(...more, Object.assign({ a, b, spot, ov: true }, extra || {}));
     }
     const live = segs.filter(s => !s.dead && s.b > s.a).sort((x, y) => x.a - y.a);
     // little stubs left where the day was trimmed around the rope or a storyline: fold them into a neighbor
@@ -223,6 +223,22 @@ function errandOverride(id, day, d, work) {
     const r = mulberry(hash32(S.seed + ':errand:' + id + ':' + day)), x = r(), room = x < 0.3 ? 'bank' : x < 0.5 ? 'postoffice' : null;
     if (!room || !ROOMS[room] || !roomOpen(room, end + 0.1) || !roomOpen(room, end + 0.6)) return null;
     return [['in_' + room, end + 0.05, end + 0.5 + r() * 0.2]];
+}
+/* the farm's morning (David, 27 October: "the farmers tend the fields, pack the produce and deliver it to the store each
+   morning"): after the dawn jog Cuke waters the fields, then carries a basket of the day's vegetables to Fortune's shop */
+const FARMER = 'cuke';
+function farmOverride(id, day) {
+    if (id !== FARMER) return null;
+    const r = mulberry(hash32(S.seed + ':farm:' + day)), a = 8.9 + r() * 0.3;
+    return [['farm', a, a + 1.1, { tend: true }], ['in_shop', a + 1.1, a + 1.5, { carry: 'crate' }]];
+}
+/* "fishing, selling the catch": some afternoons Kai fishes off the end of the pier, then takes his bucket to Fortune's */
+const FISHER = 'kai';
+function catchOverride(id, day, work) {
+    if (id !== FISHER) return null;
+    const r = mulberry(hash32(S.seed + ':catch:' + day)), a = 15.4 + r() * 0.8;
+    if (r() > 0.55 || (work || []).some(w => w.a < a + 1.8 && w.b > a)) return null;
+    return [['pier_end', a, a + 1.3, { fish: true }], ['in_shop', a + 1.3, a + 1.7, { carry: 'catch' }]];
 }
 /* an evening visit (David, 27 October: "visiting a friend"): some evenings two neighbors pair up, one drops by the other's
    house for an hour or so and the host stays home for it; worked out from the day alone, so both plans agree (nobody
@@ -480,7 +496,8 @@ function targetFor(n, dh) {
     const inv = Invites.spotFor(n.id);
     if (inv) { const w = resolveSpot(n, inv); if (w) return Object.assign({ key: 'inv:' + inv }, w, { spot: inv }); }
     const where = resolveSpot(n, seg.spot);
-    return Object.assign({ key: seg.spot + '@' + seg.a.toFixed(2) }, where, { spot: seg.spot, bags: !!seg.bags });
+    // (what's in hand on the way: a suitcase, the farm's basket, the catch; and what they do once there)
+    return Object.assign({ key: seg.spot + '@' + seg.a.toFixed(2) }, where, { spot: seg.spot, bags: !!seg.bags, carry: seg.carry || (seg.bags ? 'suitcase' : null), tend: !!seg.tend, fish: !!seg.fish });
 }
 
 /* close enough to Sarah to be seen walking (on the big island, neighbors far off just get where they're going) */

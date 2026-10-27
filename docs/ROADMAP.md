@@ -170,8 +170,10 @@ Status: [x] done, [~] in progress, [ ] not started.
   everyone is where their day has taken them. It only has to look real (no crops or stock actually tracked): the farmers
   tend the fields, pack the produce and deliver it to the store each morning, and neighbors go and buy it (already: a
   plan each morning worked out from the day and hour, work, shopping, benches, the club; now also lunch at home or at
-  Mac's, fishing where there's water, evenings visiting a friend at their house, and an errand at the Bank or the Post
-  Office after work (on beta, where those open into rooms). Still to come: selling the catch, the farm's deliveries)
+  Mac's, fishing where there's water, evenings visiting a friend at their house, an errand at the Bank or the Post
+  Office after work (on beta, where those open into rooms), Cuke watering the farm's fields after the dawn jog and
+  carrying a basket of vegetables to Fortune's each morning, and some afternoons Kai fishing off the end of the pier and
+  taking his bucket to the shop to sell)
 - [x] Vacations, now and then (rare, and marked on the calendar): a neighbor packs their bags, walks to the pier with
   friends seeing them off, and a boat comes for them; friends get a postcard, good friends a souvenir in the mail, and they
   come home after a few days (each neighbor about once every two and a half months, to a place of their own: Sully to
@@ -278,13 +280,20 @@ Status: [x] done, [~] in progress, [ ] not started.
   the mainsail furled under a blue cover, rails and a life ring)
 
 ## The museum, in rooms (David, 26 October: for later)
-- [ ] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings
-  hung along the walls, pottery on plinths and in cases), walked through from the entrance hall
-- [ ] A fish section, already full: every kind of fish in the game in its tanks from the start
-- [ ] A photography section: photos taken in the game, or real photos uploaded from a computer or a phone, framed on its
-  walls (kept on the server with the island, like the save)
-- [ ] An outfit section: the clothes Sarah has made at the sewing machine, worn by mannequins
-- [ ] An island history section: displays of the special things found on the island in the big hidden quests
+- [x] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings
+  hung along the walls, pottery on plinths and in cases), walked through from the entrance hall (the hall has Brulee's
+  desk, the easel corner and six archways on its back wall, each with its wing's name over it; the gallery hangs eight
+  paintings, five on the wall and three on easels, and the pottery hall has ten pedestals)
+- [x] A fish section, already full: every kind of fish in the game in its tanks from the start (tanks for the rivers, the
+  sea and the ponds and a touch pool for the shellfish; each tank's card says where and when each is caught, and which
+  Sarah has caught)
+- [x] A photography section: photos taken in the game, or real photos uploaded from a computer or a phone, framed on its
+  walls (kept on the server with the island, like the save) (nine spots, five on the wall and four easels, each photo
+  with a name on its card; it stays in the album too, outside the album's twelve)
+- [x] An outfit section: the clothes Sarah has made at the sewing machine, worn by mannequins (six dress forms, each in a
+  copy of one of her designs)
+- [x] An island history section: displays of the special things found on the island in the big hidden quests (a glass
+  case for each of the six mysteries, its keepsake inside once solved, and a plaque for the island's founding)
 
 ## Late in development (David's notes for much later)
 Some of these need things that don't exist yet (a town flag, records kept over time); add them when we get here.

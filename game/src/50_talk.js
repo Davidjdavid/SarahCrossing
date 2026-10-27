@@ -28,7 +28,7 @@ async function talkTo(n) {
     if (IslandGames.has(n)) { IslandGames.poke(n); return; }
     G.busy++;
     if (n.chat) Chats.end(n.chat);
-    n.idleWas = n.idle ? n.idle.kind : null;          // (caught in the middle of something: 33kd_doll_idle.js)
+    n.idleWas = n.idle ? n.idle.kind : n.want && n.want.carry && n.want.carry !== 'suitcase' ? n.want.carry : null;      // (caught in the middle of something: 33kd_doll_idle.js)
     n.talking = true;
     const p = G.player;
     // (from wherever Sarah is: nobody steps round anyone first; the two of them turn to each other, the food folks too,

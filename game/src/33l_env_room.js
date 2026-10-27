@@ -54,7 +54,8 @@ const EnvRoom = {
         const hf = typeof hdHas === 'function' && hdHas(frame) ? hdNamed(frame, true) : null;
         if (hf && hf.c) return { c: hf.c, w: hf.w / HD_K, h: hf.h / HD_K, ax: hf.ax / HD_K, ay: hf.ay / HD_K };
         const f = Assets.frames[frame];
-        if (!f) return null;
+        // (a picture made while playing: Sarah's paintings, the museum's photos, a sharper copy when it has one)
+        if (!f) { const d = Assets.dyn[frame]; return d ? { c: d.hi || d.c, w: d.w, h: d.h, ax: d.ax, ay: d.ay } : null; }
         const [sx, sy, w, h, ax, ay] = f, c = document.createElement('canvas');
         c.width = w; c.height = h;
         c.getContext('2d').drawImage(Assets.atlas, sx, sy, w, h, 0, 0, w, h);
@@ -211,9 +212,12 @@ const EnvRoom = {
        it's showing, on its stand */
     mannequin(g, e) {
         const it = ITEMS[e.sale];
-        if (!it || !EnvDolls.kitReady() || typeof hdOutfit !== 'function') return false;
+        if ((!it && !e.dressForm) || !EnvDolls.kitReady() || typeof hdOutfit !== 'function') return false;
         const look = Object.assign({}, LOOK_DEFAULT, { hair: 'bald', skin: '#efe2cc', blush: false, masc: false, freckles: false });
-        const d = EnvDolls.make2({ look, clothes: hdOutfit(it.wear), eyes: null, acc: null });
+        // (the museum's dress forms: one of Sarah's designs, or bare)
+        const clothes = !e.dressForm ? hdOutfit(it.wear) : e.design && typeof hdDesign === 'function' ? hdDesign(e.design)
+            : { style: 'dress', top: '#efe2cc', trim: '#e2d2b8', bottom: '#efe2cc', shoes: '#efe2cc' };
+        const d = EnvDolls.make2({ look, clothes, eyes: null, acc: null });
         if (d.face) d.face.visible = false;
         // (facing the shop, its head a dress form's smaller one, its arms a little out from its sides)
         if (d.parts.head) d.parts.head.scale.setScalar(0.62);
@@ -267,6 +271,44 @@ const EnvRoom = {
             g.add(this.group('furn_arcade_backdoor', e.x / TILE, 0, a.floor.y0 * R3_ZS + 0.005));
             return true;
         }
+        // the museum (65a_museum_wings.js): an archway into a wing, its name on the plaque over it
+        if (L.arch && EnvModels.has('furn_museum_arch') && typeof museumPlaque === 'function') {
+            this.parts(g, { frame: 'arch|' + L.arch }, 'furn_museum_arch', new THREE.Matrix4().makeTranslation(e.x / TILE, 0, a.floor.y0 * R3_ZS + 0.005), { c: museumPlaque(L.arch) });
+            return true;
+        }
+        // the aquarium's tanks and the touch pool, with their fish: the ones with shells and arms on the sand, the rest
+        // swimming (EnvRoom.animate)
+        if (L.tank && EnvModels.has(L.pool ? 'furn_touch_pool' : 'furn_fish_tank')) {
+            const x = e.x / TILE, z = zOf(e.y);
+            g.add(this.group(L.pool ? 'furn_touch_pool' : 'furn_fish_tank', x, 0, z));
+            L.tank.forEach((id, i) => {
+                const f = this.fishMesh(id);
+                if (!f) return;
+                const r = mulberry(hash32('aq' + id)), lies = L.pool || /^(squid|octopus|shrimp|crawfish|lobster)$/.test(id);
+                const sz = (FISHES.find(q => q.id === id) || {}).size || 2;
+                if (lies) {
+                    f.position.set(x - 1.0 + (i + 0.5) * (2.0 / L.tank.length), L.pool ? 0.13 : 0.62, z + (r() - 0.5) * 0.3);
+                    f.rotation.y = r() * Math.PI * 2;
+                    f.scale.setScalar(L.pool ? 1.5 : 1.2);
+                    g.add(f);
+                    return;
+                }
+                f.scale.setScalar(0.85 + sz * 0.22);
+                f.rotation.order = 'YXZ'; f.rotation.x = Math.PI / 2;
+                g.add(f);
+                B.swim.push({ o: f, x, z: z + (r() - 0.5) * 0.34, y: 0.82 + r() * 0.4, ph: r() * 6.28, sp: 0.35 + r() * 0.45, w: 0.9 + r() * 0.2 });
+            });
+            return true;
+        }
+        // a keepsake in its glass case (or the case waiting for one)
+        if (L.showcase !== undefined && EnvModels.has('furn_display_case')) {
+            const x = e.x / TILE, z = zOf(e.y);
+            g.add(this.group('furn_display_case', x, 0, z));
+            const n = L.showcase && typeof EnvItems !== 'undefined' && EnvItems.model(L.showcase, ITEMS[L.showcase] && ITEMS[L.showcase].icon);
+            const top = EnvModels.models.furn_display_case.anchors.top;
+            if (n && EnvModels.has(n)) g.add(this.group(n, x, top ? top[0].y : 0.85, z, 1.3));
+            return true;
+        }
         if (L.dish != null) { B.plates.push({ e, L, mesh: null, dish: undefined }); return true; }
         return false;
     },
@@ -282,6 +324,12 @@ const EnvRoom = {
             mv.mesh.matrix.copy(mv.base).multiply(new THREE.Matrix4().makeTranslation(dx, 0, 0));
         }
         if (B.lit && (t >> 4) !== B.litStep) { B.litStep = t >> 4; this.drawLit(); }
+        // (the aquarium's fish swim back and forth, turning at each end)
+        for (const f of B.swim || []) {
+            const k = t / 60 * f.sp + f.ph;
+            f.o.position.set(f.x + Math.sin(k) * f.w, f.y + Math.sin(k * 2.3) * 0.035, f.z);
+            f.o.rotation.y = Math.cos(k) >= 0 ? 0 : Math.PI;
+        }
         if (B.hands.length) {
             const h = Clock.hourF() % 12, R = this._rot || (this._rot = new THREE.Matrix4());
             for (const hd of B.hands) hd.mesh.matrix.copy(hd.base).multiply(R.makeRotationZ(hd.dir * (hd.min ? (h % 1) : h / 12) * Math.PI * 2));
@@ -297,6 +345,25 @@ const EnvRoom = {
             pl.mesh = this.group(n, pl.e.x / TILE, top.top, (pl.L.ty + 0.5) * R3_ZS, EnvItems.size(n, 1.4) * 0.9);
             B.furn.add(pl.mesh);
         }
+    },
+    /* a fish for a tank: its stand-in model (EnvItems.model) painted in its own color */
+    fishMesh(id) {
+        const n = typeof EnvItems !== 'undefined' && EnvItems.model(id, ITEMS[id] && ITEMS[id].icon);
+        if (!n || !EnvModels.has(n)) return null;
+        const tint = EnvItems.tint(id), g = new THREE.Group();
+        for (const p of EnvModels.models[n].parts) {
+            let m = p.material;
+            const role = tint && /_(top|trim)$/.exec(m.name || '');
+            if (role && tint[role[1]]) {
+                const k = m.uuid + tint[role[1]];
+                if (!EnvItems.tints.has(k)) EnvItems.tints.set(k, EnvModels.tinted(m, tint[role[1]]));
+                m = EnvItems.tints.get(k);
+            }
+            const mesh = new THREE.Mesh(p.geometry, m);
+            mesh.userData.shared = true;
+            g.add(mesh);
+        }
+        return g;
     },
     /* (round things keep round: the wall's height stretch shared both ways) */
     ROUND: new Set(['clock_wall', 'shell_mirror', 'disco_ball', 'lh_lifering', 'lh_barometer', 'gear_wall']),
@@ -350,7 +417,7 @@ const EnvRoom = {
         B.group.add(g);
         B.hosts = new Map();
         B.placed = new Set();
-        B.screens = []; B.movers = []; B.hands = []; B.plates = []; B.tops = []; B.lit = null;
+        B.screens = []; B.movers = []; B.hands = []; B.plates = []; B.tops = []; B.swim = []; B.lit = null;
         // (pieces standing on others go after them, so their table's top is known)
         list.sort((p, q) => (p.def.kind === 'top' && p.item.on != null ? 1 : 0) - (q.def.kind === 'top' && q.item.on != null ? 1 : 0));
         for (const e of list) {

@@ -212,6 +212,8 @@ function updatePlayer(p) {
 function afterMove(p) {
     const a = G.area;
     if (a.interior && p.y > a.exitY) leaveInterior();
+    // (an open archway in the back wall: the museum's wings)
+    if (a.interior && a.upDoors && p.y < a.floor.y0 * TILE + 2) { const tx = Math.floor(p.x / TILE), d = a.upDoors.find(o => o.x === tx); if (d) d.go(); }
     if (p.moving && G.frame % (p.run ? 14 : 20) === 0) Sfx.step(G.area.id === 'island' ? groundAt(p.x, p.y) : 'wood');
 }
 function groundAt(x, y) {

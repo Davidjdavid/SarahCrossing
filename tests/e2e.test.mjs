@@ -999,6 +999,18 @@ test('neighbors find things of their own to do (the stars only at night), a chat
     if (!had.b) delete ROOMS.bank; if (!had.p) delete ROOMS.postoffice;
     if (!had.hb) delete ROOM_HOURS.bank; if (!had.hp) delete ROOM_HOURS.postoffice;
     out.errands = errands >= 5 && open;
+    // the farm's morning: Cuke waters the fields, then carries a basket to Fortune's; some afternoons Kai fishes off the pier
+    // and takes his bucket to the shop
+    const cp = makePlan('cuke', Clock.dayNum() + 1), fs = cp.segs.find((s) => s.spot === 'farm' && s.tend), ds = cp.segs.find((s) => s.spot === 'in_shop' && s.carry === 'crate');
+    let catches = 0;
+    for (let d = 0; d < 20; d++) { const kp = makePlan('kai', Clock.dayNum() + d); if (kp.segs.some((s) => s.spot === 'pier_end' && s.fish) && kp.segs.some((s) => s.spot === 'in_shop' && s.carry === 'catch')) catches++; }
+    out.farm = { round: !!fs && !!ds && ds.a >= fs.b - 0.01, catches: catches >= 4 };
+    // and once there, their day says what they do: watering, or a line in the water
+    __dbg.setTime(6, 12, 9.5); free(n, 116, 110); n.want = Object.assign({}, n.want, { tend: true }); idleStart(n);
+    out.farm.tend = !!n.idle && n.idle.kind === 'tend';
+    n.idle = null; free(n, edge[0] + 0.5, edge[1] + 0.6); n.want = Object.assign({}, n.want, { tend: false, fish: true }); idleStart(n);
+    out.farm.fish = !!n.idle && n.idle.kind === 'fish';
+    n.idle = null; n.want = Object.assign({}, n.want, { fish: false });
     // busy with something: no chat; walking off ends it
     __dbg.setTime(6, 12, 12);
     free(n, 116, 110);
@@ -1021,7 +1033,84 @@ test('neighbors find things of their own to do (the stars only at night), a chat
     Chats.end(c);
     return out;
   });
-  assert.deepEqual(res, { night: true, noon: true, fish: true, lunch: true, visits: true, errands: true, busy: true, ended: true, chat: { talks: true, listens: true, text: true }, nods: true });
+  assert.deepEqual(res, { night: true, noon: true, fish: true, lunch: true, visits: true, errands: true, farm: { round: true, catches: true, tend: true, fish: true }, busy: true, ended: true, chat: { talks: true, listens: true, text: true }, nods: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('the museum in rooms: archways from the hall into six wings, every fish from the start, photos, designs and the island\'s mysteries on show', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => { __dbg.setTime(10, 27, 11); enterRoom('museum'); });
+  await page.waitForFunction(() => G.area && G.area.id === 'museum');
+  const hall = await page.evaluate(() => ({ doors: G.area.upDoors.length, arches: G.area.ents.filter((e) => e.look3d && e.look3d.arch).map((e) => e.look3d.arch),
+    open: G.area.upDoors.every((d) => !G.area.blockedAt(d.x, 1)) }));
+  assert.deepEqual(hall, { doors: 6, arches: ['museum_art', 'museum_pots', 'museum_fish', 'museum_photo', 'museum_fashion', 'museum_history'], open: true });
+  // walking up through the first archway goes into the gallery; its door leads back to the hall, under the archway
+  await page.evaluate(() => { const [x, y] = toArea(1, 0); G.player.x = (x + 0.5) * TILE; G.player.y = (y + 0.6) * TILE; for (let i = 0; i < 12; i++) { movePlayer(G.player, 0, -1.35); afterMove(G.player); } });
+  await page.waitForFunction(() => G.area && G.area.id === 'museum_art', null, { timeout: 5000 });
+  const gallery = await page.evaluate(() => ({ wall: G.area.items.filter((i) => FURN[i.id] && FURN[i.id].kind === 'wall' && (FURN[i.id].art || i.id === 'empty_frame')).length,
+    easels: G.area.ents.filter((e) => e.look3d && e.look3d.easel).length }));
+  assert.deepEqual(gallery, { wall: 5, easels: 3 });
+  await page.evaluate(() => { G.player.y = G.area.exitY + 2; afterMove(G.player); });
+  await page.waitForFunction(() => G.area && G.area.id === 'museum', null, { timeout: 5000 });
+  assert.equal(await page.evaluate(() => Math.floor(G.player.x / TILE)), 2, 'back under the archway');
+  const res = await page.evaluate(async () => {
+    const out = {};
+    const askText0 = window.askText;
+    window.askText = async () => 'Sunset from the pier';
+    try {
+      // ten pedestals in the pottery hall
+      await enterRoom('museum_pots');
+      out.pots = G.area.items.filter((i) => i.id === 'pedestal' || (FURN[i.id] && FURN[i.id].kind === 'floor' && ITEMS[i.id] && ITEMS[i.id].pottery)).length;
+      // every fish in the game but the boot, in the aquarium from the start
+      await enterRoom('museum_fish');
+      const tanks = G.area.ents.filter((e) => e.look3d && e.look3d.tank);
+      const shown = new Set(tanks.flatMap((e) => e.look3d.tank));
+      out.fish = { tanks: tanks.length, all: FISHES.every((f) => f.id === 'boot' || shown.has(f.id)), boot: shown.has('boot') };
+      // a photo from the album hung in the photography wing, with its card's name; the album keeps it however many more are taken
+      await enterRoom('museum_photo');
+      const c = document.createElement('canvas'); c.width = 40; c.height = 30; const g = c.getContext('2d'); g.fillStyle = '#e88a3a'; g.fillRect(0, 0, 40, 30);
+      Photos.keep([{ url: c.toDataURL('image/jpeg', 0.8), t: 1000, tags: ['the pier'] }]);
+      out.placed = await placePhoto(2, 0);
+      for (let i = 0; i < 14; i++) Photos.add(c.toDataURL('image/jpeg', 0.5), []);
+      const kept = Photos.list().find((p) => p.museum === 2);
+      out.photo = { kept: !!kept && kept.title === 'Sunset from the pier', album: Photos.list().filter((p) => p.museum == null).length };
+      await new Promise((r) => { const t0 = performance.now(); (function wait() { if (Assets.dyn.mphoto_1000 || performance.now() - t0 > 3000) r(); else setTimeout(wait, 50); })(); });
+      out.photo.wall = G.area.id === 'museum_photo' && G.area.items.some((i) => i.id === 'mphoto_1000');
+      // one of Sarah's designs on a dress form (a copy)
+      designs().d1 = Object.assign(newDesign(), { name: 'Blue Tuesday' });
+      registerDesign('d1', designs().d1);
+      await enterRoom('museum_fashion');
+      const pick = fashionPick(0);
+      await new Promise((r) => setTimeout(r, 50));
+      [...document.querySelectorAll('button.slot')].find((b) => b.title === 'Blue Tuesday').click();
+      await pick;
+      designs().d1.top = ['#e0405a', 'red'];
+      out.fashion = { name: S.art.fashion[0] && S.art.fashion[0].name, copy: S.art.fashion[0].d.top[1] === 'blue', form: G.area.ents.some((e) => e.kind === 'mannequin' && e.design) };
+      // a solved mystery's keepsake in its case, the rest still waiting
+      Quests.finish('treasure');
+      await enterRoom('museum_history');
+      const cases = G.area.ents.filter((e) => e.look3d && 'showcase' in e.look3d);
+      out.history = { cases: cases.length, map: cases.some((e) => e.look3d.showcase === 'oldmap'), waiting: cases.filter((e) => !e.look3d.showcase).length };
+      // an older save's five spots in the gallery: the three new easels take what isn't up yet
+      artState().hung = ['art_goat', null, null, null, null];
+      const w = museumWall();
+      out.oldSave = { n: w.length, first: w[0], more: w.slice(5).filter(Boolean).length >= 2, unique: new Set(w.filter(Boolean)).size === w.filter(Boolean).length };
+    } finally { window.askText = askText0; }
+    return out;
+  });
+  assert.equal(res.pots, 10);
+  assert.deepEqual(res.fish, { tanks: 4, all: true, boot: false });
+  assert.equal(res.placed, true);
+  assert.deepEqual(res.photo, { kept: true, album: 12, wall: true });
+  assert.deepEqual(res.fashion, { name: 'Blue Tuesday', copy: true, form: true });
+  assert.deepEqual(res.history, { cases: 6, map: true, waiting: 5 });
+  assert.deepEqual(res.oldSave, { n: 8, first: 'art_goat', more: true, unique: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

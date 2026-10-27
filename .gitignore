@@ -6,3 +6,5 @@ playwright-report/
 *.tgz
 .env
 __pycache__/
+dist2/
+dist3/
