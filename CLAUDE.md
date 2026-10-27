@@ -196,9 +196,9 @@ docs/DEPLOY.md for the server.
   pitch bar are drawn flat over the scene (`Dance.draw`, `Karaoke.draw` on the overlay). The HD-2D view keeps the club and
   both games flat.
 - The style test (David, 26 October: characters and props redone as cozy handcrafted miniatures after Animal Crossing:
-  New Horizons; the rules it settled on are in docs/STYLE.md). In the test area only (`STYLE2`: `?lab`, or
-  `localStorage sc-style2` 1 or 0 anywhere; its models, `doll_*`, `folk2_*`, `style_*`, load only there) until David
-  approves it: people are chibi dolls from a Blender kit (`tools/blender/dolls.py`: `doll_kit` with each part in greys
+  New Horizons; the rules it settled on are in docs/STYLE.md). In the test area and on Sarah's island on beta (`STYLE2`:
+  `?lab` or `ENV_ISLAND`, or `localStorage sc-style2` 1 or 0 anywhere; its models, `doll_*`, `folk2_*`, `style_*`, load
+  only there), the live site keeps the first dolls until David approves it: people are chibi dolls from a Blender kit (`tools/blender/dolls.py`: `doll_kit` with each part in greys
   named `<part>__<role>` and its origin at its joint, elbows and knees jointed on balls; `doll_hair`, the hair sculpted as
   locks melted into one mass with grooves between them, its blue channel how far toward the dyed tips), put together and
   painted by `EnvDolls.make2` (33ka_doll_kit.js); a look with `masc` (Joe, David, James, John) gets the men's cut from
@@ -208,7 +208,11 @@ docs/DEPLOY.md for the server.
   body molded from pieces melted into one soft surface by `sculpt`, sized one by one by `SIZE` so the face reads), and then
   the rest of the cast the same way (David, 26 October: every food folk, the goat, the Cozy Council and the old keeper;
   Chili and Floss stand on their tips, their feet at its base; David, James, John and Elizabeth's hair and David's beard
-  sculpted in dolls.py: `HAIRS`); every face is painted on a patch (`face__face`, a folk's `face` part) from a
+  sculpted in dolls.py, and every other style the salon has: `HAIRS`, `MELT`); the clothes' details are kit parts too
+  (dolls.py's `skirts`, `strap_top`, `bib`, `hoodie`, `fastenings`, `cape`: pleats, gathers and a tutu's ruffles, bare
+  shoulders with straps, the overalls' bib, a hood with its pocket and cords, buttons, a belt, an obi or a sash, a
+  cardigan's front, a pointed collar), put on by `make2` from the clothes style's flags (`HD_STYLE`) and shaded only
+  against what's worn with them (`kit_ao`'s `occ`); every face is painted on a patch (`face__face`, a folk's `face` part) from a
   sheet of sixteen expressions per look or folk (`FACES`, `faceSheet`/`folkSheet`, `personFace`, `FOLK_FACES`), changed
   by moving the patch's UVs (`setFace`); how they act is 33kb_doll_act.js (`act`: faces from talking, a line's mood,
   emotes and games, tag's glances back, stumbles and celebrations; `pose2`, `poseFolk2`, `FOLK_ACT`); five props in
@@ -217,7 +221,10 @@ docs/DEPLOY.md for the server.
   (`LAB_CAST`). `UI._sp` is who's speaking. While Sarah talks with someone in the new look the camera eases in on the
   two of them, a little lower (`R3_TALK`, `R3.talkWith`); a folk working behind a counter stands on a step stool there
   (`EnvStools`, 33kc_doll_stools.js, `style_stool`); the folks sit with their feet out and hands in their lap, dance
-  with their arms going, and strike the dance game's poses (`poseFolk2`).
+  with their arms going, and strike the dance game's poses (`poseFolk2`). They're light enough for the whole island:
+  folks2.py molds each surface from 60% of the points its parts ask for (`BUDGET`; it looks the same in close-up), and
+  `--lod1` makes the phones' versions (`folk2_<id>_lod1` from 35% with no part over `LOD1_CAP` points; dolls.py `--lod1`:
+  `doll_kit_lod1` with every part from half its points, `doll_hair_lod1`).
 - David's rule (27 October): everything in the world is a 3D model in the dollhouse look (things on the ground, in the sky
   and at sea, what's hung on walls and set on tables), except the minigames (cooking, the arcade cabinets, jump rope,
   volleyball and the like), which keep their 2D look.
@@ -242,7 +249,7 @@ docs/DEPLOY.md for the server.
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
-  steps): the game loads every model at once, so keep `game/assets/models/` light (about 74 MB now, 7 of it furniture, 3 the small things, 20 the style test's dolls and folks, which load only in the test area till they roll out). `doll.py` was the
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 82 MB on disk now, 10 of it furniture, 30 the style test's dolls and folks with their phone versions; packed by the build, a computer fetches about 47 MB of it and a phone 40). `doll.py` was the
   mock-up of the people as dolls. `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height
@@ -250,7 +257,9 @@ docs/DEPLOY.md for the server.
 - Models: one unit is one tile, Blender's -y is the game's south (the front), z up; trees and props stand on their foot,
   the cottage on its middle with the door at x 0 on the front (the shop's door is at x 0.5), a wall piece runs from x 0
   to its length with its face toward -y, from the lower ground (z 0) to the upper (z 1.5, `ENV.LV`).
-- In the game `EnvModels` (33g_env_models.js) loads them (the build ships each with a hashed name in `window.MODELS`;
+- In the game `EnvModels` (33g_env_models.js) loads them (the build packs each smaller, `scripts/glb-pack.mjs`: positions,
+  colors and picture spots in 16 bits, normals in 8, KHR_mesh_quantization, a part's positions scaled on its own node so
+  its origin stays put, and `EnvModels.unpack` makes them plain numbers again as they load; it ships each with a hashed name in `window.MODELS`;
   the server's CSP allows `blob:` in connect-src for the pictures inside them), gives their materials the view's bend,
   depth of field and shadows (`r3Patch`), uses their colors as they are, and draws a model placed many times as one
   instanced mesh per part. Colors kept in a mesh arrive as glTF's linear values and are turned back into the colors as

@@ -140,9 +140,12 @@ Status: [x] done, [~] in progress, [ ] not started.
   face up where the camera sees it, the folks molded as soft single pieces, sized one by one. Round 3 (David: "looks
   good, make the rest"): every food folk, the goat, the council and the old keeper; David, James, John and Elizabeth's
   hair and David's beard; the talk camera; stools behind counters; sitting, dancing and the dance game's poses for the
-  folks. Still to come, in batches: the other hair styles sculpted, outfit details, the props and furniture,
-  acting for the other games, lighter versions for phones, then the new characters on Sarah's island on beta
-  (docs/STYLE.md)
+  folks. Round 4 (David: "do the lighter versions and hairstyles, then put them on beta"): the models packed smaller by
+  the build for everything (76 MB fetched before, 47 now; 40 on a phone), the characters from fewer points and phone
+  versions of them; every salon style sculpted; the clothes' details (pleated and gathered skirts, a tutu, bare
+  shoulders with straps, the overalls' bib, a hoodie's hood and pocket, buttons, belts, an obi, a cardigan's front, a
+  collar, a cape); Fortune's fold and David's beard fuller; and the new characters on Sarah's island on beta. Still to
+  come: the props and furniture in the new style, acting for the other games (docs/STYLE.md)
 - [ ] Graphics settings (David, 26 October, for later): a quality setting and a draw distance, each with its own default
   for laptops and phones, so the look can go up if the server or the devices get faster
 
@@ -157,6 +160,15 @@ Status: [x] done, [~] in progress, [ ] not started.
   house, asking her advice, coming to her for help, inviting her places, a best-friend moment); neighbors who remember
   what she did and bring it up; friendships between the neighbors themselves that shift with the island drama
 - [ ] And so on: David will add more ideas here
+
+## The museum, in rooms (David, 26 October: for later)
+- [ ] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings
+  hung along the walls, pottery on plinths and in cases), walked through from the entrance hall
+- [ ] A fish section, already full: every kind of fish in the game in its tanks from the start
+- [ ] A photography section: photos taken in the game, or real photos uploaded from a computer or a phone, framed on its
+  walls (kept on the server with the island, like the save)
+- [ ] An outfit section: the clothes Sarah has made at the sewing machine, worn by mannequins
+- [ ] An island history section: displays of the special things found on the island in the big hidden quests
 
 ## Late in development (David's notes for much later)
 Some of these need things that don't exist yet (a town flag, records kept over time); add them when we get here.

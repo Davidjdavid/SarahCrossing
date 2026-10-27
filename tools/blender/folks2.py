@@ -13,7 +13,9 @@ Built in picture pixels as folks.py is (48 wide, 72 high, x from the middle, z u
 the parts that move are their own objects with their origins at their joints (arm_l / arm_r at the shoulder, foot_l /
 foot_r, Ginger's leg_l / leg_r), anchors for a gift hat and glasses.
 
-    python tools/blender/folks2.py [--preview DIR] [--only maki,kai]
+    python tools/blender/folks2.py [--preview DIR] [--only maki,kai] [--lod1]
+
+--lod1 makes the phones' versions (folk2_<id>_lod1: the same folk molded from fewer points).
 """
 import sys, os, math, random
 sys.path.insert(0, os.path.dirname(__file__))
@@ -63,6 +65,13 @@ def grains(mb, rng, n, place, col='#fbf8f0', size=(0.95, 0.55, 0.5)):
         xform(mb, m, R)
 
 
+# how many points a molded surface keeps, against what each part asks for: 60% looks the same as all of it even with
+# the camera in close, so that's what's shipped; the phones' versions keep fewer (--lod1)
+BUDGET = {'verts': 0.6, 'cap': None}
+LOD1 = 0.35
+LOD1_CAP = 6000     # (and no part of a phone's folk heavier than this many points, an arm or foot a tenth of it)
+
+
 def sculpt(f, key, voxel=0.32, smooth=5, verts=9000, k=4, ao=0.0, reach=3.0, recolor=None):
     """A part's pieces melted into one soft surface, as a sculpted toy is (voxel remeshed, smoothed, lightened); each new
     vertex takes the colors of the nearest of the pieces' own (so a topping stays its color, blending a little where it
@@ -83,7 +92,7 @@ def sculpt(f, key, voxel=0.32, smooth=5, verts=9000, k=4, ao=0.0, reach=3.0, rec
     m.factor, m.iterations = 0.6, smooth
     apply_modifiers(ob)
     m2 = ob.modifiers.new('lighter', 'DECIMATE')
-    m2.ratio = min(1.0, verts / max(1, len(ob.data.vertices)))
+    m2.ratio = min(1.0, verts * BUDGET['verts'] / max(1, len(ob.data.vertices)))
     apply_modifiers(ob)
     me = ob.data
     out = MB()
@@ -1033,20 +1042,26 @@ def fortune():
     def col(p, n, *_):
         k = 0.94 + 0.08 * noise.noise(p * 0.35)
         c = cookie.lerp(rgb('#f2c878'), 0.5 * max(0.0, n.z))
-        fold = abs(p.x) * 0.75 - (p.z - 24) * 0.9
-        c = c * (1 - 0.18 * math.exp(-(fold ** 2) / 8) * (1 if p.y < -8 and p.z > 23 else 0))
+        top = max(0.0, (p.z - 21) / 17)
+        # (the fold down the middle of the top: darker in the crease, the line itself darker still)
+        c = c * (1 - 0.28 * math.exp(-(p.x ** 2) / 30) * top ** 1.5 - 0.22 * math.exp(-(p.x ** 2) / 2.5) * min(1.0, max(0.0, (p.z - 27) / 6)))
         return c.lerp(rgb('#c8903e'), 0.4 * max(0.0, 1 - abs(n.y)) ** 3) * k
     P0 = superq(0, 0, 21, 23.0, 16.0, 17.0, 0.72, 0.72)
 
     def P(u, v):
+        # the halves folded up: the top pressed down along the middle into a deep crease, either half rising to a rounded
+        # wing, the crease pinching in at the front and the back where it meets the edges (it reads from above)
         p = P0(u, v)
         top = max(0.0, (p.z - 21) / 17)
-        z = p.z - 2.4 * math.exp(-(p.x ** 2) / 50) * top ** 2
-        fold = abs(p.x) * 0.75 - (z - 24) * 0.9
-        y = p.y + (1.4 * math.exp(-(fold ** 2) / 6) * min(1.0, max(0.0, (z - 23) / 3)) if p.y < -6 else 0)
+        z = p.z - 6.0 * math.exp(-(p.x ** 2) / 40) * top ** 1.5 + 2.2 * min(1.0, abs(p.x) / 20) ** 2 * top
+        y = p.y
+        if p.y < -6 and z > 27:
+            y += 2.4 * math.exp(-(p.x ** 2) / 14) * min(1.0, (z - 27) / 8)
+        if p.y > 6:
+            y -= 1.6 * math.exp(-(p.x ** 2) / 14) * top
         return Vector((p.x, y, z))
     surf(f.body, P, soft(col, under=0.18, z0=4, z1=38), nu=80, nv=44)
-    sculpt(f, 'body', voxel=0.28, smooth=3, verts=10000, ao=0.25)
+    sculpt(f, 'body', voxel=0.26, smooth=2, verts=10000, ao=0.3)
     # the paper slip peeking out of her left side, red printing on it
     m = len(f.body.v)
     rbox(f.body, -0.35, -2.8, -4.4, 0.35, 2.8, 4.4, '#fbf8f0', r=0.3, mid=0)
@@ -1364,6 +1379,13 @@ def objects2(f, scale=K):
                 for li in poly.loop_indices:
                     layer.data[li].uv = uv[ob.data.loops[li].vertex_index]
         ob.location = o * scale
+        if BUDGET['cap'] and key != 'face':
+            cap = BUDGET['cap'] * (1.0 if key == 'body' else 0.1)
+            if len(ob.data.vertices) > cap:
+                m = ob.modifiers.new('lighter', 'DECIMATE')
+                m.ratio = cap / len(ob.data.vertices)
+                apply_modifiers(ob)
+                shade_smooth(ob)
         out.append(ob)
     for key, (p, s) in f.anchors.items():
         e = bpy.data.objects.new(f'anchor_{key}', None)
@@ -1378,13 +1400,16 @@ if __name__ == '__main__':
     args = sys.argv[1:]
     prev = args[args.index('--preview') + 1] if '--preview' in args else None
     only = args[args.index('--only') + 1].split(',') if '--only' in args else None
+    lod = '_lod1' if '--lod1' in args else ''
+    if lod:
+        BUDGET['verts'], BUDGET['cap'] = LOD1, LOD1_CAP
     reset()
     shown = []
     for name, fn in FOLKS2.items():
         if only and name not in only:
             continue
         objs = objects2(fn(), scale=K * SIZE.get(name, 1.0))
-        export(objs, f'folk2_{name}')
+        export(objs, f'folk2_{name}{lod}')
         for o in objs:
             if o.name.startswith('anchor_'):
                 o.name = f'done_{name}_{o.name}'

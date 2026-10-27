@@ -39,9 +39,16 @@ color contrast, an accessory and how it moves, not small detail. So, in this ord
   arms and tufted back, the cake's berries and swirls, the shovel's D-grip.
 - **Hair is sculpted**: chunky locks melted into one soft mass (voxel remeshed), the grooves between locks pressed in so
   each lock shows (`tools/blender/dolls.py`: `lock`, `melt`, `grooves`), a soft shine band, dyed tips along each lock.
-  Never a smooth helmet.
+  Never a smooth helmet. Every style the salon has is made this way: curls and an afro as little commas of hair
+  (`comma`), ringlets and braids in short turns or plaits (one lock each, so the grooves keep them apart), buns as locks
+  wound round a ball (`wrapped`), ponytails and pigtails gathered at a tie (`tie`).
 - **Clothes have thickness**: a ribbed hem, collar and cuffs that stand proud, rolled jeans cuffs showing the paler
   inside, shoes with a contrasting sole.
+- **Clothes show what they are**: a skirt falls in folds (pressed pleats to the knee, soft gathers to the floor, a
+  tutu's ruffles), a sundress leaves the shoulders bare under thin straps, overalls have their bib with a stitched pocket,
+  brass buttons and straps crossing at the back, a hoodie its hood bunched behind the neck, a pouch pocket and
+  drawstrings; buttons, belts with a buckle, an obi with its bow, a cardigan's open front and a pointed collar where the
+  style has them. Each is its own kit part, so the tailor's colors still paint it.
 - **Hands are round mittens with a thumb; feet are chunky shoes.**
 - **Men's cut** (a look with `masc`: Joe, David, James, John), still a chibi, nothing exaggerated: a straighter top a
   touch broader at the shoulders (an open jacket over a shirt, lapels, pocket flaps, plain cuffs), hair short at the
@@ -107,5 +114,8 @@ color contrast, an accessory and how it moves, not small detail. So, in this ord
 
 - A person: about 20,000 vertices (kit and hair) in a handful of draws (one mesh per joint, the face patch).
 - A folk: under 20,000; a prop on the ground: under 8,000; a little thing on a table: a few thousand.
-- The test models are full detail; the rollout makes lighter versions where a model is placed many times or phones
-  need it (`_lod1`).
+- Lighter than they're modeled: a molded folk keeps 60% of the points it's built with (it looks the same even with the
+  talk camera in close), and phones get their own versions (`folk2_<id>_lod1`, `doll_kit_lod1`, `doll_hair_lod1`: a
+  folk under about 9,000 points, a person under about 15,000 drawn). On Sarah's island with ten of them on screen, a
+  phone draws about a quarter more than with the first dolls.
+- The build packs every model smaller (scripts/glb-pack.mjs), so what's fetched is about two thirds of the files.

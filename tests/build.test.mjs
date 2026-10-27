@@ -82,3 +82,49 @@ test('build.json says which version this is', () => {
   assert.match(b.version, /^\d{8}-\d{6}/);
   assert.ok(b.builtAt);
 });
+
+// the models are packed small for the browser (scripts/glb-pack.mjs); EnvModels.unpack turns them back into numbers
+function readGlb(buf) {
+  const json = JSON.parse(buf.subarray(20, 20 + buf.readUInt32LE(12)).toString('utf8'));
+  const binAt = 20 + buf.readUInt32LE(12), bin = buf.subarray(binAt + 8, binAt + 8 + buf.readUInt32LE(binAt));
+  const size = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 };
+  const read = { 5120: ['readInt8', 1, 127], 5121: ['readUInt8', 1, 255], 5122: ['readInt16LE', 2, 32767], 5123: ['readUInt16LE', 2, 65535], 5126: ['readFloatLE', 4, 1] };
+  const values = (i) => {
+    const a = json.accessors[i], v = json.bufferViews[a.bufferView], n = size[a.type], [fn, bytes, max] = read[a.componentType];
+    const stride = v.byteStride || n * bytes, at = (v.byteOffset || 0) + (a.byteOffset || 0), out = [];
+    for (let k = 0; k < a.count; k++) for (let j = 0; j < n; j++) { const x = bin[fn](at + k * stride + j * bytes); out.push(a.normalized ? Math.max(-1, x / max) : x); }
+    return out;
+  };
+  return { json, values };
+}
+test('the models are packed smaller, and unpack to the points Blender wrote', async () => {
+  const { packGlb } = await import('../scripts/glb-pack.mjs');
+  for (const name of ['folk2_kai', 'cottage', 'doll_kit']) {
+    const raw = fs.readFileSync(path.join(ROOT, 'game/assets/models', name + '.glb')), packed = packGlb(raw);
+    // (the cottage is mostly its baked pictures, which stay as they are)
+    assert.ok(packed.length < raw.length * (name === 'cottage' ? 1 : 0.8), `${name}: ${packed.length} of ${raw.length}`);
+    const a = readGlb(raw), b = readGlb(packed);
+    assert.equal(b.json.nodes.length, a.json.nodes.length);
+    let meshes = 0;
+    a.json.nodes.forEach((na, i) => {
+      const nb = b.json.nodes[i];
+      assert.equal(nb.name, na.name);
+      assert.deepEqual(nb.translation, na.translation, `${name} ${na.name} keeps its origin`);
+      if (na.mesh === undefined) return;
+      meshes++;
+      const s = (nb.scale || [1, 1, 1])[0] / (na.scale || [1, 1, 1])[0];
+      a.json.meshes[na.mesh].primitives.forEach((pa, k) => {
+        const pb = b.json.meshes[nb.mesh].primitives[k];
+        for (const [sem, ia] of Object.entries(pa.attributes)) {
+          const va = a.values(ia), vb = b.values(pb.attributes[sem]);
+          assert.equal(vb.length, va.length);
+          const tol = sem === 'NORMAL' ? 0.02 : sem === 'POSITION' ? s / 32767 : 2e-5;
+          let worst = 0;
+          for (let j = 0; j < va.length; j++) worst = Math.max(worst, Math.abs((sem === 'POSITION' ? vb[j] * s : vb[j]) - va[j]));
+          assert.ok(worst <= tol, `${name} ${na.name} ${sem}: off by ${worst}`);
+        }
+      });
+    });
+    assert.ok(meshes > 0);
+  }
+});

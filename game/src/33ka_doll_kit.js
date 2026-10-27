@@ -6,8 +6,9 @@
    clothes and the salon's hair still dress it. Elbows and knees bend (each limb is two pieces jointed on a ball).
    The face is one of sixteen expressions painted on a sheet per look (EnvDolls.faceSheet) and chosen by moving the
    patch's picture: happy, surprised, sad, excited, talking...
-   While David looks at the style test it's only in the test area (STYLE2; localStorage sc-style2 1 or 0 anywhere). */
-const STYLE2 = (() => { const v = lsGet('sc-style2'); return v === '1' ? true : v === '0' ? false : LAB; })();
+   It's in the test area and on Sarah's island on beta, the live site keeps the first dolls until David says so
+   (STYLE2: where the new look is, ENV_ISLAND; localStorage sc-style2 1 or 0 anywhere). */
+const STYLE2 = (() => { const v = lsGet('sc-style2'); return v === '1' ? true : v === '0' ? false : LAB || ENV_ISLAND; })();
 const DOLL2 = { H: 1.62, R: 0.215, HEAD: 0.782, NECK: 0.56 };
 /* the expressions on a face sheet, four to a row */
 const FACES = ['idle', 'blink', 'talk', 'happy', 'happytalk', 'joy', 'surprised', 'sad', 'cry', 'excited', 'determined', 'worried', 'sleepy', 'wink', 'love', 'annoyed'];
@@ -95,11 +96,27 @@ Object.assign(EnvDolls, {
             add(body, 'torso_m__top', top); add(body, 'hem_m__top', top); add(body, 'collar_m__trim', trim); add(body, 'hips_m__bottom', bottom);
             if (st.lapels || st.open) { add(body, 'shirt_m__trim', trim); add(body, 'lapel_m__top', top); add(body, 'pocket_m__top', top); }
         } else {
-            add(body, 'torso__top', top);
+            // (bare shoulders: the top cut across above the chest, thin straps over them)
+            if (st.straps && K['torso_strap__top']) { add(body, 'torso_strap__top', top); add(body, 'chest__skin', skin); add(body, 'straps__top', top); }
+            else add(body, 'torso__top', top);
             add(body, 'hem__trim', st.knit || !one ? trim : top);
-            if (!st.straps) add(body, 'collar__trim', trim);
+            if (!st.straps && !(st.collar && K['collar_pt__trim'])) add(body, 'collar__trim', trim);
             if (!skirt) add(body, 'hips__bottom', one ? top : bottom);
         }
+        // what some clothes add (tools/blender/dolls.py: bib, hoodie, fastenings, cape): a bib and its straps, a hood with
+        // its pocket and drawstrings, buttons down the front, a belt, an obi or a sash, a cardigan's front, a pointed collar
+        const brass = c('#e8c35a');
+        if (st.bib) { add(body, 'bib__bottom', bottom); add(body, 'bib__metal', brass); }
+        if (st.hood) { add(body, 'hood__top', top); add(body, 'cord__trim', trim); }
+        if (st.pocket) add(body, 'pocket_h__top', top);
+        if (st.buttons || st.coat) add(body, 'buttons__trim', trim);
+        if (st.chef) add(body, 'buttons2__trim', trim);
+        if (st.belt) { add(body, 'belt__belt', c('#3a2a22')); add(body, 'belt__metal', brass); }
+        if (st.obi) add(body, 'obi__trim', trim);
+        if (st.sash) add(body, 'sash__trim', trim);
+        if (st.cardigan) add(body, 'cardigan__trim', trim);
+        if (st.collar) add(body, 'collar_pt__trim', trim);
+        if (st.cape) add(body, 'cape__trim', trim);
         // legs: the thigh from the hip, the shin from the knee with the cuff (on trousers) and the shoe
         for (const k of ['l', 'r']) {
             const th = K['thigh_' + k + '__bottom'], sh = K['shin_' + k + '__bottom'];
@@ -129,10 +146,10 @@ Object.assign(EnvDolls, {
                 void s;
             }
         }
-        // a skirt over the hips (to the knee, to the floor, a tutu): turned shapes as the first dolls had, fitted
-        if (skirt) {
-            const sk = this.piece(body, skirt === 'floor' ? 'floor' : skirt === 'tutu' ? 'tutu' : 'knee', this.mat((one ? C.top : C.bottom) || '#4d6d9f'), 0, skirt === 'tutu' ? 0.27 : 0.3, 0, 0.82, skirt === 'floor' ? 0.66 : 0.72, 0.72);
-            void sk;
+        // a skirt over the hips with its folds (pleats to the knee, gathers to the floor, a tutu's ruffles); before the
+        // kit had them, turned shapes as the first dolls had
+        if (skirt && !add(body, 'skirt_' + skirt + '__skirt', (one ? top : bottom))) {
+            this.piece(body, skirt === 'floor' ? 'floor' : skirt === 'tutu' ? 'tutu' : 'knee', this.mat((one ? C.top : C.bottom) || '#4d6d9f'), 0, skirt === 'tutu' ? 0.27 : 0.3, 0, 0.82, skirt === 'floor' ? 0.66 : 0.72, 0.72);
         }
         // the head, turning at the neck: the skull and ears, the hair, the face on its patch
         const hk = K['head__skin'];

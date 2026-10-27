@@ -60,7 +60,7 @@ const EnvModels = {
                 return;
             }
             if (!o.isMesh) return;
-            const g = o.geometry.clone();
+            const g = this.unpack(o.geometry);
             g.applyMatrix4(o.matrixWorld);
             this.srgb(g);
             g.computeBoundingSphere();
@@ -69,6 +69,26 @@ const EnvModels = {
             for (const m of [].concat(o.material)) parts.push({ geometry: g, material: this.material(m, name), glass: /glass/i.test(m.name || ''), node: o.name, at });
         });
         return { parts, name, anchors, sizes };
+    },
+    /* the build keeps a model's points small (scripts/glb-pack.mjs: positions, colors and picture spots in 16 bits,
+       normals in 8, each in its own strided view): they're made plain numbers again here, so everything that reads a
+       model's geometry sees what Blender wrote (a part's node carries its positions' scale, applied with its matrix) */
+    unpack(src) {
+        const as = Object.values(src.attributes);
+        if (as.every(a => !a.isInterleavedBufferAttribute && a.array instanceof Float32Array)) return src.clone();
+        const g = new THREE.BufferGeometry();
+        if (src.index) g.setIndex(src.index.clone());
+        for (const [k, a] of Object.entries(src.attributes)) {
+            const il = a.isInterleavedBufferAttribute, arr = il ? a.data.array : a.array, st = il ? a.data.stride : a.itemSize, off = il ? a.offset : 0;
+            const n = a.itemSize, out = new Float32Array(a.count * n);
+            const sc = !a.normalized ? 1 : arr instanceof Int8Array ? 127 : arr instanceof Uint8Array ? 255 : arr instanceof Int16Array ? 32767 : arr instanceof Uint16Array ? 65535 : 1;
+            for (let i = 0; i < a.count; i++) for (let j = 0; j < n; j++) { const v = arr[i * st + off + j]; out[i * n + j] = sc === 1 ? v : Math.max(-1, v / sc); }
+            g.setAttribute(k, new THREE.BufferAttribute(out, n));
+        }
+        for (const gr of src.groups) g.addGroup(gr.start, gr.count, gr.materialIndex);
+        g.name = src.name;
+        g.userData = Object.assign({}, src.userData);
+        return g;
     },
     /* colors kept in a mesh arrive as glTF's linear values: turned back into the colors as painted, which is how the
        game shows its pictures (a mesh's colors would otherwise come out darker and more saturated than designed) */
