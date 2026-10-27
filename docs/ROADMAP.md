@@ -176,7 +176,7 @@ Status: [x] done, [~] in progress, [ ] not started.
   taking his bucket to the shop to sell)
 - [x] Vacations, now and then (rare, and marked on the calendar): a neighbor packs their bags, walks to the pier with
   friends seeing them off, and a boat comes for them; friends get a postcard, good friends a souvenir in the mail, and they
-  come home after a few days (each neighbor about once every two and a half months, to a place of their own: Sully to
+  come home after a few days (each neighbor about three times a year, one at a time, to a place of their own: Sully to
   Boston, Brulee to Paris, Kai to Surf Point...; a note on their door while they're away)
 - [x] Much more said overhead: lines of each neighbor's own and plenty shared between them, so hearing the same thing twice
   is rare (about a hundred conversations anyone can have, four to six of each neighbor's own, more for rain, snow,

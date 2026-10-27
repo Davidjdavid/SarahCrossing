@@ -192,9 +192,10 @@ docs/DEPLOY.md for the server.
   call her something (`NICK_IDEAS`, or one she types, or her name; `nickAsk`); their lines then call her by it (`nickIn`
   in `UI._line`, that neighbor's lines only), and "Call me something else?" changes it (`nickFlow`). Kept as
   `S.npcs[id].nick` and `nickAsked`.
-- Vacations (6zj_vacations.js, `VAC`: each neighbor's place, postcard and souvenir): about once every 75 days each
-  neighbor goes away for three to five days, worked out from the seed (`vacationOf`, `vacationIn`), never over their own
-  day, a festival in `VAC_KEEP` or Sarah's birthday, one at a time. The plan (`vacationPlan`, after makePlan in `Plans.get`):
+- Vacations (6zj_vacations.js, `VAC`: each neighbor's place, postcard and souvenir): about three times a year (one in
+  every `VAC_EVERY` days) each neighbor goes away for three to five days, worked out from the seed (`vacationOf`,
+  `vacationIn`), never over their own day, a festival in `VAC_KEEP` or Sarah's birthday, one at a time (a trip that would
+  clash slides on a few days). The plan (`vacationPlan`, after makePlan in `Plans.get`):
   to the pier at 10 with a suitcase (`bags`, `style_suitcase` in hand), onto the boat (`sleepAt: 'boat'`; `npcDoor`), two
   friends there to see them off (`vacationOverride`); away between (`away`); off the boat at 3 PM the day they're back
   (`wakeAt: 'boat'`). `vacationTick` (in `dailyCheck`) mails the postcard and, for three hearts or more, the souvenir; the

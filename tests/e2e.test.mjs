@@ -1131,16 +1131,17 @@ test('vacations: rare, one at a time, on the board; friends see them off at the 
     try {
       // a year of them: each neighbor a few times, never two at once
       let most = 0, trips = 0, v = null;
+      const went = new Set();
       for (let d = today; d < today + 365; d++) {
         const away = Object.keys(VAC).filter((id) => vacationOf(id, d));
         most = Math.max(most, away.length);
-        for (const id of away) if (vacationOf(id, d).leave === d) { trips++; if (!v && id === 'kai') v = vacationOf(id, d); }
+        for (const id of away) if (vacationOf(id, d).leave === d) { trips++; went.add(id); if (!v && id === 'kai') v = vacationOf(id, d); }
       }
-      out.year = { most, trips: trips >= 20 && trips <= 80, kai: !!v, long: v && v.back - v.leave >= 3 && v.back - v.leave <= 5 };
+      out.year = { most, trips: trips >= 26 && trips <= 52, everyone: Object.keys(VAC).every((id) => went.has(id)), kai: !!v, long: v && v.back - v.leave >= 3 && v.back - v.leave <= 5 };
       const r = rel('kai'); r.met = true; r.pts = 9999;
       // the morning they leave: at the pier with a suitcase, onto the boat, two friends there to see them off
       go(v.leave, 9);
-      const p = Plans.get('kai'), pier = p.segs.find((s) => s.spot === 'pier');
+      const p = Plans.get('kai'), pier = p.segs.find((s) => s.spot === 'pier' && s.a >= VAC_LEAVE - 0.01);
       out.leave = { pier: !!pier && pier.bags, boat: p.sleepAt === 'boat', friends: Object.keys(VAC).filter((id) => (vacationOverride(id, v.leave) || []).length).length, board: boardTodayLines().some((l) => /Kai leaves for/.test(l)), line: /this morning/.test(vacationLine('kai') || '') };
       // away: no plan, the board and texts say so, a note on the door, a postcard in the mail
       go(v.leave + 1, 12);
@@ -1158,7 +1159,7 @@ test('vacations: rare, one at a time, on the board; friends see them off at the 
     return out;
   });
   assert.deepEqual(res, {
-    year: { most: 1, trips: true, kai: true, long: true },
+    year: { most: 1, trips: true, everyone: true, kai: true, long: true },
     leave: { pier: true, boat: true, friends: 2, board: true, line: true },
     away: { plan: true, texts: true, board: true, postcard: true },
     door: true,

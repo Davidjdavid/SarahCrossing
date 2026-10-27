@@ -1,12 +1,12 @@
 /* ---- 6zj_vacations.js ---- */
 /* Vacations (David, 27 October: "now and then (rare, and marked on the calendar): a neighbor packs their bags, walks to
    the pier with friends seeing them off, and a boat comes for them; friends get a postcard, good friends a souvenir in the
-   mail, and they come home after a few days"). Each neighbor goes away about once every two and a half months, worked out
-   from the island's seed (vacationOf: the same whenever you look), never over their own day, a festival they're part of
-   or Sarah's birthday, and only one of them at a time. On the day they leave they're at the pier from mid-morning with a
+   mail, and they come home after a few days"). Each neighbor goes away about three times a year, worked out from the
+   island's seed (vacationOf: the same whenever you look), never over their own day, a festival they're part of or Sarah's
+   birthday, and only one of them at a time (a trip that would clash moves on a few days until it doesn't). On the day they leave they're at the pier from mid-morning with a
    suitcase (two friends come to see them off) and step onto the boat; the days between they're away (makePlan: away);
    the day they're back they step off the boat in the afternoon. The board and its calendar say so ahead of time. */
-const VAC_EVERY = 75;
+const VAC_EVERY = 120;
 const VAC = {
     maki: { place: 'Kyoto', gift: 'lucky_cat', card: "Kyoto is very tidy. I approve. The temples are precisely as old as the guidebook said.\nI have bowed to eleven deer. They bowed back. Mostly.\nBack soon.\n- Maki" },
     kai: { place: 'Surf Point', gift: 'shell_lamp', card: "DUDE. The waves here are HUGE. I did not surf them. I watched them. Respectfully.\nA seagull took my sunglasses. We're friends now.\nCatch you soon!\n- Kai" },
@@ -42,20 +42,26 @@ function vacationIn(id, k) {
     if (c[key] !== undefined) return c[key];
     c[key] = null;
     if (k < 0) return null;
-    const base = (S.startDay || 0) + 20, r = mulberry(hash32(S.seed + ':vac:' + id + ':' + k));
+    const base = (S.startDay || 0) + 20, r = mulberry(hash32(S.seed + ':vac:' + id + ':' + k)), len = 3 + Math.floor(r() * 3);
     // (each neighbor's turn falls at its own point in the period, so they don't all go in the same week)
-    const off = (hash32(S.seed + ':vacoff:' + id) % 50 + Math.floor(r() * 20)) % (VAC_EVERY - 8);
-    const leave = base + k * VAC_EVERY + off, back = leave + 3 + Math.floor(r() * 3);
-    for (let d = leave; d <= back; d++) {
-        const dt = new Date(d * 86400e3), hs = holidaysOn(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
-        if (hs.some(h => h.npc === id || VAC_KEEP.has(h.id))) return null;
+    const span = VAC_EVERY - len - 2, start = (hash32(S.seed + ':vacoff:' + id) % 90 + Math.floor(r() * 20)) % span;
+    const clash = (leave, back) => {
+        for (let d = leave; d <= back; d++) {
+            const dt = new Date(d * 86400e3), hs = holidaysOn(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
+            if (hs.some(h => h.npc === id || VAC_KEEP.has(h.id))) return true;
+        }
+        // one at a time: whoever comes first in the list has their trip settled first
+        for (const o of Object.keys(VAC)) {
+            if (o === id) break;
+            for (const w of [k - 1, k, k + 1].map(i => vacationIn(o, i)).filter(Boolean)) if (w.leave <= back + 1 && w.back >= leave - 1) return true;
+        }
+        return false;
+    };
+    for (let t = 0; t < span; t += 3) {
+        const leave = base + k * VAC_EVERY + (start + t) % span, back = leave + len;
+        if (!clash(leave, back)) return (c[key] = { id, leave, back, place: VAC[id].place });
     }
-    // one at a time: whoever comes first in the list keeps their trip
-    for (const o of Object.keys(VAC)) {
-        if (o === id) break;
-        for (const w of [k - 1, k, k + 1].map(i => vacationIn(o, i)).filter(Boolean)) if (w.leave <= back + 1 && w.back >= leave - 1) return null;
-    }
-    return (c[key] = { id, leave, back, place: VAC[id].place });
+    return null;
 }
 /* away all day (between leaving and coming back) */
 function onVacation(id, day) { const v = vacationOf(id, day == null ? Clock.dayNum() : day); return !!v && (day == null ? Clock.dayNum() : day) > v.leave && (day == null ? Clock.dayNum() : day) < v.back; }
