@@ -677,8 +677,12 @@ const Invites = {
         if (log.length > 40) log.splice(0, log.length - 40);
     },
     hangSpots(id) {
-        const d = NPC_DEFS[id];
-        return Object.keys(d.fav || {}).filter(s => !s.startsWith('in_') && s !== 'home' && PLACE_NAMES[s] && (W0.spots[s] || s.startsWith('bench_')));
+        const d = NPC_DEFS[id], ok = s => !s.startsWith('in_') && s !== 'home' && s !== 'spring' && PLACE_NAMES[s] && (W0.spots[s] || s.startsWith('bench_'));
+        const out = Object.keys(d.fav || {}).filter(ok);
+        // (their favorite spot, once they've told her: most often there, 6zm_friendship.js)
+        const fav = S.npcs[id] && S.npcs[id].ms2 && FAV_SPOT[id] && FAV_SPOT[id][0];
+        if (fav && ok(fav)) out.push(fav, fav, fav);
+        return out;
     },
     kindsFor(id) {
         const d = NPC_DEFS[id], h = Clock.hourF(), out = [];

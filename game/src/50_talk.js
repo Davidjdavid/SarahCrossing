@@ -126,7 +126,10 @@ async function neighborTalk(n) {
         const up = addPts(id, isHoliday('friendday') ? 4 : 2 + bonusCharm());
         const mine = holidaysToday().find(h => h.npc === id);
         heartPop(n);
-        if (!mine) await UI.say(id, special || openerLine(n, true), { keep: true });
+        // (back after weeks away: they missed her, 6zm_friendship.js)
+        const missed = r.missed && !special && !mine;
+        if (r.missed) { r.missed = 0; r.faded = 0; }
+        if (!mine) await UI.say(id, missed ? voiced(id, rpick(MISSED_LINES)) : special || openerLine(n, true), { keep: true });
         if (up) await heartUp(n, up);
         if (mine) await npcDayGift(n);
     } else if (special && R() < 0.4 && !resting) await UI.say(id, special, { keep: true });
@@ -138,8 +141,14 @@ async function neighborTalk(n) {
     // in the middle of something of their own: a book, an ice cream, the stars
     if (n.idleWas && IDLE_HELLO[n.idleWas]) await UI.say(id, voiced(id, rpick(IDLE_HELLO[n.idleWas])), { keep: true });
     n.idleWas = null;
+    // something they did together lately (some days)
+    const mem = firstToday && R() < 0.6 ? memoryLine(id) : null;
+    if (mem) await UI.say(id, voiced(id, mem), { keep: true });
     // good friends now: can they call her something? (once: 6zl_nicknames.js)
-    if (firstToday && hearts(id) >= 4 && !r.nickAsked && NICK_IDEAS[id]) await nickAsk(n);
+    const nick = firstToday && hearts(id) >= 4 && !r.nickAsked && NICK_IDEAS[id];
+    if (nick) await nickAsk(n);
+    // a new heart, something new they share: personal, advice, a gift for her house, best friends (6zm_friendship.js)
+    else await friendMilestone(n);
     // photo at five hearts
     if (hearts(id) >= 5 && !r.photo) {
         r.photo = true;
@@ -254,6 +263,7 @@ async function hugFlow(n) {
     p.pose = null; p.poseT = 0;
     if (r.hugDay !== day) {
         r.hugDay = day;
+        if (!watchers.length) remember(id, 'hug');
         S.stats.hugs = (S.stats.hugs || 0) + 1;
         const up = id === 'goat' ? 0 : addPts(id, isHoliday('hugday') ? 6 : 3);
         if (id === 'goat') Quests.goatHug();
@@ -389,6 +399,7 @@ async function giftFlow(n) {
     }
     if (ITEMS[itemId].type === 'acc') await offerWear(n, itemId);
     if (['furniture', 'wall', 'floor', 'art'].includes(ITEMS[itemId].type)) await furnitureGift(n, itemId);
+    if (tier === 'love' || tier === 'like') remember(id, 'gift', { item: itemId });
     const up = id === 'goat' ? 0 : addPts(id, pts);
     if (up) await heartUp(n, up);
     S.stats.gifts = (S.stats.gifts || 0) + 1;

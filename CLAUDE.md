@@ -46,7 +46,7 @@ docs/DEPLOY.md for the server.
   Ginger offers), the Post Office (`6zf_post.js`: letters to neighbors delivered next morning with replies, postcards,
   special deliveries, the island paper each morning with an archive, order tracking) and the Town Hall (`6zg_townhall.js`:
   ordinances through `townWake`/`townHours`/`townOrd`, the census, the history `townLog` writes as things happen,
-  records, statistics, achievements, landmark names on the map (`placeName`), holding a missed holiday (`townHeld`,
+  records, statistics, achievements, landmark names on the map (`landmarkName`), holding a missed holiday (`townHeld`,
   joined into `holidaysToday`), the flag (a wall piece in the Town Hall), backups) and the real world (`6zh_world.js`: a zip
   code registered at the Town Hall gives the island that town's time if Sarah wants (`zipUseTime`), the day's forecast
   as its weather (`todayWeather`) and headlines in the paper; the Bank's market has real companies' closing prices,
@@ -198,6 +198,20 @@ docs/DEPLOY.md for the server.
   call her something (`NICK_IDEAS`, or one she types, or her name; `nickAsk`); their lines then call her by it (`nickIn`
   in `UI._line`, that neighbor's lines only), and "Call me something else?" changes it (`nickFlow`). Kept as
   `S.npcs[id].nick` and `nickAsked`.
+- Friendship, deeper (6zm_friendship.js): neighbors remember the last few things Sarah did with them (`remember(id, kind,
+  data)` from the gift, hug, favor, game, visit and lost-and-found flows; `S.npcs[id].mem`, eight at most) and some days
+  bring one from the last week up (`memoryLine`, said once). After three weeks without a word a friendship fades a point
+  every other day, at most ten, never below the hearts it has (`friendshipTick` in `dailyCheck`; `faded`, `missed`), and
+  they say they missed her (`MISSED_LINES`). Each heart brings something new, one a day (`friendMilestone`, after the
+  nickname question): their favorite spot at two (`FAV_SPOT`; from then on their text invitations to hang out go there
+  most often, `Invites.hangSpots`; something personal is at four and five, `TM_SHARE`), asking her advice at three
+  (`ADVICE`, `r.advice` her answer), a gift for her house in the mail at four (`HOUSE_GIFT`), a best-friend moment at five (`BEST_FRIEND`, `r.bff`);
+  kept as `ms2`..`ms5` (the day) and `msDay`. The neighbors' own friendships (6zn_bonds.js): a bond per pair, -5 to 10
+  (`S.bonds['a+b']`, `bond(a, b)`, a few pairs start close: `BOND_START`), moved by each storyline step (`BOND_STATE`, from
+  `Drama.setState`), raised a little by a chat once a day per pair up to `BOND_CHAT` (`Chats.end`), a falling-out mended a
+  point every third day (`bondTick`). Close friends (`BOND_CLOSE`) stop to chat more and walk over to each other; two
+  fallen out (`BOND_OUT`) don't chat (`Chats.ok`); they talk about it (`bondLine`, a talk topic) and the census says who's
+  close (`bestFriendOf`).
 - Vacations (6zj_vacations.js, `VAC`: each neighbor's place, postcard and souvenir): about three times a year (one in
   every `VAC_EVERY` days) each neighbor goes away for three to five days, worked out from the seed (`vacationOf`,
   `vacationIn`), never over their own day, a festival in `VAC_KEEP` or Sarah's birthday, one at a time (a trip that would

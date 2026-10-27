@@ -128,3 +128,11 @@ test('the models are packed smaller, and unpack to the points Blender wrote', as
     assert.ok(meshes > 0);
   }
 });
+
+test('no two files of the game declare the same top-level function (in one joined script the later one silently wins)', () => {
+  const dir = path.join(ROOT, 'game/src'), seen = {};
+  for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.js')).sort()) {
+    for (const m of fs.readFileSync(path.join(dir, f), 'utf8').matchAll(/^(?:async\s+)?function\s*\*?\s*([A-Za-z_$][\w$]*)\s*\(/gm)) (seen[m[1]] ||= []).push(f);
+  }
+  assert.deepEqual(Object.entries(seen).filter(([, v]) => v.length > 1).map(([k, v]) => `${k}: ${v.join(', ')}`), []);
+});

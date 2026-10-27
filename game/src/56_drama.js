@@ -577,6 +577,7 @@ const Drama = {
         const s = this.state(d);
         d.stateLen = typeof s.days === 'function' ? s.days(d) : s.days;
         if (s.enter) s.enter(d);
+        bondDrama(d);             // (the neighbors' own friendships move with it: 6zn_bonds.js)
         if (name === 'after') { const g = (d.guests || []).filter(Boolean); d.extra = g.length ? rpick(g) : null; }
         this.version++;
         Save.touch();

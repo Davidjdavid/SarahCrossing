@@ -319,6 +319,7 @@ async function visitHouse(id) {
         r.visited = (r.visited || 0) + 1;
         r.visitDay = Clock.dayNum();
         const host = NPCs.get(owner);
+        if (host && host.area === id) remember(owner, 'visit');
         if (host && host.area === id) {
             G.busy++;
             await waitFrames(16);

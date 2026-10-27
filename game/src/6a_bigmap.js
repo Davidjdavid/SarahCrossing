@@ -257,12 +257,12 @@ const BigMap = {
                 label((b.x + b.w / 2) * K, (b.y + b.h * 0.3) * K, text, '#fff7f1', false, false, -faceSize * 0.62 - 10);
         }
         const sp = W0.spots;
-        const places = [['Town square', sp.plaza.x + 0.5, sp.plaza.y + 3], ['Dock', sp.pier.x + 0.5, sp.pier.y + 3], [placeName('orchard', 'Orchard'), sp.orchard.x + 0.5, sp.orchard.y - 3],
-            [placeName('pond', 'Pond'), sp.pond.x + 0.5, sp.pond.y - 3], ['Farm', sp.farm.x + 0.5, sp.farm.y + 5], [placeName('forest', 'Forest'), sp.forest.x + 0.5, sp.forest.y - 2],
-            [placeName('mountain', 'Mountain'), sp.mountain.x + 0.5, sp.mountain.y - 6], [placeName('lookout', 'Lookout'), sp.lookout.x + 0.5, sp.lookout.y - 2], [placeName('waterfall', 'Waterfall'), sp.waterfall.x + 4, sp.waterfall.y - 4],
-            [placeName('spring', 'Hot spring'), W0.wonton[0], W0.wonton[1] - 4], [placeName('beach', 'Beach'), sp.beach.x, sp.beach.y + 2], [placeName('campsite', 'Campsite'), sp.campsite.x + 0.5, sp.campsite.y - 5],
+        const places = [['Town square', sp.plaza.x + 0.5, sp.plaza.y + 3], ['Dock', sp.pier.x + 0.5, sp.pier.y + 3], [landmarkName('orchard', 'Orchard'), sp.orchard.x + 0.5, sp.orchard.y - 3],
+            [landmarkName('pond', 'Pond'), sp.pond.x + 0.5, sp.pond.y - 3], ['Farm', sp.farm.x + 0.5, sp.farm.y + 5], [landmarkName('forest', 'Forest'), sp.forest.x + 0.5, sp.forest.y - 2],
+            [landmarkName('mountain', 'Mountain'), sp.mountain.x + 0.5, sp.mountain.y - 6], [landmarkName('lookout', 'Lookout'), sp.lookout.x + 0.5, sp.lookout.y - 2], [landmarkName('waterfall', 'Waterfall'), sp.waterfall.x + 4, sp.waterfall.y - 4],
+            [landmarkName('spring', 'Hot spring'), W0.wonton[0], W0.wonton[1] - 4], [landmarkName('beach', 'Beach'), sp.beach.x, sp.beach.y + 2], [landmarkName('campsite', 'Campsite'), sp.campsite.x + 0.5, sp.campsite.y - 5],
             ['Bonfire', sp.bonfire.x + 0.5, sp.bonfire.y + 4], ["David's statue", sp.statue.x + 0.5, sp.statue.y + 2], ['Market Lane', sp.boardwalk.x, sp.boardwalk.y - 4.5],
-            [placeName('oldtree', 'Old tree'), sp.oldtree.x, sp.oldtree.y + 3], [placeName('eastmeadow', 'East meadow'), sp.eastmeadow.x, sp.eastmeadow.y + 3], [placeName('glade', 'The glade'), sp.meadow.x + 0.5, sp.meadow.y - 4]];
+            [landmarkName('oldtree', 'Old tree'), sp.oldtree.x, sp.oldtree.y + 3], [landmarkName('eastmeadow', 'East meadow'), sp.eastmeadow.x, sp.eastmeadow.y + 3], [landmarkName('glade', 'The glade'), sp.meadow.x + 0.5, sp.meadow.y - 4]];
         if (W0.props.some(p => p.kind === 'windmill')) { const w = W0.props.find(p => p.kind === 'windmill'); places.push(['Windmill', w.x + 1.5, w.y - 3]); }
         for (const [t, x, y] of places) label(x * K, y * K, t, '#c8f0a0');
         mapExtras(this, g, ox, oy, z);                    // a boat, some gulls and the compass

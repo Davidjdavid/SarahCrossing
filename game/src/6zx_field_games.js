@@ -402,7 +402,7 @@ const FieldGames = {
                 if (last.won) { G.player.pose = 'cheer'; G.player.poseT = 60; }
                 igRec(kind).won += wins;
                 if (games > 1) await UI.say(null, `${games} games: ${wins} won by Sarah, ${games - wins} by ${n.def.name}.`, { keep: true });
-                await igFriend(n);
+                await igFriend(n, kind);
             } else await UI.say(id, igLine(id, 'quit'), { keep: true });
         } catch (e) { console.error(e); }
         UI.hideDialog();

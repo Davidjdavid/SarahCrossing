@@ -339,8 +339,11 @@ const Chats = {
         sp.hop = 2;
         c.t = c.dur = Math.min(260, 110 + text.length * 2.2); c.text = text;
     },
+    /* two who've fallen out don't stop to chat (6zn_bonds.js) */
+    ok(A, B) { return bond(A.id, B.id) > BOND_OUT; },
     end(c) {
         for (const n of [c.a, c.b]) { Bubbles.hide(n); n.chat = null; n.chatCool = G.frame + 60 * 15; }
+        if (c.i >= 1) bondChat(c.a, c.b);
         this.cool[[c.a.id, c.b.id].sort().join('+')] = G.frame + 60 * 60;
         this.list = this.list.filter(x => x !== c);
     },
@@ -363,15 +366,17 @@ const Chats = {
             const seated = (A.want && (A.want.seat || A.want.sit)) && (B.want && (B.want.seat || B.want.sit));
             const d = Math.hypot(A.x - B.x, A.y - B.y);
             if (d > (seated ? 52 : 40)) continue;
-            if ((this.cool[[A.id, B.id].sort().join('+')] || 0) > G.frame) continue;
-            if (R() < 0.6) { R() < 0.5 ? this.start(A, B) : this.start(B, A); return; }
+            if ((this.cool[[A.id, B.id].sort().join('+')] || 0) > G.frame || !this.ok(A, B)) continue;
+            if (R() < (bond(A.id, B.id) >= BOND_CLOSE ? 0.85 : 0.6)) { R() < 0.5 ? this.start(A, B) : this.start(B, A); return; }
         }
         // or somebody spots a friend a little way off and walks over
         if (R() < (spirit ? 0.85 : 0.55)) {
             const A = rpick(here.filter(n => !n.fixed && n.anchor));
             if (!A) return;
-            const B = here.filter(n => n !== A && !n.chat && Math.hypot(n.x - A.x, n.y - A.y) < 170 && Math.hypot(n.x - A.x, n.y - A.y) > 34)
-                .sort((p, q) => Math.hypot(p.x - A.x, p.y - A.y) - Math.hypot(q.x - A.x, q.y - A.y))[0];
+            // (a close friend first, if one's about)
+            const near = n => Math.hypot(n.x - A.x, n.y - A.y) - Math.max(0, bond(A.id, n.id)) * 12;
+            const B = here.filter(n => n !== A && !n.chat && this.ok(A, n) && Math.hypot(n.x - A.x, n.y - A.y) < 170 && Math.hypot(n.x - A.x, n.y - A.y) > 34)
+                .sort((p, q) => near(p) - near(q))[0];
             if (!B || (this.cool[[A.id, B.id].sort().join('+')] || 0) > G.frame) return;
             const a = G.area, bx = Math.floor(B.x / TILE), by = Math.floor((B.y - 2) / TILE);
             const side = A.x < B.x ? -1 : 1;

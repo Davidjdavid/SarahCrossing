@@ -57,11 +57,11 @@ function paintMain(cols, plant) {
 function paintChoices(id, A) {
     if (A.kind === 'wood') return Object.keys(WOODS);
     const r = mulberry(hash32('paint:' + id));
-    const pool = A.kind === 'plain' ? PASTELS.slice() : Object.keys(PAINTS).filter(k => { const [h, s] = hsv(...hexRgb(PAINTS[k])); return s < 0.25 || hueGap(h, A.h) > 40; });
+    const pool = A.kind === 'plain' ? PASTELS.slice() : Object.keys(PAINTS).filter(k => { const [h, s] = hsv(...hex01(PAINTS[k])); return s < 0.25 || hueGap(h, A.h) > 40; });
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
     return pool.slice(0, 3);
 }
-function hexRgb(hex) { const n = parseInt(hex.slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
+function hex01(hex) { const n = parseInt(hex.slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
 /* one color repainted: in the piece's main color (or its light parts, for a plain one), moved to the new color keeping its
    shading; anything else as it was (null) */
 function paintPixel(r, g, b, A, T) {
@@ -149,7 +149,7 @@ function colorSprite(name) {
     return (Assets.dyn[name] = { c: cv, w, h, ax, ay });
 }
 function paintCanvas(cv, P) {
-    const g = cv.getContext('2d'), img = g.getImageData(0, 0, cv.width, cv.height), d = img.data, T = hsv(...hexRgb(P.hex)), A = paintA(P);
+    const g = cv.getContext('2d'), img = g.getImageData(0, 0, cv.width, cv.height), d = img.data, T = hsv(...hex01(P.hex)), A = paintA(P);
     if (!A) return;
     for (let i = 0; i < d.length; i += 4) {
         if (d[i + 3] < 8) continue;
@@ -197,7 +197,7 @@ function colorGeo(n, geo, def) {
         if (P.wood && A.kind !== 'wood') A = Object.assign({}, A, { kind: 'wood' });
         MODEL_MAIN.set(n, A);
     }
-    const g = geo.clone(), c = g.attributes.color, a = c.array, max = a instanceof Uint16Array ? 65535 : a instanceof Uint8Array ? 255 : 1, sz = c.itemSize, T = hsv(...hexRgb(P.hex));
+    const g = geo.clone(), c = g.attributes.color, a = c.array, max = a instanceof Uint16Array ? 65535 : a instanceof Uint8Array ? 255 : 1, sz = c.itemSize, T = hsv(...hex01(P.hex));
     for (let i = 0; i < c.count; i++) {
         const o = paintPixel(a[i * sz] / max, a[i * sz + 1] / max, a[i * sz + 2] / max, A, T);
         if (!o) continue;

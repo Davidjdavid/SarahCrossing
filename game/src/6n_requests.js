@@ -251,6 +251,7 @@ const Requests = {
         else if (t.kind === 'pottery') { given = potteryFor(t.pottery); if (!given) return; removeItem(given, 1); }
         n.emote = 'heart'; n.emoteT = 90;
         Sfx.play('fanfare');
+        remember(id, 'favor');
         const nm = given ? itemName(given).toLowerCase() : '';
         let line;
         if (t.kind === 'tell') line = TELL_MSGS[t.msg].back.replace(/\{to\}/g, NPC_DEFS[t.to].name);

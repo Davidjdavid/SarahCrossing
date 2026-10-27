@@ -177,7 +177,7 @@ const IslandGames = {
                 if (won) { igRec(g.kind).won++; n.emote = 'sweat'; G.player.pose = 'cheer'; G.player.poseT = 60; Sfx.play('fanfare'); }
                 else { n.emote = 'laugh'; n.emoteT = 60; }
                 if (g.best) await UI.say(null, g.best, { keep: true });
-                await igFriend(n);
+                await igFriend(n, g.kind);
             }
         } catch (e) { console.error(e); }
         UI.hideDialog();
@@ -565,7 +565,7 @@ async function danceOffEnd(n, mine, theirs) {
     await UI.say('wasabi', `Dance-off! ${fmtNum(mine)} for ${S.playerName || 'Sarah'}, ${fmtNum(theirs)} for ${n.def.name}. ` + (won ? 'The floor is YOURS!' : mine === theirs ? 'A tie?! On MY floor?!' : `${n.def.name} takes it!`), { keep: true });
     await UI.say(id, igLine(id, won ? 'danceLose' : mine === theirs ? 'danceTie' : 'danceWin'), { keep: true });
     if (won) { G.player.pose = 'cheer'; G.player.poseT = 60; } else { n.emote = 'note'; n.emoteT = 60; }
-    await igFriend(n);
+    await igFriend(n, 'danceoff');
 }
 async function duetEnd(n, rank) {
     const id = n.id, good = rank === 'S' || rank === 'A', R0 = igRec('duet');
@@ -573,11 +573,12 @@ async function duetEnd(n, rank) {
     n.emote = good ? 'heart' : 'note'; n.emoteT = 70;
     // (Joe has his own words about his poems, right after)
     if (id !== 'joe') await UI.say(id, igLine(id, good ? 'duetGood' : 'duetOk'), { keep: true });
-    await igFriend(n);
+    await igFriend(n, 'duet');
 }
 /* a game together counts for friendship once a day */
-async function igFriend(n) {
+async function igFriend(n, kind) {
     const r = rel(n.id), day = Clock.dayNum();
+    remember(n.id, 'game', { game: kind });
     if (r.playDay === day) return;
     r.playDay = day;
     const up = addPts(n.id, 3);

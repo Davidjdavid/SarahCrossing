@@ -157,11 +157,19 @@ Status: [x] done, [~] in progress, [ ] not started.
   else?" in the talk menu)
 - [x] Catchphrases: every neighbor has one, said at the end of lines; after raising friendship Sarah can give them a new
   one (and they react to it in their own way) (at four hearts, from the talk menu; or at the Town Hall's Residents)
-- [ ] A more in-depth friendship system: more than hearts going up. Friendship that grows from many kinds of time spent
+- [x] A more in-depth friendship system: more than hearts going up. Friendship that grows from many kinds of time spent
   together (talking, gifts they actually like, favors, games together, visits, outings), and fades a little if she's
   away a long time; milestones that unlock things (a photo, a nickname, sharing something personal, a gift for her
   house, asking her advice, coming to her for help, inviting her places, a best-friend moment); neighbors who remember
   what she did and bring it up; friendships between the neighbors themselves that shift with the island drama
+  (done: they remember the last few things she did with them, a gift they liked, a game, a hug, a favor, a visit,
+  finding what they lost, and bring one up some days within the week; after three weeks away a friendship fades a
+  point every other day, at most ten, never below the hearts they have, and they say they missed her; at two hearts
+  their favorite spot (where they then invite her to hang out), at three they ask her advice, at four a gift for her
+  house in the mail, at five a best-friend moment, one a day; already there: the photo, the nickname, something
+  personal at four and five hearts, favors, and invitations by text to lunch, to hang out, to come by for news or a
+  present; and the neighbors' own friendships: a bond between each two that the storylines move, chats raise a little
+  and time mends, so close friends chat more, two who've fallen out don't for a few days, and they say so)
 - [ ] And so on: David will add more ideas here
 
 ## A lived-in island (David, 27 October: for later)

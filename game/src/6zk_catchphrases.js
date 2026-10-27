@@ -35,8 +35,8 @@ function catchTail(id) {
     const t = cap(c);
     return ' ' + (/[.!?)…]$/.test(t) ? t : t + '.');
 }
-/* keep what Sarah types tidy: a word or two, no strange characters, sixteen letters at most */
-function catchClean(v) { return String(v || '').replace(/[^\p{L}\p{N} '!?.,-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16); }
+/* keep what Sarah types tidy: a word or two, no strange characters, sixteen letters at most (or as many as the box takes) */
+function catchClean(v, max) { return String(v || '').replace(/[^\p{L}\p{N} '!?.,-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, max || 16); }
 /* a little text box over the game: resolves with what was typed, '' for "their own", or null when closed */
 function askText(title, label, value, max, own, go) {
     return new Promise(res => {
@@ -50,11 +50,11 @@ function askText(title, label, value, max, own, go) {
         f.appendChild(inp);
         P.body.appendChild(f);
         const row = el('div', 'st-row');
-        row.appendChild(chip(go || 'Teach it', () => fin(catchClean(inp.value) || null), 'go'));
+        row.appendChild(chip(go || 'Teach it', () => fin(catchClean(inp.value, max) || null), 'go'));
         if (own) row.appendChild(chip(own, () => fin('')));
         row.appendChild(chip('Never mind', () => fin(null)));
         P.body.appendChild(row);
-        inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') fin(catchClean(inp.value) || null); });
+        inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') fin(catchClean(inp.value, max) || null); });
         setTimeout(() => { try { inp.focus(); inp.select(); } catch (e) { /* fine */ } }, 60);
     });
 }

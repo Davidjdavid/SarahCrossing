@@ -47,7 +47,7 @@ function townHours(id, h) {
     if (!h || id === 'club' || (o !== 'early' && o !== 'night')) return h;
     return o === 'early' ? [Math.max(5, h[0] - 2), h[1]] : [h[0], Math.min(28.5, h[1] + 3)];
 }
-function placeName(key, fallback) { return (S && S.town && S.town.names && S.town.names[key]) || fallback; }
+function landmarkName(key, fallback) { return (S && S.town && S.town.names && S.town.names[key]) || fallback; }
 /* a line in the island's history */
 function townLog(text, day) {
     if (!S || Online.visitor()) return;
@@ -138,8 +138,8 @@ CIVIC_LIVE.census = {
             const day = HOLIDAYS.find(h => h.npc === id);
             const h = met ? Math.min(5, hearts(id)) : 0;
             const hs = el('span', 'cv-hearts', met ? '♥'.repeat(h) + '♡'.repeat(5 - h) : 'Not met');
-            const wake = `${fmtOpen(d.wake)} to ${fmtOpen(d.bed)}`;
-            CV.row(list, d.human ? `${d.human}_down_stand` : `${d.sprite}_0`, d.name, (day ? `${day.name}: ${MONTHS[day.m - 1]} ${day.d}` : 'Their day: a mystery') + ` · up ${wake}`, hs);
+            const wake = `${fmtOpen(d.wake)} to ${fmtOpen(d.bed)}`, bf = bestFriendOf(id);
+            CV.row(list, d.human ? `${d.human}_down_stand` : `${d.sprite}_0`, d.name, (day ? `${day.name}: ${MONTHS[day.m - 1]} ${day.d}` : 'Their day: a mystery') + ` · up ${wake}` + (bf ? ` · close with ${NPC_DEFS[bf].name}` : ''), hs);
         }
         CV.row(list, 'goat_0', 'The goat', 'Birthday: unknown · Favorite thing: everything, eaten');
     },
@@ -196,17 +196,17 @@ CIVIC_LIVE.rename = {
         const T = town(), pick = this.pick || LANDMARKS[0][0];
         const l = CV.list(b);
         for (const [k, n] of LANDMARKS) {
-            const r = CV.row(l, null, placeName(k, n), T.names[k] ? `Was: ${n}` : 'Its name on the map', null, () => { this.pick = k; redraw(); });
+            const r = CV.row(l, null, landmarkName(k, n), T.names[k] ? `Was: ${n}` : 'Its name on the map', null, () => { this.pick = k; redraw(); });
             if (k === pick) r.classList.add('sel');
         }
         if (townVisitorNote(b)) return;
         const cur = LANDMARKS.find(x => x[0] === pick);
-        const inp = CV.field(b, `New name for ${placeName(pick, cur[1])}`, '', 'A new name', { max: 24 });
+        const inp = CV.field(b, `New name for ${landmarkName(pick, cur[1])}`, '', 'A new name', { max: 24 });
         const say = bankMsg(b);
         f.appendChild(btn('Rename', 'green', () => {
             const v = inp.value.trim().replace(/\s+/g, ' ');
             if (!/[a-z]/i.test(v) || v.length > 24) return say('err', 'A name needs a letter or two (and at most 24). Try again!');
-            const old = placeName(pick, cur[1]);
+            const old = landmarkName(pick, cur[1]);
             T.names[pick] = v;
             townLog(`${old} is renamed ${v}.`);
             Sfx.play('fanfare'); Save.touch(); redraw();

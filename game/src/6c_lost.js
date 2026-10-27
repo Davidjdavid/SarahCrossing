@@ -170,6 +170,7 @@ async function returnLost(n) {
     const c = S.lost.cur, id = c.id, it = ITEMS[id];
     if (!takeOwned(id)) return;
     const owner = n.id, r = rel(owner);
+    remember(owner, 'lost', { what: it.what });
     UI.hideDialog();
     G.player.pose = 'cheer'; G.player.poseT = 30;
     n.emote = 'heart'; n.emoteT = 120;

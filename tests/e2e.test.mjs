@@ -1349,6 +1349,114 @@ test('nicknames: a good friend asks once if they can call Sarah something, uses 
   await page.context().close();
 });
 
+test('friendship: neighbors remember what Sarah did with them, fade a little after weeks away (never a heart), and share something new at each heart', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, day = Clock.dayNum(), said = [];
+    const say = UI.say, ask = UI.ask;
+    let advice = null;
+    UI.say = async (who, t) => { said.push(...[].concat(t).map(String)); };
+    UI.ask = async (who, t, choices) => { if (choices.join() === ADVICE.maki.a.join()) { advice = choices; return 0; } return choices.length - 1; };
+    try {
+      // memories: a hug and a game, brought up once, a few days on
+      const kai = NPCs.get('kai'), rk = rel('kai');
+      rk.met = true; rk.pts = HEARTS[1]; rk.hugDay = -1; rk.playDay = -1;
+      await hugFlow(kai);
+      await igFriend(kai, 'derby');
+      out.kept = rk.mem.map(m => m.k).join();
+      for (const m of rk.mem) m.day = day - 2;
+      const a = memoryLine('kai'), b = memoryLine('kai'), c = memoryLine('kai');
+      out.mem = { game: /fishing derby the other day/.test(a), hug: /hug/i.test(b) && /the other day/.test(b), once: c === null };
+      for (const m of rk.mem) { m.said = 0; m.day = day - 6; }
+      let heard = false;
+      for (let i = 0; i < 12 && !heard; i++) { rk.talkDay = -1; said.length = 0; await neighborTalk(kai); heard = said.some(l => /last week/.test(l)); }
+      out.mem.talk = heard;
+      // fading: three weeks away and more, a point every other day, never below the hearts they have
+      const rc = rel('cuke'), rs = rel('sully');
+      rc.met = true; rc.pts = 30; rc.talkDay = day - 30;
+      rs.met = true; rs.pts = HEARTS[3] + 8; rs.talkDay = day - 41;
+      friendshipTick(); friendshipTick();
+      out.fade = { cuke: rc.pts, sully: rs.pts === HEARTS[3], hearts: hearts('sully') === 3, missed: !!rc.missed };
+      said.length = 0;
+      await neighborTalk(NPCs.get('cuke'));
+      out.fade.welcome = MISSED_LINES.some(l => said.some(s => s.includes(l.slice(8, 20)))) && !rc.missed;
+      // milestones, one a day: personal, advice, a gift for her house, best friends
+      const maki = NPCs.get('maki'), rm = rel('maki');
+      rm.met = true; rm.pts = HEARTS[5]; rm.nickAsked = true; rm.photo = true; rm.talkDay = -1;
+      const steps = [];
+      for (let d = 0; d < 5; d++) {
+        said.length = 0;
+        const mail = S.mail.length;
+        rm.talkDay = -1; await neighborTalk(maki);
+        rm.talkDay = -1; await neighborTalk(maki);
+        const has = l => said.some(x => x.includes(l.slice(0, 24)));
+        steps.push({ fav: has(FAV_SPOT.maki[2]), advice: rm.advice === 0 && has(ADVICE.maki.r[0]),
+          gift: S.mail.length > mail && S.mail[S.mail.length - 1].gift === 'bonsai', bff: !!rm.bff && said.some(l => l.includes('best friend')) });
+        rm.msDay = -1;
+      }
+      out.steps = steps.map(s => Object.keys(s).filter(k => s[k]).join() || '-');
+      out.joe = nextMilestone('joe') === null && nextMilestone('maki') === null;
+      // (her favorite spot, once she's told: most of Maki's hang-out invitations go there)
+      out.hang = Invites.hangSpots('maki').filter(s => s === 'bench_pond').length >= 3;
+      // (two files once declared the same function and the later one won: these are each file's own)
+      out.names = [placeName('maki', 'bench_pond'), landmarkName('pond', 'Pond'), hexRgb('#ff8000').join()];
+    } finally { UI.say = say; UI.ask = ask; }
+    return out;
+  });
+  assert.deepEqual(res, { kept: 'hug,game', mem: { game: true, hug: true, once: true, talk: true },
+    fade: { cuke: 26, sully: true, hearts: true, missed: true, welcome: true },
+    steps: ['fav', 'advice', 'gift', 'bff', '-'], joe: true, hang: true,
+    names: ['on the bench by the pond', 'Pond', '255,128,0'] });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test("the neighbors' own friendships: storylines move them, chats and time mend them, close friends chat more, and they say so", async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(() => {
+    const out = {};
+    out.start = [bond('maki', 'kai'), bond('kai', 'maki'), bond('maki', 'chili')];
+    // a storyline: falling out over a mix-up, then cleared up
+    for (const id of DRAMA_FOOD) rel(id).met = true;
+    const d = Drama.begin(mulberry(5), { tpl: 'mixup', cast: { A: 'maki', B: 'kai' } });
+    out.fell = bond('maki', 'kai');
+    Drama.setState(d, 'clear');
+    out.cleared = bond('maki', 'kai');
+    Drama.finish(d);
+    // a chat: a little closer, once a day, only so far by chatting
+    const A = NPCs.get('cuke'), B = NPCs.get('mac');
+    const chat = () => { const c = { a: A, b: B, lines: ['a', 'b'], i: 1, t: 0 }; Chats.list.push(c); A.chat = B.chat = c; Chats.end(c); };
+    chat(); chat();
+    out.chat = bond('cuke', 'mac');
+    S.bondDay = {}; bondAdd('cuke', 'mac', 10); chat();
+    out.capped = bond('cuke', 'mac');
+    // fallen out: no chatting, and it mends every third day
+    bondAdd('chili', 'coco', -4);
+    out.ok = [Chats.ok(NPCs.get('chili'), NPCs.get('coco')), Chats.ok(A, B)];
+    const day = Clock.dayNum(), real = Clock.dayNum;
+    try { Clock.dayNum = () => day + (3 - day % 3); bondTick(); } finally { Clock.dayNum = real; }
+    out.mend = bond('chili', 'coco');
+    // what they say
+    out.best = bestFriendOf('cuke') === 'mac' && /Mac/.test(bondLine(NPCs.get('cuke')));
+    out.spat = fellOutWith('chili') === 'coco' && /Coco/.test(bondLine(NPCs.get('chili')));
+    out.topic = EXTRA_TOPICS.some(t => t[0] === 'bond');
+    return out;
+  });
+  assert.deepEqual(res, { start: [4, 4, 0], fell: 2, cleared: 5, chat: 2.5, capped: 10, ok: [false, true], mend: -3, best: true, spat: true, topic: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('karaoke: a different request each night from the poems Sarah has, first on the list and on the board, and the crowd tips extra', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
