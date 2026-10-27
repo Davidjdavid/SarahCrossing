@@ -166,8 +166,10 @@ docs/DEPLOY.md for the server.
   eggs, tools, keepsakes, quest things, what the neighbors lose, the vegetables picked), and what has no model of its
   own lies as a stand-in for its kind, as in Animal Crossing (`EnvItems.model`): a leaf for furniture, wallpaper, floors
   and accessories, a folded shirt painted in the outfit's colors and a fish in the fish's (`*_top`/`*_trim` parts,
-  `EnvItems.tint`), a seed packet, a sack, a covered dish. The `item_` models load after the island, before the
-  furniture; a thing to be found still twinkles;
+  `EnvItems.tint`), a seed packet, a sack, a covered dish. Every dish Sarah cooks or the restaurant serves is its own
+  miniature from `dishes.py` (`item_dish_<name>`, the dish's picture's name: on its plate, in its bowl, on its board or in
+  its steamer, all as big as the covered one, `EnvItems.size`), so a dish on a table, at the restaurant or dropped on the
+  island is that dish. The `item_` models load after the island, before the furniture; a thing to be found still twinkles;
   Sarah's sailboat at the pier, the boats crossing the sea, dolphins, planes (the propeller its own model,
   `sky_plane_prop`), hot air balloons and the gull flock, posed from SeaSky's own things by `EnvSea` (33o_env_sea.js),
   the planes and balloons small and high so they read as up in the sky (their shadows cross the ground below).
@@ -175,7 +177,7 @@ docs/DEPLOY.md for the server.
   between the island's group and the room's), and the room is a box you look into: the back wall wears the HD view's
   wall picture (so what's hung there shows), the side walls one tile of its paper repeated, skirting boards, dark cut
   tops, a sill with the doorway; it's lit brighter and warmer than the HD view's rooms. The floor pieces of furniture
-  are models from `furniture.py` (`furn_<id>`: the kit in `furn_kit.py`, the pieces in `furn_a.py`..`furn_f.py`, one
+  are models from `furniture.py` (`furn_<id>`: the kit in `furn_kit.py`, the pieces in `furn_a.py`..`furn_g.py`, one
   file per batch; `--batch furn_b` builds one), placed on their footprints by `EnvRoom.furniture` (built again when the
   room changes); a plush is its folk's model, small; the little things on tables are models too (`furn_e.py`), standing
   on their table's top (`anchor_top`). What hangs on the walls is made in `furn_f.py` against the back wall (its middle
@@ -186,8 +188,16 @@ docs/DEPLOY.md for the server.
   (`EnvRoom.picMat`, `picUV`), so the lettering and art stay as drawn. A neighbor's painting for the museum borrows the gilt
   frame (`furn_empty_frame`) and a photo of a neighbor the photo frame (`furn_photo_frame`), each wearing its own picture.
   What has no model of its own yet is a thick cut-out of its picture
-  (`EnvRoom.cutout`: the picture on the front, the same shape twice behind it a shade darker). Rugs stay pictures on
-  the floor, and pieces drawn moving (arcade cabinets, the disco floor) keep their pictures. The
+  (`EnvRoom.cutout`: the picture on the front, the same shape twice behind it a shade darker). What the 2D view draws
+  moving is a model whose moving part is its own (`furn_g.py`, `EnvRoom.animate`): an arcade cabinet's screen (a part
+  named `*_screen`) shows its game's name and attract animation drawn on a picture of its own (`EnvRoom.screen`), the claw
+  rides along the claw machine's top and the plates along the sushi conveyor (`*_move`). Rugs are soft slabs wearing
+  their picture (`EnvRoom.rug`; the light-up floor's squares light in turn). Clementine's mannequins are dolls from the
+  kit with no face or hair, the color of a dress form, wearing the outfit for sale (`EnvRoom.mannequin`), and the
+  accessories for sale lie on her table as the pieces a doll wears (`EnvRoom.accessories`). Fittings with no furniture of
+  their own say how the new look draws them in `look3d` (`EnvRoom.deco`): the shop's easel (a 3D easel and canvas, the
+  painting on it still its picture) and board, the restaurant's chairs and the dishes on its tables (what each seat is
+  eating, `seatDish`), the arcade's back door and crates; food on a table is its dish, a flower stands in a vase. The
   furniture loads after the island's models, so the island never waits for it. Glass is a part named `*_clear`
   (see-through).
 - The club is a 3D room in the new look too (`EnvRoom.club`: the DJ booth, speakers and disco ball as their models, the dance
@@ -249,7 +259,7 @@ docs/DEPLOY.md for the server.
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
-  steps): the game loads every model at once, so keep `game/assets/models/` light (about 82 MB on disk now, 10 of it furniture, 30 the style test's dolls and folks with their phone versions; packed and gzipped by the build, a computer fetches about 23 MB of it and a phone 20). `doll.py` was the
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 85 MB on disk now, 12 of it furniture, 30 the style test's dolls and folks with their phone versions; packed and gzipped by the build, a computer fetches about 26 MB of it and a phone 21). `doll.py` was the
   mock-up of the people as dolls. `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height

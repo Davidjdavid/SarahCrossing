@@ -33,9 +33,11 @@ function buildRestaurantRoom(a) {
         const ch = a.add({ kind: 'deco', x: (x + 0.5) * TILE, y: (y + 1) * TILE - 3, flip: face === 'left' });
         ch.sy = (y + 0.5) * TILE + 3;
         ch.draw = ctx => spr(ctx, 'f_dining_chair', ch.x, ch.y);
+        ch.look3d = { model: 'furn_dining_chair', face };
         const [tx, ty] = toArea(...SEAT_TABLE[i]);
         const plate = a.add({ kind: 'deco', x: (tx + 0.5) * TILE, y: (ty + 1) * TILE - 13 });
         plate.sy = (ty + 1) * TILE;
+        plate.look3d = { dish: i, tx, ty };
         plate.draw = ctx => {
             const dish = seatDish(i);
             if (dish) spr(ctx, ITEMS[dish].icon, plate.x, plate.y);

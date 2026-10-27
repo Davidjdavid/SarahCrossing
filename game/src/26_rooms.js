@@ -452,6 +452,7 @@ function buildShopRoom(a) {
     for (const [ax, ay, id, d] of boards) {
         const e = a.add({ kind: 'deco', x: (ax + 1.5) * TILE, y: (ay + 2) * TILE - 2, sale: id });
         e.draw = ctx => { spr(ctx, 'display_board', e.x, e.y); spr(ctx, d.frame || 'f_' + id, e.x, e.y - 11); };
+        e.look3d = { board: id, frame: d.frame || 'f_' + id };
         e.hit = { x: ax * TILE, y: ay * TILE - 8, w: 3 * TILE, h: 2 * TILE + 8 };
         e.interact = () => buyItemAsk(id);
         for (let k = 0; k < 3; k++) a.block(ax + k, ay + 1);
@@ -460,6 +461,7 @@ function buildShopRoom(a) {
         const wid = st.walls[0];
         const e = a.add({ kind: 'deco', x: (fx0 + 2.5) * TILE, y: (fy0 + 2) * TILE - 1, sale: wid });
         e.draw = ctx => { spr(ctx, 'easel', e.x, e.y); spr(ctx, 'ic_' + wid, e.x, e.y - 17); };
+        e.look3d = { easel: 'ic_' + wid };
         e.hit = { x: (fx0 + 2) * TILE, y: fy0 * TILE, w: TILE, h: 2 * TILE };
         e.interact = () => buyItemAsk(wid);
         a.block(fx0 + 2, fy0 + 1);
@@ -575,7 +577,7 @@ function buildBoutiqueRoom(a) {
     // the accessories lie on the glass table
     const table = a.ents.find(e => e.furn && e.def.id === 'acc_table');
     if (table) {
-        const accs = st.clothes.filter(id => ITEMS[id].type === 'acc');
+        const accs = table.accs = st.clothes.filter(id => ITEMS[id].type === 'acc');
         table.draw = ctx => {
             spr(ctx, table.frame, table.x, table.y);
             accs.slice(0, 3).forEach((id, i) => spr(ctx, ITEMS[id].icon, table.x - 10 + i * 10, table.y - 12));

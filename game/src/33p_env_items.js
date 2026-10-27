@@ -15,6 +15,8 @@ const EnvItems = {
         koi: '#f08040', goldfish: '#f0a020', squid: '#f0d8d0', octopus: '#e07a6a', shrimp: '#f0a088', crawfish: '#c84a3a', lobster: '#d8402a' },
     /* (how big each lies, against the shells': the big ones a little smaller) */
     SIZE: { item_lobster: 1.1, item_fish: 1.3, item_squid: 1.3, item_fish_boot: 1.25, item_dish: 1.3, item_ic_wood: 1.35, item_ui_present: 1.35, item_ic_package: 1.35 },
+    /* (a dish lies as big as the covered one stood: dishes.py makes them all the same size) */
+    size(n, d) { return this.SIZE[n] || (/^item_dish_/.test(n) ? this.SIZE.item_dish : d); },
     list: new Map(), drawn: new Set(), tints: new Map(),
     build(group, a) {
         this.group = new THREE.Group();
@@ -96,7 +98,7 @@ const EnvItems = {
                 // (each lies at its own turn; fruit is bigger, as on the trees; a little bag of sand dollars small)
                 const r = mulberry(hash32('it' + Math.round(e.x) + ',' + Math.round(e.y)));
                 d.rotation.y = r() * Math.PI * 2;
-                d.scale.setScalar(this.FRUIT.has(e.id) ? 1.6 : e.frame === 'money_bag_s' ? 0.95 : /^flowers_/.test(name) ? 0.55 : this.SIZE[name] || 1.55);
+                d.scale.setScalar(this.FRUIT.has(e.id) ? 1.6 : e.frame === 'money_bag_s' ? 0.95 : /^flowers_/.test(name) ? 0.55 : this.size(name, 1.55));
                 this.list.set(e, d);
             }
             seen.add(e);

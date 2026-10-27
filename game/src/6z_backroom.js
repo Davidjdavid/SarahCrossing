@@ -85,6 +85,7 @@ function addBackDoor(a) {
         ctx.fillStyle = '#c0283a'; ctx.fillRect(dx + 2, dy + 5, TILE - 8, 1);
         if (!open && Quests.stage('backroom') === 3 && Math.floor(G.t / 20) % 2) { ctx.fillStyle = '#ffffff'; ctx.fillRect(dx + TILE - 9, dy + 10, 1, 1); }
     };
+    e.look3d = { backdoor: true };
     e.hit = { x: x * TILE, y: y * TILE - 8, w: TILE, h: TILE + 10 };
     e.interact = () => backDoor();
     return e;
@@ -133,6 +134,7 @@ function buildBackRoom(a) {
         const [x, y] = toArea(fx, fy);
         const e = a.add({ kind: 'deco', x: (x + 0.5) * TILE, y: (y + 1) * TILE - 1 });
         e.draw = ctx => spr(ctx, 'crate', e.x, e.y);
+        e.look3d = { model: 'crate' };
         a.block(x, y);
     }
 }

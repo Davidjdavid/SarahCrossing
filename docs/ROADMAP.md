@@ -176,6 +176,22 @@ Status: [x] done, [~] in progress, [ ] not started.
   week is never all chairs, so Sarah can't buy everything at the start. Many more pieces too: every piece of furniture in
   four colors (the model's parts painted differently), named like "Large couch (pink)"
 - [ ] The achievements that unlock outfits, songs, recipes and the like much harder and spread out over a long time
+- [ ] Neighbors turn round to face Sarah when she talks to them
+- [ ] Lots of things they do when they're not busy, each its own animation: looking at the stars, eating a snack, sitting
+  on the ground, on their phone, reading a book, painting, and more, so they feel alive
+- [ ] Neighbors stopping close together to chat, one talking and the other listening, now and then nodding while
+  looking at whoever's talking
+- [ ] Songs and poems that rotate, so there's something new to check each day; many more songs; and a way to upload a
+  song and have a dance made for it
+- [ ] Sarah dances on her own between the steps in the dance game (an idle dance when no button is pressed), so it looks
+  like dancing
+
+## Rooms and props in 3D, another look (David, 27 October: for later)
+- [ ] Rooms a bit taller, so windows, clocks and the like fit the walls better
+- [ ] Clocks show the real time
+- [ ] Go back through the island, the shops, the houses and every room and look again at each prop and decoration in 3D:
+  they came over one to one from the 2D pictures, so not everything looks good in 3D (and some didn't look great to begin
+  with); redo or replace what doesn't
 
 ## The museum, in rooms (David, 26 October: for later)
 - [ ] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings

@@ -30,6 +30,8 @@ class Piece:
         self.id, self.w, self.h = id, w, h
         self.main, self.gloss, self.glow, self.clear = MB(), MB(), MB(), MB()
         self.pic, self.picglow = MB(), MB()      # (a wall piece's face that the game paints with its picture)
+        self.screen = MB()                       # (a cabinet's screen: the game shows its game on it, live)
+        self.move = MB()                         # (what the game moves: a claw, the plates going round a conveyor)
         self.anchors = {}
         self.rng = random.Random(sum(map(ord, id)))
 

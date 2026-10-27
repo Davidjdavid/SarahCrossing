@@ -25,6 +25,7 @@ const EnvRoom = {
             if (B.map !== r3.wall.tex) { B.map = B.emissiveMap = r3.wall.tex; B.needsUpdate = true; }
         }
         this.furniture(r3, a);
+        this.animate(a);
         if (this.built.club) this.clubTick(a);
         EnvDolls.attach(this.built.group);
         EnvDolls.tick(r3, a);
@@ -33,10 +34,10 @@ const EnvRoom = {
     },
     /* (built again when the room changes size or paper: the house grows, Sarah changes the wallpaper) */
     sig(a) { return [a.id, a.w, a.h, a.club ? 'disco' + (EnvModels.has('furn_turntables') ? '+' : '') : a.wallId || S.house.wall, a.club ? 'disco' : a.floorId || S.house.floor].join('|'); },
-    /* what the room draws itself: the furniture made in Blender (furniture.py), not what's hung on the wall, a rug, or a
-       piece drawn moving (an arcade cabinet's screen, the disco floor) */
+    /* what the room draws itself: the furniture made in Blender (furniture.py), not what's hung on the wall or a rug (a
+       piece the 2D view draws moving uses its model too: what moves on it moves here, EnvRoom.animate) */
     model(e) {
-        if (!e.furn || !e.def || e.draw || e.def.kind === 'rug') return null;
+        if (!e.furn || !e.def || e.def.kind === 'rug' || e.def.food || e.def.flower) return null;
         // (a plush is its folk's own model, small)
         const n = /^plush_/.test(e.item.id) ? 'folk_' + e.item.id.slice(6) : 'furn_' + e.item.id;
         if (EnvModels.has(n)) return n;
@@ -84,14 +85,193 @@ const EnvRoom = {
     },
     /* a piece's model at a place; a face it carries (*_pic, *_picglow) wears the piece's own picture */
     parts(g, e, n, m, P) {
+        const B = this.built;
         for (const p of EnvModels.models[n].parts) {
-            const face = /_pic(glow)?$/.exec(p.material.name || ''), pic = face && (P || this.pic(e.frame));
+            const mn = p.material.name || '', face = /_pic(glow)?$/.exec(mn);
+            // (the island flag's cloth is the Town Hall's design itself, not its little picture with a pole)
+            const fc = face && e.frame === 'f_island_flag' && typeof flagCanvas === 'function' ? flagCanvas(4) : null;
+            const pic = face && (fc ? { c: fc } : P || this.pic(e.frame));
             if (face && !pic) continue;
-            if (face) this.picUV(p.geometry);
-            const mesh = new THREE.Mesh(p.geometry, face ? this.picMat(e.frame, pic, !!face[1]) : p.material);
+            if (face || /_screen$/.test(mn)) this.picUV(p.geometry);
+            const mat = face ? this.picMat(e.frame, pic, !!face[1]) : /_screen$/.test(mn) ? this.screen(e) : p.material;
+            const mesh = new THREE.Mesh(p.geometry, mat);
             mesh.matrixAutoUpdate = false; mesh.matrix.copy(m);
             mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.shared = true;
             g.add(mesh);
+            // (the claw riding along the top, a conveyor's plates)
+            if (/_move$/.test(mn)) B.movers.push({ e, mesh, base: m.clone() });
+        }
+    },
+    /* an arcade cabinet's screen: its game's name and its own little attract animation (the 2D one, blown up), drawn
+       on a picture of its own a few times a second */
+    screen(e) {
+        const B = this.built, c = document.createElement('canvas');
+        c.width = 64; c.height = 52;
+        const tex = new THREE.CanvasTexture(c);
+        tex.magFilter = THREE.NearestFilter;
+        B.textures.push(tex);
+        B.screens.push({ e, c, tex });
+        const mat = r3Patch(new THREE.MeshBasicMaterial({ map: tex }), { key: 'envscreen' });
+        mat.userData.own = true;
+        return mat;
+    },
+    drawScreen(s) {
+        const e = s.e, c = s.c, g = c.getContext('2d'), W = c.width, H = c.height, id = e.def.arcade;
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.fillStyle = '#10121e'; g.fillRect(0, 0, W, H);
+        const game = typeof ARCADE_GAMES !== 'undefined' && (ARCADE_GAMES[id] || ARCADE_GAMES['vs_' + id]);
+        g.fillStyle = '#ffe9a8'; g.font = 'bold 8px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'top';
+        if (game && game.name) g.fillText(String(game.name).toUpperCase(), W / 2, 3, W - 6);
+        const x0 = Math.round(e.x) - 8, y0 = Math.round(e.y) - 29, k = 5;
+        g.setTransform(k, 0, 0, k, 7 - (x0 + 3) * k, 12 - (y0 + 6) * k);
+        drawCabinetScreen(g, e);
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.fillStyle = 'rgba(0,0,0,0.2)';
+        for (let y = 0; y < H; y += 2) g.fillRect(0, y, W, 1);
+        s.tex.needsUpdate = true;
+    },
+    /* a model's parts as a group of their own (the furniture's geometry and materials, kept for the next room) */
+    group(n, x, y, z, s, ry) {
+        const o = new THREE.Group();
+        o.position.set(x, y, z);
+        if (s) o.scale.setScalar(s);
+        if (ry) o.rotation.y = ry;
+        for (const m of EnvModels.place(o, n, new THREE.Matrix4())) m.userData.shared = true;
+        return o;
+    },
+    /* where a tabletop is: the top of whatever stands on that floor tile */
+    topAt(tx, ty) {
+        for (const t of this.built.tops) if (tx >= t.x0 && tx < t.x1 && ty >= t.y0 && ty < t.y1) return t;
+        return null;
+    },
+    /* a rug: a soft slab with rounded corners (a round one round), its picture across the top, a shade darker round
+       its edge; the light-up dance floor's squares light in turn (EnvRoom.animate) */
+    rug(g, e) {
+        const B = this.built, d = e.def, it = e.item, P = this.pic(e.frame);
+        if (!P) return false;
+        const round = /round/.test(d.id), sh = new THREE.Shape();
+        if (round) sh.absarc(0.5, 0.5, 0.5, 0, Math.PI * 2, false);
+        else {
+            const r = 0.05;
+            sh.moveTo(r, 0); sh.lineTo(1 - r, 0); sh.quadraticCurveTo(1, 0, 1, r); sh.lineTo(1, 1 - r); sh.quadraticCurveTo(1, 1, 1 - r, 1);
+            sh.lineTo(r, 1); sh.quadraticCurveTo(0, 1, 0, 1 - r); sh.lineTo(0, r); sh.quadraticCurveTo(0, 0, r, 0);
+        }
+        const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.012, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.01, bevelSegments: 2, curveSegments: round ? 40 : 4 });
+        let c = P.c;
+        if (d.anim) { c = document.createElement('canvas'); c.width = c.height = 128; B.lit = { e, c, P }; }
+        const tex = new THREE.CanvasTexture(c);
+        tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.anisotropy = 4;
+        B.textures.push(tex);
+        if (B.lit && B.lit.e === e) { B.lit.tex = tex; this.drawLit(); }
+        const top = r3Patch(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: d.anim ? 0.5 : 0.1 }), { key: 'envrug' });
+        const edge = r3Patch(new THREE.MeshStandardMaterial({ color: this.edgeCol(P.c), roughness: 0.95, metalness: 0 }), { key: 'envrug' });
+        top.userData.own = edge.userData.own = true;
+        const m = new THREE.Mesh(geo, [top, edge]), w = d.w * 0.94, h = d.h * R3_ZS * 0.94;
+        m.rotation.x = -Math.PI / 2;
+        m.scale.set(w, h, 1);
+        m.position.set(it.x + (d.w - w) / 2, 0.002, (it.y + d.h) * R3_ZS - (d.h * R3_ZS - h) / 2);
+        m.receiveShadow = true;
+        g.add(m);
+        return true;
+    },
+    /* (a rug's edge: its picture's average color, darker) */
+    edgeCol(c) {
+        const k = document.createElement('canvas'); k.width = k.height = 1;
+        const x = k.getContext('2d'); x.drawImage(c, 0, 0, 1, 1);
+        const [r, g, b] = x.getImageData(0, 0, 1, 1).data;
+        return new THREE.Color(r / 255 * 0.7, g / 255 * 0.7, b / 255 * 0.7);
+    },
+    drawLit() {
+        const L = this.built.lit, g = L.c.getContext('2d'), P = L.P, cols = ['#ff5aa8', '#4ec3d9', '#ffd84a', '#8cc152'], t = G.t;
+        g.drawImage(P.c, 0, 0, 128, 128);
+        for (let i = 0; i < 16; i++) { g.fillStyle = cols[(i + (t >> 4)) % 4]; g.fillRect(8 + (i % 4) * 28, 8 + Math.floor(i / 4) * 28, 24, 24); }
+        L.tex.needsUpdate = true;
+    },
+    /* a mannequin in Clementine's: a doll from the kit (no face, no hair, the color of a dress form) wearing the outfit
+       it's showing, on its stand */
+    mannequin(g, e) {
+        const it = ITEMS[e.sale];
+        if (!it || !EnvDolls.kitReady() || typeof hdOutfit !== 'function') return false;
+        const look = Object.assign({}, LOOK_DEFAULT, { hair: 'bald', skin: '#efe2cc', blush: false, masc: false, freckles: false });
+        const d = EnvDolls.make2({ look, clothes: hdOutfit(it.wear), eyes: null, acc: null });
+        if (d.face) d.face.visible = false;
+        // (facing the shop, its head a dress form's smaller one, its arms a little out from its sides)
+        if (d.parts.head) d.parts.head.scale.setScalar(0.62);
+        if (d.parts.armL) d.parts.armL.rotation.z = -0.18;
+        if (d.parts.armR) d.parts.armR.rotation.z = 0.18;
+        const x = e.x / TILE, z = ((e.y + 2) / TILE - 0.5) * R3_ZS;
+        d.root.position.set(x, 0.045, z);
+        d.root.rotation.y = Math.PI;
+        d.root.traverse(o => { if (o.isMesh) o.userData.ownGeo = true; });
+        g.add(d.root);
+        if (EnvModels.has('furn_mannequin_stand')) g.add(this.group('furn_mannequin_stand', x, 0, z));
+        return true;
+    },
+    /* the accessories for sale lying on the boutique's table, each the piece a doll wears (EnvDolls.extras) */
+    accessories(g, e, host) {
+        (e.accs || []).slice(0, 3).forEach((id, i, all) => {
+            const wear = ITEMS[id] && ITEMS[id].wear;
+            if (!wear) return;
+            const o = new THREE.Group(), R = 0.2;
+            EnvDolls.extras({ R, v2: true, eye: { x: 0.36, y: 0, z: 0.9, r: 0.22 } }, o, EYE_ACCS.has(wear) ? { eyes: wear } : { acc: wear }, LOOK_DEFAULT);
+            o.traverse(m => { if (m.isMesh) m.userData.shared = true; });
+            const b = new THREE.Box3().setFromObject(o);
+            if (b.isEmpty()) return;
+            o.position.set(e.item.x + e.def.w / 2 + (i - (all.length - 1) / 2) * 0.55, host.top - b.min.y + 0.005, host.z);
+            g.add(o);
+        });
+    },
+    /* the fittings with no furniture of their own (the shop's easel and board, the restaurant's chairs and plates, the
+       arcade's back door and crates): what each is, from look3d */
+    deco(g, a, e) {
+        const L = e.look3d, B = this.built, zOf = (y) => ((y + 2) / TILE - 0.5) * R3_ZS;
+        if (L.model && EnvModels.has(L.model)) {
+            const o = this.group(L.model, e.x / TILE, 0, zOf(e.y), 0, e.flip ? -Math.PI / 2 : L.face === 'right' ? Math.PI / 2 : 0);
+            g.add(o);
+            return true;
+        }
+        if (L.easel && EnvModels.has('furn_shop_easel')) {
+            const P = this.pic(L.easel);
+            this.parts(g, { frame: L.easel }, 'furn_shop_easel', new THREE.Matrix4().makeTranslation(e.x / TILE, 0, zOf(e.y)), P || undefined);
+            return true;
+        }
+        if (L.board && EnvModels.has('furn_shop_board')) {
+            const x = e.x / TILE, z = zOf(e.y), m = new THREE.Matrix4().makeTranslation(x, 0, z);
+            this.parts(g, { frame: 'display_board' }, 'furn_shop_board', m);
+            const f = EnvModels.models.furn_shop_board.anchors.face, n = 'furn_' + L.board, P = this.pic(L.frame);
+            if (f && EnvModels.has(n)) this.parts(g, { frame: L.frame }, n, new THREE.Matrix4().makeTranslation(x + f[0].x, f[0].y, z + f[0].z), P || undefined);
+            else if (f && P) { const o = this.cutout(g, { frame: L.frame }, P, P.w / TILE, P.h / TILE); o.position.set(x + f[0].x, f[0].y, z + f[0].z + 0.02); }
+            return true;
+        }
+        if (L.backdoor && EnvModels.has('furn_arcade_backdoor')) {
+            g.add(this.group('furn_arcade_backdoor', e.x / TILE, 0, a.floor.y0 * R3_ZS + 0.005));
+            return true;
+        }
+        if (L.dish != null) { B.plates.push({ e, L, mesh: null, dish: undefined }); return true; }
+        return false;
+    },
+    /* what moves in a room: the cabinets' screens, the claw, the conveyor's plates, the light-up floor, the dishes being
+       eaten at the restaurant's tables */
+    animate(a) {
+        const B = this.built, t = G.t;
+        if (!B || !B.screens) return;
+        if (t - (B.screenT || -99) >= 6) { B.screenT = t; for (const s of B.screens) this.drawScreen(s); }
+        for (const mv of B.movers) {
+            const id = mv.e.def && mv.e.def.id;
+            const dx = id === 'claw_machine' ? -0.55 + (Math.sin(t / 50) + 1) * 0.5 : id === 'sushi_conveyor' ? (t * 0.004) % 0.4 : 0;
+            mv.mesh.matrix.copy(mv.base).multiply(new THREE.Matrix4().makeTranslation(dx, 0, 0));
+        }
+        if (B.lit && (t >> 4) !== B.litStep) { B.litStep = t >> 4; this.drawLit(); }
+        for (const pl of B.plates) {
+            const dish = typeof seatDish === 'function' ? seatDish(pl.L.dish) : null;
+            if (dish === pl.dish) continue;
+            pl.dish = dish;
+            if (pl.mesh) { B.furn.remove(pl.mesh); pl.mesh = null; }
+            const n = dish && typeof EnvItems !== 'undefined' && EnvItems.model(dish, ITEMS[dish] && ITEMS[dish].icon);
+            const top = this.topAt(pl.L.tx, pl.L.ty);
+            if (!n || !top) continue;
+            pl.mesh = this.group(n, pl.e.x / TILE, top.top, (pl.L.ty + 0.5) * R3_ZS, EnvItems.size(n, 1.4) * 0.9);
+            B.furn.add(pl.mesh);
         }
     },
     /* (round things keep round: the wall's height stretch shared both ways) */
@@ -130,17 +310,23 @@ const EnvRoom = {
     /* the furniture: built again whenever it changes (moved, added, the shop's stock of the day) */
     furniture(r3, a) {
         const B = this.built, list = a.ents.filter(e => e.furn && this.model(e));
+        // (food and flowers on tables: the things' own models, a vase for the flowers)
+        const tops = a.ents.filter(e => e.furn && e.def && (e.def.food || e.def.flower));
         // (and what has no model yet: what hangs on the wall, and the little things on tables, as thick cut-outs)
-        const cuts = a.ents.filter(e => e.furn && e.def && !e.draw && !this.model(e) && (e.def.kind === 'wall' || e.def.kind === 'top'));
+        const cuts = a.ents.filter(e => e.furn && e.def && !e.draw && !this.model(e) && !e.def.food && !e.def.flower && (e.def.kind === 'wall' || e.def.kind === 'top'));
+        // (rugs, the mannequins, and the fittings that aren't furniture: look3d says what they are)
+        const rugs = a.ents.filter(e => e.furn && e.def && e.def.kind === 'rug'), mans = a.ents.filter(e => e.kind === 'mannequin' && e.sale), decos = a.ents.filter(e => e.look3d);
         // (each piece by its own entity: the room makes them afresh when it's rearranged or restocked)
-        const sig = list.concat(cuts).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + e.item.id + ',' + e.item.x + ',' + e.item.y + (e.flip ? 'f' : '')).join('|') + '#' + (EnvModels.furnN || 0);
+        const sig = list.concat(tops, cuts, rugs).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + e.item.id + ',' + e.item.x + ',' + e.item.y + (e.flip ? 'f' : '')).join('|')
+            + '|' + mans.concat(decos).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + (e.sale || '')).join('|') + '#' + (EnvModels.furnN || 0) + (EnvDolls.kitReady() ? 'k' : '');
         if (sig === B.furnSig) return;
         B.furnSig = sig;
-        if (B.furn) { B.group.remove(B.furn); B.furn.traverse(o => { if (o.userData.shared) return; if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); }); B.furn = null; }
+        if (B.furn) { B.group.remove(B.furn); B.furn.traverse(o => this.dispose(o)); B.furn = null; }
         const g = B.furn = new THREE.Group();
         B.group.add(g);
         B.hosts = new Map();
         B.placed = new Set();
+        B.screens = []; B.movers = []; B.plates = []; B.tops = []; B.lit = null;
         // (pieces standing on others go after them, so their table's top is known)
         list.sort((p, q) => (p.def.kind === 'top' && p.item.on != null ? 1 : 0) - (q.def.kind === 'top' && q.item.on != null ? 1 : 0));
         for (const e of list) {
@@ -155,8 +341,30 @@ const EnvRoom = {
             this.parts(g, e, n, m);
             B.placed.add(e);
             const top = EnvModels.models[n].anchors.top;
-            if (top) B.hosts.set(e.idx, { top: top[0].y, z });
+            if (top) {
+                const H = { top: top[0].y + y, z };
+                B.hosts.set(e.idx, H);
+                B.tops.push({ x0: it.x, x1: it.x + d.w, y0: it.y, y1: it.y + d.h, top: H.top, z });
+                if (e.accs) this.accessories(g, e, H);
+            }
         }
+        // food and flowers on tables (or on the floor): each thing's own model, the flowers standing in a vase
+        for (const e of tops) {
+            const it = e.item, d = e.def, host = it.on != null ? B.hosts.get(it.on) : null;
+            if (it.on != null && !host) continue;
+            const x = it.x + d.w / 2, y = host ? host.top : 0, z = host ? host.z : (it.y + 0.5) * R3_ZS;
+            const n = typeof EnvItems !== 'undefined' && EnvItems.model(it.id, d.frame);
+            if (!n) continue;
+            if (d.flower && EnvModels.has('furn_flower_vase')) {
+                g.add(this.group('furn_flower_vase', x, y, z));
+                const vt = EnvModels.models.furn_flower_vase.anchors.top;
+                g.add(this.group(n, x, y + (vt ? vt[0].y : 0.15), z, 0.42));
+            } else g.add(this.group(n, x, y, z, EnvItems.size(n, 1.4) * 0.9));
+            B.placed.add(e);
+        }
+        for (const e of rugs) if (this.rug(g, e)) B.placed.add(e);
+        for (const e of mans) if (this.mannequin(g, e)) B.placed.add(e);
+        for (const e of decos) if (this.deco(g, a, e)) B.placed.add(e);
         // (a stool behind the counter for a folk who works there: 33kc_doll_stools.js)
         EnvStools.build(g, a);
         B.cutTex = B.cutTex || new Map();
@@ -207,8 +415,16 @@ const EnvRoom = {
         if (EnvDolls.group && EnvDolls.group.parent === b.group) b.group.remove(EnvDolls.group);
         r3.scene.remove(b.group);
         // (the furniture's geometry and materials are the models', kept for the next room)
-        b.group.traverse(o => { if (o.userData.shared) return; if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); });
+        b.group.traverse(o => this.dispose(o));
         for (const t of b.textures) t.dispose();
+    },
+    /* what the room made for itself goes when it's made again or left: never the models' own geometry and materials
+       (shared), and only the geometry of a mannequin's doll (its materials are the dolls') */
+    dispose(o) {
+        if (o.userData.shared) return;
+        if (o.geometry) o.geometry.dispose();
+        if (o.userData.ownGeo) return;
+        if (o.material) [].concat(o.material).forEach(m => m.dispose());
     },
     build(r3, a, sig) {
         const group = new THREE.Group(), textures = [];
