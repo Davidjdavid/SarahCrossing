@@ -152,8 +152,9 @@ const EnvSea = {
             seen.add(key);
             d.root.visible = true;
             d.root.position.set(x / TILE, this.GULL_ALT + Math.sin(f.t / 40 + i) * 0.15, y / TILE * R3_ZS);
-            // (flying round the circle: facing along it)
-            d.root.rotation.y = Math.atan2(Math.cos(ang) * (12 + i * 3) * R3_ZS, Math.sin(ang) * (34 + i * 9)) + Math.PI / 2;
+            // (flying round the circle: facing the way it goes, head first; the model looks down +z, so the angle is
+            // atan2 of the velocity's x over its z)
+            d.root.rotation.y = Math.atan2(-Math.sin(ang) * (34 + i * 9), Math.cos(ang) * (12 + i * 3) * R3_ZS);
             d.body.rotation.x = -0.15;
             for (const w of d.wings) w.rotation.z = w.userData.side * Math.sin((f.t + i * 7) * 0.25) * 0.85;
         }

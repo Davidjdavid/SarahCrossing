@@ -585,3 +585,40 @@ async function igFriend(n, kind) {
     heartPop(n);
     if (up) await heartUp(n, up);
 }
+
+/* ---------------------------------------------------------------- they ask Sarah to play */
+/* Now and then, talked to, a neighbor asks Sarah to play (David, 27 October evening): at most once a day each, about one
+   talk in eight when a game fits where they are and the hour; never one who's just asked a favor. And rarely they text
+   to ask (6w_extras.js Invites, kind 'play'): yes, then talking to them starts it. */
+const IG_ASK_CHANCE = 0.12;
+const IG_ASK = {
+    _: ["Hey! Want to play {game}? I've been standing here thinking about {game}.", 'Perfect timing! Play {game} with me?', 'Wanna play {game}? Just one round. Okay, maybe two.'],
+    kai: ["Duuude. {game}. You and me. Right now?", "Bro, I'm SO restless. {game}? Please?"],
+    maki: ['I have scheduled a short game of {game}. You are invited. Precisely now.'],
+    joe: ["Want to play {game}? I'll go easy on you. No I won't. Yes I will. Let's find out."],
+    chili: ["I'm all fired up! {game}? Say yes. Say yes!"],
+    cuke: ['Quick game of {game}? Great for the heart! The actual heart!'],
+    coco: ["Girl, play {game} with me. I need something to talk about later."],
+};
+async function igMaybeAsk(n, roll = R()) {
+    const id = n.id, r = rel(id), day = Clock.dayNum();
+    if (r.igAskDay === day || NPC_DEFS[id].family || IslandGames.on) return false;
+    const games = IslandGames.list(n);
+    if (!games.length || roll > IG_ASK_CHANCE) return false;
+    r.igAskDay = day;
+    const [kind, label] = rpick(games);
+    const pool = IG_ASK[id] || IG_ASK._;
+    const k = await UI.ask(id, voiced(id, rpick(pool).replace(/\{game\}/g, label.toLowerCase())), ["Sure, let's play!", 'Maybe later'], { keep: true });
+    if (k !== 0) { await UI.say(id, voiced(id, rpick(["Aw, okay! I'll ask again sometime.", 'No worries! Another time.'])), { keep: true }); return false; }
+    return igBegin(n, kind);
+}
+/* start a game they asked for (false: the talk carries on) */
+async function igBegin(n, kind) {
+    let mode = null;
+    if (kind === 'hide') {
+        const m = await UI.ask(n.id, igLine(n.id, 'seekAsk'), ["I'll hide!", "I'll look for you!"], { keep: true });
+        mode = m === 0 ? 'hide' : 'seek';
+    }
+    setTimeout(() => IslandGames.start(kind, n, mode), 60);
+    return true;
+}

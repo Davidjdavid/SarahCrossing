@@ -165,23 +165,21 @@ export const PLAN = {
     // the café's lot and the two plots of land for sale, each with its sign
     { kind: 'sign_lot', x: 173, y: 95 }, { kind: 'sign_land', x: 34, y: 98 }, { kind: 'sign_land', x: 50, y: 73 },
     { kind: 'drinkfountain', x: 112, y: 92 }, { kind: 'trashcan', x: 102, y: 112 }, { kind: 'trashcan', x: 133, y: 112 },
-    { kind: 'lamp', x: 93, y: 89 }, { kind: 'lamp', x: 141, y: 89 }, { kind: 'lamp', x: 93, y: 113 }, { kind: 'lamp', x: 141, y: 113 }, { kind: 'lamp', x: 111, y: 89 }, { kind: 'lamp', x: 121, y: 89 },
-    // (more lamps, so the square and the paths out of it are bright at night while the woods and hills stay dark: round
-    // the fountain, along the square's sides, down the pier street, out along the main paths)
-    { kind: 'lamp', x: 113, y: 98 }, { kind: 'lamp', x: 120, y: 104 }, { kind: 'lamp', x: 93, y: 101 }, { kind: 'lamp', x: 139, y: 101 }, { kind: 'lamp', x: 114, y: 112 },
-    { kind: 'lamp', x: 119, y: 112 }, { kind: 'lamp', x: 114, y: 116 }, { kind: 'lamp', x: 119, y: 116 }, { kind: 'lamp', x: 89, y: 109 }, { kind: 'lamp', x: 108, y: 84 },
-    { kind: 'lamp', x: 111, y: 78 }, { kind: 'lamp', x: 150, y: 86 }, { kind: 'lamp', x: 163, y: 80 },
+    // (a lamp at each of the square's corners, one down the pier street and one out along each main path: few, each
+    // lighting far, David, 27 October evening: "way too many street lights")
+    { kind: 'lamp', x: 93, y: 89 }, { kind: 'lamp', x: 141, y: 89 }, { kind: 'lamp', x: 93, y: 113 }, { kind: 'lamp', x: 141, y: 113 },
+    { kind: 'lamp', x: 119, y: 116 }, { kind: 'lamp', x: 111, y: 78 }, { kind: 'lamp', x: 163, y: 80 },
     { kind: 'sign_island', x: 120, y: 123 }, { kind: 'tackle', x: 118, y: 129 }, { kind: 'viewer', x: 114, y: 123 },
     // Market Lane
     // (David's statue, smaller, moved off the square to the Boardwalk's lawn: David, 27 October)
     { kind: 'statue_david', x: 150, y: 110 }, { kind: 'plaque', x: 151, y: 112 },
-    { kind: 'sign_club', x: 165, y: 104 }, { kind: 'bench', x: 166, y: 110 }, { kind: 'lamp', x: 148, y: 108 }, { kind: 'lamp', x: 157, y: 108 }, { kind: 'lamp', x: 166, y: 108 }, { kind: 'lamp', x: 176, y: 108 },
+    { kind: 'sign_club', x: 165, y: 104 }, { kind: 'bench', x: 166, y: 110 }, { kind: 'lamp', x: 157, y: 108 }, { kind: 'lamp', x: 176, y: 108 },
     // the alley
-    { kind: 'flowerbed', x: 145, y: 100 }, { kind: 'bench', x: 152, y: 100 }, { kind: 'lamp', x: 156, y: 100 }, { kind: 'flowerbed', x: 160, y: 100 }, { kind: 'lamp', x: 167, y: 100 }, { kind: 'flowerbed', x: 172, y: 100 },
+    { kind: 'flowerbed', x: 145, y: 100 }, { kind: 'bench', x: 152, y: 100 }, { kind: 'flowerbed', x: 160, y: 100 }, { kind: 'lamp', x: 167, y: 100 }, { kind: 'flowerbed', x: 172, y: 100 },
     { kind: 'flowerbed', x: 133, y: 99 },
     // the neighborhood
-    { kind: 'mailbox', x: 61, y: 84 }, { kind: 'bench', x: 49, y: 91 }, { kind: 'lamp', x: 56, y: 100 }, { kind: 'lamp', x: 70, y: 99 }, { kind: 'lamp', x: 86, y: 105 },
-    { kind: 'lamp', x: 42, y: 101 }, { kind: 'lamp', x: 24, y: 98 }, { kind: 'lamp', x: 52, y: 79 }, { kind: 'lamp', x: 76, y: 82 },
+    { kind: 'mailbox', x: 61, y: 84 }, { kind: 'bench', x: 49, y: 91 }, { kind: 'lamp', x: 56, y: 100 }, { kind: 'lamp', x: 86, y: 105 },
+    { kind: 'lamp', x: 24, y: 98 }, { kind: 'lamp', x: 52, y: 79 },
     { kind: 'birdhouse', x: 29, y: 88 }, { kind: 'flamingo', x: 85, y: 76 }, { kind: 'birdhouse', x: 63, y: 72 }, { kind: 'flamingo', x: 45, y: 109 },
     // the farm, its point and the cove
     { kind: 'windmill', x: 47, y: 18 }, { kind: 'well', x: 52, y: 36 }, { kind: 'scarecrow', x: 30, y: 31 }, { kind: 'scarecrow', x: 68, y: 33 },

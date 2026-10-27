@@ -259,7 +259,14 @@ docs/DEPLOY.md for the server.
   plots keep their numbers): each morning `communityTick` plants a leftover seed, grown, in none, one or two empty beds (a
   third of mornings each). The farm's fruit trees are the plan's `fruitTrees`. Both are placed by `layout.mjs`'s
   `additions()`, after everything random has grown, so the rest of the island stays exactly as it was; the save step
-  `garden8` returns anything of Sarah's that stood on their tiles to her storage.
+  `garden8` returns anything of Sarah's that stood on their tiles to her storage. The community garden is a farm plot
+  (David, 27 October evening): a fence round it with a gate in the middle of its south side (its props come last of all
+  in world.json, so every other prop keeps its number; save step `garden9`), the ground inside tilled in the new look
+  (`W0.community`, `inCommunity`) and each bed two ridges of soil (`crop_soil`) instead of a planter box.
+  Saves refer to the island's props by their place in `W0.props` (`S.deco.moved`/`gone`, `S.cleared['pr' + i]`): taking
+  props out means a save step that renumbers them (`lamps9`, `LAMPS9_OUT`: eighteen lamps taken out, 27 October evening,
+  leaving fourteen, each lighting much further: `distance`/`decay` in `updateLight`, `EnvGlow`'s pools, and the island a
+  little lighter at night all round); new props go on the end.
 - The island's trees, palms, wild flowers and gem spots are frozen in `scripts/island/greenery.json` (the plan's
   `greenery`): `layout.mjs` keeps them as they are, leaving out only what a building, prop, road or lawn now covers, so
   moving a street or a shop never regrows the woods. Delete the file (and the plan's line) to grow them again from the seed.
@@ -283,6 +290,17 @@ docs/DEPLOY.md for the server.
   (2aa_roses.js) are a fifth kind from Fortune's seeds only (red, white, yellow; pink and blue hybrids), their pictures drawn
   at load (`ROSE_HEAD` over the tulip's stem), `hdE_rose`, flowers.py's `flower_rose`. In the new look the doll holds the room's can (`furn_watering_can`, `EnvDolls.canModel`) and
   tips it in the `water` pose. The boat Sarah came on is `boat_home` (small_things.py), as big as a building, at the pier.
+- Something dropped hops as it lands and fruit from a shaken tree falls out of the crown (`itemLift`: from `G.t`, since
+  the new look never calls the picture's draw; `spawnDrop(id, x, y, persist, fall)`, `TREE_FALL`), and lying on the ground
+  it never fades see-through like the tree's fruit does (`EnvModels.solid`). A material that fades (`see`) compiles to
+  another program, so it needs its own key (`envmodel` against `envfolk`, `…glows`, `…glass` + `s`): two programs under one
+  key get mixed up.
+- Neighbors now and then ask Sarah to play when she talks to them (`igMaybeAsk`, `IG_ASK`, at most once a day each, about
+  one talk in eight where a game fits), and rarely text to ask (Invites' kind `play`: say yes, then talk to them).
+- The collection's items each open a display of their own (41a_showcase.js, `itemShowcase`): the model turning on a
+  little renderer of its own where the new look's models are loaded (`Showcase`, plain materials, let go when the panel
+  closes), the big picture otherwise; what it sells and buys for (`itemBuyWhere`), where it comes from (`itemSource`), when
+  it was first found and how many Sarah has.
 - The camera's scrapbook (55a_scrapbook.js, David's note of 27 October): a photo's tags say what's in it (`Scrapbook.seen`:
   neighbors, buildings and landmarks, wildlife and what's at sea or in the sky, things lying about or furniture indoors,
   the weather and time of day, the new look's sights, a holiday; plus the filter), kept with the photo (`Photos.add(url,

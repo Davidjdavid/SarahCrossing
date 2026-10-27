@@ -19,7 +19,7 @@ function newState() {
         mail: [], mailSeq: 1,
         dance: { songs: {}, moves: ['wave', 'happy', 'laugh', 'heart', 'yawn'] },
         council: { best: 0, lastDay: -1, plaques: [] },
-        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1, garden8: 1, square8: 1, lane8: 1, fortune8: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
+        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1, garden8: 1, square8: 1, lane8: 1, fortune8: 1, lamps9: 1, garden9: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
         pottery: { seq: 1, pieces: {}, kiln: [], made: 0 },
         arcade: { tickets: 0, best: {}, plays: {}, free: {}, won: 0, claw: null, reach: {}, rival: {} },
         rope: { best: 0, day: -1, trophy: false },
@@ -108,6 +108,8 @@ function clearTiles(st, tiles) {
     if (st.forest && st.forest.planted) st.forest.planted = st.forest.planted.filter(t => { if (!on(t.x, t.y)) return true; if (t.kind === 'money') st.money += t.amount || 0; else back(t.kind === 'fruit' ? t.fruit : t.kind === 'palm' ? 'coconut' : 'sapling'); return false; });
     if (st.drops) st.drops = st.drops.filter(d => { if ((d.area && d.area !== 'island') || !on(Math.floor(d.x / TILE), Math.floor(d.y / TILE))) return true; back(d.id); return false; });
 }
+/* where in map 7's list of props the lamps taken out on 27 October were (the save step lamps9) */
+const LAMPS9_OUT = [27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 40, 49, 51, 55, 63, 65, 68];
 function migrate(st) {
     if (!st || typeof st !== 'object') return null;
     const base = newState();
@@ -228,6 +230,33 @@ function migrate(st) {
         if (st.started) st.mail.push({ id: st.mailSeq++, from: 'ginger', subject: 'More room on Market Lane', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
             body: 'Sarah! The crew spread the shops out a bit. Every shop has room on each side now, the alley has benches and flower beds, '
                 + 'and Market Lane has a lawn along it with lamps. David\'s statue moved over there too, on the lawn.\n\nTwo lots at the east end are waiting for new shops. Any ideas?\n- Ginger' });
+    }
+    // fewer street lamps (27 October, evening: "way too many street lights"): eighteen lamps came out of the island's list
+    // of props, so what Sarah moved, put away or cleared is found again at its new place in the list; a lamp she'd moved
+    // that isn't there any more goes to her storage, to set down wherever she likes
+    if (!st.flags.lamps9) {
+        st.flags.lamps9 = 1;
+        const out = LAMPS9_OUT, to = i => out.includes(i) ? -1 : i - out.filter(o => o < i).length;
+        const D = st.deco;
+        if (D) for (const k of ['moved', 'gone']) {
+            if (!D[k]) continue;
+            const m = {};
+            for (const [i, v] of Object.entries(D[k])) { const n = to(+i); if (n >= 0) m[n] = v; else if (k === 'moved') { st.storage = st.storage || {}; st.storage.dp_lamp = (st.storage.dp_lamp || 0) + 1; } }
+            D[k] = m;
+        }
+        if (st.cleared) {
+            const c = {};
+            for (const [key, v] of Object.entries(st.cleared)) { const m = /^pr(\d+)$/.exec(key), n = m ? to(+m[1]) : 0; if (!m) c[key] = v; else if (n >= 0) c['pr' + n] = v; }
+            st.cleared = c;
+        }
+    }
+    // the community garden fenced round as a farm plot (27 October, evening): whatever of Sarah's stood where the fence is
+    // comes back to her storage
+    if (!st.flags.garden9) {
+        st.flags.garden9 = 1;
+        const c = W0.community, tiles = [];
+        if (c) for (const p of W0.props) if (p.kind === 'fence' && p.x >= c.x && p.x < c.x + c.w && p.y >= c.y && p.y < c.y + c.h) for (let i = 0; i < (p.w || 1); i++) tiles.push({ x: p.x + i, y: p.y });
+        clearTiles(st, tiles);
     }
     // Fortune's shop moved onto Market Lane and Fortune has a house of their own just west of the square, a little garden
     // where the shop stood, a sign on the café's lot, two plots of land for sale in the neighborhood (27 October): a shop

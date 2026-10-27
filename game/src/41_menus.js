@@ -376,12 +376,12 @@ function appCollection(tab) {
     const grid = el('div', 'grid');
     for (const i of ids) {
         const seen = !!S.seen[i];
-        const b = slotBtn(i, 0, { locked: !seen, onClick: () => { detail.innerHTML = ''; if (seen) detail.appendChild(detailRow(i, fishNote(i))); } });
+        // (tap one found: its own display, 41a_showcase.js)
+        const b = slotBtn(i, 0, { locked: !seen, onClick: () => { if (seen) { Sfx.ui('tick'); itemShowcase(i, () => appCollection(tab)); } } });
         grid.appendChild(b);
     }
     P.body.appendChild(grid);
-    const detail = el('div');
-    P.body.appendChild(detail);
+    P.body.appendChild(el('p', 'muted', 'Tap something you\'ve found to see it up close.'));
 }
 /* the Specials list: everything one-of-a-kind, what's found, and a hint for what isn't */
 function specialsTab(P) {

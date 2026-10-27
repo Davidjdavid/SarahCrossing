@@ -508,7 +508,8 @@ const R3 = {
         // fade out as the light goes, and by night the shadow map isn't redrawn
         R3U.uShadow.value = a.interior ? 1 : Math.max(0, Math.min(1, (day - 0.1) / 0.2)) * (1 - soft * 3);
         this.shadowsOn = R3U.uShadow.value > 0;
-        this.hemi.intensity = room ? 0.56 : 0.38 + 0.08 * day + soft * 0.5 * day;
+        // (the new look's island at night a little lighter all round, so the town isn't lost in the dark: David, 27 October)
+        this.hemi.intensity = room ? 0.56 : 0.38 + 0.08 * day + soft * 0.5 * day + (Env.on && !a.interior ? 0.12 * dark : 0);
         this.hemi.color.setRGB(0.69, 0.79, 0.93).lerp(tint, dark * 0.8);
         this.hemi.groundColor.setRGB(0.54, 0.49, 0.34).lerp(tint, dark * 0.8);
         // (the club in the new look: violet, and bright enough to see the dancers by)
@@ -564,10 +565,13 @@ const R3 = {
             // (the new look's lamps are taller: the light comes from their lanterns)
             l.position.set(x / TILE, Env.on && !a.interior ? r3GroundH(x, y) + 2.55 : 1.4, y / TILE * R3_ZS + (Env.on ? 0.1 : 0.3));
             // (the new look's street lights reach well along the paths and over the square, so they're bright at night
-            // and the woods and hills dark: David, 27 October)
-            l.distance = Env.on && !a.interior ? Math.max(8, r / TILE * 4.4) : Math.max(4, r / TILE * 2.2);
-            // (the new look's ground takes light like a real surface: softer lamps, or the square goes white round them)
-            l.intensity = L.lamps * (a.interior ? 0.9 : Env.on ? 1.0 : 1.2) * Math.min(1, Math.max(0, (cut - o.d) / 3));
+            // and the woods and hills dark: David, 27 October; then fewer lamps, each lighting much further out)
+            const street = Env.on && !a.interior;
+            l.distance = street ? Math.max(13, r / TILE * 6.8) : Math.max(4, r / TILE * 2.2);
+            // (the new look's ground takes light like a real surface: softer lamps, or the square goes white round them;
+            // reaching further, each a little stronger, the falloff gentler)
+            l.decay = street ? 1.25 : 1.6;
+            l.intensity = L.lamps * (a.interior ? 0.9 : street ? 1.45 : 1.2) * Math.min(1, Math.max(0, (cut - o.d) / 3));
             l.color.set(c === 'pink' ? 0xff6ab0 : c === 'fire' ? 0xff9a50 : 0xffd8a0);
         });
     },

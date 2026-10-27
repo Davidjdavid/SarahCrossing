@@ -105,7 +105,7 @@ const EnvModels = {
     },
     material(m, name) {
         // (flames: unlit, their own colors)
-        if (/glow/i.test(m.name || '')) { const b = r3Patch(new THREE.MeshBasicMaterial({ vertexColors: true }), { key: 'envmodelglow', see: this.tall(name) }); b.name = m.name; return b; }
+        if (/glow/i.test(m.name || '')) { const b = r3Patch(new THREE.MeshBasicMaterial({ vertexColors: true }), { key: this.tall(name) ? 'envmodelglows' : 'envmodelglow', see: this.tall(name) }); b.name = m.name; return b; }
         const glass = /glass/i.test(m.name || '');
         // (a display case's glass: see-through, a faint sheen)
         if (/_clear$/.test(m.name || '')) { const c = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: !!m.vertexColors, color: m.color, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.28, depthWrite: false }), { key: 'envmodelclear' }); c.name = m.name; return c; }
@@ -123,7 +123,7 @@ const EnvModels = {
             float gm = smoothstep(0.015, 0.06, diffuseColor.g - max(diffuseColor.r, diffuseColor.b));
             diffuseColor.rgb = mix(diffuseColor.rgb, min(diffuseColor.rgb * uGrassTint.rgb, vec3(1.0)), gm);
             diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.88, 0.91, 0.96), gm * uGrassTint.w);` }), { name: m.name || name });
-        const out = r3Patch(new THREE.MeshStandardMaterial(opts), { key: glass ? 'envmodelglass' : see ? 'envmodel' : 'envfolk', see });
+        const out = r3Patch(new THREE.MeshStandardMaterial(opts), { key: (glass ? 'envmodelglass' : see ? 'envmodel' : 'envfolk') + (glass && see ? 's' : ''), see });
         out.name = m.name || name;
         if (glass) this.glassMats.push(out);
         return out;
@@ -134,10 +134,12 @@ const EnvModels = {
     /* a copy of a model's material in another color (a house painted in its own look); a plain clone would lose the
        view's patch (the bend, depth of field, shadows) */
     tinted(m, color) {
-        const c = m.clone();
+        const c = m.clone(), see = !!(m._r3o && m._r3o.see);
         c.onBeforeCompile = null;
         c.color.set(color);
-        return r3Patch(c, { key: 'envmodel', see: !!(m._r3o && m._r3o.see) });
+        // (the key says which shader: one that fades see-through is another program, and two programs under one key get
+        // mixed up, a flower's petals compiled as a tree's)
+        return r3Patch(c, { key: see ? 'envmodel' : 'envfolk', see });
     },
     /* one model at many places (each a Matrix4 in the world): an instanced mesh per part */
     instances(group, name, matrices, o) {
@@ -154,6 +156,12 @@ const EnvModels = {
             out.push(mesh);
         }
         return out;
+    },
+    /* a material that never fades see-through (a fruit's lying on the ground, not hanging on its tree) */
+    solid(m) {
+        if (!(m._r3o && m._r3o.see)) return m;
+        if (!m._solid) { const c = m.clone(); c.onBeforeCompile = null; m._solid = r3Patch(c, Object.assign({}, m._r3o, { see: false, key: 'envfolk' })); m._solid.name = m.name; }
+        return m._solid;
     },
     /* a part's material, a part shaded in greys for painting (*_top or *_trim) in tint's color: a flower's petals */
     partMat(p, tint) {

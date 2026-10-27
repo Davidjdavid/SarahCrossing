@@ -645,10 +645,12 @@ const INV_LINES = {
         joe: ["Come find me? I have a thing to tell you. It's a good thing. It rhymes.", "Can you come find me? I have something to say. It's not a big deal. It's a medium deal."] },
     favor: { _: ['Could you help me with something? Nothing big!', 'I need a small favor! Can you help?', 'Are you busy? I could use a hand with something.'],
         joe: ["Could you help me with something? I'll write you a thank-you poem. It'll rhyme."] },
+    play: { _: ['Want to play {game}? Come find me and we\'ll start!', "I'm SO bored. {game}? Come find me!", 'Play {game} with me? Find me first. That\'s not part of the game. Or is it.'],
+        joe: ["Want to play {game}? Come find me. I'm practicing my sneaky face."] },
     gift: { _: ['I have something for you! Come find me!', 'I saw something that made me think of you. Come find me!', 'Surprise! I got you a little something. Come find me!'],
         joe: ["I got you something. Come find me. Don't look at my face, it'll give it away.", "I have a present for you. It's small. Well, medium. Come find me."] },
 };
-const INV_YES = { lunch: "Yay! See you at Mac's!", hang: 'Yay! See you {place}!', chat: "Great! I'll be around. Text me if you can't find me!",
+const INV_YES = { lunch: "Yay! See you at Mac's!", hang: 'Yay! See you {place}!', chat: "Great! I'll be around. Text me if you can't find me!", play: "Yay! Come find me! Text me if you can't!",
     gift: 'Yay! Come find me. Text me if you get lost!', joe: "Okay! I'm smiling at my phone. Don't tell anyone." };
 const INV_NO = { _: ['No worries! Another time!', 'All good! Next time!'], joe: ["That's okay! I'll save it for later. The seat and the poem."] };
 const INV_MISS = { _: ['Aw, I missed you! Another time!', 'I had to head out. Next time!'], joe: ["I waited a little. Then I wrote a short poem about waiting. It's called 'Next Time.'"] };
@@ -693,6 +695,8 @@ const Invites = {
         out.push(['chat', 2]);
         if (!d.family && !Requests.from(id) && Requests.open().length < REQ_MAX) out.push(['favor', 2]);
         if (!d.family && hearts(id) >= 2) out.push(['gift', 1.5]);
+        // (asking her to play: rare, David, 27 October evening)
+        if (!d.family && VS_SKILL[id] && h >= 9 && h < 19) out.push(['play', 0.7]);
         return out;
     },
     /* every few seconds of play: maybe a neighbor texts */
@@ -729,10 +733,11 @@ const Invites = {
         const inv = { n: I.seq++, id, kind, at: Date.now(), until: Date.now() + 60 * 60e3, state: 'asked' };
         if (kind === 'lunch') inv.spot = 'in_restaurant';
         if (kind === 'hang') { const sp = this.hangSpots(id); inv.spot = sp.length ? rpick(sp) : 'plaza'; }
+        if (kind === 'play') inv.game = rpick(['tag', 'hide']);
         const place = inv.spot ? placeName(id, inv.spot) : '';
         I.list.push(inv);
         I.n++; I.last = Date.now();
-        this.text(id, this.line(INV_LINES[kind], id).replace('{place}', place));
+        this.text(id, this.line(INV_LINES[kind], id).replace('{place}', place).replace('{game}', inv.game === 'hide' ? 'hide-and-seek' : 'tag'));
         Save.touch();
         Sfx.ui('ok');
         UI.toast(`${NPC_DEFS[id].name} texted you!`, 'app_texts');
@@ -820,6 +825,16 @@ const Invites = {
                 const up = addPts(id, 3);
                 if (up) await heartUp(n, up);
             }
+        } else if (inv.kind === 'play') {
+            // (a game they asked for: the one they said if it fits here and now, or another that does)
+            inv.state = 'done';
+            const games = IslandGames.list(n), g = games.find(x => x[0] === inv.game) || games[0];
+            if (!g) { await UI.say(id, voiced(id, this.line({ _: ["You came! Let's play another time, though. Not the right spot for it.", 'Hi! Oh, not here. Next time, okay?'] }, id)), { keep: true }); Save.touch(); return true; }
+            await UI.say(id, voiced(id, this.line({ _: ['You came! Okay, {game}. Ready?', "Yay! Let's play {game}!"] }, id).replace('{game}', g[1].toLowerCase())), { keep: true });
+            Save.touch();
+            UI.hideDialog();
+            await igBegin(n, g[0]);
+            return true;
         } else if (inv.kind === 'gift') {
             inv.state = 'done';
             await say(INV_SCENE.gift);

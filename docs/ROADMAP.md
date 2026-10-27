@@ -304,6 +304,23 @@ Status: [x] done, [~] in progress, [ ] not started.
   stern-to at the end of the pier with its fenders against it: a cabin with portholes, the wheel, the mast and rigging,
   the mainsail furled under a blue cover, rails and a life ring)
 
+## David's notes from playing beta (27 October, evening)
+- [x] Birds flying around go backwards (they fly tail first) (the gulls circling over the beach were turned the wrong way)
+- [x] Shaking a tree: the fruit should fall out of the tree and land, not just appear on the ground; and it shouldn't be
+  hidden when Sarah stands behind it (the see-through fade hides the fruit with the tree) (it falls from the crown, one a
+  moment after another, bounces once and comes to rest; fruit on the ground never fades)
+- [x] The community garden should look more like a farm plot (tilled rows in a fenced plot, like the farm's fields,
+  rather than planter boxes) (a fence round it with a gate, the ground tilled, each bed two ridges of soil)
+- [x] Far fewer street lights round the town square and elsewhere; each lamp lighting much further out, and the town more
+  lit up at night in general (fourteen lamps instead of thirty-two: the square's four corners, one down the pier street,
+  one out along each main path, a few on Market Lane and in the neighborhood; each reaches about half again as far)
+- [x] Talking to a neighbor, now and then they ask to play a game or ask Sarah to do something for them; and now and then
+  (rarely) they text her asking to play or for a hand (favors were already asked; now about one talk in eight a neighbor
+  asks to play, once a day at most, and a text now and then asks too)
+- [x] The collection: tapping an item opens its own little display: the item in 3D (turning), what it sells and buys for
+  where that applies, where it comes from, and so on (in the new look its model turns; where the models aren't loaded, its
+  picture big; first found, how many she has)
+
 ## The museum, in rooms (David, 26 October: for later)
 - [x] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings
   hung along the walls, pottery on plinths and in cases), walked through from the entrance hall (the hall has Brulee's

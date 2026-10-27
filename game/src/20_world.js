@@ -93,6 +93,12 @@ const W0 = window.WORLD_JSON;
    played without saving and without the neighbors' days (Joe and Maki stand on the cobbles, as in the concept art) */
 const LAB = !!window.IS_LAB;
 function tileFoot(tx, ty) { return [(tx + 0.5) * TILE, (ty + 1) * TILE - 2]; }
+/* inside the community garden's fence (or its gate): the new look tills it */
+function inCommunity(tx, ty) {
+    const c = W0.community;
+    if (!c) return false;
+    return (tx > c.x && tx < c.x + c.w - 1 && ty > c.y && ty < c.y + c.h - 1) || (tx === c.gate && ty === c.y + c.h - 1);
+}
 
 function buildIsland() {
     const a = new Area('island', W0.w, W0.h);

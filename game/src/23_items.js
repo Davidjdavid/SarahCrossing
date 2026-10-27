@@ -89,7 +89,7 @@ function makeItemEnt(id, x, y, extra) {
     e.sy = y - 6;
     e.interact = () => pickUp(e);
     e.draw = ctx => {
-        const bob = e.fresh ? Math.max(0, e.fresh--) * 0.4 : 0;
+        const bob = itemLift(e);
         spr(ctx, 'shadow_s', e.x, e.y + 1);
         spr(ctx, e.frame, e.x, e.y - bob);
         if (e.twinkle) {
@@ -99,9 +99,30 @@ function makeItemEnt(id, x, y, extra) {
     };
     return e;
 }
-function spawnDrop(id, x, y, persist) {
+/* how high something just dropped is above the ground (world pixels): fruit falling out of a shaken tree (e.fall: from
+   its height, landing with a little bounce), anything else set down just now hopping once (e.fresh). From G.t, so the new
+   look, which never calls the picture's draw, sees it the same and it always comes to rest */
+function itemLift(e) {
+    if (e.fall) {
+        const k = (G.t - e.fall.t0) / e.fall.T;
+        if (k < 1) return e.fall.h * (1 - k * k);
+        const b = (G.t - e.fall.t0 - e.fall.T) / 10;
+        if (b < 1) return Math.sin(b * Math.PI) * 3;
+        e.fall = null;
+    }
+    if (e.fresh) {
+        if (e.freshAt == null) e.freshAt = G.t;
+        const left = e.fresh - (G.t - e.freshAt);
+        if (left > 0) return left * 0.4;
+        e.fresh = 0;
+    }
+    return 0;
+}
+/* (fall: drop from that many world pixels up, as fruit from a tree's crown) */
+function spawnDrop(id, x, y, persist, fall) {
     const e = makeItemEnt(id, x, y);
-    e.fresh = 12;
+    if (fall) e.fall = { h: fall, t0: G.t + (fall > 0 ? rint(0, 6) : 0), T: 24 };
+    else e.fresh = 12;
     if (persist !== false) {
         e.dropRef = { id, x, y, area: G.area.id };
         S.drops.push(e.dropRef);
@@ -136,6 +157,7 @@ function treeHasFruit(e) {
     const t = S.trees[e.id];
     return t == null || Clock.dayNum() - t >= 3;
 }
+const TREE_FALL = 30;       // world pixels up in the crown that shaken fruit falls from
 async function shakeTree(e) {
     const p = G.player;
     faceToward(p, e);
@@ -153,8 +175,9 @@ async function shakeTree(e) {
         S.stats.shakes = (S.stats.shakes || 0) + 1;
         for (const [ox, oy] of spots) {
             const x = e.x + ox, y = e.y + oy;
-            if (!G.area.solidPx(x, y - 2)) spawnDrop(e.fruit, x, y);
-            else spawnDrop(e.fruit, p.x + rint(-6, 6), p.y + 2);
+            // (out of the crown, each a moment after the last, landing round the trunk)
+            if (!G.area.solidPx(x, y - 2)) spawnDrop(e.fruit, x, y, true, TREE_FALL);
+            else spawnDrop(e.fruit, p.x + rint(-6, 6), p.y + 2, true, TREE_FALL);
         }
         Save.touch();
         return;

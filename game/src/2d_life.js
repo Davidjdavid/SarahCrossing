@@ -438,7 +438,7 @@ const TreeShakers = {
         if (!treeHasFruit(t)) { n.pose = null; n.script = false; return; }
         S.trees[t.id] = Clock.dayNum();
         Save.touch();
-        const drops = [[-8, 12], [8, 13]].map(([ox, oy]) => G.area.solidPx(t.x + ox, t.y + oy - 2) ? null : spawnDrop(t.fruit, t.x + ox, t.y + oy, false)).filter(Boolean);
+        const drops = [[-8, 12], [8, 13]].map(([ox, oy]) => G.area.solidPx(t.x + ox, t.y + oy - 2) ? null : spawnDrop(t.fruit, t.x + ox, t.y + oy, false, TREE_FALL)).filter(Boolean);
         n.pose = null;
         await waitFrames(30);
         // (whatever Sarah hasn't got to first)

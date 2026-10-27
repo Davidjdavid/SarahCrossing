@@ -467,6 +467,13 @@ class Island {
       clear(cg.x - 1, cg.y - 1, cg.x + cg.cols * 2 - 1, cg.y + cg.rows * 2);
       for (let j = 0; j < cg.rows; j++) for (let i = 0; i < cg.cols; i++) { const x = cg.x + i * 2, y = cg.y + j * 2; this.plots.push({ x, y, c: 1 }); this.occ[this.i(x, y)] = 1; }
       for (let j = -1; j <= cg.rows * 2; j++) for (let i = -1; i <= cg.cols * 2; i++) this.keep[this.i(cg.x + i, cg.y + j)] = 1;
+      // (a farm plot, David, 27 October evening: a fence round it with a gate in the middle of its south side; the new look
+      // tills the ground inside and ridges each bed. Its props come last of all, so every other prop keeps its number)
+      const fx0 = cg.x - 1, fx1 = cg.x + cg.cols * 2 - 1, fy0 = cg.y - 1, fy1 = cg.y + cg.rows * 2 - 1, gate = cg.x + cg.cols - 1;
+      this.prop('fence', fx0, fy0, { w: fx1 - fx0 + 1 });
+      for (let y = fy0 + 1; y < fy1; y++) { this.prop('fence', fx0, y); this.prop('fence', fx1, y); }
+      this.prop('fence', fx0, fy1, { w: gate - fx0 }); this.prop('fence', gate + 1, fy1, { w: fx1 - gate });
+      this.community = { x: fx0, y: fy0, w: fx1 - fx0 + 1, h: fy1 - fy0 + 1, gate };
     }
     for (const [x, y, fruit] of P.fruitTrees || []) {
       const k = this.i(x, y);
@@ -564,7 +571,7 @@ class Island {
         treasure: { x: palm.x, y: palm.y + 3, palm: [palm.x, palm.y] }, gemSpots: this.gemSpots, ramps: this.ramps,
         reach: rows((k) => (reach.has(k) ? '1' : '0')),
         cut: rows((k) => this.cut[k] || '.'),
-        lots: this.P.lots || {},
+        lots: this.P.lots || {}, community: this.community || null,
       },
       paint: {
         W, H, ter: this.ter, lvl: this.lvl, face: this.face, land: this.land, blocks: this.blocks, strokes: this.strokes, shapes: this.shapes, under: this.under,

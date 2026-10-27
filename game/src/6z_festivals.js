@@ -178,7 +178,7 @@ function festShake(e) {
     if (!st.trees || !st.trees.includes(e.id) || st.shook.includes(e.id)) return false;
     st.shook.push(e.id);
     const p = G.player, x = e.x + 8, y = e.y + 12;
-    spawnDrop('egg_' + (st.shook.length % 4), G.area.solidPx(x, y - 2) ? p.x : x, G.area.solidPx(x, y - 2) ? p.y + 2 : y, false);
+    spawnDrop('egg_' + (st.shook.length % 4), G.area.solidPx(x, y - 2) ? p.x : x, G.area.solidPx(x, y - 2) ? p.y + 2 : y, false, TREE_FALL);
     UI.toast('An egg fell out of the tree!', 'ev_egg_' + (st.shook.length % 4));
     return true;
 }

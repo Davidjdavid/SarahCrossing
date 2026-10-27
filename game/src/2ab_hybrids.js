@@ -2,8 +2,8 @@
 /* Hybrid flowers (David, 27 October: "hybrid flower colors"): two rarer colors of each kind that never come from seeds,
    only from cross-breeding watered flowers (2a_flowers.js flowerBreed), as in Animal Crossing: a blue or purple daisy, an
    orange or black tulip, a red or chocolate cosmos, a red or black lily, a pink or blue rose. Each is an item of its own
-   (flower_<kind>_3 and _4), its picture the kind's picture repainted (from: which color's picture, map: its colors to the hybrid's), its HD
-   picture in 32x_hd_outdoor.js and its color in the new look in EnvItems.PETALS.
+   (flower_<kind>_3 and _4), its picture the kind's picture repainted (from: which color's picture, map: its colors to
+   the hybrid's), its HD picture in 32x_hd_outdoor.js and its color in the new look in EnvItems.PETALS.
    How they come: two seed colors side by side make the third (as before), but a quarter of the time the pair makes its
    hybrid instead: colors 0 and 1 the first, 1 and 2 the second (0 and 2 only ever make 1). Two of a hybrid make it again;
    a hybrid beside a seed color mostly makes the seed color, now and then the hybrid; the two hybrids, either. */

@@ -287,7 +287,7 @@ async function fellTree(e) {
     const a = G.area, F = forest();
     Sfx.play('timber');
     for (let i = 0; i < 18; i++) { e.shake = 18 - i; if (i % 6 === 0) leafFx(e.x, e.y); await waitFrames(2); }
-    if (e.fruit && treeHasFruit(e)) for (const ox of [-10, 0, 10]) spawnDrop(e.fruit, e.x + ox, e.y + 10);
+    if (e.fruit && treeHasFruit(e)) for (const ox of [-10, 0, 10]) spawnDrop(e.fruit, e.x + ox, e.y + 10, true, TREE_FALL);
     const pal = e.frame && String(e.frame).startsWith('palm') || e.kind === 'fruittree' && e.fruit === 'coconut' || (e.planted && e.planted.kind === 'palm');
     a.remove(e);
     a.block(e.tx, e.ty, 0);

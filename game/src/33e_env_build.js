@@ -64,7 +64,9 @@ const EnvBuild = {
                 if (n === 'windmill') mills.push(placed[n][placed[n].length - 1]);
                 if (e.onlyNight) nights.push({ n, i: placed[n].length - 1, on: true });
             }
-            // (a garden plot is a raised planter box, props_island.py; what grows in it is EnvItems')
+            // (a garden plot is a raised planter box, props_island.py; a bed in the community garden two ridges of tilled
+            // soil, as the farm's fields have; what grows in either is EnvItems')
+            else if (e.kind === 'plot' && e.c && has('crop_soil')) for (const off of [0.28, 0.76]) { const z = e.ty + off; this.model('crop_soil', e.tx + 0.5, EnvGround.heightAt(e.tx + 0.5, z) - 0.02, z * R3_ZS, 0, 1); }
             else if (e.kind === 'plot' && has('planter_box')) { const f = Env.tileSpot(e); this.model('planter_box', f.x, f.y, f.z, 0, 1); }
             else if (e.kind === 'bench') this.bench(e);
             else if (e.kind === 'lamp') this.lamp(e);

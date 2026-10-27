@@ -586,6 +586,7 @@ const EnvGround = {
                 if (kd === R3_MAT.keep && wk === 1) kd = R3_MAT.sand;                   // the sea floor is sand
                 if (kd === R3_MAT.keep && wk === 2) kd = 7;                             // a stream or pond bed
                 if (W0.grid[ty] && W0.grid[ty][tx] === 'F') kd = R3_MAT.dirt;                           // (a field: tilled soil, never lawn)
+                if (inCommunity(tx, ty)) kd = R3_MAT.dirt;                                         // (the community garden, tilled inside its fence)
                 if (kd === R3_MAT.keep && W0.grid[ty] && W0.grid[ty][tx] === 'x') kd = R3_MAT.cobble; // (the hot spring's stone rim)
                 if (kd === R3_MAT.rock) kd = R3_MAT.grass;
                 if (kd === R3_MAT.stairs) kd = R3_MAT.dirt;             // (under the steps: no grass growing up through them)

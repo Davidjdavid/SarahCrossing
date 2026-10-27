@@ -82,8 +82,9 @@ const EnvItems = {
     make(name, tint) {
         const M = EnvModels.models[name], g = new THREE.Group();
         for (const p of M.parts) {
-            // (a part shaded in greys for painting: *_top, *_trim)
-            let m = p.material;
+            // (a part shaded in greys for painting: *_top, *_trim; never faded see-through like a tree's fruit on the tree:
+            // fruit on the ground is small, and Sarah standing behind it hid it)
+            let m = EnvModels.solid(p.material);
             const role = tint && /_(top|trim)$/.exec(m.name || '');
             if (role && tint[role[1]]) {
                 const k = m.uuid + tint[role[1]];
@@ -119,7 +120,8 @@ const EnvItems = {
                 this.list.set(e, d);
             }
             seen.add(e);
-            const bob = e.fresh ? e.fresh * 0.4 / TILE : 0;
+            // (falling out of a shaken tree, or hopping as it's set down: 23_items.js itemLift)
+            const bob = itemLift(e) / TILE;
             d.position.set(e.x / TILE, Env.groundH(e.x, e.y - 2) + bob, (e.y - 3) / TILE * R3_ZS);
             // (something to be found, an egg or a lost thing, twinkles now and then as its picture did)
             if (e.twinkle) {
@@ -152,7 +154,7 @@ const EnvItems = {
             }
             seen.add(e);
             // (in a plot, on the planter box's soil)
-            if (e.kind === 'plot' || e.kind === 'gflower') { const f = Env.tileSpot(e); d.position.set(f.x, f.y + (e.kind === 'plot' && EnvModels.has('planter_box') ? 0.27 : 0), f.z); }
+            if (e.kind === 'plot' || e.kind === 'gflower') { const f = Env.tileSpot(e); d.position.set(f.x, f.y + (e.kind === 'plot' && !e.c && EnvModels.has('planter_box') ? 0.27 : 0.03), f.z); }
             // (a planted flower watered today: the soil round it dark and damp)
             if (e.kind === 'gflower') {
                 const on = typeof watered === 'function' && watered(e.pl);

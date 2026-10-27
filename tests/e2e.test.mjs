@@ -1730,6 +1730,64 @@ test("talking: no hugs (the goat is petted for its quest), Joe doesn't rate the 
   await page.context().close();
 });
 
+test("David's evening notes: shaken fruit falls, fewer lamps (saves remapped), the community garden fenced, neighbors ask to play, an item's own display", async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play' && !G.busy);
+  const res = await page.evaluate(async () => {
+    const out = {};
+    // fruit falls out of the crown and comes to rest (from G.t, so the new look sees it too); fruit on the ground never fades
+    const e = spawnDrop('peach', G.player.x + 20, G.player.y, false, TREE_FALL), t0 = G.t;
+    G.t = e.fall.t0; const top = itemLift(e); G.t = e.fall.t0 + e.fall.T + 12; const rest = itemLift(e); G.t = t0;
+    G.area.remove(e);
+    const m = r3Patch(new THREE.MeshStandardMaterial(), { key: 'envmodel', see: true });
+    out.fruit = { falls: top > 20, rests: rest === 0 && e.fall === null, solid: EnvModels.solid(m)._r3o.see === false && EnvModels.solid(m) === EnvModels.solid(m) };
+    // fourteen lamps; an older save's moves and clears follow their props to the new numbers, a moved lamp that's gone goes to storage
+    out.lamps = W0.props.filter(p => p.kind === 'lamp').length;
+    const st = { flags: {}, storage: {}, deco: { moved: { 27: [1, 1], 50: [2, 2] }, gone: { 3: true, 30: true }, placed: [] }, cleared: { pr69: 1, wf3: 1 } };
+    const f = Object.assign({}, newState()); delete f.flags.lamps9;
+    st.flags = Object.assign({}, f.flags);
+    migrate(Object.assign(f, st));
+    out.remap = { moved: Object.keys(f.deco.moved).join(), gone: Object.keys(f.deco.gone).join(), cleared: Object.keys(f.cleared).sort().join(), lamp: f.storage.dp_lamp };
+    // the community garden: a fence round it with a gate, tilled inside in the new look
+    const c = W0.community, fences = W0.props.filter(p => p.kind === 'fence' && p.x >= c.x && p.x < c.x + c.w && p.y >= c.y && p.y < c.y + c.h);
+    out.garden = { fences: fences.reduce((a, p) => a + (p.w || 1), 0), gate: inCommunity(c.gate, c.y + c.h - 1), corner: inCommunity(c.x, c.y), bed: inCommunity(53, 45) };
+    // talked to, a neighbor now and then asks to play (once a day at most), and rarely texts to
+    const ask = UI.ask, say = UI.say, asked = [];
+    UI.say = async () => {};
+    UI.ask = async (who, t, choices) => { asked.push(choices.join('|')); return choices.length - 1; };
+    try {
+      __dbg.setTime(5, 12, 11);
+      G.weather = 'sunny';
+      const kai = NPCs.get('kai'); rel('kai').met = true; rel('kai').igAskDay = -1;
+      kai.area = 'island'; kai.spotKey = 'plaza'; kai.want = null; kai.sleeping = false;
+      out.ask1 = await igMaybeAsk(kai, 0);
+      out.ask2 = await igMaybeAsk(kai, 0);
+      out.asked = asked.filter(a => /Sure, let's play!/.test(a)).length;
+      const inv = Invites.send('kai', 'play');
+      out.text = !!inv && ['tag', 'hide'].includes(inv.game) && /tag|hide-and-seek/.test(textsOf('kai').slice(-1)[0].t);
+    } finally { UI.ask = ask; UI.say = say; }
+    // the collection: a found item opens its own display, its picture big (no 3D here), what it sells for, where from
+    S.seen.sea_bass = S.seen.sea_bass || Clock.dayNum();
+    const fid = FISHES[0].id; S.seen[fid] = Clock.dayNum();
+    itemShowcase(fid, () => appCollection('fish'));
+    const txt = document.querySelector('#panel').textContent;
+    out.show = { pic: !!document.querySelector('#panel .showcase canvas'), sells: /Sells for/.test(txt), where: /Where from/.test(txt) && /Fished from/.test(txt), first: /First found/.test(txt) };
+    UI.close();
+    return out;
+  });
+  assert.deepEqual(res, { fruit: { falls: true, rests: true, solid: true }, lamps: 14,
+    remap: { moved: '37', gone: '3', cleared: 'pr51,wf3', lamp: 1 },
+    garden: { fences: 9 + 3 * 2 + 8, gate: true, corner: false, bed: true },
+    ask1: false, ask2: false, asked: 1, text: true,
+    show: { pic: true, sells: true, where: true, first: true } });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('karaoke: a different request each night from the poems Sarah has, first on the list and on the board, and the crowd tips extra', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));

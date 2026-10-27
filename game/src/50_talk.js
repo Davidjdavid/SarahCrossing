@@ -170,7 +170,10 @@ async function neighborTalk(n) {
     if (tea) await UI.say(id, isHoliday('pirateday') && R() < 0.6 ? rpick(['Arr! ', 'Ahoy! ', 'Yarr. ']) + tea : tea, { keep: true });
     else if (resting && !firstToday) await UI.say(id, voiced(id, tooSoonLine(n)), { keep: true });
     else if (!firstToday) await UI.say(id, openerLine(n, false), { keep: true });
+    const hadFavor = !!Requests.from(id);
     if (firstToday && !resting) await Requests.maybeAsk(n);
+    // (now and then they'd like to play: 6zw_island_games.js; then the game starts and the talk ends)
+    if (!resting && (hadFavor || !Requests.from(id)) && await igMaybeAsk(n)) return;
     for (;;) {
         const opts = [], acts = [];
         const add = (label, fn) => { opts.push(label); acts.push(fn); };
