@@ -187,7 +187,13 @@ docs/DEPLOY.md for the server.
   the way, `CARRY` in 33kd_doll_idle.js, props2.py's `style_basket`, `style_bucket`, the vacation's suitcase).
 - IslandMart on Sarah's laptop (67_laptop.js) sells a week's stock, new every Monday (`martWeek`, `laptopCatalog(tab, day)`:
   so many of each kind, `MART_WEEK`, floor pieces taken a kind at a time, `MART_GROUPS`), from the seed; Order again keeps
-  everything she's ever had (`laptopAgain`).
+  everything she's ever had (`laptopAgain`). Each piece it sells comes in four colors (6zz_colors.js): its own and three more,
+  each an item of its own (`<id>@<color>`, "Sofa (mint)", the same price; `FURN[id].base`, `.color`), frozen per piece in
+  `PAINT_TABLE` so saves keep them (a sellable piece missing from it fails a test: `paintTableMissing()` gives its line);
+  the picture and the HD picture are repainted where the piece's main color is (`colorSprite`, `colorHd`, from `spr` and
+  `iconCanvas`), and in the new look the model's own vertex colors (`colorGeo`, in `EnvRoom.parts`); a wooden piece comes in
+  woods and white, a plant changes its pot. The week's stock has each piece in one of its four (`martColor`), and a save
+  holding a color this version doesn't have gets the piece itself (`migrate`).
 - Nicknames (6zl_nicknames.js): at four hearts a neighbor asks once, the first time they see Sarah that day, if they can
   call her something (`NICK_IDEAS`, or one she types, or her name; `nickAsk`); their lines then call her by it (`nickIn`
   in `UI._line`, that neighbor's lines only), and "Call me something else?" changes it (`nickFlow`). Kept as
@@ -286,8 +292,9 @@ docs/DEPLOY.md for the server.
   the planes and balloons small and high so they read as up in the sky (their shadows cross the ground below).
 - Rooms in the new look (`EnvRoom`, 33l_env_room.js): the dolls and folks go indoors too (`EnvDolls.attach` moves them
   between the island's group and the room's), and the room is a box you look into: the back wall wears the HD view's
-  wall picture (so what's hung there shows), the side walls one tile of its paper repeated, skirting boards, dark cut
-  tops, a sill with the doorway; it's lit brighter and warmer than the HD view's rooms. The floor pieces of furniture
+  wall picture (so what's hung there shows; `WH` high), the side walls one tile of its paper repeated, and above them a
+  band of the same paper (`TOP`) under a picture rail and a cornice (rooms a bit taller, nothing stretched), skirting
+  boards, dark cut tops, a sill with the doorway; it's lit brighter and warmer than the HD view's rooms. The floor pieces of furniture
   are models from `furniture.py` (`furn_<id>`: the kit in `furn_kit.py`, the pieces in `furn_a.py`..`furn_g.py`, one
   file per batch; `--batch furn_b` builds one), placed on their footprints by `EnvRoom.furniture` (built again when the
   room changes); a plush is its folk's model, small; the little things on tables are models too (`furn_e.py`), standing
@@ -429,6 +436,10 @@ docs/DEPLOY.md for the server.
   its own board and sends a picture of it a few times a second (`vsSnap`, laid over the other side's copy of the game
   with `Object.assign`), junk and leaving go across as messages (the live connection's `game` messages, passed only to
   the one person they're for: server/live.mjs), and a friend who leaves mid-game hands you the win.
+
+- Tag with a friend online (6zy_friend_games.js, `FriendTag`): "Play tag" in a friend's menu (`Online.meet`) when both are
+  outside; two minutes; only the one who's it checks for a tag and says so (`tagIt`, numbered), and one side calls time
+  with its count so both see the same result. Its messages ride the same `game` messages (`VsNet.got` hands `tag*` on).
 
 ## Games with the neighbors (6zw_island_games.js, 6zx_field_games.js)
 

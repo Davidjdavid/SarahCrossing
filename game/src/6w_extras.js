@@ -49,6 +49,7 @@ const Extras = {
         if (Karaoke.on && Karaoke.ready) return ['Leave', () => Karaoke.quit()];
         if (Rope.on && Rope.state !== 'done') return ['Leave', () => Rope.quit()];
         if (IslandGames.on && (IslandGames.on.phase === 'play' || (IslandGames.on.phase === 'count' && !G.busy))) return ['Stop playing', () => IslandGames.quit()];
+        if (FriendTag.on) return ['Stop playing', () => FriendTag.quit()];
         if (Fishing.st) return ['Stop fishing', () => Fishing.stop()];
         return null;
     },

@@ -23,7 +23,8 @@ Status: [x] done, [~] in progress, [ ] not started.
   - placeholders: everyone uses their current sprite until the new art
   - [x] playing together: every arcade cabinet but Fortune Falls and the claw has a two-player mode, against a
     neighbor (at their own skill) or a friend online on the same island
-  - [ ] later: more games with friends online (the island games below), more lines for everyone
+  - [~] later: more games with friends online (the island games below), more lines for everyone (tag with a friend online:
+    walk up to them and pick Play tag; two minutes, whoever's it for less time wins)
 
 ## Art (pick a style first)
 - [x] Six sample styles to compare: Stardew-like, handheld classic, tamagotchi-colorful, 3D
@@ -181,11 +182,12 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] Much more said overhead: lines of each neighbor's own and plenty shared between them, so hearing the same thing twice
   is rare (about a hundred conversations anyone can have, four to six of each neighbor's own, more for rain, snow,
   mornings, evenings, nights and each season; the last forty heard wait their turn)
-- [~] IslandMart's stock changes every week: so many of each kind (chairs, wall pieces, plants...), picked at random so a
+- [x] IslandMart's stock changes every week: so many of each kind (chairs, wall pieces, plants...), picked at random so a
   week is never all chairs, so Sarah can't buy everything at the start. Many more pieces too: every piece of furniture in
-  four colors (the model's parts painted differently), named like "Large couch (pink)" (the weekly stock is done: new
-  every Monday, a third of the catalog in a mix of kinds, everything she's had still in Order again; the colors are
-  still to come)
+  four colors (the model's parts painted differently), named like "Large couch (pink)" (new every Monday, a third of the
+  catalog in a mix of kinds, everything she's had still in Order again; every piece IslandMart sells in its own colors and
+  three more, its main color repainted in the picture and the model, "Sofa (mint)"; a wooden piece in light wood, dark wood
+  and white; a plant keeps its leaves and changes its pot; each week the shop has each piece in one of its four)
 - [ ] The achievements that unlock outfits, songs, recipes and the like much harder and spread out over a long time
 - [x] Neighbors turn round to face Sarah when she talks to them
 - [x] Lots of things they do when they're not busy, each its own animation: looking at the stars, eating a snack, sitting
@@ -201,7 +203,8 @@ Status: [x] done, [~] in progress, [ ] not started.
   like dancing
 
 ## Rooms and props in 3D, another look (David, 27 October: for later)
-- [ ] Rooms a bit taller, so windows, clocks and the like fit the walls better
+- [x] Rooms a bit taller, so windows, clocks and the like fit the walls better (in the new look: the walls go up past
+  the picture with a picture rail and a cornice, so what hangs there has room above it and nothing is stretched)
 - [x] Clocks show the real time (in the new look: the wall clock's hands turn with the island's time)
 - [ ] Go back through the island, the shops, the houses and every room and look again at each prop and decoration in 3D:
   they came over one to one from the 2D pictures, so not everything looks good in 3D (and some didn't look great to begin

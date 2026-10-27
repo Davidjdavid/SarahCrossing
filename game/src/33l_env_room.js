@@ -6,7 +6,8 @@
    until its models are made (EnvRoom.takes). */
 const EnvRoom = {
     on: false, built: null, rk: 0,
-    WH: 2.3,            // the walls' height (world units; a tile is one across)
+    WH: 2.3,            // the height of the walls' picture, where what hangs there is (world units; a tile is one across)
+    TOP: 0.6,           // and the plain paper above it, under the cut tops (David, 27 October: rooms a bit taller)
     active(a) { return !!a && a.interior && Env.want() && typeof EnvModels !== 'undefined' && EnvModels.ready; },
     /* the HD-2D view asks every frame indoors: draw this room the new way? */
     update(r3, a) {
@@ -39,7 +40,8 @@ const EnvRoom = {
     model(e) {
         if (!e.furn || !e.def || e.def.kind === 'rug' || e.def.food || e.def.flower) return null;
         // (a plush is its folk's own model, small)
-        const n = /^plush_/.test(e.item.id) ? 'folk_' + e.item.id.slice(6) : 'furn_' + e.item.id;
+        // (a piece in another color is its own piece's model, repainted: colorGeo)
+        const n = /^plush_/.test(e.item.id) ? 'folk_' + e.item.id.slice(6) : 'furn_' + (e.def.base || e.item.id);
         if (EnvModels.has(n)) return n;
         // (a neighbor's photo stands in the photo frame, wearing its own picture)
         if (/^photo_/.test(e.item.id) && EnvModels.has('furn_photo_frame')) return 'furn_photo_frame';
@@ -55,7 +57,13 @@ const EnvRoom = {
         if (hf && hf.c) return { c: hf.c, w: hf.w / HD_K, h: hf.h / HD_K, ax: hf.ax / HD_K, ay: hf.ay / HD_K };
         const f = Assets.frames[frame];
         // (a picture made while playing: Sarah's paintings, the museum's photos, a sharper copy when it has one)
-        if (!f) { const d = Assets.dyn[frame]; return d ? { c: d.hi || d.c, w: d.w, h: d.h, ax: d.ax, ay: d.ay } : null; }
+        if (!f) {
+            // (a piece in another color: its HD picture repainted if it has one, or its picture)
+            const hv = frame.indexOf('@') > 0 && typeof colorHd === 'function' ? colorHd(frame) : null;
+            if (hv) return { c: hv.c, w: hv.w / HD_K, h: hv.h / HD_K, ax: hv.ax / HD_K, ay: hv.ay / HD_K };
+            const d = Assets.dyn[frame] || (frame.indexOf('@') > 0 && typeof colorSprite === 'function' ? colorSprite(frame) : null);
+            return d ? { c: d.hi || d.c, w: d.w, h: d.h, ax: d.ax, ay: d.ay } : null;
+        }
         const [sx, sy, w, h, ax, ay] = f, c = document.createElement('canvas');
         c.width = w; c.height = h;
         c.getContext('2d').drawImage(Assets.atlas, sx, sy, w, h, 0, 0, w, h);
@@ -95,7 +103,8 @@ const EnvRoom = {
             if (face && !pic) continue;
             if (face || /_screen$/.test(mn)) this.picUV(p.geometry);
             const mat = face ? this.picMat(e.frame, pic, !!face[1]) : /_screen$/.test(mn) ? this.screen(e) : p.material;
-            const mesh = new THREE.Mesh(p.geometry, mat);
+            const geo = e.def && e.def.base && typeof colorGeo === 'function' && !face ? colorGeo(n, p.geometry, e.def) : p.geometry;
+            const mesh = new THREE.Mesh(geo, mat);
             mesh.matrixAutoUpdate = false; mesh.matrix.copy(m);
             mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.shared = true;
             g.add(mesh);
@@ -466,9 +475,9 @@ const EnvRoom = {
         for (const e of list) {
             const P = e.def.kind === 'wall' && this.pic(e.frame);
             if (!P) continue;
-            const n = this.model(e), left = e.x - P.ax, top = e.y - P.ay, sq = this.ROUND.has(e.item.id) ? Math.sqrt(k) : 0;
+            const bid = e.def.base || e.item.id, n = this.model(e), left = e.x - P.ax, top = e.y - P.ay, sq = this.ROUND.has(bid) ? Math.sqrt(k) : 0;
             // (the gilt frame borrowed by another painting: fitted to that picture)
-            const fx = n === 'furn_' + e.item.id ? 1 : P.w / TILE / 2, fy = n === 'furn_' + e.item.id ? 1 : P.h / TILE / 1.625;
+            const fx = n === 'furn_' + bid ? 1 : P.w / TILE / 2, fy = n === 'furn_' + bid ? 1 : P.h / TILE / 1.625;
             const m = new THREE.Matrix4().makeTranslation((left + P.w / 2) / TILE, H * (1 - (top + P.h / 2) / wallPx), z0 + 0.01);
             m.multiply(new THREE.Matrix4().makeScale((e.flip ? -1 : 1) * (sq || 1) * fx, (sq || k) * fy, sq || 1));
             this.parts(g, e, n, m, P);
@@ -534,7 +543,18 @@ const EnvRoom = {
         textures.push(tex);
         // (the paper lit evenly: a room's walls never fall into the dark side of the sun)
         const paper = r3Patch(new THREE.MeshLambertMaterial({ map: tex, color: 0xd8d2ca, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.32 }), { key: 'envroomwall' });
-        // a wall: a plane facing into the room, its paper repeated once a tile along it
+        // a wall: a plane facing into the room, its paper repeated once a tile along it; above the picture's height a band
+        // of the same paper (its middle rows, so nothing is stretched), up to the cut tops
+        const HT = H + this.TOP, v0 = 0.3, v1 = 0.3 + this.TOP / H * 0.5;
+        const band = (len, x, z, ry) => {
+            const g = new THREE.PlaneGeometry(len, this.TOP), uv = g.attributes.uv;
+            for (let i = 0; i < uv.count; i++) { uv.setX(i, uv.getX(i) * len); uv.setY(i, v0 + uv.getY(i) * (v1 - v0)); }
+            const m = new THREE.Mesh(g, paper);
+            m.position.set(x, H + this.TOP / 2, z);
+            m.rotation.y = ry;
+            m.receiveShadow = true;
+            group.add(m);
+        };
         const wall = (len, x, z, ry) => {
             const g = new THREE.PlaneGeometry(len, H);
             const uv = g.attributes.uv;
@@ -544,6 +564,7 @@ const EnvRoom = {
             m.rotation.y = ry;
             m.receiveShadow = true;
             group.add(m);
+            band(len, x, z, ry);
         };
         const depth = z1 - z0;
         // the back wall wears the HD view's own picture of it, with what's hung there (shelves, clocks, signs, windows)
@@ -554,6 +575,7 @@ const EnvRoom = {
         bm.position.set((x0 + x1) / 2, H / 2, z0);
         bm.receiveShadow = true;
         group.add(bm);
+        band(f.w, (x0 + x1) / 2, z0, 0);
         this.built.back = back;
         wall(depth, x0, (z0 + z1) / 2, Math.PI / 2);
         wall(depth, x1, (z0 + z1) / 2, -Math.PI / 2);
@@ -570,12 +592,19 @@ const EnvRoom = {
         box(wood, (x0 + x1) / 2, sk / 2, z0 + 0.03, f.w, sk, 0.06);
         box(wood, x0 + 0.03, sk / 2, (z0 + z1) / 2, 0.06, sk, depth);
         box(wood, x1 - 0.03, sk / 2, (z0 + z1) / 2, 0.06, sk, depth);
-        box(cut, (x0 + x1) / 2, H + 0.04, z0 - t / 2, f.w + 2 * t, 0.08, t);
-        box(cut, x0 - t / 2, H + 0.04, (z0 + z1) / 2, t, 0.08, depth + t);
-        box(cut, x1 + t / 2, H + 0.04, (z0 + z1) / 2, t, 0.08, depth + t);
-        box(cut, (x0 + x1) / 2, H / 2, z0 - t / 2 - 0.005, f.w + 2 * t, H, t * 0.98);
-        box(cut, x0 - t / 2, H / 2, (z0 + z1) / 2, t * 0.98, H, depth + t);
-        box(cut, x1 + t / 2, H / 2, (z0 + z1) / 2, t * 0.98, H, depth + t);
+        box(cut, (x0 + x1) / 2, HT + 0.04, z0 - t / 2, f.w + 2 * t, 0.08, t);
+        box(cut, x0 - t / 2, HT + 0.04, (z0 + z1) / 2, t, 0.08, depth + t);
+        box(cut, x1 + t / 2, HT + 0.04, (z0 + z1) / 2, t, 0.08, depth + t);
+        box(cut, (x0 + x1) / 2, HT / 2, z0 - t / 2 - 0.005, f.w + 2 * t, HT, t * 0.98);
+        box(cut, x0 - t / 2, HT / 2, (z0 + z1) / 2, t * 0.98, HT, depth + t);
+        box(cut, x1 + t / 2, HT / 2, (z0 + z1) / 2, t * 0.98, HT, depth + t);
+        // a picture rail where the picture's height ends, round the three walls, and a cornice under the tops
+        const rail = r3Patch(new THREE.MeshLambertMaterial({ color: a.club ? 0x3a2a4a : 0xa8784e }), { key: 'envroomtrim' });
+        for (const [y, hh, dd] of [[H, 0.07, 0.05], [HT - 0.05, 0.1, 0.08]]) {
+            box(rail, (x0 + x1) / 2, y, z0 + dd / 2, f.w, hh, dd);
+            box(rail, x0 + dd / 2, y, (z0 + z1) / 2, dd, hh, depth);
+            box(rail, x1 - dd / 2, y, (z0 + z1) / 2, dd, hh, depth);
+        }
         const [dx] = a.doorTile, sill = 0.1;
         box(wood, (x0 - t + dx) / 2, sill / 2, z1 + 0.06, dx - x0 + t, sill, 0.12);
         box(wood, (dx + 1 + x1 + t) / 2, sill / 2, z1 + 0.06, x1 + t - dx - 1, sill, 0.12);

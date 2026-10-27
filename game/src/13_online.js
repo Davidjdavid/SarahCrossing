@@ -252,10 +252,13 @@ const Online = {
         faceToward(G.player, o);
         G.busy++;
         let k;
-        try { k = await UI.ask(null, `${nm} is right here.`, ['Wave', 'Say something', `Give ${nm} a gift`, 'Never mind']); } finally { UI.hideDialog(); G.busy--; }
+        // (a game of tag, when both are outside: 6zy_friend_games.js)
+        const tag = typeof FriendTag !== 'undefined' && FriendTag.can(o);
+        try { k = await UI.ask(null, `${nm} is right here.`, ['Wave', 'Say something', `Give ${nm} a gift`].concat(tag ? ['Play tag'] : [], ['Never mind'])); } finally { UI.hideDialog(); G.busy--; }
         if (k === 0) await doMove('wave');
         else if (k === 1) this.chat();
         else if (k === 2) this.giftTo(o.who);
+        else if (k === 3 && tag) FriendTag.invite(o);
     },
     chat() {
         const P = UI.open({ title: 'Say something', foot: true });

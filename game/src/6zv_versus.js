@@ -146,6 +146,8 @@ const VsNet = {
     },
     got(from, d) {
         if (!d || typeof d !== 'object') return;
+        // (tag with a friend: 6zy_friend_games.js)
+        if (typeof d.k === 'string' && d.k.startsWith('tag') && typeof FriendTag !== 'undefined') return FriendTag.got(from, d);
         if (d.k === 'invite') return this.invited(from, d.game);
         if (d.k === 'accept' || d.k === 'decline') return this.answer(from, d);
         if (d.k === 'cancel') { if (this.prompt === from) { this.prompt = null; UI.hideDialog(); UI.toast(`${Online.name(from)} changed their mind.`); } return; }

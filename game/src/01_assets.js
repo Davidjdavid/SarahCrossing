@@ -6,7 +6,7 @@ const Assets = {
     load() {
         return loadImg(window.ATLAS_PNG).then(i => { this.atlas = i; if (i) for (const f of ASSET_MAKERS) try { f(); } catch (e) { console.error('could not make a sprite', e); } });
     },
-    has(name) { return !!this.frames[name] || !!this.dyn[name]; },
+    has(name) { return !!this.frames[name] || !!this.dyn[name] || (name.indexOf('@') > 0 && typeof colorSprite === 'function' && !!colorSprite(name)); },
 };
 
 /* the island ground: indexed PNG pieces (window.GROUND: size, cols, rows, urls), one picture for the whole year recolored
@@ -128,13 +128,15 @@ function spr(ctx, name, x, y, flip, alpha) {
         if (R3.sig) { R3.sig.push(name, x, y, flip ? 1 : 0, alpha); R3.sigN++; }
         // a remastered prop, or a neighbor drawn by its frame name (the council, the keeper's ghost): in an HD card, the HD art
         if (hdHas(name)) { R3.hdSeen = true; if (R3.hdCard) { const hf = hdNamed(name); if (hf) { hdDraw(ctx, hf, x, y, flip, alpha); return; } } }
+        // (a piece of furniture in another color: its HD picture repainted, 6zz_colors.js)
+        else if (name.indexOf('@') > 0 && typeof colorHd === 'function') { const hv = colorHd(name); if (hv) { R3.hdSeen = true; if (R3.hdCard) { hdDraw(ctx, hv, x, y, flip, alpha); return; } } }
     } else if (R3.over && hdHas(name)) {
         // drawn over the 3D view (the fishing line's bobber, planes and gulls): the HD art too
         const hf = hdNamed(name);
         if (hf) { const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true; hdDraw(ctx, hf, x, y, flip, alpha); ctx.imageSmoothingEnabled = sm; return; }
     }
     const f = Assets.frames[name];
-    if (!f) { const d = Assets.dyn[name]; if (d) sprDyn(ctx, d, x, y, flip, alpha); return; }
+    if (!f) { const d = Assets.dyn[name] || (name.indexOf('@') > 0 && typeof colorSprite === 'function' ? colorSprite(name) : null); if (d) sprDyn(ctx, d, x, y, flip, alpha); return; }
     const [sx, sy, w, h, ax, ay] = f;
     const dx = Math.round(x - (flip ? w - 1 - ax : ax)), dy = Math.round(y - ay);
     if (alpha != null && alpha < 1) ctx.globalAlpha = alpha;
@@ -163,7 +165,7 @@ function iconCanvas(name, px) {
     const c = document.createElement('canvas');
     const f = Assets.frames[name];
     if (!f) {
-        const d = Assets.dyn[name];
+        const d = Assets.dyn[name] || (name.indexOf('@') > 0 && typeof colorSprite === 'function' ? colorSprite(name) : null);
         if (!d) { c.width = c.height = 1; return c; }
         const k = Math.max(1, Math.floor(px / Math.max(d.w, d.h)));
         c.width = d.w * k; c.height = d.h * k;

@@ -360,6 +360,7 @@ function update() {
     Karaoke.update();
     Rope.update();
     IslandGames.tick();
+    FriendTag.tick();
     Arcade.update();
     Sky.update();
     Critters.update();

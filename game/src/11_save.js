@@ -275,6 +275,12 @@ function migrate(st) {
     for (const f of [registerAllPottery, registerAllArt, registerAllDesigns]) {
         try { f(st); } catch (e) { console.error('loading the save:', f.name, e); }
     }
+    // a piece in a color this version doesn't have is the piece itself, in its own colors (6zz_colors.js)
+    const uncolor = id => (typeof id === 'string' && !ITEMS[id] && id.indexOf('@') > 0 && ITEMS[id.slice(0, id.indexOf('@'))] ? id.slice(0, id.indexOf('@')) : id);
+    for (const s of st.pocket) if (s) s.id = uncolor(s.id);
+    for (const k of Object.keys(st.storage)) { const b = uncolor(k); if (b !== k) { st.storage[b] = (st.storage[b] || 0) + st.storage[k]; delete st.storage[k]; } }
+    if (st.house && Array.isArray(st.house.items)) for (const it of st.house.items) if (it) it.id = uncolor(it.id);
+    for (const r of Object.values(st.npcs || {})) if (r && Array.isArray(r.furn)) r.furn = r.furn.map(uncolor);
     // forget anything this version doesn't know about
     st.pocket = st.pocket.map(s => (s && ITEMS[s.id] ? s : null));
     for (const k of Object.keys(st.storage)) if (!ITEMS[k]) delete st.storage[k];

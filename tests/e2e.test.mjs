@@ -1115,6 +1115,112 @@ test('the museum in rooms: archways from the hall into six wings, every fish fro
   await page.context().close();
 });
 
+test('IslandMart furniture in four colors: each piece in its own and three more, named for the color, one color a week in the shop, kept in saves', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(() => {
+    const out = {};
+    const v = FURN['sofa_pink@mint'];
+    out.piece = { name: v && v.name, price: ITEMS['sofa_pink@mint'].price === ITEMS.sofa_pink.price, colors: FURN.sofa_pink.colors.length, wood: FURN['table_wood@dark wood'].name };
+    out.missing = Object.keys(paintTableMissing());
+    out.all = laptopAll('furniture').some((id) => id.includes('@'));
+    let colored = 0;
+    for (let w = 0; w < 6; w++) colored += laptopCatalog('furniture', Clock.dayNum() + w * 7).filter((id) => id.includes('@') && FURN[id]).length;
+    out.week = colored > 0;
+    // its picture repainted: the sofa's pink gone mint, its outline the same
+    const a = iconCanvas('f_sofa_pink', 16), b = iconCanvas('f_sofa_pink@mint', 16);
+    const da = a.getContext('2d').getImageData(0, 0, a.width, a.height).data, db = b.getContext('2d').getImageData(0, 0, b.width, b.height).data;
+    let changed = 0, same = 0;
+    for (let i = 0; i < da.length; i += 4) { if (da[i + 3] < 128) continue; if (da[i] !== db[i] || da[i + 1] !== db[i + 1] || da[i + 2] !== db[i + 2]) changed++; else same++; }
+    out.picture = { size: a.width === b.width, changed: changed > 10, kept: same > 10 };
+    // placed at home and drawn
+    S.house.items.push({ id: 'sofa_pink@mint', x: 2, y: 4 });
+    out.home = !!furnDef('sofa_pink@mint');
+    // an old save with a color this version doesn't have: the piece itself
+    const st = JSON.parse(JSON.stringify(S));
+    st.storage['sofa_pink@purple'] = 2; st.storage['sofa_pink@mint'] = 1;
+    st.pocket[0] = { id: 'chair_wood@violet', n: 1 };
+    const m = migrate(st);
+    out.save = { purple: !m.storage['sofa_pink@purple'], base: m.storage.sofa_pink >= 2, mint: m.storage['sofa_pink@mint'] === 1, pocket: m.pocket[0] && m.pocket[0].id };
+    return out;
+  });
+  assert.deepEqual(res, {
+    piece: { name: 'Sofa (mint)', price: true, colors: 4, wood: 'Table (dark wood)' },
+    missing: [], all: false, week: true,
+    picture: { size: true, changed: true, kept: true },
+    home: true,
+    save: { purple: true, base: true, mint: true, pocket: 'chair_wood' },
+  });
+  await page.evaluate(() => enterRoom ? (G.areas.home = buildHome(), __dbg.teleport('home', 4, 6, 'up')) : null);
+  await page.waitForTimeout(300);
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('tag with a friend online: asked from the friend\'s menu, tags go back and forth, one side calls time with the count, and either can stop', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, sent = [], said = [];
+    const game0 = Online.game, ask0 = UI.ask, say0 = UI.say;
+    Online.game = (to, d) => sent.push([to, d.k, d]);
+    UI.say = async (who, t) => { said.push(String(t)); };
+    // a friend (Joe) on the island, right beside Sarah
+    const p = G.player, o = { kind: 'remote', who: 'joe', area: 'island', x: p.x + 60, y: p.y, tx: p.x + 60, ty: p.y, def: { human: true } };
+    Online.others.set('joe', o);
+    try {
+      out.can = FriendTag.can(o);
+      FriendTag.invite(o);
+      out.ask = sent.at(-1)[1];
+      FriendTag.got('joe', { k: 'tagYes' });
+      out.started = { on: !!FriendTag.on, it: FriendTag.on.it, go: sent.at(-1)[1], hud: !$('#dancehud').hidden };
+      // Sarah's it: after the pause, close enough is a tag
+      FriendTag.on.pause = 0; o.x = p.x + 6;
+      FriendTag.tick();
+      out.tag = { sent: sent.at(-1)[1], to: sent.at(-1)[2].it, it: FriendTag.on.it, pause: FriendTag.on.pause > 0 };
+      // Joe tags back; an older message afterwards changes nothing
+      FriendTag.got('joe', { k: 'tagIt', it: 'sarah', n: 2 });
+      FriendTag.got('joe', { k: 'tagIt', it: 'joe', n: 1 });
+      out.back = FriendTag.on.it;
+      // Joe's side calls time with its count: Sarah was it less, so she wins
+      FriendTag.got('joe', { k: 'tagEnd', why: 'time', mine: 4000, theirs: 3000 });
+      out.end = { on: !!FriendTag.on, won: S.games.ftag.won, said: said.some((t) => /You win/.test(t)), hud: $('#dancehud').hidden };
+      // asked: yes, then the go-ahead with Joe as it; then Joe stops
+      UI.ask = async () => 0;
+      await FriendTag.got('joe', { k: 'tagAsk' });
+      out.yes = sent.at(-1)[1];
+      FriendTag.got('joe', { k: 'tagGo', it: 'joe' });
+      out.second = FriendTag.on && FriendTag.on.it;
+      FriendTag.got('joe', { k: 'tagEnd', why: 'quit' });
+      out.stopped = !FriendTag.on;
+      // busy: inside, a friend's ask is turned down
+      G.area = { id: 'home' };
+      await FriendTag.got('joe', { k: 'tagAsk' });
+      out.busy = sent.at(-1)[1] + ':' + sent.at(-1)[2].why;
+      G.area = G.areas.island;
+    } finally { Online.game = game0; UI.ask = ask0; UI.say = say0; Online.others.delete('joe'); }
+    return out;
+  });
+  assert.deepEqual(res, {
+    can: true, ask: 'tagAsk',
+    started: { on: true, it: 'sarah', go: 'tagGo', hud: true },
+    tag: { sent: 'tagIt', to: 'joe', it: 'joe', pause: true },
+    back: 'sarah',
+    end: { on: false, won: 1, said: true, hud: true },
+    yes: 'tagYes', second: 'joe', stopped: true, busy: 'tagNo:busy',
+  });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('vacations: rare, one at a time, on the board; friends see them off at the pier, a postcard, a souvenir, a note on the door', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));

@@ -16,7 +16,7 @@ function laptopAll(tab) {
     const ok = id => ITEMS[id] && ITEMS[id].price > 0;
     if (tab === 'clothes') return Object.keys(ITEMS).filter(id => ok(id) && (ITEMS[id].type === 'outfit' || ITEMS[id].type === 'acc'));
     if (tab === 'decor') return GD.walls.concat(GD.floors).filter(ok);
-    return Object.keys(FURN).filter(id => ok(id) && !FURN[id].fixture && !FURN[id].prize && !FURN[id].pottery && !FURN[id].art && FURN[id].price > 0);
+    return Object.keys(FURN).filter(id => ok(id) && !FURN[id].fixture && !FURN[id].prize && !FURN[id].pottery && !FURN[id].art && !FURN[id].base && FURN[id].price > 0);
 }
 /* this week's stock on a tab */
 function laptopCatalog(tab, day) {
@@ -31,6 +31,8 @@ function laptopCatalog(tab, day) {
         groups.push(rest);
         for (let n = 0, i = 0; n < MART_WEEK.floor && groups.some(g => g.length); i++) { const g = groups[i % groups.length]; if (g.length) { out.push(g.shift()); n++; } }
         out.sort((a, b) => (FURN[a].sets[0] || '').localeCompare(FURN[b].sets[0] || '') || ITEMS[a].price - ITEMS[b].price);
+        // (each piece in one of its four colors this week: 6zz_colors.js)
+        if (typeof martColor === 'function') return out.map(id => martColor(id, martWeek(day)));
     }
     return out;
 }
