@@ -364,6 +364,44 @@ def sky_plane():
     return [(mb, 'main'), (glass, 'glass')], [(prop, 'prop')]
 
 
+
+def sky_jet():
+    """A passenger jet seen far off (David, 27 October: a real plane in the distance, not a toy): white with a blue stripe
+    and tail, swept wings, two engines, a row of windows. Its nose is +x, about one and a half units long; the game
+    flies it high in the haze with its contrails."""
+    mb, dark = MB(), MB()
+    white, blue, grey = col_fn('#f4f4f0', under=0.18), col_fn('#3a64c0', under=0.1), col_fn('#c8ccd2', under=0.12)
+    m = len(mb.v)
+    lathe(mb, [(0.0, -0.78), (0.03, -0.74), (0.06, -0.62), (0.085, -0.4), (0.09, 0.0), (0.09, 0.42), (0.08, 0.58), (0.055, 0.68), (0.0, 0.74)],
+          lambda p, n, *_: rgb('#3a64c0') if abs(p.z + 0.012) < 0.012 and p.x < 0.6 else rgb('#f4f4f0') * (0.84 + 0.16 * max(0.0, n.z)), seg=16, cap_top=False, cap_bot=False)
+    xform(mb, m, Euler((0, math.pi / 2, 0)).to_matrix().to_4x4())
+    # the tail cone sweeps up a little
+    for i in range(len(mb.v) - m):
+        v = mb.v[m + i]
+        if v.x < -0.4:
+            v.z += (-0.4 - v.x) * 0.12
+    # swept wings and the tailplanes
+    for s in (-1, 1):
+        slab(mb, [(0.18, 0.0), (0.02, 0.0), (-0.24, 0.76 * s), (-0.12, 0.76 * s)], 0.022, grey, axis='z', at=-0.03)
+        slab(mb, [(-0.56, 0.0), (-0.66, 0.0), (-0.8, 0.28 * s), (-0.73, 0.28 * s)], 0.016, grey, axis='z', at=0.02)
+        # an engine under each wing, its dark intake to the front
+        m = len(mb.v)
+        cyl(mb, 0, 0, 0, 0.2, 0.042, 0.038, color=col_fn('#dfe2e8', under=0.1), seg=12)
+        xform(mb, m, Matrix.Translation((0.12, 0.3 * s, -0.08)) @ Euler((0, -math.pi / 2, 0)).to_matrix().to_4x4())
+        m = len(dark.v)
+        lathe(dark, [(0.0, 0.0), (0.032, 0.0)], shade('#2a2e38'), seg=12, cap_top=False)
+        xform(dark, m, Matrix.Translation((0.121, 0.3 * s, -0.08)) @ Euler((0, -math.pi / 2, 0)).to_matrix().to_4x4())
+    # the fin
+    slab(mb, [(-0.5, 0.0), (-0.72, 0.0), (-0.82, 0.32), (-0.7, 0.32)], 0.014, blue, axis='y', at=-0.007)
+    # windows and the cockpit
+    for k in range(16):
+        x = 0.44 - k * 0.06
+        for s in (-1, 1):
+            ball(dark, (x, 0.088 * s, 0.03), (0.012, 0.004, 0.009), shade('#2a3448'), sub=1)
+    for s in (-1, 1):
+        ball(dark, (0.62, 0.05 * s, 0.045), (0.03, 0.012, 0.014), shade('#2a3448'), sub=1)
+    return [(mb, 'main'), (dark, 'gloss')]
+
 def sky_balloon():
     mb, env = MB(), MB()
     cols = ['#e8443a', '#f4c040', '#3a9a5a', '#3a7ad8', '#f08ab0', '#f6f0e4']
@@ -508,7 +546,7 @@ THINGS = {
     'sea_sail': lambda: sailboat(), 'sea_sailb': lambda: sailboat(('#e8443a', '#7a2a24'), '#fff0d8', '#f6f0e4'),
     'sea_fish': sea_fish, 'sea_ferry': sea_ferry, 'sea_dolphin': sea_dolphin,
     'boat_docked': lambda: sailboat(('#f4efe4', '#b8263a'), '#fbf8f0', '#3a6ab8', furled=True, L=2.0),
-    'sky_plane': sky_plane, 'sky_balloon': sky_balloon,
+    'sky_plane': sky_plane, 'sky_jet': sky_jet, 'sky_balloon': sky_balloon,
 }
 
 

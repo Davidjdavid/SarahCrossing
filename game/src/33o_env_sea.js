@@ -7,6 +7,7 @@
 const EnvSea = {
     PLANE_ALT: 5.6, BALLOON_ALT: 4.6, GULL_ALT: 2.6,       // how high they go (world units over the sea)
     PLANE_SIZE: 0.55, BALLOON_SIZE: 0.75,                  // (small, as things far up look: a plane full size would seem parked)
+    JET_SIZE: 1.7,                                         // (the passenger jet far off, at the normal zoom)
     list: new Map(), drawn: new Set(),
     build(group, a) {
         this.group = new THREE.Group();
@@ -45,6 +46,41 @@ const EnvSea = {
         seen.add(key);
         d.visible = true;
         return d;
+    },
+    /* a passenger jet far off over the top of the view, a little way into the haze (David, 27 October: a real plane seen
+       in the distance, not a toy over the island): it crosses the screen as the flat view's plane crosses that, at its
+       own height, steadily however Sarah walks; no shadow on the ground, two contrails fading out behind it */
+    farJet(r3, d, s) {
+        const c = r3.camera, life = Math.max(1, s.life - 20), f = Math.min(1, s.t / life);
+        if (s.sy == null) s.sy = 0.06 + 0.08 * ((Math.abs(s.y) * 0.37) % 1);
+        const sx = s.flip ? 1.12 - 1.24 * f : -0.12 + 1.24 * f;
+        // (just where the haze starts: it's drawn over everything, as a plane up in the sky is, so nothing nearer hides it)
+        const D = r3.scene.fog.near * 0.95;
+        const P = new THREE.Vector3(sx * 2 - 1, 1 - s.sy * 2, 0.5).unproject(c).sub(c.position).normalize().multiplyScalar(D).add(c.position);
+        // (the world bends away towards the horizon, and the jet with it: raised by as much, it stays where it's put)
+        const bd = Math.max(0, R3U.uBendZ.value - P.z);
+        P.y += R3U.uBendK.value * bd * bd;
+        d.position.copy(P);
+        d.scale.setScalar(this.JET_SIZE * D / 32);
+        d.rotation.set(0, (s.flip ? Math.PI : 0) + 0.22, 0.05);
+        if (!d.userData.trail) {
+            d.userData.trail = true;
+            // (its own materials: only the jet wears them. Drawn last of the solid things and over them; not see-through, as
+            // the new look's alpha is how blurred a thing is)
+            for (const m of d.children) if (m.isMesh) { m.castShadow = false; m.renderOrder = 12; Object.assign(m.material, { depthTest: false, depthWrite: false }); }
+            const cv = document.createElement('canvas'); cv.width = 64; cv.height = 4;
+            const g = cv.getContext('2d'), gr = g.createLinearGradient(0, 0, 64, 0);
+            gr.addColorStop(0, '#000'); gr.addColorStop(0.7, '#555'); gr.addColorStop(1, '#ddd');
+            g.fillStyle = gr; g.fillRect(0, 0, 64, 4);
+            const mat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, alphaMap: new THREE.CanvasTexture(cv), depthWrite: false, depthTest: false }), { key: 'contrail', noDof: true });
+            for (const z of [-0.3, 0.3]) {
+                const t = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.07), mat);
+                t.rotation.x = -Math.PI / 2;
+                t.position.set(-0.1 - 2.5, -0.08, z);
+                t.userData.shared = false; t.renderOrder = 11;
+                d.add(t);
+            }
+        }
     },
     /* turned the way it's going: a model's nose is +x */
     head(d, vx, vy) { if (Math.abs(vx) + Math.abs(vy) > 1e-4) d.rotation.y = Math.atan2(-vy * R3_ZS, vx); },
@@ -87,10 +123,12 @@ const EnvSea = {
         }
         // planes, balloons and the gulls overhead
         for (const s of SeaSky.sky) {
-            if (s.kind === 'cloud' || !near(s.x, s.y, 160)) continue;
+            // (the jet is placed by where it is across the screen, not on the map)
+            if (s.kind === 'cloud' || (!(s.kind === 'plane' && EnvModels.has('sky_jet')) && !near(s.x, s.y, 160))) continue;
             if (s.kind === 'plane') {
-                const d = this.show(s, 'sky_plane', seen);
+                const jet = EnvModels.has('sky_jet'), d = this.show(s, jet ? 'sky_jet' : 'sky_plane', seen);
                 if (!d) continue;
+                if (jet) { this.farJet(r3, d, s); continue; }
                 d.position.set(s.x / TILE, this.PLANE_ALT, s.y / TILE * R3_ZS);
                 d.scale.setScalar(this.PLANE_SIZE);
                 this.head(d, s.vx, s.vy);

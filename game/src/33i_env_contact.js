@@ -51,7 +51,8 @@ const EnvGlow = {
     build(group, a) {
         const list = [];
         for (const e of a.ents) {
-            if (e.light && !e.furn) list.push([e.x / TILE, e.y / TILE + 0.15, Math.max(1.6, e.light.r / TILE * 1.05), e.holiday ? 0.7 : 1, 0xffc27a]);
+            // (a street lamp's pool reaches well round it; a lantern's or a fire's stays small)
+            if (e.light && !e.furn) list.push([e.x / TILE, e.y / TILE + 0.15, e.kind === 'lamp' ? Math.max(4, e.light.r / TILE * 2.5) : Math.max(1.6, e.light.r / TILE * 1.05), e.holiday ? 0.7 : 1, 0xffc27a]);
             else if (e.kind === 'building' && e.b) { const b = e.b; list.push([b.x + b.w / 2, b.y + b.h + 0.35, Math.min(2.2, b.w * 0.42), 0.55, e.id === 'club' ? 0xff6ab0 : 0xffc27a]); }
         }
         if (!list.length) return { meshes: [] };
@@ -74,6 +75,6 @@ const EnvGlow = {
         m.renderOrder = 1; m.frustumCulled = false;
         m.visible = false;
         group.add(m);
-        return { meshes: [m], tick: () => { const k = G.lamps || 0; m.visible = k > 0.02 && m.count > 0; mat.opacity = k * 0.34; } };
+        return { meshes: [m], tick: () => { const k = G.lamps || 0; m.visible = k > 0.02 && m.count > 0; mat.opacity = k * 0.5; } };
     },
 };

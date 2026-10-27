@@ -28,15 +28,20 @@ function tileKind(x, y) {
 const Critters = {
     list: [], max: 12, spawnT: 0,
     reset() { this.list = []; },
+    /* what's on screen (world pixels): the flat view's, or in the 3D views the bigger part of the world they show */
+    view() {
+        const v = G.view, cam = G.cam, r = typeof R3 !== 'undefined' && R3.active() && R3.view;
+        return r ? { x: r.x0, y: r.y0, w: r.x1 - r.x0, h: r.y1 - r.y0 } : { x: cam.x, y: cam.y, w: v.w, h: v.h };
+    },
     spawn() {
-        const a = G.areas.island, v = G.view, cam = G.cam;
+        const a = G.areas.island, V = this.view();
         if (!a || G.area !== a) return;
         const h = Clock.hourF(), night = h >= 21 || h < 5.5, season = Clock.season(), rain = G.weather === 'rain' || G.weather === 'snow';
         // just outside the view (nobody pops out of thin air in front of Sarah)
-        const tx0 = Math.floor(cam.x / TILE) - 6, ty0 = Math.floor(cam.y / TILE) - 6, tw = Math.ceil(v.w / TILE) + 12, th = Math.ceil(v.h / TILE) + 12;
+        const tx0 = Math.floor(V.x / TILE) - 6, ty0 = Math.floor(V.y / TILE) - 6, tw = Math.ceil(V.w / TILE) + 12, th = Math.ceil(V.h / TILE) + 12;
         for (let tries = 0; tries < 8; tries++) {
             const tx = tx0 + Math.floor(R() * tw), ty = ty0 + Math.floor(R() * th);
-            const inView = tx * TILE > cam.x - 8 && tx * TILE < cam.x + v.w + 8 && ty * TILE > cam.y - 8 && ty * TILE < cam.y + v.h + 24;
+            const inView = tx * TILE > V.x - 8 && tx * TILE < V.x + V.w + 8 && ty * TILE > V.y - 8 && ty * TILE < V.y + V.h + 24;
             if (inView && R() < 0.85) continue;
             const k = tileKind(tx, ty);
             if (!k) continue;
@@ -91,7 +96,7 @@ const Critters = {
         const a = G.areas.island;
         if (!a || G.area !== a || G.mode !== 'play') { if (this.list.length && G.area && G.area !== a) this.list = []; return; }
         if (++this.spawnT >= 50) { this.spawnT = 0; if (this.list.length < this.max * (townOrd() === 'nature' ? 1.5 : 1)) this.spawn(); }
-        const p = G.player, cam = G.cam, v = G.view;
+        const p = G.player, V = this.view();
         for (const c of this.list) {
             c.t++;
             const def = CRITTER[c.kind];
@@ -119,9 +124,9 @@ const Critters = {
             if (def.burrow && c.t > 30) c.fade -= 0.05;
             if (c.kind === 'duck' && c.t > 50) c.fade -= 0.03;
             if (!def.fly && !def.burrow && c.kind !== 'duck' && c.t > 50) c.fade -= 0.04;
-            if (c.fade <= 0 || c.t > 400 || c.x < cam.x - 120 || c.x > cam.x + v.w + 120 || c.y - c.alt < cam.y - 140) c.gone = true;
+            if (c.fade <= 0 || c.t > 400 || c.x < V.x - 120 || c.x > V.x + V.w + 120 || c.y - c.alt < V.y - 140) c.gone = true;
         }
-        this.list = this.list.filter(c => !c.gone && Math.abs(c.x - (cam.x + v.w / 2)) < v.w + 400 && Math.abs(c.y - (cam.y + v.h / 2)) < v.h + 400);
+        this.list = this.list.filter(c => !c.gone && Math.abs(c.x - (V.x + V.w / 2)) < V.w + 400 && Math.abs(c.y - (V.y + V.h / 2)) < V.h + 400);
     },
     /* critters as things to y-sort with everything else (flyers go on top) */
     ents() {

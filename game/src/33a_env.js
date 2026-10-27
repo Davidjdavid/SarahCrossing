@@ -15,6 +15,7 @@ const ENV = {
     dof: [25, 62, 7.6, 5.2],   // where the background starts to blur (and fully), where the foreground does (the concept keeps the trees behind the houses sharp)
     people: 1.3,        // how much bigger people stand than in the classic HD-2D view
     items: 0.6,         // and things lying on the ground
+    fog: { near: 0.72, far: 1.12 },    // the haze, against how far is drawn: clear further out than the HD-2D view's (the edge itself fades: r3Edge)
 };
 /* Sarah's island in the new look too: on the beta site for now (localStorage sc-env-island = 1 or 0 to choose anywhere) */
 const ENV_ISLAND = (() => { const v = lsGet('sc-env-island'); return v === '1' ? true : v === '0' ? false : /^beta\./.test((window.location && location.hostname) || ''); })();

@@ -217,9 +217,12 @@ Status: [x] done, [~] in progress, [ ] not started.
   several fruit trees)
 - [ ] Shake a tree and talk to a neighbor from where Sarah stands, without jumping in front of them first (the jump can
   land her somewhere she shouldn't be)
-- [ ] The plane flying by is a full-size plane far off, not a toy; cloud shadows drifting over now and then
-- [ ] Fruit, things on the ground, lights and animals pop in only a step away: show them from further off
-- [ ] A clearer sky: the haze shouldn't go all the way up
+- [x] The plane flying by is a full-size plane far off, not a toy (a jet with its contrails, high over the far edge); cloud
+  shadows drifting over now and then
+- [x] Fruit, things on the ground, lights and animals pop in only a step away: show them from further off (the animals
+  come and go out of sight, the lamps' light fades in and out, the far edge fades into the haze when zoomed out)
+- [x] A clearer sky: the haze shouldn't go all the way up
+- [x] Street lights light up more of the paths and the square at night
 - [ ] Walking: Sarah can walk a little way up cliff sides (only the camera moves), a little into rivers, and oddly over
   bridges and stairs. Everything on the grid, each tile walkable or not, would fix it
 - [ ] Fishing: Sarah reels in what she caught and holds it up over her head; the fishing rod a 3D model, not a picture
@@ -227,6 +230,9 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] The arcade swapped round: Fruit Catch, Gopher Garden (the whack-a-mole one), Surf's Up and Noodle Slurp (the
   snake one) go to the back room, and the back room's Dumpling Drop, Sushi Swap and Fortune Falls come out front. One
   cabinet in the front room is out of order: that's the special game David will remake from memory later
+- [ ] Music for each hour of the day, as Animal Crossing has (David will bring the tracks)
+- [ ] Holiday decorations that fit the day: bigger jack-o'-lanterns, and decorations round the square and on the shops and
+  houses for the big holidays, seasons and events, up for longer and more elaborate the more the day matters
 - [ ] The cliff edges, the island's sides and some of the sea look blocky. Once everything is on the grid, draw the tiles
   rounded like a tile sheet: the cliff sides are tiles nobody walks on, their 3D pieces with a little ground and
   see-through edges

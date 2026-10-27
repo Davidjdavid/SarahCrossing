@@ -75,8 +75,9 @@ const R3 = {
             this.fill = new THREE.DirectionalLight(0xffe2c4, 0.14);
             this.fill.position.set(0.2, 0.5, 1);
             scene.add(this.hemi, this.fill);
-            // always six lamps (dimmed to nothing by day): changing how many lights there are would recompile every material
-        for (let i = 0; i < 6; i++) { const l = new THREE.PointLight(0xffd8a0, 0, 7, 1.6); l.position.set(0, -50, 0); scene.add(l); this.lamps.push(l); }
+            // always the same lamps (dimmed to nothing by day): changing how many lights there are would recompile every
+            // material. Eight on computers, so a path stays lit a good way along; six on phones
+        for (let i = 0; i < (this.phone ? 6 : 8); i++) { const l = new THREE.PointLight(0xffd8a0, 0, 7, 1.6); l.position.set(0, -50, 0); scene.add(l); this.lamps.push(l); }
             this.sky = r3Sky(scene);
             this.sea = r3Sea(scene);
             this.ok = true;
@@ -464,6 +465,8 @@ const R3 = {
         x0 = Math.max(x0, tx - far); x1 = Math.min(x1, tx + far);
         const m = 2 * TILE;
         this.view = { x0: x0 - m, x1: x1 + m, y0: y0 - m, y1: y1 + 3 * TILE };
+        // (where the fade into the haze ends: just inside the far edge)
+        R3U.uEdge.value.set(this.target.x, ty / TILE, Env.on && !(G.area && G.area.interior) ? far / TILE - 0.5 : 1e9, Math.max(5, far / TILE * 0.22));
     },
 
     /* ---------------------------------------------------------------- the light: the island's hour and weather */
@@ -498,7 +501,7 @@ const R3 = {
         if (aur > 0.001) fog.lerp(new THREE.Color(0.1, 0.32, 0.3), 0.25 * aur);
         this.scene.fog.color.copy(fog);
         if (a.interior) { this.scene.fog.near = 200; this.scene.fog.far = 400; }
-        else { const f = this.farTiles() * R3_ZS, d = this.dist(); this.scene.fog.near = d + f * R3_FOG.near; this.scene.fog.far = d + f * R3_FOG.far; }
+        else { const f = this.farTiles() * R3_ZS, d = this.dist(), F = Env.on ? ENV.fog : R3_FOG; this.scene.fog.near = d + f * F.near; this.scene.fog.far = d + f * F.far; }
         this.renderer.setClearColor(a.interior ? 0x231b2e : fog, 1);
         if (this.sky.material.uniforms) {
             const u = this.sky.material.uniforms;
@@ -510,6 +513,11 @@ const R3 = {
             u.uDay.value = day * (1 - gray * 0.4);
         }
         this.grade = { dark, gray, warm: Env.on && !a.interior ? 1 - dark : room ? 0.75 : 0 };
+        // (in the new look the clouds' shadows drift over only while one of SeaSky's clouds is going over, by day)
+        if (Env.on && !a.interior) {
+            const over = typeof SeaSky !== 'undefined' && SeaSky.sky.some(q => q.kind === 'cloud') ? 1 : 0;
+            R3U.uCloudK.value += (over * 1.5 * day * (1 - gray) - R3U.uCloudK.value) * 0.01;
+        } else R3U.uCloudK.value = 1;
         // lit windows: from dusk, brighter as it gets darker, until whoever lives there goes to bed (Sarah leaves hers on)
         const glow = a.interior ? 0 : Math.max(0, Math.min(1, (dark - 0.25) / 0.45)) * 0.85;
         const hr = Clock.hourF(), late = hr >= 0 && hr < 5;
@@ -525,16 +533,22 @@ const R3 = {
         // lamps: the nearest few light up at night
         if (G.frame % 15 !== 0 && this._lampsFor === a.id) return;
         this._lampsFor = a.id;
-        const lit = L.lamps > 0.02 ? lightSources(a).map(s => ({ s, d: Math.hypot(s[0] / TILE - this.target.x, s[1] / TILE * R3_ZS - this.target.z) })).sort((p, q) => p.d - q.d).slice(0, this.lamps.length) : [];
+        const all = L.lamps > 0.02 ? lightSources(a).map(s => ({ s, d: Math.hypot(s[0] / TILE - this.target.x, s[1] / TILE * R3_ZS - this.target.z) })).sort((p, q) => p.d - q.d) : [];
+        const lit = all.slice(0, this.lamps.length);
+        // (a lamp about to drop out of the nearest few dims as Sarah walks away, and one coming in brightens, rather than
+        // each switching on and off at once)
+        const cut = all.length > lit.length ? all[lit.length].d : 1e9;
         this.lamps.forEach((l, i) => {
             const o = lit[i];
             if (!o) { l.intensity = 0; return; }
             const [x, y, r, c] = o.s;
             // (the new look's lamps are taller: the light comes from their lanterns)
             l.position.set(x / TILE, Env.on && !a.interior ? r3GroundH(x, y) + 2.55 : 1.4, y / TILE * R3_ZS + (Env.on ? 0.1 : 0.3));
-            l.distance = Math.max(4, r / TILE * 2.2);
+            // (the new look's street lights reach well along the paths and over the square, so they're bright at night
+            // and the woods and hills dark: David, 27 October)
+            l.distance = Env.on && !a.interior ? Math.max(8, r / TILE * 4.4) : Math.max(4, r / TILE * 2.2);
             // (the new look's ground takes light like a real surface: softer lamps, or the square goes white round them)
-            l.intensity = L.lamps * (a.interior ? 0.9 : Env.on ? 0.6 : 1.2);
+            l.intensity = L.lamps * (a.interior ? 0.9 : Env.on ? 1.0 : 1.2) * Math.min(1, Math.max(0, (cut - o.d) / 3));
             l.color.set(c === 'pink' ? 0xff6ab0 : c === 'fire' ? 0xff9a50 : 0xffd8a0);
         });
     },
@@ -688,16 +702,20 @@ const R3U = {
     // the new look's trees and buildings in front of her go see-through round her (o.see)
     uSee: { value: new THREE_V4(0, 0, 0, 0) }, uSeeA: { value: 1 },
     uGrassTint: { value: new THREE_V4(1, 1, 1, 0) },     // (grass on models, as the lawn has it this season: color, then snow)
+    uCloudK: { value: 1 },      // (how strong the clouds' shadows are: always in the HD-2D view; in the new look while a cloud goes over)
+    // (the new look: where the world stops being drawn, round the camera's target: x, y in tiles, how far, how wide a fade)
+    uEdge: { value: new THREE_V4(0, 0, 1e9, 6) },
 };
 function THREE_V4(a, b, c, d) { return typeof THREE !== 'undefined' ? new THREE.Vector4(a, b, c, d) : { x: a, y: b, z: c, w: d, set() {} }; }
 const R3_GLSL = `
-uniform float uBendK; uniform float uBendZ; uniform float uTime; uniform vec4 uDof; uniform float uShadow; uniform vec4 uSee; uniform float uSeeA;
+uniform float uBendK; uniform float uBendZ; uniform float uTime; uniform vec4 uDof; uniform float uShadow; uniform vec4 uSee; uniform float uSeeA; uniform float uCloudK; uniform vec4 uEdge;
 varying float vDofZ; varying vec3 vWp;
+float r3Edge(vec3 w){ float dx = abs(w.x - uEdge.x), dz = uEdge.y - w.z / ${R3_ZS.toFixed(2)}; return max(smoothstep(uEdge.z - uEdge.w, uEdge.z, dx), smoothstep(uEdge.z - uEdge.w, uEdge.z, dz)); }
 float r3h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float r3n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(r3h(i), r3h(i + vec2(1, 0)), f.x), mix(r3h(i + vec2(0, 1)), r3h(i + vec2(1, 1)), f.x), f.y); }
 float cloudShade(vec2 p){ vec2 q = p * 0.045 + vec2(uTime * 0.012, uTime * 0.004);
-  float n = r3n(q) * 0.6 + r3n(q * 2.1 + 3.1) * 0.3 + r3n(q * 4.3 + 7.7) * 0.1; return 1.0 - 0.3 * smoothstep(0.56, 0.74, n); }
+  float n = r3n(q) * 0.6 + r3n(q * 2.1 + 3.1) * 0.3 + r3n(q * 4.3 + 7.7) * 0.1; return 1.0 - 0.3 * uCloudK * smoothstep(0.56, 0.74, n); }
 float dofA(float z){ return clamp(smoothstep(uDof.x, uDof.y, z) + smoothstep(uDof.z, uDof.w, z) * 0.95, 0.0, 1.0); }
 `;
 /* a built-in material, bent towards the horizon, with cloud shadows and the depth-of-field amount in alpha */
@@ -735,6 +753,12 @@ function r3Patch(mat, o) {
         // (the sun's shadows fade out at dusk: in a Lambert material they darken every light, the lamps' too)
         fs = fs.replace('reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask();',
             'reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * mix(1.0, getShadowMask(), uShadow)' + (o.noCloud ? ';' : ' * cloudShade(vWp.xz);'));
+        // (the new look's materials light by the standard model: the clouds' shadows dim the sun's light there too)
+        if (!o.noCloud && fs.includes('#include <lights_fragment_begin>')) fs = fs.replace('#include <lights_fragment_begin>', THREE.ShaderChunk.lights_fragment_begin.replace(
+            'getDirectionalDirectLightIrradiance( directionalLight, geometry, directLight );', 'getDirectionalDirectLightIrradiance( directionalLight, geometry, directLight );\n\t\tdirectLight.color *= cloudShade(vWp.xz);'));
+        // (the new look: everything fades into the haze before the edge of what's drawn, so the world never ends in a line,
+        // however far out the camera's zoomed: the fog alone, measured along the view, leaves the top of the screen thin)
+        if (!o.noEdge) fs = fs.replace('#include <fog_fragment>', '#include <fog_fragment>\n#ifdef USE_FOG\ngl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, r3Edge(vWp));\n#endif');
         // (a ghost's alpha is how see-through it is: the picture's own alpha, the depth of field's, is kept by its blending)
         fs = fs.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + (o.fend || '') + (o.ghost ? '\ngl_FragColor.a = 1.0 - r3Fade;' : o.noDof ? '' : o.dofFixed != null ? `\ngl_FragColor.a = ${o.dofFixed.toFixed(2)};` : '\ngl_FragColor.a = dofA(vDofZ);'));
         sh.fragmentShader = fs;
@@ -840,8 +864,9 @@ function r3Sky(scene) {
               // (the world bends away below the true horizon, so the sky's horizon is lowered to meet it: blue sky and
               // clouds over the island's rolling edge, not haze)
               float y = clamp(vDir.y + ${R3_CAM.skyDrop.toFixed(3)}, -0.2, 1.0);
-              vec3 c = mix(uHor, uMid, smoothstep(-0.03, 0.05, y));
-              c = mix(c, uZen, smoothstep(0.05, 0.4, y));
+              // (the haze only a thin band at the horizon: the camera looks down, so it sees little more of the sky than that)
+              vec3 c = mix(uHor, uMid, smoothstep(-0.05, 0.015, y));
+              c = mix(c, uZen, smoothstep(0.015, 0.22, y));
               vec2 q = vDir.xz / max(0.08, y + 0.12) * 1.6 + vec2(uTime * 0.01, 0.0);
               float cl = n(q) * 0.6 + n(q * 2.3) * 0.3 + n(q * 5.1) * 0.1;
               // (white by day; by night only a little lighter than the sky)
