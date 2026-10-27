@@ -14,6 +14,7 @@ const MEM_LINES = {
     hug: ['That hug {when}? I needed that. You give good hugs, {name}.', 'I was having a funny day {when}, and then you hugged me. It got un-funny. In a good way.'],
     favor: ['Thanks again for helping me out {when}. I won\'t forget it.', 'You really came through for me {when}. I tell everyone.'],
     visit: ['Thanks for coming over {when}! My house felt extra cozy with company.', 'You visited {when}! I tidied for an hour after. Before? No. After. It felt like a party.'],
+    gather: ["That night {when}, everyone out together? I keep thinking about it. We should do that more.", 'Remember {when}, when the whole island was out? Best night in a while.'],
     newyear: ['That countdown on the square {when}! What a way to start a year.', "We counted down together {when}! I'm still saying 'happy new year' to everyone. It's getting weird."],
     lost: ["I haven't lost my {what} once since you found it. I check on it every hour.", "My {what}! Still safe. Thanks to you. I gave it a little talk about wandering off."],
 };

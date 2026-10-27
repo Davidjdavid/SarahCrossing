@@ -14,6 +14,22 @@ const BOND_STATE = { 'crush:couple': 4, 'crush:kindno': -1, 'breakup:fight': -3,
     'lostinvite:announce': -2, 'lostinvite:fixed': 3, 'lostinvite:found': 3, 'rivalry:start': -1, 'rivalry:result': 2, 'rivalry:tie': 3,
     'borrowed:start': -2, 'borrowed:returned': 3, 'surprise:after': 2 };
 const BOND_CLOSE = 5, BOND_OUT = -2, BOND_CHAT = 6;
+/* what close friends say when they stop to chat ({A} and {B} are their names), and two who've just made up */
+const CHAT_CLOSE = [
+    ['There you are!', "I was looking for you! Well. I was walking. You were on the way.", 'Same thing.'],
+    ['Same time tomorrow?', 'Same time tomorrow.', 'Bring snacks.', 'I always bring snacks.'],
+    ['{B}, you have something on your face.', 'Where?', "Oh, that's just your face. It's a good face.", "...Thanks? I think?"],
+    ['Remember when we first met?', 'You tripped over my bag.', 'You left your bag in the middle of the path.', 'Best day ever.'],
+    ["Okay, real question. Who's your best friend on the island?", 'Is this a trick?', "It's not a trick.", "...It's you. Obviously it's you."],
+    ['I made too much lunch again.', 'You always make too much lunch.', "That's why I have you."],
+    ["I'm bored.", "You're never bored when I'm here.", "That's why I came over."],
+    ["We should start a band.", "Neither of us plays anything.", "We'll learn. How hard can a tuba be?"],
+];
+const CHAT_MENDED = [
+    ['Hey. About the other day...', "Forget it. I already did.", 'Really?', 'Mostly. Ice cream?'],
+    ['Sorry I was grumpy.', "Sorry I was... also grumpy.", 'Two grumps.', 'Grump buddies.'],
+    ["Are we okay?", "We're okay. We're better than okay. We're... medium-good. Heading for great."],
+];
 const BOND_BEST = ['{B} and I have been hanging out so much lately. Best friends? I think so. Don\'t tell {B} I said it first.',
     'Have you noticed {B} and I are always together now? It just happened. Like peanut butter and a second peanut butter.',
     "If you can't find me, try wherever {B} is. Odds are good."];
@@ -58,7 +74,9 @@ function bondChat(a, b) {
 function bondTick() {
     if (!S || !S.bonds) return;
     const day = Clock.dayNum();
-    if (day % 3 === 0) for (const [k, v] of Object.entries(S.bonds)) if (v < 0) S.bonds[k] = Math.min(0, v + 1);
+    if (day % 3 === 0) for (const [k, v] of Object.entries(S.bonds)) if (v < 0) { S.bonds[k] = Math.min(0, v + 1); if (v <= BOND_OUT && S.bonds[k] > BOND_OUT) (S.mended = S.mended || {})[k] = day; }
+    // (a few days to say so, then it's behind them)
+    if (S.mended) for (const [k, d] of Object.entries(S.mended)) if (day - d > 4) delete S.mended[k];
     if (S.bondDay) for (const [k, d] of Object.entries(S.bondDay)) if (d < day) delete S.bondDay[k];
 }
 /* what they say about it (a talk topic) */
@@ -69,3 +87,10 @@ function bondLine(n) {
     return null;
 }
 EXTRA_TOPICS.push(['bond', n => (fellOutWith(n.id) ? 2.5 : bestFriendOf(n.id) ? 0.8 : 0), bondLine]);
+/* the chats the bond adds (Chats.pick): close friends' own, and making up for a few days after a falling-out mends */
+function bondChats(A, B) {
+    const k = bondKey(A.id, B.id), out = [];
+    if (S && S.mended && S.mended[k] != null) for (const l of CHAT_MENDED) out.push([l, 12]);
+    if (bond(A.id, B.id) >= BOND_CLOSE) for (const l of CHAT_CLOSE) out.push([l, 3]);
+    return out;
+}

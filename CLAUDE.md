@@ -182,10 +182,14 @@ docs/DEPLOY.md for the server.
   sound's brightness). The file stays on the device (IndexedDB `sc-songs`, `MySongs.put/get`), the dance with the island
   (`S.mysongs`: name, level, tempo, length, `steps` packed by `packSteps`); `Dance.start('my:<id>', { file })` plays it
   through `Music.startFile`, `songDef(id)` names any track. Her songs tip once a day between them (`S.dance.myPaid`).
-- More holidays to do (6zp_holiday_events.js; the first six are 6z_festivals.js): New Year's Eve gathers everyone who's up
-  on the square from 11 PM (`nyeOverride`, a `late` override that keeps them up past bed), a countdown fills the screen
+- More holidays to do (6zp_holiday_events.js; the first six are 6z_festivals.js): some nights everyone who's up goes out
+  together (`GATHER`, `gatherOverride`, a `late` override that keeps them up past bed): New Year's Eve on the square from
+  11 PM, the Fourth of July's fireworks from the beach, Stargazing Night at the lookout; Sarah coming by says hello to each,
+  a point of friendship once a night (`Gathering.tick`). On New Year's Eve a countdown fills the screen
   ten seconds before island midnight and the square cheers at it, a little friendship with each neighbor there once a
-  year (`NewYear.tick`, every frame); Lunar New Year, a red envelope from each neighbor (`lunarHello`); Valentine's Day,
+  year (`NewYear.tick`, every frame); Pirate Day, a map in a bottle from Kai with steps from a landmark to an X dug up with
+  the shovel (`pirateSpot`, `pirateTick`, `addPirateX`; the treasure chest once, `firstWin`); Lunar New Year, a red
+  envelope from each neighbor (`lunarHello`); Valentine's Day,
   "Happy Valentine's!" in the talk menu, truffles back from a good friend (`valentineOptions`, `valentineGive`).
 - Karaoke has a request each night (`karaokeRequest`: one of the poems Sarah has, from the seed and the day), first in the
   list and on the board; the first time she sings it that night the crowd tips 200 more.
@@ -224,8 +228,9 @@ docs/DEPLOY.md for the server.
   (`S.bonds['a+b']`, `bond(a, b)`, a few pairs start close: `BOND_START`), moved by each storyline step (`BOND_STATE`, from
   `Drama.setState`), raised a little by a chat once a day per pair up to `BOND_CHAT` (`Chats.end`), a falling-out mended a
   point every third day (`bondTick`). Close friends (`BOND_CLOSE`) stop to chat more and walk over to each other; two
-  fallen out (`BOND_OUT`) don't chat (`Chats.ok`); they talk about it (`bondLine`, a talk topic) and the census says who's
-  close (`bestFriendOf`).
+  fallen out (`BOND_OUT`) don't chat (`Chats.ok`); close friends have chats of their own and two who've just made up say so
+  for a few days (`CHAT_CLOSE`, `CHAT_MENDED`, `S.mended`, through `bondChats` in `Chats.pick`); they talk about it
+  (`bondLine`, a talk topic) and the census says who's close (`bestFriendOf`).
 - Vacations (6zj_vacations.js, `VAC`: each neighbor's place, postcard and souvenir): about three times a year (one in
   every `VAC_EVERY` days) each neighbor goes away for three to five days, worked out from the seed (`vacationOf`,
   `vacationIn`), never over their own day, a festival in `VAC_KEEP` or Sarah's birthday, one at a time (a trip that would

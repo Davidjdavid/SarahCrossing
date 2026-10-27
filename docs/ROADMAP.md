@@ -78,8 +78,8 @@ Status: [x] done, [~] in progress, [ ] not started.
   characters visit and ask to move in, and Sarah picks where their house goes
 - [ ] A secret character
 - [~] Every line in one spreadsheet for David to edit (docs/dialogue/dialogue.xlsx, 26 October: 6,694 lines with who
-  says them and when, plus 399 new lines for the zip code, Post Office, Bank and Town Hall in every outcome); his edits go
-  back in with scripts/dialogue/apply.mjs
+  says them and when, plus 399 new lines for the zip code, Post Office, Bank and Town Hall in every outcome; exported again
+  27 October with everything added since: 8,332 lines); his edits go back in with scripts/dialogue/apply.mjs
 - [~] Way more dialogue, better dialogue, conversations that react to what's going on: about 1,340
   new lines (27+ everyday lines per neighbor, plus topics that react to the hour, weather, season,
   where they stand, friendship, Sarah's outfit, what she did today, her records, holidays, solved
@@ -89,7 +89,9 @@ Status: [x] done, [~] in progress, [ ] not started.
   Egg Hunt (Easter weekend: eggs in the grass, in trees, buried, on the hook; Cece trades them),
   Fish-Off (Kai, four times a year), Beach Cleanup (Earth Day, Ocean Day), Trick-or-Treat (Halloween
   night, candy from Fortune), Toy Day deliveries (December 24), Feast Cook-Off (Mac judges a dish), New Year's Eve
-  (everyone on the square, a countdown to midnight, cheers and fireworks), Lunar New Year (a red envelope from every
+  (everyone on the square, a countdown to midnight, cheers and fireworks), the Fourth of July (everyone on the beach for
+  the fireworks), Stargazing Night (everyone up at the lookout), Pirate Day (a treasure map in a bottle, steps from a
+  landmark to an X, a treasure chest to dig up), Lunar New Year (a red envelope from every
   neighbor), Valentine's Day (cards for the neighbors, truffles back from good friends)
 - [ ] Way, way more content
 

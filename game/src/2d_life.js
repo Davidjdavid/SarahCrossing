@@ -308,6 +308,7 @@ const Chats = {
         if (h >= 17 && h < 21) add(CHAT_EVENING, 3);
         add(CHAT_SEASON[Clock.season()], 2);
         add(CHAT_TODAY, 10);
+        for (const [l, w] of bondChats(A, B)) pool.push([l, w]);       // (close friends, or just made up: 6zn_bonds.js)
         if (S.flags.metJoe) {
             if (A.id === 'joe' || B.id === 'joe') add(CHAT_WITH_JOE, 3);
             else add(CHAT_JOE, 1.2);

@@ -1471,9 +1471,18 @@ test("the neighbors' own friendships: storylines move them, chats and time mend 
     out.best = bestFriendOf('cuke') === 'mac' && /Mac/.test(bondLine(NPCs.get('cuke')));
     out.spat = fellOutWith('chili') === 'coco' && /Coco/.test(bondLine(NPCs.get('chili')));
     out.topic = EXTRA_TOPICS.some(t => t[0] === 'bond');
+    // close friends have chats of their own; two who've just made up say so for a few days
+    S.bonds[bondKey('basil', 'chili')] = BOND_OUT;
+    try { Clock.dayNum = () => day + (3 - day % 3); bondTick(); } finally { Clock.dayNum = real; }
+    const has = (a, b, L) => bondChats(NPCs.get(a), NPCs.get(b)).some(([l]) => L.includes(l));
+    out.chats = { close: has('cuke', 'mac', CHAT_CLOSE), mended: has('basil', 'chili', CHAT_MENDED), strangers: bondChats(NPCs.get('maki'), NPCs.get('chili')).length === 0,
+      picked: Chats.pick(NPCs.get('basil'), NPCs.get('chili')) && true };
+    try { Clock.dayNum = () => day + (3 - day % 3) + 6; bondTick(); } finally { Clock.dayNum = real; }
+    out.chats.over = !has('basil', 'chili', CHAT_MENDED);
     return out;
   });
-  assert.deepEqual(res, { start: [4, 4, 0], fell: 2, cleared: 5, chat: 2.5, capped: 10, ok: [false, true], mend: -3, best: true, spat: true, topic: true });
+  assert.deepEqual(res, { start: [4, 4, 0], fell: 2, cleared: 5, chat: 2.5, capped: 10, ok: [false, true], mend: -3, best: true, spat: true, topic: true,
+    chats: { close: true, mended: true, strangers: true, picked: true, over: true } });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
@@ -1523,10 +1532,19 @@ test('your own songs: the game finds the beat of a song from the device, writes 
     MySongs.remove(s);
     await new Promise(r => setTimeout(r, 200));
     out.removed = !S.mysongs.length && !(await MySongs.get(s.id));
+    // a dozen songs (the most: no "Add a song" then): the list starts on the screen and scrolls (a long list of choices
+    // never runs off the top)
+    S.mysongs = Array.from({ length: 12 }, (_, i) => ({ id: 'x' + i, name: 'Song ' + (i + 1), level: 'Easy', bpm: 120, beat: 0.5, dur: 60, steps: { t: [], l: '' } }));
+    mySongsMenu();
+    for (let i = 0; i < 100 && document.querySelectorAll('#choices .choice').length < 13; i++) await new Promise(r => setTimeout(r, 50));
+    const ch = document.querySelector('#choices');
+    out.list = { all: ch.querySelectorAll('.choice').length, top: ch.getBoundingClientRect().top >= 0, scrolls: ch.scrollHeight > ch.clientHeight };
+    ch.querySelectorAll('.choice')[12].click();
+    S.mysongs = [];
     return out;
   });
   assert.deepEqual(res, { bpm: [120, 120, 120], onBeat: true, easyOnBeats: true, more: true, lanes: true, pack: true,
-    kept: { list: 1, name: 'Click Track', level: 'Easy', file: true }, relevel: true, plays: true, stopped: true, removed: true });
+    kept: { list: 1, name: 'Click Track', level: 'Easy', file: true }, relevel: true, plays: true, stopped: true, removed: true, list: { all: 13, top: true, scrolls: true } });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
@@ -1552,6 +1570,7 @@ test("more holidays to do: New Year's Eve on the square with a countdown, red en
       let now = new Date(2026, 11, 31, 23, 59, 55);
       Clock.island = () => new Date(now.getTime());
       G.events = new Set(['nye']);
+      S.flags['gather' + Clock.dayNum()] = 1;          // (just the countdown here: coming by the crowd is checked below)
       const n = NPCs.get('maki'), r = rel('maki');
       r.met = true;
       Object.assign(n, { area: 'island', x: G.player.x + 24, y: G.player.y, sleeping: false, script: false, path: null, chat: null, idle: null });
@@ -1564,7 +1583,30 @@ test("more holidays to do: New Year's Eve on the square with a countdown, red en
       n.want = { area: 'island', x: n.x, y: n.y, party: true };
       await wait(400);
       out.midnight = { text: document.querySelector('.nye-count').textContent, pts: r.pts - pts, flag: !!S.flags.nye2027, mem: (r.mem || []).some((m) => m.k === 'newyear') };
+      // the Fourth of July's fireworks from the beach, Stargazing Night at the lookout: everyone's out, and coming by counts
+      const j4 = Math.round(Date.UTC(2027, 6, 4) / 86400e3), sg = Math.round(Date.UTC(2027, 7, 12) / 86400e3);
+      out.gather = { beach: makePlan('kai', j4).segs.some((x) => x.spot === 'party:beach' && x.late), lookout: makePlan('maki', sg).segs.some((x) => x.spot === 'party:lookout' && x.late) };
+      now = new Date(2027, 6, 4, 21, 30, 0);
+      const bs = W0.spots.beach;
+      __dbg.teleport('island', bs.x, bs.y);
+      const crowd = ['kai', 'cuke'].map((id) => NPCs.get(id)), before = crowd.map((x) => rel(x.id).pts);
+      crowd.forEach((x, i) => { rel(x.id).met = true; Object.assign(x, { area: 'island', x: G.player.x + 20 + i * 14, y: G.player.y, sleeping: false, script: false, path: null }); x.want = { area: 'island', x: x.x, y: x.y, party: true }; });
+      G.frame = 600; G.busy = 0; Gathering.tick();
+      out.gather.joined = !!S.flags['gather' + Clock.dayNum()] && crowd.every((x, i) => rel(x.id).pts === before[i] + 1 && (rel(x.id).mem || []).some((m) => m.k === 'gather'));
       Clock.island = real;
+      // Pirate Day: a map in a bottle from Kai, steps from a landmark to an X, the treasure under it
+      G.events = new Set(['pirateday']);
+      delete fest().pirate;
+      const mails = S.mail.length;
+      pirateTick();
+      const st = fest().pirate, x = G.areas.island.ents.find((e) => e.pirateX), m = S.mail[S.mail.length - 1];
+      __dbg.give('shovel', 1); S.held = 'shovel';
+      const money = S.money, chests = pocketCount('treasure_chest');
+      if (x) await x.interact();
+      out.pirate = { mail: S.mail.length === mails + 1 && m.from === 'kai' && /Start at .+ Walk \d+ steps? (east|west|north|south)/.test(m.body),
+        x: !!x && Math.floor(x.x / TILE) === st.spot.x, dug: !!st.dug && !G.areas.island.ents.some((e) => e.pirateX), chest: pocketCount('treasure_chest') - chests, money: S.money - money };
+      pirateTick();
+      out.pirate.once = S.mail.length === mails + 1 && !G.areas.island.ents.some((e) => e.pirateX);
       // Lunar New Year: a red envelope from each, once
       G.events = new Set(['lunar']);
       const m0 = S.money;
@@ -1580,7 +1622,8 @@ test("more holidays to do: New Year's Eve on the square with a countdown, red en
     } finally { UI.say = say; UI.ask = ask; Clock.island = real; G.events = todayEvents(); }
     return out;
   });
-  assert.deepEqual(res, { plan: true, count: '5', midnight: { text: 'Happy New Year!', pts: 3, flag: true, mem: true }, lunar: 88, val: { offered: true, pts: 4, truffles: 1, once: true } });
+  assert.deepEqual(res, { plan: true, count: '5', midnight: { text: 'Happy New Year!', pts: 3, flag: true, mem: true }, gather: { beach: true, lookout: true, joined: true },
+    pirate: { mail: true, x: true, dug: true, chest: 1, money: 1000, once: true }, lunar: 88, val: { offered: true, pts: 4, truffles: 1, once: true } });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
