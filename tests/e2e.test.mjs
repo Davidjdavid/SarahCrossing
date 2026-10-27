@@ -972,6 +972,33 @@ test('neighbors find things of their own to do (the stars only at night), a chat
     let lunches = 0;
     for (let d = 0; d < 20; d++) { const p = makePlan('maki', Clock.dayNum() + d); if (p.segs.some((s) => (s.spot === 'home' || s.spot === 'in_restaurant') && s.a >= 11.7 && s.a <= 12.6)) lunches++; }
     out.lunch = lunches >= 10;
+    // an evening visit now and then: the guest at the host's house, the host home for it
+    let visits = 0, agree = true;
+    for (let d = 0; d < 20; d++) {
+      const day = Clock.dayNum() + d;
+      for (const [g, v] of Object.entries(friendVisits(day))) {
+        if (!v[0].startsWith('in_h_')) continue;
+        visits++;
+        const host = v[0].slice(5), gp = makePlan(g, day), hp = makePlan(host, day), mid = (v[1] + v[2]) / 2;
+        if (!gp.segs.some((s) => s.spot === v[0] && s.a <= mid && s.b >= mid) || !hp.segs.some((s) => s.spot === 'home' && s.a <= mid && s.b >= mid)) agree = false;
+      }
+    }
+    out.visits = visits >= 3 && agree;
+    // an errand after work, where the Bank or the Post Office opens into a room (beta: stand-ins for the rooms here)
+    const had = { b: ROOMS.bank, p: ROOMS.postoffice, hb: ROOM_HOURS.bank, hp: ROOM_HOURS.postoffice };
+    ROOMS.bank = ROOMS.bank || { w: 13, h: 6, name: 'Bank' }; ROOMS.postoffice = ROOMS.postoffice || { w: 13, h: 6, name: 'Post Office' };
+    ROOM_HOURS.bank = ROOM_HOURS.bank || [9, 18]; ROOM_HOURS.postoffice = ROOM_HOURS.postoffice || [7, 21];
+    let errands = 0, open = true;
+    for (let d = 0; d < 20; d++) for (const id of NEIGHBORS) {
+      for (const s of makePlan(id, Clock.dayNum() + d).segs) {
+        if (s.spot !== 'in_bank' && s.spot !== 'in_postoffice') continue;
+        errands++;
+        if (!roomOpen(s.spot.slice(3), s.a) || !roomOpen(s.spot.slice(3), s.b - 0.01)) open = false;
+      }
+    }
+    if (!had.b) delete ROOMS.bank; if (!had.p) delete ROOMS.postoffice;
+    if (!had.hb) delete ROOM_HOURS.bank; if (!had.hp) delete ROOM_HOURS.postoffice;
+    out.errands = errands >= 5 && open;
     // busy with something: no chat; walking off ends it
     __dbg.setTime(6, 12, 12);
     free(n, 116, 110);
@@ -994,7 +1021,7 @@ test('neighbors find things of their own to do (the stars only at night), a chat
     Chats.end(c);
     return out;
   });
-  assert.deepEqual(res, { night: true, noon: true, fish: true, lunch: true, busy: true, ended: true, chat: { talks: true, listens: true, text: true }, nods: true });
+  assert.deepEqual(res, { night: true, noon: true, fish: true, lunch: true, visits: true, errands: true, busy: true, ended: true, chat: { talks: true, listens: true, text: true }, nods: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
@@ -1122,6 +1149,38 @@ test('nicknames: a good friend asks once if they can call Sarah something, uses 
     return out;
   });
   assert.deepEqual(res, { first: { asked: 1, nick: 'Sweetie' }, once: true, lines: { mine: true, others: true }, changed: true, back: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('karaoke: a different request each night from the poems Sarah has, first on the list and on the board, and the crowd tips extra', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {};
+    S.poems = ['The Frog', 'Duck', 'Cheese', 'Kite', 'Owl'];
+    const day = Clock.dayNum(), req = karaokeRequest();
+    const names = new Set(); for (let d = 0; d < 14; d++) names.add(karaokeRequest(day + d)[0]);
+    out.req = { have: karaokePoems().includes(req), same: karaokeRequest(day) === req, varies: names.size >= 3, board: boardTodayLines().some((l) => l.includes(`"${req[0]}"`)) };
+    const say = UI.say; UI.say = async () => {};
+    try {
+      const money = S.money;
+      Object.assign(Karaoke, { poem: req, totF: 100, hitF: 80, dTot: 0, dHit: 0, duet: null });
+      G.busy++;
+      await Karaoke.results();
+      const first = S.money - money;
+      G.busy++;
+      await Karaoke.results();
+      out.tips = { first: first >= 350, again: S.money - money === first };
+    } finally { UI.say = say; }
+    out.poems = JOE_POEMS.length >= 60;
+    return out;
+  });
+  assert.deepEqual(res, { req: { have: true, same: true, varies: true, board: true }, tips: { first: true, again: true }, poems: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

@@ -163,8 +163,12 @@ docs/DEPLOY.md for the server.
   `catchTail`); a good friend (four hearts) takes a new one from the talk menu ("New catchphrase?", `catchFlow`, typed in
   `askText`, tidied by `catchClean`) and reacts in their own way (`CATCH_REACT`); the Town Hall's Residents sets it too. Kept
   as `S.npcs[id].catch` (missing: their own).
+- Karaoke has a request each night (`karaokeRequest`: one of the poems Sarah has, from the seed and the day), first in the
+  list and on the board; the first time she sings it that night the crowd tips 200 more.
 - Most days a neighbor not working at noon goes home for lunch, some days to Mac's (`lunchOverride`, the first of
-  makePlan's overrides, so anything else planned that day wins).
+  makePlan's overrides, so anything else planned that day wins), and some evenings two neighbors pair up for a visit, one
+  at the other's house while the host stays home (`friendVisits`/`visitOverride`: from the day alone, so both plans agree);
+  after work, some days, an errand at the Bank or the Post Office where those rooms are open (`errandOverride`).
 - IslandMart on Sarah's laptop (67_laptop.js) sells a week's stock, new every Monday (`martWeek`, `laptopCatalog(tab, day)`:
   so many of each kind, `MART_WEEK`, floor pieces taken a kind at a time, `MART_GROUPS`), from the seed; Order again keeps
   everything she's ever had (`laptopAgain`).

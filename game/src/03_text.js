@@ -554,6 +554,22 @@ const JOE_POEMS = [
     ['Leaf', ['A leaf fell down.', 'It was brown.', 'It fell on the town.', 'Now the town wears a crown.']],
     ['Pie', ['I ate a pie.', 'I do not know why.', 'It was Sully.', 'Goodbye. (Sorry, Sully.)']],
     ['Spoon', ['A spoon is a spoon.', 'It looks like the moon.', 'I will write more soon.', 'About the spoon.']],
+    ['Kite', ['I flew a kite.', 'It went out of sight.', 'It flew all night.', 'It is still a kite. (Probably.)']],
+    ['Snowman', ['I built a snowman.', 'His name is Stan.', 'He has no plan.', 'He is a snow man.']],
+    ['Umbrella', ['My umbrella is red.', 'I put it on my head.', 'It rained on my bed.', "'Next time,' I said."]],
+    ['Owl', ['An owl said hoo.', 'I said hoo too.', 'He said who are you.', 'I said Joe. Hoo are you?']],
+    ['Cookie', ['A cookie is round.', 'I found one on the ground.', 'I did not eat it.', '(I ate it.)']],
+    ['Socks Again', ['I found my sock.', 'It was under a rock.', 'It is now a sock rock.', 'Tick tock.']],
+    ['Lighthouse', ['A lighthouse is tall.', 'It does not fall.', 'It lights up the sea', 'for boats. And for me.']],
+    ['Penguin', ['A penguin can swim.', 'His name is Jim.', 'I wrote this for him.', 'He did not read it. (Jim.)']],
+    ['Balloon', ['I had a balloon.', 'It flew to the moon.', 'It will be back soon.', "It's been a week. (Balloon?)"]],
+    ['Waffle', ['A waffle has squares.', 'It sits on chairs.', 'Waffles have no hairs.', 'Waffle, my prayers.']],
+    ['Thunder', ['Thunder went boom.', 'I hid in my room.', 'Under my broom.', 'I was not brave. (Boom.)']],
+    ['Pumpkin', ['A pumpkin is round.', 'It grows on the ground.', 'I carved it a frown.', 'Now it wears it. (Like a crown.)']],
+    ['Sandcastle', ['I made a castle of sand.', 'It was grand.', 'The sea took my land.', 'I understand.']],
+    ['Mailbox', ['I checked my mail.', 'It was a snail.', 'It brought a letter.', 'It could not be wetter.']],
+    ['Firefly', ['A firefly glows.', 'Where does it go?', 'Nobody knows.', 'Not even its toes.']],
+    ['Best Friend', ['I have a friend.', 'She lives here too.', 'This poem is short.', 'I wrote it for you.']],
 ];
 const JOE_SUNSET_POEM = ['Sunset', ['The sun goes down.', "It's orange and brown.", "It's like a clown", "who's leaving town."]];
 const JOE_FRAMED = [

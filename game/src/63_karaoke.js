@@ -72,18 +72,27 @@ function karaokePoems() {
     const all = JOE_POEMS.concat([JOE_SUNSET_POEM]);
     return all.filter(p => p[0] === 'Shoe' || S.poems.includes(p[0]));
 }
+/* tonight's request at the club (David, 27 October: "songs and poems that rotate, so there's something new to check each
+   day"): one of the poems Sarah has, a different one each night; the crowd tips extra the first time she sings it */
+function karaokeRequest(day) {
+    const have = karaokePoems();
+    if (have.length < 2) return null;
+    return have[hash32((S.seed || 'x') + ':req:' + (day == null ? Clock.dayNum() : day)) % have.length];
+}
 function karaokeMenu() {
     return new Promise(res => {
         let done = false;
         const P = UI.open({ title: 'Karaoke', onClose: () => { if (!done) { done = true; res(null); } } });
         P.body.appendChild(el('p', 'muted', "Pick one of Joe's poems. Hold A (or hold the screen) to sing higher, and let go to come down. Every poem Joe reads you joins the list."));
         const L = el('div', 'list');
-        for (const poem of karaokePoems()) {
+        // (tonight's request first)
+        const req = karaokeRequest();
+        for (const poem of karaokePoems().sort((a, b) => (b === req) - (a === req))) {
             const r = el('button', 'row');
             r.type = 'button';
             r.appendChild(iconCanvas('app_poems', 40));
             const t = el('div', 't');
-            t.appendChild(el('b', null, poem[0]));
+            t.appendChild(el('b', null, poem === req ? `${poem[0]} \u2605 tonight's request` : poem[0]));
             const best = S.karaoke.best[poem[0]];
             t.appendChild(el('span', null, `"${poem[1][0]}"${best ? ' \u00b7 best ' + best : ''}`));
             r.appendChild(t);
@@ -382,6 +391,13 @@ const Karaoke = {
             const pay = 150 + Math.round(acc * 35) * 10;
             addMoney(pay, true, 'Prizes & tips');
             await UI.say('wasabi', `The crowd tipped you ${fmtNum(pay)} sand dollars!`, { keep: true });
+        }
+        // (tonight's request: the crowd's been waiting all night for it)
+        const req = karaokeRequest();
+        if (req && req[0] === title && K.reqDay !== day) {
+            K.reqDay = day;
+            addMoney(200, true, 'Prizes & tips');
+            await UI.say('wasabi', `And that was TONIGHT'S REQUEST! The crowd went wild. 200 more sand dollars in the tip jar!`, { keep: true });
         }
         if ((rank === 'S' || rank === 'A') && !K.trophy) {
             K.trophy = true;

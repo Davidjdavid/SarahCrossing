@@ -181,7 +181,7 @@ function makePlan(id, day) {
     else segs.push({ a: t, b: bed, spot: 'home' });                  // (right away: no gap to wander home in)
     if (d.early) { segs.push({ a: 28, b: 29, spot: 'jog' }); }
     // jump rope in the plaza, then today's storyline, may send people somewhere (the rope, a date, a party)
-    const o = (lunchOverride(id, day, d, work) || []).concat(ropeOverride(id, day) || [], Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || [], vacationOverride(id, day) || []);
+    const o = (lunchOverride(id, day, d, work) || []).concat(errandOverride(id, day, d, work) || [], visitOverride(id, day) || [], ropeOverride(id, day) || [], Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || [], vacationOverride(id, day) || []);
     for (const [spot, a, b] of o) {
         const more = [];
         for (const s of segs) {
@@ -215,6 +215,35 @@ function lunchOverride(id, day, d, work) {
     if (x < 0.85 && ROOMS.restaurant && roomOpen('restaurant', a) && roomOpen('restaurant', b)) return [['in_restaurant', a, b]];
     return null;
 }
+/* after work, some days, an errand (David, 27 October: "the Bank after work"): the Bank or the Post Office, wherever
+   those rooms are open (on beta, where they open into rooms: CIVIC_PREVIEW) */
+function errandOverride(id, day, d, work) {
+    const end = (work || []).map(w => w.b).filter(b => b >= 13 && b <= 19).sort((a, b) => b - a)[0];
+    if (end == null) return null;
+    const r = mulberry(hash32(S.seed + ':errand:' + id + ':' + day)), x = r(), room = x < 0.3 ? 'bank' : x < 0.5 ? 'postoffice' : null;
+    if (!room || !ROOMS[room] || !roomOpen(room, end + 0.1) || !roomOpen(room, end + 0.6)) return null;
+    return [['in_' + room, end + 0.05, end + 0.5 + r() * 0.2]];
+}
+/* an evening visit (David, 27 October: "visiting a friend"): some evenings two neighbors pair up, one drops by the other's
+   house for an hour or so and the host stays home for it; worked out from the day alone, so both plans agree (nobody
+   working then, off on an outing, on vacation or up with the sun) */
+function friendVisits(day) {
+    const c = friendVisits.cache || (friendVisits.cache = {}), key = S.seed + ':' + day;
+    if (c[key]) return c[key];
+    const r = mulberry(hash32(S.seed + ':visits:' + day)), out = {};
+    const free = (id, a, b) => (NPC_DEFS[id].work || []).every(([, wa, wb]) => wb <= a - 0.3 || wa >= b + 0.3)
+        && !outingsToday(day).some(o => o.who.includes(id) && o.a < b + 0.3 && o.b > a - 0.3);
+    const ids = NEIGHBORS.filter(id => { const d = NPC_DEFS[id]; return d && d.house && ROOMS[d.house] && !d.shop && !d.spring && !d.dj && !d.early && !vacationOf(id, day); });
+    for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
+    for (let i = 0; i + 1 < ids.length; i += 2) {
+        const a = 18 + r() * 1.5, b = a + 1 + r() * 0.75, go = r() < 0.35, g = ids[i], h = ids[i + 1];
+        if (!go || !free(g, a, b) || !free(h, a, b) || NPC_DEFS[h].bed < b + 0.5) continue;
+        out[g] = ['in_' + NPC_DEFS[h].house, a, b];
+        out[h] = ['home', a - 0.15, b + 0.15];
+    }
+    return (c[key] = out);
+}
+function visitOverride(id, day) { const v = friendVisits(day)[id]; return v ? [v] : null; }
 /* Visitors don't live here: once in a while one of them comes over on the boat and stays a day, or camps a night or
    two in a tent at the campsite. Every visit is worked out from the island's seed, so it's the same whenever you look. */
 const VISIT_MAX_DAYS = 3;

@@ -178,6 +178,8 @@ function boardTodayLines() {
     lines.push(`Fortune's hot item: ${itemName(st.hot)}. She pays double for it.`);
     for (const vis of visitorsToday()) lines.push(`Boat schedule: ${visitNote(vis)}`);
     for (const v of vacationEvents(Clock.dayNum())) lines.push(`${v.name}. ${v.note}`);
+    const req = typeof karaokeRequest === 'function' && karaokeRequest();
+    if (req) lines.push(`Club Wasabi: tonight's karaoke request is "${req[0]}" by Joe. The crowd tips extra for it.`);
     for (const h of holidaysToday()) lines.push(`Today: ${h.name}! ${h.note || ''}`);
     const m = typeof todaysMenu === 'function' ? todaysMenu() : null;
     if (m) lines.push(`Mac's special: ${itemName(m.special)}. Cece's dessert: ${itemName(m.dessert).toLowerCase()}.`);

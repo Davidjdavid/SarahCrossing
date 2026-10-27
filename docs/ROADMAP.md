@@ -170,8 +170,8 @@ Status: [x] done, [~] in progress, [ ] not started.
   everyone is where their day has taken them. It only has to look real (no crops or stock actually tracked): the farmers
   tend the fields, pack the produce and deliver it to the store each morning, and neighbors go and buy it (already: a
   plan each morning worked out from the day and hour, work, shopping, benches, the club; now also lunch at home or at
-  Mac's, and fishing where there's water. Still to come: the Bank after work, selling the catch, visiting a friend's
-  house, the farm's deliveries)
+  Mac's, fishing where there's water, evenings visiting a friend at their house, and an errand at the Bank or the Post
+  Office after work (on beta, where those open into rooms). Still to come: selling the catch, the farm's deliveries)
 - [x] Vacations, now and then (rare, and marked on the calendar): a neighbor packs their bags, walks to the pier with
   friends seeing them off, and a boat comes for them; friends get a postcard, good friends a souvenir in the mail, and they
   come home after a few days (each neighbor about once every two and a half months, to a place of their own: Sully to
@@ -192,8 +192,9 @@ Status: [x] done, [~] in progress, [ ] not started.
   in hand; each neighbor has a favorite)
 - [x] Neighbors stopping close together to chat, one talking and the other listening, now and then nodding while
   looking at whoever's talking
-- [ ] Songs and poems that rotate, so there's something new to check each day; many more songs; and a way to upload a
-  song and have a dance made for it
+- [~] Songs and poems that rotate, so there's something new to check each day; many more songs; and a way to upload a
+  song and have a dance made for it (a karaoke request each night at the club, on the board, the crowd tipping extra
+  for it; sixteen more of Joe's poems, which are the karaoke songs too. Still to come: uploading a song for a dance)
 - [x] Sarah dances on her own between the steps in the dance game (an idle dance when no button is pressed), so it looks
   like dancing
 
