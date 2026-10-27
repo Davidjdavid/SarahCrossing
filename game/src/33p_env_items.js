@@ -13,6 +13,9 @@ const EnvItems = {
     FISH: { mackerel: '#4a7aa8', seabream: '#e8908a', seabass: '#8a98a8', yellowtail: '#d8c050', tuna: '#3a5a8a', salmon: '#e8907a',
         pufferfish: '#d8c890', moonfish: '#c8d0e8', sunrise: '#f0a050', trout: '#8aa878', ayu: '#a8b098', catfish: '#7a6a5a', eel: '#5a6a4a',
         koi: '#f08040', goldfish: '#f0a020', squid: '#f0d8d0', octopus: '#e07a6a', shrimp: '#f0a088', crawfish: '#c84a3a', lobster: '#d8402a' },
+    /* a flower's petals by its kind and color (flower_<kind>_<0..2>: the names in gamedata) */
+    PETALS: { daisy: ['#ffffff', '#ffd83a', '#ff9cc8'], tulip: ['#e8283c', '#ffd03a', '#ff86b4'], cosmos: ['#ff7ab8', '#a86ae8', '#ff9a3a'], lily: ['#ffffff', '#ff9a3a', '#ff9cc8'] },
+    petals(id) { const m = /^flower_([a-z]+)_(\d)$/.exec(id || ''); return m && this.PETALS[m[1]] ? this.PETALS[m[1]][+m[2]] || null : null; },
     /* (how big each lies, against the shells': the big ones a little smaller) */
     SIZE: { item_lobster: 1.1, item_fish: 1.3, item_squid: 1.3, item_fish_boot: 1.25, item_dish: 1.3, item_ic_wood: 1.35, item_ui_present: 1.35, item_ic_package: 1.35 },
     /* (a dish lies as big as the covered one stood: dishes.py makes them all the same size) */
@@ -40,7 +43,7 @@ const EnvItems = {
             case 'seed': return has('item_seedbag');
             case 'staple': return has('item_sack');
             case 'dish': case 'snack': return has('item_dish');
-            case 'flower': return has('flowers_' + id.split('_')[1]);
+            case 'flower': return has('flower_' + id.split('_')[1]) || has('flowers_' + id.split('_')[1]);
             default: return has('item_leaf');
         }
     },
@@ -49,11 +52,12 @@ const EnvItems = {
         const it = ITEMS[id];
         if (!it) return null;
         if (it.type === 'outfit' && typeof hdOutfit === 'function') { const o = hdOutfit(it.wear); return { top: o.top, trim: o.trim }; }
+        if (it.type === 'flower') { const p = this.petals(id); return p ? { top: p } : null; }
         const c = it.type === 'fish' && this.FISH[id];
         return c ? { top: c, trim: c } : null;
     },
     // (a wild flower's item is the flower model EnvBuild already shows)
-    takes(e) { return (e.kind === 'item' && !e.wildFlower && !!this.model(e.id, e.frame)) || (e.kind === 'vbball' && EnvModels.has('item_vbball')); },
+    takes(e) { return (e.kind === 'item' && !e.wildFlower && !!this.model(e.id, e.frame)) || (e.kind === 'vbball' && EnvModels.has('item_vbball')) || (e.kind === 'gflower' && EnvModels.has('plot_sprout')); },
     /* what's growing in a garden plot, as a model: the seeds' mound, a sprout, then the flower or the vegetable */
     plant(e) {
         if (typeof EnvModels === 'undefined' || !EnvModels.ready || typeof S === 'undefined') return null;
@@ -61,8 +65,17 @@ const EnvItems = {
         if (!st) return null;
         if (st === 1) return EnvModels.has('plot_seed') ? 'plot_seed' : null;
         if (st === 2) return EnvModels.has('plot_sprout') ? 'plot_sprout' : null;
-        const n = pl.seed.startsWith('flower_') ? 'flowers_' + pl.seed.split('_')[1] : 'veg_' + pl.seed;
+        const kind = pl.seed.startsWith('flower_') && pl.seed.split('_')[1];
+        if (kind && EnvModels.has('flower_' + kind)) return 'flower_' + kind;
+        const n = kind ? 'flowers_' + kind : 'veg_' + pl.seed;
         return EnvModels.has(n) ? n : null;
+    },
+    /* a flower Sarah planted in a dug hole (2a_flowers.js): a sprout the first day, then the plant in its color */
+    planted(e) {
+        const pl = e.pl;
+        if (!pl) return null;
+        if (!flowerBloomed(pl)) return EnvModels.has('plot_sprout') ? 'plot_sprout' : null;
+        return EnvModels.has('flower_' + pl.kind) ? 'flower_' + pl.kind : null;
     },
     make(name, tint) {
         const M = EnvModels.models[name], g = new THREE.Group();
@@ -98,7 +111,9 @@ const EnvItems = {
                 // (each lies at its own turn; fruit is bigger, as on the trees; a little bag of sand dollars small)
                 const r = mulberry(hash32('it' + Math.round(e.x) + ',' + Math.round(e.y)));
                 d.rotation.y = r() * Math.PI * 2;
-                d.scale.setScalar(this.FRUIT.has(e.id) ? 1.6 : e.frame === 'money_bag_s' ? 0.95 : /^flowers_/.test(name) ? 0.55 : this.size(name, 1.55));
+                d.scale.setScalar(this.FRUIT.has(e.id) ? 1.6 : e.frame === 'money_bag_s' ? 0.95 : /^flowers_/.test(name) ? 0.55 : /^flower_/.test(name) ? 0.8 : this.size(name, 1.55));
+                // (a picked flower lies on its side)
+                if (/^flower_/.test(name)) { d.rotation.order = 'YXZ'; d.rotation.x = 1.45; }
                 this.list.set(e, d);
             }
             seen.add(e);
@@ -114,22 +129,26 @@ const EnvItems = {
                 sp.rotation.y = -d.rotation.y + k / 10;
             }
         }
-        // the garden plots' plants, and the volleyball (bouncing when it's been hit, as its picture did)
+        // the garden plots' plants, flowers planted in the ground, and the volleyball (bouncing when it's been hit, as
+        // its picture did)
         for (const e of a.ents) {
-            if (e.kind !== 'plot' && e.kind !== 'vbball') continue;
+            if (e.kind !== 'plot' && e.kind !== 'vbball' && e.kind !== 'gflower') continue;
             if (v && (e.x < v.x0 - 48 || e.x > v.x1 + 48 || e.y < v.y0 - 48 || e.y > v.y1 + 96)) continue;
-            const name = e.kind === 'plot' ? this.plant(e) : 'item_vbball';
+            const name = e.kind === 'plot' ? this.plant(e) : e.kind === 'gflower' ? this.planted(e) : 'item_vbball';
             if (!name || !EnvModels.has(name)) continue;
+            // (a plot's flowers in one of their colors, a planted flower in its own)
+            const tint = /^flower_/.test(name) ? { top: e.kind === 'gflower' ? this.petals(`flower_${e.pl.kind}_${e.pl.ci}`) : (this.PETALS[name.slice(7)] || [])[e.idx % 3] } : null;
+            const key = name + (tint ? tint.top : '');
             let d = this.list.get(e);
-            if (d && d.userData.name !== name) { this.group.remove(d); d = null; }
+            if (d && d.userData.name !== key) { this.group.remove(d); d = null; }
             if (!d) {
-                d = this.make(name); d.userData.name = name;
-                d.rotation.y = e.kind === 'plot' ? (e.idx * 1.7) % 6.28 : 0;
-                d.scale.setScalar(e.kind === 'plot' ? (/^flowers_/.test(name) ? 0.8 : 1.4) : 1.3);
+                d = this.make(name, tint); d.userData.name = key;
+                d.rotation.y = e.kind === 'plot' ? (e.idx * 1.7) % 6.28 : e.kind === 'gflower' ? ((e.tx * 7 + e.ty * 3) % 5 - 2) * 0.2 : 0;
+                d.scale.setScalar(e.kind === 'vbball' ? 1.3 : /^flowers_/.test(name) ? 0.8 : 1.4);
                 this.list.set(e, d);
             }
             seen.add(e);
-            if (e.kind === 'plot') { const f = Env.tileSpot(e); d.position.set(f.x, f.y, f.z); }
+            if (e.kind === 'plot' || e.kind === 'gflower') { const f = Env.tileSpot(e); d.position.set(f.x, f.y, f.z); }
             else {
                 const b = e.bounce > 0 ? Math.abs(Math.sin(e.bounce-- / 5)) * 8 * (e.bounce / 30) : 0;
                 d.position.set(e.x / TILE, Env.groundH(e.x, e.y - 2) + b / TILE * R3_VS, (e.y - 2) / TILE * R3_ZS);

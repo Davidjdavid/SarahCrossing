@@ -10,6 +10,19 @@
    (STYLE2: where the new look is, ENV_ISLAND; localStorage sc-style2 1 or 0 anywhere). */
 const STYLE2 = (() => { const v = lsGet('sc-style2'); return v === '1' ? true : v === '0' ? false : LAB || ENV_ISLAND; })();
 const DOLL2 = { H: 1.62, R: 0.215, HEAD: 0.782, NECK: 0.56 };
+/* how each hat (EnvDolls.extras) meets the hair, in head radii (EnvDolls.hatFit): cover [band, crown's middle height,
+   crown's width, crown's height] presses the hair above the band inside the crown; sit lifts it to the hair's top; wrap
+   [height, ring] widens it round the hair (over: a band over the top too); max: how much wider it may grow (what comes
+   down over the brow, a beanie or a hood, stays its size, or it would cover the eyes) */
+const HAT_FIT = {
+    sunhat: { cover: [0.55, 0.71, 0.85, 0.55] }, beanie: { cover: [0.3, 0.36, 1.08, 0.92], max: 1.04 }, piratehat: { cover: [0.6, 0.84, 0.88, 0.6] },
+    wizardhat: { cover: [0.6, 0.66, 0.72, 0.4] }, witchhat: { cover: [0.6, 0.66, 0.7, 0.4] }, deerstalker: { cover: [0.35, 0.49, 1.06, 0.72], max: 1.06 },
+    chefhat: { cover: [0.75, 1.07, 0.8, 0.6] }, ghosthood: { cover: [0.2, 0.41, 1.12, 1.0], max: 1.05 }, pumpkinhat: { cover: [0.7, 1.1, 0.76, 0.5] },
+    soupbowl: { cover: [0.75, 1.0, 0.82, 0.4] }, mummywrap: { cover: [0.15, 0.5, 1.04, 0.8], max: 1.06 }, robotbox: { cover: [0.35, 0.82, 0.95, 0.55], max: 1.15 },
+    crown: { sit: 1 }, partyhat: { sit: 1 }, halo: { sit: 1 }, catears: { sit: 1 }, bathat: { sit: 1 }, goathorns: { sit: 1 },
+    tiara: { wrap: [0, 1], top: 1, max: 1.6 }, flowercrown: { wrap: [0.63, 0.86], max: 1.25 }, bow: { wrap: [0.9, 0.62], max: 1.5 }, flower: { wrap: [0.62, 0.93], max: 1.5 },
+    sunrays: { wrap: [0.73, 0.9] }, lobsterclaws: { wrap: [0.73, 0.92] }, headphones: { wrap: [0, 1.06], over: 1.12 },
+};
 /* the expressions on a face sheet, four to a row */
 const FACES = ['idle', 'blink', 'talk', 'happy', 'happytalk', 'joy', 'surprised', 'sad', 'cry', 'excited', 'determined', 'worried', 'sleepy', 'wink', 'love', 'annoyed'];
 /* the redone food folks' faces (tools/blender/folks2.py paints none: each has a patch these are painted on). Maki: white
@@ -177,6 +190,7 @@ Object.assign(EnvDolls, {
             this.setFace(d, 'idle');
         }
         this.extras(d, hc, spec, L);
+        if (hairK) this.hatFit(d, lists.get(head), hairK.geo, spec.acc);
         // each joint's kit parts as one mesh, its colors in it
         if (!this.vc) this.vc = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0 }), { key: 'envdollvc' });
         const hairBase = c(L.hairCol || '#5a3622'), hairTip = L.tipCol ? c(L.tipCol) : null;
@@ -187,10 +201,56 @@ Object.assign(EnvDolls, {
             g.add(mesh);
             d.geos.push(geo);
         }
-        d.joints = [body, P.legL, P.legR, P.knL, P.knR, P.armL, P.armR, P.elL, P.elR, head, hc].filter(Boolean);
+        d.joints = [body, P.legL, P.legR, P.knL, P.knR, P.armL, P.armR, P.elL, P.elR, head, hc, d.hatG].filter(Boolean);
         this.bake(d);
         // (at rest the arms hang a little out from the sides, clear of the hem)
         return d;
+    },
+    /* a hat sits on the hair, not through it (David, 27 October; every hat was made for a bare head, its top 1.02 head
+       radii up): one that covers the crown is made as wide as the hair at its band and presses the hair above the band
+       down and in, inside its crown, as Animal Crossing's hats flatten the hair; one that sits on top is lifted to the
+       hair's top; one that goes round the head goes round the hair (HAT_FIT) */
+    hatFit(d, list, geo, acc) {
+        const F = HAT_FIT[acc], g = d.hatG;
+        if (!F || !g) return;
+        const R = DOLL2.R, off = DOLL2.HEAD - DOLL2.NECK, a = geo.attributes.position.array, n = a.length;
+        const Y = i => (a[i + 1] - off) / R, Rr = i => Math.hypot(a[i], a[i + 2]) / R;
+        const reach = (h, dh) => { let m = 0; for (let i = 0; i < n; i += 3) if (Math.abs(Y(i) - h) < dh) m = Math.max(m, Rr(i)); return m; };
+        // (where something on top rests: the hair's height round a ring half a head out, the middle of sixteen ways round,
+        // so a bun or a mohawk's crest comes up through a crown instead of lifting it into the air)
+        let topC = 1.02, top = -9;
+        const bins = new Array(16).fill(-9);
+        for (let i = 0; i < n; i += 3) {
+            const y = Y(i), r = Rr(i);
+            top = Math.max(top, y);
+            if (r < 0.55) topC = Math.max(topC, y);
+            if (r > 0.42 && r < 0.75) { const b = Math.floor((Math.atan2(a[i + 2], a[i]) / (Math.PI * 2) + 1) * 16) % 16; bins[b] = Math.max(bins[b], y); }
+        }
+        const got = bins.filter(v => v > -9).sort((x, y) => x - y), rest = got.length ? Math.max(1.02, got[got.length >> 1]) : 1.02;
+        if (F.sit) g.position.y += (rest - 1.02) * R * F.sit;
+        // (what goes round the head grows as if the head were as big as the hair)
+        if (F.wrap) {
+            const [h, ring] = F.wrap, s = Math.min(F.max || 1.7, Math.max(1, F.top ? rest / 1.02 : (reach(h, 0.1) + 0.04) / ring));
+            g.scale.setScalar(s);
+            if (F.over) g.scale.y = Math.max(s, (topC + 0.06) / F.over);
+        }
+        if (!F.cover) return;
+        const [line, cy, rx, ry] = F.cover;
+        const s = Math.min(F.max || 1.4, Math.max(1, reach(line + 0.08, 0.08) / (rx * 0.97))), sv = 1 + (s - 1) * 0.4;
+        g.scale.set(s, sv, s);
+        const b = geo.clone(), p = b.attributes.position.array;
+        const k = Math.min(1, ((cy + ry * 0.8) * sv - line) / Math.max(0.01, top - line));
+        for (let i = 0; i < n; i += 3) {
+            const y = (p[i + 1] - off) / R;
+            if (y <= line) continue;
+            const w = Math.min(1, (y - line) / 0.12), ys = line + (y - line) * k;
+            const e = (ys - cy * sv) / (ry * sv), ra = rx * s * 0.9 * Math.sqrt(Math.max(0, 1 - e * e));
+            const r = Math.hypot(p[i], p[i + 2]) / R, f = r > ra && r > 1e-6 ? (r + (ra - r) * w) / r : 1;
+            p[i] *= f; p[i + 2] *= f; p[i + 1] = (y + (ys - y) * w) * R + off;
+        }
+        b.computeVertexNormals();
+        for (const e of list) if (e[0] === geo) e[0] = b;
+        d.geos.push(b);
     },
     /* a joint's parts as one geometry, each painted: its role's color times its greys; hair its color, fading to the
        dyed tips' down each lock (the kit keeps how far along in the blue) */

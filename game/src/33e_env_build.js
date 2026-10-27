@@ -37,7 +37,7 @@ const EnvBuild = {
         const part = (name) => P[name] || (P[name] = { p: [], n: [], uv: [], c: [], idx: [] });
         this.part = part;
         // the furniture made in Blender (bench, lamp, mailbox, fence, planter, pumpkins), gathered and drawn instanced
-        const placed = {}, has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
+        const placed = this.placed = {}, has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
         this.model = (n, x, y, z, rot, sc, sy, sz) => { if (!has(n)) return false; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y, z, rot || 0, sc || 1, sy, sz)); return true; };
         const mills = [];
         // (Basil's noodle cart is only out at night: its model is hidden by day)
@@ -111,7 +111,8 @@ const EnvBuild = {
         const sails = hub ? mills.map(M => M.clone().multiply(new THREE.Matrix4().makeTranslation(hub.x, hub.y, hub.z))) : [];
         if (sails.length) placed.windmill_sails = sails.map(M => M.clone());
         const inst = {};
-        for (const [n, list] of Object.entries(placed)) for (const m of (inst[n] = EnvModels.instances(group, n, list))) { m.userData.shared = true; meshes.push(m); }
+        // (a key with a color after a bar is a model with its petals painted: a wild flower's)
+        for (const [n, list] of Object.entries(placed)) { const [name, tint] = n.split('|'); for (const m of (inst[n] = EnvModels.instances(group, name, list, tint ? { tint: { top: tint } } : undefined))) { m.userData.shared = true; meshes.push(m); } }
         const spin = new THREE.Matrix4(), turned = new THREE.Matrix4();
         this.glass = mats.glass;
         const none = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -555,9 +556,16 @@ const EnvBuild = {
         const r = mulberry(hash32('bed' + e.x));
         for (let i = 0; i < 16; i++) { const fx = x - 0.75 + r() * 1.5, fz = z - 0.25 + r() * 0.42, c = ['#f04a6a', '#ffd34a', '#ffffff', '#ff7ab8', '#b07af0', '#ff8a3a'][r() * 6 | 0]; this.box('plain', fx - 0.08, y + 0.3, fz - 0.08, fx + 0.08, y + 0.42 + r() * 0.08, fz + 0.08, c); }
     },
-    /* a clump of flowers where a wild flower grows (the model's name when it is one) */
+    /* where a wild flower grows: one plant of its kind with its petals in its color (vegetation.py's flower_<kind>, the
+       key the model's name and its color: EnvItems.petals), or a clump of the kind (the key, when it is one) */
     flower(e) {
         const f = Env.tileSpot(e), r = mulberry(hash32('fl' + e.x + ',' + e.y)), kind = (e.id || '').split('_')[1] || '';
+        const col = typeof EnvItems !== 'undefined' && EnvItems.petals(e.id);
+        if (col && EnvModels.has('flower_' + kind)) {
+            const k = 'flower_' + kind + '|' + col;
+            (this.placed[k] = this.placed[k] || []).push(EnvModels.mat4(f.x + (r() - 0.5) * 0.12, f.y, f.z + (r() - 0.5) * 0.08, (r() - 0.5) * 0.9, 1.4));
+            return k;
+        }
         const n = { tulip: 'flowers_tulip', daisy: 'flowers_daisy', cosmos: 'flowers_cosmos', lily: 'flowers_lily' }[kind] || 'flowers_mixed';
         f.z += 0.2;     // (the clumps below are placed from the foot's old spot)
         if (this.model(n, f.x, f.y, f.z - 0.2, r() * Math.PI * 2)) return n;

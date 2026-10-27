@@ -370,6 +370,114 @@ def flower_clump(name, spec, lod=0):
     return o
 
 
+# ---------------------------------------------------------------- one flower plant per kind
+# (David, 27 October: the flowers bigger and much more flower-y, each kind easy to tell and its color easy to see, as
+# Animal Crossing's are: one plant, three big blooms of the one shape; the petals are their own part, flower_<kind>_top,
+# in white shading to grey at the heart, and the game paints them in the flower's color: EnvItems.tint, EnvBuild.flower)
+PLANTS = {
+    'tulip': dict(seed=81, blooms=[(-0.07, 0.02, 0.36), (0.07, -0.03, 0.43), (0.0, 0.07, 0.5)], leaf='strap', centre=None),
+    'daisy': dict(seed=83, blooms=[(-0.09, 0.0, 0.3), (0.08, -0.02, 0.36), (0.0, 0.08, 0.42)], leaf='round', centre='#e89a1a', petals=16),
+    'cosmos': dict(seed=87, blooms=[(-0.09, 0.02, 0.36), (0.08, -0.03, 0.42), (0.0, 0.08, 0.5)], leaf='fern', centre='#f0b820', petals=8),
+    'lily': dict(seed=89, blooms=[(-0.09, 0.0, 0.38), (0.09, -0.02, 0.44), (0.0, 0.08, 0.52)], leaf='strap', centre='#b0501a'),
+}
+
+
+def flower_plant(kind, lod=0):
+    """A flower plant: leaves at its foot, three stems each carrying a big bloom of its kind turned up and toward the
+    camera (south), so a tulip's cup, a daisy's many thin petals round a golden heart, a cosmos's eight broad notched ones
+    and a lily's six pointed trumpet petals all read from where the game looks. Two objects: the plant, and its petals."""
+    spec = PLANTS[kind]
+    rng = random.Random(spec['seed'])
+    name = 'flower_' + kind + ('_lod1' if lod else '')
+    bm, bp = bmesh.new(), bmesh.new()
+    col, colp = bm.verts.layers.float_color.new('Col'), bp.verts.layers.float_color.new('Col')
+    seg = (8, 5) if lod == 0 else (5, 3)
+    # the leaves: long straps (tulips, lilies), round ones (daisies) or feathery strips (cosmos), fanning out
+    nl = {'strap': 5, 'round': 7, 'fern': 9}[spec['leaf']]
+    for k in range(nl):
+        a = k / nl * math.tau + rng.uniform(-0.25, 0.25)
+        d = Vector((math.cos(a), math.sin(a), 0))
+        L, W, up = {'strap': (0.3, 0.07, 1.6), 'round': (0.13, 0.08, 0.5), 'fern': (0.2, 0.025, 0.9)}[spec['leaf']]
+        L *= rng.uniform(0.85, 1.1)
+        res = bmesh.ops.create_uvsphere(bm, u_segments=seg[0], v_segments=4 if lod == 0 else 3, radius=1)
+        dd = (d + Vector((0, 0, up))).normalized()
+        s = Vector((-math.sin(a), math.cos(a), 0))
+        for v in res['verts']:
+            p = v.co.copy()
+            u = (p.x + 1) / 2
+            w = W * math.sin(max(0.0, min(1.0, u)) * math.pi) ** (0.5 if spec['leaf'] == 'round' else 0.8)
+            # (a strap arches over: up, then out and down at its tip)
+            q = dd * (u * L) + s * (p.y * w) + Vector((0, 0, p.z * 0.006 - (0.35 if spec['leaf'] == 'strap' else 0.25) * L * u * u))
+            v.co = q
+            v[col] = mix(hex_rgb('#24501e'), hex_rgb('#62a83c'), 0.2 + 0.7 * u)
+    for i, (bx, by, h) in enumerate(spec['blooms']):
+        base = Vector((bx * 0.4, by * 0.4, 0))
+        top = Vector((bx, by, h))
+        # the stem, bowing a little
+        res = bmesh.ops.create_cone(bm, cap_ends=False, segments=6 if lod == 0 else 4, radius1=0.012, radius2=0.009, depth=1, matrix=Matrix.Translation((0, 0, 0.5)))
+        for v in res['verts']:
+            f = v.co.z
+            v.co = base.lerp(top, f) + Vector((v.co.x, v.co.y, math.sin(f * math.pi) * 0.0)) + Vector((0, -0.02 * math.sin(f * math.pi), 0))
+            v[col] = mix(hex_rgb('#2a5a22'), hex_rgb('#5a9a36'), f)
+        # the bloom faces up and toward the camera
+        face = Vector((bx * 1.2 + rng.uniform(-0.1, 0.1), (-0.3 if kind == 'tulip' else -0.75) + rng.uniform(-0.1, 0.1), 1)).normalized()
+        sx = face.cross(Vector((0, 0, 1)) if abs(face.z) < 0.99 else Vector((1, 0, 0))).normalized()
+        sy = face.cross(sx).normalized()
+        white, heart = hex_rgb('#ffffff'), hex_rgb('#c8c8c8')
+        if kind == 'tulip':
+            # a cup: three outer petals and three inner, spoon-shaped, standing round the stem's top
+            # (each petal's sides curl in toward the middle, its tip a little in too, so the six close into a cup)
+            for k in range(6):
+                an = k / 6 * math.tau
+                rad = sx * math.cos(an) + sy * math.sin(an)
+                d = (face + rad * (0.16 if k % 2 else 0.1)).normalized()
+                s2 = face.cross(rad).normalized()
+                n2 = -(d.cross(s2)).normalized()
+                if n2.dot(rad) > 0:
+                    n2 = -n2
+                petal(bp, colp, top + rad * (0.034 if k % 2 else 0.026) - face * 0.015, (d, s2, n2), 0.125 if k % 2 else 0.115, 0.075, '#ffffff', '#bcbcbc', tilt=-0.08, seg=seg)
+        elif kind == 'lily':
+            # a trumpet: six pointed petals flaring out from a throat, curling back at the tips
+            for k in range(6):
+                an = k / 6 * math.tau
+                rad = sx * math.cos(an) + sy * math.sin(an)
+                d = (face * 0.75 + rad).normalized()
+                s2 = face.cross(rad).normalized()
+                petal(bp, colp, top + face * 0.01, (d, s2, face), 0.15, 0.05, '#ffffff', '#c0c0c0', tilt=-0.35, seg=seg)
+            for k in range(5):
+                an = k / 5 * math.tau
+                tip = top + face * 0.07 + (sx * math.cos(an) + sy * math.sin(an)) * 0.03
+                res = bmesh.ops.create_icosphere(bm, subdivisions=1, radius=1, matrix=Matrix.Translation(tip) @ Matrix.Diagonal((0.012, 0.012, 0.012, 1)))
+                for v in res['verts']:
+                    v[col] = hex_rgb(spec['centre'])
+        else:
+            m = spec['petals'] if lod == 0 else min(spec['petals'], 10)
+            L, W = (0.1, 0.03) if kind == 'daisy' else (0.11, 0.07)
+            if lod and m < spec['petals']:
+                W *= spec['petals'] / m * 0.8
+            for k in range(m):
+                an = k / m * math.tau + rng.uniform(-0.04, 0.04)
+                rad = sx * math.cos(an) + sy * math.sin(an)
+                s2 = face.cross(rad).normalized()
+                petal(bp, colp, top + rad * 0.018, (rad, s2, face), L, W, '#ffffff', '#cfcfcf', tilt=-0.06 if kind == 'daisy' else 0.04, seg=seg)
+            # the heart: a dome (a daisy's big and golden)
+            r0 = 0.042 if kind == 'daisy' else 0.03
+            res = bmesh.ops.create_icosphere(bm, subdivisions=2 if lod == 0 else 1, radius=1, matrix=Matrix.Translation(top + face * 0.008) @ Matrix.Diagonal((r0, r0, r0 * 0.6, 1)))
+            for v in res['verts']:
+                v[col] = mix(hex_rgb(spec['centre']), hex_rgb('#7a4a10'), max(0.0, -v.co.z / (r0 * 0.6)) * 0.4)
+            # (and turned to face the bloom)
+            q = face.to_track_quat('Z', 'Y')
+            for v in res['verts']:
+                v.co = top + q @ ((v.co - top))
+    o = mesh_obj(name, bm)
+    shade_smooth(o)
+    o.data.materials.append(vcol_mat(name))
+    op = mesh_obj(name + '_top', bp)
+    shade_smooth(op)
+    op.data.materials.append(vcol_mat(name.replace('_lod1', '') + '_top'))
+    return [o, op]
+
+
 # ---------------------------------------------------------------- main
 def lineup(path, objs, dist=None, target_z=0.9, size=(1200, 600)):
     ground_plane()
@@ -421,6 +529,18 @@ if __name__ == '__main__':
         o1.hide_render = True
         shown['small'].append(o)
         print('built', name)
+    for kind in PLANTS:
+        name = 'flower_' + kind
+        if not want(name):
+            continue
+        objs = flower_plant(kind)
+        export(objs, name)
+        objs1 = flower_plant(kind, lod=1)
+        export(objs1, name + '_lod1')
+        for o in objs1:
+            o.hide_render = True
+        shown['small'].append(objs)
+        print('built', name)
     if prev:
         objs = shown['trees'] + shown['small']
         for o in bpy.context.scene.objects:
@@ -428,11 +548,14 @@ if __name__ == '__main__':
         lineup(os.path.join(prev, 'vegetation.png'), objs, target_z=1.2)
         if shown['small']:
             # the small things close up, in their own row
+            small = [o if isinstance(o, (list, tuple)) else [o] for o in shown['small']]
+            flat = [p for g in small for p in g]
             for o in bpy.context.scene.objects:
-                o.hide_render = o.name not in ('Cam', 'Sun', 'Ground') and o not in shown['small']
-            xs = [o.location.x for o in shown['small']]
+                o.hide_render = o.name not in ('Cam', 'Sun', 'Ground') and o not in flat
+            xs = [g[0].location.x for g in small]
             x0 = min(xs)
-            for i, o in enumerate(shown['small']):
-                o.location.x = x0 + i * 0.75
+            for i, g in enumerate(small):
+                for o in g:
+                    o.location.x = x0 + i * 0.75
             camera((x0 + (len(xs) - 1) * 0.375, 0, 0.3), dist=max(2.6, len(xs) * 0.62))
             render(os.path.join(prev, 'small.png'), size=(1200, 600), samples=64)

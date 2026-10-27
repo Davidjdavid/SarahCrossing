@@ -127,7 +127,7 @@ const EnvModels = {
         if (glass) this.glassMats.push(out);
         return out;
     },
-    glassMats: [],
+    glassMats: [], _tints: new Map(),
     // (fruit too: it hangs on a tree, and must fade with it, or it would hang in the air where a tree was)
     tall(name) { return /^(tree_|pine_|palm_|fruit_|bld_|house_|cottage|shop|windmill)/.test(name || ''); },
     /* a copy of a model's material in another color (a house painted in its own look); a plain clone would lose the
@@ -144,7 +144,15 @@ const EnvModels = {
         const M = this.models[name], out = [];
         if (!M || !matrices.length) return out;
         for (const p of M.parts) {
-            const mesh = new THREE.InstancedMesh(p.geometry, this.instMat(p.material), matrices.length);
+            // (a part shaded in greys for painting, *_top or *_trim, in o.tint's color: a flower's petals)
+            let mat = p.material;
+            const role = o.tint && /_(top|trim)$/.exec(mat.name || '');
+            if (role && o.tint[role[1]]) {
+                const k = mat.uuid + o.tint[role[1]];
+                if (!this._tints.has(k)) this._tints.set(k, this.tinted(mat, o.tint[role[1]]));
+                mat = this._tints.get(k);
+            }
+            const mesh = new THREE.InstancedMesh(p.geometry, this.instMat(mat), matrices.length);
             matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
             mesh.instanceMatrix.needsUpdate = true;
             mesh.castShadow = o.shadow !== false; mesh.receiveShadow = true;

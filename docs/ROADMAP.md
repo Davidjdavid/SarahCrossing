@@ -205,9 +205,9 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] The square's big tree stands in a raised bed of stones (grass, roots and little flowers inside; nobody walks on it)
 - [x] Order again on the laptop: anything Sarah has ever had, but quest things, keepsakes, prizes, tools and one-of-a-kind
   gifts
-- [ ] Flowers bigger and more flower-like: each kind easy to tell apart and its color easy to see
+- [x] Flowers bigger and more flower-like: each kind easy to tell apart and its color easy to see
 - [ ] A watering can: water flowers, and two watered flowers side by side may cross-breed a new one next to them
-- [ ] Hats sit on the hair: right now nearly every hat clips through most hairstyles (the crown sinks in, hair pokes
+- [x] Hats sit on the hair: right now nearly every hat clips through most hairstyles (the crown sinks in, hair pokes
   through the sun hat's brim)
 - [ ] A scrapbook for the camera: a photo says what's in it (a neighbor, an item, furniture, a building, a special or
   strange event, the weather...) in a little tag, and the scrapbook keeps each with a short bio. It counts what Sarah
