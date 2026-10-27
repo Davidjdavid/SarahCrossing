@@ -7,7 +7,7 @@
    as they are, like the game's other pictures (no color-space conversion), and colors kept in a mesh are turned back
    into the colors as painted. */
 const EnvModels = {
-    OUTDOOR: new Set(['furn_lunar_lantern', 'furn_red_lantern', 'furn_heart_lamp', 'furn_cafe_table']),
+    OUTDOOR: new Set(['furn_lunar_lantern', 'furn_red_lantern', 'furn_heart_lamp', 'furn_cafe_table', 'furn_easel']),
     models: {}, textures: {}, ready: false, failed: false, _p: null, done: 0, total: 1,
     phone() { try { return matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 600; } catch (e) { return false; } },
     /* the names to fetch: each model once, its phone version on phones */
@@ -28,7 +28,8 @@ const EnvModels = {
         }, undefined, bad)));
         // (the rooms' furniture and the things lying about come after: the island never waits for them, and each shows its
         // picture till it's in)
-        // (but the lanterns the holidays put up on the island come with the island: 54_events.js decorateIsland)
+        // (but the lanterns the holidays put up on the island come with the island: 54_events.js decorateIsland; and the
+        // easel a neighbor paints at, 33kd_doll_idle.js)
         const after = n => /^(furn_|item_)/.test(n) && !this.OUTDOOR.has(n), first = names.filter(n => !after(n));
         const later = names.filter(n => /^item_/.test(n)).concat(names.filter(n => /^furn_/.test(n) && !this.OUTDOOR.has(n)));   // (the small things first: they lie about outdoors)
         this.total = first.length + Object.keys(window.TEXTURES || {}).length;
@@ -129,7 +130,7 @@ const EnvModels = {
     },
     glassMats: [], _tints: new Map(),
     // (fruit too: it hangs on a tree, and must fade with it, or it would hang in the air where a tree was)
-    tall(name) { return /^(tree_|pine_|palm_|fruit_|bld_|house_|cottage|shop|windmill)/.test(name || ''); },
+    tall(name) { return /^(tree_|pine_|palm_|fruit_|bld_|house_|cottage|shop|windmill|grand_lights)/.test(name || ''); },
     /* a copy of a model's material in another color (a house painted in its own look); a plain clone would lose the
        view's patch (the bend, depth of field, shadows) */
     tinted(m, color) {

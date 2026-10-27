@@ -83,6 +83,7 @@ const EnvDolls = {
             if (!d) { d = spec.folk ? this.makeFolk(spec) : this.make(spec); d.key = key; this.dolls.set(e, d); this.group.add(d.root); }
             if (d.folk) { if (d.v2) this.poseFolk2(d, e); else this.poseFolk(d, e); }
             else if (d.v2) this.pose2(d, e); else this.pose(d, e);
+            if (d.v2) this.idleHold(d, e);
             this.drawn.add(e);
         }
     },
@@ -275,7 +276,7 @@ const EnvDolls = {
         if (table) { y = gy + 0.44; z = this.tableZ(e); }
         else if (seat) { y = gy + 0.36; z += 0.1; }
         else if (lounge) y = gy - 0.02;
-        else if (e.def && e.def.spring) { const w = Env.waterH(e.x, e.y); y = (w != null ? w : gy) - 0.32; }
+        else if (e.def && inSpring(e)) { const w = Env.waterH(e.x, e.y); y = (w != null ? w : gy) - 0.32; }
         else if (e.kind === 'ghost') y = gy + 0.18 + Math.sin(G.t / 13) * 0.06;
         root.position.set(e.x / TILE, y, z);
         root.rotation.y = d.ang;

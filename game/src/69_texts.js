@@ -58,7 +58,7 @@ function saidTime(id, dh, tag) {
 /* where they are now, and what's next */
 function whereabouts(id) {
     const n = NPCs.get(id), d = NPC_DEFS[id], p = Plans.get(id), dh = dayHour();
-    const out = { asleep: !!(n && n.sleeping), away: !!p.away };
+    const out = { asleep: !!(n && n.sleeping), away: !!p.away || awayNow(id) };
     const cur = planNow(id, dh);
     out.now = cur ? placeName(id, cur.spot) : null;
     out.walking = !!(n && !n.sleeping && n.path && n.travel);

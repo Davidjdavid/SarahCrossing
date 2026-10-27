@@ -28,6 +28,7 @@ async function talkTo(n) {
     if (IslandGames.has(n)) { IslandGames.poke(n); return; }
     G.busy++;
     if (n.chat) Chats.end(n.chat);
+    n.idleWas = n.idle ? n.idle.kind : null;          // (caught in the middle of something: 33kd_doll_idle.js)
     n.talking = true;
     const p = G.player;
     // (from wherever Sarah is: nobody steps round anyone first; the two of them turn to each other, the food folks too,
@@ -131,6 +132,12 @@ async function neighborTalk(n) {
     } else if (special && R() < 0.4 && !resting) await UI.say(id, special, { keep: true });
     // somebody redid their house
     if (r.houseNews) await houseReaction(n);
+    // going on vacation soon, or just back (6zj_vacations.js)
+    const vac = vacationLine(id);
+    if (vac && r.vacDay !== day) { r.vacDay = day; await UI.say(id, voiced(id, vac), { keep: true }); }
+    // in the middle of something of their own: a book, an ice cream, the stars
+    if (n.idleWas && IDLE_HELLO[n.idleWas]) await UI.say(id, voiced(id, rpick(IDLE_HELLO[n.idleWas])), { keep: true });
+    n.idleWas = null;
     // photo at five hearts
     if (hearts(id) >= 5 && !r.photo) {
         r.photo = true;
@@ -157,6 +164,8 @@ async function neighborTalk(n) {
         if (!talkResting(r)) add('Talk', async () => { await justTalk(n, () => topicLine(n)); return true; });
         if (r.giftDay !== day) add('Here, a gift', async () => { await giftFlow(n); return !giftTaken(r); });
         if (r.hugDay !== day) add('Hug', async () => { await hugFlow(n); return true; });
+        // a good friend takes a new catchphrase (6zk_catchphrases.js)
+        if (hearts(id) >= 4 && r.catchDay !== day && CATCH[id]) add('New catchphrase?', async () => { await catchFlow(n); return true; });
         for (const o of Requests.options(n)) add(o.label, o.fn);
         for (const o of Quests.options(n)) add(o.label, o.fn);
         for (const o of civicOptions(n)) add(o.label, o.fn);

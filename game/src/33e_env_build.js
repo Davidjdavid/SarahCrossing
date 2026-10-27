@@ -12,7 +12,7 @@ const EnvBuild = {
     PROP_MODELS: {
         fountain: ['fountain', 0.8, 0.55], fountain_grand: ['fountain_grand', 1, 1.5], drinkfountain: ['drinkfountain', 1, 0.45], board: ['board', 1, 0.4], plaque: ['plaque', 1, 0.45],
         trashcan: ['trashcan', 1, 0.45], statue_david: ['statue_david', 0.85, 1.0], sign_trail: ['signpost_trail', 1, 0.45], sign_farm: ['signpost_farm', 1, 0.45],
-        sign_camp: ['signpost_camp', 1, 0.45], sign_bonfire: ['signpost_bonfire', 1, 0.45], sign_club: ['signpost_club', 1, 0.45], sign_island: ['signboard', 1, 0.45],
+        sign_camp: ['signpost_camp', 1, 0.45], sign_bonfire: ['signpost_bonfire', 1, 0.45], sign_club: ['signpost_club', 1, 0.45], sign_island: ['signboard', 1, 0.45], sign_land: ['sign_forsale', 1, 0.45], sign_lot: ['sign_comingsoon', 1, 0.45],
         windmill: ['windmill', 1, 1.2], well: ['well', 1, 0.5], scarecrow: ['scarecrow', 1, 0.45], hay: ['hay', 1, 0.45], crate: ['crate', 1, 0.45],
         wheelbarrow: ['wheelbarrow', 1, 0.5], trough: ['trough', 1.3, 0.45], birdhouse: ['birdhouse', 1, 0.45], flamingo: ['flamingo', 1, 0.45],
         log: ['log', 1.4, 0.45], campfire: ['campfire', 1, 0.45], bonfire: ['bonfire', 1, 0.5], picnic: ['picnic', 1.25, 0.6], telescope: ['telescope', 1, 0.45],
@@ -55,8 +55,8 @@ const EnvBuild = {
                 // the island's other buildings, each its own model
                 else if (this.BUILDINGS[e.id] && has('bld_' + e.id)) { const A = this.at(e); for (const m of EnvModels.place(group, 'bld_' + e.id, EnvModels.mat4(A.cx, A.y, A.z1 - this.BUILDINGS[e.id] - 0.05))) m.userData.shared = true; }
                 // the neighbors' houses from the kit of parts, painted from each house's look
-                else if (/^h_/.test(e.id || '') && this.house(group, e, houseLook(e.id))) { /* built */ }
-                else if (e.id === 'home' || /^h_/.test(e.id || '')) this.cottage(e, houseLook(e.id)); else this.shop(e);
+                else if (/^h_/.test(e.id || '') && this.house(group, e, shownLook(e.id))) { /* built */ }
+                else if (e.id === 'home' || /^h_/.test(e.id || '')) this.cottage(e, shownLook(e.id)); else this.shop(e);
             }
             else if (this.propModel(e)) {
                 const [n, sc, back] = this.propModel(e), f = this.foot(e);

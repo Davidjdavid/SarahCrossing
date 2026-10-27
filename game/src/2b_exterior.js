@@ -104,6 +104,7 @@ const HOUSE_BASE = {
     h_ginger: { wall: '#b8733d', roof: '#7a4422', trim: '#ffffff', door: '#e0405a', sig: 'ginger' },
     h_brulee: { wall: '#f7e7c4', roof: '#c98a3a', trim: '#8a5a2b', door: '#6b3f2a', sig: 'brulee' },
     h_mac: { wall: '#ffe08a', roof: '#3f6fb8', trim: '#ffffff', door: '#e0405a', sig: 'mac' },
+    h_fortune: { wall: '#f4d9a0', roof: '#c8505a', trim: '#fff4dc', door: '#d49a3a', boxes: 1 },
 };
 const HOUSE_IDS = Object.keys(HOUSE_BASE);
 /* the things Ginger can change */
@@ -334,10 +335,13 @@ const HOUSE_SIG = {
 
 /* ---------------------------------------------------------------- the houses on the island */
 function houseCustom(id) { return id === 'home' || !!(exteriors()[id] && Object.keys(exteriors()[id]).length); }
+/* what the island shows of a house: its look, with a wreath on the door while the Winter Lights are up (never saved) */
+function holidayWreath() { return typeof G !== 'undefined' && !!G.events && (G.events.has('lights') || G.events.has('winterfest')); }
+function shownLook(id) { const L = houseLook(id); if (holidayWreath()) L.wreath = 1; return L; }
 function exteriorFrame(id) {
     const b = W0.buildings[id];
     if (!houseCustom(id)) return b.sprite;
-    const L = houseLook(id), key = JSON.stringify(L), name = 'hx_' + id, d = Assets.dyn[name];
+    const L = shownLook(id), key = JSON.stringify(L), name = 'hx_' + id, d = Assets.dyn[name];
     if (!d || d.key !== key) {
         const s = drawHouse(L);
         Assets.dyn[name] = { c: s.canvas(), w: s.w, h: s.h, ax: Math.floor(s.w / 2), ay: s.h - 3, key };

@@ -68,6 +68,10 @@ const HOUSE_LAYOUT = {
         ['framed_poem', 1, 'wall'], ['window_wall', 3, 'wall'], ['framed_poem', 5, 'wall'],
         ['study_desk', 0, 0], ['typewriter', 0, 0], ['sonnet_stack', 1, 0], ['chair_wood', 0, 1], ['shelf_book', 5, 0], ['bed_simple', 5, 2],
         ['beanbag', 0, 3], ['paper_pile', 2, 3], ['paper_pile', 1, 1], ['lamp_floor', 6, 4]] },
+    fortune: { wall: 'wall_cream', floor: 'floor_wood', items: [
+        ['window_wall', 1, 'wall'], ['firework_poster', 3, 'wall'], ['clock_wall', 5, 'wall'],
+        ['dresser', 0, 0], ['cookie_jar', 0, 0], ['lucky_cat', 1, 0], ['bed_simple', 5, 0], ['table_wood', 2, 1], ['chair_wood', 2, 2],
+        ['rug_round', 0, 2], ['plant_monstera', 0, 4], ['shelf_book', 4, 4], ['lamp_floor', 6, 4]] },
     ginger: { wall: 'wall_workshop', floor: 'floor_wood', items: [
         ['pegboard', 0, 'wall'], ['window_wall', 3, 'wall'], ['swatch_board', 4, 'wall'],
         ['workbench', 0, 0], ['toolbox', 0, 0], ['house_model', 1, 0], ['sawhorse', 3, 0], ['bed_simple', 5, 0], ['rug_round', 2, 1],
@@ -299,6 +303,9 @@ const HOUSE_HELLO = {
 async function visitHouse(id) {
     const R = ROOMS[id], owner = R.owner, n = NPCs.get(owner);
     Sfx.play('knock');
+    // (off on vacation: a note on the door, 6zj_vacations.js)
+    const vac = awayNow(owner) && vacationOf(owner, Clock.dayNum());
+    if (vac) { await UI.say(null, `There's a note on the door: "Gone to ${vac.place}! Back ${vac.back - Clock.dayNum() <= 0 ? 'this afternoon' : vac.back - Clock.dayNum() === 1 ? 'tomorrow' : 'in ' + (vac.back - Clock.dayNum()) + ' days'}. Water my plants if you want. (You don't have to.) - ${NPC_DEFS[owner].name}"`); return; }
     if (!n || n.sleeping) {
         await UI.say(null, `Knock knock... ${NPC_DEFS[owner].name} is asleep. It's ${Clock.fmt().s}. Even on this island, that's bedtime.`);
         return;
@@ -383,7 +390,8 @@ async function roomUse(ent) {
 }
 /* nobody at the counter (they're on a break, or off living their life): the place runs on the honor system */
 const HONOR = {
-    shop: ['Fortune stepped out. A sign on the register says: "HONOR SYSTEM! Leave the sand dollars in the cookie jar. Take a fortune if you like. - F"', () => honorShop()],
+    shop: [() => roomOpen('shop') ? 'Fortune stepped out. A sign on the register says: "HONOR SYSTEM! Leave the sand dollars in the cookie jar. Take a fortune if you like. - F"'
+        : 'Fortune has gone home for the night. A sign on the register says: "OPEN ALL NIGHT ON THE HONOR SYSTEM! Sand dollars in the cookie jar, please. Sweet dreams. - F"', () => honorShop()],
     boutique: ['A little jar says: "Honor system, darling." A mannequin in sunglasses is watching.', () => shopClothes(false)],
     builder: ['Ginger is out on a job. A clipboard on the workbench says: "HONOR SYSTEM! Leave your order and the payment. The crew builds overnight. - G"', () => builderMenu()],
     museum: ['Brulee is on a break. A card on the desk says: "Honor system. Donations in the box, s\'il vous pla\u00eet. Do NOT tap the art. - B"', () => museumMenu()],
@@ -394,7 +402,7 @@ const HONOR = {
 async function staffAway() {
     const h = HONOR[G.area.id];
     if (!h) { await UI.say(null, 'Nobody is at the counter right now. Everything here runs on the honor system.'); return; }
-    await UI.say(null, h[0]);
+    await UI.say(null, typeof h[0] === 'function' ? h[0]() : h[0]);
     UI.hideDialog();
     return h[1]();
 }
@@ -675,7 +683,7 @@ async function roomChecks() {
         }
         return;
     }
-    if (roomHours(a.id) && !roomOpen(a.id)) {
+    if (roomHours(a.id) && !roomOpen(a.id) && a.id !== 'shop') {
         G.busy++;
         const n = R.staff && NPCs.get(R.staff);
         const sp = n && n.area === a.id ? R.staff : null;

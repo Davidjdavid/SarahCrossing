@@ -34,7 +34,7 @@ const HOLIDAYS = [
     { id: 'surfday', name: 'Surf Day', m: 6, d: 20, npc: 'kai', note: "Kai's day. Surf's up. (Kai does not surf. Kai is a bowl.)" },
     { id: 'solstice', name: 'Longest Day', m: 6, d: 21, icon: 'shell_star', note: 'The sun stays up late. So does everyone.',
         hello: 'Happy Longest Day! The sun is staying up late. Finally, it gets us.' },
-    { id: 'july4', name: 'Fourth of July', m: 7, d: 4, icon: 'f_firework_poster', deco: 'bunting', note: 'Fireworks over the beach after 9 PM.' },
+    { id: 'july4', name: 'Fourth of July', m: 7, d: 4, icon: 'f_firework_poster', deco: 'bunting_july', note: 'Fireworks over the beach after 9 PM.' },
     { id: 'chocday', name: 'Chocolate Day', m: 7, d: 7, npc: 'coco', note: "Coco's day. Expect gossip. Expect chocolate." },
     { id: 'macday', name: 'Mac and Cheese Day', m: 7, d: 14, npc: 'mac', note: "Mac's day! Mac and cheese is free at Mac's." },
     { id: 'cheesecakeday', name: 'Cheesecake Day', m: 7, d: 30, npc: 'cece', note: "Cece's day. She baked. She's apologizing for it." },
@@ -168,6 +168,7 @@ function dayEvents(y, m, d) {
     const dr = typeof Drama !== 'undefined' && S.drama ? Drama.cur() : null;
     if (dr && dr.pday === dn && (dr.tpl === 'party' || dr.tpl === 'lostinvite') && ['announce', 'party', 'fixed', 'partyfixed'].includes(dr.state))
         out.push({ icon: 'f_red_lantern', name: Drama.fill(dr, "{A}'s party"), note: Drama.fill(dr, '8 PM at the {place}. Everyone is invited.') });
+    out.push(...vacationEvents(dn));
     return out;
 }
 function boardTodayLines() {
@@ -176,6 +177,7 @@ function boardTodayLines() {
     lines.push(`Today is ${Clock.dateLine()}. It will be ${w}.`);
     lines.push(`Fortune's hot item: ${itemName(st.hot)}. She pays double for it.`);
     for (const vis of visitorsToday()) lines.push(`Boat schedule: ${visitNote(vis)}`);
+    for (const v of vacationEvents(Clock.dayNum())) lines.push(`${v.name}. ${v.note}`);
     for (const h of holidaysToday()) lines.push(`Today: ${h.name}! ${h.note || ''}`);
     const m = typeof todaysMenu === 'function' ? todaysMenu() : null;
     if (m) lines.push(`Mac's special: ${itemName(m.special)}. Cece's dessert: ${itemName(m.dessert).toLowerCase()}.`);

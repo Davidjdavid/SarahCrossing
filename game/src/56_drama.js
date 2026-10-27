@@ -427,21 +427,23 @@ function voiced(id, text, gossip) {
     const r = mulberry(hash32(id + ':' + text.length + ':' + Clock.dayNum()));
     const roll = r();
     if (G.events && G.events.has('pirateday') && r() < 0.6) text = rpick(['Arr! ', 'Ahoy! ', 'Yarr. ']) + text + (r() < 0.4 ? ' Matey.' : '');
+    // (each neighbor's catchphrase at the end of some lines, catchTail: their own, or one Sarah gave them, 6zk_catchphrases.js)
     switch (id) {
-        case 'sully': text = bostonize(text); if (roll < 0.3) text = 'Kid. ' + text; break;
-        case 'coco': if (roll < 0.35) text = 'Okay, so. ' + text; else if (gossip && roll < 0.65) text += ' I would NEVER repeat this. (I have repeated it six times.)'; break;
-        case 'kai': if (roll < 0.4) text += ' Bro.'; else if (roll < 0.6) text = text.replace(/very /g, 'super '); break;
-        case 'chili': if (roll < 0.3) text += ' Spicy.'; break;
-        case 'cece': if (roll < 0.3) text = 'Sorry! ' + text; else if (roll < 0.55) text += ' Sorry!'; break;
-        case 'clementine': if (roll < 0.4) text = 'Darling. ' + text; break;
-        case 'cuke': text = text.replace(/\.(\s|$)/g, '!$1'); break;
-        case 'maki': if (roll < 0.3) text = 'To be precise: ' + text; break;
-        case 'basil': if (roll < 0.25) text += ' Anyway. Noodles later?'; break;
-        case 'wonton': if (roll < 0.2) text += ' (Not soup.)'; break;
-        case 'david': if (roll < 0.25) text = 'Honey. ' + text; else if (roll < 0.45) text += ' Iconic.'; break;
-        case 'ginger': if (roll < 0.3) text += ' Sturdy.'; else if (roll < 0.45) text = 'Okay, structurally? ' + text; break;
-        case 'brulee': if (roll < 0.3) text = 'Ah. ' + text; else if (roll < 0.5) text += ' Magnifique.'; break;
-        case 'mac': if (roll < 0.3) text += ' Anyway, are you hungry?'; break;
+        case 'sully': text = bostonize(text); if (roll < 0.3) text = 'Kid. ' + text; else if (roll < 0.45) text += catchTail(id); break;
+        case 'coco': if (roll < 0.35) text = 'Okay, so. ' + text; else if (gossip && roll < 0.65) text += ' I would NEVER repeat this. (I have repeated it six times.)'; else if (roll < 0.5) text += catchTail(id); break;
+        case 'kai': if (roll < 0.4) text += catchTail(id); else if (roll < 0.6) text = text.replace(/very /g, 'super '); break;
+        case 'chili': if (roll < 0.3) text += catchTail(id); break;
+        case 'cece': if (roll < 0.3) text = 'Sorry! ' + text; else if (roll < 0.55) text += catchTail(id); break;
+        case 'clementine': if (roll < 0.4) text = 'Darling. ' + text; else if (roll < 0.55) text += catchTail(id); break;
+        case 'cuke': text = text.replace(/\.(\s|$)/g, '!$1'); if (roll < 0.25) text += catchTail(id); break;
+        case 'maki': if (roll < 0.3) text = 'To be precise: ' + text; else if (roll < 0.45) text += catchTail(id); break;
+        case 'basil': if (roll < 0.25) text += ' Anyway. Noodles later?'; else if (roll < 0.4) text += catchTail(id); break;
+        case 'wonton': if (roll < 0.2) text += catchTail(id); break;
+        case 'david': if (roll < 0.25) text = 'Honey. ' + text; else if (roll < 0.45) text += catchTail(id); break;
+        case 'ginger': if (roll < 0.3) text += catchTail(id); else if (roll < 0.45) text = 'Okay, structurally? ' + text; break;
+        case 'brulee': if (roll < 0.3) text = 'Ah. ' + text; else if (roll < 0.5) text += catchTail(id); break;
+        case 'mac': if (roll < 0.3) text += ' Anyway, are you hungry?'; else if (roll < 0.42) text += catchTail(id); break;
+        case 'joe': if (roll < 0.12) text += catchTail(id); break;
     }
     return text;
 }
@@ -510,10 +512,12 @@ const Drama = {
     begin(r, force) {
         const st = this.st();
         const met = id => S.npcs[id] && S.npcs[id].met;
-        const food = DRAMA_FOOD.filter(met), humans = DRAMA_HUMAN.filter(met);
+        // (nobody about to go on vacation: 6zj_vacations.js)
+        const here = id => force || !vacationSoon(id);
+        const food = DRAMA_FOOD.filter(met).filter(here), humans = DRAMA_HUMAN.filter(met);
         if (food.length + humans.length < 4 && !force) return null;
         const ids = Object.keys(DRAMAS).filter(k => k !== st.lastTpl || force);
-        const couples = st.couples.filter(p => DRAMA_FOOD.includes(p[0]) && DRAMA_FOOD.includes(p[1]));
+        const couples = st.couples.filter(p => DRAMA_FOOD.includes(p[0]) && DRAMA_FOOD.includes(p[1]) && here(p[0]) && here(p[1]));
         const pick = force ? force.tpl : weighted(ids.filter(k => !DRAMAS[k].needsCouple || couples.length).map(k => [k, DRAMAS[k].weight]), r);
         const T = DRAMAS[pick];
         const cast = {};

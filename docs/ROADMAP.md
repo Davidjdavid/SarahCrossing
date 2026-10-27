@@ -146,14 +146,15 @@ Status: [x] done, [~] in progress, [ ] not started.
   shoulders with straps, the overalls' bib, a hoodie's hood and pocket, buttons, belts, an obi, a cardigan's front, a
   collar, a cape); Fortune's fold and David's beard fuller; and the new characters on Sarah's island on beta. Still to
   come: the props and furniture in the new style, acting for the other games (docs/STYLE.md)
-- [ ] Graphics settings (David, 26 October, for later): a quality setting and a draw distance, each with its own default
-  for laptops and phones, so the look can go up if the server or the devices get faster
+- [x] Graphics settings (David, 26 October, for later): a quality setting and a draw distance, each with its own default
+  for laptops and phones, so the look can go up if the server or the devices get faster (Settings: Picture quality and
+  Draw distance, each Auto, which is the device's own, or picked; kept per device)
 
 ## Friendship, deeper (David, 27 October: for a later addition)
 - [ ] Nicknames: once a neighbor is a good enough friend they ask if they can call Sarah something (their own idea, or
   she suggests one), and use it from then on; she can ask them to change it
-- [ ] Catchphrases: every neighbor has one, said at the end of lines; after raising friendship Sarah can give them a new
-  one (and they react to it in their own way)
+- [x] Catchphrases: every neighbor has one, said at the end of lines; after raising friendship Sarah can give them a new
+  one (and they react to it in their own way) (at four hearts, from the talk menu; or at the Town Hall's Residents)
 - [ ] A more in-depth friendship system: more than hearts going up. Friendship that grows from many kinds of time spent
   together (talking, gifts they actually like, favors, games together, visits, outings), and fades a little if she's
   away a long time; milestones that unlock things (a photo, a nickname, sharing something personal, a gift for her
@@ -167,19 +168,23 @@ Status: [x] done, [~] in progress, [ ] not started.
   Sarah could follow one all day and watch them do it. Worked out from the day and the hour, so wherever she looks in,
   everyone is where their day has taken them. It only has to look real (no crops or stock actually tracked): the farmers
   tend the fields, pack the produce and deliver it to the store each morning, and neighbors go and buy it
-- [ ] Vacations, now and then (rare, and marked on the calendar): a neighbor packs their bags, walks to the pier with
+- [x] Vacations, now and then (rare, and marked on the calendar): a neighbor packs their bags, walks to the pier with
   friends seeing them off, and a boat comes for them; friends get a postcard, good friends a souvenir in the mail, and they
-  come home after a few days
-- [ ] Much more said overhead: lines of each neighbor's own and plenty shared between them, so hearing the same thing twice
-  is rare
+  come home after a few days (each neighbor about once every two and a half months, to a place of their own: Sully to
+  Boston, Brulee to Paris, Kai to Surf Point...; a note on their door while they're away)
+- [x] Much more said overhead: lines of each neighbor's own and plenty shared between them, so hearing the same thing twice
+  is rare (about a hundred conversations anyone can have, four to six of each neighbor's own, more for rain, snow,
+  mornings, evenings, nights and each season; the last forty heard wait their turn)
 - [ ] IslandMart's stock changes every week: so many of each kind (chairs, wall pieces, plants...), picked at random so a
   week is never all chairs, so Sarah can't buy everything at the start. Many more pieces too: every piece of furniture in
   four colors (the model's parts painted differently), named like "Large couch (pink)"
 - [ ] The achievements that unlock outfits, songs, recipes and the like much harder and spread out over a long time
 - [x] Neighbors turn round to face Sarah when she talks to them
-- [ ] Lots of things they do when they're not busy, each its own animation: looking at the stars, eating a snack, sitting
-  on the ground, on their phone, reading a book, painting, and more, so they feel alive
-- [ ] Neighbors stopping close together to chat, one talking and the other listening, now and then nodding while
+- [x] Lots of things they do when they're not busy, each its own animation: looking at the stars, eating a snack, sitting
+  on the ground, on their phone, reading a book, painting, and more, so they feel alive (in the new look: the stars at
+  night, an ice cream, sitting on the grass, the phone, a book, painting at an easel, a mug of cocoa, each with the thing
+  in hand; each neighbor has a favorite)
+- [x] Neighbors stopping close together to chat, one talking and the other listening, now and then nodding while
   looking at whoever's talking
 - [ ] Songs and poems that rotate, so there's something new to check each day; many more songs; and a way to upload a
   song and have a dance made for it
@@ -243,16 +248,21 @@ Status: [x] done, [~] in progress, [ ] not started.
   of eight beds by the farm that anyone can plant, where a grown crop turns up in none, one or two empty beds each
   morning; fruit trees round the farm
 - [ ] Music for each hour of the day, as Animal Crossing has (David will bring the tracks)
-- [~] Holiday decorations that fit the day: bigger jack-o'-lanterns, and decorations round the square and on the shops and
+- [x] Holiday decorations that fit the day: bigger jack-o'-lanterns, and decorations round the square and on the shops and
   houses for the big holidays, seasons and events, up for longer and more elaborate the more the day matters (Spooky
   Season done: carved jack-o'-lanterns that glow at every shop and house, hay bales of pumpkins at the square's corners,
-  orange and purple bunting, and on Halloween one by every lamp post; the winter holidays next)
-- [ ] Fortune's shop moves onto the shopping street, and Fortune gets a house of their own; Sarah can shop there when it's
-  closed or Fortune isn't working, on the honor system, as at the other shops
-- [ ] An empty lot on the shopping street, to even out its places: a sign saying it's set aside for a new business, where
-  one of the neighbors still to come will open a coffee shop
-- [ ] Two "residential land for sale" signs somewhere on the island, with paths out to them: where the new neighbors
-  will live
+  orange and purple bunting, and on Halloween one by every lamp post. The Winter Lights: the grand tree strung with lights
+  and a star, a wreath on every door, red lanterns at every shop, red and green bunting, and for the Winter Holiday presents
+  under the tree; snowmen all winter; lanterns at every shop for Lunar New Year, heart lamps and hearts for Valentine's;
+  hay bales of pumpkins and corn for the Harvest Festival and Feast Day; red, white and blue for the Fourth of July)
+- [x] Fortune's shop moves onto the shopping street, and Fortune gets a house of their own; Sarah can shop there when it's
+  closed or Fortune isn't working, on the honor system, as at the other shops (the shop at Market Lane's east end, Fortune's
+  house just west of the square, a little garden where the shop stood; open all night on the honor system)
+- [x] An empty lot on the shopping street, to even out its places: a sign saying it's set aside for a new business, where
+  one of the neighbors still to come will open a coffee shop (the lot at the alley's east end: a COMING SOON board with a
+  coffee cup)
+- [x] Two "residential land for sale" signs somewhere on the island, with paths out to them: where the new neighbors
+  will live (two plots in the neighborhood, west and north-west, kept empty, each with a FOR SALE sign)
 - [ ] The cliff edges, the island's sides and some of the sea look blocky. Once everything is on the grid, draw the tiles
   rounded like a tile sheet: the cliff sides are tiles nobody walks on, their 3D pieces with a little ground and
   see-through edges
@@ -311,7 +321,7 @@ Office's and the Bank's keepers are still to be picked.
   records (biggest fish, best day, longest friendship), town achievements with commemorative rewards
 - [x] Rename landmarks (beaches, mountains, forests...)
 - [~] Residents: customize catchphrases, reset or change clothes and accessories, adjust schedules (when they wake,
-  go home, where they go) (hours and what they wear today work; catchphrases come with the friendship update)
+  go home, where they go) (hours, what they wear today and catchphrases work; where they go is still to come)
 - [x] Missed holidays: if Sarah didn't play on a major holiday (the Egg Hunt, say), the Town Hall lets her hold it the
   next day she plays, for up to a week after (so it never lands on another holiday: no Easter at Christmas)
 - [x] Town anniversary: a monthly island day

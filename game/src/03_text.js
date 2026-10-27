@@ -314,7 +314,7 @@ const TALK = {
     },
     ginger: {
         intro: ["Hiya! Ginger. Gingerbread. I build things. Houses, mostly. Also porches. I love a porch.",
-            "My workshop's in town, up past the shop. Come by if you want your place bigger, a new roof, a mailbox. I have opinions about mailboxes."],
+            "My workshop's on Market Lane, right next to Fortune's shop. Come by if you want your place bigger, a new roof, a mailbox. I have opinions about mailboxes."],
         chat: [
             "Measure twice, cut once. Frost twice, eat once. That's the gingerbread way.",
             "I built my own house. Out of gingerbread. People ask if that's weird. It's a little weird.",

@@ -123,12 +123,94 @@ const CHAT_LINES = [
     ["I'm learning to paint.", 'What are you painting?', 'The goat.', 'Everyone paints the goat.'],
     ['Have you tried the farm veggies?', "The cabbage looked at me funny.", "That's just how cabbages look."],
     ['I climbed the mountain!', 'How was the view?', 'Tall.'],
+    ['I saw a dolphin from the pier!', 'Did it wave?', 'It did a flip.', "That's basically a wave."],
+    ['Do you think the lighthouse is really haunted?', 'I think the ghost is just lonely.', "Let's bring it snacks."],
+    ["I've been practicing my karaoke.", 'Which song?', "All of them. At once.", "Wasabi's going to love that."],
+    ['I planted a sapling today.', 'What kind?', 'The tree kind.', 'Good choice.'],
+    ['Have you tried the hot spring?', "Wonton's always in it.", "He says it's NOT soup.", "It's a little bit soup."],
+    ['I got a letter in the mail!', 'From who?', 'Me. I mailed it to myself.', 'Did you like it?', 'Very much.'],
+    ['Is it just me, or is the grass greener today?', "Ginger's been out with a watering can.", 'Of course she has.'],
+    ['I lost a sock.', "Check Coco's house.", 'Why would Coco have it?', "Coco has everything. Eventually."],
+    ['I tried meditating.', 'How did it go?', 'I thought about noodles the whole time.', "That's meditating."],
+    ['Do you ever wonder what the goat thinks about?', 'Grass.', 'Just grass?', 'Grass and secrets.'],
+    ["I finished my puzzle!", 'How many pieces?', 'Twelve.', 'Impressive.'],
+    ["The bakery smells amazing today.", "Waffle's trying a new recipe.", 'Is it waffles?', "It's always waffles."],
+    ['I found a shell shaped like a heart.', 'Who are you giving it to?', 'Myself. Self-love.'],
+    ["Have you seen the new flowers?", 'The purple ones?', "They're new! Somebody's been watering.", 'Mysterious.'],
+    ["I'm thinking of redecorating.", "Ginger's free on Tuesday.", "Ginger's free every day. She just shows up."],
+    ['What would you do with a million sand dollars?', 'Buy one really nice chair.', 'Just one?', 'A REALLY nice one.'],
+    ["I wrote my name in the sand.", 'And then?', 'The sea read it.', 'Beautiful.'],
+    ['Did you hear the owl last night?', 'Hoo?', '...The owl.', 'I know. I was doing the owl.'],
+    ["I'm going to the arcade later.", "Chili's prize counter?", "I've got eleven tickets.", "That's a pencil. A nice pencil."],
+    ['My plant grew a new leaf!', 'Congratulations!', "I'm so proud of it.", 'You should be.'],
+    ['Do you think Sarah likes it here?', 'She waters our flowers.', "That's a yes."],
+    ['I had pancakes for breakfast.', 'And lunch?', 'Also pancakes.', 'Living the dream.'],
+    ["I can't decide what to wear tomorrow.", 'The orange one.', "Clementine said that too.", 'Clementine is always right.'],
+    ["I tried to fish today.", 'Catch anything?', 'A boot.', 'Boots count.'],
+    ['Have you been to the museum lately?', "Brulee moved one painting an inch.", 'Big week.'],
+    ['The sunset was so pretty yesterday.', 'Pink?', 'So pink.', 'The best kind.'],
+    ['I made a sandcastle.', 'With towers?', 'With a moat.', 'Fancy.', 'The sea took it. It was beautiful while it lasted.'],
+    ["I'm going on a walk.", 'Where to?', 'Nowhere. On purpose.', 'The best walks.'],
+    ['I heard a rumor.', 'From Coco?', "From Coco's cousin.", "Coco doesn't have a cousin.", 'Exactly.'],
+    ["Is that a new hat?", 'Since Tuesday.', 'It suits you.', 'I know.'],
+    ['Do you remember your first day on the island?', 'I got lost.', 'The island is small.', 'I got lost twice.'],
+    ['Snowball fight this winter?', "You're on.", "I've been training.", 'Since when?', 'Since right now.'],
+    ["I named a cloud.", 'What did you name it?', 'Gerald.', 'Where is Gerald now?', 'He moved on.'],
+    ['Have you seen the new boat at the pier?', "That's Sarah's.", "It's so big!", 'She came a long way.'],
+    ["I've been reading about stars.", 'Which star?', 'All of them. I skimmed.'],
+    ["I made a friendship bracelet.", 'For who?', 'For you!', "I'll wear it forever.", 'Or until bath time.'],
+    ["The farm's veggies look great this year.", 'The carrots are huge.', 'One looked at me.', "That's the cabbage again."],
+    ['What do you think is at the bottom of the sea?', 'More sea.', 'And then?', 'Sand. Probably a sock.'],
+    ["I'm going to bake something.", 'Will it crack?', "Only if Cece's watching.", "She's always watching."],
+    ['Want to hear a joke?', 'Sure.', "Why did the dumpling cross the road?", 'Why?', 'To get away from the soup.'],
+    ["The fountain's so pretty at night.", 'All the lights.', 'I made a wish in it.', 'What for?', "More fountains."],
+    ["I learned a new word today.", 'What is it?', "'Splendiferous.'", 'Use it in a sentence.', 'This conversation is splendiferous.'],
+    ['Did you see the hot air balloon?', 'It waved!', 'Balloons can\'t wave.', 'This one did.'],
+    ["I'm going to write a letter to the Town Hall.", 'About what?', 'More benches.', "There are so many benches.", 'Not enough.'],
+    ['The bank says my savings grew.', 'By how much?', 'One sand dollar.', 'Rich!'],
+    ['Do you know what day it is?', 'A good one.', 'Correct.'],
+    ["I saw Sarah running with her arms out.", 'Like a happy kid?', 'Exactly like that.', 'Same, honestly.'],
+    ["I'm making a scrapbook.", "What's in it?", 'Photos of my lunch.', 'Every lunch?', 'Every lunch.'],
+    ['Should we start a book club?', 'What would we read?', "Joe's poems.", 'All of them?', 'There are SO many.'],
+    ['I think I saw a fairy ring in the woods.', 'Glowing mushrooms?', 'At night!', "Don't step in it.", "I didn't. I'm not a monster."],
+    ["My umbrella flipped inside out.", 'In the wind?', 'In my house.', 'How?', "I don't want to talk about it."],
+    ["There's a new sign on Market Lane.", 'Coming soon!', 'Coming soon WHAT?', 'Coffee, I hope.', 'Sully would cry.'],
+    ['Somebody bought land by the woods!', 'Who?', 'Nobody yet. The sign says for sale.', 'New neighbors!', 'I should bake.'],
+    ["I've been practicing my wave.", "Let's see it.", '*waves*', 'Ten out of ten.'],
+    ['Do you like rain or sun?', 'Sun.', 'Rain.', '...We can still be friends.'],
+    ["I organized my closet by color.", 'Even the orange?', "There's SO much orange.", "Clementine's been gifting again."],
+    ['What are you doing tonight?', 'Stargazing.', 'Can I come?', "Bring cocoa."],
+    ["I'm on my third nap.", "It's noon.", "I'm efficient."],
 ];
 const CHAT_RAIN = [['Rain again!', 'Great napping weather.', 'Every weather is napping weather.'], ['My hair is doing a thing.', 'The rain thing.', 'The rain thing.'],
-    ['Puddle jumping later?', 'Obviously.']];
-const CHAT_SNOW = [['Snow!', 'Snowball fight?', 'Gently.'], ['I made a snow dumpling.', 'Does Wonton know?', 'He must never know.']];
-const CHAT_NIGHT = [['Up late too?', 'Late? It\'s early.', 'Island time.'], ['The stars are out.', 'Show-offs.'], ["Cuke's been asleep for hours.", 'Weird of him.']];
-const CHAT_MORNING = [['Morning!', 'Is it? Barely.'], ['Coffee?', 'Coffee.']];
+    ['Puddle jumping later?', 'Obviously.'], ["The frogs are so happy.", 'Listen to them!', "They're singing.", "They're Joe's backup band."],
+    ['I forgot my umbrella.', 'Share mine.', "It's tiny.", "It's a cocktail umbrella.", 'Cozy.'], ["The flowers love this.", 'Free watering!', "Sarah's day off."],
+    ['Rain on the roof is the best sound.', 'Better than karaoke?', "Better than Wasabi's karaoke."], ["I'm soaked.", 'Me too.', 'Hot spring?', "Wonton's going to say it's soup."]];
+const CHAT_SNOW = [['Snow!', 'Snowball fight?', 'Gently.'], ['I made a snow dumpling.', 'Does Wonton know?', 'He must never know.'],
+    ['I built a snowman by the square.', 'Does it have a name?', 'Snowjoe.', 'Does Joe know?', 'Joe made the hat.'], ['My nose is cold.', 'Mine too.', "Let's get cocoa."],
+    ['The island looks like a cake.', 'Cece would frost it.', "And then apologize."], ['I caught a snowflake on my tongue!', 'What did it taste like?', 'Winter.']];
+const CHAT_NIGHT = [['Up late too?', 'Late? It\'s early.', 'Island time.'], ['The stars are out.', 'Show-offs.'], ["Cuke's been asleep for hours.", 'Weird of him.'],
+    ["Look, a shooting star!", 'Make a wish!', "I wished for pancakes.", 'Bold.'], ['The lighthouse is so pretty at night.', 'And spooky.', 'Pretty spooky.'],
+    ["Can't sleep?", 'Too many thoughts.', 'About what?', 'Mostly snacks.'], ['Is the club still open?', "It's always open.", "Does Wasabi sleep?", 'Nobody knows.'],
+    ['The moon is huge tonight.', "It's showing off.", 'Let it.']];
+const CHAT_MORNING = [['Morning!', 'Is it? Barely.'], ['Coffee?', 'Coffee.'], ['Did you sleep well?', 'Like a log.', "Ginger's going to chop you."],
+    ["Cuke's already jogged twice.", "It's seven.", "He's been up since four."], ['Breakfast?', "Mac's?", 'Pancakes.', 'Say no more.'],
+    ['The dew on the grass is so sparkly.', 'Nature glitter.', "David would approve."], ["I'm not awake yet.", "You're talking.", "That's my body. I'm still in bed."],
+    ['Good morning, sunshine!', "Who, me?", "You and the sun."]];
+const CHAT_EVENING = [['What a day.', 'What a day.', 'Same day?', 'Same day.'], ['Sunset walk?', 'To the pier?', 'Best view on the island.'],
+    ["Dinner at Mac's?", "He's making soup.", "He's always making soup.", 'Good soup though.'], ['The lamps are coming on.', 'My favorite part.', "It's like the island's going to bed."],
+    ['Karaoke tonight?', "Joe's doing the frog poem.", "He does it every night.", "It's a classic."], ["I'm so tired.", 'From what?', 'Thinking about tomorrow.']];
+/* and a few that belong to the season */
+const CHAT_SEASON = {
+    spring: [['The cherry trees are blooming!', 'So pink.', "Clementine says it's not orange enough.", 'Nothing is.'], ['Spring cleaning?', 'I moved one chair.', "That's a start."],
+        ['The bunnies are out!', 'They hopped right past me.', 'Rude.', 'Adorable.'], ["I'm planting tulips.", 'What color?', 'All of them.']],
+    summer: [["It's so hot!", "Chili's fault.", "It's always Chili's fault."], ['Beach day?', 'Every day is beach day.', "Kai's already there."],
+        ['Ice cream?', 'Two scoops.', 'Three.', "You're my favorite."], ['The fireflies are back!', 'Tiny lanterns.', 'Tiny flying lanterns.']],
+    fall: [['The leaves are turning!', 'Red, orange, gold.', 'Clementine is THRILLED.'], ['Pumpkin everything?', 'Pumpkin everything.'],
+        ['Sweater weather!', 'Finally.', "I've been wearing one since July."], ['I jumped in a leaf pile.', 'Whose?', "Ginger's. She raked it.", 'Uh oh.']],
+    winter: [['Cocoa season!', 'With marshmallows?', 'With SO many marshmallows.'], ['The big tree has lights on it!', 'And a star!', 'Fancy.'],
+        ['Brr!', 'Brr!', 'We should go inside.', 'Brr.'], ['What do you want for the holidays?', 'Socks.', 'Exciting.', 'Warm socks.']],
+};
 /* how each neighbor starts a conversation */
 const CHAT_BY = {
     coco: [['Okay, so. Did you hear?', 'Hear what?', "Nothing yet. I'm starting it."], ['I have NEWS.', 'Is it big?', 'It is medium. Medium news.']],
@@ -144,8 +226,46 @@ const CHAT_BY = {
     ginger: [['Your porch is a little crooked.', "I don't have a porch.", '...Want one?']],
     brulee: [['You have the face of a painting.', 'Which one?', 'A good one.']],
     mac: [['Have you eaten?', 'Yes.', 'Eat again.'], ['I made too much soup.', 'Again?', 'Always.']],
-    joe: [['Want to hear a poem?', 'Is it about a frog?', "It's about a different frog."]],
+    joe: [['Want to hear a poem?', 'Is it about a frog?', "It's about a different frog."], ['I rhymed "orange" today.', 'With what?', "Don't ask. It wasn't good."],
+        ["I'm reading a book about poems.", 'Is it good?', "It's missing frogs.", 'Tragic.'], ["Have you seen {name}?", 'She was by the pond.', "Okay. No reason. Bye."],
+        ["I wrote you a haiku.", 'Read it!', 'Hello friend, hello. / This is a haiku for you. / It has a frog in it.']],
+    wonton: [['The water is perfect today.', 'Is it soup?', 'It is NOT soup.', 'A little soup.', '...A little.'], ["I'm a dumpling. I belong in the water.", 'Like soup?', 'NOT LIKE SOUP.'],
+        ['Come relax in the spring!', "I'll get wet.", "That's the point.", 'Fair.']],
 };
+// (more of each neighbor's own: added here so each list above stays short to read)
+const CHAT_BY_MORE = {
+    coco: [["Okay, don't tell anyone, but...", "I won't.", "Joe bought a NEW notebook.", 'Scandalous.'], ['Guess who I saw at the pier?', 'Who?', 'The goat.', 'Again?', 'AGAIN.'],
+        ["I'm not a gossip. I'm a news reporter.", 'Okay.', 'Breaking news: you look nice today.']],
+    cuke: [["Let's do push-ups!", 'Right now?', 'Right now! One! ...Okay, one is good.'], ["I eat a vegetable every day.", "You ARE a vegetable.", 'So I eat ME?! No. No no.'],
+        ['Stretch with me!', 'Okay.', 'Reach for the sky!', "I'm reaching!", 'Higher!']],
+    sully: [["Back in Boston, we had REAL snow.", 'We have snow.', 'This is a light dusting, kid.'], ['Ya want a coffee?', 'Sure.', "Good, 'cause I made a pot the size of a car."],
+        ["I'm not a pie. I'm a cake.", "Nobody said you're a pie.", '...Good. Good.']],
+    david: [['Honey, the club tonight is going to be ICONIC.', 'Every night is iconic.', 'Tonight is MORE iconic.'], ['Have you met my sister {name}?', 'We all have.', "She's fabulous, right?", 'So fabulous.'],
+        ['Sparkles are a lifestyle.', 'Since when?', 'Since always, darling.']],
+    chili: [["I'm a little spicy today.", 'Only today?', '...Okay, always.'], ['Want a hot sauce?', 'How hot?', 'Yes.'],
+        ["The arcade's busy today!", 'Who won the claw?', 'Nobody. Nobody ever wins the claw.']],
+    clementine: [["Darling, that outfit.", 'Is it good?', 'It is BRAVE.'], ['I made a new pattern.', 'Is it orange?', 'It is citrus-adjacent.'],
+        ["Fashion is about confidence.", "And orange?", "Confidence AND orange."]],
+    kai: [['Dude, the waves today!', "They're tiny.", 'Tiny but TUBULAR.'], ["I'm a poke bowl, dude.", 'We know.', 'Just reminding the universe.'],
+        ['Wanna build a sandcastle?', 'Sure!', "It's gonna be a sand-BOWL."]],
+    basil: [['Slow down. Smell the noodles.', 'I can smell them from here.', 'Balance.'], ["My cart's open late tonight.", "I'll be there.", 'Bring an appetite. And chopsticks.'],
+        ['Life is like a noodle.', 'How so?', 'Long. And better with friends.']],
+    maki: [["I arranged my shelf by height.", 'Nice.', 'Then by color. Then by height again.'], ["You're two minutes early.", 'Is that bad?', "It's precise. Excellent."],
+        ['I trimmed my garden today.', 'How much?', 'Exactly one centimeter.']],
+    cece: [["I baked you a cheesecake!", 'Thank you!', 'It cracked! Sorry! It still tastes good! Sorry!'], ['Sorry, am I in your way?', "We're outside.", 'Sorry about outside!'],
+        ["I'm trying not to apologize today.", 'How is it going?', 'Sorry. I mean, great!']],
+    ginger: [["I fixed the bench by the square.", 'Was it broken?', 'It wobbled. A little. In my heart.'], ['I could build you a gazebo.', 'I live in a house.', 'A gazebo INSIDE the house.'],
+        ["Hammer's my best friend.", 'Not me?', 'You are tied with the hammer.']],
+    brulee: [["The light today is very... museum.", 'What does that mean?', 'It means you should frame it.'], ["I'm curating a new exhibit.", 'Of what?', 'Spoons. Through the ages.'],
+        ["Art is everywhere.", 'Even here?', 'Especially here. You are standing very artistically.']],
+    mac: [["You look hungry.", "I just ate.", "You look hungry AGAIN."], ['Soup of the day is soup.', 'What kind?', 'The good kind.'],
+        ["Nobody leaves my restaurant hungry.", 'What if they do?', 'They come back. They always come back.']],
+    joe: [['I saw a frog by the pond today.', 'Was it a poem frog?', 'Every frog is a poem frog.']],
+    james: [["Have you seen my sister?", "{name}? She's everywhere.", "That's {name}."], ['This island is so nice.', 'Stay longer!', "Mom says I have to call her."]],
+    john: [["Is there a basketball court?", 'There is a volleyball court.', 'Close enough!'], ["{name} says hi.", 'We know her.', 'Everybody knows her.']],
+    elizabeth: [["I love the flowers here.", '{name} waters them.', "She always loved flowers."], ['Is that a goat?', "It's a goat.", "Nothing else to say?", 'Nothing else to say.']],
+};
+for (const [id, list] of Object.entries(CHAT_BY_MORE)) (CHAT_BY[id] = CHAT_BY[id] || []).push(...list);
 /* the island's favorite topic: {name} and Joe. Very schoolyard. */
 const CHAT_JOE = [
     ['Did you know {name} and Joe like like each other?', "Oh no way! That's crazy!"],
@@ -170,7 +290,7 @@ const Chats = {
     cool: {},
     free(n) {
         const w = n.want, d = n.def;
-        if (n.chat || n.talking || n.script || n.path || n.sleeping || d.goat || d.spring || d.dj || d.shop || n.dancer) return false;
+        if (n.chat || n.idle || n.talking || n.script || n.path || n.sleeping || d.goat || d.spring || d.dj || d.shop || n.dancer) return false;
         if (w && w.playing) return false;
         if (n.fixed && !(w && (w.seat || w.sit))) return false;
         if ((n.chatCool || 0) > G.frame) return false;
@@ -185,15 +305,22 @@ const Chats = {
         if (w === 'snow') add(CHAT_SNOW, 6);
         if (h >= 21 || h < 4) add(CHAT_NIGHT, 4);
         if (h >= 5 && h < 11) add(CHAT_MORNING, 3);
+        if (h >= 17 && h < 21) add(CHAT_EVENING, 3);
+        add(CHAT_SEASON[Clock.season()], 2);
         add(CHAT_TODAY, 10);
         if (S.flags.metJoe) {
             if (A.id === 'joe' || B.id === 'joe') add(CHAT_WITH_JOE, 3);
             else add(CHAT_JOE, 1.2);
         }
-        return weighted(pool, R);
+        // (what was heard lately waits its turn: hearing the same thing twice should be rare)
+        const fresh = pool.filter(([l]) => !this.recent.includes(l));
+        return weighted(fresh.length ? fresh : pool, R);
     },
+    recent: [],
     start(A, B) {
         const lines = this.pick(A, B);
+        this.recent.push(lines);
+        if (this.recent.length > 40) this.recent.shift();
         if (CHAT_WITH_JOE.includes(lines) && A.id === 'joe') { const t = A; A = B; B = t; }
         const c = { a: A, b: B, lines, i: -1, t: 0 };
         A.chat = c; B.chat = c;
@@ -210,7 +337,7 @@ const Chats = {
         Bubbles.hide(other);
         Bubbles.show(sp, text);
         sp.hop = 2;
-        c.t = Math.min(260, 110 + text.length * 2.2);
+        c.t = c.dur = Math.min(260, 110 + text.length * 2.2); c.text = text;
     },
     end(c) {
         for (const n of [c.a, c.b]) { Bubbles.hide(n); n.chat = null; n.chatCool = G.frame + 60 * 15; }

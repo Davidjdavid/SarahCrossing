@@ -51,8 +51,9 @@ async function enterBuilding(id) {
         return;
     }
     if (id === 'shop') {
-        if (roomOpen('shop')) { await enterRoom('shop'); return; }
-        await UI.say('sign', "FORTUNE'S GOODS. Open {hours:shop}. Closed now. Fortune is asleep inside a larger fortune cookie.");
+        // (after hours Fortune's at home, but the shop stays open on the honor system: David, 27 October)
+        if (!roomOpen('shop') && !Online.visitor()) UI.toast("Fortune's gone home for the night. The shop's on the honor system!", 'fortune_0');
+        await enterRoom('shop');
         return;
     }
     if (id === 'boutique') {

@@ -80,6 +80,9 @@ const EnvTrees = {
                     if (grand.length) { list = grand; s = 1; }
                 }
                 t = put(list, x, ty, z, r, s, (r() - 0.5) * 0.3);
+                // (the holidays' decorations made for the grand tree, in its own coordinates: the Winter Lights' strings of
+                // bulbs and star, the Winter Holiday's presents under it: 54_events.js decorateIsland)
+                if (e.kind === 'bigtree' && list === grand) for (const o of a.ents) if (o.holiday && o.grand && has(o.grand)) (placed[o.grand] = placed[o.grand] || []).push(t.M.clone());
             }
             else this.broad(F, B, x, y, z, r, big);
             if (t) live.push({ e, t, fruit: fruit ? hang(t, fruit) : [], on: true, ripe: true, shook: false });

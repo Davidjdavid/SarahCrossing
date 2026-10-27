@@ -19,7 +19,7 @@ function newState() {
         mail: [], mailSeq: 1,
         dance: { songs: {}, moves: ['wave', 'happy', 'laugh', 'heart', 'yawn'] },
         council: { best: 0, lastDay: -1, plaques: [] },
-        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1, garden8: 1, square8: 1, lane8: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
+        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1, garden8: 1, square8: 1, lane8: 1, fortune8: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
         pottery: { seq: 1, pieces: {}, kiln: [], made: 0 },
         arcade: { tickets: 0, best: {}, plays: {}, free: {}, won: 0, claw: null, reach: {}, rival: {} },
         rope: { best: 0, day: -1, trophy: false },
@@ -228,6 +228,29 @@ function migrate(st) {
         if (st.started) st.mail.push({ id: st.mailSeq++, from: 'ginger', subject: 'More room on Market Lane', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
             body: 'Sarah! The crew spread the shops out a bit. Every shop has room on each side now, the alley has benches and flower beds, '
                 + 'and Market Lane has a lawn along it with lamps. David\'s statue moved over there too, on the lawn.\n\nTwo lots at the east end are waiting for new shops. Any ideas?\n- Ginger' });
+    }
+    // Fortune's shop moved onto Market Lane and Fortune has a house of their own just west of the square, a little garden
+    // where the shop stood, a sign on the café's lot, two plots of land for sale in the neighborhood (27 October): a shop
+    // Sarah had moved goes to its new spot, and whatever of hers was in the way comes back to storage
+    if (!st.flags.fortune8) {
+        st.flags.fortune8 = 1;
+        const tiles = [], box = (x, y, w, h) => { for (let j = -1; j <= h; j++) for (let i = -1; i <= w; i++) tiles.push({ x: x + i, y: y + j }); };
+        for (const id of ['shop', 'h_fortune']) { const b = W0_ORIG.buildings[id]; if (b) box(b.x, b.y, b.w, b.h); }
+        for (const k of ['land_a', 'land_b']) { const l = W0.lots && W0.lots[k]; if (l) box(l.x, l.y, l.w, l.h); }
+        for (const p of W0.props) if (['sign_lot', 'sign_land'].includes(p.kind) || (p.x >= 94 && p.x <= 100 && p.y >= 85 && p.y <= 89)) for (let i = 0; i < (PROP_SIZE[p.kind] || 1); i++) tiles.push({ x: p.x + i, y: p.y });
+        const busy = new Set(tiles.map(p => p.x + ',' + p.y));
+        if (st.buildMoved) for (const [id, to] of Object.entries(st.buildMoved)) {
+            const b = W0_ORIG.buildings[id];
+            let hit = id === 'shop' || !b;
+            for (let j = 0; b && !hit && j < b.h; j++) for (let i = 0; i < b.w; i++) if (busy.has((to.x + i) + ',' + (to.y + j))) hit = true;
+            if (hit) delete st.buildMoved[id];
+        }
+        clearTiles(st, tiles);
+        if (st.started) st.mail.push({ id: st.mailSeq++, from: 'fortune', subject: 'The shop moved!', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
+            body: 'Sarah! Big news. The shop moved to Market Lane, at the end of the row next to Ginger\'s workshop. More room for stock, and more visitors walking by.\n\n'
+                + 'And I have a house of my own now, just west of the square! Where the old shop stood there\'s a little garden with a bench.\n\n'
+                + 'If you need anything after I\'ve gone home, the shop stays open all night on the honor system. Sand dollars in the cookie jar, please.\n\n'
+                + 'One more thing: Ginger put up a sign on the empty lot across the alley. Somebody\'s opening a coffee shop! And there are two plots of land for sale in the neighborhood. New neighbors? I can\'t wait.\n- Fortune' });
     }
     // the final update: glasses get their own slot (so Sarah can wear a hat too), and Joe is always her best friend
     if (!st.flags.v9) {

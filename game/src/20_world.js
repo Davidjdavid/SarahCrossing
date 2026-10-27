@@ -196,10 +196,10 @@ function buildIsland() {
 const PROP_SIZE = { bench: 2, flowerbed: 2, board: 1, lamp: 1, mailbox: 1, sign_island: 1, sign_club: 1, rock: 1, driftwood: 1, bush: 1,
     windmill: 3, boulder: 2, well: 1, hay: 1, crate: 1, scarecrow: 1, sign_farm: 1, telescope: 1, statue_david: 3, plaque: 1, bonfire: 2, log: 2,
     tent: 3, picnic: 3, campfire: 1, trough: 2, sign_camp: 1, sign_bonfire: 1, sign_trail: 1, blanket: 3,
-    trashcan: 1, fountain: 2, fountain_grand: 4, drinkfountain: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1 };
+    trashcan: 1, fountain: 2, fountain_grand: 4, drinkfountain: 1, sign_lot: 1, sign_land: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1 };
 const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2, fountain_grand: 3 };
 /* the little things around the island, and what Sarah finds when she looks at them */
-const KNICK_FRAME = { fountain: 'd_fountain', fountain_grand: 'd_fountain', flamingo: 'd_flamingo', sign_trail: 'sign_camp' };
+const KNICK_FRAME = { fountain: 'd_fountain', fountain_grand: 'd_fountain', flamingo: 'd_flamingo', sign_trail: 'sign_camp', sign_lot: 'sign_camp', sign_land: 'sign_camp' };
 const PROP_TALK = {
     windmill: () => "The windmill turns slowly. It grinds the island's flour. It also, according to Cuke, 'makes wind.' It does not.",
     scarecrow: () => rpick(["A scarecrow in a sun hat. The birds are not scared. The birds think it's a friend.", "The scarecrow has a little sign: 'HI. I'M STEVE.' Hi, Steve."]),
@@ -212,6 +212,8 @@ const PROP_TALK = {
     blanket: () => rpick(['A checkered picnic blanket, spread out and waiting. Somebody left a basket of napkins. Very organized picnicking.',
         'A picnic blanket. Neighbors come here for lunch with a view. The ants come here for the same reason.', 'A soft picnic blanket. It smells like grass and strawberries.']),
     sign_camp: () => 'THE CAMPSITE. Tents for visitors, a fire ring for stories. "Leave nothing but footprints. And maybe a marshmallow for the raccoon."',
+    sign_lot: () => 'SET ASIDE FOR A NEW BUSINESS. "Coming soon: a coffee shop! Somebody new is moving to the island to open it. Who? A mystery. A delicious mystery." - Ginger',
+    sign_land: () => 'LAND FOR SALE. A quiet plot in the neighborhood, with room for one cozy house. "Newcomers welcome! The crew will have it built in no time." - Ginger',
     sign_trail: () => 'THE RIDGE TRAIL. The farm, the campsite, the ridge, the lookout. "Wear good shoes. Bring a snack. Say hi to the pines." - Ginger',
     sign_bonfire: () => 'THE BONFIRE. Lit every evening. Bring a friend. Bring marshmallows. Do not bring Wonton near the fire; he gets steamy.',
     picnic: () => rpick(['A picnic table. Someone carved "J+J+E+D WERE HERE" into it. Family vandalism. Very sweet.', 'A picnic table with a checkered cloth. It smells like pine and granola bars.']),

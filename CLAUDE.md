@@ -57,7 +57,7 @@ docs/DEPLOY.md for the server.
   repaint, shells, fruit or fish to hand in). The Post Office paints Sarah's mailbox (`MAILBOX_COLORS`: a model each,
   `mailbox_<color>` from props.py) and sells it in other styles (`MAILBOX_STYLES`: `mailbox_<style>` from props_island.py,
   whose part named `*_body` takes the paint), and Residents lets Sarah nudge a good friend's hours (`S.town.sched`, through
-  `townWake`) and pick what they wear today. Still to come: catchphrases (the friendship update). Their
+  `townWake`), pick what they wear today and set their catchphrase. Their
   morning work runs in `dailyCheck` (`bankTick`, `postYesterday`/`postTick`, `townTick`); the Bank and the post are each
   person's own (`PERSON_KEYS`), the town is the island's.
 - **Old saves must always load.** Sarah's island came from the one-page game and lives on the
@@ -82,6 +82,10 @@ docs/DEPLOY.md for the server.
   ground up close is fine pixel art by kind (grass, dirt, cobbles, sand, stone walls on anything steep, stairs:
   `31a_ground3d.js`) where the painted picture would smear; tufts, lily pads and cattails are instanced meshes refilled
   as the view moves. Tune the camera, bend and haze in `R3_CAM` / `R3_FOG`.
+- Settings > Picture quality and Draw distance (`GFX`, kept per device in `sc-quality` / `sc-far`): Auto is the device's
+  own (phones lighter and shorter, a slow computer drops its quality by itself in `watchSpeed`); a pick stays as picked.
+  Quality scales the pixels drawn (`R3.quality`; High keeps the water's reflections), distance scales `R3.farTiles()`,
+  which the haze, the ground pieces and every culled thing follow.
 - The ground's pieces (15 tiles square) are made just before they come into view, painted a few milliseconds a frame
   (`paintChunkSteps`), and painted again only when something drawn into them changes (`r3ChunkSig`: plots, things on the
   ground, Sarah's paths). Never paint pieces on a timer or several in one frame: that is what made walking hitch.
@@ -145,6 +149,28 @@ docs/DEPLOY.md for the server.
   line tied at its tip, `d.rodTip`), the line a thin tube sagging to the bobber, ripples at a nibble and the bite, the
   fish's shadow drifting up; a catch flies up out of the water into her hands (`G.reel`) and is held up over her head
   (`G.held`, the `holdup` pose) while she shows it off. The flat views keep `Fishing.draw`.
+- Neighbors who stop to chat (2d_life.js `Chats`) act it out in the new look: whoever's line it is talks (mouth and a
+  hand going while their bubble is new), the other looks at them and nods now and then (`act`'s `listen`, `nod`). With
+  nothing to do they find something of their own for a while (`idleStart` from updateNPC, 33kd_doll_idle.js `IDLE_ACTS`,
+  `n.idle`): the stars at night, an ice cream, sitting on the grass, their phone, a book, painting at an easel, a mug of
+  cocoa, each with its own pose (`idleDoll`, `idleFolk`) and the thing in hand from props2.py (`style_book`,
+  `style_phone`, `style_snack`, `style_cup`, `style_brush`, `style_palette`; `idleHold`, `HOLD`; a folk's hand is its
+  arm's furthest point, `handOf`); who likes what is `IDLE_LIKES`. A chat, Sarah talking to them or their day moving on
+  ends it, and nobody busy with something starts a chat; walk up to them and they mention it (`IDLE_HELLO`). The flat
+  views show them standing.
+- Catchphrases (6zk_catchphrases.js): every neighbor has one (`CATCH`), said at the end of some of their lines (`voiced`'s
+  `catchTail`); a good friend (four hearts) takes a new one from the talk menu ("New catchphrase?", `catchFlow`, typed in
+  `askText`, tidied by `catchClean`) and reacts in their own way (`CATCH_REACT`); the Town Hall's Residents sets it too. Kept
+  as `S.npcs[id].catch` (missing: their own).
+- Vacations (6zj_vacations.js, `VAC`: each neighbor's place, postcard and souvenir): about once every 75 days each
+  neighbor goes away for three to five days, worked out from the seed (`vacationOf`, `vacationIn`), never over their own
+  day, a festival in `VAC_KEEP` or Sarah's birthday, one at a time. The plan (`vacationPlan`, after makePlan in `Plans.get`):
+  to the pier at 10 with a suitcase (`bags`, `style_suitcase` in hand), onto the boat (`sleepAt: 'boat'`; `npcDoor`), two
+  friends there to see them off (`vacationOverride`); away between (`away`); off the boat at 3 PM the day they're back
+  (`wakeAt: 'boat'`). `vacationTick` (in `dailyCheck`) mails the postcard and, for three hearts or more, the souvenir; the
+  board and calendar list it (`vacationEvents`), they talk about it (`vacationLine`), their door has a note, texts say
+  they're off the island (`awayNow`), and storylines don't cast them (`vacationSoon`). Wonton leaves his spring too
+  (`inSpring`).
 - Hats fit the hair (`EnvDolls.hatFit`, `HAT_FIT` in 33ka_doll_kit.js): a covering hat grows to the hair at its band and
   presses the hair above it down and in; what sits on top rests on the hair round a ring half a head out; what goes round
   the head goes round the hair.
@@ -161,7 +187,12 @@ docs/DEPLOY.md for the server.
   the notice board in front of the big tree, a flower bed where David's statue stood (the statue, smaller, is on the lawn
   along Market Lane), lamps along the paths; the shops on the alley and Market Lane further apart, with benches, lamps and
   flower beds in the alley and two empty lots at its east end. Save steps `square8` and `lane8` (a shop Sarah had moved
-  goes to its new spot) return whatever of hers was in the way.
+  goes to its new spot) return whatever of hers was in the way. Fortune's shop stands at Market Lane's east end and Fortune
+  has a house of their own (`h_fortune`, just west of the square; a little garden where the shop stood); after hours the
+  shop stays open on the honor system (Fortune asleep at home). The café's lot has a COMING SOON sign (`sign_lot`,
+  `sign_comingsoon`) and two plots of land for sale in the neighborhood (`land_a`, `land_b` in the plan's lots) have FOR
+  SALE signs (`sign_land`, `sign_forsale`) and paths out to them: where the neighbors still to come will live. Save step
+  `fortune8`, with Fortune's letter.
 - The watering can (`can`, a tool on Fortune's rack, 2a_flowers.js): it waters the tile in front of Sarah and one each side
   (`waterFront`, `waterTiles`; `pl.wet` is the day a planted flower was watered, darker soil in 2D and 3D). Each morning
   `flowerBreed` (in `dailyCheck`) may grow a new flower beside two watered ones of a kind (two of a color make it again,
@@ -196,7 +227,16 @@ docs/DEPLOY.md for the server.
   `jack_o_lantern` / `jack_o_lantern_b`, whose faces are `*_glow`, the square's `jack_stack` hay bales and
   `bunting_spooky`), and one put down with `stand()` is solid like a prop (`solidTile`, unblocked when the decorations come
   down), never on a path. Spooky Season puts jack-o'-lanterns at every shop and building's front corners and by every
-  house's door; Halloween itself adds one by every lamp post.
+  house's door (`fronts`); Halloween itself adds one by every lamp post. The Winter Lights (all of December from the 10th)
+  string the grand tree with lights and a star (`grand_lights`), put a wreath on every house's door (`shownLook`: the
+  look the island shows, never saved), red lanterns at every shop and red and green bunting (`bunting_winter`); the Winter
+  Holiday adds presents under the tree (`grand_presents`) and a lantern by every door. What's made for the grand tree is a
+  decoration with `grand` (its model), stood with the tree by `EnvTrees` in the tree's own coordinates and drawn over the
+  tree's picture in the flat views (`drawTreeLights`, `drawTreePresents`). Snowmen stand by the square and Sarah's house all
+  winter (`snowman`, `drawSnowman`); Lunar New Year puts lanterns at every shop (`bunting_lunar`), Valentine's heart
+  lamps (`bunting_hearts`), the Harvest Festival and Feast Day hay bales of pumpkins and corn (`harvest_stack`,
+  `bunting_harvest`), the Fourth of July red, white and blue (`bunting_july`; a holiday's `deco` can name a bunting model
+  with no picture of its own: the flat views draw `bunting`).
 - On Halloween night (5 PM to midnight, `trickOn`) the neighbors' dolls and toys wear their costumes (`COSTUME_ACC` in
   6z_festivals.js, pieces in `EnvDolls`' hat table: a ghost hood, a bat, a soup bowl, sun rays, a deerstalker, a witch's
   hat, a pumpkin, mummy wraps, lobster claws, a cardboard robot box, a gold frame); the 2D views don't draw them.

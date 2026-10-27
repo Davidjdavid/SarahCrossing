@@ -42,6 +42,9 @@ export const PLAN = {
   // paths (p), hiking trails (d)
   paths: [
     { pts: [[117,125],[117,131]] },
+    // out to the two plots of land for sale
+    { pts: [[35.5,99.2],[35.5,102.4]], w: 1.2 },
+    { pts: [[51.5,74.2],[47.4,74.6]], w: 1.2 },
     // the forest: a cliff walk along its edge, loops round the pond, the old tree and the glade
     { pts: [[110,89],[110,84],[110,79],[110,75],[110,72.5]] },
     { pts: [[80.5,53.4],[82.5,58],[86,62],[96,67],[110,72.5],[124,73],[138,70],[150,64],[157,61]] },
@@ -110,7 +113,6 @@ export const PLAN = {
   community: { x: 53, y: 45, cols: 4, rows: 2 },
   fruitTrees: [[47, 38, 'apple'], [37, 43, 'cherry'], [66, 40, 'peach'], [70, 40, 'cherry'], [52, 49, 'mango'], [61, 49, 'apple']],
   buildings: [
-    { id: 'shop', x: 95, y: 86, w: 5, h: 3, door: 2, sprite: 'shop', front: 'shopfront' },
     { id: 'postoffice', x: 103, y: 86, w: 5, h: 3, door: 2, sprite: 'postoffice', front: 'postofficefront' },
     { id: 'townhall', x: 113, y: 85, w: 7, h: 4, door: 3, sprite: 'townhall', front: 'townhallfront' },
     { id: 'bank', x: 123, y: 86, w: 5, h: 3, door: 2, sprite: 'bank', front: 'bankfront' },
@@ -126,6 +128,8 @@ export const PLAN = {
     { id: 'arcade', x: 151, y: 102, w: 5, h: 3, door: 2, sprite: 'arcade', front: 'arcadefront' },
     { id: 'club', x: 159, y: 102, w: 6, h: 3, door: 3, sprite: 'club', front: 'clubfront' },
     { id: 'builder', x: 168, y: 102, w: 5, h: 3, door: 2, sprite: 'builder', front: 'builderfront' },
+    // Fortune's shop at the lane's east end (David, 27 October: on the shopping street, and Fortune a house of their own)
+    { id: 'shop', x: 175, y: 102, w: 5, h: 3, door: 2, sprite: 'shop', front: 'shopfront' },
     { id: 'lighthouse', x: 208, y: 108, w: 3, h: 3, door: 1, sprite: 'lighthouse', front: 'lighthousefront' },
     { id: 'barn', x: 52, y: 23, w: 5, h: 3, door: 2, sprite: 'barn' },
     { id: 'home', x: 57, y: 81, w: 4, h: 3, door: 2, sprite: 'house_sarah', link: [[59.5,90.7]] },
@@ -142,10 +146,13 @@ export const PLAN = {
     { id: 'h_maki', x: 102, y: 43, w: 3, h: 3, door: 1, link: [[103.5,46],[102.5,50.2]] },
     { id: 'h_cuke', x: 191, y: 92, w: 3, h: 3, door: 1, link: [[192.5,95],[193,101.6]] },
     { id: 'h_kai', x: 50, y: 117, w: 3, h: 3, door: 1 },
+    { id: 'h_fortune', x: 88, y: 88, w: 3, h: 3, door: 1, link: [[89.5,92.5],[86,92.5]] },
   ],
   // room kept for what's coming: the café and a shop at the ends of the two rows, the sailor's and the balloonist's houses,
   // a bait shop
-  lots: { cafe: { x: 173, y: 93, w: 4, h: 3 }, market: { x: 176, y: 102, w: 4, h: 3 }, sailor: { x: 124, y: 123, w: 3, h: 3 }, balloonist: { x: 205, y: 94, w: 3, h: 3 }, bait: { x: 106, y: 121, w: 4, h: 3 } },
+  // the café's lot has a sign saying it's set aside for a new business; two plots of land for sale in the neighborhood are
+  // where the neighbors still to come will live (each with its sign and a path out to it)
+  lots: { cafe: { x: 173, y: 93, w: 4, h: 3 }, land_a: { x: 34, y: 96, w: 3, h: 3 }, land_b: { x: 50, y: 71, w: 3, h: 3 }, sailor: { x: 124, y: 123, w: 3, h: 3 }, balloonist: { x: 205, y: 94, w: 3, h: 3 }, bait: { x: 106, y: 121, w: 4, h: 3 } },
   props: [
     // the square
     // (the grand fountain in the middle, solid, 4 by 3; the notice board in front of the big tree; where David's statue
@@ -153,6 +160,10 @@ export const PLAN = {
     { kind: 'fountain_grand', x: 115, y: 100 }, { kind: 'flowerbed', x: 127, y: 95 }, { kind: 'flowerbed', x: 104, y: 106 }, { kind: 'flowerbed', x: 128, y: 106 },
     { kind: 'bench', x: 111, y: 108 }, { kind: 'bench', x: 121, y: 108 }, { kind: 'bench', x: 95, y: 110 }, { kind: 'bench', x: 129, y: 91 }, { kind: 'bench', x: 100, y: 96 },
     { kind: 'flowerbed', x: 99, y: 107 }, { kind: 'board', x: 106, y: 100 },
+    // where Fortune's shop stood: a little garden at the square's corner
+    { kind: 'flowerbed', x: 95, y: 86 }, { kind: 'flowerbed', x: 98, y: 86 }, { kind: 'bench', x: 96, y: 88 },
+    // the café's lot and the two plots of land for sale, each with its sign
+    { kind: 'sign_lot', x: 173, y: 95 }, { kind: 'sign_land', x: 34, y: 98 }, { kind: 'sign_land', x: 50, y: 73 },
     { kind: 'drinkfountain', x: 112, y: 92 }, { kind: 'trashcan', x: 102, y: 112 }, { kind: 'trashcan', x: 133, y: 112 },
     { kind: 'lamp', x: 93, y: 89 }, { kind: 'lamp', x: 141, y: 89 }, { kind: 'lamp', x: 93, y: 113 }, { kind: 'lamp', x: 141, y: 113 }, { kind: 'lamp', x: 111, y: 89 }, { kind: 'lamp', x: 121, y: 89 },
     // (more lamps, so the square and the paths out of it are bright at night while the woods and hills stay dark: round

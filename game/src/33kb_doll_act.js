@@ -33,7 +33,7 @@ const FACE_OPEN = new Set(['idle', 'talk', 'joy', 'surprised', 'sad', 'worried',
 Object.assign(EnvDolls, {
     /* ---------------------------------------------------------------- what someone is up to: their face and their acting */
     act(e, d) {
-        const A = d.act || (d.act = { look: 0, lookT: 0, lookTo: 0, glanceT: 0, glanceAt: 120, stumbleT: 0, stumbleAt: 300, cheerT: 0, close: 0, mood: null, moodT: 0 });
+        const A = d.act || (d.act = { look: 0, lookT: 0, lookTo: 0, glanceT: 0, glanceAt: 120, stumbleT: 0, stumbleAt: 300, cheerT: 0, close: 0, mood: null, moodT: 0, nodT: 0, nodAt: 40 });
         const t = G.t, seed = e === G.player ? 1 : hdSeed(e.id || e.who || 0);
         const out = { face: null, mode: null, target: null };
         // a game with a neighbor (tag: who's running from whom)
@@ -71,13 +71,31 @@ Object.assign(EnvDolls, {
             out.face = open ? (base === 'happy' || base === 'love' ? 'happytalk' : base === 'sad' || base === 'cry' ? 'worried' : 'talk') : base;
             out.talking = UI._typing;
         }
+        // chatting with another neighbor (2d_life.js Chats): whoever's line it is talks while their bubble is new (the
+        // line's mood after), and the other listens, looking at them, nodding now and then
+        const c = e.chat;
+        if (c && c.i >= 0 && !out.talking) {
+            const sp = c.i % 2 === 0 ? c.a : c.b;
+            if (sp === e) {
+                const mood = this.moodOf(id, c.text), talk = c.t > c.dur * 0.3;
+                out.face = talk && (t >> 2) % 2 === 0 ? (mood === 'happy' ? 'happytalk' : 'talk') : (out.face || mood || 'idle');
+                out.talking = talk;
+            } else {
+                out.listen = sp;
+                if (--A.nodAt <= 0) { A.nodT = 32; A.nodAt = 60 + hash32(seed + ':n' + (t >> 5)) % 110; }
+                if (!out.face) out.face = (c.i + hash32(seed)) % 3 ? 'idle' : 'happy';
+            }
+        }
+        if (A.nodT > 0) { A.nodT--; out.nod = Math.abs(Math.sin((1 - A.nodT / 32) * Math.PI * 2)); }
+        // something of their own for a while (33kd_doll_idle.js)
+        if (e.idle && !out.face && IDLE_ACTS[e.idle.kind]) out.face = IDLE_ACTS[e.idle.kind].face;
         // sitting quietly, asleep
         if (e.sleeping) out.face = 'sleepy';
         // (the style test's gallery shows every face: __dbg, EnvDolls.forceFace)
         if (this.forceFace) { out.face = this.forceFace; A.lookTo = A.look = 0; }
         // standing: now and then a look round (some more curious than others)
-        if (!e.moving && !out.mode && --A.lookT <= 0) { A.lookTo = (hash32(seed + ':l' + (t >> 6)) % 100 / 100 - 0.5) * 1.1; A.lookT = 150 + hash32(seed + ':' + (t >> 5)) % 260; if (A.lookT % 3 === 0) A.lookTo = 0; }
-        A.look += ((e.moving || out.mode ? 0 : A.lookTo) - A.look) * 0.06;
+        if (!e.moving && !out.mode && !out.listen && !e.idle && --A.lookT <= 0) { A.lookTo = (hash32(seed + ':l' + (t >> 6)) % 100 / 100 - 0.5) * 1.1; A.lookT = 150 + hash32(seed + ':' + (t >> 5)) % 260; if (A.lookT % 3 === 0) A.lookTo = 0; }
+        A.look += ((e.moving || out.mode || out.listen || e.idle ? 0 : A.lookTo) - A.look) * 0.06;
         out.look = A.look;
         return out;
     },
@@ -121,7 +139,9 @@ Object.assign(EnvDolls, {
         d.ang += da * (1 - Math.pow(0.7, Math.min(4, (G.frameMs || 16.7) / 16.7)));
         const root = d.root;
         root.visible = true;
-        const gy = Env.groundH(e.x, e.y) + this.step(e), sitY = Q && Q.sit ? gy + 0.46 - 0.3 * DOLL2.H : gy;
+        // (sitting on the grass: 33kd_doll_idle.js)
+        const gsit = !!e.idle && e.idle.kind === 'ground' && !walk && !Q && !sit;
+        const gy = Env.groundH(e.x, e.y) + this.step(e), sitY = Q && Q.sit ? gy + 0.46 - 0.3 * DOLL2.H : gsit ? gy + 0.05 - 0.3 * DOLL2.H : gy;
         // (the celebration's jump)
         const cj = A.cheer ? Math.sin((1 - A.cheer) * Math.PI) * 0.3 : 0;
         root.position.set(e.x / TILE, sitY + (e.hop || 0) / TILE + cj, this.atTable(e) ? this.tableZ(e) : e.y / TILE * R3_ZS + (Q && Q.sit ? 0.12 : 0));
@@ -148,6 +168,11 @@ Object.assign(EnvDolls, {
         if (A.cheer) Object.assign(W, { aLz: -2.6, aRz: 2.6, aLx: 0, aRx: 0, eL: -0.2, eR: -0.2 });
         // talking: a nod with the words, a hand that talks too
         if (A.talking && !walk && !Q) { W.hx += Math.sin(t / 3.2) * 0.05; W.aRx = -0.45 + Math.sin(t / 7) * 0.15; W.aRz = 0.4; W.eR = -0.9; }
+        // listening: a nod now and then, the hands behind the back for some
+        if (A.nod && !walk) W.hx += 0.24 * A.nod;
+        if (A.listen && !walk && !Q && !sit && seed % 2) { W.aLx = W.aRx = 0.35; W.aLz = -0.12; W.aRz = 0.12; W.eL = W.eR = -0.7; }
+        // something of their own: an ice cream, a book, the stars... (33kd_doll_idle.js)
+        if (e.idle && !walk && !Q && !sit && !A.talking) this.idleDoll(e, W, t, seed);
         // dancing on her own between the dance game's steps: bobbing on the beat, hips swaying, arms going (the dance-off's
         // other dancer too)
         if (!Q && !walk && typeof Dance !== 'undefined' && Dance.on && Dance.ready && Dance.info && (e === G.player || e === Dance.rival)) {
@@ -212,7 +237,8 @@ Object.assign(EnvDolls, {
     /* ---------------------------------------------------------------- a redone folk */
     poseFolk2(d, e) {
         const walk = !!(e.moving || e.walking || e.glide), run = walk && !!(e.run || e.jog), t = G.t, P = d.parts;
-        const m = hdMotion(e, walk), seed = hdSeed(e.id || 0), table = this.atTable(e), seat = isSeated(e) || table, lounge = isLounging(e);
+        const m = hdMotion(e, walk), seed = hdSeed(e.id || 0), table = this.atTable(e), seat = isSeated(e) || table, lounge = isLounging(e) || (!!e.idle && e.idle.kind === 'ground' && !walk);
+        const IF = e.idle && !walk && !seat && !lounge && !e.talking ? this.idleFolk(e, t, seed) : null;
         const F = FOLK_ACT[d.folk] || FOLK_ACT.ginger, A = this.act(e, d);
         const Q = e.pose && e.pose !== 'walk' ? e.pose : null;
         const sp = Math.hypot(m.vx, m.vy);
@@ -231,7 +257,7 @@ Object.assign(EnvDolls, {
         if (table) { y = gy + 0.44; z = this.tableZ(e); }
         else if (seat) { y = gy + 0.36; z += 0.1; }
         else if (lounge) y = gy - 0.02;
-        else if (e.def && e.def.spring) { const w = Env.waterH(e.x, e.y); y = (w != null ? w : gy) - 0.32; }
+        else if (e.def && inSpring(e)) { const w = Env.waterH(e.x, e.y); y = (w != null ? w : gy) - 0.32; }
         // (the old keeper floats, bobbing)
         else if (d.folk === 'ghost') y = gy + 0.18 + Math.sin(t / 13) * 0.06;
         // (standing on a stool behind a counter: 33kc_doll_stools.js)
@@ -256,6 +282,9 @@ Object.assign(EnvDolls, {
         if (A.stumble) { const k = Math.sin(A.stumble * Math.PI); lean += 0.7 * k; sq -= 0.05 * k; }
         if (A.cheer) { sq = 0.08 * Math.sin((1 - A.cheer) * Math.PI); }
         if (A.talking) sq += Math.abs(Math.sin(t / 3)) * 0.025;
+        if (IF) lean += IF.lean;
+        // (listening: the whole folk nods)
+        if (A.nod && !walk) { lean += 0.14 * A.nod; sq -= 0.02 * A.nod; }
         root.position.y += lift;
         const k = 1 - Math.pow(0.68, Math.min(4, (G.frameMs || 16.7) / 16.7)), ease = (o, key, v) => { o[key] += (v - o[key]) * k; };
         ease(P.body.scale, 'y', 1 + sq); ease(P.body.scale, 'x', 1 - sq * 0.5); ease(P.body.scale, 'z', 1 - sq * 0.5);
@@ -280,6 +309,8 @@ Object.assign(EnvDolls, {
             else if (run && F.run === 'out') up = 0.55;
             else if (run) { up = 0.15; fwd = s * 0.8 * side; }
             if (A.stumble) { up = 0.4; fwd = 0.8 * side; }
+            const io = IF && (side > 0 ? IF.R : IF.L);
+            if (io) { up = io.up; fwd = io.fwd * side; }
             if (A.talking && side > 0) { up = 0.45 + Math.sin(t / 6) * 0.2; fwd = -0.3; }
             ease(a.rotation, 'z', side * up); ease(a.rotation, 'y', fwd);
         }

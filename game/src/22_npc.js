@@ -31,7 +31,7 @@ const NPC_DEFS = {
              fav: { farm: 2, shopfront: 2, plaza: 2, restaurantfront: 1, beach: 1, pier: 1, garden: 1, orchard: 1.5, harbor: 1, eastside: 1 }, work: [['restaurant', 7.1, 14], ['restaurant', 16.5, 21.6]] },
     goat:  { name: 'The goat', sprite: 'goat', color: '#8a8490', voice: 200, wave: 'sawtooth', house: 'barn', h: 12, wake: 7.5, bed: 23, goat: true,
              fav: { home: 8, farm: 1.5 } },
-    fortune: { name: 'Fortune', sprite: 'fortune', color: '#d49a3a', voice: 540, wave: 'square', h: 14, wake: 7.9, bed: 22.1, shop: true },
+    fortune: { name: 'Fortune', sprite: 'fortune', color: '#d49a3a', voice: 540, wave: 'square', h: 14, wake: 7.9, bed: 22.1, shop: true, house: 'h_fortune' },
     floss: { name: 'Floss', sprite: 'floss', color: '#e0559a', voice: 610, wave: 'sine', h: 18, wake: 9.9, bed: 22.1, shop: 'salon' },
     waffle: { name: 'Waffle', sprite: 'waffle', color: '#c98a2e', voice: 320, wave: 'triangle', h: 15, wake: 7.9, bed: 21.1, shop: 'displays' },
     wasabi: { name: 'DJ Wasabi', sprite: 'wasabi', color: '#7aa832', voice: 350, wave: 'square', h: 15, dj: true },
@@ -71,7 +71,7 @@ const Plans = {
         const day = Clock.dayNum();
         const c = this.cache[id];
         if (c && c.day === day && c.v === Drama.version) return c;
-        const p = makePlan(id, day);
+        const p0 = makePlan(id, day), p = vacationPlan(id, day, p0) || p0;     // (a vacation: 6zj_vacations.js)
         p.v = Drama.version;
         this.cache[id] = p;
         return p;
@@ -181,7 +181,7 @@ function makePlan(id, day) {
     else segs.push({ a: t, b: bed, spot: 'home' });                  // (right away: no gap to wander home in)
     if (d.early) { segs.push({ a: 28, b: 29, spot: 'jog' }); }
     // jump rope in the plaza, then today's storyline, may send people somewhere (the rope, a date, a party)
-    const o = (ropeOverride(id, day) || []).concat(Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || []);
+    const o = (ropeOverride(id, day) || []).concat(Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || [], vacationOverride(id, day) || []);
     for (const [spot, a, b] of o) {
         const more = [];
         for (const s of segs) {
@@ -318,6 +318,15 @@ function visitorDoor(id, which) {
     const at = which === 'wake' ? p.wakeAt : p.sleepAt;
     return at === 'tent' && p.tent != null ? tentDoor(p.tent) : W0.boat;
 }
+/* where someone comes out of in the morning / goes into at night: their door, a visitor's boat or tent, or the boat for a
+   neighbor off on vacation or coming back from one (null: no door, they just appear) */
+function npcDoor(n, which) {
+    if (n.def.visitor) return visitorDoor(n.id, which);
+    if ((which === 'wake' ? Plans.get(n.id).wakeAt : Plans.get(n.id).sleepAt) === 'boat') return W0.boat;
+    return n.def.house ? doorTileOf(n.def.house) : null;
+}
+/* Wonton in his hot spring (not when he's off to the boat for a vacation) */
+function inSpring(n) { return !!n.def.spring && (!n.spotKey || n.spotKey === 'spring'); }
 
 function planNow(id, dh) {
     const p = Plans.get(id);
@@ -431,7 +440,7 @@ function targetFor(n, dh) {
     const inv = Invites.spotFor(n.id);
     if (inv) { const w = resolveSpot(n, inv); if (w) return Object.assign({ key: 'inv:' + inv }, w, { spot: inv }); }
     const where = resolveSpot(n, seg.spot);
-    return Object.assign({ key: seg.spot + '@' + seg.a.toFixed(2) }, where, { spot: seg.spot });
+    return Object.assign({ key: seg.spot + '@' + seg.a.toFixed(2) }, where, { spot: seg.spot, bags: !!seg.bags });
 }
 
 /* close enough to Sarah to be seen walking (on the big island, neighbors far off just get where they're going) */
@@ -449,9 +458,10 @@ function moveTo(n, want, force) {
     const here = G.area && G.area.id;
     const visible = !n.sleeping && n.area === here && nearSarah(n.area, n.x, n.y);
     if (want.sleep) {
-        if (visible && !force && n.area === 'island' && (n.def.house || n.def.visitor)) {
-            // walk home and go inside (visitors head back to the boat at the end of the pier)
-            const [tx, ty] = n.def.visitor ? visitorDoor(n.id, 'sleep') : doorTileOf(n.def.house);
+        const door = visible && !force && n.area === 'island' ? npcDoor(n, 'sleep') : null;
+        if (door) {
+            // walk home and go inside (visitors, and neighbors off on vacation, head to the boat at the end of the pier)
+            const [tx, ty] = door;
             if (walkNpc(n, tx, ty, () => { n.sleeping = true; n.area = null; n.path = null; })) return;
         }
         n.sleeping = true; n.area = null; n.path = null; n.moving = false;
@@ -468,8 +478,8 @@ function moveTo(n, want, force) {
     const gt = [Math.floor(dpx / TILE), Math.floor((dpy - 2) / TILE)];
     if (n.sleeping) {
         // waking up: come out of the front door (visitors step off the boat at the end of the pier)
-        const [tx, ty] = want.area === 'island' && here === 'island' && (n.def.house || n.def.visitor) ? (n.def.visitor ? visitorDoor(n.id, 'wake') : doorTileOf(n.def.house)) : [0, 0];
-        if (want.area === 'island' && here === 'island' && (n.def.house || n.def.visitor) && (nearSarah('island', (tx + 0.5) * TILE, ty * TILE) || nearSarah('island', dpx, dpy))) {
+        const door = want.area === 'island' && here === 'island' ? npcDoor(n, 'wake') : null, [tx, ty] = door || [0, 0];
+        if (door && (nearSarah('island', (tx + 0.5) * TILE, ty * TILE) || nearSarah('island', dpx, dpy))) {
             n.area = 'island'; n.sleeping = false;
             n.x = (tx + 0.5) * TILE; n.y = (ty + 0.5) * TILE + 4;
             if (!walkNpc(n, gt[0], gt[1], () => arriveAt(n, want))) place();
@@ -565,8 +575,9 @@ function updateNPC(n) {
     n.hit.x = n.x - 9; n.hit.y = n.y - n.h - 4; n.hit.w = 18; n.hit.h = n.h + 8;
     // Wonton sits in the middle of the spring, behind its rock rim: he can be talked to from any side of the rim,
     // and a tap walks Sarah to the open ground just below it (the rim itself can't be stood on)
-    if (d.spring) { const [wx, wy] = W0.wonton; n.hit = { x: (wx - 5) * TILE, y: (wy - 4) * TILE, w: 10.5 * TILE, h: 8 * TILE }; n.stand = [Math.floor(wx), Math.floor(wy) + 3]; }
+    if (inSpring(n)) { const [wx, wy] = W0.wonton; n.hit = { x: (wx - 5) * TILE, y: (wy - 4) * TILE, w: 10.5 * TILE, h: 8 * TILE }; n.stand = [Math.floor(wx), Math.floor(wy) + 3]; }
     else n.stand = (n.want && n.want.stand) || null;          // staff are talked to across their counter
+    if (n.idle && (n.talking || n.script || n.path || n.chat || n.sleeping || G.t >= n.idle.until)) n.idle = null;
     if (n.talking || n.script) { n.moving = false; return; }
     const a = G.area;
     if (n.path) { stepNpc(n); return; }
@@ -592,6 +603,9 @@ function updateNPC(n) {
     n.sy = isSeated(n) ? n.want.sit.benchY + 0.5 : undefined;
     if (n.chat) { if (n.chat.i >= 0 && (n.t % 50 === 0) && R() < 0.3) { n.emote = rpick(['note', 'laugh', 'heart']); n.emoteT = 40; } return; }
     if (n.fixed || !n.anchor) return;
+    // something of their own for a while: a book, an ice cream, the stars (33kd_doll_idle.js)
+    if (n.idle) return;
+    if (n.t % 200 === 100 && R() < 0.3) { idleStart(n); if (n.idle) return; }
     // idle: sometimes turn toward whoever is nearby, sometimes wander a little
     if (n.t % 70 === 0) {
         const buddy = NPCs.here().find(o => o !== n && !o.path && Math.hypot(o.x - n.x, o.y - n.y) < 34);
@@ -652,7 +666,7 @@ function npcFrame(n) {
     return [`${d.sprite}_${squash}`, n.flip, 'down', !!squash];
 }
 function drawNPC(ctx, n) {
-    if (hdOn() && hdDrawNPC(ctx, n)) { if (n.def.spring) springWater(ctx, n); return; }       // the HD-2D view's art
+    if (hdOn() && hdDrawNPC(ctx, n)) { if (inSpring(n)) springWater(ctx, n); return; }       // the HD-2D view's art
     const [f, flip, dir, squashed] = npcFrame(n);
     if (isSeated(n)) {
         const y = Math.round(n.y - n.hop);
@@ -681,11 +695,11 @@ function drawNPC(ctx, n) {
         return;
     }
     const y = Math.round(n.y - n.hop);
-    if (!n.def.spring) spr(ctx, 'shadow_s', n.x, n.y + 1);
+    if (!inSpring(n)) spr(ctx, 'shadow_s', n.x, n.y + 1);
     spr(ctx, f, n.x, y, flip);
     const acc = npcWearing(n.id);
     if (acc) drawNpcAcc(ctx, n, acc, y, flip, dir, squashed);
-    if (n.def.spring) springWater(ctx, n);
+    if (inSpring(n)) springWater(ctx, n);
 }
 /* the water line: Wonton is sitting in the (not soup) spring */
 function springWater(ctx, n) {

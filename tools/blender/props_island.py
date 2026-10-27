@@ -264,6 +264,49 @@ def sign(kind):
     return [(mb, 'main')]
 
 
+def sign_forsale():
+    """A plot of land for sale (David, 27 October: where the neighbors still to come will live): a white post with an arm,
+    a board hanging from it on two little chains, FOR SALE on the board over a little house, a stake in the grass."""
+    from buildings import text
+    mb = MB()
+    rbox(mb, -0.05, -0.05, 0, 0.05, 0.05, 1.45, col_fn('#f4f0e8', under=0.1), r=0.02)
+    rbox(mb, -0.05, -0.05, 1.32, 0.62, 0.05, 1.4, col_fn('#f4f0e8', under=0.1), r=0.02)
+    ball(mb, (0, 0, 1.48), 0.05, shade('#c84a3a'))
+    for x in (0.12, 0.54):
+        tube(mb, [(x, -0.02, 1.32), (x, -0.02, 1.2)], 0.008, shade('#8a8a8a'), seg=4)
+    rbox(mb, 0.04, -0.035, 0.72, 0.62, 0.035, 1.2, shade('#c8423a'), r=0.03)
+    rbox(mb, 0.08, -0.045, 0.76, 0.58, -0.03, 1.16, col_fn('#fbf6ec'), r=0.02)
+    # a little house painted under the words
+    slab(mb, [(0.24, 0.9), (0.33, 0.97), (0.42, 0.9)], 0.006, shade('#c8423a'), axis='y', at=-0.052)
+    rbox(mb, 0.26, -0.052, 0.8, 0.4, -0.046, 0.9, shade('#5a8ac0'), r=0.004)
+    rbox(mb, -0.02, -0.02, 0, 0.02, 0.02, 0.1, wood(WOOD_D), r=0.01)
+    t = text('FOR SALE', 0.33, -0.05, 1.065, 0.085, '#c8423a', depth=0.006)
+    return [(mb, 'main'), t]
+
+
+def sign_comingsoon():
+    """The café's lot on Market Lane (David, 27 October: set aside for a new business, where a neighbor still to come will
+    open a coffee shop): a board on two posts, COMING SOON over a steaming coffee cup, a striped bar across the legs."""
+    from buildings import text
+    mb = MB()
+    for x in (-0.48, 0.48):
+        rbox(mb, x - 0.05, -0.05, 0, x + 0.05, 0.05, 1.25, wood(WOOD_D), r=0.02)
+    rbox(mb, -0.6, -0.05, 0.6, 0.6, 0.05, 1.22, wood('#e8d4a8', 'x'), r=0.035)
+    rbox(mb, -0.54, -0.07, 0.66, 0.54, -0.045, 1.16, col_fn('#3a3430'), r=0.02)
+    # the cup: a white mug with a handle, a saucer, three curls of steam
+    rbox(mb, -0.1, -0.075, 0.72, 0.08, -0.06, 0.88, shade('#fbf6ec'), r=0.02)
+    tube(mb, [(0.08, -0.07, 0.86), (0.13, -0.07, 0.84), (0.13, -0.07, 0.77), (0.08, -0.07, 0.75)], 0.012, shade('#fbf6ec'), seg=5)
+    rbox(mb, -0.16, -0.075, 0.7, 0.14, -0.06, 0.72, shade('#e8d4a8'), r=0.008)
+    for k, x in enumerate((-0.06, 0.0, 0.05)):
+        tube(mb, [(x + 0.015 * math.sin(i * 1.5 + k), -0.07, 0.9 + i * 0.025) for i in range(5)], 0.006, shade('#f4f0e8'), seg=4)
+    # the striped bar across the legs (something's being built)
+    for i in range(6):
+        x0 = -0.48 + i * 0.16
+        rbox(mb, x0, -0.06, 0.3, x0 + 0.16, 0.0, 0.4, shade('#f2c230' if i % 2 else '#2e2a26'), r=0.01)
+    t = text('COMING SOON', 0.0, -0.08, 1.05, 0.085, '#f4f0e8', depth=0.006)
+    return [(mb, 'main'), t]
+
+
 def signboard():
     """A welcome board on two legs under a little roof (the island's, the club's)."""
     mb = MB()
@@ -952,6 +995,51 @@ def bunting(cols):
     return [(mb, 'main')]
 
 
+def grand_lights():
+    """Winter Lights on the square's grand tree (David, 27 October: decorations that fit the day, more the more it matters):
+    strings of colored bulbs swagged across the front and top of each of its lobes, and a gold star on top, in the grand
+    tree's own coordinates (trees_ac.py's tree_grand: the game stands it where the tree stands). The bulbs and the star are
+    a *_glow part, lit at night; the wire is dark green."""
+    from trees_ac import TREES
+    spec = TREES['tree_grand']
+    lobes = [(Vector(l[:3]), l[3]) for l in spec['lobes']]
+    wire, glow = MB(), MB()
+    cols = ['#ff4a4a', '#ffd24a', '#4aa8ff', '#5ad86a', '#fff4dc', '#ff8ad0']
+    k = 0
+    for i, (c, r) in enumerate(lobes):
+        R = r + 0.13
+        for row, el in enumerate((-0.15, 0.32, 0.78)):
+            line = []
+            n = 9 if row < 2 else 6
+            span = 1.45 if row < 2 else 1.1
+            for s in range(n):
+                az = -span + 2 * span * s / (n - 1) + (0.12 if row % 2 else 0)
+                d = Vector((math.cos(el) * math.sin(az), -math.cos(el) * math.cos(az), math.sin(el)))
+                p = c + d * R
+                # (not where another lobe covers it)
+                if any((p - oc).length < orr + 0.05 for j, (oc, orr) in enumerate(lobes) if j != i):
+                    if len(line) > 1:
+                        tube(wire, line, 0.012, shade('#1a3a24'), seg=4)
+                    line = []
+                    continue
+                line.append(p - Vector((0, 0, 0.04)) if s % 2 else p)
+                ball(glow, p, 0.055, shade(cols[k % len(cols)]), sub=1)
+                k += 1
+            if len(line) > 1:
+                tube(wire, line, 0.012, shade('#1a3a24'), seg=4)
+    # the star on top
+    top = max(lobes, key=lambda l: l[0].z + l[1])
+    sz = top[0].z + top[1] + 0.3
+    star = []
+    for a in range(10):
+        ang = math.pi / 2 + a / 10 * math.tau
+        rr = 0.34 if a % 2 == 0 else 0.15
+        star.append((top[0].x + math.cos(ang) * rr, sz + math.sin(ang) * rr))
+    slab(glow, star, 0.07, shade('#ffd24a'), axis='y', at=top[0].y - 0.035)
+    cyl(wire, top[0].x, top[0].y, sz - 0.42, sz - 0.18, 0.025, color=shade('#8a6a2a'), seg=6)
+    return [(wire, 'main'), (glow, 'glow')]
+
+
 def ribbed(mb, c, R, H, ribs=10, groove=0.1, lo='#c0581c', hi='#f2902e', seg=60, rings=22):
     """A pumpkin's body: a squat ball of lobes with grooves between them, darker in the grooves and underneath, the top
     dimpled where the stem goes (its middle at c, R across, H high)"""
@@ -1074,6 +1162,106 @@ def jack_stack():
     return [(mb, 'main'), (glow, 'glow')]
 
 
+def present(mb, x, y, z, w, d, h, box, ribbon, turn=0.0):
+    """a wrapped present standing at (x, y, z): the box, a ribbon round it both ways and a bow of two loops on top"""
+    m = len(mb.v)
+    rbox(mb, -w / 2, -d / 2, 0, w / 2, d / 2, h, col_fn(box, under=0.12), r=min(w, d, h) * 0.08)
+    rb = min(w, d) * 0.16
+    rbox(mb, -rb / 2, -d / 2 - 0.004, -0.004, rb / 2, d / 2 + 0.004, h + 0.004, shade(ribbon), r=0.004)
+    rbox(mb, -w / 2 - 0.004, -rb / 2, -0.004, w / 2 + 0.004, rb / 2, h + 0.004, shade(ribbon), r=0.004)
+    s = min(w, d) * 0.22
+    for sx in (-1, 1):
+        tube(mb, [(0, 0, h), (sx * s * 0.6, -s * 0.15, h + s * 0.55), (sx * s * 1.05, 0, h + s * 0.35), (sx * s * 0.5, s * 0.1, h + 0.01)], s * 0.18, shade(ribbon), seg=6)
+    ball(mb, (0, 0, h + s * 0.08), s * 0.22, shade(ribbon), sub=2)
+    xform(mb, m, Matrix.Translation((x, y, z)) @ rot(z=turn))
+
+
+def grand_presents():
+    """Presents piled under the square's grand tree for the Winter Holiday (David, 27 October: more elaborate the more the
+    day matters): a dozen wrapped boxes in the holiday's colors on the soil in front of the trunk and round its sides, a
+    few stacked, in the grand tree's own coordinates (the game stands it on the planter's soil where the tree stands)."""
+    mb, r = MB(), random.Random(24)
+    wraps = [('#d83a3a', '#f8d048'), ('#3a8a4a', '#d83a3a'), ('#f4f0e0', '#d83a3a'), ('#4a7ad0', '#f4f0e0'),
+             ('#f8c040', '#3a8a4a'), ('#b05ad0', '#f8d048'), ('#e86a9a', '#ffffff'), ('#d83a3a', '#ffffff')]
+    spots = [(-0.95, -0.55, 0.3), (-0.55, -0.85, 0.36), (-0.12, -0.98, 0.28), (0.32, -0.92, 0.34), (0.72, -0.7, 0.3),
+             (1.0, -0.3, 0.24), (-1.08, -0.12, 0.24), (0.15, -0.62, 0.22), (-0.4, -0.5, 0.2)]
+    for k, (x, y, s) in enumerate(spots):
+        w, d, h = s * (0.8 + r.random() * 0.4), s * (0.8 + r.random() * 0.35), s * (0.65 + r.random() * 0.5)
+        box, rib = wraps[k % len(wraps)]
+        t = r.uniform(-0.5, 0.5)
+        present(mb, x, y, 0, w, d, h, box, rib, t)
+        # a little one on top of a few of the big ones
+        if k in (1, 3, 6):
+            b2, r2 = wraps[(k + 3) % len(wraps)]
+            present(mb, x + r.uniform(-0.03, 0.03), y, h + 0.01, w * 0.6, d * 0.6, h * 0.55, b2, r2, t + r.uniform(-0.6, 0.6))
+    return [(mb, 'main')]
+
+
+def snowman():
+    """A snowman on the square in winter (David, 27 October: decorations for the seasons too): three balls of snow, coal
+    eyes and buttons, a carrot nose, twig arms, a red scarf with its tail hanging, and a little black top hat."""
+    mb, r = MB(), random.Random(7)
+
+    def snow(p, n):
+        k = 0.93 + 0.07 * (0.5 + 0.5 * noise.noise(p * 9))
+        return rgb('#f4f8ff').lerp(rgb('#c8d8ec'), max(0.0, -n.z) * 0.6 + max(0.0, -n.y) * 0.05) * k
+    for (z, rr) in ((0.24, 0.26), (0.62, 0.19), (0.9, 0.14)):
+        ball(mb, (0, 0, z), (rr, rr, rr * 0.94), snow, sub=3)
+    coal = shade('#24242a')
+    for sx in (-1, 1):
+        ball(mb, (sx * 0.05, -0.125, 0.94), 0.019, coal, sub=2)
+    for z in (0.56, 0.64, 0.72):
+        ball(mb, (0, -0.19 + abs(z - 0.64) * 0.25, z), 0.02, coal, sub=2)
+    # (the carrot: a cone sticking out toward the front)
+    m = len(mb.v)
+    lathe(mb, [(0.026, 0.0), (0.02, 0.04), (0.01, 0.09), (0.0, 0.12)], shade('#f08a2a'), seg=10)
+    xform(mb, m, Matrix.Translation((0, -0.13, 0.9)) @ rot(x=math.pi / 2 - 0.25))
+    for sx in (-1, 1):
+        tube(mb, [(sx * 0.16, 0, 0.66), (sx * 0.3, -0.01, 0.76), (sx * 0.4, 0.0, 0.84)], 0.012, shade('#6a4a2a'), seg=5, r1=0.007)
+        tube(mb, [(sx * 0.33, -0.01, 0.78), (sx * 0.38, -0.02, 0.86)], 0.008, shade('#6a4a2a'), seg=4, r1=0.005)
+    # the scarf round the neck, its tail hanging down the front
+    tube(mb, [(math.cos(a) * 0.135, math.sin(a) * 0.135, 0.785) for a in (i / 16 * math.tau for i in range(17))], 0.03, col_fn('#d83a3a', under=0.1), seg=8)
+    rbox(mb, 0.04, -0.17, 0.62, 0.11, -0.13, 0.79, col_fn('#d83a3a', under=0.1), r=0.015)
+    for z in (0.64, 0.66):
+        rbox(mb, 0.035, -0.176, z, 0.115, -0.165, z + 0.008, shade('#f4f0e0'), r=0.003)
+    # the hat
+    cyl(mb, 0, 0, 1.0, 1.015, 0.13, 0.13, shade('#2a2a30'), seg=18, round_=0.005)
+    cyl(mb, 0, 0, 1.01, 1.15, 0.085, 0.09, shade('#2a2a30'), seg=18, round_=0.01)
+    cyl(mb, 0, 0, 1.02, 1.05, 0.092, 0.092, shade('#c83a3a'), seg=18)
+    return [(mb, 'main')]
+
+
+def harvest_stack():
+    """The square's corners for the Harvest Festival and Feast Day: a hay bale with a big pumpkin and a little white one on
+    top, two more pumpkins and a gourd on the ground in front, and a sheaf of corn stalks tied with a ribbon leaning at its
+    back corner, about a tile across."""
+    out = hay()
+    mb = out[0][0]
+    for (x, y, z, r, h, lo, hi, sd) in ((0.12, 0.0, 0.5, 0.17, 0.13, '#c8641e', '#f4a040', 3), (-0.24, 0.06, 0.5, 0.1, 0.08, '#d8d0b8', '#f8f2e0', 4),
+                                         (-0.48, -0.38, 0.0, 0.15, 0.11, '#c8641e', '#f4a040', 5), (0.45, -0.42, 0.0, 0.11, 0.09, '#b85a1e', '#e89a3a', 6)):
+        ribbed(mb, (x, y, z + h * 0.97), r, h, lo=lo, hi=hi, seg=36, rings=14)
+        stem(mb, (x, y, z + h * 1.77), r=0.02, h=0.06, lean=0.03, seed=sd)
+    # a striped gourd lying in front
+    ball(mb, (0.0, -0.46, 0.06), (0.09, 0.06, 0.06), lambda p, n: rgb('#e8c040').lerp(rgb('#3a8a3a'), 1.0 if math.sin(p.x * 70) > 0.3 else 0.0), sub=3)
+    # the corn sheaf: stalks bundled and tied, fanning at the top with long drooping leaves, a few ears with their husks
+    rng = random.Random(9)
+    stalk = shade('#c8a858')
+    for k in range(12):
+        a = k / 12 * math.tau
+        bx, by = 0.36 + math.cos(a) * 0.05, 0.24 + math.sin(a) * 0.05
+        tx, ty, tz = bx + math.cos(a) * 0.2 + rng.uniform(-0.03, 0.03), by + math.sin(a) * 0.12, 1.1 + rng.uniform(-0.1, 0.08)
+        tube(mb, [(bx, by, 0.0), (bx, by, 0.55), (tx, ty, tz)], 0.026, stalk, seg=6, r1=0.01)
+        # two leaves off each stalk, arching out and down
+        for (f, sz) in ((0.62, 0.3), (0.82, 0.24)):
+            px, py, pz = bx + (tx - bx) * (f - 0.5) * 2 * 0.5, by + (ty - by) * (f - 0.5), 0.55 + (tz - 0.55) * (f - 0.45) / 0.55
+            ox, oy = math.cos(a + rng.uniform(-0.4, 0.4)), math.sin(a + rng.uniform(-0.4, 0.4))
+            tube(mb, [(px, py, pz), (px + ox * sz * 0.5, py + oy * sz * 0.4, pz + sz * 0.25), (px + ox * sz, py + oy * sz * 0.7, pz - sz * 0.25)], 0.018, shade('#d8bc6a'), seg=4, r1=0.004)
+    for (dx, dy) in ((0.06, -0.05), (-0.05, -0.06)):
+        ball(mb, (0.36 + dx, 0.24 + dy, 0.62), (0.03, 0.03, 0.09), shade('#f0c040'), sub=2)
+    cyl(mb, 0.36, 0.24, 0.5, 0.56, 0.065, 0.065, shade('#c83a3a'), seg=14)
+    return [(mb, 'main')]
+
+
 def merge(dst, src, off=(0, 0, 0)):
     """one mesh's pieces added to another's, moved by off"""
     o = Vector(off)
@@ -1133,6 +1321,10 @@ PROPS = {
     'volleyball': volleyball, 'noodle_cart': noodle_cart, 'barrel': barrel,
     'fairy_mushroom': fairy_mushroom, 'bunting': lambda: bunting(['#e85a5a', '#f8c040', '#5ab0e0', '#f088b0', '#7ac860']),
     'bunting_green': lambda: bunting(['#3a9a4a', '#8ad070', '#f4f0e0', '#5ab85a']), 'bunting_spooky': lambda: bunting(['#f08a24', '#7a3ab8', '#2e2a36', '#f8c040']),
+    'bunting_winter': lambda: bunting(['#d83a3a', '#3a8a4a', '#f8d048', '#f4f0e0']), 'bunting_lunar': lambda: bunting(['#d82a2a', '#f8c040']),
+    'bunting_hearts': lambda: bunting(['#e83a5a', '#ffffff', '#f088b0']), 'bunting_july': lambda: bunting(['#d83a3a', '#ffffff', '#3a5ad8']),
+    'bunting_harvest': lambda: bunting(['#c8641e', '#e8b040', '#9a3a2a', '#7a8a3a']), 'harvest_stack': harvest_stack,
+    'sign_forsale': sign_forsale, 'sign_comingsoon': sign_comingsoon, 'grand_lights': grand_lights, 'grand_presents': grand_presents, 'snowman': snowman,
     'jack_o_lantern': jack_o_lantern, 'jack_o_lantern_b': lambda: jack_o_lantern('oh', 0.3, 0.25, seed=3), 'jack_stack': jack_stack, 'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
     'bigtree_planter': bigtree_planter, 'reeds': reeds, 'lilypad': lilypad, 'lilypad_flower': lambda: lilypad(True), 'pebbles': pebbles, 'falls_rocks': falls_rocks,
 }
@@ -1169,7 +1361,12 @@ def build(name):
     sails = None
     if isinstance(out, tuple) and len(out) == 3:
         out, sails, anchors = out
-    for mb, part in out:
+    for item in out:
+        # (a finished object, letters made by buildings.text, goes in as it is)
+        if not isinstance(item, tuple):
+            objs.append(item)
+            continue
+        mb, part = item
         objs.append(mb.obj(f'{name}_{part}', vmat(f'{name}_{part}', rough=0.35 if part == 'water' else 0.75)))
     if extra == 'statue_doll':
         objs += statue_doll()

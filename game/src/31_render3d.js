@@ -57,6 +57,8 @@ const R3 = {
             let coarse = false;
             try { coarse = matchMedia('(pointer: coarse)').matches; } catch (e) { /* old browser */ }
             this.phone = coarse || Math.min(screen.width, screen.height) < 600;
+            // (or the picture quality picked in Settings: GFX)
+            if (GFX.quality()) this.quality = GFX.quality();
             Post3.init(r);
             Object.assign(R3U, { tRefl: { value: null }, uReflMat: { value: new THREE.Matrix4() }, uRefl: { value: 0 } });
             const scene = new THREE.Scene();
@@ -263,7 +265,8 @@ const R3 = {
     },
     /* if this device struggles, step down once: a smaller picture */
     watchSpeed() {
-        if (this.stepped) return;
+        // (on Auto only: a quality picked in Settings stays as picked)
+        if (this.stepped || GFX.quality()) return;
         const now = performance.now();
         if (this._last) this.slow.push(now - this._last);
         this._last = now;
@@ -447,7 +450,7 @@ const R3 = {
         }
     },
     /* how far anything is drawn (fog fades things out before it): the handheld games' trick, shorter on phones */
-    farTiles() { return (this.phone ? R3_FAR.phone : R3_FAR.full) * this.dist() / 13; },
+    farTiles() { return (this.phone ? R3_FAR.phone : R3_FAR.full) * this.dist() / 13 * GFX.far(); },
     /* the part of the world on screen (with some room around it), in world pixels */
     updateView() {
         const v = G.view;
@@ -685,6 +688,21 @@ const R3 = {
 const R3_TALK = { on: true, near: 0.48, pitch: 9, up: 0.35, ease: 0.07 };
 const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.007, lead: 4, skyDrop: 0.22 };
 const R3_FAR = { phone: 17, full: 27 };     // tiles ahead that get drawn (at the normal zoom)
+/* the graphics settings (David, 26 October: a quality setting and a draw distance, each with its own default for laptops
+   and phones), kept per device. Auto is the device's own: a phone draws a lighter picture and less far, and a computer that
+   turns out slow drops its picture quality by itself (watchSpeed); a choice in Settings stays as picked. High quality
+   keeps the water's reflections (R3Mirror). */
+const GFX = {
+    Q: { low: 0.55, medium: 0.8, high: 1 },
+    F: { near: 0.75, normal: 1, far: 1.35 },
+    pick(k) { return lsGet(k === 'q' ? 'sc-quality' : 'sc-far') || 'auto'; },
+    quality() { return this.Q[this.pick('q')] || null; },
+    far() { return this.F[this.pick('f')] || 1; },
+    set(k, v) {
+        lsSet(k === 'q' ? 'sc-quality' : 'sc-far', v);
+        if (k === 'q' && R3.ok) { R3.quality = this.quality() || 1; R3.stepped = false; R3.slow = []; R3._last = 0; R3.resize(); }
+    },
+};
 const R3_FOG = { col: [0.6, 0.77, 0.92], near: 0.6, far: 0.98 };     // a clear blue haze far off, like the sky behind it
 const R3_ZS = 1.25;         // the flat art is drawn for a steeper view: stretch the ground a little in depth
 const R3_VS = 1.12;         // and stand cards a little taller so they don't look squashed from this angle

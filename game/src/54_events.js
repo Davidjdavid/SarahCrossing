@@ -7,7 +7,7 @@ function dailyCheck(force) {
     S.day = day;
     G.weather = todayWeather();
     G.events = todayEvents();
-    try { postYesterday(); Requests.tick(); dayStatsTick(); arcadeRivals(); shopsTick(); festTick(); bankTick(); postTick(); townTick(); worldFetch(); marketDividends(); communityTick(); flowerBreed(); } catch (e) { console.error(e); }
+    try { postYesterday(); Requests.tick(); dayStatsTick(); arcadeRivals(); shopsTick(); festTick(); bankTick(); postTick(); townTick(); worldFetch(); marketDividends(); communityTick(); flowerBreed(); vacationTick(); } catch (e) { console.error(e); }
     const r = mulberry(hash32(S.seed + ':mail:' + day));
     if (!first) {
         // Harvard's letters and Joe's poems are for Sarah
@@ -105,8 +105,37 @@ function decorateIsland(a) {
         a.block(tx, ty, 1); e.solidTile = [tx, ty];
         return e;
     };
+    // the first spot near (x, y) where a decoration can stand
+    const standNear = (frame, x, y, light, model, maxR) => {
+        for (let r = 0; r <= (maxR || 3); r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+            const e = stand(frame, x + dx, y + dy, light, model);
+            if (e) return e;
+        }
+        return null;
+    };
+    // at every shop and building's front corners (and with houses, by every house's door: both sides of Sarah's); model
+    // is a name or a function of the spot
+    const fronts = (frame, model, houses, shops = true) => {
+        for (const [id, b] of Object.entries(W0.buildings)) {
+            const row = b.y + b.h, door = b.x + b.door, house = id === 'home' || id.startsWith('h_');
+            if (house ? !houses : !shops) continue;
+            const spots = id === 'home' ? [[door - 1, row], [door + 1, row]] : house ? [[door + (hash32(id) % 2 ? 1 : -1), row], [door - (hash32(id) % 2 ? 1 : -1), row]] : [[b.x, row], [b.x + b.w - 1, row]];
+            let n = 0;
+            for (const [x, y] of spots) if (x !== door && (!house || id === 'home' || !n) && stand(frame, x, y, true, typeof model === 'function' ? model(id + x) : model)) n++;
+        }
+    };
+    // what's made for the square's grand tree, standing with it (EnvTrees, in the tree's own coordinates); the flat views
+    // draw it over the tree's picture
+    const big = a.ents.find(e => e.kind === 'bigtree');
+    const grand = (model, draw, dy) => {
+        if (!big) return;
+        const e = a.add({ holiday: true, kind: 'deco', frame: null, grand: model, x: big.x, y: big.y + dy });
+        e.hit = null; e.draw = ctx => draw(ctx, big.x, big.y);
+    };
     const [x0, y0, x1, y1] = W0.plaza;
     const [hx, hy] = doorTileOf('home');
+    const winter = Clock.season() === 'winter';
     // Spooky Season (David, 27 October: decorations that fit the day, more the more it matters): big jack-o'-lanterns at
     // every shop and building's front corners and by every house's door, hay bales piled with pumpkins at the square's
     // corners, orange and purple bunting across it; on Halloween itself a jack-o'-lantern by every lamp post too
@@ -115,23 +144,49 @@ function decorateIsland(a) {
         for (const [x, y] of [[x0 + 1, y0 + 1], [x1 - 1, y0 + 1], [x0 + 1, y1 - 1], [x1 - 1, y1 - 1]]) {
             for (let r = 0; r <= 2; r++) if (stand('f_pumpkin_pile', x + (x < (x0 + x1) / 2 ? r : -r), y, true, 'jack_stack')) break;
         }
-        for (const [id, b] of Object.entries(W0.buildings)) {
-            const row = b.y + b.h, door = b.x + b.door, house = id === 'home' || id.startsWith('h_');
-            const spots = id === 'home' ? [[door - 1, row], [door + 1, row]] : house ? [[door + (hash32(id) % 2 ? 1 : -1), row], [door - (hash32(id) % 2 ? 1 : -1), row]] : [[b.x, row], [b.x + b.w - 1, row]];
-            let n = 0;
-            for (const [x, y] of spots) if (x !== door && (!house || id === 'home' || !n) && stand('f_pumpkin_lantern', x, y, true, jack(id + x))) n++;
-        }
+        fronts('f_pumpkin_lantern', jack, true);
         for (const [x, y] of [[x0 - 4, y1 + 5], [W0.spots.pier.x - 1, W0.spots.pier.y - 4]]) stand('f_pumpkin_lantern', x, y, true, jack(x + ',' + y));
         bunting('bunting', 'bunting_spooky');
         if (ev.has('halloween')) for (const p of W0.props) if (p.kind === 'lamp') { for (const dx of [1, -1]) if (stand('f_pumpkin_lantern', p.x + dx, p.y, true, jack(p.x + ',' + p.y))) break; }
     }
-    if (ev.has('lunar')) for (const [x, y] of [[x0 + 3, y0], [x1 - 3, y0], [x0 + 3, y1], [x1 - 3, y1], [W0.spots.spring.x - 2, W0.spots.spring.y]]) put('f_lunar_lantern', x, y, true);
-    if (ev.has('lights')) for (const [x, y] of [[x0, y0 + 1], [x1, y0 + 1], [x0, y1 - 1], [x1, y1 - 1], [hx - 3, hy + 1], [hx + 3, hy + 1]]) put('f_red_lantern', x, y, true);
+    // the Winter Lights (three weeks of December, the year's biggest): the grand tree strung with lights and a star, a
+    // wreath on every door (shownLook), red lanterns at the square's corners, by Sarah's house and at every shop's front
+    // corners, red and green bunting; on the Winter Holiday itself presents under the tree and a lantern by every door
+    if (ev.has('lights') || ev.has('winterfest')) {
+        grand('grand_lights', drawTreeLights, 1);
+        for (const [x, y] of [[x0, y0 + 1], [x1, y0 + 1], [x0, y1 - 1], [x1, y1 - 1], [hx - 3, hy + 1], [hx + 3, hy + 1]]) put('f_red_lantern', x, y, true);
+        fronts('f_red_lantern', null, ev.has('winterfest'));
+        bunting('bunting', 'bunting_winter');
+        if (ev.has('winterfest')) grand('grand_presents', drawTreePresents, 2);
+    }
+    // a snowman or two all winter: by the square and by Sarah's house
+    if (winter) for (const [x, y] of [[x0 - 2, y1 + 1], [x1 + 2, y1 + 1], [hx + 3, hy + 3]]) {
+        const e = standNear('snowman', x, y, false, 'snowman');
+        if (e) e.draw = ctx => drawSnowman(ctx, e);
+    }
+    // Lunar New Year: lanterns round the square, by the spring and at every shop, red and gold bunting
+    if (ev.has('lunar')) {
+        for (const [x, y] of [[x0 + 3, y0], [x1 - 3, y0], [x0 + 3, y1], [x1 - 3, y1], [W0.spots.spring.x - 2, W0.spots.spring.y]]) put('f_lunar_lantern', x, y, true);
+        fronts('f_lunar_lantern', null, false);
+        bunting('bunting', 'bunting_lunar');
+    }
+    // Valentine's Day: heart lamps round the square and by Sarah's door, hearts on the bunting
+    if (ev.has('valentine')) {
+        for (const [x, y] of [[x0 + 3, y0 + 1], [x1 - 3, y0 + 1], [x0 + 3, y1 - 1], [x1 - 3, y1 - 1], [hx - 2, hy + 1]]) put('f_heart_lamp', x, y, true);
+        bunting('bunting', 'bunting_hearts');
+    }
+    // the Harvest Festival and Feast Day: hay bales with pumpkins and corn at the square's corners, autumn bunting
+    if (ev.has('harvest') || ev.has('feastday')) {
+        for (const [x, y] of [[x0 + 1, y0 + 1], [x1 - 1, y0 + 1], [x0 + 1, y1 - 1], [x1 - 1, y1 - 1]]) {
+            for (let r = 0; r <= 2; r++) if (stand('f_pumpkin_pile', x + (x < (x0 + x1) / 2 ? r : -r), y, false, 'harvest_stack')) break;
+        }
+        bunting('bunting', 'bunting_harvest');
+    }
     if (ev.has('birthday')) for (const [x, y] of [[x0 + 4, y0 + 2], [x1 - 4, y0 + 2], [x0 + 7, y0 + 1]]) put('f_heart_lamp', x, y, true);
     // little holidays: bunting, lanterns or hearts around the plaza
     for (const h of holidaysToday()) {
         if (!h.deco) continue;
-        if (h.deco.startsWith('bunting')) bunting(h.deco, h.deco);
+        if (h.deco.startsWith('bunting')) bunting(Assets.frames[h.deco] ? h.deco : 'bunting', h.deco);
         else if (h.deco === 'lanterns') { for (const [x, y] of [[x0, y0 + 1], [x1, y0 + 1], [x0, y1 - 1], [x1, y1 - 1]]) put('f_lunar_lantern', x, y, true); }
         else if (h.deco === 'hearts') { for (const [x, y] of [[x0 + 3, y0 + 1], [x1 - 3, y0 + 1], [x0 + 3, y1 - 1], [x1 - 3, y1 - 1]]) put('f_heart_lamp', x, y, true); }
     }
@@ -145,6 +200,8 @@ function decorateIsland(a) {
             if (f) put(deco, f[0], f[1], true);
         }
     }
+    // (the houses' pictures, which wear a wreath while the Winter Lights are up)
+    if (typeof applyExteriors === 'function') for (const e of a.ents) if (e.kind === 'building' && HOUSE_BASE[e.id]) e.frame = exteriorFrame(e.id);
     // bunting across three open tiles of the square, and the row behind them, near each of its four quarters
     function bunting(frame, model) {
         const open3 = (x, y) => {
@@ -162,6 +219,39 @@ function decorateIsland(a) {
             e.hit = null;
         }
     }
+}
+
+/* the flat views' winter decorations: lights swagged across the big tree's crown (blinking in turn) with a star on top,
+   presents at its foot, a snowman */
+const TREE_LIGHT_COLS = ['#ff4a4a', '#ffd24a', '#4aa8ff', '#5ad86a', '#fff4dc', '#ff8ad0'];
+function drawTreeLights(ctx, bx, by) {
+    let k = 0;
+    for (const [dy, hw] of [[-50, 22], [-38, 26], [-26, 23]]) {
+        for (let i = 0; i <= 8; i++) {
+            const u = i / 8 * 2 - 1, x = Math.round(bx + u * hw), y = Math.round(by + dy + 4 * (1 - u * u) - 2);
+            const c = TREE_LIGHT_COLS[(k++ + (G.t >> 5)) % TREE_LIGHT_COLS.length];
+            ctx.fillStyle = c; ctx.fillRect(x, y, 2, 2);
+        }
+    }
+    ctx.fillStyle = '#f8c83a';
+    ctx.fillRect(bx - 1, by - 70, 2, 7); ctx.fillRect(bx - 3, by - 68, 6, 2); ctx.fillRect(bx - 2, by - 65, 1, 2); ctx.fillRect(bx + 1, by - 65, 1, 2);
+    ctx.fillStyle = '#fff4b8'; ctx.fillRect(bx - 1, by - 68, 1, 1);
+}
+function drawTreePresents(ctx, bx, by) {
+    for (const [dx, dy] of [[-18, 4], [-8, 7], [8, 6], [18, 3]]) spr(ctx, 'ui_present', bx + dx, by + dy);
+}
+function drawSnowman(ctx, e) {
+    const x = Math.round(e.x), y = Math.round(e.y);
+    const disc = (cx, cy, r, c) => { ctx.fillStyle = c; for (let j = -r; j <= r; j++) { const w = Math.round(Math.sqrt(r * r - j * j)); ctx.fillRect(cx - w, cy + j, w * 2, 1); } };
+    spr(ctx, 'shadow_s', x, y);
+    disc(x, y - 6, 6, '#c8d4e4'); disc(x, y - 7, 5, '#f4f8ff');
+    disc(x, y - 15, 4, '#c8d4e4'); disc(x, y - 16, 4, '#f4f8ff');
+    disc(x, y - 22, 3, '#c8d4e4'); disc(x, y - 23, 3, '#f4f8ff');
+    ctx.fillStyle = '#d83a3a'; ctx.fillRect(x - 4, y - 20, 8, 2); ctx.fillRect(x + 1, y - 19, 2, 4);
+    ctx.fillStyle = '#24242a'; ctx.fillRect(x - 2, y - 24, 1, 1); ctx.fillRect(x + 1, y - 24, 1, 1); ctx.fillRect(x, y - 16, 1, 1); ctx.fillRect(x, y - 13, 1, 1);
+    ctx.fillRect(x - 4, y - 26, 8, 1); ctx.fillRect(x - 3, y - 31, 6, 5);
+    ctx.fillStyle = '#f08a2a'; ctx.fillRect(x, y - 23, 2, 1);
+    ctx.fillStyle = '#6a4a2a'; ctx.fillRect(x - 8, y - 18, 4, 1); ctx.fillRect(x + 4, y - 18, 4, 1); ctx.fillRect(x - 9, y - 19, 1, 1); ctx.fillRect(x + 8, y - 19, 1, 1);
 }
 
 /* ---------------------------------------------------------------- birthday */

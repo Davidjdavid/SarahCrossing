@@ -476,6 +476,21 @@ function appToday() {
     P.body.appendChild(cal);
 }
 
+/* picture quality and draw distance (31_render3d.js GFX), kept per device */
+function gfxSetting() {
+    const box = el('div', 'field');
+    box.style.marginTop = '14px';
+    for (const [k, label, names, tip] of [['q', 'Picture quality', ['auto', 'low', 'medium', 'high'], 'Lower is smoother on slower devices. High shows reflections in the water.'],
+        ['f', 'Draw distance', ['auto', 'near', 'normal', 'far'], 'How far off the island is drawn before the haze.']]) {
+        box.appendChild(el('span', null, label));
+        const row = el('div', 'st-row');
+        const draw = () => { row.innerHTML = ''; for (const n of names) row.appendChild(chip(cap(n), () => { GFX.set(k, n); draw(); }, GFX.pick(k) === n ? 'on' : '')); };
+        draw();
+        box.appendChild(row);
+        box.appendChild(el('p', 'muted', tip));
+    }
+    return box;
+}
 function appSettings() {
     const P = UI.open({ title: 'Settings', phone: true, back: backToPhone });
     const b = P.body;
@@ -502,6 +517,7 @@ function appSettings() {
     // the island's name and clock are Sarah's to set
     if (!Online.visitor()) { b.appendChild(islandNameSetting()); b.appendChild(clockSetting()); }
     b.appendChild(zoomSetting());
+    if (R3.available()) b.appendChild(gfxSetting());
     b.appendChild(el('h3', null, '')).style.margin = '8px 0 0';
     const note = el('p', 'muted', Cloud.problem === 'offline' ? "Can't reach the island server right now. Your island is kept on this device and saves online once the connection is back."
         : 'Your island saves online as you play, so it follows you to any device.');

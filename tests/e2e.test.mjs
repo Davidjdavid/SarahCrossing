@@ -698,6 +698,37 @@ test('the watering can: Fortune sells one; flowers of a kind side by side, both 
   await page.context().close();
 });
 
+test("Fortune's shop on Market Lane stays open after hours on the honor system; Fortune has a house; the lots have their signs", async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play' && !G.busy);
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(10, 20, 23.5);
+    const out = { lane: W0.buildings.shop.y === W0.buildings.restaurant.y && W0.buildings.shop.x > W0.buildings.builder.x, closed: !roomOpen('shop') };
+    const said = [], say0 = UI.say, ask0 = UI.ask;
+    UI.say = async (who, t) => { said.push(t); };
+    UI.ask = async () => 2;
+    await enterBuilding('shop');
+    out.inside = G.area.id === 'shop';
+    await staffAway();
+    out.note = said.some((t) => /gone home for the night/.test(t));
+    await leaveInterior();
+    out.signs = W0.props.filter((p) => p.kind === 'sign_land').length + ',' + W0.props.filter((p) => p.kind === 'sign_lot').length;
+    out.house = !!ROOMS.h_fortune && NPC_DEFS.fortune.house === 'h_fortune';
+    // at night Fortune is asleep at home
+    await visitHouse('h_fortune');
+    out.asleep = said.some((t) => /Fortune is asleep/.test(t));
+    UI.say = say0; UI.ask = ask0;
+    return out;
+  });
+  assert.deepEqual(res, { lane: true, closed: true, inside: true, note: true, signs: '2,1', house: true, asleep: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test("the camera's scrapbook: a photo says what's in it, and the scrapbook keeps a page for each with a bio, counted but never out of a total", async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
@@ -821,10 +852,10 @@ test('the island: every spot and door can be walked to (the mountain, the forest
       if (!can(x, y, 0)) pockets++;
       if (+W0.height[y][x] > 0 && [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]].some(([dx, dy]) => W0.grid[y + dy][x + dx] === '~')) seaEdge++;
     }
-    const B = W0.buildings, rowA = ['boutique', 'salon', 'studio', 'displays'], rowB = ['restaurant', 'arcade', 'club', 'builder'];
+    const B = W0.buildings, rowA = ['boutique', 'salon', 'studio', 'displays'], rowB = ['restaurant', 'arcade', 'club', 'builder', 'shop'];
     const rows = rowA.every((id) => B[id].y === B.boutique.y) && rowB.every((id) => B[id].y === B.restaurant.y) && B.restaurant.y > B.boutique.y + B.boutique.h;
     return { pockets, seaEdge, rows, spots, doors, stair: coveStair.length, cove: can(...cove, 1), coveShut: shut(...cove, 1), civic: ['townhall', 'postoffice', 'bank'].map((id) => !!(W0.buildings[id] && Assets.dyn[W0.buildings[id].sprite])),
-      cuke: !!W0.buildings.h_cuke, square: ['shop', 'postoffice', 'townhall', 'bank', 'museum'].every((id) => W0.buildings[id].y + W0.buildings[id].h === W0.plaza[1]) };
+      cuke: !!W0.buildings.h_cuke, square: ['postoffice', 'townhall', 'bank', 'museum'].every((id) => W0.buildings[id].y + W0.buildings[id].h === W0.plaza[1]), fortune: !!(W0.buildings.h_fortune && ROOMS.h_fortune) };
   });
   assert.deepEqual(r.spots, [], 'every spot the neighbors use can be walked to');
   assert.deepEqual(r.doors, [], 'every door can be walked to');
@@ -833,7 +864,7 @@ test('the island: every spot and door can be walked to (the mountain, the forest
   assert.ok(r.rows, 'the shops stand in two rows, the alley between them');
   assert.ok(r.stair >= 3 && r.cove && !r.coveShut, `the cove is reached only by its stair from the farm (${JSON.stringify(r)})`);
   assert.deepEqual(r.civic, [true, true, true], 'the Town Hall, the Post Office and the Bank stand on the square, with pictures');
-  assert.ok(r.cuke && r.square, 'Cuke has a house; the civic row opens onto the square');
+  assert.ok(r.cuke && r.square && r.fortune, 'Cuke and Fortune have houses; the civic row opens onto the square');
   // their doors are signs for now
   const said = await page.evaluate(async () => { const out = []; UI.say = async (who, t) => { out.push(t); }; await enterBuilding('townhall'); await enterBuilding('bank'); return out; });
   assert.ok(/TOWN HALL/.test(said[0]) && /BANK/.test(said[1]));
@@ -884,6 +915,214 @@ test('holiday events: eggs to find on the Egg Hunt (gone the next day), and a Fi
     return out;
   });
   assert.deepEqual(res, { eggs: 8, paid: 240, recipe: true, left: 0, open: true, trophy: 1, again: 0 });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('neighbors find things of their own to do (the stars only at night), a chat is acted out: one talks, the other listens', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(() => {
+    const out = {}, n = NPCs.get('maki'), m = NPCs.get('kai');
+    const free = (o, x, y) => { Object.assign(o, { area: 'island', x: x * TILE, y: y * TILE, path: null, sleeping: false, fixed: false, talking: false, script: false, chat: null, idle: null, anchor: [x, y] }); o.want = { area: 'island', x: o.x, y: o.y }; };
+    // (the clock jump places everyone where their day says: put her back out on the square each time)
+    const kinds = (h) => { __dbg.setTime(6, 12, h); G.weather = 'sunny'; free(n, 116, 110); const k = new Set(); for (let i = 0; i < 200; i++) { n.idle = null; idleStart(n); if (n.idle) k.add(n.idle.kind); } n.idle = null; return k; };
+    free(n, 116, 110);
+    const night = kinds(22), noon = kinds(12);
+    out.night = night.has('stars') && !night.has('snack');
+    out.noon = !noon.has('stars') && noon.has('snack') && [...noon].every((k) => IDLE_ACTS[k]);
+    // busy with something: no chat; walking off ends it
+    __dbg.setTime(6, 12, 12);
+    free(n, 116, 110);
+    idleStart(n);
+    out.busy = !!n.idle && !Chats.free(n);
+    n.path = [[117, 110]];
+    updateNPC(n);
+    out.ended = n.idle === null;
+    // a chat: whoever's line it is talks, the other listens (and nods now and then)
+    free(n, 116, 110); free(m, 117, 110);
+    Chats.start(n, m);
+    const c = Chats.list.find((x) => x.a === n);
+    c.t = c.dur;
+    const sp = EnvDolls.act(n, {}), li = EnvDolls.act(m, {});
+    out.chat = { talks: !!sp.talking, listens: li.listen === n, text: typeof c.text === 'string' && c.text.length > 0 };
+    let nods = 0;
+    const d = {};
+    for (let i = 0; i < 400; i++) { G.t++; if (EnvDolls.act(m, d).nod > 0) nods++; }
+    out.nods = nods > 0;
+    Chats.end(c);
+    return out;
+  });
+  assert.deepEqual(res, { night: true, noon: true, busy: true, ended: true, chat: { talks: true, listens: true, text: true }, nods: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('vacations: rare, one at a time, on the board; friends see them off at the pier, a postcard, a souvenir, a note on the door', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const say = UI.say;
+    const said = [];
+    UI.say = async (who, text) => { said.push(String(text)); };
+    const out = {}, today = Clock.dayNum();
+    const go = (dn, h) => { Clock.offsetMs += (dn - Clock.dayNum()) * 864e5; Clock.offsetMs += (h - Clock.hourF()) * 3600e3; G.events = todayEvents(); Plans.reset(); };
+    try {
+      // a year of them: each neighbor a few times, never two at once
+      let most = 0, trips = 0, v = null;
+      for (let d = today; d < today + 365; d++) {
+        const away = Object.keys(VAC).filter((id) => vacationOf(id, d));
+        most = Math.max(most, away.length);
+        for (const id of away) if (vacationOf(id, d).leave === d) { trips++; if (!v && id === 'kai') v = vacationOf(id, d); }
+      }
+      out.year = { most, trips: trips >= 20 && trips <= 80, kai: !!v, long: v && v.back - v.leave >= 3 && v.back - v.leave <= 5 };
+      const r = rel('kai'); r.met = true; r.pts = 9999;
+      // the morning they leave: at the pier with a suitcase, onto the boat, two friends there to see them off
+      go(v.leave, 9);
+      const p = Plans.get('kai'), pier = p.segs.find((s) => s.spot === 'pier');
+      out.leave = { pier: !!pier && pier.bags, boat: p.sleepAt === 'boat', friends: Object.keys(VAC).filter((id) => (vacationOverride(id, v.leave) || []).length).length, board: boardTodayLines().some((l) => /Kai leaves for/.test(l)), line: /this morning/.test(vacationLine('kai') || '') };
+      // away: no plan, the board and texts say so, a note on the door, a postcard in the mail
+      go(v.leave + 1, 12);
+      dailyCheck(true);
+      out.away = { plan: !!Plans.get('kai').away, texts: whereabouts('kai').away, board: boardTodayLines().some((l) => /Kai is on vacation/.test(l)), postcard: S.mail.some((m) => m.from === 'kai' && /postcard/i.test(m.subject)) };
+      said.length = 0;
+      await visitHouse('h_kai');
+      out.door = said.some((s) => /note on the door/.test(s) && s.includes(v.place));
+      // back: off the boat in the afternoon, a souvenir for a good friend
+      go(v.back, 16);
+      dailyCheck(true);
+      const q = Plans.get('kai');
+      out.back = { boat: q.wakeAt === 'boat', away: !q.away, souvenir: S.mail.some((m) => m.from === 'kai' && m.gift === VAC.kai.gift), line: /I'm back/.test(vacationLine('kai') || '') };
+    } finally { UI.say = say; }
+    return out;
+  });
+  assert.deepEqual(res, {
+    year: { most: 1, trips: true, kai: true, long: true },
+    leave: { pier: true, boat: true, friends: 2, board: true, line: true },
+    away: { plan: true, texts: true, board: true, postcard: true },
+    door: true,
+    back: { boat: true, away: true, souvenir: true, line: true },
+  });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('catchphrases: each neighbor ends some lines with theirs; a good friend takes a new one (and reacts), kept with the island', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, n = NPCs.get('kai'), r = rel('kai');
+    const ends = (id, word) => { let k = 0; for (let i = 0; i < 400; i++) if (voiced(id, 'Hello there ' + 'x'.repeat(i)).endsWith(' ' + word)) k++; return k; };
+    out.own = ends('kai', 'Bro.') > 50;
+    out.tidy = catchClean('  wow!!  <b>x</b>  ') === 'wow!! bxb' && catchClean('a'.repeat(30)).length === 16;
+    // not a good enough friend yet: no option; at four hearts there is
+    r.met = true; r.pts = 0;
+    const said = [], say = UI.say, ask = UI.ask, text = window.askText;
+    let opts = null;
+    UI.say = async (who, t) => { said.push(String(t)); };
+    UI.ask = async (who, t, choices) => { opts = opts || choices.slice(); return choices.length - 1; };
+    try {
+      await neighborTalk(n);
+      out.early = !opts.includes('New catchphrase?');
+      r.pts = HEARTS[4]; r.talkDay = Clock.dayNum(); opts = null;
+      await neighborTalk(n);
+      out.offered = opts.includes('New catchphrase?');
+      window.askText = async () => 'tubular';
+      said.length = 0;
+      await catchFlow(n);
+      out.taught = { kept: r.catch === 'tubular', react: said.some((s) => /Tubular/.test(s)), ends: ends('kai', 'Tubular.') > 50, once: r.catchDay === Clock.dayNum() };
+    } finally { UI.say = say; UI.ask = ask; window.askText = text; }
+    out.saved = JSON.parse(JSON.stringify(S)).npcs.kai.catch === 'tubular';
+    delete r.catch;
+    out.back = catchOf('kai') === 'bro';
+    return out;
+  });
+  assert.deepEqual(res, { own: true, tidy: true, early: true, offered: true, taught: { kept: true, react: true, ends: true, once: true }, saved: true, back: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('graphics settings: picture quality and draw distance, Auto by default, kept per device', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(() => {
+    const out = { auto: GFX.pick('q') === 'auto' && GFX.pick('f') === 'auto' && GFX.quality() === null && GFX.far() === 1 };
+    GFX.set('q', 'low'); GFX.set('f', 'far');
+    out.picked = { q: GFX.quality(), f: GFX.far(), kept: localStorage.getItem('sc-quality') === 'low' && localStorage.getItem('sc-far') === 'far' };
+    const box = gfxSetting();
+    out.chips = box.querySelectorAll('button.chip').length;
+    out.on = [...box.querySelectorAll('button.chip.on')].map((b) => b.textContent);
+    GFX.set('q', 'auto'); GFX.set('f', 'auto');
+    out.back = GFX.quality() === null && GFX.far() === 1;
+    return out;
+  });
+  assert.deepEqual(res, { auto: true, picked: { q: 0.55, f: 1.35, kept: true }, chips: 8, on: ['Low', 'Far'], back: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('holiday decorations fit the day: Spooky Season, the Winter Lights and Holiday, snowmen all winter, Valentine\'s', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(() => {
+    const a = G.areas.island, out = {};
+    const day = (m, d) => { __dbg.setTime(m, d, 12); dailyCheck(true); decorateIsland(a); };
+    const deco = () => a.ents.filter((e) => e.holiday);
+    const n = (f) => deco().filter(f).length;
+    const looks = JSON.stringify(S.exteriors || {});
+    day(10, 28);
+    out.spooky = { jacks: n((e) => /^jack_o_lantern/.test(e.model3d || '')) >= 20, stacks: n((e) => e.model3d === 'jack_stack'), bunting: n((e) => e.model3d === 'bunting_spooky') > 0, snow: n((e) => e.model3d === 'snowman') };
+    day(12, 5);
+    const snow = deco().filter((e) => e.model3d === 'snowman');
+    out.early = { snowmen: snow.length >= 2 && snow.every((e) => e.solidTile && a.blockedAt(...e.solidTile)), lights: n((e) => e.grand), wreath: !!shownLook('h_coco').wreath };
+    day(12, 15);
+    out.lights = { tree: n((e) => e.grand === 'grand_lights'), presents: n((e) => e.grand === 'grand_presents'), lanterns: n((e) => e.frame === 'f_red_lantern' && e.solidTile) >= 10, bunting: n((e) => e.model3d === 'bunting_winter') > 0, wreath: !!shownLook('h_coco').wreath };
+    const shopLanterns = n((e) => e.frame === 'f_red_lantern' && e.solidTile);
+    day(12, 24);
+    out.holiday = { presents: n((e) => e.grand === 'grand_presents'), more: n((e) => e.frame === 'f_red_lantern' && e.solidTile) > shopLanterns };
+    out.saved = JSON.stringify(S.exteriors || {}) === looks && !houseLook('h_coco').wreath;
+    day(2, 14);
+    out.valentine = n((e) => e.model3d === 'bunting_hearts') > 0 && n((e) => e.frame === 'f_heart_lamp') >= 5;
+    day(9, 22);
+    out.harvest = { stacks: n((e) => e.model3d === 'harvest_stack'), bunting: n((e) => e.model3d === 'bunting_harvest') > 0 };
+    day(7, 4);
+    out.july = n((e) => e.model3d === 'bunting_july' && e.frame === 'bunting') > 0;
+    const tiles = snow.map((e) => e.solidTile);
+    day(6, 12);
+    out.summer = { left: deco().length, unblocked: tiles.every(([x, y]) => !a.blockedAt(x, y)), wreath: !!shownLook('h_coco').wreath };
+    return out;
+  });
+  assert.deepEqual(res, {
+    spooky: { jacks: true, stacks: 4, bunting: true, snow: 0 },
+    early: { snowmen: true, lights: 0, wreath: false },
+    lights: { tree: 1, presents: 0, lanterns: true, bunting: true, wreath: true },
+    holiday: { presents: 1, more: true },
+    saved: true,
+    valentine: true,
+    harvest: { stacks: 4, bunting: true },
+    july: true,
+    summer: { left: 0, unblocked: true, wreath: false },
+  });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

@@ -382,7 +382,125 @@ def stool():
     return [(mb, 'main')]
 
 
-PROPS = {'style_stool': stool, 'style_bench': bench, 'style_lamp': lamp, 'style_armchair': armchair, 'style_cake': cake, 'style_shovel': shovel, 'style_rod': rod}
+# ---------------------------------------------------------------- things in hand (33kd_doll_idle.js)
+# What the neighbors hold when they're not busy (David, 27 October: things they do, each its own animation): each one's
+# origin is where the hand holds it, its front (Blender -y) toward the face of whoever holds it, chunky enough to read
+# at playing distance.
+def book():
+    """An open book held in both hands: two red cloth covers open in a shallow V, cream pages fanned a little, a ribbon
+    marker hanging from the spine; the origin at the spine's middle."""
+    mb = MB()
+    cloth = paint('#c84a4a', under=0.1, top=0.1)
+    for sx in (-1, 1):
+        m = len(mb.v)
+        X = lambda a, b: (min(sx * a, sx * b), max(sx * a, sx * b))
+        x0, x1 = X(0, 0.13)
+        rbox(mb, x0, -0.006, -0.085, x1, 0.006, 0.085, cloth, r=0.005)
+        for k in range(3):
+            x0, x1 = X(0.004, 0.124 - k * 0.004)
+            rbox(mb, x0, -0.016 - k * 0.006, -0.078 + k * 0.002, x1, -0.008 - k * 0.006, 0.078 - k * 0.002, paint('#fbf4e2', under=0.05), r=0.004)
+        # lines of print on the top page
+        for j in range(7):
+            z = 0.058 - j * 0.019
+            x0, x1 = X(0.018, 0.11 - (0.03 if j == 6 else 0))
+            rbox(mb, x0, -0.0315, z - 0.003, x1, -0.029, z + 0.003, shade('#8a8278'), r=0.001)
+        # (the covers open in a V, their outer edges toward the reader)
+        xform(mb, m, rot(z=-sx * 0.42))
+    cyl(mb, 0, 0, -0.088, 0.088, 0.012, 0.012, cloth, seg=10)
+    tube(mb, [(0.0, -0.01, -0.08), (0.006, -0.02, -0.11), (0.0, -0.02, -0.135)], 0.004, shade('#f8c040'), seg=5)
+    return [(mb, 'main')]
+
+
+def phone():
+    """A phone with a pastel case and a little charm, its screen lit (a *_glow part: blue with app squares); the origin
+    at its middle."""
+    mb, gl = MB(), MB()
+    rbox(mb, -0.046, -0.012, -0.08, 0.046, 0.012, 0.08, paint('#f4a0c0', under=0.1, top=0.12), r=0.014)
+    rbox(gl, -0.038, -0.0135, -0.068, 0.038, -0.011, 0.07, shade('#8ad0f0'), r=0.008)
+    for i in range(3):
+        for j in range(4):
+            c = ['#ffd24a', '#5ad86a', '#ff6a8a', '#ffffff'][(i + j) % 4]
+            x, z = -0.022 + i * 0.022, 0.048 - j * 0.026
+            rbox(gl, x - 0.008, -0.0142, z - 0.008, x + 0.008, -0.0128, z + 0.008, shade(c), r=0.003)
+    tube(mb, [(0.038, 0.0, -0.076), (0.05, 0.0, -0.095), (0.05, 0.0, -0.11)], 0.003, shade('#f2ead8'), seg=4)
+    ball(mb, (0.05, 0.0, -0.118), 0.011, '#ffd24a', sub=2)
+    return [(mb, 'main'), (gl, 'glow')]
+
+
+def snack():
+    """An ice cream cone: a waffle cone with its criss-cross, a strawberry scoop and a mint one on top, a cherry; the origin
+    at the cone's middle, where it's held."""
+    mb = MB()
+    waffle = lambda p, n: rgb('#d8a058').lerp(rgb('#a86a30'), 0.55 if (math.sin((p.z + math.atan2(p.y, p.x) * 0.02) * 120) > 0.6 or math.sin((p.z - math.atan2(p.y, p.x) * 0.02) * 120) > 0.6) else 0.0)
+    lathe(mb, [(0.0, -0.07), (0.012, -0.05), (0.032, 0.02), (0.042, 0.06), (0.044, 0.068)], waffle, seg=18)
+    ball(mb, (0, 0, 0.09), (0.05, 0.05, 0.043), paint('#f7a0b4', under=0.12, top=0.12), sub=3)
+    ball(mb, (0, 0, 0.14), (0.042, 0.042, 0.038), paint('#a8e8c8', under=0.12, top=0.12), sub=3)
+    ball(mb, (0.006, -0.004, 0.182), 0.013, '#d82a3a', sub=2)
+    tube(mb, [(0.006, -0.004, 0.19), (0.012, 0.0, 0.215)], 0.0025, shade('#5a8a2a'), seg=4)
+    return [(mb, 'main')]
+
+
+def cup():
+    """A big mug of cocoa with a marshmallow, a handle on its side; the origin at its middle."""
+    mb, gl = MB(), MB()
+    lathe(gl, [(0.0, -0.05), (0.042, -0.05), (0.046, -0.045), (0.048, 0.04), (0.045, 0.05), (0.04, 0.05), (0.04, 0.034)], paint('#5aa0d8', under=0.12, top=0.1), seg=24, cap_top=False, cap_bot=True)
+    lathe(mb, [(0.0, 0.032), (0.04, 0.032)], shade('#6a3a22'), seg=24)
+    rbox(mb, -0.015, -0.015, 0.03, 0.015, 0.015, 0.05, paint('#fbf6ee', under=0.05), r=0.007)
+    tube(gl, [(0.045, 0.0, 0.025), (0.072, 0.0, 0.02), (0.075, 0.0, -0.01), (0.068, 0.0, -0.03), (0.046, 0.0, -0.032)], 0.009, paint('#5aa0d8', under=0.05), seg=8)
+    return [(mb, 'main'), (gl, 'gloss')]
+
+
+def brush():
+    """A paintbrush: a red handle, a silver ferrule, bristles dipped in blue; the origin at the grip, the bristles up."""
+    mb, gl = MB(), MB()
+    lathe(gl, [(0.0, -0.09), (0.008, -0.085), (0.01, 0.0), (0.008, 0.06)], paint('#d8443a', under=0.05, top=0.15), seg=10)
+    lathe(gl, [(0.008, 0.058), (0.009, 0.062), (0.009, 0.09), (0.0075, 0.095)], shade('#c8ccd2'), seg=10, cap_top=False)
+    lathe(mb, [(0.0076, 0.094), (0.009, 0.11), (0.006, 0.13), (0.0, 0.14)], lambda p, n: rgb('#e8d4a8').lerp(rgb('#3a7ad8'), min(1.0, max(0.0, (p.z - 0.11) / 0.025))), seg=10)
+    return [(mb, 'main'), (gl, 'gloss')]
+
+
+def palette():
+    """A painter's palette: a kidney of pale wood with a thumb hole, six blobs of paint round its edge; the origin at the
+    thumb hole, its face toward -y."""
+    mb = MB()
+    out = []
+    for k in range(28):
+        a = k / 28 * math.tau
+        r = 0.11 * (1 + 0.08 * math.cos(a * 2)) - (0.03 if abs(math.atan2(math.sin(a - 3.6), math.cos(a - 3.6))) < 0.35 else 0)
+        out.append((0.06 + math.cos(a) * r * 1.2, math.sin(a) * r * 0.9))
+    slab(mb, out, 0.012, grain('#e8c890', 'x', 2.0), axis='y', at=-0.006)
+    for i, c in enumerate(['#d8443a', '#f8c040', '#5ab85a', '#3a7ad8', '#fbf6ee', '#b05ad0']):
+        a = 0.5 + i * 0.75
+        x, z = 0.06 + math.cos(a) * 0.09, math.sin(a) * 0.065
+        ball(mb, (x, -0.01, z), (0.016, 0.008, 0.016), shade(c), sub=2)
+    return [(mb, 'main')]
+
+
+def suitcase():
+    """A neighbor's suitcase for a vacation (6zj_vacations.js): an old-fashioned case in teal with tan leather corners and
+    straps, a brass catch, travel stickers, carried by its handle (the origin, at the top of the grip; the case hangs below)."""
+    mb, gl = MB(), MB()
+    W, D, H, top = 0.17, 0.07, 0.26, -0.035
+    rbox(mb, -W, -D, top - H, W, D, top, paint('#3aa0a0', under=0.15, top=0.08), r=0.03)
+    leather = paint('#b87a42', under=0.1, top=0.1)
+    for x in (-W * 0.55, W * 0.55):
+        rbox(mb, x - 0.016, -D - 0.006, top - H - 0.004, x + 0.016, D + 0.006, top + 0.004, leather, r=0.006)
+    for (x, z) in ((-W, top - H), (W, top - H), (-W, top), (W, top)):
+        ball(mb, (x * 0.97, 0, z + (-0.008 if z == top else 0.008)), (0.022, D + 0.006, 0.022), leather, sub=2)
+    rbox(gl, -0.022, -D - 0.008, top - 0.07, 0.022, -D + 0.002, top - 0.035, shade('#e8c050'), r=0.004)
+    # the handle: a leather loop on two brass lugs
+    for x in (-0.05, 0.05):
+        rbox(gl, x - 0.01, -0.012, top - 0.004, x + 0.01, 0.012, top + 0.012, shade('#e8c050'), r=0.004)
+    tube(mb, [(-0.05, 0, top + 0.008), (-0.045, 0, top + 0.03), (0, 0, top + 0.04), (0.045, 0, top + 0.03), (0.05, 0, top + 0.008)], 0.009, leather, seg=8)
+    # travel stickers on the front
+    for (x, z, c, r) in ((-0.035, top - 0.12, '#f8d048', 0.03), (0.04, top - 0.17, '#e86a8a', 0.028), (-0.02, top - 0.215, '#fbf6ee', 0.022)):
+        m = len(mb.v)
+        cyl(mb, 0, 0, 0, 0.004, r, r, shade(c), seg=16)
+        xform(mb, m, Matrix.Translation((x, -D - 0.001, z)) @ rot(x=math.pi / 2))
+    return [(mb, 'main'), (gl, 'gloss')]
+
+
+PROPS = {'style_stool': stool, 'style_suitcase': suitcase, 'style_book': book, 'style_phone': phone, 'style_snack': snack, 'style_cup': cup, 'style_brush': brush, 'style_palette': palette, 'style_bench': bench, 'style_lamp': lamp, 'style_armchair': armchair, 'style_cake': cake, 'style_shovel': shovel, 'style_rod': rod}
 
 
 def build(name):

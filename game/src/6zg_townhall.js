@@ -292,8 +292,7 @@ function flagCanvas(scale) {
     cells.forEach((v, i) => { g.fillStyle = FLAG_PAL[v]; g.fillRect((i % FLAG_W) * k, Math.floor(i / FLAG_W) * k, k, k); });
     return c;
 }
-/* Residents: for good friends (three hearts), when they wake and go to bed, and what they wear today (catchphrases come
-   with the friendship update) */
+/* Residents: for good friends (three hearts), when they wake and go to bed, what they wear today and their catchphrase */
 CIVIC_LIVE.residents = {
     draw(b, f, redraw) {
         const T = town(), ids = NEIGHBORS.filter(id => S.npcs[id] && S.npcs[id].met && NPC_DEFS[id]);
@@ -328,7 +327,13 @@ CIVIC_LIVE.residents = {
             b.appendChild(w);
             CV.note(b, 'Just for today: tomorrow they pick for themselves again.');
         }
-        CV.field(b, 'Catchphrase (coming with the friendship update)', '', 'Not yet', { max: 16 }).disabled = true;
+        // (their catchphrase: 6zk_catchphrases.js)
+        CV.h(b, 'Their catchphrase');
+        const cf = CV.field(b, 'Catchphrase', catchOf(pick) || '', 'A word or two', { max: 16 });
+        const cr = el('div', 'st-row');
+        cr.appendChild(chip('Teach it', () => { const v = catchClean(cf.value); if (!v) return; r.catch = v; Save.touch(); UI.toast(`${d.name} will try out '${v}'.`); redraw(); }, 'go'));
+        if (r.catch) cr.appendChild(chip('Their old one', () => { delete r.catch; Save.touch(); redraw(); }));
+        b.appendChild(cr);
     },
 };
 CIVIC_LIVE.backups = {
