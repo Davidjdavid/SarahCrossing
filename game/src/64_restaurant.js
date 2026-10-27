@@ -27,13 +27,14 @@ function buildRestaurantRoom(a) {
     items.forEach(it => { if (use[it.id]) it.use = use[it.id]; });
     a.items = items;
     placeFurniture(a, items);
-    // chairs at the seats (you can walk around them; neighbors sit in them), and whatever's being eaten on the table
+    // chairs at the seats (you can walk around them; neighbors sit in them), and whatever's being eaten on the table; in
+    // the new look each is a stool, so the round folks fit (David, 27 October)
     ROOMS.restaurant.guestSpots.forEach(([fx, fy, face], i) => {
         const [x, y] = toArea(fx, fy);
         const ch = a.add({ kind: 'deco', x: (x + 0.5) * TILE, y: (y + 1) * TILE - 3, flip: face === 'left' });
         ch.sy = (y + 0.5) * TILE + 3;
         ch.draw = ctx => spr(ctx, 'f_dining_chair', ch.x, ch.y);
-        ch.look3d = { model: 'furn_dining_chair', face };
+        ch.look3d = { model: 'furn_diner_stool', face };
         const [tx, ty] = toArea(...SEAT_TABLE[i]);
         const plate = a.add({ kind: 'deco', x: (tx + 0.5) * TILE, y: (ty + 1) * TILE - 13 });
         plate.sy = (ty + 1) * TILE;

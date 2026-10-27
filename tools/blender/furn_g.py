@@ -288,3 +288,18 @@ def arcade_backdoor(P):
     rbox(mb, -0.3, -0.09, 1.14, 0.3, -0.07, 1.32, '#f2e6c8', r=0.01)
     for k in range(7):
         rbox(mb, -0.24 + k * 0.07, -0.096, 1.2, -0.2 + k * 0.07, -0.088, 1.26, '#c0283a', r=0.003, mid=0)
+
+
+@item('diner_stool', 1, 1)
+def diner_stool(P):
+    """Mac's stools (David, 27 October: every seat at the restaurant a stool, so the round folks fit): a fat red cushion
+    with white piping on a short chrome post and a round foot, no back; the seat at a chair's height (0.46)."""
+    steel = lambda p, n, *_: rgb('#c8ccd4') * (0.72 + 0.34 * max(0.0, n.z * 0.5 + 0.5))
+    lathe(P.gloss, [(0.0, 0.0), (0.17, 0.0), (0.18, 0.012), (0.16, 0.026), (0.05, 0.036), (0.0, 0.036)], steel, seg=28)
+    cyl(P.gloss, 0, 0, 0.03, 0.34, 0.032, 0.03, steel, seg=12)
+    lathe(P.gloss, [(0.0, 0.33), (0.13, 0.335), (0.16, 0.35), (0.0, 0.352)], steel, seg=24)
+    vinyl = lambda p, n, *_: rgb('#d8343a') * (0.8 + 0.22 * max(0.0, n.z))
+    lathe(P.gloss, [(0.0, 0.35), (0.19, 0.352), (0.215, 0.37), (0.225, 0.4), (0.22, 0.43), (0.2, 0.452), (0.12, 0.462), (0.0, 0.464)], vinyl, seg=32)
+    ring = [(math.cos(k / 32 * math.tau) * 0.224, math.sin(k / 32 * math.tau) * 0.224, 0.405) for k in range(33)]
+    tube(P.main, ring, 0.009, shade('#fbf6ee'), seg=6)
+    P.top(0.46)

@@ -47,8 +47,18 @@ const EnvDolls = {
     },
     /* those who aren't neighbors but stand in a room now and then: the council's judges, the ghost near midnight */
     guests(a) { return a && a.interior ? a.ents.filter(e => (e.kind === 'judge' || (e.kind === 'ghost' && typeof Quests !== 'undefined' && Quests.ghostHere())) && this.folkOf(e)) : []; },
-    /* sitting: Sarah on a bench, a neighbor seated or lounging */
-    sitting(e) { return !!e.sit || (!!e.def && (isSeated(e) || isLounging(e))); },
+    /* sitting: Sarah on a bench, a neighbor seated or lounging, or at a table */
+    sitting(e) { return !!e.sit || this.atTable(e) || (!!e.def && (isSeated(e) || isLounging(e))); },
+    /* at a table: a guest in a seat at Mac's, or Sarah eating there, on the seat's stool and facing the table
+       (64_restaurant.js); tableZ is the stool's depth, where they sit */
+    atTable(e) {
+        const a = G.area;
+        if (!a || !a.interior) return false;
+        if (e === G.player) return a.id === 'restaurant' && G.eatSeat != null;
+        const w = e.want;
+        return !!(w && w.seat && !e.path && e.area === a.id && Math.abs(e.x - w.x) < 2 && Math.abs(e.y - w.y) < 2);
+    },
+    tableZ(e) { return (Math.floor(e.y / TILE) + 0.44) * R3_ZS; },
     /* a shopkeeper behind the counter along the back wall stands on a step there, so they show over it */
     step(e) {
         const a = G.area;
@@ -121,7 +131,7 @@ const EnvDolls = {
         root.visible = true;
         // (sitting on a bench: the seat's height, legs out in front)
         const gy = Env.groundH(e.x, e.y) + this.step(e), sitY = Q && Q.sit ? gy + 0.46 - 0.4 * DOLL.H : gy;
-        root.position.set(e.x / TILE, sitY + (e.hop || 0) / TILE, e.y / TILE * R3_ZS + (Q && Q.sit ? 0.12 : 0));
+        root.position.set(e.x / TILE, sitY + (e.hop || 0) / TILE, this.atTable(e) ? this.tableZ(e) : e.y / TILE * R3_ZS + (Q && Q.sit ? 0.12 : 0));
         root.rotation.y = d.ang;
         // where the joints want to be
         const ph = m.dist / (run ? 34 : 26) * Math.PI * 2, sw = walk ? Math.sin(ph) * (run ? 0.85 : 0.5) : 0;
@@ -225,9 +235,9 @@ const EnvDolls = {
        standing; it turns to where it's going, sits on a bench with its feet out, cheers with a bounce */
     poseFolk(d, e) {
         const walk = !!(e.moving || e.walking || e.glide), run = walk && !!(e.run || e.jog), t = G.t, P = d.parts;
-        const m = hdMotion(e, walk), seed = hdSeed(e.id || 0), seat = isSeated(e), lounge = isLounging(e);
+        const m = hdMotion(e, walk), seed = hdSeed(e.id || 0), table = this.atTable(e), seat = isSeated(e) || table, lounge = isLounging(e);
         const Q = e.pose && e.pose !== 'walk' ? e.pose : null;
-        const face = seat || lounge || Q === 'cheer' || Q === 'happy' ? 2 : m.face;
+        const face = (seat && !table) || lounge || Q === 'cheer' || Q === 'happy' ? 2 : m.face;
         const ang = [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][face];
         if (d.ang == null) d.ang = ang;
         let da = ang - d.ang;
@@ -239,7 +249,8 @@ const EnvDolls = {
         // where it stands: on the ground (a bench's seat, a blanket, down in the spring's water for Wonton)
         const gy = Env.groundH(e.x, e.y) + this.step(e), hop = (e.hop || 0) / TILE * 0.6;
         let y = gy + hop, z = e.y / TILE * R3_ZS;
-        if (seat) { y = gy + 0.36; z += 0.1; }
+        if (table) { y = gy + 0.44; z = this.tableZ(e); }
+        else if (seat) { y = gy + 0.36; z += 0.1; }
         else if (lounge) y = gy - 0.02;
         else if (e.def && e.def.spring) { const w = Env.waterH(e.x, e.y); y = (w != null ? w : gy) - 0.32; }
         else if (e.kind === 'ghost') y = gy + 0.18 + Math.sin(G.t / 13) * 0.06;

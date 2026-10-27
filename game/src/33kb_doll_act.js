@@ -112,7 +112,7 @@ Object.assign(EnvDolls, {
         const sp = Math.hypot(m.vx, m.vy);
         if (Q && !e.tool && !Q.rod && pk !== 'sit') ang = 0;
         else if (walk && sp > 0.3 && !sit) ang = Math.atan2(m.vx, m.vy);
-        else ang = [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][sit ? 2 : m.face];
+        else ang = [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][sit && !this.atTable(e) ? 2 : m.face];
         if (d.ang == null) d.ang = ang;
         let da = ang - d.ang;
         while (da > Math.PI) da -= Math.PI * 2;
@@ -123,7 +123,7 @@ Object.assign(EnvDolls, {
         const gy = Env.groundH(e.x, e.y) + this.step(e), sitY = Q && Q.sit ? gy + 0.46 - 0.3 * DOLL2.H : gy;
         // (the celebration's jump)
         const cj = A.cheer ? Math.sin((1 - A.cheer) * Math.PI) * 0.3 : 0;
-        root.position.set(e.x / TILE, sitY + (e.hop || 0) / TILE + cj, e.y / TILE * R3_ZS + (Q && Q.sit ? 0.12 : 0));
+        root.position.set(e.x / TILE, sitY + (e.hop || 0) / TILE + cj, this.atTable(e) ? this.tableZ(e) : e.y / TILE * R3_ZS + (Q && Q.sit ? 0.12 : 0));
         root.rotation.y = d.ang + (A.cheer ? (1 - A.cheer) * Math.PI * 2 : 0);
         // the step: legs swing from the hips and bend at the knees coming forward; the arms swing against them
         const ph = m.dist / (run ? 30 : 24) * Math.PI * 2, s = walk ? Math.sin(ph) : 0, c = walk ? Math.cos(ph) : 0;
@@ -188,11 +188,11 @@ Object.assign(EnvDolls, {
     /* ---------------------------------------------------------------- a redone folk */
     poseFolk2(d, e) {
         const walk = !!(e.moving || e.walking || e.glide), run = walk && !!(e.run || e.jog), t = G.t, P = d.parts;
-        const m = hdMotion(e, walk), seed = hdSeed(e.id || 0), seat = isSeated(e), lounge = isLounging(e);
+        const m = hdMotion(e, walk), seed = hdSeed(e.id || 0), table = this.atTable(e), seat = isSeated(e) || table, lounge = isLounging(e);
         const F = FOLK_ACT[d.folk] || FOLK_ACT.ginger, A = this.act(e, d);
         const Q = e.pose && e.pose !== 'walk' ? e.pose : null;
         const sp = Math.hypot(m.vx, m.vy);
-        let ang = (seat || lounge || Q === 'cheer' || Q === 'happy') ? 0 : walk && sp > 0.3 ? Math.atan2(m.vx, m.vy) : [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][m.face];
+        let ang = ((seat && !table) || lounge || Q === 'cheer' || Q === 'happy') ? 0 : walk && sp > 0.3 ? Math.atan2(m.vx, m.vy) : [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][m.face];
         // a glance back: the whole folk turns to look at who's after it, still running the other way
         if (A.glance && A.target) { const back = Math.atan2(A.target.x - e.x, (A.target.y - e.y) * R3_ZS); let dd = back - ang; while (dd > Math.PI) dd -= Math.PI * 2; while (dd < -Math.PI) dd += Math.PI * 2; ang += dd * 0.8 * A.glance; }
         if (d.ang == null) d.ang = ang;
@@ -204,7 +204,8 @@ Object.assign(EnvDolls, {
         root.visible = true;
         const gy = Env.groundH(e.x, e.y) + this.step(e), hop = (e.hop || 0) / TILE * 0.6 * F.bounce;
         let y = gy + hop, z = e.y / TILE * R3_ZS;
-        if (seat) { y = gy + 0.36; z += 0.1; }
+        if (table) { y = gy + 0.44; z = this.tableZ(e); }
+        else if (seat) { y = gy + 0.36; z += 0.1; }
         else if (lounge) y = gy - 0.02;
         else if (e.def && e.def.spring) { const w = Env.waterH(e.x, e.y); y = (w != null ? w : gy) - 0.32; }
         // (the old keeper floats, bobbing)

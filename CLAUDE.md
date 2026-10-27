@@ -196,7 +196,7 @@ docs/DEPLOY.md for the server.
   kit with no face or hair, the color of a dress form, wearing the outfit for sale (`EnvRoom.mannequin`), and the
   accessories for sale lie on her table as the pieces a doll wears (`EnvRoom.accessories`). Fittings with no furniture of
   their own say how the new look draws them in `look3d` (`EnvRoom.deco`): the shop's easel (a 3D easel and canvas, the
-  painting on it still its picture) and board, the restaurant's chairs and the dishes on its tables (what each seat is
+  painting on it still its picture) and board, the restaurant's stools (Mac's chairs in the 2D views) and the dishes on its tables (what each seat is
   eating, `seatDish`), the arcade's back door and crates; food on a table is its dish, a flower stands in a vase. The
   furniture loads after the island's models, so the island never waits for it. Glass is a part named `*_clear`
   (see-through).
