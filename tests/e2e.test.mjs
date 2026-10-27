@@ -646,6 +646,32 @@ test('shops grow: a letter, a day closed, then a bigger shop with more stock, a 
   await page.context().close();
 });
 
+test('the laptop: Order again lists what Sarah has had, but not quest things, keepsakes, prizes, tools or gifts, and orders one for tomorrow', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const yes = ['table_wood', 'wall_mint', 'out_sundress', 'tuna', 'ramen', 'conch', 'seed_carrot'], no = ['q_note', 'moonrock', 'plush_maki', 'trophy_rope', 'axe', 'bag_1', 'photo_maki', 'present'];
+  const names = await page.evaluate(([yes, no]) => {
+    for (const id of yes.concat(no)) S.seen[id] = S.seen[id] || 1;
+    S.money = 10000;
+    openLaptop();
+    return { yes: yes.map((id) => ITEMS[id].name), no: no.map((id) => ITEMS[id].name), tuna: ITEMS.tuna.name, price: ITEMS.tuna.price };
+  }, [yes, no]);
+  await page.locator('#panel .tabs button', { hasText: 'Order again' }).click();
+  const shown = await page.$$eval('#panel .list .row b', (bs) => bs.map((b) => b.textContent));
+  for (const n of names.yes) assert.ok(shown.includes(n), `${n} can be ordered again`);
+  for (const n of names.no) assert.ok(!shown.includes(n), `${n} is not for sale`);
+  assert.ok(await page.locator('#panel h3', { hasText: 'Fish' }).count());
+  await page.locator('#panel .list .row', { has: page.locator('b', { hasText: new RegExp(`^${names.tuna}$`) }) }).click();
+  const after = await page.evaluate(() => ({ money: S.money, box: pendingBox() && pendingBox().gifts }));
+  assert.deepEqual(after, { money: 10000 - names.price * 2, box: ['tuna'] });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('the arcade back room: a hidden mystery from Chili to Sully to the lighthouse, then the door opens', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
