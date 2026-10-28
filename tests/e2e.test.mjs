@@ -3206,3 +3206,47 @@ test('growing and making, the way a player does: seeds planted in a plot and pic
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test('the phone and the camera, the way a player uses them: a photo taken, an outfit changed in the wardrobe, a pot donated to the museum, a text answered, a letter read', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => { __dbg.setTime(11, 0, 14); __dbg.at('plaza'); });
+  // the camera: a photo goes in the album
+  const photos0 = await page.evaluate(() => Photos.list().length);
+  await page.evaluate(() => { Photo.start(); Photo.snap(); });
+  await page.waitForFunction((n) => Photos.list().length > n, photos0, { timeout: 15000 });
+  await page.evaluate(() => Photo.stop());
+  // the wardrobe: another outfit, tapped
+  const outfit = await page.evaluate(() => {
+    const other = Object.keys(ITEMS).filter((k) => ITEMS[k].type === 'outfit').map((k) => ITEMS[k].wear).find((o) => o && o !== S.player.outfit);
+    if (!S.wardrobe.outfits.includes(other)) S.wardrobe.outfits.push(other);
+    openWardrobe();
+    return other;
+  });
+  await page.locator(`#panel .slot[title="${await page.evaluate((o) => ITEMS['out_' + o].name, outfit)}"]`).first().click();
+  const wore = await page.evaluate((o) => S.player.outfit === o, outfit);
+  await page.evaluate(() => UI.close(true));
+  // a pot donated to the museum (Brulee's thanks skipped)
+  const donated = await page.evaluate(async () => {
+    const say = UI.say; UI.say = async () => {};
+    try { const id = __dbg.potPiece('frog', 'c'); await donatePot(id); return artState().pots.includes(id) && !pocketCount(id); } finally { UI.say = say; }
+  });
+  // a text: "Where are you?" to a neighbor who's up, and their answer comes back
+  const id = await page.evaluate(() => { const n = NPCs.list.find((m) => NEIGHBORS.includes(m.id) && !m.sleeping); rel(n.id).met = true; textThread(n.id); return n.id; });
+  await page.click('#panel .pfoot .btn:has-text("Where are you?"), #panel button:has-text("Where are you?")');
+  await page.waitForFunction((i) => textsOf(i).some((m) => !m.me && !m.sys), id, { timeout: 8000 });
+  await page.evaluate(() => UI.close(true));
+  // a letter in the Mail app, opened and read
+  const read = await page.evaluate(() => {
+    sendMail({ from: 'maki', subject: 'Test', body: 'A letter.' });
+    const m = S.mail[S.mail.length - 1];
+    appMail();
+    const row = [...document.querySelectorAll('#panel .row')].find((r) => r.textContent.includes('Test'));
+    row.click();
+    return m.read === true;
+  });
+  assert.deepEqual({ wore, donated, read }, { wore: true, donated: true, read: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
