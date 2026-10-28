@@ -334,7 +334,7 @@ EnvWater.FPRE = `
         float spark = step(0.988, sk) * sin(3.14159 * fract(st)) * smoothstep(0.32, 0.0, length(fract(tp * 5.0) - 0.5));
         wc += uSunCol * spark * 0.75 * dayK * open * clamp(lit, 0.3, 1.0);
         vec2 fc = floor(tp / 9.0);
-        float ft = uTime / 13.0 + r3h(fc) * 7.0, fi = floor(ft), ff = fract(ft);
+        float ft = uTime / 17.0 + r3h(fc) * 7.0, fi = floor(ft), ff = fract(ft) + step(r3h(fc + fi * 5.1), 0.6);      // (a fish now and then, not in every stretch of sea at once)
         vec2 fp = (fc + 0.15 + 0.7 * vec2(r3h(fc + fi * 1.3), r3h(fc + fi * 2.9 + 4.0))) * 9.0;
         float fd = length((tp - fp) * vec2(1.0, 1.25)), fk = ff / 0.3;
         if (fk < 1.0) wc += vec3(0.9, 0.96, 1.0) * (smoothstep(0.07, 0.0, abs(fd - fk * 1.4)) + smoothstep(0.06, 0.0, abs(fd - fk * 0.8)) * 0.6) * (1.0 - fk) * 0.3 * open * (0.4 + 0.6 * uLite);

@@ -599,9 +599,11 @@ const EnvGround = {
         for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) {
             const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht), lv = ok[ty * Wt + tx];
             if (lv < 0) continue;
-            const k = y * W + x, mv = m[k] + (hs2(x * 0.13, y * 0.13) - 0.5) * 0.14;
-            if (sea(tx, ty)) { if (mv < 0.5) h[k] = Math.max(h[k], BASE + lv * LV); }
-            else if (mv > 0.5) h[k] = Math.min(h[k], -0.45);
+            // (eased across the outline rather than cut at it: a point a step off the line is part way down, so the edge
+            // runs smoothly between the height points instead of in quarter-tile notches)
+            const k = y * W + x, mv = m[k] + (hs2(x * 0.13, y * 0.13) - 0.5) * 0.14, e = Math.min(1, Math.max(0, (mv - 0.38) / 0.24)), t = e * e * (3 - 2 * e);
+            if (sea(tx, ty)) { if (t < 1) h[k] = Math.max(h[k], h[k] + (BASE + lv * LV - h[k]) * (1 - t)); }
+            else if (t > 0) h[k] = Math.min(h[k], h[k] + (-0.45 - h[k]) * t);
         }
     },
     heightAt(u, v) {
