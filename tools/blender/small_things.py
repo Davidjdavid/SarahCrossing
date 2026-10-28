@@ -216,10 +216,11 @@ def gem_cut(c0, c1, r=0.13, h=0.2):
     tip = Vector((0, 0, 0))
     for k in range(n):
         k1 = (k + 1) % n
-        facet(mb, [G[k], G[k1], T[k]], c0, 0.8)
-        facet(mb, [T[k], G[k1], T[k1]], c0 if k % 2 else c1, 0.8)
-        facet(mb, [G[k1], G[k], tip], c1, 0.4)
-    facet(mb, list(reversed(T))[::-1], c0, 0.9)
+        # (a little shine: much more and the crown facets facing the light went white, the gem's color gone)
+        facet(mb, [G[k], G[k1], T[k]], c0, 0.22)
+        facet(mb, [T[k], G[k1], T[k1]], c0 if k % 2 else c1, 0.22)
+        facet(mb, [G[k1], G[k], tip], c1, 0.15)
+    facet(mb, list(reversed(T))[::-1], c0, 0.3)
     xform(mb, 0, Matrix.Translation((0, 0, 0.02)) @ Euler((0.35, 0, 0.3)).to_matrix().to_4x4())
     return mb
 

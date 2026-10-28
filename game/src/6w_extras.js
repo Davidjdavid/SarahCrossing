@@ -321,6 +321,7 @@ function appMusicLibrary(P, M, apply) {
         if (up) r.appendChild(btn('Remove', 'alt', () => {
             r.replaceChildren(el('div', 't', `Take ${g} off the server? Its ${ts.length} track${ts.length === 1 ? '' : 's'} go for good (upload them again to have them back).`));
             r.appendChild(btn('Remove it', 'alt', async () => {
+                MusicLib.forget(g);
                 try { await Cloud.api('DELETE', '/api/music/game?name=' + encodeURIComponent(g)); UI.toast(`${g} is off the island's music.`); } catch (e) { UI.toast("Couldn't remove it just now."); }
                 await MusicLib.load(true);
                 appMusic('library');

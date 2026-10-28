@@ -701,7 +701,7 @@ docs/DEPLOY.md for the server.
   One small folder both sites share (`DESIGN_DIR`, /srv/sarahcrossing-design; the nightly backup takes it).
 - The island's props keep their numbers (saves refer to them by number: `S.deco`, `S.cleared['pr' + i]`): the design's
   `props[i]` moves, turns (`rot`) or takes one away (`gone`, read by `propGone`; a picked-up one is `lift` till it's set
-  down), and its `added` go on the end of W0.props after the world's own (`WORLD_PROPS`; `base` says how many the world had
+  down; world.json's own `gone`, David's statue and its plaque, stays whatever the design says), and its `added` go on the end of W0.props after the world's own (`WORLD_PROPS`; `base` says how many the world had
   when it was saved, so props added to world.json later shift the design's: bake the design into plan.mjs first). A room's
   pieces are keyed by where they first stood (`id@x,y`, kept as `it.o`): `rooms[id]` { moved, gone, added }. A picked-up
   piece goes back down as itself (`Decor.heldIt`), so a counter keeps what it does.

@@ -2155,7 +2155,7 @@ test("David's music: uploaded from the Music app's way, each hour a game at rand
     out.now2 = [...document.querySelectorAll('#panel details.mlib summary')].map(s => s.textContent).join('|');
     UI.close();
     M.lib = '';
-    for (const g of ['Game One', 'Game Two']) await Cloud.api('DELETE', '/api/music/game?name=' + encodeURIComponent(g));
+    for (const g of ['Game One', 'Game Two']) { MusicLib.forget(g); await Cloud.api('DELETE', '/api/music/game?name=' + encodeURIComponent(g)); }
     await MusicLib.load(true);
     out.after = MusicLib.tracks.length;
     out.back = pick();

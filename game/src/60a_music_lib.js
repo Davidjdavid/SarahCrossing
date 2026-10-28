@@ -34,6 +34,9 @@ const MusicLib = {
         }
         if (typeof Music !== 'undefined') Music.update(true);
     },
+    /* before a game's files are taken off the server: its track stopped first (a short one ending would start again and ask
+       for a file that's gone) */
+    forget(game) { const c = typeof Music !== 'undefined' && Music.cur; if (c && c.file && String(c.path).startsWith(game + '/')) Music.stop(); },
     games() { return Object.keys(this.byGame || {}).sort((a, b) => a.localeCompare(b)); },
     hourlyGames(h) { return this.games().filter(g => this.byGame[g].some(t => t.hour === h && !this.bad[t.path])); },
     has(p) { return !!(this.byPath && this.byPath[p]) && !this.bad[p]; },
