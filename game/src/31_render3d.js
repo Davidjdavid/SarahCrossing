@@ -52,6 +52,22 @@ const R3 = {
             this.wx = wx;
             const r = new THREE.WebGLRenderer({ canvas: cv, antialias: false, alpha: false, powerPreference: 'high-performance' });
             r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+            // (three.js leaves out each mesh standing outside the view, but the view bends what's far down toward the horizon
+            // (R3_GLSL's bend): a part left out for standing over the top of the screen was bent into it, and a house lost its
+            // roof up there while its walls stayed (David, 29 October: "houses and props show up partial"). So each sphere is
+            // bent the same way first, and grown by how much more its far side drops)
+            if (!THREE.Frustum.prototype._r3Bent) {
+                const S = new THREE.Sphere();
+                THREE.Frustum.prototype.intersectsObject = function (o) {
+                    const g = o.geometry;
+                    if (g.boundingSphere === null) g.computeBoundingSphere();
+                    S.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
+                    const K = R3U.uBendK.value, far = R3U.uBendZ.value - (S.center.z - S.radius);
+                    if (K > 0 && far > 0) { const mid = Math.max(0, R3U.uBendZ.value - S.center.z), d = K * mid * mid; S.center.y -= d; S.radius += K * far * far - d; }
+                    return this.intersectsSphere(S);
+                };
+                THREE.Frustum.prototype._r3Bent = true;
+            }
             // (shadows fade out toward the sun's shadow box's edges, so wherever it ends there's no line where they stop)
             const SC = THREE.ShaderChunk;
             if (!SC.shadowmap_pars_fragment.includes('r3ScEdge')) SC.shadowmap_pars_fragment = 'float r3ScEdge( vec2 c ) { vec2 q = abs( c * 2.0 - 1.0 ); return 1.0 - smoothstep( 0.78, 0.98, max( q.x, q.y ) ); }\n'
@@ -585,10 +601,11 @@ const R3 = {
             for (const [k, c] of [['uSkyZen', u.uZen.value], ['uSkyMid', u.uMid.value], ['uSkyHor', u.uHor.value]]) R3U[k].value.set(c.r, c.g, c.b, 1);
         }
         this.grade = { dark, gray, warm: Env.on && !a.interior ? 1 - dark : room ? 0.75 : 0 };
-        // (in the new look the clouds' shadows drift over only while one of SeaSky's clouds is going over, by day)
+        // (in the new look the clouds' shadows drift over faintly on a fair day, and darker while one of SeaSky's clouds is
+        // going over, by day: David, 29 October, wanted to see the clouds go by)
         if (Env.on && !a.interior) {
-            const over = typeof SeaSky !== 'undefined' && SeaSky.sky.some(q => q.kind === 'cloud') ? 1 : 0;
-            R3U.uCloudK.value += (over * 1.5 * day * (1 - gray) - R3U.uCloudK.value) * 0.01;
+            const over = typeof SeaSky !== 'undefined' && SeaSky.sky.some(q => q.kind === 'cloud') ? 1.5 : 0.45;
+            R3U.uCloudK.value += (over * day * (1 - gray) - R3U.uCloudK.value) * 0.01;
         } else R3U.uCloudK.value = 1;
         // lit windows: from dusk, brighter as it gets darker, until whoever lives there goes to bed (Sarah leaves hers on)
         const glow = a.interior ? 0 : Math.max(0, Math.min(1, (dark - 0.25) / 0.45)) * 0.85;
@@ -1012,7 +1029,7 @@ function r3Sky(scene) {
               // (the haze only a thin band at the horizon: the camera looks down, so it sees little more of the sky than that)
               vec3 c = mix(uHor, uMid, smoothstep(-0.05, 0.015, y));
               c = mix(c, uZen, smoothstep(0.015, 0.22, y));
-              vec2 q = vDir.xz / max(0.08, y + 0.12) * 1.6 + vec2(uTime * 0.01, 0.0);
+              vec2 q = vDir.xz / max(0.08, y + 0.12) * 1.6 + vec2(uTime * 0.03, uTime * 0.006);      // (drifting by where it can be seen)
               float cl = n(q) * 0.6 + n(q * 2.3) * 0.3 + n(q * 5.1) * 0.1;
               float cover = smoothstep(0.6, 0.78, cl) * smoothstep(-0.005, 0.03, y);
               // the night sky: stars, small and twinkling, thinning toward the horizon and hidden behind the clouds, and the

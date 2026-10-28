@@ -445,8 +445,12 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] David's statue taken away altogether
 - [x] Every shop open to Sarah at any hour (the honor system when its keeper is off); the hours are for the keepers and
   the neighbors
-- [ ] Cliff edges: no jagged steps, the wall's lip matching the lawn, clean corners
-- [ ] Houses and props showing only partly, at every zoom
+- [~] Cliff edges: no jagged steps, the wall's lip matching the lawn, clean corners (the grass along the walls' tops now
+  takes the lawn's own color each season, no longer yellow in autumn; the sea cliffs follow a smooth outline instead of
+  stepping tile by tile along the coast's diagonals; the broken corner still to find)
+- [x] Houses and props showing only partly, at every zoom (three.js left out each part of a house or prop standing off
+  the top of the screen, but the view bends what's far down into it: a roof went while its walls stayed; the culling now
+  bends each part's bounds the same way)
 - [x] The map: the lighthouse and the windmill each their own picture
 - [x] The phone: fewer things on its front screen (apps in sections), and better icons (eight everyday apps, a Play
   folder and a Home & island folder, Save & quit at the foot; every icon redrawn as crisp shapes)
@@ -460,10 +464,13 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   longer covers goes to the area as it's drawn now, and a new area with none of their places in it is somewhere they go
   by day
 - [x] Wonton's sleeping bubble (and anyone's) only shows when they're near and in sight, not through cliffs
-- [ ] The old tree in the forest: a tree of its own, much larger, with branches
+- [x] The old tree in the forest: a tree of its own, much larger, with branches (an ancient spreading oak from Blender:
+  a short thick leaning trunk, great limbs forking out to clumps of leaves, sky and branches between them)
 - [x] Music: the hourly track loops less jarringly (when it ends, carry on from a few seconds in, faded across, rather
   than jumping back to the very start: the last second dips, it carries on five seconds in and swells back up)
-- [ ] The sea and sky more alive: the water moving, clouds drifting by, small things going on
+- [x] The sea and sky more alive: the water moving, clouds drifting by, small things going on (long swells rolling in,
+  the clouds' reflections drifting over the water, the sun winking on it, a fish's rings now and then; the sky's clouds
+  drift where they can be seen, and faint cloud shadows cross the island on a fair day)
 - [ ] Sheets of everything for review: every furniture piece, prop, neighbor and the like, its name and where it is
 
 ## David's notes from playing beta (28 October)

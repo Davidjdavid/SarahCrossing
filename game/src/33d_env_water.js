@@ -320,6 +320,25 @@ EnvWater.FPRE = `
     float sp = pow(max(0.0, dot(Rf, normalize(uSunDir))), 90.0);
     wc += uSunCol * sp * 1.6 * clamp(lit, 0.2, 1.0);
     wc += (h1 - 0.5) * 0.05;
+    // (the open sea alive (David, 29 October: "the ocean should have some animations... seeing clouds move by... just
+    // ambient things"): long swells rolling in toward the shore, the clouds' reflections drifting over it, the sun
+    // winking on it here and there by day, and now and then the rings where a fish came up)
+    if (isSea > 0.5) {
+        float open = smoothstep(0.25, 1.2, depth), dayK = smoothstep(0.5, 0.95, uLite);
+        float sw = sin(dot(tp, vec2(0.22, 0.92)) * 0.85 - uTime * 0.75 + r3n(tp * 0.11) * 4.0);
+        wc *= 1.0 + sw * 0.045 * open;
+        float cr = r3n(tp * 0.045 + vec2(uTime * 0.016, uTime * 0.005)) * 0.7 + r3n(tp * 0.11 - vec2(uTime * 0.01, 0.0)) * 0.3;
+        wc = mix(wc, uSky * 1.18 + 0.1, smoothstep(0.56, 0.8, cr) * 0.16 * open * dayK);
+        vec2 sc = floor(tp * 5.0);
+        float st = uTime * 0.9 + r3h(sc) * 9.0, sk = r3h(sc + floor(st) * 1.7);
+        float spark = step(0.988, sk) * sin(3.14159 * fract(st)) * smoothstep(0.32, 0.0, length(fract(tp * 5.0) - 0.5));
+        wc += uSunCol * spark * 0.75 * dayK * open * clamp(lit, 0.3, 1.0);
+        vec2 fc = floor(tp / 9.0);
+        float ft = uTime / 13.0 + r3h(fc) * 7.0, fi = floor(ft), ff = fract(ft);
+        vec2 fp = (fc + 0.15 + 0.7 * vec2(r3h(fc + fi * 1.3), r3h(fc + fi * 2.9 + 4.0))) * 9.0;
+        float fd = length((tp - fp) * vec2(1.0, 1.25)), fk = ff / 0.3;
+        if (fk < 1.0) wc += vec3(0.9, 0.96, 1.0) * (smoothstep(0.07, 0.0, abs(fd - fk * 1.4)) + smoothstep(0.06, 0.0, abs(fd - fk * 0.8)) * 0.6) * (1.0 - fk) * 0.3 * open * (0.4 + 0.6 * uLite);
+    }
     // raindrops: a ring spreading and fading in each little cell of the surface, each at its own moment
     if (uRain > 0.01) {
         vec2 q = tp * 3.0, cell = floor(q);

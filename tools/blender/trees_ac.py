@@ -206,6 +206,26 @@ TREES = {
     'tree_grand': dict(seed=21, lobes=[(-1.3, 0.05, 3.95, 1.32), (1.3, 0.05, 3.95, 1.32), (0.0, -0.32, 4.35, 1.28), (0.0, 0.5, 5.05, 1.22),
                                       (-0.72, 0.8, 4.55, 1.08), (0.78, 0.82, 4.45, 1.08)], height=4.1, r0=0.4, r1=0.26, roots=7, lean=0.08,
                        L=(0.48, 0.64), limbs=[(-1.0, 0.0, 3.7), (1.0, 0.05, 3.7), (0.0, -0.25, 4.0), (-0.4, 0.6, 4.4), (0.45, 0.62, 4.3)]),
+    # the big old tree in the forest (David, 29 October: "a different tree model altogether, much larger, branches"): an
+    # ancient spreading oak, about three times as wide as any other, on a short, thick, leaning trunk with roots flared
+    # wide; great limbs fork out from it (branches: each a path of points, x, y, z and the limb's radius there) to clumps
+    # of leaves at their ends, with sky and branches showing between them
+    'tree_old': dict(seed=33, height=2.5, r0=0.8, r1=0.5, roots=9, lean=0.16, L=(0.5, 0.66),
+                     bark=('#6e4224', '#8e5a32', '#ae7e50'),
+                     lobes=[(-2.75, 0.2, 3.75, 0.86), (2.7, 0.1, 3.85, 0.86), (0.15, 1.05, 4.75, 0.98), (-1.5, -0.8, 3.45, 0.68),
+                            (1.45, -0.7, 3.55, 0.68), (-0.5, 0.3, 5.45, 0.8), (-1.6, 1.1, 4.55, 0.74), (1.6, 1.05, 4.6, 0.74)],
+                     branches=[
+                         [(0, 0, 1.45, 0.44), (-1.0, 0.1, 2.2, 0.3), (-1.95, 0.1, 2.9, 0.2), (-2.6, 0.2, 3.5, 0.11)],
+                         [(0, 0, 1.55, 0.44), (1.05, -0.05, 2.3, 0.3), (1.95, 0.1, 3.0, 0.2), (2.55, 0.1, 3.6, 0.11)],
+                         [(0, 0.05, 1.8, 0.4), (0.2, 0.55, 2.95, 0.26), (0.15, 1.0, 4.3, 0.13)],
+                         [(-1.0, 0.1, 2.2, 0.2), (-1.4, -0.6, 3.1, 0.1)],
+                         [(1.05, -0.05, 2.3, 0.2), (1.35, -0.5, 3.2, 0.1)],
+                         [(0, 0.0, 1.9, 0.34), (-0.2, 0.15, 3.5, 0.2), (-0.5, 0.3, 5.0, 0.1)],
+                         [(0.2, 0.55, 2.95, 0.18), (-1.0, 0.85, 3.7, 0.12), (-1.5, 1.05, 4.25, 0.08)],
+                         [(0.2, 0.55, 2.95, 0.18), (1.05, 0.8, 3.75, 0.12), (1.5, 1.0, 4.3, 0.08)],
+                         [(-1.95, 0.1, 2.9, 0.12), (-2.2, -0.35, 3.35, 0.06)],
+                         [(1.95, 0.1, 3.0, 0.12), (2.3, -0.3, 3.45, 0.06)],
+                     ]),
 }
 GREEN = dict(dark='#2a6a2e', light='#8cd05c', fill='#24552a')
 SPRING = dict(leaves=[('#ffc8dc', 0.36), ('#ffb0cc', 0.26), ('#fff0f4', 0.22), ('#f48ab0', 0.1), ('#8ccc6a', 0.06)], fill='#b06a84')
@@ -287,11 +307,21 @@ def limb(mb, a, b, r0, r1, cols=('#b0702e', '#d8964c'), seg=10, rings=8):
 def broadleaf(name, spec, season='summer', lod=0):
     rng = random.Random(spec['seed'] + {'summer': 0, 'fall': 100, 'spring': 200, 'winter': 300}[season])
     mb = MB()
+    bark = spec.get('bark')
     trunk(mb, random.Random(spec['seed']), spec['height'], spec['r0'], spec['r1'], roots=spec.get('roots', 5), lean=spec.get('lean', 0.06),
-          seg=28 if lod == 0 else 16, rings=26 if lod == 0 else 14)
+          seg=28 if lod == 0 else 16, rings=26 if lod == 0 else 14, **({'cols': bark} if bark else {}))
     top = spec['height'] * 0.66
     for e in spec.get('limbs', []):
         limb(mb, Vector((0, 0, top)), Vector(e), spec['r1'] * 0.75, 0.06, seg=10 if lod == 0 else 6, rings=8 if lod == 0 else 4)
+    # (limbs that fork: each a path from the trunk out, a knuckle of bark at every bend so the pieces join smoothly)
+    lc = bark[:2] if bark else ('#b0702e', '#d8964c')
+    knot = rgb(lc[1]) * 0.92
+    for path in spec.get('branches', []):
+        pts = [(Vector(q[:3]), q[3]) for q in path]
+        for (a, ra), (b, rb) in zip(pts, pts[1:]):
+            limb(mb, a, b, ra, rb, cols=lc, seg=12 if lod == 0 else 7, rings=8 if lod == 0 else 4)
+        for c, r in pts[1:-1]:
+            fill(mb, c, r * 1.02, knot, squash=1.0, sub=2 if lod == 0 else 1)
     lobes = [(Vector(l[:3]), l[3]) for l in spec['lobes']]
     L = spec.get('L', (0.34, 0.48))[0 if lod == 0 else 1]        # (leaves a third of a lobe's radius: a leafy crown, not big shards)
     tone = tone_fn(season)

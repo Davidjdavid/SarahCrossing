@@ -115,7 +115,9 @@ docs/DEPLOY.md for the server.
   `assets/hdw-*.js` from 2b_exterior.js and the 32*.js files, so those files must not touch the page
   at load time). Until a picture arrives the card shows today's sprite. `hdNamed(name, true)` draws
   at once on the main thread (tests, sheets).
-- What the flat view draws over the world (effects, emotes, sky things) goes on the overlay canvas, placed with
+- three.js's culling bends each mesh's bounding sphere the way the view bends the world (`THREE.Frustum.prototype.
+  intersectsObject`, patched in R3's setup): culled by where it stood, a house's roof near the top of the screen went
+  while its walls stayed (David, 29 October). What the flat view draws over the world (effects, emotes, sky things) goes on the overlay canvas, placed with
   `R3.project` / `R3.localTransform`; anything drawn with `G.cam` would land in the wrong place. The weather and the
   lighthouse beam are drawn sharp on `R3.wx`, a canvas at the screen's resolution (`r3Sharp`).
 - The HUD, the dialogue and every screen wear one cozy look in every view (style.css, "one look for everything", the
@@ -664,7 +666,9 @@ docs/DEPLOY.md for the server.
   painted (`EnvModels.srgb`). The trees (autumn crowns in autumn), palms, pines and bushes replace the code-built ones
   and follow the game: a shaken tree sways, picked fruit and chopped trees go (`EnvTrees.tick`); the square's big tree is
   the grand tree, the island's landmark (`tree_grand`, trees_ac.py: twice as tall as the others, six lobes on a long bare
-  trunk with limbs), standing in a raised bed of stones (`bigtree_planter`, props_island.py; its 2x2 and the ring round it
+  trunk with limbs), and the big old tree in the woods' clearing an ancient spreading oak of its own (`tree_old`: a short
+  thick leaning trunk, limbs that fork out along `branches` paths to clumps of leaves with sky between them, David's note
+  of 29 October), standing in a raised bed of stones (`bigtree_planter`, props_island.py; its 2x2 and the ring round it
   but the corners are blocked, in the game and in layout.mjs); the cottage Sarah's
   house, the shop Fortune's, the other buildings theirs (`EnvBuild.BUILDINGS`: how far in front of its middle the
   front wall stands), and the props and flowers theirs (`EnvBuild.PROP_MODELS`: kind, size against its footprint, how
@@ -676,10 +680,12 @@ docs/DEPLOY.md for the server.
   cliff's stone (`EnvBuild.stairs`, climbed a step at a time: `EnvGround.stairH`), and `EnvContact`
   (33i_env_contact.js) darkens the ground softly under things (and `EnvGlow` lays a warm pool of light under every lamp,
   lantern and lit doorway at night). Ponds and streams (`EnvGround.shapeWater`) and the beaches (`shapeShore`) meet the
-  water along a blurred outline, not the tiles' steps; never over ground people walk on, though: every point of a walkable tile stays above the
+  water along a blurred outline, not the tiles' steps, and so do the sea cliffs where raised ground drops into the sea
+  (`shapeCliffs`: only the blocked rim is cut back and only the sea filled in); never over ground people walk on, though: every point of a walkable tile stays above the
   water (`keepDry`; Sarah's feet are a box as wide as her doll, `blockedFoot`), and a stream running out over the beach
   comes down to the sea's level over its last tiles (`surfAt`) to meet it; the depth map behind the water's shader also says where it flows
-  (streams' current streaks) and where it's the hot spring (milky, steaming). Until the models arrive the new look draws its own, and
+  (streams' current streaks) and where it's the hot spring (milky, steaming); the open sea has long swells rolling in, the
+  clouds' reflections drifting over it, the sun winking on it by day and now and then a fish's rings (David, 29 October). Until the models arrive the new look draws its own, and
   builds again once they have.
 
 ## The designer (6zza_designer.js, server/design.mjs)

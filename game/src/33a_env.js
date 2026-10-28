@@ -556,6 +556,54 @@ const EnvGround = {
         // (the beach where people walk stays dry, edges and all: the sea comes up to the tiles' line and no further)
         this.keepDry(h, W, R, 0, (tx, ty) => !sea(tx, ty) && !mouth(tx, ty) && ok[ty * Wt + tx], (x, y) => sea(x, y) || mouth(x, y), 0, 0, Wt - 1, Ht - 1);
     },
+    /* the sea cliffs where raised ground drops straight into the sea (David, 29 October: they stepped along every diagonal
+       of the coast, tile by tile): their edge follows the outline of the tiles blurred over about a tile, a corner of the
+       rim cut back and a notch of sea filled in, with a little wobble. Only the rim nobody walks on is lowered (a blocked
+       raised tile), and only the sea is raised, so where people walk stays as it is */
+    shapeCliffs(h, W, Hn) {
+        const R = ENV.RES, Wt = W0.w, Ht = W0.h, LV = ENV.LV, BASE = ENV.BASE;
+        const tileOf = (i, n) => Math.max(0, Math.min(n - 1, Math.floor(i / R - 0.001)));
+        const sea = (x, y) => x < 0 || y < 0 || x >= Wt || y >= Ht || this.waterAt(x, y) === 1;
+        const lvl = (x, y) => sea(x, y) ? -1 : +W0.height[y][x] || 0;
+        const rim = (x, y) => !sea(x, y) && lvl(x, y) > 0 && W0.coll[y] && W0.coll[y][x] === '1';
+        // (the tiles to reshape: the blocked rim of raised ground on the sea, and the sea beside it; the level a filled
+        // notch of sea rises to is the highest rim round it)
+        const ok = new Int8Array(Wt * Ht).fill(-1);
+        let any = false;
+        for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
+            let s = 0, top = -1, low = false;
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+                const nx = x + dx, ny = y + dy;
+                if (sea(nx, ny)) s++;
+                else if (rim(nx, ny)) top = Math.max(top, lvl(nx, ny));
+                else if (dx || dy) low = true;
+            }
+            if (sea(x, y) ? (top > 0 && !low) : (rim(x, y) && s > 0)) { ok[y * Wt + x] = sea(x, y) ? top : lvl(x, y); any = true; }
+        }
+        if (!any) return;
+        const hh = (a, b) => { let n = Math.imul(a, 374761393) + Math.imul(b, 668265263) | 0; n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n ^ (n >>> 16)) >>> 0) / 4294967296; };
+        const hs2 = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return (hh(xi, yi) * (1 - u) + hh(xi + 1, yi) * u) * (1 - v) + (hh(xi, yi + 1) * (1 - u) + hh(xi + 1, yi + 1) * u) * v; };
+        // the sea's share round each point, blurred over about a tile (running sums, as shapeShore does)
+        const m = new Float32Array(W * Hn), t = new Float32Array(Math.max(W, Hn)), r = R;
+        for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) m[y * W + x] = sea(tileOf(x + 0.5, Wt), tileOf(y + 0.5, Ht)) ? 1 : 0;
+        const line = (get, set, n) => {
+            for (let pass = 0; pass < 2; pass++) {
+                let acc = 0;
+                for (let i = -r; i <= r; i++) acc += get(Math.max(0, Math.min(n - 1, i)));
+                for (let i = 0; i < n; i++) { t[i] = acc / (2 * r + 1); acc += get(Math.min(n - 1, i + r + 1)) - get(Math.max(0, i - r)); }
+                for (let i = 0; i < n; i++) set(i, t[i]);
+            }
+        };
+        for (let y = 0; y < Hn; y++) line(i => m[y * W + i], (i, v) => { m[y * W + i] = v; }, W);
+        for (let x = 0; x < W; x++) line(i => m[i * W + x], (i, v) => { m[i * W + x] = v; }, Hn);
+        for (let y = 0; y < Hn; y++) for (let x = 0; x < W; x++) {
+            const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht), lv = ok[ty * Wt + tx];
+            if (lv < 0) continue;
+            const k = y * W + x, mv = m[k] + (hs2(x * 0.13, y * 0.13) - 0.5) * 0.14;
+            if (sea(tx, ty)) { if (mv < 0.5) h[k] = Math.max(h[k], BASE + lv * LV); }
+            else if (mv > 0.5) h[k] = Math.min(h[k], -0.45);
+        }
+    },
     heightAt(u, v) {
         const g = this.grid;
         if (!g) return 0;
@@ -756,6 +804,7 @@ const EnvGround = {
         lap('heights');
         this.shapeWater(h, W, Hn);
         this.shapeShore(h, W, Hn);
+        this.shapeCliffs(h, W, Hn);
         lap('water');
         this.grid = { h, W, Hn };
         const T = EnvTex, wall = T.wall(), sand = T.sand();
@@ -789,7 +838,10 @@ const EnvGround = {
                 const pt = (EnvTex.LAWN[s] || EnvTex.LAWN.summer).patch;
                 uniforms.uPatchA.value.set(...pt[0]); uniforms.uPatchB.value.set(...pt[1]);
                 uniforms.uSeason.value.set(...(s === 'winter' ? [1.1, 1.12, 1.18] : [1, 1, 1]), s === 'winter' ? 1 : 0);
-                R3U.uGrassTint.value.set(...({ spring: [1.25, 1.15, 1.05, 0], fall: [1.75, 1.05, 0.95, 0], winter: [1.3, 0.9, 1.25, 0.8] }[s] || [1, 1, 1, 0]));
+                // (the grass along the walls' tops takes the lawn's own change from summer, so it always matches the lawn
+                // beside it: a fixed tint made it glow yellow against autumn's olive lawn, David's note of 29 October)
+                const A = L.avg, S0 = EnvTex.lawn('summer').avg, k = c => Math.max(0.6, Math.min(1.6, A[c] / Math.max(0.01, S0[c])));
+                R3U.uGrassTint.value.set(k(0), k(1), k(2), s === 'winter' ? 0.8 : 0);
             }
             // (the ground gets wet over a few seconds of rain and dries off more slowly after)
             const wet = G.weather === 'rain' ? 1 : 0, R = this.rain;

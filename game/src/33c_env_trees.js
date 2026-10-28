@@ -37,6 +37,8 @@ const EnvTrees = {
         let rounds = ['tree_round_a' + suf, 'tree_round_b' + suf].filter(has);
         if (!rounds.length) rounds = ['tree_round_a', 'tree_round_b'].filter(has);
         const grand = ['tree_grand' + suf].filter(has).concat(['tree_grand'].filter(has)).slice(0, 1);
+        // (the big old tree in the forest: an ancient spreading oak of its own, trees_ac.py's tree_old: David, 29 October)
+        const old = ['tree_old' + suf].filter(has).concat(['tree_old'].filter(has)).slice(0, 1);
         const palms = ['palm_ac', 'palm_ac_b'].filter(has), pines = ['pine_a', 'pine_b'].filter(has);
         const shrubs = ({ fall: ['bush_fall', 'bush_fall', 'bush_holly'], winter: ['bush_holly'], spring: ['bush_azalea', 'bush_round'], summer: ['bush_hibiscus', 'bush_round'] }[season] || ['bush_round']).filter(has);
         const placed = {}, live = [];
@@ -79,6 +81,7 @@ const EnvTrees = {
                     if (has('bigtree_planter')) { (placed.bigtree_planter = placed.bigtree_planter || []).push(EnvModels.mat4(x, y, z, 0, 1, 1, R3_ZS)); ty = y + 0.27; }
                     if (grand.length) { list = grand; s = 1; }
                 }
+                if (e.kind === 'oldtree' && old.length) { list = old; s = 1; }
                 t = put(list, x, ty, z, r, s, (r() - 0.5) * 0.3);
                 // (the holidays' decorations made for the grand tree, in its own coordinates: the Winter Lights' strings of
                 // bulbs and star, the Winter Holiday's presents under it: 54_events.js decorateIsland)
