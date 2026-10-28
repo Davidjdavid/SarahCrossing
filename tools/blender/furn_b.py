@@ -30,6 +30,143 @@ def bricks(c='#b4483a', mortar='#d8c8b0', bw=0.22, bh=0.08):
     return f
 
 
+# ---------------------------------------------------------------- light shapes (furn_a, furn_c and furn_d use them too)
+def lbox(mb, x0, y0, z0, x1, y1, z1, color, r=0.012):
+    """A light rounded box: each face a flat rectangle inset by r, joined to its neighbours by a bevel shaded round (24
+    points, a quarter of a rounded box's), for the many boards, mouldings and trims on a piece."""
+    import itertools
+    fn = color if callable(color) else shade(color)
+    r = max(0.0005, min(r, (x1 - x0) * 0.45, (y1 - y0) * 0.45, (z1 - z0) * 0.45))
+    lo, hi = (x0, y0, z0), (x1, y1, z1)
+    pts, nrm, idx = [], [], {}
+    corners = list(itertools.product((0, 1), (0, 1), (0, 1)))
+    for a in range(3):
+        for s in (0, 1):
+            n = [0.0, 0.0, 0.0]
+            n[a] = 1.0 if s else -1.0
+            for c in corners:
+                if c[a] != s:
+                    continue
+                p = [lo[k] + r if c[k] == 0 else hi[k] - r for k in range(3)]
+                p[a] = hi[a] if s else lo[a]
+                idx[(a, s, c)] = len(pts)
+                pts.append(Vector(p))
+                nrm.append(Vector(n))
+    faces = []
+    for a in range(3):
+        b, d = (a + 1) % 3, (a + 2) % 3
+        for s in (0, 1):
+            q = []
+            for cb, cd in ((0, 0), (1, 0), (1, 1), (0, 1)):
+                c = [0, 0, 0]
+                c[a], c[b], c[d] = s, cb, cd
+                q.append(idx[(a, s, tuple(c))])
+            faces += [(q[0], q[1], q[2]), (q[0], q[2], q[3])]
+    # (the bevels along each edge, between the two faces that meet there, and a little triangle at each corner)
+    for e in range(3):
+        b, d = (e + 1) % 3, (e + 2) % 3
+        for sb in (0, 1):
+            for sd in (0, 1):
+                c0 = [0, 0, 0]
+                c0[b], c0[d] = sb, sd
+                c1 = list(c0)
+                c1[e] = 1
+                c0, c1 = tuple(c0), tuple(c1)
+                q = [idx[(b, sb, c0)], idx[(b, sb, c1)], idx[(d, sd, c1)], idx[(d, sd, c0)]]
+                faces += [(q[0], q[1], q[2]), (q[0], q[2], q[3])]
+    for c in corners:
+        faces.append((idx[(0, c[0], c)], idx[(1, c[1], c)], idx[(2, c[2], c)]))
+    cols = [fn(p, n, z0, z1) if fn.__code__.co_argcount > 2 else fn(p, n) for p, n in zip(pts, nrm)]
+    mb.add(pts, cols, nrm, faces)
+
+
+def sheet(mb, F, us, vs, col, thick=0.02, dark=0.8):
+    """A sheet of cloth with a little thickness: F(u, v) its top surface over the rows us and the columns vs (each from 0
+    to 1), col(u, v) its color; the underside a shade darker, its long edges (v 0 and 1) closed."""
+    e = 1e-3
+
+    def nrm(u, v):
+        du = F(min(1.0, u + e), v) - F(max(0.0, u - e), v)
+        dv = F(u, min(1.0, v + e)) - F(u, max(0.0, v - e))
+        return du.cross(dv).normalized()
+    flip = -1.0 if nrm(0.5, 0.5).z < 0 else 1.0
+    nu, nv = len(us), len(vs)
+    T = [F(u, v) for u in us for v in vs]
+    N = [nrm(u, v) * flip for u in us for v in vs]
+    C = [Vector(col(u, v)) for u in us for v in vs]
+    quads = []
+    for i in range(nu - 1):
+        for j in range(nv - 1):
+            a, b, c, d = i * nv + j, (i + 1) * nv + j, (i + 1) * nv + j + 1, i * nv + j + 1
+            quads += [(a, b, c), (a, c, d)]
+    mb.add(T, C, N, quads)
+    mb.add([p - n * thick for p, n in zip(T, N)], [c * dark for c in C], [-n for n in N], quads)
+    for j, sj in ((0, 1), (nv - 1, -1)):
+        pts, nn, cc, ff = [], [], [], []
+        for i in range(nu):
+            p, n = T[i * nv + j], N[i * nv + j]
+            o = p - T[i * nv + j + sj]
+            o = (o - n * o.dot(n)).normalized()
+            pts += [p, p - n * thick]
+            nn += [o, o]
+            cc += [C[i * nv + j] * 0.9, C[i * nv + j] * 0.75]
+            if i:
+                ff += [(2 * i - 2, 2 * i, 2 * i + 1), (2 * i - 2, 2 * i + 1, 2 * i - 1)]
+        mb.add(pts, cc, nn, ff)
+
+
+def ring(mb, c, r, t, col, axis='y', n=10, seg=5):
+    """A small ring (an iron ring, a hoop) of radius r and thickness t about c, in the plane across axis."""
+    pts = []
+    for k in range(n + 1):
+        a = k / n * math.tau
+        u, v = math.cos(a) * r, math.sin(a) * r
+        pts.append(Vector(c) + (Vector((u, 0, v)) if axis == 'y' else Vector((0, u, v)) if axis == 'x' else Vector((u, v, 0))))
+    tube(mb, pts, t, col, seg=seg)
+
+
+def counter_body(P, w, d, h, top, body, trim=None, kick='#3a2a22', top_t=0.055, mould=True, recess=None, back='#3a2618'):
+    """The body of a shop counter, in light shapes: a kick set back at the floor, the body, a skirting and a crown moulding
+    (trim) standing proud of it, the top with a rounded lip over the front and sides. recess (x0, x1, z, depth): an open
+    space set into the front from the floor up to z, its back dark (back). Returns (z0, z1), the front's height between
+    the mouldings."""
+    mb = P.main
+    trim = trim or body
+    zt = h - top_t - 0.02
+    lbox(mb, -w / 2 + 0.03, -d / 2 + 0.045, 0.0, w / 2 - 0.03, d / 2 - 0.01, 0.085, shade(kick), r=0.01)
+    if recess:
+        x0, x1, rz, dep = recess
+        if x0 > -w / 2 + 1e-3:
+            lbox(mb, -w / 2, -d / 2, 0.075, x0, d / 2, zt, body, r=0.02)
+        if x1 < w / 2 - 1e-3:
+            lbox(mb, x1, -d / 2, 0.075, w / 2, d / 2, zt, body, r=0.02)
+        lbox(mb, x0 - 0.01, -d / 2 + dep, 0.075, x1 + 0.01, d / 2, min(rz, zt), shade(back), r=0.01)
+        if rz < zt:
+            lbox(mb, x0 - 0.01, -d / 2, rz, x1 + 0.01, d / 2, zt, body, r=0.02)
+    else:
+        lbox(mb, -w / 2, -d / 2, 0.075, w / 2, d / 2, zt, body, r=0.02)
+    if mould:
+        lbox(mb, -w / 2 - 0.012, -d / 2 - 0.016, 0.075, w / 2 + 0.012, d / 2 - 0.005, 0.14, trim, r=0.012)
+        lbox(mb, -w / 2 - 0.016, -d / 2 - 0.022, h - top_t - 0.055, w / 2 + 0.016, d / 2 - 0.005, h - top_t + 0.002, trim, r=0.014)
+    lbox(mb, -w / 2 - 0.035, -d / 2 - 0.055, h - top_t, w / 2 + 0.035, d / 2 + 0.012, h, top, r=min(0.025, top_t * 0.45))
+    P.top(h)
+    return (0.14, h - top_t - 0.055) if mould else (0.085, zt)
+
+
+def panels(mb, x0, x1, z0, z1, y, n, frame, field, stile=0.05, proud=0.014):
+    """Raised and fielded panels across a front (its face at y, looking -y): n fields between stiles, a rail above and
+    below, each field's edges bevelled."""
+    lbox(mb, x0, y - proud, z0, x1, y + 0.01, z0 + stile, frame, r=0.008)
+    lbox(mb, x0, y - proud, z1 - stile, x1, y + 0.01, z1, frame, r=0.008)
+    pw = (x1 - x0 - stile) / n
+    for k in range(n + 1):
+        x = x0 + k * pw
+        lbox(mb, x, y - proud, z0 + stile, x + stile, y + 0.01, z1 - stile, frame, r=0.008)
+    for k in range(n):
+        xa = x0 + k * pw + stile
+        lbox(mb, xa + 0.02, y - proud * 0.75, z0 + stile + 0.02, xa + pw - stile - 0.02, y + 0.005, z1 - stile - 0.02, field, r=0.022)
+
+
 def marble(c='#fbf8f2', vein='#b8b4b0'):
     a, v = rgb(c), rgb(vein)
 
@@ -284,30 +421,68 @@ def treasure_chest(P):
 
 @item('star_telescope', 1, 1)
 def star_telescope(P):
+    """A stargazer's telescope: a brass tube with a navy sunshade, bands and a lens at the front, a focuser and an eyepiece
+    at the back and a little finder on top, in a cradle on a turned head, pointing up at the sky to the right; three dark
+    legs with a tray between them for the eyepieces."""
     mb = P.main
     dark = metal('#2e2e36')
-    top = Vector((0, 0.02, 0.95))
+    brass, navy = metal('#d8a840'), paint('#2e3a78')
+    top = Vector((0, 0.02, 0.92))
     for k in range(3):
         a = k / 3 * math.tau + 0.5
-        tube(mb, [top, Vector((math.cos(a) * 0.3, math.sin(a) * 0.3, 0.0))], 0.016, dark, seg=6)
-    ball(mb, top, 0.045, dark, sub=2)
-    # the brass tube pointing up at the sky to the right, the eyepiece at its lower end
+        foot = Vector((math.cos(a) * 0.32, math.sin(a) * 0.32, 0.0))
+        tube(mb, [top + (foot - top) * 0.05, foot], 0.024, dark, seg=6, r1=0.018)
+        tube(mb, [top + (foot - top) * 0.62, Vector((0, 0.02, 0.36))], 0.009, dark, seg=4)
+    lathe(mb, [(0.0, 0.34), (0.11, 0.35), (0.0, 0.37)], brass, c=(0, 0.02, 0), seg=10)
+    lathe(mb, [(0.0, 0.84), (0.06, 0.86), (0.045, 0.94), (0.04, 0.97)], dark, c=(top.x, top.y, 0), seg=10)
+    # the tube, along z with its front at +z, turned up to the right
     m = len(mb.v)
-    brass = metal('#d8a840')
-    lathe(mb, [(0.045, -0.35), (0.05, -0.3), (0.05, 0.25), (0.065, 0.28), (0.07, 0.42), (0.0, 0.42)], brass, seg=20, cap_bot=True)
-    lathe(mb, [(0.025, -0.45), (0.025, -0.35)], dark, seg=10, cap_bot=True)
-    rbox(mb, -0.052, -0.06, -0.06, 0.052, 0.06, 0.06, dark, r=0.02, mid=0)
-    M = Matrix.Translation(top + Vector((0, 0, 0.04))) @ Euler((0, 0.95, 0.5)).to_matrix().to_4x4()
+    lathe(mb, [(0.0, -0.5), (0.03, -0.5), (0.034, -0.47), (0.026, -0.44), (0.026, -0.4), (0.04, -0.39), (0.04, -0.31), (0.05, -0.3)], dark, seg=12)
+    lathe(mb, [(0.05, -0.31), (0.058, -0.3), (0.058, -0.24), (0.052, -0.23), (0.052, 0.18)], brass, seg=12, cap_top=False)
+    lathe(mb, [(0.05, 0.17), (0.068, 0.18), (0.07, 0.43), (0.076, 0.45), (0.064, 0.45)], navy, seg=12, cap_top=False)
+    lathe(mb, [(0.052, -0.012), (0.059, -0.004), (0.059, 0.012), (0.052, 0.02)], navy, seg=12, cap_top=False)
+    lbox(mb, -0.06, -0.035, -0.08, 0.06, 0.035, 0.06, dark, r=0.015)
+    lathe(mb, [(0.0, -0.08), (0.012, -0.08), (0.014, 0.12), (0.019, 0.13), (0.019, 0.16), (0.0, 0.16)], brass, c=(-0.075, 0, 0), seg=6)
+    for z in (-0.04, 0.08):
+        tube(mb, [(-0.045, 0, z), (-0.068, 0, z)], 0.008, dark, seg=4)
+    M = Matrix.Translation(top + Vector((0, 0, 0.1))) @ Euler((0, 0.95, 0.5)).to_matrix().to_4x4()
     xform(mb, m, M)
     g = len(P.gloss.v)
-    ball(P.gloss, (0, 0, 0.422), (0.062, 0.062, 0.008), col_fn('#5a7aa8', under=0.0), sub=2)
+    lathe(P.gloss, [(0.064, 0.44), (0.0, 0.445)], col_fn('#5a7aa8', under=0.0), seg=12, cap_top=False)
     xform(P.gloss, g, M)
 
 
 # ---------------------------------------------------------------- Fortune's shop
 @item('counter_shop', 3, 1)
 def counter_shop(P):
-    counter(P, 2.8, 0.7, 1.0, wood('#ecd09a'), wood('#c8935a', 'z'), panels=4, trim=wood('#a87040'))
+    """Fortune's counter (the post office's too): warm wood, a rounded top with a lip, mouldings, raised panels across
+    its front, an open cubby at its left end with a shelf of jars and paper bags, and a little chalkboard hung on the
+    right."""
+    mb = P.main
+    w, d, h = 2.8, 0.7, 1.0
+    body, trim, field = wood('#c8935a', 'z'), wood('#a87040'), wood('#d8a468', 'z')
+    cx0, cx1 = -w / 2 + 0.07, -w / 2 + 0.7
+    z0, z1 = counter_body(P, w, d, h, wood('#ecd09a'), body, trim, '#5a3a22', recess=(cx0, cx1, 2.0, 0.16))
+    y = -d / 2
+    panels(mb, cx1 + 0.02, w / 2 - 0.04, z0, z1, y, 3, trim, field)
+    # the cubby: a frame round its opening, a shelf across it; a sack, jars and paper bags
+    lbox(mb, cx1 - 0.01, y - 0.014, z0, cx1 + 0.04, y + 0.16, z1, trim, r=0.008)
+    lbox(mb, cx0, y + 0.005, 0.5, cx1, y + 0.16, 0.535, trim, r=0.008)
+    ball(mb, (cx0 + 0.17, y + 0.08, z0 + 0.1), (0.12, 0.07, 0.11), fabric('#e8d8b4'), sub=2)
+    lbox(mb, cx0 + 0.36, y + 0.03, z0, cx0 + 0.56, y + 0.15, z0 + 0.16, wood('#a87848'), r=0.01)
+    for k, c in enumerate(('#e8484a', '#4aa85a', '#f2c040')):
+        x = cx0 + 0.11 + k * 0.17
+        lathe(mb, [(0.0, 0.535), (0.048, 0.535), (0.052, 0.55), (0.052, 0.65), (0.04, 0.665), (0.042, 0.69), (0.0, 0.69)], paint('#f0ece0', 0.05), c=(x, y + 0.08, 0), seg=10)
+        lathe(mb, [(0.044, 0.665), (0.046, 0.685), (0.0, 0.69)], shade(c), c=(x, y + 0.08, 0), seg=10)
+    for k in range(2):
+        x = cx0 + 0.14 + k * 0.24
+        lbox(mb, x - 0.07, y + 0.05, 0.535, x + 0.07, y + 0.13, z1 - 0.01, col_fn('#c8a070', mottle=0.06, under=0.1), r=0.01)
+    # the chalkboard: a dark board in a wooden frame, a little chalk on it
+    bx0, bx1, bz0, bz1 = 0.78, 1.18, 0.4, 0.72
+    lbox(mb, bx0, y - 0.04, bz0, bx1, y - 0.012, bz1, trim, r=0.01)
+    lbox(mb, bx0 + 0.03, y - 0.046, bz0 + 0.03, bx1 - 0.03, y - 0.02, bz1 - 0.03, shade('#2e4a3a'), r=0.006)
+    for k, (a0, a1, zz) in enumerate(((0.84, 1.08, 0.64), (0.84, 1.0, 0.58), (0.84, 1.12, 0.52), (0.84, 0.96, 0.46))):
+        lbox(mb, a0, y - 0.05, zz - 0.008, a1, y - 0.044, zz + 0.008, shade('#f0f0e8'), r=0.003)
 
 
 @item('rack_tools', 1, 1)
@@ -368,13 +543,36 @@ def pedestal(P):
 
 @item('counter_boutique', 3, 1)
 def counter_boutique(P):
-    counter(P, 2.8, 0.7, 1.0, col_fn('#fbf8f2', mottle=0.03, under=0.0), paint('#f08a28'), panels=0, kick='#c06a1a', top_t=0.07)
-    for k in range(13):
-        x = -1.3 + k * (2.6 / 12)
-        rbox(P.main, x - 0.022, -0.365, 0.12, x + 0.022, -0.34, 0.9, paint('#f8ae58'), r=0.01, mid=0)
+    """Clementine's counter (the bank's too): a marble top with a rounded lip, the orange body fluted in reeds, gilt bands
+    under the top and over the skirting, round columns at its front corners with gilt bases and capitals, and a gilt
+    oval medallion in the middle."""
+    mb = P.main
+    w, d, h = 2.8, 0.7, 1.0
+    orange, reed, gold = paint('#f08a28'), paint('#f8ae58'), metal('#e0b040')
+    z0, z1 = counter_body(P, w, d, h, col_fn('#fbf8f2', mottle=0.03, under=0.0), orange, paint('#e07a1a'), '#c06a1a', top_t=0.07)
+    y = -d / 2
+    lbox(mb, -w / 2 - 0.02, y - 0.03, z1 - 0.022, w / 2 + 0.02, d / 2 - 0.01, z1 - 0.004, gold, r=0.006)
+    lbox(mb, -w / 2 - 0.016, y - 0.024, z0 + 0.002, w / 2 + 0.016, d / 2 - 0.01, z0 + 0.018, gold, r=0.006)
+    # the reeds, either side of the medallion
+    for k in range(14):
+        x = -1.24 + k * (2.48 / 13)
+        if abs(x) < 0.16:
+            continue
+        lbox(mb, x - 0.026, y - 0.02, z0 + 0.04, x + 0.026, y + 0.01, z1 - 0.04, reed, r=0.022)
+    lbox(mb, -0.15, y - 0.018, z0 + 0.04, 0.15, y + 0.01, z1 - 0.04, orange, r=0.02)
+    m = len(mb.v)
+    ball(mb, (0, 0, 0), (0.1, 0.02, 0.13), gold, sub=2)
+    ball(mb, (0, -0.012, 0), (0.07, 0.016, 0.1), paint('#fbf8f2', 0.0), sub=2)
+    xform(mb, m, Matrix.Translation((0, y - 0.02, (z0 + z1) / 2)))
+    # the corner columns
+    for s in (-1, 1):
+        c = (s * (w / 2 - 0.02), y + 0.02, 0)
+        lathe(mb, [(0.075, 0.075), (0.075, 0.12), (0.06, 0.14), (0.055, 0.16)], gold, c=c, seg=14, cap_top=False)
+        lathe(mb, [(0.055, 0.15), (0.05, 0.5), (0.055, z1 - 0.06)], reed, c=c, seg=14, cap_top=False)
+        lathe(mb, [(0.055, z1 - 0.07), (0.07, z1 - 0.04), (0.075, z1 - 0.01), (0.06, z1 + 0.04)], gold, c=c, seg=14, cap_top=False)
     # grey veins over the marble top
     for (x0, y0, x1, y1) in ((-1.2, -0.3, -0.7, 0.2), (0.1, -0.25, 0.6, 0.3), (0.8, 0.1, 1.3, -0.2)):
-        tube(P.main, [(x0, y0, 1.002), ((x0 + x1) / 2 + 0.08, (y0 + y1) / 2, 1.002), (x1, y1, 1.002)], 0.006, shade('#c8c4c0'), seg=4)
+        tube(mb, [(x0, y0, 1.002), ((x0 + x1) / 2 + 0.08, (y0 + y1) / 2, 1.002), (x1, y1, 1.002)], 0.006, shade('#c8c4c0'), seg=4)
 
 
 @item('clothes_rack', 2, 1)
@@ -543,15 +741,43 @@ def clay_bin(P):
 # ---------------------------------------------------------------- the arcade's prize counter
 @item('counter_prize', 3, 1)
 def counter_prize(P):
-    counter(P, 2.8, 0.7, 1.0, paint('#f6d040'), paint('#6a48c8'), panels=0, kick='#3a2a6a', top_t=0.08)
+    """The arcade's prize counter: a yellow top, the purple body with a row of lit marquee bulbs under its lip, six little
+    glass cases along its front with prizes inside (plush balls, a duck, stars), and a checked kick."""
     mb = P.main
+    w, d, h = 2.8, 0.7, 1.0
+    purple, lilac, yellow = paint('#6a48c8'), paint('#8a6ae0'), paint('#f6d040')
+    z0, z1 = counter_body(P, w, d, h, yellow, purple, paint('#5a3ab0'), '#3a2a6a', top_t=0.08)
+    y = -d / 2
+    # the checked strip along the skirting
+    lbox(mb, -w / 2 - 0.004, y - 0.02, 0.085, w / 2 + 0.004, y - 0.012, 0.13, yellow, r=0.006)
+    for k in range(7):
+        x = -w / 2 + 2 * k * w / 14
+        lbox(mb, x + 0.006, y - 0.024, 0.085, x + w / 14 - 0.006, y - 0.016, 0.13, lilac, r=0.006)
+    # the marquee bulbs on the crown moulding
+    for k in range(25):
+        x = -1.38 + k * 2.76 / 24
+        ball(P.glow, (x, y - 0.03, h - 0.08 - 0.028), 0.019, shade('#fff4c0' if k % 2 else '#ffd860'), sub=1)
+    # the cases: a frame, a pale back, prizes, glass over the front
+    prizes = [('#f088b0', '#5ab0e0'), ('#f8d048', None), ('#7ac860', '#e85a5a'), ('#5ab0e0', '#f8d048'), ('#e85a5a', None), ('#b07ae8', '#7ac860')]
     for k in range(6):
         x = -1.15 + k * 0.46
-        rbox(mb, x - 0.17, -0.37, 0.28, x + 0.17, -0.34, 0.74, paint('#8a6ae0'), r=0.03, mid=1)
-        rbox(P.gloss, x - 0.13, -0.38, 0.33, x + 0.13, -0.365, 0.69, col_fn('#b0a0f0', under=0.0), r=0.02, mid=0)
-        m = len(mb.v)
-        ball(mb, (0, 0, 0), (0.05, 0.012, 0.07), shade('#f6d040'), sub=1)
-        xform(mb, m, Matrix.Translation((x, -0.39, 0.51)) @ Matrix.Rotation(math.pi / 4, 4, 'Y'))
+        lbox(mb, x - 0.18, y - 0.05, 0.27, x + 0.18, y + 0.005, 0.75, lilac, r=0.02)
+        lbox(mb, x - 0.145, y - 0.054, 0.3, x + 0.145, y - 0.04, 0.72, paint('#e8e0fa', 0.0), r=0.008)
+        a, b = prizes[k]
+        if b is None:
+            # a star
+            pts = [(math.cos(math.pi / 2 + j / 10 * math.tau) * (0.11 if j % 2 == 0 else 0.045), 0.51 + math.sin(math.pi / 2 + j / 10 * math.tau) * (0.11 if j % 2 == 0 else 0.045)) for j in range(10)]
+            m = len(mb.v)
+            from kit import slab
+            slab(mb, [(px + x, pz) for px, pz in pts], 0.02, shade(a), axis='y', at=y - 0.075)
+        else:
+            ball(mb, (x - 0.065, y - 0.078, 0.39), (0.07, 0.03, 0.07), fabric(a), sub=1)
+            ball(mb, (x + 0.07, y - 0.078, 0.38), (0.06, 0.03, 0.06), fabric(b), sub=1)
+            ball(mb, (x, y - 0.078, 0.54), (0.08, 0.03, 0.065), fabric(a), sub=1)
+            ball(mb, (x + 0.02, y - 0.09, 0.62), (0.035, 0.02, 0.035), fabric(b), sub=1)
+        lbox(P.clear, x - 0.15, y - 0.115, 0.3, x + 0.15, y - 0.105, 0.72, col_fn('#e4f4fa', under=0.0), r=0.004)
+        for (a0, a1, b0, b1) in ((x - 0.16, x + 0.16, 0.29, 0.31), (x - 0.16, x + 0.16, 0.71, 0.73), (x - 0.16, x - 0.14, 0.29, 0.73), (x + 0.14, x + 0.16, 0.29, 0.73)):
+            lbox(mb, a0, y - 0.12, b0, a1, y - 0.04, b1, yellow, r=0.006)
 
 
 # ---------------------------------------------------------------- Ginger's workshop

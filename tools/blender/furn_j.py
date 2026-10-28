@@ -7,11 +7,11 @@ umbrella, a picnic table, a flag, fountains, a bird bath, a sundial, a birdhouse
 wind chimes), plants (hedges square, round, long, tall and flowering, topiaries, planters, a potted palm, a rose bush)
 and the rest (a lounger, a grill, a cooler, a rowboat, hay, crates). Each stands on its footprint like the rooms'
 furniture, so it goes indoors as well as out; lit parts (flames, bulbs) are *_glow."""
-import math
-from mathutils import Vector, Matrix, noise
-from trees_ac import rgb
+import math, random
+from mathutils import Vector, Matrix, Euler, noise
+from trees_ac import rgb, LIGHT
 from kit import col_fn, shade, rbox, lathe, tube, cyl, xform, rot, slab, plank_row, flame
-from folks import ball, surf, superq
+from folks import ball, surf, superq, sgnpow, revolve
 from furn_kit import *
 
 OAK, DARK, PALE = '#b07a48', '#7a5232', '#d8b888'
@@ -72,6 +72,272 @@ def post(mb, x, y, z0, z1, r, col, seg=10):
 
 def boards(mb, x0, x1, y0, y1, z0, z1, n, c, along='x', gap=0.014, seed=0):
     plank_row(mb, x0, x1, y0, y1, z0, z1, n, c, gap=gap, along=along, seed=seed)
+
+
+# ---------------------------------------------------------------- light helpers (29 October: the pieces redone after
+# David's look at the sheet; these keep each model within its old weight)
+def box4(mb, x0, y0, z0, x1, y1, z1, col, soft=0.35):
+    """a light box: four corners a face (24 points), the normals leaning out at the corners so its edges read soft"""
+    fn = col if callable(col) else shade(col)
+    lo, hi = (x0, y0, z0), (x1, y1, z1)
+    c = Vector(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2))
+    for ax in range(3):
+        a, b = [i for i in range(3) if i != ax]
+        for sgn in (-1, 1):
+            n = Vector((0, 0, 0))
+            n[ax] = sgn
+            pts = []
+            for ua, ub in ((0, 0), (1, 0), (1, 1), (0, 1)):
+                p = Vector((0, 0, 0))
+                p[ax] = lo[ax] if sgn < 0 else hi[ax]
+                p[a] = lo[a] if ua == 0 else hi[a]
+                p[b] = lo[b] if ub == 0 else hi[b]
+                pts.append(p)
+            nr = [(n * (1 - soft) + (p - c).normalized() * soft).normalized() for p in pts]
+            mb.add(pts, [fn(p, n, z0, z1) if fn.__code__.co_argcount > 2 else fn(p, n) for p in pts], nr, [(0, 1, 2), (0, 2, 3)])
+
+
+def sheet(mb, P, us, vs, col, flip=False, closed_u=False):
+    """an open surface P(u, v) over the values us x vs (a hull's skin), its normals worked out from it (flip: the other way)"""
+    fn = col if callable(col) else shade(col)
+    e = 1e-4
+    pts, nrms, faces = [], [], []
+    for v in vs:
+        for u in us:
+            p = P(u, v)
+            n = (P(u + e, v) - P(u - e, v)).cross(P(u, v + e) - P(u, v - e))
+            if n.length < 1e-12:
+                n = (P(u + 0.02, v) - P(u - 0.02, v)).cross(P(u, v + 0.02) - P(u, v - 0.02))
+            n = n.normalized() * (-1 if flip else 1)
+            pts.append(p); nrms.append(n)
+    # (painted as kit's pieces are: darker toward its foot, over its own height)
+    z0, z1 = min(p.z for p in pts), max(p.z for p in pts)
+    cols = [fn(p, n, z0, z1) if fn.__code__.co_argcount > 2 else fn(p, n) for p, n in zip(pts, nrms)]
+    w = len(us)
+    for j in range(len(vs) - 1):
+        for i in range(w - (0 if closed_u else 1)):
+            a, b = j * w + i, j * w + (i + 1) % w
+            faces += [(a, b, b + w), (a, b + w, a + w)]
+    mb.add(pts, cols, nrms, faces)
+
+
+def lump(seed, freq, amp):
+    """a slow lumpy swelling over a surface (a clipped hedge's clumps): 1 + amp * noise, by direction from the middle"""
+    off = Vector((seed * 1.37, seed * 2.11, seed * 0.73))
+
+    def f(d):
+        q = d * freq + off
+        return 1 + amp * (noise.noise(q) + 0.45 * noise.noise(q * 2.3 + off))
+    return f
+
+
+def _arc(f, a0, a1, n=400):
+    """a curve f(t) for t from a0 to a1, retraced evenly along its length: s 0..1 -> t"""
+    ts = [a0 + (a1 - a0) * k / n for k in range(n + 1)]
+    ps = [f(t) for t in ts]
+    acc = [0.0]
+    for k in range(n):
+        acc.append(acc[-1] + math.hypot(ps[k + 1][0] - ps[k][0], ps[k + 1][1] - ps[k][1]))
+    L = acc[-1] or 1.0
+
+    def g(s):
+        x = max(0.0, min(1.0, s)) * L
+        lo, hi = 0, n
+        while hi - lo > 1:
+            m = (lo + hi) // 2
+            if acc[m] <= x:
+                lo = m
+            else:
+                hi = m
+        t = (x - acc[lo]) / max(1e-12, acc[hi] - acc[lo])
+        return ts[lo] + (ts[hi] - ts[lo]) * t
+    return g
+
+
+def blob(c, r, e_side=1.0, e_top=1.0, amp=0.0, freq=2.6, seed=0.0, sink=0.0):
+    """a superquadric (boxy for a clipped hedge, round for a ball) swollen in slow lumps, its points spread evenly along
+    its sides and over its top (not bunched at the edges as a superquadric's are): (P(u, v), inside(p), swell(u, v))"""
+    c, (rx, ry, rz) = Vector(c), r
+    sw = lump(seed, freq, amp)
+    R = (rx + ry) / 2
+
+    def ring(t, e):
+        """the unit superellipse by the angle seen from its middle (smooth all round, its flat sides as even as its corners)"""
+        c, s_ = math.cos(t), math.sin(t)
+        r = (abs(c) ** (2 / e) + abs(s_) ** (2 / e)) ** (-e / 2)
+        return r * c, r * s_
+    th_of = _arc(lambda t: (ring(t, e_side)[0] * rx, ring(t, e_side)[1] * ry), 0.0, math.tau)
+    ph_of = _arc(lambda t: (ring(t, e_top)[0] * R, ring(t, e_top)[1] * rz), -math.pi / 2, math.pi / 2)
+
+    def unit(u, v):
+        th, ph = th_of(u % 1.0 if u != 1.0 else 1.0), ph_of(v)
+        hx, hy = ring(th, e_side)
+        cp, sp = ring(ph, e_top)
+        return Vector((cp * hx, cp * hy, sp))
+
+    def swell(u, v):
+        q = unit(u, v)
+        return sw(Vector((q.x * rx, q.y * ry, q.z * rz)))
+
+    def P(u, v):
+        q = unit(u, v)
+        k = sw(Vector((q.x * rx, q.y * ry, q.z * rz)))
+        z = q.z * rz
+        # (it swells everywhere but underneath, which stays on the ground; sink: how far its foot goes into it)
+        return c + Vector((q.x * rx * k, q.y * ry * k, z * k if z > 0 else z * (1 + sink)))
+
+    def inside(p, m=0.96):
+        d = p - c
+        x, y, z = abs(d.x) / rx, abs(d.y) / ry, abs(d.z) / rz
+        F = (x ** (2 / e_side) + y ** (2 / e_side)) ** (e_side / e_top) + z ** (2 / e_top)
+        return F < m ** (2 / e_top)
+    return P, inside, swell
+
+
+# a leaflet: an oval leaf of six points, from its stem (x 0) to its tip (x 1)
+LEAFLET = [(0.0, 0.0), (0.3, 0.46), (0.68, 0.4), (1.0, 0.0), (0.68, -0.4), (0.3, -0.46)]
+LEAFLET_F = [(0, 1, 5), (1, 2, 4), (1, 4, 5), (2, 3, 4)]
+
+
+def leaflet(mb, p, n, d, L, W, col, lift=0.2, curl=0.16):
+    """one leaf lying on a surface at p (n its normal, d along it), its tip lifting off it, its edges curling down; shaded
+    mostly as the surface it lies on, so a hedge of them reads as one soft mass with leaves in it"""
+    s = n.cross(d).normalized()
+    pts, nrms, cols = [], [], []
+    for i, (x, y) in enumerate(LEAFLET):
+        pts.append(p + d * (x * L) + s * (y * L * W) + n * (x * x * L * lift - abs(y) * L * W * curl))
+        nrms.append((n + s * (y * 0.9) + d * (0.25 * x - 0.15)).normalized())
+        cols.append(col * ((0.8 + 0.32 * x) * (0.93 if y else 1.0)))
+    mb.add(pts, cols, nrms, LEAFLET_F)
+
+
+def scatter(P, count, rng, mind, reject=None, vmin=0.0, vmax=1.0, grid=(64, 40), centre=None):
+    """points spread over a surface P(u, v) by its area, kept mind apart: [(p, outward normal, u, v)]"""
+    import bisect
+    gu, gv = grid
+    keys, cells, tot = [], [], 0.0
+    for j in range(gv):
+        v0, v1 = vmin + (vmax - vmin) * j / gv, vmin + (vmax - vmin) * (j + 1) / gv
+        for i in range(gu):
+            u0, u1 = i / gu, (i + 1) / gu
+            a = P(u0, v0)
+            tot += (P(u1, v0) - a).cross(P(u0, v1) - a).length + 1e-9
+            keys.append(tot); cells.append((u0, u1, v0, v1))
+    # (kept apart about as far as the leaves can go and still fit, so they cover it evenly, without bare patches)
+    mind = max(mind, 0.74 * math.sqrt(tot / max(1, count)))
+    out, hashed = [], {}
+    h = max(mind, 1e-3)
+    for _ in range(count * 60):
+        if len(out) >= count:
+            break
+        u0, u1, v0, v1 = cells[min(len(cells) - 1, bisect.bisect_left(keys, rng.random() * tot))]
+        u, v = rng.uniform(u0, u1), rng.uniform(v0, v1)
+        p = P(u, v)
+        if reject and reject(p):
+            continue
+        k = (int(math.floor(p.x / h)), int(math.floor(p.y / h)), int(math.floor(p.z / h)))
+        near = [q for dx in (-1, 0, 1) for dy in (-1, 0, 1) for dz in (-1, 0, 1) for q in hashed.get((k[0] + dx, k[1] + dy, k[2] + dz), ())]
+        if any((p - q).length < mind for q in near):
+            continue
+        e = 1e-3
+        n = (P(u + e, v) - P(u - e, v)).cross(P(u, min(1.0, v + e)) - P(u, max(0.0, v - e)))
+        if n.length < 1e-12:
+            continue
+        n.normalize()
+        if centre is not None and n.dot(p - Vector(centre)) < 0:
+            n = -n
+        hashed.setdefault(k, []).append(p)
+        out.append((p, n, u, v))
+    return out
+
+
+GREENS = ('#336e36', '#4f9a48', '#86c868')      # (the hedges' shade, middle and the sunlit tips: all near one hue, so
+                                                 # the four colors the shop paints them in take every leaf)
+
+
+def area(P, vmin=0.0, gu=32, gv=24):
+    """about how big a surface P(u, v) is (from v = vmin up), for how many leaves it takes"""
+    tot = 0.0
+    for j in range(gv):
+        v0, v1 = vmin + (1 - vmin) * j / gv, vmin + (1 - vmin) * (j + 1) / gv
+        for i in range(gu):
+            a = P(i / gu, v0)
+            tot += (P((i + 1) / gu, v0) - a).cross(P(i / gu, v1) - a).length
+    return tot
+
+
+def turned(S, R, at):
+    """a shape for foliage() turned by the matrix R about the point at"""
+    R, at = R.to_3x3(), Vector(at)
+    Ri = R.inverted()
+    P0, in0 = S['P'], S['inside']
+    return dict(S, P=lambda u, v: R @ (P0(u, v) - at) + at, inside=lambda p, m=0.96: in0(Ri @ (p - at) + at, m),
+                c=R @ (Vector(S['c']) - at) + at)
+
+
+def shape(c, r, nu, nv, e_side=1.0, e_top=1.0, amp=0.03, freq=4.0, seed=0.0, **kw):
+    P, inside, sw = blob(c, r, e_side, e_top, amp=amp, freq=freq, seed=seed)
+    return dict(P=P, inside=inside, swell=sw, c=Vector(c), nu=nu, nv=nv, **kw)
+
+
+def flower_pot(mb, r0, r1, h, col, rim=0.03, soil='#4a3424', seg=18):
+    """a flower pot: tapering, a rolled rim, dark earth showing at the top"""
+    lathe(mb, [(r0 * 0.92, 0.0), (r0, 0.015), (r1, h - rim * 1.6), (r1 + rim * 0.8, h - rim * 1.5), (r1 + rim, h - rim * 0.7),
+               (r1 + rim * 0.75, h), (r1 - 0.01, h)], col, seg=seg, cap_top=False)
+    lathe(mb, [(r1 - 0.01, h - 0.025), (0.0, h - 0.035)], col_fn(soil, mottle=0.2, under=0.0), seg=seg, cap_top=False)
+
+
+def foliage(mb, shapes, rng, L=0.14, W=0.82, lift=(0.1, 0.45), spin=math.pi, mind=0.62, z0=0.0, z1=1.0, cols=GREENS,
+            base=True, curl=0.22, cover=1.25):
+    """clipped leaves over shapes (each {'P', 'inside', 'c', 'n' leaves, 'nu', 'nv', optional 'vmin', 'L', 'swell'}): a
+    dark mass under them so nothing shows through, then the leaves, kept off the parts buried in another shape; lighter
+    up top and toward the light, darker underneath, in the creases and down by the ground"""
+    dark, mid, hi = (rgb(c) for c in cols)
+
+    def shade_at(p, n, k=0.0):
+        t = 0.18 + 0.42 * max(0.0, n.dot(LIGHT)) + 0.32 * max(0.0, min(1.0, (p.z - z0) / max(0.05, z1 - z0))) + k
+        t = max(0.0, min(1.0, t))
+        c = dark.lerp(mid, min(1.0, t * 1.6)) if t < 0.62 else mid.lerp(hi, (t - 0.62) / 0.38)
+        c = c * (1 - 0.3 * max(0.0, -n.z))
+        return c * (1 - 0.32 * max(0.0, 1 - (p.z - z0) / 0.22) ** 2)
+    for S in shapes:
+        others = [o for o in shapes if o is not S]
+        sw = S.get('swell')
+        LL = S.get('L', L)
+        if base:
+            def bc(p, n, u, v, sw=sw):
+                k = (sw(u, v) - 1) * 3.0 if sw else 0.0
+                return shade_at(p, n, -0.25 + k) * (0.42 + 0.08 * noise.noise(p * 11))
+
+            def Pb(u, v, P0=S['P'], d=0.15 * LL, c0=Vector(S['c'])):
+                """(the dark mass a little under the leaves, so its flat facets never cover the ones lying in a hollow)"""
+                p, e = P0(u, v), 1e-3
+                n = (P0(u + e, v) - P0(u - e, v)).cross(P0(u, min(1.0, v + e)) - P0(u, max(0.0, v - e)))
+                if n.length < 1e-10:
+                    return p
+                n.normalize()
+                if S.get('flip', True) and n.dot(p - c0) < 0:
+                    n = -n
+                return p - n * d
+            surf(mb, Pb, bc, nu=S['nu'], nv=S['nv'])
+        rej = (lambda p, others=others: any(o['inside'](p) for o in others)) if others else None
+        cnt = S.get('n') or int(cover * area(S['P'], S.get('vmin', 0.12)) / (LL * LL * W * 0.588))
+        for p, n, u, v in scatter(S['P'], cnt, rng, LL * mind, rej, vmin=S.get('vmin', 0.12), centre=S['c'] if S.get('flip', True) else None):
+            g = Vector((0, 0, -1)) - n * (-n.z)
+            if g.length < 0.25:
+                g = n.cross(Vector((1, 0, 0)))
+            g.normalize()
+            a = rng.uniform(-spin, spin)
+            sd = n.cross(g)
+            d = (g * math.cos(a) + sd * math.sin(a)).normalized()
+            k = (sw(u, v) - 1) * 1.5 if sw else 0.0
+            lf = rng.uniform(*lift)
+            # (a leaf standing further out catches more light; one lying deep in is in shade)
+            c = shade_at(p, n, k + rng.uniform(-0.15, 0.1) + 0.25 * (lf - lift[0]) / max(1e-3, lift[1] - lift[0]) - 0.08)
+            if rng.random() < 0.12:
+                c = c.lerp(hi * 1.08, 0.45)
+            Lk = LL * rng.uniform(0.85, 1.15)
+            leaflet(mb, p - d * Lk * 0.42 + n * 0.006, n, d, Lk, W, c, lift=lf, curl=curl)
 
 
 # ---------------------------------------------------------------- lights
@@ -360,18 +626,76 @@ def od_fence_bamboo(P):
         rbox(mb, -0.5, -0.05, z, 0.5, 0.05, z + 0.04, shade('#3a2a20'), r=0.015)
 
 
+def rock(mb, c, size, col, seed, box=0.38, jag=0.1, clip=None, tilt=0.0, sub=2):
+    """a stone: a ball pushed out toward a box (flat faces, rounded edges), sized, its faces and corners knocked about a
+    little, cut off flat at clip (x from, x to) where it meets the next tile; shaded by its own faces"""
+    from trees_ac import bmesh_ico
+    ico = bmesh_ico(sub)
+    c = Vector(c)
+    sx, sy, sz = size
+    off = Vector((seed * 1.7, seed * 2.9, seed * 0.6))
+    P = []
+    for v in ico['v']:
+        q = Vector((sgnpow(v.x, box), sgnpow(v.y, box), sgnpow(v.z, box)))
+        q *= 1 + jag * noise.noise(v * 1.8 + off) + jag * 0.5 * noise.noise(v * 4.0 + off)
+        p = Vector((q.x * sx, q.y * sy, q.z * sz))
+        if tilt:
+            p = Matrix.Rotation(tilt, 3, 'Y') @ p
+        p += c
+        if clip:
+            p.x = max(clip[0], min(clip[1], p.x))
+        P.append(p)
+    N = [Vector((0, 0, 0)) for _ in P]
+    for f in ico['f']:
+        a, b, d = (P[i] for i in f)
+        fn = (b - a).cross(d - a)
+        if fn.dot(a - c) < 0:
+            fn = -fn
+        for i in f:
+            N[i] += fn
+    N = [n.normalized() if n.length > 1e-12 else Vector((0, 0, 1)) for n in N]
+    mb.add(P, [col(p, n) for p, n in zip(P, N)], N, ico['f'])
+
+
 @item('od_fence_stone', 1, 1)
 def od_fence_stone(P):
-    """A low drystone wall: rounded stones stacked in two courses, a capping row."""
+    """A low drystone wall: flat, uneven stones laid in courses (big ones at the foot, thinner ones above, the joints
+    crossing), a row of coping stones set on edge along its top, in warm greys and buffs; cut square at each end so a row
+    joins up."""
     mb = P.main
-    rng = P.rng
-    for row, z in enumerate((0.08, 0.24)):
+    rng = random.Random(91)
+    tones = ('#ada597', '#9a958c', '#b9ae99', '#8f8b84', '#a99d88', '#a09684', '#b4ada2', '#a39a8c')
+
+    def stone_col(c, seed):
+        f = col_fn(c, mottle=0.14, seed=seed, under=0.1)
+
+        def g(p, n, z0=0, z1=1):
+            # (worn lighter on top; its rounded edges a shade darker than its faces, so they read crisp, not puffed up)
+            edge = max(abs(n.x), abs(n.y), abs(n.z)) ** 3
+            return f(p, n, 0.0, 0.42) * (1 + 0.1 * max(0.0, n.z)) * (0.8 + 0.2 * edge)
+        return g
+    box4(mb, -0.5, -0.09, 0.0, 0.5, 0.09, 0.32, col_fn('#55514b', under=0.0))
+    k = 0
+    for z0, z1, lens in ((0.0, 0.125, (0.3, 0.41, 0.29)), (0.125, 0.215, (0.19, 0.27, 0.3, 0.24)), (0.215, 0.29, (0.37, 0.28, 0.35))):
         x = -0.5
-        while x < 0.48:
-            w = rng.uniform(0.18, 0.28)
-            ball(mb, (min(0.4, x + w / 2), rng.uniform(-0.02, 0.02), z), (w / 2 + 0.02, 0.13, 0.1), stone(seed=x * 7 + row), sub=2)
-            x += w
-    rbox(mb, -0.5, -0.12, 0.32, 0.5, 0.12, 0.4, stone('#9a968c', seed=9), r=0.04)
+        for L in lens:
+            g = 0.009
+            end = x < -0.49 or x + L > 0.49
+            clip = (-0.5 if x < -0.49 else -9, 0.5 if x + L > 0.49 else 9)
+            hz = (z1 - z0) / 2 - g + rng.uniform(-0.006, 0.004)
+            rock(mb, (x + L / 2, rng.uniform(-0.008, 0.008), (z0 + z1) / 2 + 0.003), (L / 2 - g + (0.012 if end else 0), 0.125 + rng.uniform(-0.008, 0.006), hz),
+                 stone_col(tones[k % len(tones)], k * 1.3), seed=k * 3.1, clip=clip, jag=0.16, box=0.22, tilt=rng.uniform(-0.04, 0.04))
+            x += L
+            k += 1
+    # the capping: long flat stones along the top, a little proud of the wall each side
+    x = -0.5
+    for j, L in enumerate((0.24, 0.29, 0.21, 0.26)):
+        clip = (-0.5 if j == 0 else -9, 0.5 if j == 3 else 9)
+        end = j in (0, 3)
+        hz = (0.034, 0.042, 0.03, 0.038)[j]
+        rock(mb, (x + L / 2, rng.uniform(-0.012, 0.012), 0.29 + hz + 0.002), (L / 2 - 0.008 + (0.012 if end else 0), 0.14 + rng.uniform(-0.01, 0.01), hz),
+             stone_col(tones[(j * 3 + 2) % len(tones)], j * 2.3 + 9), seed=j * 5.7 + 2, clip=clip, tilt=rng.uniform(-0.04, 0.04), jag=0.16, box=0.22)
+        x += L
 
 
 @item('od_fence_rope', 1, 1)
@@ -485,16 +809,89 @@ def od_cat(P):
 
 @item('od_turtle', 1, 1)
 def od_turtle(P):
-    """A stone turtle: a domed shell with plates, its head poking out, four stubby legs."""
+    """A stone turtle: a high domed shell of raised plates (a row down its back, three each side, a ring of small ones round
+    its rim) over a lip, its head poking out on a short neck, looking up, four stubby legs."""
     mb = P.main
-    ball(mb, (0, 0.02, 0.12), (0.28, 0.24, 0.16), stone('#7a9a6a'), sub=3)
-    for k in range(6):
-        a = k / 6 * math.tau
-        ball(mb, (math.cos(a) * 0.14, math.sin(a) * 0.12 + 0.02, 0.23), (0.07, 0.06, 0.02), stone('#6a8a5a', seed=k), sub=1)
-    ball(mb, (0, -0.28, 0.12), (0.08, 0.09, 0.07), stone('#8aa07a'), sub=2)
+    SHELL, GROOVE, SKIN, LIP = '#86ae6c', '#46663e', '#a6c48c', '#6e9a5a'
+    a, b, z0, h = 0.31, 0.26, 0.12, 0.22          # (half length, half width, the rim's height, the dome's height)
+
+    def dz(x, y):
+        q = max(0.0, 1 - (x / b) ** 2 - (y / a) ** 2)
+        return z0 + h * q ** 0.55
+
+    def dome(u, v):
+        th, rho = u * math.tau, math.cos(v * math.pi / 2)
+        x, y = b * rho * math.cos(th), a * rho * math.sin(th)
+        return Vector((x, y, dz(x, y)))
+    surf(mb, dome, lambda p, n, u, v: rgb(GROOVE) * (0.85 + 0.15 * n.z), nu=14, nv=6, caps=(False, True))
+    # the lip under the rim, and the belly
+    lathe(mb, [(1.0, z0 + 0.002), (1.05, z0 - 0.025), (0.9, z0 - 0.06)], stone(LIP, 1), seg=14, cap_top=False, cap_bot=True, sx=b, sy=a)
+
+    def plate(cx, cy, others, rim=0.84, gap=0.016, n=8, lift=0.018, rot0=0.0, col=SHELL, ring=None):
+        """one plate: its edge where it meets its neighbours (half way to each), clipped to the rim, its middle raised"""
+        c = Vector((cx, cy))
+        pts, ts = [], []
+        for k in range(n):
+            ang = rot0 + k / n * math.tau
+            d = Vector((math.cos(ang), math.sin(ang)))
+            t = 1.0
+            for o in others:
+                w = o - c
+                dd = d.dot(w)
+                if dd > 1e-6:
+                    t = min(t, w.length_squared / (2 * dd))
+            # (the rim: an ellipse rho = rim)
+            A = (d.x / b) ** 2 + (d.y / a) ** 2
+            B_ = 2 * (c.x * d.x / b ** 2 + c.y * d.y / a ** 2)
+            C = (c.x / b) ** 2 + (c.y / a) ** 2 - rim ** 2
+            if ring:
+                C = (c.x / b) ** 2 + (c.y / a) ** 2 - ring ** 2
+            disc = B_ * B_ - 4 * A * C
+            if disc > 0:
+                t = min(t, (-B_ + math.sqrt(disc)) / (2 * A))
+            ts.append((d, max(0.0, t - gap)))
+        # (each corner eased toward its neighbours', so the plates come out rounded, never spiky)
+        for k, (d, t) in enumerate(ts):
+            t = min(t, 0.5 * t + 0.25 * (ts[k - 1][1] + ts[(k + 1) % n][1]))
+            q = c + d * t
+            pts.append(Vector((q.x, q.y, dz(q.x, q.y) + 0.012)))
+        mid = Vector((cx, cy, dz(cx, cy) + 0.012 + lift))
+        ring_ = [mid] + pts
+        nrm = [Vector((0, 0, 1)).lerp((p - Vector((0, 0, z0 - 0.1))).normalized(), 0.8).normalized() for p in ring_]
+        f = stone(col, seed=cx * 9 + cy * 5)
+        cols = [f(p, nn) * (1.08 if i == 0 else 0.96) for i, (p, nn) in enumerate(zip(ring_, nrm))]
+        mb.add(ring_, cols, nrm, [(0, 1 + k, 1 + (k + 1) % n) for k in range(n)])
+    inner = [Vector((0, -0.15)), Vector((0, 0.0)), Vector((0, 0.15))] + [Vector((sx * 0.14, y)) for sx in (-1, 1) for y in (-0.14, 0.0, 0.14)]
+    for c in inner:
+        plate(c.x, c.y, [o for o in inner if o != c], rot0=math.pi / 8)
+    # the rim's ring of small plates
+    for k in range(10):
+        ang = (k + 0.5) / 10 * math.tau
+        c = Vector((b * 0.93 * math.cos(ang), a * 0.93 * math.sin(ang)))
+        ring_pts = []
+        for da, rr in ((-0.5, 0.86), (0.5, 0.86), (0.5, 1.0), (-0.5, 1.0)):
+            an = ang + da / 10 * math.tau * 0.86
+            x, y = b * rr * math.cos(an), a * rr * math.sin(an)
+            ring_pts.append(Vector((x, y, dz(x, y) + 0.01 - (0.012 if rr > 0.95 else 0.0))))
+        mid = sum(ring_pts, Vector()) / 4 + Vector((0, 0, 0.012))
+        nn = (mid - Vector((0, 0, z0 - 0.05))).normalized()
+        f = stone(LIP, seed=k)
+        mb.add([mid] + ring_pts, [f(q, nn) for q in [mid] + ring_pts], [nn] * 5, [(0, 1, 2), (0, 2, 3), (0, 3, 4), (0, 4, 1)])
+    # head on a short neck, looking up a little, two dark eyes and a smile line
+    sk = stone(SKIN, 2)
+    ball(mb, (0, -0.31, 0.12), (0.06, 0.08, 0.055), sk, sub=1)
+    ball(mb, (0, -0.39, 0.165), (0.078, 0.092, 0.072), sk, sub=2)
     for sx in (-1, 1):
-        for sy in (-1, 1):
-            ball(mb, (sx * 0.2, sy * 0.15, 0.04), (0.06, 0.06, 0.04), stone('#8aa07a'), sub=1)
+        ball(mb, (sx * 0.042, -0.455, 0.19), 0.017, '#2a2a28', sub=1)
+    # four stubby legs, splayed, and a little pointed tail
+    for sx in (-1, 1):
+        for sy, ang in ((-1, 0.6), (1, -0.5)):
+            m = len(mb.v)
+            ball(mb, (0, 0, 0), (0.085, 0.06, 0.05), sk, sub=1)
+            xform(mb, m, Matrix.Translation((sx * 0.22, sy * 0.17, 0.045)) @ rot(z=sx * ang * sy * -1 + (0 if sx > 0 else math.pi)))
+    m = len(mb.v)
+    ball(mb, (0, 0, 0), (0.025, 0.06, 0.025), sk, sub=1)
+    xform(mb, m, Matrix.Translation((0, 0.33, 0.08)) @ rot(x=0.4))
 
 
 @item('od_mushroom', 1, 1)
@@ -585,18 +982,57 @@ def dp_flag(P):
     mb.add(mesh_pts, [fl(p, n) * 0.85 for p, n in zip(mesh_pts, nn)], [Vector((0, 1, 0))] * len(mesh_pts), [(a, c, b) for a, b, c in F])
 
 
+def disc(mb, c, rx, ry, seg, col, n=(0, 0, 1)):
+    """a flat disc (water in a bowl): seg corners round its middle"""
+    c, n = Vector(c), Vector(n)
+    fn = col if callable(col) else shade(col)
+    pts = [c] + [c + Vector((math.cos(k / seg * math.tau) * rx, math.sin(k / seg * math.tau) * ry, 0)) for k in range(seg)]
+    mb.add(pts, [fn(p, n) for p in pts], [n] * len(pts), [(0, 1 + k, 1 + (k + 1) % seg) for k in range(seg)])
+
+
 @item('dp_fountain', 2, 1)
 def dp_fountain(P):
-    """A little stone fountain: a round basin with water, a column with a smaller bowl spilling over."""
-    mb = P.main
-    lathe(mb, [(0.62, 0), (0.64, 0.05), (0.64, 0.3), (0.56, 0.32), (0.54, 0.12), (0.0, 0.12)], stone(), seg=28)
-    cyl(P.gloss, 0, 0, 0.12, 0.26, 0.54, color='#6ab8e0', seg=28)
-    post(mb, 0, 0, 0.12, 0.6, 0.07, stone(seed=1), seg=12)
-    lathe(mb, [(0.06, 0.55), (0.26, 0.62), (0.27, 0.68), (0.22, 0.68), (0.0, 0.64)], stone(seed=2), seg=20)
-    cyl(P.gloss, 0, 0, 0.62, 0.67, 0.22, color='#7ac8ec', seg=20)
+    """A little stone fountain: an oval basin with a moulded foot and a rolled rim, water in it; a turned column carrying
+    a scalloped bowl that spills over in streams; a small top bowl and a finial the water springs from."""
+    mb, g = P.main, P.gloss
+    SY = 0.7                                  # (the basin's oval, to sit in its two tiles)
+    st = stone(STONE, 0)
+    lathe(mb, [(0.6, 0.0), (0.635, 0.02), (0.635, 0.055), (0.595, 0.075), (0.58, 0.2), (0.605, 0.225), (0.648, 0.245),
+               (0.66, 0.28), (0.64, 0.308), (0.585, 0.312), (0.55, 0.29), (0.54, 0.24)], st, seg=24, cap_top=False, sy=SY)
+
+    def water(p, n, z0=0, z1=1):
+        r = math.hypot(p.x, p.y / SY)
+        return rgb('#5aaed8').lerp(rgb('#a8dcf2'), 0.5 + 0.5 * math.sin(r * 38))
+    disc(g, (0, 0, 0.262), 0.55, 0.55 * SY, 14, water)
+    # the column, turned like a baluster
+    lathe(mb, [(0.13, 0.24), (0.11, 0.27), (0.08, 0.31), (0.066, 0.38), (0.09, 0.44), (0.066, 0.5), (0.075, 0.54)], stone(STONE, 1), seg=12, cap_top=False)
+    # the bowl: its underside swelling out to a rolled rim, scalloped all round
+    prof = [(0.0, 0.52), (0.1, 0.535), (0.2, 0.575), (0.28, 0.615), (0.31, 0.64), (0.305, 0.668), (0.28, 0.678), (0.25, 0.668), (0.0, 0.648)]
+
+    def pf(v):
+        x = v * (len(prof) - 1)
+        i = min(len(prof) - 2, int(x))
+        t = x - i
+        return (prof[i][0] + (prof[i + 1][0] - prof[i][0]) * t, prof[i][1] + (prof[i + 1][1] - prof[i][1]) * t)
+    surf(mb, revolve(pf, mod=lambda u, v: 1 + 0.07 * max(0.0, math.cos(u * math.tau * 8)) ** 2 * min(1.0, v * 2)), stone(STONE, 2), nu=16, nv=8)
+    disc(g, (0, 0, 0.664), 0.26, 0.26, 10, water)
+    # water spilling over the bowl's lip between the scallops, in curved sheets falling into the basin (each one sided,
+    # facing out: the far ones are behind the bowl; and few points, so the stone stays most of it and is what's painted)
     for k in range(6):
-        a = k / 6 * math.tau
-        tube(P.gloss, [(math.cos(a) * 0.26, math.sin(a) * 0.26, 0.68), (math.cos(a) * 0.36, math.sin(a) * 0.36, 0.45), (math.cos(a) * 0.4, math.sin(a) * 0.4, 0.27)], 0.015, '#bfe6f6', seg=4)
+        a = (k + 0.5) / 6 * math.tau + 1 / 16 * math.tau
+        rad, tan = Vector((math.cos(a), math.sin(a), 0)), Vector((-math.sin(a), math.cos(a), 0))
+        pts, cols, nrms = [], [], []
+        for j, (r_, z, w) in enumerate(((0.3, 0.668, 0.075), (0.345, 0.635, 0.068), (0.372, 0.5, 0.056), (0.386, 0.272, 0.048))):
+            q = Vector((rad.x * r_, rad.y * r_ * (1 - (1 - SY) * 0.5 * (0.668 - z) / 0.4), z))
+            n = (rad + Vector((0, 0, 0.6 if j < 2 else 0.1))).normalized()
+            for sd in (-1, 1):
+                pts.append(q + tan * sd * w / 2)
+                cols.append(rgb('#e8f6fc') if j == 0 else rgb('#9fd4ee').lerp(rgb('#d0ecf8'), 0.5 + 0.5 * sd * (0.3 if j % 2 else -0.3)))
+                nrms.append((n + tan * sd * 0.3).normalized())
+        g.add(pts, cols, nrms, [f for j in range(3) for f in ((2 * j, 2 * j + 1, 2 * j + 3), (2 * j, 2 * j + 3, 2 * j + 2))])
+    # the top: a short stem, a little bowl, the finial
+    lathe(mb, [(0.035, 0.64), (0.028, 0.72), (0.05, 0.75), (0.1, 0.78), (0.105, 0.8), (0.05, 0.81), (0.04, 0.84), (0.0, 0.89)], stone(STONE, 3), seg=10, cap_top=False)
+    tube(g, [(0, 0, 0.88), (0, 0, 0.93)], 0.012, '#d8f0fa', seg=3)
 
 
 @item('dp_birdbath', 1, 1)
@@ -659,42 +1095,126 @@ def od_wheelbarrow(P):
     ball(mb, (0, 0.0, 0.38), (0.22, 0.3, 0.05), leafy(), sub=2)
 
 
+def rose(mb, c, n, r, col, rng):
+    """a rose facing out along n: a round bloom with its petals wound in toward a darker heart"""
+    c, n = Vector(c), Vector(n).normalized()
+    t = n.cross(Vector((0.2, 0.3, 0.9))).normalized()
+    b = n.cross(t)
+    base, deep = rgb(col), rgb(col) * 0.62
+    m = len(mb.v)
+    ball(mb, (0, 0, 0), (r, r, r * 0.78), (0.5, 0.5, 0.5), sub=2)
+    for i in range(m, len(mb.v)):
+        q = mb.v[i]
+        rr = math.hypot(q.x, q.y) / r
+        a = math.atan2(q.y, q.x)
+        sw = 0.5 + 0.5 * math.sin(a * 2 + rr * 11)
+        k = max(0.0, q.z / (r * 0.78))
+        col_ = base.lerp(deep, max(0.0, 0.55 * sw * k + 0.4 * max(0.0, 0.35 - rr) / 0.35 * k)) * (1.0 + 0.12 * k)
+        mb.c[i] = col_ * (0.8 if q.z < 0 else 1.0)
+    xform(mb, m, Matrix.Translation(c) @ Matrix(((t.x, b.x, n.x, 0), (t.y, b.y, n.y, 0), (t.z, b.z, n.z, 0), (0, 0, 0, 1))))
+
+
 @item('od_arch', 2, 1)
 def od_arch(P):
-    """A rose arch: two lattice sides and a curved top, roses climbing all over it."""
+    """A rose arch: white posts with rungs at the sides and an arched top joined by rungs, climbing roses all over it:
+    vines winding up the posts and over the top, thick with leaves, roses in bloom and in bud."""
     mb, c = P.main, paint(WHITE)
-    for x in (-0.75, 0.75):
-        for y in (-0.15, 0.15):
-            post(mb, x, y, 0, 1.6, 0.025, c, seg=6)
-        for z in (0.4, 0.8, 1.2):
-            rbox(mb, x - 0.02, -0.15, z, x + 0.02, 0.15, z + 0.03, c, r=0.006)
-    for y in (-0.15, 0.15):
-        tube(mb, [(math.cos(t) * 0.75, y, 1.6 + math.sin(t) * 0.4) for t in [j / 12 * math.pi for j in range(13)]], 0.025, c, seg=6)
-    rng = P.rng
-    for k in range(46):
-        t = rng.uniform(0, 1)
-        if t < 0.33:
-            p = (-0.75 + rng.uniform(-0.05, 0.05), rng.uniform(-0.17, 0.17), t * 3 * 1.6)
-        elif t < 0.66:
-            p = (0.75 + rng.uniform(-0.05, 0.05), rng.uniform(-0.17, 0.17), (t - 0.33) * 3 * 1.6)
+    XO, YO, HP, HA = 0.72, 0.15, 1.5, 0.42
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            box4(mb, sx * XO - 0.03, sy * YO - 0.03, 0.0, sx * XO + 0.03, sy * YO + 0.03, HP, c)
+        for z in (0.55, 1.1):
+            box4(mb, sx * XO - 0.018, -YO, z, sx * XO + 0.018, YO, z + 0.035, c)
+
+    def arc(t):
+        return Vector((XO * math.cos(t), 0, HP + HA * math.sin(t)))
+    for sy in (-1, 1):
+        tube(mb, [arc(j / 14 * math.pi) + Vector((0, sy * YO, 0)) for j in range(15)], 0.03, c, seg=4)
+    for j in range(1, 4):
+        q = arc(j / 4 * math.pi)
+        box4(mb, q.x - 0.02, -YO, q.z - 0.018, q.x + 0.02, YO, q.z + 0.02, c)
+
+    # the frame's middle line, from the left foot up, over and down the right: its point and the way out from it
+    def F(t):
+        L1, L2 = HP, math.pi * math.sqrt((XO ** 2 + HA ** 2) / 2)
+        d = t * (2 * L1 + L2)
+        if d < L1:
+            return Vector((-XO, 0, d)), Vector((-1, 0, 0))
+        if d > L1 + L2:
+            return Vector((XO, 0, 2 * L1 + L2 - d)), Vector((1, 0, 0))
+        a = math.pi * (1 - (d - L1) / L2)
+        q = arc(a)
+        return q, Vector((math.cos(a) * HA, 0, math.sin(a) * XO)).normalized()
+    rng = random.Random(81)
+    dark, mid, hi = (rgb(x) for x in GREENS)
+
+    def tone(out, z, k=0.0):
+        tt = max(0.0, min(1.0, 0.22 + 0.45 * max(0.0, out.dot(LIGHT)) + 0.18 * z / 1.9 + k))
+        return dark.lerp(mid, min(1.0, tt * 1.6)) if tt < 0.62 else mid.lerp(hi, (tt - 0.62) / 0.38)
+    # the vines in clumps along the frame (thickest at the feet and all over the top, thinner up the posts with the white
+    # showing between): each a soft mass of leaves with a few leaves standing out of it, roses on some
+    blooms = []
+    for k in range(42):
+        t = rng.random()
+        if rng.random() < 0.5:
+            t = rng.choice((rng.uniform(0.0, 0.1), rng.uniform(0.9, 1.0), rng.uniform(0.33, 0.67), rng.uniform(0.33, 0.67)))
+        q, nrm = F(t)
+        top = 0.33 < t < 0.67
+        y = rng.choice((-YO, YO)) if not top or rng.random() < 0.6 else rng.uniform(-YO, YO)
+        T = (F(min(1.0, t + 0.01))[0] - F(max(0.0, t - 0.01))[0]).normalized()
+        r = rng.uniform(0.075, 0.105) * (1.15 if top or t < 0.08 or t > 0.92 else 1.0)
+        centre = q + Vector((0, y, 0)) + nrm * rng.uniform(-0.01, 0.03)
+        m = len(mb.v)
+        ball(mb, (0, 0, 0), (r * 1.25, r, r * 0.9), (0.5, 0.5, 0.5), sub=1)
+        R = Matrix((T, Vector((0, 1, 0)).cross(T).normalized() if abs(T.y) < 0.9 else Vector((1, 0, 0)), Vector((0, 1, 0)))).transposed()
+        for i in range(m, len(mb.v)):
+            o = mb.n[i]
+            mb.c[i] = tone(o, centre.z, rng.uniform(-0.18, 0.0)) * 0.82
+        xform(mb, m, Matrix.Translation(centre) @ R.to_4x4())
+        for j in range(3):
+            a = rng.uniform(0, math.tau)
+            out = (nrm * math.cos(a) + Vector((0, 1 if y >= 0 else -1, 0)) * math.sin(a) * 1.3 + Vector((0, -0.25, 0.15))).normalized()
+            p = centre + out * r * 0.8 + T * rng.uniform(-r, r)
+            d = (T * rng.uniform(-1, 1) + Vector((0, 0, -0.5)) + out.cross(T) * rng.uniform(-1, 1))
+            d = (d - out * d.dot(out)).normalized()
+            Lk = rng.uniform(0.11, 0.15)
+            leaflet(mb, p - d * Lk * 0.35, out, d, Lk, 0.82, tone(out, centre.z, rng.uniform(-0.1, 0.12)), lift=rng.uniform(0.1, 0.4))
+        if k % 2 == 0:
+            blooms.append((centre, nrm, y, r))
+    for i, (centre, nrm, y, r) in enumerate(blooms):
+        out = (nrm + Vector((0, (1 if y >= 0 else -1) * 0.9, 0)) + Vector((0, -0.5, 0.25))).normalized()
+        col = ('#e8406a', '#f0628a', '#d8304e')[i % 3]
+        if i % 4 == 3:
+            ball(mb, centre + out * (r + 0.01), (0.028, 0.028, 0.036), col_fn(col, under=0.0), sub=1)       # (a bud)
+        elif i % 4:
+            ball(mb, centre + out * (r + 0.015), (0.045, 0.045, 0.04), col_fn(col, under=0.0), sub=1)       # (a small bloom)
         else:
-            a = (t - 0.66) * 3 * math.pi
-            p = (math.cos(a) * 0.75, rng.uniform(-0.17, 0.17), 1.6 + math.sin(a) * 0.4)
-        ball(mb, p, 0.07, leafy(seed=k), sub=1)
-        if k % 3 == 0:
-            ball(mb, (p[0], p[1] - 0.06, p[2]), 0.04, '#e84a6a', sub=1)
+            rose(mb, centre + out * (r + 0.02), out, 0.058, col, rng)
 
 
 @item('od_telescope', 1, 1)
 def od_telescope(P):
-    """A brass telescope on a wooden tripod, pointed at the sky."""
-    mb = P.main
+    """A brass telescope on a wooden tripod, pointed up at the sky: a fat tube with a dew shield at its front, a focuser and
+    a dark eyepiece at its back, the lens glinting, sitting in a turned mount on the tripod's head."""
+    mb, g = P.main, P.gloss
+    head = Vector((0, 0.03, 0.8))
     for k in range(3):
-        a = k / 3 * math.tau + 0.4
-        tube(mb, [(0, 0, 0.82), (math.cos(a) * 0.3, math.sin(a) * 0.3, 0)], 0.02, wood(OAK), seg=5)
-    m = len(P.gloss.v)
-    lathe(P.gloss, [(0.0, -0.3), (0.05, -0.3), (0.05, 0.1), (0.07, 0.12), (0.07, 0.42), (0.08, 0.44), (0.0, 0.44)], metal(BRASS), seg=16)
-    xform(P.gloss, m, Matrix.Translation((0, 0, 0.86)) @ rot(x=-0.9))
+        a = k / 3 * math.tau - math.pi / 2 + 0.5
+        foot = Vector((math.cos(a) * 0.37, math.sin(a) * 0.33 + 0.03, 0.0))
+        tube(mb, [head + (foot - head).normalized() * 0.05, foot], 0.03, wood(OAK, 'z', seed=k), seg=5, r1=0.02)
+    lathe(mb, [(0.075, 0.72), (0.08, 0.78), (0.055, 0.84), (0.035, 0.9)], metal(DARK), c=(0, 0.03, 0), seg=8, cap_top=False)
+    m = len(g.v)
+
+    def tc(p, n, z0=0, z1=1):
+        if p.z > 0.32 and math.hypot(p.x, p.y) < 0.03:
+            return rgb('#2a3e5a')                                                # (the lens)
+        if p.z < -0.29:
+            return rgb('#2e2a2c')                                                # (the eyepiece)
+        k = 0.82 if -0.02 < p.z < 0.02 or 0.15 < p.z < 0.17 else 1.0             # (bands round the tube)
+        return rgb(BRASS) * k * (0.9 + 0.1 * n.z)
+    lathe(g, [(0.028, -0.4), (0.028, -0.3), (0.04, -0.3), (0.04, -0.2), (0.058, -0.2), (0.058, 0.16), (0.072, 0.16),
+              (0.072, 0.34), (0.06, 0.34), (0.0, 0.33)], tc, seg=10, cap_top=False, cap_bot=True)
+    xform(g, m, Matrix.Translation((0, 0.03, 0.92)) @ rot(z=0.45) @ rot(y=math.radians(56)) @ Matrix.Translation((0, 0, -0.04)))
 
 
 @item('od_chimes', 1, 1)
@@ -715,76 +1235,148 @@ def od_chimes(P):
 
 
 # ---------------------------------------------------------------- plants
+def hedge(P, c, r, e_side, e_top, n, nu, nv, L, amp=0.035, freq=2.6, seed=0.0, lift=(0.08, 0.4), spin=math.pi, mind=0.62):
+    """a clipped hedge: a soft box (or ball) swollen in slow clumps, a dark mass under a skin of small leaves"""
+    S, inside, sw = blob(c, r, e_side, e_top, amp=amp, freq=freq, seed=seed, sink=0.06)
+    shapes = [{'P': S, 'inside': inside, 'c': c, 'n': n, 'nu': nu, 'nv': nv, 'swell': sw, 'vmin': 0.1}]
+    foliage(P.main, shapes, random.Random(int(seed * 100) + 3), L=L, z0=0.0, z1=c[2] + r[2], lift=lift, spin=spin, mind=mind)
+
+
 @item('dp_hedge', 1, 1)
 def dp_hedge(P):
-    """A square hedge, clipped neat, on a little band of earth."""
-    bush(P.main, (0, 0, 0.32), (0.44, 0.42, 0.32), leafy(), e_side=0.25, e_top=0.3, bump=0.04)
+    """A square hedge, clipped neat: a soft box of small leaves, gently lumpy, lighter on top where it's been trimmed."""
+    hedge(P, (0, 0, 0.31), (0.42, 0.4, 0.31), 0.22, 0.28, n=300, nu=16, nv=10, L=0.15, seed=1.0, lift=(0.04, 0.3), mind=0.5)
 
 
 @item('dp_hedge_round', 1, 1)
 def dp_hedge_round(P):
-    """A round hedge: a clipped ball of leaves."""
-    bush(P.main, (0, 0, 0.36), (0.4, 0.4, 0.36), leafy(seed=1), bump=0.05)
+    """A round hedge: a full, loose ball of leaves bulging in clumps, a little wider than tall."""
+    hedge(P, (0, 0, 0.35), (0.39, 0.38, 0.35), 1.0, 1.0, n=290, nu=18, nv=10, L=0.14, amp=0.12, freq=3.4, seed=2.0,
+          lift=(0.12, 0.5), spin=2.2, mind=0.4)
 
 
 @item('dp_hedge_long', 2, 1)
 def dp_hedge_long(P):
     """A long hedge, clipped neat, two tiles long."""
-    bush(P.main, (0, 0, 0.32), (0.92, 0.4, 0.32), leafy(seed=2), e_side=0.22, e_top=0.3, bump=0.035, nu=56)
+    hedge(P, (0, 0, 0.31), (0.9, 0.39, 0.31), 0.2, 0.28, n=480, nu=24, nv=10, L=0.16, amp=0.028, seed=6.0, lift=(0.04, 0.3), mind=0.48)
 
 
 @item('od_hedge_tall', 1, 1)
 def od_hedge_tall(P):
-    """A tall hedge, clipped into a column taller than Sarah."""
-    bush(P.main, (0, 0, 0.75), (0.42, 0.4, 0.75), leafy(LEAF3, seed=3), e_side=0.3, e_top=0.25, bump=0.035, nv=28)
+    """A tall hedge, clipped into a column taller than Sarah, its top rounded off."""
+    hedge(P, (0, 0, 0.74), (0.4, 0.38, 0.74), 0.24, 0.2, n=470, nu=16, nv=16, L=0.16, amp=0.03, freq=2.2, seed=4.0,
+          lift=(0.04, 0.3), mind=0.5)
 
 
 @item('od_hedge_flower', 1, 1)
 def od_hedge_flower(P):
-    """A flowering hedge: round and leafy, dotted all over with pink blossoms."""
+    """A flowering hedge: round and leafy, dotted all over with pink blossoms, each five petals round a yellow eye."""
     mb = P.main
-    bush(mb, (0, 0, 0.34), (0.42, 0.4, 0.34), leafy(seed=4), e_side=0.6, e_top=0.6, bump=0.05)
-    rng = P.rng
-    for k in range(40):
-        u, v = rng.uniform(0, math.tau), rng.uniform(0.15, 1.0)
-        r = math.sqrt(max(0.0, 1 - v * v))
-        ball(mb, (math.cos(u) * 0.42 * (r * 0.9 + 0.1), math.sin(u) * 0.4 * (r * 0.9 + 0.1), 0.34 + v * 0.34), 0.035, ('#ff8ac0', '#ffd0e4', '#ff6aa8')[k % 3], sub=1)
+    c, r = (0, 0, 0.34), (0.4, 0.38, 0.33)
+    S, inside, sw = blob(c, r, 0.6, 0.6, amp=0.06, freq=3.0, seed=5.0, sink=0.06)
+    foliage(mb, [{'P': S, 'inside': inside, 'c': Vector(c), 'n': 255, 'nu': 18, 'nv': 10, 'swell': sw, 'vmin': 0.1}],
+            random.Random(41), L=0.14, z1=0.67, lift=(0.06, 0.4), mind=0.5)
+    rng = random.Random(42)
+    for p, n, u, v in scatter(S, 46, rng, 0.1, vmin=0.3, centre=c):
+        col = rgb(('#ff8ac0', '#ffc8e0', '#ff6aa8')[rng.randrange(3)])
+        blossom(mb, p + n * 0.03, n, rng.uniform(0.04, 0.055), col, rng)
+
+
+def blossom(mb, p, n, r, col, rng):
+    """a little flower facing out along n: five round petals in one fan, a yellow eye"""
+    t = n.cross(Vector((0.3, 0.7, 0.2))).normalized()
+    b = n.cross(t)
+    a0 = rng.uniform(0, math.tau)
+    pts, cols, nrms = [p + n * r * 0.25], [rgb('#f8d040')], [n]
+    for k in range(10):
+        a = a0 + k / 10 * math.tau
+        rr = r * (1.0 if k % 2 == 0 else 0.78)
+        pts.append(p + (t * math.cos(a) + b * math.sin(a)) * rr - n * r * 0.15)
+        cols.append(col * (1.0 if k % 2 == 0 else 0.86))
+        nrms.append((n + (t * math.cos(a) + b * math.sin(a)) * 0.35).normalized())
+    mb.add(pts, cols, nrms, [(0, 1 + k, 1 + (k + 1) % 10) for k in range(10)])
 
 
 @item('dp_topiary', 1, 1)
 def dp_topiary(P):
-    """A bunny topiary: a round body and head of clipped leaves, two long ears, a pot of earth under it."""
+    """A bunny topiary: a body and head of clipped leaves sitting up on a terracotta pot, two long ears, a round tail,
+    two front paws."""
     mb = P.main
-    lathe(mb, [(0.18, 0), (0.22, 0.2), (0.2, 0.22)], paint('#c8784a'), seg=16)
-    bush(mb, (0, 0.03, 0.42), (0.24, 0.22, 0.22), leafy(seed=5), bump=0.04)
-    bush(mb, (0, -0.06, 0.74), (0.15, 0.14, 0.14), leafy(seed=6), bump=0.04)
-    for sx in (-1, 1):
-        bush(mb, (sx * 0.06, -0.04, 1.0), (0.05, 0.04, 0.16), leafy(seed=7 + sx), bump=0.03, nu=16, nv=12)
+    flower_pot(mb, 0.17, 0.21, 0.26, col_fn('#c8784a', under=0.2), seg=16)
+    ear = [turned(shape((sx * 0.06, -0.05, 0.99), (0.045, 0.034, 0.16), 8, 6, amp=0.02, seed=7 + sx, L=0.05),
+                  rot(y=sx * 0.22, x=0.12), (sx * 0.06, -0.05, 0.86)) for sx in (-1, 1)]
+    shapes = [shape((0, 0.04, 0.45), (0.22, 0.2, 0.21), 16, 8, seed=5, L=0.075),
+              shape((0, -0.08, 0.74), (0.14, 0.13, 0.13), 14, 8, seed=6, L=0.065),
+              shape((0, 0.24, 0.42), (0.065, 0.06, 0.065), 8, 6, seed=9, L=0.05)] + ear + \
+             [shape((sx * 0.085, -0.15, 0.31), (0.05, 0.065, 0.05), 8, 6, seed=10 + sx, L=0.045) for sx in (-1, 1)]
+    foliage(mb, shapes, random.Random(51), W=0.82, z0=0.24, z1=1.1, lift=(0.04, 0.3), mind=0.5, cover=1.0)
+
+
+def helix(turns, z0, z1, R0, R1, r0, r1, phase=0.0):
+    """a tube wound up round the z axis, tapering (its centre line from R0 to R1 out, its own radius from r0 to r1), closed
+    to a point at each end: P(u, v), u round the tube, v along it"""
+    def C(v):
+        a = phase + turns * math.tau * v
+        R = R0 + (R1 - R0) * v
+        return Vector((R * math.cos(a), R * math.sin(a), z0 + (z1 - z0) * v))
+
+    def P(u, v):
+        v = max(0.0, min(1.0, v))
+        e = 1e-3
+        T = (C(min(1.0, v + e)) - C(max(0.0, v - e))).normalized()
+        a = phase + turns * math.tau * v
+        N = Vector((math.cos(a), math.sin(a), 0.0))
+        N = (N - T * N.dot(T)).normalized()
+        B = T.cross(N)
+        # (round at the ends: the radius falls to nothing over the first and last bit)
+        k = min(1.0, v / 0.035, (1 - v) / 0.06)
+        rr = (r0 + (r1 - r0) * v) * math.sqrt(max(0.0, k * (2 - k)))
+        th = u * math.tau
+        return C(v) + (N * math.cos(th) + B * math.sin(th)) * rr
+    return P
 
 
 @item('od_topiary_spiral', 1, 1)
 def od_topiary_spiral(P):
-    """A spiral topiary: a cone of leaves clipped into a spiral, in a terracotta pot."""
+    """A spiral topiary: a cone of leaves clipped into a corkscrew winding up round its trunk, in a terracotta pot."""
     mb = P.main
-    lathe(mb, [(0.16, 0), (0.2, 0.22), (0.22, 0.25), (0.2, 0.26)], paint('#c8784a'), seg=16)
-    post(mb, 0, 0, 0.25, 0.4, 0.025, wood(DARK, 'z'))
-    for k in range(5):
-        z = 0.42 + k * 0.2
-        r = 0.24 - k * 0.04
-        bush(mb, (0, 0, z + 0.08), (r, r, 0.09), leafy(seed=10 + k), bump=0.05, nu=24, nv=12)
+    flower_pot(mb, 0.15, 0.2, 0.27, col_fn('#c8784a', under=0.2))
+    post(mb, 0, 0, 0.25, 1.22, 0.028, wood(DARK, 'z'), seg=8)
+    H = helix(3.2, 0.36, 1.26, 0.12, 0.015, 0.115, 0.05, phase=-0.6)
+    S = {'P': H, 'inside': lambda p, m=0.96: False, 'c': Vector((0, 0, 0.8)), 'nu': 8, 'nv': 76, 'vmin': 0.0, 'flip': False}
+    # (the leaves face out from the tube, not from the topiary's middle)
+    foliage(mb, [S], random.Random(61), L=0.075, W=0.82, z0=0.28, z1=1.3, lift=(0.04, 0.32), mind=0.5, cover=1.2)
+
+
+def heart(c, w, h, t):
+    """a puffy heart standing up facing the front: P(u, v), u round its outline, v from its back to its front"""
+    c = Vector(c)
+    sx, sz = w / 32.0, h / 30.0
+
+    def o(a):
+        return Vector((16 * math.sin(a) ** 3 * sx, 0.0, (13 * math.cos(a) - 5 * math.cos(2 * a) - 2 * math.cos(3 * a) - math.cos(4 * a) + 2.5) * sz))
+
+    def P(u, v):
+        ph = (max(0.0, min(1.0, v)) - 0.5) * math.pi
+        k = max(0.0, math.cos(ph)) ** 0.45
+        return c + o((1 - u) * math.tau) * k - Vector((0, t * sgnpow(math.sin(ph), 0.8), 0))
+
+    def inside(p, m=0.96):
+        return False
+    return P, inside
 
 
 @item('od_topiary_heart', 1, 1)
 def od_topiary_heart(P):
-    """A heart topiary: two lobes of clipped leaves meeting in a point, on a stem in a pot."""
+    """A heart topiary: a puffy heart of clipped leaves on a slim trunk, in a white pot."""
     mb = P.main
-    lathe(mb, [(0.16, 0), (0.2, 0.22), (0.22, 0.25), (0.2, 0.26)], paint('#e8e0d8'), seg=16)
-    post(mb, 0, 0, 0.25, 0.5, 0.025, wood(DARK, 'z'))
-    for sx in (-1, 1):
-        bush(mb, (sx * 0.12, 0, 0.86), (0.17, 0.13, 0.17), leafy(seed=20 + sx), bump=0.04, nu=24, nv=14)
-    m = len(mb.v)
-    bush(mb, (0, 0, 0.7), (0.2, 0.12, 0.2), leafy(seed=23), e_side=0.6, bump=0.04, nu=24, nv=14)
-    xform(mb, m, rot(y=math.pi / 4, at=(0, 0, 0.7)))
+    flower_pot(mb, 0.15, 0.2, 0.27, col_fn('#ece4da', under=0.18))
+    post(mb, 0, 0, 0.25, 0.7, 0.026, wood(DARK, 'z'), seg=8)
+    Hp, inside = heart((0, 0, 0.88), 0.56, 0.5, 0.12)
+    S = {'P': Hp, 'inside': inside, 'c': Vector((0, 0, 0.88)), 'nu': 32, 'nv': 8, 'vmin': 0.0}
+    foliage(mb, [S], random.Random(71), L=0.07, W=0.82, z0=0.6, z1=1.15, lift=(0.04, 0.32), mind=0.5, cover=1.2)
+
+
 
 
 @item('dp_planter', 2, 1)
@@ -847,16 +1439,46 @@ def od_rose_bush(P):
 # ---------------------------------------------------------------- the rest
 @item('dp_lounger', 2, 1)
 def dp_lounger(P):
-    """A beach lounger: a slatted frame with its back raised and a striped cushion."""
+    """A beach lounger: a sturdy wooden frame on legs, little wheels at its head, its back raised, a thick cushion of
+    padded rolls in stripes, and a rolled pillow at the top."""
     mb = P.main
-    for x in (-0.7, 0.7):
-        for y in (-0.22, 0.22):
-            rbox(mb, x - 0.03, y - 0.03, 0, x + 0.03, y + 0.03, 0.22, wood(PALE, 'z'), r=0.01)
-    boards(mb, -0.8, 0.3, -0.25, 0.25, 0.2, 0.25, 3, PALE)
+    CUSH, CREAM = '#2fb4a4', '#fbf6ee'
+    fr = wood('#dcc090', 'x')
+    HX, Y, ZR = 0.26, 0.3, 0.29              # (the hinge, the rails' half spread, the rails' top)
+    for sy in (-1, 1):
+        rbox(mb, -0.88, sy * Y - 0.035, ZR - 0.1, HX + 0.03, sy * Y + 0.035, ZR, fr, r=0.022, mid=0)
+        box4(mb, -0.82, sy * Y - 0.03, 0.0, -0.75, sy * Y + 0.03, ZR - 0.09, wood('#c8a878', 'z'))
+        # (a wheel each side at the head, on a short leg)
+        box4(mb, HX - 0.1, sy * Y - 0.028, 0.1, HX - 0.04, sy * Y + 0.028, ZR - 0.09, wood('#c8a878', 'z'))
+        m = len(mb.v)
+        lathe(mb, [(0.0, -0.022), (0.075, -0.022), (0.095, -0.012), (0.095, 0.012), (0.075, 0.022), (0.0, 0.022)],
+              lambda p, n, z0=0, z1=1: rgb('#3a3a40') if math.hypot(p.x, p.y) > 0.07 else rgb('#e8e0d0'), seg=12, cap_top=False)
+        xform(mb, m, Matrix.Translation((HX - 0.07, sy * (Y + 0.06), 0.095)) @ rot(x=math.pi / 2))
+    box4(mb, -0.9, -Y - 0.03, ZR - 0.09, -0.83, Y + 0.03, ZR - 0.01, fr)
+    box4(mb, HX - 0.12, -Y, ZR - 0.09, HX - 0.04, Y, ZR - 0.02, fr)
+    box4(mb, -0.3, -Y, ZR - 0.085, -0.22, Y, ZR - 0.02, fr)
+
+    def roll(x, z, r, col, half=0.27):
+        m = len(mb.v)
+        lathe(mb, [(0.0, -half), (r * 0.7, -half + 0.005), (r, -half + r * 0.55), (r, half - r * 0.55), (r * 0.7, half - 0.005), (0.0, half)],
+              fabric(col, seed=x * 7), seg=6, cap_top=False)
+        xform(mb, m, Matrix.Translation((x, 0, z)) @ Matrix.Diagonal((1.0, 1.0, 0.72, 1.0)) @ rot(x=math.pi / 2, y=math.pi / 6))
+    # the cushion: a soft pad, its top padded in rolls, two in the cushion's color to one cream; then the back's, raised
+    # with the back
+    rbox(mb, -0.85, -0.275, ZR - 0.012, HX + 0.005, 0.275, ZR + 0.04, fabric(CUSH, 3), r=0.03, mid=0)
+    n = 12
+    for k in range(n):
+        roll(-0.84 + (HX + 0.84) * (k + 0.5) / n, ZR + 0.042, 0.06, CREAM if k % 3 == 2 else CUSH)
+    ang = 0.62
     m = len(mb.v)
-    boards(mb, 0.3, 0.95, -0.25, 0.25, 0.2, 0.25, 3, PALE)
-    xform(mb, m, rot(y=-0.6, at=(0.3, 0, 0.25)))
-    rbox(mb, -0.78, -0.22, 0.25, 0.3, 0.22, 0.31, stripes('#3ab8a8', '#fbf6ee', 10), r=0.03)
+    for sy in (-1, 1):
+        rbox(mb, 0.0, sy * Y - 0.032, -0.045, 0.66, sy * Y + 0.032, 0.025, fr, r=0.02, mid=0)
+    box4(mb, 0.6, -Y - 0.03, -0.045, 0.67, Y + 0.03, 0.02, fr)
+    rbox(mb, 0.01, -0.275, 0.015, 0.6, 0.275, 0.065, fabric(CUSH, 4), r=0.03, mid=0)
+    for k in range(6):
+        roll(0.055 + 0.0915 * k, 0.07, 0.06, CREAM if k % 3 == 2 else CUSH)
+    roll(0.58, 0.14, 0.07, CREAM, half=0.24)
+    xform(mb, m, Matrix.Translation((HX, 0, ZR - 0.01)) @ rot(y=-ang))
 
 
 @item('od_grill', 1, 1)
@@ -883,23 +1505,86 @@ def od_cooler(P):
 
 @item('od_rowboat', 2, 1)
 def od_rowboat(P):
-    """A little rowboat pulled up on land: painted planks, a seat across it, two oars inside."""
-    mb, c = P.main, '#e8e0d0'
+    """A little rowboat pulled up on land: a deep painted hull with a pointed bow, a square transom and a sheer rising to
+    each end, a white rubbing strake under the gunwale, planks inside, three thwarts, oarlocks, and two oars laid in it."""
+    mb = P.main
+    BLUE, TRIM, INSIDE, KEEL = '#3a7ac8', '#f2ece0', '#c8ac8a', '#2e5690'
+    X0, X1 = -0.82, 0.86                     # (the stern, the bow)
 
-    def hull(sc, z0):
-        def P_(u, v):
-            th, ph = u * math.tau, (v - 1) * math.pi / 2          # the bottom half only: v 0 the keel, 1 the rim
-            k = 1 - 0.35 * max(0.0, math.cos(th)) ** 3              # (the bow pointed, the stern rounder)
-            return Vector((0.88 * sc * math.cos(th) * math.cos(ph), 0.34 * sc * k * math.sin(th) * math.cos(ph), z0 + 0.26 * sc * math.sin(ph)))
-        return P_
-    surf(mb, hull(1.0, 0.32), paint('#3a7ac8'), nu=40, nv=10, caps=(True, False))
-    # (inside: the planks, a shade lighter, a little in from the outside)
-    surf(mb, hull(0.92, 0.32), wood('#9a7650'), nu=40, nv=8, caps=(True, False))
-    tube(mb, [(0.88 * math.cos(t / 40 * math.tau), 0.34 * (1 - 0.35 * max(0.0, math.cos(t / 40 * math.tau)) ** 3) * math.sin(t / 40 * math.tau), 0.32) for t in range(41)], 0.025, paint(c), seg=6)
-    rbox(mb, -0.08, -0.28, 0.24, 0.08, 0.28, 0.27, wood(OAK), r=0.01)
-    for y in (-0.12, 0.12):
-        tube(mb, [(-0.7, y, 0.3), (0.6, y, 0.26)], 0.018, wood(PALE), seg=5)
-        rbox(mb, 0.55, y - 0.05, 0.24, 0.8, y + 0.05, 0.27, wood(PALE), r=0.01)
+    def B(s):                                # half the beam
+        if s < 0.42:
+            return 0.37 * (0.64 + 0.36 * math.sin(math.pi / 2 * s / 0.42))
+        return 0.37 * max(0.0, math.cos((s - 0.42) / 0.58 * math.pi / 2)) ** 0.8
+
+    def H(s):                                # the sheer: the gunwale, rising to each end
+        return 0.37 + (0.06 * (1 - s / 0.45) ** 2 if s < 0.45 else 0.14 * ((s - 0.45) / 0.55) ** 2)
+
+    def K(s):                                # the keel: flat amidships, rising to the stern and up the bow
+        return 0.045 + (0.11 * (1 - s / 0.4) ** 2 if s < 0.4 else 0.15 * ((s - 0.4) / 0.6) ** 2.4)
+
+    def hull(s, t, inset=0.0):
+        th = (t - 0.5) * math.pi
+        b, d = max(0.0, B(s) - inset), max(0.0, H(s) - K(s) - inset)
+        up = 1 - max(0.0, math.cos(th)) ** 0.5
+        # (the stem raked forward up the bow, the transom leaning back a little at its top)
+        rake = 0.16 * up * max(0.0, (s - 0.8) / 0.2) ** 2 - 0.05 * up * max(0.0, 1 - s / 0.15)
+        return Vector((X0 + (X1 - X0) * s + rake, b * sgnpow(math.sin(th), 0.62), H(s) - d * (1 - up)))
+    ts = [k / 16 for k in range(17)]
+    ss = [0.0, 0.03] + [k / 26 for k in range(1, 26)] + [0.975, 1.0]
+    sheet(mb, lambda s_, t: hull(s_, t), ss, ts, paint(BLUE, 0.1), flip=True)
+    # inside: the planks, a little in from the outside, from just inside the transom to just short of the bow
+    si = lambda s_: 0.03 + 0.92 * s_
+    sheet(mb, lambda s_, t: hull(si(s_), t, 0.028), [k / 18 for k in range(19)], [k / 12 for k in range(13)],
+          wood(INSIDE, 'x'))
+    # the transom: the stern's flat back, outside and in
+    for sgn, s0, ins, col in ((-1, 0.0, 0.0, paint(BLUE, 0.05)), (1, si(0.0), 0.028, wood(INSIDE, 'z'))):
+        ring = [hull(s0, t, ins) for t in ts]
+        mid = sum(ring, Vector()) / len(ring)
+        n = Vector((sgn, 0, 0))
+        mb.add([mid] + ring, [col(q, n) for q in [mid] + ring], [n] * (len(ring) + 1), [(0, 1 + k, 2 + k) for k in range(len(ring) - 1)] + [(0, len(ring), 1)])
+    # the gunwale all round, and a rubbing strake below it
+    rim = [hull(k / 18, 0.0) for k in range(19)] + [hull(1 - k / 18, 1.0) for k in range(1, 19)] + [hull(0.0, 0.0)]
+    tube(mb, rim, 0.026, paint(TRIM, 0.0), seg=5)
+    for t in (0.06, 0.94):
+        tube(mb, [hull(k / 14 * 0.97, t) + Vector((0, (0.012 if t > 0.5 else -0.012), 0)) for k in range(15)], 0.015, paint(TRIM, 0.0), seg=4)
+    # the keel and the stem rising up the bow
+    tube(mb, [hull(k / 12, 0.5) - Vector((0, 0, 0.012)) for k in range(12)] + [hull(1.0, 0.5 + 0.5 * k / 4) + Vector((0.014, 0, 0.0)) for k in range(5)],
+         0.02, paint(KEEL, 0.0), seg=4)
+
+    def beam_at(s_, z):
+        """how far out the inside reaches at height z, at s"""
+        d = H(s_) - K(s_) - 0.028
+        c = max(0.0, min(1.0, (H(s_) - z) / max(1e-3, d))) ** 2
+        return max(0.0, B(s_) - 0.028) * math.sin(math.acos(c)) ** 0.62
+    # three thwarts across
+    for s_ in (0.16, 0.47, 0.77):
+        z = H(s_) - 0.1
+        y = beam_at(s_, z) + 0.01
+        x = X0 + (X1 - X0) * s_
+        box4(mb, x - 0.065, -y, z - 0.03, x + 0.065, y, z, wood('#b8946a', 'y', seed=s_ * 9))
+    # floorboards amidships
+    for y in (-0.09, 0.0, 0.09):
+        x0, x1 = X0 + (X1 - X0) * 0.24, X0 + (X1 - X0) * 0.7
+        box4(mb, x0, y - 0.035, K(0.45) + 0.03, x1, y + 0.035, K(0.45) + 0.05, wood('#a8865e', 'x', seed=y * 20))
+    # oarlocks on the gunwale by the middle thwart
+    xm = X0 + (X1 - X0) * 0.5
+    for sy in (-1, 1):
+        p = hull(0.5, 0.0 if sy < 0 else 1.0)
+        tube(mb, [p + Vector((-0.028, 0, 0.01)), p + Vector((-0.028, 0, 0.045)), p + Vector((0.0, 0, 0.055)), p + Vector((0.028, 0, 0.045)), p + Vector((0.028, 0, 0.01))], 0.009, metal(BRASS), seg=4)
+    # two oars laid in it, resting on the thwarts, their blades out over the transom
+    for k, (y0, y1) in enumerate(((-0.13, -0.05), (0.1, 0.16))):
+        a = Vector((X0 + (X1 - X0) * 0.86, y0, H(0.77) - 0.06 + k * 0.012))
+        b = Vector((X0 - 0.06, y1, H(0.0) + 0.035))
+        d = (b - a).normalized()
+        L = (b - a).length
+        oak = wood('#d8bc8c', 'x', seed=k + 3)
+        tube(mb, [a - d * 0.02, a + d * 0.12], 0.024, oak, seg=6)
+        tube(mb, [a + d * 0.12, a + d * (L - 0.3)], 0.016, oak, seg=6)
+        m = len(mb.v)
+        slab(mb, [(0.0, -0.016), (0.07, -0.042), (0.3, -0.052), (0.34, -0.03), (0.35, 0.0), (0.34, 0.03), (0.3, 0.052), (0.07, 0.042), (0.0, 0.016)], 0.014, oak, axis='z', at=-0.007)
+        yaw = math.atan2(d.y, d.x)
+        pitch = -math.asin(max(-1.0, min(1.0, d.z)))
+        xform(mb, m, Matrix.Translation(a + d * (L - 0.31)) @ Euler((0, pitch, yaw), 'XYZ').to_matrix().to_4x4())
 
 
 @item('od_haybale', 1, 1)

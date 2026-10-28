@@ -7,6 +7,7 @@ from trees_ac import rgb
 from kit import col_fn, shade, rbox, lathe, tube, xform, cyl
 from folks import ball, surf, superq, revolve, mottle
 from furn_kit import *
+from furn_b import lbox, counter_body, panels     # (light shapes, the counters' body)
 
 
 # ---------------------------------------------------------------- helpers for this batch
@@ -184,21 +185,34 @@ def velvet_rope(P):
 
 @item('museum_desk', 3, 1)
 def museum_desk(P):
-    counter(P, 2.8, 0.7, 1.0, wood('#6a3e24'), wood('#4a2a18', 'z'), panels=3)
+    """Brulee's desk at the museum (the town hall's too): dark polished wood with a crown and a skirting, three sunk panels
+    framed in gilt, pilasters between them with gilt capitals and bases, a green leather inlay on the top, a guest book
+    and a little sign on it."""
     mb, w, d, h = P.main, 2.8, 0.7, 1.0
-    gold = metal('#e0b040')
+    gold, dark = metal('#e0b040'), wood('#3a2010', 'z')
+    z0, z1 = counter_body(P, w, d, h, wood('#6a3e24'), wood('#4a2a18', 'z'), wood('#5a3420'), '#2a1a10', top_t=0.06)
+    y = -d / 2
+    lbox(mb, -w / 2 - 0.02, y - 0.028, z1 - 0.018, w / 2 + 0.02, d / 2 - 0.01, z1 - 0.004, gold, r=0.005)
     pw = (w - 0.1) / 3
+    for k in range(4):
+        x = -w / 2 + 0.05 + pw * k
+        lbox(mb, x - 0.05, y - 0.03, z0, x + 0.05, y + 0.01, z1 - 0.02, wood('#5a3420', 'z'), r=0.012)
+        lbox(mb, x - 0.062, y - 0.042, z1 - 0.07, x + 0.062, y + 0.01, z1 - 0.025, gold, r=0.01)
+        lbox(mb, x - 0.062, y - 0.042, z0, x + 0.062, y + 0.01, z0 + 0.04, gold, r=0.01)
     for k in range(3):
-        x0, x1 = -w / 2 + 0.05 + pw * k + 0.03, -w / 2 + 0.05 + pw * (k + 1) - 0.03
-        z0, z1, y = 0.14, h - 0.13, -d / 2 - 0.028
-        rbox(mb, x0 + 0.06, y + 0.004, z0 + 0.06, x1 - 0.06, y + 0.02, z1 - 0.06, wood('#3a2010', 'z'), r=0.006, mid=0)
-        for (a, b, c, e) in ((x0, z0, x1, z0 + 0.04), (x0, z1 - 0.04, x1, z1), (x0, z0, x0 + 0.04, z1), (x1 - 0.04, z0, x1, z1)):
-            rbox(mb, a, y - 0.004, b, c, y + 0.012, e, gold, r=0.006, mid=0)
+        x0, x1 = -w / 2 + 0.05 + pw * k + 0.08, -w / 2 + 0.05 + pw * (k + 1) - 0.08
+        za, zb = z0 + 0.06, z1 - 0.09
+        lbox(mb, x0 + 0.05, y - 0.012, za + 0.05, x1 - 0.05, y + 0.005, zb - 0.05, dark, r=0.01)
+        for (a, b, c, e) in ((x0, za, x1, za + 0.035), (x0, zb - 0.035, x1, zb), (x0, za, x0 + 0.035, zb), (x1 - 0.035, za, x1, zb)):
+            lbox(mb, a, y - 0.02, b, c, y + 0.01, e, gold, r=0.008)
+        ball(mb, ((x0 + x1) / 2, y - 0.02, (za + zb) / 2), (0.04, 0.012, 0.04), gold, sub=1)
+    # the leather inlay, flush with the top
+    lbox(mb, -1.25, -0.27, h - 0.004, 1.25, 0.27, h + 0.0015, col_fn('#3a6a4a', mottle=0.04, under=0.0), r=0.003)
     # a guest book and a little sign on top
-    rbox(mb, 0.55, -0.18, h, 0.95, 0.12, h + 0.04, shade('#fbfaf2'), r=0.008, mid=0)
-    rbox(mb, 0.55, -0.18, h + 0.035, 0.95, 0.12, h + 0.045, shade('#7a2a2a'), r=0.006, mid=0)
+    lbox(mb, 0.55, -0.18, h, 0.95, 0.12, h + 0.04, shade('#fbfaf2'), r=0.008)
+    lbox(mb, 0.55, -0.18, h + 0.035, 0.95, 0.12, h + 0.045, shade('#7a2a2a'), r=0.006)
     m = len(mb.v)
-    rbox(mb, -0.14, -0.01, 0.0, 0.14, 0.01, 0.14, shade('#f6f0de'), r=0.006, mid=0)
+    lbox(mb, -0.14, -0.01, 0.0, 0.14, 0.01, 0.14, shade('#f6f0de'), r=0.006)
     xform(mb, m, Matrix.Translation((1.05, 0.05, h)) @ Euler((-0.3, 0, 0)).to_matrix().to_4x4())
     P.top(h)
 
@@ -206,8 +220,29 @@ def museum_desk(P):
 # ---------------------------------------------------------------- the diner's kitchen
 @item('counter_diner', 3, 1)
 def counter_diner(P):
-    counter(P, 2.8, 0.7, 1.0, paint('#f8f6f0', 0.02), paint('#8ed8c0'), panels=7, trim=metal('#c8ccd4'), kick='#b8bcc4')
-    rbox(P.gloss, -1.41, -0.39, 0.0, 1.41, -0.33, 0.1, metal('#d8dce4'), r=0.012, mid=1)
+    """Mac's diner counter (Muggy's café's too): a white top edged in ribbed chrome, the mint front in tall rounded
+    ribs with a chrome band across it, a chrome kick plate, and a chrome footrail along the front on brackets."""
+    mb, w, d, h = P.main, 2.8, 0.7, 1.0
+    mint, rib, chrome = paint('#8ed8c0'), paint('#a8e4d0'), metal('#d8dce4')
+    z0, z1 = counter_body(P, w, d, h, paint('#f8f6f0', 0.02), mint, mint, '#b8bcc4', top_t=0.06, mould=False)
+    y = -d / 2
+    # the chrome edging round the top, in two ribs, and the kick plate
+    for zz in (h - 0.055, h - 0.028):
+        lbox(P.gloss, -w / 2 - 0.042, y - 0.064, zz - 0.012, w / 2 + 0.042, d / 2 + 0.005, zz + 0.012, chrome, r=0.01)
+    lbox(P.gloss, -w / 2 - 0.01, y - 0.04, 0.0, w / 2 + 0.01, d / 2 - 0.005, 0.11, chrome, r=0.012)
+    # the ribs, and a chrome band across them
+    for k in range(17):
+        x = -1.3 + k * 2.6 / 16
+        lbox(mb, x - 0.05, y - 0.022, 0.13, x + 0.05, y + 0.01, h - 0.09, rib, r=0.035)
+    lbox(P.gloss, -w / 2 - 0.006, y - 0.036, 0.5, w / 2 + 0.006, d / 2 - 0.01, 0.56, chrome, r=0.01)
+    for s in (-1, 1):
+        lbox(mb, s * w / 2 - 0.03, y + 0.02, 0.13, s * w / 2 + 0.03, d / 2 - 0.02, h - 0.09, mint, r=0.025)
+    # the footrail
+    tube(P.gloss, [(-1.3, y - 0.11, 0.2), (1.3, y - 0.11, 0.2)], 0.022, chrome, seg=8)
+    for x in (-1.3, -0.45, 0.45, 1.3):
+        tube(P.gloss, [(x, y - 0.11, 0.2), (x, y - 0.08, 0.2), (x, y - 0.03, 0.16)], 0.014, chrome, seg=6)
+    for x in (-1.3, 1.3):
+        ball(P.gloss, (x, y - 0.11, 0.2), 0.03, chrome, sub=1)
     P.top(1.0)
 
 
@@ -472,25 +507,78 @@ def sewing_table(P):
 
 
 # ---------------------------------------------------------------- the lighthouse keeper's rooms
+def wedge(mb, r0, r1, a0, a1, z0, z1, col, bev=0.014, n=6):
+    """A stair's tread: a slice of a ring in plan (radius r0 to r1, angle a0 to a1) z0 to z1 thick, its top and bottom
+    edges softly bevelled."""
+    c, s = math.cos, math.sin
+    out = [(Vector((r1 * c(a), r1 * s(a))), Vector((c(a), s(a)))) for a in (a0 + (a1 - a0) * k / n for k in range(n + 1))]
+    out += [(Vector((r1 * c(a1), r1 * s(a1))), Vector((-s(a1), c(a1)))), (Vector((r0 * c(a1), r0 * s(a1))), Vector((-s(a1), c(a1))))]
+    out += [(Vector((r0 * c(a), r0 * s(a))), Vector((-c(a), -s(a)))) for a in (a1, (a0 + a1) / 2, a0)]
+    out += [(Vector((r0 * c(a0), r0 * s(a0))), Vector((s(a0), -c(a0)))), (Vector((r1 * c(a0), r1 * s(a0))), Vector((s(a0), -c(a0))))]
+    m = len(out)
+    # (a corner's two points, one for each side, share the top's and bottom's inset point)
+    ins = [p - sum((q2 for p2, q2 in out if (p2 - p).length < 1e-9), Vector((0, 0))) * bev for p, q in out]
+    rings = [([Vector((i.x, i.y, z1)) for i in ins], [Vector((0, 0, 1))] * m),
+             ([Vector((p.x, p.y, z1 - bev)) for p, q in out], [Vector((q.x, q.y, 0.3)).normalized() for p, q in out]),
+             ([Vector((p.x, p.y, z0 + bev)) for p, q in out], [Vector((q.x, q.y, -0.3)).normalized() for p, q in out]),
+             ([Vector((i.x, i.y, z0)) for i in ins], [Vector((0, 0, -1))] * m)]
+    am = (a0 + a1) / 2
+    mid = Vector(((r0 + r1) / 2 * c(am), (r0 + r1) / 2 * s(am), 0))
+    pts, nrm, F = [], [], []
+    for P_, N_ in rings:
+        pts += P_
+        nrm += N_
+    for r in range(3):
+        for k in range(m):
+            a, b = r * m + k, r * m + (k + 1) % m
+            F += [(a, b, b + m), (a, b + m, a + m)]
+    t, bt = len(pts), len(pts) + 1
+    pts += [mid + Vector((0, 0, z1)), mid + Vector((0, 0, z0))]
+    nrm += [Vector((0, 0, 1)), Vector((0, 0, -1))]
+    F += [(t, k, (k + 1) % m) for k in range(m)] + [(bt, 3 * m + (k + 1) % m, 3 * m + k) for k in range(m)]
+    fn = col if callable(col) else shade(col)
+    mb.add(pts, [fn(p, q, z0, z1) for p, q in zip(pts, nrm)], nrm, F)
+
+
 @item('lh_stairs', 2, 2)
 def lh_stairs(P):
+    """The keeper's spiral stair up into the lamp room: a cast-iron column on a round plinth, eleven thick wooden treads
+    fanning round it, each held by an iron bracket and a collar on the column, a turned iron baluster at each tread's
+    end carrying a wooden handrail that winds up smoothly from a newel post at the foot, a landing at the top."""
     mb = P.main
-    iron = metal('#2a2a30')
-    lathe(mb, [(0.5, 0.0), (0.5, 0.05), (0.42, 0.08), (0.0, 0.08)], iron, seg=32)
-    cyl(mb, 0, 0, 0.05, 2.25, 0.07, 0.07, iron, seg=14)
-    step = metal('#8a9098')
-    n = 11
+    iron, iron_l = metal('#2e3036'), metal('#4a4e56')
+    tread, rail = col_fn('#c08a52', mottle=0.03, under=0.18), wood('#8a5632', 'x')
+    n, rise, turn = 11, 0.18, math.tau * 1.25 / 11
+    ang = lambda k: k * turn - 0.6
+    # the plinth and the column, collars at its foot and head
+    lathe(mb, [(0.5, 0.0), (0.5, 0.035), (0.46, 0.06), (0.16, 0.075), (0.0, 0.08)], iron, seg=28)
+    lathe(mb, [(0.13, 0.07), (0.13, 0.1), (0.1, 0.13), (0.085, 0.15), (0.085, 2.2), (0.11, 2.24), (0.11, 2.3), (0.0, 2.3)], iron, seg=14)
     for k in range(n):
-        a = k / n * math.tau * 1.25 - 0.6
-        z = 0.24 + k * 0.18
+        a, z = ang(k), 0.24 + k * rise
+        wedge(mb, 0.07, 0.74, a - 0.39, a + 0.39, z - 0.06, z, tread)
+        lathe(mb, [(0.098, z - 0.075), (0.105, z - 0.06), (0.098, z - 0.04)], iron_l, seg=12, cap_top=False)
+        # the bracket under it
         m = len(mb.v)
-        rbox(mb, 0.05, -0.1, -0.02, 0.72, 0.1, 0.02, step, r=0.012, mid=1)
-        rbox(mb, 0.62, -0.11, -0.025, 0.74, 0.11, 0.025, step, r=0.012, mid=0)
-        xform(mb, m, Matrix.Translation((0, 0, z)) @ Matrix.Rotation(a, 4, 'Z'))
-        tube(mb, [(math.cos(a) * 0.72, math.sin(a) * 0.72, z), (math.cos(a) * 0.72, math.sin(a) * 0.72, z + 0.7)], 0.01, iron, seg=4)
-    pts = [(math.cos(k / n * math.tau * 1.25 - 0.6) * 0.72, math.sin(k / n * math.tau * 1.25 - 0.6) * 0.72, 0.24 + k * 0.18 + 0.7) for k in range(n)]
-    tube(mb, pts, 0.018, iron, seg=6)
-    rbox(mb, -0.75, -0.06, 2.22, 0.75, 0.06, 2.3, iron, r=0.02, mid=1)
+        lbox(mb, 0.09, -0.025, -0.05, 0.66, 0.025, 0.0, iron, r=0.012)
+        xform(mb, m, Matrix.Translation((0, 0, z - 0.06)) @ Matrix.Rotation(a, 4, 'Z'))
+        # the baluster at its outer end, turned, with a knob half way
+        bx, by = math.cos(a + 0.2) * 0.68, math.sin(a + 0.2) * 0.68
+        lathe(mb, [(0.03, z), (0.02, z + 0.04), (0.014, z + 0.3), (0.026, z + 0.35), (0.014, z + 0.4), (0.013, z + 0.72)], iron, c=(bx, by, 0), seg=6, cap_top=False)
+    # the handrail: a smooth helix over the balusters, from a newel post at the foot to the last tread
+    hz = lambda a: 0.24 + (a + 0.6) / turn * rise + 0.72
+    a_end = ang(n - 1) + 0.2
+    pts = [(math.cos(a) * 0.68, math.sin(a) * 0.68, hz(a)) for a in (ang(0) - 0.3 + (a_end - ang(0) + 0.3) * j / 44 for j in range(45))]
+    tube(mb, pts, 0.026, rail, seg=8)
+    ball(mb, pts[-1], 0.032, rail, sub=1)
+    nx, ny = math.cos(ang(0) - 0.3) * 0.68, math.sin(ang(0) - 0.3) * 0.68
+    lathe(mb, [(0.05, 0.0), (0.05, 0.06), (0.032, 0.09), (0.028, 0.3), (0.04, 0.34), (0.028, 0.38), (0.026, pts[0][2] - 0.02)], rail, c=(nx, ny, 0), seg=10, cap_top=False)
+    ball(mb, pts[0], 0.045, rail, sub=2)
+    # the landing at the top
+    a = ang(n - 1) + 0.39
+    wedge(mb, 0.07, 0.76, a, a + 1.5, 2.22, 2.29, tread, n=8)
+    m = len(mb.v)
+    lbox(mb, 0.09, -0.03, -0.06, 0.7, 0.03, 0.0, iron, r=0.012)
+    xform(mb, m, Matrix.Translation((0, 0, 2.22)) @ Matrix.Rotation(a + 0.75, 4, 'Z'))
 
 
 @item('lh_desk', 2, 1)

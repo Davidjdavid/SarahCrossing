@@ -17,6 +17,7 @@ from mathutils import Vector, Matrix, Euler, noise
 from common import *
 from trees_ac import MB, vmat, rgb, bmesh_ico, anchor_empties, LIGHT
 from kit import col_fn, shade, rbox, lathe, cyl, ball, tube, slab, plank_row, flame, rocks, xform, rot
+from folks import ball as sball, surf, superq       # (sball: a ball whose triangles share their corners, a sixth of kit.ball's weight)
 import kit
 kit.DETAIL['lite'] = True
 
@@ -67,22 +68,158 @@ def stripes(a, b, n, around=True):
     return f
 
 
+def lbox(mb, x0, y0, z0, x1, y1, z1, color, r=0.012):
+    """A light rounded box: each face a flat rectangle inset by r, joined to its neighbours by a bevel shaded round (24
+    points, a quarter of a rounded box's), for small boards, plates and trims."""
+    import itertools
+    fn = color if callable(color) else shade(color)
+    r = max(0.0005, min(r, (x1 - x0) * 0.45, (y1 - y0) * 0.45, (z1 - z0) * 0.45))
+    lo, hi = (x0, y0, z0), (x1, y1, z1)
+    pts, nrm, idx = [], [], {}
+    corners = list(itertools.product((0, 1), (0, 1), (0, 1)))
+    for a in range(3):
+        for s in (0, 1):
+            n = [0.0, 0.0, 0.0]
+            n[a] = 1.0 if s else -1.0
+            for c in corners:
+                if c[a] != s:
+                    continue
+                p = [lo[k] + r if c[k] == 0 else hi[k] - r for k in range(3)]
+                p[a] = hi[a] if s else lo[a]
+                idx[(a, s, c)] = len(pts)
+                pts.append(Vector(p))
+                nrm.append(Vector(n))
+    faces = []
+    for a in range(3):
+        b, d = (a + 1) % 3, (a + 2) % 3
+        for s in (0, 1):
+            q = []
+            for cb, cd in ((0, 0), (1, 0), (1, 1), (0, 1)):
+                c = [0, 0, 0]
+                c[a], c[b], c[d] = s, cb, cd
+                q.append(idx[(a, s, tuple(c))])
+            faces += [(q[0], q[1], q[2]), (q[0], q[2], q[3])]
+    for e in range(3):
+        b, d = (e + 1) % 3, (e + 2) % 3
+        for sb in (0, 1):
+            for sd in (0, 1):
+                c0 = [0, 0, 0]
+                c0[b], c0[d] = sb, sd
+                c1 = list(c0)
+                c1[e] = 1
+                c0, c1 = tuple(c0), tuple(c1)
+                q = [idx[(b, sb, c0)], idx[(b, sb, c1)], idx[(d, sd, c1)], idx[(d, sd, c0)]]
+                faces += [(q[0], q[1], q[2]), (q[0], q[2], q[3])]
+    for c in corners:
+        faces.append((idx[(0, c[0], c)], idx[(1, c[1], c)], idx[(2, c[2], c)]))
+    cols = [fn(p, n, z0, z1) if fn.__code__.co_argcount > 2 else fn(p, n) for p, n in zip(pts, nrm)]
+    mb.add(pts, cols, nrm, faces)
+
+
+def sheet(mb, F, us, vs, col, thick=0.02, dark=0.8, ends=False):
+    """A sheet of cloth with a little thickness: F(u, v) its top surface over the rows us and the columns vs (each from 0
+    to 1), col(u, v) its color; the underside a shade darker and its long edges (v 0 and 1) closed, its ends too with
+    ends. The normals come from the surface."""
+    e = 1e-3
+
+    def nrm(u, v):
+        du = F(min(1.0, u + e), v) - F(max(0.0, u - e), v)
+        dv = F(u, min(1.0, v + e)) - F(u, max(0.0, v - e))
+        return du.cross(dv).normalized()
+    flip = -1.0 if nrm(0.5, 0.5).z < 0 else 1.0
+    nu, nv = len(us), len(vs)
+    T = [[F(u, v) for v in vs] for u in us]
+    N = [[nrm(u, v) * flip for v in vs] for u in us]
+    C = [[Vector(col(u, v)) for v in vs] for u in us]
+    quads = []
+    for i in range(nu - 1):
+        for j in range(nv - 1):
+            a, b, c, d = i * nv + j, (i + 1) * nv + j, (i + 1) * nv + j + 1, i * nv + j + 1
+            quads += [(a, b, c), (a, c, d)]
+    flat = lambda G: [g for row in G for g in row]
+    mb.add(flat(T), flat(C), flat(N), quads)
+    mb.add([p - n * thick for p, n in zip(flat(T), flat(N))], [c * dark for c in flat(C)], [-n for n in flat(N)], quads)
+    # the edges: a strip from the top's border to the underside's, facing out
+    # (each border with the step inward from it: across for a long edge, along for an end)
+    borders = [([(i, 0) for i in range(nu)], (0, 1)), ([(i, nv - 1) for i in range(nu)], (0, -1))]
+    if ends:
+        borders += [([(0, j) for j in range(nv)], (1, 0)), ([(nu - 1, j) for j in range(nv)], (-1, 0))]
+    for line, (si, sj) in borders:
+        pts, nn, cc, ff = [], [], [], []
+        for k, (i, j) in enumerate(line):
+            p, n = T[i][j], N[i][j]
+            o = p - T[i + si][j + sj]
+            o = (o - n * o.dot(n)).normalized()
+            pts += [p, p - n * thick]
+            nn += [o, o]
+            cc += [C[i][j] * 0.9, C[i][j] * 0.75]
+            if k:
+                b = 2 * k
+                ff += [(b - 2, b, b + 1), (b - 2, b + 1, b - 1)]
+        mb.add(pts, cc, nn, ff)
+
+
 # ---------------------------------------------------------------- the square
 def fountain():
+    """A small fountain (smaller and simpler than the square's grand one, but a fountain): a basin in eight soft lobes on a
+    granite step, its wall banded and its rim a moulded cap; a turned pedestal with a scalloped bowl, a little column with
+    a smaller bowl above it and a finial on top; water in all three, spilling from the bowls in arcs. The game throws its
+    spray from the top bowl's water (EnvSpray.TOPS: 1.16 up, falling to the basin's at 0.4)."""
     mb, water = MB(), MB()
-    lathe(mb, [(1.42, 0.0), (1.5, 0.05), (1.52, 0.38), (1.47, 0.48), (1.36, 0.5), (1.3, 0.44), (1.3, 0.3)], stone(), seg=40, cap_top=False)
-    lathe(mb, [(1.3, 0.3), (0.3, 0.3)], stone('#b0a898'), seg=40, cap_top=False)
-    lathe(mb, [(0.34, 0.3), (0.26, 0.4), (0.2, 0.8), (0.26, 0.92), (0.62, 1.02), (0.66, 1.12), (0.6, 1.16), (0.5, 1.1)], stone(), seg=28, cap_top=False)
-    lathe(mb, [(0.16, 1.1), (0.12, 1.36), (0.18, 1.44), (0.1, 1.5)], stone('#d0c8ba'), seg=16)
-    ball(mb, (0, 0, 1.56), 0.08, stone('#d0c8ba'))
+    pale, mid, dark = stone('#d6cdbd'), stone('#c2b8a6', seed=2), stone('#a89f90', seed=3)
+
+    def lobes(m, n, amp, r0):
+        """the vertices added since m pushed out into n soft lobes (more toward the outside, none inside r0)"""
+        for i in range(m, len(mb.v)):
+            v = mb.v[i]
+            r = math.hypot(v.x, v.y)
+            if r > r0:
+                k = 1 + amp * math.cos(math.atan2(v.y, v.x) * n) * min(1.0, (r - r0) / 0.3)
+                mb.v[i] = Vector((v.x * k, v.y * k, v.z))
+    # the step and the basin: its wall with a band and a groove, the moulded cap rolling over inward
+    lathe(mb, [(1.4, 0.0), (1.53, 0.0), (1.55, 0.05), (1.47, 0.08)], col_fn('#6a6e76', mottle=0.15), seg=40, cap_top=False)
+    m = len(mb.v)
+    lathe(mb, [(1.45, 0.06), (1.45, 0.13), (1.41, 0.16), (1.41, 0.3), (1.44, 0.33), (1.42, 0.37),
+               (1.47, 0.41), (1.48, 0.45), (1.42, 0.5), (1.33, 0.49), (1.3, 0.44), (1.3, 0.3)], pale, seg=40, cap_top=False)
+    lathe(mb, [(1.3, 0.3), (0.3, 0.3)], dark, seg=20, cap_top=False)
+    lobes(m, 8, 0.035, 1.0)
+    # the pedestal: a turned baluster, a bulb, collars
+    lathe(mb, [(0.0, 0.3), (0.34, 0.3), (0.33, 0.36), (0.25, 0.42), (0.27, 0.5), (0.18, 0.57), (0.21, 0.65), (0.14, 0.72)], pale, seg=20, cap_top=False)
+    # the lower bowl, its rim in scallops, and its water
+    m = len(mb.v)
+    lathe(mb, [(0.14, 0.7), (0.3, 0.72), (0.52, 0.78), (0.64, 0.84), (0.68, 0.88), (0.65, 0.91), (0.58, 0.88)], pale, seg=40, cap_top=False)
+    lathe(mb, [(0.58, 0.88), (0.0, 0.82)], mid, seg=40, cap_top=False)
+    lobes(m, 8, 0.06, 0.45)
+    # the column, the upper bowl, the finial: a pinecone on a little collar
+    lathe(mb, [(0.0, 0.82), (0.13, 0.82), (0.1, 0.88), (0.08, 0.98), (0.1, 1.02), (0.08, 1.06)], pale, seg=20, cap_top=False)
+    m = len(mb.v)
+    lathe(mb, [(0.08, 1.05), (0.2, 1.08), (0.31, 1.13), (0.35, 1.17), (0.33, 1.2), (0.28, 1.18)], pale, seg=32, cap_top=False)
+    lathe(mb, [(0.28, 1.18), (0.0, 1.13)], mid, seg=32, cap_top=False)
+    lobes(m, 8, 0.07, 0.2)
+    lathe(mb, [(0.0, 1.14), (0.07, 1.15), (0.08, 1.2), (0.05, 1.24), (0.06, 1.27)], pale, seg=14, cap_top=False)
+    pc = lambda p, n, z0=0, z1=1: rgb('#d6cdbd') * (0.86 + 0.14 * abs(math.sin(math.atan2(p.y, p.x) * 3 + p.z * 40)))
+    lathe(mb, [(0.06, 1.26), (0.085, 1.3), (0.09, 1.36), (0.07, 1.42), (0.035, 1.47), (0.0, 1.5)], pc, seg=14)
+    sball(mb, (0, 0, 1.52), 0.03, pale, sub=1)
+    # the water: the basin's (two lily pads on it), each bowl's, and arcs spilling from the bowls
+    m = len(water.v)
     lathe(water, [(1.31, 0.4), (0.3, 0.4)], col_fn('#78c4e4'), seg=40, cap_top=False)
-    lathe(water, [(0.51, 1.09), (0.0, 1.09)], col_fn('#8ad0ec'), seg=24, cap_top=False)
-    # water falling from the top bowl in eight soft arcs
+    lathe(water, [(0.6, 0.87), (0.0, 0.87)], col_fn('#82caea'), seg=40, cap_top=False)
+    lathe(water, [(0.29, 1.16), (0.0, 1.16)], col_fn('#8ad0ec'), seg=32, cap_top=False)
+    for i in range(m, len(water.v)):
+        v = water.v[i]
+        r = math.hypot(v.x, v.y)
+        amp = 0.035 if v.z < 0.5 else 0.06 if v.z < 1.0 else 0.07
+        k = 1 + amp * math.cos(math.atan2(v.y, v.x) * 8) * min(1.0, max(0.0, r - (1.0 if v.z < 0.5 else 0.45 if v.z < 1.0 else 0.2)) / 0.3)
+        water.v[i] = Vector((v.x * k, v.y * k, v.z))
+    for (x, y, rr) in ((0.82, -0.62, 0.11), (-0.95, 0.35, 0.09)):
+        lathe(water, [(rr, 0.405), (rr * 0.95, 0.415), (0.0, 0.418)], col_fn('#6aa84a'), c=(x, y, 0), seg=12, cap_top=False)
     for k in range(8):
         a = k / 8 * math.tau
         d = Vector((math.cos(a), math.sin(a), 0))
-        pts = [d * (0.62 + 0.25 * t) + Vector((0, 0, 1.12 - 0.72 * t * t)) for t in (0, 0.2, 0.4, 0.6, 0.8, 1.0)]
-        tube(water, pts, 0.035, col_fn('#a8e0f4'), seg=6, r1=0.02)
+        pts = [d * (0.69 + 0.32 * t) + Vector((0, 0, 0.88 - 0.46 * t * t)) for t in (0, 0.2, 0.4, 0.6, 0.8, 1.0)]
+        tube(water, pts, 0.032, col_fn('#a8e0f4'), seg=5, r1=0.018)
+        pts = [d * (0.37 + 0.14 * t) + Vector((0, 0, 1.19 - 0.3 * t * t)) for t in (0, 0.33, 0.67, 1.0)]
+        tube(water, pts, 0.022, col_fn('#b0e4f6'), seg=5, r1=0.013)
     return [(mb, 'stone'), (water, 'water')]
 
 
@@ -584,14 +721,50 @@ def picnic():
 
 # ---------------------------------------------------------------- lookout, harbor
 def telescope():
+    """The lookout's telescope, pointing out to sea (north): a brass spyglass with a leather-wrapped barrel, a sunshade with
+    a rolled lip and the lens at the front, a draw tube and an eyepiece at the back, a little finder on top; held in a
+    fork on a turned head, on three chunky wooden legs with brass feet and a spreader between them."""
     mb = MB()
-    for a in (0.0, 2.1, 4.2):
-        tube(mb, [(0, 0, 0.9), (math.cos(a) * 0.35, math.sin(a) * 0.35, 0.0)], 0.02, wood(WOOD_D), seg=6)
-    ball(mb, (0, 0, 0.92), 0.05, shade('#5a3a20'))
+    brass, brass_d = col_fn('#d8a640', under=0.0), col_fn('#b08030', under=0.0)
+    leather = col_fn('#7a3e2a', mottle=0.05, under=0.0)
+    legw = wood(WOOD_D)
+    HZ = 1.02                                   # the pivot
+    # the legs, splayed, each with a collar half way and a brass foot; the spreader's three bars to a little hub
+    for k in range(3):
+        a = k / 3 * math.tau + math.pi / 2 + math.pi / 3
+        d = Vector((math.cos(a), math.sin(a), 0))
+        top, foot = d * 0.07 + Vector((0, 0, 0.9)), d * 0.42
+        tube(mb, [top, top.lerp(foot, 0.5), foot + Vector((0, 0, 0.05))], 0.034, legw, seg=8, r1=0.026)
+        c = top.lerp(foot, 0.55)
+        dd = (foot - top).normalized()
+        tube(mb, [c - dd * 0.025, c + dd * 0.025], 0.036, brass, seg=8)
+        tube(mb, [foot + Vector((0, 0, 0.06)), foot + Vector((0, 0, 0.0))], 0.03, brass_d, seg=8, r1=0.034)
+        tube(mb, [c, Vector((0, 0, c.z - 0.02))], 0.012, legw, seg=5)
+    sball(mb, (0, 0, 0.385), 0.03, brass_d, sub=1)
+    # the head: a turned collar where the legs meet, a post, a fork holding the tube by two knobs
+    lathe(mb, [(0.0, 0.84), (0.1, 0.85), (0.11, 0.9), (0.09, 0.95), (0.05, 0.96), (0.04, 0.98)], brass_d, seg=14)
+    for s in (-1, 1):
+        lbox(mb, s * 0.1 - 0.018, -0.045, 0.94, s * 0.1 + 0.018, 0.045, HZ + 0.03, brass_d, r=0.012)
+    lbox(mb, -0.118, -0.045, 0.94, 0.118, 0.045, 0.975, brass_d, r=0.012)
     m = len(mb.v)
-    lathe(mb, [(0.05, -0.35), (0.06, -0.3), (0.07, 0.2), (0.1, 0.25), (0.1, 0.42)], col_fn('#c8963a', under=0.0), seg=16)
-    lathe(mb, [(0.03, -0.42), (0.035, -0.35)], shade(IRON), seg=10)
-    xform(mb, m, Matrix.Translation((0, 0, 1.0)) @ Euler((-1.1, 0, 0)).to_matrix().to_4x4())
+    # the spyglass, built along z (the front at +z), then tipped up toward the sea
+    lathe(mb, [(0.0, -0.66), (0.032, -0.66), (0.044, -0.64), (0.04, -0.6), (0.034, -0.58), (0.034, -0.55)], shade('#2e2a28'), seg=14)
+    lathe(mb, [(0.036, -0.56), (0.042, -0.55), (0.042, -0.5), (0.05, -0.49), (0.05, -0.36), (0.056, -0.35)], brass, seg=14, cap_top=False)
+    lathe(mb, [(0.06, -0.36), (0.082, -0.35), (0.084, -0.31), (0.076, -0.3)], brass, seg=16, cap_top=False, cap_bot=True)
+    lathe(mb, [(0.074, -0.3), (0.075, 0.22)], leather, seg=16, cap_top=False)
+    lathe(mb, [(0.076, 0.21), (0.084, 0.22), (0.084, 0.27), (0.08, 0.28), (0.092, 0.3), (0.095, 0.54), (0.105, 0.56), (0.1, 0.59), (0.088, 0.58)], brass, seg=16, cap_top=False)
+    lathe(mb, [(0.088, 0.565), (0.0, 0.565)], col_fn('#3a5a7a', under=0.0), seg=16, cap_top=False)
+    for z in (-0.12, 0.06):
+        lathe(mb, [(0.074, z - 0.018), (0.081, z - 0.012), (0.081, z + 0.012), (0.074, z + 0.018)], brass, seg=16, cap_top=False)
+    # the trunnions (where the fork holds it), the finder on top on two little posts
+    for s in (-1, 1):
+        tube(mb, [(s * 0.07, 0, 0.0), (s * 0.115, 0, 0.0)], 0.024, brass_d, seg=8)
+        sball(mb, (s * 0.12, 0, 0.0), 0.028, brass, sub=1)
+    # (-y is up once it's tipped)
+    for z in (-0.06, 0.16):
+        tube(mb, [(0, -0.07, z), (0, -0.11, z)], 0.012, brass_d, seg=5)
+    lathe(mb, [(0.0, -0.14), (0.018, -0.14), (0.022, -0.1), (0.022, 0.2), (0.028, 0.22), (0.028, 0.25), (0.0, 0.25)], brass, c=(0, -0.125, 0), seg=10)
+    xform(mb, m, Matrix.Translation((0, 0, HZ)) @ Euler((-1.15, 0, 0)).to_matrix().to_4x4())
     return [(mb, 'main')]
 
 
@@ -1082,68 +1255,302 @@ def stem(mb, top, r=0.05, h=0.14, lean=0.06, seed=0):
         mb.add(P, [rgb('#5a9a38') * 1.05] * 3, [Vector((0, 0, 1))] * 3, [(0, 1, 2)])
 
 
-def jack_o_lantern(face='grin', R=0.36, H=0.29, seed=0):
-    """A big carved pumpkin for Spooky Season (David, 27 October: bigger jack-o'-lanterns, not a little pile): ribbed and
-    squat, a curling stem with a tendril and a leaf, a face cut into its front showing the candlelit inside (eyes, nose
-    and mouth a *_glow part, drawn unlit, so it glows at night), each hole edged dark where it's cut. About two thirds of
-    a tile across; its foot at z 0, its face toward the front (-y)."""
-    mb, glow = MB(), MB()
-    cz = H * 0.97
-    ribbed(mb, (0, 0, cz), R, H)
-    stem(mb, (0, 0, cz + H * 0.8), seed=seed)
+# ---------------------------------------------------------------- carved pumpkins (Spooky Season)
+def pumpkin_fn(R, H, ribs=10, groove=0.17):
+    """A pumpkin's skin as P(th, ph): th from the bottom (0) to the top (pi), ph round it (the front, -y, on a lobe's
+    crown); squat lobes with deep grooves between them, the top dimpled where the stem goes, a little flat underneath."""
+    def P(th, ph):
+        lobe = abs(math.sin(ph * ribs / 2))
+        rib = 1 - groove * (1 - lobe ** 0.45)
+        dimple = 0.22 * math.exp(-((math.pi - th) / 0.45) ** 2) + 0.1 * math.exp(-(th / 0.45) ** 2)
+        s = math.sin(th)
+        return Vector((s * math.cos(ph) * R * rib, s * math.sin(ph) * R * rib, -math.cos(th) * H * (1 - dimple)))
+    return P
 
-    def surf(u, v, off):
-        """the point on the front of the pumpkin at (x u, height v about its middle), off out from the skin"""
-        k = 1 - (u / R) ** 2 - (v / H) ** 2
-        return Vector((u, -R * math.sqrt(max(0.02, k)) * 0.97 - off, cz + v))
 
-    def shape(outline, scale=1.0, off=0.006, part=None, color='#ffd860'):
-        """a flat shape cut into the front (star-shaped about its middle), its edges split so it follows the skin"""
-        cu = sum(u for u, _ in outline) / len(outline)
-        cv = sum(v for _, v in outline) / len(outline)
-        ring = []
-        for k in range(len(outline)):
-            (u0, v0), (u1, v1) = outline[k], outline[(k + 1) % len(outline)]
-            for s in range(4):
-                f = s / 4
-                ring.append((cu + (u0 + (u1 - u0) * f - cu) * scale, cv + (v0 + (v1 - v0) * f - cv) * scale))
-        P = [surf(cu, cv, off)] + [surf(u, v, off) for u, v in ring]
-        n = Vector((0, -1, 0))
-        col = rgb(color)
-        (part or glow).add(P, [col] * len(P), [n] * len(P), [(0, (k + 1) % len(ring) + 1, k + 1) for k in range(len(ring))])
-    holes = []
-    if face == 'grin':
-        holes += [[(-0.22, 0.07), (-0.05, 0.08), (-0.13, 0.2)], [(0.05, 0.08), (0.22, 0.07), (0.13, 0.2)], [(-0.04, 0.0), (0.04, 0.0), (0, 0.06)]]
-    else:
-        circ = lambda cu, cv, r, n=10: [(cu + math.cos(a / n * math.tau) * r, cv + math.sin(a / n * math.tau) * r * 1.15) for a in range(n)]
-        holes += [circ(-0.12, 0.1, 0.06), circ(0.12, 0.1, 0.06), [(-0.035, 0.0), (0.035, 0.0), (0, 0.05)]]
+def closed_surface(P, nth, nph):
+    """a closed mesh over P(th, ph): a pole at each end and rings between (points, faces)"""
+    V = [P(0.0, 0.0)]
+    for j in range(1, nth):
+        for i in range(nph):
+            V.append(P(j / nth * math.pi, i / nph * math.tau))
+    V.append(P(math.pi, 0.0))
+    F, top = [], len(V) - 1
+    for i in range(nph):
+        i1 = (i + 1) % nph
+        F.append((0, 1 + i1, 1 + i))
+        for j in range(nth - 2):
+            a, b = 1 + j * nph + i, 1 + j * nph + i1
+            F.append((a, b, b + nph, a + nph))
+        F.append((1 + (nth - 2) * nph + i, 1 + (nth - 2) * nph + i1, top))
+    return V, F
+
+
+def soft_normals(V, T):
+    """each point's normal: the angle-weighted average of the triangles round it"""
+    N = [Vector((0, 0, 0)) for _ in V]
+    for t in T:
+        a, b, c = (V[i] for i in t)
+        n = (b - a).cross(c - a)
+        if n.length < 1e-12:
+            continue
+        n.normalize()
+        for i, (p, q, r) in zip(t, ((a, b, c), (b, c, a), (c, a, b))):
+            e1, e2 = q - p, r - p
+            if e1.length > 1e-9 and e2.length > 1e-9:
+                N[i] += n * e1.angle(e2)
+    return [n.normalized() if n.length > 1e-9 else Vector((0, 0, 1)) for n in N]
+
+
+def carved_pumpkin(main, glow, c, R, H, holes, ribs=10, t=0.03, nth=16, nph=40):
+    """A pumpkin carved into a jack-o'-lantern: a hollow shell (its skin in main), the holes in its face cut through it
+    toward its middle by Blender's exact boolean, so each shows the shell's thickness (cut flesh, in main) and, through
+    it, the inside, candlelit (the *_glow part, drawn unlit). holes: outlines [(u, v), ...] on the front about the
+    middle c (u across, v up). Returns the skin's function, for the stem and leaf to sit on."""
+    import bmesh
+    P = pumpkin_fn(R, H, ribs)
+    C = Vector(c)
+    bm = bmesh.new()
+    groups = []
+    # (the inside is the skin itself scaled in, point for point, so the two never cross)
+    V, F = closed_surface(P, nth, nph)
+    for k, sc in enumerate((Vector((1, 1, 1)), Vector((1 - t / R, 1 - t / R, 1 - t / H)))):
+        vs = [bm.verts.new(C + v * sc) for v in V]
+        fs = [bm.faces.new([vs[i] for i in f]) for f in F]
+        for f in fs:
+            f.material_index = k
+        groups.append(fs)
+    bmesh.ops.recalc_face_normals(bm, faces=groups[0])
+    bmesh.ops.recalc_face_normals(bm, faces=groups[1])
+    bmesh.ops.reverse_faces(bm, faces=groups[1])
+    me = bpy.data.meshes.new('pk_shell')
+    bm.to_mesh(me)
+    bm.free()
+    for nm in ('pk_out', 'pk_in'):
+        me.materials.append(bpy.data.materials.get(nm) or bpy.data.materials.new(nm))
+    shell = link(bpy.data.objects.new('pk_shell', me))
+    # the cutters: each outline pushed out along the rays from the middle, from inside the hollow to well outside
+    bm = bmesh.new()
     for h in holes:
-        shape(h, 1.22, 0.003, mb, '#4a2410')
-        shape(h)
-    # the mouth: a wide grin with square teeth hanging from the top (a strip between two curves, the teeth's columns
-    # cut short), or a round 'oh'
+        n = len(h)
+        ring = lambda s: [bm.verts.new(C + Vector((u, -R, v)) * s) for u, v in h]
+        fr, bk = ring(1.8), ring(0.3)
+        bm.faces.new(fr)
+        bm.faces.new(list(reversed(bk)))
+        for k in range(n):
+            bm.faces.new([fr[(k + 1) % n], fr[k], bk[k], bk[(k + 1) % n]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    cm = bpy.data.meshes.new('pk_cut')
+    bm.to_mesh(cm)
+    bm.free()
+    cm.materials.append(bpy.data.materials.get('pk_cut') or bpy.data.materials.new('pk_cut'))
+    cutter = link(bpy.data.objects.new('pk_cut', cm))
+    mod = shell.modifiers.new('carve', 'BOOLEAN')
+    mod.operation, mod.object, mod.solver, mod.material_mode = 'DIFFERENCE', cutter, 'EXACT', 'TRANSFER'
+    bpy.context.view_layer.update()
+    ev = shell.evaluated_get(bpy.context.evaluated_depsgraph_get())
+    out = ev.to_mesh()
+    out.calc_loop_triangles()
+    names = [m.name.split('.')[0] for m in out.materials]
+    allv = [Vector(v.co) for v in out.vertices]
+    tris = {'pk_out': [], 'pk_in': [], 'pk_cut': []}
+    for lt in out.loop_triangles:
+        tris[names[lt.material_index]].append(tuple(lt.vertices))
+    ev.to_mesh_clear()
+    for o in (shell, cutter):
+        bpy.data.objects.remove(o)
+    lo, hi = rgb('#c4561a'), rgb('#f6982e')
+    for key, T in tris.items():
+        idx = {}
+        for tr in T:
+            for i in tr:
+                idx.setdefault(i, len(idx))
+        V = [allv[i] for i in idx]
+        TT = [tuple(idx[i] for i in tr) for tr in T]
+        N = soft_normals(V, TT)
+        cols = []
+        for p, n in zip(V, N):
+            d = p - C
+            if key == 'pk_out':
+                lobe = abs(math.sin(math.atan2(d.y, d.x) * ribs / 2))
+                up = max(-1.0, min(1.0, d.z / H))
+                col = lo.lerp(hi, 0.55 + 0.45 * lobe ** 0.6) * (0.8 + 0.2 * (1 - abs(min(0.0, up)) ** 1.5))
+                cols.append(col * (0.86 + 0.22 * max(0.0, n.dot(LIGHT))))
+            elif key == 'pk_in':
+                # (brightest low down, where the candle stands)
+                cols.append(rgb('#ff8a1e').lerp(rgb('#ffdc5a'), max(0.0, min(1.0, 0.7 - d.z / H * 0.7))))
+            else:
+                # the cut flesh: pale at the skin, deeper toward the inside
+                f = max(0.0, min(1.0, (Vector((d.x / R, d.y / R, d.z / H)).length - (1 - t / R) * 0.8) / (t / R * 1.6)))
+                cols.append(rgb('#d2681c').lerp(rgb('#f6c060'), f))
+        (glow if key == 'pk_in' else main).add(V, cols, N, TT)
+    return P
+
+
+def sweep(mb, path, radii, col, seg=10, ridges=0, amp=0.0):
+    """A tube along a path whose radius changes point by point (radii), ridged along its length (ridges, amp), its end
+    closed in a point; col(p, n, t) colors it along (t from 0 to 1)."""
+    path = [Vector(p) for p in path]
+    pts, nrm, cols, F = [], [], [], []
+    prev = None
+    for i, p in enumerate(path):
+        d = (path[min(i + 1, len(path) - 1)] - path[max(i - 1, 0)]).normalized()
+        side = d.cross(Vector((0, 0, 1)))
+        if side.length < 1e-3:
+            side = d.cross(Vector((1, 0, 0)))
+        side.normalize()
+        if prev is not None and side.dot(prev) < 0:
+            side = -side
+        prev = side
+        up = side.cross(d).normalized()
+        for j in range(seg):
+            a = j / seg * math.tau
+            o = side * math.cos(a) + up * math.sin(a)
+            r = radii[i] * (1 + amp * math.cos(a * ridges))
+            q = p + o * r
+            pts.append(q); nrm.append(o); cols.append(col(q, o, i / (len(path) - 1)))
+    for i in range(len(path) - 1):
+        for j in range(seg):
+            a, b = i * seg + j, i * seg + (j + 1) % seg
+            F += [(a, b, b + seg), (a, b + seg, a + seg)]
+    tip = len(pts)
+    d = (path[-1] - path[-2]).normalized()
+    pts.append(path[-1] + d * radii[-1] * 0.6); nrm.append(d); cols.append(col(pts[-1], d, 1.0))
+    for j in range(seg):
+        a = (len(path) - 1) * seg + j
+        F.append((a, (len(path) - 1) * seg + (j + 1) % seg, tip))
+    mb.add(pts, cols, nrm, F)
+
+
+def on_skin(P, c, x, y, lift=0.01):
+    """the height of a pumpkin's skin (P about c) over the point (x, y) of its top half, lift above it"""
+    C = Vector(c)
+    ph = math.atan2(y - C.y, x - C.x)
+    r = math.hypot(x - C.x, y - C.y)
+    a, b = math.pi / 2, math.pi
+    for _ in range(30):
+        m = (a + b) / 2
+        q = P(m, ph)
+        if math.hypot(q.x, q.y) > r:
+            a = m
+        else:
+            b = m
+    return C.z + P((a + b) / 2, ph).z + lift
+
+
+def pumpkin_top(mb, P, c, R, H, seed=0, leaf=True):
+    """A pumpkin's stem, short, ridged and curling over, green going brown, with a curly tendril and a five-lobed leaf
+    lying over its shoulder"""
+    rng = random.Random(seed)
+    C = Vector(c)
+    k = R / 0.36
+    top = Vector((C.x, C.y, C.z + P(math.pi, 0.0).z))
+    a = rng.uniform(0, math.tau)
+    d = Vector((math.cos(a), math.sin(a), 0))
+    h = 0.13 * k
+    path = [top - Vector((0, 0, 0.02 * k)), top + Vector((0, 0, h * 0.4)), top + d * h * 0.1 + Vector((0, 0, h * 0.8)),
+            top + d * h * 0.35 + Vector((0, 0, h * 1.02)), top + d * h * 0.62 + Vector((0, 0, h * 0.94))]
+    g0, g1 = rgb('#6a7a2e'), rgb('#7a5a2c')
+    sweep(mb, path, [0.058 * k, 0.042 * k, 0.036 * k, 0.03 * k, 0.024 * k], lambda p, n, t: g0.lerp(g1, t ** 1.3) * (0.82 + 0.25 * max(0.0, n.z)), seg=10, ridges=5, amp=0.14)
+    # the tendril: a little spring curling away over the top
+    a0 = a + 2.4
+    pts = []
+    for j in range(18):
+        ang = a0 + j * 0.8
+        rr = (0.075 - j * 0.0032) * k
+        x, y = C.x + math.cos(a0) * 0.06 * k + math.cos(ang) * rr * 0.5, C.y + math.sin(a0) * 0.06 * k + math.sin(ang) * rr * 0.5
+        pts.append(Vector((x, y, on_skin(P, C, x, y, (0.012 + 0.02 * (j / 17)) * k))))
+    tube(mb, pts, 0.006 * k, shade('#6a8a30'), seg=4)
+    if not leaf:
+        return
+    # the leaf: five lobes round its middle, draped over the skin, a little cupped
+    la = a + math.pi * 0.85
+    ax, sx = Vector((math.cos(la), math.sin(la), 0)), Vector((-math.sin(la), math.cos(la), 0))
+    L = 0.13 * k
+    mid2 = Vector((C.x, C.y, 0)) + ax * (0.05 * k + L * 0.95)
+    ring = []
+    for j in range(30):
+        t = j / 30 * math.tau
+        rr = L * (0.6 + 0.4 * abs(math.cos(2.5 * t)) ** 0.6) * (0.55 if abs(((t + math.pi) % math.tau) - math.pi) > 2.6 else 1.0)
+        ring.append(mid2 + ax * math.cos(t) * rr + sx * math.sin(t) * rr * 0.9)
+    lv = [Vector((mid2.x, mid2.y, on_skin(P, C, mid2.x, mid2.y, 0.03 * k)))]
+    lv += [Vector((q.x, q.y, on_skin(P, C, q.x, q.y, 0.022 * k))) for q in ring]
+    lc = [rgb('#4a8a2c')] + [rgb('#5aa038') * (0.92 + 0.1 * math.cos(j)) for j in range(30)]
+    lf = [(0, 1 + (j + 1) % 30, 1 + j) for j in range(30)]
+    mb.add(lv, lc, [Vector((0, 0, 1))] * len(lv), lf)
+    mb.add([v - Vector((0, 0, 0.005)) for v in lv], [c * 0.75 for c in lc], [Vector((0, 0, -1))] * len(lv), lf)
+    tube(mb, [path[0] + Vector((0, 0, 0.02 * k)), lv[0]], 0.007 * k, shade('#4a7a28'), seg=4)
+
+
+def mouth(W, top, bot, top_teeth=(), bot_teeth=(), n=16):
+    """A mouth's outline: its corners at u -W and W, its lower edge bot(u) with teeth standing on it and its upper edge
+    top(u) with teeth hanging from it [(u, width, height)], round from the left corner along the bottom and back"""
+    def edge(fn, teeth, sgn):
+        spans = [(tu - tw / 2, tu + tw / 2, td) for tu, tw, td in teeth]
+        out = [(u, fn(u)) for u in (-W + 2 * W * k / n for k in range(n + 1)) if not any(u0 - 0.012 <= u <= u1 + 0.012 for u0, u1, _ in spans)]
+        for u0, u1, td in spans:
+            out += [(u0, fn(u0)), (u0 + 1e-4, fn(u0) + sgn * td), (u1 - 1e-4, fn(u1) + sgn * td), (u1, fn(u1))]
+        return sorted(out, key=lambda q: q[0])
+    return edge(bot, bot_teeth, 1) + list(reversed(edge(top, top_teeth, -1)[1:-1]))
+
+
+def lantern_face(face, R, H):
+    """The holes a jack-o'-lantern's face is cut with (at the big one's size, scaled to R and H): the classic grin
+    (triangle eyes and nose, a smile with square teeth) or the happy one (eyes shut in arcs, a little nose pointing down,
+    a wide smile full of teeth)"""
+    ku, kv = R / 0.36, H / 0.29
     if face == 'grin':
-        n = 14
-        top = [(-0.23 + 0.46 * k / n, -0.03 - 0.04 * math.sin(k / n * math.pi)) for k in range(n + 1)]
-        bot = [(-0.23 + 0.46 * k / n, -0.04 - 0.12 * math.sin(k / n * math.pi)) for k in range(n + 1)]
-        teeth = {4, 9}
-        for part, grow, off, color in ((mb, 0.014, 0.003, '#4a2410'), (glow, 0.0, 0.006, '#ffd860')):
-            P, Cc, Nn, Ff = [], [], [], []
-            for k in range(n + 1):
-                tu, tv = top[k]; bu, bv = bot[k]
-                if k in teeth or k - 1 in teeth:
-                    tv = (tv + bv) / 2 if part is glow else tv
-                P += [surf(tu, tv + grow, off), surf(bu, bv - grow, off)]
-            col = rgb(color)
-            for k in range(n):
-                a = k * 2
-                Ff += [(a, a + 2, a + 3), (a, a + 3, a + 1)]
-            part.add(P, [col] * len(P), [Vector((0, -1, 0))] * len(P), Ff)
+        eye = [(-0.235, 0.035), (-0.06, 0.035), (-0.15, 0.18)]
+        nose = [(-0.045, -0.018), (0.045, -0.018), (0.0, 0.058)]
+        W = 0.25
+        m = mouth(W, lambda u: -0.045 - 0.05 * (1 - (u / W) ** 2), lambda u: -0.045 - 0.16 * (1 - (u / W) ** 2) ** 0.8,
+                  top_teeth=((-0.09, 0.056, 0.05), (0.09, 0.056, 0.05)), bot_teeth=((0.0, 0.062, 0.05),))
+        holes = [eye, [(-u, v) for u, v in reversed(eye)], nose, m]
     else:
-        o = [(math.cos(a / 12 * math.tau) * 0.06, -0.08 + math.sin(a / 12 * math.tau) * 0.075) for a in range(12)]
-        shape(o, 1.22, 0.003, mb, '#4a2410')
-        shape(o)
+        def arc(cx, cy):
+            o = [(cx + 0.092 * math.cos(k / 8 * math.pi), cy + 0.085 * math.sin(k / 8 * math.pi)) for k in range(9)]
+            i = [(cx + 0.048 * math.cos(k / 8 * math.pi), cy - 0.012 + 0.04 * math.sin(k / 8 * math.pi)) for k in range(8, -1, -1)]
+            return o + i
+        nose = [(-0.04, 0.03), (0.0, -0.02), (0.04, 0.03)]
+        W = 0.24
+        m = mouth(W, lambda u: -0.055 - 0.03 * (1 - (u / W) ** 2), lambda u: -0.055 - 0.16 * (1 - (u / W) ** 2) ** 0.7,
+                  top_teeth=((-0.11, 0.046, 0.04), (0.0, 0.052, 0.045), (0.11, 0.046, 0.04)), bot_teeth=((-0.055, 0.046, 0.04), (0.055, 0.046, 0.04)))
+        holes = [arc(-0.13, 0.06), arc(0.13, 0.06), nose, m]
+    # (all a little above the middle: the camera looks down on them)
+    return [[(u * ku, (v + 0.025) * kv) for u, v in h] for h in holes]
+
+
+def jack_o_lantern(face='grin', R=0.36, H=0.29, seed=0):
+    """A big carved pumpkin for Spooky Season (David, 27 October: bigger jack-o'-lanterns, not a little pile): squat,
+    deeply ribbed, a short curling stem with a tendril and a leaf, its face carved right through the shell, the cut
+    flesh showing at each hole's edge and the candlelit inside showing through (the *_glow part, drawn unlit, so it
+    glows at night). About two thirds of a tile across; its foot at z 0, its face toward the front (-y)."""
+    mb, glow = MB(), MB()
+    c = (0, 0, H * 0.91)
+    P = carved_pumpkin(mb, glow, c, R, H, lantern_face(face, R, H), ribs=10, t=0.03 * R / 0.36)
+    pumpkin_top(mb, P, c, R, H, seed=seed)
     return [(mb, 'main'), (glow, 'glow')]
+
+
+def pumpkin(mb, c, R, H, ribs=10, seed=0, nth=12, nph=36):
+    """A whole pumpkin to go with the jack-o'-lanterns: the same deep ribs, stem, tendril and leaf"""
+    P = pumpkin_fn(R, H, ribs)
+    V, F = closed_surface(P, nth, nph)
+    C = Vector(c)
+    V = [C + v for v in V]
+    T = [t for f in F for t in ([f] if len(f) == 3 else [(f[0], f[1], f[2]), (f[0], f[2], f[3])])]
+    N = soft_normals(V, T)
+    # (outward: the triangles are wound by MB.add from these normals)
+    N = [n if n.dot(v - C) >= 0 else -n for n, v in zip(N, V)]
+    lo, hi = rgb('#c4561a'), rgb('#f6982e')
+    cols = []
+    for p, n in zip(V, N):
+        d = p - C
+        lobe = abs(math.sin(math.atan2(d.y, d.x) * ribs / 2))
+        up = max(-1.0, min(1.0, d.z / H))
+        cols.append(lo.lerp(hi, 0.55 + 0.45 * lobe ** 0.6) * (0.8 + 0.2 * (1 - abs(min(0.0, up)) ** 1.5)) * (0.86 + 0.22 * max(0.0, n.dot(LIGHT))))
+    mb.add(V, cols, N, T)
+    pumpkin_top(mb, P, c, R, H, seed=seed)
 
 
 def jack_stack():
@@ -1151,10 +1558,10 @@ def jack_stack():
     and two more on the ground in front, about a tile across."""
     out = hay()
     mb = out[0][0]
+    # (the same pumpkins as the jack-o'-lanterns: deep ribs, a curling stem, a tendril and a leaf)
     for (x, y, r, h, sd) in ((0.25, 0.05, 0.13, 0.1, 3), (-0.5, -0.36, 0.16, 0.12, 4), (0.52, -0.4, 0.12, 0.095, 5)):
-        z = 0.5 + h * 0.97 if abs(y) < 0.2 else h * 0.97
-        ribbed(mb, (x, y, z), r, h, lo='#c8641e', hi='#f4a040', seg=36, rings=14)
-        stem(mb, (x, y, z + h * 0.8), r=0.02, h=0.06, lean=0.03, seed=sd)
+        z = 0.5 + h * 0.91 if abs(y) < 0.2 else h * 0.91
+        pumpkin(mb, (x, y, z), r, h, ribs=8 if sd % 2 else 10, seed=sd, nth=10, nph=32 if sd % 2 else 30)
     (jm, _), (jg, _) = jack_o_lantern('grin', 0.25, 0.2, seed=8)
     glow = MB()
     merge(mb, jm, (-0.12, 0, 0.5))
@@ -1335,42 +1742,77 @@ def swing_set():
 
 
 def hammock():
-    """A striped hammock slung between two posts on the beach, three tiles wide."""
+    """A striped hammock slung between two posts on the beach, three tiles wide: a wide bed of cloth (striped along its
+    length, bound in teal, a scalloped valance down each side) held open at each end by a wooden spreader bar, strings
+    fanning from each bar to an iron ring, a rope from the ring to the post; a cushion at the head, the west end, where
+    the game lays Sarah's head (Projects.hammock: her doll along the cloth, half a tile up)."""
     mb, cloth = MB(), MB()
-    for x in (-1.32, 1.32):
-        tube(mb, [(x, 0, 0.0), (x, 0, 1.18)], 0.07, wood(WOOD_D, seed=x), seg=10)
-        ball(mb, (x, 0, 1.2), 0.085, wood(WOOD), sub=2)
-        lathe(mb, [(0.12, 0.0), (0.1, 0.06), (0.075, 0.08)], stone('#d8ccb0'), c=(x, 0, 0), seg=12, cap_top=False)
-        s = 1 if x > 0 else -1
-        for dy in (-0.14, 0.0, 0.14):
-            tube(mb, [(x - s * 0.04, 0, 1.02), (x - s * 0.4, dy, 0.8)], 0.012, shade('#efe2c4'), seg=5)
-    # the cloth: a sheet sagging between the two ends, narrow at them, curled up at its sides, in stripes
-    A, B = rgb('#e8604a'), rgb('#f4ecd8')
-    nu, nv = 28, 9
-    pts, cols, nrms, faces = [], [], [], []
-    for i in range(nu + 1):
-        u = i / nu
-        x = -0.94 + 1.88 * u
-        half = 0.06 + 0.3 * math.sin(math.pi * u) ** 0.6
-        zc = 0.8 - 0.4 * math.sin(math.pi * u)
-        for j in range(nv + 1):
-            v = j / nv * 2 - 1
-            y = v * half
-            z = zc + 0.12 * v * v * math.sin(math.pi * u)
-            pts.append((x, y, z))
-            col = A if int(u * 9) % 2 else B
-            cols.append(col)
-            nrms.append((0, -0.5 * v * math.sin(math.pi * u), 1))
-    for i in range(nu):
-        for j in range(nv):
-            a, b, c, d = i * (nv + 1) + j, (i + 1) * (nv + 1) + j, (i + 1) * (nv + 1) + j + 1, i * (nv + 1) + j + 1
-            faces += [(a, b, c), (a, c, d)]
-    cloth.add(pts, cols, nrms, faces)
-    # (and its underside, a shade darker)
-    pts2 = [(x, y, z - 0.02) for x, y, z in pts]
-    cloth.add(pts2, [c * 0.8 for c in cols], [(-n[0], -n[1], -n[2]) for n in nrms], faces)
-    # a cushion at the head end
-    ball(cloth, (-0.66, 0, 0.62), (0.14, 0.2, 0.06), shade('#f8d860'), sub=2)
+    PX, BX, ZE = 1.32, 0.96, 0.8            # the posts, the spreader bars, the height of the bed's ends
+    rope = col_fn('#efe2c4', under=0.0)
+    TEAL = '#3aa8b4'
+    for s in (-1, 1):
+        x = s * PX
+        # the post: a chunky turned log on a stone footing, its top rounded, rope wound round it where the hammock ties on
+        lathe(mb, [(0.14, 0.0), (0.13, 0.07), (0.09, 0.11)], stone('#d8ccb0'), c=(x, 0, 0), seg=10, cap_top=False)
+        lathe(mb, [(0.082, 0.08), (0.078, 0.7), (0.072, 1.17), (0.079, 1.2), (0.05, 1.28), (0.0, 1.3)], wood(WOOD_D, seed=s), c=(x, 0, 0), seg=10, cap_top=False)
+        lathe(mb, [(0.074, 0.99), (0.09, 1.01), (0.083, 1.04), (0.09, 1.07), (0.074, 1.09)], rope, c=(x, 0, 0), seg=10, cap_top=False)
+        # the spreader bar, a turned rod with round ends
+        bx = s * BX
+        tube(mb, [(bx, -0.46, ZE + 0.025), (bx, 0.46, ZE + 0.025)], 0.032, wood(WOOD_L, 'y', seed=2 + s), seg=10)
+        for y in (-0.46, 0.46):
+            sball(mb, (bx, y, ZE + 0.025), 0.045, wood(WOOD), sub=2)
+        # five strings from the bar to an iron ring, a rope from the ring to the post
+        rx, rz = s * 1.14, 1.0
+        for y in (-0.4, -0.2, 0.0, 0.2, 0.4):
+            tube(mb, [(bx, y, ZE + 0.05), (rx - s * 0.03, 0, rz - 0.01)], 0.008, rope, seg=4)
+        tube(mb, [(rx + 0.034 * math.cos(k / 9 * math.tau), 0, rz + 0.034 * math.sin(k / 9 * math.tau)) for k in range(10)], 0.011, shade('#5a5a62'), seg=5)
+        tube(mb, [(rx + s * 0.03, 0, rz + 0.01), (x - s * 0.07, 0, 1.04)], 0.016, rope, seg=6)
+    # the bed: sagging from bar to bar, flat where the bars hold it, curling up at its sides in the middle
+    X0, X1 = -BX + 0.03, BX - 0.03
+
+    def F(u, v):
+        sg = math.sin(math.pi * u)
+        w = 2 * v - 1
+        half = 0.42 - 0.03 * sg
+        return Vector((X0 + (X1 - X0) * u, w * half * (1 - 0.07 * sg * w * w), ZE - 0.39 * sg + 0.14 * sg * w * w))
+    bands = [(0.0, TEAL), (0.055, '#f6eedc'), (0.16, '#e8604a'), (0.3, '#f6eedc'), (0.39, '#e8604a'), (0.61, '#f6eedc'), (0.7, '#e8604a'),
+             (0.84, '#f6eedc'), (0.945, TEAL)]
+
+    def col(u, v):
+        c = [b for b in bands if b[0] <= v + 1e-9][-1][1]
+        return rgb(c) * (0.95 + 0.05 * math.sin(math.pi * u))
+    vs = [0.0]
+    for b, _ in bands[1:]:
+        vs += [b - 0.005, b + 0.005]
+    vs = sorted(set(vs + [0.5, 1.0]))
+    us = [k / 16 for k in range(17)]
+    sheet(cloth, F, us, vs, col, thick=0.022)
+    # the valance down each long side: a teal flap, scalloped along its foot (front and back)
+    for v, side in ((0.0, -1), (1.0, 1)):
+        n = 7 * 4
+        top, foot = [], []
+        for k in range(n + 1):
+            u = 0.02 + 0.96 * k / n
+            p = F(u, v)
+            top.append(p + Vector((0, side * 0.004, -0.01)))
+            foot.append(p + Vector((0, side * 0.012, -0.045 - 0.05 * abs(math.sin(math.pi * k / 4)) ** 0.7)))
+        for off, sgn in ((0.0, side), (-side * 0.008, -side)):
+            pts, cc, nn, ff = [], [], [], []
+            for k in range(n + 1):
+                pts += [top[k] + Vector((0, off, 0)), foot[k] + Vector((0, off, 0))]
+                cc += [rgb(TEAL), rgb(TEAL) * 0.82]
+                nn += [Vector((0, sgn, 0.25)), Vector((0, sgn, 0.0))]
+                if k:
+                    b = 2 * k
+                    ff += [(b - 2, b, b + 1), (b - 2, b + 1, b - 1)]
+            cloth.add(pts, cc, nn, ff)
+    # a cushion at the head end, a puffy square lying along the cloth's slope
+    u = (-0.64 - X0) / (X1 - X0)
+    c = F(u, 0.5)
+    m = len(cloth.v)
+    surf(cloth, superq(0, 0, 0, 0.15, 0.25, 0.06, 0.35, 0.7), col_fn('#f8d860', under=0.0), nu=16, nv=8)
+    tilt = math.atan2(F(u + 0.01, 0.5).z - F(u - 0.01, 0.5).z, F(u + 0.01, 0.5).x - F(u - 0.01, 0.5).x)
+    xform(cloth, m, Matrix.Translation(c + Vector((0, 0, 0.055))) @ Euler((0, -tilt, 0)).to_matrix().to_4x4())
     return [(mb, 'main'), (cloth, 'cloth')]
 
 
@@ -1709,7 +2151,7 @@ PROPS = {
     'bunting_hearts': lambda: bunting(['#e83a5a', '#ffffff', '#f088b0']), 'bunting_july': lambda: bunting(['#d83a3a', '#ffffff', '#3a5ad8']),
     'bunting_harvest': lambda: bunting(['#c8641e', '#e8b040', '#9a3a2a', '#7a8a3a']), 'harvest_stack': harvest_stack,
     'sign_forsale': sign_forsale, 'sign_comingsoon': sign_comingsoon, 'grand_lights': grand_lights, 'grand_presents': grand_presents, 'snowman': snowman,
-    'jack_o_lantern': jack_o_lantern, 'jack_o_lantern_b': lambda: jack_o_lantern('oh', 0.3, 0.25, seed=3), 'jack_stack': jack_stack, 'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
+    'jack_o_lantern': jack_o_lantern, 'jack_o_lantern_b': lambda: jack_o_lantern('happy', 0.3, 0.25, seed=3), 'jack_stack': jack_stack, 'mailbox_cottage': mailbox_cottage, 'mailbox_lighthouse': mailbox_lighthouse, 'mailbox_fish': mailbox_fish,
     'swing_set': swing_set, 'hammock': hammock, 'park_clock': park_clock, 'park_clock_hour': lambda: park_clock_hand('hour'),
     'park_clock_minute': lambda: park_clock_hand('minute'), 'shrine_stone': shrine_stone, 'statue_sarah': statue_sarah, 'door_boards': door_boards,
     'wreck': wreck, 'ship_frame': ship_frame, 'ship_scampi': ship_scampi,

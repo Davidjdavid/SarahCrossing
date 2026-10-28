@@ -15,6 +15,7 @@ from common import *
 from trees_ac import MB, rgb
 from kit import shade, rbox, lathe, tube, xform
 from folks import Folk, ball, surf, superq, revolve, soft, mottle, objects, DARK
+from folks2 import sculpt
 
 S = 0.01     # a hundredth of a tile
 
@@ -114,23 +115,79 @@ def owl():
     return f
 
 
+def plume(mb, path, radius, flat, color, nu=16, nv=36, tufts=9, ruffle=0.1, seed=0.0):
+    """A bushy tail: a soft tube along a smooth path in the yz plane (path: points it passes through), its radius
+    radius(t) from base (t 0) to tip (1), flattened side to side by flat, its outline ruffled into tufts of fur"""
+    P0 = [Vector(p) for p in path]
+
+    def at(t):
+        # (a Catmull-Rom curve through the points)
+        n = len(P0) - 1
+        x = min(n - 1e-6, max(0.0, t * n))
+        i, s = int(x), x - int(x)
+        p0, p1, p2, p3 = P0[max(0, i - 1)], P0[i], P0[i + 1], P0[min(n, i + 2)]
+        return 0.5 * ((2 * p1) + (-p0 + p2) * s + (2 * p0 - 5 * p1 + 4 * p2 - p3) * s * s + (-p0 + 3 * p1 - 3 * p2 + p3) * s ** 3)
+
+    def P(u, v):
+        v = max(0.0, min(1.0, v))
+        c = at(v)
+        tng = (at(min(1.0, v + 0.01)) - at(max(0.0, v - 0.01))).normalized()
+        side = Vector((1, 0, 0))
+        nrm = tng.cross(side).normalized()
+        th = u * math.tau
+        r = radius(v) * (1 + ruffle * math.sin(v * math.pi * tufts * 2) * (0.6 + 0.4 * math.cos(th * 2))
+                         + 0.6 * ruffle * noise.noise(c * 0.6 + Vector((seed, th, 0))))
+        r *= math.sqrt(max(0.0, 1 - (1 - min(1.0, v / 0.06)) ** 2)) * math.sqrt(max(0.0, 1 - max(0.0, (v - 0.94) / 0.06) ** 2))
+        return c + side * (math.cos(th) * r * flat) + nrm * (math.sin(th) * r)
+    surf(mb, P, color, nu=nu, nv=nv)
+
+
 def squirrel():
+    """A red squirrel sitting up on its haunches, its front paws held to its chest round an acorn: a pear of a body with a
+    cream front, a round head with a cream muzzle and puffed cheeks, tufted ears, long hind feet, and the big bushy tail
+    rising behind in an S, its top curling back, frosted paler round its edge."""
     f = Folk('squirrel')
-    fur = '#c06a30'
-    surf(f.body, superq(0, 1.0, 9.5, 6.0, 9.0, 7.5, 1.0, 1.0), two_tone(fur, '#f0dcc0', -0.1), nu=28, nv=16)
-    ball(f.body, (0, -7.5, 15.5), (5.0, 5.2, 5.0), two_tone(fur, '#f0dcc0', -0.4), sub=3)
-    ball(f.body, (0, -12.2, 14.6), (1.0, 0.8, 0.9), shade('#3a2420'), sub=1)
+    fur, cream, dk = '#c4662a', '#f2dcbc', '#8a4220'
+    furc, creamc = rgb(fur), rgb(cream)
+
+    def body(p, n, u=0, v=0):
+        # (one cream patch down the front, from the chin to the belly)
+        k = max(0.0, min(1.0, (-n.y - 0.25) * 2.2)) * max(0.0, min(1.0, (13.5 - p.z) / 2.0)) * max(0.0, min(1.0, (p.z - 2.5) / 2.0))
+        return furc.lerp(creamc, k) * (0.95 + 0.06 * noise.noise(p * 0.3))
+    ball(f.body, (0, 2.0, 6.0), (5.4, 5.8, 5.6), body, sub=3)
+    ball(f.body, (0, -0.8, 11.2), (4.3, 4.4, 5.0), body, sub=3)
+    # haunches, long hind feet flat on the ground
+    for s in (-1, 1):
+        ball(f.body, (s * 4.0, 3.0, 4.2), (2.4, 4.0, 3.4), shade(fur), sub=2)
+        ball(f.body, (s * 3.0, -1.6, 1.0), (1.5, 3.3, 1.0), shade('#b8582a'), sub=2)
+    # the head: round, a cream muzzle and cheeks, the nose; ears up with dark tufts
+    ball(f.body, (0, -3.8, 16.6), (4.5, 4.3, 4.1), shade(fur), sub=3)
+    for s in (-1, 1):
+        ball(f.body, (s * 2.4, -6.2, 15.0), (2.1, 1.9, 1.9), shade(cream), sub=2)
+    ball(f.body, (0, -7.2, 15.6), (2.0, 1.9, 1.7), shade(cream), sub=2)
+    ball(f.body, (0, -9.0, 16.2), (0.85, 0.65, 0.7), shade('#3a2420'), sub=1)
     for s in (-1, 1):
         m = len(f.body.v)
-        ball(f.body, (0, 0, 2.0), (1.4, 0.8, 2.6), shade(fur), sub=2)
-        xform(f.body, m, Matrix.Translation((s * 3.0, -6.5, 19.0)) @ Euler((0, s * 0.3, 0)).to_matrix().to_4x4())
-        ball(f.body, (s * 3.2, -3.0, 2.0), (1.6, 3.0, 1.6), shade(fur), sub=2)
-        ball(f.body, (s * 3.8, 5.5, 3.0), (2.4, 4.0, 3.0), shade(fur), sub=2)
-    # the big bushy tail curling up behind
-    for i in range(9):
-        t = i / 8
-        ball(f.body, (0, 9.5 + 5 * math.sin(t * 2.4), 5.0 + 20 * t), (4.5 + 2.5 * math.sin(t * math.pi), 4.5, 5.0), mottle('#d0783a', 0.06, 0.5), sub=2)
-    eyes(f, 3.6, -10.0, 16.6, 1.1)
+        ball(f.body, (0, 0, 2.2), (1.5, 0.85, 2.7), shade(fur), sub=2)
+        ball(f.body, (0, 0.1, 4.7), (0.8, 0.6, 1.3), shade(dk), sub=2)
+        xform(f.body, m, Matrix.Translation((s * 2.5, -2.6, 19.4)) @ Euler((0.15, s * 0.32, 0)).to_matrix().to_4x4())
+    # front paws at the chest, holding an acorn
+    for s in (-1, 1):
+        tube(f.body, [(s * 3.2, -2.2, 12.0), (s * 2.6, -4.6, 10.8), (s * 1.6, -5.6, 10.6)], 1.1, shade(fur), seg=8, r1=0.95)
+        ball(f.body, (s * 1.3, -5.9, 10.7), (1.0, 1.0, 1.1), shade('#d08a50'), sub=2)
+    ball(f.body, (0, -6.4, 10.0), (1.25, 1.2, 1.5), shade('#a8642e'), sub=2)
+    ball(f.body, (0, -6.4, 11.2), (1.45, 1.4, 0.75), mottle('#6a4428', 0.12, 1.5), sub=2)
+    # the bushy tail
+    core, rim = rgb('#c4622a'), rgb('#f2aa68')
+
+    def tail(p, n, u=0, v=0):
+        k = (1 - abs(n.x)) ** 1.4
+        return core.lerp(rim, 0.05 + 0.8 * k ** 1.8) * (0.92 + 0.12 * noise.noise(p * 0.7)) * (0.9 + 0.12 * max(0.0, n.z))
+    plume(f.body, [(0, 5.5, 4.0), (0, 10.0, 6.5), (0, 12.6, 12.0), (0, 11.8, 18.0), (0, 12.2, 23.5), (0, 14.8, 26.4), (0, 17.6, 25.4), (0, 18.6, 22.6)],
+          lambda t: 1.6 + 4.3 * math.sin(min(1.0, t / 0.35) * math.pi / 2) - 1.8 * max(0.0, (t - 0.7) / 0.3) ** 1.5, 0.6, tail, nu=20, nv=48, tufts=7, ruffle=0.2)
+    # (all of it melted into one soft piece, as the folks are)
+    sculpt(f, 'body', voxel=0.26, smooth=3, verts=2600, ao=0.25, reach=2.0)
+    eyes(f, 2.9, -7.0, 17.6, 1.25)
     return f
 
 
@@ -229,22 +286,126 @@ def frog():
     return f
 
 
+def closed_curve(pts, n):
+    """n points evenly round a smooth closed curve through pts (Catmull-Rom), with the parameter (0..1) of each"""
+    P = [Vector(p) for p in pts]
+    m, out = len(P), []
+    for k in range(n):
+        x = k / n * m
+        i, s = int(x), x - int(x)
+        p0, p1, p2, p3 = P[(i - 1) % m], P[i % m], P[(i + 1) % m], P[(i + 2) % m]
+        out.append((0.5 * ((2 * p1) + (-p0 + p2) * s + (2 * p0 - 5 * p1 + 4 * p2 - p3) * s * s + (-p0 + 3 * p1 - 3 * p2 + p3) * s ** 3), k / n))
+    return out
+
+
+def wing_panel(mb, o, side, outline, paint, thick=0.3, n=20, scallop=0.0, rings=(0.45, 0.78, 0.92, 1.0)):
+    """One wing (a fore or a hind wing) lying flat from the hinge o: a soft lens, thickest in its middle, its outline the
+    smooth curve through outline (x out from the body, y back; side mirrors it), its outer margin scalloped; painted
+    by paint(q, f, i, top): q where on the wing (from the hinge), f the ring (0 the middle, 1 the edge), i the spoke,
+    top which face"""
+    pts = closed_curve([(x, y, 0.0) for x, y in outline], n)
+    cen = sum((p for p, _ in pts), Vector()) / n
+    edge = []
+    for p, t in pts:
+        r = p - cen
+        d = p.length
+        if scallop and d > 3.5:
+            p = p + r.normalized() * scallop * math.sin(t * math.tau * 5) * min(1.0, (d - 3.5) / 1.5)
+        edge.append(p)
+    V, C, N, F = [], [], [], []
+
+    def put(q, nn, f, i, top):
+        V.append(Vector((o.x + side * q.x, o.y + q.y, o.z + q.z)))
+        N.append(Vector((side * nn.x, nn.y, nn.z)).normalized())
+        C.append(paint(Vector((q.x, q.y, 0)), f, i, top))
+        return len(V) - 1
+    rim = []
+    for i, e in enumerate(edge):
+        out = Vector(((e - cen).x, (e - cen).y, 0)).normalized()
+        rim.append(put(Vector((e.x, e.y, 0)), out, 1.0, i, True))
+    for top in (True, False):
+        z = 1 if top else -1
+        c = put(Vector((cen.x, cen.y, z * thick)), Vector((0, 0, z)), 0.0, -1, top)
+        idx = []
+        for f in rings[:-1]:
+            row = []
+            for i, e in enumerate(edge):
+                q = cen + (e - cen) * f
+                out = Vector(((e - cen).x, (e - cen).y, 0)).normalized()
+                row.append(put(Vector((q.x, q.y, z * thick * (1 - f * f))), out * (f ** 3 * 1.6) + Vector((0, 0, z)), f, i, top))
+            idx.append(row)
+        idx.append(rim)
+        F += [(c, idx[0][i], idx[0][(i + 1) % n]) for i in range(n)]
+        for r in range(len(idx) - 1):
+            for i in range(n):
+                a, b, cc, d = idx[r][i], idx[r][(i + 1) % n], idx[r + 1][(i + 1) % n], idx[r + 1][i]
+                F += [(a, b, cc), (a, cc, d)]
+    mb.add(V, C, N, F)
+
+
+# each butterfly's wings: (root, main, border, dots, a mark) and where its marks go
+BFLY = {
+    'butterfly0': dict(root='#e8a828', main='#f8d84a', border='#2e2620', dots='#fff2b0', mark='#f07a30', under='#f6e6a0', tail=True),
+    'butterfly1': dict(root='#e066a0', main='#f8b0d0', border='#a83a70', dots='#fff2f8', mark='#ffffff', under='#f8d4e4'),
+    'butterfly2': dict(root='#1a4ab8', main='#58b0f4', border='#14223c', dots='#d0ecff', mark='#9adcff', under='#a8c8e0'),
+    'butterfly3': dict(root='#d0cec6', main='#fbfaf6', border='#34343a', dots='#fbfaf6', mark='#34343a', under='#eef0e0', white=True),
+}
+
+
 def butterfly(name, col, edge):
+    """A butterfly: a fore and a hind wing each side (wing_l / wing_r, hinged along the body at x 0.6 for the game to
+    flap and fold), each a soft rounded lens with a scalloped margin, painted with its colors: a deeper root by the body,
+    a dark border with a row of pale dots, veins, a mark or two (a cabbage white just its dark tips and spot); a furry
+    body, a round head and a pair of clubbed antennae."""
     f = Folk(name)
-    tube(f.body, [(0, -4.5, 6.0), (0, 0, 6.0), (0, 5.0, 5.6)], 0.9, shade('#2a2224'), seg=6, r1=0.6)
-    ball(f.body, (0, -5.2, 6.2), 1.2, shade('#2a2224'), sub=1)
+    B = BFLY[name]
+    body = '#2a2224'
+    ball(f.body, (0, -1.6, 6.2), (1.15, 1.7, 1.1), mottle('#4a3a34', 0.1, 1.2), sub=2)
+    tube(f.body, [(0, 0.0, 6.1), (0, 2.4, 6.0), (0, 4.6, 5.7), (0, 6.2, 5.5)], 0.95, lambda p, n: rgb(body) * (1.0 + 0.35 * (math.sin(p.y * 4.0) > 0.4)), seg=8, r1=0.4)
+    ball(f.body, (0, -3.7, 6.5), 1.05, shade('#3a2e2c'), sub=2)
     for s in (-1, 1):
-        tube(f.body, [(s * 0.3, -5.8, 6.8), (s * 1.6, -8.0, 9.0)], 0.2, shade('#2a2224'), seg=4)
-    c0, c1 = rgb(col), rgb(edge)
+        tube(f.body, [(s * 0.35, -4.4, 7.2), (s * 1.2, -6.0, 8.8), (s * 2.2, -7.2, 10.4)], 0.28, shade(body), seg=4)
+        ball(f.body, (s * 2.3, -7.35, 10.6), 0.6, shade(body), sub=1)
+    R, M, Bo, D, K, U = (rgb(B[k]) for k in ('root', 'main', 'border', 'dots', 'mark', 'under'))
+    white = B.get('white')
+
+    def painter(fore):
+        def paint(q, f, i, top):
+            d = q.length
+            if not top:
+                c = U.lerp(R, 0.35 * max(0.0, 1 - d / 3.0))
+                return c.lerp(Bo, 0.35) if f > 0.95 else c
+            c = R.lerp(M, min(1.0, max(0.0, (d - 1.0) / 2.6)))
+            if i >= 0 and i % 4 == 1 and 0.3 < f < 0.9:
+                c = c * 0.86                                        # (veins)
+            if white:
+                if fore and f > 0.7 and q.x > 5.7 and q.y < -2.1:
+                    c = Bo                                          # (dark wingtips)
+                if fore and (q - Vector((5.5, -2.1, 0))).length < 0.9 and f < 0.9:
+                    c = K                                           # (the spot)
+                return c
+            if f > 0.97:
+                c = Bo
+            elif f > 0.9:
+                c = D if i % 3 == 0 else Bo                         # (the pale dots in the border)
+            elif fore and f > 0.6 and q.y < -2.0 and abs(q.x - (4.2 if name == 'butterfly0' else 6.6)) < 0.85:
+                c = Bo if name == 'butterfly0' else K               # (a band from the leading edge, or a pale mark)
+            elif not fore and 0.6 < f < 0.9 and q.y > 3.8:
+                c = K                                               # (a spot on the hind wing)
+            return c
+        return paint
+    fore_o = [(0.2, -0.8), (1.8, -3.0), (4.0, -5.0), (6.4, -6.4), (8.6, -7.0), (9.8, -6.2), (9.9, -4.0), (9.2, -1.6), (7.6, 0.4), (4.8, 0.9), (2.0, 0.8), (0.4, 0.4)]
+    hind_o = [(0.3, 0.2), (2.6, 0.0), (5.4, 0.6), (7.4, 2.0), (8.0, 4.0), (7.2, 6.0), (5.6, 7.6), (3.6, 8.0), (1.8, 7.0), (0.7, 4.8), (0.2, 2.4)]
+    if B.get('tail'):
+        hind_o = [(0.3, 0.2), (2.6, 0.0), (5.4, 0.6), (7.4, 2.0), (8.0, 4.0), (7.2, 6.0), (6.0, 7.2), (5.8, 9.6), (4.8, 7.8), (3.4, 7.8), (1.7, 6.8), (0.7, 4.7), (0.2, 2.4)]
+    # (the wings drawn a little larger than they're made: as big as the first butterflies' all told)
+    fore_o = [(x * 0.95, y * 0.82) for x, y in fore_o]
+    hind_o = [(x * 0.95, y * 0.82) for x, y in hind_o]
     for s, key in ((-1, 'wing_l'), (1, 'wing_r')):
         o = Vector((s * 0.6, 0, 6.0))
         mb = f.part(key, o)
-
-        def wc(p, n, u=0, v=0, s=s):
-            d = math.hypot(p.x - o.x, (p.y - o.y) * 0.8)
-            return c0.lerp(c1, max(0.0, min(1.0, (d - 4.5) / 2.5)))
-        ball(mb, o + Vector((s * 4.6, -2.2, 0)), (4.8, 3.6, 0.35), wc, sub=3)
-        ball(mb, o + Vector((s * 3.6, 3.0, 0)), (3.6, 3.0, 0.35), wc, sub=3)
+        wing_panel(mb, o + Vector((0, 0, -0.12)), s, hind_o, painter(False), thick=0.26, n=20, scallop=0.22)
+        wing_panel(mb, o + Vector((0, 0, 0.12)), s, fore_o, painter(True), thick=0.28, n=20, scallop=0.0)
     return f
 
 

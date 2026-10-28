@@ -439,67 +439,300 @@ def sea_ferry():
     return [(mb, 'main'), (glass, 'glass')]
 
 
-def sea_dolphin():
-    mb = MB()
+# ---------------------------------------------------------------- sea creatures: bodies lofted along their length
+def spline(pts, t):
+    """a smooth value through control points [(t, value), ...] in order of t (Hermite through each, flat past the ends)"""
+    if t <= pts[0][0]:
+        return pts[0][1]
+    if t >= pts[-1][0]:
+        return pts[-1][1]
+    i = max(k for k in range(len(pts) - 1) if pts[k][0] <= t)
+    (t0, p1), (t1, p2) = pts[i], pts[i + 1]
 
-    def col(p, n):
-        belly = max(0.0, -n.z) ** 1.5
-        return rgb('#6a8aa8').lerp(rgb('#dfe6ec'), belly) * (0.84 + 0.24 * max(0.0, n.dot(LIGHT)))
-    # a body along x: a long rounded shape, the beak at +x
-    prof = [(0.0, -0.62), (0.05, -0.55), (0.1, -0.4), (0.16, -0.15), (0.18, 0.05), (0.16, 0.25), (0.11, 0.4), (0.06, 0.48), (0.035, 0.6), (0.0, 0.64)]
-    m = len(mb.v)
-    lathe(mb, prof, col, seg=14, cap_top=False, cap_bot=False, sy=0.85)
-    xform(mb, m, Euler((0, math.pi / 2, 0)).to_matrix().to_4x4())
-    slab(mb, [(-0.1, 0.12), (0.06, 0.12), (-0.08, 0.34)], 0.025, col, axis='y', at=-0.0125)
+    def slope(k):
+        a, b = pts[max(0, k - 1)], pts[min(len(pts) - 1, k + 1)]
+        return (b[1] - a[1]) / max(1e-6, b[0] - a[0])
+    h, s = t1 - t0, (t - t0) / (t1 - t0)
+    return (2 * s ** 3 - 3 * s ** 2 + 1) * p1 + (s ** 3 - 2 * s ** 2 + s) * h * slope(i) + (-2 * s ** 3 + 3 * s ** 2) * p2 + (s ** 3 - s ** 2) * h * slope(i + 1)
+
+
+def weld(mb):
+    """one point for every corner with the same place, normal and color (kit's ball and the rest add each triangle's
+    own corners, and the GLB keeps every one of them)"""
+    out, seen, remap = MB(), {}, []
+    for p, n, c in zip(mb.v, mb.n, mb.c):
+        k = (round(p.x, 5), round(p.y, 5), round(p.z, 5), round(n.x, 3), round(n.y, 3), round(n.z, 3), round(c.x, 3), round(c.y, 3), round(c.z, 3))
+        if k not in seen:
+            seen[k] = len(out.v)
+            out.v.append(p); out.n.append(n); out.c.append(c)
+        remap.append(seen[k])
+    out.f = [tuple(remap[i] for i in f) for f in mb.f if len({remap[i] for i in f}) == 3]
+    return out
+
+
+def loft(mb, P, color, nu, vs):
+    """a closed smooth body: P(u, v) -> point, u round it (0..1), v along it, a ring at each v in vs (the first and last
+    are its two tips, each closed to a point); normals from the surface itself, all turned the way that faces out on
+    the whole; color(p, n, u, v)"""
+    e = 1e-3
+    rings = vs[1:-1]
+    pts, nrm, cols, faces, mids, raw = [], [], [], [], [], []
+    for v in rings:
+        ring = [P(i / nu, v) for i in range(nu)]
+        mid = sum(ring, Vector()) / nu
+        mids.append(mid)
+        raw.append([(P(i / nu + e, v) - P(i / nu - e, v)).cross(P(i / nu, min(1.0, v + e)) - P(i / nu, max(0.0, v - e))) for i in range(nu)])
+    # (which way is out, from the rings' own way round, the same all over: a dimple pressed in still faces out)
+    sgn = 1.0 if sum(n.dot(P(i / nu, v) - mids[k]) for k, v in enumerate(rings) for i, n in enumerate(raw[k])) >= 0 else -1.0
+    for k, v in enumerate(rings):
+        for i in range(nu):
+            u = i / nu
+            p = P(u, v)
+            n = raw[k][i] * sgn
+            n = n.normalized() if n.length > 1e-12 else (p - mids[k]).normalized()
+            pts.append(p); nrm.append(n); cols.append(color(p, n, u, v))
+    R = len(rings)
+    for r in range(R - 1):
+        for i in range(nu):
+            a, b = r * nu + i, r * nu + (i + 1) % nu
+            faces += [(a, b, b + nu), (a, b + nu, a + nu)]
+    for v, r in ((vs[0], 0), (vs[-1], R - 1)):
+        tip = P(0.0, v)
+        n = (tip - mids[r]).normalized()
+        k = len(pts)
+        pts.append(tip); nrm.append(n); cols.append(color(tip, n, 0.0, v))
+        faces += [(k, r * nu + i, r * nu + (i + 1) % nu) for i in range(nu)]
+    mb.add(pts, cols, nrm, faces)
+
+
+def section(w, top, bot, phi, e_top=2.0, e_bot=2.0):
+    """a point round a body's cross-section (half width w, top above and bot below its axis; phi 0 at the top), its
+    upper and lower halves each a superellipse"""
+    s, c = math.sin(phi), math.cos(phi)
+    e = e_top if c >= 0 else e_bot
+    return w * sgnp(s, 2 / e), (top if c >= 0 else bot) * sgnp(c, 2 / e)
+
+
+def sgnp(c, k):
+    return math.copysign(abs(c) ** k, c)
+
+
+def cap_k(a, a0=0.05, a1=0.985):
+    """how far a body's cross-section has grown at a (0..1 along it): rounding to its tips at both ends"""
+    k = 1.0
+    if a0 > 0 and a < a0:
+        k *= math.sqrt(max(0.0, 1 - (1 - a / a0) ** 2))
+    if a > a1:
+        k *= math.sqrt(max(0.0, 1 - ((a - a1) / (1 - a1)) ** 2))
+    return k
+
+
+def on_body(P, a, phi, out=0.0):
+    """a point on a lofted body's surface (a from its front tip, P's v being 1 - a; phi round from the top), pushed out
+    along the surface's normal, and that normal"""
+    v, u = 1 - a, phi / math.tau
+    p = P(u, v)
+    mid = sum((P(i / 12, v) for i in range(12)), Vector()) / 12
+    n = (P(u + 1e-3, v) - P(u - 1e-3, v)).cross(P(u, v + 1e-3) - P(u, v - 1e-3)).normalized()
+    if n.dot(p - mid) < 0:
+        n = -n
+    return p + n * out, n
+
+
+def fin(mb, root, span, chord, L, c0, c1, t0, color, nu=8, n=7, sweep=0.0, droop=0.0, bumps=0, le=0.35):
+    """a flipper or fin lofted from its root (buried in the body) out along span: chord the way its leading edge faces,
+    c0 at the root narrowing to c1 at the tip, t0 thick; sweep bends it back (against chord) and droop down along its
+    length; bumps: knobs along the leading edge (a humpback's)"""
+    span, chord = Vector(span).normalized(), Vector(chord)
+    chord = (chord - span * chord.dot(span)).normalized()
+    thick = span.cross(chord).normalized()
+    root = Vector(root)
+
+    def P(u, v):
+        th = u * math.tau
+        c = (c0 + (c1 - c0) * v ** 0.8) * cap_k(v, 0.0, 0.8)
+        b = (0.045 * abs(math.sin(v * math.pi * bumps)) * (1 - 0.6 * v) if bumps else 0.0)
+        k = math.cos(th)
+        along = (c * le + b) * k if k > 0 else c * (1 - le) * k
+        t = t0 * (1 - 0.6 * v) * cap_k(v, 0.0, 0.8) * math.sin(th) * (0.55 + 0.45 * (1 - abs(k)) ** 0.5)
+        return root + span * (v * L) + chord * (along - sweep * v * v) + thick * t - Vector((0, 0, droop * v * v))
+    vs = [0.0] + [0.04 + 0.96 * (k / (n - 1)) ** 0.9 for k in range(n)][:-1] + [1.0]
+    loft(mb, P, color, nu, vs)
+
+
+def sea_dolphin():
+    """A bottlenose dolphin leaping (the game arcs it up out of the water and back in, its nose +x): a short beak under the
+    round melon of its forehead, a streamlined body grey on top with a darker cape along the back and a pale belly, a
+    curved dorsal fin, two small flippers, the flukes level, a dark eye and the line of its smile."""
+    mb = MB()
+    L0, L1 = -0.6, 0.64        # the tail's end to the beak's tip (the flukes reach on to -0.74)
+    TOP = [(0.0, 0.0), (0.03, 0.028), (0.07, 0.034), (0.1, 0.07), (0.14, 0.13), (0.2, 0.17), (0.3, 0.19), (0.42, 0.19), (0.56, 0.155),
+           (0.72, 0.1), (0.88, 0.05), (1.0, 0.032)]
+    BOT = [(0.0, 0.0), (0.03, 0.03), (0.07, 0.038), (0.12, 0.07), (0.2, 0.135), (0.32, 0.18), (0.44, 0.175), (0.58, 0.13), (0.72, 0.08),
+           (0.88, 0.042), (1.0, 0.03)]
+    W = [(0.0, 0.0), (0.03, 0.03), (0.07, 0.036), (0.11, 0.07), (0.18, 0.125), (0.28, 0.16), (0.4, 0.165), (0.54, 0.13), (0.7, 0.078),
+         (0.88, 0.035), (1.0, 0.022)]
+    ZC = [(0.0, -0.045), (0.08, -0.04), (0.3, 0.0), (1.0, 0.0)]
+    grey, cape, pale = rgb('#6c869c'), rgb('#4a6076'), rgb('#eef2f4')
+
+    def P(u, v):
+        a = 1 - v                                  # (0 at the beak's tip)
+        k = cap_k(a, 0.03, 0.97)
+        y, z = section(spline(W, a) * k, spline(TOP, a) * k, spline(BOT, a) * k, u * math.tau, 2.0, 2.0)
+        return Vector((L0 + (L1 - L0) * v, y, z + spline(ZC, a)))
+
+    def col(p, n, u, v):
+        a = 1 - v
+        phi = (u * math.tau + math.pi) % math.tau - math.pi
+        c = grey.lerp(cape, max(0.0, min(1.0, (0.5 - abs(phi)) / 0.35)) * max(0.0, min(1.0, (a - 0.16) / 0.1)) * max(0.0, min(1.0, (0.9 - a) / 0.2)))
+        # (the pale belly sweeps up the flank, the smile a dark line where the beak's jaws meet)
+        belly = max(0.0, min(1.0, (abs(phi) - 1.75 + 0.3 * math.sin(a * 7)) / 0.3))
+        c = c.lerp(pale, belly)
+        return c * (0.84 + 0.24 * max(0.0, n.dot(LIGHT)))
+    vs = [0.0, 0.03, 0.08, 0.14, 0.22, 0.32, 0.42, 0.52, 0.62, 0.7, 0.77, 0.83, 0.87, 0.9, 0.925, 0.95, 0.975, 1.0]
+    loft(mb, P, col, 16, vs)
+    fl = lambda p, n, *_: grey.lerp(cape, 0.5) * (0.84 + 0.24 * max(0.0, n.dot(LIGHT)))
+    # the dorsal fin, curving back, a flipper each side angled down and back
+    fin(mb, (-0.02, 0, 0.13), (-0.25, 0, 1), (1, 0, 0), 0.2, 0.22, 0.02, 0.03, fl, nu=6, n=5, sweep=0.14)
     for s in (-1, 1):
-        slab(mb, [(-0.66, 0.0), (-0.56, 0.0), (-0.74, s * 0.0 + 0.0)], 0.01, col, axis='y', at=-0.005)
-    m = len(mb.v)
-    slab(mb, [(-0.56, -0.02), (-0.7, -0.17), (-0.74, -0.12), (-0.66, 0.0), (-0.74, 0.12), (-0.7, 0.17)], 0.02, col, axis='z', at=0.0)
+        fin(mb, (0.24, s * 0.09, -0.08), (-0.35, s * 1, -0.75), (1, 0, 0), 0.14, 0.08, 0.016, 0.022, fl, nu=6, n=4, sweep=0.05)
+    # the flukes, level, a notch between them
     for s in (-1, 1):
-        tube(mb, [(0.1, s * 0.12, -0.06), (0.0, s * 0.24, -0.12)], 0.035, col, seg=6, r1=0.01)
-    ball(mb, (0.4, -0.1, 0.06), 0.014, shade('#1e2430'), sub=1)
-    ball(mb, (0.4, 0.1, 0.06), 0.014, shade('#1e2430'), sub=1)
-    return [(mb, 'main')]
+        fin(mb, (-0.56, s * 0.0, 0.0), (-0.45, s * 1, 0.0), (1, 0, 0), 0.2, 0.13, 0.025, 0.022, fl, nu=6, n=5, sweep=0.06)
+    dark = shade('#1e2430')
+    for s in (-1, 1):
+        ball(mb, on_body(P, 0.155, s * 1.25, -0.004)[0], 0.018, dark, sub=1)
+        # (the smile: where the beak's jaws meet, curling up a little at its corner)
+        tube(mb, [on_body(P, a, s * phi, 0.003)[0] for a, phi in ((0.02, 1.62), (0.06, 1.66), (0.1, 1.6), (0.125, 1.45))], 0.007, dark, seg=3)
+    return [(weld(mb), 'main')]
 
 
 def sea_whale():
-    """A humpback's back far out at sea (only the top breaks the water): long and dark slate-blue, pale underneath, the head
-    at +x with a row of knobs and the blowhole, a little dorsal hump toward the tail. The game raises it out of the water,
-    spouts over the blowhole (sea_whale_tail is the tail it lifts as it dives)."""
+    """A humpback's back far out at sea (only the top breaks the water): long and slate-blue, the broad flat head at +x
+    knobbly with tubercles, the mouth's line arching back to the eye, the blowhole at x 0.5 (the game's spout rises over
+    it), a little dorsal fin on its hump toward the tail, under the water the pale grooved throat and the long white
+    flippers. The game raises it out of the water (its middle at z 0) and tips it nose down to dive; sea_whale_tail is the
+    tail it lifts as it goes."""
     mb = MB()
+    TOP = [(0.0, 0.05), (0.05, 0.12), (0.13, 0.22), (0.22, 0.33), (0.32, 0.43), (0.44, 0.47), (0.56, 0.44), (0.64, 0.4), (0.72, 0.33),
+           (0.8, 0.24), (0.9, 0.13), (1.0, 0.07)]
+    BOT = [(0.0, 0.04), (0.05, 0.16), (0.13, 0.3), (0.22, 0.41), (0.34, 0.48), (0.46, 0.46), (0.58, 0.38), (0.7, 0.27), (0.8, 0.18),
+           (0.9, 0.11), (1.0, 0.06)]
+    W = [(0.0, 0.05), (0.05, 0.15), (0.13, 0.25), (0.22, 0.32), (0.34, 0.365), (0.46, 0.36), (0.58, 0.3), (0.7, 0.21), (0.8, 0.13),
+         (0.9, 0.07), (1.0, 0.04)]
+    ZC = [(0.0, 0.04), (0.2, 0.0), (1.0, 0.0)]
+    X0, X1 = -1.6, 1.5
+    slate, mott, pale, groove = rgb('#3c4a5c'), rgb('#56667a'), rgb('#e6ecef'), rgb('#6e7c8a')
 
-    def col(p, n):
-        belly = max(0.0, -n.z) ** 1.5
-        return rgb('#3e4e64').lerp(rgb('#c8d2dc'), belly) * (0.84 + 0.26 * max(0.0, n.dot(LIGHT)))
-    prof = [(0.0, -1.6), (0.12, -1.45), (0.28, -1.1), (0.42, -0.5), (0.48, 0.1), (0.46, 0.6), (0.38, 1.0), (0.24, 1.3), (0.1, 1.45), (0.0, 1.5)]
-    m = len(mb.v)
-    lathe(mb, prof, col, seg=18, cap_top=False, cap_bot=False, sy=0.75)
-    xform(mb, m, Euler((0, math.pi / 2, 0)).to_matrix().to_4x4())
-    slab(mb, [(-0.82, 0.3), (-0.5, 0.3), (-0.68, 0.47)], 0.07, col, axis='y', at=-0.035)
-    for k in range(7):
-        ball(mb, (0.62 + k * 0.11, (k % 2 - 0.5) * 0.1, 0.4 - k * 0.035), 0.032, col, sub=1)
-    ball(mb, (0.5, 0.0, 0.445), 0.035, shade('#1e2430'), sub=1)
-    return [(mb, 'main')]
+    def frame(a):
+        k = cap_k(a, 0.045, 0.9)
+        return spline(W, a) * k, spline(TOP, a) * k, spline(BOT, a) * k
+
+    def P(u, v):
+        a = 1 - v
+        w, t, b = frame(a)
+        phi = u * math.tau
+        y, z = section(w, t, b, phi, 2.0 + 0.7 * max(0.0, 1 - a / 0.3), 2.0 - 0.35 * max(0.0, (a - 0.75) / 0.25))
+        # (the throat's grooves pressed in, every other point round the underside from the chin back to the middle)
+        if math.cos(phi) < -0.3 and 0.03 < a < 0.52 and int(round(u * NU)) % 2:
+            y, z = y * 0.975, z * 0.975
+        return Vector((X0 + (X1 - X0) * v, y, z + spline(ZC, a)))
+    NU = 20
+
+    def col(p, n, u, v):
+        a = 1 - v
+        c = slate.lerp(mott, max(0.0, noise.noise(p * 4.0)) * 0.9)
+        # (a few pale scars over the head, as humpbacks have)
+        if a < 0.3 and noise.noise(p * 11.0 + Vector((2.0, 0, 0))) > 0.5:
+            c = c.lerp(rgb('#b8c0c6'), 0.45)
+        down = -math.cos(u * math.tau)
+        if down > 0.25 and a < 0.55:
+            # the pale throat with its dark grooves, softening toward the belly
+            k = min(1.0, (down - 0.25) / 0.3) * min(1.0, (0.55 - a) / 0.12)
+            g = groove if int(round(u * NU)) % 2 else pale
+            c = c.lerp(g, k)
+        elif down > 0.4:
+            c = c.lerp(pale.lerp(slate, 0.45), min(1.0, (down - 0.4) / 0.3) * 0.7)
+        return c * (0.84 + 0.26 * max(0.0, n.dot(LIGHT)))
+    vs = [0.0, 0.04, 0.1, 0.17, 0.25, 0.33, 0.41, 0.49, 0.56, 0.62, 0.68, 0.73, 0.78, 0.83, 0.87, 0.91, 0.945, 0.975, 1.0]
+    loft(mb, P, col, NU, vs)
+
+    on = lambda a, phi, out=0.0: on_body(P, a, phi, out)
+    dark = shade('#1f262f')
+    # the mouth's line from the snout back, arching down to the eye; the eye just behind its end
+    for s in (-1, 1):
+        line = [on(a, s * (math.pi / 2 + 0.05 + 0.5 * (a / 0.27) ** 2), 0.004)[0] for a in (0.02, 0.06, 0.11, 0.16, 0.21, 0.25, 0.28)]
+        tube(mb, line, 0.012, dark, seg=4, r1=0.008)
+        e, _ = on(0.29, s * (math.pi / 2 + 0.25), 0.0)
+        ball(mb, e, 0.03, dark, sub=1)
+    # tubercles: knobs along the top of the head and down the jaw
+    knob = lambda p, n: slate.lerp(mott, 0.5) * (0.84 + 0.26 * max(0.0, n.dot(LIGHT)))
+    for a in (0.05, 0.12, 0.19):
+        ball(mb, on(a, 0.0, -0.006)[0], 0.036, knob, sub=1)
+    for s in (-1, 1):
+        for a in (0.085, 0.16):
+            ball(mb, on(a, s * 0.62, -0.006)[0], 0.032, knob, sub=1)
+        for a in (0.08, 0.16):
+            ball(mb, on(a, s * (math.pi / 2 + 0.55), -0.004)[0], 0.026, knob, sub=1)
+        # (barnacles on the chin)
+        ball(mb, on(0.05, s * 2.3, -0.004)[0], 0.03, shade('#c8ccc6'), sub=1)
+    # the blowhole: two dark slits at x 0.5, where the game's spout rises
+    for s in (-1, 1):
+        ball(mb, on(0.323, s * 0.07, -0.004)[0], (0.04, 0.012, 0.01), dark, sub=1)
+    # the long white flippers, knobbly along their leading edges, sweeping back and down under the water
+    flip = lambda p, n, *_: rgb('#eef2f4').lerp(slate, 0.55 * max(0.0, n.z) * max(0.0, min(1.0, 1.2 - (abs(p.y) - 0.3) * 2.2))) * (0.86 + 0.2 * max(0.0, n.dot(LIGHT)))
+    for s in (-1, 1):
+        r, _ = on(0.36, s * (math.pi / 2 + 0.7), -0.05)
+        fin(mb, r, (-0.75, s * 0.85, -0.5), (1, 0, 0.3), 0.95, 0.36, 0.17, 0.07, flip, nu=6, n=11, sweep=-0.08, droop=0.08, bumps=4, le=0.3)
+    # the little dorsal fin on its hump
+    r, _ = on(0.67, 0.0, -0.06)
+    fin(mb, r, (-0.45, 0, 1), (1, 0, 0), 0.21, 0.46, 0.05, 0.07, lambda p, n, *_: slate * (0.84 + 0.26 * max(0.0, n.dot(LIGHT))), nu=6, n=5, sweep=0.1)
+    return [(weld(mb), 'main')]
 
 
 def sea_whale_tail():
-    """A humpback's tail as it dives: the stock rising out of the water and the broad flukes spread across, toward the
-    camera the white underside with its dark edge and marks. The origin is where the stock meets the water."""
+    """A humpback's tail as it dives: the narrow stock rising out of the water and the broad flukes spread across it,
+    their tips swept up, the trailing edge along the top ragged with a notch in the middle; toward the camera the white
+    underside with its black margin and marks, the top dark slate. The origin is where the stock meets the water."""
     mb = MB()
+    slate, white, black = rgb('#36424f'), rgb('#f0f3f2'), rgb('#232a33')
 
-    def stock(p, n):
-        return rgb('#3e4e64') * (0.84 + 0.26 * max(0.0, n.dot(LIGHT)))
-    lathe(mb, [(0.2, -0.3), (0.17, 0.0), (0.12, 0.35), (0.07, 0.62), (0.0, 0.66)], stock, seg=14, sx=1.0, sy=0.7)
+    def stock(u, v):
+        # (narrow side to side as a whale's tail stock is, deep front to back, narrowing up to the flukes, then
+        # broadening into them)
+        z = -0.3 + 1.0 * v
+        k = cap_k(v, 0.04, 0.92)
+        w = spline([(0.0, 0.17), (0.3, 0.15), (0.6, 0.1), (0.8, 0.085), (0.9, 0.13), (1.0, 0.16)], v)
+        d = spline([(0.0, 0.22), (0.3, 0.2), (0.6, 0.14), (0.8, 0.1), (0.9, 0.06), (1.0, 0.04)], v)
+        x, y = section(w, d, d, u * math.tau, 1.7, 1.7)
+        return Vector((x * k, y * k, z))
+    loft(mb, stock, lambda p, n, *_: slate * (0.84 + 0.26 * max(0.0, n.dot(LIGHT))), 8, [0.0, 0.04, 0.3, 0.6, 0.78, 0.88, 0.94, 1.0])
+    LE = [(0.0, 0.6), (0.2, 0.66), (0.45, 0.76), (0.7, 0.88), (0.9, 0.99), (1.0, 1.07)]
+    TE = [(0.0, 0.915), (0.07, 0.975), (0.25, 1.02), (0.5, 1.04), (0.75, 1.06), (0.92, 1.08), (1.0, 1.07)]
 
-    def fluke(p, n):
-        if n.y > 0.3:
-            return rgb('#3e4e64') * (0.86 + 0.2 * max(0.0, n.dot(LIGHT)))
-        edge = abs(p.x) > 0.64 or p.z > 1.0 or (0.2 < abs(p.x) < 0.3 and p.z > 0.9)
-        spot = math.sin(p.x * 13) * math.sin(p.z * 17) > 0.72
-        return (rgb('#3a4658') if edge or spot else rgb('#eef2f4')) * (0.88 + 0.16 * max(0.0, -n.y))
-    slab(mb, [(0.0, 0.6), (0.32, 0.68), (0.6, 0.84), (0.8, 1.06), (0.55, 1.04), (0.28, 0.98), (0.08, 0.95), (0.0, 0.98),
-              (-0.08, 0.95), (-0.28, 0.98), (-0.55, 1.04), (-0.8, 1.06), (-0.6, 0.84), (-0.32, 0.68)], 0.06, fluke, axis='y', at=-0.03)
-    return [(mb, 'main')]
+    def P(u, v):
+        s = v * 2 - 1
+        q = abs(s)
+        th = u * math.tau
+        k = (1 - math.cos(th)) / 2                         # 0 at the leading edge, 1 at the trailing one
+        zl, zt = spline(LE, q), spline(TE, q)
+        z = zl + (zt - zl) * k
+        if 0.1 < q < 0.9 and round(v * 12) % 2:
+            z += 0.024 * k ** 3                            # (the ragged trailing edge)
+        t = (0.03 * (1 - q) ** 0.6 + 0.007) * 2.6 * math.sqrt(k) * (1 - k) * (1 if math.sin(th) >= 0 else -1)
+        return Vector((0.84 * s, t, z))
+
+    def col(p, n, u, v):
+        th = u * math.tau
+        if math.sin(th) > 0.05:
+            return slate * (0.84 + 0.26 * max(0.0, n.dot(LIGHT)))
+        q, k = abs(v * 2 - 1), (1 - math.cos(th)) / 2
+        edge = k > 0.85 or q > 0.84 or (k < 0.05 and q < 0.2)
+        mark = (0.3 < k < 0.7 and 0.25 < q < 0.6 and round(v * 12) in (3, 4, 9)) or (k < 0.2 and 0.5 < q < 0.7)
+        c = black if edge or mark else white
+        return c * (0.88 + 0.16 * max(0.0, -n.y))
+    loft(mb, P, col, 10, [0.0] + [0.04 + 0.92 * k / 12 for k in range(13)] + [1.0])
+    return [(weld(mb), 'main')]
 
 
 # ---------------------------------------------------------------- what goes over

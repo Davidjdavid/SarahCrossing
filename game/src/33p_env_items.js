@@ -251,8 +251,9 @@ const EnvItems = {
             d.visible = q < 22;
             if (!d.visible) continue;
             const s = Env.tileSpot(e), k = q < 11 ? q / 11 : (22 - q) / 11;
-            d.position.set(s.x + [-0.45, 0.35, -0.1, 0.5][spot], s.y + [2.0, 1.6, 2.3, 1.8][spot], s.z + 0.6);
-            d.scale.setScalar(0.6 + 0.8 * k);
+            // (on the crown's front, toward the camera, not buried in its leaves)
+            d.position.set(s.x + [-0.45, 0.35, -0.1, 0.5][spot], s.y + [2.0, 1.6, 2.3, 1.8][spot], s.z + 1.1);
+            d.scale.setScalar(0.8 + 1.1 * k);
             d.rotation.y = t / 20;
         }
         for (const [e, d] of this.list) if (!seen.has(e)) { this.group.remove(d); this.list.delete(e); }

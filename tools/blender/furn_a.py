@@ -5,6 +5,7 @@ from trees_ac import rgb
 from kit import col_fn, shade, rbox, lathe, tube, xform, cyl
 from folks import ball, surf, superq, revolve, mottle
 from furn_kit import *
+from furn_b import lbox, sheet, ring, counter_body     # (light shapes, the counters' body)
 
 
 @item('bed_simple', 2, 2)
@@ -93,24 +94,58 @@ def mirror_stand(P):
 
 @item('hammock', 2, 1)
 def hammock(P):
+    """A hammock on its own wooden stand: a beam along the floor on two feet, a post at each end braced to it, and between
+    them a wide bed of cloth (blue, white and yellow stripes along it) held open by a spreader bar at each end, strings
+    fanning from each bar to a ring hung on the post."""
     mb = P.main
-    post = wood('#7a5232', 'z')
+    post, beam = wood('#8a5a34', 'z'), wood('#7a5232', 'x')
+    PX, BX, ZE = 0.82, 0.56, 0.68           # the posts, the spreader bars, the height of the bed's ends
+    rope = col_fn('#efe2c4', under=0.0)
+    lbox(mb, -PX - 0.04, -0.05, 0.05, PX + 0.04, 0.05, 0.15, beam, r=0.02)
     for s in (-1, 1):
-        cyl(mb, s * 0.86, 0, 0.0, 1.25, 0.045, 0.04, post, seg=10)
-        lathe(mb, [(0.06, 0.0), (0.07, 0.04), (0.0, 0.05)], shade('#5a3a22'), c=(s * 0.86, 0, 0), seg=10)
-    # the striped cloth hanging in a curve between them, ropes to the posts
-    pts = []
-    for i in range(13):
-        t = i / 12
-        pts.append((-0.62 + 1.24 * t, 0.0, 0.62 - 0.22 * math.sin(t * math.pi)))
-    cols = ['#3a8ad8', '#f2c840', '#fbf8f2']
-    for i in range(12):
-        a, b = Vector(pts[i]), Vector(pts[i + 1])
-        c = cols[(i // 2) % 3]
-        rbox(mb, min(a.x, b.x), -0.26, min(a.z, b.z) - 0.02, max(a.x, b.x) + 0.01, 0.26, max(a.z, b.z) + 0.01, fabric(c), r=0.01, mid=1)
-    for s in (-1, 1):
-        for y in (-0.24, 0.24):
-            tube(mb, [(s * 0.62, y, 0.62), (s * 0.84, 0.0, 1.05)], 0.008, shade('#e8d8b0'), seg=4)
+        x = s * PX
+        lbox(mb, x - 0.06, -0.36, 0.0, x + 0.06, 0.36, 0.08, beam, r=0.025)
+        for y in (-0.3, 0.3):
+            cyl(mb, x, y, -0.005, 0.012, 0.05, 0.05, shade('#4a3020'), seg=8)
+        lathe(mb, [(0.05, 0.08), (0.048, 0.4), (0.044, 1.16), (0.05, 1.19), (0.032, 1.25), (0.0, 1.26)], post, c=(x, 0, 0), seg=10, cap_top=False)
+        # the brace from the beam up to the post
+        m = len(mb.v)
+        lbox(mb, -0.025, -0.03, -0.2, 0.025, 0.03, 0.2, post, r=0.012)
+        xform(mb, m, Matrix.Translation((s * 0.62, 0, 0.34)) @ Matrix.Rotation(s * 0.62, 4, 'Y'))
+        # the hook and ring at the post's top, five strings to the spreader bar, the bar with round ends
+        rx, rz = s * 0.72, 1.06
+        tube(mb, [(x - s * 0.04, 0, 1.12), (rx, 0, 1.12), (rx, 0, rz + 0.03)], 0.011, metal('#5a5a62'), seg=5)
+        ring(mb, (rx, 0, rz), 0.026, 0.008, metal('#5a5a62'), n=8)
+        bx = s * BX
+        for y in (-0.28, -0.14, 0.0, 0.14, 0.28):
+            tube(mb, [(bx, y, ZE + 0.04), (rx - s * 0.015, 0, rz - 0.02)], 0.006, rope, seg=4)
+        tube(mb, [(bx, -0.33, ZE + 0.02), (bx, 0.33, ZE + 0.02)], 0.024, wood('#b07a48', 'y'), seg=8)
+        for y in (-0.33, 0.33):
+            ball(mb, (bx, y, ZE + 0.02), 0.032, wood('#9a6a3a'), sub=1)
+    # the bed: sagging from bar to bar, flat at the bars, curling up at its sides in the middle
+    X0, X1 = -BX + 0.03, BX - 0.03
+
+    def F(u, v):
+        sg = math.sin(math.pi * u)
+        w = 2 * v - 1
+        half = 0.3 - 0.02 * sg
+        return Vector((X0 + (X1 - X0) * u, w * half * (1 - 0.06 * sg * w * w), ZE - 0.24 * sg + 0.1 * sg * w * w))
+    bands = [(0.0, '#3a8ad8'), (0.08, '#fbf8f2'), (0.22, '#3a8ad8'), (0.34, '#fbf8f2'), (0.42, '#f2c840'), (0.58, '#fbf8f2'), (0.66, '#3a8ad8'),
+             (0.78, '#fbf8f2'), (0.92, '#3a8ad8')]
+
+    def col(u, v):
+        return rgb([b for b in bands if b[0] <= v + 1e-9][-1][1]) * (0.95 + 0.05 * math.sin(math.pi * u))
+    vs = [0.0, 0.5, 1.0]
+    for b, _ in bands[1:]:
+        vs += [b - 0.005, b + 0.005]
+    sheet(mb, F, [k / 12 for k in range(13)], sorted(vs), col, thick=0.018)
+    # a little cushion at the head end
+    u = 0.18
+    c = F(u, 0.5)
+    m = len(mb.v)
+    surf(mb, superq(0, 0, 0, 0.1, 0.17, 0.045, 0.35, 0.7), col_fn('#fbf8f2', under=0.0), nu=12, nv=6)
+    tilt = math.atan2(F(u + 0.01, 0.5).z - F(u - 0.01, 0.5).z, F(u + 0.01, 0.5).x - F(u - 0.01, 0.5).x)
+    xform(mb, m, Matrix.Translation(c + Vector((0, 0, 0.04))) @ Euler((0, -tilt, 0)).to_matrix().to_4x4())
 
 
 @item('surfboard', 1, 1)
@@ -158,19 +193,100 @@ def cloud_bed(P):
 
 @item('beanbag', 1, 1)
 def beanbag(P):
-    def night(p, n, u=0, v=0):
-        return rgb('#f8e488') if noise.noise(p * 24) > 0.64 else rgb('#2e3268') * (0.9 + 0.15 * max(0.0, n.z))
-    surf(P.main, superq(0, 0, 0.24, 0.36, 0.34, 0.25, 1.0, 1.0, mod=lambda u, v: 1 + 0.06 * math.sin(u * math.tau * 3) * math.sin(v * math.pi)), night, nu=36, nv=20)
-    # the dent where you sit
-    ball(P.main, (0, -0.05, 0.42), (0.22, 0.2, 0.08), night, sub=3)
+    """A slouchy beanbag in a night-sky print: a squashed pear sagging wide at the floor, its back risen into a rest and
+    a dent pressed in its seat, soft folds round it; little four-pointed stars and a crescent moon on the navy cloth."""
+    mb = P.main
+    navy = rgb('#2e3268')
+
+    # (the surface's poles at its left and right, so the seat is smooth)
+    def D(u, v):
+        ph, th = (v - 0.5) * math.pi, u * math.tau
+        return Vector((math.sin(ph), math.cos(ph) * math.cos(th), math.cos(ph) * math.sin(th)))
+
+    def UV(d):
+        d = d.normalized()
+        return (math.atan2(d.z, d.y) % math.tau) / math.tau, math.asin(max(-1.0, min(1.0, d.x))) / math.pi + 0.5
+
+    def B(u, v):
+        d = D(u, v)
+        sp, cp = d.z, math.hypot(d.x, d.y)
+        # (wide and saggy low down, narrower up top; the floor flattens it)
+        k = (1 + 0.1 * max(0.0, -sp)) * (1 - 0.15 * max(0.0, sp)) * (1 + 0.025 * math.sin(math.atan2(d.y, d.x) * 7 + math.asin(sp) * 2) * cp)
+        x, y = 0.4 * d.x * k, 0.38 * d.y * k
+        zb = (0.3 if sp < 0 else 0.26) * sp
+        z = zb if zb > -0.17 else -0.17 + (zb + 0.17) * 0.3
+        # the back rises into a rounded rest, the front lip sags forward
+        z += 0.36 * max(0.0, y / 0.38) ** 1.2 * max(0.0, sp) ** 0.5 - 0.09 * max(0.0, -y / 0.38) * max(0.0, sp)
+        y -= 0.05 * max(0.0, -d.y) * max(0.0, 1 - abs(sp + 0.2) * 1.6)
+        # the seat's dent, a few creases running out of it
+        dd = (x / 0.27) ** 2 + ((y + 0.01) / 0.24) ** 2
+        z -= max(0.0, sp) ** 0.6 * (0.2 * math.exp(-dd) - 0.014 * min(1.0, dd) * math.sin(math.atan2(y + 0.01, x) * 6) * math.exp(-(dd - 1.2) ** 2))
+        return Vector((x, y, z + 0.209))
+
+    def col(p, n, u=0, v=0):
+        # (darker down in the seat's dent, as a painted miniature's creases are)
+        dent = math.exp(-((p.x / 0.27) ** 2 + ((p.y + 0.01) / 0.24) ** 2)) * max(0.0, min(1.0, (p.z - 0.25) / 0.12))
+        return navy * (0.86 + 0.2 * max(0.0, n.z)) * (0.94 + 0.06 * noise.noise(p * 6)) * (1 - 0.3 * dent)
+    surf(mb, B, col, nu=36, nv=22, caps=(False, False))
+
+    def frame(u, v):
+        e = 1e-3
+        p = B(u, v)
+        du, dv = B(u + e, v) - B(u - e, v), B(u, min(1, v + e)) - B(u, max(0, v - e))
+        n = du.cross(dv).normalized()
+        if n.dot(p - Vector((0, 0, 0.2))) < 0:
+            n = -n
+        t = du.normalized()
+        return p, n, t, n.cross(t)
+    # the stars: little four-pointed ones laid on the cloth, here and there (not underneath)
+    rng = P.rng
+    spots = []
+    while len(spots) < 22:
+        d = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-0.3, 1)))
+        if d.length < 0.3 or d.length > 1 or any((d.normalized() - q).length < 0.32 for q in spots):
+            continue
+        spots.append(d.normalized())
+    for k, d in enumerate(spots):
+        p, n, t, b = frame(*UV(d))
+        r = 0.022 + 0.012 * (k % 3 == 0)
+        pts = [p + n * 0.004] + [p + n * 0.004 + (t * math.cos(j / 8 * math.tau) + b * math.sin(j / 8 * math.tau)) * (r if j % 2 == 0 else r * 0.35) for j in range(8)]
+        mb.add(pts, [rgb('#fff0a0')] + [rgb('#f8e070')] * 8, [n] * 9, [(0, 1 + j, 1 + (j + 1) % 8) for j in range(8)])
+    # the moon: a crescent on its front
+    p, n, t, b = frame(*UV(Vector((-0.4, -0.88, 0.05))))
+    t = (Vector((1, 0, 0)) - n * n.x).normalized()
+    b = n.cross(t).normalized()
+    if b.z < 0:
+        b = -b
+    outer = [(math.cos(a) * 0.06, math.sin(a) * 0.06) for a in (math.pi * (0.5 + j / 8) for j in range(9))]
+    inner = [(0.025 + math.cos(a) * 0.05, 0.008 + math.sin(a) * 0.05) for a in (math.pi * (0.5 + j / 8) for j in range(9))]
+    pts, ff = [], []
+    for j in range(9):
+        for (x, y) in (outer[j], inner[j]):
+            pts.append(p + n * 0.005 + t * x + b * y)
+        if j:
+            ff += [(2 * j - 2, 2 * j, 2 * j + 1), (2 * j - 2, 2 * j + 1, 2 * j - 1)]
+    mb.add(pts, [rgb('#fbf0b8')] * len(pts), [n] * len(pts), ff)
 
 
 @item('sushi_counter', 3, 1)
 def sushi_counter(P):
-    counter(P, 2.8, 0.7, 1.0, wood('#ecd6a4'), wood('#6a4228', 'z'), panels=6)
-    rbox(P.main, -1.38, 0.18, 1.0, 1.38, 0.36, 1.22, paint('#2a4a3c'), r=0.03, mid=1)
-    rbox(P.clear, -1.36, 0.0, 1.0, 1.36, 0.06, 1.18, col_fn('#e4f4fa', under=0.0), r=0.01, mid=1)
-    P.top(1.0)
+    """A sushi bar's counter: a thick top of pale hinoki with a lip, the dark wooden front in a lattice of slender slats
+    between rails, a pale bamboo skirting."""
+    mb, w, d, h = P.main, 2.8, 0.7, 1.0
+    darkw, slat = wood('#6a4228', 'z'), wood('#7a5032', 'z')
+    z0, z1 = counter_body(P, w, d, h, wood('#ecd6a4'), darkw, wood('#d8c08a'), '#3a2414', top_t=0.075)
+    y = -d / 2
+    for zz in (z0 + 0.04, z1 - 0.04):
+        lbox(mb, -w / 2 + 0.02, y - 0.03, zz - 0.025, w / 2 - 0.02, y + 0.01, zz + 0.025, wood('#5a3620'), r=0.008)
+    n = 26
+    for k in range(n + 1):
+        x = -1.3 + k * 2.6 / n
+        lbox(mb, x - 0.016, y - 0.024, z0 + 0.065, x + 0.016, y + 0.01, z1 - 0.065, slat, r=0.008)
+    # a little noren-blue panel in the middle of the lattice, a pale wave on it
+    lbox(mb, -0.2, y - 0.03, z0 + 0.12, 0.2, y - 0.016, z1 - 0.12, paint('#2e4a7a'), r=0.01)
+    for k in range(3):
+        m = len(mb.v)
+        tube(mb, [(-0.14 + k * 0.1 + 0.05 * math.cos(a), y - 0.034, (z0 + z1) / 2 - 0.02 + 0.05 * math.sin(a)) for a in (math.pi * j / 6 for j in range(7))], 0.007, shade('#f0ece0'), seg=4)
 
 
 @item('paper_lantern', 1, 1)

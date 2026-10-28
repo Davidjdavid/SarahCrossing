@@ -21,7 +21,7 @@ from mathutils import Vector, Matrix, Euler, noise
 from common import *
 from trees_ac import MB, vmat, rgb, LIGHT
 from kit import col_fn, shade, rbox, lathe, cyl, ball, tube, slab, xform
-from small_things import facet, lit, fan, leafy, grid
+from small_things import facet, lit, fan, leafy, grid, loft, cap_k, weld
 
 
 def turn(mb, mark, rx=0.0, ry=0.0, rz=0.0, t=(0, 0, 0)):
@@ -621,13 +621,166 @@ def chopsticks():
 
 
 # ---------------------------------------------------------------- vegetables picked
+def cucumber_item():
+    """a cucumber lying on its side: long, a little curved and fuller toward its flower end, both ends rounded, dark green
+    with pale stripes running back from the flower end and rows of little pale bumps; a stub of stem"""
+    mb, shine = MB(), MB()
+    L, R, NU = 0.24, 0.03, 10
+    dark, pale, wart = rgb('#2c6c28'), rgb('#86c060'), rgb('#c8e0a0')
+
+    def P(u, v):
+        x = -L / 2 + L * v
+        r = R * (0.88 + 0.12 * math.sin(v * math.pi * 0.9 + 0.3)) * cap_k(v, 0.08, 0.9)
+        th = u * math.tau
+        i, k = round(u * NU), round((v - 0.08) / 0.14)
+        r *= 1.1 if (i + 2 * k) % 4 == 1 and 0.12 < v < 0.88 else 1.0         # (the little bumps, here and there)
+        bend = 0.012 * math.sin(v * math.pi)
+        return Vector((x, math.cos(th) * r + bend, R + math.sin(th) * r * 0.94))
+
+    def col(p, n, u, v):
+        i, k = round(u * NU), round((v - 0.08) / 0.14)
+        stripe = (i % 3 == 0) * max(0.0, (v - 0.4) / 0.6)
+        c = dark.lerp(pale, 0.65 * stripe)
+        if (i + 2 * k) % 4 == 1 and 0.12 < v < 0.88:
+            c = c.lerp(wart, 0.18)                                    # (a bump, a touch paler)
+        return c * (0.84 + 0.24 * max(0.0, n.dot(LIGHT)))
+    loft(shine, P, col, NU, [0.0, 0.03] + [0.08 + 0.84 * k / 6 for k in range(7)] + [0.97, 1.0])
+    # the stem's stub and the dried flower end
+    tube(mb, [(-L / 2 + 0.004, 0.0, R), (-L / 2 - 0.016, 0.002, R + 0.004)], 0.006, shade('#4a7a2a'), seg=5, r1=0.0045)
+    ball(mb, (L / 2 - 0.002, 0.0, R), 0.006, shade('#d8c870'), sub=1)
+    return [(weld(mb), 'main'), (weld(shine), 'gloss')]
+
+
+def pumpkin_item():
+    """(Captain Shrimpy's far-island seeds) a squat pumpkin: ten plump lobes with deep creases between them running
+    from the dimpled top to the dimpled bottom, orange, lighter on top, darker in the creases; a thick ridged stem
+    curling over, with a leaf and a curly tendril"""
+    mb, shine = MB(), MB()
+    R, H, NL = 0.08, 0.105, 10
+    orange, crease, top = rgb('#f08a28'), rgb('#b8521a'), rgb('#ffb04a')
+
+    def lobe(th):
+        return abs(math.cos(th * NL / 2)) ** 0.6
+
+    def P(u, v):
+        th = u * math.tau
+        a = v * math.pi                               # (from the bottom's dimple round to the top's)
+        k = 0.82 + 0.18 * lobe(th)
+        rr = R * math.sin(a) ** 0.9 * k
+        z = H / 2 - H / 2 * math.cos(a) * (0.9 + 0.1 * k)
+        dimple = 0.018 * math.exp(-(a / 0.5) ** 2) - 0.022 * math.exp(-((math.pi - a) / 0.55) ** 2)
+        return Vector((math.cos(th) * rr, math.sin(th) * rr, z + dimple + 0.002))
+
+    def col(p, n, u, v):
+        fade = min(1.0, math.sin(v * math.pi) * 2.2)          # (the creases fading out where they meet at top and bottom)
+        c = orange.lerp(crease, (1 - lobe(u * math.tau)) ** 2.2 * 0.85 * fade).lerp(top, 0.3 * max(0.0, n.z) * (1 - abs(v - 0.7)))
+        c = c * (0.95 + 0.06 * math.sin(u * math.tau * 40))        # (fine streaks down each lobe)
+        return c * (0.84 + 0.24 * max(0.0, n.dot(LIGHT)))
+    loft(shine, P, col, 56, [0.0, 0.04] + [0.1 + 0.8 * k / 11 for k in range(12)] + [0.96, 1.0])
+    # the stem: thick, ridged, curling over at its end, dry and paler there
+    zt = H - 0.016
+    path = [Vector(p) for p in ((0, 0, zt), (0.002, 0, zt + 0.02), (0.008, 0.002, zt + 0.036), (0.02, 0.004, zt + 0.044), (0.03, 0.003, zt + 0.04))]
+
+    def stem(u, v):
+        n = len(path) - 1
+        x = min(n - 1e-6, v * n)
+        i, t = int(x), x - int(x)
+        c = path[i].lerp(path[i + 1], t)
+        d = (path[min(n, i + 1)] - path[i]).normalized()
+        side = d.cross(Vector((0, 1, 0))).normalized()
+        up = side.cross(d).normalized()
+        th = u * math.tau
+        r = (0.011 - 0.005 * v) * (1 + 0.14 * (round(u * 12) % 2)) * cap_k(v, 0.0, 0.88)
+        return c + (side * math.cos(th) + up * math.sin(th)) * r
+    loft(mb, stem, lambda p, n, u, v: rgb('#5a7028').lerp(rgb('#b0a060'), v ** 1.5) * (0.84 + 0.24 * max(0.0, n.dot(LIGHT))), 12,
+         [0.0, 0.02, 0.2, 0.4, 0.6, 0.78, 0.92, 1.0])
+    # a leaf lying over the shoulder, and a tendril curling off the stem
+    leaf_c = lambda p, n, *_: rgb('#3e8a34').lerp(rgb('#6ab84a'), 0.5 + 0.5 * n.z) * (0.86 + 0.2 * max(0.0, n.dot(LIGHT)))
+
+    def leaf(u, v):
+        th = u * math.tau
+        w = 0.024 * math.sin(math.pi * v ** 0.65) ** 0.8
+        base = Vector((-0.004, -0.008, zt + 0.004))
+        d = Vector((-0.62, -0.78, -0.1)).normalized()
+        q = base + d * (0.05 * v) + Vector((0, 0, -0.016 * v * v))
+        return q + Vector((-d.y, d.x, 0)) * (math.cos(th) * w) + Vector((0, 0, 1)) * (math.sin(th) * 0.003 + 0.004 * math.cos(th) ** 2)
+    loft(mb, leaf, leaf_c, 8, [0.0, 0.1, 0.3, 0.5, 0.7, 0.88, 1.0])
+    tendril = [Vector((0.006 + 0.004 * t * 12, -0.004 + math.sin(t * 15) * 0.009 * (1 - t * 0.5), zt + 0.022 + math.cos(t * 15) * 0.009 * (1 - t * 0.5))) for t in [k / 15 * 0.75 for k in range(16)]]
+    tube(mb, tendril, 0.0022, shade('#6aa040'), seg=4, r1=0.0014)
+    return [(weld(mb), 'main'), (weld(shine), 'gloss')]
+
+
+def corn_item():
+    """(Captain Shrimpy's far-island seeds) an ear of sweet corn lying on its side: the cob tapering to its rounded tip,
+    covered in plump kernels packed in staggered rows (each a bright bump with darker between, the points round the
+    cob's top half closer together, where they're seen), the husk leaves peeled back from its foot onto the ground"""
+    mb = MB()
+    L, R, NU = 0.2, 0.03, 15
+    gold, mid, shadow = rgb('#ffdc48'), rgb('#e8b22a'), rgb('#b88014')
+    x0 = -0.08
+    vs = [0.0, 0.03] + [0.08 + 0.84 * k / 4 for k in range(5)] + [0.97, 1.0]
+    ring_of = {round(v, 6): k for k, v in enumerate(vs)}
+
+    def theta(u):
+        # (twelve steps over the top half, three under it, lying on the ground)
+        u = u % 1.0
+        return u / 0.8 * math.pi if u < 0.8 else math.pi + (u - 0.8) / 0.2 * math.pi
+
+    def kernel(i, k):
+        q = i - (k - (k & 1)) // 2
+        return (q - k) % 3
+
+    def P(u, v):
+        k = ring_of.get(round(v, 6), 0)
+        if k % 2:
+            u += 0.5 / NU                                         # (each ring half a kernel round from the last)
+        x = x0 + L * v
+        r = R * (1 - 0.42 * v ** 1.6) * cap_k(v, 0.05, 0.86)
+        i = round((u - (0.5 / NU if k % 2 else 0.0)) * NU) % NU
+        if kernel(i, k) == 0 and 0.06 < v < 0.95 and i < 13:
+            r *= 1.08
+        th = theta(u)
+        return Vector((x, math.cos(th) * r, R + math.sin(th) * r))
+
+    def col(p, n, u, v):
+        k = ring_of.get(round(v, 6), 0)
+        i = round(u * NU) % NU
+        c = (gold, mid, shadow)[kernel(i, k)]
+        if v < 0.06:
+            c = rgb('#e8d8a0')                                    # (the cut end)
+        return c * (0.84 + 0.24 * max(0.0, n.dot(LIGHT)))
+    loft(mb, P, col, NU, vs)
+    # the husk: two leaves peeled back from the foot, lying on the ground either side (seen only from above)
+    for side in (-1, 1):
+        d = Vector((-0.9, side * 0.42, 0.0)).normalized()
+        sw = Vector((-d.y, d.x, 0))
+        V, C_, N = [], [], []
+        for j in range(4):
+            t = j / 3
+            q = Vector((x0 + 0.012, side * 0.01, R * 0.95)) + d * (0.1 * t)
+            q.z = max(0.004, q.z - 0.03 * t ** 0.7)
+            w = 0.022 * math.sin(math.pi * min(1.0, t * 1.1 + 0.08) ** 0.8) * (1 - 0.25 * t) + 0.001
+            for e in (-1, 1):
+                V.append(q + sw * (e * w) + Vector((0, 0, 0.003 * (1 - abs(e) * 0.5))))
+                N.append((Vector((0, 0, 1)) + sw * (e * 0.35)).normalized())
+                C_.append(rgb('#5aa84a').lerp(rgb('#b8d880'), 0.25 + 0.6 * t) * (0.86 + 0.2 * (e > 0)))
+        F = []
+        for j in range(3):
+            a0 = j * 2
+            F += [(a0, a0 + 1, a0 + 3), (a0, a0 + 3, a0 + 2)]
+        mb.add(V, C_, N, F)
+    return [(weld(mb), 'main')]
+
+
 def veg_item(kind):
     mb, shine = MB(), MB()
     if kind == 'tomato':
         ball(shine, (0, 0, 0.05), (0.06, 0.06, 0.05), shade('#e8342a'), sub=2)
         leafy(mb, (0, 0, 0.098), 5, 0.035, 0.012, 0.0, '#3a7a2a', '#5aa040', seed=2, droop=0.2)
-    elif kind in ('chili', 'cucumber', 'eggplant'):
-        c, r0, r1, L = {'chili': ('#e8302a', 0.022, 0.004, 0.2), 'cucumber': ('#3a8a34', 0.03, 0.024, 0.22), 'eggplant': ('#5a2a6a', 0.03, 0.05, 0.2)}[kind]
+    elif kind == 'cucumber':
+        return cucumber_item()
+    elif kind in ('chili', 'eggplant'):
+        c, r0, r1, L = {'chili': ('#e8302a', 0.022, 0.004, 0.2), 'eggplant': ('#5a2a6a', 0.03, 0.05, 0.2)}[kind]
         tube(shine, [(-L / 2, 0, r0), (0.0, 0.01, max(r0, r1) * 0.95), (L / 2, 0.03 if kind == 'chili' else 0.0, r1)], r0, shade(c), seg=10, r1=r1)
         ball(mb, (-L / 2, 0, r0), (0.02, r0 * 1.1, r0 * 1.1), shade('#3a7a2a'), sub=1)
         tube(mb, [(-L / 2, 0, r0), (-L / 2 - 0.03, 0, r0 + 0.01)], 0.005, shade('#3a7a2a'), seg=4)
@@ -657,17 +810,9 @@ def veg_item(kind):
             tube(mb, [(-0.12, y * 0.5, 0.02), (-0.02, y, 0.024)], 0.016, shade('#e8f4d0'), seg=6, r1=0.012)
             ball(mb, (0.06, y * 2.2, 0.026), (0.08, 0.026, 0.016), shade('#3a8a34'), sub=2)
     elif kind == 'pumpkin':
-        # (Captain Shrimpy's far-island seeds) ribbed and squat, a curly stem
-        rib = lambda p, n: rgb('#f28a2a').lerp(rgb('#c8601a'), 0.6 * (0.5 + 0.5 * math.cos(math.atan2(p.y, p.x) * 8)) ** 6) * (0.84 + 0.16 * max(0.0, n.z))
-        ball(shine, (0, 0, 0.05), (0.075, 0.075, 0.05), rib, sub=3)
-        tube(mb, [(0, 0, 0.09), (0.006, 0.0, 0.115), (0.018, 0.004, 0.125)], 0.009, shade('#5a7a2a'), seg=6, r1=0.006)
-        ball(mb, (0.03, 0.01, 0.1), (0.02, 0.014, 0.004), shade('#4a9a3a'), sub=1)
+        return pumpkin_item()
     elif kind == 'corn':
-        kern = lambda p, n: rgb('#f6d040').lerp(rgb('#d8a020'), 0.5 + 0.5 * math.sin(p.x * 260) * math.sin(math.atan2(p.z - 0.03, p.y) * 10))
-        tube(shine, [(-0.1, 0, 0.03), (0.0, 0, 0.032), (0.09, 0, 0.026)], 0.03, kern, seg=12, r1=0.018)
-        for s2 in (-1, 1):
-            tube(mb, [(-0.12, 0, 0.03), (-0.05, s2 * 0.03, 0.03), (0.04, s2 * 0.034, 0.024)], 0.012, shade('#6cc063'), seg=5, r1=0.004)
-        tube(mb, [(0.09, 0, 0.026), (0.12, 0.006, 0.03)], 0.006, shade('#c8a060'), seg=4)
+        return corn_item()
     else:  # edamame
         for k in range(3):
             m = len(shine.v)

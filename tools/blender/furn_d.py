@@ -6,6 +6,7 @@ from trees_ac import rgb
 from kit import col_fn, shade, rbox, lathe, tube, xform, cyl
 from folks import ball, surf, superq, revolve, mottle
 from furn_kit import *
+from furn_b import lbox, counter_body, panels     # (light shapes, the counters' body)
 
 
 def stone(c, seed=0.0):
@@ -113,8 +114,29 @@ def salon_chair(P):
 
 @item('salon_desk', 2, 1)
 def salon_desk(P):
-    counter(P, 1.8, 0.62, 1.0, paint('#9a6ae0'), paint('#efe2fa'), panels=4, trim=paint('#b890ec'), kick='#7a54c0')
-    rbox(P.main, -0.9, -0.33, 0.06, 0.9, -0.3, 0.12, paint('#9a6ae0'), r=0.008, mid=0)
+    """The salon's front desk: a purple top with a rounded lip, lilac trim, the front a padded panel tufted with buttons in
+    diamonds, round purple columns at its front corners and a little gilt plate with a pair of scissors on it."""
+    mb, w, d, h = P.main, 1.8, 0.62, 1.0
+    purple, lilac, gold = paint('#9a6ae0'), paint('#b890ec'), metal('#e0b040')
+    z0, z1 = counter_body(P, w, d, h, purple, paint('#efe2fa'), lilac, '#7a54c0', top_t=0.06)
+    y = -d / 2
+    # the padded panel and its buttons
+    lbox(mb, -0.76, y - 0.035, z0 + 0.03, 0.76, y + 0.01, z1 - 0.03, fabric('#f6ecfc'), r=0.035)
+    rows = 4
+    for r in range(rows):
+        z = z0 + 0.1 + r * (z1 - z0 - 0.2) / (rows - 1)
+        for k in range(8 if r % 2 == 0 else 7):
+            x = -0.63 + k * 0.18 + (0.09 if r % 2 else 0.0)
+            ball(mb, (x, y - 0.038, z), (0.016, 0.01, 0.016), lilac, sub=1)
+    # the corner columns, with a ring at foot and head
+    for s in (-1, 1):
+        c = (s * (w / 2 - 0.02), y + 0.03, 0)
+        lathe(mb, [(0.07, 0.075), (0.07, 0.12), (0.055, 0.14), (0.055, z1 - 0.04), (0.07, z1 - 0.02), (0.07, z1 + 0.04)], purple, c=c, seg=14, cap_top=False)
+    # the plate with the scissors
+    lbox(mb, -0.14, y - 0.05, z1 - 0.13, 0.14, y - 0.03, z1 - 0.05, gold, r=0.01)
+    for sx in (-1, 1):
+        ball(mb, (sx * 0.035, y - 0.054, z1 - 0.1), (0.018, 0.006, 0.018), shade('#7a54c0'), sub=1)
+        tube(mb, [(sx * 0.03, y - 0.054, z1 - 0.09), (-sx * 0.04, y - 0.054, z1 - 0.065)], 0.005, shade('#7a54c0'), seg=4)
 
 
 def bottles(mb, x0, x1, y0, y1, z, hh, rng, cols=('#f06aa0', '#5ac87a', '#5aa8e8', '#f2c840', '#e83a48', '#fbf6f0', '#b07ae8')):
@@ -174,7 +196,34 @@ def salon_sofa(P):
 
 @item('disp_counter', 3, 1)
 def disp_counter(P):
-    counter(P, 2.8, 0.7, 1.0, wood('#b47a46'), wood('#a06a3a', 'z'), panels=6, kick='#5a3a22')
+    """Waffle's counter at the garden shop: a plank front like a potting bench, battens across it and posts at its
+    corners, its lower front an open shelf with little pots of seedlings on it, the top with a lip."""
+    mb, w, d, h = P.main, 2.8, 0.7, 1.0
+    body, plank, dark = wood('#b47a46', 'z'), '#c08850', wood('#8a5a32')
+    z0, z1 = counter_body(P, w, d, h, wood('#c88a50'), body, dark, '#5a3a22', recess=(-1.3, 1.3, 0.44, 0.17))
+    y = -d / 2
+    # the planks above the shelf, each its own shade, two battens across them
+    rng = P.rng
+    n = 14
+    for k in range(n):
+        x0 = -1.3 + k * 2.6 / n
+        tone = rgb(plank) * rng.uniform(0.88, 1.08)
+        lbox(mb, x0 + 0.006, y - 0.016, 0.44, x0 + 2.6 / n - 0.006, y + 0.01, z1, col_fn(tuple(tone), under=0.08), r=0.008)
+    for zz in (0.5, z1 - 0.06):
+        lbox(mb, -1.3, y - 0.034, zz - 0.025, 1.3, y - 0.012, zz + 0.025, dark, r=0.008)
+    for s in (-1, 1):
+        lbox(mb, s * w / 2 - 0.07, y - 0.03, 0.0, s * w / 2 + 0.01, y + 0.08, z1, dark, r=0.014)
+    # the shelf and its pots of seedlings
+    lbox(mb, -1.3, y + 0.0, 0.12, 1.3, y + 0.17, 0.15, dark, r=0.008)
+    leaf_c = ('#5aa83a', '#7ac860', '#4a9a3a')
+    for k in range(6):
+        x = -1.08 + k * 0.43
+        lathe(mb, [(0.0, 0.15), (0.042, 0.15), (0.054, 0.24), (0.062, 0.245), (0.062, 0.27), (0.052, 0.27)], col_fn('#c8643a', under=0.2), c=(x, y + 0.085, 0), seg=10, cap_top=False)
+        lathe(mb, [(0.052, 0.262), (0.0, 0.258)], shade('#5a3a20'), c=(x, y + 0.085, 0), seg=10, cap_top=False)
+        for j in range(3):
+            a = j / 3 * math.tau + k
+            ball(mb, (x + math.cos(a) * 0.03, y + 0.085 + math.sin(a) * 0.03, 0.3 + 0.02 * (j == 0)), (0.035, 0.022, 0.012), shade(leaf_c[(j + k) % 3]), sub=1)
+        tube(mb, [(x, y + 0.085, 0.26), (x, y + 0.085, 0.3)], 0.006, shade('#4a8a2a'), seg=4)
 
 
 @item('disp_lantern', 1, 1)

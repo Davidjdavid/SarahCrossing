@@ -1033,47 +1033,119 @@ def mac():
 
 
 # ---------------------------------------------------------------- Fortune
-def fortune():
-    """A fortune cookie, its two halves folded up with the crease pressed into the front, the paper slip peeking out of
-    one side; cookie arms. She keeps the shop."""
-    f = Folk('fortune')
-    cookie = rgb('#e8b45a')
+def renormal(mb, only=None):
+    """a molded part's normals worked out afresh from its faces after its surface was pressed in (only: the points that
+    moved, and round them), evened out over the surface as sculpt's are"""
+    N = [Vector((0, 0, 0)) for _ in mb.v]
+    nb = [[] for _ in mb.v]
+    for fc in mb.f:
+        a, b, c = (mb.v[i] for i in fc[:3])
+        n = (b - a).cross(c - a)
+        for i in fc:
+            N[i] += n
+            nb[i] += [j for j in fc if j != i]
+    N = [n.normalized() if n.length > 1e-12 else Vector((0, 0, 1)) for n in N]
+    for _ in range(2):
+        N = [(n + sum((N[j] for j in nb[i]), Vector((0, 0, 0))) / max(1, len(nb[i]))).normalized() for i, n in enumerate(N)]
+    keep = set(range(len(mb.v))) if only is None else set(only)
+    if only is not None:
+        for _ in range(2):
+            keep |= {j for i in list(keep) for j in nb[i]}
+    mb.n = [N[i] if i in keep else mb.n[i] for i in range(len(mb.v))]
 
-    def col(p, n, *_):
-        k = 0.94 + 0.08 * noise.noise(p * 0.35)
-        c = cookie.lerp(rgb('#f2c878'), 0.5 * max(0.0, n.z))
-        top = max(0.0, (p.z - 21) / 17)
-        # (the fold down the middle of the top: darker in the crease, the line itself darker still)
-        c = c * (1 - 0.28 * math.exp(-(p.x ** 2) / 30) * top ** 1.5 - 0.22 * math.exp(-(p.x ** 2) / 2.5) * min(1.0, max(0.0, (p.z - 27) / 6)))
-        return c.lerp(rgb('#c8903e'), 0.4 * max(0.0, 1 - abs(n.y)) ** 3) * k
-    P0 = superq(0, 0, 21, 23.0, 16.0, 17.0, 0.72, 0.72)
+
+def pillow(mb, outline, cen, front, back, color, nu=96, nv=40):
+    """A soft pillow standing up, its outline in the front view (outline(t) -> (x, z), t 0..1 round it), puffed out
+    toward the front by front(x, z, w) and the back by back(x, z, w) (w: 0 at the outline, 1 at the middle cen)"""
+    cx, cz = cen
 
     def P(u, v):
-        # the halves folded up: the top pressed down along the middle into a deep crease, either half rising to a rounded
-        # wing, the crease pinching in at the front and the back where it meets the edges (it reads from above)
-        p = P0(u, v)
-        top = max(0.0, (p.z - 21) / 17)
-        z = p.z - 6.0 * math.exp(-(p.x ** 2) / 40) * top ** 1.5 + 2.2 * min(1.0, abs(p.x) / 20) ** 2 * top
-        y = p.y
-        if p.y < -6 and z > 27:
-            y += 2.4 * math.exp(-(p.x ** 2) / 14) * min(1.0, (z - 27) / 8)
-        if p.y > 6:
-            y -= 1.6 * math.exp(-(p.x ** 2) / 14) * top
-        return Vector((p.x, y, z))
-    surf(f.body, P, soft(col, under=0.18, z0=4, z1=38), nu=80, nv=44)
-    sculpt(f, 'body', voxel=0.26, smooth=2, verts=10000, ao=0.3)
-    # the paper slip peeking out of her left side, red printing on it
-    m = len(f.body.v)
-    rbox(f.body, -0.35, -2.8, -4.4, 0.35, 2.8, 4.4, '#fbf8f0', r=0.3, mid=0)
-    ball(f.body, (-0.5, -0.8, 1.0), (0.1, 1.0, 0.4), '#d84a3a', sub=1)
-    ball(f.body, (-0.5, 0.6, -0.8), (0.1, 1.2, 0.35), '#d84a3a', sub=1)
-    xform(f.body, m, Matrix.Translation((22.2, -7.5, 13.0)) @ Euler((0.1, -0.3, 0.35)).to_matrix().to_4x4())
+        x0, z0 = outline(u % 1.0)
+        if v >= 0.5:
+            w = min(1.0, (v - 0.5) * 2)
+            x, z = cx + (x0 - cx) * (1 - w), cz + (z0 - cz) * (1 - w)
+            return Vector((x, -front(x, z, w), z))
+        w = min(1.0, (0.5 - v) * 2)
+        x, z = cx + (x0 - cx) * (1 - w), cz + (z0 - cz) * (1 - w)
+        return Vector((x, back(x, z, w), z))
+    surf(mb, P, color, nu=nu, nv=nv)
+
+
+def fortune():
+    """A fortune cookie, folded: seen from the front, its front half a round-bottomed crescent with its two corners up,
+    the fold's crease along its top dipping in a V to the middle, and through the V the inside of the back half, a
+    shade deeper, rising behind it to the same two corners (as her picture is); thin at the crease, puffed out round
+    the middle, a few darker baked flecks; the paper slip sticking out of her right side. Her face on the front half
+    under the V; cookie arms. She keeps the shop."""
+    f = Folk('fortune')
+    cookie, light, deep = rgb('#e8b45a'), rgb('#f6d088'), rgb('#a86a26')
+
+    def ring(vpt):
+        """the outline of one half: from the V's point up the crease to the right corner, down round the bottom, up to
+        the left corner and back down the crease"""
+        pts = [(0.0, vpt), (8.0, vpt + (35.5 - vpt) * 0.37), (15.0, vpt + (35.5 - vpt) * 0.7), (21.5, 35.5), (24.0, 33.0), (24.6, 26.0), (23.0, 18.0),
+               (19.5, 11.0), (14.5, 6.2), (7.5, 3.8), (0.0, 3.2)]
+        pts = pts + [(-x, z) for x, z in reversed(pts[1:-1])]
+        P = [Vector((x, z, 0)) for x, z in pts]
+        m = len(P)
+
+        def at(t):
+            x = t * m
+            i, s = int(x) % m, x - int(x)
+            p0, p1, p2, p3 = P[(i - 1) % m], P[i], P[(i + 1) % m], P[(i + 2) % m]
+            q = 0.5 * ((2 * p1) + (-p0 + p2) * s + (2 * p0 - 5 * p1 + 4 * p2 - p3) * s * s + (-p0 + 3 * p1 - 3 * p2 + p3) * s ** 3)
+            return q.x, q.y
+        return at
+
+    def puff(k, edge):
+        # thin at the crease along the top, puffed out round the middle, a blunt rounded rim all round
+        def T(x, z, w):
+            body = 3.0 + 11.5 * max(0.0, min(1.0, (33.0 - z) / 20.0)) ** 0.8 * (1 - 0.35 * (abs(x) / 24.0) ** 2)
+            return k * (edge + (body - edge) * math.sin(w * math.pi / 2) ** 0.7)
+        return T
+
+    def col(p, n, *_):
+        c = cookie.lerp(light, 0.45 * max(0.0, n.z))
+        if noise.noise(p * 0.9 + Vector((4.0, 0, 0))) > 0.55 and not (p.y < 0 and abs(p.x) < 15 and 9 < p.z < 28):
+            c = c * 0.86                                            # (baked flecks, none on her face)
+        return c * (0.95 + 0.07 * noise.noise(p * 0.3))
+
+    def inner(p, n, *_):
+        # (the back half's inside, seen through the V, a shade deeper)
+        return (deep if n.y < -0.2 else cookie.lerp(light, 0.45 * max(0.0, n.z))) * (0.95 + 0.07 * noise.noise(p * 0.3))
+    pillow(f.body, ring(27.5), (0.0, 14.0), puff(1.0, 2.6), lambda x, z, w: 1.0, col)
+    pillow(f.body, ring(33.6), (0.0, 19.0), lambda x, z, w: 0.0, puff(0.9, 2.6), inner)
+    sculpt(f, 'body', voxel=0.26, smooth=4, verts=10000, ao=0.35)
+    # (the crease along the front half's top edge a shade darker)
+    mb = f.body
+    vr = ring(27.5)
+    top = [Vector((x, 0, z)) for x, z in (vr(t / 60) for t in range(61)) if z > 26.0 and abs(x) < 21.0]
+    crest = sorted((c.x, c.z) for c in top)
+
+    def crease_z(x):
+        for (x0, z0), (x1, z1) in zip(crest, crest[1:]):
+            if x0 <= x <= x1:
+                return z0 + (z1 - z0) * (x - x0) / max(1e-6, x1 - x0)
+        return 99.0
+    for i, (q, n) in enumerate(zip(mb.v, mb.n)):
+        if q.y < 0.5 and q.z > 24.0:
+            d = min((Vector((q.x, 0, q.z)) - c).length for c in top)
+            mb.c[i] = mb.c[i] * (1 - 0.34 * math.exp(-(d / 1.5) ** 2))
+            # (above the crease, the back half's inside showing through the V)
+            if q.z > crease_z(q.x) + 0.6 and n.y < 0.35:
+                mb.c[i] = mb.c[i].lerp(deep, min(1.0, (q.z - crease_z(q.x) - 0.6) / 1.2) * 0.8)
+    # the paper slip sticking out of her right side, red printing on it
+    m = len(mb.v)
+    rbox(mb, -0.4, -2.8, -5.0, 0.4, 2.8, 5.0, '#fbf8f0', r=0.35, mid=0)
+    for (y, z, w) in ((-0.9, 2.2, 1.1), (0.3, 0.7, 1.5), (-0.5, -0.8, 1.3), (0.5, -2.3, 1.0)):
+        ball(mb, (-0.55, y, z), (0.12, w, 0.42), '#d84a3a', sub=1)
+    xform(mb, m, Matrix.Translation((23.4, 0.5, 8.0)) @ Euler((0.1, -0.6, 0.3)).to_matrix().to_4x4())
     tree = f.bvh()
     face_patch(f, 0, 20.0, 32, tree=tree)
     f.anchor('eyes', f.hit(0, 21.0, tree=tree)[0], 1.0)
-    arms(f, 18.0, lambda p, n, *_: cookie * (0.92 + 0.12 * n.z), reach=5.6, drop=3.6, tree=tree, inset=1.4)
-    feet(f, x=10, w=3.4, d=4.0, h=2.4, z=2.0, col='#5a3418')
-    hat_anchor(f, 38, 30)
+    arms(f, 16.0, lambda p, n, *_: cookie * (0.92 + 0.12 * n.z), reach=5.4, drop=3.6, tree=tree, inset=1.6, y=-2.0)
+    feet(f, x=8.5, w=3.4, d=4.0, h=2.4, z=2.0, col='#5a3418')
+    hat_anchor(f, 33.5, 30)
     return f
 
 

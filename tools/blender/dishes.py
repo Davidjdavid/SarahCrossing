@@ -94,19 +94,41 @@ def green_onion(mb, rng, r, z, n=8):
 
 
 def slice_wedge(mb, z, r, h, top, body, crust, a=0.0, layers=None):
-    """a slice of cake: a wedge (a fat triangle seen from above) on its crust, its top a color of its own"""
-    outline = [(0.0, -r * 0.55), (r * 0.5, r * 0.45), (r * 0.25, r * 0.55), (-r * 0.25, r * 0.55), (-r * 0.5, r * 0.45)]
+    """a slice of cake: a wedge (a fat triangle seen from above) on its crust, its top a color of its own and its sides
+    banded by its layers (layers: [(height 0..1, color)], each a band round the sides)"""
+    outline = [(0.0, -r * 0.55), (r * 0.5, r * 0.45), (r * 0.38, r * 0.52), (r * 0.25, r * 0.55), (0.0, r * 0.57), (-r * 0.25, r * 0.55), (-r * 0.38, r * 0.52), (-r * 0.5, r * 0.45)]
     m = len(mb.v)
     slab(mb, outline, 0.018, C(crust), axis='z', at=z, r=0.006)
-    def fn(p, n):
-        if n.z > 0.6:
-            return rgb(top) * (0.92 + 0.08 * n.z)
-        k = (p.z - z) / h
-        for lz, lc in (layers or []):
-            if abs(k - lz) < 0.06:
-                return rgb(lc)
-        return rgb(body) * (0.86 + 0.14 * k)
-    slab(mb, outline, h, fn, axis='z', at=z + 0.016, r=0.012)
+    z0, z1 = z + 0.016, z + 0.016 + h
+    # the sides, a row of points at each band's edges (twice there, so a band's color stops sharp)
+    rows = [(0.0, body), (1.0, body)]
+    for lz, lc in (layers or []):
+        rows += [(lz - 0.07, body), (lz - 0.07, lc), (lz + 0.07, lc), (lz + 0.07, body)]
+    rows.sort(key=lambda t: t[0])
+    cu = sum(u for u, _ in outline) / len(outline)
+    cv = sum(v for _, v in outline) / len(outline)
+    n_ = len(outline)
+    for k in range(n_):
+        (u0, v0), (u1, v1) = outline[k], outline[(k + 1) % n_]
+        side = Vector((v1 - v0, -(u1 - u0), 0)).normalized()
+        if side.dot(Vector((u0 - cu, v0 - cv, 0))) < 0:
+            side = -side
+        P, Cc, N = [], [], []
+        for t, c in rows:
+            for (u, v) in ((u0, v0), (u1, v1)):
+                P.append(Vector((u, v, z0 + h * t)))
+                Cc.append(rgb(c) * (0.86 + 0.14 * t))
+                N.append(side)
+        F = []
+        for j in range(len(rows) - 1):
+            if rows[j][0] == rows[j + 1][0]:
+                continue
+            b0 = j * 2
+            F += [(b0, b0 + 1, b0 + 3), (b0, b0 + 3, b0 + 2)]
+        mb.add(P, Cc, N, F)
+    # the top, facing up, in its own color
+    P = [Vector((cu, cv, z1))] + [Vector((u, v, z1)) for u, v in outline]
+    mb.add(P, [rgb(top) * 1.02] + [rgb(top)] * n_, [Vector((0, 0, 1))] * len(P), [(0, 1 + k, 1 + (k + 1) % n_) for k in range(n_)])
     turn(mb, m, 0, 0, a)
 
 
@@ -153,7 +175,7 @@ def don(top='eel'):
 
 def poke(fish):
     mb, r = MB(), random.Random(4)
-    rad = bowl(mb, 0.105, 0.07, '#f2f0ea', inside='#e8f0f8')
+    rad = bowl(mb, 0.105, 0.07, '#3a6ab8', inside='#e8f0f8')
     rice_mound(mb, (0, 0), rad(0.06) * 0.95, rad(0.06) * 0.95, 0.025, 0.055)
     for k in range(7):
         a = k * 0.8 + 0.3
@@ -199,28 +221,36 @@ def curry_bowl(sauce, bits, leaf='#3a8a3a'):
 
 def mango_sticky():
     mb, r = MB(), random.Random(7)
-    z = plate(mb, 0.13, '#f2f0ea')
+    z = plate(mb, 0.13, '#f2f0ea', rim='#3a8a5a')
+    # (served on a piece of banana leaf, its rib down the middle: the white rice reads against it)
+    leaf = [(math.cos(t) * 0.112, math.sin(t) * 0.07) for t in [k / 16 * math.tau for k in range(16)]]
+    m = len(mb.v)
+    slab(mb, leaf, 0.003, lambda p, n: rgb('#3e8a3a').lerp(rgb('#6ab04a'), 0.5 + 0.5 * math.sin(p.x * 120 + p.y * 40)) if abs(p.y + p.x * 0.18) > 0.004 else rgb('#a8d070'), axis='z', at=z, r=0.0)
+    turn(mb, m, 0, 0, 0.18)
+    z += 0.003
     rice_mound(mb, (-0.035, 0.01), 0.05, 0.045, 0.035, z + 0.01)
     for k in range(5):
         m = len(mb.v)
-        ball(mb, (0, 0, 0), (0.04, 0.014, 0.01), C('#ffc33a', mottle=0.03), sub=2)
+        ball(mb, (0, 0, 0), (0.04, 0.014, 0.01), C('#ffb420', mottle=0.03), sub=2)
         turn(mb, m, 0, 0, -0.5 + k * 0.25, (0.05 + k * 0.004, -0.04 + k * 0.022, z + 0.012 + k * 0.004))
-    lathe(mb, [(0.025, z + 0.044), (0.0, z + 0.046)], shade('#fffaf0'), c=(-0.035, 0.01, 0), seg=16)
-    sprinkle(mb, r, 0.02, z + 0.048, ['#f2e6c8'], n=5, s=0.004)
+    lathe(mb, [(0.025, z + 0.044), (0.0, z + 0.046)], shade('#fff4dc'), c=(-0.035, 0.01, 0), seg=16)
+    sprinkle(mb, r, 0.03, z + 0.048, ['#3a2a24', '#c8a050'], n=12, s=0.004)
     return [(mb, 'main')]
 
 
 def dumplings():
     """a bamboo steamer with four pleated dumplings in it"""
     mb, r = MB(), random.Random(8)
-    lathe(mb, [(0.0, 0.0), (0.115, 0.0), (0.12, 0.012), (0.12, 0.05), (0.11, 0.05), (0.108, 0.012), (0.0, 0.012)], lambda p, n, *_: rgb('#d8b878') * (0.82 + 0.18 * (math.sin(p.z * 260) > 0)), seg=32)
+    lathe(mb, [(0.0, 0.0), (0.115, 0.0), (0.12, 0.012), (0.12, 0.05), (0.11, 0.05), (0.108, 0.012), (0.0, 0.012)], lambda p, n, *_: rgb('#b88a48') * (0.78 + 0.22 * (math.sin(p.z * 260) > 0)), seg=32)
+    # (a cabbage leaf lining the steamer, so the pale dumplings stand out against it)
+    lathe(mb, [(0.104, 0.014), (0.1, 0.017), (0.06, 0.019), (0.0, 0.02)], lambda p, n, *_: rgb('#7ab84a').lerp(rgb('#c8e690'), 0.5 + 0.5 * math.sin(math.atan2(p.y, p.x) * 7)), seg=28)
     for k in range(4):
         a = k * math.pi / 2 + 0.4
         x, y = math.cos(a) * 0.05, math.sin(a) * 0.05
-        ball(mb, (x, y, 0.03), (0.034, 0.03, 0.026), C('#f6f0e2', mottle=0.03), sub=2)
+        ball(mb, (x, y, 0.03), (0.034, 0.03, 0.026), lambda p, n: rgb('#fbf6ea') * (0.86 + 0.16 * max(0.0, n.z)), sub=2)
         for j in range(5):
             b = j * 0.6 - 1.2
-            ball(mb, (x + math.cos(b + a) * 0.005, y + math.sin(b + a) * 0.005, 0.054), (0.008, 0.008, 0.008), C('#f0e8d4'), sub=1)
+            ball(mb, (x + math.cos(b + a) * 0.005, y + math.sin(b + a) * 0.005, 0.054), (0.008, 0.008, 0.008), C('#e2d4b4'), sub=1)
     return [(mb, 'main')]
 
 
@@ -254,8 +284,8 @@ def stir_fry():
 def fried_rice():
     mb, r = MB(), random.Random(10)
     z = plate(mb, 0.13, '#f2f0ea', rim='#4a7ad8')
-    ball(mb, (0, 0, z + 0.01), (0.085, 0.08, 0.045), col_fn('#f0d890', mottle=0.2, under=0.05), sub=3)
-    for k in range(18):
+    ball(mb, (0, 0, z + 0.01), (0.085, 0.08, 0.045), col_fn('#e8c070', mottle=0.2, under=0.05), sub=3)
+    for k in range(24):
         a, q = r.uniform(0, math.tau), math.sqrt(r.random()) * 0.07
         zz = z + 0.01 + 0.045 * math.sqrt(max(0.0, 1 - (q / 0.085) ** 2))
         c = r.choice(('#6ac04a', '#f28a3a', '#ffd84a'))
@@ -272,10 +302,14 @@ def truffles():
     return [(mb, 'main')]
 
 
-def cake_slice(top, body, crust='#d8a060', layers=None, berries=None, cream=None):
+def cake_slice(top, body, crust='#d8a060', layers=None, berries=None, cream=None, rim=None, sauce=None):
+    """a slice of cake on a plate (rim: the plate's rim a color of its own, so a pale cake reads against it; sauce: a
+    pool of berry sauce beside it)"""
     mb, gl, r = MB(), MB(), random.Random(12)
-    z = plate(mb, 0.12, '#f2f0ea')
+    z = plate(mb, 0.12, '#f2f0ea', rim=rim)
     slice_wedge(mb, z, 0.15, 0.05, top, body, crust, a=-0.3, layers=layers)
+    if sauce:
+        lathe(mb, [(0.034, z + 0.002), (0.03, z + 0.005), (0.0, z + 0.006)], shade(sauce), c=(0.065, -0.05, 0), seg=16)
     if berries:
         for k in range(berries[1]):
             ball(gl, (-0.02 + (k % 3) * 0.022, 0.02 + (k // 3) * 0.02, z + 0.074), 0.013, shade(berries[0]), sub=2)
@@ -328,14 +362,15 @@ def lychee_ice():
     """three scoops of pale pink sorbet in a glass, a peeled lychee and one in its red shell beside them, a mint leaf"""
     mb, gl, r = MB(), MB(), random.Random(16)
     lathe(gl, [(0.0, 0.0), (0.045, 0.0), (0.04, 0.008), (0.012, 0.016), (0.011, 0.04), (0.05, 0.05), (0.078, 0.07), (0.082, 0.075), (0.076, 0.075), (0.046, 0.056), (0.0, 0.052)],
-          lambda p, n, *_: rgb('#cfe6ee') * (0.9 + 0.1 * n.z), seg=28)
-    sorbet = lambda p, n: rgb('#fbe4ea').lerp(rgb('#f6c4d2'), 0.5 + 0.5 * noise.noise(p * 70)) * (0.94 + 0.06 * n.z)
+          lambda p, n, *_: rgb('#8ec4e0') * (0.9 + 0.1 * n.z), seg=28)
+    sorbet = lambda p, n: rgb('#f8c0d0').lerp(rgb('#f08aaa'), 0.5 + 0.5 * noise.noise(p * 70)) * (0.94 + 0.06 * n.z)
     for k in range(3):
         a = k * math.tau / 3 + 0.5
         ball(mb, (math.cos(a) * 0.03, math.sin(a) * 0.03, 0.082), 0.033, sorbet, sub=2)
     ball(mb, (0.0, 0.0, 0.115), 0.03, sorbet, sub=2)
     ball(gl, (0.03, -0.04, 0.1), (0.016, 0.016, 0.019), shade('#f8f4ea'), sub=2)
     ball(mb, (-0.03, -0.045, 0.095), 0.018, lambda p, n: rgb('#d8384a') * (0.8 + 0.2 * (noise.noise(p * 400) > 0)), sub=2)
+    tube(gl, [(math.cos(t) * 0.03, math.sin(t) * 0.03, 0.1 + 0.012 * math.sin(t * 2)) for t in [k * 0.45 for k in range(14)]], 0.003, shade('#d82a4a'), seg=4)
     m = len(mb.v)
     ball(mb, (0, 0, 0), (0.016, 0.008, 0.003), shade('#4aa84a'), sub=2)
     turn(mb, m, 0.3, 0, 0.7, (0.004, 0.012, 0.146))
@@ -383,7 +418,7 @@ def chowder():
 
 def lobster_roll():
     mb, r = MB(), random.Random(19)
-    rbox(mb, -0.12, -0.065, 0.0, 0.12, 0.065, 0.012, shade('#f2e6c8'), r=0.005)
+    rbox(mb, -0.12, -0.065, 0.0, 0.12, 0.065, 0.012, shade('#6aa4d8'), r=0.005)
     bun = lambda p, n: rgb('#e8b060').lerp(rgb('#a86a2a'), 0.45 * max(0.0, n.z) + 0.1)
     for s in (-1, 1):
         m = len(mb.v)
@@ -412,7 +447,7 @@ def gingerbread():
 
 def mac_cheese():
     mb, r = MB(), random.Random(21)
-    lathe(mb, [(0.0, 0.0), (0.08, 0.0), (0.09, 0.05), (0.095, 0.055), (0.088, 0.055), (0.084, 0.052), (0.0, 0.05)], lambda p, n, *_: rgb('#f2f0ea') if n.z < 0.5 or math.hypot(p.x, p.y) > 0.086 else rgb('#f2b830'), seg=28)
+    lathe(mb, [(0.0, 0.0), (0.08, 0.0), (0.09, 0.05), (0.095, 0.055), (0.088, 0.055), (0.084, 0.052), (0.0, 0.05)], lambda p, n, *_: (rgb('#3a6ab8') if p.z < 0.052 else rgb('#f2f0ea')) if n.z < 0.5 or math.hypot(p.x, p.y) > 0.086 else rgb('#f2b830'), seg=28)
     for k in range(18):
         a, q = r.uniform(0, math.tau), math.sqrt(r.random()) * 0.065
         m = len(mb.v)
@@ -424,19 +459,20 @@ def mac_cheese():
 
 def creme_brulee():
     mb, gl, r = MB(), MB(), random.Random(22)
-    lathe(mb, [(0.0, 0.0), (0.075, 0.0), (0.08, 0.04), (0.085, 0.045), (0.075, 0.045), (0.0, 0.04)], lambda p, n, *_: rgb('#fbfaf8') * (0.86 + 0.14 * (math.sin(math.atan2(p.y, p.x) * 18) > 0)) if n.z < 0.5 else rgb('#fbfaf8'), seg=36)
-    lathe(gl, [(0.074, 0.042), (0.0, 0.042)], lambda p, n, *_: rgb('#d8902a').lerp(rgb('#8a4a1a'), 0.4 * (0.5 + 0.5 * noise.noise(p * 50))), seg=28)
-    ball(gl, (0.02, 0.01, 0.05), 0.011, shade('#3a3a8a'), sub=2)
-    ball(gl, (0.034, -0.004, 0.05), 0.011, shade('#e0303a'), sub=2)
-    ball(mb, (0.01, 0.025, 0.048), (0.012, 0.006, 0.003), shade('#3a8a3a'), sub=1)
+    # (a blue fluted ramekin, white at its lip, so the pale custard's ring and the torched top read against it)
+    lathe(mb, [(0.0, 0.0), (0.075, 0.0), (0.08, 0.04), (0.085, 0.045), (0.075, 0.045), (0.0, 0.04)], lambda p, n, *_: rgb('#4a78c8') * (0.82 + 0.18 * (math.sin(math.atan2(p.y, p.x) * 18) > 0)) if n.z < 0.5 and p.z < 0.04 else rgb('#fbfaf8'), seg=36)
+    lathe(gl, [(0.073, 0.0462), (0.0, 0.0462)], lambda p, n, *_: rgb('#c8782a').lerp(rgb('#5a2a0a'), 0.7 * max(0.0, noise.noise(p * 50)) + 0.2), seg=28)
+    ball(gl, (0.02, 0.01, 0.054), 0.011, shade('#3a3a8a'), sub=2)
+    ball(gl, (0.034, -0.004, 0.054), 0.011, shade('#e0303a'), sub=2)
+    ball(mb, (0.01, 0.025, 0.052), (0.012, 0.006, 0.003), shade('#3a8a3a'), sub=1)
     return [(mb, 'main'), (gl, 'gloss')]
 
 
 def ramen():
     mb, gl, r = MB(), MB(), random.Random(23)
     bowl(mb, 0.11, 0.075, '#c0283a', inside='#f2f0ea')
-    lathe(gl, [(0.092, 0.062), (0.0, 0.062)], C('#e8b878', mottle=0.03, under=0.0), seg=32)
-    noodles(mb, r, 0.05, 0.06, '#f2d898', n=8, thick=0.005, lift=0.008)
+    lathe(gl, [(0.092, 0.062), (0.0, 0.062)], C('#b8702e', mottle=0.03, under=0.0), seg=32)
+    noodles(mb, r, 0.05, 0.06, '#ffe48a', n=9, thick=0.0055, lift=0.008)
     # half an egg, the chashu, a sheet of nori, the naruto
     m = len(mb.v)
     ball(mb, (0, 0, 0), (0.024, 0.018, 0.014), shade('#fbf8f2'), sub=2)
@@ -444,18 +480,18 @@ def ramen():
     turn(mb, m, 0, 0, 0.3, (0.035, -0.03, 0.062))
     for k in range(2):
         m = len(mb.v)
-        lathe(mb, [(0.0, 0.0), (0.024, 0.0), (0.026, 0.008), (0.0, 0.008)], lambda p, n, *_: rgb('#c8784a') if math.hypot(p.x, p.y) > 0.018 else rgb('#f2d8c0'), seg=16)
+        lathe(mb, [(0.0, 0.0), (0.024, 0.0), (0.026, 0.008), (0.0, 0.008)], lambda p, n, *_: rgb('#9a4a26') if math.hypot(p.x, p.y) > 0.018 else rgb('#f0c8a8'), seg=16)
         turn(mb, m, 0.3, 0, 0, (-0.03 + k * 0.022, 0.025, 0.063 + k * 0.004))
     rbox(mb, 0.05, 0.0, 0.05, 0.058, 0.04, 0.1, shade('#2a3a2a'), r=0.003)
-    cyl(mb, -0.04, -0.03, 0.062, 0.068, 0.014, color=lambda p, n: rgb('#f2a8c0') if 0.004 < math.hypot(p.x + 0.04, p.y + 0.03) < 0.008 else rgb('#fbf8f2'), seg=14)
-    green_onion(mb, r, 0.06, 0.066, n=6)
+    cyl(mb, -0.04, -0.03, 0.062, 0.068, 0.014, color=lambda p, n: rgb('#e8608a') if 0.004 < math.hypot(p.x + 0.04, p.y + 0.03) < 0.008 else rgb('#fbf8f2'), seg=14)
+    green_onion(mb, r, 0.06, 0.066, n=9)
     return [(mb, 'main'), (gl, 'gloss')]
 
 
 def mochi():
     mb, r = MB(), random.Random(24)
     z = plate(mb, 0.11, '#2a2a32')
-    for k, (x, y, c) in enumerate(((-0.035, 0.0, '#f8b8c8'), (0.035, 0.0, '#fbf8f2'), (0.0, 0.035, '#a8d890'))):
+    for k, (x, y, c) in enumerate(((-0.035, 0.0, '#f692b2'), (0.035, 0.0, '#fbf8f2'), (0.0, 0.035, '#86c860'))):
         ball(mb, (x, y, z + 0.022), (0.03, 0.03, 0.024), C(c, mottle=0.02, under=0.08), sub=2)
     return [(mb, 'main')]
 
@@ -501,9 +537,9 @@ def mooncakes():
 def chili_crisp():
     """noodles in a bowl, chili crisp spooned over them"""
     mb, gl, r = MB(), MB(), random.Random(28)
-    bowl(mb, 0.1, 0.07, '#fbf8f2', inside='#f2f0ea')
-    noodles(mb, r, 0.06, 0.05, '#f2d898', n=14, thick=0.006, lift=0.015)
-    lathe(gl, [(0.035, 0.068), (0.0, 0.07)], shade('#c8301a'), c=(0.01, 0.0, 0), seg=18)
+    bowl(mb, 0.1, 0.07, '#2a3a6a', inside='#e8e4dc', fill='#c8481a', fz=0.048)
+    noodles(mb, r, 0.06, 0.05, '#f8dc88', n=14, thick=0.006, lift=0.015)
+    lathe(gl, [(0.035, 0.068), (0.0, 0.07)], shade('#b8200e'), c=(0.01, 0.0, 0), seg=18)
     sprinkle(mb, r, 0.04, 0.072, ['#8a2a1a', '#e0603a', '#f2e6c8'], n=16, s=0.005)
     green_onion(mb, r, 0.05, 0.072, n=5)
     return [(mb, 'main'), (gl, 'gloss')]
@@ -519,7 +555,7 @@ def sailor_stew():
 def fish_tacos():
     """two soft tacos side by side on a plate, a lime wedge"""
     mb, r = MB(), random.Random(41)
-    z = plate(mb, 0.135, '#f2f0ea')
+    z = plate(mb, 0.135, '#f2f0ea', rim='#e8803a')
     shell = lambda p, n, *_: rgb('#f2cf80').lerp(rgb('#c8902e'), 0.25 + 0.15 * noise.noise(p * 90))
     half = [(math.cos(t) * 0.048, math.sin(t) * 0.042) for t in [math.pi * (1 - k / 12) for k in range(13)]]
     for s in (-1, 1):
@@ -547,7 +583,7 @@ def pumpkin_soup():
 def grilled_corn():
     """two cobs off the grill on a long plate, charred stripes and a dusting of chili"""
     mb, r = MB(), random.Random(43)
-    rbox(mb, -0.12, -0.06, 0.0, 0.12, 0.06, 0.012, shade('#f2f0ea'), r=0.006)
+    rbox(mb, -0.12, -0.06, 0.0, 0.12, 0.06, 0.012, col_fn('#5a6470', mottle=0.08, under=0.1), r=0.006)
     for s in (-1, 1):
         y = s * 0.026
         kern = lambda p, n, y=y: (rgb('#7a4a1e') if (int((p.x + 0.2) * 70) % 4 == 0) else rgb('#f6d040').lerp(rgb('#d8a020'), 0.5 + 0.5 * noise.noise(p * 300))) * (0.86 + 0.14 * max(0.0, n.z))
@@ -606,13 +642,14 @@ DISHES = {
     'dish_green_curry': lambda: curry_bowl('#9ac85a', ['#f2e6c8', '#f6f0e2', '#c8a070']), 'dish_mango_sticky': mango_sticky,
     'dish_mapo_tofu': lambda: curry_bowl('#d8402a', ['#fbf8f0', '#fbf8f0', '#f2f0e6'], leaf='#6ac04a'), 'dish_dumplings': dumplings,
     'dish_kungpao': kungpao, 'dish_chili_crisp': chili_crisp, 'dish_fried_rice': fried_rice, 'dish_truffles': truffles,
-    'dish_cheesecake': lambda: cake_slice('#f6e8c8', '#fbf2dc'), 'dish_cherry_cheesecake': lambda: cake_slice('#c0283a', '#fbf2dc', berries=('#c0283a', 5)),
+    'dish_cheesecake': lambda: cake_slice('#e8b464', '#fbeccb', crust='#a8682e', rim='#4a7ad8', sauce='#c8283e'),
+    'dish_cherry_cheesecake': lambda: cake_slice('#b81e34', '#fbeccb', crust='#a8682e', berries=('#a8182e', 5), rim='#2e8a8a'),
     'dish_choc_cheesecake': lambda: cake_slice('#5a3020', '#8a5a3a', crust='#3a2018'), 'dish_fruit_salad': fruit_salad, 'dish_stir_fry': stir_fry,
     'dish_cuke_salad': cuke_salad, 'dish_edamame_bowl': edamame_bowl, 'dish_lychee_ice': lychee_ice, 'dish_tom_yum': tom_yum,
     'dish_lobster_roll': lobster_roll, 'dish_chowder': chowder, 'dish_gingerbread': gingerbread, 'dish_mac_cheese': mac_cheese,
     'dish_tomato_soup': lambda: soup_bowl('#d8402a', [('#e8b860', 0.016, 4)], cream='#fbf8f2', herbs=False), 'dish_creme_brulee': creme_brulee, 'dish_ramen': ramen,
     'dish_mochi': mochi, 'dish_takoyaki': takoyaki, 'dish_pancakes': pancakes, 'dish_mooncakes': mooncakes,
-    'dish_shortcake': lambda: cake_slice('#fffaf2', '#f6e0b8', crust='#e8b878', layers=[(0.45, '#fffaf2'), (0.5, '#e0303a')], cream='strawberry'),
+    'dish_shortcake': lambda: cake_slice('#fffaf2', '#f6d8a0', crust='#d89a50', layers=[(0.42, '#fffaf2'), (0.56, '#e0303a')], cream='strawberry', rim='#e8708e'),
     'dish_sailor_stew': sailor_stew, 'dish_fish_tacos': fish_tacos, 'dish_pumpkin_soup': pumpkin_soup, 'dish_grilled_corn': grilled_corn,
     'drink_latte': lambda: cafe_mug('#c8945a', foam='#f6ead8', art='#c8945a'), 'drink_mocha': lambda: cafe_mug('#5a3020', cream='#fbf6ee', drizzle='#5a3020', col='#f6eedc', band='#7a4a30'),
     'drink_iced': iced_coffee, 'drink_matcha': lambda: cafe_mug('#8ac060', foam='#e8f4d8', art='#6aa040', col='#f6eedc', band='#3a8a8a'),
