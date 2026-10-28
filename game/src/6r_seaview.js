@@ -2,7 +2,8 @@
 /* The view from the lookout: the telescope opens a big, smooth painting of the sea, drawn fresh for right now. The
    sky follows the time of day (night, dawn, sunrise, noon, sunset, dusk) and the weather; at night the moon shows its
    real phase over the water; boats sail past, gulls wheel, clouds drift, and once the lighthouse is lit again its beam
-   sweeps the sea. */
+   sweeps the sea. On a whale day (SeaSky.whaleDay) a whale out there comes up, spouts, and dives with its tail up, now
+   and again. */
 const SEA_KEYS = [   // hour, sky top, sky mid, horizon, sea near, sea far
     [0, '#070b1e', '#0e1634', '#1a2650', '#040814', '#101a38'],
     [4.5, '#0a1028', '#18204a', '#2a3162', '#060b1c', '#141d40'],
@@ -53,6 +54,7 @@ const SeaView = {
         this.clouds = Array.from({ length: G.weather === 'sunny' ? 5 : G.weather === 'cloudy' ? 11 : 13 }, () => ({ x: r() * 1.4 - 0.2, y: 0.08 + r() * 0.42, w: 0.12 + r() * 0.22, h: 0.03 + r() * 0.05, v: 0.00002 + r() * 0.00004, puffs: 3 + Math.floor(r() * 4), seed: r() }));
         this.boats = Array.from({ length: 3 }, (_, i) => ({ x: r(), y: 0.66 + r() * 0.2, dir: r() < 0.5 ? -1 : 1, v: 0.00003 + r() * 0.00005, kind: i === 2 ? 'ferry' : 'sail', size: 0.6 + r() * 0.8 }));
         this.gulls = Array.from({ length: 5 }, () => ({ x: r(), y: 0.2 + r() * 0.3, ph: r() * 6, v: 0.00008 + r() * 0.0001 }));
+        this.whale = SeaSky.whaleDay() ? { x: 0.22 + r() * 0.5, y: 0.7 + r() * 0.1, t0: 1.5 + r() * 3, dir: r() < 0.5 ? -1 : 1 } : null;
         this.drops = Array.from({ length: 160 }, () => ({ x: r(), y: r(), v: 0.6 + r() * 0.8 }));
         this.shoot = null;
         this.star = Quests.starVisible();
@@ -269,6 +271,7 @@ const SeaView = {
             }
             if (this.night > 0.3) { g.fillStyle = `rgba(255,230,150,${this.night})`; g.fillRect(bx - s * 0.05, by - s * 0.5, Math.max(2, s * 0.08), Math.max(2, s * 0.08)); }
         }
+        if (this.whale) this.drawWhale(g, t, hz, nightK);
         // gulls by day
         if (this.night < 0.3 && G.weather !== 'rain' && G.weather !== 'snow') {
             g.strokeStyle = 'rgba(40,40,60,0.7)'; g.lineWidth = Math.max(1.2, W * 0.0012);
@@ -297,6 +300,47 @@ const SeaView = {
                 if (snow) g.fillRect(d.x * W, d.y * H, Math.max(2, W * 0.002), Math.max(2, W * 0.002));
                 else g.fillRect(d.x * W, d.y * H, Math.max(1, W * 0.001), H * 0.02);
             }
+        }
+    },
+    /* the whale, every fourteen seconds: its back up out of the water (a spout over the blowhole), back under, then its
+       tail up and down as it dives, a little further along each time */
+    drawWhale(g, t, hz, nightK) {
+        const W = this.W, H = this.H, q = this.whale, c = t - q.t0;
+        if (c < 0) return;
+        const k = c % 14, n = Math.floor(c / 14), persp = (q.y - 0.6) / 0.4, s = (0.4 + persp) * H * 0.045;
+        const wx = ((q.x + n * 0.05 * q.dir) % 1.2 + 1.2) % 1.2 * W - W * 0.1 + q.dir * k * s * 0.08, by = hz + (q.y - 0.6) * (H - hz) * 2.2;
+        const dark = nightK ? '#1a2038' : '#3e4e64', foam = nightK ? 'rgba(180,196,230,0.5)' : 'rgba(255,255,255,0.7)';
+        const up = k < 4 ? Math.sin(Math.min(1, k / 1.2) * Math.PI / 2) : k < 5 ? 1 - (k - 4) : 0;
+        if (up > 0.01) {
+            g.fillStyle = dark;
+            g.beginPath(); g.ellipse(wx, by, s * 2.4, s * 0.62 * up, 0, Math.PI, Math.PI * 2); g.fill();
+            g.beginPath(); g.moveTo(wx - q.dir * s * 1.0, by - s * 0.45 * up); g.lineTo(wx - q.dir * s * 1.45, by - s * 0.42 * up); g.lineTo(wx - q.dir * s * 1.3, by - s * 0.78 * up); g.closePath(); g.fill();
+            g.strokeStyle = foam; g.lineWidth = Math.max(1, H * 0.003);
+            g.beginPath(); g.ellipse(wx, by, s * 2.6, s * 0.16, 0, 0, Math.PI); g.stroke();
+        }
+        // the spout: puffs going up and spreading, then gone
+        const sk = k > 1 && k < 3 ? (k - 1) / 2 : -1;
+        if (sk >= 0) for (let i = 0; i < 9; i++) {
+            const life = Math.min(1, Math.max(0, sk * 1.5 - i * 0.06)), a = (1 - life) * 0.85;
+            if (a <= 0.02) continue;
+            g.fillStyle = nightK ? `rgba(190,200,230,${a})` : `rgba(255,255,255,${a})`;
+            g.beginPath(); g.arc(wx + q.dir * s * 1.3 + Math.sin(i * 2.1) * life * s * 0.6, by - s * (0.6 + life * 2.6), s * (0.14 + life * 0.32), 0, 7); g.fill();
+        }
+        // the tail: the stock up out of the water and the flukes spread across, their pale undersides toward Sarah
+        const tk = k > 5.5 && k < 7.5 ? Math.sin((k - 5.5) / 2 * Math.PI) : 0;
+        if (tk > 0.01) {
+            const cx = wx - q.dir * s * 1.6, top = by - tk * s * 2.3;
+            g.fillStyle = dark;
+            g.beginPath(); g.moveTo(cx - s * 0.22, by); g.lineTo(cx - s * 0.1, top + s * 0.25); g.lineTo(cx + s * 0.1, top + s * 0.25); g.lineTo(cx + s * 0.22, by); g.closePath(); g.fill();
+            for (const side of [-1, 1]) {
+                g.fillStyle = nightK ? '#3a4262' : '#e8eef2';
+                g.beginPath(); g.moveTo(cx, top + s * 0.3);
+                g.quadraticCurveTo(cx + side * s * 0.6, top + s * 0.35, cx + side * s * 1.25, top - s * 0.25);
+                g.quadraticCurveTo(cx + side * s * 0.55, top - s * 0.02, cx, top + s * 0.12); g.closePath(); g.fill();
+                g.strokeStyle = dark; g.lineWidth = Math.max(1, s * 0.07); g.stroke();
+            }
+            g.strokeStyle = foam; g.lineWidth = Math.max(1, H * 0.003);
+            g.beginPath(); g.ellipse(cx, by, s * 0.7, s * 0.12, 0, 0, Math.PI); g.stroke();
         }
     },
     close() {

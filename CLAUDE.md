@@ -498,7 +498,8 @@ docs/DEPLOY.md for the server.
   (`critter_turtle`, flippers that paddle) scrambling from a nest on the far beach into the sea on some summer dawns; some
   days from December to April, now and then, a whale in a stretch of open sea in sight (from the pier, a beach, the lookout)
   that comes up twice spouting, then dives and lifts its tail (`SeaSky.whale`, `spawnWhale`: on the screen with no ground
-  between it and the camera; `sea_whale`, `sea_whale_tail` from small_things.py; `whaleTick`).
+  between it and the camera; `sea_whale`, `sea_whale_tail` from small_things.py; `whaleTick`), and that day it's in the
+  telescope's painted view of the sea too (`SeaView.drawWhale`).
   "Some" is a coin toss per day (`EnvSights.lucky`), the same all day. The owl at night and the deer are the wildlife's.
 - The holidays' decorations on the island (54_events.js `decorateIsland`) are models too (`EnvBuild.holidayModel`): pumpkin
   lanterns, the lunar and red lanterns and heart lamps (the furniture's own models, loaded with the island's:
