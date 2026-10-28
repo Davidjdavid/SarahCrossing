@@ -53,8 +53,9 @@ const EnvBuild = {
         const chimneys = this.chimneys = [];
         for (const e of a.ents) {
             if (e.kind === 'building' && e.b) {
-                // (the lighthouse's door boarded up until the town restores it)
-                if (e.id === 'lighthouse' && typeof lighthouseOpen === 'function' && !lighthouseOpen()) { const A = this.at(e); this.model('door_boards', A.door, A.y + 0.14, A.z1 - 0.36, 0, 1); }
+                // (the lighthouse's door boarded up until the town restores it: flat on the door, up on its plinth behind
+                // the steps, as big as the door in buildings.py)
+                if (e.id === 'lighthouse' && typeof lighthouseOpen === 'function' && !lighthouseOpen()) { const A = this.at(e); this.model('door_boards', A.cx, A.y + 0.5, A.z1 - 0.53, 0, 0.78); }
                 // Sarah's cottage is the one modelled in Blender (its door on the door's tile, its front wall on the front edge)
                 if (e.id === 'home' && has('cottage')) { const A = this.at(e); for (const m of EnvModels.place(group, 'cottage', EnvModels.mat4(A.door, A.y, A.z1 - 1.25))) m.userData.shared = true; chimneys.push([A.door + 0.95, A.y + 3.55, A.z1 - 1.25 - 0.42]); }
                 // and Fortune's (its door half a tile right of its middle)
@@ -65,6 +66,8 @@ const EnvBuild = {
                 else if (/^h_/.test(e.id || '') && this.house(group, e, shownLook(e.id))) { /* built */ }
                 else if (e.id === 'home' || /^h_/.test(e.id || '')) this.cottage(e, shownLook(e.id)); else this.shop(e);
             }
+            // (the statue on the square: the plinth, and whoever's cast in bronze on it, 6zgc_statue.js)
+            else if (e.kind === 'statue_sarah' && this.statue(group, e)) { /* stood */ }
             else if (this.propModel(e)) {
                 const [n, sc, back] = this.propModel(e), f = this.foot(e);
                 this.model(n, f.x, f.y, f.z - back * R3_ZS, 0, sc);
@@ -505,6 +508,16 @@ const EnvBuild = {
 
     /* ---------------------------------------------------------------- things round the buildings */
     foot(e) { return { x: e.x / TILE, z: e.y / TILE * R3_ZS, y: Env.groundH(e.x, e.y) }; },
+    /* the statue: its plinth (the first statue's model without its figure) and the figure cast on top */
+    statue(group, e) {
+        const pl = typeof EnvStatue !== 'undefined' && EnvStatue.plinth(), fig = pl && EnvStatue.figure();
+        if (!fig) return false;
+        const [, sc, back] = this.PROP_MODELS.statue_sarah, f = this.foot(e), z = f.z - back * R3_ZS;
+        this.model(pl, f.x, f.y, z, 0, sc);
+        fig.position.set(f.x, f.y + 1.1 * sc, z);
+        group.add(fig);
+        return true;
+    },
     bench(e) {
         const f = this.foot(e), x = f.x, z = f.z - 0.2, y = f.y, w = 1.7;
         if (this.model('bench', x, y, z + 0.05)) return;

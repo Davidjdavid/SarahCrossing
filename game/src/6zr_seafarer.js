@@ -1,5 +1,5 @@
 /* ---- 6zr_seafarer.js ---- */
-/* Captain Scampi, the seafarer (David, 27 October late): a giant shrimp and a salty old sailor, found washed up on the
+/* Captain Shrimpy, the seafarer (David, 27 October late): a giant shrimp and a salty old sailor, found washed up on the
    beach by the pier, out cold, a week after a new island begins (or after a save is brought in: an older island counts
    its week from the day it first loads this). A storm took his ship; he builds a new one on the beach and needs
    something each day: ten logs (while he's short, chopping down a tree drops a sturdy log beside the wood), then ten
@@ -13,7 +13,7 @@
 const SEA_WEEK = 7, SEA_AWAY = 3;
 const SEA_NEED = { logs: 10, meals: 10, gems: 5 };
 ITEMS.ship_log = { name: 'Sturdy log', type: 'quest', price: 0, icon: 'ic_wood' };
-NPC_DEFS.scampi = { name: 'Scampi', sprite: 'scampi', color: '#e8603e', voice: 200, wave: 'sawtooth', house: 'h_scampi', h: 18, wake: 5.5, bed: 21.5, newcomer: true,
+NPC_DEFS.scampi = { name: 'Shrimpy', sprite: 'scampi', color: '#e8603e', voice: 200, wave: 'sawtooth', house: 'h_scampi', h: 18, wake: 5.5, bed: 21.5, newcomer: true,
     fav: { pier: 3, harbor: 2.5, beach: 2, beach_e: 1.5, bonfire: 2, orchard: 1, farm: 1 }, work: [['farm', 6.4, 10.8, { tend: true }], ['farm', 14, 16.4, { tend: true }]] };
 HOUSE_BASE.h_scampi = { wall: '#f6f2e6', roof: '#2f5a9a', trim: '#c8382c', door: '#3a6ab8', sig: 'lantern' };
 HOUSE_IDS.push('h_scampi');
@@ -22,34 +22,35 @@ HOUSE_LAYOUT.scampi = { wall: 'wall_cream', floor: 'floor_wood', items: [
     ['lh_trunk', 0, 0], ['barrel', 1, 0], ['bed_simple', 5, 0], ['table_wood', 2, 2], ['chair_wood', 3, 2], ['rug_round', 4, 3], ['plant_monstera', 0, 4], ['lamp_floor', 6, 4]] };
 ROOMS.h_scampi = { w: 7, h: 5, wall: 'wall_cream', floor: 'floor_wood', music: 'house', owner: 'scampi', layout: HOUSE_LAYOUT.scampi.items, home: [3, 2, 2] };
 TALK.scampi = {
-    intro: ["Ahoy! Captain Scampi, late of the Brine Darling, now of yer fine island. Pleased to meet ye properly, matey.", "If ye ever need a knot tied or a sea shanty sung, ye know where I'll be. Out in the fields, these days. Who'd have thought."],
+    intro: ["Captain Shrimpy, late of the Brine Darling, now of yer fine island. Don't make a fuss. I hate a fuss. ...Ye can make a small fuss.", "If ye need a knot tied, a shanty sung or a seagull told off, ye know where I'll be. Out in the fields. Don't laugh."],
     chat: [
-        "Sailed the seven seas, I did. And the eight puddles. And one very rude lake.",
-        "A shrimp on a farm! The fish back home would laugh their gills off. Let 'em. These carrots don't argue.",
-        "Arr, the sea's a fickle mistress. The soil's a steady one. I've gone soft. Softer. I was never that crunchy.",
-        "Red sky at night, sailor's delight. Red shell all day, that's just me.",
-        "I can smell rain coming three days off. Also soup. Mostly soup.",
-        "The Brine Darling sank in a storm with forty-foot waves. Or four-foot. It was dark. They felt big.",
-        "Ye know what a barnacle is? A friend who won't leave. I've had a few. Good lads.",
-        "Never trust a seagull. They're all pirates, the lot of 'em. Feathery pirates.",
-        "Some nights I still rock in me sleep, like I'm out on the swell. Then I fall out of bed. Every time.",
-        "I named every one of me boats after a sweetheart. They all left me too. Ha! Then the boats sank. Ha. Hm.",
-        "Back in my day we navigated by the stars, a soggy map and shouting.",
-        "Mac says I'm the only shrimp who's ever asked for MORE cocktail sauce on the side. I don't ask what goes in it. I don't want to know.",
+        "Sailed the seven seas, I did. And the eight puddles. And one very rude lake. The lake started it.",
+        "A shrimp on a farm. The fish back home would laugh their gills off. Let 'em. These carrots don't talk back. Mostly.",
+        "The sea's a fickle mistress. The soil's a steady one. Doesn't mean I have to like it. I like it. Don't tell anyone.",
+        "Red sky at night, sailor's delight. Red shell all day, that's just me. Stop staring.",
+        "Bah. Young people today with their 'maps' and their 'knowing where they are.' Back in my day we navigated by stars, a soggy map and shouting.",
+        "The Brine Darling went down in forty-foot waves. Or four-foot. It was dark. They felt personal.",
+        "Never trust a seagull. They're all pirates, the lot of 'em. Feathery pirates with no code.",
+        "Some nights I still rock in me sleep, like I'm out on the swell. Then I fall out of bed. Every night. Every single night.",
+        "Mac asked if I wanted cocktail sauce. COCKTAIL SAUCE. To a SHRIMP. I've filed a complaint with the Council. The broccoli laughed.",
+        "Everyone on this island is so CHEERFUL. It's unnatural. ...It's growing on me. Like a barnacle.",
+        "Ye want advice? Here: never eat the yellow snow, never trust a calm sea, never lend Kai yer surfboard.",
+        "Muggy keeps asking me what I 'hold.' I don't hold anything, ye daft cup! I'm a shrimp! I hold a grudge!",
+        "Sweet corn in the summer, pumpkins in the autumn. I sell the seeds right out of me pocket. Ask me while I'm working, I don't do business on me day off.",
     ],
     rain: ["Ahh, rain! Fresh water from the sky! Free! The sea never gave me anything free but sunburn."],
     night: ["Late watch, eh? I'll keep an eye on the horizon. Old habits. Go on to bed, matey."],
     winter: ["Cold as the North Sea out here! I've wintered in worse. In a barrel. Long story."],
     loves: ['chowder', 'sailor_stew', 'fish_tacos', 'seabass', 'lobster_roll'], likes: ['fish', 'dish', 'shell', 'veg'], dislikes: ['shrimp'],
-    loveLine: "Now THAT'S a sailor's supper! Blow me down, matey. Ye've got a heart of gold and a galley to match.",
-    likeLine: 'Much obliged, matey. Goes straight in the hold.',
+    loveLine: "Now THAT'S a sailor's supper! Blow me down. ...Don't look at me. I've got something in me eye. It's sea spray. Indoors.",
+    likeLine: 'Hmph. Much obliged. Goes straight in the hold.',
     dislikeLine: "Is that... a SHRIMP? Matey. MATEY. We don't talk about Cousin Barry.",
     want: ['carrot', 'tomato', 'seabass', 'wood', 'pumpkin'],
-    letter: "Ahoy, {name}!\nThe fields are coming in fine and the gulls are behaving (mostly).\nHere's a little something from the hold. Fair winds!\n- Capt. Scampi",
+    letter: "Ahoy, {name}!\nThe fields are coming in fine and the gulls are behaving (mostly).\nHere's a little something from the hold. Fair winds!\n- Capt. Shrimpy",
     letterGift: 'seed_corn',
 };
 SPECIAL_CATS.push(['friend', 'Secret neighbors']);
-defSpecial('friend_scampi', 'friend', 'Captain Scampi', 'secret', 'Someone might wash up on the beach one day. Look after them.', {});
+defSpecial('friend_scampi', 'friend', 'Captain Shrimpy', 'secret', 'Someone might wash up on the beach one day. Look after them.', {});
 
 function seaState() {
     if (!S.sea) S.sea = { from: S.startDay != null ? S.startDay : Clock.dayNum(), stage: 0 };
@@ -91,9 +92,9 @@ async function seaMoveIn() {
     Q.stage = 9; Q.home = Clock.dayNum();
     rel('scampi').met = false;          // (his first word as a neighbor is a proper hello: TALK.scampi.intro)
     seaJoin();
-    townLog('Captain Scampi drops anchor for good and moves in by the west lane.');
-    earnSpecial('friend_scampi', 'A secret neighbor: Captain Scampi stayed!');
-    sendMail({ from: 'scampi', subject: 'Landlubber at last', body: "Ahoy, matey!\nGinger had me house up by sunrise. Swore at a hammer only twice. The roof's blue, like the sea, so I don't get homesick.\nYe'll find me in the fields most mornings. Come by for a shanty.\n- Capt. Scampi\n\nP.S. A packet of pumpkin seeds from the far islands, for yer garden. Fortune's stocking 'em now, and sweet corn too.", gift: 'seed_pumpkin' });
+    townLog('Captain Shrimpy drops anchor for good and moves in by the west lane.');
+    earnSpecial('friend_scampi', 'A secret neighbor: Captain Shrimpy stayed!');
+    sendMail({ from: 'scampi', subject: 'Landlubber at last', body: "Ahoy, matey!\nGinger had me house up by sunrise. Swore at a hammer only twice. The roof's blue, like the sea, so I don't get homesick.\nYe'll find me in the fields most mornings. Come by for a shanty.\n- Capt. Shrimpy\n\nP.S. A packet of pumpkin seeds from the far islands, for yer garden. Fortune's stocking 'em now, and sweet corn too.", gift: 'seed_pumpkin' });
     if (typeof rebuildIsland === 'function' && G.areas && G.areas.island) rebuildIsland();
     if (typeof NPCs !== 'undefined') { Plans.reset(); NPCs.place(true); }
 }
@@ -155,7 +156,7 @@ async function seaTalk(n) {
     if (st === 1) {
         await UI.say(null, 'A giant shrimp lies on the sand, very still, a battered captain\'s cap over his eyes. Sarah nudges him.', { keep: true });
         await say(["...Mmmph. Five more minutes, Mother...", "...Wait. LAND? Blessed, BLESSED land! Arr! Where am I? Who are ye? Why is the ground not moving?",
-            "Captain Scampi, at yer service. Sailed the seven seas, the eight puddles and one very rude lake. Three nights back a storm took me ship, the Brine Darling, and spat me out here.",
+            "Captain Shrimpy, at yer service. Sailed the seven seas, the eight puddles and one very rude lake. Three nights back a storm took me ship, the Brine Darling, and spat me out here.",
             "Well, a captain without a ship is just a shrimp on a beach. I'll build meself a new one, right here, if ye'll help an old salt.",
             "First I need timber. Ten good logs. Chop down ten trees with an axe and bring me what they give. The sturdy ones, mind."]);
         if (!pocketCount('axe')) await say(["No axe? Fortune's shop sells 'em. Tell her a shrimp sent ye. She'll give ye a look."]);
@@ -211,7 +212,7 @@ async function seaTalk(n) {
             "So here's the thing. An old salt's got to drop anchor some time."]);
         const k = await UI.ask(id, "Would ye mind if I stayed? For good? I'd take the plot for sale by the west lane, and I'm handy on a farm. Well. I could learn.", ["Yes! Stay!", 'Maybe later']);
         if (k === 0) {
-            await say(["HA HA! Yer a treasure, matey! I'll have Ginger raise me a house by morning. Blue roof. Like the sea.", "Captain Scampi, landlubber. Who'd have thought it!"]);
+            await say(["HA HA! Yer a treasure, matey! I'll have Ginger raise me a house by morning. Blue roof. Like the sea.", "Captain Shrimpy, landlubber. Who'd have thought it!"]);
             Q.stage = 8; Q.day = day + 1;
             n.emote = 'heart'; n.emoteT = 90;
         } else await say(["Fair winds. I'll ask again tomorrow, if ye'll let an old shrimp try."]);
@@ -223,22 +224,67 @@ async function seaTalk(n) {
 }
 function pickSea(list) { return list[Math.floor(R() * list.length)]; }
 
+/* his stall at the farm (David, 27 October late: "Shrimpy sells recipes/seeds depending on the season if you talk to
+   them while they are farming"): the season's seeds from the far islands and the island's own, and one of his recipes */
+const SEA_STALL = {
+    spring: { seeds: ['corn', 'bokchoy', 'greenonion', 'edamame'], recipe: 'fish_tacos' },
+    summer: { seeds: ['corn', 'chili', 'tomato', 'cucumber'], recipe: 'grilled_corn' },
+    fall: { seeds: ['pumpkin', 'carrot', 'broccoli', 'eggplant'], recipe: 'pumpkin_soup' },
+    winter: { seeds: ['pumpkin', 'bokchoy', 'thaibasil', 'carrot'], recipe: 'sailor_stew' },
+};
+const SEA_RECIPE_PRICE = 2000;
+function seaFarming(n) {
+    const seg = planNow(n.id, dayHour());
+    return !!seg && seg.spot === 'farm' && n.area === 'island' && !n.sleeping;
+}
+function seaOptions(n) {
+    if (n.id !== 'scampi' || !seafarerHere() || Online.visitor() || !seaFarming(n)) return [];
+    return [{ label: "What've you got?", fn: async () => { await seaStall(n); return true; } }];
+}
+async function seaStall(n) {
+    const T = SEA_STALL[Clock.season()] || SEA_STALL.spring, seeds = T.seeds.map(v => 'seed_' + v).filter(id => ITEMS[id]);
+    const rec = T.recipe, known = S.recipes.includes(rec);
+    await UI.say('scampi', rpick(["Bah, business. Fine. Here's what the season's got. Don't haggle, I can smell haggling.", "Seeds from the far islands, and the island's own. And a recipe, if ye've got the coin. Pick quick, the soil's waiting."]), { keep: true });
+    for (;;) {
+        const opts = seeds.map(id => `${itemName(id)} · ${fmtNum(ITEMS[id].price)}`).concat(known ? [] : [`Recipe: ${itemName(rec)} · ${fmtNum(SEA_RECIPE_PRICE)}`], ['That\'s all']);
+        const k = await UI.ask('scampi', "What'll it be?", opts, { keep: true });
+        if (k < 0 || k === opts.length - 1) { await UI.say('scampi', rpick(['Fair winds.', "Off with ye, then. Mind the furrows.", 'Plant them pointy end up. That was a joke. Seeds have no pointy end. ...Some do.'])); return; }
+        if (k < seeds.length) {
+            const id = seeds[k], price = ITEMS[id].price;
+            if (S.money < price) { await UI.say('scampi', "Ye're short, matey. I don't do credit. Credit sank me second boat."); continue; }
+            if (!addItem(id, 1)) { await UI.say('scampi', 'Yer pockets are fuller than a gull\'s gullet. Make some room.'); continue; }
+            addMoney(-price, true, 'Shopping');
+            Sfx.play('buy');
+            await UI.say('scampi', rpick(["Done. Water 'em, or don't. They'll forgive ye. I wouldn't.", 'There. Grows best in this season. Like me. I grow best in no season. I am what I am.']), { keep: true });
+        } else {
+            if (S.money < SEA_RECIPE_PRICE) { await UI.say('scampi', "A recipe's not cheap, matey. It took me forty years and one shipwreck to get it right."); continue; }
+            addMoney(-SEA_RECIPE_PRICE, true, 'Shopping');
+            S.recipes.push(rec);
+            Sfx.play('fanfare');
+            await UI.say('scampi', [`${itemName(rec)}. Me grandmother's. Well, me grandmother's cook's. Well, a fella I met in a port. Point is, it's good.`, '(Sarah learned a new recipe!)']);
+            Save.touch();
+            return;
+        }
+        Save.touch();
+    }
+}
+
 /* the send-off: a gift, he boards, and the little red sail heads out to sea (also by itself if Sarah wasn't there) */
 async function seaDepart(n, quiet) {
     const Q = seaState(), day = Clock.dayNum();
     const gift = !hasSpecial('compass') ? 'compass' : !hasSpecial('shipbottle') ? 'shipbottle' : null;
     if (quiet) {
         Q.stage = 6; Q.day = day;
-        sendMail({ from: 'scampi', subject: 'Sorry I missed ye!', body: "Ahoy, matey!\nThe tide wouldn't wait, and neither could I. Thank ye for everything: the logs, the grub, the gems. The Brine Darling Two sails like a dream.\nI left ye a little something. Don't forget me!\n- Capt. Scampi", gift: gift ? null : 'shipbottle' });
-        if (gift) earnSpecial(gift, 'A parting gift from Captain Scampi.');
+        sendMail({ from: 'scampi', subject: 'Sorry I missed ye!', body: "Ahoy, matey!\nThe tide wouldn't wait, and neither could I. Thank ye for everything: the logs, the grub, the gems. The Brine Darling Two sails like a dream.\nI left ye a little something. Don't forget me!\n- Capt. Shrimpy", gift: gift ? null : 'shipbottle' });
+        if (gift) earnSpecial(gift, 'A parting gift from Captain Shrimpy.');
         seaRefresh();
         return;
     }
     const id = 'scampi', p = G.player;
     await UI.say(id, ["Well, matey. This is it. The Brine Darling Two, ready for the open sea, all thanks to ye.",
         "Here. For all yer help. Me old compass. Always points home. And home, for ye, is here."], { keep: true });
-    if (gift) await grantSpecial(gift, 'A parting gift from Captain Scampi.');
-    else { addMoney(5000, true, 'Found & gifts'); await UI.say(null, 'Captain Scampi pressed 5,000 sand dollars into Sarah\'s hand. "For a rainy day. Or a sunny one. I\'m not fussy."', { keep: true }); }
+    if (gift) await grantSpecial(gift, 'A parting gift from Captain Shrimpy.');
+    else { addMoney(5000, true, 'Found & gifts'); await UI.say(null, 'Captain Shrimpy pressed 5,000 sand dollars into Sarah\'s hand. "For a rainy day. Or a sunny one. I\'m not fussy."', { keep: true }); }
     await UI.say(id, ["Fair winds, matey. Keep a light on for an old shrimp."], { keep: true });
     UI.hideDialog();
     G.busy++;

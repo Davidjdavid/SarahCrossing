@@ -634,6 +634,7 @@ async function fortuneTalk(n) {
             }
         }
     }
+    await shopOrderTalk();
     for (;;) {
         if (!S.flags.gingerHint && S.house.level < HOUSE_EXPAND.length) {
             S.flags.gingerHint = true;

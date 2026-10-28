@@ -509,7 +509,7 @@ def chili_crisp():
     return [(mb, 'main'), (gl, 'gloss')]
 
 
-# (Captain Scampi's dishes from his travels, 6zr_seafarer.js)
+# (Captain Shrimpy's dishes from his travels, 6zr_seafarer.js)
 def sailor_stew():
     """a hearty stew in a blue-rimmed bowl: fish, carrot and tomato"""
     out = soup_bowl('#b8743a', [('#f6ecd8', 0.024, 4), ('#f08a2a', 0.018, 4), ('#d8402a', 0.016, 3)], col='#f2f0ea', inside='#3a6aa8')
@@ -559,7 +559,7 @@ def grilled_corn():
     return [(mb, 'main')]
 
 
-# (Mugsy's café drinks, 6zs_mug.js: item_drink_<id>)
+# (Muggy's café drinks, 6zs_mug.js: item_drink_<id>)
 def cafe_mug(top, foam=None, art=None, cream=None, drizzle=None, col='#f6eedc', band='#3a6aa8'):
     """a café mug on its saucer: what's in it, latte art, whipped cream"""
     mb, gl, r = MB(), MB(), random.Random(51)

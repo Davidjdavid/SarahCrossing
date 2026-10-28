@@ -27,7 +27,7 @@ const R3 = {
     active() {
         if (!this.ok || !this.want || !G.area || !G.player) return false;
         if (G.mode !== 'play' && G.mode !== 'title') return false;
-        if (Decor.on || Mover.on || PathTool.on || IslandEdit.on || Rope.on || Photo.on) return false;
+        if (Decor.on || Mover.on || PathTool.on || IslandEdit.on || Rope.on || Photo.flat()) return false;
         // (the club, the dance floor and the karaoke stage are 3D in the new look, their arrows and words drawn flat over it;
         // the HD-2D view keeps them flat)
         const env = typeof Env !== 'undefined' && Env.want();

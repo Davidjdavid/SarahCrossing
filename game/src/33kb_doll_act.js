@@ -150,6 +150,21 @@ Object.assign(EnvDolls, {
         const cj = A.cheer ? Math.sin((1 - A.cheer) * Math.PI) * 0.3 : 0;
         root.position.set(e.x / TILE, sitY + (e.hop || 0) / TILE + cj, this.atTable(e) ? this.tableZ(e) : e.y / TILE * R3_ZS + (Q && Q.sit ? 0.12 : 0));
         root.rotation.y = d.ang + (A.cheer ? (1 - A.cheer) * Math.PI * 2 : 0);
+        // on the swing she sits on the seat and swings with it round the top bar (the seat's own swing: EnvBuild); in the
+        // hammock she lies along its cloth, head to the west (Projects)
+        const swing = e === G.player && typeof Projects !== 'undefined' && Projects.swing && Projects.swing.e ? Projects.swing : null;
+        root.rotation.x = 0; root.rotation.z = 0;
+        if (swing) {
+            const sw = swing.e, th = Math.sin(swing.t / 22) * swing.amp, ly = -1.3 - 0.3 * DOLL2.H, lz = 0.06;
+            const hy = Env.groundH(sw.x, sw.y) + 1.72, hz = sw.y / TILE * R3_ZS - 0.5 * R3_ZS;
+            root.position.set(sw.x / TILE + swing.sx, hy + ly * Math.cos(th) - lz * Math.sin(th), hz + ly * Math.sin(th) + lz * Math.cos(th));
+            root.rotation.x = th;
+        }
+        if (e.lie) {
+            const h = e.lie;
+            root.position.set(h.x / TILE + 0.42, Env.groundH(h.x, h.y) + 0.5, h.y / TILE * R3_ZS - 0.45 * R3_ZS);
+            root.rotation.set(-Math.PI / 2, 0, Math.PI / 2);
+        }
         // the step: legs swing from the hips and bend at the knees coming forward; the arms swing against them
         const ph = m.dist / (run ? 30 : 24) * Math.PI * 2, s = walk ? Math.sin(ph) : 0, c = walk ? Math.cos(ph) : 0;
         const br = Math.sin(t / 26 + seed), shift = Math.sin(t / 97 + seed * 3);
@@ -192,6 +207,14 @@ Object.assign(EnvDolls, {
             // shaking a tree: both arms pushing and pulling at the trunk, the body rocking with them
             if (pk === 'shake') { const j = Math.sin(t * 1.7); W.aLx += j * 0.22; W.aRx += j * 0.22; W.eL = W.eR = -0.5 - j * 0.2; W.bz = j * 0.07; W.bx += j * 0.05; }
         }
+        // swinging: legs kicked out going forward and tucked under going back, leaning back and forward, hands on the chains
+        if (swing) {
+            // (j is 1 out at the front, toward us, and -1 at the back)
+            const j = -Math.sin(swing.t / 22) * Math.min(1, swing.amp / 0.4);
+            Object.assign(W, { lL: -1.45 - 0.3 * j, lR: -1.45 - 0.3 * j, kL: 1.0 - 0.8 * j, kR: 1.0 - 0.8 * j, bx: -0.22 * j, aLx: -2.35, aRx: -2.35, aLz: -0.28, aRz: 0.28, eL: -0.3, eR: -0.3, hx: -0.06 - 0.1 * j });
+        }
+        // lying in the hammock: legs a little raised with the cloth's curve, hands folded on her middle, head up a little
+        if (e.lie) Object.assign(W, { lL: -0.3, lR: -0.3, kL: 0.2, kR: 0.2, bx: 0, by: 0, bz: 0, aLx: -0.5, aRx: -0.5, aLz: -0.32, aRz: 0.32, eL: -1.35, eR: -1.35, hx: 0.3, hy: 0, hz: 0 });
         // (eased the same however often frames come)
         const k = 1 - Math.pow(0.7, Math.min(4, (G.frameMs || 16.7) / 16.7)), ease = (o, key, v) => { o[key] += (v - o[key]) * k; };
         ease(P.armL.rotation, 'x', W.aLx); ease(P.armR.rotation, 'x', W.aRx); ease(P.armL.rotation, 'z', W.aLz); ease(P.armR.rotation, 'z', W.aRz);
@@ -205,7 +228,7 @@ Object.assign(EnvDolls, {
         if (tool !== d.tool) { if (d.toolMesh) { d.toolMesh.parent.remove(d.toolMesh); d.toolMesh = null; } d.tool = tool; if (tool) d.toolMesh = this.toolModel2(d, tool); }
         // the face: the acting's, a pose's, Sarah running for joy
         const QF = { holdup: 'joy', cheer: 'excited', happy: 'happy', left: 'joy', right: 'joy', hug: 'happy', fish: 'determined', shake: 'determined', axe0: 'determined', axe1: 'determined', dig0: 'determined', dig1: 'determined', water: 'happy' };
-        this.showFace(d, e, A.face || (pk && QF[pk]) || (run && e === G.player ? 'happy' : null));
+        this.showFace(d, e, (e.lie ? 'sleepy' : swing ? 'joy' : null) || A.face || (pk && QF[pk]) || (run && e === G.player ? 'happy' : null));
     },
     /* a tool in a redone doll's hand: the shovel the style test made (props2.py), the others as before */
     toolModel2(d, kind) {

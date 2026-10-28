@@ -55,7 +55,8 @@ Status: [x] done, [~] in progress, [ ] not started.
   above the dock with the Town Hall, Post Office and Bank, Market Lane, a neighborhood with room between the houses,
   the farm up the hill with a hidden cove below it, a forest of looping trails, the campsite, the Ridge Trail and a
   mountain trail to the lookout; old saves keep their progress and get their things back. Still to come: the Town
-  Hall, Post Office and Bank's art and insides, the new vendors, the sailor and the balloon's passenger)
+  Hall, Post Office and Bank's art and insides, the new vendors and the sailor; the balloon's passenger isn't coming,
+  David's call)
 - [x] HD-2D step 4: furniture, floors and walls, and the inside of buildings redrawn
 - [~] HD-2D step 5: a HUD that matches (done: the sample's dark glass and serif type in HD-2D), and a
   layout made for an upright phone (done: the camera frames Sarah low with the world above her, and the
@@ -335,26 +336,31 @@ Status: [x] done, [~] in progress, [ ] not started.
   a game for a given hour, or any track on repeat (Phone > Music > Your music > Upload a folder; steps in docs/DEPLOY.md;
   at home too, as in Animal Crossing; games can be left out of the mix or removed; David uploads it once from beta, live
   only plays it; anyone can add music of their own, kept on their device)
-- [ ] Once David's soundtracks are uploaded: go through them and swap the game's own tunes (the shops, the museum, the
-  club by day, the title...) for the soundtracks' tracks (he sends the list from "Copy the track list")
+- [x] Once David's soundtracks are uploaded: go through them and swap the game's own tunes (the shops, the museum, the
+  club by day, the title...) for the soundtracks' tracks (he sends the list from "Copy the track list") (done: the title,
+  Fortune's by its size up to T&T Emporium, Able Sisters, Shampoodle, the museum and its aquarium, the Town Hall, the post
+  office by day and night, Club LOL, The Roost Café, Nook's Homes at Ginger's, the holidays and the New Year countdown,
+  hide-and-seek, a project's dedication; the folder tidied of duplicate formats and files that aren't music)
 - [x] A new neighbor, the seafarer: a giant shrimp, a salty old sailor, found washed up on the shore, out cold, a week
   after a new island is started or a save imported. He's building a new ship and needs something each day: ten logs
   (chopping a tree gives one until he has enough), then ten home-cooked meals for the journey, then gems. He sails away
   in a little cutscene and leaves a gift; a few days later his boat is back at the pier and he asks to move in. If Sarah
   says yes he takes one of the plots for sale and works the farm (out in the fields every day), and brings new foods,
-  recipes and seeds (Captain Scampi: the wreck, then his ship taking shape on the beach east of the pier; five gems; his
+  recipes and seeds (Captain Shrimpy: the wreck, then his ship taking shape on the beach east of the pier; five gems; his
   old compass as the gift, or a letter if Sarah misses the tide; the plot by the west lane; pumpkin and sweet corn seeds
-  at Fortune's from then on; sailor's stew, fish tacos, pumpkin soup and grilled corn taught a heart at a time)
+  at Fortune's from then on; sailor's stew, fish tacos, pumpkin soup and grilled corn taught a heart at a time; salty;
+  talked to while he's farming, a stall of the season's seeds and one of his recipes; his house a ship's cabin)
 - [x] A new neighbor, the coffee shop's: an empty mug. Once enough has been given to the museum and the pottery hall is
   full, the curator writes to thank Sarah, then tells of an old dig on the island that found part of a pot, and asks her
   to look for the rest. An X dug-up spot turns up somewhere on the island once a day (not dug that day, it's somewhere
   else the next); five pieces in all. Sully puts them back together at the museum: a giant mug. The next day, the first
   time Sarah comes out, the mug visits: they were a living mug all along, and thank her. They talk about being a mug, being
-  caffeinated, and how odd it is that everyone else is food. They open the coffee shop on the alley's lot (Mugsy: twenty gifts
-  and a full pottery hall; Sully mends the pieces with gold; Mugsy's café with four coffees that perk Sarah up, the first
-  one free; the mug lives on the plot by the farm lane)
+  caffeinated, and how odd it is that everyone else is food. They open the coffee shop on the alley's lot (Muggy: twenty gifts
+  and a full pottery hall; Sully mends the pieces with gold; Muggy's café with four coffees that perk Sarah up, the first
+  one free, a friend texted to come along like at Mac's, a cup to go set on a table at home; the mug lives on the plot by
+  the farm lane, in a house that remembers when everyone was dishware)
 - [x] The new neighbors and how they're found count as secret characters, and as the harder achievements (the
-  Collection's "Secret neighbors" page: Captain Scampi and Mugsy, each with a hint until found)
+  Collection's "Secret neighbors" page: Captain Shrimpy and Muggy, each with a hint until found)
 - [x] The arcade's unlocks (hairstyles, clothes and the like) much harder: the watermelon in the Suika-like game, level 10
   in Spice Capsules, and so on for every game (a watermelon in Snack Stack, level 10 in Spice Capsules, 50,000 and level 12
   in Bento Blocks, 4,000 in Fruit Catch, 60 jumps at jump rope; five things that used to turn up by chance now come from
@@ -364,10 +370,12 @@ Status: [x] done, [~] in progress, [ ] not started.
   harvests)
 - [x] Town projects, paid for from the town's projects fund: a swing set, a hammock on the beach, a park clock, a stone
   tablet (a shrine) on top of the mountain, restoring the lighthouse (boards over its door until it's paid for; paying
-  starts the ghost's side quest), a bigger general store (more for sale, a bigger shop inside), and last and dearest, a
+  starts the ghost's side quest), and last and dearest, a
   statue of Sarah (the Town Hall's Projects screen: paid in bit by bit, built overnight with a letter from Sir Floret;
-  the swings swing, the hammock rocks, the clock keeps the time, the tablet grants a wish a day; Fortune's Department
-  Store once the shop has grown twice; the statue opens once all the others are built; an island whose lighthouse story
+  Sarah swings on the swings and lies in the hammock, the clock keeps the time, the tablet grants a wish a day; the statue
+  opens once all the others are built, and the day after it's up the Council offers to cast anyone or anything new in
+  bronze, free: David, any of the island's people, Dr. Frasier Crane, her Tamagotchi keychain, a rose; Fortune's bigger
+  shop is Fortune's own doing now, a week in; an island whose lighthouse story
   had begun keeps it open)
 - [x] When a neighbor asks to play, it's sometimes volleyball, jump rope or one of the arcade games, as well as tag and
   hide-and-seek (volleyball wherever they are by day; jump rope on the square with a friend of theirs turning, Cuke if

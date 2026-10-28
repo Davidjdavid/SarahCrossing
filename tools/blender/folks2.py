@@ -1354,7 +1354,7 @@ def ghost():
 
 # ---------------------------------------------------------------- the new neighbors (David, 27 October late)
 def scampi():
-    """Captain Scampi, a giant shrimp and a salty old seafarer: a coral shell in overlapping bands down his front, curled
+    """Captain Shrimpy, a giant shrimp and a salty old seafarer: a coral shell in overlapping bands down his front, curled
     at the tail into a fan behind him, a pointed rostrum over his brow, long whiskery antennae swept back, a battered
     captain's cap with a gold anchor, a blue neckerchief knotted at the front, a bushy white chin beard; little shrimp
     arms and walking feet, and a row of swimmerets under his belly."""

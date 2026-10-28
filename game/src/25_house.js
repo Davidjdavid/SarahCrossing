@@ -42,7 +42,7 @@ function buildRoomBg(a, k) {
 function furnDef(id) {
     if (FURN[id]) return FURN[id];
     const it = ITEMS[id];
-    if (it && ['dish', 'fruit', 'veg'].includes(it.type)) return { id, name: it.name, w: 1, h: 1, kind: 'top', sets: ['food'], food: 1, frame: it.icon };
+    if (it && (['dish', 'fruit', 'veg'].includes(it.type) || it.coffee)) return { id, name: it.name, w: 1, h: 1, kind: 'top', sets: ['food'], food: 1, frame: it.icon };
     if (it && it.type === 'flower') return { id, name: it.name + ' vase', w: 1, h: 1, kind: 'top', sets: ['flower'], flower: 1, frame: it.icon };
     return null;
 }
@@ -242,9 +242,10 @@ const Decor = {
     },
     owned() {
         const out = {};
-        const ok = t => ['furniture', 'wall', 'floor', 'dish', 'fruit', 'veg', 'flower', 'art'].includes(t);
-        for (const s of S.pocket) if (s && ok(ITEMS[s.id].type)) out[s.id] = (out[s.id] || 0) + s.n;
-        for (const [id, n] of Object.entries(S.storage)) if (ITEMS[id] && ok(ITEMS[id].type)) out[id] = (out[id] || 0) + n;
+        // (a coffee from Muggy's sits on a table like food: 6zs_mug.js)
+        const ok = id => ['furniture', 'wall', 'floor', 'dish', 'fruit', 'veg', 'flower', 'art'].includes(ITEMS[id].type) || !!ITEMS[id].coffee;
+        for (const s of S.pocket) if (s && ok(s.id)) out[s.id] = (out[s.id] || 0) + s.n;
+        for (const [id, n] of Object.entries(S.storage)) if (ITEMS[id] && ok(id)) out[id] = (out[id] || 0) + n;
         return out;
     },
     takeOne(id) {
@@ -295,7 +296,7 @@ const Decor = {
         body.className = 'pbody';
         const grid = document.createElement('div');
         grid.className = 'grid';
-        const tabOf = id => ['dish', 'fruit', 'veg', 'flower'].includes(ITEMS[id].type) ? 'food' : ITEMS[id].type === 'art' ? 'furniture' : ITEMS[id].type;
+        const tabOf = id => ['dish', 'fruit', 'veg', 'flower'].includes(ITEMS[id].type) || ITEMS[id].coffee ? 'food' : ITEMS[id].type === 'art' ? 'furniture' : ITEMS[id].type;
         const ids = Object.keys(owned).filter(id => tabOf(id) === this.tab).sort();
         if (!ids.length) {
             const p = document.createElement('p');

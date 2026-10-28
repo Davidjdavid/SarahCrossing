@@ -15,6 +15,7 @@ const MEM_LINES = {
     visit: ['Thanks for coming over {when}! My house felt extra cozy with company.', 'You visited {when}! I tidied for an hour after. Before? No. After. It felt like a party.'],
     gather: ["That night {when}, everyone out together? I keep thinking about it. We should do that more.", 'Remember {when}, when the whole island was out? Best night in a while.'],
     newyear: ['That countdown on the square {when}! What a way to start a year.', "We counted down together {when}! I'm still saying 'happy new year' to everyone. It's getting weird."],
+    coffee: ["That coffee at Muggy's {when} was so nice. Let's do it again!", 'I keep thinking about our coffee {when}. Muggy waved at us the whole time.'],
     lost: ["I haven't lost my {what} once since you found it. I check on it every hour.", "My {what}! Still safe. Thanks to you. I gave it a little talk about wandering off."],
 };
 const GAME_WORDS = { tag: 'game of tag', hide: 'game of hide-and-seek', derby: 'fishing derby', danceoff: 'dance-off', duet: 'karaoke duet', volley: 'volleyball game', snowball: 'snowball fight' };

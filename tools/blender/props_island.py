@@ -1489,6 +1489,45 @@ def statue_sarah():
     return [(mb, 'main')], 'statue_doll:sarah'
 
 
+def tama_keychain():
+    """Sarah's Tamagotchi on its keychain, for the statue on the square (game/src/6zgc_statue.js casts it in bronze): the
+    egg standing on its foot with its screen, a pixel pet on it and three buttons, a loop on top, three links of chain and
+    the key ring, about a tile and a third tall."""
+    mb = MB()
+
+    def ring(c, r, t, axis='y', color='#c8c8d0', seg=20):
+        pts = []
+        for k in range(seg + 1):
+            a = k / seg * math.tau
+            u, v = math.cos(a) * r, math.sin(a) * r
+            pts.append((c[0] + u, c[1], c[2] + v) if axis == 'y' else (c[0], c[1] + u, c[2] + v))
+        tube(mb, pts, t, shade(color), seg=8)
+    # the egg, flattened front to back, a pink shell freckled with little stars
+    prof = [(0.0, 0.0), (0.2, 0.02), (0.34, 0.1), (0.42, 0.25), (0.44, 0.42), (0.41, 0.6), (0.33, 0.78), (0.2, 0.92), (0.0, 0.98)]
+    lathe(mb, prof, col_fn('#f07aa8', mottle=0.04), seg=36, sy=0.55)
+    r = random.Random(4)
+    for k in range(14):
+        a = r.uniform(-1.2, 1.2) + (math.pi if k % 2 else 0)
+        z = r.uniform(0.15, 0.85)
+        rr = [x for x, zz in prof if zz <= z][-1] if z > 0 else 0.2
+        ball(mb, (math.sin(a) * rr * 0.98, -math.cos(a) * rr * 0.55 * 0.98, z), (0.022, 0.012, 0.022), shade('#ffd84a'), sub=1)
+    # the screen in its frame, and the pet on it
+    rbox(mb, -0.23, -0.27, 0.42, 0.23, -0.18, 0.74, shade('#d8d0c4'), r=0.04)
+    rbox(mb, -0.18, -0.29, 0.46, 0.18, -0.24, 0.7, shade('#b4c89a'), r=0.02)
+    for x, z in ((-0.03, 0.62), (0.03, 0.62), (-0.06, 0.58), (0.0, 0.58), (0.06, 0.58), (-0.06, 0.54), (0.06, 0.54), (-0.03, 0.5), (0.03, 0.5)):
+        rbox(mb, x - 0.022, -0.3, z - 0.018, x + 0.022, -0.285, z + 0.018, shade('#3a4a30'), r=0.004)
+    # three buttons under it
+    for x in (-0.13, 0.0, 0.13):
+        ball(mb, (x, -0.235, 0.27 - abs(x) * 0.25), (0.05, 0.03, 0.05), shade('#f8f2e6'), sub=2)
+    # the loop, the chain and the key ring
+    ring((0, 0, 1.03), 0.06, 0.018)
+    ring((0, 0, 1.12), 0.045, 0.014, axis='x')
+    ring((0, 0, 1.2), 0.045, 0.014)
+    ring((0, 0, 1.28), 0.045, 0.014, axis='x')
+    ring((0, 0, 1.47), 0.17, 0.022)
+    return [(mb, 'main')]
+
+
 def door_boards():
     """Boards nailed over the lighthouse door until the town restores it: two planks up, two across in an X, and a
     notice; its back against the wall (y 0), facing -y, its middle at x 0."""
@@ -1505,7 +1544,7 @@ def door_boards():
     return [(mb, 'main')]
 
 
-# ---------------------------------------------------------------- Captain Scampi's ship (game/src/6zr_seafarer.js)
+# ---------------------------------------------------------------- Captain Shrimpy's ship (game/src/6zr_seafarer.js)
 def hull_shape(mb, L, B, D, color, z0=0.0, nu=26, nv=10, bow=0.85, inner=None):
     """A boat's hull along x (the bow at +x, a flat transom at -x), its gunwale at z0 + D, its keel at z0; B the beam.
     inner: the color of the hull's inside (the deck well), or None for a closed top."""
@@ -1603,7 +1642,7 @@ def ship_frame():
 
 
 def ship_scampi():
-    """Captain Scampi's new ship: a little wooden sloop three tiles long, blue and white, a red sail with a shrimp on it, a
+    """Captain Shrimpy's new ship: a little wooden sloop three tiles long, blue and white, a red sail with a shrimp on it, a
     tiny cabin aft with a round window, a ship's wheel, a pennant at the masthead."""
     mb, sail = MB(), MB()
     hull_col = lambda p, n, *_: (rgb('#3a6ab8') if p.z < 0.42 else rgb('#f4efe2')) * (0.9 + 0.1 * max(0.0, -n.z * -1)) * (0.94 + 0.06 * noise.noise(p * 3))
@@ -1654,6 +1693,7 @@ def ship_scampi():
 
 
 PROPS = {
+    'tama_keychain': tama_keychain,
     'fountain': fountain, 'fountain_grand': fountain_grand, 'drinkfountain': drinkfountain, 'board': board, 'planter_box': planter_box, 'plaque': plaque, 'trashcan': trashcan, 'statue_david': statue,
     'signpost_trail': lambda: sign('trail'), 'signpost_farm': lambda: sign('farm'), 'signpost_camp': lambda: sign('camp'),
     'signpost_club': lambda: sign('club'), 'signpost_bonfire': lambda: sign('bonfire'), 'signboard': signboard,

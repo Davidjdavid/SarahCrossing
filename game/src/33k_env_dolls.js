@@ -43,7 +43,7 @@ const EnvDolls = {
     folkOf(e) {
         // (and in the rooms, the Cozy Council's judges and the old keeper's ghost)
         const id = e.def ? e.def.sprite : e.kind === 'judge' ? String(e.frame || '').split('_')[0] : e.kind === 'ghost' ? 'ghost' : null;
-        // (a neighbor who came later, Captain Scampi or the mug, has only the redone model: 6zr_seafarer.js)
+        // (a neighbor who came later, Captain Shrimpy or the mug, has only the redone model: 6zr_seafarer.js)
         return id && typeof EnvModels !== 'undefined' && (EnvModels.has('folk_' + id) || (typeof STYLE2 !== 'undefined' && STYLE2 && EnvModels.has('folk2_' + id) && !!FOLK_FACES[id])) ? id : null;
     },
     /* those who aren't neighbors but stand in a room now and then: the council's judges, the ghost near midnight */
@@ -55,7 +55,7 @@ const EnvDolls = {
     atTable(e) {
         const a = G.area;
         if (!a || !a.interior) return false;
-        if (e === G.player) return a.id === 'restaurant' && G.eatSeat != null;
+        if (e === G.player) return (a.id === 'restaurant' || a.id === 'cafe') && G.eatSeat != null;
         const w = e.want;
         return !!(w && w.seat && !e.path && e.area === a.id && Math.abs(e.x - w.x) < 2 && Math.abs(e.y - w.y) < 2);
     },

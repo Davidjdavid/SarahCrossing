@@ -636,7 +636,7 @@ test('beta civic buildings: savings with interest, a letter delivered with a rep
   await page.context().close();
 });
 
-test('shops grow: a letter, a day closed, then a bigger shop with more stock, a sale and a free gift', async () => {
+test("shops grow: Fortune puts the order in a week on, a day closed, then a bigger shop with more stock, a sale and a free gift", async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
   await page.reload();
@@ -644,13 +644,19 @@ test('shops grow: a letter, a day closed, then a bigger shop with more stock, a 
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
   await page.evaluate(() => __dbg.setTime(10, 23, 11));
-  const res = await page.evaluate(() => {
+  const res = await page.evaluate(async () => {
     const out = { before: [shopLevel('shop'), shopStock().furn.length] };
+    S.shops.shop.since = Clock.dayNum() - 6;
     shopsTick();
-    out.early = S.shops.shop.reno;                      // not enough yet: nothing happens
-    S.startDay -= 10; S.shops.shop.spent = 20000;
+    out.early = !!S.shops.shop.offer || S.shops.shop.reno != null;      // not a week yet: nothing happens
+    S.shops.shop.since = Clock.dayNum() - 7;
     shopsTick();
-    out.letter = S.mail.some((m) => m.from === 'fortune' && /closed tomorrow/i.test(m.subject));
+    // a week on: no letter, Fortune brings it up next time they talk (the order's in: closed tomorrow)
+    out.offer = S.shops.shop.offer === true && S.shops.shop.reno == null && !S.mail.some((m) => m.from === 'fortune' && /closed tomorrow/i.test(m.subject));
+    const say = UI.say, said = [];
+    UI.say = async (who, t) => { said.push(who + ': ' + [].concat(t).join(' ')); };
+    try { await shopOrderTalk(); await shopOrderTalk(); } finally { UI.say = say; }
+    out.order = said.length === 1 && /fortune: .*order/.test(said[0]) && S.shops.shop.reno === Clock.dayNum() + 1;
     S.shops.shop.reno = Clock.dayNum();
     out.closed = !roomOpen('shop');
     S.shops.shop.reno = Clock.dayNum() - 1;
@@ -662,7 +668,7 @@ test('shops grow: a letter, a day closed, then a bigger shop with more stock, a 
     out.sale = shopPrice(st.sale, 'shop') < ITEMS[st.sale].price;
     return out;
   });
-  assert.deepEqual(res, { before: [1, 5], early: undefined, letter: true, closed: true, after: [2, 7, "Fortune's Goods & More", '7 AM to 11 PM'], gift: [0, true], sale: true });
+  assert.deepEqual(res, { before: [1, 5], early: false, offer: true, order: true, closed: true, after: [2, 7, "Fortune's Goods & More", '7 AM to 11 PM'], gift: [0, true], sale: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
@@ -1131,6 +1137,10 @@ test('the museum in rooms: archways from the hall into six wings, every fish fro
       await enterRoom('museum_history');
       const cases = G.area.ents.filter((e) => e.look3d && 'showcase' in e.look3d);
       out.history = { cases: cases.length, map: cases.some((e) => e.look3d.showcase === 'oldmap'), waiting: cases.filter((e) => !e.look3d.showcase).length };
+      // looked into, a case shows what's in it big, with its card
+      await cases.find((e) => e.look3d.showcase === 'oldmap').interact();
+      out.history.big = !!document.querySelector('#panel .showcase canvas') && /Captain Gouda/.test(document.querySelector('#panel').textContent);
+      UI.close();
       // an older save's five spots in the gallery: the three new easels take what isn't up yet
       artState().hung = ['art_goat', null, null, null, null];
       const w = museumWall();
@@ -1143,7 +1153,7 @@ test('the museum in rooms: archways from the hall into six wings, every fish fro
   assert.equal(res.placed, true);
   assert.deepEqual(res.photo, { kept: true, album: 12, wall: true });
   assert.deepEqual(res.fashion, { name: 'Blue Tuesday', copy: true, form: true });
-  assert.deepEqual(res.history, { cases: 6, map: true, waiting: 5 });
+  assert.deepEqual(res.history, { cases: 6, map: true, waiting: 5, big: true });
   assert.deepEqual(res.oldSave, { n: 8, first: 'art_goat', more: true, unique: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
@@ -2184,7 +2194,7 @@ test('asking to play: volleyball wherever they are by day, jump rope with a frie
   await page.context().close();
 });
 
-test('town projects: paid for at the Town Hall, built overnight; the lighthouse boarded till then; the statue last; a bigger store', async () => {
+test('town projects: paid for at the Town Hall, built overnight; the lighthouse boarded till then; the statue last; the swings, the hammock', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
   await page.reload();
@@ -2211,17 +2221,22 @@ test('town projects: paid for at the Town Hall, built overnight; the lighthouse 
     __dbg.setTime(5, 13, 9);
     projectsTick();
     out.built = [projectBuilt('hammock'), has('hammock'), JSON.stringify(S.mail || S.inbox || []).includes('hammock')].join();
-    // the statue waits for all the others; the store for Fortune's shop to have grown twice
-    const statue = PROJECTS.find(p => p.id === 'statue'), store = PROJECTS.find(p => p.id === 'store');
+    // the statue waits for all the others (Fortune's bigger store isn't one any more: Fortune orders it, 6z_shops.js)
+    const statue = PROJECTS.find(p => p.id === 'statue');
     out.statueLater = !projectOpen(statue);
-    out.storeLater = !projectOpen(store);
-    shopState('shop').level = 3;
-    out.storeOpen = projectOpen(store);
+    out.noStore = !PROJECTS.some(p => p.id === 'store');
     for (const p of PROJECTS) if (!p.last && p.id !== 'hammock') projectPay(p.id, p.cost);
     __dbg.setTime(5, 14, 9);
     projectsTick();
     out.allBuilt = PROJECTS.filter(p => !p.last).every(p => projectBuilt(p.id)) && has('swing_set') && has('park_clock') && has('shrine_stone');
-    out.store = shopLevel('shop') === 4 && shopName('shop') === "Fortune's Department Store" && shopSlots().length === 12;
+    // a save that had paid toward the old store project gets it back; one that had paid it off has the Department Store
+    const st = JSON.parse(JSON.stringify(S));
+    st.town.proj.paid.store = 5000; st.money = 100;
+    const m1 = migrate(st);
+    const st2 = JSON.parse(JSON.stringify(S));
+    st2.town.proj.paid.store = 200000; st2.town.proj.done.store = Clock.dayNum(); st2.shops.shop.level = 3;
+    const m2 = migrate(st2);
+    out.store = m1.money === 5100 && m1.town.proj.paid.store === undefined && m2.shops.shop.level === 4 && m2.town.proj.done.store === undefined;
     out.statueOpen = projectOpen(statue);
     out.lighthouse = lighthouseOpen();
     // an island whose keeper's story had begun before the projects keeps its lighthouse open
@@ -2232,11 +2247,20 @@ test('town projects: paid for at the Town Hall, built overnight; the lighthouse 
     // the swings swing
     const sw = G.areas.island.ents.find(e => e.kind === 'swing_set');
     if (!sw) return Object.assign(out, { noSwing: G.areas.island === isl, kinds: G.areas.island.ents.filter(e => e.propIdx >= 118).map(e => e.kind).join() });
+    const say0 = UI.say;
+    let swingSaid = 0;
+    UI.say = async () => { swingSaid++; };
     const go = Projects.swingOn(sw);
     await new Promise(r => setTimeout(r, 300));
     out.swinging = !!Projects.swing && G.player.pose === 'sit';
     await go;
-    out.swung = !Projects.swing && !G.player.pose;
+    out.swung = !Projects.swing && !G.player.pose && swingSaid === 0;
+    // the hammock: she lies down in it until the line's read, then she's back where she was
+    const hm = G.areas.island.ents.find(e => e.kind === 'hammock'), at = [G.player.x, G.player.y];
+    let lying = null;
+    UI.say = async () => { lying = G.player.lie === hm && G.player.pose === 'sit' && Math.abs(G.player.x - hm.x) < 2; };
+    try { await Projects.hammock(hm); } finally { UI.say = say0; }
+    out.hammock = lying === true && !G.player.lie && !G.player.pose && G.player.x === at[0] && G.player.y === at[1];
     // the Town Hall's screen lists them all
     const b = document.createElement('div'), f = document.createElement('div');
     CIVIC_LIVE.projects.draw(b, f, () => {});
@@ -2244,13 +2268,62 @@ test('town projects: paid for at the Town Hall, built overnight; the lighthouse 
     return out;
   });
   assert.deepEqual(res, { spots: 'clock,hammock,shrine,statue,swings', hidden: true, held: true, boarded: true, part: true, rest: true, notYet: true, built: 'true,true,true',
-    statueLater: true, storeLater: true, storeOpen: true, allBuilt: true, store: true, statueOpen: true, lighthouse: true, grandfathered: true,
-    swinging: true, swung: true, screen: true });
+    statueLater: true, noStore: true, allBuilt: true, store: true, statueOpen: true, lighthouse: true, grandfathered: true,
+    swinging: true, swung: true, hammock: true, screen: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
 
-test('Captain Scampi: washed up a week in, ten logs, ten meals, five gems, sails off, back at the pier, moves in and farms', async () => {
+test('the statue: the Council congratulates Sarah the day after, and casts anyone (or a Tamagotchi, or a rose) in bronze by morning, free', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play' && !G.busy);
+  const res = await page.evaluate(async () => {
+    const out = {};
+    __dbg.setTime(5, 12, 11);
+    S.money = 3000000;
+    for (const p of PROJECTS) if (!p.last) projectPay(p.id, p.cost);
+    __dbg.setTime(5, 13, 9); projectsTick();
+    projectPay('statue', 500000);
+    __dbg.setTime(5, 14, 9); projectsTick();
+    out.built = projectBuilt('statue') && statueKind() === 'sarah' && !!S.town.statue.spec;
+    const say = UI.say, ask = UI.ask, said = [];
+    UI.say = async (who, t) => { said.push(who + ': ' + [].concat(t).join(' ')); };
+    UI.ask = async (who, t) => { said.push(who + '? ' + t); return 0; };
+    try {
+      out.sameDay = (await statueCongrats()) === false;
+      __dbg.setTime(5, 15, 10);
+      out.offer = (await statueCongrats()) === true && said.some(t => /^floret: .*congratulations/i.test(t)) && said.some(t => /^stalk: .*free of charge/i.test(t));
+      out.once = (await statueCongrats()) === false;
+    } finally { UI.say = say; UI.ask = ask; }
+    // the choices: Sarah, David, everyone, Frasier, the keychain, a rose
+    const ids = statueChoices().map(c => c[0]);
+    out.choices = ids[0] === 'sarah' && ids[1] === 'david' && ['joe', 'kai', 'goat', 'fortune', 'frasier', 'tama', 'rose'].every(k => ids.includes(k)) && !ids.includes('scampi');
+    // the screen: pick Frasier, cast him (free), and he's up by morning with a letter
+    const b = document.createElement('div'), f = document.createElement('div'), redraw = () => { b.innerHTML = ''; f.innerHTML = ''; CIVIC_LIVE.statue.draw(b, f, redraw); };
+    redraw();
+    const money = S.money;
+    [...b.querySelectorAll('.row')].find(r => /Frasier/.test(r.textContent)).click();
+    [...f.querySelectorAll('button')].find(x => /Cast/.test(x.textContent)).click();
+    out.pending = S.town.statue.next && S.town.statue.next.kind === 'frasier' && statueKind() === 'sarah' && S.money === money;
+    __dbg.setTime(5, 16, 9); projectsTick();
+    out.frasier = statueKind() === 'frasier' && !S.town.statue.next && /FRASIER CRANE/.test(statueWords()) && S.mail.some(m => m.from === 'floret' && /new statue/i.test(m.subject));
+    out.key = /:frasier$/.test(projectsKey());
+    // a neighbor's statue in the flat views: their picture in bronze on the plinth
+    S.town.statue.next = { kind: 'kai', day: Clock.dayNum() + 1 };
+    __dbg.setTime(5, 17, 9); projectsTick();
+    out.kai = statueKind() === 'kai' && statueFrame() === 'statue_kai' && !!Assets.dyn.statue_kai && /KAI/.test(statueWords());
+    return out;
+  });
+  assert.deepEqual(res, { built: true, sameDay: true, offer: true, once: true, choices: true, pending: true, frasier: true, key: true, kai: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('Captain Shrimpy: washed up a week in, ten logs, ten meals, five gems, sails off, back at the pier, moves in and farms', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
   await page.reload();
@@ -2312,7 +2385,7 @@ test('Captain Scampi: washed up a week in, ten logs, ten meals, five gems, sails
       const land = W0.lots.land_a, sign = W0.props.findIndex(p => p.kind === 'sign_land' && p.x >= land.x && p.x < land.x + land.w && p.y >= land.y && p.y < land.y + land.h);
       out.movedIn = [seaStage(), NEIGHBORS.includes('scampi'), !!W0.buildings.h_scampi, hasSpecial('friend_scampi'), sign >= 0 && !ents().some(e => e.propIdx === sign)].join();
       out.letter = JSON.stringify(S.mail || []).includes('seed_pumpkin');
-      out.hello = /Captain Scampi, late of the Brine Darling/.test(await talk());
+      out.hello = /Captain Shrimpy, late of the Brine Darling/.test(await talk());
       const seg = planNow('scampi', 8);
       out.farms = !!seg && seg.spot === 'farm' && !!seg.tend;
       out.farAfter = farOk('seed_pumpkin') && RECIPE_FROM.scampi.length === 4;
@@ -2328,7 +2401,70 @@ test('Captain Scampi: washed up a week in, ten logs, ten meals, five gems, sails
   await page.close();
 });
 
-test('Mugsy: Brulee\'s letter, five pieces under an X a day, Sully mends a giant mug, it visits, stays and opens the café', async () => {
+test("Shrimpy's stall at the farm by season, a coffee with a friend at Muggy's, a cup to go on a table, their themed houses", async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play' && !G.busy);
+  const res = await page.evaluate(async () => {
+    const out = {}, say0 = UI.say, ask0 = UI.ask, answers = [];
+    UI.say = async () => {};
+    UI.ask = async () => (answers.length ? answers.shift() : -1);
+    try {
+      // Shrimpy, moved in, at the farm on a summer morning: corn seeds and the season's recipe
+      S.sea = { from: 0, stage: 9, got: {} }; seaJoin();
+      __dbg.setTime(7, 10, 8);
+      const n = NPCs.get('scampi'), off = { area: n.area };
+      n.area = 'island';
+      out.farming = seaFarming(n) && seaOptions(n).length === 1;
+      __dbg.setTime(7, 10, 12);
+      out.offDuty = seaOptions(n).length === 0;
+      __dbg.setTime(7, 10, 8);
+      S.money = 50000;
+      const before = S.money;
+      answers.push(0, 4);
+      await seaStall(n);
+      out.stall = pocketCount('seed_corn') === 1 && S.recipes.includes('grilled_corn') && S.money === before - ITEMS.seed_corn.price - SEA_RECIPE_PRICE;
+      __dbg.setTime(10, 10, 8);
+      out.autumn = SEA_STALL[Clock.season()].seeds.includes('pumpkin');
+      n.area = off.area;
+      // Muggy's: a coffee with a friend at the table, Muggy's café open
+      S.mug = { stage: 6, found: 5, day: 0, free: false }; mugJoin();
+      __dbg.setTime(5, 12, 10);
+      __dbg.enter('cafe');
+      const k = NPCs.get('kai');
+      k.area = 'cafe'; k.sleeping = false;
+      rel('kai').met = true;
+      // (the secret neighbor's card from Muggy staying, out of the way first)
+      await new Promise(r => setTimeout(r, 300));
+      UI.close(true);
+      answers.push(0);
+      const inv = cafeInvite();
+      for (let i = 0; i < 40 && !document.querySelector('#panel .row'); i++) await new Promise(r => setTimeout(r, 50));
+      [...document.querySelectorAll('#panel .row')].find(r => /Kai/.test(r.textContent)).click();
+      out.invite = (await inv) === 'kai';
+      await cafeSit('latte', 'kai');
+      out.sat = G.eatSeat == null && rel('kai').cafeDay === Clock.dayNum() && !!S.bonus && S.bonus.id === 'speed' && (rel('kai').mem || []).some(m => m.k === 'coffee');
+      // a cup to go sits on a table at home like food
+      receive('mocha', 1);
+      const d = furnDef('mocha');
+      out.furniture = !!d && d.kind === 'top' && !!d.food && Decor.owned().mocha === 1;
+      // their houses: a ship's cabin, and the dishware days
+      out.houses = ROOMS.h_scampi.layout.some(i => i[0] === 'ship_wheel') && ROOMS.h_scampi.layout.some(i => i[0] === 'anchor_deco')
+        && ROOMS.h_mug.layout.some(i => i[0] === 'teacup_chair') && ROOMS.h_mug.layout.some(i => i[0] === 'china_cabinet')
+        && ['ship_wheel', 'porthole', 'anchor_deco', 'teacup_chair', 'teapot_lamp', 'plate_rack', 'china_cabinet'].every(id => FURN[id] && Assets.dyn['f_' + id]);
+      out.names = NPC_DEFS.scampi.name === 'Shrimpy' && NPC_DEFS.mug.name === 'Muggy' && ROOMS.cafe.name === "Muggy's";
+    } finally { UI.say = say0; UI.ask = ask0; }
+    return out;
+  });
+  assert.deepEqual(res, { farming: true, offDuty: true, stall: true, autumn: true, invite: true, sat: true, furniture: true, houses: true, names: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('Muggy: Brulee\'s letter, five pieces under an X a day, Sully mends a giant mug, it visits, stays and opens the café', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
   await page.reload();
@@ -2387,14 +2523,15 @@ test('Mugsy: Brulee\'s letter, five pieces under an X a day, Sully mends a giant
       out.open = [mugStage(), NEIGHBORS.includes('mug'), !!W0.buildings.cafe, !!W0.buildings.h_mug, hasSpecial('friend_mug'),
         sign >= 0 && !isl().ents.some(e => e.propIdx === sign), lot >= 0 && !isl().ents.some(e => e.propIdx === lot)].join();
       out.mail = JSON.stringify(S.mail || []).includes('OPEN');
-      // the café: Mugsy behind the counter, the first cup free, a coffee perks Sarah up, one to go
+      // the café: Muggy behind the counter, the first cup free, a coffee perks Sarah up, one to go
       const seg = planNow('mug', 10);
       out.works = !!seg && seg.spot === 'cafe';
       await enterBuilding('cafe');
       NPCs.place(true);
       out.inside = G.area.id === 'cafe' && NPCs.get('mug').area === 'cafe';
       const m0 = S.money;
-      answers = [0, 0];
+      // (a latte, for here, just Sarah: no friend texted)
+      answers = [0, 0, 1];
       await cafeMenu();
       out.free = S.money === m0 && bonusOn('speed') && S.stats.coffees === 1;
       S.bonus = null;

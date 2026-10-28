@@ -1,12 +1,12 @@
 /* ---- 6zs_mug.js ---- */
-/* Mugsy, the living mug who opens the coffee shop (David, 27 October late). Once Sarah has given the museum twenty
+/* Muggy, the living mug who opens the coffee shop (David, 27 October late). Once Sarah has given the museum twenty
    things and the pottery hall is full of her own pots, Brulee writes to thank her, and at the museum tells of the dig
    the island had long ago: one piece of a very old pot was found, and the rest never were. From then on an X scratched
    in the ground turns up somewhere on the island each day (not dug that day, it's somewhere else the next), a piece
    under each: five in all. Brulee fetches Sully, who joins them with gold in the cracks: a giant mug, on show in the
    museum's hall for the day. The next day, the first time Sarah is out on the island, the mug comes bounding up: it was
    alive all along. It would like to stay and open the coffee shop on the alley's lot (the COMING SOON sign); the next
-   morning Mugsy's is open and the mug lives on the plot by the farm lane (land_b). A coffee at the counter, or one to
+   morning Muggy's is open and the mug lives on the plot by the farm lane (land_b). A coffee at the counter, or one to
    go, always perks Sarah up (Speedy). One of the Collection's secret neighbors.
    Kept as S.mug { stage, day, found, dug, visit, visited, free }; stage: 0 not yet, 1 Brulee's letter has come,
    2 digging, 3 all five found, 4 put together (day), 5 the visit, 6 said yes (day), 7 living here. */
@@ -15,7 +15,7 @@ ITEMS.mug_shard = { name: 'Old pottery piece', type: 'quest', price: 0, icon: 'm
 /* the café's drinks: a snack each (the price is what Fortune pays; the café's own is CAFE_MENU's) */
 const CAFE_MENU = [['latte', 'Latte', 300, 'drink_latte'], ['mocha', 'Mocha', 350, 'drink_mocha'], ['iced_coffee', 'Iced coffee', 280, 'drink_iced'], ['matcha_latte', 'Matcha latte', 380, 'drink_matcha']];
 for (const [id, name, , icon] of CAFE_MENU) ITEMS[id] = { name, type: 'snack', price: 60, icon, coffee: true };
-NPC_DEFS.mug = { name: 'Mugsy', sprite: 'mug', color: '#3a6aa8', voice: 520, wave: 'triangle', house: 'h_mug', h: 16, wake: 5.5, bed: 23, newcomer: true,
+NPC_DEFS.mug = { name: 'Muggy', sprite: 'mug', color: '#3a6aa8', voice: 520, wave: 'triangle', house: 'h_mug', h: 16, wake: 5.5, bed: 23, newcomer: true,
     fav: { plaza: 3, alley: 3, museumfront: 2, bench_museum: 2, garden: 1.5, board: 1.5, in_museum: 1, bench_e: 1 }, work: [['cafe', 6.8, 16.8]] };
 HOUSE_BASE.h_mug = { wall: '#f6eedc', roof: '#3a8a8a', trim: '#7a4a30', door: '#3a6aa8', sig: 'plants' };
 HOUSE_IDS.push('h_mug');
@@ -25,25 +25,27 @@ HOUSE_LAYOUT.mug = { wall: 'wall_cream', floor: 'floor_wood', items: [
 ROOMS.h_mug = { w: 7, h: 5, wall: 'wall_cream', floor: 'floor_wood', music: 'house', owner: 'mug', layout: HOUSE_LAYOUT.mug.items, home: [3, 2, 2] };
 ROOM_HOURS.cafe = [7, 17];
 R3_VOL.cafe = { roof: 22 };          // (in HD-2D its picture stands up as walls and a roof, like the shops)
-ROOMS.cafe = { w: 9, h: 6, wall: 'wall_cream', floor: 'floor_wood', music: 'shop', name: "Mugsy's", staff: 'mug', staffAt: [4, 0], staffStand: [4, 2], guest: [4, 3, 2],
+ROOMS.cafe = { w: 9, h: 6, wall: 'wall_cream', floor: 'floor_wood', music: 'shop', name: "Muggy's", staff: 'mug', staffAt: [4, 0], staffStand: [4, 2], guest: [4, 3, 2],
     build: a => buildCafeRoom(a),
-    closedSign: 'MUGSY\'S. Open {hours:cafe}. A note on the door: "Closed! I\'m asleep! (I\'m not asleep. I\'m at home vibrating quietly.) - Mugsy"' };
+    closedSign: 'MUGGY\'S. Open {hours:cafe}. A note on the door: "Closed! I\'m asleep! (I\'m not asleep. I\'m at home vibrating quietly.) - Muggy"' };
 WORK_MENUS.mug = { room: 'cafe', label: 'Coffee, please!', fn: () => cafeMenu() };
 TALK.mug = {
-    intro: ["Hi again! It's me! The mug! Mugsy now, officially. I made a little name tag. It fell off. I don't have a front, exactly."],
+    intro: ["Hi again! It's me! The mug! Muggy now, officially. I made a little name tag. It fell off. I don't have a front, exactly."],
     chat: [
         "Fun fact: I'm a mug. Not a cup. Cups are for tea. I'm for COFFEE. And for love. But mostly coffee.",
         "I was asleep for, like, three hundred years? In pieces? So if I talk fast it's because I have a LOT of catching up to do.",
-        "Okay, don't be weird about it, but... is it strange that everyone here is food? Mac is macaroni. MACARONI. And he's so nice!",
-        "I try not to stare at Ginger. She's a COOKIE, {name}. A cookie who builds houses! With a hammer!",
-        "Sully says I'm 'wicked old.' I prefer 'vintage.' 'Antique,' if you're feeling fancy.",
+        "Okay, don't be weird about it, but... everyone here is FOOD. Mac is macaroni. MACARONI. And he talks! And he's so nice! I don't know where to look!",
+        "Back in my day, everybody was dishware. The mayor was a gravy boat. The baker was a pie dish. There was a teapot who sang opera. Loudly. Every morning.",
+        "I try not to stare at Ginger. She's a COOKIE, {name}. A cookie who builds houses! With a hammer! In my day the cookies stayed IN the jar!",
+        "Can I ask you something? What do you HOLD? Humans, I mean. You're not food and you're not dishes. Where does the soup go?",
+        "Sully says I'm 'wicked old.' I prefer 'vintage.' 'Antique,' if you're feeling fancy. 'Heirloom,' if you love me.",
         "The gold in my cracks? Sully says where you broke, you get to be golden. I think about that a lot.",
-        "I drink my own coffee. Is that weird? It feels weird. It's delicious, though.",
-        "Being caffeinated is my natural state. Being decaf is my nightmare. I had it once. In 1720. Never again.",
-        "Fortune's a cookie with a message inside. I'm a mug with coffee inside. We're basically twins.",
+        "My best friend was a saucer named Doreen. She had a chip on her rim and no chip on her shoulder. I miss her. I hope she's in a nice cupboard somewhere.",
+        "I keep waving at the plates in Mac's kitchen. They don't wave back. I think they're just... plates? Is that rude to say? It feels rude to say.",
+        "Fortune's a cookie with a message inside. I'm a mug with coffee inside. We're basically twins. Fortune does not agree.",
         "Some nights I dream I'm back in the ground. Then I wake up and smell the beans and I'm like, nope, ALIVE, LET'S GO.",
-        "Brulee says I'm 'priceless.' Fortune says I'm 'about forty sand dollars.' I'm choosing to believe Brulee.",
-        "Clementine is an orange. A whole orange! With sunglasses! I didn't know fruit could be that cool. I'm a little jealous.",
+        "Shrimpy says I'm 'a daft cup.' I looked it up. Daft means 'charming.' (It does not mean charming.)",
+        "Clementine is an orange. A whole orange! With sunglasses! In my day fruit sat in a bowl and minded its business. I'm a little jealous.",
     ],
     rain: ["Rain! Perfect latte weather. Every weather is latte weather, but especially this one."],
     night: ["It's late. I should sleep. I won't. I had four espressos. I'm going to count the stars. All of them."],
@@ -53,10 +55,10 @@ TALK.mug = {
     likeLine: "Ooh, thank you! It's going on the shelf behind the counter where everyone can see it.",
     dislikeLine: "Oh. A... boot. I was buried for centuries next to stuff like this. Brings back memories. Muddy ones.",
     want: ['cocoa', 'sugar', 'cream', 'cherry'],
-    letter: "Hi {name}!!\nI'm writing this at the counter between customers. (There was one customer. It was Joe. He ordered a poem. I made him a latte.)\nHere's something warm for you!\n- Mugsy",
+    letter: "Hi {name}!!\nI'm writing this at the counter between customers. (There was one customer. It was Joe. He ordered a poem. I made him a latte.)\nHere's something warm for you!\n- Muggy",
     letterGift: 'latte',
 };
-defSpecial('friend_mug', 'friend', 'Mugsy', 'secret', 'The museum is missing something very old. Keep giving it things, and fill the pottery hall.', {});
+defSpecial('friend_mug', 'friend', 'Muggy', 'secret', 'The museum is missing something very old. Keep giving it things, and fill the pottery hall.', {});
 
 function mugState() {
     if (!S.mug) S.mug = { stage: 0, found: 0 };
@@ -100,9 +102,9 @@ function mugMoveIn() {
     const Q = mugState();
     Q.stage = 7; Q.home = Clock.dayNum(); Q.free = true;
     mugJoin();
-    townLog("Mugsy's, the island's coffee shop, opens on the alley. Its owner is a mug.");
-    earnSpecial('friend_mug', 'A secret neighbor: Mugsy, the living mug, stayed!');
-    sendMail({ from: 'mug', subject: "We're OPEN!!", body: "{name}!!!\nGinger finished the café at, like, 5 AM. She's a machine. A cookie machine.\nMugsy's is open! Come by for your first cup. It's on the house. Everything's on the house today. (Fortune says I can't do that every day. Fortune is no fun.)\nThank you for putting me back together.\n- Mugsy\n\nP.S. A little something to get you started.", gift: 'latte' });
+    townLog("Muggy's, the island's coffee shop, opens on the alley. Its owner is a mug.");
+    earnSpecial('friend_mug', 'A secret neighbor: Muggy, the living mug, stayed!');
+    sendMail({ from: 'mug', subject: "We're OPEN!!", body: "{name}!!!\nGinger finished the café at, like, 5 AM. She's a machine. A cookie machine.\nMuggy's is open! Come by for your first cup. It's on the house. Everything's on the house today. (Fortune says I can't do that every day. Fortune is no fun.)\nThank you for putting me back together.\n- Muggy\n\nP.S. A little something to get you started.", gift: 'latte' });
     if (typeof rebuildIsland === 'function' && G.areas && G.areas.island) rebuildIsland();
     if (typeof NPCs !== 'undefined') { Plans.reset(); NPCs.place(true); }
 }
@@ -281,7 +283,7 @@ async function mugAsk(n) {
     const k = await UI.ask('mug', "So... there's a little lot by the alley with a COMING SOON sign. What if what's coming soon... is a coffee shop? Run by a mug? Could I stay?", ['Yes! Stay!', 'Let me think'], { keep: true });
     if (k === 0) {
         await UI.say('mug', ["YESSS! Okay! I'll talk to Ginger! She can build it by tomorrow, I just know it. A cookie with a hammer. Unstoppable.",
-            "Mugsy's. That's what I'll call it. Come by tomorrow for your first cup. On the house!"]);
+            "Muggy's. That's what I'll call it. Come by tomorrow for your first cup. On the house!"]);
         Q.stage = 6; Q.day = Clock.dayNum();
         n.emote = 'heart'; n.emoteT = 90;
     } else await UI.say('mug', ["Totally fair! Big decision! I'll be by the lot, vibrating gently, if you change your mind."]);
@@ -318,7 +320,7 @@ async function cafeMenu() {
     const Q = mugState(), m = NPCs.get('mug'), here = m && !m.sleeping && m.area === 'cafe' ? 'mug' : null;
     const free = !!Q.free;
     const opts = CAFE_MENU.map(([, name, price]) => `${name} · ${free ? 'free!' : fmtNum(price)}`).concat(['Never mind']);
-    const k = await UI.ask(here, here ? (free ? "Your first cup's on the house! What'll it be?" : rpick(['What can I get you?', "Welcome to Mugsy's! What'll it be?", "The usual? I don't know what your usual is yet. Let's find out!"])) : 'The counter. A jar says "TIPS (and also payment)". Nobody is here, so it\'s the honor system.', opts, { keep: true });
+    const k = await UI.ask(here, here ? (free ? "Your first cup's on the house! What'll it be?" : rpick(['What can I get you?', "Welcome to Muggy's! What'll it be?", "The usual? I don't know what your usual is yet. Let's find out!"])) : 'The counter. A jar says "TIPS (and also payment)". Nobody is here, so it\'s the honor system.', opts, { keep: true });
     if (k < 0 || k >= CAFE_MENU.length) { if (here) await UI.say('mug', rpick(['Come back soon! The coffee misses you already.', 'Bye! Stay warm!'])); return; }
     const [id, name, price] = CAFE_MENU[k];
     if (!free && S.money < price) { await UI.say(here, here ? "Oh no, you're a little short! That's okay. Water's free. It's boring, but it's free." : 'Not enough sand dollars for that.'); return; }
@@ -326,13 +328,93 @@ async function cafeMenu() {
     if (!free) addMoney(-price, true, 'Shopping');
     Q.free = false;
     Sfx.play('item');
-    if (w === 1) { addItem(id, 1); if (here) await UI.say('mug', 'There you go! Careful, it\'s hot. Well. Warm. Okay, it\'s pleasantly warm.'); Save.touch(); return; }
-    const p = G.player;
-    p.pose = 'happy'; p.poseT = 50;
+    if (w === 1) { addItem(id, 1); if (here) await UI.say('mug', 'There you go! Careful, it\'s hot. Well. Warm. Okay, it\'s pleasantly warm. A cup to go can sit on a table at home too, if you can resist it.'); Save.touch(); return; }
+    // for here: at a table, with a friend if Sarah texts one and they come (like Mac's: 64_restaurant.js)
+    const guest = await cafeInvite();
+    await cafeSit(id, guest);
+}
+/* asking a friend to come for a coffee (David: "invite NPCs over to the coffee shop like the restaurant"): a text, as at
+   Mac's, a yes more likely the better friends they are, one ask an hour between the two */
+const CAFE_YES = {
+    _: ["Coffee? YES. I'm on my way!", "Ooh, Muggy's? Save me a seat!", 'Give me two minutes. Order me something with foam!'],
+    joe: ["Coffee with you? I'm already out the door. I put my shoes on the wrong feet. It's fine.", "On my way! I'll bring a poem. No I won't. Maybe I will."],
+    maki: ['I will arrive in six minutes. Please order me something precise.'], kai: ['Dude! Iced coffee! Paddling over. Walking over.'],
+    chili: ["Ask Muggy for the spiciest coffee. Is there spicy coffee? There is now. On my way."], coco: ["OMG yes, I have SO much to tell you. Leaving now!"],
+    cece: ["Me? Yes! Sorry! I mean, yes! I'll bring a cheesecake!"], sully: ["Coffee? Wicked. Comin', kid."], brulee: ['Un café! Magnifique. I am bringing my scarf.'],
+    scampi: ["Coffee? Bah. Fine. If it's strong enough to float a doubloon, I'm in."],
+};
+const CAFE_NO = {
+    _: ["Aw, I can't right now! Next time?", "I just had one! Any more and I'll vibrate. Next time!", "Ahh, I'm busy! Save me a sip?"],
+    kai: ["Can't, dude. Mid-nap. Big one."], cuke: ['No caffeine for me! I am naturally this energetic! Next time I will have a water!'],
+    scampi: ["Can't, matey. Tide's in and so am I. Next time."],
+};
+const CAFE_TALK = {
+    _: ['This is so nice. Coffee and a friend. Two of the best things.', "Muggy makes the best foam. Don't tell Mac I said 'best.'", 'Thanks for inviting me! The cups here are so big. Muggy says they\'re normal. Muggy is a mug.'],
+    joe: ["This is nice. Coffee. With you. At a little round table. (Joe stirs his coffee for a very long time.)"], maki: ['The cup is exactly level. Muggy understands me.'],
+    sully: ["Good coffee, kid. Not as good as the stuff back home. Don't tell the mug."], scampi: ["Hmph. Not bad. For bean water. ...Don't tell the mug I said 'not bad.'"],
+    brulee: ['Ahh, this is how a café should feel. Thank you, ma chère.'], kai: ['Dude. Coffee buddies. This rules.'],
+};
+async function cafeInvite() {
+    const now = Clock.island().getTime();
+    if (!inviteList().length || (S.inviteAt && now - S.inviteAt < 3600e3 && now >= S.inviteAt)) return null;
+    const k = await UI.ask(null, 'Have it with someone? Sarah could text a friend to come for a coffee.', ['Text a friend', 'Just me']);
+    if (k !== 0) return null;
+    UI.hideDialog();
+    const id = await pickInvitee();
+    if (!id) return null;
+    S.inviteAt = now;
+    S.stats.invites = (S.stats.invites || 0) + 1;
+    const d = NPC_DEFS[id], n = NPCs.get(id), st = n && n.area === 'cafe' && !n.sleeping ? 'here' : inviteStatus(id), log = textsOf(id), ask = "Want to get a coffee at Muggy's? I'm here now!";
+    log.push({ me: true, t: ask, day: Clock.dayNum(), at: Date.now() });
+    Sfx.ui('tick');
+    await waitFrames(30);
+    let yes = false, line;
+    if (st === 'asleep') { log.push({ sys: true, t: `Delivered. ${d.name} is asleep.`, day: Clock.dayNum(), at: Date.now() }); Save.touch(); await UI.say(null, `No answer. ${d.name} must be asleep. Sarah has her coffee by herself, and that's nice too.`); return null; }
+    if (id === 'joe' && st !== 'working') { yes = true; line = rpick(CAFE_YES.joe); }
+    else if (st === 'here') { yes = true; line = "I'm already at Muggy's! Look over! Hi!"; }
+    else if (st === 'working') { const seg = planNow(id, dayHour()); line = `I'm working${seg ? ' until ' + roundTime(seg.b) : ''}! Rain check?`; }
+    else { yes = R() < [0.3, 0.45, 0.6, 0.72, 0.85, 0.95][hearts(id)] + (bonusCharm() ? 0.1 : 0); line = rpick(yes ? CAFE_YES[id] || CAFE_YES._ : CAFE_NO[id] || CAFE_NO._); }
+    line = fillText(voiced(id, line));
+    log.push({ me: false, t: line, day: Clock.dayNum(), at: Date.now() });
+    if (log.length > 40) log.splice(0, log.length - 40);
+    Save.touch();
+    Sfx.ui('ok');
+    await UI.say(null, [`Sarah texts ${d.name}: "${ask}"`, `${d.name}: "${line}"`]);
+    if (!yes) { await UI.say(null, 'Oh well. Sarah has her coffee by herself, and that\'s nice too.'); return null; }
+    if (st !== 'here') await UI.say(null, `Sarah waits a few minutes. Then the bell over the door jingles, and there's ${d.name}!`);
+    return id;
+}
+/* Sarah's coffee at the little table by the window, and her friend across it */
+async function cafeSit(id, guestId) {
+    const p = G.player, [sx, sy] = toArea(0, 3), [gx, gy] = toArea(2, 3);
+    UI.hideDialog();
+    await fadeTo(async () => {
+        p.x = (sx + 0.5) * TILE; p.y = (sy + 0.5) * TILE + 4; p.dir = 'right'; G.eatSeat = 'cafe'; G.eatDish = id;
+        const n = guestId && NPCs.get(guestId);
+        if (n) {
+            const dh = dayHour();
+            S.invite = { id: guestId, day: Clock.dayNum(), a: dh - 0.02, b: dh + 0.8, place: 'cafe' };
+            delete Plans.cache[guestId];
+            const want = targetFor(n, dh);
+            Object.assign(want, { area: 'cafe', x: (gx + 0.5) * TILE, y: (gy + 0.5) * TILE + 4, fixed: true, face: 'left', seat: true, anchor: null });
+            moveTo(n, want, true);
+        }
+    });
+    const guest = guestId ? NPCs.get(guestId) : null, m = NPCs.get('mug'), here = m && !m.sleeping && m.area === 'cafe';
     Sfx.play('eat');
     S.stats.coffees = (S.stats.coffees || 0) + 1;
+    await UI.say(null, rpick([`Sarah wraps her hands round the ${itemName(id).toLowerCase()}. It's warm all the way through.`, 'Sarah takes a sip. Then a bigger one. The café hums along around her.']));
     coffeeBoost();
-    if (here) await UI.say('mug', rpick(["How is it? Don't answer. I can tell. It's GREAT.", "Feel that? That's the zoomies. You've got the zoomies now.", 'Perfect! Now go do eleven things at once.']));
+    if (guest) {
+        const r = rel(guest.id), day = Clock.dayNum();
+        guest.emote = 'heart'; guest.emoteT = 70;
+        await UI.say(guest.id, voiced(guest.id, rpick(CAFE_TALK[guest.id] || CAFE_TALK._)));
+        let pts = 0;
+        if (r.met && r.cafeDay !== day) { r.cafeDay = day; pts += 4; }
+        if (pts && guest.id !== 'joe') { const up = addPts(guest.id, pts); if (up) await heartUp(guest, up); }
+        remember(guest.id, 'coffee');
+    } else if (here) await UI.say('mug', rpick(["How is it? Don't answer. I can tell. It's GREAT.", "Feel that? That's the zoomies. You've got the zoomies now.", 'Perfect! Now go do eleven things at once.']));
+    await fadeTo(async () => { G.eatSeat = null; G.eatDish = null; const [dx, dy] = toArea(4, 4); p.x = (dx + 0.5) * TILE; p.y = (dy + 0.5) * TILE + 4; p.dir = 'down'; });
     Save.touch();
 }
 /* a coffee always perks Sarah up (6q_world.js's Speedy) */

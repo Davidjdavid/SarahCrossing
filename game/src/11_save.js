@@ -318,6 +318,20 @@ function migrate(st) {
     // the seafarer washes up a week after an island first loads with him in it (a new one: a week after it begins), so an
     // older island brought in waits its week too (6zr_seafarer.js)
     if (!st.sea) st.sea = { from: st.started ? Clock.dayNum() : (st.startDay || Clock.dayNum()), stage: 0, got: {} };
+    // Fortune's shop grows when Fortune says so, the first time a week after the island first loads with this in it (a
+    // new one: a week after it begins); the town project for the Department Store is gone, so what was paid toward it
+    // comes back and one already paid off is built (6z_shops.js)
+    if (!st.shops || typeof st.shops !== 'object') st.shops = {};
+    if (!st.shops.shop) st.shops.shop = { spent: 0, level: 1 };
+    if (st.shops.shop.since == null) st.shops.shop.since = st.started ? Clock.dayNum() : (st.startDay || Clock.dayNum());
+    const PJ = st.town && st.town.proj;
+    if (PJ && PJ.paid && PJ.paid.store != null) {
+        if (PJ.done && PJ.done.store != null) st.shops.shop.level = Math.max(st.shops.shop.level || 1, 4);
+        else st.money = (st.money || 0) + PJ.paid.store;
+        delete PJ.paid.store;
+        if (PJ.done) delete PJ.done.store;
+        if (PJ.told) delete PJ.told.store;
+    }
     return st;
 }
 

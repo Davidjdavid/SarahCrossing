@@ -111,7 +111,7 @@ function bonusSpeed() { return bonusOn('speed') ? 1.3 : 1; }
    anything else gives one 1 time in 10, and only when she has none */
 async function foodBonus(it, fresh) {
     if (!it || !['dish', 'fruit', 'snack'].includes(it.type)) return;
-    // (a coffee from Mugsy's always perks Sarah up: 6zs_mug.js)
+    // (a coffee from Muggy's always perks Sarah up: 6zs_mug.js)
     if (it.coffee) { coffeeBoost(); return; }
     const active = S.bonus && Date.now() < S.bonus.until;
     if (!fresh && (active || R() >= 0.1)) return;

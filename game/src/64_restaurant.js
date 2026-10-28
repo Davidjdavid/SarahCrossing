@@ -286,7 +286,7 @@ function seatGuest(id, slot) {
 }
 function inviteOverride(id, day) {
     const v = S && S.invite;
-    return v && v.id === id && v.day === day ? [['in_restaurant', v.a, v.b]] : null;
+    return v && v.id === id && v.day === day ? [['in_' + (v.place || 'restaurant'), v.a, v.b]] : null;
 }
 const DINE_TALK = {
     _: ['Oh, hi! Eat with me! Everything is better with company. Especially dessert.', "Mac's is the best. I come here more than I cook. I don't cook."],

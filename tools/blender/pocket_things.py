@@ -657,7 +657,7 @@ def veg_item(kind):
             tube(mb, [(-0.12, y * 0.5, 0.02), (-0.02, y, 0.024)], 0.016, shade('#e8f4d0'), seg=6, r1=0.012)
             ball(mb, (0.06, y * 2.2, 0.026), (0.08, 0.026, 0.016), shade('#3a8a34'), sub=2)
     elif kind == 'pumpkin':
-        # (Captain Scampi's far-island seeds) ribbed and squat, a curly stem
+        # (Captain Shrimpy's far-island seeds) ribbed and squat, a curly stem
         rib = lambda p, n: rgb('#f28a2a').lerp(rgb('#c8601a'), 0.6 * (0.5 + 0.5 * math.cos(math.atan2(p.y, p.x) * 8)) ** 6) * (0.84 + 0.16 * max(0.0, n.z))
         ball(shine, (0, 0, 0.05), (0.075, 0.075, 0.05), rib, sub=3)
         tube(mb, [(0, 0, 0.09), (0.006, 0.0, 0.115), (0.018, 0.004, 0.125)], 0.009, shade('#5a7a2a'), seg=6, r1=0.006)

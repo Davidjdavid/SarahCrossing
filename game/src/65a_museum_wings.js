@@ -514,9 +514,18 @@ function buildHistoryWing(a) {
         e.draw = ctx => drawCase(ctx, e, found ? H.item : null);
         e.look3d = { showcase: found ? H.item : null };
         e.hit = { x: x * TILE, y: y * TILE - 14, w: TILE, h: TILE + 14 };
-        e.interact = () => (found ? UI.say(null, [`${QUEST_INFO[H.q] ? QUEST_INFO[H.q].title : itemName(H.item)}.`, H.text]) : UI.say(null, 'An empty glass case. Its card says: "Still a mystery." Somewhere on the island, something is waiting to be found.'));
+        e.interact = () => (found ? historyCase(H) : UI.say(null, 'An empty glass case. Its card says: "Still a mystery." Somewhere on the island, something is waiting to be found.'));
         a.block(x, y, 1);
     }
+}
+/* a case looked into (David, 27 October late): what's in it, big (turning, where its model has loaded: Showcase), with its
+   card */
+function historyCase(H) {
+    const P = UI.open({ title: QUEST_INFO[H.q] ? QUEST_INFO[H.q].title : itemName(H.item) });
+    const stage = el('div', 'showcase');
+    P.body.appendChild(stage);
+    if (!Showcase.show(stage, H.item)) stage.appendChild(showcasePicture(H.item));
+    P.body.appendChild(el('p', 'sc-card', H.text));
 }
 function drawCase(ctx, e, item) {
     const x = Math.round(e.x), by = Math.round(e.y) + 1;

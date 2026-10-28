@@ -66,6 +66,8 @@ async function civicCounter(id) {
         await UI.say('floret', rpick(['The Cozy Council welcomes you to the Town Hall. State your business. Slowly. We are broccoli.',
             'Ah, a resident! The Council is in session. The Council is always in session. The Council lives here.']), { keep: true });
         await UI.say('sprout', rpick(["Hi! The forms are new! I helped! I mostly watched!", "Everything at the desk is brand new. Don't tell Dame Stalk I tried the stamp."]));
+        // (the day after Sarah's statue goes up: well done, and a new one whenever she likes, 6zgc_statue.js)
+        if (await statueCongrats()) { UI.hideDialog(); civicScreen('statue', null, () => civicMenu('townhall')); return; }
     } else {
         await UI.say(null, id === 'bank' ? 'The teller\'s window has a little bell and a card: "BACK SOON. The screens work, though. Mostly. Pretend there are sand dollars." Nobody has been hired yet.'
             : 'There is a bell on the counter and a card: "BACK SOON. Ring for service. Or look at the forms. The forms are very nice." Nobody has been hired yet.');

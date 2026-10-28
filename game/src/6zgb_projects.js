@@ -1,12 +1,12 @@
 /* ---- 6zgb_projects.js ---- */
 /* The town's projects (David, 27 October late), paid for at the Town Hall like Animal Crossing's public works: a swing
    set on the village green, a hammock on the beach, a park clock by the square, a stone tablet on the mountain top,
-   restoring the lighthouse (its door boarded up till then; restoring it opens the old keeper's story), a bigger store
-   for Fortune, and last and dearest, a statue of Sarah. Sand dollars go in a little at a time, to any project; once one's
-   paid off, the Cozy Council has it built overnight (it's there the next morning, with a letter). Where each stands is in
-   the plan (scripts/island/plan.mjs projects, W0.projects), its prop in W0.props with `project`: left off the island
-   until it's built, and nothing can be put on its tiles before then (projectTile). Kept as S.town.proj
-   { paid: { id: n }, done: { id: day it's there } }. */
+   restoring the lighthouse (its door boarded up till then; restoring it opens the old keeper's story), and last and
+   dearest, a statue of Sarah (Fortune's bigger store was one too, till Fortune took it on: 6z_shops.js). Sand dollars
+   go in a little at a time, to any project; once one's paid off, the Cozy Council has it built overnight (it's there
+   the next morning, with a letter). Where each stands is in the plan (scripts/island/plan.mjs projects, W0.projects),
+   its prop in W0.props with `project`: left off the island until it's built, and nothing can be put on its tiles before
+   then (projectTile). Kept as S.town.proj { paid: { id: n }, done: { id: day it's there } }. */
 const PROJECTS = [
     { id: 'swings', name: 'A swing set', cost: 30000, where: 'on the village green', icon: 'app_map',
         blurb: 'Two swings on a wooden frame. Swinging is free forever. The Council checked.' },
@@ -18,8 +18,6 @@ const PROJECTS = [
         blurb: 'Pry off the boards, fix the stairs, polish the lamp room. Some say someone still climbs up there at night.' },
     { id: 'shrine', name: 'A stone tablet on the mountain top', cost: 80000, where: 'at the summit', icon: 'app_map',
         blurb: 'An old carved stone with a lantern each side. Make a wish there once a day.' },
-    { id: 'store', name: 'A bigger store for Fortune', cost: 200000, where: "Fortune's shop", icon: 'app_shop',
-        blurb: "Fortune's Emporium becomes the Department Store: a bigger shop with more of everything." },
     { id: 'statue', name: 'A statue of Sarah', cost: 500000, where: 'on the square', icon: 'app_camera', last: true,
         blurb: 'The town\'s last and grandest project: the island says thank you, in bronze.' },
 ];
@@ -38,11 +36,10 @@ function projectBuilt(id) {
 }
 function lighthouseGrandfathered() { return !!(S && S.quests && ((S.quests.ghost && (S.quests.ghost.stage || S.quests.ghost.done)) || (S.quests.star && S.quests.star.stage))); }
 function projectPaid(id) { return (S && S.town && S.town.proj && S.town.proj.paid[id]) || 0; }
-/* can a project be paid into yet: the statue waits for all the others, the store for Fortune's shop to have grown twice */
+/* can a project be paid into yet: the statue waits for all the others */
 function projectOpen(p) {
     if (projectBuilt(p.id) || (S.town && S.town.proj && S.town.proj.done[p.id] != null)) return false;
     if (p.last) return PROJECTS.every(q => q.last || projectBuilt(q.id));
-    if (p.id === 'store') return shopLevel('shop') >= 3;
     return true;
 }
 function lighthouseOpen() { return projectBuilt('lighthouse'); }
@@ -52,7 +49,7 @@ function projectTile(tx, ty) {
     return null;
 }
 /* a key of what's built, for the new look's island (Env.look) */
-function projectsKey() { return PROJECTS.filter(p => projectBuilt(p.id)).map(p => p.id).join(); }
+function projectsKey() { return PROJECTS.filter(p => projectBuilt(p.id)).map(p => p.id).join() + (projectBuilt('statue') ? ':' + statueKind() : ''); }
 /* paying in: n sand dollars toward a project (the rest of it at most) */
 function projectPay(id, n) {
     const p = PROJECTS.find(q => q.id === id), P = projState();
@@ -78,8 +75,9 @@ function projectsTick() {
         P.told[p.id] = day;
         townLog(PROJECT_DONE_LOG[p.id]);
         sendMail({ from: 'floret', subject: `${p.name}: finished!`, body: PROJECT_MAIL[p.id] });
-        if (p.id === 'store') { const s = shopState('shop'); s.level = 4; s.grand = 4; s.gift = day; }
+        if (p.id === 'statue') statueState().spec = hdSarahSpec();
     }
+    statueTick();
     projectsRefresh();
 }
 /* put up on the island whatever's been built and isn't there yet (and the new look builds the island again) */
@@ -97,7 +95,7 @@ function projectsRefresh() {
 const PROJECT_DONE_LOG = {
     swings: 'A swing set goes up on the village green.', hammock: 'A hammock is hung on the west beach.', clock: 'The park clock starts ticking by the square.',
     lighthouse: 'The old lighthouse is restored. The boards come off its door.', shrine: 'A stone tablet is raised on the mountain top.',
-    store: "Fortune's shop becomes the Department Store.", statue: 'A statue of Sarah is unveiled on the square.',
+    statue: 'A statue of Sarah is unveiled on the square.',
 };
 const PROJECT_MAIL = {
     swings: 'Dear resident,\nThe swing set on the village green is finished. The Council tested both swings. Dame Stalk went very high. We do not discuss it.\nSwing freely.\n- Sir Floret, for the Cozy Council',
@@ -105,7 +103,6 @@ const PROJECT_MAIL = {
     clock: 'Dear resident,\nThe park clock by the square is ticking. It is never wrong. It is the most reliable member of the Council now.\n- Sir Floret, for the Cozy Council',
     lighthouse: "Dear resident,\nThe boards are off the old lighthouse door, the stairs are mended and the lamp room is swept. The workers did say they heard footsteps on the stairs at night, when nobody was there.\nThe Council is sure it is nothing. Mostly sure. You should go and look. Around midnight, perhaps.\n- Sir Floret, for the Cozy Council",
     shrine: 'Dear resident,\nThe stone tablet stands on the mountain top, with a lantern each side. The old carving on it is older than anyone can read. Make a wish there once a day; the Council does, and our wishes have mostly been about soup.\n- Sir Floret, for the Cozy Council',
-    store: "Dear resident,\nFortune's shop is bigger than ever: the Department Store, with more of everything. Fortune cried a little. Then sold the Council a lamp.\n- Sir Floret, for the Cozy Council",
     statue: 'Dear resident,\nThere is a statue on the square now. Of you. The whole island chipped in, and so did you (a lot).\nThank you for making this place home. Go and see. Try not to wave at it. Everyone waves at it.\n- Sir Floret, Dame Stalk and Sprout, the Cozy Council',
 };
 
@@ -126,7 +123,7 @@ CIVIC_LIVE.projects = {
         for (const p of PROJECTS) {
             const built = projectBuilt(p.id), soon = !built && P.done[p.id] != null, open = projectOpen(p), paid = P.paid[p.id] || 0;
             const sub = built ? `Built ${p.where}.` : soon ? 'Paid for! Built by tomorrow morning.'
-                : !open ? (p.last ? 'Once every other project is built.' : p.id === 'store' ? "Once Fortune's shop has grown twice." : '')
+                : !open ? (p.last ? 'Once every other project is built.' : '')
                     : `${fmtNum(paid)} of ${fmtNum(p.cost)} sand dollars, ${p.where}`;
             const tag = built ? el('span', 'cv-pill ok', 'Built') : soon ? el('span', 'cv-pill ok', 'Tomorrow') : !open ? el('span', 'cv-pill', 'Later') : el('span', 'cv-pill', `${Math.floor(paid / p.cost * 100)}%`);
             const r = CV.row(l, p.icon, p.name, sub, tag, open ? () => { this.pick = p.id; redraw(); } : null);
@@ -155,7 +152,8 @@ async function boardedLighthouse() {
 }
 
 /* ---------------------------------------------------------------- the projects, once built */
-/* the swings: Sarah sits on one and swings for a while (the seats in the new look swing with her: EnvBuild, Projects.swing) */
+/* the swings: Sarah sits on one and swings for a while, kicking her legs out (the seats in the new look swing with her:
+   EnvBuild, Projects.swing; her doll swings with them, EnvDolls.pose2), nothing said (David, 27 October late) */
 const Projects = {
     swing: null,
     async swingOn(e) {
@@ -166,27 +164,36 @@ const Projects = {
         p.path = null; p.x = seat * TILE; p.y = (e.py + 0.6) * TILE; p.dir = 'down';
         const y0 = p.y;
         p.pose = 'sit'; p.poseT = 9999;
-        this.swing = { t: 0, amp: 0 };
-        // (the line shows while she swings, and goes when she stops)
-        UI.say(null, rpick(['Sarah swings higher and higher. The whole island tips back and forth.', 'Wheee! Up over the treetops, down past the grass, up again.', 'Sarah swings, and for a minute she is eight years old.']), { keep: true, noWait: true });
+        this.swing = { t: 0, amp: 0, e, sx: seat - (e.px + 1.5) };
         for (let i = 0; i < 260; i++) {
             const s = this.swing;
             s.t++; s.amp = i < 200 ? Math.min(0.55, s.amp + 0.006) : Math.max(0, s.amp - 0.012);
             const th = Math.sin(s.t / 22) * s.amp;
-            p.y = y0 + Math.sin(th) * 1.3 * TILE * 0.5; p.hop = (1 - Math.cos(th)) * 1.3 * TILE * 0.6;
+            // (the seat swings back, north, as th grows: EnvBuild's seats)
+            p.y = y0 - Math.sin(th) * 1.3 * TILE * 0.5; p.hop = (1 - Math.cos(th)) * 1.3 * TILE * 0.6;
             await waitFrames(1);
         }
-        UI.hideDialog();
         p.y = y0 + TILE * 0.6; p.hop = 0; p.pose = null; p.poseT = 0;
         this.swing = null;
         G.busy = Math.max(0, G.busy - 1);
     },
-    async hammock() {
+    /* the hammock: Sarah lies down in it (her doll along the cloth in the new look: p.lie, EnvDolls.pose2) until the line
+       is read, then gets up where she was */
+    async hammock(e) {
         const p = G.player;
-        p.emote = 'zzz'; p.emoteT = 120;
+        if (G.busy) return;
+        G.busy++;
+        const [x0, y0, d0] = [p.x, p.y, p.dir];
+        p.path = null; p.x = (e.px + 1.5) * TILE; p.y = (e.py + 0.5) * TILE; p.dir = 'down';
+        p.pose = 'sit'; p.poseT = 9999; p.lie = e;
+        p.emote = 'zzz'; p.emoteT = 160;
+        await waitFrames(30);
         await UI.say(null, rpick(['Sarah climbs into the hammock and sways. The waves go hush, hush. A gull says something rude. She doesn\'t mind.',
             'The hammock rocks. The sun is warm. Sarah closes her eyes for just a second. ...A whole minute goes by. Lovely.',
             'Sarah lies back in the hammock and watches the clouds go over. That one is a dumpling. That one is also a dumpling.']));
+        p.lie = null; p.pose = null; p.poseT = 0;
+        p.x = x0; p.y = y0; p.dir = d0;
+        G.busy = Math.max(0, G.busy - 1);
     },
     async clock() {
         const d = Clock.dayDate();
@@ -208,18 +215,15 @@ const Projects = {
         else await UI.say(null, rpick(['Sarah wishes. The wind picks up, then settles, warm. It feels like a yes.', 'Sarah wishes. A butterfly lands on the stone for a moment, then floats off down the mountain.',
             'Sarah wishes. Somewhere far below, a neighbor laughs. Good sign.']));
     },
-    async statue() {
-        const days = daysPlayed();
-        await UI.say(null, `A bronze statue of Sarah on a tall stone plinth, flowers round its foot. The brass plaque says: "SARAH. Who came to ${S.islandName || 'the island'} and made it home. With love from everyone here, after ${fmtNum(days)} ${days === 1 ? 'day' : 'days'} of her."`);
-    },
+    async statue() { await UI.say(null, statueWords()); },
 };
 /* the projects' props, once built: how they're used (added to the island by addProp) */
 function projectProp(e, p) {
     if (p.kind === 'swing_set') e.interact = () => Projects.swingOn(e);
-    else if (p.kind === 'hammock') e.interact = () => Projects.hammock();
+    else if (p.kind === 'hammock') e.interact = () => Projects.hammock(e);
     else if (p.kind === 'park_clock') { e.interact = () => Projects.clock(); e.hit = { x: p.x * TILE, y: p.y * TILE - 40, w: TILE, h: TILE + 40 }; }
     else if (p.kind === 'shrine_stone') { e.interact = () => Projects.shrine(); e.light = { r: 20, y: -10 }; }
-    else if (p.kind === 'statue_sarah') { e.interact = () => Projects.statue(); e.hit = { x: p.x * TILE, y: p.y * TILE - 40, w: 2 * TILE, h: 2 * TILE + 40 }; }
+    else if (p.kind === 'statue_sarah') { e.frame = statueFrame(); e.interact = () => Projects.statue(); e.hit = { x: p.x * TILE, y: p.y * TILE - 40, w: 2 * TILE, h: 2 * TILE + 40 }; }
 }
 
 /* ---------------------------------------------------------------- their pictures in the flat views (2D, classic) */

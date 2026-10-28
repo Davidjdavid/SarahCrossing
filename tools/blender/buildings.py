@@ -1,6 +1,6 @@
 """The island's other buildings as dollhouse pieces, after their pictures in the game: the post office, the bank and the
 town hall on the square, the museum, Clementine's boutique, Floss & Gloss, Sully's studio, Waffle's displays, Mac's
-restaurant, the arcade, the club, Ginger's workshop, the lighthouse, the barn and Mugsy's café. Each is a finished piece (its colors
+restaurant, the arcade, the club, Ginger's workshop, the lighthouse, the barn and Muggy's café. Each is a finished piece (its colors
 are its own), built from the kit: walls with corner boards and a frieze, framed windows with flower boxes, doors, roofs
 of shingle courses (gable, hipped, mansard, gambrel), columns and pediments, awnings, neon, its name on its sign.
 A part named *_glow (neon) is drawn unlit; *_glass glows at night.
@@ -814,7 +814,7 @@ def barn():
 
 
 def cafe():
-    """Mugsy's, the coffee shop the living mug opens on the alley's lot (6zs_mug.js): cream walls, a striped awning, a
+    """Muggy's, the coffee shop the living mug opens on the alley's lot (6zs_mug.js): cream walls, a striped awning, a
     big steaming cup on the roof, two little tables out front and a chalkboard by the door"""
     def deco(mb, gl, W, D, H, y0):
         # the cup on the roof: cream with a blue band, a handle, coffee in it and a curl of steam
@@ -865,7 +865,7 @@ def cafe():
         # a planter of herbs under the window
         rbox(mb, -1.6, y0 - 0.3, 0, -0.95, y0 - 0.02, 0.24, col_fn('#8a5a34', grain='x'), r=0.02)
         bush_by(mb, -1.28, y0 - 0.16, r=0.15, c='#5aa846', flowers=('#ffffff', '#f6c8d8'), seed=11, z=0.2)
-    return shopfront(3.5, 2.6, 1.8, '#f6ecd8', '#3a8a8a', "MUGSY'S", '#fff8ec', roof=('front', '#7a4a30', 0.95), aw=('#7a4a30', '#f6eedc'),
+    return shopfront(3.5, 2.6, 1.8, '#f6ecd8', '#3a8a8a', "MUGGY'S", '#fff8ec', roof=('front', '#7a4a30', 0.95), aw=('#7a4a30', '#f6eedc'),
                      deco=deco, door_x=0.5, wins=(-0.85,), box=('#f4f0e6', '#f6c8d8', '#ffffff'), sign_c='#3a8a8a', sign_b='#fff8ec', trim='#fbf6ec')
 
 

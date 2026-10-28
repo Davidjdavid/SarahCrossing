@@ -419,6 +419,8 @@ function render() {
         Online.update();
         Bubbles.update();
         BigMap.tick();
+        // (a photo of the 3D view is taken now, while this frame's picture is still there to read: 55_photo.js)
+        if (Photo.grab) Photo.grab();
         return;
     }
     R3.show(false);

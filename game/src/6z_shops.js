@@ -1,12 +1,16 @@
 /* ---- 6z_shops.js ---- */
-/* The shops grow. Fortune's Goods and Clementine's each move up twice, once Sarah has played enough days and spent
-   enough there: a letter, a day closed for the work, then a grand reopening with a bigger shop, more stock, a daily
-   sale, longer hours and (at the top) a weekly treat. Only Sarah's shopping counts (the island is hers). */
+/* The shops grow. Clementine's moves up twice, once Sarah has played enough days and spent enough there: a letter, a
+   day closed for the work, then a grand reopening with a bigger shop, more stock, a daily sale, longer hours. Fortune's
+   grows three times, up to the Department Store, when Fortune says so (David, 27 October late: not from the start): the
+   first a week after the island first loads (a new one, or a save brought in: shopState('shop').since), the others once
+   more days have gone by and enough's been spent; the next time Sarah talks to Fortune they've just put the order in
+   (shopOrderTalk), the shop's closed the next day for the work and open bigger the day after. Only Sarah's shopping
+   counts (the island is hers). */
 const SHOP_UP = {
     shop: {
-        // (the fourth, the Department Store, comes from the town's project: 6zgb_projects.js)
+        // (days counted from since)
         owner: 'fortune', names: ["Fortune's Goods", "Fortune's Goods & More", "Fortune's Emporium", "Fortune's Department Store"],
-        need: [null, { days: 7, spent: 20000 }, { days: 20, spent: 80000 }],
+        need: [null, { days: 7, spent: 0 }, { days: 20, spent: 80000 }, { days: 35, spent: 200000 }],
         hours: [[8, 22], [7, 23], [6, 24], [6, 24]], size: [[15, 7], [19, 7], [19, 9], [23, 9]],
         furn: [5, 7, 9, 12], walls: [1, 2, 2, 3], floors: [1, 2, 2, 3],
         perks: [null,
@@ -29,6 +33,7 @@ const SALE_OFF = { shop: 0.3, boutique: 0.25 }, WEEK_OFF = 0.15;
 function shopState(id) {
     if (!S.shops) S.shops = {};
     if (!S.shops[id]) S.shops[id] = { spent: 0, level: 1 };
+    if (id === 'shop' && S.shops[id].since == null) S.shops[id].since = Clock.dayNum();
     return S.shops[id];
 }
 function shopLevel(id) { return SHOP_UP[id] ? Math.max(1, Math.min(SHOP_UP[id].names.length, shopState(id).level || 1)) : 1; }
@@ -98,16 +103,36 @@ function shopsTick() {
     for (const id of Object.keys(SHOP_UP)) {
         const U = SHOP_UP[id], s = shopState(id);
         if (s.reno != null && day > s.reno) {
-            s.level = Math.min(3, (s.level || 1) + 1); s.reno = null; s.grand = s.level; s.gift = day;
+            s.level = Math.min(U.names.length, (s.level || 1) + 1); s.reno = null; s.grand = s.level; s.gift = day;
             townLog(`${shopName(id)} reopens, bigger.`);
             sendMail({ from: U.owner, subject: `${U.names[s.level - 1]} is OPEN`, body: REOPEN_MAIL[id](s.level) });
             continue;
         }
         const lv = s.level || 1, need = U.need[lv];
-        if (s.reno != null || !need || daysPlayed() < need.days || s.spent < need.spent) continue;
+        if (s.reno != null || !need || s.spent < need.spent) continue;
+        // (Fortune's: ready for Fortune to bring up, next time they talk)
+        if (id === 'shop') { if (day - s.since >= need.days) s.offer = true; continue; }
+        if (daysPlayed() < need.days) continue;
         s.reno = day + 1;
         sendMail({ from: U.owner, subject: RENO_MAIL[id].subject, body: RENO_MAIL[id].body(U.names[lv]) });
     }
+}
+/* Fortune, the first time they talk once the shop's ready to grow: the order's in, closed tomorrow, bigger the day after */
+async function shopOrderTalk() {
+    const s = shopState('shop'), U = SHOP_UP.shop;
+    if (!s.offer || s.reno != null || Online.visitor() || shopLevel('shop') >= U.names.length) return;
+    s.offer = false;
+    s.reno = Clock.dayNum() + 1;
+    Save.touch();
+    townLog(`Fortune orders a bigger shop: ${U.names[shopLevel('shop')]}.`);
+    const lines = shopLevel('shop') === 1
+        ? ["Oh! Before I forget. I just put the order in for a bigger shop! Business is booming, and most of the boom is you.",
+            "Ginger's coming tomorrow with a lot of wood and a lot of opinions, so the shop's closed all day tomorrow.",
+            `The day after, come see ${U.names[1]}. There might be a gift. There will definitely be a gift.`]
+        : [`Big news! I just put in the order for ${U.names[shopLevel('shop')]}. The cookie said "expand." I listened. Again.`,
+            "So the shop's closed tomorrow while Ginger knocks a wall or two out. Gently. Mostly gently.",
+            'Come by the day after! Grand reopening, a gift on the house, the whole thing.'];
+    await UI.say('fortune', lines, { keep: true });
 }
 const RENO_MAIL = {
     shop: { subject: 'Big news! (Shop closed tomorrow)', body: next => `Hello hello!\nBusiness is BOOMING, and most of the boom is you. So: the shop is growing!\nGinger is coming tomorrow with a lot of wood and a lot of opinions, so Fortune's Goods is closed all day tomorrow.\nThe day after, come see ${next}. There might be a gift. There will definitely be a gift.\n- Fortune\n\nP.S. Today's cookie said "expand." I listened.` },

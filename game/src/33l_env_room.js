@@ -536,7 +536,7 @@ const EnvRoom = {
             const bid = e.def.base || e.item.id, n = this.model(e), left = e.x - P.ax, top = e.y - P.ay, sq = this.ROUND.has(bid) ? Math.sqrt(k) : 0;
             // (the gilt frame borrowed by another painting: fitted to that picture)
             const fx = n === 'furn_' + bid ? 1 : P.w / TILE / 2, fy = n === 'furn_' + bid ? 1 : P.h / TILE / 1.625;
-            const m = new THREE.Matrix4().makeTranslation((left + P.w / 2) / TILE, H * (1 - (top + P.h / 2) / wallPx), z0 + 0.01);
+            const m = new THREE.Matrix4().makeTranslation((left + P.w / 2) / TILE, this.hangY(bid, H * (1 - (top + P.h / 2) / wallPx), P.h / TILE * (sq || k)), z0 + 0.01);
             m.multiply(new THREE.Matrix4().makeScale((e.flip ? -1 : 1) * (sq || 1) * fx, (sq || k) * fy, sq || 1));
             this.parts(g, e, n, m, P);
             B.placed.add(e);
@@ -548,7 +548,7 @@ const EnvRoom = {
                 // where its picture was on the back wall's picture, standing a little off the wall
                 const left = e.x - P.ax, top = e.y - P.ay, w = P.w / TILE, h = P.h / wallPx * H;
                 const o = this.cutout(g, e, P, w, h);
-                o.position.set((left + P.w / 2) / TILE, H * (1 - (top + P.h / 2) / wallPx), z0 + 0.05);
+                o.position.set((left + P.w / 2) / TILE, this.hangY(e.def.base || it.id, H * (1 - (top + P.h / 2) / wallPx), h), z0 + 0.05);
             } else {
                 // a thing on a table (or the floor): standing up on its top, its foot where its picture's was
                 const host = it.on != null ? B.hosts.get(it.on) : null;
@@ -559,6 +559,14 @@ const EnvRoom = {
             }
             B.placed.add(e);
         }
+    },
+    /* how high a piece hangs (David, 27 October late: windows hidden behind what stands in front of them, a clock to be
+       way above anyone's head): nothing lower than the tops of the shelves and counters, a clock above the tallest doll,
+       and nothing over the picture rail (a clock may go into the paper above it); y its middle, h its height */
+    HANG_LOW: 1.3, HANG_CLOCK: 1.9,
+    hangY(id, y, h) {
+        const clock = /clock/.test(id), low = clock ? this.HANG_CLOCK : this.HANG_LOW, high = clock ? this.WH + this.TOP - 0.08 : this.WH - 0.03;
+        return Math.min(Math.max(y, low + h / 2), Math.max(low + h / 2, high - h / 2));
     },
     hide(r3) {
         if (!this.on) return;

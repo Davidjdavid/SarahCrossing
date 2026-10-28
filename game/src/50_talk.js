@@ -187,7 +187,8 @@ async function neighborTalk(n) {
         for (const o of Quests.options(n)) add(o.label, o.fn);
         for (const o of civicOptions(n)) add(o.label, o.fn);
         for (const o of valentineOptions(n)) add(o.label, o.fn);
-        for (const o of mugOptions(n)) add(o.label, o.fn);          // (the museum's old pot: 6zs_mug.js)     // (a valentine: 6zp_holiday_events.js)
+        for (const o of mugOptions(n)) add(o.label, o.fn);          // (the museum's old pot: 6zs_mug.js)
+        for (const o of seaOptions(n)) add(o.label, o.fn);          // (Shrimpy's stall at the farm: 6zr_seafarer.js)
         for (const o of Drama.options(n)) add(o.label, async () => { await Drama.choose(n, o); return true; });
         if (id === 'sully' && n.area === 'studio') add('Pottery tips?', async () => { await UI.say(id, rpick(POTTERY_TIPS).map(bostonize), { keep: true }); return true; });
         if (id === 'chili' && n.area === 'arcade') add('Prize counter', async () => { UI.hideDialog(); await prizeCounter(); return false; });
