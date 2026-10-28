@@ -3835,3 +3835,115 @@ test("every neighbor's talk menu, the way a player does: each option tried with 
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test("pottery, the way a player does: the clay centered and opened on Sully's wheel by holding and letting go, a mug shaped and named, glazed, fired in the kiln, and in Sarah's pocket", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(14, 0, 14);
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms)), out = {};
+    const until = async (fn, ms = 8000) => { for (const end = Date.now() + ms; Date.now() < end; await wait(40)) { const v = fn(); if (v) return v; } return null; };
+    const tap = async (sel, re) => { const b = await until(() => [...document.querySelectorAll(sel)].find((q) => re.test(q.textContent))); if (!b) throw new Error('no button ' + re); b.click(); };
+    const say = UI.say; UI.say = async () => {};
+    const P = pottery(), made0 = S.stats.pottery || 0;
+    receive('wood', 1, true);
+    try {
+      enterRoom('studio');
+      await until(() => G.area && G.area.id === 'studio');
+      const job = potteryWheel();
+      await until(() => document.querySelector('#studio .st-hold'));
+      /* the Hold button, pressed and let go as the needle swings: in the green while centering, then down to the
+         green when opening */
+      const press = (on) => document.querySelector('#studio .st-hold').dispatchEvent(new PointerEvent(on ? 'pointerdown' : 'pointerup', { bubbles: true }));
+      let held = false;
+      const steer = setInterval(() => {
+        const st = Wheel.st;
+        if (!st || !document.querySelector('#studio .st-hold')) return;
+        if (st.phase === 'center') { if (!held && st.pressure < 0.6) { press(true); held = true; } else if (held && st.pressure > 0.72) { press(false); held = false; } }
+        else if (st.phase === 'open') { if (st.pause > 0) { if (held) { press(false); held = false; } } else if (!held && st.depth < 0.6) { press(true); held = true; } else if (held && st.depth >= 0.68) { press(false); held = false; } }
+      }, 16);
+      await until(() => Wheel.st && Wheel.st.phase === 'shape', 20000);
+      clearInterval(steer);
+      out.wheel = { centered: Wheel.st.qC > 0.7, opened: Wheel.st.qO === 1 };
+      await tap('#studio .chip', /^Mug$/);
+      await tap('#studio .chip', /^That's the one$/);
+      await tap('#studio .chip', /^Save it$/);
+      await tap('#choices .choice', /^Glaze it now/);
+      await until(() => document.querySelector('#studio .swatch'));
+      document.querySelectorAll('#studio .swatch')[3].click();
+      await tap('#studio .chip', /^Dip all$/);
+      await tap('#studio .chip', /^Done glazing$/);
+      await tap('#choices .choice', /^Into the kiln/);
+      await tap('#choices .choice', /^Fire it up/);
+      await Promise.race([job, wait(5000)]);
+      const id = P.kiln.length && P.kiln[0].id;
+      out.firing = !!id && P.pieces[id].state === 'kiln' && pocketCount('wood') === 0;
+      // (the kiln keeps real time: five minutes on, back at the kiln)
+      for (const k of P.kiln) k.ready = Clock.real().getTime() - 1000;
+      await kilnStation();
+      const p = P.pieces[id];
+      out.done = p.state === 'done' && pocketCount(id) === 1 && /[^0]/.test(p.glaze) && p.kind === 'mug' && !!p.prof.handle && p.stars >= 2;
+      out.counted = (S.stats.pottery || 0) === made0 + 1;
+    } finally { UI.say = say; }
+    return out;
+  });
+  assert.deepEqual(res, { wheel: { centered: true, opened: true }, firing: true, done: true, counted: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('cooking, the way a player does: every kind of step played in the kitchen (chop, stir, heat, pour, toppings, roll, mash, crack and flip), a gold medal, a double portion', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(14, 0, 14);
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms)), out = [];
+    const until = async (fn, ms = 8000) => { for (const end = Date.now() + ms; Date.now() < end; await wait(40)) { const v = fn(); if (v) return v; } return null; };
+    /* a cook who watches the pan: after each frame, what to press in the next, with the same taps and holds the
+       kitchen's buttons give (Arcade.tap, Arcade.held) */
+    const bot = (g) => {
+      const T = Arcade.tap, H = Arcade.held;
+      H.act = false;
+      if (g.phase === 'intro') { if (g.pt > 30) T.act = true; return; }
+      if (g.phase === 'plate') { if (g.pt > 55) T.act = true; return; }
+      if (g.phase !== 'go') return;
+      const s = g.s, m = s.spec.m, t = s.t;
+      if (m === 'chop') {
+        const kx = s.x0 - 8 + (s.x1 - s.x0 + 16) * (0.5 - 0.5 * Math.cos(s.ph + s.sp));
+        if (!s.down && !s.fin && s.marks.some((q) => !q.cut && Math.abs(q.x - kx) <= 1.5)) T.act = true;
+      } else if (m === 'top') {
+        const hx = 24 + 112 * (0.5 - 0.5 * Math.cos(s.ph + s.sp)), falling = s.drops.filter((d) => !d.landed).map((d) => d.x);
+        if (!s.cool && s.used < s.n && s.marks.some((q) => !q.got && !falling.some((x) => Math.abs(x - q.x) < 6) && Math.abs(q.x - hx) <= 1.5)) T.act = true;
+      } else if (m === 'stir') { if (t % 4 === 0) T[['right', 'down', 'left', 'up'][(t / 4) % 4]] = true; }
+      else if (m === 'heat') H.act = s.v + s.vel * 10 < (s.z[0] + s.z[1]) / 2;
+      else if (m === 'pour') { if (s.lv >= s.tg - 0.04) s.stop = true; H.act = !s.stop; }
+      else if (m === 'mash') { if (t % 2 === 0) T.act = true; }
+      else if (m === 'roll') { if (t % 3 === 0) T[(t / 3) % 2 ? 'left' : 'right'] = true; }
+      else if (m === 'timing' && !s.anim) { const next = s.pos + s.sp * (s.spec.v === 'crack' ? s.dir : 1); if (Math.abs(next - s.zc) <= s.sp) T.act = true; }
+    };
+    const say = UI.say; UI.say = async () => {};
+    const closer = setInterval(() => { if (document.querySelector('.spcard')) UI.close(); }, 100);
+    try {
+      for (const id of ['pad_thai', 'mango_sticky', 'dumplings']) {
+        const r = RECIPES.find((q) => q.id === id);
+        for (const [k, n] of Object.entries(r.need)) __dbg.give(k, n);
+        const had = pocketCount(id);
+        const job = cookDish(r);
+        const g = await until(() => Arcade.on && Arcade.g && Arcade.g.steps && Arcade.g);
+        const up = g.update.bind(g);
+        g.update = (inp) => { up(inp); bot(g); };
+        await until(() => Arcade.state === 'over' && Arcade.cardReady, 60000);
+        [...document.querySelectorAll('#arcade .ar-card button')].find((b) => b.offsetParent).click();
+        const ok = await Promise.race([job, wait(8000).then(() => 'hung')]);
+        out.push({ steps: g.steps.map((q) => q.m), medal: g.medal, ok, got: pocketCount(id) - had, used: Object.keys(r.need).every((k) => pocketCount(k) === 0) });
+      }
+    } finally { clearInterval(closer); UI.say = say; }
+    return { kinds: [...new Set(out.flatMap((q) => q.steps))].sort(), games: out.map(({ steps, ...q }) => q) };
+  });
+  assert.deepEqual(res.kinds, ['chop', 'heat', 'mash', 'pour', 'roll', 'stir', 'timing', 'top']);
+  assert.deepEqual(res.games, Array(3).fill({ medal: 'gold', ok: true, got: 2, used: true }));
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
