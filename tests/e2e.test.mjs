@@ -4248,7 +4248,7 @@ test("Museum Day, the way a player does: a stamp stand just inside each of the m
   await page.close();
 });
 
-test('a whale out at sea some winter days: only on those days, in a stretch of open water in sight, clear of the pier and its boat; gone after it dives', async () => {
+test('a whale out at sea some winter days: only on those days, in a stretch of open water in sight, clear of the pier and its boat; gone after it dives; in the telescope\'s view too', async () => {
   const page = await device();
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
@@ -4277,9 +4277,15 @@ test('a whale out at sea some winter days: only on those days, in a stretch of o
     if (w) w.t = 1400;
     SeaSky.update();
     out.gone = !SeaSky.whale;
+    // and that day it's in the telescope's view of the sea, drawn through each part of its dive
+    lookoutView();
+    await wait(300);
+    out.telescope = !!SeaView.whale;
+    try { for (const k of [1.6, 3, 6.5]) { SeaView.whale.t0 = 0; SeaView.t0 = performance.now() - k * 1000; SeaView.draw(); } out.drawn = true; } catch (e) { out.drawn = e.message; }
+    SeaView.close();
     return out;
   });
-  assert.deepEqual(res, { summer: false, winter: true, night: false, spawned: true, sea: true, clear: true, gone: true });
+  assert.deepEqual(res, { summer: false, winter: true, night: false, spawned: true, sea: true, clear: true, gone: true, telescope: true, drawn: true });
   assert.deepEqual(page.problems, []);
   await page.close();
 });
