@@ -679,6 +679,28 @@ test("shops grow: Fortune puts the order in a week on, a day closed, then a bigg
   await page.context().close();
 });
 
+test("the new look's lawn (David, 29 October): smooth, mostly green and low in contrast; worn beside the paths, wilder away from them", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(() => {
+    const t0 = performance.now(), L = EnvTex.lawn('summer'), ms = performance.now() - t0, d = L.map.image.data, n = d.length / 4;
+    let s = 0, s2 = 0, g = 0;
+    for (let i = 0; i < d.length; i += 4) { const y = 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]; s += y; s2 += y * y; if (d[i + 1] > d[i] && d[i + 1] > d[i + 2]) g++; }
+    const sd = Math.sqrt(s2 / n - (s / n) ** 2);
+    // how wild the grass is: none on a path, more the further from one, all of it somewhere on the island
+    let path = null;
+    for (let y = 12; y < W0.h - 12 && !path; y++) for (let x = 12; x < W0.w - 12 && !path; x++) if (W0.grid[y][x] === 'p' && W0.grid[y][x + 1] === 'p') path = [x, y];
+    const w = EnvGround.wildWin(path[0] - 10, path[1] - 10, 21, 21), all = EnvGround.wildWin(0, 0, W0.w, W0.h);
+    let wildest = 0; for (const v of all) wildest = Math.max(wildest, v);
+    return { fast: ms < 4000, low: sd < 12, green: g / n > 0.98, avg: L.avg.length === 3 && L.avg[1] > L.avg[0] && L.avg[1] > L.avg[2],
+      onPath: w[10 * 21 + 10], wild: wildest, sd: +sd.toFixed(1) };
+  });
+  assert.deepEqual({ ...res, sd: undefined }, { fast: true, low: true, green: true, avg: true, onPath: 0, wild: 1, sd: undefined }, 'contrast ' + res.sd);
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
 test('the watering can: Fortune sells one; flowers of a kind side by side, both watered, grow a new one by morning (two colors make the third, now and then a hybrid)', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));

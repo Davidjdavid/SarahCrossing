@@ -101,8 +101,8 @@ docs/DEPLOY.md for the server.
 - Settings > Picture quality and Draw distance (`GFX`, kept per device in `sc-quality` / `sc-far`): Auto is the device's
   own (phones lighter and shorter, a slow computer drops its quality by itself in `watchSpeed`); a pick stays as picked.
   Quality scales the pixels drawn (`R3.quality`; High keeps the water's reflections), distance scales `R3.farTiles()`,
-  which the haze, the ground pieces and every culled thing follow (`R3_FAR`: 38 tiles on a computer, 24 on a phone, at
-  the normal zoom; further since David's note of 29 October, far trees half gone). The sun's shadow box is fitted to the
+  which the haze, the ground pieces and every culled thing follow (`R3_FAR`: in the new look 38 tiles on a computer, 24 on a
+  phone, at the normal zoom, further since David's note of 29 October, far trees half gone; HD-2D keeps 27 and 17). The sun's shadow box is fitted to the
   ground on screen every frame (`R3.fitShadow`: the screen's corners in the light's axes, its size in steps, its middle on
   whole texels so shadows don't crawl) and shadows fade out toward its edges (`r3ScEdge`, patched into three.js's
   `shadowmap_pars_fragment`): zoomed out, they used to stop in a line of light.
@@ -136,10 +136,15 @@ docs/DEPLOY.md for the server.
   keeps the HD-2D view until he says so.
 - There `Env` (33a_env.js) draws the world as real 3D, built once when the area loads: the ground from half-tile
   height cells with a stone wall on anything steep (`EnvGround`), procedural surfaces (`EnvTex`), trees (`EnvTrees`),
-  water (`EnvWater`), buildings and props (`EnvBuild`); the lawn is a texture like the GameCube
-  Animal Crossing's (`EnvTex.lawn`, David's pick: no 3D tufts, no flowers but the ones you can pick): little triangles,
-  rounds and squares in close greens (olive and gold in fall), never touching, each cut along the line halfway to its
-  nearest so the dark gaps between them are even (David, 28 October). R3 still draws people, critters and
+  water (`EnvWater`), buildings and props (`EnvBuild`); the lawn (David, 29 October, after the GameCube shapes of the 28th)
+  is smooth and mostly one green, low in contrast (`EnvTex.lawn`: soft mottling and a fine grain of short blades, the
+  season's palette in `EnvTex.LAWN`), with broad irregular patches a shade apart, worn paler (now and then to bare earth)
+  beside trodden ground and deeper out in the wild (`EnvGround.FMAP`; how wild, 0 to 1, is the per-piece wet picture's
+  alpha, `wildWin`/`wildAt`: the distance to paths, the square, sand, steps, Sarah's paths and buildings), its detail and
+  bumps melting into its average color further off (`envFar`, `uGrassAvg`). Small 3D tufts are scattered over it, few by
+  the paths and more in the wild, and fallen leaves for the season (fall's many under the trees, a stray one in summer,
+  blossom petals in spring, none in winter): `EnvLawn` (33w_env_lawn.js), instanced, refilled round the view, the same
+  tuft always in the same spot. No flowers but the ones you can pick. R3 still draws people, critters and
   anything `Env.takes(e)` leaves out, and its post pass (bloom, depth of field, the warm grade). Tune it in `ENV`
   (a level's height, the camera, depth of field, how big people stand).
 - Sarah's island is in the new look on the beta site (`ENV_ISLAND`: the beta host, or `localStorage sc-env-island` 1 or

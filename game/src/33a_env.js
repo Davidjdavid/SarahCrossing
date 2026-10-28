@@ -131,7 +131,7 @@ const Env = {
             ['contact', typeof EnvContact !== 'undefined' && EnvContact], ['glow', typeof EnvGlow !== 'undefined' && EnvGlow], ['decals', typeof EnvDecals !== 'undefined' && EnvDecals],
             ['dolls', typeof EnvDolls !== 'undefined' && EnvDolls], ['critters', typeof EnvCritters !== 'undefined' && EnvCritters],
             ['sea', typeof EnvSea !== 'undefined' && EnvSea], ['items', typeof EnvItems !== 'undefined' && EnvItems], ['sights', typeof EnvSights !== 'undefined' && EnvSights], ['style', typeof EnvStyle !== 'undefined' && EnvStyle],
-            ['fishing', typeof EnvFishing !== 'undefined' && EnvFishing], ['pour', typeof EnvPour !== 'undefined' && EnvPour], ['flags', typeof EnvFlags !== 'undefined' && EnvFlags], ['spray', typeof EnvSpray !== 'undefined' && EnvSpray], ['night', typeof EnvNight !== 'undefined' && EnvNight]]) {
+            ['fishing', typeof EnvFishing !== 'undefined' && EnvFishing], ['pour', typeof EnvPour !== 'undefined' && EnvPour], ['flags', typeof EnvFlags !== 'undefined' && EnvFlags], ['spray', typeof EnvSpray !== 'undefined' && EnvSpray], ['night', typeof EnvNight !== 'undefined' && EnvNight], ['lawn', typeof EnvLawn !== 'undefined' && EnvLawn]]) {
             if (!B) continue;
             const t1 = performance.now();
             const p = B.build(group, a);
@@ -661,6 +661,15 @@ const EnvGround = {
             }
             for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) d[((M - 1 - y) * N + x) * 4] = Math.round(v[y * N + x] * 255);
         }
+        // (in its alpha, how wild the grass is: 0 beside trodden ground, the paths, the square, the beach and buildings, up to 1
+        // five or six tiles from any: FMAP's wear and patches, EnvLawn's tufts)
+        const wild = this.wildWin(x0, y0, w, h);
+        for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) {
+            const fx = Math.max(0, Math.min(w - 1.001, (x + 0.5) / P - 0.5)), fy = Math.max(0, Math.min(h - 1.001, (y + 0.5) / P - 0.5)), ix = Math.floor(fx), iy = Math.floor(fy), ax = fx - ix, ay = fy - iy;
+            const at = (i, j) => wild[j * w + i], v2 = (at(ix, iy) * (1 - ax) + at(ix + 1, iy) * ax) * (1 - ay) + (at(ix, iy + 1) * (1 - ax) + at(ix + 1, iy + 1) * ax) * ay;
+            d[((M - 1 - y) * N + x) * 4 + 3] = Math.round(v2 * 255);
+        }
+        yield;
         // (and in its green and blue, Sarah's brick and plank paths, each its tile's own square: the shader lays the bricks
         // and the boards, FMAP. They were left as the painted picture, which the new look doesn't have: David, 28 October)
         for (let ty = y0; ty < y0 + h; ty++) for (let tx = x0; tx < x0 + w; tx++) {
@@ -668,6 +677,47 @@ const EnvGround = {
             if (ch) for (let j = 0; j < P; j++) for (let i = 0; i < P; i++) d[((M - 1 - ((ty - y0) * P + j)) * N + (tx - x0) * P + i) * 4 + ch] = 255;
         }
         Object.assign(out, { v, d, N, M, P });
+    },
+    /* how wild the grass is on each tile of a window (0..1, row by row): how far it is from trodden ground (a path, the
+       square, sand, steps, Sarah's own paths, a building and the row in front of it), 0 beside it, 1 from six tiles off */
+    wildWin(x0, y0, w, h) {
+        const PAD = 7, W2 = w + 2 * PAD, H2 = h + 2 * PAD, D = new Float32Array(W2 * H2), B = this.bldMap();
+        for (let j = 0; j < H2; j++) for (let i = 0; i < W2; i++) {
+            const tx = x0 - PAD + i, ty = y0 - PAD + j, c = r3ClassAt(tx, ty) & 15, inMap = tx >= 0 && ty >= 0 && tx < W0.w && ty < W0.h;
+            const trod = inMap && (c === R3_MAT.dirt || c === R3_MAT.cobble || c === R3_MAT.sand || c === R3_MAT.stairs || this.laid(tx, ty) || B[ty * W0.w + tx]);
+            D[j * W2 + i] = trod ? 0 : 99;
+        }
+        // (the distance, two passes of a chamfer: a step across 1, diagonally 1.4)
+        for (let j = 0; j < H2; j++) for (let i = 0; i < W2; i++) {
+            let v = D[j * W2 + i];
+            if (i > 0) v = Math.min(v, D[j * W2 + i - 1] + 1);
+            if (j > 0) { v = Math.min(v, D[(j - 1) * W2 + i] + 1); if (i > 0) v = Math.min(v, D[(j - 1) * W2 + i - 1] + 1.4); if (i < W2 - 1) v = Math.min(v, D[(j - 1) * W2 + i + 1] + 1.4); }
+            D[j * W2 + i] = v;
+        }
+        for (let j = H2 - 1; j >= 0; j--) for (let i = W2 - 1; i >= 0; i--) {
+            let v = D[j * W2 + i];
+            if (i < W2 - 1) v = Math.min(v, D[j * W2 + i + 1] + 1);
+            if (j < H2 - 1) { v = Math.min(v, D[(j + 1) * W2 + i] + 1); if (i < W2 - 1) v = Math.min(v, D[(j + 1) * W2 + i + 1] + 1.4); if (i > 0) v = Math.min(v, D[(j + 1) * W2 + i - 1] + 1.4); }
+            D[j * W2 + i] = v;
+        }
+        const out = new Float32Array(w * h);
+        for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const v = (D[(j + PAD) * W2 + i + PAD] - 0.8) / 5.2; out[j * w + i] = Math.max(0, Math.min(1, v)); }
+        return out;
+    },
+    /* the tiles the island's buildings stand on, and the row in front of each (made once) */
+    bldMap() {
+        if (this._bld && this._bld.w === W0.w) return this._bld.m;
+        const m = new Uint8Array(W0.w * W0.h);
+        for (const b of Object.values(W0.buildings || {})) for (let y = b.y; y <= b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) if (x >= 0 && y >= 0 && x < W0.w && y < W0.h) m[y * W0.w + x] = 1;
+        this._bld = { w: W0.w, m };
+        return m;
+    },
+    /* how wild the grass is at a spot (tiles), once its piece is made: 0 beside trodden ground, 1 out in the wild */
+    wildAt(x, y) {
+        const c = this.chunkAt(x, y), w = c && c.wet;
+        if (!w || !w.N) return 0.5;
+        const i = Math.max(0, Math.min(w.N - 1, Math.floor((x - c.wx0) * w.P))), j = w.M - 1 - Math.max(0, Math.min(w.M - 1, Math.floor((y - c.wy0) * w.P)));
+        return w.d[(j * w.N + i) * 4 + 3] / 255;
     },
     /* Sarah's brick (1) or plank (2) path on a tile, or 0 */
     laid(tx, ty) { const P = S && S.paths && S.paths.t, o = P && P[tx + ',' + ty]; return o === 'brick' ? 1 : o === 'planks' ? 2 : 0; },
@@ -719,6 +769,8 @@ const EnvGround = {
             nGrass: { value: T.lawn(Clock.season()).normal }, nDirt: { value: B('path', 'nrm', () => T.dirt().normal) }, nCob: { value: B('flagstones', 'nrm', () => T.cobble().normal) }, nSand: { value: sand.normal }, nWall: { value: wall.normal },
             hCob: { value: B('flagstones', 'hgt', () => flat) }, hDirt: { value: B('path', 'hgt', () => flat) },
             uSeason: { value: new THREE.Vector4(1, 1, 1, 0) }, uRainW: this.rain, uGrid: this.gridOn,
+            // (the lawn's average color, what its detail melts into far off, and its broad patches' two tints)
+            uGrassAvg: { value: new THREE.Vector3(...T.lawn(Clock.season()).avg) }, uPatchA: { value: new THREE.Vector3(1, 1, 1) }, uPatchB: { value: new THREE.Vector3(1, 1, 1) },
         };
         lap('tex');
         this._season = null;                // (new uniforms: the season's colors go in on the first frame)
@@ -731,6 +783,9 @@ const EnvGround = {
                 this._season = s;
                 const L = EnvTex.lawn(s);
                 uniforms.tGrass.value = L.map; uniforms.nGrass.value = L.normal;
+                uniforms.uGrassAvg.value.set(...L.avg);
+                const pt = (EnvTex.LAWN[s] || EnvTex.LAWN.summer).patch;
+                uniforms.uPatchA.value.set(...pt[0]); uniforms.uPatchB.value.set(...pt[1]);
                 uniforms.uSeason.value.set(...(s === 'winter' ? [1.1, 1.12, 1.18] : [1, 1, 1]), s === 'winter' ? 1 : 0);
                 R3U.uGrassTint.value.set(...({ spring: [1.25, 1.15, 1.05, 0], fall: [1.75, 1.05, 0.95, 0], winter: [1.3, 0.9, 1.25, 0.8] }[s] || [1, 1, 1, 0]));
             }
@@ -804,8 +859,9 @@ uniform sampler2D uKinds; uniform vec2 uMapSz; uniform vec2 uOrg; uniform vec2 u
 uniform sampler2D tGrass; uniform sampler2D tDirt; uniform sampler2D tCob; uniform sampler2D tSand; uniform sampler2D tWall;
 uniform sampler2D nGrass; uniform sampler2D nDirt; uniform sampler2D nCob; uniform sampler2D nSand; uniform sampler2D nWall;
 uniform sampler2D hCob; uniform sampler2D hDirt; uniform sampler2D uWet;
+uniform vec3 uGrassAvg; uniform vec3 uPatchA; uniform vec3 uPatchB;
 varying float vAO; varying vec3 vNw;
-vec4 envW; float envSteep; vec3 envWallN; vec2 envWallUv;
+vec4 envW; float envSteep; vec3 envWallN; vec2 envWallUv; float envFar; float envWild;
 `;
 EnvGround.FMAP = `
 {
@@ -828,8 +884,22 @@ EnvGround.FMAP = `
     if (o < 0.01) w.x = 1.0; else w.yzw *= (1.0 - gw) / o;
     envW = w;
     vec2 u4 = tp * 0.25;
-    vec3 cg = texture2D(tGrass, u4).rgb * uSeason.rgb;
+    vec4 wt = texture2D(uWet, vec2(kuv.x, 1.0 - kuv.y));
     vec3 cd = texture2D(tDirt, u4).rgb, cc = texture2D(tCob, u4).rgb, cs = texture2D(tSand, u4).rgb;
+    // the lawn (David, 29 October): smooth and mostly green, its fine detail melting into its average color further off;
+    // broad irregular patches a shade apart (a slow noise, warped); worn paler and yellower beside the paths, the square,
+    // the beach and buildings, now and then down to bare earth, and deeper and richer out in the wild (the wet picture's
+    // alpha: how far the trodden ground is, EnvGround.wetWin)
+    envWild = wt.a;
+    envFar = smoothstep(6.0, 22.0, distance(vWp, cameraPosition));
+    vec3 cg = mix(texture2D(tGrass, u4).rgb, uGrassAvg, envFar * 0.85);
+    vec2 pw = tp * 0.085 + vec2(r3n(tp * 0.035 + 3.7), r3n(tp * 0.035 + 8.1)) * 1.8;
+    vec2 pv = tp * 0.24 + vec2(r3n(tp * 0.11 + 1.3), r3n(tp * 0.11 + 6.6)) * 1.2;
+    cg *= mix(uPatchA, uPatchB, smoothstep(0.3, 0.7, r3n(pw))) * mix(vec3(0.95, 0.98, 0.97), vec3(1.04, 1.03, 0.96), r3n(pv));
+    cg *= mix(vec3(1.06, 1.05, 0.9), vec3(0.95, 0.99, 0.95), envWild);
+    float worn = pow(1.0 - envWild, 3.0) * smoothstep(0.72, 0.84, r3n(tp * 1.1 + 5.0) * 0.7 + r3n(tp * 3.7) * 0.3);
+    cg = mix(cg, mix(cg, cd, 0.5), worn * 0.4);
+    cg *= uSeason.rgb;
     vec3 col = cg * w.x + cd * w.y + cc * w.z + cs * w.w;
     // a stream or pond bed: sand and pebbles, darker
     if (bed > 0.5 && tot < 0.05) col = mix(cs, cd, 0.5) * 0.7;
@@ -838,7 +908,6 @@ EnvGround.FMAP = `
     col = mix(col, col * vec3(0.74, 0.72, 0.7), smoothstep(0.17, 0.02, vWp.y) * w.w);
     // Sarah's own paths of brick (the wet picture's green: a running bond, every brick its own firing, in pale mortar) and
     // planks (its blue: boards across the path, staggered joints, the grain along them, dark gaps)
-    vec4 wt = texture2D(uWet, vec2(kuv.x, 1.0 - kuv.y));
     float laidW = clamp(wt.g + wt.b, 0.0, 1.0);
     if (laidW > 0.004) {
         vec2 bq = vec2(tp.x * 2.0, tp.y * 4.0);
@@ -865,8 +934,8 @@ EnvGround.FMAP = `
     col = mix(col, cd * vec3(0.58, 0.54, 0.48), bank * 0.85);
     // darker where grass meets a path (a little shadow under the overhang)
     col *= 1.0 - 0.18 * w.x * (w.y + w.z) * 4.0;
-    // soft patches of lighter and darker over everything
-    col *= 0.92 + 0.16 * r3n(tp * 0.21 + 7.0);
+    // soft patches of lighter and darker over everything (the lawn has its own)
+    col *= 1.0 + (r3n(tp * 0.21 + 7.0) - 0.5) * 0.16 * (1.0 - 0.7 * w.x);
     // rain: everything darker where it's wet, and puddles on the paths and the square, the sky's grey in them
     if (uRainW > 0.0) {
         float pud = smoothstep(0.6, 0.68, r3n(tp * 0.55 + 31.0) * 0.7 + r3n(tp * 1.7) * 0.3) * (w.y + w.z) * uRainW;
@@ -894,7 +963,8 @@ EnvGround.FNORMAL = `
 {
     vec2 tp = vec2(vWp.x, vWp.z / ${R3_ZS.toFixed(3)}) * 0.25;
     // (under winter's snow the lawn's little leaves hardly show)
-    vec3 tn = (mix(texture2D(nGrass, tp).xyz, vec3(0.5, 0.5, 1.0), uSeason.w * 0.85) * envW.x + texture2D(nDirt, tp).xyz * envW.y + texture2D(nCob, tp).xyz * envW.z + texture2D(nSand, tp).xyz * envW.w) * 2.0 - 1.0;
+    // (nor far off, where the lawn's melted into its own color; a little flatter where it's worn short)
+    vec3 tn = (mix(texture2D(nGrass, tp).xyz, vec3(0.5, 0.5, 1.0), max(uSeason.w * 0.85, envFar * 0.85 + (1.0 - envWild) * 0.2)) * envW.x + texture2D(nDirt, tp).xyz * envW.y + texture2D(nCob, tp).xyz * envW.z + texture2D(nSand, tp).xyz * envW.w) * 2.0 - 1.0;
     vec3 wn = texture2D(nWall, envWallUv).xyz * 2.0 - 1.0;
     vec3 N = normalize(vNw);
     // on the ground: across is +x, down the picture is +z (the pictures keep the slope going down them in green)

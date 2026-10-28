@@ -58,11 +58,14 @@ const EnvTex = {
     mix(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; },
     hex(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; },
     /* a finished surface: { map, normal } from an albedo function and a height picture */
-    make(name, n, fill, nk) {
+    make(name, n, fill, nk, opt) {
         if (this.cache[name]) return this.cache[name];
         const h = new Float32Array(n * n), col = new Uint8Array(n * n * 4);
         fill(h, col);
-        const out = { map: this.tex(n, col, { near: true }), normal: this.tex(n, this.normals(n, h, nk)), n };
+        // (and its average color, what it melts into far off: EnvGround.FMAP)
+        const avg = [0, 0, 0];
+        for (let i = 0; i < n * n; i++) { avg[0] += col[i * 4]; avg[1] += col[i * 4 + 1]; avg[2] += col[i * 4 + 2]; }
+        const out = { map: this.tex(n, col, { near: !(opt && opt.smooth) }), normal: this.tex(n, this.normals(n, h, nk)), n, avg: avg.map(v => v / (n * n * 255)) };
         this.cache[name] = out;
         return out;
     },
@@ -118,78 +121,39 @@ const EnvTex = {
             }
         }, 6);
     },
-    /* the lawn as Animal Crossing drew it on the GameCube: a deep green ground and on it little shapes, triangles, rounds
-       and squares, in a few close greens, none touching and the same narrow dark gap between each and the next (repeats
-       every 4 tiles). Its colors go with the season, as the trees' do: fresh greens in spring, deep greens in summer,
-       olive and gold in fall, dull greens under winter's snow */
+    /* the lawn (David, 29 October): a smooth surface, mostly one green, low in contrast: soft mottling a few shades apart
+       and a fine grain of short upright blades barely lighter or darker than the ground round them (repeats every 4 tiles;
+       the ground's shader lays broad patches, wear by the paths and the softening far off over it, EnvGround.FMAP). Its
+       colors go with the season, as the trees' do: fresh greens in spring, deep greens in summer, olive and gold in fall,
+       dull greens under winter's snow */
     LAWN: {
-        spring: { base: '#559c3a', tones: ['#80c054', '#78b84e', '#88c65a'] },
-        summer: { base: '#377a33', tones: ['#58a043', '#52983f', '#5ea647'] },
-        fall: { base: '#5b712e', tones: ['#9a9a40', '#a6a246', '#8c9440'] },
-        winter: { base: '#4e6846', tones: ['#6c885c', '#668256', '#728c60'] },
-    },
-    /* the three shapes, one unit across: a round, and a triangle (point up) and a square as corners with rounding */
-    LAWN_SHAPES: [null, { v: [[-0.6, -0.6], [0.6, -0.6], [0.6, 0.6], [-0.6, 0.6]], r: 0.25 }, { v: [[0, -0.95], [0.82, 0.48], [-0.82, 0.48]], r: 0.18 }],
-    /* how far a shape (k, turned by c/s) is from its edge at a point in its own units (less than 0 inside) */
-    lawnSd(k, x, y) {
-        if (!k) return Math.sqrt(x * x + y * y) - 1;
-        const P = this.LAWN_SHAPES[k], v = P.v, n = v.length;
-        let d = Infinity, inside = true;
-        for (let i = 0, j = n - 1; i < n; j = i++) {
-            const ex = v[i][0] - v[j][0], ey = v[i][1] - v[j][1], wx = x - v[j][0], wy = y - v[j][1];
-            const t = Math.max(0, Math.min(1, (wx * ex + wy * ey) / (ex * ex + ey * ey))), dx = wx - ex * t, dy = wy - ey * t;
-            d = Math.min(d, dx * dx + dy * dy);
-            if (ex * wy - ey * wx < 0) inside = false;       // (the corners go round clockwise on the picture)
-        }
-        return (inside ? -Math.sqrt(d) : Math.sqrt(d)) - P.r;
+        spring: { base: '#5a9e40', light: '#6aad4c', dark: '#4c8d38', patch: [[0.92, 0.98, 0.95], [1.08, 1.06, 0.88]] },
+        summer: { base: '#4e8d3b', light: '#5c9c46', dark: '#427d35', patch: [[0.9, 0.97, 0.95], [1.09, 1.06, 0.85]] },
+        fall: { base: '#6b8536', light: '#829340', dark: '#5a7430', patch: [[0.95, 0.98, 0.92], [1.15, 1.02, 0.78]] },
+        winter: { base: '#587849', light: '#668655', dark: '#4c6a40', patch: [[1, 1, 1], [1.03, 1.02, 0.97]] },
     },
     lawn(season) {
         const P = this.LAWN[season] || this.LAWN.summer;
         return this.make('lawn_' + (this.LAWN[season] ? season : 'summer'), 512, (h, col) => {
-            const n = 512, cols = 18, rows = 21, cw = n / cols, ch = n / rows, GAP = 3.5, r = mulberry(61), soft = this.noise(n, 8, 62), fine = this.noise(n, 96, 63);
-            const base = this.hex(P.base), tones = P.tones.map(c => this.hex(c));
-            const wrap = d => d - Math.round(d / n) * n;
-            // where they stand: a staggered grid nudged about a little; a third of each kind
-            const S = [];
-            for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-                const t = r(), k = t < 0.4 ? 2 : t < 0.7 ? 0 : 1, a = k === 2 ? (r() - 0.5) * 0.7 : r() * Math.PI;
-                S.push({ x: (i + 0.25 + (j % 2) * 0.5 + (r() - 0.5) * 0.3) * cw, y: (j + 0.5 + (r() - 0.5) * 0.3) * ch, k, a, ca: Math.cos(a), sa: Math.sin(a),
-                    c: tones[Math.floor(r() * tones.length)], l: 0.95 + r() * 0.1 });
+            const n = 512, big = this.noise(n, 4, 61), mid = this.noise(n, 11, 62), fine = this.noise(n, 40, 63), r = mulberry(64);
+            const base = this.hex(P.base), lite = this.hex(P.light), dark = this.hex(P.dark);
+            // the blades: short strokes leaning about upright (north is up the picture), a lighter or a darker one, its tip
+            // the strongest; each lifts the ground a touch for the normal map
+            const L = new Float32Array(n * n);
+            for (let k = 0; k < n * n / 10; k++) {
+                const x0 = r() * n, y0 = r() * n, len = 3 + r() * 5, a = -Math.PI / 2 + (r() - 0.5) * 1.2, m = (r() < 0.55 ? 1 : -1) * (0.4 + r() * 0.6);
+                for (let j = 0; j < len; j++) {
+                    const x = Math.round(x0 + Math.cos(a) * j), y = Math.round(y0 + Math.sin(a) * j), i = (((y % n) + n) % n) * n + (((x % n) + n) % n), f = 0.5 + 0.5 * j / len;
+                    L[i] += m * f; h[i] += 0.05 * f;
+                }
             }
-            const at = (i, j) => S[(((j % rows) + rows) % rows) * cols + (((i % cols) + cols) % cols)];
-            // each one's size: from its nearest neighbor, so that where two meet, their edges are cut along the line between
-            // them and the gap there is the same everywhere (a triangle a bit bigger, so its points still show)
-            S.forEach((A, q) => {
-                const i = q % cols, j = (q / cols) | 0;
-                let m = Infinity;
-                for (let dj = -1; dj <= 1; dj++) for (let di = -2; di <= 2; di++) { const B = at(i + di, j + dj); if (B !== A) m = Math.min(m, Math.hypot(wrap(B.x - A.x), wrap(B.y - A.y))); }
-                A.s = m / 2 * [0.93, 0.9, 1.1][A.k];
-            });
             for (let i = 0; i < n * n; i++) {
-                const x = i % n, y = (i / n) | 0, px = x + 0.5, py = y + 0.5, gi = Math.floor(px / cw), gj = Math.floor(py / ch);
-                // the two nearest: whose this is, and how far to the line halfway to the next
-                let b1 = Infinity, b2 = Infinity, A = null, B = null;
-                for (let dj = -1; dj <= 1; dj++) for (let di = -2; di <= 1; di++) {
-                    const C = at(gi + di, gj + dj), dx = wrap(px - C.x), dy = wrap(py - C.y), q = dx * dx + dy * dy;
-                    if (q < b1) { b2 = b1; B = A; b1 = q; A = C; } else if (q < b2) { b2 = q; B = C; }
-                }
-                const sep = Math.hypot(wrap(B.x - A.x), wrap(B.y - A.y)) || 1, edge = (b2 - b1) / (2 * sep);
-                const ox = wrap(px - A.x), oy = wrap(py - A.y);
-                const d = Math.max(this.lawnSd(A.k, (ox * A.ca + oy * A.sa) / A.s, (-ox * A.sa + oy * A.ca) / A.s) * A.s, GAP / 2 - edge);
-                // the ground between: deep green, a touch darker right beside a shape, broad soft patches a shade apart
-                const g = (0.97 + (soft(x, y) - 0.5) * 0.1) * (0.94 + 0.06 * Math.min(1, Math.max(0, d) / 2.5));
-                let cr = base[0] * g, cg = base[1] * g, cb = base[2] * g;
-                const cov = Math.max(0, Math.min(1, 0.5 - d));
-                if (cov > 0) {
-                    // a shape: its green, a little lighter toward its upper left
-                    const k = A.l * (1 - (ox + oy) / (A.s * 2.6) * 0.08);
-                    cr += (A.c[0] * k - cr) * cov; cg += (A.c[1] * k - cg) * cov; cb += (A.c[2] * k - cb) * cov;
-                }
-                h[i] = 0.15 + cov * (0.25 + 0.35 * Math.min(1, Math.max(0, -d) / 2.2));
-                const f = 0.98 + (fine(x, y) - 0.5) * 0.05;
-                this.put(col, i, [cr * f, cg * f, cb * f]);
+                const x = i % n, y = (i / n) | 0, t = big(x, y) * 0.5 + mid(x, y) * 0.32 + fine(x, y) * 0.18;
+                const c = t < 0.5 ? this.mix(dark, base, 0.4 + t * 1.2) : this.mix(base, lite, (t - 0.5) * 1.1), b = 1 + Math.max(-1.2, Math.min(1.2, L[i])) * 0.055;
+                h[i] += t * 0.3;
+                this.put(col, i, [c[0] * b, c[1] * b, c[2] * b]);
             }
-        }, 2);
+        }, 5, { smooth: true });
     },
     /* grass under the grass: deep greens in soft clumps, little blades and clover; tinted by the season in the shader */
     grass() {

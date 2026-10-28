@@ -512,7 +512,7 @@ const R3 = {
         }
     },
     /* how far anything is drawn (fog fades things out before it): the handheld games' trick, shorter on phones */
-    farTiles() { return (this.phone ? R3_FAR.phone : R3_FAR.full) * this.dist() / 13 * GFX.far(); },
+    farTiles() { return (Env.on ? (this.phone ? R3_FAR.envPhone : R3_FAR.envFull) : this.phone ? R3_FAR.phone : R3_FAR.full) * this.dist() / 13 * GFX.far(); },
     /* the part of the world on screen (with some room around it), in world pixels */
     updateView() {
         const v = G.view;
@@ -801,7 +801,8 @@ const R3 = {
    how quickly it eases in and back out (per frame at 60 a second) */
 const R3_TALK = { on: true, near: 0.48, pitch: 9, up: 0.35, ease: 0.07, mirror: 0.6, side: 1.6, below: 1.1 };
 const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.007, lead: 4 };
-const R3_FAR = { phone: 24, full: 38 };     // tiles ahead that get drawn (at the normal zoom; further since David's note of 29 October: far trees half gone)
+// tiles ahead that get drawn (at the normal zoom); the new look further since David's note of 29 October (far trees half gone)
+const R3_FAR = { phone: 17, full: 27, envPhone: 24, envFull: 38 };
 /* the graphics settings (David, 26 October: a quality setting and a draw distance, each with its own default for laptops
    and phones), kept per device. Auto is the device's own: a phone draws a lighter picture and less far, and a computer that
    turns out slow drops its picture quality by itself (watchSpeed); a choice in Settings stays as picked. High quality
