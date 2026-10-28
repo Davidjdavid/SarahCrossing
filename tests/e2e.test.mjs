@@ -3112,3 +3112,97 @@ test("every shop sells: something bought at Clementine's, Waffle's, IslandMart a
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test("Sarah's tools, the way a player uses them: wood from a tree, then the tree felled and its stump dug up, a hole dug, a fruit tree shaken, a fish caught", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(11, 0, 14);
+    const out = {}, a = G.areas.island, ask = UI.ask, say = UI.say, F = forest();
+    UI.ask = async () => 0; UI.say = async () => {};
+    try {
+      // a plain tree with open ground beside it
+      const t = a.ents.find((e) => e.kind === 'tree' && !e.fruit && !a.blockedAt(e.tx, e.ty + 1));
+      __dbg.teleport('island', t.tx, t.ty + 1, 'up');
+      const wood0 = S.stats.wood || 0;
+      for (let i = 0; i < 3; i++) await chopTree(t);
+      out.wood = (S.stats.wood || 0) - wood0;
+      await chopTree(t);
+      out.felled = !!(F.chopped[t.id] && F.chopped[t.id].stump) && !a.ents.includes(t);
+      await digAt(t.tx, t.ty);
+      out.stumpGone = !a.ents.some((e) => e.kind === 'stump' && e.tx === t.tx && e.ty === t.ty);
+      // a hole in open grass (the first spot near the stump with nothing standing over it)
+      const holes0 = F.holes.length;
+      for (let r = 2; r < 14 && F.holes.length === holes0; r++) for (let dx = -r; dx <= r && F.holes.length === holes0; dx++) {
+        const x = t.tx + dx, y = t.ty + r;
+        if (a.blockedAt(x, y) || a.blockedAt(x, y - 1) || groundChar(x, y) !== 'g' || pathAt(x, y)) continue;
+        __dbg.teleport('island', x, y - 1, 'down');
+        await digAt(x, y);
+      }
+      const h = F.holes[F.holes.length - 1];
+      out.hole = F.holes.length === holes0 + 1 && !!a.ents.find((e) => e.forest && e.kind === 'hole' && e.tx === h.x && e.ty === h.y);
+      // a fruit tree, shaken: its fruit falls round the trunk
+      const ft = a.ents.find((e) => e.kind === 'fruittree' && e.fruit && treeHasFruit(e));
+      __dbg.teleport('island', ft.tx, ft.ty + 1, 'up');
+      const drops0 = S.drops.length;
+      await shakeTree(ft);
+      out.fruit = S.drops.length > drops0 && S.trees[ft.id] === Clock.dayNum();
+      // fishing off the beach: cast, wait for the bite, reel it in
+      __dbg.give('rod', 1);
+      const fs = __dbg.fishSpot();
+      __dbg.teleport('island', fs[0], fs[1], 'down');
+      const caught0 = S.stats.fish || 0, pocket0 = S.pocket.filter(Boolean).length;
+      Fishing.start(fs[0], fs[1] + 1, 's');
+      for (let i = 0; i < 3000 && Fishing.st && Fishing.st.phase !== 'bite'; i++) Fishing.update();
+      out.bite = !!Fishing.st && Fishing.st.phase === 'bite';
+      if (Fishing.st) Fishing.st.fish = FISHES.find((f) => f.id !== 'boot').id;      // (not a crate, one cast in ten)
+      await Promise.race([Fishing.catch(), new Promise((r) => setTimeout(r, 6000))]);
+      out.fish = (S.stats.fish || 0) > caught0 || S.pocket.filter(Boolean).length > pocket0;
+    } finally { UI.ask = ask; UI.say = say; G.busy = 0; }
+    return out;
+  });
+  assert.deepEqual(res, { wood: 3, felled: true, stumpGone: true, hole: true, fruit: true, bite: true, fish: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('growing and making, the way a player does: seeds planted in a plot and picked two days on, a dish cooked from what she has, a pot from the studio given to a friend', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(10, 0, 14);
+    const out = {}, ask = UI.ask, say = UI.say;
+    UI.ask = async () => 0; UI.say = async () => {};
+    try {
+      // a seed in Sarah's first plot, grown in two days, then picked
+      const seed = GD.veg.map((v) => 'seed_' + v).filter(farOk)[0], i = S.plots.findIndex((p) => !p);
+      __dbg.give(seed, 1);
+      await usePlot(i);
+      out.planted = !!S.plots[i] && pocketCount(seed) === 0;
+      S.plots[i].day -= 3;
+      const crop = S.plots[i].seed, had = pocketCount(crop);
+      await usePlot(i);
+      out.picked = !S.plots[i] && pocketCount(crop) >= had + 2;
+      // a recipe, cooked (the quick way: what's needed comes out of the pocket, the dish goes in)
+      const r = RECIPES[0];
+      for (const [k, n] of Object.entries(r.need)) __dbg.give(k, n);
+      out.cooked = (await cookDish(r, true)) === true && pocketCount(r.id) >= 1 && Object.keys(r.need).every((k) => pocketCount(k) === 0);
+      // a pot from the studio's hand-building, given to a neighbor: picked from the pocket as a player taps it
+      const pot = __dbg.potPiece('frog', 'c'), n = NPCs.get('maki');
+      rel('maki').met = true; rel('maki').giftDay = -1;
+      n.area = G.area.id; n.sleeping = false; n.talking = false;
+      const given0 = rel('maki').given || 0;
+      const gift = giftFlow(n);
+      for (let k = 0; k < 40 && !document.querySelector('#panel:not([hidden]) .grid .slot'); k++) await new Promise((r) => setTimeout(r, 50));
+      document.querySelectorAll('#panel .grid .slot')[S.pocket.findIndex((q) => q && q.id === pot)].click();
+      await Promise.race([gift, new Promise((r) => setTimeout(r, 4000))]);
+      out.gave = !pocketCount(pot) && (rel('maki').given || 0) === given0 + 1;
+    } finally { UI.ask = ask; UI.say = say; G.busy = 0; }
+    return out;
+  });
+  assert.deepEqual(res, { planted: true, picked: true, cooked: true, gave: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
