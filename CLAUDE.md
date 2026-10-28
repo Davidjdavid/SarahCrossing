@@ -116,7 +116,7 @@ docs/DEPLOY.md for the server.
   `body.hd2d` only says the 3D view is showing. Shops and the pocket are one kind of screen (`storeView`, 41b_store.js:
   the things as cards, the one picked big on a little turntable with what can be done with it; a tap picks, only a
   button buys, sells or drops anything; Fortune's sell screen also sells all the fish, fruit or shells in the pocket in one
-  go, a second tap to be sure); `UI.open({ wide })` gives the wider panel they use. The phone shows the time,
+  go, a second tap to be sure; the pocket sends all its furniture home in one go, the mailbox takes every present at once); `UI.open({ wide })` gives the wider panel they use. The phone shows the time,
   weather and wallet along its top and the apps four across. Trying something on at the salon or the sewing machine,
   the 3D view puts the studio to one side and the camera in close on Sarah, whose doll wears it as it's made
   (`Studio.tryOn`, `G.tryOn` read by `hdSarahSpec`, `R3.mirror`); S isn't touched until it's paid for.
@@ -273,7 +273,7 @@ docs/DEPLOY.md for the server.
   in `UI._line`, that neighbor's lines only), and "Call me something else?" changes it (`nickFlow`). Kept as
   `S.npcs[id].nick` and `nickAsked`.
 - Friendship, deeper (6zm_friendship.js): neighbors remember the last few things Sarah did with them (`remember(id, kind,
-  data)` from the gift, favor, game, visit and lost-and-found flows; `S.npcs[id].mem`, eight at most) and some days
+  data)` from the gift, favor, game, visit, lunch, hangout, letter, photo (whoever's in it), catchphrase and lost-and-found flows; `S.npcs[id].mem`, eight at most) and some days
   bring one from the last week up (`memoryLine`, said once). After three weeks without a word a friendship fades a point
   every other day, at most ten, never below the hearts it has (`friendshipTick` in `dailyCheck`; `faded`, `missed`), and
   they say they missed her (`MISSED_LINES`). Each heart brings something new, one a day (`friendMilestone`, after the

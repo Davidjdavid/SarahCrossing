@@ -4027,3 +4027,65 @@ test('the claw machine, the way a player does: paid at the machine, the claw ste
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test('chores in one go: every piece of furniture in the pocket sent home with one button, and every present in the mailbox taken with one (the letters left to read)', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, btnOf = (re) => [...document.querySelectorAll('#panel button')].find((q) => re.test(q.textContent));
+    S.pocket = S.pocket.map(() => null);
+    receive('lamp_floor', 1, true); receive('wall_cream', 1, true); receive('floor_wood', 1, true); receive('seabass', 2, true);
+    const st = (id) => S.storage[id] || 0, s0 = ['lamp_floor', 'wall_cream', 'floor_wood'].map(st);
+    openPocket();
+    out.label = btnOf(/^Send furniture home/).textContent;
+    btnOf(/^Send furniture home/).click();
+    out.home = ['lamp_floor', 'wall_cream', 'floor_wood'].every((id, i) => st(id) === s0[i] + 1) && pocketCount('seabass') === 2 && !btnOf(/^Send furniture home/);
+    UI.close(true);
+    sendMail({ from: 'kai', subject: 'A shell', body: 'For you.', gift: 'conch' });
+    sendMail({ from: 'shop', subject: 'Your order', body: 'Here it is.', gifts: ['lamp_floor', 'chair_wood'] });
+    sendMail({ from: 'maki', subject: 'Hi', body: 'Just saying hi.' });
+    await openMailbox();
+    out.mail = btnOf(/^Take every present/).textContent;
+    btnOf(/^Take every present/).click();
+    out.taken = ['conch', 'lamp_floor', 'chair_wood'].every((id) => pocketCount(id) === 1) && S.mail.filter((m) => m.gift || m.gifts).every((m) => m.claimed && !m.read) && !btnOf(/^Take every present/);
+    UI.close(true);
+    return out;
+  });
+  assert.deepEqual(res, { label: 'Send furniture home (3)', home: true, mail: 'Take every present (2)', taken: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('neighbors remember more: a photo with them in it, a letter, a lunch, a hangout, the catchphrase she gave them; brought up the next day and listed on their profile', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => {
+    __dbg.setTime(6, 5, 14);
+    const n = NPCs.get('kai'), p = G.player, r = rel('kai');
+    r.met = true; r.pts = HEARTS[4]; r.mem = [];
+    Object.assign(n, { area: 'island', x: p.x + TILE, y: p.y, sleeping: false, hidden: false });
+    n.script = true;
+    Photo.start(); Photo.snap();
+  });
+  await page.waitForFunction(() => (rel('kai').mem || []).some((m) => m.k === 'photo'), null, { timeout: 15000 });
+  const res = await page.evaluate(() => {
+    Photo.stop();
+    const id = 'kai', r = rel(id);
+    NPCs.get(id).script = null;
+    postDeliver({ to: id, day: Clock.dayNum(), body: 'Hi Kai!' });
+    remember(id, 'lunch'); remember(id, 'hang', { place: 'at the lookout' }); remember(id, 'catch', { phrase: 'surf it out' });
+    const kinds = r.mem.map((m) => m.k).sort().join();
+    for (const m of r.mem) m.day = Clock.dayNum() - 1;
+    const lines = []; let l; while ((l = memoryLine(id))) lines.push(l);
+    appProfile(id);
+    const page = document.querySelector('#panel .pbody').textContent;
+    UI.close(true);
+    return { kinds, said: lines.length, filled: !lines.some((x) => /[{}]/.test(x)) && lines.some((x) => /at the lookout/.test(x)) && lines.some((x) => /surf it out/.test(x)),
+      profile: ['photo with them', 'wrote them a letter', "Lunch together at Mac's", 'hung out at the lookout', 'catchphrase: "surf it out"'].every((t) => page.includes(t)) };
+  });
+  assert.deepEqual(res, { kinds: 'catch,hang,letter,lunch,photo', said: 5, filled: true, profile: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});

@@ -2,7 +2,8 @@
 /* Friendship, deeper (David, 27 October: "more than hearts going up ... neighbors who remember what she did and bring it
    up; it fades a little if she's away a long time; milestones that unlock things: sharing something personal, a gift for
    her house, asking her advice, a best-friend moment"). Neighbors remember the last few things Sarah did with them (a gift
-   they liked, a game, a hug, a favor, a visit, finding what they'd lost: remember, kept as S.npcs[id].mem) and some days
+   they liked, a game, a favor, a visit, a lunch or a hangout, a letter, a photo together, the catchphrase she gave them,
+   finding what they'd lost: remember, kept as S.npcs[id].mem) and some days
    bring one up (memoryLine). After three weeks without a word their friendship fades a little each day, never below the
    hearts they have (friendshipTick, in dailyCheck), and they say they missed her. And at each heart they share something
    new, one a day (friendMilestone): their favorite spot at two hearts, asking her advice at three, a gift for her house
@@ -17,6 +18,11 @@ const MEM_LINES = {
     newyear: ['That countdown on the square {when}! What a way to start a year.', "We counted down together {when}! I'm still saying 'happy new year' to everyone. It's getting weird."],
     coffee: ["That coffee at Muggy's {when} was so nice. Let's do it again!", 'I keep thinking about our coffee {when}. Muggy waved at us the whole time.'],
     bench: ['Sitting on that bench with you {when} was nice. We should do nothing together more often.', "That bench {when}! Best doing-nothing I've done all week."],
+    lunch: ["Lunch at Mac's {when} was so nice. Mac gave us extra. Mac says that never happened.", 'I keep thinking about our lunch {when}. Same time next week? Or sooner. Sooner works.'],
+    hang: ['Hanging out {place} {when} was the best. We should do it again.', "Remember {when}, {place}? I've been back twice. It's not the same without you."],
+    letter: ['I still have your letter from {when}. I read it again last night.', "Your letter {when}! I put it somewhere safe. I'm not saying where. It's that safe."],
+    photo: ["You took a picture with me in it {when}! I hope I looked good. Don't tell me if I didn't.", 'Was that a photo {when}? Of me? I should have done my good side. All my sides are good. Still.'],
+    catch: ['Since you gave me "{phrase}", I can\'t stop saying it. People have noticed.', 'I said "{phrase}" at breakfast this morning. To nobody. It still felt right.'],
     lost: ["I haven't lost my {what} once since you found it. I check on it every hour.", "My {what}! Still safe. Thanks to you. I gave it a little talk about wandering off."],
 };
 const GAME_WORDS = { tag: 'game of tag', hide: 'game of hide-and-seek', derby: 'fishing derby', danceoff: 'dance-off', duet: 'karaoke duet', volley: 'volleyball game', snowball: 'snowball fight' };
@@ -80,7 +86,8 @@ function memoryLine(id) {
     m.said = 1;
     const age = today - m.day, when = age <= 1 ? 'yesterday' : age <= 3 ? 'the other day' : 'last week';
     return rpick(MEM_LINES[m.k]).replace(/\{when\}/g, when).replace(/\{item\}/g, m.item && ITEMS[m.item] ? itemName(m.item).toLowerCase() : 'present')
-        .replace(/\{game\}/g, GAME_WORDS[m.game] || 'game').replace(/\{what\}/g, m.what || 'thing');
+        .replace(/\{game\}/g, GAME_WORDS[m.game] || 'game').replace(/\{what\}/g, m.what || 'thing')
+        .replace(/\{place\}/g, m.place || 'together').replace(/\{phrase\}/g, m.phrase || 'it');
 }
 
 /* ---------------------------------------------------------------- fading, a little */

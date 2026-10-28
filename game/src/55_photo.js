@@ -121,6 +121,8 @@ const Photo = {
         tg.drawImage(c, 0, 0, t.width, t.height);
         const ok = Photos.add(t.toDataURL('image/jpeg', 0.85), tags.slice(0, 16));
         const fresh = Online.visitor() ? [] : Scrapbook.note(seen);
+        // (whoever's in it remembers it: 6zm_friendship.js)
+        if (ok) for (const s of seen) if (s.k.startsWith('npc:')) remember(s.k.slice(4), 'photo');
         this.last = url;
         const fl = el('div');
         fl.style.cssText = 'position:absolute;inset:0;background:#fff;opacity:0.85;transition:opacity 0.4s;pointer-events:none';

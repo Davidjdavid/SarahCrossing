@@ -34,7 +34,9 @@ const FAV_NAMES = { bench_pond: 'The bench by the pond', pier_end: 'The very end
     harbor: 'Down by the harbor', oldtree: 'The big old tree in the forest', meadow: 'The meadow up the hill', statue: 'The statue' };
 /* what they've done with Sarah, said short (S.npcs[id].mem) */
 const MEM_SHORT = { gift: 'You gave them {item}', game: 'You had a {game} together', favor: 'You helped them out', visit: 'You came over to their house',
-    gather: 'A night out with the whole island', newyear: 'You counted down to the new year together', coffee: "Coffee together at Muggy's", lost: 'You found their {what}', bench: 'You sat on a bench together' };
+    gather: 'A night out with the whole island', newyear: 'You counted down to the new year together', coffee: "Coffee together at Muggy's", lost: 'You found their {what}', bench: 'You sat on a bench together',
+    lunch: "Lunch together at Mac's", hang: 'You hung out {place}', letter: 'You wrote them a letter', photo: 'You took a photo with them in it',
+    catch: 'You gave them a catchphrase: "{phrase}"' };
 
 function agoWords(day) {
     const n = Clock.dayNum() - day;
@@ -100,7 +102,8 @@ function appProfile(id) {
         for (const m of (r.mem || []).slice().reverse()) {
             const t = MEM_SHORT[m.k];
             if (!t) continue;
-            line(t.replace('{item}', m.item && ITEMS[m.item] ? 'a ' + itemName(m.item).toLowerCase() : 'a present').replace('{game}', GAME_WORDS[m.game] || 'game').replace('{what}', m.what || 'thing'), agoWords(m.day));
+            line(t.replace('{item}', m.item && ITEMS[m.item] ? 'a ' + itemName(m.item).toLowerCase() : 'a present').replace('{game}', GAME_WORDS[m.game] || 'game').replace('{what}', m.what || 'thing')
+                .replace('{place}', m.place || 'together').replace('{phrase}', m.phrase || ''), agoWords(m.day));
         }
         if (!L.children.length) L.appendChild(el('p', 'muted', 'Nothing yet. Say hi, give a gift, play a game!'));
         P.body.appendChild(L);

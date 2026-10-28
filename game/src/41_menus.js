@@ -65,6 +65,14 @@ function openPocket(sel, tab) {
         back();
         P.foot.innerHTML = '';
         P.foot.appendChild(el('span', 'grow', `${pocketFree()} free ${plural(pocketFree(), 'slot')} \u00b7 ${fmtNum(S.money)} sand dollars`));
+        // (after a shopping trip: every piece of furniture, wallpaper and flooring sent home in one go)
+        const home = S.pocket.map((q, k) => [q, k]).filter(([q]) => q && ITEMS[q.id] && ['furniture', 'wall', 'floor'].includes(ITEMS[q.id].type) && !importantItem(q.id));
+        if (home.length >= 2) P.foot.appendChild(btn(`Send furniture home (${home.length})`, 'alt', () => {
+            for (const [q, k] of home) toStorage(q.id, removeSlot(k));
+            Sfx.play('item');
+            UI.toast(`Sent home: ${home.length} ${plural(home.length, 'piece')}`, itemIcon(home[0][0].id));
+            sel = null; V.clear(); draw();
+        }));
     };
     draw();
 }
@@ -241,6 +249,22 @@ function appMail(box) {
     const write = btn('Write a letter', 'green', () => Online.writeLetter());
     write.style.marginBottom = '10px';
     P.body.appendChild(write);
+    // (orders and presents piling up: every present taken at once, the letters left to read)
+    const gifted = mails.filter(m => mailGifts(m).length && !m.claimed);
+    if (gifted.length >= 2) {
+        const all = btn(`Take every present (${gifted.length})`, 'alt', () => {
+            let home = 0;
+            for (const m of gifted) {
+                m.claimed = true;
+                for (const g of mailGifts(m)) if (!addItem(g, 1, true)) { toStorage(g, 1); home++; }
+            }
+            Sfx.play('item'); Save.touch();
+            UI.toast(home ? `Presents taken (${home} went home to storage)` : 'Presents taken', 'ui_present');
+            appMail(box);
+        });
+        all.style.margin = '0 0 10px 8px';
+        P.body.appendChild(all);
+    }
     if (!mails.length) list.appendChild(el('p', 'muted', 'No mail yet. Neighbors write when they get to know you.'));
     for (const m of mails) {
         const r = el('button', 'row' + (m.read ? '' : ' unread'));

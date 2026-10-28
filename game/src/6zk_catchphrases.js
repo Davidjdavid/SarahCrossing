@@ -69,6 +69,7 @@ async function catchFlow(n) {
     r.catchDay = Clock.dayNum();
     if (v === '') { delete r.catch; await UI.say(id, `Back to '${catchOf(id)}'! Like an old sweater. Comfy.`, { keep: true }); Save.touch(); return; }
     r.catch = v;
+    remember(id, 'catch', { phrase: v });
     Save.touch();
     n.emote = 'sparkle'; n.emoteT = 60; n.hop = 3;
     for (const line of CATCH_REACT[id] || ["'{c}'! I love it. {c}!"]) await UI.say(id, fillText(line.replace(/\{c\}/g, cap(v))), { keep: true });

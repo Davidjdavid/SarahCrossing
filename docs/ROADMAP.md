@@ -81,7 +81,7 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] A secret character
 - [~] Every line in one spreadsheet for David to edit (docs/dialogue/dialogue.xlsx, 26 October: 6,694 lines with who
   says them and when, plus 399 new lines for the zip code, Post Office, Bank and Town Hall in every outcome; exported again
-  27 October with everything added since: 8,332 lines; again 29 October without the family's lines: 8,601, and with the night's new lines: 8,662); his edits go back
+  27 October with everything added since: 8,332 lines; again 29 October without the family's lines: 8,601, and with the night's new lines: 8,677); his edits go back
   in with scripts/dialogue/apply.mjs
 - [~] Way more dialogue, better dialogue, conversations that react to what's going on: about 1,340
   new lines (27+ everyday lines per neighbor, plus topics that react to the hour, weather, season,
@@ -185,7 +185,8 @@ Status: [x] done, [~] in progress, [ ] not started.
   (29 October: started. Without her starting it, one who knows her waves, a friend walks over to say hello or to bring
   up something from the last week, a good friend sits beside her on a bench, a best friend walks along with her for a
   while; the closer they are, the warmer the hello when she talks to them, and good friends talk about the friendship
-  itself; sitting together is something they remember: 6zzc_greet.js)
+  itself; sitting together is something they remember: 6zzc_greet.js; they remember more kinds of things too, a lunch or a hangout
+  together, a letter, a photo with them in it, the catchphrase she gave them, and bring each up in their own words)
 - [ ] And so on: David will add more ideas here
 
 ## A lived-in island (David, 27 October: for later)
@@ -419,7 +420,8 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   favor, a bigger house, island jobs, every arcade cabinet, the games with neighbors, and every option of every
   neighbor's talk menu; every screen opens, and fits a phone)
 - [~] The game as something played for months: tedious chores, awkward pacing, confusing screens, frustrating
-  activities (29 October: started. Fortune's sells a pocketful of fish, fruit or shells in one go)
+  activities (29 October: started. Fortune's sells a pocketful of fish, fruit or shells in one go; the pocket sends
+  all its furniture home with one button, and the mailbox takes every present at once)
 
 ## David's notes (29 October)
 - [x] John, Elizabeth, David and James are no longer neighbors: they're only in the game when someone plays as them

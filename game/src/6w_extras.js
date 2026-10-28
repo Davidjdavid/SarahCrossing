@@ -987,6 +987,7 @@ const Invites = {
             await say(INV_SCENE.lunch);
             UI.hideDialog();
             await eatHere(todaysMenu().special, id);
+            remember(id, 'lunch');
         } else if (inv.kind === 'hang') {
             const place = placeName(id, inv.spot);
             const there = n.want && n.want.key === 'inv:' + inv.spot && !n.path;
@@ -997,6 +998,7 @@ const Invites = {
             G.player.emote = 'heart'; G.player.emoteT = 90;
             await UI.say(null, `Sarah and ${d.name} hang out ${place} for a while. They watch the island go by, swap stories, and laugh at nothing in particular.`, { keep: true });
             await say(INV_SCENE.hangEnd);
+            remember(id, 'hang', { place });
             if (id !== 'joe') { const up = addPts(id, 5, 'hangout'); if (up) await heartUp(n, up); }
         } else if (inv.kind === 'chat') {
             inv.state = 'done';
