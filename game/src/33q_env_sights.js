@@ -3,19 +3,22 @@
    - a ring of glowing toadstools in the clearing by the old tree, on autumn nights and the night of a rainy day;
    - a rainbow over the falls the morning after a rainy day, when the sun's out;
    - the northern lights low over the north horizon on some clear winter nights (in the sky's own shader: r3Sky);
-   - on some summer dawns, sea turtle hatchlings scrambling down the far beach into the sea.
+   - on some summer dawns, sea turtle hatchlings scrambling down the far beach into the sea;
+   - some days from December to April, now and then, a whale out in the sea in view: its back comes up and it spouts,
+     twice, then it dives and lifts its tail (SeaSky.whale; sea_whale, sea_whale_tail from small_things.py).
    (The owl at night and the deer are the wildlife's: 6k_wildlife.js.) */
 const EnvSights = {
     TURTLE: 2.6,        // how big a hatchling stands (bigger than life, or nobody would see them)
     build(group, a) {
         this.group = new THREE.Group();
         group.add(this.group);
-        this.ring = this.bow = null; this.turtles = [];
+        this.ring = this.bow = this.whale = null; this.turtles = [];
         const none = { meshes: [], tick: () => {} };
         if (!a || a.id !== 'island' || LAB || typeof EnvModels === 'undefined') return none;
         this.makeRing(a);
         this.makeBow();
         this.makeTurtles();
+        this.makeWhale();
         return { meshes: [], tick: (r3, ar) => this.tick(r3, ar) };
     },
     /* 0 by day, 1 through the night (21:00 to 4:00), easing in and out */
@@ -206,6 +209,52 @@ const EnvSights = {
         }
     },
 
+    /* ------------------------------------------------ a whale out at sea (SeaSky.whale: where, and how far along) */
+    WHALE: 1.2,
+    makeWhale() {
+        if (!EnvModels.has('sea_whale') || !EnvModels.has('sea_whale_tail')) return;
+        const mk = (n) => {
+            const g = new THREE.Group();
+            for (const m of EnvModels.place(g, n, new THREE.Matrix4(), { shadow: false })) m.userData.shared = true;
+            g.visible = false; g.scale.setScalar(this.WHALE); this.group.add(g);
+            return g;
+        };
+        // its spout: beads of spray going up over the blowhole and falling apart
+        const mat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xf2f8ff, transparent: true, opacity: 0.8, depthWrite: false }), { key: 'envsightspout', noDof: true });
+        const geo = new THREE.IcosahedronGeometry(0.07, 1), beads = [];
+        for (let i = 0; i < 16; i++) { const b = new THREE.Mesh(geo, mat); b.visible = false; b.userData.k = i / 16; this.group.add(b); beads.push(b); }
+        this.whale = { back: mk('sea_whale'), tail: mk('sea_whale_tail'), beads, mat };
+    },
+    whaleTick() {
+        const W = this.whale, q = typeof SeaSky !== 'undefined' && SeaSky.whale, S_ = this.WHALE;
+        if (!q) { W.back.visible = W.tail.visible = false; for (const b of W.beads) b.visible = false; return; }
+        // it comes up twice: up (to 300), the spout (120 to 280), down nose first (300 to 460); the second time the tail
+        // goes up and under after it (420 to 640). It swims a little way along all the while.
+        const c = q.t % 700, last = q.t >= 700, dir = q.flip ? -1 : 1;
+        const x = q.x / TILE + dir * q.t * 0.0025, sea = Env.waterH(q.x, q.y), y0 = sea != null ? sea : 0, z = q.y / TILE * R3_ZS;
+        const up = c < 300 ? Math.sin(Math.min(1, c / 120) * Math.PI / 2) : c < 460 ? 1 - (c - 300) / 160 : 0;
+        W.back.visible = up > 0.01;
+        if (W.back.visible) {
+            W.back.position.set(x, y0 - 0.62 * S_ + up * 0.5 * S_, z);
+            W.back.rotation.set(0, q.flip ? Math.PI : 0, c >= 300 ? -(c - 300) / 160 * 0.45 : 0);
+        }
+        const tk = last && c >= 420 && c < 640 ? Math.sin((c - 420) / 220 * Math.PI) : 0;
+        W.tail.visible = tk > 0.01;
+        if (W.tail.visible) {
+            W.tail.position.set(x - dir * 1.1 * S_, y0 - 0.6 * S_ + tk * 0.62 * S_, z);
+            W.tail.rotation.set(0, 0, dir * (1 - tk) * 0.5 * (c - 420 > 110 ? -1 : 1));
+        }
+        const sk = c >= 120 && c < 280 ? (c - 120) / 160 : -1;
+        W.mat.opacity = sk < 0 ? 0 : 0.85 * (1 - sk);
+        for (const b of W.beads) {
+            b.visible = sk >= 0;
+            if (!b.visible) continue;
+            const k = b.userData.k, life = clamp(sk * 1.6 - k * 0.5, 0, 1), an = k * 37;
+            b.position.set(x + dir * 0.5 * S_ + Math.cos(an) * life * 0.35, y0 + 0.35 * S_ + life * 1.5 - life * life * 0.6, z + Math.sin(an) * life * 0.3);
+            b.scale.setScalar(0.6 + life * 1.4);
+        }
+    },
+
     tick(r3, a) {
         if (!a || a.id !== 'island') { this.group.visible = false; return; }
         this.group.visible = true;
@@ -214,6 +263,7 @@ const EnvSights = {
         if (this.ring) this.ringTick(h, t);
         if (this.bow) this.bowTick(h);
         if (this.nest) this.turtleTick(h, t, near);
+        if (this.whale) this.whaleTick();
         this.auroraTick(h);
     },
 };

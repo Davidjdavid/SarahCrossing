@@ -3,7 +3,7 @@ shells and gems lying on the island (item_<id>: a clam, a scallop, a turban, a c
 piece of sea glass, a pearl in its shell, a starfish, a message in a bottle; quartz and amethyst as crystal clusters,
 the cut gems as gems; the volleyball, item_vbball), what grows in the garden plots (plot_seed, plot_sprout, then the
 vegetables grown, veg_<id>), the boats out at sea (sea_sail, sea_sailb, sea_fish, sea_ferry), the boat Sarah came on, at the
-pier (boat_home, as big as a building), a dolphin (sea_dolphin), and what goes over: a little plane (sky_plane, its propeller its own part
+pier (boat_home, as big as a building), a dolphin (sea_dolphin), a whale's back and tail (sea_whale, sea_whale_tail), and what goes over: a little plane (sky_plane, its propeller its own part
 sky_plane_prop to spin) and a hot air balloon (sky_balloon).
 
 Colors are in the mesh (no baking), a little darker underneath; glossy parts are named *_gloss, glass *_clear.
@@ -461,6 +461,46 @@ def sea_dolphin():
     return [(mb, 'main')]
 
 
+def sea_whale():
+    """A humpback's back far out at sea (only the top breaks the water): long and dark slate-blue, pale underneath, the head
+    at +x with a row of knobs and the blowhole, a little dorsal hump toward the tail. The game raises it out of the water,
+    spouts over the blowhole (sea_whale_tail is the tail it lifts as it dives)."""
+    mb = MB()
+
+    def col(p, n):
+        belly = max(0.0, -n.z) ** 1.5
+        return rgb('#3e4e64').lerp(rgb('#c8d2dc'), belly) * (0.84 + 0.26 * max(0.0, n.dot(LIGHT)))
+    prof = [(0.0, -1.6), (0.12, -1.45), (0.28, -1.1), (0.42, -0.5), (0.48, 0.1), (0.46, 0.6), (0.38, 1.0), (0.24, 1.3), (0.1, 1.45), (0.0, 1.5)]
+    m = len(mb.v)
+    lathe(mb, prof, col, seg=18, cap_top=False, cap_bot=False, sy=0.75)
+    xform(mb, m, Euler((0, math.pi / 2, 0)).to_matrix().to_4x4())
+    slab(mb, [(-0.82, 0.3), (-0.5, 0.3), (-0.68, 0.47)], 0.07, col, axis='y', at=-0.035)
+    for k in range(7):
+        ball(mb, (0.62 + k * 0.11, (k % 2 - 0.5) * 0.1, 0.4 - k * 0.035), 0.032, col, sub=1)
+    ball(mb, (0.5, 0.0, 0.445), 0.035, shade('#1e2430'), sub=1)
+    return [(mb, 'main')]
+
+
+def sea_whale_tail():
+    """A humpback's tail as it dives: the stock rising out of the water and the broad flukes spread across, toward the
+    camera the white underside with its dark edge and marks. The origin is where the stock meets the water."""
+    mb = MB()
+
+    def stock(p, n):
+        return rgb('#3e4e64') * (0.84 + 0.26 * max(0.0, n.dot(LIGHT)))
+    lathe(mb, [(0.2, -0.3), (0.17, 0.0), (0.12, 0.35), (0.07, 0.62), (0.0, 0.66)], stock, seg=14, sx=1.0, sy=0.7)
+
+    def fluke(p, n):
+        if n.y > 0.3:
+            return rgb('#3e4e64') * (0.86 + 0.2 * max(0.0, n.dot(LIGHT)))
+        edge = abs(p.x) > 0.64 or p.z > 1.0 or (0.2 < abs(p.x) < 0.3 and p.z > 0.9)
+        spot = math.sin(p.x * 13) * math.sin(p.z * 17) > 0.72
+        return (rgb('#3a4658') if edge or spot else rgb('#eef2f4')) * (0.88 + 0.16 * max(0.0, -n.y))
+    slab(mb, [(0.0, 0.6), (0.32, 0.68), (0.6, 0.84), (0.8, 1.06), (0.55, 1.04), (0.28, 0.98), (0.08, 0.95), (0.0, 0.98),
+              (-0.08, 0.95), (-0.28, 0.98), (-0.55, 1.04), (-0.8, 1.06), (-0.6, 0.84), (-0.32, 0.68)], 0.06, fluke, axis='y', at=-0.03)
+    return [(mb, 'main')]
+
+
 # ---------------------------------------------------------------- what goes over
 def sky_plane():
     mb, prop, glass = MB(), MB(), MB()
@@ -690,7 +730,7 @@ THINGS = {
     'item_shell_star': shell_star, 'item_shell_bottle': shell_bottle,
     **{f'item_gem_{k}': (lambda c=c, k=k: [(gem_cluster(*c) if k in ('quartz', 'amethyst') else gem_cut(*c), 'gloss')]) for k, c in GEMS.items()},
     'sea_sail': lambda: sailboat(), 'sea_sailb': lambda: sailboat(('#e8443a', '#7a2a24'), '#fff0d8', '#f6f0e4'),
-    'sea_fish': sea_fish, 'sea_ferry': sea_ferry, 'sea_dolphin': sea_dolphin,
+    'sea_fish': sea_fish, 'sea_ferry': sea_ferry, 'sea_dolphin': sea_dolphin, 'sea_whale': sea_whale, 'sea_whale_tail': sea_whale_tail,
     'boat_home': boat_home,
     'sky_plane': sky_plane, 'sky_jet': sky_jet, 'sky_balloon': sky_balloon,
 }

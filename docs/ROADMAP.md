@@ -141,7 +141,9 @@ Status: [x] done, [~] in progress, [ ] not started.
   balloons, boats and dolphins
 - [x] Things to see at certain times, never announced (26 October): a glowing toadstool ring in the woods at night, a
   rainbow at the falls the morning after rain, the northern lights on some clear winter nights, sea turtle hatchlings on
-  some summer dawns (and the owl at night, the deer)
+  some summer dawns (and the owl at night, the deer); 29 October: some winter and spring days, a whale out at sea
+  (from the pier, a beach or the lookout) that spouts and lifts its tail as it dives; and up at the lookout the camera
+  now looks out over the sea
 - [x] Rooms: what's hung on walls and the small things on tables as models (the arcade games, jump rope, volleyball
   and the other minigames keep their 2D look, and so can the arcade cabinets)
 - [~] Characters and props as cozy handcrafted toys after New Horizons (David, 26 October): the style test is in the test

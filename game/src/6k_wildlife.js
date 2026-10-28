@@ -144,8 +144,8 @@ const Critters = {
 
 /* ---------------------------------------------------------------- out on the water, up in the sky */
 const SeaSky = {
-    boats: [], sky: [], dolphins: [], flock: null, t: 0, nextBoat: 300, nextSky: 2400, nextDolphin: 900,
-    reset() { this.boats = []; this.sky = []; this.dolphins = []; this.flock = null; },
+    boats: [], sky: [], dolphins: [], flock: null, whale: null, t: 0, nextBoat: 300, nextSky: 2400, nextDolphin: 900, nextWhale: 1500,
+    reset() { this.boats = []; this.sky = []; this.dolphins = []; this.flock = null; this.whale = null; },
     openSea(x, y) { const a = G.areas.island; return a && a.waterAt(x, y) === 's' && W0.grid[y] && W0.grid[y][x] === '~'; },
     clearLane(x0, y0, x1, y1) {
         const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
@@ -207,6 +207,42 @@ const SeaSky = {
             return;
         }
     },
+    /* a whale (the new look's, EnvSights): some days from December to April, by day, one in three, now and then out in a
+       good stretch of open sea in view; it comes up twice, spouting, then dives with its tail up */
+    whaleDay() {
+        const m = Clock.month(), h = Clock.hourF();
+        return (m === 12 || m <= 4) && h >= 7 && h < 17 && hash32((S.seed || '') + ':whale:' + Clock.dayNum()) % 3 === 0;
+    },
+    spawnWhale() {
+        // (the new look sees further up the screen than the flat view's rectangle, out to sea from the lookout most of all;
+        // of the open water in sight, one of the nearest stretches, as the far ones melt into the haze or hide behind the shore)
+        const v = G.view, cam = G.cam, p = G.player, out = [], R3on = typeof R3 !== 'undefined' && R3.active();
+        const x0 = Math.floor(cam.x / TILE) - 6, y0 = Math.floor(cam.y / TILE) - 9, x1 = Math.ceil((cam.x + v.w) / TILE) + 6, y1 = Math.ceil((cam.y + v.h * 0.8) / TILE);
+        const open = (tx, ty) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -2; dx <= 2; dx++) if (!this.openSea(tx + dx, ty + dy)) return false; return true; };
+        // (on the screen, with none of the island's ground between the camera and the water there: a cliff top hides the sea
+        // below it, however near)
+        const bend = (z) => { const bd = Math.max(0, R3U.uBendZ.value - z); return R3U.uBendK.value * bd * bd; };
+        const seen = (tx, ty) => {
+            if (!R3on) return true;
+            const q = R3.project((tx + 0.5) * TILE, (ty + 0.5) * TILE, 0);
+            if (!(q.x > v.w * 0.08 && q.x < v.w * 0.92 && q.y > v.h * 0.12 && q.y < v.h * 0.9)) return false;
+            const c = R3.camera.position, X = tx + 0.5, Z = (ty + 0.5) * R3_ZS, Y = r3GroundH(X * TILE, (ty + 0.5) * TILE) - bend(Z) + 0.3;
+            for (let i = 2; i < 30; i++) {
+                const k = i / 30, x = c.x + (X - c.x) * k, y = c.y + (Y - c.y) * k, z = c.z + (Z - c.z) * k;
+                if (y < r3GroundH(x * TILE, z / R3_ZS * TILE) - bend(z)) return false;
+            }
+            return true;
+        };
+        // (a few tiles off from Sarah, and clear of the pier and the boat tied up at its end)
+        const d = (q) => Math.hypot(q[0] + 0.5 - p.x / TILE, q[1] + 0.5 - p.y / TILE), pr = W0.pier;
+        const clear = (tx, ty) => !pr || !(tx >= pr.x0 - 3 && tx <= pr.x1 + 8 && ty >= pr.y0 - 1 && ty <= pr.y1 + 3);
+        for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (open(tx, ty) && clear(tx, ty) && d([tx, ty]) >= 4 && seen(tx, ty)) out.push([tx, ty]);
+        if (!out.length) return false;
+        out.sort((a, b) => d(a) - d(b));
+        const [tx, ty] = out[Math.floor(R() * Math.min(4, out.length))];
+        this.whale = { x: (tx + 0.5) * TILE, y: (ty + 0.5) * TILE, t: 0, flip: R() < 0.5 };
+        return true;
+    },
     /* now and then something goes over: a big see-through cloud (with its shadow sliding across the ground), a plane,
        or a hot air balloon. Not too often: a few minutes apart, on average */
     spawnSky() {
@@ -262,6 +298,8 @@ const SeaSky = {
         this.sky = this.sky.filter(s => s.t < s.life);
         for (const d of this.dolphins) d.t++;
         this.dolphins = this.dolphins.filter(d => d.t < 60);
+        if (--this.nextWhale <= 0) { this.nextWhale = rint(2400, 6000); if ((seaNear || look) && !this.whale && this.whaleDay()) this.spawnWhale(); }
+        if (this.whale && ++this.whale.t > 1400) this.whale = null;
         // gulls wheeling over the beach while it's light
         const h = Clock.hourF(), day = h > 6 && h < 20 && G.weather !== 'rain';
         const beach = day && (() => { const ty = Math.floor((cam.y + v.h / 2) / TILE); return ty > 96; })();

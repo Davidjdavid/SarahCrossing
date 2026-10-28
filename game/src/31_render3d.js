@@ -157,7 +157,12 @@ const R3 = {
             const sx = Math.max(-1, Math.min(1, L.vx / 2.1)), sy = Math.max(-1, Math.min(1, L.vy / 2.1));
             L.ox += (sx * C[0] * TILE - L.ox) * ko; L.oy += (sy * (sy > 0 ? C[1] : C[2]) * TILE - L.oy) * ko;
             tx += L.ox; ty += L.oy;
-        }
+            // (up at the lookout the camera eases down to look out over the sea it's there for: the boats going by, the
+            // plane, a whale; ENV.cam.out is how many degrees lower and tiles further out)
+            const lo = typeof SeaSky !== 'undefined' && SeaSky.atLookout() ? 1 : 0;
+            this.lookK = snap ? lo : (this.lookK || 0) + (lo - (this.lookK || 0)) * (1 - Math.pow(0.975, f));
+            ty -= this.lookK * ENV.cam.out[1] * TILE;
+        } else this.lookK = 0;
         // the talk camera: while Sarah talks with someone, in towards the two of them (R3_TALK)
         // (and trying something on, in on Sarah alone, to one side of the studio: beside it on a wide screen, above it on an
         // upright phone, Studio.tryOn)
@@ -177,7 +182,7 @@ const R3 = {
             this.target.x += (X - this.target.x) * k; this.target.z += (Z - this.target.z) * k; this.camH += (GH - (this.camH || 0)) * kh;
         }
         // (the new look on an upright phone: a wider view, or there's room for little more than Sarah)
-        const tk = this.talkK || 0, pr = this.pitch() - tk * R3_TALK.pitch * Math.PI / 180, d = this.dist() * (1 - tk * (this.mirror ? R3_TALK.mirror : R3_TALK.near)), cam = this.camera, fov = Env.on && !a.interior ? ENV.cam.fov * (cam.aspect < 1 ? 1.25 : 1) : R3_CAM.fov;
+        const tk = this.talkK || 0, pr = this.pitch() - tk * R3_TALK.pitch * Math.PI / 180 - (this.lookK || 0) * ENV.cam.out[0] * Math.PI / 180, d = this.dist() * (1 - tk * (this.mirror ? R3_TALK.mirror : R3_TALK.near)), cam = this.camera, fov = Env.on && !a.interior ? ENV.cam.fov * (cam.aspect < 1 ? 1.25 : 1) : R3_CAM.fov;
         if (cam.fov !== fov) { cam.fov = fov; cam.updateProjectionMatrix(); }
         // (up on the plateau, the camera rises with her)
         cam.position.set(this.target.x, R3_CAM.ly + d * Math.sin(pr) + (this.camH || 0), this.target.z + d * Math.cos(pr));

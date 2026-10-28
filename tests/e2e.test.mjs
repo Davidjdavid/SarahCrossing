@@ -4055,7 +4055,7 @@ test('the claw machine, the way a player does: paid at the machine, the claw ste
   await page.close();
 });
 
-test('chores in one go: every piece of furniture in the pocket sent home with one button, and every present in the mailbox taken with one (the letters left to read)', async () => {
+test('chores in one go: every piece of furniture in the pocket sent home with one button, and every present in the mailbox taken with one (the letters left to read); months of letters folded behind "Older letters"', async () => {
   const page = await device();
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
@@ -4077,9 +4077,19 @@ test('chores in one go: every piece of furniture in the pocket sent home with on
     btnOf(/^Take every present/).click();
     out.taken = ['conch', 'lamp_floor', 'chair_wood'].every((id) => pocketCount(id) === 1) && S.mail.filter((m) => m.gift || m.gifts).every((m) => m.claimed && !m.read) && !btnOf(/^Take every present/);
     UI.close(true);
+    // months of letters: the newest thirty shown (and anything unread), the older ones a tap away
+    for (const m of S.mail) m.read = true;
+    for (let i = 0; i < 40; i++) S.mail.unshift({ from: 'kai', subject: 'Old letter ' + i, body: 'Hi', day: Clock.dayNum() - 60 + i, read: true });
+    const rows = () => document.querySelectorAll('#panel .list .row').length;
+    await openMailbox();
+    const n = S.mail.length;
+    out.older = [rows(), !!btnOf(/^Older letters/) && btnOf(/^Older letters/).textContent === `Older letters (${n - 30})`];
+    btnOf(/^Older letters/).click();
+    out.all = rows() === n && !btnOf(/^Older letters/);
+    UI.close(true);
     return out;
   });
-  assert.deepEqual(res, { label: 'Send furniture home (3)', home: true, mail: 'Take every present (2)', taken: true });
+  assert.deepEqual(res, { label: 'Send furniture home (3)', home: true, mail: 'Take every present (2)', taken: true, older: [30, true], all: true });
   assert.deepEqual(page.problems, []);
   await page.close();
 });
@@ -4234,6 +4244,42 @@ test("Museum Day, the way a player does: a stamp stand just inside each of the m
     return out;
   });
   assert.deepEqual(res, { stands: 6, stamped: 6, menu: ['My card is full!'], prize: true, gone: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('a whale out at sea some winter days: only on those days, in a stretch of open water in sight, clear of the pier and its boat; gone after it dives', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    // a summer day never has one; a lucky January day does
+    __dbg.setTime(7, 10, 11);
+    out.summer = SeaSky.whaleDay();
+    let day = 1;
+    for (; day < 31; day++) { __dbg.setTime(1, day, 11); if (SeaSky.whaleDay()) break; }
+    out.winter = day < 31;
+    __dbg.setTime(1, day, 20);
+    out.night = SeaSky.whaleDay();
+    __dbg.setTime(1, day, 11);
+    // at the pier's end, looking out
+    const P = W0.pier;
+    G.player.x = (P.x0 + 1) * TILE; G.player.y = (P.y1 - 1.5) * TILE;
+    await wait(400);
+    SeaSky.whale = null;
+    for (let i = 0; i < 10 && !SeaSky.whale; i++) SeaSky.spawnWhale();
+    const w = SeaSky.whale, tx = w && Math.floor(w.x / TILE), ty = w && Math.floor(w.y / TILE);
+    out.spawned = !!w;
+    out.sea = !!w && [-1, 0, 1].every((dy) => [-2, -1, 0, 1, 2].every((dx) => SeaSky.openSea(tx + dx, ty + dy)));
+    out.clear = !!w && !(tx >= P.x0 - 3 && tx <= P.x1 + 8 && ty >= P.y0 - 1 && ty <= P.y1 + 3);
+    // it comes up twice, then it's gone
+    if (w) w.t = 1400;
+    SeaSky.update();
+    out.gone = !SeaSky.whale;
+    return out;
+  });
+  assert.deepEqual(res, { summer: false, winter: true, night: false, spawned: true, sea: true, clear: true, gone: true });
   assert.deepEqual(page.problems, []);
   await page.close();
 });

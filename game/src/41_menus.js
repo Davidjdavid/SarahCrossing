@@ -240,7 +240,7 @@ async function openMailbox() {
     Sfx.play('item');
     appMail(true);
 }
-function appMail(box) {
+function appMail(box, all) {
     box = box === true;
     const P = UI.open({ title: box ? 'Mailbox' : 'Mail', phone: !box, back: box ? null : backToPhone });
     const list = el('div', 'list');
@@ -266,7 +266,9 @@ function appMail(box) {
         P.body.appendChild(all);
     }
     if (!mails.length) list.appendChild(el('p', 'muted', 'No mail yet. Neighbors write when they get to know you.'));
-    for (const m of mails) {
+    // (months of letters: the newest first, the older ones a tap away, so the list doesn't go on and on)
+    const MAIL_SHOWN = 30, shown = all ? mails : mails.filter((m, i) => i < MAIL_SHOWN || !m.read || (mailGifts(m).length && !m.claimed));
+    for (const m of shown) {
         const r = el('button', 'row' + (m.read ? '' : ' unread'));
         r.type = 'button';
         r.appendChild(iconCanvas(mailGifts(m).length && !m.claimed ? 'ui_present' : 'app_mail', 40));
@@ -276,6 +278,11 @@ function appMail(box) {
         r.appendChild(t);
         r.addEventListener('click', () => openLetter(m, box));
         list.appendChild(r);
+    }
+    if (shown.length < mails.length) {
+        const more = btn(`Older letters (${mails.length - shown.length})`, 'alt', () => appMail(box, true));
+        more.style.margin = '10px 0 0 8px';
+        list.appendChild(more);
     }
     P.body.appendChild(list);
 }

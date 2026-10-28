@@ -89,7 +89,8 @@ docs/DEPLOY.md for the server.
   `31a_ground3d.js`) where the painted picture would smear; tufts, lily pads and cattails are instanced meshes refilled
   as the view moves. Tune the camera, bend and haze in `R3_CAM` / `R3_FOG`. In the new look the camera leads Sarah the way
   she's moving, most when she runs toward the camera (`ENV.cam.lead`, `R3.lead`, eased in and out: David, 27 October,
-  running down she couldn't see what was coming), and things are drawn ahead out to where the haze has them
+  running down she couldn't see what was coming), up at the lookout it eases down to look out over the sea (`ENV.cam.out`,
+  `R3.lookK`), and things are drawn ahead out to where the haze has them
   (`updateView`: a house beyond the ground at the top of the screen still stands up over the horizon, and used to blink
   in and out there).
 - The haze takes the sky's color behind each thing (`r3SkyCol` in `R3_GLSL`, the sky's colors shared as `uSkyZen`/`uSkyMid`/
@@ -494,7 +495,10 @@ docs/DEPLOY.md for the server.
   nights and the night of a rainy day; a rainbow in the mist at the falls' foot the morning after rain when the sun's out
   (`todayWeather(day)` takes another day); the northern lights low over the north horizon on some clear winter nights (in
   the sky's shader, `uAur` in `r3Sky`, their green on everything in `updateLight`); sea turtle hatchlings
-  (`critter_turtle`, flippers that paddle) scrambling from a nest on the far beach into the sea on some summer dawns.
+  (`critter_turtle`, flippers that paddle) scrambling from a nest on the far beach into the sea on some summer dawns; some
+  days from December to April, now and then, a whale in a stretch of open sea in sight (from the pier, a beach, the lookout)
+  that comes up twice spouting, then dives and lifts its tail (`SeaSky.whale`, `spawnWhale`: on the screen with no ground
+  between it and the camera; `sea_whale`, `sea_whale_tail` from small_things.py; `whaleTick`).
   "Some" is a coin toss per day (`EnvSights.lucky`), the same all day. The owl at night and the deer are the wildlife's.
 - The holidays' decorations on the island (54_events.js `decorateIsland`) are models too (`EnvBuild.holidayModel`): pumpkin
   lanterns, the lunar and red lanterns and heart lamps (the furniture's own models, loaded with the island's:
