@@ -305,7 +305,7 @@ const BigMap = {
             [landmarkName('pond', 'Pond'), sp.pond.x + 0.5, sp.pond.y - 3], ['Farm', sp.farm.x + 0.5, sp.farm.y + 5], [landmarkName('forest', 'Forest'), sp.forest.x + 0.5, sp.forest.y - 2],
             [landmarkName('mountain', 'Mountain'), sp.mountain.x + 0.5, sp.mountain.y - 6], [landmarkName('lookout', 'Lookout'), sp.lookout.x + 0.5, sp.lookout.y - 2], [landmarkName('waterfall', 'Waterfall'), sp.waterfall.x + 4, sp.waterfall.y - 4],
             [landmarkName('spring', 'Hot spring'), W0.wonton[0], W0.wonton[1] - 4], [landmarkName('beach', 'Beach'), sp.beach.x, sp.beach.y + 2], [landmarkName('campsite', 'Campsite'), sp.campsite.x + 0.5, sp.campsite.y - 5],
-            ['Bonfire', sp.bonfire.x + 0.5, sp.bonfire.y + 4], ["David's statue", sp.statue.x + 0.5, sp.statue.y + 2], ['Market Lane', sp.boardwalk.x, sp.boardwalk.y - 4.5],
+            ['Bonfire', sp.bonfire.x + 0.5, sp.bonfire.y + 4], ['Market Lane', sp.boardwalk.x, sp.boardwalk.y - 4.5],
             [landmarkName('oldtree', 'Old tree'), sp.oldtree.x, sp.oldtree.y + 3], [landmarkName('eastmeadow', 'East meadow'), sp.eastmeadow.x, sp.eastmeadow.y + 3], [landmarkName('glade', 'The glade'), sp.meadow.x + 0.5, sp.meadow.y - 4]];
         if (W0.props.some(p => p.kind === 'windmill')) { const w = W0.props.find(p => p.kind === 'windmill'); places.push(['Windmill', w.x + 1.5, w.y - 3]); }
         // (the areas drawn in the designer, named first: 6zza_designer.js)

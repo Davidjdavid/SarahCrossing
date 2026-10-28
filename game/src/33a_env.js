@@ -771,6 +771,8 @@ const EnvGround = {
             uSeason: { value: new THREE.Vector4(1, 1, 1, 0) }, uRainW: this.rain, uGrid: this.gridOn,
             // (the lawn's average color, what its detail melts into far off, and its broad patches' two tints)
             uGrassAvg: { value: new THREE.Vector3(...T.lawn(Clock.season()).avg) }, uPatchA: { value: new THREE.Vector3(1, 1, 1) }, uPatchB: { value: new THREE.Vector3(1, 1, 1) },
+            // (the lamplight pooled on the ground at night: the nearest few pools, EnvGlow)
+            uGlowP: { value: Array.from({ length: EnvGlow.N }, () => new THREE.Vector4(0, 0, 0, 0)) }, uGlowC: { value: Array.from({ length: EnvGlow.N }, () => new THREE.Vector3()) }, uGlowK: { value: 0 },
         };
         lap('tex');
         this._season = null;                // (new uniforms: the season's colors go in on the first frame)
@@ -810,7 +812,7 @@ const EnvGround = {
             key: 'envground', uniforms,
             vhead: 'attribute float aAO; varying float vAO; varying vec3 vNw;\n',
             vbody: 'vAO = aAO; vNw = normal;',
-            fhead: EnvGround.FHEAD, fmap: EnvGround.FMAP, fnormal: EnvGround.FNORMAL, derivatives: true,
+            fhead: EnvGround.FHEAD, fmap: EnvGround.FMAP, fnormal: EnvGround.FNORMAL, fpre: 'gl_FragColor.rgb += envGlow;', derivatives: true,
         });
         yield;
         const R = ENV.RES, { h, W, Hn } = this.grid, nx = c.w * R + 1, ny = c.h * R + 1;
@@ -860,8 +862,9 @@ uniform sampler2D tGrass; uniform sampler2D tDirt; uniform sampler2D tCob; unifo
 uniform sampler2D nGrass; uniform sampler2D nDirt; uniform sampler2D nCob; uniform sampler2D nSand; uniform sampler2D nWall;
 uniform sampler2D hCob; uniform sampler2D hDirt; uniform sampler2D uWet;
 uniform vec3 uGrassAvg; uniform vec3 uPatchA; uniform vec3 uPatchB;
+uniform vec4 uGlowP[${16}]; uniform vec3 uGlowC[${16}]; uniform float uGlowK;
 varying float vAO; varying vec3 vNw;
-vec4 envW; float envSteep; vec3 envWallN; vec2 envWallUv; float envFar; float envWild;
+vec4 envW; float envSteep; vec3 envWallN; vec2 envWallUv; float envFar; float envWild; vec3 envGlow;
 `;
 EnvGround.FMAP = `
 {
@@ -951,6 +954,18 @@ EnvGround.FMAP = `
     envWallUv = (ew ? vec2(vWp.z / ${R3_ZS.toFixed(3)}, -vWp.y) : vec2(vWp.x, -vWp.y)) * 0.25;
     vec3 cw = texture2D(tWall, envWallUv).rgb;
     col = mix(col, cw, envSteep);
+    // lamplight pooled on the ground at night, rising and falling with it (added after the lighting, EnvGround.FPRE; the
+    // pools were flat squares laid over the ground and sank under it wherever it rose a little, so the light stopped in
+    // a straight line: David, 29 October)
+    envGlow = vec3(0.0);
+    if (uGlowK > 0.0) for (int i = 0; i < ${16}; i++) {
+        vec4 P = uGlowP[i];
+        if (P.z <= 0.0) continue;
+        vec2 d = (vWp.xz - P.xy) / vec2(P.z, P.z * 0.9);
+        float f = max(0.0, 1.0 - dot(d, d));
+        envGlow += uGlowC[i] * (P.w * f * f);
+    }
+    envGlow *= uGlowK * (1.0 - envSteep * 0.8);
     // the tiles' lines (when shown): thin and soft, on flat ground only
     if (uGrid > 0.0) {
         vec2 gd = abs(fract(tp + 0.5) - 0.5) / fwidth(tp);

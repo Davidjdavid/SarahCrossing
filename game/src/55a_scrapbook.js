@@ -47,7 +47,7 @@ const SCRAP_BIO = {
         barn: 'The barn up at the farm.',
         bigtree: 'The grand tree in the middle of the square, twice as tall as any other.',
         fountain: 'The fountain on the square: two bowls, four bronze fish and a jet.',
-        statue: 'David\'s statue, on the lawn by Market Lane.',
+        statue: 'David\'s statue, which stood on the lawn by Market Lane.',
         windmill: 'The windmill on the farm, turning whenever there\'s a breeze.',
         well: 'The old well. Some say it grants wishes. Some say it\'s just a well.',
         pier: 'The pier, where the boat came in.',

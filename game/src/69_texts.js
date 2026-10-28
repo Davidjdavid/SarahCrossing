@@ -14,7 +14,7 @@ const PLACE_NAMES = {
     rope_a: 'turning the jump rope in the plaza', rope_b: 'turning the jump rope in the plaza',
     shopfront: "outside Fortune's", boutiquefront: "outside Clementine's", arcadefront: 'outside the arcade', studiofront: 'outside the pottery studio',
     restaurantfront: "outside Mac's", museumfront: 'outside the museum', builderfront: "outside Ginger's workshop", clubfront: 'outside Club Wasabi',
-    salonfront: 'outside the salon', displaysfront: "outside Waffle's", statue: "by David's statue", boardwalk: 'on the Boardwalk', harbor: 'down by the harbor',
+    salonfront: 'outside the salon', displaysfront: "outside Waffle's", statue: 'on the lawn by Market Lane', boardwalk: 'on the Boardwalk', harbor: 'down by the harbor',
     bonfire: 'at the bonfire on the beach', campsite: 'at the campsite', oldtree: 'by the big old tree in the forest', village: 'in the west village',
     eastside: 'on the east side', bench_statue: 'on a bench in the corner of the square', bench_boardwalk: 'on a bench on the Boardwalk',
     bench_eastmeadow: 'on the bench in the east meadow',

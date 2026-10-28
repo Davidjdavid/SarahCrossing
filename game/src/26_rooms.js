@@ -659,14 +659,7 @@ async function roomChecks() {
         }
         return;
     }
-    if (roomHours(a.id) && !roomOpen(a.id) && a.id !== 'shop') {
-        G.busy++;
-        const n = R.staff && NPCs.get(R.staff);
-        const sp = n && n.area === a.id ? R.staff : null;
-        await UI.say(sp, sp ? voiced(sp, rpick(["Closing time! Out you go, night owl. See you tomorrow!", "That's closing time! Get some sleep. Or don't. It's a free island."])) : 'A little chime plays. The shop is closing.');
-        G.busy--;
-        await leaveInterior();
-    }
+    // (a shop no longer puts Sarah out at closing time: she can stay and shop on the honor system, David, 29 October)
 }
 
 /* ---------------------------------------------------------------- furniture as a gift: it goes into their home */

@@ -17,7 +17,9 @@ docs/DEPLOY.md for the server.
 - `S` is the save (the island's whole state). `newState()` and `migrate()` are in `11_save.js`.
 - Sarah's family (David, James, John, Elizabeth) are only on the island while someone plays as them online (13_online.js):
   never neighbors, no visits by boat (David, 29 October). Their `NPC_DEFS` entries (`online: true`) keep only their names,
-  looks and voices for that, and `NPCs.list` leaves them out; Joe is a neighbor. David's statue stays a statue.
+  looks and voices for that, and `NPCs.list` leaves them out; Joe is a neighbor. David's statue is gone from the island
+  (29 October: its prop and plaque are kept in `W0.props` as `gone`, so every other prop keeps its number; the spot `statue`
+  is "the lawn by Market Lane").
 - The island (`game/assets/world.json` and its ground picture in pieces, `game/assets/ground/`) is made by
   `node scripts/make-island.mjs`, from `scripts/island/`: `plan.mjs` is the layout David picked (Harbor Square: the
   coast, each level's edge, rivers, ponds, the square, every path and trail, buildings, props and the neighbors' spots,
@@ -369,12 +371,13 @@ docs/DEPLOY.md for the server.
   `greenery`): `layout.mjs` keeps them as they are, leaving out only what a building, prop, road or lawn now covers, so
   moving a street or a shop never regrows the woods. Delete the file (and the plan's line) to grow them again from the seed.
   The square (27 October): the grand fountain (`fountain_grand`, props_island.py, 4x3 and solid: `PROP_SIZE`/`PROP_ROWS`),
-  the notice board in front of the big tree, a flower bed where David's statue stood (the statue, smaller, is on the lawn
-  along Market Lane), lamps along the paths; the shops on the alley and Market Lane further apart, with benches, lamps and
+  the notice board in front of the big tree, a flower bed where David's statue stood (it moved to the lawn along
+  Market Lane, then went altogether), lamps along the paths; the shops on the alley and Market Lane further apart, with benches, lamps and
   flower beds in the alley and two empty lots at its east end. Save steps `square8` and `lane8` (a shop Sarah had moved
   goes to its new spot) return whatever of hers was in the way. Fortune's shop stands at Market Lane's east end and Fortune
   has a house of their own (`h_fortune`, just west of the square; a little garden where the shop stood); after hours the
-  shop stays open on the honor system (Fortune asleep at home). The café's lot has a COMING SOON sign (`sign_lot`,
+  shop stays open on the honor system (Fortune asleep at home), and so does every other shop (David, 29 October: Sarah
+  can shop or play the arcade whenever; the hours are for the keepers and the neighbors: `afterHours`, `HONOR`). The café's lot has a COMING SOON sign (`sign_lot`,
   `sign_comingsoon`) and two plots of land for sale in the neighborhood (`land_a`, `land_b` in the plan's lots) have FOR
   SALE signs (`sign_land`, `sign_forsale`) and paths out to them: where the neighbors still to come will live. Save step
   `fortune8`, with Fortune's letter.

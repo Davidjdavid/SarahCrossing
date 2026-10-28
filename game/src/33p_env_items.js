@@ -241,11 +241,13 @@ const EnvItems = {
         // burst as the water lands it hops between three spots round the flower)
         const g = gold(), at = (waterTiles.at || {})[pl.x + ',' + pl.y], since = at != null ? G.t - at : 1e9;
         const spot = since < 80 ? [[0.12, 0.05], [-0.14, 0.02], [0.02, -0.1]][Math.floor(since / 9) % 3] : [0.1, 0.05];
-        sp.children.forEach(c => { c.material = g ? this.goldMat() : this.sparkMat; });
+        // (a plain glint a clear white so the gold, for a pair that will cross, can't be mistaken for it)
+        sp.children.forEach(c => { c.material = g ? this.goldMat() : this.waterMat(); });
         sp.position.set(spot[0] / d.scale.x, 0.64 / d.scale.y, spot[1] / d.scale.z);
         sp.scale.setScalar((0.45 + 0.75 * k) / d.scale.x);
         sp.rotation.y = G.t / 20;
     },
+    waterMat() { return this._water || (this._water = r3Patch(new THREE.MeshBasicMaterial({ color: 0xf2f8ff }), { key: 'envspark' })); },
     goldMat() { return this._gold || (this._gold = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffd04a }), { key: 'envspark' })); },
     sparkle() {
         // (two thin crossed points of light, drawn unlit so they shine)

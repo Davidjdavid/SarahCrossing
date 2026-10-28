@@ -437,6 +437,24 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] John, Elizabeth, David and James are no longer neighbors: they're only in the game when someone plays as them
   online (no boat visits, no camping, no talk menus, texts or Friends rows for them; the birthday crown comes from
   Clementine; the campsite's fire is lit Friday and Saturday evenings)
+- [x] The grass: smooth and mostly green, broad patches, tufts, fallen leaves for the season, less contrast, softer far
+  off, worn by the paths and wilder in the woods; draw distance further; no line of light at the shadows' edge; the can
+  waters in front; flowers glint as they're watered; three hits fell a tree, which falls over; stumps as thick as trunks
+- [x] Gold glints only on flowers that will cross-breed the next morning
+- [x] Lamplight at night pooled on the ground without stopping in a line
+- [x] David's statue taken away altogether
+- [x] Every shop open to Sarah at any hour (the honor system when its keeper is off); the hours are for the keepers and
+  the neighbors
+- [ ] Cliff edges: no jagged steps, the wall's lip matching the lawn, clean corners
+- [ ] Houses and props showing only partly, at every zoom
+- [ ] The map: the lighthouse and the windmill each their own picture
+- [ ] The phone: fewer things on its front screen (apps in sections), and better icons
+- [ ] Trees part way through growing, and a sign for sale in a shop, still flat pictures in the new look
+- [ ] The designer: move the island's stairs and make them narrower
+- [ ] The old tree in the forest: a tree of its own, much larger, with branches
+- [ ] Music: the hourly track loops less jarringly (when it ends, carry on from a few seconds in, faded across, rather
+  than jumping back to the very start)
+- [ ] Sheets of everything for review: every furniture piece, prop, neighbor and the like, its name and where it is
 
 ## David's notes from playing beta (28 October)
 - [x] The lighting at night blown out yellow near the shops (every doorway and jack-o'-lantern was lit like a street

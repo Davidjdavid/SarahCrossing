@@ -130,7 +130,7 @@ const NewYear = {
 /* ---------------------------------------------------------------- Pirate Day: a treasure hunt */
 /* in the morning a map in a bottle (a letter from Kai) says how many steps from a landmark to walk; an X marks the
    spot there, and the shovel digs up the treasure: Kai's treasure chest the first year, sand dollars after that */
-const PIRATE_MARKS = { oldtree: 'the big old tree in the forest', statue: "David's statue", waterfall: 'the waterfall', pond: 'the pond', lookout: 'the lookout',
+const PIRATE_MARKS = { oldtree: 'the big old tree in the forest', waterfall: 'the waterfall', pond: 'the pond', lookout: 'the lookout',
     bonfire: 'the bonfire on the beach', orchard: 'the orchard', harbor: 'the harbor', meadow: 'the meadow' };
 /* today's treasure: where it is and the clue, the same all day */
 function pirateSpot(day) {

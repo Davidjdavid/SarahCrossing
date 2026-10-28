@@ -57,27 +57,21 @@ async function enterBuilding(id) {
         await enterRoom('shop');
         return;
     }
-    if (id === 'boutique') {
-        if (roomOpen('boutique')) { await enterRoom('boutique'); return; }
-        await UI.say('sign', "CLEMENTINE'S. Open {hours:boutique}. Closed now. The mannequins are resting. They work very hard.");
-        return;
-    }
     // (the civic buildings' insides, on beta for now: 6zc_civic.js)
-    if (typeof civicOpen === 'function' && civicOpen(id)) {
-        if (roomOpen(id)) { await enterRoom(id); return; }
-        await UI.say('sign', ROOMS[id].closedSign);
-        return;
-    }
+    if (typeof civicOpen === 'function' && civicOpen(id)) { afterHours(id); await enterRoom(id); return; }
     if (CIVIC_SIGNS[id]) { await UI.say('sign', CIVIC_SIGNS[id]); return; }
     if (ROOMS[id] && ROOMS[id].owner) { await visitHouse(id); return; }
     if (id === 'barn') { await enterRoom('barn'); return; }
     if (!ROOMS[id] && !id.startsWith('h_')) { await UI.say('sign', 'Opening soon! There is a lot of hammering going on inside.'); return; }
-    if (ROOMS[id]) {
-        if (roomOpen(id)) { await enterRoom(id); return; }
-        await UI.say('sign', ROOMS[id].closedSign || 'Closed right now. Come back later!');
-        return;
-    }
+    if (ROOMS[id]) { afterHours(id); await enterRoom(id); return; }
     await knock(id.replace('h_', ''));
+}
+/* Sarah can go into any shop at any hour, to buy clothes or play the arcade whenever she likes; the hours are when its
+   keeper works and the neighbors come by (David, 29 October). After hours it's the honor system, as at Fortune's */
+function afterHours(id) {
+    if (roomOpen(id) || Online.visitor()) return;
+    const R = ROOMS[id], n = R && R.staff && NPC_DEFS[R.staff];
+    UI.toast(n ? `${n.name}'s done for the day, but the door's open. It's the honor system!` : "It's after hours, but the door's open. It's the honor system!", n ? n.sprite + '_0' : undefined);
 }
 async function leaveInterior() {
     const from = G.area.id;

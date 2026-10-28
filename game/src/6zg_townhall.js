@@ -44,7 +44,7 @@ function townWake(wake, bed, id) {
 }
 /* the places a good friend likes going in their free time, picked at the Residents screen (up to two) */
 const RES_SPOTS = { plaza: 'The square', beach: 'The beach', pier: 'The pier', pond: 'The pond', waterfall: 'The waterfall', meadow: 'The meadow', lookout: 'The lookout',
-    harbor: 'The harbor', boardwalk: 'The Boardwalk', orchard: 'The orchard', farm: 'The farm', oldtree: 'The old tree', statue: "David's statue", bonfire: 'The bonfire' };
+    harbor: 'The harbor', boardwalk: 'The Boardwalk', orchard: 'The orchard', farm: 'The farm', oldtree: 'The old tree', statue: 'The Market Lane lawn', bonfire: 'The bonfire' };
 function townSpots(id) {
     const sc = CIVIC_PREVIEW && id && S && S.town && S.town.sched && S.town.sched[id];
     return sc && sc.spots ? sc.spots.filter(k => W0.spots[k]) : [];

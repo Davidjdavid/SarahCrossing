@@ -48,6 +48,7 @@ const EnvContact = {
    real lights (the nearest), so these show where every light falls. One instanced quad lying on the ground per light,
    added to what's under it, coming up as the lamps come on. */
 const EnvGlow = {
+    N: 16,              // (pools lit at once: the nearest; the ground's shader takes them, EnvGround.FMAP)
     build(group, a) {
         const list = [];
         for (const e of a.ents) {
@@ -58,26 +59,28 @@ const EnvGlow = {
             if (e.light && !e.furn) list.push([e.x / TILE, e.y / TILE + 0.15, lamp ? Math.max(6.5, e.light.r / TILE * 4) : e.holiday ? 1.3 : Math.max(1.6, e.light.r / TILE * 1.05), e.holiday ? 0.35 : lamp ? 0.4 : 1, 0xffc27a]);
             else if (e.kind === 'building' && e.b) { const b = e.b; list.push([b.x + b.w / 2, b.y + b.h + 0.35, Math.min(2.2, b.w * 0.42), 0.55, e.id === 'club' ? 0xff6ab0 : 0xffc27a]); }
         }
-        if (!list.length) return { meshes: [] };
-        const geo = new THREE.PlaneGeometry(2, 2);
-        geo.rotateX(-Math.PI / 2);
-        const mat = new THREE.MeshBasicMaterial({ map: EnvContact.tex(), color: 0xffffff, transparent: true, depthWrite: false, opacity: 0 });
-        // (added to the ground's color; the picture's alpha, the depth of field's, left alone)
-        Object.assign(mat, { blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor });
-        mat.polygonOffset = true; mat.polygonOffsetFactor = -3; mat.polygonOffsetUnits = -3;
-        const m = new THREE.InstancedMesh(geo, r3Patch(mat, { key: 'envglow', inst: true, noDof: true, noCloud: true }), list.length);
-        const M = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3(), c = new THREE.Color();
-        list.forEach(([x, y, r, k, col], i) => {
-            p.set(x, EnvGround.heightAt(x, y) + 0.03, y * R3_ZS);
-            s.set(r, 1, r * 0.9);
-            M.compose(p, q, s); m.setMatrixAt(i, M);
-            m.setColorAt(i, c.set(col).multiplyScalar(k));
-        });
-        m.instanceMatrix.needsUpdate = true;
-        if (m.instanceColor) m.instanceColor.needsUpdate = true;
-        m.renderOrder = 1; m.frustumCulled = false;
-        m.visible = false;
-        group.add(m);
-        return { meshes: [m], tick: () => { const k = G.lamps || 0; m.visible = k > 0.02 && m.count > 0; mat.opacity = k * 0.58; } };
+        // (each pool drawn by the ground itself, so it lies on the ground wherever it rises and falls: they were flat
+        // squares over it, and sank under it where it rose a little, the light stopping in a straight line)
+        const c = new THREE.Color();
+        this.list = list.map(([x, y, r, k, col]) => ({ x, z: y * R3_ZS, r, k, c: c.set(col).clone() }));
+        this.at = null;
+        return { meshes: [], tick: (r3) => this.tick(r3) };
+    },
+    tick(r3) {
+        const U = EnvGround.uniforms;
+        if (!U || !U.uGlowK) return;
+        const k = G.lamps || 0;
+        U.uGlowK.value = k > 0.02 && this.list.length ? k * 0.58 : 0;
+        if (!U.uGlowK.value) return;
+        // (the nearest few to where the camera looks, chosen again as it moves on a tile or two)
+        const tx = r3.target.x, tz = r3.target.z, key = Math.round(tx / 2) + ',' + Math.round(tz / 2);
+        if (key === this.at) return;
+        this.at = key;
+        const near = this.list.map(p => [Math.max(0, Math.hypot(p.x - tx, p.z - tz) - p.r), p]).sort((a, b) => a[0] - b[0]).slice(0, this.N);
+        for (let i = 0; i < this.N; i++) {
+            const p = near[i] && near[i][1];
+            U.uGlowP.value[i].set(p ? p.x : 0, p ? p.z : 0, p ? p.r : 0, p ? p.k : 0);
+            if (p) U.uGlowC.value[i].set(p.c.r, p.c.g, p.c.b);
+        }
     },
 };

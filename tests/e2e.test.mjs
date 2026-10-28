@@ -742,8 +742,11 @@ test('the watering can: Fortune sells one; flowers of a kind side by side, both 
       await waterFront();
       out.wild = [wildWatered(wf.flowerIdx), flowerSparkle(f) > 0.5];
     }
-    // mornings until they've made one (a third of mornings or so), watered every day
-    for (let n = 0; n < 20 && F.planted.length === 2; n++) { __dbg.nextDay(1); A.wet = B.wet = Clock.dayNum(); }
+    // mornings until they've made one (a third of mornings or so), watered every day; each day the pair glints gold only
+    // when the morning will bring a new flower (David, 29 October), and a flower on its own never does
+    let agree = true;
+    for (let n = 0; n < 20 && F.planted.length === 2; n++) { breedSoon.t = null; const gold = breedPartner(A) && breedPartner(B); __dbg.nextDay(1); if (gold !== F.planted.length > 2) agree = false; A.wet = B.wet = Clock.dayNum(); }
+    out.gold = [agree, breedPartner({ x: 1, y: 1, kind: 'daisy', ci: 0, day: 0, wet: Clock.dayNum() })];
     const kid = F.planted[2];
     out.kid = kid && [kid.kind, kid.ci, (Math.abs(kid.x - x) <= 1 || Math.abs(kid.x - x - 1) <= 1) && Math.abs(kid.y - y) <= 1, G.areas.island.ents.some((e) => e.pl === kid)];
     // hybrids (2ab_hybrids.js): colors 0 and 1 make the first now and then, 1 and 2 the second, 0 and 2 never; two of a
@@ -758,7 +761,7 @@ test('the watering can: Fortune sells one; flowers of a kind side by side, both 
       pics: ['fl_rose_0', 'fl_rose_4', 'seed_fl_rose'].every(n => Assets.has(n)), hd: !!hdNamed('fl_rose_3', true), petals: EnvItems.petals('flower_rose_4') };
     return out;
   });
-  assert.deepEqual(res, { stock: true, busy: true, wet: [true, true], front: [true, true, true], wild: [true, true], kid: ['daisy', 1, true, true], breed: [3, 2, 4, 1, 4, 0, 3],
+  assert.deepEqual(res, { stock: true, busy: true, wet: [true, true], front: [true, true, true], wild: [true, true], gold: [true, false], kid: ['daisy', 1, true, true], breed: [3, 2, 4, 1, 4, 0, 3],
     hybrid: { name: 'Black lily', dear: true, pic: true, hd: true, petals: '#8cbcff' },
     rose: { seeds: true, names: ['Red rose', 'White rose', 'Yellow rose', 'Pink rose', 'Blue rose'], pics: true, hd: true, petals: '#7a9cff' } });
   assert.deepEqual(page.problems, []);
@@ -788,10 +791,19 @@ test("Fortune's shop on Market Lane stays open after hours on the honor system; 
     // at night Fortune is asleep at home
     await visitHouse('h_fortune');
     out.asleep = said.some((t) => /Fortune is asleep/.test(t));
+    // and every other shop lets Sarah in after hours too, on the honor system, and doesn't put her out at closing time
+    // (David, 29 October: the hours are for the keepers and the neighbors)
+    out.allOpen = [];
+    for (const id of ['boutique', 'arcade', 'studio', 'restaurant', 'museum', 'builder', 'salon', 'displays']) {
+      if (!ROOMS[id] || roomOpen(id)) continue;
+      await enterBuilding(id);
+      if (G.area.id === id) { await new Promise((r) => setTimeout(r, 400)); if (G.area.id === id) out.allOpen.push(id); await leaveInterior(); }
+    }
+    out.allOpen = out.allOpen.length >= 6;
     UI.say = say0; UI.ask = ask0;
     return out;
   });
-  assert.deepEqual(res, { lane: true, closed: true, inside: true, note: true, signs: '2,1', house: true, asleep: true });
+  assert.deepEqual(res, { lane: true, closed: true, inside: true, note: true, signs: '2,1', house: true, asleep: true, allOpen: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

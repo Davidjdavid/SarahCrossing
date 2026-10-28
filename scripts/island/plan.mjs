@@ -185,7 +185,8 @@ export const PLAN = {
     { kind: 'sign_island', x: 120, y: 123 }, { kind: 'tackle', x: 118, y: 129 }, { kind: 'viewer', x: 114, y: 123 },
     // Market Lane
     // (David's statue, smaller, moved off the square to the Boardwalk's lawn: David, 27 October)
-    { kind: 'statue_david', x: 150, y: 110 }, { kind: 'plaque', x: 151, y: 112 },
+    // (and then taken away altogether, David, 29 October: kept as gone so every other prop keeps its number)
+    { kind: 'statue_david', x: 150, y: 110, gone: true }, { kind: 'plaque', x: 151, y: 112, gone: true },
     { kind: 'sign_club', x: 165, y: 104 }, { kind: 'bench', x: 166, y: 110 }, { kind: 'lamp', x: 157, y: 108 }, { kind: 'lamp', x: 176, y: 108 },
     // the alley
     { kind: 'flowerbed', x: 145, y: 100 }, { kind: 'bench', x: 152, y: 100 }, { kind: 'flowerbed', x: 160, y: 100 }, { kind: 'lamp', x: 167, y: 100 }, { kind: 'flowerbed', x: 172, y: 100 },

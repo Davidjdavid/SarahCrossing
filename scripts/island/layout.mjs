@@ -325,6 +325,8 @@ class Island {
   prop(kind, x, y, extra) {
     const p = Object.assign({ kind, x, y }, extra || {});
     this.props.push(p);
+    // (one taken away keeps its place in the list, so the props after it keep their numbers, but stands nowhere)
+    if (p.gone) return p;
     const w = (extra && extra.w) || PROP_W[kind] || 1, rows = PROP_ROWS[kind] || 1;
     for (let j = 0; j < rows; j++) for (let i = 0; i < w; i++) { const k = this.i(x + i, y + j); this.occ[k] = 1; this.keep[k] = 1; }
     return p;
@@ -356,7 +358,7 @@ class Island {
     const c = P.cart;
     this.cart = c ? { x: c.x + 0.5, y: c.y, tiles: [[c.x - 1, c.y], [c.x, c.y], [c.x + 1, c.y]], basil: [c.x + 2.45, c.y + 0.85] } : null;
     this.rope = P.rope ? { a: [P.rope.x, P.rope.y], b: [P.rope.x + 6, P.rope.y], mid: [P.rope.x + 3, P.rope.y] } : null;
-    const st = P.props.find(p => p.kind === 'statue_david');
+    const st = P.props.find(p => p.kind === 'statue_david' && !p.gone);
     this.statue = st ? { x: st.x, y: st.y, w: 3, h: 2 } : null;
     const bf = P.props.find(p => p.kind === 'bonfire');
     this.bonfire = bf ? { x: bf.x, y: bf.y } : null;
@@ -529,6 +531,7 @@ class Island {
     const put = (x, y) => { if (this.in(x, y)) bl[this.i(x, y)] = 1; };
     for (const b of Object.values(this.buildingsOut)) for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) put(b.x + i, b.y + j);
     for (const p of this.props) {
+      if (p.gone) continue;
       const w = p.w || PROP_W[p.kind] || 1;
       if (p.kind === 'volleyball') { for (let i = 0; i < w; i++) put(p.x + i, p.y + 2); continue; }
       if (p.kind === 'driftwood' || p.kind === 'blanket') continue;

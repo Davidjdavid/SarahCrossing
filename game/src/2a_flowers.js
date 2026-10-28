@@ -133,9 +133,14 @@ function flowerSparkle(pl) {
 }
 /* a watered one with a watered flower of its kind beside it, both in bloom: they may cross by morning (flowerBreed); its
    sparkle is golden */
-function breedPartner(pl) {
-    if (!watered(pl) || !flowerBloomed(pl)) return false;
-    return flowerState().planted.some(q => q !== pl && q.kind === pl.kind && watered(q) && flowerBloomed(q) && Math.max(Math.abs(q.x - pl.x), Math.abs(q.y - pl.y)) === 1);
+/* a watered flower glints gold only when it will cross-breed tomorrow morning as things stand (David, 29 October: a lone
+   flower, or one beside another kind or an unwatered one, glinted gold too). breedSoon is tomorrow's pairs, worked out
+   again now and then and whenever something's watered */
+function breedPartner(pl) { return watered(pl) && breedSoon().has(pl); }
+function breedSoon() {
+    const B = breedSoon, day = Clock.dayNum();
+    if (!B.set || B.day !== day || B.t == null || Math.abs(G.t - B.t) > 90) { B.set = new Set(); for (const b of breedPairs(day + 1)) { B.set.add(b.A); B.set.add(b.B); } B.day = day; B.t = G.t; }
+    return B.set;
 }
 /* the can waters the tile in front of the one Sarah stands on (or the flower she's facing) and the one each side of it
    (David, 29 October: it used to reach only a step, often her own tile) */
@@ -167,6 +172,7 @@ async function waterTiles(tiles, fx, fy) {
     // (when the water reached each tile, kept off the save, for the burst of glints: flowerSparkle)
     const F = flowerState(), on = (x, y) => tiles.some(([a, b]) => a === x && b === y), at = waterTiles.at || (waterTiles.at = {});
     for (const [x, y] of tiles) at[x + ',' + y] = G.t;
+    breedSoon.t = null;
     for (const pl of F.planted) if (on(pl.x, pl.y) && pl.wet !== day) { pl.wet = day; n++; }
     // (wild ones too: they glint, though only planted ones cross; F.wildWet[idx] is the day)
     W0.flowers.forEach((f, idx) => {
@@ -185,25 +191,32 @@ function waterFx(x, y) {
         draw(ctx) { ctx.fillStyle = this.c; ctx.fillRect(Math.round(this.x), Math.round(this.y), 1, 2); } });
 }
 /* each morning: watered pairs of a kind (yesterday, both bloomed) may grow a new flower on a free bit of grass beside them */
-function flowerBreed() {
-    const a = G.areas && G.areas.island, F = S.flowers, day = Clock.dayNum();
-    if (!a || !F || !F.planted.length || Online.visitor()) return;
+/* which pairs grow a new flower on the morning of day, and where, from the flowers as they are (nothing changed: the
+   morning's flowerBreed plants them, and today's gold glints are tomorrow's pairs worked out now, breedSoon) */
+function breedPairs(day) {
+    const a = G.areas && G.areas.island, F = S.flowers;
+    if (!a || !F || !F.planted.length) return [];
     const r = mulberry(hash32(S.seed + ':bloom:' + day)), wet = F.planted.filter(pl => pl.wet === day - 1 && day - pl.day >= 2);
-    const at = new Map(F.planted.map(pl => [pl.x + ',' + pl.y, pl])), born = [];
+    const at = new Set(F.planted.map(pl => pl.x + ',' + pl.y)), bred = new Set(), born = [];
     const free = (x, y) => !at.has(x + ',' + y) && groundChar(x, y) === 'g' && !pathAt(x, y) && !a.waterAt(x, y) && !a.blockedAt(x, y)
         && !a.ents.some(o => (o.tx === x && o.ty === y) || (o.kind === 'item' && Math.floor(o.x / TILE) === x && Math.floor((o.y - 2) / TILE) === y));
     for (let i = 0; i < wet.length && born.length < BREED_MAX; i++) for (let j = i + 1; j < wet.length && born.length < BREED_MAX; j++) {
         const A = wet[i], B = wet[j];
-        if (A.kind !== B.kind || Math.max(Math.abs(A.x - B.x), Math.abs(A.y - B.y)) !== 1 || A.bred === day || B.bred === day || r() >= BREED_CHANCE) continue;
+        if (A.kind !== B.kind || Math.max(Math.abs(A.x - B.x), Math.abs(A.y - B.y)) !== 1 || A.bred === day || B.bred === day || bred.has(A) || bred.has(B) || r() >= BREED_CHANCE) continue;
         const spots = [];
         for (const P of [A, B]) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (free(P.x + dx, P.y + dy)) spots.push([P.x + dx, P.y + dy]);
         if (!spots.length) continue;
         const [x, y] = spots[Math.floor(r() * spots.length)];
         const ci = breedColor(A.ci, B.ci, r);       // (and now and then a hybrid: 2ab_hybrids.js)
-        const pl = { x, y, kind: A.kind, ci, day: day - 1, pickDay: -1, bred: day };
-        A.bred = B.bred = day;
-        F.planted.push(pl); at.set(x + ',' + y, pl); born.push(pl);
+        bred.add(A); bred.add(B); at.add(x + ',' + y);
+        born.push({ A, B, pl: { x, y, kind: A.kind, ci, day: day - 1, pickDay: -1, bred: day } });
     }
+    return born;
+}
+function flowerBreed() {
+    const a = G.areas && G.areas.island, F = S.flowers, day = Clock.dayNum();
+    if (!a || !F || !F.planted.length || Online.visitor()) return;
+    const born = breedPairs(day).map(({ A, B, pl }) => { A.bred = B.bred = day; F.planted.push(pl); return pl; });
     if (!born.length) return;
     S.stats.bred = (S.stats.bred || 0) + born.length;
     for (const pl of born) addFlowerPlant(a, pl);

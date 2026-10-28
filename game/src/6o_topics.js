@@ -413,7 +413,7 @@ const PLACE_TALK = {
     bonfire: ["The bonfire at night is the best. Marshmallows, stars, everybody's stories.", "Toast a marshmallow! Not too close. Unless you like them crispy. I like them crispy."],
     campsite: ['The campsite is so cute. Tents, a fire, a picnic table. It\'s like a tiny village.'],
     waterfall: ['Listen to the waterfall! Nature\'s white noise machine.'],
-    statue: ["David's statue is SO shiny. He polishes it himself. Every week."],
+    statue: ["The lawn on Market Lane is the best spot for watching everyone go by. Shops on one side, sky on the other."],
     boardwalk: ['The boardwalk is the best place for a stroll. Arcade, restaurant, club. All the fun in one line.'],
     lookout: ['The lookout has the best view on the island. Try the telescope! You can see all the way to the horizon.'],
 };
