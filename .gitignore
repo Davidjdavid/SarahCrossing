@@ -9,3 +9,5 @@ __pycache__/
 dist2/
 dist3/
 dist4/
+# (the dialogue extractor's working file: scripts/dialogue/extract.mjs)
+/dialogue.json
