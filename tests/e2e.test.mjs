@@ -4292,3 +4292,82 @@ test('a whale out at sea some winter days: only on those days, in a stretch of o
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test('outdoor furniture, the way a player does: a piece in the pocket set up outside from the pocket, a tap on the path refused with the reason, a tap on open grass sets it down; tapped again it is picked up and put away in storage', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, wait = (ms) => new Promise((r) => setTimeout(r, ms)), btnOf = (re) => [...document.querySelectorAll('#panel button')].find((q) => re.test(q.textContent));
+    __dbg.setTime(6, 10, 11);
+    S.pocket = S.pocket.map(() => null);
+    const id = Object.keys(DISPLAYS).find((k) => DISPLAYS[k].w === 1 && !DISPLAYS[k].sign);
+    receive(id, 1, true);
+    // the pocket: the piece, then "Set it up outside"
+    openPocket();
+    const slot = [...document.querySelectorAll('#panel button')].find((b) => (b.getAttribute('aria-label') || b.textContent).startsWith(itemName(id)));
+    slot.click();
+    await wait(50);
+    btnOf(/^Set it up outside/).click();
+    for (let i = 0; i < 40 && !IslandEdit.held; i++) await wait(50);
+    out.holding = !!IslandEdit.held && IslandEdit.held.id === id;
+    // a tap on a path tile near Sarah: refused, and why
+    const p = G.player, px = Math.floor(p.x / TILE), py = Math.floor(p.y / TILE), near = [];
+    for (let r = 2; r < 14; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r) near.push([px + dx, py + dy]);
+    const path = near.find(([x, y]) => pathAt(x, y) && !G.area.blockedAt(x, y));
+    if (path) { IslandEdit.tap((path[0] + 0.5) * TILE, (path[1] + 0.5) * TILE); out.refused = !!IslandEdit.held && /path/i.test(IslandEdit.msg); } else out.refused = 'no path near';
+    // a tap on open grass sets it down
+    const spot = near.find(([x, y]) => !IslandEdit.whyNot(x, y));
+    IslandEdit.tap((spot[0] + 0.5) * TILE, (spot[1] + 0.5) * TILE);
+    const placed = deco().placed.find((q) => q.id === id && q.x === spot[0] && q.y === spot[1]);
+    out.placed = !IslandEdit.held && !!placed && pocketCount(id) === 0 && G.areas.island.blockedAt(spot[0], spot[1]);
+    // tapped again: picked up, then put away in storage
+    const s0 = S.storage[id] || 0;
+    IslandEdit.tap((spot[0] + 0.5) * TILE, (spot[1] + 0.5) * TILE);
+    out.picked = !!IslandEdit.held && IslandEdit.held.src === 'deco';
+    btnOf(/^Put it away/).click();
+    out.away = !IslandEdit.held && !deco().placed.some((q) => q.id === id) && (S.storage[id] || 0) === s0 + 1;
+    btnOf(/^Done/).click();
+    out.closed = !IslandEdit.on;
+    return out;
+  });
+  assert.deepEqual(res, { holding: true, refused: true, placed: true, picked: true, away: true, closed: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('the Bank, the way a player does: an amount typed and put into savings, too much refused with the reason, all of it taken back out; the statement shows what was earned, not the money moved', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, btnOf = (re) => [...document.querySelectorAll('#panel button')].find((q) => re.test(q.textContent));
+    const inputs = () => [...document.querySelectorAll('#panel input')];
+    const type = (i, v) => { i.value = String(v); i.dispatchEvent(new Event('input', { bubbles: true })); };
+    __dbg.setTime(6, 10, 11);
+    S.money = 5000;
+    const B = bank(), s0 = B.savings;
+    civicScreen('savings');
+    // put 1,200 in
+    type(inputs()[0], 1200); btnOf(/^Put in$/).click();
+    out.put = S.money === 3800 && B.savings === s0 + 1200;
+    // more than the pocket holds: refused, and why
+    type(inputs()[0], 99999); btnOf(/^Put in$/).click();
+    out.refused = S.money === 3800 && /only have/.test(document.querySelector('#panel').textContent);
+    // all of it back
+    [...document.querySelectorAll('#panel button')].find((q) => /^All of it back/.test(q.textContent)).click();
+    btnOf(/^Take out$/).click();
+    out.back = B.savings === 0 && S.money === 3800 + s0 + 1200;
+    UI.close(true);
+    // the statement: what was earned (moving money in and out of the Bank is neither), and the pocket as it is now
+    addMoney(300, true, 'Fish');
+    civicScreen('statement');
+    const txt = document.querySelector('#panel').textContent;
+    out.statement = txt.includes(fmtNum(S.money)) && /Fish/.test(txt);
+    UI.close(true);
+    return out;
+  });
+  assert.deepEqual(res, { put: true, refused: true, back: true, statement: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
