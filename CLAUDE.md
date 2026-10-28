@@ -309,8 +309,10 @@ docs/DEPLOY.md for the server.
   while off). So do the retro TV and the record player (6zyb_acting.js, models in furn_k.py, sold at IslandMart in their
   woods; `furnSwitch`, kept as `it.play`, since `it.on` is what a thing on a table stands on): in the new look the TV's
   screen (`*_screen`) shows static (`tvScreen`, from `EnvRoom.drawScreen`) and the record (`*_move`, centered on the
-  piece's middle) turns (`EnvRoom.animate`); a tap gives the globe a spin that slows to a stop (`globeSpin`, its ball the
-  `*_move` part; the flat views say so instead) and the mini windmill's sails turn about their hub, always. Their flat pictures are rendered from the models; `sprites_to_atlas.py --add`
+  piece's middle) turns (`EnvRoom.animate`); a tap gives the globe or Shrimpy's ship's wheel a spin that slows to a stop
+  and shakes up the snow globe's snow to settle again (`furnSpin`, `FURN_SPIN`, at home or at a neighbor's; the flat views
+  say so instead), and the mini windmill's sails, the disco ball and the wind chimes move by themselves (each turned about
+  its own point by `EnvRoom.pivot`; their moving parts are `*_move` in the models). Their flat pictures are rendered from the models; `sprites_to_atlas.py --add`
   packs new pictures in with the ones already below the atlas's row 1024.
 - Props that act in the new look: a fire's, a torch's, a lantern's or a jack-o'-lantern's glow flickers (`EnvModels.FIRES`,
   the glow material's `fpre`), the fountains throw water up (33u_env_spray.js, `EnvSpray`: beads from each fountain's top

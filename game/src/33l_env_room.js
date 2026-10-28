@@ -403,8 +403,9 @@ const EnvRoom = {
         const B = this.built, t = G.t;
         if (!B || !B.screens) return;
         if (t - (B.screenT || -99) >= 6) { B.screenT = t; for (const s of B.screens) this.drawScreen(s); }
+        const R = this._mr || (this._mr = [new THREE.Matrix4(), new THREE.Matrix4()]);
         for (const mv of B.movers) {
-            const id = mv.e.def && mv.e.def.id;
+            const d = mv.e.def, id = d && (d.base || d.id);
             // (the record player's record turns about the piece's middle while it plays, 6zyb_acting.js)
             if (/^record_player/.test(id)) {
                 if (furnOn(mv.e)) mv.a = ((mv.a || 0) + 0.07 * Math.min(4, (G.frameMs || 16.7) / 16.7)) % (Math.PI * 2);
@@ -412,15 +413,25 @@ const EnvRoom = {
                 continue;
             }
             // (the mini windmill's sails turn about their hub, always; the globe, given a spin, slows to a stop)
-            if (/^mini_windmill/.test(id)) {
-                const T = this._hub || (this._hub = [new THREE.Matrix4(), new THREE.Matrix4(), new THREE.Matrix4()]);
-                mv.mesh.matrix.copy(mv.base).multiply(T[0].makeTranslation(0, 0.3, 0.09)).multiply(T[1].makeRotationZ(t * 0.025)).multiply(T[2].makeTranslation(0, -0.3, -0.09));
+            if (id === 'mini_windmill') { this.pivot(mv, 0, 0.3, 0.09, R[0].makeRotationZ(t * 0.025)); continue; }
+            // (the disco ball turns slowly about its string; the wind chimes sway from their hook, each in its own time)
+            if (id === 'disco_ball') { this.pivot(mv, 0, 0, 0.2, R[0].makeRotationY(t * 0.012)); continue; }
+            if (id === 'od_chimes') {
+                const ph = mv.ph != null ? mv.ph : (mv.ph = (hash32('ch' + mv.e.x + ',' + mv.e.y) % 1000) / 100);
+                this.pivot(mv, 0.25, 1.27, 0, R[0].makeRotationX(0.05 * Math.sin(t / 41 + ph)).multiply(R[1].makeRotationZ(0.07 * Math.sin(t / 31 + ph * 1.7))));
                 continue;
             }
-            if (/^globe/.test(id)) {
-                const k = mv.e.spinT != null ? Math.max(0, 1 - (t - mv.e.spinT) / 150) : 0;
-                mv.a = ((mv.a || 0) + 0.22 * k * k) % (Math.PI * 2);
-                mv.mesh.matrix.copy(mv.base).multiply((this._spin || (this._spin = new THREE.Matrix4())).makeRotationY(mv.a));
+            // (given a spin, furnSpin: the globe and the ship's wheel slow to a stop; the snow globe's snow swirls and settles)
+            if (id === 'globe' || id === 'ship_wheel') {
+                const k = mv.e.spinT != null ? Math.max(0, 1 - (t - mv.e.spinT) / (id === 'globe' ? 150 : 110)) : 0;
+                mv.a = ((mv.a || 0) + (mv.e.spinDir || 1) * (id === 'globe' ? 0.22 : 0.16) * k * k) % (Math.PI * 2);
+                mv.mesh.matrix.copy(mv.base).multiply(id === 'globe' ? R[0].makeRotationY(mv.a) : R[0].makeRotationZ(mv.a));
+                continue;
+            }
+            if (id === 'snow_globe') {
+                const k = mv.e.spinT != null ? Math.max(0, 1 - (t - mv.e.spinT) / 320) : 0, s = 0.14 + 0.86 * Math.sqrt(k);
+                mv.a = ((mv.a || 0) + 0.12 * k) % (Math.PI * 2);
+                this.pivot(mv, 0, 0.085, 0, R[0].makeRotationY(mv.a).multiply(R[1].makeScale(0.9 + 0.1 * k, s, 0.9 + 0.1 * k)));
                 continue;
             }
             const dx = id === 'claw_machine' ? -0.55 + (Math.sin(t / 50) + 1) * 0.5 : id === 'sushi_conveyor' ? (t * 0.004) % 0.4 : 0;
@@ -448,6 +459,11 @@ const EnvRoom = {
             pl.mesh = this.group(n, pl.e.x / TILE, top.top, (pl.L.ty + 0.5) * R3_ZS, EnvItems.size(n, 1.4) * 0.9);
             B.furn.add(pl.mesh);
         }
+    },
+    /* a mover's part turned (or squashed) by M about the point (x, y, z) of its piece */
+    pivot(mv, x, y, z, M) {
+        const T = this._piv || (this._piv = [new THREE.Matrix4(), new THREE.Matrix4()]);
+        mv.mesh.matrix.copy(mv.base).multiply(T[0].makeTranslation(x, y, z)).multiply(M).multiply(T[1].makeTranslation(-x, -y, -z));
     },
     /* a fish for a tank: its stand-in model (EnvItems.model) painted in its own color */
     fishMesh(id) {

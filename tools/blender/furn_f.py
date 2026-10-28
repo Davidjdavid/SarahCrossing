@@ -193,7 +193,7 @@ def disco_ball(P):
         a, b = math.atan2(n.y, n.x), math.asin(max(-1.0, min(1.0, n.z)))
         k = (int((a + math.pi) * 5) + int((b + 2) * 6)) % 3
         return rgb(('#e8eef4', '#a8b8c8', '#c8d8f0')[k]) * (0.8 + 0.4 * max(0.0, n.dot(Vector((0.3, -0.6, 0.7)).normalized())))
-    ball(P.gloss, (0, -0.2, 0.05), 0.25, tiles, sub=3)
+    ball(P.move, (0, -0.2, 0.05), 0.25, tiles, sub=3)     # (its own part: the game turns it about the string)
 
 
 @item('pride_flag', 1, 1)

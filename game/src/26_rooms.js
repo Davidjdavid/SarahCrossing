@@ -332,6 +332,7 @@ async function roomFurniture(ent) {
     const top = thingOnTop(ent);
     if (top) return top.interact();
     if (it && it.use) return roomUse(ent);
+    if (furnSpin(ent)) return;          // (Shrimpy's ship's wheel, a globe or a snow globe at a neighbor's: 6zyb_acting.js)
     const owner = R && R.owner;
     // (nothing said about a thing just for looking at it: only what's written on it, or one of Sarah's gifts kept)
     if (!owner) return;

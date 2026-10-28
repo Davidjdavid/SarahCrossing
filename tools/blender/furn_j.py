@@ -704,13 +704,14 @@ def od_chimes(P):
     rbox(mb, -0.15, -0.15, 0, 0.15, 0.15, 0.05, wood(DARK), r=0.015)
     rbox(mb, -0.03, -0.03, 0.05, 0.03, 0.03, 1.3, wood(DARK, 'z'), r=0.01)
     rbox(mb, -0.03, -0.03, 1.27, 0.32, 0.03, 1.32, wood(DARK), r=0.01)
-    cyl(mb, 0.25, 0, 1.14, 1.16, 0.1, color=wood(PALE), seg=16)
-    tube(mb, [(0.25, 0, 1.27), (0.25, 0, 1.16)], 0.004, '#3a3a3a', seg=3)
+    # (what hangs from the hook is its own part, swayed by the game)
+    cyl(P.move, 0.25, 0, 1.14, 1.16, 0.1, color=wood(PALE), seg=16)
+    tube(P.move, [(0.25, 0, 1.27), (0.25, 0, 1.16)], 0.004, '#3a3a3a', seg=3)
     for k in range(6):
         a = k / 6 * math.tau
         L = 0.2 + 0.05 * k
         x, y = 0.25 + math.cos(a) * 0.075, math.sin(a) * 0.075
-        cyl(P.gloss, x, y, 1.12 - L, 1.12, 0.012, color='#d8dce4', seg=8)
+        cyl(P.move, x, y, 1.12 - L, 1.12, 0.012, color='#d8dce4', seg=8)
 
 
 # ---------------------------------------------------------------- plants

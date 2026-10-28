@@ -34,7 +34,7 @@ def disc(mb, c, r, t, color, prof=None, seg=28):
 @item('ship_wheel', 1, 1)
 def ship_wheel(P):
     """A ship's wheel on the wall: a wooden rim with eight spokes running out past it into handles, a brass hub."""
-    mb = P.main
+    mb = P.move          # (the wheel is its own part, turned about its hub by the game; the bracket stays put)
     R = 0.3
     ring(mb, (0, -0.06, 0), R, 0.035, wood(OAK, 'z'))
     ring(mb, (0, -0.06, 0), R * 0.55, 0.018, wood(OAK, 'z'))
@@ -46,9 +46,9 @@ def ship_wheel(P):
         a = k / 8 * math.tau
         ca, sa = math.cos(a), math.sin(a)
         tube(mb, [(ca * (R + 0.02), -0.06, sa * (R + 0.02)), (ca * (R + 0.12), -0.06, sa * (R + 0.12))], 0.024, wood('#8a5a30', 'z'), seg=8, r1=0.016)
-    disc(P.gloss, (0, -0.03, 0), 0.07, 0.06, metal(BRASS), prof=[(0.07, 0.0), (0.07, 0.04), (0.055, 0.06), (0.0, 0.065)], seg=16)
+    disc(mb, (0, -0.03, 0), 0.07, 0.06, metal(BRASS), prof=[(0.07, 0.0), (0.07, 0.04), (0.055, 0.06), (0.0, 0.065)], seg=16)
     # (the wall bracket behind)
-    rbox(mb, -0.04, -0.03, -0.04, 0.04, 0.0, 0.04, metal(IRON), r=0.01)
+    rbox(P.main, -0.04, -0.03, -0.04, 0.04, 0.0, 0.04, metal(IRON), r=0.01)
 
 
 @item('porthole', 1, 1)

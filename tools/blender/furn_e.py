@@ -278,9 +278,9 @@ def snow_globe(P):
     ball(P.clear, (0, 0, 0.17), 0.1, col_fn('#e8f4fb', under=0.0), sub=3)
     rbox(P.main, -0.03, -0.025, 0.07, 0.03, 0.025, 0.12, paint('#e8443a'), r=0.006, mid=0)
     lathe(P.main, [(0.045, 0.12), (0.0, 0.16)], shade('#fbf8f2'), seg=4)
-    for k in range(9):
-        a, z = k * 2.3, 0.1 + (k % 4) * 0.035
-        ball(P.main, (math.cos(a) * 0.06, math.sin(a) * 0.06, z), 0.006, shade('#ffffff'), sub=1)
+    for k in range(22):
+        a, r, z = k * 2.3, 0.025 + (k * 7 % 5) * 0.012, 0.09 + (k * 5 % 9) * 0.017
+        ball(P.move, (math.cos(a) * r, math.sin(a) * r, z), 0.0055, shade('#ffffff'), sub=1)
 
 
 @item('birthday_cake', 1, 1)

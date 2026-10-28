@@ -3594,7 +3594,7 @@ test("the phone's own apps, the way a player uses them: a move from Moves, one o
   await page.close();
 });
 
-test('furniture that acts: a retro TV and a record player, sold at IslandMart in their woods; a tap at home switches each on and off, kept with the house', async () => {
+test('furniture that acts: a retro TV and a record player, sold at IslandMart in their woods; a tap at home switches each on and off, kept with the house; the globe, the ship\'s wheel and the snow globe spin or shake', async () => {
   const page = await device();
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
@@ -3626,9 +3626,18 @@ test('furniture that acts: a retro TV and a record player, sold at IslandMart in
     const globe = G.area.ents.find((e) => e.furn && e.item && e.item.id === 'globe');
     await useFurniture(globe);
     out.globe = globe.spinT === G.t && said.some((l) => /globe/.test(l));
+    // the snow globe on the record player: a shake; Shrimpy's ship's wheel a turn, each way in turn
+    S.house.items.push({ id: 'snow_globe', x: f.x0 + 3, y: f.y0, on: S.house.items.indexOf(S.house.items.find((it) => it.id.startsWith('record_player'))) });
+    placeFurniture(G.area, S.house.items);
+    said.length = 0;
+    const snow = G.area.ents.find((e) => e.furn && e.item && e.item.id === 'snow_globe');
+    await useFurniture(snow);
+    const wheel = { def: furnDef('ship_wheel') };
+    furnSpin(wheel); const d1 = wheel.spinDir; furnSpin(wheel);
+    out.more = snow.spinT === G.t && said.some((l) => /snow/i.test(l)) && d1 === 1 && wheel.spinDir === -1 && !furnSpin({ def: furnDef('tv_retro') });
     return out;
   });
-  assert.deepEqual(res, { sold: true, pictures: true, noMissing: true, offFirst: true, on: true, tvOff: true, globe: true });
+  assert.deepEqual(res, { sold: true, pictures: true, noMissing: true, offFirst: true, on: true, tvOff: true, globe: true, more: true });
   assert.deepEqual(page.problems, []);
   await page.close();
 });

@@ -4,7 +4,8 @@
    already what a thing on a table stands on). In the new
    look the TV's screen shows static while it's on and dark glass while it's off (EnvRoom.drawScreen), and the record
    turns about the piece's middle (EnvRoom.animate, its *_move part). Their flat pictures are rendered from the models
-   (furniture.py --batch furn_k --sprites, tools/sprites_to_atlas.py --add). */
+   (furniture.py --batch furn_k --sprites, tools/sprites_to_atlas.py --add). Pieces that move by themselves (the mini windmill,
+   the disco ball, the wind chimes) and those a tap spins (furnSpin) have their moving part in the model as *_move. */
 const ACTING_FURN = { tv_retro: ['Retro TV', 3200], record_player: ['Record player', 2800] };
 for (const [id, [name, price]] of Object.entries(ACTING_FURN)) {
     ITEMS[id] = { name, type: 'furniture', price, icon: 'f_' + id };
@@ -21,15 +22,25 @@ function furnSwitch(e) {
     Save.touch();
     return true;
 }
-/* a tap gives the globe a spin, slowing to a stop (EnvRoom.animate; the flat views can't turn it, so Sarah says so) */
-function globeSpin(e) {
-    const d = e.def;
-    if (!d || (d.base || d.id) !== 'globe') return false;
-    e.spinT = G.t;
-    Sfx.notes([60, 64, 67], 'kalimba', 0.06, 0.1);
+/* a tap gives the globe or the ship's wheel a spin that slows to a stop, and shakes up the snow globe's snow to settle
+   again (EnvRoom.animate: e.spinT, e.spinDir); the flat views can't show it, so Sarah says what happens */
+const FURN_SPIN = {
+    globe: ['Sarah gives the globe a spin. It stops with her finger in the middle of an ocean. Most of the world is ocean, to be fair.',
+        'The globe spins and spins. Sarah stops it on a tiny island. It looks a lot like this one.'],
+    ship_wheel: ['Sarah gives the wheel a turn. Hard to port! The house stays exactly where it is.',
+        'The wheel spins with a wooden clatter. Somewhere, Captain Shrimpy feels a disturbance.'],
+    snow_globe: ['Sarah gives the snow globe a shake. A tiny blizzard. Then, slowly, a tiny calm.',
+        'Snow swirls round the little house inside. It looks cozy in there.'],
+};
+function furnSpin(e) {
+    const d = e.def, id = d && (d.base || d.id), lines = FURN_SPIN[id];
+    if (!lines) return false;
+    e.spinT = G.t; e.spinDir = e.spinDir === 1 ? -1 : 1;
+    if (id === 'snow_globe') Sfx.notes([88, 91, 96, 91, 93], 'kalimba', 0.05, 0.07);
+    else if (id === 'ship_wheel') Sfx.noise(0.3, 700, 0.05, 0, 'bandpass');
+    else Sfx.notes([60, 64, 67], 'kalimba', 0.06, 0.1);
     const shown = typeof EnvRoom !== 'undefined' && EnvRoom.built && (EnvRoom.built.movers || []).some(m => m.e === e);
-    if (!shown) UI.say(null, rpick(['Sarah gives the globe a spin. It stops with her finger in the middle of an ocean. Most of the world is ocean, to be fair.',
-        'The globe spins and spins. Sarah stops it on a tiny island. It looks a lot like this one.']));
+    if (!shown) UI.say(null, rpick(lines));
     return true;
 }
 /* is this placed piece switched on */
