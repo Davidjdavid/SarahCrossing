@@ -149,7 +149,7 @@ function addStump(a, id, c) {
     const [fx, fy] = tileFoot(c.x, c.y);
     const e = a.add({ kind: 'stump', forest: true, id, tx: c.x, ty: c.y, frame: c.palm ? 'stump_palm' : 'stump', x: fx, y: fy });
     e.hit = { x: c.x * TILE, y: c.y * TILE - 4, w: TILE, h: TILE + 4 };
-    e.interact = () => heldTool() === 'shovel' ? digAt(c.x, c.y) : UI.say(null, rpick(['A stump. Sarah sits on it for a second. Very stumpy.', 'A tree stump. It has a lot of rings. It has seen things.', 'A stump. A shovel would get it out.']));
+    e.interact = () => heldTool() === 'shovel' ? digAt(c.x, c.y) : UI.say(null, 'A shovel would get it out.');
     a.block(c.x, c.y);
 }
 function addPlanted(a, pl) {

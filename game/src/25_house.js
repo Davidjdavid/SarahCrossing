@@ -174,37 +174,29 @@ async function useFurniture(e) {
     if (d.easel) return paintAndClose('home');
     if (d.laptop) return useLaptop();
     if (d.art) return viewArt(d.id);
-    const n = d.name;
     const t = Clock.fmt().s;
     const lines = {
         bed_simple: [`Sarah isn't sleepy. It's only ${t}.`], cloud_bed: [`The weighted blanket is calling. Sarah is not ready to answer. It's only ${t}.`],
         clock_wall: [`The clock says ${t}. (You can set it in Settings, if the island's clock ever feels off.)`],
-        nameplate: ['SARAH \u00b7 HARVARD \u00b7 TITLE: (smudged)'], diploma: ['A diploma. The job title part is smudged. It is always smudged.'],
+        nameplate: ['SARAH \u00b7 HARVARD \u00b7 TITLE: (smudged)'],
         dnd_sign: ['DO NOT DISTURB BEFORE NOON. This is legally binding. John checked.'],
-        blackout_curtains: ['Blackout curtains. The single most important object on the island.'],
-        goat_statue: ["A little goat statue. No trouble at all. Almost suspiciously well behaved."], party_console: ['A party game console. David always wins. Nobody knows how.'],
         jackbox_trophy: ['GAME NIGHT CHAMPION: DAVID. Engraved. Pre-engraved, actually.'],
         contract_frame: ['"SIBLINGS IN LAW." Signed by everyone. John billed everyone for it.'],
-        golf_bag: ["James's old golf bag. It still has a scorecard in it. Every hole says FORE."],
-        coffee_maker: ["The coffee maker has a timer. It's set for 11 AM. That's early."],
-        framed_poem: [rpick(JOE_FRAMED)], sonnet_stack: ["A stack of Joe's poems. 'Frog' appears on several pages. Coco has called this his green period."],
+        framed_poem: [rpick(JOE_FRAMED)],
         typewriter: ['Joe left a poem in the typewriter: "I have a spoon. / It is not the moon. / I will write more soon." It is signed "Joe (Poet)."'],
         light_floor: ['Sarah does a little shimmy on the light-up floor. The house is now a club.'],
-        star_jar: ['A jar of star fragments. Wishes, basically. Very sparkly wishes.'],
         plaque_gold: ['THE CUTEST HOUSE ON THE ISLAND. Signed: Sir Floret, Dame Stalk, Little Sprout.'],
         trophy_arcade: ['ARCADE CHAMPION. Chili cried a little when he handed it over. Hot tears.'],
         trophy_rope: ["JUMP ROPE CHAMPION. It's made from a water bottle. Cuke says that makes it more meaningful."],
         trophy_karaoke: ['KARAOKE STAR. Joe wrote a poem about it. It is about a microphone. It is perfect.'],
-        snack_machine: ['Hot chips. Only hot chips. Chili restocks it somehow, even here.'],
-        arcade_stool: ['A bright pink arcade stool. It spins. Sarah spins.'],
-        neon_game: ['GAME ON. It buzzes a little. Cozy buzzing.'],
     }[d.id];
     if (d.photo) {
         const who = d.photo;
         await UI.say(null, `${NPC_DEFS[who] ? NPC_DEFS[who].name : 'Joe'}'s photo. On the back it says: "${PHOTO_NOTES[who] || 'Love you!'}"`);
         return;
     }
-    await UI.say(null, lines || [`A lovely ${n.toLowerCase()}.`]);
+    // (only what's written on a thing, or what it does: the descriptions and jokes went, David, 28 October)
+    if (lines) await UI.say(null, lines);
 }
 
 /* ---------------------------------------------------------------- decorating */

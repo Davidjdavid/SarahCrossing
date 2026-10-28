@@ -89,7 +89,6 @@ const T = {
     SIGNS: ['sign', 'A sign Sarah reads'],
     CIVIC_SIGNS: ['sign', 'The sign on the Town Hall, Post Office or Bank door (for now)'],
     HOUSE_HELLO: ['npc', 'Welcoming Sarah into their house'],
-    HOUSE_FURN: ['narr', (r, k) => `Sarah looks at something in ${nameOf(k[0])}'s house`],
     HONOR: ['narr', "Nobody's at the shop counter, so it runs on the honor system"],
     FURN_GIFT: ['npc', 'Sarah gives them furniture for their house'],
     VISIT_KNOCK: ['npc', "Knocking on Sarah's door to visit her"],

@@ -422,6 +422,13 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [ ] Friendship earned over days: with each neighbor, points only for the first talk of the day, one favor a day if they
   have one, one gift a day, and every other thing that raises friendship once a day; best friends is something worked
   at. Joe still starts at the most and never goes down
+- [ ] Decorating the house: furniture turned to face any of the four ways (they're models now: a chair facing the table);
+  pictures on a table, on the floor or on the wall; flowers, fish and most other things set down too
+- [ ] The Cozy Council out of the Town Hall: they come by only when Sarah asks for the island to be judged. The Town Hall
+  gets a keeper of its own who does the desk's work, and when nobody's working the screens are there anyway, on the
+  honor system, as at the shops
+- [x] No descriptions when looking at props and things (they dated from the phone game's stand-in pictures: now you can
+  see what things are, and the jokes wore thin heard often)
 - [ ] Props and furniture that act: anything that should move or do something does (fires flicker and breathe, fountains
   shoot water, lamps indoors switch on and off, a TV switches on to static, clocks tick round as time passes...)
 

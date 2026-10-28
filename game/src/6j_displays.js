@@ -4,28 +4,28 @@
    them down somewhere else. Nothing can go on a path or in front of a door, and nothing can cut off a door or one
    of the neighbors' favorite places. */
 const DISPLAYS = {
-    dp_lamp: { name: 'Street lamp', price: 1800, w: 1, frame: 'lamp', light: 44, talk: 'A street lamp. Moths gather in its glow at night.' },
-    dp_lantern: { name: 'Stone lantern', price: 2200, w: 1, frame: 'd_lantern', light: 34, talk: 'A stone lantern. The candle inside never seems to run out. Island magic, probably.' },
-    dp_torch: { name: 'Tiki torch', price: 900, w: 1, frame: 'd_torch', torch: true, talk: 'A beach torch waits beside the path.' },
+    dp_lamp: { name: 'Street lamp', price: 1800, w: 1, frame: 'lamp', light: 44 },
+    dp_lantern: { name: 'Stone lantern', price: 2200, w: 1, frame: 'd_lantern', light: 34 },
+    dp_torch: { name: 'Tiki torch', price: 900, w: 1, frame: 'd_torch', torch: true },
     dp_bench: { name: 'Park bench', price: 2400, w: 2, frame: 'bench', seat: true },
     dp_stonebench: { name: 'Stone bench', price: 2600, w: 2, frame: 'd_stonebench', seat: true },
     dp_log: { name: 'Log bench', price: 1200, w: 2, frame: 'log', seat: true },
-    dp_hedge: { name: 'Square hedge', price: 800, w: 1, frame: 'd_hedge', talk: 'A very neat hedge. Somebody trims it with a ruler.' },
-    dp_hedge_round: { name: 'Round hedge', price: 800, w: 1, frame: 'd_hedge_round', talk: 'A round hedge. Sarah walks around it looking for a flat side. There has to be one.' },
-    dp_hedge_long: { name: 'Long hedge', price: 1400, w: 2, frame: 'd_hedge_long', talk: 'A long hedge. Great for hiding behind. Sarah tries it. She is very visible.' },
-    dp_topiary: { name: 'Bunny topiary', price: 3200, w: 1, frame: 'd_topiary', talk: 'A hedge shaped like a bunny. It has been trimmed with love. And tiny scissors.' },
-    dp_planter: { name: 'Flower planter', price: 1500, w: 2, frame: 'flowerbed', talk: 'A planter full of flowers. The bees have opinions about it. Good ones.' },
+    dp_hedge: { name: 'Square hedge', price: 800, w: 1, frame: 'd_hedge' },
+    dp_hedge_round: { name: 'Round hedge', price: 800, w: 1, frame: 'd_hedge_round' },
+    dp_hedge_long: { name: 'Long hedge', price: 1400, w: 2, frame: 'd_hedge_long' },
+    dp_topiary: { name: 'Bunny topiary', price: 3200, w: 1, frame: 'd_topiary' },
+    dp_planter: { name: 'Flower planter', price: 1500, w: 2, frame: 'flowerbed' },
     dp_sign: { name: 'Wooden sign', price: 600, w: 1, frame: 'd_sign', sign: true },
-    dp_fountain: { name: 'Fountain', price: 9800, w: 2, rows: 1, frame: 'd_fountain', fountain: true, talk: 'A little fountain. Sarah tosses in a shell and makes a wish. The wish is a secret.' },
-    dp_birdbath: { name: 'Bird bath', price: 1600, w: 1, frame: 'd_birdbath', talk: 'A bird bath. A bird is not in it. The bird is judging it from a tree.' },
-    dp_gnome: { name: 'Garden gnome', price: 700, w: 1, frame: 'd_gnome', talk: 'A garden gnome. He has a very serious face. He is guarding something. Maybe the garden.' },
-    dp_frog: { name: 'Frog statue', price: 1300, w: 1, frame: 'd_frog', talk: 'A stone frog. Joe would write a poem about it. Joe HAS written a poem about it.' },
-    dp_umbrella: { name: 'Beach umbrella', price: 1100, w: 1, frame: 'd_umbrella', talk: 'A beach umbrella. The shade under it is two degrees cooler. Sarah measured.' },
-    dp_lounger: { name: 'Beach lounger', price: 1500, w: 2, frame: 'd_lounger', talk: 'Sarah lies back on the lounger for a minute. Maximum vacation.' },
-    dp_fence: { name: 'Picket fence', price: 300, w: 1, frame: 'd_fence', talk: 'A white picket fence. Very cute. Very neighborly.' },
+    dp_fountain: { name: 'Fountain', price: 9800, w: 2, rows: 1, frame: 'd_fountain', fountain: true },
+    dp_birdbath: { name: 'Bird bath', price: 1600, w: 1, frame: 'd_birdbath' },
+    dp_gnome: { name: 'Garden gnome', price: 700, w: 1, frame: 'd_gnome' },
+    dp_frog: { name: 'Frog statue', price: 1300, w: 1, frame: 'd_frog' },
+    dp_umbrella: { name: 'Beach umbrella', price: 1100, w: 1, frame: 'd_umbrella' },
+    dp_lounger: { name: 'Beach lounger', price: 1500, w: 2, frame: 'd_lounger' },
+    dp_fence: { name: 'Picket fence', price: 300, w: 1, frame: 'd_fence' },
     dp_flag: { name: 'Island flag', price: 1900, w: 1, frame: 'd_flag', flag: true },
-    dp_picnic: { name: 'Picnic table', price: 3000, w: 3, frame: 'picnic', talk: 'A picnic table with a checkered cloth. It is always a good time for a picnic.' },
-    dp_flamingo: { name: 'Lawn flamingo', price: 500, w: 1, frame: 'd_flamingo', talk: 'A plastic flamingo. Same pose every day. Sarah respects the commitment.' },
+    dp_picnic: { name: 'Picnic table', price: 3000, w: 3, frame: 'picnic' },
+    dp_flamingo: { name: 'Lawn flamingo', price: 500, w: 1, frame: 'd_flamingo' },
 };
 for (const [id, d] of Object.entries(DISPLAYS)) ITEMS[id] = { name: d.name, type: 'display', price: d.price, icon: d.frame };
 /* the island's own things that can be moved, and what they turn into if Sarah puts them away */
@@ -50,8 +50,7 @@ function dispDef(id) {
     const b = f.base && DISPLAYS[f.base];
     if (b) return Object.assign({}, b, { name: f.name, frame: f.frame || b.frame });
     const fb = f.base ? FURN[f.base] : f, seat = /chair|stool|sofa|couch|bench|seat|beanbag|throne/.test(fb.id);
-    return { name: f.name, price: f.price, w: f.w, rows: f.h || 1, frame: f.frame || 'f_' + id, light: f.light, seat, furn: true,
-        talk: `${aOrAn(f.name)} ${f.name.toLowerCase()}, out in the fresh air. It looks surprisingly at home.` };
+    return { name: f.name, price: f.price, w: f.w, rows: f.h || 1, frame: f.frame || 'f_' + id, light: f.light, seat, furn: true };
 }
 function addDisplay(a, p, j) {
     const d = dispDef(p.id);
@@ -65,8 +64,6 @@ function addDisplay(a, p, j) {
     if (d.lamp) e.lamp = true;
     if (d.seat) e.interact = () => sitOnBench(e);
     else if (d.sign) e.interact = () => UI.say('sign', p.text ? `"${p.text}"` : 'A blank wooden sign. (In Island edit, pick it up to write something on it.)');
-    else if (d.flag) e.interact = () => UI.say(null, `The flag of ${S.islandName || 'the island'} flaps in the breeze. It has a little sun on it. Everyone salutes it. Well, Cuke does.`);
-    else e.interact = () => UI.say(null, d.talk || `A ${d.name.toLowerCase()}.`);
     if (d.torch) e.draw = ctx => { spr(ctx, d.frame, e.x, e.y); const lit = hourIn(Clock.hourF(), 18, 29) && G.weather !== 'rain'; if (lit) drawFlames(ctx, e.x, e.y - 22, false); e.light = lit ? { r: 30, y: -22, c: 'fire' } : null; };
     if (d.fountain) e.draw = ctx => drawFountain(ctx, e);
     if (d.flag) e.draw = ctx => { spr(ctx, d.frame, e.x, e.y); };

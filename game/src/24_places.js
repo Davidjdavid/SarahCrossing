@@ -122,10 +122,6 @@ async function knock(npcId) {
 const SIGNS = {
     island: () => `Welcome to ${S.islandName || 'the island'}! Population: very cute. The time is ${Clock.fmt().s}.`,
     club: () => 'CLUB WASABI. Always open. Daytime is for practicing. The floor really gets going after 9 PM.',
-    bigtree: () => 'The big tree. It has been here longer than anyone. It looks extremely relaxed about it.',
-    rock: () => 'A rock. Sarah turns it over. Still a rock. Worth checking.',
-    flowerbed: () => 'Fortune planted these. They smell a little like fortune cookies, somehow.',
-    spring: () => 'The hot spring. It is NOT soup. (Wonton would like that on the record.)',
     cart: () => "Basil's noodle cart. It opens at 8 PM and closes around 1 AM. Late-night noodles for everyone.",
 };
 async function talkSign(key) {

@@ -152,7 +152,7 @@ function buildIsland() {
         const e = a.add({ kind: 'bigtree', frame: `tree_big_${season}`, x: (t.x + 1) * TILE, y: (t.y + 2) * TILE - 1 });
         e.hit = { x: t.x * TILE - 16, y: t.y * TILE - 40, w: 64, h: 72 };
         e.stand = [t.x, t.y + 3];
-        e.interact = () => heldTool() === 'axe' ? UI.say(null, 'The big tree is too big. And too relaxed. Sarah puts the axe down.') : talkSign('bigtree');
+        e.interact = () => heldTool() === 'axe' ? UI.say(null, 'The big tree is too big. And too relaxed. Sarah puts the axe down.') : null;
         G.bigTree = e;
     }
     // the old giants of the forest: nobody's axe is going anywhere near these
@@ -209,62 +209,18 @@ const PROP_SIZE = { bench: 2, flowerbed: 2, board: 1, lamp: 1, mailbox: 1, sign_
     trashcan: 1, fountain: 2, fountain_grand: 4, drinkfountain: 1, sign_lot: 1, sign_land: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1,
     swing_set: 3, hammock: 3, park_clock: 1, shrine_stone: 2, statue_sarah: 2 };
 const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2, fountain_grand: 3, statue_sarah: 2 };
-/* the little things around the island, and what Sarah finds when she looks at them */
+/* the little things around the island */
 const KNICK_FRAME = { fountain: 'd_fountain', fountain_grand: 'd_fountain', flamingo: 'd_flamingo', sign_trail: 'sign_camp', sign_lot: 'sign_camp', sign_land: 'sign_camp' };
+/* what's written on the signs (the props themselves say nothing when looked at: David, 28 October, the descriptions
+   dated from the phone game's stand-in pictures, and the jokes wore thin) */
 const PROP_TALK = {
-    windmill: () => "The windmill turns slowly. It grinds the island's flour. It also, according to Cuke, 'makes wind.' It does not.",
-    scarecrow: () => rpick(["A scarecrow in a sun hat. The birds are not scared. The birds think it's a friend.", "The scarecrow has a little sign: 'HI. I'M STEVE.' Hi, Steve."]),
-    hay: () => rpick(['A hay bale. It smells like summer, even in winter.', 'Hay. Soft-looking. It is not soft. Sarah checks.']),
-    well: () => 'An old stone well. Sarah drops in a pebble and makes a wish. The well says nothing. Wells are very private.',
-    crate: () => 'A crate of freshly picked vegetables, labeled "FOR FORTUNE." Fortune picks them up every morning.',
     sign_farm: () => 'UP THE HILL: THE FARM, THE FOREST, AND THE MOUNTAIN. Mind the cows. (There are no cows.)',
-    boulder: () => 'A big mountain boulder. It has been sitting here for ten thousand years. It seems relaxed about it.',
     telescope: () => lookoutTelescope(),
-    blanket: () => rpick(['A checkered picnic blanket, spread out and waiting. Somebody left a basket of napkins. Very organized picnicking.',
-        'A picnic blanket. Neighbors come here for lunch with a view. The ants come here for the same reason.', 'A soft picnic blanket. It smells like grass and strawberries.']),
     sign_camp: () => 'THE CAMPSITE. Tents for visitors, a fire ring for stories. "Leave nothing but footprints. And maybe a marshmallow for the raccoon."',
     sign_lot: () => 'SET ASIDE FOR A NEW BUSINESS. "Coming soon: a coffee shop! Somebody new is moving to the island to open it. Who? A mystery. A delicious mystery." - Ginger',
     sign_land: () => 'LAND FOR SALE. A quiet plot in the neighborhood, with room for one cozy house. "Newcomers welcome! The crew will have it built in no time." - Ginger',
     sign_trail: () => 'THE RIDGE TRAIL. The farm, the campsite, the ridge, the lookout. "Wear good shoes. Bring a snack. Say hi to the pines." - Ginger',
     sign_bonfire: () => 'THE BONFIRE. Lit every evening. Bring a friend. Bring marshmallows. Do not bring Wonton near the fire; he gets steamy.',
-    picnic: () => rpick(['Someone has carved a tiny smiling sun into the picnic table. The wood is smooth around it.', 'A picnic table with a checkered cloth. It smells like pine and granola bars.']),
-    trough: () => rpick(["The goat drinks from its trough. Loudly enough to count as conversation.", 'A trough of fresh water. Ginger fills it every morning.']),
-    log: () => rpick(['A log bench by the fire. Good for sitting. Good for stories.', 'A log. Smooth on top from a lot of sitting.']),
-    trashcan: () => rpick(['A trash can. It is very clean. Ginger power-washes it on Sundays. She says a clean bin is a happy bin.',
-        "A crumpled page lies on top: \"Sock. Sock. Rock?\" Joe has circled the question mark.",
-        'A leaf sticker reads \'RECYCLE, PLEASE.\' Cuke has added a second sticker: \'YOU CAN DO IT!\'',
-        "Sarah peeks in the trash can. A banana peel, a napkin, and a note: 'I DID NOT eat the last cheesecake. - not Coco.'"]),
-    fountain_grand: () => PROP_TALK.fountain(),
-    fountain: () => rpick(['A little fountain on Main Street. Sarah tosses in a shell and makes a wish. The wish is a secret.',
-        'The fountain burbles away. The bottom is covered in shells. Everyone on the island has made a wish here. Mostly for snacks.',
-        'The fountain splashes into its little basin. Wonton has called it \'a bath with poor seating.\'']),
-    drinkfountain: () => rpick(['A drinking fountain. Sarah takes a sip. Ice cold! Cuke taped a note to it: "HYDRATE!!!"',
-        "The water makes a little rainbow before Sarah takes a sip.",
-        'Sarah presses the button. The water shoots straight up her nose. She looks around. Nobody saw. (The goat saw.)']),
-    volleyball: () => rpick(["A beach volleyball court. Kai and Chili play here at sunset. The score is always 'a lot to a lot.'",
-        "The volleyball net. Somebody wrote the rules on a board: 1. Have fun. 2. No spiking the goat. 3. See rule 1.",
-        'A volleyball court drawn in the sand with rope. Sully refs sometimes. He calls everything "wicked out."']),
-    vbball: () => rpick(['A volleyball. Sarah gives it a little bump. It goes straight up. It comes straight down. On her head. Nobody saw.',
-        'Sarah serves the ball over the net! It lands in. Nobody is on the other side to return it. She wins. Undefeated.',
-        "A volleyball with a face. Kai named it Ball. The name tag is much fancier than the name."]),
-    tackle: () => rpick(["Somebody's fishing tackle: a box of shiny lures, a bait bucket, and a rod leaning on the box. A note says: 'BACK SOON - KAI.'",
-        'A tackle box full of lures. One is shaped like a tiny cheesecake. Cece says it works on the fancy fish.',
-        "A bait bucket and a tackle box. The bucket has one very small fish in it. It seems happy. It's on a break."]),
-    sandcastle: () => rpick(['A sandcastle with a moat and a tiny flag. Somebody worked very hard on this. Sarah does not step on it. Sarah is a good person.',
-        "A sandcastle. There's a shell for a door and a little sign: 'KING KAI'S CASTLE. NO WAVES.' The waves have not read the sign.",
-        'A sandcastle. It has towers and a moat. Someone left a spoon for scale. It is a very big castle for a spoon.']),
-    birdhouse: () => rpick(['A little birdhouse on a pole, with a red roof. A bird is home. It is judging Sarah very politely.',
-        'A birdhouse. Ginger built it. It has a porch. Of course it has a porch.',
-        "A birdhouse. There's a tiny sign on it: 'NO VACANCY.' The birds are doing great."]),
-    wheelbarrow: () => rpick(["Ginger's wheelbarrow, full of garden dirt and two brave little sprouts.",
-        'A wheelbarrow. Sarah gives it a push. It goes in a small circle. Sarah decides that was the plan.']),
-    icecream: () => rpick(["An ice cream cart with a striped umbrella. A sign says 'BACK IN 5 MINUTES - MAC.' It has said that all week.",
-        "The ice cream cart. The menu says: vanilla, chocolate, and 'Cece's cheesecake swirl (sorry if it's too good).'",
-        'An ice cream cart. It is closed, but it smells like waffle cones. That feels like a kind of open.']),
-    viewer: () => rpick(['A coin-op sea viewer. Sarah drops in a sand dollar and looks: waves! A boat! A seagull, VERY close. It looks back.',
-        'Sarah looks through the viewer. Way out at sea there is a little sailboat. Someone on it is waving. Sarah waves back.',
-        "The viewer is pointed at the lighthouse. Sarah looks. Somebody's up there. Oh. It's the lamp. Probably."]),
-    flamingo: () => rpick(['A pink lawn flamingo balances on one leg. Its other leg has never been found.', 'The lawn flamingo has a tiny bow tie. Sarah has accidentally come to the garden underdressed.']),
 };
 /* every fence tile on the island (so each piece knows which way its neighbors are) */
 function fenceTiles() {
@@ -283,10 +239,9 @@ function addVolleyball(a, p) {
     court.draw = ctx => spr(ctx, 'vb_court', court.x - w * TILE / 2, court.y - 5 * TILE);
     const e = a.add({ kind: 'volleyball', frame: 'vb_net', x: (p.x + w / 2) * TILE, y: (net + 1) * TILE - 2, px: p.x, py: p.y });
     e.hit = { x: p.x * TILE, y: net * TILE - 14, w: w * TILE, h: TILE + 14 };
-    e.interact = () => UI.say(null, PROP_TALK.volleyball());
     const ball = a.add({ kind: 'vbball', frame: 'vb_ball', x: (p.x + 1.5) * TILE, y: (p.y + 3.8) * TILE });
     ball.hit = { x: ball.x - 8, y: ball.y - 12, w: 16, h: 14 };
-    ball.interact = () => { ball.bounce = 30; Sfx.play('pick'); return UI.say(null, PROP_TALK.vbball()); };
+    ball.interact = () => { ball.bounce = 30; Sfx.play('pick'); };
     ball.draw = ctx => { const b = ball.bounce > 0 ? Math.abs(Math.sin(ball.bounce-- / 5)) * 8 * (ball.bounce / 30) : 0; spr(ctx, 'shadow_s', ball.x, ball.y); spr(ctx, 'vb_ball', ball.x, ball.y - b); };
     return e;
 }
@@ -326,11 +281,8 @@ function addProp(a, p) {
     if (p.kind === 'bonfire') { e.draw = ctx => drawBonfire(ctx, e); e.interact = () => useBonfire(e); e.fire = true; G.bonfire = e; }
     if (p.kind === 'campfire') { e.draw = ctx => drawCampfire(ctx, e); e.interact = () => useCampfire(e); G.campfire = e; }
     if (p.kind === 'tent') { e.tent = p.tent || 0; e.hit = { x: p.x * TILE, y: p.y * TILE - 20, w: 3 * TILE, h: 2 * TILE + 20 }; e.draw = ctx => drawTent(ctx, e); e.interact = () => useTent(e); e.stand = [p.x + 1, p.y + 2]; }
-    if (p.kind === 'rock') e.interact = () => talkSign('rock');
-    if (p.kind === 'flowerbed') e.interact = () => talkSign('flowerbed');
     if (p.kind === 'crate') e.interact = async () => {
         if (Quests.stage('windmill') >= 1 && !Quests.done('windmill') && !(Quests.st('windmill').cogs || []).includes('crate') && p.y < 45) { await Quests.findCog('crate'); return; }
-        await UI.say(null, PROP_TALK.crate());
     };
     if (PROP_TALK[p.kind] && !e.interact) e.interact = () => UI.say(null, PROP_TALK[p.kind]());
     if (p.kind === 'windmill') {
@@ -348,9 +300,6 @@ function addProp(a, p) {
 }
 
 /* Sarah's sailboat, tied up stern-to at the end of the pier, bow out to sea (the boat from the opening scene) */
-const BOAT_TALK = ["Sarah's sailboat, tied up at the end of the pier. It brought her here at sunrise. It still smells like sunscreen and adventure.",
-    "The boat rocks gently against its rope. Sarah checks the knot and stays to listen to the water.",
-    "Sarah's boat. A gull is sitting on the boom like it owns the place. It does not own the place."];
 function addDockedBoat(a) {
     const pr = W0.pier;
     if (!pr || !Assets.frames.boat_docked) return;
@@ -360,7 +309,6 @@ function addDockedBoat(a) {
     e.hit = { x: bx * TILE, y: (by - 1) * TILE, w: Math.round(fw * 0.85), h: 3 * TILE + 6 };
     e.stand = [pr.x1, by + 1];
     e.draw = ctx => spr(ctx, 'boat_docked', e.x, e.y + (Math.sin(G.t / 55) > 0.35 ? 1 : 0));
-    e.interact = () => UI.say(null, rpick(BOAT_TALK));
     return e;
 }
 

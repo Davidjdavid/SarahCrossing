@@ -337,7 +337,7 @@ function pressA() {
     if (w && w !== 'h') { startFishing(tx, ty, w); return; }
     // holding the shovel: dig right here
     if (heldTool() === 'shovel' && G.area.id === 'island') { shovelFront(); return; }
-    if (w === 'h') { talkSign('spring'); return; }
+    if (w === 'h') return;
     // otherwise pick up something at her feet
     const under = G.area.ents.find(e2 => e2.kind === 'item' && Math.hypot(e2.x - p.x, e2.y - p.y) < 10);
     if (under) tryInteract(under);

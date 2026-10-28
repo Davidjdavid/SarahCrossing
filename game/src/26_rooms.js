@@ -332,29 +332,14 @@ async function visitHouse(id) {
 }
 
 /* ---------------------------------------------------------------- looking at other people's things */
-const HOUSE_FURN = {
-    maki: ['Spotless. Sarah feels dusty just standing near it.', 'Aligned to the millimeter. Maki would know if you moved it.', 'Not a grain of dust. Not a grain of rice, either.'],
-    kai: ["It's a little sandy. Everything in here is a little sandy.", 'Very laid-back. Even the furniture looks relaxed.', 'There is a seashell on it. There is a seashell on everything.'],
-    basil: ['It smells faintly of lime and peanuts.', 'Basil keeps a little room around everything. The furniture has a less crowded life than most people.', 'Basil has put a small herb pot near it. Of course he has.'],
-    chili: ["It's warm to the touch. Everything in here is.", 'Chili has labeled it: "HOT." Everything is labeled "HOT."', 'Chili calls this \'tastefully understated.\' There\'s a small flame painted on it.'],
-    coco: ['There is a tiny notepad next to it. It says "WHO?" and "SINCE WHEN?"', 'Chocolate brown with pink trim. It looks expensive. Coco would like Sarah to know that it was.', 'Coco has clearly rearranged this for maximum drama.'],
-    cece: ["It's perfect. Cece still apologized for it.", 'There is a small sticky note on it: "sorry!"', 'Frosted, somehow. Cece bakes when she decorates.'],
-    clementine: ['Clementine has arranged this so beautifully that touching it feels like applying for a permit.', 'It is orange, or next to something orange. That is the rule here.', 'Styled within an inch of its life.'],
-    cuke: ["There's a water bottle next to it. Hydration station.", 'A little sticky note: "5 AM!!" Everything here has a 5 AM note.', 'Very clean. Very green. Very awake.'],
-    sully: ["It's wicked sturdy. Sully built half of this himself.", 'There is a coffee ring on it. There is a coffee ring on everything.', 'A little Boston pennant is tucked behind it.'],
-    david: ['It sparkles. Everything in here sparkles.', 'Honestly? Iconic.', 'There is glitter on it. There will be glitter on Sarah now, too.'],
-    joe: ["Joe has taped a poem to the side. It begins: \"Furniture. Furniture. Hello.\"", 'A sticky note on it says "rhymes with: chair, bear, there, chair."', 'A page on top is titled "Frog, Revised." Underneath: "Still frog."'],
-    ginger: ["Handmade. Ginger built it, of course. It's perfectly level. She checked.", 'There is a tiny pencil mark on it: "measured twice."', 'Sturdy. Suspiciously sturdy. It smells a little like cinnamon.'],
-    brulee: ['Arranged like a gallery. There is a tiny label next to it with a title.', 'Very elegant. There is a crumb of caramel on it.', 'Brulee has dusted this today. And yesterday. And the day before.'],
-    mac: ['It smells like butter. Everything here smells like butter.', 'There is a little cheese-shaped magnet on it.', 'Cozy and well loved. A napkin is folded on it, just in case.'],
-};
 async function roomFurniture(ent) {
     const a = G.area, R = a.room, it = ent.item, d = ent.def;
     const top = thingOnTop(ent);
     if (top) return top.interact();
     if (it && it.use) return roomUse(ent);
     const owner = R && R.owner;
-    if (!owner) { await UI.say(null, `${cap(aOrAn(d.name))} ${d.name.toLowerCase()}.`); return; }
+    // (nothing said about a thing just for looking at it: only what's written on it, or one of Sarah's gifts kept)
+    if (!owner) return;
     const nm = NPC_DEFS[owner].name;
     if (it && it.gift) {
         const host = NPCs.here().find(n => n.id === owner);
@@ -367,16 +352,10 @@ async function roomFurniture(ent) {
     const special = {
         'joe:typewriter': 'There is a poem in the typewriter: "I have a desk. / It is a desk. / I sit at it / to write the rest."',
         'joe:sonnet_stack': 'A tall stack of poems. The top one: "A frog. A log. / A different frog." It is still in progress.',
-        'david:goat_bed': "A little purple goat bed. It's a goat bed. Nothing else to say.",
-        'david:light_floor': 'The floor lights up when you step on it. David has clearly danced here every single night.',
-        'coco:gossip_phone': 'A pink phone. It is still warm. It is always warm.',
         'chili:trophy_hot': 'HOT SAUCE CHAMPION. The trophy is also, somehow, hot.',
         'maki:rice_cooker': 'The rice cooker has a label: "DO NOT TOUCH. I KNOW HOW MUCH RICE IS IN HERE."',
-        'sully:boston_sign': 'A Boston pennant. Sully salutes it every morning. Probably.',
-        'cuke:clock_wall': "Cuke's clock has three alarms: 3:58, 3:59 and 4:00 AM. Cuke finds that normal.",
-        'cece:cheesecake_case': 'A glass case of cheesecakes. None of them are cracked. Cece still worries about them.',
     }[owner + ':' + d.id];
-    await UI.say(null, special || `${nm}'s ${d.name.toLowerCase()}. ${rpick(HOUSE_FURN[owner] || ['It is very nice.'])}`);
+    if (special) await UI.say(null, special);
 }
 /* fittings with a job (shop shelves, mannequins...) */
 async function roomUse(ent) {
