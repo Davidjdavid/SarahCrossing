@@ -850,7 +850,7 @@ function shopSell() {
             P.foot.innerHTML = '';
             P.foot.appendChild(el('span', 'grow', `${fmtNum(S.money)} sand dollars`));
             // (a pocketful of one kind sold in one go, as at Animal Crossing's drop-off box: a second tap to be sure)
-            for (const [t, word] of [['fish', 'fish'], ['fruit', 'fruit'], ['shell', 'shells']]) {
+            for (const [t, word] of [['fish', 'fish'], ['fruit', 'fruit'], ['shell', 'shells'], ['veg', 'vegetables'], ['flower', 'flowers']]) {
                 const slots = S.pocket.map((q, k) => [q, k]).filter(([q]) => q && ITEMS[q.id] && ITEMS[q.id].type === t && !unsellable(q.id));
                 const n = slots.reduce((a, [q]) => a + q.n, 0), pay = slots.reduce((a, [q]) => a + each(q.id) * q.n, 0);
                 if (n < 2 || slots.length < 2) continue;

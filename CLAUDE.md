@@ -115,7 +115,7 @@ docs/DEPLOY.md for the server.
   menus overhaul of 28 October): cream paper, rounded type, the selection a warm yellow, pictures on round plates;
   `body.hd2d` only says the 3D view is showing. Shops and the pocket are one kind of screen (`storeView`, 41b_store.js:
   the things as cards, the one picked big on a little turntable with what can be done with it; a tap picks, only a
-  button buys, sells or drops anything; Fortune's sell screen also sells all the fish, fruit or shells in the pocket in one
+  button buys, sells or drops anything; Fortune's sell screen also sells all the fish, fruit, shells, vegetables or flowers in the pocket in one
   go, a second tap to be sure; the pocket sends all its furniture home in one go, the mailbox takes every present at once); `UI.open({ wide })` gives the wider panel they use. The phone shows the time,
   weather and wallet along its top and the apps four across. Trying something on at the salon or the sewing machine,
   the 3D view puts the studio to one side and the camera in close on Sarah, whose doll wears it as it's made

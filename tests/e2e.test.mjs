@@ -3768,7 +3768,7 @@ test('on a phone, nothing spills sideways: the phone and its apps, the pocket, t
   await page.close();
 });
 
-test("selling a pocketful at Fortune's in one go: All fish, a second tap to be sure, every fish sold at its own price", async () => {
+test("selling a pocketful at Fortune's in one go: All fish, a second tap to be sure, every fish sold at its own price; the vegetables too", async () => {
   const page = await device();
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
@@ -3787,9 +3787,18 @@ test("selling a pocketful at Fortune's in one go: All fish, a second tap to be s
     allFish().click();
     const out = { label, ask: /^Sell 6 fish for/.test(ask), waited: fishKept, sold: !S.pocket.some((q) => q && ITEMS[q.id].type === 'fish') && S.money > m0, gone: !allFish() };
     UI.close(true);
+    // the garden's vegetables too
+    const veg = Object.keys(ITEMS).filter((k) => ITEMS[k].type === 'veg' && ITEMS[k].price).slice(0, 2);
+    for (const id of veg) receive(id, 2, true);
+    shopSell();
+    const allVeg = () => [...document.querySelectorAll('#panel button')].find((b) => /^All vegetables|^Sell 4 vegetables/.test(b.textContent));
+    out.veg = allVeg() && allVeg().textContent;
+    allVeg().click(); allVeg().click();
+    out.vegSold = !S.pocket.some((q) => q && ITEMS[q.id].type === 'veg');
+    UI.close(true);
     return out;
   });
-  assert.deepEqual(res, { label: 'All fish (6)', ask: true, waited: true, sold: true, gone: true });
+  assert.deepEqual(res, { label: 'All fish (6)', ask: true, waited: true, sold: true, gone: true, veg: 'All vegetables (4)', vegSold: true });
   assert.deepEqual(page.problems, []);
   await page.close();
 });
