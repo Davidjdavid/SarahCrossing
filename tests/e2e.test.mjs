@@ -2859,9 +2859,11 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
     // a room: Waffle's shop, one piece turned, one taken away, a chair added
     await page.evaluate(() => __dbg.enter('displays'));
     await page.waitForFunction(() => G.area.id === 'displays');
+    // (and it stays open: the watchdog that ends decorating outside the house leaves the designer alone)
+    await page.evaluate(() => Decor.enter({ design: true }));
+    await page.waitForTimeout(2500);
     const room = await page.evaluate(() => {
       const out = {}, a = G.area;
-      Decor.enter({ design: true });
       out.on = Decor.on && Decor.design === 'displays';
       const k = a.items.findIndex(it => furnDef(it.id).kind === 'floor' && furnDef(it.id).w === 1 && (furnDef(it.id).h || 1) === 1 && it.on == null);
       const key = a.items[k].o;
@@ -3065,5 +3067,48 @@ test('every screen opens without a problem: the phone and its apps, the pocket, 
   // (the Bank's market and the zip code reach the real world through the server, which this test machine can't: those
   // screens show their "service down" state, and the browser notes the failed fetch)
   assert.deepEqual(page.problems.filter((p) => !/status of 502/.test(p)), []);
+  await page.close();
+});
+
+test("every shop sells: something bought at Clementine's, Waffle's, IslandMart and Mac's, the way a player does", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => { __dbg.setTime(11, 0, 14); S.money = 100000; Save.touch(); });
+  // in a shop's screen: tap the first thing, then the button that buys it
+  const buyFirst = async (open) => {
+    await page.evaluate(open);
+    await page.waitForSelector('#panel .store-list .card');
+    const before = await page.evaluate(() => S.money);
+    await page.click('#panel .store-list .card');
+    await page.locator('#panel .store-pick .btn').first().click();
+    const spent = await page.evaluate((m) => m - S.money, before);
+    await page.evaluate(() => UI.close(true));
+    return spent > 0;
+  };
+  const clothes = await buyFirst(() => { shopClothes(true); });
+  const got = await page.evaluate(() => S.pocket.some((s) => s && ['outfit', 'acc'].includes(ITEMS[s.id].type)));
+  const stored = () => page.evaluate(() => Object.values(S.storage).reduce((t, n) => t + n, 0));
+  const kept0 = await stored();
+  const displays = await buyFirst(() => { displaysShop(); });
+  const sent = (await stored()) === kept0 + 1;
+  const mart = await buyFirst(() => { openLaptop(); });
+  const box = await page.evaluate(() => !!pendingBox());
+  // Mac's: a dish from today's menu, to go (the menu tapped as a player would, the question answered "To go")
+  await page.evaluate(() => {
+    __dbg.enter('restaurant');
+    window.__ask = UI.ask; window.__say = UI.say; window.__m0 = S.money;
+    UI.ask = async (who, q, opts) => Math.max(0, opts.findIndex((o) => /^To go/.test(o)));
+    UI.say = async () => {};
+    window.__order = orderFood();
+  });
+  await page.click('#panel .list .row');
+  const meal = await page.evaluate(async () => {
+    await Promise.race([window.__order, new Promise((r) => setTimeout(r, 4000))]);
+    UI.ask = window.__ask; UI.say = window.__say;
+    return S.money < window.__m0 && S.pocket.some((s) => s && ITEMS[s.id].type === 'dish');
+  });
+  assert.deepEqual({ clothes, got, displays, sent, mart, box, meal }, { clothes: true, got: true, displays: true, sent: true, mart: true, box: true, meal: true });
+  assert.deepEqual(page.problems, []);
   await page.close();
 });

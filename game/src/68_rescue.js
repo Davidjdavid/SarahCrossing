@@ -15,7 +15,8 @@ const Watchdog = {
         if (Studio.on && !$('#studio')) { Studio.on = false; Studio.onKey = null; Studio.onResize = null; UI.modal = false; console.warn('watchdog: studio flag without a studio'); }
         if (typeof BigMap !== 'undefined' && BigMap.on && !(BigMap.root && BigMap.root.isConnected)) { BigMap.on = false; BigMap.root = null; console.warn('watchdog: map flag without a map'); }
         if (Arcade.on && !$('#arcade')) { Arcade.on = false; Arcade.state = 'off'; Arcade.g = null; Arcade.U = null; UI.modal = false; console.warn('watchdog: arcade flag without a cabinet'); }
-        if (Decor.on && G.area && G.area.id !== 'home') { Decor.exit(); console.warn('watchdog: decorating outside the house'); }
+        // (the designer decorates any room on beta: 6zza_designer.js)
+        if (Decor.on && G.area && G.area.id !== 'home' && Decor.design !== G.area.id) { Decor.exit(); console.warn('watchdog: decorating outside the house'); }
         if (Photo.on && $('#photobar').hidden) { Photo.stop(); console.warn('watchdog: photo mode without its bar'); }
         // (an edit mode whose panel was closed under it: its Done button is gone and the taps still go to it, so it comes back;
         // and they're for the island only, as decorating is for the house)
