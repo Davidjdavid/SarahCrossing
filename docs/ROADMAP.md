@@ -408,10 +408,15 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   without being noticed (on computers and phones), and the haze far off much less obvious (it can feel like an N64 or
   PS1 game). Started 28 October: the haze takes the sky's color behind each thing, the sky's horizon sits on the
   island's far edge, stars and clouds in the strip of sky over it.
-- [ ] (David, 28 October, late) The very last thing: tests of everything Sarah can do, one by one, played the way a
+- [~] (David, 28 October, late) The very last thing: tests of everything Sarah can do, one by one, played the way a
   player does (buying and selling at every shop, making pottery, cooking, fishing, decorating, every app and screen,
   every game, every neighbor's talk menu...), so nothing quietly breaks again (buying and selling at Fortune's had,
   since 26 October, with no test catching it)
+  (29 October: started. Played the way a player does: buying and selling at Fortune's and a pocketful in one go, buying
+  at every other shop, the tools (wood, felling, digging, shaking, fishing), growing, cooking, pottery, painting, the
+  phone, camera and its own apps, the salon, the sewing machine, the prize counter, decorating, gifts, a favor, a bigger
+  house, island jobs, every arcade cabinet, the games with neighbors, and every option of every neighbor's talk menu;
+  every screen opens, and fits a phone)
 - [~] The game as something played for months: tedious chores, awkward pacing, confusing screens, frustrating
   activities (29 October: started. Fortune's sells a pocketful of fish, fruit or shells in one go)
 

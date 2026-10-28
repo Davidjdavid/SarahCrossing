@@ -101,7 +101,6 @@ const PAPER_STORIES = {
     shell: [n => ['BEACH COMBED', `${n} ${plural(n, 'treasure')} picked up along the shore. The crabs have filed a complaint. It was dismissed.`]],
     fruit: [n => ['TREES SHAKEN', `${n} ${plural(n, 'piece')} of fruit came down yesterday. Witnesses describe the trees as "tired."`]],
     cooked: [n => ['SOMETHING SMELLS GOOD', `${n} ${plural(n, 'dish', 'dishes')} cooked at {name}'s kitchenette. Mac asked for the recipe. Then asked again.`]],
-    hugs: [n => ['HUGS ON THE RISE', `${n} hugs reported yesterday. Cuke calls it "excellent for circulation."`]],
     gifts: [n => ['A GENEROUS DAY', `${n} ${plural(n, 'present')} handed out. The neighbors are "touched" and "a little worried about storage."`]],
     arcade: [n => ['HIGH SCORES', `${n} arcade ${plural(n, 'game')} played. Chili was seen fanning himself with a ticket.`]],
     dances: [n => ['THE FLOOR IS HOT', `{name} danced at Club Wasabi. Wasabi says the speakers "have never been happier."`]],

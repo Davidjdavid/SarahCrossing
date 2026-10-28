@@ -1103,9 +1103,6 @@ const TM_TODAY = {
         cece: "You cooked today! Did anything crack? It's okay if it cracked! It happens to the best of us! Sorry!" },
     ate: { mac: "You've eaten {n} times today? That's my kind of day. Have one more. For me.",
         cuke: '{n} meals today! Had something good? Nice to have time to sit down and enjoy it!' },
-    hugs: { coco: "You've hugged {n} people today. I know because I watched. I don't know why I'm telling you that.",
-        cuke: '{n} hugs today! Amazing for circulation! Can we make it {n1}?!',
-        sully: "{n} hugs in one day, kid? Back home that's a whole Thanksgiving." },
     gifts: { coco: '{n} gifts today? Girl, who got what? I need a list. A full list. With reactions.',
         clementine: '{n} gifts in one day. Generous. I hope at least one of them was wrapped in orange.' },
     fruit: { cuke: "{n} pieces of fruit today! So healthy! Unless you didn't eat them! Did you eat them?!",
@@ -1127,7 +1124,7 @@ const TM_TODAY = {
     rope: { cuke: 'You jumped rope today! I saw! Great form! Your knees could go higher! Everyone\'s knees could go higher!' },
     talks: { coco: "You've talked to people {n} times today. I know. I count. Am I your favorite? I'm your favorite." },
 };
-const TM_TODAY_MIN = { ate: 2, hugs: 2, gifts: 2, sold: 5, talks: 6 };
+const TM_TODAY_MIN = { ate: 2, gifts: 2, sold: 5, talks: 6 };
 function tmTodayCount(k) { if (typeof today !== 'function') return 0; return k === 'flowers' ? today('flowers') + today('flower') : today(k); }
 function tmTodayLines(n) {
     const c = [];
@@ -1158,7 +1155,6 @@ function tmRecordLines(n) {
     if (id === 'mac' && golds > 0) c.push(`You've got ${fmtNum(golds)} gold ${plural(golds, 'medal')} in cooking? Come work in my kitchen. Kidding. Unless? No. Unless?`);
     if (id === 'basil' && (st.cooked || 0) >= 5) c.push(`You've cooked ${fmtNum(st.cooked)} dishes since you got here. Your kitchen must smell like a good life.`);
     if (id === 'coco' && (st.talks || 0) >= 30) c.push(`You've had ${fmtNum(st.talks)} conversations on this island. I've been in about half of them. The good half.`);
-    if (id === 'cece' && (st.hugs || 0) >= 5) c.push(`You've given ${fmtNum(st.hugs)} hugs since you got here! I keep a little list of mine! Is that weird? Sorry!`);
     if (id === 'clementine' && (st.sewn || 0) > 0) c.push(`You've sewn ${fmtNum(st.sewn)} ${plural(st.sewn, 'outfit')}. I've noticed every stitch. Most of them were straight.`);
     if (id === 'ginger' && (st.wood || 0) >= 10) c.push(`You've chopped ${fmtNum(st.wood)} pieces of wood since you got here. That's a lot of porch. I'm just saying.`);
     if (id === 'wonton' && (st.clams || 0) > 0) c.push(`You've dug up ${fmtNum(st.clams)} ${plural(st.clams, 'clam')}. I'm not judging. They were just having a nice warm nap in the sand. Like me.`);

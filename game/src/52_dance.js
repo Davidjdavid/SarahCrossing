@@ -87,7 +87,7 @@ async function wasabiTalk(n) {
         await UI.say('wasabi', ["YOOO! Welcome to Club Wasabi! I'm DJ Wasabi. If you hear your favorite song, I meant to do that!",
             'The floor is open all day for practice. After 9 PM, the whole island shows up. Pick a track, superstar!'], { keep: true });
     } else {
-        await UI.say('wasabi', night ? rpick(['The floor is PACKED tonight! Let\'s go!', "It's peak hours! Nobody leaves before midnight!", 'David has been here since 9. He shows no signs of stopping.'])
+        await UI.say('wasabi', night ? rpick(['The floor is PACKED tonight! Let\'s go!', "It's peak hours! Nobody leaves before midnight!", 'Somebody\'s been out there since 9. No signs of stopping. Respect.'])
             : rpick(["Daytime practice! The crowd's still out in the sun. More room for you.", 'Warm up now, shine tonight!', "It's quiet. Perfect time to learn the moves."]), { keep: true });
     }
     await clubMenu();

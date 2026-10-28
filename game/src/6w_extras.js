@@ -558,7 +558,7 @@ async function spoilerGate() {
 const QUEST_GUIDE = {
     treasure: ["The pirate's treasure", '1. Open the old trunk in the barn, up on the farm. There is a pirate\'s note inside.\n2. From the foot of the pier, walk west past three palm trees. At the third palm, face the sea, take four steps, and dig where the sand is dark (hold the shovel).\nReward: a pirate hat, a treasure chest and an old map.'],
     ghost: ['The keeper of the light', "1. Go up to the lighthouse's lamp room between 11 PM and 1 AM and talk to the old keeper's ghost.\n2. He misses his wife Martha's clam chowder. Ask Sully about the ghost: he teaches you his chowder.\n3. Cook clam chowder at home (dig clams on the beach with the shovel).\n4. Bring it to the ghost between 11 PM and 1 AM.\nReward: a halo, the Lighthouse Shanty for the club, and the lighthouse shines every night."],
-    goat: ["The goat's golden bell", '1. Hug the goat on three different days.\n2. It gives you a tin can. Trade it around the island: the tin can to Chili (hot sauce), the hot sauce to Kai (a shell necklace), the necklace to Clementine (a silk scarf), the scarf to Brulee (a painting of the goat), and the painting to Coco (a golden bell).\n3. Give the golden bell to the goat.\nReward: goat horns and The Goat Waltz.'],
+    goat: ["The goat's golden bell", '1. Pet the goat on three different days.\n2. It gives you a tin can. Trade it around the island: the tin can to Chili (hot sauce), the hot sauce to Kai (a shell necklace), the necklace to Clementine (a silk scarf), the scarf to Brulee (a painting of the goat), and the painting to Coco (a golden bell).\n3. Give the golden bell to the goat.\nReward: goat horns and The Goat Waltz.'],
     windmill: ['The silent moonstone', '1. Look at the moonstone inside the windmill: three cogs are missing. (Ginger remembers where they went.)\n2. Cog one: a crate up on the farm.\n3. Cog two: the hollow of the oldest big tree in the forest.\n4. Cog three: the old sea chest inside the lighthouse.\n5. Bring all three back to the moonstone.\nReward: a mini windmill and the mooncake recipe.'],
     star: ['The blinking star', "1. First, solve the lighthouse ghost's mystery so the lamp shines again.\n2. At night, look through the telescope at the lookout: one star blinks short, short, long.\n3. At night, answer it from the lighthouse's great lamp: short, short, long.\n4. Climb to the mountain top. Something fell there.\nReward: a star telescope, a space suit pattern, the song Starlight and a star crystal."],
 };
@@ -573,7 +573,7 @@ function songHow(id) {
     if (!s) return '';
     if (s.special) { const sp = SPECIALS[s.special]; return sp ? (sp.src === 'pool' ? 'A hidden track. ' + POOL_HINT : 'A hidden track. Hint: ' + sp.hint) : 'A hidden track.'; }
     return { wiggle: 'Open from the start.', shuffle: 'Clear "Wasabi Wiggle" first.', owl: 'Clear "Spicy Tuna Shuffle" first.',
-        disco: 'Clear "Night Owl Anthem" first (or become good friends with David).', sonnet: 'Clear "Roller Disco Forever" first, or get close to Joe (two hearts).' }[id] || '';
+        disco: 'Clear "Night Owl Anthem" first.', sonnet: 'Clear "Roller Disco Forever" first, or get close to Joe (two hearts).' }[id] || '';
 }
 function moveHow(m) {
     const song = Object.keys(SONGS).find(id => SONGS[id].move === m);

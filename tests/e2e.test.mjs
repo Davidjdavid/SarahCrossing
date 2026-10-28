@@ -3775,3 +3775,63 @@ test("selling a pocketful at Fortune's in one go: All fish, a second tap to be s
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test("every neighbor's talk menu, the way a player does: each option tried with each neighbor (a good friend), the goat and the newcomers too, every talk ending back on the island", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(14, 0, 14);
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms)), ask = UI.ask, say = UI.say;
+    const out = { tried: 0, hung: [], busy: [], missing: [] };
+    // (the menus' ways out: the neighbors', Joe's, Basil's cart, the club's, the goat's)
+    const EXITS = ['See you!', 'See you later!', 'Bye!', 'Just vibing', 'Leave'];
+    await seaMoveIn(); await mugMoveIn();
+    /* the menu's option to try (once a talk), then the way out; a question inside an option gets its last answer
+       (Never mind, Not now...), and whatever opens (a shop, the pocket, a song list, a game) is closed again, as a
+       player who changes their mind does */
+    let pick = null, used = false, menu = null;
+    UI.say = async () => {};
+    UI.ask = async (w, t, opts) => {
+      const exit = opts.findIndex((o) => EXITS.includes(o));
+      if (exit >= 0 && !menu) menu = opts.slice();
+      if (exit >= 0 && pick && !used && opts.includes(pick)) { used = true; return opts.indexOf(pick); }
+      return exit >= 0 ? exit : opts.length - 1;
+    };
+    let openSince = 0;
+    const closer = setInterval(() => {
+      if (document.querySelector('.spcard')) UI.close();
+      if (!document.querySelector('#panel').hidden) { if (!openSince) openSince = Date.now(); else if (Date.now() - openSince > 300) { UI.close(); openSince = 0; } } else openSince = 0;
+      if (Dance.on) Dance.quit();
+      if (IslandGames.on) IslandGames.stop();
+      if (Rope.on) Rope.quit();
+    }, 100);
+    const talk = async (n) => { const t0 = Date.now(); await Promise.race([talkTo(n), wait(15000)]); return Date.now() - t0 < 14900; };
+    try {
+      for (const n of NPCs.list) {
+        const id = n.id, r = rel(id);
+        r.met = true; r.pts = Math.max(r.pts || 0, HEARTS[4]); r.nickAsked = true;
+        // the day's first talk (its hellos and news), then the menu as it is after that
+        pick = null; used = false;
+        if (!await talk(n)) { out.hung.push(id); G.busy = 0; continue; }
+        r.talkAt = 0; menu = null;
+        await talk(n);
+        if (!menu) { out.missing.push(id); continue; }
+        for (const label of menu.filter((o) => !EXITS.includes(o))) {
+          r.talkAt = 0; pick = label; used = false;
+          if (!await talk(n)) { out.hung.push(id + ': ' + label); G.busy = 0; UI.close(true); UI.hideDialog(); }
+          out.tried++;
+          if (G.busy || G.mode !== 'play') { out.busy.push(id + ': ' + label); G.busy = 0; }
+          await wait(30);
+        }
+      }
+    } finally { clearInterval(closer); UI.ask = ask; UI.say = say; }
+    out.many = out.tried > 90;
+    out.family = NPCs.list.filter((n) => NPC_DEFS[n.id].online).length;
+    delete out.tried;
+    return out;
+  });
+  assert.deepEqual(res, { hung: [], busy: [], missing: [], many: true, family: 0 });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});

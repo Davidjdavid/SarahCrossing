@@ -424,7 +424,7 @@ function placeKey(n) {
 }
 
 /* ---------------------------------------------------------------- what Sarah's been up to */
-const DAY_STATS = ['fish', 'shell', 'fruit', 'cooked', 'ate', 'hugs', 'gifts', 'arcade', 'dances', 'sold', 'flower', 'flowers', 'wood', 'poems', 'rope', 'gem', 'talks', 'karaoke', 'harvests'];
+const DAY_STATS = ['fish', 'shell', 'fruit', 'cooked', 'ate', 'gifts', 'arcade', 'dances', 'sold', 'flower', 'flowers', 'wood', 'poems', 'rope', 'gem', 'talks', 'karaoke', 'harvests'];
 function dayStatsTick() {
     const day = Clock.dayNum();
     if (S.dayStats && S.dayStats.day === day) return;
@@ -441,7 +441,6 @@ function todayLine() {
     if (n('fruit') > 0) c.push(`You've been shaking trees! ${n('fruit')} ${plural(n('fruit'), 'fruit', 'fruits')} today. The trees must be exhausted.`);
     if (n('cooked') > 0) c.push(`You cooked ${n('cooked') > 1 ? n('cooked') + ' things' : 'something'} today! It smells amazing around your house.`);
     if (n('ate') > 1) c.push(`You've eaten ${n('ate')} times today. A healthy appetite is a happy appetite.`);
-    if (n('hugs') > 1) c.push(`You've hugged ${n('hugs')} people today! Cuke says that's great for circulation.`);
     if (n('gifts') > 1) c.push(`You've handed out ${n('gifts')} gifts today! You're like a little sandy Santa.`);
     if (n('arcade') > 0) c.push(`Did you go to the arcade today? ${n('arcade')} ${plural(n('arcade'), 'game')}! Chili said you were on fire.`);
     if (n('dances') > 0) c.push('You danced at the club today! Wasabi told everyone. Everyone.');
