@@ -4,7 +4,12 @@
    Paths round their corners and join up with the island's own roads. */
 const PATH_STYLES = [['dirt', 'Dirt'], ['stone', 'Stones'], ['brick', 'Brick'], ['planks', 'Planks']];
 function pathsState() { if (!S.paths) S.paths = { t: {}, auto: {} }; if (!S.paths.auto) S.paths.auto = {}; return S.paths; }
-function overlayAt(x, y) { const P = S && S.paths; return P ? P.t[x + ',' + y] : undefined; }
+/* the island's own paths as the designer drew them (6zza_designer.js, the design's paths: laid over every game's island,
+   the live one's too, under Sarah's own), and a count that changes whenever they do (DESIGN_PATHS_V) */
+let DESIGN_PATHS = null, DESIGN_PATHS_V = 0;
+function overlayAt(x, y) { const k = x + ',' + y, P = S && S.paths, o = P ? P.t[k] : undefined; return o !== undefined ? o : DESIGN_PATHS ? DESIGN_PATHS[k] : undefined; }
+/* changes when any path does, Sarah's or the design's (what the ground's pieces are drawn from) */
+function pathsVer() { return (S && S.pathsV || 0) + '.' + DESIGN_PATHS_V; }
 /* the path style at a tile ('baked' for the island's own roads), or null */
 function pathAt(x, y) {
     const o = overlayAt(x, y);
@@ -156,19 +161,18 @@ function drawPathStyle(style, season, v) {
 /* drawn right over the ground, under everything else */
 function drawPaths(ctx, a, cam, v) {
     const P = S && S.paths;
-    if (!P || !Object.keys(P.t).length) return;
+    if ((!P || !Object.keys(P.t).length) && !DESIGN_PATHS) return;
     const x0 = Math.max(0, Math.floor(cam.x / TILE)), y0 = Math.max(0, Math.floor(cam.y / TILE));
     const x1 = Math.min(a.w - 1, Math.ceil((cam.x + v.w) / TILE)), y1 = Math.min(a.h - 1, Math.ceil((cam.y + v.h) / TILE));
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-        const st = P.t[x + ',' + y];
+        const st = overlayAt(x, y);
         if (!st) continue;
         ctx.drawImage(PathTex.tile(st, x, y), x * TILE - cam.x, y * TILE - cam.y);
     }
 }
 function drawPathsOnMap(g, K) {
-    const P = S && S.paths;
-    if (!P) return;
-    for (const [k, st] of Object.entries(P.t)) {
+    const P = Object.assign({}, DESIGN_PATHS || {}, (S && S.paths && S.paths.t) || {});
+    for (const [k, st] of Object.entries(P)) {
         const [x, y] = k.split(',').map(Number);
         g.drawImage(PathTex.tile(st, x, y), x * K, y * K, K, K);
     }
@@ -192,10 +196,12 @@ function pathOkAt(x, y) {
 
 /* ---------------------------------------------------------------- the path tool (from Ginger, or the phone) */
 const PathTool = {
-    on: false, style: 'dirt', look: false, cursor: [0, 0], painting: false, last: null, changed: 0,
-    open() {
+    on: false, style: 'dirt', look: false, cursor: [0, 0], painting: false, last: null, changed: 0, design: false,
+    /* o.design: the designer's paths (the island every game starts from), not Sarah's own */
+    open(o) {
         if (this.on || G.mode !== 'play') return;
-        if (visitorStop('build')) return;
+        this.design = !!(o && o.design && Design.edit);
+        if (!this.design && visitorStop('build')) return;
         if (G.area.id !== 'island') { UI.toast('Paths go outside! Head out onto the island first.'); return; }
         UI.close(true); UI.hideDialog();
         this.on = true; this.changed = 0; this.look = false;
@@ -212,6 +218,7 @@ const PathTool = {
         $('#panel').hidden = true; $('#panel').innerHTML = ''; $('#panel').classList.remove('decor');
         UI.modal = false;
         G.camTarget = null;
+        if (this.design) { this.design = false; Sfx.ui('close'); IslandEdit.open({ design: true }); return; }
         if (this.changed) { Save.touch(); UI.toast(`${this.changed} ${plural(this.changed, 'tile')} of path laid.`); }
         Sfx.ui('close');
     },
@@ -220,21 +227,27 @@ const PathTool = {
         panel.hidden = false; panel.className = 'decor'; panel.innerHTML = '';
         UI.modal = true;
         const head = el('div', 'phead');
-        head.appendChild(el('h2', null, 'Paths'));
+        head.appendChild(el('h2', null, this.design ? 'Designer · the island\'s paths' : 'Paths'));
         head.appendChild(btn('Done', 'green', () => this.close()));
         panel.appendChild(head);
         const body = el('div', 'pbody');
-        body.appendChild(el('p', 'muted', this.look ? 'Drag to look around the island.' : G.touchUsed ? 'Tap or drag across the ground to lay a path. Paths can\'t go under trees or buildings.'
+        body.appendChild(el('p', 'muted', this.look ? 'Drag to look around the island.' : this.design ? `${G.touchUsed ? 'Tap or drag' : 'Click or drag'} to lay the island's own paths, every game's (Sarah's own still go on top). The eraser takes any of them up, the island's roads too. Save the design to keep them.`
+            : G.touchUsed ? 'Tap or drag across the ground to lay a path. Paths can\'t go under trees or buildings.'
             : 'Click or drag to lay a path. (Arrows + Enter work too. Esc when you\'re done.)'));
         const row = el('div', 'st-row');
         for (const [k, label] of PATH_STYLES) row.appendChild(chip(label, () => { this.style = k; this.look = false; this.render(); }, this.style === k && !this.look ? 'on' : ''));
         row.appendChild(chip('Eraser', () => { this.style = 'erase'; this.look = false; this.render(); }, this.style === 'erase' && !this.look ? 'on' : ''));
         row.appendChild(chip('Look around', () => { this.look = !this.look; this.render(); }, this.look ? 'on' : ''));
+        if (this.design) {
+            if (Design.undo.length) row.appendChild(chip('Undo', () => { Design.back(); this.render(); }));
+            row.appendChild(chip(Design.dirty ? 'Save the design' : 'Saved', () => Design.save().then(() => this.render()), Design.dirty ? 'go' : ''));
+        }
         body.appendChild(row);
         panel.appendChild(body);
     },
     paint(x, y) {
         const k = this.style;
+        if (this.design) return Design.pathPaint(x, y, k);
         if (k === 'erase') {
             const o = overlayAt(x, y), c = W0.grid[y] && W0.grid[y][x];
             const baked = c === 'p' || c === 'd' || c === 'b';
@@ -273,7 +286,7 @@ const PathTool = {
             if (fx < 0.1 || fx > 0.9 || fy < 0.12 || fy > 0.7) G.camTarget = [cx + (fx < 0.1 ? -24 : fx > 0.9 ? 24 : 0), cy + (fy < 0.12 ? -24 : fy > 0.7 ? 24 : 0)];
         }
     },
-    up() { this.painting = false; this.last = null; this.drag0 = null; },
+    up() { this.painting = false; this.last = null; this.drag0 = null; if (this.design) { Design.pathStroke = false; this.render(); } },
     stroke(wx, wy) {
         const [tx, ty] = this.toTile(wx, wy);
         const pts = this.last ? linePts(this.last[0], this.last[1], tx, ty) : [[tx, ty]];

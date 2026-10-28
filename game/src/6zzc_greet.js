@@ -172,10 +172,10 @@ const Greet = {
         if (!b || seatTaken(b, seat, n)) return false;
         const at = benchSeatPos(b, seat);
         n.benchIdle = { until: G.t + 900 + rint(0, 900), want: n.want, fixed: n.fixed };
-        n.want = Object.assign({}, n.want, { x: at.x, y: at.y, fixed: true, face: 'down', sit: { b, seat, benchY: at.benchY } });
+        n.want = Object.assign({}, n.want, { x: at.x, y: at.y, fixed: true, face: SIT_DIR[at.rot], sit: { b, seat, benchY: at.benchY, rot: at.rot } });
         n.fixed = true;
         const ok = walkNpc(n, Math.floor(at.x / TILE), Math.floor((at.y - 2) / TILE), () => {
-            n.x = at.x; n.y = at.y; n.dir = 'down';
+            n.x = at.x; n.y = at.y; n.dir = SIT_DIR[at.rot];
             if (!n.talking) { n.emote = 'heart'; n.emoteT = 80; this.say(n, this.line(n, GREET_SIT)); remember(n.id, 'bench'); }
         });
         if (!ok) { idleBenchEnd(n); return false; }

@@ -7,15 +7,29 @@ function benches() {
     if (benches.c) return benches.c;
     // (a placed seat two tiles wide is a bench the neighbors sit on too)
     const placed = (S && S.deco && S.deco.placed || []).filter(p => { const d = typeof dispDef === 'function' && dispDef(p.id); return d && d.seat && d.w >= 2; })
-        .map(p => ({ kind: 'bench', x: p.x, y: p.y, placed: true }));
+        .map(p => ({ kind: 'bench', x: p.x, y: p.y, rot: p.rot & 3, placed: true }));
     return (benches.c = W0.props.filter((p, i) => (p.kind === 'bench' || p.kind === 'log') && !(typeof propGone === 'function' && propGone(i))).concat(placed));
 }
 function nearestBench(tx, ty, maxD) {
     let best = null, bd = maxD || 4;
-    for (const b of benches()) { const d = Math.hypot(b.x + 1 - tx, b.y - ty); if (d < bd) { bd = d; best = b; } }
+    for (const b of benches()) { const odd = b.rot & 1, d = Math.hypot(b.x + (odd ? 0.5 : 1) - tx, b.y + (odd ? 0.5 : 0) - ty); if (d < bd) { bd = d; best = b; } }
     return best;
 }
-function benchSeatPos(b, seat) { const by = (b.y + 1) * TILE - 2; return { x: (b.x + 0.5 + seat) * TILE, y: by - 1, benchY: by }; }
+/* a bench's two seats, whichever way it faces (b.rot: the designer's quarter turns, its front to the east, the back, the
+   west; turned on its side it's one tile across and two deep): where she sits, `rot` the way she faces and benchY, where
+   the flat views hide her feet. (A turned bench's model stands further forward on its footprint: EnvBuild.turned) */
+function benchSeatPos(b, seat) {
+    const r = (b.rot || 0) & 3, odd = r & 1, fx = [0, 1, 0, -1][r], fy = [1, 0, -1, 0][r], s = seat - 0.5, out = r ? 0.44 : 0.5 - 3 / TILE;
+    const x = (b.x + (odd ? 0.5 : 1) + fy * s + fx * out) * TILE, y = (b.y + (odd ? 1 : 0.5) - fx * s + fy * out) * TILE;
+    return { x, y, benchY: y + 1, rot: r };
+}
+const SIT_DIR = ['down', 'right', 'up', 'left'];
+/* where a seated person sorts among the things drawn: in front of the bench, or behind it when its back is to the camera
+   (the backrest hides her), turned on its side the nearer seat in front of the further one */
+function benchSortY(b, pos) { return pos.rot === 2 ? pos.benchY + 0.5 : pos.rot ? (b.y + 2) * TILE - 1.5 + (pos.y - b.y * TILE) / 100 : pos.benchY + 0.5; }
+/* the flat views' sitting frame faces the front; on a turned bench they stand side on or with their back to us, the seat
+   hiding their legs (the line the flat views clip at) */
+function sitClipY(sit) { return sit.rot & 1 ? sit.benchY - 3 : sit.benchY; }
 function seatTaken(b, seat, self) {
     const p = G.player;
     if (p && p.sit && p.sit.b === b && p.sit.seat === seat) return true;
@@ -31,7 +45,7 @@ function benchSpot(n, spot) {
     for (const seat of [first, 1 - first]) {
         if (seatTaken(b, seat, n)) continue;
         const p = benchSeatPos(b, seat);
-        return { area: 'island', x: p.x, y: p.y, fixed: true, face: 'down', sit: { b, seat, benchY: p.benchY } };
+        return { area: 'island', x: p.x, y: p.y, fixed: true, face: SIT_DIR[p.rot], sit: { b, seat, benchY: p.benchY, rot: p.rot } };
     }
     return null;
 }
@@ -53,12 +67,13 @@ async function sitOnBench(e) {
     const b = benches().find(q => q.x === e.px && q.y === e.py);
     const p = G.player;
     if (b) {
-        const seats = [0, 1].filter(s => !seatTaken(b, s)).sort((s1, s2) => Math.abs(benchSeatPos(b, s1).x - p.x) - Math.abs(benchSeatPos(b, s2).x - p.x));
+        const far = s => { const q = benchSeatPos(b, s); return Math.hypot(q.x - p.x, q.y - p.y); };
+        const seats = [0, 1].filter(s => !seatTaken(b, s)).sort((s1, s2) => far(s1) - far(s2));
         if (seats.length) {
             const pos = benchSeatPos(b, seats[0]);
-            p.x = pos.x; p.y = pos.y; p.dir = 'down'; p.path = null;
-            p.sit = { b, seat: seats[0], benchY: pos.benchY };
-            p.sy = pos.benchY + 0.5;
+            p.x = pos.x; p.y = pos.y; p.dir = SIT_DIR[pos.rot]; p.path = null;
+            p.sit = { b, seat: seats[0], benchY: pos.benchY, rot: pos.rot };
+            p.sy = benchSortY(b, pos);
         }
     }
     const buddy = p.sit && NPCs.here().find(n => isSeated(n) && n.want.sit.b === p.sit.b);
@@ -75,9 +90,34 @@ async function sitOnBench(e) {
 const BENCH_BUDDY = ['Oh, hi! Sit, sit. This is the best bench. I would know. I have tried them all.', 'Bench buddies! We just sit. That is the whole activity.',
     "Nice, right? I come here to think. Mostly about snacks.", "Shh. Listen. ...That's the island. It's doing nothing. I love it."];
 function standUp(p) {
-    const b = p.sit.b;
+    const b = p.sit.b, r = p.sit.rot || 0;
     p.sit = null; p.sy = undefined;
-    p.y = (b.y + 1.5) * TILE + 4;
+    // (up off the seat to the tile in front of it)
+    if (!r) p.y = (b.y + 1.5) * TILE + 4;
+    else { p.x += [0, 1, 0, -1][r] * 15; p.y += [1, 0, -1, 0][r] * 15; }
+}
+
+/* a bench the designer turned, in the flat views (its picture faces the front): from behind it's the same planks with
+   the iron frame over them; side on, the seat's planks run up the screen with the backrest standing along its back */
+function drawBenchTurned(ctx, e) {
+    const x0 = e.px * TILE, y0 = e.py * TILE, ink = '#2d2230', mid = '#b07a4a', hi = '#c98a55', lo = '#8a5a33', iron = '#4a4450';
+    if (e.rot === 2) {
+        spr(ctx, 'bench', e.x, e.y);
+        ctx.fillStyle = iron;
+        for (const dx of [5, 25]) ctx.fillRect(x0 + dx, e.y - 15, 2, 12);
+        return;
+    }
+    const east = e.rot === 1;
+    const box = (dx, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(east ? x0 + dx : x0 + TILE - dx - w, y, w, h); };
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(x0 + 2, y0 + 5, TILE - 4, 26);
+    // the backrest, edge on along the back, standing a plank higher than the seat
+    box(2, y0 - 15, 5, 36, ink); box(3, y0 - 14, 3, 34, mid); box(3, y0 - 14, 3, 2, hi);
+    // the seat: its planks run the bench's length
+    box(5, y0 - 6, 10, 28, ink); box(6, y0 - 5, 8, 26, mid);
+    box(9, y0 - 5, 1, 26, lo); box(6, y0 - 5, 8, 2, hi); box(6, y0 + 19, 8, 2, lo);
+    // the two front legs (the back ones are hidden by the seat)
+    box(6, y0 + 22, 2, 7, iron); box(12, y0 + 22, 2, 7, iron);
 }
 
 /* ---------------------------------------------------------------- chatting */

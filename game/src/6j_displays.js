@@ -213,7 +213,7 @@ const IslandEdit = {
     close() {
         if (!this.on) return;
         if (this.held) this.cancel(true);
-        this.on = false; this.design = false; this.stairs = false; this.stairSel = this.stairMove = null; this.areaMode = false; this.corner = null;
+        this.on = false; this.design = false; this.stairs = false; this.stairSel = this.stairMove = null; this.bridges = false; this.bridgeSel = null; this.areaMode = false; this.corner = null;
         $('#panel').hidden = true; $('#panel').innerHTML = ''; $('#panel').classList.remove('decor', 'edit');
         UI.modal = false;
         G.camTarget = null;
@@ -387,7 +387,6 @@ const IslandEdit = {
             const c = W0.grid[ty][tx];
             if (c === 'w' || (c === 'F' && !fieldOk)) return c === 'w' ? "Not on the pier (or a bridge)." : "Not in the farm fields. Ginger would cry. (Scarecrows and hay are fine.)";
             if (doors.has(tx + ',' + ty)) return 'Keep the doorway clear!';
-            if (projectTile(tx, ty)) return 'The town is keeping this spot for one of its projects.';
             if (a.blockedAt(tx, ty)) return "Something's already there.";
             if (tx === ptx && ty === pty) return 'Sarah is standing there.';
         }
@@ -437,6 +436,7 @@ const IslandEdit = {
         const [tx, ty] = [Math.floor(wx / TILE), Math.floor(wy / TILE)];
         this.cursor = [tx, ty];
         if (this.design && this.stairs && !this.held) { Design.stairTap(this, tx, ty); return; }
+        if (this.design && this.bridges && !this.held) { Design.bridgeTap(this, tx, ty); return; }
         if (this.design && this.areaMode && !this.held) { Design.areaTap(this, tx, ty); return; }
         if (this.held) { const h = this.held; this.drop(tx - Math.floor((h.w - 1) / 2), ty - (h.rows - 1)); return; }
         let e = this.thingAt(tx, ty) || this.thingAt(tx, ty + 1);
@@ -493,6 +493,22 @@ const IslandEdit = {
             const was = !this.stairMove && Design.stairsGone().find(g => g.some(t => t[0] === cx && t[1] === cy));
             const st = this.stairMove ? Design.stairAt(cx, cy, this.stairMove.w) : was ? { tiles: was } : this.stairSel || RAMPS.has(cx + ',' + cy) ? {} : Design.stairAt(cx, cy);
             if (st.tiles) { ctx.fillStyle = 'rgba(140,193,82,0.4)'; for (const [x, y] of st.tiles) ctx.fillRect(x * TILE, y * TILE, TILE, TILE); }
+        }
+        // (the designer's bridges: every bridge near the view, those taken away dashed, the one picked outlined, and where a
+        // new one would go; the flat view's painted ground still shows the island's own)
+        if (this.design && this.bridges && !h) {
+            const near = (x, y) => Math.abs(x - cx) < 30 && Math.abs(y - cy) < 20;
+            ctx.fillStyle = 'rgba(176,122,74,0.6)';
+            for (let y = Math.max(0, cy - 20); y < Math.min(W0.h, cy + 20); y++) for (let x = Math.max(0, cx - 30); x < Math.min(W0.w, cx + 30); x++) if (W0.grid[y][x] === 'w') ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+            ctx.strokeStyle = 'rgba(176,122,74,0.95)'; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
+            for (const g of Design.bridgesGone()) for (const [x, y] of g) if (near(x, y)) ctx.strokeRect(x * TILE + 1.5, y * TILE + 1.5, TILE - 3, TILE - 3);
+            ctx.setLineDash([]);
+            if (this.bridgeSel) { ctx.strokeStyle = '#ffcf57'; ctx.lineWidth = 1.5; for (const [x, y] of this.bridgeSel) ctx.strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2); }
+            else if (!G.touchUsed) {
+                const k = cx + ',' + cy + ',' + (Design.bridgeW || 2) + ',' + Design.ver;
+                if (this._brk !== k) { this._brk = k; this._br = W0.grid[cy] && W0.grid[cy][cx] === 'w' ? {} : Design.bridgeAt(cx, cy); }
+                if (this._br.tiles) { ctx.fillStyle = 'rgba(140,193,82,0.45)'; for (const [x, y] of this._br.tiles) ctx.fillRect(x * TILE, y * TILE, TILE, TILE); }
+            }
         }
         if (!h) {
             if (G.touchUsed) return;

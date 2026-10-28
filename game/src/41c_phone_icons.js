@@ -210,6 +210,82 @@ const PHONE_ICONS = {
         g.restore();
     },
 };
+/* the HUD's buttons in the same hand (David, 28 October: the tools, moves, pocket, map... "like the phone menu"): an open
+   hand, the tools Sarah holds, her pocket, the phone, running shoes, and the day's weather */
+const HUD_SKIN = '#ffd9b4', HUD_WOOD = '#c98a52', HUD_STEEL = '#d7dde6';
+Object.assign(PHONE_ICONS, {
+    hand(g, I) {
+        g.save(); g.translate(30, 64); g.rotate(-0.75); piShape(g, I, () => piRR(g, -7, -26, 14, 34, 7), HUD_SKIN, 5); g.restore();
+        for (const [x, y] of [[36, 24], [48, 17], [60, 20], [71, 29]]) piShape(g, I, () => piRR(g, x - 6.5, y, 13, 42, 6.5), HUD_SKIN, 5);
+        piShape(g, I, () => piRR(g, 27, 46, 52, 40, 18), HUD_SKIN, 5);
+        g.fillStyle = HUD_SKIN; g.fillRect(31, 45, 44, 9);
+        g.fillStyle = 'rgba(239,120,110,0.35)'; g.beginPath(); g.ellipse(53, 70, 12, 8, 0, 0, 7); g.fill();
+    },
+    axe(g, I) {
+        g.save(); g.translate(50, 52); g.rotate(-0.62);
+        piShape(g, I, () => piRR(g, -6, -38, 12, 80, 6), HUD_WOOD, 5);
+        piShape(g, I, () => { g.moveTo(-4, -36); g.lineTo(24, -42); g.quadraticCurveTo(34, -24, 26, -6); g.lineTo(-4, -14); g.closePath(); }, HUD_STEEL, 5);
+        g.strokeStyle = '#ffffff'; g.lineWidth = 3; g.beginPath(); g.moveTo(26, -36); g.quadraticCurveTo(31, -24, 26, -12); g.stroke();
+        g.restore();
+    },
+    shovel(g, I) {
+        g.save(); g.translate(50, 50); g.rotate(0.62);
+        piShape(g, I, () => piRR(g, -5, -40, 10, 56, 5), HUD_WOOD, 5);
+        piShape(g, I, () => { g.moveTo(-12, -44); g.lineTo(12, -44); g.lineTo(9, -36); g.lineTo(-9, -36); g.closePath(); }, HUD_WOOD, 5);
+        piShape(g, I, () => { g.moveTo(-15, 12); g.lineTo(15, 12); g.lineTo(14, 32); g.quadraticCurveTo(0, 48, -14, 32); g.closePath(); }, HUD_STEEL, 5);
+        g.restore();
+    },
+    can(g, I) {
+        piShape(g, I, () => { g.moveTo(58, 52); g.lineTo(84, 30); g.lineTo(90, 36); g.lineTo(64, 64); g.closePath(); }, '#5cc6c0', 5);
+        piShape(g, I, () => { g.ellipse(87, 31, 7, 9, -0.8, 0, 7); }, '#5cc6c0', 5);
+        g.lineWidth = 6; g.strokeStyle = I.ink; g.beginPath(); g.arc(38, 44, 18, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+        g.lineWidth = 3; g.strokeStyle = '#5cc6c0'; g.beginPath(); g.arc(38, 44, 18, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+        piShape(g, I, () => piRR(g, 16, 42, 46, 40, 10), '#5cc6c0', 5);
+        g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); piRR(g, 22, 48, 8, 26, 4); g.fill();
+        g.fillStyle = '#9fdcff'; for (const [x, y] of [[90, 52], [84, 62], [94, 66]]) { g.beginPath(); g.ellipse(x, y, 3, 4.5, 0, 0, 7); g.fill(); }
+    },
+    pocket(g, I) {
+        g.lineWidth = 6; g.strokeStyle = I.ink; g.beginPath(); g.arc(50, 40, 22, Math.PI, 0); g.stroke();
+        g.lineWidth = 3; g.strokeStyle = '#e9b97a'; g.beginPath(); g.arc(50, 40, 22, Math.PI, 0); g.stroke();
+        piShape(g, I, () => { g.moveTo(20, 40); g.lineTo(80, 40); g.lineTo(86, 82); g.quadraticCurveTo(50, 92, 14, 82); g.closePath(); }, '#f2c27e', 5);
+        piShape(g, I, () => { g.moveTo(20, 40); g.lineTo(80, 40); g.lineTo(78, 56); g.quadraticCurveTo(50, 66, 22, 56); g.closePath(); }, '#e0a35e', 5);
+        piShape(g, I, () => g.arc(50, 60, 6, 0, 7), '#ffe39a', 4);
+    },
+    phone(g, I) {
+        piShape(g, I, () => piRR(g, 28, 10, 44, 80, 12), '#5a4660', 5);
+        g.fillStyle = PHONE_PAPER; g.beginPath(); piRR(g, 33, 19, 34, 58, 6); g.fill();
+        const cols = ['#8fd46f', '#ffd0dc', '#c8f0c0', '#ffe8b0', '#d0e4ff', '#ecd8ff'];
+        cols.forEach((c, i) => { g.fillStyle = c; g.beginPath(); piRR(g, 37 + (i % 2) * 14, 24 + Math.floor(i / 2) * 15, 11, 11, 3.5); g.fill(); });
+        g.fillStyle = PHONE_PAPER; g.beginPath(); g.arc(50, 83, 3, 0, 7); g.fill();
+    },
+    run(g, I) {
+        g.lineWidth = 5; g.strokeStyle = I.ink;
+        for (const [y, w] of [[38, 16], [52, 22], [66, 14]]) { g.beginPath(); g.moveTo(6, y); g.lineTo(6 + w, y); g.stroke(); }
+        piShape(g, I, () => { g.moveTo(30, 70); g.lineTo(34, 40); g.quadraticCurveTo(44, 32, 52, 40); g.lineTo(62, 52); g.quadraticCurveTo(90, 56, 92, 68); g.lineTo(92, 74); g.lineTo(30, 74); g.closePath(); }, '#ffffff', 5);
+        piShape(g, I, () => { g.moveTo(28, 72); g.lineTo(94, 72); g.lineTo(94, 80); g.quadraticCurveTo(60, 84, 28, 80); g.closePath(); }, '#ef6461', 5);
+        g.lineWidth = 5; g.strokeStyle = '#4f9be0'; g.beginPath(); g.moveTo(40, 66); g.quadraticCurveTo(52, 58, 66, 62); g.stroke();
+        g.lineWidth = 3; g.strokeStyle = I.ink; for (const x of [46, 52]) { g.beginPath(); g.moveTo(x, 44); g.lineTo(x + 6, 48); g.stroke(); }
+    },
+    sunny(g, I) {
+        g.lineWidth = 7; g.strokeStyle = '#f2a83a';
+        for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; g.beginPath(); g.moveTo(50 + Math.cos(a) * 30, 50 + Math.sin(a) * 30); g.lineTo(50 + Math.cos(a) * 42, 50 + Math.sin(a) * 42); g.stroke(); }
+        piShape(g, I, () => g.arc(50, 50, 20, 0, 7), '#ffd24a', 5);
+    },
+    cloudy(g, I) { piBlob(g, I, [[34, 58, 16], [52, 48, 20], [70, 58, 15], [50, 64, 15]], '#ffffff'); },
+    moon(g, I) {
+        piShape(g, I, () => { g.arc(50, 50, 30, Math.PI * 0.35, Math.PI * 1.65); g.arc(64, 42, 24, Math.PI * 1.45, Math.PI * 0.55, true); g.closePath(); }, '#ffe9a0', 5);
+        g.fillStyle = '#ffe9a0'; for (const [x, y, r] of [[78, 70, 3], [84, 52, 2]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+    },
+    rain(g, I) {
+        piBlob(g, I, [[34, 44, 15], [52, 36, 19], [70, 44, 14], [50, 50, 14]], '#ffffff');
+        g.fillStyle = '#5aa8e8'; for (const [x, y] of [[34, 74], [52, 82], [70, 74]]) { g.beginPath(); g.moveTo(x, y - 10); g.quadraticCurveTo(x + 7, y, x, y + 4); g.quadraticCurveTo(x - 7, y, x, y - 10); g.fill(); }
+    },
+    snow(g, I) {
+        piBlob(g, I, [[34, 44, 15], [52, 36, 19], [70, 44, 14], [50, 50, 14]], '#ffffff');
+        g.lineWidth = 3.5; g.strokeStyle = '#7ab8e8';
+        for (const [x, y] of [[34, 76], [52, 84], [70, 76]]) for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; g.beginPath(); g.moveTo(x - Math.cos(a) * 6, y - Math.sin(a) * 6); g.lineTo(x + Math.cos(a) * 6, y + Math.sin(a) * 6); g.stroke(); }
+    },
+});
 /* an app's icon as a canvas `css` pixels square (sharp on the screen it's on) */
 function phoneIcon(id, col, css) {
     css = css || 40;

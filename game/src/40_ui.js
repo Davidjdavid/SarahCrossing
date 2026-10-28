@@ -210,6 +210,10 @@ const HUD = {
         const w = { sunny: 'Sunny', cloudy: 'Cloudy', rain: 'Rain', snow: 'Snow' }[G.weather] || '';
         const ev = eventLabel();
         $('#dateline').textContent = `${Clock.dateLine()} \u00b7 ${w}${ev ? ' \u00b7 ' + ev : ''}`;
+        // (the HUD's tiles and the weather drawn like the phone's icons, 41c_phone_icons.js)
+        if (!this.iconsDrawn) { this.iconsDrawn = true; $$('#ui .vic[data-vec]').forEach(v => { if (!v.firstChild) v.appendChild(phoneIcon(v.dataset.vec, v.dataset.col, v.closest('.hbtn') ? 34 : 28)); }); }
+        const h = Clock.hourF ? Clock.hourF() : 12, wk = G.weather === 'sunny' && (h < 6 || h >= 19.5) ? 'moon' : PHONE_ICONS[G.weather] ? G.weather : 'sunny', wx = $('#wxic');
+        if (wx && wx.dataset.w !== wk) { wx.dataset.w = wk; wx.innerHTML = ''; wx.appendChild(phoneIcon(wk, '#e8dcc8', 18)); }
         $('#money').textContent = fmtNum(S.money);
         const unread = S.mail.filter(m => !m.read && m.day <= Clock.dayNum()).length + Invites.pending().length;
         const pb = $('#bPhone');

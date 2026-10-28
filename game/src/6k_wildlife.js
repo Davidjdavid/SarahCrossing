@@ -144,7 +144,7 @@ const Critters = {
 
 /* ---------------------------------------------------------------- out on the water, up in the sky */
 const SeaSky = {
-    boats: [], sky: [], dolphins: [], flock: null, whale: null, t: 0, nextBoat: 300, nextSky: 2400, nextDolphin: 900, nextWhale: 1500,
+    boats: [], sky: [], dolphins: [], flock: null, gullRest: 0, whale: null, t: 0, nextBoat: 300, nextSky: 2400, nextDolphin: 900, nextWhale: 1500,
     reset() { this.boats = []; this.sky = []; this.dolphins = []; this.flock = null; this.whale = null; },
     openSea(x, y) { const a = G.areas.island; return a && a.waterAt(x, y) === 's' && W0.grid[y] && W0.grid[y][x] === '~'; },
     clearLane(x0, y0, x1, y1) {
@@ -303,8 +303,35 @@ const SeaSky = {
         // gulls wheeling over the beach while it's light
         const h = Clock.hourF(), day = h > 6 && h < 20 && G.weather !== 'rain';
         const beach = day && (() => { const ty = Math.floor((cam.y + v.h / 2) / TILE); return ty > 96; })();
-        if (beach && !this.flock) this.flock = { cx: cam.x + v.w * (0.3 + R() * 0.4), cy: cam.y + v.h * 0.3, n: rint(2, 4), t: 0 };
-        if (this.flock) { this.flock.t++; this.flock.cx += Math.sin(this.flock.t / 600) * 0.15; if (!beach && this.flock.t > 120) this.flock = null; }
+        if (this.gullRest > 0) this.gullRest--;
+        if (beach && !this.flock && !this.gullRest) this.flock = { cx: cam.x + v.w * (0.3 + R() * 0.4), cy: cam.y + v.h * 0.3, n: rint(2, 4), t: 0 };
+        const f = this.flock;
+        if (f) {
+            f.t++;
+            if (f.flee == null) {
+                f.cx += Math.sin(f.t / 600) * 0.15;
+                if (!beach && f.t > 120) this.flock = null;
+                // (someone walking right under them, Sarah or a neighbor: off they go, away from whoever it was, David, 29 October)
+                else if (G.area && G.area.id === 'island') {
+                    const near = [G.player].concat(NPCs.here()).find(q => q && Math.hypot((q.x - f.cx) / 1.6, q.y - f.cy - 20) < 46);
+                    if (near) { const dx = f.cx - near.x, dy = f.cy - near.y, d = Math.hypot(dx, dy) || 1; f.flee = f.t; f.fx = dx / d; f.fy = dy / d - 0.4; Sfx.play('flap'); }
+                }
+            } else if (f.t - f.flee > 150) { this.flock = null; this.gullRest = rint(1800, 3600); }
+        }
+    },
+    /* where gull i of the flock is (map pixels), which way it's going, and how far it has climbed since the flock took fright
+       (0 while they wheel round) */
+    gullAt(i) {
+        const f = this.flock, ang = f.t / (80 + i * 9) + i * 2.1, rx = 34 + i * 9, ry = 12 + i * 3;
+        const o = { x: f.cx + Math.cos(ang) * rx, y: f.cy + Math.sin(ang) * ry, vx: -Math.sin(ang) * rx, vy: Math.cos(ang) * ry, up: 0 };
+        if (f.flee != null) {
+            // (each from where it was, faster and faster, fanning out a little)
+            const s = f.t - f.flee, k = (s * 0.7 + s * s * 0.025) * (1 + i * 0.12), a = Math.atan2(f.fy, f.fx) + (i - (f.n - 1) / 2) * 0.35;
+            const at = f.flee, a0 = at / (80 + i * 9) + i * 2.1;
+            o.x = f.cx + Math.cos(a0) * rx + Math.cos(a) * k; o.y = f.cy + Math.sin(a0) * ry + Math.sin(a) * k;
+            o.vx = Math.cos(a); o.vy = Math.sin(a); o.up = s;
+        }
+        return o;
     },
     /* boats and dolphins sit on the water: sorted with everything else */
     ents() {
@@ -355,9 +382,8 @@ const SeaSky = {
         }
         const f = this.flock;
         if (f) for (let i = 0; i < f.n; i++) {
-            const ang = f.t / (80 + i * 9) + i * 2.1, rx = 34 + i * 9, ry = 12 + i * 3;
-            const x = f.cx + Math.cos(ang) * rx, y = f.cy + Math.sin(ang) * ry;
-            spr(ctx, `cr_gull_fly${Math.floor((f.t + i * 7) / 8) % 2}`, x, y, Math.sin(ang) > 0);
+            const g = this.gullAt(i);
+            spr(ctx, `cr_gull_fly${Math.floor((f.t + i * 7) / (f.flee != null ? 4 : 8)) % 2}`, g.x, g.y - g.up * 0.6, g.vx < 0);
         }
     },
     /* the planes' blinking lights still show at night */

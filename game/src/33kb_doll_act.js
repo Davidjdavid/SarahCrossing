@@ -135,7 +135,8 @@ Object.assign(EnvDolls, {
         const sp = Math.hypot(m.vx, m.vy);
         if (Q && !e.tool && !Q.rod && !Q.face && pk !== 'sit') ang = 0;
         else if (walk && sp > 0.3 && !sit) ang = Math.atan2(m.vx, m.vy);
-        else ang = [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][sit && !this.atTable(e) ? 2 : m.face];
+        else if (sit && !this.atTable(e)) ang = this.sitAng(e);
+        else ang = [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][m.face];
         if (d.ang == null) d.ang = ang;
         let da = ang - d.ang;
         while (da > Math.PI) da -= Math.PI * 2;
@@ -148,7 +149,8 @@ Object.assign(EnvDolls, {
         const gy = Env.groundH(e.x, e.y) + this.step(e), sitY = Q && Q.sit ? gy + 0.46 - 0.3 * DOLL2.H : gsit ? gy + 0.05 - 0.3 * DOLL2.H : gy;
         // (the celebration's jump)
         const cj = A.cheer ? Math.sin((1 - A.cheer) * Math.PI) * 0.3 : 0;
-        root.position.set(e.x / TILE, sitY + (e.hop || 0) / TILE + cj, this.atTable(e) ? this.tableZ(e) : e.y / TILE * R3_ZS + (Q && Q.sit ? 0.12 : 0));
+        root.position.set(e.x / TILE, sitY + (e.hop || 0) / TILE + cj, this.atTable(e) ? this.tableZ(e) : e.y / TILE * R3_ZS);
+        if (Q && Q.sit && !this.atTable(e)) this.seatAt(root, e, 0.12);
         root.rotation.y = d.ang + (A.cheer ? (1 - A.cheer) * Math.PI * 2 : 0);
         // on the swing she sits on the seat and swings with it round the top bar (the seat's own swing: EnvBuild); in the
         // hammock she lies along its cloth, head to the west (Projects)
@@ -272,7 +274,7 @@ Object.assign(EnvDolls, {
         const F = FOLK_ACT[d.folk] || FOLK_ACT.ginger, A = this.act(e, d);
         const Q = e.pose && e.pose !== 'walk' ? e.pose : null;
         const sp = Math.hypot(m.vx, m.vy);
-        let ang = ((seat && !table) || lounge || Q === 'cheer' || Q === 'happy') ? 0 : walk && sp > 0.3 ? Math.atan2(m.vx, m.vy) : [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][m.face];
+        let ang = seat && !table ? this.sitAng(e) : (lounge || Q === 'cheer' || Q === 'happy') ? 0 : walk && sp > 0.3 ? Math.atan2(m.vx, m.vy) : [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][m.face];
         // a glance back: the whole folk turns to look at who's after it, still running the other way
         if (A.glance && A.target) { const back = Math.atan2(A.target.x - e.x, (A.target.y - e.y) * R3_ZS); let dd = back - ang; while (dd > Math.PI) dd -= Math.PI * 2; while (dd < -Math.PI) dd += Math.PI * 2; ang += dd * 0.8 * A.glance; }
         if (d.ang == null) d.ang = ang;
@@ -283,9 +285,9 @@ Object.assign(EnvDolls, {
         const root = d.root;
         root.visible = true;
         const gy = Env.groundH(e.x, e.y) + this.step(e), hop = (e.hop || 0) / TILE * 0.6 * F.bounce;
-        let y = gy + hop, z = e.y / TILE * R3_ZS;
+        let x = e.x / TILE, y = gy + hop, z = e.y / TILE * R3_ZS;
         if (table) { y = gy + 0.44; z = this.tableZ(e); }
-        else if (seat) { y = gy + 0.36; z += 0.1; }
+        else if (seat) { y = gy + 0.36; const a = this.sitAng(e); x += 0.1 * Math.sin(a); z += 0.1 * Math.cos(a); }
         else if (lounge) y = gy - 0.02;
         else if (e.def && inSpring(e)) { const w = Env.waterH(e.x, e.y); y = (w != null ? w : gy) - 0.32; }
         // (the old keeper floats, bobbing)
@@ -293,7 +295,7 @@ Object.assign(EnvDolls, {
         // (standing on a stool behind a counter: 33kc_doll_stools.js)
         if (!seat && !lounge) y += EnvStools.height(e);
         const cj = A.cheer ? Math.sin((1 - A.cheer) * Math.PI) * 0.4 : 0;
-        root.position.set(e.x / TILE, y + cj, z);
+        root.position.set(x, y + cj, z);
         root.rotation.y = d.ang + (A.cheer ? (1 - A.cheer) * Math.PI * 2 : 0);
         // (lying out cold on the sand: the seafarer, washed up, 6zr_seafarer.js)
         if (e.want && e.want.lie) { root.rotation.x = -1.4; root.position.y += 0.14; } else if (root.rotation.x) root.rotation.x = 0;

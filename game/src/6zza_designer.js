@@ -12,12 +12,14 @@
 const WORLD_PROPS = W0.props.length, WORLD0 = W0.props.map(p => Object.assign({}, p));
 /* (and the ground as world.json has it, for the stairs: a staircase is two rows of a cliff's face cut into dirt steps,
    collision off, in W0.ramps) */
-const WORLD0_GROUND = { grid: W0.grid.slice(), coll: W0.coll.slice(), ramps: (W0.ramps || []).map(r => r.slice()) };
+const WORLD0_GROUND = { grid: W0.grid.slice(), coll: W0.coll.slice(), water: W0.water.slice(), ramps: (W0.ramps || []).map(r => r.slice()) };
+/* what a bridge can be laid over: a stream or pond, and the ground at its two ends */
+const BRIDGE_WET = new Set(['r', 'o']), BRIDGE_LAND = new Set(['g', 'd', 'p', 'c', 's']);
 const LIKE_ACTS = { stars: 'Stargazing', snack: 'An ice cream', phone: 'On their phone', book: 'Reading', ground: 'Sitting on the grass', paint: 'Painting',
     cup: 'A mug of cocoa', fish: 'Fishing', bench: 'Sitting on a bench', scope: 'The telescope' };
 const LIKE_LEVELS = [['Never', 'never'], ['Now and then', 'a little'], ['Likes', 'likes'], ['Loves', 'loves']];
 /* a design's parts the server takes (server/design.mjs) */
-const DESIGN_PARTS = ['v', 'base', 'props', 'added', 'stairs', 'areas', 'areasV', 'rooms', 'npcs', 'note'];
+const DESIGN_PARTS = ['v', 'base', 'props', 'added', 'stairs', 'paths', 'bridges', 'areas', 'areasV', 'rooms', 'npcs', 'note'];
 /* the areas' colors on the island and the map */
 const AREA_COLS = ['#ff9f6b', '#7cc8ff', '#b48cff', '#7fd67f', '#ffd25e', '#ff7fb6', '#5fd6c8', '#d6a35f', '#9fb4ff', '#f08a8a', '#b8e07a', '#e0a6ff'];
 const Design = {
@@ -58,6 +60,9 @@ const Design = {
             }
         }
         this.ground();
+        // (the island's paths as drawn: a layer under Sarah's own, 6f_paths.js)
+        const P = d && d.paths && typeof d.paths === 'object' && !Array.isArray(d.paths) ? d.paths : null;
+        DESIGN_PATHS = P && Object.keys(P).length ? P : null; DESIGN_PATHS_V++;
         fenceTiles.c = null; benches.c = null;
         this.ver++;
     },
@@ -65,7 +70,7 @@ const Design = {
        and add, each a list of "x,y" tiles); the rows are changed in place, since the island keeps them (a.grid) */
     ground() {
         const G0 = WORLD0_GROUND, R = W0.ramps || (W0.ramps = []);
-        for (let y = 0; y < W0.h; y++) { W0.grid[y] = G0.grid[y]; W0.coll[y] = G0.coll[y]; }
+        for (let y = 0; y < W0.h; y++) { W0.grid[y] = G0.grid[y]; W0.coll[y] = G0.coll[y]; W0.water[y] = G0.water[y]; }
         R.length = 0;
         for (const r of G0.ramps) R.push(r.slice());
         const S = this.d && this.d.stairs, put = (k, x, y, ch) => { const row = W0[k][y]; W0[k][y] = row.slice(0, x) + ch + row.slice(x + 1); };
@@ -80,6 +85,57 @@ const Design = {
         }
         RAMPS.clear();
         for (const [x, y] of R) RAMPS.add(x + ',' + y);
+        // the bridges as the design has them: some taken away (the stream, or the bank at either end, again), some laid
+        // across a stream (d.bridges: gone and add, "x,y" tiles; their planks are drawn from the grid's 'w': EnvBuild.decks)
+        const B = this.d && this.d.bridges;
+        if (B) {
+            for (const k of Array.isArray(B.gone) ? B.gone : []) {
+                const [x, y] = String(k).split(',').map(Number), u = this.underBridge(x, y);
+                if (u) { put('grid', x, y, u.g); put('coll', x, y, u.wet ? '1' : '0'); put('water', x, y, u.w); }
+            }
+            for (const k of Array.isArray(B.add) ? B.add : []) {
+                const [x, y] = String(k).split(',').map(Number);
+                if (!(x > 0 && y > 0 && x < W0.w - 1 && y < W0.h - 1) || !(BRIDGE_WET.has(W0.grid[y][x]) || BRIDGE_LAND.has(W0.grid[y][x])) || RAMPS.has(k)) continue;
+                put('grid', x, y, 'w'); put('coll', x, y, '0'); put('water', x, y, '.');
+            }
+        }
+        // (the new look keeps what water each tile shows, keyed by the grid it was worked out from: rows change in place)
+        if (typeof EnvGround !== 'undefined') EnvGround._water = null;
+    },
+    /* what's under one of the island's own bridges' planks: the stream where it runs on either side of the bridge, else
+       the bank (as the ground beside it) */
+    underBridge(x, y) {
+        const G0 = WORLD0_GROUND, g = (a, b) => G0.grid[b] && G0.grid[b][a];
+        if (g(x, y) !== 'w') return null;
+        const run = this.runOf(x, y, (a, b) => g(a, b) === 'w'), wide = this.bridgeWide(run), ys = run.map(t => t[1]), xs = run.map(t => t[0]);
+        const side = wide ? [[x, Math.min(...ys) - 1], [x, Math.max(...ys) + 1]] : [[Math.min(...xs) - 1, y], [Math.max(...xs) + 1, y]];
+        const wet = side.find(([a, b]) => BRIDGE_WET.has(g(a, b)) || g(a, b) === '~');
+        if (wet) return { g: g(wet[0], wet[1]), w: G0.water[wet[1]][wet[0]], wet: true };
+        const dry = side.find(([a, b]) => BRIDGE_LAND.has(g(a, b)));
+        return { g: dry ? g(dry[0], dry[1]) : 'g', w: '.', wet: false };
+    },
+    /* the tiles joined to one (up, down, left, right) that pass a test */
+    runOf(tx, ty, ok) {
+        const run = [], q = [[tx, ty]], seen = new Set([tx + ',' + ty]);
+        while (q.length) { const [x, y] = q.pop(); run.push([x, y]); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy, k = nx + ',' + ny; if (!seen.has(k) && ok(nx, ny)) { seen.add(k); q.push([nx, ny]); } } }
+        return run;
+    },
+    /* a bridge runs east to west (across a stream running north to south) when it's at least as long that way */
+    bridgeWide(run) { const xs = run.map(t => t[0]), ys = run.map(t => t[1]); return Math.max(...xs) - Math.min(...xs) >= Math.max(...ys) - Math.min(...ys); },
+    /* the paths tool (PathTool with design): lay a path of a style on a tile, or take one up ('erase': a path drawn here, or
+       the island's own road under it, which becomes grass); one undo a stroke */
+    pathPaint(x, y, st) {
+        const c = W0.grid[y] && W0.grid[y][x], baked = c === 'p' || c === 'd' || c === 'b', k = x + ',' + y, cur = this.d && this.d.paths && this.d.paths[k];
+        let v;
+        if (st === 'erase') { if (cur && cur !== 'grass') v = baked ? 'grass' : null; else if (!cur && baked) v = 'grass'; else return false; }
+        else { if (pathOkAt(x, y) || cur === st) return false; v = st; }
+        if (!this.pathStroke) { this.snap(); this.pathStroke = true; }
+        const d = this.work(), P = d.paths || (d.paths = {});
+        if (v == null) delete P[k]; else P[k] = v;
+        if (!Object.keys(P).length) delete d.paths;
+        DESIGN_PATHS = d.paths || null; DESIGN_PATHS_V++;
+        this.changed('paths');
+        return true;
     },
     /* the tiles a staircase cut here would take (w tiles wide, one to three, the cliff's two rows), or why not */
     stairAt(tx, ty, w) {
@@ -222,6 +278,130 @@ const Design = {
             if (C.ax) { E.msg = 'Stairs up the side of a cliff can only move along it, a tile at a time.'; Sfx.ui('nope'); }
             else { E.stairMove = { run, w: C.keys.length }; E.msg = `${G.touchUsed ? 'Tap' : 'Click'} a cliff's face where they should go.`; }
         }
+        E.render();
+    },
+    /* the bridges tool (David, 29 October: going over the island's layout, he wanted to move bridges): a tap on a bridge
+       picks it, and then it moves a tile at a time along its stream, laid across again bank to bank wherever that is, or
+       goes; a tap on a stream lays a new one straight across it (bridgeW tiles wide). The pier isn't a bridge. Nothing that
+       would cut a place off */
+    bridgeRun(tx, ty) {
+        const g = (x, y) => W0.grid[y] && W0.grid[y][x];
+        if (g(tx, ty) !== 'w') return null;
+        const run = this.runOf(tx, ty, (x, y) => g(x, y) === 'w');
+        return run.some(([x, y]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => g(x + dx, y + dy) === '~')) ? null : run;
+    },
+    /* what a tile is under any planks on it: a bridge of the island's own over the stream or its bank, one the design laid
+       over what world.json has there */
+    underAt(x, y) {
+        const c = W0.grid[y] && W0.grid[y][x];
+        if (c !== 'w') return c;
+        const c0 = WORLD0_GROUND.grid[y][x];
+        return c0 === 'w' ? (this.underBridge(x, y) || { g: 'g' }).g : c0;
+    },
+    /* a bridge across these lines (rows for one running east to west, columns otherwise), from the stream near `ref`
+       along each out to dry ground both sides: the tiles, or why not */
+    layAcross(lines, wide, ref) {
+        let lo = Infinity, hi = -Infinity;
+        const at = (l, u) => wide ? [u, l] : [l, u], wet = (l, u) => BRIDGE_WET.has(this.underAt(...at(l, u)));
+        for (const l of lines) {
+            let m = null;
+            for (let d = 0; d <= 4 && m == null; d++) for (const u of [ref - d, ref + d]) if (m == null && wet(l, u)) m = u;
+            if (m == null) return { why: 'A bridge goes across a stream or a pond.' };
+            let a = m, b = m;
+            while (wet(l, a - 1) && m - a < 12) a--;
+            while (wet(l, b + 1) && b - m < 12) b++;
+            lo = Math.min(lo, a - 1); hi = Math.max(hi, b + 1);
+        }
+        if (hi - lo + 1 > 12) return { why: "The water's too wide there for a bridge." };
+        const tiles = [];
+        for (const l of lines) for (let u = lo; u <= hi; u++) tiles.push(at(l, u));
+        return { tiles, wide };
+    },
+    /* whether planks can lie on these tiles (`own`: the bridge's own, when it's moving): all at one level, over water or
+       ground, every line across starting and ending on a bank that's clear, with somewhere to walk on beyond it */
+    bridgeOk(tiles, wide, own) {
+        const a = G.areas.island, H = (x, y) => +((W0.height[y] || [])[x]) || 0, mine = new Set((own || []).map(t => t[0] + ',' + t[1]));
+        const lv = H(tiles[0][0], tiles[0][1]), ends = new Map();
+        for (const [x, y] of tiles) {
+            const k = x + ',' + y, c = this.underAt(x, y);
+            if (x < 1 || y < 1 || x >= W0.w - 1 || y >= W0.h - 1) return "That's off the island.";
+            if (H(x, y) !== lv || RAMPS.has(k) || !(BRIDGE_WET.has(c) || BRIDGE_LAND.has(c)) || (W0.grid[y][x] === 'w' && !mine.has(k))) return 'A bridge needs the same level both sides, and nothing else in its way.';
+            if (BRIDGE_LAND.has(c) && !mine.has(k) && a.blockedAt(x, y)) return "Something's standing on the bank there.";
+            const l = wide ? y : x, u = wide ? x : y, e = ends.get(l) || [u, u];
+            ends.set(l, [Math.min(e[0], u), Math.max(e[1], u)]);
+        }
+        for (const [l, [u0, u1]] of ends) for (const u of [u0 - 1, u1 + 1]) {
+            const [x, y] = wide ? [u, l] : [l, u];
+            if (W0.coll[y][x] === '1' || a.waterAt(x, y) || (a.blockedAt(x, y) && !mine.has(x + ',' + y))) return 'The bridge would end where nobody can walk.';
+        }
+        return null;
+    },
+    /* a new bridge where a stream is tapped: straight across it the shorter way */
+    bridgeAt(tx, ty, w) {
+        w = w || this.bridgeW || 2;
+        if (!BRIDGE_WET.has(this.underAt(tx, ty))) return { why: `${G.touchUsed ? 'Tap' : 'Click'} a stream or a pond where the bridge should cross.` };
+        const opts = [true, false].map(wide => {
+            const c = wide ? ty : tx, lines = [];
+            for (let i = 0; i < w; i++) lines.push(c - Math.floor((w - 1) / 2) + i);
+            const r = this.layAcross(lines, wide, wide ? tx : ty);
+            if (r.why) return r;
+            const why = this.bridgeOk(r.tiles, wide);
+            return why ? { why } : r;
+        }).filter(o => o.tiles).sort((p, q) => p.tiles.length - q.tiles.length);
+        return opts[0] || { why: "A bridge can't cross there." };
+    },
+    bridgeTap(E, tx, ty) {
+        const run = this.bridgeRun(tx, ty);
+        if (run) { E.bridgeSel = run; E.msg = ''; Sfx.ui('tick'); E.render(); return; }
+        E.bridgeSel = null;
+        const back = this.bridgesGone().find(g => g.some(t => t[0] === tx && t[1] === ty));
+        if (back) { if (this.bridgeEdit(E, back, [], 'The bridge is back as it was.')) E.bridgeSel = this.bridgeRun(back[0][0], back[0][1]); E.render(); return; }
+        const b = this.bridgeAt(tx, ty);
+        if (b.why) { E.msg = b.why; Sfx.ui('nope'); E.render(); return; }
+        if (this.bridgeEdit(E, b.tiles, [], 'A new bridge across the water.')) E.bridgeSel = this.bridgeRun(b.tiles[0][0], b.tiles[0][1]);
+        E.render();
+    },
+    /* the island's own bridges the design has taken away, each a list of its tiles */
+    bridgesGone() {
+        const B = this.d && this.d.bridges, gone = new Set(B && Array.isArray(B.gone) ? B.gone : []), seen = new Set(), out = [];
+        const own = (x, y) => WORLD0_GROUND.grid[y] && WORLD0_GROUND.grid[y][x] === 'w';
+        for (const k of gone) {
+            if (seen.has(k)) continue;
+            const [x, y] = k.split(',').map(Number);
+            if (!own(x, y)) continue;
+            const run = this.runOf(x, y, (a, b) => own(a, b) && gone.has(a + ',' + b));
+            run.forEach(t => seen.add(t[0] + ',' + t[1]));
+            out.push(run);
+        }
+        return out;
+    },
+    /* the design's bridges changed: these tiles planked, those not; put back as they were if that would cut somewhere off */
+    bridgeEdit(E, add, remove, msg) {
+        const d = this.work(), B = d.bridges && typeof d.bridges === 'object' ? d.bridges : (d.bridges = { add: [], gone: [] });
+        B.add = Array.isArray(B.add) ? B.add : []; B.gone = Array.isArray(B.gone) ? B.gone : [];
+        const before = JSON.stringify(d), own = (x, y) => WORLD0_GROUND.grid[y][x] === 'w';
+        this.snap();
+        for (const [x, y] of remove) { const k = x + ',' + y, i = B.add.indexOf(k); if (i >= 0) B.add.splice(i, 1); else if (own(x, y) && !B.gone.includes(k)) B.gone.push(k); }
+        for (const [x, y] of add) { const k = x + ',' + y, i = B.gone.indexOf(k); if (i >= 0) B.gone.splice(i, 1); else if (!own(x, y) && !B.add.includes(k)) B.add.push(k); }
+        this.changed('island');
+        const why = this.cutOff();
+        if (why) { this.d = JSON.parse(before); this.undo.pop(); this.changed('island'); E.msg = why + ' The bridges are as they were.'; Sfx.ui('nope'); return false; }
+        E.msg = msg;
+        Sfx.play(remove.length && !add.length ? 'pick' : 'place');
+        return true;
+    },
+    /* what's done to the picked bridge: a tile along its stream either way, or taken away */
+    bridgeDo(E, what) {
+        const run = E.bridgeSel;
+        if (!run) return;
+        if (what === 'away') { if (this.bridgeEdit(E, [], run, 'The bridge is gone.')) E.bridgeSel = null; E.render(); return; }
+        const wide = this.bridgeWide(run), lines = [...new Set(run.map(t => wide ? t[1] : t[0]))], d = what === 'on' ? 1 : -1;
+        const wet = run.filter(([x, y]) => BRIDGE_WET.has(this.underAt(x, y))), us = (wet.length ? wet : run).map(t => wide ? t[0] : t[1]);
+        const r = this.layAcross(lines.map(l => l + d), wide, Math.round(us.reduce((p, q) => p + q, 0) / us.length));
+        const why = r.why || this.bridgeOk(r.tiles, wide, run);
+        if (why) { E.msg = why; Sfx.ui('nope'); E.render(); return; }
+        const keep = new Set(r.tiles.map(t => t[0] + ',' + t[1]));
+        if (this.bridgeEdit(E, r.tiles, run.filter(t => !keep.has(t[0] + ',' + t[1])), 'Moved a tile.')) E.bridgeSel = this.bridgeRun(r.tiles[0][0], r.tiles[0][1]);
         E.render();
     },
     /* a room's furniture as the design has it (its layout's pieces keyed by where they first stood, `id@x,y`: moved, turned,
@@ -568,7 +748,7 @@ const Design = {
         panel.appendChild(head);
         const body = el('div', 'pbody');
         const facing = ['facing front', 'facing right', 'facing back', 'facing left'][h ? h.rot & 3 : 0];
-        const tip = E.look ? 'Drag to look around the island.' : E.areaMode ? `Areas: the island's parts as the neighbors think of them. Pick one (or make a new one), then ${G.touchUsed ? 'tap' : 'click'} one corner and the opposite corner to add a piece to it; a tap inside a piece takes it away. A neighbor going somewhere an area no longer covers goes to the area as it's drawn now, and a new area with none of their places in it is somewhere they go by day.` : E.stairs ? (E.stairMove ? `${G.touchUsed ? 'Tap' : 'Click'} a cliff's face where the stairs should go.` : E.stairSel ? 'These stairs: make them narrower or wider, move them along the cliff or somewhere else, or take them away.' : `${G.touchUsed ? 'Tap' : 'Click'} stairs to change or move them, or a cliff's face to cut new ones (as wide as picked below). Stairs taken away are dashed: ${G.touchUsed ? 'tap' : 'click'} one to put it back. Turn Stairs off to move things again.`)
+        const tip = E.look ? 'Drag to look around the island.' : E.bridges ? (E.bridgeSel ? 'This bridge: move it along the water, a tile at a time, or take it away.' : `${G.touchUsed ? 'Tap' : 'Click'} a bridge to move it or take it away, or a stream or pond to lay a new one across it (as wide as picked below). Bridges taken away are dashed: ${G.touchUsed ? 'tap' : 'click'} one to put it back. The new look shows the change once you're done.`) : E.areaMode ? `Areas: the island's parts as the neighbors think of them. Pick one (or make a new one), then ${G.touchUsed ? 'tap' : 'click'} one corner and the opposite corner to add a piece to it; a tap inside a piece takes it away. A neighbor going somewhere an area no longer covers goes to the area as it's drawn now, and a new area with none of their places in it is somewhere they go by day.` : E.stairs ? (E.stairMove ? `${G.touchUsed ? 'Tap' : 'Click'} a cliff's face where the stairs should go.` : E.stairSel ? 'These stairs: make them narrower or wider, move them along the cliff or somewhere else, or take them away.' : `${G.touchUsed ? 'Tap' : 'Click'} stairs to change or move them, or a cliff's face to cut new ones (as wide as picked below). Stairs taken away are dashed: ${G.touchUsed ? 'tap' : 'click'} one to put it back. Turn Stairs off to move things again.`)
             : h ? `${G.touchUsed ? 'Tap' : 'Click'} where it should go (${facing}).${G.touchUsed ? '' : ' R turns it, Esc puts it back.'}`
                 : `${G.touchUsed ? 'Tap' : 'Click'} anything on the island to move, turn or take it away, or add something new. Nothing is kept until you save.`;
         body.appendChild(el('p', 'muted', E.msg || tip));
@@ -579,8 +759,10 @@ const Design = {
             if (h.src === 'design') row.appendChild(chip('Take it away', () => this.remove(E)));
         } else {
             row.appendChild(chip('Add something', () => this.catalog(E)));
-            row.appendChild(chip('Stairs', () => { E.stairs = !E.stairs; E.areaMode = false; E.stairSel = E.stairMove = null; E.msg = ''; E.render(); }, E.stairs ? 'on' : ''));
-            row.appendChild(chip('Areas', () => { E.areaMode = !E.areaMode; E.stairs = false; E.corner = null; E.msg = ''; if (!this.areas().some(A => A.id === E.areaId)) E.areaId = (this.areas()[0] || {}).id; E.render(); }, E.areaMode ? 'on' : ''));
+            row.appendChild(chip('Paths', () => { E.close(); PathTool.open({ design: true }); }));
+            row.appendChild(chip('Stairs', () => { E.stairs = !E.stairs; E.areaMode = E.bridges = false; E.stairSel = E.stairMove = E.bridgeSel = null; E.msg = ''; E.render(); }, E.stairs ? 'on' : ''));
+            row.appendChild(chip('Bridges', () => { E.bridges = !E.bridges; E.areaMode = E.stairs = false; E.stairSel = E.stairMove = E.bridgeSel = null; E.msg = ''; E.render(); }, E.bridges ? 'on' : ''));
+            row.appendChild(chip('Areas', () => { E.areaMode = !E.areaMode; E.stairs = E.bridges = false; E.corner = null; E.msg = ''; if (!this.areas().some(A => A.id === E.areaId)) E.areaId = (this.areas()[0] || {}).id; E.render(); }, E.areaMode ? 'on' : ''));
             if (this.undo.length) row.appendChild(chip('Undo', () => { this.back(); E.render(); }));
             row.appendChild(chip(this.dirty ? 'Save the design' : 'Saved', () => this.save().then(() => E.render()), this.dirty ? 'go' : ''));
             row.appendChild(chip("Neighbors' likes", () => { E.close(); this.likesPanel(); }));
@@ -607,6 +789,22 @@ const Design = {
                 if (gone.length) sr.appendChild(chip(gone.length > 1 ? `Put back the ${gone.length} stairs taken away` : 'Put back the stairs taken away', () => { this.stairEdit(E, [].concat(...gone), [], gone.length > 1 ? 'Every staircase is back as it was.' : 'The stairs are back as they were.'); E.render(); }, 'go'));
             }
             body.appendChild(sr);
+        }
+        // (the bridges tool: what to do with the bridge picked; how wide new ones are)
+        if (E.bridges && !h) {
+            const br = el('div', 'st-row');
+            if (E.bridgeSel) {
+                const wide = this.bridgeWide(E.bridgeSel);
+                br.appendChild(chip(wide ? 'Move up' : 'Move left', () => this.bridgeDo(E, 'back')));
+                br.appendChild(chip(wide ? 'Move down' : 'Move right', () => this.bridgeDo(E, 'on')));
+                br.appendChild(chip('Take it away', () => this.bridgeDo(E, 'away')));
+                br.appendChild(chip('Done with this one', () => { E.bridgeSel = null; E.msg = ''; E.render(); }));
+            } else {
+                for (const w of [1, 2, 3]) br.appendChild(chip(`New bridges ${w} wide`, () => { this.bridgeW = w; E.render(); }, (this.bridgeW || 2) === w ? 'on' : ''));
+                const gone = this.bridgesGone();
+                if (gone.length) br.appendChild(chip(gone.length > 1 ? `Put back the ${gone.length} bridges taken away` : 'Put back the bridge taken away', () => { this.bridgeEdit(E, [].concat(...gone), [], gone.length > 1 ? 'Every bridge is back as it was.' : 'The bridge is back as it was.'); E.render(); }, 'go'));
+            }
+            body.appendChild(br);
         }
         // (the areas tool: which area the taps add to, a new one, its name)
         if (E.areaMode && !h) {
@@ -704,28 +902,39 @@ const Design = {
         for (const id of ids) pick.appendChild(chip(NPC_DEFS[id].name, () => this.likesPanel(id), id === who ? 'on' : ''));
         P.body.appendChild(pick);
         P.body.appendChild(el('p', 'muted', `Tap one to change it: as they are → loves → likes → now and then → never. "As they are" leaves ${NPC_DEFS[who].name} to the game.`));
-        const section = (title, part, keys, label, def) => {
-            P.body.appendChild(el('h3', null, title));
-            const g = el('div', 'st-row');
-            for (const k of keys) {
-                const v = this.like(who, part, k), b = chip(`${label(k)}: ${v == null ? (def(k) || 'as they are') : LIKE_LEVELS[v][1]}`, () => {
-                    const d = this.work(), N = d.npcs[who] || (d.npcs[who] = {}), L = N[part] || (N[part] = {});
-                    this.snap();
-                    const next = v == null ? 3 : v === 0 ? null : v - 1;
-                    if (next == null) delete L[k]; else L[k] = next;
-                    if (!Object.keys(L).length) delete N[part];
-                    if (!Object.keys(N).length) delete d.npcs[who];
-                    this.changed('likes');
-                    this.likesPanel(who);
-                }, v == null ? '' : v >= 2 ? 'go' : v === 0 ? 'off' : 'on');
-                g.appendChild(b);
-            }
-            P.body.appendChild(g);
+        const likeChip = (part, k, label, def) => {
+            const v = this.like(who, part, k);
+            return chip(`${label}: ${v == null ? (def || 'as they are') : LIKE_LEVELS[v][1]}`, () => {
+                const d = this.work(), N = d.npcs[who] || (d.npcs[who] = {}), L = N[part] || (N[part] = {});
+                this.snap();
+                const next = v == null ? 3 : v === 0 ? null : v - 1;
+                if (next == null) delete L[k]; else L[k] = next;
+                if (!Object.keys(L).length) delete N[part];
+                if (!Object.keys(N).length) delete d.npcs[who];
+                this.changed('likes');
+                this.likesPanel(who);
+            }, v == null ? '' : v >= 2 ? 'go' : v === 0 ? 'off' : 'on');
         };
-        section('What they like doing with nothing to do', 'acts', Object.keys(LIKE_ACTS), k => LIKE_ACTS[k], k => IDLE_LIKES[who] === k ? 'their favorite' : '');
-        section('Where they like to be in their free time', 'spots', Object.keys(RES_SPOTS).filter(k => W0.spots[k]), k => landmarkName(k, RES_SPOTS[k]), k => (NPC_DEFS[who].fav || {})[k] ? 'a favorite' : '');
-        // (and the areas drawn on the island: every place they go inside one counts)
-        if (this.areas().length) section('Areas of the island', 'areas', this.areas().map(A => A.id), k => (this.areas().find(A => A.id === k) || {}).name || k, () => '');
+        P.body.appendChild(el('h3', null, 'What they like doing with nothing to do'));
+        const acts = el('div', 'st-row');
+        for (const k of Object.keys(LIKE_ACTS)) acts.appendChild(likeChip('acts', k, LIKE_ACTS[k], IDLE_LIKES[who] === k ? 'their favorite' : ''));
+        P.body.appendChild(acts);
+        // where they go, one list (David, 28 October: a favorite place and a favorite area were two lists for one thing): each
+        // area of the island, the whole of it first (every place of theirs inside it), then the places in it, any of which
+        // set on its own counts over its area (designSpots)
+        P.body.appendChild(el('h3', null, 'Where they like to be in their free time'));
+        P.body.appendChild(el('p', 'muted', 'A whole area counts every place in it; a place set on its own counts over its area.'));
+        const fav = NPC_DEFS[who].fav || {}, by = {};
+        for (const k of Object.keys(RES_SPOTS).filter(k => W0.spots[k])) { const A = this.spotArea(k), id = A ? A.id : ''; (by[id] || (by[id] = [])).push(k); }
+        for (const A of this.areas().concat([{ id: '', name: 'Elsewhere' }])) {
+            const ks = by[A.id] || [];
+            if (!A.id && !ks.length) continue;
+            P.body.appendChild(el('div', 'st-label', A.name));
+            const g = el('div', 'st-row');
+            if (A.id) g.appendChild(likeChip('areas', A.id, 'The whole area', ''));
+            for (const k of ks) g.appendChild(likeChip('spots', k, landmarkName(k, RES_SPOTS[k]), fav[k] ? 'a favorite' : ''));
+            P.body.appendChild(g);
+        }
         P.foot.appendChild(el('span', 'grow', this.dirty ? 'Not saved yet.' : 'Saved.'));
         P.foot.appendChild(btn('Save the design', this.dirty ? 'green' : '', () => this.save().then(() => this.likesPanel(who))));
     },

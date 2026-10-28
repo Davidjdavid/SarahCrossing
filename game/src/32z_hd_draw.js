@@ -60,6 +60,7 @@ function hdDrawPlayer(ctx, p) {
     const spec = Online.visitor() ? hdFolkSpec(Online.who()) : hdSarahSpec();
     if (!spec || !HD_HAIR.waves) return false;
     if (p.sit && Math.abs(p.y - (p.sit.benchY - 1)) > 2) { p.sit = null; p.sy = undefined; }
+    if (p.sit && p.sit.rot) { const [fr, flip] = hdMoveFrame(p, false, false, 1); drawSeated(ctx, sitClipY(p.sit), () => hdDraw(ctx, hdPersonFrame(spec, fr, hdBlinkNow(1)), p.x, Math.round(p.y), flip)); return true; }
     if (p.sit) { hdDraw(ctx, hdPersonFrame(spec, 'down_sit', hdBlinkNow(1)), p.x, Math.round(p.y)); return true; }
     const y = Math.round(p.y) - (p.hop || 0);
     drawToolUnder(ctx, p, y);
@@ -93,6 +94,7 @@ function hdDrawNPC(ctx, n) {
     if (d.human) {
         const spec = hdFolkSpec(d.human, acc);
         if (!spec) return false;
+        if (isSeated(n) && n.want.sit.rot) { const [fr, flip] = hdMoveFrame(n, false, false, seed); drawSeated(ctx, sitClipY(n.want.sit), () => hdDraw(ctx, hdPersonFrame(spec, fr, blink), n.x, y, flip)); return true; }
         if (isSeated(n) || isLounging(n)) { hdMotion(n, false); hdDraw(ctx, hdPersonFrame(spec, 'down_sit', blink), n.x, y); return true; }
         const [fr, flip] = hdMoveFrame(n, n.moving, false, seed);
         hdDraw(ctx, hdPersonFrame(spec, fr, blink), n.x, y, flip);
@@ -102,7 +104,7 @@ function hdDrawNPC(ctx, n) {
     // the food folks hop as they go; standing, they sway gently from side to side
     const sway = n.moving ? 0 : [0, 1, 1, 0, 0, -1, -1, 0][Math.floor((G.t + seed * 13) / 26) % 8];
     const fr = hdNpcFrame(d.sprite, squashed, acc, blink, sway);
-    if (isSeated(n)) drawSeated(ctx, n.want.sit.benchY, () => hdDraw(ctx, fr, n.x, y, flip0));
+    if (isSeated(n)) drawSeated(ctx, sitClipY(n.want.sit), () => hdDraw(ctx, fr, n.x, y, flip0));
     else hdDraw(ctx, fr, n.x, y, flip0);
     return true;
 }

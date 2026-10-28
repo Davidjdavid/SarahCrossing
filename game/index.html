@@ -14,25 +14,27 @@
   <canvas id="game" aria-label="Sarah Crossing, the island"></canvas>
   <div id="ui">
     <div class="hud-left" id="hudL" hidden>
-      <div class="pill clock" id="clock">7:00<span class="ampm">AM</span></div>
-      <div class="sub" id="dateline"></div>
+      <div class="hud-status">
+        <div class="clock" id="clock">7:00<span class="ampm">AM</span></div>
+        <div class="sub"><span class="vic" id="wxic"></span><span id="dateline"></span></div>
+      </div>
       <div class="bonuspill" id="bonuspill" hidden></div>
     </div>
     <div class="hud-right" id="hudR" hidden>
       <div class="pill money"><i class="coin" aria-hidden="true"></i><span id="money">0</span></div>
       <div class="hud-mini">
-        <button class="mbtn" id="bRun" type="button" aria-label="Run (R)" aria-pressed="false" title="Run on/off (R)"><span class="ic" data-icon="ui_run"></span></button>
-        <button class="mbtn" id="bMap" type="button" aria-label="Map (M)"><span class="ic" data-icon="app_map"></span></button>
-        <button class="mbtn" id="bZoomOut" type="button" aria-label="Zoom out (-)">&#8722;</button>
-        <button class="mbtn" id="bZoomIn" type="button" aria-label="Zoom in (+)">+</button>
+        <button class="mbtn" id="bRun" type="button" aria-label="Run (R)" aria-pressed="false" title="Run on/off (R)"><span class="vic" data-vec="run" data-col="#d6e8ff"></span></button>
+        <button class="mbtn" id="bMap" type="button" aria-label="Map (M)" title="Map (M)"><span class="vic" data-vec="map" data-col="#8fd46f"></span></button>
+        <button class="mbtn zoom" id="bZoomOut" type="button" aria-label="Zoom out (-)">&#8722;</button>
+        <button class="mbtn zoom" id="bZoomIn" type="button" aria-label="Zoom in (+)">+</button>
       </div>
     </div>
     <div class="hint kbonly" id="hint" hidden></div>
     <div class="hud-buttons" id="hudB" hidden>
-      <button class="hbtn" id="bTool" type="button" aria-label="Tools (hold the axe or shovel)"><span class="ic" data-icon="ui_hand"></span>Tools</button>
-      <button class="hbtn" id="bMoves" type="button" aria-label="Dance moves"><span class="ic" data-icon="ui_moves"></span>Moves</button>
-      <button class="hbtn" id="bPocket" type="button" aria-label="Pocket"><span class="ic" data-icon="ui_pocket"></span>Pocket</button>
-      <button class="hbtn big" id="bPhone" type="button" aria-label="Phone"><span class="ic" data-icon="ui_phone"></span>Phone</button>
+      <button class="hbtn" id="bTool" type="button" aria-label="Tools (hold the axe or shovel)"><span class="tile" style="background:#ffe6cc"><span class="vic" data-vec="hand" data-col="#ffe6cc"></span></span><span class="lbl">Tools</span></button>
+      <button class="hbtn" id="bMoves" type="button" aria-label="Dance moves"><span class="tile" style="background:#ecd8ff"><span class="vic" data-vec="moves" data-col="#ecd8ff"></span></span><span class="lbl">Moves</span></button>
+      <button class="hbtn" id="bPocket" type="button" aria-label="Pocket"><span class="tile" style="background:#fff0c8"><span class="vic" data-vec="pocket" data-col="#fff0c8"></span></span><span class="lbl">Pocket</span></button>
+      <button class="hbtn big" id="bPhone" type="button" aria-label="Phone"><span class="tile" style="background:#ff9f8e"><span class="vic" data-vec="phone" data-col="#ff9f8e"></span></span><span class="lbl">Phone</span></button>
     </div>
     <div id="toasts" aria-live="polite"></div>
     <div id="scrim" hidden></div>

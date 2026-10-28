@@ -85,11 +85,11 @@ function idleBench(n, a) {
     if (!b) return false;
     for (const seat of [0, 1]) {
         if (seatTaken(b, seat, n)) continue;
-        const p = benchSeatPos(b, seat), sit = { b, seat, benchY: p.benchY };
+        const p = benchSeatPos(b, seat), sit = { b, seat, benchY: p.benchY, rot: p.rot }, face = SIT_DIR[p.rot];
         n.benchIdle = { until: G.t + 1200 + rint(0, 1500), want: n.want, fixed: n.fixed };
-        n.want = Object.assign({}, n.want, { x: p.x, y: p.y, fixed: true, face: 'down', sit });
+        n.want = Object.assign({}, n.want, { x: p.x, y: p.y, fixed: true, face, sit });
         n.fixed = true;
-        if (!walkNpc(n, Math.floor(p.x / TILE), Math.floor((p.y - 2) / TILE), () => { n.x = p.x; n.y = p.y; n.dir = 'down'; })) { idleBenchEnd(n); return false; }
+        if (!walkNpc(n, Math.floor(p.x / TILE), Math.floor((p.y - 2) / TILE), () => { n.x = p.x; n.y = p.y; n.dir = face; })) { idleBenchEnd(n); return false; }
         return true;
     }
     return false;

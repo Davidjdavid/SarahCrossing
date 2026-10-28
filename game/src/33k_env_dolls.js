@@ -50,6 +50,9 @@ const EnvDolls = {
     guests(a) { return a && a.interior ? a.ents.filter(e => (e.kind === 'judge' || (e.kind === 'ghost' && typeof Quests !== 'undefined' && Quests.ghostHere())) && this.folkOf(e)) : []; },
     /* sitting: Sarah on a bench, a neighbor seated or lounging, or at a table */
     sitting(e) { return !!e.sit || this.atTable(e) || (!!e.def && (isSeated(e) || isLounging(e))); },
+    /* the way a seat faces, as an angle (a bench the designer turned: benchSeatPos's rot), and the step forward onto it */
+    sitAng(e) { const s = e.sit || (e.def && e.want && e.want.sit); return (s && s.rot || 0) * Math.PI / 2; },
+    seatAt(root, e, k) { const a = this.sitAng(e); root.position.x += Math.sin(a) * k; root.position.z += Math.cos(a) * k; },
     /* at a table: a guest in a seat at Mac's, or Sarah eating there, on the seat's stool and facing the table
        (64_restaurant.js); tableZ is the stool's depth, where they sit */
     atTable(e) {
@@ -132,7 +135,7 @@ const EnvDolls = {
         const Q = pk && this.POSES[pk];
         // the way it faces (a pose like cheering faces us, as the HD pictures do)
         const face = Q && !e.tool && !Q.rod && !Q.face && pk !== 'sit' ? 2 : m.face;
-        const ang = [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][sit ? 2 : face];
+        const ang = sit && !this.atTable(e) ? this.sitAng(e) : [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][sit ? 2 : face];
         if (d.ang == null) d.ang = ang;
         let da = ang - d.ang;
         while (da > Math.PI) da -= Math.PI * 2;
@@ -142,7 +145,8 @@ const EnvDolls = {
         root.visible = true;
         // (sitting on a bench: the seat's height, legs out in front)
         const gy = Env.groundH(e.x, e.y) + this.step(e), sitY = Q && Q.sit ? gy + 0.46 - 0.4 * DOLL.H : gy;
-        root.position.set(e.x / TILE, sitY + (e.hop || 0) / TILE, this.atTable(e) ? this.tableZ(e) : e.y / TILE * R3_ZS + (Q && Q.sit ? 0.12 : 0));
+        root.position.set(e.x / TILE, sitY + (e.hop || 0) / TILE, this.atTable(e) ? this.tableZ(e) : e.y / TILE * R3_ZS);
+        if (Q && Q.sit && !this.atTable(e)) this.seatAt(root, e, 0.12);
         root.rotation.y = d.ang;
         // where the joints want to be
         const ph = m.dist / (run ? 34 : 26) * Math.PI * 2, sw = walk ? Math.sin(ph) * (run ? 0.85 : 0.5) : 0;
@@ -265,7 +269,7 @@ const EnvDolls = {
         const m = hdMotion(e, walk), seed = hdSeed(e.id || 0), table = this.atTable(e), seat = isSeated(e) || table, lounge = isLounging(e);
         const Q = e.pose && e.pose !== 'walk' ? e.pose : null;
         const face = (seat && !table) || lounge || Q === 'cheer' || Q === 'happy' ? 2 : m.face;
-        const ang = [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][face];
+        const ang = seat && !table ? this.sitAng(e) : [Math.PI / 2, Math.PI / 4, 0, -Math.PI / 4, -Math.PI / 2, -Math.PI * 3 / 4, Math.PI, Math.PI * 3 / 4][face];
         if (d.ang == null) d.ang = ang;
         let da = ang - d.ang;
         while (da > Math.PI) da -= Math.PI * 2;
@@ -275,13 +279,13 @@ const EnvDolls = {
         root.visible = true;
         // where it stands: on the ground (a bench's seat, a blanket, down in the spring's water for Wonton)
         const gy = Env.groundH(e.x, e.y) + this.step(e), hop = (e.hop || 0) / TILE * 0.6;
-        let y = gy + hop, z = e.y / TILE * R3_ZS;
+        let x = e.x / TILE, y = gy + hop, z = e.y / TILE * R3_ZS;
         if (table) { y = gy + 0.44; z = this.tableZ(e); }
-        else if (seat) { y = gy + 0.36; z += 0.1; }
+        else if (seat) { y = gy + 0.36; const a = this.sitAng(e); x += 0.1 * Math.sin(a); z += 0.1 * Math.cos(a); }
         else if (lounge) y = gy - 0.02;
         else if (e.def && inSpring(e)) { const w = Env.waterH(e.x, e.y); y = (w != null ? w : gy) - 0.32; }
         else if (e.kind === 'ghost') y = gy + 0.18 + Math.sin(G.t / 13) * 0.06;
-        root.position.set(e.x / TILE, y, z);
+        root.position.set(x, y, z);
         root.rotation.y = d.ang;
         if (e.want && e.want.lie) { root.rotation.x = -1.4; root.position.y += 0.14; } else if (root.rotation.x) root.rotation.x = 0;
         // the step: feet swinging in turn, the body rocking side to side, squashed as it lands and stretched in the air

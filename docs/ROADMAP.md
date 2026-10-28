@@ -258,8 +258,8 @@ Status: [x] done, [~] in progress, [ ] not started.
   Sarah's storage anything of hers that was in their way)
 - [x] Dropped (David, 29 October: the town projects are enough): big outdoor-only furniture installed around the island, with spots
   held back from the grid until Sarah has given enough to the town
-- [ ] Town projects hold no tiles before they're built (David, 29 October: Sarah can put things anywhere; when a project goes up,
-  whatever of hers stands where it goes moves to her storage)
+- [x] Town projects hold no tiles before they're built (David, 29 October: Sarah can put things anywhere; when a project goes up,
+  whatever of hers stands where it goes moves to her storage, with a letter from Sir Floret)
 - [x] The fountain on the square bigger, more detailed, and solid: a grand fountain modeled in Blender, a moulded basin
   with two bowls, water sheets, a jet and four bronze fish, four tiles wide and three deep, that nobody walks through
 - [x] The giant David statue taken off the main square: a flower bed stands there now, and the statue, smaller, is on
@@ -480,9 +480,17 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   and only planted ones crossed), and a pair crosses on half the mornings rather than a third
 - [x] Hot air balloons and planes looked like toys flying over the island: they're far off in the strip of sky over its
   far edge now, hidden by whatever stands in front of them
-- [ ] Maki, Coco and Cece as keepers: Maki at the Town Hall, Coco at the Bank, Cece at the Post Office
-- [ ] The HUD in the phone's look: the clock and date, the money, the Tools, Moves, Pocket and Phone buttons, the map and
-  zoom buttons, the line of controls along the foot, and what they open
+- [x] Maki, Coco and Cece as keepers: Maki at the Town Hall, Coco at the Bank, Cece at the Post Office (behind the desk
+  and the counters in their hours, with the buildings' screens in their talk menus; a bell and a card when they're off)
+- [x] The HUD in the phone's look: the buttons are the phone's app tiles on a cream dock (an open hand, or the tool in it;
+  the moves; the pocket; the phone), the time and day a card with the weather's icon, the map and run buttons drawn the
+  same way, the controls along the foot as keys on a cream strip
+- [x] The pointy bits along the island's sides (single spikes of the sea cliff where the outline zigzagged) smoothed away
+- [x] The designer: paths laid and taken up (the island's own roads too), bridges moved along their stream, taken away,
+  put back or laid new, benches turned any way with Sarah and the neighbors sitting the right way round on them, and
+  where a neighbor likes to be one list by area
+- [x] The circling gulls fly off when Sarah or a neighbor comes close (they come back a while later); a tree holding a
+  money bag or a find glints now and then in the new look
 
 ## David's notes from playing beta (28 October)
 - [x] The lighting at night blown out yellow near the shops (every doorway and jack-o'-lantern was lit like a street
@@ -532,7 +540,7 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] The Cozy Council out of the Town Hall: they come by only when Sarah asks for the island to be judged; when nobody's
   working the screens are there anyway, on the honor system, as at the shops (28 October, late: the desk has a bell and a
   card; the Council only comes by the day after Sarah's statue goes up, to congratulate her)
-- [ ] The Town Hall gets a keeper of its own who does the desk's work (David, 29 October: Maki; Coco at the Bank, Cece at the Post Office)
+- [x] The Town Hall gets a keeper of its own who does the desk's work (David, 29 October: Maki; Coco at the Bank, Cece at the Post Office)
 - [x] No descriptions when looking at props and things (they dated from the phone game's stand-in pictures: now you can
   see what things are, and the jokes wore thin heard often)
 - [ ] Props and furniture that act: anything that should move or do something does (fires flicker and breathe, fountains

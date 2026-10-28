@@ -27,7 +27,8 @@ const PERSONA = {
 };
 /* where each one works (their day's work places: NPC_DEFS work) */
 const WORK_NAMES = { cart: "the noodle cart (evenings)", arcade: 'the arcade', boutique: 'the boutique', studio: 'the pottery studio', builder: "the workshop",
-    museum: 'the museum', restaurant: "Mac's", shop: "Fortune's", club: 'Club Wasabi', farm: 'the farm', cafe: "the café", salon: 'the salon', displays: "Waffle's" };
+    museum: 'the museum', restaurant: "Mac's", shop: "Fortune's", club: 'Club Wasabi', farm: 'the farm', cafe: "the café", salon: 'the salon', displays: "Waffle's",
+    townhall: 'the Town Hall', bank: 'the Bank', postoffice: 'the Post Office' };
 /* their favorite spots, as they'd put it (FAV_SPOT's keys) */
 const FAV_NAMES = { bench_pond: 'The bench by the pond', pier_end: 'The very end of the pier', bonfire: 'The bonfire on the beach, late at night', spring: 'The hot spring',
     lookout: 'The lookout', plaza: 'The square', bench_beach: 'The bench at the beach', boardwalk: 'The Boardwalk at sunset', orchard: 'The orchard',

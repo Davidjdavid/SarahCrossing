@@ -38,10 +38,10 @@ function cycleTool() {
 function updateToolButton() {
     const b = $('#bTool');
     if (!b) return;
-    const ic = b.querySelector('.ic');
-    const want = heldTool() ? itemIcon(heldTool()) : 'ui_hand';
-    if (ic.dataset.icon !== want) { ic.dataset.icon = want; ic.innerHTML = ''; ic.appendChild(iconCanvas(want, 28)); }
-    b.lastChild.textContent = heldTool() ? itemName(heldTool()) : 'Tools';
+    // (the HUD's tiles are drawn like the phone's apps: the open hand, or the tool in it, 41c_phone_icons.js)
+    const ic = b.querySelector('.vic'), t = heldTool(), want = t && PHONE_ICONS[t] ? t : t ? 'item:' + itemIcon(t) : 'hand';
+    if (ic && ic.dataset.vec !== want) { ic.dataset.vec = want; ic.innerHTML = ''; ic.appendChild(want.startsWith('item:') ? iconCanvas(want.slice(5), 28) : phoneIcon(want, ic.dataset.col, 34)); }
+    b.querySelector('.lbl').textContent = t ? { can: 'Can' }[t] || itemName(t) : 'Tools';
 }
 
 /* drawn with Sarah: the tool she's carrying, or mid-swing */

@@ -1479,7 +1479,7 @@ function paintChunk(ch, a) { const it = paintChunkSteps(ch, a); while (!it.next(
 /* a piece painted a step at a time (a few milliseconds each), for pieces made ahead, out of sight */
 function* paintChunkSteps(ch, a) {
     const ctx = ch.ctx, x0 = ch.cx * R3_CHUNK - R3_PAD, y0 = ch.cy * R3_CHUNK - R3_PAD, N = R3_CHUNKPX;
-    const of = a.bgSeason + '|' + (S.pathsV || 0);
+    const of = a.bgSeason + '|' + pathsVer();
     if (!ch.base || ch.baseOf !== of || ch.partial) { const sg = yield* r3SoftGroundSteps(a.bgSeason, x0, y0, N); ch.base = sg.img; ch.cls = sg.cls; ch.partial = !sg.all; ch.baseOf = of; yield; }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (ch.base) ctx.putImageData(ch.base, 0, 0); else ctx.clearRect(0, 0, N, N);
@@ -1498,7 +1498,7 @@ function* paintChunkSteps(ch, a) {
    paths (the piece is painted again when this changes) */
 function r3ChunkSig(ch, a) {
     const x0 = ch.cx * R3_CHUNK - R3_PAD, y0 = ch.cy * R3_CHUNK - R3_PAD, N = R3_CHUNKPX;
-    let s = (S.pathsV || 0) + ':' + a.decals.length;
+    let s = pathsVer() + ':' + a.decals.length;
     for (const d of a.decals) if (d.x > x0 - 48 && d.x < x0 + N + 48 && d.y > y0 - 16 && d.y < y0 + N + 48) s += '|' + d.frame + d.x + ',' + d.y;
     for (const e of a.ents) {
         if (e.layer !== 0 || e.kind === 'waterfall' || !(e.x > x0 - 64 && e.x < x0 + N + 64 && e.y > y0 - 32 && e.y < y0 + N + 64)) continue;
@@ -1551,7 +1551,7 @@ function* r3SoftGroundSteps(season, x0, y0, N) {
     for (let j = 0; j < KW; j++) for (let i = 0; i < KW; i++) {
         const tx = kx0 + i, ty = ky0 + j, c = r3ClassAt(tx, ty), r = grid[ty], g = r ? r[tx] : '~', k = j * KW + i;
         K.t[k] = c;
-        K.wet[k] = c !== R3_MAT.keep ? 0 : '~orhW'.includes(g) && !(S && S.paths && S.paths.t[tx + ',' + ty]) ? 1 : 2;
+        K.wet[k] = c !== R3_MAT.keep ? 0 : '~orhW'.includes(g) && !overlayAt(tx, ty) ? 1 : 2;
     }
     // a tile whose neighbours are all its own kind (most of them: the middle of a lawn, of a path) is that kind all over,
     // without weighing the nine round it for every pixel (255: work it out)
@@ -1876,8 +1876,8 @@ function r3SkyThings(ctx) {
         }
         const f = SeaSky.flock;
         if (f) for (let i = 0; i < f.n; i++) {
-            const ang = f.t / (80 + i * 9) + i * 2.1, x = f.cx + Math.cos(ang) * (34 + i * 9), y = f.cy + Math.sin(ang) * (12 + i * 3);
-            if (put(x, y, 40)) spr(ctx, `cr_gull_fly${Math.floor((f.t + i * 7) / 8) % 2}`, 0, 0, Math.sin(ang) > 0);
+            const g = SeaSky.gullAt(i);
+            if (put(g.x, g.y, 40 + g.up * 0.6)) spr(ctx, `cr_gull_fly${Math.floor((f.t + i * 7) / (f.flee != null ? 4 : 8)) % 2}`, 0, 0, g.vx < 0);
         }
     } finally { R3.over = false; ctx.filter = 'none'; ctx.setTransform(1, 0, 0, 1, 0, 0); }
 }

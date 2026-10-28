@@ -240,6 +240,21 @@ const EnvItems = {
                 d.rotation.y = t / 30;
             }
         }
+        // a tree with something in it (a bag of sand dollars, now and then a keepsake: Sparkle.secret, 6q_world.js) glints now
+        // and then in its crown, a few seconds apart, as the flat view's did (David, 29 October: nothing ever seemed to drop)
+        for (const e of a.ents) {
+            if (e.kind !== 'tree' || e.tx == null || (v && (e.x < v.x0 - 48 || e.x > v.x1 + 48 || e.y < v.y0 - 48 || e.y > v.y1 + 160)) || !Sparkle.secret(e)) continue;
+            let d = this.list.get(e);
+            if (!d) { d = this.sparkle(); this.group.add(d); this.list.set(e, d); }
+            seen.add(e);
+            const per = 280 + ((e.tx * 31 + e.ty * 17) % 120), ph = t + e.tx * 13 + e.ty * 7, q = ph % per, spot = Math.floor(ph / per) % 4;
+            d.visible = q < 22;
+            if (!d.visible) continue;
+            const s = Env.tileSpot(e), k = q < 11 ? q / 11 : (22 - q) / 11;
+            d.position.set(s.x + [-0.45, 0.35, -0.1, 0.5][spot], s.y + [2.0, 1.6, 2.3, 1.8][spot], s.z + 0.6);
+            d.scale.setScalar(0.6 + 0.8 * k);
+            d.rotation.y = t / 20;
+        }
         for (const [e, d] of this.list) if (!seen.has(e)) { this.group.remove(d); this.list.delete(e); }
     },
     bubbles() {

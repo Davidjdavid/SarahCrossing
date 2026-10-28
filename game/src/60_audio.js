@@ -590,6 +590,7 @@ const Sfx = {
             case 'cook': this.noise(0.5, 1200, 0.1); this.notes([72, 79, 84], 'kalimba', 0.14, 0.12); break;
             case 'eat': this.noise(0.06, 900, 0.12); this.noise(0.06, 900, 0.12, 0.15); this.noise(0.06, 900, 0.12, 0.3); break;
             case 'rustle': this.noise(0.35, 2400, 0.12); this.noise(0.25, 1600, 0.08, 0.12); break;
+            case 'flap': for (let i = 0; i < 4; i++) this.noise(0.05, 1300 + i * 120, 0.05, i * 0.07, 'bandpass'); break;     // (gulls taking off)
             case 'dig': this.noise(0.12, 600, 0.18); this.noise(0.12, 500, 0.14, 0.14); break;
             case 'door': this.tone('triangle', 180, 120, 0.12, 0.15); this.noise(0.08, 800, 0.08, 0.02); break;
             case 'knock': this.tone('sine', 220, 150, 0.08, 0.3); this.tone('sine', 220, 150, 0.08, 0.3, 0.14); break;

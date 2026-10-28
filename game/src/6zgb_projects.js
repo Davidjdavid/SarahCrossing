@@ -5,8 +5,9 @@
    dearest, a statue of Sarah (Fortune's bigger store was one too, till Fortune took it on: 6z_shops.js). Sand dollars
    go in a little at a time, to any project; once one's paid off, the Cozy Council has it built overnight (it's there
    the next morning, with a letter). Where each stands is in the plan (scripts/island/plan.mjs projects, W0.projects),
-   its prop in W0.props with `project`: left off the island until it's built, and nothing can be put on its tiles before
-   then (projectTile). Kept as S.town.proj { paid: { id: n }, done: { id: day it's there } }. */
+   its prop in W0.props with `project`: left off the island until it's built. Its spot isn't kept free (David, 28 October):
+   whatever of Sarah's stands there when it goes up comes back to her storage (projectClear). Kept as S.town.proj
+   { paid: { id: n }, done: { id: day it's there } }. */
 const PROJECTS = [
     { id: 'swings', name: 'A swing set', cost: 30000, where: 'on the village green', icon: 'app_map',
         blurb: 'Two swings on a wooden frame. Swinging is free forever. The Council checked.' },
@@ -43,10 +44,26 @@ function projectOpen(p) {
     return true;
 }
 function lighthouseOpen() { return projectBuilt('lighthouse'); }
-/* the tiles a project holds before it's built (nothing can be put there) */
-function projectTile(tx, ty) {
-    for (const [id, f] of Object.entries(W0.projects || {})) if (!projectBuilt(id) && tx >= f.x && tx < f.x + f.w && ty >= f.y && ty <= f.y + f.h) return id;
-    return null;
+/* the tiles a project's prop stands on */
+function projectTiles(p) {
+    const odd = p.rot & 1, w0 = PROP_SIZE[p.kind] || 1, h0 = PROP_ROWS[p.kind] || 1, out = [];
+    for (let j = 0; j < (odd ? w0 : h0); j++) for (let i = 0; i < (odd ? h0 : w0); i++) out.push({ x: p.x + i, y: p.y + j });
+    return out;
+}
+/* a project going up: what of Sarah's stands on its tiles (things set down, flowers and trees planted, something dropped,
+   one of the island's own she moved there) comes back to her storage; true if anything did */
+function projectClear(p) {
+    const tiles = projectTiles(p), busy = new Set(tiles.map(t => t.x + ',' + t.y)), D = S.deco;
+    const was = JSON.stringify([D && D.placed, S.flowers && S.flowers.planted, S.forest && S.forest.planted, S.drops, S.money, D && D.moved]);
+    clearTiles(S, tiles);
+    if (D && D.moved) for (const [i, xy] of Object.entries(D.moved)) {
+        const q = W0.props[i], as = q && MOVABLE_PROPS[q.kind];
+        if (!q || !as || +i === W0.props.indexOf(p)) continue;
+        if (projectTiles({ kind: q.kind, rot: q.rot, x: xy[0], y: xy[1] }).some(t => busy.has(t.x + ',' + t.y))) { D.gone[i] = true; delete D.moved[i]; toStorage(as, 1); }
+    }
+    const moved = JSON.stringify([D && D.placed, S.flowers && S.flowers.planted, S.forest && S.forest.planted, S.drops, S.money, D && D.moved]) !== was;
+    if (moved) Save.touch();
+    return moved;
 }
 /* a key of what's built, for the new look's island (Env.look) */
 function projectsKey() { return PROJECTS.filter(p => projectBuilt(p.id)).map(p => p.id).join() + (projectBuilt('statue') ? ':' + statueKind() : ''); }
@@ -84,13 +101,16 @@ function projectsTick() {
 function projectsRefresh() {
     const a = G.areas && G.areas.island;
     if (!a) return;
-    let added = false;
-    W0.props.forEach((p, i) => {
-        if (!p.project || !projectBuilt(p.project) || a.ents.some(e => e.propIdx === i) || isCleared('pr' + i) || propGone(i)) return;
-        const e = addProp(a, p);
-        if (e) { e.propIdx = i; added = true; }
-    });
-    if (added && typeof Env !== 'undefined') Env.dirty = true;
+    const up = W0.props.map((p, i) => [p, i]).filter(([p, i]) => p.project && projectBuilt(p.project) && !a.ents.some(e => e.propIdx === i) && !isCleared('pr' + i) && !propGone(i));
+    if (!up.length) return;
+    // (Sarah's things in the way go home first: then the island is built again round it)
+    let cleared = false;
+    for (const [p] of up) if (projectClear(p)) cleared = true;
+    if (cleared) {
+        rebuildIsland();
+        if (S.started) sendMail({ from: 'floret', subject: 'A few of your things', body: 'Dear resident,\nThe crew found some of your things where the new project went up. They have been carried to your house, with care, and put in your storage. Nothing was squashed. Sprout counted.\n- Sir Floret, for the Cozy Council' });
+    } else for (const [p, i] of up) { const e = addProp(a, p); if (e) e.propIdx = i; }
+    if (typeof Env !== 'undefined') Env.dirty = true;
 }
 const PROJECT_DONE_LOG = {
     swings: 'A swing set goes up on the village green.', hammock: 'A hammock is hung on the west beach.', clock: 'The park clock starts ticking by the square.',

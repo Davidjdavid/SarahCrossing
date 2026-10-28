@@ -163,7 +163,7 @@ const Env = {
         };
         const get = (cx, cy) => { const k = cx + ',' + cy; let c = B.chunks.get(k); if (!c) B.chunks.set(k, c = EnvChunk.make(B, cx, cy)); return c; };
         // what the ground shows changed (Sarah laid or lifted a path): its pieces are made again, nearest first
-        const sig = S && S.pathsV || 0;
+        const sig = pathsVer();
         if (B.pathsV == null) B.pathsV = sig;
         if (sig !== B.pathsV) { B.pathsV = sig; for (const c of B.chunks.values()) if (c.state === 2) c.stale = true; }
         const seen = near(1), want = near(10);
@@ -605,6 +605,17 @@ const EnvGround = {
             if (sea(tx, ty)) { if (t < 1) h[k] = Math.max(h[k], h[k] + (BASE + lv * LV - h[k]) * (1 - t)); }
             else if (t > 0) h[k] = Math.min(h[k], h[k] + (-0.45 - h[k]) * t);
         }
+        // (no lone points: where the coast steps on a diagonal, a corner point of the ground people walk on was left standing
+        // past a lowered point of the rim, a sharp tooth over the sea (David, 29 October: "the pointy parts of the island's
+        // sides"). A point of the rim low between two high ones comes up to them, and one high between low ones comes down)
+        for (let pass = 0; pass < 2; pass++) for (let y = 1; y < Hn - 1; y++) for (let x = 1; x < W - 1; x++) {
+            const tx = tileOf(x + 0.5, Wt), ty = tileOf(y + 0.5, Ht);
+            if (ok[ty * Wt + tx] < 0) continue;
+            const k = y * W + x, v = h[k], l = h[k - 1], r = h[k + 1], u = h[k - W], d = h[k + W];
+            const pit = Math.max(Math.min(l, r), Math.min(u, d)), peak = Math.max(l, r, u, d);
+            if (v < pit - 0.6) h[k] = pit;
+            else if (v > peak + 0.6) h[k] = peak;
+        }
     },
     heightAt(u, v) {
         const g = this.grid;
@@ -770,7 +781,7 @@ const EnvGround = {
         return w.d[(j * w.N + i) * 4 + 3] / 255;
     },
     /* Sarah's brick (1) or plank (2) path on a tile, or 0 */
-    laid(tx, ty) { const P = S && S.paths && S.paths.t, o = P && P[tx + ',' + ty]; return o === 'brick' ? 1 : o === 'planks' ? 2 : 0; },
+    laid(tx, ty) { const o = overlayAt(tx, ty); return o === 'brick' ? 1 : o === 'planks' ? 2 : 0; },
     tex(d, N, M) {
         const t = new THREE.DataTexture(d, N, M, THREE.RGBAFormat);
         t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true;

@@ -185,7 +185,7 @@ function r3TileClass() {
    ground; brick and planks keep their picture) */
 function r3ClassAt(tx, ty) {
     if (tx < 0 || ty < 0 || tx >= W0.w || ty >= W0.h) return R3_MAT.keep;
-    const P = S && S.paths && S.paths.t, o = P && P[tx + ',' + ty];
+    const o = overlayAt(tx, ty);
     if (o) return o === 'grass' ? 16 + R3_MAT.grass : o === 'dirt' ? 16 + R3_MAT.dirt : o === 'stone' ? 16 + R3_MAT.cobble : R3_MAT.keep;
     return r3TileClass()[ty * W0.w + tx];
 }

@@ -41,8 +41,10 @@ docs/DEPLOY.md for the server.
   (`Area.solidPx`, `inCut`), and the new look draws the edge as a straight diagonal (`EnvGround.kindPx`, `cutAt`).
 - The Town Hall, Post Office and Bank (`24b_civic.js`) are signs on the live site. On beta (`CIVIC_PREVIEW`: the beta host,
   or `localStorage sc-civic` 1 or 0 anywhere; the tests run without it) they open into rooms (`6zc_civic.js`: the Town
-  Hall's desk on the honor system with a bell, the Council only there the day after Sarah's statue goes up (they come to
-  her house to judge it when she calls), the Post Office and Bank counters waiting with a bell until David picks keepers),
+  Hall's desk, the Post Office and Bank counters, each with its keeper in their hours (David, 28 October: Maki at the Town
+  Hall, Coco at the Bank, Cece at the Post Office: `ROOMS[id].staff`, their `work`, `WORK_MENUS`, `civicKeeper`) and a bell
+  and a card on the honor system when they're off, the Council only there the day after Sarah's statue goes up (they come
+  to her house to judge it when she calls)),
   and each counter lists the building's screens (`6zd_civic_screens.js`, `CIVIC_SCREENS`): every feature in docs/ROADMAP.md's
   "Late in development" drawn with sample numbers in each state it can be in (works, loading, no internet, service down,
   empty, not enough money...), with the on-screen words from the dialogue sheet (`new-civic.mjs`). The preview's foot has
@@ -128,7 +130,10 @@ docs/DEPLOY.md for the server.
   go, a second tap to be sure; the pocket sends all its furniture home in one go, the mailbox takes every present at once); `UI.open({ wide })` gives the wider panel they use. The phone shows the time,
   weather and wallet along its top and the apps four across: eight everyday ones and two folders (`PHONE_HOME`,
   `PHONE_FOLDERS`, `openFolder`; an app opened from a folder goes back to it, `phoneFrom`), Save & quit at its foot, every
-  icon drawn as shapes at the screen's resolution (41c_phone_icons.js, `phoneIcon`). Trying something on at the salon or the sewing machine,
+  icon drawn as shapes at the screen's resolution (41c_phone_icons.js, `phoneIcon`). The HUD wears the phone's look too
+(David, 28 October): Tools, Moves, Pocket and Phone are app tiles on a cream dock (`.hbtn .tile`, `data-vec` icons drawn
+once by `HUD.update`; the Tools tile shows the hand or the tool held, `updateToolButton`), the time and day a card with the
+weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn the same way, the key hints keys on a strip. Trying something on at the salon or the sewing machine,
   the 3D view puts the studio to one side and the camera in close on Sarah, whose doll wears it as it's made
   (`Studio.tryOn`, `G.tryOn` read by `hdSarahSpec`, `R3.mirror`); S isn't touched until it's paid for.
 - The classic 16x24 art stays the source for menus, icons, the classic view and the flat modes.
@@ -409,7 +414,8 @@ docs/DEPLOY.md for the server.
   `door_boards`, until then: `lighthouseOpen`, `boardedLighthouse`; an island whose keeper's story had begun keeps it
   open) and, once all those are built, Sarah's statue (`statue_sarah`, her doll in bronze). Where they stand is the plan's
   `projects` (`W0.projects`; their props come after the community fence in `W0.props`, left out until built:
-  `projectBuilt`); `Projects` has what each does (`swingOn` swings Sarah, nothing said: her doll swings with the seats,
+  `projectBuilt`; their spots aren't kept free, David, 28 October: what of Sarah's stands there when one goes up goes to her
+  storage, `projectClear`, with Sir Floret's letter); `Projects` has what each does (`swingOn` swings Sarah, nothing said: her doll swings with the seats,
   kicking out and tucking in, `Projects.swing`, the seats in 3D at the frame's `anchor_hub`; `hammock` lays her down along
   its cloth, `p.lie`, until the line's read; the clock's hands turn with `Clock.hourF()`; `shrine` a wish once a day).
   Kept as `S.town.proj` { paid, done, told }. Fortune's shop grows when Fortune says so (6z_shops.js, David: not from the
@@ -696,7 +702,8 @@ docs/DEPLOY.md for the server.
   with `design`: anything on the island, kept out of water, off cliffs and stairs, out of doorways, never cutting a place
   off), any room's furniture but Sarah's own house (Decor with `design`: `Decor.list()` is the room's `a.items`, the catalog
   every furniture piece), and what each neighbor likes doing and where (Neighbors' likes: `Design.likeWeight` /
-  `likeChance` in idleStart, `designSpots` in makePlan). Saved (`PUT /api/design`, rev-checked, the one before kept as
+  `likeChance` in idleStart, `designSpots` in makePlan; where they go is one list by area, each area's whole first, then
+  the places in it: David, 28 October, a favorite place and a favorite area were two lists for one thing). Saved (`PUT /api/design`, rev-checked, the one before kept as
   before-<rev>.json) it's the island every game starts from, the live site's too: `Design.load` as the game boots,
   `Design.apply` lays it over world.json before the save loads, `Design.room` over a room's layout in placeFurniture.
   One small folder both sites share (`DESIGN_DIR`, /srv/sarahcrossing-design; the nightly backup takes it).
@@ -725,6 +732,20 @@ docs/DEPLOY.md for the server.
   (`stairsGone`; the first stairs tool took stairs away on a tap). Kept as `stairs` { add, gone } of "x,y" tiles, laid over world.json's grid,
   collision and `W0.ramps` (and `RAMPS`) in place by `Design.ground` (from `WORLD0_GROUND`). The new look builds the steps
   and walls from them; the HD-2D view's painted ground doesn't show the change.
+- Paths (the island designer's Paths chip, David, 28 October: "rework some paths for the live map"): PathTool with `design`
+  paints the design's `paths` { "x,y": style }, a layer under Sarah's own (`DESIGN_PATHS`, read through `overlayAt`, whose
+  changes `pathsVer` counts), 'grass' taking up the island's own road there (`Design.pathPaint`, one undo a stroke).
+- Bridges (the island designer's Bridges tool, David, 29 October): a tap on a bridge picks it (`bridgeRun`; the pier isn't
+  one), and then it moves a tile along its stream, laid across again bank to bank wherever that is (`bridgeDo`, `layAcross`,
+  `bridgeOk`), or is taken away; a tap on a stream or pond lays a new one straight across it the shorter way (`bridgeAt`,
+  one to three tiles wide, `bridgeW`). Taken-away ones of the island's own are dashed and put back with a tap. Kept as
+  `bridges` { add, gone } of "x,y" tiles, laid over the grid ('w'), collision and `W0.water` by `Design.ground` (what's under
+  one of the island's own planks: `underBridge`), and `EnvGround._water` worked out again; like the stairs, only the new look
+  shows it.
+- Benches turn too (David, 28 October): `benchSeatPos` gives each seat's spot and the way it faces (`rot`, `SIT_DIR`), kept in
+  the seat (`sit.rot`); the dolls and folks face that way on it (`EnvDolls.sitAng`, `seatAt`), and the flat views draw a
+  turned bench side on or from behind (`drawBenchTurned`) with whoever's on it side on or back to us, the seat hiding their
+  legs (`sitClipY`, sorted by `benchSortY`).
 - Turned things: furniture (`it.rot`, quarter turns: 0 faces the front, 1 east, 2 the back, 3 west; `furnWH` swaps its
   width and depth, `turnable`: not wall pieces or rugs; Turn or R in decorating) and island props (`p.rot`; `PROP_FIXED`
   never turn; `EnvBuild.turned` stands the model about its footprint's middle). The flat views can't turn a picture: the

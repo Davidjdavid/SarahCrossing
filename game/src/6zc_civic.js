@@ -1,7 +1,7 @@
 /* ---- 6zc_civic.js ---- */
 /* The insides of the civic buildings on the square, built ahead of their features (docs/ROADMAP.md, "Late in
-   development"): the Town Hall (the Cozy Council at the front desk), the Post Office and the Bank (their keepers are
-   still David's to pick: the counters wait with a bell). Each counter opens the building's screens (6zd_civic_screens.js),
+   development"): the Town Hall (Maki at the front desk), the Bank (Coco) and the Post Office (Cece); in their keeper's off
+   hours the counters wait with a bell. Each counter opens the building's screens (6zd_civic_screens.js),
    every one drawn with sample numbers and able to show each way it can go. Only on beta for now (CIVIC_PREVIEW: the beta
    host, or localStorage sc-civic 1 or 0 anywhere); elsewhere their doors are still the signs in 24b_civic.js. */
 const CIVIC_PREVIEW = (() => { const v = lsGet('sc-civic'); return v === '1' ? true : v === '0' ? false : /^beta\./.test((window.location && location.hostname) || ''); })();
@@ -15,6 +15,31 @@ if (CIVIC_PREVIEW) {
         closedSign: 'POST OFFICE. Open {hours:postoffice}. Closed now. Your letters still come to your mailbox overnight.' };
     ROOMS.bank = { w: 13, h: 6, wall: 'wall_stone', floor: 'floor_marble', music: 'museum', name: 'Bank of the Island', build: a => buildBank(a),
         closedSign: 'BANK OF THE ISLAND. Open {hours:bank}. Closed now. The vault is asleep. It snores a little.' };
+    // the keepers (David, 28 October: Maki at the Town Hall, Coco at the Bank, Cece at the Post Office): behind the desk or
+    // the counter in their hours, which their day follows (work), with the building's screens in their talk menu
+    Object.assign(ROOMS.townhall, { staff: 'maki', staffAt: [7, 0], staffStand: [7, 2] });
+    Object.assign(ROOMS.bank, { staff: 'coco', staffAt: [6, 0], staffStand: [6, 2] });
+    Object.assign(ROOMS.postoffice, { staff: 'cece', staffAt: [6, 0], staffStand: [6, 2] });
+    NPC_DEFS.maki.work = [['townhall', 9, 12], ['townhall', 13, 17]];
+    NPC_DEFS.coco.work = [['bank', 9.5, 12.5], ['bank', 13.5, 17]];
+    NPC_DEFS.cece.work = [['postoffice', 8.5, 12], ['postoffice', 13, 16.5]];
+    WORK_MENUS.maki = { room: 'townhall', label: 'Town Hall business', fn: () => civicMenu('townhall') };
+    WORK_MENUS.coco = { room: 'bank', label: 'Banking', fn: () => civicMenu('bank') };
+    WORK_MENUS.cece = { room: 'postoffice', label: 'Post Office business', fn: () => civicMenu('postoffice') };
+}
+const CIVIC_KEEPER = { townhall: 'maki', bank: 'coco', postoffice: 'cece' };
+const KEEPER_HELLO = {
+    maki: ['Town Hall. How can I help? Please take a number. There is only one number. It is yours.', 'Good timing. I just finished putting the records in order. Again.',
+        'Everything is filed, stamped and straight. What can I do for you?'],
+    coco: ['Welcome to the Bank of the Island! Did you hear about... no. Banking first. Gossip after.', 'Hi hi! Deposits, withdrawals, secrets? I mean... savings!',
+        'Oh good, a customer! I have so much to tell you. But first: money stuff!'],
+    cece: ['Oh! Hello! Sorry, the stamps are a little sticky. I may have been baking. What can I send for you?', 'Post Office! Sorry. I mean, hi. Letters? Postcards? I can weigh things.',
+        'Welcome! Your mail is very important to us. Sorry, that sounded official. It IS important, though.'],
+};
+/* the keeper at their counter now, if they are */
+function civicKeeper(id) {
+    const n = CIVIC_KEEPER[id] && NPCs.get(CIVIC_KEEPER[id]);
+    return n && !n.sleeping && n.area === id && ROOMS[id] && ROOMS[id].staff === n.id ? n : null;
 }
 
 /* the Town Hall: the front desk at the back with the Council behind it, the island's flags either side, the rope for the
@@ -66,12 +91,15 @@ async function civicCounter(id) {
     if (id === 'townhall' && statueCongratsDue()) {
         // (the day after Sarah's statue goes up the Council comes by: well done, and a new one whenever she likes, 6zgc_statue.js)
         if (await statueCongrats()) { UI.hideDialog(); civicScreen('statue', null, () => civicMenu('townhall')); return; }
-    } else if (id === 'townhall') {
-        // (nobody at the desk: the screens on the honor system, as at the shops after hours, until the Town Hall has a keeper)
-        await UI.say(null, 'The front desk has a little bell and a card: "THE COUNCIL IS OUT. They come by your house when you ask them to judge it. Everything else is right here: help yourself."');
+    } else if (civicKeeper(id)) {
+        const k = civicKeeper(id);
+        k.emote = 'note'; k.emoteT = 40;
+        await UI.say(k.id, voiced(k.id, rpick(KEEPER_HELLO[k.id])));
     } else {
-        await UI.say(null, id === 'bank' ? 'The teller\'s window has a little bell and a card: "BACK SOON. The screens work, though. Mostly. Pretend there are sand dollars." Nobody has been hired yet.'
-            : 'There is a bell on the counter and a card: "BACK SOON. Ring for service. Or look at the forms. The forms are very nice." Nobody has been hired yet.');
+        // (the keeper's off: the screens on the honor system, as at the shops after hours)
+        await UI.say(null, id === 'townhall' ? 'The front desk has a little bell and a card in very neat letters: "MAKI IS OUT. Back in office hours. Help yourself, then put everything back where it was. Exactly where it was."'
+            : id === 'bank' ? 'The teller\'s window has a little bell and a card: "Coco is on a break!! The screens still work. Tell me EVERYTHING when I\'m back!!"'
+                : 'There is a bell on the counter and a card: "Sorry! Cece is out. Sorry. The forms are very nice, though. Help yourself. Sorry."');
     }
     UI.hideDialog();
     civicMenu(id);

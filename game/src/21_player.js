@@ -39,6 +39,12 @@ function drawPlayer(ctx, p) {
         return;
     }
     if (p.sit && Math.abs(p.y - (p.sit.benchY - 1)) > 2) { p.sit = null; p.sy = undefined; }        // moved by something else
+    if (p.sit && p.sit.rot) {
+        // (a turned bench: side on or her back to us, the seat hiding her legs)
+        const y = Math.round(p.y);
+        drawSeated(ctx, sitClipY(p.sit), () => { spr(ctx, playerFrame(p), p.x, y, flip); drawSarahAccs(ctx, p.x, y, playerFaceDir(p), flip); });
+        return;
+    }
     if (p.sit) {
         // a real sitting frame: hands on her lap, feet on the ground in front of the bench
         const y = Math.round(p.y), o = S.player.outfit || 'crimson';

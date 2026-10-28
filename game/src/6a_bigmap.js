@@ -78,7 +78,7 @@ const BigMap = {
     /* the island at 8 px per tile: ground, paths Sarah drew, trees, buildings */
     build() {
         const a = G.areas.island, K = this.BASE_K;
-        const key = [a.bgSeason, S.pathsV || 0, JSON.stringify(S.buildMoved || {}), Design.ver].join('|');
+        const key = [a.bgSeason, pathsVer(), JSON.stringify(S.buildMoved || {}), Design.ver].join('|');
         if (this.base && this.baseKey === key) return;
         this.baseKey = key;
         const c = document.createElement('canvas');

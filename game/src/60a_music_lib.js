@@ -36,7 +36,14 @@ const MusicLib = {
     },
     /* before a game's files are taken off the server: its track stopped first (a short one ending would start again and ask
        for a file that's gone) */
-    forget(game) { const c = typeof Music !== 'undefined' && Music.cur; if (c && c.file && String(c.path).startsWith(game + '/')) Music.stop(); },
+    forget(game) {
+        const c = typeof Music !== 'undefined' && Music.cur;
+        if (c && c.file && String(c.path).startsWith(game + '/')) Music.stop();
+        // (its tracks off the list at once, so nothing picks one again while they're being taken off the server; and any deck
+        // still fading one of its files out lets go of it now)
+        if (this.byGame && this.byGame[game]) { for (const t of this.byGame[game]) delete this.byPath[t.path]; delete this.byGame[game]; this.tracks = this.tracks.filter(t => t.game !== game); }
+        for (const d of MusicFile.decks || []) if (d.path && d.path.startsWith('lib:' + game + '/')) { d.token++; d.el.pause(); d.path = null; d.el.removeAttribute('src'); try { d.el.load(); } catch (e) { /* let go */ } }
+    },
     games() { return Object.keys(this.byGame || {}).sort((a, b) => a.localeCompare(b)); },
     hourlyGames(h) { return this.games().filter(g => this.byGame[g].some(t => t.hour === h && !this.bad[t.path])); },
     has(p) { return !!(this.byPath && this.byPath[p]) && !this.bad[p]; },

@@ -2168,6 +2168,7 @@ test("David's music: uploaded from the Music app's way, each hour a game at rand
     setArea('island', ix, iy);
     await new Promise(r => setTimeout(r, 1500));
     M.lib = '';
+    MusicLib.forget('Game Three');
     await Cloud.api('DELETE', '/api/music/game?name=' + encodeURIComponent('Game Three'));
     await MusicLib.load(true);
     appMusic('library');
@@ -2283,8 +2284,9 @@ test('town projects: paid for at the Town Hall, built overnight; the lighthouse 
     __dbg.setTime(5, 12, 11);
     out.spots = Object.keys(W0.projects).sort().join();
     out.hidden = !has('hammock') && !has('swing_set') && !has('statue_sarah');
-    const h = W0.projects.hammock;
-    out.held = projectTile(h.x + 1, h.y) === 'hammock' && !projectTile(h.x + 1, h.y - 3);
+    // (its spot isn't kept free: a gnome Sarah set down there goes to her storage when it's built)
+    const hp = W0.props.find(p => p.project === 'hammock'), gnomes = S.storage.dp_gnome || 0;
+    deco().placed.push({ id: 'dp_gnome', x: hp.x + 1, y: hp.y });
     // the lighthouse is boarded up: its door says so and nobody goes in
     const say = UI.say, said = [];
     UI.say = async (who, t) => { said.push(String(t)); };
@@ -2298,6 +2300,7 @@ test('town projects: paid for at the Town Hall, built overnight; the lighthouse 
     __dbg.setTime(5, 13, 9);
     projectsTick();
     out.built = [projectBuilt('hammock'), has('hammock'), JSON.stringify(S.mail || S.inbox || []).includes('hammock')].join();
+    out.held = !S.deco.placed.some(p => p.id === 'dp_gnome' && p.x === hp.x + 1 && p.y === hp.y) && S.storage.dp_gnome === gnomes + 1 && JSON.stringify(S.mail).includes('A few of your things');
     // the statue waits for all the others (Fortune's bigger store isn't one any more: Fortune orders it, 6z_shops.js)
     const statue = PROJECTS.find(p => p.id === 'statue');
     out.statueLater = !projectOpen(statue);
@@ -3048,6 +3051,71 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
   }
 });
 
+test("the designer's paths, bridges and turned benches: a path laid under Sarah's own and taken up, a bridge moved along its stream, taken away and put back, a new one laid, Sarah and a neighbor sitting on a bench facing east", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, a = () => G.areas.island, say = UI.say;
+    __dbg.setTime(10, 13, 11);
+    Design.d = Design.blank();
+    // a path of brick on open grass near the square, under Sarah's own; the eraser takes it up again
+    const p0 = W0.spots.plaza;
+    let g = null;
+    for (let r = 3; r < 30 && !g; r++) for (let dy = -r; dy <= r && !g; dy++) for (let dx = -r; dx <= r && !g; dx++) { const x = p0.x + dx, y = p0.y + dy; if (W0.grid[y][x] === 'g' && !pathOkAt(x, y) && overlayAt(x, y) === undefined) g = [x, y]; }
+    const v0 = pathsVer();
+    PathTool.open({ design: true });
+    PathTool.style = 'brick';
+    out.path = PathTool.design && PathTool.paint(g[0], g[1]) && overlayAt(g[0], g[1]) === 'brick' && Design.d.paths[g[0] + ',' + g[1]] === 'brick' && pathsVer() !== v0 && !(S.paths && S.paths.t[g[0] + ',' + g[1]]);
+    Design.pathStroke = false;
+    PathTool.style = 'erase';
+    out.erase = PathTool.paint(g[0], g[1]) && overlayAt(g[0], g[1]) === undefined && !Design.d.paths;
+    PathTool.close();
+    out.backToEdit = IslandEdit.on && IslandEdit.design;
+    // a bridge: picked with a tap (not the pier), a tile down its stream, taken away (the stream again), put back
+    IslandEdit.bridges = true;
+    const run = Design.bridgeRun(172, 44);
+    out.pier = !Design.bridgeRun(W0.pier.x0, W0.pier.y1) && !!run && run.length === 8;
+    IslandEdit.tap(172.5 * TILE, 44.5 * TILE);
+    out.picked = (IslandEdit.bridgeSel || []).length === 8;
+    Design.bridgeDo(IslandEdit, 'on');
+    out.moved = W0.grid[46][172] === 'w' && W0.grid[44][172] === 'r' && a().blockedAt(172, 44) && !a().blockedAt(172, 46) && IslandEdit.bridgeSel.length === 8;
+    Design.bridgeDo(IslandEdit, 'away');
+    out.away = W0.grid[45][172] === 'r' && W0.grid[46][172] === 'r' && a().blockedAt(172, 45) && Design.bridgesGone().length === 1;
+    IslandEdit.tap(172.5 * TILE, 44.5 * TILE);
+    out.back = W0.grid[44][172] === 'w' && W0.grid[45][173] === 'w' && !Design.bridgesGone().length && !Design.d.bridges.add.length && !Design.d.bridges.gone.length;
+    // a new one, laid straight across the stream further down
+    Design.bridgeW = 2;
+    let ny = 47;
+    while (ny < 52 && !Design.bridgeAt(172, ny).tiles) ny++;
+    const nb = Design.bridgeAt(172, ny);
+    IslandEdit.tap(172.5 * TILE, (ny + 0.5) * TILE);
+    out.laid = !!nb.tiles && nb.tiles.every(([x, y]) => W0.grid[y][x] === 'w' && !a().blockedAt(x, y)) && Design.d.bridges.add.length === nb.tiles.length;
+    out.notLand = !!Design.bridgeAt(p0.x, p0.y).why;
+    IslandEdit.bridges = false;
+    IslandEdit.close();
+    // a bench turned to face east: Sarah sits facing east on its east edge, a neighbor beside her; she stands up to the east
+    const bi = W0.props.findIndex((p, k) => p.kind === 'bench' && !propGone(k));
+    Design.d.props[bi] = { rot: 1 };
+    Design.changed('island');
+    const B = W0.props[bi], e = a().ents.find(q => q.propIdx === bi);
+    UI.say = async () => {};
+    try { G.player.x = (B.x + 2.5) * TILE; G.player.y = (B.y + 1.5) * TILE; await sitOnBench(e); } finally { UI.say = say; }
+    const p = G.player;
+    out.sit = !!p.sit && p.sit.rot === 1 && p.dir === 'right' && Math.floor(p.x / TILE) === B.x && p.y > B.y * TILE && p.y < (B.y + 2) * TILE && p.x > (B.x + 0.7) * TILE;
+    const at = benchSeatPos(p.sit.b, 1 - p.sit.seat);
+    out.buddy = Math.abs(at.y - p.y) > 10 && at.x === p.x && at.rot === 1 && EnvDolls.sitAng({ sit: p.sit }) === Math.PI / 2;
+    const sx = p.x;
+    standUp(p);
+    out.up = !p.sit && p.x > sx + 10;
+    Design.d = null; Design.apply(); rebuildIsland();
+    return out;
+  });
+  assert.deepEqual(res, { path: true, erase: true, backToEdit: true, pier: true, picked: true, moved: true, away: true, back: true, laid: true, notLand: true, sit: true, buddy: true, up: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
 test("the Friends app: a tap on a friend opens their page (what they're like, work, loves and likes, friends, and what they've done with Sarah)", async () => {
   const page = await device();
   await page.evaluate(() => __dbg.quickStart());
@@ -3100,7 +3168,7 @@ test("the island flag's poles by the Town Hall and at the end of the pier; the T
       const a = buildRoom('townhall');
       out.noCouncil = !a.ents.some(e => e.kind === 'judge');
       await civicCounter('townhall');
-      out.card = said.some(t => /^null: .*THE COUNCIL IS OUT/.test(t)) && !said.some(t => /^floret/.test(t)) && !document.getElementById('panel').hidden;
+      out.card = said.some(t => /^null: .*MAKI IS OUT/.test(t)) && !said.some(t => /^floret/.test(t)) && !document.getElementById('panel').hidden;
     } finally { UI.say = say; UI.close(true); }
     return out;
   });
@@ -3805,6 +3873,9 @@ test("island jobs, the way a player does: packages handed over through the talk 
   const res = await page.evaluate(async () => {
     __dbg.setTime(10, 0, 14);
     const out = {}, ask = UI.ask, say = UI.say;
+    // (the keepers, David, 28 October: Maki at the Town Hall's desk, Coco at the Bank, Cece at the Post Office, in their hours)
+    out.keepers = [['maki', 'townhall'], ['coco', 'bank'], ['cece', 'postoffice']].every(([id, room]) => ROOMS[room].staff === id && makePlan(id, Clock.dayNum()).segs.some(s => s.spot === room)
+        && resolveSpot(NPCs.get(id), room).area === room && WORK_MENUS[id].room === room);
     let want = [];
     UI.say = async () => {};
     UI.ask = async (w, t, opts) => { for (const re of want) { const i = opts.findIndex((o) => re.test(o)); if (i >= 0) return i; } return opts.length - 1; };
@@ -3836,7 +3907,7 @@ test("island jobs, the way a player does: packages handed over through the talk 
     } finally { clearInterval(closer); UI.ask = ask; UI.say = say; G.busy = 0; }
     return out;
   });
-  assert.deepEqual(res, { parcels: true, delivered: true, sign: true, handedIn: true });
+  assert.deepEqual(res, { keepers: true, parcels: true, delivered: true, sign: true, handedIn: true });
   assert.deepEqual(page.problems.filter((p) => !/502|Bad Gateway/.test(p)), []);
   await page.context().close();
 });

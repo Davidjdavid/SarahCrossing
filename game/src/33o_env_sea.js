@@ -154,18 +154,17 @@ const EnvSea = {
         }
         const f = SeaSky.flock;
         if (f && EnvModels.has('critter_gull')) for (let i = 0; i < f.n; i++) {
-            const ang = f.t / (80 + i * 9) + i * 2.1, x = f.cx + Math.cos(ang) * (34 + i * 9), y = f.cy + Math.sin(ang) * (12 + i * 3);
-            const key = 'gull' + i;
+            const g = SeaSky.gullAt(i), key = 'gull' + i;
             let d = this.list.get(key);
             if (!d) { d = EnvCritters.make('critter_gull'); this.group.add(d.root); d.userData = { name: 'critter_gull' }; d.visible = true; this.list.set(key, d); }
             seen.add(key);
             d.root.visible = true;
-            d.root.position.set(x / TILE, this.GULL_ALT + Math.sin(f.t / 40 + i) * 0.15, y / TILE * R3_ZS);
-            // (flying round the circle: facing the way it goes, head first; the model looks down +z, so the angle is
-            // atan2 of the velocity's x over its z)
-            d.root.rotation.y = Math.atan2(-Math.sin(ang) * (34 + i * 9), Math.cos(ang) * (12 + i * 3) * R3_ZS);
-            d.body.rotation.x = -0.15;
-            for (const w of d.wings) w.rotation.z = w.userData.side * Math.sin((f.t + i * 7) * 0.25) * 0.85;
+            d.root.position.set(g.x / TILE, this.GULL_ALT + Math.sin(f.t / 40 + i) * 0.15 + g.up * 0.03, g.y / TILE * R3_ZS);
+            // (facing the way it goes, head first: the model looks down +z, so the angle is atan2 of the velocity's x over its z;
+            // climbing as it flies off, its wings beating faster)
+            d.root.rotation.y = Math.atan2(g.vx, g.vy * R3_ZS);
+            d.body.rotation.x = g.up ? -0.45 : -0.15;
+            for (const w of d.wings) w.rotation.z = w.userData.side * Math.sin((f.t + i * 7) * (g.up ? 0.55 : 0.25)) * 0.85;
         }
         for (const [k, d] of this.list) {
             if (seen.has(k)) continue;

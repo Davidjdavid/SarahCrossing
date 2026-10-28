@@ -565,7 +565,7 @@ function updateNPC(n) {
         if (n.t % 40 === 0 && R() < 0.35) { n.hop = 2.5; if (R() < 0.3) { n.emote = rpick(['note', 'sparkle', 'laugh', 'spicy']); n.emoteT = 50; } }
         return;
     }
-    n.sy = isSeated(n) ? n.want.sit.benchY + 0.5 : undefined;
+    n.sy = isSeated(n) ? benchSortY(n.want.sit.b, { rot: n.want.sit.rot || 0, benchY: n.want.sit.benchY, y: n.want.y }) : undefined;
     if (n.chat) { if (n.chat.i >= 0 && (n.t % 50 === 0) && R() < 0.3) { n.emote = rpick(['note', 'laugh', 'heart']); n.emoteT = 40; } return; }
     if (n.fixed || !n.anchor) return;
     // something of their own for a while: a book, an ice cream, the stars (33kd_doll_idle.js)
@@ -645,7 +645,7 @@ function drawNPC(ctx, n) {
     const [f, flip, dir, squashed] = npcFrame(n);
     if (isSeated(n)) {
         const y = Math.round(n.y - n.hop);
-        if (n.def.human) {
+        if (n.def.human && !n.want.sit.rot) {
             // people have a proper sitting frame (legs and all)
             const sit = `${n.def.human}_down_sit`;
             spr(ctx, Assets.has(sit) ? sit : f, n.x, y);
@@ -653,8 +653,8 @@ function drawNPC(ctx, n) {
             if (acc) drawNpcAcc(ctx, n, acc, y + 1, false, 'down', false);
             return;
         }
-        // the food folks just settle onto the seat; the bench hides their feet
-        drawSeated(ctx, n.want.sit.benchY, () => {
+        // the food folks just settle onto the seat; the bench hides their feet (and on a turned bench, people's legs)
+        drawSeated(ctx, sitClipY(n.want.sit), () => {
             spr(ctx, f, n.x, y, flip);
             const acc = npcWearing(n.id);
             if (acc) drawNpcAcc(ctx, n, acc, y, flip, dir, squashed);
