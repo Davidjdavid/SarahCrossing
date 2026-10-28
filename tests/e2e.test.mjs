@@ -3749,3 +3749,29 @@ test('on a phone, nothing spills sideways: the phone and its apps, the pocket, t
   assert.deepEqual(spilled, []);
   await page.close();
 });
+
+test("selling a pocketful at Fortune's in one go: All fish, a second tap to be sure, every fish sold at its own price", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(14, 0, 14);
+    S.pocket.forEach((q, i) => { if (q && ITEMS[q.id] && ITEMS[q.id].type === 'fish') S.pocket[i] = null; });
+    const fish = FISHES.filter((f) => f.id !== 'boot').slice(0, 3).map((f) => f.id);
+    for (const id of fish) receive(id, 2, true);
+    const m0 = S.money;
+    shopSell();
+    const allFish = () => [...document.querySelectorAll('#panel button')].find((b) => /^All fish|^Sell 6 fish/.test(b.textContent));
+    const b = allFish(), label = b.textContent;
+    b.click();
+    const ask = allFish().textContent;
+    const fishKept = S.pocket.some((q) => q && ITEMS[q.id].type === 'fish');
+    allFish().click();
+    const out = { label, ask: /^Sell 6 fish for/.test(ask), waited: fishKept, sold: !S.pocket.some((q) => q && ITEMS[q.id].type === 'fish') && S.money > m0, gone: !allFish() };
+    UI.close(true);
+    return out;
+  });
+  assert.deepEqual(res, { label: 'All fish (6)', ask: true, waited: true, sold: true, gone: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});

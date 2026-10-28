@@ -412,8 +412,8 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   player does (buying and selling at every shop, making pottery, cooking, fishing, decorating, every app and screen,
   every game, every neighbor's talk menu...), so nothing quietly breaks again (buying and selling at Fortune's had,
   since 26 October, with no test catching it)
-- [ ] The game as something played for months: tedious chores, awkward pacing, confusing screens, frustrating
-  activities
+- [~] The game as something played for months: tedious chores, awkward pacing, confusing screens, frustrating
+  activities (29 October: started. Fortune's sells a pocketful of fish, fruit or shells in one go)
 
 ## David's notes (29 October)
 - [x] John, Elizabeth, David and James are no longer neighbors: they're only in the game when someone plays as them

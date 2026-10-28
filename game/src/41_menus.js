@@ -825,6 +825,23 @@ function shopSell() {
             if (keep) back();
             P.foot.innerHTML = '';
             P.foot.appendChild(el('span', 'grow', `${fmtNum(S.money)} sand dollars`));
+            // (a pocketful of one kind sold in one go, as at Animal Crossing's drop-off box: a second tap to be sure)
+            for (const [t, word] of [['fish', 'fish'], ['fruit', 'fruit'], ['shell', 'shells']]) {
+                const slots = S.pocket.map((q, k) => [q, k]).filter(([q]) => q && ITEMS[q.id] && ITEMS[q.id].type === t && !unsellable(q.id));
+                const n = slots.reduce((a, [q]) => a + q.n, 0), pay = slots.reduce((a, [q]) => a + each(q.id) * q.n, 0);
+                if (n < 2 || slots.length < 2) continue;
+                const b = btn(`All ${word} (${n})`, 'alt', () => {
+                    if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = `Sell ${n} ${word} for ${fmtNum(pay)}?`; return; }
+                    for (const [q, k] of slots) removeSlot(k);
+                    addMoney(pay, true, sellWhy(slots[0][0].id));
+                    Sfx.play('sell');
+                    S.stats.sold = (S.stats.sold || 0) + n;
+                    UI.toast(`Sold ${n} ${word}: +${fmtNum(pay)}`, itemIcon(slots[0][0].id));
+                    V.clear();
+                    draw(true);
+                });
+                P.foot.appendChild(b);
+            }
         };
         draw();
     });
