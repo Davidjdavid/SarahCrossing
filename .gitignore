@@ -11,3 +11,6 @@ dist3/
 dist4/
 # (the dialogue extractor's working file: scripts/dialogue/extract.mjs)
 /dialogue.json
+dist4/
+dist5/
+dist6/
