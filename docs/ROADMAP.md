@@ -81,7 +81,7 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] A secret character
 - [~] Every line in one spreadsheet for David to edit (docs/dialogue/dialogue.xlsx, 26 October: 6,694 lines with who
   says them and when, plus 399 new lines for the zip code, Post Office, Bank and Town Hall in every outcome; exported again
-  27 October with everything added since: 8,332 lines; again 29 October without the family's lines: 8,601); his edits go back
+  27 October with everything added since: 8,332 lines; again 29 October without the family's lines: 8,601, and with the night's new lines: 8,662); his edits go back
   in with scripts/dialogue/apply.mjs
 - [~] Way more dialogue, better dialogue, conversations that react to what's going on: about 1,340
   new lines (27+ everyday lines per neighbor, plus topics that react to the hour, weather, season,
