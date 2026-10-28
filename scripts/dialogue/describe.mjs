@@ -115,6 +115,7 @@ const T = {
     MEM_LINES: ['any', 'A neighbor brings up something they did with Sarah in the last week ({when} is yesterday, the other day or last week; {item} the present, {game} the game, {what} the thing she found for them)'],
     GAME_WORDS: ['any', 'The name of a game a neighbor played with Sarah, as they remember it'],
     MISSED_LINES: ['any', "A neighbor greets Sarah after she hasn't been by for more than three weeks"],
+    WHALE_TALK: ['npc', 'Some winter and spring days, when a whale is out at sea, a neighbor talks about it (_ is everyone without their own)'],
     FAV_SPOT: ['npc', 'At two hearts a neighbor tells Sarah their favorite spot on the island (once; then they invite her there to hang out)'],
     ADVICE: ['npc', 'At three hearts a neighbor asks Sarah for advice (once): the question, her two answers, their reaction to each'],
     CHAT_CLOSE: ['any', 'Two close friends chatting with each other (speech bubbles; lines take turns)'],

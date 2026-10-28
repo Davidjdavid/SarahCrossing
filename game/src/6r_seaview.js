@@ -363,3 +363,19 @@ function lookoutView() {
     return new Promise(res => SeaView.open(async () => { if (Quests.starVisible()) await Quests.lookout(); res(); }));
 }
 
+/* on a whale day the neighbors talk about it (a topic for topicLine; _ is everyone without lines of their own) */
+const WHALE_TALK = {
+    _: ['Did you see the whale? Out past the pier. It went WHOOSH, then it was gone. Then WHOOSH again!',
+        "A whale! Off our island! I've been staring at the sea all day. My neck hurts. Worth it.",
+        "Somebody said there's a whale out there today. I looked for an hour and saw a lot of sea. Very good sea, though."],
+    kai: ["Dude. DUDE. A whale. It spouted like a giant lawn sprinkler. I'm still buzzing.", "The whale and me, we had a moment. It flipped its tail. I flipped my noodles. Same energy."],
+    maki: ['A humpback, I believe. It surfaced twice, then dived. I timed it. Of course I timed it.'],
+    sully: ['A whale off the pier! Back home we would have charged admission. Wicked big.'],
+    coco: ["Don't tell anyone, but I heard the whale is looking for a new island. I'm telling everyone. Is that bad?"],
+    cece: ['The whale splashed and I said sorry. Out loud. To the ocean. I do not know why.'],
+    brulee: ['A whale! If only the museum had a room big enough. I have asked. The board said no.'],
+    cuke: ['I saw the whale at dawn while I was jogging. It was also up early. Respect.'],
+    scampi: ["Thar she blows! Haven't seen one that size since my sailing days. Takes me back, it does."],
+    mug: ['A whale! In MY day the biggest thing in the sea was a gravy boat.'],
+};
+EXTRA_TOPICS.push(['whale', n => (SeaSky.whaleDay() ? 1.6 : 0), n => rpick(WHALE_TALK[n.id] || WHALE_TALK._)]);

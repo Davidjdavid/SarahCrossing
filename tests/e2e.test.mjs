@@ -4260,6 +4260,9 @@ test('a whale out at sea some winter days: only on those days, in a stretch of o
     let day = 1;
     for (; day < 31; day++) { __dbg.setTime(1, day, 11); if (SeaSky.whaleDay()) break; }
     out.winter = day < 31;
+    // the neighbors talk about it that day
+    const topic = EXTRA_TOPICS.find((t) => t[0] === 'whale');
+    out.talk = topic[1]({ id: 'kai' }) > 0 && WHALE_TALK.kai.includes(topic[2]({ id: 'kai' })) && WHALE_TALK._.includes(topic[2]({ id: 'basil' }));
     __dbg.setTime(1, day, 20);
     out.night = SeaSky.whaleDay();
     __dbg.setTime(1, day, 11);
@@ -4285,7 +4288,7 @@ test('a whale out at sea some winter days: only on those days, in a stretch of o
     SeaView.close();
     return out;
   });
-  assert.deepEqual(res, { summer: false, winter: true, night: false, spawned: true, sea: true, clear: true, gone: true, telescope: true, drawn: true });
+  assert.deepEqual(res, { summer: false, winter: true, talk: true, night: false, spawned: true, sea: true, clear: true, gone: true, telescope: true, drawn: true });
   assert.deepEqual(page.problems, []);
   await page.close();
 });
