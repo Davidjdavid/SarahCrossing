@@ -3250,3 +3250,165 @@ test('the phone and the camera, the way a player uses them: a photo taken, an ou
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test("making Sarah's look, the way a player does: a new hairstyle at Floss's chair, a design sewn at Clementine's machine, a prize from Chili's counter", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(14, 0, 14);
+    S.money = 50000;
+    const out = {}, ask = UI.ask, say = UI.say, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    UI.ask = async () => 0; UI.say = async () => {};
+    try {
+      // the salon: another hairstyle, then "Do it!"
+      const hair0 = look().hair, money0 = S.money;
+      const chair = salonChair();
+      for (let i = 0; i < 40 && !Salon.res; i++) await wait(50);
+      Salon.L.hair = Object.keys(GD.sarahTpl.hair.styles).find((k) => k !== hair0);
+      Salon.finish(true);
+      await Promise.race([chair, wait(5000)]);
+      out.salon = look().hair !== hair0 && S.money === money0 - SALON_PRICE;
+      // the sewing machine: a design, made and in the wardrobe
+      const outfits0 = S.wardrobe.outfits.length;
+      const sew = sewingMachine();
+      for (let i = 0; i < 40 && !Sewing.res; i++) await wait(50);
+      Sewing.d.name = 'Test dress';
+      Sewing.finish(Sewing.d);
+      await Promise.race([sew, wait(5000)]);
+      out.sewn = S.wardrobe.outfits.length === outfits0 + 1 && Object.values(designs()).some((d) => d.name === 'Test dress');
+      // the prize counter: tickets for the first prize, delivered home (or to the pocket)
+      addTickets(100000, true);
+      const t0 = arc().tickets, got0 = (S.storage[PRIZES[0][0]] || 0) + pocketCount(PRIZES[0][0]);
+      prizeCounter();
+      document.querySelector('#panel .list .row .btn.green').click();
+      out.prize = arc().tickets === t0 - PRIZES[0][1] && (S.storage[PRIZES[0][0]] || 0) + pocketCount(PRIZES[0][0]) === got0 + 1;
+      UI.close(true);
+    } finally { UI.ask = ask; UI.say = say; G.busy = 0; }
+    return out;
+  });
+  assert.deepEqual(res, { salon: true, sewn: true, prize: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('decorating the island and giving gifts, the way a player does: a lamp set down, moved and put away, a bench moved, an apple given to a neighbor', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(14, 0, 14);
+    const out = {}, E = IslandEdit, D = deco();
+    /* a free spot near Sarah, a few tiles off, that the held thing can go */
+    const spot = (not) => {
+      const p = G.player, px = Math.floor(p.x / TILE), py = Math.floor(p.y / TILE);
+      for (let r = 2; r < 14; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        const x = px + dx, y = py + dy;
+        if (not && not[0] === x && not[1] === y) continue;
+        if (!E.whyNot(x, y)) return [x, y];
+      }
+      return null;
+    };
+    const tapAt = (x, y) => { const h = E.held; E.tap((x + Math.floor((h.w - 1) / 2)) * TILE + 8, (y + h.rows - 1) * TILE + 8); };
+    toStorage('dp_lamp', 1);
+    E.open();
+    // Set something down, then the lamp from the list
+    [...document.querySelectorAll('#panel .chip')].find((c) => c.textContent.startsWith('Set something down')).click();
+    [...document.querySelectorAll('#panel .list .row')].find((r) => r.textContent.includes('Street lamp')).click();
+    const a = spot();
+    tapAt(a[0], a[1]);
+    const p0 = D.placed[D.placed.length - 1];
+    out.down = !!p0 && p0.id === 'dp_lamp' && p0.x === a[0] && p0.y === a[1] && !(S.storage.dp_lamp > 0);
+    // picked up again and moved somewhere else
+    const h = displayRows(dispDef('dp_lamp'));
+    E.tap(a[0] * TILE + 8, (a[1] + h - 1) * TILE + 8);
+    const b = spot(a);
+    tapAt(b[0], b[1]);
+    out.moved = !E.held && p0.x === b[0] && p0.y === b[1];
+    // and put away: back home in storage
+    E.tap(b[0] * TILE + 8, (b[1] + h - 1) * TILE + 8);
+    [...document.querySelectorAll('#panel .chip')].find((c) => c.textContent === 'Put it away').click();
+    out.away = !D.placed.includes(p0) && S.storage.dp_lamp === 1;
+    // one of the island's own benches moved
+    const bench = G.areas.island.ents.find((e) => e.kind === 'bench' && e.propIdx != null && !e.hidden);
+    E.pickUp(bench);
+    const c = spot();
+    tapAt(c[0], c[1]);
+    out.bench = !!D.moved[bench.propIdx] && D.moved[bench.propIdx].join() === c.join();
+    E.close();
+    // a gift: Talk, then the apple from the pocket
+    const ask = UI.ask, say = UI.say;
+    UI.say = async () => {}; UI.ask = async () => 1;
+    try {
+      receive('apple', 2, true);
+      const id = 'coco', n = NPCs.get(id), given = rel(id).given || 0;
+      const flow = giftFlow(n);
+      for (let i = 0; i < 40 && !document.querySelector('#panel .grid'); i++) await new Promise((r) => setTimeout(r, 50));
+      const slot = [...document.querySelectorAll('#panel .grid > *')].find((s) => s.style.opacity !== '0.35' && s.querySelector('canvas'));
+      slot.click();
+      await Promise.race([flow, new Promise((r) => setTimeout(r, 5000))]);
+      out.gift = (rel(id).given || 0) === given + 1 && rel(id).giftDay === Clock.dayNum() && pocketCount('apple') === 1;
+    } finally { UI.ask = ask; UI.say = say; }
+    return out;
+  });
+  assert.deepEqual(res, { down: true, moved: true, away: true, bench: true, gift: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test("a favor and a bigger house, the way a player does: \"Need anything?\" in the talk menu, the thing brought, paid; Ginger makes the house bigger and it's bigger inside", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(14, 0, 14);
+    const out = {}, ask = UI.ask, say = UI.say;
+    /* answers the talk menu with the first option that matches, in order, else the last one ("See you!") */
+    let want = [];
+    UI.say = async () => {};
+    UI.ask = async (w, t, opts) => { for (const re of want) { const i = opts.findIndex((o) => re.test(o)); if (i >= 0) return i; } return opts.length - 1; };
+    // (now and then a thank-you is something special: its card is tapped away, as a player does)
+    const closer = setInterval(() => { if (document.querySelector('.spcard')) UI.close(); }, 100);
+    try {
+      const id = 'coco', n = NPCs.get(id), T = Requests.st(), day = Clock.dayNum();
+      rel(id).met = true;
+      // a day when Coco wants something brought (the favor is from the seed, the day and the count)
+      for (let s = T.seq; s < T.seq + 200; s++) {
+        const keep = T.seq; T.seq = s;
+        const t = Requests.make(n), rr = mulberry(hash32(S.seed + ':need:' + id + ':' + day + ':' + s));
+        T.seq = keep;
+        if (t.kind === 'bring' && !(rr() < 0.2 && hearts(id) >= 2)) { T.seq = s; break; }
+      }
+      const done0 = T.done;
+      want = [/^Sure!$/, /^Need anything\?$/];
+      await talkTo(n);
+      const t = Requests.from(id) || T.list.find((q) => q.from === id);
+      out.asked = !!t && t.kind === 'bring';
+      if (t.state !== 'done') {
+        receive(t.item, 1, true);
+        const money0 = S.money;
+        want = [/^Brought your/];
+        await talkTo(n);
+        out.paid = S.money > money0 || Object.keys(S.storage).length > 0;
+      } else out.paid = true;
+      out.done = T.done === done0 + 1 && t.state === 'done';
+      // Ginger's workshop: Make my house bigger, then Build it
+      S.money = 100000;
+      const lvl = S.house.level, cost = HOUSE_EXPAND[lvl];
+      want = [/^Make my house bigger$/, /^Build it \(/, /^Later$/];
+      let rounds = 0;
+      const ask2 = UI.ask;
+      UI.ask = async (w, t2, opts) => { if (opts.includes('Make my house bigger') && rounds++) return opts.indexOf('Never mind'); return ask2(w, t2, opts); };
+      await builderMenu();
+      out.bigger = S.house.level === lvl + 1 && S.money === 100000 - cost;
+    } finally { clearInterval(closer); UI.ask = ask; UI.say = say; G.busy = 0; }
+    return out;
+  });
+  assert.deepEqual(res, { asked: true, paid: true, done: true, bigger: true });
+  // inside, the house is the next size up
+  await page.evaluate(() => enterRoom('home'));
+  await page.waitForFunction(() => G.area && G.area.id === 'home');
+  assert.deepEqual(await page.evaluate(() => [G.area.floor.w, G.area.floor.h, S.house.level].join()), await page.evaluate(() => HOUSE_SIZES[1].join() + ',1'));
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
