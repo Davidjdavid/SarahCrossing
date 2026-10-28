@@ -237,10 +237,13 @@ const EnvItems = {
         if (!sp) return;
         sp.visible = k > 0;
         if (!k) return;
-        const g = gold();
+        // (over the blooms, big enough to see from the camera: they were a tenth of a tile and hid among the petals; in the
+        // burst as the water lands it hops between three spots round the flower)
+        const g = gold(), at = (waterTiles.at || {})[pl.x + ',' + pl.y], since = at != null ? G.t - at : 1e9;
+        const spot = since < 80 ? [[0.12, 0.05], [-0.14, 0.02], [0.02, -0.1]][Math.floor(since / 9) % 3] : [0.1, 0.05];
         sp.children.forEach(c => { c.material = g ? this.goldMat() : this.sparkMat; });
-        sp.position.set(0.1 / d.scale.x, 0.42 / d.scale.y, 0.05);
-        sp.scale.setScalar((0.15 + 0.4 * k) / d.scale.x);
+        sp.position.set(spot[0] / d.scale.x, 0.64 / d.scale.y, spot[1] / d.scale.z);
+        sp.scale.setScalar((0.45 + 0.75 * k) / d.scale.x);
         sp.rotation.y = G.t / 20;
     },
     goldMat() { return this._gold || (this._gold = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffd04a }), { key: 'envspark' })); },
