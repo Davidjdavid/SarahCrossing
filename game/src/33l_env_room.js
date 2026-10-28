@@ -411,6 +411,18 @@ const EnvRoom = {
                 mv.mesh.matrix.copy(mv.base).multiply((this._spin || (this._spin = new THREE.Matrix4())).makeRotationY(-(mv.a || 0)));
                 continue;
             }
+            // (the mini windmill's sails turn about their hub, always; the globe, given a spin, slows to a stop)
+            if (/^mini_windmill/.test(id)) {
+                const T = this._hub || (this._hub = [new THREE.Matrix4(), new THREE.Matrix4(), new THREE.Matrix4()]);
+                mv.mesh.matrix.copy(mv.base).multiply(T[0].makeTranslation(0, 0.3, 0.09)).multiply(T[1].makeRotationZ(t * 0.025)).multiply(T[2].makeTranslation(0, -0.3, -0.09));
+                continue;
+            }
+            if (/^globe/.test(id)) {
+                const k = mv.e.spinT != null ? Math.max(0, 1 - (t - mv.e.spinT) / 150) : 0;
+                mv.a = ((mv.a || 0) + 0.22 * k * k) % (Math.PI * 2);
+                mv.mesh.matrix.copy(mv.base).multiply((this._spin || (this._spin = new THREE.Matrix4())).makeRotationY(mv.a));
+                continue;
+            }
             const dx = id === 'claw_machine' ? -0.55 + (Math.sin(t / 50) + 1) * 0.5 : id === 'sushi_conveyor' ? (t * 0.004) % 0.4 : 0;
             mv.mesh.matrix.copy(mv.base).multiply(new THREE.Matrix4().makeTranslation(dx, 0, 0));
         }

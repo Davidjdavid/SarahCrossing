@@ -21,6 +21,17 @@ function furnSwitch(e) {
     Save.touch();
     return true;
 }
+/* a tap gives the globe a spin, slowing to a stop (EnvRoom.animate; the flat views can't turn it, so Sarah says so) */
+function globeSpin(e) {
+    const d = e.def;
+    if (!d || (d.base || d.id) !== 'globe') return false;
+    e.spinT = G.t;
+    Sfx.notes([60, 64, 67], 'kalimba', 0.06, 0.1);
+    const shown = typeof EnvRoom !== 'undefined' && EnvRoom.built && (EnvRoom.built.movers || []).some(m => m.e === e);
+    if (!shown) UI.say(null, rpick(['Sarah gives the globe a spin. It stops with her finger in the middle of an ocean. Most of the world is ocean, to be fair.',
+        'The globe spins and spins. Sarah stops it on a tiny island. It looks a lot like this one.']));
+    return true;
+}
 /* is this placed piece switched on */
 function furnOn(e) { return !!(e && e.item && e.item.play); }
 /* the TV's screen in the new look: static while it's on (snow, a rolling bar), dark glass with a glint while it's off */

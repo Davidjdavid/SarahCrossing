@@ -3617,9 +3617,17 @@ test('furniture that acts: a retro TV and a record player, sold at IslandMart in
     out.on = furnOn(tv) && furnOn(rec) && S.house.items.filter((it) => it.play).length === 2;
     await useFurniture(tv);
     out.tvOff = !furnOn(tv) && furnOn(rec);
+    // the globe on a table: a tap gives it a spin (in the flat view, which can't turn it, Sarah says so)
+    S.house.items.push({ id: 'globe', x: f.x0 + 1, y: f.y0, on: S.house.items.indexOf(S.house.items.find((it) => it.id === 'tv_retro')) });
+    placeFurniture(G.area, S.house.items);
+    const said = [];
+    UI.say = async (w, l) => { said.push(l); };
+    const globe = G.area.ents.find((e) => e.furn && e.item && e.item.id === 'globe');
+    await useFurniture(globe);
+    out.globe = globe.spinT === G.t && said.some((l) => /globe/.test(l));
     return out;
   });
-  assert.deepEqual(res, { sold: true, pictures: true, noMissing: true, offFirst: true, on: true, tvOff: true });
+  assert.deepEqual(res, { sold: true, pictures: true, noMissing: true, offFirst: true, on: true, tvOff: true, globe: true });
   assert.deepEqual(page.problems, []);
   await page.close();
 });

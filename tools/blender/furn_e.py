@@ -152,7 +152,7 @@ def globe(P):
     def earth(p, n):
         land = noise.noise(n * 2.3 + Vector((3, 1, 2))) > 0.08
         return (rgb('#5aa850') if land else rgb('#4a8ad8')) * (0.86 + 0.2 * max(0.0, n.dot(Vector((-0.35, -0.55, 0.76)).normalized())))
-    ball(P.gloss, (0, 0, 0.24), 0.13, earth, sub=3)
+    ball(P.move, (0, 0, 0.24), 0.13, earth, sub=3)         # (its own part: a tap spins it, EnvRoom.animate)
     tube(P.main, [(0.0, 0.0, 0.1), (0.1, 0.0, 0.14), (0.14, 0.0, 0.24), (0.1, 0.0, 0.34), (0.0, 0.0, 0.38)], 0.01, gold(), seg=6)
 
 
@@ -332,12 +332,14 @@ def mini_windmill(P):
     rbox(mb, -0.1, -0.1, 0.0, 0.1, 0.1, 0.03, wood('#7a5a3a'), r=0.01, mid=1)
     lathe(mb, [(0.08, 0.03), (0.06, 0.3)], paint('#f4ecdc'), seg=8, cap_top=False)
     lathe(mb, [(0.075, 0.3), (0.0, 0.38)], paint('#c8443a'), seg=8)
+    # (the sails are their own part, turning about the hub at (0, -0.09, 0.3): EnvRoom.animate)
+    sv = P.move
     for k in range(4):
         a = k / 4 * math.tau + 0.3
-        m = len(mb.v)
-        rbox(mb, 0.0, -0.09, -0.006, 0.17, -0.082, 0.006, wood('#8a6a3a'), r=0.002, mid=0)
-        rbox(mb, 0.04, -0.088, 0.006, 0.16, -0.084, 0.04, shade('#fbf8f2'), r=0.002, mid=0)
-        xform(mb, m, Matrix.Translation((0, 0, 0.3)) @ Matrix.Rotation(-a, 4, 'Y'))
+        m = len(sv.v)
+        rbox(sv, 0.0, -0.09, -0.006, 0.17, -0.082, 0.006, wood('#8a6a3a'), r=0.002, mid=0)
+        rbox(sv, 0.04, -0.088, 0.006, 0.16, -0.084, 0.04, shade('#fbf8f2'), r=0.002, mid=0)
+        xform(sv, m, Matrix.Translation((0, 0, 0.3)) @ Matrix.Rotation(-a, 4, 'Y'))
 
 
 @item('register', 1, 1)

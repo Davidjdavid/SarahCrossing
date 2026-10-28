@@ -483,7 +483,7 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   shoot water, lamps indoors switch on and off, a TV switches on to static, clocks tick round as time passes...) (28
   October, late: fires, torches and lanterns flicker; the fountains throw water up; clocks already kept the time; a lamp
   in the house switches off and on with a tap. 29 October: a retro TV that switches on to static and a record player
-  whose record turns, sold at IslandMart. Still to do: anything else that should move)
+  whose record turns, sold at IslandMart; the globe spins when tapped and the mini windmill's sails turn. Still to do: anything else that should move)
 - [x] (late) Buying and selling at Fortune's work again (broken since 26 October), with a test; "Sells for" gone from
   every description (the prices are on the cards)
 - [x] (late) Elizabeth playable; David a mustache only, John a mustache and a beard

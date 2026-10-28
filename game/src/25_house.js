@@ -196,7 +196,7 @@ async function useFurniture(e) {
     if (d.easel) return paintAndClose('home');
     if (d.laptop) return useLaptop();
     if (d.art) return viewArt(d.id);
-    if (lampSwitch(e) || furnSwitch(e)) return;          // (a lamp, the TV, the record player: 6zyb_acting.js)
+    if (lampSwitch(e) || furnSwitch(e) || globeSpin(e)) return;     // (a lamp, the TV, the record player, the globe: 6zyb_acting.js)
     const t = Clock.fmt().s;
     const lines = {
         bed_simple: [`Sarah isn't sleepy. It's only ${t}.`], cloud_bed: [`The weighted blanket is calling. Sarah is not ready to answer. It's only ${t}.`],
