@@ -24,10 +24,26 @@ const OPENERS = {
         "Hi! Oh. Hi. I wasn't waiting for you or anything. I was just standing here. For an hour."],
 };
 const OPENER_ANY = ['Oh, hi, {name}!', 'Hey, {name}!', 'Hi there!', 'Oh! Hi!'];
+/* stopped on their way somewhere: where they're headed, from their day's plan (n.want: the spot, what's in hand) */
+function onTheWay(n) {
+    const w = n.want, d = n.def, h = Clock.hourF();
+    if (!n.path || !n.path.length || !w || !w.spot || w.carry === 'suitcase') return null;
+    if (w.carry === 'groceries') return rpick(["Just did my shopping at Fortune's! Heading home to put it all away.", 'Groceries! Fortune had everything today. Well. Almost everything.']);
+    if (w.carry === 'crate') return rpick(["Taking this morning's harvest to Fortune's! Fresh as it gets.", 'Delivery! Straight from the field to the shelf.']);
+    if (w.carry === 'catch') return rpick(["Taking my catch to Fortune's! Check out this one!", 'Fish delivery, coming through!']);
+    if ((d.work || []).some(x => x[0] === w.spot)) return rpick(['On my way to work!', "Can't stop long, I'm heading to work!", 'Off to work! Somebody has to.']);
+    if (w.spot === 'home') return h >= 11.5 && h < 14 ? rpick(['Heading home for lunch!', 'Going home to eat. I can already taste it.'])
+        : h >= 19 ? rpick(['Heading home. What a day!', 'Home time! My couch is calling.']) : rpick(['Just heading home for a bit.', 'On my way home!']);
+    const place = placeName(n.id, w.spot);
+    if (!place || place === 'somewhere') return null;
+    return rpick([`On my way! I'll be ${place} for a while.`, `Heading over there now. ${cap(place)}, if you need me!`]);
+}
 function openerLine(n, first) {
     const id = n.id, own = OPENERS[id] || OPENER_ANY;
     const close = closeOpener(n, first);          // (how close they are: 6zzc_greet.js)
     if (close) return close;
+    const way = onTheWay(n);
+    if (way && R() < 0.6) return voiced(id, way);
     if (first && R() < 0.5) {
         const greet = { morning: 'Good morning, {name}!', afternoon: 'Hi, {name}! Good afternoon!', evening: 'Good evening, {name}!', night: "Hey, {name}! Up late? Me too. Obviously." }[partOfDay()];
         return voiced(id, greet);

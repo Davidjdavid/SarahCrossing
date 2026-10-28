@@ -370,7 +370,7 @@ const F = {
     addDisplay: ['narr', 'A display'], displaysShop: ['label', "Waffle's shop"], waffleTalk: ['waffle', "Talking to Waffle"], checkSpecialMilestones: ['narr', 'Earning a special'],
     itemDesc: ['label', 'Describing an item'], specialCard: ['label', 'Specials'], specialHint: ['label', 'A hint for a special'], appTasks: ['label', 'The Favors app'],
     whereIs: ['label', 'Where someone is'], arcadeLine: ['any', 'An arcade record'], carryLine: ['any', 'What Sarah is carrying'], islandLine: ['any', "What's happening on the island"],
-    moonPhaseName: ['label', 'The moon'], museumLine: ['any', "Sarah's painting in the museum"], openerLine: ['npc', 'Saying hello'], outfitLine: ['npc', 'Wearing a gift from Sarah'],
+    moonPhaseName: ['label', 'The moon'], museumLine: ['any', "Sarah's painting in the museum"], openerLine: ['npc', 'Saying hello'], onTheWay: ['npc', 'Stopped on the way somewhere: where they are headed'], outfitLine: ['npc', 'Wearing a gift from Sarah'],
     skyLine: ['any', 'The night sky'], statsLine: ['any', "Sarah's stats"], todayLine: ['any', 'What Sarah did today'], addQuestWorld: ['narr', 'A mystery'],
     buildLighthouseRoom: ['narr', 'Inside the lighthouse'], climbLighthouse: ['narr', 'Climbing the lighthouse'], bonusTick: ['narr', 'A food boost'], foodBonus: ['narr', 'A food boost'],
     openCrate: ['narr', 'Fishing up a crate'], ckHow: ['narr', 'How to do a cooking step'], cookDish: ['narr', 'Cooking'], plate: ['narr', 'Plating a dish'], next: ['narr', 'The next cooking step'],

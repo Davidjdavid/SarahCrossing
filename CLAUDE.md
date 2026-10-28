@@ -293,7 +293,7 @@ docs/DEPLOY.md for the server.
   other seat (`sitBy`), and a best friend (five) now and then walks along with her for a minute or so (`walkWith`,
   `walkTick` every frame: `n.script` and `n.escort`, quicker in stepNpc; it ends when she goes indoors or runs off); a word
   in a bubble, never a dialogue; once a day each, `GREET_MAX` a day. The closer they are, the warmer their hello when she
-  talks to them (`closeOpener` in openerLine), and a good friend sometimes talks about the friendship itself
+  talks to them (`closeOpener` in openerLine), and one stopped on the way somewhere says where they're headed (`onTheWay`), and a good friend sometimes talks about the friendship itself
   (`CLOSE_TALK`, one of topicLine's `EXTRA_TOPICS`). A neighbor's `poseT` counts down in updateNPC like Sarah's.
 - Friendship is earned over days (David, 28 October): `addPts(id, n, kind)` counts each kind of thing (favor, hangout,
   letter, job, treat, story...) once a day with each neighbor (`r.got` { day, kind: 1 }); the first talk, a gift, a game

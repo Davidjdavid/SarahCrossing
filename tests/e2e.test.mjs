@@ -4139,3 +4139,28 @@ test("on a phone, upright and sideways, the full-screen ones fit too: Sully's wh
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test('stopped on their way somewhere, a neighbor says where they are headed: to work, home for lunch, groceries home, the harvest or the catch to Fortune\'s, a place they like', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(() => {
+    const n = NPCs.get('mac'), say = (want, h) => { __dbg.setTime(6, 9, h); n.path = [[1, 1]]; n.want = want; return onTheWay(n); };
+    const work = n.def.work[0][0];
+    const out = {
+      work: /work/.test(say({ spot: work }, 10)),
+      lunch: /lunch|eat/.test(say({ spot: 'home' }, 12)),
+      groceries: /shopping|Groceries/.test(say({ spot: 'home', carry: 'groceries' }, 10)),
+      crate: /harvest|Delivery/.test(say({ spot: 'in_shop', carry: 'crate' }, 8)),
+      catch: /catch|Fish/.test(say({ spot: 'in_shop', carry: 'catch' }, 15)),
+      place: /beach/.test(say({ spot: 'beach' }, 15)),
+      suitcase: say({ spot: 'pier', carry: 'suitcase' }, 10) === null,
+    };
+    n.path = null;
+    out.standing = onTheWay(n) === null;
+    return out;
+  });
+  assert.deepEqual(res, { work: true, lunch: true, groceries: true, crate: true, catch: true, place: true, suitcase: true, standing: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
