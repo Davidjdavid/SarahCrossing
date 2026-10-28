@@ -207,12 +207,12 @@ const PROP_SIZE = { bench: 2, flowerbed: 2, board: 1, lamp: 1, mailbox: 1, sign_
     windmill: 3, boulder: 2, well: 1, hay: 1, crate: 1, scarecrow: 1, sign_farm: 1, telescope: 1, statue_david: 3, plaque: 1, bonfire: 2, log: 2,
     tent: 3, picnic: 3, campfire: 1, trough: 2, sign_camp: 1, sign_bonfire: 1, sign_trail: 1, blanket: 3,
     trashcan: 1, fountain: 2, fountain_grand: 4, drinkfountain: 1, sign_lot: 1, sign_land: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1,
-    swing_set: 3, hammock: 3, park_clock: 1, shrine_stone: 2, statue_sarah: 2 };
+    swing_set: 3, hammock: 3, park_clock: 1, shrine_stone: 2, statue_sarah: 2, flagpole: 1 };
 const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2, fountain_grand: 3, statue_sarah: 2 };
 /* what never turns (fences join tile to tile; the windmill, the court and the tents are laid out as they are) */
 const PROP_FIXED = new Set(['fence', 'windmill', 'volleyball', 'tent', 'blanket']);
 /* the little things around the island */
-const KNICK_FRAME = { fountain: 'd_fountain', fountain_grand: 'd_fountain', flamingo: 'd_flamingo', sign_trail: 'sign_camp', sign_lot: 'sign_camp', sign_land: 'sign_camp' };
+const KNICK_FRAME = { flagpole: 'd_flag', fountain: 'd_fountain', fountain_grand: 'd_fountain', flamingo: 'd_flamingo', sign_trail: 'sign_camp', sign_lot: 'sign_camp', sign_land: 'sign_camp' };
 /* what's written on the signs (the props themselves say nothing when looked at: David, 28 October, the descriptions
    dated from the phone game's stand-in pictures, and the jokes wore thin) */
 const PROP_TALK = {

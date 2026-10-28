@@ -56,7 +56,7 @@ const EnvRoom = {
     /* what the room draws itself: the furniture made in Blender (furniture.py), not what's hung on the wall or a rug (a
        piece the 2D view draws moving uses its model too: what moves on it moves here, EnvRoom.animate) */
     model(e) {
-        if (!e.furn || !e.def || e.def.kind === 'rug' || e.def.food || e.def.flower) return null;
+        if (!e.furn || !e.def || e.def.kind === 'rug' || e.def.food || e.def.flower || e.def.thing) return null;
         // (a plush is its folk's own model, small)
         // (a piece in another color is its own piece's model, repainted: colorGeo)
         const n = /^plush_/.test(e.item.id) ? 'folk_' + e.item.id.slice(6) : 'furn_' + (e.def.base || e.item.id);
@@ -483,10 +483,10 @@ const EnvRoom = {
     furniture(r3, a) {
         const B = this.built, list = a.ents.filter(e => e.furn && this.model(e));
         // (food and flowers on tables: the things' own models, a vase for the flowers)
-        const tops = a.ents.filter(e => e.furn && e.def && (e.def.food || e.def.flower));
+        const tops = a.ents.filter(e => e.furn && e.def && (e.def.food || e.def.flower || e.def.thing));
         // (and what has no model yet: what hangs on the wall, and the little things on tables, as thick cut-outs)
         const pots = a.ents.filter(e => e.furn && !e.draw && this.potOf(e));
-        const cuts = a.ents.filter(e => e.furn && e.def && !e.draw && !this.model(e) && !e.def.food && !e.def.flower && (e.def.kind === 'wall' || e.def.kind === 'top') && !pots.includes(e));
+        const cuts = a.ents.filter(e => e.furn && e.def && !e.draw && !this.model(e) && !e.def.food && !e.def.flower && !e.def.thing && (e.def.kind === 'wall' || e.def.kind === 'top') && !pots.includes(e));
         // (rugs, the mannequins, and the fittings that aren't furniture: look3d says what they are)
         const rugs = a.ents.filter(e => e.furn && e.def && e.def.kind === 'rug'), mans = a.ents.filter(e => e.kind === 'mannequin' && e.sale), decos = a.ents.filter(e => e.look3d);
         // (each piece by its own entity: the room makes them afresh when it's rearranged or restocked)

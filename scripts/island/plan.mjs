@@ -121,6 +121,9 @@ export const PLAN = {
     { id: 'shrine', kind: 'shrine_stone', x: 203, y: 15, w: 2, h: 1, ground: 'g' },
     { id: 'statue', kind: 'statue_sarah', x: 110, y: 106, w: 2, h: 2, ground: 'c' },
   ],
+  // the island flag's poles (David's last list, 27 October: the flag Sarah draws at the Town Hall flies over it and at the
+  // end of the pier): one beside the Town Hall's front (the nearest clear tile of grass), one on the pier's last planks
+  flagpoles: [{ x: 112, y: 88, ground: 'g' }, { x: 116, y: 146, exact: true }],
   fruitTrees: [[47, 38, 'apple'], [37, 43, 'cherry'], [66, 40, 'peach'], [70, 40, 'cherry'], [52, 49, 'mango'], [61, 49, 'apple']],
   buildings: [
     { id: 'postoffice', x: 103, y: 86, w: 5, h: 3, door: 2, sprite: 'postoffice', front: 'postofficefront' },

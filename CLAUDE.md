@@ -35,8 +35,9 @@ docs/DEPLOY.md for the server.
   other side's). It's still one tile for building and placing; a cut water tile's corner is ground you can walk onto
   (`Area.solidPx`, `inCut`), and the new look draws the edge as a straight diagonal (`EnvGround.kindPx`, `cutAt`).
 - The Town Hall, Post Office and Bank (`24b_civic.js`) are signs on the live site. On beta (`CIVIC_PREVIEW`: the beta host,
-  or `localStorage sc-civic` 1 or 0 anywhere; the tests run without it) they open into rooms (`6zc_civic.js`: the Cozy
-  Council at the Town Hall's desk, the Post Office and Bank counters waiting with a bell until David picks their keepers),
+  or `localStorage sc-civic` 1 or 0 anywhere; the tests run without it) they open into rooms (`6zc_civic.js`: the Town
+  Hall's desk on the honor system with a bell, the Council only there the day after Sarah's statue goes up (they come to
+  her house to judge it when she calls), the Post Office and Bank counters waiting with a bell until David picks keepers),
   and each counter lists the building's screens (`6zd_civic_screens.js`, `CIVIC_SCREENS`): every feature in docs/ROADMAP.md's
   "Late in development" drawn with sample numbers in each state it can be in (works, loading, no internet, service down,
   empty, not enough money...), with the on-screen words from the dialogue sheet (`new-civic.mjs`). The preview's foot has
@@ -279,6 +280,20 @@ docs/DEPLOY.md for the server.
   fallen out (`BOND_OUT`) don't chat (`Chats.ok`); close friends have chats of their own and two who've just made up say so
   for a few days (`CHAT_CLOSE`, `CHAT_MENDED`, `S.mended`, through `bondChats` in `Chats.pick`); they talk about it
   (`bondLine`, a talk topic) and the census says who's close (`bestFriendOf`).
+- Friendship is earned over days (David, 28 October): `addPts(id, n, kind)` counts each kind of thing (favor, hangout,
+  letter, job, treat, story...) once a day with each neighbor (`r.got` { day, kind: 1 }); the first talk, a gift, a game
+  together and the rest keep their own day fields. Joe starts at 100 and never goes down.
+- A lamp or lantern in Sarah's house switches off and on with a tap (`lampSwitch`, `isLamp`; kept as `it.off`, no light
+  while off).
+- Props that act in the new look: a fire's, a torch's, a lantern's or a jack-o'-lantern's glow flickers (`EnvModels.FIRES`,
+  the glow material's `fpre`), the fountains throw water up (33u_env_spray.js, `EnvSpray`: beads from each fountain's top
+  near the view), and at night moths flutter round the nearest lit lamps and, on warm clear nights from May to September,
+  fireflies drift over the grass round Sarah (33v_env_night.js, `EnvNight`; instanced meshes marked `userData.live`, which
+  EnvCull leaves alone).
+- The island flag flies in the new look (33t_env_flags.js, `EnvFlags`): world.json's `flagpole` props (the plan's
+  `flagpoles`: by the Town Hall's front, on the pier's last planks; save step `flags9`), a white pole with a gold ball and
+  a cloth in the Town Hall's design (`flagCanvas`'s squares, repainted when it's raised), rippling; the flat views draw
+  `d_flag`.
 - The Friends app's profiles (6zzb_profiles.js, `appProfile`): a tap on a friend opens their page: `PERSONA` (what kind
   of person, a line about them), where they work (`WORK_NAMES` from NPC_DEFS work, the farmer, the fisher) and live, their
   nickname for Sarah and catchphrase, loves and likes (the designer's likes first), their favorite spot once told
@@ -623,6 +638,15 @@ docs/DEPLOY.md for the server.
   when it was saved, so props added to world.json later shift the design's: bake the design into plan.mjs first). A room's
   pieces are keyed by where they first stood (`id@x,y`, kept as `it.o`): `rooms[id]` { moved, gone, added }. A picked-up
   piece goes back down as itself (`Decor.heldIt`), so a counter keeps what it does.
+- Areas (the island designer's Areas tool): named areas drawn as rectangles (two taps, opposite corners; a tap inside a
+  piece takes it away), kept as `areas` [{ id, name, rects }]: named on the map (BigMap, `Design.areas`), a neighbor's
+  texts say they're in one (`designPlace` in placeName, `Design.areaAt`), and Neighbors' likes can weigh a whole area
+  (`npcs[id].areas`, every place of theirs inside it, in `designSpots`).
+- Stairs (the island designer's Stairs tool): a tap on a cliff's face cuts a staircase there (`stairAt`: three tiles wide,
+  the face's two rows, open ground above and below), a tap on one takes it away (`stairRun`), refused if that would cut off
+  a door or a neighbors' place (`cutOff`). Kept as `stairs` { add, gone } of "x,y" tiles, laid over world.json's grid,
+  collision and `W0.ramps` (and `RAMPS`) in place by `Design.ground` (from `WORLD0_GROUND`). The new look builds the steps
+  and walls from them; the HD-2D view's painted ground doesn't show the change.
 - Turned things: furniture (`it.rot`, quarter turns: 0 faces the front, 1 east, 2 the back, 3 west; `furnWH` swaps its
   width and depth, `turnable`: not wall pieces or rugs; Turn or R in decorating) and island props (`p.rot`; `PROP_FIXED`
   never turn; `EnvBuild.turned` stands the model about its footprint's middle). The flat views can't turn a picture: the

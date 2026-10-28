@@ -78,17 +78,16 @@ const BigMap = {
     /* the island at 8 px per tile: ground, paths Sarah drew, trees, buildings */
     build() {
         const a = G.areas.island, K = this.BASE_K;
-        const key = [a.bgSeason, S.pathsV || 0, JSON.stringify(S.buildMoved || {})].join('|');
+        const key = [a.bgSeason, S.pathsV || 0, JSON.stringify(S.buildMoved || {}), Design.ver].join('|');
         if (this.base && this.baseKey === key) return;
         this.baseKey = key;
         const c = document.createElement('canvas');
         c.width = a.w * K; c.height = a.h * K;
         const g = c.getContext('2d');
         g.imageSmoothingEnabled = true;
-        const img = Ground.map(a.bgSeason);
-        if (img) g.drawImage(img, 0, 0, c.width, c.height);
-        else this.baseKey = '';        // (still loading: built again once it's here, see draw)
-        this.baseOk = !!img;
+        // (drawn from the island's own tiles: 28 October, the map redone; it shows the designer's stairs too)
+        this.tiles(g, K, a.bgSeason || Clock.season());
+        this.baseOk = true;
         if (typeof drawPathsOnMap === 'function') drawPathsOnMap(g, K);
         // trees and bushes as little dots
         for (const e of a.ents) {
@@ -119,6 +118,51 @@ const BigMap = {
             g.strokeStyle = 'rgba(59,42,69,0.9)'; g.lineWidth = 1.5; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
         }
         this.base = c;
+    },
+    /* the island as a map (David, 28 October: "the map redone to look better"): flat colors by kind of ground, each level
+       of grass a shade lighter than the one below it, the cliffs' edges drawn dark, the sea paler along the shore, so it
+       reads at a glance like Animal Crossing's map */
+    tiles(g, K, season) {
+        const GR = W0.grid, HT = W0.height, Wt = W0.w, Ht = W0.h;
+        const grass = { spring: ['#86cf63', '#94d770', '#a2de7c', '#b0e488', '#bde994', '#c9ee9f'], summer: ['#7cc858', '#8ad064', '#98d770', '#a6de7c', '#b3e388', '#bfe893'],
+            fall: ['#a9bd5c', '#b5c566', '#c0cc70', '#cad37a', '#d3d984', '#dbdf8e'], winter: ['#dfe9ec', '#e5eef0', '#eaf2f3', '#eff5f6', '#f3f8f9', '#f7fbfb'] }[season] || null;
+        const G2 = grass || ['#86cf63', '#94d770', '#a2de7c', '#b0e488', '#bde994', '#c9ee9f'];
+        const ch = (x, y) => (GR[y] && GR[y][x]) || '~', lv = (x, y) => +((HT[y] || [])[x]) || 0;
+        const COL = { s: '#f2e2ae', p: '#e6cf98', d: '#d9bc84', c: '#d6d0c2', F: '#c4975e', w: '#b78757', x: '#c8eef4', h: '#c8eef4', o: '#62bde0', r: '#62bde0', W: '#a8e0f2', m: '#a7ad8f' };
+        for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
+            const k = ch(x, y);
+            let col;
+            if (k === '~') {
+                // (the sea: deeper blue out from the shore)
+                let near = false;
+                for (let j = -2; j <= 2 && !near; j++) for (let i = -2; i <= 2 && !near; i++) if (ch(x + i, y + j) !== '~') near = true;
+                col = near ? '#86d3ea' : '#5fb7d9';
+            } else col = COL[k] || G2[Math.min(G2.length - 1, lv(x, y))];
+            g.fillStyle = col;
+            g.fillRect(x * K, y * K, K, K);
+        }
+        // the cliffs' edges: where the ground steps down to the south, east or west, a dark line along the top
+        g.strokeStyle = 'rgba(52,72,40,0.55)'; g.lineWidth = Math.max(1, K * 0.22);
+        g.beginPath();
+        for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
+            if (ch(x, y) === '~') continue;
+            const h = lv(x, y);
+            if (y + 1 < Ht && lv(x, y + 1) < h && ch(x, y + 1) !== '~' && !RAMPS.has(x + ',' + (y + 1))) { g.moveTo(x * K, (y + 1) * K); g.lineTo((x + 1) * K, (y + 1) * K); }
+            if (x + 1 < Wt && lv(x + 1, y) < h && ch(x + 1, y) !== '~') { g.moveTo((x + 1) * K, y * K); g.lineTo((x + 1) * K, (y + 1) * K); }
+            if (x > 0 && lv(x - 1, y) < h && ch(x - 1, y) !== '~') { g.moveTo(x * K, y * K); g.lineTo(x * K, (y + 1) * K); }
+        }
+        g.stroke();
+        // (the shore: a pale line where the land meets the sea)
+        g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = Math.max(1, K * 0.18);
+        g.beginPath();
+        for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
+            if (ch(x, y) !== '~') continue;
+            if (ch(x, y - 1) !== '~' && y > 0) { g.moveTo(x * K, y * K + 1); g.lineTo((x + 1) * K, y * K + 1); }
+            if (ch(x, y + 1) !== '~' && y + 1 < Ht) { g.moveTo(x * K, (y + 1) * K - 1); g.lineTo((x + 1) * K, (y + 1) * K - 1); }
+            if (ch(x - 1, y) !== '~' && x > 0) { g.moveTo(x * K + 1, y * K); g.lineTo(x * K + 1, (y + 1) * K); }
+            if (ch(x + 1, y) !== '~' && x + 1 < Wt) { g.moveTo((x + 1) * K - 1, y * K); g.lineTo((x + 1) * K - 1, (y + 1) * K); }
+        }
+        g.stroke();
     },
     resize() {
         const r = this.root.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
@@ -264,6 +308,8 @@ const BigMap = {
             ['Bonfire', sp.bonfire.x + 0.5, sp.bonfire.y + 4], ["David's statue", sp.statue.x + 0.5, sp.statue.y + 2], ['Market Lane', sp.boardwalk.x, sp.boardwalk.y - 4.5],
             [landmarkName('oldtree', 'Old tree'), sp.oldtree.x, sp.oldtree.y + 3], [landmarkName('eastmeadow', 'East meadow'), sp.eastmeadow.x, sp.eastmeadow.y + 3], [landmarkName('glade', 'The glade'), sp.meadow.x + 0.5, sp.meadow.y - 4]];
         if (W0.props.some(p => p.kind === 'windmill')) { const w = W0.props.find(p => p.kind === 'windmill'); places.push(['Windmill', w.x + 1.5, w.y - 3]); }
+        // (the areas drawn in the designer, named first: 6zza_designer.js)
+        for (const A of Design.areas()) { const big = A.rects.slice().sort((p, q) => q[2] * q[3] - p[2] * p[3])[0]; if (big) label((big[0] + big[2] / 2) * K, (big[1] + big[3] / 2) * K, A.name.replace(/^the /, 'The '), '#ffd6a8'); }
         for (const [t, x, y] of places) label(x * K, y * K, t, '#c8f0a0');
         mapExtras(this, g, ox, oy, z);                    // a boat, some gulls and the compass
     },

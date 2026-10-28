@@ -298,7 +298,7 @@ function trickOption(n) {
         if (pocketCount('candy')) {
             removeItem('candy', 1);
             st.given = (st.given || 0) + 1;
-            addPts(n.id, 3);
+            addPts(n.id, 3, 'treat');
             n.emote = 'heart'; n.emoteT = 80;
             const lines = [voiced(n.id, rpick(['Candy! You are the best house on the island. You are not a house. You know what I mean.', 'Ooh, the good kind! Thank you!', 'Candy! Here, I made you something too.']))];
             if (R() < 0.5) { addMoney(300, true, 'Prizes & tips'); lines.push('(They slip you 300 sand dollars. Reverse trick-or-treating.)'); }

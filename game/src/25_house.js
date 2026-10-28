@@ -44,6 +44,9 @@ function furnDef(id) {
     const it = ITEMS[id];
     if (it && (['dish', 'fruit', 'veg'].includes(it.type) || it.coffee)) return { id, name: it.name, w: 1, h: 1, kind: 'top', sets: ['food'], food: 1, frame: it.icon };
     if (it && it.type === 'flower') return { id, name: it.name + ' vase', w: 1, h: 1, kind: 'top', sets: ['flower'], flower: 1, frame: it.icon };
+    // (and a fish, a shell or a gem set down like a little treasure: David, 28 October, "flowers, fish and most other
+    // things set down too"; in the new look each is its own model, EnvItems)
+    if (it && ['fish', 'shell', 'gem'].includes(it.type)) return { id, name: it.name, w: 1, h: 1, kind: 'top', sets: [it.type], thing: 1, frame: it.icon };
     return null;
 }
 /* how much floor a piece takes, turned as it is (David, 28 October: furniture faces any of the four ways now that it's
@@ -90,7 +93,8 @@ function placeFurniture(a, items) {
             // (a table turned on its side is a surface all along its front: its whole depth faces the room)
             if (d.surface) for (let x = it.x; x < it.x + F.w; x++) surfaceAt[`${x},${it.y + h - 1}`] = idx;
         }
-        if (d.light) ent.light = { r: d.light, y: -12 };
+        // (a lamp Sarah switched off at home gives no light: it.off, lampSwitch)
+        if (d.light && !it.off) ent.light = { r: d.light, y: -12 };
         if (d.anim || d.disco || d.stars || d.id === 'light_floor') ent.draw = ctx => drawAnimatedFurn(ctx, ent);
         if (d.flower) ent.draw = ctx => drawFlowerVase(ctx, ent);
         ent.interact = () => useFurniture(ent);
@@ -162,6 +166,17 @@ function drawAnimatedFurn(ctx, e) {
     }
 }
 
+/* a lamp or lantern in the house switches on and off with a tap (David's list of things that act, 28 October): kept on
+   the piece (it.off), so it stays as she left it */
+function isLamp(d) { return !!(d && d.light && !d.arcade && !/^cab_|claw|disco|neon/.test(d.id)); }
+function lampSwitch(e) {
+    if (!isLamp(e.def) || !e.item) return false;
+    if (e.item.off) delete e.item.off; else e.item.off = true;
+    Sfx.ui(e.item.off ? 'close' : 'open');
+    placeFurniture(G.area);
+    Save.touch();
+    return true;
+}
 /* a pedestal (or display case) with something on it: looking at it means looking at what's on show */
 const DISPLAY_SURFACES = new Set(['pedestal', 'shell_display', 'cheesecake_case']);
 function thingOnTop(e) {
@@ -181,6 +196,7 @@ async function useFurniture(e) {
     if (d.easel) return paintAndClose('home');
     if (d.laptop) return useLaptop();
     if (d.art) return viewArt(d.id);
+    if (lampSwitch(e)) return;
     const t = Clock.fmt().s;
     const lines = {
         bed_simple: [`Sarah isn't sleepy. It's only ${t}.`], cloud_bed: [`The weighted blanket is calling. Sarah is not ready to answer. It's only ${t}.`],
@@ -257,7 +273,7 @@ const Decor = {
         const out = {};
         // (a coffee from Muggy's sits on a table like food: 6zs_mug.js)
         // (and Waffle's outdoor pieces: a park bench in the house, 6zu_outdoor.js)
-        const ok = id => ['furniture', 'wall', 'floor', 'dish', 'fruit', 'veg', 'flower', 'art', 'display'].includes(ITEMS[id].type) || !!ITEMS[id].coffee;
+        const ok = id => ['furniture', 'wall', 'floor', 'dish', 'fruit', 'veg', 'flower', 'fish', 'shell', 'gem', 'art', 'display'].includes(ITEMS[id].type) || !!ITEMS[id].coffee;
         for (const s of S.pocket) if (s && ok(s.id)) out[s.id] = (out[s.id] || 0) + s.n;
         for (const [id, n] of Object.entries(S.storage)) if (ITEMS[id] && ok(id)) out[id] = (out[id] || 0) + n;
         return out;
@@ -331,12 +347,12 @@ const Decor = {
         body.className = 'pbody';
         const grid = document.createElement('div');
         grid.className = 'grid';
-        const tabOf = id => this.design ? ({ top: 'food', wall: 'hung' }[FURN[id].kind] || 'furniture') : ['dish', 'fruit', 'veg', 'flower'].includes(ITEMS[id].type) || ITEMS[id].coffee ? 'food' : ITEMS[id].type === 'art' || ITEMS[id].type === 'display' ? 'furniture' : ITEMS[id].type;
+        const tabOf = id => this.design ? ({ top: 'food', wall: 'hung' }[FURN[id].kind] || 'furniture') : ['dish', 'fruit', 'veg', 'flower', 'fish', 'shell', 'gem'].includes(ITEMS[id].type) || ITEMS[id].coffee ? 'food' : ITEMS[id].type === 'art' || ITEMS[id].type === 'display' ? 'furniture' : ITEMS[id].type;
         const ids = Object.keys(owned).filter(id => tabOf(id) === this.tab).sort();
         if (!ids.length) {
             const p = document.createElement('p');
             p.className = 'muted';
-            p.textContent = this.tab === 'furniture' ? "No furniture in storage. Fortune's shop has new pieces every day." : this.tab === 'food' ? 'Dishes, fruit, veggies and picked flowers can go on tables as decorations. Little Sprout loves that.' : `No spare ${this.tab === 'wall' ? 'wallpaper' : 'flooring'} yet. Fortune stocks one a day.`;
+            p.textContent = this.tab === 'furniture' ? "No furniture in storage. Fortune's shop has new pieces every day." : this.tab === 'food' ? 'Dishes, fruit, veggies, picked flowers, fish, shells and gems can go on tables (or the floor) as decorations. Little Sprout loves that.' : `No spare ${this.tab === 'wall' ? 'wallpaper' : 'flooring'} yet. Fortune stocks one a day.`;
             body.appendChild(p);
         }
         for (const id of ids) {

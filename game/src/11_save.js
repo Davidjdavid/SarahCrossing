@@ -281,6 +281,12 @@ function migrate(st) {
                 + 'If you need anything after I\'ve gone home, the shop stays open all night on the honor system. Sand dollars in the cookie jar, please.\n\n'
                 + 'One more thing: Ginger put up a sign on the empty lot across the alley. Somebody\'s opening a coffee shop! And there are two plots of land for sale in the neighborhood. New neighbors? I can\'t wait.\n- Fortune' });
     }
+    // the island flag's poles, by the Town Hall and at the end of the pier (28 October): whatever of Sarah's stood there
+    // comes back to her storage
+    if (!st.flags.flags9) {
+        st.flags.flags9 = 1;
+        clearTiles(st, W0.props.filter(p => p.kind === 'flagpole').map(p => ({ x: p.x, y: p.y })));
+    }
     // the final update: glasses get their own slot (so Sarah can wear a hat too), and Joe is always her best friend
     if (!st.flags.v9) {
         st.flags.v9 = 1;

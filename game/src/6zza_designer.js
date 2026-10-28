@@ -10,11 +10,16 @@
    S.deco, S.cleared): one taken away is marked gone, and the added ones go on the end of W0.props after the world's own
    (`base`: how many the world had when it was saved). */
 const WORLD_PROPS = W0.props.length, WORLD0 = W0.props.map(p => Object.assign({}, p));
+/* (and the ground as world.json has it, for the stairs: a staircase is two rows of a cliff's face cut into dirt steps,
+   collision off, in W0.ramps) */
+const WORLD0_GROUND = { grid: W0.grid.slice(), coll: W0.coll.slice(), ramps: (W0.ramps || []).map(r => r.slice()) };
 const LIKE_ACTS = { stars: 'Stargazing', snack: 'An ice cream', phone: 'On their phone', book: 'Reading', ground: 'Sitting on the grass', paint: 'Painting',
     cup: 'A mug of cocoa', fish: 'Fishing', bench: 'Sitting on a bench', scope: 'The telescope' };
 const LIKE_LEVELS = [['Never', 'never'], ['Now and then', 'a little'], ['Likes', 'likes'], ['Loves', 'loves']];
 /* a design's parts the server takes (server/design.mjs) */
-const DESIGN_PARTS = ['v', 'base', 'props', 'added', 'rooms', 'npcs', 'note'];
+const DESIGN_PARTS = ['v', 'base', 'props', 'added', 'stairs', 'areas', 'rooms', 'npcs', 'note'];
+/* the areas' colors on the island and the map */
+const AREA_COLS = ['#ff9f6b', '#7cc8ff', '#b48cff', '#7fd67f', '#ffd25e', '#ff7fb6', '#5fd6c8', '#d6a35f'];
 const Design = {
     d: null, rev: 0, edit: false, dirty: false, ver: 0, undo: [], at: null,
     blank() { return { v: 1, base: WORLD_PROPS, props: {}, added: [], rooms: {}, npcs: {} }; },
@@ -52,8 +57,84 @@ const Design = {
                 W0.props.push(p); W0_ORIG.props.push(Object.assign({}, p));
             }
         }
+        this.ground();
         fenceTiles.c = null; benches.c = null;
         this.ver++;
+    },
+    /* the stairs as the design has them: some taken away (the cliff's face again), some cut into a cliff (d.stairs: gone
+       and add, each a list of "x,y" tiles); the rows are changed in place, since the island keeps them (a.grid) */
+    ground() {
+        const G0 = WORLD0_GROUND, R = W0.ramps || (W0.ramps = []);
+        for (let y = 0; y < W0.h; y++) { W0.grid[y] = G0.grid[y]; W0.coll[y] = G0.coll[y]; }
+        R.length = 0;
+        for (const r of G0.ramps) R.push(r.slice());
+        const S = this.d && this.d.stairs, put = (k, x, y, ch) => { const row = W0[k][y]; W0[k][y] = row.slice(0, x) + ch + row.slice(x + 1); };
+        if (S) {
+            const gone = new Set(Array.isArray(S.gone) ? S.gone : []);
+            for (let i = R.length - 1; i >= 0; i--) { const [x, y] = R[i]; if (!gone.has(x + ',' + y)) continue; R.splice(i, 1); put('coll', x, y, '1'); put('grid', x, y, 'g'); }
+            for (const k of Array.isArray(S.add) ? S.add : []) {
+                const [x, y] = String(k).split(',').map(Number);
+                if (!(x > 0 && y > 0 && x < W0.w - 1 && y < W0.h - 1) || W0.coll[y][x] !== '1' || R.some(r => r[0] === x && r[1] === y)) continue;
+                put('coll', x, y, '0'); put('grid', x, y, 'd'); R.push([x, y]);
+            }
+        }
+        RAMPS.clear();
+        for (const [x, y] of R) RAMPS.add(x + ',' + y);
+    },
+    /* the six tiles a staircase cut here would take (three wide, the cliff's two rows), or why not */
+    stairAt(tx, ty) {
+        const H = (x, y) => +((W0.height[y] || [])[x]) || 0, a = G.areas.island;
+        let top = H(tx, ty - 1) > H(tx, ty) ? ty : H(tx, ty - 2) > H(tx, ty - 1) && H(tx, ty - 1) === H(tx, ty) ? ty - 1 : -1;
+        if (top < 0) return { why: "Stairs go up a cliff: tap the cliff's face." };
+        const lo = H(tx, top), hi = H(tx, top - 1), tiles = [];
+        for (let x = tx - 1; x <= tx + 1; x++) for (let y = top; y <= top + 1; y++) {
+            if (W0.coll[y][x] !== '1' || H(x, y) !== lo || H(x, top - 1) !== hi || a.waterAt(x, y) || RAMPS.has(x + ',' + y)) return { why: 'There isn\'t a straight stretch of cliff three tiles wide there.' };
+            tiles.push([x, y]);
+        }
+        if (W0.coll[top - 1][tx] === '1' || W0.coll[top + 2][tx] === '1' || a.blockedAt(tx, top - 1) || a.blockedAt(tx, top + 2)) return { why: 'The stairs need open ground at the top and the bottom.' };
+        return { tiles };
+    },
+    /* a staircase's tiles (all of the run the tapped one is in) */
+    stairRun(tx, ty) {
+        if (!RAMPS.has(tx + ',' + ty)) return null;
+        const run = [], q = [[tx, ty]], seen = new Set([tx + ',' + ty]);
+        while (q.length) { const [x, y] = q.pop(); run.push([x, y]); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = (x + dx) + ',' + (y + dy); if (RAMPS.has(k) && !seen.has(k)) { seen.add(k); q.push([x + dx, y + dy]); } } }
+        return run;
+    },
+    /* everything still reachable from the square: every door and every place the neighbors go (or what isn't) */
+    cutOff() {
+        const a = G.areas.island, W = a.w, s0 = W0.spots.plaza, seen = new Uint8Array(W * a.h), q = [s0.y * W + s0.x];
+        seen[q[0]] = 1;
+        for (let i = 0; i < q.length; i++) {
+            const c = q[i], cx = c % W;
+            for (const n of [c - 1, c + 1, c - W, c + W]) { if (n < 0 || n >= W * a.h || seen[n] || a.blocked[n] || (n === c - 1 && cx === 0) || (n === c + 1 && cx === W - 1)) continue; seen[n] = 1; q.push(n); }
+        }
+        for (const [id, b] of Object.entries(W0.buildings)) { const k = (b.y + b.h) * W + b.x + b.door; if (!seen[k]) return `That would cut off ${bldName(id)}.`; }
+        for (const sp of Object.values(W0.spots)) { const k = sp.y * W + sp.x; if (!seen[k] && !a.blocked[k]) return 'That would cut off part of the island.'; }
+        return null;
+    },
+    /* the stairs tool: a tap on a cliff's face cuts a staircase there, a tap on a staircase takes it away (and back, if
+       that would leave somewhere nobody can get to) */
+    stairTap(E, tx, ty) {
+        const d = this.work(), S = d.stairs && typeof d.stairs === 'object' ? d.stairs : (d.stairs = { add: [], gone: [] });
+        S.add = Array.isArray(S.add) ? S.add : []; S.gone = Array.isArray(S.gone) ? S.gone : [];
+        const before = JSON.stringify(d);
+        const run = this.stairRun(tx, ty);
+        if (run) {
+            this.snap();
+            for (const [x, y] of run) { const k = x + ',' + y, i = S.add.indexOf(k); if (i >= 0) S.add.splice(i, 1); else if (!S.gone.includes(k)) S.gone.push(k); }
+        } else {
+            const st = this.stairAt(tx, ty);
+            if (st.why) { E.msg = st.why; Sfx.ui('nope'); E.render(); return; }
+            this.snap();
+            for (const [x, y] of st.tiles) { const k = x + ',' + y, i = S.gone.indexOf(k); if (i >= 0) S.gone.splice(i, 1); else S.add.push(k); }
+        }
+        this.changed('island');
+        const why = this.cutOff();
+        if (why) { this.d = JSON.parse(before); this.undo.pop(); this.changed('island'); E.msg = why; Sfx.ui('nope'); E.render(); return; }
+        E.msg = run ? 'The stairs are gone: the cliff is whole again there.' : 'Stairs cut into the cliff.';
+        Sfx.play(run ? 'pick' : 'place');
+        E.render();
     },
     /* a room's furniture as the design has it (its layout's pieces keyed by where they first stood, `id@x,y`: moved, turned,
        taken away; and the ones added), once per list; placeFurniture asks */
@@ -83,6 +164,74 @@ const Design = {
         list.push(...keep);
         return list;
     },
+    /* the areas David drew (d.areas: { id, name, rects: [[x, y, w, h]...] }): named on the map, and where a neighbor is in
+       one, their texts say so (placeName, 69_texts.js); the last drawn wins where two overlap */
+    areas() { return this.d && Array.isArray(this.d.areas) ? this.d.areas.filter(A => A && A.name && Array.isArray(A.rects)) : []; },
+    areaAt(tx, ty) {
+        const L = this.areas();
+        for (let i = L.length - 1; i >= 0; i--) if (L[i].rects.some(r => tx >= r[0] && tx < r[0] + r[2] && ty >= r[1] && ty < r[1] + r[3])) return L[i];
+        return null;
+    },
+    /* the areas tool: pick an area (or make one), then tap two corners to add a piece to it; a tap inside a piece of it
+       takes the piece away */
+    areaTap(E, tx, ty) {
+        const A = this.areas().find(x => x.id === E.areaId);
+        if (!A) { E.msg = 'Make an area first (New area), or pick one.'; E.render(); return; }
+        const hit = A.rects.findIndex(r => tx >= r[0] && tx < r[0] + r[2] && ty >= r[1] && ty < r[1] + r[3]);
+        if (!E.corner && hit >= 0) { this.snap(); A.rects.splice(hit, 1); this.changed('areas'); E.msg = `A piece of ${A.name} taken away.`; E.render(); return; }
+        if (!E.corner) { E.corner = [tx, ty]; E.msg = 'Now tap the opposite corner.'; E.render(); return; }
+        const [x0, y0] = E.corner, x = Math.min(x0, tx), y = Math.min(y0, ty);
+        E.corner = null;
+        this.snap();
+        A.rects.push([x, y, Math.abs(tx - x0) + 1, Math.abs(ty - y0) + 1]);
+        this.changed('areas');
+        E.msg = `Added to ${A.name}.`;
+        Sfx.play('place');
+        E.render();
+    },
+    areaName(E, A) {
+        const panel = $('#panel');
+        panel.innerHTML = '';
+        const head = el('div', 'phead');
+        head.appendChild(el('h2', null, A ? 'Rename the area' : 'A new area'));
+        panel.appendChild(head);
+        const body = el('div', 'pbody'), f = el('label', 'field');
+        f.appendChild(el('span', null, 'What is it called? (as a neighbor would say it: "the campfire", "the east meadow")'));
+        const inp = el('input');
+        inp.maxLength = 40; inp.value = A ? A.name : ''; inp.autocomplete = 'off'; inp.id = 'areaname';
+        f.appendChild(inp);
+        body.appendChild(f);
+        const row = el('div', 'st-row');
+        const done = () => {
+            const name = (inp.value || '').trim().slice(0, 40);
+            if (name) {
+                const d = this.work();
+                this.snap();
+                if (!Array.isArray(d.areas)) d.areas = [];
+                if (A) A.name = name;
+                else { const id = 'a' + (d.areas.reduce((m, x) => Math.max(m, +String(x.id).slice(1) || 0), 0) + 1); d.areas.push({ id, name, rects: [] }); E.areaId = id; }
+                this.changed('areas');
+            }
+            E.render();
+        };
+        row.appendChild(chip('Done', done, 'go'));
+        row.appendChild(chip('Never mind', () => E.render()));
+        body.appendChild(row);
+        panel.appendChild(body);
+        inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') done(); });
+        setTimeout(() => { try { inp.focus(); } catch (e) { /* fine */ } }, 60);
+    },
+    /* the areas drawn over the island in the flat view: each piece in its area's color, its name on the biggest */
+    drawAreas(ctx, E) {
+        this.areas().forEach((A, i) => {
+            const col = AREA_COLS[i % AREA_COLS.length], on = A.id === E.areaId;
+            ctx.fillStyle = col + (on ? '55' : '30'); ctx.strokeStyle = col; ctx.lineWidth = on ? 2 : 1;
+            for (const r of A.rects) { ctx.fillRect(r[0] * TILE, r[1] * TILE, r[2] * TILE, r[3] * TILE); ctx.strokeRect(r[0] * TILE + 0.5, r[1] * TILE + 0.5, r[2] * TILE - 1, r[3] * TILE - 1); }
+            const big = A.rects.slice().sort((p, q) => q[2] * q[3] - p[2] * p[3])[0];
+            if (big) { ctx.font = '600 8px Fredoka, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText(A.name, (big[0] + big[2] / 2) * TILE, (big[1] + big[3] / 2) * TILE); }
+        });
+        if (E.corner) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(E.corner[0] * TILE + 1, E.corner[1] * TILE + 1, TILE - 2, TILE - 2); }
+    },
     /* what each neighbor likes, 0 never .. 3 loves (null: as they are) */
     like(id, part, k) { const N = this.d && this.d.npcs && this.d.npcs[id], v = N && N[part] && N[part][k]; return Number.isInteger(v) && v >= 0 && v <= 3 ? v : null; },
     likeWeight(id, k, def) { const v = this.like(id, 'acts', k); return v == null ? def : [0, 1, 3, 6][v]; },
@@ -92,9 +241,9 @@ const Design = {
     snap() { this.undo.push(JSON.stringify(this.d)); if (this.undo.length > 60) this.undo.shift(); },
     changed(where) {
         this.dirty = true;
-        if (where === 'island' || where == null) { this.apply(); applyBuildingMoves(); rebuildIsland(); }
-        if (where === 'likes' && typeof Plans !== 'undefined') Plans.reset();
-        Env.dirty = true;
+        // (the island built again, and its 3D; what the neighbors like and the areas only change their days)
+        if (where === 'island' || where == null) { this.apply(); applyBuildingMoves(); rebuildIsland(); Env.dirty = true; }
+        else Plans.reset();
     },
     back() {
         if (!this.undo.length) return;
@@ -230,7 +379,7 @@ const Design = {
         panel.appendChild(head);
         const body = el('div', 'pbody');
         const facing = ['facing front', 'facing right', 'facing back', 'facing left'][h ? h.rot & 3 : 0];
-        const tip = E.look ? 'Drag to look around the island.'
+        const tip = E.look ? 'Drag to look around the island.' : E.areaMode ? `Areas: pick one (or make a new one), then ${G.touchUsed ? 'tap' : 'click'} one corner and the opposite corner to add a piece to it. A tap inside a piece takes it away. Their names show on the map, and a neighbor in one says so in their texts.` : E.stairs ? `${G.touchUsed ? 'Tap' : 'Click'} a cliff's face to cut stairs there (three tiles wide), or stairs to take them away. Turn Stairs off to move things again.`
             : h ? `${G.touchUsed ? 'Tap' : 'Click'} where it should go (${facing}).${G.touchUsed ? '' : ' R turns it, Esc puts it back.'}`
                 : `${G.touchUsed ? 'Tap' : 'Click'} anything on the island to move, turn or take it away, or add something new. Nothing is kept until you save.`;
         body.appendChild(el('p', 'muted', E.msg || tip));
@@ -241,12 +390,26 @@ const Design = {
             if (h.src === 'design') row.appendChild(chip('Take it away', () => this.remove(E)));
         } else {
             row.appendChild(chip('Add something', () => this.catalog(E)));
+            row.appendChild(chip('Stairs', () => { E.stairs = !E.stairs; E.areaMode = false; E.msg = ''; E.render(); }, E.stairs ? 'on' : ''));
+            row.appendChild(chip('Areas', () => { E.areaMode = !E.areaMode; E.stairs = false; E.corner = null; E.msg = ''; if (!this.areas().some(A => A.id === E.areaId)) E.areaId = (this.areas()[0] || {}).id; E.render(); }, E.areaMode ? 'on' : ''));
             if (this.undo.length) row.appendChild(chip('Undo', () => { this.back(); E.render(); }));
             row.appendChild(chip(this.dirty ? 'Save the design' : 'Saved', () => this.save().then(() => E.render()), this.dirty ? 'go' : ''));
             row.appendChild(chip("Neighbors' likes", () => { E.close(); this.likesPanel(); }));
         }
         row.appendChild(chip('Look around', () => { E.look = !E.look; E.msg = ''; E.render(); }, E.look ? 'on' : ''));
         body.appendChild(row);
+        // (the areas tool: which area the taps add to, a new one, its name)
+        if (E.areaMode && !h) {
+            const ar = el('div', 'st-row');
+            this.areas().forEach((A, i) => { const c = chip(A.name, () => { E.areaId = A.id; E.corner = null; E.render(); }, A.id === E.areaId ? 'on' : ''); c.style.borderBottom = '3px solid ' + AREA_COLS[i % AREA_COLS.length]; ar.appendChild(c); });
+            ar.appendChild(chip('New area', () => this.areaName(E, null), 'go'));
+            const cur = this.areas().find(A => A.id === E.areaId);
+            if (cur) {
+                ar.appendChild(chip('Rename', () => this.areaName(E, cur)));
+                ar.appendChild(chip('Delete this area', () => { this.snap(); this.d.areas = this.d.areas.filter(A => A !== cur); E.areaId = null; this.changed('areas'); E.render(); }));
+            }
+            body.appendChild(ar);
+        }
         panel.appendChild(body);
     },
     /* everything that can be added to the island: its own kinds of thing, Waffle's pieces by kind, and furniture */
@@ -350,6 +513,8 @@ const Design = {
         };
         section('What they like doing with nothing to do', 'acts', Object.keys(LIKE_ACTS), k => LIKE_ACTS[k], k => IDLE_LIKES[who] === k ? 'their favorite' : '');
         section('Where they like to be in their free time', 'spots', Object.keys(RES_SPOTS).filter(k => W0.spots[k]), k => landmarkName(k, RES_SPOTS[k]), k => (NPC_DEFS[who].fav || {})[k] ? 'a favorite' : '');
+        // (and the areas drawn on the island: every place they go inside one counts)
+        if (this.areas().length) section('The areas you drew', 'areas', this.areas().map(A => A.id), k => (this.areas().find(A => A.id === k) || {}).name || k, () => '');
         P.foot.appendChild(el('span', 'grow', this.dirty ? 'Not saved yet.' : 'Saved.'));
         P.foot.appendChild(btn('Save the design', this.dirty ? 'green' : '', () => this.save().then(() => this.likesPanel(who))));
     },
@@ -374,10 +539,19 @@ const Design = {
 };
 /* (makePlan's places, weighted by what the designer said a neighbor likes: 22_npc.js) */
 function designSpots(id, wts) {
-    const L = Design.d && Design.d.npcs && Design.d.npcs[id] && Design.d.npcs[id].spots;
-    if (!L) return;
-    for (const [k, v] of Object.entries(L)) {
-        if (!W0.spots[k] || !Number.isInteger(v)) continue;
-        if (v === 0) delete wts[k]; else wts[k] = (wts[k] || 0.5) * [0, 0.5, 2, 4][v] + [0, 0, 1, 3][v];
+    const N = Design.d && Design.d.npcs && Design.d.npcs[id];
+    if (!N) return;
+    const mul = (k, v) => { if (v === 0) delete wts[k]; else wts[k] = (wts[k] || 0.5) * [0, 0.5, 2, 4][v] + [0, 0, 1, 3][v]; };
+    for (const [k, v] of Object.entries(N.spots || {})) if (W0.spots[k] && Number.isInteger(v)) mul(k, v);
+    // (an area they like or never go to: every place of theirs inside it)
+    if (N.areas) for (const k of Object.keys(wts)) {
+        const s = W0.spots[k], A = s && Design.areaAt(s.x, s.y), v = A && N.areas[A.id];
+        if (Number.isInteger(v) && !(N.spots && N.spots[k] != null)) mul(k, v);
     }
+}
+/* "at the campfire": the area a spot is in, as a neighbor would say it */
+function designPlace(spot) {
+    const s = W0.spots[spot], A = s && Design.areaAt(s.x, s.y);
+    if (!A) return null;
+    return /^(the|a|an|my|your)\s/i.test(A.name) || /^[A-Z]/.test(A.name) ? 'at ' + A.name.replace(/^The /, 'the ') : 'at the ' + A.name;
 }

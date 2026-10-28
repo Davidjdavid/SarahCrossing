@@ -675,7 +675,7 @@ const Drama = {
         }
         if (o.say) await UI.say(id, voiced(id, this.fill(d, rpick(o.say))), { keep: true });
         if (o.flag) d.flags[o.flag] = true;
-        if (o.helped) { d.helped = true; addPts(id, 2); }
+        if (o.helped) { d.helped = true; addPts(id, 2, 'story'); }
         if (o.go) this.setState(d, this.resolve(d, o.go));
         Save.touch();
     },

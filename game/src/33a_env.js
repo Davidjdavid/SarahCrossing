@@ -131,7 +131,7 @@ const Env = {
             ['contact', typeof EnvContact !== 'undefined' && EnvContact], ['glow', typeof EnvGlow !== 'undefined' && EnvGlow], ['decals', typeof EnvDecals !== 'undefined' && EnvDecals],
             ['dolls', typeof EnvDolls !== 'undefined' && EnvDolls], ['critters', typeof EnvCritters !== 'undefined' && EnvCritters],
             ['sea', typeof EnvSea !== 'undefined' && EnvSea], ['items', typeof EnvItems !== 'undefined' && EnvItems], ['sights', typeof EnvSights !== 'undefined' && EnvSights], ['style', typeof EnvStyle !== 'undefined' && EnvStyle],
-            ['fishing', typeof EnvFishing !== 'undefined' && EnvFishing], ['pour', typeof EnvPour !== 'undefined' && EnvPour]]) {
+            ['fishing', typeof EnvFishing !== 'undefined' && EnvFishing], ['pour', typeof EnvPour !== 'undefined' && EnvPour], ['flags', typeof EnvFlags !== 'undefined' && EnvFlags], ['spray', typeof EnvSpray !== 'undefined' && EnvSpray], ['night', typeof EnvNight !== 'undefined' && EnvNight]]) {
             if (!B) continue;
             const t1 = performance.now();
             const p = B.build(group, a);
@@ -140,7 +140,8 @@ const Env = {
             if (p && p.tick) this.built.tick.push(p.tick);
         }
         // everything placed many times is shown only near the view (the island has hundreds of trees and props)
-        group.traverse(o => { if (o.isInstancedMesh) EnvCull.track(o); });
+        // (but not what's moved every frame round Sarah: userData.live, the moths and fireflies)
+        group.traverse(o => { if (o.isInstancedMesh && !o.userData.live) EnvCull.track(o); });
         // (and whatever can fade in front of Sarah gets its ghost: 33n_env_ghost.js)
         if (typeof EnvGhost !== 'undefined') EnvGhost.collect(r3, group);
         console.log(`the new 3D look built in ${Math.round(performance.now() - t0)} ms`);
@@ -190,6 +191,7 @@ const Env = {
         if (typeof EnvSea !== 'undefined' && EnvSea.takes(e)) return true;
         if (typeof EnvItems !== 'undefined' && EnvItems.takes(e)) return true;
         if (k === 'display' && typeof EnvBuild !== 'undefined' && EnvBuild.dispDrawn && EnvBuild.dispDrawn.has(e)) return true;
+        if (k === 'flagpole' && typeof EnvFlags !== 'undefined') return true;
         return false;
     },
     /* the water's surface at a spot (world pixels), or null where there's none: the sea at 0, a stream or pond at its level */

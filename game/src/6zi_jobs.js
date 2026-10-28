@@ -78,7 +78,7 @@ const Jobs = {
         return [{ label: 'A package for you!', fn: async () => {
             removeItem('job_parcel', 1);
             a.left.splice(a.left.indexOf(n.id), 1); a.got++;
-            addPts(n.id, 1);
+            addPts(n.id, 1, 'job');
             Sfx.play('item');
             await UI.say(n.id, voiced(n.id, rpick(['A package! For me? I love packages. I love what is in them. I love the box.', "Oh! Thank you! I've been waiting for this. I forget what it is. I'm excited.", 'Special delivery? You work at the Post Office now? You do everything!'])), { keep: true });
             if (!a.left.length) this.finish();

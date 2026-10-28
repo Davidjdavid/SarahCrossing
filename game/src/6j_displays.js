@@ -213,7 +213,7 @@ const IslandEdit = {
     close() {
         if (!this.on) return;
         if (this.held) this.cancel(true);
-        this.on = false; this.design = false;
+        this.on = false; this.design = false; this.stairs = false; this.areaMode = false; this.corner = null;
         $('#panel').hidden = true; $('#panel').innerHTML = ''; $('#panel').classList.remove('decor', 'edit');
         UI.modal = false;
         G.camTarget = null;
@@ -436,6 +436,8 @@ const IslandEdit = {
     tap(wx, wy) {
         const [tx, ty] = [Math.floor(wx / TILE), Math.floor(wy / TILE)];
         this.cursor = [tx, ty];
+        if (this.design && this.stairs && !this.held) { Design.stairTap(this, tx, ty); return; }
+        if (this.design && this.areaMode && !this.held) { Design.areaTap(this, tx, ty); return; }
         if (this.held) { const h = this.held; this.drop(tx - Math.floor((h.w - 1) / 2), ty - (h.rows - 1)); return; }
         let e = this.thingAt(tx, ty) || this.thingAt(tx, ty + 1);
         if (!e) { this.msg = this.design ? 'Nothing there to move.' : 'Nothing to pick up there. (Lamps, benches, signs, planters and decorations can move.)'; this.render(); return; }
@@ -476,6 +478,15 @@ const IslandEdit = {
         if (!this.on) return;
         const [cx, cy] = this.hover && G.touchUsed === false ? this.hover : this.cursor;
         const h = this.held;
+        // (the designer's areas, drawn over the island)
+        if (this.design && (this.areaMode || !h)) Design.drawAreas(ctx, this);
+        // (the designer's stairs: every staircase near the view, and where one would go)
+        if (this.design && this.stairs && !h) {
+            ctx.fillStyle = 'rgba(255,170,60,0.35)';
+            for (const k of RAMPS) { const [x, y] = k.split(',').map(Number); if (Math.abs(x - cx) < 30 && Math.abs(y - cy) < 20) ctx.fillRect(x * TILE, y * TILE, TILE, TILE); }
+            const st = Design.stairAt(cx, cy);
+            if (st.tiles) { ctx.fillStyle = 'rgba(140,193,82,0.4)'; for (const [x, y] of st.tiles) ctx.fillRect(x * TILE, y * TILE, TILE, TILE); }
+        }
         if (!h) {
             if (G.touchUsed) return;
             ctx.strokeStyle = '#ffcf57'; ctx.lineWidth = 1;

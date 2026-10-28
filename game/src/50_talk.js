@@ -12,8 +12,16 @@ function rel(id) {
     return S.npcs[id];
 }
 function hearts(id) { const p = rel(id).pts; let h = 0; for (let i = 1; i < HEARTS.length; i++) if (p >= HEARTS[i]) h = i; return h; }
-function addPts(id, n) {
+/* friendship earned over days (David, 28 October): a kind of thing (a favor, a hangout, a letter...) counts once a day with
+   each neighbor; the first talk and a gift each have their own day already (talkDay, giftDay) */
+function addPts(id, n, kind) {
     const r = rel(id);
+    if (kind) {
+        const day = Clock.dayNum();
+        if (!r.got || r.got.day !== day) r.got = { day };
+        if (r.got[kind]) return 0;
+        r.got[kind] = 1;
+    }
     const before = hearts(id);
     r.pts = Math.min(120, r.pts + n);
     const after = hearts(id);

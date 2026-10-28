@@ -210,7 +210,7 @@ async function valentineGive(n) {
     n.emote = 'heart'; n.emoteT = 90;
     Sfx.play('heart');
     await UI.say(id, id === 'joe' ? VAL_LINES.joe[0] : voiced(id, rpick(VAL_LINES[id] || VAL_LINES._)), { keep: true });
-    const up = addPts(id, 4);
+    const up = addPts(id, 4, 'valentine');
     if (hearts(id) >= 3 && ITEMS.truffles && id !== 'joe') {
         await UI.say(id, voiced(id, "Wait, I have something for you too. Truffles! Coco helped. Coco ate three. There are still some."), { keep: true });
         receive('truffles', 1);

@@ -43,9 +43,14 @@ function STATUE_MAIL(kind) {
     return `Dear resident,\nThe new statue is on the plinth on the square: ${what}.\nShould you wish to change it again, the Council is at the Town Hall's desk, as always. It is still free. It will always be free.\n- Sir Floret, for the Cozy Council`;
 }
 /* at the Town Hall's desk, the first time after the day Sarah's statue went up: well done, and a new one whenever she likes */
+/* the Council comes by the Town Hall's desk to say so, the day after it goes up (6zc_civic.js buildTownHall) */
+function statueCongratsDue() {
+    const P = S.town && S.town.proj;
+    return !!(projectBuilt('statue') && P && Clock.dayNum() > P.done.statue && !statueState().told && !Online.visitor());
+}
 async function statueCongrats() {
-    const P = S.town && S.town.proj, st = statueState(), day = Clock.dayNum();
-    if (!projectBuilt('statue') || !P || !(day > P.done.statue) || st.told || Online.visitor()) return false;
+    const st = statueState(), day = Clock.dayNum();
+    if (!statueCongratsDue()) return false;
     st.told = day;
     Save.touch();
     await UI.say('floret', ["Ahem. On behalf of the Council: congratulations on your statue! The whole island has walked past it. Some of them twice. Dame Stalk waved at it.",

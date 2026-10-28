@@ -287,7 +287,7 @@ const Requests = {
             await UI.say(say, voiced(say, t.pay ? "And here's the money back, with a little extra for your trouble!" : 'Here, take this. You earned it!'), { keep: true });
             addMoney(money, false, 'Favors');
         }
-        const up = addPts(n.id, [4, 6, 10][tier] + bonusCharm());
+        const up = addPts(n.id, [4, 6, 10][tier] + bonusCharm(), 'favor');
         UI.hideDialog();
         if (up) await heartUp(n, up);
         Save.touch();
@@ -306,7 +306,7 @@ const Requests = {
         await UI.say(id, voiced(id, rpick([`Oh! ${cap(t.thing)}! From ${from}? That's so nice. Thank you for bringing it!`, `A package from ${from}? For me? ...Oh, it's ${t.thing}! I love it.`])), { keep: true });
         await UI.say(id, voiced(id, `${from} said to give you something for the trouble. Here!`), { keep: true });
         await this.reward(n, t);
-        const up = addPts(t.from, 3);
+        const up = addPts(t.from, 3, 'favor');
         if (up) { const f = NPCs.get(t.from); if (f) f.emote = 'heart'; }
     },
     async tell(n, t) {
@@ -315,7 +315,7 @@ const Requests = {
         n.emote = 'note'; n.emoteT = 70;
         await UI.say(id, voiced(id, m.reply.replace(/\{from\}/g, from)), { keep: true });
         t.state = 'reply';
-        addPts(id, 2);
+        addPts(id, 2, 'favor');
         UI.toast(`Now tell ${from} what ${n.def.name} said`, 'app_tasks');
         Save.touch();
     },

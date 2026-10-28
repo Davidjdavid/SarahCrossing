@@ -93,6 +93,8 @@ const EnvModels = {
     },
     /* colors kept in a mesh arrive as glTF's linear values: turned back into the colors as painted, which is how the
        game shows its pictures (a mesh's colors would otherwise come out darker and more saturated than designed) */
+    /* the models whose glowing parts are flames (they flicker) */
+    FIRES: /bonfire|campfire|torch|firepit|fire_pit|candle|jack_o_lantern|lantern|fireplace|brazier/,
     srgb(g) {
         const c = g.attributes.color;
         if (!c) return;
@@ -104,8 +106,13 @@ const EnvModels = {
         }
     },
     material(m, name) {
-        // (flames: unlit, their own colors)
-        if (/glow/i.test(m.name || '')) { const b = r3Patch(new THREE.MeshBasicMaterial({ vertexColors: true }), { key: this.tall(name) ? 'envmodelglows' : 'envmodelglow', see: this.tall(name) }); b.name = m.name; return b; }
+        // (flames: unlit, their own colors; a fire's, a torch's or a candle in a jack-o'-lantern flickers, each at its own time
+        // by where it is, David's list of things that should act, 28 October; neon letters and toadstools stay steady)
+        if (/glow/i.test(m.name || '')) {
+            const fire = this.FIRES.test(name), o = { key: (this.tall(name) ? 'envmodelglows' : 'envmodelglow') + (fire ? 'f' : ''), see: this.tall(name) };
+            if (fire) o.fpre = 'gl_FragColor.rgb *= 0.86 + 0.1 * sin(uTime * 9.0 + vWp.x * 5.3 + vWp.z * 3.7) + 0.06 * sin(uTime * 23.0 + vWp.x * 11.0 + vWp.y * 7.0);';
+            const b = r3Patch(new THREE.MeshBasicMaterial({ vertexColors: true }), o); b.name = m.name; return b;
+        }
         const glass = /glass/i.test(m.name || '');
         // (a display case's glass: see-through, a faint sheen)
         if (/_clear$/.test(m.name || '')) { const c = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: !!m.vertexColors, color: m.color, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.28, depthWrite: false }), { key: 'envmodelclear' }); c.name = m.name; return c; }

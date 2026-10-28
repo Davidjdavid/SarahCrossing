@@ -1000,13 +1000,13 @@ const Invites = {
             G.player.emote = 'heart'; G.player.emoteT = 90;
             await UI.say(null, `Sarah and ${d.name} hang out ${place} for a while. They watch the island go by, swap stories, and laugh at nothing in particular.`, { keep: true });
             await say(INV_SCENE.hangEnd);
-            if (id !== 'joe') { const up = addPts(id, 5); if (up) await heartUp(n, up); }
+            if (id !== 'joe') { const up = addPts(id, 5, 'hangout'); if (up) await heartUp(n, up); }
         } else if (inv.kind === 'chat') {
             inv.state = 'done';
             await say(INV_SCENE.chat);
             if (id !== 'joe') {
                 await UI.say(id, voiced(id, chatLine(n)), { keep: true });
-                const up = addPts(id, 3);
+                const up = addPts(id, 3, 'hangout');
                 if (up) await heartUp(n, up);
             }
         } else if (inv.kind === 'play') {
@@ -1025,7 +1025,7 @@ const Invites = {
             const g = this.giftFor();
             if (g) receive(g, 1); else addMoney(1000, true, 'Found & gifts');
             n.emote = 'heart'; n.emoteT = 80;
-            if (id !== 'joe') { const up = addPts(id, 2); if (up) await heartUp(n, up); }
+            if (id !== 'joe') { const up = addPts(id, 2, 'hangout'); if (up) await heartUp(n, up); }
         } else return false;
         Save.touch();
         return true;

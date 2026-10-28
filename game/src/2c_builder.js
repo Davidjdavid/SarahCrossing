@@ -318,7 +318,7 @@ async function houseReaction(n) {
     const named = ['wall', 'roof', 'door'].find(k => L[k + 'Name']);
     if (named && !news.restored && !news.moved) line += ` And that ${L[named + 'Name']} ${{ wall: 'paint', roof: 'roof', door: 'door' }[named]}? ${rpick(['I keep saying the name out loud.', 'What a name. What a color.', 'Chef\'s kiss.'])}`;
     await UI.say(id, voiced(id, line), { keep: true });
-    const up = addPts(id, loved ? 6 : 3);
+    const up = addPts(id, loved ? 6 : 3, 'builder');
     if (up) await heartUp(n, up);
     Save.touch();
 }

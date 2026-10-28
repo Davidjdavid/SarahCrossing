@@ -29,9 +29,10 @@ function buildTownHall(a) {
     items.forEach(it => { if (it.id === 'museum_desk') it.use = () => civicCounter('townhall'); else if (it.id === 'shelf_book') it.use = () => civicScreen('history'); });
     a.items = items;
     placeFurniture(a, items);
-    // the Council keeps the desk, Sir Floret on one side, Dame Stalk and Little Sprout on the other (behind it they'd
-    // be hidden: the desk is taller than a head of broccoli)
-    [['floret', 6], ['stalk', 10], ['sprout', 11]].forEach(([id, x]) => a.add({ kind: 'judge', frame: `${id}_0`, x: x * TILE + TILE / 2, y: 4 * TILE - 2, civic: true }));
+    // (the Council isn't kept at the desk any more, David, 28 October: they come by Sarah's house when she asks them to
+    // judge it, 53_council.js, and here only the day after her statue goes up, to congratulate her: Sir Floret on one side,
+    // Dame Stalk and Little Sprout on the other; behind the desk they'd be hidden, it's taller than a head of broccoli)
+    if (typeof statueCongratsDue === 'function' && statueCongratsDue()) [['floret', 6], ['stalk', 10], ['sprout', 11]].forEach(([id, x]) => a.add({ kind: 'judge', frame: `${id}_0`, x: x * TILE + TILE / 2, y: 4 * TILE - 2, civic: true }));
 }
 /* the Post Office: the counter with its register, mail sacks waiting to go out, parcels, the sorting shelf, the map of
    the boats' routes */
@@ -62,12 +63,12 @@ const CIVIC_MENUS = {
     bank: ['savings', 'stocks', 'loan', 'goals', 'statement', 'vault'],
 };
 async function civicCounter(id) {
-    if (id === 'townhall') {
-        await UI.say('floret', rpick(['The Cozy Council welcomes you to the Town Hall. State your business. Slowly. We are broccoli.',
-            'Ah, a resident! The Council is in session. The Council is always in session. The Council lives here.']), { keep: true });
-        await UI.say('sprout', rpick(["Hi! The forms are new! I helped! I mostly watched!", "Everything at the desk is brand new. Don't tell Dame Stalk I tried the stamp."]));
-        // (the day after Sarah's statue goes up: well done, and a new one whenever she likes, 6zgc_statue.js)
+    if (id === 'townhall' && statueCongratsDue()) {
+        // (the day after Sarah's statue goes up the Council comes by: well done, and a new one whenever she likes, 6zgc_statue.js)
         if (await statueCongrats()) { UI.hideDialog(); civicScreen('statue', null, () => civicMenu('townhall')); return; }
+    } else if (id === 'townhall') {
+        // (nobody at the desk: the screens on the honor system, as at the shops after hours, until the Town Hall has a keeper)
+        await UI.say(null, 'The front desk has a little bell and a card: "THE COUNCIL IS OUT. They come by your house when you ask them to judge it. Everything else is right here: help yourself."');
     } else {
         await UI.say(null, id === 'bank' ? 'The teller\'s window has a little bell and a card: "BACK SOON. The screens work, though. Mostly. Pretend there are sand dollars." Nobody has been hired yet.'
             : 'There is a bell on the counter and a card: "BACK SOON. Ring for service. Or look at the forms. The forms are very nice." Nobody has been hired yet.');

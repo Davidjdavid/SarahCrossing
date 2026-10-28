@@ -1059,7 +1059,7 @@ test('neighbors find things of their own to do (the stars only at night), a chat
     // busy with something: no chat; walking off ends it
     __dbg.setTime(6, 12, 12);
     free(n, 116, 110);
-    idleStart(n);
+    for (let i = 0; i < 60 && !n.idle; i++) { unsit(); idleStart(n); }
     out.busy = !!n.idle && !Chats.free(n);
     n.path = [[117, 110]];
     updateNPC(n);
@@ -2728,9 +2728,21 @@ test('furniture turns four ways (its footprint turns with it); neighbors with no
     out.blocked = [a.blockedAt(it.x, it.y), a.blockedAt(it.x + 1, it.y)].join();
     // an old save's pieces have no rot: they face the front
     out.old = JSON.stringify(furnWH(furnDef('shelf_book'), undefined));
+    // a lamp switches off and on with a tap, and stays as she left it
+    S.house.items.push({ id: 'lamp_floor', x: f.x0 + f.w - 2, y: f.y0 + 1, flip: false });
+    placeFurniture(a, S.house.items);
+    const lamp = () => a.ents.find(e => e.furn && e.item.id === 'lamp_floor');
+    await useFurniture(lamp());
+    const off = !lamp().light && S.house.items.find(i => i.id === 'lamp_floor').off === true;
+    await useFurniture(lamp());
+    out.lamp = off && !!lamp().light && !S.house.items.find(i => i.id === 'lamp_floor').off;
+    // a fish, a shell or a gem can be set down like the food and flowers
+    const fish = FISHES.find(q => q.id !== 'boot').id;
+    __dbg.give(fish, 1); __dbg.give('scallop', 1);
+    out.things = furnDef(fish).kind === 'top' && furnDef('scallop').thing === 1 && Decor.owned()[fish] === 1 && Decor.owned().scallop === 1;
     return out;
   });
-  assert.deepEqual(res, { held: 1, placed: true, item: res.item, foot: '{"w":1,"h":2}', turned: 2, wall: false, ent: 2, blocked: 'true,true', old: '{"w":2,"h":1}' });
+  assert.deepEqual(res, { held: 1, placed: true, item: res.item, foot: '{"w":1,"h":2}', turned: 2, wall: false, ent: 2, blocked: 'true,true', old: '{"w":2,"h":1}', lamp: true, things: true });
   assert.match(res.item, /^1,/);
   // a neighbor near a bench sits on it for a while; one at the lookout looks through the telescope
   const idle = await page.evaluate(async () => {
@@ -2797,11 +2809,22 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       out.undo = W0.props.length === WORLD_PROPS;
       Design.pickNew(IslandEdit, 'disp', 'dp_gnome');
       IslandEdit.drop(s2[0], s2[1]);
+      // stairs: cut into a cliff's face near the square (three tiles wide, two rows), taken away, and cut again
+      IslandEdit.stairs = true;
+      let cliff = null;
+      for (let r = 4; r < 60 && !cliff; r++) for (let dy = -r; dy <= r && !cliff; dy++) for (let dx = -r; dx <= r && !cliff; dx++) { const x = s1[0] + dx, y = s1[1] + dy; if (Design.stairAt(x, y).tiles) cliff = [x, y]; }
+      const tiles = Design.stairAt(cliff[0], cliff[1]).tiles;
+      IslandEdit.tap((cliff[0] + 0.5) * TILE, (cliff[1] + 0.5) * TILE);
+      out.stairs = tiles.every(([x, y]) => RAMPS.has(x + ',' + y) && W0.coll[y][x] === '0' && !G.areas.island.blockedAt(x, y)) && Design.d.stairs.add.length === 6;
+      IslandEdit.tap((tiles[0][0] + 0.5) * TILE, (tiles[0][1] + 0.5) * TILE);
+      out.stairsGone = tiles.every(([x, y]) => !RAMPS.has(x + ',' + y) && W0.coll[y][x] === '1') && Design.d.stairs.add.length === 0;
+      IslandEdit.tap((cliff[0] + 0.5) * TILE, (cliff[1] + 0.5) * TILE);
+      IslandEdit.stairs = false;
       IslandEdit.close();
-      window._t = { i, j, s1, s2 };
+      window._t = { i, j, s1, s2, tiles };
       return out;
     });
-    assert.deepEqual(island, { edit: true, rev: 0, on: true, footTurned: '1,2', moved: true, ent: true, gone: true, added: true, undo: true });
+    assert.deepEqual(island, { edit: true, rev: 0, on: true, footTurned: '1,2', moved: true, ent: true, gone: true, added: true, undo: true, stairs: true, stairsGone: true });
     // a room: Waffle's shop, one piece turned, one taken away, a chair added
     await page.evaluate(() => __dbg.enter('displays'));
     await page.waitForFunction(() => G.area.id === 'displays');
@@ -2827,6 +2850,8 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       return out;
     });
     assert.deepEqual(room, { on: true, turned: true, gone: true, added: true });
+    await page.evaluate(() => __dbg.at('plaza'));
+    await page.waitForFunction(() => G.area.id === 'island');
     // what the neighbors like: Maki never reads and loves fishing, and never goes to the beach
     const likes = await page.evaluate(async () => {
       const N = Design.work().npcs;
@@ -2834,9 +2859,19 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       const w = { beach: 2, plaza: 1 };
       designSpots('maki', w);
       const ok = Design.likeWeight('maki', 'book', 4) === 0 && Design.likeWeight('maki', 'fish', 1) === 6 && Design.likeWeight('kai', 'fish', 4) === 4 && !('beach' in w) && w.plaza === 1;
-      return { ok, saved: await Design.save(), rev: Design.rev, dirty: Design.dirty };
+      // an area drawn round the campsite (two corners), named; a neighbor there is "at the campfire"; Kai never goes there
+      const c = W0.spots.campsite;
+      Design.work().areas = [{ id: 'a1', name: 'the campfire', rects: [] }];
+      IslandEdit.open({ design: true }); IslandEdit.areaMode = true; IslandEdit.areaId = 'a1';
+      IslandEdit.tap((c.x - 2 + 0.5) * TILE, (c.y - 2 + 0.5) * TILE); IslandEdit.tap((c.x + 2 + 0.5) * TILE, (c.y + 2 + 0.5) * TILE);
+      IslandEdit.close();
+      N.kai = { areas: { a1: 0 } };
+      const w2 = { campsite: 2, beach: 1 };
+      designSpots('kai', w2);
+      const area = JSON.stringify(Design.d.areas[0].rects) === JSON.stringify([[c.x - 2, c.y - 2, 5, 5]]) && placeName('maki', 'campsite') === 'at the campfire' && !('campsite' in w2) && w2.beach === 1;
+      return { ok, area, saved: await Design.save(), rev: Design.rev, dirty: Design.dirty };
     });
-    assert.deepEqual(likes, { ok: true, saved: true, rev: 1, dirty: false });
+    assert.deepEqual(likes, { ok: true, area: true, saved: true, rev: 1, dirty: false });
     const t = await page.evaluate(() => window._t);
     // a new game (another device) starts from the design
     await page.close();
@@ -2848,7 +2883,8 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       out.bench = [p.x, p.y, p.rot].join() === [t.s1[0], t.s1[1], 1].join() && isl.ents.some(e => e.propIdx === t.i && e.rot === 1);
       out.lamp = !!W0.props[t.j].gone && !isl.ents.some(e => e.propIdx === t.j);
       out.gnome = W0.props[WORLD_PROPS] && W0.props[WORLD_PROPS].disp === 'dp_gnome' && isl.ents.some(e => e.propIdx === WORLD_PROPS);
-      out.likes = Design.likeWeight('maki', 'book', 4) === 0;
+      out.likes = Design.likeWeight('maki', 'book', 4) === 0 && Design.areas().length === 1 && placeName('maki', 'campsite') === 'at the campfire';
+      out.stairs = t.tiles.every(([x, y]) => RAMPS.has(x + ',' + y) && W0.coll[y][x] === '0');
       __dbg.setTime(10, 13, 11);
       await enterRoom('displays');
       const a = G.area;
@@ -2857,7 +2893,7 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       out.home = !Design.canRoom({ interior: true, floor: {}, id: 'home' });
       return out;
     }, t);
-    assert.deepEqual(after, { bench: true, lamp: true, gnome: true, likes: true, room: true, home: true });
+    assert.deepEqual(after, { bench: true, lamp: true, gnome: true, likes: true, stairs: true, room: true, home: true });
     assert.deepEqual(page.problems, []);
   } finally {
     // (the next tests start from the island as it ships)
@@ -2883,6 +2919,46 @@ test("the Friends app: a tap on a friend opens their page (what they're like, wo
   for (const want of ['Gruff, big-hearted', 'the pottery studio', 'Kiddo', 'Down by the harbor', 'Best friend', 'Coco', '2 gifts from you', 'You had a game of tag together', 'Friends', 'since']) assert.ok(text.includes(want), `the page says "${want}"`);
   await page.click('#panel .back');
   await page.waitForSelector('#panel .row:has-text("Maki")');
+  // friendship is earned over days: each kind of thing counts once a day with each neighbor
+  const once = await page.evaluate(() => {
+    const r = rel('maki'), p0 = r.pts;
+    addPts('maki', 3, 'favor'); const p1 = r.pts;
+    addPts('maki', 3, 'favor'); const p2 = r.pts;
+    addPts('maki', 2, 'hangout'); const p3 = r.pts;
+    r.got.day--; addPts('maki', 3, 'favor');
+    return [p1 - p0, p2 - p1, p3 - p2, r.pts - p3].join();
+  });
+  assert.equal(once, '3,0,2,3');
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test("the island flag's poles by the Town Hall and at the end of the pier; the Town Hall's desk on the honor system (the Council comes to the house to judge)", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, poles = W0.props.filter(p => p.kind === 'flagpole'), th = W0.buildings.townhall, pier = W0.pier;
+    out.poles = poles.length === 2 && poles.some(p => Math.abs(p.x - th.x) <= 3 && p.y >= th.y && p.y <= th.y + th.h + 2) && poles.some(p => p.x >= pier.x0 && p.x <= pier.x1 && p.y === pier.y1);
+    out.solid = poles.every(p => G.areas.island.blockedAt(p.x, p.y)) && G.areas.island.ents.filter(e => e.kind === 'flagpole').length === 2;
+    // a save from before the poles: whatever of Sarah's stood there comes back to her storage
+    const st = JSON.parse(JSON.stringify(S)); delete st.flags.flags9;
+    st.deco = { moved: {}, gone: {}, placed: [{ id: 'dp_gnome', x: poles[0].x, y: poles[0].y }] };
+    const m = migrate(st);
+    out.migrate = m.deco.placed.length === 0 && m.storage.dp_gnome >= 1;
+    // the desk: a bell and a card, the menu all the same, nobody from the Council behind it
+    const said = [], say = UI.say;
+    UI.say = async (who, t) => { said.push(String(who) + ': ' + [].concat(t).join(' ')); };
+    try {
+      ROOMS.townhall = ROOMS.townhall || { w: 15, h: 7, name: 'Town Hall', build: a => buildTownHall(a) };
+      const a = buildRoom('townhall');
+      out.noCouncil = !a.ents.some(e => e.kind === 'judge');
+      await civicCounter('townhall');
+      out.card = said.some(t => /^null: .*THE COUNCIL IS OUT/.test(t)) && !said.some(t => /^floret/.test(t)) && !document.getElementById('panel').hidden;
+    } finally { UI.say = say; UI.close(true); }
+    return out;
+  });
+  assert.deepEqual(res, { poles: true, solid: true, migrate: true, noCouncil: true, card: true });
   assert.deepEqual(page.problems, []);
   await page.close();
 });

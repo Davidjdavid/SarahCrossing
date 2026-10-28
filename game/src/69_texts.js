@@ -38,6 +38,9 @@ function placeName(id, spot) {
             boutique: 'working at the boutique', studio: 'working at the pottery studio' }[spot] || ROOM_PLACE[spot];
     }
     if (spot === 'home' && d.house && id !== 'goat') return 'at home';
+    // (in an area the designer drew and named: 6zza_designer.js)
+    const area = typeof designPlace === 'function' && designPlace(spot);
+    if (area) return area;
     return PLACE_NAMES[spot] || ROOM_PLACE[spot] || 'out and about';
 }
 /* "working at the museum" -> "to the museum", for when they're walking there */

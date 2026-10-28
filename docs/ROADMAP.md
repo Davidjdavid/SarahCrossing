@@ -418,7 +418,8 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [ ] Outdoor furniture: real 3D models; sold by kind each day (lights, benches, fences, statues and gnomes, signs and
   umbrellas and picnic tables and the like, hedges and plants, and more), more of each kind (hedges, benches...), each in
   four colors; any furniture goes indoors or out (a paint easel outside, a park bench in the house)
-- [ ] (for later) More life at night: moths round the lamps, fireflies, and the like
+- [x] (for later) More life at night: moths round the lamps, fireflies, and the like (28 October, late: moths at the lit
+  lamps near Sarah, fireflies over the grass on warm clear nights)
 - [ ] (for later) The lawn's texture calmer: shapes that don't overlap, with even dark gaps between them, as in the
   GameCube Animal Crossing's grass (triangles, circles, squares; green in spring and summer, olive and gold in autumn)
 - [ ] The map redone to look better, with places named on it, so a neighbor's text saying where they are can be found on
@@ -428,9 +429,9 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   for each activity whether they do it more often, as usual, or never (chatting with neighbors, the museum, fishing, the
   arcade, eating out, planting flowers...). Anywhere not drawn on the map is a way between places: walking there, a
   neighbor sometimes stops to use what's along it (a drink at a fountain, a sit on a bench)
-- [ ] Friendship earned over days: with each neighbor, points only for the first talk of the day, one favor a day if they
+- [x] Friendship earned over days: with each neighbor, points only for the first talk of the day, one favor a day if they
   have one, one gift a day, and every other thing that raises friendship once a day; best friends is something worked
-  at. Joe still starts at the most and never goes down
+  at. Joe still starts at the most and never goes down (28 October, late: `addPts`'s kinds, once a day each)
 - [x] Decorating the house: furniture turned to face any of the four ways (they're models now: a chair facing the table)
   (28 October, late: Turn, or R, while placing or with a piece picked; its footprint turns with it; decorating happens in
   the 3D room in the new look, the piece in hand shown where it would go)
@@ -441,14 +442,19 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   each room's own furniture (that one bookcase facing west against the left wall, in that room only), saved on the server
   as the map the real game uses, so small changes don't need me (the phone's Designer app, on beta only; and what each
   neighbor likes doing and where they like to be: Neighbors' likes)
-- [ ] The designer: the stairs (add and take away), and drawing the map's areas (with the map redo below)
-- [ ] The Cozy Council out of the Town Hall: they come by only when Sarah asks for the island to be judged. The Town Hall
-  gets a keeper of its own who does the desk's work, and when nobody's working the screens are there anyway, on the
-  honor system, as at the shops
+- [x] The designer: the stairs (add and take away) (28 October, late: its Stairs tool; never where it would cut a place off)
+- [x] The designer: drawing the map's areas (28 October, late: the Areas tool; their names on the map and in the neighbors'
+  texts, and in Neighbors' likes)
+- [x] The Cozy Council out of the Town Hall: they come by only when Sarah asks for the island to be judged; when nobody's
+  working the screens are there anyway, on the honor system, as at the shops (28 October, late: the desk has a bell and a
+  card; the Council only comes by the day after Sarah's statue goes up, to congratulate her)
+- [ ] The Town Hall gets a keeper of its own who does the desk's work (David picks who, as for the Post Office and Bank)
 - [x] No descriptions when looking at props and things (they dated from the phone game's stand-in pictures: now you can
   see what things are, and the jokes wore thin heard often)
 - [ ] Props and furniture that act: anything that should move or do something does (fires flicker and breathe, fountains
-  shoot water, lamps indoors switch on and off, a TV switches on to static, clocks tick round as time passes...)
+  shoot water, lamps indoors switch on and off, a TV switches on to static, clocks tick round as time passes...) (28
+  October, late: fires, torches and lanterns flicker; the fountains throw water up; clocks already kept the time; a lamp
+  in the house switches off and on with a tap. Still to do: anything else that should move)
 - [x] (late) Buying and selling at Fortune's work again (broken since 26 October), with a test; "Sells for" gone from
   every description (the prices are on the cards)
 - [x] (late) Elizabeth playable; David a mustache only, John a mustache and a beard
@@ -513,8 +519,9 @@ Office's and the Bank's keepers are still to be picked.
   Sarah; a day or two after it goes up, she can have it changed to David or to another of the island's characters or
   to an object instead
 - [x] Town flag designer: draw a pixel-art flag shown round the island
-- [ ] (David's last list, 27 October) The flag Sarah draws as a 3D flag flying over the Town Hall, and on a little
-  flagpole at the end of the pier
+- [x] (David's last list, 27 October) The flag Sarah draws as a 3D flag flying over the Town Hall, and on a little
+  flagpole at the end of the pier (28 October, late: a white pole with a gold ball by the Town Hall's front and on the
+  pier's last planks, the cloth rippling in the wind, a new design on it as soon as it's raised)
 - [x] Town ordinances: Early Bird (shops and neighbors start earlier), Night Owl (shops open later), Community Spirit
   (neighbors socialize more), Nature Conservation (more wildlife and growth, trees grow faster, neighbors plant
   flowers where there aren't enough)

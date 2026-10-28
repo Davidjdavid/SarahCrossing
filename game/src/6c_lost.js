@@ -187,7 +187,7 @@ async function returnLost(n) {
     UI.toast(`+${fmtNum(reward)} sand dollars`, 'ui_coin');
     S.lost.cur = null; S.lost.done = (S.lost.done || 0) + 1;
     S.stats.returned = (S.stats.returned || 0) + 1;
-    const up = addPts(owner, 8);
+    const up = addPts(owner, 8, 'lost');
     Save.touch();
     if (up) { UI.hideDialog(); await heartUp(n, up); }
 }

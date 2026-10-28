@@ -504,6 +504,15 @@ class Island {
       this.prop(pr.kind, x, y, { project: pr.id });
       this.projects[pr.id] = { x, y, w: pr.w, h: pr.h, kind: pr.kind };
     }
+    // the island flag's poles: after the projects' props, so every other prop keeps its number (the flag Sarah draws flies
+    // on them in the new look, game/src/33t_env_flags.js)
+    for (const f of P.flagpoles || []) {
+      const free = (x, y) => { const k = this.i(x, y); return this.in(x, y) && this.land[k] && !this.face[k] && !this.coll[k] && !this.occ[k] && this.ter[k] === f.ground && !Object.values(this.spots).some(sp => sp.x === x && sp.y === y); };
+      let at = f.exact ? [f.x, f.y] : null;
+      for (let r = 0; r <= 6 && !at; r++) for (let dy = -r; dy <= r && !at; dy++) for (let dx = -r; dx <= r && !at; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && free(f.x + dx, f.y + dy)) at = [f.x + dx, f.y + dy];
+      if (!at) throw new Error(`no room for a flagpole near ${f.x},${f.y}`);
+      this.prop('flagpole', at[0], at[1]);
+    }
     for (const [x, y, fruit] of P.fruitTrees || []) {
       const k = this.i(x, y);
       if (!this.land[k] || this.face[k] || this.ter[k] !== 'g' || (this.occ[k] && this.occ[k] !== 3)) continue;

@@ -217,7 +217,7 @@ function postDeliver(L) {
                 neutral: `Thanks for the ${itemName(L.gift).toLowerCase()}! That was thoughtful.`, dislike: `Thanks for the ${itemName(L.gift).toLowerCase()}. I'll find a place for it. Somewhere.` }[tier];
         }
     }
-    addPts(id, pts);
+    addPts(id, pts, 'letter');
     const t = TALK[id], r = mulberry(hash32(S.seed + ':reply:' + id + ':' + L.day));
     const ps = t && t.chat && t.chat.length ? rpick(t.chat, r) : '';
     const open = id === 'joe' ? `Dear ${nm},\nYou wrote me a letter. A real one. With paper. I read it four times.` : `Dear ${nm},\n${rpick(['Thank you for your letter! It made my whole day.', 'I got your letter! I read it twice. Okay, three times.', 'A letter! For me! Nobody writes letters anymore. Except you. And now me.'], r)}`;
