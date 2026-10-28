@@ -113,7 +113,8 @@ const PAINT_TABLE = {
 const PAINT_BY_NAME = {};   // a colored piece's picture's name -> { P, src: its own picture's name }
 /* every piece IslandMart sells in its other colors, each its own item with its own name, the price its own */
 function registerColors() {
-    for (const [id, t] of Object.entries(PAINT_TABLE)) {
+    // (and the outdoor furniture's, 6zu_outdoor.js)
+    for (const [id, t] of Object.entries(Object.assign({}, PAINT_TABLE, typeof OUTDOOR_PAINT !== 'undefined' ? OUTDOOR_PAINT : {}))) {
         const d = FURN[id], it = ITEMS[id];
         if (!d || !it || d.base) continue;
         const wood = t === 'wood', colors = wood ? Object.keys(WOODS) : t.split(','), plain = String(d.name).replace(COLOR_WORDS, ''), frame = d.frame || 'f_' + id, icon = it.icon || frame;
@@ -219,7 +220,7 @@ function paintTableMissing() {
     const out = {};
     for (const id of Object.keys(FURN)) {
         const d = FURN[id], it = ITEMS[id];
-        if (!it || !(it.price > 0) || !(d.price > 0) || d.base || PAINT_TABLE[id] || NO_COLORS.some(k => d[k])) continue;
+        if (!it || !(it.price > 0) || !(d.price > 0) || d.base || PAINT_TABLE[id] || (typeof OUTDOOR_PAINT !== 'undefined' && OUTDOOR_PAINT[id]) || NO_COLORS.some(k => d[k])) continue;
         const got = paintAnalyzeSprite(d.frame || 'f_' + id, isPlant(d));
         if (got) out[id] = got.A.kind === 'wood' ? 'wood' : paintChoices(id, got.A).join(',');
     }

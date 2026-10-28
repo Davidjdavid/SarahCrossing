@@ -232,7 +232,7 @@ function drawWaterSparkles(ctx, a, cam, v) {
    a jack-o'-lantern, a lamp indoors): the new look lights each its own way (R3.updateLight) */
 function lightSources(a) {
     const out = [];
-    for (const e of a.ents) if (e.light) out.push([e.x, e.y + (e.light.y || 0), e.light.r, e.light.c, e.kind === 'lamp' ? 'lamp' : e.kind === 'building' ? 'door' : 'small']);
+    for (const e of a.ents) if (e.light) out.push([e.x, e.y + (e.light.y || 0), e.light.r, e.light.c, e.kind === 'lamp' || e.lamp ? 'lamp' : e.kind === 'building' ? 'door' : 'small']);
     if (a.id === 'island') {
         for (const e of a.ents) if (e.kind === 'building') {
             const b = e.b;

@@ -40,7 +40,8 @@ const SET_NAMES = { cottage: 'Cottage', beach: 'Beach', nightowl: 'Night owl', s
 /* shop: what Fortune stocks today (seeded by the day) */
 function shopStock() {
     const r = mulberry(hash32(S.seed + ':shop:' + Clock.dayNum()));
-    const buyable = Object.values(FURN).filter(f => f.price > 0 && f.id !== 'kitchenette' && !f.fixture && !f.prize);
+    // (Waffle sells the outdoor pieces: 6zu_outdoor.js)
+    const buyable = Object.values(FURN).filter(f => f.price > 0 && f.id !== 'kitchenette' && !f.fixture && !f.prize && !f.outdoor);
     const L = shopLevel('shop') - 1, B = shopLevel('boutique') - 1, U = SHOP_UP.shop, V = SHOP_UP.boutique;
     const furn = shuffled(buyable, r).slice(0, U.furn[L]).map(f => f.id);
     const walls = shuffled(GD.walls.filter(w => ITEMS[w].price > 0), r).slice(0, U.walls[L]);

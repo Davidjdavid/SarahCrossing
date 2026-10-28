@@ -179,7 +179,7 @@ function postTick() {
     }
     // now and then, a mysterious package
     if (day >= (S.startDay || day) + 5 && (P.special || 0) < day - 6 && r() < 0.1) {
-        const rare = Object.keys(FURN).filter(id => ITEMS[id] && FURN[id].price >= 2500 && !FURN[id].prize && !FURN[id].fixture && !FURN[id].pottery && !FURN[id].art);
+        const rare = Object.keys(FURN).filter(id => ITEMS[id] && FURN[id].price >= 2500 && !FURN[id].prize && !FURN[id].fixture && !FURN[id].pottery && !FURN[id].art && !FURN[id].outdoor);
         if (rare.length) {
             P.special = day;
             sendMail({ from: 'post', subject: 'A special delivery', body: "A package came for you. No return address. No note. Just a stamp with a little star on it.\nThe Post Office doesn't know who sent it. The Post Office has theories.", gift: rpick(rare, r) });

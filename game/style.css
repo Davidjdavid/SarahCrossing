@@ -217,6 +217,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .showcase .sc-pic { width: 144px; height: auto; image-rendering: pixelated; }
 .sc-facts .row { cursor: default; }
 .sc-card { margin: 0 4px 6px; line-height: 1.5; }
+.shop-cat { font: 600 15px/1.2 var(--display); color: var(--ink); margin: 14px 4px 6px; }
 .row .price { font: 600 16px/1 var(--display); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .row.unread { box-shadow: inset 4px 0 0 var(--salmon); }
 .hearts { color: var(--salmon); letter-spacing: 1px; font: 700 15px/1 var(--display); white-space: nowrap; }

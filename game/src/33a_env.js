@@ -54,7 +54,9 @@ const Env = {
        day's holiday decorations) */
     look() {
         const isl = G.areas && G.areas.island, holi = isl ? isl.ents.filter(e => e.holiday).map(e => e.grand || e.model3d || e.frame).join() : '';
-        return S ? JSON.stringify([S.exteriors || null, S.house && S.house.level, S.post && S.post.box || null, S.post && S.post.style || null, holi, projectsKey()]) : '';
+        // (and what's set down on the island, each with whether its model has come yet: the furniture loads after the island)
+        const disp = S && S.deco && S.deco.placed ? S.deco.placed.map(p => p.id + (FURN[p.id] && typeof EnvModels !== 'undefined' && EnvModels.has('furn_' + (FURN[p.id].base || p.id)) ? '+' : '')).join() : '';
+        return S ? JSON.stringify([S.exteriors || null, S.house && S.house.level, S.post && S.post.box || null, S.post && S.post.style || null, holi, projectsKey(), disp]) : '';
     },
     /* where Sarah is on screen, for the see-through round her (trees and buildings in front of her) */
     seeThrough(r3) {
@@ -185,6 +187,7 @@ const Env = {
         if (e.holiday && (e.grand || /pumpkin/.test(e.frame || '') || (typeof EnvBuild !== 'undefined' && EnvBuild.holidayModel(e)))) return true;
         if (typeof EnvSea !== 'undefined' && EnvSea.takes(e)) return true;
         if (typeof EnvItems !== 'undefined' && EnvItems.takes(e)) return true;
+        if (k === 'display' && typeof EnvBuild !== 'undefined' && EnvBuild.dispDrawn && EnvBuild.dispDrawn.has(e)) return true;
         return false;
     },
     /* the water's surface at a spot (world pixels), or null where there's none: the sea at 0, a stream or pond at its level */

@@ -40,14 +40,29 @@ function applyDecoMoves() {
     benches.c = null;
 }
 function displayRows(d) { return d.rows || 1; }
+/* what a piece set down on the island is: one of Waffle's (DISPLAYS), one of those in another color (its own name and
+   picture), or anything that stands on the floor indoors (David, 28 October: "a paint easel outside, a park bench in my
+   house"), which keeps its size, its light and, if it's a seat, its seat */
+function dispDef(id) {
+    if (DISPLAYS[id]) return DISPLAYS[id];
+    const f = FURN[id];
+    if (!f || f.kind !== 'floor') return null;
+    const b = f.base && DISPLAYS[f.base];
+    if (b) return Object.assign({}, b, { name: f.name, frame: f.frame || b.frame });
+    const fb = f.base ? FURN[f.base] : f, seat = /chair|stool|sofa|couch|bench|seat|beanbag|throne/.test(fb.id);
+    return { name: f.name, price: f.price, w: f.w, rows: f.h || 1, frame: f.frame || 'f_' + id, light: f.light, seat, furn: true,
+        talk: `${aOrAn(f.name)} ${f.name.toLowerCase()}, out in the fresh air. It looks surprisingly at home.` };
+}
 function addDisplay(a, p, j) {
-    const d = DISPLAYS[p.id];
+    const d = dispDef(p.id);
     if (!d) return null;
     const w = d.w, rows = displayRows(d);
     for (let k = 0; k < w; k++) for (let r = 0; r < rows; r++) a.block(p.x + k, p.y + r);
     const e = a.add({ kind: 'display', disp: p.id, deco: j, frame: d.frame, x: (p.x + w / 2) * TILE, y: (p.y + rows) * TILE - 2, px: p.x, py: p.y, what: d.name.toLowerCase() });
     e.hit = { x: p.x * TILE, y: p.y * TILE - 16, w: w * TILE, h: rows * TILE + 16 };
-    if (d.light) e.light = { r: d.light, y: -24 };
+    if (d.light) e.light = { r: d.light, y: -24, c: d.fire ? 'fire' : undefined };
+    // (a street lamp lights the way a street lamp does: R3.updateLight)
+    if (d.lamp) e.lamp = true;
     if (d.seat) e.interact = () => sitOnBench(e);
     else if (d.sign) e.interact = () => UI.say('sign', p.text ? `"${p.text}"` : 'A blank wooden sign. (In Island edit, pick it up to write something on it.)');
     else if (d.flag) e.interact = () => UI.say(null, `The flag of ${S.islandName || 'the island'} flaps in the breeze. It has a little sun on it. Everyone salutes it. Well, Cuke does.`);
@@ -121,35 +136,43 @@ async function displaysBrowse() {
     if (v) { await waffleTalk(NPCs.get('waffle')); return; }
     await staffAway();
 }
+/* today's stock (6zu_outdoor.js: a few of each kind, each in one of its colors), shown by kind */
 function displaysShop() {
     return new Promise(res => {
         const P = UI.open({ title: "Waffle's \u00b7 Island displays", foot: true, onClose: res });
+        const stock = waffleStock(Clock.dayNum());
         const draw = () => {
             P.body.innerHTML = '';
-            const list = el('div', 'list');
-            for (const [id, d] of Object.entries(DISPLAYS)) {
-                const row = el('button', 'row');
-                row.type = 'button';
-                row.appendChild(iconCanvas(d.frame, 40));
-                const t = el('div', 't');
-                t.appendChild(el('b', null, d.name));
-                const have = (S.storage[id] || 0) + pocketCount(id), placed = deco().placed.filter(p => p.id === id).length;
-                t.appendChild(el('span', null, `${d.w} ${plural(d.w, 'tile')} wide${d.light || d.torch ? ' \u00b7 lights up at night' : ''}${d.seat ? ' \u00b7 you can sit on it' : ''}${d.sign ? ' \u00b7 write your own words' : ''}${have + placed ? ` \u00b7 you have ${have + placed}` : ''}`));
-                row.appendChild(t);
-                row.appendChild(el('span', 'price', fmtNum(d.price)));
-                row.addEventListener('click', () => {
-                    if (S.money < d.price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return; }
-                    addMoney(-d.price, true, 'Museum');
-                    toStorage(id, 1);
-                    Sfx.play('buy');
-                    UI.toast(`${d.name} sent to your house. Set it up with Island edit!`, d.frame);
-                    S.stats.displays = (S.stats.displays || 0) + 1;
-                    const w = NPCs.get('waffle'); if (w) { w.emote = 'sparkle'; w.emoteT = 50; }
-                    draw();
-                });
-                list.appendChild(row);
+            P.body.appendChild(el('p', 'muted', 'New pieces every day. Everything works indoors too.'));
+            for (const [cat, label] of OUTDOOR_CATS) {
+                const mine = stock.filter(s => s.cat === cat);
+                if (!mine.length) continue;
+                P.body.appendChild(el('h3', 'shop-cat', label));
+                const list = el('div', 'list');
+                for (const { id } of mine) {
+                    const d = dispDef(id), row = el('button', 'row');
+                    row.type = 'button';
+                    row.appendChild(iconCanvas(d.frame, 40));
+                    const t = el('div', 't');
+                    t.appendChild(el('b', null, d.name));
+                    const have = (S.storage[id] || 0) + pocketCount(id), placed = deco().placed.filter(p => p.id === id).length;
+                    t.appendChild(el('span', null, `${d.w} ${plural(d.w, 'tile')} wide${d.light || d.torch ? ' \u00b7 lights up at night' : ''}${d.seat ? ' \u00b7 you can sit on it' : ''}${d.sign ? ' \u00b7 write your own words' : ''}${have + placed ? ` \u00b7 you have ${have + placed}` : ''}`));
+                    row.appendChild(t);
+                    row.appendChild(el('span', 'price', fmtNum(d.price)));
+                    row.addEventListener('click', () => {
+                        if (S.money < d.price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return; }
+                        addMoney(-d.price, true, 'Shopping');
+                        toStorage(id, 1);
+                        Sfx.play('buy');
+                        UI.toast(`${d.name} sent to your house. Set it up with Island edit, or inside!`, d.frame);
+                        S.stats.displays = (S.stats.displays || 0) + 1;
+                        const w = NPCs.get('waffle'); if (w) { w.emote = 'sparkle'; w.emoteT = 50; }
+                        draw();
+                    });
+                    list.appendChild(row);
+                }
+                P.body.appendChild(list);
             }
-            P.body.appendChild(list);
             P.foot.innerHTML = '';
             P.foot.appendChild(el('span', 'grow', `${fmtNum(S.money)} sand dollars \u00b7 set things up with Island edit on your phone`));
         };
@@ -160,7 +183,8 @@ function displaysShop() {
 /* ---------------------------------------------------------------- Island edit */
 function ownedDisplays() {
     const out = {};
-    for (const id of Object.keys(DISPLAYS)) { const n = (S.storage[id] || 0) + pocketCount(id); if (n) out[id] = n; }
+    for (const [id, n] of Object.entries(S.storage)) if (n > 0 && dispDef(id)) out[id] = (out[id] || 0) + n;
+    for (const s of S.pocket) if (s && dispDef(s.id)) out[s.id] = (out[s.id] || 0) + s.n;
     return out;
 }
 function takeDisplay(id) { if ((S.storage[id] || 0) > 0) return fromStorage(id, 1); return removeItem(id, 1) > 0; }
@@ -227,7 +251,7 @@ const IslandEdit = {
         body.appendChild(row);
         panel.appendChild(body);
     },
-    heldName() { const h = this.held; return h.src === 'prop' ? (PROP_NAMES[h.kind] || h.kind.replace(/_/g, ' ')) : DISPLAYS[h.id].name.toLowerCase(); },
+    heldName() { const h = this.held; return h.src === 'prop' ? (PROP_NAMES[h.kind] || h.kind.replace(/_/g, ' ')) : dispDef(h.id).name.toLowerCase(); },
     chooseNew() {
         const own = ownedDisplays();
         if (!Object.keys(own).length) { UI.toast("Nothing to set down yet. Waffle's shop (up Main Street) sells lamps, benches, hedges and more."); return; }
@@ -240,7 +264,7 @@ const IslandEdit = {
         const body = el('div', 'pbody');
         const list = el('div', 'list');
         for (const [id, n] of Object.entries(own)) {
-            const d = DISPLAYS[id], r = el('button', 'row');
+            const d = dispDef(id), r = el('button', 'row');
             r.type = 'button';
             r.appendChild(iconCanvas(d.frame, 40));
             const t = el('div', 't');
@@ -254,7 +278,7 @@ const IslandEdit = {
         panel.appendChild(body);
     },
     pickNew(id) {
-        const d = DISPLAYS[id];
+        const d = dispDef(id);
         this.held = { src: 'new', id, w: d.w, rows: displayRows(d), frame: d.frame, sign: !!d.sign, text: '' };
         this.msg = '';
         this.render();
@@ -265,7 +289,7 @@ const IslandEdit = {
         for (const e of a.ents) {
             if (e.hidden) continue;
             if (e.kind === 'display' && e.deco != null) {
-                const d = DISPLAYS[e.disp];
+                const d = dispDef(e.disp);
                 if (tx >= e.px && tx < e.px + d.w && ty >= e.py && ty < e.py + displayRows(d)) return e;
             } else if (e.propIdx != null && e.kind in MOVABLE_PROPS) {
                 const w = PROP_SIZE[e.kind] || 1;
@@ -277,7 +301,7 @@ const IslandEdit = {
     pickUp(e) {
         const a = G.areas.island;
         if (e.kind === 'display') {
-            const p = deco().placed[e.deco], d = DISPLAYS[p.id];
+            const p = deco().placed[e.deco], d = dispDef(p.id);
             this.held = { src: 'deco', idx: e.deco, id: p.id, w: d.w, rows: displayRows(d), frame: d.frame, sign: !!d.sign, text: p.text || '', ent: e, from: [p.x, p.y] };
         } else {
             const w = PROP_SIZE[e.kind] || 1;
@@ -304,7 +328,7 @@ const IslandEdit = {
     },
     putAway() {
         const h = this.held, D = deco();
-        if (h.src === 'deco') { D.placed.splice(h.idx, 1); toStorage(h.id, 1); UI.toast(`${DISPLAYS[h.id].name} put away in your house storage.`, DISPLAYS[h.id].frame); }
+        if (h.src === 'deco') { D.placed.splice(h.idx, 1); toStorage(h.id, 1); UI.toast(`${dispDef(h.id).name} put away in your house storage.`, dispDef(h.id).frame); }
         else if (h.src === 'prop') { const as = MOVABLE_PROPS[h.kind]; if (!as) return; D.gone[h.idx] = true; delete D.moved[h.idx]; toStorage(as, 1); UI.toast(`${DISPLAYS[as].name} put away in your house storage.`, DISPLAYS[as].frame); }
         this.held = null;
         Save.touch();

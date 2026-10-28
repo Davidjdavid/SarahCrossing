@@ -5,7 +5,8 @@
 /* ---------------------------------------------------------------- benches */
 function benches() {
     if (benches.c) return benches.c;
-    const placed = (S && S.deco && S.deco.placed || []).filter(p => typeof DISPLAYS !== 'undefined' && DISPLAYS[p.id] && DISPLAYS[p.id].seat)
+    // (a placed seat two tiles wide is a bench the neighbors sit on too)
+    const placed = (S && S.deco && S.deco.placed || []).filter(p => { const d = typeof dispDef === 'function' && dispDef(p.id); return d && d.seat && d.w >= 2; })
         .map(p => ({ kind: 'bench', x: p.x, y: p.y, placed: true }));
     return (benches.c = W0.props.filter((p, i) => (p.kind === 'bench' || p.kind === 'log') && !(typeof propGone === 'function' && propGone(i))).concat(placed));
 }

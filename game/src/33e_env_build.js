@@ -36,8 +36,27 @@ const EnvBuild = {
         const n = e.kind === 'tent' ? 'tent_' + ((e.tent || 0) % 3) : e.kind === 'rock' ? (hash32('rk' + e.x + ',' + e.y) % 2 ? 'rock_a' : 'rock_b') : P[0];
         return EnvModels.has(n) ? [n, P[1], P[2]] : null;
     },
+    /* a piece set down on the island (Waffle's, or furniture from indoors: 6zu_outdoor.js): its furniture model, and for one
+       in another color that model repainted (colorGeo), kept as a model of its own; null until the furniture has loaded */
+    displayModel(e) {
+        const id = e.disp, f = id && FURN[id];
+        if (!f || typeof EnvModels === 'undefined') return null;
+        const base = 'furn_' + (f.base || id);
+        if (!EnvModels.has(base)) return null;
+        if (!f.base) return base;
+        const n = 'furn_' + id, M = EnvModels.models;
+        if (!M[n]) M[n] = Object.assign({}, M[base], { parts: M[base].parts.map(p => Object.assign({}, p, { geometry: colorGeo(base, p.geometry, f) })) });
+        return n;
+    },
+    /* the middle of its footprint, on the ground */
+    displaySpot(e) {
+        const d = dispDef(e.disp), w = d ? d.w : 1, h = d ? displayRows(d) : 1, x = e.px + w / 2, v = e.py + h / 2;
+        return { x, z: v * R3_ZS, y: Env.groundH(x * TILE, v * TILE) };
+    },
     build(group, a) {
         this.season = a.bgSeason || Clock.season();
+        // (what's set down on the island and drawn here: anything whose model came later stays its picture till next time)
+        this.dispDrawn = new Set();
         const P = this.parts = {};
         const part = (name) => P[name] || (P[name] = { p: [], n: [], uv: [], c: [], idx: [] });
         this.part = part;
@@ -76,6 +95,7 @@ const EnvBuild = {
                 if (n === 'park_clock') clocks.push(placed[n][placed[n].length - 1]);
                 if (e.onlyNight) nights.push({ n, i: placed[n].length - 1, on: true });
             }
+            else if (e.kind === 'display' && this.displayModel(e)) { const f = this.displaySpot(e); this.model(this.displayModel(e), f.x, f.y, f.z, 0, 1); this.dispDrawn.add(e); }
             // (a garden plot is a raised planter box, props_island.py; a bed in the community garden two ridges of tilled
             // soil, as the farm's fields have; what grows in either is EnvItems')
             // (a thing a story puts on the island with a model of its own: the seafarer's wreck and ship; afloat if it floats)

@@ -10,9 +10,14 @@ furn_<id>_glow, drawn unlit); a wall piece (furn_f.py) may have a face the game 
 what moves is its own part (furn_<id>_move: the claw, a conveyor's plates). The kit (table, chair, bed, sofa, cabinet, shelf, counter, lamp, plant...) makes the
 common shapes; the pieces are in furn_*.py, each a function taking a Piece and filling it.
 
-    python tools/blender/furniture.py [--batch furn_a] [--preview DIR] [--only bed_simple,table_wood]
+    python tools/blender/furniture.py [--batch furn_a] [--preview DIR] [--only bed_simple,table_wood] [--sprites DIR]
+
+--sprites DIR renders each piece on its own, from the classic art's three-quarter view with nothing behind it, into
+DIR/f_<id>.png at 8 pixels for each of the classic art's (and DIR/sprites.json: each one's size and where its footprint's
+front edge is); tools/sprites_to_atlas.py shrinks them to the classic art's size and adds them to the sprite atlas (the
+pictures the flat views and the menus show of a piece that only exists as a model).
 """
-import sys, os
+import sys, os, math
 sys.path.insert(0, os.path.dirname(__file__))
 import bpy
 from common import *
@@ -20,11 +25,58 @@ from trees_ac import vmat
 from furn_kit import ITEMS, Piece
 # the pieces register themselves as their files are read (only the batch asked for, when one is)
 _b = sys.argv[sys.argv.index('--batch') + 1] if '--batch' in sys.argv else None
-for _m in ([_b] if _b else ['furn_a', 'furn_b', 'furn_c', 'furn_d', 'furn_e', 'furn_f', 'furn_g', 'furn_h', 'furn_i']):
+for _m in ([_b] if _b else ['furn_a', 'furn_b', 'furn_c', 'furn_d', 'furn_e', 'furn_f', 'furn_g', 'furn_h', 'furn_i', 'furn_j']):
     try:
         __import__(_m)
     except ModuleNotFoundError:
         pass
+
+
+# ---------------------------------------------------------------- sprites
+SPRITE_ELEV, SPRITE_PPU = 41.0, 128     # the classic art's view (its heights about three quarters of its widths), 8x its 16 a tile
+
+
+def sprite_sheet(shown, out):
+    """each piece alone, lit by the game's sun and sky, from the three-quarter view, orthographic, nothing behind it"""
+    import json
+    os.makedirs(out, exist_ok=True)
+    light_rig(sun_strength=3.4, sky_strength=1.1)
+    e = math.radians(SPRITE_ELEV)
+    up = Vector((0, math.sin(e), math.cos(e)))
+    cd = bpy.data.cameras.new('SpriteCam')
+    cd.type = 'ORTHO'
+    cam = link(bpy.data.objects.new('SpriteCam', cd))
+    cam.rotation_euler = (math.pi / 2 - e, 0, 0)
+    bpy.context.scene.camera = cam
+    # (a run with --only adds to what's there)
+    mp = os.path.join(out, 'sprites.json')
+    meta = json.load(open(mp)) if os.path.exists(mp) else {}
+    for id, w, h, objs in shown:
+        mine = set(o.name for o in objs)
+        for o in bpy.data.objects:
+            if o.type == 'MESH':
+                o.hide_render = o.name not in mine
+        pts = [o.matrix_world @ Vector(c) for o in objs if o.type == 'MESH' for c in o.bound_box]
+        if not pts:
+            continue
+        xs = [p.x for p in pts]
+        ys = [p.dot(up) for p in pts]
+        x0, x1, y0, y1 = min(xs) - 0.04, max(xs) + 0.04, min(min(ys), -h / 2 * math.sin(e)) - 0.04, max(ys) + 0.04
+        rx, ry = x1 - x0, y1 - y0
+        cd.ortho_scale = max(rx, ry)
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        # (the camera's middle on the box's middle: across is x, up the picture is `up`, back along the view)
+        fwd = Vector((0, math.cos(e), -math.sin(e)))
+        cam.location = Vector((cx, 0, 0)) + up * cy - fwd * 20
+        W, H = max(8, round(rx * SPRITE_PPU)), max(8, round(ry * SPRITE_PPU))
+        render(os.path.join(out, f'f_{id}.png'), size=(W, H), samples=24, transparent=True)
+        # (where the footprint's front edge is, in the picture: the classic art's anchor)
+        fy = -h / 2 * math.sin(e)
+        meta[f'f_{id}'] = {'w': W, 'h': H, 'ax': (0 - x0) / rx * W, 'ay': (y1 - fy) / ry * H}
+    for o in bpy.data.objects:
+        o.hide_render = False
+    with open(os.path.join(out, 'sprites.json'), 'w') as f:
+        json.dump(meta, f, indent=1)
 
 
 # ---------------------------------------------------------------- export
@@ -48,6 +100,7 @@ if __name__ == '__main__':
     prev = args[args.index('--preview') + 1] if '--preview' in args else None
     only = args[args.index('--only') + 1].split(',') if '--only' in args else None
     batch = args[args.index('--batch') + 1] if '--batch' in args else None
+    sprites = args[args.index('--sprites') + 1] if '--sprites' in args else None
     reset()
     shown = []
     for id, (w, h, fn) in ITEMS.items():
@@ -64,6 +117,8 @@ if __name__ == '__main__':
                 o.name = f'done_{id}_{o.name}'
         shown.append((id, w, h, objs))
         print('built', id, sum(len(o.data.vertices) for o in objs if o.type == 'MESH'), 'vertices')
+    if sprites:
+        sprite_sheet(shown, sprites)
     if prev:
         # a sheet of them on a floor, in rows of six, a stand-in for Sarah for their size
         ground_plane(size=200, color='#c8a878')

@@ -2381,6 +2381,51 @@ test("5 AM: fruit, fish and shells left out are gone by morning; anything else i
   await p2.context().close();
 });
 
+test("outdoor furniture: Waffle's stock by kind each day in four colors; floor furniture goes outside, Waffle's pieces go indoors", async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play' && !G.busy);
+  const res = await page.evaluate(() => {
+    const out = {}, day = Clock.dayNum(), st = waffleStock(day);
+    // a few of each kind, the same all day, different tomorrow; every piece in four colors; plenty of each kind
+    out.kinds = OUTDOOR_CATS.every(([c]) => st.some(s => s.cat === c)) && st.length === Object.values(OUTDOOR_DAILY).reduce((a, b) => a + b, 0);
+    out.days = JSON.stringify(st) === JSON.stringify(waffleStock(day)) && JSON.stringify(st) !== JSON.stringify(waffleStock(day + 1));
+    out.colors = Object.keys(DISPLAYS).every(id => FURN[id] && FURN[id].colors && FURN[id].colors.length === 4);
+    out.perKind = OUTDOOR_CATS.every(([c]) => Object.values(DISPLAYS).filter(d => d.cat === c).length >= 6);
+    out.pictures = Object.keys(DISPLAYS).every(id => Assets.has(DISPLAYS[id].frame));
+    // a piece in another color is set down as its own piece, with its own name and picture
+    const v = dispDef('od_iron_bench@white');
+    out.variant = !!v && v.seat && v.w === 2 && /white/.test(v.name) && v.frame === 'f_od_iron_bench@white' && Assets.has(v.frame);
+    // anything standing on the floor indoors goes outside too (a sofa is still a seat); a clock on the wall doesn't
+    out.indoorOut = !!dispDef('easel') && dispDef('sofa_pink').seat && !dispDef('clock_wall');
+    toStorage('easel', 1); toStorage('dp_bench@dark wood', 1);
+    out.owned = ownedDisplays().easel === 1 && ownedDisplays()['dp_bench@dark wood'] === 1;
+    // set down: its tiles blocked, a two-wide seat a bench the neighbors use, a street lamp lit as one
+    deco().placed.push({ id: 'easel', x: 70, y: 88 }, { id: 'od_porch_swing', x: 72, y: 88 }, { id: 'od_lamp_double', x: 76, y: 88 });
+    rebuildIsland();
+    const isl = G.areas.island, es = isl.ents.filter(e => e.kind === 'display');
+    out.island = es.some(e => e.disp === 'easel') && isl.blockedAt(70, 88) && isl.blockedAt(73, 88) && !!es.find(e => e.disp === 'od_porch_swing').interact;
+    benches.c = null;
+    out.bench = benches().some(b => b.placed && b.x === 72);
+    out.lamp = lightSources(isl).some(q => q[4] === 'lamp' && Math.abs(q[0] - 76.5 * TILE) < 2);
+    // Waffle's pieces indoors: in the house's Furniture tab, standing on the floor
+    toStorage('od_hedge_tall', 1);
+    out.indoors = !!Decor.owned().od_hedge_tall && furnDef('od_hedge_tall').kind === 'floor';
+    return out;
+  });
+  assert.deepEqual(res, { kinds: true, days: true, colors: true, perKind: true, pictures: true, variant: true, indoorOut: true, owned: true, island: true, bench: true, lamp: true, indoors: true });
+  // buying at Waffle's: today's first piece goes home to storage
+  await page.evaluate(() => { S.money = 100000; displaysShop(); });
+  const first = await page.evaluate(() => waffleStock(Clock.dayNum())[0].id);
+  await page.click('#panel .list .row');
+  assert.deepEqual(await page.evaluate((id) => [S.storage[id] || 0, S.money < 100000], first), [1, true]);
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('Captain Shrimpy: washed up a week in, ten logs, ten meals, five gems, sails off, back at the pier, moves in and farms', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));

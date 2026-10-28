@@ -54,7 +54,8 @@ const EnvGlow = {
             // (a street lamp's pool reaches far round it, as its light does; a lantern's or a fire's stays small)
             // (a holiday's lanterns stand close together, a jack-o'-lantern at each corner of every shop: their pools, which
             // add up where they overlap, kept small and faint)
-            if (e.light && !e.furn) list.push([e.x / TILE, e.y / TILE + 0.15, e.kind === 'lamp' ? Math.max(6.5, e.light.r / TILE * 4) : e.holiday ? 1.3 : Math.max(1.6, e.light.r / TILE * 1.05), e.holiday ? 0.35 : 1, 0xffc27a]);
+            const lamp = e.kind === 'lamp' || e.lamp;
+            if (e.light && !e.furn) list.push([e.x / TILE, e.y / TILE + 0.15, lamp ? Math.max(6.5, e.light.r / TILE * 4) : e.holiday ? 1.3 : Math.max(1.6, e.light.r / TILE * 1.05), e.holiday ? 0.35 : lamp ? 0.4 : 1, 0xffc27a]);
             else if (e.kind === 'building' && e.b) { const b = e.b; list.push([b.x + b.w / 2, b.y + b.h + 0.35, Math.min(2.2, b.w * 0.42), 0.55, e.id === 'club' ? 0xff6ab0 : 0xffc27a]); }
         }
         if (!list.length) return { meshes: [] };

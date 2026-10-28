@@ -87,6 +87,11 @@ docs/DEPLOY.md for the server.
   running down she couldn't see what was coming), and things are drawn ahead out to where the haze has them
   (`updateView`: a house beyond the ground at the top of the screen still stands up over the horizon, and used to blink
   in and out there).
+- The haze takes the sky's color behind each thing (`r3SkyCol` in `R3_GLSL`, the sky's colors shared as `uSkyZen`/`uSkyMid`/
+  `uSkyHor`), so far things melt into the sky rather than standing in it; the sky's horizon sits where the island's far edge
+  is seen (`uSkyEdge`, from `placeCamera`), with clouds, and stars and the moon at night (`uNight`), in the strip of sky
+  over it. Street lamps light from high over them (`updateLight`): far reaching, gentle close up; a doorway or a lantern
+  lights only round itself.
 - Settings > Picture quality and Draw distance (`GFX`, kept per device in `sc-quality` / `sc-far`): Auto is the device's
   own (phones lighter and shorter, a slow computer drops its quality by itself in `watchSpeed`); a pick stays as picked.
   Quality scales the pixels drawn (`R3.quality`; High keeps the water's reflections), distance scales `R3.farTiles()`,
@@ -376,6 +381,15 @@ docs/DEPLOY.md for the server.
   without its figure (`EnvStatue.plinth`) and the figure is the doll or toy cast in bronze (`EnvStatue.figure`: every
   color a shade of the first statue's bronze); the flat views draw the figure's picture in bronze (`statueFrame`). Kept as
   `S.town.statue` { kind, spec, told, next }.
+- Outdoor furniture (6zu_outdoor.js, David, 28 October): Waffle's pieces (`DISPLAYS`, 6j_displays.js) in kinds
+  (`OUTDOOR_CATS`: lights, seats, fences, statues, standing things, plants, and more), the first 22 joined by `OUTDOOR_NEW`;
+  each a model (`furn_<id>`, tools/blender/furn_j.py, loaded with the island's: `EnvModels.OUTDOOR`), each in four colors
+  (`OUTDOOR_PAINT`, read by `registerColors`), each furniture too (`FURN[id]`, kind floor: it goes in the house), and Waffle
+  sells a few of each kind a day (`waffleStock(day)`, `OUTDOOR_DAILY`). Anything set down on the island is `dispDef(id)`:
+  one of Waffle's, one in another color, or any floor furniture from indoors (a seat stays a seat); in the new look it's
+  drawn by `EnvBuild.displayModel` (a colored one's model repainted by `colorGeo`), a street lamp (`lamp`) lit as one. The
+  new pieces' pictures are rendered from their models: `furniture.py --batch furn_j --sprites DIR`, then
+  `python3 tools/sprites_to_atlas.py DIR --only f_od_` adds them to the atlas below its own 1024 rows.
 - When the day turns over at 5 AM (6zgd_lostfound.js, `lostFoundTick` in `dailyCheck`): what renews and was left lying on
   the island (`LOST_RENEWS`: fruit, fish, shells, veggies, flowers, wood, snacks) is gone; anything else Sarah dropped goes
   to the Town Hall's Lost and Found (`S.lostFound` { id: how many }, the screen `CIVIC_LIVE.lostfound`), or home to storage
@@ -536,7 +550,7 @@ docs/DEPLOY.md for the server.
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
-  steps): the game loads every model at once, so keep `game/assets/models/` light (about 85 MB on disk now, 12 of it furniture, 30 the style test's dolls and folks with their phone versions; packed and gzipped by the build, a computer fetches about 26 MB of it and a phone 21). `doll.py` was the
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 100 MB on disk now, 15 of it furniture, 30 the style test's dolls and folks with their phone versions; packed and gzipped by the build, a computer fetches about 26 MB of it and a phone 21). `doll.py` was the
   mock-up of the people as dolls. `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height

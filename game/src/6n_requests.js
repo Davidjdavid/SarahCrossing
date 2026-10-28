@@ -279,7 +279,7 @@ const Requests = {
         const money = [300, 600, 1000][tier] + Math.floor(rr() * [5, 8, 11][tier]) * 100 + (t.pay ? ITEMS[t.item].price : 0);
         const say = id === n.id ? n.id : id;
         if (!t.pay && tier > 0 && rr() < 0.4) {
-            const pool = Object.values(FURN).filter(f => f.price > 0 && f.price <= [900, 1600, 2600][tier] && !f.prize && !f.fixture && !f.special);
+            const pool = Object.values(FURN).filter(f => f.price > 0 && f.price <= [900, 1600, 2600][tier] && !f.prize && !f.fixture && !f.special && !f.outdoor);
             const f = rpick(pool, rr);
             await UI.say(say, voiced(say, 'Here, take this. For your house!'), { keep: true });
             receive(f.id, 1);

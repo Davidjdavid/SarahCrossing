@@ -243,7 +243,8 @@ const Decor = {
     owned() {
         const out = {};
         // (a coffee from Muggy's sits on a table like food: 6zs_mug.js)
-        const ok = id => ['furniture', 'wall', 'floor', 'dish', 'fruit', 'veg', 'flower', 'art'].includes(ITEMS[id].type) || !!ITEMS[id].coffee;
+        // (and Waffle's outdoor pieces: a park bench in the house, 6zu_outdoor.js)
+        const ok = id => ['furniture', 'wall', 'floor', 'dish', 'fruit', 'veg', 'flower', 'art', 'display'].includes(ITEMS[id].type) || !!ITEMS[id].coffee;
         for (const s of S.pocket) if (s && ok(s.id)) out[s.id] = (out[s.id] || 0) + s.n;
         for (const [id, n] of Object.entries(S.storage)) if (ITEMS[id] && ok(id)) out[id] = (out[id] || 0) + n;
         return out;
@@ -296,7 +297,7 @@ const Decor = {
         body.className = 'pbody';
         const grid = document.createElement('div');
         grid.className = 'grid';
-        const tabOf = id => ['dish', 'fruit', 'veg', 'flower'].includes(ITEMS[id].type) || ITEMS[id].coffee ? 'food' : ITEMS[id].type === 'art' ? 'furniture' : ITEMS[id].type;
+        const tabOf = id => ['dish', 'fruit', 'veg', 'flower'].includes(ITEMS[id].type) || ITEMS[id].coffee ? 'food' : ITEMS[id].type === 'art' || ITEMS[id].type === 'display' ? 'furniture' : ITEMS[id].type;
         const ids = Object.keys(owned).filter(id => tabOf(id) === this.tab).sort();
         if (!ids.length) {
             const p = document.createElement('p');

@@ -16,7 +16,7 @@ function laptopAll(tab) {
     const ok = id => ITEMS[id] && ITEMS[id].price > 0;
     if (tab === 'clothes') return Object.keys(ITEMS).filter(id => ok(id) && (ITEMS[id].type === 'outfit' || ITEMS[id].type === 'acc'));
     if (tab === 'decor') return GD.walls.concat(GD.floors).filter(ok);
-    return Object.keys(FURN).filter(id => ok(id) && !FURN[id].fixture && !FURN[id].prize && !FURN[id].pottery && !FURN[id].art && !FURN[id].base && FURN[id].price > 0);
+    return Object.keys(FURN).filter(id => ok(id) && !FURN[id].fixture && !FURN[id].prize && !FURN[id].pottery && !FURN[id].art && !FURN[id].base && !FURN[id].outdoor && FURN[id].price > 0);
 }
 /* this week's stock on a tab */
 function laptopCatalog(tab, day) {

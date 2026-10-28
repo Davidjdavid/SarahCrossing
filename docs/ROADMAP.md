@@ -393,8 +393,37 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   poking through; lighting indoors, in each season, weather and time of day; draw distance (nothing popping in or
   vanishing; the worst of it fixed 27 October); ground, water, grass, trees, props and animations that don't match;
   phones faster without the nearby scenery and people looking worse
+- [ ] (David, 28 October) Seeing far, at the very end of the polish, just before the big testing: things coming into view
+  without being noticed (on computers and phones), and the haze far off much less obvious (it can feel like an N64 or
+  PS1 game). Started 28 October: the haze takes the sky's color behind each thing, the sky's horizon sits on the
+  island's far edge, stars and clouds in the strip of sky over it.
 - [ ] The game as something played for months: tedious chores, awkward pacing, confusing screens, frustrating
   activities
+
+## David's notes from playing beta (28 October)
+- [x] The lighting at night blown out yellow near the shops (every doorway and jack-o'-lantern was lit like a street
+  lamp); a street lamp's light far reaching but gentle close up
+- [x] Brick paths from the island editor show in 3D (and planks)
+- [x] An option to play in 2D (Settings > View: 3D or Classic 2D)
+- [ ] A sky behind the haze (started: see "Seeing far" above)
+- [ ] Outdoor furniture: real 3D models; sold by kind each day (lights, benches, fences, statues and gnomes, signs and
+  umbrellas and picnic tables and the like, hedges and plants, and more), more of each kind (hedges, benches...), each in
+  four colors; any furniture goes indoors or out (a paint easel outside, a park bench in the house)
+- [ ] (for later) More life at night: moths round the lamps, fireflies, and the like
+- [ ] (for later) The lawn's texture calmer: shapes that don't overlap, with even dark gaps between them, as in the
+  GameCube Animal Crossing's grass (triangles, circles, squares; green in spring and summer, olive and gold in autumn)
+- [ ] The map redone to look better, with places named on it, so a neighbor's text saying where they are can be found on
+  it. On beta, David draws the areas on the map himself (these tiles are the campfire, this is the neighborhood, this the
+  mountains, the east meadow...), and their names show as labels
+- [ ] Residents at the Town Hall: pick the areas a neighbor likes to spend their free time in (not working or asleep), and
+  for each activity whether they do it more often, as usual, or never (chatting with neighbors, the museum, fishing, the
+  arcade, eating out, planting flowers...). Anywhere not drawn on the map is a way between places: walking there, a
+  neighbor sometimes stops to use what's along it (a drink at a fountain, a sit on a bench)
+- [ ] Friendship earned over days: with each neighbor, points only for the first talk of the day, one favor a day if they
+  have one, one gift a day, and every other thing that raises friendship once a day; best friends is something worked
+  at. Joe still starts at the most and never goes down
+- [ ] Props and furniture that act: anything that should move or do something does (fires flicker and breathe, fountains
+  shoot water, lamps indoors switch on and off, a TV switches on to static, clocks tick round as time passes...)
 
 ## The museum, in rooms (David, 26 October: for later)
 - [x] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings

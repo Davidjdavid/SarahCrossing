@@ -113,7 +113,8 @@ function pocketActions(i, s, redraw) {
     const it = ITEMS[s.id], out = [];
     const atHome = G.area.id === 'home';
     if (it.type === 'fruit' || it.type === 'dish' || it.type === 'snack') out.push(btn('Eat', '', () => { UI.close(); eatItem(i); }));
-    if (it.type === 'display') out.push(btn('Set it up outside', '', async () => { UI.close(true); if (G.area.id !== 'island') await leaveInterior(); IslandEdit.open({ place: s.id }); }));
+    // (anything that stands on the floor indoors can go outside too: dispDef in 6j_displays.js)
+    if (it.type === 'display' || (FURN[s.id] && FURN[s.id].kind === 'floor')) out.push(btn('Set it up outside', '', async () => { UI.close(true); if (G.area.id !== 'island') await leaveInterior(); IslandEdit.open({ place: s.id }); }));
     if (it.type === 'outfit' || it.type === 'acc') out.push(btn('Add to wardrobe', '', () => {
         const w = it.wear;
         const list = it.type === 'outfit' ? S.wardrobe.outfits : S.wardrobe.accs;

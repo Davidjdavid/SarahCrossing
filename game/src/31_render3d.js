@@ -177,6 +177,13 @@ const R3 = {
         cam.updateMatrixWorld();
         R3U.uBendZ.value = this.target.z - (a.interior ? 999 : R3_CAM.bendStart);
         R3U.uBendK.value = a.interior ? 0 : R3_CAM.bendK;
+        // (where the island's far edge is seen from the camera, as a slope down from it: the sky's horizon sits there,
+        // whatever the zoom, so the strip of sky over the edge is always sky, with its stars and clouds: r3Sky, r3SkyCol)
+        if (!a.interior) {
+            const fz = this.target.z - Math.max(8, this.farTiles() - 0.5) * R3_ZS, bd = Math.max(0, R3U.uBendZ.value - fz);
+            const ey = (this.camH || 0) - R3U.uBendK.value * bd * bd - cam.position.y, ez = fz - cam.position.z;
+            R3U.uSkyEdge.value = ey / Math.hypot(ey, ez);
+        }
         const k = d / 13, df = Env.on && !a.interior ? ENV.dof : [22, 70, 8.5, 5.5];
         R3U.uDof.value.set(df[0] * k, df[1] * k, df[2] * k, df[3] * k);
         // the sun's shadow box follows the camera
@@ -531,6 +538,9 @@ const R3 = {
             u.uMid.value.setRGB(0.53, 0.74, 0.89).lerp(tint, dark * 0.9).lerp(new THREE.Color(0.66, 0.7, 0.74), gray).lerp(pale, snow);
             u.uHor.value.copy(fog);
             u.uDay.value = day * (1 - gray * 0.4);
+            // (stars on a clear night, a few through the clouds on a grey one; the moon)
+            u.uNight.value = Math.max(0, Math.min(1, (dark - 0.45) / 0.35)) * (1 - gray * 0.75);
+            for (const [k, c] of [['uSkyZen', u.uZen.value], ['uSkyMid', u.uMid.value], ['uSkyHor', u.uHor.value]]) R3U[k].value.set(c.r, c.g, c.b, 1);
         }
         this.grade = { dark, gray, warm: Env.on && !a.interior ? 1 - dark : room ? 0.75 : 0 };
         // (in the new look the clouds' shadows drift over only while one of SeaSky's clouds is going over, by day)
@@ -572,13 +582,15 @@ const R3 = {
             // fire from just above the ground, each over a few tiles)
             const lamp = street && kind === 'lamp', low = street && !lamp, fire = c === 'fire';
             // (the new look's lamps are taller: the light comes from their lanterns)
-            l.position.set(x / TILE, street ? r3GroundH(x, y) + (lamp ? 2.55 : kind === 'door' ? 1.5 : 0.75) : 1.4, y / TILE * R3_ZS + (Env.on ? 0.1 : 0.3));
-            l.distance = lamp ? Math.max(13, r / TILE * 6.8) : low ? (kind === 'door' ? 5 : Math.max(3, r / TILE * 1.4)) : Math.max(4, r / TILE * 2.2);
-            // (the new look's ground takes light like a real surface: softer lamps, or the square goes white round them;
-            // reaching further, each a little stronger, the falloff gentler)
-            l.decay = lamp ? 1.25 : low ? 2 : 1.6;
-            l.intensity = L.lamps * (a.interior ? 0.9 : lamp ? 1.45 : low ? (fire ? 0.9 : kind === 'door' ? 0.6 : 0.5) : 1.2) * fade;
-            l.color.set(c === 'pink' ? 0xff6ab0 : c === 'fire' ? 0xff9a50 : 0xffd8a0);
+            // (a street lamp's light comes from high over it: far reaching but gentle close up, David, 28 October. Light from
+            // low down falls straight onto the grass at the lamp's foot and scorched it white there, while further off it
+            // only grazed the ground; from up high the foot and the ground a few tiles off are lit nearly alike)
+            l.position.set(x / TILE, street ? r3GroundH(x, y) + (lamp ? 6 : kind === 'door' ? 1.5 : 0.75) : 1.4, y / TILE * R3_ZS + (Env.on ? 0.1 : 0.3));
+            l.distance = lamp ? Math.max(20, r / TILE * 8) : low ? (kind === 'door' ? 5 : Math.max(3, r / TILE * 1.4)) : Math.max(4, r / TILE * 2.2);
+            // (the new look's ground takes light like a real surface: softer lamps, or the square goes white round them)
+            l.decay = lamp ? 1 : low ? 2 : 1.6;
+            l.intensity = L.lamps * (a.interior ? 0.9 : lamp ? 0.72 : low ? (fire ? 0.9 : kind === 'door' ? 0.6 : 0.5) : 1.2) * fade;
+            l.color.set(c === 'pink' ? 0xff6ab0 : c === 'fire' ? 0xff9a50 : lamp ? 0xffe0b0 : 0xffd8a0);
         });
     },
 
@@ -712,7 +724,7 @@ const R3 = {
    their models/expressions"): how much nearer it goes, how much lower it looks, how far above their feet it aims (tiles),
    how quickly it eases in and back out (per frame at 60 a second) */
 const R3_TALK = { on: true, near: 0.48, pitch: 9, up: 0.35, ease: 0.07 };
-const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.007, lead: 4, skyDrop: 0.22 };
+const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.007, lead: 4 };
 const R3_FAR = { phone: 17, full: 27 };     // tiles ahead that get drawn (at the normal zoom)
 /* the graphics settings (David, 26 October: a quality setting and a draw distance, each with its own default for laptops
    and phones), kept per device. Auto is the device's own: a phone draws a lighter picture and less far, and a computer that
@@ -749,12 +761,23 @@ const R3U = {
     uCloudK: { value: 1 },      // (how strong the clouds' shadows are: always in the HD-2D view; in the new look while a cloud goes over)
     // (the new look: where the world stops being drawn, round the camera's target: x, y in tiles, how far, how wide a fade)
     uEdge: { value: new THREE_V4(0, 0, 1e9, 6) },
+    // (the sky's colors, overhead, between and at the horizon: the haze takes the sky's color behind each thing, r3SkyCol)
+    uSkyEdge: { value: -0.22 },
+    uSkyZen: { value: new THREE_V4(0.25, 0.5, 0.8, 1) }, uSkyMid: { value: new THREE_V4(0.53, 0.74, 0.89, 1) }, uSkyHor: { value: new THREE_V4(0.82, 0.9, 0.93, 1) },
 };
 function THREE_V4(a, b, c, d) { return typeof THREE !== 'undefined' ? new THREE.Vector4(a, b, c, d) : { x: a, y: b, z: c, w: d, set() {} }; }
 const R3_GLSL = `
 uniform float uBendK; uniform float uBendZ; uniform float uTime; uniform vec4 uDof; uniform float uShadow; uniform vec4 uSee; uniform float uSeeA; uniform float uCloudK; uniform vec4 uEdge;
+uniform vec4 uSkyZen; uniform vec4 uSkyMid; uniform vec4 uSkyHor; uniform float uSkyEdge;
 varying float vDofZ; varying vec3 vWp;
 float r3Edge(vec3 w){ float dx = abs(w.x - uEdge.x), dz = uEdge.y - w.z / ${R3_ZS.toFixed(2)}; return max(smoothstep(uEdge.z - uEdge.w, uEdge.z, dx), smoothstep(uEdge.z - uEdge.w, uEdge.z, dz)); }
+// the sky's color behind a point of the world (where it stands once the world is bent): what the haze fades it into, so
+// anything far off melts into the sky behind it rather than standing in it as a pale ghost (David, 28 October)
+vec3 r3SkyCol(vec3 w){
+  vec3 bp = vec3(w.x, w.y - uBendK * max(0.0, uBendZ - w.z) * max(0.0, uBendZ - w.z), w.z);
+  float y = clamp(normalize(bp - cameraPosition).y - uSkyEdge, -0.2, 1.0);
+  return mix(mix(uSkyHor.rgb, uSkyMid.rgb, smoothstep(-0.05, 0.015, y)), uSkyZen.rgb, smoothstep(0.015, 0.22, y));
+}
 float r3h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float r3n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(r3h(i), r3h(i + vec2(1, 0)), f.x), mix(r3h(i + vec2(0, 1)), r3h(i + vec2(1, 1)), f.x), f.y); }
@@ -802,7 +825,8 @@ function r3Patch(mat, o) {
             'getDirectionalDirectLightIrradiance( directionalLight, geometry, directLight );', 'getDirectionalDirectLightIrradiance( directionalLight, geometry, directLight );\n\t\tdirectLight.color *= cloudShade(vWp.xz);'));
         // (the new look: everything fades into the haze before the edge of what's drawn, so the world never ends in a line,
         // however far out the camera's zoomed: the fog alone, measured along the view, leaves the top of the screen thin)
-        if (!o.noEdge) fs = fs.replace('#include <fog_fragment>', '#include <fog_fragment>\n#ifdef USE_FOG\ngl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, r3Edge(vWp));\n#endif');
+        // (and the haze is the sky's own color behind each point, not one color for all)
+        if (!o.noEdge) fs = fs.replace('#include <fog_fragment>', '#ifdef USE_FOG\ngl_FragColor.rgb = mix(gl_FragColor.rgb, r3SkyCol(vWp), max(smoothstep(fogNear, fogFar, fogDepth), r3Edge(vWp)));\n#endif');
         // (a ghost's alpha is how see-through it is: the picture's own alpha, the depth of field's, is kept by its blending)
         fs = fs.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + (o.fend || '') + (o.ghost ? '\ngl_FragColor.a = 1.0 - r3Fade;' : o.noDof ? '' : o.dofFixed != null ? `\ngl_FragColor.a = ${o.dofFixed.toFixed(2)};` : '\ngl_FragColor.a = dofA(vDofZ);'));
         sh.fragmentShader = fs;
@@ -899,22 +923,39 @@ function r3Sea(scene) {
 function r3Sky(scene) {
     const mat = new THREE.ShaderMaterial({
         side: THREE.BackSide, depthWrite: false, fog: false,
-        uniforms: { uZen: { value: new THREE.Color('#3f80cc') }, uMid: { value: new THREE.Color('#86bce4') }, uHor: { value: new THREE.Color('#d2e5ec') }, uTime: R3U.uTime, uDay: { value: 1 }, uAur: { value: 0 } },
+        uniforms: { uZen: { value: new THREE.Color('#3f80cc') }, uMid: { value: new THREE.Color('#86bce4') }, uHor: { value: new THREE.Color('#d2e5ec') }, uTime: R3U.uTime, uDay: { value: 1 }, uAur: { value: 0 }, uNight: { value: 0 }, uSkyEdge: R3U.uSkyEdge },
         vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); vec4 p = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * p; }',
-        fragmentShader: `uniform vec3 uZen, uMid, uHor; uniform float uTime, uDay, uAur; varying vec3 vDir;
+        fragmentShader: `uniform vec3 uZen, uMid, uHor; uniform float uTime, uDay, uAur, uNight, uSkyEdge; varying vec3 vDir;
             float h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
             float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
             void main(){
               // (the world bends away below the true horizon, so the sky's horizon is lowered to meet it: blue sky and
               // clouds over the island's rolling edge, not haze)
-              float y = clamp(vDir.y + ${R3_CAM.skyDrop.toFixed(3)}, -0.2, 1.0);
+              float y = clamp(vDir.y - uSkyEdge, -0.2, 1.0);
               // (the haze only a thin band at the horizon: the camera looks down, so it sees little more of the sky than that)
               vec3 c = mix(uHor, uMid, smoothstep(-0.05, 0.015, y));
               c = mix(c, uZen, smoothstep(0.015, 0.22, y));
               vec2 q = vDir.xz / max(0.08, y + 0.12) * 1.6 + vec2(uTime * 0.01, 0.0);
               float cl = n(q) * 0.6 + n(q * 2.3) * 0.3 + n(q * 5.1) * 0.1;
+              float cover = smoothstep(0.6, 0.78, cl) * smoothstep(-0.005, 0.03, y);
+              // the night sky: stars, small and twinkling, thinning toward the horizon and hidden behind the clouds, and the
+              // moon low in the north (where the camera looks) with a soft halo
+              if (uNight > 0.001) {
+                float az = atan(vDir.x, -vDir.z), el = asin(clamp(vDir.y, -1.0, 1.0));
+                vec2 sg = vec2(az * 60.0, el * 60.0), si = floor(sg), sf = fract(sg) - 0.5;
+                float sh = h(si), sz = 0.06 + 0.18 * h(si + 7.3);
+                float star = step(0.93, sh) * smoothstep(sz, sz * 0.3, length(sf + (vec2(h(si + 1.1), h(si + 2.2)) - 0.5) * 0.6));
+                star *= 0.55 + 0.45 * sin(uTime * (1.5 + 3.0 * h(si + 4.4)) + sh * 40.0);
+                // (the camera looks down: it only ever sees the sky's lowest strip, above the island's bent edge, so that's
+                // where the stars and the moon are)
+                c += vec3(0.95, 0.96, 1.0) * star * smoothstep(0.004, 0.03, y) * (1.0 - cover) * uNight;
+                vec3 md = normalize(vec3(0.34, (0.075 + uSkyEdge) * 1.06, -1.0));
+                float mc = dot(normalize(vDir), md);
+                c += vec3(0.32, 0.36, 0.46) * smoothstep(0.93, 1.0, mc) * 0.5 * uNight;
+                c = mix(c, vec3(0.97, 0.95, 0.86), smoothstep(0.99935, 0.99955, mc) * uNight * (1.0 - cover * 0.7));
+              }
               // (white by day; by night only a little lighter than the sky)
-              c = mix(c, mix(c * 1.35 + 0.04, vec3(1.0), uDay), smoothstep(0.6, 0.78, cl) * smoothstep(0.0, 0.08, y) * 0.75);
+              c = mix(c, mix(c * 1.35 + 0.04, vec3(1.0), uDay), cover * 0.75);
               // the northern lights on some winter nights (33q_env_sights.js): folded curtains of green going violet at
               // the top, low over the north horizon, drifting and flickering in rays
               if (uAur > 0.001) {
