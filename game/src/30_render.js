@@ -161,8 +161,10 @@ function drawEnt(ctx, e) {
     if (fade < 1) ctx.globalAlpha = fade;
     if (e.draw) e.draw(ctx);
     else if (e.frame) {
-        const sx = e.shake ? Math.round(Math.sin(e.shake * 1.3) * 1.5) : 0;
-        spr(ctx, e.frame, e.x + sx, e.y, e.flip);
+        const sx = e.shake ? Math.round(Math.sin(e.shake * 1.3) * 1.5) : 0, fp = e.fell && !R3.drawingCard && fellPose(e);
+        // (a felled tree toppling over about its foot: 29_forest.js)
+        if (fp) { ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(fp.ang); ctx.scale(fp.s, fp.s); spr(ctx, e.frame, 0, 0, e.flip); ctx.restore(); }
+        else spr(ctx, e.frame, e.x + sx, e.y, e.flip);
     }
     if (e.kind === 'tree') Sparkle.draw(ctx, e);
     if (fade < 1) ctx.globalAlpha = 1;

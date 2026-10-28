@@ -52,6 +52,10 @@ const R3 = {
             this.wx = wx;
             const r = new THREE.WebGLRenderer({ canvas: cv, antialias: false, alpha: false, powerPreference: 'high-performance' });
             r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+            // (shadows fade out toward the sun's shadow box's edges, so wherever it ends there's no line where they stop)
+            const SC = THREE.ShaderChunk;
+            if (!SC.shadowmap_pars_fragment.includes('r3ScEdge')) SC.shadowmap_pars_fragment = 'float r3ScEdge( vec2 c ) { vec2 q = abs( c * 2.0 - 1.0 ); return 1.0 - smoothstep( 0.78, 0.98, max( q.x, q.y ) ); }\n'
+                + SC.shadowmap_pars_fragment.replace('\t\t}\n\t\treturn shadow;\n\t}', '\t\t}\n\t\treturn mix( 1.0, shadow, r3ScEdge( shadowCoord.xy ) );\n\t}');
             r.setClearColor(0x3a8fd0, 1);
             this.renderer = r;
             // phones and tablets get the handheld rules: less drawn at once, fewer shadow updates, a lighter picture
@@ -199,14 +203,39 @@ const R3 = {
         }
         const k = d / 13, df = Env.on && !a.interior ? ENV.dof : [22, 70, 8.5, 5.5];
         R3U.uDof.value.set(df[0] * k, df[1] * k, df[2] * k, df[3] * k);
-        // the sun's shadow box follows the camera
-        const sd = new THREE.Vector3(-0.55, 0.78, 0.32).normalize();
-        this.sun.target.position.set(this.target.x, 0, this.target.z - 4);
+        this.fitShadow(a);
+    },
+    /* the sun's shadow box covers the ground on screen, however far out the camera's zoomed and whichever way the screen
+       is turned (David, 29 October: past its edge the shadows stopped in a line of light as he ran about): the screen's
+       corners on the ground, in the light's own axes, with room round them; its size in steps so it seldom changes, and
+       its middle on whole texels of the shadow map so the shadows don't crawl as the camera follows her */
+    fitShadow(a) {
+        const sd = this._sd || (this._sd = new THREE.Vector3(-0.55, 0.78, 0.32).normalize());
+        const R = this._sR || (this._sR = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), sd).normalize()), U = this._sU || (this._sU = new THREE.Vector3().crossVectors(sd, R));
+        const cam = this.camera, gy = this.camH || 0, ray = this._ray || (this._ray = new THREE.Raycaster()), v2 = this._v2 || (this._v2 = new THREE.Vector2());
+        const zMin = this.target.z - (a.interior ? 12 : Math.min(this.farTiles(), 34)) * R3_ZS, P = new THREE.Vector3();
+        const ox = this.target.x, oz = this.target.z - 4;
+        let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+        for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1]]) {
+            ray.setFromCamera(v2.set(sx, sy), cam);
+            const o = ray.ray.origin, d = ray.ray.direction;
+            let t = d.y < -0.01 ? (gy - o.y) / d.y : 1e9;
+            if (o.z + d.z * t < zMin) t = d.z < -0.01 ? (zMin - o.z) / d.z : 0;
+            P.copy(d).multiplyScalar(t).add(o); P.y = gy; P.x -= ox; P.z -= oz;
+            const lx = P.dot(R), ly = P.dot(U);
+            x0 = Math.min(x0, lx); x1 = Math.max(x1, lx); y0 = Math.min(y0, ly); y1 = Math.max(y1, ly);
+        }
+        const m = 4, step = 4, cap = this.phone ? 44 : 64, sz = this.sun.shadow.mapSize.x;
+        const w = Math.min(cap, Math.ceil((x1 - x0 + 2 * m) / step) * step), h = Math.min(cap, Math.ceil((y1 - y0 + 2 * m) / step) * step);
+        // (the box's middle, and where the light stands, on whole texels in the light's axes)
+        const tw = w / sz, th = h / sz, qa = Math.round((ox * R.x + oz * R.z) / tw) * tw, qb = Math.round((ox * U.x + oz * U.z) / th) * th;
+        const da = qa - (ox * R.x + oz * R.z), db = qb - (ox * U.x + oz * U.z);
+        this.sun.target.position.set(ox + R.x * da + U.x * db, U.y * db, oz + R.z * da + U.z * db);
         this.sun.position.copy(sd).multiplyScalar(50).add(this.sun.target.position);
         this.sun.target.updateMatrixWorld();
-        // (the new look's camera is closer: a smaller shadow box, so the same map gives finer shadows)
-        const sb = Env.on && !a.interior ? 17 : 26, sc = this.sun.shadow.camera;
-        if (sc.right !== sb) { Object.assign(sc, { left: -sb, right: sb, top: sb, bottom: -sb }); sc.updateProjectionMatrix(); }
+        const cx = Math.round(((x0 + x1) / 2 - da) / tw) * tw, cy = Math.round(((y0 + y1) / 2 - db) / th) * th;
+        const sc = this.sun.shadow.camera, L = cx - w / 2, Rt = cx + w / 2, B = cy - h / 2, T = cy + h / 2;
+        if (sc.left !== L || sc.right !== Rt || sc.bottom !== B || sc.top !== T) { Object.assign(sc, { left: L, right: Rt, bottom: B, top: T }); sc.updateProjectionMatrix(); }
     },
     /* how big an HD pixel is on the screen: below about two screen pixels, nearest-pixel sampling makes uneven pixels
        (some one wide, some two), so the HD cards are smoothed instead */
@@ -718,6 +747,9 @@ const R3 = {
             c.sig = key; c.drawn = G.frame;
         }
         placeCard(c, e, a);
+        // (a felled tree toppling over: the card turns about its foot, 29_forest.js)
+        const fp = e.fell && fellPose(e);
+        if (fp || c.mesh.rotation.z) { c.mesh.rotation.z = fp ? -fp.ang : 0; if (fp) c.mesh.scale.multiplyScalar(fp.s); }
         // trees and statues go see-through while Sarah is behind them
         const fade = seeThroughRaw(e);
         c.setFade(fade);
@@ -769,7 +801,7 @@ const R3 = {
    how quickly it eases in and back out (per frame at 60 a second) */
 const R3_TALK = { on: true, near: 0.48, pitch: 9, up: 0.35, ease: 0.07, mirror: 0.6, side: 1.6, below: 1.1 };
 const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.007, lead: 4 };
-const R3_FAR = { phone: 17, full: 27 };     // tiles ahead that get drawn (at the normal zoom)
+const R3_FAR = { phone: 24, full: 38 };     // tiles ahead that get drawn (at the normal zoom; further since David's note of 29 October: far trees half gone)
 /* the graphics settings (David, 26 October: a quality setting and a draw distance, each with its own default for laptops
    and phones), kept per device. Auto is the device's own: a phone draws a lighter picture and less far, and a computer that
    turns out slow drops its picture quality by itself (watchSpeed); a choice in Settings stays as picked. High quality

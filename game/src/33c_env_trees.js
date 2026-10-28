@@ -120,11 +120,22 @@ const EnvTrees = {
             if (ids && L.e.id) {
                 const cur = ids.get(L.e.id);
                 if (cur) L.e = cur;
-                const on = !!cur, ripe = on && L.fruit.length > 0 && treeHasFruit(L.e);
+                // (a felled one stays while it topples, without its fruit, until it's gone)
+                const fp = cur && cur.fell && fellPose(cur), on = !!cur && !(fp && fp.s <= 0), ripe = on && !fp && L.fruit.length > 0 && treeHasFruit(L.e);
                 if (on !== L.on) { L.on = on; set(L.t, on ? L.t.M : none); }
                 if (L.fruit.length && ripe !== L.ripe) { L.ripe = ripe; for (const f of L.fruit) set(f, ripe ? f.M : none); }
             }
             if (!L.on) continue;
+            // (felled: it topples over about its foot, side on to the camera, lies a moment and goes: 29_forest.js fellPose)
+            const fp = L.e.fell && fellPose(L.e);
+            if (fp) {
+                const M = L.t.M, F = this._f || (this._f = new THREE.Matrix4()), fx = M.elements[12], fy = M.elements[13], fz = M.elements[14];
+                F.makeTranslation(fx, fy, fz).multiply(R.makeRotationZ(-fp.ang)).multiply(new THREE.Matrix4().makeScale(fp.s, fp.s, fp.s)).multiply(new THREE.Matrix4().makeTranslation(-fx, -fy, -fz));
+                set(L.t, W.multiplyMatrices(F, M));
+                if (L.ripe) { L.ripe = false; for (const f of L.fruit) set(f, none); }
+                if (fp.s <= 0) { L.on = false; set(L.t, none); }
+                continue;
+            }
             const sh = L.e.shake || 0;
             if (sh > 0 || L.shook) {
                 // a sway about the foot of the trunk, side to side, dying away

@@ -266,28 +266,49 @@ async function chopTree(e) {
             Critters.startle(e.x, e.y - 20, 90);
             leafFx(e.x, e.y);
         });
+        // each hit a piece of wood; the third that day brings the tree down, no question asked (David, 29 October)
         const F = forest(), day = Clock.dayNum();
         if (F.wood.day !== day) F.wood = { day, n: {} };
-        const n = F.wood.n[e.id] || 0;
-        if (n < 3) {
-            F.wood.n[e.id] = n + 1;
-            const side = p.x < e.x ? -1 : 1;
-            const x = e.x + side * rint(6, 11), y = e.y + rint(6, 12);
-            spawnDrop('wood', G.area.solidPx(x, y - 2) ? p.x + rint(-6, 6) : x, G.area.solidPx(x, y - 2) ? p.y + 3 : y);
-            S.stats.wood = (S.stats.wood || 0) + 1;
-            Save.touch();
-        } else {
-            await waitFrames(6);
-            const k = await UI.ask(null, e.fruit ? "That's all the wood for today. Chop the whole tree down? (It won't grow fruit anymore.)" : "That's all the wood this tree has today. Chop it down?", ['Chop it down', 'Leave it']);
-            if (k === 0) await fellTree(e);
-        }
+        const n = (F.wood.n[e.id] || 0) + 1;
+        F.wood.n[e.id] = n;
+        const side = p.x < e.x ? -1 : 1;
+        const x = e.x + side * rint(6, 11), y = e.y + rint(6, 12);
+        spawnDrop('wood', G.area.solidPx(x, y - 2) ? p.x + rint(-6, 6) : x, G.area.solidPx(x, y - 2) ? p.y + 3 : y);
+        S.stats.wood = (S.stats.wood || 0) + 1;
+        Save.touch();
+        if (n >= 3) { await waitFrames(4); await fellTree(e); }
     } finally { G.busy--; }
 }
+/* a felled tree topples over away from Sarah, side on to the camera so it's seen going (David, 29 October): slow at first,
+   faster as it goes, a little bounce as it lands, a moment lying there, then gone in a puff of leaves. e.fell drives the
+   picture in every view (fellPose: drawEnt, the HD-2D card, EnvTrees) */
+const FELL = { fall: 34, lie: 26, gone: 12 };
+function fellPose(e) {
+    const f = e.fell;
+    if (!f) return null;
+    const t = G.t - f.t0, k = Math.min(1, t / FELL.fall);
+    let ang = k * k * 1.5;
+    if (t > FELL.fall && t < FELL.fall + 10) ang -= Math.sin((t - FELL.fall) / 10 * Math.PI) * 0.1;
+    const s = 1 - Math.max(0, Math.min(1, (t - FELL.fall - FELL.lie) / FELL.gone));
+    return { ang: ang * f.side, s };
+}
 async function fellTree(e) {
-    const a = G.area, F = forest();
+    const a = G.area, F = forest(), p = G.player;
     Sfx.play('timber');
-    for (let i = 0; i < 18; i++) { e.shake = 18 - i; if (i % 6 === 0) leafFx(e.x, e.y); await waitFrames(2); }
-    if (e.fruit && treeHasFruit(e)) for (const ox of [-10, 0, 10]) spawnDrop(e.fruit, e.x + ox, e.y + 10, true, TREE_FALL);
+    for (let i = 0; i < 8; i++) { e.shake = 8 - i; await waitFrames(2); }
+    // (it goes the way she isn't: right if she's left of it or right below it)
+    const side = p.x > e.x + 2 ? -1 : 1, fruit = e.fruit && treeHasFruit(e);
+    e.fell = { t0: G.t, side };
+    await waitFrames(FELL.fall);
+    // (down: a thump, dust along it, the crown's leaves flying and its fruit rolling out)
+    Sfx.play('chop');
+    for (let k = 1; k <= 3; k++) dirtFx(e.x + side * k * 12, e.y - 2, '#9a6b45');
+    leafFx(e.x + side * 34, e.y - 4); leafFx(e.x + side * 22, e.y);
+    Critters.startle(e.x + side * 30, e.y, 120);
+    if (fruit) for (const ox of [24, 32, 40]) { const fx = e.x + side * ox; spawnDrop(e.fruit, G.area.solidPx(fx, e.y + 6) ? e.x + side * 10 : fx, e.y + 6, true); }
+    await waitFrames(FELL.lie);
+    leafFx(e.x + side * 26, e.y - 6);
+    await waitFrames(FELL.gone);
     const pal = e.frame && String(e.frame).startsWith('palm') || e.kind === 'fruittree' && e.fruit === 'coconut' || (e.planted && e.planted.kind === 'palm');
     a.remove(e);
     a.block(e.tx, e.ty, 0);

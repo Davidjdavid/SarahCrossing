@@ -710,6 +710,16 @@ test('the watering can: Fortune sells one; flowers of a kind side by side, both 
     out.busy = G.busy > 0;
     await new Promise((r) => { const t = setInterval(() => { if (!G.busy) { clearInterval(t); r(); } }, 50); });
     out.wet = [watered(A), watered(B)];
+    // the water lands on the row in front of her, not on her own tile, and they glint at once (David, 29 October)
+    out.front = [!!waterTiles.at[`${x},${y}`], !waterTiles.at[`${x},${y + 1}`], flowerSparkle(A) > 0.5];
+    // a wild flower is watered too, from the tile below it facing up, with nothing else in front
+    const wf = a.ents.find((e) => e.wildFlower && !a.blockedAt(W0.flowers[e.flowerIdx].x, W0.flowers[e.flowerIdx].y + 1));
+    if (wf) {
+      const f = W0.flowers[wf.flowerIdx];
+      G.player.x = (f.x + 0.5) * TILE; G.player.y = (f.y + 1.6) * TILE; G.player.dir = 'up';
+      await waterFront();
+      out.wild = [wildWatered(wf.flowerIdx), flowerSparkle(f) > 0.5];
+    }
     // mornings until they've made one (a third of mornings or so), watered every day
     for (let n = 0; n < 20 && F.planted.length === 2; n++) { __dbg.nextDay(1); A.wet = B.wet = Clock.dayNum(); }
     const kid = F.planted[2];
@@ -726,7 +736,7 @@ test('the watering can: Fortune sells one; flowers of a kind side by side, both 
       pics: ['fl_rose_0', 'fl_rose_4', 'seed_fl_rose'].every(n => Assets.has(n)), hd: !!hdNamed('fl_rose_3', true), petals: EnvItems.petals('flower_rose_4') };
     return out;
   });
-  assert.deepEqual(res, { stock: true, busy: true, wet: [true, true], kid: ['daisy', 1, true, true], breed: [3, 2, 4, 1, 4, 0, 3],
+  assert.deepEqual(res, { stock: true, busy: true, wet: [true, true], front: [true, true, true], wild: [true, true], kid: ['daisy', 1, true, true], breed: [3, 2, 4, 1, 4, 0, 3],
     hybrid: { name: 'Black lily', dear: true, pic: true, hd: true, petals: '#8cbcff' },
     rose: { seeds: true, names: ['Red rose', 'White rose', 'Yellow rose', 'Pink rose', 'Blue rose'], pics: true, hd: true, petals: '#7a9cff' } });
   assert.deepEqual(page.problems, []);
@@ -3122,16 +3132,22 @@ test("Sarah's tools, the way a player uses them: wood from a tree, then the tree
     const spCloser = setInterval(() => { if (document.querySelector('.spcard')) UI.close(); }, 100);
     __dbg.setTime(11, 0, 14);
     const out = {}, a = G.areas.island, ask = UI.ask, say = UI.say, F = forest();
-    UI.ask = async () => 0; UI.say = async () => {};
+    UI.ask = async () => { out.asked = true; return 0; }; UI.say = async () => {};
     try {
-      // a plain tree with open ground beside it
+      // a plain tree with open ground beside it: three hits, a piece of wood each, and the third brings it down with no
+      // question, toppling over (e.fell) before it's gone
       const t = a.ents.find((e) => e.kind === 'tree' && !e.fruit && !a.blockedAt(e.tx, e.ty + 1));
       __dbg.teleport('island', t.tx, t.ty + 1, 'up');
       const wood0 = S.stats.wood || 0;
-      for (let i = 0; i < 3; i++) await chopTree(t);
-      out.wood = (S.stats.wood || 0) - wood0;
+      for (let i = 0; i < 2; i++) await chopTree(t);
+      out.standing = a.ents.includes(t);
+      let leaned = 0;
+      const seen = setInterval(() => { const fp = fellPose(t); if (fp) leaned = Math.max(leaned, Math.abs(fp.ang)); }, 30);
       await chopTree(t);
-      out.felled = !!(F.chopped[t.id] && F.chopped[t.id].stump) && !a.ents.includes(t);
+      clearInterval(seen);
+      out.wood = (S.stats.wood || 0) - wood0;
+      out.toppled = leaned > 1.2;
+      out.felled = !!(F.chopped[t.id] && F.chopped[t.id].stump) && !a.ents.includes(t) && !out.asked;
       await digAt(t.tx, t.ty);
       out.stumpGone = !a.ents.some((e) => e.kind === 'stump' && e.tx === t.tx && e.ty === t.ty);
       // a hole in open grass (the first spot near the stump with nothing standing over it)
@@ -3165,7 +3181,7 @@ test("Sarah's tools, the way a player uses them: wood from a tree, then the tree
     clearInterval(spCloser);
     return out;
   });
-  assert.deepEqual(res, { wood: 3, felled: true, stumpGone: true, hole: true, fruit: true, bite: true, fish: true });
+  assert.deepEqual(res, { standing: true, wood: 3, toppled: true, felled: true, stumpGone: true, hole: true, fruit: true, bite: true, fish: true });
   assert.deepEqual(page.problems, []);
   await page.close();
 });

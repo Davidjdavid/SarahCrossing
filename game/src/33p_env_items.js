@@ -86,7 +86,8 @@ const EnvItems = {
         if (!d) {
             d = this.make('furn_od_stump'); d.userData.name = 'stump';
             d.rotation.y = (hash32(String(e.id)) % 628) / 100;
-            d.scale.setScalar(e.frame === 'stump_palm' ? 0.55 : 0.75);
+            // (as thick as the trunk it was: the round trees' trunks a hand above the roots, a palm's; David, 29 October)
+            d.scale.setScalar(e.frame === 'stump_palm' ? 1.05 : 1.6);
             const x = (e.tx + 0.5) * TILE, y = (e.ty + 0.5) * TILE;
             d.position.set(x / TILE, Env.groundH(x, y), y / TILE * R3_ZS);
             this.list.set(e, d);
@@ -170,36 +171,22 @@ const EnvItems = {
             seen.add(e);
             // (in a plot, on the planter box's soil)
             if (e.kind === 'plot' || e.kind === 'gflower') { const f = Env.tileSpot(e); d.position.set(f.x, f.y + (e.kind === 'plot' && !e.c && EnvModels.has('planter_box') ? 0.27 : 0.03), f.z); }
-            // (a planted flower watered today: the soil round it dark and damp)
-            if (e.kind === 'gflower') {
-                const on = typeof watered === 'function' && watered(e.pl);
-                let w = d.userData.wet;
-                if (on && !w) {
-                    w = d.userData.wet = new THREE.Mesh(new THREE.CircleGeometry(0.3, 20), r3Patch(new THREE.MeshBasicMaterial({ color: 0x2e1e10, transparent: true, opacity: 0.38, depthWrite: false }), { key: 'envwet', noDof: true, noEdge: true }));
-                    w.rotation.x = -Math.PI / 2; w.position.y = 0.012 / d.scale.y; w.scale.setScalar(1 / d.scale.x); w.renderOrder = 1;
-                    d.add(w);
-                }
-                if (w) w.visible = on;
-                // (and a sparkle now and then, golden with a partner of its kind beside it to cross with: 2a_flowers.js)
-                const k = on ? flowerSparkle(e.pl) : 0;
-                let sp = d.userData.spark;
-                if (k && !sp) { sp = d.userData.spark = this.sparkle(); sp.scale.setScalar(0.4 / d.scale.x); d.add(sp); }
-                if (sp) {
-                    sp.visible = k > 0;
-                    if (k) {
-                        const gold = breedPartner(e.pl);
-                        sp.children.forEach(c => { c.material = gold ? this.goldMat() : this.sparkMat; });
-                        sp.position.set(0.1 / d.scale.x, 0.42 / d.scale.y, 0.05);
-                        sp.scale.setScalar((0.15 + 0.35 * k) / d.scale.x);
-                        sp.rotation.y = G.t / 20;
-                    }
-                }
-            }
+            if (e.kind === 'gflower') this.wetFx(d, watered(e.pl), e.pl, () => breedPartner(e.pl));
             else {
                 const b = e.bounce > 0 ? Math.abs(Math.sin(e.bounce-- / 5)) * 8 * (e.bounce / 30) : 0;
                 d.position.set(e.x / TILE, Env.groundH(e.x, e.y - 2) + b / TILE * R3_VS, (e.y - 2) / TILE * R3_ZS);
                 d.rotation.x = b * 0.2;
             }
+        }
+        // a wild flower watered today (its model is EnvBuild's, instanced): the damp soil and the glints on their own
+        for (const e of a.ents) {
+            if (!e.wildFlower || e.hidden || !wildWatered(e.flowerIdx)) continue;
+            const f = W0.flowers[e.flowerIdx];
+            if (!f || (v && (e.x < v.x0 - 48 || e.x > v.x1 + 48 || e.y < v.y0 - 48 || e.y > v.y1 + 96))) continue;
+            let d = this.list.get(e);
+            if (!d) { d = new THREE.Group(); const s = Env.tileSpot({ tx: f.x, ty: f.y }); d.position.set(s.x, s.y + 0.03, s.z); this.group.add(d); this.list.set(e, d); }
+            seen.add(e);
+            this.wetFx(d, true, f, () => false);
         }
         // clam spots and glints (drawn flat into the ground too; these are what moves)
         const t = G.t;
@@ -233,6 +220,28 @@ const EnvItems = {
         const geo = this.bubbleGeo || (this.bubbleGeo = new THREE.SphereGeometry(0.035, 8, 6));
         for (let k = 0; k < 2; k++) { const b = new THREE.Mesh(geo, m); b.userData.shared = true; g.add(b); }
         return g;
+    },
+    /* a flower watered today: the soil round it dark and damp, and its glints (a burst as the water reaches it, then now and
+       then; golden with a partner of its kind beside it to cross with: 2a_flowers.js). d is the flower's group, pl has x, y */
+    wetFx(d, on, pl, gold) {
+        let w = d.userData.wet;
+        if (on && !w) {
+            w = d.userData.wet = new THREE.Mesh(this.wetGeo || (this.wetGeo = new THREE.CircleGeometry(0.3, 20)), this.wetMat || (this.wetMat = r3Patch(new THREE.MeshBasicMaterial({ color: 0x2e1e10, transparent: true, opacity: 0.38, depthWrite: false }), { key: 'envwet', noDof: true, noEdge: true })));
+            w.rotation.x = -Math.PI / 2; w.position.y = 0.012 / d.scale.y; w.scale.setScalar(1 / d.scale.x); w.renderOrder = 1; w.userData.shared = true;
+            d.add(w);
+        }
+        if (w) w.visible = on;
+        const k = on ? flowerSparkle(pl) : 0;
+        let sp = d.userData.spark;
+        if (k && !sp) { sp = d.userData.spark = this.sparkle(); d.add(sp); }
+        if (!sp) return;
+        sp.visible = k > 0;
+        if (!k) return;
+        const g = gold();
+        sp.children.forEach(c => { c.material = g ? this.goldMat() : this.sparkMat; });
+        sp.position.set(0.1 / d.scale.x, 0.42 / d.scale.y, 0.05);
+        sp.scale.setScalar((0.15 + 0.4 * k) / d.scale.x);
+        sp.rotation.y = G.t / 20;
     },
     goldMat() { return this._gold || (this._gold = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffd04a }), { key: 'envspark' })); },
     sparkle() {

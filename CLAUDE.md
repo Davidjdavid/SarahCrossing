@@ -101,7 +101,11 @@ docs/DEPLOY.md for the server.
 - Settings > Picture quality and Draw distance (`GFX`, kept per device in `sc-quality` / `sc-far`): Auto is the device's
   own (phones lighter and shorter, a slow computer drops its quality by itself in `watchSpeed`); a pick stays as picked.
   Quality scales the pixels drawn (`R3.quality`; High keeps the water's reflections), distance scales `R3.farTiles()`,
-  which the haze, the ground pieces and every culled thing follow.
+  which the haze, the ground pieces and every culled thing follow (`R3_FAR`: 38 tiles on a computer, 24 on a phone, at
+  the normal zoom; further since David's note of 29 October, far trees half gone). The sun's shadow box is fitted to the
+  ground on screen every frame (`R3.fitShadow`: the screen's corners in the light's axes, its size in steps, its middle on
+  whole texels so shadows don't crawl) and shadows fade out toward its edges (`r3ScEdge`, patched into three.js's
+  `shadowmap_pars_fragment`): zoomed out, they used to stop in a line of light.
 - The ground's pieces (15 tiles square) are made just before they come into view, painted a few milliseconds a frame
   (`paintChunkSteps`), and painted again only when something drawn into them changes (`r3ChunkSig`: plots, things on the
   ground, Sarah's paths). Never paint pieces on a timer or several in one frame: that is what made walking hitch.
@@ -369,8 +373,10 @@ docs/DEPLOY.md for the server.
   `sign_comingsoon`) and two plots of land for sale in the neighborhood (`land_a`, `land_b` in the plan's lots) have FOR
   SALE signs (`sign_land`, `sign_forsale`) and paths out to them: where the neighbors still to come will live. Save step
   `fortune8`, with Fortune's letter.
-- The watering can (`can`, a tool on Fortune's rack, 2a_flowers.js): it waters the tile in front of Sarah and one each side
-  (`waterFront`, `waterTiles`; `pl.wet` is the day a planted flower was watered, darker soil in 2D and 3D). Each morning
+- The watering can (`can`, a tool on Fortune's rack, 2a_flowers.js): it waters the tile in front of the one Sarah stands on
+  (or the flower she faces) and one each side (`waterFront`, `waterTiles`; `pl.wet` is the day a planted flower was watered,
+  darker soil in 2D and 3D; a wild one's day is `flowerState().wildWet[idx]`, `wildWatered`: it glints too, only planted
+  ones breed). Each morning
   `flowerBreed` (in `dailyCheck`) may grow a new flower beside two watered ones of a kind (two of a color make it again,
   two colors the third, `breedColor`). Hybrids (2ab_hybrids.js, `FLOWER_HYBRIDS`): two rarer colors of each kind, never
   from seeds (`flower_<kind>_3` and `_4`: blue and purple daisies, orange and black tulips, red and chocolate cosmos, red
@@ -466,7 +472,13 @@ docs/DEPLOY.md for the server.
 - The plane only flies over while Sarah's at the lookout (`SeaSky.atLookout`), and from there boats sail by on the
   northern sea (`spawnNorthBoat`); balloons go anywhere.
 - Watering: the water arcs out to the tiles in front (`p.tool.at`, EnvPour); a watered flower glints now and then
-  (`flowerSparkle`), gold when it and a watered neighbor of its kind can cross-breed (`breedPartner`).
+  (`flowerSparkle`: a burst as the water reaches it, from `waterTiles.at`, kept off the save, then every few seconds; drawn
+  over the flower, `flowerGlint`, and in 3D by `EnvItems.wetFx`), gold when it and a watered neighbor of its kind can
+  cross-breed (`breedPartner`).
+- Chopping (29_forest.js `chopTree`): each hit drops a piece of wood and the third that day fells the tree, no question
+  (David, 29 October); it topples over away from Sarah, side on to the camera, lands with a bounce, lies a moment and goes
+  in a puff of leaves (`fellTree`, `e.fell`, `fellPose`, `FELL`: drawEnt in the flat view, the card in HD-2D, `EnvTrees.tick`
+  in the new look), leaving a stump as thick as the trunk (`EnvItems.stump`).
 - Neighbors now and then ask Sarah to play when she talks to them (`igMaybeAsk`, `IG_ASK`, at most once a day each, about
   one talk in eight where a game fits), and rarely text to ask (Invites' kind `play`: say yes, then talk to them).
 - The collection's items each open a display of their own (41a_showcase.js, `itemShowcase`): the model turning on a

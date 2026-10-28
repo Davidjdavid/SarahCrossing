@@ -18,7 +18,7 @@ function addWildFlowers(a) {
         const id = `flower_${f.kind}_${f.color}`;
         const [fx, fy] = tileFoot(f.x, f.y);
         const e = makeItemEnt(id, fx, fy + 1, { flowerIdx: idx, wildFlower: true });
-        e.draw = ctx => spr(ctx, ITEMS[id].icon, e.x, e.y);
+        e.draw = ctx => { const on = wildWatered(idx); if (on) flowerWetSoil(ctx, e.x, e.y + 1); spr(ctx, ITEMS[id].icon, e.x, e.y); if (on) flowerGlint(ctx, f, e.x + 2, e.y - 9, false); };
         e.sy = e.y - 10;
         a.add(e);
     });
@@ -35,19 +35,18 @@ function addFlowerPlant(a, pl) {
     e.sy = e.y - 8;
     e.hit = { x: pl.x * TILE, y: pl.y * TILE - 6, w: TILE, h: TILE + 6 };
     e.draw = ctx => {
-        // (watered today: the soil round it darker, and a sparkle now and then, golden with a partner to cross with)
-        if (watered(pl)) {
-            ctx.fillStyle = 'rgba(52,34,20,0.32)';
-            ctx.beginPath(); ctx.ellipse(e.x, e.y - 1, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
-            const k = flowerSparkle(pl);
-            if (k) { ctx.fillStyle = breedPartner(pl) ? '#ffd24a' : '#e8f6ff'; const r = Math.round(k * 2); ctx.fillRect(e.x + 3 - r, e.y - 10, r * 2 + 1, 1); ctx.fillRect(e.x + 3, e.y - 10 - r, 1, r * 2 + 1); }
+        // (watered today: the soil round it darker, and a sparkle over it, golden with a partner to cross with)
+        const on = watered(pl);
+        if (on) flowerWetSoil(ctx, e.x, e.y);
+        if (!flowerBloomed(pl)) spr(ctx, 'sprout', e.x, e.y);
+        else {
+            const icon = ITEMS[id].icon;
+            const picked = pl.pickDay === Clock.dayNum();
+            spr(ctx, icon, e.x - 4, e.y - 2);
+            if (!picked) spr(ctx, icon, e.x + 4, e.y - 3);
+            spr(ctx, icon, e.x + 1, e.y + 1);
         }
-        if (!flowerBloomed(pl)) { spr(ctx, 'sprout', e.x, e.y); return; }
-        const icon = ITEMS[id].icon;
-        const picked = pl.pickDay === Clock.dayNum();
-        spr(ctx, icon, e.x - 4, e.y - 2);
-        if (!picked) spr(ctx, icon, e.x + 4, e.y - 3);
-        spr(ctx, icon, e.x + 1, e.y + 1);
+        if (on) flowerGlint(ctx, pl, e.x + 3, e.y - 12, breedPartner(pl));
     };
     e.interact = () => flowerPlantMenu(e);
     return e;
@@ -114,10 +113,22 @@ async function plantFlowersInHole(e, seedIds) {
 ITEMS.can = { name: 'Watering can', type: 'tool', price: 600, icon: 'f_watering_can' };
 const BREED_CHANCE = 0.35, BREED_MAX = 8;
 function watered(pl) { return pl.wet === Clock.dayNum(); }
-/* a watered flower sparkles now and then, so Sarah can tell it's had its drink (David, 28 October): not often, each at its
-   own moment, a glint that swells and fades in under half a second; 0 between glints */
+function flowerWetSoil(ctx, x, y) { ctx.fillStyle = 'rgba(52,34,20,0.32)'; ctx.beginPath(); ctx.ellipse(x, y - 1, 7, 3, 0, 0, Math.PI * 2); ctx.fill(); }
+function flowerGlint(ctx, pl, x, y, gold) {
+    const k = flowerSparkle(pl);
+    if (!k) return;
+    ctx.fillStyle = gold ? '#ffd24a' : '#f4fbff'; const r = Math.round(k * 3);
+    ctx.fillRect(x - r, y, r * 2 + 1, 1); ctx.fillRect(x, y - r, 1, r * 2 + 1);
+}
+/* a wild flower watered today (its number in W0.flowers): it glints like a planted one, though only planted ones breed */
+function wildWatered(idx) { const W = flowerState().wildWet; return !!W && W[idx] === Clock.dayNum(); }
+/* a watered flower sparkles, so Sarah can tell it's had its drink (David, 28 October and 29 October: "the flowers aren't
+   sparkling when I water them"): a burst of glints just as the water reaches it, then one every few seconds, each flower
+   at its own moment, a glint that swells and fades in under half a second; 0 between glints */
 function flowerSparkle(pl) {
-    const ph = (G.t + (hash32(pl.x + ',' + pl.y) % 400)) % 400;
+    const at = (waterTiles.at || {})[pl.x + ',' + pl.y], since = at != null ? G.t - at : 1e9;
+    if (since >= 0 && since < 80) return 0.55 + 0.45 * Math.abs(Math.sin(since / 80 * Math.PI * 3));
+    const ph = (G.t + (hash32(pl.x + ',' + pl.y) % 240)) % 240;
     return ph < 26 ? Math.sin(ph / 26 * Math.PI) : 0;
 }
 /* a watered one with a watered flower of its kind beside it, both in bloom: they may cross by morning (flowerBreed); its
@@ -126,10 +137,15 @@ function breedPartner(pl) {
     if (!watered(pl) || !flowerBloomed(pl)) return false;
     return flowerState().planted.some(q => q !== pl && q.kind === pl.kind && watered(q) && flowerBloomed(q) && Math.max(Math.abs(q.x - pl.x), Math.abs(q.y - pl.y)) === 1);
 }
-function waterFront() {
-    const p = G.player, [px, py] = probePoint(p, 12), tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
+/* the can waters the tile in front of the one Sarah stands on (or the flower she's facing) and the one each side of it
+   (David, 29 October: it used to reach only a step, often her own tile) */
+function waterFront(e) {
+    const p = G.player, [dx, dy] = DIRV[p.dir];
+    let tx = Math.floor(p.x / TILE) + Math.sign(dx), ty = Math.floor((p.y - 2) / TILE) + Math.sign(dy);
+    if (e && e.gardenFlower) { tx = e.tx; ty = e.ty; }
+    else if (e && e.wildFlower && W0.flowers[e.flowerIdx]) { tx = W0.flowers[e.flowerIdx].x; ty = W0.flowers[e.flowerIdx].y; }
     const [sx, sy] = p.dir === 'up' || p.dir === 'down' ? [1, 0] : [0, 1];
-    return waterTiles([[tx, ty], [tx - sx, ty - sy], [tx + sx, ty + sy]], px, py + 5);
+    return waterTiles([[tx, ty], [tx - sx, ty - sy], [tx + sx, ty + sy]], (tx + 0.5) * TILE, (ty + 0.7) * TILE);
 }
 async function waterTiles(tiles, fx, fy) {
     const p = G.player, day = Clock.dayNum();
@@ -148,7 +164,17 @@ async function waterTiles(tiles, fx, fy) {
         }
     } finally { p.tool = null; p.pose = null; G.busy--; }
     let n = 0;
-    for (const pl of flowerState().planted) if (pl.wet !== day && tiles.some(([x, y]) => x === pl.x && y === pl.y)) { pl.wet = day; n++; }
+    // (when the water reached each tile, kept off the save, for the burst of glints: flowerSparkle)
+    const F = flowerState(), on = (x, y) => tiles.some(([a, b]) => a === x && b === y), at = waterTiles.at || (waterTiles.at = {});
+    for (const [x, y] of tiles) at[x + ',' + y] = G.t;
+    for (const pl of F.planted) if (on(pl.x, pl.y) && pl.wet !== day) { pl.wet = day; n++; }
+    // (wild ones too: they glint, though only planted ones cross; F.wildWet[idx] is the day)
+    W0.flowers.forEach((f, idx) => {
+        if (!on(f.x, f.y)) return;
+        const W = F.wildWet || (F.wildWet = {});
+        for (const k of Object.keys(W)) if (W[k] !== day) delete W[k];
+        if (W[idx] !== day) { W[idx] = day; n++; }
+    });
     if (n) { S.stats.watered = (S.stats.watered || 0) + n; Save.touch(); }
 }
 /* a few drops falling from the can's spout onto the ground in front */
