@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
@@ -405,4 +406,31 @@ test('the music library is uploaded from the beta site only: the live site plays
     assert.equal((await fetch(live.url + '/api/music/game?name=G', { method: 'DELETE', headers: { cookie: c, 'X-Sarah': '1' } })).status, 403);
   } finally { await live.stop(); }
   assert.equal((await (await api('GET', '/api/music')).json()).uploads, true, 'the test server (not production) takes uploads');
+});
+
+test("the island's design: saved from the designer mode on beta (each save keeps the one before), read by every game, refused on live", async () => {
+  const first = await (await api('GET', '/api/design')).json();
+  assert.deepEqual([first.design, first.rev, first.edit], [null, 0, true], 'nothing saved yet; the test server (not production) takes edits');
+  const d1 = { v: 1, props: { 12: { x: 40, y: 30, rot: 1 } }, added: [{ kind: 'bench', x: 50, y: 31 }], rooms: { shop: [{ id: 'shelf_book', x: 2, y: 3, rot: 3 }] } };
+  const put = async (body) => api('PUT', '/api/design', body);
+  const r1 = await put({ design: d1, rev: 0 });
+  assert.equal(r1.status, 200);
+  assert.equal((await r1.json()).rev, 1);
+  const read = await (await api('GET', '/api/design')).json();
+  assert.deepEqual([read.design, read.rev], [d1, 1]);
+  assert.equal((await put({ design: d1, rev: 0 })).status, 409, 'saved over a design read before someone else saved: refused');
+  assert.equal((await put({ design: { v: 1, sneaky: 1 }, rev: 1 })).status, 400, 'only the parts a design has');
+  assert.equal((await put({ design: [1], rev: 1 })).status, 400);
+  const r2 = await put({ design: { ...d1, note: 'the bookcase on the left wall' }, rev: 1 });
+  assert.equal((await r2.json()).rev, 2);
+  const kept = await fsp.readdir(path.join(srv.dataDir, 'design'));
+  assert.ok(kept.includes('before-000001.json'), `the design before is kept (${kept})`);
+  const live = await startServer({ env: { DESIGN_EDIT: '0' } });
+  try {
+    const c = await login(live.url);
+    const g = await (await fetch(live.url + '/api/design', { headers: { cookie: c } })).json();
+    assert.equal(g.edit, false);
+    const p = await fetch(live.url + '/api/design', { method: 'PUT', headers: { cookie: c, 'X-Sarah': '1', 'content-type': 'application/json' }, body: JSON.stringify({ design: d1, rev: 0 }) });
+    assert.equal(p.status, 403);
+  } finally { await live.stop(); }
 });

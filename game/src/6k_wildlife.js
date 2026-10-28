@@ -156,7 +156,27 @@ const SeaSky = {
         }
         return true;
     },
+    /* Sarah up at the lookout (David, 28 October: the plane only goes over there, where it makes sense, and boats sail
+       by on the northern sea it looks out on) */
+    atLookout() {
+        const s = W0.spots && W0.spots.lookout, p = G.player;
+        return !!s && !!p && G.area === G.areas.island && Math.hypot(p.x / TILE - s.x, p.y / TILE - s.y) < 10;
+    },
+    /* a boat across the northern sea, seen from the lookout: along the coast, between the island and the horizon */
+    spawnNorthBoat() {
+        const s = W0.spots.lookout, kinds = ['sea_sail', 'sea_sailb', 'sea_fish', 'sea_ferry'];
+        for (let tries = 0; tries < 8; tries++) {
+            const y = rint(1, 5), east = R() < 0.5, xa = W0.w + 3, xb = Math.max(-3, s.x - 45);
+            const [x0, x1] = east ? [xb, xa] : [xa, xb];
+            if (!this.clearLane(x0, y, x1, y)) continue;
+            const kind = rpick(kinds), sp = kind === 'sea_ferry' ? 0.42 : kind === 'sea_fish' ? 0.26 : 0.3, len = Math.abs(x1 - x0) * TILE;
+            this.boats.push({ kind, x: x0 * TILE, y: y * TILE, vx: Math.sign(x1 - x0) * sp, vy: 0, t: 0, life: len / sp + 10 });
+            return true;
+        }
+        return false;
+    },
     spawnBoat() {
+        if (this.atLookout()) return this.spawnNorthBoat();
         // boats sail out of sight of the pier: from a side of the map toward the far horizon (the bottom edge), or back
         const v = G.view, cam = G.cam;
         const vy0 = Math.floor(cam.y / TILE), vy1 = Math.floor((cam.y + v.h) / TILE);
@@ -191,9 +211,11 @@ const SeaSky = {
        or a hot air balloon. Not too often: a few minutes apart, on average */
     spawnSky() {
         const v = G.view, cam = G.cam, h = Clock.hourF(), fair = G.weather === 'sunny' || G.weather === 'cloudy';
-        const roll = R(), cloudy = G.weather === 'cloudy';
-        if (roll < (cloudy ? 0.72 : 0.5)) { this.spawnCloud(); return; }
-        const balloon = fair && h > 7 && h < 18.5 && roll > 0.85;
+        const roll = R(), cloudy = G.weather === 'cloudy', look = this.atLookout();
+        if (roll < (look ? 0.2 : cloudy ? 0.72 : 0.5)) { this.spawnCloud(); return; }
+        const balloon = fair && h > 7 && h < 18.5 && roll > (look ? 0.9 : 0.85);
+        // (a plane only over the lookout)
+        if (!balloon && !look) return;
         const fromLeft = R() < 0.5, fromTop = R() < 0.5;
         const x = fromLeft ? cam.x - 60 : cam.x + v.w + 60, y = cam.y + (fromTop ? 0.15 : 0.6) * v.h;
         const sp = balloon ? 0.28 : 1.15;
@@ -227,9 +249,13 @@ const SeaSky = {
         const v = G.view, cam = G.cam;
         // is there sea in view (or just past it)?
         const seaNear = (() => { for (let y = Math.floor(cam.y / TILE) - 4; y <= Math.floor((cam.y + v.h) / TILE) + 4; y += 3) for (let x = Math.floor(cam.x / TILE); x <= Math.floor((cam.x + v.w) / TILE); x += 4) if (this.openSea(x, y)) return true; return false; })();
-        if (--this.nextBoat <= 0) { this.nextBoat = rint(900, 2400); if (seaNear && this.boats.length < 3) { if (!this.spawnBoat()) this.nextBoat = 300; } }
+        // (up at the lookout, something soon: a boat on the sea below and a plane going over)
+        const look = this.atLookout();
+        if (look && !this.wasLook) { this.nextBoat = Math.min(this.nextBoat, rint(60, 400)); this.nextSky = Math.min(this.nextSky, rint(300, 1500)); }
+        this.wasLook = look;
+        if (--this.nextBoat <= 0) { this.nextBoat = look ? rint(500, 1300) : rint(900, 2400); if (seaNear && this.boats.length < 3) { if (!this.spawnBoat()) this.nextBoat = 300; } }
         if (--this.nextDolphin <= 0) { this.nextDolphin = rint(1200, 3000); if (seaNear) this.spawnDolphins(); }
-        if (--this.nextSky <= 0) { this.nextSky = rint(9000, 16200); if (G.weather !== 'rain' && G.weather !== 'snow') this.spawnSky(); }
+        if (--this.nextSky <= 0) { this.nextSky = look ? rint(1800, 5400) : rint(9000, 16200); if (G.weather !== 'rain' && G.weather !== 'snow') this.spawnSky(); }
         for (const b of this.boats) { b.t++; b.x += b.vx; b.y += b.vy; }
         this.boats = this.boats.filter(b => b.t < b.life);
         for (const s of this.sky) { s.t++; s.x += s.vx; s.y += s.vy; }

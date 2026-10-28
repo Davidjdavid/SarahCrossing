@@ -95,19 +95,15 @@ async function useBonfire() {
         await UI.say(null, G.weather === 'rain' ? "The rain put the bonfire out. It'll be back tomorrow evening." : 'Just warm embers for now. The bonfire gets lit every evening around 6.');
         return;
     }
-    if (await roastMarshmallow()) return;
-    await UI.say(null, rpick(['Sarah warms her hands by the fire. Sparks drift upward over the sound of the waves.',
-        'The fire crackles. Somebody out there is playing a ukulele, badly. It adds to it.',
-        "Sarah watches the sparks float up toward the stars. It's the best TV on the island.",
-        "It would be perfect for marshmallows. Fortune sells them. Just saying."]));
+    // (with no marshmallows, just where to get some: no description of the fire, David, 28 October)
+    if (!(await roastMarshmallow())) await UI.say(null, 'It would be perfect for marshmallows. Fortune sells them.');
 }
 async function useCampfire() {
     if (!campfireLit()) {
         await UI.say(null, visitorsToday().length ? 'A ring of stones with a fire laid and ready. Somebody will light it after dinner.' : 'A ring of stones for a campfire. It gets lit when somebody is camping.');
         return;
     }
-    if (await roastMarshmallow()) return;
-    await UI.say(null, rpick(['The campfire pops and hisses. The whole clearing smells like pine smoke.', 'Sarah sits by the campfire for a bit. An owl says something. Probably about marshmallows.']));
+    if (!(await roastMarshmallow())) await UI.say(null, 'It would be perfect for marshmallows. Fortune sells them.');
 }
 
 /* ---------------------------------------------------------------- tents at the campsite */

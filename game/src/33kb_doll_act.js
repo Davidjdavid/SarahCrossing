@@ -190,8 +190,9 @@ Object.assign(EnvDolls, {
         // listening: a nod now and then, the hands behind the back for some
         if (A.nod && !walk) W.hx += 0.24 * A.nod;
         if (A.listen && !walk && !Q && !sit && seed % 2) { W.aLx = W.aRx = 0.35; W.aLz = -0.12; W.aRz = 0.12; W.eL = W.eR = -0.7; }
-        // something of their own: an ice cream, a book, the stars... (33kd_doll_idle.js)
+        // something of their own: an ice cream, a book, the stars... (33kd_doll_idle.js); with nothing, a sway and a look round
         if (e.idle && !walk && !Q && !sit && !A.talking) this.idleDoll(e, W, t, seed);
+        else if (e !== G.player && !e.idle && !walk && !Q && !sit && !A.talking && !A.listen && !A.look) { W.hy += idleLook(t, seed); W.bz += Math.sin(t / 55 + seed) * 0.035; }
         // dancing on her own between the dance game's steps: bobbing on the beat, hips swaying, arms going (the dance-off's
         // other dancer too)
         if (!Q && !walk && typeof Dance !== 'undefined' && Dance.on && Dance.ready && Dance.info && (e === G.player || e === Dance.rival)) {
@@ -306,6 +307,8 @@ Object.assign(EnvDolls, {
         // (dancing at the club: a bounce on the beat, rocking side to side, a little turn now and then)
         const dance = !!e.dancer && !walk;
         if (dance) { const b = Math.abs(Math.sin(t / 9 + e.x)); sq = 0.06 * b - 0.035; roll = Math.sin(t / 18 + e.x) * 0.14; lift = b * 0.05; yaw += Math.sin(t / 36 + e.x) * 0.35; }
+        // (standing about with nothing to do: a sway and a look round now and then, 33kd_doll_idle.js idleLook)
+        if (e !== G.player && !walk && !seat && !lounge && !Q && !dance && !e.idle && !e.talking && !A.look) { yaw += idleLook(t, seed) * F.look; roll += Math.sin(t / 55 + seed) * 0.03 * F.sway; }
         // (sitting: leaning back a touch)
         if (seat) lean = -0.08;
         if (A.stumble) { const k = Math.sin(A.stumble * Math.PI); lean += 0.7 * k; sq -= 0.05 * k; }

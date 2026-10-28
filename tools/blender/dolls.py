@@ -975,6 +975,21 @@ def beard_full():
     return mb
 
 
+def mustache():
+    """A mustache by itself, as David wears his now (David, 28 October): the full beard's, a little fuller, from under the
+    nose out over the lip with the ends turned down, the chin and jaw bare."""
+    mb = MB()
+    LOCKS.clear()
+    C = HEAD
+
+    def jaw(a, z, out=1.04):
+        r = math.sqrt(max(0.0, 1 - z * z)) * out
+        return H(math.sin(a) * r * 1.05, -math.cos(a) * r, z)
+    for s in (-1, 1):
+        lock(mb, [jaw(s * 0.02, -0.35, 1.06), jaw(s * 0.2, -0.39, 1.09), jaw(s * 0.4, -0.47, 1.08), jaw(s * 0.52, -0.6, 1.05)], 0.19 * HR, 0.12 * HR, 0.12 * HR, 0.08 * HR, flat_to=C, nv=16, curl_tip=False)
+    return mb
+
+
 def hairline(*pts):
     """A hairline through (angle from the front, height in head radii) points, eased between them (for shell)."""
     def z(a):
@@ -1484,10 +1499,10 @@ def build_kit():
 HAIRS = {'waves': hair_waves, 'joecut': hair_joecut, 'davidcut': hair_davidcut, 'jamescut': hair_jamescut, 'johncut': hair_johncut, 'sleek': hair_sleek,
          'bob': hair_bob, 'buzz': hair_buzz, 'pixie': hair_pixie, 'afro': hair_afro, 'friar': hair_friar, 'mohawk': hair_mohawk, 'curls': hair_curls,
          'braids': hair_braids, 'ponytail': hair_ponytail, 'bun': hair_bun, 'pigtails': hair_pigtails, 'spacebuns': hair_spacebuns, 'mullet': hair_mullet,
-         'beard': beard_full}
+         'beard': beard_full, 'mustache': mustache}
 # how each is melted: smoothing, the points it keeps, how dark its folds (curls softer and lighter in the folds, or the
 # deep ones read as holes; the short cuts need few points)
-MELT = {'joecut': (8, 7000, 0.55), 'afro': (8, 7000, 0.5), 'curls': (6, 8000, 0.55), 'beard': (4, 3800, 0.7), 'buzz': (4, 2500, 0.75),
+MELT = {'joecut': (8, 7000, 0.55), 'afro': (8, 7000, 0.5), 'curls': (6, 8000, 0.55), 'beard': (4, 3800, 0.7), 'mustache': (3, 1200, 0.7), 'buzz': (4, 2500, 0.75),
         'friar': (5, 3000, 0.75), 'mohawk': (4, 4000, 0.75), 'pixie': (5, 5000, 0.7), 'mullet': (4, 5500, 0.75), 'braids': (4, 7500, 0.7)}
 
 
@@ -1500,7 +1515,7 @@ def build_hair(styles=tuple(HAIRS)):
     for st in styles:
         mb = HAIRS[st]()
         # (curls melted a little softer, as a toy's are; a beard is its own part, colored by the look's beard)
-        name = 'beard_full__beard' if st == 'beard' else f'hair_{st}__hair'
+        name = 'beard_full__beard' if st == 'beard' else 'beard_mustache__beard' if st == 'mustache' else f'hair_{st}__hair'
         sm, verts, dark = MELT.get(st, (4, 7000, 0.75))
         o = melt(name, mb, smooth=sm, verts=int(verts * BUDGET['verts']), before=lambda o: grooves(o))
         hair_colors(o, grooves(o, depth=0.0), dark=dark)
@@ -1533,7 +1548,7 @@ if __name__ == '__main__':
     if prev:
         # a quick look: the kit dressed in Sarah's colors (crimson knit, jeans), from the game's camera and the front
         cols = {'top': '#c0303a', 'trim': '#f4f0e6', 'bottom': '#4d6d9f', 'bottom2': '#8aa4cc', 'shoes': '#f3f1ee', 'sole': '#d8cfc4',
-                'skin': '#fbd9c6', 'face': '#fbd9c6', 'hair': '#8f4629'}
+                'skin': '#fbd9c6', 'face': '#fbd9c6', 'hair': '#8f4629', 'beard': '#c0502a'}
         for o in kit + hair:
             if 'bare' in o.name:
                 o.hide_render = True

@@ -50,7 +50,8 @@ const EnvBuild = {
     },
     /* the middle of its footprint, on the ground */
     displaySpot(e) {
-        const d = dispDef(e.disp), w = d ? d.w : 1, h = d ? displayRows(d) : 1, x = e.px + w / 2, v = e.py + h / 2;
+        const d = dispDef(e.disp), w0 = d ? d.w : 1, h0 = d ? displayRows(d) : 1, odd = e.rot & 1, w = odd ? h0 : w0, h = odd ? w0 : h0;
+        const x = e.px + w / 2, v = e.py + h / 2;
         return { x, z: v * R3_ZS, y: Env.groundH(x * TILE, v * TILE) };
     },
     build(group, a) {
@@ -88,14 +89,14 @@ const EnvBuild = {
             // (the statue on the square: the plinth, and whoever's cast in bronze on it, 6zgc_statue.js)
             else if (e.kind === 'statue_sarah' && this.statue(group, e)) { /* stood */ }
             else if (this.propModel(e)) {
-                const [n, sc, back] = this.propModel(e), f = this.foot(e);
-                this.model(n, f.x, f.y, f.z - back * R3_ZS, 0, sc);
+                const [n, sc, back] = this.propModel(e), f = this.turned(e, back);
+                this.model(n, f.x, f.y, f.z, f.ry, sc);
                 if (n === 'windmill') mills.push(placed[n][placed[n].length - 1]);
                 if (n === 'swing_set') swings.push(placed[n][placed[n].length - 1]);
                 if (n === 'park_clock') clocks.push(placed[n][placed[n].length - 1]);
                 if (e.onlyNight) nights.push({ n, i: placed[n].length - 1, on: true });
             }
-            else if (e.kind === 'display' && this.displayModel(e)) { const f = this.displaySpot(e); this.model(this.displayModel(e), f.x, f.y, f.z, 0, 1); this.dispDrawn.add(e); }
+            else if (e.kind === 'display' && this.displayModel(e)) { const f = this.displaySpot(e); this.model(this.displayModel(e), f.x, f.y, f.z, (e.rot || 0) * Math.PI / 2, 1); this.dispDrawn.add(e); }
             // (a garden plot is a raised planter box, props_island.py; a bed in the community garden two ridges of tilled
             // soil, as the farm's fields have; what grows in either is EnvItems')
             // (a thing a story puts on the island with a model of its own: the seafarer's wreck and ship; afloat if it floats)
@@ -528,6 +529,15 @@ const EnvBuild = {
 
     /* ---------------------------------------------------------------- things round the buildings */
     foot(e) { return { x: e.x / TILE, z: e.y / TILE * R3_ZS, y: Env.groundH(e.x, e.y) }; },
+    /* where a prop stands, `back` tiles behind its front edge, turned as the designer set it (e.rot quarter turns: its front
+       to the east, the back, the west; 6zza_designer.js), about its footprint's middle */
+    turned(e, back) {
+        const f = this.foot(e);
+        if (!e.rot) return { x: f.x, y: f.y, z: f.z - back * R3_ZS, ry: 0 };
+        const w0 = PROP_SIZE[e.kind] || 1, h0 = PROP_ROWS[e.kind] || 1, odd = e.rot & 1, W = odd ? h0 : w0, H = odd ? w0 : h0;
+        const ry = e.rot * Math.PI / 2, out = h0 / 2 - back, x = e.px + W / 2 + Math.sin(ry) * out, v = e.py + H / 2 + Math.cos(ry) * out;
+        return { x, y: Env.groundH(x * TILE, v * TILE), z: v * R3_ZS, ry };
+    },
     /* the statue: its plinth (the first statue's model without its figure) and the figure cast on top */
     statue(group, e) {
         const pl = typeof EnvStatue !== 'undefined' && EnvStatue.plinth(), fig = pl && EnvStatue.figure();
@@ -539,6 +549,7 @@ const EnvBuild = {
         return true;
     },
     bench(e) {
+        if (e.rot) { const t = this.turned(e, 0.15 / R3_ZS); if (this.model('bench', t.x, t.y, t.z, t.ry)) return; }
         const f = this.foot(e), x = f.x, z = f.z - 0.2, y = f.y, w = 1.7;
         if (this.model('bench', x, y, z + 0.05)) return;
         for (let i = 0; i < 3; i++) this.box('wood', x - w / 2, y + 0.42, z - 0.22 + i * 0.15, x + w / 2, y + 0.48, z - 0.1 + i * 0.15, '#b07a46', 2);
@@ -546,6 +557,7 @@ const EnvBuild = {
         for (const sx of [-1, 1]) { const lx = x + sx * (w / 2 - 0.12); this.box('plain', lx - 0.04, y, z + 0.14, lx + 0.04, y + 0.45, z + 0.2, '#2c2a2e'); this.box('plain', lx - 0.04, y, z - 0.3, lx + 0.04, y + 1.05, z - 0.24, '#2c2a2e'); this.box('plain', lx - 0.04, y + 0.38, z - 0.3, lx + 0.04, y + 0.44, z + 0.2, '#2c2a2e'); }
     },
     lamp(e) {
+        if (e.rot) { const t = this.turned(e, 0.1 / R3_ZS); if (this.model('lamp', t.x, t.y, t.z, t.ry)) return; }
         const f = this.foot(e), x = f.x, z = f.z - 0.1, y = f.y;
         if (this.model('lamp', x, y, z)) return;
         this.box('plain', x - 0.14, y, z - 0.14, x + 0.14, y + 0.18, z + 0.14, '#2a2830');
@@ -621,6 +633,7 @@ const EnvBuild = {
         for (let i = 0; i < 2; i++) { const sx = x - 0.3 + i * 0.55 + (r() - 0.5) * 0.1, sh = 0.95 + r() * 0.35; this.box('plain', sx - 0.025, y, z - 0.25, sx + 0.025, y + sh, z - 0.2, '#4a8a34'); this.box('plain', sx - 0.13, y + sh - 0.13, z - 0.24, sx + 0.13, y + sh + 0.13, z - 0.19, '#ffc93a'); this.box('plain', sx - 0.06, y + sh - 0.06, z - 0.19, sx + 0.06, y + sh + 0.06, z - 0.16, '#6a3a1a'); }
     },
     flowerbed(e) {
+        if (e.rot) { const t = this.turned(e, 0.35 / R3_ZS); if (this.model('planter', t.x, t.y, t.z, t.ry)) return; }
         const f = this.foot(e), x = f.x, z = f.z - 0.35, y = f.y;
         if (this.model('planter', x, y, z)) return;
         this.box('wood', x - 0.9, y, z - 0.35, x + 0.9, y + 0.28, z + 0.25, '#8a5a33', 2);

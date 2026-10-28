@@ -17,6 +17,8 @@ const IDLE_ACTS = {
     fish: { hand: null, folkHand: 'style_rod', face: 'determined' },
     // (only when their day says so: watering the farm's fields, 22_npc.js farmOverride)
     tend: { hand: 'furn_watering_can', face: 'happy' },
+    // (only by the lookout's telescope: idleScope)
+    scope: { hand: null, face: 'happy' },
 };
 /* what's carried on the way somewhere: a suitcase to or from a vacation, the farm's basket to the shop, the catch */
 const CARRY = { suitcase: { hand: 'style_suitcase', face: 'happy' }, crate: { hand: 'style_basket', face: 'happy' }, catch: { hand: 'style_bucket', face: 'happy' },
@@ -31,6 +33,7 @@ const IDLE_HELLO = {
     paint: ["Don't look yet! It's a surprise. It's the goat.", "I'm painting the island. It keeps moving. The clouds, mostly.", 'Does this look like a tree to you? Be honest. Be kind.'],
     cup: ["Cocoa? I'd share, but it's my third.", 'Nothing like something warm in a mug. Except maybe two mugs.', "Careful, it's hot. I learned that the hard way. Twice."],
     fish: ["Shh! They're biting! ...Okay, they're not. But they might!", "I've caught three boots today. It's a boot day.", 'The trick is patience. And snacks. Mostly snacks.'],
+    scope: ["You can see a boat out there! Or a very big duck.", "I'm looking for whales. I've found clouds. Lots of clouds.", 'Want a turn? The sea is extra blue today.'],
     tend: ["Morning! The tomatoes like a drink before it gets hot. So do I.", 'Water, sun, a little pep talk. That\'s farming. The pep talk is the important part.', "Don't step on the carrots! They're shy."],
     crate: ["Fresh from the farm! I'm taking it to Fortune's. Carrots, tomatoes, a cabbage. And a cucumber. Not me. A different cucumber.", 'Delivery! The shop gets the best of the fields every morning. You can buy it there!'],
     catch: ["Look at this haul, dude! Well. Two fish. A haul is a state of mind.", "Off to sell these at Fortune's. Bro. The bucket's heavy. Respectfully."],
@@ -47,6 +50,10 @@ function idleStart(n) {
     // (their day says what: watering the fields, or a line in the water where there's water ahead)
     if (w && w.tend && out) { n.idle = { kind: 'tend', until: G.t + 900 + rint(0, 600) }; return; }
     if (w && w.fish && out) { const wt = idleWater(n, a); if (wt) { n.idle = { kind: 'fish', until: G.t + 1200 + rint(0, 900) }; faceNpc(n, { x: (wt[0] + 0.5) * TILE, y: (wt[1] + 0.5) * TILE }); } return; }
+    // (out on the island, something there first: a bench to sit on, the lookout's telescope; then something of their own.
+    // David, 28 October: Chili stood about on the mountain with the telescope and a bench right there)
+    // (how much each likes the telescope and the benches, and each thing below, can be set in the designer: 6zza_designer.js)
+    if (out && !wet && ((R() < Design.likeChance(n.id, 'scope', 0.6) && idleScope(n, a)) || (R() < Design.likeChance(n.id, 'bench', 0.6) && idleBench(n, a)))) return;
     const can = {
         stars: out && (h >= 20.5 || h < 4.5) && G.weather !== 'rain' && G.weather !== 'cloudy',
         snack: h >= 11 && h < 20 && G.weather !== 'snow',
@@ -57,7 +64,7 @@ function idleStart(n) {
         cup: h < 11 || h >= 17,
         fish: out && h >= 6 && h < 20 && !!idleWater(n, a),
     };
-    const like = IDLE_LIKES[n.id], pool = Object.keys(can).filter(k => can[k]).map(k => [k, k === like ? 4 : 1]);
+    const like = IDLE_LIKES[n.id], pool = Object.keys(can).filter(k => can[k]).map(k => [k, Design.likeWeight(n.id, k, k === like ? 4 : 1)]).filter(k => k[1] > 0);
     if (!pool.length) return;
     const kind = weighted(pool, R);
     n.idle = { kind, until: G.t + 600 + rint(0, 900) };
@@ -65,6 +72,48 @@ function idleStart(n) {
     if (kind === 'paint') { n.dir = 'up'; n.flip = false; }
     else if (kind === 'fish') { const w = idleWater(n, a); faceNpc(n, { x: (w[0] + 0.5) * TILE, y: (w[1] + 0.5) * TILE }); }
     else if (kind === 'stars' || kind === 'ground') n.dir = 'down';
+}
+
+/* a free seat on a bench near where they're spending this part of the day: they go and sit for a while (n.benchIdle,
+   ended in updateNPC; their day moving on ends it too, moveTo) */
+function idleBench(n, a) {
+    if (!n.anchor || n.def.goat) return false;
+    const [ax, ay] = n.anchor, b = nearestBench(ax, ay, Math.max(2, n.radius || 0) + 3);
+    if (!b) return false;
+    for (const seat of [0, 1]) {
+        if (seatTaken(b, seat, n)) continue;
+        const p = benchSeatPos(b, seat), sit = { b, seat, benchY: p.benchY };
+        n.benchIdle = { until: G.t + 1200 + rint(0, 1500), want: n.want, fixed: n.fixed };
+        n.want = Object.assign({}, n.want, { x: p.x, y: p.y, fixed: true, face: 'down', sit });
+        n.fixed = true;
+        if (!walkNpc(n, Math.floor(p.x / TILE), Math.floor((p.y - 2) / TILE), () => { n.x = p.x; n.y = p.y; n.dir = 'down'; })) { idleBenchEnd(n); return false; }
+        return true;
+    }
+    return false;
+}
+function idleBenchEnd(n) {
+    const B = n.benchIdle;
+    if (!B) return;
+    n.benchIdle = null;
+    n.want = B.want; n.fixed = B.fixed;
+}
+/* the lookout's telescope close by: they step up to it and look through it out to sea for a while (n.idle 'scope') */
+function idleScope(n, a) {
+    if (!n.anchor || n.def.goat) return false;
+    const [ax, ay] = n.anchor, reach = Math.max(2, n.radius || 0) + 3;
+    const t = (W0.props || []).find(p => p.kind === 'telescope' && !p.gone && Math.hypot(p.x - ax, p.y - ay) <= reach);
+    if (!t || NPCs.list.some(o => o !== n && o.idle && o.idle.kind === 'scope')) return false;
+    const tx = t.x, ty = t.y + 1;
+    if (a.blockedAt(tx, ty)) return false;
+    return walkNpc(n, tx, ty, () => { n.x = (tx + 0.5) * TILE; n.y = (ty + 0.5) * TILE + 2; n.dir = 'up'; n.flip = false; n.idle = { kind: 'scope', until: G.t + 900 + rint(0, 900) }; });
+}
+
+/* standing about with nothing to do, a look round now and then: the head turns one way, holds a few seconds, comes back
+   (each at their own time; radians of the head's turn) */
+function idleLook(t, seed) {
+    const P = 520, u = t + seed * 131, ph = u % P, dir = [0.55, -0.5, 0.25, -0.35, 0][(Math.floor(u / P) + seed) % 5];
+    const k = ph < 60 ? ph / 60 : ph > 300 ? Math.max(0, 1 - (ph - 300) / 60) : 1;
+    return dir * k * k * (3 - 2 * k);
 }
 
 /* water a tile or two from where they stand, straight ahead in one of the four ways (somewhere to cast a line) */
@@ -164,6 +213,8 @@ Object.assign(EnvDolls, {
         } else if (k === 'ground') Object.assign(W, { lL: -1.45, lR: -1.45, kL: 0.25, kR: 0.3, aLx: 0.55, aRx: 0.55, aLz: -0.45, aRz: 0.45, eL: -0.1, eR: -0.1, bx: -0.14, hx: -0.12, by: 0 });
         else if (k === 'paint') Object.assign(W, { aRx: -1.15 + Math.sin(t / 9 + seed) * 0.14, eR: -0.5, aRz: 0.15, aLx: -0.45, eL: -1.2, aLz: -0.35, hx: -0.04 });
         else if (k === 'tend') Object.assign(W, { aRx: -0.45 - 0.3 * lift(150, 60), eR: -0.35, aRz: 0.12, hx: 0.22, bx: 0.06 });
+        // (at the telescope: bent to the eyepiece, both hands on the tube, turning it a little now and then)
+        else if (k === 'scope') { const sw = Math.sin(t / 70 + seed) * 0.06; Object.assign(W, { aLx: -1.25, aRx: -1.25, eL: -0.9, eR: -0.9, aLz: -0.18 + sw, aRz: 0.18 + sw, bx: 0.22, hx: 0.1, bz: sw * 0.5 }); }
     },
     /* a folk's: its arms ({ up, fwd } for the right, side +1, and the left), how it leans */
     idleFolk(e, t, seed) {
@@ -175,6 +226,7 @@ Object.assign(EnvDolls, {
         if (k === 'fish') return { lean: 0.04, R: { up: 0.55 + Math.sin(t / 40 + seed) * 0.04, fwd: -1.1 }, L: { up: 0.4, fwd: -1.0 } };
         if (k === 'paint') return { lean: 0.05, R: { up: 0.5 + Math.sin(t / 9 + seed) * 0.15, fwd: -1.0 }, L: { up: 0.2, fwd: -0.4 } };
         if (k === 'tend') { const b = lift(150, 60); return { lean: 0.1 + 0.08 * b, R: { up: 0.3 + 0.3 * b, fwd: -0.9 }, L: null }; }
+        if (k === 'scope') return { lean: 0.18, R: { up: 0.75, fwd: -1.1 }, L: { up: 0.75, fwd: -1.1 } };
         return { lean: 0, R: null, L: null };
     },
 });

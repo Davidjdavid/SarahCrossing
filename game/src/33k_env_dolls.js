@@ -574,8 +574,9 @@ const EnvDolls = {
             }
             m.geometry.setAttribute('color', new THREE.BufferAttribute(col, 3));
         }
-        // a beard round the jaw
-        if (L.beard) this.piece(head, 'ball', this.mat(L.beard, 0.7), 0, -0.6 * R, 0.5 * R, 0.72 * R, 0.42 * R, 0.44 * R);
+        // a beard round the jaw, or a mustache over the lip
+        if (L.beard && L.beardStyle === 'mustache') this.piece(head, 'ball', this.mat(L.beard, 0.7), 0, -0.32 * R, 0.86 * R, 0.4 * R, 0.1 * R, 0.14 * R);
+        else if (L.beard) this.piece(head, 'ball', this.mat(L.beard, 0.7), 0, -0.6 * R, 0.5 * R, 0.72 * R, 0.42 * R, 0.44 * R);
     },
 
     /* glasses and hats */

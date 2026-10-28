@@ -226,6 +226,11 @@ MUSIC_DIR=${MUSIC_DIR:-/srv/sarahcrossing-music}
 # (uploaded from the beta site; the live site only plays it)
 if [ "$INSTANCE" = beta ]; then MUSIC_UPLOADS=1; else MUSIC_UPLOADS=0; fi
 install -d -o "$SC_USER" -g "$SC_USER" -m 750 "$MUSIC_DIR"
+# The island's design David makes in the designer mode (server/design.mjs): one small folder both sites share, made on
+# the beta site, read by the live one; the nightly backup takes it along with the islands
+DESIGN_DIR=${DESIGN_DIR:-/srv/sarahcrossing-design}
+if [ "$INSTANCE" = beta ]; then DESIGN_EDIT=1; else DESIGN_EDIT=0; fi
+install -d -o "$SC_USER" -g "$SC_USER" -m 750 "$DESIGN_DIR"
 install -d -o root -g root -m 700 "$BACKUPS"
 
 # The password players type. Changing it logs everyone out (they type the new one once).
@@ -255,17 +260,19 @@ Environment=STATIC_DIR=$SC_ROOT/current/dist
 Environment=DATA_DIR=$SC_ROOT/data
 Environment=MUSIC_DIR=$MUSIC_DIR
 Environment=MUSIC_UPLOADS=$MUSIC_UPLOADS
+Environment=DESIGN_DIR=$DESIGN_DIR
+Environment=DESIGN_EDIT=$DESIGN_EDIT
 Environment=SITE_PASSWORD_FILE=$SC_ROOT/password
 ExecStart=$NODE_BIN $SC_ROOT/current/server/server.mjs
 Restart=always
 RestartSec=2
 TimeoutStopSec=10
-# The server may only write its data folder (and the music folder).
+# The server may only write its data folder (and the music and design folders).
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=$SC_ROOT/data $MUSIC_DIR
+ReadWritePaths=$SC_ROOT/data $MUSIC_DIR $DESIGN_DIR
 
 [Install]
 WantedBy=multi-user.target
@@ -281,7 +288,7 @@ Description=Back up the Sarah Crossing islands ($INSTANCE)
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c 'tar -czf $BACKUPS/islands-\$(date +%%F).tgz -C $SC_ROOT data && find $BACKUPS -name "islands-*.tgz" -mtime +14 -delete'
+ExecStart=/bin/sh -c 'tar -czf $BACKUPS/islands-\$(date +%%F).tgz -C $SC_ROOT data -C $(dirname $DESIGN_DIR) $(basename $DESIGN_DIR) && find $BACKUPS -name "islands-*.tgz" -mtime +14 -delete'
 UNIT
 write_if_changed "/etc/systemd/system/$SERVICE-backup.timer" 644 <<UNIT || true
 # Written by Sarah Crossing's deploy/setup.sh.

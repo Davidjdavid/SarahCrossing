@@ -174,7 +174,7 @@ const APPS = [
     ['collection', 'Collection', '#d8f0ff'], ['wardrobe', 'Wardrobe', '#f7d0d8'], ['moves', 'Moves', '#ecd8ff'], ['camera', 'Camera', '#d0e4ff'],
     ['council', 'Cozy Council', '#d8f0c8'], ['home', 'Decorate', '#ffe6cc'], ['edit', 'Island edit', '#d8f0c8'], ['calendar', 'Today', '#ffe0e8'],
     ['poems', "Joe's Poems", '#fff1c9'], ['pottery', 'Pottery', '#f6dccb'], ['arcade', 'Arcade', '#e8dcff'], ['music', 'Music', '#e6dcff'], ['gohome', 'Go home', '#ffd9d0'],
-    ['settings', 'Settings', '#e4e4f0'], ['save', 'Save & quit', '#dfe8f5'],
+    ['settings', 'Settings', '#e4e4f0'], ['save', 'Save & quit', '#dfe8f5'], ['designer', 'Designer', '#ffe9a8'],
 ];
 /* the phone apps that only work in some places say so */
 async function phoneSays(text) {
@@ -196,11 +196,13 @@ function openPhone() {
     P.body.appendChild(bar);
     const grid = el('div', 'apps');
     for (const [id, label, color] of APPS) {
+        // (the designer only where the island's design can be saved: the beta site, 6zza_designer.js)
+        if (id === 'designer' && !Design.edit) continue;
         const b = el('button', 'app');
         b.type = 'button';
         const tile = el('div', 'tile');
         tile.style.background = color;
-        tile.appendChild(iconCanvas('app_' + id, 36));
+        tile.appendChild(iconCanvas('app_' + (id === 'designer' ? 'edit' : id), 36));
         b.appendChild(tile);
         const lab = el('span', null, label);
         b.appendChild(lab);
@@ -214,7 +216,7 @@ function openPhone() {
 function openApp(id) {
     ({ map: appMap, tasks: appTasks, mail: appMail, friends: appFriends, recipes: appRecipes, collection: appCollection, wardrobe: () => openWardrobe(true),
         moves: appMoves, camera: () => { UI.close(true); Photo.start(); }, calendar: appToday, settings: appSettings, poems: appPoems, pottery: appPottery,
-        council: appCouncil, arcade: appArcade, texts: appTexts, gohome: askGoHome, music: () => appMusic(), save: appSaveQuit,
+        council: appCouncil, arcade: appArcade, texts: appTexts, gohome: askGoHome, music: () => appMusic(), save: appSaveQuit, designer: () => Design.app(),
         home: () => { if (G.area.id !== 'home') { phoneSays('Decorate only works inside your house. Head home first, then open it again!'); return; } UI.close(true); Decor.enter(); },
         paths: () => { UI.close(true); PathTool.open(); },
         edit: () => { if (G.area.id !== 'island') { phoneSays('Island edit only works outside. Step outside first, then open it again!'); return; } UI.close(true); IslandEdit.open(); } })[id]();
@@ -315,12 +317,13 @@ function appFriends() {
         t.appendChild(el('span', null, tip));
         row.appendChild(t);
         if (id !== 'goat') row.appendChild(el('span', 'hearts', heartStr(hearts(id))));
-        if (wb) { row.classList.add('tap'); row.onclick = () => { Sfx.ui('tick'); appDayPlan(id); }; }
+        // (a tap opens their profile: 6zzb_profiles.js)
+        row.classList.add('tap'); row.onclick = () => { Sfx.ui('tick'); appProfile(id); };
         list.appendChild(row);
     }
     if (!shown) list.appendChild(el('p', 'muted', "You haven't met anyone yet. Say hi to the neighbors!"));
     P.body.appendChild(list);
-    P.body.appendChild(el('p', 'muted', 'Chat and give gifts to build friendship. Friends share recipes and letters. At five hearts, they give you their photo.'));
+    P.body.appendChild(el('p', 'muted', 'Tap a friend to see their page. Chat and give gifts to build friendship. Friends share recipes and letters. At five hearts, they give you their photo.'));
 }
 function lovesText(id) {
     const map = { maki: 'sushi', kai: 'poke bowls, tuna', basil: 'Thai food', wonton: 'dumplings (veggie!)', chili: 'anything very spicy',

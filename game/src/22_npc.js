@@ -153,6 +153,7 @@ function makePlan(id, day) {
             const wts = Object.assign({}, BAND_BASE[band]);
             for (const [k, v] of Object.entries(d.fav || {})) wts[k] = (wts[k] || 0) + v * (band === 'morning' ? 0.6 : 1);
             for (const k of townSpots(id)) wts[k] = (wts[k] || 0) + 3;          // (where Sarah asked at the Town Hall: 6zg_townhall.js)
+            designSpots(id, wts);                                                // (and where the designer said they like being: 6zza_designer.js)
             openIndoor(wts, t, d);
             if (band !== 'day') delete wts.meadow;
             // after dark nobody wanders off to the fields, the woods or the mountain (the bonfire is where the night is)
@@ -522,6 +523,7 @@ function nearSarah(area, x, y) { const p = G.player; return !!p && !!G.area && G
 /* send an NPC toward a target (walking when Sarah can see it, otherwise just placing them) */
 function moveTo(n, want, force) {
     const prevKey = n.spotKey;
+    n.benchIdle = null;
     n.spotKey = want.spot || want.key;
     n.segKey = want.key;
     n.want = want;
@@ -652,6 +654,8 @@ function updateNPC(n) {
     if (inSpring(n)) { const [wx, wy] = W0.wonton; n.hit = { x: (wx - 5) * TILE, y: (wy - 4) * TILE, w: 10.5 * TILE, h: 8 * TILE }; n.stand = [Math.floor(wx), Math.floor(wy) + 3]; }
     else n.stand = (n.want && n.want.stand) || null;          // staff are talked to across their counter
     if (n.idle && (n.talking || n.script || n.path || n.chat || n.sleeping || G.t >= n.idle.until)) n.idle = null;
+    // (a while on a bench, then up again: 33kd_doll_idle.js idleBench)
+    if (n.benchIdle && !n.path && !n.talking && (G.t >= n.benchIdle.until || n.sleeping)) idleBenchEnd(n);
     if (n.talking || n.script) { n.moving = false; return; }
     const a = G.area;
     if (n.path) { stepNpc(n); return; }
@@ -679,7 +683,7 @@ function updateNPC(n) {
     if (n.fixed || !n.anchor) return;
     // something of their own for a while: a book, an ice cream, the stars (33kd_doll_idle.js)
     if (n.idle) return;
-    if (n.t % 200 === 100 && R() < 0.3) { idleStart(n); if (n.idle) return; }
+    if (n.t % 120 === 60 && R() < 0.45) { idleStart(n); if (n.idle || n.path) return; }
     // idle: sometimes turn toward whoever is nearby, sometimes wander a little
     if (n.t % 70 === 0) {
         const buddy = NPCs.here().find(o => o !== n && !o.path && Math.hypot(o.x - n.x, o.y - n.y) < 34);
@@ -707,9 +711,10 @@ function stepNpc(n) {
     const jog = n.want && n.want.jog;
     let sp = d.skates ? 1.2 : d.human ? 0.8 : jog ? 1.1 : 0.55;
     if (n.travel && !d.skates) sp *= 1.25;            // a little brisker when they're going somewhere
+    let cb = null;
     if (dist < sp + 0.05) {
         n.x = gx; n.y = gy; n.path.shift();
-        if (!n.path.length) { n.path = null; n.dest = null; const cb = n.onArrive; n.onArrive = null; if (cb) cb(); }
+        if (!n.path.length) { n.path = null; n.dest = null; cb = n.onArrive; n.onArrive = null; }
     } else { n.x += dx / dist * sp; n.y += dy / dist * sp; }
     n.moving = true;
     n.anim++;
@@ -718,6 +723,9 @@ function stepNpc(n) {
     n.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
     if (!d.human) n.hop = Math.abs(Math.sin(n.anim / (jog ? 4 : 6))) * 3;
     if (d.skates && n.anim % 3 === 0) G.fx.push(sparkleFx(n.x + (n.flip ? 6 : -6), n.y - 2));
+    // (what they came for, once the last step has turned them the way they walked: it may turn them again, as the
+    // telescope does)
+    if (cb) cb();
 }
 function faceNpc(n, o) {
     const dx = o.x - n.x, dy = o.y - n.y;

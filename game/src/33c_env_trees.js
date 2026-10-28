@@ -112,9 +112,10 @@ const EnvTrees = {
         if (!live || !live.length) return;
         const set = (o, M) => { for (const m of inst[o.n] || []) { m.setMatrixAt(o.i, M); m.instanceMatrix.needsUpdate = true; } };
         const W = this._w || (this._w = new THREE.Matrix4()), R = this._r || (this._r = new THREE.Matrix4());
-        // (by id: the island's things are made again when Sarah comes back out of a building)
+        // (by id: the island's things are made again when Sarah comes back out of a building. A felled tree's stump keeps
+        // the tree's id, so it isn't taken for the tree: David, 28 October, the tree still stood after it was chopped)
         let ids = null;
-        if (frame % 15 === 0) { ids = new Map(); for (const e of a.ents) if (e.id) ids.set(e.id, e); }
+        if (frame % 15 === 0) { ids = new Map(); for (const e of a.ents) if (e.id && e.kind !== 'stump') ids.set(e.id, e); }
         for (const L of live) {
             if (ids && L.e.id) {
                 const cur = ids.get(L.e.id);

@@ -27,7 +27,8 @@ const R3 = {
     active() {
         if (!this.ok || !this.want || !G.area || !G.player) return false;
         if (G.mode !== 'play' && G.mode !== 'title') return false;
-        if (Decor.on || Mover.on || PathTool.on || IslandEdit.on || Rope.on || Photo.flat()) return false;
+        // (decorating a room the new look draws stays in 3D, so a turned chair is seen turned: Decor.draw3d)
+        if ((Decor.on && !(G.area.interior && typeof EnvRoom !== 'undefined' && EnvRoom.active(G.area))) || Mover.on || PathTool.on || IslandEdit.on || Rope.on || Photo.flat()) return false;
         // (the club, the dance floor and the karaoke stage are 3D in the new look, their arrows and words drawn flat over it;
         // the HD-2D view keeps them flat)
         const env = typeof Env !== 'undefined' && Env.want();
@@ -138,7 +139,11 @@ const R3 = {
             // (dancing or singing: nearer the floor, and to one side of the arrows on a wide screen)
             const sh = G.camShift ? G.camShift[0] : 0;
             ty = G.camTarget[1]; tx = G.camTarget[0] + sh * 0.55;
-        } else if (a.interior) { tx = a.w * TILE / 2; ty = (a.floor.y0 + a.floor.h * 0.55) * TILE; }
+        } else if (a.interior) {
+            tx = a.w * TILE / 2; ty = (a.floor.y0 + a.floor.h * 0.55) * TILE;
+            // (decorating: the room kept clear of the sheet, above it, or beside it on a short wide screen)
+            if (Decor.on) { const pn = $('#panel'), side = pn.offsetWidth < innerWidth * 0.6; if (side) tx += pn.offsetWidth / innerWidth * 9 * TILE; else ty += pn.offsetHeight / innerHeight * 7 * TILE; }
+        }
         else if (Env.on && !G.camTarget) {
             ty -= ENV.cam.ahead * (this.camera.aspect < 1 ? 0.5 : 1) * TILE;
             // looking where she's going (David, 27 October: running down the screen, what was below her came into view too
@@ -744,6 +749,7 @@ const R3 = {
         for (const f of G.fx) if (!f.sorted && !f.screen && f.x != null) { this.localTransform(ctx, f.x, f.y || 0, 0); f.draw(ctx); }
         r3SkyThings(ctx);
         r3Overheads(ctx);
+        if (Decor.on) Decor.draw3d(ctx);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         r3Sharp();
         if (G.area.id === 'island') r3FlutterLights(ctx);

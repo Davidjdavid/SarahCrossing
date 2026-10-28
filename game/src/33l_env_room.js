@@ -26,12 +26,30 @@ const EnvRoom = {
             if (B.map !== r3.wall.tex) { B.map = B.emissiveMap = r3.wall.tex; B.needsUpdate = true; }
         }
         this.furniture(r3, a);
+        this.ghost(a);
         this.animate(a);
         if (this.built.club) this.clubTick(a);
         EnvDolls.attach(this.built.group);
         EnvDolls.tick(r3, a);
         R3U.uSee.value.w = 0;
         return true;
+    },
+    /* decorating: a see-through copy of the piece in hand where it would go, turned as it will be (Decor.ghost) */
+    ghost(a) {
+        const B = this.built, held = Decor.on && Decor.held, [cx, cy] = Decor.hover || Decor.cursor, g = held && Decor.ghost(cx, cy);
+        const n = g && g.d.kind !== 'wall' && this.model({ furn: true, def: g.d, item: { id: held } }), key = n ? n + ':' + g.rot + ':' + (g.ok ? 1 : 0) : '';
+        if (B.ghostKey !== key) {
+            // (its geometry is the model's own, shared; only the see-through materials are its own)
+            if (B.ghost) { B.group.remove(B.ghost); B.ghost.traverse(m => { if (m.isMesh) m.material.dispose(); }); B.ghost = null; }
+            B.ghostKey = key;
+            if (n) {
+                const o = B.ghost = this.group(n, 0, 0, 0, /^folk_/.test(n) ? this.PLUSH : 1, g.rot * Math.PI / 2);
+                const tint = new THREE.Color(g.ok ? 0xd8ffc8 : 0xffb0b0);
+                o.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = 0.55; m.material.depthWrite = false; if (m.material.color) m.material.color.multiply(tint); m.castShadow = false; } });
+                B.group.add(o);
+            }
+        }
+        if (B.ghost) B.ghost.position.set(g.x + g.F.w / 2, 0.01, (g.y + g.F.h / 2) * R3_ZS);
     },
     /* (built again when the room changes size or paper: the house grows, Sarah changes the wallpaper) */
     sig(a) { return [a.id, a.w, a.h, a.club ? 'disco' + (EnvModels.has('furn_turntables') ? '+' : '') : a.wallId || S.house.wall, a.club ? 'disco' : a.floorId || S.house.floor].join('|'); },
@@ -472,7 +490,7 @@ const EnvRoom = {
         // (rugs, the mannequins, and the fittings that aren't furniture: look3d says what they are)
         const rugs = a.ents.filter(e => e.furn && e.def && e.def.kind === 'rug'), mans = a.ents.filter(e => e.kind === 'mannequin' && e.sale), decos = a.ents.filter(e => e.look3d);
         // (each piece by its own entity: the room makes them afresh when it's rearranged or restocked)
-        const sig = list.concat(tops, cuts, rugs, pots).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + e.item.id + ',' + e.item.x + ',' + e.item.y + (e.flip ? 'f' : '')).join('|')
+        const sig = list.concat(tops, cuts, rugs, pots).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + e.item.id + ',' + e.item.x + ',' + e.item.y + (e.flip ? 'f' : '') + (e.rot || '')).join('|')
             + '|' + mans.concat(decos).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + (e.sale || '')).join('|') + '#' + (EnvModels.furnN || 0) + (EnvDolls.kitReady() ? 'k' : '');
         if (sig === B.furnSig) return;
         B.furnSig = sig;
@@ -487,11 +505,13 @@ const EnvRoom = {
         list.sort((p, q) => (p.def.kind === 'top' && p.item.on != null ? 1 : 0) - (q.def.kind === 'top' && q.item.on != null ? 1 : 0));
         for (const e of list) {
             if (e.def.kind === 'wall') continue;
-            const n = this.model(e), d = e.def, it = e.item, h = d.kind === 'top' ? 1 : d.h;
+            const n = this.model(e), d = e.def, it = e.item, F = furnWH(d, e.rot), h = F.h;
             const host = d.kind === 'top' && it.on != null ? B.hosts.get(it.on) : null;
             if (d.kind === 'top' && it.on != null && !host) continue;     // (on a table still drawn as a picture: a picture too)
-            const x = it.x + d.w / 2, z = host ? host.z : (it.y + h / 2) * R3_ZS, y = host ? host.top : 0;
+            const x = it.x + F.w / 2, z = host ? host.z : (it.y + h / 2) * R3_ZS, y = host ? host.top : 0;
             const m = new THREE.Matrix4().makeTranslation(x, y, z);
+            // (turned the way it faces: a quarter turn at a time, its front toward the camera, the right, the back or the left)
+            if (e.rot) m.multiply(new THREE.Matrix4().makeRotationY(e.rot * Math.PI / 2));
             if (e.flip) m.multiply(new THREE.Matrix4().makeScale(-1, 1, 1));
             if (/^folk_/.test(n)) m.multiply(new THREE.Matrix4().makeScale(this.PLUSH, this.PLUSH, this.PLUSH));
             this.parts(g, e, n, m);
@@ -500,7 +520,7 @@ const EnvRoom = {
             if (top) {
                 const H = { top: top[0].y + y, z };
                 B.hosts.set(e.idx, H);
-                B.tops.push({ x0: it.x, x1: it.x + d.w, y0: it.y, y1: it.y + d.h, top: H.top, z });
+                B.tops.push({ x0: it.x, x1: it.x + F.w, y0: it.y, y1: it.y + F.h, top: H.top, z });
                 if (e.accs) this.accessories(g, e, H);
             }
         }

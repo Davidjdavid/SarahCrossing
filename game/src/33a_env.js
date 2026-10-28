@@ -56,7 +56,9 @@ const Env = {
         const isl = G.areas && G.areas.island, holi = isl ? isl.ents.filter(e => e.holiday).map(e => e.grand || e.model3d || e.frame).join() : '';
         // (and what's set down on the island, each with whether its model has come yet: the furniture loads after the island)
         const disp = S && S.deco && S.deco.placed ? S.deco.placed.map(p => p.id + (FURN[p.id] && typeof EnvModels !== 'undefined' && EnvModels.has('furn_' + (FURN[p.id].base || p.id)) ? '+' : '')).join() : '';
-        return S ? JSON.stringify([S.exteriors || null, S.house && S.house.level, S.post && S.post.box || null, S.post && S.post.style || null, holi, projectsKey(), disp]) : '';
+        // (and the island's own things Sarah moved or put away in Island edit, and the designer's changes: 6zza_designer.js)
+        const moved = S && S.deco ? JSON.stringify([S.deco.moved, S.deco.gone]) : '', dv = typeof Design !== 'undefined' ? Design.ver : 0;
+        return S ? JSON.stringify([S.exteriors || null, S.house && S.house.level, S.post && S.post.box || null, S.post && S.post.style || null, holi, projectsKey(), disp, moved, dv]) : '';
     },
     /* where Sarah is on screen, for the see-through round her (trees and buildings in front of her) */
     seeThrough(r3) {

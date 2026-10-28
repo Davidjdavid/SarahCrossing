@@ -396,7 +396,6 @@ function buildMuseumRoom(a) {
     items.forEach(it => {
         if (it.id === 'museum_desk') it.use = 'counter';
         else if (it.id === 'easel') it.use = () => museumEasel();
-        else if (it.id === 'museum_bench') it.use = () => UI.say(null, rpick(['Sarah sits on the bench in the hall. Six archways, six wings. Where first?', 'A velvet bench. From here Sarah can see into every wing. Very grand.']));
     });
     a.items = items;
     placeFurniture(a, items);

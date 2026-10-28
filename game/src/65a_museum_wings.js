@@ -100,7 +100,6 @@ function buildGallery(a) {
     items.forEach(it => {
         if (it.id === 'empty_frame') it.use = () => UI.say(null, 'An empty frame. A little card underneath says: "Reserved for Sarah." (Brulee can change what hangs in the gallery.)');
         else if (FURN[it.id] && (FURN[it.id].art || ART_STARTERS[it.id])) it.use = () => viewArt(it.id);
-        else if (it.id === 'museum_bench') it.use = () => UI.say(null, rpick(['Sarah sits on the gallery bench and looks at the art for a while. Very cultured.', 'A velvet bench. It is for looking at paintings. Sarah looks at paintings.']));
     });
     a.items = items;
     placeFurniture(a, items);
@@ -154,7 +153,6 @@ function aquariumTanks() {
 }
 function buildAquarium(a) {
     const items = layoutItems([['museum_bench', 1, 5], ['museum_bench', 12, 5], ['plant_monstera', 0, 6], ['plant_monstera', 14, 6]]);
-    items.forEach(it => { if (it.id === 'museum_bench') it.use = () => UI.say(null, 'Sarah sits and watches the fish go round. Then round again. It is very calming.'); });
     a.items = items;
     placeFurniture(a, items);
     for (const T of aquariumTanks()) {
@@ -420,8 +418,7 @@ function buildFashionWing(a) {
     const items = layoutItems([['fabric_shelf', 2, 'wall'], ['window_wall', 6, 'wall'], ['fabric_shelf', 9, 'wall'],
         ['museum_bench', 2, 4], ['museum_bench', 9, 4], ['mirror_stand', 0, 4], ['plant_monstera', 12, 5]]);
     items.forEach(it => {
-        if (it.id === 'museum_bench') it.use = () => UI.say(null, 'Sarah sits and admires the outfits. She made those. She is a designer now. Officially.');
-        else if (it.id === 'fabric_shelf') it.use = () => UI.say(null, 'Bolts of fabric, for show. A card says: "Lent by Clementine. Do not unroll. Darling."');
+        if (it.id === 'fabric_shelf') it.use = () => UI.say(null, 'Bolts of fabric, for show. A card says: "Lent by Clementine. Do not unroll. Darling."');
     });
     a.items = items;
     placeFurniture(a, items);
@@ -504,7 +501,6 @@ function buildHistoryWing(a) {
         ['museum_bench', 2, 4], ['museum_bench', 9, 4], ['plant_monstera', 0, 5], ['plant_monstera', 12, 5]]);
     items.forEach(it => {
         if (it.id === 'plaque_silver') it.use = () => foundingPlaque();
-        else if (it.id === 'museum_bench') it.use = () => UI.say(null, 'Sarah sits for a while with the island\'s old stories. It has had a lot of them. It has her now, too.');
     });
     a.items = items;
     placeFurniture(a, items);

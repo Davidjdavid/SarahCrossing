@@ -344,6 +344,7 @@ async function giftFlow(n) {
     const selfPlush = itemId === 'plush_' + id;
     const tier = selfPlush ? 'love' : handmade ? potteryTier(id, itemId) : id === 'joe' ? 'love' : giftTier(id, itemId);
     r.giftDay = day; r.gifts = 1;
+    r.given = (r.given || 0) + 1;          // (every gift ever, for the Friends app's profile: 6zzb_profiles.js)
     const pts = { love: 8, like: 5, neutral: 3, dislike: 1 }[tier] + (isHoliday('kindday') ? 3 : 0) + bonusCharm();
     G.player.pose = 'cheer'; G.player.poseT = 24;
     Sfx.play('item');

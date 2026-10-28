@@ -35,11 +35,14 @@ async function boot(hotData) {
     if (R3.want) R3.init();
     Audio2.loadPrefs();
     const opening = LAB ? Promise.resolve(null) : Cloud.boot();          // the island, from the server, while the pictures load
+    const designing = Design.load();                                     // and the island's design (6zza_designer.js)
     await Assets.load();
     fillIcons(document);
     const hot = window.claude && window.claude.hot;
     const hotState = hotData && hotData.state;
     const opened = await opening;
+    await designing;
+    Design.apply();
     // a visitor sees Sarah's handmade things (in her house, in the museum) too
     if (Online.visitor() && Online.island) for (const f of [registerAllPottery, registerAllArt, registerAllDesigns]) { try { f(Online.island); } catch (e) { console.error('Sarah\'s things:', f.name, e); } }
     S = LAB ? labState() : (hotState && migrate(hotState)) || Save.load(opened && opened.state) || newState();

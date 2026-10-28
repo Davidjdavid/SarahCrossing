@@ -32,7 +32,8 @@ for (const [id, d] of Object.entries(DISPLAYS)) ITEMS[id] = { name: d.name, type
 const MOVABLE_PROPS = { lamp: 'dp_lamp', bench: 'dp_bench', flowerbed: 'dp_planter', board: null, sign_island: null, sign_club: null, sign_farm: null,
     sign_camp: null, sign_bonfire: null, well: null, hay: null, crate: null, scarecrow: null };
 function deco() { if (!S.deco) S.deco = { moved: {}, gone: {}, placed: [] }; return S.deco; }
-function propGone(i) { return !!(S && S.deco && S.deco.gone && S.deco.gone[i]); }
+/* (put away by Sarah in Island edit, or taken off the island in the designer: 6zza_designer.js) */
+function propGone(i) { return !!((S && S.deco && S.deco.gone && S.deco.gone[i]) || (W0.props[i] && (W0.props[i].gone || W0.props[i].lift))); }
 /* the save's moves for the island's own things (after the buildings: a sign that moved with the club can move again) */
 function applyDecoMoves() {
     const D = S && S.deco;
@@ -55,10 +56,12 @@ function dispDef(id) {
 function addDisplay(a, p, j) {
     const d = dispDef(p.id);
     if (!d) return null;
-    const w = d.w, rows = displayRows(d);
+    // (one the designer turned a quarter: its width and depth swap)
+    const odd = p.rot & 1, w = odd ? displayRows(d) : d.w, rows = odd ? d.w : displayRows(d);
     for (let k = 0; k < w; k++) for (let r = 0; r < rows; r++) a.block(p.x + k, p.y + r);
     const e = a.add({ kind: 'display', disp: p.id, deco: j, frame: d.frame, x: (p.x + w / 2) * TILE, y: (p.y + rows) * TILE - 2, px: p.x, py: p.y, what: d.name.toLowerCase() });
     e.hit = { x: p.x * TILE, y: p.y * TILE - 16, w: w * TILE, h: rows * TILE + 16 };
+    if (p.rot) e.rot = p.rot & 3;
     if (d.light) e.light = { r: d.light, y: -24, c: d.fire ? 'fire' : undefined };
     // (a street lamp lights the way a street lamp does: R3.updateLight)
     if (d.lamp) e.lamp = true;
@@ -193,10 +196,12 @@ const IslandEdit = {
     on: false, held: null, look: false, cursor: [0, 0], msg: '',
     open(opts) {
         if (this.on || G.mode !== 'play') return;
-        if (visitorStop('build')) return;
+        // (the designer's island: anything on it, saved as the island every game starts from, 6zza_designer.js)
+        const design = !!(opts && opts.design) && Design.edit;
+        if (!design && visitorStop('build')) return;
         if (G.area.id !== 'island') { UI.toast('Island edit works outside. Head out onto the island first.'); return; }
         UI.close(true); UI.hideDialog();
-        this.on = true; this.held = null; this.look = false; this.msg = '';
+        this.on = true; this.held = null; this.look = false; this.msg = ''; this.design = design;
         const p = G.player;
         this.cursor = [Math.floor(p.x / TILE), Math.floor((p.y - 2) / TILE) + 1];
         G.camTarget = [p.x, p.y];
@@ -208,7 +213,7 @@ const IslandEdit = {
     close() {
         if (!this.on) return;
         if (this.held) this.cancel(true);
-        this.on = false;
+        this.on = false; this.design = false;
         $('#panel').hidden = true; $('#panel').innerHTML = ''; $('#panel').classList.remove('decor', 'edit');
         UI.modal = false;
         G.camTarget = null;
@@ -218,6 +223,7 @@ const IslandEdit = {
         Sfx.ui('close');
     },
     render() {
+        if (this.design) { Design.islandPanel(this); return; }
         const panel = $('#panel');
         panel.hidden = false; panel.className = 'decor edit'; panel.innerHTML = '';
         UI.modal = true;
@@ -245,7 +251,7 @@ const IslandEdit = {
         body.appendChild(row);
         panel.appendChild(body);
     },
-    heldName() { const h = this.held; return h.src === 'prop' ? (PROP_NAMES[h.kind] || h.kind.replace(/_/g, ' ')) : dispDef(h.id).name.toLowerCase(); },
+    heldName() { const h = this.held; if (h.name) return h.name; return h.src === 'prop' ? (PROP_NAMES[h.kind] || h.kind.replace(/_/g, ' ')) : dispDef(h.id).name.toLowerCase(); },
     chooseNew() {
         const own = ownedDisplays();
         if (!Object.keys(own).length) { UI.toast("Nothing to set down yet. Waffle's shop (up Main Street) sells lamps, benches, hedges and more."); return; }
@@ -279,6 +285,7 @@ const IslandEdit = {
     },
     /* what's under this tile that can be picked up */
     thingAt(tx, ty) {
+        if (this.design) return Design.thingAt(tx, ty);
         const a = G.areas.island;
         for (const e of a.ents) {
             if (e.hidden) continue;
@@ -293,6 +300,7 @@ const IslandEdit = {
         return null;
     },
     pickUp(e) {
+        if (this.design) { Design.pickUp(this, e); return; }
         const a = G.areas.island;
         if (e.kind === 'display') {
             const p = deco().placed[e.deco], d = dispDef(p.id);
@@ -311,6 +319,7 @@ const IslandEdit = {
     cancel(quiet) {
         const h = this.held;
         if (!h) return;
+        if (this.design) { Design.cancel(this); this.msg = ''; if (!quiet) { Sfx.ui('close'); this.render(); } return; }
         if (h.ent) {
             const a = G.areas.island;
             for (let k = 0; k < h.w; k++) for (let r = 0; r < h.rows; r++) a.block(h.from[0] + k, h.from[1] + r, 1);
@@ -368,7 +377,8 @@ const IslandEdit = {
             return null;
         }
         const fieldOk = h.kind === 'scarecrow' || h.kind === 'hay' || h.kind === 'crate';     // farm things belong in the fields
-        for (let k = 0; k < h.w; k++) for (let r = 0; r < h.rows; r++) {
+        if (this.design) { const why = Design.tileWhy(h, x, y, doors, ptx, pty); if (why) return why; }
+        else for (let k = 0; k < h.w; k++) for (let r = 0; r < h.rows; r++) {
             const tx = x + k, ty = y + r;
             if (tx < 1 || ty < 1 || tx >= a.w - 1 || ty >= a.h - 1) return 'Too close to the edge of the island.';
             if (a.waterAt(tx, ty)) return "That's water.";
@@ -402,6 +412,7 @@ const IslandEdit = {
         const h = this.held;
         const why = this.whyNot(x, y);
         if (why) { this.msg = why; Sfx.ui('nope'); this.render(); return false; }
+        if (this.design) return Design.drop(this, x, y);
         const D = deco();
         if (h.src === 'new') {
             if (!takeDisplay(h.id)) { this.msg = "You don't have one of those anymore."; this.render(); return false; }
@@ -427,7 +438,7 @@ const IslandEdit = {
         this.cursor = [tx, ty];
         if (this.held) { const h = this.held; this.drop(tx - Math.floor((h.w - 1) / 2), ty - (h.rows - 1)); return; }
         let e = this.thingAt(tx, ty) || this.thingAt(tx, ty + 1);
-        if (!e) { this.msg = 'Nothing to pick up there. (Lamps, benches, signs, planters and decorations can move.)'; this.render(); return; }
+        if (!e) { this.msg = this.design ? 'Nothing there to move.' : 'Nothing to pick up there. (Lamps, benches, signs, planters and decorations can move.)'; this.render(); return; }
         this.pickUp(e);
     },
     down(wx, wy, ev) {
@@ -451,6 +462,7 @@ const IslandEdit = {
     key(code) {
         const c = this.cursor;
         if (code === 'Escape') { if (this.held) this.cancel(); else this.close(); return; }
+        if (code === 'KeyR' && this.design) { Design.turn(this); return; }
         if (code === 'ArrowLeft' || code === 'KeyA') c[0]--;
         else if (code === 'ArrowRight' || code === 'KeyD') c[0]++;
         else if (code === 'ArrowUp' || code === 'KeyW') c[1]--;
@@ -477,9 +489,16 @@ const IslandEdit = {
         ctx.globalAlpha = 0.75;
         spr(ctx, h.frame, (x + h.w / 2) * TILE, (y + h.rows) * TILE - 2);
         ctx.globalAlpha = 1;
+        // (the designer's: which way it faces, the flat view can't turn the picture)
+        if (this.design && !PROP_FIXED.has(h.kind)) {
+            const mx = (x + h.w / 2) * TILE, my = (y + h.rows / 2) * TILE, ang = [Math.PI / 2, 0, -Math.PI / 2, Math.PI][h.rot & 3], r = Math.min(h.w, h.rows) * TILE * 0.45 + 4;
+            ctx.strokeStyle = '#ffcf57'; ctx.fillStyle = '#ffcf57'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(ang) * r, my + Math.sin(ang) * r); ctx.stroke();
+            ctx.beginPath(); ctx.arc(mx + Math.cos(ang) * r, my + Math.sin(ang) * r, 2.5, 0, Math.PI * 2); ctx.fill();
+        }
     },
     whyNotCached(x, y) {
-        const k = x + ',' + y + ',' + (this.held && this.held.id || this.held && this.held.kind);
+        const k = x + ',' + y + ',' + (this.held && this.held.id || this.held && this.held.kind) + ',' + (this.held && this.held.rot);
         if (this._wk !== k) { this._wk = k; this._wv = this.whyNot(x, y); }
         return this._wv;
     },

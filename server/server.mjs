@@ -41,6 +41,8 @@
 //   PUT    /api/music/file?path=<game/file>   a track uploaded; DELETE /api/music/game?name= a game's folder;
 //   POST   /api/music/tidy                    duplicate formats and non-music files deleted (also at start, on beta)
 //   GET    /music/<game/file>                 a track (with Range)
+//   GET    /api/design                        the island's design {design, rev, at, edit} (server/design.mjs)
+//   PUT    /api/design {design, rev}          saved from the designer mode where it may be (the beta site)
 // Request bodies may be gzip-compressed (Content-Encoding: gzip).
 
 import crypto from 'node:crypto';
@@ -52,6 +54,7 @@ import { promisify } from 'node:util';
 import zlib from 'node:zlib';
 import { IslandError, Islands } from './islands.mjs';
 import { Live } from './live.mjs';
+import { Design, DesignError, MAX_DESIGN_BYTES } from './design.mjs';
 import { Music, MusicError } from './music.mjs';
 import { market, world, WorldError } from './world.mjs';
 
@@ -64,10 +67,14 @@ const STATIC_DIR = path.resolve(process.env.STATIC_DIR || path.join(ROOT, 'dist'
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
 // David's music from the games: one folder the beta and live sites share (server/music.mjs)
 const MUSIC_DIR = path.resolve(process.env.MUSIC_DIR || path.join(DATA_DIR, 'music'));
+// the island's design David makes in the designer mode on beta, which both sites play (server/design.mjs)
+const DESIGN_DIR = path.resolve(process.env.DESIGN_DIR || path.join(DATA_DIR, 'design'));
 const PASSWORD = process.env.SITE_PASSWORD || readPasswordFile();
 const PRODUCTION = process.env.NODE_ENV === 'production';
 // (David uploads the music once, from the beta site: the live site only plays it)
 const MUSIC_UPLOADS = process.env.MUSIC_UPLOADS === '1' || (process.env.MUSIC_UPLOADS !== '0' && !PRODUCTION);
+// (and the design is made on the beta site: the live site only reads it)
+const DESIGN_EDIT = process.env.DESIGN_EDIT === '1' || (process.env.DESIGN_EDIT !== '0' && !PRODUCTION);
 
 const COOKIE = 'sc_access';
 const COOKIE_MAX_AGE = 10 * 365 * 24 * 60 * 60; // ten years, in seconds
@@ -132,6 +139,7 @@ if (PRODUCTION && !PASSWORD) {
 
 const islands = new Islands(DATA_DIR);
 const music = new Music(MUSIC_DIR);
+const design = new Design(DESIGN_DIR);
 
 /** The secret that signs the login cookie. Made once; replacing it logs everyone out. */
 function loadSecret() {
@@ -432,6 +440,19 @@ async function handleApi(req, res, pathname) {
       throw err;
     }
     throw new HttpError(404, 'No such API');
+  }
+
+  // the island's design: read by every game as it starts, saved from the designer mode on beta
+  if (pathname === '/api/design') {
+    try {
+      if (method === 'GET') return sendJson(res, 200, { ...(await design.read()), edit: DESIGN_EDIT });
+      if (method !== 'PUT') throw new HttpError(405, 'Use GET or PUT');
+      if (!DESIGN_EDIT) throw new HttpError(403, 'The island is designed on the beta site');
+      return sendJson(res, 200, await design.write(await readJson(req, MAX_DESIGN_BYTES + 4096)));
+    } catch (err) {
+      if (err instanceof DesignError) throw new HttpError(err.status, err.message);
+      throw err;
+    }
   }
 
   const m = ISLAND_ROUTE.exec(pathname);

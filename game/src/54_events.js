@@ -148,7 +148,7 @@ function decorateIsland(a) {
         fronts('f_pumpkin_lantern', jack, true);
         for (const [x, y] of [[x0 - 4, y1 + 5], [W0.spots.pier.x - 1, W0.spots.pier.y - 4]]) stand('f_pumpkin_lantern', x, y, true, jack(x + ',' + y));
         bunting('bunting', 'bunting_spooky');
-        if (ev.has('halloween')) for (const p of W0.props) if (p.kind === 'lamp') { for (const dx of [1, -1]) if (stand('f_pumpkin_lantern', p.x + dx, p.y, true, jack(p.x + ',' + p.y))) break; }
+        if (ev.has('halloween')) W0.props.forEach((p, i) => { if (p.kind === 'lamp' && !propGone(i)) { for (const dx of [1, -1]) if (stand('f_pumpkin_lantern', p.x + dx, p.y, true, jack(p.x + ',' + p.y))) break; } });
     }
     // the Winter Lights (three weeks of December, the year's biggest): the grand tree strung with lights and a star, a
     // wreath on every door (shownLook), red lanterns at the square's corners, by Sarah's house and at every shop's front

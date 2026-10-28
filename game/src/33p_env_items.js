@@ -59,7 +59,8 @@ const EnvItems = {
         return c ? { top: c, trim: c } : null;
     },
     // (a wild flower's item is the flower model EnvBuild already shows)
-    takes(e) { return (e.kind === 'item' && !e.wildFlower && !!this.model(e.id, e.frame)) || (e.kind === 'vbball' && EnvModels.has('item_vbball')) || (e.kind === 'gflower' && EnvModels.has('plot_sprout')); },
+    takes(e) { return (e.kind === 'item' && !e.wildFlower && !!this.model(e.id, e.frame)) || (e.kind === 'vbball' && EnvModels.has('item_vbball')) || (e.kind === 'gflower' && EnvModels.has('plot_sprout'))
+        || (e.kind === 'stump' && EnvModels.has('furn_od_stump')); },
     /* what's growing in a garden plot, as a model: the seeds' mound, a sprout, then the flower or the vegetable */
     plant(e) {
         if (typeof EnvModels === 'undefined' || !EnvModels.ready || typeof S === 'undefined') return null;
@@ -78,6 +79,19 @@ const EnvItems = {
         if (!pl) return null;
         if (!flowerBloomed(pl)) return EnvModels.has('plot_sprout') ? 'plot_sprout' : null;
         return EnvModels.has('flower_' + pl.kind) ? 'flower_' + pl.kind : null;
+    },
+    stump(e, seen) {
+        if (!EnvModels.has('furn_od_stump')) return;
+        let d = this.list.get(e);
+        if (!d) {
+            d = this.make('furn_od_stump'); d.userData.name = 'stump';
+            d.rotation.y = (hash32(String(e.id)) % 628) / 100;
+            d.scale.setScalar(e.frame === 'stump_palm' ? 0.55 : 0.75);
+            const x = (e.tx + 0.5) * TILE, y = (e.ty + 0.5) * TILE;
+            d.position.set(x / TILE, Env.groundH(x, y), y / TILE * R3_ZS);
+            this.list.set(e, d);
+        }
+        seen.add(e);
     },
     make(name, tint) {
         const M = EnvModels.models[name], g = new THREE.Group();
@@ -133,11 +147,12 @@ const EnvItems = {
                 sp.rotation.y = -d.rotation.y + k / 10;
             }
         }
-        // the garden plots' plants, flowers planted in the ground, and the volleyball (bouncing when it's been hit, as
-        // its picture did)
+        // the garden plots' plants, flowers planted in the ground, the volleyball (bouncing when it's been hit, as its
+        // picture did) and a felled tree's stump (the stump seat's model, a palm's smaller)
         for (const e of a.ents) {
-            if (e.kind !== 'plot' && e.kind !== 'vbball' && e.kind !== 'gflower') continue;
+            if (e.kind !== 'plot' && e.kind !== 'vbball' && e.kind !== 'gflower' && e.kind !== 'stump') continue;
             if (v && (e.x < v.x0 - 48 || e.x > v.x1 + 48 || e.y < v.y0 - 48 || e.y > v.y1 + 96)) continue;
+            if (e.kind === 'stump') { this.stump(e, seen); continue; }
             const name = e.kind === 'plot' ? this.plant(e) : e.kind === 'gflower' ? this.planted(e) : 'item_vbball';
             if (!name || !EnvModels.has(name)) continue;
             // (a plot's flowers in one of their colors, a planted flower in its own)
@@ -165,6 +180,20 @@ const EnvItems = {
                     d.add(w);
                 }
                 if (w) w.visible = on;
+                // (and a sparkle now and then, golden with a partner of its kind beside it to cross with: 2a_flowers.js)
+                const k = on ? flowerSparkle(e.pl) : 0;
+                let sp = d.userData.spark;
+                if (k && !sp) { sp = d.userData.spark = this.sparkle(); sp.scale.setScalar(0.4 / d.scale.x); d.add(sp); }
+                if (sp) {
+                    sp.visible = k > 0;
+                    if (k) {
+                        const gold = breedPartner(e.pl);
+                        sp.children.forEach(c => { c.material = gold ? this.goldMat() : this.sparkMat; });
+                        sp.position.set(0.1 / d.scale.x, 0.42 / d.scale.y, 0.05);
+                        sp.scale.setScalar((0.15 + 0.35 * k) / d.scale.x);
+                        sp.rotation.y = G.t / 20;
+                    }
+                }
             }
             else {
                 const b = e.bounce > 0 ? Math.abs(Math.sin(e.bounce-- / 5)) * 8 * (e.bounce / 30) : 0;
@@ -205,6 +234,7 @@ const EnvItems = {
         for (let k = 0; k < 2; k++) { const b = new THREE.Mesh(geo, m); b.userData.shared = true; g.add(b); }
         return g;
     },
+    goldMat() { return this._gold || (this._gold = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffd04a }), { key: 'envspark' })); },
     sparkle() {
         // (two thin crossed points of light, drawn unlit so they shine)
         const g = new THREE.Group(), m = this.sparkMat || (this.sparkMat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xfff0a0 }), { key: 'envspark' }));

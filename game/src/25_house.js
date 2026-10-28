@@ -46,14 +46,20 @@ function furnDef(id) {
     if (it && it.type === 'flower') return { id, name: it.name + ' vase', w: 1, h: 1, kind: 'top', sets: ['flower'], flower: 1, frame: it.icon };
     return null;
 }
-function furnFootprint(it) {
-    const d = furnDef(it.id);
-    return { w: d.w, h: d.kind === 'wall' ? 1 : d.kind === 'top' ? 1 : d.h, kind: d.kind };
+/* how much floor a piece takes, turned as it is (David, 28 October: furniture faces any of the four ways now that it's
+   3D). it.rot is quarter turns: 0 faces the front (south, the camera), 1 east, 2 the back, 3 west; turned a quarter its
+   width and depth swap. What hangs on the wall and rugs don't turn */
+function furnWH(d, rot) {
+    const h = d.kind === 'wall' || d.kind === 'top' ? 1 : d.h;
+    return (rot & 1) && turnable(d) ? { w: h, h: d.w } : { w: d.w, h };
 }
+function turnable(d) { return !!d && d.kind !== 'wall' && d.kind !== 'rug'; }
 
 /* turn a room's item list (Sarah's house: S.house.items) into entities */
 function placeFurniture(a, items) {
-    const list = items || (a.id === 'home' ? S.house.items : a.items || []);
+    let list = items || (a.id === 'home' ? S.house.items : a.items || []);
+    // (a room's layout as the designer left it: 6zza_designer.js)
+    if (a.interior && a.id !== 'home' && list === a.items) list = Design.room(a, list);
     a.ents = a.ents.filter(e => !e.furn);
     a.decals = [];
     const f = a.floor;
@@ -63,8 +69,8 @@ function placeFurniture(a, items) {
     list.forEach((it, idx) => {
         const d = furnDef(it.id);
         if (!d) return;
-        const ent = { furn: true, idx, item: it, def: d, flip: !!it.flip, frame: d.frame || 'f_' + it.id };
-        const px = (it.x + d.w / 2) * TILE;
+        const ent = { furn: true, idx, item: it, def: d, flip: !!it.flip, rot: turnable(d) ? (it.rot || 0) & 3 : 0, frame: d.frame || 'f_' + it.id };
+        const F = furnWH(d, ent.rot), px = (it.x + F.w / 2) * TILE;
         if (d.kind === 'wall') {
             ent.x = px; ent.y = WALL_ROWS * TILE - 5; ent.layer = 0; ent.sy = -100;
             ent.hit = { x: it.x * TILE, y: 8, w: d.w * TILE, h: 22 };
@@ -77,11 +83,12 @@ function placeFurniture(a, items) {
             ent.x = px; ent.y = (it.y + 1) * TILE - 3 - lift; ent.sy = (it.y + 1) * TILE - 1 + 0.5;
             ent.hit = { x: it.x * TILE, y: ent.y - 16, w: 16, h: 18 };
         } else {
-            const h = d.kind === 'top' ? 1 : d.h;
+            const h = F.h;
             ent.x = px; ent.y = (it.y + h) * TILE - 1; ent.sy = ent.y;
-            for (let y = it.y; y < it.y + h; y++) for (let x = it.x; x < it.x + d.w; x++) a.block(x, y, 1);
-            ent.hit = { x: it.x * TILE, y: it.y * TILE - 12, w: d.w * TILE, h: h * TILE + 12 };
-            if (d.surface) for (let x = it.x; x < it.x + d.w; x++) surfaceAt[`${x},${it.y + h - 1}`] = idx;
+            for (let y = it.y; y < it.y + h; y++) for (let x = it.x; x < it.x + F.w; x++) a.block(x, y, 1);
+            ent.hit = { x: it.x * TILE, y: it.y * TILE - 12, w: F.w * TILE, h: h * TILE + 12 };
+            // (a table turned on its side is a surface all along its front: its whole depth faces the room)
+            if (d.surface) for (let x = it.x; x < it.x + F.w; x++) surfaceAt[`${x},${it.y + h - 1}`] = idx;
         }
         if (d.light) ent.light = { r: d.light, y: -12 };
         if (d.anim || d.disco || d.stars || d.id === 'light_floor') ent.draw = ctx => drawAnimatedFurn(ctx, ent);
@@ -202,9 +209,13 @@ async function useFurniture(e) {
 /* ---------------------------------------------------------------- decorating */
 const Decor = {
     on: false, held: null, sel: null, cursor: [2, 3], tab: 'furniture',
-    async enter() {
-        if (G.area.id !== 'home' || this.on) return;
-        if (visitorStop('decorate')) return;
+    async enter(opts) {
+        // (or the designer, in any other room: its furniture as every game will have it, 6zza_designer.js)
+        const design = !!(opts && opts.design) && Design.edit && Design.canRoom(G.area);
+        if (this.on || (G.area.id !== 'home' && !design)) return;
+        if (!design && visitorStop('decorate')) return;
+        this.design = design ? G.area.id : null;
+        if (design) Design.roomStart(G.area);
         this.on = true;
         G.decor = true;
         G.player.hidden = true;
@@ -216,8 +227,9 @@ const Decor = {
     },
     exit() {
         if (!this.on) return;
+        this.unhold();
         this.on = false; G.decor = false;
-        this.held = null; this.sel = null;
+        this.held = null; this.sel = null; this.design = null;
         $('#panel').hidden = true; $('#panel').innerHTML = ''; $('#panel').classList.remove('decor');
         UI.modal = false;
         G.camTarget = null;
@@ -232,7 +244,16 @@ const Decor = {
         Save.touch();
         Sfx.ui('close');
     },
+    /* the designer's piece in hand goes back where it was, if it's let go of without being put down */
+    unhold() { const it = this.heldIt; this.heldIt = null; if (!this.design || !it) return; this.list().push(it); placeFurniture(G.area); Design.roomChanged(G.area); },
+    /* the pieces being arranged: Sarah's house's, or the room the designer is in */
+    list() { return this.design ? G.area.items : S.house.items; },
+    /* back to storage (the designer's pieces just go) */
+    stash(id) { if (!this.design) toStorage(id, 1); },
+    /* (the designer's undo takes the design back to before each change) */
+    mark() { if (this.design) Design.snap(); },
     owned() {
+        if (this.design) return Design.roomCatalog();
         const out = {};
         // (a coffee from Muggy's sits on a table like food: 6zs_mug.js)
         // (and Waffle's outdoor pieces: a park bench in the house, 6zu_outdoor.js)
@@ -242,6 +263,7 @@ const Decor = {
         return out;
     },
     takeOne(id) {
+        if (this.design) return true;
         if (fromStorage(id, 1)) return true;
         return removeItem(id, 1) > 0;
     },
@@ -254,7 +276,8 @@ const Decor = {
         const owned = this.owned();
         const head = document.createElement('div');
         head.className = 'phead';
-        head.innerHTML = `<h2>Decorating</h2>`;
+        head.innerHTML = this.design ? '<h2></h2>' : `<h2>Decorating</h2>`;
+        if (this.design) head.firstChild.textContent = 'Designer \u00b7 ' + (ROOMS[this.design].name || bldName(this.design));
         const done = document.createElement('button');
         done.className = 'btn green'; done.type = 'button'; done.textContent = 'Done';
         done.addEventListener('click', () => this.exit());
@@ -263,22 +286,41 @@ const Decor = {
         const info = document.createElement('div');
         info.className = 'muted';
         info.style.padding = '0 18px 8px';
-        const selIt = this.sel != null ? S.house.items[this.sel] : null;
-        info.textContent = this.held ? `Placing: ${itemName(this.held)}. Tap a spot in the room.${G.touchUsed ? '' : ' (Arrows + Enter, F to flip, Esc to cancel)'}`
-            : selIt ? `${itemName(selIt.id)} selected.` : 'Tap furniture in the room to move it, or pick something below to place it.';
+        const selIt = this.sel != null ? this.list()[this.sel] : null, nm = id => (this.design && FURN[id] && FURN[id].name) || itemName(id);
+        info.textContent = this.held ? `Placing: ${nm(this.held)}. Tap a spot in the room.${G.touchUsed ? '' : ' (Arrows + Enter, R to turn, Esc to cancel)'}`
+            : selIt ? `${nm(selIt.id)} selected.` : this.design ? 'Tap a piece in the room to move, turn or take it away, or pick something below to add it. Nothing is kept until you save.' : 'Tap furniture in the room to move it, or pick something below to place it.';
         panel.appendChild(info);
+        if (this.design && !this.held && !selIt) {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;gap:8px;padding:0 18px 10px;flex-wrap:wrap';
+            if (Design.undo.length) row.appendChild(chip('Undo', () => { Design.back(); this.sel = null; this.render(); }));
+            row.appendChild(chip(Design.dirty ? 'Save the design' : 'Saved', () => Design.save().then(() => this.render()), Design.dirty ? 'go' : ''));
+            panel.appendChild(row);
+        }
+        if (this.held && turnable(furnDef(this.held))) {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;gap:8px;padding:0 18px 10px;flex-wrap:wrap';
+            const b = document.createElement('button'); b.type = 'button'; b.className = 'btn alt';
+            b.textContent = 'Turn (' + ['facing front', 'facing right', 'facing back', 'facing left'][this.rot || 0] + ')';
+            b.addEventListener('click', () => this.turn());
+            row.appendChild(b);
+            panel.appendChild(row);
+        }
         if (selIt) {
             const row = document.createElement('div');
             row.style.cssText = 'display:flex;gap:8px;padding:0 18px 10px;flex-wrap:wrap';
             const mk = (label, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + (cls || ''); b.textContent = label; b.addEventListener('click', fn); row.appendChild(b); };
             mk('Move', () => this.pickUpPlaced(this.sel));
-            if (furnDef(selIt.id).kind !== 'wall') mk('Flip', () => { selIt.flip = !selIt.flip; this.refresh(); }, 'alt');
-            mk('Put away', () => this.store(this.sel), 'alt');
+            if (turnable(furnDef(selIt.id))) mk('Turn', () => this.turn(), 'alt');
+            if (furnDef(selIt.id).kind !== 'wall') mk('Flip', () => { this.mark(); selIt.flip = !selIt.flip; this.refresh(); }, 'alt');
+            mk(this.design ? 'Take it away' : 'Put away', () => this.store(this.sel), 'alt');
             panel.appendChild(row);
         }
         const tabs = document.createElement('div');
         tabs.className = 'tabs';
-        for (const [k, label] of [['furniture', 'Furniture'], ['food', 'Tabletop'], ['wall', 'Wallpaper'], ['floor', 'Flooring']]) {
+        const tabList = this.design ? [['furniture', 'Furniture'], ['food', 'On tables'], ['hung', 'On the walls']] : [['furniture', 'Furniture'], ['food', 'Tabletop'], ['wall', 'Wallpaper'], ['floor', 'Flooring']];
+        if (this.design && !tabList.some(t => t[0] === this.tab)) this.tab = 'furniture';
+        for (const [k, label] of tabList) {
             const t = document.createElement('button');
             t.type = 'button'; t.className = 'tab' + (this.tab === k ? ' on' : ''); t.textContent = label;
             t.addEventListener('click', () => { this.tab = k; this.render(); });
@@ -289,7 +331,7 @@ const Decor = {
         body.className = 'pbody';
         const grid = document.createElement('div');
         grid.className = 'grid';
-        const tabOf = id => ['dish', 'fruit', 'veg', 'flower'].includes(ITEMS[id].type) || ITEMS[id].coffee ? 'food' : ITEMS[id].type === 'art' || ITEMS[id].type === 'display' ? 'furniture' : ITEMS[id].type;
+        const tabOf = id => this.design ? ({ top: 'food', wall: 'hung' }[FURN[id].kind] || 'furniture') : ['dish', 'fruit', 'veg', 'flower'].includes(ITEMS[id].type) || ITEMS[id].coffee ? 'food' : ITEMS[id].type === 'art' || ITEMS[id].type === 'display' ? 'furniture' : ITEMS[id].type;
         const ids = Object.keys(owned).filter(id => tabOf(id) === this.tab).sort();
         if (!ids.length) {
             const p = document.createElement('p');
@@ -300,9 +342,9 @@ const Decor = {
         for (const id of ids) {
             const b = document.createElement('button');
             b.type = 'button'; b.className = 'slot' + (this.held === id ? ' sel' : '');
-            b.title = itemName(id);
-            b.setAttribute('aria-label', itemName(id));
-            b.appendChild(iconCanvas(itemIcon(id), 48));
+            b.title = nm(id);
+            b.setAttribute('aria-label', nm(id));
+            b.appendChild(iconCanvas(this.design ? (FURN[id].frame || 'f_' + id) : itemIcon(id), 48));
             if (owned[id] > 1) { const n = document.createElement('span'); n.className = 'n'; n.textContent = owned[id]; b.appendChild(n); }
             b.addEventListener('click', () => this.choose(id));
             grid.appendChild(b);
@@ -328,8 +370,8 @@ const Decor = {
         } else G.camShift = null;
     },
     choose(id) {
-        const t = ITEMS[id].type;
-        if (t === 'wall' || t === 'floor') {
+        const t = ITEMS[id] && ITEMS[id].type;
+        if (!this.design && (t === 'wall' || t === 'floor')) {
             const key = t === 'wall' ? 'wall' : 'floor';
             const old = S.house[key];
             if (old === id) return;
@@ -341,48 +383,53 @@ const Decor = {
             this.render();
             return;
         }
+        this.unhold();
         this.held = this.held === id ? null : id;
         this.sel = null;
         this.render();
     },
-    refresh() { placeFurniture(G.area); Save.touch(); this.render(); },
+    refresh() { placeFurniture(G.area); if (this.design) Design.roomChanged(G.area); else Save.touch(); this.render(); },
     pickUpPlaced(i) {
-        const it = S.house.items[i];
+        const it = this.list()[i];
         if (!it) return;
+        this.mark();
         this.removeAt(i);
-        toStorage(it.id, 1);
+        this.stash(it.id);
         this.held = it.id;
+        this.heldIt = it;
+        this.rot = it.rot || 0;
         this.sel = null;
         this.refresh();
     },
     store(i) {
-        const it = S.house.items[i];
+        const it = this.list()[i];
         if (!it) return;
+        this.mark();
         this.removeAt(i);
-        toStorage(it.id, 1);
+        this.stash(it.id);
         this.sel = null;
         Sfx.play('pick');
         this.refresh();
     },
     removeAt(i) {
         // anything sitting on it goes to storage too
-        const items = S.house.items;
-        for (let k = items.length - 1; k >= 0; k--) if (items[k].on === i) { toStorage(items[k].id, 1); items.splice(k, 1); if (k < i) i--; }
+        const items = this.list();
+        for (let k = items.length - 1; k >= 0; k--) if (items[k].on === i) { this.stash(items[k].id); items.splice(k, 1); if (k < i) i--; }
         items.splice(i, 1);
         for (const it of items) if (it.on != null && it.on > i) it.on--;
     },
     /* can `id` go with its top-left at tile (x, y)? returns placement or null */
-    fit(id, x, y, ignore) {
-        const d = furnDef(id), a = G.area, f = a.floor;
-        const items = S.house.items;
+    fit(id, x, y, ignore, rot) {
+        const d0 = furnDef(id), a = G.area, f = a.floor, F = furnWH(d0, rot || 0), d = Object.assign({}, d0, { w: F.w, h: F.h });
+        const items = this.list();
         const occ = (kind) => {
             const m = new Set();
             items.forEach((it, i) => {
                 if (i === ignore) return;
                 const dd = furnDef(it.id);
                 if (!dd || dd.kind !== kind && !(kind === 'floor' && dd.kind === 'top' && it.on == null)) return;
-                const h = dd.kind === 'wall' || dd.kind === 'top' ? 1 : dd.h;
-                for (let yy = it.y; yy < it.y + h; yy++) for (let xx = it.x; xx < it.x + dd.w; xx++) m.add(`${xx},${yy}`);
+                const F = furnWH(dd, it.rot);
+                for (let yy = it.y; yy < it.y + F.h; yy++) for (let xx = it.x; xx < it.x + F.w; xx++) m.add(`${xx},${yy}`);
             });
             return m;
         };
@@ -417,18 +464,22 @@ const Decor = {
     },
     place(tx, ty) {
         const id = this.held;
-        const d = furnDef(id);
-        const x = tx - Math.floor((d.w - 1) / 2);
-        const y = d.kind === 'wall' ? 0 : ty - ((d.kind === 'top' ? 1 : d.h) - 1);
-        const spot = this.fit(id, x, y);
+        const d = furnDef(id), rot = turnable(d) ? this.rot || 0 : 0, F = furnWH(d, rot);
+        const x = tx - Math.floor((F.w - 1) / 2);
+        const y = d.kind === 'wall' ? 0 : ty - (F.h - 1);
+        const spot = this.fit(id, x, y, undefined, rot);
         if (!spot) { Sfx.ui('nope'); return false; }
         if (!this.takeOne(id)) { this.held = null; this.render(); return false; }
-        const it = { id, x: spot.x, y: spot.y, flip: false };
-        if (spot.on != null) it.on = spot.on;
-        S.house.items.push(it);
+        // (a piece that was picked up goes back as itself: a room's counter keeps what it does)
+        const it = this.heldIt && this.heldIt.id === id ? Object.assign(this.heldIt, { x: spot.x, y: spot.y }) : { id, x: spot.x, y: spot.y, flip: false };
+        this.heldIt = null;
+        if (rot) it.rot = rot; else delete it.rot;
+        if (spot.on != null) it.on = spot.on; else delete it.on;
+        this.mark();
+        this.list().push(it);
         Sfx.play('place');
         const left = this.owned()[id] || 0;
-        if (!left) this.held = null;
+        if (!left || this.design) this.held = null;
         this.refresh();
         Bus.emit('decorated');
         return true;
@@ -437,13 +488,13 @@ const Decor = {
         const [tx, ty] = this.tileAt(px, py);
         if (this.held) { this.place(tx, ty); return; }
         // select topmost furniture under the tap
-        const items = S.house.items;
+        const items = this.list();
         let found = null;
         for (let i = items.length - 1; i >= 0; i--) {
-            const it = items[i], d = furnDef(it.id);
-            const h = d.kind === 'wall' ? 2 : d.kind === 'top' ? 1 : d.h;
+            const it = items[i], d = furnDef(it.id), F = furnWH(d, it.rot);
+            const h = d.kind === 'wall' ? 2 : F.h;
             const y0 = d.kind === 'wall' ? 0 : it.y;
-            if (tx >= it.x && tx < it.x + d.w && ty >= y0 && ty < y0 + h) {
+            if (tx >= it.x && tx < it.x + F.w && ty >= y0 && ty < y0 + h) {
                 if (found == null || (d.kind === 'top' && furnDef(items[found].id).kind !== 'top') || furnDef(items[found].id).kind === 'rug') found = i;
             }
         }
@@ -459,12 +510,67 @@ const Decor = {
         else if (code === 'ArrowUp' || code === 'KeyW') c[1]--;
         else if (code === 'ArrowDown' || code === 'KeyS') c[1]++;
         else if (isA(code)) { this.tap((c[0] + 0.5) * TILE, (c[1] + 0.5) * TILE); return; }
-        else if (code === 'KeyF' && this.sel != null) { const it = S.house.items[this.sel]; it.flip = !it.flip; this.refresh(); return; }
+        else if (code === 'KeyF' && this.sel != null) { const it = this.list()[this.sel]; this.mark(); it.flip = !it.flip; this.refresh(); return; }
+        else if (code === 'KeyR') { this.turn(); return; }
         else if ((code === 'Backspace' || code === 'Delete') && this.sel != null) { this.store(this.sel); return; }
-        else if (code === 'Escape') { if (this.held || this.sel != null) { this.held = null; this.sel = null; this.render(); } else this.exit(); return; }
+        else if (code === 'Escape') { if (this.held || this.sel != null) { this.unhold(); this.held = null; this.sel = null; this.render(); } else this.exit(); return; }
         const a = G.area;
         c[0] = clamp(c[0], a.floor.x0, a.floor.x0 + a.floor.w - 1);
         c[1] = clamp(c[1], 0, a.floor.y0 + a.floor.h - 1);
+    },
+    /* where the piece in hand would go with the cursor at (cx, cy), turned as it is: its tiles and whether it fits */
+    ghost(cx, cy) {
+        if (!this.held) return null;
+        const d = furnDef(this.held), rot = turnable(d) ? this.rot || 0 : 0, F = furnWH(d, rot);
+        const x = cx - Math.floor((F.w - 1) / 2), y = d.kind === 'wall' ? 0 : cy - (F.h - 1);
+        return { d, F, rot, x, y, w: F.w, h: d.kind === 'wall' ? 2 : F.h, ok: this.fit(this.held, x, y, undefined, rot) };
+    },
+    /* the tiles of the piece picked in the room */
+    selRect() {
+        const it = this.sel != null && this.list()[this.sel];
+        if (!it) return null;
+        const d = furnDef(it.id), F = furnWH(d, it.rot);
+        return { x: it.x, y: d.kind === 'wall' ? 0 : it.y, w: F.w, h: d.kind === 'wall' ? 2 : F.h };
+    },
+    /* a quarter turn (David, 28 October: furniture faces any of the four ways): the piece in hand, or the one picked if it
+       still fits turned where it stands */
+    turn() {
+        if (this.held) { if (!turnable(furnDef(this.held))) return; this.rot = ((this.rot || 0) + 1) & 3; Sfx.ui('tick'); this.render(); return; }
+        const it = this.sel != null && this.list()[this.sel], d = it && furnDef(it.id);
+        if (!turnable(d)) return;
+        const rot = ((it.rot || 0) + 1) & 3;
+        if (!this.fit(it.id, it.x, it.y, this.sel, rot)) { Sfx.ui('nope'); UI.toast("There isn't room to turn it there."); return; }
+        this.mark();
+        if (rot) it.rot = rot; else delete it.rot;
+        Sfx.ui('tick');
+        this.refresh();
+    },
+    /* the same in the 3D view: the grid, where the piece in hand would go (a see-through copy of it there, EnvRoom.ghost)
+       and the piece picked, each drawn on the floor where it lies */
+    draw3d(ctx) {
+        const a = G.area, f = a.floor, P = (x, y, lift) => R3.project(x * TILE, y * TILE, lift || 0);
+        const quad = (x, y, w, h, fill, stroke, lift) => {
+            const c = [P(x, y, lift), P(x + w, y, lift), P(x + w, y + h, lift), P(x, y + h, lift)];
+            ctx.beginPath(); c.forEach((q, i) => i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)); ctx.closePath();
+            if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+            if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2.5; ctx.stroke(); }
+        };
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = f.x0; x <= f.x0 + f.w; x++) { const p0 = P(x, f.y0), p1 = P(x, f.y0 + f.h); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); }
+        for (let y = f.y0; y <= f.y0 + f.h; y++) { const p0 = P(f.x0, y), p1 = P(f.x0 + f.w, y); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); }
+        ctx.stroke();
+        const [cx, cy] = this.hover || this.cursor, g = this.ghost(cx, cy);
+        // (what hangs on the wall: its strip along the foot of the back wall)
+        if (g) quad(g.x, g.d.kind === 'wall' ? f.y0 : g.y, g.w, g.d.kind === 'wall' ? 0.3 : g.h, g.ok ? 'rgba(140,193,82,0.38)' : 'rgba(224,64,90,0.4)', g.ok ? 'rgba(90,150,50,0.9)' : 'rgba(200,40,60,0.9)');
+        else {
+            const r = this.selRect(), d = r && furnDef(this.list()[this.sel].id);
+            if (r) quad(r.x, d.kind === 'wall' ? f.y0 : r.y, r.w, d.kind === 'wall' ? 0.3 : r.h, 'rgba(255,207,87,0.22)', '#ffcf57');
+            else if (!G.touchUsed) quad(cx, cy, 1, 1, null, 'rgba(255,207,87,0.85)');
+        }
+        ctx.restore();
     },
     draw(ctx) {
         if (!this.on) return;
@@ -474,27 +580,21 @@ const Decor = {
         for (let x = f.x0; x <= f.x0 + f.w; x++) { ctx.beginPath(); ctx.moveTo(x * TILE + 0.5, 0); ctx.lineTo(x * TILE + 0.5, (f.y0 + f.h) * TILE); ctx.stroke(); }
         for (let y = f.y0; y <= f.y0 + f.h; y++) { ctx.beginPath(); ctx.moveTo(f.x0 * TILE, y * TILE + 0.5); ctx.lineTo((f.x0 + f.w) * TILE, y * TILE + 0.5); ctx.stroke(); }
         const [cx, cy] = this.hover || this.cursor;
-        if (this.held) {
-            const d = furnDef(this.held);
-            const x = cx - Math.floor((d.w - 1) / 2);
-            const y = d.kind === 'wall' ? 0 : cy - ((d.kind === 'top' ? 1 : d.h) - 1);
-            const ok = this.fit(this.held, x, y);
-            const h = d.kind === 'wall' ? 2 : d.kind === 'top' ? 1 : d.h;
-            ctx.fillStyle = ok ? 'rgba(140,193,82,0.35)' : 'rgba(224,64,90,0.35)';
-            ctx.fillRect(x * TILE, y * TILE, d.w * TILE, h * TILE);
+        const g = this.ghost(cx, cy);
+        if (g) {
+            ctx.fillStyle = g.ok ? 'rgba(140,193,82,0.35)' : 'rgba(224,64,90,0.35)';
+            ctx.fillRect(g.x * TILE, g.y * TILE, g.w * TILE, g.h * TILE);
             ctx.globalAlpha = 0.75;
-            const lift = ok && ok.on != null ? surfaceLift(S.house.items[ok.on]) : 0;
-            const fy = d.kind === 'wall' ? WALL_ROWS * TILE - 5 : (y + (d.kind === 'top' ? 1 : d.h)) * TILE - 1 - lift;
-            spr(ctx, d.frame || 'f_' + this.held, (x + d.w / 2) * TILE, fy);
+            const d = g.d, lift = g.ok && g.ok.on != null ? surfaceLift(this.list()[g.ok.on]) : 0;
+            const fy = d.kind === 'wall' ? WALL_ROWS * TILE - 5 : (g.y + g.F.h) * TILE - 1 - lift;
+            spr(ctx, d.frame || 'f_' + this.held, (g.x + g.F.w / 2) * TILE, fy);
             ctx.globalAlpha = 1;
         } else {
             ctx.strokeStyle = '#ffcf57';
             ctx.lineWidth = 2;
-            if (this.sel != null && S.house.items[this.sel]) {
-                const it = S.house.items[this.sel], d = furnDef(it.id);
-                const h = d.kind === 'wall' ? 2 : d.kind === 'top' ? 1 : d.h;
-                ctx.strokeRect(it.x * TILE + 1, (d.kind === 'wall' ? 0 : it.y) * TILE + 1, d.w * TILE - 2, h * TILE - 2);
-            } else if (!G.touchUsed) ctx.strokeRect(cx * TILE + 1, cy * TILE + 1, TILE - 2, TILE - 2);
+            const r = this.selRect();
+            if (r) ctx.strokeRect(r.x * TILE + 1, r.y * TILE + 1, r.w * TILE - 2, r.h * TILE - 2);
+            else if (!G.touchUsed) ctx.strokeRect(cx * TILE + 1, cy * TILE + 1, TILE - 2, TILE - 2);
         }
     },
 };

@@ -384,11 +384,16 @@ Status: [x] done, [~] in progress, [ ] not started.
 ## David's last list for later (27 October, late)
 (Where this list repeated something already on the roadmap, it's folded into that item instead: memories and friendship
 under "Friendship, deeper", the testing under "Bugs", the town flag under the Town Hall.)
-- [ ] Menus and screens overhauled: better looking, consistent, easier to get around and use (the phone, the pockets,
-  the shops, the customizing screens, the dialogue boxes)
+- [x] Menus and screens overhauled: better looking, consistent, easier to get around and use (the phone, the pockets,
+  the shops, the customizing screens, the dialogue boxes) (28 October: one cozy look everywhere; shops and the pocket as
+  cards with the one picked big on a turntable; the phone's apps four across under the time, weather and wallet;
+  trying things on at the salon and the sewing machine with the camera in close on Sarah)
 - [x] What renews (fruit, fish and the like) left lying on the ground is gone at 5 AM when the day turns over; anything
   that matters (furniture and the like) goes to a lost and found instead (the Town Hall's, with a letter from Sir Floret)
-- [ ] The Friends app: fuller profiles (personality, who they're friends with, what they like doing, memories with Sarah)
+- [x] The Friends app: fuller profiles (personality, who they're friends with, what they like doing, memories with Sarah)
+  (28 October, late: a tap on a friend opens their page: what they're like, where they work and live, what they call
+  Sarah and their catchphrase, what they love and like doing, their favorite spot once they've said, their best friend
+  and who they're dating or not speaking to, and what they've done with Sarah)
 - [ ] Final polish of the new look: every hairstyle, outfit, design, accessory and animation together with nothing
   poking through; lighting indoors, in each season, weather and time of day; draw distance (nothing popping in or
   vanishing; the worst of it fixed 27 October); ground, water, grass, trees, props and animations that don't match;
@@ -426,13 +431,17 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [ ] Friendship earned over days: with each neighbor, points only for the first talk of the day, one favor a day if they
   have one, one gift a day, and every other thing that raises friendship once a day; best friends is something worked
   at. Joe still starts at the most and never goes down
-- [ ] Decorating the house: furniture turned to face any of the four ways (they're models now: a chair facing the table);
-  pictures on a table, on the floor or on the wall; flowers, fish and most other things set down too
-- [ ] (David, 28 October, late) Lights that brighten and dim as Sarah walks: only so many can be lit at once, and they
+- [x] Decorating the house: furniture turned to face any of the four ways (they're models now: a chair facing the table)
+  (28 October, late: Turn, or R, while placing or with a piece picked; its footprint turns with it; decorating happens in
+  the 3D room in the new look, the piece in hand shown where it would go)
+- [ ] Decorating: pictures on a table, on the floor or on the wall; flowers, fish and most other things set down too
+- [x] (David, 28 October, late) Lights that brighten and dim as Sarah walks: only so many can be lit at once, and they
   switched between lamps four times a second; each now keeps its light and eases in and out
-- [ ] (David, 28 October, late) A designer mode on beta: move, turn, add and take away the stairs, the props, the outdoor
-  furniture and each room's own furniture (that one bookcase facing west against the left wall, in that room only),
-  saved on the server as the map the real game uses, so small changes don't need me
+- [x] (David, 28 October, late) A designer mode on beta: move, turn, add and take away the props, the outdoor furniture and
+  each room's own furniture (that one bookcase facing west against the left wall, in that room only), saved on the server
+  as the map the real game uses, so small changes don't need me (the phone's Designer app, on beta only; and what each
+  neighbor likes doing and where they like to be: Neighbors' likes)
+- [ ] The designer: the stairs (add and take away), and drawing the map's areas (with the map redo below)
 - [ ] The Cozy Council out of the Town Hall: they come by only when Sarah asks for the island to be judged. The Town Hall
   gets a keeper of its own who does the desk's work, and when nobody's working the screens are there anyway, on the
   honor system, as at the shops
@@ -440,6 +449,15 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   see what things are, and the jokes wore thin heard often)
 - [ ] Props and furniture that act: anything that should move or do something does (fires flicker and breathe, fountains
   shoot water, lamps indoors switch on and off, a TV switches on to static, clocks tick round as time passes...)
+- [x] (late) Buying and selling at Fortune's work again (broken since 26 October), with a test; "Sells for" gone from
+  every description (the prices are on the cards)
+- [x] (late) Elizabeth playable; David a mustache only, John a mustache and a beard
+- [x] (late) A chopped tree leaves its stump in 3D (the whole tree stayed)
+- [x] (late) The plane only flies over when Sarah's at the lookout, and boats sail by on the northern sea seen from there
+- [x] (late) Neighbors with nothing to do sit on a bench, step up to the telescope, or do something of their own (a book,
+  their phone...), and standing about they shift their weight and look round now and then
+- [x] (late) Watering: the water arcs out in front of Sarah; a watered flower glints now and then (gold when it and a
+  watered neighbor of its kind can cross-breed), so you can tell if you stop and look
 
 ## The museum, in rooms (David, 26 October: for later)
 - [x] A room for each kind of thing given to it: paintings, pottery and so on, each room laid out for its kind (paintings

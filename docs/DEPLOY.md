@@ -185,6 +185,14 @@ swapped for the soundtracks' tracks.
 Anyone playing can also add music of their own (**Add music from this device**): it stays on that phone or computer,
 never on the server.
 
+## The island's design
+
+On the **beta** site the phone has a **Designer** app: move, turn, add or take away anything on the island (lamps,
+benches, signs, Waffle's pieces, any furniture), any room's furniture (not Sarah's own house), and what each neighbor
+likes doing and where. **Save the design** and it's the island every game starts from, on beta and on the live site.
+It's kept on the server in one small folder both sites share (`/srv/sarahcrossing-design`, with every saved version
+before it beside it), and the nightly backup takes it with the islands. The live site only reads it.
+
 ## Changing the password
 
 GitHub, **Settings > Secrets and variables > Actions**, click the pencil next to `SITE_PASSWORD`,

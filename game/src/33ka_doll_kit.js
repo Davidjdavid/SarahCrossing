@@ -177,8 +177,9 @@ Object.assign(EnvDolls, {
         const hairK = K['hair_' + L.hair + '__hair'];
         if (hairK) lists.get(head).push([hairK.geo, 'hair']);
         else this.hair(d, hc, L);
-        // (a beard, sculpted as the hair is, in the look's beard color: David's)
-        if (L.beard && K['beard_full__beard']) lists.get(head).push([K['beard_full__beard'].geo, c(L.beard)]);
+        // (a beard, sculpted as the hair is, in the look's beard color: John's beard and mustache, David's mustache alone)
+        const bk = L.beardStyle === 'mustache' ? 'beard_mustache__beard' : 'beard_full__beard';
+        if (L.beard && K[bk]) lists.get(head).push([K[bk].geo, c(L.beard)]);
         // (the patch the face is painted on: its own picture, one sheet per look, the expression chosen by its UVs)
         const fk = K['face__face'];
         if (fk) {

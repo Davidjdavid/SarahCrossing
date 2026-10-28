@@ -35,11 +35,12 @@ function addFlowerPlant(a, pl) {
     e.sy = e.y - 8;
     e.hit = { x: pl.x * TILE, y: pl.y * TILE - 6, w: TILE, h: TILE + 6 };
     e.draw = ctx => {
-        // (watered today: the soil round it darker, and a glint now and then)
+        // (watered today: the soil round it darker, and a sparkle now and then, golden with a partner to cross with)
         if (watered(pl)) {
             ctx.fillStyle = 'rgba(52,34,20,0.32)';
             ctx.beginPath(); ctx.ellipse(e.x, e.y - 1, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
-            if ((G.t + pl.x * 13) % 80 < 10) { ctx.fillStyle = '#e8f6ff'; ctx.fillRect(e.x + 3, e.y - 9 - ((G.t + pl.x * 13) % 80 >> 2), 1, 1); }
+            const k = flowerSparkle(pl);
+            if (k) { ctx.fillStyle = breedPartner(pl) ? '#ffd24a' : '#e8f6ff'; const r = Math.round(k * 2); ctx.fillRect(e.x + 3 - r, e.y - 10, r * 2 + 1, 1); ctx.fillRect(e.x + 3, e.y - 10 - r, 1, r * 2 + 1); }
         }
         if (!flowerBloomed(pl)) { spr(ctx, 'sprout', e.x, e.y); return; }
         const icon = ITEMS[id].icon;
@@ -113,6 +114,18 @@ async function plantFlowersInHole(e, seedIds) {
 ITEMS.can = { name: 'Watering can', type: 'tool', price: 600, icon: 'f_watering_can' };
 const BREED_CHANCE = 0.35, BREED_MAX = 8;
 function watered(pl) { return pl.wet === Clock.dayNum(); }
+/* a watered flower sparkles now and then, so Sarah can tell it's had its drink (David, 28 October): not often, each at its
+   own moment, a glint that swells and fades in under half a second; 0 between glints */
+function flowerSparkle(pl) {
+    const ph = (G.t + (hash32(pl.x + ',' + pl.y) % 400)) % 400;
+    return ph < 26 ? Math.sin(ph / 26 * Math.PI) : 0;
+}
+/* a watered one with a watered flower of its kind beside it, both in bloom: they may cross by morning (flowerBreed); its
+   sparkle is golden */
+function breedPartner(pl) {
+    if (!watered(pl) || !flowerBloomed(pl)) return false;
+    return flowerState().planted.some(q => q !== pl && q.kind === pl.kind && watered(q) && flowerBloomed(q) && Math.max(Math.abs(q.x - pl.x), Math.abs(q.y - pl.y)) === 1);
+}
 function waterFront() {
     const p = G.player, [px, py] = probePoint(p, 12), tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
     const [sx, sy] = p.dir === 'up' || p.dir === 'down' ? [1, 0] : [0, 1];
@@ -125,7 +138,8 @@ async function waterTiles(tiles, fx, fy) {
     try {
         const dx = fx - p.x, dy = fy - p.y;
         if (Math.abs(dx) + Math.abs(dy) > 4) p.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-        p.tool = { kind: 'can', t: 0 };
+        // (where the water lands: the tile in front, EnvPour sends the drops out to it)
+        p.tool = { kind: 'can', t: 0, at: [fx, fy] };
         for (let i = 0; i < 34; i++) {
             p.tool.t = i; p.pose = 'water'; p.poseT = 0;
             if (i === 8) Sfx.play('pour');

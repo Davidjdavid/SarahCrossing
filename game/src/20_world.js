@@ -209,6 +209,8 @@ const PROP_SIZE = { bench: 2, flowerbed: 2, board: 1, lamp: 1, mailbox: 1, sign_
     trashcan: 1, fountain: 2, fountain_grand: 4, drinkfountain: 1, sign_lot: 1, sign_land: 1, volleyball: 7, tackle: 1, sandcastle: 1, birdhouse: 1, wheelbarrow: 2, icecream: 2, viewer: 1, flamingo: 1,
     swing_set: 3, hammock: 3, park_clock: 1, shrine_stone: 2, statue_sarah: 2 };
 const PROP_ROWS = { statue_david: 2, tent: 2, blanket: 2, fountain_grand: 3, statue_sarah: 2 };
+/* what never turns (fences join tile to tile; the windmill, the court and the tents are laid out as they are) */
+const PROP_FIXED = new Set(['fence', 'windmill', 'volleyball', 'tent', 'blanket']);
 /* the little things around the island */
 const KNICK_FRAME = { fountain: 'd_fountain', fountain_grand: 'd_fountain', flamingo: 'd_flamingo', sign_trail: 'sign_camp', sign_lot: 'sign_camp', sign_land: 'sign_camp' };
 /* what's written on the signs (the props themselves say nothing when looked at: David, 28 October, the descriptions
@@ -246,7 +248,11 @@ function addVolleyball(a, p) {
     return e;
 }
 function addProp(a, p) {
-    const w = p.w || PROP_SIZE[p.kind] || 1;
+    // (something the designer set down: one of Waffle's pieces or any furniture, 6zza_designer.js)
+    if (p.kind === 'disp') return addDisplay(a, { id: p.disp, x: p.x, y: p.y, text: p.text || '', rot: p.rot }, null);
+    // (turned a quarter by the designer, its width and depth swap: the new look turns its model, 33e_env_build.js turned)
+    const turned = (p.rot & 1) && !PROP_FIXED.has(p.kind), w0 = p.w || PROP_SIZE[p.kind] || 1, rows0 = PROP_ROWS[p.kind] || 1;
+    const w = turned ? rows0 : w0;
     if (p.kind === 'fence') {
         const F = fenceTiles();
         for (let k = 0; k < w; k++) {
@@ -259,12 +265,13 @@ function addProp(a, p) {
         return;
     }
     if (p.kind === 'volleyball') return addVolleyball(a, p);
-    const rows = PROP_ROWS[p.kind] || 1;
+    const rows = turned ? w0 : rows0;
     for (let k = 0; k < w; k++) for (let j = 0; j < rows; j++) if (p.kind !== 'driftwood' && p.kind !== 'blanket') a.block(p.x + k, p.y + j);
     const fx = (p.x + w / 2) * TILE, fy = (p.y + rows) * TILE - 2;
     let frame = KNICK_FRAME[p.kind] || p.kind;
     if (p.kind === 'bush') frame = `bush_${a.season || Clock.season()}`;
     const e = a.add({ kind: p.kind, frame, x: fx, y: fy, px: p.x, py: p.y });
+    if (p.rot && !PROP_FIXED.has(p.kind)) e.rot = p.rot & 3;
     e.hit = { x: p.x * TILE, y: p.y * TILE - 12, w: w * TILE, h: rows * TILE + 12 };
     if (p.kind === 'lamp') { e.light = { r: 44, y: -24 }; e.hit = null; }
     if (p.kind === 'fountain' || p.kind === 'fountain_grand') e.draw = ctx => drawFountain(ctx, e);

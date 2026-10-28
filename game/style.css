@@ -636,6 +636,8 @@ details.mlib > .row { margin: 0 6px 6px; }
 .st-head .x { background: var(--card); box-shadow: var(--lift); width: 40px; height: 40px; }
 .chip { background: var(--card); box-shadow: 0 3px 0 var(--line); }
 .chip.on { background: var(--hilite); color: var(--ink); box-shadow: 0 3px 0 var(--hilite-dk); }
+/* (the designer's "never": 6zza_designer.js) */
+.chip.off { opacity: 0.6; text-decoration: line-through; }
 .st-canvas { box-shadow: 0 3px 0 var(--line); }
 .swatch.on { border-color: var(--ink); box-shadow: 0 0 0 2px var(--card) inset, 0 0 0 2px var(--hilite-dk); }
 /* trying something on in the 3D view (Studio.tryOn): the studio beside Sarah, the camera in close on her doll wearing it */
@@ -751,3 +753,14 @@ canvas.postcard { display: block; width: min(288px, 100%); height: auto; margin:
 .cv-states > span { font: 600 13px/1 var(--display); color: var(--ink-soft); }
 .cv-states .chip { padding: 7px 10px; font-size: 12px; }
 .cv .swatches { margin: 6px 0 12px; }
+
+/* the Friends app's profiles (6zzb_profiles.js) */
+.prof-head { display: flex; gap: 14px; align-items: center; margin-bottom: 6px; }
+.prof-pic { width: 96px; height: auto; flex: none; background: var(--paper-2); border-radius: 18px; padding: 6px; }
+.prof-pic.px { image-rendering: pixelated; }
+.prof-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.prof-who b { font-size: 1.25em; }
+.prof-kind { color: var(--ink); opacity: 0.75; font-style: italic; }
+.prof-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0 12px; }
+.prof-facts dt { font-weight: 700; opacity: 0.7; }
+.prof-facts dd { margin: 0; min-width: 0; }

@@ -279,6 +279,11 @@ docs/DEPLOY.md for the server.
   fallen out (`BOND_OUT`) don't chat (`Chats.ok`); close friends have chats of their own and two who've just made up say so
   for a few days (`CHAT_CLOSE`, `CHAT_MENDED`, `S.mended`, through `bondChats` in `Chats.pick`); they talk about it
   (`bondLine`, a talk topic) and the census says who's close (`bestFriendOf`).
+- The Friends app's profiles (6zzb_profiles.js, `appProfile`): a tap on a friend opens their page: `PERSONA` (what kind
+  of person, a line about them), where they work (`WORK_NAMES` from NPC_DEFS work, the farmer, the fisher) and live, their
+  nickname for Sarah and catchphrase, loves and likes (the designer's likes first), their favorite spot once told
+  (`FAV_NAMES`), best friend, close friends, dating, not speaking to, and what they've done with Sarah (milestones,
+  advice, `r.given` gifts in all, the memories as `MEM_SHORT`). Only what Sarah would know.
 - Vacations (6zj_vacations.js, `VAC`: each neighbor's place, postcard and souvenir): about three times a year (one in
   every `VAC_EVERY` days) each neighbor goes away for three to five days, worked out from the seed (`vacationOf`,
   `vacationIn`), never over their own day, a festival in `VAC_KEEP` or Sarah's birthday, one at a time (a trip that would
@@ -404,6 +409,15 @@ docs/DEPLOY.md for the server.
 - What hangs on a room's walls hangs high enough to be seen (`EnvRoom.hangY`: nothing lower than the shelves and counters,
   a clock above the tallest doll), and an island history case looked into shows its keepsake big and turning
   (`historyCase`, `Showcase`).
+- Neighbors with nothing to do (idleStart) first try the lookout's telescope if it's close (`idleScope`, one at a time) or a
+  free seat on a bench near where they're spending that part of the day (`idleBench`, `n.benchIdle`, ended in updateNPC
+  or when their day moves on), then something of their own; standing about, their head turns now and then (`idleLook`)
+  and they shift their weight. An `onArrive` callback runs after the last step has turned them (stepNpc), so it can turn
+  them again.
+- The plane only flies over while Sarah's at the lookout (`SeaSky.atLookout`), and from there boats sail by on the
+  northern sea (`spawnNorthBoat`); balloons go anywhere.
+- Watering: the water arcs out to the tiles in front (`p.tool.at`, EnvPour); a watered flower glints now and then
+  (`flowerSparkle`), gold when it and a watered neighbor of its kind can cross-breed (`breedPartner`).
 - Neighbors now and then ask Sarah to play when she talks to them (`igMaybeAsk`, `IG_ASK`, at most once a day each, about
   one talk in eight where a game fits), and rarely text to ask (Invites' kind `play`: say yes, then talk to them).
 - The collection's items each open a display of their own (41a_showcase.js, `itemShowcase`): the model turning on a
@@ -591,6 +605,29 @@ docs/DEPLOY.md for the server.
   comes down to the sea's level over its last tiles (`surfAt`) to meet it; the depth map behind the water's shader also says where it flows
   (streams' current streaks) and where it's the hot spring (milky, steaming). Until the models arrive the new look draws its own, and
   builds again once they have.
+
+## The designer (6zza_designer.js, server/design.mjs)
+
+- David's note of 28 October, late: on beta the phone's Designer app (shown where `/api/design` says `edit`: DESIGN_EDIT, 1
+  on beta from setup.sh, 0 on live) moves, turns, adds and takes away the island's props and outdoor pieces (IslandEdit
+  with `design`: anything on the island, kept out of water, off cliffs and stairs, out of doorways, never cutting a place
+  off), any room's furniture but Sarah's own house (Decor with `design`: `Decor.list()` is the room's `a.items`, the catalog
+  every furniture piece), and what each neighbor likes doing and where (Neighbors' likes: `Design.likeWeight` /
+  `likeChance` in idleStart, `designSpots` in makePlan). Saved (`PUT /api/design`, rev-checked, the one before kept as
+  before-<rev>.json) it's the island every game starts from, the live site's too: `Design.load` as the game boots,
+  `Design.apply` lays it over world.json before the save loads, `Design.room` over a room's layout in placeFurniture.
+  One small folder both sites share (`DESIGN_DIR`, /srv/sarahcrossing-design; the nightly backup takes it).
+- The island's props keep their numbers (saves refer to them by number: `S.deco`, `S.cleared['pr' + i]`): the design's
+  `props[i]` moves, turns (`rot`) or takes one away (`gone`, read by `propGone`; a picked-up one is `lift` till it's set
+  down), and its `added` go on the end of W0.props after the world's own (`WORLD_PROPS`; `base` says how many the world had
+  when it was saved, so props added to world.json later shift the design's: bake the design into plan.mjs first). A room's
+  pieces are keyed by where they first stood (`id@x,y`, kept as `it.o`): `rooms[id]` { moved, gone, added }. A picked-up
+  piece goes back down as itself (`Decor.heldIt`), so a counter keeps what it does.
+- Turned things: furniture (`it.rot`, quarter turns: 0 faces the front, 1 east, 2 the back, 3 west; `furnWH` swaps its
+  width and depth, `turnable`: not wall pieces or rugs; Turn or R in decorating) and island props (`p.rot`; `PROP_FIXED`
+  never turn; `EnvBuild.turned` stands the model about its footprint's middle). The flat views can't turn a picture: the
+  designer draws which way it faces. Decorating happens in the 3D room in the new look (`Decor.draw3d` on the overlay, the
+  piece in hand a see-through copy, `EnvRoom.ghost`).
 
 ## The dialogue spreadsheet (scripts/dialogue)
 

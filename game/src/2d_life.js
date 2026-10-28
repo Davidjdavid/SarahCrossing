@@ -69,9 +69,7 @@ async function sitOnBench(e) {
         if (r.met && r.benchDay !== day) { r.benchDay = day; const up = addPts(buddy.id, 2); if (up) await heartUp(buddy, up); }
         return;
     }
-    await UI.say(null, rpick(['Sarah sits for a minute. The breeze smells like sea salt and somebody\'s noodles.',
-        'Sarah sits on the bench. A cloud goes by. It looks like a dumpling. Wonton would not like that.',
-        'Sarah sits and does absolutely nothing for a while. It is fantastic.', 'Sarah settles on the bench. For a while, there\'s nothing she needs to do.']));
+    // (she just sits: no line about it, David, 28 October)
 }
 const BENCH_BUDDY = ['Oh, hi! Sit, sit. This is the best bench. I would know. I have tried them all.', 'Bench buddies! We just sit. That is the whole activity.',
     "Nice, right? I come here to think. Mostly about snacks.", "Shh. Listen. ...That's the island. It's doing nothing. I love it."];

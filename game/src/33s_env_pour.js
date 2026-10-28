@@ -24,11 +24,17 @@ const EnvPour = {
     tick() {
         const p = G.player, pour = this.on() && p && p.tool && p.tool.kind === 'can' && p.tool.t >= 8 && p.tool.t < 30;
         const at = pour && this.spout(this._s || (this._s = new THREE.Vector3()));
+        // (out in front of her, onto the tile being watered: each drop thrown in a little arc that lands there, David, 28
+        // October: the water fell at her feet)
+        const to = at && p.tool.at, tx = to ? to[0] / TILE : 0, tz = to ? to[1] / TILE * R3_ZS : 0, ty = to ? Env.groundH(to[0], to[1]) : 0;
         if (at) for (let k = 0; k < 3; k++) {
             const q = this.drops[this.next++ % this.N];
             q.t = 0; q.m.visible = true;
             q.m.position.set(at.x + (Math.random() - 0.5) * 0.03, at.y, at.z + (Math.random() - 0.5) * 0.03);
-            q.v.set((Math.random() - 0.5) * 0.004, -0.006, (Math.random() - 0.5) * 0.004);
+            if (to) {
+                const up = 0.012, g = 0.0022, T = (up + Math.sqrt(up * up + 2 * g * Math.max(0.05, at.y - ty))) / g;
+                q.v.set((tx - at.x) / T + (Math.random() - 0.5) * 0.01, up, (tz - at.z) / T + (Math.random() - 0.5) * 0.01);
+            } else q.v.set((Math.random() - 0.5) * 0.004, -0.006, (Math.random() - 0.5) * 0.004);
         }
         for (const q of this.drops) {
             if (q.t < 0) continue;
