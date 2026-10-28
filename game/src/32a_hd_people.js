@@ -58,18 +58,21 @@ function hdDesign(d) {
 const HD_FOLKS = {
     joe: { look: { hair: 'joecut', hairCol: '#3e2418', tipCol: null, skin: '#f1c7a8', eyes: '#2a1a14', blush: false, masc: true },
         clothes: { style: 'jacket', top: '#c9962b', trim: '#efe6d2', bottom: '#5a3b2e', shoes: '#3a2a22' } },
-    david: { look: { hair: 'davidcut', hairCol: '#d8602a', tipCol: null, skin: '#fbd9c6', eyes: '#3f6fb8', blush: false, beard: '#c0502a', masc: true },
+    david: { look: { hair: 'davidcut', hairCol: '#d8602a', tipCol: null, skin: '#fbd9c6', eyes: '#3f6fb8', blush: false, beard: '#c0502a', beardStyle: 'mustache', masc: true },
         clothes: { style: 'jacket', top: '#e86aa8', trim: '#ffd1e7', bottom: '#f4f1ea', shoes: '#f4f1ea', skates: 1 } },
     james: { look: { hair: 'jamescut', hairCol: '#7a5030', tipCol: null, skin: '#fbd9c6', eyes: '#4a2c1c', blush: false, masc: true },
         clothes: { style: 'jacket', top: '#4f9a62', trim: '#efe6d2', bottom: '#cdb98e', shoes: '#efeae0' }, eyes: 'glasses' },
-    john: { look: { hair: 'johncut', hairCol: '#241a1c', tipCol: null, skin: '#fbd9c6', eyes: '#2a1a14', blush: false, masc: true },
+    john: { look: { hair: 'johncut', hairCol: '#241a1c', tipCol: null, skin: '#fbd9c6', eyes: '#2a1a14', blush: false, beard: '#241a1c', masc: true },
         clothes: { style: 'suit', top: '#253463', trim: '#c0303a', bottom: '#253463', shoes: '#2b2b33' }, eyes: 'glasses' },
     elizabeth: { look: { hair: 'sleek', hairCol: '#5a3622', tipCol: null, skin: '#fbd9c6', eyes: '#4a2c1c', blush: true },
         clothes: { style: 'toppants', top: '#4a78c8', trim: '#9ab8e8', bottom: '#2c3e66', shoes: '#efeae0' }, eyes: 'glasses' },
 };
 /* Sarah as she is right now */
 function hdSarahSpec() {
-    const L = look(), id = S.player.outfit || 'crimson', d = S.designs && S.designs[id];
+    // (trying something on at the salon or the sewing machine: she wears it before it's paid for, while S stays as it is,
+    // Studio.tryOn in 58_potterygames.js)
+    const T = (typeof G !== 'undefined' && G.tryOn) || {};
+    const L = T.look || look(), id = S.player.outfit || 'crimson', d = T.design || (S.designs && S.designs[id]);
     return { look: L, clothes: d ? hdDesign(d) : hdOutfit(id), eyes: S.player.eyes || null, acc: S.player.acc || null };
 }
 function hdFolkSpec(who, acc) {
@@ -316,7 +319,7 @@ function hdFace(s, g, L, face, o) {
         else { s.px(31.5, fy + 4.5, mouth); s.px(32.5, fy + 4.5, mouth); }
         if (blushC) { s.px(28, fy + 2, blushC); s.px(29, fy + 2, blushC); }
         if (L.freckles) for (const [x, y] of [[30, 1], [32, 0.5], [31, 2]]) s.px(x, fy + y, skinR[0]);
-        if (L.beard) hdBeard(s, g, L.beard);
+        if (L.beard) hdBeard(s, g, L.beard, L.beardStyle);
         s.dx = odx;
         return;
     }
@@ -351,11 +354,16 @@ function hdFace(s, g, L, face, o) {
     }
     if (blushC) { s.px(lx - 0.5, fy + 2.5, blushC); s.px(lx + 0.5, fy + 2.5, blushC); s.px(rx + 1.5, fy + 2.5, blushC); s.px(rx + 2.5, fy + 2.5, blushC); }
     if (L.freckles) for (const [x, y] of [[-5, 2], [-3.5, 3], [3, 2], [4.5, 3], [-4, 1.5], [4, 1.5]]) s.px(fx + x, fy + y, skinR[0]);
-    if (L.beard) hdBeard(s, g, L.beard);
+    if (L.beard) hdBeard(s, g, L.beard, L.beardStyle);
 }
-/* David's ginger beard and mustache */
-function hdBeard(s, g, col) {
+/* a beard and mustache (John's), or a mustache alone (David's: David, 28 October) */
+function hdBeard(s, g, col, style) {
     const b = s.add(hdRamp(col), { layer: 6, R: 2, grad: 0.2 }), fx = g.fx, fy = g.fy;
+    if (style === 'mustache') {
+        if (g.side) { s.poly(b, [[29.5, fy + 3.2], [33.5, fy + 3.1], [33.6, fy + 4.6], [31.5, fy + 5], [30, fy + 4.4]]); return; }
+        s.poly(b, [[fx - 4.5, fy + 4.6], [fx - 3, fy + 3.2], [fx, fy + 3.5], [fx + 3, fy + 3.2], [fx + 4.5, fy + 4.6], [fx + 3, fy + 4.6], [fx, fy + 4.2], [fx - 3, fy + 4.6]]);
+        return;
+    }
     if (g.side) { s.poly(b, [[22, fy + 1], [25, fy + 3], [30, fy + 3.5], [33.5, fy + 3.5], [33.5, fy + 5.5], [31.5, fy + 8], [27, fy + 9], [23, fy + 6.5]]); s.px(32.5, fy + 4.6, '#7a3238'); return; }
     s.poly(b, [[fx - 9, fy + 0.5], [fx - 6.5, fy + 3], [fx - 3.5, fy + 3.2], [fx + 3.5, fy + 3.2], [fx + 6.5, fy + 3], [fx + 9, fy + 0.5], [fx + 8, fy + 4.5], [fx + 5, fy + 8], [fx + 2, fy + 9.2], [fx - 2, fy + 9.2], [fx - 5, fy + 8], [fx - 8, fy + 4.5]]);
     for (const x of [fx - 2, fx - 1, fx, fx + 1]) s.px(x, fy + 5.2, '#7a3238');

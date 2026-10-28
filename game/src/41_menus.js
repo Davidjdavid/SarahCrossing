@@ -39,7 +39,7 @@ function detailRow(id, extra) {
 function openPocket(sel, tab) {
     const atHome = G.area.id === 'home';
     const tabs = atHome ? el('div', 'tabs') : null;
-    const P = UI.open({ title: 'Pocket', foot: true, tabs });
+    const P = UI.open({ title: 'Pocket', foot: true, tabs, wide: true });
     if (atHome) {
         for (const [k, label] of [['pocket', 'Pocket'], ['storage', 'House storage']]) {
             const b = el('button', 'tab' + ((tab || 'pocket') === k ? ' on' : ''), label);
@@ -49,27 +49,20 @@ function openPocket(sel, tab) {
         }
         if (tab === 'storage') return storageTab(P);
     }
-    const grid = el('div', 'grid');
-    const info = el('div');
-    P.body.appendChild(grid);
-    P.body.appendChild(info);
+    const V = storeView(P, G.touchUsed ? 'Tap an item to see what you can do with it.' : 'Pick an item to see what you can do with it. (I opens the pocket.)');
     const draw = () => {
-        grid.innerHTML = ''; info.innerHTML = '';
-        S.pocket.forEach((s, i) => grid.appendChild(slotBtn(s && s.id, s && s.n, { sel: i === sel, onClick: () => { if (s) { sel = i; draw(); Sfx.ui('tick'); } } })));
+        const back = V.reset();
+        const grid = V.group(null, 'grid');
+        S.pocket.forEach((s, i) => grid.appendChild(slotBtn(s && s.id, s && s.n, { sel: i === sel, onClick: () => { if (s) { sel = i; Sfx.ui('tick'); draw(); } } })));
         const s = sel != null ? S.pocket[sel] : null;
         if (s) {
             const it = ITEMS[s.id];
-            info.appendChild(detailRow(s.id, `${ITEM_TYPES[it.type] || 'Item'}${importantItem(s.id) ? ' \u00b7 important' : unsellable(s.id) ? ' \u00b7 keepsake' : ' \u00b7 sells for ' + fmtNum(sellPrice(s.id))}`));
-            info.appendChild(el('p', 'idesc', itemDesc(s.id)));
-            if (importantItem(s.id)) info.appendChild(el('p', 'idesc important', IMPORTANT_NOTE));
-            const row = el('div');
-            row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;padding-top:8px';
-            const acts = pocketActions(sel, s, () => { if (!S.pocket[sel]) sel = null; draw(); });
-            acts.forEach(b => row.appendChild(b));
-            info.appendChild(row);
-        } else {
-            info.appendChild(el('p', 'muted', G.touchUsed ? 'Tap an item to see what you can do with it.' : 'Pick an item to see what you can do with it. (I opens the pocket.)'));
-        }
+            V.sel = sel;
+            V.show(s.id, { sub: `${ITEM_TYPES[it.type] || 'Item'}${importantItem(s.id) ? ' \u00b7 important' : unsellable(s.id) ? ' \u00b7 keepsake' : ' \u00b7 sells for ' + fmtNum(sellPrice(s.id))}${s.n > 1 ? ` \u00b7 ${s.n} of them` : ''}`,
+                lines: [itemDesc(s.id), importantItem(s.id) ? { text: IMPORTANT_NOTE, cls: 'important' } : null],
+                buttons: pocketActions(sel, s, () => { if (!S.pocket[sel]) sel = null; draw(); }) });
+        } else { sel = null; V.clear(); }
+        back();
         P.foot.innerHTML = '';
         P.foot.appendChild(el('span', 'grow', `${pocketFree()} free ${plural(pocketFree(), 'slot')} \u00b7 ${fmtNum(S.money)} sand dollars`));
     };
@@ -78,32 +71,31 @@ function openPocket(sel, tab) {
 /* everything that's been sent home: take it back out (to give as a gift, or to carry) */
 function storageTab(P) {
     let sel = null;
+    const V = storeView(P, G.touchUsed ? 'Tap something to take it out.' : 'Pick something to take it out.');
     const draw = () => {
-        P.body.innerHTML = '';
+        const back = V.reset();
         const ids = Object.keys(S.storage).filter(id => ITEMS[id] && S.storage[id] > 0).sort((a, b) => itemName(a).localeCompare(itemName(b)));
-        const grid = el('div', 'grid');
+        const grid = V.group(null, 'grid');
         ids.forEach(id => grid.appendChild(slotBtn(id, S.storage[id], { sel: id === sel, onClick: () => { sel = id; Sfx.ui('tick'); draw(); } })));
-        P.body.appendChild(grid);
-        if (!ids.length) P.body.appendChild(el('p', 'muted', 'Nothing in storage. Furniture you buy is delivered here. Placed furniture is in your room.'));
+        if (!ids.length) V.list.appendChild(el('p', 'muted', 'Nothing in storage. Furniture you buy is delivered here. Placed furniture is in your room.'));
         if (sel && S.storage[sel]) {
-            P.body.appendChild(detailRow(sel, `${ITEM_TYPES[ITEMS[sel].type] || 'Item'} \u00b7 ${S.storage[sel]} in storage`));
-            P.body.appendChild(el('p', 'idesc', itemDesc(sel)));
-            const row = el('div');
-            row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;padding-top:8px';
-            if (canLabel(sel)) row.appendChild(btn('Name & note', 'alt', () => editLabel(sel, null)));
-            row.appendChild(btn('Take one', '', () => {
+            const btns = [];
+            if (canLabel(sel)) btns.push(btn('Name & note', 'alt', () => editLabel(sel, null)));
+            btns.push(btn('Take one', '', () => {
                 if (!canAdd(sel, 1)) { Sfx.ui('nope'); UI.toast('Your pocket is full'); return; }
                 fromStorage(sel, 1); addItem(sel, 1, true); Sfx.play('pick'); draw();
             }));
-            if (S.storage[sel] > 1 && stackMax(sel) > 1) row.appendChild(btn('Take all', 'alt', () => {
+            if (S.storage[sel] > 1 && stackMax(sel) > 1) btns.push(btn('Take all', 'alt', () => {
                 const n = S.storage[sel];
                 let got = 0;
                 for (let k = 0; k < n && canAdd(sel, 1); k++) { fromStorage(sel, 1); addItem(sel, 1, true); got++; }
                 if (!got) { Sfx.ui('nope'); UI.toast('Your pocket is full'); return; }
                 Sfx.play('pick'); draw();
             }));
-            P.body.appendChild(row);
-        }
+            V.sel = sel;
+            V.show(sel, { sub: `${ITEM_TYPES[ITEMS[sel].type] || 'Item'} \u00b7 ${S.storage[sel]} in storage`, lines: [itemDesc(sel)], buttons: btns });
+        } else { sel = null; V.clear(); }
+        back();
         P.foot.innerHTML = '';
         P.foot.appendChild(el('span', 'grow', `${pocketFree()} free pocket ${plural(pocketFree(), 'slot')}. Take furniture out to give it as a gift.`));
     };
@@ -192,7 +184,16 @@ async function phoneSays(text) {
     openPhone();
 }
 function openPhone() {
-    const P = UI.open({ title: `${Clock.fmt().s} \u00b7 ${S.islandName || 'Island'}`, phone: true });
+    const P = UI.open({ title: S.islandName || 'Island', phone: true });
+    // (along the top, as on a phone: the time, the day's weather and what's in the wallet)
+    const bar = el('div', 'pstatus'), f = Clock.fmt();
+    bar.appendChild(el('span', null, f.s));
+    bar.appendChild(el('span', null, `${Clock.dateLine().replace(/^\w+, /, '')} \u00b7 ${{ sunny: 'Sunny', cloudy: 'Cloudy', rain: 'Rain', snow: 'Snow' }[G.weather] || ''}`));
+    const cash = el('span');
+    cash.appendChild(el('i', 'coin'));
+    cash.appendChild(document.createTextNode(fmtNum(S.money)));
+    bar.appendChild(cash);
+    P.body.appendChild(bar);
     const grid = el('div', 'apps');
     for (const [id, label, color] of APPS) {
         const b = el('button', 'app');
@@ -209,9 +210,6 @@ function openPhone() {
         grid.appendChild(b);
     }
     P.body.appendChild(grid);
-    const note = el('p', 'muted', `It's ${Clock.fmt().s} on ${S.islandName || 'the island'}. ${Clock.dateLine()}.`);
-    note.style.cssText = 'text-align:center;margin:14px 6px 2px';
-    P.body.appendChild(note);
 }
 function openApp(id) {
     ({ map: appMap, tasks: appTasks, mail: appMail, friends: appFriends, recipes: appRecipes, collection: appCollection, wardrobe: () => openWardrobe(true),
@@ -669,7 +667,8 @@ function shopBuy(startTab) {
         const st = shopStock();
         const tabs = el('div', 'tabs');
         let tab = startTab || 'furniture';
-        const P = UI.open({ title: `${shopName('shop')} \u00b7 Buy`, tabs, foot: true, onClose: res });
+        const P = UI.open({ title: `${shopName('shop')} \u00b7 Buy`, tabs, foot: true, wide: true, onClose: res });
+        const V = storeView(P);
         const lists = {
             furniture: () => st.furn.concat(st.walls, st.floors),
             week: () => (st.week ? st.week.ids : []),
@@ -677,45 +676,45 @@ function shopBuy(startTab) {
             pantry: () => GD.staples.slice().concat(candyOnSale() ? ['candy'] : []),
             tools: () => TOOL_STOCK.slice().concat(nextBag() ? [nextBag()] : []),
         };
-        const draw = () => {
+        const priceOf = id => Math.round(shopPrice(id, 'shop') * (ITEMS[id].flower && G.events.has('flowerfest') ? 0.5 : 1));
+        const what = id => {
+            const it = ITEMS[id], f = FURN[id], note = priceNote(id, 'shop');
+            return (f ? `${SET_NAMES[f.sets[0]]} \u00b7 ${f.w}\u00d7${f.kind === 'wall' ? 1 : f.h}${f.kind === 'wall' ? ' wall' : f.kind === 'top' ? ' tabletop' : f.kind === 'rug' ? ' rug' : ''}` : it.type === 'bag' ? `+10 pocket slots (you have ${pocketSize()})` : ITEM_TYPES[it.type]) + (note ? ' \u00b7' + note : '');
+        };
+        /* one bought: furniture goes home, the rest into the pocket */
+        const buy = id => {
+            const it = ITEMS[id], price = priceOf(id);
+            if (S.money < price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return false; }
+            if (it.type === 'bag') { addMoney(-price, true, 'Shops'); noteSpend('shop', price); upgradeBag(); Sfx.play('fanfare'); UI.toast(`${it.name}! Your pocket now holds ${pocketSize()} things.`, it.icon); return true; }
+            const big = ['furniture', 'wall', 'floor'].includes(it.type);
+            addMoney(-price, true, buyWhy(id));
+            if (big) { toStorage(id, 1); UI.toast(`${it.name} delivered to your house`, it.icon); }
+            else receive(id, 1);
+            if (id === 'rod') S.flags.rodBought = true;
+            Sfx.play('buy');
+            S.stats.bought = (S.stats.bought || 0) + 1;
+            shopPaid('shop', id, price);
+            return true;
+        };
+        const pick = id => {
+            const it = ITEMS[id], price = priceOf(id), many = !['furniture', 'wall', 'floor', 'bag', 'tool'].includes(it.type);
+            const btns = [btn(price ? `Buy \u00b7 ${fmtNum(price)}` : 'Take one', '', () => { if (buy(id)) draw(true); })];
+            if (many && price) btns.push(btn('Buy 5', 'alt', () => { if (buyFive(price, () => buy(id))) draw(true); }));
+            V.show(id, { sub: what(id), buttons: btns });
+        };
+        const draw = (keep) => {
             tabs.innerHTML = '';
             for (const [k, label] of [['furniture', 'Furniture'], st.week ? ['week', 'Set of the week'] : null, ['garden', 'Seeds'], ['pantry', 'Pantry'], ['tools', 'Tools']].filter(Boolean)) {
                 const b = el('button', 'tab' + (k === tab ? ' on' : ''), label);
                 b.type = 'button';
-                b.addEventListener('click', () => { tab = k; draw(); });
+                b.addEventListener('click', () => { if (tab !== k) { tab = k; V.clear(); draw(); } });
                 tabs.appendChild(b);
             }
-            P.body.innerHTML = '';
-            const list = el('div', 'list');
-            for (const id of lists[tab]()) {
-                const it = ITEMS[id];
-                const price = Math.round(shopPrice(id, 'shop') * (it.flower && G.events.has('flowerfest') ? 0.5 : 1));
-                const note = priceNote(id, 'shop');
-                const row = el('button', 'row');
-                row.type = 'button';
-                row.appendChild(iconCanvas(it.icon, 40));
-                const t = el('div', 't');
-                t.appendChild(el('b', null, it.name));
-                const f = FURN[id];
-                t.appendChild(el('span', null, (f ? `${SET_NAMES[f.sets[0]]} \u00b7 ${f.w}\u00d7${f.kind === 'wall' ? 1 : f.h}${f.kind === 'wall' ? ' wall' : f.kind === 'top' ? ' tabletop' : f.kind === 'rug' ? ' rug' : ''}` : it.type === 'bag' ? `+10 pocket slots (you have ${pocketSize()})` : ITEM_TYPES[it.type]) + (note ? ' \u00b7' + note : '')));
-                row.appendChild(t);
-                row.appendChild(el('span', 'price', price ? fmtNum(price) : 'Free'));
-                row.addEventListener('click', () => {
-                    if (S.money < price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return; }
-                    if (it.type === 'bag') { addMoney(-price, true, 'Shops'); noteSpend('shop', price); upgradeBag(); Sfx.play('fanfare'); UI.toast(`${it.name}! Your pocket now holds ${pocketSize()} things.`, it.icon); draw(); return; }
-                    const big = ['furniture', 'wall', 'floor'].includes(it.type);
-                    addMoney(-price, true, buyWhy(id));
-                    if (big) { toStorage(id, 1); UI.toast(`${it.name} delivered to your house`, it.icon); }
-                    else receive(id, 1);
-                    if (id === 'rod') S.flags.rodBought = true;
-                    Sfx.play('buy');
-                    S.stats.bought = (S.stats.bought || 0) + 1;
-                    shopPaid('shop', id, price);
-                    draw();
-                });
-                list.appendChild(row);
-            }
-            P.body.appendChild(list);
+            const back = V.reset();
+            const grid = V.group(), ids = lists[tab]();
+            for (const id of ids) V.card(grid, { id, key: id, price: priceOf(id), badge: ITEMS[id].type === 'bag' ? '+10' : null, pick: () => pick(id) });
+            if (V.sel && ids.includes(V.sel)) pick(V.sel); else V.clear();
+            if (keep) back();
             P.foot.innerHTML = '';
             P.foot.appendChild(el('span', 'grow', tab === 'furniture' ? 'New furniture every day. Furniture goes straight to your house. Clothes are at Clementine\'s.'
                 : tab === 'week' && st.week ? `The ${SET_NAMES[st.week.set]} set, 15% off all week. ${fmtNum(S.money)} sand dollars` : `${fmtNum(S.money)} sand dollars`));
@@ -726,35 +725,31 @@ function shopBuy(startTab) {
 function shopClothes(staffed) {
     return new Promise(res => {
         const st = shopStock();
-        const P = UI.open({ title: `${shopName('boutique')} \u00b7 Clothes`, foot: true, onClose: res });
-        const draw = () => {
-            P.body.innerHTML = '';
-            const list = el('div', 'list');
-            for (const id of st.clothes) {
-                const it = ITEMS[id];
-                const owned = it.type === 'outfit' ? S.wardrobe.outfits.includes(it.wear) : S.wardrobe.accs.includes(it.wear);
-                const row = el('button', 'row');
-                row.type = 'button';
-                row.appendChild(iconCanvas(it.icon, 40));
-                const t = el('div', 't');
-                t.appendChild(el('b', null, it.name));
-                const price = shopPrice(id, 'boutique'), note = priceNote(id, 'boutique');
-                t.appendChild(el('span', null, (it.type === 'outfit' ? 'Outfit' : 'Accessory') + (owned ? ' \u00b7 already in your wardrobe' : '') + (note ? ' \u00b7' + note : '')));
-                row.appendChild(t);
-                row.appendChild(el('span', 'price', price ? fmtNum(price) : 'Free'));
-                row.addEventListener('click', () => {
-                    if (S.money < price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return; }
-                    addMoney(-price, true, 'Clothes');
-                    receive(id, 1);
-                    Sfx.play('buy');
-                    S.stats.bought = (S.stats.bought || 0) + 1;
-                    shopPaid('boutique', id, price);
-                    if (staffed && R() < 0.4) UI.toast(rpick(['Clementine: "Iconic choice."', 'Clementine: "Darling. Yes."', 'Clementine: "That is so you. Or it will be."']));
-                    draw();
-                });
-                list.appendChild(row);
-            }
-            P.body.appendChild(list);
+        const P = UI.open({ title: `${shopName('boutique')} \u00b7 Clothes`, foot: true, wide: true, onClose: res });
+        const V = storeView(P);
+        const owned = it => it.type === 'outfit' ? S.wardrobe.outfits.includes(it.wear) : S.wardrobe.accs.includes(it.wear);
+        const buy = id => {
+            const it = ITEMS[id], price = shopPrice(id, 'boutique');
+            if (S.money < price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return false; }
+            addMoney(-price, true, 'Clothes');
+            receive(id, 1);
+            Sfx.play('buy');
+            S.stats.bought = (S.stats.bought || 0) + 1;
+            shopPaid('boutique', id, price);
+            if (staffed && R() < 0.4) UI.toast(rpick(['Clementine: "Iconic choice."', 'Clementine: "Darling. Yes."', 'Clementine: "That is so you. Or it will be."']));
+            return true;
+        };
+        const pick = id => {
+            const it = ITEMS[id], price = shopPrice(id, 'boutique'), note = priceNote(id, 'boutique');
+            V.show(id, { sub: (it.type === 'outfit' ? 'Outfit' : 'Accessory') + (owned(it) ? ' \u00b7 already in your wardrobe' : '') + (note ? ' \u00b7' + note : ''),
+                buttons: [btn(price ? `Buy \u00b7 ${fmtNum(price)}` : 'Take it', '', () => { if (buy(id)) draw(true); })] });
+        };
+        const draw = (keep) => {
+            const back = V.reset();
+            const grid = V.group();
+            for (const id of st.clothes) V.card(grid, { id, key: id, price: shopPrice(id, 'boutique'), badge: owned(ITEMS[id]) ? 'Have' : null, pick: () => pick(id) });
+            if (V.sel) pick(V.sel);
+            if (keep) back();
             P.foot.innerHTML = '';
             P.foot.appendChild(el('span', 'grow', `New pieces every day. Add clothes to your wardrobe from your pocket, or give accessories to friends. ${fmtNum(S.money)} sand dollars`));
         };
@@ -790,32 +785,42 @@ function appPoems() {
 function shopSell() {
     return new Promise(res => {
         const st = shopStock();
-        const P = UI.open({ title: `${shopName('shop')} \u00b7 Sell`, foot: true, onClose: res });
-        const draw = () => {
-            P.body.innerHTML = '';
-            P.body.appendChild(el('p', 'muted', `Hot item today: ${itemName(st.hot)}. Fortune pays double.`));
-            const list = el('div', 'list');
-            let any = false;
-            let kept = 0;
+        const P = UI.open({ title: `${shopName('shop')} \u00b7 Sell`, foot: true, wide: true, onClose: res });
+        const V = storeView(P);
+        const each = id => Math.round(sellPrice(id) * (id === st.hot ? 2 : 1) * (bonusOn('haggler') ? 1.25 : 1) * sellBonus());
+        const sell = (i, all) => {
+            const s = S.pocket[i];
+            if (!s) return;
+            const n = all ? removeSlot(i) : removeSlot(i, 1), pay = each(s.id) * n;
+            addMoney(pay, true, sellWhy(s.id));
+            Sfx.play('sell');
+            S.stats.sold = (S.stats.sold || 0) + n;
+            UI.toast(`Sold${n > 1 ? ` ${n}` : ''}: +${fmtNum(pay)}`, itemIcon(s.id));
+            if (!S.pocket[i]) V.clear();
+            draw(true);
+        };
+        const pick = i => {
+            const s = S.pocket[i], hot = s.id === st.hot, e = each(s.id);
+            const btns = [btn(`Sell 1 \u00b7 ${fmtNum(e)}`, '', () => sell(i, false))];
+            if (s.n > 1) btns.push(btn(`Sell all ${s.n} \u00b7 ${fmtNum(e * s.n)}`, 'alt', () => sell(i, true)));
+            V.show(s.id, { sub: `${fmtNum(e)} each${hot ? ' \u00b7 hot item today, double price' : ''}${s.n > 1 ? ` \u00b7 you have ${s.n}` : ''}`, buttons: btns });
+        };
+        const draw = (keep) => {
+            const back = V.reset();
+            V.list.appendChild(el('p', 'muted', `Hot item today: ${itemName(st.hot)}. Fortune pays double.`));
+            const grid = V.group();
+            let any = false, kept = 0;
             S.pocket.forEach((s, i) => {
                 if (!s) return;
                 if (unsellable(s.id)) { if (ITEMS[s.id].type !== 'tool') kept++; return; }
                 any = true;
-                const hot = s.id === st.hot;
-                const each = Math.round(sellPrice(s.id) * (hot ? 2 : 1) * (bonusOn('haggler') ? 1.25 : 1) * sellBonus());
-                const row = el('div', 'row');
-                row.appendChild(iconCanvas(itemIcon(s.id), 40));
-                const t = el('div', 't');
-                t.appendChild(el('b', null, itemName(s.id) + (s.n > 1 ? ` \u00d7 ${s.n}` : '')));
-                t.appendChild(el('span', null, `${fmtNum(each)} each${hot ? ' \u00b7 HOT ITEM' : ''}`));
-                row.appendChild(t);
-                row.appendChild(btn('Sell 1', 'alt', () => { removeSlot(i, 1); addMoney(each, true, sellWhy(s.id)); Sfx.play('sell'); S.stats.sold = (S.stats.sold || 0) + 1; draw(); }));
-                if (s.n > 1) row.appendChild(btn('All', '', () => { const n = removeSlot(i); addMoney(each * n, true, sellWhy(s.id)); Sfx.play('sell'); S.stats.sold = (S.stats.sold || 0) + n; draw(); }));
-                list.appendChild(row);
+                V.card(grid, { id: s.id, key: 'p' + i, price: each(s.id) * s.n, earn: true, badge: s.n > 1 ? '\u00d7' + s.n : s.id === st.hot ? 'Hot' : null, hot: s.id === st.hot && s.n <= 1, pick: () => pick(i) });
             });
-            if (!any) list.appendChild(el('p', 'muted', 'Nothing to sell. Shake some trees, comb the beach, or go fishing!'));
-            P.body.appendChild(list);
-            if (kept) P.body.appendChild(el('p', 'muted', `Keepsakes and one-of-a-kind gifts (${kept} in your pocket) aren't for sale. Fortune insists.`));
+            if (!any) V.list.appendChild(el('p', 'muted', 'Nothing to sell. Shake some trees, comb the beach, or go fishing!'));
+            if (kept) V.list.appendChild(el('p', 'muted', `Keepsakes and one-of-a-kind gifts (${kept} in your pocket) aren't for sale. Fortune insists.`));
+            const i = V.sel ? +V.sel.slice(1) : -1;
+            if (i >= 0 && S.pocket[i] && !unsellable(S.pocket[i].id)) pick(i); else V.clear();
+            if (keep) back();
             P.foot.innerHTML = '';
             P.foot.appendChild(el('span', 'grow', `${fmtNum(S.money)} sand dollars`));
         };

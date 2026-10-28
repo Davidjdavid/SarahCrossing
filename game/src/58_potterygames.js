@@ -30,8 +30,20 @@ const Studio = {
         addEventListener('resize', this._resize);
         return { root, card, head, title: h, x, sub: subEl, body, box, tools };
     },
+    /* trying something on (the salon, the sewing machine): in the 3D view Sarah's own doll wears it as it's made, with the
+       camera in close on her and the studio to one side (under her on an upright phone); the flat views keep their little
+       picture of her */
+    tryOn(t) {
+        G.tryOn = t;
+        const r = $('#studio');
+        if (!r || !R3.active()) return false;
+        if (!r.classList.contains('side')) { r.classList.add('side'); R3.mirror = true; G.player.dir = 'down'; }
+        return true;
+    },
     close() {
         const r = $('#studio');
+        G.tryOn = null;
+        if (typeof R3 !== 'undefined') R3.mirror = false;
         if (!r) return;
         r.remove();
         removeEventListener('resize', this._resize);

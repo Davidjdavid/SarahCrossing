@@ -1,12 +1,12 @@
 /* ---- 13_online.js ---- */
-/* Playing together. Five people can play: Sarah, whose island it is, and the people who visit her: David, James,
-   John and Joe. Each device says who's playing on it.
+/* Playing together. Six people can play: Sarah, whose island it is, and the people who visit her: David, James,
+   John, Elizabeth (David, 28 October) and Joe. Each device says who's playing on it.
    The island (the ground, houses, trees, the museum, the house inside...) is Sarah's: only her game changes it. A
    visitor's save holds just what's theirs (PERSON_KEYS: pocket, money, friendships, mail...), kept on the server next
    to the island (server/islands.mjs); their game puts it on top of the island as Sarah last saved it.
    Everyone on the island at the same time sees everyone else: where they walk, what they say, their dance moves
    (the live connection in server/live.mjs). Letters and gifts between people go through the server's mailboxes. */
-const PEOPLE = ['sarah', 'david', 'james', 'john', 'joe'];
+const PEOPLE = ['sarah', 'david', 'james', 'john', 'elizabeth', 'joe'];
 const WHO_KEY = 'sc-who';
 /* what a visitor keeps for themselves (everything else in a save is the island) */
 const PERSON_KEYS = ['money', 'pocket', 'storage', 'player', 'wardrobe', 'npcs', 'seen', 'recipes', 'mail', 'mailSeq', 'mailIn', 'dance',

@@ -85,7 +85,7 @@ test('the password page lets the right password in', async () => {
   await page.click('button[type=submit]');
   // a new device asks who's playing first
   await page.waitForSelector('#panel:not([hidden]) .whobtn');
-  assert.deepEqual(await page.$$eval('.whobtn b', (bs) => bs.map((b) => b.textContent)), ['Sarah', 'David', 'James', 'John', 'Joe']);
+  assert.deepEqual(await page.$$eval('.whobtn b', (bs) => bs.map((b) => b.textContent)), ['Sarah', 'David', 'James', 'John', 'Elizabeth', 'Joe']);
   await page.click('.whobtn:has-text("Sarah")');
   await title(page);
   assert.deepEqual(await buttons(page), ['Start', 'Import a save', 'Change player']);
@@ -804,11 +804,14 @@ test('the laptop: Order again lists what Sarah has had, but not quest things, ke
     return { yes: yes.map((id) => ITEMS[id].name), no: no.map((id) => ITEMS[id].name), tuna: ITEMS.tuna.name, price: ITEMS.tuna.price };
   }, [yes, no]);
   await page.locator('#panel .tabs button', { hasText: 'Order again' }).click();
-  const shown = await page.$$eval('#panel .list .row b', (bs) => bs.map((b) => b.textContent));
+  const shown = await page.$$eval('#panel .store-list .card .nm', (bs) => bs.map((b) => b.textContent));
   for (const n of names.yes) assert.ok(shown.includes(n), `${n} can be ordered again`);
   for (const n of names.no) assert.ok(!shown.includes(n), `${n} is not for sale`);
   assert.ok(await page.locator('#panel h3', { hasText: 'Fish' }).count());
-  await page.locator('#panel .list .row', { has: page.locator('b', { hasText: new RegExp(`^${names.tuna}$`) }) }).click();
+  // (a tap picks it and shows it big; Order buys it)
+  await page.locator('#panel .store-list .card', { has: page.locator('.nm', { hasText: new RegExp(`^${names.tuna}$`) }) }).click();
+  assert.equal(await page.evaluate(() => S.money), 10000);
+  await page.locator('#panel .store-pick .btn', { hasText: 'Order' }).click();
   const after = await page.evaluate(() => ({ money: S.money, box: pendingBox() && pendingBox().gifts }));
   assert.deepEqual(after, { money: 10000 - names.price * 2, box: ['tuna'] });
   assert.deepEqual(page.problems, []);
@@ -1277,7 +1280,8 @@ test('vacations: rare, one at a time, on the board; friends see them off at the 
     const said = [];
     UI.say = async (who, text) => { said.push(String(text)); };
     const out = {}, today = Clock.dayNum();
-    const go = (dn, h) => { Clock.offsetMs += (dn - Clock.dayNum()) * 864e5; Clock.offsetMs += (h - Clock.hourF()) * 3600e3; G.events = todayEvents(); Plans.reset(); };
+    // (the hour first, then the day: run between midnight and 5 AM, the game's day is still yesterday's)
+    const go = (dn, h) => { Clock.offsetMs += (h - Clock.hourF()) * 3600e3; Clock.offsetMs += (dn - Clock.dayNum()) * 864e5; G.events = todayEvents(); Plans.reset(); };
     try {
       // a year of them: each neighbor a few times, never two at once
       let most = 0, trips = 0, v = null;
@@ -1928,7 +1932,7 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
       return { shown: getComputedStyle(document.getElementById('game3d')).display, err: Math.hypot(back[0] - want[0], back[1] - want[1]), glass: document.body.classList.contains('hd2d') };
     });
     assert.equal(island.shown, 'block');
-    assert.ok(island.glass, 'the HUD and dialogue wear the HD-2D look');
+    assert.ok(island.glass, 'the body is marked while the 3D view shows');
     // big pictures are drawn by the worker (off the main thread), and arrive
     await page.waitForFunction(() => HDW.w && HDW.n > 5 && HDW.pend.size === 0, null, { timeout: 60000 });
     assert.equal(await page.evaluate(() => HDW.failed), false, 'the HD worker kept going');
@@ -2420,8 +2424,48 @@ test("outdoor furniture: Waffle's stock by kind each day in four colors; floor f
   // buying at Waffle's: today's first piece goes home to storage
   await page.evaluate(() => { S.money = 100000; displaysShop(); });
   const first = await page.evaluate(() => waffleStock(Clock.dayNum())[0].id);
-  await page.click('#panel .list .row');
+  await page.click('#panel .store-list .card');
+  assert.deepEqual(await page.evaluate((id) => [S.storage[id] || 0, S.money < 100000], first), [0, false]);
+  await page.locator('#panel .store-pick .btn', { hasText: 'Buy' }).click();
   assert.deepEqual(await page.evaluate((id) => [S.storage[id] || 0, S.money < 100000], first), [1, true]);
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test("buying and selling at Fortune's: a tap picks a thing and shows it, Buy buys it, Sell sells it (and the statement says what for)", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => { __dbg.setTime(11, 0, 14); S.money = 50000; __dbg.give('apple', 3); __dbg.enter('shop'); });
+  await page.waitForFunction(() => G.area.id === 'shop' && NPCs.get('fortune') && NPCs.get('fortune').area === 'shop');
+  // talking to Fortune, as Sarah does
+  const choose = async (label) => {
+    for (let i = 0; i < 40 && !(await page.$('#choices .choice')); i++) { await page.evaluate(() => UI.advance()); await page.waitForTimeout(150); }
+    await page.click(`#choices .choice:has-text("${label}")`);
+  };
+  await page.evaluate(() => { talkTo(NPCs.get('fortune')); });
+  await choose('Buy');
+  await page.waitForSelector('#panel .store-list .card');
+  const first = await page.evaluate(() => shopStock().furn[0]);
+  await page.click('#panel .store-list .card');
+  assert.equal(await page.evaluate(() => S.money), 50000, 'a tap only picks');
+  await page.locator('#panel .store-pick .btn', { hasText: 'Buy' }).first().click();
+  const bought = await page.evaluate((id) => ({ home: S.storage[id] || 0, spent: S.money < 50000, why: Object.keys(S.bank.flow.out) }), first);
+  assert.deepEqual(bought, { home: 1, spent: true, why: ['Furniture'] });
+  // seeds by fives
+  await page.click('#panel .tabs button:has-text("Seeds")');
+  await page.click('#panel .store-list .card');
+  const seed = await page.evaluate(() => { const id = GD.veg.map(v => 'seed_' + v).filter(farOk)[0]; return [id, pocketCount(id)]; });
+  await page.locator('#panel .store-pick .btn', { hasText: 'Buy 5' }).click();
+  assert.equal(await page.evaluate((id) => pocketCount(id), seed[0]), seed[1] + 5);
+  await page.evaluate(() => UI.close());
+  await choose('Sell');
+  await page.waitForSelector('#panel .store-list .card');
+  const m0 = await page.evaluate(() => S.money);
+  await page.locator('#panel .store-list .card', { has: page.locator('.nm', { hasText: /^Apple$/ }) }).click();
+  await page.locator('#panel .store-pick .btn', { hasText: 'Sell all' }).click();
+  const sold = await page.evaluate((m0) => ({ apples: pocketCount('apple'), more: S.money > m0, why: !!S.bank.flow.in['Fruit & veg'] }), m0);
+  assert.deepEqual(sold, { apples: 0, more: true, why: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

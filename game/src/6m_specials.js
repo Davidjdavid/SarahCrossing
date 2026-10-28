@@ -267,38 +267,38 @@ function itemDesc(id) {
     if (!it) return '';
     const uses = recipesUsing(id);
     const cook = uses.length ? `Cook with it: ${listWords(uses)}${uses.length > 3 ? ' and more' : ''}.` : '';
-    const sell = unsellable(id) ? '' : ` Sells for ${fmtNum(sellPrice(id))}.`;
+    // (no sell price in the words: every screen shows it beside them, David, 28 October)
     const t = it.type;
     if (id.startsWith('photo_')) return 'A signed photo from a friend. A keepsake: it can\'t be sold. Hang it at home!';
-    if (it.pottery) return `${labelNote(id)}Handmade by Sarah at Sully's studio. Put it on a table at home, give it to a friend, or sell it.${sell}`;
+    if (it.pottery) return `${labelNote(id)}Handmade by Sarah at Sully's studio. Put it on a table at home, give it to a friend, or sell it.`;
     if (t === 'art') return `${labelNote(id)}A painting Sarah made. Hang it at home or give it to the museum. It can't be sold.`;
     if (t === 'keepsake') return 'A special keepsake. Show it to Joe: it might inspire a poem. It can\'t be sold.';
     if (t === 'quest') return QUEST_ITEM_DESC[id] || 'Somebody on the island might want this. It can\'t be sold.';
-    if (t === 'gem') return `A ${it.name.toLowerCase()} from the mountain top. Sell it to Fortune or give it to a friend.${sell}`;
-    if (t === 'shell') return `A beach find. Sell it or give it to a friend.${sell}`;
-    if (t === 'fruit') return `Eat it, cook with it or sell it. ${cook}${sell}`;
-    if (t === 'fish') return (uses.length ? cook : id === 'boot' ? 'A bit of junk. Fine to sell.' : 'No current recipe uses it. Sell it or give it to a friend.') + sell;
-    if (t === 'veg') return `${cook || 'A garden veggie.'} Fine to sell extras.${sell}`;
-    if (t === 'staple') return `A pantry basic. ${cook || 'Used in cooking.'}${sell}`;
+    if (t === 'gem') return `A ${it.name.toLowerCase()} from the mountain top. Sell it to Fortune or give it to a friend.`;
+    if (t === 'shell') return `A beach find. Sell it or give it to a friend.`;
+    if (t === 'fruit') return `Eat it, cook with it or sell it. ${cook}`;
+    if (t === 'fish') return (uses.length ? cook : id === 'boot' ? 'A bit of junk. Fine to sell.' : 'No current recipe uses it. Sell it or give it to a friend.');
+    if (t === 'veg') return `${cook || 'A garden veggie.'} Fine to sell extras.`;
+    if (t === 'staple') return `A pantry basic. ${cook || 'Used in cooking.'}`;
     if (t === 'dish') {
         const f = freshCount(id), all = ownedCount(id);
-        if (f) return `Fresh${f < all ? ` (${f} of your ${all})` : ''}: made at home or bought from Mac's. Eating it always gives a boost. You can also give it to a friend or sell it.${sell}`;
-        return `Eating it has a 1-in-10 chance of giving a boost. You can also give it to a friend or sell it.${sell}`;
+        if (f) return `Fresh${f < all ? ` (${f} of your ${all})` : ''}: made at home or bought from Mac's. Eating it always gives a boost. You can also give it to a friend or sell it.`;
+        return `Eating it has a 1-in-10 chance of giving a boost. You can also give it to a friend or sell it.`;
     }
-    if (t === 'snack') return `Eat it!${sell}`;
-    if (t === 'seed') return it.flower ? `Plant them in a garden plot, or in any hole dug with the shovel for flowers right there.${sell}` : `Plant them in a garden plot at home. They grow in a few days.${sell}`;
-    if (t === 'flower') return `A flower to give to a friend, display, or sell.${sell}`;
-    if (t === 'furniture') return (unsellable(id) ? 'One of a kind. Place it at home with Decorate.' : `Place it at home with Decorate, or give it to a friend.${sell}`);
-    if (t === 'wall' || t === 'floor') return `Put it up at home with Decorate.${sell}`;
-    if (t === 'outfit') return `Add it to your wardrobe to wear it.${sell}`;
-    if (t === 'acc') return it.special ? 'One of a kind. Add it to your wardrobe and wear it.' : `Add it to your wardrobe to wear it, or give it to a friend to wear.${sell}`;
+    if (t === 'snack') return `Eat it!`;
+    if (t === 'seed') return it.flower ? `Plant them in a garden plot, or in any hole dug with the shovel for flowers right there.` : `Plant them in a garden plot at home. They grow in a few days.`;
+    if (t === 'flower') return `A flower to give to a friend, display, or sell.`;
+    if (t === 'furniture') return (unsellable(id) ? 'One of a kind. Place it at home with Decorate.' : `Place it at home with Decorate, or give it to a friend.`);
+    if (t === 'wall' || t === 'floor') return `Put it up at home with Decorate.`;
+    if (t === 'outfit') return `Add it to your wardrobe to wear it.`;
+    if (t === 'acc') return it.special ? 'One of a kind. Add it to your wardrobe and wear it.' : `Add it to your wardrobe to wear it, or give it to a friend to wear.`;
     if (t === 'tool') return { rod: 'Hold it and face the water to fish.', axe: 'Hold it to chop trees (they give wood).', shovel: 'Hold it to dig holes, dig up clams and plant saplings.' }[id] || 'A tool.';
-    if (t === 'material') return id === 'wood' ? `Building wood. Ginger likes it as a gift, and neighbors may ask for some. Sell any extra.${sell}` : `A material.${sell}`;
-    if (t === 'plant') return `Plant it in a hole dug with the shovel. It grows into a tree.${sell}`;
+    if (t === 'material') return id === 'wood' ? `Building wood. Ginger likes it as a gift, and neighbors may ask for some. Sell any extra.` : `A material.`;
+    if (t === 'plant') return `Plant it in a hole dug with the shovel. It grows into a tree.`;
     if (t === 'display') return 'Set it up outside with Island edit.';
     if (t === 'lost') return 'Somebody lost this. Give it back to them!';
     if (t === 'special') return id === 'bottle' ? 'A message in a bottle. Read it!' : 'Something special.';
-    return sell.trim();
+    return '';
 }
 const QUEST_ITEM_DESC = {
     q_note: 'An old note from the barn. Read it again from your pocket.',

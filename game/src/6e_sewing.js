@@ -227,6 +227,7 @@ const Sewing = {
     },
     finish(v) { Studio.close(); const r = this.res; this.res = null; if (r) r(v); },
     draw() {
+        Studio.tryOn({ design: this.d });
         const g = this.ctx, W = this.cv.width, H = this.cv.height;
         g.fillStyle = '#fdebe0'; g.fillRect(0, 0, W, H);
         g.fillStyle = '#f2d8c8'; g.fillRect(0, H - 5, W, 5);

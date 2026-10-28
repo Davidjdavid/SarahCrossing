@@ -150,6 +150,7 @@ const Salon = {
             custom ? sewFrame(S.designs[o], d, b, f, L) : lookFrame(o, d, b, f, L));
     },
     draw() {
+        Studio.tryOn({ look: this.L });
         const g = this.cv.getContext('2d');
         g.imageSmoothingEnabled = false;
         const grd = g.createLinearGradient(0, 0, 0, 34);

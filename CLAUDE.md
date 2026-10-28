@@ -106,8 +106,14 @@ docs/DEPLOY.md for the server.
 - What the flat view draws over the world (effects, emotes, sky things) goes on the overlay canvas, placed with
   `R3.project` / `R3.localTransform`; anything drawn with `G.cam` would land in the wrong place. The weather and the
   lighthouse beam are drawn sharp on `R3.wx`, a canvas at the screen's resolution (`r3Sharp`).
-- While the HD-2D view shows, `body.hd2d` gives the HUD and dialogue the art sample's dark glass and
-  serif type (style.css, end).
+- The HUD, the dialogue and every screen wear one cozy look in every view (style.css, "one look for everything", the
+  menus overhaul of 28 October): cream paper, rounded type, the selection a warm yellow, pictures on round plates;
+  `body.hd2d` only says the 3D view is showing. Shops and the pocket are one kind of screen (`storeView`, 41b_store.js:
+  the things as cards, the one picked big on a little turntable with what can be done with it; a tap picks, only a
+  button buys, sells or drops anything); `UI.open({ wide })` gives the wider panel they use. The phone shows the time,
+  weather and wallet along its top and the apps four across. Trying something on at the salon or the sewing machine,
+  the 3D view puts the studio to one side and the camera in close on Sarah, whose doll wears it as it's made
+  (`Studio.tryOn`, `G.tryOn` read by `hdSarahSpec`, `R3.mirror`); S isn't touched until it's paid for.
 - The classic 16x24 art stays the source for menus, icons, the classic view and the flat modes.
 
 ## The new 3D look: the test area (?lab) and Sarah's island on beta (33a–33m)

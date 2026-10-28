@@ -97,7 +97,7 @@ const R3 = {
     show(on) {
         if (!this.canvas) return;
         this.canvas.style.display = this.wx.style.display = on ? 'block' : 'none';
-        /* the HUD and dialogue take the art sample's dark glass while the HD-2D view shows */
+        /* (the body says when the 3D view shows; the HUD and the screens look the same in every view now) */
         if (this.shown !== on) { this.shown = on; document.body.classList.toggle('hd2d', on); }
     },
     resize() {
@@ -154,10 +154,13 @@ const R3 = {
             tx += L.ox; ty += L.oy;
         }
         // the talk camera: while Sarah talks with someone, in towards the two of them (R3_TALK)
-        const tn = this.talkWith(a), f0 = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60));
+        // (and trying something on, in on Sarah alone, to one side of the studio: beside it on a wide screen, above it on an
+        // upright phone, Studio.tryOn)
+        const tn = this.mirror ? p : this.talkWith(a), f0 = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60));
         this.talkK = snap ? (tn ? 1 : 0) : (this.talkK || 0) + ((tn ? 1 : 0) - (this.talkK || 0)) * (1 - Math.pow(1 - R3_TALK.ease, f0));
         if (this.talkK < 0.002 && !tn) this.talkK = 0;
-        if (tn) this.talkAt = [(p.x + tn.x) / 2, (p.y + tn.y) / 2 - R3_TALK.up * TILE];
+        if (tn === p) { const wide = this.camera.aspect >= 1; this.talkAt = [p.x + (wide ? R3_TALK.side * TILE : 0), p.y - R3_TALK.up * TILE + (wide ? 0 : R3_TALK.below * TILE)]; }
+        else if (tn) this.talkAt = [(p.x + tn.x) / 2, (p.y + tn.y) / 2 - R3_TALK.up * TILE];
         if (this.talkK && this.talkAt) { tx += (this.talkAt[0] - tx) * this.talkK; ty += (this.talkAt[1] - ty) * this.talkK; }
         // (the camera rises and falls with the ground under Sarah's feet, not with where it looks: looking ahead past the
         // foot of a cliff, the ground up top used to lift it as if she were climbing)
@@ -169,7 +172,7 @@ const R3 = {
             this.target.x += (X - this.target.x) * k; this.target.z += (Z - this.target.z) * k; this.camH += (GH - (this.camH || 0)) * kh;
         }
         // (the new look on an upright phone: a wider view, or there's room for little more than Sarah)
-        const tk = this.talkK || 0, pr = this.pitch() - tk * R3_TALK.pitch * Math.PI / 180, d = this.dist() * (1 - tk * R3_TALK.near), cam = this.camera, fov = Env.on && !a.interior ? ENV.cam.fov * (cam.aspect < 1 ? 1.25 : 1) : R3_CAM.fov;
+        const tk = this.talkK || 0, pr = this.pitch() - tk * R3_TALK.pitch * Math.PI / 180, d = this.dist() * (1 - tk * (this.mirror ? R3_TALK.mirror : R3_TALK.near)), cam = this.camera, fov = Env.on && !a.interior ? ENV.cam.fov * (cam.aspect < 1 ? 1.25 : 1) : R3_CAM.fov;
         if (cam.fov !== fov) { cam.fov = fov; cam.updateProjectionMatrix(); }
         // (up on the plateau, the camera rises with her)
         cam.position.set(this.target.x, R3_CAM.ly + d * Math.sin(pr) + (this.camH || 0), this.target.z + d * Math.cos(pr));
@@ -560,38 +563,68 @@ const R3 = {
             c.glow.emissiveIntensity = n ? (n.sleeping ? 0 : glow) : id === 'home' || id === 'club' || !late ? glow : 0;
         }
         this._glow = glow;
-        // lamps: the nearest few light up at night
-        if (G.frame % 15 !== 0 && this._lampsFor === a.id) return;
-        this._lampsFor = a.id;
-        // (in the new look a street lamp counts for more than a doorway or a lantern when picking the nearest few: with a
-        // jack-o'-lantern at every shop's corners in October, they'd otherwise take every light and the streets go dark)
-        const street = Env.on && !a.interior, W = { lamp: 1.6, door: 1, small: 0.75 };
-        const all = L.lamps > 0.02 ? lightSources(a).map(s => ({ s, d: Math.hypot(s[0] / TILE - this.target.x, s[1] / TILE * R3_ZS - this.target.z) / (street ? W[s[4]] || 1 : 1) })).sort((p, q) => p.d - q.d) : [];
-        const lit = all.slice(0, this.lamps.length);
-        // (a lamp about to drop out of the nearest few dims as Sarah walks away, and one coming in brightens, rather than
-        // each switching on and off at once)
-        const cut = all.length > lit.length ? all[lit.length].d : 1e9;
-        this.lamps.forEach((l, i) => {
-            const o = lit[i];
-            if (!o) { l.intensity = 0; return; }
-            const [x, y, r, c, kind] = o.s, fade = Math.min(1, Math.max(0, (cut - o.d) / 3));
-            // (the new look's street lights reach well along the paths and over the square, so they're bright at night
-            // and the woods and hills dark: David, 27 October; then fewer lamps, each lighting much further out. Only the
-            // lamps, though: a doorway or a lantern lit the same way, with one at every shop's corners for Spooky Season,
-            // washed the whole street out yellow, David, 28 October. A doorway glows from over its door, a lantern or a
-            // fire from just above the ground, each over a few tiles)
-            const lamp = street && kind === 'lamp', low = street && !lamp, fire = c === 'fire';
-            // (the new look's lamps are taller: the light comes from their lanterns)
-            // (a street lamp's light comes from high over it: far reaching but gentle close up, David, 28 October. Light from
-            // low down falls straight onto the grass at the lamp's foot and scorched it white there, while further off it
-            // only grazed the ground; from up high the foot and the ground a few tiles off are lit nearly alike)
-            l.position.set(x / TILE, street ? r3GroundH(x, y) + (lamp ? 6 : kind === 'door' ? 1.5 : 0.75) : 1.4, y / TILE * R3_ZS + (Env.on ? 0.1 : 0.3));
-            l.distance = lamp ? Math.max(20, r / TILE * 8) : low ? (kind === 'door' ? 5 : Math.max(3, r / TILE * 1.4)) : Math.max(4, r / TILE * 2.2);
-            // (the new look's ground takes light like a real surface: softer lamps, or the square goes white round them)
-            l.decay = lamp ? 1 : low ? 2 : 1.6;
-            l.intensity = L.lamps * (a.interior ? 0.9 : lamp ? 0.72 : low ? (fire ? 0.9 : kind === 'door' ? 0.6 : 0.5) : 1.2) * fade;
-            l.color.set(c === 'pink' ? 0xff6ab0 : c === 'fire' ? 0xff9a50 : lamp ? 0xffe0b0 : 0xffd8a0);
+        this.updateLamps(a, L);
+    },
+    /* lamps: the nearest few light up at night. Only so many lights can be lit at once (eight, six on a phone), so as
+       Sarah walks some come into the few and some go: each keeps its light while it's in, and eases up over most of a
+       second coming in and down going out (David, 28 October: things got brighter and darker as she walked, the lamps
+       switching between lights every quarter second, each jumping to its new brightness) */
+    updateLamps(a, L) {
+        const now = performance.now(), dt = Math.min(0.1, ((now - (this._lampT || now)) / 1000) || 0);
+        this._lampT = now;
+        if (!this._slots || this._slots.length !== this.lamps.length) this._slots = this.lamps.map(() => ({ key: null, w: 0, on: false }));
+        const street = Env.on && !a.interior;
+        if (this._lampsFor !== a.id) { this._slots.forEach(sl => { sl.key = null; sl.w = 0; sl.on = false; }); this._want = null; }
+        // which ones should be lit, worked out four times a second
+        if (G.frame % 15 === 0 || this._lampsFor !== a.id || !this._want) {
+            this._lampsFor = a.id;
+            // (in the new look a street lamp counts for more than a doorway or a lantern when picking the nearest few: with a
+            // jack-o'-lantern at every shop's corners in October, they'd otherwise take every light and the streets go dark;
+            // and one already lit counts a little nearer, so two about as far off don't keep trading places)
+            const W = { lamp: 1.6, door: 1, small: 0.75 }, held = new Set(this._slots.filter(sl => sl.on).map(sl => sl.key));
+            const all = L.lamps > 0.02 ? lightSources(a).map(s => {
+                const key = s[0] + ',' + s[1];
+                return { s, key, d: Math.hypot(s[0] / TILE - this.target.x, s[1] / TILE * R3_ZS - this.target.z) / (street ? W[s[4]] || 1 : 1) * (held.has(key) ? 0.85 : 1) };
+            }).sort((p, q) => p.d - q.d) : [];
+            this._want = new Map(all.slice(0, this.lamps.length).map(o => [o.key, o.s]));
+        }
+        const want = this._want;
+        for (const sl of this._slots) sl.on = !!sl.key && want.has(sl.key);
+        // (one newly wanted takes a light that's free, or one that has faded right out)
+        for (const [key, src] of want) {
+            if (this._slots.some(sl => sl.key === key)) continue;
+            const free = this._slots.find(sl => !sl.key || (!sl.on && sl.w <= 0));
+            if (!free) break;
+            Object.assign(free, { key, src, w: 0, on: true });
+            this.placeLamp(this.lamps[this._slots.indexOf(free)], src, a, street);
+        }
+        const k = dt / 0.8;
+        this._slots.forEach((sl, i) => {
+            const l = this.lamps[i];
+            sl.w = Math.max(0, Math.min(1, sl.w + (sl.on ? k : -k)));
+            if (!sl.key || sl.w <= 0) { l.intensity = 0; if (!sl.on) sl.key = null; return; }
+            const ease = sl.w * sl.w * (3 - 2 * sl.w);
+            l.intensity = L.lamps * sl.base * ease;
         });
+    },
+    /* where a lamp's light comes from, how far it reaches and its color */
+    placeLamp(l, src, a, street) {
+        const [x, y, r, c, kind] = src, sl = this._slots[this.lamps.indexOf(l)];
+        // (the new look's street lights reach well along the paths and over the square, so they're bright at night
+        // and the woods and hills dark: David, 27 October; then fewer lamps, each lighting much further out. Only the
+        // lamps, though: a doorway or a lantern lit the same way, with one at every shop's corners for Spooky Season,
+        // washed the whole street out yellow, David, 28 October. A doorway glows from over its door, a lantern or a
+        // fire from just above the ground, each over a few tiles)
+        const lamp = street && kind === 'lamp', low = street && !lamp, fire = c === 'fire';
+        // (a street lamp's light comes from high over it: far reaching but gentle close up, David, 28 October. Light from
+        // low down falls straight onto the grass at the lamp's foot and scorched it white there, while further off it
+        // only grazed the ground; from up high the foot and the ground a few tiles off are lit nearly alike)
+        l.position.set(x / TILE, street ? r3GroundH(x, y) + (lamp ? 6 : kind === 'door' ? 1.5 : 0.75) : 1.4, y / TILE * R3_ZS + (Env.on ? 0.1 : 0.3));
+        l.distance = lamp ? Math.max(20, r / TILE * 8) : low ? (kind === 'door' ? 5 : Math.max(3, r / TILE * 1.4)) : Math.max(4, r / TILE * 2.2);
+        // (the new look's ground takes light like a real surface: softer lamps, or the square goes white round them)
+        l.decay = lamp ? 1 : low ? 2 : 1.6;
+        sl.base = a.interior ? 0.9 : lamp ? 0.72 : low ? (fire ? 0.9 : kind === 'door' ? 0.6 : 0.5) : 1.2;
+        l.color.set(c === 'pink' ? 0xff6ab0 : c === 'fire' ? 0xff9a50 : lamp ? 0xffe0b0 : 0xffd8a0);
     },
 
     /* ---------------------------------------------------------------- the cards */
@@ -723,7 +756,7 @@ const R3 = {
 /* the talk camera (David, 26 October: "a zoom in feature with a camera on the two characters talking so you can better see
    their models/expressions"): how much nearer it goes, how much lower it looks, how far above their feet it aims (tiles),
    how quickly it eases in and back out (per frame at 60 a second) */
-const R3_TALK = { on: true, near: 0.48, pitch: 9, up: 0.35, ease: 0.07 };
+const R3_TALK = { on: true, near: 0.48, pitch: 9, up: 0.35, ease: 0.07, mirror: 0.6, side: 1.6, below: 1.1 };
 const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.007, lead: 4 };
 const R3_FAR = { phone: 17, full: 27 };     // tiles ahead that get drawn (at the normal zoom)
 /* the graphics settings (David, 26 October: a quality setting and a draw distance, each with its own default for laptops

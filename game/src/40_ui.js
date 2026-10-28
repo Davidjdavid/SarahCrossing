@@ -122,7 +122,7 @@ const UI = {
     open(opts) {
         this.close(true);
         const panel = $('#panel'), scrim = $('#scrim');
-        panel.className = opts.phone ? 'phone' : '';
+        panel.className = opts.phone ? 'phone' : opts.wide ? 'wide' : '';
         panel.innerHTML = '';
         const head = document.createElement('div');
         head.className = 'phead';

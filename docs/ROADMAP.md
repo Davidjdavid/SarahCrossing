@@ -397,6 +397,10 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   without being noticed (on computers and phones), and the haze far off much less obvious (it can feel like an N64 or
   PS1 game). Started 28 October: the haze takes the sky's color behind each thing, the sky's horizon sits on the
   island's far edge, stars and clouds in the strip of sky over it.
+- [ ] (David, 28 October, late) The very last thing: tests of everything Sarah can do, one by one, played the way a
+  player does (buying and selling at every shop, making pottery, cooking, fishing, decorating, every app and screen,
+  every game, every neighbor's talk menu...), so nothing quietly breaks again (buying and selling at Fortune's had,
+  since 26 October, with no test catching it)
 - [ ] The game as something played for months: tedious chores, awkward pacing, confusing screens, frustrating
   activities
 
@@ -424,6 +428,11 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   at. Joe still starts at the most and never goes down
 - [ ] Decorating the house: furniture turned to face any of the four ways (they're models now: a chair facing the table);
   pictures on a table, on the floor or on the wall; flowers, fish and most other things set down too
+- [ ] (David, 28 October, late) Lights that brighten and dim as Sarah walks: only so many can be lit at once, and they
+  switched between lamps four times a second; each now keeps its light and eases in and out
+- [ ] (David, 28 October, late) A designer mode on beta: move, turn, add and take away the stairs, the props, the outdoor
+  furniture and each room's own furniture (that one bookcase facing west against the left wall, in that room only),
+  saved on the server as the map the real game uses, so small changes don't need me
 - [ ] The Cozy Council out of the Town Hall: they come by only when Sarah asks for the island to be judged. The Town Hall
   gets a keeper of its own who does the desk's work, and when nobody's working the screens are there anyway, on the
   honor system, as at the shops

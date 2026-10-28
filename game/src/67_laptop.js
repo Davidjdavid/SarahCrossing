@@ -77,73 +77,55 @@ function openLaptop() {
     return new Promise(res => {
         const tabs = el('div', 'tabs');
         let tab = 'furniture';
-        const P = UI.open({ title: 'IslandMart', tabs, foot: true, onClose: res });
-        /* a thing to order: its picture, name, what it is, the price; a click orders one */
-        const row = (id, price) => {
+        const P = UI.open({ title: 'IslandMart', tabs, foot: true, wide: true, onClose: res });
+        const V = storeView(P);
+        const owned = it => it.type === 'outfit' ? S.wardrobe.outfits.includes(it.wear) : it.type === 'acc' ? S.wardrobe.accs.includes(it.wear) : false;
+        /* a thing to order: picked, it shows big with what it is, the price and Order */
+        const pick = (id, price) => {
             const it = ITEMS[id], f = FURN[id];
-            const r = el('button', 'row');
-            r.type = 'button';
-            r.appendChild(iconCanvas(itemIcon(id), 40));
-            const t = el('div', 't');
-            t.appendChild(el('b', null, it.name));
-            const owned = it.type === 'outfit' ? S.wardrobe.outfits.includes(it.wear) : it.type === 'acc' ? S.wardrobe.accs.includes(it.wear) : false;
-            t.appendChild(el('span', null, f ? `${SET_NAMES[f.sets[0]] || ''} \u00b7 ${f.w}\u00d7${f.kind === 'wall' ? 1 : f.h}${f.kind === 'wall' ? ' wall' : f.kind === 'top' ? ' tabletop' : f.kind === 'rug' ? ' rug' : ''}`
-                : (ITEM_TYPES[it.type] || '') + (owned ? ' \u00b7 already in your wardrobe' : '')));
-            r.appendChild(t);
-            r.appendChild(el('span', 'price', fmtNum(price)));
-            r.addEventListener('click', () => { if (laptopOrder(id, price)) draw(true); });
-            return r;
+            V.show(id, { sub: f ? `${SET_NAMES[f.sets[0]] || ''} \u00b7 ${f.w}\u00d7${f.kind === 'wall' ? 1 : f.h}${f.kind === 'wall' ? ' wall' : f.kind === 'top' ? ' tabletop' : f.kind === 'rug' ? ' rug' : ''}`
+                : (ITEM_TYPES[it.type] || '') + (owned(it) ? ' \u00b7 already in your wardrobe' : ''),
+                lines: ['Arrives in tomorrow\'s mail.'], buttons: [btn(`Order \u00b7 ${fmtNum(price)}`, '', () => { if (laptopOrder(id, price)) draw(true); })] });
         };
+        const card = (grid, id, price) => V.card(grid, { id, key: id, price, badge: owned(ITEMS[id]) ? 'Have' : null, pick: () => pick(id, price) });
         // (after an order the list stays where it was scrolled to)
         const draw = (keep) => {
-            const top = keep ? P.body.scrollTop : 0;
             tabs.innerHTML = '';
             for (const [k, label] of LAPTOP_TABS) {
                 const b = el('button', 'tab' + (k === tab ? ' on' : ''), label);
                 b.type = 'button';
-                b.addEventListener('click', () => { tab = k; draw(); });
+                b.addEventListener('click', () => { if (tab !== k) { tab = k; V.clear(); draw(); } });
                 tabs.appendChild(b);
             }
-            P.body.innerHTML = '';
+            const back = V.reset();
+            let sel = null;
             if (tab === 'orders') {
                 const box = pendingBox();
-                P.body.appendChild(el('p', 'muted', box ? "Arriving tomorrow, in one box. It'll be in your mailbox (and the Mail app)." : 'Nothing on the way. Everything you order today arrives tomorrow.'));
-                const list = el('div', 'list');
-                for (const id of (box && box.gifts) || []) {
-                    const row = el('div', 'row');
-                    row.appendChild(iconCanvas(itemIcon(id), 40));
-                    const t = el('div', 't');
-                    t.appendChild(el('b', null, itemName(id)));
-                    t.appendChild(el('span', null, 'Arriving tomorrow'));
-                    row.appendChild(t);
-                    list.appendChild(row);
-                }
-                P.body.appendChild(list);
+                V.list.appendChild(el('p', 'muted', box ? "Arriving tomorrow, in one box. It'll be in your mailbox (and the Mail app)." : 'Nothing on the way. Everything you order today arrives tomorrow.'));
+                const grid = V.group();
+                for (const id of (box && box.gifts) || []) V.card(grid, { id, key: 'o:' + id, tag: 'Tomorrow', pick: () => V.show(id, { sub: 'Arriving tomorrow' }) });
             } else if (tab === 'again') {
                 const ids = laptopAgain();
-                P.body.appendChild(el('p', 'muted', ids.length ? "Everything you've ever had, to order again. Quest things, keepsakes, prizes, tools and one-of-a-kind gifts aren't sold."
+                V.list.appendChild(el('p', 'muted', ids.length ? "Everything you've ever had, to order again. Quest things, keepsakes, prizes, tools and one-of-a-kind gifts aren't sold."
                     : 'Nothing yet. Everything you get or buy shows up here, to order again whenever you like.'));
-                let list = null, type = null;
+                let grid = null, type = null;
                 for (const id of ids) {
-                    if (ITEMS[id].type !== type) {
-                        type = ITEMS[id].type;
-                        P.body.appendChild(el('h3', 'todo-h', AGAIN.find(t => t[0] === type)[1]));
-                        list = P.body.appendChild(el('div', 'list'));
-                    }
-                    list.appendChild(row(id, againPrice(id)));
+                    if (ITEMS[id].type !== type) { type = ITEMS[id].type; grid = V.group(AGAIN.find(t => t[0] === type)[1]); }
+                    card(grid, id, againPrice(id));
+                    if (id === V.sel) sel = [id, againPrice(id)];
                 }
             } else {
                 const left = martDaysLeft(), when = left === 1 ? 'tomorrow' : `in ${left} days`;
-                P.body.appendChild(el('p', 'muted', (tab === 'clothes' ? "This week's clothes. They go to your pocket when the box comes; wear them from the wardrobe."
+                V.list.appendChild(el('p', 'muted', (tab === 'clothes' ? "This week's clothes. They go to your pocket when the box comes; wear them from the wardrobe."
                     : tab === 'decor' ? "This week's wallpaper and floors. Put them up while decorating." : "This week's furniture. Orders arrive in tomorrow's mail.") + ` New stock every Monday (${when}). Anything you've had is always in Order again.`));
-                const list = el('div', 'list');
-                for (const id of laptopCatalog(tab)) list.appendChild(row(id, ITEMS[id].price));
-                P.body.appendChild(list);
+                const grid = V.group();
+                for (const id of laptopCatalog(tab)) { card(grid, id, ITEMS[id].price); if (id === V.sel) sel = [id, ITEMS[id].price]; }
             }
+            if (sel) pick(sel[0], sel[1]); else if (tab !== 'orders') V.clear();
+            if (keep) back();
             P.foot.innerHTML = '';
             const box = pendingBox();
             P.foot.appendChild(el('span', 'grow', `${fmtNum(S.money)} sand dollars${box ? ` \u00b7 ${box.gifts.length} in tomorrow's box` : ''}`));
-            P.body.scrollTop = top;
         };
         draw();
     });

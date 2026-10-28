@@ -81,6 +81,16 @@ function moneyFlow(d, why) {
     const side = d > 0 ? F.in : F.out, k = why || 'Other';
     side[k] = (side[k] || 0) + Math.abs(d);
 }
+/* what buying or selling a thing counts as on the statement */
+function buyWhy(id) {
+    const t = ITEMS[id] && ITEMS[id].type;
+    return ['furniture', 'wall', 'floor', 'display'].includes(t) ? 'Furniture' : t === 'seed' || t === 'plant' ? 'Garden' : t === 'tool' || t === 'bag' ? 'Tools'
+        : t === 'outfit' || t === 'acc' ? 'Clothes' : t === 'staple' || t === 'snack' || t === 'dish' ? 'Food' : 'Shopping';
+}
+function sellWhy(id) {
+    const t = ITEMS[id] && ITEMS[id].type;
+    return { fish: 'Fish', shell: 'Beach finds', fruit: 'Fruit & veg', veg: 'Fruit & veg', flower: 'Flowers', gem: 'Gems', dish: 'Cooking', material: 'Materials', art: 'Art' }[t] || 'Selling';
+}
 
 /* ---------------------------------------------------------------- things lying on the ground */
 function makeItemEnt(id, x, y, extra) {

@@ -136,40 +136,37 @@ async function displaysBrowse() {
 /* today's stock (6zu_outdoor.js: a few of each kind, each in one of its colors), shown by kind */
 function displaysShop() {
     return new Promise(res => {
-        const P = UI.open({ title: "Waffle's \u00b7 Island displays", foot: true, onClose: res });
+        const P = UI.open({ title: "Waffle's \u00b7 Island displays", foot: true, wide: true, onClose: res });
+        const V = storeView(P);
         const stock = waffleStock(Clock.dayNum());
-        const draw = () => {
-            P.body.innerHTML = '';
-            P.body.appendChild(el('p', 'muted', 'New pieces every day. Everything works indoors too.'));
+        const have = id => (S.storage[id] || 0) + pocketCount(id) + deco().placed.filter(p => p.id === id).length;
+        const buy = id => {
+            const d = dispDef(id);
+            if (S.money < d.price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return false; }
+            addMoney(-d.price, true, 'Shopping');
+            toStorage(id, 1);
+            Sfx.play('buy');
+            UI.toast(`${d.name} sent to your house. Set it up with Island edit, or inside!`, d.frame);
+            S.stats.displays = (S.stats.displays || 0) + 1;
+            const w = NPCs.get('waffle'); if (w) { w.emote = 'sparkle'; w.emoteT = 50; }
+            return true;
+        };
+        const pick = id => {
+            const d = dispDef(id), n = have(id);
+            V.show(id, { title: d.name, sub: `${d.w} ${plural(d.w, 'tile')} wide${d.light || d.torch ? ' \u00b7 lights up at night' : ''}${d.seat ? ' \u00b7 you can sit on it' : ''}${d.sign ? ' \u00b7 write your own words' : ''}${n ? ` \u00b7 you have ${n}` : ''}`,
+                buttons: [btn(`Buy \u00b7 ${fmtNum(d.price)}`, '', () => { if (buy(id)) draw(true); })] });
+        };
+        const draw = (keep) => {
+            const back = V.reset();
+            V.list.appendChild(el('p', 'muted', 'New pieces every day. Everything works indoors too.'));
             for (const [cat, label] of OUTDOOR_CATS) {
                 const mine = stock.filter(s => s.cat === cat);
                 if (!mine.length) continue;
-                P.body.appendChild(el('h3', 'shop-cat', label));
-                const list = el('div', 'list');
-                for (const { id } of mine) {
-                    const d = dispDef(id), row = el('button', 'row');
-                    row.type = 'button';
-                    row.appendChild(iconCanvas(d.frame, 40));
-                    const t = el('div', 't');
-                    t.appendChild(el('b', null, d.name));
-                    const have = (S.storage[id] || 0) + pocketCount(id), placed = deco().placed.filter(p => p.id === id).length;
-                    t.appendChild(el('span', null, `${d.w} ${plural(d.w, 'tile')} wide${d.light || d.torch ? ' \u00b7 lights up at night' : ''}${d.seat ? ' \u00b7 you can sit on it' : ''}${d.sign ? ' \u00b7 write your own words' : ''}${have + placed ? ` \u00b7 you have ${have + placed}` : ''}`));
-                    row.appendChild(t);
-                    row.appendChild(el('span', 'price', fmtNum(d.price)));
-                    row.addEventListener('click', () => {
-                        if (S.money < d.price) { Sfx.ui('nope'); UI.toast('Not enough sand dollars'); return; }
-                        addMoney(-d.price, true, 'Shopping');
-                        toStorage(id, 1);
-                        Sfx.play('buy');
-                        UI.toast(`${d.name} sent to your house. Set it up with Island edit, or inside!`, d.frame);
-                        S.stats.displays = (S.stats.displays || 0) + 1;
-                        const w = NPCs.get('waffle'); if (w) { w.emote = 'sparkle'; w.emoteT = 50; }
-                        draw();
-                    });
-                    list.appendChild(row);
-                }
-                P.body.appendChild(list);
+                const grid = V.group(label);
+                for (const { id } of mine) { const d = dispDef(id); V.card(grid, { id, key: id, icon: d.frame, name: d.name, price: d.price, badge: have(id) ? 'Have' : null, pick: () => pick(id) }); }
             }
+            if (V.sel) pick(V.sel);
+            if (keep) back();
             P.foot.innerHTML = '';
             P.foot.appendChild(el('span', 'grow', `${fmtNum(S.money)} sand dollars \u00b7 set things up with Island edit on your phone`));
         };
