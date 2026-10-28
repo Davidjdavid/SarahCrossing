@@ -3447,9 +3447,10 @@ test('friendship that shows: a neighbor who knows Sarah waves, a friend walks ov
       }
       return n;
     };
-    const free = NPCs.here().filter((n) => Chats.free(n) && TALK[n.id] && !n.fixed && n.anchor && !n.def.goat && n.id !== 'joe');
     /* (whatever they're in the middle of, set aside) */
     const ready = (n) => { if (n.chat) Chats.end(n.chat); n.idle = null; n.path = null; n.chatCool = 0; return n; };
+    // (set aside first, then picked: everyone out could be busy with something just then)
+    const free = NPCs.here().filter((n) => TALK[n.id] && !n.fixed && n.anchor && !n.def.goat && n.id !== 'joe').map(ready).filter((n) => Chats.free(n));
     // left to itself: someone who knows her (a heart) waves from where they are, with a word over their head
     const w = ready(free[0]);
     rel(w.id).met = true; rel(w.id).pts = HEARTS[1];
@@ -4161,6 +4162,28 @@ test('stopped on their way somewhere, a neighbor says where they are headed: to 
     return out;
   });
   assert.deepEqual(res, { work: true, lunch: true, groceries: true, crate: true, catch: true, place: true, suitcase: true, standing: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('a best friend who walks over to say hello has now and then brought Sarah a little something (every few days at most)', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(() => {
+    __dbg.setTime(6, 9, 14);
+    const n = NPCs.get('kai'), r = rel('kai');
+    r.met = true; r.pts = HEARTS[5]; r.broughtDay = null;
+    const have = () => ['conch', 'scallop', 'cowrie', 'seaglass'].reduce((a, k) => a + pocketCount(k), 0), h0 = have();
+    // (the roll that came up lucky, then the same day again, then three days on; a friend not yet best friends never)
+    const first = { brought: Greet.bring(n, 0), got: have() === h0 + 1, day: r.broughtDay === Clock.dayNum() };
+    const sameDay = Greet.bring(n, 0);
+    r.broughtDay = Clock.dayNum() - 3;
+    const later = Greet.bring(n, 0) && have() === h0 + 2;
+    r.broughtDay = null; r.pts = HEARTS[4];
+    return { first, sameDay, later, goodFriend: Greet.bring(n, 0), unlucky: (r.pts = HEARTS[5], Greet.bring(n, 0.5)) };
+  });
+  assert.deepEqual(res, { first: { brought: true, got: true, day: true }, sameDay: false, later: true, goodFriend: false, unlucky: false });
   assert.deepEqual(page.problems, []);
   await page.close();
 });

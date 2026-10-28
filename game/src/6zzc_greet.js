@@ -30,6 +30,11 @@ const GREET_COME_BY = {
 const GREET_WALK = ['Mind if I walk with you for a bit?', "Where are we going? I'm coming too!", 'Ooh, a walk! Wait for me!', "Hey! I'll come with you."];
 const GREET_BYE = ['Okay, this is me. See you, {name}!', 'That was nice. Catch you later!', "I'm going to head off. Thanks for the walk!"];
 const GREET_LOST = ["Whoa, you're fast! See you later!", 'Wait up! ...Okay, never mind. Bye!'];
+/* now and then a best friend who comes over has brought her a little something (every few days at most) */
+const GREET_BROUGHT = ['I brought you something! It made me think of you.', 'Here! I saw this and thought: {name} would like that.', 'For you! No reason. Friends do that.'];
+const BROUGHT_FROM = { kai: ['conch', 'scallop', 'cowrie', 'seaglass'], cuke: ['cucumber', 'carrot', 'tomato'], basil: ['thaibasil', 'greenonion'],
+    chili: ['chili'], wonton: ['bokchoy'], clementine: ['flower_rose_0', 'flower_rose_1'], cece: ['peach', 'cherry'], brulee: ['flower_lily_0', 'flower_tulip_1'] };
+const BROUGHT_ANY = ['apple', 'peach', 'cherry', 'mango', 'flower_daisy_0', 'flower_tulip_0', 'flower_cosmos_1', 'scallop'];
 const GREET_SIT = ['Mind if I sit? My feet have opinions.', 'Room for one more? Thanks, {name}.', 'Ahh. Good spot. You have the best taste in benches.',
     "Scooch! ...Kidding. There's room. Hi!", 'I saw you sitting here and thought, that looks nice.'];
 
@@ -95,6 +100,7 @@ const Greet = {
                 this.turn(n);
                 n.pose = 'wave'; n.poseT = 50;
                 n.emote = 'heart'; n.emoteT = 80;
+                if (this.bring(n)) return;
                 // (something from the last week they've been meaning to bring up, if there is one: 6zm_friendship.js)
                 const mem = memoryLine(n.id);
                 this.say(n, mem ? voiced(n.id, nickIn(n.id, fillText(mem))) : this.line(n, (GREET_COME_BY[n.id] || []).concat(GREET_COME)));
@@ -102,6 +108,19 @@ const Greet = {
             return true;
         }
         return false;
+    },
+    /* a best friend has brought her something now and then (a fruit, a flower, a shell; their own kind of thing), every
+       few days at most */
+    bring(n, roll = R()) {
+        const r = rel(n.id), today = Clock.dayNum();
+        if (hearts(n.id) < 5 || roll >= 0.3 || today - (r.broughtDay == null ? -9 : r.broughtDay) < 3) return false;
+        const g = rpick((BROUGHT_FROM[n.id] || BROUGHT_ANY).filter(k => ITEMS[k]));
+        if (!g) return false;
+        r.broughtDay = today;
+        receive(g, 1, true);
+        UI.toast(`${n.def.name} brought you ${aOrAn(itemName(g))} ${itemName(g).toLowerCase()}`, itemIcon(g));
+        this.say(n, this.line(n, GREET_BROUGHT));
+        return true;
     },
     /* a best friend walks along with her for a while, as Animal Crossing's villagers do: a step or two behind, stopping
        when she stops, off again after a minute or so, or when she goes indoors or runs off (n.escort, quicker in stepNpc) */

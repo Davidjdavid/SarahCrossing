@@ -289,7 +289,8 @@ docs/DEPLOY.md for the server.
   (`bondLine`, a talk topic) and the census says who's close (`bestFriendOf`).
 - Friendship that shows (6zzc_greet.js, `Greet`, from `NPCs.update`): without Sarah starting it, a neighbor who knows her
   (a heart) waves from where they are (the `wave` pose, `EnvDolls.POSES`, `poseFolk2`), a friend (three) walks over to say
-  hello (`comeOver`, or brings up a memory from the last week), a good friend (four) who sees her on a bench sits in its
+  hello (`comeOver`, or brings up a memory from the last week; a best friend now and then with a fruit, flower or shell for
+  her, `Greet.bring`, every three days at most), a good friend (four) who sees her on a bench sits in its
   other seat (`sitBy`), and a best friend (five) now and then walks along with her for a minute or so (`walkWith`,
   `walkTick` every frame: `n.script` and `n.escort`, quicker in stepNpc; it ends when she goes indoors or runs off); a word
   in a bubble, never a dialogue; once a day each, `GREET_MAX` a day. The closer they are, the warmer their hello when she

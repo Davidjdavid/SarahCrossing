@@ -83,7 +83,7 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] A secret character
 - [~] Every line in one spreadsheet for David to edit (docs/dialogue/dialogue.xlsx, 26 October: 6,694 lines with who
   says them and when, plus 399 new lines for the zip code, Post Office, Bank and Town Hall in every outcome; exported again
-  27 October with everything added since: 8,332 lines; again 29 October without the family's lines: 8,601, and with the night's new lines: 8,696); his edits go back
+  27 October with everything added since: 8,332 lines; again 29 October without the family's lines: 8,601, and with the night's new lines: 8,700); his edits go back
   in with scripts/dialogue/apply.mjs
 - [~] Way more dialogue, better dialogue, conversations that react to what's going on: about 1,340
   new lines (27+ everyday lines per neighbor, plus topics that react to the hour, weather, season,
@@ -189,7 +189,8 @@ Status: [x] done, [~] in progress, [ ] not started.
   while; the closer they are, the warmer the hello when she talks to them, and good friends talk about the friendship
   itself; sitting together is something they remember: 6zzc_greet.js; they remember more kinds of things too, a lunch or a hangout
   together, a letter, a photo with them in it, the catchphrase she gave them, and bring each up in their own words; stopped on their way
-  somewhere, they say where they're headed: to work, home for lunch, the harvest to Fortune's: onTheWay)
+  somewhere, they say where they're headed: to work, home for lunch, the harvest to Fortune's: onTheWay; a best friend who
+  walks over has now and then brought her a fruit, a flower or a shell: Greet.bring)
 - [ ] And so on: David will add more ideas here
 
 ## A lived-in island (David, 27 October: for later)
