@@ -61,7 +61,9 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [~] HD-2D step 5: a HUD that matches (done: the sample's dark glass and serif type in HD-2D), and a
   layout made for an upright phone (done: the camera frames Sarah low with the world above her, and the
   date line wraps clear of the buttons)
-- [ ] Must look good on phone, laptop and desktop (layout, text size, touch and mouse/keyboard)
+- [~] Must look good on phone, laptop and desktop (layout, text size, touch and mouse/keyboard) (29 October: every screen
+  checked at phone width, and the full-screen ones (the wheel, glazing, the easel, the salon chair, the sewing machine, the
+  arcade, the kitchen) upright and sideways: nothing runs off the side and every button can be reached; tests keep it so)
 
 ## The island
 - [x] A much larger island, laid out in districts: shopping/commercial, residential, forest,

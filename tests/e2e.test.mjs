@@ -4097,3 +4097,45 @@ test('neighbors remember more: a photo with them in it, a letter, a lunch, a han
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test("on a phone, upright and sideways, the full-screen ones fit too: Sully's wheel, glazing, the easel, the salon chair, the sewing machine, arcade cabinets, the kitchen; nothing off the side, every button in reach", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const out = {};
+  for (const [w, h] of [[390, 844], [844, 390]]) {
+    await page.setViewportSize({ width: w, height: h });
+    out[w + 'x' + h] = await page.evaluate(async () => {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms)), res = {}, say = UI.say, ask = UI.ask;
+      UI.say = async () => {}; UI.ask = async () => 0;
+      const W = innerWidth, H = innerHeight, all = () => [...document.querySelectorAll('#studio *, #arcade *, #panel *')].filter((e) => e.offsetParent);
+      /* off the side; or a button below the screen with nothing to scroll it into view */
+      const off = () => all().filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.right > W + 1 || r.left < -1); }).length;
+      const lost = () => all().filter((b) => {
+        if (b.tagName !== 'BUTTON' || b.getBoundingClientRect().bottom <= H + 1) return false;
+        for (let p = b.parentElement; p; p = p.parentElement) { const cs = getComputedStyle(p); if (/(auto|scroll)/.test(cs.overflowY) && p.scrollHeight > p.clientHeight) return false; }
+        return true;
+      }).length;
+      const check = async (name, start, stop) => {
+        start(); await wait(700);
+        const o = off(), l = lost();
+        if (o || l) res[name] = { off: o, lost: l };
+        try { stop(); } catch (e) { /* (closed already) */ }
+        await wait(250);
+      };
+      try {
+        await check('wheel', () => Wheel.run(), () => Wheel.finish(null));
+        await check('glaze', () => Glaze.run({ id: 'tp', kind: 'mug', name: 'Test mug', h: 11, mask: profileMask(fixProf({ h: 11, r: [4.3, 4.3, 4.3, 4.3, 4.3, 4.2, 4], handle: true })), glaze: null, state: 'green' }), () => Glaze.finish(false));
+        await check('easel', () => paintAtEasel('home'), () => Studio.close());
+        await check('salon', () => salonChair(), () => { Studio.close(); UI.close(true); });
+        await check('sewing', () => sewingMachine(), () => { Studio.close(); UI.close(true); });
+        for (const id of ['blocks', 'sushi', 'fortune']) await check('arcade ' + id, () => __dbg.arcade(id), () => Arcade.close(true));
+        await check('kitchen', () => { const r = RECIPES[0]; for (const [k, n] of Object.entries(r.need)) __dbg.give(k, n); cookDish(r); }, () => Arcade.close(true));
+      } finally { UI.say = say; UI.ask = ask; }
+      return res;
+    });
+  }
+  assert.deepEqual(out, { '390x844': {}, '844x390': {} });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
