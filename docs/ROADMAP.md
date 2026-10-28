@@ -413,10 +413,11 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   every game, every neighbor's talk menu...), so nothing quietly breaks again (buying and selling at Fortune's had,
   since 26 October, with no test catching it)
   (29 October: started. Played the way a player does: buying and selling at Fortune's and a pocketful in one go, buying
-  at every other shop, the tools (wood, felling, digging, shaking, fishing), growing, cooking, pottery, painting, the
-  phone, camera and its own apps, the salon, the sewing machine, the prize counter, decorating, gifts, a favor, a bigger
-  house, island jobs, every arcade cabinet, the games with neighbors, and every option of every neighbor's talk menu;
-  every screen opens, and fits a phone)
+  at every other shop, the tools (wood, felling, digging, shaking, fishing), growing, cooking (every kind of step in the
+  kitchen, played to gold), pottery (the wheel, glazing, the kiln), painting, the phone, camera and its own apps, the
+  salon, the sewing machine, the prize counter, the claw machine, the noodle cart, the mailbox, decorating, gifts, a
+  favor, a bigger house, island jobs, every arcade cabinet, the games with neighbors, and every option of every
+  neighbor's talk menu; every screen opens, and fits a phone)
 - [~] The game as something played for months: tedious chores, awkward pacing, confusing screens, frustrating
   activities (29 October: started. Fortune's sells a pocketful of fish, fruit or shells in one go)
 

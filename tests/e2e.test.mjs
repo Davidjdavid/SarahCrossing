@@ -3947,3 +3947,83 @@ test('cooking, the way a player does: every kind of step played in the kitchen (
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test("an evening, the way a player does: a bowl of the night's special at Basil's noodle cart (Thai spicy), and a letter's present taken from the mailbox", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms)), out = {};
+    const until = async (fn, ms = 8000) => { for (const end = Date.now() + ms; Date.now() < end; await wait(40)) { const v = fn(); if (v) return v; } return null; };
+    const tap = async (sel, re) => { const b = await until(() => [...document.querySelectorAll(sel)].find((q) => re.test(q.textContent) && q.offsetParent)); if (!b) throw new Error('no button ' + re); b.click(); };
+    // (setTime takes the month, the day and the hour: 10 PM on 5 June, when Basil's at the cart)
+    __dbg.setTime(6, 5, 22); Plans.reset(); NPCs.place(true);
+    const say = UI.say; UI.say = async () => {};
+    try {
+      const n = NPCs.get('basil'); rel('basil').met = true;
+      const special = CART_MENU[hash32(S.seed + ':cart:' + Clock.dayNum()) % CART_MENU.length], m0 = S.money, had = pocketCount(special);
+      out.atCart = n.spotKey === 'cart' && G.areas.island.ents.some((e) => e.kind === 'cart');
+      const job = talkTo(n);
+      await tap('#choices .choice', /^One bowl/);
+      await tap('#choices .choice', /^Thai spicy/);
+      await Promise.race([job, wait(5000)]);
+      out.bowl = pocketCount(special) === had + 1 && S.money === m0 - CART_PRICE;
+      sendMail({ from: 'kai', subject: 'Found this on the beach', body: 'Thought of you.\n- Kai', gift: 'conch' });
+      const g0 = pocketCount('conch');
+      await openMailbox();
+      await tap('#panel .list .row', /Found this on the beach/);
+      await tap('#panel .pfoot button', /^Take it$/);
+      const mail = S.mail.find((m) => m.subject === 'Found this on the beach');
+      out.mail = mail.read && mail.claimed && pocketCount('conch') === g0 + 1 && /taken/.test(document.querySelector('#panel .pfoot').textContent);
+      UI.close(true);
+    } finally { UI.say = say; }
+    return out;
+  });
+  assert.deepEqual(res, { atCart: true, bowl: true, mail: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('the claw machine, the way a player does: paid at the machine, the claw steered over the highest plushie and dropped, tried again until one comes home in the pocket', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms)), out = { tries: 0 };
+    const until = async (fn, ms = 8000) => { for (const end = Date.now() + ms; Date.now() < end; await wait(40)) { const v = fn(); if (v) return v; } return null; };
+    const tap = async (sel, re) => { const b = await until(() => [...document.querySelectorAll(sel)].find((q) => re.test(q.textContent) && q.offsetParent)); if (!b) throw new Error('no button ' + re); b.click(); };
+    __dbg.setTime(6, 5, 14);
+    await enterRoom('arcade');
+    const say = UI.say; UI.say = async () => {};
+    const A = arc(), won0 = A.won || 0, m0 = S.money, plushes = () => S.pocket.filter((q) => q && /^plush_/.test(q.id)).reduce((a, q) => a + q.n, 0), p0 = plushes();
+    try {
+      const machine = G.area.items.find((i) => i.id === 'claw_machine');
+      // (a grab right over the middle holds nine times in ten, and now and then a plushie slips: six tries at most)
+      for (let k = 0; k < 6 && (A.won || 0) === won0; k++) {
+        out.tries++;
+        const job = machine.use();
+        await tap('#choices .choice', /^Try it/);
+        const g = await until(() => Arcade.on && Arcade.state === 'play' && Arcade.g && Arcade.g.pile && Arcade.g);
+        const goal = g.pile.slice().sort((a, b) => g.top(a) - g.top(b))[0], up = g.update.bind(g);
+        g.update = (inp) => {
+          up(inp);
+          if (g.phase !== 'aim') { Arcade.held.left = Arcade.held.right = false; return; }
+          const d = goal.x - g.x;
+          Arcade.held.right = d > 0.5; Arcade.held.left = d < -0.5;
+          if (Math.abs(d) <= 0.5) Arcade.tap.drop = true;
+        };
+        await until(() => Arcade.state === 'over', 30000);
+        await wait(300);
+        [...document.querySelectorAll('#arcade .ar-card button')].find((b) => /^Done/.test(b.textContent) && b.offsetParent).click();
+        await Promise.race([job, wait(5000)]);
+      }
+      out.won = (A.won || 0) === won0 + 1 && plushes() === p0 + 1;
+      out.paid = S.money === m0 - CLAW_FEE * out.tries;
+    } finally { UI.say = say; }
+    delete out.tries;
+    return out;
+  });
+  assert.deepEqual(res, { won: true, paid: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
