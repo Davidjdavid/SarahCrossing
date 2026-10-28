@@ -3412,3 +3412,106 @@ test("a favor and a bigger house, the way a player does: \"Need anything?\" in t
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test('friendship that shows: a neighbor who knows Sarah waves, a friend walks over to say hello, a good friend sits beside her on a bench, and a best friend greets her warmly', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(14, 0, 14);
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms)), out = {}, a = G.areas.island, p = G.player;
+    const until = async (fn, ms) => { for (const end = Date.now() + ms; Date.now() < end; await wait(100)) if (fn()) return true; return false; };
+    /* Sarah a few tiles from a neighbor who's free right now */
+    const near = (id, d) => {
+      const n = NPCs.get(id), nx = Math.floor(n.x / TILE), ny = Math.floor((n.y - 2) / TILE);
+      for (let r = d; r < d + 4; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || a.blockedAt(nx + dx, ny + dy)) continue;
+        const path = findPath(a, nx, ny, nx + dx, ny + dy, 1500);
+        if (!path || path.length > d + 4) continue;
+        p.x = (nx + dx + 0.5) * TILE; p.y = (ny + dy + 0.6) * TILE; p.path = null;
+        return n;
+      }
+      return n;
+    };
+    const free = NPCs.here().filter((n) => Chats.free(n) && TALK[n.id] && !n.fixed && n.anchor && !n.def.goat && n.id !== 'joe');
+    /* (whatever they're in the middle of, set aside) */
+    const ready = (n) => { if (n.chat) Chats.end(n.chat); n.idle = null; n.path = null; n.chatCool = 0; return n; };
+    // left to itself: someone who knows her (a heart) waves from where they are, with a word over their head
+    const w = ready(free[0]);
+    rel(w.id).met = true; rel(w.id).pts = HEARTS[1];
+    near(w.id, 3);
+    Greet.day = -1;
+    out.waved = await until(() => Greet.done[w.id] || Greet.n > 0, 30000);
+    out.bubble = await until(() => Object.keys(Greet.done).some((id) => Bubbles.map.has(NPCs.get(id))), 15000);
+    // a heart's pose wears off (it used to stay on: the New Year's cheer)
+    const g = NPCs.get(w.id);
+    g.pose = 'wave'; g.poseT = 5;
+    out.poseOff = await until(() => g.pose === null, 3000);
+    // a friend (three hearts) walks over and says hello beside her
+    const f = ready(free.find((n) => n !== w));
+    rel(f.id).met = true; rel(f.id).pts = HEARTS[3];
+    near(f.id, 5);
+    out.came = Greet.comeOver(f);
+    out.arrived = await until(() => !f.path && Math.hypot(f.x - p.x, f.y - p.y) < 2.5 * TILE, 15000);
+    // a good friend (four hearts) sees her on a bench and sits in the other seat
+    const b = benches().find((q) => !seatTaken(q, 0) && !seatTaken(q, 1));
+    const bp = benchSeatPos(b, 0);
+    p.x = bp.x; p.y = bp.y + TILE;
+    await sitOnBench({ px: b.x, py: b.y });
+    const s = ready(free.find((n) => n !== w && n !== f));
+    rel(s.id).met = true; rel(s.id).pts = HEARTS[4];
+    const sp = benchSeatPos(b, 1), [stx, sty] = a.nearestFree(Math.floor(sp.x / TILE) + 4, Math.floor(sp.y / TILE), 4);
+    s.x = (stx + 0.5) * TILE; s.y = (sty + 0.5) * TILE + 4;
+    out.sitting = !!p.sit && Greet.sitBy(s, p.sit);
+    out.beside = await until(() => isSeated(s) && s.want.sit.b === b, 15000);
+    // and talking to a best friend, the hello is warm now and then
+    rel(s.id).pts = HEARTS[5];
+    const lines = new Set();
+    for (let i = 0; i < 200; i++) lines.add(openerLine(s, true));
+    out.warm = [...lines].some((l) => OPEN_CLOSE.some((o) => l.includes(fillText(o).slice(0, 12)) || l.includes(o.slice(0, 12))));
+    return out;
+  });
+  assert.deepEqual(res, { waved: true, bubble: true, poseOff: true, came: true, arrived: true, sitting: true, beside: true, warm: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test("the newcomers' houses: the first to stay while both plots are free lets Sarah pick, the other takes the plot that's left", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const said = [], say = UI.say, ask = UI.ask, asked = [];
+    UI.say = async (w, t) => { said.push([].concat(t).join(' ')); };
+    let answers = [];
+    UI.ask = async (w, t, opts) => { asked.push(opts.join(' / ')); return answers.length ? answers.shift() : 0; };
+    const out = {};
+    try {
+      // Muggy asks first: yes, and the plot by the west lane (its own is by the farm lane)
+      mugState().stage = 5;
+      answers = [0, 1];
+      await mugAsk(NPCs.get('mug') || { emote: null });
+      out.mugPicked = [mugStage(), newcomerLot('mug'), asked.some((q) => /West lane/i.test(q) && /farm lane/i.test(q))].join();
+      mugMoveIn();
+      const A = W0.lots.land_a, B = W0.lots.land_b, at = (b, l) => !!b && b.x === l.x && b.y === l.y;
+      out.mugHouse = at(W0.buildings.h_mug, A);
+      // then Shrimpy: no question about where, the farm lane's plot is the one left
+      seaState().stage = 7;
+      asked.length = 0;
+      answers = [0];
+      await seaTalk(NPCs.get('scampi'));
+      out.seaLot = [seaStage(), newcomerLot('scampi'), asked.length, said.some((l) => /plot by the farm lane it is/i.test(l))].join();
+      seaState().stage = 8; seaState().day = Clock.dayNum();
+      await seaMoveIn();
+      out.seaHouse = at(W0.buildings.h_scampi, B);
+      // both FOR SALE signs are down
+      rebuildIsland();
+      const signs = W0.props.map((p, i) => [p, i]).filter(([p]) => p.kind === 'sign_land');
+      out.signs = signs.length > 0 && signs.every(([, i]) => !G.areas.island.ents.some((e) => e.propIdx === i));
+    } finally { UI.say = say; UI.ask = ask; }
+    return out;
+  });
+  assert.deepEqual(res, { mugPicked: '6,land_a,true', mugHouse: true, seaLot: '8,land_b,1,true', seaHouse: true, signs: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});

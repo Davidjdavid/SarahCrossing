@@ -5,7 +5,7 @@
    something each day: ten logs (while he's short, chopping down a tree drops a sturdy log beside the wood), then ten
    home-cooked meals for the voyage, then five gems for the compass and the ballast. On the morning tide he sails off, a
    little send-off with a gift, and a few days later his boat is back at the pier: he'd like to drop anchor for good. If
-   Sarah says yes he takes the plot for sale by the west lane (land_a) the next morning, works the farm's fields, and
+   Sarah says yes he takes a plot for sale (she picks which: newcomerLot) the next morning, works the farm's fields, and
    brings seeds and recipes from his travels. He's one of the island's secret neighbors (the Collection's last page).
    Kept as S.sea { from, stage, day, next, got: { logs, meals, gems } }; stage: 0 not yet, 1 washed up, 2 logs, 3 meals,
    4 gems, 5 sailing the next morning (day: that morning), 6 away (since day), 7 back at the pier, 8 moving in (day: the
@@ -60,6 +60,34 @@ function seaState() {
 function seaStage() { return (S && S.sea && S.sea.stage) || 0; }
 /* living here (the house is up): he joins the neighbors */
 function seafarerHere() { return seaStage() >= 9; }
+/* where a newcomer's house goes (the roadmap: "Sarah picks where their house goes"): the first to ask to stay while both
+   plots for sale are free lets her pick, the other takes what's left (S.lots { scampi, mug }); with no pick, as it always
+   was, Shrimpy by the west lane and Muggy by the farm lane */
+const LOT_NAMES = { land_a: 'the plot by the west lane', land_b: 'the plot by the farm lane' };
+function newcomerLot(id) {
+    const L = (S && S.lots) || {}, mine = id === 'scampi' ? 'land_a' : 'land_b', other = id === 'scampi' ? 'mug' : 'scampi';
+    if (L[id]) return L[id];
+    return L[other] === mine ? (mine === 'land_a' ? 'land_b' : 'land_a') : mine;
+}
+/* the plots a newcomer asking to stay could take: not the other's, once the other has said they're staying */
+function freeLots(id) {
+    const staying = id === 'scampi' ? mugStage() >= 6 : seaStage() >= 8;
+    const taken = staying ? newcomerLot(id === 'scampi' ? 'mug' : 'scampi') : null;
+    const own = newcomerLot(id);
+    return [own, own === 'land_a' ? 'land_b' : 'land_a'].filter(k => W0.lots && W0.lots[k] && k !== taken);
+}
+/* asked once they're staying: which plot (only a question when there's a choice) */
+async function pickLot(id, line) {
+    const lots = freeLots(id);
+    let lot = lots[0] || newcomerLot(id);
+    if (lots.length > 1) {
+        const k = await UI.ask(id, line, lots.map(l => cap(LOT_NAMES[l])), { keep: true });
+        lot = lots[k] || lot;
+    }
+    S.lots = Object.assign({}, S.lots, { [id]: lot });
+    return lot;
+}
+
 /* his building site on the beach east of the pier (the plan's lot, W0.lots.sailor) */
 function seaSite() { const l = (W0.lots && W0.lots.sailor) || { x: 124, y: 123, w: 3, h: 3 }; return { x: l.x + l.w / 2, y: l.y + l.h / 2, l }; }
 
@@ -79,12 +107,12 @@ function seaJoin() {
     if (!seafarerHere()) return;
     if (!NEIGHBORS.includes('scampi')) NEIGHBORS.push('scampi');
     if (!VS_SKILL.scampi) VS_SKILL.scampi = 0.5;
-    const l = W0.lots && W0.lots.land_a;
+    const l = W0.lots && W0.lots[newcomerLot('scampi')];
     if (l && !W0.buildings.h_scampi) W0.buildings.h_scampi = { x: l.x, y: l.y, w: 3, h: 3, door: 1, sprite: 'house_scampi' };
 }
 /* is a plot for sale taken (its FOR SALE sign comes down) */
 function lotTaken(x, y) {
-    const l = W0.lots && W0.lots.land_a;
+    const l = W0.lots && W0.lots[newcomerLot('scampi')];
     return !!(l && seafarerHere() && x >= l.x && x < l.x + l.w && y >= l.y && y < l.y + l.h);
 }
 async function seaMoveIn() {
@@ -92,7 +120,7 @@ async function seaMoveIn() {
     Q.stage = 9; Q.home = Clock.dayNum();
     rel('scampi').met = false;          // (his first word as a neighbor is a proper hello: TALK.scampi.intro)
     seaJoin();
-    townLog('Captain Shrimpy drops anchor for good and moves in by the west lane.');
+    townLog(`Captain Shrimpy drops anchor for good and moves in on ${LOT_NAMES[newcomerLot('scampi')]}.`);
     earnSpecial('friend_scampi', 'A secret neighbor: Captain Shrimpy stayed!');
     sendMail({ from: 'scampi', subject: 'Landlubber at last', body: "Ahoy, matey!\nGinger had me house up by sunrise. Swore at a hammer only twice. The roof's blue, like the sea, so I don't get homesick.\nYe'll find me in the fields most mornings. Come by for a shanty.\n- Capt. Shrimpy\n\nP.S. A packet of pumpkin seeds from the far islands, for yer garden. Fortune's stocking 'em now, and sweet corn too.", gift: 'seed_pumpkin' });
     if (typeof rebuildIsland === 'function' && G.areas && G.areas.island) rebuildIsland();
@@ -210,9 +238,11 @@ async function seaTalk(n) {
     if (st === 7) {
         await say(["Ahoy! Couldn't keep away, could I? The sea's grand, but... I missed the place. The fields, the gulls, yer cooking. Ye.",
             "So here's the thing. An old salt's got to drop anchor some time."]);
-        const k = await UI.ask(id, "Would ye mind if I stayed? For good? I'd take the plot for sale by the west lane, and I'm handy on a farm. Well. I could learn.", ["Yes! Stay!", 'Maybe later']);
+        const k = await UI.ask(id, "Would ye mind if I stayed? For good? I'd take one of the plots for sale, and I'm handy on a farm. Well. I could learn.", ["Yes! Stay!", 'Maybe later']);
         if (k === 0) {
-            await say(["HA HA! Yer a treasure, matey! I'll have Ginger raise me a house by morning. Blue roof. Like the sea.", "Captain Shrimpy, landlubber. Who'd have thought it!"]);
+            await say(["HA HA! Yer a treasure, matey!"]);
+            const lot = await pickLot(id, 'Now, which plot should an old salt drop anchor on? Ye pick, matey. Ye know these waters.');
+            await say([`${cap(LOT_NAMES[lot])} it is! I'll have Ginger raise me a house there by morning. Blue roof. Like the sea.`, "Captain Shrimpy, landlubber. Who'd have thought it!"]);
             Q.stage = 8; Q.day = day + 1;
             n.emote = 'heart'; n.emoteT = 90;
         } else await say(["Fair winds. I'll ask again tomorrow, if ye'll let an old shrimp try."]);

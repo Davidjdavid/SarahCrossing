@@ -26,6 +26,8 @@ const OPENERS = {
 const OPENER_ANY = ['Oh, hi, {name}!', 'Hey, {name}!', 'Hi there!', 'Oh! Hi!'];
 function openerLine(n, first) {
     const id = n.id, own = OPENERS[id] || OPENER_ANY;
+    const close = closeOpener(n, first);          // (how close they are: 6zzc_greet.js)
+    if (close) return close;
     if (first && R() < 0.5) {
         const greet = { morning: 'Good morning, {name}!', afternoon: 'Hi, {name}! Good afternoon!', evening: 'Good evening, {name}!', night: "Hey, {name}! Up late? Me too. Obviously." }[partOfDay()];
         return voiced(id, greet);

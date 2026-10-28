@@ -66,6 +66,7 @@ async function sitOnBench(e) {
         buddy.emote = 'heart'; buddy.emoteT = 60;
         await UI.say(buddy.id, voiced(buddy.id, rpick(BENCH_BUDDY)));
         const r = rel(buddy.id), day = Clock.dayNum();
+        remember(buddy.id, 'bench');
         if (r.met && r.benchDay !== day) { r.benchDay = day; const up = addPts(buddy.id, 2); if (up) await heartUp(buddy, up); }
         return;
     }

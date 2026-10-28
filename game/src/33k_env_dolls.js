@@ -118,6 +118,8 @@ const EnvDolls = {
         dig1: { aF: [-1.5, -1.5], aO: [0.15, 0.15], bend: -0.05 },
         // (watering: the can held out in the right hand and tipped forward, the left at her side)
         water: { aF: [-0.25, -1.05], aO: [0.15, 0.18], bend: 0.1 },
+        // (a neighbor waving hello, still facing whoever it's for: 6zzc_greet.js)
+        wave: { aF: [0, -0.2], aO: [0.18, 2.6], face: 1 },
     },
     pose(d, e) {
         const walk = !!(e.moving || e.walking || e.glide || e.pose === 'walk'), run = walk && !!e.run && !e.glide, t = G.t;

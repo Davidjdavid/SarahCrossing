@@ -177,11 +177,13 @@ Status: [x] done, [~] in progress, [ ] not started.
   personal at four and five hearts, favors, and invitations by text to lunch, to hang out, to come by for news or a
   present; and the neighbors' own friendships: a bond between each two that the storylines move, chats raise a little
   and time mends, so close friends chat more, two who've fallen out don't for a few days, and they say so)
-- [ ] Friendship that shows (David's last list, 27 October): how close a neighbor is changes how they greet Sarah, what
+- [~] Friendship that shows (David's last list, 27 October): how close a neighbor is changes how they greet Sarah, what
   they do with her and how they act around her; now and then they wave, come over, sit down beside her or say hello
   without her starting it; conversations fit the moment better (friendship, place, weather, what's happened lately,
   what they're doing right then); and they remember more kinds of things (gifts, earlier conversations, things done
   together) and bring them up in more ways
+  (29 October: started. Without her starting it, one who knows her waves, a friend walks over to say hello, a good
+  friend sits beside her on a bench; the closer they are, the warmer the hello when she talks to them: 6zzc_greet.js)
 - [ ] And so on: David will add more ideas here
 
 ## A lived-in island (David, 27 October: for later)
@@ -530,7 +532,7 @@ Office's and the Bank's keepers are still to be picked.
 - [x] Customize the look and color of the mailbox (seven colors, free; a cottage, a fish and a lighthouse to buy once, painted in the color picked)
 
 ### Town Hall
-- [ ] (David, 27 October: for later) Take David's statue off the island, and later bring a statue back as a town project:
+- [x] (David, 27 October: for later) Take David's statue off the island, and later bring a statue back as a town project:
   Sarah saves up for it in the town's projects fund (with the Bank's investments), and when it's built it's a statue of
   Sarah; a day or two after it goes up, she can have it changed to David or to another of the island's characters or
   to an object instead

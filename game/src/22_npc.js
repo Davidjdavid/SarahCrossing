@@ -365,6 +365,7 @@ const NPCs = {
         }
         Chats.update();
         TreeShakers.update();
+        Greet.update();          // (a wave, a hello, a seat beside her: 6zzc_greet.js)
     },
 };
 
@@ -522,6 +523,7 @@ function walkNpc(n, tx, ty, done) {
 function updateNPC(n) {
     n.t++;
     if (n.emoteT > 0 && --n.emoteT === 0) n.emote = null;
+    if (n.poseT > 0 && --n.poseT === 0) n.pose = null;
     const d = n.def;
     n.hit.x = n.x - 9; n.hit.y = n.y - n.h - 4; n.hit.w = 18; n.hit.h = n.h + 8;
     // Wonton sits in the middle of the spring, behind its rock rim: he can be talked to from any side of the rim,
@@ -563,8 +565,10 @@ function updateNPC(n) {
     // something of their own for a while: a book, an ice cream, the stars (33kd_doll_idle.js)
     if (n.idle) return;
     if (n.t % 120 === 60 && R() < 0.45) { idleStart(n); if (n.idle || n.path) return; }
-    // idle: sometimes turn toward whoever is nearby, sometimes wander a little
+    // idle: sometimes turn toward whoever is nearby, sometimes wander a little (a friend turns to Sarah when she's close:
+    // 6zzc_greet.js)
     if (n.t % 70 === 0) {
+        if (Greet.watch(n) && R() < 0.7) { faceNpc(n, G.player); return; }
         const buddy = NPCs.here().find(o => o !== n && !o.path && Math.hypot(o.x - n.x, o.y - n.y) < 34);
         if (buddy && R() < 0.5) { faceNpc(n, buddy); return; }
     }

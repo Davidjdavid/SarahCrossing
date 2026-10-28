@@ -286,6 +286,11 @@ docs/DEPLOY.md for the server.
   fallen out (`BOND_OUT`) don't chat (`Chats.ok`); close friends have chats of their own and two who've just made up say so
   for a few days (`CHAT_CLOSE`, `CHAT_MENDED`, `S.mended`, through `bondChats` in `Chats.pick`); they talk about it
   (`bondLine`, a talk topic) and the census says who's close (`bestFriendOf`).
+- Friendship that shows (6zzc_greet.js, `Greet`, from `NPCs.update`): without Sarah starting it, a neighbor who knows her
+  (a heart) waves from where they are (the `wave` pose, `EnvDolls.POSES`, `poseFolk2`), a friend (three) walks over to say
+  hello (`comeOver`), a good friend (four) who sees her on a bench sits in its other seat (`sitBy`); a word in a bubble,
+  never a dialogue; once a day each, `GREET_MAX` a day. The closer they are, the warmer their hello when she talks to them
+  (`closeOpener` in openerLine). A neighbor's `poseT` counts down in updateNPC like Sarah's.
 - Friendship is earned over days (David, 28 October): `addPts(id, n, kind)` counts each kind of thing (favor, hangout,
   letter, job, treat, story...) once a day with each neighbor (`r.got` { day, kind: 1 }); the first talk, a gift, a game
   together and the rest keep their own day fields. Joe starts at 100 and never goes down.
@@ -384,7 +389,9 @@ docs/DEPLOY.md for the server.
   then the frame, then the ship stand on the beach (`seaRefresh`, `wreck` / `ship_frame` / `ship_scampi` from
   props_island.py); he sails off the next morning (`seaDepart`: his compass, the boat out to sea as one of SeaSky's;
   by himself with a letter if Sarah missed him), is back at the pier three days later and asks to stay; the next morning
-  he lives on the plot by the west lane (`land_a`, `h_scampi`, its FOR SALE sign gone: `lotTaken`), a neighbor
+  he lives on a plot for sale (`h_scampi`, its FOR SALE sign gone: `lotTaken`; the first newcomer to stay while both
+  are free lets Sarah pick, `pickLot`, the other takes what's left, `newcomerLot`, kept as `S.lots`; with no pick
+  Shrimpy's is `land_a` by the west lane and Muggy's `land_b` by the farm lane), a neighbor
   (`seaJoin`) who works the farm (`work` with `tend`) and one of the Collection's secret neighbors (`friend_scampi`). He
   brings the far islands' things (`FAR_VEG`, `FAR_DISHES`, `farOk`: hidden till then): pumpkin and sweet corn seeds at
   Fortune's, four recipes taught a heart at a time (`RECIPE_FROM.scampi`), their pictures drawn in code (`FAR_ICONS`),
@@ -399,7 +406,7 @@ docs/DEPLOY.md for the server.
   mug stands in the hall that day (`mugTarget`). The next day, the first time Sarah's out on the island (`mugCheck`, every
   second from the main loop), it comes bounding up (`mugVisit`), alive all along, and asks to stay (`mugAsk`); the
   morning after, Muggy's café is open on the alley's lot (`W0.buildings.cafe`, `bld_cafe` from buildings.py; the COMING
-  SOON sign comes down: `cafeOpen`) and the mug lives on the plot by the farm lane (`land_b`, `h_mug`). The café
+  SOON sign comes down: `cafeOpen`) and the mug lives on its plot (`h_mug`, `newcomerLot`). The café
   (`ROOMS.cafe`, `buildCafeRoom`, open 7 AM to 5 PM with Muggy behind the counter) sells four coffees (`CAFE_MENU`,
   `cafeMenu`: the first free, for here or to go; models `item_drink_*` in dishes.py), and a coffee always perks Sarah
   up (`coffeeBoost`, the Speedy boost; `foodBonus` for one to go). For here, a friend can be texted to come along as at

@@ -34,7 +34,7 @@ const FAV_NAMES = { bench_pond: 'The bench by the pond', pier_end: 'The very end
     harbor: 'Down by the harbor', oldtree: 'The big old tree in the forest', meadow: 'The meadow up the hill', statue: 'The statue' };
 /* what they've done with Sarah, said short (S.npcs[id].mem) */
 const MEM_SHORT = { gift: 'You gave them {item}', game: 'You had a {game} together', favor: 'You helped them out', visit: 'You came over to their house',
-    gather: 'A night out with the whole island', newyear: 'You counted down to the new year together', coffee: "Coffee together at Muggy's", lost: 'You found their {what}' };
+    gather: 'A night out with the whole island', newyear: 'You counted down to the new year together', coffee: "Coffee together at Muggy's", lost: 'You found their {what}', bench: 'You sat on a bench together' };
 
 function agoWords(day) {
     const n = Clock.dayNum() - day;

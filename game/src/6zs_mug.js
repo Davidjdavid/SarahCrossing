@@ -6,7 +6,7 @@
    under each: five in all. Brulee fetches Sully, who joins them with gold in the cracks: a giant mug, on show in the
    museum's hall for the day. The next day, the first time Sarah is out on the island, the mug comes bounding up: it was
    alive all along. It would like to stay and open the coffee shop on the alley's lot (the COMING SOON sign); the next
-   morning Muggy's is open and the mug lives on the plot by the farm lane (land_b). A coffee at the counter, or one to
+   morning Muggy's is open and the mug lives on the plot Sarah picked (land_b by the farm lane unless she picked otherwise: newcomerLot). A coffee at the counter, or one to
    go, always perks Sarah up (Speedy). One of the Collection's secret neighbors.
    Kept as S.mug { stage, day, found, dug, visit, visited, free }; stage: 0 not yet, 1 Brulee's letter has come,
    2 digging, 3 all five found, 4 put together (day), 5 the visit, 6 said yes (day), 7 living here. */
@@ -88,14 +88,14 @@ function mugJoin() {
     if (!mugHere()) return;
     if (!NEIGHBORS.includes('mug')) NEIGHBORS.push('mug');
     if (!VS_SKILL.mug) VS_SKILL.mug = 0.6;
-    const l = W0.lots && W0.lots.land_b, c = cafeLot();
+    const l = W0.lots && W0.lots[newcomerLot('mug')], c = cafeLot();
     if (l && !W0.buildings.h_mug) W0.buildings.h_mug = { x: l.x, y: l.y, w: 3, h: 3, door: 1, sprite: 'house_mug' };
     if (!W0.buildings.cafe) W0.buildings.cafe = { x: c.x, y: c.y, w: 4, h: 3, door: 2, sprite: 'cafe' };
 }
 /* the COMING SOON sign comes down once the café is up, and the plot's FOR SALE sign once the house is */
 function cafeOpen() { return mugHere(); }
 function mugLotTaken(x, y) {
-    const l = W0.lots && W0.lots.land_b;
+    const l = W0.lots && W0.lots[newcomerLot('mug')];
     return !!(l && mugHere() && x >= l.x && x < l.x + l.w && y >= l.y && y < l.y + l.h);
 }
 function mugMoveIn() {
@@ -282,7 +282,10 @@ async function mugAsk(n) {
     const Q = mugState();
     const k = await UI.ask('mug', "So... there's a little lot by the alley with a COMING SOON sign. What if what's coming soon... is a coffee shop? Run by a mug? Could I stay?", ['Yes! Stay!', 'Let me think'], { keep: true });
     if (k === 0) {
-        await UI.say('mug', ["YESSS! Okay! I'll talk to Ginger! She can build it by tomorrow, I just know it. A cookie with a hammer. Unstoppable.",
+        await UI.say('mug', ["YESSS! Okay! I'll talk to Ginger! She can build it by tomorrow, I just know it. A cookie with a hammer. Unstoppable."], { keep: true });
+        // (and where it'll live: Sarah picks the plot if there's a choice, 6zr_seafarer.js)
+        const lot = await pickLot('mug', "Oh! And I'll need somewhere to live. Somewhere cozy, near my café. Which plot should I take?");
+        await UI.say('mug', [`${cap(LOT_NAMES[lot])}! Perfect. I can already see my little shelf of me-shaped cups.`,
             "Muggy's. That's what I'll call it. Come by tomorrow for your first cup. On the house!"]);
         Q.stage = 6; Q.day = Clock.dayNum();
         n.emote = 'heart'; n.emoteT = 90;
