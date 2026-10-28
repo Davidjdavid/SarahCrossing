@@ -204,6 +204,8 @@ const EnvRoom = {
     },
     drawScreen(s) {
         const e = s.e, c = s.c, g = c.getContext('2d'), W = c.width, H = c.height, id = e.def.arcade;
+        // (the TV: static while it's on, dark glass while it's off, 6zyb_acting.js)
+        if (/^tv_retro/.test(e.def.id)) { const on = furnOn(e); if (s.drawn === 'off' && !on) return; s.drawn = on ? 'on' : 'off'; tvScreen(g, W, H, on); s.tex.needsUpdate = true; return; }
         g.setTransform(1, 0, 0, 1, 0, 0);
         g.fillStyle = '#10121e'; g.fillRect(0, 0, W, H);
         if (id === 'broken') return this.brokenScreen(s);
@@ -403,6 +405,12 @@ const EnvRoom = {
         if (t - (B.screenT || -99) >= 6) { B.screenT = t; for (const s of B.screens) this.drawScreen(s); }
         for (const mv of B.movers) {
             const id = mv.e.def && mv.e.def.id;
+            // (the record player's record turns about the piece's middle while it plays, 6zyb_acting.js)
+            if (/^record_player/.test(id)) {
+                if (furnOn(mv.e)) mv.a = ((mv.a || 0) + 0.07 * Math.min(4, (G.frameMs || 16.7) / 16.7)) % (Math.PI * 2);
+                mv.mesh.matrix.copy(mv.base).multiply((this._spin || (this._spin = new THREE.Matrix4())).makeRotationY(-(mv.a || 0)));
+                continue;
+            }
             const dx = id === 'claw_machine' ? -0.55 + (Math.sin(t / 50) + 1) * 0.5 : id === 'sushi_conveyor' ? (t * 0.004) % 0.4 : 0;
             mv.mesh.matrix.copy(mv.base).multiply(new THREE.Matrix4().makeTranslation(dx, 0, 0));
         }

@@ -92,7 +92,7 @@ function paintAnalyzeSprite(frame, plant) {
    save's colored pieces always stay what they are; a piece added later gets its colors here (paintTableMissing() works
    them out for whatever IslandMart sells that isn't listed, and a test fails until they're added) */
 const PAINT_TABLE = {
-    bed_simple: 'blue,pink,mint', table_wood: 'wood', chair_wood: 'wood', lamp_floor: 'wood',
+    bed_simple: 'blue,pink,mint', table_wood: 'wood', chair_wood: 'wood', lamp_floor: 'wood', tv_retro: 'wood', record_player: 'wood',
     rug_round: 'white,green,lilac', shelf_book: 'wood', plant_monstera: 'blue,pink,black',
     plant_cactus: 'white,black,blue', sofa_pink: 'blue,mint,black', clock_wall: 'wood',
     window_wall: 'green,yellow,black', hammock: 'wood', surfboard: 'black,yellow,green',

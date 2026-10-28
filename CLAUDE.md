@@ -288,9 +288,12 @@ docs/DEPLOY.md for the server.
   (`bondLine`, a talk topic) and the census says who's close (`bestFriendOf`).
 - Friendship that shows (6zzc_greet.js, `Greet`, from `NPCs.update`): without Sarah starting it, a neighbor who knows her
   (a heart) waves from where they are (the `wave` pose, `EnvDolls.POSES`, `poseFolk2`), a friend (three) walks over to say
-  hello (`comeOver`), a good friend (four) who sees her on a bench sits in its other seat (`sitBy`); a word in a bubble,
-  never a dialogue; once a day each, `GREET_MAX` a day. The closer they are, the warmer their hello when she talks to them
-  (`closeOpener` in openerLine). A neighbor's `poseT` counts down in updateNPC like Sarah's.
+  hello (`comeOver`, or brings up a memory from the last week), a good friend (four) who sees her on a bench sits in its
+  other seat (`sitBy`), and a best friend (five) now and then walks along with her for a minute or so (`walkWith`,
+  `walkTick` every frame: `n.script` and `n.escort`, quicker in stepNpc; it ends when she goes indoors or runs off); a word
+  in a bubble, never a dialogue; once a day each, `GREET_MAX` a day. The closer they are, the warmer their hello when she
+  talks to them (`closeOpener` in openerLine), and a good friend sometimes talks about the friendship itself
+  (`CLOSE_TALK`, one of topicLine's `EXTRA_TOPICS`). A neighbor's `poseT` counts down in updateNPC like Sarah's.
 - Friendship is earned over days (David, 28 October): `addPts(id, n, kind)` counts each kind of thing (favor, hangout,
   letter, job, treat, story...) once a day with each neighbor (`r.got` { day, kind: 1 }); the first talk, a gift, a game
   together and the rest keep their own day fields. Joe starts at 100 and never goes down.
@@ -298,7 +301,11 @@ docs/DEPLOY.md for the server.
   new look) or on an easel (`<id>_easel`, the shop's easel): decorating picks which (`ART_AS`), and put away it's the
   painting again (`artBase`). Fish, shells and gems sit on tables like food (`furnDef`'s `thing`).
 - A lamp or lantern in Sarah's house switches off and on with a tap (`lampSwitch`, `isLamp`; kept as `it.off`, no light
-  while off).
+  while off). So do the retro TV and the record player (6zyb_acting.js, models in furn_k.py, sold at IslandMart in their
+  woods; `furnSwitch`, kept as `it.play`, since `it.on` is what a thing on a table stands on): in the new look the TV's
+  screen (`*_screen`) shows static (`tvScreen`, from `EnvRoom.drawScreen`) and the record (`*_move`, centered on the
+  piece's middle) turns (`EnvRoom.animate`). Their flat pictures are rendered from the models; `sprites_to_atlas.py --add`
+  packs new pictures in with the ones already below the atlas's row 1024.
 - Props that act in the new look: a fire's, a torch's, a lantern's or a jack-o'-lantern's glow flickers (`EnvModels.FIRES`,
   the glow material's `fpre`), the fountains throw water up (33u_env_spray.js, `EnvSpray`: beads from each fountain's top
   near the view), and at night moths flutter round the nearest lit lamps and, on warm clear nights from May to September,

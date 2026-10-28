@@ -25,7 +25,7 @@ from trees_ac import vmat
 from furn_kit import ITEMS, Piece
 # the pieces register themselves as their files are read (only the batch asked for, when one is)
 _b = sys.argv[sys.argv.index('--batch') + 1] if '--batch' in sys.argv else None
-for _m in ([_b] if _b else ['furn_a', 'furn_b', 'furn_c', 'furn_d', 'furn_e', 'furn_f', 'furn_g', 'furn_h', 'furn_i', 'furn_j']):
+for _m in ([_b] if _b else ['furn_a', 'furn_b', 'furn_c', 'furn_d', 'furn_e', 'furn_f', 'furn_g', 'furn_h', 'furn_i', 'furn_j', 'furn_k']):
     try:
         __import__(_m)
     except ModuleNotFoundError:

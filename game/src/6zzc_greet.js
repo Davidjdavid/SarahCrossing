@@ -1,7 +1,8 @@
 /* ---------------------------------------------------------------- friendship that shows (David's last list, 27 October)
    How close a neighbor is shows in what they do when Sarah's about, without her starting it: one who knows her waves
    from where they are (a heart or more), a friend walks over to say hello (three), and a good friend who sees her sitting
-   on a bench comes and sits beside her (four). A word in a bubble over them, never a dialogue that stops her; once a day
+   on a bench comes and sits beside her (four), and a best friend (five) now and then walks along with her for a while.
+   A word in a bubble over them, never a dialogue that stops her; once a day
    each, a few a day in all, and never while she's busy. Talking to them, the closer they are the warmer the hello
    (`closeOpener`, from openerLine). */
 const GREET_MAX = 5;               // unprompted hellos a day, all told
@@ -26,6 +27,9 @@ const GREET_COME_BY = {
     scampi: ['Ahoy, {name}! Spotted ye off the starboard bow!'],
     mug: ['{name}! Hello! I came over on my own two... I came over!'],
 };
+const GREET_WALK = ['Mind if I walk with you for a bit?', "Where are we going? I'm coming too!", 'Ooh, a walk! Wait for me!', "Hey! I'll come with you."];
+const GREET_BYE = ['Okay, this is me. See you, {name}!', 'That was nice. Catch you later!', "I'm going to head off. Thanks for the walk!"];
+const GREET_LOST = ["Whoa, you're fast! See you later!", 'Wait up! ...Okay, never mind. Bye!'];
 const GREET_SIT = ['Mind if I sit? My feet have opinions.', 'Room for one more? Thanks, {name}.', 'Ahh. Good spot. You have the best taste in benches.',
     "Scooch! ...Kidding. There's room. Hi!", 'I saw you sitting here and thought, that looks nice.'];
 
@@ -38,6 +42,7 @@ const Greet = {
             && hearts(n.id) >= 1 && Math.hypot(n.x - p.x, n.y - p.y) < maxD * TILE && Math.hypot(n.x - p.x, n.y - p.y) > 1.6 * TILE);
     },
     update() {
+        this.walkTick();
         if (G.mode !== 'play' || UI.modal || G.busy || G.frame % 45 !== 20 || IslandGames.on || Online.visitor()) return;
         const day = Clock.dayNum(), p = G.player;
         if (this.day !== day) { this.day = day; this.n = 0; this.done = {}; }
@@ -51,6 +56,7 @@ const Greet = {
         const list = this.who(7);
         if (!list.length) return;
         const n = rpick(list), h = hearts(n.id);
+        if (h >= 5 && p.moving && !n.fixed && n.anchor && R() < 0.35 && this.walkWith(n)) return;
         if (h >= 3 && !n.fixed && n.anchor && !p.sit && this.comeOver(n)) return;
         this.wave(n);
     },
@@ -97,6 +103,50 @@ const Greet = {
         }
         return false;
     },
+    /* a best friend walks along with her for a while, as Animal Crossing's villagers do: a step or two behind, stopping
+       when she stops, off again after a minute or so, or when she goes indoors or runs off (n.escort, quicker in stepNpc) */
+    walk: null,
+    walkWith(n) {
+        if (this.walk || G.area.id !== 'island' || n.area !== 'island') return false;
+        this.mark(n);
+        if (n.chat) Chats.end(n.chat);
+        n.script = true; n.path = null; n.idle = null; n.escort = true;
+        this.walk = { n, until: G.frame + 60 * (40 + rint(0, 30)), next: 0 };
+        this.turn(n);
+        n.emote = 'heart'; n.emoteT = 70;
+        this.say(n, this.line(n, GREET_WALK));
+        return true;
+    },
+    walkEnd(lines) {
+        const w = this.walk;
+        if (!w) return;
+        this.walk = null;
+        const n = w.n;
+        n.script = false; n.escort = false; n.path = null; n.moving = false; n.segKey = null;
+        if (lines && n.area === G.area.id) this.say(n, this.line(n, lines));
+    },
+    walkTick() {
+        const w = this.walk;
+        if (!w) return;
+        const n = w.n, p = G.player, a = G.area, d = Math.hypot(n.x - p.x, n.y - p.y);
+        if (G.mode !== 'play' || n.area !== a.id || a.id !== 'island' || IslandGames.on || n.sleeping) { this.walkEnd(null); return; }
+        if (n.talking) return;
+        if (d > 12 * TILE) { this.walkEnd(GREET_LOST); return; }
+        if (G.frame > w.until && !n.path) { this.walkEnd(GREET_BYE); return; }
+        // (heading for where she was: a fresh way if she's moved on)
+        if (n.path && G.frame >= w.next && n.dest && Math.hypot(n.dest[0] - p.x, n.dest[1] - p.y) > 2.5 * TILE) n.path = null;
+        if (n.path) { stepNpc(n); return; }
+        n.moving = false;
+        if (G.frame < w.next) return;
+        w.next = G.frame + 20;
+        if (d < 1.8 * TILE) { faceNpc(n, p); return; }
+        const px = Math.floor(p.x / TILE), py = Math.floor((p.y - 2) / TILE), back = { up: [0, 1], down: [0, -1], left: [1, 0], right: [-1, 0] }[p.dir] || [0, 1];
+        for (const [tx, ty] of [[px + back[0], py + back[1]], [px - 1, py], [px + 1, py], [px, py + 1], [px, py - 1]]) {
+            if (a.blockedAt(tx, ty)) continue;
+            const path = findPath(a, Math.floor(n.x / TILE), Math.floor((n.y - 2) / TILE), tx, ty, 1500);
+            if (path && path.length && path.length < 30) { n.path = path; n.dest = [(tx + 0.5) * TILE, (ty + 0.5) * TILE + 4]; n.onArrive = null; return; }
+        }
+    },
     /* the other seat on Sarah's bench, if it's free (as a neighbor sits on their own, 33kd_doll_idle.js idleBench) */
     sitBy(n, sit) {
         const b = sit.b, seat = 1 - sit.seat;
@@ -127,3 +177,15 @@ function closeOpener(n, first) {
     if (h <= 0 && first && R() < 0.4) return voiced(id, OPEN_NEW[Math.floor(R() * OPEN_NEW.length)]);
     return null;
 }
+/* and in what they talk about: a good friend now and then talks about the friendship itself, someone she's only just met
+   about getting to know her (topicLine's EXTRA_TOPICS) */
+const CLOSE_TALK = ["You know what? I'm really glad you live here. The island was nice before. Now it's nice and it has you in it.",
+    'Sometimes I tell people about you. Good things! Mostly good things. All good things.',
+    "If you ever need anything, you know where I live. You've been there. You know which cushion is the good one.",
+    'I was thinking about the first time we met. You were so polite. Now you just walk right up and talk to me. I love it.',
+    "Is it weird that I look forward to seeing you? It's not weird. Don't answer that.",
+    'We should do something this week. Anything. Even nothing. Nothing with you counts as something.'];
+const NEW_TALK = ["I'm still getting to know everyone. You seem nice, though!", "We haven't talked much yet, have we? Let's fix that.",
+    'Tell me something about you, {name}. Anything. I like knowing things.'];
+EXTRA_TOPICS.push(['close', n => (TALK[n.id] && hearts(n.id) >= 4 ? 1.2 : 0), () => rpick(CLOSE_TALK)],
+    ['new', n => (TALK[n.id] && rel(n.id).met && hearts(n.id) <= 0 ? 0.8 : 0), () => rpick(NEW_TALK)]);

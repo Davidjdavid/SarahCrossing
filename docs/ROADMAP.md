@@ -182,8 +182,10 @@ Status: [x] done, [~] in progress, [ ] not started.
   without her starting it; conversations fit the moment better (friendship, place, weather, what's happened lately,
   what they're doing right then); and they remember more kinds of things (gifts, earlier conversations, things done
   together) and bring them up in more ways
-  (29 October: started. Without her starting it, one who knows her waves, a friend walks over to say hello, a good
-  friend sits beside her on a bench; the closer they are, the warmer the hello when she talks to them: 6zzc_greet.js)
+  (29 October: started. Without her starting it, one who knows her waves, a friend walks over to say hello or to bring
+  up something from the last week, a good friend sits beside her on a bench, a best friend walks along with her for a
+  while; the closer they are, the warmer the hello when she talks to them, and good friends talk about the friendship
+  itself; sitting together is something they remember: 6zzc_greet.js)
 - [ ] And so on: David will add more ideas here
 
 ## A lived-in island (David, 27 October: for later)
@@ -472,7 +474,8 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [ ] Props and furniture that act: anything that should move or do something does (fires flicker and breathe, fountains
   shoot water, lamps indoors switch on and off, a TV switches on to static, clocks tick round as time passes...) (28
   October, late: fires, torches and lanterns flicker; the fountains throw water up; clocks already kept the time; a lamp
-  in the house switches off and on with a tap. Still to do: anything else that should move)
+  in the house switches off and on with a tap. 29 October: a retro TV that switches on to static and a record player
+  whose record turns, sold at IslandMart. Still to do: anything else that should move)
 - [x] (late) Buying and selling at Fortune's work again (broken since 26 October), with a test; "Sells for" gone from
   every description (the prices are on the cards)
 - [x] (late) Elizabeth playable; David a mustache only, John a mustache and a beard

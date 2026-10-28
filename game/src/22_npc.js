@@ -593,6 +593,8 @@ function stepNpc(n) {
     const dx = gx - n.x, dy = gy - n.y, dist = Math.hypot(dx, dy);
     const jog = n.want && n.want.jog;
     let sp = d.skates ? 1.2 : d.human ? 0.8 : jog ? 1.1 : 0.55;
+    // (walking along with Sarah, 6zzc_greet.js: about her pace, quicker to catch up)
+    if (n.escort) sp = Math.hypot(n.x - G.player.x, n.y - G.player.y) > 3 * TILE ? 1.7 : 1.25;
     if (n.travel && !d.skates) sp *= 1.25;            // a little brisker when they're going somewhere
     let cb = null;
     if (dist < sp + 0.05) {

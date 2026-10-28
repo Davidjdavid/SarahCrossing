@@ -119,7 +119,7 @@ function sipCheck(n) {
     const day = Clock.dayNum();
     if (n.sipDay === day) return;
     const tx = Math.floor(n.x / TILE), ty = Math.floor((n.y - 2) / TILE);
-    const f = (W0.props || []).find(p => p.kind === 'drinkfountain' && !propGone(p) && Math.abs(p.x - tx) <= 2 && Math.abs(p.y + 1 - ty) <= 2);
+    const f = (W0.props || []).find((p, i) => p.kind === 'drinkfountain' && !propGone(i) && Math.abs(p.x - tx) <= 2 && Math.abs(p.y + 1 - ty) <= 2);
     if (!f) return;
     n.sipDay = day;
     if (hash32(S.seed + ':sip:' + n.id + ':' + day) % 3) return;       // (about one day in three)

@@ -3118,6 +3118,8 @@ test("Sarah's tools, the way a player uses them: wood from a tree, then the tree
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
   const res = await page.evaluate(async () => {
+    // (now and then something special turns up, a card to tap away, as a player does)
+    const spCloser = setInterval(() => { if (document.querySelector('.spcard')) UI.close(); }, 100);
     __dbg.setTime(11, 0, 14);
     const out = {}, a = G.areas.island, ask = UI.ask, say = UI.say, F = forest();
     UI.ask = async () => 0; UI.say = async () => {};
@@ -3160,6 +3162,7 @@ test("Sarah's tools, the way a player uses them: wood from a tree, then the tree
       await Promise.race([Fishing.catch(), new Promise((r) => setTimeout(r, 6000))]);
       out.fish = (S.stats.fish || 0) > caught0 || S.pocket.filter(Boolean).length > pocket0;
     } finally { UI.ask = ask; UI.say = say; G.busy = 0; }
+    clearInterval(spCloser);
     return out;
   });
   assert.deepEqual(res, { wood: 3, felled: true, stumpGone: true, hole: true, fruit: true, bite: true, fish: true });
@@ -3172,6 +3175,8 @@ test('growing and making, the way a player does: seeds planted in a plot and pic
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
   const res = await page.evaluate(async () => {
+    // (now and then something special turns up, a card to tap away, as a player does)
+    const spCloser = setInterval(() => { if (document.querySelector('.spcard')) UI.close(); }, 100);
     __dbg.setTime(10, 0, 14);
     const out = {}, ask = UI.ask, say = UI.say;
     UI.ask = async () => 0; UI.say = async () => {};
@@ -3200,6 +3205,7 @@ test('growing and making, the way a player does: seeds planted in a plot and pic
       await Promise.race([gift, new Promise((r) => setTimeout(r, 4000))]);
       out.gave = !pocketCount(pot) && (rel('maki').given || 0) === given0 + 1;
     } finally { UI.ask = ask; UI.say = say; G.busy = 0; }
+    clearInterval(spCloser);
     return out;
   });
   assert.deepEqual(res, { planted: true, picked: true, cooked: true, gave: true });
@@ -3229,6 +3235,8 @@ test('the phone and the camera, the way a player uses them: a photo taken, an ou
   await page.evaluate(() => UI.close(true));
   // a pot donated to the museum (Brulee's thanks skipped)
   const donated = await page.evaluate(async () => {
+    // (now and then something special turns up, a card to tap away, as a player does)
+    const spCloser = setInterval(() => { if (document.querySelector('.spcard')) UI.close(); }, 100);
     const say = UI.say; UI.say = async () => {};
     try { const id = __dbg.potPiece('frog', 'c'); await donatePot(id); return artState().pots.includes(id) && !pocketCount(id); } finally { UI.say = say; }
   });
@@ -3256,6 +3264,8 @@ test("making Sarah's look, the way a player does: a new hairstyle at Floss's cha
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
   const res = await page.evaluate(async () => {
+    // (now and then something special turns up, a card to tap away, as a player does)
+    const spCloser = setInterval(() => { if (document.querySelector('.spcard')) UI.close(); }, 100);
     __dbg.setTime(14, 0, 14);
     S.money = 50000;
     const out = {}, ask = UI.ask, say = UI.say, wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -3285,6 +3295,7 @@ test("making Sarah's look, the way a player does: a new hairstyle at Floss's cha
       out.prize = arc().tickets === t0 - PRIZES[0][1] && (S.storage[PRIZES[0][0]] || 0) + pocketCount(PRIZES[0][0]) === got0 + 1;
       UI.close(true);
     } finally { UI.ask = ask; UI.say = say; G.busy = 0; }
+    clearInterval(spCloser);
     return out;
   });
   assert.deepEqual(res, { salon: true, sewn: true, prize: true });
@@ -3297,6 +3308,8 @@ test('decorating the island and giving gifts, the way a player does: a lamp set 
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
   const res = await page.evaluate(async () => {
+    // (now and then something special turns up, a card to tap away, as a player does)
+    const spCloser = setInterval(() => { if (document.querySelector('.spcard')) UI.close(); }, 100);
     __dbg.setTime(14, 0, 14);
     const out = {}, E = IslandEdit, D = deco();
     /* a free spot near Sarah, a few tiles off, that the held thing can go */
@@ -3349,6 +3362,7 @@ test('decorating the island and giving gifts, the way a player does: a lamp set 
       await Promise.race([flow, new Promise((r) => setTimeout(r, 5000))]);
       out.gift = (rel(id).given || 0) === given + 1 && rel(id).giftDay === Clock.dayNum() && pocketCount('apple') === 1;
     } finally { UI.ask = ask; UI.say = say; }
+    clearInterval(spCloser);
     return out;
   });
   assert.deepEqual(res, { down: true, moved: true, away: true, bench: true, gift: true });
@@ -3441,7 +3455,15 @@ test('friendship that shows: a neighbor who knows Sarah waves, a friend walks ov
     rel(w.id).met = true; rel(w.id).pts = HEARTS[1];
     near(w.id, 3);
     Greet.day = -1;
-    out.waved = await until(() => Greet.done[w.id] || Greet.n > 0, 30000);
+    // (the checks run every 45 frames and only now and then act: run them here as many times as it takes, w kept close
+    // and free, so a busy test machine's slow frames don't decide it)
+    for (let k = 0; k < 400 && !Greet.n; k++) {
+      if (!Chats.free(w)) ready(w);
+      if (Math.hypot(w.x - p.x, w.y - p.y) > 6 * TILE) near(w.id, 3);
+      G.frame = (Math.floor(G.frame / 45) + 1) * 45 + 20;
+      Greet.update();
+    }
+    out.waved = Greet.n > 0;
     out.bubble = await until(() => Object.keys(Greet.done).some((id) => Bubbles.map.has(NPCs.get(id))), 15000);
     // a heart's pose wears off (it used to stay on: the New Year's cheer)
     const g = NPCs.get(w.id);
@@ -3469,9 +3491,26 @@ test('friendship that shows: a neighbor who knows Sarah waves, a friend walks ov
     const lines = new Set();
     for (let i = 0; i < 200; i++) lines.add(openerLine(s, true));
     out.warm = [...lines].some((l) => OPEN_CLOSE.some((o) => l.includes(fillText(o).slice(0, 12)) || l.includes(o.slice(0, 12))));
+    // a best friend walks along with her: Sarah moves on a few tiles and they keep up, then head off on their own
+    if (p.sit) standUp(p);
+    const wk = ready(free.find((n) => n !== w && n !== f && n !== s && !n.path && Chats.free(n)) || free.find((n) => n !== s));
+    rel(wk.id).met = true; rel(wk.id).pts = HEARTS[5];
+    near(wk.id, 2);
+    out.walks = Greet.walkWith(wk) && wk.script;
+    const sx = Math.floor(p.x / TILE), sy = Math.floor((p.y - 2) / TILE);
+    let moved = false;
+    for (let r = 5; r < 9 && !moved; r++) for (const [dx, dy] of [[r, 0], [-r, 0], [0, r], [0, -r]]) {
+      if (moved || a.blockedAt(sx + dx, sy + dy)) continue;
+      const path = findPath(a, sx, sy, sx + dx, sy + dy, 1500);
+      if (!path || path.length > r + 4) continue;
+      p.x = (sx + dx + 0.5) * TILE; p.y = (sy + dy + 0.6) * TILE; moved = true;
+    }
+    out.kept = moved && await until(() => Math.hypot(wk.x - p.x, wk.y - p.y) < 2.6 * TILE, 15000);
+    Greet.walkEnd(GREET_BYE);
+    out.off = !wk.script && !wk.escort && !Greet.walk;
     return out;
   });
-  assert.deepEqual(res, { waved: true, bubble: true, poseOff: true, came: true, arrived: true, sitting: true, beside: true, warm: true });
+  assert.deepEqual(res, { waved: true, bubble: true, poseOff: true, came: true, arrived: true, sitting: true, beside: true, warm: true, walks: true, kept: true, off: true });
   assert.deepEqual(page.problems, []);
   await page.close();
 });
@@ -3513,5 +3552,200 @@ test("the newcomers' houses: the first to stay while both plots are free lets Sa
   });
   assert.deepEqual(res, { mugPicked: '6,land_a,true', mugHouse: true, seaLot: '8,land_b,1,true', seaHouse: true, signs: true });
   assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test("the phone's own apps, the way a player uses them: a move from Moves, one of Joe's poems read again, Go home, and Save & quit back to the title, then Continue", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(14, 0, 14);
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms)), out = {};
+    const until = async (fn, ms) => { for (const end = Date.now() + ms; Date.now() < end; await wait(50)) if (fn()) return true; return false; };
+    const choose = async (label) => { await until(() => [...document.querySelectorAll('#choices .choice')].some((b) => b.textContent === label), 5000); [...document.querySelectorAll('#choices .choice')].find((b) => b.textContent === label).click(); };
+    // Moves: the first move in the list, danced
+    openApp('moves');
+    document.querySelector('#panel .list button.row').click();
+    out.moved = await until(() => G.busy > 0 || !!G.player.emote, 2000) && await until(() => !G.busy, 8000);
+    // Joe's poems: one he's read her, opened again
+    S.poems = [JOE_POEMS[0][0]];
+    openApp('poems');
+    document.querySelector('#panel .list button.row').click();
+    out.poem = document.querySelector('#panel .letterbody').textContent.includes(JOE_POEMS[0][1][0]);
+    UI.close(true);
+    // Go home: asked, then through her front door
+    const ask = askGoHome();
+    await choose('Go home');
+    await ask;
+    out.home = await until(() => G.area && G.area.id === 'home', 8000);
+    return out;
+  });
+  assert.deepEqual(res, { moved: true, poem: true, home: true });
+  // Save & quit: back to the title without a file, then Continue carries on with the same island
+  const money = await page.evaluate(() => { S.money = 12345; return S.money; });
+  await page.evaluate(() => openApp('save'));
+  await page.click('#panel button:has-text("Quit without a file")');
+  await title(page);
+  await play(page);
+  assert.equal(await page.evaluate(() => S.money), money);
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('furniture that acts: a retro TV and a record player, sold at IslandMart in their woods; a tap at home switches each on and off, kept with the house', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(14, 0, 14);
+    const out = {};
+    out.sold = ['tv_retro', 'record_player'].every((id) => laptopAll('furniture').includes(id) && FURN[id].colors && FURN[id].colors.length > 2 && FURN[id + '@' + FURN[id].colors[1]]);
+    out.pictures = ['f_tv_retro', 'f_record_player'].every((f) => !!Assets.frames[f]);
+    out.noMissing = Object.keys(paintTableMissing()).filter((id) => ACTING_FURN[id]).length === 0;
+    // both in the house, a tap on each
+    S.flags.homeIntro = true;
+    await goHome();
+    const f = G.area.floor;
+    S.house.items.push({ id: 'tv_retro', x: f.x0 + 1, y: f.y0, flip: false }, { id: 'record_player@' + FURN.record_player.colors[1], x: f.x0 + 3, y: f.y0, flip: false });
+    placeFurniture(G.area, S.house.items);
+    const ent = (id) => G.area.ents.find((e) => e.furn && e.item && e.item.id.startsWith(id));
+    const tv = ent('tv_retro'), rec = ent('record_player');
+    out.offFirst = !furnOn(tv) && !furnOn(rec);
+    UI.say = async () => {};
+    await useFurniture(tv); await useFurniture(rec);
+    out.on = furnOn(tv) && furnOn(rec) && S.house.items.filter((it) => it.play).length === 2;
+    await useFurniture(tv);
+    out.tvOff = !furnOn(tv) && furnOn(rec);
+    return out;
+  });
+  assert.deepEqual(res, { sold: true, pictures: true, noMissing: true, offFirst: true, on: true, tvOff: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('painting, the way a player does: a picture painted at the easel goes in the pocket, then donated, it hangs first in the museum gallery', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    // (now and then something special turns up, a card to tap away, as a player does)
+    const spCloser = setInterval(() => { if (document.querySelector('.spcard')) UI.close(); }, 100);
+    __dbg.setTime(14, 0, 14);
+    const out = {}, say = UI.say, ask = UI.ask, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    UI.say = async () => {}; UI.ask = async () => 0;
+    try {
+      const A = artState(), n0 = Object.keys(A.pieces).length;
+      const go = paintAtEasel('home');
+      for (let i = 0; i < 40 && !Painter.res; i++) await wait(50);
+      // a few strokes: the top half sky blue, a sun in the middle
+      for (let i = 0; i < Painter.px.length / 2; i++) Painter.px[i] = 4;
+      Painter.px[Math.floor(Painter.px.length / 2) - 8] = 3;
+      Painter.finish({ px: Painter.px.map((v) => ART_CODE[v]).join(''), frame: 'gold', name: 'Test sunset' });
+      await Promise.race([go, wait(5000)]);
+      const id = Object.keys(A.pieces).find((k) => A.pieces[k].name === 'Test sunset');
+      out.painted = Object.keys(A.pieces).length === n0 + 1 && !!id && pocketCount(id) === 1;
+      const d0 = S.stats.donated || 0;
+      await donateArt(id, false);
+      out.donated = A.museum.includes(id) && pocketCount(id) === 0 && (S.stats.donated || 0) === d0 + 1 && (!Array.isArray(A.hung) || A.hung[0] === id);
+    } finally { UI.say = say; UI.ask = ask; }
+    clearInterval(spCloser);
+    return out;
+  });
+  assert.deepEqual(res, { painted: true, donated: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test("island jobs, the way a player does: packages handed over through the talk menu, the dock sign repainted, apples handed in at the Town Hall's screen", async () => {
+  const page = await device();
+  await page.evaluate(() => { localStorage.setItem('sc-current', ''); localStorage.setItem('sc-civic', '1'); });
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(10, 0, 14);
+    const out = {}, ask = UI.ask, say = UI.say;
+    let want = [];
+    UI.say = async () => {};
+    UI.ask = async (w, t, opts) => { for (const re of want) { const i = opts.findIndex((o) => re.test(o)); if (i >= 0) return i; } return opts.length - 1; };
+    const closer = setInterval(() => { if (document.querySelector('.spcard')) UI.close(); }, 100);
+    try {
+      const J = jobsState();
+      // packages for Coco and Kai, handed over from their talk menus
+      for (const id of ['coco', 'kai']) rel(id).met = true;
+      const m0 = S.money;
+      Jobs.take({ id: 'deliver', kind: 'deliver', n: 2, to: ['coco', 'kai'] });
+      out.parcels = pocketCount('job_parcel') === 2;
+      want = [/^A package for you!$/];
+      for (const id of ['coco', 'kai']) { await talkTo(NPCs.get(id)); G.busy = 0; }
+      out.delivered = !Jobs.active() && J.done.includes('deliver') && S.money > m0 && pocketCount('job_parcel') === 0;
+      // the dock sign: walk up to it and paint
+      Jobs.take({ id: 'sign', kind: 'sign', n: 3 });
+      const sign = G.areas.island.ents.find((e) => e.kind === 'sign_island');
+      await sign.interact();
+      out.sign = !Jobs.active() && J.done.includes('sign');
+      // three apples for the Council's display case, handed in with the screen's button
+      S.pocket.forEach((q, i) => { if (q && ITEMS[q.id] && ITEMS[q.id].type === 'fruit') S.pocket[i] = null; });
+      receive('apple', 3, true);
+      Jobs.take({ id: 'collect', kind: 'collect', n: 3, what: 'fruit' });
+      const m1 = S.money;
+      civicScreen('jobs');
+      [...document.querySelectorAll('#panel button')].find((b) => b.textContent === 'Hand them in').click();
+      out.handedIn = !Jobs.active() && J.done.includes('collect') && pocketCount('apple') === 0 && S.money > m1;
+      UI.close(true);
+    } finally { clearInterval(closer); UI.ask = ask; UI.say = say; G.busy = 0; }
+    return out;
+  });
+  assert.deepEqual(res, { parcels: true, delivered: true, sign: true, handedIn: true });
+  assert.deepEqual(page.problems.filter((p) => !/502|Bad Gateway/.test(p)), []);
+  await page.context().close();
+});
+
+test('on a phone, nothing spills sideways: the phone and its apps, the pocket, the shops, the cooking, the board, the laptop, every Town Hall, Post Office and Bank screen', async () => {
+  const page = await device();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => { localStorage.setItem('sc-current', ''); localStorage.setItem('sc-civic', '1'); });
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const spilled = await page.evaluate(async () => {
+    __dbg.setTime(11, 13, 11);
+    const out = [], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const closeAll = () => { for (const f of [() => Studio.on && Studio.close(), () => BigMap.on && BigMap.close(), () => Photo.on && Photo.stop(), () => UI.hideDialog(), () => UI.close(true)]) { try { f(); } catch (e) { /* (closing) */ } } };
+    /* what's open must fit the screen's width: the panel inside it, nothing in it wider than it can scroll, the page not wider than the phone */
+    const check = async (name, fn) => {
+      try { const r = fn(); if (r && r.catch) r.catch(() => {}); } catch (e) { out.push(name + ': ' + e.message); }
+      await wait(150);
+      const P = document.querySelector('#panel:not([hidden])'), W = innerWidth;
+      if (P) {
+        const r = P.getBoundingClientRect();
+        if (r.left < -1 || r.right > W + 1) out.push(`${name}: the panel runs off the screen (${Math.round(r.left)} to ${Math.round(r.right)} of ${W})`);
+        for (const e of P.querySelectorAll('*')) {
+          const b = e.getBoundingClientRect();
+          if (b.width && (b.right > W + 2 || b.left < -2) && getComputedStyle(e).position !== 'fixed' && !e.closest('[style*="overflow"], .grid, .list, .hscroll, .store-list')) { out.push(`${name}: ${e.tagName.toLowerCase()}.${(e.className || '').toString().split(' ')[0]} reaches ${Math.round(b.right)} of ${W}`); break; }
+        }
+      }
+      if (document.documentElement.scrollWidth > W + 1) out.push(`${name}: the page is ${document.documentElement.scrollWidth} wide`);
+      closeAll();
+      await wait(30);
+    };
+    await check('phone', () => openPhone());
+    for (const [id] of APPS) if (!['save', 'gohome', 'home', 'camera', 'map'].includes(id)) await check('app ' + id, () => openApp(id));
+    await check('pocket', () => openPocket());
+    await check("Fortune's: buy", () => shopBuy());
+    await check("Fortune's: sell", () => shopSell());
+    await check("Clementine's", () => shopClothes(true));
+    await check("Waffle's", () => displaysShop());
+    await check('cooking', () => openCooking());
+    await check('wardrobe', () => openWardrobe());
+    await check('the board', () => openBoard());
+    await check('the laptop', () => openLaptop());
+    for (const id of Object.keys(CIVIC_SCREENS)) await check('civic ' + id, () => civicScreen(id, CIVIC_LIVE[id] ? 'Yours' : (CIVIC_SCREENS[id].states || [])[0]));
+    return out;
+  });
+  assert.deepEqual(spilled, []);
   await page.close();
 });

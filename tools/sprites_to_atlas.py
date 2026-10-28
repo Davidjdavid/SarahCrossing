@@ -1,11 +1,13 @@
 """Add pictures rendered from models (tools/blender/furniture.py --sprites DIR) to the sprite atlas, at the classic art's size.
 
-    python3 tools/sprites_to_atlas.py DIR [--only f_od_]
+    python3 tools/sprites_to_atlas.py DIR [--only f_od_] [--add]
 
 Each picture (8 pixels for each of the classic art's) is shrunk to the classic size (a tile 16 pixels across), its edge
 made crisp (each pixel there or not, as the classic art is) and added to game/assets/atlas.png below the atlas's own
 1024 rows, packed in shelves; game/assets/atlas.json gets its frame ([x, y, w, h, ax, ay], ax/ay its footprint's front
-edge). Running it again packs them all afresh: everything below row 1024 is made again from DIR.
+edge). Running it again packs them all afresh: everything below row 1024 is made again from DIR. With --add, the pictures
+already below row 1024 are kept (cut from the atlas as they are) and packed in with DIR's, which replace any of the same
+name: a new batch's pictures go in without rendering the earlier ones again.
 """
 import json, os, sys
 from PIL import Image, ImageEnhance
@@ -44,8 +46,14 @@ def main():
         if os.path.exists(p):
             pics.append((name,) + shrink(p, meta[name]))
     frames = json.load(open(FRAMES))
+    full = Image.open(ATLAS).convert('RGBA')
+    if '--add' in sys.argv:
+        have = {p[0] for p in pics}
+        for k, (fx, fy, fw, fh, fax, fay) in frames.items():
+            if fy >= BASE and k not in have:
+                pics.append((k, full.crop((fx, fy, fx + fw, fy + fh)), fax, fay))
     frames = {k: v for k, v in frames.items() if v[1] < BASE}
-    base = Image.open(ATLAS).convert('RGBA').crop((0, 0, 1024, BASE))
+    base = full.crop((0, 0, 1024, BASE))
     # shelves, tallest first
     pics.sort(key=lambda t: -t[1].height)
     x = y = shelf = 0
