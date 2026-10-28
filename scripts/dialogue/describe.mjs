@@ -26,6 +26,7 @@ const AREA = {
     '6z_back_sushi': 'Sushi Swap (arcade)', '6z_backroom': "The arcade's back room", '6z_festivals': 'Festivals', '6z_shops': 'Shop upgrades',
     '6z_talk_more': 'Talking', '6zgb_projects': 'Town projects', '6zr_seafarer': 'Captain Shrimpy', '6zs_mug': "Muggy and the café",
     '6zgc_statue': 'The statue on the square',
+    '6zgd_lostfound': "The Town Hall's Lost and Found",
 };
 
 /* what a key on the way to a line means */
@@ -311,7 +312,8 @@ const F = {
     cafeInvite: ['narr', "Texting a friend to come for a coffee at Muggy's (their answers)"], cafeSit: ['narr', "A coffee at the table by the window in Muggy's, with a friend or alone"],
     statueCongrats: ['floret', 'The Council at the Town Hall, the day after the statue goes up: congratulations, and a new one any time'],
     statueWords: ['narr', "The statue's plaque, for whoever is up there"], STATUE_MAIL: ['floret', "Sir Floret's letter the morning a new statue goes up"],
-    statueTick: ['narr', 'The town history, when a new statue goes up'], shopOrderTalk: ['fortune', 'Fortune puts the order in for a bigger shop (a week in, and later)'],
+    statueTick: ['narr', 'The town history, when a new statue goes up'],
+    lostFoundTick: ['floret', "Sir Floret's letter the morning the Council finds things left out on the island"], shopOrderTalk: ['fortune', 'Fortune puts the order in for a bigger shop (a week in, and later)'],
     historyCase: ['narr', "An island history case in the museum, looked into"],
     buildIsland: ['narr', 'Trying to chop the big tree'], visitNote: ['label', 'A note that someone is visiting'],
     addItem: ['narr', 'Getting an item'], addMoney: ['narr', 'Getting sand dollars'], receive: ['narr', 'Pockets full'], shakeTree: ['narr', 'Shaking a tree'],

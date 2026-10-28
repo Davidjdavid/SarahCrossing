@@ -71,7 +71,7 @@ docs/DEPLOY.md for the server.
 
 - `R3` draws the island and rooms in 3D (three.js r128 in `game/vendor`): the ground as textures,
   everything standing as a card drawn by its usual 2D draw code. The edit modes and minigames use the
-  flat view; without WebGL (or with "HD-2D graphics" off in Settings) everything is the classic view.
+  flat view; without WebGL (or with Settings > View set to Classic 2D, `sc_gfx`) everything is the classic view.
 - In HD-2D, people and remastered props are drawn with three times the detail into cards with three
   canvas pixels to a world pixel. `HDSprite` (32_hd.js) shades filled parts per pixel. People are built
   from a skeleton in 32a_hd_people.js (any look, outfit, sewn design and accessory: `hdPersonFrame`);
@@ -376,6 +376,11 @@ docs/DEPLOY.md for the server.
   without its figure (`EnvStatue.plinth`) and the figure is the doll or toy cast in bronze (`EnvStatue.figure`: every
   color a shade of the first statue's bronze); the flat views draw the figure's picture in bronze (`statueFrame`). Kept as
   `S.town.statue` { kind, spec, told, next }.
+- When the day turns over at 5 AM (6zgd_lostfound.js, `lostFoundTick` in `dailyCheck`): what renews and was left lying on
+  the island (`LOST_RENEWS`: fruit, fish, shells, veggies, flowers, wood, snacks) is gone; anything else Sarah dropped goes
+  to the Town Hall's Lost and Found (`S.lostFound` { id: how many }, the screen `CIVIC_LIVE.lostfound`), or home to storage
+  while the Town Hall's rooms aren't open, with Sir Floret's letter. Only plain drops: festival, storyline and quest things
+  keep to their own rules.
 - What hangs on a room's walls hangs high enough to be seen (`EnvRoom.hangY`: nothing lower than the shelves and counters,
   a clock above the tallest doll), and an island history case looked into shows its keepsake big and turning
   (`historyCase`, `Showcase`).

@@ -511,8 +511,14 @@ function appSettings() {
     list.appendChild(toggle('Music', () => Audio2.musicOn, v => { Audio2.musicOn = v; Audio2.savePrefs(); Music.update(true); }));
     list.appendChild(toggle('Sound effects', () => Audio2.sfxOn, v => { Audio2.sfxOn = v; Audio2.savePrefs(); }));
     list.appendChild(toggle('Neighbors can text me first', () => !(S.settings && S.settings.npcTexts === false), v => { S.settings = S.settings || {}; S.settings.npcTexts = v; Save.touch(); }));
-    // HD-2D, or the classic flat view (kept per device; phones without WebGL always use the classic view)
-    if (R3.available()) list.appendChild(toggle('HD-2D graphics', () => R3.want, v => R3.setWant(v)));
+    // 3D, or the classic flat view (kept per device; phones without WebGL always use the classic view): "give players an
+    // option to play in 2D mode", David, 28 October
+    if (R3.available()) {
+        const v = toggle('View', () => R3.want, on => R3.setWant(on)), s = v.querySelector('span'), show = () => { s.textContent = R3.want ? '3D' : 'Classic 2D'; };
+        show();
+        v.addEventListener('click', show);
+        list.appendChild(v);
+    }
     // (the new 3D look can draw the tiles on the ground, kept per device)
     if (R3.available() && typeof Env !== 'undefined' && Env.want()) list.appendChild(toggle('Show the tile grid', () => EnvGround.gridOn.value > 0, v => { EnvGround.gridOn.value = v ? 1 : 0; lsSet('sc-grid', v ? '1' : '0'); }));
     b.appendChild(list);

@@ -2323,6 +2323,64 @@ test('the statue: the Council congratulates Sarah the day after, and casts anyon
   await page.context().close();
 });
 
+test("5 AM: fruit, fish and shells left out are gone by morning; anything else is kept at the Town Hall's Lost and Found (or home in storage)", async () => {
+  const page = await device();
+  await page.evaluate(() => { localStorage.setItem('sc-current', ''); localStorage.setItem('sc-civic', '1'); });
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play' && !G.busy);
+  const res = await page.evaluate(() => {
+    const out = {};
+    __dbg.setTime(5, 12, 11);
+    __dbg.teleport('island', 110, 100);
+    const p = G.player;
+    for (const id of ['peach', 'clam', 'mackerel', 'wood', 'sofa_pink', 'sofa_pink', 'axe']) spawnDrop(id, p.x + 20, p.y);
+    spawnDrop('q_note', p.x - 20, p.y);
+    out.before = S.drops.length === 8;
+    // the next morning: the renewables are gone, the quest note still lies there, the rest is at the Town Hall
+    __dbg.setTime(5, 13, 6);
+    dailyCheck();
+    out.left = S.drops.map(d => d.id).join() + '|' + G.area.ents.filter(e => e.dropRef).map(e => e.id).join();
+    out.kept = JSON.stringify(S.lostFound);
+    out.mail = S.mail.some(m => m.from === 'floret' && m.body.includes(itemName('sofa_pink')) && /Lost and Found/.test(m.body) && !m.body.includes(itemName('peach')));
+    out.menu = CIVIC_MENUS.townhall.includes('lostfound');
+    // the Town Hall's screen: take the sofas, then the axe; then everything at once
+    const b = document.createElement('div'), f = document.createElement('div'), redraw = () => { b.innerHTML = ''; f.innerHTML = ''; CIVIC_LIVE.lostfound.draw(b, f, redraw); };
+    redraw();
+    const row = (name) => [...b.querySelectorAll('.row')].find(r => r.textContent.includes(name));
+    row(itemName('sofa_pink')).click();
+    out.sofas = pocketCount('sofa_pink') === 2 && !S.lostFound.sofa_pink && !!row(itemName('axe')) && !f.querySelector('button');
+    row(itemName('axe')).click();
+    out.axe = pocketCount('axe') === 1 && !Object.keys(S.lostFound).length && /Nothing here/.test(b.textContent);
+    S.lostFound = { nigiri: 2, out_pajamas: 1 };
+    redraw();
+    [...f.querySelectorAll('button')].find(x => /Take everything/.test(x.textContent)).click();
+    out.all = pocketCount('nigiri') === 2 && pocketCount('out_pajamas') === 1 && !Object.keys(S.lostFound).length;
+    return out;
+  });
+  assert.deepEqual(res, { before: true, left: 'q_note|q_note', kept: '{"sofa_pink":2,"axe":1}', mail: true, menu: true, sofas: true, axe: true, all: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+  // with the Town Hall's rooms not open yet, what's found goes home to storage
+  const p2 = await device();
+  await p2.evaluate(() => localStorage.setItem('sc-current', ''));
+  await p2.reload();
+  await title(p2);
+  await p2.evaluate(() => __dbg.quickStart());
+  await p2.waitForFunction(() => G.mode === 'play' && !G.busy);
+  const r2 = await p2.evaluate(() => {
+    __dbg.setTime(5, 12, 11);
+    spawnDrop('sofa_pink', G.player.x + 20, G.player.y);
+    spawnDrop('cherry', G.player.x + 20, G.player.y);
+    __dbg.setTime(5, 13, 6);
+    dailyCheck();
+    return [CIVIC_PREVIEW, S.drops.length, S.storage.sofa_pink, !S.lostFound, S.mail.some(m => m.from === 'floret' && /storage/.test(m.body))].join();
+  });
+  assert.equal(r2, 'false,0,1,true,true');
+  await p2.context().close();
+});
+
 test('Captain Shrimpy: washed up a week in, ten logs, ten meals, five gems, sails off, back at the pier, moves in and farms', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));

@@ -553,7 +553,10 @@ const R3 = {
         // lamps: the nearest few light up at night
         if (G.frame % 15 !== 0 && this._lampsFor === a.id) return;
         this._lampsFor = a.id;
-        const all = L.lamps > 0.02 ? lightSources(a).map(s => ({ s, d: Math.hypot(s[0] / TILE - this.target.x, s[1] / TILE * R3_ZS - this.target.z) })).sort((p, q) => p.d - q.d) : [];
+        // (in the new look a street lamp counts for more than a doorway or a lantern when picking the nearest few: with a
+        // jack-o'-lantern at every shop's corners in October, they'd otherwise take every light and the streets go dark)
+        const street = Env.on && !a.interior, W = { lamp: 1.6, door: 1, small: 0.75 };
+        const all = L.lamps > 0.02 ? lightSources(a).map(s => ({ s, d: Math.hypot(s[0] / TILE - this.target.x, s[1] / TILE * R3_ZS - this.target.z) / (street ? W[s[4]] || 1 : 1) })).sort((p, q) => p.d - q.d) : [];
         const lit = all.slice(0, this.lamps.length);
         // (a lamp about to drop out of the nearest few dims as Sarah walks away, and one coming in brightens, rather than
         // each switching on and off at once)
@@ -561,17 +564,20 @@ const R3 = {
         this.lamps.forEach((l, i) => {
             const o = lit[i];
             if (!o) { l.intensity = 0; return; }
-            const [x, y, r, c] = o.s;
-            // (the new look's lamps are taller: the light comes from their lanterns)
-            l.position.set(x / TILE, Env.on && !a.interior ? r3GroundH(x, y) + 2.55 : 1.4, y / TILE * R3_ZS + (Env.on ? 0.1 : 0.3));
+            const [x, y, r, c, kind] = o.s, fade = Math.min(1, Math.max(0, (cut - o.d) / 3));
             // (the new look's street lights reach well along the paths and over the square, so they're bright at night
-            // and the woods and hills dark: David, 27 October; then fewer lamps, each lighting much further out)
-            const street = Env.on && !a.interior;
-            l.distance = street ? Math.max(13, r / TILE * 6.8) : Math.max(4, r / TILE * 2.2);
+            // and the woods and hills dark: David, 27 October; then fewer lamps, each lighting much further out. Only the
+            // lamps, though: a doorway or a lantern lit the same way, with one at every shop's corners for Spooky Season,
+            // washed the whole street out yellow, David, 28 October. A doorway glows from over its door, a lantern or a
+            // fire from just above the ground, each over a few tiles)
+            const lamp = street && kind === 'lamp', low = street && !lamp, fire = c === 'fire';
+            // (the new look's lamps are taller: the light comes from their lanterns)
+            l.position.set(x / TILE, street ? r3GroundH(x, y) + (lamp ? 2.55 : kind === 'door' ? 1.5 : 0.75) : 1.4, y / TILE * R3_ZS + (Env.on ? 0.1 : 0.3));
+            l.distance = lamp ? Math.max(13, r / TILE * 6.8) : low ? (kind === 'door' ? 5 : Math.max(3, r / TILE * 1.4)) : Math.max(4, r / TILE * 2.2);
             // (the new look's ground takes light like a real surface: softer lamps, or the square goes white round them;
             // reaching further, each a little stronger, the falloff gentler)
-            l.decay = street ? 1.25 : 1.6;
-            l.intensity = L.lamps * (a.interior ? 0.9 : street ? 1.45 : 1.2) * Math.min(1, Math.max(0, (cut - o.d) / 3));
+            l.decay = lamp ? 1.25 : low ? 2 : 1.6;
+            l.intensity = L.lamps * (a.interior ? 0.9 : lamp ? 1.45 : low ? (fire ? 0.9 : kind === 'door' ? 0.6 : 0.5) : 1.2) * fade;
             l.color.set(c === 'pink' ? 0xff6ab0 : c === 'fire' ? 0xff9a50 : 0xffd8a0);
         });
     },

@@ -228,13 +228,15 @@ function drawWaterSparkles(ctx, a, cam, v) {
     }
 }
 
+/* [x, y, r, color, kind]: kind 'lamp' (a street lamp), 'door' (a building's lit doorway) or 'small' (a lantern, a fire,
+   a jack-o'-lantern, a lamp indoors): the new look lights each its own way (R3.updateLight) */
 function lightSources(a) {
     const out = [];
-    for (const e of a.ents) if (e.light) out.push([e.x, e.y + (e.light.y || 0), e.light.r, e.light.c]);
+    for (const e of a.ents) if (e.light) out.push([e.x, e.y + (e.light.y || 0), e.light.r, e.light.c, e.kind === 'lamp' ? 'lamp' : e.kind === 'building' ? 'door' : 'small']);
     if (a.id === 'island') {
         for (const e of a.ents) if (e.kind === 'building') {
             const b = e.b;
-            out.push([(b.x + b.w / 2) * TILE, (b.y + b.h) * TILE - 18, b.w * 9, e.id === 'club' ? 'pink' : null]);
+            out.push([(b.x + b.w / 2) * TILE, (b.y + b.h) * TILE - 18, b.w * 9, e.id === 'club' ? 'pink' : null, 'door']);
         }
     }
     return out;

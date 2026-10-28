@@ -584,6 +584,7 @@ const EnvGround = {
                 let kd = this.kindPx(tx, ty, wx / TILE - tx, wy / TILE - ty);
                 const wk = this.waterAtPx(tx, ty, wx / TILE - tx, wy / TILE - ty), l = lvl(tx, ty);
                 if (wk === 0 && l >= 0 && kd !== R3_MAT.stairs && this.heightAt(wx / TILE, wy / TILE) > ENV.BASE + l * ENV.LV + 0.6) kd = upper(tx, ty, l);
+                if (kd === R3_MAT.keep && wk === 0 && this.laid(tx, ty)) kd = R3_MAT.dirt;           // (under Sarah's bricks or planks)
                 if (kd === R3_MAT.keep && wk === 0 && l > 0) kd = R3_MAT.grass;             // (high ground without a kind of its own: lawn, not sand)
                 if (kd === R3_MAT.keep && wk === 1) kd = R3_MAT.sand;                   // the sea floor is sand
                 if (kd === R3_MAT.keep && wk === 2) kd = 7;                             // a stream or pond bed
@@ -653,8 +654,16 @@ const EnvGround = {
             }
             for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) d[((M - 1 - y) * N + x) * 4] = Math.round(v[y * N + x] * 255);
         }
+        // (and in its green and blue, Sarah's brick and plank paths, each its tile's own square: the shader lays the bricks
+        // and the boards, FMAP. They were left as the painted picture, which the new look doesn't have: David, 28 October)
+        for (let ty = y0; ty < y0 + h; ty++) for (let tx = x0; tx < x0 + w; tx++) {
+            const ch = this.laid(tx, ty);
+            if (ch) for (let j = 0; j < P; j++) for (let i = 0; i < P; i++) d[((M - 1 - ((ty - y0) * P + j)) * N + (tx - x0) * P + i) * 4 + ch] = 255;
+        }
         Object.assign(out, { v, d, N, M, P });
     },
+    /* Sarah's brick (1) or plank (2) path on a tile, or 0 */
+    laid(tx, ty) { const P = S && S.paths && S.paths.t, o = P && P[tx + ',' + ty]; return o === 'brick' ? 1 : o === 'planks' ? 2 : 0; },
     tex(d, N, M) {
         const t = new THREE.DataTexture(d, N, M, THREE.RGBAFormat);
         t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true;
@@ -820,8 +829,31 @@ EnvGround.FMAP = `
     if (tot < 0.05 && bed < 0.5) col = cs * 0.85;
     // sand the waves reach: darker and wet just above the sea and under the shallows
     col = mix(col, col * vec3(0.74, 0.72, 0.7), smoothstep(0.17, 0.02, vWp.y) * w.w);
+    // Sarah's own paths of brick (the wet picture's green: a running bond, every brick its own firing, in pale mortar) and
+    // planks (its blue: boards across the path, staggered joints, the grain along them, dark gaps)
+    vec4 wt = texture2D(uWet, vec2(kuv.x, 1.0 - kuv.y));
+    float laidW = clamp(wt.g + wt.b, 0.0, 1.0);
+    if (laidW > 0.004) {
+        vec2 bq = vec2(tp.x * 2.0, tp.y * 4.0);
+        bq.x += mod(floor(bq.y), 2.0) * 0.5;
+        vec2 bf = fract(bq), bi = floor(bq);
+        float mortar = 1.0 - smoothstep(0.55, 1.0, min(min(bf.x, 1.0 - bf.x) / 0.045, min(bf.y, 1.0 - bf.y) / 0.09));
+        vec3 brick = mix(vec3(0.6, 0.29, 0.21), vec3(0.76, 0.42, 0.3), r3h(bi + 3.1)) * (0.9 + 0.18 * r3n(tp * 11.0));
+        brick = mix(brick, vec3(0.66, 0.62, 0.55), mortar);
+        vec2 pq = vec2(tp.x * 0.7, tp.y * 4.0);
+        pq.x += r3h(vec2(floor(pq.y), 7.0));
+        vec2 pf = fract(pq), pi = floor(pq);
+        float gap = 1.0 - smoothstep(0.55, 1.0, min(min(pf.y, 1.0 - pf.y) / 0.08, min(pf.x, 1.0 - pf.x) / 0.025));
+        vec3 wood = mix(vec3(0.52, 0.35, 0.2), vec3(0.7, 0.51, 0.31), r3h(pi + 1.7));
+        wood *= 0.9 + 0.12 * r3n(vec2(tp.x * 3.0, tp.y * 40.0) + pi);
+        wood = mix(wood, vec3(0.22, 0.15, 0.09), gap);
+        col = mix(col, brick, wt.g);
+        col = mix(col, wood, wt.b);
+        w = mix(w, vec4(0.0, 0.0, 1.0, 0.0), laidW);
+        envW = w;
+    }
     // a pond's or stream's bank: damp, pebbly earth between the grass and the water, its edge ragged
-    float wetv = texture2D(uWet, vec2(kuv.x, 1.0 - kuv.y)).r;
+    float wetv = wt.r;
     float bank = smoothstep(0.06, 0.32, wetv + (rag - 0.5) * 0.3) * step(0.05, tot);
     col = mix(col, cd * vec3(0.58, 0.54, 0.48), bank * 0.85);
     // darker where grass meets a path (a little shadow under the overhang)

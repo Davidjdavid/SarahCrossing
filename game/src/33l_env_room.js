@@ -595,7 +595,7 @@ const EnvRoom = {
     build(r3, a, sig) {
         const group = new THREE.Group(), textures = [];
         r3.scene.add(group);
-        this.built = { group, area: a, sig, textures };
+        this.built = { group, area: a, sig, textures, cutTex: new Map() };
         const f = a.floor, k = r3RoomK(a), bg = r3RoomBg(a, k), T = TILE, H = this.WH;
         const x0 = f.x0, x1 = f.x0 + f.w, z0 = f.y0 * R3_ZS, z1 = (f.y0 + f.h) * R3_ZS;
         // the wallpaper: one tile of the back wall's paper (a 16 by 32 strip), repeated along every wall

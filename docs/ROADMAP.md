@@ -386,8 +386,8 @@ Status: [x] done, [~] in progress, [ ] not started.
 under "Friendship, deeper", the testing under "Bugs", the town flag under the Town Hall.)
 - [ ] Menus and screens overhauled: better looking, consistent, easier to get around and use (the phone, the pockets,
   the shops, the customizing screens, the dialogue boxes)
-- [ ] What renews (fruit, fish and the like) left lying on the ground is gone at 5 AM when the day turns over; anything
-  that matters (furniture and the like) goes to a lost and found instead
+- [x] What renews (fruit, fish and the like) left lying on the ground is gone at 5 AM when the day turns over; anything
+  that matters (furniture and the like) goes to a lost and found instead (the Town Hall's, with a letter from Sir Floret)
 - [ ] The Friends app: fuller profiles (personality, who they're friends with, what they like doing, memories with Sarah)
 - [ ] Final polish of the new look: every hairstyle, outfit, design, accessory and animation together with nothing
   poking through; lighting indoors, in each season, weather and time of day; draw distance (nothing popping in or
