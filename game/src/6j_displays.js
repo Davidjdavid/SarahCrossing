@@ -213,7 +213,7 @@ const IslandEdit = {
     close() {
         if (!this.on) return;
         if (this.held) this.cancel(true);
-        this.on = false; this.design = false; this.stairs = false; this.areaMode = false; this.corner = null;
+        this.on = false; this.design = false; this.stairs = false; this.stairSel = this.stairMove = null; this.areaMode = false; this.corner = null;
         $('#panel').hidden = true; $('#panel').innerHTML = ''; $('#panel').classList.remove('decor', 'edit');
         UI.modal = false;
         G.camTarget = null;
@@ -484,7 +484,9 @@ const IslandEdit = {
         if (this.design && this.stairs && !h) {
             ctx.fillStyle = 'rgba(255,170,60,0.35)';
             for (const k of RAMPS) { const [x, y] = k.split(',').map(Number); if (Math.abs(x - cx) < 30 && Math.abs(y - cy) < 20) ctx.fillRect(x * TILE, y * TILE, TILE, TILE); }
-            const st = Design.stairAt(cx, cy);
+            // (the stairs picked, outlined; and where new or moved ones would go)
+            if (this.stairSel) { ctx.strokeStyle = '#ffcf57'; ctx.lineWidth = 1.5; for (const [x, y] of this.stairSel) ctx.strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2); }
+            const st = this.stairMove ? Design.stairAt(cx, cy, this.stairMove.w) : this.stairSel || RAMPS.has(cx + ',' + cy) ? {} : Design.stairAt(cx, cy);
             if (st.tiles) { ctx.fillStyle = 'rgba(140,193,82,0.4)'; for (const [x, y] of st.tiles) ctx.fillRect(x * TILE, y * TILE, TILE, TILE); }
         }
         if (!h) {

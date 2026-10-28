@@ -81,14 +81,15 @@ const Design = {
         RAMPS.clear();
         for (const [x, y] of R) RAMPS.add(x + ',' + y);
     },
-    /* the six tiles a staircase cut here would take (three wide, the cliff's two rows), or why not */
-    stairAt(tx, ty) {
+    /* the tiles a staircase cut here would take (w tiles wide, one to three, the cliff's two rows), or why not */
+    stairAt(tx, ty, w) {
+        w = w || this.stairW || 3;
         const H = (x, y) => +((W0.height[y] || [])[x]) || 0, a = G.areas.island;
         let top = H(tx, ty - 1) > H(tx, ty) ? ty : H(tx, ty - 2) > H(tx, ty - 1) && H(tx, ty - 1) === H(tx, ty) ? ty - 1 : -1;
         if (top < 0) return { why: "Stairs go up a cliff: tap the cliff's face." };
-        const lo = H(tx, top), hi = H(tx, top - 1), tiles = [];
-        for (let x = tx - 1; x <= tx + 1; x++) for (let y = top; y <= top + 1; y++) {
-            if (W0.coll[y][x] !== '1' || H(x, y) !== lo || H(x, top - 1) !== hi || a.waterAt(x, y) || RAMPS.has(x + ',' + y)) return { why: 'There isn\'t a straight stretch of cliff three tiles wide there.' };
+        const lo = H(tx, top), hi = H(tx, top - 1), tiles = [], x0 = tx - Math.floor((w - 1) / 2);
+        for (let x = x0; x < x0 + w; x++) for (let y = top; y <= top + 1; y++) {
+            if (W0.coll[y][x] !== '1' || H(x, y) !== lo || H(x, top - 1) !== hi || a.waterAt(x, y) || RAMPS.has(x + ',' + y)) return { why: `There isn't a straight stretch of cliff ${['one tile', 'two tiles', 'three tiles'][w - 1]} wide there.` };
             tiles.push([x, y]);
         }
         if (W0.coll[top - 1][tx] === '1' || W0.coll[top + 2][tx] === '1' || a.blockedAt(tx, top - 1) || a.blockedAt(tx, top + 2)) return { why: 'The stairs need open ground at the top and the bottom.' };
@@ -113,27 +114,94 @@ const Design = {
         for (const sp of Object.values(W0.spots)) { const k = sp.y * W + sp.x; if (!seen[k] && !a.blocked[k]) return 'That would cut off part of the island.'; }
         return null;
     },
-    /* the stairs tool: a tap on a cliff's face cuts a staircase there, a tap on a staircase takes it away (and back, if
-       that would leave somewhere nobody can get to) */
+    /* the stairs tool (David, 29 October: he wanted to move some and make some smaller): a tap on a cliff's face cuts
+       stairs there, as wide as picked (stairW); a tap on a staircase picks it, and then it can be made narrower or wider,
+       moved a tile either way along the cliff or to another cliff altogether, or taken away. Nothing that would leave
+       somewhere nobody can get to (cutOff): it's put back as it was */
     stairTap(E, tx, ty) {
+        if (E.stairMove) {
+            const M = E.stairMove, st = this.stairAt(tx, ty, M.w);
+            if (st.why) { E.msg = st.why; Sfx.ui('nope'); E.render(); return; }
+            E.stairMove = null;
+            if (this.stairEdit(E, st.tiles, M.run, 'The stairs moved here.')) E.stairSel = this.stairRun(st.tiles[0][0], st.tiles[0][1]);
+            E.render();
+            return;
+        }
+        const run = this.stairRun(tx, ty);
+        if (run) { E.stairSel = run; E.msg = ''; Sfx.ui('tick'); E.render(); return; }
+        E.stairSel = null;
+        const st = this.stairAt(tx, ty, this.stairW || 3);
+        if (st.why) { E.msg = st.why; Sfx.ui('nope'); E.render(); return; }
+        if (this.stairEdit(E, st.tiles, [], 'Stairs cut into the cliff.')) E.stairSel = this.stairRun(st.tiles[0][0], st.tiles[0][1]);
+        E.render();
+    },
+    /* the design's stairs changed: these tiles cut, those back to the cliff's face; undone if that would cut somewhere off */
+    stairEdit(E, add, remove, msg) {
         const d = this.work(), S = d.stairs && typeof d.stairs === 'object' ? d.stairs : (d.stairs = { add: [], gone: [] });
         S.add = Array.isArray(S.add) ? S.add : []; S.gone = Array.isArray(S.gone) ? S.gone : [];
         const before = JSON.stringify(d);
-        const run = this.stairRun(tx, ty);
-        if (run) {
-            this.snap();
-            for (const [x, y] of run) { const k = x + ',' + y, i = S.add.indexOf(k); if (i >= 0) S.add.splice(i, 1); else if (!S.gone.includes(k)) S.gone.push(k); }
-        } else {
-            const st = this.stairAt(tx, ty);
-            if (st.why) { E.msg = st.why; Sfx.ui('nope'); E.render(); return; }
-            this.snap();
-            for (const [x, y] of st.tiles) { const k = x + ',' + y, i = S.gone.indexOf(k); if (i >= 0) S.gone.splice(i, 1); else S.add.push(k); }
-        }
+        this.snap();
+        for (const [x, y] of remove) { const k = x + ',' + y, i = S.add.indexOf(k); if (i >= 0) S.add.splice(i, 1); else if (!S.gone.includes(k)) S.gone.push(k); }
+        for (const [x, y] of add) { const k = x + ',' + y, i = S.gone.indexOf(k); if (i >= 0) S.gone.splice(i, 1); else if (!S.add.includes(k)) S.add.push(k); }
         this.changed('island');
         const why = this.cutOff();
-        if (why) { this.d = JSON.parse(before); this.undo.pop(); this.changed('island'); E.msg = why; Sfx.ui('nope'); E.render(); return; }
-        E.msg = run ? 'The stairs are gone: the cliff is whole again there.' : 'Stairs cut into the cliff.';
-        Sfx.play(run ? 'pick' : 'place');
+        if (why) { this.d = JSON.parse(before); this.undo.pop(); this.changed('island'); E.msg = why + ' The stairs are as they were.'; Sfx.ui('nope'); return false; }
+        E.msg = msg;
+        Sfx.play(remove.length && !add.length ? 'pick' : 'place');
+        return true;
+    },
+    /* a staircase across its width: which way it climbs (north up a south face, or east or west up a side), the axis its
+       width runs along (0: x, 1: y) and its columns of tiles in order along that axis */
+    stairCols(run) {
+        const H = (x, y) => +((W0.height[y] || [])[x]) || 0;
+        const ys = run.map(t => t[1]), y0 = Math.min(...ys), y1 = Math.max(...ys);
+        const north = run.some(([x]) => H(x, y0 - 1) !== H(x, y1 + 1));
+        const ax = north ? 0 : 1, by = new Map();
+        for (const t of run) { if (!by.has(t[ax])) by.set(t[ax], []); by.get(t[ax]).push(t); }
+        const keys = [...by.keys()].sort((p, q) => p - q);
+        return { ax, keys, cols: keys.map(k => by.get(k).slice().sort((p, q) => p[1 - ax] - q[1 - ax])) };
+    },
+    /* a column of stairs beside a staircase (at u along its width), shaped like its column at u0: the cliff's face the
+       same height row by row, open ground at either end; or null */
+    stairCol(C, u0, u) {
+        const H = (x, y) => +((W0.height[y] || [])[x]) || 0, a = G.areas.island, xy = (uu, v) => C.ax ? [v, uu] : [uu, v];
+        const src = C.cols[C.keys.indexOf(u0)], vs = src.map(t => t[1 - C.ax]), v0 = Math.min(...vs), v1 = Math.max(...vs), out = [];
+        for (let v = v0 - 1; v <= v1 + 1; v++) {
+            const [x, y] = xy(u, v), [sx, sy] = xy(u0, v);
+            if (x < 1 || y < 1 || x >= W0.w - 1 || y >= W0.h - 1 || H(x, y) !== H(sx, sy) || a.waterAt(x, y)) return null;
+            const stair = v >= v0 && v <= v1;
+            if (stair) { if (W0.coll[y][x] !== '1' || RAMPS.has(x + ',' + y)) return null; out.push([x, y]); }
+            else if (W0.coll[y][x] === '1') return null;
+        }
+        return out;
+    },
+    /* what's done to the picked staircase: narrower, wider, a tile along, taken away */
+    stairDo(E, what) {
+        const run = E.stairSel;
+        if (!run) return;
+        const C = this.stairCols(run), first = C.keys[0], last = C.keys[C.keys.length - 1];
+        const reselect = (t) => { E.stairSel = t ? this.stairRun(t[0], t[1]) : null; };
+        if (what === 'narrower') {
+            if (C.keys.length < 2) { E.msg = "That's as narrow as stairs go. Take them away instead?"; Sfx.ui('nope'); }
+            else if (this.stairEdit(E, [], C.cols[C.cols.length - 1], 'A tile narrower.')) reselect(C.cols[0][0]);
+        } else if (what === 'wider') {
+            if (C.keys.length >= 3) { E.msg = 'Three tiles is as wide as stairs go.'; Sfx.ui('nope'); }
+            else {
+                const col = this.stairCol(C, last, last + 1) || this.stairCol(C, first, first - 1);
+                if (!col) { E.msg = "The cliff doesn't run on straight enough either side to widen them."; Sfx.ui('nope'); }
+                else if (this.stairEdit(E, col, [], 'A tile wider.')) reselect(col[0]);
+            }
+        } else if (what === 'back' || what === 'on') {
+            // (a tile along: the column at the far end comes off, a new one goes on at the near end)
+            const fwd = what === 'on', col = fwd ? this.stairCol(C, last, last + 1) : this.stairCol(C, first, first - 1);
+            if (!col) { E.msg = "The cliff doesn't run on straight that way."; Sfx.ui('nope'); }
+            else if (this.stairEdit(E, col, fwd ? C.cols[0] : C.cols[C.cols.length - 1], 'Moved a tile.')) reselect(col[0]);
+        } else if (what === 'away') {
+            if (this.stairEdit(E, [], run, 'The stairs are gone: the cliff is whole again there.')) E.stairSel = null;
+        } else if (what === 'moveto') {
+            if (C.ax) { E.msg = 'Stairs up the side of a cliff can only move along it, a tile at a time.'; Sfx.ui('nope'); }
+            else { E.stairMove = { run, w: C.keys.length }; E.msg = `${G.touchUsed ? 'Tap' : 'Click'} a cliff's face where they should go.`; }
+        }
         E.render();
     },
     /* a room's furniture as the design has it (its layout's pieces keyed by where they first stood, `id@x,y`: moved, turned,
@@ -380,7 +448,7 @@ const Design = {
         panel.appendChild(head);
         const body = el('div', 'pbody');
         const facing = ['facing front', 'facing right', 'facing back', 'facing left'][h ? h.rot & 3 : 0];
-        const tip = E.look ? 'Drag to look around the island.' : E.areaMode ? `Areas: pick one (or make a new one), then ${G.touchUsed ? 'tap' : 'click'} one corner and the opposite corner to add a piece to it. A tap inside a piece takes it away. Their names show on the map, and a neighbor in one says so in their texts.` : E.stairs ? `${G.touchUsed ? 'Tap' : 'Click'} a cliff's face to cut stairs there (three tiles wide), or stairs to take them away. Turn Stairs off to move things again.`
+        const tip = E.look ? 'Drag to look around the island.' : E.areaMode ? `Areas: pick one (or make a new one), then ${G.touchUsed ? 'tap' : 'click'} one corner and the opposite corner to add a piece to it. A tap inside a piece takes it away. Their names show on the map, and a neighbor in one says so in their texts.` : E.stairs ? (E.stairMove ? `${G.touchUsed ? 'Tap' : 'Click'} a cliff's face where the stairs should go.` : E.stairSel ? 'These stairs: make them narrower or wider, move them along the cliff or somewhere else, or take them away.' : `${G.touchUsed ? 'Tap' : 'Click'} stairs to change or move them, or a cliff's face to cut new ones (as wide as picked below). Turn Stairs off to move things again.`)
             : h ? `${G.touchUsed ? 'Tap' : 'Click'} where it should go (${facing}).${G.touchUsed ? '' : ' R turns it, Esc puts it back.'}`
                 : `${G.touchUsed ? 'Tap' : 'Click'} anything on the island to move, turn or take it away, or add something new. Nothing is kept until you save.`;
         body.appendChild(el('p', 'muted', E.msg || tip));
@@ -391,7 +459,7 @@ const Design = {
             if (h.src === 'design') row.appendChild(chip('Take it away', () => this.remove(E)));
         } else {
             row.appendChild(chip('Add something', () => this.catalog(E)));
-            row.appendChild(chip('Stairs', () => { E.stairs = !E.stairs; E.areaMode = false; E.msg = ''; E.render(); }, E.stairs ? 'on' : ''));
+            row.appendChild(chip('Stairs', () => { E.stairs = !E.stairs; E.areaMode = false; E.stairSel = E.stairMove = null; E.msg = ''; E.render(); }, E.stairs ? 'on' : ''));
             row.appendChild(chip('Areas', () => { E.areaMode = !E.areaMode; E.stairs = false; E.corner = null; E.msg = ''; if (!this.areas().some(A => A.id === E.areaId)) E.areaId = (this.areas()[0] || {}).id; E.render(); }, E.areaMode ? 'on' : ''));
             if (this.undo.length) row.appendChild(chip('Undo', () => { this.back(); E.render(); }));
             row.appendChild(chip(this.dirty ? 'Save the design' : 'Saved', () => this.save().then(() => E.render()), this.dirty ? 'go' : ''));
@@ -399,6 +467,22 @@ const Design = {
         }
         row.appendChild(chip('Look around', () => { E.look = !E.look; E.msg = ''; E.render(); }, E.look ? 'on' : ''));
         body.appendChild(row);
+        // (the stairs tool: how wide new stairs are; and what to do with the stairs picked)
+        if (E.stairs && !h) {
+            const sr = el('div', 'st-row');
+            if (E.stairMove) sr.appendChild(chip('Never mind', () => { E.stairMove = null; E.msg = ''; E.render(); }));
+            else if (E.stairSel) {
+                const C = this.stairCols(E.stairSel), side = C.ax === 1;
+                sr.appendChild(chip(side ? 'Move up' : 'Move left', () => this.stairDo(E, 'back')));
+                sr.appendChild(chip(side ? 'Move down' : 'Move right', () => this.stairDo(E, 'on')));
+                if (!side) sr.appendChild(chip('Move somewhere else', () => this.stairDo(E, 'moveto')));
+                sr.appendChild(chip('Narrower', () => this.stairDo(E, 'narrower')));
+                sr.appendChild(chip('Wider', () => this.stairDo(E, 'wider')));
+                sr.appendChild(chip('Take them away', () => this.stairDo(E, 'away')));
+                sr.appendChild(chip('Done with these', () => { E.stairSel = null; E.msg = ''; E.render(); }));
+            } else for (const w of [1, 2, 3]) sr.appendChild(chip(`New stairs ${w} wide`, () => { this.stairW = w; E.render(); }, (this.stairW || 3) === w ? 'on' : ''));
+            body.appendChild(sr);
+        }
         // (the areas tool: which area the taps add to, a new one, its name)
         if (E.areaMode && !h) {
             const ar = el('div', 'st-row');

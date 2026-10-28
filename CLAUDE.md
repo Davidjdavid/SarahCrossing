@@ -700,9 +700,11 @@ docs/DEPLOY.md for the server.
   piece takes it away), kept as `areas` [{ id, name, rects }]: named on the map (BigMap, `Design.areas`), a neighbor's
   texts say they're in one (`designPlace` in placeName, `Design.areaAt`), and Neighbors' likes can weigh a whole area
   (`npcs[id].areas`, every place of theirs inside it, in `designSpots`).
-- Stairs (the island designer's Stairs tool): a tap on a cliff's face cuts a staircase there (`stairAt`: three tiles wide,
-  the face's two rows, open ground above and below), a tap on one takes it away (`stairRun`), refused if that would cut off
-  a door or a neighbors' place (`cutOff`). Kept as `stairs` { add, gone } of "x,y" tiles, laid over world.json's grid,
+- Stairs (the island designer's Stairs tool): a tap on a cliff's face cuts a staircase there (`stairAt`: one, two or three
+  tiles wide as picked, `stairW`; the face's two rows, open ground above and below); a tap on one picks it (`stairRun`,
+  `E.stairSel`), and then it's made narrower or wider, moved a tile along the cliff or to another cliff's face, or taken away
+  (`stairDo`, `stairCols`/`stairCol`: its columns across its width and a new one shaped like them; David, 29 October), each
+  change refused and put back if it would cut off a door or a neighbors' place (`stairEdit`, `cutOff`). Kept as `stairs` { add, gone } of "x,y" tiles, laid over world.json's grid,
   collision and `W0.ramps` (and `RAMPS`) in place by `Design.ground` (from `WORLD0_GROUND`). The new look builds the steps
   and walls from them; the HD-2D view's painted ground doesn't show the change.
 - Turned things: furniture (`it.rot`, quarter turns: 0 faces the front, 1 east, 2 the back, 3 west; `furnWH` swaps its

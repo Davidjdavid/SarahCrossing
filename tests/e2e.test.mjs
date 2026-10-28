@@ -2891,15 +2891,26 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       const tiles = Design.stairAt(cliff[0], cliff[1]).tiles;
       IslandEdit.tap((cliff[0] + 0.5) * TILE, (cliff[1] + 0.5) * TILE);
       out.stairs = tiles.every(([x, y]) => RAMPS.has(x + ',' + y) && W0.coll[y][x] === '0' && !G.areas.island.blockedAt(x, y)) && Design.d.stairs.add.length === 6;
+      // a tap on them picks them (David, 29 October: move them, make them smaller): a tile narrower, wider again, then away
       IslandEdit.tap((tiles[0][0] + 0.5) * TILE, (tiles[0][1] + 0.5) * TILE);
-      out.stairsGone = tiles.every(([x, y]) => !RAMPS.has(x + ',' + y) && W0.coll[y][x] === '1') && Design.d.stairs.add.length === 0;
+      out.picked = (IslandEdit.stairSel || []).length === 6;
+      Design.stairDo(IslandEdit, 'narrower');
+      out.narrower = Design.d.stairs.add.length === 4 && IslandEdit.stairSel.length === 4;
+      Design.stairDo(IslandEdit, 'wider');
+      out.wider = Design.d.stairs.add.length === 6;
+      Design.stairDo(IslandEdit, 'away');
+      out.stairsGone = tiles.every(([x, y]) => !RAMPS.has(x + ',' + y) && W0.coll[y][x] === '1') && Design.d.stairs.add.length === 0 && !IslandEdit.stairSel;
+      // new stairs one tile wide
+      Design.stairW = 1;
+      out.narrow = (Design.stairAt(cliff[0], cliff[1]).tiles || []).length === 2;
+      Design.stairW = 3;
       IslandEdit.tap((cliff[0] + 0.5) * TILE, (cliff[1] + 0.5) * TILE);
       IslandEdit.stairs = false;
       IslandEdit.close();
       window._t = { i, j, s1, s2, tiles };
       return out;
     });
-    assert.deepEqual(island, { edit: true, rev: 0, on: true, footTurned: '1,2', moved: true, ent: true, gone: true, added: true, undo: true, stairs: true, stairsGone: true });
+    assert.deepEqual(island, { edit: true, rev: 0, on: true, footTurned: '1,2', moved: true, ent: true, gone: true, added: true, undo: true, stairs: true, picked: true, narrower: true, wider: true, stairsGone: true, narrow: true });
     // a room: Waffle's shop, one piece turned, one taken away, a chair added
     await page.evaluate(() => __dbg.enter('displays'));
     await page.waitForFunction(() => G.area.id === 'displays');
