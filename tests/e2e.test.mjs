@@ -745,10 +745,31 @@ test('the watering can: Fortune sells one; flowers of a kind side by side, both 
     // mornings until they've made one (a third of mornings or so), watered every day; each day the pair glints gold only
     // when the morning will bring a new flower (David, 29 October), and a flower on its own never does
     let agree = true;
+    F.wildWet = {};     // (the wild one's drink kept out of the pair's mornings)
     for (let n = 0; n < 20 && F.planted.length === 2; n++) { breedSoon.t = null; const gold = breedPartner(A) && breedPartner(B); __dbg.nextDay(1); if (gold !== F.planted.length > 2) agree = false; A.wet = B.wet = Clock.dayNum(); }
     out.gold = [agree, breedPartner({ x: 1, y: 1, kind: 'daisy', ci: 0, day: 0, wet: Clock.dayNum() })];
     const kid = F.planted[2];
     out.kid = kid && [kid.kind, kid.ci, (Math.abs(kid.x - x) <= 1 || Math.abs(kid.x - x - 1) <= 1) && Math.abs(kid.y - y) <= 1, G.areas.island.ents.some((e) => e.pl === kid)];
+    // wild flowers cross too: two of a kind touching in a patch, both watered, glint gold on the morning's eve and a new
+    // one comes (David, 29 October: he watered wild ones side by side and nothing ever came of it)
+    let wp = null;
+    for (let i = 0; i < W0.flowers.length && !wp; i++) for (let j = i + 1; j < W0.flowers.length && !wp; j++) {
+      const P = W0.flowers[i], Q = W0.flowers[j];
+      if (P.kind === Q.kind && Math.max(Math.abs(P.x - Q.x), Math.abs(P.y - Q.y)) === 1 && wildStands(i, Clock.dayNum()) && wildStands(j, Clock.dayNum())) wp = [i, j];
+    }
+    const n0 = F.planted.length;
+    A.wet = B.wet = -1;      // (the planted pair left dry now)
+    let wagree = true, wgold = false;
+    for (let n = 0; n < 12 && wp && F.planted.length === n0; n++) {
+      const d0 = Clock.dayNum();
+      F.wildWet = { [wp[0]]: d0, [wp[1]]: d0 }; breedSoon.t = null;
+      const g = wildPartner(wp[0]) && wildPartner(wp[1]);
+      wgold = wgold || g;
+      __dbg.nextDay(1);
+      if (g !== F.planted.length > n0) wagree = false;
+    }
+    const wk = F.planted[n0], w0 = wp && W0.flowers[wp[0]];
+    out.wildBreed = [!!wp, wagree, wgold, !!wk && wk.kind === w0.kind && W0.flowers.every((f) => f.x !== wk.x || f.y !== wk.y)];
     // hybrids (2ab_hybrids.js): colors 0 and 1 make the first now and then, 1 and 2 the second, 0 and 2 never; two of a
     // hybrid make it again; each has its own item, repainted picture, HD picture and color in the new look
     const lo = () => 0.1, hi = () => 0.9;
@@ -761,7 +782,7 @@ test('the watering can: Fortune sells one; flowers of a kind side by side, both 
       pics: ['fl_rose_0', 'fl_rose_4', 'seed_fl_rose'].every(n => Assets.has(n)), hd: !!hdNamed('fl_rose_3', true), petals: EnvItems.petals('flower_rose_4') };
     return out;
   });
-  assert.deepEqual(res, { stock: true, busy: true, wet: [true, true], front: [true, true, true], wild: [true, true], gold: [true, false], kid: ['daisy', 1, true, true], breed: [3, 2, 4, 1, 4, 0, 3],
+  assert.deepEqual(res, { stock: true, busy: true, wet: [true, true], front: [true, true, true], wild: [true, true], gold: [true, false], kid: ['daisy', 1, true, true], wildBreed: [true, true, true, true], breed: [3, 2, 4, 1, 4, 0, 3],
     hybrid: { name: 'Black lily', dear: true, pic: true, hd: true, petals: '#8cbcff' },
     rose: { seeds: true, names: ['Red rose', 'White rose', 'Yellow rose', 'Pink rose', 'Blue rose'], pics: true, hd: true, petals: '#7a9cff' } });
   assert.deepEqual(page.problems, []);

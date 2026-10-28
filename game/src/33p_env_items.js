@@ -213,7 +213,7 @@ const EnvItems = {
             let d = this.list.get(e);
             if (!d) { d = new THREE.Group(); const s = Env.tileSpot({ tx: f.x, ty: f.y }); d.position.set(s.x, s.y + 0.03, s.z); this.group.add(d); this.list.set(e, d); }
             seen.add(e);
-            this.wetFx(d, true, f, () => false);
+            this.wetFx(d, true, f, () => wildPartner(e.flowerIdx));
         }
         // clam spots and glints (drawn flat into the ground too; these are what moves)
         const t = G.t;

@@ -388,8 +388,8 @@ docs/DEPLOY.md for the server.
   `fortune8`, with Fortune's letter.
 - The watering can (`can`, a tool on Fortune's rack, 2a_flowers.js): it waters the tile in front of the one Sarah stands on
   (or the flower she faces) and one each side (`waterFront`, `waterTiles`; `pl.wet` is the day a planted flower was watered,
-  darker soil in 2D and 3D; a wild one's day is `flowerState().wildWet[idx]`, `wildWatered`: it glints too, only planted
-  ones breed). Each morning
+  darker soil in 2D and 3D; a wild one's day is `flowerState().wildWet[idx]`, `wildWatered`: it glints and crosses too, `wildWetOn`,
+  `wildStands`, its new flower a planted one; David, 29 October). Each morning
   `flowerBreed` (in `dailyCheck`) may grow a new flower beside two watered ones of a kind (two of a color make it again,
   two colors the third, `breedColor`). Hybrids (2ab_hybrids.js, `FLOWER_HYBRIDS`): two rarer colors of each kind, never
   from seeds (`flower_<kind>_3` and `_4`: blue and purple daisies, orange and black tulips, red and chocolate cosmos, red
@@ -558,7 +558,8 @@ docs/DEPLOY.md for the server.
   island is that dish. The `item_` models load after the island, before the furniture; a thing to be found still twinkles;
   Sarah's sailboat at the pier, the boats crossing the sea, dolphins, planes (the propeller its own model,
   `sky_plane_prop`), hot air balloons and the gull flock, posed from SeaSky's own things by `EnvSea` (33o_env_sea.js),
-  the planes and balloons small and high so they read as up in the sky (their shadows cross the ground below).
+  the planes and balloons far off in the strip of sky over the island's far edge, placed by where they are across the screen
+  and hidden by whatever stands in front (`EnvSea.skyPlace`, `SKY_SIZE`; David, 29 October: over the island they looked like toys).
 - Rooms in the new look (`EnvRoom`, 33l_env_room.js): the dolls and folks go indoors too (`EnvDolls.attach` moves them
   between the island's group and the room's), and the room is a box you look into: the back wall wears the HD view's
   wall picture (so what's hung there shows; `WH` high), the side walls one tile of its paper repeated, and above them a

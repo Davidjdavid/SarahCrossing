@@ -2,13 +2,15 @@
 /* What sails, swims and flies round the island in the new look, as dollhouse toys from tools/blender/small_things.py
    instead of their pictures: Sarah's sailboat tied up at the pier (bobbing), the boats crossing the sea (SeaSky.boats:
    sailboats, a fishing boat, the ferry, each turned the way it's going, rocking a little), dolphins leaping in an arc,
-   and overhead the planes (their propellers spinning) and hot air balloons (SeaSky.sky), and the gulls wheeling over the
-   beach (the critters' gull, flapping). It all follows SeaSky's own things: where they are, where they're going. */
+   and up in the sky the planes and hot air balloons (SeaSky.sky: far off in the strip of sky over the island's far edge,
+   not over the island), and the gulls wheeling over the beach (the critters' gull, flapping). It all follows SeaSky's own
+   things: where they are, where they're going. */
 const EnvSea = {
-    PLANE_ALT: 5.6, BALLOON_ALT: 4.6, GULL_ALT: 2.6,       // how high they go (world units over the sea)
-    PLANE_SIZE: 0.55, BALLOON_SIZE: 0.75,                  // (small, as things far up look: a plane full size would seem parked)
-    JET_SIZE: 1.7,                                         // (the passenger jet far off, at the normal zoom)
-    list: new Map(), drawn: new Set(),
+    GULL_ALT: 2.6,                                         // how high the gulls go (world units over the sea)
+    // how tall each looks in the sky, as a share of the screen's height: at most that, and never more than part of the
+    // strip of sky it's in
+    SKY_SIZE: { sky_jet: 0.05, sky_plane: 0.045, sky_balloon: 0.085 },
+    list: new Map(), drawn: new Set(), skyShown: new Set(),
     build(group, a) {
         this.group = new THREE.Group();
         group.add(this.group);
@@ -47,45 +49,59 @@ const EnvSea = {
         d.visible = true;
         return d;
     },
-    /* a passenger jet far off over the top of the view, a little way into the haze (David, 27 October: a real plane seen
-       in the distance, not a toy over the island): it crosses the screen as the flat view's plane crosses that, at its
-       own height, steadily however Sarah walks; no shadow on the ground, two contrails fading out behind it */
-    farJet(r3, d, s) {
+    /* something up in the sky (David, 27 October: a real plane in the distance, not a toy over the island; 29 October: the
+       balloons looked like toys too, "can planes and hot air balloons fly only in the sky?"): far off, just where the haze
+       starts, in the strip of sky over the island's far edge (uSkyEdge), crossing the screen as it crosses its path, at a
+       height of its own in the strip, steadily however Sarah walks. Whatever stands in front of it (a tree, a roof) hides
+       it, and none of it falls on the ground. With no sky in view (looking down from close up) it isn't there */
+    skyPlace(r3, d, s, name) {
         const c = r3.camera, life = Math.max(1, s.life - 20), f = Math.min(1, s.t / life);
-        if (s.sy == null) s.sy = 0.06 + 0.08 * ((Math.abs(s.y) * 0.37) % 1);
-        const sx = s.flip ? 1.12 - 1.24 * f : -0.12 + 1.24 * f;
-        // (just where the haze starts: it's drawn over everything, as a plane up in the sky is, so nothing nearer hides it)
-        const D = r3.scene.fog.near * 0.95;
-        const P = new THREE.Vector3(sx * 2 - 1, 1 - s.sy * 2, 0.5).unproject(c).sub(c.position).normalize().multiplyScalar(D).add(c.position);
-        // (the world bends away towards the horizon, and the jet with it: raised by as much, it stays where it's put)
+        if (s.sy == null) s.sy = (Math.abs(s.y) * 0.37) % 1;
+        const sx = s.flip ? 1.12 - 1.24 * f : -0.12 + 1.24 * f, D = r3.scene.fog.near * 0.95, e = R3U.uSkyEdge.value;
+        // (the strip of sky on the screen: from where the far edge is seen up to the top)
+        const lo = new THREE.Vector3(0, e, -Math.sqrt(Math.max(0, 1 - e * e))).multiplyScalar(D).add(c.position).project(c).y, span = 1 - lo;
+        if (span < 0.07) { d.visible = false; return false; }
+        const hgt = Math.min(this.SKY_SIZE[name] * 2, span * 0.45), y = lo + hgt * 0.6 + (span - hgt * 1.2) * (0.25 + 0.5 * s.sy);
+        const P = new THREE.Vector3(sx * 2 - 1, y, 0.5).unproject(c).sub(c.position).normalize().multiplyScalar(D).add(c.position);
+        // (the world bends away towards the horizon, and this with it: raised by as much, it stays where it's put)
         const bd = Math.max(0, R3U.uBendZ.value - P.z);
         P.y += R3U.uBendK.value * bd * bd;
         d.position.copy(P);
-        d.scale.setScalar(this.JET_SIZE * D / 32);
-        d.rotation.set(0, (s.flip ? Math.PI : 0) + 0.22, 0.05);
-        if (!d.userData.trail) {
-            d.userData.trail = true;
-            // (its own materials: only the jet wears them. Drawn last of the solid things and over them; not see-through, as
-            // the new look's alpha is how blurred a thing is)
-            for (const m of d.children) if (m.isMesh) { m.castShadow = false; m.renderOrder = 12; Object.assign(m.material, { depthTest: false, depthWrite: false }); }
-            const cv = document.createElement('canvas'); cv.width = 64; cv.height = 4;
-            const g = cv.getContext('2d'), gr = g.createLinearGradient(0, 0, 64, 0);
-            gr.addColorStop(0, '#000'); gr.addColorStop(0.7, '#555'); gr.addColorStop(1, '#ddd');
-            g.fillStyle = gr; g.fillRect(0, 0, 64, 4);
-            const mat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, alphaMap: new THREE.CanvasTexture(cv), depthWrite: false, depthTest: false }), { key: 'contrail', noDof: true });
-            for (const z of [-0.3, 0.3]) {
-                const t = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.07), mat);
-                t.rotation.x = -Math.PI / 2;
-                t.position.set(-0.1 - 2.5, -0.08, z);
-                t.userData.shared = false; t.renderOrder = 11;
-                d.add(t);
-            }
+        // (as tall on the screen as asked: the model's own height, once, against the screen's height at that distance)
+        if (d.userData.h == null) { d.scale.setScalar(1); d.rotation.set(0, 0, 0); d.updateMatrixWorld(true); d.userData.h = Math.max(0.05, new THREE.Box3().setFromObject(d).getSize(new THREE.Vector3()).y); }
+        d.scale.setScalar(hgt / 2 * 2 * Math.tan(c.fov * Math.PI / 360) * D / d.userData.h);
+        if (!d.userData.sky) { d.userData.sky = true; d.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; if (!m.material.transparent) m.material = this.skyMat(m.material); } }); }
+        this.skyShown.add(s);
+        return true;
+    },
+    /* a sky thing's own copy of a model's material: only a touch soft, not blurred to a smudge as the depth of field
+       blurs everything that far off */
+    skyMat(m) {
+        const M = this._skyMats || (this._skyMats = new Map());
+        if (!M.has(m)) M.set(m, r3Patch(new THREE.MeshStandardMaterial({ map: m.map || null, color: m.color ? m.color.clone() : 0xffffff, vertexColors: !!m.vertexColors, roughness: m.roughness != null ? m.roughness : 0.9, metalness: 0 }), { key: 'envsky' + (m.map ? 'm' : '') + (m.vertexColors ? 'v' : ''), dofFixed: 0.12 }));
+        return M.get(m);
+    },
+    /* the passenger jet's two contrails, fading out behind it */
+    trails(d) {
+        if (d.userData.trail) return;
+        d.userData.trail = true;
+        const cv = document.createElement('canvas'); cv.width = 64; cv.height = 4;
+        const g = cv.getContext('2d'), gr = g.createLinearGradient(0, 0, 64, 0);
+        gr.addColorStop(0, '#000'); gr.addColorStop(0.7, '#555'); gr.addColorStop(1, '#ddd');
+        g.fillStyle = gr; g.fillRect(0, 0, 64, 4);
+        const mat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, alphaMap: new THREE.CanvasTexture(cv), depthWrite: false }), { key: 'contrail', noDof: true });
+        for (const z of [-0.3, 0.3]) {
+            const t = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.07), mat);
+            t.rotation.x = -Math.PI / 2;
+            t.position.set(-0.1 - 2.5, -0.08, z);
+            t.userData.shared = false; t.renderOrder = 11;
+            d.add(t);
         }
     },
     /* turned the way it's going: a model's nose is +x */
     head(d, vx, vy) { if (Math.abs(vx) + Math.abs(vy) > 1e-4) d.rotation.y = Math.atan2(-vy * R3_ZS, vx); },
     tick(r3, a) {
-        this.drawn.clear();
+        this.drawn.clear(); this.skyShown.clear();
         if (!a || a.id !== 'island' || typeof SeaSky === 'undefined') { this.group.visible = false; return; }
         this.group.visible = true;
         const v = r3.view, near = (x, y, m) => !v || (x > v.x0 - m && x < v.x1 + m && y > v.y0 - m && y < v.y1 + m * 2), t = G.t, seen = new Set();
@@ -122,25 +138,18 @@ const EnvSea = {
             d.position.set((q.x + dir * (q.t - 20) * 0.6) / TILE, Math.sin(Math.PI * s) * 0.85 - 0.35, q.y / TILE * R3_ZS);
             d.rotation.set(0, q.flip ? Math.PI : 0, Math.cos(Math.PI * s) * 0.9);
         }
-        // planes, balloons and the gulls overhead
+        // planes and balloons up in the sky (placed by where they are across the screen, not on the map), and the gulls
         for (const s of SeaSky.sky) {
-            // (the jet is placed by where it is across the screen, not on the map)
-            if (s.kind === 'cloud' || (!(s.kind === 'plane' && EnvModels.has('sky_jet')) && !near(s.x, s.y, 160))) continue;
-            if (s.kind === 'plane') {
-                const jet = EnvModels.has('sky_jet'), d = this.show(s, jet ? 'sky_jet' : 'sky_plane', seen);
-                if (!d) continue;
-                if (jet) { this.farJet(r3, d, s); continue; }
-                d.position.set(s.x / TILE, this.PLANE_ALT, s.y / TILE * R3_ZS);
-                d.scale.setScalar(this.PLANE_SIZE);
-                this.head(d, s.vx, s.vy);
-                d.rotation.x = Math.sin(s.t / 90) * 0.08;
+            if (s.kind !== 'plane' && s.kind !== 'balloon') continue;
+            const name = s.kind === 'balloon' ? 'sky_balloon' : EnvModels.has('sky_jet') ? 'sky_jet' : 'sky_plane', d = this.show(s, name, seen);
+            if (!d || !this.skyPlace(r3, d, s, name)) continue;
+            if (name === 'sky_jet') { this.trails(d); d.rotation.set(0, (s.flip ? Math.PI : 0) + 0.22, 0.05); }
+            else if (name === 'sky_plane') {
+                d.rotation.set(Math.sin(s.t / 90) * 0.08, s.flip ? Math.PI : 0, 0);
                 if (d.userData.prop) d.userData.prop.rotation.x = t * 0.9;
             } else {
-                const d = this.show(s, 'sky_balloon', seen);
-                if (!d) continue;
-                d.position.set(s.x / TILE, this.BALLOON_ALT + Math.sin(s.t / 50) * 0.12, s.y / TILE * R3_ZS);
-                d.scale.setScalar(this.BALLOON_SIZE);
-                d.rotation.y = s.t / 900;
+                d.position.y += Math.sin(s.t / 50) * d.scale.y * 0.05;
+                d.rotation.set(0, s.t / 900, 0);
             }
         }
         const f = SeaSky.flock;

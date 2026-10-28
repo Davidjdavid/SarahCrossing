@@ -122,7 +122,7 @@ const Scrapbook = {
             if (typeof SeaSky !== 'undefined') {
                 for (const b of SeaSky.boats || []) if (on(b.x, b.y)) add('wild:boat', 'A boat at sea');
                 for (const q of SeaSky.dolphins || []) if (q.t >= 0 && on(q.x, q.y)) add('wild:dolphin', 'Dolphins');
-                for (const s of SeaSky.sky || []) if ((s.kind === 'plane' || s.kind === 'balloon') && on(s.x, s.y, 40)) add('wild:' + s.kind, s.kind === 'plane' ? 'A plane' : 'A hot air balloon');
+                for (const s of SeaSky.sky || []) if ((s.kind === 'plane' || s.kind === 'balloon') && (Env.on && typeof EnvSea !== 'undefined' ? EnvSea.skyShown.has(s) : on(s.x, s.y, 40))) add('wild:' + s.kind, s.kind === 'plane' ? 'A plane' : 'A hot air balloon');
             }
             // the sky and the weather (outdoors only), and what the new look shows now and then
             const h = Clock.hourF();

@@ -78,19 +78,20 @@ Status: [x] done, [~] in progress, [ ] not started.
   a daily sale, longer hours, a set of the week, better selling prices
 
 ## Neighbors and story
-- [ ] New people: meet new vendors by meeting requirements; after some days and play time, new
-  characters visit and ask to move in, and Sarah picks where their house goes
-- [ ] A secret character
+- [x] New people: meet new vendors by meeting requirements; after some days and play time, new
+  characters visit and ask to move in, and Sarah picks where their house goes (David, 29 October: Captain Shrimpy and Muggy are
+  them; no more needed)
+- [x] A secret character (David, 29 October: covered by Shrimpy and Muggy, the Collection's secret neighbors)
 - [~] Every line in one spreadsheet for David to edit (docs/dialogue/dialogue.xlsx, 26 October: 6,694 lines with who
   says them and when, plus 399 new lines for the zip code, Post Office, Bank and Town Hall in every outcome; exported again
   27 October with everything added since: 8,332 lines; again 29 October without the family's lines: 8,601, and with the night's new lines: 8,728); his edits go back
   in with scripts/dialogue/apply.mjs
-- [~] Way more dialogue, better dialogue, conversations that react to what's going on: about 1,340
+- [x] (David, 29 October: what we have is enough) Way more dialogue, better dialogue, conversations that react to what's going on: about 1,340
   new lines (27+ everyday lines per neighbor, plus topics that react to the hour, weather, season,
   where they stand, friendship, Sarah's outfit, what she did today, her records, holidays, solved
   mysteries and who's nearby), and two personal moments per neighbor for close friends. More to come
   with the new residents
-- [~] Way more holiday events: holidays with things to do (on top of the 45 with decorations and chatter):
+- [x] (David, 29 October: keep the holidays we have) Way more holiday events: holidays with things to do (on top of the 45 with decorations and chatter):
   Egg Hunt (Easter weekend: eggs in the grass, in trees, buried, on the hook; Cece trades them),
   Fish-Off (Kai, four times a year), Beach Cleanup (Earth Day, Ocean Day), Trick-or-Treat (Halloween
   night, candy from Fortune), Toy Day deliveries (December 24), Feast Cook-Off (Mac judges a dish), New Year's Eve
@@ -99,7 +100,7 @@ Status: [x] done, [~] in progress, [ ] not started.
   landmark to an X, a treasure chest to dig up), Lunar New Year (a red envelope from every
   neighbor), Valentine's Day (cards for the neighbors, truffles back from good friends), Museum Day (29 October: a stamp
   stand just inside each of the museum's six wings, and Brulee's prize for a full card: one of the museum's own pieces)
-- [ ] Way, way more content
+- [x] Way, way more content (David, 29 October: what we have is enough)
 
 ## Games
 - [x] A few more arcade games: Surf's Up (Kai's wave: jump rocks, grab shells), Gopher Garden (bonk
@@ -108,7 +109,7 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] The arcade's back room: a hidden mystery for later in the game (Chili, Sully, the lighthouse,
   a key) opens the island's first arcade with three classic cabinets: Dumpling Drop (a Puyo Puyo
   clone), Sushi Swap (Tetris Attack) and Fortune Falls (Peggle)
-- [ ] **Later (in about two weeks; very important to David):** once the back room is open and every
+- [ ] **Later, maybe as a Valentine's Day feature (David, 29 October: the cabinet stays broken till then; very important to David):** once the back room is open and every
   arcade game has been played, a fourth cabinet in the back room turns out to be broken, with a quest
   to fix it. Inside: a recreation of a lost Pogo game from around 2005 that was only up around
   Valentine's Day. It used screenshots of The Sims 1: you made choices on a date and got a letter
@@ -221,7 +222,7 @@ Status: [x] done, [~] in progress, [ ] not started.
   catalog in a mix of kinds, everything she's had still in Order again; every piece IslandMart sells in its own colors and
   three more, its main color repainted in the picture and the model, "Sofa (mint)"; a wooden piece in light wood, dark wood
   and white; a plant keeps its leaves and changes its pot; each week the shop has each piece in one of its four)
-- [~] The achievements that unlock outfits, songs, recipes and the like much harder and spread out over a long time
+- [x] (David, 29 October: done) The achievements that unlock outfits, songs, recipes and the like much harder and spread out over a long time
   (27 October: every score and count raised a lot; see the late notes)
 - [x] Hybrid flower colors (David, 27 October): rarer colors that only come from cross-breeding (a blue daisy, a purple
   tulip...), each with its own picture and its own color in 3D (done: blue and purple daisies, orange and black tulips,
@@ -255,9 +256,10 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] Outdoor decorations placed better: the notice board in front of the square's big tree, and lamp posts along the
   paths into the square, down the steps to the dock, along Market Lane and up the trails (a save step brings back to
   Sarah's storage anything of hers that was in their way)
-- [ ] Big outdoor-only furniture installed around the island (what it is still to decide). Some spots could be held back
-  from the grid (nothing can be placed there) until Sarah has given enough to the town, and then the town builds
-  something there: a coffee shop, a set of swings, and the like
+- [x] Dropped (David, 29 October: the town projects are enough): big outdoor-only furniture installed around the island, with spots
+  held back from the grid until Sarah has given enough to the town
+- [ ] Town projects hold no tiles before they're built (David, 29 October: Sarah can put things anywhere; when a project goes up,
+  whatever of hers stands where it goes moves to her storage)
 - [x] The fountain on the square bigger, more detailed, and solid: a grand fountain modeled in Blender, a moulded basin
   with two bowls, water sheets, a jet and four bronze fish, four tiles wide and three deep, that nobody walks through
 - [x] The giant David statue taken off the main square: a flower bed stands there now, and the statue, smaller, is on
@@ -319,7 +321,7 @@ Status: [x] done, [~] in progress, [ ] not started.
   coffee cup)
 - [x] Two "residential land for sale" signs somewhere on the island, with paths out to them: where the new neighbors
   will live (two plots in the neighborhood, west and north-west, kept empty, each with a FOR SALE sign)
-- [ ] The cliff edges, the island's sides and some of the sea look blocky. Once everything is on the grid, draw the tiles
+- [x] (David, 29 October: the mountains look good now) The cliff edges, the island's sides and some of the sea look blocky. Once everything is on the grid, draw the tiles
   rounded like a tile sheet: the cliff sides are tiles nobody walks on, their 3D pieces with a little ground and
   see-through edges
 - [x] The boat Sarah came on is tiny: it should be as big as a building (now a cabin sailboat five tiles long, tied up
@@ -445,7 +447,7 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] David's statue taken away altogether
 - [x] Every shop open to Sarah at any hour (the honor system when its keeper is off); the hours are for the keepers and
   the neighbors
-- [~] Cliff edges: no jagged steps, the wall's lip matching the lawn, clean corners (the grass along the walls' tops now
+- [x] (David, 29 October: the mountains look good now) Cliff edges: no jagged steps, the wall's lip matching the lawn, clean corners (the grass along the walls' tops now
   takes the lawn's own color each season, no longer yellow in autumn; the sea cliffs follow a smooth outline instead of
   stepping tile by tile along the coast's diagonals; the broken corner still to find)
 - [x] Houses and props showing only partly, at every zoom (three.js left out each part of a house or prop standing off
@@ -471,7 +473,16 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] The sea and sky more alive: the water moving, clouds drifting by, small things going on (long swells rolling in,
   the clouds' reflections drifting over the water, the sun winking on it, a fish's rings now and then; the sky's clouds
   drift where they can be seen, and faint cloud shadows cross the island on a fair day)
-- [ ] Sheets of everything for review: every furniture piece, prop, neighbor and the like, its name and where it is
+- [x] Sheets of everything for review: every furniture piece, prop, neighbor and the like, its name and where it is (13
+  sheets, 594 things, each drawn from its model; they turned up David's statue back on the island, the designer undoing
+  its removal, and gems that looked white: both fixed)
+- [x] Watered flowers side by side never glinted gold or crossed: the wild ones can now (they grow in patches of one kind,
+  and only planted ones crossed), and a pair crosses on half the mornings rather than a third
+- [x] Hot air balloons and planes looked like toys flying over the island: they're far off in the strip of sky over its
+  far edge now, hidden by whatever stands in front of them
+- [ ] Maki, Coco and Cece as keepers: Maki at the Town Hall, Coco at the Bank, Cece at the Post Office
+- [ ] The HUD in the phone's look: the clock and date, the money, the Tools, Moves, Pocket and Phone buttons, the map and
+  zoom buttons, the line of controls along the foot, and what they open
 
 ## David's notes from playing beta (28 October)
 - [x] The lighting at night blown out yellow near the shops (every doorway and jack-o'-lantern was lit like a street
@@ -521,7 +532,7 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] The Cozy Council out of the Town Hall: they come by only when Sarah asks for the island to be judged; when nobody's
   working the screens are there anyway, on the honor system, as at the shops (28 October, late: the desk has a bell and a
   card; the Council only comes by the day after Sarah's statue goes up, to congratulate her)
-- [ ] The Town Hall gets a keeper of its own who does the desk's work (David picks who, as for the Post Office and Bank)
+- [ ] The Town Hall gets a keeper of its own who does the desk's work (David, 29 October: Maki; Coco at the Bank, Cece at the Post Office)
 - [x] No descriptions when looking at props and things (they dated from the phone game's stand-in pictures: now you can
   see what things are, and the jokes wore thin heard often)
 - [ ] Props and furniture that act: anything that should move or do something does (fires flicker and breathe, fountains
@@ -561,8 +572,8 @@ Some of these need things that don't exist yet (a town flag, records kept over t
 
 On beta, walk into the Town Hall, the Post Office or the Bank and use the counter: the ticked ones below work for real; the
 rest still show sample numbers. (The zip code's weather and news and the market's prices come from free services the
-server asks once a day.) The Post
-Office's and the Bank's keepers are still to be picked.
+server asks once a day.) The
+keepers (David, 29 October): Maki at the Town Hall, Coco at the Bank, Cece at the Post Office.
 
 ### The real world, by zip code
 - [x] Sarah sets a zip code: the island's time zone, that day's weather forecast (not live: the day's prediction),
