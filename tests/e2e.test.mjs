@@ -4187,3 +4187,35 @@ test('a best friend who walks over to say hello has now and then brought Sarah a
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test("Museum Day, the way a player does: a stamp stand just inside each of the museum's six wings, a stamp from each, then Brulee's prize for a full card; the stands gone the next day", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = { stands: 0 }, say = UI.say;
+    __dbg.setTime(5, 18, 13);
+    UI.say = async () => {};
+    try {
+      for (const W of MUSEUM_WINGS) {
+        await enterRoom(W.id);
+        const st = G.area.ents.find((e) => e.stamp === W.id);
+        if (st && G.area.blockedAt(Math.floor(st.x / TILE), Math.floor((st.y - 1) / TILE))) { out.stands++; await st.interact(); }
+      }
+      out.stamped = stamps().got.length;
+      await enterRoom('museum');
+      const b = NPCs.get('brulee'); b.area = 'museum'; rel('brulee').met = true;
+      out.menu = stampOptions(b).map((o) => o.label);
+      const had = pocketCount(STAMP_PRIZES[0]);
+      await stampOptions(b)[0].fn();
+      out.prize = pocketCount(STAMP_PRIZES[0]) === had + 1 && stampOptions(b).length === 0;
+      __dbg.setTime(5, 19, 13);
+      await enterRoom('museum_art');
+      out.gone = !G.area.ents.some((e) => e.stamp);
+    } finally { UI.say = say; }
+    return out;
+  });
+  assert.deepEqual(res, { stands: 6, stamped: 6, menu: ['My card is full!'], prize: true, gone: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});

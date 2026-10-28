@@ -247,6 +247,9 @@ docs/DEPLOY.md for the server.
   the shovel (`pirateSpot`, `pirateTick`, `addPirateX`; the treasure chest once, `firstWin`); Lunar New Year, a red
   envelope from each neighbor (`lunarHello`); Valentine's Day,
   "Happy Valentine's!" in the talk menu, truffles back from a good friend (`valentineOptions`, `valentineGive`).
+- Museum Day (6zzd_museumday.js): a stamp stand (`furn_stamp_stand`, furn_k.py; a deco with `look3d.model`) just inside each
+  of the museum's wings that day (`stampStand`, each wing's build wrapped), a stamp a tap (`stampWing`), and Brulee's prize for
+  a full card (`stampOptions` in her talk menu: `STAMP_PRIZES`, one of the museum's own pieces a year). Kept as `S.stamps`.
 - Karaoke has a request each night (`karaokeRequest`: one of the poems Sarah has, from the seed and the day), first in the
   list and on the board; the first time she sings it that night the crowd tips 200 more.
 - Most days a neighbor not working at noon goes home for lunch, some days to Mac's (`lunchOverride`, the first of

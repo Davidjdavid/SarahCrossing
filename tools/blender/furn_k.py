@@ -3,8 +3,9 @@ static..."). A retro television on splayed legs, its screen its own part (furn_t
 on it while it's on, a dark glass while it's off), and a record player on a low cabinet, its record its own part
 (furn_record_player_move), centered on the piece's middle so the game can spin it in place while it plays."""
 import math
+from mathutils import Matrix
 from trees_ac import rgb
-from kit import col_fn, shade, rbox, lathe, tube, cyl
+from kit import col_fn, shade, rbox, lathe, tube, cyl, xform
 from folks import ball
 from furn_kit import *
 
@@ -74,3 +75,29 @@ def record_player(P):
     cyl(mb, 0.32, 0.2, 0.64, 0.7, 0.03, color=metal('#c8ccd4'), seg=12, round_=0.008)
     tube(mb, [(0.32, 0.2, 0.71), (0.26, 0.05, 0.705), (0.17, -0.1, 0.695)], 0.009, metal('#d8dce4'), seg=6)
     rbox(mb, 0.14, -0.13, 0.68, 0.19, -0.09, 0.7, '#2a2830', r=0.006, mid=0)
+
+
+@item('stamp_stand', 1, 1)
+def stamp_stand(P):
+    """Museum Day's stamp stand: a little wooden lectern on a round foot, its top tilted toward the room with a cream stamp
+    card on it, a red ink pad and a rubber stamp with a round wooden knob; a brass plate on the front of the top."""
+    mb = P.main
+    cyl(mb, 0, 0, 0.0, 0.045, 0.2, color=wood('#4a2a18'), seg=20, round_=0.012)
+    cyl(mb, 0, 0, 0.045, 0.6, 0.045, 0.035, color=wood('#6a3e22', grain='z'), seg=12, round_=0.008)
+    cyl(mb, 0, 0, 0.58, 0.62, 0.07, color=wood('#4a2a18'), seg=14, round_=0.01)
+    # the top, tilted 25 degrees toward the room, and what lies on it
+    m = len(mb.v)
+    rbox(mb, -0.25, -0.17, -0.022, 0.25, 0.17, 0.022, wood('#7a4626', grain='x'), r=0.012)
+    rbox(mb, -0.23, -0.15, 0.022, 0.23, -0.12, 0.034, wood('#5a321c', grain='x'), r=0.006, mid=0)
+    rbox(mb, -0.2, -0.09, 0.022, 0.06, 0.12, 0.028, paint('#f4ead2'), r=0.004, mid=0)
+    for k in range(6):
+        cx, cy = -0.155 + (k % 3) * 0.085, 0.07 - (k // 3) * 0.1
+        rbox(mb, cx - 0.026, cy - 0.026, 0.028, cx + 0.026, cy + 0.026, 0.03, paint('#d8c8a4'), r=0.004, mid=0)
+    rbox(mb, 0.1, 0.0, 0.022, 0.21, 0.1, 0.04, '#2a2830', r=0.01, mid=0)
+    rbox(mb, 0.11, 0.01, 0.04, 0.2, 0.09, 0.045, paint('#c8443a'), r=0.006, mid=0)
+    rbox(mb, 0.115, -0.1, 0.022, 0.185, -0.04, 0.05, paint('#3a2a20'), r=0.008, mid=0)
+    cyl(mb, 0.15, -0.07, 0.05, 0.1, 0.012, color=wood('#8a5a32'), seg=8)
+    from folks import ball
+    ball(mb, (0.15, -0.07, 0.115), 0.026, wood('#a8703c'), sub=2)
+    rbox(mb, -0.07, -0.19, -0.012, 0.07, -0.168, 0.012, metal('#d8b048'), r=0.004, mid=0)
+    xform(mb, m, Matrix.Translation((0, 0, 0.66)) @ Matrix.Rotation(math.radians(25), 4, 'X'))

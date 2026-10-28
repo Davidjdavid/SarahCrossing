@@ -83,7 +83,7 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [ ] A secret character
 - [~] Every line in one spreadsheet for David to edit (docs/dialogue/dialogue.xlsx, 26 October: 6,694 lines with who
   says them and when, plus 399 new lines for the zip code, Post Office, Bank and Town Hall in every outcome; exported again
-  27 October with everything added since: 8,332 lines; again 29 October without the family's lines: 8,601, and with the night's new lines: 8,700); his edits go back
+  27 October with everything added since: 8,332 lines; again 29 October without the family's lines: 8,601, and with the night's new lines: 8,710); his edits go back
   in with scripts/dialogue/apply.mjs
 - [~] Way more dialogue, better dialogue, conversations that react to what's going on: about 1,340
   new lines (27+ everyday lines per neighbor, plus topics that react to the hour, weather, season,
@@ -97,7 +97,8 @@ Status: [x] done, [~] in progress, [ ] not started.
   (everyone on the square, a countdown to midnight, cheers and fireworks), the Fourth of July (everyone on the beach for
   the fireworks), Stargazing Night (everyone up at the lookout), Pirate Day (a treasure map in a bottle, steps from a
   landmark to an X, a treasure chest to dig up), Lunar New Year (a red envelope from every
-  neighbor), Valentine's Day (cards for the neighbors, truffles back from good friends)
+  neighbor), Valentine's Day (cards for the neighbors, truffles back from good friends), Museum Day (29 October: a stamp
+  stand just inside each of the museum's six wings, and Brulee's prize for a full card: one of the museum's own pieces)
 - [ ] Way, way more content
 
 ## Games

@@ -26,7 +26,7 @@ const HOLIDAYS = [
     { id: 'earthday', name: 'Earth Day', m: 4, d: 22, icon: 'ic_sapling', note: 'Fortune hands out free saplings. Plant something!', deco: 'bunting_green',
         hello: 'Happy Earth Day! I planted something! I forgot to label it, so we\'ll all be surprised.', chat: [['Happy Earth Day!', 'I hugged a tree.', 'Did it hug back?', 'Emotionally.']] },
     { id: 'orangeday', name: 'Orange Day', m: 5, d: 4, npc: 'clementine', note: "Clementine's day. Wear orange. She's checking." },
-    { id: 'museumday', name: 'Museum Day', m: 5, d: 18, npc: 'brulee', note: "Brulee's day. Donations to the museum count double." },
+    { id: 'museumday', name: 'Museum Day', m: 5, d: 18, npc: 'brulee', note: "Brulee's day. Donations to the museum count double, and every wing has a stamp to collect." },
     { id: 'flowerfest', name: 'Flower Festival', m: 5, d: 20, days: 3, icon: 'fl_lily_2', deco: 'bunting', note: "Every wild flower is blooming, and flower seeds are half price at Fortune's.",
         hello: 'Happy Flower Festival! Every flower on the island is out today. Pick some!', chat: [['The flowers are all out!', 'I picked one for everyone.', 'Even the goat?', 'The goat ate it.']] },
     { id: 'cucumberday', name: 'Cucumber Day', m: 6, d: 14, npc: 'cuke', note: "Cuke's day. He's been up since 4 AM. He's always up since 4 AM." },
