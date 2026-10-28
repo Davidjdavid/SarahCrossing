@@ -347,8 +347,9 @@ const EnvRoom = {
         if (L.board && EnvModels.has('furn_shop_board')) {
             const x = e.x / TILE, z = zOf(e.y), m = new THREE.Matrix4().makeTranslation(x, 0, z);
             this.parts(g, { frame: 'display_board' }, 'furn_shop_board', m);
-            const f = EnvModels.models.furn_shop_board.anchors.face, n = 'furn_' + L.board, P = this.pic(L.frame);
-            if (f && EnvModels.has(n)) this.parts(g, { frame: L.frame }, n, new THREE.Matrix4().makeTranslation(x + f[0].x, f[0].y, z + f[0].z), P || undefined);
+            // (a piece in another color hangs as its own piece's model, repainted: the board showed "Sign (mint)" flat)
+            const d = FURN[L.board], f = EnvModels.models.furn_shop_board.anchors.face, n = 'furn_' + ((d && d.base) || L.board), P = this.pic(L.frame);
+            if (f && EnvModels.has(n)) this.parts(g, { frame: L.frame, def: d }, n, new THREE.Matrix4().makeTranslation(x + f[0].x, f[0].y, z + f[0].z), P || undefined);
             else if (f && P) { const o = this.cutout(g, { frame: L.frame }, P, P.w / TILE, P.h / TILE); o.position.set(x + f[0].x, f[0].y, z + f[0].z + 0.02); }
             return true;
         }

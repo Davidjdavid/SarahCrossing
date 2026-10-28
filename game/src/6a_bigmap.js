@@ -100,10 +100,12 @@ const BigMap = {
             g.fillStyle = blossom ? '#f2a6c4' : a.bgSeason === 'fall' ? '#c98a3a' : a.bgSeason === 'winter' ? '#e8eef6' : e.kind === 'fruittree' ? '#5a9e3c' : '#3f8a3a';
             g.beginPath(); g.arc(x, y, big ? 8 : 4, 0, 7); g.fill();
         }
-        // buildings: a little roof in the building's own color
+        // buildings: a little roof in the building's own color (the lighthouse and the windmill each a picture of their own,
+        // David, 29 October)
         for (const e of a.ents) {
             if (e.kind !== 'building') continue;
             const b = e.b;
+            if (e.id === 'lighthouse') { mapLighthouse(g, (b.x + b.w / 2) * K, (b.y + b.h) * K, K); continue; }
             const look = HOUSE_BASE[e.id] ? houseLook(e.id) : null;
             const biz = { club: ['#2e2458', '#e0559a'], barn: ['#c0392b', '#7a2a22'], museum: ['#f4efe6', '#8a95a8'], arcade: ['#2e2458', '#4ec3d9'],
                 salon: ['#f6e8fa', '#b37cf0'], displays: ['#eef4e0', '#4a8a4a'], shop: ['#f7ecd6', '#d9913a'], builder: ['#f2e2c8', '#8a5a33'],
@@ -117,6 +119,8 @@ const BigMap = {
             g.fillStyle = 'rgba(59,42,69,0.85)'; g.fillRect(x + (b.door + 0.3) * K, y + h - K * 0.7, K * 0.4, K * 0.7);
             g.strokeStyle = 'rgba(59,42,69,0.9)'; g.lineWidth = 1.5; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
         }
+        const wm = W0.props.find((p, i) => p.kind === 'windmill' && !propGone(i));
+        if (wm) mapWindmill(g, (wm.x + 1.5) * K, (wm.y + 2) * K, K);
         this.base = c;
     },
     /* the island as a map (David, 28 October: "the map redone to look better"): flat colors by kind of ground, each level
@@ -292,7 +296,8 @@ const BigMap = {
         g.beginPath(); g.arc(px, py, 5.5, 0, 7); g.fill();
         label((px - ox) / z, (py + 18 - oy) / z, G.area.id === 'island' ? 'Sarah' : 'Sarah (inside)', '#ffd1dc', false, true);
         for (const [id, b] of Object.entries(W0.buildings)) {
-            if (names[id]) label((b.x + b.w / 2) * K, (b.y - 0.2) * K, names[id], id === 'home' ? '#ffd1dc' : '#ffe9a8', id === 'home');
+            // (the lighthouse's picture stands taller than its footprint: named over its lamp)
+            if (names[id]) label((b.x + b.w / 2) * K, (id === 'lighthouse' ? b.y + b.h - 5.6 : b.y - 0.2) * K, names[id], id === 'home' ? '#ffd1dc' : '#ffe9a8', id === 'home');
         }
         // then the neighbors' houses, named right under the owner's face ("Maki's"; zoomed in: "Maki's house")
         for (const [id, b] of houses) {
@@ -309,7 +314,7 @@ const BigMap = {
             [landmarkName('oldtree', 'Old tree'), sp.oldtree.x, sp.oldtree.y + 3], [landmarkName('eastmeadow', 'East meadow'), sp.eastmeadow.x, sp.eastmeadow.y + 3], [landmarkName('glade', 'The glade'), sp.meadow.x + 0.5, sp.meadow.y - 4]];
         if (W0.props.some(p => p.kind === 'windmill')) { const w = W0.props.find(p => p.kind === 'windmill'); places.push(['Windmill', w.x + 1.5, w.y - 3]); }
         // (the areas drawn in the designer, named first: 6zza_designer.js)
-        for (const A of Design.areas()) { const big = A.rects.slice().sort((p, q) => q[2] * q[3] - p[2] * p[3])[0]; if (big) label((big[0] + big[2] / 2) * K, (big[1] + big[3] / 2) * K, A.name.replace(/^the /, 'The '), '#ffd6a8'); }
+        for (const A of Design.areas().filter(A => !Design.untouched(A))) { const big = A.rects.slice().sort((p, q) => q[2] * q[3] - p[2] * p[3])[0]; if (big) label((big[0] + big[2] / 2) * K, (big[1] + big[3] / 2) * K, A.name.replace(/^the /, 'The '), '#ffd6a8'); }
         for (const [t, x, y] of places) label(x * K, y * K, t, '#c8f0a0');
         mapExtras(this, g, ox, oy, z);                    // a boat, some gulls and the compass
     },
@@ -336,3 +341,42 @@ function zoomSetting() {
     return box;
 }
 
+
+/* the map's lighthouse: a tapering white tower in red bands, the lamp room glowing on top, a gallery round it */
+function mapLighthouse(g, cx, by, K) {
+    const h = K * 4.2, w0 = K * 1.5, w1 = K * 0.95, top = by - h;
+    g.fillStyle = 'rgba(30,20,40,0.35)'; g.beginPath(); g.ellipse(cx + 3, by, w0 * 0.75, K * 0.45, 0, 0, 7); g.fill();
+    g.beginPath(); g.moveTo(cx - w0 / 2, by); g.lineTo(cx - w1 / 2, top + K * 0.8); g.lineTo(cx + w1 / 2, top + K * 0.8); g.lineTo(cx + w0 / 2, by); g.closePath();
+    g.fillStyle = '#fbf6ee'; g.fill();
+    g.save(); g.clip();
+    g.fillStyle = '#d8434a';
+    for (let k = 0; k < 3; k++) { const y = by - (k * 2 + 1) * (h - K * 0.8) / 6; g.fillRect(cx - w0, y - (h - K * 0.8) / 12, w0 * 2, (h - K * 0.8) / 6); }
+    g.restore();
+    g.strokeStyle = 'rgba(59,42,69,0.9)'; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(cx - w0 / 2, by); g.lineTo(cx - w1 / 2, top + K * 0.8); g.lineTo(cx + w1 / 2, top + K * 0.8); g.lineTo(cx + w0 / 2, by); g.closePath(); g.stroke();
+    // (the gallery, the lamp room and its cap)
+    g.fillStyle = '#3b2a45'; g.fillRect(cx - w1 * 0.75, top + K * 0.7, w1 * 1.5, K * 0.22);
+    g.fillStyle = '#ffd86a'; g.fillRect(cx - w1 * 0.36, top + K * 0.12, w1 * 0.72, K * 0.58);
+    g.strokeRect(cx - w1 * 0.36, top + K * 0.12, w1 * 0.72, K * 0.58);
+    g.fillStyle = '#d8434a'; g.beginPath(); g.moveTo(cx - w1 * 0.5, top + K * 0.14); g.lineTo(cx, top - K * 0.45); g.lineTo(cx + w1 * 0.5, top + K * 0.14); g.closePath(); g.fill(); g.stroke();
+}
+/* the map's windmill: a round-shouldered tower with a door and four sails crossed on its front */
+function mapWindmill(g, cx, by, K) {
+    const h = K * 2.6, w0 = K * 1.9, w1 = K * 1.2, top = by - h;
+    g.fillStyle = 'rgba(30,20,40,0.35)'; g.beginPath(); g.ellipse(cx + 3, by, w0 * 0.7, K * 0.4, 0, 0, 7); g.fill();
+    g.beginPath(); g.moveTo(cx - w0 / 2, by); g.lineTo(cx - w1 / 2, top); g.lineTo(cx + w1 / 2, top); g.lineTo(cx + w0 / 2, by); g.closePath();
+    g.fillStyle = '#f2e2c8'; g.fill(); g.strokeStyle = 'rgba(59,42,69,0.9)'; g.lineWidth = 1.5; g.stroke();
+    g.fillStyle = '#b8553a'; g.beginPath(); g.moveTo(cx - w1 * 0.62, top + 1); g.quadraticCurveTo(cx, top - K * 1.1, cx + w1 * 0.62, top + 1); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(59,42,69,0.85)'; g.fillRect(cx - K * 0.22, by - K * 0.75, K * 0.44, K * 0.75);
+    // (the sails, a little turned, each a lattice of slats)
+    const hx = cx, hy = top + K * 0.25, L = K * 1.9;
+    for (let k = 0; k < 4; k++) {
+        const a = Math.PI / 4 + k * Math.PI / 2, ux = Math.cos(a), uy = Math.sin(a), px = -uy, py = ux;
+        g.strokeStyle = '#6b4a2e'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(hx, hy); g.lineTo(hx + ux * L, hy + uy * L); g.stroke();
+        g.fillStyle = 'rgba(255,250,240,0.92)'; g.beginPath();
+        g.moveTo(hx + ux * L * 0.25, hy + uy * L * 0.25); g.lineTo(hx + ux * L, hy + uy * L);
+        g.lineTo(hx + ux * L + px * K * 0.5, hy + uy * L + py * K * 0.5); g.lineTo(hx + ux * L * 0.25 + px * K * 0.5, hy + uy * L * 0.25 + py * K * 0.5); g.closePath(); g.fill();
+        g.strokeStyle = 'rgba(107,74,46,0.8)'; g.lineWidth = 1; g.stroke();
+    }
+    g.fillStyle = '#3b2a45'; g.beginPath(); g.arc(hx, hy, K * 0.18, 0, 7); g.fill();
+}

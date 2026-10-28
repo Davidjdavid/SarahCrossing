@@ -59,7 +59,7 @@ const EnvItems = {
         return c ? { top: c, trim: c } : null;
     },
     // (a wild flower's item is the flower model EnvBuild already shows)
-    takes(e) { return (e.kind === 'item' && !e.wildFlower && !!this.model(e.id, e.frame)) || (e.kind === 'vbball' && EnvModels.has('item_vbball')) || (e.kind === 'gflower' && EnvModels.has('plot_sprout'))
+    takes(e) { return (e.kind === 'young' && !!this.youngModel(e)) || (e.kind === 'item' && !e.wildFlower && !!this.model(e.id, e.frame)) || (e.kind === 'vbball' && EnvModels.has('item_vbball')) || (e.kind === 'gflower' && EnvModels.has('plot_sprout'))
         || (e.kind === 'stump' && EnvModels.has('furn_od_stump')); },
     /* what's growing in a garden plot, as a model: the seeds' mound, a sprout, then the flower or the vegetable */
     plant(e) {
@@ -90,6 +90,32 @@ const EnvItems = {
             d.scale.setScalar(e.frame === 'stump_palm' ? 1.05 : 1.6);
             const x = (e.tx + 0.5) * TILE, y = (e.ty + 0.5) * TILE;
             d.position.set(x / TILE, Env.groundH(x, y), y / TILE * R3_ZS);
+            this.list.set(e, d);
+        }
+        seen.add(e);
+    },
+    /* a tree Sarah planted, part way grown (David, 29 October: they were still flat pictures): a sprout, then the tree
+       itself small, then bigger (a palm on the sand), the season's crown; [model, size] or null */
+    youngModel(e) {
+        const pl = e.planted || {}, f = e.frame || '', has = n => EnvModels.has(n);
+        if (f === 'sprout') return has('plot_sprout') ? ['plot_sprout', 1.3] : null;
+        const k = /^sapling/.test(f) ? 0.32 : 0.55;
+        if (pl.kind === 'palm') return has('palm_ac') ? ['palm_ac', k] : null;
+        const suf = { spring: '_spring', fall: '_fall', winter: '_winter' }[Clock.season()] || '', n = 'tree_round_' + ((pl.x * 7 + pl.y * 13) % 2 ? 'b' : 'a');
+        return has(n + suf) ? [n + suf, k * 0.85] : has(n) ? [n, k * 0.85] : null;
+    },
+    young(e, seen) {
+        const m = this.youngModel(e);
+        if (!m) return;
+        const key = m.join(':');
+        let d = this.list.get(e);
+        if (d && d.userData.name !== key) { this.group.remove(d); d = null; }
+        if (!d) {
+            d = this.make(m[0]); d.userData.name = key;
+            d.rotation.y = ((e.tx * 7 + e.ty * 3) % 5 - 2) * 0.15;
+            d.scale.setScalar(m[1]);
+            const f = Env.tileSpot(e);
+            d.position.set(f.x, f.y - 0.02, f.z);
             this.list.set(e, d);
         }
         seen.add(e);
@@ -151,9 +177,10 @@ const EnvItems = {
         // the garden plots' plants, flowers planted in the ground, the volleyball (bouncing when it's been hit, as its
         // picture did) and a felled tree's stump (the stump seat's model, a palm's smaller)
         for (const e of a.ents) {
-            if (e.kind !== 'plot' && e.kind !== 'vbball' && e.kind !== 'gflower' && e.kind !== 'stump') continue;
+            if (e.kind !== 'plot' && e.kind !== 'vbball' && e.kind !== 'gflower' && e.kind !== 'stump' && e.kind !== 'young') continue;
             if (v && (e.x < v.x0 - 48 || e.x > v.x1 + 48 || e.y < v.y0 - 48 || e.y > v.y1 + 96)) continue;
             if (e.kind === 'stump') { this.stump(e, seen); continue; }
+            if (e.kind === 'young') { this.young(e, seen); continue; }
             const name = e.kind === 'plot' ? this.plant(e) : e.kind === 'gflower' ? this.planted(e) : 'item_vbball';
             if (!name || !EnvModels.has(name)) continue;
             // (a plot's flowers in one of their colors, a planted flower in its own)

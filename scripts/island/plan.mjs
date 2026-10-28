@@ -111,6 +111,28 @@ export const PLAN = {
   garden: { x: 62, y: 81 },
   // the community garden below the farm's crossroads, and fruit trees round the farm's fields and the garden
   community: { x: 53, y: 45, cols: 4, rows: 2 },
+  // the island's parts, as the neighbors think of them (David, 29 October: already there in the designer's Areas, to see
+  // and redraw): rectangles [x, y, w, h] in tiles, the later winning where two overlap, so the broad ones come first
+  areas: [
+    { id: 'farm', name: 'the farm', rects: [[8, 12, 87, 48]] },
+    { id: 'village', name: 'the west village', rects: [[14, 62, 84, 52]] },
+    { id: 'woods', name: 'the woods', rects: [[95, 12, 65, 64]] },
+    { id: 'mountain', name: 'the mountain', rects: [[160, 5, 58, 55]] },
+    { id: 'eastside', name: 'the east side', rects: [[180, 76, 38, 42]] },
+    { id: 'square', name: 'the town square', rects: [[92, 83, 48, 35]] },
+    { id: 'market', name: 'the shopping district', rects: [[140, 92, 42, 16], [140, 108, 40, 9]] },
+    { id: 'orchard', name: 'the orchard', rects: [[143, 79, 33, 13]] },
+    { id: 'river', name: 'the river', rects: [[170, 80, 10, 37]] },
+    { id: 'falls', name: 'the falls', rects: [[162, 66, 20, 14]] },
+    { id: 'pond', name: 'the pond', rects: [[92, 50, 16, 18]] },
+    { id: 'meadow', name: 'the meadow', rects: [[134, 38, 18, 14]] },
+    { id: 'campsite', name: 'the campsite', rects: [[110, 16, 24, 14]] },
+    { id: 'lookout', name: 'the lookout', rects: [[186, 8, 22, 14]] },
+    { id: 'spring', name: 'the hot spring', rects: [[188, 55, 22, 16]] },
+    { id: 'lighthouse', name: 'the lighthouse', rects: [[203, 104, 14, 13]] },
+    { id: 'beach', name: 'the beach', rects: [[18, 114, 82, 14], [100, 118, 105, 10]] },
+    { id: 'harbor', name: 'the harbor', rects: [[108, 117, 26, 32]] },
+  ],
   // the town's projects (game/src/6zgb_projects.js): where each goes up once Sarah has paid for it at the Town Hall, held
   // clear till then; layout.mjs finds the nearest clear footprint to each target on the same ground (g grass, s sand,
   // c the square's flagstones)

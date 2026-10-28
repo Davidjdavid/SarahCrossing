@@ -586,7 +586,19 @@ details.mlib > .row { margin: 0 6px 6px; }
 .app:active .tile { transform: scale(0.94); }
 @media (hover: hover) { .app:hover .tile { transform: translateY(-2px); } }
 .app .tile canvas { width: 34px; height: 34px; }
-@media (max-width: 370px) { .apps { gap: 12px 2px; } .app .tile { width: 54px; height: 54px; border-radius: 18px; } .app { font-size: 11px; } }
+.app .tile canvas.vec { width: 38px; height: 38px; image-rendering: auto; }
+/* a folder: four little app tiles on a frosted one */
+.app.folder .tile { background: rgba(255, 255, 255, 0.72); box-shadow: inset 0 0 0 2px rgba(122, 90, 52, 0.14), 0 3px 0 rgba(122, 90, 52, 0.16);
+  display: grid; grid-template-columns: repeat(2, 22px); grid-auto-rows: 22px; gap: 4px; place-content: center; }
+.app.folder .tile .mini { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; }
+.app.folder .tile .mini canvas.vec { width: 18px; height: 18px; }
+.pfoot { display: flex; justify-content: center; margin-top: 14px; }
+.pquit { appearance: none; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px 7px 10px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7); font: 600 14px/1 var(--display); color: var(--ink-soft); }
+.pquit canvas.vec { width: 22px; height: 22px; }
+@media (hover: hover) { .pquit:hover { color: var(--ink); background: #fff; } }
+@media (max-width: 370px) { .apps { gap: 12px 2px; } .app .tile { width: 54px; height: 54px; border-radius: 18px; } .app { font-size: 11px; }
+  .app.folder .tile { grid-template-columns: repeat(2, 20px); grid-auto-rows: 20px; gap: 3px; } .app.folder .tile .mini { width: 20px; height: 20px; } }
 /* a shop (and the pocket): the things as cards, and the one picked shown big beside them (under them on a phone) */
 #panel.wide { width: min(880px, calc(100% - 20px)); }
 .store { display: flex; flex-direction: column; gap: 12px; }

@@ -202,26 +202,70 @@ function openPhone() {
     cash.appendChild(document.createTextNode(fmtNum(S.money)));
     bar.appendChild(cash);
     P.body.appendChild(bar);
+    // (the everyday apps, then the folders; Save & quit at the foot)
     const grid = el('div', 'apps');
-    for (const [id, label, color] of APPS) {
-        // (the designer only where the island's design can be saved: the beta site, 6zza_designer.js)
-        if (id === 'designer' && !Design.edit) continue;
-        const b = el('button', 'app');
-        b.type = 'button';
-        const tile = el('div', 'tile');
-        tile.style.background = color;
-        tile.appendChild(iconCanvas('app_' + (id === 'designer' ? 'edit' : id), 36));
-        b.appendChild(tile);
-        const lab = el('span', null, label);
-        b.appendChild(lab);
-        const u = id === 'mail' ? S.mail.filter(m => !m.read && m.day <= Clock.dayNum()).length : id === 'tasks' ? Requests.open().length : id === 'texts' ? Invites.pending().length : 0;
-        if (u) tile.appendChild(el('span', 'badge', String(u)));
-        b.addEventListener('click', () => { Sfx.ui('tick'); openApp(id); });
-        grid.appendChild(b);
-    }
+    for (const id of PHONE_HOME) grid.appendChild(appTile(id));
+    for (const f of PHONE_FOLDERS) grid.appendChild(folderTile(f));
+    P.body.appendChild(grid);
+    const foot = el('div', 'pfoot');
+    const quit = el('button', 'pquit');
+    quit.type = 'button';
+    quit.appendChild(phoneIcon('save', '#dfe8f5', 22));
+    quit.appendChild(document.createTextNode('Save & quit'));
+    quit.addEventListener('click', () => { Sfx.ui('tick'); openApp('save'); });
+    foot.appendChild(quit);
+    P.body.appendChild(foot);
+}
+/* the phone's home screen (David, 29 October: "22 options when you open your phone is a lot... put some apps in its own
+   section"): the everyday apps, and the rest in two folders opened in place */
+const PHONE_HOME = ['map', 'texts', 'mail', 'friends', 'tasks', 'calendar', 'camera', 'settings'];
+const PHONE_FOLDERS = [
+    { id: 'play', name: 'Play', apps: ['arcade', 'music', 'moves', 'poems', 'pottery', 'recipes'] },
+    { id: 'island', name: 'Home & island', apps: ['home', 'edit', 'wardrobe', 'collection', 'council', 'gohome', 'designer'] },
+];
+/* (the designer only where the island's design can be saved: the beta site, 6zza_designer.js) */
+function appShown(id) { return id !== 'designer' || Design.edit; }
+function appBadge(id) { return id === 'mail' ? S.mail.filter(m => !m.read && m.day <= Clock.dayNum()).length : id === 'tasks' ? Requests.open().length : id === 'texts' ? Invites.pending().length : 0; }
+function appTile(id, from) {
+    const [, label, color] = APPS.find(a => a[0] === id);
+    const b = el('button', 'app');
+    b.type = 'button';
+    b.dataset.app = id;
+    const tile = el('div', 'tile');
+    tile.style.background = color;
+    tile.appendChild(phoneIcon(id, color, 38));
+    b.appendChild(tile);
+    b.appendChild(el('span', null, label));
+    const u = appBadge(id);
+    if (u) tile.appendChild(el('span', 'badge', String(u)));
+    b.addEventListener('click', () => { Sfx.ui('tick'); openApp(id, from); });
+    return b;
+}
+/* a folder: its first four apps small on a frosted tile; a tap opens it */
+function folderTile(f) {
+    const apps = f.apps.filter(appShown), b = el('button', 'app folder');
+    b.type = 'button';
+    b.dataset.folder = f.id;
+    const tile = el('div', 'tile');
+    for (const id of apps.slice(0, 4)) { const m = el('div', 'mini'); const col = APPS.find(a => a[0] === id)[2]; m.style.background = col; m.appendChild(phoneIcon(id, col, 18)); tile.appendChild(m); }
+    const u = apps.reduce((n, id) => n + appBadge(id), 0);
+    if (u) tile.appendChild(el('span', 'badge', String(u)));
+    b.appendChild(tile);
+    b.appendChild(el('span', null, f.name));
+    b.addEventListener('click', () => { Sfx.ui('tick'); openFolder(f.id); });
+    return b;
+}
+function openFolder(fid) {
+    const f = PHONE_FOLDERS.find(q => q.id === fid);
+    const P = UI.open({ title: f.name, phone: true, back: () => openPhone() });
+    const grid = el('div', 'apps');
+    for (const id of f.apps.filter(appShown)) grid.appendChild(appTile(id, fid));
     P.body.appendChild(grid);
 }
-function openApp(id) {
+/* (an app opened from a folder goes back to the folder) */
+let phoneFrom = null;
+function openApp(id, from) {
+    phoneFrom = from || null;
     ({ map: appMap, tasks: appTasks, mail: appMail, friends: appFriends, recipes: appRecipes, collection: appCollection, wardrobe: () => openWardrobe(true),
         moves: appMoves, camera: () => { UI.close(true); Photo.start(); }, calendar: appToday, settings: appSettings, poems: appPoems, pottery: appPottery,
         council: appCouncil, arcade: appArcade, texts: appTexts, gohome: askGoHome, music: () => appMusic(), save: appSaveQuit, designer: () => Design.app(),
@@ -229,7 +273,7 @@ function openApp(id) {
         paths: () => { UI.close(true); PathTool.open(); },
         edit: () => { if (G.area.id !== 'island') { phoneSays('Island edit only works outside. Step outside first, then open it again!'); return; } UI.close(true); IslandEdit.open(); } })[id]();
 }
-const backToPhone = () => openPhone();
+const backToPhone = () => (phoneFrom ? openFolder(phoneFrom) : openPhone());
 
 function appMap() { UI.close(true); BigMap.open({ fromPhone: true }); }
 

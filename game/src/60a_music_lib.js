@@ -198,6 +198,7 @@ function fileTrackOk(key) {
     return false;
 }
 
+const MUSIC_LOOP_FROM = 5;              // (seconds into a track where it carries on when it ends)
 /* two audio elements taking turns, so one track fades into the next; each made ready for sound in the first tap
    (phones only let an element play that has been started from a tap once) */
 const MusicFile = {
@@ -207,7 +208,7 @@ const MusicFile = {
         const c = Audio2.ctx;
         this.decks = [0, 1].map(() => {
             const el = new Audio();
-            el.preload = 'auto'; el.loop = true;
+            el.preload = 'auto';
             const gain = c.createGain();
             gain.gain.value = 0;
             let node = null;
@@ -231,6 +232,25 @@ const MusicFile = {
             if (Music.cur && Music.cur.file === d) { Music.key = null; Music.update(true); }
         };
         d.el.onerror = bad;
+        // (round again when it ends, not from the very start: the last second dips, then it carries on a few seconds in and
+        // swells back up, so the intro doesn't cut in over the ending: David, 29 October, "music looping is kinda annoying")
+        d.dip = false;
+        d.el.ontimeupdate = () => {
+            const el = d.el, left = el.duration - el.currentTime;
+            if (d.token !== token || d.dip || !(el.duration > 20) || !(left < 1.2)) return;
+            d.dip = true;
+            const t = c.currentTime;
+            d.gain.gain.cancelScheduledValues(t); d.gain.gain.setValueAtTime(d.gain.gain.value, t); d.gain.gain.linearRampToValueAtTime(0.2, t + Math.max(0.15, left));
+        };
+        d.el.onended = () => {
+            if (d.token !== token) return;
+            const el = d.el, t = c.currentTime;
+            d.dip = false;
+            try { el.currentTime = el.duration > 30 ? MUSIC_LOOP_FROM : 0; } catch (e) { /* from the start, then */ }
+            d.gain.gain.cancelScheduledValues(t); d.gain.gain.setValueAtTime(0.2, t); d.gain.gain.linearRampToValueAtTime(1, t + 2.5);
+            const go = el.play();
+            if (go && go.catch) go.catch(() => {});
+        };
         d.gain.gain.cancelScheduledValues(c.currentTime);
         d.gain.gain.setValueAtTime(0, c.currentTime);
         d.gain.gain.linearRampToValueAtTime(1, c.currentTime + 1.6);
@@ -256,6 +276,7 @@ const MusicFile = {
         const c = Audio2.ctx;
         if (!d || !c) return;
         const token = d.token;
+        d.el.onended = d.el.ontimeupdate = null;
         d.gain.gain.cancelScheduledValues(c.currentTime);
         d.gain.gain.setValueAtTime(d.gain.gain.value, c.currentTime);
         d.gain.gain.linearRampToValueAtTime(0, c.currentTime + 1);

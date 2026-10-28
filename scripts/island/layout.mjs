@@ -612,7 +612,7 @@ class Island {
         treasure: { x: palm.x, y: palm.y + 3, palm: [palm.x, palm.y] }, gemSpots: this.gemSpots, ramps: this.ramps,
         reach: rows((k) => (reach.has(k) ? '1' : '0')),
         cut: rows((k) => this.cut[k] || '.'),
-        lots: this.P.lots || {}, community: this.community || null, projects: this.projects || {},
+        lots: this.P.lots || {}, community: this.community || null, projects: this.projects || {}, areas: this.P.areas || [],
       },
       paint: {
         W, H, ter: this.ter, lvl: this.lvl, face: this.face, land: this.land, blocks: this.blocks, strokes: this.strokes, shapes: this.shapes, under: this.under,

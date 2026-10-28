@@ -13,7 +13,7 @@ import path from 'node:path';
 
 export const MAX_DESIGN_BYTES = 4 * 1024 * 1024;
 const KEEP = 60;
-const PARTS = new Set(['v', 'base', 'props', 'added', 'stairs', 'rooms', 'npcs', 'areas', 'note']);
+const PARTS = new Set(['v', 'base', 'props', 'added', 'stairs', 'rooms', 'npcs', 'areas', 'areasV', 'note']);
 
 export class DesignError extends Error {
   constructor(status, message) {

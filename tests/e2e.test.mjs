@@ -2905,12 +2905,19 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       out.narrow = (Design.stairAt(cliff[0], cliff[1]).tiles || []).length === 2;
       Design.stairW = 3;
       IslandEdit.tap((cliff[0] + 0.5) * TILE, (cliff[1] + 0.5) * TILE);
+      // one of the island's own staircases taken away (as the first stairs tool did on a tap: David, 29 October), dashed
+      // where it was; a tap there puts it back as it was
+      let own = null;
+      for (const [x, y] of WORLD0_GROUND.ramps) { const run = Design.stairRun(x, y); if (!run) continue; IslandEdit.stairSel = run; Design.stairDo(IslandEdit, 'away'); if (Design.stairsGone().length) { own = run; break; } }
+      out.ownGone = !!own && Design.stairsGone().length === 1 && own.every(([x, y]) => !RAMPS.has(x + ',' + y));
+      IslandEdit.tap((own[0][0] + 0.5) * TILE, (own[0][1] + 0.5) * TILE);
+      out.ownBack = Design.stairsGone().length === 0 && own.every(([x, y]) => RAMPS.has(x + ',' + y)) && Design.d.stairs.gone.length === 0 && Design.d.stairs.add.length === 6;
       IslandEdit.stairs = false;
       IslandEdit.close();
       window._t = { i, j, s1, s2, tiles };
       return out;
     });
-    assert.deepEqual(island, { edit: true, rev: 0, on: true, footTurned: '1,2', moved: true, ent: true, gone: true, added: true, undo: true, stairs: true, picked: true, narrower: true, wider: true, stairsGone: true, narrow: true });
+    assert.deepEqual(island, { edit: true, rev: 0, on: true, footTurned: '1,2', moved: true, ent: true, gone: true, added: true, undo: true, stairs: true, picked: true, narrower: true, wider: true, stairsGone: true, narrow: true, ownGone: true, ownBack: true });
     // a room: Waffle's shop, one piece turned, one taken away, a chair added
     await page.evaluate(() => __dbg.enter('displays'));
     await page.waitForFunction(() => G.area.id === 'displays');
@@ -2947,6 +2954,11 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       const w = { beach: 2, plaza: 1 };
       designSpots('maki', w);
       const ok = Design.likeWeight('maki', 'book', 4) === 0 && Design.likeWeight('maki', 'fish', 1) === 6 && Design.likeWeight('kai', 'fish', 4) === 4 && !('beach' in w) && w.plaza === 1;
+      // the island's own parts are there before anything's drawn (David, 29 October: the shopping district and the rest)
+      const ids = Design.areas().map(A => A.id);
+      const presets = ['market', 'square', 'farm', 'beach', 'harbor', 'woods'].every(k => ids.includes(k)) && Design.d.areas === undefined
+        && Object.keys(W0.spots).every(k => Design.spotArea(k)) && Design.spotArea('alley').id === 'market' && placeName('maki', 'boutiquefront') === "outside Clementine's"
+        && Design.placeAreas().length === 0;
       // an area drawn round the campsite (two corners), named; a neighbor there is "at the campfire"; Kai never goes there
       const c = W0.spots.campsite;
       Design.work().areas = [{ id: 'a1', name: 'the campfire', rects: [] }];
@@ -2956,10 +2968,31 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       N.kai = { areas: { a1: 0 } };
       const w2 = { campsite: 2, beach: 1 };
       designSpots('kai', w2);
-      const area = JSON.stringify(Design.d.areas[0].rects) === JSON.stringify([[c.x - 2, c.y - 2, 5, 5]]) && placeName('maki', 'campsite') === 'at the campfire' && !('campsite' in w2) && w2.beach === 1;
-      return { ok, area, saved: await Design.save(), rev: Design.rev, dirty: Design.dirty };
+      const area = JSON.stringify(Design.d.areas.find(A => A.id === 'a1').rects) === JSON.stringify([[c.x - 2, c.y - 2, 5, 5]]) && placeName('maki', 'campsite') === 'at the campfire' && !('campsite' in w2) && w2.beach === 1
+        && Design.d.areasV === 1 && Design.d.areas.length === W0.areas.length + 1;
+      // the shopping district redrawn smaller, at the alley's east end only: a neighbor going to the boutique's front (now in
+      // no area) stands in the shopping district as it's drawn now
+      IslandEdit.open({ design: true }); IslandEdit.areaMode = true; IslandEdit.areaId = 'market';
+      for (const r of W0.areas.find(A => A.id === 'market').rects) IslandEdit.tap((r[0] + 0.5) * TILE, (r[1] + 0.5) * TILE);
+      IslandEdit.tap((165 + 0.5) * TILE, (95 + 0.5) * TILE); IslandEdit.tap((178 + 0.5) * TILE, (106 + 0.5) * TILE);
+      // and a new area somewhere none of their places are: somewhere they go by day
+      IslandEdit.areaId = null;
+      Design.ownAreas().push({ id: 'a2', name: 'the hilltop', rects: [] }); Design.changed('areas');
+      IslandEdit.areaId = 'a2';
+      IslandEdit.tap((70 + 0.5) * TILE, (48 + 0.5) * TILE); IslandEdit.tap((76 + 0.5) * TILE, (53 + 0.5) * TILE);
+      IslandEdit.close();
+      const inR = (t, x0, y0, x1, y1) => !!t && t[0] >= x0 && t[0] <= x1 && t[1] >= y0 && t[1] <= y1;
+      const m = Design.areas().find(A => A.id === 'market'), at = Design.spotAt('boutiquefront'), rs = resolveSpot(NPCs.get('maki'), 'boutiquefront');
+      const w3 = { plaza: 1 };
+      designAreaSpots('kai', w3, 'day');
+      const visit = Design.areaVisit('a2', 'kai'), ra = resolveSpot(NPCs.get('kai'), 'area:a2');
+      const redrawn = JSON.stringify(m.rects) === JSON.stringify([[165, 95, 14, 12]]) && inR(at, 165, 95, 178, 106) && JSON.stringify(rs.anchor) === JSON.stringify(at)
+        && Design.spotArea('boutiquefront').id === 'market' && w3['area:a2'] === 0.5 && Design.placeAreas().map(A => A.id).join() === 'a2'
+        && inR(visit, 70, 48, 76, 53) && JSON.stringify(ra.anchor) === JSON.stringify(visit) && placeName('kai', 'area:a2') === 'at the hilltop'
+        && !(() => { const w4 = { plaza: 1 }; designAreaSpots('kai', w4, 'night'); return 'area:a2' in w4; })();
+      return { ok, presets, area, redrawn, saved: await Design.save(), rev: Design.rev, dirty: Design.dirty };
     });
-    assert.deepEqual(likes, { ok: true, area: true, saved: true, rev: 1, dirty: false });
+    assert.deepEqual(likes, { ok: true, presets: true, area: true, redrawn: true, saved: true, rev: 1, dirty: false });
     const t = await page.evaluate(() => window._t);
     // a new game (another device) starts from the design
     await page.close();
@@ -2971,7 +3004,8 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       out.bench = [p.x, p.y, p.rot].join() === [t.s1[0], t.s1[1], 1].join() && isl.ents.some(e => e.propIdx === t.i && e.rot === 1);
       out.lamp = !!W0.props[t.j].gone && !isl.ents.some(e => e.propIdx === t.j);
       out.gnome = W0.props[WORLD_PROPS] && W0.props[WORLD_PROPS].disp === 'dp_gnome' && isl.ents.some(e => e.propIdx === WORLD_PROPS);
-      out.likes = Design.likeWeight('maki', 'book', 4) === 0 && Design.areas().length === 1 && placeName('maki', 'campsite') === 'at the campfire';
+      out.likes = Design.likeWeight('maki', 'book', 4) === 0 && Design.areas().length === W0.areas.length + 2 && placeName('maki', 'campsite') === 'at the campfire'
+        && JSON.stringify(Design.areas().find(A => A.id === 'market').rects) === JSON.stringify([[165, 95, 14, 12]]);
       out.stairs = t.tiles.every(([x, y]) => RAMPS.has(x + ',' + y) && W0.coll[y][x] === '0');
       __dbg.setTime(10, 13, 11);
       await enterRoom('displays');
@@ -3074,6 +3108,7 @@ test('every screen opens without a problem: the phone and its apps, the pocket, 
       await wait(30);
     };
     await open('phone', () => openPhone());
+    for (const f of PHONE_FOLDERS) await open('folder ' + f.id, () => openFolder(f.id));
     for (const [id] of APPS) {
       if (['save', 'gohome', 'home', 'camera'].includes(id)) continue;          // (they leave, ask or need the house: below)
       await open('app ' + id, () => openApp(id));
@@ -3812,6 +3847,7 @@ test('on a phone, nothing spills sideways: the phone and its apps, the pocket, t
       await wait(30);
     };
     await check('phone', () => openPhone());
+    for (const f of PHONE_FOLDERS) await check('folder ' + f.id, () => openFolder(f.id));
     for (const [id] of APPS) if (!['save', 'gohome', 'home', 'camera', 'map'].includes(id)) await check('app ' + id, () => openApp(id));
     await check('pocket', () => openPocket());
     await check("Fortune's: buy", () => shopBuy());

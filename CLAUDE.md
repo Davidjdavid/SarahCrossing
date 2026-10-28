@@ -124,7 +124,9 @@ docs/DEPLOY.md for the server.
   the things as cards, the one picked big on a little turntable with what can be done with it; a tap picks, only a
   button buys, sells or drops anything; Fortune's sell screen also sells all the fish, fruit, shells, vegetables or flowers in the pocket in one
   go, a second tap to be sure; the pocket sends all its furniture home in one go, the mailbox takes every present at once); `UI.open({ wide })` gives the wider panel they use. The phone shows the time,
-  weather and wallet along its top and the apps four across. Trying something on at the salon or the sewing machine,
+  weather and wallet along its top and the apps four across: eight everyday ones and two folders (`PHONE_HOME`,
+  `PHONE_FOLDERS`, `openFolder`; an app opened from a folder goes back to it, `phoneFrom`), Save & quit at its foot, every
+  icon drawn as shapes at the screen's resolution (41c_phone_icons.js, `phoneIcon`). Trying something on at the salon or the sewing machine,
   the 3D view puts the studio to one side and the camera in close on Sarah, whose doll wears it as it's made
   (`Studio.tryOn`, `G.tryOn` read by `hdSarahSpec`, `R3.mirror`); S isn't touched until it's paid for.
 - The classic 16x24 art stays the source for menus, icons, the classic view and the flat modes.
@@ -241,7 +243,8 @@ docs/DEPLOY.md for the server.
   the post office by day and by night, the boutique, salon, club, café and Ginger's workshop, holidays' hours, the New
   Year countdown, hide-and-seek, by a town project the day it's done), and music that stays the same carries on through
   a door (`Music.update`). A track plays through one of two audio elements routed into the music's volume
-  (`MusicFile`, readied in the first tap for phones); without the library the island's own tunes play. Uploads and
+  (`MusicFile`, readied in the first tap for phones; when it ends it carries on `MUSIC_LOOP_FROM` seconds in, its last
+  second dipped and swelling back, not from the very start); without the library the island's own tunes play. Uploads and
   removing a game only where the server allows them (`MUSIC_UPLOADS`: 1 on beta from setup.sh, 0 on live, on outside
   production; `/api/music` says `uploads`): David uploads once from beta, then the game's own tunes are to be swapped for
   the soundtracks' tracks (he sends the list from "Copy the track list", `musicTrackList`). A player's own music stays
@@ -697,14 +700,22 @@ docs/DEPLOY.md for the server.
   pieces are keyed by where they first stood (`id@x,y`, kept as `it.o`): `rooms[id]` { moved, gone, added }. A picked-up
   piece goes back down as itself (`Decor.heldIt`), so a counter keeps what it does.
 - Areas (the island designer's Areas tool): named areas drawn as rectangles (two taps, opposite corners; a tap inside a
-  piece takes it away), kept as `areas` [{ id, name, rects }]: named on the map (BigMap, `Design.areas`), a neighbor's
+  piece takes it away), kept as `areas` [{ id, name, rects }]. The island's own parts come first (David, 29 October: the
+  shopping district, the town square, the harbor, the farm...: the plan's `areas`, world.json's, `Design.presets()`), shown
+  until one is changed, when the design keeps the whole list as its own (`ownAreas`, `areasV`); the map names only the
+  ones changed or added (`untouched`). A plan spot belongs to the area it's in, or the one it shipped in (`spotArea`,
+  `homeArea`): redrawn away from it, a neighbor going there goes to that area's nearest open tile (`spotAt`, in
+  resolveSpot); an area with none of their places in it is a place of its own they go to by day (`placeAreas`,
+  `designAreaSpots`, plan spot `area:<id>`, `areaVisit`). Areas are named on the map (BigMap, `Design.areas`), a neighbor's
   texts say they're in one (`designPlace` in placeName, `Design.areaAt`), and Neighbors' likes can weigh a whole area
   (`npcs[id].areas`, every place of theirs inside it, in `designSpots`).
 - Stairs (the island designer's Stairs tool): a tap on a cliff's face cuts a staircase there (`stairAt`: one, two or three
   tiles wide as picked, `stairW`; the face's two rows, open ground above and below); a tap on one picks it (`stairRun`,
   `E.stairSel`), and then it's made narrower or wider, moved a tile along the cliff or to another cliff's face, or taken away
   (`stairDo`, `stairCols`/`stairCol`: its columns across its width and a new one shaped like them; David, 29 October), each
-  change refused and put back if it would cut off a door or a neighbors' place (`stairEdit`, `cutOff`). Kept as `stairs` { add, gone } of "x,y" tiles, laid over world.json's grid,
+  change refused and put back if it would cut off a door or a neighbors' place (`stairEdit`, `cutOff`). The island's own
+  stairs taken away are dashed where they were, and a tap there (or "Put back the stairs taken away") puts them back
+  (`stairsGone`; the first stairs tool took stairs away on a tap). Kept as `stairs` { add, gone } of "x,y" tiles, laid over world.json's grid,
   collision and `W0.ramps` (and `RAMPS`) in place by `Design.ground` (from `WORLD0_GROUND`). The new look builds the steps
   and walls from them; the HD-2D view's painted ground doesn't show the change.
 - Turned things: furniture (`it.rot`, quarter turns: 0 faces the front, 1 east, 2 the back, 3 west; `furnWH` swaps its

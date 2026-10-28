@@ -447,13 +447,23 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   the neighbors
 - [ ] Cliff edges: no jagged steps, the wall's lip matching the lawn, clean corners
 - [ ] Houses and props showing only partly, at every zoom
-- [ ] The map: the lighthouse and the windmill each their own picture
-- [ ] The phone: fewer things on its front screen (apps in sections), and better icons
-- [ ] Trees part way through growing, and a sign for sale in a shop, still flat pictures in the new look
-- [ ] The designer: move the island's stairs and make them narrower
+- [x] The map: the lighthouse and the windmill each their own picture
+- [x] The phone: fewer things on its front screen (apps in sections), and better icons (eight everyday apps, a Play
+  folder and a Home & island folder, Save & quit at the foot; every icon redrawn as crisp shapes)
+- [x] Trees part way through growing, and a sign for sale in a shop, still flat pictures in the new look (a growing tree
+  is the tree's model, small; a piece in another color hangs on Fortune's display board as its model, repainted)
+- [x] The designer: move the island's stairs and make them narrower (pick a staircase: narrower, wider, a tile along,
+  somewhere else, taken away; new ones one to three tiles wide; stairs taken away by the first tool are dashed where they
+  were, and a tap puts them back)
+- [x] The designer's Areas start with the island's own parts as the neighbors think of them (the shopping district, the
+  town square, the harbor, the beach, the farm, the woods...), to see and redraw; a neighbor going somewhere its area no
+  longer covers goes to the area as it's drawn now, and a new area with none of their places in it is somewhere they go
+  by day
+- [x] Wonton's sleeping bubble (and anyone's) only shows when they're near and in sight, not through cliffs
 - [ ] The old tree in the forest: a tree of its own, much larger, with branches
-- [ ] Music: the hourly track loops less jarringly (when it ends, carry on from a few seconds in, faded across, rather
-  than jumping back to the very start)
+- [x] Music: the hourly track loops less jarringly (when it ends, carry on from a few seconds in, faded across, rather
+  than jumping back to the very start: the last second dips, it carries on five seconds in and swells back up)
+- [ ] The sea and sky more alive: the water moving, clouds drifting by, small things going on
 - [ ] Sheets of everything for review: every furniture piece, prop, neighbor and the like, its name and where it is
 
 ## David's notes from playing beta (28 October)

@@ -92,6 +92,7 @@ function spotTile(id, spot) {
     if (W0.buildings[spot]) { const b = W0.buildings[spot]; return [b.x + b.door, b.y + b.h]; }
     if (spot === 'cart') return [Math.floor(W0.cart.x), W0.cart.y];
     if (spot === 'jog') return [W0.spots.orchard.x, W0.spots.orchard.y];
+    if (spot.startsWith('area:')) return Design.areaVisit(spot.slice(5));
     if (spot.startsWith('party:')) spot = spot.slice(6);
     const sp = W0.spots[spot];
     return sp ? [sp.x, sp.y] : null;
@@ -147,6 +148,7 @@ function makePlan(id, day) {
             for (const [k, v] of Object.entries(d.fav || {})) wts[k] = (wts[k] || 0) + v * (band === 'morning' ? 0.6 : 1);
             for (const k of townSpots(id)) wts[k] = (wts[k] || 0) + 3;          // (where Sarah asked at the Town Hall: 6zg_townhall.js)
             designSpots(id, wts);                                                // (and where the designer said they like being: 6zza_designer.js)
+            designAreaSpots(id, wts, band);                                      // (and the areas drawn somewhere new)
             openIndoor(wts, t, d);
             if (band !== 'day') delete wts.meadow;
             // after dark nobody wanders off to the fields, the woods or the mountain (the bonfire is where the night is)
@@ -322,7 +324,11 @@ function resolveSpot(n, spot) {
     }
     if (spot.startsWith('party:')) { const s = sp[spot.slice(6)] || sp.plaza; return { area: 'island', ...xy(tpx(s.x, s.y)), anchor: [s.x, s.y], r: 3, party: true }; }
     if (spot.startsWith('picnic_')) { const ps = picnicSpot(n, spot); if (ps) return ps; }
-    const s = sp[spot] || sp.plaza;
+    // (an area drawn in the designer: a place in it, the same all day; and a spot whose area was redrawn away from it:
+    // the area as it's drawn now, 6zza_designer.js)
+    if (spot.startsWith('area:')) { const t = Design.areaVisit(spot.slice(5), n.id); if (t) return { area: 'island', ...xy(tpx(t[0], t[1])), anchor: t, r: 3 }; }
+    const s = sp[spot] || sp.plaza, moved = sp[spot] && Design.spotAt(spot);
+    if (moved) return { area: 'island', ...xy(tpx(moved[0], moved[1])), anchor: moved, r: Math.max(2, s.r || 0) };
     return { area: 'island', ...xy(tpx(s.x, s.y)), anchor: [s.x, s.y], r: s.r };
 }
 function xy([x, y]) { return { x, y }; }

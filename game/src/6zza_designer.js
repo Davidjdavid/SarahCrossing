@@ -17,9 +17,9 @@ const LIKE_ACTS = { stars: 'Stargazing', snack: 'An ice cream', phone: 'On their
     cup: 'A mug of cocoa', fish: 'Fishing', bench: 'Sitting on a bench', scope: 'The telescope' };
 const LIKE_LEVELS = [['Never', 'never'], ['Now and then', 'a little'], ['Likes', 'likes'], ['Loves', 'loves']];
 /* a design's parts the server takes (server/design.mjs) */
-const DESIGN_PARTS = ['v', 'base', 'props', 'added', 'stairs', 'areas', 'rooms', 'npcs', 'note'];
+const DESIGN_PARTS = ['v', 'base', 'props', 'added', 'stairs', 'areas', 'areasV', 'rooms', 'npcs', 'note'];
 /* the areas' colors on the island and the map */
-const AREA_COLS = ['#ff9f6b', '#7cc8ff', '#b48cff', '#7fd67f', '#ffd25e', '#ff7fb6', '#5fd6c8', '#d6a35f'];
+const AREA_COLS = ['#ff9f6b', '#7cc8ff', '#b48cff', '#7fd67f', '#ffd25e', '#ff7fb6', '#5fd6c8', '#d6a35f', '#9fb4ff', '#f08a8a', '#b8e07a', '#e0a6ff'];
 const Design = {
     d: null, rev: 0, edit: false, dirty: false, ver: 0, undo: [], at: null,
     blank() { return { v: 1, base: WORLD_PROPS, props: {}, added: [], rooms: {}, npcs: {} }; },
@@ -130,10 +130,30 @@ const Design = {
         const run = this.stairRun(tx, ty);
         if (run) { E.stairSel = run; E.msg = ''; Sfx.ui('tick'); E.render(); return; }
         E.stairSel = null;
+        // (where the island's own stairs were taken away: a tap there puts them back as they were)
+        const back = this.stairsGone().find(g => g.some(t => t[0] === tx && t[1] === ty));
+        if (back) { if (this.stairEdit(E, back, [], 'The stairs are back as they were.')) E.stairSel = this.stairRun(back[0][0], back[0][1]); E.render(); return; }
         const st = this.stairAt(tx, ty, this.stairW || 3);
         if (st.why) { E.msg = st.why; Sfx.ui('nope'); E.render(); return; }
         if (this.stairEdit(E, st.tiles, [], 'Stairs cut into the cliff.')) E.stairSel = this.stairRun(st.tiles[0][0], st.tiles[0][1]);
         E.render();
+    },
+    /* the island's own staircases the design has taken away, each a list of its tiles (David, 29 October: moving stairs
+       with the first stairs tool took them away; these can be put back) */
+    stairsGone() {
+        const S = this.d && this.d.stairs, gone = new Set(S && Array.isArray(S.gone) ? S.gone : []), own = new Set(WORLD0_GROUND.ramps.map(r => r[0] + ',' + r[1])), out = [], seen = new Set();
+        for (const k of gone) {
+            if (seen.has(k) || !own.has(k)) continue;
+            const run = [], q = [k];
+            seen.add(k);
+            while (q.length) {
+                const c = q.pop(), [x, y] = c.split(',').map(Number);
+                run.push([x, y]);
+                for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const n = (x + dx) + ',' + (y + dy); if (gone.has(n) && own.has(n) && !seen.has(n)) { seen.add(n); q.push(n); } }
+            }
+            out.push(run);
+        }
+        return out;
     },
     /* the design's stairs changed: these tiles cut, those back to the cliff's face; undone if that would cut somewhere off */
     stairEdit(E, add, remove, msg) {
@@ -232,25 +252,124 @@ const Design = {
         list.push(...keep);
         return list;
     },
-    /* the areas David drew (d.areas: { id, name, rects: [[x, y, w, h]...] }): named on the map, and where a neighbor is in
-       one, their texts say so (placeName, 69_texts.js); the last drawn wins where two overlap */
-    areas() { return this.d && Array.isArray(this.d.areas) ? this.d.areas.filter(A => A && A.name && Array.isArray(A.rects)) : []; },
+    /* the island's areas (d.areas: { id, name, rects: [[x, y, w, h]...] }): its own parts as the plan has them (world.json's
+       areas: the shopping district, the square, the farm...; David, 29 October: "the shopping district area should already
+       be on the area maker so I can see and edit where NPCs think are the market area"), with any David drew; once one is
+       changed the design keeps the whole list as its own (areasV). Named on the map, and where a neighbor is in one their
+       texts say so (placeName, 69_texts.js); the last wins where two overlap */
+    av: 0,
+    presets() { return Array.isArray(W0.areas) ? W0.areas : []; },
+    areas() {
+        const C = this._ac, d = this.d, own = d && Array.isArray(d.areas) ? d.areas : [];
+        if (C && C.d === d && C.av === this.av && C.own === own && C.n === own.length && C.v === !!(d && d.areasV)) return C.L;
+        const L = (d && d.areasV ? own : this.presets().filter(P => !own.some(A => A && A.id === P.id)).map(P => ({ id: P.id, name: P.name, rects: P.rects.map(r => r.slice()) })).concat(own))
+            .filter(A => A && A.name && Array.isArray(A.rects));
+        this._ac = { d, av: this.av, own, n: own.length, v: !!(d && d.areasV), L, near: new Map() };
+        return L;
+    },
+    /* the design's own list of areas, to change: the island's parts copied in the first time */
+    ownAreas() {
+        const d = this.work();
+        if (!d.areasV) { d.areas = this.areas().map(A => ({ id: A.id, name: A.name, rects: A.rects.map(r => r.slice()) })); d.areasV = 1; this.av++; }
+        return d.areas;
+    },
+    /* one of the island's own parts just as it ships (not shown again on the map, which names those places itself) */
+    untouched(A) { const P = this.presets().find(q => q.id === A.id); return !!P && P.name === A.name && JSON.stringify(P.rects) === JSON.stringify(A.rects); },
     areaAt(tx, ty) {
         const L = this.areas();
         for (let i = L.length - 1; i >= 0; i--) if (L[i].rects.some(r => tx >= r[0] && tx < r[0] + r[2] && ty >= r[1] && ty < r[1] + r[3])) return L[i];
         return null;
     },
+    /* which of the island's own parts a plan spot was in as the island shipped */
+    homeArea(k) {
+        const s = W0_ORIG.spots[k] || W0.spots[k], L = this.presets();
+        if (!s) return null;
+        for (let i = L.length - 1; i >= 0; i--) if (L[i].rects.some(r => s.x >= r[0] && s.x < r[0] + r[2] && s.y >= r[1] && s.y < r[1] + r[3])) return L[i].id;
+        return null;
+    },
+    /* the area a plan spot belongs to: the one it's in, or when it's in none, the one it was in (redrawn away from it:
+       the neighbors' visits there go to the area as it's drawn now, spotAt) */
+    spotArea(k) {
+        const s = W0.spots[k];
+        if (!s) return null;
+        const A = this.areaAt(s.x, s.y);
+        if (A) return A;
+        const id = this.homeArea(k);
+        return id ? this.areas().find(q => q.id === id) || null : null;
+    },
+    /* where a neighbor going to a plan spot stands, when its area no longer covers it: the area's open tile nearest it */
+    spotAt(k) {
+        const s = W0.spots[k];
+        if (!s || this.areaAt(s.x, s.y)) return null;
+        const A = this.spotArea(k);
+        return A ? this.openNear(A, s.x, s.y) : null;
+    },
+    /* the tiles a neighbor can stand on: open, dry and reachable from the square (worked out again when the island changes) */
+    open() {
+        const a = G.areas && G.areas.island;
+        if (!a) return null;
+        if (this._open && this._open.a === a && this._open.ver === this.ver) return this._open.m;
+        const W = a.w, H = a.h, m = new Uint8Array(W * H), s0 = W0.spots.plaza, q = [s0.y * W + s0.x];
+        m[q[0]] = 1;
+        for (let i = 0; i < q.length; i++) {
+            const c = q[i], cx = c % W;
+            for (const n of [c - 1, c + 1, c - W, c + W]) { if (n < 0 || n >= W * H || m[n] || a.blocked[n] || (n === c - 1 && cx === 0) || (n === c + 1 && cx === W - 1)) continue; m[n] = 1; q.push(n); }
+        }
+        for (let i = 0; i < m.length; i++) if (m[i] && a.waterAt(i % W, Math.floor(i / W))) m[i] = 2;
+        this._open = { a, ver: this.ver, m };
+        return m;
+    },
+    openNear(A, x, y) {
+        const m = this.open(), C = this.areas() && this._ac, key = A.id + ':' + x + ',' + y;
+        if (!m) return null;
+        if (C.near.has(key)) return C.near.get(key);
+        const W = G.areas.island.w;
+        let best = null, bd = 1e9;
+        for (const r of A.rects) for (let ty = Math.max(0, r[1]); ty < Math.min(W0.h, r[1] + r[3]); ty++) for (let tx = Math.max(0, r[0]); tx < Math.min(W0.w, r[0] + r[2]); tx++) {
+            if (m[ty * W + tx] !== 1) continue;
+            const d = (tx - x) * (tx - x) + (ty - y) * (ty - y);
+            if (d < bd) { bd = d; best = [tx, ty]; }
+        }
+        C.near.set(key, best);
+        return best;
+    },
+    /* the areas with none of the neighbors' plan spots in them (ones David drew somewhere new): places of their own that the
+       neighbors go to by day (makePlan's 'area:<id>', designAreaSpots) */
+    placeAreas() {
+        const C = this.areas() && this._ac;
+        if (!C.place) {
+            const has = new Set();
+            for (const k of Object.keys(W0.spots)) { const A = this.spotArea(k); if (A) has.add(A.id); }
+            C.place = C.L.filter(A => !has.has(A.id));
+        }
+        return C.place;
+    },
+    /* a tile in such an area for a neighbor to spend a while at: the same one all day (or its middle, for planning) */
+    areaVisit(id, who) {
+        const A = this.areas().find(q => q.id === id), m = this.open();
+        if (!A || !m) return null;
+        const big = A.rects.slice().sort((p, q) => q[2] * q[3] - p[2] * p[3])[0];
+        if (!big) return null;
+        if (!who) return this.openNear(A, big[0] + Math.floor(big[2] / 2), big[1] + Math.floor(big[3] / 2));
+        const r = mulberry(hash32(who + ':' + Clock.dayNum() + ':' + id));
+        for (let i = 0; i < 12; i++) {
+            const R = A.rects[Math.floor(r() * A.rects.length)], tx = R[0] + Math.floor(r() * R[2]), ty = R[1] + Math.floor(r() * R[3]);
+            if (tx >= 0 && ty >= 0 && tx < W0.w && ty < W0.h && m[ty * G.areas.island.w + tx] === 1) return [tx, ty];
+        }
+        return this.openNear(A, big[0] + Math.floor(big[2] / 2), big[1] + Math.floor(big[3] / 2));
+    },
     /* the areas tool: pick an area (or make one), then tap two corners to add a piece to it; a tap inside a piece of it
        takes the piece away */
     areaTap(E, tx, ty) {
-        const A = this.areas().find(x => x.id === E.areaId);
-        if (!A) { E.msg = 'Make an area first (New area), or pick one.'; E.render(); return; }
-        const hit = A.rects.findIndex(r => tx >= r[0] && tx < r[0] + r[2] && ty >= r[1] && ty < r[1] + r[3]);
-        if (!E.corner && hit >= 0) { this.snap(); A.rects.splice(hit, 1); this.changed('areas'); E.msg = `A piece of ${A.name} taken away.`; E.render(); return; }
+        const A0 = this.areas().find(x => x.id === E.areaId);
+        if (!A0) { E.msg = 'Make an area first (New area), or pick one.'; E.render(); return; }
+        const hit = A0.rects.findIndex(r => tx >= r[0] && tx < r[0] + r[2] && ty >= r[1] && ty < r[1] + r[3]);
+        if (!E.corner && hit >= 0) { this.snap(); const A = this.ownAreas().find(x => x.id === A0.id); A.rects.splice(hit, 1); this.changed('areas'); E.msg = `A piece of ${A.name} taken away.`; E.render(); return; }
         if (!E.corner) { E.corner = [tx, ty]; E.msg = 'Now tap the opposite corner.'; E.render(); return; }
         const [x0, y0] = E.corner, x = Math.min(x0, tx), y = Math.min(y0, ty);
         E.corner = null;
         this.snap();
+        const A = this.ownAreas().find(q => q.id === A0.id);
         A.rects.push([x, y, Math.abs(tx - x0) + 1, Math.abs(ty - y0) + 1]);
         this.changed('areas');
         E.msg = `Added to ${A.name}.`;
@@ -273,11 +392,10 @@ const Design = {
         const done = () => {
             const name = (inp.value || '').trim().slice(0, 40);
             if (name) {
-                const d = this.work();
                 this.snap();
-                if (!Array.isArray(d.areas)) d.areas = [];
-                if (A) A.name = name;
-                else { const id = 'a' + (d.areas.reduce((m, x) => Math.max(m, +String(x.id).slice(1) || 0), 0) + 1); d.areas.push({ id, name, rects: [] }); E.areaId = id; }
+                const L = this.ownAreas(), mine = A && L.find(q => q.id === A.id);
+                if (mine) mine.name = name;
+                else { const id = 'a' + (L.reduce((m, x) => Math.max(m, /^a\d+$/.test(x.id) ? +x.id.slice(1) : 0), 0) + 1); L.push({ id, name, rects: [] }); E.areaId = id; }
                 this.changed('areas');
             }
             E.render();
@@ -292,6 +410,8 @@ const Design = {
     /* the areas drawn over the island in the flat view: each piece in its area's color, its name on the biggest */
     drawAreas(ctx, E) {
         this.areas().forEach((A, i) => {
+            // (the island's own parts as they ship only while the Areas tool is on: they cover the whole island)
+            if (!E.areaMode && this.untouched(A)) return;
             const col = AREA_COLS[i % AREA_COLS.length], on = A.id === E.areaId;
             ctx.fillStyle = col + (on ? '55' : '30'); ctx.strokeStyle = col; ctx.lineWidth = on ? 2 : 1;
             for (const r of A.rects) { ctx.fillRect(r[0] * TILE, r[1] * TILE, r[2] * TILE, r[3] * TILE); ctx.strokeRect(r[0] * TILE + 0.5, r[1] * TILE + 0.5, r[2] * TILE - 1, r[3] * TILE - 1); }
@@ -309,7 +429,7 @@ const Design = {
     /* ------------------------------------------------------------ changing it */
     snap() { this.undo.push(JSON.stringify(this.d)); if (this.undo.length > 60) this.undo.shift(); },
     changed(where) {
-        this.dirty = true;
+        this.dirty = true; this.av++;
         // (the island built again, and its 3D; what the neighbors like and the areas only change their days)
         if (where === 'island' || where == null) { this.apply(); applyBuildingMoves(); rebuildIsland(); Env.dirty = true; }
         else Plans.reset();
@@ -317,7 +437,7 @@ const Design = {
     back() {
         if (!this.undo.length) return;
         this.d = JSON.parse(this.undo.pop());
-        this.dirty = true;
+        this.dirty = true; this.av++;
         this.apply(); applyBuildingMoves(); rebuildIsland();
         if (G.area && G.area.interior && G.area.id !== 'home' && ROOMS[G.area.id]) { markRoomStale(G.area.id); G.area = ensureArea(G.area.id); if (Decor.on) Decor.render(); }
         Plans.reset();
@@ -448,7 +568,7 @@ const Design = {
         panel.appendChild(head);
         const body = el('div', 'pbody');
         const facing = ['facing front', 'facing right', 'facing back', 'facing left'][h ? h.rot & 3 : 0];
-        const tip = E.look ? 'Drag to look around the island.' : E.areaMode ? `Areas: pick one (or make a new one), then ${G.touchUsed ? 'tap' : 'click'} one corner and the opposite corner to add a piece to it. A tap inside a piece takes it away. Their names show on the map, and a neighbor in one says so in their texts.` : E.stairs ? (E.stairMove ? `${G.touchUsed ? 'Tap' : 'Click'} a cliff's face where the stairs should go.` : E.stairSel ? 'These stairs: make them narrower or wider, move them along the cliff or somewhere else, or take them away.' : `${G.touchUsed ? 'Tap' : 'Click'} stairs to change or move them, or a cliff's face to cut new ones (as wide as picked below). Turn Stairs off to move things again.`)
+        const tip = E.look ? 'Drag to look around the island.' : E.areaMode ? `Areas: the island's parts as the neighbors think of them. Pick one (or make a new one), then ${G.touchUsed ? 'tap' : 'click'} one corner and the opposite corner to add a piece to it; a tap inside a piece takes it away. A neighbor going somewhere an area no longer covers goes to the area as it's drawn now, and a new area with none of their places in it is somewhere they go by day.` : E.stairs ? (E.stairMove ? `${G.touchUsed ? 'Tap' : 'Click'} a cliff's face where the stairs should go.` : E.stairSel ? 'These stairs: make them narrower or wider, move them along the cliff or somewhere else, or take them away.' : `${G.touchUsed ? 'Tap' : 'Click'} stairs to change or move them, or a cliff's face to cut new ones (as wide as picked below). Stairs taken away are dashed: ${G.touchUsed ? 'tap' : 'click'} one to put it back. Turn Stairs off to move things again.`)
             : h ? `${G.touchUsed ? 'Tap' : 'Click'} where it should go (${facing}).${G.touchUsed ? '' : ' R turns it, Esc puts it back.'}`
                 : `${G.touchUsed ? 'Tap' : 'Click'} anything on the island to move, turn or take it away, or add something new. Nothing is kept until you save.`;
         body.appendChild(el('p', 'muted', E.msg || tip));
@@ -480,7 +600,12 @@ const Design = {
                 sr.appendChild(chip('Wider', () => this.stairDo(E, 'wider')));
                 sr.appendChild(chip('Take them away', () => this.stairDo(E, 'away')));
                 sr.appendChild(chip('Done with these', () => { E.stairSel = null; E.msg = ''; E.render(); }));
-            } else for (const w of [1, 2, 3]) sr.appendChild(chip(`New stairs ${w} wide`, () => { this.stairW = w; E.render(); }, (this.stairW || 3) === w ? 'on' : ''));
+            } else {
+                for (const w of [1, 2, 3]) sr.appendChild(chip(`New stairs ${w} wide`, () => { this.stairW = w; E.render(); }, (this.stairW || 3) === w ? 'on' : ''));
+                // (the island's own stairs taken away: shown dashed on the island, and all put back here)
+                const gone = this.stairsGone();
+                if (gone.length) sr.appendChild(chip(gone.length > 1 ? `Put back the ${gone.length} stairs taken away` : 'Put back the stairs taken away', () => { this.stairEdit(E, [].concat(...gone), [], gone.length > 1 ? 'Every staircase is back as it was.' : 'The stairs are back as they were.'); E.render(); }, 'go'));
+            }
             body.appendChild(sr);
         }
         // (the areas tool: which area the taps add to, a new one, its name)
@@ -491,7 +616,7 @@ const Design = {
             const cur = this.areas().find(A => A.id === E.areaId);
             if (cur) {
                 ar.appendChild(chip('Rename', () => this.areaName(E, cur)));
-                ar.appendChild(chip('Delete this area', () => { this.snap(); this.d.areas = this.d.areas.filter(A => A !== cur); E.areaId = null; this.changed('areas'); E.render(); }));
+                ar.appendChild(chip('Delete this area', () => { this.snap(); this.d.areas = this.ownAreas().filter(A => A.id !== cur.id); this.av++; E.areaId = null; this.changed('areas'); E.render(); }));
             }
             body.appendChild(ar);
         }
@@ -600,7 +725,7 @@ const Design = {
         section('What they like doing with nothing to do', 'acts', Object.keys(LIKE_ACTS), k => LIKE_ACTS[k], k => IDLE_LIKES[who] === k ? 'their favorite' : '');
         section('Where they like to be in their free time', 'spots', Object.keys(RES_SPOTS).filter(k => W0.spots[k]), k => landmarkName(k, RES_SPOTS[k]), k => (NPC_DEFS[who].fav || {})[k] ? 'a favorite' : '');
         // (and the areas drawn on the island: every place they go inside one counts)
-        if (this.areas().length) section('The areas you drew', 'areas', this.areas().map(A => A.id), k => (this.areas().find(A => A.id === k) || {}).name || k, () => '');
+        if (this.areas().length) section('Areas of the island', 'areas', this.areas().map(A => A.id), k => (this.areas().find(A => A.id === k) || {}).name || k, () => '');
         P.foot.appendChild(el('span', 'grow', this.dirty ? 'Not saved yet.' : 'Saved.'));
         P.foot.appendChild(btn('Save the design', this.dirty ? 'green' : '', () => this.save().then(() => this.likesPanel(who))));
     },
@@ -631,13 +756,24 @@ function designSpots(id, wts) {
     for (const [k, v] of Object.entries(N.spots || {})) if (W0.spots[k] && Number.isInteger(v)) mul(k, v);
     // (an area they like or never go to: every place of theirs inside it)
     if (N.areas) for (const k of Object.keys(wts)) {
-        const s = W0.spots[k], A = s && Design.areaAt(s.x, s.y), v = A && N.areas[A.id];
+        const A = W0.spots[k] && Design.spotArea(k), v = A && N.areas[A.id];
         if (Number.isInteger(v) && !(N.spots && N.spots[k] != null)) mul(k, v);
     }
 }
-/* "at the campfire": the area a spot is in, as a neighbor would say it */
+/* the areas with no plan spot of their own, as places to go by day ('area:<id>'), weighted by what the designer said */
+function designAreaSpots(id, wts, band) {
+    if (band === 'night' || NPC_DEFS[id].goat) return;
+    const N = Design.d && Design.d.npcs && Design.d.npcs[id];
+    for (const A of Design.placeAreas()) {
+        const v = N && N.areas && N.areas[A.id];
+        const w = Number.isInteger(v) ? 0.5 * [0, 0.5, 2, 4][v] + [0, 0, 1, 3][v] : 0.5;
+        if (w > 0) wts['area:' + A.id] = w;
+    }
+}
+/* "at the campfire": the area a spot is in, as a neighbor would say it; a spot still in the part of the island it always
+   was in keeps its own words ("outside the boutique" says more than "at the shopping district") */
 function designPlace(spot) {
-    const s = W0.spots[spot], A = s && Design.areaAt(s.x, s.y);
-    if (!A) return null;
+    const A = /^area:/.test(spot) ? Design.areas().find(q => q.id === spot.slice(5)) : Design.spotArea(spot);
+    if (!A || (PLACE_NAMES[spot] && A.id === Design.homeArea(spot))) return null;
     return /^(the|a|an|my|your)\s/i.test(A.name) || /^[A-Z]/.test(A.name) ? 'at ' + A.name.replace(/^The /, 'the ') : 'at the ' + A.name;
 }

@@ -484,9 +484,14 @@ const IslandEdit = {
         if (this.design && this.stairs && !h) {
             ctx.fillStyle = 'rgba(255,170,60,0.35)';
             for (const k of RAMPS) { const [x, y] = k.split(',').map(Number); if (Math.abs(x - cx) < 30 && Math.abs(y - cy) < 20) ctx.fillRect(x * TILE, y * TILE, TILE, TILE); }
+            // (the island's own stairs taken away, dashed where they were)
+            ctx.strokeStyle = 'rgba(255,170,60,0.9)'; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
+            for (const g of Design.stairsGone()) for (const [x, y] of g) if (Math.abs(x - cx) < 30 && Math.abs(y - cy) < 20) ctx.strokeRect(x * TILE + 1.5, y * TILE + 1.5, TILE - 3, TILE - 3);
+            ctx.setLineDash([]);
             // (the stairs picked, outlined; and where new or moved ones would go)
             if (this.stairSel) { ctx.strokeStyle = '#ffcf57'; ctx.lineWidth = 1.5; for (const [x, y] of this.stairSel) ctx.strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2); }
-            const st = this.stairMove ? Design.stairAt(cx, cy, this.stairMove.w) : this.stairSel || RAMPS.has(cx + ',' + cy) ? {} : Design.stairAt(cx, cy);
+            const was = !this.stairMove && Design.stairsGone().find(g => g.some(t => t[0] === cx && t[1] === cy));
+            const st = this.stairMove ? Design.stairAt(cx, cy, this.stairMove.w) : was ? { tiles: was } : this.stairSel || RAMPS.has(cx + ',' + cy) ? {} : Design.stairAt(cx, cy);
             if (st.tiles) { ctx.fillStyle = 'rgba(140,193,82,0.4)'; for (const [x, y] of st.tiles) ctx.fillRect(x * TILE, y * TILE, TILE, TILE); }
         }
         if (!h) {

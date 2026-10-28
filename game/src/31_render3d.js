@@ -1948,12 +1948,29 @@ function r3FlutterLights(ctx) {
         r3Glow(ctx, q, glow);
     }
 }
+/* whether someone's emote shows over the 3D view: not from far off, and not through the ground (David, 29 October: Wonton's
+   "zzz" floated over a cliff from the hot spring beyond it). The line from the camera to over their head, sampled for
+   ground standing above it; worked out a few times a second */
+function r3Sees(e) {
+    const p = G.player;
+    if (!p || e === p || !Env.on || !G.area || G.area.interior) return true;
+    if (Math.hypot(e.x - p.x, e.y - p.y) > 13 * TILE) return false;
+    if (e._seesT != null && G.frame - e._seesT < 12) return e._sees;
+    const C = R3.camera.position, hx = e.x / TILE, hz = e.y / TILE * R3_ZS, hy = Env.groundH(e.x, e.y) + 1.1;
+    let ok = true;
+    for (let k = 2; k < 16 && ok; k++) {
+        const t = k / 16, x = C.x + (hx - C.x) * t, z = C.z + (hz - C.z) * t, y = C.y + (hy - C.y) * t;
+        if (Env.groundH(x * TILE, z / R3_ZS * TILE) > y) ok = false;
+    }
+    e._seesT = G.frame; e._sees = ok;
+    return ok;
+}
 /* emotes, "talk" prompts and the little "!" by doors, over the 3D view */
 function r3Overheads(ctx) {
     const p = G.player;
     const all = NPCs.here().concat(p ? [p] : [], Online.here());
     for (const e of all) {
-        if (!e.emote) continue;
+        if (!e.emote || !r3Sees(e)) continue;
         const lift = e.npc ? (e.h || 18) + 8 : 32;
         const q = R3.project(e.x, e.y, lift);
         ctx.setTransform(q.s, 0, 0, q.s, q.x, q.y);
