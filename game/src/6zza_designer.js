@@ -234,8 +234,9 @@ const Design = {
     },
     /* what each neighbor likes, 0 never .. 3 loves (null: as they are) */
     like(id, part, k) { const N = this.d && this.d.npcs && this.d.npcs[id], v = N && N[part] && N[part][k]; return Number.isInteger(v) && v >= 0 && v <= 3 ? v : null; },
-    likeWeight(id, k, def) { const v = this.like(id, 'acts', k); return v == null ? def : [0, 1, 3, 6][v]; },
-    likeChance(id, k, def) { const v = this.like(id, 'acts', k); return v == null ? def : [0, 0.25, 0.6, 0.9][v]; },
+    // (and Sarah's own word for a good friend at the Town Hall's Residents: more often, or never, townLike)
+    likeWeight(id, k, def) { const v = this.like(id, 'acts', k), w = v == null ? def : [0, 1, 3, 6][v], t = townLike(id, k); return t === 0 ? 0 : t === 2 ? w * 3 : w; },
+    likeChance(id, k, def) { const v = this.like(id, 'acts', k), c = v == null ? def : [0, 0.25, 0.6, 0.9][v], t = townLike(id, k); return t === 0 ? 0 : t === 2 ? Math.min(0.95, c * 1.5) : c; },
 
     /* ------------------------------------------------------------ changing it */
     snap() { this.undo.push(JSON.stringify(this.d)); if (this.undo.length > 60) this.undo.shift(); },

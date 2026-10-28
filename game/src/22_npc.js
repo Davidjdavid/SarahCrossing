@@ -273,7 +273,8 @@ function visitOverride(id, day) { const v = friendVisits(day)[id]; return v ? [v
    or coming back from one (null: no door, they just appear) */
 function npcDoor(n, which) {
     if ((which === 'wake' ? Plans.get(n.id).wakeAt : Plans.get(n.id).sleepAt) === 'boat') return W0.boat;
-    return n.def.house ? doorTileOf(n.def.house) : null;
+    // (a newcomer whose house isn't built yet has no door to come out of: 6zr_seafarer.js, 6zs_mug.js)
+    return n.def.house && bldOf(n.def.house) ? doorTileOf(n.def.house) : null;
 }
 /* Wonton in his hot spring (not when he's off to the boat for a vacation) */
 function inSpring(n) { return !!n.def.spring && (!n.spotKey || n.spotKey === 'spring'); }
@@ -314,6 +315,7 @@ function resolveSpot(n, spot) {
     }
     if (spot === 'home' || spot === 'jog') {
         if (spot === 'jog') { const s = sp.orchard; return { area: 'island', ...xy(tpx(s.x, s.y + 3)), anchor: [s.x, s.y + 3], r: 7, jog: true }; }
+        if (!d.house || !bldOf(d.house)) { const s = sp.plaza; return { area: 'island', ...xy(tpx(s.x, s.y)), anchor: [s.x, s.y], r: 3 }; }
         const [tx, ty] = doorTileOf(d.house);
         const ay = ty + 1;
         return { area: 'island', ...xy(tpx(tx, ay)), anchor: [tx, ay], r: 2 };
@@ -526,7 +528,11 @@ function updateNPC(n) {
     // and a tap walks Sarah to the open ground just below it (the rim itself can't be stood on)
     if (inSpring(n)) { const [wx, wy] = W0.wonton; n.hit = { x: (wx - 5) * TILE, y: (wy - 4) * TILE, w: 10.5 * TILE, h: 8 * TILE }; n.stand = [Math.floor(wx), Math.floor(wy) + 3]; }
     else n.stand = (n.want && n.want.stand) || null;          // staff are talked to across their counter
-    if (n.idle && (n.talking || n.script || n.path || n.chat || n.sleeping || G.t >= n.idle.until)) n.idle = null;
+    if (n.idle && (n.talking || n.script || n.path || n.chat || n.sleeping || G.t >= n.idle.until)) {
+        // (a drink at a fountain on the way: then on to where they were going, 33kd_doll_idle.js sipCheck)
+        if (n.idle.resume) n.segKey = null;
+        n.idle = null;
+    }
     // (a while on a bench, then up again: 33kd_doll_idle.js idleBench)
     if (n.benchIdle && !n.path && !n.talking && (G.t >= n.benchIdle.until || n.sleeping)) idleBenchEnd(n);
     if (n.talking || n.script) { n.moving = false; return; }
@@ -588,6 +594,7 @@ function stepNpc(n) {
     if (dist < sp + 0.05) {
         n.x = gx; n.y = gy; n.path.shift();
         if (!n.path.length) { n.path = null; n.dest = null; cb = n.onArrive; n.onArrive = null; }
+        else sipCheck(n);
     } else { n.x += dx / dist * sp; n.y += dy / dist * sp; }
     n.moving = true;
     n.anim++;

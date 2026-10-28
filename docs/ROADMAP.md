@@ -66,7 +66,8 @@ Status: [x] done, [~] in progress, [ ] not started.
 ## The island
 - [x] A much larger island, laid out in districts: shopping/commercial, residential, forest,
   mountain, beach, a dedicated farm area (crops grow there, not in scattered squares), and more
-- [ ] Everything on a grid (placing things, walking, collisions)
+- [x] Everything on a grid (placing things, walking, collisions) (27 October: everything stands in the middle of its
+  tile or footprint, paths, water and cliffs follow the tiles, walking keeps to walkable tiles; Settings shows the grid)
 - [~] Less clutter: fewer, better placed things by default (27 October: trees in groves with clearings, open lawns,
   wild flowers in small patches; the new island is a fresh start for saves, keeping only stats and money, David's call)
 - [x] Shop upgrades after a number of days played and money spent: Fortune's Goods (then "& More",
@@ -420,9 +421,11 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] Brick paths from the island editor show in 3D (and planks)
 - [x] An option to play in 2D (Settings > View: 3D or Classic 2D)
 - [ ] A sky behind the haze (started: see "Seeing far" above)
-- [ ] Outdoor furniture: real 3D models; sold by kind each day (lights, benches, fences, statues and gnomes, signs and
+- [x] Outdoor furniture: real 3D models; sold by kind each day (lights, benches, fences, statues and gnomes, signs and
   umbrellas and picnic tables and the like, hedges and plants, and more), more of each kind (hedges, benches...), each in
   four colors; any furniture goes indoors or out (a paint easel outside, a park bench in the house)
+  (28 October: Waffle's pieces in kinds, each a model in four colors, a few of each kind a day; furniture goes outside
+  and Waffle's pieces indoors: 6zu_outdoor.js)
 - [x] (for later) More life at night: moths round the lamps, fireflies, and the like (28 October, late: moths at the lit
   lamps near Sarah, fireflies over the grass on warm clear nights)
 - [x] (for later) The lawn's texture calmer: shapes that don't overlap, with even dark gaps between them, as in the
@@ -431,13 +434,14 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] The map redone to look better, with places named on it, so a neighbor's text saying where they are can be found on
   it. On beta, David draws the areas on the map himself (these tiles are the campfire, this is the neighborhood, this the
   mountains, the east meadow...), and their names show as labels
-- [~] Residents at the Town Hall: pick the areas a neighbor likes to spend their free time in (not working or asleep), and
+- [x] Residents at the Town Hall: pick the areas a neighbor likes to spend their free time in (not working or asleep), and
   for each activity whether they do it more often, as usual, or never (chatting with neighbors, the museum, fishing, the
   arcade, eating out, planting flowers...). Anywhere not drawn on the map is a way between places: walking there, a
   neighbor sometimes stops to use what's along it (a drink at a fountain, a sit on a bench) (28 October, late: on beta the
   designer's Neighbors' likes sets each activity, place and drawn area from loves to never, for the game everyone plays;
-  Residents keeps its two favorite places; neighbors with nothing to do sit on a bench nearby. Still to do: activities in
-  Residents itself, and a drink at a fountain along the way)
+  Residents keeps its two favorite places; neighbors with nothing to do sit on a bench nearby. 29 October: Residents
+  sets each activity more often, as usual or never for a good friend, and one passing the drinking fountain on the way
+  somewhere sometimes stops for a drink)
 - [x] Friendship earned over days: with each neighbor, points only for the first talk of the day, one favor a day if they
   have one, one gift a day, and every other thing that raises friendship once a day; best friends is something worked
   at. Joe still starts at the most and never goes down (28 October, late: `addPts`'s kinds, once a day each)

@@ -626,9 +626,15 @@ test('beta civic buildings: savings with interest, a letter delivered with a rep
     const before = count();
     CIVIC_LIVE.residents.pick = id; civicScreen('residents');
     for (const name of ['The harbor', 'The orchard']) [...document.querySelectorAll('#panel .chip')].find((c) => c.textContent === name).click();
-    return { kept: (S.town.sched.maki.spots || []).join(), more: count() > before * 1.5 + 2 };
+    // and what they like doing: reading more often, then never
+    const book = () => [...document.querySelectorAll('#panel .chip')].find((c) => c.textContent.startsWith('Reading:'));
+    book().click();
+    const more = Design.likeWeight(id, 'book', 1) === 3 && book().textContent === 'Reading: more often';
+    book().click();
+    const never = Design.likeWeight(id, 'book', 1) === 0 && Design.likeChance(id, 'bench', 0.6) === 0.6;
+    return { kept: (S.town.sched.maki.spots || []).join(), more: count() > before * 1.5 + 2, likes: more && never };
   });
-  assert.deepEqual(spots, { kept: 'harbor,orchard', more: true });
+  assert.deepEqual(spots, { kept: 'harbor,orchard', more: true, likes: true });
   // and the Town Hall itself opens, with the Council at the desk
   await page.evaluate(() => { __dbg.setTime(10, 27, 11); enterRoom('townhall'); });
   await page.waitForFunction(() => G.area && G.area.id === 'townhall');
@@ -2780,9 +2786,20 @@ test('furniture turns four ways (its footprint turns with it); neighbors with no
     const k = NPCs.get('kai'); k.anchor = [s.x, s.y]; k.radius = 2;
     out.oneAtATime = !idleScope(k, isl);
     out.look = typeof idleLook(100, 3) === 'number';
+    // on the way somewhere past the drinking fountain, some days a neighbor stops for a drink, then carries on
+    const f = W0.props.find(p => p.kind === 'drinkfountain'), day = Clock.dayNum();
+    const who = NEIGHBORS.map(id => NPCs.get(id)).find(m => m && !m.def.spring && hash32(S.seed + ':sip:' + m.id + ':' + day) % 3 === 0);
+    who.area = 'island'; who.sleeping = false; who.script = false; who.idle = null; who.talking = false; who.sipDay = null; who.segKey = 'test';
+    who.x = (f.x - 1 + 0.5) * TILE; who.y = (f.y + 1 + 0.5) * TILE + 4;
+    who.path = [[f.x - 2, f.y + 2], [f.x - 3, f.y + 2], [f.x - 4, f.y + 2], [f.x - 5, f.y + 2]]; who.travel = true;
+    sipCheck(who);
+    for (let i = 0; i < 600 && who.path; i++) updateNPC(who, isl);
+    out.sip = [who.idle && who.idle.kind, who.dir, Math.floor(who.x / TILE) === f.x].join();
+    who.idle.until = G.t; updateNPC(who, isl);
+    out.onward = !who.idle && who.segKey === null && who.sipDay === day;
     return out;
   });
-  assert.deepEqual(idle, { bench: true, sat: true, up: true, scope: true, looking: 'scope,up', oneAtATime: true, look: true });
+  assert.deepEqual(idle, { bench: true, sat: true, up: true, scope: true, looking: 'scope,up', oneAtATime: true, look: true, sip: 'sip,up,true', onward: true });
   await page.close();
 });
 
@@ -2974,5 +2991,79 @@ test("the island flag's poles by the Town Hall and at the end of the pier; the T
   });
   assert.deepEqual(res, { poles: true, solid: true, migrate: true, noCouncil: true, card: true });
   assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('every screen opens without a problem: the phone and its apps, the pocket, the shops, the cooking, the board, the laptop, every Town Hall, Post Office and Bank screen in every state', async () => {
+  const page = await device();
+  await page.evaluate(() => { localStorage.setItem('sc-current', ''); localStorage.setItem('sc-civic', '1'); });
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const failed = await page.evaluate(async () => {
+    __dbg.setTime(11, 13, 11);
+    const out = [], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const closeAll = () => {
+      for (const f of [() => Studio.on && Studio.close(), () => BigMap.on && BigMap.close(), () => Photo.on && Photo.stop(), () => Decor.on && Decor.exit(),
+        () => IslandEdit.on && IslandEdit.close(), () => UI.hideDialog(), () => UI.close(true)]) { try { f(); } catch (e) { out.push('closing: ' + e.message); } }
+    };
+    // (each opened, given a moment to draw, and closed again; what it throws, or leaves on the console, is a failure)
+    const open = async (name, fn) => {
+      try { const r = fn(); if (r && r.catch) r.catch((e) => out.push(name + ': ' + e.message)); } catch (e) { out.push(name + ': ' + e.message); }
+      await wait(120);
+      if (!document.querySelector('#panel:not([hidden])') && !BigMap.on && !Photo.on && !Decor.on && !IslandEdit.on && !UI.dialogOpen) out.push(name + ': nothing opened');
+      closeAll();
+      await wait(30);
+    };
+    await open('phone', () => openPhone());
+    for (const [id] of APPS) {
+      if (['save', 'gohome', 'home', 'camera'].includes(id)) continue;          // (they leave, ask or need the house: below)
+      await open('app ' + id, () => openApp(id));
+    }
+    await open('camera', () => openApp('camera'));
+    await open('pocket', () => openPocket());
+    await open("Fortune's: buy", () => shopBuy());
+    await open("Fortune's: sell", () => shopSell());
+    await open("Clementine's", () => shopClothes(true));
+    await open("Waffle's", () => displaysShop());
+    await open('cooking', () => openCooking());
+    await open('wardrobe', () => openWardrobe());
+    await open('the board', () => openBoard());
+    await open('the laptop', () => openLaptop());
+    for (const id of Object.keys(CIVIC_SCREENS)) {
+      const states = (CIVIC_LIVE[id] ? ['Yours'] : []).concat(CIVIC_SCREENS[id].states || []);
+      for (const st of states) await open(`civic ${id} (${st})`, () => civicScreen(id, st));
+    }
+    // every neighbor's talk menu (met and not yet met): what they say is skipped, and each question answered with its
+    // last choice (goodbye, or no), so every menu is opened and left
+    const say = UI.say, ask = UI.ask, menus = {};
+    let cur = null;
+    UI.say = async () => {};
+    UI.ask = async (who, q, opts) => { (menus[cur] = menus[cur] || []).push(opts.length); return opts.length - 1; };
+    try {
+      for (const met of [false, true]) for (const id of NEIGHBORS.concat(['joe', 'goat', 'fortune', 'floss', 'waffle', 'wasabi'])) {
+        const n = NPCs.get(id);
+        if (!n) continue;
+        cur = id + (met ? ' (a friend)' : '');
+        if (met) { rel(id).met = true; rel(id).pts = HEARTS[4]; }
+        n.talking = false; n.script = false;
+        try { await Promise.race([talkTo(n), wait(4000).then(() => out.push('talk ' + cur + ': still going after 4 s'))]); } catch (e) { out.push('talk ' + cur + ': ' + e.message); }
+        n.talking = false; G.busy = 0;
+      }
+    } finally { UI.say = say; UI.ask = ask; }
+    for (const id of NEIGHBORS) if (!menus[id + ' (a friend)']) out.push('talk ' + id + ': no menu');
+    closeAll();
+    // and at home: decorating
+    await goHome();
+    await wait(200);
+    await open('decorate', () => openApp('home'));
+    for (const tab of ['pocket', 'storage']) await open('pocket at home: ' + tab, () => openPocket(null, tab));
+    return out;
+  });
+  assert.deepEqual(failed, []);
+  // (the Bank's market and the zip code reach the real world through the server, which this test machine can't: those
+  // screens show their "service down" state, and the browser notes the failed fetch)
+  assert.deepEqual(page.problems.filter((p) => !/status of 502/.test(p)), []);
   await page.close();
 });

@@ -61,7 +61,8 @@ docs/DEPLOY.md for the server.
   repaint, shells, fruit or fish to hand in). The Post Office paints Sarah's mailbox (`MAILBOX_COLORS`: a model each,
   `mailbox_<color>` from props.py) and sells it in other styles (`MAILBOX_STYLES`: `mailbox_<style>` from props_island.py,
   whose part named `*_body` takes the paint), and Residents lets Sarah nudge a good friend's hours (`S.town.sched`, through
-  `townWake`), pick two places they like going in their free time (`townSpots`, `RES_SPOTS`, weighted in makePlan), pick
+  `townWake`), pick two places they like going in their free time (`townSpots`, `RES_SPOTS`, weighted in makePlan), what they do
+  more often or never with nothing to do (`townLike`, weighed in by `Design.likeWeight`/`likeChance`), pick
   what they wear today and set their catchphrase. Their
   morning work runs in `dailyCheck` (`bankTick`, `postYesterday`/`postTick`, `townTick`); the Bank and the post are each
   person's own (`PERSON_KEYS`), the town is the island's.
@@ -436,7 +437,8 @@ docs/DEPLOY.md for the server.
   free seat on a bench near where they're spending that part of the day (`idleBench`, `n.benchIdle`, ended in updateNPC
   or when their day moves on), then something of their own; standing about, their head turns now and then (`idleLook`)
   and they shift their weight. An `onArrive` callback runs after the last step has turned them (stepNpc), so it can turn
-  them again.
+  them again. On their way somewhere, about one day in three, one passing the drinking fountain stops for a drink and
+  carries on (`sipCheck` from stepNpc: the idle kind `sip` with `resume`, which clears `segKey` so their day picks up).
 - The plane only flies over while Sarah's at the lookout (`SeaSky.atLookout`), and from there boats sail by on the
   northern sea (`spawnNorthBoat`); balloons go anywhere.
 - Watering: the water arcs out to the tiles in front (`p.tool.at`, EnvPour); a watered flower glints now and then

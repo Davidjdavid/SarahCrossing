@@ -123,10 +123,10 @@ const EnvTex = {
        every 4 tiles). Its colors go with the season, as the trees' do: fresh greens in spring, deep greens in summer,
        olive and gold in fall, dull greens under winter's snow */
     LAWN: {
-        spring: { base: '#4c9636', tones: ['#9ad062', '#8ac658', '#7aba4e'] },
-        summer: { base: '#317630', tones: ['#6ab24a', '#5ea644', '#52993e'] },
-        fall: { base: '#566c2c', tones: ['#bea848', '#a49e40', '#8a923a'] },
-        winter: { base: '#4c6644', tones: ['#7a9264', '#6e865a', '#627c52'] },
+        spring: { base: '#559c3a', tones: ['#80c054', '#78b84e', '#88c65a'] },
+        summer: { base: '#377a33', tones: ['#58a043', '#52983f', '#5ea647'] },
+        fall: { base: '#5b712e', tones: ['#9a9a40', '#a6a246', '#8c9440'] },
+        winter: { base: '#4e6846', tones: ['#6c885c', '#668256', '#728c60'] },
     },
     /* the three shapes, one unit across: a round, and a triangle (point up) and a square as corners with rounding */
     LAWN_SHAPES: [null, { v: [[-0.6, -0.6], [0.6, -0.6], [0.6, 0.6], [-0.6, 0.6]], r: 0.25 }, { v: [[0, -0.95], [0.82, 0.48], [-0.82, 0.48]], r: 0.18 }],
@@ -146,7 +146,7 @@ const EnvTex = {
     lawn(season) {
         const P = this.LAWN[season] || this.LAWN.summer;
         return this.make('lawn_' + (this.LAWN[season] ? season : 'summer'), 512, (h, col) => {
-            const n = 512, cols = 22, rows = 26, cw = n / cols, ch = n / rows, GAP = 3, r = mulberry(61), soft = this.noise(n, 8, 62), fine = this.noise(n, 96, 63);
+            const n = 512, cols = 18, rows = 21, cw = n / cols, ch = n / rows, GAP = 3.5, r = mulberry(61), soft = this.noise(n, 8, 62), fine = this.noise(n, 96, 63);
             const base = this.hex(P.base), tones = P.tones.map(c => this.hex(c));
             const wrap = d => d - Math.round(d / n) * n;
             // where they stand: a staggered grid nudged about a little; a third of each kind
@@ -177,7 +177,7 @@ const EnvTex = {
                 const ox = wrap(px - A.x), oy = wrap(py - A.y);
                 const d = Math.max(this.lawnSd(A.k, (ox * A.ca + oy * A.sa) / A.s, (-ox * A.sa + oy * A.ca) / A.s) * A.s, GAP / 2 - edge);
                 // the ground between: deep green, a touch darker right beside a shape, broad soft patches a shade apart
-                const g = (0.97 + (soft(x, y) - 0.5) * 0.1) * (0.9 + 0.1 * Math.min(1, Math.max(0, d) / 2.5));
+                const g = (0.97 + (soft(x, y) - 0.5) * 0.1) * (0.94 + 0.06 * Math.min(1, Math.max(0, d) / 2.5));
                 let cr = base[0] * g, cg = base[1] * g, cb = base[2] * g;
                 const cov = Math.max(0, Math.min(1, 0.5 - d));
                 if (cov > 0) {

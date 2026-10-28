@@ -49,6 +49,12 @@ function townSpots(id) {
     const sc = CIVIC_PREVIEW && id && S && S.town && S.town.sched && S.town.sched[id];
     return sc && sc.spots ? sc.spots.filter(k => W0.spots[k]) : [];
 }
+/* what a good friend does more often, or never, with nothing to do, picked at the Residents screen (2 more, 0 never,
+   null as usual: Design.likeWeight and likeChance, 6zza_designer.js, weigh it in) */
+function townLike(id, k) {
+    const sc = CIVIC_PREVIEW && id && S && S.town && S.town.sched && S.town.sched[id], v = sc && sc.acts && sc.acts[k];
+    return v === 0 || v === 2 ? v : null;
+}
 function townHours(id, h) {
     const o = townOrd();
     if (!h || id === 'club' || (o !== 'early' && o !== 'night')) return h;
@@ -334,7 +340,21 @@ CIVIC_LIVE.residents = {
         }, mine.includes(k) ? 'on' : ''));
         b.appendChild(sp);
         CV.note(b, mine.length ? `${d.name} will spend more of their free time there, from tomorrow.` : 'Pick up to two places they\'ll go more often when they\'re free.');
-        if (sc.w || sc.b || mine.length) f.appendChild(btn('Back to their own hours', 'alt', () => { delete T.sched[pick]; Save.touch(); redraw(); }));
+        // what they do with nothing to do: more often, as usual or never (33kd_doll_idle.js)
+        CV.h(b, 'What they like doing');
+        const acts = sc.acts || {}, ar = el('div', 'st-row');
+        for (const k of Object.keys(LIKE_ACTS)) {
+            const v = acts[k], word = v === 2 ? 'more often' : v === 0 ? 'never' : 'as usual';
+            ar.appendChild(chip(`${LIKE_ACTS[k]}: ${word}`, () => {
+                const next = Object.assign({}, acts), nv = v == null ? 2 : v === 2 ? 0 : null;
+                if (nv == null) delete next[k]; else next[k] = nv;
+                T.sched[pick] = Object.assign({ w: 0, b: 0 }, sc, { acts: next }); if (!Object.keys(next).length) delete T.sched[pick].acts;
+                Save.touch(); redraw();
+            }, v === 2 ? 'on' : v === 0 ? 'off' : ''));
+        }
+        b.appendChild(ar);
+        CV.note(b, 'Tap to go round: more often, never, as usual.');
+        if (sc.w || sc.b || mine.length || sc.acts) f.appendChild(btn('Back to their own ways', 'alt', () => { delete T.sched[pick]; Save.touch(); redraw(); }));
         const r = S.npcs[pick];
         CV.h(b, 'What they wear');
         if (!r.accs || !r.accs.length) CV.note(b, `Give ${d.name} a hat or glasses as a present and they can wear it.`);

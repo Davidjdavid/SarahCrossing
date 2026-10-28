@@ -19,6 +19,8 @@ const IDLE_ACTS = {
     tend: { hand: 'furn_watering_can', face: 'happy' },
     // (only by the lookout's telescope: idleScope)
     scope: { hand: null, face: 'happy' },
+    // (a drink at a drinking fountain on the way somewhere: sipCheck)
+    sip: { hand: null, face: 'happy' },
 };
 /* what's carried on the way somewhere: a suitcase to or from a vacation, the farm's basket to the shop, the catch */
 const CARRY = { suitcase: { hand: 'style_suitcase', face: 'happy' }, crate: { hand: 'style_basket', face: 'happy' }, catch: { hand: 'style_bucket', face: 'happy' },
@@ -33,6 +35,7 @@ const IDLE_HELLO = {
     paint: ["Don't look yet! It's a surprise. It's the goat.", "I'm painting the island. It keeps moving. The clouds, mostly.", 'Does this look like a tree to you? Be honest. Be kind.'],
     cup: ["Cocoa? I'd share, but it's my third.", 'Nothing like something warm in a mug. Except maybe two mugs.', "Careful, it's hot. I learned that the hard way. Twice."],
     fish: ["Shh! They're biting! ...Okay, they're not. But they might!", "I've caught three boots today. It's a boot day.", 'The trick is patience. And snacks. Mostly snacks.'],
+    sip: ['Ahh. Best water on the island. Cold, too.', 'Just a quick drink! Walking makes me thirsty. So does talking. So does this.', "Don't tell Muggy, but sometimes water's all I want."],
     scope: ["You can see a boat out there! Or a very big duck.", "I'm looking for whales. I've found clouds. Lots of clouds.", 'Want a turn? The sea is extra blue today.'],
     tend: ["Morning! The tomatoes like a drink before it gets hot. So do I.", 'Water, sun, a little pep talk. That\'s farming. The pep talk is the important part.', "Don't step on the carrots! They're shy."],
     crate: ["Fresh from the farm! I'm taking it to Fortune's. Carrots, tomatoes, a cabbage. And a cucumber. Not me. A different cucumber.", 'Delivery! The shop gets the best of the fields every morning. You can buy it there!'],
@@ -106,6 +109,22 @@ function idleScope(n, a) {
     const tx = t.x, ty = t.y + 1;
     if (a.blockedAt(tx, ty)) return false;
     return walkNpc(n, tx, ty, () => { n.x = (tx + 0.5) * TILE; n.y = (ty + 0.5) * TILE + 2; n.dir = 'up'; n.flip = false; n.idle = { kind: 'scope', until: G.t + 900 + rint(0, 900) }; });
+}
+
+/* a drink at the fountain on the way somewhere (David, 28 October: "walking there, a neighbor sometimes stops to use
+   what's along it"): passing a drinking fountain on their way somewhere, some days they step up to it, bend for a drink
+   and then carry on (from stepNpc, once a day each at most) */
+function sipCheck(n) {
+    if (!n.travel || n.area !== 'island' || !n.path || n.path.length < 3 || n.def.goat || n.def.spring || (n.idle && n.idle.kind === 'sip')) return;
+    const day = Clock.dayNum();
+    if (n.sipDay === day) return;
+    const tx = Math.floor(n.x / TILE), ty = Math.floor((n.y - 2) / TILE);
+    const f = (W0.props || []).find(p => p.kind === 'drinkfountain' && !propGone(p) && Math.abs(p.x - tx) <= 2 && Math.abs(p.y + 1 - ty) <= 2);
+    if (!f) return;
+    n.sipDay = day;
+    if (hash32(S.seed + ':sip:' + n.id + ':' + day) % 3) return;       // (about one day in three)
+    const sx = f.x, sy = f.y + 1;
+    walkNpc(n, sx, sy, () => { n.x = (sx + 0.5) * TILE; n.y = (sy + 0.5) * TILE + 2; n.dir = 'up'; n.flip = false; n.idle = { kind: 'sip', until: G.t + 130 + rint(0, 60), resume: true }; });
 }
 
 /* standing about with nothing to do, a look round now and then: the head turns one way, holds a few seconds, comes back
@@ -213,6 +232,8 @@ Object.assign(EnvDolls, {
         } else if (k === 'ground') Object.assign(W, { lL: -1.45, lR: -1.45, kL: 0.25, kR: 0.3, aLx: 0.55, aRx: 0.55, aLz: -0.45, aRz: 0.45, eL: -0.1, eR: -0.1, bx: -0.14, hx: -0.12, by: 0 });
         else if (k === 'paint') Object.assign(W, { aRx: -1.15 + Math.sin(t / 9 + seed) * 0.14, eR: -0.5, aRz: 0.15, aLx: -0.45, eL: -1.2, aLz: -0.35, hx: -0.04 });
         else if (k === 'tend') Object.assign(W, { aRx: -0.45 - 0.3 * lift(150, 60), eR: -0.35, aRz: 0.12, hx: 0.22, bx: 0.06 });
+        // (at the drinking fountain: bent over it, a hand on the button)
+        else if (k === 'sip') Object.assign(W, { aRx: -0.75, eR: -0.6, aRz: 0.1, bx: 0.3, hx: 0.25 });
         // (at the telescope: bent to the eyepiece, both hands on the tube, turning it a little now and then)
         else if (k === 'scope') { const sw = Math.sin(t / 70 + seed) * 0.06; Object.assign(W, { aLx: -1.25, aRx: -1.25, eL: -0.9, eR: -0.9, aLz: -0.18 + sw, aRz: 0.18 + sw, bx: 0.22, hx: 0.1, bz: sw * 0.5 }); }
     },
@@ -227,6 +248,7 @@ Object.assign(EnvDolls, {
         if (k === 'paint') return { lean: 0.05, R: { up: 0.5 + Math.sin(t / 9 + seed) * 0.15, fwd: -1.0 }, L: { up: 0.2, fwd: -0.4 } };
         if (k === 'tend') { const b = lift(150, 60); return { lean: 0.1 + 0.08 * b, R: { up: 0.3 + 0.3 * b, fwd: -0.9 }, L: null }; }
         if (k === 'scope') return { lean: 0.18, R: { up: 0.75, fwd: -1.1 }, L: { up: 0.75, fwd: -1.1 } };
+        if (k === 'sip') return { lean: 0.3, R: { up: 0.45, fwd: -1.0 }, L: null };
         return { lean: 0, R: null, L: null };
     },
 });
