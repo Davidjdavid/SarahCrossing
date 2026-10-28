@@ -114,8 +114,13 @@ const EnvModels = {
             const b = r3Patch(new THREE.MeshBasicMaterial({ vertexColors: true }), o); b.name = m.name; return b;
         }
         const glass = /glass/i.test(m.name || '');
-        // (a display case's glass: see-through, a faint sheen)
-        if (/_clear$/.test(m.name || '')) { const c = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: !!m.vertexColors, color: m.color, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.28, depthWrite: false }), { key: 'envmodelclear' }); c.name = m.name; return c; }
+        // (a display case's glass: see-through, a faint sheen; blended by its own opacity, while what's in the alpha channel,
+        // the depth of field's blur, stays what's behind it: with the blur written there instead, glass in focus vanished)
+        if (/_clear$/.test(m.name || '')) {
+            const c = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: !!m.vertexColors, color: m.color, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.28, depthWrite: false,
+                blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor }), { key: 'envmodelclear', noDof: true });
+            c.name = m.name; return c;
+        }
         if (m.map) m.map.encoding = THREE.LinearEncoding;
         const opts = { map: m.map || null, color: m.map ? 0xffffff : m.color, roughness: glass ? 0.35 : /gloss/.test(m.name || '') ? 0.5 : 0.92, metalness: 0, vertexColors: !m.map && !!m.vertexColors };
         // (the pines' needle tufts are mostly in the normal map: a little stronger than baked, as the concept's are crisp)

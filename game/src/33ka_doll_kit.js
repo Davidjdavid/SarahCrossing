@@ -21,7 +21,7 @@ const HAT_FIT = {
     soupbowl: { cover: [0.75, 1.0, 0.82, 0.4] }, mummywrap: { cover: [0.15, 0.5, 1.04, 0.8], max: 1.06 }, robotbox: { cover: [0.35, 0.82, 0.95, 0.55], max: 1.15 },
     crown: { sit: 1 }, partyhat: { sit: 1 }, halo: { sit: 1 }, catears: { sit: 1 }, bathat: { sit: 1 }, goathorns: { sit: 1 },
     tiara: { wrap: [0, 1], top: 1, max: 1.6 }, flowercrown: { wrap: [0.63, 0.86], max: 1.25 }, bow: { wrap: [0.9, 0.62], max: 1.5 }, flower: { wrap: [0.62, 0.93], max: 1.5 },
-    sunrays: { wrap: [0.73, 0.9] }, lobsterclaws: { wrap: [0.73, 0.92] }, headphones: { wrap: [0, 1.06], over: 1.12 },
+    sunrays: { wrap: [0.73, 0.9] }, lobsterclaws: { wrap: [0.73, 0.92] }, headphones: { wrap: [0, 1.06], over: 1.07 },
 };
 /* the expressions on a face sheet, four to a row */
 const FACES = ['idle', 'blink', 'talk', 'happy', 'happytalk', 'joy', 'surprised', 'sad', 'cry', 'excited', 'determined', 'worried', 'sleepy', 'wink', 'love', 'annoyed'];
@@ -233,7 +233,7 @@ Object.assign(EnvDolls, {
         if (F.sit) g.position.y += (rest - 1.02) * R * F.sit;
         // (what goes round the head grows as if the head were as big as the hair)
         if (F.wrap) {
-            const [h, ring] = F.wrap, s = Math.min(F.max || 1.7, Math.max(1, F.top ? rest / 1.02 : (reach(h, 0.1) + 0.04) / ring));
+            const [h, ring] = F.wrap, s = Math.min(F.max || 1.7, Math.max(1, F.top ? (rest + 0.07) / 1.02 : (reach(h, 0.1) + 0.04) / ring));
             g.scale.setScalar(s);
             if (F.over) g.scale.y = Math.max(s, (topC + 0.06) / F.over);
         }

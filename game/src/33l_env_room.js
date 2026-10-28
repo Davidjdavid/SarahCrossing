@@ -441,6 +441,8 @@ const EnvRoom = {
         // (the aquarium's fish swim back and forth, turning at each end)
         for (const f of B.swim || []) {
             const k = t / 60 * f.sp + f.ph;
+            // (in a bowl: round and round, facing the way it swims)
+            if (f.round) { f.o.position.set(f.x + Math.cos(k) * f.round, f.y + Math.sin(k * 2.3) * 0.012, f.z + Math.sin(k) * f.round); f.o.rotation.y = -(k + Math.PI / 2); continue; }
             f.o.position.set(f.x + Math.sin(k) * f.w, f.y + Math.sin(k * 2.3) * 0.035, f.z);
             f.o.rotation.y = Math.cos(k) >= 0 ? 0 : Math.PI;
         }
@@ -464,6 +466,19 @@ const EnvRoom = {
     pivot(mv, x, y, z, M) {
         const T = this._piv || (this._piv = [new THREE.Matrix4(), new THREE.Matrix4()]);
         mv.mesh.matrix.copy(mv.base).multiply(T[0].makeTranslation(x, y, z)).multiply(M).multiply(T[1].makeTranslation(-x, -y, -z));
+    },
+    /* a fish in its bowl at home, going round and round about a hand's breadth up (the big ones a little cramped) */
+    bowlFish(g, id, x, y, z) {
+        const f = this.fishMesh(id);
+        if (!f) return false;
+        const S = 1.3;
+        g.add(this.group('furn_fish_bowl', x, y, z, S));
+        const sz = (FISHES.find(q => q.id === id) || {}).size || 2, r = mulberry(hash32('bowl' + id + x + ',' + z));
+        f.scale.setScalar(0.3 + Math.min(4, sz) * 0.05);
+        f.rotation.order = 'YXZ'; f.rotation.x = Math.PI / 2;
+        g.add(f);
+        this.built.swim.push({ o: f, x, z, y: y + 0.12 * S, ph: r() * 6.28, sp: 0.5 + r() * 0.3, round: 0.065 * S });
+        return true;
     },
     /* a fish for a tank: its stand-in model (EnvItems.model) painted in its own color */
     fishMesh(id) {
@@ -569,6 +584,8 @@ const EnvRoom = {
             const x = it.x + d.w / 2, y = host ? host.top : 0, z = host ? host.z : (it.y + 0.5) * R3_ZS;
             const n = typeof EnvItems !== 'undefined' && EnvItems.model(it.id, d.frame);
             if (!n) continue;
+            // (a fish lives in a glass bowl, swimming round it: furn_k.py's fish_bowl, EnvRoom.animate)
+            if (d.thing && ITEMS[it.id] && ITEMS[it.id].type === 'fish' && EnvModels.has('furn_fish_bowl') && this.bowlFish(g, it.id, x, y, z)) { B.placed.add(e); continue; }
             if (d.flower && EnvModels.has('furn_flower_vase')) {
                 g.add(this.group('furn_flower_vase', x, y, z));
                 const vt = EnvModels.models.furn_flower_vase.anchors.top;

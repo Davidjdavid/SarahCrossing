@@ -101,3 +101,24 @@ def stamp_stand(P):
     ball(mb, (0.15, -0.07, 0.115), 0.026, wood('#a8703c'), sub=2)
     rbox(mb, -0.07, -0.19, -0.012, 0.07, -0.168, 0.012, metal('#d8b048'), r=0.004, mid=0)
     xform(mb, m, Matrix.Translation((0, 0, 0.66)) @ Matrix.Rotation(math.radians(25), 4, 'X'))
+
+
+@item('fish_bowl', 1, 1)
+def fish_bowl(P):
+    """The bowl a fish lives in at home (a fish set down on a table or the floor, as in Animal Crossing): a round glass
+    bowl open at the top with a lip, the water a pale blue inside it (both see-through: the game swims the fish itself in
+    the middle, about a hand's breadth up), colored gravel on the bottom, a sprig of water weed and a little pink shell."""
+    lathe(P.clear, [(0.085, 0.0), (0.12, 0.02), (0.145, 0.05), (0.158, 0.1), (0.157, 0.15), (0.145, 0.2), (0.125, 0.24),
+                    (0.108, 0.265), (0.112, 0.28), (0.118, 0.286)], col_fn('#d4eef8', under=0.0), seg=28, cap_top=False, cap_bot=True)
+    # (the rim, solid, so the bowl reads even where the glass all but vanishes)
+    tube(P.gloss, [(math.cos(k / 24 * math.tau) * 0.117, math.sin(k / 24 * math.tau) * 0.117, 0.286) for k in range(25)], 0.007, shade('#f4fbfe'), seg=6)
+    lathe(P.clear, [(0.075, 0.008), (0.11, 0.026), (0.136, 0.055), (0.149, 0.1), (0.148, 0.15), (0.138, 0.2), (0.132, 0.215),
+                    (0.0, 0.215)], col_fn('#3c9ed6', under=0.0), seg=28)
+    rng = P.rng
+    for k in range(34):
+        a, r = rng.uniform(0, math.tau), 0.075 * math.sqrt(rng.uniform(0, 1))
+        c = ('#e8c070', '#f2f0e6', '#7ab8d8', '#e88a8a', '#a8a090')[k % 5]
+        ball(P.main, (math.cos(a) * r, math.sin(a) * r, 0.022 + rng.uniform(0, 0.012)), 0.014, shade(c), sub=1)
+    for k, (x, y, h, lean) in enumerate(((0.04, 0.03, 0.13, 0.02), (0.055, 0.0, 0.1, -0.015), (0.03, -0.02, 0.08, 0.03))):
+        tube(P.main, [(x, y, 0.03), (x + lean * 0.5, y, 0.03 + h * 0.5), (x + lean, y + 0.01, 0.03 + h)], 0.008, shade('#4aa858'), seg=5, r1=0.004)
+    lathe(P.main, [(0.022, 0.0), (0.018, 0.012), (0.0, 0.02)], shade('#f4a8b8'), c=(-0.045, 0.035, 0.03), seg=10)

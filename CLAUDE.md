@@ -304,7 +304,8 @@ docs/DEPLOY.md for the server.
   together and the rest keep their own day fields. Joe starts at 100 and never goes down.
 - Sarah's paintings (65_museum.js `registerArt`) hang on the wall, stand on a table (`<id>_stand`, the photo frame in the
   new look) or on an easel (`<id>_easel`, the shop's easel): decorating picks which (`ART_AS`), and put away it's the
-  painting again (`artBase`). Fish, shells and gems sit on tables like food (`furnDef`'s `thing`).
+  painting again (`artBase`). Fish, shells and gems sit on tables like food (`furnDef`'s `thing`); in the new look a fish
+  swims round and round a little glass bowl (`furn_fish_bowl`, furn_k.py; `EnvRoom.bowlFish`).
 - A lamp or lantern in Sarah's house switches off and on with a tap (`lampSwitch`, `isLamp`; kept as `it.off`, no light
   while off). So do the retro TV and the record player (6zyb_acting.js, models in furn_k.py, sold at IslandMart in their
   woods; `furnSwitch`, kept as `it.play`, since `it.on` is what a thing on a table stands on): in the new look the TV's
@@ -557,7 +558,7 @@ docs/DEPLOY.md for the server.
   painting on it still its picture) and board, the restaurant's stools (Mac's chairs in the 2D views) and the dishes on its tables (what each seat is
   eating, `seatDish`), the arcade's back door and crates; food on a table is its dish, a flower stands in a vase. The
   furniture loads after the island's models, so the island never waits for it. Glass is a part named `*_clear`
-  (see-through).
+  (see-through; blended by its own opacity with the alpha channel, where the depth of field's blur is kept, left alone: `noDof`).
 - The club is a 3D room in the new look too (`EnvRoom.club`: the DJ booth, speakers and disco ball as their models, the dance
   floor's tiles lit in turn, light beams and the ball's sparkles, lit for dancing at any hour), and the dance game and
   karaoke stay in 3D there (`R3.active`): Sarah's doll dances the game's poses, while the arrows, judgements, lyrics and
