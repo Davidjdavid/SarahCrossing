@@ -15,6 +15,9 @@ docs/DEPLOY.md for the server.
   that say why. Helpers to know: `el(tag, cls, text)`, `btn(label, cls, fn)`, `chip()`,
   `UI.open({title, phone, back, foot})`, `UI.say/ask`, `UI.toast`, `Save.touch()` after changing `S`.
 - `S` is the save (the island's whole state). `newState()` and `migrate()` are in `11_save.js`.
+- Sarah's family (David, James, John, Elizabeth) are only on the island while someone plays as them online (13_online.js):
+  never neighbors, no visits by boat (David, 29 October). Their `NPC_DEFS` entries (`online: true`) keep only their names,
+  looks and voices for that, and `NPCs.list` leaves them out; Joe is a neighbor. David's statue stays a statue.
 - The island (`game/assets/world.json` and its ground picture in pieces, `game/assets/ground/`) is made by
   `node scripts/make-island.mjs`, from `scripts/island/`: `plan.mjs` is the layout David picked (Harbor Square: the
   coast, each level's edge, rivers, ponds, the square, every path and trail, buildings, props and the neighbors' spots,
@@ -126,8 +129,10 @@ docs/DEPLOY.md for the server.
   keeps the HD-2D view until he says so.
 - There `Env` (33a_env.js) draws the world as real 3D, built once when the area loads: the ground from half-tile
   height cells with a stone wall on anything steep (`EnvGround`), procedural surfaces (`EnvTex`), trees (`EnvTrees`),
-  water (`EnvWater`), buildings and props (`EnvBuild`); the lawn is a texture of little diamond leaves like the GameCube
-  Animal Crossing's (`EnvTex.lawn`, David's pick: no 3D tufts, no flowers but the ones you can pick). R3 still draws people, critters and
+  water (`EnvWater`), buildings and props (`EnvBuild`); the lawn is a texture like the GameCube
+  Animal Crossing's (`EnvTex.lawn`, David's pick: no 3D tufts, no flowers but the ones you can pick): little triangles,
+  rounds and squares in close greens (olive and gold in fall), never touching, each cut along the line halfway to its
+  nearest so the dark gaps between them are even (David, 28 October). R3 still draws people, critters and
   anything `Env.takes(e)` leaves out, and its post pass (bloom, depth of field, the warm grade). Tune it in `ENV`
   (a level's height, the camera, depth of field, how big people stand).
 - Sarah's island is in the new look on the beta site (`ENV_ISLAND`: the beta host, or `localStorage sc-env-island` 1 or
@@ -283,6 +288,9 @@ docs/DEPLOY.md for the server.
 - Friendship is earned over days (David, 28 October): `addPts(id, n, kind)` counts each kind of thing (favor, hangout,
   letter, job, treat, story...) once a day with each neighbor (`r.got` { day, kind: 1 }); the first talk, a gift, a game
   together and the rest keep their own day fields. Joe starts at 100 and never goes down.
+- Sarah's paintings (65_museum.js `registerArt`) hang on the wall, stand on a table (`<id>_stand`, the photo frame in the
+  new look) or on an easel (`<id>_easel`, the shop's easel): decorating picks which (`ART_AS`), and put away it's the
+  painting again (`artBase`). Fish, shells and gems sit on tables like food (`furnDef`'s `thing`).
 - A lamp or lantern in Sarah's house switches off and on with a tap (`lampSwitch`, `isLamp`; kept as `it.off`, no light
   while off).
 - Props that act in the new look: a fire's, a torch's, a lantern's or a jack-o'-lantern's glow flickers (`EnvModels.FIRES`,

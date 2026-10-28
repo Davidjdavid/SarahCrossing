@@ -3,13 +3,12 @@
    quiet stretch in between. Bystanders gossip about it; Sarah can pass things on, clear things up, or keep quiet.
    Rules: there is never drama at Sarah, humans never date anyone, and at most one human is in a storyline. */
 const DRAMA_FOOD = ['maki', 'kai', 'basil', 'wonton', 'chili', 'coco', 'cece', 'clementine', 'cuke', 'sully', 'ginger', 'brulee', 'mac'];
-const DRAMA_HUMAN = ['joe'];                     // David and the siblings only visit now and then, so they stay out of it
+const DRAMA_HUMAN = ['joe'];                     // (David and the family are only here online)
 const TRAIT = {
     maki: ['rice', 'sushi roll'], kai: ['toppings', 'poke bowl'], basil: ['noodles', 'pad thai'], wonton: ['hot spring', 'dumpling'],
     chili: ['stem', 'pepper'], coco: ['bow', 'truffle'], cece: ['crust', 'cheesecake'], clementine: ['peel', 'clementine'],
-    cuke: ['jogging', 'cucumber'], sully: ['accent', 'Boston cream pie'], david: ['roller skates', 'icon'], joe: ['curls', 'poet'],
+    cuke: ['jogging', 'cucumber'], sully: ['accent', 'Boston cream pie'], joe: ['curls', 'poet'],
     ginger: ['hard hat', 'gingerbread builder'], brulee: ['caramel top', 'cr\u00e8me br\u00fbl\u00e9e'], mac: ['cooking', 'mac and cheese'],
-    james: ['golf swing', 'golfer'], john: ['briefcase', 'lawyer'], elizabeth: ['Jackbox strategy', 'gamer'],
 };
 const DRAMA_BITS = {
     thing: ['who ate the last dumpling', 'whether a hot dog is a sandwich', 'the right way to hold chopsticks', "a text that just said 'k'",
@@ -439,7 +438,6 @@ function voiced(id, text, gossip) {
         case 'maki': if (roll < 0.3) text = 'To be precise: ' + text; else if (roll < 0.45) text += catchTail(id); break;
         case 'basil': if (roll < 0.25) text += ' Anyway. Noodles later?'; else if (roll < 0.4) text += catchTail(id); break;
         case 'wonton': if (roll < 0.2) text += catchTail(id); break;
-        case 'david': if (roll < 0.25) text = 'Honey. ' + text; else if (roll < 0.45) text += catchTail(id); break;
         case 'ginger': if (roll < 0.3) text += catchTail(id); else if (roll < 0.45) text = 'Okay, structurally? ' + text; break;
         case 'brulee': if (roll < 0.3) text = 'Ah. ' + text; else if (roll < 0.5) text += catchTail(id); break;
         case 'mac': if (roll < 0.3) text += ' Anyway, are you hungry?'; else if (roll < 0.42) text += catchTail(id); break;

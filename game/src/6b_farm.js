@@ -102,7 +102,7 @@ const CAUGHT = {
     basil: 'Oh, hello! Make yourself at home. You already did. Good.', chili: "You found the hot sauce shelf? Good. Wasn't sure I'd made it obvious enough with the other three hot sauce shelves.",
     coco: "SARAH. You're in my HOUSE. This is the best gossip I've ever walked into.", cece: "Oh! Sarah! Hi! Sorry! ...Wait, why am I sorry? You're in my house. Come sit down.",
     clementine: 'Darling. You let yourself in. Bold. I respect it. Did you try anything on?', cuke: "SARAH! You're here! In my house! At this hour! Want some water?!",
-    sully: "Kid! Whaddya doin' in heah? ...Ah, it's fine. Coffee's on. It's always on.", david: "HONEY. You broke into my house? Iconic. Mind the goat bed.",
+    sully: "Kid! Whaddya doin' in heah? ...Ah, it's fine. Coffee's on. It's always on.",
     joe: "Oh, hi! You're in my house! Did you read the poem on the typewriter? Don't. It's not done. It's about you.", ginger: "Hey! Checking out the workshop? Don't touch the level. It's perfectly level.",
     brulee: 'Ah! A visitor. In my gallery. In my home. It is fine. Please do not tap anything.', mac: "Sarah! You're here! Are you hungry? You broke in hungry, didn't you?",
 };

@@ -821,8 +821,7 @@ function clubList(mode) {
 /* ---------------------------------------------------------------- neighbors who text first (and favors by text) */
 const INV_LINES = {
     lunch: { _: ["Want to grab lunch at Mac's? I'm heading over now!", "Lunch at Mac's? I'm starving. My treat!", "Mac's has a special today. Lunch? I'll save you a seat!"],
-        joe: ["Lunch at Mac's? I'll save you the good seat. The one next to me.", "I'm going to Mac's. Lunch is better with you. That's just a fact. (My treat.)"],
-        david: ["Lunch at Mac's, honey? I'm skating over right now. My treat!"] },
+        joe: ["Lunch at Mac's? I'll save you the good seat. The one next to me.", "I'm going to Mac's. Lunch is better with you. That's just a fact. (My treat.)"] },
     hang: { _: ['Want to hang out {place}? I\'ll be there for a while!', "I'm heading {place}. Come hang out?", 'Hang out {place}? I\'ll be the one waving!'],
         joe: ["I'm going {place}. It's nicer when you're there. Come? (Poems available.)", 'Want to hang out {place}? No reason. Okay, one reason. It\'s you.'] },
     chat: { _: ['Come find me when you get a sec! I have something to tell you!', 'Are you free? Come find me, I have news!', 'Come say hi when you can! I have a story for you.'],
@@ -849,8 +848,7 @@ const Invites = {
     st() { if (!S.invites) S.invites = { day: -1, n: 0, last: 0, seq: 1, list: [] }; return S.invites; },
     line(pool, id) {
         const L = pool[id] || pool._ || [];
-        const s = Array.isArray(L) ? rpick(L) : L;
-        return NPC_DEFS[id] && NPC_DEFS[id].family ? s + ' (PLACEHOLDER)' : s;
+        return Array.isArray(L) ? rpick(L) : L;
     },
     live(inv) { return inv && (inv.state === 'asked' || inv.state === 'yes') && Date.now() < inv.until; },
     pending() { return S && S.invites ? S.invites.list.filter(v => v.state === 'asked' && this.live(v)) : []; },
@@ -874,13 +872,13 @@ const Invites = {
     kindsFor(id) {
         const d = NPC_DEFS[id], h = Clock.hourF(), out = [];
         if (d.shop || d.dj || d.goat) return [['chat', 2], ['gift', hearts(id) >= 2 ? 1.5 : 0]];
-        if (!d.family && id !== 'mac' && roomOpen('restaurant') && hourIn(h, 11, 14.5)) out.push(['lunch', 3]);
+        if (id !== 'mac' && roomOpen('restaurant') && hourIn(h, 11, 14.5)) out.push(['lunch', 3]);
         if (!d.spring && this.hangSpots(id).length) out.push(['hang', 3]);
         out.push(['chat', 2]);
-        if (!d.family && !Requests.from(id) && Requests.open().length < REQ_MAX) out.push(['favor', 2]);
-        if (!d.family && hearts(id) >= 2) out.push(['gift', 1.5]);
+        if (!Requests.from(id) && Requests.open().length < REQ_MAX) out.push(['favor', 2]);
+        if (hearts(id) >= 2) out.push(['gift', 1.5]);
         // (asking her to play: rare, David, 27 October evening)
-        if (!d.family && VS_SKILL[id] && h >= 9 && h < 19) out.push(['play', 0.7]);
+        if (VS_SKILL[id] && h >= 9 && h < 19) out.push(['play', 0.7]);
         return out;
     },
     /* every few seconds of play: maybe a neighbor texts */
@@ -911,7 +909,7 @@ const Invites = {
             return n && !n.sleeping && !n.talking && !n.script && !NPC_DEFS[id].dj && !I.list.some(v => v.id === id && this.live(v));
         });
         if (!ids.length) return null;
-        const id = forceId || weighted(ids.map(x => [x, x === 'joe' ? 1.5 : NPC_DEFS[x].family ? 0.3 : 1]));
+        const id = forceId || weighted(ids.map(x => [x, x === 'joe' ? 1.5 : 1]));
         const kinds = this.kindsFor(id).filter(k => k[1] > 0);
         const kind = forceKind || (kinds.length ? weighted(kinds) : 'chat');
         const inv = { n: I.seq++, id, kind, at: Date.now(), until: Date.now() + 60 * 60e3, state: 'asked' };
@@ -949,7 +947,6 @@ const Invites = {
     helpReply(id) {
         const n = NPCs.get(id), d = NPC_DEFS[id];
         if (!n || (n.sleeping && !d.dj)) return null;
-        if (d.family) return "Aw, thanks! I'm good. Just enjoy your island! (PLACEHOLDER)";
         if (d.dj) return 'A favor? Come dance! That IS the favor.';
         const mine = Requests.from(id);
         if (mine) return Requests.remind(mine);

@@ -36,7 +36,6 @@ const FAV_SPOT = {
     ginger: ['lookout', 'My favorite spot is the lookout. You can see every roof on the island from up there.', 'I built half of them. I count them. Sturdily.'],
     brulee: ['oldtree', 'My favorite place on the island is the big old tree in the forest.', 'It has been there longer than the museum. It is its own kind of exhibit.'],
     mac: ['meadow', "My favorite spot? The meadow up the hill. Perfect for a picnic.", "I've done the math on it. The math is sandwiches."],
-    david: ['statue', 'Honey. My favorite spot on this island. Guess. ...Yes. My statue.', 'Okay, and the club. But mostly my statue.'],
 };
 /* at three hearts: they ask her advice (two answers, a reaction to each) */
 const ADVICE = {
@@ -53,11 +52,10 @@ const ADVICE = {
     ginger: { q: 'I want a second opinion. Build the new porch with curved railings, or straight?', a: ['Curved railings', 'Straight and sturdy'], r: ['Curved. Ooh. Harder to measure. Much prettier. I accept this challenge. Sturdily.', 'Straight. Sturdy. Classic. The right answer, by the numbers. Good eye.'] },
     brulee: { q: 'I value your opinion. Should the museum stay open later, for the evening light on the paintings?', a: ['Open later!', 'Keep the hours'], r: ['Later! The golden hour on the gallery walls. Magnifique. I will make it a special night.', 'Keep the hours. Yes. Art needs its rest too. As do I. Merci.'] },
     mac: { q: "Here's a question for you. New special: something fancy, or something like Grandma used to make?", a: ['Like Grandma made', 'Something fancy'], r: ["Like Grandma's. That's the one. Comfort first. You're a good soul. Eat up.", "Fancy! Okay! A little parsley on top. A swirl. Maybe a tiny flag. Ooh, I'm excited."] },
-    david: { q: 'Honey, I need advice. Rainbow skates or gold skates for the next club night?', a: ['Rainbow, obviously', 'Gold, for a change'], r: ["Rainbow. Obviously. I don't know why I asked. Yes I do. I wanted to hear you say it.", 'Gold?! Bold. Iconic. A new era. The statue is going to be so jealous.'] },
 };
 /* at four hearts: a gift for her house (in the mail) */
 const HOUSE_GIFT = { maki: 'bonsai', kai: 'surfboard', basil: 'paper_lantern', wonton: 'steamer_stack', chili: 'chili_lights', coco: 'choc_fountain', cece: 'cake_stand',
-    clementine: 'mirror_stand', cuke: 'herb_pot', sully: 'shell_lamp', ginger: 'globe', brulee: 'easel', mac: 'table_setting', david: 'star_projector' };
+    clementine: 'mirror_stand', cuke: 'herb_pot', sully: 'shell_lamp', ginger: 'globe', brulee: 'easel', mac: 'table_setting' };
 const HOUSE_GIFT_LINE = "I want you to have something for your house. I sent it in the mail. Put it somewhere you'll see it. Then think of me. Just a little.";
 /* at five hearts: the best-friend moment */
 const BEST_FRIEND = {
@@ -65,7 +63,6 @@ const BEST_FRIEND = {
     maki: ["{name}, I have measured it carefully. You are my best friend. The measurement is exact.", 'There is no margin of error. I checked twice. Precisely.'],
     kai: ['Dude. DUDE. You are my best friend. Like, best-best. Ride-or-die. Wave-or-die.', "I'm gonna paint it on my board. Small. Respectfully. But it's there."],
     sully: ["Kid. You know what you are? You're family. Best friend I've had since Boston.", "Don't make a thing of it. ...Okay, make a little thing of it."],
-    david: ["Honey. You were always my favorite. Now it's official. Best friends. Forever. In writing.", "I'm adding it to the statue's plaque. Small letters. Big feelings."],
 };
 
 /* ---------------------------------------------------------------- remembering */
@@ -89,7 +86,7 @@ function memoryLine(id) {
 function friendshipTick() {
     if (!S || Online.visitor()) return;
     const today = Clock.dayNum();
-    for (const id of NEIGHBORS.concat(['david'])) {
+    for (const id of NEIGHBORS) {
         const r = S.npcs[id];
         if (!r || !r.met || r.talkDay < 0) continue;
         const gap = today - r.talkDay;
@@ -105,7 +102,7 @@ function friendshipTick() {
 /* the next thing they share at the hearts they have (one a day), or null */
 function nextMilestone(id) {
     const r = rel(id), h = hearts(id);
-    if (!FAV_SPOT[id] || NPC_DEFS[id].family) return null;
+    if (!FAV_SPOT[id]) return null;
     if (h >= 2 && !r.ms2) return 2;
     if (h >= 3 && !r.ms3) return 3;
     if (h >= 4 && !r.ms4) return 4;

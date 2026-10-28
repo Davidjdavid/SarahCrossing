@@ -48,7 +48,6 @@ function chiliVoice() { const c = NPCs.get('chili'); return c && !c.sleeping && 
 /* the neighbors have opinions about all this */
 const ARCADE_CHAT = {
     kai: ['Dude, Fruit Catch is basically surfing. With fruit. And no water. And no board. So, not surfing.'],
-    david: ["I beat Chili's Bento Blocks score once. On skates. He's still not over it. Honestly? Neither am I."],
     maki: ['Bento Blocks is the only game that respects me. Every row lines up. Precisely.', 'Sushi Swap rewards planning. Swap, wait, chain. Precisely.'],
     cece: ['I tried the claw machine. The plushie slipped and I apologized to it. It did not forgive me.'],
     cuke: ['Jump rope in the plaza! Afternoons! Good for the heart! And the calves! And morale!'],

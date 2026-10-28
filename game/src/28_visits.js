@@ -11,20 +11,19 @@ const VISIT_KNOCK = {
     clementine: "Darling, it's Clementine. I'm here to see your interiors. Can I come in?",
     cuke: "KNOCK KNOCK! It's Cuke! I jogged here! Can I come in?",
     sully: "Knock knock. It's Sully. Just passin' by. Mind if I come in, kid?",
-    david: "Knock knock, it's your favorite brother! I brought my camping chair. Can I come in? I'm coming in.",
     joe: "Knock knock! It's me! Joe! Regular Joe! Just a normal visit! Can I come in?",
     ginger: "Knock knock! It's Ginger! Just checking your doorframe. And you. Can I come in?",
     brulee: "Bonjour! It's Brulee. I hear you have... interiors. May I come in?",
     mac: "Knock knock! It's Mac! I didn't bring food, which is very unlike me. Can I come in?",
 };
 const VISIT_SET = { maki: 'sushi', kai: 'beach', basil: 'takeout', chili: 'takeout', coco: 'dessert', cece: 'dessert', clementine: 'cottage',
-    cuke: 'garden', sully: 'crimson', david: 'rainbow', joe: 'poet', ginger: 'cottage', brulee: 'artist', mac: 'diner' };
+    cuke: 'garden', sully: 'crimson', joe: 'poet', ginger: 'cottage', brulee: 'artist', mac: 'diner' };
 const VISIT_LOVE = {
     maki: 'Ah. A sushi setup. You\'ve made me feel very at home. Possibly too at home. May I straighten that?', kai: 'Beach vibes! You totally get it, dude.', basil: 'Takeout decor. Very nice. For a moment I thought I\'d come over to work.',
     chili: "This room has some heat. I like it. You could go hotter. That's true of most rooms.", coco: "Dessert vibes?! This house is DELICIOUS. I'm telling everyone.",
     cece: "It's like a little bakery! I'd be so happy here. I'd never get anything done. Oh, that's already true at mine.", clementine: 'Darling, the cottage look? Cozy. Classic. Correct.',
     cuke: 'Plants! Green things! Fresh air! This house is HYDRATED!', sully: "Hahvahd stuff! Wicked smaht. You fit right in, kid.",
-    david: 'RAINBOWS. In the home. Honey, I have never been prouder.', joe: 'You put out the poetry things! Near the good light, too. They\'ll write better here.',
+    joe: 'You put out the poetry things! Near the good light, too. They\'ll write better here.',
     ginger: 'A cottage! Good bones. Solid beams. I could live here. I might.',
     brulee: "An artist's home! Easels, paintings... I feel like I'm at work, but relaxing.",
     mac: "Diner style! Checkered floor, red chairs... {name}, this is my dream. Can I cook here?",
@@ -38,9 +37,8 @@ const Visits = {
         const r = mulberry(hash32(S.seed + ':visit:' + day));
         let v = { day, who: null, at: 0, state: 'none' };
         if (r() < 0.5) {
-            const sib = visitingToday();
             const pool = NEIGHBORS.concat(['joe']).filter(id => S.npcs[id] && S.npcs[id].met && S.npcs[id].pts >= 10);
-            const who = sib && S.npcs[sib] && S.npcs[sib].met && r() < 0.6 ? sib : pool.length ? rpick(pool, r) : null;
+            const who = pool.length ? rpick(pool, r) : null;
             if (who) v = { day, who, at: 13 + r() * 9, state: 'pending' };
         }
         S.visit = v;
@@ -61,7 +59,7 @@ const Visits = {
         }
         if (G.area.id !== 'home' || G.busy || UI.modal || UI.dialogOpen || Decor.on || Dance.on || Photo.on || G.fishing) return;
         if (n.sleeping || n.talking || n.script) return;
-        if (n.want && n.want.fixed && !n.def.visitor) return;          // at work
+        if (n.want && n.want.fixed) return;          // at work
         v.state = 'done';
         Save.touch();
         this.run(n);
@@ -72,7 +70,7 @@ const Visits = {
         try {
             Sfx.play('knock');
             await waitFrames(24);
-            const knockLine = n.def.family ? `Knock knock! It's ${n.def.name}! Can I come in? (PLACEHOLDER)` : voiced(id, VISIT_KNOCK[id] || `Knock knock! It's ${n.def.name}! Can I come in?`);
+            const knockLine = voiced(id, VISIT_KNOCK[id] || `Knock knock! It's ${n.def.name}! Can I come in?`);
             const k = await UI.ask(id, knockLine, ['Come in!', 'Not right now']);
             if (k !== 0) { await UI.say(id, voiced(id, "Aw, okay! Another time!")); return; }
             // they come in through the front door
@@ -86,7 +84,7 @@ const Visits = {
             n.moving = false; n.hop = 0;
             faceNpc(n, p); faceToward(p, n);
             n.emote = 'heart'; n.emoteT = 80;
-            await UI.say(id, voiced(id, n.def.family ? 'So this is your place! (PLACEHOLDER)' : rpick(["So this is your place! Nice! I never know what to do with my hands on a house tour.", "It looks so much like you in here. I mean that nicely. I'm looking at the nice part.", 'Look at this! Okay, give me the tour. Actually, I can see everything from here.'])), { keep: true });
+            await UI.say(id, voiced(id, rpick(["So this is your place! Nice! I never know what to do with my hands on a house tour.", "It looks so much like you in here. I mean that nicely. I'm looking at the nice part.", 'Look at this! Okay, give me the tour. Actually, I can see everything from here.'])), { keep: true });
             // something in the room catches their eye
             const items = S.house.items.map(it => furnDef(it.id)).filter(d => d && !d.food && !d.flower);
             const set = VISIT_SET[id];
@@ -97,7 +95,7 @@ const Visits = {
             const verdict = sc.total >= 21 ? "Honestly? This might be the cutest house on the island. Don't tell Clementine I said that."
                 : sc.total >= 13 ? 'It feels really cozy in here. I could stay all day. I won\'t. But I could.'
                 : 'It\'s cozy! Maybe a lamp? Everybody always says "add a lamp." I\'m saying it too.';
-            await UI.say(id, voiced(id, n.def.family ? `${verdict} (PLACEHOLDER)` : verdict), { keep: true });
+            await UI.say(id, voiced(id, verdict), { keep: true });
             // a little something, sometimes
             const r = rel(id);
             if (R() < 0.35 + hearts(id) * 0.08) {

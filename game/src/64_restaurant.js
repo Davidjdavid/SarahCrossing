@@ -149,7 +149,7 @@ async function eatHere(id, guestId) {
     p.pose = 'cheer'; p.poseT = 30;
     if (buddy && buddy === guest) {
         if (!buddy.def.human) { buddy.hop = 3; }
-        await UI.say(buddy.id, voiced(buddy.id, fillText(rpick(INVITE_DINE[buddy.id] || INVITE_DINE[buddy.def.family ? '_fam' : '_']))));
+        await UI.say(buddy.id, voiced(buddy.id, fillText(rpick(INVITE_DINE[buddy.id] || INVITE_DINE._))));
     }
     await UI.say(null, rpick([`Sarah eats the ${nm}. It is so good she has to close her eyes for a second.`, `The ${nm} is perfect. Mac watches from the kitchen, beaming.`,
         `Sarah takes a bite of the ${nm}. Then another. Then it is gone. Where did it go? (Sarah.)`]));
@@ -158,7 +158,7 @@ async function eatHere(id, guestId) {
     if (buddy) {
         const r = rel(buddy.id), day = Clock.dayNum();
         buddy.emote = 'heart'; buddy.emoteT = 70;
-        await UI.say(buddy.id, voiced(buddy.id, buddy.def.family ? 'This is so nice. Thanks, Sarah! (PLACEHOLDER)' : rpick(DINE_TALK[buddy.id] || DINE_TALK._)));
+        await UI.say(buddy.id, voiced(buddy.id, rpick(DINE_TALK[buddy.id] || DINE_TALK._)));
         let pts = 0;
         if (r.met && r.dineDay !== day) { r.dineDay = day; pts += 4; }
         if (buddy === guest && r.inviteDay !== day) { r.inviteDay = day; pts += 3; }
@@ -170,7 +170,6 @@ async function eatHere(id, guestId) {
 /* ---------------------------------------------------------------- inviting a friend */
 const INVITE_YES = {
     _: ['On my way! Save me a seat!', "Ooh, Mac's? Yes! Be right there!", 'Give me two minutes. Order something good!'],
-    _fam: ['On my way! (PLACEHOLDER)', "Mac's? Be right there! (PLACEHOLDER)"],
     joe: ["For you? Always. I'm already walking. I'm practically running. Okay, I'm running.", "Dinner? With you? At the same table? ...Cool. Cool cool cool. Totally normal. On my way!"],
     maki: ['I will be there in exactly four minutes.', 'Yes. Please save me a chair that doesn\'t wobble.'],
     kai: ['Dude, YES. Paddling over. Walking. Walking over.'], basil: ["I'd love that. I'll bring an appetite. And a napkin."],
@@ -178,12 +177,11 @@ const INVITE_YES = {
     coco: ['OMG yes. I have SO much to tell you. Leaving now. Running. In heels. It is fine.'], cece: ['Me? Really? Yes! Sorry! I mean yes!'],
     clementine: ['Of course, darling. Give me two minutes to choose an entirely effortless outfit.'], cuke: ['Yes! I will jog there! Stretching now!'],
     sully: ["Kid, you had me at Mac's. Comin'."], ginger: ['Just tightening the last bolt. There. On my way!'], brulee: ['Magnifique. I am putting on my good scarf.'],
-    david: ['Honey, YES. Skating over. Order me the dessert. Two of them.'], fortune: ['I foresee... myself... at Mac\'s. In five minutes.'],
+    fortune: ['I foresee... myself... at Mac\'s. In five minutes.'],
     floss: ["Yes! Let me finish this blowout. I'll be right there."], waffle: ["Crispy yes. I'll be right over."],
 };
 const INVITE_NO = {
     _: ["Aw, I can't right now! Rain check?", 'I just ate! Next time, I promise!', "Ahh, I'm in the middle of something. Save me a bite?"],
-    _fam: ["Can't right now! Next time! (PLACEHOLDER)"],
     maki: ['Not today. My schedule is very precise. You are in it for tomorrow. Probably.'], kai: ["Can't, dude. I'm halfway through a nap. If I stop now, I'll have to start over."],
     wonton: ['I am soaking. Soaking is serious. Another time!'], coco: ["Nooo, I can't! I'm literally in the middle of gossip. Next time!"],
     cece: ["I can't! Something's in the oven. Several somethings. I didn't expect the first one to turn out well."], sully: ["Can't, kid. Kiln's firing. Next time, I'm buyin'."],
@@ -191,11 +189,10 @@ const INVITE_NO = {
 };
 const INVITE_DINE = {
     _: ['Thanks for inviting me! This is so nice. Just us, and a whole lot of cheese.', 'You invited ME? This is the best day. Pass the bread.'],
-    _fam: ['Thanks for inviting me, Sarah! (PLACEHOLDER)'],
     joe: ["This is nice. Two friends. Eating. At a table. Friend dinner. (Joe has gone very pink.)", "Here, take this napkin. It's the one without the rhyme ideas on it."],
     maki: ['Thank you for the invitation. The seating is acceptable. The company is excellent.'], kai: ['Dude. Dinner buddies. This rules.'],
     coco: ["Okay so. SO. I have news. But first: thank you for inviting me. You're the best. Now the news..."], cece: ["Thanks for asking me! I had something in the oven, so I made myself leave. Mac has an oven. I don't need to bring one."],
-    sully: ["Thanks for the invite, kid. Means a lot. Don't tell anybody I said that."], david: ['Look at us! Out to dinner! The most stylish table in the building.'],
+    sully: ["Thanks for the invite, kid. Means a lot. Don't tell anybody I said that."],
 };
 function inviteList() {
     return textContacts().filter(id => id !== 'mac' && id !== 'goat' && NPC_DEFS[id] && !NPC_DEFS[id].dj && !Plans.get(id).away);
@@ -248,18 +245,16 @@ async function maybeInvite() {
     say(true, "Want to get food at Mac's? I'm here now!");
     Sfx.ui('tick');
     await waitFrames(30);
-    const fam = d.family ? '_fam' : '_';
     let yes = false, line;
     if (id === 'joe') { yes = true; line = rpick(INVITE_YES.joe); }
     else if (st === 'asleep') { log.push({ sys: true, t: `Delivered. ${d.name} is asleep.`, day: Clock.dayNum(), at: Date.now() }); Save.touch(); await UI.say(null, `No answer. ${d.name} must be asleep. Sarah eats by herself, and that's nice too.`); return null; }
-    else if (st === 'working') { const seg = planNow(id, dayHour()); line = d.family ? "I'm busy right now! (PLACEHOLDER)" : `I'm working${seg ? ' until ' + roundTime(seg.b) : ''}! Rain check?`; }
+    else if (st === 'working') { const seg = planNow(id, dayHour()); line = `I'm working${seg ? ' until ' + roundTime(seg.b) : ''}! Rain check?`; }
     else if (st === "at Mac's") { yes = true; line = "I'm already at Mac's! Look up! Hi!"; }
     else {
         const chance = [0.3, 0.45, 0.6, 0.72, 0.85, 0.95][hearts(id)] + (bonusCharm() ? 0.1 : 0);
         yes = R() < chance;
-        line = rpick(yes ? INVITE_YES[id] || INVITE_YES[fam] : INVITE_NO[id] || INVITE_NO[fam]);
+        line = rpick(yes ? INVITE_YES[id] || INVITE_YES._ : INVITE_NO[id] || INVITE_NO._);
     }
-    if (d.family && !/PLACEHOLDER/.test(line)) line += ' (PLACEHOLDER)';
     line = fillText(voiced(id, line));
     say(false, line);
     Save.touch();
@@ -300,7 +295,6 @@ const DINE_TALK = {
     clementine: ['Darling. A table for two. How chic. Try the dessert, I insist.'],
     cuke: ["I already had breakfast. At 5. This is my second breakfast. It's 'lunch' to you!"],
     sully: ["Kid, pull up a chair. The chowdah here's almost as good as back home. Almost."],
-    david: ['Honey, sit. The lighting in here is so flattering. We look incredible eating soup.'],
     ginger: ["Lunch break! Mac's chairs are solid. I checked. Old habit."],
     brulee: ["Just one little dessert, I told myself. It is my third. Please do not tell Mac. He knows."],
     joe: ["I'm trying to write about the sandwich before I finish it. Going to be a very short poem."],

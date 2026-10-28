@@ -402,7 +402,7 @@ function tmPick(v) { return Array.isArray(v) ? rpick(v) : v || null; }
 function tmFill(line, vars) { return line ? String(line).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m)) : line; }
 function tmHourKey() { const h = Clock.hourF(); return h >= 4 && h < 8 ? 'dawn' : h >= 8 && h < 12 ? 'morning' : h >= 12 && h < 17 ? 'afternoon' : h >= 17 && h < 21 ? 'evening' : 'late'; }
 function tmName(id) { return (NPC_DEFS[id] && NPC_DEFS[id].name) || id; }
-const TM_PEOPLE = new Set(NEIGHBORS.concat(['joe', 'david']));
+const TM_PEOPLE = new Set(NEIGHBORS.concat(['joe']));
 /* whoever else is around (in a room: everyone in it; outside: within ten tiles) */
 function tmNearby(n) {
     if (!n || !G.area || typeof NPCs === 'undefined') return [];
@@ -1509,7 +1509,6 @@ const TM_ABOUT = {
     },
     clementine: {
         any: ["{who} is over there. Not bad today. I'd change the shoes. Don't tell them.", "I've been watching {who}'s look evolve. It's a journey. They're not there yet. They're closer."],
-        david: "David's here. On skates. Of course. He does a little spin every time he sees me. I do a little hair flip. We're at war. Lovingly.",
         coco: "Coco's here. Her bow is crooked today. I'm not going to tell her. That's a lie. I'm going to tell her right now.",
         cuke: "Cuke's over there. Head-to-toe green. Again. It's not a look, it's a species.",
         sully: "Sully's here. Beige shirt. Beige shirt. Beige shirt. One day I'll get him into a scarf. One day.",
@@ -1540,7 +1539,6 @@ const TM_ABOUT = {
         cuke: "Cuke's here. Last week he asked for a slide from his roof to the orchard. I said no. He asked for a smaller slide. Still no.",
         maki: "Maki's nearby. He wants his floor leveled again. I'm bringing the level. And a snack. It's become a whole thing.",
         clementine: "Clementine's over there. She wants a more orange roof. Again. I've run out of oranges. I'm mixing new ones.",
-        david: "David's here! He still wants a disco ball on his tent. Tents don't have chimneys, David. He says 'yet.'",
         mac: "Mac's here. He asked me for a pantry 'the size of a pantry, but bigger.' I'm still working out what that means.",
         brulee: "Brulee's around. He wants a skylight in the museum. I'm sketching it. Don't tell him. I want to see his face. He'll cry caramel.",
     },

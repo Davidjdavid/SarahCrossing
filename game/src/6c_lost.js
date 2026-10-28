@@ -4,9 +4,9 @@
    else's house. The owner asks around, other neighbors drop hints, the island board posts a notice. Bring it back
    for friendship and a thank-you. If nobody finds it in three days, the owner finds it in their other pocket. */
 const LOST_THINGS = [
-    ['wallet', 'wallet', ['sully', 'david', 'basil', 'mac', 'kai']],
+    ['wallet', 'wallet', ['sully', 'basil', 'mac', 'kai']],
     ['keys', 'keys', ['cece', 'ginger', 'joe', 'maki', 'clementine']],
-    ['handheld', 'handheld game', ['kai', 'chili', 'cuke', 'david', 'coco']],
+    ['handheld', 'handheld game', ['kai', 'chili', 'cuke', 'coco']],
     ['notebook', 'poem notebook', ['joe']],
     ['diary', 'diary', ['coco']],
     ['glasses', 'reading glasses', ['maki', 'brulee', 'sully']],
@@ -94,7 +94,7 @@ function lostDaily(day, force) {
     const r = mulberry(hash32(S.seed + ':lost:' + day));
     if (!force && (day - (S.startDay || day) < 2 || day - (L.last || 0) < 2 || r() > 0.45)) return;
     const pool = [];
-    for (const [kind, what, owners] of LOST_THINGS) for (const o of owners) if (NPC_DEFS[o] && !NPC_DEFS[o].visitor && rel(o).met && (!force || !force.owner || force.owner === o)) pool.push([o, kind]);
+    for (const [kind, what, owners] of LOST_THINGS) for (const o of owners) if (NPC_DEFS[o] && rel(o).met && (!force || !force.owner || force.owner === o)) pool.push([o, kind]);
     if (!pool.length) return;
     let [owner, kind] = rpick(pool, r);
     if (force && force.kind) { kind = force.kind; owner = force.owner || owner; }

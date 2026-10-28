@@ -176,7 +176,6 @@ function boardTodayLines() {
     const w = { sunny: 'sunny', cloudy: 'cloudy', rain: 'rainy', snow: 'snowy' }[G.weather];
     lines.push(`Today is ${Clock.dateLine()}. It will be ${w}.`);
     lines.push(`Fortune's hot item: ${itemName(st.hot)}. She pays double for it.`);
-    for (const vis of visitorsToday()) lines.push(`Boat schedule: ${visitNote(vis)}`);
     for (const v of vacationEvents(Clock.dayNum())) lines.push(`${v.name}. ${v.note}`);
     const req = typeof karaokeRequest === 'function' && karaokeRequest();
     if (req) lines.push(`Club Wasabi: tonight's karaoke request is "${req[0]}" by Joe. The crowd tips extra for it.`);

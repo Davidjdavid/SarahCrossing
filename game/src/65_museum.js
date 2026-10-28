@@ -162,11 +162,39 @@ function artWallSprite(p) {
     s.outline('#2d2230');
     return s;
 }
+/* a painting stands on a table in a little frame or on an easel on the floor as well as hanging (David, 28 October:
+   "pictures on a table, on the floor or on the wall"): each way its own piece (<id>_stand, <id>_easel), the same painting,
+   which goes back to the pocket or storage as itself (artBase) */
+const ART_AS = [['', 'On the wall'], ['_stand', 'On a table'], ['_easel', 'On an easel']];
+function artBase(id) { const m = /^(.*)_(stand|easel)$/.exec(id || ''); return m && ITEMS[m[1]] && ITEMS[m[1]].art ? m[1] : id; }
+/* (the painting's own picture, smaller: in a frame standing on its foot, or up on an easel's three legs) */
+function artStandCanvas(wall, easel) {
+    const c = document.createElement('canvas'), x = c.getContext('2d');
+    c.width = easel ? 22 : 18; c.height = easel ? 30 : 16;
+    x.imageSmoothingEnabled = false;
+    if (easel) {
+        x.fillStyle = '#6a4a2e';
+        for (let i = 0; i < 26; i++) { x.fillRect(Math.round(4 + i * 0.2), 29 - i, 1, 1); x.fillRect(Math.round(17 - i * 0.2), 29 - i, 1, 1); }
+        x.fillRect(10, 18, 2, 12); x.fillStyle = '#8a6440'; x.fillRect(3, 19, 16, 2);
+        x.drawImage(wall, 1, 1, 30, 24, 2, 4, 18, 15);
+    } else {
+        x.fillStyle = '#3a2c24'; x.fillRect(7, 14, 4, 2);
+        x.drawImage(wall, 1, 1, 30, 24, 1, 1, 16, 13);
+    }
+    return c;
+}
 function registerArt(p) {
-    const s = artWallSprite(p);
-    Assets.dyn[p.id] = { c: s.canvas(), w: s.w, h: s.h, ax: 16, ay: 25 };
+    const s = artWallSprite(p), wall = s.canvas();
+    Assets.dyn[p.id] = { c: wall, w: s.w, h: s.h, ax: 16, ay: 25 };
     ITEMS[p.id] = { name: p.name, type: 'art', price: 0, icon: p.id, art: true };
     FURN[p.id] = { id: p.id, name: p.name, w: 2, h: 1, kind: 'wall', price: 0, sets: ['artist'], frame: p.id, art: true };
+    for (const [suf, kind] of [['_stand', 'top'], ['_easel', 'floor']]) {
+        const id = p.id + suf, c = artStandCanvas(wall, kind === 'floor');
+        Assets.dyn[id] = { c, w: c.width, h: c.height, ax: c.width >> 1, ay: c.height - 1 };
+        ITEMS[id] = { name: p.name, type: 'art', price: 0, icon: id, art: true, of: p.id };
+        // (in the new look: the photo frame or the shop's easel, wearing the painting: EnvRoom.model)
+        FURN[id] = { id, name: p.name, w: 1, h: 1, kind, price: 0, sets: ['artist'], frame: id, art: true, artOf: p.id, pic: p.id };
+    }
 }
 function registerAllArt(st) {
     const A = st && st.art;
@@ -174,9 +202,8 @@ function registerAllArt(st) {
     for (const p of Object.values(A.pieces)) registerArt(p);
 }
 /* everyone likes a handmade painting; a few people love them */
-for (const id of ['david', 'clementine', 'coco', 'joe', 'cece', 'ginger', 'mac', 'kai', 'basil', 'maki', 'sully', 'cuke', 'chili', 'wonton'])
+for (const id of ['clementine', 'coco', 'joe', 'cece', 'ginger', 'mac', 'kai', 'basil', 'maki', 'sully', 'cuke', 'chili', 'wonton'])
     if (TALK[id]) TALK[id].likes = (TALK[id].likes || []).concat(['art']);
-if (TALK.david) TALK.david.loves = TALK.david.loves.concat(['art']);
 
 /* ---------------------------------------------------------------- the painting studio */
 const Painter = {

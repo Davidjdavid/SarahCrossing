@@ -101,7 +101,6 @@ const KNOCK = {
     cece: 'A sign: "Baking. Or crying. Possibly both. Come back later!"',
     clementine: 'A sign: "Out being fabulous. Orange you glad you stopped by?"',
     cuke: 'Cuke\'s note reads: "OUT JOGGING! LOOK FOR THE WAVING CUCUMBER!"',
-    david: 'The door is painted like a rainbow. A sign says: "NO SHOES. SKATES OK."',
     joe: 'A note on the door: "Out writing. Or napping. Probably napping. - Joe (Poet)"',
     sully: 'A sign on the door: "Knock loud. I got the radio on. - Sully"',
     ginger: 'A sign on the door: "Out building something. Probably a porch. - G."',

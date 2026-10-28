@@ -263,7 +263,7 @@ async function birthdayParty() {
     S.flags['bday' + year] = true;
     G.busy++;
     const p = G.player;
-    const who = ['cece', 'david', 'coco', 'kai', 'chili', 'cuke'].map(id => NPCs.get(id)).filter(Boolean);
+    const who = ['cece', 'clementine', 'coco', 'kai', 'chili', 'cuke'].map(id => NPCs.get(id)).filter(Boolean);
     const spots = [[-26, -8], [26, -8], [-20, 14], [20, 14], [-34, 4], [34, 4]];
     const saved = who.map(n => ({ n, area: n.area, x: n.x, y: n.y, sleeping: n.sleeping, key: n.spotKey }));
     who.forEach((n, i) => { n.area = G.area.id; n.sleeping = false; n.x = p.x + spots[i][0]; n.y = p.y + spots[i][1]; n.talking = true; n.flip = n.x > p.x; });
@@ -275,7 +275,7 @@ async function birthdayParty() {
     confetti(p.x, p.y - 20, 80);
     await UI.say('everyone', 'SURPRISE! HAPPY BIRTHDAY, SARAH!', { keep: true });
     await UI.say('cece', "I made you a birthday cheesecake! It didn't crack! Well. It cracked a little. I fixed it. Sorry!", { keep: true });
-    await UI.say('david', "Happy birthday, sister! You're a year more iconic. Here, a crown. Obviously.", { keep: true });
+    await UI.say('clementine', "Happy birthday, darling. A crown. You've always worn one, now everyone can see it.", { keep: true });
     await UI.say('coco', 'I\'ve been keeping the party a secret. Do you know how difficult that is for me? Happy birthday!', { keep: true });
     await UI.say('joe', "I wrote you a birthday poem. It has cake in it. There's cake here, too. I planned the whole experience.", { keep: true });
     await UI.say('joe', BIRTHDAY_POEM.join('\n'), { keep: true, letter: true });
@@ -300,38 +300,6 @@ function confetti(x, y, n) {
             update() { this.x += this.vx; this.y += this.vy; this.vy += 0.06; this.vx *= 0.98; },
             draw(ctx) { ctx.fillStyle = this.c; ctx.globalAlpha = Math.min(1, (this.life - this.t) / 20); ctx.fillRect(Math.round(this.x), Math.round(this.y), 2, 2); ctx.globalAlpha = 1; } });
     }
-}
-
-/* ---------------------------------------------------------------- Jackbox night (whenever Elizabeth is visiting: 9 PM to midnight, at Sarah's) */
-async function jackboxNight() {
-    const key = 'jb' + Clock.dayNum();
-    if (S.flags[key] || !visitorsToday().includes('elizabeth') || !hourIn(Clock.hourF(), 21, 24) || !S.npcs.elizabeth || !S.npcs.elizabeth.met) return;
-    S.flags[key] = true;
-    G.busy++;
-    const a = G.area, p = G.player;
-    const f = a.floor;
-    const spots = openSpots(a, 3, f.x0 + f.w / 2 - 0.5, f.y0 + f.h / 2 - 0.5).sort((q, r) => q[0] - r[0]);
-    const cast = ['elizabeth_down_stand', 'david_down_stand', 'joe_down_stand'].map((fr, i) =>
-        a.add({ kind: 'guest', frame: fr, x: (spots[i][0] + 0.5) * TILE, y: (spots[i][1] + 1) * TILE - 2 }));
-    faceToward(p, cast[1]);
-    await waitFrames(20);
-    await UI.say('elizabeth', 'JACKBOX NIGHT! Phones out. Controllers out. Friendships... at risk.', { keep: true });
-    await UI.say('david', "I'm going to win. I've already won. I won in the car.", { keep: true });
-    await UI.say('joe', "I answered every prompt with a poem. 'My cat is fat. She sat on my hat.' It works for everything.", { keep: true });
-    await UI.say('elizabeth', 'Joe. The prompt was "draw a horse."', { keep: true });
-    await UI.say('joe', '...I drew a hat.', { keep: true });
-    await UI.say(null, 'Three rounds later...', { keep: true });
-    await UI.say('everyone', 'DAVID WON. OBVIOUSLY.', { keep: true });
-    await UI.say('david', 'Thank you, thank you. I would like to thank my rainbow trail and nobody else.', { keep: true });
-    if (!S.flags.jbTrophy) {
-        S.flags.jbTrophy = true;
-        receive('jackbox_trophy', 1);
-        await UI.say('elizabeth', 'Here. David insists everyone gets a trophy that says HE won. Same time next visit.', { keep: true });
-    }
-    addPts('david', 4); addPts('joe', 4);
-    UI.hideDialog();
-    for (const e of cast) a.remove(e);
-    G.busy--;
 }
 
 /* ---------------------------------------------------------------- night sky: shooting stars + fireworks */
@@ -415,7 +383,6 @@ Bus.on('enter', async where => {
                 'Tip: open the phone and tap Decorate to move furniture around. Furniture you buy is delivered here.']);
             G.busy--;
         }
-        await jackboxNight();
     }
 });
 

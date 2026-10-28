@@ -21,8 +21,6 @@ const NPC_DEFS = {
              fav: { orchard: 3, bridge: 2, beach_far: 2, river: 2, meadow: 2, in_shop: 0.8, mountain: 2, farm: 2, eastmeadow: 1.5, forest: 1, campsite: 1 } },
     sully: { name: 'Sully', sprite: 'sully', color: '#8a5a2b', voice: 240, wave: 'square', house: 'h_sully', h: 18, wake: 8, bed: 24.5,
              fav: { bench_w: 2, plaza: 2, pond: 2, beach_w: 1.5, arcadefront: 2, harbor: 2, boardwalk: 1.5, bench_boardwalk: 1 }, work: [['studio', 9.5, 13], ['studio', 14.5, 18]] },
-    david: { name: 'David', human: 'david', color: '#e0559a', voice: 410, wave: 'triangle', h: 24, visitor: true, skates: true,
-             fav: { plaza: 3, boutiquefront: 3, pier: 2, beach: 2, arcadefront: 2, in_boutique: 1.5, in_arcade: 1.5, waterfall: 1, statue: 3, salonfront: 2, boardwalk: 2 }, club: 0.95 },
     ginger: { name: 'Ginger', sprite: 'ginger', color: '#c0773a', voice: 430, wave: 'square', house: 'h_ginger', h: 18, wake: 7, bed: 23.5,
              fav: { farm: 3, forest: 2, plaza: 1.5, board: 1, bench_e: 1, mountain: 1, builderfront: 1, in_shop: 1, in_restaurant: 1, goatpen: 1.5, displaysfront: 1.5, bench_farm: 1 }, work: [['builder', 8.4, 12], ['builder', 13, 17]] },
     brulee: { name: 'Brulee', sprite: 'brulee', color: '#c9822e', voice: 500, wave: 'sine', house: 'h_brulee', h: 16, wake: 8, bed: 24.25,
@@ -37,19 +35,15 @@ const NPC_DEFS = {
     wasabi: { name: 'DJ Wasabi', sprite: 'wasabi', color: '#7aa832', voice: 350, wave: 'square', h: 15, dj: true },
     joe:   { name: 'Joe', human: 'joe', color: '#b8862d', voice: 260, wave: 'sine', house: 'h_joe', h: 24, wake: 6.5, bed: 26,
              fav: { bench_e: 3, pond: 2, plaza: 2, garden: 3, lookout: 1, beach: 1, in_studio: 0.8, in_shop: 0.5, waterfall: 1, forest: 1, bench_statue: 1, bonfire: 1.5, oldtree: 1 }, club: 0.3, work: [['pier_end', 18, 19.6]] },
-    james: { name: 'James', human: 'james', color: '#3b8254', voice: 280, wave: 'triangle', h: 24, visitor: true, family: true,
-             fav: { beach_e: 4, beach: 2, plaza: 2, pier: 2, arcadefront: 1, meadow: 1, bonfire: 2, harbor: 1 } },
-    john:  { name: 'John', human: 'john', color: '#22305a', voice: 250, wave: 'triangle', h: 24, visitor: true, family: true,
-             fav: { bench_w: 3, board: 2, shopfront: 2, pond: 2, plaza: 2, lookout: 1, statue: 1, oldtree: 1 } },
-    elizabeth: { name: 'Elizabeth', human: 'elizabeth', color: '#3a5ca3', voice: 480, wave: 'sine', h: 24, visitor: true, family: true,
-             fav: { plaza: 3, boutiquefront: 2, garden: 2, arcadefront: 2, beach: 1, spring: 1, salonfront: 2, boardwalk: 1 } },
+    /* Sarah's family: on the island only while one of them is playing (13_online.js), never as neighbors (David, 29
+       October): their names, looks and voices are kept for that */
+    david: { name: 'David', human: 'david', color: '#e0559a', voice: 410, wave: 'triangle', h: 24, online: true, skates: true },
+    james: { name: 'James', human: 'james', color: '#3b8254', voice: 280, wave: 'triangle', h: 24, online: true },
+    john:  { name: 'John', human: 'john', color: '#22305a', voice: 250, wave: 'triangle', h: 24, online: true },
+    elizabeth: { name: 'Elizabeth', human: 'elizabeth', color: '#3a5ca3', voice: 480, wave: 'sine', h: 24, online: true },
 };
 /* the food neighbors, in the order the Friends app lists them */
 const NEIGHBORS = ['maki', 'kai', 'basil', 'wonton', 'chili', 'coco', 'cece', 'clementine', 'cuke', 'sully', 'ginger', 'brulee', 'mac'];
-const HUMANS = ['joe', 'david', 'james', 'john', 'elizabeth'];
-const SIBLINGS = ['james', 'john', 'elizabeth'];
-/* people who don't live here: they come over on the boat now and then and camp for a night or two */
-const VISITORS = ['david', 'james', 'john', 'elizabeth'];
 const CLUB_SPOTS = [[4.5, 7.3], [10.6, 7.6], [6.4, 8.8], [8.6, 6.6], [5.6, 5.9], [9.8, 5.7], [7.4, 8.3], [3.6, 8.9]];
 
 /* island hours as one run from 5 AM (5) to 5 AM the next morning (29) */
@@ -122,7 +116,6 @@ function makePlan(id, day) {
     let [wake, bed] = townWake(d.wake + jit(), d.bed + jit(), id);   // (the Town Hall's ordinance and Residents can move them: 6zg_townhall.js)
     const segs = [];
     if (d.dj) { segs.push({ a: 5, b: 29, spot: 'club' }); return { day, wake: 5, bed: 29, segs }; }
-    if (d.visitor) return visitorPlan(id, day, r);
     if (d.spring) { segs.push({ a: 5, b: 29, spot: 'spring' }); return { day, wake, bed, segs }; }
     if (d.shop) { segs.push({ a: d.wake, b: d.bed, spot: d.shop === true ? 'shop' : d.shop }); return { day, wake: d.wake, bed: d.bed, segs }; }
     if (d.early) {
@@ -214,7 +207,7 @@ function makePlan(id, day) {
    working at noon goes home for lunch, some days to Mac's (when it's open), now and then they skip it; anything planned
    that day (the rope, a storyline, an invitation, an outing) comes first */
 function lunchOverride(id, day, d, work) {
-    if (d.goat || d.dj || d.shop || d.spring || d.visitor || !d.house) return null;
+    if (d.goat || d.dj || d.shop || d.spring || !d.house) return null;
     const r = mulberry(hash32(S.seed + ':lunch:' + id + ':' + day)), x = r(), a = 11.75 + r() * 0.75, b = a + 0.6 + r() * 0.3;
     if ((work || []).some(w => w.a < b && w.b > a)) return null;
     if (x < 0.6) return [['home', a, b]];
@@ -242,7 +235,7 @@ function farmOverride(id, day) {
 /* and the neighbors go and buy it: some mornings, after the delivery, a neighbor stops at Fortune's and walks home with a
    tote of groceries (about one in four a day; never in the middle of work) */
 function shopOverride(id, day, d, work) {
-    if (id === FARMER || d.goat || d.dj || d.shop || d.spring || d.visitor || !d.house) return null;
+    if (id === FARMER || d.goat || d.dj || d.shop || d.spring || !d.house) return null;
     const r = mulberry(hash32(S.seed + ':shop:' + id + ':' + day));
     if (r() > 0.25) return null;
     const a = 10.7 + r() * 0.9, b = a + 0.35 + r() * 0.2, c = b + 0.45;
@@ -276,124 +269,9 @@ function friendVisits(day) {
     return (c[key] = out);
 }
 function visitOverride(id, day) { const v = friendVisits(day)[id]; return v ? [v] : null; }
-/* Visitors don't live here: once in a while one of them comes over on the boat and stays a day, or camps a night or
-   two in a tent at the campsite. Every visit is worked out from the island's seed, so it's the same whenever you look. */
-const VISIT_MAX_DAYS = 3;
-function visitStart(id, day) {
-    if (!S || !S.flags || !S.flags.introDone) return null;
-    const ov = (visitStart.forced || {})[id + ':' + day];
-    if (ov !== undefined) return ov;
-    const start = S.startDay || day;
-    const first = start + 3 + (hash32(S.seed + ':firstsib') % 4);      // somebody drops by in the first week
-    const firstWho = VISITORS[hash32(S.seed + ':firstwho') % VISITORS.length];
-    const r = mulberry(hash32(S.seed + ':visit:' + id + ':' + day));
-    let go = false;
-    if (day === first) go = id === firstWho;
-    else if (day > first) go = r() < 0.024;
-    else r();
-    if (!go) return null;
-    const days = 1 + Math.floor(r() * VISIT_MAX_DAYS);
-    return { who: id, day, days, arrive: 11 + r() * 3, leave: id === 'elizabeth' ? 23.5 + r() * 1.5 : 18.5 + r() * 3.5 };
-}
-/* the visit someone is on today, if any: { who, day (first day), days, arrive, leave, first, last, tent } */
-function visitOf(id, day) {
-    const c = visitOf.cache || (visitOf.cache = {});
-    const key = S.seed + ':' + id + ':' + day;
-    if (c[key] !== undefined) return c[key];
-    let out = null;
-    for (let d0 = day - VISIT_MAX_DAYS + 1; d0 <= day && !out; d0++) {
-        const v = visitStart(id, d0);
-        if (v && d0 + v.days - 1 >= day) out = Object.assign({}, v, { first: d0 === day, last: d0 + v.days - 1 === day });
-    }
-    c[key] = out;
-    return out;
-}
-/* everyone visiting today (three tents: when they're all taken, the next visitor comes another time) */
-function visitorsToday(day) {
-    day = day == null ? Clock.dayNum() : day;
-    return VISITORS.filter(id => tentOf(id, day) != null);
-}
-function visitingToday(day) { return visitorsToday(day)[0] || null; }
-/* which tent a visitor sleeps in: picked on the day they arrive (whoever got here first keeps theirs), kept all visit */
-function tentOf(id, day) {
-    day = day == null ? Clock.dayNum() : day;
-    const v = visitOf(id, day);
-    if (!v) return null;
-    const c = tentOf.cache || (tentOf.cache = {});
-    const key = S.seed + ':' + id + ':' + v.day;
-    if (c[key] !== undefined) return c[key];
-    c[key] = null;                                  // (guards against going round in circles)
-    const d0 = v.day, taken = new Set();
-    const others = VISITORS.filter(o => o !== id).map(o => [o, visitOf(o, d0)]).filter(([o, w]) => w && (w.day < d0 || (w.day === d0 && VISITORS.indexOf(o) < VISITORS.indexOf(id))));
-    for (const [o] of others) { const t = tentOf(o, d0); if (t != null) taken.add(t); }
-    const pref = VISITORS.indexOf(id) % 3;
-    const t = !taken.has(pref) ? pref : [0, 1, 2].find(k => !taken.has(k));
-    c[key] = t == null ? null : t;
-    return c[key];
-}
-function tentProp(i) { return (W0.props || []).filter(p => p.kind === 'tent').find(p => (p.tent || 0) === i) || null; }
-function tentDoor(i) { const t = tentProp(i); return t ? [t.x + 1, t.y + (W0.tent ? W0.tent.h : 2)] : W0.boat; }
-function visitorPlan(id, day, r) {
-    const v = visitOf(id, day), tent = tentOf(id, day);
-    if (!v || tent == null) return { day, wake: 0, bed: 0, segs: [], away: true };
-    const d = NPC_DEFS[id];
-    const segs = [];
-    // arriving: off the boat at the end of the pier. Staying over: out of the tent in the morning
-    let t;
-    if (v.first) { segs.push({ a: v.arrive, b: v.arrive + 0.4, spot: 'pier' }); t = v.arrive + 0.4; }
-    else { t = 9.5 + r() * 1.5; segs.push({ a: t, b: t + 0.5, spot: 'campsite' }); t += 0.5; }
-    const end = v.last ? v.leave : 25 + r() * 1.2;                  // the last evening: back to the boat; otherwise, bed
-    const pool = ['plaza', 'plaza_w', 'plaza_e', 'bench_w', 'bench_e', 'board', 'shopfront', 'boutiquefront', 'arcadefront', 'studiofront', 'garden',
-        'beach_w', 'beach', 'beach_e', 'beach_far', 'pond', 'river', 'orchard', 'spring', 'lookout', 'meadow', 'bridge', 'clubfront', 'statue',
-        'boardwalk', 'harbor', 'salonfront', 'displaysfront', 'oldtree', 'forest', 'waterfall', 'farm',
-        'in_shop', 'in_boutique', 'in_studio', 'in_arcade', 'in_museum', 'in_restaurant', 'in_salon'];
-    let prev = segs[segs.length - 1].spot;
-    const clubNight = d.club && r() < d.club;
-    while (t < end - 0.9) {
-        const band = bandOf(t);
-        let spot, len;
-        if (band === 'night' && clubNight && t >= 21.5) { spot = 'club'; len = Math.min(2.5, end - 0.6 - t); }
-        else if (!v.last && t >= 20.5 && prev !== 'bonfire' && prev !== 'campsite' && r() < 0.5) { spot = r() < 0.5 ? 'bonfire' : 'campsite'; len = 1 + r(); }
-        else {
-            const ok = openIndoor(Object.fromEntries(pool.map(k => [k, 1])), t, d);
-            const pt = d.goat ? null : spotTile(id, prev);
-            let wts = pool.filter(k => k !== prev && ok[k] && !(band === 'night' && WILD_SPOTS.includes(k))).map(k => [k, 1 + ((d.fav || {})[k] || 0)]);
-            const far = wts.filter(([k]) => { if (k.startsWith('in_')) return true; const q = spotTile(id, k); return !pt || !q || Math.hypot(q[0] - pt[0], q[1] - pt[1]) >= NEAR_TILES; });
-            if (far.length) wts = far;
-            spot = weighted(wts, r);
-            len = spot.startsWith('in_') ? 0.4 + r() * 0.5 : 0.8 + r() * 1.2;
-        }
-        len = Math.min(len, end - 0.5 - t);
-        if (len < 0.2) break;
-        segs.push({ a: t, b: t + len, spot });
-        prev = spot; t += len;
-    }
-    // the day ends at the boat (going home) or at the campsite (turning in)
-    segs.push({ a: t, b: end, spot: v.last ? 'pier' : 'campsite' });
-    const o = Drama.override(id, day);
-    if (o) for (const [spot, a, b] of o) segs.push({ a, b, spot });
-    return { day, wake: segs[0].a, bed: end, segs: segs.filter(s => s.b > s.a).sort((x, y) => x.a - y.a), visit: true, tent,
-        wakeAt: v.first ? 'boat' : 'tent', sleepAt: v.last ? 'boat' : 'tent', leavesDay: v.day + v.days - 1 };
-}
-/* "David is visiting: camping till Sunday" */
-function visitNote(id) {
-    const v = visitOf(id, Clock.dayNum()), nm = NPC_DEFS[id].name;
-    if (!v) return `${nm} visits now and then.`;
-    const endDay = v.day + v.days - 1, today = Clock.dayNum();
-    if (endDay === today) return v.first ? `${nm} is over for the day. The boat back is this evening.` : `${nm} heads home on the boat this evening.`;
-    const wd = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(endDay * 86400e3).getUTCDay()];
-    return `${nm} is camping at the campsite until ${endDay - today === 1 ? 'tomorrow' : wd}.`;
-}
-/* where a visitor comes from in the morning / goes at night: the boat, or their tent */
-function visitorDoor(id, which) {
-    const p = Plans.get(id);
-    const at = which === 'wake' ? p.wakeAt : p.sleepAt;
-    return at === 'tent' && p.tent != null ? tentDoor(p.tent) : W0.boat;
-}
-/* where someone comes out of in the morning / goes into at night: their door, a visitor's boat or tent, or the boat for a
-   neighbor off on vacation or coming back from one (null: no door, they just appear) */
+/* where someone comes out of in the morning / goes into at night: their door, or the boat for a neighbor off on vacation
+   or coming back from one (null: no door, they just appear) */
 function npcDoor(n, which) {
-    if (n.def.visitor) return visitorDoor(n.id, which);
     if ((which === 'wake' ? Plans.get(n.id).wakeAt : Plans.get(n.id).sleepAt) === 'boat') return W0.boat;
     return n.def.house ? doorTileOf(n.def.house) : null;
 }
@@ -416,18 +294,13 @@ function resolveSpot(n, spot) {
     if (spot === 'home' && d.goat) spot = 'goatpen';
     if (spot === 'goatpen') { const g = sp.goatpen; return { area: 'island', ...xy(tpx(g.x, g.y)), anchor: [g.x, g.y], r: d.goat ? 2 : 1 }; }
     if (spot === 'bonfire') { const bs = benchSpot(n, spot); if (bs) return bs; }
-    if (spot === 'campsite' && d.visitor) {
-        // at their own tent, just outside the flap
-        const pl = Plans.get(n.id), [tx, ty] = pl.tent != null ? tentDoor(pl.tent) : [sp.campsite.x, sp.campsite.y];
-        return { area: 'island', ...xy(tpx(tx, ty + 1)), anchor: [tx, ty + 1], r: 1 };
-    }
     if (spot === 'home' && d.house && ROOMS[d.house]) return roomSpot(d.house, 'home');
     if (spot.startsWith('in_') && ROOMS[spot.slice(3)]) return roomSpot(spot.slice(3), 'guest', n);
     if (spot.startsWith('bench')) { const bs = benchSpot(n, spot); if (bs) return bs; }
     if (spot === 'rope_a' || spot === 'rope_b') return ropeSpot(spot.slice(5));
     if (ROOMS[spot] && ROOMS[spot].staff === n.id) return roomSpot(spot, 'staff');
     if (spot === 'club') {
-        const i = Math.max(0, ['chili', 'coco', 'clementine', 'david', 'joe', 'elizabeth', 'sully', 'kai', 'james', 'john'].indexOf(n.id));
+        const i = Math.max(0, ['chili', 'coco', 'clementine', 'joe', 'sully', 'kai', 'maki', 'brulee'].indexOf(n.id));
         const [x, y] = d.dj ? [7.5, 3.2] : CLUB_SPOTS[i % CLUB_SPOTS.length];
         return { area: 'club', x: x * TILE, y: y * TILE, fixed: !!d.dj, anchor: [Math.floor(x), Math.floor(y)], r: 1, dancer: !d.dj };
     }
@@ -457,7 +330,7 @@ const NPCs = {
     list: [],
     init() {
         Plans.reset();
-        this.list = Object.keys(NPC_DEFS).map(id => {
+        this.list = Object.keys(NPC_DEFS).filter(id => !NPC_DEFS[id].online).map(id => {
             const d = NPC_DEFS[id];
             const n = { npc: true, id, def: d, x: 0, y: 0, dir: 'down', flip: false, area: null, path: null,
                 t: R() * 200, hop: 0, moving: false, anim: 0, emote: null, emoteT: 0, h: d.h, talking: false, sleeping: true, spotKey: null };
@@ -536,7 +409,7 @@ function moveTo(n, want, force) {
     if (want.sleep) {
         const door = visible && !force && n.area === 'island' ? npcDoor(n, 'sleep') : null;
         if (door) {
-            // walk home and go inside (visitors, and neighbors off on vacation, head to the boat at the end of the pier)
+            // walk home and go inside (neighbors off on vacation head to the boat at the end of the pier)
             const [tx, ty] = door;
             if (walkNpc(n, tx, ty, () => { n.sleeping = true; n.area = null; n.path = null; })) return;
         }
@@ -553,7 +426,7 @@ function moveTo(n, want, force) {
     const [dpx, dpy] = pickSpotPos(n, want);
     const gt = [Math.floor(dpx / TILE), Math.floor((dpy - 2) / TILE)];
     if (n.sleeping) {
-        // waking up: come out of the front door (visitors step off the boat at the end of the pier)
+        // waking up: come out of the front door (back from a vacation: off the boat at the end of the pier)
         const door = want.area === 'island' && here === 'island' ? npcDoor(n, 'wake') : null, [tx, ty] = door || [0, 0];
         if (door && (nearSarah('island', (tx + 0.5) * TILE, ty * TILE) || nearSarah('island', dpx, dpy))) {
             n.area = 'island'; n.sleeping = false;

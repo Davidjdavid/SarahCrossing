@@ -418,7 +418,6 @@ const POT_LOVES = {
     clementine: { color: ['m', 'f'], line: 'Darling. Handmade, just for me. I knew arriving empty-handed was the right decision.' },
     cuke: { color: ['d', 'e'], line: "You MADE this! Thank you! I should've made you something! Can you make a jog? I'll think about it!" },
     sully: { kind: ['mug', 'cup'], line: "A mug! For my coffee! Kid, this is wicked nice. The handle's perfect. I'm proud of ya." },
-    david: { color: ['o'], rainbow: true, line: 'Honey. It SPARKLES. Or it will in my house, because I will light it dramatically.' },
     joe: { kind: ['slug', 'snail', 'frog', 'duck', 'sculpture'], line: "You made this? For me? I'm writing you a poem. We should warn Brulee. This could be a joint exhibition." },
     ginger: { kind: ['dollhouse', 'bighouse'], line: "Handmade! Nice work! I'm going to put it on the workbench. I'll tell my tools to make some room." },
     brulee: { kind: ['vase', 'sculpture'], line: 'A vase! Handmade! This belongs in a museum. Luckily, I know a museum.' },

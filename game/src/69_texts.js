@@ -72,7 +72,6 @@ function whereabouts(id) {
     out.next = next ? { place: placeName(id, next.spot), at: saidTime(id, next.a, 'next'), home: next.spot === 'home' } : null;
     out.bed = p.bed ? saidTime(id, p.bed, 'bed') : null;
     out.wake = roundTime(d.wake || 9);
-    if (d.visitor) out.leaves = saidTime(id, p.bed || 22, 'boat');
     return out;
 }
 /* a neighbor's whole day, laid out (David, 27 October: on the beta site or with the debug tools it's fine to see it; in the
@@ -112,16 +111,14 @@ function textReply(id, kind) {
             : pick(["At the shop! Waffle's Island Displays. Lamps, benches, hedges. The works.", 'Behind the counter, polishing a lamp post. It is very shiny now.']);
     }
     if (w.away) {
-        if (id === 'david') return pick(['Not on the island right now, honey. Tell my statue I said hi.', 'Home this week! Keep my tent warm. Metaphorically.',
-            "Off the island. But I'm there in spirit. And in marble."]);
-        return pick(['Not on the island today! Back home. Miss you! (PLACEHOLDER)', 'Home today, not on the island. Save me a noodle. (PLACEHOLDER)']);
+        // (off on vacation: 6zj_vacations.js)
+        const v = vacationOf(id, Clock.dayNum()), at = v ? v.place : 'a trip';
+        return pick([`Not on the island! I'm in ${at}. Back soon. Miss you!`, `Greetings from ${at}! Off the island for a few days. Save me a snack.`, `On vacation in ${at}! Look out for my postcard.`]);
     }
     if (w.asleep) return null;
     if (kind === 'hi') {
         const t = TALK[id];
         if (id === 'joe') return pick(['Hi!! I was just thinking about a frog. Only the frog. Why do you ask?', 'Hey you! I am writing a poem. Want to hear it later?', 'Hi! (Joe sends a frog emoji. Then a smiley. Then deletes the smiley. Too late.)']);
-        if (d.family) return pick(['Hey Sarah! (PLACEHOLDER)', 'Hi! What are you up to? (PLACEHOLDER)']);
-        if (id === 'david') return pick(['Sister! I am on your island and I look incredible. Come find me.', 'HI. Did you see my statue today? Go see my statue.']);
         return pick([`Hi, {name}! ${w.now ? `I'm ${w.now}.` : ''}`, 'Hiiii!', t && t.chat ? rpick(t.chat) : 'Hi!']);
     }
     const dest = toWhere(w.now);
@@ -131,11 +128,6 @@ function textReply(id, kind) {
         : pick([`Then ${w.next.place} around ${w.next.at}.`, `After that? ${cap(w.next.place)}, around ${w.next.at}.`, `Around ${w.next.at} I'll be ${w.next.place}.`]))
         : w.bed ? pick([`Then bed around ${w.bed}.`, `Staying put until bedtime. Around ${w.bed}.`]) : '';
     // "where are you?" is just where they are; where they're off to next is only for "where are you headed next?"
-    if (d.visitor) {
-        const v = visitOf(id, Clock.dayNum());
-        const tail = v && !v.last ? pick(['Camping at the campsite tonight!', "I'm in the tent at the campsite tonight."]) : `The boat leaves around ${w.leaves}.`;
-        return `${kind === 'next' ? `${nextBit || nowBit} ${tail}` : nowBit}${d.family ? ' (PLACEHOLDER)' : ''}`;
-    }
     return kind === 'next' ? (nextBit || nowBit) : nowBit;
 }
 /* texting the same thing over and over gets its own answers */
@@ -162,7 +154,7 @@ const TEXT_REPEAT_OWN = {
     maki: ['You asked me that a few minutes ago. I have not moved. I do not move without a reason.'],
     coco: ["Girl, are you checking on me? I love it. I'm still {now}. Don't tell anyone where I am. Tell everyone."],
     cuke: ['STILL {NOW}!!! COME JOG WITH ME!!!'], sully: ['Kid. Same place. Relax. Have a frappe.'],
-    joe: ["Still {now}! You keep texting me. That's nice. That's very nice. I'm smiling at my phone like a weirdo."], david: ['Honey, obsessed with me? Understandable. Still {now}.'],
+    joe: ["Still {now}! You keep texting me. That's nice. That's very nice. I'm smiling at my phone like a weirdo."],
     clementine: ['Darling, persistence is attractive. Up to a point. We are at the point.'], chili: ["Still here. I was going to move, but then you'd have to ask again. I'm doing you a favor."],
     cece: ["Still {now}! Did the first answer go through? I wasn't sure."], kai: ['Bro. Same spot. Chill. The spot is chill too.'],
 };
@@ -171,8 +163,7 @@ function repeatReply(id, kind, rep) {
     if (w.asleep && !d.dj) return null;
     let line;
     const own = TEXT_REPEAT_OWN[id];
-    if (d.family) line = rpick(['Hey Sarah! You already asked! (PLACEHOLDER)', 'Still the same! (PLACEHOLDER)']);
-    else if (own && rep >= 2 && R() < 0.6) line = rpick(own);
+    if (own && rep >= 2 && R() < 0.6) line = rpick(own);
     else line = rpick(TEXT_REPEAT[kind][Math.min(3, rep) - 1]);
     const now = w.now || 'here', next = w.next ? `${cap(w.next.place)} around ${w.next.at}.` : w.bed ? `Bed around ${w.bed}.` : 'Staying put.';
     return line.replace(/\{now\}/g, now).replace(/\{NOW\}/g, now.toUpperCase()).replace(/\{next\}/g, next);
@@ -182,7 +173,7 @@ function textsOf(id) {
     return S.texts[id] || (S.texts[id] = []);
 }
 function textContacts() {
-    const ids = ['joe'].concat(NEIGHBORS, ['fortune', 'floss', 'waffle', 'wasabi'], VISITORS);
+    const ids = ['joe'].concat(NEIGHBORS, ['fortune', 'floss', 'waffle', 'wasabi']);
     return ids.filter(id => NPC_DEFS[id] && rel(id).met).sort((a, b) => {
         const la = textsOf(a).slice(-1)[0], lb = textsOf(b).slice(-1)[0];
         return (lb ? lb.at : 0) - (la ? la.at : 0);

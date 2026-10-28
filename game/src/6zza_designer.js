@@ -479,7 +479,8 @@ const Design = {
     /* every piece of furniture there is, for a room */
     roomCatalog() {
         const out = {};
-        for (const id of Object.keys(FURN)) if (!FURN[id].color && ['floor', 'rug', 'top', 'wall'].includes(FURN[id].kind)) out[id] = 1;
+        // (not Sarah's own paintings: they're hers)
+        for (const id of Object.keys(FURN)) if (!FURN[id].color && !FURN[id].art && ['floor', 'rug', 'top', 'wall'].includes(FURN[id].kind)) out[id] = 1;
         return out;
     },
 

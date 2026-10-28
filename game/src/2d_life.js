@@ -215,7 +215,6 @@ const CHAT_BY = {
     coco: [['Okay, so. Did you hear?', 'Hear what?', "Nothing yet. I'm starting it."], ['I have NEWS.', 'Is it big?', 'It is medium. Medium news.']],
     cuke: [['I jogged six miles!', "It's afternoon.", 'Before breakfast!'], ['Did you drink water today?', 'Some.', 'MORE.']],
     sully: [['Wicked nice day, huh?', 'Wicked?', 'Very. It means very, kid.'], ["Ya want a frappe?", "A milkshake?", "A FRAPPE."]],
-    david: [['Honey, love the look.', "I'm a food.", 'An iconic food.'], ['Club tonight. Wear sparkles.', 'I have no sparkles.', "I'll lend you mine."]],
     chili: [['Is it hot out, or is it me?', "It's you.", 'Thought so.']],
     clementine: [['Darling. Orange is back.', 'Did it leave?', 'Never.']],
     kai: [["Surf's up, dude!", "We're on land.", "Mentally, surf's up."]],
@@ -239,8 +238,6 @@ const CHAT_BY_MORE = {
         ['Stretch with me!', 'Okay.', 'Reach for the sky!', "I'm reaching!", 'Higher!']],
     sully: [["Back in Boston, we had REAL snow.", 'We have snow.', 'This is a light dusting, kid.'], ['Ya want a coffee?', 'Sure.', "Good, 'cause I made a pot the size of a car."],
         ["I'm not a pie. I'm a cake.", "Nobody said you're a pie.", '...Good. Good.']],
-    david: [['Honey, the club tonight is going to be ICONIC.', 'Every night is iconic.', 'Tonight is MORE iconic.'], ['Have you met my sister {name}?', 'We all have.', "She's fabulous, right?", 'So fabulous.'],
-        ['Sparkles are a lifestyle.', 'Since when?', 'Since always, darling.']],
     chili: [["I'm a little spicy today.", 'Only today?', '...Okay, always.'], ['Want a hot sauce?', 'How hot?', 'Yes.'],
         ["The arcade's busy today!", 'Who won the claw?', 'Nobody. Nobody ever wins the claw.']],
     clementine: [["Darling, that outfit.", 'Is it good?', 'It is BRAVE.'], ['I made a new pattern.', 'Is it orange?', 'It is citrus-adjacent.'],
@@ -260,9 +257,6 @@ const CHAT_BY_MORE = {
     mac: [["You look hungry.", "I just ate.", "You look hungry AGAIN."], ['Soup of the day is soup.', 'What kind?', 'The good kind.'],
         ["Nobody leaves my restaurant hungry.", 'What if they do?', 'They come back. They always come back.']],
     joe: [['I saw a frog by the pond today.', 'Was it a poem frog?', 'Every frog is a poem frog.']],
-    james: [["Have you seen my sister?", "{name}? She's everywhere.", "That's {name}."], ['This island is so nice.', 'Stay longer!', "Mom says I have to call her."]],
-    john: [["Is there a basketball court?", 'There is a volleyball court.', 'Close enough!'], ["{name} says hi.", 'We know her.', 'Everybody knows her.']],
-    elizabeth: [["I love the flowers here.", '{name} waters them.', "She always loved flowers."], ['Is that a goat?', "It's a goat.", "Nothing else to say?", 'Nothing else to say.']],
 };
 for (const [id, list] of Object.entries(CHAT_BY_MORE)) (CHAT_BY[id] = CHAT_BY[id] || []).push(...list);
 /* the island's favorite topic: {name} and Joe. Very schoolyard. */

@@ -30,7 +30,6 @@ const VAL_LINES = {
     ginger: ['A card! Sturdy fold, straight edges. Built to last. Like a good friendship.'],
     brulee: ['Une carte de Saint-Valentin! I will put it in the museum. In the most important case. Mine.'],
     mac: ["For me? Aw, shucks. You're sweeter than my mac and cheese. Okay, almost."],
-    david: ["Honey! A valentine! I love it. I love YOU. I love me. It's a day of love."],
     joe: ["You made me a card? I... I made you one too. It's at home. It has a frog on it. Can I give it to you later? Don't open it in front of Coco."],
 };
 const NYE_LINES = ["Happy New Year! Ten out of ten countdown. I counted along. I got to four.", 'Happy New Year! This year is going to be the best one. I can feel it in my toppings.',
@@ -54,7 +53,7 @@ function gatherOf(day) {
 function nyeDay(day) { return gatherOf(day) === 'nye'; }
 function gatherOverride(id, day) {
     const g = gatherOf(day), d = NPC_DEFS[id] || {};
-    if (!g || d.goat || d.dj || d.shop || d.spring || d.visitor || d.early) return null;
+    if (!g || d.goat || d.dj || d.shop || d.spring || d.early) return null;
     const [spot, a, b] = GATHER[g];
     return [['party:' + spot, a, b, { late: true }]];
 }

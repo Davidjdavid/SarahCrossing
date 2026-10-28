@@ -60,10 +60,6 @@ const HOUSE_LAYOUT = {
         ['boston_sign', 1, 'wall'], ['chalkboard', 3, 'wall'], ['clock_wall', 6, 'wall'],
         ['bed_simple', 0, 0], ['study_desk', 5, 0], ['coffee_maker', 5, 0], ['globe', 6, 0], ['crimson_chair', 5, 1], ['shelf_book', 0, 3],
         ['plant_monstera', 6, 4]] },
-    david: { wall: 'wall_disco', floor: 'floor_cloud', items: [
-        ['pride_flag', 0, 'wall'], ['disco_ball', 3, 'wall'], ['neon_sign', 5, 'wall'],
-        ['sofa_pink', 0, 0], ['skates_display', 4, 0], ['bed_simple', 5, 0], ['light_floor', 1, 2], ['rainbow_rug', 4, 2], ['cafe_table', 6, 3],
-        ['mirror_lamp', 6, 3], ['goat_bed', 0, 4], ['goat_statue', 6, 4]] },
     joe: { wall: 'wall_cream', floor: 'floor_wood', items: [
         ['framed_poem', 1, 'wall'], ['window_wall', 3, 'wall'], ['framed_poem', 5, 'wall'],
         ['study_desk', 0, 0], ['typewriter', 0, 0], ['sonnet_stack', 1, 0], ['chair_wood', 0, 1], ['shelf_book', 5, 0], ['bed_simple', 5, 2],
@@ -293,7 +289,6 @@ const HOUSE_HELLO = {
     clementine: ['Darling. Welcome. Try not to be jealous.', 'Come in, darling. Everything is orange. If you\'re finding it overwhelming, try being orange.'],
     cuke: ["GOOD MORNING! Oh wait, it's not. Come in anyway!", "Welcome! I've been up since 4! Have some water!"],
     sully: ["Get in heah, kid. Wipe your feet. Make yourself at home.", "C'mon in. Coffee's on. It's always on."],
-    david: ["SISTER! Welcome to the most fabulous house on the island. Mind the goat bed.", 'Come in, come in! Shoes off, skates on.'],
     joe: ["Hi! Come in. Mind the pages by the chair; that's a poem still deciding what order to go in.", "Welcome to my house! It's also my office. And my poetry library. It's one room."],
     ginger: ["Come in, come in! Mind the sawdust. It's decorative.", "Welcome to my house! It's mostly workshop. The bed is the only thing I didn't build. I built it."],
     brulee: ['Entrez! Welcome. Look around. Everything is art if you squint.', 'Bienvenue! My little gallery. My little home. Same thing, really.'],
@@ -684,7 +679,6 @@ const FURN_GIFT = {
     clementine: ["Darling. This is going somewhere very visible. It deserves an audience.", "I'll style it. Come see it styled."],
     cuke: ['I will put it up first thing tomorrow! At 4 AM!', "Oh nice! My house needed this! Come see it! Early!"],
     sully: ["Kid, this is goin' right in the living room. Wicked nice.", "Alright, this is goin' up tonight. Come see it."],
-    david: ["Honey. It's going in the house. Next to the goat bed. It's an honor.", 'Oh, this is going in the collection. The collection is my whole house.'],
     joe: ["I'm putting this by my desk. I want it to see the writing process. Very few people have that privilege. Mostly the goat.", 'This is going right by my desk. My desk is also my bed. Well, near it.'],
     ginger: ["Ooh, this is going in the house. I'll build it a little shelf. I'll build the shelf a little shelf.", 'Nice craftsmanship! Going right in the front room.'],
     brulee: ['I will display it properly. With lighting. And a tiny label.', 'For my home? It will be the centerpiece. Magnifique.'],
@@ -693,7 +687,6 @@ const FURN_GIFT = {
 async function furnitureGift(n, itemId) {
     const id = n.id, d = n.def, t = ITEMS[itemId].type;
     if (d.goat) { await UI.say(null, `The goat sniffs the ${itemName(itemId).toLowerCase()}. It appears to be considering where the grass would go.`, { keep: true }); return; }
-    if (d.visitor) { await UI.say(id, d.family ? "I'll take it home on the boat! It's going to look great. (PLACEHOLDER)" : "Honey, it's coming home with me on the boat. It's going somewhere VERY visible.", { keep: true }); return; }
     if (!d.house || !ROOMS[d.house]) return;
     const r = rel(id);
     if (t === 'wall') r.wall = itemId;

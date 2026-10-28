@@ -409,6 +409,11 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [ ] The game as something played for months: tedious chores, awkward pacing, confusing screens, frustrating
   activities
 
+## David's notes (29 October)
+- [x] John, Elizabeth, David and James are no longer neighbors: they're only in the game when someone plays as them
+  online (no boat visits, no camping, no talk menus, texts or Friends rows for them; the birthday crown comes from
+  Clementine; the campsite's fire is lit Friday and Saturday evenings)
+
 ## David's notes from playing beta (28 October)
 - [x] The lighting at night blown out yellow near the shops (every doorway and jack-o'-lantern was lit like a street
   lamp); a street lamp's light far reaching but gentle close up
@@ -420,22 +425,28 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   four colors; any furniture goes indoors or out (a paint easel outside, a park bench in the house)
 - [x] (for later) More life at night: moths round the lamps, fireflies, and the like (28 October, late: moths at the lit
   lamps near Sarah, fireflies over the grass on warm clear nights)
-- [ ] (for later) The lawn's texture calmer: shapes that don't overlap, with even dark gaps between them, as in the
+- [x] (for later) The lawn's texture calmer: shapes that don't overlap, with even dark gaps between them, as in the
   GameCube Animal Crossing's grass (triangles, circles, squares; green in spring and summer, olive and gold in autumn)
-- [ ] The map redone to look better, with places named on it, so a neighbor's text saying where they are can be found on
+  (29 October: each shape cut along the line halfway to its nearest neighbor, so the gaps are even)
+- [x] The map redone to look better, with places named on it, so a neighbor's text saying where they are can be found on
   it. On beta, David draws the areas on the map himself (these tiles are the campfire, this is the neighborhood, this the
   mountains, the east meadow...), and their names show as labels
-- [ ] Residents at the Town Hall: pick the areas a neighbor likes to spend their free time in (not working or asleep), and
+- [~] Residents at the Town Hall: pick the areas a neighbor likes to spend their free time in (not working or asleep), and
   for each activity whether they do it more often, as usual, or never (chatting with neighbors, the museum, fishing, the
   arcade, eating out, planting flowers...). Anywhere not drawn on the map is a way between places: walking there, a
-  neighbor sometimes stops to use what's along it (a drink at a fountain, a sit on a bench)
+  neighbor sometimes stops to use what's along it (a drink at a fountain, a sit on a bench) (28 October, late: on beta the
+  designer's Neighbors' likes sets each activity, place and drawn area from loves to never, for the game everyone plays;
+  Residents keeps its two favorite places; neighbors with nothing to do sit on a bench nearby. Still to do: activities in
+  Residents itself, and a drink at a fountain along the way)
 - [x] Friendship earned over days: with each neighbor, points only for the first talk of the day, one favor a day if they
   have one, one gift a day, and every other thing that raises friendship once a day; best friends is something worked
   at. Joe still starts at the most and never goes down (28 October, late: `addPts`'s kinds, once a day each)
 - [x] Decorating the house: furniture turned to face any of the four ways (they're models now: a chair facing the table)
   (28 October, late: Turn, or R, while placing or with a piece picked; its footprint turns with it; decorating happens in
   the 3D room in the new look, the piece in hand shown where it would go)
-- [ ] Decorating: pictures on a table, on the floor or on the wall; flowers, fish and most other things set down too
+- [x] Decorating: pictures on a table, on the floor or on the wall; flowers, fish and most other things set down too
+  (29 October: Sarah's paintings hang, stand on a table in a little frame or on an easel; fish, shells and gems go on
+  tables like the food and flowers)
 - [x] (David, 28 October, late) Lights that brighten and dim as Sarah walks: only so many can be lit at once, and they
   switched between lamps four times a second; each now keeps its light and eases in and out
 - [x] (David, 28 October, late) A designer mode on beta: move, turn, add and take away the props, the outdoor furniture and

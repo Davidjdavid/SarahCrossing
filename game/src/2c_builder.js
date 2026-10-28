@@ -173,7 +173,7 @@ function pickNeighborHouse() {
 /* the editor: a live picture of the house on the left, paint and extras on the right */
 const HOUSE_TIPS = { maki: 'dark greens and navy. Nothing fussy', kai: 'ocean blues and sandy colors', basil: 'greens, like fresh herbs',
     chili: 'reds. Hot reds. Only reds', coco: 'pink and chocolate brown', cece: 'soft pinks and buttery yellows', clementine: 'orange. Obviously orange',
-    cuke: 'bright, fresh greens', sully: 'crimson and brick. Very Boston', david: 'rainbow. Or pink. Or purple. Mostly rainbow', joe: 'calm blues and grays',
+    cuke: 'bright, fresh greens', sully: 'crimson and brick. Very Boston', joe: 'calm blues and grays',
     ginger: 'gingerbread browns and brick', brulee: 'caramel, gold and cream', mac: 'cheddar yellow and a nice bowl blue' };
 const ExtEditor = {
     run(id) { return visitorStop('build') ? Promise.resolve(null) : new Promise(res => this.start(id, res)); },
@@ -281,7 +281,7 @@ const HOUSE_TASTE = {
     basil: ['#4a9a52', '#dcf2e6', '#c9dbb8', '#3f8f45', '#5aa844'], chili: ['#c8505a', '#9a2f3a', '#e84a5a', '#b3263a'],
     coco: ['#ff9ec0', '#8a5a3c', '#ffd1ea', '#7a4422'], cece: ['#ffd1ea', '#ff9ec0', '#fff1b8', '#ff8aa8'],
     clementine: ['#f7962d', '#f2b880', '#ffd9c0'], cuke: ['#4a9a52', '#3f8f45', '#dcf2e6', '#c9dbb8', '#5aa844'],
-    sully: ['#9a2f3a', '#b0533c', '#c8505a', '#b3263a'], david: ['rainbow', '#ff9ec0', '#8a5ab8', '#e2d4f7', '#ffd1ea', '#b37cf0'],
+    sully: ['#9a2f3a', '#b0533c', '#c8505a', '#b3263a'],
     joe: ['#2c3e66', '#8a95a8', '#4f86c6', '#d4ebf7'], ginger: ['#7a4422', '#b0533c', '#d98a5a', '#8a5a3c', '#f2b880'],
     brulee: ['#e9b93b', '#fff1b8', '#f2b880', '#caa55f'], mac: ['#fff1b8', '#e9b93b', '#4f86c6', '#ffd84a'],
 };
@@ -295,7 +295,6 @@ const HOUSE_LOVE_LINE = {
     clementine: 'Darling. My house. Finally, it looks like it knows who I am.',
     cuke: 'My house looks AMAZING! I jogged past it six times this morning! At 5 AM!',
     sully: "Kid, my house looks wicked nice. Gonna sit out front till somebody says somethin'.",
-    david: "My house? Honey, it's a MOMENT. The goat is speechless. The goat is always speechless, but still.",
     joe: "Did you redo my house? It's beautiful. I'm writing a poem about it. It's about the door. It's a very good door.",
     ginger: "Ha! Hiring my own crew to redo MY house? Smart. It looks great. I'd know.",
     brulee: 'My house is a masterpiece now. I would put it in the museum, but it will not fit through the door.',

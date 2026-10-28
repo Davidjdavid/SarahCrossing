@@ -4,7 +4,7 @@ const HEARTS = [0, 10, 25, 45, 70, 100];
 const RECIPE_FROM = {
     maki: ['tuna_roll', 'spicy_tuna', 'unagi_don'], kai: ['salmon_poke', 'ahi_poke'], basil: ['pad_thai', 'green_curry', 'mango_sticky', 'tom_yum'],
     wonton: ['dumplings', 'edamame_bowl'], chili: ['chili_crisp', 'mapo_tofu', 'kungpao', 'cuke_salad'], coco: ['truffles', 'choc_cheesecake'],
-    cece: ['cheesecake', 'cherry_cheesecake'], clementine: ['lychee_ice'], cuke: ['stir_fry'], sully: ['lobster_roll', 'chowder'], david: [],
+    cece: ['cheesecake', 'cherry_cheesecake'], clementine: ['lychee_ice'], cuke: ['stir_fry'], sully: ['lobster_roll', 'chowder'],
     ginger: ['gingerbread'], brulee: ['creme_brulee'], mac: ['mac_cheese', 'tomato_soup'],
 };
 function rel(id) {
@@ -52,7 +52,6 @@ async function talkTo(n) {
         else if (id === 'floss') { rel('floss').met = true; await flossTalk(n); }
         else if (id === 'waffle') { rel('waffle').met = true; await waffleTalk(n); }
         else if (id === 'wasabi') await wasabiTalk(n);
-        else if (n.def.family) await familyTalk(n);
         else if (id === 'joe') await joeTalk(n);
         else if (id === 'basil' && n.spotKey === 'cart') await noodleCart(n);
         else if (n.def.newcomer && await newcomerTalk(n)) { /* a neighbor still to come: their story (6zr_seafarer.js) */ }
@@ -343,7 +342,6 @@ async function giftFlow(n) {
         if (bad === 'goat') await UI.say(null, rpick([`The goat sniffs the ${itemName(itemId).toLowerCase()} and backs away. Sarah keeps the ${itemName(itemId).toLowerCase()}.`,
             `The goat considers the ${itemName(itemId).toLowerCase()}. It does not eat it. That's how you know it's a bad idea.`]));
         else if (bad === 'joe') await UI.say('joe', fillItem(rpick(JOE_KEEP_IT), itemId));
-        else if (NPC_DEFS[id].family) await UI.say(id, 'Oh! Thanks, Sarah! ...Actually, you keep this one. (PLACEHOLDER)');
         else await UI.say(id, [voiced(id, badGiftLine(id, itemId, bad)), `(${n.def.name} hands it back.)`]);
         return;
     }
@@ -361,14 +359,12 @@ async function giftFlow(n) {
     } else if (selfPlush) {
         n.emote = 'heart'; n.emoteT = 90;
         await UI.say(id, voiced(id, PLUSH_SELF[id] || "It's ME! A tiny, soft me! I'm putting it where everyone can see it."));
-    } else if (handmade && !NPC_DEFS[id].family) {
+    } else if (handmade) {
         n.emote = tier === 'love' ? 'heart' : 'sparkle'; n.emoteT = 80;
         await UI.say(id, voiced(id, potteryGiftLine(id, tier)));
     } else if (id === 'joe') {
         n.emote = 'heart'; n.emoteT = 90;
         await UI.say('joe', fillItem(rpick(JOE_GIFT), itemId));
-    } else if (NPC_DEFS[id].family) {
-        await UI.say(id, rpick(['Oh! For me? Thanks, Sarah! (PLACEHOLDER)', 'A gift! You shouldn\'t have. But thank you! (PLACEHOLDER)']));
     } else {
         const t = TALK[id];
         const line = { love: t.loveLine, like: t.likeLine, dislike: t.likeLine, neutral: rpick(['Oh! For me? Thank you!', "That's so nice of you. Thanks!", 'Aw, thank you!']) }[tier];
@@ -497,37 +493,6 @@ async function joeKeepsakePoem(n, id) {
     UI.toast(`A special poem for Joe's Collected Works: "${title}"`, 'app_poems');
     S.stats.poems = (S.stats.poems || 0) + 1;
     Save.touch();
-}
-
-/* ---------------------------------------------------------------- family (lines are placeholders for now) */
-async function familyTalk(n) {
-    const id = n.id, f = FAMILY[id], r = rel(id), day = Clock.dayNum();
-    if (!r.met) {
-        r.met = true;
-        r.talkAt = Date.now();
-        await UI.say(id, f.intro, { keep: true });
-        G.player.pose = 'cheer'; G.player.poseT = 30;
-        Sfx.play('fanfare');
-        receive(f.gift, 1);
-        await UI.say(null, `Sarah got ${aOrAn(itemName(f.gift))} ${itemName(f.gift).toLowerCase()}! It went to her pocket. Place it at home with Decorate.`);
-        Save.touch();
-        return;
-    }
-    if (r.talkDay !== day) { r.talkDay = day; const up = addPts(id, 2); heartPop(n); if (up) { await UI.say(id, 'Hey, Sarah!', { keep: true }); UI.hideDialog(); await heartUp(n, up); } }
-    let line = Drama.lineFor(n) || rpick(f.chat);
-    if (id === 'elizabeth' && dayHour() < 24 && !S.flags['jb' + Clock.dayNum()] && R() < 0.6) line = "Jackbox tonight at 9. Your place. I already told David. He's already winning. Somehow.";
-    await UI.say(id, line, { keep: true });
-    for (;;) {
-        const opts = [], acts = [];
-        const add = (label, fn) => { opts.push(label); acts.push(fn); };
-        if (!talkResting(r)) add('Talk', async () => { await justTalk(n, () => rpick(f.chat)); return true; });
-        if (r.giftDay !== day) add('Here, a gift', async () => { await giftFlow(n); return !giftTaken(r); });
-        for (const o of Drama.options(n)) add(o.label, async () => { await Drama.choose(n, o); return true; });
-        if (IslandGames.list(n).length) add("Let's play!", () => IslandGames.offer(n));
-        add('See you!', async () => { await UI.say(id, rpick(['See you!', 'Bye, Sarah!', 'Later!'])); return false; });
-        const k = await UI.ask(id, rpick(['Anyway!', "What's up?", 'So!']), opts, { keep: true });
-        if (!(await acts[k]())) return;
-    }
 }
 
 /* ---------------------------------------------------------------- holidays + birthday lines */

@@ -61,8 +61,10 @@ const EnvRoom = {
         // (a piece in another color is its own piece's model, repainted: colorGeo)
         const n = /^plush_/.test(e.item.id) ? 'folk_' + e.item.id.slice(6) : 'furn_' + (e.def.base || e.item.id);
         if (EnvModels.has(n)) return n;
-        // (a neighbor's photo stands in the photo frame, wearing its own picture)
-        if (/^photo_/.test(e.item.id) && EnvModels.has('furn_photo_frame')) return 'furn_photo_frame';
+        // (a neighbor's photo stands in the photo frame, wearing its own picture; so does one of Sarah's paintings set on a
+        // table, and one on the floor stands on the shop's easel: 65_museum.js)
+        if ((/^photo_/.test(e.item.id) || e.def.artOf && e.def.kind === 'top') && EnvModels.has('furn_photo_frame')) return 'furn_photo_frame';
+        if (e.def.artOf && e.def.kind === 'floor' && EnvModels.has('furn_shop_easel')) return 'furn_shop_easel';
         // (a painting with no model of its own, a neighbor's art for the museum, hangs in the gilt frame, its picture inside)
         return e.def.kind === 'wall' && e.def.art && EnvModels.has('furn_empty_frame') ? 'furn_empty_frame' : null;
     },
@@ -171,10 +173,10 @@ const EnvRoom = {
             const mn = p.material.name || '', face = /_pic(glow)?$/.exec(mn);
             // (the island flag's cloth is the Town Hall's design itself, not its little picture with a pole)
             const fc = face && e.frame === 'f_island_flag' && typeof flagCanvas === 'function' ? flagCanvas(4) : null;
-            const pic = face && (fc ? { c: fc } : P || this.pic(e.frame));
+            const pf = (e.def && e.def.pic) || e.frame, pic = face && (fc ? { c: fc } : P || this.pic(pf));
             if (face && !pic) continue;
             if (face || /_screen$/.test(mn)) this.picUV(p.geometry);
-            const mat = face ? this.picMat(e.frame, pic, !!face[1]) : /_screen$/.test(mn) ? this.screen(e) : p.material;
+            const mat = face ? this.picMat(pf, pic, !!face[1]) : /_screen$/.test(mn) ? this.screen(e) : p.material;
             const geo = e.def && e.def.base && typeof colorGeo === 'function' && !face ? colorGeo(n, p.geometry, e.def) : p.geometry;
             const mesh = new THREE.Mesh(geo, mat);
             mesh.matrixAutoUpdate = false; mesh.matrix.copy(m);

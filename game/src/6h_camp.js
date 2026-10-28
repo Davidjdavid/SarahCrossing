@@ -1,6 +1,6 @@
 /* ---- 6h_camp.js ---- */
-/* David's statue (and its plaque), the bonfire on the beach, the campsite up in the forest where visitors pitch their
-   tents, and the old giants of the forest that no axe will ever touch. */
+/* David's statue (and its plaque), the bonfire on the beach, the campsite up in the forest with its tents, and the old
+   giants of the forest that no axe will ever touch. */
 
 /* ---------------------------------------------------------------- David's statue */
 const PLAQUE_LINES = ['David rulz okay????'];
@@ -9,13 +9,6 @@ async function readPlaque() {
     await UI.say('plaque', PLAQUE_LINES.map(l => l.replace('{island}', S.islandName || 'this island')).join('\n'), { letter: true });
 }
 async function davidStatue() {
-    const dv = NPCs.get('david');
-    const near = dv && !dv.sleeping && dv.area === G.area.id && Math.hypot(dv.x - G.player.x, dv.y - G.player.y) < 90;
-    if (near) {
-        await UI.say('david', rpick(["Honey. Look at him. Look at ME. The sculptor got my good side. Both of my sides are my good side.",
-            'I come here every visit. For the view. The view is me.', "They wanted me to hold still for the sculptor. I did not hold still. Somehow it still worked."]));
-        return;
-    }
     await UI.say(null, rpick([
         'A statue of David mid-pose: sunglasses on, one finger pointed at the sky, roller skates polished to a shine. Even in marble, he is serving.',
         "David's statue. The pose is very cool. The plaque in front explains exactly how cool.",
@@ -26,7 +19,9 @@ async function davidStatue() {
 
 /* ---------------------------------------------------------------- fire (the bonfire, and the fire ring at the campsite) */
 function bonfireLit() { return hourIn(Clock.hourF(), 18, 27) && G.weather !== 'rain'; }
-function campfireLit() { return hourIn(Clock.hourF(), 18, 26.5) && visitorsToday().length > 0 && G.weather !== 'rain'; }
+/* (the campsite's fire ring: Friday and Saturday evenings) */
+function campfireNight() { const wd = Clock.dayDate().getDay(); return wd === 5 || wd === 6; }
+function campfireLit() { return hourIn(Clock.hourF(), 18, 26.5) && campfireNight() && G.weather !== 'rain'; }
 function drawFlames(ctx, x, y, big) {
     const t = G.t;
     const k = big ? 1 : 0.62;
@@ -100,7 +95,7 @@ async function useBonfire() {
 }
 async function useCampfire() {
     if (!campfireLit()) {
-        await UI.say(null, visitorsToday().length ? 'A ring of stones with a fire laid and ready. Somebody will light it after dinner.' : 'A ring of stones for a campfire. It gets lit when somebody is camping.');
+        await UI.say(null, campfireNight() && hourIn(Clock.hourF(), 5, 18) ? 'A ring of stones with a fire laid and ready. Somebody will light it after dinner.' : 'A ring of stones for a campfire. It gets lit on Friday and Saturday evenings.');
         return;
     }
     if (!(await roastMarshmallow())) await UI.say(null, 'It would be perfect for marshmallows. Fortune sells them.');
@@ -108,25 +103,8 @@ async function useCampfire() {
 
 /* ---------------------------------------------------------------- tents at the campsite */
 const TENT_COLORS = ['tent_coral', 'tent_green', 'tent_blue'];
-function tentOccupant(i) { return visitorsToday().find(id => tentOf(id) === i) || null; }
-function drawTent(ctx, e) {
-    const who = tentOccupant(e.tent), n = who && NPCs.get(who);
-    const asleep = n && n.sleeping && hourIn(Clock.hourF(), 19, 29);
-    spr(ctx, TENT_COLORS[e.tent % 3] + (who ? '' : '_closed'), e.x, e.y);
-    if (asleep && (G.t >> 5) % 3 === 0) spr(ctx, 'emote_zzz', e.x + 12, e.y - 30);
-    e.light = asleep ? { r: 26, y: -10 } : null;
-}
-async function useTent(e) {
-    const who = tentOccupant(e.tent);
-    if (!who) { await UI.say(null, 'An empty tent, pitched and ready for whoever comes over on the boat next.'); return; }
-    const n = NPCs.get(who), nm = NPC_DEFS[who].name;
-    if (n && n.sleeping) {
-        await UI.say(null, who === 'david' ? 'Zzz. David is asleep in the tent. The tent is snoring. Fabulously.' : `Zzz. ${nm} is asleep in there. Sarah tiptoes away.`);
-        return;
-    }
-    const inside = { david: 'a sleeping bag, a disco ball, a tiny mirror and a second, backup disco ball' }[who] || 'a sleeping bag, a flashlight and a camping mug';
-    await UI.say(null, `${nm}'s tent. Inside: ${inside}.`);
-}
+function drawTent(ctx, e) { spr(ctx, TENT_COLORS[e.tent % 3] + '_closed', e.x, e.y); }
+async function useTent() { await UI.say(null, 'A tent, zipped shut, pitched and ready for a night under the stars.'); }
 
 /* ---------------------------------------------------------------- the old giants */
 async function oldTreeTalk(e) {

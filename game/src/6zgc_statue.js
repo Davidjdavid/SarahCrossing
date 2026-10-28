@@ -15,10 +15,11 @@ function statueState() {
     return T.statue;
 }
 function statueKind() { return (S && S.town && S.town.statue && S.town.statue.kind) || 'sarah'; }
-/* who and what can stand there: Sarah, David, the island's people (a newcomer once they've moved in), the three more */
+/* who and what can stand there: Sarah, David (his pick; the rest of the family only visits online), the island's people
+   (a newcomer once they've moved in), the three more */
 function statueChoices() {
     const people = ['david', 'joe', ...NEIGHBORS, ...Object.keys(NPC_DEFS).filter(id => !NEIGHBORS.includes(id) && !['david', 'joe'].includes(id))]
-        .filter((id, i, a) => NPC_DEFS[id] && a.indexOf(id) === i && (!NPC_DEFS[id].newcomer || NEIGHBORS.includes(id)));
+        .filter((id, i, a) => NPC_DEFS[id] && a.indexOf(id) === i && (!NPC_DEFS[id].online || id === 'david') && (!NPC_DEFS[id].newcomer || NEIGHBORS.includes(id)));
     return [['sarah', S.playerName || 'Sarah'], ...people.map(id => [id, NPC_DEFS[id].name]), ['frasier', 'Dr. Frasier Crane'], ['tama', 'Your Tamagotchi keychain'], ['rose', 'A rose']];
 }
 function statueName(kind) { const c = statueChoices().find(x => x[0] === kind); return c ? c[1] : NPC_DEFS[kind] ? NPC_DEFS[kind].name : kind; }

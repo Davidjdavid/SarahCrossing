@@ -118,52 +118,76 @@ const EnvTex = {
             }
         }, 6);
     },
-    /* the lawn as Animal Crossing drew it on the GameCube: a deep green ground scattered with little diamond-shaped leaves
-       in lighter and darker greens, each a touch lit on its upper side (repeats every 4 tiles, about five leaves a tile).
-       Its colors go with the season, as the trees' do: fresh yellow-greens in spring, deep greens in summer, gold and olive
-       in fall with fallen leaves among the grass (orange, red, brown), and dull greens under winter's snow */
+    /* the lawn as Animal Crossing drew it on the GameCube: a deep green ground and on it little shapes, triangles, rounds
+       and squares, in a few close greens, none touching and the same narrow dark gap between each and the next (repeats
+       every 4 tiles). Its colors go with the season, as the trees' do: fresh greens in spring, deep greens in summer,
+       olive and gold in fall, dull greens under winter's snow */
     LAWN: {
-        spring: { base: '#5aa83c', deep: '#489438', tones: ['#bce274', '#a2d664', '#88c654', '#70b448', '#56983e'] },
-        summer: { base: '#3a8436', deep: '#2c6c2e', tones: ['#80c457', '#6cb44c', '#5aa444', '#4c963e', '#336f30'] },
-        fall: { base: '#6a8a34', deep: '#56722e', tones: ['#c2b450', '#a8a446', '#8e983e', '#76883a', '#5c7232'], fallen: ['#d8782e', '#c4532a', '#e2a53c', '#9c5c2a'] },
-        winter: { base: '#56704a', deep: '#465e3e', tones: ['#8aa070', '#7a9264', '#6c865a', '#5e7a52', '#4c6646'] },
+        spring: { base: '#4c9636', tones: ['#9ad062', '#8ac658', '#7aba4e'] },
+        summer: { base: '#317630', tones: ['#6ab24a', '#5ea644', '#52993e'] },
+        fall: { base: '#566c2c', tones: ['#bea848', '#a49e40', '#8a923a'] },
+        winter: { base: '#4c6644', tones: ['#7a9264', '#6e865a', '#627c52'] },
+    },
+    /* the three shapes, one unit across: a round, and a triangle (point up) and a square as corners with rounding */
+    LAWN_SHAPES: [null, { v: [[-0.6, -0.6], [0.6, -0.6], [0.6, 0.6], [-0.6, 0.6]], r: 0.25 }, { v: [[0, -0.95], [0.82, 0.48], [-0.82, 0.48]], r: 0.18 }],
+    /* how far a shape (k, turned by c/s) is from its edge at a point in its own units (less than 0 inside) */
+    lawnSd(k, x, y) {
+        if (!k) return Math.sqrt(x * x + y * y) - 1;
+        const P = this.LAWN_SHAPES[k], v = P.v, n = v.length;
+        let d = Infinity, inside = true;
+        for (let i = 0, j = n - 1; i < n; j = i++) {
+            const ex = v[i][0] - v[j][0], ey = v[i][1] - v[j][1], wx = x - v[j][0], wy = y - v[j][1];
+            const t = Math.max(0, Math.min(1, (wx * ex + wy * ey) / (ex * ex + ey * ey))), dx = wx - ex * t, dy = wy - ey * t;
+            d = Math.min(d, dx * dx + dy * dy);
+            if (ex * wy - ey * wx < 0) inside = false;       // (the corners go round clockwise on the picture)
+        }
+        return (inside ? -Math.sqrt(d) : Math.sqrt(d)) - P.r;
     },
     lawn(season) {
         const P = this.LAWN[season] || this.LAWN.summer;
         return this.make('lawn_' + (this.LAWN[season] ? season : 'summer'), 512, (h, col) => {
-            const n = 512, cell = 22, cols = Math.round(n / cell), C = n / cols, r = mulberry(61), nz = this.noise(n, 16, 62), fine = this.noise(n, 96, 63);
-            const base = this.hex(P.base), deep = this.hex(P.deep);
-            const tones = P.tones.map(c => this.hex(c)), fallen = (P.fallen || []).map(c => this.hex(c));
-            // the leaves: one in most cells of a jittered grid, each its own size, turn and green (in fall, one in ten fallen)
-            const leaves = [];
-            for (let j = 0; j < cols; j++) for (let i = 0; i < cols; i++) {
-                if (r() < 0.12) continue;
-                const t = r(), tone = t < 0.3 ? 0 : t < 0.55 ? 1 : t < 0.75 ? 2 : t < 0.9 ? 3 : 4, f = r(), down = fallen.length && f < 0.1;
-                leaves.push({ x: (i + 0.5 + (r() - 0.5) * 0.8) * C, y: (j + 0.5 + (r() - 0.5) * 0.8) * C, s: C * (0.26 + r() * 0.16) * (down ? 0.85 : 1), a: Math.PI / 4 + (r() - 0.5) * (down ? 2.4 : 0.5),
-                    c: down ? fallen[Math.floor(f * 40) % fallen.length] : tones[tone], k: 0.92 + r() * 0.16 });
+            const n = 512, cols = 22, rows = 26, cw = n / cols, ch = n / rows, GAP = 3, r = mulberry(61), soft = this.noise(n, 8, 62), fine = this.noise(n, 96, 63);
+            const base = this.hex(P.base), tones = P.tones.map(c => this.hex(c));
+            const wrap = d => d - Math.round(d / n) * n;
+            // where they stand: a staggered grid nudged about a little; a third of each kind
+            const S = [];
+            for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+                const t = r(), k = t < 0.4 ? 2 : t < 0.7 ? 0 : 1, a = k === 2 ? (r() - 0.5) * 0.7 : r() * Math.PI;
+                S.push({ x: (i + 0.25 + (j % 2) * 0.5 + (r() - 0.5) * 0.3) * cw, y: (j + 0.5 + (r() - 0.5) * 0.3) * ch, k, a, ca: Math.cos(a), sa: Math.sin(a),
+                    c: tones[Math.floor(r() * tones.length)], l: 0.95 + r() * 0.1 });
             }
-            const grid = new Map();
-            for (const L of leaves) { const k = Math.floor(L.x / C) + ',' + Math.floor(L.y / C); (grid.get(k) || grid.set(k, []).get(k)).push(L); }
+            const at = (i, j) => S[(((j % rows) + rows) % rows) * cols + (((i % cols) + cols) % cols)];
+            // each one's size: from its nearest neighbor, so that where two meet, their edges are cut along the line between
+            // them and the gap there is the same everywhere (a triangle a bit bigger, so its points still show)
+            S.forEach((A, q) => {
+                const i = q % cols, j = (q / cols) | 0;
+                let m = Infinity;
+                for (let dj = -1; dj <= 1; dj++) for (let di = -2; di <= 2; di++) { const B = at(i + di, j + dj); if (B !== A) m = Math.min(m, Math.hypot(wrap(B.x - A.x), wrap(B.y - A.y))); }
+                A.s = m / 2 * [0.93, 0.9, 1.1][A.k];
+            });
             for (let i = 0; i < n * n; i++) {
-                const x = i % n, y = (i / n) | 0, gx = Math.floor(x / C), gy = Math.floor(y / C);
-                // the ground between: deep green, a little darker in soft patches
-                let c = this.mix(base, deep, Math.max(0, nz(x, y) - 0.45) * 1.4), ht = 0;
-                for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-                    const list = grid.get((((gx + dx) % cols) + cols) % cols + ',' + (((gy + dy) % cols) + cols) % cols);
-                    if (!list) continue;
-                    for (const L of list) {
-                        // (wrapping round the picture's edges)
-                        let ox = x + 0.5 - L.x, oy = y + 0.5 - L.y;
-                        ox -= Math.round(ox / n) * n; oy -= Math.round(oy / n) * n;
-                        const u = ox * Math.cos(L.a) + oy * Math.sin(L.a), v = -ox * Math.sin(L.a) + oy * Math.cos(L.a), m = Math.max(Math.abs(u), Math.abs(v));
-                        if (m > L.s) continue;
-                        const edge = Math.min(1, (L.s - m) / 2.2), lit = -(ox + oy) / (L.s * 2.4);
-                        ht = Math.max(ht, 0.3 + edge * 0.4);
-                        c = this.mix(c, L.c.map(q => q * L.k * (1 + lit * 0.1)), edge);
-                    }
+                const x = i % n, y = (i / n) | 0, px = x + 0.5, py = y + 0.5, gi = Math.floor(px / cw), gj = Math.floor(py / ch);
+                // the two nearest: whose this is, and how far to the line halfway to the next
+                let b1 = Infinity, b2 = Infinity, A = null, B = null;
+                for (let dj = -1; dj <= 1; dj++) for (let di = -2; di <= 1; di++) {
+                    const C = at(gi + di, gj + dj), dx = wrap(px - C.x), dy = wrap(py - C.y), q = dx * dx + dy * dy;
+                    if (q < b1) { b2 = b1; B = A; b1 = q; A = C; } else if (q < b2) { b2 = q; B = C; }
                 }
-                h[i] = ht;
-                this.put(col, i, c.map(q => q * (0.96 + (fine(x, y) - 0.5) * 0.08)));
+                const sep = Math.hypot(wrap(B.x - A.x), wrap(B.y - A.y)) || 1, edge = (b2 - b1) / (2 * sep);
+                const ox = wrap(px - A.x), oy = wrap(py - A.y);
+                const d = Math.max(this.lawnSd(A.k, (ox * A.ca + oy * A.sa) / A.s, (-ox * A.sa + oy * A.ca) / A.s) * A.s, GAP / 2 - edge);
+                // the ground between: deep green, a touch darker right beside a shape, broad soft patches a shade apart
+                const g = (0.97 + (soft(x, y) - 0.5) * 0.1) * (0.9 + 0.1 * Math.min(1, Math.max(0, d) / 2.5));
+                let cr = base[0] * g, cg = base[1] * g, cb = base[2] * g;
+                const cov = Math.max(0, Math.min(1, 0.5 - d));
+                if (cov > 0) {
+                    // a shape: its green, a little lighter toward its upper left
+                    const k = A.l * (1 - (ox + oy) / (A.s * 2.6) * 0.08);
+                    cr += (A.c[0] * k - cr) * cov; cg += (A.c[1] * k - cg) * cov; cb += (A.c[2] * k - cb) * cov;
+                }
+                h[i] = 0.15 + cov * (0.25 + 0.35 * Math.min(1, Math.max(0, -d) / 2.2));
+                const f = 0.98 + (fine(x, y) - 0.5) * 0.05;
+                this.put(col, i, [cr * f, cg * f, cb * f]);
             }
         }, 2);
     },

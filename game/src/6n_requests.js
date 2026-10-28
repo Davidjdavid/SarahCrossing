@@ -187,7 +187,7 @@ const Requests = {
         return true;
     },
     async maybeAsk(n) {
-        if (this.from(n.id) || this.open().length >= REQ_MAX || NPC_DEFS[n.id].family || R() > 0.35) return;
+        if (this.from(n.id) || this.open().length >= REQ_MAX || R() > 0.35) return;
         await this.give(n, this.make(n));
     },
     async ask(n) {
@@ -212,7 +212,7 @@ const Requests = {
     /* talk menu entries for this neighbor */
     options(n) {
         const id = n.id, out = [];
-        if (!S || NPC_DEFS[id].family) return out;
+        if (!S) return out;
         const mine = this.from(id);
         if (!mine) out.push({ label: 'Need anything?', fn: async () => { await this.ask(n); return true; } });
         else if (this.ready(mine)) out.push({ label: this.doneLabel(mine), fn: async () => { await this.complete(n, mine); return true; } });

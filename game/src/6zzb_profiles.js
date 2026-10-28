@@ -21,10 +21,6 @@ const PERSONA = {
     brulee: ['Artistic and gentle', 'Keeps the museum and its stories. Everything is art if you squint.'],
     mac: ['Motherly cook', 'Runs the restaurant and worries you haven\'t eaten. You haven\'t, have you?'],
     joe: ['Sweet and poetic', 'Writes poems in every spare minute. Likes rhyming, takeout and frogs. And you, most of all.'],
-    david: ['Fabulous', 'Sarah\'s brother: on skates, in sequins, and at the club whenever it\'s open.'],
-    james: ['Easygoing', 'Family, visiting the island now and then.'],
-    john: ['Steady and kind', 'Family, visiting the island now and then.'],
-    elizabeth: ['Warm and artistic', 'Family, visiting the island now and then.'],
     scampi: ['Salty old sea captain', 'A giant shrimp the sea washed up on the beach. Built a ship, sailed away, came back to stay, and farms now.'],
     mug: ['Old-fashioned', 'A living mug from the days when everyone was dishware. Runs the café, and is still getting used to talking food.'],
     goat: ['A goat', 'Lives at the farm. Likes being petted, and eating things that aren\'t food.'],
@@ -71,7 +67,7 @@ function appProfile(id) {
     if (id === FISHER) work.push('fishing off the pier');
     if (id === 'mug' && typeof cafeOpen === 'function' && cafeOpen()) work.push("the café");
     fact('Works at', [...new Set(work)].join(', ') || null);
-    fact('Lives', d.spring ? 'In the hot spring' : d.house && W0.buildings[d.house] ? 'In the neighborhood' : d.visitor ? 'Off the island (visits now and then)' : id === 'goat' ? 'At the farm, in the pen' : null);
+    fact('Lives', d.spring ? 'In the hot spring' : d.house && W0.buildings[d.house] ? 'In the neighborhood' : id === 'goat' ? 'At the farm, in the pen' : null);
     if (r.nick) fact('Calls you', `"${r.nick}"`);
     const cp = typeof catchOf === 'function' && catchOf(id);
     if (cp) fact('Says', `"${cp}"`);
@@ -109,6 +105,6 @@ function appProfile(id) {
         if (!L.children.length) L.appendChild(el('p', 'muted', 'Nothing yet. Say hi, give a gift, play a game!'));
         P.body.appendChild(L);
     }
-    const wb = id === 'goat' || d.visitor || !plansShown() ? null : wakeBed(id);
+    const wb = id === 'goat' || !plansShown() ? null : wakeBed(id);
     if (wb) { const row = el('div', 'st-row'); row.appendChild(chip("Today's plan", () => appDayPlan(id))); P.body.appendChild(row); }
 }

@@ -16,7 +16,7 @@ const OUTING_PLACE = { picnic_forest: 'having a picnic in the forest', summit: '
 Object.assign(PLACE_NAMES, OUTING_PLACE);
 function outingFree(id, a, b) {
     const d = NPC_DEFS[id];
-    if (!d || d.shop || d.dj || d.spring || d.goat || d.visitor || d.early) return false;
+    if (!d || d.shop || d.dj || d.spring || d.goat || d.early) return false;
     if (d.wake > a - 0.3 || d.bed < b + 0.5) return false;
     return !(d.work || []).some(([, wa, wb]) => wa < b + 0.3 && wb > a - 0.3);
 }

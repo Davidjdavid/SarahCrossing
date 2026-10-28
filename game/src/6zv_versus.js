@@ -7,8 +7,8 @@
    what it sends, done(g) says a board has won outright, brain(g, skill) plays a board. */
 
 /* how well each neighbor plays (0 a beginner, 1 a whiz), and what they say */
-const VS_SKILL = { chili: 0.8, maki: 0.85, david: 0.7, kai: 0.4, cece: 0.3, coco: 0.5, cuke: 0.6, sully: 0.55, basil: 0.45, wonton: 0.35,
-    clementine: 0.5, ginger: 0.65, brulee: 0.4, mac: 0.35, joe: 0.5, james: 0.6, john: 0.6, elizabeth: 0.55, floss: 0.5, waffle: 0.45 };
+const VS_SKILL = { chili: 0.8, maki: 0.85, kai: 0.4, cece: 0.3, coco: 0.5, cuke: 0.6, sully: 0.55, basil: 0.45, wonton: 0.35,
+    clementine: 0.5, ginger: 0.65, brulee: 0.4, mac: 0.35, joe: 0.5, floss: 0.5, waffle: 0.45 };
 const VS_LINES = {
     start: ["Let's go! I'm not going easy on you.", 'Ready when you are. Are you ready? I am.', "Best of one. No take-backs."],
     win: ['Good game! I got lucky. Very lucky. Skillfully lucky.', 'I win! Rematch? I mean, if you want. No pressure.'],
@@ -16,7 +16,6 @@ const VS_LINES = {
     chili: { start: ["You want to play ME? At MY arcade? This is going to be spicy."], win: ["Too hot to handle! Good game, though. Really."], lose: ["You beat me. At my own arcade. I need a minute. And some hot sauce."] },
     maki: { start: ['I will be precise. You should be too.'], win: ['Every piece where it belonged. Thank you for the game.'], lose: ['Hm. You placed well. I respect that. Precisely.'] },
     kai: { start: ["Duuude, vs mode? Let's ride this wave."], win: ["Whoa, I won? Gnarly. I wasn't even looking."], lose: ['Wiped out! That was rad though.'] },
-    david: { start: ["Oh, it's ON, sister. Skates or no skates."], win: ['And the crowd goes WILD. The crowd is me.'], lose: ["Okay, okay, you're good. Fabulous, even. Rematch."] },
 };
 function vsLine(who, k) { const own = VS_LINES[who] && VS_LINES[who][k]; return rpick(own && R() < 0.7 ? own : VS_LINES[k]); }
 

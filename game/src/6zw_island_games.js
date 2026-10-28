@@ -626,7 +626,7 @@ const IG_ASK_ROPE = {
 // (the browser tests turn the chance off, window.__noAsk, so a talk menu they check is never swapped for an ask)
 async function igMaybeAsk(n, roll = window.__noAsk ? 1 : R()) {
     const id = n.id, r = rel(id), day = Clock.dayNum();
-    if (r.igAskDay === day || NPC_DEFS[id].family || IslandGames.on) return false;
+    if (r.igAskDay === day || IslandGames.on) return false;
     const games = igAskGames(n);
     if (!games.length || roll > IG_ASK_CHANCE) return false;
     r.igAskDay = day;
@@ -665,7 +665,7 @@ async function igHandheld(n, game) {
 }
 /* who turns the other end with them: Cuke if he's about, else a close friend, else anyone up and outside nearby */
 function igRopeFriend(n) {
-    const free = m => m && m !== n && m.area === 'island' && !m.sleeping && !m.script && !m.talking && !m.def.shop && !m.def.spring && !m.def.family && VS_SKILL[m.id] && !(typeof awayNow === 'function' && awayNow(m.id));
+    const free = m => m && m !== n && m.area === 'island' && !m.sleeping && !m.script && !m.talking && !m.def.shop && !m.def.spring && VS_SKILL[m.id] && !(typeof awayNow === 'function' && awayNow(m.id));
     const all = NPCs.here().filter(free);
     const cuke = all.find(m => m.id === 'cuke');
     if (cuke) return cuke;

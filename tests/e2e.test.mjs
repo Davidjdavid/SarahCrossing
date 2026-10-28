@@ -377,7 +377,7 @@ test('playing together: David visits Sarah, they see each other, and his things 
   // they see each other (and David's NPC self steps aside while he plays)
   await until(() => sarah.evaluate(() => Online.others.has('david')));
   await until(() => david.evaluate(() => Online.others.has('sarah')));
-  assert.equal(await sarah.evaluate(() => NPCs.get('david').sleeping), true);
+  assert.equal(await sarah.evaluate(() => NPCs.get('david')), undefined);          // (the family are only here online, never as neighbors)
   const at = await sarah.evaluate(() => [G.player.x, G.player.y]);
   await david.evaluate(([x, y]) => { G.player.x = x + 20; G.player.y = y; }, at);
   await until(() => sarah.evaluate(() => { const o = Online.others.get('david'); return o && o.area === G.area.id && Math.abs(o.x - G.player.x - 20) < 2; }));
@@ -2740,9 +2740,23 @@ test('furniture turns four ways (its footprint turns with it); neighbors with no
     const fish = FISHES.find(q => q.id !== 'boot').id;
     __dbg.give(fish, 1); __dbg.give('scallop', 1);
     out.things = furnDef(fish).kind === 'top' && furnDef('scallop').thing === 1 && Decor.owned()[fish] === 1 && Decor.owned().scallop === 1;
+    // a painting of Sarah's on an easel on the floor: put away, it's the painting again
+    const A = artState(), id = 'ptg_' + (A.seq++);
+    A.pieces[id] = { id, name: 'Test', px: '1'.repeat(ART_W * ART_H), frame: 'gold', day: Clock.dayNum() };
+    registerArt(A.pieces[id]);
+    __dbg.give(id, 1);
+    await Decor.enter();
+    Decor.held = id + '_easel';
+    const easel = Decor.place(f.x0 + 1, f.y0 + f.h - 2);
+    const k = S.house.items.findIndex(i => i.id === id + '_easel');
+    const kinds = [furnDef(id).kind, furnDef(id + '_stand').kind, furnDef(id + '_easel').kind].join();
+    const gone = !Decor.owned()[id];
+    Decor.store(k);
+    out.art = easel && k >= 0 && kinds === 'wall,top,floor' && gone && Decor.owned()[id] === 1 && !S.storage[id + '_easel'];
+    Decor.exit();
     return out;
   });
-  assert.deepEqual(res, { held: 1, placed: true, item: res.item, foot: '{"w":1,"h":2}', turned: 2, wall: false, ent: 2, blocked: 'true,true', old: '{"w":2,"h":1}', lamp: true, things: true });
+  assert.deepEqual(res, { held: 1, placed: true, item: res.item, foot: '{"w":1,"h":2}', turned: 2, wall: false, ent: 2, blocked: 'true,true', old: '{"w":2,"h":1}', lamp: true, things: true, art: true });
   assert.match(res.item, /^1,/);
   // a neighbor near a bench sits on it for a while; one at the lookout looks through the telescope
   const idle = await page.evaluate(async () => {

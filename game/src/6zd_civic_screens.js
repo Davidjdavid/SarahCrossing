@@ -159,7 +159,7 @@ const CIVIC_SCREENS = {
     census: { title: 'Island census', icon: 'app_friends', blurb: 'Every resident: birthdays, personalities, friendship',
         states: ['Works'],
         draw(b, st, D) {
-            const folks = Object.entries(typeof NPC_DEFS !== 'undefined' ? NPC_DEFS : {}).filter(([id, n]) => !n.visitor).slice(0, 18);
+            const folks = Object.entries(typeof NPC_DEFS !== 'undefined' ? NPC_DEFS : {}).filter(([id, n]) => !n.online).slice(0, 18);
             CV.h(b, CV.fill('Island census · {count} residents', { count: folks.length + 1 }));
             const list = CV.list(b);
             folks.forEach(([id, n], i) => {

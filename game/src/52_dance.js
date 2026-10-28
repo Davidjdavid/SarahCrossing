@@ -75,7 +75,7 @@ function songUnlocked(id) {
     if (id === 'wiggle' || id === 'sonnet' && hearts('joe') >= 2) return true;
     if (id === 'shuffle') return !!d.wiggle;
     if (id === 'owl') return !!d.shuffle;
-    if (id === 'disco') return !!d.owl || rel('david').pts >= 25;
+    if (id === 'disco') return !!d.owl;
     if (id === 'sonnet') return !!d.disco;
     return false;
 }

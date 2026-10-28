@@ -131,13 +131,6 @@ async function boot(hotData) {
         },
         /* pottery: everything in the kiln is done now */
         kilnDone() { for (const k of pottery().kiln) k.ready = 0; potteryTick(); return pottery().kiln.length; },
-        /* one of the siblings is visiting today */
-        sibling(who, days) {
-            const day = Clock.dayNum();
-            visitStart.forced = {};
-            for (const id of VISITORS) for (let d0 = day - VISIT_MAX_DAYS; d0 <= day; d0++) visitStart.forced[id + ':' + d0] = null;
-            if (who) visitStart.forced[who + ':' + day] = { who, day, days: days || 1, arrive: 10, leave: 25.5 };
-            visitOf.cache = {}; tentOf.cache = {}; Plans.reset(); NPCs.place(true); return visitingToday(); },
         /* a neighbor knocks on Sarah's door right now */
         visit(who) { S.visit = { day: Clock.dayNum(), who, at: dayHour() - 0.01, state: 'pending' }; Visits.check(); return S.visit.state; },
         /* walk straight into a room (no knocking, no opening hours) */

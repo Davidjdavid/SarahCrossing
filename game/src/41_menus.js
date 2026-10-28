@@ -297,7 +297,7 @@ function openLetter(m, box) {
 function appFriends() {
     const P = UI.open({ title: 'Friends', phone: true, back: backToPhone });
     const list = el('div', 'list');
-    const ids = NEIGHBORS.concat(['joe'], VISITORS, ['goat']);
+    const ids = NEIGHBORS.concat(['joe'], ['goat']);
     let shown = 0;
     for (const id of ids) {
         const r = S.npcs[id];
@@ -309,9 +309,9 @@ function appFriends() {
         const t = el('div', 't');
         t.appendChild(el('b', null, d.name));
         // (their hours and today's plan only on the beta site or with the debug tools: in the game, text them, 69_texts.js)
-        const wb = id === 'goat' || d.visitor || !plansShown() ? null : wakeBed(id);
+        const wb = id === 'goat' || !plansShown() ? null : wakeBed(id);
         const partner = coupleOf(id);
-        const tip = id === 'goat' ? "It's a goat. It lives at the farm now." : d.visitor ? (visitorsToday().includes(id) ? visitNote(id) : 'Family \u00b7 visits the island now and then')
+        const tip = id === 'goat' ? "It's a goat. It lives at the farm now."
             : (TALK[id] ? `Loves: ${lovesText(id)}` : id === 'joe' ? 'Likes: rhyming, takeout, frogs. (And you. Shh.)' : 'Family')
             + (wb ? ` \u00b7 up ${fmtDayHour(wb.wake)} to ${fmtDayHour(wb.bed)}` : '') + (partner ? ` \u00b7 dating ${NPC_DEFS[partner].name}` : '');
         t.appendChild(el('span', null, tip));
@@ -460,7 +460,6 @@ function appToday() {
         ['Club Wasabi', 'Busy from 9 PM. Practice any time.'],
         ['Joe', 'Up early (around 6:30 AM), to bed late. Sunset at the pier. Ask him for a poem.'],
     ];
-    for (const vis of visitorsToday()) lines.push(['Visiting', visitNote(vis)]);
     const rd = ropeDay();
     lines.push(['Jump rope', rd ? `In the plaza, 2:30 to 5:30 PM, with ${NPC_DEFS[rd.a].name} and ${NPC_DEFS[rd.b].name}.` : 'Not today. (Too wet, or Cuke is resting his arms.)']);
     if (S.birthday) lines.push(['Your birthday', `${MONTHS[S.birthday.m - 1]} ${S.birthday.d}`]);

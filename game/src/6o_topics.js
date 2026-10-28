@@ -17,7 +17,6 @@ const OPENERS = {
     clementine: ['Darling.', 'Ah. {name}. You look... acceptable. Better than acceptable. Fine: good.', 'Darling, hello. Mind the peel.'],
     cuke: ["{name}!! HI!! I've been up since 4!", 'Good morning! It\'s always morning somewhere!', 'Hey hey! Stretch with me! No? Okay!'],
     sully: ["Hey, kid. How ya doin'.", "Kid! There ya are.", "How's it goin', {name}. Wicked good to see ya."],
-    david: ['SISTER! Hi!', 'Honey! You look amazing. I look amazing. Hi.', '{name}! Iconic timing.'],
     ginger: ["Hiya, {name}! Mind the sawdust.", "Oh hey! Just measuring something. It's fine. It's level.", '{name}! Hold this a second. ...Thanks. Oh, hello, by the way.'],
     brulee: ['Bonjour, {name}!', 'Ah! {name}! Welcome, welcome.', 'Hello, mon amie. Please do not tap my top.'],
     mac: ["{name}! Hi! You look hungry.", 'Hey hey! Come here! Have you eaten?', "Oh, it's you! My favorite customer. Don't tell the others."],
@@ -63,7 +62,6 @@ const TOO_SOON = {
     brulee: ['Ah! Again! I am flattered, but I have no new thoughts. The last ones are still drying.', 'Patience, mon amie. Art takes time. So does conversation.', '*gestures gracefully at nothing*'],
     mac: ["Back already? Hungry? I'm out of stories, but never out of food.", "Still nothing new! Give me a few minutes. The cheese needs to melt.", '*offers you an imaginary plate*'],
     joe: ["Hey! Back so soon? (Joe tries very hard to look casual.) I'm out of things to say, though. Give me a few.", "I've got nothing new! Unless you want a poem. I always have a poem.", "Still thinking. Thinking is hard. I'm doing it for you, though."],
-    david: ['Honey, I JUST dazzled you. Let the sparkle settle.', "Still nothing new. I'm iconic, not infinite.", '*strikes a pose instead of speaking*'],
 };
 
 /* ---------------------------------------------------------------- gifts that make no sense */
@@ -87,7 +85,6 @@ const BAD_GIFT_OWN = {
     coco: { wood: "A log? I'm flattered you think I have hidden talents. I don't. Ask Ginger." },
     clementine: { wood: 'Darling. A log. Unfinished wood is not a look.', tool: 'A tool. How rugged. Not for me. For you.', pantry: 'Raw ingredients. Darling, I am a finished product. Bring me finished products.' },
     sully: { tool: "Kid, I got tools. It's New England. Everybody's got a shovel. Keep it.", pantry: 'Raw {item}? What am I, a pantry? Bake somethin\' with it, kid.' },
-    david: { wood: 'A log. Honey. I camp in a TENT. I have enough nature. Bedazzled? No? Then keep it.', tool: 'A tool? For me? The only tool I need is my roller skates. And my charm.' },
     brulee: { wood: 'Plain wood? Ginger could make something useful. I\'d spend all day deciding where to sign it.', tool: 'A tool? I am a dessert, not a handyman. Ginger is the handyman.' },
     mac: { seed: "Seeds? I cook things AFTER they grow! You're skipping ahead! Plant them!", pantry: "An ingredient! For the chef! ...You know what? Cook it into something. I want to taste YOUR cooking." },
     kai: { tool: "Your {item}? Bro, you need that! How else will you fish? Keep it!" },
@@ -285,7 +282,6 @@ const JOE_PRAISE_OWN = {
     clementine: ["Joe's poems are couture, darling. For the ears.", '"{title}." A classic. Timeless. Like me.'],
     cuke: ["I recite Joe's poems when I jog! They're the perfect rhythm! Step, step, frog!", '"{line}" I shouted that at the sunrise this morning! The sunrise loved it!'],
     sully: ["Joe's poems? Wicked good. Wicked, WICKED good. Don't let anybody tell ya different.", '"{title}"? Kid, that\'s poetry. Back home they\'d put that on a plaque.'],
-    david: ["Joe's poems? Honey. ICONIC. The man is a genius and I will not be taking questions.", '"{line}" I got that tattooed. On my heart. Metaphorically. For now.'],
     ginger: ["Joe's poems are built to last. Solid structure. Strong foundation. Four walls. I mean lines.", '"{title}" is so well put together. Every word load-bearing.'],
     brulee: ["I would hang Joe's poems in the museum. They belong with the masters.", '"{line}" Ah. The simplicity. The honesty. It is like a perfect cr\u00e8me br\u00fbl\u00e9e.'],
     mac: ["Joe's poems are comfort food for the soul. With extra cheese.", '"{title}" warms me up like a bowl of mac and cheese. That\'s the highest compliment I have.'],
@@ -486,7 +482,7 @@ function outfitLine(n) {
     if (S.player.acc && ITEMS['acc_' + S.player.acc]) c.push(`Love the ${itemName('acc_' + S.player.acc).toLowerCase()}! Where did you get it? Don't tell me. Keep the mystery.`);
     const st = GD.sarahTpl.hair.styles[L.hair];
     if (!lookIsDefault(L) && st) c.push(`Your hair! ${st.name}? Floss outdid herself.`, `New look? It's so you. Like, extra you.`);
-    if (id === 'clementine' || id === 'david' || id === 'coco') c.push(...c.slice(0, 2));
+    if (id === 'clementine' || id === 'coco') c.push(...c.slice(0, 2));
     return c.length ? rpick(c) : null;
 }
 function museumLine(n) {
@@ -524,9 +520,6 @@ function carryLine(n) {
 }
 function islandLine(n) {
     const c = [], day = Clock.dayNum();
-    const vis = visitorsToday(day).filter(v => v !== n.id);
-    if (vis.includes('david')) c.push("David's on the island! His tent has a disco ball in it. Of course it does.", 'Did you see David? He skated past me three times. On purpose.');
-    for (const v of vis.filter(v => v !== 'david')) c.push(`${NPC_DEFS[v].name} is visiting! I love when your family comes by. The whole island gets louder. In a good way.`);
     const hol = holidaysToday()[0];
     if (hol && hol.name) c.push(`Happy ${hol.name}! ${hol.note || ''}`.trim());
     const up = upcomingHoliday();
@@ -613,10 +606,6 @@ const TALK_MORE = {
         "Fenway's the oldest ballpark in the big leagues. I sat in the bleachahs once. Got a sunburn on one ear.", "The T was the first subway in America, kid. First! And it still runs. Mostly. Sometimes.",
         'Frasier started out in a bar in Boston. Cheers. Everybody knew his name. Then he left for Seattle. Now he\'s back teachin\' at Hahvahd. Everybody comes back.', "Somebody asked me for a Boston cream pie recipe once. I said, kid, that's a family mattah. Very private.",
         "Clay's patient, kid. You rush it, it cracks. People too.", "Wicked good night for a walk up the mountain. Stars're out. Moon's out. Me too."],
-    david: ["The salon has a MOHAWK now? I'm going punk. For one day. Then back to fabulous.", 'Frasier and Niles are the fanciest brothers on TV. Until us. We are fancier.',
-        "Star Trek taught me everything. Boldly go. Wear a jumpsuit. Look great in every lighting.", 'I brought my own disco ball to the campsite. The campfire is a little jealous.',
-        "The lighthouse? SO dramatic. A tower that spins a spotlight on the sea? That's me. I'm the lighthouse.", 'Have you tried the Snack Stack game? I got a watermelon. I named it Gregory.',
-        "Tamagotchis were my first pets. I had six. They all loved disco. They all needed a lot of attention. Like me.", 'Karaoke at the club tonight. I\'m singing Joe\'s poem about the moon. Emotional. Iconic.'],
     ginger: ['There are two millstones in the windmill. The moonstone\'s the smaller silver one. Worth getting a closer look.', "The lighthouse was built to last. Stone base, iron top. Whoever built it knew what they were doing. I'd shake their hand.",
         'Harvard has buildings from the 1700s. Still standing! That\'s good framing. I\'d love to see the beams.', "A picnic table is just a table with ambition. I've built nine.",
         "Frasier's apartment has a great view but I'd redo the kitchen.", "The barn's old trunk has been sitting there forever. I never opened it. It's not my trunk. I'm a builder, not a snoop.",
@@ -665,7 +654,7 @@ function topicLine(n) {
         ['season', 0.8, seasonLine],
         ['today', 1.3, todayLine],
         ['stats', 0.8, statsLine],
-        ['outfit', id === 'clementine' || id === 'david' ? 2 : 0.9, () => outfitLine(n)],
+        ['outfit', id === 'clementine' ? 2 : 0.9, () => outfitLine(n)],
         ['museum', id === 'brulee' ? 2 : 0.6, () => museumLine(n)],
         ['carry', 0.8, () => carryLine(n)],
         ['place', 1.1, place],

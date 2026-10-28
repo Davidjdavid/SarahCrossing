@@ -265,7 +265,7 @@ const Decor = {
     /* the pieces being arranged: Sarah's house's, or the room the designer is in */
     list() { return this.design ? G.area.items : S.house.items; },
     /* back to storage (the designer's pieces just go) */
-    stash(id) { if (!this.design) toStorage(id, 1); },
+    stash(id) { if (!this.design) toStorage(artBase(id), 1); },
     /* (the designer's undo takes the design back to before each change) */
     mark() { if (this.design) Design.snap(); },
     owned() {
@@ -280,6 +280,7 @@ const Decor = {
     },
     takeOne(id) {
         if (this.design) return true;
+        id = artBase(id);           // (a painting on a table or an easel is the painting: 65_museum.js)
         if (fromStorage(id, 1)) return true;
         return removeItem(id, 1) > 0;
     },
@@ -311,6 +312,13 @@ const Decor = {
             row.style.cssText = 'display:flex;gap:8px;padding:0 18px 10px;flex-wrap:wrap';
             if (Design.undo.length) row.appendChild(chip('Undo', () => { Design.back(); this.sel = null; this.render(); }));
             row.appendChild(chip(Design.dirty ? 'Save the design' : 'Saved', () => Design.save().then(() => this.render()), Design.dirty ? 'go' : ''));
+            panel.appendChild(row);
+        }
+        // (a painting: on the wall, on a table or on an easel, 65_museum.js)
+        if (this.held && !this.design && ITEMS[artBase(this.held)] && ITEMS[artBase(this.held)].art && FURN[artBase(this.held) + '_stand']) {
+            const row = document.createElement('div'), base = artBase(this.held);
+            row.style.cssText = 'display:flex;gap:8px;padding:0 18px 10px;flex-wrap:wrap';
+            for (const [suf, label] of ART_AS) row.appendChild(chip(label, () => { this.held = base + suf; this.render(); }, this.held === base + suf ? 'on' : ''));
             panel.appendChild(row);
         }
         if (this.held && turnable(furnDef(this.held))) {
@@ -357,7 +365,7 @@ const Decor = {
         }
         for (const id of ids) {
             const b = document.createElement('button');
-            b.type = 'button'; b.className = 'slot' + (this.held === id ? ' sel' : '');
+            b.type = 'button'; b.className = 'slot' + (this.held && artBase(this.held) === id ? ' sel' : '');
             b.title = nm(id);
             b.setAttribute('aria-label', nm(id));
             b.appendChild(iconCanvas(this.design ? (FURN[id].frame || 'f_' + id) : itemIcon(id), 48));
@@ -400,7 +408,7 @@ const Decor = {
             return;
         }
         this.unhold();
-        this.held = this.held === id ? null : id;
+        this.held = this.held && artBase(this.held) === id ? null : id;
         this.sel = null;
         this.render();
     },
@@ -494,7 +502,7 @@ const Decor = {
         this.mark();
         this.list().push(it);
         Sfx.play('place');
-        const left = this.owned()[id] || 0;
+        const left = this.owned()[artBase(id)] || 0;
         if (!left || this.design) this.held = null;
         this.refresh();
         Bus.emit('decorated');
