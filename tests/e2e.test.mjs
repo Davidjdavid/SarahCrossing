@@ -2854,6 +2854,9 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
     await page.waitForFunction(() => G.mode === 'play');
     const island = await page.evaluate(() => {
       const out = { edit: Design.edit, rev: Design.rev };
+      // world.json's own taken-away props (David's statue and its plaque) stay away once the design is laid over it
+      const iD = W0.props.findIndex(p => p.kind === 'statue_david');
+      out.davidGone = iD >= 0 && propGone(iD) && !G.areas.island.ents.some(e => e.propIdx === iD);
       __dbg.setTime(10, 13, 11);
       IslandEdit.open({ design: true });
       out.on = IslandEdit.on && IslandEdit.design;
@@ -2917,7 +2920,7 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       window._t = { i, j, s1, s2, tiles };
       return out;
     });
-    assert.deepEqual(island, { edit: true, rev: 0, on: true, footTurned: '1,2', moved: true, ent: true, gone: true, added: true, undo: true, stairs: true, picked: true, narrower: true, wider: true, stairsGone: true, narrow: true, ownGone: true, ownBack: true });
+    assert.deepEqual(island, { edit: true, rev: 0, davidGone: true, on: true, footTurned: '1,2', moved: true, ent: true, gone: true, added: true, undo: true, stairs: true, picked: true, narrower: true, wider: true, stairsGone: true, narrow: true, ownGone: true, ownBack: true });
     // a room: Waffle's shop, one piece turned, one taken away, a chair added
     await page.evaluate(() => __dbg.enter('displays'));
     await page.waitForFunction(() => G.area.id === 'displays');

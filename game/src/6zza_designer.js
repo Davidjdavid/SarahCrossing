@@ -37,7 +37,7 @@ const Design = {
     /* the island's props as the design has them, laid over world.json's (from the world's own again first) */
     apply() {
         W0.props.length = WORLD_PROPS; W0_ORIG.props.length = WORLD_PROPS;
-        WORLD0.forEach((p0, i) => { for (const p of [W0.props[i], W0_ORIG.props[i]]) { p.x = p0.x; p.y = p0.y; if (p0.rot) p.rot = p0.rot; else delete p.rot; delete p.gone; delete p.lift; } });
+        WORLD0.forEach((p0, i) => { for (const p of [W0.props[i], W0_ORIG.props[i]]) { p.x = p0.x; p.y = p0.y; if (p0.rot) p.rot = p0.rot; else delete p.rot; if (p0.gone) p.gone = p0.gone; else delete p.gone; delete p.lift; } });
         const d = this.d;
         if (d) {
             for (const [k, o] of Object.entries(d.props || {})) {
