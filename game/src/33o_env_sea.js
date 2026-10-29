@@ -142,6 +142,9 @@ const EnvSea = {
             if (s.kind !== 'plane' && s.kind !== 'balloon') continue;
             const name = s.kind === 'balloon' ? 'sky_balloon' : EnvModels.has('sky_jet') ? 'sky_jet' : 'sky_plane', d = this.show(s, name, seen);
             if (!d || !this.skyPlace(r3, d, s, name)) continue;
+            // (fading away as Sarah leaves the lookout: SeaSky.update)
+            const op = s.fade == null ? 1 : Math.max(0, s.fade);
+            d.traverse(m => { if (!m.isMesh || !m.material) return; if (op < 1 && !m.material.transparent) { m.material.transparent = true; m.material.needsUpdate = true; } m.material.opacity = op; });
             if (name === 'sky_jet') { this.trails(d); d.rotation.set(0, (s.flip ? Math.PI : 0) + 0.22, 0.05); }
             else if (name === 'sky_plane') {
                 d.rotation.set(Math.sin(s.t / 90) * 0.08, s.flip ? Math.PI : 0, 0);

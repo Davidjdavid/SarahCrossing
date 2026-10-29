@@ -167,13 +167,9 @@ function seaRefresh(a) {
     if (typeof Env !== 'undefined') Env.dirty = true;
 }
 
-/* chopping down a tree while he's short of logs drops a sturdy log too (29_forest.js fellTree) */
-function seaChop(x, y) {
-    const Q = S && S.sea;
-    if (!Q || Q.stage !== 2) return;
-    const have = (Q.got.logs || 0) + pocketCount('ship_log') + ((S.storage && S.storage.ship_log) || 0);
-    if (have < SEA_NEED.logs) spawnDrop('ship_log', x, y);
-}
+/* (his logs are the island's own wood now, David, 29 October: "I forgot that the trees already dropped logs"; a sturdy
+   log an older save still has counts too, and no tree drops one any more) */
+function seaChop(x, y) {}
 
 /* talking to him (50_talk.js talkTo asks first): the story, the day's job, the send-off, the asking; false once he lives here */
 async function seaTalk(n) {
@@ -186,7 +182,7 @@ async function seaTalk(n) {
         await say(["...Mmmph. Five more minutes, Mother...", "...Wait. LAND? Blessed, BLESSED land! Arr! Where am I? Who are ye? Why is the ground not moving?",
             "Captain Shrimpy, at yer service. Sailed the seven seas, the eight puddles and one very rude lake. Three nights back a storm took me ship, the Brine Darling, and spat me out here.",
             "Well, a captain without a ship is just a shrimp on a beach. I'll build meself a new one, right here, if ye'll help an old salt.",
-            "First I need timber. Ten good logs. Chop down ten trees with an axe and bring me what they give. The sturdy ones, mind."]);
+            "First I need timber. Ten good logs. Swing an axe at the island's trees and bring me what falls."]);
         if (!pocketCount('axe')) await say(["No axe? Fortune's shop sells 'em. Tell her a shrimp sent ye. She'll give ye a look."]);
         Q.stage = 2; Q.day = day; Q.got = {};
         seaRefresh(); Save.touch();
@@ -206,8 +202,8 @@ async function seaTalk(n) {
     };
     if (st >= 3 && st <= 4 && Q.next != null && day < Q.next) { await say([pickSea(["Tomorrow, matey. A captain needs his beauty sleep. And I'm a shrimp. We need a LOT.", "Come back tomorrow, and I'll have the next job for ye. Today I'm sanding. Sanding is ninety percent of shipbuilding. The rest is shouting."])]); return true; }
     if (st === 2) {
-        const ok = await hand('logs', 'logs', () => ['ship_log'], ["Ten logs! Ha HA! She'll have a keel by sundown!", "Come back tomorrow. A ship's no good without provisions, and I've a list."], () => { Q.stage = 3; Q.next = day + 1; Q.asked = null; });
-        if (!ok) await say([`Ten logs, matey. Chop down a tree with yer axe and a sturdy log falls out beside the wood. That's ${Q.got.logs || 0} so far.`]);
+        const ok = await hand('logs', 'logs', () => ['ship_log', 'wood'], ["Ten logs! Ha HA! She'll have a keel by sundown!", "Come back tomorrow. A ship's no good without provisions, and I've a list."], () => { Q.stage = 3; Q.next = day + 1; Q.asked = null; });
+        if (!ok) await say([`Ten logs, matey. Every swing of yer axe at a tree knocks one loose. That's ${Q.got.logs || 0} so far.`]);
         return true;
     }
     if (st === 3) {

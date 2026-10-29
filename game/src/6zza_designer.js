@@ -16,7 +16,8 @@ const WORLD0_GROUND = { grid: W0.grid.slice(), coll: W0.coll.slice(), water: W0.
 /* what a bridge can be laid over: a stream or pond, and the ground at its two ends */
 const BRIDGE_WET = new Set(['r', 'o']), BRIDGE_LAND = new Set(['g', 'd', 'p', 'c', 's']);
 const LIKE_ACTS = { stars: 'Stargazing', snack: 'An ice cream', phone: 'On their phone', book: 'Reading', ground: 'Sitting on the grass', paint: 'Painting',
-    cup: 'A mug of cocoa', fish: 'Fishing', bench: 'Sitting on a bench', scope: 'The telescope' };
+    cup: 'A mug of cocoa', fish: 'Fishing', bench: 'Sitting on a bench', scope: 'The telescope', dance: 'A little dance', stretch: 'A big stretch',
+    sky: 'Watching the sky', hum: 'Humming a tune' };
 const LIKE_LEVELS = [['Never', 'never'], ['Now and then', 'a little'], ['Likes', 'likes'], ['Loves', 'loves']];
 /* where each neighbor starts (David, 29 October: "a good starting place instead of creating each of them from nothing"),
    from who they are (PERSONA) and where they already like to be (NPC_DEFS fav): what they do more often or never with
@@ -24,7 +25,7 @@ const LIKE_LEVELS = [['Never', 'never'], ['Now and then', 'a little'], ['Likes',
    2 likes, 1 now and then, 0 never. The designer's own word for any of these takes its place (Design.like). */
 const LIKES_START = {
     maki: { acts: { book: 3, bench: 2, scope: 1, ground: 0 }, spots: { pond: 2, oldtree: 2, statue: 2 }, areas: { square: 2, meadow: 2, campsite: 1 } },
-    kai: { acts: { fish: 3, ground: 2, snack: 2, book: 1 }, spots: { beach: 3, pier: 3, bonfire: 3, harbor: 2, waterfall: 2 }, areas: { beach: 3, harbor: 2 } },
+    kai: { acts: { fish: 3, ground: 2, snack: 2, book: 1 }, spots: { beach: 3, pier: 3, cove: 3, bonfire: 3, harbor: 2, waterfall: 2 }, areas: { beach: 3, cove: 3, harbor: 2 } },
     basil: { acts: { ground: 3, cup: 2, stars: 2, phone: 0 }, spots: { meadow: 3, plaza: 2, farm: 2, beach: 1 }, areas: { meadow: 3, village: 2 } },
     wonton: { acts: { cup: 3, stars: 2, ground: 2, phone: 0 }, spots: { pond: 1 }, areas: { spring: 3 } },
     chili: { acts: { phone: 3, scope: 2, stars: 2, book: 1 }, spots: { lookout: 3, boardwalk: 2, bonfire: 2 }, areas: { lookout: 3, mountain: 2 } },

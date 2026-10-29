@@ -329,7 +329,7 @@ const Chats = {
     cool: {},
     free(n) {
         const w = n.want, d = n.def;
-        if (n.chat || n.idle || n.talking || n.script || n.path || n.sleeping || d.goat || d.spring || d.dj || d.shop || n.dancer) return false;
+        if (n.chat || n.idle || n.talking || n.script || n.path || n.sleeping || d.goat || d.spring || ((d.dj || d.shop) && atCounter(n)) || n.dancer) return false;
         if (w && w.playing) return false;
         if (n.fixed && !(w && (w.seat || w.sit))) return false;
         if ((n.chatCool || 0) > G.frame) return false;

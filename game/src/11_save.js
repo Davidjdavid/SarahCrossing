@@ -19,7 +19,7 @@ function newState() {
         mail: [], mailSeq: 1,
         dance: { songs: {}, moves: ['wave', 'happy', 'laugh', 'heart', 'yawn'] },
         council: { best: 0, lastDay: -1, plaques: [] },
-        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1, garden8: 1, square8: 1, lane8: 1, fortune8: 1, lamps9: 1, garden9: 1, planters10: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
+        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1, garden8: 1, square8: 1, lane8: 1, fortune8: 1, lamps9: 1, garden9: 1, planters10: 1, wasabi11: 1, layout11: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
         pottery: { seq: 1, pieces: {}, kiln: [], made: 0 },
         arcade: { tickets: 0, best: {}, plays: {}, free: {}, won: 0, claw: null, reach: {}, rival: {} },
         rope: { best: 0, day: -1, trophy: false },
@@ -141,6 +141,8 @@ function clearTiles(st, tiles) {
     if (st.flowers && st.flowers.planted) st.flowers.planted = st.flowers.planted.filter(f => { if (!on(f.x, f.y)) return true; back('seed_fl_' + f.kind); return false; });
     if (st.forest && st.forest.planted) st.forest.planted = st.forest.planted.filter(t => { if (!on(t.x, t.y)) return true; if (t.kind === 'money') st.money += t.amount || 0; else back(t.kind === 'fruit' ? t.fruit : t.kind === 'palm' ? 'coconut' : 'sapling'); return false; });
     if (st.drops) st.drops = st.drops.filter(d => { if ((d.area && d.area !== 'island') || !on(Math.floor(d.x / TILE), Math.floor(d.y / TILE))) return true; back(d.id); return false; });
+    if (st.planters) st.planters = st.planters.map(xy => { if (!xy || !on(xy[0], xy[1])) return xy; back('dp_planterbox'); return null; });
+    if (st.paths && st.paths.t) for (const k of busy) { delete st.paths.t[k]; if (st.paths.auto) delete st.paths.auto[k]; }
 }
 /* where in map 7's list of props the lamps taken out on 27 October were (the save step lamps9) */
 const LAMPS9_OUT = [27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 40, 49, 51, 55, 63, 65, 68];
@@ -328,6 +330,46 @@ function migrate(st) {
     if (!st.flags.flags9) {
         st.flags.flags9 = 1;
         clearTiles(st, W0.props.filter(p => p.kind === 'flagpole').map(p => ({ x: p.x, y: p.y })));
+    }
+    // DJ Wasabi's house on the lot east of Cuke's (David, 29 October): whatever of Sarah's stood there (or a building she
+    // moved onto it) comes back, and a letter says so
+    if (!st.flags.wasabi11) {
+        st.flags.wasabi11 = 1;
+        const b = W0.buildings.h_wasabi, tiles = [];
+        if (b) {
+            for (let j = -1; j <= b.h; j++) for (let i = -1; i <= b.w; i++) tiles.push({ x: b.x + i, y: b.y + j });
+            const busy = new Set(tiles.map(p => p.x + ',' + p.y));
+            if (st.buildMoved) for (const [id, to] of Object.entries(st.buildMoved)) {
+                const o = W0_ORIG.buildings[id];
+                for (let j = 0; o && j < o.h; j++) for (let i = 0; i < o.w; i++) if (busy.has((to.x + i) + ',' + (to.y + j))) { delete st.buildMoved[id]; j = o.h; break; }
+            }
+            clearTiles(st, tiles);
+            if (st.started) st.mail.push({ id: st.mailSeq++, from: 'wasabi', subject: 'NEW CRIB', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
+                body: "YOOO!\nGinger built me a HOUSE. East of Cuke's, out toward the lighthouse. Green roof. Speakers. You can't miss it. You can hear it.\n"
+                    + "Turns out a DJ needs sleep. Who knew. I'm up around noon, out in the sun a bit, and at the booth from the evening till the birds start.\n"
+                    + "When I'm out, the turntables run on autoplay. Dance whenever you want.\n- DJ Wasabi" });
+        }
+    }
+    // David's notes of 29 October (3): Fortune's shop and Mac's diner swap places on Market Lane, Maki's house moves in
+    // from the woods to just west of the square (a little pond where it stood), and Driftwood Cove on the west beach. A
+    // shop Sarah had moved goes to its new spot, and whatever of hers stood on the new tiles comes back to storage
+    if (!st.flags.layout11) {
+        st.flags.layout11 = 1;
+        const tiles = [], box = (b, m) => { for (let j = -m; j < b.h + m; j++) for (let i = -m; i < b.w + m; i++) tiles.push({ x: b.x + i, y: b.y + j }); };
+        for (const id of ['shop', 'restaurant', 'h_maki']) if (W0_ORIG.buildings[id]) box(W0_ORIG.buildings[id], 1);
+        for (let y = 0; y < W0.h; y++) for (let x = 0; x < W0.w; x++) if (Math.abs(x - 103) < 5 && Math.abs(y - 45) < 4 && W0.grid[y][x] === 'o') tiles.push({ x, y });
+        const busy = new Set(tiles.map(p => p.x + ',' + p.y));
+        if (st.buildMoved) for (const [id, to] of Object.entries(st.buildMoved)) {
+            const o = W0_ORIG.buildings[id];
+            let hit = !o || ['shop', 'restaurant', 'h_maki'].includes(id);
+            for (let j = 0; o && !hit && j < o.h; j++) for (let i = 0; i < o.w; i++) if (busy.has((to.x + i) + ',' + (to.y + j))) hit = true;
+            if (hit) delete st.buildMoved[id];
+        }
+        clearTiles(st, tiles);
+        if (st.started) st.mail.push({ id: st.mailSeq++, from: 'ginger', subject: 'Some shuffling around', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
+            body: 'Sarah! The crew moved a few things. Fortune\'s shop and Mac\'s diner swapped places on Market Lane, so the shop\'s nearer the square now.\n\n'
+                + 'Maki wanted to be closer to town, so we built a new house just west of the square, next to Fortune\'s. Where the old one stood in the woods there\'s a little pond now.\n\n'
+                + 'And the beach out west finally has a name: Driftwood Cove. Kai named it. Of course Kai named it.\n- Ginger' });
     }
     // the final update: glasses get their own slot (so Sarah can wear a hat too), and Joe is always her best friend
     if (!st.flags.v9) {

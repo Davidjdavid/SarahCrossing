@@ -1913,6 +1913,7 @@ function r3SkyThings(ctx) {
         const dark = G.lightStrength || 0;
         if (dark > 0.05) ctx.filter = `brightness(${1 - dark * 0.65})`;
         for (const s of SeaSky.sky) {
+            ctx.globalAlpha = s.fade == null ? 1 : Math.max(0, s.fade);
             if (s.kind === 'plane') {
                 if (!put(s.x, s.y, 64)) continue;
                 ctx.rotate(Math.atan2(s.vy, s.vx) + Math.PI / 2); spr(ctx, 'sky_plane', 0, 0);
@@ -1924,7 +1925,7 @@ function r3SkyThings(ctx) {
             const g = SeaSky.gullAt(i);
             if (put(g.x, g.y, 40 + g.up * 0.6)) spr(ctx, `cr_gull_fly${Math.floor((f.t + i * 7) / (f.flee != null ? 4 : 8)) % 2}`, 0, 0, g.vx < 0);
         }
-    } finally { R3.over = false; ctx.filter = 'none'; ctx.setTransform(1, 0, 0, 1, 0, 0); }
+    } finally { R3.over = false; ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.setTransform(1, 0, 0, 1, 0, 0); }
 }
 /* the lighthouse's beam once its lamp is lit again (the flat view's Beam): two beams turning from the lantern room */
 function r3Beam(ctx, sc) {

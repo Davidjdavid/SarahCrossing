@@ -306,7 +306,7 @@ Object.assign(EnvDolls, {
        down and in, inside its crown, as Animal Crossing's hats flatten the hair; one that sits on top is lifted to the
        hair's top; one that goes round the head goes round the hair (HAT_FIT) */
     hatFit(d, list, geo, acc) {
-        const F = HAT_FIT[acc], g = d.hatG;
+        const F = HAT_FIT[accBase(acc)], g = d.hatG;
         if (!F || !g) return;
         const R = DOLL2.R, off = DOLL2.HEAD - DOLL2.NECK, a = geo.attributes.position.array, n = a.length;
         const Y = i => (a[i + 1] - off) / R, Rr = i => Math.hypot(a[i], a[i + 2]) / R;

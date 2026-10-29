@@ -10,7 +10,8 @@ const SHOP_UP = {
     shop: {
         // (days counted from since)
         owner: 'fortune', names: ["Fortune's Goods", "Fortune's Goods & More", "Fortune's Emporium", "Fortune's Department Store"],
-        need: [null, { days: 7, spent: 0 }, { days: 20, spent: 80000 }, { days: 35, spent: 200000 }],
+        // (what's spent: 10,000 and 50,000, David, 29 October)
+        need: [null, { days: 7, spent: 0 }, { days: 20, spent: 10000 }, { days: 35, spent: 50000 }],
         hours: [[8, 22], [7, 23], [6, 24], [6, 24]], size: [[15, 7], [19, 7], [19, 9], [23, 9]],
         furn: [5, 7, 9, 12], walls: [1, 2, 2, 3], floors: [1, 2, 2, 3],
         perks: [null,
@@ -22,10 +23,10 @@ const SHOP_UP = {
         owner: 'clementine', names: ["Clementine's", "Clementine's Atelier", 'Maison Clementine'],
         need: [null, { days: 5, spent: 8000 }, { days: 15, spent: 30000 }],
         hours: [[9, 21], [9, 22], [8, 23]], size: [[11, 6], [13, 6], [15, 6]],
-        outfits: [4, 6, 99], accs: [3, 5, 99],
+        outfits: [4, 6, 99],
         perks: [null,
-            ['six outfits and five accessories every day', 'the look of the day: one outfit 25% off', 'open until 10 PM'],
-            ['the whole collection, every outfit and accessory, every day', 'the look of the day, 25% off', 'open 8 AM to 11 PM']],
+            ['six outfits every day', 'the look of the day: one outfit 25% off', 'open until 10 PM'],
+            ['every outfit, every day', 'the look of the day, 25% off', 'open 8 AM to 11 PM']],
     },
 };
 const SALE_OFF = { shop: 0.3, boutique: 0.25 }, WEEK_OFF = 0.15;

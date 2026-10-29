@@ -105,6 +105,7 @@ const HOUSE_BASE = {
     h_brulee: { wall: '#f7e7c4', roof: '#c98a3a', trim: '#8a5a2b', door: '#6b3f2a', sig: 'brulee' },
     h_mac: { wall: '#ffe08a', roof: '#3f6fb8', trim: '#ffffff', door: '#e0405a', sig: 'mac' },
     h_fortune: { wall: '#f4d9a0', roof: '#c8505a', trim: '#fff4dc', door: '#d49a3a', boxes: 1 },
+    h_wasabi: { wall: '#4a4450', roof: '#4a9a52', trim: '#2d2230', door: '#ffd84a', style: 'flat', band: 1, lamps: 1, sig: 'lights' },
 };
 const HOUSE_IDS = Object.keys(HOUSE_BASE);
 /* the things Ginger can change */

@@ -416,6 +416,7 @@ const PLACE_TALK = {
     statue: ["The lawn on Market Lane is the best spot for watching everyone go by. Shops on one side, sky on the other."],
     boardwalk: ['The boardwalk is the best place for a stroll. Arcade, restaurant, club. All the fun in one line.'],
     lookout: ['The lookout has the best view on the island. Try the telescope! You can see all the way to the horizon.'],
+    cove: ['Driftwood Cove is the quiet beach. Kai named it. Kai says the driftwood washes up there on purpose.', 'Out in Driftwood Cove the waves are small and the sand is warm. Good for doing nothing at all.'],
 };
 function placeKey(n) {
     if (n.area && n.area !== 'island') {

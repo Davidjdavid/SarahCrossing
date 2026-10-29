@@ -21,6 +21,12 @@ const IDLE_ACTS = {
     scope: { hand: null, face: 'happy' },
     // (a drink at a drinking fountain on the way somewhere: sipCheck)
     sip: { hand: null, face: 'happy' },
+    // (David, 29 October: livelier, so nobody just stands staring: a little dance to a tune in their head, a big stretch,
+    // a hand over the eyes watching the clouds or the boats, humming and swaying)
+    dance: { hand: null, face: 'joy' },
+    stretch: { hand: null, face: 'happy' },
+    sky: { hand: null, face: 'happy' },
+    hum: { hand: null, face: 'happy' },
 };
 /* what's carried on the way somewhere: a suitcase to or from a vacation, the farm's basket to the shop, the catch */
 const CARRY = { suitcase: { hand: 'style_suitcase', face: 'happy' }, crate: { hand: 'style_basket', face: 'happy' }, catch: { hand: 'style_bucket', face: 'happy' },
@@ -40,14 +46,21 @@ const IDLE_HELLO = {
     tend: ["Morning! The tomatoes like a drink before it gets hot. So do I.", 'Water, sun, a little pep talk. That\'s farming. The pep talk is the important part.', "Don't step on the carrots! They're shy."],
     crate: ["Fresh from the farm! I'm taking it to Fortune's. Carrots, tomatoes, a cabbage. And a cucumber. Not me. A different cucumber.", 'Delivery! The shop gets the best of the fields every morning. You can buy it there!'],
     catch: ["Look at this haul, dude! Well. Two fish. A haul is a state of mind.", "Off to sell these at Fortune's. Bro. The bucket's heavy. Respectfully."],
+    dance: ["Oh! You saw that? ...I have a song stuck in my head. It made me do it.", "Dance with me! Nobody's watching. Well. You are. Dance anyway!", "Practicing for the club. Wasabi says I have 'enthusiasm.' I think that's a compliment."],
+    stretch: ["Mmmmph! A good stretch fixes everything. Almost everything.", "Stretching! I've been sitting too long. Or standing too long. One of those.", "Reach for the sky! ...Okay, I can't reach it. But I reached."],
+    sky: ["See that cloud? It's shaped like a fish. Or a boat. Or a fish on a boat.", "Just watching the sky. It never shows the same thing twice.", "Was that a bird or a plane? It was a bird. I think. It waved."],
+    hum: ["Hmm hm hmmm... Oh! Hi! I didn't know anyone could hear that.", "It's a song I made up. It goes 'hmm hm hmmm.' That's the whole song.", "Humming makes the walk go faster. Even when I'm not walking."],
     groceries: ["Just did my shopping! Fortune had the farm's carrots in this morning. Still a little muddy. That's how you know.", "Groceries! I have a plan for dinner. The plan is: everything in this bag.", "I only went in for bread. Look at this bag. LOOK at it."],
 };
+/* how often each comes up for someone who doesn't especially like it (a little dance now and then, not all day) */
+const IDLE_EVERY = { dance: 0.5, stretch: 0.7, hum: 0.8 };
 /* who likes what (picked four times as often) */
-const IDLE_LIKES = { joe: 'book', brulee: 'paint', coco: 'phone', sully: 'cup', mac: 'snack', cece: 'snack', clementine: 'paint', kai: 'fish', cuke: 'stars', maki: 'book', chili: 'phone', ginger: 'cup', basil: 'ground', wonton: 'cup', scampi: 'fish', mug: 'cup' };
+const IDLE_LIKES = { joe: 'book', brulee: 'paint', coco: 'phone', sully: 'cup', mac: 'snack', cece: 'snack', clementine: 'paint', kai: 'fish', cuke: 'stretch', maki: 'book', chili: 'dance', ginger: 'cup', basil: 'ground', wonton: 'cup', scampi: 'sky', mug: 'cup',
+    wasabi: 'dance', fortune: 'hum', floss: 'phone', waffle: 'sky' };
 
 function idleStart(n) {
     const d = n.def, w = n.want;
-    if (n.fixed || !n.anchor || d.goat || d.spring || d.dj || d.shop || n.dancer || isSeated(n) || isLounging(n) || (w && (w.playing || w.sit || w.seat || w.jog || w.lounge || w.sleep || w.bags || w.carry))) return;
+    if (n.fixed || !n.anchor || d.goat || d.spring || n.dancer || isSeated(n) || isLounging(n) || (w && (w.playing || w.sit || w.seat || w.jog || w.lounge || w.sleep || w.bags || w.carry))) return;
     const h = Clock.hourF(), out = n.area === 'island', wet = G.weather === 'rain' || G.weather === 'snow';
     const tx = Math.floor(n.x / TILE), ty = Math.floor((n.y - 2) / TILE), a = G.areas[n.area];
     // (their day says what: watering the fields, or a line in the water where there's water ahead)
@@ -66,15 +79,20 @@ function idleStart(n) {
         paint: out && !wet && h >= 8 && h < 18 && !!a && !a.blockedAt(tx, ty - 1),
         cup: h < 11 || h >= 17,
         fish: out && h >= 6 && h < 20 && !!idleWater(n, a),
+        dance: !wet && h >= 9 && h < 23,
+        stretch: h < 12 || (h >= 15 && h < 17),
+        sky: out && !wet && h >= 7 && h < 18.5 && G.weather !== 'cloudy',
+        hum: true,
     };
-    const like = IDLE_LIKES[n.id], pool = Object.keys(can).filter(k => can[k]).map(k => [k, Design.likeWeight(n.id, k, k === like ? 4 : 1)]).filter(k => k[1] > 0);
+    const like = IDLE_LIKES[n.id], pool = Object.keys(can).filter(k => can[k]).map(k => [k, Design.likeWeight(n.id, k, k === like ? 4 : IDLE_EVERY[k] || 1)]).filter(k => k[1] > 0);
     if (!pool.length) return;
     const kind = weighted(pool, R);
-    n.idle = { kind, until: G.t + 600 + rint(0, 900) };
+    n.idle = { kind, until: G.t + 900 + rint(0, 1500) };
+    if (kind === 'hum' || kind === 'dance') { n.emote = 'note'; n.emoteT = 80; }
     // (the painter faces the easel, its canvas toward us; the stargazer and the one on the grass face us)
     if (kind === 'paint') { n.dir = 'up'; n.flip = false; }
     else if (kind === 'fish') { const w = idleWater(n, a); faceNpc(n, { x: (w[0] + 0.5) * TILE, y: (w[1] + 0.5) * TILE }); }
-    else if (kind === 'stars' || kind === 'ground') n.dir = 'down';
+    else if (kind === 'stars' || kind === 'ground' || kind === 'dance') n.dir = 'down';
 }
 
 /* a free seat on a bench near where they're spending this part of the day: they go and sit for a while (n.benchIdle,
@@ -236,6 +254,21 @@ Object.assign(EnvDolls, {
         else if (k === 'sip') Object.assign(W, { aRx: -0.75, eR: -0.6, aRz: 0.1, bx: 0.3, hx: 0.25 });
         // (at the telescope: bent to the eyepiece, both hands on the tube, turning it a little now and then)
         else if (k === 'scope') { const sw = Math.sin(t / 70 + seed) * 0.06; Object.assign(W, { aLx: -1.25, aRx: -1.25, eL: -0.9, eR: -0.9, aLz: -0.18 + sw, aRz: 0.18 + sw, bx: 0.22, hx: 0.1, bz: sw * 0.5 }); }
+        // (a little dance: bobbing on a beat of its own, hips swaying, arms pumping in turn)
+        else if (k === 'dance') {
+            const ph = (t + seed * 13) / 9, b = Math.abs(Math.sin(ph)), sw = Math.sin(ph / 2);
+            Object.assign(W, { by: -b * 0.025, kL: 0.12 + b * 0.3, kR: 0.12 + b * 0.3, lL: -b * 0.12, lR: -b * 0.12, bz: sw * 0.1, bx: 0.03, hz: -sw * 0.08, hx: -0.04 - b * 0.06, hy: sw * 0.2,
+                aLx: -0.6 + sw * 0.5, aRx: -0.6 - sw * 0.5, aLz: -0.35, aRz: 0.35, eL: -1.2 + b * 0.25, eR: -1.2 + b * 0.25 });
+        }
+        // (a big stretch: arms up over the head, leaning one way then the other, then a rest)
+        else if (k === 'stretch') {
+            const ph = (t + seed * 29) % 360, up = ph < 200 ? Math.sin(Math.min(1, ph / 40) * Math.PI / 2) * (ph > 160 ? (200 - ph) / 40 : 1) : 0, side = Math.sin(ph / 40) * up;
+            Object.assign(W, { aLz: -0.2 - 2.4 * up, aRz: 0.2 + 2.4 * up, aLx: -0.1 * up, aRx: -0.1 * up, eL: -0.3 * up, eR: -0.3 * up, bz: side * 0.18, bx: -0.1 * up, hx: -0.25 * up, hz: side * 0.1 });
+        }
+        // (watching the sky: a hand up shading the eyes, the head tipped back and turning slowly)
+        else if (k === 'sky') Object.assign(W, { aRx: -1.55, aRz: 0.55, eR: -1.75, hx: -0.32, hy: Math.sin(t / 90 + seed) * 0.45, aLx: 0.1, aLz: -0.12, bx: -0.05 });
+        // (humming: swaying from side to side, the hands loose and swinging with it, the head tilting along)
+        else if (k === 'hum') { const sw = Math.sin((t + seed * 17) / 22); Object.assign(W, { bz: sw * 0.09, hz: sw * 0.14, hx: -0.06, aLx: sw * 0.25, aRx: -sw * 0.25, aLz: -0.12, aRz: 0.12, eL: -0.3, eR: -0.3 }); }
     },
     /* a folk's: its arms ({ up, fwd } for the right, side +1, and the left), how it leans */
     idleFolk(e, t, seed) {
@@ -249,6 +282,11 @@ Object.assign(EnvDolls, {
         if (k === 'tend') { const b = lift(150, 60); return { lean: 0.1 + 0.08 * b, R: { up: 0.3 + 0.3 * b, fwd: -0.9 }, L: null }; }
         if (k === 'scope') return { lean: 0.18, R: { up: 0.75, fwd: -1.1 }, L: { up: 0.75, fwd: -1.1 } };
         if (k === 'sip') return { lean: 0.3, R: { up: 0.45, fwd: -1.0 }, L: null };
+        // (a folk's dance: hopping on the beat, rocking and turning, both arms going)
+        if (k === 'dance') { const b = Math.abs(Math.sin(ph / 9)); return { lean: 0, lift: b * 0.06, sq: 0.06 * b - 0.035, roll: Math.sin(ph / 18) * 0.15, yaw: Math.sin(ph / 36) * 0.4, R: { up: 0.85 + Math.sin(ph / 9) * 0.5, fwd: -0.25 }, L: { up: 0.85 - Math.sin(ph / 9) * 0.5, fwd: -0.25 } }; }
+        if (k === 'stretch') { const p = ph % 360, up = p < 200 ? Math.min(1, p / 40) * (p > 160 ? (200 - p) / 40 : 1) : 0; return { lean: -0.15 * up, sq: -0.05 * up, roll: Math.sin(p / 40) * 0.12 * up, R: { up: 0.3 + 1.1 * up, fwd: 0 }, L: { up: 0.3 + 1.1 * up, fwd: 0 } }; }
+        if (k === 'sky') return { lean: -0.22, yaw: Math.sin(t / 90 + seed) * 0.35, R: { up: 1.1, fwd: -0.9 }, L: null };
+        if (k === 'hum') { const sw = Math.sin(ph / 22); return { lean: 0, roll: sw * 0.12, R: { up: 0.15 + sw * 0.1, fwd: 0 }, L: { up: 0.15 - sw * 0.1, fwd: 0 } }; }
         return { lean: 0, R: null, L: null };
     },
 });

@@ -12,7 +12,7 @@ const ORDINANCES = [['none', 'No ordinance', 'The island as it is.'], ['early', 
     ['nature', 'Nature Conservation', 'Young trees grow in two days, picked flowers come back sooner, and there is more wildlife about.']];
 /* the landmarks that can be renamed: their key, what they're called now (the map's names) */
 const LANDMARKS = [['pond', 'Pond'], ['forest', 'Forest'], ['mountain', 'Mountain'], ['lookout', 'Lookout'], ['waterfall', 'Waterfall'], ['beach', 'Beach'],
-    ['orchard', 'Orchard'], ['glade', 'The glade'], ['eastmeadow', 'East meadow'], ['oldtree', 'Old tree'], ['campsite', 'Campsite'], ['spring', 'Hot spring']];
+    ['orchard', 'Orchard'], ['glade', 'The glade'], ['eastmeadow', 'East meadow'], ['oldtree', 'Old tree'], ['campsite', 'Campsite'], ['spring', 'Hot spring'], ['cove', 'Driftwood Cove']];
 /* the holidays big enough to hold late */
 const BIG_HOLIDAYS = ['egghunt', 'fishoff', 'oceansday', 'earthday', 'halloween', 'toyday', 'feastday', 'harvest', 'flowerfest', 'winterfest', 'lights', 'blossom', 'stargazing'];
 const FLAG_W = 16, FLAG_H = 10, FLAG_PAL = ['#fbf8f2', '#e8443a', '#f4c040', '#4aa85a', '#3a7ad8', '#9a5ad8', '#f49ac0', '#3b2a2a'];
@@ -44,7 +44,7 @@ function townWake(wake, bed, id) {
 }
 /* the places a good friend likes going in their free time, picked at the Residents screen (up to two) */
 const RES_SPOTS = { plaza: 'The square', beach: 'The beach', pier: 'The pier', pond: 'The pond', waterfall: 'The waterfall', meadow: 'The meadow', lookout: 'The lookout',
-    harbor: 'The harbor', boardwalk: 'The Boardwalk', orchard: 'The orchard', farm: 'The farm', oldtree: 'The old tree', statue: 'The Market Lane lawn', bonfire: 'The bonfire' };
+    harbor: 'The harbor', boardwalk: 'The Boardwalk', orchard: 'The orchard', farm: 'The farm', oldtree: 'The old tree', statue: 'The Market Lane lawn', bonfire: 'The bonfire', cove: 'Driftwood Cove' };
 function townSpots(id) {
     const sc = CIVIC_PREVIEW && id && S && S.town && S.town.sched && S.town.sched[id];
     return sc && sc.spots ? sc.spots.filter(k => W0.spots[k]) : [];

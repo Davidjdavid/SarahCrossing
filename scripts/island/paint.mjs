@@ -62,13 +62,21 @@ export function paintGround(P, world, srcDir) {
     return COB[hash(col, row, 5) % COB.length];
   };
   const PATH = { base: 53, k: [[47, 10], [27, 7], [43, 5], [31, 7], [230, 6], [202, 5], [69, 2], [188, 1]] };
-  const DIRT = { base: 134, k: [[135, 10], [137, 9], [83, 6], [231, 8], [201, 5], [62, 4], [186, 2], [188, 1]] };
-  for (const E of [PATH, DIRT]) { E.tbl = []; for (const [i, n] of E.k) for (let j = 0; j < n; j++) E.tbl.push(i); while (E.tbl.length < 100) E.tbl.push(E.base); }
+  // the hiking trails (forest and mountain): a darker, muddier earth than the paths, in colors that stay brown all year,
+  // with wet patches darker still (David, 29 October: "a less used path on the island")
+  const MUD = { base: 113, k: [[186, 14], [188, 8], [63, 12], [60, 10], [252, 6], [37, 3], [137, 5], [161, 6], [26, 2]] };
+  for (const E of [PATH, MUD]) { E.tbl = []; for (const [i, n] of E.k) for (let j = 0; j < n; j++) E.tbl.push(i); while (E.tbl.length < 100) E.tbl.push(E.base); }
   // little clumps of two or three pixels, like the first island's paths
   const earth = (E, X, Y) => {
     const cx = Math.floor((X + (hash(Math.floor(Y / 2), 3) & 1)) / 2), cy = Math.floor(Y / 2);
     const v = hash(cx, cy, 11) % 100, w = hash(X, Y, 12) % 100;
     return w < 8 ? E.tbl[(v + w * 7) % 100] : E.tbl[v];
+  };
+  const nm = noise(43);
+  const mud = (X, Y) => {
+    const v = nm(X / 11, Y / 11) * 0.75 + nm(X / 4 + 50, Y / 4) * 0.25;
+    if (v > 0.42) return v > 0.56 && hash(X, Y, 14) % 5 ? 252 : hash(X, Y, 15) % 6 ? 60 : 63;
+    return earth(MUD, X, Y);
   };
   const nw = noise(7), nh = noise(8);
   const wat = (c, X, Y) => {
@@ -82,7 +90,7 @@ export function paintGround(P, world, srcDir) {
   const texAt = (c, X, Y) => {
     switch (c) {
       case 'p': return earth(PATH, X, Y);
-      case 'd': return earth(DIRT, X, Y);
+      case 'd': return mud(X, Y);
       case 'c': return cobble(X, Y);
       case 'o': case 'r': case 'h': return wat(c, X, Y);
       case 'g': case 'm': case 's': case '~': return copied(c, X, Y);

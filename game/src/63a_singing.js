@@ -163,8 +163,11 @@ const Singer = {
         P = P || VOICES.sarah;
         const f = P.f || 440;
         const vib = P.vib ? [clamp(P.vib[0], 4.5, 9), clamp(1200 * Math.log2((f + P.vib[1]) / f), 15, 70)] : [5.4, 30];
-        return { shift: masc || f < 300 ? -24 : f >= 650 ? 0 : -12, bright: P === VOICES.sarah ? 1.3 : { sawtooth: 1.0, square: 1.15, triangle: 1.4, sine: 1.5 }[P.w] || 1.35,
-            odd: P.w === 'square', fk: masc ? 0.86 : clamp(Math.pow(f / 520, 0.35), 0.86, 1.18), vibHz: vib[0], vibC: vib[1],
+        // (a neighbor sings in their own register and with their own mouth, further from Sarah's than their talking voice:
+        // David, 29 October, "the NPCs sound like Sarah, I can't tell when they are singing")
+        const npc = P !== VOICES.sarah && !masc;
+        return { shift: masc || f < 300 ? -24 : f >= 650 || (npc && f >= 420) ? 0 : -12, bright: P === VOICES.sarah ? 1.3 : { sawtooth: 1.0, square: 1.15, triangle: 1.4, sine: 1.5 }[P.w] || 1.35,
+            odd: P.w === 'square', fk: masc ? 0.86 : npc ? clamp(Math.pow(f / 520, 0.6), 0.74, 1.35) : clamp(Math.pow(f / 520, 0.35), 0.86, 1.18), vibHz: vib[0], vibC: vib[1],
             breath: 0.025 + (P.breath || 0) * 2 + (P.airy ? 0.08 : 0) };
     },
     /* one singer's voice, into dest: silent until tick says they're singing */

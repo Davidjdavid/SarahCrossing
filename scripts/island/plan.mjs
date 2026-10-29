@@ -34,7 +34,10 @@ export const PLAN = {
     { pts: [[173,27],[173,40],[173,53.5],[173,63.5]], w: 2 },
     { pts: [[173,63.5],[176,70],[182.5,80],[187,91.5],[188,102.5],[186,110],[184.5,113],[184.5,119],[182,126],[180,134]], w: 3 },
   ],
-  ponds: [{ x: 173, y: 27.5, rx: 3, ry: 2 }, { x: 98.5, y: 56, rx: 4.5, ry: 2.9 }, { x: 83, y: 45.5, rx: 1.6, ry: 1.1 }, { x: 174, y: 67.5, rx: 2.8, ry: 1.8 }],
+  // (a little pond where Maki's house stood, in its clearing, David, 29 October: smaller than the pond, bigger than the bit
+  // of water west of it)
+  ponds: [{ x: 173, y: 27.5, rx: 3, ry: 2 }, { x: 98.5, y: 56, rx: 4.5, ry: 2.9 }, { x: 83, y: 45.5, rx: 1.6, ry: 1.1 }, { x: 174, y: 67.5, rx: 2.8, ry: 1.8 },
+    { x: 103.5, y: 45, rx: 2.8, ry: 1.9 }],
   plaza: { x0: 93, y0: 89, x1: 139, y1: 113 },
   // (Market Lane two tiles further south than at first, David's call on 27 October: more room between the two rows)
   streets: [{ pts: [[139,106.5],[152,106.5],[165,106],[182,106]], w: 3 }, { pts: [[139,97],[160,97],[182,97]], w: 2 }, { pts: [[117,113],[117,125]], w: 4 }],
@@ -47,21 +50,22 @@ export const PLAN = {
     { pts: [[51.5,74.2],[47.4,74.6]], w: 1.2 },
     // the forest: a cliff walk along its edge, loops round the pond, the old tree and the glade
     { pts: [[110,89],[110,84],[110,79],[110,75],[110,72.5]] },
-    { pts: [[80.5,53.4],[82.5,58],[86,62],[96,67],[110,72.5],[124,73],[138,70],[150,64],[157,61]] },
-    { ring: [98.5, 56, 9.5, 6.5] },
-    { pts: [[98.5,62.5],[98.5,68]] },
-    { ring: [120, 57, 7, 7] },
-    { pts: [[108,56],[113,57]] },
-    { pts: [[120,64],[120,72.6]] },
-    { pts: [[120,50],[123,44],[125,38],[125,32],[126,27],[126,23]] },
-    { pts: [[89,56],[80,53],[70,49],[63,44],[57.5,41.5],[54.3,40]] },
-    { pts: [[91.8,51.4],[88,48],[85,46.5]], w: 1.5 },
-    { ring: [141, 47, 4.5, 4.5] },
-    { pts: [[124,41],[130,44],[136.5,47]] },
-    { pts: [[141,51.5],[141,60.4]] },
-    { pts: [[127,57],[136,60],[148,61],[160,61],[173,60],[182,63],[190,66],[197,67]] },
-    // the mountain trail, from the hot spring up three cliffs to the lookout
-    { pts: [[197,67],[206,64.5],[210.5,60],[210.5,52.5],[206,49],[195,47],[188,42.5],[188,34.5],[195,31],[206,28],[209.5,24.5],[208,19],[203,16],[198,16]] },
+    { pts: [[80.5,53.4],[82.5,58],[86,62],[96,67],[110,72.5],[124,73],[138,70],[150,64],[157,61]], w: 1.6, trail: true },
+    { ring: [98.5, 56, 9.5, 6.5], w: 1.6, trail: true },
+    { pts: [[98.5,62.5],[98.5,68]], w: 1.6, trail: true },
+    { ring: [120, 57, 7, 7], w: 1.6, trail: true },
+    { pts: [[108,56],[113,57]], w: 1.6, trail: true },
+    { pts: [[120,64],[120,72.6]], w: 1.6, trail: true },
+    { pts: [[120,50],[123,44],[125,38],[125,32],[126,27],[126,23]], w: 1.6, trail: true },
+    { pts: [[89,56],[80,53],[70,49],[63,44],[57.5,41.5],[54.3,40]], w: 1.6, trail: true },
+    { pts: [[91.8,51.4],[88,48],[85,46.5]], w: 1.5, trail: true },
+    { ring: [141, 47, 4.5, 4.5], w: 1.6, trail: true },
+    { pts: [[124,41],[130,44],[136.5,47]], w: 1.6, trail: true },
+    { pts: [[141,51.5],[141,60.4]], w: 1.6, trail: true },
+    { pts: [[127,57],[136,60],[148,61],[160,61],[173,60],[182,63],[190,66],[197,67]], w: 1.6, trail: true },
+    // the mountain trail, from the hot spring up three cliffs to the lookout (the forest's paths and this are trails: darker,
+    // muddy, less trodden, David, 29 October)
+    { pts: [[197,67],[206,64.5],[210.5,60],[210.5,52.5],[206,49],[195,47],[188,42.5],[188,34.5],[195,31],[206,28],[209.5,24.5],[208,19],[203,16],[198,16]], w: 1.6, trail: true },
     // town to the orchard, the river, the lighthouse (and down to its beach) and up to the hot spring
     { pts: [[141.5,90],[147,85],[158,82],[170,83],[178,90],[182,99],[182,104]] },
     { pts: [[170,83],[174,77],[173,72.5]], w: 1.6 },
@@ -116,6 +120,8 @@ export const PLAN = {
   areas: [
     { id: 'farm', name: 'the farm', rects: [[8, 12, 87, 48]] },
     { id: 'village', name: 'the west village', rects: [[14, 62, 84, 52]] },
+    // (the little beach under the cliffs in the west, reached only by the narrow way down from the farm, David, 29 October)
+    { id: 'cove', name: 'Driftwood Cove', rects: [[8, 58, 20, 13]] },
     { id: 'woods', name: 'the woods', rects: [[95, 12, 65, 64]] },
     { id: 'mountain', name: 'the mountain', rects: [[160, 5, 58, 55]] },
     { id: 'eastside', name: 'the east side', rects: [[180, 76, 38, 42]] },
@@ -159,12 +165,12 @@ export const PLAN = {
     { id: 'studio', x: 157, y: 93, w: 5, h: 3, door: 2, sprite: 'studio', front: 'studiofront' },
     { id: 'displays', x: 165, y: 93, w: 5, h: 3, door: 2, sprite: 'displays', front: 'displaysfront' },
     // Market Lane
-    { id: 'restaurant', x: 143, y: 102, w: 5, h: 3, door: 2, sprite: 'restaurant', front: 'restaurantfront' },
+    // (Fortune's and Mac's swapped places, David, 29 October: Fortune's at the lane's west end, Mac's at its east end)
+    { id: 'shop', x: 143, y: 102, w: 5, h: 3, door: 2, sprite: 'shop', front: 'shopfront' },
     { id: 'arcade', x: 151, y: 102, w: 5, h: 3, door: 2, sprite: 'arcade', front: 'arcadefront' },
     { id: 'club', x: 159, y: 102, w: 6, h: 3, door: 3, sprite: 'club', front: 'clubfront' },
     { id: 'builder', x: 168, y: 102, w: 5, h: 3, door: 2, sprite: 'builder', front: 'builderfront' },
-    // Fortune's shop at the lane's east end (David, 27 October: on the shopping street, and Fortune a house of their own)
-    { id: 'shop', x: 175, y: 102, w: 5, h: 3, door: 2, sprite: 'shop', front: 'shopfront' },
+    { id: 'restaurant', x: 175, y: 102, w: 5, h: 3, door: 2, sprite: 'restaurant', front: 'restaurantfront' },
     { id: 'lighthouse', x: 208, y: 108, w: 3, h: 3, door: 1, sprite: 'lighthouse', front: 'lighthousefront' },
     { id: 'barn', x: 52, y: 23, w: 5, h: 3, door: 2, sprite: 'barn' },
     { id: 'home', x: 57, y: 81, w: 4, h: 3, door: 2, sprite: 'house_sarah', link: [[59.5,90.7]] },
@@ -178,7 +184,8 @@ export const PLAN = {
     { id: 'h_joe', x: 42, y: 107, w: 3, h: 3, door: 1, link: [[43.5,110],[38.4,110]] },
     { id: 'h_ginger', x: 72, y: 22, w: 3, h: 3, door: 1, link: [[73.5,25.5]] },
     { id: 'h_cece', x: 38, y: 25, w: 3, h: 3, door: 1, link: [[39.5,28.5]] },
-    { id: 'h_maki', x: 102, y: 43, w: 3, h: 3, door: 1, link: [[103.5,46],[102.5,50.2]] },
+    // (Maki moved into town from the woods, beside the square, David, 29 October)
+    { id: 'h_maki', x: 86, y: 99, w: 3, h: 3, door: 1, link: [[87.5,103],[87.5,107]] },
     { id: 'h_cuke', x: 191, y: 92, w: 3, h: 3, door: 1, link: [[192.5,95],[193,101.6]] },
     { id: 'h_kai', x: 50, y: 117, w: 3, h: 3, door: 1 },
     { id: 'h_fortune', x: 88, y: 88, w: 3, h: 3, door: 1, link: [[89.5,92.5],[86,92.5]] },
@@ -243,7 +250,7 @@ export const PLAN = {
     plaza: [117, 97, 4], plaza_w: [104, 98, 1], plaza_e: [130, 104, 2], bench_w: [112, 109, 1], bench_e: [122, 109, 1], board: [106, 101, 1],
     garden: [64, 85, 2], village: [50, 98, 3], statue: [154, 113, 2], bench_statue: [96, 111, 1], bench_museum: [130, 92, 1],
     boardwalk: [156, 111, 3], bench_boardwalk: [167, 111, 1], alley: [161, 98, 2],
-    beach_w: [44, 121, 3], beach: [90, 124, 4], bench_beach: [87, 122, 1], beach_e: [142, 125, 3], beach_far: [196, 122, 3], harbor: [128, 122, 3],
+    beach_w: [44, 121, 3], cove: [18, 65, 3], beach: [90, 124, 4], bench_beach: [87, 122, 1], beach_e: [142, 125, 3], beach_far: [196, 122, 3], harbor: [128, 122, 3],
     pier: [117, 126, 1], pier_end: [117, 145, 0], bonfire: [65, 125, 2],
     pond: [99, 65, 2], bench_pond: [102, 65, 1], forest: [109, 62, 3], oldtree: [120, 60, 2], meadow: [141, 44, 3], bench_meadow: [141, 49, 1],
     campsite: [126, 24, 3], picnic_forest: [114, 23, 1],

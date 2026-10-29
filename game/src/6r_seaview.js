@@ -196,7 +196,7 @@ const SeaView = {
                 g.fillStyle = on ? '#ffffff' : 'rgba(255,255,255,0.35)'; g.fillRect(sx - rr / 2, sy - rr / 2, rr, rr);
             }
             // a shooting star now and then
-            if (!this.shoot && Math.random() < 0.004) this.shoot = { x: 0.2 + Math.random() * 0.6, y: 0.05 + Math.random() * 0.2, t: 0 };
+            if (!this.shoot && starNight() && Math.random() < 0.004) this.shoot = { x: 0.2 + Math.random() * 0.6, y: 0.05 + Math.random() * 0.2, t: 0 };
             if (this.shoot) {
                 const S0 = this.shoot; S0.t += 1 / 60;
                 const x1 = (S0.x + S0.t * 0.5) * W, y1 = (S0.y + S0.t * 0.25) * hz;

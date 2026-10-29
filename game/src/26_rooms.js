@@ -76,6 +76,10 @@ const HOUSE_LAYOUT = {
         ['art_stilllife', 0, 'wall'], ['window_wall', 3, 'wall'], ['art_seaside', 5, 'wall'],
         ['easel', 0, 0], ['pedestal', 2, 0], ['rose_vase', 2, 0], ['bed_simple', 5, 0], ['rug_round', 2, 2],
         ['museum_bench', 0, 3], ['table_wood', 5, 3], ['art_supplies', 5, 3], ['plant_monstera', 6, 4]] },
+    wasabi: { wall: 'wall_disco', floor: 'floor_wood', items: [
+        ['neon_sign', 0, 'wall'], ['window_wall', 3, 'wall'], ['poster_blocks', 5, 'wall'], ['disco_ball', 6, 'wall'],
+        ['turntables', 0, 0], ['speaker', 2, 0], ['lamp_floor', 4, 0], ['bed_simple', 5, 0], ['light_floor', 2, 2],
+        ['beanbag', 0, 3], ['record_player', 6, 3], ['snack_machine', 6, 4]] },
     mac: { wall: 'wall_diner', floor: 'floor_diner', items: [
         ['menu_board', 0, 'wall'], ['window_wall', 3, 'wall'], ['clock_wall', 5, 'wall'],
         ['kitchenette', 0, 0], ['bed_simple', 5, 0], ['rug_round', 2, 1],
@@ -564,7 +568,7 @@ function buildBoutiqueRoom(a) {
         const accs = table.accs = st.clothes.filter(id => ITEMS[id].type === 'acc');
         table.draw = ctx => {
             spr(ctx, table.frame, table.x, table.y);
-            accs.slice(0, 3).forEach((id, i) => spr(ctx, ITEMS[id].icon, table.x - 10 + i * 10, table.y - 12));
+            accs.slice(0, 5).forEach((id, i, all) => spr(ctx, ITEMS[id].icon, table.x + (i - (all.length - 1) / 2) * 7, table.y - 12));
         };
     }
 }

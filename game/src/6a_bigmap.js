@@ -131,7 +131,7 @@ const BigMap = {
             fall: ['#a9bd5c', '#b5c566', '#c0cc70', '#cad37a', '#d3d984', '#dbdf8e'], winter: ['#dfe9ec', '#e5eef0', '#eaf2f3', '#eff5f6', '#f3f8f9', '#f7fbfb'] }[season] || null;
         const G2 = grass || ['#86cf63', '#94d770', '#a2de7c', '#b0e488', '#bde994', '#c9ee9f'];
         const ch = (x, y) => (GR[y] && GR[y][x]) || '~', lv = (x, y) => +((HT[y] || [])[x]) || 0;
-        const COL = { s: '#f2e2ae', p: '#e6cf98', d: '#d9bc84', c: '#d6d0c2', F: '#c4975e', w: '#b78757', x: '#c8eef4', h: '#c8eef4', o: '#62bde0', r: '#62bde0', W: '#a8e0f2', m: '#a7ad8f' };
+        const COL = { s: '#f2e2ae', p: '#e6cf98', d: '#b89262', c: '#d6d0c2', F: '#c4975e', w: '#b78757', x: '#c8eef4', h: '#c8eef4', o: '#62bde0', r: '#62bde0', W: '#a8e0f2', m: '#a7ad8f' };
         const MAP_PATH = { dirt: COL.d, stone: COL.c, brick: '#cf9a7c', planks: COL.w };
         for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
             const k = ch(x, y);
@@ -286,7 +286,7 @@ const BigMap = {
             placed.push({ x: x - size * 0.62, y: y - size * 0.62, w: size * 1.24, h: size * 1.24 });
         };
         const names = { home: 'Home', shop: "Fortune's", club: 'Club Wasabi', boutique: 'Boutique', studio: 'Pottery', arcade: 'Arcade',
-            builder: "Ginger's Workshop", museum: 'Museum', restaurant: "Mac's Diner", barn: 'Barn', salon: 'Salon', displays: "Waffle's",
+            builder: "Ginger's", museum: 'Museum', restaurant: "Mac's Diner", barn: 'Barn', salon: 'Salon', displays: "Waffle's",
             lighthouse: 'Lighthouse', townhall: 'Town Hall', postoffice: 'Post Office', bank: 'Bank' };
         const small = z < this.zMin * 1.35;
         // Sarah first (a pulsing dot), so nothing covers her
@@ -294,6 +294,8 @@ const BigMap = {
         const pulse = 1 + 0.25 * Math.sin(Date.now() / 220);
         const houses = Object.entries(W0.buildings).filter(([id]) => id.startsWith('h_') && NPC_DEFS[id.slice(2)]);
         for (const [id, b] of houses) face(id.slice(2), (b.x + b.w / 2) * K, (b.y + b.h * 0.3) * K);
+        // (Wonton has no house: his face in the middle of his spring, David, 29 October)
+        if (W0.wonton) face('wonton', W0.wonton[0] * K, W0.wonton[1] * K);
         g.fillStyle = 'rgba(255,255,255,0.9)';
         g.beginPath(); g.arc(px, py, 8 * pulse, 0, 7); g.fill();
         g.fillStyle = '#b3263a';
@@ -301,7 +303,10 @@ const BigMap = {
         label((px - ox) / z, (py + 18 - oy) / z, G.area.id === 'island' ? 'Sarah' : 'Sarah (inside)', '#ffd1dc', false, true);
         for (const [id, b] of Object.entries(W0.buildings)) {
             // (the lighthouse's picture stands taller than its footprint: named over its lamp)
-            if (names[id]) label((b.x + b.w / 2) * K, (id === 'lighthouse' ? b.y + b.h - 5.6 : b.y - 0.2) * K, names[id], id === 'home' ? '#ffd1dc' : '#ffe9a8', id === 'home');
+            // (a name with no room above, where the shops stand close in a row, goes underneath: Ginger's workshop between the
+            // club and Fortune's had none, David, 29 October)
+            if (names[id] && !label((b.x + b.w / 2) * K, (id === 'lighthouse' ? b.y + b.h - 5.6 : b.y - 0.2) * K, names[id], id === 'home' ? '#ffd1dc' : '#ffe9a8', id === 'home'))
+                if (!label((b.x + b.w / 2) * K, (b.y + b.h + 0.7) * K, names[id], '#ffe9a8')) label((b.x + b.w / 2) * K, (b.y + b.h * 0.5) * K, names[id], '#ffe9a8', false, true);
         }
         // then the neighbors' houses, named right under the owner's face ("Maki's"; zoomed in: "Maki's house")
         for (const [id, b] of houses) {
@@ -316,6 +321,7 @@ const BigMap = {
             [landmarkName('spring', 'Hot spring'), W0.wonton[0], W0.wonton[1] - 4], [landmarkName('beach', 'Beach'), sp.beach.x, sp.beach.y + 2], [landmarkName('campsite', 'Campsite'), sp.campsite.x + 0.5, sp.campsite.y - 5],
             ['Bonfire', sp.bonfire.x + 0.5, sp.bonfire.y + 4], ['Market Lane', sp.boardwalk.x, sp.boardwalk.y - 4.5],
             [landmarkName('oldtree', 'Old tree'), sp.oldtree.x, sp.oldtree.y + 3], [landmarkName('eastmeadow', 'East meadow'), sp.eastmeadow.x, sp.eastmeadow.y + 3], [landmarkName('glade', 'The glade'), sp.meadow.x + 0.5, sp.meadow.y - 4]];
+        if (sp.cove) places.push([landmarkName('cove', 'Driftwood Cove'), sp.cove.x + 0.5, sp.cove.y - 3]);
         if (W0.props.some(p => p.kind === 'windmill')) { const w = W0.props.find(p => p.kind === 'windmill'); places.push(['Windmill', w.x + 1.5, w.y - 3]); }
         // (the areas drawn in the designer, named first: 6zza_designer.js)
         for (const A of Design.areas().filter(A => !Design.untouched(A))) { const big = A.rects.slice().sort((p, q) => q[2] * q[3] - p[2] * p[3])[0]; if (big) label((big[0] + big[2] / 2) * K, (big[1] + big[3] / 2) * K, A.name.replace(/^the /, 'The '), '#ffd6a8'); }

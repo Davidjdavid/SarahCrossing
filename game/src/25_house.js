@@ -630,6 +630,7 @@ function buildClubContents(a) {
     const booth = a.add({ kind: 'booth', frame: 'f_turntables', x: 7.5 * TILE, y: 3 * TILE + 4 });
     for (let x = 6; x <= 8; x++) a.block(x, 2);
     booth.sy = 3 * TILE - 2;
+    booth.interact = () => clubBooth();         // (DJ Wasabi at the booth, or autoplay while he's out: 6zzh_keepers.js)
     for (const [x, fr] of [[2, 'f_speaker'], [12, 'f_speaker']]) {
         a.add({ kind: 'deco', frame: fr, x: (x + 0.5) * TILE, y: 3 * TILE - 1 });
         a.block(x, 2);

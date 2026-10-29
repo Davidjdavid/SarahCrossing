@@ -47,7 +47,8 @@ function shopStock() {
     const walls = shuffled(GD.walls.filter(w => ITEMS[w].price > 0), r).slice(0, U.walls[L]);
     const floors = shuffled(GD.floors.filter(w => ITEMS[w].price > 0), r).slice(0, U.floors[L]);
     const outfits = shuffled(GD.outfits.filter(o => ITEMS['out_' + o].price > 0).map(o => 'out_' + o), r).slice(0, V.outfits[B]);
-    const clothes = outfits.concat(shuffled(GD.accs.map(a => 'acc_' + a), r).slice(0, V.accs[B]));
+    // (the accessories: a few a day from twenty kinds and their colors, whatever the shop's size: 6zzi_accessories.js)
+    const clothes = outfits.concat(accDaily(Clock.dayNum()));
     const hot = rpick(Object.keys(ITEMS).filter(id => ['fruit', 'shell', 'fish', 'veg', 'dish'].includes(ITEMS[id].type) && ITEMS[id].price >= 100 && id !== 'boot'), r);
     // the bigger shops' daily sale (its own dice, so the stock above doesn't change)
     const r2 = mulberry(hash32(S.seed + ':sale:' + Clock.dayNum()));

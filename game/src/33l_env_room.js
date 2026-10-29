@@ -318,7 +318,7 @@ const EnvRoom = {
     },
     /* the accessories for sale lying on the boutique's table, each the piece a doll wears (EnvDolls.extras) */
     accessories(g, e, host) {
-        (e.accs || []).slice(0, 3).forEach((id, i, all) => {
+        (e.accs || []).slice(0, 5).forEach((id, i, all) => {
             const wear = ITEMS[id] && ITEMS[id].wear;
             if (!wear) return;
             const o = new THREE.Group(), R = 0.2;
@@ -326,7 +326,7 @@ const EnvRoom = {
             o.traverse(m => { if (m.isMesh) m.userData.shared = true; });
             const b = new THREE.Box3().setFromObject(o);
             if (b.isEmpty()) return;
-            o.position.set(e.item.x + e.def.w / 2 + (i - (all.length - 1) / 2) * 0.55, host.top - b.min.y + 0.005, host.z);
+            o.position.set(e.item.x + e.def.w / 2 + (i - (all.length - 1) / 2) * (all.length > 3 ? 0.4 : 0.55), host.top - b.min.y + 0.005, host.z);
             g.add(o);
         });
     },

@@ -256,8 +256,9 @@ Object.assign(EnvDolls, {
         if (kind === 'shovel' && EnvModels.has('style_shovel')) {
             const g = new THREE.Group();
             for (const p of EnvModels.models.style_shovel.parts) { const m = new THREE.Mesh(p.geometry, p.material); m.castShadow = true; g.add(m); }
-            // (held at the grip end of the shaft, the blade down and forward; in doll units, the doll is scaled)
-            g.scale.setScalar(0.55 / DOLL2.H);
+            // (held at the grip end of the shaft, the blade down and forward; in doll units, the doll is scaled; big enough to
+            // see what she's holding at a glance, David, 29 October)
+            g.scale.setScalar(0.85 / DOLL2.H);
             g.position.set(0, -0.04, 0.01);
             g.rotation.set(0.5, 0, 0);
             (d.parts.elR || d.parts.armR).add(g);
@@ -265,7 +266,7 @@ Object.assign(EnvDolls, {
         }
         if (kind === 'can') return this.canModel(d, d.parts.elR || d.parts.armR, -0.1);
         const g = this.toolModel(d, kind);
-        if (g && d.parts.elR) { g.parent.remove(g); g.position.set(0, -0.11, 0.01); d.parts.elR.add(g); g.scale.setScalar(0.85); }
+        if (g && d.parts.elR) { g.parent.remove(g); g.position.set(0, -0.11, 0.01); d.parts.elR.add(g); g.scale.setScalar(kind === 'axe' ? 1.45 : 0.85); }
         return g;
     },
 
@@ -322,7 +323,7 @@ Object.assign(EnvDolls, {
         if (A.stumble) { const k = Math.sin(A.stumble * Math.PI); lean += 0.7 * k; sq -= 0.05 * k; }
         if (A.cheer) { sq = 0.08 * Math.sin((1 - A.cheer) * Math.PI); }
         if (A.talking) sq += Math.abs(Math.sin(t / 3)) * 0.025;
-        if (IF) lean += IF.lean;
+        if (IF) { lean += IF.lean; lift += IF.lift || 0; roll += IF.roll || 0; yaw += IF.yaw || 0; sq += IF.sq || 0; }
         // (listening: the whole folk nods)
         if (A.nod && !walk) { lean += 0.14 * A.nod; sq -= 0.02 * A.nod; }
         root.position.y += lift;

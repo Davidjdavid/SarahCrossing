@@ -249,9 +249,9 @@ const SeaSky = {
         const v = G.view, cam = G.cam, h = Clock.hourF(), fair = G.weather === 'sunny' || G.weather === 'cloudy';
         const roll = R(), cloudy = G.weather === 'cloudy', look = this.atLookout();
         if (roll < (look ? 0.2 : cloudy ? 0.72 : 0.5)) { this.spawnCloud(); return; }
-        const balloon = fair && h > 7 && h < 18.5 && roll > (look ? 0.9 : 0.85);
-        // (a plane only over the lookout)
-        if (!balloon && !look) return;
+        // (planes and balloons only over the lookout, David, 28 and 29 October: anywhere else they looked like toys)
+        if (!look) return;
+        const balloon = fair && h > 7 && h < 18.5 && roll > 0.72;
         const fromLeft = R() < 0.5, fromTop = R() < 0.5;
         const x = fromLeft ? cam.x - 60 : cam.x + v.w + 60, y = cam.y + (fromTop ? 0.15 : 0.6) * v.h;
         const sp = balloon ? 0.28 : 1.15;
@@ -294,7 +294,11 @@ const SeaSky = {
         if (--this.nextSky <= 0) { this.nextSky = look ? rint(1800, 5400) : rint(9000, 16200); if (G.weather !== 'rain' && G.weather !== 'snow') this.spawnSky(); }
         for (const b of this.boats) { b.t++; b.x += b.vx; b.y += b.vy; }
         this.boats = this.boats.filter(b => b.t < b.life);
-        for (const s of this.sky) { s.t++; s.x += s.vx; s.y += s.vy; }
+        for (const s of this.sky) {
+            s.t++; s.x += s.vx; s.y += s.vy;
+            // (walking away from the lookout, what's up there fades away, over a second)
+            if ((s.kind === 'plane' || s.kind === 'balloon') && !look) { s.fade = (s.fade == null ? 1 : s.fade) - 1 / 60; if (s.fade <= 0) s.t = s.life; }
+        }
         this.sky = this.sky.filter(s => s.t < s.life);
         for (const d of this.dolphins) d.t++;
         this.dolphins = this.dolphins.filter(d => d.t < 60);
@@ -365,6 +369,7 @@ const SeaSky = {
                 ctx.drawImage(s.img, Math.round(s.x), Math.round(s.y), s.w, s.h);
                 ctx.globalAlpha = 1;
             } else if (s.kind === 'plane') {
+                ctx.globalAlpha = s.fade == null ? 1 : Math.max(0, s.fade);
                 // pointing the way it's flying (the sprite's nose points up)
                 const ang = Math.atan2(s.vy, s.vx) + Math.PI / 2;
                 for (const [frame, ox, oy] of [['sky_plane_shadow', 46, 60], ['sky_plane', 0, 0]]) {
@@ -377,8 +382,10 @@ const SeaSky = {
             } else {
                 ctx.fillStyle = 'rgba(20,20,40,0.18)';
                 ctx.beginPath(); ctx.ellipse(s.x + 30, s.y + 70, 8, 3, 0, 0, 7); ctx.fill();
+                ctx.globalAlpha = s.fade == null ? 1 : Math.max(0, s.fade);
                 spr(ctx, 'sky_balloon', s.x, s.y + Math.sin(s.t / 50) * 2);
             }
+            ctx.globalAlpha = 1;
         }
         const f = this.flock;
         if (f) for (let i = 0; i < f.n; i++) {

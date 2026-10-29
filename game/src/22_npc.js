@@ -5,7 +5,7 @@ const NPC_DEFS = {
     maki:  { name: 'Maki', sprite: 'maki', color: '#34473e', voice: 520, wave: 'square', house: 'h_maki', h: 16, wake: 7.5, bed: 24,
              fav: { pond: 3, bench_statue: 2, shopfront: 1.5, board: 1.5, meadow: 1, in_studio: 1, forest: 1, oldtree: 1.5, museumfront: 1, eastside: 1 } },
     kai:   { name: 'Kai', sprite: 'kai', color: '#4f86c6', voice: 330, wave: 'triangle', house: 'h_kai', h: 15, wake: 8.5, bed: 24.75,
-             fav: { beach_e: 4, beach: 3, pier: 3, beach_far: 2, river: 1, in_arcade: 1, waterfall: 2, harbor: 2, boardwalk: 1.5, bonfire: 1.5 } },
+             fav: { beach_e: 4, beach: 3, pier: 3, cove: 2.5, beach_far: 2, river: 1, in_arcade: 1, waterfall: 2, harbor: 2, boardwalk: 1.5, bonfire: 1.5 } },
     basil: { name: 'Basil', sprite: 'basil', color: '#b98a3a', voice: 300, wave: 'triangle', house: 'h_basil', h: 15, wake: 9, bed: 25.5,
              fav: { garden: 2, plaza: 2, meadow: 2, beach: 1, bench_e: 1, in_shop: 1, farm: 1, bench_beach: 1, village: 1, harbor: 1 }, work: [['cart', 20, 25.1]] },
     wonton: { name: 'Wonton', sprite: 'wonton', color: '#c29a5d', voice: 440, wave: 'sine', h: 14, wake: 7.5, bed: 24.5, spring: true },
@@ -17,7 +17,7 @@ const NPC_DEFS = {
              fav: { garden: 2, shopfront: 2.5, pond: 2, bench_w: 2, spring: 1, in_studio: 1.5, in_shop: 1, farm: 1, salonfront: 1, village: 1.5, goatpen: 1 } },
     clementine: { name: 'Clementine', sprite: 'clementine', color: '#f28a1a', voice: 500, wave: 'triangle', house: 'h_clementine', h: 16, wake: 8, bed: 24.5,
              fav: { plaza: 2, beach_w: 2, pier: 1, in_shop: 0.5, statue: 1.5, salonfront: 1.5, boardwalk: 1, in_salon: 1 }, club: 0.8, work: [['boutique', 9.2, 12.6], ['boutique', 14, 18]] },
-    cuke:  { name: 'Cuke', sprite: 'cuke', color: '#3f8a3a', voice: 380, wave: 'square', house: 'h_cuke', h: 20, wake: 4, bed: 20, early: true,
+    cuke:  { name: 'Cuke', sprite: 'cuke', color: '#3f8a3a', voice: 380, wave: 'square', house: 'h_cuke', h: 20, wake: 4, bed: 22, early: true,
              fav: { orchard: 3, bridge: 2, beach_far: 2, river: 2, meadow: 2, in_shop: 0.8, mountain: 2, farm: 2, eastmeadow: 1.5, forest: 1, campsite: 1 } },
     sully: { name: 'Sully', sprite: 'sully', color: '#8a5a2b', voice: 240, wave: 'square', house: 'h_sully', h: 18, wake: 8, bed: 24.5,
              fav: { bench_w: 2, plaza: 2, pond: 2, beach_w: 1.5, arcadefront: 2, harbor: 2, boardwalk: 1.5, bench_boardwalk: 1 }, work: [['studio', 9.5, 13], ['studio', 14.5, 18]] },
@@ -32,7 +32,10 @@ const NPC_DEFS = {
     fortune: { name: 'Fortune', sprite: 'fortune', color: '#d49a3a', voice: 540, wave: 'square', h: 14, wake: 7.9, bed: 22.1, shop: true, house: 'h_fortune' },
     floss: { name: 'Floss', sprite: 'floss', color: '#e0559a', voice: 610, wave: 'sine', h: 18, wake: 9.9, bed: 22.1, shop: 'salon' },
     waffle: { name: 'Waffle', sprite: 'waffle', color: '#c98a2e', voice: 320, wave: 'triangle', h: 15, wake: 7.9, bed: 21.1, shop: 'displays' },
-    wasabi: { name: 'DJ Wasabi', sprite: 'wasabi', color: '#7aa832', voice: 350, wave: 'square', h: 15, dj: true },
+    /* (a night owl, David, 29 October: asleep at home in the morning, out and about in the afternoon, at the club's
+       booth from the evening till the small hours; his house is on the lot east of Cuke's, 6zzh_keepers.js) */
+    wasabi: { name: 'DJ Wasabi', sprite: 'wasabi', color: '#7aa832', voice: 350, wave: 'square', house: 'h_wasabi', h: 15, wake: 12.4, bed: 28.4, dj: true,
+             fav: { clubfront: 3, plaza: 2, boardwalk: 2, beach: 1.5, arcadefront: 2, harbor: 1, pier: 1, bench_boardwalk: 1, lookout: 1, in_shop: 0.4 }, work: [['club', 17.6, 28.4]] },
     joe:   { name: 'Joe', human: 'joe', color: '#b8862d', voice: 260, wave: 'sine', house: 'h_joe', h: 24, wake: 6.5, bed: 26,
              fav: { bench_e: 3, pond: 2, plaza: 2, garden: 3, lookout: 1, beach: 1, in_studio: 0.8, in_shop: 0.5, waterfall: 1, forest: 1, bench_statue: 1, bonfire: 1.5, oldtree: 1 }, club: 0.3, work: [['pier_end', 18, 19.6]] },
     /* Sarah's family: on the island only while one of them is playing (13_online.js), never as neighbors (David, 29
@@ -116,11 +119,11 @@ function makePlan(id, day) {
     const jit = () => (r() - 0.5) * 0.6;               // a window of about half an hour, different every day
     let [wake, bed] = townWake(d.wake + jit(), d.bed + jit(), id);   // (the Town Hall's ordinance and Residents can move them: 6zg_townhall.js)
     const segs = [];
-    if (d.dj) { segs.push({ a: 5, b: 29, spot: 'club' }); return { day, wake: 5, bed: 29, segs }; }
     if (d.spring) { segs.push({ a: 5, b: 29, spot: 'spring' }); return { day, wake, bed, segs }; }
-    if (d.shop) { segs.push({ a: d.wake, b: d.bed, spot: d.shop === true ? 'shop' : d.shop }); return { day, wake: d.wake, bed: d.bed, segs }; }
+    // (the shopkeepers mind the counter all day but for a lunch break and, some afternoons, a walk: 6zzh_keepers.js)
+    if (d.shop) return { day, wake: d.wake, bed: d.bed, segs: keeperDay(id, day, d, r) };
     if (d.early) {
-        // Cuke lives on early-people time: up at 4 AM, jogging at dawn, in bed by 8 PM
+        // Cuke lives on early-people time: up at 4 AM, jogging at dawn, in bed by 10 PM (David, 29 October: it was 8)
         segs.push({ a: 5, b: 8.5 + r() * 0.5, spot: 'jog' });
         wake = 5;
     }
@@ -209,11 +212,14 @@ function makePlan(id, day) {
    working at noon goes home for lunch, some days to Mac's (when it's open), now and then they skip it; anything planned
    that day (the rope, a storyline, an invitation, an outing) comes first */
 function lunchOverride(id, day, d, work) {
-    if (d.goat || d.dj || d.shop || d.spring || !d.house) return null;
-    const r = mulberry(hash32(S.seed + ':lunch:' + id + ':' + day)), x = r(), a = 11.75 + r() * 0.75, b = a + 0.6 + r() * 0.3;
+    if (d.goat || d.shop || d.spring || !d.house) return null;
+    const r = mulberry(hash32(S.seed + ':lunch:' + id + ':' + day)), x = r();
+    // (the DJ's "lunch" is his first meal of the day, a little after he's up)
+    const a = d.dj ? 13.2 + r() * 0.8 : 11.75 + r() * 0.75, b = a + 0.6 + r() * 0.3;
     if ((work || []).some(w => w.a < b && w.b > a)) return null;
-    if (x < 0.6) return [['home', a, b]];
-    if (x < 0.85 && ROOMS.restaurant && roomOpen('restaurant', a) && roomOpen('restaurant', b)) return [['in_restaurant', a, b]];
+    // (marked as lunch, so they can mention it if Sarah catches them at it: 6zzh_keepers.js lunchLine)
+    if (x < 0.6) return [['home', a, b, { lunch: true }]];
+    if (x < 0.85 && ROOMS.restaurant && roomOpen('restaurant', a) && roomOpen('restaurant', b)) return [['in_restaurant', a, b, { lunch: true }]];
     return null;
 }
 /* after work, some days, an errand (David, 27 October: "the Bank after work"): the Bank or the Post Office, wherever
@@ -341,7 +347,7 @@ const NPCs = {
         this.list = Object.keys(NPC_DEFS).filter(id => !NPC_DEFS[id].online).map(id => {
             const d = NPC_DEFS[id];
             const n = { npc: true, id, def: d, x: 0, y: 0, dir: 'down', flip: false, area: null, path: null,
-                t: R() * 200, hop: 0, moving: false, anim: 0, emote: null, emoteT: 0, h: d.h, talking: false, sleeping: true, spotKey: null };
+                t: rint(0, 199), hop: 0, moving: false, anim: 0, emote: null, emoteT: 0, h: d.h, talking: false, sleeping: true, spotKey: null };
             n.hit = { x: 0, y: 0, w: 16, h: 20 };
             n.interact = () => talkTo(n);
             return n;
@@ -570,7 +576,9 @@ function updateNPC(n) {
     if (n.fixed || !n.anchor) return;
     // something of their own for a while: a book, an ice cream, the stars (33kd_doll_idle.js)
     if (n.idle) return;
-    if (n.t % 120 === 60 && R() < 0.45) { idleStart(n); if (n.idle || n.path) return; }
+    // (often: David, 29 October, "a lot of the NPCs are just standing around ... staring into the distance is creepy"; the
+    // counter is whole, so these checks every so many frames happen at all: it used to start at a fraction and never did)
+    if (n.t % 60 === 30 && R() < 0.4) { idleStart(n); if (n.idle || n.path) return; }
     // idle: sometimes turn toward whoever is nearby, sometimes wander a little (a friend turns to Sarah when she's close:
     // 6zzc_greet.js)
     if (n.t % 70 === 0) {
@@ -690,6 +698,8 @@ function springWater(ctx, n) {
 
 /* ---------------------------------------------------------------- accessories friends have given */
 const EYE_ACCS = new Set(['glasses', 'sunglasses', 'monocle', 'mustache']);
+// (an accessory in a color counts as its kind: glasses@red is glasses, 6zzi_accessories.js)
+EYE_ACCS.has = function (a) { return Set.prototype.has.call(this, a) || (typeof a === 'string' && a.indexOf('@') > 0 && Set.prototype.has.call(this, a.slice(0, a.indexOf('@')))); };
 const FACE_ACCS = EYE_ACCS;
 function npcWearing(id) {
     const r = S.npcs && S.npcs[id];

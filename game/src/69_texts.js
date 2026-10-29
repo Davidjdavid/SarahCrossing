@@ -17,7 +17,7 @@ const PLACE_NAMES = {
     salonfront: 'outside the salon', displaysfront: "outside Waffle's", statue: 'on the lawn by Market Lane', boardwalk: 'on the Boardwalk', harbor: 'down by the harbor',
     bonfire: 'at the bonfire on the beach', campsite: 'at the campsite', oldtree: 'by the big old tree in the forest', village: 'in the west village',
     eastside: 'on the east side', bench_statue: 'on a bench in the corner of the square', bench_boardwalk: 'on a bench on the Boardwalk',
-    bench_eastmeadow: 'on the bench in the east meadow',
+    bench_eastmeadow: 'on the bench in the east meadow', cove: 'down in Driftwood Cove',
 };
 /* spots that are really the same place (a bench in the plaza is still the plaza) */
 const PLACE_GROUP = { bench_w: 'plaza', bench_e: 'plaza', plaza_w: 'plaza', plaza_e: 'plaza', board: 'plaza', rope_a: 'plaza', rope_b: 'plaza', cart: 'plaza',
@@ -95,19 +95,18 @@ const TEXT_ASK = [['where', 'Where are you?'], ['next', 'Where are you headed ne
 function textReply(id, kind) {
     const w = whereabouts(id), d = NPC_DEFS[id], name = d.name;
     const pick = a => rpick(a);
-    if (id === 'wasabi') return pick(['At the club. I am always at the club. The club is always at me.', 'Booth. Spinning. Come dance.']);
-    if (id === 'fortune') {
-        if (w.asleep) return null;
-        return kind === 'next' ? pick([`Still here! The shop's open till ${fmtOpen(ROOM_HOURS.shop[1])}. Then I sleep. In a cookie.`, "Nowhere! I'm the shop. The shop is me."]) : pick(["At the shop, of course! Come by, I have fortunes.", 'Behind the counter! Always behind the counter.']);
-    }
-    if (id === 'floss') {
-        if (w.asleep) return null;
-        return kind === 'next' ? pick([`Nowhere, sugar! I live at the salon. Open till ${fmtOpen(ROOM_HOURS.salon[1])}.`, 'Still at the salon! Fluffing things. Come by.'])
+    // the shopkeepers and the DJ: at the counter (or the booth) their own answers, and the break that's coming if Sarah
+    // asks what's next; out on a break, the same as anyone (6zzh_keepers.js)
+    const seg = planNow(id, dayHour()), work = keeperSpot(d);
+    if (work && !w.asleep && seg && seg.spot === work) {
+        const brk = Plans.get(id).segs.find(s => s.a > dayHour() && (s.lunch || s.walk));
+        if (kind === 'next' && brk) return pick([`${brk.lunch ? 'Lunch' : 'A little walk'} around ${saidTime(id, brk.a, 'next')}! Then back ${id === 'wasabi' ? 'to the booth' : 'behind the counter'}.`,
+            `I'm stepping out around ${saidTime(id, brk.a, 'next')}. ${brk.lunch ? 'Lunch!' : 'Fresh air!'} The ${id === 'wasabi' ? 'turntables run on autoplay' : 'shop runs on the honor system'} while I'm out.`]);
+        if (id === 'wasabi') return pick(['At the club. Booth. Spinning. Come dance.', 'At the booth! The floor is warming up. You should be on it.']);
+        if (id === 'fortune') return kind === 'next' ? pick([`Still here! The shop's open till ${fmtOpen(ROOM_HOURS.shop[1])}. Then I sleep. In a cookie.`, "Nowhere! I'm the shop. The shop is me."]) : pick(["At the shop, of course! Come by, I have fortunes.", 'Behind the counter! Come say hi.']);
+        if (id === 'floss') return kind === 'next' ? pick([`Nowhere, sugar! At the salon till ${fmtOpen(ROOM_HOURS.salon[1])}.`, 'Still at the salon! Fluffing things. Come by.'])
             : pick(['At the salon, sugar! The chair is free.', "Floss & Gloss, where else? I'm steaming a wig. Don't ask."]);
-    }
-    if (id === 'waffle') {
-        if (w.asleep) return null;
-        return kind === 'next' ? pick([`Right here at the shop till ${fmtOpen(ROOM_HOURS.displays[1])}! Lamps don't sell themselves. They do glow, though.`, 'Staying put! Come see the new benches.'])
+        if (id === 'waffle') return kind === 'next' ? pick([`Right here at the shop till ${fmtOpen(ROOM_HOURS.displays[1])}! Lamps don't sell themselves. They do glow, though.`, 'Staying put! Come see the new benches.'])
             : pick(["At the shop! Waffle's Island Displays. Lamps, benches, hedges. The works.", 'Behind the counter, polishing a lamp post. It is very shiny now.']);
     }
     if (w.away) {
@@ -160,7 +159,7 @@ const TEXT_REPEAT_OWN = {
 };
 function repeatReply(id, kind, rep) {
     const w = whereabouts(id), d = NPC_DEFS[id];
-    if (w.asleep && !d.dj) return null;
+    if (w.asleep) return null;
     let line;
     const own = TEXT_REPEAT_OWN[id];
     if (own && rep >= 2 && R() < 0.6) line = rpick(own);
@@ -195,7 +194,7 @@ function appTexts() {
         t.appendChild(el('span', null, last ? (last.me ? 'You: ' : '') + last.t : 'Tap to text'));
         row.appendChild(t);
         const n = NPCs.get(id);
-        if (n && n.sleeping && !NPC_DEFS[id].dj) row.appendChild(el('span', 'openbadge', 'asleep'));
+        if (n && n.sleeping) row.appendChild(el('span', 'openbadge', 'asleep'));
         row.addEventListener('click', () => { Sfx.ui('tick'); textThread(id); });
         list.appendChild(row);
     }

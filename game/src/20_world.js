@@ -89,6 +89,9 @@ function findPath(area, sx, sy, gx, gy, maxNodes) {
 
 /* ---------------------------------------------------------------- the island */
 const W0 = window.WORLD_JSON;
+/* DJ Wasabi's house (David, 29 October: "lets add them one and everything"), on the lot the plan kept east of Cuke's
+   (the balloonist who was to live there isn't coming) */
+if (W0.lots && W0.lots.balloonist && !W0.buildings.h_wasabi) { const l = W0.lots.balloonist; W0.buildings.h_wasabi = { x: l.x, y: l.y, w: 3, h: 3, door: 1, sprite: 'house_wasabi' }; }
 /* the test area for the new 3D look (?lab in the address: scripts/island/plan-lab.mjs): a small world of its own,
    played without saving and without the neighbors' days (Joe and Maki stand on the cobbles, as in the concept art) */
 const LAB = !!window.IS_LAB;

@@ -613,7 +613,7 @@ function spoilerEntries(sec) {
         out.push(['Gems', 'One to three gems sparkle on the mountain top every day. Fortune loves buying them.', false]);
         out.push(['Sparkling trees', 'A tree that sparkles has something hidden in it. Shake it!', false]);
         out.push(['The money tree', 'Dig at the glowing spot (it moves every day), bury some sand dollars in the hole, and a money tree grows. Shake it for three bags of sand dollars.', false]);
-        out.push(['Shooting stars', 'On clear nights a shooting star sometimes crosses the sky. Press A (or tap it) to make a wish.', false]);
+        out.push(['Shooting stars', 'On some clear nights (the board\'s calendar says which) shooting stars cross the sky. Press A (or tap one) to make a wish.', false]);
         out.push(['Crates and bottles', 'Fishing sometimes brings up a crate or a message in a bottle.', false]);
         out.push(['Clams', 'Dig on the beach with the shovel to find clams (for chowder).', false]);
         out.push(['Food boosts', "Homemade food, meals from Mac's, and bowls from Basil's cart always give a boost. Other food gives a boost 1 time in 10.", false]);

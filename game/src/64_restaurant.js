@@ -202,7 +202,7 @@ function inviteStatus(id) {
     if (id === 'joe') return '';
     if (!n || n.sleeping) return 'asleep';
     const seg = planNow(id, dh);
-    if (d.shop || (seg && (d.work || []).some(w => w[0] === seg.spot))) return 'working';
+    if ((d.shop && atCounter(n)) || (seg && (d.work || []).some(w => w[0] === seg.spot))) return 'working';
     if (n.area === 'restaurant') return "at Mac's";
     return '';
 }

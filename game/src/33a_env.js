@@ -634,6 +634,13 @@ const EnvGround = {
             const tx = x0 - 2 + i, ty = y0 - 2 + j, c = r3ClassAt(tx, ty), g = W0.grid[ty] ? W0.grid[ty][tx] : '~', k = j * K.w + i;
             K.t[k] = c; K.wet[k] = c !== R3_MAT.keep ? 0 : g === undefined || g === 'W' || this.waterAt(tx, ty) ? 1 : 2;
         }
+        // the hiking trails ('d' tiles, not stairs, not under Sarah's own paths) and the tiles round them, where their
+        // ragged edge reaches: the shader darkens the dirt there to the trails' mud (the kinds' alpha at a quarter)
+        const trail = new Uint8Array((w + 4) * (h + 4)), isTrail = (tx, ty) => W0.grid[ty] && W0.grid[ty][tx] === 'd' && !RAMPS.has(tx + ',' + ty) && !overlayAt(tx, ty);
+        for (let j = 0; j < h + 4; j++) for (let i = 0; i < w + 4; i++) {
+            const tx = x0 - 2 + i, ty = y0 - 2 + j;
+            for (let dy = -1; dy <= 1 && !trail[j * K.w + i]; dy++) for (let dx = -1; dx <= 1; dx++) if (isTrail(tx + dx, ty + dy)) { trail[j * K.w + i] = 1; break; }
+        }
         // (the top of a wall is raised to the higher ground beside it, though its tile is the lower one's: there the ground is
         // the higher tile's kind, not the lower's, or a beach's sand would run along the top of every wall above it)
         const lvl = (i, j) => i < 0 || j < 0 || i >= W0.w || j >= W0.h || this.waterAt(i, j) === 1 ? -1 : +W0.height[j][i] || 0;
@@ -663,7 +670,7 @@ const EnvGround = {
                 if (kd === R3_MAT.rock) kd = R3_MAT.grass;
                 if (kd === R3_MAT.stairs) kd = R3_MAT.dirt;             // (under the steps: no grass growing up through them)
                 const o = ((M - 1 - y) * N + x) * 4;
-                d[o] = kd === 1 ? 255 : 0; d[o + 1] = kd === 2 ? 255 : 0; d[o + 2] = kd === 3 ? 255 : 0; d[o + 3] = kd === 4 ? 255 : kd === 7 ? 128 : 0;
+                d[o] = kd === 1 ? 255 : 0; d[o + 1] = kd === 2 ? 255 : 0; d[o + 2] = kd === 3 ? 255 : 0; d[o + 3] = kd === 4 ? 255 : kd === 7 ? 128 : trail[(ty - K.y0) * K.w + tx - K.x0] ? 64 : 0;
             }
             if (y % 32 === 31) yield;
         }
@@ -955,6 +962,13 @@ EnvGround.FMAP = `
     vec2 u4 = tp * 0.25;
     vec4 wt = texture2D(uWet, vec2(kuv.x, 1.0 - kuv.y));
     vec3 cd = texture2D(tDirt, u4).rgb, cc = texture2D(tCob, u4).rgb, cs = texture2D(tSand, u4).rgb;
+    // the hiking trails: darker, muddier earth, wetter in patches (David, 29 October: a less used path)
+    float trailW = step(0.15, k.a) * step(k.a, 0.32);
+    if (trailW > 0.5) {
+        float mudP = smoothstep(0.55, 0.72, r3n(tp * 0.8 + 17.0) * 0.7 + r3n(tp * 2.9 + 4.0) * 0.3);
+        cd *= vec3(0.7, 0.62, 0.52);
+        cd = mix(cd, cd * vec3(0.66, 0.62, 0.6), mudP);
+    }
     // the lawn (David, 29 October): smooth and mostly green, its fine detail melting into its average color further off;
     // broad irregular patches a shade apart (a slow noise, warped); worn paler and yellower beside the paths, the square,
     // the beach and buildings, now and then down to bare earth, and deeper and richer out in the wild (the wet picture's

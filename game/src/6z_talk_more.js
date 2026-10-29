@@ -1009,7 +1009,7 @@ const TM_WEAR = {
 };
 function tmWearKeys() {
     const p = (S && S.player) || {};
-    return [p.outfit, p.acc && 'acc:' + p.acc, p.eyes && 'eyes:' + p.eyes].filter(Boolean);
+    return [p.outfit, p.acc && 'acc:' + accBase(p.acc), p.eyes && 'eyes:' + accBase(p.eyes)].filter(Boolean);
 }
 function tmWearLine(n) {
     const t = TM_WEAR[n.id];

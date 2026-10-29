@@ -139,6 +139,8 @@ function updatePlayer(p) {
         return;
     }
     if (G.busy || UI.modal) { p.path = null; return; }
+    // (the line's in the water: she stays put till it's reeled in, David, 29 October)
+    if (G.fishing) { p.path = null; return; }
     if (p.sit) {
         // sitting on a bench: any move (or a tap somewhere) stands Sarah back up
         const k = G.keys;

@@ -169,6 +169,7 @@ function dayEvents(y, m, d) {
     if (dr && dr.pday === dn && (dr.tpl === 'party' || dr.tpl === 'lostinvite') && ['announce', 'party', 'fixed', 'partyfixed'].includes(dr.state))
         out.push({ icon: 'f_red_lantern', name: Drama.fill(dr, "{A}'s party"), note: Drama.fill(dr, '8 PM at the {place}. Everyone is invited.') });
     out.push(...vacationEvents(dn));
+    if (starNight(dn) && !out.some(e => /Stargazing/.test(e.name))) out.push({ icon: 'shell_star', name: 'Shooting stars tonight', note: 'Look up after 9 PM on a clear night, and make a wish.' });
     return out;
 }
 function boardTodayLines() {
@@ -180,6 +181,7 @@ function boardTodayLines() {
     const req = typeof karaokeRequest === 'function' && karaokeRequest();
     if (req) lines.push(`Club Wasabi: tonight's karaoke request is "${req[0]}" by Joe. The crowd tips extra for it.`);
     for (const h of holidaysToday()) lines.push(`Today: ${h.name}! ${h.note || ''}`);
+    if (starNight() && !isHoliday('stargazing')) lines.push('Tonight: shooting stars! Look up after 9 PM if the sky is clear, and make a wish.');
     const m = typeof todaysMenu === 'function' ? todaysMenu() : null;
     if (m) lines.push(`Mac's special: ${itemName(m.special)}. Cece's dessert: ${itemName(m.dessert).toLowerCase()}.`);
     const d = Drama.cur();

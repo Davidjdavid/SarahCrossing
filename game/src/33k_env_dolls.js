@@ -587,12 +587,22 @@ const EnvDolls = {
 
     /* glasses and hats */
     extras(d, head, spec, L) {
-        const R = d.R || DOLL.R, dark = this.mat(d.v2 ? '#5a3a2c' : '#3a2a2a', 0.4), E = d.eye || { x: 0.38, y: -0.05, z: 0.93 }, eyeY = E.y * R, fz = E.z * R, ex = E.x;
-        const eye = spec.eyes;
-        if (eye === 'glasses' || eye === 'sunglasses') {
+        // (an accessory in a color: its own color's materials swapped while it's made, 6zzi_accessories.js)
+        const mat0 = this.mat, paint = id => {
+            const T = id && typeof accTint3d === 'function' && accTint3d(id);
+            let k = 0;
+            this.mat = T ? (c, r) => mat0.call(this, T.from.includes(String(c).toLowerCase()) ? (T.to === 'rainbow' ? ACC_RAINBOW[k++ % ACC_RAINBOW.length] : T.to) : c, r) : mat0;
+        };
+        try { paint(spec.eyes); this.extras2(d, head, spec, L, paint); } finally { this.mat = mat0; }
+    },
+    extras2(d, head, spec, L, paint) {
+        const R = d.R || DOLL.R, darkHex = d.v2 ? '#5a3a2c' : '#3a2a2a', E = d.eye || { x: 0.38, y: -0.05, z: 0.93 }, eyeY = E.y * R, fz = E.z * R, ex = E.x;
+        const eye = accBase(spec.eyes), dark = this.mat(darkHex, 0.4);
+        if (eye && this.EYES && this.EYES[eye]) this.EYES[eye].call(this, head, R, E, eyeY, fz, ex);
+        else if (eye === 'glasses' || eye === 'sunglasses') {
             const gr = (E.r || 0.2) * R;
             for (const s of [-1, 1]) {
-                this.piece(head, d.v2 ? 'ring2' : 'ring', dark, s * ex * R, eyeY, fz, gr, gr, gr);
+                this.piece(head, d.v2 ? 'ring2' : 'ring', this.mat(darkHex, 0.4), s * ex * R, eyeY, fz, gr, gr, gr);
                 if (eye === 'sunglasses') this.piece(head, 'disc', this.mat('#1c1c24', 0.25), s * ex * R, eyeY, fz, gr, 0.02 * R, gr, Math.PI / 2);
             }
             this.piece(head, 'box', dark, 0, eyeY + 0.03 * R, fz + 0.02 * R, Math.max(0.06 * R, (ex * 2 - (E.r || 0.2) * 2) * R + 0.02 * R), 0.035 * R, 0.035 * R);
@@ -602,7 +612,8 @@ const EnvDolls = {
             this.piece(head, 'box', this.mat('#d8b040', 0.3), 0.62 * R, eyeY - 0.5 * R, fz - 0.05 * R, 0.02 * R, 0.6 * R, 0.02 * R, 0, 0, 0.3);
         }
         else if (eye === 'mustache') this.piece(head, 'ball', this.mat(L.hairCol || '#3a2418'), 0, -0.36 * R, 0.9 * R, 0.4 * R, 0.12 * R, 0.14 * R);
-        const top = 1.02 * R, acc = spec.acc;
+        paint(spec.acc);
+        const top = 1.02 * R, acc = accBase(spec.acc);
         const gold = this.mat('#e8c048', 0.35);
         // (the hat in a group of its own, so it can be fitted over the hair: EnvDolls.hatFit)
         const hg = d.hatG = new THREE.Group();
@@ -610,8 +621,8 @@ const EnvDolls = {
         head = hg;
         const H = {
             sunhat: () => { this.piece(head, 'disc', this.mat('#f2dca0'), 0, top * 0.62, -0.05 * R, 1.6 * R, 0.05 * R, 1.6 * R, -0.12); this.piece(head, 'ball', this.mat('#f2dca0'), 0, top * 0.7, -0.08 * R, 0.85 * R, 0.55 * R, 0.85 * R); this.piece(head, 'band', this.mat('#e8708a'), 0, top * 0.72, -0.08 * R, 0.86 * R, 0.86 * R, 0.86 * R, Math.PI / 2 - 0.12); },
-            beanie: () => { this.piece(head, 'ball', this.mat('#c84a5a'), 0, top * 0.35, -0.05 * R, 1.08 * R, 0.92 * R, 1.08 * R); this.piece(head, 'ring', this.mat('#e8e0d8'), 0, top * 0.25, 0, 1.05 * R, 1.05 * R, 1.05 * R, Math.PI / 2 - 0.3); this.piece(head, 'ball', this.mat('#e8e0d8'), 0, top * 1.25, -0.2 * R, 0.25 * R); },
-            partyhat: () => { this.piece(head, 'cone', this.mat('#4ab0e0'), 0.2 * R, top * 1.35, 0, 0.42 * R, 0.85 * R, 0.42 * R, 0, 0, -0.25); this.piece(head, 'ball', this.mat('#f8d040'), 0.42 * R, top * 1.78, 0, 0.13 * R); },
+            beanie: () => { this.piece(head, 'ball', this.mat('#8a72d0'), 0, top * 0.35, -0.05 * R, 1.08 * R, 0.92 * R, 1.08 * R); this.piece(head, 'ring', this.mat('#e8e0d8'), 0, top * 0.25, 0, 1.05 * R, 1.05 * R, 1.05 * R, Math.PI / 2 - 0.3); this.piece(head, 'ball', this.mat('#e8e0d8'), 0, top * 1.25, -0.2 * R, 0.25 * R); },
+            partyhat: () => { this.piece(head, 'cone', this.mat('#f59ab5'), 0.2 * R, top * 1.35, 0, 0.42 * R, 0.85 * R, 0.42 * R, 0, 0, -0.25); this.piece(head, 'ball', this.mat('#f8d040'), 0.42 * R, top * 1.78, 0, 0.13 * R); },
             crown: () => { this.piece(head, 'disc', gold, 0, top * 0.95, 0, 0.62 * R, 0.3 * R, 0.62 * R); for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; this.piece(head, 'cone', gold, Math.sin(a) * 0.55 * R, top * 1.22, Math.cos(a) * 0.55 * R, 0.1 * R, 0.25 * R, 0.1 * R); } },
             // (a jeweled band over the top of the head, leaning back a little, its ends at the ears)
             tiara: () => { const a = 0.4, c = 0.1 * R, rr = 1.0 * R; this.piece(head, 'arc', gold, 0, c, 0, rr, rr, rr, a); for (const s of [-1, 0, 1]) { const f = Math.PI / 2 - s * 0.38, x = Math.cos(f) * rr, y = Math.sin(f) * rr + (s ? 0.09 : 0.13) * R; this.piece(head, 'cone', gold, x, c + y * Math.cos(a), y * Math.sin(a), 0.07 * R, (s ? 0.18 : 0.26) * R, 0.05 * R, a, 0, -(f - Math.PI / 2)); } this.piece(head, 'ball', this.mat('#f088c0', 0.3), 0, c + rr * Math.cos(a) + 0.04 * R, rr * Math.sin(a) + 0.08 * R, 0.12 * R); },
@@ -639,5 +650,6 @@ const EnvDolls = {
             chefhat: () => { this.piece(head, 'disc', this.mat('#fbfbf6'), 0, top * 1.05, -0.05 * R, 0.8 * R, 0.55 * R, 0.8 * R); this.piece(head, 'ball', this.mat('#fbfbf6'), 0, top * 1.55, -0.05 * R, 1.0 * R, 0.6 * R, 1.0 * R); },
         };
         if (acc && H[acc]) H[acc]();
+        else if (acc && this.HATS && this.HATS[acc]) this.HATS[acc].call(this, head, R, top);
     },
 };

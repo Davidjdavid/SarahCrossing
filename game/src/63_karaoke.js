@@ -1,7 +1,8 @@
 /* ---- 63_karaoke.js ---- */
 /* Karaoke at Club Wasabi: sing one of Joe's poems, or a song Sarah wrote. Each gets its own little tune (one note per
-   syllable). The notes scroll past. Set Sarah's pitch with up and down (it stays where you leave it), and hold Space (or
-   the SING button) to sing; she sings the words out loud (63a_singing.js). Sing on the notes, on key, and the words light
+   syllable). The notes scroll past. Set Sarah's pitch with up and down (it stays where you leave it); she sings each of
+   her lines by herself, out loud (63a_singing.js; David, 29 October: holding a sing key all the time cost nothing, so the
+   game is only the pitch now). Keep on the notes, on key, and the words light
    up. Joe, if he's there, is very moved. */
 
 /* the pitch marker moves while up or down is held, in semitones a second: quick from the start and quicker the longer
@@ -131,7 +132,7 @@ function karaokeMenu() {
         let done = false;
         const fin = v => { if (done) return; done = true; UI.close(true); Sfx.ui('ok'); res(v); };
         const P = UI.open({ title: 'Karaoke', onClose: () => { if (!done) { done = true; res(null); } } });
-        P.body.appendChild(el('p', 'muted', "Pick one of Joe's poems, or a song you wrote. Up and down (\u25b2 \u25bc) set your pitch, and it stays put; hold Space (or SING) to sing. Every poem Joe reads you joins the list."));
+        P.body.appendChild(el('p', 'muted', "Pick one of Joe's poems, or a song you wrote. Up and down (\u25b2 \u25bc) set your pitch, and it stays put; Sarah sings the words herself. Every poem Joe reads you joins the list."));
         const L = el('div', 'list');
         // (tonight's request first)
         const req = karaokeRequest();
@@ -249,7 +250,7 @@ async function karaokeNight(opts) {
     if (!S.flags.karaokeTold) {
         S.flags.karaokeTold = true;
         await UI.say('wasabi', ["KARAOKE! Joe gave me all his poems. ALL of them. There are a lot.",
-            'Here is how it works, superstar: the notes slide by. Up and down set your pitch, and it stays where you leave it. Hold the button to sing. Stay on the notes!',
+            'Here is how it works, superstar: the notes slide by. Up and down set your pitch, and it stays where you leave it. You sing, I keep the beat. Stay on the notes!',
             "And if you write a song of your own, I'll make a tune for it. Any words you like!"], { keep: true });
     }
     UI.hideDialog();
@@ -292,7 +293,7 @@ const Karaoke = {
         $('#dancehud').hidden = false;
         $('#dsong').textContent = `"${poem[0]}" \u00b7 ${this.byline()}` + (this.duet ? ` \u00b7 a duet with ${this.duet.def.name}` : '');
         $('#dscore').textContent = '';
-        $('#dtip').textContent = this.watch ? 'Just listening: Sarah sings it on her own.' : G.touchUsed ? '\u25b2 \u25bc (or slide) set your pitch \u00b7 hold SING' : '\u2191 \u2193 set your pitch (it stays put) \u00b7 hold Space to sing \u00b7 Esc to stop';
+        $('#dtip').textContent = this.watch ? 'Just listening: Sarah sings it on her own.' : G.touchUsed ? '\u25b2 \u25bc (or slide) set your pitch' : '\u2191 \u2193 set your pitch (it stays put) \u00b7 Esc to stop';
         if (this.watch) $('#dsong').textContent = `"${poem[0]}" \u00b7 ${this.byline()} \u00b7 just listening`;
         this._ly = null;
         this.pads(!this.watch);
@@ -357,10 +358,11 @@ const Karaoke = {
         const cur = this.song.notes.find(n => t >= n.t0 && t < n.t1);
         const tol = karaTolSemi(this.hi - this.lo) / (this.hi - this.lo);
         this.onKey = false;
-        const singing = this.held;
-        if (singing) this.singF++;
-        // a duet: the other lines are theirs, sung as well as they sing (Sarah can hum along; it doesn't count)
+        // a duet: the other lines are theirs, sung as well as they sing; Sarah sings her own lines by herself, so only her
+        // pitch counts
         const theirs = !!(this.duet && cur && cur.line % 2 === 1);
+        const singing = this.watch ? this.held : !!(cur && !theirs);
+        if (singing) this.singF++;
         this.duetTick(theirs ? cur : null);
         if (cur && !theirs) {
             cur.tot++; this.totF++;

@@ -141,6 +141,8 @@ function paintA(P) {
 /* the flat view's picture for a piece in color: its own picture repainted (made the first time it's drawn) */
 function colorSprite(name) {
     if (Assets.dyn[name]) return Assets.dyn[name];
+    // (an accessory in a color: 6zzi_accessories.js)
+    if (/^acc/.test(name) && typeof accSprite === 'function') { const a = accSprite(name); if (a !== undefined) return a; }
     const m = PAINT_BY_NAME[name], f = m && Assets.frames[m.src];
     if (!f || !Assets.atlas || !paintA(m.P)) return null;
     const [sx, sy, w, h, ax, ay] = f, cv = document.createElement('canvas');

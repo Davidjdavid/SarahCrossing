@@ -47,12 +47,13 @@ async function talkTo(n) {
     // (from wherever Sarah is: nobody steps round anyone first; the two of them turn to each other, the food folks too,
     // so in the new look nobody talks with their back turned)
     faceToward(p, n);
-    if (!n.def.spring && !n.def.shop) { faceToward(n, p); if (!n.def.human) n.flip = p.x < n.x; }
+    if (!n.def.spring && !(n.def.shop && atCounter(n))) { faceToward(n, p); if (!n.def.human) n.flip = p.x < n.x; }
     try {
         const id = n.id;
         if (Online.visitor() && await visitorTalk(n)) { /* a visitor's own conversation (6y_visitors.js) */ }
         else if (await Invites.talk(n)) { /* a lunch, a hangout, news or a present Sarah said yes to */ }
         else if (id === 'goat') await goatTalk(n);
+        else if (await keeperOutTalk(n)) { /* a shopkeeper (or the DJ) out on a break (6zzh_keepers.js) */ }
         else if (id === 'fortune') await fortuneTalk(n);
         else if (id === 'floss') { rel('floss').met = true; await flossTalk(n); }
         else if (id === 'waffle') { rel('waffle').met = true; await waffleTalk(n); }

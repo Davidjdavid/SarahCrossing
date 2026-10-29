@@ -303,6 +303,19 @@ function confetti(x, y, n) {
 }
 
 /* ---------------------------------------------------------------- night sky: shooting stars + fireworks */
+/* the nights with shooting stars (David, 29 October: "0-2 times a week on average", on the board's calendar): none, one
+   or two a week (weeks from Monday, as IslandMart's), from the seed; Stargazing Night always. A night is the evening of
+   its day and the small hours after (the day turns over at 5 AM) */
+function starNights(week) {
+    const r = mulberry(hash32(S.seed + ':starweek:' + week)), x = r(), c = x < 0.25 ? 0 : x < 0.72 ? 1 : 2;
+    return shuffled([0, 1, 2, 3, 4, 5, 6], r).slice(0, c).map(k => week * 7 - 3 + k);
+}
+function starNight(dn) {
+    if (dn == null) dn = Clock.dayNum();
+    if (starNights(Math.floor((dn + 3) / 7)).includes(dn)) return true;
+    const d = new Date(dn * 86400e3);
+    return typeof holidaysOn === 'function' && holidaysOn(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()).some(h => h.id === 'stargazing');
+}
 const Sky = {
     star: null, fwT: 0,
     update() {
@@ -314,7 +327,7 @@ const Sky = {
             s.t++;
             s.x += s.vx; s.y += s.vy;
             if (s.t > 60) this.star = null;
-        } else if (night && (G.weather === 'sunny' || G.weather === 'cloudy') && R() < (G.events && G.events.has('stargazing') ? 1 / 110 : bonusOn('wish') ? 1 / 160 : 1 / 900)) {
+        } else if (night && (G.weather === 'sunny' || G.weather === 'cloudy') && (G.events && G.events.has('stargazing') ? R() < 1 / 110 : starNight() && R() < (bonusOn('wish') ? 1 / 160 : 1 / 600))) {
             const v = G.view;
             this.star = { x: G.cam.x + v.w * (0.3 + R() * 0.6), y: G.cam.y + 10 + R() * v.h * 0.25, vx: -2.6, vy: 1.1, t: 0 };
         }
