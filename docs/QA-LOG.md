@@ -53,7 +53,7 @@ make it happen, what shows it, how bad it is, and whether it's fixed and checked
 ## What's been checked and found fine
 
 - **Sweep 1, the classic view** (a browser driving the game, a laptop and a phone): every phone app, every civic screen,
-  every room (no one stuck on arrival), every arcade cabinet, every holiday on the square, night, rain, snow and storm,
+  every room (no one stuck on arrival), every arcade cabinet, every holiday on the square, night, rain and snow,
   thirty days run forward: no script errors, no screen wider or taller than the window.
 - **The 3D look** (beta's, a browser on this machine's software graphics, 72 screenshots): 34 places and buildings at
   1 PM (the square, the alley, the boardwalk, the harbor and pier with Sarah's boat, the pond, the woods and the old
@@ -65,6 +65,10 @@ make it happen, what shows it, how bad it is, and whether it's fixed and checked
   Office, the Bank, Maki's and Sully's houses, the café, the salon); seven outfits and six hairstyles close up (the
   sweater's cuffs clean): nothing broken, nothing floating or sunk, nothing clipping. The lookout was the one thing
   wrong (row 26).
+- **The 3D look on a phone** (a phone's screen held upright, software graphics): the square by day and at night, a talk
+  (the camera in on Sarah and Maki above the dialogue box, the dock hidden), the phone, Fortune's shop and its screen:
+  everything fits the screen. Held upright a phone shows the middle of a room, so a counter at its side (Fortune's) comes
+  into view as Sarah walks over.
 - **A brand-new island, the first time** (a browser from the title with no debug tools, a laptop and a phone): Start,
   the boat scene, Joe and Fortune, the island's name and Sarah's birthday (the form fits a phone), every line of the
   welcome, the first moment of play (the walking hint for keys or taps, then the shells hint) and the first steps off
