@@ -214,15 +214,11 @@ async function checkSpecialMilestones() {
             else if (a === 'stack') ok = ((A.stackTop || 0) >= +b);
             else if (a === 'capsules') ok = ((A.reach || {}).capsules || 0) >= +b;
             else ok = (best[a] || 0) >= +b;
-<<<<<<< HEAD
-        // (flowers picked or watered both count toward the flower crown: David, 29 October)
-        } else if (kind === 'stat') ok = (st[a] || 0) + (a === 'flowers' ? (st.flower || 0) + (st.watered || 0) : 0) >= +b;
-=======
             // (topping David's record earns what it guards, a level's special too: ARCADE_RECORD in 59_arcade.js)
             rec = !!ARCADE_RECORD[a] && ARCADE_RECORD[a][2] === sp.id && beatsRecord(a, best[a] || 0);
             ok = ok || rec;
-        } else if (kind === 'stat') ok = (st[a] || 0) + (a === 'flowers' ? (st.flower || 0) : 0) >= +b;
->>>>>>> worktree-agent-a339648ae943f83ba
+        // (flowers picked or watered both count toward the flower crown: David, 29 October)
+        } else if (kind === 'stat') ok = (st[a] || 0) + (a === 'flowers' ? (st.flower || 0) + (st.watered || 0) : 0) >= +b;
         else if (kind === 'joe') ok = (S.poems || []).length >= +a;
         else if (kind === 'floss') ok = (st.salon || 0) >= +a;
         else if (kind === 'cookgold') ok = Object.values(S.cookLog || {}).filter(c => c.medal === 'gold').length >= +a;
