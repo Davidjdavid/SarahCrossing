@@ -6,13 +6,14 @@
    jump to any holiday, run days forward, set friendships, hand out money and things, unlock what's earned over weeks,
    start any game, keep snapshots of the island to come back to, bring in a save code (an older save goes through
    migrate() as it would for real), and note down problems found (each with where and when it was). Snapshots and notes
-   stay in this browser (sc-qa-snap:<name>, sc-qa-notes). A reload keeps the island it had (sessionStorage sc-qa-carry). */
+   stay in this browser (sc-qa-snap:<name>, sc-qa-notes). A reload keeps the island it had and the date and hour it was
+   set to (sessionStorage sc-qa-carry, sc-qa-clock). */
 const QA = !!window.IS_QA;
-const QA_SNAP = 'sc-qa-snap:', QA_NOTES = 'sc-qa-notes', QA_CARRY = 'sc-qa-carry';
+const QA_SNAP = 'sc-qa-snap:', QA_NOTES = 'sc-qa-notes', QA_CARRY = 'sc-qa-carry', QA_CLOCK = 'sc-qa-clock';
 /* the island the QA room starts on: what a reload carried over, else a fresh one, Sarah on the square */
 async function qaState() {
     let code = null;
-    try { code = sessionStorage.getItem(QA_CARRY); } catch (e) { /* none */ }
+    try { code = sessionStorage.getItem(QA_CARRY); const c = +sessionStorage.getItem(QA_CLOCK); if (c) Clock.offsetMs = c; } catch (e) { /* none */ }
     if (code) {
         try { const st = await Save.importCode(code); if (st && st.started) return st; } catch (e) { console.warn('QA: the carried island would not load', e); }
     }
@@ -239,13 +240,19 @@ const QAPanel = {
     },
     async load(code) {
         if (code) { try { await Save.importCode(code); } catch (e) { UI.toast("That code didn't load: " + e.message); return; } }
-        try { if (code) sessionStorage.setItem(QA_CARRY, code); else sessionStorage.removeItem(QA_CARRY); } catch (e) { UI.toast('This browser kept nothing: ' + e.message); return; }
+        try {
+            if (code) sessionStorage.setItem(QA_CARRY, code); else sessionStorage.removeItem(QA_CARRY);
+            sessionStorage.removeItem(QA_CLOCK);
+        } catch (e) { UI.toast('This browser kept nothing: ' + e.message); return; }
         location.reload();
     },
     /* reload the page with this island */
-    async reload() { try { sessionStorage.setItem(QA_CARRY, await this.code()); } catch (e) { /* a fresh one, then */ } location.reload(); },
+    async reload() { await this.carry(true); location.reload(); },
     /* the island as it is now, carried over a reload anyone else's code does (every few seconds while playing) */
-    async carry() { if (!QA || !S || !S.started || G.mode !== 'play') return; try { sessionStorage.setItem(QA_CARRY, await this.code()); } catch (e) { /* too big for it: never mind */ } },
+    async carry(any) {
+        if (!QA || !S || !S.started || (!any && G.mode !== 'play')) return;
+        try { sessionStorage.setItem(QA_CLOCK, String(Clock.offsetMs || 0)); sessionStorage.setItem(QA_CARRY, await this.code()); } catch (e) { /* too big for it: never mind */ }
+    },
     tab_notes(body) {
         const notes = this.notes();
         body.appendChild(stLabel('Note a problem (kept with where and when it was)'));
