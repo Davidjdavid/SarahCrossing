@@ -15,11 +15,14 @@ const EnvSteps = {
         g.setAttribute('aUv', new THREE.BufferAttribute(uv, 2));
         g.setAttribute('aA', new THREE.BufferAttribute(al, 1).setUsage(THREE.DynamicDrawUsage));
         g.setIndex(idx);
-        const mat = r3Patch(new THREE.MeshBasicMaterial({ color: 0x7a5a3a, transparent: true, depthWrite: false }), { key: 'envsteps', noDof: true, noEdge: true, noCloud: true,
+        const mat = r3Patch(new THREE.MeshBasicMaterial({ color: 0x5e4126, transparent: true, depthWrite: false }), { key: 'envsteps', noDof: true, noEdge: true, noCloud: true,
             vhead: 'attribute vec2 aUv; attribute float aA; varying vec2 vFUv; varying float vA;\n', vbody: 'vFUv = aUv; vA = aA;',
             fhead: 'varying vec2 vFUv; varying float vA;\n',
-            // (an oval, a little wider at the toe than the heel, soft at its rim)
-            fpre: 'vec2 q = vFUv * 2.0 - 1.0; q.x *= 1.0 + 0.25 * (1.0 - vFUv.y); gl_FragColor.a *= vA * smoothstep(1.0, 0.55, length(q));' });
+            // (an oval, a little wider at the toe than the heel, pressed in: darker inside, the sand pushed up paler round its
+            // rim, soft at the edge; they were first too small and faint to see on the ripples)
+            fpre: 'vec2 q = vFUv * 2.0 - 1.0; q.x *= 1.0 + 0.25 * (1.0 - vFUv.y); float d = length(q);' +
+                'gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.93, 0.84, 0.66), smoothstep(0.62, 0.86, d));' +
+                'gl_FragColor.a *= vA * (1.0 - smoothstep(0.86, 1.0, d)) * mix(1.0, 0.55, smoothstep(0.62, 0.86, d));' });
         const m = this.mesh = new THREE.Mesh(g, mat);
         m.frustumCulled = false; m.renderOrder = 1; m.userData.live = true;
         group.add(m);
@@ -36,10 +39,10 @@ const EnvSteps = {
     add(x, y, hx, hy, side, now) {
         const i = this.next++ % this.N, P = this.prints[i];
         P.at = now;
-        const X = x / TILE, Z = y / TILE * R3_ZS, Y = Env.groundH(x, y) + 0.012;
+        const X = x / TILE, Z = y / TILE * R3_ZS, Y = Env.groundH(x, y) + 0.02;
         let fx = hx, fz = hy * R3_ZS;
         const l = Math.hypot(fx, fz) || 1; fx /= l; fz /= l;
-        const sx = -fz, sz = fx, cx = X + sx * side * 0.055, cz = Z + sz * side * 0.055, L = 0.075, Wd = 0.042;
+        const sx = -fz, sz = fx, cx = X + sx * side * 0.07, cz = Z + sz * side * 0.07, L = 0.11, Wd = 0.065;
         // (heel, then the toe ahead: the oval's narrow end at the heel)
         const c = [[-Wd, -L], [Wd, -L], [Wd, L], [-Wd, L]];
         c.forEach(([a, b], k) => this.pos.set([cx + sx * a + fx * b, Y, cz + sz * a + fz * b], i * 12 + k * 3));
@@ -65,7 +68,7 @@ const EnvSteps = {
         }
         for (let i = 0; i < this.N; i++) {
             const P = this.prints[i], age = P.at < 0 ? 1e9 : now - P.at;
-            const v = age >= this.LIFE ? 0 : 0.42 * Math.min(1, (this.LIFE - age) / this.FADE);
+            const v = age >= this.LIFE ? 0 : 0.7 * Math.min(1, (this.LIFE - age) / this.FADE);
             if (v === 0 && P.at >= 0) P.at = -1;
             this.al.fill(v, i * 4, i * 4 + 4);
         }
