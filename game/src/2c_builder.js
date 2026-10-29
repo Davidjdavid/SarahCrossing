@@ -264,9 +264,10 @@ const ExtEditor = {
         else {
             U.tools.appendChild(stLabel('Extras (tap to add or remove)'));
             const row = el('div', 'st-row');
-            for (const [k, name] of EXT_ADDONS) row.appendChild(chip((L[k] ? '\u2713 ' : '') + name, () => this.set(k, L[k] ? 0 : 1), L[k] ? 'on' : ''));
+            // (Sarah's mailbox stays: it's the only place her letters come, houseLook)
+            for (const [k, name] of EXT_ADDONS) if (!(k === 'mailbox' && this.id === 'home')) row.appendChild(chip((L[k] ? '\u2713 ' : '') + name, () => this.set(k, L[k] ? 0 : 1), L[k] ? 'on' : ''));
             U.tools.appendChild(row);
-            if (this.id === 'home') U.tools.appendChild(el('div', 'st-sub', 'No mailbox? Your letters still show up in the Mail app on your phone.'));
+            if (this.id === 'home') U.tools.appendChild(el('div', 'st-sub', 'Your mailbox stays: it\'s where your letters come. The Post Office can paint it or sell you a new one.'));
         }
         if (!short) { foot.style.marginTop = '8px'; U.tools.appendChild(foot); }
         foot.appendChild(chip('Original look', () => { this.L = houseLook(this.id, null, true); this.tools(); this.draw(); }));

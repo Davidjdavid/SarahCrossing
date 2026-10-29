@@ -63,6 +63,7 @@ const EnvBuild = {
         this.part = part;
         // the furniture made in Blender (bench, lamp, mailbox, fence, planter, pumpkins), gathered and drawn instanced
         const placed = this.placed = {}, has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
+        this.mbFlags = [];
         this.model = (n, x, y, z, rot, sc, sy, sz) => { if (!has(n)) return false; (placed[n] = placed[n] || []).push(EnvModels.mat4(x, y, z, rot || 0, sc || 1, sy, sz)); return true; };
         const mills = [], swings = [], clocks = [];
         // (Basil's noodle cart is only out at night: its model is hidden by day)
@@ -184,6 +185,7 @@ const EnvBuild = {
                     faces.forEach((M, i) => { for (const m of inst[n] || []) { m.setMatrixAt(i, turned.multiplyMatrices(M, spin)); m.instanceMatrix.needsUpdate = true; } });
                 }
             }
+            if (this.mbFlags.length) this.flagTick(frame);
             if (frame++ % 20) return;
             const night = hourIn(Clock.hourF(), 21, 27);
             for (const p of nights) {
@@ -574,19 +576,47 @@ const EnvBuild = {
         const f = this.foot(e), x = f.x, z = f.z - 0.1, y = f.y;
         // (Sarah's mailbox: the Post Office paints it and sells other styles, whose body takes the paint: 6zf_post.js)
         const P = S && S.post, c = P && P.box, has = n => typeof EnvModels !== 'undefined' && EnvModels.has(n);
-        if (P && P.style && has('mailbox_' + P.style)) {
-            const col = (MAILBOX_COLORS.find(k => k[0] === (c || null)) || MAILBOX_COLORS[0])[2];
-            for (const m of EnvModels.place(group, 'mailbox_' + P.style, EnvModels.mat4(x, y, z))) {
+        const style = P && P.style && has('mailbox_' + P.style), name = style ? 'mailbox_' + P.style : c && has('mailbox_' + c) ? 'mailbox_' + c : has('mailbox') ? 'mailbox' : null;
+        if (name) {
+            const col = style && (MAILBOX_COLORS.find(k => k[0] === (c || null)) || MAILBOX_COLORS[0])[2], base = EnvModels.mat4(x, y, z), parts = EnvModels.models[name].parts;
+            EnvModels.place(group, name, base).forEach((m, i) => {
                 m.userData.shared = true;
-                if (/_body/.test(m.material.name || '')) { m.material = EnvModels.tinted(m.material, col); m.userData.ownMat = true; }
-            }
+                if (col && /_body/.test(m.material.name || '')) { m.material = EnvModels.tinted(m.material, col); m.userData.ownMat = true; }
+                // (its flag, a part of its own pinned at its origin: down, or up and flashing while there are new letters)
+                if (/_flag$/.test(parts[i].node || '')) {
+                    m.material = EnvModels.tinted(m.material, '#ffffff'); m.material.emissive.set('#ff8a3a'); m.userData.ownMat = true;
+                    const k = unreadMail() ? 1 : 0;
+                    this.mbFlags.push({ m, base, at: parts[i].at, k, want: k });
+                    this.flagPose(this.mbFlags[this.mbFlags.length - 1], 0);
+                }
+            });
             return;
         }
-        if (this.model(c && has('mailbox_' + c) ? 'mailbox_' + c : 'mailbox', x, y, z)) return;
         this.box('wood', x - 0.05, y, z - 0.05, x + 0.05, y + 0.85, z + 0.05, '#6a4a2a', 2);
         this.box('plain', x - 0.18, y + 0.85, z - 0.32, x + 0.18, y + 1.12, z + 0.2, '#3f7fd0');
         this.box('plain', x - 0.18, y + 1.12, z - 0.32, x + 0.18, y + 1.18, z + 0.2, '#3570b8');
-        this.box('plain', x + 0.18, y + 0.95, z - 0.1, x + 0.22, y + 1.32, z - 0.06, '#d8302a');
+        if (unreadMail()) this.box('plain', x + 0.18, y + 0.95, z - 0.1, x + 0.22, y + 1.32, z - 0.06, '#d8302a');
+    },
+    /* the mailbox's flag (David, 29 October: "a raised flashing flag when you have unread mail"): it swings up or down
+       about the foot of its arm, lying along the box's side toward the front when down; up, it turns out to face the
+       camera (along the side, as modelled, it would be seen edge on), a little bigger, waving and glowing on and off */
+    flagTick(frame) {
+        const now = performance.now();
+        for (const F of this.mbFlags) {
+            if (frame % 20 === 0) F.want = unreadMail() ? 1 : 0;
+            if (F.k !== F.want) F.k = F.want > F.k ? Math.min(1, F.k + 0.06) : Math.max(0, F.k - 0.06);
+            this.flagPose(F, now);
+        }
+    },
+    flagPose(F, now) {
+        const up = F.k * F.k * (3 - 2 * F.k), wave = F.want ? Math.sin(now / 160) * 0.07 * up : 0;
+        const T = this._ft || (this._ft = [0, 1, 2, 3, 4].map(() => new THREE.Matrix4())), s = 1 + 0.3 * up;
+        T[0].makeTranslation(F.at.x, F.at.y, F.at.z); T[1].makeRotationX((1 - up) * Math.PI / 2 + wave); T[2].makeRotationY(-up * Math.PI / 2);
+        T[3].makeScale(s, s, s); T[4].makeTranslation(-F.at.x, -F.at.y, -F.at.z);
+        F.m.matrix.copy(F.base);
+        for (const M of T) F.m.matrix.multiply(M);
+        F.m.matrixWorldNeedsUpdate = true;
+        F.m.material.emissiveIntensity = F.want ? up * (0.18 + 0.62 * (0.5 + 0.5 * Math.sin(now / 1000 * Math.PI * 2 / 0.9))) : 0;
     },
     /* a white picket fence along this tile, joining its neighbours */
     fence(e, a) {

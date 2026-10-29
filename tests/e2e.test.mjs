@@ -3410,7 +3410,7 @@ test('growing and making, the way a player does: seeds planted in a plot and pic
   await page.close();
 });
 
-test('the phone and the camera, the way a player uses them: a photo taken, an outfit changed in the wardrobe, a pot donated to the museum, a text answered, a letter read', async () => {
+test('the phone and the camera, the way a player uses them: a photo taken, an outfit changed in the wardrobe, a pot donated to the museum, a text answered, a letter read at the mailbox', async () => {
   const page = await device();
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
@@ -3442,11 +3442,12 @@ test('the phone and the camera, the way a player uses them: a photo taken, an ou
   await page.click('#panel .pfoot .btn:has-text("Where are you?"), #panel button:has-text("Where are you?")');
   await page.waitForFunction((i) => textsOf(i).some((m) => !m.me && !m.sys), id, { timeout: 8000 });
   await page.evaluate(() => UI.close(true));
-  // a letter in the Mail app, opened and read
-  const read = await page.evaluate(() => {
+  // a letter at the mailbox by the door (the phone has no Mail app), opened and read
+  const read = await page.evaluate(async () => {
     sendMail({ from: 'maki', subject: 'Test', body: 'A letter.' });
     const m = S.mail[S.mail.length - 1];
-    appMail();
+    if (G.area.id !== 'island') __dbg.at('plaza');
+    await G.mailbox.interact();
     const row = [...document.querySelectorAll('#panel .row')].find((r) => r.textContent.includes('Test'));
     row.click();
     return m.read === true;
@@ -5012,4 +5013,113 @@ test('the arcade back room: once Sarah has tried the locked door, Chili hints ho
   assert.deepEqual(steps, { ready: [null, ["What's behind the STAFF ONLY door?"]], sully: true, lighthouse: true, key: true, open: null, front: false, note: true });
   assert.deepEqual(page.problems, []);
   await page.context().close();
+});
+
+test('the phone in two even rows (five across, the folders and Save & quit tiles of their own) with no Mail app; letters are read at the mailbox, whose flag is up and flashing while there are new ones, and an old save that took the mailbox off gets it back', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const rows = (sel) => { const ys = [...document.querySelectorAll(sel)].map((b) => Math.round(b.getBoundingClientRect().top)); const by = {}; for (const y of ys) by[y] = (by[y] || 0) + 1; return Object.values(by); };
+    for (const m of S.mail) m.read = true;
+    openPhone();
+    out.home = { rows: rows('#panel .apps > .app'), mail: !!document.querySelector('#panel [data-app="mail"]'), save: !!document.querySelector('#panel .apps [data-app="save"]'), foot: !!document.querySelector('#panel .pquit'), folders: document.querySelectorAll('#panel .apps .folder').length };
+    document.querySelector('#panel .apps [data-folder="play"]').click();
+    out.play = rows('#panel .apps > .app');
+    UI.close(true);
+    out.noApp = !APPS.some((a) => a[0] === 'mail');
+    // a new letter: the phone's badge doesn't count it (only texts), the mailbox's flag goes up and flashes
+    sendMail({ from: 'maki', subject: 'Flag test', body: 'Hi!' });
+    HUD.update();
+    const badge = document.querySelector('#bPhone .badge');
+    out.badge = (badge ? +badge.textContent : 0) === Invites.pending().length;
+    const seen = new Set();
+    for (let i = 0; i < 30; i++) { seen.add(mailboxFrame()); await wait(50); }
+    out.flash = [...seen].sort().join();
+    out.lit = !!Assets.dyn.mailbox_flag_lit && !!HD_SPR.mailbox_flag_lit;
+    // read at the mailbox: its own panel (not the phone), the letter there; read, the flag comes down
+    __dbg.at('plaza');
+    await G.mailbox.interact();
+    const P = document.querySelector('#panel');
+    out.panel = [P.querySelector('h2').textContent, P.classList.contains('phone'), !!P.querySelector('canvas.vec')];
+    for (const m of S.mail) if (m.subject !== 'Flag test') m.read = true;       // (anything else that came meanwhile)
+    [...P.querySelectorAll('.row')].find((r) => r.textContent.includes('Flag test')).click();
+    UI.close(true);
+    await wait(60);
+    out.down = mailboxFrame();
+    // an older save whose house had no mailbox: it's back (its letters come nowhere else)
+    exteriors().home = Object.assign({}, exteriors().home, { mailbox: 0 });
+    const a = G.areas.island;
+    applyExteriors(a);
+    out.back = houseLook('home').mailbox === 1 && a.ents.some((e) => e.kind === 'mailbox');
+    return out;
+  });
+  assert.deepEqual(res, { home: { rows: [5, 5], mail: false, save: true, foot: false, folders: 2 }, play: [3, 3], noApp: true, badge: true,
+    flash: 'mailbox_flag,mailbox_flag_lit', lit: true, panel: ['Mailbox', false, true], down: 'mailbox', back: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test("what's over people's heads is drawn crisp, at the screen's resolution on a canvas of its own, right over the head: an emote's bubble, the talk prompt, gone again when it ends", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, frames = (n) => new Promise((r) => { let k = 0; const f = () => (++k >= n ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); });
+    __dbg.setTime(6, 10, 11);
+    __dbg.at('plaza');
+    const P = G.player, n = NPCs.list.find((q) => !q.sleeping && q.area === 'island');
+    const put = () => { n.x = P.x + 40; n.y = P.y; n.path = null; n.script = { wait: true }; n.emote = 'heart'; n.emoteT = 9999; };
+    put();
+    await frames(4); put(); await frames(3);
+    const cv = document.querySelector('#heads'), g = cv.getContext('2d'), k = cv.width / (G.view.w * G.view.cssScale);
+    out.sharp = Math.abs(cv.width - Math.round(G.view.w * G.view.cssScale * Math.min(devicePixelRatio || 1, 2))) <= 1 && getComputedStyle(cv).pointerEvents === 'none';
+    // (the bubble's paper just above the spot over the head, nothing well under it at the feet)
+    const [sx, sy] = screenOf(n.x, n.y, headLift(n));
+    const alpha = (x, y) => g.getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data[3];
+    const s = Math.min(56, Math.max(30, 15 * G.view.cssScale));
+    out.over = alpha(sx, sy - s * 0.5) > 200 && alpha(sx, sy + G.view.cssScale * 12) === 0;
+    out.icon = uiIcon('emote_heart', 40).classList.contains('vec');
+    // the emote over: wiped the next frame
+    n.emote = null; n.emoteT = 0;
+    await frames(3);
+    out.gone = alpha(sx, sy - s * 0.5) === 0;
+    // the talk prompt over the neighbor Sarah faces
+    n.x = P.x; n.y = P.y - 14; P.dir = 'up'; G.showPrompt = true;
+    await frames(2); n.x = P.x; n.y = P.y - 14; G.showPrompt = true; await frames(2);
+    const [px, py] = screenOf(n.x, n.y, headLift(n) - 1);
+    out.prompt = frontTarget(P) === n && alpha(px, py - Math.min(42, Math.max(26, 10.5 * G.view.cssScale)) * 0.45) > 200;
+    n.script = null;
+    return out;
+  });
+  assert.deepEqual(res, { sharp: true, over: true, icon: true, gone: true, prompt: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test("the screens' icons are drawn as shapes like the phone's (the Bank's counter, the packages screen, the Moves app, a toast), while a thing's own picture stays its picture", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, icons = () => [...document.querySelectorAll('#panel .row > canvas')];
+    civicMenu('bank');
+    out.bank = icons().length > 0 && icons().every((c) => c.classList.contains('vec') && c.width >= 80 && getComputedStyle(c).imageRendering !== 'pixelated');
+    UI.close(true);
+    civicScreen('tracking', 'Empty');
+    out.empty = !!document.querySelector('#panel .cv-empty canvas.vec');
+    UI.close(true);
+    openApp('moves');
+    out.moves = icons().length > 0 && icons().every((c) => c.classList.contains('vec'));
+    UI.close(true);
+    UI.toast('Test', 'ui_coin');
+    out.toast = !!document.querySelector('#toasts canvas.vec');
+    // a thing's own picture: still its picture
+    out.thing = !uiIcon('fish_tuna', 40).classList.contains('vec') && !uiIcon(itemIcon('sofa_pink'), 40).classList.contains('vec');
+    return out;
+  });
+  assert.deepEqual(res, { bank: true, empty: true, moves: true, toast: true, thing: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
 });

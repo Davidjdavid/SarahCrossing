@@ -51,7 +51,7 @@ const Photo = {
         this.showFrame();
     },
     /* the filter on what's on screen (the flat view's canvas, and the 3D view's and its weather's) */
-    look() { for (const id of ['#game', '#game3d', '#wx3d']) { const c = $(id); if (c) c.style.filter = this.on ? FILTERS[this.filter][2] : ''; } },
+    look() { for (const id of ['#game', '#game3d', '#wx3d', '#heads']) { const c = $(id); if (c) c.style.filter = this.on ? FILTERS[this.filter][2] : ''; } },
     flat() { return this.on && FILTERS[this.filter][0] === 'flat'; },
     showFrame() {
         let f = $('#pframe');
@@ -104,6 +104,10 @@ const Photo = {
             if (R3.wx && R3.wx.width) g.drawImage(R3.wx, x0, y0, w, h);
             g.drawImage(src, x0, y0, w, h);
         } else g.drawImage(src, x0, y0, w, h);
+        // (and the emotes over people's heads, on a canvas of their own at the screen's resolution, as big as the game's:
+        // 41d_head_icons.js)
+        const hc = $('#heads');
+        if (hc && hc.width) { g.imageSmoothingEnabled = true; g.drawImage(hc, x0, y0, w, h); g.imageSmoothingEnabled = three; }
         this.applyFilter(g, x0, y0, w, h);
         if (this.frame) {
             g.fillStyle = '#6e5a78';

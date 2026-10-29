@@ -199,7 +199,8 @@ def lamp():
 
 def mailbox(color='#3d7a4a', door='#346a40', flag='#c8302a', name='mailbox'):
     """The concept's green mailbox: a wooden post and arm, a round-topped box, a red flag raised. (The other colors are
-    the Post Office's: Sarah can have hers painted.)"""
+    the Post Office's: Sarah can have hers painted.) The flag is its own part, <name>_flag, its origin where its arm is
+    pinned to the box: the game lowers it, and raises it flashing while there are new letters (EnvBuild.mailbox)."""
     post = wood_mat('mb_post', '#7a5432')
     paint = paint_mat('mb_paint', color, 0.06, 0.5)
     red = paint_mat('mb_flag', flag, 0.05, 0.5)
@@ -212,11 +213,22 @@ def mailbox(color='#3d7a4a', door='#346a40', flag='#c8302a', name='mailbox'):
     parts.append(cube('box', -0.13, -0.3, 0.86, 0.13, 0.2, 1.0, paint, 0.01))
     parts.append(cube('door', -0.115, -0.315, 0.88, 0.115, -0.3, 1.1, paint_mat('mb_door', door, 0.05), 0.005))
     parts.append(cube('handle', -0.02, -0.33, 1.0, 0.02, -0.31, 1.03, paint_mat('mb_handle', '#d8c070'), 0.004))
-    parts.append(cube('flagpost', 0.13, -0.02, 0.95, 0.15, 0.02, 1.32, red, 0.004))
-    parts.append(cube('flag', 0.135, 0.02, 1.2, 0.145, 0.16, 1.32, red, 0.004))
     o = join(parts, name)
     shade_smooth(o)
-    return bake_self(o)
+    bake_self(o)
+    f = join([cube('flagpost', 0.13, -0.02, 0.95, 0.15, 0.02, 1.32, red, 0.004), cube('flag', 0.135, 0.02, 1.2, 0.145, 0.16, 1.32, red, 0.004)], name + '_flag')
+    shade_smooth(f)
+    bake_self(f, size=128)
+    set_origin(f, (0.14, 0.0, 0.985))
+    return [o, f]
+
+
+def set_origin(o, at):
+    """Put an object's origin at a point, its mesh staying where it is (a part the game turns about it)."""
+    bpy.context.scene.cursor.location = at
+    select_only(o)
+    bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+    bpy.context.scene.cursor.location = (0, 0, 0)
 
 
 # the colors the Post Office paints mailboxes (game/src/6zf_post.js MAILBOX_COLORS): body, door, flag
@@ -378,9 +390,11 @@ def preview(path, objs):
     person(x=-1.4, y=-0.4)
     light_rig()
     x = 0
-    for o in objs:
-        o.location.x = x
-        x += max(1.2, o.dimensions.x + 0.5)
+    for group in objs:
+        # (a model in parts, its flag say, moves as one)
+        for o in group:
+            o.location.x += x
+        x += max(1.2, group[0].dimensions.x + 0.5)
     camera((x / 2 - 0.6, 0, 0.9), dist=max(6.5, x * 1.15))
     render(path, size=(1200, 600), samples=64)
 
@@ -394,10 +408,11 @@ if __name__ == '__main__':
     for name, fn in PROPS.items():
         if only and name != only:
             continue
-        o = fn()
-        o.location = (0, 0, 0)
-        export([o], name)
-        made.append(o)
+        out = fn()
+        objs = list(out) if isinstance(out, (list, tuple)) else [out]
+        objs[0].location = (0, 0, 0)
+        export(objs, name)
+        made.append(objs)
         print('built', name)
     if prev:
         preview(os.path.join(prev, 'props.png' if not only else only + '.png'), made)

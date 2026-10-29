@@ -73,11 +73,11 @@ function statueWords() {
 }
 
 /* ---------------------------------------------------------------- the Town Hall's screen */
-CIVIC_SCREENS.statue = { title: 'The statue', icon: 'app_camera', blurb: 'A new statue for the square, cast in bronze, free', states: ['Works'],
+CIVIC_SCREENS.statue = { title: 'The statue', icon: 'ui_statue', blurb: 'A new statue for the square, cast in bronze, free', states: ['Works'],
     draw(b) {
         CV.note(b, 'Once the statue on the square is built, the Council will cast a new one whenever you like: anyone on the island, or something else. Free, and ready the next morning.');
         const l = CV.list(b);
-        for (const [id, name] of [['sarah', 'Sarah'], ['david', 'David'], ['frasier', 'Dr. Frasier Crane'], ['tama', 'Your Tamagotchi keychain']]) CV.row(l, 'app_camera', name, id === 'sarah' ? 'On the plinth now' : 'In bronze', el('span', 'cv-pill', 'Sample'));
+        for (const [id, name] of [['sarah', 'Sarah'], ['david', 'David'], ['frasier', 'Dr. Frasier Crane'], ['tama', 'Your Tamagotchi keychain']]) CV.row(l, 'ui_statue', name, id === 'sarah' ? 'On the plinth now' : 'In bronze', el('span', 'cv-pill', 'Sample'));
     } };
 CIVIC_MENUS.townhall.splice(CIVIC_MENUS.townhall.indexOf('projects') + 1, 0, 'statue');
 CIVIC_LIVE.statue = {
@@ -91,7 +91,7 @@ CIVIC_LIVE.statue = {
         for (const [id, name] of statueChoices()) {
             if (id === statueKind() && !st.next) continue;
             const sub = id === 'frasier' ? 'From the 90s show. He\'s listening.' : id === 'tama' ? 'Your little egg on its keychain, very big' : id === 'rose' ? 'As tall as a lamp post' : id === 'sarah' ? 'You, in bronze' : 'In bronze';
-            const r = CV.row(l, 'app_camera', name, sub, st.next && st.next.kind === id ? el('span', 'cv-pill ok', 'Tomorrow') : null, () => { this.pick = id; redraw(); });
+            const r = CV.row(l, 'ui_statue', name, sub, st.next && st.next.kind === id ? el('span', 'cv-pill ok', 'Tomorrow') : null, () => { this.pick = id; redraw(); });
             if (this.pick === id) r.classList.add('sel');
         }
         if (!this.pick || (st.next && st.next.kind === this.pick)) return;
@@ -100,7 +100,7 @@ CIVIC_LIVE.statue = {
             this.pick = null;
             Save.touch();
             Sfx.play('fanfare');
-            UI.toast('The Council will have the new statue up by morning.', 'app_camera');
+            UI.toast('The Council will have the new statue up by morning.', 'ui_statue');
             redraw();
         }));
     },

@@ -827,7 +827,7 @@ const R3 = {
         // things written for the flat view, each drawn where it now stands
         for (const f of G.fx) if (!f.sorted && !f.screen && f.x != null) { this.localTransform(ctx, f.x, f.y || 0, 0); f.draw(ctx); }
         r3SkyThings(ctx);
-        r3Overheads(ctx);
+        r3Overheads();
         if (Decor.on) Decor.draw3d(ctx);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         r3Sharp();
@@ -2018,32 +2018,9 @@ function r3Sees(e) {
     e._seesT = G.frame; e._sees = ok;
     return ok;
 }
-/* emotes, "talk" prompts and the little "!" by doors, over the 3D view */
-function r3Overheads(ctx) {
-    const p = G.player;
-    const all = NPCs.here().concat(p ? [p] : [], Online.here());
-    for (const e of all) {
-        if (!e.emote || !r3Sees(e)) continue;
-        const lift = e.npc ? (e.h || 18) + 8 : 32;
-        const q = R3.project(e.x, e.y, lift);
-        ctx.setTransform(q.s, 0, 0, q.s, q.x, q.y);
-        r3OverSpr(ctx, 'emote_' + e.emote);
-    }
-    if (p && !G.busy && !UI.modal && G.showPrompt) {
-        const t = frontTarget(p);
-        if (t && t.npc) {
-            const q = R3.project(t.x, t.y, (t.h || 18) + 6 - Math.sin(G.t / 8));
-            ctx.setTransform(q.s, 0, 0, q.s, q.x, q.y);
-            r3OverSpr(ctx, 'prompt');
-        }
-    }
-    if (p && !G.busy && !UI.modal && !UI.dialogOpen && !p.emote && !p.sit && nearDoor(p)) {
-        const q = R3.project(p.x, p.y, 34 - Math.sin(G.t / 9));
-        ctx.setTransform(q.s, 0, 0, q.s, q.x, q.y);
-        r3OverSpr(ctx, 'prompt');
-    }
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-}
+/* emotes, "talk" prompts and the little "!" by doors, over the 3D view: crisp at the screen's resolution, each where its
+   head is in the 3D view (30_render.js drawOverheads, 41d_head_icons.js) */
+function r3Overheads() { drawOverheads(); }
 
 /* ---------------------------------------------------------------- post: depth of field from alpha, bloom, a warm grade */
 const Post3 = (() => {

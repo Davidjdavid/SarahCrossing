@@ -112,7 +112,7 @@ function civicMenu(id) {
         const S_ = CIVIC_SCREENS[s];
         const row = el('button', 'row');
         row.type = 'button';
-        row.appendChild(iconCanvas(S_.icon || 'ui_present', 40));
+        row.appendChild(uiIcon(S_.icon || 'ui_present', 40));
         const t = el('div', 't');
         t.appendChild(el('b', null, S_.title));
         t.appendChild(el('span', null, S_.blurb));

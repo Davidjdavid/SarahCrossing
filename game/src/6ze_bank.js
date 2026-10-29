@@ -174,7 +174,7 @@ CIVIC_LIVE.statement = {
         CV.row(l, 'ui_coin', 'In your pocket', null, fmtNum(S.money));
         CV.row(l, 'ui_coin', 'In savings', null, fmtNum(B.savings));
         if (goals) CV.row(l, 'ui_coin', 'Put toward goals', null, fmtNum(goals));
-        if (B.loan) CV.row(l, 'app_home', 'Still to pay on the house', null, fmtNum(B.loan.total - B.loan.paid));
+        if (B.loan) CV.row(l, 'ui_house', 'Still to pay on the house', null, fmtNum(B.loan.total - B.loan.paid));
     },
 };
 /* a day number as a date ("October 26") */
@@ -226,7 +226,7 @@ function bankLend(what, total) { bank().loan = { what, total, paid: 0, day: Cloc
 CIVIC_LIVE.loan = {
     draw(b, f, redraw) {
         const B = bank(), L = B.loan;
-        if (!L) { CV.empty(b, "No loan! The house is all yours. Ginger can build the next upgrade before it's paid for, and the Bank will wait.", 'app_home'); return; }
+        if (!L) { CV.empty(b, "No loan! The house is all yours. Ginger can build the next upgrade before it's paid for, and the Bank will wait.", 'ui_house'); return; }
         const left = L.total - L.paid, pct = Math.round(L.paid / L.total * 100);
         CV.big(b, 'Still to pay', bankFmt(left), `For ${L.what}`);
         b.appendChild(CV.meter(pct, '#3f9a5a'));
@@ -244,7 +244,7 @@ CIVIC_LIVE.loan = {
             addMoney(-n, true, 'House');
             L.paid += n;
             Sfx.play('buy');
-            if (L.paid >= L.total) { B.loan = null; Sfx.play('fanfare'); UI.toast('The house is paid for! All yours.', 'app_home'); }
+            if (L.paid >= L.total) { B.loan = null; Sfx.play('fanfare'); UI.toast('The house is paid for! All yours.', 'ui_house'); }
             Save.touch(); redraw();
         }));
     },

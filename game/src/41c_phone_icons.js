@@ -286,6 +286,162 @@ Object.assign(PHONE_ICONS, {
         for (const [x, y] of [[34, 76], [52, 84], [70, 76]]) for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; g.beginPath(); g.moveTo(x - Math.cos(a) * 6, y - Math.sin(a) * 6); g.lineTo(x + Math.cos(a) * 6, y + Math.sin(a) * 6); g.stroke(); }
     },
 });
+/* the screens' own icons in the same hand (David, 29 October: "make the icons in the bank and all the other menus look like
+   the phone menu quality"): the sand dollar, a present, a prize ticket, a lock, the safe deposit box, a package, a pile of
+   leaves, the mailbox, a path, the market's chart, the island's flag, a statue, a hammer and plank for the town's projects */
+Object.assign(PHONE_ICONS, {
+    coin(g, I) {
+        piShape(g, I, () => g.arc(50, 52, 35, 0, 7), '#f6d98e');
+        g.fillStyle = '#fff1c4'; g.beginPath(); g.arc(50, 52, 26, 0, 7); g.fill();
+        // (a sand dollar's five petals round a little hole)
+        g.lineWidth = 4; g.strokeStyle = I.ink;
+        for (let i = 0; i < 5; i++) {
+            const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+            g.save(); g.translate(50 + Math.cos(a) * 13, 52 + Math.sin(a) * 13); g.rotate(a + Math.PI / 2);
+            g.beginPath(); g.ellipse(0, 0, 4.5, 9.5, 0, 0, 7); g.fillStyle = '#f2c86a'; g.fill(); g.stroke(); g.restore();
+        }
+        g.fillStyle = I.ink; g.beginPath(); g.arc(50, 52, 3, 0, 7); g.fill();
+    },
+    present(g, I) {
+        piShape(g, I, () => piRR(g, 18, 46, 64, 42, 7), '#ef7f8f');
+        piShape(g, I, () => g.rect(44, 46, 12, 42), '#ffd65c', 4);
+        piShape(g, I, () => piRR(g, 12, 33, 76, 16, 6), '#f59aa6');
+        piShape(g, I, () => g.rect(44, 33, 12, 16), '#ffd65c', 4);
+        piShape(g, I, () => g.ellipse(37, 23, 12, 8, -0.45, 0, 7), '#ffd65c', 4.5);
+        piShape(g, I, () => g.ellipse(63, 23, 12, 8, 0.45, 0, 7), '#ffd65c', 4.5);
+        piShape(g, I, () => g.arc(50, 28, 6, 0, 7), '#f2b23a', 4.5);
+    },
+    ticket(g, I) {
+        g.save(); g.translate(50, 52); g.rotate(-0.28);
+        piShape(g, I, () => {
+            g.moveTo(-38, -21); g.lineTo(38, -21); g.lineTo(38, -8); g.arc(38, 0, 8, -Math.PI / 2, Math.PI / 2, true); g.lineTo(38, 21);
+            g.lineTo(-38, 21); g.lineTo(-38, 8); g.arc(-38, 0, 8, Math.PI / 2, -Math.PI / 2, true); g.closePath();
+        }, '#ffb85c');
+        g.lineWidth = 3.5; g.strokeStyle = I.ink; g.setLineDash([5, 6]); g.beginPath(); g.moveTo(-17, -17); g.lineTo(-17, 17); g.stroke(); g.setLineDash([]);
+        piShape(g, I, () => { for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 5 : 11.5; g.lineTo(11 + Math.cos(a) * r, 1 + Math.sin(a) * r); } g.closePath(); }, '#fff3c4', 4);
+        g.restore();
+    },
+    lock(g, I) {
+        g.lineWidth = 15; g.strokeStyle = I.ink; g.beginPath(); g.arc(50, 42, 17, Math.PI, 0); g.lineTo(67, 52); g.moveTo(33, 52); g.lineTo(33, 42); g.stroke();
+        g.lineWidth = 7; g.strokeStyle = '#c9cbe0'; g.beginPath(); g.arc(50, 42, 17, Math.PI, 0); g.lineTo(67, 52); g.moveTo(33, 52); g.lineTo(33, 42); g.stroke();
+        piShape(g, I, () => piRR(g, 20, 48, 60, 40, 10), '#f2c45c');
+        piShape(g, I, () => { g.arc(50, 63, 6, Math.PI * 0.8, Math.PI * 2.2); g.lineTo(53, 77); g.lineTo(47, 77); g.closePath(); }, I.ink, 2);
+    },
+    chest(g, I) {
+        piShape(g, I, () => piRR(g, 12, 46, 76, 40, 7), '#c98a52');
+        piShape(g, I, () => { g.moveTo(12, 48); g.lineTo(12, 36); g.quadraticCurveTo(12, 18, 50, 18); g.quadraticCurveTo(88, 18, 88, 36); g.lineTo(88, 48); g.closePath(); }, '#d99c62');
+        for (const x of [24, 70]) piShape(g, I, () => g.rect(x, 21, 6, 64), '#ffd65c', 3.5);
+        piShape(g, I, () => piRR(g, 41, 40, 18, 20, 4), '#ffd65c', 4);
+        g.fillStyle = I.ink; g.beginPath(); g.arc(50, 48, 3, 0, 7); g.fill(); g.fillRect(48.5, 48, 3, 7);
+    },
+    package(g, I) {
+        piShape(g, I, () => piRR(g, 14, 38, 72, 48, 6), '#e2b47a');
+        piShape(g, I, () => { g.moveTo(14, 40); g.lineTo(24, 18); g.lineTo(76, 18); g.lineTo(86, 40); g.closePath(); }, '#efc994');
+        piShape(g, I, () => { g.moveTo(44, 18); g.lineTo(56, 18); g.lineTo(57, 40); g.lineTo(57, 60); g.lineTo(43, 60); g.lineTo(43, 40); g.closePath(); }, '#f6e2b8', 4);
+        piShape(g, I, () => piRR(g, 58, 64, 20, 14, 3), PHONE_PAPER, 4);
+        g.lineWidth = 3; g.strokeStyle = I.ink; g.beginPath(); g.moveTo(62, 69); g.lineTo(74, 69); g.moveTo(62, 74); g.lineTo(70, 74); g.stroke();
+    },
+    leaves(g, I) {
+        piBlob(g, I, [[28, 70, 16], [50, 62, 20], [72, 70, 15], [50, 76, 14]], '#f0a04a');
+        const leaf = (x, y, a, col) => {
+            g.save(); g.translate(x, y); g.rotate(a);
+            piShape(g, I, () => { g.moveTo(-15, 0); g.quadraticCurveTo(0, -12, 15, 0); g.quadraticCurveTo(0, 12, -15, 0); g.closePath(); }, col, 4);
+            g.lineWidth = 2.5; g.strokeStyle = I.ink; g.beginPath(); g.moveTo(-12, 0); g.lineTo(12, 0); g.stroke();
+            g.restore();
+        };
+        leaf(34, 50, -0.5, '#e2683c'); leaf(62, 44, 0.6, '#f6c64a'); leaf(50, 30, -0.1, '#d8573a'); leaf(74, 60, 1.2, '#e2683c');
+    },
+    mailbox(g, I) {
+        piShape(g, I, () => piRR(g, 40, 58, 12, 32, 3), '#b07a4c', 5);
+        piShape(g, I, () => { g.moveTo(12, 64); g.lineTo(12, 40); g.arc(30, 40, 18, Math.PI, Math.PI * 1.5); g.lineTo(62, 22); g.arc(62, 40, 18, Math.PI * 1.5, 0); g.lineTo(80, 64); g.closePath(); }, '#6fb880');
+        piShape(g, I, () => { g.moveTo(12, 64); g.lineTo(12, 40); g.arc(30, 40, 18, Math.PI, Math.PI * 1.5); g.lineTo(30, 64); g.closePath(); }, '#5aa06a', 5);
+        g.lineWidth = 5; g.strokeStyle = I.ink; g.beginPath(); g.moveTo(84, 54); g.lineTo(84, 12); g.stroke();
+        piShape(g, I, () => piRR(g, 84, 10, 12, 16, 3), '#ef6461', 4.5);
+    },
+    paths(g, I) {
+        const road = () => { g.moveTo(34, 96); g.bezierCurveTo(30, 66, 72, 66, 64, 40); g.bezierCurveTo(58, 22, 70, 12, 76, 4); };
+        g.lineWidth = 30; g.strokeStyle = I.ink; g.beginPath(); road(); g.stroke();
+        g.lineWidth = 21; g.strokeStyle = '#f4dc9c'; g.beginPath(); road(); g.stroke();
+        for (const [x, y, r] of [[36, 84, 5], [44, 68, 4.5], [60, 56, 5], [64, 38, 4.5], [66, 22, 4]]) piShape(g, I, () => g.ellipse(x, y, r * 1.3, r, 0.3, 0, 7), '#c9cbe0', 3);
+        piBlob(g, I, [[18, 40, 9], [26, 34, 8]], '#8fd46f');
+        piBlob(g, I, [[86, 74, 9], [80, 66, 7]], '#8fd46f');
+    },
+    chart(g, I) {
+        piShape(g, I, () => piRR(g, 12, 16, 76, 70, 10), PHONE_PAPER);
+        g.lineWidth = 3; g.strokeStyle = 'rgba(120, 90, 60, 0.25)';
+        for (const y of [36, 52, 68]) { g.beginPath(); g.moveTo(20, y); g.lineTo(80, y); g.stroke(); }
+        headLine(g, I, () => { g.moveTo(22, 70); g.lineTo(38, 56); g.lineTo(52, 62); g.lineTo(76, 32); }, '#4fa25a', 6);
+        piShape(g, I, () => { g.moveTo(78, 24); g.lineTo(82, 40); g.lineTo(66, 32); g.closePath(); }, '#4fa25a', 4);
+    },
+    flag(g, I) {
+        piShape(g, I, () => piRR(g, 22, 14, 8, 78, 4), PHONE_PAPER, 5);
+        piShape(g, I, () => g.arc(26, 12, 6, 0, 7), '#ffd65c', 4);
+        const cloth = () => { g.moveTo(30, 20); g.bezierCurveTo(46, 12, 62, 28, 86, 20); g.lineTo(86, 56); g.bezierCurveTo(62, 64, 46, 48, 30, 56); g.closePath(); };
+        g.beginPath(); cloth(); g.fillStyle = '#5aa8e8'; g.fill();
+        g.save(); g.beginPath(); cloth(); g.clip(); g.fillStyle = PHONE_PAPER;
+        for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) if ((i + j) % 2) g.fillRect(30 + i * 14, 14 + j * 15, 14, 15);
+        g.restore();
+        g.lineWidth = 5; g.strokeStyle = I.ink; g.beginPath(); cloth(); g.stroke();
+    },
+    statue(g, I) {
+        // (someone in bronze on a stone plinth, waving)
+        piShape(g, I, () => piRR(g, 18, 74, 64, 16, 4), '#d8d2c4');
+        piShape(g, I, () => piRR(g, 26, 64, 48, 12, 3), '#e8e2d4', 5);
+        g.save(); g.translate(60, 44); g.rotate(0.75); piShape(g, I, () => piRR(g, -4.5, -24, 9, 28, 4.5), '#c99a5a', 5); g.restore();
+        piShape(g, I, () => { g.moveTo(34, 64); g.lineTo(39, 40); g.quadraticCurveTo(50, 34, 61, 40); g.lineTo(66, 64); g.closePath(); }, '#c99a5a');
+        piShape(g, I, () => g.arc(50, 25, 12, 0, 7), '#c99a5a');
+        g.fillStyle = '#e8c48a'; g.beginPath(); g.ellipse(46, 21, 3.5, 4.5, 0.4, 0, 7); g.ellipse(44, 46, 3, 7, 0.2, 0, 7); g.fill();
+    },
+    build(g, I) {
+        g.save(); g.translate(50, 70); g.rotate(-0.12);
+        piShape(g, I, () => piRR(g, -40, -9, 80, 18, 4), '#e6b97c');
+        g.fillStyle = I.ink; for (const x of [-26, 26]) { g.beginPath(); g.arc(x, 0, 2.6, 0, 7); g.fill(); }
+        g.restore();
+        g.save(); g.translate(48, 40); g.rotate(-0.7);
+        piShape(g, I, () => piRR(g, -5, -6, 10, 52, 5), '#c98a52', 5);
+        piShape(g, I, () => { g.moveTo(-20, -18); g.lineTo(16, -18); g.lineTo(20, -10); g.lineTo(16, -2); g.lineTo(-20, -2); g.quadraticCurveTo(-26, -10, -20, -18); g.closePath(); }, '#c9cbe0', 5);
+        g.restore();
+    },
+});
+/* which of the screens' pictures are icons drawn as shapes: a picture's name -> [its drawing, its tile's color]. The apps'
+   pictures (app_<id>) are the phone's own, an emote (emote_<kind>) its bubble (41d_head_icons.js); anything else is a
+   thing's own picture (furniture, fish, clothes, people) and stays as it is */
+const UI_VEC = {
+    ui_coin: ['coin', '#ffe7a8'], ui_present: ['present', '#ffd6de'], ui_ticket: ['ticket', '#ffe0b8'], ui_lock: ['lock', '#e4e4f0'],
+    ui_moves: ['moves', '#ecd8ff'], ui_hand: ['hand', '#ffe6cc'], ui_run: ['run', '#d0e4ff'], ui_house: ['gohome', '#ffd9d0'],
+    ui_phone: ['phone', '#ffe6cc'], ui_pocket: ['pocket', '#ffe8b0'], ui_invite: ['texts', '#c8f0c0'], ui_chest: ['chest', '#f6e0c4'],
+    ui_chart: ['chart', '#d8f0c8'], ic_package: ['package', '#f6e2c4'], ic_leafpile: ['leaves', '#f8e6c4'], mailbox: ['mailbox', '#d8f0c8'],
+    app_mail: ['mail', '#ffe0d2'], app_paths: ['paths', '#f4e8c8'], ui_flag: ['flag', '#d0e4ff'], ui_statue: ['statue', '#f2e2c8'],
+    ui_build: ['build', '#ffe6cc'],
+};
+function uiVecOf(name) {
+    if (!name) return null;
+    if (UI_VEC[name]) return UI_VEC[name];
+    const app = /^app_(\w+)$/.exec(name), A = app && PHONE_ICONS[app[1]] && APPS.find(q => q[0] === app[1]);
+    if (A) return [A[0], A[2]];
+    const em = /^emote_(\w+)$/.exec(name);
+    if (em && HEAD_ICONS[em[1]]) return ['emote:' + em[1], '#fff1d6'];
+    return null;
+}
+/* a screen's icon: drawn as shapes at the screen's resolution where it's one of those, its picture otherwise. Its size is
+   `css` pixels unless the place it's in says (CSS: canvas.vec), on a plate in its tile's color where pictures have plates */
+function uiIcon(name, css) {
+    const v = uiVecOf(name);
+    if (!v) return iconCanvas(name, css);
+    css = css || 32;
+    const k = Math.min(3, Math.max(2, Math.ceil(window.devicePixelRatio || 1))), c = document.createElement('canvas');
+    c.width = c.height = Math.round(css * k);
+    c.className = 'vec';
+    c.style.setProperty('--vs', css + 'px');
+    c.style.setProperty('--plate', v[1]);
+    const g = c.getContext('2d');
+    g.scale(c.width / 100, c.width / 100);
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    if (v[0].startsWith('emote:')) headIcon(g, v[0].slice(6));
+    else PHONE_ICONS[v[0]](g, { ink: phoneInk(v[1]) });
+    c.setAttribute('aria-hidden', 'true');
+    return c;
+}
 /* an app's icon as a canvas `css` pixels square (sharp on the screen it's on) */
 function phoneIcon(id, col, css) {
     css = css || 40;

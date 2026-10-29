@@ -19,7 +19,7 @@ const PROJECTS = [
         blurb: 'Pry off the boards, fix the stairs, polish the lamp room. Some say someone still climbs up there at night.' },
     { id: 'shrine', name: 'A stone tablet on the mountain top', cost: 80000, where: 'at the summit', icon: 'app_map',
         blurb: 'An old carved stone with a lantern each side. Make a wish there once a day.' },
-    { id: 'statue', name: 'A statue of Sarah', cost: 500000, where: 'on the square', icon: 'app_camera', last: true,
+    { id: 'statue', name: 'A statue of Sarah', cost: 500000, where: 'on the square', icon: 'ui_statue', last: true,
         blurb: 'The town\'s last and grandest project: the island says thank you, in bronze.' },
 ];
 function projState() {
@@ -127,7 +127,7 @@ const PROJECT_MAIL = {
 };
 
 /* ---------------------------------------------------------------- the Town Hall's screen */
-CIVIC_SCREENS.projects = { title: 'Town projects', icon: 'app_map', blurb: 'Pay toward a swing set, a park clock, the lighthouse... and more',
+CIVIC_SCREENS.projects = { title: 'Town projects', icon: 'ui_build', blurb: 'Pay toward a swing set, a park clock, the lighthouse... and more',
     states: ['Works'],
     draw(b) {
         const l = CV.list(b);

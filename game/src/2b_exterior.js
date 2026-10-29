@@ -125,6 +125,9 @@ function exteriors() { if (!S.exteriors) S.exteriors = {}; return S.exteriors; }
 function houseLook(id, over, bare) {
     const L = Object.assign({ w: 48, h: 56, win: '#9fd8ef', style: 'gable', pattern: 'plain' }, HOUSE_BASE[id], bare ? {} : exteriors()[id] || {}, over || {});
     if (id === 'home') {
+        // (Sarah's mailbox is always there: her letters are read only at it, David, 29 October; an older save that took it
+        // off gets it back)
+        L.mailbox = 1;
         L.level = S.house ? S.house.level : 0;
         if (L.level >= 2) L.h = 78;
     }

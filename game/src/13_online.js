@@ -179,7 +179,7 @@ const Online = {
         if (!b && show) {
             b = el('button', 'mbtn');
             b.id = 'bChat'; b.type = 'button'; b.title = 'Say something (Enter)'; b.setAttribute('aria-label', 'Say something');
-            b.appendChild(iconCanvas('emote_dots', 28));
+            b.appendChild(uiIcon('emote_dots', 28));
             b.addEventListener('click', ev => { ev.stopPropagation(); if (!UI.modal && !G.busy) this.chat(); });
             $('.hud-mini').prepend(b);
         }
@@ -306,10 +306,10 @@ const Online = {
             } catch (e) { addItem(id, 1, true); msg.textContent = "Couldn't reach the island server, so it's still in your pocket."; }
         }));
     },
-    /* the Mail app's "Write a letter": to anyone else who plays, maybe with a gift from the pocket */
+    /* the mailbox's "Write a letter": to anyone else who plays, maybe with a gift from the pocket */
     writeLetter() {
         const others = PEOPLE.filter(w => w !== this.who());
-        const P = UI.open({ title: 'Write a letter', phone: true, back: () => appMail(), foot: true });
+        const P = UI.open({ title: 'Write a letter', back: () => appMail(true), foot: true });
         let to = others[0], gift = null;
         const row = el('div', 'st-row');
         const chips = others.map(w => { const c = chip(this.name(w), () => { to = w; chips.forEach(x => x.classList.toggle('on', x === c)); }); return c; });
@@ -349,7 +349,7 @@ const Online = {
             if (g) removeSlot(gift, 1);
             try {
                 await this.post({ to, subject: subj.value.trim() || 'A letter', body: `${text}\n- ${this.name(this.who())}`, gift: g });
-                Sfx.play('item'); UI.toast(`Letter sent to ${this.name(to)}!`, 'app_mail'); appMail();
+                Sfx.play('item'); UI.toast(`Letter sent to ${this.name(to)}!`, 'app_mail'); appMail(true);
             } catch (e) { if (g) addItem(g, 1, true); msg.textContent = "Couldn't reach the island server. Try again in a moment."; }
         }));
     },
@@ -357,7 +357,7 @@ const Online = {
     post(letter) {
         return Cloud.api('POST', `/api/islands/${encodeURIComponent(Cloud.id)}/mail`, Object.assign({ from: this.who() }, letter));
     },
-    /* letters waiting on the server go into the Mail app; each one only once (S.mailIn is the last one in) */
+    /* letters waiting on the server go into the mailbox; each one only once (S.mailIn is the last one in) */
     async fetchMail() {
         if (!Cloud.id || this.fetching) return;
         this.fetching = true;
@@ -372,7 +372,7 @@ const Online = {
             if (S.started) await Cloud.flush();
             Cloud.api('DELETE', `/api/islands/${encodeURIComponent(Cloud.id)}/mail/${this.who()}?upTo=${S.mailIn}`).catch(() => {});
             const l = fresh[fresh.length - 1];
-            if (G.mode === 'play') UI.toast(fresh.length > 1 ? `${fresh.length} new letters! Check your phone.` : `A letter from ${this.name(l.from)}${l.gift ? ' (with a gift!)' : ''}`, 'app_mail');
+            if (G.mode === 'play') UI.toast(fresh.length > 1 ? `${fresh.length} new letters! Check your mailbox.` : `A letter from ${this.name(l.from)}${l.gift ? ' (with a gift!)' : ''}. It's in your mailbox.`, 'app_mail');
             HUD.update();
         } catch (e) { /* next time */ } finally { this.fetching = false; }
     },

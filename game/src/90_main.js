@@ -220,7 +220,7 @@ async function continueGame() {
     const h = Clock.hourF();
     const greet = h < 12 ? 'Good morning!' : h < 17 ? 'Good afternoon!' : h < 21 ? 'Good evening!' : 'Hello, night owl!';
     UI.toast(`${greet} It's ${Clock.fmt().s} on ${S.islandName}.`);
-    if (unread) setTimeout(() => UI.toast(`You have ${unread} new ${plural(unread, 'letter')}. Check your phone.`, 'app_mail'), 1200);
+    if (unread) setTimeout(() => UI.toast(`You have ${unread} new ${plural(unread, 'letter')}. Check your mailbox.`, 'app_mail'), 1200);
     if (G.events.has('birthday')) birthdayParty();
 }
 
@@ -403,6 +403,7 @@ function update() {
     G.showPrompt = !G.touchUsed;
 }
 function render() {
+    Heads.start();
     const hd = R3.active();
     R3.show(hd);
     if (hd && R3.render()) {

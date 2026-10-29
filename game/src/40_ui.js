@@ -111,7 +111,7 @@ const UI = {
     toast(text, icon) {
         const el = document.createElement('div');
         el.className = 'toast';
-        if (icon && Assets.has(icon)) el.appendChild(iconCanvas(icon, 24));
+        if (icon && (uiVecOf(icon) || Assets.has(icon))) el.appendChild(uiIcon(icon, 24));
         el.appendChild(document.createTextNode(text));
         const box = $('#toasts');
         box.appendChild(el);
@@ -215,7 +215,8 @@ const HUD = {
         const h = Clock.hourF ? Clock.hourF() : 12, wk = G.weather === 'sunny' && (h < 6 || h >= 19.5) ? 'moon' : PHONE_ICONS[G.weather] ? G.weather : 'sunny', wx = $('#wxic');
         if (wx && wx.dataset.w !== wk) { wx.dataset.w = wk; wx.innerHTML = ''; wx.appendChild(phoneIcon(wk, '#e8dcc8', 18)); }
         $('#money').textContent = fmtNum(S.money);
-        const unread = S.mail.filter(m => !m.read && m.day <= Clock.dayNum()).length + Invites.pending().length;
+        // (texts waiting; letters are read at the mailbox, whose flag is up while there are new ones)
+        const unread = Invites.pending().length;
         const pb = $('#bPhone');
         let badge = pb.querySelector('.badge');
         if (unread && !badge) { badge = document.createElement('span'); badge.className = 'badge'; pb.appendChild(badge); }
