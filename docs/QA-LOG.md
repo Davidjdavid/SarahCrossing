@@ -59,6 +59,19 @@ make it happen, what shows it, how bad it is, and whether it's fixed and checked
 - **Edge cases**: a full pocket (things go home to storage, with a toast), no money (Fortune says so kindly), the day
   turning over mid-talk, talking tapped over and over (ignored while a talk is on), resizing the window mid-dialogue,
   two dialogues at once, a save code round trip, a phone turned sideways (the phone, a dialogue and the shop all fit).
+- **Load times** (a local server, this machine's software WebGL, so 3D times are a ceiling, not what a real laptop or
+  phone with a graphics chip sees): the classic view is on the title in 0.6-4 s and playing in 1-4.6 s, 60 frames a
+  second walking, 20 MB of memory. The new look downloads about 30 MB of models on a computer and 24 MB on a phone the
+  first time (gzipped; the code another 2 MB once the proxy compresses it, the pictures 3 MB), then nothing again till a
+  model changes (every file's name carries its hash). The island waits only for its own models; the furniture's 4 MB come
+  after. Here the 3D island was ready in 3 minutes (laptop) and 79 s (phone settings): on real hardware it's far quicker,
+  but a phone on a slow connection will take a while the first time (the getting-ready card for up to 25 s, then the
+  HD-2D view until the models are in).
+- **The neighbors through three whole days, fast** (the game's own update a game second a frame, Sarah away): nobody got
+  stuck walking, nobody left the map; the only ones standing on solid tiles were on benches, at the bonfire's seats or
+  in Wonton's spring, as they should be.
+- **Old saves**: the one-page game's save codes and an island from before map 7 come in and play (e2e tests 2 and 3,
+  in every full run: a fresh start keeping her stats, money, name, friends, things and arcade scores).
 - **The gameplay review** (reading the game: lines per neighbor, the economy, unlocks, schedules): the economy's pace
   (the house and town projects take about 45-55 days at fifteen minutes' fishing a day), friendship's pace (five hearts
   in about two weeks of daily gifts), the conveniences (sell all, buy five, quick cook, the mailbox's take-all), and

@@ -727,7 +727,7 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
-  steps): the game loads every model at once, so keep `game/assets/models/` light (about 100 MB on disk now, 15 of it furniture, 30 the style test's dolls and folks with their phone versions; packed and gzipped by the build, a computer fetches about 26 MB of it and a phone 21). `doll.py` was the
+  steps): the game loads every model at once, so keep `game/assets/models/` light (about 100 MB on disk now, 15 of it furniture, 30 the style test's dolls and folks with their phone versions; packed and gzipped by the build, a computer fetches about 30 MB of it and a phone 24, measured in the QA pass of 29 October; the furniture's 4 MB after the island). `doll.py` was the
   mock-up of the people as dolls. `ground_textures.py` bakes the ground's surfaces the same
   way (the plaza's flagstones with grass between them, the dirt path, the lawn: color, normal and height, each 4 tiles
   square and wrapping) into `game/assets/textures/`, shipped as `window.TEXTURES`; the ground's shader uses the height
