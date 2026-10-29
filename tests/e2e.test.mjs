@@ -4592,6 +4592,9 @@ test("David's list of 29 October: chats heard by walking up, planter boxes by ma
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
   const res = await page.evaluate(async () => {
+    // (the starter crop is checked before the clock moves: it's planted two days before the real date, so setting the
+    // date back made it look young once the real date passed the 28th)
+    const ci0 = W0.plots.findIndex((q) => q.c), starter = !!S.plots[ci0] && S.plots[ci0].seed === 'cucumber' && plotStage(S.plots[ci0]) === 3;
     __dbg.setTime(10, 28, 14);
     const out = {}, say = UI.say, ask = UI.ask, said = [];
     UI.say = async (w, t) => { said.push([w, t]); };
@@ -4606,7 +4609,7 @@ test("David's list of 29 October: chats heard by walking up, planter boxes by ma
       out.overheard = said.length === lines + 1 && said[0][0] === A.id && said[1][0] === B.id && !A.chat && !B.chat;
       // a new island: one bed of the community garden already has cucumbers ready, no wild flowers inside its fence
       const ci = W0.plots.findIndex((q) => q.c);
-      out.starter = !!S.plots[ci] && S.plots[ci].seed === 'cucumber' && plotStage(S.plots[ci]) === 3;
+      out.starter = starter;
       const c = W0.community, inside = W0.flowers.map((f, i) => [f, i]).filter(([f]) => f.x >= c.x && f.x < c.x + c.w && f.y >= c.y && f.y < c.y + c.h);
       out.gardenClear = inside.every(([, i]) => !wildStands(i, Clock.dayNum())) && !G.areas.island.ents.some((e) => e.wildFlower && inside.some(([, i]) => i === e.flowerIdx));
       // no planter boxes by her house any more; six come in the mail the first time she's in Fortune's shop
