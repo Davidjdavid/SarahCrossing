@@ -182,7 +182,7 @@ function makePlan(id, day) {
     else segs.push({ a: t, b: bed, spot: 'home' });                  // (right away: no gap to wander home in)
     if (d.early) { segs.push({ a: 28, b: 29, spot: 'jog' }); }
     // jump rope in the plaza, then today's storyline, may send people somewhere (the rope, a date, a party)
-    const o = (lunchOverride(id, day, d, work) || []).concat(errandOverride(id, day, d, work) || [], farmOverride(id, day) || [], catchOverride(id, day, work) || [], shopOverride(id, day, d, work) || [], visitOverride(id, day) || [], ropeOverride(id, day) || [], Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || [], vacationOverride(id, day) || [], gatherOverride(id, day) || []);
+    const o = (lunchOverride(id, day, d, work) || []).concat(errandOverride(id, day, d, work) || [], farmOverride(id, day) || [], catchOverride(id, day, work) || [], shopOverride(id, day, d, work) || [], visitOverride(id, day) || [], ropeOverride(id, day) || [], vbOverride(id, day) || [], Drama.override(id, day) || [], inviteOverride(id, day) || [], outingOverride(id, day, r) || [], vacationOverride(id, day) || [], gatherOverride(id, day) || []);
     for (const [spot, a, b, extra] of o) {
         const more = [];
         for (const s of segs) {
@@ -307,6 +307,7 @@ function resolveSpot(n, spot) {
     if (spot.startsWith('in_') && ROOMS[spot.slice(3)]) return roomSpot(spot.slice(3), 'guest', n);
     if (spot.startsWith('bench')) { const bs = benchSpot(n, spot); if (bs) return bs; }
     if (spot === 'rope_a' || spot === 'rope_b') return ropeSpot(spot.slice(5));
+    if (spot === 'vb_a' || spot === 'vb_b') return vbSpot(spot.slice(3));
     if (ROOMS[spot] && ROOMS[spot].staff === n.id) return roomSpot(spot, 'staff');
     if (spot === 'club') {
         const i = Math.max(0, ['chili', 'coco', 'clementine', 'joe', 'sully', 'kai', 'maki', 'brulee'].indexOf(n.id));

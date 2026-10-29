@@ -388,6 +388,7 @@ function drawOverheads() {
 function nearDoor(p) {
     const a = G.area;
     if (!a) return false;
+    if (stairsNear(p)) return true;
     if (a.interior && a.doorTile) {
         const [dx, dy] = a.doorTile;
         return Math.abs(p.x / TILE - (dx + 0.5)) < 1.25 && p.y / TILE > dy - 0.75;

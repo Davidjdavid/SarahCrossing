@@ -358,6 +358,7 @@ function update() {
     Dance.update();
     Karaoke.update();
     Rope.update();
+    VolleyLive.update();
     IslandGames.tick();
     FriendTag.tick(); NewYear.tick(); Gathering.tick();
     Arcade.update();

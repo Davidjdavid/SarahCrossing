@@ -19,7 +19,7 @@ function newState() {
         mail: [], mailSeq: 1,
         dance: { songs: {}, moves: ['wave', 'happy', 'laugh', 'heart', 'yawn'] },
         council: { best: 0, lastDay: -1, plaques: [] },
-        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1, garden8: 1, square8: 1, lane8: 1, fortune8: 1, lamps9: 1, garden9: 1, planters10: 1, wasabi11: 1, layout11: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
+        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1, garden8: 1, square8: 1, lane8: 1, fortune8: 1, lamps9: 1, garden9: 1, planters10: 1, wasabi11: 1, layout11: 1, barn11: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
         pottery: { seq: 1, pieces: {}, kiln: [], made: 0 },
         arcade: { tickets: 0, best: {}, plays: {}, free: {}, won: 0, claw: null, reach: {}, rival: {} },
         rope: { best: 0, day: -1, trophy: false },
@@ -370,6 +370,12 @@ function migrate(st) {
             body: 'Sarah! The crew moved a few things. Fortune\'s shop and Mac\'s diner swapped places on Market Lane, so the shop\'s nearer the square now.\n\n'
                 + 'Maki wanted to be closer to town, so we built a new house just west of the square, next to Fortune\'s. Where the old one stood in the woods there\'s a little pond now.\n\n'
                 + 'And the beach out west finally has a name: Driftwood Cove. Kai named it. Of course Kai named it.\n- Ginger' });
+    }
+    // the barn locked until a friend mails the key (David, 29 October): an island where Sarah has already been at the
+    // barn's trunk (the pirate's note) keeps it open; any other island already played gets its key from the first friend
+    if (!st.flags.barn11) {
+        st.flags.barn11 = 1;
+        if (st.started && st.quests && st.quests.treasure && (st.quests.treasure.stage >= 1 || st.quests.treasure.done)) st.flags.barnKey = 1;
     }
     // the final update: glasses get their own slot (so Sarah can wear a hat too), and Joe is always her best friend
     if (!st.flags.v9) {

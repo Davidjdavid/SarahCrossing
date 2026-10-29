@@ -248,10 +248,11 @@ function addVolleyball(a, p) {
     court.draw = ctx => spr(ctx, 'vb_court', court.x - w * TILE / 2, court.y - 5 * TILE);
     const e = a.add({ kind: 'volleyball', frame: 'vb_net', x: (p.x + w / 2) * TILE, y: (net + 1) * TILE - 2, px: p.x, py: p.y });
     e.hit = { x: p.x * TILE, y: net * TILE - 14, w: w * TILE, h: TILE + 14 };
+    e.interact = () => useCourt();
     const ball = a.add({ kind: 'vbball', frame: 'vb_ball', x: (p.x + 1.5) * TILE, y: (p.y + 3.8) * TILE });
     ball.hit = { x: ball.x - 8, y: ball.y - 12, w: 16, h: 14 };
     ball.interact = () => { ball.bounce = 30; Sfx.play('pick'); };
-    ball.draw = ctx => { const b = ball.bounce > 0 ? Math.abs(Math.sin(ball.bounce-- / 5)) * 8 * (ball.bounce / 30) : 0; spr(ctx, 'shadow_s', ball.x, ball.y); spr(ctx, 'vb_ball', ball.x, ball.y - b); };
+    ball.draw = ctx => { const b = ball.bounce > 0 ? Math.abs(Math.sin(ball.bounce-- / 5)) * 8 * (ball.bounce / 30) : 0; spr(ctx, 'shadow_s', ball.x, ball.y); spr(ctx, 'vb_ball', ball.x, ball.y - b - (ball.air || 0)); };
     return e;
 }
 function addProp(a, p) {
@@ -302,6 +303,12 @@ function addProp(a, p) {
     if (p.kind === 'tent') { e.tent = p.tent || 0; e.hit = { x: p.x * TILE, y: p.y * TILE - 20, w: 3 * TILE, h: 2 * TILE + 20 }; e.draw = ctx => drawTent(ctx, e); e.interact = () => useTent(e); e.stand = [p.x + 1, p.y + 2]; }
     if (p.kind === 'crate') e.interact = async () => {
         if (Quests.stage('windmill') >= 1 && !Quests.done('windmill') && !(Quests.st('windmill').cogs || []).includes('crate') && p.y < 45) { await Quests.findCog('crate'); return; }
+    };
+    // (the windmill's third cog washed up in Driftwood Cove's driftwood: David, 29 October, not in the lighthouse, which is
+    // boarded up until it's restored)
+    if (p.kind === 'driftwood') e.interact = async () => {
+        if (Quests.stage('windmill') >= 1 && !Quests.done('windmill') && !(Quests.st('windmill').cogs || []).includes('chest') && W0.spots.cove && Math.hypot(p.x - W0.spots.cove.x, p.y - W0.spots.cove.y) < 10) { await Quests.findCog('chest'); return; }
+        await UI.say(null, rpick(['A long piece of driftwood, worn smooth and silver by the sea.', 'Driftwood. It has been somewhere. It isn\'t saying where.']));
     };
     if (PROP_TALK[p.kind] && !e.interact) e.interact = () => UI.say(null, PROP_TALK[p.kind]());
     if (p.kind === 'windmill') {

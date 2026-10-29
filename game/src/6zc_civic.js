@@ -74,9 +74,9 @@ function buildPostOffice(a) {
 function buildBank(a) {
     const items = layoutItems([
         ['window_wall', 0, 'wall'], ['clock_wall', 3, 'wall'], ['plaque_silver', 6, 'wall'], ['window_wall', 11, 'wall'],
-        ['counter_boutique', 5, 1], ['register', 6, 1], ['velvet_rope', 3, 3], ['velvet_rope', 8, 3], ['treasure_chest', 11, 0], ['lh_trunk', 12, 0],
+        ['counter_boutique', 5, 1], ['register', 6, 1], ['velvet_rope', 3, 3], ['velvet_rope', 8, 3], ['bank_chest', 11, 0], ['bank_trunk', 12, 0],
         ['plant_monstera', 0, 0], ['lamp_floor', 2, 0], ['museum_bench', 0, 4], ['plant_monstera', 12, 4]]);
-    items.forEach(it => { if (it.id === 'counter_boutique') it.use = () => civicCounter('bank'); else if (it.id === 'treasure_chest') it.use = () => civicScreen('vault'); });
+    items.forEach(it => { if (it.id === 'counter_boutique') it.use = () => civicCounter('bank'); else if (it.id === 'bank_chest' || it.id === 'bank_trunk') it.use = () => civicScreen('vault'); });
     a.items = items;
     placeFurniture(a, items);
 }

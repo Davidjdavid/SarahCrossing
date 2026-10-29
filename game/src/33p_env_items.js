@@ -201,7 +201,7 @@ const EnvItems = {
             if (e.kind === 'gflower') this.wetFx(d, watered(e.pl), e.pl, () => breedPartner(e.pl));
             else {
                 const b = e.bounce > 0 ? Math.abs(Math.sin(e.bounce-- / 5)) * 8 * (e.bounce / 30) : 0;
-                d.position.set(e.x / TILE, Env.groundH(e.x, e.y - 2) + b / TILE * R3_VS, (e.y - 2) / TILE * R3_ZS);
+                d.position.set(e.x / TILE, Env.groundH(e.x, e.y - 2) + (b + (e.air || 0)) / TILE * R3_VS, (e.y - 2) / TILE * R3_ZS);
                 d.rotation.x = b * 0.2;
             }
         }

@@ -663,6 +663,7 @@ function topicLine(n) {
         ['area', AREA_TALK[n.area] && !(ROOMS[n.area] && ROOMS[n.area].staff === id) ? 2 : 0, () => rpick(AREA_TALK[n.area])],
         ['chili_arcade', id === 'chili' && n.area === 'arcade' ? 2 : 0, () => rpick(chiliLines())],
         ['rope', n.spotKey === 'rope_a' || n.spotKey === 'rope_b' ? 3 : 0, () => rpick(id === 'cuke' ? ROPE_TALK_CUKE : ROPE_TALK)],
+        ['volley', n.spotKey === 'vb_a' || n.spotKey === 'vb_b' ? 3 : 0, () => rpick(VB_TALK)],
         ['harvard', 1.2, () => rpick(R() < 0.55 ? HARVARD_FACTS : HARVARD_JOKES.concat(TITLE_GUESS))],
         // (Sully's topic: the lines are his, "kid" and "back home" and all, QA, 29 October)
         ['boston', id === 'sully' ? 2.5 : 0, () => rpick(BOSTON_FACTS)],

@@ -15,7 +15,7 @@ const QUEST_INFO = {
     star: { title: 'The blinking star', icon: 'ic_starcrystal' },
 };
 const LIGHTHOUSE_SHUT = "(The lighthouse is boarded up until it's restored: pay toward it at the Town Hall's Projects.)";
-const QUEST_NOTE = 'An old note, in faded ink:\n\n"To whoever finds this, I buried my treasure where nobody would think to look.\nFrom the foot of the long pier, walk west past three palm trees.\nAt the third palm, face the sea and walk down the sand\nto where it turns dark. Dig there.\n\n- Captain Gouda, 1887"';
+const QUEST_NOTE = 'An old note, in faded ink:\n\n"To whoever finds this, I buried my treasure where nobody would think to look.\nStand at the foot of the long pier, where the planks meet the sand.\nWalk west along the water\'s edge, five-and-twenty paces.\nWhere the sand turns dark, dig.\n\n- Captain Gouda, 1887"';
 const QUEST_RUMORS = {
     treasure: ["Ginger says there's an old trunk in the barn that nobody's opened in years. She says it's not her trunk. She says that a lot.",
         'Sully says a pirate captain buried treasure on this island a long time ago. Captain Gouda. A cheese, probably.',
@@ -59,8 +59,8 @@ const Quests = {
         this.heard(q);
         if (q === 'ghost' && s === 1) return "A ghost who wants chowder? Only one chowder on this island is worth coming back from the other side for. Sully's. Ask him.";
         if (q === 'goat' && s >= 1) { const step = TRADE_CHAIN[s - 1]; if (step) return `I heard you're doing some trading! Maybe ${NPC_DEFS[step[1]] ? (step[1] === 'goat' ? 'the goat' : NPC_DEFS[step[1]].name) : 'someone'} could use that ${itemName(step[0]).toLowerCase()}?`; }
-        if (q === 'windmill' && s === 1) return "Ginger said one of the windmill's cogs went into a crate on the farm, one into a hollow tree in the forest, and one out to sea. Things that go out to sea end up at the lighthouse, if you ask me.";
-        if (q === 'treasure' && s === 1) return "Did you figure out the note? Walk west from the pier past three palms, then down toward the sea. Look for dark sand. Bring a shovel!";
+        if (q === 'windmill' && s === 1) return "Ginger said one of the windmill's cogs went into a crate on the farm, one into a hollow tree in the forest, and one out to sea. Things that go out to sea wash up in Driftwood Cove, if you ask me. Out on the west beach.";
+        if (q === 'treasure' && s === 1) return "Did you figure out the note? Start at the foot of the pier and walk west along the water, twenty-five steps. Look for dark sand. Bring a shovel!";
         if (q === 'star' && s === 1) return 'You saw the blinking star too? Short, short, long. If only there was a big light to answer it with. Like a lighthouse. A working one.';
         return rpick(QUEST_RUMORS[q]);
     },
@@ -80,14 +80,14 @@ const Quests = {
     /* (a step in the boarded lighthouse says so while it is: on beta it's restored through the Town Hall's projects) */
     hint(q) {
         const t = this.hintBase(q), s = this.stage(q);
-        const inside = q === 'ghost' || (q === 'star' && s === 1) || (q === 'windmill' && s > 0) || (q === 'backroom' && s === 2);
+        const inside = q === 'ghost' || (q === 'star' && s === 1) || (q === 'backroom' && s === 2);
         return t && inside && !lighthouseOpen() ? t + ' ' + LIGHTHOUSE_SHUT : t;
     },
     hintBase(q) {
         const s = this.stage(q);
         switch (q) {
-            case 'treasure': return s ? 'From the foot of the pier, walk west past three palms. At the third, face the sea, walk down the beach and dig where the sand is dark. (Hold the shovel!)'
-                : 'A rumor: there is an old trunk in the barn, up on the farm.';
+            case 'treasure': return s ? 'From the foot of the pier, walk west along the water\'s edge, twenty-five paces, and dig where the sand is dark. (Hold the shovel!)'
+                : 'A rumor: there is an old trunk in the barn, up on the farm.' + (barnOpen() ? '' : ' (The barn is locked. Maybe a friend has a spare key.)');
             case 'ghost': return s === 1 ? `The keeper's ghost appears in the lamp room from 11 PM to 1 AM. He misses Martha's clam chowder.${S.recipes.includes('chowder') ? ' (You know the recipe!)' : ' (Sully knows chowder.)'}`
                 : 'A rumor: the old keeper still climbs the lighthouse stairs near midnight.';
             case 'goat': {
@@ -98,7 +98,7 @@ const Quests = {
             case 'windmill': {
                 if (!s) return "A rumor: the windmill's second millstone, the moonstone, hasn't turned in years.";
                 const got = this.st('windmill').cogs || [];
-                return `Cogs found: ${got.length} of 3. Ginger remembers: one in a crate on the farm, one in a hollow of the oldest tree in the forest, and one washed out to sea.`;
+                return `Cogs found: ${got.length} of 3. Ginger remembers: one in a crate on the farm, one in a hollow of the oldest tree in the forest, and one washed out to sea (it'd wash up in Driftwood Cove).`;
             }
             case 'backroom': return backHint(s);
             case 'star': return s === 2 ? 'The star answered! Something fell on the mountain top. Go look!' : s === 1 ? "Answer the blinking star (short, short, long) from the lighthouse's great lamp, at night."
@@ -131,7 +131,7 @@ const Quests = {
             this.st('windmill').gingerHint = true;
             await UI.say('ginger', ['The moonstone cogs? Oh, those. Big storm, years ago. The gear box blew open.',
                 'One rolled into a crate out on the farm, I think. Squirrels took one into the hollow of the oldest tree in the forest. The squirrels are a problem.',
-                "And one went right off the cliff and out to sea. If it washed up anywhere, it'd be by the old lighthouse. The keeper kept everything that washed up."], { keep: true });
+                "And one went right off the cliff and out to sea. If it washed up anywhere, it'd be in Driftwood Cove, out on the west beach. Everything washes up there eventually."], { keep: true });
             return true;
         } });
         return out;
@@ -186,6 +186,7 @@ const Quests = {
             receive('q_note', 1);
             this.set('treasure', 1);
             this.heard('treasure');
+            refreshRoomHere('barn');
             await this.readNote();
             UI.toast('New on your To-do list: The note in the barn', 'app_tasks');
             refreshTreasure();
@@ -238,7 +239,7 @@ const Quests = {
         s.cogs.push(where);
         Sfx.play('fanfare');
         receive('q_cog', 1);
-        await UI.say(null, `${{ crate: 'Under the pumpkins in the crate', tree: 'Deep in the hollow of the old tree, past a very judgmental squirrel', chest: 'In the old sea chest, wrapped in a sailcloth' }[where]}: a brass cog! (${s.cogs.length} of 3)`);
+        await UI.say(null, `${{ crate: 'Under the pumpkins in the crate', tree: 'Deep in the hollow of the old tree, past a very judgmental squirrel', chest: 'Tangled in the driftwood, wrapped in a scrap of old sailcloth' }[where]}: a brass cog! (${s.cogs.length} of 3)`);
         Save.touch();
         return true;
     },
@@ -375,18 +376,30 @@ const LH_LINES = {
 function buildLighthouseRoom(a) {
     const items = layoutItems([
         ['lh_map', 0, 'wall'], ['window_wall', 2, 'wall'], ['lh_barometer', 3, 'wall'], ['lh_lifering', 4, 'wall'],
-        ['lh_desk', 0, 0], ['lh_shelf', 3, 0], ['lh_stairs', 6, 0], ['lh_stove', 0, 3], ['lh_cot', 5, 3], ['lh_trunk', 3, 4], ['rug_round', 2, 2]]);
+        ['lh_desk', 0, 0], ['lh_shelf', 3, 0], ['lh_stairs', 6, 0], ['lh_stove', 0, 3], ['lh_cot', 5, 3], [S && S.flags.lhChest ? 'lh_trunk_open' : 'lh_trunk', 3, 4], ['rug_round', 2, 2]]);
     items.forEach(it => {
         if (it.id === 'lh_stairs') it.use = () => climbLighthouse();
-        else if (it.id === 'lh_trunk') it.use = async () => {
-            if (Quests.stage('windmill') >= 1 && !(Quests.st('windmill').cogs || []).includes('chest') && !Quests.done('windmill')) { await Quests.findCog('chest'); return; }
-            await UI.say(null, rpick(['An old sea chest. Rope, a lantern wick, a very old sandwich (fossilized). Sarah closes it.', 'A sea chest full of things that washed up on the beach. Sea glass, a spoon, a boot. The keeper kept everything.']));
-        };
+        else if (it.id === 'lh_trunk' || it.id === 'lh_trunk_open') it.use = () => lighthouseChest(it);
         else if (it.id === 'lh_desk') it.use = async () => { if (!(await backKeyHunt())) await UI.say(null, rpick(LH_LINES.lh_desk)); };
         else if (LH_LINES[it.id]) it.use = () => UI.say(null, rpick(LH_LINES[it.id]));
     });
     a.items = items;
     placeFurniture(a, items);
+}
+/* the old keeper's sea chest: the first time it's opened (the first thing the lighthouse gives once it's open), his fancy
+   mustache; open from then on (David, 29 October) */
+async function lighthouseChest(it) {
+    if (!S.flags.lhChest) {
+        S.flags.lhChest = Clock.dayNum();
+        Sfx.play('door');
+        await UI.say(null, ['The old sea chest. The latch is stiff... Sarah works it loose, and the lid creaks up.', 'Rope, a lantern wick, a very old sandwich (fossilized)... and, folded in a silk handkerchief, a magnificent mustache.']);
+        refreshRoomHere('lighthouse');
+        if (!hasSpecial('acc_mustache')) await grantSpecial('acc_mustache', "The old keeper's Sunday mustache. Martha made him wear it to dances.");
+        else { addMoney(500, false, 'Found & gifts'); await UI.say(null, 'Under the handkerchief, a little purse of old coins: 500 sand dollars.'); }
+        Save.touch();
+        return;
+    }
+    await UI.say(null, rpick(['The keeper\'s sea chest, open. Rope, a lantern wick and the fossilized sandwich. Nobody\'s touching the sandwich.', 'An open sea chest full of things that washed up on the beach. Sea glass, a spoon, a boot. The keeper kept everything.']));
 }
 function buildLampRoom(a) {
     const items = layoutItems([['window_wall', 0, 'wall'], ['window_wall', 5, 'wall'], ['lh_lens', 2, 0]]);

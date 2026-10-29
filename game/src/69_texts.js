@@ -11,7 +11,7 @@ const PLACE_NAMES = {
     mountain: 'on the mountain', lookout: 'up at the lookout', bench_pond: 'on the bench by the pond', bench_falls: 'on the bench by the waterfall',
     bench_beach: 'on the bench at the beach', bench_farm: 'on the bench by the farm', bench_museum: 'on the bench by the museum',
     bench_meadow: 'on the bench in the meadow', bench_lookout: 'on the bench at the lookout',
-    rope_a: 'turning the jump rope in the plaza', rope_b: 'turning the jump rope in the plaza',
+    rope_a: 'turning the jump rope in the plaza', rope_b: 'turning the jump rope in the plaza', vb_a: 'playing volleyball at the court', vb_b: 'playing volleyball at the court',
     shopfront: "outside Fortune's", boutiquefront: "outside Clementine's", arcadefront: 'outside the arcade', studiofront: 'outside the pottery studio',
     restaurantfront: "outside Mac's", museumfront: 'outside the museum', builderfront: "outside Ginger's workshop", clubfront: 'outside Club Wasabi',
     salonfront: 'outside the salon', displaysfront: "outside Waffle's", statue: 'on the lawn by Market Lane', boardwalk: 'on the Boardwalk', harbor: 'down by the harbor',

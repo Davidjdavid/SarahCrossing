@@ -39,7 +39,7 @@ defSpecial('acc_halo', 'acc', 'Halo', 'quest:ghost', 'Help someone at the lighth
 defSpecial('acc_goathorns', 'acc', 'Goat horns', 'quest:goat', "Be the goat's friend. It's a goat. It will know.", { item: 'acc_goathorns' });
 defSpecial('acc_monocle', 'acc', 'Monocle', 'stat:donated:15', 'Very distinguished. Give the museum fifteen pieces.', { item: 'acc_monocle' });
 defSpecial('acc_chefhat', 'acc', 'Chef hat', 'cookgold:12', 'Earn gold medals cooking twelve different dishes.', { item: 'acc_chefhat' });
-defSpecial('acc_mustache', 'acc', 'Fancy mustache', 'pool', null, { item: 'acc_mustache' });
+defSpecial('acc_mustache', 'acc', 'Fancy mustache', 'chest:lighthouse', "The old lighthouse keeper's sea chest hasn't been opened in seventy years.", { item: 'acc_mustache' });
 // keepsakes that inspire Joe
 defSpecial('moonrock', 'poem', 'Moon rock', 'pool', null, { item: 'moonrock' });
 defSpecial('pressedflower', 'poem', 'Pressed flower', 'pool', null, { item: 'pressedflower' });

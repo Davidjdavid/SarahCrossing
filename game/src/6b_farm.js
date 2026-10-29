@@ -27,8 +27,8 @@ function farmUse(ent) {
     if (id === 'hay_pile') return jumpInHay(ent);
     if (id === 'flour_bin') return flourBin();
     if (id === 'hayloft_ladder') {
-        return UI.say(null, G.area.id === 'barn' ? 'Sarah climbs up to the hayloft. More hay, a warm breeze, and a view of the whole farm. She climbs back down.'
-            : 'The ladder goes up to the sails. Sarah climbs a few rungs. Very windy. Very high. She climbs back down.');
+        if (G.area.id === 'windmill') return climbMill();
+        return UI.say(null, 'Sarah climbs up to the hayloft. More hay, a warm breeze, and a view of the whole farm. She climbs back down.');
     }
     return UI.say(null, rpick(FARM_LINES[id] || [`A ${ent.def.name.toLowerCase()}.`]));
 }
@@ -57,10 +57,10 @@ function buildBarnRoom(a) {
     const items = layoutItems([
         ['tool_wall', 0, 'wall'], ['window_wall', 3, 'wall'], ['hayloft_ladder', 6, 'wall'], ['window_wall', 9, 'wall'], ['pegboard', 11, 'wall'],
         ['tractor', 1, 0], ['feed_sacks', 4, 0], ['hay_stack', 8, 0], ['hay_stack', 10, 0], ['milk_can', 12, 0],
-        ['hay_pile', 9, 3], ['pumpkin_pile', 0, 4], ['wheelbarrow', 1, 5], ['pumpkin_pile', 12, 5], ['milk_can', 12, 3], ['old_trunk', 6, 1]]);
+        ['hay_pile', 9, 3], ['pumpkin_pile', 0, 4], ['wheelbarrow', 1, 5], ['pumpkin_pile', 12, 5], ['milk_can', 12, 3], [barnTrunkId(), 6, 1]]);
     a.items = items;
     wireFarm(a);
-    for (const it of items) if (it.id === 'old_trunk') it.use = () => Quests.barnTrunk();
+    for (const it of items) if (it.id === 'old_trunk' || it.id === 'old_trunk_open') it.use = () => Quests.barnTrunk();
     placeFurniture(a, items);
 }
 function buildWindmillRoom(a) {

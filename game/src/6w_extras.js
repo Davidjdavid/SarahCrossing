@@ -107,7 +107,7 @@ function trackName(id) {
 function jukeboxTracks() {
     return Object.keys(TRACK_NAMES).filter(id => TUNES[id] && (!BACK_CABS.includes(id) || backRoomOpen())).concat(Object.keys(SONGS).filter(id => DANCE_TUNES[id] && songUnlocked(id)));
 }
-function musicPlaceKey(id) { return !id ? 'island' : id.startsWith('h_') ? 'houses' : id === 'lamproom' ? 'lighthouse' : id; }
+function musicPlaceKey(id) { return !id ? 'island' : id.startsWith('h_') ? 'houses' : id === 'lamproom' ? 'lighthouse' : id === 'millloft' ? 'windmill' : id; }
 /* Sarah's music choices: "play now" beats everything, then a minigame's rule, then the place, then the hour (outside) */
 function musicRule(base) {
     if (!S || !S.started || !S.music || G.mode !== 'play' || G.introScene) return base;
@@ -557,10 +557,10 @@ async function spoilerGate() {
     if (ok) spoilerGuide('quests');
 }
 const QUEST_GUIDE = {
-    treasure: ["The pirate's treasure", '1. Open the old trunk in the barn, up on the farm. There is a pirate\'s note inside.\n2. From the foot of the pier, walk west past three palm trees. At the third palm, face the sea, walk down the beach and dig where the sand is dark (hold the shovel).\nReward: a pirate hat, a treasure chest and an old map.'],
+    treasure: ["The pirate's treasure", '1. Open the old trunk in the barn, up on the farm (the barn is locked until a friend gives Sarah a key). There is a pirate\'s note inside.\n2. From the foot of the pier, walk west along the water\'s edge, twenty-five paces, and dig where the sand is dark (hold the shovel).\nReward: a pirate hat, a treasure chest and an old map.'],
     ghost: ['The keeper of the light', "1. Go up to the lighthouse's lamp room between 11 PM and 1 AM and talk to the old keeper's ghost.\n2. He misses his wife Martha's clam chowder. Ask Sully about the ghost: he teaches you his chowder.\n3. Cook clam chowder at home (dig clams on the beach with the shovel).\n4. Bring it to the ghost between 11 PM and 1 AM.\nReward: a halo, the Lighthouse Shanty for the club, and the lighthouse shines every night."],
     goat: ["The goat's golden bell", '1. Pet the goat on three different days.\n2. It gives you a tin can. Trade it around the island: the tin can to Chili (hot sauce), the hot sauce to Kai (a shell necklace), the necklace to Clementine (a silk scarf), the scarf to Brulee (a painting of the goat), and the painting to Coco (a golden bell).\n3. Give the golden bell to the goat.\nReward: goat horns and The Goat Waltz.'],
-    windmill: ['The silent moonstone', '1. Look at the moonstone inside the windmill: three cogs are missing. (Ginger remembers where they went.)\n2. Cog one: a crate up on the farm.\n3. Cog two: the hollow of the oldest big tree in the forest.\n4. Cog three: the old sea chest inside the lighthouse.\n5. Bring all three back to the moonstone.\nReward: a mini windmill and the mooncake recipe.'],
+    windmill: ['The silent moonstone', '1. Look at the moonstone inside the windmill: three cogs are missing. (Ginger remembers where they went.)\n2. Cog one: a crate up on the farm.\n3. Cog two: the hollow of the oldest big tree in the forest.\n4. Cog three: the driftwood in Driftwood Cove, on the west beach.\n5. Bring all three back to the moonstone.\nReward: a mini windmill and the mooncake recipe.'],
     star: ['The blinking star', "1. First, solve the lighthouse ghost's mystery so the lamp shines again.\n2. At night, look through the telescope at the lookout: one star blinks short, short, long.\n3. At night, answer it from the lighthouse's great lamp: short, short, long.\n4. Climb to the mountain top. Something fell there.\nReward: a star telescope, a space suit pattern, the song Starlight and a star crystal."],
 };
 const POOL_ANSWER = 'Luck! It can turn up in a fishing crate, in a sparkling tree (shake it), sometimes after cooking, or as a thank-you for a favor. Keep doing those and it will show up.';
@@ -585,7 +585,7 @@ function moveHow(m) {
 }
 function spoilerEntries(sec) {
     const out = [];
-    if (sec === 'quests') for (const q of QUEST_IDS) out.push([QUEST_GUIDE[q][0], (['ghost', 'star', 'windmill', 'backroom'].includes(q) && !lighthouseOpen() ? LIGHTHOUSE_SHUT + '\n' : '') + QUEST_GUIDE[q][1], Quests.done(q)]);
+    if (sec === 'quests') for (const q of QUEST_IDS) out.push([QUEST_GUIDE[q][0], (['ghost', 'star', 'backroom'].includes(q) && !lighthouseOpen() ? LIGHTHOUSE_SHUT + '\n' : '') + QUEST_GUIDE[q][1], Quests.done(q)]);
     if (sec === 'specials') for (const [cat, label] of SPECIAL_CATS) for (const sp of Object.values(SPECIALS).filter(x => x.cat === cat)) out.push([`${sp.name} (${label.toLowerCase().replace(/s$/, '')})`, specialAnswer(sp), hasSpecial(sp.id)]);
     if (sec === 'club') {
         for (const id of Object.keys(SONGS)) {

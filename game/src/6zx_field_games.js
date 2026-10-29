@@ -29,7 +29,10 @@ function VolleyGame(opts) {
     this.op = { x: 150, y: VB_GROUND, vy: 0, cool: 0, anim: 0, moving: false, plan: 150, think: 0, noise: 0 };
     this.score = 0; this.opScore = 0; this.over = false; this.win = false;
     this.t = 0; this.pause = 0; this.msg = ''; this.sparks = [];
-    this.serve(R() < 0.5 ? this.me : this.op);
+    // (on her own at the court: a ball machine across the net sends every ball back; the score is how many she gets over)
+    this.solo = !!opts.solo;
+    if (this.solo) { this.op.x = VB_W + 40; this.machineT = 0; this.prevBest = vbSoloBest(); }
+    this.serve(this.solo || R() < 0.5 ? this.me : this.op);
 }
 VolleyGame.prototype = {
     serve(p) {
@@ -48,7 +51,7 @@ VolleyGame.prototype = {
         if (inp.held.right) { me.x += sp; me.moving = true; me.flip = false; }
         if (inp.pointer && inp.pointer.down && inp.pointer.y > 40) { const dx = inp.pointer.x - me.x; if (Math.abs(dx) > 3) { me.x += Math.sign(dx) * sp; me.moving = true; me.flip = dx < 0; } }
         if ((inp.pressed.jump || inp.pressed.screen) && me.y >= VB_GROUND) { me.vy = -3.7; Sfx.play('jump'); }
-        this.brain(op, b);
+        if (this.solo) this.machine(b); else this.brain(op, b);
         for (const p of [me, op]) {
             p.vy += 0.2; p.y += p.vy;
             if (p.y >= VB_GROUND) { p.y = VB_GROUND; p.vy = 0; }
@@ -56,10 +59,12 @@ VolleyGame.prototype = {
             if (p.cool > 0) p.cool--;
         }
         me.x = clamp(me.x, 10, VB_NET - 8);
-        op.x = clamp(op.x, VB_NET + 8, VB_W - 10);
-        if (this.pause > 0) { if (--this.pause === 0) { this.msg = ''; if (this.score >= VB_TO || this.opScore >= VB_TO) { this.over = true; this.win = this.score > this.opScore; } } return; }
+        if (!this.solo) op.x = clamp(op.x, VB_NET + 8, VB_W - 10);
+        if (this.pause > 0) { if (--this.pause === 0) { this.msg = ''; if (this.solo ? this.missed : this.score >= VB_TO || this.opScore >= VB_TO) { this.over = true; this.win = this.score > this.opScore; } } return; }
         // the ball
+        const bx0 = b.x;
         b.vy += 0.11; b.x += b.vx; b.y += b.vy; b.spin += b.vx * 0.2;
+        if (this.solo && bx0 < VB_NET && b.x >= VB_NET && b.last === me) { this.score++; this.msg = this.score % 5 ? '' : this.score + '!'; }
         // the net: off its top, or back off its side
         if (Math.abs(b.x - VB_NET) < VB_R + 1.5 && b.y + VB_R > VB_NET_TOP) {
             if (b.y < VB_NET_TOP + 2 && b.vy > 0) { b.vy = -Math.abs(b.vy) * 0.6; b.y = VB_NET_TOP - VB_R; }
@@ -67,7 +72,7 @@ VolleyGame.prototype = {
         }
         // heads and arms
         for (const p of [me, op]) {
-            if (p.cool) continue;
+            if (p.cool || (this.solo && p === op)) continue;
             const cx = p.x, cy = p.y - 15, dx = b.x - cx, dy = b.y - cy, d = Math.hypot(dx, dy);
             if (d > 12 + VB_R) continue;
             const nx = dx / (d || 1), ny = Math.min(-0.35, dy / (d || 1)), nl = Math.hypot(nx, ny);
@@ -91,6 +96,12 @@ VolleyGame.prototype = {
         }
         // down in the sand: a point to whoever's side it isn't on; past the end of the court, the last to touch it loses it
         const out = b.x < -VB_R || b.x > VB_W + VB_R;
+        if (this.solo && (b.y + VB_R >= VB_GROUND || out)) {
+            this.msg = out ? 'OUT!' : 'MISS!'; this.missed = true;
+            Sfx.play('land'); this.pause = 70;
+            b.y = Math.min(b.y, VB_GROUND - VB_R); b.vx = 0; b.vy = 0;
+            return;
+        }
         if (b.y + VB_R >= VB_GROUND || out) {
             const mine = out ? (b.last ? b.last === op : b.x > VB_NET) : b.x > VB_NET;
             if (mine) this.score++; else this.opScore++;
@@ -104,6 +115,17 @@ VolleyGame.prototype = {
         }
         for (const s of this.sparks) { s.x += s.vx; s.y += s.vy; s.vy += 0.15; s.t--; }
         this.sparks = this.sparks.filter(s => s.t > 0);
+    },
+    /* on her own: the ball machine across the net catches whatever comes over and lobs it back, a little harder and
+       further from her as the rally goes on */
+    machine(b) {
+        if (this.machineT > 0) this.machineT--;
+        if (b.x > VB_NET + 6 && b.vy > 0 && b.y > 58 && !this.machineT) {
+            const k = Math.min(1, this.score / 30);
+            b.vx = -(1.0 + R() * 0.8 + k * 0.5); b.vy = -3.2 - R() * 0.5 - k * 0.3;
+            b.last = null; this.machineT = 12;
+            Sfx.play('blip');
+        }
     },
     /* the neighbor's side: get under where the ball will come down (a little behind it, so it goes over), jump at it
        near the net; how well depends on their skill */
@@ -157,7 +179,11 @@ VolleyGame.prototype = {
         g.beginPath(); g.ellipse(b.x, VB_GROUND + 2, 5 * sh, 1.6 * sh, 0, 0, 7); g.fill();
         const pose = p => (p.y < VB_GROUND - 2 ? 'down_cheer' : p.moving ? `side_${Math.floor(p.anim / 6) % 2 ? 'walkA' : 'walkB'}` : 'side_stand');
         fieldPerson(g, 'sarah', Math.round(this.me.x), Math.round(this.me.y), pose(this.me), !!this.me.flip);
-        fieldPerson(g, this.rival, Math.round(this.op.x), Math.round(this.op.y), pose(this.op), this.op.flip !== false);
+        if (this.solo) {
+            // the ball machine: a box on legs with a tube pointing over the net
+            g.fillStyle = '#5a6a7a'; g.fillRect(170, VB_GROUND - 18, 16, 14); g.fillStyle = '#3a4a5a'; g.fillRect(172, VB_GROUND - 4, 2, 4); g.fillRect(182, VB_GROUND - 4, 2, 4);
+            g.fillStyle = '#e8443a'; g.fillRect(162, VB_GROUND - 22, 12, 5); g.fillStyle = '#ffd84a'; g.fillRect(176, VB_GROUND - 14, 3, 2);
+        } else fieldPerson(g, this.rival, Math.round(this.op.x), Math.round(this.op.y), pose(this.op), this.op.flip !== false);
         if (b.y < -VB_R) { g.fillStyle = '#ffffff'; g.fillRect(Math.round(b.x) - 1, 2, 3, 3); }
         g.fillStyle = '#ffffff'; g.beginPath(); g.arc(b.x, b.y, VB_R, 0, 7); g.fill();
         g.strokeStyle = '#f0a040'; g.lineWidth = 1; g.beginPath(); g.arc(b.x, b.y, VB_R - 1, b.spin, b.spin + 2); g.stroke();
@@ -166,8 +192,13 @@ VolleyGame.prototype = {
         // the score
         g.fillStyle = 'rgba(18,12,34,0.55)'; g.fillRect(0, 0, VB_W, 11);
         pxText(g, fieldName('sarah'), 4, 3, '#ffd84a');
-        pxText(g, fieldName(this.rival), VB_W - 4, 3, '#9ef0ff', 1, 'right');
-        pxShadow(g, `${this.score} - ${this.opScore}`, VB_W / 2, 3, '#ffffff', 1, 'center');
+        if (this.solo) {
+            pxText(g, 'Best ' + Math.max(this.score, vbSoloBest()), VB_W - 4, 3, '#9ef0ff', 1, 'right');
+            pxShadow(g, `${this.score} over`, VB_W / 2, 3, '#ffffff', 1, 'center');
+        } else {
+            pxText(g, fieldName(this.rival), VB_W - 4, 3, '#9ef0ff', 1, 'right');
+            pxShadow(g, `${this.score} - ${this.opScore}`, VB_W / 2, 3, '#ffffff', 1, 'center');
+        }
         if (this.msg) pxShadow(g, this.msg, VB_W / 2, 46, '#ffd84a', 2, 'center');
     },
 };
@@ -348,6 +379,7 @@ ARCADE_GAMES.volley = {
     ],
     create(opts) { return new VolleyGame(opts); },
     result(g, opts) {
+        if (g.solo) { const best = vbSoloBest(); return { title: `${g.score} over the net!`, lines: [g.score > g.prevBest ? 'A new best at the court!' : `Your best: ${best}`, 'The ball machine is ready when you are.'], icon: 'vb_ball' }; }
         const n = fieldName(opts.rival);
         return { title: g.win ? 'You win!' : `${n} wins!`, lines: [`${g.score} to ${g.opScore}`, g.win ? 'Ball had a great time.' : 'So close! First to seven.'], icon: 'vb_ball' };
     },
@@ -401,6 +433,7 @@ const FieldGames = {
                 await UI.say(id, fieldLine(id, key + (last.won ? 'Win' : 'Lose')), { keep: true });
                 if (last.won) { G.player.pose = 'cheer'; G.player.poseT = 60; }
                 igRec(kind).won += wins;
+                if (kind === 'volley') { const v = vbVs(id); v.played += games; v.won += wins; }
                 if (games > 1) await UI.say(null, `${games} games: ${wins} won by Sarah, ${games - wins} by ${n.def.name}.`, { keep: true });
                 await igFriend(n, kind);
             } else await UI.say(id, igLine(id, 'quit'), { keep: true });

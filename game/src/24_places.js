@@ -61,7 +61,7 @@ async function enterBuilding(id) {
     if (typeof civicOpen === 'function' && civicOpen(id)) { afterHours(id); await enterRoom(id); return; }
     if (CIVIC_SIGNS[id]) { await UI.say('sign', CIVIC_SIGNS[id]); return; }
     if (ROOMS[id] && ROOMS[id].owner) { await visitHouse(id); return; }
-    if (id === 'barn') { await enterRoom('barn'); return; }
+    if (id === 'barn') { if (!barnOpen()) { await lockedBarn(); return; } await enterRoom('barn'); return; }
     if (!ROOMS[id] && !id.startsWith('h_')) { await UI.say('sign', 'Opening soon! There is a lot of hammering going on inside.'); return; }
     if (ROOMS[id]) { afterHours(id); await enterRoom(id); return; }
     await knock(id.replace('h_', ''));
