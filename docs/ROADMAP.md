@@ -518,8 +518,11 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] Planter boxes go anywhere on the island: six come in the mail after Sarah's first visit to Fortune's
 - [x] Bringing in an old save keeps only the friendships, the money in her pocket, what she had in her pocket and
   storage, her playing time and stats; her old arcade scores show on the tables as 2D SARAH; nothing comes over half done
-- [ ] Karaoke: the pitch marker quicker to cross the gaps; Sarah's own songs written for karaoke; a sung voice for Sarah,
-  the neighbors and friends online that goes wrong when it's off pitch
+- [x] Karaoke: the pitch marker quicker to cross the gaps; Sarah's own songs written for karaoke; a sung voice for Sarah,
+  the neighbors and friends online that goes wrong when it's off pitch (the marker moves by the clock and quicker the
+  longer it's held, a finger drags it on a phone, and every tune's leaps are kept within reach; "Write a song" in the
+  karaoke list; a made singing voice for Sarah and the neighbor in a duet, each in their own voice, that wobbles, rasps
+  and cracks off the note. Karaoke has no online mode yet, so friends online don't sing along)
 - [x] Twenty songs danced for the sewing pattern; a hundred flowers picked or watered for the flower crown
 - [ ] The arcade's back room: once Sarah has tried the door, Chili has a hint; it's the games that didn't make the cut,
   and the broken cabinet in there with a note that a future update may fix it
