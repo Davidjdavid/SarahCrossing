@@ -497,6 +497,35 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] The circling gulls fly off when Sarah or a neighbor comes close (they come back a while later); a tree holding a
   money bag or a find glints now and then in the new look
 
+## David's list before testing (29 October)
+- [ ] Arcade high scores: the top five on every game, with neighbors' scores, and David on top of each just under what
+  unlocks its prize, so the high score is the unlock; an option at each cabinet to see its scores
+- [x] Every neighbor starts with places and things they like doing or never do, to suit them, for the designer to change
+- [x] Favors aren't asked for any more (no "Need anything?" in the talk menu or texts): a neighbor asks now and then, in
+  person, when Sarah talks to them, and she can say not now
+- [ ] The phone: two even rows of apps, no mail app (mail at the mailbox only, its flag up and flashing while something's
+  unread), Save & quit a square of its own
+- [x] No speech bubbles when neighbors chat with each other: Sarah walks up and talks to them to hear it
+- [x] The double waterfall: see-through in the middle (the two falls side by side are one sheet now)
+- [x] Footprints in the sand that fade after a second or two (the new look)
+- [x] The jump rope on the square is a real 3D rope, swinging with the game's beat in the turners' hands
+- [x] The stock market: the prices hadn't come (the server now asks Yahoo's chart data first, then stooq; the Bank asks
+  again a minute after a failure, not every frame)
+- [x] The community garden: no wild flowers in it, and a new or brought-in island has something already growing there
+- [ ] The icons over people's heads (the emotes and the talk marker); the Bank and every other screen's icons as good as
+  the phone's
+- [x] Sarah's sweater: her hands came through the sleeves' ends
+- [x] Planter boxes go anywhere on the island: six come in the mail after Sarah's first visit to Fortune's
+- [x] Bringing in an old save keeps only the friendships, the money in her pocket, what she had in her pocket and
+  storage, her playing time and stats; her old arcade scores show on the tables as 2D SARAH; nothing comes over half done
+- [ ] Karaoke: the pitch marker quicker to cross the gaps; Sarah's own songs written for karaoke; a sung voice for Sarah,
+  the neighbors and friends online that goes wrong when it's off pitch
+- [x] Twenty songs danced for the sewing pattern; a hundred flowers picked or watered for the flower crown
+- [ ] The arcade's back room: once Sarah has tried the door, Chili has a hint; it's the games that didn't make the cut,
+  and the broken cabinet in there with a note that a future update may fix it
+- [x] Sarah's house redone at Ginger's now shows in the new look
+- [x] Trophies, festival things and anything that can't be bought again can't be sold
+
 ## David's notes from playing beta (28 October)
 - [x] The lighting at night blown out yellow near the shops (every doorway and jack-o'-lantern was lit like a street
   lamp); a street lamp's light far reaching but gentle close up

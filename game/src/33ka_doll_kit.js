@@ -80,6 +80,16 @@ Object.assign(EnvDolls, {
             if (!M) continue;
             for (const p of M.parts) out[p.node] = { geo: p.geometry.clone().translate(-p.at.x, -p.at.y, -p.at.z), at: p.at.clone() };
         }
+        // (a long sleeve's rounded end ran on below its cuff, into the mitten, and showed through the hand: it stops just
+        // inside the cuff, David, 29 October)
+        for (const k of ['l', 'r', 'm_l', 'm_r']) {
+            const sl = out['farm_' + k + '__top'], cf = out['farm_' + k + '__trim'];
+            if (!sl || !cf) continue;
+            cf.geo.computeBoundingBox();
+            const lo = cf.geo.boundingBox.min.y + 0.003, P = sl.geo.attributes.position;
+            for (let i = 0; i < P.count; i++) if (P.getY(i) < lo) P.setY(i, lo);
+            P.needsUpdate = true; sl.geo.computeBoundingSphere();
+        }
         return (this._kit = out);
     },
     make2(spec) {

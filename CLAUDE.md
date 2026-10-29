@@ -33,7 +33,11 @@ docs/DEPLOY.md for the server.
   map of the layout, `--png out.png` the painted ground, without touching game/. Moving things on the island means old
   saves need a `migrate()` step (map 7 is this island: its woods in groves and clearings; coming from an older map is a
   fresh start that keeps only Sarah's stats and money, plus her name, the island's, her birthday and how long she's
-  lived here, David's call; the whole old save is kept inside the new one as `before7`).
+  lived here, David's call; and since 29 October `importKeeps`: each neighbor's friendship points (at most 100, never the
+  family's or Joe's), what was in her pocket and storage and her old house's furniture (into storage; never quest or
+  festival things), her arcade tickets, the paintings, pots and designs those things are, and her old best on each
+  arcade game, shown on its table as 2D SARAH (`S.arcade.legacy`), with no unlock or half-done quest coming over; the
+  whole old save is kept inside the new one as `before7`).
   Raised ground ends at the sea in a rim nobody walks on (in 3D the sea cliff stands there). Half tiles (`cut` in
   world.json, `cuts()` in layout.mjs): where the sea, a river or a pond meets land in a stair-step, or a path turns or
   runs on a slant, the step's outer corner tile is cut along its diagonal (a, b, c, d: its NW, NE, SE, SW corner is the
@@ -59,7 +63,8 @@ docs/DEPLOY.md for the server.
   code registered at the Town Hall gives the island that town's time if Sarah wants (`zipUseTime`), the day's forecast
   as its weather (`todayWeather`) and headlines in the paper; the Bank's market has real companies' closing prices,
   ten sand dollars to the dollar, with dividends on the 1st). The server looks the world up (`server/world.mjs`:
-  `/api/world?zip=`, `/api/market`; free services with no key: zippopotam.us, open-meteo.com, news feeds, stooq.com;
+  `/api/world?zip=`, `/api/market`; free services with no key: zippopotam.us, open-meteo.com, news feeds, Yahoo's chart
+  data then stooq.com for the closes (`yahooCloses`, `stooqCloses`; the Bank asks once a minute at most after an error);
   kept for the day; `WORLD_FAKE=1` answers with made-up data, as the tests do), and island jobs (`6zi_jobs.js`: three a
   day at the Town Hall: packages to deliver through the talk menu, leaves to sweep off the square, the dock sign to
   repaint, shells, fruit or fish to hand in). The Post Office paints Sarah's mailbox (`MAILBOX_COLORS`: a model each,
@@ -132,7 +137,8 @@ docs/DEPLOY.md for the server.
   `body.hd2d` only says the 3D view is showing. Shops and the pocket are one kind of screen (`storeView`, 41b_store.js:
   the things as cards, the one picked big on a little turntable with what can be done with it; a tap picks, only a
   button buys, sells or drops anything; Fortune's sell screen also sells all the fish, fruit, shells, vegetables or flowers in the pocket in one
-  go, a second tap to be sure; the pocket sends all its furniture home in one go, the mailbox takes every present at once); `UI.open({ wide })` gives the wider panel they use. The phone shows the time,
+  go, a second tap to be sure; the pocket sends all its furniture home in one go, the mailbox takes every present at once;
+  trophies, festival and event things, prizes and anything that can't be bought again are never sold, `unsellable`); `UI.open({ wide })` gives the wider panel they use. The phone shows the time,
   weather and wallet along its top and the apps four across: eight everyday ones and two folders (`PHONE_HOME`,
   `PHONE_FOLDERS`, `openFolder`; an app opened from a folder goes back to it, `phoneFrom`), Save & quit at its foot, every
   icon drawn as shapes at the screen's resolution (41c_phone_icons.js, `phoneIcon`). The HUD wears the phone's look too
@@ -152,7 +158,7 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   keeps the HD-2D view until he says so.
 - There `Env` (33a_env.js) draws the world as real 3D, built once when the area loads: the ground from half-tile
   height cells with a stone wall on anything steep (`EnvGround`), procedural surfaces (`EnvTex`), trees (`EnvTrees`),
-  water (`EnvWater`), buildings and props (`EnvBuild`); the lawn (David, 29 October, after the GameCube shapes of the 28th)
+  water (`EnvWater`; falls side by side are one sheet, `fallsJoined`), buildings and props (`EnvBuild`); the lawn (David, 29 October, after the GameCube shapes of the 28th)
   is smooth and mostly one green, low in contrast (`EnvTex.lawn`: soft mottling and a fine grain of short blades, the
   season's palette in `EnvTex.LAWN`), with broad irregular patches a shade apart, worn paler (now and then to bare earth)
   beside trodden ground and deeper out in the wild (`EnvGround.FMAP`; how wild, 0 to 1, is the per-piece wet picture's
@@ -201,7 +207,9 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   fish's shadow drifting up; a catch flies up out of the water into her hands (`G.reel`) and is held up over her head
   (`G.held`, the `holdup` pose) while she shows it off. The flat views keep `Fishing.draw`.
 - Neighbors who stop to chat (2d_life.js `Chats`) act it out in the new look: whoever's line it is talks (mouth and a
-  hand going while their bubble is new), the other looks at them and nods now and then (`act`'s `listen`, `nod`). With
+  hand going while their line is new), the other looks at them and nods now and then (`act`'s `listen`, `nod`). No
+  bubbles over a chat (David, 29 October): talking to either of them, Sarah hears it, every line in the dialogue box
+  (`Chats.overhear`, `lineText`; the chat waits meanwhile, `c.held`), then one of them says hi (`CHAT_HI`). With
   nothing to do they find something of their own for a while (`idleStart` from updateNPC, 33kd_doll_idle.js `IDLE_ACTS`,
   `n.idle`): the stars at night, an ice cream, sitting on the grass, their phone, a book, painting at an easel, a mug of
   cocoa, fishing where there's water a step or two ahead (`idleWater`; a doll in the game's fishing pose, a folk holding
@@ -265,7 +273,9 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   songs as `mysong:<id>`, `fileTrackOk`).
 - When a neighbor asks to play (`igAskGames`), it can also be volleyball wherever they are by day, jump rope on the
   square with a friend turning (`igRope`, `igRopeFriend`: the screen dims and the two hold the rope, `Rope.forced`), or
-  an arcade game against them on their handheld (`igHandheld`, `versusPlay`); texted asks too.
+  an arcade game against them on their handheld (`igHandheld`, `versusPlay`); texted asks too. In the new look the
+  square's rope is a real rope (`EnvRope`, 33y_env_rope.js: a tube between the turners' hands swinging with `Rope.phase`,
+  wooden handles, the turners' arms going round with it, `ropeTurn` in `pose2`/`poseFolk2`); the game itself stays 2D.
 - More holidays to do (6zp_holiday_events.js; the first six are 6z_festivals.js): some nights everyone who's up goes out
   together (`GATHER`, `gatherOverride`, a `late` override that keeps them up past bed): New Year's Eve on the square from
   11 PM, the Fourth of July's fireworks from the beach, Stargazing Night at the lookout; Sarah coming by says hello to each,
@@ -383,6 +393,13 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   props out means a save step that renumbers them (`lamps9`, `LAMPS9_OUT`: eighteen lamps taken out, 27 October evening,
   leaving fourteen, each lighting much further: `distance`/`decay` in `updateLight`, `EnvGlow`'s pools, and the island a
   little lighter at night all round); new props go on the end.
+- Sarah's planter boxes can go anywhere (6zze_planters.js, David, 29 October): she starts with none on a new island; the
+  first time she goes into Fortune's, six come in the mail (`planterMail`, the item `dp_planterbox`, a display with `plot`)
+  and she sets them down with the island editor like any outdoor piece (a full one won't move till it's picked). Kept as
+  `S.planters[i]` [x, y] (her six, the plots `0..5`; `S.plots[i]` what grows there; the community beds keep `6..13`), put
+  on the island by `addPlanters`; an older island keeps its six where they stood (save step `planters10`). The community
+  garden has no wild flowers (`inGardenPlot`), and a new or brought-in island finds cucumbers already coming up in its
+  first bed (`starterPlots`).
 - The island's trees, palms, wild flowers and gem spots are frozen in `scripts/island/greenery.json` (the plan's
   `greenery`): `layout.mjs` keeps them as they are, leaving out only what a building, prop, road or lawn now covers, so
   moving a street or a shop never regrows the woods. Delete the file (and the plan's line) to grow them again from the seed.
@@ -496,6 +513,8 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   carries on (`sipCheck` from stepNpc: the idle kind `sip` with `resume`, which clears `segKey` so their day picks up).
 - The plane only flies over while Sarah's at the lookout (`SeaSky.atLookout`), and from there boats sail by on the
   northern sea (`spawnNorthBoat`); balloons go anywhere.
+- Footprints in the sand (`EnvSteps`, 33x_env_steps.js, David, 29 October): Sarah and anyone walking near her leave a
+  print a step on the beach (`'s'` tiles with no path on them), left and right, that fades after two seconds; new look only.
 - Watering: the water arcs out to the tiles in front (`p.tool.at`, EnvPour); a watered flower glints now and then
   (`flowerSparkle`: a burst as the water reaches it, from `waterTiles.at`, kept off the save, then every few seconds; drawn
   over the flower, `flowerGlint`, and in 3D by `EnvItems.wetFx`), gold when it and a watered neighbor of its kind can
@@ -506,6 +525,8 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   in the new look), leaving a stump as thick as the trunk (`EnvItems.stump`).
 - Neighbors now and then ask Sarah to play when she talks to them (`igMaybeAsk`, `IG_ASK`, at most once a day each, about
   one talk in eight where a game fits), and rarely text to ask (Invites' kind `play`: say yes, then talk to them).
+  Favors are theirs to ask, in person (David, 29 October): no "Need anything?" in the talk menu or texts; about one talk in
+  four with nothing else going on, a neighbor asks for one (`Requests.maybeAsk`, `chance`), and Sarah can say not now.
 - The collection's items each open a display of their own (41a_showcase.js, `itemShowcase`): the model turning on a
   little renderer of its own where the new look's models are loaded (`Showcase`, plain materials, let go when the panel
   closes), the big picture otherwise; what it sells and buys for (`itemBuyWhere`), where it comes from (`itemSource`), when
@@ -657,7 +678,8 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   windmill's sails are their own model, turned at its `anchor_hub`. `houses.py` makes the neighbors' houses as a kit (a
   body and roof per style, a skin per wall pattern, the add-ons), each part shaded in greys and named by role
   (`house_wall`, `house_roof`, `house_trim`, `house_door`): `EnvBuild.house` puts a house together from its look and
-  paints each role in the house's own colors (`EnvModels.tinted`), so what Ginger changes is what you see.
+  paints each role in the house's own colors (`EnvModels.tinted`), so what Ginger changes is what you see; Sarah's own
+  house is the cottage only until Ginger first redoes it (`S.exteriors.home`), then the kit in her look.
   `buildings.py` makes the island's other buildings (post office, town hall, bank, museum, the shops, arcade, club,
   Ginger's workshop, lighthouse, barn) as finished pieces, `bld_<id>`, their names lettered on their signs (letters
   named `*_glow` are neon). Models with hundreds of small pieces set `kit.DETAIL['lite']` (each rounded edge in two
@@ -728,7 +750,9 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   resolveSpot); an area with none of their places in it is a place of its own they go to by day (`placeAreas`,
   `designAreaSpots`, plan spot `area:<id>`, `areaVisit`). Areas are named on the map (BigMap, `Design.areas`), a neighbor's
   texts say they're in one (`designPlace` in placeName, `Design.areaAt`), and Neighbors' likes can weigh a whole area
-  (`npcs[id].areas`, every place of theirs inside it, in `designSpots`).
+  (`npcs[id].areas`, every place of theirs inside it, in `designSpots`). Every neighbor starts with likes that suit them
+  (`LIKES_START`: what they do more often or never, their places and areas; David, 29 October), which the design's own
+  values override (`Design.like`, -1 for "as they are").
 - Stairs (the island designer's Stairs tool): a tap on a cliff's face cuts a staircase there (`stairAt`: one, two or three
   tiles wide as picked, `stairW`; the face's two rows, open ground above and below); a tap on one picks it (`stairRun`,
   `E.stairSel`), and then it's made narrower or wider, moved a tile along the cliff or to another cliff's face, or taken away
