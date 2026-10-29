@@ -1041,9 +1041,13 @@ def mb_post(mb, top=0.86):
     rbox(mb, -0.07, -0.2, top - 0.06, 0.07, 0.16, top, wood(WOOD_D, 'y'), r=0.01)
 
 
-def mb_flag(mb, x, y, z, h=0.36):
+def mb_flag(x, y, z, h=0.36):
+    """The red flag on a mailbox's side, raised: a part of its own (named *_flag, its origin where its arm is pinned on,
+    build) that the game lowers, and raises flashing while there are new letters (EnvBuild.mailbox)."""
+    mb = MB()
     rbox(mb, x - 0.012, y - 0.02, z, x + 0.012, y + 0.02, z + h, shade('#c8302a'), r=0.004)
     rbox(mb, x - 0.008, y + 0.02, z + h - 0.12, x + 0.008, y + 0.17, z + h, shade('#c8302a'), r=0.004)
+    return mb
 
 
 def mailbox_cottage():
@@ -1063,8 +1067,7 @@ def mailbox_cottage():
     for sx in (-1, 1):
         rbox(main, sx * 0.16 - 0.01, -0.08, 0.96, sx * 0.16 + 0.01, 0.06, 1.08, shade('#ffffff'), r=0.005)
         rbox(main, sx * 0.16 - 0.015, -0.06, 0.98, sx * 0.16 + 0.015, 0.04, 1.06, shade('#6a8aa8'), r=0.003)
-    mb_flag(main, 0.17, 0.06, 0.9, 0.22)
-    return [(body, 'body'), (main, 'main')]
+    return [(body, 'body'), (main, 'main'), (mb_flag(0.17, 0.06, 0.9, 0.22), 'flag')]
 
 
 def mailbox_lighthouse():
@@ -1097,7 +1100,8 @@ def mailbox_lighthouse():
         rbox(main, math.cos(a) * 0.078 - 0.007, math.sin(a) * 0.078 - 0.007, 1.03, math.cos(a) * 0.078 + 0.007, math.sin(a) * 0.078 + 0.007, 1.16, shade(IRON), r=0.002)
     lathe(main, [(0.1, 1.16), (0.1, 1.18), (0.03, 1.27), (0.0, 1.28)], shade('#c8302a'), seg=20)
     ball(main, (0, 0, 1.3), 0.02, shade(IRON), sub=1)
-    return [(body, 'body'), (main, 'main'), (glow, 'glow')]
+    # (a flag on its side like the others': EnvBuild.mailbox raises it while there are new letters)
+    return [(body, 'body'), (main, 'main'), (glow, 'glow'), (mb_flag(0.15, 0.0, 0.42, 0.28), 'flag')]
 
 
 def mailbox_fish():
@@ -1130,8 +1134,7 @@ def mailbox_fish():
     lathe(main, [(0.06, 0.0), (0.075, 0.015), (0.06, 0.03)], shade('#e88a7a'), c=(0, -0.26, 0.98), seg=16, cap_top=False)
     xform(main, m, rot(x=math.pi / 2, at=(0, -0.26, 0.98)))
     ball(main, (0, -0.272, 0.98), (0.055, 0.01, 0.055), shade('#2a2020'), sub=2)
-    mb_flag(main, 0.16, 0.08, 0.88, 0.3)
-    return [(body, 'body'), (main, 'main')]
+    return [(body, 'body'), (main, 'main'), (mb_flag(0.16, 0.08, 0.88, 0.3), 'flag')]
 
 
 # ---------------------------------------------------------------- things seen only at certain times (33q_env_sights.js)
@@ -2202,6 +2205,14 @@ def build(name):
             continue
         mb, part = item
         objs.append(mb.obj(f'{name}_{part}', vmat(f'{name}_{part}', rough=0.35 if part == 'water' else 0.75)))
+        # (a mailbox's flag turns about the foot of its arm: its origin there)
+        if part == 'flag':
+            z0 = min(v.z for v in mb.v)
+            foot = [v for v in mb.v if v.z < z0 + 0.005]
+            bpy.context.scene.cursor.location = (sum(v.x for v in foot) / len(foot), sum(v.y for v in foot) / len(foot), z0 + 0.03)
+            select_only(objs[-1])
+            bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+            bpy.context.scene.cursor.location = (0, 0, 0)
     if extra and extra.startswith('statue_doll'):
         objs += statue_doll(extra.split(':')[1] if ':' in extra else 'david')
     return objs, sails, anchors

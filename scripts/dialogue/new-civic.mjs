@@ -80,7 +80,7 @@ l('On screen', 'Works', 'Section heading', 'The markets (from the Bank)');
 l('On screen', 'Works', 'Under a real news story', 'Read the full story');
 l('On screen', 'Works', 'The bottom of the front page', "Headlines from the wider world, alongside stories from the island.");
 l('Narration', 'Works', 'The newspaper arrives in the mailbox in the morning', "This morning's paper is in the mailbox. It's still a little warm. Pita must have run.");
-l('On screen', 'Works', 'The Mail app: the paper in the list', "The {island} Gazette, {date}");
+l('On screen', 'Works', 'The mailbox: the paper in the list', "The {island} Gazette, {date}");
 l('Narration', 'Works', 'Island news: Sarah caught a lot of fish yesterday', 'LOCAL ANGLER STRIKES AGAIN. {name} reeled in {count} fish yesterday. Kai calls it "honestly kind of rude, bro (proud)."');
 l('Narration', 'Works', 'Island news: a big fish', 'WHOPPER AT THE PIER. A {item} the size of a canoe (Kai measured with his arms) was caught off the island yesterday.');
 l('Narration', 'Works', 'Island news: Sarah cooked', 'KITCHEN NEWS. {name} cooked {item} yesterday. Mac is "not threatened. Inspired. Slightly threatened."');

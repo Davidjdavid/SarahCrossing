@@ -178,7 +178,7 @@ function pickFromPocket(title, filter, note) {
 
 /* ---------------------------------------------------------------- phone */
 const APPS = [
-    ['map', 'Map', '#8fd46f'], ['tasks', 'To-do', '#ffe8b0'], ['texts', 'Messages', '#c8f0c0'], ['mail', 'Mail', '#ffe0d2'], ['friends', 'Friends', '#ffd0dc'], ['recipes', 'Recipes', '#fff0c8'],
+    ['map', 'Map', '#8fd46f'], ['tasks', 'To-do', '#ffe8b0'], ['texts', 'Messages', '#c8f0c0'], ['friends', 'Friends', '#ffd0dc'], ['recipes', 'Recipes', '#fff0c8'],
     ['collection', 'Collection', '#d8f0ff'], ['wardrobe', 'Wardrobe', '#f7d0d8'], ['moves', 'Moves', '#ecd8ff'], ['camera', 'Camera', '#d0e4ff'],
     ['council', 'Cozy Council', '#d8f0c8'], ['home', 'Decorate', '#ffe6cc'], ['edit', 'Island edit', '#d8f0c8'], ['calendar', 'Today', '#ffe0e8'],
     ['poems', "Joe's Poems", '#fff1c9'], ['pottery', 'Pottery', '#f6dccb'], ['arcade', 'Arcade', '#e8dcff'], ['music', 'Music', '#e6dcff'], ['gohome', 'Go home', '#ffd9d0'],
@@ -202,30 +202,27 @@ function openPhone() {
     cash.appendChild(document.createTextNode(fmtNum(S.money)));
     bar.appendChild(cash);
     P.body.appendChild(bar);
-    // (the everyday apps, then the folders; Save & quit at the foot)
-    const grid = el('div', 'apps');
-    for (const id of PHONE_HOME) grid.appendChild(appTile(id));
-    for (const f of PHONE_FOLDERS) grid.appendChild(folderTile(f));
-    P.body.appendChild(grid);
-    const foot = el('div', 'pfoot');
-    const quit = el('button', 'pquit');
-    quit.type = 'button';
-    quit.appendChild(phoneIcon('save', '#dfe8f5', 22));
-    quit.appendChild(document.createTextNode('Save & quit'));
-    quit.addEventListener('click', () => { Sfx.ui('tick'); openApp('save'); });
-    foot.appendChild(quit);
-    P.body.appendChild(foot);
+    // (two even rows of tiles: the everyday apps, the two folders, Settings and Save & quit, each a tile of its own)
+    P.body.appendChild(appGrid(PHONE_HOME.map(id => (PHONE_FOLDERS.some(f => f.id === id) ? folderTile(PHONE_FOLDERS.find(f => f.id === id)) : appTile(id)))));
 }
 /* the phone's home screen (David, 29 October: "22 options when you open your phone is a lot... put some apps in its own
-   section"): the everyday apps, and the rest in two folders opened in place */
-const PHONE_HOME = ['map', 'texts', 'mail', 'friends', 'tasks', 'calendar', 'camera', 'settings'];
+   section"), in two even rows (David, 29 October, later: Mail off the phone, letters are read at the mailbox; Save & quit a
+   tile of its own instead of a button at the foot): the everyday apps, the two folders opened in place, Settings, Save & quit */
+const PHONE_HOME = ['map', 'texts', 'friends', 'tasks', 'calendar', 'camera', 'play', 'island', 'settings', 'save'];
 const PHONE_FOLDERS = [
     { id: 'play', name: 'Play', apps: ['arcade', 'music', 'moves', 'poems', 'pottery', 'recipes'] },
     { id: 'island', name: 'Home & island', apps: ['home', 'edit', 'wardrobe', 'collection', 'council', 'gohome', 'designer'] },
 ];
+/* tiles in two rows, as many across as that takes (the home screen five, a folder three or four) */
+function appGrid(tiles) {
+    const grid = el('div', 'apps');
+    grid.style.setProperty('--cols', String(Math.max(3, Math.min(5, Math.ceil(tiles.length / 2)))));
+    for (const t of tiles) grid.appendChild(t);
+    return grid;
+}
 /* (the designer only where the island's design can be saved: the beta site, 6zza_designer.js) */
 function appShown(id) { return id !== 'designer' || Design.edit; }
-function appBadge(id) { return id === 'mail' ? S.mail.filter(m => !m.read && m.day <= Clock.dayNum()).length : id === 'tasks' ? Requests.open().length : id === 'texts' ? Invites.pending().length : 0; }
+function appBadge(id) { return id === 'tasks' ? Requests.open().length : id === 'texts' ? Invites.pending().length : 0; }
 function appTile(id, from) {
     const [, label, color] = APPS.find(a => a[0] === id);
     const b = el('button', 'app');
@@ -258,15 +255,13 @@ function folderTile(f) {
 function openFolder(fid) {
     const f = PHONE_FOLDERS.find(q => q.id === fid);
     const P = UI.open({ title: f.name, phone: true, back: () => openPhone() });
-    const grid = el('div', 'apps');
-    for (const id of f.apps.filter(appShown)) grid.appendChild(appTile(id, fid));
-    P.body.appendChild(grid);
+    P.body.appendChild(appGrid(f.apps.filter(appShown).map(id => appTile(id, fid))));
 }
 /* (an app opened from a folder goes back to the folder) */
 let phoneFrom = null;
 function openApp(id, from) {
     phoneFrom = from || null;
-    ({ map: appMap, tasks: appTasks, mail: appMail, friends: appFriends, recipes: appRecipes, collection: appCollection, wardrobe: () => openWardrobe(true),
+    ({ map: appMap, tasks: appTasks, friends: appFriends, recipes: appRecipes, collection: appCollection, wardrobe: () => openWardrobe(true),
         moves: appMoves, camera: () => { UI.close(true); Photo.start(); }, calendar: appToday, settings: appSettings, poems: appPoems, pottery: appPottery,
         council: appCouncil, arcade: appArcade, texts: appTexts, gohome: askGoHome, music: () => appMusic(), save: appSaveQuit, designer: () => Design.app(),
         home: () => { if (G.area.id !== 'home') { phoneSays('Decorate only works inside your house. Head home first, then open it again!'); return; } UI.close(true); Decor.enter(); },
@@ -277,16 +272,34 @@ const backToPhone = () => (phoneFrom ? openFolder(phoneFrom) : openPhone());
 
 function appMap() { UI.close(true); BigMap.open({ fromPhone: true }); }
 
-/* the phone's Mail app, and the same letters from the mailbox by Sarah's door */
+/* the letters, read at the mailbox by Sarah's door (David, 29 October: no Mail app on the phone any more, "so you can only
+   check it at the mailbox"; its flag is up and flashing while there are new ones, 20_world.js and EnvBuild) */
 function unreadMail() { return S.mail.filter(m => !m.read && m.day <= Clock.dayNum()).length; }
+/* the mailbox in the flat views: its flag up while there are new letters, flashing (lit every other half second) */
+function mailboxFrame() {
+    if (mailboxFrame.f !== G.frame) { mailboxFrame.f = G.frame; mailboxFrame.n = S && S.mail ? unreadMail() : 0; }
+    if (!mailboxFrame.n) return 'mailbox';
+    if (!(Math.floor(performance.now() / 450) % 2)) return 'mailbox_flag';
+    // (the classic picture's flag lit: its reds turned a warm gold; the HD-2D view has its own, HD_SPR.mailbox_flag_lit)
+    if (!Assets.dyn.mailbox_flag_lit && Assets.frames.mailbox_flag) {
+        const [sx, sy, w, h, ax, ay] = Assets.frames.mailbox_flag, c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const g = c.getContext('2d');
+        g.drawImage(Assets.atlas, sx, sy, w, h, 0, 0, w, h);
+        const d = g.getImageData(0, 0, w, h), p = d.data;
+        for (let i = 0; i < p.length; i += 4) if (p[i + 3] && p[i] > 140 && p[i] - p[i + 1] > 70 && p[i] - p[i + 2] > 50) { p[i] = 255; p[i + 1] = Math.min(255, p[i + 1] + 150); p[i + 2] = Math.min(255, p[i + 2] + 40); }
+        g.putImageData(d, 0, 0);
+        Assets.dyn.mailbox_flag_lit = { c, w, h, ax, ay };
+    }
+    return 'mailbox_flag_lit';
+}
 async function openMailbox() {
-    if (!S.mail.some(m => m.day <= Clock.dayNum())) { await UI.say(null, rpick(['The mailbox is empty. A tiny spider lives in it. It seems happy.', 'Nothing in the mailbox yet. Neighbors write once they get to know you.'])); return; }
-    Sfx.play('item');
+    if (S.mail.some(m => m.day <= Clock.dayNum())) Sfx.play('item'); else Sfx.ui('open');
     appMail(true);
 }
+/* (the mailbox's letters; `box` is left from when the phone had them too, `all` shows the older ones as well) */
 function appMail(box, all) {
-    box = box === true;
-    const P = UI.open({ title: box ? 'Mailbox' : 'Mail', phone: !box, back: box ? null : backToPhone });
+    const P = UI.open({ title: 'Mailbox' });
     const list = el('div', 'list');
     const mails = S.mail.filter(x => x.day <= Clock.dayNum()).reverse();
     // letters to the other people who play (13_online.js)
@@ -304,27 +317,27 @@ function appMail(box, all) {
             }
             Sfx.play('item'); Save.touch();
             UI.toast(home ? `Presents taken (${home} went home to storage)` : 'Presents taken', 'ui_present');
-            appMail(box);
+            appMail(true);
         });
         all.style.margin = '0 0 10px 8px';
         P.body.appendChild(all);
     }
-    if (!mails.length) list.appendChild(el('p', 'muted', 'No mail yet. Neighbors write when they get to know you.'));
+    if (!mails.length) list.appendChild(el('p', 'muted', rpick(['The mailbox is empty. A tiny spider lives in it. It seems happy.', 'Nothing in the mailbox yet. Neighbors write once they get to know you.'])));
     // (months of letters: the newest first, the older ones a tap away, so the list doesn't go on and on)
     const MAIL_SHOWN = 30, shown = all ? mails : mails.filter((m, i) => i < MAIL_SHOWN || !m.read || (mailGifts(m).length && !m.claimed));
     for (const m of shown) {
         const r = el('button', 'row' + (m.read ? '' : ' unread'));
         r.type = 'button';
-        r.appendChild(iconCanvas(mailGifts(m).length && !m.claimed ? 'ui_present' : 'app_mail', 40));
+        r.appendChild(uiIcon(mailGifts(m).length && !m.claimed ? 'ui_present' : 'app_mail', 40));
         const t = el('div', 't');
         t.appendChild(el('b', null, m.subject));
         t.appendChild(el('span', null, mailFromName(m)));
         r.appendChild(t);
-        r.addEventListener('click', () => openLetter(m, box));
+        r.addEventListener('click', () => openLetter(m));
         list.appendChild(r);
     }
     if (shown.length < mails.length) {
-        const more = btn(`Older letters (${mails.length - shown.length})`, 'alt', () => appMail(box, true));
+        const more = btn(`Older letters (${mails.length - shown.length})`, 'alt', () => appMail(true, true));
         more.style.margin = '10px 0 0 8px';
         list.appendChild(more);
     }
@@ -340,12 +353,13 @@ function mailFromName(m) {
 }
 /* a letter can carry one gift (m.gift) or a whole order (m.gifts) */
 function mailGifts(m) { return m.gifts ? m.gifts : m.gift ? [m.gift] : []; }
-function openLetter(m, box) {
+function openLetter(m) {
     m.read = true;
+    mailboxFrame.f = null;
     Save.touch();
     HUD.update();
     const gifts = mailGifts(m);
-    const P = UI.open({ title: m.subject, phone: !box, back: () => appMail(box), foot: gifts.length > 0 || m.paper != null });
+    const P = UI.open({ title: m.subject, back: () => appMail(true), foot: gifts.length > 0 || m.paper != null });
     // a postcard shows its picture; the paper opens to read (6zf_post.js)
     const card = m.card && typeof POSTCARDS !== 'undefined' && POSTCARDS.find(c => c[0] === m.card);
     if (card) { const cv = postcardCanvas(card, 288, 192); cv.className = 'postcard'; P.body.appendChild(cv); }
@@ -353,7 +367,7 @@ function openLetter(m, box) {
     P.body.appendChild(body);
     if (m.paper != null) {
         const p = post().papers.find(q => q.day === m.paper);
-        if (p) P.foot.appendChild(btn('Read the paper', 'green', () => { const Q = UI.open({ title: m.subject, phone: !box, back: () => openLetter(m, box) }); Q.body.className = 'pbody cv'; paperView(Q.body, p); }));
+        if (p) P.foot.appendChild(btn('Read the paper', 'green', () => { const Q = UI.open({ title: m.subject, back: () => openLetter(m) }); Q.body.className = 'pbody cv'; paperView(Q.body, p); }));
     }
     if (gifts.length) {
         if (m.claimed) P.foot.appendChild(el('span', 'grow', `Came with: ${gifts.map(g => itemName(g)).join(', ')} (taken)`));
@@ -363,7 +377,7 @@ function openLetter(m, box) {
             P.foot.appendChild(btn(gifts.length === 1 ? 'Take it' : 'Take them', 'green', () => {
                 m.claimed = true;
                 for (const g of gifts) receive(g, 1);
-                Sfx.play('item'); Save.touch(); openLetter(m, box);
+                Sfx.play('item'); Save.touch(); openLetter(m);
             }));
         }
     }
@@ -498,7 +512,7 @@ function appMoves() {
         if (!MOVES[m]) continue;
         const r = el('button', 'row');
         r.type = 'button';
-        r.appendChild(iconCanvas('emote_' + (MOVES[m].emote || 'note'), 40));
+        r.appendChild(uiIcon('emote_' + (MOVES[m].emote || 'note'), 40));
         const t = el('div', 't');
         t.appendChild(el('b', null, MOVES[m].name));
         t.appendChild(el('span', null, MOVES[m].note));
@@ -508,7 +522,7 @@ function appMoves() {
     }
     for (const m of Object.keys(MOVES).filter(k => !S.dance.moves.includes(k))) {
         const r = el('div', 'row locked');
-        r.appendChild(iconCanvas('ui_lock', 40));
+        r.appendChild(uiIcon('ui_lock', 40));
         const t = el('div', 't');
         t.appendChild(el('b', null, MOVES[m].name));
         t.appendChild(el('span', null, 'Locked. ' + moveHow(m)));
@@ -845,7 +859,7 @@ function appPoems() {
         if (!poem) return;
         const row = el('button', 'row');
         row.type = 'button';
-        row.appendChild(iconCanvas('app_poems', 40));
+        row.appendChild(uiIcon('app_poems', 40));
         const t = el('div', 't');
         t.appendChild(el('b', null, `No. ${i + 1}: "${title}"`));
         t.appendChild(el('span', null, poem[1][0] + ' ...'));
@@ -1026,7 +1040,7 @@ function appArcade() {
     const P = UI.open({ title: 'Arcade', phone: true, back: backToPhone });
     const A = arc();
     const head = el('div', 'detail');
-    head.appendChild(iconCanvas('ui_ticket', 48));
+    head.appendChild(uiIcon('ui_ticket', 48));
     const t = el('div');
     t.appendChild(el('b', null, `${fmtNum(A.tickets)} ${plural(A.tickets, 'ticket')}`));
     t.appendChild(el('span', null, "Spend them at Chili's prize counter. Plushies, trophies, even the machines."));

@@ -142,7 +142,7 @@ function drawWorld() {
     SeaSky.drawSky(ctx);
     // overhead: emotes, prompts, fx
     for (const f of G.fx) if (!f.sorted && !f.screen) f.draw(ctx);
-    drawOverheads(ctx);
+    drawOverheads();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     drawLighting(ctx, a, cam, v);
     SeaSky.drawLights(ctx);
@@ -362,27 +362,26 @@ function drawWeather(ctx, v) {
     ctx.globalAlpha = 1;
 }
 
-/* emote bubbles + the little "you can use this" marker */
-function drawOverheads(ctx) {
-    const p = G.player;
+/* emote bubbles + the little "you can use this" marker: drawn crisp at the screen's resolution over the game's canvas
+   (Heads, 41d_head_icons.js), each at its head (screenOf: the flat view's camera, or the 3D view's) */
+function drawOverheads() {
+    const p = G.player, cs = G.view.cssScale, d3 = R3.active();
+    const at = (e, lift) => { if (!d3) return [...screenOf(e.x, e.y, lift), cs]; const q = R3.project(e.x, e.y, lift); return q.behind ? null : [q.x * cs, q.y * cs, q.s * cs]; };
     const all = NPCs.here().concat(p ? [p] : [], Online.here());
     for (const e of all) {
-        if (!e.emote) continue;
-        const bx = Math.round(e.x), by = Math.round(e.y) - (e.npc ? (e.h || 18) + 8 : 32);
-        spr(ctx, 'emote_' + e.emote, bx, by);
+        if (!e.emote || (d3 && !r3Sees(e))) continue;
+        const q = at(e, headLift(e));
+        if (q) Heads.emote(e.emote, q[0], q[1], q[2]);
     }
     if (p && !G.busy && !UI.modal && G.showPrompt) {
         const t = frontTarget(p);
-        if (t && t.npc) {
-            const by = Math.round(t.y) - (t.h || 18) - 6 + Math.round(Math.sin(G.t / 8));
-            spr(ctx, 'prompt', Math.round(t.x), by);
-        }
+        if (t && t.npc) { const q = at(t, headLift(t) - 1 + Math.sin(G.t / 8)); if (q) Heads.prompt(q[0], q[1], q[2]); }
     }
     // by a door: a little "!" pops up over Sarah's head (inside, it means the way out)
     if (p && !G.busy && !UI.modal && !UI.dialogOpen && !p.emote && !p.sit && nearDoor(p)) {
         const k = Math.min(1, (G.doorPopT = (G.doorPopT || 0) + 1) / 6);
-        const by = Math.round(p.y) - 34 - Math.round(3 * (1 - k)) + Math.round(Math.sin(G.t / 9));
-        spr(ctx, 'prompt', Math.round(p.x), by);
+        const q = at(p, headLift(p) + 2 + 3 * (1 - k) - Math.sin(G.t / 9));
+        if (q) Heads.prompt(q[0], q[1], q[2]);
     } else G.doorPopT = 0;
 }
 /* standing at a way out of a room (or right in front of a building's door, facing it) */

@@ -280,7 +280,11 @@ function addProp(a, p) {
     if (p.kind === 'board') e.interact = () => readBoard();
     if (p.kind === 'sign_island') e.interact = async () => { if (!(await Jobs.paint())) talkSign('island'); };     // (an island job to repaint it: 6zi_jobs.js)
     if (p.kind === 'sign_club') e.interact = () => talkSign('club');
-    if (p.kind === 'mailbox') { e.interact = () => openMailbox(); G.mailbox = e; e.draw = ctx => spr(ctx, unreadMail() ? 'mailbox_flag' : 'mailbox', e.x, e.y); }
+    if (p.kind === 'mailbox') {
+        e.interact = () => openMailbox(); G.mailbox = e; e.draw = ctx => spr(ctx, mailboxFrame(), e.x, e.y);
+        // (its flag flashes while there are new letters: the HD-2D view draws its card again every few frames then)
+        Object.defineProperty(e, 'anim', { get: () => mailboxFrame() !== 'mailbox', configurable: true });
+    }
     if (p.kind === 'bench' || p.kind === 'log') e.interact = () => sitOnBench(e);
     if (p.kind === 'bench' && e.rot) e.draw = ctx => drawBenchTurned(ctx, e);
     if (p.kind === 'statue_david') { e.hit = { x: p.x * TILE, y: p.y * TILE - 56, w: 3 * TILE, h: 2 * TILE + 56 }; e.interact = () => davidStatue(); }

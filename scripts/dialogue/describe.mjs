@@ -330,7 +330,7 @@ const F = {
     constructionTime: ['narr', 'Ginger works on a house'], homeRedoLine: ['npc', "Noticing Sarah's house moved or changed"], houseExpand: ['ginger', "Making Sarah's house bigger"],
     houseReaction: ['npc', 'Seeing their house changed or moved'], offerLook: ['ginger', 'After redoing a house'], pickNeighborHouse: ['ginger', "Picking a neighbor's house to redo"],
     redoHouse: ['ginger', 'Redoing a house'], sitOnBench: ['narr', 'Sitting on a bench'], eventLabel: ['label', 'An event'],
-    appArcade: ['label', 'The Arcade app'], appCollection: ['label', 'The Collection app'], appFriends: ['label', 'The Friends app'], appMail: ['label', 'The Mail app'],
+    appArcade: ['label', 'The Arcade app'], appCollection: ['label', 'The Collection app'], appFriends: ['label', 'The Friends app'], appMail: ['label', 'The mailbox (the letters)'],
     appMoves: ['label', 'The Moves app'], appPoems: ['label', 'The Poems app'], appRecipes: ['label', 'The Recipes app'], appSettings: ['label', 'Settings'],
     appToday: ['label', 'The Today app'], clockSetting: ['label', 'Setting the clock'], eatItem: ['narr', 'Eating something'], edit: ['label', 'Island edit'],
     fishNote: ['label', 'A fish in the Collection'], fortuneTalk: ['fortune', "Talking to Fortune at the shop"], go: ['narr', 'Cooking'], home: ['label', 'Decorating'],

@@ -150,7 +150,7 @@ function appMusic(tab) {
         P.body.appendChild(el('p', 'muted', 'Pick a song to play it now, everywhere, on repeat. (Club songs still play at the club.)'));
         if (M.now) {
             const r = el('div', 'row');
-            r.appendChild(iconCanvas('app_music', 40));
+            r.appendChild(uiIcon('app_music', 40));
             const t = el('div', 't');
             t.appendChild(el('b', null, `On repeat: ${trackName(M.now)}`));
             t.appendChild(el('span', null, 'Back to normal plays the usual music for the time and place.'));
@@ -161,7 +161,7 @@ function appMusic(tab) {
         for (const id of ['silence'].concat(jukeboxTracks())) {
             const r = el('button', 'row' + (M.now === id ? ' sel' : ''));
             r.type = 'button';
-            r.appendChild(iconCanvas(id === 'silence' ? 'emote_zzz' : SONGS[id] && DANCE_TUNES[id] ? 'ui_moves' : 'app_music', 40));
+            r.appendChild(uiIcon(id === 'silence' ? 'emote_zzz' : SONGS[id] && DANCE_TUNES[id] ? 'ui_moves' : 'app_music', 40));
             const t = el('div', 't');
             t.appendChild(el('b', null, trackName(id)));
             t.appendChild(el('span', null, M.now === id ? '\u266a Playing now' : id === 'silence' ? 'A little peace and quiet' : 'Tap to play'));
@@ -793,7 +793,7 @@ function clubList(mode) {
         const row = (icon, name, sub, locked, fn) => {
             const r = el(locked ? 'div' : 'button', 'row' + (locked ? ' locked' : ''));
             if (!locked) { r.type = 'button'; r.addEventListener('click', fn); }
-            r.appendChild(iconCanvas(icon, 40));
+            r.appendChild(uiIcon(icon, 40));
             const t = el('div', 't');
             t.appendChild(el('b', null, name));
             t.appendChild(el('span', null, sub));

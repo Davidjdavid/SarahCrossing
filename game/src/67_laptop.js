@@ -101,7 +101,7 @@ function openLaptop() {
             let sel = null;
             if (tab === 'orders') {
                 const box = pendingBox();
-                V.list.appendChild(el('p', 'muted', box ? "Arriving tomorrow, in one box. It'll be in your mailbox (and the Mail app)." : 'Nothing on the way. Everything you order today arrives tomorrow.'));
+                V.list.appendChild(el('p', 'muted', box ? "Arriving tomorrow, in one box. It'll be in your mailbox." : 'Nothing on the way. Everything you order today arrives tomorrow.'));
                 const grid = V.group();
                 for (const id of (box && box.gifts) || []) V.card(grid, { id, key: 'o:' + id, tag: 'Tomorrow', pick: () => V.show(id, { sub: 'Arriving tomorrow' }) });
             } else if (tab === 'again') {
@@ -135,7 +135,8 @@ async function useLaptop() {
     const k = await UI.ask(null, rpick(["Sarah's laptop. The Harvard inbox is closed. It's staying closed.", 'The laptop wakes up. The wallpaper is the island at sunset.']),
         ['Shop on IslandMart', 'Check email', 'Harvard portal', 'Close it']);
     if (k === 0) { UI.hideDialog(); await openLaptop(); }
-    else if (k === 1) { UI.hideDialog(); appMail(true); }
+    // (letters come to the mailbox outside, and only there: David, 29 October)
+    else if (k === 1) await UI.say(null, rpick(['Just the Harvard newsletter and a coupon for socks. Real letters come to the mailbox outside.', 'The inbox says: "0 new." Letters from the neighbors come to the mailbox by the door.']));
     else if (k === 2) await UI.say(null, rpick(['The portal says: "You are on vacation. Please log off." Sarah logs off.', 'Sarah types her password. The portal says: "Nice try. Go outside." Fair.']));
 }
 

@@ -603,8 +603,8 @@ for (const id of HOUSE_IDS) {
 }
 
 /* ---------------------------------------------------------------- the mailbox (Sarah's, and the neighbors' for looks) */
-/* a rounded box on a post: the dark band is its door's seam; with mail, the red flag is up */
-function hdH_mailbox(s, flag) {
+/* a rounded box on a post: the dark band is its door's seam; with mail, the red flag is up, flashing gold (lit) */
+function hdH_mailbox(s, flag, lit) {
     const g = hdH_new(s), post = g.part('#7a5234', { flat: 1, layer: 1 }, true), b = g.part('#4ea8f0', { flat: 1, layer: 2 }, true);
     s.rect(post, 18, 33, 6, 27);
     s.rect(post, 14, 32, 14, 3);
@@ -622,15 +622,17 @@ function hdH_mailbox(s, flag) {
     });
     for (const [x, y] of [[9, 8], [10, 8], [9, 9]]) g.dot(b, x, y, '#d8f0ff');
     if (flag) {
-        const f = g.part('#e0405a', { flat: 1, layer: 3 }, true);
+        const f = g.part(lit ? '#ffc24a' : '#e0405a', { flat: 1, layer: 3 }, true);
         s.rect(f, 34, 0, 8, 6);
         s.rect(f, 34, 6, 4, 13);
         g.tx(f, (x, y) => { if (y === 0 || x === 34) s.mod(x, y, 1); else if (y > 5 && x === 37) s.mod(x, y, -1); });
+        if (lit) for (const [x, y] of [[35, 1], [36, 1], [35, 2]]) g.dot(f, x, y, '#fff6d0');
     }
     hdH_finish(g);
 }
 HD_SPR.mailbox = { w: 42, h: 66, ax: 21, ay: 60, draw(s) { hdH_mailbox(s, false); } };
 HD_SPR.mailbox_flag = { w: 42, h: 66, ax: 21, ay: 60, draw(s) { hdH_mailbox(s, true); } };
+HD_SPR.mailbox_flag_lit = { w: 42, h: 66, ax: 21, ay: 60, draw(s) { hdH_mailbox(s, true, true); } };
 
 /* ---------------------------------------------------------------- the campsite tents */
 /* each tent's cloth: the lit face, the shaded face, the hem, the light seam at the ridge, the dark one */

@@ -25,7 +25,7 @@ const CV = {
     row(list, icon, title, sub, right, fn) {
         const r = el(fn ? 'button' : 'div', 'row');
         if (fn) { r.type = 'button'; r.addEventListener('click', () => { Sfx.ui('tick'); fn(); }); }
-        if (icon) r.appendChild(typeof icon === 'string' ? iconCanvas(icon, 40) : icon);
+        if (icon) r.appendChild(typeof icon === 'string' ? uiIcon(icon, 40) : icon);
         const t = el('div', 't');
         t.appendChild(el('b', null, title));
         if (sub) t.appendChild(el('span', null, sub));
@@ -37,7 +37,7 @@ const CV = {
     list(body) { const l = el('div', 'list'); body.appendChild(l); return l; },
     empty(body, text, icon) {
         const d = el('div', 'cv-empty');
-        if (icon) d.appendChild(iconCanvas(icon, 48));
+        if (icon) d.appendChild(uiIcon(icon, 48));
         d.appendChild(el('p', null, text));
         body.appendChild(d);
         return d;
@@ -131,7 +131,7 @@ const CIVIC_SCREENS = {
             if (st === 'Not today') CV.banner(b, 'warn', 'The ordinance already changed today. The Council can change it again tomorrow.');
         },
         foot: f => f.appendChild(btn('Enact', 'green', () => {})) },
-    flag: { title: 'Design the island flag', icon: 'app_edit', blurb: 'Draw a pixel flag that flies round the island',
+    flag: { title: 'Design the island flag', icon: 'ui_flag', blurb: 'Draw a pixel flag that flies round the island',
         states: ['Works'],
         draw(b, st, D) {
             const W = 16, H = 10, pal = ['#fbf8f2', '#e8443a', '#f4c040', '#4aa85a', '#3a7ad8', '#9a5ad8', '#f49ac0', '#3b2a2a'];
@@ -368,7 +368,7 @@ const CIVIC_SCREENS = {
             if (st === 'Not enough money') CV.banner(b, 'err', `You only have ${fmtNum(Math.min(D.money, 3200))} sand dollars in your pocket.`);
         },
         foot: f => { f.appendChild(btn('Put in', 'green', () => {})); f.appendChild(btn('Take out', 'alt', () => {})); } },
-    stocks: { title: 'The market', icon: 'ui_ticket', blurb: 'Real companies, in sand dollars: buy, sell, watch them move',
+    stocks: { title: 'The market', icon: 'ui_chart', blurb: 'Real companies, in sand dollars: buy, sell, watch them move',
         states: ['Works', 'Loading', 'Market closed', 'No internet', 'Service down', 'Old data', 'Not enough money'],
         draw(b, st, D) {
             if (st === 'Loading') { CV.loading(b, 'Getting the latest prices...'); return; }
@@ -399,7 +399,7 @@ const CIVIC_SCREENS = {
             CV.note(b, "Real market prices, converted to sand dollars and updated daily. Quotes may be up to a day old.");
         },
         foot: (f, st) => { const off = ['Market closed', 'No internet', 'Service down'].includes(st); const a = btn('Buy', 'green', () => {}), s = btn('Sell', 'alt', () => {}); a.disabled = s.disabled = off; f.appendChild(a); f.appendChild(s); } },
-    loan: { title: 'House loan', icon: 'app_home', blurb: 'Pay off the house upgrades a little at a time',
+    loan: { title: 'House loan', icon: 'ui_house', blurb: 'Pay off the house upgrades a little at a time',
         states: ['Works', 'Empty', 'Not enough money'],
         draw(b, st, D) {
             if (st === 'Empty') { CV.empty(b, 'No loan! The house is all yours. Ginger says the next upgrade is "very exciting."', 'ui_house'); return; }
@@ -435,12 +435,12 @@ const CIVIC_SCREENS = {
             CV.h(b, 'Where your sand dollars went');
             CV.bars(b, [['House', 152000, '#d8433b'], ['Furniture', 71300, '#9a6a3a'], ['Clothes', 38600, '#f49ac0'], ['Food', 14900, '#f4c040'], ['Stocks', 9600, '#5a5a8a']]);
         } },
-    vault: { title: 'Safe deposit box', icon: 'f_treasure_chest', blurb: 'Keep keepsakes and one-of-a-kind gifts safe',
+    vault: { title: 'Safe deposit box', icon: 'ui_chest', blurb: 'Keep keepsakes and one-of-a-kind gifts safe',
         states: ['Works', 'Empty'],
         draw(b, st, D) {
             const kept = st === 'Empty' ? [] : ['compass', 'shipbottle', 'photo_joe', 'starcrystal', 'luckypenny'];
             CV.note(b, CV.fill('{count} of {total} spaces used', { count: kept.length, total: 20 }));
-            if (!kept.length) { CV.empty(b, 'Nothing in here yet. Keep keepsakes, photos and one-of-a-kind gifts safe here.', 'f_treasure_chest'); return; }
+            if (!kept.length) { CV.empty(b, 'Nothing in here yet. Keep keepsakes, photos and one-of-a-kind gifts safe here.', 'ui_chest'); return; }
             const g = el('div', 'grid');
             for (let i = 0; i < 20; i++) g.appendChild(slotBtn(kept[i] || null, 1, { icon: kept[i] && furnDef(kept[i]) ? (furnDef(kept[i]).frame || 'f_' + kept[i]) : undefined }));
             b.appendChild(g);
