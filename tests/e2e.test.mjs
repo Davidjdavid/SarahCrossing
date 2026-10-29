@@ -5089,11 +5089,16 @@ test("what's over people's heads is drawn crisp, at the screen's resolution on a
     n.emote = null; n.emoteT = 0;
     await frames(3);
     out.gone = alpha(sx, sy - s * 0.5) === 0;
-    // the talk prompt over the neighbor Sarah faces
-    n.x = P.x; n.y = P.y - 14; P.dir = 'up'; G.showPrompt = true;
-    await frames(2); n.x = P.x; n.y = P.y - 14; G.showPrompt = true; await frames(2);
-    const [px, py] = screenOf(n.x, n.y, headLift(n) - 1);
-    out.prompt = frontTarget(P) === n && alpha(px, py - Math.min(42, Math.max(26, 10.5 * G.view.cssScale)) * 0.45) > 200;
+    // the talk prompt over the neighbor Sarah faces (anyone else nearby sent off first: one coming over to say hello can
+    // step in between)
+    for (const q of NPCs.list) if (q !== n && q.area === 'island' && Math.hypot(q.x - P.x, q.y - P.y) < 120) Object.assign(q, { x: P.x + 600, path: null, script: { wait: true } });
+    out.prompt = false;
+    for (let i = 0; i < 4 && !out.prompt; i++) {
+      n.x = P.x; n.y = P.y - 14; P.dir = 'up'; G.showPrompt = true; G.busy = 0;
+      await frames(2); n.x = P.x; n.y = P.y - 14; G.showPrompt = true; await frames(2);
+      const [px, py] = screenOf(n.x, n.y, headLift(n) - 1);
+      out.prompt = frontTarget(P) === n && alpha(px, py - Math.min(42, Math.max(26, 10.5 * G.view.cssScale)) * 0.45) > 200;
+    }
     n.script = null;
     return out;
   });
