@@ -347,7 +347,7 @@ Bus.on('sewn', () => Requests.onSewn());
 function appTasks() {
     const P = UI.open({ title: 'To-do', phone: true, back: backToPhone });
     const T = Requests.st(), list = Requests.open();
-    P.body.appendChild(el('p', 'muted', list.length ? `Favors for friends: ${list.length}. Check each one for its due date.` : 'No favors right now. Ask around: "Need anything?"'));
+    P.body.appendChild(el('p', 'muted', list.length ? `Favors for friends: ${list.length}. Check each one for its due date.` : "No favors right now. Neighbors ask when they need a hand, so stop and chat now and then."));
     const L = el('div', 'list');
     for (const t of list) {
         const row = el('div', 'row task');
