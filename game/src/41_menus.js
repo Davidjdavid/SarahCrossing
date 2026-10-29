@@ -1015,9 +1015,14 @@ function openWardrobe(fromPhone) {
 }
 
 /* ---------------------------------------------------------------- mail helpers + bottles */
+const MAIL_KEEP = 250;
 function sendMail(m) {
     S.mail.push({ id: S.mailSeq++, from: m.from, subject: m.subject, body: m.body, gift: m.gift || null, gifts: m.gifts || null, read: false, claimed: false,
         day: Clock.dayNum() + (m.delay || 0), ...(m.card ? { card: m.card } : {}), ...(m.paper != null ? { paper: m.paper } : {}) });
+    // (the mailbox keeps the newest 250 letters that are read and have nothing left to take; unread ones and presents stay
+    // however many there are: a year of letters otherwise grew the save by a hundred KB, QA, 29 October)
+    const settled = S.mail.filter(x => x.read && (x.claimed || !mailGifts(x).length));
+    if (settled.length > MAIL_KEEP) { const drop = new Set(settled.slice(0, settled.length - MAIL_KEEP)); S.mail = S.mail.filter(x => !drop.has(x)); }
     Save.touch();
 }
 async function openBottle() {

@@ -35,6 +35,7 @@ make it happen, what shows it, how bad it is, and whether it's fixed and checked
 | 21 | Nothing pointed at two things: the watering can's description was "A tool." (breeding flowers was only in the collection), and Muggy's story waits for twenty museum gifts and a pot on every pedestal with no hint | 6m_specials.js, 6o_topics.js, 6zzg_variety.js | Look at the can; play for weeks | Gameplay review | minor | yes: the can says what watering does, a tip about breeding; Brulee mentions the bare pedestals once half the gifts are in | browser |
 | 22 | Small shared pools heard several times a day (what an idle neighbor says, "I missed you", the hello after an overheard chat, asking a favor) | 6zzg_variety.js | Play a few days | Gameplay review | minor | yes: more lines in each | code |
 | 23 | The 29 October list's test failed once the real date passed the 28th: it set the island to 28 October before looking at the starter crop, planted two days before the real date | tests/e2e.test.mjs | The full e2e run on 29 October | 101/102; fails alone too | minor (test only) | yes: the starter is checked before the clock moves | code: passes alone and in the full run |
+| 24 | Read letters were kept for good: a year of play is about 400 letters, a hundred KB more in a save sent whole every 20 seconds | 41_menus.js `sendMail` | Play for months | The 120-day soak: the save grew from 7 to 82 KB, 47 KB of it letters | minor | yes: the mailbox keeps the newest 250 letters that are read with nothing left to take (unread letters and presents always stay) | code |
 
 ## For David to decide (found, not changed)
 
@@ -44,3 +45,21 @@ make it happen, what shows it, how bad it is, and whether it's fixed and checked
 - **Cuke's hours** (4 AM to 8 PM): someone who plays in the evenings never finds him awake, so his friendship stalls.
 - **Shrimpy's ten logs** mean felling ten trees, which don't come back unless Sarah plants more.
 - **Shrimpy's and Muggy's photos** at five hearts need pictures drawn; until then they don't give one.
+
+## What's been checked and found fine
+
+- **Sweep 1, the classic view** (a browser driving the game, a laptop and a phone): every phone app, every civic screen,
+  every room (no one stuck on arrival), every arcade cabinet, every holiday on the square, night, rain, snow and storm,
+  thirty days run forward: no script errors, no screen wider or taller than the window.
+- **The 3D look** (beta's): the first twelve places of the island at 1 PM look right (buildings, stairs, the falls and
+  their bridge, rain); the rest of the 3D sweep is still to run.
+- **The 120-day soak** (classic view): every day a morning, four places at four hours, a talk, a room: no errors, memory
+  steady at 17-19 MB, each new day's work 22-58 ms.
+- **Edge cases**: a full pocket (things go home to storage, with a toast), no money (Fortune says so kindly), the day
+  turning over mid-talk, talking tapped over and over (ignored while a talk is on), resizing the window mid-dialogue,
+  two dialogues at once, a save code round trip, a phone turned sideways (the phone, a dialogue and the shop all fit).
+- **The gameplay review** (reading the game: lines per neighbor, the economy, unlocks, schedules): the economy's pace
+  (the house and town projects take about 45-55 days at fifteen minutes' fishing a day), friendship's pace (five hearts
+  in about two weeks of daily gifts), the conveniences (sell all, buy five, quick cook, the mailbox's take-all), and
+  every step of Shrimpy's and the back room's quests can be done.
+
