@@ -249,10 +249,10 @@ async function startNew() {
     await UI.say('fortune', "Welcome, welcome! I'm Fortune. I run the shop. And, kind of, the island. First things first!", { keep: true });
     UI.hideDialog();
     await setupForm();
-    await UI.say('fortune', [`${S.islandName}! Love it.`, 'Here, a phone! Everyone gets a phone. It is the law. (A lawyer named John said so.) It has a map, your mail, and a camera.',
+    await UI.say('fortune', [`${S.islandName}! Love it.`, 'Here, a phone! Everyone gets a phone. It is the law. (A lawyer named John said so.) It has a map, your messages, and a camera. Letters come to the mailbox by your house.',
         `One more thing: the island runs on island time. Right now it's ${Clock.fmt().s}. If that ever feels wrong, the phone's Settings can change it.`,
-        "Your house is up in the village, northwest of the plaza: take the lane west past the museum, then head north. Say hi to the neighbors! And come by the shop. I have fortunes."]);
-    await UI.say('joe', ["I live here now, too! My house is by the beach, just west of the pier. I'll bring takeout later.",
+        "Your house is out in the village, west of the square: follow the lane west past the Post Office and keep going. It's on your map, too. Say hi to the neighbors! And come by the shop at the end of Market Lane. I have fortunes."]);
+    await UI.say('joe', ["I live here now, too! My house is out west, by the beach past the village. I'll bring takeout later.",
         "And if you ever want a poem, just ask. I have a poetry degree. I have a lot of poems. They're all excellent."]);
     rel('joe').met = true; S.flags.metJoe = true;
     rel('fortune').met = true;

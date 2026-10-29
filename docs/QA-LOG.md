@@ -39,6 +39,7 @@ make it happen, what shows it, how bad it is, and whether it's fixed and checked
 | 25 | The karaoke voice test failed now and then: a crack drops in pitch one time in four, and one close to an octave down reads as the same note to the test's pitch finder | tests/e2e.test.mjs | The full e2e run, by chance | 101/102 once; passes on its own | minor (test only) | yes: up to four renders of the crack | code: passes three runs in a row |
 | 26 | At the lookout the camera eases down to look out over the sea (David, 28 October), but three pines stood right in front of the telescope: the view was trees, the sea only at the edge | scripts/island/greenery.json | Go to the lookout in the new look | QA 3D sweep (017-spot_lookout) | medium | yes: the three pines in the telescope's line of sight taken out of the frozen greenery (trees are kept by their tile, so saves are fine); the island made again, nothing else moved | not yet: the view to be looked at again |
 | 27 | The QA room offered a "storm" weather the game never has (a day is sunny, cloudy, rainy or snowy, a zip code's forecast too): picked, it drew a sunny day with nothing working as weather | 6zzf_qa.js | QA panel, Time, Weather today, storm | QA 3D sweep (034: "storm" looked sunny) | minor (QA tool) | yes: the four real weathers only | code |
+| 28 | Fortune's welcome on a new island was from an older island: the phone "has your mail" (there's no Mail app; letters are read at the mailbox), Sarah's house was "past the museum" and Joe's "just west of the pier" (both are out west in the village) | 90_main.js `startNew` | Start a brand-new island from the title | The first-time walkthrough (title, boat, form, every line, first steps, on a laptop and a phone): the lines as read | medium | yes: the phone has "a map, your messages, and a camera", letters come to the mailbox; the house is west of the square past the Post Office; Joe out west by the beach past the village | browser: the walkthrough again on a laptop and a phone, 15 and 14 lines, no errors |
 
 ## For David to decide (found, not changed)
 
@@ -54,8 +55,20 @@ make it happen, what shows it, how bad it is, and whether it's fixed and checked
 - **Sweep 1, the classic view** (a browser driving the game, a laptop and a phone): every phone app, every civic screen,
   every room (no one stuck on arrival), every arcade cabinet, every holiday on the square, night, rain, snow and storm,
   thirty days run forward: no script errors, no screen wider or taller than the window.
-- **The 3D look** (beta's): the first twelve places of the island at 1 PM look right (buildings, stairs, the falls and
-  their bridge, rain); the rest of the 3D sweep is still to run.
+- **The 3D look** (beta's, a browser on this machine's software graphics, 72 screenshots): 34 places and buildings at
+  1 PM (the square, the alley, the boardwalk, the harbor and pier with Sarah's boat, the pond, the woods and the old
+  tree, the meadow, the campsite, the farm and goat pen, the orchard, the falls and their bridge, the hot spring, the
+  mountain, the east meadow, the village flower beds, the bonfire, the lighthouse boarded on beta); the square from
+  dawn to 2 AM (the light, lit windows at night); rain and snow; every season at the square and the beach (spring's
+  green, autumn's orange, snow on the lawn with a snowman); emotes over heads, the talk prompt and the "!" by a door;
+  twelve rooms (Fortune's, the boutique's mannequins, the museum's archways, Mac's, the arcade, the Town Hall, the Post
+  Office, the Bank, Maki's and Sully's houses, the café, the salon); seven outfits and six hairstyles close up (the
+  sweater's cuffs clean): nothing broken, nothing floating or sunk, nothing clipping. The lookout was the one thing
+  wrong (row 26).
+- **A brand-new island, the first time** (a browser from the title with no debug tools, a laptop and a phone): Start,
+  the boat scene, Joe and Fortune, the island's name and Sarah's birthday (the form fits a phone), every line of the
+  welcome, the first moment of play (the walking hint for keys or taps, then the shells hint) and the first steps off
+  the pier: no errors; the welcome's directions were wrong (row 28).
 - **The 120-day soak** (classic view): every day a morning, four places at four hours, a talk, a room: no errors, memory
   steady at 17-19 MB, each new day's work 22-58 ms.
 - **Edge cases**: a full pocket (things go home to storage, with a toast), no money (Fortune says so kindly), the day
