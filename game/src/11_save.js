@@ -23,7 +23,7 @@ function newState() {
         pottery: { seq: 1, pieces: {}, kiln: [], made: 0 },
         arcade: { tickets: 0, best: {}, plays: {}, free: {}, won: 0, claw: null, reach: {}, rival: {} },
         rope: { best: 0, day: -1, trophy: false },
-        karaoke: { best: {}, day: -1, trophy: false },
+        karaoke: { best: {}, day: -1, trophy: false, mine: [] },
         games: {},
         bank: {},
         post: {},
@@ -344,6 +344,7 @@ function migrate(st) {
     // personal moments a close friend has shared (6z_talk_more.js): a count, missing means none yet
     for (const r of Object.values(st.npcs || {})) if (r && r.shared != null && !(r.shared >= 0)) r.shared = 0;
     if (st.karaoke && !st.karaoke.best) st.karaoke.best = {};
+    if (st.karaoke && !Array.isArray(st.karaoke.mine)) st.karaoke.mine = [];          // (the songs she writes: 63_karaoke.js)
     for (const k of ['specials', 'quests', 'cookLog']) if (st[k] != null && typeof st[k] !== 'object') st[k] = undefined;
     if (st.tasks && !Array.isArray(st.tasks.list)) st.tasks = undefined;
     if (st.art && st.art.hung != null && !Array.isArray(st.art.hung)) st.art.hung = undefined;

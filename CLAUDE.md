@@ -297,6 +297,17 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   a full card (`stampOptions` in her talk menu: `STAMP_PRIZES`, one of the museum's own pieces a year). Kept as `S.stamps`.
 - Karaoke has a request each night (`karaokeRequest`: one of the poems Sarah has, from the seed and the day), first in the
   list and on the board; the first time she sings it that night the crowd tips 200 more.
+  The pitch marker moves by the clock, in semitones a second, quicker the longer it's held (63_karaoke.js `KARA_V0`/
+  `KARA_V1`/`KARA_ACC`, `karaReach`; David, 29 October: some notes couldn't be reached in time); on a phone a finger
+  sliding on the pads drags it (`dragAt`). Every tune keeps its leaps within reach: `karaokeSong` brings a note in a step
+  at a time until the marker can get inside its hit band by the gap's end and the note's first quarter (`KARA_LATE`).
+  Sarah writes her own songs ("Write a song", `karaokeWriteFlow`: a title and up to 8 lines, 12 songs, tidied by
+  `karaokeClean`), kept as `S.karaoke.mine` [{ id, title, lines, day, best }], the tune from their words, the best rank
+  in `ranks['my:<id>']` too, Joe's words `JOE_KARAOKE_MINE`. She sings out loud (63a_singing.js, `Singer`): a buzz per
+  voice through three formant filters per vowel (`SING_VOWELS`) and noise for consonants (`SING_CONS`), each word split
+  into the tune's syllables (`singSyllables`) and scheduled on the music's clock (`Karaoke.ctxAt`); the pitch is the one
+  she holds, so off the note it wobbles, rasps and cracks (`Singer.crack`). Voices come from VOICES (`Singer.opts`: a
+  man's look two octaves under the tune, Sarah one); a duet's neighbor sings in theirs. Through the sound effects' volume.
 - Most days a neighbor not working at noon goes home for lunch, some days to Mac's (`lunchOverride`, the first of
   makePlan's overrides, so anything else planned that day wins), and some evenings two neighbors pair up for a visit, one
   at the other's house while the host stays home (`friendVisits`/`visitOverride`: from the day alone, so both plans agree);
