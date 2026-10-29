@@ -80,7 +80,7 @@ const QAPanel = {
         const D = window.__dbg, d = Clock.dayDate(), y = d.getFullYear();
         this.row(body, 'Hour', [5, 6, 7, 9, 12, 15, 17, 18, 19, 20, 21, 23, 0, 2].map(h => [(h % 12 || 12) + (h < 12 ? ' AM' : ' PM'), () => { D.hour(h); this.done(); }]));
         this.row(body, 'Season (the 15th, noon)', [['Spring', 4], ['Summer', 7], ['Fall', 10], ['Winter', 1]].map(([n, m]) => [n, () => { D.setTime(m, 15, 12); this.done(); }]));
-        this.row(body, 'Weather today', ['sunny', 'cloudy', 'rain', 'snow', 'storm'].map(w => [w, () => { D.weather(w); this.done(); }]));
+        this.row(body, 'Weather today', ['sunny', 'cloudy', 'rain', 'snow'].map(w => [w, () => { D.weather(w); this.done(); }]));
         this.row(body, 'Run days forward (each morning\'s work done)', [1, 2, 3, 7, 14, 30].map(n => [n + (n === 1 ? ' day' : ' days'), () => { D.nextDay(n); this.done(`${n} ${plural(n, 'day')} on: ${dayLabel(Clock.dayNum())}`); }]));
         body.appendChild(stLabel('A date'));
         const f = el('div', 'qa-row');
