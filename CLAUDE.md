@@ -541,6 +541,16 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   (David, 29 October); it topples over away from Sarah, side on to the camera, lands with a bounce, lies a moment and goes
   in a puff of leaves (`fellTree`, `e.fell`, `fellPose`, `FELL`: drawEnt in the flat view, the card in HD-2D, `EnvTrees.tick`
   in the new look), leaving a stump as thick as the trunk (`EnvItems.stump`).
+- Arcade high scores (59_arcade.js, David, 29 October): every game with a score has a top five (`hiScoreRows`,
+  `hiScoreList`): DAVID's record first (`ARCADE_RECORD[id]` = [score, note, the special it guards], the best score the game
+  can give just under its first unlock, or just short of a level unlock), five neighbors per game under him
+  (`HISCORE_RIVALS`, `arcadeRivals` keeps them under David while his record stands), Sarah's best where it ranks, and an
+  imported save's old scores as 2D SARAH (`S.arcade.legacy`: ranked, never her best, never an unlock). Topping David's
+  record (`beatsRecord`) earns what it guards (Fortune Falls guards Starstruck, `emote_star`), and the card and Chili
+  say so (`RECORD_LINES`). The wall's board (`showHiScores`) shows them all, and each cabinet's menu its own (`gameHiScores`).
+  Once Sarah has tried the back room's locked door (`S.quests.backroom.tried`), Chili has "About that locked door..."
+  (`backTip`: the reject games are back there, and the quest's next step); the out-of-order cabinet (`cab_broken`) stands
+  in the back room with a note that a future update might restore it.
 - Neighbors now and then ask Sarah to play when she talks to them (`igMaybeAsk`, `IG_ASK`, at most once a day each, about
   one talk in eight where a game fits), and rarely text to ask (Invites' kind `play`: say yes, then talk to them).
   Favors are theirs to ask, in person (David, 29 October): no "Need anything?" in the talk menu or texts; about one talk in

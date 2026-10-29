@@ -498,8 +498,9 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   money bag or a find glints now and then in the new look
 
 ## David's list before testing (29 October)
-- [ ] Arcade high scores: the top five on every game, with neighbors' scores, and David on top of each just under what
-  unlocks its prize, so the high score is the unlock; an option at each cabinet to see its scores
+- [x] Arcade high scores: the top five on every game, with neighbors' scores, and David on top of each just under what
+  unlocks its prize, so the high score is the unlock; an option at each cabinet to see its scores (Fortune Falls had no
+  unlock, so the Starstruck emote moved to it; Gopher Garden's 20,000 looks out of reach and might want lowering)
 - [x] Every neighbor starts with places and things they like doing or never do, to suit them, for the designer to change
 - [x] Favors aren't asked for any more (no "Need anything?" in the talk menu or texts): a neighbor asks now and then, in
   person, when Sarah talks to them, and she can say not now
@@ -524,7 +525,7 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   karaoke list; a made singing voice for Sarah and the neighbor in a duet, each in their own voice, that wobbles, rasps
   and cracks off the note. Karaoke has no online mode yet, so friends online don't sing along)
 - [x] Twenty songs danced for the sewing pattern; a hundred flowers picked or watered for the flower crown
-- [ ] The arcade's back room: once Sarah has tried the door, Chili has a hint; it's the games that didn't make the cut,
+- [x] The arcade's back room: once Sarah has tried the door, Chili has a hint; it's the games that didn't make the cut,
   and the broken cabinet in there with a note that a future update may fix it
 - [x] Sarah's house redone at Ginger's now shows in the new look
 - [x] Trophies, festival things and anything that can't be bought again can't be sold
