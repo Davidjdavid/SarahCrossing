@@ -36,6 +36,7 @@ make it happen, what shows it, how bad it is, and whether it's fixed and checked
 | 22 | Small shared pools heard several times a day (what an idle neighbor says, "I missed you", the hello after an overheard chat, asking a favor) | 6zzg_variety.js | Play a few days | Gameplay review | minor | yes: more lines in each | code |
 | 23 | The 29 October list's test failed once the real date passed the 28th: it set the island to 28 October before looking at the starter crop, planted two days before the real date | tests/e2e.test.mjs | The full e2e run on 29 October | 101/102; fails alone too | minor (test only) | yes: the starter is checked before the clock moves | code: passes alone and in the full run |
 | 24 | Read letters were kept for good: a year of play is about 400 letters, a hundred KB more in a save sent whole every 20 seconds | 41_menus.js `sendMail` | Play for months | The 120-day soak: the save grew from 7 to 82 KB, 47 KB of it letters | minor | yes: the mailbox keeps the newest 250 letters that are read with nothing left to take (unread letters and presents always stay) | code |
+| 25 | The karaoke voice test failed now and then: a crack drops in pitch one time in four, and one close to an octave down reads as the same note to the test's pitch finder | tests/e2e.test.mjs | The full e2e run, by chance | 101/102 once; passes on its own | minor (test only) | yes: up to four renders of the crack | code: passes three runs in a row |
 
 ## For David to decide (found, not changed)
 

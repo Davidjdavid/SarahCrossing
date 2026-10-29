@@ -4832,7 +4832,11 @@ test('karaoke: she sings the words out loud at the pitch she holds (off the note
     const band = (d, a, f) => { let re = 0, im = 0; for (let i = 0; i < 4096; i++) { const w = 2 * Math.PI * f * i / SR; re += d[a + i] * Math.cos(w); im += d[a + i] * Math.sin(w); } return Math.hypot(re, im); };
     const ah = await render('a', 1.2), ee = await render('i');
     out.pitch = Math.abs(pitch(ah, SR * 0.6, 2048) - 220) < 4;
-    out.crack = Math.abs(pitch(ah, Math.round(SR * 1.215), 1024) - 220) > 30;
+    // (a crack jumps up three times in four; one that drops close to an octave can read as the same note to this pitch
+    // finder, so a few renders: it failed now and then, QA, 29 October)
+    let cracked = Math.abs(pitch(ah, Math.round(SR * 1.215), 1024) - 220) > 30;
+    for (let i = 0; i < 3 && !cracked; i++) cracked = Math.abs(pitch(await render('a', 1.2), Math.round(SR * 1.215), 1024) - 220) > 30;
+    out.crack = cracked;
     out.vowels = band(ah, SR / 2, 880) > 3 * band(ee, SR / 2, 880) && band(ee, SR / 2, 2200) > band(ah, SR / 2, 2200);
     // voices: Sarah an octave under the tune, a man's lower, Sully low too, Cece with her own quick wobble
     out.voices = { sarah: Singer.opts(VOICES.sarah, false).shift, man: Singer.opts(VOICES.david, true).shift, sully: Singer.opts(VOICES.sully).shift, cece: Singer.opts(VOICES.cece).vibHz > 8 };
