@@ -643,9 +643,13 @@ test('beta civic buildings: savings with interest, a letter delivered with a rep
     const more = Design.likeWeight(id, 'book', 1) === w0 * 3 && book().textContent === 'Reading: more often';
     book().click();
     const never = Design.likeWeight(id, 'book', 1) === 0 && Design.likeChance(id, 'bench', 0.6) === c0;
-    return { kept: (S.town.sched.maki.spots || []).join(), more: count() > before * 1.5 + 2, likes: more && never };
+    const after = count();
+    return { kept: (S.town.sched.maki.spots || []).join(), more: after > before * 1.5 + 2, likes: more && never, why: { before, after, seed: S.seed, day: Clock.dayNum(), ord: townOrd() } };
   });
-  assert.deepEqual(spots, { kept: 'harbor,orchard', more: true, likes: true });
+  // (the counts, the island's seed and the day when it fails, to make the same island again: once on the deploy's run it
+  // didn't hold, and three hundred seeds here never failed)
+  const why = spots.why; delete spots.why;
+  assert.deepEqual(spots, { kept: 'harbor,orchard', more: true, likes: true }, JSON.stringify(why));
   // and the Town Hall itself opens, with the Council at the desk
   await page.evaluate(() => { __dbg.setTime(10, 27, 11); enterRoom('townhall'); });
   await page.waitForFunction(() => G.area && G.area.id === 'townhall');
