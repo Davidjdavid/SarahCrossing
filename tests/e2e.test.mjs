@@ -636,11 +636,13 @@ test('beta civic buildings: savings with interest, a letter delivered with a rep
     CIVIC_LIVE.residents.pick = id; civicScreen('residents');
     for (const name of ['The harbor', 'The orchard']) [...document.querySelectorAll('#panel .chip')].find((c) => c.textContent === name).click();
     // and what they like doing: reading more often, then never
+    // (on top of what they like doing to start with: LIKES_START)
     const book = () => [...document.querySelectorAll('#panel .chip')].find((c) => c.textContent.startsWith('Reading:'));
+    const w0 = Design.likeWeight(id, 'book', 1), c0 = Design.likeChance(id, 'bench', 0.6);
     book().click();
-    const more = Design.likeWeight(id, 'book', 1) === 3 && book().textContent === 'Reading: more often';
+    const more = Design.likeWeight(id, 'book', 1) === w0 * 3 && book().textContent === 'Reading: more often';
     book().click();
-    const never = Design.likeWeight(id, 'book', 1) === 0 && Design.likeChance(id, 'bench', 0.6) === 0.6;
+    const never = Design.likeWeight(id, 'book', 1) === 0 && Design.likeChance(id, 'bench', 0.6) === c0;
     return { kept: (S.town.sched.maki.spots || []).join(), more: count() > before * 1.5 + 2, likes: more && never };
   });
   assert.deepEqual(spots, { kept: 'harbor,orchard', more: true, likes: true });
@@ -2482,7 +2484,8 @@ test("outdoor furniture: Waffle's stock by kind each day in four colors; floor f
     // a few of each kind, the same all day, different tomorrow; every piece in four colors; plenty of each kind
     out.kinds = OUTDOOR_CATS.every(([c]) => st.some(s => s.cat === c)) && st.length === Object.values(OUTDOOR_DAILY).reduce((a, b) => a + b, 0);
     out.days = JSON.stringify(st) === JSON.stringify(waffleStock(day)) && JSON.stringify(st) !== JSON.stringify(waffleStock(day + 1));
-    out.colors = Object.keys(DISPLAYS).every(id => FURN[id] && FURN[id].colors && FURN[id].colors.length === 4);
+    // (planter boxes, plot, come in one look and stay outdoors)
+    out.colors = Object.keys(DISPLAYS).filter(id => !DISPLAYS[id].plot).every(id => FURN[id] && FURN[id].colors && FURN[id].colors.length === 4);
     out.perKind = OUTDOOR_CATS.every(([c]) => Object.values(DISPLAYS).filter(d => d.cat === c).length >= 6);
     out.pictures = Object.keys(DISPLAYS).every(id => Assets.has(DISPLAYS[id].frame));
     // a piece in another color is set down as its own piece, with its own name and picture
@@ -2987,9 +2990,10 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
     const likes = await page.evaluate(async () => {
       const N = Design.work().npcs;
       N.maki = { acts: { book: 0, fish: 3 }, spots: { beach: 0 } };
-      const w = { beach: 2, plaza: 1 };
+      // (what nobody starts out liking or not: Kai's painting, the harbor for Maki: LIKES_START)
+      const w = { beach: 2, harbor: 1 };
       designSpots('maki', w);
-      const ok = Design.likeWeight('maki', 'book', 4) === 0 && Design.likeWeight('maki', 'fish', 1) === 6 && Design.likeWeight('kai', 'fish', 4) === 4 && !('beach' in w) && w.plaza === 1;
+      const ok = Design.likeWeight('maki', 'book', 4) === 0 && Design.likeWeight('maki', 'fish', 1) === 6 && Design.likeWeight('kai', 'paint', 4) === 4 && !('beach' in w) && w.harbor === 1;
       // the island's own parts are there before anything's drawn (David, 29 October: the shopping district and the rest)
       const ids = Design.areas().map(A => A.id);
       const presets = ['market', 'square', 'farm', 'beach', 'harbor', 'woods'].every(k => ids.includes(k)) && Design.d.areas === undefined
@@ -3002,9 +3006,9 @@ test("the designer (beta): the island's things moved, turned, added and taken aw
       IslandEdit.tap((c.x - 2 + 0.5) * TILE, (c.y - 2 + 0.5) * TILE); IslandEdit.tap((c.x + 2 + 0.5) * TILE, (c.y + 2 + 0.5) * TILE);
       IslandEdit.close();
       N.kai = { areas: { a1: 0 } };
-      const w2 = { campsite: 2, beach: 1 };
+      const w2 = { campsite: 2, plaza: 1 };
       designSpots('kai', w2);
-      const area = JSON.stringify(Design.d.areas.find(A => A.id === 'a1').rects) === JSON.stringify([[c.x - 2, c.y - 2, 5, 5]]) && placeName('maki', 'campsite') === 'at the campfire' && !('campsite' in w2) && w2.beach === 1
+      const area = JSON.stringify(Design.d.areas.find(A => A.id === 'a1').rects) === JSON.stringify([[c.x - 2, c.y - 2, 5, 5]]) && placeName('maki', 'campsite') === 'at the campfire' && !('campsite' in w2) && w2.plaza === 1
         && Design.d.areasV === 1 && Design.d.areas.length === W0.areas.length + 1;
       // the shopping district redrawn smaller, at the alley's east end only: a neighbor going to the boutique's front (now in
       // no area) stands in the shopping district as it's drawn now
@@ -4061,7 +4065,7 @@ test("every neighbor's talk menu, the way a player does: each option tried with 
         }
       }
     } finally { clearInterval(closer); UI.ask = ask; UI.say = say; }
-    out.many = out.tried > 90;
+    out.many = out.tried > 75;               // (about 90, give or take what each day offers; "Need anything?" went on 29 October)
     out.family = NPCs.list.filter((n) => NPC_DEFS[n.id].online).length;
     delete out.tried;
     return out;
