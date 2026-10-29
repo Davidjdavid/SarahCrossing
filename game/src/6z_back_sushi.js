@@ -506,6 +506,7 @@ TUNES.sushi = { bpm: 138, root: 64, scale: 'major', lead: 'pluck', chords: [1, 6
     mel: { A: '3 5 6 . 5 3 2 .', B: '1 2 3 . 2 1 6v .', C: '3 5 6 ^1 6 5 3 5', D: '2 . 3 . 1 . . .', E: '1 . . . 6v . 1 .', F: '6 . 5 6 ^1 . 6 .', G: '5 3 2 3 5 . . .', H: '6 5 3 5 6 . ^1 .' },
     leadVol: 0.14, bass: 'x.o.x.o.', arp: '.x.x.x.x', arpInstr: 'kalimba', arpVol: 0.035, drums: { kick: 'x...x...', snare: '....x...', shaker: 'oxoxoxox' }, drumVol: 0.22 };
 FIXED_TUNES.push('sushi');
-HISCORE_RIVALS.sushi = [['MAKI', 7000, 'every swap exactly on time'], ['WONTON', 3600, 'swapped with his eyes shut'], ['FORTUNE', 1800, 'said she saw the chain coming']];
+HISCORE_RIVALS.sushi = [['MAKI', 3850, 'every swap exactly on time'], ['WONTON', 3600, 'swapped with his eyes shut'], ['KAI', 2700, 'loves the tuna ones. respectfully'],
+    ['CLEMENTINE', 2100, 'only swapped the chic ones'], ['FORTUNE', 1800, 'said she saw the chain coming']];
 ARC_TARGET.sushi = [800, 1800, 3500];
 TRACK_NAMES.sushi = 'Sushi Swap';

@@ -9,7 +9,7 @@ const SPECIALS = {};
 const POOL_HINT = 'Could turn up anywhere: a fishing crate, a sparkling tree, after cooking, or as thanks from a friend.';
 function defSpecial(id, cat, name, src, hint, extra) { SPECIALS[id] = Object.assign({ id, cat, name, src, hint: hint || POOL_HINT }, extra || {}); }
 // hairstyles: Floss learns them
-defSpecial('hair_mohawk', 'hair', 'Mohawk', 'score:capsules:10', 'Spicy! Reach level 10 in Spice Capsules.', { style: 'mohawk' });
+defSpecial('hair_mohawk', 'hair', 'Mohawk', 'score:capsules:10', "Spicy! Reach level 10 in Spice Capsules (or top David's record).", { style: 'mohawk' });
 defSpecial('hair_bald', 'hair', 'Bald and shiny', 'pool', null, { style: 'bald' });
 defSpecial('hair_friar', 'hair', 'Friar', 'pool', null, { style: 'friar' });
 defSpecial('hair_buzz', 'hair', 'Buzz cut', 'pool', null, { style: 'buzz' });
@@ -54,7 +54,7 @@ defSpecial('recipe_mochi', 'recipe', 'Mochi', 'pool', null, { recipe: 'mochi' })
 defSpecial('recipe_takoyaki', 'recipe', 'Takoyaki', 'pool', null, { recipe: 'takoyaki' });
 defSpecial('recipe_pancakes', 'recipe', 'Pancake stack', 'pool', null, { recipe: 'pancakes' });
 defSpecial('recipe_mooncakes', 'recipe', 'Moon cakes', 'quest:windmill', 'The old windmill could grind something special, if it worked.', { recipe: 'mooncakes' });
-defSpecial('recipe_shortcake', 'recipe', 'Cherry shortcake', 'score:stack:10', 'Squish snacks all the way up to a watermelon in Snack Stack.', { recipe: 'shortcake' });
+defSpecial('recipe_shortcake', 'recipe', 'Cherry shortcake', 'score:stack:10', "Squish snacks all the way up to a watermelon in Snack Stack (or top David's record).", { recipe: 'shortcake' });
 // songs for Club Wasabi
 defSpecial('song_goat', 'song', 'The Goat Waltz', 'quest:goat', "Be the goat's friend. It's a goat. It will know.", { song: 'goat' });
 defSpecial('song_starlight', 'song', 'Starlight', 'quest:star', 'Somebody up there is blinking at the island...', { song: 'starlight' });
@@ -69,7 +69,8 @@ defSpecial('dance_sprinkler', 'dance', 'The Sprinkler', 'stat:harvests:50', 'Har
 defSpecial('emote_wink', 'emote', 'Wink', 'pool', null, { move: 'wink' });
 defSpecial('emote_idea', 'emote', 'Bright idea', 'pool', null, { move: 'idea' });
 defSpecial('emote_cool', 'emote', 'Too cool', 'pool', null, { move: 'cool' });
-defSpecial('emote_star', 'emote', 'Starstruck', 'pool', null, { move: 'starstruck' });
+// (Fortune Falls had nothing to win, so topping David's record there now earns this one: ARCADE_RECORD, 29 October)
+defSpecial('emote_star', 'emote', 'Starstruck', 'score:fortune:50000', 'Score 50,000 in Fortune Falls. The pegs light up. So do you.', { move: 'starstruck' });
 // treasures (furniture)
 defSpecial('furn_treasure_chest', 'furn', 'Treasure chest', 'quest:treasure', 'Somebody hid something on this island a long time ago.', { item: 'treasure_chest' });
 defSpecial('furn_keeper_lantern', 'furn', "Keeper's lantern", 'quest:ghost', 'Help someone at the lighthouse find peace.', { item: 'keeper_lantern' });
@@ -205,7 +206,7 @@ async function checkSpecialMilestones() {
     for (const sp of Object.values(SPECIALS)) {
         if (hasSpecial(sp.id)) continue;
         const [kind, a, b] = sp.src.split(':');
-        let ok = false;
+        let ok = false, rec = false;
         if (kind === 'score') {
             if (a === 'rope') ok = (S.rope && S.rope.best || 0) >= +b;
             else if (a === 'karaoke') ok = Object.values((S.karaoke && S.karaoke.ranks) || {}).includes('S');
@@ -213,12 +214,15 @@ async function checkSpecialMilestones() {
             else if (a === 'stack') ok = ((A.stackTop || 0) >= +b);
             else if (a === 'capsules') ok = ((A.reach || {}).capsules || 0) >= +b;
             else ok = (best[a] || 0) >= +b;
+            // (topping David's record earns what it guards, a level's special too: ARCADE_RECORD in 59_arcade.js)
+            rec = !!ARCADE_RECORD[a] && ARCADE_RECORD[a][2] === sp.id && beatsRecord(a, best[a] || 0);
+            ok = ok || rec;
         } else if (kind === 'stat') ok = (st[a] || 0) + (a === 'flowers' ? (st.flower || 0) : 0) >= +b;
         else if (kind === 'joe') ok = (S.poems || []).length >= +a;
         else if (kind === 'floss') ok = (st.salon || 0) >= +a;
         else if (kind === 'cookgold') ok = Object.values(S.cookLog || {}).filter(c => c.medal === 'gold').length >= +a;
         if (!ok) continue;
-        const how = { score: 'A high score special!', stat: 'All that practice paid off!', joe: 'Joe says: "Floss did my hair. Tell her I sent you."', floss: 'Floss taught Sarah her signature move!', cookgold: 'A true chef!' }[kind];
+        const how = rec ? `You topped David's ${ARCADE_GAMES[a].name} record!` : { score: 'A high score special!', stat: 'All that practice paid off!', joe: 'Joe says: "Floss did my hair. Tell her I sent you."', floss: 'Floss taught Sarah her signature move!', cookgold: 'A true chef!' }[kind];
         earnSpecial(sp.id, how);
     }
 }

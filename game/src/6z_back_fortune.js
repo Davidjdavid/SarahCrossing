@@ -664,6 +664,7 @@ TUNES.fortune = { bpm: 116, root: 65, scale: 'major', lead: 'bell', chords: [1, 
     mel: { A: '5 . 6 5 3 . 2 .', B: '3 . 5 . 6 . . .', C: '^1 . 6 5 3 . 5 6', D: '5 . 3 . 2 . . .', E: '1 . . . . . . .', F: '6 . ^1 . 6 5 3 .', G: '5 . 6 . 5 . 3 .', H: '2 . 3 . 5 . 6 .' },
     leadVol: 0.12, bass: 'x.o.x.o.', arp: 'x.x.x.x.', arpInstr: 'kalimba', arpVol: 0.035, drums: { kick: 'x...x...', snare: '....x...', shaker: 'oxoxoxox' }, drumVol: 0.22 };
 FIXED_TUNES.push('fortune');
-HISCORE_RIVALS.fortune = [['FORTUNE', 60000, 'she saw it coming'], ['MAKI', 41000, 'worked out every bounce'], ['KAI', 17000, '"the pegs told me to"']];
+HISCORE_RIVALS.fortune = [['FORTUNE', 46000, 'she saw it coming'], ['MAKI', 41000, 'worked out every bounce'], ['CHILI', 28000, 'says the orange pegs are him'],
+    ['KAI', 17000, '"the pegs told me to"'], ['COCO', 12500, 'cheered at every bounce']];
 ARC_TARGET.fortune = [8000, 20000, 40000];
 TRACK_NAMES.fortune = 'Fortune Falls';
