@@ -1,8 +1,8 @@
 // The real world, for an island with a zip code (docs/ROADMAP.md, "The real world, by zip code"): where the zip code
 // is, its time zone, that day's forecast and some headlines (local and from the world), from free services that need
 // no key (zippopotam.us, open-meteo.com, news feeds), kept for the day so each zip code is looked up once a day at most.
-// And the market: a few real companies' daily prices (Yahoo Finance's public chart data, or stooq.com when that doesn't
-// answer), kept for the day too. Nothing is stored on disk.
+// And the market: a few real companies' daily prices (Yahoo Finance's public chart data, the same with Yahoo's cookie,
+// Nasdaq's price history or stooq.com, whichever answers), kept for the day too. Nothing is stored on disk.
 // WORLD_FAKE=1 answers with made-up data and never touches the network (the tests, and working without internet).
 
 const TIMEOUT = 8000;
@@ -14,11 +14,11 @@ export class WorldError extends Error {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-async function get(url, as = 'json', agent = 'SarahCrossing/1 (a private game for one island)') {
+async function get(url, as = 'json', agent = 'SarahCrossing/1 (a private game for one island)', more = {}) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), TIMEOUT);
   try {
-    const res = await fetch(url, { signal: ctl.signal, headers: { 'user-agent': agent, accept: as === 'json' ? 'application/json' : 'text/csv,text/plain,*/*' } });
+    const res = await fetch(url, { signal: ctl.signal, headers: { 'user-agent': agent, accept: as === 'json' ? 'application/json' : 'text/csv,text/plain,*/*', ...more } });
     if (res.status === 404) throw new WorldError(404, 'Not found');
     if (!res.ok) throw new WorldError(502, `The service answered ${res.status}`);
     return as === 'json' ? await res.json() : await res.text();
@@ -118,35 +118,93 @@ export function stooqCloses(csv, n = 60) {
   const rows = lines.slice(1).map((l) => l.trim().split(',')).filter((r) => r.length >= 5 && /^\d{4}-\d\d-\d\d$/.test(r[0]) && Number(r[4]) > 0).slice(-n);
   return { closes: rows.map((r) => Number(r[4])), dates: rows.map((r) => r[0]) };
 }
+/** Nasdaq's price history (JSON, newest first, "$227.48" and "10/28/2026") as { closes, dates }, oldest first. */
+export function nasdaqCloses(json, n = 60) {
+  const rows = (json && json.data && json.data.tradesTable && json.data.tradesTable.rows) || [];
+  const out = [];
+  for (const r of rows) {
+    const m = /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(String(r && r.date || '')), c = Number(String(r && r.close || '').replace(/[$,\s]/g, ''));
+    if (m && c > 0) out.push([`${m[3]}-${m[1]}-${m[2]}`, Math.round(c * 100) / 100]);
+  }
+  const keep = out.sort((a, b) => (a[0] < b[0] ? -1 : 1)).slice(-n);
+  return { closes: keep.map((x) => x[1]), dates: keep.map((x) => x[0]) };
+}
 const BROWSER = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
-async function closesOf(sym, code) {
+/* Yahoo answers servers more readily with its own cookie and the crumb that goes with it (what a browser gets on its
+   first visit): asked for once an hour at most */
+let crumb = null;
+async function yahooCrumb() {
+  if (crumb && Date.now() - crumb.at < 3600e3) return crumb;
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), TIMEOUT);
   try {
-    const y = yahooCloses(await get(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=6mo&interval=1d`, 'json', BROWSER));
-    if (y.closes.length >= 2) return y;
-  } catch { /* the other service, then */ }
-  const s = stooqCloses(await get(`https://stooq.com/q/d/l/?s=${code}&i=d`, 'text'));
-  if (s.closes.length >= 2) return s;
+    const first = await fetch('https://fc.yahoo.com/', { signal: ctl.signal, redirect: 'manual', headers: { 'user-agent': BROWSER } });
+    const set = first.headers.getSetCookie ? first.headers.getSetCookie() : [first.headers.get('set-cookie') || ''];
+    const cookie = set.map((c) => c.split(';')[0]).filter(Boolean).join('; ');
+    if (!cookie) throw new WorldError(502, 'No cookie');
+    const res = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', { signal: ctl.signal, headers: { 'user-agent': BROWSER, cookie } });
+    const c = (await res.text()).trim();
+    if (!res.ok || !c || c.length > 40 || /[<{]/.test(c)) throw new WorldError(502, `The service answered ${res.status}`);
+    crumb = { cookie, crumb: c, at: Date.now() };
+    return crumb;
+  } catch (err) {
+    throw err instanceof WorldError ? err : new WorldError(502, "The service isn't answering");
+  } finally {
+    clearTimeout(t);
+  }
+}
+const ymd = (ms) => new Date(ms).toISOString().slice(0, 10);
+/* where the prices come from, each tried in turn for a company; a service that answers goes first for the rest of the day */
+const SOURCES = {
+  yahoo: async (sym) => yahooCloses(await get(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=6mo&interval=1d`, 'json', BROWSER)),
+  yahooCrumb: async (sym) => {
+    const c = await yahooCrumb();
+    return yahooCloses(await get(`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=6mo&interval=1d&crumb=${encodeURIComponent(c.crumb)}`, 'json', BROWSER, { cookie: c.cookie }));
+  },
+  nasdaq: async (sym) => nasdaqCloses(await get(`https://api.nasdaq.com/api/quote/${encodeURIComponent(sym)}/historical?assetclass=stocks&fromdate=${ymd(Date.now() - 120 * 864e5)}&todate=${ymd(Date.now())}&limit=90`,
+    'json', BROWSER, { origin: 'https://www.nasdaq.com', referer: 'https://www.nasdaq.com/', 'accept-language': 'en-US,en;q=0.9' })),
+  stooq: async (sym, code) => stooqCloses(await get(`https://stooq.com/q/d/l/?s=${code}&i=d`, 'text')),
+};
+let best = { day: '', src: '' };
+async function closesOf(sym, code, why, used) {
+  const order = Object.keys(SOURCES).sort((a, b) => (b === best.src && best.day === today()) - (a === best.src && best.day === today()));
+  for (const src of order) {
+    try {
+      const r = await SOURCES[src](sym, code);
+      if (r.closes.length >= 2) { best = { day: today(), src }; used[src] = (used[src] || 0) + 1; return r; }
+      why[src] = 'no prices';
+    } catch (err) {
+      why[src] = err.message || String(err);
+    }
+  }
   throw new WorldError(502, 'No prices');
 }
 
-/** The last 60 trading days of each company's closing price. */
+/** The last 60 trading days of each company's closing price: every company asked for at once. When nothing answers,
+    that's remembered for ten minutes (the Bank asks again once a minute), and the log says what each service said. */
+let failed = null;
 export async function market() {
   const hit = cache.get('market');
   if (hit && hit.day === today()) return hit.data;
   if (process.env.WORLD_FAKE) return fakeMarket();
-  const stocks = [];
-  for (const [sym, name, code, yld] of STOCKS) {
-    try {
-      const { closes, dates } = await closesOf(sym, code);
-      stocks.push({ sym, name, yield: yld, closes, dates });
-    } catch { /* one company missing is fine */ }
-  }
-  if (stocks.length) console.log(`market: prices for ${stocks.length} of ${STOCKS.length} companies`);
-  else console.warn('market: no prices from either service');
-  if (!stocks.length) {
+  if (failed && Date.now() - failed.at < 10 * 60e3) {
     if (hit) return { ...hit.data, old: true };
     throw new WorldError(502, "The market data service isn't answering");
   }
+  const why = {}, used = {};
+  const got = await Promise.all(STOCKS.map(async ([sym, name, code, yld]) => {
+    try { const { closes, dates } = await closesOf(sym, code, why, used); return { sym, name, yield: yld, closes, dates }; }
+    catch { return null; }   // (one company missing is fine)
+  }));
+  const stocks = got.filter(Boolean);
+  const said = Object.entries(why).map(([k, v]) => `${k}: ${v}`).join('; ');
+  if (stocks.length) console.log(`market: prices for ${stocks.length} of ${STOCKS.length} companies (${Object.entries(used).map(([k, v]) => `${k} ${v}`).join(', ')})${said ? ' · ' + said : ''}`);
+  else console.warn(`market: no prices from any service (${said})`);
+  if (!stocks.length) {
+    failed = { at: Date.now(), why };
+    if (hit) return { ...hit.data, old: true };
+    throw new WorldError(502, "The market data service isn't answering");
+  }
+  failed = null;
   const data = { stocks, at: Date.now() };
   cache.set('market', { day: today(), data });
   return data;

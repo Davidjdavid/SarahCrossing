@@ -8,7 +8,10 @@ function benches() {
     // (a placed seat two tiles wide is a bench the neighbors sit on too)
     const placed = (S && S.deco && S.deco.placed || []).filter(p => { const d = typeof dispDef === 'function' && dispDef(p.id); return d && d.seat && d.w >= 2; })
         .map(p => ({ kind: 'bench', x: p.x, y: p.y, rot: p.rot & 3, placed: true }));
-    return (benches.c = W0.props.filter((p, i) => (p.kind === 'bench' || p.kind === 'log') && !(typeof propGone === 'function' && propGone(i))).concat(placed));
+    // (and the seats two wide the designer set down: kind disp in the island's props, with their turn)
+    const design = W0.props.filter((p, i) => { if (p.kind !== 'disp' || (typeof propGone === 'function' && propGone(i))) return false; const d = typeof dispDef === 'function' && dispDef(p.disp); return d && d.seat && d.w >= 2; })
+        .map(p => ({ kind: 'bench', x: p.x, y: p.y, rot: p.rot & 3, placed: true }));
+    return (benches.c = W0.props.filter((p, i) => (p.kind === 'bench' || p.kind === 'log') && !(typeof propGone === 'function' && propGone(i))).concat(placed, design));
 }
 function nearestBench(tx, ty, maxD) {
     let best = null, bd = maxD || 4;

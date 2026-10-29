@@ -447,8 +447,10 @@ function ownedIds(test) {
 async function museumMenu() {
     for (;;) {
         const art = ownedIds(id => ITEMS[id].type === 'art'), pots = ownedIds(id => !!ITEMS[id].pottery), A = artState();
-        const opts = ['Paint something', art.length ? 'Donate a painting' : null, pots.length ? 'Donate pottery' : null, 'Change the walls', 'Change the pedestals',
-            A.museum.length || A.pots.length ? 'Take something home' : null, 'See the collection', 'Never mind'].filter(Boolean);
+        // (every wing from the desk too, David, 29 October: the fashion and photo wings were only managed in their rooms)
+        const forms = typeof fashionState === 'function' && Object.keys(designs()).length && !Online.visitor(), photos = typeof museumPhotos === 'function' && !Online.visitor();
+        const opts = ['Paint something', art.length ? 'Donate a painting' : null, pots.length ? 'Donate pottery' : null, forms ? 'Show one of my designs' : null, photos ? 'Hang a photo' : null,
+            'Change the walls', 'Change the pedestals', A.museum.length || A.pots.length ? 'Take something home' : null, 'See the collection', 'Never mind'].filter(Boolean);
         const b = bruleeVoice();
         const k = await UI.ask(b, b ? rpick(['How may the museum help you today?', 'Art business? I love art business.', 'Bonjour! Donations, painting, browsing?'])
             : 'The museum desk. Brulee is on a break, so it\'s the honor system: donations in the box, and please, no tapping.', opts, { keep: true });
@@ -457,6 +459,8 @@ async function museumMenu() {
         if (c === 'Donate a painting') { UI.hideDialog(); const id = await pickOwned('Donate a painting', art); if (id) await donateArt(id, false); continue; }
         if (c === 'Donate pottery') { UI.hideDialog(); const id = await pickOwned('Donate pottery', pots); if (id) await donatePot(id); continue; }
         if (c === 'See the collection') { UI.hideDialog(); await museumCatalog(); continue; }
+        if (c === 'Show one of my designs') { UI.hideDialog(); await museumFormPick(); continue; }
+        if (c === 'Hang a photo') { UI.hideDialog(); await museumPhotoPick(); continue; }
         if (c === 'Change the walls') { UI.hideDialog(); await museumWalls(); continue; }
         if (c === 'Change the pedestals') { UI.hideDialog(); await museumPedestals(); continue; }
         if (c === 'Take something home') { UI.hideDialog(); await museumTakeHome(); continue; }
@@ -536,33 +540,88 @@ async function viewArt(id, back) {
 function museumCatalog() {
     return new Promise(res => {
         const A = artState();
-        const P = UI.open({ title: 'The Collection', onClose: res });
-        const draw = () => {
-            P.body.innerHTML = '';
-            P.body.appendChild(el('p', 'muted', `${A.museum.length} painting${A.museum.length === 1 ? '' : 's'} and ${A.pots.length} piece${A.pots.length === 1 ? '' : 's'} of pottery by Sarah, plus Brulee's own collection.`));
-            P.body.appendChild(el('p', 'artcap', 'Paintings'));
-            const grid = el('div', 'grid artgrid');
-            for (const id of museumPool()) {
-                const info = artInfo(id);
-                if (!info) continue;
-                const b = el('button', 'slot' + (museumHung(id) ? ' hung' : ''));
-                b.type = 'button'; b.title = info.name + (museumHung(id) ? ' (on the wall)' : ''); b.setAttribute('aria-label', b.title);
-                b.appendChild(artThumb(id));
-                b.addEventListener('click', () => { UI.close(true); viewArt(id, () => museumCatalog().then(res)); });
-                grid.appendChild(b);
-            }
-            P.body.appendChild(grid);
-            if (A.pots.length) {
-                P.body.appendChild(el('p', 'artcap', 'Pottery'));
-                const g2 = el('div', 'grid');
-                for (const id of A.pots.slice().reverse()) if (ITEMS[id]) { const b = slotBtn(id, 0, {}); b.title = itemName(id); g2.appendChild(b); }
-                P.body.appendChild(g2);
-            }
+        const P = UI.open({ title: 'The Collection', onClose: res, wide: true });
+        const again = () => museumCatalog().then(res);
+        const section = (title, note) => { P.body.appendChild(el('p', 'artcap', title)); if (note) P.body.appendChild(el('p', 'muted', note)); const g = el('div', 'grid'); P.body.appendChild(g); return g; };
+        const slot = (title, pic, fn, cls) => {
+            const b = el('button', 'slot' + (cls ? ' ' + cls : ''));
+            b.type = 'button'; b.title = title; b.setAttribute('aria-label', title);
+            b.appendChild(pic);
+            if (fn) b.addEventListener('click', () => { UI.close(true); fn(); });
+            return b;
         };
-        draw();
+        const forms = typeof fashionState === 'function' ? fashionState().filter(Boolean) : [], photos = typeof museumPhotos === 'function' ? museumPhotos().filter(Boolean) : [];
+        const solved = typeof MUSEUM_HISTORY !== 'undefined' ? MUSEUM_HISTORY.filter(H => Quests.done(H.q)).length : 0;
+        P.body.appendChild(el('p', 'muted', `${A.museum.length} painting${A.museum.length === 1 ? '' : 's'}, ${A.pots.length} piece${A.pots.length === 1 ? '' : 's'} of pottery, ${forms.length} design${forms.length === 1 ? '' : 's'} and ${photos.length} photo${photos.length === 1 ? '' : 's'} from Sarah, plus Brulee's own collection.`));
+        // the gallery
+        const g1 = section('Paintings', 'In the gallery, through the first archway.');
+        g1.classList.add('artgrid');
+        for (const id of museumPool()) {
+            const info = artInfo(id);
+            if (!info) continue;
+            g1.appendChild(slot(info.name + (museumHung(id) ? ' (on the wall)' : ''), artThumb(id), () => viewArt(id, again), museumHung(id) ? 'hung' : ''));
+        }
+        // the pottery hall
+        const g2 = section('Pottery', A.pots.length ? 'In the pottery hall.' : 'Nothing yet: pots from the wheel in the pottery studio go on the pedestals.');
+        for (const id of A.pots.slice().reverse()) if (ITEMS[id]) g2.appendChild(slot(itemName(id), iconCanvas(ITEMS[id].icon, 48), typeof itemShowcase === 'function' ? () => itemShowcase(id, again) : null));
+        // fashion: the dress forms
+        if (typeof fashionState === 'function') {
+            const g3 = section('Fashion', forms.length ? 'On the dress forms in the fashion wing.' : 'The dress forms are bare: show one of your designs from the sewing machine.');
+            fashionState().forEach((rec, i) => { if (rec) g3.appendChild(slot(`"${rec.name}"`, formThumb(rec), () => fashionAsk(i).then(again))); });
+        }
+        // photography
+        if (typeof museumPhotos === 'function') {
+            const g4 = section('Photography', photos.length ? 'In the photography wing.' : 'No photos up yet: hang one from your album, or a real one.');
+            museumPhotos().forEach((p, i) => {
+                if (!p) return;
+                const im = el('img'); im.src = p.url; im.alt = ''; im.style.cssText = 'width:48px;height:48px;object-fit:cover;border-radius:4px';
+                g4.appendChild(slot(p.title || 'A photo', im, () => viewMuseumPhoto(p, i).then(again)));
+            });
+        }
+        // the aquarium: every fish, from the start
+        if (typeof aquariumTanks === 'function') for (const T of aquariumTanks()) {
+            const g5 = section(`Aquarium: ${T.name}`, T.note);
+            for (const id of T.fish) if (ITEMS[id]) g5.appendChild(slot(itemName(id), iconCanvas(ITEMS[id].icon, 48), typeof itemShowcase === 'function' ? () => itemShowcase(id, again) : null));
+        }
+        // island history: a case per mystery, its keepsake once solved
+        if (typeof MUSEUM_HISTORY !== 'undefined') {
+            const g6 = section('Island history', `${solved} of the island's old mysteries solved.`);
+            for (const H of MUSEUM_HISTORY) {
+                const done = Quests.done(H.q), name = QUEST_INFO[H.q] ? QUEST_INFO[H.q].title : itemName(H.item);
+                if (done) g6.appendChild(slot(name, iconCanvas(ITEMS[H.item] ? ITEMS[H.item].icon : H.item, 48), () => historyCase(H)));
+                else { const q = el('span', 'slot-q', '?'); q.style.cssText = 'font:700 26px/48px var(--display);width:48px;text-align:center;opacity:.45'; g6.appendChild(slot(`${name} (an empty case: not solved yet)`, q, null)); }
+            }
+        }
     });
 }
-
+/* a design on show, as a little picture of the dress form wearing it */
+function formThumb(rec) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 48;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    const f = typeof sewFrame === 'function' && rec.d ? sewFrame(rec.d, 'down', 'stand', 'normal', Object.assign({}, look(), { skin: '#efe2cc' })) : null;
+    if (f) { const s = f.canvas(); g.drawImage(s, 0, 0, s.width, s.height, (48 - s.width * 2) / 2, (48 - s.height * 2) / 2, s.width * 2, s.height * 2); }
+    return c;
+}
+/* from the desk: one of Sarah's designs onto a dress form (the first bare one, or one she picks to change) */
+async function museumFormPick() {
+    const F = fashionState(), n = typeof MUSEUM_FORMS !== 'undefined' ? MUSEUM_FORMS.length : 6;
+    let i = -1;
+    for (let k = 0; k < n; k++) if (!F[k]) { i = k; break; }
+    if (i < 0) {
+        const k = await UI.ask(bruleeVoice(), 'Every dress form is wearing something. Which one shall we change?', F.slice(0, n).map((r, k) => `Form ${k + 1}: "${r.name}"`).concat(['Never mind']));
+        if (k >= n) return;
+        i = k;
+    }
+    await fashionPick(i);
+}
+/* from the desk: a photo into the first empty spot in the photography wing */
+async function museumPhotoPick() {
+    const free = museumPhotos().findIndex(p => !p);
+    if (free < 0) { await UI.say(bruleeVoice(), 'Every spot in the photography wing has a photo. Take one down in the wing to hang another.'); return; }
+    await hangPhoto(free);
+}
 function artThumb(id) {
     const A = artState();
     if (A.pieces[id]) return artCanvas(A.pieces[id], 2);

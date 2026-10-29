@@ -37,7 +37,8 @@ function propGone(i) { return !!((S && S.deco && S.deco.gone && S.deco.gone[i]) 
 /* the save's moves for the island's own things (after the buildings: a sign that moved with the club can move again) */
 function applyDecoMoves() {
     const D = S && S.deco;
-    if (D && D.moved) for (const [i, xy] of Object.entries(D.moved)) { const p = W0.props[i]; if (p) { p.x = xy[0]; p.y = xy[1]; } }
+    // ([x, y] or [x, y, turn]: Sarah can turn what she moves, 29 October)
+    if (D && D.moved) for (const [i, xy] of Object.entries(D.moved)) { const p = W0.props[i]; if (p) { p.x = xy[0]; p.y = xy[1]; if (xy.length > 2) { if (xy[2] & 3) p.rot = xy[2] & 3; else delete p.rot; } } }
     benches.c = null;
 }
 function displayRows(d) { return d.rows || 1; }
@@ -243,6 +244,7 @@ const IslandEdit = {
             const canStore = this.held.src !== 'prop' || MOVABLE_PROPS[this.held.kind];
             if (canStore && this.held.src !== 'new') row.appendChild(chip('Put it away', () => this.putAway()));
             if (this.held.sign) row.appendChild(chip('Write on it', () => this.writeSign()));
+            if (this.held.turns) row.appendChild(chip(`Turn (${['facing front', 'facing right', 'facing back', 'facing left'][this.held.rot & 3]})`, () => this.turn()));
         } else {
             const own = ownedDisplays();
             row.appendChild(chip(`Set something down${Object.keys(own).length ? '' : ' (buy at Waffle\'s)'}`, () => this.chooseNew()));
@@ -250,6 +252,16 @@ const IslandEdit = {
         row.appendChild(chip('Look around', () => { this.look = !this.look; this.msg = ''; this.render(); }, this.look ? 'on' : ''));
         body.appendChild(row);
         panel.appendChild(body);
+    },
+    /* turn what's in hand a quarter (its width and depth swap): a bench to face the path, a lamp, a sign (David, 29 October:
+       benches kept facing the camera) */
+    turn() {
+        const h = this.held;
+        if (!h || !h.turns) return;
+        h.rot = ((h.rot || 0) + 1) & 3;
+        [h.w, h.rows] = [h.rows, h.w];
+        Sfx.ui('tick');
+        this.render();
     },
     heldName() { const h = this.held; if (h.name) return h.name; return h.src === 'prop' ? (PROP_NAMES[h.kind] || h.kind.replace(/_/g, ' ')) : dispDef(h.id).name.toLowerCase(); },
     chooseNew() {
@@ -279,7 +291,7 @@ const IslandEdit = {
     },
     pickNew(id) {
         const d = dispDef(id);
-        this.held = { src: 'new', id, w: d.w, rows: displayRows(d), frame: d.frame, sign: !!d.sign, text: '' };
+        this.held = { src: 'new', id, w: d.w, rows: displayRows(d), frame: d.frame, sign: !!d.sign, text: '', rot: 0, turns: !d.plot };
         this.msg = '';
         this.render();
     },
@@ -308,10 +320,11 @@ const IslandEdit = {
             this.held = { src: 'planter', idx: e.idx, id: 'dp_planterbox', w: 1, rows: 1, frame: DISPLAYS.dp_planterbox.frame, ent: e, from: [e.tx, e.ty] };
         } else if (e.kind === 'display') {
             const p = deco().placed[e.deco], d = dispDef(p.id);
-            this.held = { src: 'deco', idx: e.deco, id: p.id, w: d.w, rows: displayRows(d), frame: d.frame, sign: !!d.sign, text: p.text || '', ent: e, from: [p.x, p.y] };
+            const rot = (p.rot || 0) & 3, odd = rot & 1;
+            this.held = { src: 'deco', idx: e.deco, id: p.id, w: odd ? displayRows(d) : d.w, rows: odd ? d.w : displayRows(d), frame: d.frame, sign: !!d.sign, text: p.text || '', ent: e, from: [p.x, p.y], rot, turns: true };
         } else {
-            const w = PROP_SIZE[e.kind] || 1;
-            this.held = { src: 'prop', idx: e.propIdx, kind: e.kind, w, rows: 1, frame: e.frame, ent: e, from: [e.px, e.py] };
+            const w0 = PROP_SIZE[e.kind] || 1, r0 = PROP_ROWS[e.kind] || 1, rot = (W0.props[e.propIdx] && W0.props[e.propIdx].rot || 0) & 3, odd = rot & 1;
+            this.held = { src: 'prop', idx: e.propIdx, kind: e.kind, w: odd ? r0 : w0, rows: odd ? w0 : r0, frame: e.frame, ent: e, from: [e.px, e.py], rot, turns: !PROP_FIXED.has(e.kind) };
         }
         const h = this.held;
         for (let k = 0; k < h.w; k++) for (let r = 0; r < h.rows; r++) a.block(h.from[0] + k, h.from[1] + r, 0);
@@ -427,13 +440,14 @@ const IslandEdit = {
             planters()[i] = [x, y]; S.plots[i] = null;
         } else if (h.src === 'new') {
             if (!takeDisplay(h.id)) { this.msg = "You don't have one of those anymore."; this.render(); return false; }
-            D.placed.push({ id: h.id, x, y, text: h.text || '' });
+            D.placed.push(Object.assign({ id: h.id, x, y, text: h.text || '' }, h.rot & 3 ? { rot: h.rot & 3 } : {}));
         } else if (h.src === 'deco') {
             const p = D.placed[h.idx]; p.x = x; p.y = y; if (h.sign) p.text = h.text || '';
+            if (h.rot & 3) p.rot = h.rot & 3; else delete p.rot;
         } else {
-            const o = W0_ORIG.props[h.idx];
-            D.moved[h.idx] = [x, y];
-            if (o && o.x === x && o.y === y && !(S.buildMoved && Object.keys(S.buildMoved).length)) delete D.moved[h.idx];
+            const o = W0_ORIG.props[h.idx], rot = h.rot & 3;
+            D.moved[h.idx] = [x, y, rot];
+            if (o && o.x === x && o.y === y && ((o.rot || 0) & 3) === rot && !(S.buildMoved && Object.keys(S.buildMoved).length)) delete D.moved[h.idx];
         }
         this.held = null;
         this.msg = '';
@@ -477,6 +491,7 @@ const IslandEdit = {
         const c = this.cursor;
         if (code === 'Escape') { if (this.held) this.cancel(); else this.close(); return; }
         if (code === 'KeyR' && this.design) { Design.turn(this); return; }
+        if (code === 'KeyR' && this.held && this.held.turns) { this.turn(); return; }
         if (code === 'ArrowLeft' || code === 'KeyA') c[0]--;
         else if (code === 'ArrowRight' || code === 'KeyD') c[0]++;
         else if (code === 'ArrowUp' || code === 'KeyW') c[1]--;

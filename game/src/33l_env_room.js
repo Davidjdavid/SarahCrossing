@@ -545,7 +545,7 @@ const EnvRoom = {
         const rugs = a.ents.filter(e => e.furn && e.def && e.def.kind === 'rug'), mans = a.ents.filter(e => e.kind === 'mannequin' && e.sale), decos = a.ents.filter(e => e.look3d);
         // (each piece by its own entity: the room makes them afresh when it's rearranged or restocked)
         const sig = list.concat(tops, cuts, rugs, pots).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + e.item.id + ',' + e.item.x + ',' + e.item.y + (e.flip ? 'f' : '') + (e.rot || '')).join('|')
-            + '|' + mans.concat(decos).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + (e.sale || '')).join('|') + '#' + (EnvModels.furnN || 0) + (EnvDolls.kitReady() ? 'k' : '');
+            + '|' + mans.concat(decos).map(e => (e._rk || (e._rk = ++this.rk)) + ':' + (e.sale || '')).join('|') + '#' + (EnvModels.furnN || 0) + (EnvDolls.kitReady() ? 'k' : '') + (EnvModels.has('style_stool') ? 's' : '');
         if (sig === B.furnSig) return;
         B.furnSig = sig;
         if (B.furn) { B.group.remove(B.furn); B.furn.traverse(o => this.dispose(o)); B.furn = null; }
@@ -612,7 +612,8 @@ const EnvRoom = {
             const bid = e.def.base || e.item.id, n = this.model(e), left = e.x - P.ax, top = e.y - P.ay, sq = this.ROUND.has(bid) ? Math.sqrt(k) : 0;
             // (the gilt frame borrowed by another painting: fitted to that picture)
             const fx = n === 'furn_' + bid ? 1 : P.w / TILE / 2, fy = n === 'furn_' + bid ? 1 : P.h / TILE / 1.625;
-            const m = new THREE.Matrix4().makeTranslation((left + P.w / 2) / TILE, this.hangY(bid, H * (1 - (top + P.h / 2) / wallPx), P.h / TILE * (sq || k)), z0 + 0.01);
+            const hh = P.h / TILE * (sq || k), hy = this.hangY(bid, H * (1 - (top + P.h / 2) / wallPx), hh);
+            const m = new THREE.Matrix4().makeTranslation((left + P.w / 2) / TILE, hy, z0 + this.hangZ(hy, hh, 0.01));
             m.multiply(new THREE.Matrix4().makeScale((e.flip ? -1 : 1) * (sq || 1) * fx, (sq || k) * fy, sq || 1));
             this.parts(g, e, n, m, P);
             B.placed.add(e);
@@ -624,7 +625,8 @@ const EnvRoom = {
                 // where its picture was on the back wall's picture, standing a little off the wall
                 const left = e.x - P.ax, top = e.y - P.ay, w = P.w / TILE, h = P.h / wallPx * H;
                 const o = this.cutout(g, e, P, w, h);
-                o.position.set((left + P.w / 2) / TILE, this.hangY(e.def.base || it.id, H * (1 - (top + P.h / 2) / wallPx), h), z0 + 0.05);
+                const hy = this.hangY(e.def.base || it.id, H * (1 - (top + P.h / 2) / wallPx), h);
+                o.position.set((left + P.w / 2) / TILE, hy, z0 + this.hangZ(hy, h, 0.05));
             } else {
                 // a thing on a table (or the floor): standing up on its top, its foot where its picture's was
                 const host = it.on != null ? B.hosts.get(it.on) : null;
@@ -641,9 +643,14 @@ const EnvRoom = {
        and nothing over the picture rail (a clock may go into the paper above it); y its middle, h its height */
     HANG_LOW: 1.3, HANG_CLOCK: 1.9,
     hangY(id, y, h) {
-        const clock = /clock/.test(id), low = clock ? this.HANG_CLOCK : this.HANG_LOW, high = clock ? this.WH + this.TOP - 0.08 : this.WH - 0.03;
+        const clock = /clock/.test(id), high = clock ? this.WH + this.TOP - 0.08 : this.WH - 0.03;
+        // (a piece taller than the room between the counters' tops and the rail, the museum's big paintings, hangs lower so
+        // its top stays under the rail; David, 29 October: they went up through the rail and the cornice)
+        const low = Math.max(0.25, Math.min(clock ? this.HANG_CLOCK : this.HANG_LOW, high - h));
         return Math.min(Math.max(y, low + h / 2), Math.max(low + h / 2, high - h / 2));
     },
+    /* how far off the back wall a piece hangs: in front of the picture rail if it still reaches past it */
+    hangZ(y, h, z) { return y + h / 2 > this.WH - 0.035 ? Math.max(z, 0.07) : z; },
     hide(r3) {
         if (!this.on) return;
         this.on = false;

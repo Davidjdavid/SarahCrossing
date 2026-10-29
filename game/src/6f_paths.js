@@ -170,13 +170,6 @@ function drawPaths(ctx, a, cam, v) {
         ctx.drawImage(PathTex.tile(st, x, y), x * TILE - cam.x, y * TILE - cam.y);
     }
 }
-function drawPathsOnMap(g, K) {
-    const P = Object.assign({}, DESIGN_PATHS || {}, (S && S.paths && S.paths.t) || {});
-    for (const [k, st] of Object.entries(P)) {
-        const [x, y] = k.split(',').map(Number);
-        g.drawImage(PathTex.tile(st, x, y), x * K, y * K, K, K);
-    }
-}
 function setPath(x, y, style) {
     const P = pathsState(), k = x + ',' + y;
     if (!style) delete P.t[k]; else P.t[k] = style;

@@ -318,13 +318,16 @@ test('the real world: a zip code\'s place, forecast and headlines, and the marke
 });
 
 test('the market\'s prices read from either service: Yahoo\'s chart data and stooq\'s CSV, and nothing from a page that isn\'t prices', async () => {
-  const { yahooCloses, stooqCloses } = await import('../server/world.mjs');
+  const { yahooCloses, stooqCloses, nasdaqCloses } = await import('../server/world.mjs');
   const t0 = Date.UTC(2026, 9, 26) / 1000;
   const y = yahooCloses({ chart: { result: [{ timestamp: [t0, t0 + 86400, t0 + 2 * 86400], indicators: { quote: [{ close: [101.234, null, 103.5] }] } }] } });
   assert.deepEqual(y, { closes: [101.23, 103.5], dates: ['2026-10-26', '2026-10-28'] });
   assert.deepEqual(yahooCloses({ chart: { result: null, error: { code: 'Not Found' } } }), { closes: [], dates: [] });
   assert.deepEqual(stooqCloses('Date,Open,High,Low,Close,Volume\n2026-10-27,1,2,0.5,1.5,100\n2026-10-28,1.5,2,1,1.75,90\n'), { closes: [1.5, 1.75], dates: ['2026-10-27', '2026-10-28'] });
   assert.deepEqual(stooqCloses('No data'), { closes: [], dates: [] });
+  assert.deepEqual(nasdaqCloses({ data: { tradesTable: { rows: [{ date: '10/28/2026', close: '$1,227.48' }, { date: '10/27/2026', close: '$220.10' }, { date: 'N/A', close: 'N/A' }] } } }),
+    { closes: [220.1, 1227.48], dates: ['2026-10-27', '2026-10-28'] }, 'Nasdaq lists newest first, with dollar signs and commas');
+  assert.deepEqual(nasdaqCloses({ data: null, status: { rCode: 400 } }), { closes: [], dates: [] });
   assert.deepEqual(stooqCloses('<html>Exceeded the daily hits limit</html>'), { closes: [], dates: [] });
   const long = 'Date,Open,High,Low,Close,Volume\n' + Array.from({ length: 80 }, (_, i) => `2026-0${1 + Math.floor(i / 28)}-${String(1 + (i % 28)).padStart(2, '0')},1,1,1,${i + 1},1`).join('\n');
   assert.equal(stooqCloses(long).closes.length, 60, 'the last sixty trading days');

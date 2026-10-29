@@ -75,7 +75,7 @@ const BigMap = {
         this.clampView();
         this.draw();
     },
-    /* the island at 8 px per tile: ground, paths Sarah drew, trees, buildings */
+    /* the island at 8 px per tile: ground (with the paths Sarah drew), trees, buildings */
     build() {
         const a = G.areas.island, K = this.BASE_K;
         const key = [a.bgSeason, pathsVer(), JSON.stringify(S.buildMoved || {}), Design.ver].join('|');
@@ -88,7 +88,6 @@ const BigMap = {
         // (drawn from the island's own tiles: 28 October, the map redone; it shows the designer's stairs too)
         this.tiles(g, K, a.bgSeason || Clock.season());
         this.baseOk = true;
-        if (typeof drawPathsOnMap === 'function') drawPathsOnMap(g, K);
         // trees and bushes as little dots
         for (const e of a.ents) {
             if (e.kind !== 'tree' && e.kind !== 'fruittree' && e.kind !== 'bigtree' && e.kind !== 'oldtree') continue;
@@ -133,6 +132,7 @@ const BigMap = {
         const G2 = grass || ['#86cf63', '#94d770', '#a2de7c', '#b0e488', '#bde994', '#c9ee9f'];
         const ch = (x, y) => (GR[y] && GR[y][x]) || '~', lv = (x, y) => +((HT[y] || [])[x]) || 0;
         const COL = { s: '#f2e2ae', p: '#e6cf98', d: '#d9bc84', c: '#d6d0c2', F: '#c4975e', w: '#b78757', x: '#c8eef4', h: '#c8eef4', o: '#62bde0', r: '#62bde0', W: '#a8e0f2', m: '#a7ad8f' };
+        const MAP_PATH = { dirt: COL.d, stone: COL.c, brick: '#cf9a7c', planks: COL.w };
         for (let y = 0; y < Ht; y++) for (let x = 0; x < Wt; x++) {
             const k = ch(x, y);
             let col;
@@ -142,6 +142,10 @@ const BigMap = {
                 for (let j = -2; j <= 2 && !near; j++) for (let i = -2; i <= 2 && !near; i++) if (ch(x + i, y + j) !== '~') near = true;
                 col = near ? '#86d3ea' : '#5fb7d9';
             } else col = COL[k] || G2[Math.min(G2.length - 1, lv(x, y))];
+            // (paths Sarah or the designer laid: the same flat colors as the island's own, so a dirt path she lays reads as
+            // the dirt roads do; David, 29 October: they were drawn as the path's picture and looked like something else)
+            const o = k !== '~' && typeof overlayAt === 'function' ? overlayAt(x, y) : undefined;
+            if (o) col = o === 'grass' ? G2[Math.min(G2.length - 1, lv(x, y))] : MAP_PATH[o] || COL.d;
             g.fillStyle = col;
             g.fillRect(x * K, y * K, K, K);
         }

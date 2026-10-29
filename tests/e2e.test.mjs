@@ -3550,9 +3550,12 @@ test('decorating the island and giving gifts, the way a player does: a lamp set 
     // one of the island's own benches moved
     const bench = G.areas.island.ents.find((e) => e.kind === 'bench' && e.propIdx != null && !e.hidden);
     E.pickUp(bench);
+    // (turned a quarter on the way: it faces east, the seats with it)
+    [...document.querySelectorAll('#panel .chip')].find((c) => /^Turn/.test(c.textContent)).click();
     const c = spot();
     tapAt(c[0], c[1]);
-    out.bench = !!D.moved[bench.propIdx] && D.moved[bench.propIdx].join() === c.join();
+    out.bench = !!D.moved[bench.propIdx] && D.moved[bench.propIdx].slice(0, 2).join() === c.join() && D.moved[bench.propIdx][2] === 1 && W0.props[bench.propIdx].rot === 1
+        && benches().some((b) => b.x === c[0] && b.y === c[1] && b.rot === 1);
     E.close();
     // a gift: Talk, then the apple from the pocket
     const ask = UI.ask, say = UI.say;

@@ -21,7 +21,84 @@ const HAT_FIT = {
     soupbowl: { cover: [0.75, 1.0, 0.82, 0.4] }, mummywrap: { cover: [0.15, 0.5, 1.04, 0.8], max: 1.06 }, robotbox: { cover: [0.35, 0.82, 0.95, 0.55], max: 1.15 },
     crown: { sit: 1 }, partyhat: { sit: 1 }, halo: { sit: 1 }, catears: { sit: 1 }, bathat: { sit: 1 }, goathorns: { sit: 1 },
     tiara: { wrap: [0, 1], top: 1, max: 1.6 }, flowercrown: { wrap: [0.63, 0.86], max: 1.25 }, bow: { wrap: [0.9, 0.62], max: 1.5 }, flower: { wrap: [0.62, 0.93], max: 1.5 },
-    sunrays: { wrap: [0.73, 0.9] }, lobsterclaws: { wrap: [0.73, 0.92] }, headphones: { wrap: [0, 1.06], over: 1.07 },
+    sunrays: { wrap: [0.73, 0.9] }, lobsterclaws: { wrap: [0.73, 0.92] }, headphones: { side: [0, 1.06], over: 1.07 },
+};
+/* a sewn design's pattern and print on the doll (David, 29 October: they showed in the flat views only): the pattern
+   (6e_sewing.js patHit, the same cells: stripes, dots, checks, plaid, hearts, stars, flowers) drawn on the top's cloth,
+   the bottom's or both, in cells as big as the pictures' pixels, from each part's own shape (across its front and back,
+   or its sides on the sides); the print (six by three) on the chest. The cloth keeps its shading: the pattern's color
+   takes the place of the cloth's own */
+const DollPattern = {
+    KINDS: ['none', 'stripes', 'dots', 'checks', 'plaid', 'hearts', 'stars', 'flowers'],
+    CELL: 0.028,
+    bits(rows, ch) { let m = 0; rows.forEach((r, y) => [...r].forEach((c, x) => { if (c === ch) m += Math.pow(2, y * 3 + x); })); return m; },
+    material(C, top, bottom, trim, K, d) {
+        const kind = Math.max(0, this.KINDS.indexOf(C.pat || 'none')), print = (C.print || []).some(Boolean);
+        if (!kind && !print) return null;
+        const M = typeof MOTIFS !== 'undefined' && MOTIFS[C.pat], where = C.patWhere === 'top' ? 1 : C.patWhere === 'bottom' ? 2 : 3;
+        // (the print: six by three, on the chest's front, from the torso's own size)
+        let tex = null, box = new THREE.Vector4(0, 0, 0, 0);
+        if (print) {
+            const cv = document.createElement('canvas');
+            cv.width = PRINT_W; cv.height = PRINT_H;
+            const g = cv.getContext('2d');
+            C.print.forEach((p, i) => { if (p) { g.fillStyle = Array.isArray(p) ? p[0] : p; g.fillRect(i % PRINT_W, Math.floor(i / PRINT_W), 1, 1); } });
+            tex = new THREE.CanvasTexture(cv);
+            tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+            d.textures.push(tex);
+            const tk = K['torso_m__top'] || K['torso__top'] || K['torso_strap__top'];
+            if (tk) {
+                tk.geo.computeBoundingBox();
+                const b = tk.geo.boundingBox, w = (b.max.x - b.min.x) * 0.62, h = w / 2;
+                box.set((b.min.x + b.max.x) / 2 - w / 2, b.min.y + (b.max.y - b.min.y) * 0.78 - h, w, h);
+            }
+        }
+        const u = {
+            uPatKind: { value: kind }, uPatWhere: { value: where }, uPatCol: { value: new THREE.Color(C.patCol || '#ffffff') }, uPatTrim: { value: trim.clone() },
+            uTopCol: { value: top.clone() }, uBotCol: { value: bottom.clone() }, uMotif: { value: new THREE.Vector4(M ? this.bits(M[0], 'X') : 0, M ? this.bits(M[0], 'o') : 0, M ? M[1] : 1, M ? M[2] : 1) },
+            uPrint: { value: tex }, uPrintBox: { value: box }, uPrintOn: { value: tex ? 1 : 0 }, uCell: { value: this.CELL },
+        };
+        const mat = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0 }), { key: 'envdollpat', uniforms: u,
+            vhead: 'attribute float aCloth; varying float vCloth; varying vec3 vLoc; varying vec3 vONor;\n', vbody: 'vCloth = aCloth; vLoc = position; vONor = normal;',
+            fhead: `uniform float uPatKind; uniform float uPatWhere; uniform vec3 uPatCol; uniform vec3 uPatTrim; uniform vec3 uTopCol; uniform vec3 uBotCol;
+                uniform vec4 uMotif; uniform sampler2D uPrint; uniform vec4 uPrintBox; uniform float uPrintOn; uniform float uCell;
+                varying float vCloth; varying vec3 vLoc; varying vec3 vONor;
+                float dpEq(float a, float b) { return step(abs(a - b), 0.5); }
+                float dpBit(float m, float i) { return mod(floor(m / pow(2.0, i)), 2.0); }
+                // 1: the pattern's color, 2: a motif's middle in the trim's
+                float dpHit(vec2 c) {
+                    float k = uPatKind;
+                    if (k < 0.5) return 0.0;
+                    if (k < 1.5) return dpEq(mod(c.y, 2.0), 0.0);
+                    if (k < 2.5) return dpEq(mod(c.y, 3.0), 1.0) * dpEq(mod(c.x + mod(floor(c.y / 3.0), 2.0) * 2.0, 4.0), 1.0);
+                    if (k < 3.5) return dpEq(mod(floor(c.x / 2.0) + floor(c.y / 2.0), 2.0), 0.0);
+                    if (k < 4.5) return max(dpEq(mod(c.x, 4.0), 1.0), dpEq(mod(c.y, 4.0), 1.0));
+                    float band = floor(c.y / uMotif.w), lx = mod(c.x + mod(band, 2.0) * floor(uMotif.z / 2.0), uMotif.z), ly = mod(c.y, uMotif.w);
+                    if (lx > 2.5 || ly > 2.5) return 0.0;
+                    float i = floor(ly + 0.5) * 3.0 + floor(lx + 0.5);
+                    return dpBit(uMotif.x, i) > 0.5 ? 1.0 : dpBit(uMotif.y, i) > 0.5 ? 2.0 : 0.0;
+                }
+`,
+            fcolor: `{
+                float cl = floor(vCloth + 0.5);
+                if (cl > 0.5) {
+                    bool isTop = cl != 2.0;
+                    vec3 role = isTop ? uTopCol : uBotCol;
+                    float shade = clamp(dot(vColor.rgb, vec3(0.3333)) / max(dot(role, vec3(0.3333)), 0.03), 0.0, 1.4);
+                    if ((isTop && mod(uPatWhere, 2.0) > 0.5) || (!isTop && uPatWhere > 1.5)) {
+                        float u = abs(vONor.x) > abs(vONor.z) ? vLoc.z : vLoc.x;
+                        float h = dpHit(vec2(floor((u + 2.0) / uCell), floor((2.0 - vLoc.y) / uCell)));
+                        if (h > 1.5) diffuseColor.rgb = uPatTrim * shade; else if (h > 0.5) diffuseColor.rgb = uPatCol * shade;
+                    }
+                    if (cl > 2.5 && uPrintOn > 0.5 && vONor.z > 0.3) {
+                        vec2 pu = (vLoc.xy - uPrintBox.xy) / uPrintBox.zw;
+                        if (pu.x >= 0.0 && pu.x <= 1.0 && pu.y >= 0.0 && pu.y <= 1.0) { vec4 pc = texture2D(uPrint, vec2(pu.x, pu.y)); diffuseColor.rgb = mix(diffuseColor.rgb, pc.rgb * shade, pc.a); }
+                    }
+                }
+            }` });
+        d.textures.push({ dispose: () => mat.dispose() });
+        return mat;
+    },
 };
 /* the expressions on a face sheet, four to a row */
 const FACES = ['idle', 'blink', 'talk', 'happy', 'happytalk', 'joy', 'surprised', 'sad', 'cry', 'excited', 'determined', 'worried', 'sleepy', 'wink', 'love', 'annoyed'];
@@ -110,7 +187,10 @@ Object.assign(EnvDolls, {
         const joint = (parent, name, at, base) => { const g = new THREE.Group(); g.position.copy(at).sub(base || new THREE.Vector3()); parent.add(g); P[name] = g; return g; };
         // what each joint carries: [the kit part, its color (or a role)]
         const lists = new Map();
-        const add = (g, name, col) => { if (!K[name]) return false; if (!lists.has(g)) lists.set(g, []); lists.get(g).push([K[name].geo, col]); return true; };
+        // (each part's cloth: 1 the top's, 2 the bottom's, 3 the top across the chest, where a print goes; a sewn design's
+        // pattern and print are drawn on those, DollPattern)
+        const cloth = (name, col) => (col === top ? (/^torso/.test(name) ? 3 : 1) : col === bottom ? 2 : 0);
+        const add = (g, name, col) => { if (!K[name]) return false; if (!lists.has(g)) lists.set(g, []); lists.get(g).push([K[name].geo, col, cloth(name, col)]); return true; };
         // the body: the top, its hem and collar, the jeans' seat (or a skirt, built below)
         const one = !!st.one, skirt = st.skirt, legsCol = skirt && !st.legs ? skin : one && !skirt ? top : bottom;
         // (the men's cut, David's call: straighter, a touch broader at the shoulders, a jacket that's open over a shirt, and
@@ -207,9 +287,11 @@ Object.assign(EnvDolls, {
         // each joint's kit parts as one mesh, its colors in it
         if (!this.vc) this.vc = r3Patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0 }), { key: 'envdollvc' });
         const hairBase = c(L.hairCol || '#5a3622'), hairTip = L.tipCol ? c(L.tipCol) : null;
+        // (a design from the sewing machine with a pattern or a print: its own material that draws them; David, 29 October)
+        const pm = DollPattern.material(C, top, bottom, trim, K, d);
         for (const [g, list] of lists) {
             const geo = this.merge2(list, hairBase, hairTip);
-            const mesh = new THREE.Mesh(geo, this.vc);
+            const mesh = new THREE.Mesh(geo, pm || this.vc);
             mesh.castShadow = true; mesh.receiveShadow = true;
             g.add(mesh);
             d.geos.push(geo);
@@ -247,6 +329,19 @@ Object.assign(EnvDolls, {
             g.scale.setScalar(s);
             if (F.over) g.scale.y = Math.max(s, (topC + 0.06) / F.over);
         }
+        // (headphones: the cups on the hair's sides at the ears, the band over the middle of the head, so a ponytail behind
+        // or a bob's width doesn't blow them up off the head; David, 29 October)
+        if (F.side) {
+            const [h, ring] = F.side;
+            let wide = 0, mid = 1.02;
+            for (let i = 0; i < n; i += 3) {
+                const y = Y(i), x = Math.abs(a[i]) / R, z = Math.abs(a[i + 2]) / R;
+                if (Math.abs(y - h) < 0.12 && z < 0.45) wide = Math.max(wide, x);
+                if (z < 0.35 && x < 0.5) mid = Math.max(mid, y);
+            }
+            const sx = Math.min(1.45, Math.max(1, (wide + 0.03) / ring)), sy = Math.min(1.45, Math.max(1, (mid + 0.05) / F.over));
+            g.scale.set(sx, sy, Math.min(sx, 1.15));
+        }
         if (!F.cover) return;
         const [line, cy, rx, ry] = F.cover;
         const s = Math.min(F.max || 1.4, Math.max(1, reach(line + 0.08, 0.08) / (rx * 0.97))), sv = 1 + (s - 1) * 0.4;
@@ -270,9 +365,10 @@ Object.assign(EnvDolls, {
     merge2(list, hairBase, hairTip) {
         let n = 0, ni = 0;
         for (const [g] of list) { n += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; }
-        const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), idx = new Uint32Array(ni), tmp = new THREE.Color();
+        const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), cl = new Float32Array(n), idx = new Uint32Array(ni), tmp = new THREE.Color();
         let o = 0, oi = 0;
-        for (const [g, c] of list) {
+        for (const [g, c, kind] of list) {
+            if (kind) cl.fill(kind, o, o + g.attributes.position.count);
             const Pa = g.attributes.position, Na = g.attributes.normal, Ca = g.attributes.color, cnt = Pa.count;
             pos.set(Pa.array.subarray ? Pa.array.subarray(0, cnt * 3) : Pa.array, o * 3);
             nor.set(Na.array.subarray ? Na.array.subarray(0, cnt * 3) : Na.array, o * 3);
@@ -297,6 +393,7 @@ Object.assign(EnvDolls, {
         geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
         geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
         geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        geo.setAttribute('aCloth', new THREE.BufferAttribute(cl, 1));
         geo.setIndex(new THREE.BufferAttribute(idx, 1));
         geo.computeBoundingSphere();
         return geo;

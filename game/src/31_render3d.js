@@ -161,6 +161,10 @@ const R3 = {
             ty = G.camTarget[1]; tx = G.camTarget[0] + sh * 0.55;
         } else if (a.interior) {
             tx = a.w * TILE / 2; ty = (a.floor.y0 + a.floor.h * 0.55) * TILE;
+            // (a screen narrower than the room, an upright phone: the camera follows Sarah across it, never past its walls,
+            // or the far cabinets in the arcade were off the screen and couldn't be tapped: David, 29 October)
+            const half = this.dist() * Math.tan(this.camera.fov * Math.PI / 360) * this.camera.aspect * TILE;
+            if (!Decor.on && half < a.w * TILE / 2) tx = Math.max(half - TILE * 0.5, Math.min(a.w * TILE - half + TILE * 0.5, p.x));
             // (decorating: the room kept clear of the sheet, above it, or beside it on a short wide screen)
             if (Decor.on) { const pn = $('#panel'), side = pn.offsetWidth < innerWidth * 0.6; if (side) tx += pn.offsetWidth / innerWidth * 9 * TILE; else ty += pn.offsetHeight / innerHeight * 7 * TILE; }
         }
@@ -329,7 +333,11 @@ const R3 = {
             const step = this._step !== G.frame;
             this._step = G.frame;
             this.placeCamera(false);
-            if (!this.view || (step && G.frame % 4 === 0)) this.updateView();
+            // (and whenever the camera has moved on: what's shown, culled and faded at the edge all follow the view, and a
+            // stale one a few frames behind a running camera left the ground missing and everything the haze's color for a
+            // moment; David, 29 October)
+            const vt = this._viewAt, moved = !vt || Math.abs(this.target.x - vt[0]) + Math.abs(this.target.z - vt[1]) > 0.6;
+            if (!this.view || moved || (step && G.frame % 4 === 0)) { this.updateView(); this._viewAt = [this.target.x, this.target.z]; }
             if (step && G.frame % 30 === 0) this.texelSize();
             hdWarm();
             // the new 3D look (33a_env.js, the test area for now) draws the ground, trees, buildings and props itself
@@ -945,6 +953,7 @@ function r3Patch(mat, o) {
             }
             ${o.ghost ? 'if (r3Fade < 0.02) discard;' : 'if (r3Fade >= 0.02) discard;'}`);
         if (o.fmap) fs = fs.replace('#include <map_fragment>', '#include <map_fragment>\n' + o.fmap);
+        if (o.fcolor) fs = fs.replace('#include <color_fragment>', '#include <color_fragment>\n' + o.fcolor);
         if (o.fnormal) fs = fs.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + o.fnormal);
         if (o.fpre) fs = fs.replace('#include <tonemapping_fragment>', o.fpre + '\n#include <tonemapping_fragment>');
         // (the sun's shadows fade out at dusk: in a Lambert material they darken every light, the lamps' too)

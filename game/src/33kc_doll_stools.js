@@ -16,7 +16,8 @@ const EnvStools = {
     /* how high a folk stands: on the stool while it's at the spot */
     height(e) {
         const a = G.area, s = this.spot(a);
-        if (!s || !e.def || e.def.human || e.area !== a.id) return 0;
+        // (only while the stool is there: it comes with the style test's models, maybe after the room was first built)
+        if (!s || !e.def || e.def.human || e.area !== a.id || typeof EnvModels === 'undefined' || !EnvModels.has('style_stool')) return 0;
         return Math.hypot(e.x / TILE - s[0], e.y / TILE - s[1]) < 0.45 ? this.H : 0;
     },
     /* the stool itself, among the room's furniture (EnvRoom.furniture) */

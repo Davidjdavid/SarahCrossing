@@ -213,6 +213,9 @@ const MUSIC_LOOP_FROM = 5;              // (seconds into a track where it carrie
    (phones only let an element play that has been started from a tap once) */
 const MusicFile = {
     decks: null, turn: 0,
+    /* where each track was left when other music took over (a building's, the aquarium's): coming back to it soon
+       after, it carries on from there instead of the start (David, 29 October: the hourly song's intro over and over) */
+    places: new Map(),
     init() {
         if (this.decks || !Audio2.ctx || typeof Audio === 'undefined') return;
         const c = Audio2.ctx;
@@ -227,35 +230,46 @@ const MusicFile = {
             return { el, gain, node, token: 0, path: null };
         });
     },
-    /* key: 'lib:<path>' (from the server), 'own:<id>' or 'mysong:<id>' (from this device) */
-    play(key) {
+    /* key: 'lib:<path>' (from the server), 'own:<id>' or 'mysong:<id>' (from this device); from: seconds in to start at
+       (otherwise where it was left, if that was in the last quarter hour); fade: how long it swells in */
+    play(key, from, fade) {
         this.init();
         const c = Audio2.ctx;
         if (!this.decks || !c || !fileTrackOk(key)) return null;
-        const d = this.decks[this.turn = 1 - this.turn];
+        // (the deck that isn't playing what's on now: a track going round again crosses over to the other one)
+        const cur = Music.cur && Music.cur.file;
+        let i = 1 - this.turn;
+        if (this.decks[i] === cur && this.decks[1 - i] !== cur) i = 1 - i;
+        const d = this.decks[this.turn = i];
         if (!d.node) return null;
         const token = ++d.token;
         d.path = key;
+        const left = this.places.get(key);
+        this.places.delete(key);
+        if (from == null && left && Date.now() - left.at < 15 * 60e3) from = left.pos;
         const bad = () => {
             if (d.token !== token) return;
             MusicLib.bad[key.startsWith('lib:') ? key.slice(4) : key] = true;
             if (Music.cur && Music.cur.file === d) { Music.key = null; Music.update(true); }
         };
         d.el.onerror = bad;
-        // (round again when it ends, not from the very start: the last second dips, then it carries on a few seconds in and
-        // swells back up, so the intro doesn't cut in over the ending: David, 29 October, "music looping is kinda annoying")
-        d.dip = false;
+        // (round again before it ends, not from the very start and with no stop: the other deck starts a few seconds in
+        // and the two cross over, so the intro doesn't cut in and there's no lull while it seeks back; David, 29 October)
+        d.looping = false;
         d.el.ontimeupdate = () => {
-            const el = d.el, left = el.duration - el.currentTime;
-            if (d.token !== token || d.dip || !(el.duration > 20) || !(left < 1.2)) return;
-            d.dip = true;
-            const t = c.currentTime;
-            d.gain.gain.cancelScheduledValues(t); d.gain.gain.setValueAtTime(d.gain.gain.value, t); d.gain.gain.linearRampToValueAtTime(0.2, t + Math.max(0.15, left));
+            const el = d.el, rest = el.duration - el.currentTime;
+            if (d.token !== token || d.looping || !(el.duration > 30) || !(rest < 2.6)) return;
+            d.looping = true;
+            if (Music.cur && Music.cur.file === d) {
+                const n = this.play(key, MUSIC_LOOP_FROM, 2.4);
+                if (n) { Music.cur.file = n; this.stop(d, Math.max(0.5, rest), true); }
+            }
         };
+        // (and if it ends anyway, the tab asleep and the timer slowed: round from a few seconds in on this one)
         d.el.onended = () => {
             if (d.token !== token) return;
             const el = d.el, t = c.currentTime;
-            d.dip = false;
+            d.looping = false;
             try { el.currentTime = el.duration > 30 ? MUSIC_LOOP_FROM : 0; } catch (e) { /* from the start, then */ }
             d.gain.gain.cancelScheduledValues(t); d.gain.gain.setValueAtTime(0.2, t); d.gain.gain.linearRampToValueAtTime(1, t + 2.5);
             const go = el.play();
@@ -263,12 +277,13 @@ const MusicFile = {
         };
         d.gain.gain.cancelScheduledValues(c.currentTime);
         d.gain.gain.setValueAtTime(0, c.currentTime);
-        d.gain.gain.linearRampToValueAtTime(1, c.currentTime + 1.6);
+        d.gain.gain.linearRampToValueAtTime(1, c.currentTime + (fade || (from ? 1.2 : 1.6)));
         const start = src => {
             if (d.token !== token) { if (src.startsWith('blob:')) URL.revokeObjectURL(src); return; }
             if (d.blob) URL.revokeObjectURL(d.blob);
             d.blob = src.startsWith('blob:') ? src : null;
             d.el.src = src;
+            if (from) d.el.addEventListener('loadedmetadata', () => { if (d.token === token) { try { d.el.currentTime = Math.min(from, Math.max(0, d.el.duration - 4)); } catch (e) { /* from the start */ } } }, { once: true });
             const go = d.el.play();
             // (not allowed to start yet: the next tap starts it, Audio2.unlock)
             if (go && go.catch) go.catch(e => { if (d.token === token && e && e.name === 'NotAllowedError') this.waiting = d; });
@@ -282,21 +297,23 @@ const MusicFile = {
         this.waiting = null;
         if (d && Music.cur && Music.cur.file === d) { const go = d.el.play(); if (go && go.catch) go.catch(() => {}); }
     },
-    stop(d) {
+    /* fade a deck out (over fade seconds) and let it go; unless it's only going round again, where it was is kept */
+    stop(d, fade, round) {
         const c = Audio2.ctx;
         if (!d || !c) return;
         const token = d.token;
+        if (!round && d.path && d.el.currentTime > 3 && !(d.el.duration - d.el.currentTime < 6)) this.places.set(d.path, { pos: d.el.currentTime, at: Date.now() });
         d.el.onended = d.el.ontimeupdate = null;
         d.gain.gain.cancelScheduledValues(c.currentTime);
         d.gain.gain.setValueAtTime(d.gain.gain.value, c.currentTime);
-        d.gain.gain.linearRampToValueAtTime(0, c.currentTime + 1);
+        d.gain.gain.linearRampToValueAtTime(0, c.currentTime + (fade || 1));
         setTimeout(() => {
             if (d.token !== token) return;
             d.el.pause(); d.path = null;
             d.el.removeAttribute('src');
             try { d.el.load(); } catch (e) { /* let go */ }
             if (d.blob) { URL.revokeObjectURL(d.blob); d.blob = null; }
-        }, 1200);
+        }, (fade || 1) * 1000 + 200);
     },
 };
 
