@@ -5167,7 +5167,7 @@ test("David's notes of 29 October: the barn's key from a friend, chests that sta
     receive('q_barnkey', 1);
     out.open = barnOpen() && !!S.flags.barnKey;
     // chests: the barn's trunk open once the note's found, the keeper's sea chest gives the mustache and stays open
-    out.trunk = barnTrunkId() === 'old_trunk' && (S.quests.treasure = { stage: 1 }) && barnTrunkId() === 'old_trunk_open';
+    out.trunk = barnTrunkId() === 'old_trunk' && (Quests.set('treasure', 1), barnTrunkId() === 'old_trunk_open');
     out.mustache = (await run(() => lighthouseChest({}))) && hasSpecial('acc_mustache') && !!S.flags.lhChest;
     out.bank = ['bank_chest', 'bank_trunk', 'lh_trunk_open', 'old_trunk_open'].every((id) => FURN[id] && ITEMS[id]);
     // the windmill's third cog: in the driftwood at Driftwood Cove
@@ -5176,10 +5176,11 @@ test("David's notes of 29 October: the barn's key from a friend, chests that sta
     const dw = G.areas.island.ents.find((e) => e.kind === 'driftwood' && Math.hypot(e.px - W0.spots.cove.x, e.py - W0.spots.cove.y) < 10);
     out.cog = !!dw && (await run(() => dw.interact())) && S.quests.windmill.cogs.includes('chest') && pocketCount('q_cog') === 1;
     out.cove = Design.areaAt(W0.spots.cove.x, W0.spots.cove.y).id === 'cove' && W0.buildings.shop.x < W0.buildings.restaurant.x;
-    // the court: on her own the ball machine sends it back till she misses; the best five kept
+    // the court: on her own the ball machine sends it back till she misses (a new best counts as a win, for the prize
+    // sound); the best five kept
     const g = new VolleyGame({ solo: true });
     for (let i = 0; i < 6000 && !g.over; i++) g.update({ held: {}, pressed: {}, pointer: null });
-    out.solo = g.over && g.solo && !g.win;
+    out.solo = g.over && g.solo && g.missed && g.win === (g.score > g.prevBest);
     vbSoloRecord(12); vbSoloRecord(7);
     out.best = vbSoloBest() === 12 && S.games.vbSolo.top.length === 2;
     // tag: thirty seconds, and neighbors close by join in

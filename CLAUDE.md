@@ -24,7 +24,7 @@ docs/DEPLOY.md for the server.
   `node scripts/make-island.mjs`, from `scripts/island/`: `plan.mjs` is the layout David picked (Harbor Square: the
   coast, each level's edge, rivers, ponds, the square, every path and trail, buildings, props and the neighbors' spots,
   in tiles), `layout.mjs` turns it into tiles (cliffs, stairs where a path crosses one, waterfalls, straight bridges,
-  trees and flowers) and checks every door, staircase and spot can be walked to from the pier, `paint.mjs` paints the
+  trees and flowers) and checks every door, staircase and spot can be walked to from the pier (open ground it can't reach is blocked), `paint.mjs` paints the
   ground with the first island's textures, kept in `scripts/island/source/`. Trees grow in groves with clearings (a slow
   noise says where: thick in the woods, little stands on open ground, broken runs along cliff tops) and wild flowers in
   small patches of one kind, so the island never looks evenly sprinkled. Change the plan and run it again rather

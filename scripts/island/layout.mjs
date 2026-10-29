@@ -592,7 +592,10 @@ class Island {
     this.check(start);
     this.cuts();
     const reach = this.flood(this.i(start[0], start[1]), (k) => !this.coll[k] && (this.land[k] || this.ter[k] === 'w'));
-    const rows = (f) => { const out = []; for (let y = 0; y < H; y++) { let s = ''; for (let x = 0; x < W; x++) s += f(this.i(x, y)); out.push(s); } return out; };
+    // (open ground nobody can walk to is blocked, as the sea rim is: a tile left between two cliffs' faces where a narrow
+    // trail's stair cuts the edge, as at the lookout once the mountain trail narrowed, 29 October)
+    for (let k = 0; k < W * H; k++) if (!this.coll[k] && this.land[k] && !reach.has(k)) this.coll[k] = 1;
+    const rows =(f) => { const out = []; for (let y = 0; y < H; y++) { let s = ''; for (let x = 0; x < W; x++) s += f(this.i(x, y)); out.push(s); } return out; };
     const water = (t) => (t === '~' ? 's' : t === 'o' ? 'p' : t === 'r' ? 'r' : t === 'h' ? 'h' : '.');
     // (the pirate's treasure is where Captain Gouda's note says: from the foot of the pier west past three palms, then from
     // the third down the beach toward the sea, up to four steps, to where the sand turns dark; QA, 29 October: it was at

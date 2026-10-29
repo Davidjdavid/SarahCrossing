@@ -60,7 +60,7 @@ VolleyGame.prototype = {
         }
         me.x = clamp(me.x, 10, VB_NET - 8);
         if (!this.solo) op.x = clamp(op.x, VB_NET + 8, VB_W - 10);
-        if (this.pause > 0) { if (--this.pause === 0) { this.msg = ''; if (this.solo ? this.missed : this.score >= VB_TO || this.opScore >= VB_TO) { this.over = true; this.win = this.score > this.opScore; } } return; }
+        if (this.pause > 0) { if (--this.pause === 0) { this.msg = ''; if (this.solo ? this.missed : this.score >= VB_TO || this.opScore >= VB_TO) { this.over = true; this.win = this.solo ? this.score > this.prevBest : this.score > this.opScore; } } return; }
         // the ball
         const bx0 = b.x;
         b.vy += 0.11; b.x += b.vx; b.y += b.vy; b.spin += b.vx * 0.2;
