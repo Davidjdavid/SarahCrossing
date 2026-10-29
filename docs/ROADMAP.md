@@ -504,7 +504,7 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] Every neighbor starts with places and things they like doing or never do, to suit them, for the designer to change
 - [x] Favors aren't asked for any more (no "Need anything?" in the talk menu or texts): a neighbor asks now and then, in
   person, when Sarah talks to them, and she can say not now
-- [ ] The phone: two even rows of apps, no mail app (mail at the mailbox only, its flag up and flashing while something's
+- [x] The phone: two even rows of apps, no mail app (mail at the mailbox only, its flag up and flashing while something's
   unread), Save & quit a square of its own
 - [x] No speech bubbles when neighbors chat with each other: Sarah walks up and talks to them to hear it
 - [x] The double waterfall: see-through in the middle (the two falls side by side are one sheet now)
@@ -513,8 +513,9 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 - [x] The stock market: the prices hadn't come (the server now asks Yahoo's chart data first, then stooq; the Bank asks
   again a minute after a failure, not every frame)
 - [x] The community garden: no wild flowers in it, and a new or brought-in island has something already growing there
-- [ ] The icons over people's heads (the emotes and the talk marker); the Bank and every other screen's icons as good as
-  the phone's
+- [x] The icons over people's heads (the emotes and the talk marker); the Bank and every other screen's icons as good as
+  the phone's (the arcade's ticket, poem and lock icons, the collection's specials and the calendar's holiday icons are
+  still pictures)
 - [x] Sarah's sweater: her hands came through the sleeves' ends
 - [x] Planter boxes go anywhere on the island: six come in the mail after Sarah's first visit to Fortune's
 - [x] Bringing in an old save keeps only the friendships, the money in her pocket, what she had in her pocket and

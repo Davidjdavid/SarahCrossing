@@ -146,9 +146,18 @@ docs/DEPLOY.md for the server.
   button buys, sells or drops anything; Fortune's sell screen also sells all the fish, fruit, shells, vegetables or flowers in the pocket in one
   go, a second tap to be sure; the pocket sends all its furniture home in one go, the mailbox takes every present at once;
   trophies, festival and event things, prizes and anything that can't be bought again are never sold, `unsellable`); `UI.open({ wide })` gives the wider panel they use. The phone shows the time,
-  weather and wallet along its top and the apps four across: eight everyday ones and two folders (`PHONE_HOME`,
-  `PHONE_FOLDERS`, `openFolder`; an app opened from a folder goes back to it, `phoneFrom`), Save & quit at its foot, every
-  icon drawn as shapes at the screen's resolution (41c_phone_icons.js, `phoneIcon`). The HUD wears the phone's look too
+  weather and wallet along its top and its apps in two even rows of five (David, 29 October: `PHONE_HOME`, the two folders
+  by id, `PHONE_FOLDERS`, `openFolder`, each folder two rows too, `appGrid`'s `--cols`; an app opened from a folder goes
+  back to it, `phoneFrom`), Save & quit a tile of its own, every icon drawn as shapes at the screen's resolution
+  (41c_phone_icons.js, `phoneIcon`). There's no Mail app: letters are read only at Sarah's mailbox (`openMailbox`,
+  `appMail`, with Write a letter), the phone's badge counts texts, her house always keeps its mailbox (`houseLook`), and
+  while a letter is unread its flag is up and flashing (`mailboxFrame`, `HD_SPR.mailbox_flag_lit`; in the new look the
+  mailbox models' flag is a part of its own, `*_flag` with its origin at its pin, raised facing the camera, waving and
+  glowing, `EnvBuild.flagTick`/`flagPose`). What's over people's heads (emotes, the talk prompt, the "!" by doors) is drawn
+  as shapes on a canvas of its own at the screen's resolution (`#heads`, `Heads`, `HEAD_ICONS` in 41d_head_icons.js),
+  placed by `drawOverheads` for every view, as high as each doll really stands (`headLift`). The screens' interface icons
+  (counters, rows, toasts, mail, the Moves and Music apps) are drawn the same way (`uiIcon(name, px)`, `UI_VEC`: `app_<id>`
+  is the phone's own icon, `emote_<kind>` its bubble); things' own pictures stay pictures. The HUD wears the phone's look too
 (David, 28 October): Tools, Moves, Pocket and Phone are app tiles on a cream dock (`.hbtn .tile`, `data-vec` icons drawn
 once by `HUD.update`; the Tools tile shows the hand or the tool held, `updateToolButton`), the time and day a card with the
 weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn the same way, the key hints keys on a strip. Trying something on at the salon or the sewing machine,
