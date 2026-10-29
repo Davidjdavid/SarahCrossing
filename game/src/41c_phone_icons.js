@@ -384,11 +384,13 @@ Object.assign(PHONE_ICONS, {
         g.lineWidth = 5; g.strokeStyle = I.ink; g.beginPath(); cloth(); g.stroke();
     },
     statue(g, I) {
-        piShape(g, I, () => piRR(g, 20, 70, 60, 18, 4), '#d8d2c4');
-        piShape(g, I, () => piRR(g, 28, 60, 44, 12, 3), '#e8e2d4', 5);
-        piShape(g, I, () => { g.moveTo(30, 60); g.quadraticCurveTo(30, 42, 50, 42); g.quadraticCurveTo(70, 42, 70, 60); g.closePath(); }, '#c99a5a');
-        piShape(g, I, () => g.arc(50, 30, 14, 0, 7), '#c99a5a');
-        g.fillStyle = '#e8c48a'; g.beginPath(); g.ellipse(45, 25, 4, 5, 0.4, 0, 7); g.fill();
+        // (someone in bronze on a stone plinth, waving)
+        piShape(g, I, () => piRR(g, 18, 74, 64, 16, 4), '#d8d2c4');
+        piShape(g, I, () => piRR(g, 26, 64, 48, 12, 3), '#e8e2d4', 5);
+        g.save(); g.translate(64, 40); g.rotate(-0.6); piShape(g, I, () => piRR(g, -4.5, -20, 9, 24, 4.5), '#c99a5a', 5); g.restore();
+        piShape(g, I, () => { g.moveTo(34, 64); g.lineTo(39, 40); g.quadraticCurveTo(50, 34, 61, 40); g.lineTo(66, 64); g.closePath(); }, '#c99a5a');
+        piShape(g, I, () => g.arc(50, 25, 12, 0, 7), '#c99a5a');
+        g.fillStyle = '#e8c48a'; g.beginPath(); g.ellipse(46, 21, 3.5, 4.5, 0.4, 0, 7); g.ellipse(44, 46, 3, 7, 0.2, 0, 7); g.fill();
     },
     build(g, I) {
         g.save(); g.translate(50, 70); g.rotate(-0.12);

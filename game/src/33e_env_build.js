@@ -596,8 +596,8 @@ const EnvBuild = {
         if (unreadMail()) this.box('plain', x + 0.18, y + 0.95, z - 0.1, x + 0.22, y + 1.32, z - 0.06, '#d8302a');
     },
     /* the mailbox's flag (David, 29 October: "a raised flashing flag when you have unread mail"): it swings up or down
-       about the foot of its arm, lying along the box's side toward the front when down; up, it waves a little and glows
-       on and off */
+       about the foot of its arm, lying along the box's side toward the front when down; up, it turns out to face the
+       camera (along the side, as modelled, it would be seen edge on), a little bigger, waving and glowing on and off */
     flagTick(frame) {
         const now = performance.now();
         for (const F of this.mbFlags) {
@@ -608,9 +608,12 @@ const EnvBuild = {
     },
     flagPose(F, now) {
         const up = F.k * F.k * (3 - 2 * F.k), wave = F.want ? Math.sin(now / 160) * 0.07 * up : 0;
-        const T = this._ft || (this._ft = [new THREE.Matrix4(), new THREE.Matrix4(), new THREE.Matrix4()]);
-        T[0].makeTranslation(F.at.x, F.at.y, F.at.z); T[1].makeRotationX((1 - up) * Math.PI / 2 + wave); T[2].makeTranslation(-F.at.x, -F.at.y, -F.at.z);
-        F.m.matrix.copy(F.base).multiply(T[0]).multiply(T[1]).multiply(T[2]);
+        const T = this._ft || (this._ft = [0, 1, 2, 3, 4].map(() => new THREE.Matrix4())), s = 1 + 0.3 * up;
+        T[0].makeTranslation(F.at.x, F.at.y, F.at.z); T[1].makeRotationX((1 - up) * Math.PI / 2 + wave); T[2].makeRotationY(-up * Math.PI / 2);
+        T[3].makeScale(s, s, s); T[4].makeTranslation(-F.at.x, -F.at.y, -F.at.z);
+        F.m.matrix.copy(F.base);
+        for (const M of T) F.m.matrix.multiply(M);
+        F.m.matrixWorldNeedsUpdate = true;
         F.m.material.emissiveIntensity = F.want ? up * (0.18 + 0.62 * (0.5 + 0.5 * Math.sin(now / 1000 * Math.PI * 2 / 0.9))) : 0;
     },
     /* a white picket fence along this tile, joining its neighbours */

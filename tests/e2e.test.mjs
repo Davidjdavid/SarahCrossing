@@ -4639,7 +4639,7 @@ test("what's over people's heads is drawn crisp, at the screen's resolution on a
     n.x = P.x; n.y = P.y - 14; P.dir = 'up'; G.showPrompt = true;
     await frames(2); n.x = P.x; n.y = P.y - 14; G.showPrompt = true; await frames(2);
     const [px, py] = screenOf(n.x, n.y, headLift(n) - 1);
-    out.prompt = frontTarget(P) === n && alpha(px, py - Math.min(40, Math.max(22, 10.5 * G.view.cssScale)) * 0.45) > 200;
+    out.prompt = frontTarget(P) === n && alpha(px, py - Math.min(42, Math.max(26, 10.5 * G.view.cssScale)) * 0.45) > 200;
     n.script = null;
     return out;
   });

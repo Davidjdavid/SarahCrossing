@@ -141,10 +141,20 @@ function headPrompt(g) {
     piShape(g, I, () => { g.moveTo(44, 17); g.lineTo(56, 17); g.lineTo(53.5, 48); g.quadraticCurveTo(50, 51, 46.5, 48); g.closePath(); }, '#f2896b', 5);
     piShape(g, I, () => g.arc(50, 60, 6, 0, 7), '#f2896b', 5);
 }
-/* how high over someone's feet their head is (world pixels), with a little room: the new look's dolls stand taller */
+/* how high over someone's feet the top of their head is (world pixels), with a little room. The new look's dolls and toys
+   are each their own height: measured once standing still, hair and hats and all (EnvDolls; arms up in a cheer would
+   count, so not while they strike a pose) */
 function headLift(e) {
-    const h = e.npc ? (e.h || 18) : 24, seat = e.npc && typeof isSeated === 'function' && isSeated(e) ? 4 : 0;
-    return (h - seat) * (R3.active() && Env.on ? ENV.people : 1) + 6;
+    const seat = e.npc && typeof isSeated === 'function' && isSeated(e) ? 4 : 0;
+    const d = R3.active() && Env.on && typeof EnvDolls !== 'undefined' && EnvDolls.dolls.get(e);
+    if (d && d.root && d.root.visible) {
+        if (d.top == null && !EnvDolls.sitting(e) && !(e.poseT > 0)) {
+            const b = new THREE.Box3().setFromObject(d.root), at = d.root.getWorldPosition(new THREE.Vector3());
+            if (!b.isEmpty()) d.top = (b.max.y - at.y) * TILE / R3_VS;
+        }
+        if (d.top) return d.top * (EnvDolls.sitting(e) ? 0.8 : 1) + 4;
+    }
+    return (e.npc ? (e.h || 18) : 24) - seat + 6;
 }
 const Heads = {
     cv: null, g: null, dirty: false, k: 1,
@@ -154,7 +164,7 @@ const Heads = {
         const c = this.cv = document.createElement('canvas');
         c.id = 'heads';
         c.setAttribute('aria-hidden', 'true');
-        $('#app').insertBefore(c, $('#bubbles') || $('#ui'));
+        $('#app').insertBefore(c, (typeof Bubbles !== 'undefined' && Bubbles.ensure()) || $('#ui'));
         this.g = c.getContext('2d');
         return c;
     },
@@ -184,5 +194,5 @@ const Heads = {
         if (!HEAD_ICONS[kind]) return;
         this.put(x, y, clamp(15 * px, 30, 56), g => headIcon(g, kind));
     },
-    prompt(x, y, px) { this.put(x, y, clamp(10.5 * px, 22, 40), headPrompt); },
+    prompt(x, y, px) { this.put(x, y, clamp(10.5 * px, 26, 42), headPrompt); },
 };
