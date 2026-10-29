@@ -1,8 +1,9 @@
 /* ---- 59_arcade.js ---- */
 /* The arcade: Chili's prize counter, the cabinets (Bento Blocks, Spice Capsules, Snack Stack, Dumpling Drop, Sushi Swap,
-   Fortune Falls, and one out of order), the claw machine and tickets; the old classics are in the back room
-   (6z_backroom.js). Every machine can be won at the prize counter and played at home, free (home games don't pay tickets).
-   The games all run inside one cabinet overlay drawn here; their rules live in 61_arcadegames.js. */
+   Fortune Falls), the claw machine and tickets; the old classics and the cabinet that's out of order are in the back
+   room (6z_backroom.js). Every machine can be won at the prize counter and played at home, free (home games don't pay
+   tickets). The games all run inside one cabinet overlay drawn here; their rules live in 61_arcadegames.js. Each game's
+   top five (DAVID's record first, just under what it unlocks) are on the wall's board and in the cabinet's menu. */
 
 const ARCADE_GAMES = {};
 const ARCADE_CABS = ['blocks', 'capsules', 'stack', 'dumpling', 'sushi', 'fortune'];      // the cabinet games out front, in the room's order
@@ -280,9 +281,11 @@ const Arcade = {
         const home = !!this.opts.home;
         const tickets = !home && def.tickets ? def.tickets(g) * (bonusOn('tickets') ? 2 : 1) : 0;
         if (tickets) addTickets(tickets, true);
-        const score = g.score || 0;
-        const newBest = def.scored !== false && score > (A.best[this.id] || 0) && score > 0;
+        const score = g.score || 0, prev = A.best[this.id] || 0;
+        const newBest = def.scored !== false && score > prev && score > 0;
         if (newBest) A.best[this.id] = score;
+        // (DAVID's record topped for the first time: what it guards unlocks, checkSpecialMilestones below)
+        const record = newBest && beatsRecord(this.id, score) && !beatsRecord(this.id, prev);
         A.plays[this.id] = (A.plays[this.id] || 0) + 1;
         S.stats.arcade = (S.stats.arcade || 0) + 1;
         const lv = this.id === 'blocks' ? g.level : this.id === 'capsules' ? g.level + 1 : 0;
@@ -291,13 +294,14 @@ const Arcade = {
         const rv = A.rival[this.id];
         if (rv && score > rv.score && !rv.beatenDay) { rv.beatenDay = Clock.dayNum(); setTimeout(() => UI.toast(`You beat ${cap(rv.who.toLowerCase())}'s score! The whole island will hear about it.`, 'ui_ticket'), 900); }
         Save.touch();
-        this.result = { id: this.id, score, tickets, newBest, won: g.won || null, home, level: lv };
+        this.result = { id: this.id, score, tickets, newBest, record, won: g.won || null, home, level: lv };
         Bus.emit('arcadeGame', this.result);
         setTimeout(() => checkSpecialMilestones(), 1200);
         this.showTickets();
         const r = def.result ? def.result(g, this.opts) : null;
         Sfx.play(g.won ? 'prize' : newBest ? 'levelup' : 'gameover');
         const lines = r ? r.lines.slice() : [`Score ${fmtNum(score)} \u00b7 best ${fmtNum(A.best[this.id] || score)}`];
+        if (record) lines.push("You topped David's record!");
         if (tickets) lines.push(`+${tickets} ${plural(tickets, 'ticket')} (you have ${fmtNum(A.tickets)})`);
         else if (home && def.tickets) lines.push('Home games are just for fun. No tickets.');
         const fee = this.opts.home ? '' : ` (${fmtNum(def.fee)})`;
@@ -379,13 +383,12 @@ function buildArcadeRoom(a) {
     const items = layoutItems([
         ['poster_blocks', 1, 'wall'], ['poster_capsules', 3, 'wall'], ['poster_stack', 5, 'wall'], ['clock_wall', 9, 'wall'],
         ['hiscore_board', 13, 'wall'], ['neon_game', 15, 'wall'],
-        ['cab_blocks', 0, 0], ['cab_capsules', 2, 0], ['cab_stack', 4, 0], ['cab_dumpling', 6, 0], ['cab_sushi', 8, 0], ['cab_fortune', 10, 0], ['cab_broken', 12, 0],
+        ['cab_blocks', 0, 0], ['cab_capsules', 2, 0], ['cab_stack', 4, 0], ['cab_dumpling', 6, 0], ['cab_sushi', 8, 0], ['cab_fortune', 10, 0],
         ['claw_machine', 11, 3], ['counter_prize', 14, 1], ['plush_goat', 14, 1], ['trophy_arcade', 16, 1], ['snack_machine', 16, 4],
         ['arcade_stool', 1, 4], ['cafe_table', 2, 4], ['arcade_stool', 3, 4], ['plant_monstera', 0, 6], ['plant_monstera', 16, 6]]);
     const use = {
         cab_blocks: () => arcadeCabinet('blocks'), cab_capsules: () => arcadeCabinet('capsules'), cab_stack: () => arcadeCabinet('stack'),
         cab_dumpling: () => arcadeCabinet('dumpling'), cab_sushi: () => arcadeCabinet('sushi'), cab_fortune: () => arcadeCabinet('fortune'),
-        cab_broken: () => brokenCabinet(),
         poster_stack: () => UI.say(null, 'A poster: "SNACK STACK. Two of the same snack squish into a bigger snack. Can you make a watermelon?" There is a very happy watermelon on it.'),
         claw_machine: () => clawMachine(), counter_prize: () => prizeDesk(), prize_shelf: () => prizeDesk(), hiscore_board: () => showHiScores(),
         snack_machine: () => snackMachine(),
@@ -399,16 +402,14 @@ function buildArcadeRoom(a) {
     placeFurniture(a, items);
     addBackDoor(a);
 }
-/* the cabinet at the end of the row is out of order: a paper sign taped over its screen (it's the game David is making
-   again from memory; until then nobody can play it) */
+/* the cabinet that's out of order: a paper note taped over its screen (it's the game David is making again from
+   memory; until then nobody can play it). It stands in the back room with the reject games (David, 29 October), and
+   tapping it reads the note. */
 FURN.cab_broken = { id: 'cab_broken', name: 'Out-of-order cabinet', w: 1, h: 1, kind: 'floor', price: 0, sets: ['fixture'], fixture: 1, arcade: 'broken' };
 ITEMS.cab_broken = { name: 'Out-of-order cabinet', type: 'furniture', price: 0, icon: 'f_cab_broken' };
 async function brokenCabinet() {
-    const sp = chiliVoice();
-    if (sp) return UI.say(sp, rpick(["That one? Out of order. Ginger says it needs a part nobody makes anymore. It was the BEST one. I miss it every day.",
-        "Out of order. Don't hit it. I tried. It didn't help. It did hurt my hand.", "Still out of order. It's coming back someday. I keep the sign straight so it knows we're waiting."]));
-    return UI.say(null, ['A cabinet with a paper sign taped over the screen: "OUT OF ORDER. Ginger is on it. - Chili"',
-        'Under the sign the screen flickers now and then, as if it remembers a game.']);
+    return UI.say(null, ['A cabinet with a paper note taped over the screen: "OUT OF ORDER. Back here with the other rejects for now. A future update might restore it. Please don\'t hit it. - Ginger"',
+        'Under the note the screen flickers now and then, as if it remembers a game.']);
 }
 /* a cabinet's screen keeps playing its attract mode */
 function drawCabinetScreen(ctx, e) {
@@ -475,7 +476,7 @@ Bus.on('enter', async id => {
     await waitFrames(20);
     const c = NPCs.get('chili');
     c.emote = 'spicy'; c.emoteT = 80;
-    await UI.say('chili', ["Hey! Welcome to the arcade. I'm Chili. The prizes are over here. The records are mostly mine.",
+    await UI.say('chili', ["Hey! Welcome to the arcade. I'm Chili. The prizes are over here. The records are mostly David's. The rest are mine.",
         `The cabinets are ${PLAY_FEE} sand dollars a game, and your first game on each one is free. Play well, win tickets.`,
         'Bring the tickets to me for plushies, trophies, even the machines themselves. Then you can play at home. Free. Forever.',
         `The claw machine is ${CLAW_FEE} a try. Line it up carefully. I've heard cheering helps, but I cannot prove it.`]);
@@ -496,10 +497,11 @@ async function arcadeCabinet(id) {
     const best = A.best[id] ? ` Your best: ${fmtNum(A.best[id])}.` : '';
     const lv = levelChoices(id);
     const vs = typeof Versus !== 'undefined' && Versus.has(id) ? [`Play a neighbor (${fmtNum(def.fee)})`].concat(VsNet.friends().map(w => `Play ${Online.name(w)} (${fmtNum(def.fee)})`)) : [];
-    const opts = [free ? 'Play (free!)' : `Play (${fmtNum(def.fee)})`].concat(vs, lv.length ? [`Start at level ${lv[lv.length - 1]}`] : [], lv.length > 2 ? ['Pick a level'] : [], ['How do I play?', 'Not now']);
+    const opts = [free ? 'Play (free!)' : `Play (${fmtNum(def.fee)})`].concat(vs, lv.length ? [`Start at level ${lv[lv.length - 1]}`] : [], lv.length > 2 ? ['Pick a level'] : [], ['High scores', 'How do I play?', 'Not now']);
     const k = await UI.ask(sp, free ? `${def.name}! Your first game is on the house.${best}` : `${def.name}. ${fmtNum(def.fee)} sand dollars a game.${best}`, opts);
     const c = opts[k];
     if (c === 'How do I play?') { await UI.say(sp, def.how); return arcadeCabinet(id); }
+    if (c === 'High scores') { UI.hideDialog(); await gameHiScores(id); return arcadeCabinet(id); }
     if (c === 'Not now') return;
     if (c && c.startsWith('Play a neighbor')) return arcadeVersus(id, sp);
     const friend = c && VsNet.friends().find(w => c.startsWith(`Play ${Online.name(w)} (`));
@@ -539,7 +541,15 @@ async function afterArcade(res) {
     if (!res) return;
     if (res.tickets) UI.toast(`+${res.tickets} ${plural(res.tickets, 'ticket')} \u00b7 ${fmtNum(arc().tickets)} total`, 'ui_ticket');
     const sp = chiliVoice();
-    if (res.newBest && sp && res.score >= 500) {
+    // David's record topped: Chili says so (or a toast), and what it guarded turns up right after (6m_specials.js)
+    if (res.record) {
+        checkSpecialMilestones();
+        if (sp) {
+            const c = NPCs.get('chili');
+            c.emote = 'sparkle'; c.emoteT = 90;
+            await UI.say('chili', rpick(RECORD_LINES));
+        } else UI.toast(`You topped David's record at ${ARCADE_GAMES[res.id].name}!`, 'ui_ticket');
+    } else if (res.newBest && sp && res.score >= 500) {
         const c = NPCs.get('chili');
         c.emote = 'spicy'; c.emoteT = 70;
         await UI.say('chili', rpick(["NEW HIGH SCORE! I suppose I have to make room for your name now.", "That's a new record. Nice work. I'm writing it down before I talk myself out of it.",
@@ -639,55 +649,114 @@ function prizeNote(id) {
     if (id === 'trophy_arcade') return 'The big one. Chili will be SO jealous.';
     return { arcade_stool: 'A bright pink stool.', neon_game: 'Glows at night.', hiscore_board: 'Shows your best scores.', snack_machine: 'Hot chips only.' }[id] || '';
 }
-/* the board: Sarah's best vs. the island's records */
-const HISCORE_RIVALS = {
-    blocks: [['CHILI', 12400, 'too hot to stop'], ['MAKI', 9100, 'every block exactly aligned'], ['DAVID', 7700, 'on skates']],
-    capsules: [['CUKE', 8800, 'played at 5 AM'], ['COCO', 6200, 'told everyone'], ['KAI', 3100, 'says he was "vibing"']],
-    fruit: [['SULLY', 2600, 'set in 1987, in pencil'], ['KAI', 1900, 'surf stance'], ['CECE', 1450, 'apologized to every fruit'], ['WONTON', 900, 'from the spring. somehow.']],
-    stack: [['MAC', 2600, 'made a poke bowl, got hungry'], ['BRULEE', 1800, 'arranged every snack by color'], ['CUKE', 1200, 'only stacked edamame']],
+/* ---------------------------------------------------------------- high scores */
+/* the island's records: DAVID's, on every game, each just under what that game unlocks (David, 29 October: "when you
+   get a high score you get an unlock"), so topping one is what earns its special; where a game unlocks more than one
+   thing, under the first a player gets to. Where the unlock is a level reached (Spice Capsules, Snack Stack), it's the
+   score a player has just short of that level, and topping it unlocks the special as well as the level does
+   (checkSpecialMilestones). Fixed, never saved: only Sarah's best and the rivals change. [score, note, special] */
+const ARCADE_RECORD = {
+    blocks: [49999, 'on skates. one point shy', 'hair_spacebuns'],          // 50,000 (level 12's dance comes later)
+    capsules: [61840, 'one bug short of level 10', 'hair_mohawk'],          // level 10 (bugs 100, a bottle 1,000 x its level)
+    stack: [5850, 'two pumpkins. no watermelon', 'recipe_shortcake'],       // a watermelon
+    dumpling: [11999, 'left the last dumpling for you', 'hair_afro'],       // 12,000
+    sushi: [3999, 'one point shy. on purpose?', 'acc_tiara'],               // 4,000
+    fortune: [49990, 'one peg short, he says', 'emote_star'],              // 50,000 (points come in tens)
+    fruit: [3995, 'let the last apple drop', 'acc_catears'],                // 4,000 (in fives)
+    garden: [19998, 'spared the last gopher', 'acc_wizardhat'],             // 20,000 (in twos)
+    surf: [2499, 'did a spin, somehow', 'sew_cape'],                        // 2,500
+    noodle: [1995, 'one bite short', 'hair_mullet'],                        // 2,000 (in fives)
 };
-/* now and then somebody tries to top Sarah's best (and brags about it) */
+function beatsRecord(id, score) { const r = ARCADE_RECORD[id]; return !!r && score > r[0]; }
+const RECORD_LINES = ["WAIT. You topped David? Nobody tops David. He always stops just short of something good. Looks like you found out what.",
+    "That was David's record. WAS. I'm changing the board. I'm not even mad. I'm a little mad.",
+    "You beat David! He told me nobody would. Then he said, '{name} might.' I hate it when he's right."];
+/* the neighbors' records, under David's (a neighbor's best can be topped by Sarah, and now and then one tops hers back) */
+const HISCORE_RIVALS = {
+    blocks: [['CHILI', 12400, 'too hot to stop'], ['MAKI', 9100, 'every block exactly aligned'], ['GINGER', 6800, 'built a little house, then cleared it'],
+        ['JOE', 5200, 'wrote a poem about the long piece'], ['CECE', 3900, 'apologized to every row']],
+    capsules: [['CUKE', 8800, 'played at 5 AM'], ['CHILI', 7400, 'spared every chili bug'], ['COCO', 6200, 'told everyone'],
+        ['BRULEE', 4500, 'kept the prettiest colors'], ['KAI', 3100, 'says he was "vibing"']],
+    fruit: [['SULLY', 2600, 'set in 1987, in pencil'], ['CUKE', 2200, 'lunges between catches'], ['KAI', 1900, 'surf stance'],
+        ['CECE', 1450, 'apologized to every fruit'], ['WONTON', 900, 'from the spring. somehow.']],
+    stack: [['MAC', 2600, 'made a poke bowl, got hungry'], ['MAKI', 2200, 'dropped them in order. by size'], ['BRULEE', 1800, 'arranged every snack by color'],
+        ['CUKE', 1200, 'only stacked edamame'], ['WONTON', 950, 'never squished a dumpling']],
+};
+/* a game's whole table, best first: David, the neighbors (a rival's topped score in place of theirs), the old one-page
+   game's score as 2D SARAH (S.arcade.legacy: it ranks, but never counts as her best or unlocks anything) and Sarah's
+   best (below anyone she only ties) */
+function hiScoreRows(id) {
+    const A = arc(), rows = [], rec = ARCADE_RECORD[id];
+    if (rec) rows.push({ n: 'DAVID', s: rec[0], note: rec[1], rec: true });
+    for (const [n, s, note] of HISCORE_RIVALS[id] || []) rows.push({ n, s, note });
+    const rv = A.rival[id];
+    if (rv) { const o = rows.find(q => q.n === rv.who && !q.rec); if (o) { o.s = Math.max(o.s, rv.score); o.note = rv.beatenDay ? 'beaten by you!' : 'topped your score!'; } }
+    const old = Math.floor(+((A.legacy || {})[id]) || 0);
+    if (old > 0) rows.push({ n: '2D SARAH', s: old, note: 'from the old one-page game', old: true });
+    if (A.best[id]) rows.push({ n: (S.playerName || 'SARAH').toUpperCase(), s: A.best[id], note: 'you!', me: true });
+    rows.sort((a, b) => b.s - a.s || (a.me ? 1 : 0) - (b.me ? 1 : 0));
+    rows.forEach((r, i) => { r.rank = i + 1; });
+    return rows;
+}
+/* the top five (and Sarah's own row under them when she isn't in it): the wall's board and the cabinet's menu */
+function hiScoreList(id) {
+    const rows = hiScoreRows(id), me = rows.find(r => r.me), L = el('div', 'list hs-list');
+    L.dataset.game = id;
+    const row = r => {
+        const d = el('div', 'row hs-row' + (r.me ? ' me' : r.rec ? ' rec' : r.old ? ' old' : ''));
+        d.dataset.who = r.me ? 'me' : r.old ? 'old' : r.n.toLowerCase();
+        d.appendChild(el('div', 'hs-rank', String(r.rank)));
+        const t = el('div', 't');
+        t.appendChild(el('b', null, r.n));
+        t.appendChild(el('span', null, r.note));
+        d.appendChild(t);
+        d.appendChild(el('div', 'price', fmtNum(r.s)));
+        L.appendChild(d);
+    };
+    rows.slice(0, 5).forEach(row);
+    if (me && me.rank > 5) { L.appendChild(el('div', 'hs-gap', '⋮')); row(me); }
+    return L;
+}
+async function showHiScores() {
+    const A = arc();
+    const P = UI.open({ title: 'High scores' });
+    for (const id of arcadeCabs()) {
+        P.body.appendChild(el('h3', 'ar-hs', ARCADE_GAMES[id].name));
+        P.body.appendChild(hiScoreList(id));
+    }
+    P.body.appendChild(el('p', 'muted', `Every record starts out as David's. Top one and something special turns up. Tickets: ${fmtNum(A.tickets)}. Games played: ${fmtNum(Object.values(A.plays).reduce((a, b) => a + b, 0))}.`));
+}
+/* one game's, from its cabinet's menu (closing it goes back to the menu) */
+function gameHiScores(id) {
+    return new Promise(res => {
+        const P = UI.open({ title: `${ARCADE_GAMES[id].name}: high scores`, back: () => UI.close(), foot: true, onClose: () => res() });
+        P.body.appendChild(hiScoreList(id));
+        P.foot.appendChild(btn('Back', 'alt', () => UI.close()));
+    });
+}
+/* now and then somebody Sarah has passed tops her best (and brags about it); while David's record still stands over
+   hers, theirs stays under his */
 function arcadeRivals() {
     const A = arc(), day = Clock.dayNum(), r = mulberry(hash32(S.seed + ':rival:' + day));
     for (const g of Object.keys(HISCORE_RIVALS)) {
         const best = A.best[g] || 0, cur = A.rival[g];
         if (!best || (cur && !cur.beatenDay && day - cur.day < 3) || !arcadeCabs().includes(g)) continue;
         if (r() > 0.14) continue;
-        const who = rpick(HISCORE_RIVALS[g], r)[0];
-        const score = Math.ceil((best * (1.04 + r() * 0.12)) / 50) * 50;
+        const passed = HISCORE_RIVALS[g].filter(q => q[1] < best);
+        if (!passed.length) continue;
+        const who = rpick(passed, r)[0];
+        let score = Math.ceil((best * (1.04 + r() * 0.12)) / 50) * 50;
+        if (ARCADE_RECORD[g] && !beatsRecord(g, best)) score = Math.min(score, Math.floor(ARCADE_RECORD[g][0] / 50) * 50);
+        if (score <= best) continue;
         A.rival[g] = { who, score, day, beatenDay: null };
     }
-}
-async function showHiScores() {
-    const A = arc();
-    const P = UI.open({ title: 'High scores' });
-    for (const id of arcadeCabs()) {
-        const rows = HISCORE_RIVALS[id].map(([n, s, note]) => ({ n, s, note }));
-        const rv = A.rival[id];
-        if (rv) { const o = rows.find(q => q.n === rv.who); if (o) { o.s = Math.max(o.s, rv.score); o.note = rv.beatenDay ? 'beaten by you!' : 'topped your score!'; } }
-        if (A.best[id]) rows.push({ n: (S.playerName || 'SARAH').toUpperCase(), s: A.best[id], note: 'you!', me: true });
-        rows.sort((a, b) => b.s - a.s);
-        P.body.appendChild(el('h3', 'ar-hs', ARCADE_GAMES[id].name));
-        const L = el('div', 'list');
-        rows.forEach((r, i) => {
-            const row = el('div', 'row');
-            if (r.me) row.style.boxShadow = 'inset 4px 0 0 var(--salmon)';
-            const t = el('div', 't');
-            t.appendChild(el('b', null, `${i + 1}. ${r.n}`));
-            t.appendChild(el('span', null, r.note));
-            row.appendChild(t);
-            row.appendChild(el('div', 'price', fmtNum(r.s)));
-            L.appendChild(row);
-        });
-        P.body.appendChild(L);
-    }
-    P.body.appendChild(el('p', 'muted', `Tickets: ${fmtNum(A.tickets)}. Games played: ${fmtNum(Object.values(A.plays).reduce((a, b) => a + b, 0))}.`));
 }
 /* machines at home: free play */
 async function homeArcade(d) {
     if (d.arcade === 'claw') return clawMachine(true);
     const res = await Arcade.start(d.arcade, { home: true });
-    if (res && res.newBest) UI.toast(`New best at ${ARCADE_GAMES[d.arcade].name}: ${fmtNum(res.score)}!`, 'ui_ticket');
+    if (res && res.record) UI.toast(`You topped David's record at ${ARCADE_GAMES[d.arcade].name}: ${fmtNum(res.score)}!`, 'ui_ticket');
+    else if (res && res.newBest) UI.toast(`New best at ${ARCADE_GAMES[d.arcade].name}: ${fmtNum(res.score)}!`, 'ui_ticket');
 }
 
 /* ---------------------------------------------------------------- the claw machine (a game like the others) */

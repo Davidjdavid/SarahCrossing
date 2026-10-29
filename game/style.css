@@ -416,6 +416,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .ar-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
 .ar-small { font-size: 13px !important; }
 .ar-hs { margin: 14px 2px 6px; font: 600 17px/1.1 var(--display); color: var(--ink); }
+/* a game's top five (the wall's board and the cabinet's menu): a rank on a round plate, David's record in gold, Sarah's row marked */
+.hs-list .row { padding-top: 8px; padding-bottom: 8px; }
+.hs-rank { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--paper-2); font: 600 17px/1 var(--display); color: var(--ink); }
+.hs-row.rec .hs-rank { background: var(--gold); }
+.hs-row.me { box-shadow: inset 4px 0 0 var(--salmon), 0 2px 0 var(--line); }
+.hs-row.old .t b { color: var(--ink-soft); }
+.hs-gap { text-align: center; color: var(--ink-soft); font: 700 18px/0.8 var(--body); }
 #arcade.land .ar-pads { position: absolute; left: 0; right: 0; bottom: 0; pointer-events: none; }
 #arcade.land .ar-pad { pointer-events: auto; }
 @media (hover: none) and (pointer: coarse) { .ar-help { display: none; } }

@@ -3,10 +3,12 @@
    with four old cabinets (Fruit Catch, Gopher Garden, Surf's Up, Noodle Slurp: the classics; Dumpling Drop, Sushi Swap
    and Fortune Falls are out front, David's swap of 27 October). A hidden mystery, for later in the game: once
    Sarah has played every cabinet out front and has been on the island two weeks, Chili admits it isn't "just
-   storage". Sully remembers the key went to the lighthouse keeper, who kept everything. */
+   storage". Sully remembers the key went to the lighthouse keeper, who kept everything. Once she's tried the locked
+   door, Chili gives a hint whenever asked (backTip: what she still has to do) and says the rejects live back there;
+   the cabinet that's out of order waits in there too, a note taped to it (David, 29 October). */
 const BACK_CABS = ['fruit', 'garden', 'surf', 'noodle'];
 const BACK_READY_DAYS = 14;
-const BACK_DOOR = [11, 0];                 // the arcade's floor tile in front of the door (between two cabinets)
+const BACK_DOOR = [11, 0];                 // the arcade's floor tile in front of the door (at the end of the cabinets)
 
 /* the games you can play right now (the old ones once the door is open) */
 function arcadeCabs() { return ARCADE_CABS.concat(backRoomOpen() ? BACK_CABS.filter(id => ARCADE_GAMES[id]) : []); }
@@ -47,6 +49,9 @@ CHILI_ARCADE.push(
 function backOptions(n) {
     const out = [], s = Quests.stage('backroom');
     if (Quests.done('backroom') || Online.visitor()) return out;
+    // (a hint, once Sarah has tried the door; when it's time to ask about the door properly, that question takes over)
+    if (n.id === 'chili' && n.area === 'arcade' && S.quests && S.quests.backroom && S.quests.backroom.tried && !(s === 0 && backRoomReady()))
+        out.push({ label: 'About that locked door...', fn: async () => { await UI.say('chili', backTip(s), { keep: true }); return true; } });
     if (n.id === 'chili' && s === 0 && backRoomReady() && n.area === 'arcade') out.push({ label: 'What\'s behind the STAFF ONLY door?', fn: async () => {
         Quests.heard('backroom');
         await UI.say('chili', ["The door? It's storage. Boxes. Very boring boxes. Nothing in there is hot. Nothing. At all.",
@@ -62,6 +67,21 @@ function backOptions(n) {
         Quests.set('backroom', 2);
         return true;
     } });
+    return out;
+}
+/* Chili's hint: true to how the door opens, from where Sarah is with it (and what's back there: the rejects) */
+function backTip(s) {
+    if (s === 3) return ["You have a KEY? Why are you talking to me? Go try it! I'll pretend I'm not watching. I'll be watching."];
+    if (s === 2) return ["Sully gave the key to the lighthouse keeper? Then it's in the lighthouse. That guy kept everything. Go look in his desk.",
+        "And if the rejects bite, I was never here."];
+    if (s === 1) return ['I told you. Ask Sully. He was here before me. Before the carpet. The rejects are his problem.'];
+    const A = arc(), left = ARCADE_CABS.filter(id => !(A.plays[id] > 0)).map(id => ARCADE_GAMES[id].name), days = BACK_READY_DAYS - daysPlayed();
+    const out = ["What's back there? The rejects. Every game that wasn't good enough for out here. That's what they told me when I started.",
+        "I've never seen them. I hear them, though. Late. Beeping. Like they're practicing."];
+    out.push(left.length ? `How do you get in? Nobody gets in. But somebody who wanted to would start by being a regular. Play every cabinet out here. You haven't played ${listWords(left, 6)} yet.`
+        : "How do you get in? Nobody gets in. But you're a regular now, I'll give you that. Every cabinet out here. Respect.");
+    if (days > 0) out.push(`And stick around. That door doesn't open for anybody who's been here less than two weeks. ${days === 1 ? 'One more day' : `${days} more days`}. I don't make the rules. The door does.`);
+    out.push('Then ask me about it. Properly. I might remember something.');
     return out;
 }
 /* the keeper's desk (lighthouse): the key is in a drawer */
@@ -112,6 +132,8 @@ async function backDoor() {
         return;
     }
     const sp = chiliVoice();
+    // (tried once, Chili will give a hint when asked: backOptions)
+    if (!Online.visitor() && !Quests.st('backroom').tried) { Quests.st('backroom').tried = true; Save.touch(); }
     await UI.say(sp, sp ? rpick(["That's just storage! Old boxes! Nothing to see! Play a game! Please!", "STAFF ONLY. I'm staff. I don't go in there either. Nobody does. It's fine."])
         : 'A door marked STAFF ONLY. It is locked. Behind it, very faintly: nothing. Probably nothing.');
 }
@@ -124,9 +146,12 @@ function buildBackRoom(a) {
         ['clock_wall', 2, 'wall'], ['neon_sign', 3, 'wall'], ['shelf_wall', 5, 'wall'],
         // (the four old cabinets in pairs either side, as they were pushed back to make room)
         ['cab_fruit', 0, 0], ['cab_garden', 1, 0], ['cab_surf', 7, 0], ['cab_noodle', 8, 0], ['toolbox', 6, 0],
+        // (and the one that's out of order, by Ginger's toolbox: tapping it reads its note, brokenCabinet)
+        ['cab_broken', 5, 0],
         ['lamp_floor', 0, 3], ['sofa_pink', 1, 3], ['rug_round', 3, 2]]);
     const use = {
         cab_fruit: () => backCab('fruit'), cab_garden: () => backCab('garden'), cab_surf: () => backCab('surf'), cab_noodle: () => backCab('noodle'),
+        cab_broken: () => brokenCabinet(),
         neon_sign: () => UI.say(null, 'An old neon sign that says DANCE. Sully says there was dancing in here too, back in 1987, in front of the cabinets. The "N" is very tired.'),
         clock_wall: () => UI.say(null, 'The clock has stopped at 4:15. A line of dust rests on the minute hand.'),
         shelf_wall: () => UI.say(null, 'Spare joysticks, a jar of very old tokens, and a high score list in pencil. The top name is "SULLY".'),

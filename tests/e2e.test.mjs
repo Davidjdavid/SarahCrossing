@@ -470,7 +470,7 @@ test('Wonton can be talked to from every side of the hot spring (and a tap walks
   await page.context().close();
 });
 
-test('every arcade cabinet starts, plays and ends, the arcade has a cabinet for each (and one out of order), and the back room keeps the old classics', async () => {
+test('every arcade cabinet starts, plays and ends, the arcade has a cabinet for each, and the back room keeps the old classics (and the one out of order)', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
   await page.reload();
@@ -484,18 +484,18 @@ test('every arcade cabinet starts, plays and ends, the arcade has a cabinet for 
     broken: G.area.items.filter((i) => i.id === 'cab_broken').length, sprites: ARCADE_CABS.concat('broken').every((id) => Assets.has('f_cab_' + id)), now: arcadeCabs() }));
   assert.deepEqual(cabs.inRoom.sort(), [...cabs.list].sort());
   assert.deepEqual(cabs.list, ['blocks', 'capsules', 'stack', 'dumpling', 'sushi', 'fortune'], "David's swap: the back room's games out front");
-  assert.equal(cabs.broken, 1, 'one cabinet out of order');
+  assert.equal(cabs.broken, 0, 'the one out of order is in the back room now (David, 29 October)');
   assert.deepEqual(cabs.now, cabs.list, 'the classics wait behind the locked door');
   assert.ok(cabs.sprites, 'every cabinet has a picture');
-  // the out-of-order one only says so
-  const broken = await page.evaluate(async () => { const said = []; const say = UI.say; UI.say = async (who, l) => { said.push([].concat(l).join(' ')); }; try { await G.area.items.find((i) => i.id === 'cab_broken').use(); } finally { UI.say = say; } return { said: said.join(' '), playing: Arcade.on }; });
-  assert.match(broken.said, /out of order/i);
-  assert.equal(broken.playing, false);
   // and the back room's, once its door is open
   const all = await page.evaluate(() => { Quests.finish('backroom'); return arcadeCabs(); });
   assert.deepEqual(all.slice(cabs.list.length), ['fruit', 'garden', 'surf', 'noodle'], 'the back room adds the four classics');
   const back = await page.evaluate(async () => { await enterRoom('arcade_back'); return G.area.items.filter((i) => FURN[i.id] && FURN[i.id].arcade).map((i) => FURN[i.id].arcade); });
-  assert.deepEqual(back.sort(), ['fruit', 'garden', 'noodle', 'surf']);
+  assert.deepEqual(back.sort(), ['broken', 'fruit', 'garden', 'noodle', 'surf']);
+  // the out-of-order one only reads its note
+  const broken = await page.evaluate(async () => { const said = []; const say = UI.say; UI.say = async (who, l) => { said.push([].concat(l).join(' ')); }; try { await G.area.items.find((i) => i.id === 'cab_broken').use(); } finally { UI.say = say; } return { said: said.join(' '), playing: Arcade.on }; });
+  assert.match(broken.said, /out of order/i);
+  assert.equal(broken.playing, false);
   for (const id of all) {
     await page.evaluate((id) => __dbg.arcade(id), id);
     await page.waitForFunction(() => Arcade.state === 'play', null, { timeout: 5000 });
@@ -4867,4 +4867,149 @@ test('karaoke: she sings the words out loud at the pitch she holds (off the note
   });
   assert.deepEqual(page.problems, []);
   await page.close();
+});
+
+test("arcade high scores: every game's top five with David's record first, just under what it unlocks; topping it at a cabinet unlocks that and Chili says so; 2D SARAH ranks but unlocks nothing; the cabinet's own list, then back to its menu", async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => __dbg.setTime(10, 23, 14));
+  // every game with a score: David first, the island's neighbors under him, his score just under the first thing it unlocks
+  const recs = await page.evaluate(() => {
+    const out = {};
+    for (const id of Object.keys(ARCADE_GAMES)) {
+      const d = ARCADE_GAMES[id];
+      if (d.scored === false || d.kitchen || d.field || /^vs_/.test(id)) continue;
+      const r = ARCADE_RECORD[id], sp = r && SPECIALS[r[2]], rows = hiScoreRows(id);
+      const plain = id === 'capsules' || id === 'stack' ? [] : Object.values(SPECIALS).map((q) => q.src.split(':')).filter((q) => q[0] === 'score' && q[1] === id && /^\d+$/.test(q[2])).map((q) => +q[2]);
+      const low = Math.min(...plain);
+      out[id] = { guards: !!sp && sp.src.startsWith(`score:${id}:`), under: plain.length ? r[0] < low && r[0] >= low - 10 && +sp.src.split(':')[2] === low : /level 10|watermelon/.test(r[1]),
+        first: rows[0].n === 'DAVID', five: rows.length >= 5, neighbors: rows.slice(1).every((q) => NEIGHBORS.concat('fortune', 'joe').includes(q.n.toLowerCase())) };
+    }
+    return out;
+  });
+  const ok = { guards: true, under: true, first: true, five: true, neighbors: true };
+  assert.deepEqual(Object.keys(recs).sort(), ['blocks', 'capsules', 'dumpling', 'fortune', 'fruit', 'garden', 'noodle', 'stack', 'surf', 'sushi']);
+  for (const [id, r] of Object.entries(recs)) assert.deepEqual(r, ok, id);
+  // a level's unlock: reaching the level still does it, and so does topping David's score for it; the old one-page game's
+  // score ranks as 2D SARAH (even over David) but is never her best and unlocks nothing
+  const unlocks = await page.evaluate(() => {
+    const A = arc();
+    A.reach.blocks = 12; A.best.blocks = 3000;
+    A.best.capsules = ARCADE_RECORD.capsules[0] + 1; A.reach.capsules = 4;
+    A.best.stack = ARCADE_RECORD.stack[0]; A.stackTop = 8;
+    A.legacy = { blocks: 60000, fruit: 99999 };
+    checkSpecialMilestones();
+    SpecialQueue.length = 0;      // (their cards aren't wanted here)
+    const rows = hiScoreRows('blocks');
+    return { robot: hasSpecial('dance_robot'), buns: hasSpecial('hair_spacebuns'), mohawk: hasSpecial('hair_mohawk'), how: specials().hair_mohawk && specials().hair_mohawk.how,
+      shortcake: hasSpecial('recipe_shortcake'), ears: hasSpecial('acc_catears'), old: [rows[0].n, rows[1].n, A.best.blocks, A.best.fruit || 0] };
+  });
+  assert.deepEqual(unlocks, { robot: true, buns: false, mohawk: true, how: "You topped David's Spice Capsules record!", shortcake: false, ears: false, old: ['2D SARAH', 'DAVID', 3000, 0] });
+  // outside the top five, her own row is under it; a neighbor topping her best stays under David's record while it stands
+  const low = await page.evaluate(() => {
+    const A = arc(), L = hiScoreList('blocks'), rows = [...L.querySelectorAll('.hs-row')];
+    const shown = [rows.length, rows[0].dataset.who, rows[5] && rows[5].classList.contains('me'), rows[5] && rows[5].querySelector('.hs-rank').textContent, !!L.querySelector('.hs-gap')];
+    A.legacy = {};
+    A.best.blocks = 49000; delete A.rival.blocks;
+    const day = Clock.dayNum, d0 = day.call(Clock);
+    try { for (let k = 1; k < 400 && !A.rival.blocks; k++) { Clock.dayNum = () => d0 + k; arcadeRivals(); } } finally { Clock.dayNum = day; }
+    const rv = A.rival.blocks, rows2 = hiScoreRows('blocks');
+    return { shown, rival: !!rv && rv.score > 49000 && rv.score < ARCADE_RECORD.blocks[0] && HISCORE_RIVALS.blocks.some((q) => q[0] === rv.who), david: rows2[0].n, second: rows2[1].n === rv.who };
+  });
+  assert.deepEqual(low, { shown: [6, 'old', true, '8', true], rival: true, david: 'DAVID', second: true });
+  // topping David at a cabinet, the way a player does: the game's card says so, Chili says so, and the Tiara turns up
+  await page.evaluate(() => { const A = arc(); A.best.blocks = 7000; delete A.rival.blocks; S.flags.arcadeTour = true; Object.assign(NPCs.get('chili'), { sleeping: false, area: 'arcade' }); enterRoom('arcade'); });
+  await page.waitForFunction(() => G.area && G.area.id === 'arcade' && !G.busy && !G.fade);
+  await page.evaluate(() => { arcadeCabinet('sushi'); });
+  await page.click('#choices .choice:has-text("Play (free!)")');
+  await page.waitForFunction(() => Arcade.on && Arcade.id === 'sushi');
+  await page.evaluate(() => { Arcade.g.score = ARCADE_RECORD.sushi[0] + 1; Arcade.g.over = true; });
+  await page.waitForFunction(() => Arcade.state === 'over');
+  assert.match(await page.textContent('#arcade .ar-card'), /You topped David's record!/);
+  await page.click('#arcade .ar-card button:has-text("Done")');
+  await page.waitForFunction(() => UI.dialogOpen && UI._sp === 'chili');
+  await page.evaluate(() => UI.advance());
+  const chili = await page.evaluate(() => ({ line: RECORD_LINES.map(fillText).includes(UI._full), tiara: hasSpecial('acc_tiara'), how: specials().acc_tiara && specials().acc_tiara.how }));
+  assert.deepEqual(chili, { line: true, tiara: true, how: "You topped David's Sushi Swap record!" });
+  await page.evaluate(() => UI.advance());
+  await page.waitForSelector('#panel.spcard:not([hidden])');
+  await page.evaluate(() => UI.close());
+  // the cabinet's menu: High scores shows that game's top five (Sarah first now), and Back goes back to the menu
+  await page.waitForFunction(() => !UI.modal && !UI.dialogOpen && !G.busy);
+  await page.evaluate(() => { arcadeCabinet('sushi'); });
+  await page.click('#choices .choice:has-text("High scores")');
+  await page.waitForSelector('#panel:not([hidden]) .hs-list');
+  const cab = await page.evaluate(() => ({ title: document.querySelector('#panel h2').textContent, who: [...document.querySelectorAll('#panel .hs-row')].map((r) => r.dataset.who) }));
+  assert.deepEqual(cab, { title: 'Sushi Swap: high scores', who: ['me', 'david', 'maki', 'wonton', 'kai'] });
+  await page.click('#panel .pfoot button:has-text("Back")');
+  await page.waitForSelector('#choices .choice:has-text("High scores")');
+  await page.click('#choices .choice:has-text("Not now")');
+  // the wall's board: every game's top five in the same look
+  const board = await page.evaluate(() => { showHiScores(); const L = [...document.querySelectorAll('#panel .hs-list')]; const out = { games: L.map((l) => l.dataset.game).join() === arcadeCabs().join(), fives: L.every((l) => l.querySelectorAll('.hs-row').length >= 5) }; UI.close(); return out; });
+  assert.deepEqual(board, { games: true, fives: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('the arcade back room: once Sarah has tried the locked door, Chili hints how to get in (whatever is left to do) and says the rejects live back there; the out-of-order cabinet waits inside with its note', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  await page.evaluate(() => { __dbg.setTime(10, 23, 14); S.flags.arcadeTour = true; arc().plays.blocks = 1; Object.assign(NPCs.get('chili'), { sleeping: false, area: 'arcade' }); enterRoom('arcade'); });
+  await page.waitForFunction(() => G.area && G.area.id === 'arcade' && !G.busy && !G.fade);
+  const label = 'About that locked door...';
+  const before = await page.evaluate((label) => Quests.options(NPCs.get('chili')).some((o) => o.label === label), label);
+  assert.equal(before, false, 'no hint before trying the door');
+  await page.evaluate(async () => { const say = UI.say; UI.say = async () => {}; try { await backDoor(); } finally { UI.say = say; } });
+  // the hint, from the talk menu the way a player picks it
+  await page.evaluate(() => { window.__said = []; const say0 = UI.say; UI.say = function (who, t, o) { window.__said.push([].concat(t).join(' ')); return say0.call(this, who, t, o); }; talkTo(NPCs.get('chili')); });
+  await until(() => page.evaluate((label) => {
+    if (UI._chooser) {
+      const all = [...document.querySelectorAll('#choices .choice')], b = all.find((c) => c.textContent === label);
+      if (b) { window.__said = []; b.click(); return true; }
+      if (all.length && !all.some((c) => c.textContent === 'See you!')) all[all.length - 1].click();
+      return false;
+    }
+    if (UI.dialogOpen) UI.advance();
+    else if (!G.busy) talkTo(NPCs.get('chili'));
+    return false;
+  }, label), 20000);
+  await until(() => page.evaluate(() => { if (UI._chooser) return true; if (UI.dialogOpen) UI.advance(); return false; }), 20000);
+  const hint = await page.evaluate(() => window.__said.join(' '));
+  assert.match(hint, /rejects/);
+  assert.match(hint, /Spice Capsules/, 'names a cabinet still to play');
+  assert.doesNotMatch(hint, /Bento Blocks/, 'not one already played');
+  assert.match(hint, /two weeks/);
+  await page.click('#choices .choice:has-text("See you!")');
+  await until(() => page.evaluate(() => { if (UI.dialogOpen) UI.advance(); return !UI.dialogOpen && !G.busy; }), 20000);
+  // each step of the way the hint is the next thing to do; when it's time to ask properly, that question takes over
+  const steps = await page.evaluate(async (label) => {
+    const c = NPCs.get('chili'), tip = () => { const o = backOptions(c).find((q) => q.label === label); return o ? backTip(Quests.stage('backroom')).join(' ') : null; };
+    const out = {};
+    S.startDay -= 20;
+    for (const id of ARCADE_CABS) arc().plays[id] = 1;
+    out.ready = [tip(), backOptions(c).map((o) => o.label)];
+    Quests.set('backroom', 1); out.sully = /Sully/.test(tip());
+    Quests.set('backroom', 2); out.lighthouse = /lighthouse/.test(tip());
+    Quests.set('backroom', 3); out.key = /KEY/.test(tip());
+    Quests.finish('backroom'); out.open = tip();
+    // inside: the out-of-order cabinet (gone from out front), reading its note, not playable
+    out.front = G.area.items.some((i) => i.id === 'cab_broken');
+    await enterRoom('arcade_back');
+    const said = [], say = UI.say;
+    UI.say = async (who, t) => { said.push([].concat(t).join(' ')); };
+    try { await G.area.items.find((i) => i.id === 'cab_broken').use(); } finally { UI.say = say; }
+    out.note = /future update might restore it/.test(said.join(' ')) && !Arcade.on;
+    return out;
+  }, label);
+  assert.deepEqual(steps, { ready: [null, ["What's behind the STAFF ONLY door?"]], sully: true, lighthouse: true, key: true, open: null, front: false, note: true });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
 });

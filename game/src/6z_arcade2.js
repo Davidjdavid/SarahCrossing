@@ -462,9 +462,12 @@ Object.assign(TUNES, {
 });
 FIXED_TUNES.push('surf', 'garden', 'noodle');
 Object.assign(HISCORE_RIVALS, {
-    surf: [['KAI', 2400, 'obviously'], ['DAVID', 1700, 'did a spin, somehow'], ['MAKI', 900, 'precise little hops']],
-    garden: [['BASIL', 1800, 'protecting his greens'], ['CHILI', 1500, 'bonked with feeling'], ['CUKE', 300, 'kept bonking himself']],
-    noodle: [['BASIL', 1400, "it's his noodle"], ['MAC', 1100, 'extra cheese, extra long'], ['CECE', 600, 'apologized to the shrimp']],
+    surf: [['KAI', 2400, 'obviously'], ['COCO', 1250, 'waved to the crowd the whole time'], ['CLEMENTINE', 1100, 'not one hair out of place'],
+        ['MAKI', 900, 'precise little hops'], ['CUKE', 650, 'jogged on the board']],
+    garden: [['BASIL', 1800, 'protecting his greens'], ['CHILI', 1500, 'bonked with feeling'], ['GINGER', 1300, 'fixed the mallet first'],
+        ['SULLY', 950, 'bonked like it was 1987'], ['CUKE', 300, 'kept bonking himself']],
+    noodle: [['BASIL', 1400, "it's his noodle"], ['CHILI', 1250, 'went for every chili'], ['MAC', 1100, 'extra cheese, extra long'],
+        ['MAKI', 900, 'never crossed his own noodle'], ['CECE', 600, 'apologized to the shrimp']],
 });
 Object.assign(ARC_TARGET, { surf: [500, 1000, 1800], garden: [500, 900, 1400], noodle: [300, 700, 1200] });
 Object.assign(TRACK_NAMES, { surf: "Surf's Up", garden: 'Gopher Garden', noodle: 'Noodle Slurp' });
@@ -476,7 +479,7 @@ const CHILI_BACK = [
     'Gopher Garden tip: the golden ones give you more time. Cuke gives you nothing but regret. Do not bonk Cuke.',
     "Noodle Slurp has a chili in it that makes you go faster. They made it in 1987. 1987 knew about me. 1987 KNEW."];
 const BACK_CHAT = {
-    kai: "Surf's Up is legit, dude. Old school. I've got the high score now. It's my wave. It was always my wave.",
+    kai: "Surf's Up is legit, dude. Old school. I'm one spin off the high score. It's my wave. It was always my wave.",
     basil: "There's an old game about a garden in the arcade's back room! Gophers everywhere. And a noodle game! Slurp responsibly.",
     cuke: "There's a cucumber in Gopher Garden! Jogging through! Since 1987! People keep bonking him! GREAT cardio! For them!",
     mac: 'Noodle Slurp. A game where you eat noodles. They made it in 1987 and they were right.',

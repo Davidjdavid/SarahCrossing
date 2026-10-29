@@ -575,6 +575,7 @@ TUNES.dumpling = { bpm: 128, root: 62, scale: 'major', lead: 'pluck', chords: [1
         F: '6 . ^1 . 6 5 3 .', G: '5 . 3 . 2 . . .', H: '3 . 5 . 6 . ^1 .' },
     leadVol: 0.14, bass: 'x.ox.xo.', arp: 'x.x.x.x.', arpInstr: 'kalimba', arpVol: 0.035, drums: { kick: 'x...x...', snare: '....x...', shaker: 'oxoxoxox' }, drumVol: 0.22 };
 FIXED_TUNES.push('dumpling');
-HISCORE_RIVALS.dumpling = [['CHILI', 24000, 'played through his lunch break'], ['WONTON', 15000, "it's his steamer"], ['MAKI', 8000, 'every pleat precisely folded']];
+HISCORE_RIVALS.dumpling = [['CHILI', 11200, 'played through his lunch break'], ['WONTON', 9800, "it's his steamer"], ['MAKI', 8000, 'every pleat precisely folded'],
+    ['MAC', 5600, 'got hungry halfway'], ['BASIL', 3700, 'steamed them slowly. patiently']];
 ARC_TARGET.dumpling = [2000, 5000, 10000];
 TRACK_NAMES.dumpling = 'Dumpling Drop';
