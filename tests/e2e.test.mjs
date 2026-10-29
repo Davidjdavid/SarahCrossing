@@ -2589,15 +2589,16 @@ test('Captain Shrimpy: washed up a week in, ten logs, ten meals, five gems, sail
       const n = NPCs.get('scampi'), s = seaSite();
       out.washed = [seaStage(), site(), !!(n.want && n.want.lie), n.area, Math.abs(n.x / TILE - s.x) < 3].join();
       out.wakes = /LAND/.test(await talk()) && seaStage() === 2;
-      // chopping a tree while he's short drops a sturdy log
+      // his logs are the island's own wood (David, 29 October): no tree drops a sturdy log any more, and an older save's
+      // sturdy logs still count, taken first
       G.area = G.areas.island;
       const logs = () => ents().filter(e => e.kind === 'item' && e.id === 'ship_log').length, l0 = logs();
       seaChop(G.player.x, G.player.y);
-      out.chopDrop = logs() === l0 + 1;
-      addItem('ship_log', 10, true);
-      seaChop(G.player.x, G.player.y);
-      out.enough = logs() === l0 + 1;
-      out.logs = /Ten logs/.test(await talk()) && seaStage() === 3 && S.sea.got.logs === 10 && pocketCount('ship_log') === 0 && site() === 'ship_frame';
+      out.chopDrop = logs() === l0;
+      const w0 = pocketCount('wood');
+      addItem('ship_log', 3, true); addItem('wood', 9, true);
+      out.enough = pocketCount('ship_log') + pocketCount('wood') >= SEA_NEED.logs;
+      out.logs = /Ten logs/.test(await talk()) && seaStage() === 3 && S.sea.got.logs === 10 && pocketCount('ship_log') === 0 && pocketCount('wood') === w0 + 2 && site() === 'ship_frame';
       out.waits = /[Tt]omorrow/.test(await talk()) && seaStage() === 3;
       day(9);
       addItem('fried_rice', 6, true); addItem('chowder', 4, true);
