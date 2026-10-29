@@ -166,7 +166,7 @@ async function neighborTalk(n) {
     // a new heart, something new they share: personal, advice, a gift for her house, best friends (6zm_friendship.js)
     else await friendMilestone(n);
     // photo at five hearts
-    // (only those with a photo of their own: Shrimpy and Muggy have none yet, QA, 29 October)
+    // (only those with a photo of their own: Shrimpy's and Muggy's are drawn in 6zzn_photos.js)
     if (hearts(id) >= 5 && !r.photo && ITEMS['photo_' + id]) {
         r.photo = true;
         await UI.say(id, voiced(id, PHOTO_GIVE[id] || PHOTO_GIVE_ANY), { keep: true });

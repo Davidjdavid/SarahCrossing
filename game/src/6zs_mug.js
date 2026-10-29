@@ -517,6 +517,27 @@ const MUG_ICONS = {
         '................',
         '................']],
 };
+const MUG_PAL = {'a':'#2d2230','c':'#fbf4e2','C':'#e2d6bc','d':'#6a3a1e','D':'#4a2412','b':'#3a6aa8','B':'#2a4e86','g':'#f0c848','e':'#1a1a20','h':'#ffffff','m':'#a8483a','k':'#f2a0aa','s':'#eef4fa','f':'#7a5a3a'};
+const MUG_ART = [
+        '......s...s.....',
+        '.....s...s......',
+        '......s...s.....',
+        '..aaaaaaaaaaa...',
+        '..adDddddddda...',
+        '..acgcccccccaaa.',
+        '..agccccccccaCCa',
+        '..acgcehcceha.Ca',
+        '..agcceecceea.Ca',
+        '..acckceccekaCCa',
+        '..accccceeccaaa.',
+        '..abbbbbbbbba...',
+        '..aBbbbgbbbBa...',
+        '..acccccggcca...',
+        '...acccccccCa...',
+        '...aaaaaaaaa....',
+        '....ff...ff.....',
+        '....ff...ff.....',
+    ];
 ASSET_MAKERS.push(() => {
     const make = (name, w, h, ax, ay, fn) => {
         if (Assets.frames[name] || Assets.dyn[name]) return;
@@ -527,15 +548,9 @@ ASSET_MAKERS.push(() => {
         Assets.dyn[name] = { c, w, h, ax, ay };
     };
     for (const [name, [pal, rows]] of Object.entries(MUG_ICONS)) make(name, 16, 16, 8, 13, R => rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') R(pal[ch], x, y, 1, 1); })));
-    // the mug, hopping (two frames): cream, a blue band, gold seams, a handle on its right
-    for (const k of [0, 1]) make('mug_' + k, 16, 18, 8, 17, R => {
-        const s = k ? 1 : 0;
-        R('#7a5a3a', 4, 16, 3, 2); R('#7a5a3a', 9, 16, 3, 2);
-        R('#2d2230', 2, 2 + s, 11, 14 - s); R('#f6eedc', 3, 3 + s, 9, 12 - s); R('#6a3a1e', 3, 3 + s, 9, 2);
-        R('#3a6aa8', 3, 10 + s, 9, 2); R('#e8c048', 5, 6 + s, 1, 4); R('#e8c048', 9, 12 + s, 2, 1);
-        R('#2d2230', 13, 6 + s, 2, 6); R('#f6eedc', 13, 7 + s, 1, 4);
-        R('#2a1a16', 5, 7 + s, 1, 2); R('#2a1a16', 9, 7 + s, 1, 2); R('#e8889a', 4, 9 + s, 1, 1); R('#e8889a', 10, 9 + s, 1, 1);
-    });
+    // the mug, hopping (two frames: it bobs a pixel, feet planted): cream, coffee in the top, a blue band, the gold seams
+    // Sully mended it with, a handle on its right, steam (pixel art, David's note of 29 October)
+    for (const k of [0, 1]) make('mug_' + k, 16, 18, 8, 17, R => MUG_ART.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') R(MUG_PAL[ch], x + (k && y < 3 ? 1 : 0), y + (k && y < 16 ? 1 : 0), 1, 1); })));
     // the café (a 4-wide building, as the shops' pictures)
     make('cafe', 64, 60, 32, 57, R => {
         R('#2d2230', 3, 22, 58, 36); R('#f6ecd8', 4, 23, 56, 34);

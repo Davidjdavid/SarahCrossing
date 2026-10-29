@@ -506,6 +506,28 @@ const FAR_ICONS = {
 };
 
 /* ---------------------------------------------------------------- his pictures in the flat views */
+/* the captain: a curled orange shrimp in a white captain's hat with a gold badge, a blue neckerchief, antennae up */
+const SCAMPI_PAL = {'a':'#3a1a1a','W':'#fbf8f0','w':'#d8d4cc','K':'#22305a','Y':'#f0c040','o':'#f2805a','O':'#d0583a','p':'#ffc2a0','e':'#1a1a20','h':'#ffffff','r':'#c8483a','s':'#3a72d0','S':'#2a52a0','n':'#e8a080'};
+const SCAMPI_ART = [
+        '..r..........r..',
+        '...r........r...',
+        '....aaaaaaaa....',
+        '...aWWWWWWWWa...',
+        '..aWWWWWWWWwwa..',
+        '..aKKKKYYKKKKa..',
+        '.aaaaaaaaaaaaaa.',
+        '..aoooooooooOa..',
+        '..aoehooooehoa..',
+        '..aoeeooooeeoa..',
+        '..anooaooaooOna.',
+        '...aoooaaooOa...',
+        '..asssssssssSa..',
+        '..aoOppppppOoa.a',
+        '..aoOoppppOoaaOa',
+        '...aoOooooOoOOa.',
+        '....aaraaraaaa..',
+        '....r..r.r..r...',
+    ];
 ASSET_MAKERS.push(() => {
     const make = (name, w, h, ax, ay, fn) => {
         if (Assets.frames[name] || Assets.dyn[name]) return;
@@ -515,15 +537,8 @@ ASSET_MAKERS.push(() => {
         fn((col, x, y, ww, hh) => { g.fillStyle = col; g.fillRect(x, y, ww, hh); });
         Assets.dyn[name] = { c, w, h, ax, ay };
     };
-    for (const k of [0, 1]) make('scampi_' + k, 16, 18, 8, 17, R => {
-        const s = k ? 1 : 0;
-        R('#c8543a', 4, 16, 3, 2); R('#c8543a', 9, 16, 3, 2);
-        R('#f0784e', 3, 5 + s, 10, 11 - s); R('#ffb08a', 5, 11 + s, 6, 4 - s); R('#d8603a', 3, 9 + s, 10, 1); R('#d8603a', 3, 12 + s, 10, 1);
-        R('#f8f4ea', 4, 10 + s, 8, 2); R('#2f6ad0', 3, 9 + s, 10, 1);
-        R('#22305a', 3, 3 + s, 10, 2); R('#f6f2e6', 2, 1 + s, 12, 2); R('#1a1a20', 4, 5 + s, 8, 1); R('#e8b838', 7, 3 + s, 2, 1);
-        R('#2a1a16', 5, 7 + s, 1, 1); R('#2a1a16', 10, 7 + s, 1, 1);
-        R('#d8603a', 1, 0 + s, 1, 3); R('#d8603a', 14, 0 + s, 1, 3);
-    });
+    // (pixel art: David, 29 October, "draw the pictures for Muggy and Shrimpy"; the second frame bobs a pixel, feet planted)
+    for (const k of [0, 1]) make('scampi_' + k, 16, 18, 8, 17, R => SCAMPI_ART.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') R(SCAMPI_PAL[ch], x, y + (k && y < 16 ? 1 : 0), 1, 1); })));
     make('wreck', 40, 20, 20, 18, R => {
         R('#7a5230', 2, 10, 14, 3); R('#a8743e', 18, 13, 12, 3); R('#8a6a48', 8, 15, 10, 2); R('#c83a2e', 22, 6, 10, 4);
         R('#a8743e', 30, 9, 8, 8); R('#34343a', 30, 11, 8, 1); R('#34343a', 30, 15, 8, 1); R('#d8c08a', 4, 4, 6, 4);

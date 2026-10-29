@@ -33,6 +33,9 @@ const EnvDolls = {
        stay as they are), and friends playing along online */
     specOf(e) {
         if (e === G.player) return Online.visitor() ? hdFolkSpec(Online.who()) : hdSarahSpec();
+        // (a friend playing along online: before the neighbors, since they carry a def too, { human: true }, which isn't a
+        // look; that made them flat cards in the new look, QA 29 October)
+        if (e.kind === 'remote' && e.who) return e.who === 'sarah' ? hdRemoteSarah(e.look) : hdFolkSpec(e.who);
         // (on Halloween night everyone's in costume: 6z_festivals.js)
         if (e.def) { const acc = (typeof halloweenCostume === 'function' && halloweenCostume(e.id)) || npcWearing(e.id); if (e.def.human) return hdFolkSpec(e.def.human, acc); const f = this.folkOf(e); return f ? { folk: f, acc } : null; }
         if (e.who) return e.who === 'sarah' ? hdRemoteSarah(e.look) : hdFolkSpec(e.who);

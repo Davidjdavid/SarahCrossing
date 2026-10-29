@@ -108,8 +108,9 @@ const VolleyLive = {
     },
     ball() { const isl = G.areas && G.areas.island; return isl && isl.ents.find(e => e.kind === 'vbball'); },
     update() {
-        if (G.frame % 20 === 3) this.pl = this.players();
-        const pl = this.pl, ball = this.ball();
+        // (who's playing and the court's ball looked up now and then, not every frame)
+        if (G.frame % 20 === 3) { this.pl = this.players(); this.b = this.pl || (this.b && this.b.home) ? this.ball() : null; }
+        const pl = this.pl, ball = this.b;
         if (!ball) return;
         if (!pl) { if (ball.home) { [ball.x, ball.y] = ball.home; ball.air = 0; ball.home = null; } return; }
         if (!ball.home) ball.home = [ball.x, ball.y];

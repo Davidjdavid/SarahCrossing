@@ -1061,7 +1061,7 @@ function r3Sea(scene) {
 }
 function r3Sky(scene) {
     const mat = new THREE.ShaderMaterial({
-        side: THREE.BackSide, depthWrite: false, fog: false,
+        side: THREE.BackSide, depthWrite: false, fog: false, extensions: { derivatives: true },
         uniforms: { uZen: { value: new THREE.Color('#3f80cc') }, uMid: { value: new THREE.Color('#86bce4') }, uHor: { value: new THREE.Color('#d2e5ec') }, uTime: R3U.uTime, uDay: { value: 1 }, uAur: { value: 0 }, uNight: { value: 0 }, uSkyEdge: R3U.uSkyEdge },
         vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); vec4 p = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * p; }',
         fragmentShader: `uniform vec3 uZen, uMid, uHor; uniform float uTime, uDay, uAur, uNight, uSkyEdge; varying vec3 vDir;
@@ -1080,14 +1080,25 @@ function r3Sky(scene) {
               // the night sky: stars, small and twinkling, thinning toward the horizon and hidden behind the clouds, and the
               // moon low in the north (where the camera looks) with a soft halo
               if (uNight > 0.001) {
+                // (David, 29 October: the night sky was grainy and blurry. Each star is a round dot one to three screen
+                // pixels across, never smaller than a pixel, so it doesn't shimmer as the camera moves, twinkling gently;
+                // the brightest few with a soft halo, some a touch warm or blue)
                 float az = atan(vDir.x, -vDir.z), el = asin(clamp(vDir.y, -1.0, 1.0));
-                vec2 sg = vec2(az * 60.0, el * 60.0), si = floor(sg), sf = fract(sg) - 0.5;
-                float sh = h(si), sz = 0.06 + 0.18 * h(si + 7.3);
-                float star = step(0.93, sh) * smoothstep(sz, sz * 0.3, length(sf + (vec2(h(si + 1.1), h(si + 2.2)) - 0.5) * 0.6));
-                star *= 0.55 + 0.45 * sin(uTime * (1.5 + 3.0 * h(si + 4.4)) + sh * 40.0);
+                vec2 sg = vec2(az * 48.0, el * 48.0), si = floor(sg), sf = fract(sg) - 0.5;
+                float sh = h(si), star = 0.0;
+                float px = clamp(max(fwidth(sg.x), fwidth(sg.y)), 1e-4, 0.25);     // (a screen pixel, in cells: outside any branch)
+                vec3 sc = vec3(0.95, 0.96, 1.0);
+                if (sh > 0.93) {
+                  float dd = length(sf - (vec2(h(si + 1.1), h(si + 2.2)) - 0.5) * 0.5);
+                  float sz = mix(0.75, 1.7, h(si + 7.3)) * px;
+                  float core = 1.0 - smoothstep(sz * 0.45, sz, dd);
+                  float glow = exp(-dd / (px * 2.6)) * 0.3 * step(0.988, sh);
+                  star = (core + glow) * (0.8 + 0.2 * sin(uTime * (0.8 + 1.6 * h(si + 4.4)) + sh * 40.0)) * mix(0.5, 1.0, h(si + 3.3));
+                  sc = mix(vec3(1.0, 0.92, 0.8), vec3(0.82, 0.9, 1.0), h(si + 5.5)) * 0.35 + vec3(0.65);
+                }
                 // (the camera looks down: it only ever sees the sky's lowest strip, above the island's bent edge, so that's
                 // where the stars and the moon are)
-                c += vec3(0.95, 0.96, 1.0) * star * smoothstep(0.004, 0.03, y) * (1.0 - cover) * uNight;
+                c += sc * star * smoothstep(0.004, 0.03, y) * (1.0 - cover) * uNight;
                 vec3 md = normalize(vec3(0.34, (0.075 + uSkyEdge) * 1.06, -1.0));
                 float mc = dot(normalize(vDir), md);
                 c += vec3(0.32, 0.36, 0.46) * smoothstep(0.93, 1.0, mc) * 0.5 * uNight;
@@ -1105,7 +1116,8 @@ function r3Sky(scene) {
                 float k = band * smoothstep(0.3, 0.75, fold) * rays * smoothstep(-0.3, 0.4, -vDir.z);
                 c += mix(vec3(0.2, 0.95, 0.55), vec3(0.62, 0.32, 0.95), smoothstep(0.02, 0.2, y)) * k * uAur * 1.1;
               }
-              gl_FragColor = vec4(c, 1.0);
+              // (the alpha is how much depth of field blurs it: the sky by day soft, by night sharp, or the stars smear)
+              gl_FragColor = vec4(c, 1.0 - uNight * 0.9);
             }` });
     const s = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), mat);
     s.frustumCulled = false; s.renderOrder = -4;
@@ -2085,7 +2097,7 @@ const Post3 = (() => {
               col = col / (1.0 + max(col - 0.82, 0.0) * 0.9);
               vec2 q = vUv - 0.5; q.x *= aspect * 0.8;
               col *= mix(1.0, 0.8, smoothstep(0.35, 0.95, length(q)));
-              col += (h(vUv * res + fract(time)) - 0.5) / 255.0 * 1.5;
+              col += (h(vUv * res) - 0.5) / 255.0 * (1.5 - dark * 0.6);
               gl_FragColor = vec4(col, 1.0);
             }`, { tS: { value: null }, tA: { value: null }, tC: { value: null }, tE: { value: null }, time: { value: 0 }, aspect: { value: 1 }, bloom: { value: 0.6 },
                 dark: { value: 0 }, gray: { value: 0 }, warm: { value: 0 }, res: { value: new THREE.Vector2() } });

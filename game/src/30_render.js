@@ -367,6 +367,7 @@ function drawWeather(ctx, v) {
 function drawOverheads() {
     const p = G.player, cs = G.view.cssScale, d3 = R3.active();
     const at = (e, lift) => { if (!d3) return [...screenOf(e.x, e.y, lift), cs]; const q = R3.project(e.x, e.y, lift); return q.behind ? null : [q.x * cs, q.y * cs, q.s * cs]; };
+    IslandGames.drawRing(at);
     const all = NPCs.here().concat(p ? [p] : [], Online.here());
     for (const e of all) {
         if (!e.emote || (d3 && !r3Sees(e))) continue;

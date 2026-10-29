@@ -5145,3 +5145,60 @@ test("the screens' icons are drawn as shapes like the phone's (the Bank's counte
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test("David's notes of 29 October: the barn's key from a friend, chests that stay open (the keeper's holds the mustache), the third cog in Driftwood Cove, the court's solo game and scores, thirty-second tag with neighbors joining in, Clementine's five a day, Shrimpy's and Muggy's photos", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, frames = (n) => new Promise((r) => { let k = 0; const f = () => (++k >= n ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); });
+    // (a flow with lines and a card or two, run to its end)
+    const run = async (fn) => { let done = false; Promise.resolve(fn()).then(() => { done = true; }); for (let i = 0; i < 600 && !done; i++) { if (UI.dialogOpen) UI.advance(); else if (UI.modal) UI.close(); await frames(2); } return done; };
+    // the barn: locked until a friend (two hearts, not Joe) mails the spare key, the next morning
+    out.locked = !barnOpen();
+    Object.assign(rel('joe'), { met: true, pts: 100 });
+    barnKeyTick();
+    out.joeNot = !S.flags.barnKeySent;
+    Object.assign(rel('coco'), { met: true, pts: 30 });
+    barnKeyTick(); barnKeyTick();
+    const keyMail = S.mail.filter((m) => m.gift === 'q_barnkey');
+    out.mail = keyMail.length === 1 && keyMail[0].from === 'coco';
+    receive('q_barnkey', 1);
+    out.open = barnOpen() && !!S.flags.barnKey;
+    // chests: the barn's trunk open once the note's found, the keeper's sea chest gives the mustache and stays open
+    out.trunk = barnTrunkId() === 'old_trunk' && (S.quests.treasure = { stage: 1 }) && barnTrunkId() === 'old_trunk_open';
+    out.mustache = (await run(() => lighthouseChest({}))) && hasSpecial('acc_mustache') && !!S.flags.lhChest;
+    out.bank = ['bank_chest', 'bank_trunk', 'lh_trunk_open', 'old_trunk_open'].every((id) => FURN[id] && ITEMS[id]);
+    // the windmill's third cog: in the driftwood at Driftwood Cove
+    __dbg.at('plaza'); await frames(3);
+    S.quests.windmill = { stage: 1, cogs: [] };
+    const dw = G.areas.island.ents.find((e) => e.kind === 'driftwood' && Math.hypot(e.px - W0.spots.cove.x, e.py - W0.spots.cove.y) < 10);
+    out.cog = !!dw && (await run(() => dw.interact())) && S.quests.windmill.cogs.includes('chest') && pocketCount('q_cog') === 1;
+    out.cove = Design.areaAt(W0.spots.cove.x, W0.spots.cove.y).id === 'cove' && W0.buildings.shop.x < W0.buildings.restaurant.x;
+    // the court: on her own the ball machine sends it back till she misses; the best five kept
+    const g = new VolleyGame({ solo: true });
+    for (let i = 0; i < 6000 && !g.over; i++) g.update({ held: {}, pressed: {}, pointer: null });
+    out.solo = g.over && g.solo && !g.win;
+    vbSoloRecord(12); vbSoloRecord(7);
+    out.best = vbSoloBest() === 12 && S.games.vbSolo.top.length === 2;
+    // tag: thirty seconds, and neighbors close by join in
+    out.tagTime = IG_TAG_FRAMES === 30 * 60;
+    const P = G.player;
+    for (const [id, dx] of [['coco', 30], ['kai', -36], ['cuke', 12]]) Object.assign(NPCs.get(id), { area: 'island', sleeping: false, x: P.x + dx, y: P.y + 20, path: null, chat: null, idle: null, script: false, talking: false, sit: null, spotKey: 'plaza', want: null });
+    __dbg.islandGame('tag', 'coco');
+    for (let i = 0; i < 400 && !(IslandGames.on && IslandGames.on.phase === 'play'); i++) { if (UI.dialogOpen && !UI._chooser) UI.advance(); await frames(2); }
+    out.joined = IslandGames.on && IslandGames.on.extra.length >= 1 && IslandGames.on.it === 'sarah';
+    if (IslandGames.on) IslandGames.on.t = IG_TAG_FRAMES - 2;
+    for (let i = 0; i < 400 && (IslandGames.on || G.busy); i++) { if (UI.dialogOpen && !UI._chooser) UI.advance(); await frames(2); }
+    out.tagOver = !IslandGames.on && ['coco', 'kai', 'cuke'].every((id) => !NPCs.get(id).script);
+    // Clementine's: five a day from twenty kinds, a different five tomorrow, every one a real item
+    const day = Clock.dayNum(), a = accDaily(day), b = accDaily(day + 1);
+    out.accs = new Set(a).size === 5 && a.join() !== b.join() && a.concat(b).every((id) => ITEMS[id]);
+    // Shrimpy's and Muggy's photos, drawn
+    out.photos = ['scampi', 'mug'].every((id) => ITEMS['photo_' + id] && Assets.has('f_photo_' + id));
+    return out;
+  });
+  assert.deepEqual(res, { locked: true, joeNot: true, mail: true, open: true, trunk: true, mustache: true, bank: true, cog: true, cove: true, solo: true, best: true, tagTime: true, joined: true, tagOver: true, accs: true, photos: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});

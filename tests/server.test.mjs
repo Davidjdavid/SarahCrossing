@@ -311,6 +311,10 @@ test('the real world: a zip code\'s place, forecast and headlines, and the marke
     assert.equal((await get('/api/world?zip=12')).status, 400);
     assert.equal((await get('/api/world?zip=00000')).status, 404);
     assert.equal((await fetch(w.url + '/api/world?zip=02134')).status, 401, 'needs the password like the rest');
+    // the world's headlines without a zip code, for the island paper (David, 29 October)
+    const news = await (await get('/api/news')).json();
+    assert.ok(Array.isArray(news.world) && news.world.length > 0, JSON.stringify(news));
+    assert.equal((await fetch(w.url + '/api/news')).status, 401);
     const m = await (await get('/api/market')).json();
     assert.equal(m.stocks.length, 8);
     for (const s of m.stocks) assert.equal(s.closes.length, 60);

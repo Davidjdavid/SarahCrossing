@@ -67,12 +67,32 @@ function fakeWorld(zip) {
   };
 }
 
+// The world's headlines don't need a zip code (David, 29 October: the paper had none without one): the first of these
+// feeds that answers, kept an hour, or ten minutes when none did so a bad moment doesn't leave the paper empty all day.
+const NEWS_FEEDS = ['https://feeds.npr.org/1001/rss.xml', 'https://feeds.bbci.co.uk/news/world/rss.xml', 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml'];
+let newsCache = null; // { at, list }
+export async function headlines() {
+  if (process.env.WORLD_FAKE) return ['Scientists name a new kind of very small frog', 'A long-lost painting turns up in an attic'];
+  if (newsCache && Date.now() - newsCache.at < (newsCache.list.length ? 3600e3 : 600e3)) return newsCache.list;
+  let list = [];
+  for (const u of NEWS_FEEDS) {
+    list = await get(u, 'text').then((x) => feedTitles(x, 5), () => []);
+    if (list.length) break;
+  }
+  newsCache = { at: Date.now(), list };
+  return list;
+}
+
 /** Everything the island needs about a zip code today. */
 export async function world(zip) {
   zip = String(zip || '');
   if (!/^\d{5}$/.test(zip)) throw new WorldError(400, 'A zip code is five digits');
   const key = 'w:' + zip, hit = cache.get(key);
-  if (hit && hit.day === today()) return hit.data;
+  if (hit && hit.day === today()) {
+    // (headlines that didn't come in this morning are tried again)
+    if (!hit.data.fake && !hit.data.news.world.length) hit.data.news.world = await headlines();
+    return hit.data;
+  }
   if (process.env.WORLD_FAKE) return fakeWorld(zip);
   const z = await get(`https://api.zippopotam.us/us/${zip}`);
   const pl = z && z.places && z.places[0];
@@ -83,7 +103,7 @@ export async function world(zip) {
   const days = (D.time || []).map((date, i) => ({ date, sky: skyOf(D.weathercode[i]), code: D.weathercode[i], hi: Math.round(D.temperature_2m_max[i]), lo: Math.round(D.temperature_2m_min[i]) }));
   // the headlines are a bonus: no news is still a world
   const local = await get(`https://news.google.com/rss/search?q=${encodeURIComponent(`"${place}" ${state}`)}&hl=en-US&gl=US&ceid=US:en`, 'text').then((x) => feedTitles(x, 5), () => []);
-  const worldNews = await get('https://feeds.npr.org/1001/rss.xml', 'text').then((x) => feedTitles(x, 5), () => []);
+  const worldNews = await headlines();
   const data = { zip, place, state, tz: w.timezone, offset: Math.round((w.utc_offset_seconds || 0) / 60), days, news: { local, world: worldNews }, at: Date.now() };
   cache.set(key, { day: today(), data });
   return data;

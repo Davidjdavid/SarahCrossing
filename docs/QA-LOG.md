@@ -40,15 +40,18 @@ make it happen, what shows it, how bad it is, and whether it's fixed and checked
 | 26 | At the lookout the camera eases down to look out over the sea (David, 28 October), but three pines stood right in front of the telescope: the view was trees, the sea only at the edge | scripts/island/greenery.json | Go to the lookout in the new look | QA 3D sweep (017-spot_lookout) | medium | yes: the three pines in the telescope's line of sight taken out of the frozen greenery (trees are kept by their tile, so saves are fine); the island made again, nothing else moved | browser: from the telescope the lawn runs open to the cliff's edge and the sea, the other pines off to the side |
 | 27 | The QA room offered a "storm" weather the game never has (a day is sunny, cloudy, rainy or snowy, a zip code's forecast too): picked, it drew a sunny day with nothing working as weather | 6zzf_qa.js | QA panel, Time, Weather today, storm | QA 3D sweep (034: "storm" looked sunny) | minor (QA tool) | yes: the four real weathers only | code |
 | 28 | Fortune's welcome on a new island was from an older island: the phone "has your mail" (there's no Mail app; letters are read at the mailbox), Sarah's house was "past the museum" and Joe's "just west of the pier" (both are out west in the village) | 90_main.js `startNew` | Start a brand-new island from the title | The first-time walkthrough (title, boat, form, every line, first steps, on a laptop and a phone): the lines as read | medium | yes: the phone has "a map, your messages, and a camera", letters come to the mailbox; the house is west of the square past the Post Office; Joe out west by the beach past the village | browser: the walkthrough again on a laptop and a phone, 15 and 14 lines, no errors |
+| 29 | Neighbors never idled, wandered or turned their heads: their frame counter started at a fraction (`R()*200`), so every "every so many frames" check in updateNPC missed, forever | 22_npc.js | Watch the square for a while | Counted in whole frames (`rint(0, 199)`) | code: 153 of 288 samples busy with an idle, 34 standing |
+| 30 | The night sky was blurry and grainy (David, 29 October): the sky told the depth of field to blur it fully, the stars were smaller than a pixel (they shimmered as the camera moved) and the post pass's dither changed every frame | 31_render3d.js `r3Sky`, the composite | Stand at the lookout at night | The sky's blur falls at night; stars one to three pixels across (`fwidth`); a still dither | browser: the lookout and the beach at 10:30 PM |
+| 31 | The island paper had no real-world news without a zip code, and a morning the feed didn't answer left it empty all day | server/world.mjs, 6zh_world.js | Read the paper with no zip code | `/api/news` (three feeds, kept an hour, retried after ten minutes), `newsFetch` | code (the feeds can't be reached from the test machine) |
 
 ## For David to decide (found, not changed)
 
-- **Fortune's shop growth** counts only what's spent at Fortune's counter (80,000, then 200,000). Buying a piece or two a
+- ~~**Fortune's shop growth**~~ David's call (29 October): 10,000 and 50,000, still counted at Fortune's counter only. It was: counts only what's spent at Fortune's counter (80,000, then 200,000). Buying a piece or two a
   day, the Emporium comes around day 45 and the Department Store around day 100, and it rewards buying things Sarah
   doesn't want (furniture sells back at a quarter). Count every island shop, or lower it to 40,000 and 100,000?
-- **Cuke's hours** (4 AM to 8 PM): someone who plays in the evenings never finds him awake, so his friendship stalls.
-- **Shrimpy's ten logs** mean felling ten trees, which don't come back unless Sarah plants more.
-- **Shrimpy's and Muggy's photos** at five hearts need pictures drawn; until then they don't give one.
+- ~~**Cuke's hours**~~ Done (29 October): he's up till 10 PM. It was: (4 AM to 8 PM): someone who plays in the evenings never finds him awake, so his friendship stalls.
+- ~~**Shrimpy's ten logs**~~ Done (29 October): any ten pieces of wood. It was: felling ten trees, which don't come back unless Sarah plants more.
+- ~~**Shrimpy's and Muggy's photos**~~ Done (29 October): drawn (6zzn_photos.js), and their flat pictures redrawn as pixel art.
 
 ## What's been checked and found fine
 

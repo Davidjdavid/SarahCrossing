@@ -5,8 +5,9 @@
    hide, look for Sarah and fish themselves, at their own skill (VS_SKILL, as at the arcade). Afterwards they go back to
    what they were doing. Volleyball and the snowball fight are 2D games (6zx_field_games.js). */
 
-const IG_TAG_FRAMES = 60 * 60;              // a minute of tag
-const IG_FIELD = 8 * TILE;                  // how far the tag field reaches from where the game started
+const IG_TAG_FRAMES = 60 * 30;              // thirty seconds of tag (David, 29 October: a minute was long)
+const IG_FIELD = 11 * TILE;                 // how far the tag field reaches from where the game started (its edge drawn on the ground)
+const IG_TAG_JOIN = 2;                      // neighbors close by who join in (IslandGames.tagJoin)
 const IG_HIDE_FIELD = 13 * TILE;            // hide-and-seek: how far away anyone may hide
 const IG_SEEK_FRAMES = 90 * 60;             // Sarah has a minute and a half to find them
 const IG_HIDE_FRAMES = 60 * 60;             // they look for her for a minute
@@ -14,8 +15,8 @@ const IG_DERBY_FRAMES = 120 * 60;           // two minutes of fishing
 const IG_TALL = { tree: 1, fruittree: 1, palm: 1, bigtree: 1, oldtree: 1, building: 1, young: 1 };
 const IG_LOW = { flowerbed: 1, blanket: 1, driftwood: 1, lamp: 1, mailbox: 1, board: 1, sign_island: 1, sign_club: 1, rock: 1, bench: 1 };     // too low to hide behind
 const IG_LINES = {
-    tag: ["Tag! You're it! Count to three, then come get me. A minute on the clock: whoever's it at the end loses!",
-        "Tag! Ha! You're it! Three seconds, then chase me. Whoever's it when the minute's up loses!"],
+    tag: ["Tag! You're it! Count to three, then come get me. Thirty seconds on the clock: whoever's it at the end loses!",
+        "Tag! Ha! You're it! Three seconds, then chase me. Whoever's it when time's up loses!"],
     tagWin: ["Time! You're it, so... I win! That was so fun. My legs are noodles.", "Ha! Time's up and you're it! Good game. I need to sit down for a week."],
     tagLose: ["Time! Aw, I'm it. You win! You're fast. Like, suspiciously fast.", "Noooo, time's up and I'm it! Rematch. After a nap. You win!"],
     seekAsk: ["Hide-and-seek! Do you want to hide, or do you want to find me?"],
@@ -37,13 +38,13 @@ const IG_LINES = {
     danceTie: ["A tie! We're equally amazing. That's the best way to lose. Or win."],
     duetGood: ["We sounded SO good together! Joe would cry. Joe IS crying, probably, somewhere.", "That was beautiful! Our voices go together like rice and... more rice!"],
     duetOk: ["That was fun! We were a little off. A little. Charmingly off.", "Not bad! Next time, let's warm up first. I'll bring tea."],
-    cuke: { tag: ["TAG! You're it! Tag is the BEST cardio! Count to three, then chase me! One minute! Whoever's it at the end loses!"],
+    cuke: { tag: ["TAG! You're it! Tag is the BEST cardio! Count to three, then chase me! Thirty seconds! Whoever's it at the end loses!"],
         tagLose: ["Time! I'm it! You WIN! Your hamstrings must be incredible. Hydrate!"], tagWin: ["Time! You're it! I win! Great hustle! Great everything!"] },
-    kai: { tag: ["Tag, dude! You're it. Count to three. Then, like, chase me. Whoever's it in a minute loses."], seekStart: ["I'll hide, dude. Count to ten. I'm gonna be so chill nobody finds me."] },
-    maki: { tag: ['Tag. You are it. You will count to three. The round is exactly one minute. Whoever is it at the end loses.'],
+    kai: { tag: ["Tag, dude! You're it. Count to three. Then, like, chase me. Whoever's it in thirty seconds loses."], seekStart: ["I'll hide, dude. Count to ten. I'm gonna be so chill nobody finds me."] },
+    maki: { tag: ['Tag. You are it. You will count to three. The round is exactly thirty seconds. Whoever is it at the end loses.'],
         derby: ['A derby. Two minutes. The most fish wins. I will be precise about the count.'] },
-    chili: { tag: ["TAG! You're it! Count to three! This is going to be SPICY! One minute! It at the end loses!"] },
-    sully: { tag: ["Tag, kid! You're it! Count to three. Whoever's it in a minute loses. Wicked simple."] },
+    chili: { tag: ["TAG! You're it! Count to three! This is going to be SPICY! Thirty seconds! It at the end loses!"] },
+    sully: { tag: ["Tag, kid! You're it! Count to three. Whoever's it in thirty seconds loses. Wicked simple."] },
 };
 function igLine(id, key) {
     const own = IG_LINES[id] && IG_LINES[id][key];
@@ -152,7 +153,8 @@ const IslandGames = {
         if (!g) return;
         this.on = null;
         const n = g.n;
-        n.script = false; n.run = false; n.jog = false; n.pose = null; n.path = null; n.moving = false;
+        for (const m of [n].concat((g.extra || []).map(s => s.n))) { m.script = false; m.run = false; m.jog = false; m.pose = null; m.path = null; m.moving = false; }
+        for (const s of g.extra || []) if (s.n.area === 'island') moveTo(s.n, targetFor(s.n, dayHour()));
         $('#dancehud').hidden = true;
         for (const s of ['#djudge', '#dcount', '#dtip', '#dscore', '#dsong']) igHud(s, '');
         HUD.show(true);
@@ -189,8 +191,8 @@ const IslandGames = {
 
     /* ---------------------------------------------------------------- moving the neighbor */
     /* one step toward (or away from) a point, around what's in the way: the best of sixteen ways to go */
-    steer(g, sp, score) {
-        const n = g.n, a = G.area;
+    steer(g, sp, score, who) {
+        const n = who ? who.n : g.n, st = who || g, a = G.area;
         let best = null, bs = -1e9;
         for (let i = 0; i < 16; i++) {
             const ang = i * Math.PI / 8, ux = Math.cos(ang), uy = Math.sin(ang);
@@ -200,12 +202,12 @@ const IslandGames = {
             // into something soon is a corner to get stuck in)
             let r = sp;
             while (r < 24 && !blockedFoot(a, n.x + ux * (r + 4), n.y + uy * (r + 4))) r += 4;
-            const s = score(n.x + ux * r, n.y + uy * r) + (ux * g.ux + uy * g.uy) * 6 - (24 - r) * 1.5;
+            const s = score(n.x + ux * r, n.y + uy * r) + (ux * st.ux + uy * st.uy) * 6 - (24 - r) * 1.5;
             if (s > bs) { bs = s; best = [x, y, ux, uy]; }
         }
         if (!best) return false;
         this.walk(n, best[0], best[1], sp);
-        g.ux = best[2]; g.uy = best[3];
+        st.ux = best[2]; st.uy = best[3];
         return true;
     },
     walk(n, x, y, sp) {
@@ -246,15 +248,35 @@ const IslandGames = {
     },
 
     /* ---------------------------------------------------------------- tag */
+    /* (David, 29 October: thirty seconds, the field's edge drawn on the ground, and neighbors close by join in: any of
+       them can be it. g.it is 'sarah' or the neighbor who's it; each neighbor runs on their own state, `tagSt`) */
+    tagJoin(g) {
+        const p = G.player, out = [];
+        for (const m of NPCs.here()) {
+            if (out.length >= IG_TAG_JOIN || m === g.n || m.sleeping || m.script || m.talking || m.chat || m.idle || m.sit || isSeated(m) || m.def.goat || m.def.shop || m.def.dj) continue;
+            if (Math.hypot(m.x - p.x, m.y - p.y) > 9 * TILE || /^(rope|vb)_/.test(m.spotKey || '')) continue;
+            m.script = true; m.path = null; m.pose = null;
+            out.push(this.tagSt(m, g));
+        }
+        return out;
+    },
+    tagSt(n, g) { return { n, skill: VS_SKILL[n.id] || 0.5, dash: 0, cool: 0, wait: 0, ux: 0, uy: 0, path: null }; },
+    tagAll(g) { return [g.main].concat(g.extra); },
     async tagStart() {
         const g = this.on, n = g.n, p = G.player;
         G.busy++;
         try {
             faceNpc(n, p);
             await UI.say(n.id, igLine(n.id, 'tag'), { keep: true });
+            g.main = this.tagSt(n, g); g.main.skill = g.skill;
+            g.extra = this.tagJoin(g);
+            if (g.extra.length) {
+                const names = listWords(g.extra.map(s => s.n.def.name));
+                await UI.say(n.id, rpick([`Ooh, ${names} ${g.extra.length > 1 ? 'are' : 'is'} playing too! More the merrier!`, `${names} wants in! Okay, everybody run!`].map(t => t.replace(' wants in', g.extra.length > 1 ? ' want in' : ' wants in'))), { keep: true });
+            }
             UI.hideDialog();
-            igHud('#dsong', `Tag with ${n.def.name}`);
-            g.it = 'sarah'; g.safe = 0; g.wait = 0; g.dash = 0; g.cool = 0; g.out = 0; g.tags = 0;
+            igHud('#dsong', g.extra.length ? `Tag: ${g.extra.length + 2} playing` : `Tag with ${n.def.name}`);
+            g.it = 'sarah'; g.safe = 0; g.out = 0; g.tags = 0; g.lastTagged = null;
             g.phase = 'count';
             p.emote = 'sweat'; p.emoteT = 40;
             igHud('#dtip', G.touchUsed ? 'Hold a finger down to run after them' : 'Hold Shift (or turn on Run) to be quicker');
@@ -265,64 +287,109 @@ const IslandGames = {
         this.say("GO! You're it!");
     },
     tagTick(g) {
-        const n = g.n, p = G.player;
+        const p = G.player;
         const left = IG_TAG_FRAMES - g.t;
         igHud('#dscore', this.clock(left));
-        igHud('#dsong', g.it === 'sarah' ? `Tag: you're it!` : `Tag: ${n.def.name} is it!`);
+        igHud('#dsong', g.it === 'sarah' ? `Tag: you're it!` : `Tag: ${g.it.def.name} is it!`);
         if (g.safe > 0 && --g.safe > 0 && g.it === 'sarah') igHud('#dtip', 'No tag-backs! Wait a moment...');
         else if (g.safe === 0 && $('#dtip').textContent.startsWith('No tag')) igHud('#dtip', '');
-        // the field: running off while they're it counts as tagged
+        // the field: running off while someone else is it counts as tagged
         const out = Math.hypot(p.x - g.cx, p.y - g.cy);
         if (out > IG_FIELD) {
             g.out++;
-            igHud('#dtip', 'Out of bounds! Back to the field!');
-            if (g.it === 'npc' && g.out > 90) { this.tagSwap(g, 'sarah'); this.say('Out of bounds!', '#ffffff'); }
-        } else { g.out = 0; igHud('#dtip', out > IG_FIELD * 0.82 ? 'Edge of the field!' : ''); }
+            igHud('#dtip', 'Out of bounds! Back inside the ring!');
+            if (g.it !== 'sarah' && g.out > 90) { this.tagSwap(g, 'sarah'); this.say('Out of bounds!', '#ffffff'); }
+        } else { g.out = 0; igHud('#dtip', out > IG_FIELD * 0.85 ? 'Edge of the ring!' : ''); }
         this.tagNpc(g);
-        if (g.safe === 0 && igDist(n, p) < 14) {
-            this.tagSwap(g, g.it === 'sarah' ? 'npc' : 'sarah');
-            this.say(g.it === 'npc' ? 'TAGGED!' : "You're it!", g.it === 'npc' ? '#ffd84a' : '#ffffff');
+        // a tag: whoever's it touching anyone else (not the one who just tagged them, while the no-tag-backs lasts)
+        if (g.safe === 0) {
+            const all = this.tagAll(g).map(s => s.n);
+            const itX = g.it === 'sarah' ? p : g.it;
+            for (const o of [p].concat(all)) {
+                if (o === itX) continue;
+                if (igDist(itX, o) < 14) {
+                    const was = g.it;
+                    this.tagSwap(g, o === p ? 'sarah' : o);
+                    g.lastTagger = was === 'sarah' ? p : was;
+                    this.say(o === p ? "You're it!" : was === 'sarah' ? 'TAGGED!' : `${o.def.name}'s it!`, o === p ? '#ffffff' : '#ffd84a');
+                    break;
+                }
+            }
         }
         if (left <= 0) {
-            const won = g.it === 'npc';
-            g.endLine = igLine(n.id, won ? 'tagLose' : 'tagWin');
-            if (won && g.tags >= 6) g.best = `${g.tags} tags in one minute!`;
+            const n = g.n, won = g.it !== 'sarah';
+            g.endLine = g.it === 'sarah' ? igLine(n.id, 'tagWin') : g.it === n ? igLine(n.id, 'tagLose')
+                : voiced(n.id, rpick([`Time! Ha, ${g.it.def.name}'s it! Not me, not you. We both win!`, `Time's up! And ${g.it.def.name} is it! That was so fun. You win!`]));
+            if (won && g.tags >= 4) g.best = `${g.tags} tags in thirty seconds!`;
             this.end(won ? 'win' : 'lose');
         }
     },
     tagSwap(g, it) {
         // no tag-backs: whoever was just tagged waits a moment before they can tag anyone
         g.it = it; g.safe = 120; g.tags++; g.out = 0;
-        Sfx.play(it === 'npc' ? 'catch' : 'trip');
-        if (it === 'npc') { g.wait = 75; g.n.emote = 'bang'; g.n.emoteT = 40; }
-        else { g.dash = 30; g.cool = 0; G.player.emote = 'sweat'; G.player.emoteT = 40; g.n.emote = 'laugh'; g.n.emoteT = 50; }
+        Sfx.play(it === 'sarah' ? 'trip' : 'catch');
+        const st = it === 'sarah' ? null : this.tagAll(g).find(s => s.n === it);
+        if (st) { st.wait = 75; it.emote = 'bang'; it.emoteT = 40; }
+        else { G.player.emote = 'sweat'; G.player.emoteT = 40; }
+        for (const s of this.tagAll(g)) if (s !== st) { s.dash = it === 'sarah' ? 30 : 0; s.cool = 0; if (it === 'sarah') { s.n.emote = 'laugh'; s.n.emoteT = 50; } }
     },
+    /* every neighbor in the game: who's it chases the nearest, the rest run from whoever's it */
     tagNpc(g) {
-        const n = g.n, p = G.player, sk = g.skill;
-        if (g.cool > 0) g.cool--;
-        if (g.wait > 0) { g.wait--; n.moving = false; n.run = n.jog = false; return; }
-        const d = igDist(n, p);
-        let sp;
-        if (g.dash > 0) { g.dash--; sp = g.it === 'npc' ? 2.25 : 2.15; }
-        else if (g.cool === 0 && d < (g.it === 'npc' ? 40 : 30)) { g.dash = g.it === 'npc' ? 20 : 26; g.cool = g.it === 'npc' ? 110 : 125; sp = 2.2; }
-        else sp = g.it === 'npc' ? 1.45 + sk * 0.35 : 1.25 + sk * 0.3;
-        if (g.it === 'npc') {
-            // after her, aiming a little ahead of where she's going; round whatever's in the way by its path
-            const lead = Math.min(6 + sk * 10, igDist(n, p) / 5);
-            let tx = p.x + g.vx * lead, ty = p.y + g.vy * lead;
-            if (!this.clear(n.x, n.y, p.x, p.y)) {
-                if (!g.path || g.t % 20 === 0) g.path = this.pathTo(n, Math.floor(p.x / TILE), Math.floor((p.y - 2) / TILE), 3000);
-                if (g.path && g.path.length > 1) { tx = (g.path[1][0] + 0.5) * TILE; ty = (g.path[1][1] + 0.5) * TILE + 4; }
-                if (g.path && g.path.length && Math.hypot((g.path[0][0] + 0.5) * TILE - n.x, (g.path[0][1] + 0.5) * TILE + 4 - n.y) < 6) g.path.shift();
-            } else g.path = null;
-            this.steer(g, sp, (x, y) => -Math.hypot(tx - x, ty - y) * 4 - Math.max(0, Math.hypot(x - g.cx, y - g.cy) - IG_FIELD - 2 * TILE) * 2);
-        } else {
-            // away from her, keeping inside the field, turning before the edge rather than at it
-            this.steer(g, sp, (x, y) => {
-                const away = Math.hypot(x - p.x, y - p.y), edge = Math.hypot(x - g.cx, y - g.cy);
-                return away * 4 - Math.max(0, edge - IG_FIELD * 0.7) * 6;
-            });
+        const p = G.player;
+        for (const s of this.tagAll(g)) this.tagMove(g, s, p);
+    },
+    tagMove(g, s, p) {
+        const n = s.n, sk = s.skill, itX = g.it === 'sarah' ? p : g.it, mine = g.it === n;
+        if (s.cool > 0) s.cool--;
+        if (s.wait > 0) { s.wait--; n.moving = false; n.run = n.jog = false; return; }
+        // (who they're after, or running from)
+        let other = itX;
+        if (mine) {
+            let bd = 1e9;
+            for (const o of [p].concat(this.tagAll(g).map(q => q.n))) { if (o === n || (o === g.lastTagger && g.safe > 0)) continue; const d = igDist(n, o) * (o === p ? 0.85 : 1); if (d < bd) { bd = d; other = o; } }
+            if (other === n) other = p;
         }
+        const d = igDist(n, other);
+        let sp;
+        if (s.dash > 0) { s.dash--; sp = mine ? 2.25 : 2.15; }
+        else if (s.cool === 0 && d < (mine ? 40 : 30)) { s.dash = mine ? 20 : 26; s.cool = mine ? 110 : 125; sp = 2.2; }
+        else sp = mine ? 1.45 + sk * 0.35 : 1.25 + sk * 0.3;
+        if (mine) {
+            // after them, aiming a little ahead of where Sarah's going; round whatever's in the way by its path
+            const lead = other === p ? Math.min(6 + sk * 10, d / 5) : 0;
+            let tx = other.x + (other === p ? g.vx * lead : 0), ty = other.y + (other === p ? g.vy * lead : 0);
+            if (!this.clear(n.x, n.y, other.x, other.y)) {
+                if (!s.path || g.t % 20 === 0) s.path = this.pathTo(n, Math.floor(other.x / TILE), Math.floor((other.y - 2) / TILE), 3000);
+                if (s.path && s.path.length > 1) { tx = (s.path[1][0] + 0.5) * TILE; ty = (s.path[1][1] + 0.5) * TILE + 4; }
+                if (s.path && s.path.length && Math.hypot((s.path[0][0] + 0.5) * TILE - n.x, (s.path[0][1] + 0.5) * TILE + 4 - n.y) < 6) s.path.shift();
+            } else s.path = null;
+            this.steer(g, sp, (x, y) => -Math.hypot(tx - x, ty - y) * 4 - Math.max(0, Math.hypot(x - g.cx, y - g.cy) - IG_FIELD - 2 * TILE) * 2, s);
+        } else {
+            // away from whoever's it, keeping inside the ring, turning before the edge rather than at it
+            this.steer(g, sp, (x, y) => {
+                const away = Math.hypot(x - itX.x, y - itX.y), edge = Math.hypot(x - g.cx, y - g.cy);
+                return Math.min(away, 90) * 4 - Math.max(0, edge - IG_FIELD * 0.7) * 6;
+            }, s);
+        }
+    },
+    /* the ring on the ground round the field, in every view (drawOverheads): dashes going round, red while Sarah's out */
+    drawRing(at) {
+        const g = this.on;
+        if (!g || g.kind !== 'tag' || g.phase === 'done' || !Heads.canvas()) return;
+        const pts = [], N = 72;
+        for (let i = 0; i <= N; i++) { const a = i / N * Math.PI * 2; pts.push(at({ x: g.cx + Math.cos(a) * IG_FIELD, y: g.cy + Math.sin(a) * IG_FIELD * 0.92 }, 0)); }
+        const c = Heads.g, k = Heads.k, out = Math.hypot(G.player.x - g.cx, G.player.y - g.cy) > IG_FIELD;
+        c.setTransform(k, 0, 0, k, 0, 0);
+        c.lineCap = 'round'; c.lineJoin = 'round';
+        c.setLineDash([10, 9]); c.lineDashOffset = -G.t * 0.6;
+        for (const [w, col] of [[6, 'rgba(40,30,20,0.28)'], [3, out ? 'rgba(255,110,90,0.95)' : 'rgba(255,248,226,0.92)']]) {
+            c.lineWidth = w; c.strokeStyle = col; c.beginPath();
+            let on = false;
+            for (const q of pts) { if (!q) { on = false; continue; } if (on) c.lineTo(q[0], q[1]); else { c.moveTo(q[0], q[1]); on = true; } }
+            c.stroke();
+        }
+        c.setLineDash([]);
+        Heads.dirty = true;
     },
 
     /* ---------------------------------------------------------------- hide-and-seek: they hide, Sarah looks */

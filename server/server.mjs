@@ -37,6 +37,7 @@
 //   POST   /api/log            {message, ...}   a problem in the game, for the server log
 //   GET    /api/world?zip=<5 digits>          the place, its time zone, today's forecast, headlines (server/world.mjs)
 //   GET    /api/market                        a few real companies' last 60 closing prices
+//   GET    /api/news                          the world's headlines (no zip code needed), for the island paper
 //   GET    /api/music                         the music library {tracks, free} (server/music.mjs)
 //   PUT    /api/music/file?path=<game/file>   a track uploaded; DELETE /api/music/game?name= a game's folder;
 //   POST   /api/music/tidy                    duplicate formats and non-music files deleted (also at start, on beta)
@@ -56,7 +57,7 @@ import { IslandError, Islands } from './islands.mjs';
 import { Live } from './live.mjs';
 import { Design, DesignError, MAX_DESIGN_BYTES } from './design.mjs';
 import { Music, MusicError } from './music.mjs';
-import { market, world, WorldError } from './world.mjs';
+import { headlines, market, world, WorldError } from './world.mjs';
 
 const gunzip = promisify(zlib.gunzip);
 
@@ -415,10 +416,11 @@ async function handleApi(req, res, pathname) {
   }
 
   // the real world (a zip code's weather and news, the market): looked up once a day, for every island
-  if (pathname === '/api/world' || pathname === '/api/market') {
+  if (pathname === '/api/world' || pathname === '/api/market' || pathname === '/api/news') {
     if (method !== 'GET') throw new HttpError(405, 'Use GET');
     try {
       const zip = new URL(req.url, 'http://site.invalid').searchParams.get('zip');
+      if (pathname === '/api/news') return sendJson(res, 200, { world: await headlines() });
       return sendJson(res, 200, pathname === '/api/world' ? await world(zip) : await market());
     } catch (err) {
       if (err instanceof WorldError) throw new HttpError(err.status, err.message);

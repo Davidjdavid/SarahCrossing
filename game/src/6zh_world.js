@@ -10,6 +10,7 @@ function zipState() { return S && S.zip && S.zip.code ? S.zip : null; }
 /* look the zip code up (today's, once a day): the forecast becomes the weather, the headlines go in today's paper */
 async function worldFetch(force) {
     const Z = zipState();
+    if (!Z && CIVIC_PREVIEW && S && !Online.visitor()) newsFetch();
     if (!Z || !CIVIC_PREVIEW || Online.visitor()) return null;
     const day = Clock.dayNum();
     if (!force && Z.last === day) return null;
@@ -31,10 +32,26 @@ async function worldFetch(force) {
     Save.touch();
     return w;
 }
+/* the world's headlines for the paper on an island with no zip code (once they've come in today; worldFetch brings
+   them with the town's news otherwise) */
+async function newsFetch() {
+    const day = Clock.dayNum();
+    if (S.news && S.news.day === day && S.news.world.length) return;
+    if (newsFetch.busy) return;
+    newsFetch.busy = true;
+    let w = null;
+    try { w = await Cloud.api('GET', '/api/news'); } catch (e) { /* offline: the next try */ }
+    newsFetch.busy = false;
+    if (!w || !S) return;
+    S.news = { day, world: (w.world || []).slice(0, 5) };
+    const p = S.post && S.post.papers && S.post.papers.find(q => q.day === day);
+    if (p && !(p.world && p.world.world && p.world.world.length)) p.world = Object.assign({}, p.world || {}, { world: S.news.world });
+    Save.touch();
+}
 /* the real world's page for the paper */
 function zipPage() {
     const Z = zipState(), day = Clock.dayNum();
-    if (!Z || !Z.place) return null;
+    if (!Z || !Z.place) return S && S.news && S.news.day === day && S.news.world.length ? { world: S.news.world } : null;
     const f = Z.days && Z.days[day];
     return { town: `${Z.place}, ${Z.st}`, sky: f ? f.sky : null, hi: f ? f.hi : null, lo: f ? f.lo : null, local: Z.news && Z.news.day === day ? Z.news.local : [], world: Z.news && Z.news.day === day ? Z.news.world : [] };
 }

@@ -88,6 +88,31 @@ docs/DEPLOY.md for the server.
   game, the HUD hidden and a frame rate, snapshots (`sc-qa-snap:<name>`) and save codes brought in (through `migrate()`),
   and notes of problems found with where and when (`sc-qa-notes`). A reload keeps its island (sessionStorage `sc-qa-carry`).
 
+- David's notes of 29 October (2 and 3), in short:
+  - The keepers have breaks (6zzh_keepers.js): Fortune, Floss and Waffle take a lunch (most days) and a walk in their
+    days (`keeperDay`, `keeperSpot`; `atCounter(n)` says one's working), their shops on the honor system meanwhile (texts and
+    `keeperOutTalk` say so); DJ Wasabi sleeps till noon, lives in `h_wasabi` (on the plan's unused `balloonist` lot, made in
+    20_world.js; save step `wasabi11`) and spins from the evening, the booth on autoplay when he's out (`clubBooth`). A
+    neighbor on lunch can bring it up (the `lunch` topic, `LUNCH_LINES`), not always. Idle neighbors also dance, stretch,
+    watch the sky and hum (`IDLE_ACTS`); `n.t` counts in whole frames (a fractional start once stopped every idle).
+  - Clementine's sells five accessories a day (6zzi_accessories.js, `accDaily(day)`) from twenty kinds, many in colors
+    (`kind@color`, items `acc_kind@color`, `accBase`/`accColor`): the flat pictures repainted (`accSprite`), HD pictures
+    wrapped, the dolls' 3D pieces tinted (`accTint3d`, rainbow cycling), each fitted to the hair (`HAT_FIT`). No upgrade.
+  - The windmill's third cog washed up in Driftwood Cove's driftwood (it was in the lighthouse, boarded up till restored);
+    the treasure note counts paces from the pier along the water (palms can be chopped); the lighthouse keeper's sea chest
+    holds the fancy mustache, the first thing the lighthouse gives (`lighthouseChest`, `S.flags.lhChest`; the special's
+    src `chest:lighthouse`).
+  - Chests that open stay open (6zzj_chests.js, models furn_l.py: `lh_trunk_open`, `old_trunk_open`, the barn's from the
+    note on, `barnTrunkId`); the Bank's are padlocked (`bank_chest`, `bank_trunk`).
+  - The barn is locked (6zzk_barn.js): the first friend (two hearts, not Joe) mails the spare key next morning
+    (`barnKeyTick`, `q_barnkey`, `barnOpen`; save step `barn11` keeps it open where Sarah had found the note).
+  - The windmill's ladder climbs to its loft (6zzl_upstairs.js, `ROOMS.millloft`, just to look at), and a "!" pops up at
+    stairs that go somewhere (`stairsNear`, `STAIR_FURN`).
+  - The paper has the world's headlines with or without a zip code (`/api/news`, `headlines()` in server/world.mjs: NPR,
+    then the BBC, then the Times, kept an hour; `newsFetch`, `S.news`).
+  - Shrimpy's and Muggy's flat pictures are pixel art (`SCAMPI_ART`, `MUG_ART`); the trails are a darker, muddier earth
+    (paint.mjs `MUD`; in the new look the kinds picture's alpha at a quarter marks them, `trailW` in EnvGround.FMAP).
+
 ## The HD-2D view (31_render3d.js, 32*_hd*.js)
 
 - `R3` draws the island and rooms in 3D (three.js r128 in `game/vendor`): the ground as textures,
@@ -312,7 +337,8 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   a full card (`stampOptions` in her talk menu: `STAMP_PRIZES`, one of the museum's own pieces a year). Kept as `S.stamps`.
 - Karaoke has a request each night (`karaokeRequest`: one of the poems Sarah has, from the seed and the day), first in the
   list and on the board; the first time she sings it that night the crowd tips 200 more.
-  The pitch marker moves by the clock, in semitones a second, quicker the longer it's held (63_karaoke.js `KARA_V0`/
+  Only the pitch marker counts, not holding a key (David, 29 October: Sarah sings whenever it's her line), and a neighbor
+  singing a duet line has a voice of their own (`Singer.opts`: higher, their formants). The pitch marker moves by the clock, in semitones a second, quicker the longer it's held (63_karaoke.js `KARA_V0`/
   `KARA_V1`/`KARA_ACC`, `karaReach`; David, 29 October: some notes couldn't be reached in time); on a phone a finger
   sliding on the pads drags it (`dragAt`). Every tune keeps its leaps within reach: `karaokeSong` brings a note in a step
   at a time until the marker can get inside its hit band by the gap's end and the note's first quarter (`KARA_LATE`).
@@ -440,7 +466,9 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   the notice board in front of the big tree, a flower bed where David's statue stood (it moved to the lawn along
   Market Lane, then went altogether), lamps along the paths; the shops on the alley and Market Lane further apart, with benches, lamps and
   flower beds in the alley and two empty lots at its east end. Save steps `square8` and `lane8` (a shop Sarah had moved
-  goes to its new spot) return whatever of hers was in the way. Fortune's shop stands at Market Lane's east end and Fortune
+  goes to its new spot) return whatever of hers was in the way. Fortune's shop stands on Market Lane nearest the square (it
+  swapped places with Mac's diner, David, 29 October: save step `layout11`, with Maki's house moved in from the woods to just
+  west of the square, a little pond where it stood, and Driftwood Cove on the west beach, `cove`, Kai's) and Fortune
   has a house of their own (`h_fortune`, just west of the square; a little garden where the shop stood); after hours the
   shop stays open on the honor system (Fortune asleep at home), and so does every other shop (David, 29 October: Sarah
   can shop or play the arcade whenever; the hours are for the keepers and the neighbors: `afterHours`, `HONOR`). The café's lot has a COMING SOON sign (`sign_lot`,
@@ -483,8 +511,8 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
 - Captain Shrimpy, the seafarer (6zr_seafarer.js, David's note of 27 October late): a giant shrimp (`folk2_scampi`) found
   washed up and out cold on the beach east of the pier a week after the island begins (`S.sea.from`; a save brought in
   counts from the day it first loads this, `migrate`); a newcomer (`NPC_DEFS.scampi.newcomer`: `newcomerTarget` in
-  targetFor, `newcomerTalk` in talkTo) whose story is `S.sea.stage` (`seaTick` each morning, `seaTalk`): ten logs (a
-  felled tree drops a `ship_log` while he's short, `seaChop`), ten home-cooked meals, five gems, a day each; his wreck,
+  targetFor, `newcomerTalk` in talkTo) whose story is `S.sea.stage` (`seaTick` each morning, `seaTalk`): ten logs (plain
+  wood from chopping, David, 29 October; an old `ship_log` still counts), ten home-cooked meals, five gems, a day each; his wreck,
   then the frame, then the ship stand on the beach (`seaRefresh`, `wreck` / `ship_frame` / `ship_scampi` from
   props_island.py); he sails off the next morning (`seaDepart`: his compass, the boat out to sea as one of SeaSky's;
   by himself with a letter if Sarah missed him), is back at the pier three days later and asks to stay; the next morning
@@ -546,7 +574,13 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   them again. On their way somewhere, about one day in three, one passing the drinking fountain stops for a drink and
   carries on (`sipCheck` from stepNpc: the idle kind `sip` with `resume`, which clears `segKey` so their day picks up).
 - The plane only flies over while Sarah's at the lookout (`SeaSky.atLookout`), and from there boats sail by on the
-  northern sea (`spawnNorthBoat`); balloons go anywhere.
+  northern sea (`spawnNorthBoat`); balloons too only fly from there and fade away when she leaves it (`s.fade`). Shooting
+  stars only on listed nights, none to two a week (`starNights`, `starNight`; Stargazing Night always), on the board's
+  calendar ("Shooting stars tonight") and in the telescope.
+- The night sky (`r3Sky`, David, 29 October: it was grainy and blurry): each star a round dot one to three screen pixels
+  across, never smaller (`fwidth`, so it doesn't shimmer as the camera moves), twinkling gently, the brightest few with a
+  halo; the sky's alpha (how much depth of field blurs it) falls at night, and the post pass's dither is still, not
+  changing every frame.
 - Footprints in the sand (`EnvSteps`, 33x_env_steps.js, David, 29 October): Sarah and anyone walking near her leave a
   print a step on the beach (`'s'` tiles with no path on them), left and right, that fades after two seconds; new look only.
 - Watering: the water arcs out to the tiles in front (`p.tool.at`, EnvPour); a watered flower glints now and then
@@ -861,12 +895,20 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   played on the island: the neighbor's day waits (`n.script`), `IslandGames.tick` moves them (chasing and fleeing by
   `steer`: the best of sixteen ways judged a little ahead; seeking along `findPath`), the dance HUD shows the clock
   and the Leave button stops it. Hiding places are just north of trees, buildings and big props (out of the camera's
-  sight); the seeker sees Sarah when close, or further off with nothing solid between (`clear`).
+  sight); the seeker sees Sarah when close, or further off with nothing solid between (`clear`). Tag (David, 29 October)
+  is thirty seconds (`IG_TAG_FRAMES`) on a field whose edge is drawn round on the ground in every view (`drawRing`, from
+  drawOverheads), and up to two neighbors close by join in (`tagJoin`, `IG_TAG_JOIN`): any of them can be it (`g.it`,
+  'sarah' or the neighbor), each running on their own state (`tagMove`).
 - Volleyball (by the court) and the snowball fight (in winter) are 2D games in the arcade's cabinet (`field` games:
   no fee, tickets or high scores; `opts.onOver` hears every game). At the club, a dance-off puts the neighbor on the
   floor beside Sarah (`Dance.start(id, { rival })`, their steps judged by skill) and a karaoke duet gives them every
   other line (`Karaoke.start(poem, { duet })`, a second voice). Records are in `S.games`; a game together counts for
   friendship once a day (`igFriend`). `__dbg.islandGame(kind, id, mode)` starts one.
+- The court (6zzm_volley.js, David, 29 October): tapping the net plays on her own (`playVolleySolo`: a ball machine across
+  the net lobs every ball back, `machine`; her score is how many she gets over, `S.games.vbSolo`), shows the scores
+  (`vbScores`: her best five among the neighbors' `VB_RIVALS`, and how she's done against each, `S.games.vbVs`), or plays
+  whoever's on the court. Some days two neighbors play there, as two turn the jump rope (`vbDay`/`vbOverride` in makePlan,
+  spots `vb_a`/`vb_b`, `vbSpot`; `VolleyLive` moves the court's ball between them, `e.air` its height).
 
 ## Saving (11_save.js, 12_cloud.js, 6x_islands.js)
 
