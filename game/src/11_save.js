@@ -14,12 +14,12 @@ function newState() {
         player: { area: 'island', x: (W0.intro.start[0]) * TILE, y: (W0.intro.start[1]) * TILE, dir: 'up', outfit: 'crimson', acc: null, eyes: 'glasses' },
         wardrobe: { outfits: ['crimson', 'pajamas'], accs: ['glasses'] },
         house: { level: 0, wall: 'wall_cream', floor: 'floor_wood', items: [] },
-        trees: {}, shells: { day: -1, taken: [] }, drops: [], plots: new Array(6).fill(null),
+        trees: {}, shells: { day: -1, taken: [] }, drops: [], plots: starterPlots(), planters: [],
         npcs: {}, seen: {}, recipes: ['nigiri', 'fruit_salad', 'fried_rice'],
         mail: [], mailSeq: 1,
         dance: { songs: {}, moves: ['wave', 'happy', 'laugh', 'heart', 'yawn'] },
         council: { best: 0, lastDay: -1, plaques: [] },
-        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1, garden8: 1, square8: 1, lane8: 1, fortune8: 1, lamps9: 1, garden9: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
+        flags: { news9: true, v9: 1, news10: true, v10: 1, shops1: 1, garden8: 1, square8: 1, lane8: 1, fortune8: 1, lamps9: 1, garden9: 1, planters10: 1 }, stats: {}, lastDay: -1, day: 0, startDay: 0, poems: [],
         pottery: { seq: 1, pieces: {}, kiln: [], made: 0 },
         arcade: { tickets: 0, best: {}, plays: {}, free: {}, won: 0, claw: null, reach: {}, rival: {} },
         rope: { best: 0, day: -1, trophy: false },
@@ -32,6 +32,40 @@ function newState() {
         shops: { shop: { spent: 0, level: 1 }, boutique: { spent: 0, level: 1 } },
         fest: {},
     };
+}
+
+/* what an island from before the remade island brings along besides Sarah's money, stats and who she is (David, 29
+   October): how close she is with each neighbor, what's in her pocket and storage (and the furniture that stood in her
+   house, back in storage), her arcade tickets, and her best scores, kept on the machines as "2D SARAH" (S.arcade.legacy),
+   never as her own (they unlock nothing). Nothing half done comes along (quests, favors, stories, the museum, unlocks),
+   and nothing that belongs to one (quest things, keepsakes, specials), so no story or unlock can be left stuck. Her
+   handmade pots, paintings and sewn designs come too, so the ones she kept are still real things. */
+function importKeeps(st, old, met) {
+    for (const [id, r] of Object.entries(old.npcs || {})) {
+        if (!r || !NPC_DEFS[id] || NPC_DEFS[id].online || id === 'joe' || !(r.pts > 0)) continue;
+        st.npcs[id] = Object.assign({}, met, { pts: Math.min(100, Math.round(r.pts)) });
+    }
+    if (old.pottery && old.pottery.pieces) st.pottery = { seq: old.pottery.seq || 1, pieces: old.pottery.pieces, kiln: [], made: old.pottery.made || 0 };
+    if (old.art && old.art.pieces) st.art = { pieces: old.art.pieces, seq: old.art.seq };
+    if (old.designs) st.designs = old.designs;
+    for (const f of [registerAllPottery, registerAllArt, registerAllDesigns]) { try { f(st); } catch (e) { console.error('bringing the old island along:', f.name, e); } }
+    const ok = id => typeof id === 'string' && !!ITEMS[id] && !importantItem(id) && ITEMS[id].type !== 'event' && ITEMS[id].type !== 'quest';
+    (old.pocket || []).forEach((q, i) => { if (q && ok(q.id) && q.n > 0 && i < st.pocket.length) st.pocket[i] = { id: q.id, n: q.n }; });
+    for (const [id, n] of Object.entries(old.storage || {})) if (ok(id) && n > 0) st.storage[id] = (st.storage[id] || 0) + n;
+    for (const it of (old.house && old.house.items) || []) if (it && ok(it.id) && !STARTER_HOUSE.some(o => o.id === it.id)) st.storage[it.id] = (st.storage[it.id] || 0) + 1;
+    const A = old.arcade || {};
+    if (A.tickets > 0) st.arcade.tickets = A.tickets;
+    const legacy = {};
+    for (const [g, sc] of Object.entries(A.best || {})) if (sc > 0) legacy[g] = sc;
+    if (Object.keys(legacy).length) st.arcade.legacy = legacy;
+}
+
+/* a new island's garden plots: Sarah's planter boxes come in the mail (6zze_planters.js), and one bed of the community
+   garden already has cucumbers ready to pick, so there's something growing the first time she goes by (David, 29 October) */
+function starterPlots() {
+    const p = new Array(6).fill(null), i = (W0.plots || []).findIndex(q => q.c);
+    if (i >= 0) p[i] = { seed: 'cucumber', day: Clock.dayNum() - 2 };
+    return p;
 }
 
 const Save = {
@@ -186,13 +220,15 @@ function migrate(st) {
             st.house.items = STARTER_HOUSE.map(o => Object.assign({ flip: false }, o));
             const met = { met: true, talkDay: -1, giftDay: -1, gifts: 0, favor: null, photo: false, letter: false, last: '' };
             st.npcs = { joe: Object.assign({ pts: 100 }, met), fortune: Object.assign({ pts: 0 }, met) };
+            importKeeps(st, old, met);
             const [bx, by] = W0.boat || W0.intro.start;
             st.player.x = (bx + 0.5) * TILE; st.player.y = (by + 0.6) * TILE; st.player.dir = 'down';
             st.mail.push({ id: st.mailSeq++, from: 'fortune', subject: 'A fresh start!', read: false, claimed: false, gift: null, gifts: null, day: Clock.dayNum(),
                 body: `Sarah! Welcome back to ${st.islandName || 'the island'}. Ginger's crew made the whole island new: the woods grew back in groves, `
                     + 'there\'s room to breathe everywhere, and every house and shop got a fresh start.\n\n'
-                    + `Your savings came along on the boat (${fmtNum(st.money)} sand dollars), and so did your records: every fish, every hug, every day. `
-                    + 'Everything else is brand new, so go say hi to everyone. They can\'t wait to meet you. Again!\n- Fortune' });
+                    + `Your savings came along on the boat (${fmtNum(st.money)} sand dollars), and so did your things (your pocket, and everything else in storage at home), `
+                    + 'your records (every fish, every day), and your friends: everyone remembers you. Chili put your old high scores up on the arcade machines, too.\n\n'
+                    + 'Everything else is brand new, so go say hi to everyone!\n- Fortune' });
         }
     }
     // the community garden and the fruit trees round the farm (27 October, added to map 7's island: nothing else moved):
@@ -257,6 +293,12 @@ function migrate(st) {
         const c = W0.community, tiles = [];
         if (c) for (const p of W0.props) if (p.kind === 'fence' && p.x >= c.x && p.x < c.x + c.w && p.y >= c.y && p.y < c.y + c.h) for (let i = 0; i < (p.w || 1); i++) tiles.push({ x: p.x + i, y: p.y });
         clearTiles(st, tiles);
+    }
+    // Sarah's planter boxes set down wherever she likes (David, 29 October): an island that had them by her house keeps them
+    // where they stood, to move as she pleases, and the planters Fortune mails a new islander aren't sent again
+    if (!st.flags.planters10) {
+        st.flags.planters10 = 1;
+        if (st.started) { st.planters = W0.plots.filter(q => !q.c).slice(0, 6).map(q => [q.x, q.y]); st.flags.planterMail = 1; }
     }
     // Fortune's shop moved onto Market Lane and Fortune has a house of their own just west of the square, a little garden
     // where the shop stood, a sign on the café's lot, two plots of land for sale in the neighborhood (27 October): a shop

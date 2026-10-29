@@ -876,7 +876,6 @@ const Invites = {
         if (id !== 'mac' && roomOpen('restaurant') && hourIn(h, 11, 14.5)) out.push(['lunch', 3]);
         if (!d.spring && this.hangSpots(id).length) out.push(['hang', 3]);
         out.push(['chat', 2]);
-        if (!Requests.from(id) && Requests.open().length < REQ_MAX) out.push(['favor', 2]);
         if (hearts(id) >= 2) out.push(['gift', 1.5]);
         // (asking her to play: rare, David, 27 October evening)
         if (VS_SKILL[id] && h >= 9 && h < 19) out.push(['play', 0.7]);
@@ -932,9 +931,10 @@ const Invites = {
         const id = inv.id, log = textsOf(id);
         log.push({ me: true, t: yes ? 'Sure!' : "Can't right now, sorry!", day: Clock.dayNum(), at: Date.now() });
         if (!yes) { inv.state = 'no'; this.text(id, this.line(INV_NO, id)); Save.touch(); HUD.update(); return; }
+        // (a favor texted before favors were only asked in person: they've sorted it out since)
         if (inv.kind === 'favor') {
             inv.state = 'done';
-            this.text(id, this.helpReply(id) || 'Oh! Never mind, I figured it out. Thank you though!');
+            this.text(id, 'Oh! Never mind, I figured it out. Thank you though!');
         } else {
             inv.state = 'yes';
             const place = inv.spot ? placeName(id, inv.spot) : '';
@@ -943,22 +943,6 @@ const Invites = {
         }
         Save.touch();
         HUD.update();
-    },
-    /* "Need a hand?" by text: a favor goes straight onto the To-do list */
-    helpReply(id) {
-        const n = NPCs.get(id), d = NPC_DEFS[id];
-        if (!n || (n.sleeping && !d.dj)) return null;
-        if (d.dj) return 'A favor? Come dance! That IS the favor.';
-        const mine = Requests.from(id);
-        if (mine) return Requests.remind(mine);
-        if (Requests.open().length >= REQ_MAX) return "You look busy! Finish your To-do list first. I'm not going anywhere.";
-        let t = null;
-        for (let k = 0; k < 4 && (!t || t.kind === 'deliver'); k++) { try { t = Requests.make(n); } catch (e) { t = null; } }
-        if (!t || t.kind === 'deliver') return "Me? I'm all set today. Thanks for asking, though!";
-        Requests.st().list.push(t);
-        Save.touch();
-        setTimeout(() => UI.toast('Added to your To-do list', 'app_tasks'), 900);
-        return Requests.askLine(t);
     },
     giftFor() {
         const pool = Object.keys(ITEMS).filter(k => {

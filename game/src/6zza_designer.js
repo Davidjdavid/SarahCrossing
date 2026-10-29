@@ -18,6 +18,28 @@ const BRIDGE_WET = new Set(['r', 'o']), BRIDGE_LAND = new Set(['g', 'd', 'p', 'c
 const LIKE_ACTS = { stars: 'Stargazing', snack: 'An ice cream', phone: 'On their phone', book: 'Reading', ground: 'Sitting on the grass', paint: 'Painting',
     cup: 'A mug of cocoa', fish: 'Fishing', bench: 'Sitting on a bench', scope: 'The telescope' };
 const LIKE_LEVELS = [['Never', 'never'], ['Now and then', 'a little'], ['Likes', 'likes'], ['Loves', 'loves']];
+/* where each neighbor starts (David, 29 October: "a good starting place instead of creating each of them from nothing"),
+   from who they are (PERSONA) and where they already like to be (NPC_DEFS fav): what they do more often or never with
+   nothing to do (acts), the free-time places they like (spots, RES_SPOTS) and whole parts of the island (areas). 3 loves,
+   2 likes, 1 now and then, 0 never. The designer's own word for any of these takes its place (Design.like). */
+const LIKES_START = {
+    maki: { acts: { book: 3, bench: 2, scope: 1, ground: 0 }, spots: { pond: 2, oldtree: 2, statue: 2 }, areas: { square: 2, meadow: 2, campsite: 1 } },
+    kai: { acts: { fish: 3, ground: 2, snack: 2, book: 1 }, spots: { beach: 3, pier: 3, bonfire: 3, harbor: 2, waterfall: 2 }, areas: { beach: 3, harbor: 2 } },
+    basil: { acts: { ground: 3, cup: 2, stars: 2, phone: 0 }, spots: { meadow: 3, plaza: 2, farm: 2, beach: 1 }, areas: { meadow: 3, village: 2 } },
+    wonton: { acts: { cup: 3, stars: 2, ground: 2, phone: 0 }, spots: { pond: 1 }, areas: { spring: 3 } },
+    chili: { acts: { phone: 3, scope: 2, stars: 2, book: 1 }, spots: { lookout: 3, boardwalk: 2, bonfire: 2 }, areas: { lookout: 3, mountain: 2 } },
+    coco: { acts: { phone: 3, bench: 3, snack: 2, fish: 0 }, spots: { plaza: 3, statue: 2, boardwalk: 2 }, areas: { square: 3, market: 3, woods: 1 } },
+    cece: { acts: { snack: 3, book: 2, bench: 2, phone: 1 }, spots: { pond: 2, orchard: 2, farm: 2, meadow: 2 }, areas: { village: 2, orchard: 2, square: 1 } },
+    clementine: { acts: { paint: 3, phone: 2, bench: 2, fish: 0, ground: 0 }, spots: { plaza: 3, statue: 3, boardwalk: 2, pier: 1 }, areas: { market: 3, square: 3, farm: 0, campsite: 0 } },
+    cuke: { acts: { stars: 2, fish: 2, book: 1, phone: 0 }, spots: { orchard: 3, meadow: 3, farm: 3, beach: 2, waterfall: 2 }, areas: { orchard: 3, farm: 3, mountain: 2, river: 2 } },
+    sully: { acts: { cup: 3, bench: 3, fish: 2, paint: 1, phone: 0 }, spots: { harbor: 3, pier: 2, plaza: 2, pond: 2 }, areas: { harbor: 3, square: 2 } },
+    ginger: { acts: { cup: 3, bench: 2, scope: 1, paint: 1 }, spots: { farm: 2, plaza: 2, statue: 1, meadow: 1 }, areas: { farm: 2, village: 2, woods: 2 } },
+    brulee: { acts: { paint: 3, book: 2, stars: 2, phone: 0 }, spots: { waterfall: 3, pond: 3, oldtree: 2, statue: 2, lookout: 2 }, areas: { falls: 3, pond: 3, woods: 2 } },
+    mac: { acts: { snack: 3, cup: 2, bench: 2, fish: 1 }, spots: { orchard: 3, farm: 2, plaza: 2, harbor: 2, beach: 1 }, areas: { orchard: 2, farm: 2, harbor: 2 } },
+    joe: { acts: { book: 3, stars: 3, ground: 2, paint: 2, phone: 1 }, spots: { pond: 3, meadow: 2, lookout: 2, oldtree: 2, bonfire: 2 }, areas: { pond: 3, meadow: 2, woods: 2 } },
+    scampi: { acts: { fish: 3, stars: 2, cup: 2, phone: 0 }, spots: { pier: 3, harbor: 3, bonfire: 3, beach: 2 }, areas: { harbor: 3, beach: 3, mountain: 1 } },
+    mug: { acts: { cup: 3, book: 2, bench: 2, snack: 1, phone: 0 }, spots: { plaza: 3, statue: 2, oldtree: 1 }, areas: { market: 3, square: 3 } },
+};
 /* a design's parts the server takes (server/design.mjs) */
 const DESIGN_PARTS = ['v', 'base', 'props', 'added', 'stairs', 'paths', 'bridges', 'areas', 'areasV', 'rooms', 'npcs', 'note'];
 /* the areas' colors on the island and the map */
@@ -601,7 +623,17 @@ const Design = {
         if (E.corner) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(E.corner[0] * TILE + 1, E.corner[1] * TILE + 1, TILE - 2, TILE - 2); }
     },
     /* what each neighbor likes, 0 never .. 3 loves (null: as they are) */
-    like(id, part, k) { const N = this.d && this.d.npcs && this.d.npcs[id], v = N && N[part] && N[part][k]; return Number.isInteger(v) && v >= 0 && v <= 3 ? v : null; },
+    // (the designer's word, else where they start, LIKES_START; -1 is the designer saying "as they are" over a start)
+    like(id, part, k) {
+        const N = this.d && this.d.npcs && this.d.npcs[id], own = N && N[part] ? N[part][k] : undefined, st = LIKES_START[id] && LIKES_START[id][part];
+        const v = own !== undefined ? own : st ? st[k] : undefined;
+        return Number.isInteger(v) && v >= 0 && v <= 3 ? v : null;
+    },
+    /* every place or area something's said about for a neighbor, by the designer or where they start */
+    likeKeys(id, part) {
+        const N = this.d && this.d.npcs && this.d.npcs[id], st = LIKES_START[id] && LIKES_START[id][part];
+        return [...new Set(Object.keys((N && N[part]) || {}).concat(Object.keys(st || {})))];
+    },
     // (and Sarah's own word for a good friend at the Town Hall's Residents: more often, or never, townLike)
     likeWeight(id, k, def) { const v = this.like(id, 'acts', k), w = v == null ? def : [0, 1, 3, 6][v], t = townLike(id, k); return t === 0 ? 0 : t === 2 ? w * 3 : w; },
     likeChance(id, k, def) { const v = this.like(id, 'acts', k), c = v == null ? def : [0, 0.25, 0.6, 0.9][v], t = townLike(id, k); return t === 0 ? 0 : t === 2 ? Math.min(0.95, c * 1.5) : c; },
@@ -901,13 +933,14 @@ const Design = {
         const pick = el('div', 'st-row');
         for (const id of ids) pick.appendChild(chip(NPC_DEFS[id].name, () => this.likesPanel(id), id === who ? 'on' : ''));
         P.body.appendChild(pick);
-        P.body.appendChild(el('p', 'muted', `Tap one to change it: as they are → loves → likes → now and then → never. "As they are" leaves ${NPC_DEFS[who].name} to the game.`));
+        P.body.appendChild(el('p', 'muted', `Tap one to change it: as they are → loves → likes → now and then → never. "As they are" leaves ${NPC_DEFS[who].name} to the game. Each neighbor starts with a few likes from who they are; change any of them.`));
         const likeChip = (part, k, label, def) => {
-            const v = this.like(who, part, k);
+            const v = this.like(who, part, k), st = LIKES_START[who] && LIKES_START[who][part] && LIKES_START[who][part][k] != null;
             return chip(`${label}: ${v == null ? (def || 'as they are') : LIKE_LEVELS[v][1]}`, () => {
                 const d = this.work(), N = d.npcs[who] || (d.npcs[who] = {}), L = N[part] || (N[part] = {});
                 this.snap();
-                const next = v == null ? 3 : v === 0 ? null : v - 1;
+                // (round from loves to never, then "as they are": over a starting like that's said as -1)
+                const next = v == null ? 3 : v === 0 ? (st ? -1 : null) : v - 1;
                 if (next == null) delete L[k]; else L[k] = next;
                 if (!Object.keys(L).length) delete N[part];
                 if (!Object.keys(N).length) delete d.npcs[who];
@@ -959,23 +992,20 @@ const Design = {
 };
 /* (makePlan's places, weighted by what the designer said a neighbor likes: 22_npc.js) */
 function designSpots(id, wts) {
-    const N = Design.d && Design.d.npcs && Design.d.npcs[id];
-    if (!N) return;
     const mul = (k, v) => { if (v === 0) delete wts[k]; else wts[k] = (wts[k] || 0.5) * [0, 0.5, 2, 4][v] + [0, 0, 1, 3][v]; };
-    for (const [k, v] of Object.entries(N.spots || {})) if (W0.spots[k] && Number.isInteger(v)) mul(k, v);
+    for (const k of Design.likeKeys(id, 'spots')) { const v = Design.like(id, 'spots', k); if (W0.spots[k] && v != null) mul(k, v); }
     // (an area they like or never go to: every place of theirs inside it)
-    if (N.areas) for (const k of Object.keys(wts)) {
-        const A = W0.spots[k] && Design.spotArea(k), v = A && N.areas[A.id];
-        if (Number.isInteger(v) && !(N.spots && N.spots[k] != null)) mul(k, v);
+    if (Design.likeKeys(id, 'areas').length) for (const k of Object.keys(wts)) {
+        const A = W0.spots[k] && Design.spotArea(k), v = A ? Design.like(id, 'areas', A.id) : null;
+        if (v != null && Design.like(id, 'spots', k) == null) mul(k, v);
     }
 }
 /* the areas with no plan spot of their own, as places to go by day ('area:<id>'), weighted by what the designer said */
 function designAreaSpots(id, wts, band) {
     if (band === 'night' || NPC_DEFS[id].goat) return;
-    const N = Design.d && Design.d.npcs && Design.d.npcs[id];
     for (const A of Design.placeAreas()) {
-        const v = N && N.areas && N.areas[A.id];
-        const w = Number.isInteger(v) ? 0.5 * [0, 0.5, 2, 4][v] + [0, 0, 1, 3][v] : 0.5;
+        const v = Design.like(id, 'areas', A.id);
+        const w = v != null ? 0.5 * [0, 0.5, 2, 4][v] + [0, 0, 1, 3][v] : 0.5;
         if (w > 0) wts['area:' + A.id] = w;
     }
 }

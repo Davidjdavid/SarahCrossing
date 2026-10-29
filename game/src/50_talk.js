@@ -35,6 +35,11 @@ async function talkTo(n) {
     if (G.busy) return;
     if (IslandGames.has(n)) { IslandGames.poke(n); return; }
     G.busy++;
+    // (two neighbors chatting: what they're saying is heard by walking up to them, never shown in bubbles; David, 29 October)
+    if (n.chat && n.chat.i >= 0 && n.chat.i < n.chat.lines.length) {
+        try { await Chats.overhear(n.chat, n); } catch (e) { console.error(e); if (n.chat) Chats.end(n.chat); }
+        UI.hideDialog(); G.busy--; return;
+    }
     if (n.chat) Chats.end(n.chat);
     n.idleWas = n.idle ? n.idle.kind : n.want && n.want.carry && n.want.carry !== 'suitcase' ? n.want.carry : null;      // (caught in the middle of something: 33kd_doll_idle.js)
     n.talking = true;

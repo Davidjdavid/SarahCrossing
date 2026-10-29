@@ -32,6 +32,9 @@ const TELL_MSGS = [
     { msg: 'Can you tell {to} I think they\'re a really good friend? I get shy saying it.', reply: 'Oh! That\'s so sweet. Tell {from} they\'re a really good friend too. The best.', back: 'They said that? The BEST? I\'m going to go sit down and smile for a while.' },
     { msg: 'Tell {to} I found their missing sock. It was in my laundry. Don\'t ask.', reply: 'MY SOCK! Tell {from} I\'ve been looking for that sock for weeks!', back: 'A sock reunion! I love a happy ending.' },
 ];
+const FAVOR_ASK = ['Oh! Hey, could you do me a favor?', 'Do you have a minute? I could use a little help.', 'Can I ask you something? A small favor. Tiny. Medium at most.',
+    "I hate to ask, but... could you help me with something?", "You're just who I was hoping to see! Could you do me a favor?"];
+const FAVOR_LATER = ["No worries! Another time.", "That's okay! It'll keep.", "Totally fine. Forget I asked! (Don't forget me, though.)"];
 const ARC_TARGET = { blocks: [2000, 4000, 7000], capsules: [1500, 3000, 5000], fruit: [400, 800, 1300], stack: [800, 1800, 3500] };
 
 const Requests = {
@@ -186,16 +189,15 @@ const Requests = {
         }
         return true;
     },
+    /* a favor is only ever asked for out of the blue, now and then the first time Sarah talks to someone that day (David,
+       29 October: no asking them for one, by talk or text, so being asked feels special); she can say not now */
+    chance: 0.25,
     async maybeAsk(n) {
-        if (this.from(n.id) || this.open().length >= REQ_MAX || R() > 0.35) return;
-        await this.give(n, this.make(n));
-    },
-    async ask(n) {
-        const id = n.id;
-        if (this.open().length >= REQ_MAX) { await UI.say(id, voiced(id, "You look busy! Finish your To-do list first. I'm not going anywhere. (I'm going to the plaza later.)")); return; }
-        const rr = mulberry(hash32(S.seed + ':need:' + id + ':' + Clock.dayNum() + ':' + this.st().seq));
-        if (rr() < 0.2 && hearts(id) >= 2) { await UI.say(id, voiced(id, "Need anything? Me? No, I'm good today. Thanks for asking, though!")); return; }
-        await this.give(n, this.make(n));
+        if (this.from(n.id) || this.open().length >= REQ_MAX || R() > this.chance) return;
+        const id = n.id, t = this.make(n);
+        const k = await UI.ask(id, voiced(id, rpick(FAVOR_ASK)), ['Sure!', 'Not right now'], { keep: true });
+        if (k !== 0) { await UI.say(id, voiced(id, rpick(FAVOR_LATER)), { keep: true }); return; }
+        await this.give(n, t);
     },
     /* does Sarah have what this favor needs? */
     ready(t) {
@@ -214,7 +216,7 @@ const Requests = {
         const id = n.id, out = [];
         if (!S) return out;
         const mine = this.from(id);
-        if (!mine) out.push({ label: 'Need anything?', fn: async () => { await this.ask(n); return true; } });
+        if (!mine) { /* (they ask when they need something: Sarah doesn't go round asking) */ }
         else if (this.ready(mine)) out.push({ label: this.doneLabel(mine), fn: async () => { await this.complete(n, mine); return true; } });
         else out.push({ label: `About that ${this.what(mine)}...`, fn: async () => { await UI.say(id, voiced(id, this.remind(mine)), { keep: true }); return true; } });
         for (const t of this.open().filter(q => q.to === id)) {

@@ -91,7 +91,7 @@ function appDayPlan(id) {
     }
     P.body.appendChild(list);
 }
-const TEXT_ASK = [['where', 'Where are you?'], ['next', 'Where are you headed next?'], ['hi', 'Hi!'], ['help', 'Need a hand?']];
+const TEXT_ASK = [['where', 'Where are you?'], ['next', 'Where are you headed next?'], ['hi', 'Hi!']];
 function textReply(id, kind) {
     const w = whereabouts(id), d = NPC_DEFS[id], name = d.name;
     const pick = a => rpick(a);
@@ -240,7 +240,7 @@ function textThread(id) {
             draw();
             Sfx.ui('tick');
             const rep = textRepeats(log, label);
-            const reply = kind === 'help' ? Invites.helpReply(id) : rep ? repeatReply(id, kind, rep) : textReply(id, kind);
+            const reply = rep ? repeatReply(id, kind, rep) : textReply(id, kind);
             if (reply == null) {
                 const w = whereabouts(id);
                 log.push({ sys: true, t: `Delivered. ${d.name} is asleep. (Usually up around ${w.wake}.)`, day: Clock.dayNum(), at: Date.now() });

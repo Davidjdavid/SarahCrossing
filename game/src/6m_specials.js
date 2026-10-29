@@ -23,14 +23,14 @@ defSpecial('sew_suit', 'sew', 'Suit', 'pool', null, { style: 'suit' });
 defSpecial('sew_muumuu', 'sew', 'Muumuu', 'pool', null, { style: 'muumuu' });
 defSpecial('sew_gown', 'sew', 'Flowing gown', 'score:karaoke:S', 'Get an S at karaoke. Stars need gowns.', { style: 'gown' });
 defSpecial('sew_robe', 'sew', 'Wizard robe', 'pool', null, { style: 'robe' });
-defSpecial('sew_jumpsuit', 'sew', 'Disco jumpsuit', 'stat:dances:40', 'Dance your heart out at Club Wasabi (forty songs).', { style: 'jumpsuit' });
+defSpecial('sew_jumpsuit', 'sew', 'Disco jumpsuit', 'stat:dances:20', 'Dance your heart out at Club Wasabi (twenty songs).', { style: 'jumpsuit' });
 defSpecial('sew_cape', 'sew', 'Hero cape', 'score:surf:2500', 'Ride a wave to 2,500 in Surf\'s Up. Heroes surf.', { style: 'cape' });
 defSpecial('sew_tutu', 'sew', 'Tutu', 'pool', null, { style: 'tutu' });
 defSpecial('sew_sailor', 'sew', 'Sailor dress', 'pool', null, { style: 'sailor' });
 defSpecial('sew_spacesuit', 'sew', 'Spacesuit', 'quest:star', 'Somebody up there is blinking at the island...', { style: 'spacesuit' });
 // accessories
 defSpecial('acc_tiara', 'acc', 'Tiara', 'score:sushi:4000', 'Score 4,000 in Sushi Swap. Royalty chains.', { item: 'acc_tiara' });
-defSpecial('acc_flowercrown', 'acc', 'Flower crown', 'stat:flowers:100', 'Pick lots and lots of flowers (100).', { item: 'acc_flowercrown' });
+defSpecial('acc_flowercrown', 'acc', 'Flower crown', 'stat:flowers:100', 'Pick or water lots and lots of flowers (100).', { item: 'acc_flowercrown' });
 defSpecial('acc_piratehat', 'acc', 'Pirate hat', 'quest:treasure', 'Buried treasure is traditionally guarded by a hat.', { item: 'acc_piratehat' });
 defSpecial('acc_wizardhat', 'acc', 'Wizard hat', 'score:garden:20000', 'Bonk your way to 20,000 in Gopher Garden. Magic.', { item: 'acc_wizardhat' });
 defSpecial('acc_catears', 'acc', 'Cat ears', 'score:fruit:4000', 'Score 4,000 in Fruit Catch. Cats love catching things.', { item: 'acc_catears' });
@@ -213,7 +213,8 @@ async function checkSpecialMilestones() {
             else if (a === 'stack') ok = ((A.stackTop || 0) >= +b);
             else if (a === 'capsules') ok = ((A.reach || {}).capsules || 0) >= +b;
             else ok = (best[a] || 0) >= +b;
-        } else if (kind === 'stat') ok = (st[a] || 0) + (a === 'flowers' ? (st.flower || 0) : 0) >= +b;
+        // (flowers picked or watered both count toward the flower crown: David, 29 October)
+        } else if (kind === 'stat') ok = (st[a] || 0) + (a === 'flowers' ? (st.flower || 0) + (st.watered || 0) : 0) >= +b;
         else if (kind === 'joe') ok = (S.poems || []).length >= +a;
         else if (kind === 'floss') ok = (st.salon || 0) >= +a;
         else if (kind === 'cookgold') ok = Object.values(S.cookLog || {}).filter(c => c.medal === 'gold').length >= +a;
@@ -243,9 +244,12 @@ function specialDesign(style) {
 function unsellable(id) {
     const it = ITEMS[id];
     if (!it) return true;
-    if (it.special || it.type === 'keepsake' || it.type === 'quest' || it.type === 'lost' || it.type === 'art' || it.type === 'tool') return true;
+    if (it.special || it.keep || it.type === 'keepsake' || it.type === 'quest' || it.type === 'lost' || it.type === 'art' || it.type === 'tool') return true;
     if (id.startsWith('photo_') || id === 'bottle' || id === 'present' || id === 'lost_invite') return true;
-    if (it.type === 'furniture' && !it.pottery && !(FURN[id] && FURN[id].price > 0) && !(FURN[id] && FURN[id].prize)) return true;
+    // (what was won or given for a special occasion can't easily be had again, so it stays: trophies, the prize counter's
+    // prizes, festival prizes and holiday things; David, 29 October)
+    if (it.type === 'event' || /trophy/.test(id) || (FURN[id] && FURN[id].prize)) return true;
+    if (it.type === 'furniture' && !it.pottery && !(FURN[id] && FURN[id].price > 0)) return true;
     return false;
 }
 /* the things that matter (quest items, lost things, keepsakes, signed photos, one-of-a-kind gifts) stay with Sarah: they

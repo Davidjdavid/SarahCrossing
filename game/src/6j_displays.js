@@ -289,6 +289,7 @@ const IslandEdit = {
         const a = G.areas.island;
         for (const e of a.ents) {
             if (e.hidden) continue;
+            if (e.kind === 'plot' && e.planter) { if (tx === e.tx && ty === e.ty) return e; continue; }      // (one of Sarah's planter boxes: 6zze_planters.js)
             if (e.kind === 'display' && e.deco != null) {
                 const d = dispDef(e.disp);
                 if (tx >= e.px && tx < e.px + d.w && ty >= e.py && ty < e.py + displayRows(d)) return e;
@@ -302,7 +303,10 @@ const IslandEdit = {
     pickUp(e) {
         if (this.design) { Design.pickUp(this, e); return; }
         const a = G.areas.island;
-        if (e.kind === 'display') {
+        if (e.kind === 'plot') {
+            if (S.plots[e.idx]) { this.msg = "Something's growing in it. Harvest it first, then it can move."; Sfx.ui('nope'); this.render(); return; }
+            this.held = { src: 'planter', idx: e.idx, id: 'dp_planterbox', w: 1, rows: 1, frame: DISPLAYS.dp_planterbox.frame, ent: e, from: [e.tx, e.ty] };
+        } else if (e.kind === 'display') {
             const p = deco().placed[e.deco], d = dispDef(p.id);
             this.held = { src: 'deco', idx: e.deco, id: p.id, w: d.w, rows: displayRows(d), frame: d.frame, sign: !!d.sign, text: p.text || '', ent: e, from: [p.x, p.y] };
         } else {
@@ -332,6 +336,7 @@ const IslandEdit = {
     putAway() {
         const h = this.held, D = deco();
         if (h.src === 'deco') { D.placed.splice(h.idx, 1); toStorage(h.id, 1); UI.toast(`${dispDef(h.id).name} put away in your house storage.`, dispDef(h.id).frame); }
+        else if (h.src === 'planter') { planters()[h.idx] = null; toStorage('dp_planterbox', 1); UI.toast('Planter box put away in your house storage.', DISPLAYS.dp_planterbox.frame); }
         else if (h.src === 'prop') { const as = MOVABLE_PROPS[h.kind]; if (!as) return; D.gone[h.idx] = true; delete D.moved[h.idx]; toStorage(as, 1); UI.toast(`${DISPLAYS[as].name} put away in your house storage.`, DISPLAYS[as].frame); }
         this.held = null;
         Save.touch();
@@ -413,7 +418,14 @@ const IslandEdit = {
         if (why) { this.msg = why; Sfx.ui('nope'); this.render(); return false; }
         if (this.design) return Design.drop(this, x, y);
         const D = deco();
-        if (h.src === 'new') {
+        if (h.src === 'planter') planters()[h.idx] = [x, y];
+        else if (h.src === 'new' && DISPLAYS[h.id] && DISPLAYS[h.id].plot) {
+            // (a planter box from her storage: it becomes one of her garden plots, 6zze_planters.js)
+            const i = freePlanter();
+            if (i < 0) { this.msg = `That's all ${PLANTERS} planter boxes out already.`; this.render(); return false; }
+            if (!takeDisplay(h.id)) { this.msg = "You don't have one of those anymore."; this.render(); return false; }
+            planters()[i] = [x, y]; S.plots[i] = null;
+        } else if (h.src === 'new') {
             if (!takeDisplay(h.id)) { this.msg = "You don't have one of those anymore."; this.render(); return false; }
             D.placed.push({ id: h.id, x, y, text: h.text || '' });
         } else if (h.src === 'deco') {

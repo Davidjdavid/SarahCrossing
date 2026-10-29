@@ -319,6 +319,8 @@ const CHAT_WITH_JOE = [
 /* extra lines for today's holiday (holidays fill this in) */
 const CHAT_TODAY = [];
 
+const CHAT_HI = ["Oh! Hi, {name}! We were just talking.", "Oh, hey {name}! Did you hear all that? Ha!", "{name}! Perfect timing. {B} and I were just catching up.",
+    "Hi {name}! Don't mind us. Just island gossip.", "Oh! {name}! How long have you been standing there? Hi!"];
 const Chats = {
     list: [],
     cool: {},
@@ -364,15 +366,30 @@ const Chats = {
         this.list.push(c);
         this.next(c);
     },
+    /* (no bubbles over their heads: David, 29 October. They act it out, and what they're saying is heard by walking up
+       to them and talking: overhear) */
     next(c) {
         c.i++;
         if (c.i >= c.lines.length) { this.end(c); return; }
-        const sp = c.i % 2 === 0 ? c.a : c.b, other = sp === c.a ? c.b : c.a;
-        const text = voiced(sp.id, fillText(c.lines[c.i]).replace(/\{A\}/g, c.a.def.name).replace(/\{B\}/g, c.b.def.name));
-        Bubbles.hide(other);
-        Bubbles.show(sp, text);
+        const sp = c.i % 2 === 0 ? c.a : c.b, text = this.lineText(c, c.i);
         sp.hop = 2;
         c.t = c.dur = Math.min(260, 110 + text.length * 2.2); c.text = text;
+    },
+    lineText(c, i) { const sp = i % 2 === 0 ? c.a : c.b; return voiced(sp.id, fillText(c.lines[i]).replace(/\{A\}/g, c.a.def.name).replace(/\{B\}/g, c.b.def.name)); },
+    /* Sarah walks up to two neighbors chatting and talks to one: she hears their whole conversation, the chat waiting on
+       each line, and the one she spoke to says hello after */
+    async overhear(c, n) {
+        c.held = true;
+        faceToward(G.player, n);
+        for (let i = 0; i < c.lines.length; i++) {
+            const sp = i % 2 === 0 ? c.a : c.b;
+            c.i = i; c.text = this.lineText(c, i); c.t = c.dur = 200;
+            await UI.say(sp.id, c.text, { keep: true });
+        }
+        const other = n === c.a ? c.b : c.a;
+        faceToward(n, G.player);
+        await UI.say(n.id, voiced(n.id, fillText(rpick(CHAT_HI)).replace(/\{B\}/g, other.def.name)), { keep: true });
+        this.end(c);
     },
     /* two who've fallen out don't stop to chat (6zn_bonds.js) */
     ok(A, B) { return bond(A.id, B.id) > BOND_OUT; },
@@ -388,7 +405,7 @@ const Chats = {
         for (const c of this.list.slice()) {
             const gone = [c.a, c.b].some(n => n.talking || n.script || n.path || n.sleeping || n.area !== G.area.id);
             if (gone) { this.end(c); continue; }
-            if (--c.t <= 0) this.next(c);
+            if (!c.held && --c.t <= 0) this.next(c);
         }
         const spirit = townOrd() === 'spirit';         // (Community Spirit: they stop to chat more)
         if (G.frame % (spirit ? 20 : 40) !== 0 || UI.modal || G.busy) return;

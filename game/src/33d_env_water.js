@@ -79,7 +79,7 @@ const EnvWater = {
         // (see-through at its sides and its foot, which breaks up into the spray)
         const fallMat = r3Patch(new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, depthWrite: false }), { key: 'envfall', uniforms: { uLite: this.lite }, fhead: 'varying vec3 vFall; uniform float uLite;\n', vhead: 'attribute vec3 aFall; varying vec3 vFall;\n', vbody: 'vFall = aFall;', fpre: EnvWater.FALL, noDof: true });
         const fp = [], fi = [], fa = [], falls = [];
-        for (const wf of W0.waterfalls || []) {
+        for (const wf of EnvWater.fallsJoined()) {
             // (as wide as the stream that feeds it: the water runs on over the lip at the width it had)
             const xs = wf.tiles.map(t => t[0]), ys = wf.tiles.map(t => t[1]), mx = (Math.min(...xs) + Math.max(...xs) + 1) / 2, hw = (Math.max(...xs) + 1 - Math.min(...xs)) / 2 - 0.14, x0 = mx - hw, x1 = mx + hw, rowTop = Math.min(...ys);
             const top = BASE + wf.level * LV - 0.14, bot = BASE + (L(Math.floor(mx), rowTop + 2) >= 0 ? L(Math.floor(mx), rowTop + 2) : 0) * LV - 0.14, z = (rowTop + 1) * R3_ZS;
@@ -355,6 +355,18 @@ EnvWater.FPRE = `
     gl_FragColor.rgb = wc;
     gl_FragColor.a = clamp(max(edgeA, foam), 0.0, 1.0);
 }`;
+/* the island's waterfalls, two side by side over the same lip joined into one sheet (each fades out at its sides, which
+   left a see-through strip down the middle where two met: David, 29 October) */
+EnvWater.fallsJoined = function () {
+    const out = [];
+    for (const wf of W0.waterfalls || []) {
+        const row = Math.min(...wf.tiles.map(t => t[1]));
+        const o = out.find(q => q.level === wf.level && q.row === row && wf.tiles.some(t => q.tiles.some(u => u[1] === t[1] && Math.abs(u[0] - t[0]) <= 1)));
+        if (!o) { out.push({ level: wf.level, row, tiles: wf.tiles.slice() }); continue; }
+        for (const t of wf.tiles) if (!o.tiles.some(u => u[0] === t[0] && u[1] === t[1])) o.tiles.push(t);
+    }
+    return out;
+};
 /* a waterfall's sheet: glassy water over the lip, then streaks rushing down faster as it falls, see-through at its
    sides, its foot breaking up raggedly into the spray */
 EnvWater.FALL = `

@@ -1,7 +1,8 @@
 // The real world, for an island with a zip code (docs/ROADMAP.md, "The real world, by zip code"): where the zip code
 // is, its time zone, that day's forecast and some headlines (local and from the world), from free services that need
 // no key (zippopotam.us, open-meteo.com, news feeds), kept for the day so each zip code is looked up once a day at most.
-// And the market: a few real companies' daily prices (stooq.com), kept for the day too. Nothing is stored on disk.
+// And the market: a few real companies' daily prices (Yahoo Finance's public chart data, or stooq.com when that doesn't
+// answer), kept for the day too. Nothing is stored on disk.
 // WORLD_FAKE=1 answers with made-up data and never touches the network (the tests, and working without internet).
 
 const TIMEOUT = 8000;
@@ -13,11 +14,11 @@ export class WorldError extends Error {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-async function get(url, as = 'json') {
+async function get(url, as = 'json', agent = 'SarahCrossing/1 (a private game for one island)') {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), TIMEOUT);
   try {
-    const res = await fetch(url, { signal: ctl.signal, headers: { 'user-agent': 'SarahCrossing/1 (a private game for one island)' } });
+    const res = await fetch(url, { signal: ctl.signal, headers: { 'user-agent': agent, accept: as === 'json' ? 'application/json' : 'text/csv,text/plain,*/*' } });
     if (res.status === 404) throw new WorldError(404, 'Not found');
     if (!res.ok) throw new WorldError(502, `The service answered ${res.status}`);
     return as === 'json' ? await res.json() : await res.text();
@@ -101,6 +102,33 @@ function fakeMarket() {
   }), at: Date.now(), fake: true };
 }
 
+/** Yahoo Finance's chart data (JSON) as { closes, dates }: the trading days with a close, oldest first. */
+export function yahooCloses(json, n = 60) {
+  const r = json && json.chart && json.chart.result && json.chart.result[0];
+  const ts = (r && r.timestamp) || [], c = (r && r.indicators && r.indicators.quote && r.indicators.quote[0] && r.indicators.quote[0].close) || [];
+  const rows = [];
+  for (let i = 0; i < ts.length; i++) if (typeof c[i] === 'number' && c[i] > 0) rows.push([new Date(ts[i] * 1000).toISOString().slice(0, 10), Math.round(c[i] * 100) / 100]);
+  const keep = rows.slice(-n);
+  return { closes: keep.map((x) => x[1]), dates: keep.map((x) => x[0]) };
+}
+/** stooq's daily CSV (Date,Open,High,Low,Close,Volume) as { closes, dates }; anything else (a "no data" page, a limit notice) gives none. */
+export function stooqCloses(csv, n = 60) {
+  const lines = String(csv || '').trim().split('\n');
+  if (!/^date,/i.test(lines[0] || '')) return { closes: [], dates: [] };
+  const rows = lines.slice(1).map((l) => l.trim().split(',')).filter((r) => r.length >= 5 && /^\d{4}-\d\d-\d\d$/.test(r[0]) && Number(r[4]) > 0).slice(-n);
+  return { closes: rows.map((r) => Number(r[4])), dates: rows.map((r) => r[0]) };
+}
+const BROWSER = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+async function closesOf(sym, code) {
+  try {
+    const y = yahooCloses(await get(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=6mo&interval=1d`, 'json', BROWSER));
+    if (y.closes.length >= 2) return y;
+  } catch { /* the other service, then */ }
+  const s = stooqCloses(await get(`https://stooq.com/q/d/l/?s=${code}&i=d`, 'text'));
+  if (s.closes.length >= 2) return s;
+  throw new WorldError(502, 'No prices');
+}
+
 /** The last 60 trading days of each company's closing price. */
 export async function market() {
   const hit = cache.get('market');
@@ -109,11 +137,12 @@ export async function market() {
   const stocks = [];
   for (const [sym, name, code, yld] of STOCKS) {
     try {
-      const csv = await get(`https://stooq.com/q/d/l/?s=${code}&i=d`, 'text');
-      const rows = csv.trim().split('\n').slice(1).map((l) => l.split(',')).filter((r) => r.length >= 5 && !Number.isNaN(Number(r[4]))).slice(-60);
-      if (rows.length) stocks.push({ sym, name, yield: yld, closes: rows.map((r) => Number(r[4])), dates: rows.map((r) => r[0]) });
+      const { closes, dates } = await closesOf(sym, code);
+      stocks.push({ sym, name, yield: yld, closes, dates });
     } catch { /* one company missing is fine */ }
   }
+  if (stocks.length) console.log(`market: prices for ${stocks.length} of ${STOCKS.length} companies`);
+  else console.warn('market: no prices from either service');
   if (!stocks.length) {
     if (hit) return { ...hit.data, old: true };
     throw new WorldError(502, "The market data service isn't answering");

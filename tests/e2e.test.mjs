@@ -115,7 +115,7 @@ test('a save code from the old game comes in as an island, and plays', async () 
   await page.context().close();
 });
 
-test('a save from an older island: a fresh start that keeps her stats, money and name, with the old save inside', async () => {
+test('a save from an older island: a fresh start that keeps her stats, money, name, friends, things and arcade scores (as 2D SARAH), with the old save inside', async () => {
   const page = await device();
   await title(page);
   const r = await page.evaluate(() => {
@@ -126,11 +126,16 @@ test('a save from an older island: a fresh start that keeps her stats, money and
       drops: [{ id: 'peach', x: 40, y: 40, area: 'island' }, { id: 'apple', x: 10, y: 10, area: 'home' }],
       deco: { moved: { 2: { x: 1, y: 1 } }, gone: { 3: true }, placed: [{ id: disp, x: 5, y: 5, text: '' }] },
       forest: { chopped: { dt1_1: true }, planted: [{ kind: 'money', amount: 1000 }], holes: [], wood: { day: -1, n: {} }, glow: { day: -1, dug: false }, clams: { day: -1, dug: [] } },
-      npcs: { joe: { pts: 100 }, kai: { met: true, pts: 80 } }, house: { level: 2, wall: 'wall_cream', floor: 'floor_wood', items: [{ id: 'chair', x: 1, y: 1 }] },
+      npcs: { joe: { pts: 100 }, kai: { met: true, pts: 80, favor: 'x', nick: 'Sar' }, david: { met: true, pts: 60 } }, house: { level: 2, wall: 'wall_cream', floor: 'floor_wood', items: [{ id: 'shelf_book', x: 1, y: 1 }] },
+      arcade: { tickets: 40, best: { blocks: 99999, fruit: 1200 }, plays: { blocks: 3 }, free: {}, won: 0, claw: null, reach: { blocks: 15 }, rival: {} },
+      tasks: { seq: 3, list: [{ from: 'kai', kind: 'bring', item: 'peach', state: 'open', until: 1e9 }], done: 0, gone: {} },
+      pocket: [{ id: 'apple', n: 3 }, { id: 'ship_log', n: 2 }].concat(new Array(18).fill(null)),
     });
     const m = migrate(st);
     return { mapV: m.mapV, money: m.money, stats: m.stats, name: m.islandName + '/' + m.playerName, startDay: m.startDay, storage: m.storage, drops: m.drops, house: m.house.level,
-      friends: Object.keys(m.npcs).sort(), joe: m.npcs.joe.pts, at: [Math.floor(m.player.x / TILE), Math.floor(m.player.y / TILE)], boat: W0.boat,
+      friends: Object.keys(m.npcs).sort(), joe: m.npcs.joe.pts, kai: [m.npcs.kai.pts, m.npcs.kai.favor, m.npcs.kai.nick || null],
+      pocket: m.pocket.filter(Boolean).map((q) => q.id + 'x' + q.n), arcade: [m.arcade.tickets, m.arcade.best, m.arcade.legacy, m.arcade.reach], tasks: m.tasks || null,
+      at: [Math.floor(m.player.x / TILE), Math.floor(m.player.y / TILE)], boat: W0.boat,
       letter: m.mail.map((x) => x.subject), old: m.before7 && [m.before7.mapV, m.before7.house.level, m.before7.npcs.kai.pts, m.before7.storage.peach] };
   });
   assert.equal(r.mapV, 7);
@@ -138,8 +143,12 @@ test('a save from an older island: a fresh start that keeps her stats, money and
   assert.deepEqual(r.stats, { fish: 12, hugs: 3 });
   assert.equal(r.name, 'Old Isle/Sarah');
   assert.equal(r.startDay, 100, 'how long she has lived here stays');
-  assert.deepEqual([r.storage, r.drops, r.house], [{}, [], 0], 'everything else starts new');
-  assert.deepEqual([r.friends, r.joe], [['fortune', 'joe'], 100]);
+  assert.equal(r.storage.peach, 2, 'what was in storage comes along');
+  assert.equal(r.storage.shelf_book, 1, 'the furniture that stood in her house waits in storage');
+  assert.deepEqual(r.pocket, ['applex3'], 'her pocket comes along, but not a quest thing');
+  assert.deepEqual([r.drops, r.house, r.tasks], [[], 0, null], 'everything else starts new');
+  assert.deepEqual([r.friends, r.joe, r.kai], [['fortune', 'joe', 'kai'], 100, [80, null, null]], 'friends remember her (only how close they are), never the family');
+  assert.deepEqual(r.arcade, [40, {}, { blocks: 99999, fruit: 1200 }, {}], 'her old best scores are 2D SARAH\'s on the machines, never her own');
   assert.deepEqual(r.at, r.boat, 'she steps off the boat');
   assert.deepEqual(r.letter, ['A fresh start!']);
   assert.deepEqual(r.old, [6, 2, 80, 2], 'the old save is kept whole inside the new one');
@@ -149,7 +158,7 @@ test('a save from an older island: a fresh start that keeps her stats, money and
     const b = migrate(Object.assign(newState(), { mapV: 6, started: false }));
     return [a.mapV, a.money, Object.keys(a.storage).length, !!a.before7, b.mapV, !!b.before7, newState().mapV];
   });
-  assert.deepEqual(r6, [7, 77, 0, true, 7, false, 7]);
+  assert.deepEqual(r6, [7, 77, 1, true, 7, false, 7]);
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
@@ -3558,7 +3567,7 @@ test('decorating the island and giving gifts, the way a player does: a lamp set 
   await page.close();
 });
 
-test("a favor and a bigger house, the way a player does: \"Need anything?\" in the talk menu, the thing brought, paid; Ginger makes the house bigger and it's bigger inside", async () => {
+test("a favor and a bigger house, the way a player does: a neighbor asks out of the blue (there's no asking them), the thing brought, paid; Ginger makes the house bigger and it's bigger inside", async () => {
   const page = await device();
   await page.evaluate(() => __dbg.quickStart());
   await page.waitForFunction(() => G.mode === 'play');
@@ -3577,13 +3586,19 @@ test("a favor and a bigger house, the way a player does: \"Need anything?\" in t
       // a day when Coco wants something brought (the favor is from the seed, the day and the count)
       for (let s = T.seq; s < T.seq + 200; s++) {
         const keep = T.seq; T.seq = s;
-        const t = Requests.make(n), rr = mulberry(hash32(S.seed + ':need:' + id + ':' + day + ':' + s));
+        const t = Requests.make(n);
         T.seq = keep;
-        if (t.kind === 'bring' && !(rr() < 0.2 && hearts(id) >= 2)) { T.seq = s; break; }
+        if (t.kind === 'bring') { T.seq = s; break; }
       }
       const done0 = T.done;
-      want = [/^Sure!$/, /^Need anything\?$/];
+      // (the talk menu has no way to ask for one)
+      const labels = Requests.options(n).map((o) => o.label);
+      out.noAsking = !labels.some((l) => /need anything/i.test(l)) && !TEXT_ASK.some(([k]) => k === 'help');
+      // the first talk of the day, now and then, they ask; Sarah says sure
+      Requests.chance = 1; rel(id).talkDay = -1;
+      want = [/^Sure!$/];
       await talkTo(n);
+      Requests.chance = 0.25;
       const t = Requests.from(id) || T.list.find((q) => q.from === id);
       out.asked = !!t && t.kind === 'bring';
       if (t.state !== 'done') {
@@ -3606,7 +3621,7 @@ test("a favor and a bigger house, the way a player does: \"Need anything?\" in t
     } finally { clearInterval(closer); UI.ask = ask; UI.say = say; G.busy = 0; }
     return out;
   });
-  assert.deepEqual(res, { asked: true, paid: true, done: true, bigger: true });
+  assert.deepEqual(res, { noAsking: true, asked: true, paid: true, done: true, bigger: true });
   // inside, the house is the next size up
   await page.evaluate(() => enterRoom('home'));
   await page.waitForFunction(() => G.area && G.area.id === 'home');
@@ -4560,6 +4575,69 @@ test('the Bank, the way a player does: an amount typed and put into savings, too
     return out;
   });
   assert.deepEqual(res, { put: true, refused: true, back: true, statement: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test("David's list of 29 October: chats heard by walking up, planter boxes by mail set down anywhere, a starter crop, no wild flowers in the garden, keepsakes kept, the unlock counts, starting likes", async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    __dbg.setTime(10, 28, 14);
+    const out = {}, say = UI.say, ask = UI.ask, said = [];
+    UI.say = async (w, t) => { said.push([w, t]); };
+    try {
+      // two neighbors chatting: no bubble over them; talking to one plays the whole conversation, then a hello
+      const [A, B] = NPCs.here().filter((n) => Chats.free(n) && TALK[n.id] && !n.def.goat).slice(0, 2);
+      A.x = B.x - 20; A.y = B.y;
+      Chats.start(A, B);
+      out.noBubble = !Bubbles.map.has(A) && !Bubbles.map.has(B);
+      const lines = A.chat.lines.length;
+      await talkTo(A);
+      out.overheard = said.length === lines + 1 && said[0][0] === A.id && said[1][0] === B.id && !A.chat && !B.chat;
+      // a new island: one bed of the community garden already has cucumbers ready, no wild flowers inside its fence
+      const ci = W0.plots.findIndex((q) => q.c);
+      out.starter = !!S.plots[ci] && S.plots[ci].seed === 'cucumber' && plotStage(S.plots[ci]) === 3;
+      const c = W0.community, inside = W0.flowers.map((f, i) => [f, i]).filter(([f]) => f.x >= c.x && f.x < c.x + c.w && f.y >= c.y && f.y < c.y + c.h);
+      out.gardenClear = inside.every(([, i]) => !wildStands(i, Clock.dayNum())) && !G.areas.island.ents.some((e) => e.wildFlower && inside.some(([, i]) => i === e.flowerIdx));
+      // no planter boxes by her house any more; six come in the mail the first time she's in Fortune's shop
+      out.noPlanters = !G.areas.island.ents.some((e) => e.kind === 'plot' && !e.c);
+      Bus.emit('enter', 'shop');
+      const m = S.mail[S.mail.length - 1];
+      out.mail = m.subject === 'For your garden' && m.gifts.length === 6 && m.gifts.every((g) => g === 'dp_planterbox');
+      Bus.emit('enter', 'shop');
+      out.mailOnce = S.mail.filter((q) => q.subject === 'For your garden').length === 1;
+      // set one down in Island edit: it's a garden plot there, and moves while nothing grows in it
+      receive('dp_planterbox', 2, true);
+      const p = G.player, tx = Math.floor(p.x / TILE) + 2, ty = Math.floor((p.y - 2) / TILE);
+      IslandEdit.open();
+      IslandEdit.pickNew('dp_planterbox');
+      const why = IslandEdit.whyNot(tx, ty);
+      IslandEdit.drop(tx, ty);
+      out.placed = !why && S.planters[0] && S.planters[0][0] === tx && G.areas.island.ents.some((e) => e.kind === 'plot' && e.planter && e.tx === tx && e.ty === ty);
+      S.plots[0] = { seed: 'cucumber', day: Clock.dayNum() };
+      const pe = G.areas.island.ents.find((e) => e.kind === 'plot' && e.planter);
+      IslandEdit.pickUp(pe);
+      out.growingStays = !IslandEdit.held && /Harvest it first/.test(IslandEdit.msg);
+      S.plots[0] = null;
+      IslandEdit.pickUp(G.areas.island.ents.find((e) => e.kind === 'plot' && e.planter));
+      IslandEdit.putAway();
+      out.putAway = !S.planters[0] && (S.storage.dp_planterbox || 0) >= 1;
+      IslandEdit.close && IslandEdit.close();
+      // keepsakes: trophies, prizes, event things and the planters can't be sold; a fish can
+      out.keep = ['trophy_rope', 'trophy_arcade', 'candy', 'dp_planterbox'].every((id) => unsellable(id)) && !unsellable('peach');
+      // the unlock counts: twenty dances for the jumpsuit, a hundred flowers picked or watered for the crown
+      out.counts = SPECIALS.sew_jumpsuit.src === 'stat:dances:20' && /water/.test(SPECIALS.acc_flowercrown.hint);
+      S.stats.flowers = 40; S.stats.watered = 60;
+      await checkSpecialMilestones();
+      out.crown = hasSpecial('acc_flowercrown');
+      // each neighbor starts with likes of their own; the designer's word takes their place
+      out.likes = Design.like('kai', 'acts', 'fish') === 3 && Design.like('clementine', 'areas', 'farm') === 0 && Design.like('kai', 'spots', 'beach') === 3;
+    } finally { UI.say = say; UI.ask = ask; G.busy = 0; }
+    return out;
+  });
+  assert.deepEqual(res, { noBubble: true, overheard: true, starter: true, gardenClear: true, noPlanters: true, mail: true, mailOnce: true, placed: true, growingStays: true, putAway: true, keep: true, counts: true, crown: true, likes: true });
   assert.deepEqual(page.problems, []);
   await page.close();
 });

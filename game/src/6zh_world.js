@@ -93,11 +93,20 @@ CIVIC_LIVE.zip = {
 
 /* ---------------------------------------------------------------- the market */
 const Market = {
-    data: null, at: 0, err: null,
+    data: null, at: 0, err: null, tried: 0,
     async load() {
         if (this.data && Date.now() - this.at < 30 * 60e3) return this.data;
-        try { this.data = await Cloud.api('GET', '/api/market'); this.at = Date.now(); this.err = null; } catch (e) { this.err = e.offline ? 'offline' : 'down'; }
-        return this.data;
+        // (after a failed try, the next one waits a minute: the screen asks again every time it's drawn)
+        if (this.err && Date.now() - this.tried < 60e3) return this.data;
+        if (this.busy) return this.busy;
+        this.tried = Date.now();
+        this.busy = (async () => {
+            try { const d = await Cloud.api('GET', '/api/market'); if (!d || !Array.isArray(d.stocks) || !d.stocks.length) throw new Error('no prices'); this.data = d; this.at = Date.now(); this.err = null; }
+            catch (e) { this.err = e.offline ? 'offline' : 'down'; }
+            this.busy = null;
+            return this.data;
+        })();
+        return this.busy;
     },
     stock(sym) { return this.data && this.data.stocks.find(s => s.sym === sym); },
     price(s) { return Math.round(s.closes[s.closes.length - 1] * STOCK_K); },
@@ -109,7 +118,7 @@ CIVIC_LIVE.stocks = {
         const M = Market;
         if (!M.data) {
             CV.loading(b, 'Getting the latest prices...');
-            M.load().then(() => { if ($('#panel') && !$('#panel').hidden) redraw(); });
+            if (!M.err || Date.now() - M.tried >= 60e3) M.load().then(() => { if ((M.data || M.err) && $('#panel') && !$('#panel').hidden) redraw(); });
             if (M.err) { b.innerHTML = ''; CV.banner(b, 'warn', M.err === 'offline' ? 'No internet connection, and no prices yet. Try again when you\'re back online.' : "The market data service isn't answering. Try again in a little while."); }
             return;
         }

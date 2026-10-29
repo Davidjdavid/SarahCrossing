@@ -192,6 +192,9 @@ Object.assign(EnvDolls, {
         // listening: a nod now and then, the hands behind the back for some
         if (A.nod && !walk) W.hx += 0.24 * A.nod;
         if (A.listen && !walk && !Q && !sit && seed % 2) { W.aLx = W.aRx = 0.35; W.aLz = -0.12; W.aRz = 0.12; W.eL = W.eR = -0.7; }
+        // turning the jump rope: the arm out toward it going round with it (33y_env_rope.js)
+        const rt = !walk && typeof ropeTurn === 'function' && ropeTurn(e);
+        if (rt) { W.aRx = -1.15 - 0.3 * Math.cos(rt.ph); W.aRz = 0.3 + 0.25 * Math.sin(rt.ph); W.eR = -0.35; W.aLx = -0.5; W.eL = -0.6; }
         // something of their own: an ice cream, a book, the stars... (33kd_doll_idle.js); with nothing, a sway and a look round
         if (e.idle && !walk && !Q && !sit && !A.talking) this.idleDoll(e, W, t, seed);
         else if (e !== G.player && !e.idle && !walk && !Q && !sit && !A.talking && !A.listen && !A.look) { W.hy += idleLook(t, seed); W.bz += Math.sin(t / 55 + seed) * 0.035; }
@@ -350,6 +353,9 @@ Object.assign(EnvDolls, {
             const io = IF && (side > 0 ? IF.R : IF.L);
             if (io) { up = io.up; fwd = io.fwd * side; }
             if (A.talking && side > 0) { up = 0.45 + Math.sin(t / 6) * 0.2; fwd = -0.3; }
+            // (turning the jump rope: the arm toward it going round with it, 33y_env_rope.js)
+            const rt = !walk && typeof ropeTurn === 'function' && ropeTurn(e);
+            if (rt) { up = 0.55 + 0.3 * Math.cos(rt.ph); fwd = -side * (0.75 + 0.25 * Math.sin(rt.ph)); }
             ease(a.rotation, 'z', side * up); ease(a.rotation, 'y', fwd);
         }
         this.showFace(d, e, A.face || (Q === 'cheer' ? 'excited' : Q === 'happy' || Q === 'wave' ? 'happy' : null) || (run ? 'joy' : null));

@@ -76,14 +76,16 @@ const EnvBuild = {
                 // (the lighthouse's door boarded up until the town restores it: flat on the door, up on its plinth behind
                 // the steps, as big as the door in buildings.py)
                 if (e.id === 'lighthouse' && typeof lighthouseOpen === 'function' && !lighthouseOpen()) { const A = this.at(e); this.model('door_boards', A.cx, A.y + 0.5, A.z1 - 0.53, 0, 0.78); }
-                // Sarah's cottage is the one modelled in Blender (its door on the door's tile, its front wall on the front edge)
-                if (e.id === 'home' && has('cottage')) { const A = this.at(e); for (const m of EnvModels.place(group, 'cottage', EnvModels.mat4(A.door, A.y, A.z1 - 1.25))) m.userData.shared = true; chimneys.push([A.door + 0.95, A.y + 3.55, A.z1 - 1.25 - 0.42]); }
+                // Sarah's cottage is the one modelled in Blender (its door on the door's tile, its front wall on the front edge),
+                // until Ginger redoes it: then it's built from the houses' kit in her look like a neighbor's (David, 29 October:
+                // "I redid my house at Ginger's but nothing is different in the 3D model")
+                if (e.id === 'home' && has('cottage') && !Object.keys((S && S.exteriors && S.exteriors.home) || {}).length) { const A = this.at(e); for (const m of EnvModels.place(group, 'cottage', EnvModels.mat4(A.door, A.y, A.z1 - 1.25))) m.userData.shared = true; chimneys.push([A.door + 0.95, A.y + 3.55, A.z1 - 1.25 - 0.42]); }
                 // and Fortune's (its door half a tile right of its middle)
                 else if (e.id === 'shop' && has('shop')) { const A = this.at(e); for (const m of EnvModels.place(group, 'shop', EnvModels.mat4(A.door - 0.5, A.y, A.z1 - 1.3))) m.userData.shared = true; }
                 // the island's other buildings, each its own model
                 else if (this.BUILDINGS[e.id] && has('bld_' + e.id)) { const A = this.at(e); for (const m of EnvModels.place(group, 'bld_' + e.id, EnvModels.mat4(A.cx, A.y, A.z1 - this.BUILDINGS[e.id] - 0.05))) m.userData.shared = true; }
                 // the neighbors' houses from the kit of parts, painted from each house's look
-                else if (/^h_/.test(e.id || '') && this.house(group, e, shownLook(e.id))) { /* built */ }
+                else if ((e.id === 'home' || /^h_/.test(e.id || '')) && this.house(group, e, shownLook(e.id))) { /* built */ }
                 else if (e.id === 'home' || /^h_/.test(e.id || '')) this.cottage(e, shownLook(e.id)); else this.shop(e);
             }
             // (the statue on the square: the plinth, and whoever's cast in bronze on it, 6zgc_statue.js)

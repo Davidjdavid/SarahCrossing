@@ -119,6 +119,8 @@ function flowerGlint(ctx, pl, x, y, gold) {
     ctx.fillStyle = gold ? '#ffd24a' : '#f4fbff'; const r = Math.round(k * 3);
     ctx.fillRect(x - r, y, r * 2 + 1, 1); ctx.fillRect(x, y - r, 1, r * 2 + 1);
 }
+/* (no wild flowers inside the community garden's fence: they were in the way of its beds; David, 29 October) */
+function inGardenPlot(f) { const c = W0.community; return !!(f && c && f.x >= c.x && f.x < c.x + c.w && f.y >= c.y && f.y < c.y + c.h); }
 /* a wild flower watered today (its number in W0.flowers): it glints like a planted one and crosses like one */
 function wildWatered(idx) { const W = flowerState().wildWet; return !!W && W[idx] === Clock.dayNum(); }
 function wildPartner(idx) { const f = W0.flowers[idx]; return !!f && wildWatered(idx) && breedSoon().has(f.x + ',' + f.y); }
@@ -126,7 +128,7 @@ function wildPartner(idx) { const f = W0.flowers[idx]; return !!f && wildWatered
    patches of one kind, and watering a patch used to come to nothing (David, 29 October) */
 function wildStands(idx, day) {
     const pk = flowerState().picked[idx];
-    if (isCleared('wf' + idx) || Clock.season() === 'winter') return false;
+    if (isCleared('wf' + idx) || Clock.season() === 'winter' || inGardenPlot(W0.flowers[idx])) return false;
     return !(pk != null && day - pk < (townOrd() === 'nature' ? 1 : FLOWER_REGROW) && !(G.events && G.events.has('flowerfest') && pk < day));
 }
 function wildWetOn(day) {

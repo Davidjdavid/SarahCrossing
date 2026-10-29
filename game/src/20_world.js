@@ -92,6 +92,17 @@ const W0 = window.WORLD_JSON;
 /* the test area for the new 3D look (?lab in the address: scripts/island/plan-lab.mjs): a small world of its own,
    played without saving and without the neighbors' days (Joe and Maki stand on the cobbles, as in the concept art) */
 const LAB = !!window.IS_LAB;
+/* a garden plot on the island: solid, planted from beside it (c: one of the community garden's beds) */
+function addPlotEnt(a, idx, x, y, c) {
+    const [fx, fy] = tileFoot(x, y);
+    a.block(x, y);
+    const e = a.add({ kind: 'plot', idx, x: fx, y: fy + 1, tx: x, ty: y, layer: 0, c, planter: !c });
+    e.hit = { x: x * TILE, y: y * TILE, w: TILE, h: TILE };
+    e.stand = null;
+    e.interact = () => usePlot(idx);
+    e.draw = (ctx) => drawPlot(ctx, e);
+    return e;
+}
 function tileFoot(tx, ty) { return [(tx + 0.5) * TILE, (ty + 1) * TILE - 2]; }
 /* inside the community garden's fence (or its gate): the new look tills it */
 function inCommunity(tx, ty) {
@@ -184,17 +195,10 @@ function buildIsland() {
     for (const wf of W0.waterfalls) addWaterfall(a, wf);
     addWildFlowers(a);
     addPlantedFlowers(a);
-    // garden plots: raised planter boxes (solid; Sarah plants from beside them), Sarah's by her house and the community
-    // garden's by the farm (c)
-    W0.plots.forEach((p, idx) => {
-        const [fx, fy] = tileFoot(p.x, p.y);
-        a.block(p.x, p.y);
-        const e = a.add({ kind: 'plot', idx, x: fx, y: fy + 1, tx: p.x, ty: p.y, layer: 0, c: !!p.c });
-        e.hit = { x: p.x * TILE, y: p.y * TILE, w: TILE, h: TILE };
-        e.stand = null;
-        e.interact = () => usePlot(idx);
-        e.draw = (ctx) => drawPlot(ctx, e);
-    });
+    // garden plots: the community garden's beds by the farm (c), and Sarah's raised planter boxes wherever she's set them
+    // down (6zze_planters.js; world.json's first six plots by her house are where an older island's stood)
+    W0.plots.forEach((p, idx) => { if (p.c) addPlotEnt(a, idx, p.x, p.y, true); });
+    addPlanters(a);
     a.bgSeason = season;
     addForest(a);
     applyExteriors(a);

@@ -131,7 +131,7 @@ const Env = {
             ['contact', typeof EnvContact !== 'undefined' && EnvContact], ['glow', typeof EnvGlow !== 'undefined' && EnvGlow], ['decals', typeof EnvDecals !== 'undefined' && EnvDecals],
             ['dolls', typeof EnvDolls !== 'undefined' && EnvDolls], ['critters', typeof EnvCritters !== 'undefined' && EnvCritters],
             ['sea', typeof EnvSea !== 'undefined' && EnvSea], ['items', typeof EnvItems !== 'undefined' && EnvItems], ['sights', typeof EnvSights !== 'undefined' && EnvSights], ['style', typeof EnvStyle !== 'undefined' && EnvStyle],
-            ['fishing', typeof EnvFishing !== 'undefined' && EnvFishing], ['pour', typeof EnvPour !== 'undefined' && EnvPour], ['flags', typeof EnvFlags !== 'undefined' && EnvFlags], ['spray', typeof EnvSpray !== 'undefined' && EnvSpray], ['night', typeof EnvNight !== 'undefined' && EnvNight], ['lawn', typeof EnvLawn !== 'undefined' && EnvLawn]]) {
+            ['fishing', typeof EnvFishing !== 'undefined' && EnvFishing], ['pour', typeof EnvPour !== 'undefined' && EnvPour], ['flags', typeof EnvFlags !== 'undefined' && EnvFlags], ['spray', typeof EnvSpray !== 'undefined' && EnvSpray], ['night', typeof EnvNight !== 'undefined' && EnvNight], ['lawn', typeof EnvLawn !== 'undefined' && EnvLawn], ['steps', typeof EnvSteps !== 'undefined' && EnvSteps], ['rope', typeof EnvRope !== 'undefined' && EnvRope]]) {
             if (!B) continue;
             const t1 = performance.now();
             const p = B.build(group, a);
@@ -192,6 +192,7 @@ const Env = {
         if (typeof EnvItems !== 'undefined' && EnvItems.takes(e)) return true;
         if (k === 'display' && typeof EnvBuild !== 'undefined' && EnvBuild.dispDrawn && EnvBuild.dispDrawn.has(e)) return true;
         if (k === 'flagpole' && typeof EnvFlags !== 'undefined') return true;
+        if (k === 'rope' && typeof EnvRope !== 'undefined') return true;          // (the square's jump rope: 33y_env_rope.js)
         return false;
     },
     /* the water's surface at a spot (world pixels), or null where there's none: the sea at 0, a stream or pond at its level */

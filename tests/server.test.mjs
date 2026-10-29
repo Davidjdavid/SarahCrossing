@@ -317,6 +317,19 @@ test('the real world: a zip code\'s place, forecast and headlines, and the marke
   } finally { await w.stop(); }
 });
 
+test('the market\'s prices read from either service: Yahoo\'s chart data and stooq\'s CSV, and nothing from a page that isn\'t prices', async () => {
+  const { yahooCloses, stooqCloses } = await import('../server/world.mjs');
+  const t0 = Date.UTC(2026, 9, 26) / 1000;
+  const y = yahooCloses({ chart: { result: [{ timestamp: [t0, t0 + 86400, t0 + 2 * 86400], indicators: { quote: [{ close: [101.234, null, 103.5] }] } }] } });
+  assert.deepEqual(y, { closes: [101.23, 103.5], dates: ['2026-10-26', '2026-10-28'] });
+  assert.deepEqual(yahooCloses({ chart: { result: null, error: { code: 'Not Found' } } }), { closes: [], dates: [] });
+  assert.deepEqual(stooqCloses('Date,Open,High,Low,Close,Volume\n2026-10-27,1,2,0.5,1.5,100\n2026-10-28,1.5,2,1,1.75,90\n'), { closes: [1.5, 1.75], dates: ['2026-10-27', '2026-10-28'] });
+  assert.deepEqual(stooqCloses('No data'), { closes: [], dates: [] });
+  assert.deepEqual(stooqCloses('<html>Exceeded the daily hits limit</html>'), { closes: [], dates: [] });
+  const long = 'Date,Open,High,Low,Close,Volume\n' + Array.from({ length: 80 }, (_, i) => `2026-0${1 + Math.floor(i / 28)}-${String(1 + (i % 28)).padStart(2, '0')},1,1,1,${i + 1},1`).join('\n');
+  assert.equal(stooqCloses(long).closes.length, 60, 'the last sixty trading days');
+});
+
 test('the real world\'s helpers: weather codes and news feed titles', async () => {
   const { skyOf, feedTitles } = await import('../server/world.mjs');
   assert.deepEqual([0, 1, 2, 45, 61, 80, 95, 71, 86].map(skyOf), ['sunny', 'sunny', 'cloudy', 'cloudy', 'rain', 'rain', 'rain', 'snow', 'snow']);
