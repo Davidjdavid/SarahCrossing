@@ -221,7 +221,7 @@ const SeaSky = {
         const open = (tx, ty) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -2; dx <= 2; dx++) if (!this.openSea(tx + dx, ty + dy)) return false; return true; };
         // (on the screen, with none of the island's ground between the camera and the water there: a cliff top hides the sea
         // below it, however near)
-        const bend = (z) => { const bd = Math.max(0, R3U.uBendZ.value - z); return R3U.uBendK.value * bd * bd; };
+        const bend = (z) => r3Drop(z);
         const seen = (tx, ty) => {
             if (!R3on) return true;
             const q = R3.project((tx + 0.5) * TILE, (ty + 0.5) * TILE, 0);

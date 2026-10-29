@@ -97,6 +97,17 @@ const EnvLawn = {
         this.key = key;
         this.fill(a, season, cx, cz);
     },
+    /* the tiles filled round the view's middle, nearest first: 17 to each side, 15 ahead, 8 back toward the camera, each
+       with how big what's on it is drawn (shrinking over the last quarter of the way out) */
+    order() {
+        if (this._order) return this._order;
+        const out = [];
+        for (let j = -15; j <= 8; j++) for (let i = -17; i <= 17; i++) {
+            const e = Math.hypot(i / 17.5, j / (j < 0 ? 15.5 : 8.5));
+            if (e < 1) out.push([i, j, Math.min(1, (1 - e) / 0.25), e]);
+        }
+        return (this._order = out.sort((p, q) => p[3] - q[3]));
+    },
     fill(a, season, cx, cz) {
         const M = this.M, q = this.q, e = this.e, v = this.v, s = this.s, c = this.c;
         const near = this.treeNear(a), lf = this.LEAF[season] || [0, 0], cols = this.LEAF_COLS[season] || [];
@@ -107,8 +118,11 @@ const EnvLawn = {
             else if (o.kind === 'item') taken.add(Math.floor(o.x / TILE) + ',' + Math.floor((o.y - 2) / TILE));
         }
         let nt = 0, nl = 0;
-        const x0 = cx - 17, x1 = cx + 17, y0 = cz - 15, y1 = cz + 8;
-        for (let ty = Math.max(0, y0); ty <= Math.min(W0.h - 1, y1); ty++) for (let tx = Math.max(0, x0); tx <= Math.min(W0.w - 1, x1); tx++) {
+        // (nearest tiles first, so when there are more than the meshes hold it's the far ones left out; both shrink to
+        // nothing toward the edge of what's filled, so nothing ends in a line as the view moves on)
+        for (const [i, j, edge] of this.order()) {
+            const tx = cx + i, ty = cz + j;
+            if (tx < 0 || ty < 0 || tx >= W0.w || ty >= W0.h) continue;
             if (a.blockedAt(tx, ty) || a.waterAt(tx, ty) || taken.has(tx + ',' + ty)) continue;
             const r = mulberry(hash32('lawn' + tx + ',' + ty));
             // tufts, on the lawn only, the wilder the more
@@ -119,7 +133,7 @@ const EnvLawn = {
                     const x = tx + 0.1 + r() * 0.8, y = ty + 0.1 + r() * 0.8;
                     if (EnvGround.grassAt(x, y) < 0.9) continue;
                     // (smaller further off, gone by the time the lawn's own detail has melted away)
-                    const far = Math.hypot(x - cx, (y - cz) * 0.8), sc = (1.0 + r() * 0.7) * Math.max(0, Math.min(1, (16 - far) / 5));
+                    const far = Math.hypot(x - cx, (y - cz) * 0.8), sc = (1.0 + r() * 0.7) * Math.max(0, Math.min(1, (16 - far) / 5)) * edge;
                     if (sc <= 0.05) continue;
                     e.set(0, r() * Math.PI * 2, 0); q.setFromEuler(e);
                     M.compose(v.set(x, Env.groundH(x * TILE, y * TILE) - 0.005, y * R3_ZS), q, s.set(sc, sc * (0.85 + wild * 0.35), sc));
@@ -131,7 +145,7 @@ const EnvLawn = {
                 const want = lf[0] + (lf[1] - lf[0]) * near[ty * W0.w + tx];
                 let k = Math.floor(want) + (r() < want % 1 ? 1 : 0);
                 while (k-- > 0 && nl < this.LEAVES) {
-                    const x = tx + r(), y = ty + r(), sc = (season === 'spring' ? 0.7 : 1.15) + r() * 0.55;
+                    const x = tx + r(), y = ty + r(), sc = ((season === 'spring' ? 0.7 : 1.15) + r() * 0.55) * edge;
                     e.set((r() - 0.5) * 0.35, r() * Math.PI * 2, (r() - 0.5) * 0.35); q.setFromEuler(e);
                     M.compose(v.set(x, Env.groundH(x * TILE, y * TILE) + 0.006, y * R3_ZS), q, s.set(sc, sc, sc));
                     this.leaf.setMatrixAt(nl, M);

@@ -100,7 +100,12 @@ docs/DEPLOY.md for the server.
 - The haze takes the sky's color behind each thing (`r3SkyCol` in `R3_GLSL`, the sky's colors shared as `uSkyZen`/`uSkyMid`/
   `uSkyHor`), so far things melt into the sky rather than standing in it; the sky's horizon sits where the island's far edge
   is seen (`uSkyEdge`, from `placeCamera`), with clouds, and stars and the moon at night (`uNight`), in the strip of sky
-  over it. Street lamps light from high over them (`updateLight`): far reaching, gentle close up; a doorway or a lantern
+  over it. In the new look the world rolls away over its horizon as Animal Crossing's does, and faster over the last tiles
+  before the edge of what's drawn (`R3_SINK`: `uSinkZ`/`uSinkK`, set in `placeCamera` from `R3.horizon`), so everything
+  there has gone down behind the horizon before it stops being drawn, and rises over it as Sarah walks closer; the haze is
+  only a touch there (`R3_HAZE`, `uHaze`; David, 28 October: "it can feel like an N64 game"). Whatever bends the world
+  (the shaders, `project`/`unproject`, the frustum, the sky things, the whale's spot) goes through `r3Drop` (JS and GLSL).
+  Street lamps light from high over them (`updateLight`): far reaching, gentle close up; a doorway or a lantern
   lights only round itself.
 - Settings > Picture quality and Draw distance (`GFX`, kept per device in `sc-quality` / `sc-far`): Auto is the device's
   own (phones lighter and shorter, a slow computer drops its quality by itself in `watchSpeed`); a pick stays as picked.
@@ -154,8 +159,9 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   alpha, `wildWin`/`wildAt`: the distance to paths, the square, sand, steps, Sarah's paths and buildings), its detail and
   bumps melting into its average color further off (`envFar`, `uGrassAvg`). Small 3D tufts are scattered over it, few by
   the paths and more in the wild, and fallen leaves for the season (fall's many under the trees, a stray one in summer,
-  blossom petals in spring, none in winter): `EnvLawn` (33w_env_lawn.js), instanced, refilled round the view, the same
-  tuft always in the same spot. No flowers but the ones you can pick. R3 still draws people, critters and
+  blossom petals in spring, none in winter): `EnvLawn` (33w_env_lawn.js), instanced, refilled round the view nearest tile
+  first (`order()`: what's left out when there are too many is the far side) and shrinking to nothing toward the edge of
+  what's filled, the same tuft always in the same spot. No flowers but the ones you can pick. R3 still draws people, critters and
   anything `Env.takes(e)` leaves out, and its post pass (bloom, depth of field, the warm grade). Tune it in `ENV`
   (a level's height, the camera, depth of field, how big people stand).
 - Sarah's island is in the new look on the beta site (`ENV_ISLAND`: the beta host, or `localStorage sc-env-island` 1 or

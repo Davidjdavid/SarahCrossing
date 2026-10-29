@@ -417,10 +417,15 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   (29 October: every hairstyle, clothes style and accessory on Sarah looked at close up: the headphones' band went
   through her face (now over the top of her head) and the tiara was lost in big hair (now it sits on it); and glass
   everywhere (display cases, the aquarium's tanks, the snow globe) had been invisible whenever it was in focus)
-- [ ] (David, 28 October) Seeing far, at the very end of the polish, just before the big testing: things coming into view
+- [x] (David, 28 October) Seeing far, at the very end of the polish, just before the big testing: things coming into view
   without being noticed (on computers and phones), and the haze far off much less obvious (it can feel like an N64 or
   PS1 game). Started 28 October: the haze takes the sky's color behind each thing, the sky's horizon sits on the
   island's far edge, stars and clouds in the strip of sky over it.
+  (29 October: the island rolls away over its horizon as Animal Crossing's does, faster over the last tiles before the
+  edge of what's drawn, so a house, a tree or the fountain goes down behind the horizon instead of fading into the
+  haze as a pale ghost, and rises over it, solid, as Sarah walks up; the haze is only a touch now. The lawn's tufts and
+  fallen leaves shrink away toward the edge of where they're laid instead of stopping in a line, and when there are too
+  many it's the far ones left out, not the ones at Sarah's feet)
 - [~] (David, 28 October, late) The very last thing: tests of everything Sarah can do, one by one, played the way a
   player does (buying and selling at every shop, making pottery, cooking, fishing, decorating, every app and screen,
   every game, every neighbor's talk menu...), so nothing quietly breaks again (buying and selling at Fortune's had,
@@ -497,7 +502,7 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
   lamp); a street lamp's light far reaching but gentle close up
 - [x] Brick paths from the island editor show in 3D (and planks)
 - [x] An option to play in 2D (Settings > View: 3D or Classic 2D)
-- [ ] A sky behind the haze (started: see "Seeing far" above)
+- [x] A sky behind the haze (see "Seeing far" above)
 - [x] Outdoor furniture: real 3D models; sold by kind each day (lights, benches, fences, statues and gnomes, signs and
   umbrellas and picnic tables and the like, hedges and plants, and more), more of each kind (hedges, benches...), each in
   four colors; any furniture goes indoors or out (a paint easel outside, a park bench in the house)

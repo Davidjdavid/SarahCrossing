@@ -64,8 +64,7 @@ const EnvSea = {
         const hgt = Math.min(this.SKY_SIZE[name] * 2, span * 0.45), y = lo + hgt * 0.6 + (span - hgt * 1.2) * (0.25 + 0.5 * s.sy);
         const P = new THREE.Vector3(sx * 2 - 1, y, 0.5).unproject(c).sub(c.position).normalize().multiplyScalar(D).add(c.position);
         // (the world bends away towards the horizon, and this with it: raised by as much, it stays where it's put)
-        const bd = Math.max(0, R3U.uBendZ.value - P.z);
-        P.y += R3U.uBendK.value * bd * bd;
+        P.y += r3Drop(P.z);
         d.position.copy(P);
         // (as tall on the screen as asked: the model's own height, once, against the screen's height at that distance)
         if (d.userData.h == null) { d.scale.setScalar(1); d.rotation.set(0, 0, 0); d.updateMatrixWorld(true); d.userData.h = Math.max(0.05, new THREE.Box3().setFromObject(d).getSize(new THREE.Vector3()).y); }

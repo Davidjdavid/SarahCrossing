@@ -62,8 +62,8 @@ const R3 = {
                     const g = o.geometry;
                     if (g.boundingSphere === null) g.computeBoundingSphere();
                     S.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
-                    const K = R3U.uBendK.value, far = R3U.uBendZ.value - (S.center.z - S.radius);
-                    if (K > 0 && far > 0) { const mid = Math.max(0, R3U.uBendZ.value - S.center.z), d = K * mid * mid; S.center.y -= d; S.radius += K * far * far - d; }
+                    const d = r3Drop(S.center.z), dFar = r3Drop(S.center.z - S.radius);
+                    if (dFar > 0) { S.center.y -= d; S.radius += dFar - d; }
                     return this.intersectsSphere(S);
                 };
                 THREE.Frustum.prototype._r3Bent = true;
@@ -210,12 +210,23 @@ const R3 = {
         cam.updateMatrixWorld();
         R3U.uBendZ.value = this.target.z - (a.interior ? 999 : R3_CAM.bendStart);
         R3U.uBendK.value = a.interior ? 0 : R3_CAM.bendK;
+        R3U.uSinkK.value = 0;
         // (where the island's far edge is seen from the camera, as a slope down from it: the sky's horizon sits there,
-        // whatever the zoom, so the strip of sky over the edge is always sky, with its stars and clouds: r3Sky, r3SkyCol)
+        // whatever the zoom, so the strip of sky over the edge is always sky, with its stars and clouds: r3Sky, r3SkyCol.
+        // Where it would be with the gentle bend alone, so the sky's pale band stays down behind the island's edge)
         if (!a.interior) {
-            const fz = this.target.z - Math.max(8, this.farTiles() - 0.5) * R3_ZS, bd = Math.max(0, R3U.uBendZ.value - fz);
-            const ey = (this.camH || 0) - R3U.uBendK.value * bd * bd - cam.position.y, ez = fz - cam.position.z;
+            const fz = this.target.z - Math.max(8, this.farTiles() - 0.5) * R3_ZS, ey = (this.camH || 0) - r3Drop(fz) - cam.position.y, ez = fz - cam.position.z;
             R3U.uSkyEdge.value = ey / Math.hypot(ey, ez);
+        }
+        // (the new look: the world rolls away over its horizon as Animal Crossing's does, and just before the edge of what's
+        // drawn it rolls away faster, so everything there, a house on the hill or the lighthouse, has gone down behind the
+        // horizon before it stops being drawn: nothing fades into the haze as a ghost or comes into view out of nowhere,
+        // it rises over the horizon as Sarah walks toward it (David, 28 October: "it can feel like an N64 game"). R3_SINK
+        // says over how many tiles before the edge, and how far down)
+        if (!a.interior && Env.on) {
+            const far = this.farTiles(), hor = this.horizon(cam), span = Math.max(R3_SINK.min, Math.min(R3_SINK.max, far - hor - 1)) * R3_ZS;
+            R3U.uSinkZ.value = this.target.z - far * R3_ZS + span;
+            R3U.uSinkK.value = R3_SINK.drop / (span * span);
         }
         const k = d / 13, df = Env.on && !a.interior ? ENV.dof : [22, 70, 8.5, 5.5];
         R3U.uDof.value.set(df[0] * k, df[1] * k, df[2] * k, df[3] * k);
@@ -266,11 +277,23 @@ const R3 = {
         const all = [...this.cards.values()].concat(...Object.values(this.pool));
         for (const c of all) if (c.res > 1) { c.tex.magFilter = f; c.tex.needsUpdate = true; }
     },
+    /* how many tiles ahead the island's horizon is from the camera, the way the ground bends by itself (before it rolls
+       away at the edge): where the line of sight looks least far down to it. The ground is taken as level with the ground
+       under the camera's target */
+    horizon(cam) {
+        const gy = this.camH || 0, cy = cam.position.y, cz = cam.position.z, far = this.farTiles();
+        let best = -2, at = far;
+        for (let t = 1; t <= far; t += 0.5) {
+            const z = this.target.z - t * R3_ZS, bd = Math.max(0, R3U.uBendZ.value - z), ey = gy - R3U.uBendK.value * bd * bd - cy, ez = z - cz, s = ey / Math.hypot(ey, ez);
+            if (s > best) { best = s; at = t; }
+        }
+        return at;
+    },
     /* world pixels (x, y, and a height above the ground) -> overlay canvas pixels, and how many of those make one world pixel there */
     project(x, y, lift) {
         const v = G.view;
         const P = this._p || (this._p = new THREE.Vector3()), Q = this._q || (this._q = new THREE.Vector3());
-        const Z = y / TILE * R3_ZS, bd = Math.max(0, R3U.uBendZ.value - Z), drop = R3U.uBendK.value * bd * bd, gh = r3GroundH(x, y);
+        const Z = y / TILE * R3_ZS, drop = r3Drop(Z), gh = r3GroundH(x, y);
         P.set(x / TILE, (lift || 0) / TILE * R3_VS - drop + gh, Z).project(this.camera);
         Q.set(x / TILE + 1, (lift || 0) / TILE * R3_VS - drop + gh, Z).project(this.camera);
         const sx = (P.x + 1) / 2 * v.w, sy = (1 - P.y) / 2 * v.h;
@@ -282,7 +305,7 @@ const R3 = {
         const ndc = new THREE.Vector3(sx / v.w * 2 - 1, 1 - sy / v.h * 2, 0.5).unproject(cam);
         const o = cam.position, dir = ndc.sub(o).normalize();
         // (the ground is bent away towards the horizon, and raised where the island is higher: march along until below it)
-        const f = t => { const yy = o.y + dir.y * t, zz = o.z + dir.z * t, bd = Math.max(0, R3U.uBendZ.value - zz); return yy + R3U.uBendK.value * bd * bd - r3GroundH((o.x + dir.x * t) * TILE, zz / R3_ZS * TILE); };
+        const f = t => { const yy = o.y + dir.y * t, zz = o.z + dir.z * t; return yy + r3Drop(zz) - r3GroundH((o.x + dir.x * t) * TILE, zz / R3_ZS * TILE); };
         let lo = 0, hi = 0;
         for (let t = 0.5; t < 600; t += Math.max(0.25, t * 0.04)) { if (f(t) <= 0) { hi = t; break; } lo = t; }
         if (!hi) return orNull ? null : [G.player.x, G.player.y];
@@ -585,6 +608,8 @@ const R3 = {
         const fog = new THREE.Color(R3_FOG.col[0], R3_FOG.col[1], R3_FOG.col[2]).lerp(new THREE.Color(0.62, 0.66, 0.7), gray).lerp(tint, dark * 0.85);
         if (aur > 0.001) fog.lerp(new THREE.Color(0.1, 0.32, 0.3), 0.25 * aur);
         this.scene.fog.color.copy(fog);
+        // (the new look's haze only a touch far off: things there go down behind the horizon rather than into a mist)
+        R3U.uHaze.value = Env.on && !a.interior ? R3_HAZE : 1;
         if (a.interior) { this.scene.fog.near = 200; this.scene.fog.far = 400; }
         else { const f = this.farTiles() * R3_ZS, d = this.dist(), F = Env.on ? ENV.fog : R3_FOG; this.scene.fog.near = d + f * F.near; this.scene.fog.far = d + f * F.far; }
         this.renderer.setClearColor(a.interior ? 0x231b2e : fog, 1);
@@ -820,6 +845,13 @@ const R3_TALK = { on: true, near: 0.48, pitch: 9, up: 0.35, ease: 0.07, mirror: 
 const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.007, lead: 4 };
 // tiles ahead that get drawn (at the normal zoom); the new look further since David's note of 29 October (far trees half gone)
 const R3_FAR = { phone: 17, full: 27, envPhone: 24, envFull: 38 };
+// (the new look: the last tiles before the edge of what's drawn, where the world rolls away faster (at least min, at most
+// max, beyond the horizon where there's room), and how far down it has gone by the edge: more than anything stands tall)
+const R3_SINK = { min: 8, max: 14, drop: 14 };
+const R3_HAZE = 0.3;
+/* how far the bent world has dropped at a depth (world z): the gentle bend toward the horizon, and the new look's roll
+   away before the edge of what's drawn. The shaders' r3Drop is the same */
+function r3Drop(z) { const bd = Math.max(0, R3U.uBendZ.value - z), sd = Math.max(0, R3U.uSinkZ.value - z); return R3U.uBendK.value * bd * bd + R3U.uSinkK.value * sd * sd; }
 /* the graphics settings (David, 26 October: a quality setting and a draw distance, each with its own default for laptops
    and phones), kept per device. Auto is the device's own: a phone draws a lighter picture and less far, and a computer that
    turns out slow drops its picture quality by itself (watchSpeed); a choice in Settings stays as picked. High quality
@@ -845,7 +877,8 @@ function hasWebGL() {
 
 /* ---------------------------------------------------------------- shared shader bits (bend, cloud shade, depth-of-field amount) */
 const R3U = {
-    uBendK: { value: 0.0024 }, uBendZ: { value: 0 }, uTime: { value: 0 },
+    uBendK: { value: 0.0024 }, uBendZ: { value: 0 }, uSinkK: { value: 0 }, uSinkZ: { value: 0 }, uTime: { value: 0 },
+    uHaze: { value: 1 },        // (how far the haze goes at most: all the way in the HD-2D view, a touch in the new look)
     uDof: { value: new THREE_V4(22, 70, 8.5, 5.5) }, uGrass: { value: new THREE_V4(1, 1, 1, 0) }, uShadow: { value: 1 },
     uDetOn: { value: 1 },
     // where Sarah is on screen (x, y in clip space, how far from the camera, how big a circle) and the screen's aspect:
@@ -861,14 +894,17 @@ const R3U = {
 };
 function THREE_V4(a, b, c, d) { return typeof THREE !== 'undefined' ? new THREE.Vector4(a, b, c, d) : { x: a, y: b, z: c, w: d, set() {} }; }
 const R3_GLSL = `
-uniform float uBendK; uniform float uBendZ; uniform float uTime; uniform vec4 uDof; uniform float uShadow; uniform vec4 uSee; uniform float uSeeA; uniform float uCloudK; uniform vec4 uEdge;
-uniform vec4 uSkyZen; uniform vec4 uSkyMid; uniform vec4 uSkyHor; uniform float uSkyEdge;
+uniform float uBendK; uniform float uBendZ; uniform float uSinkK; uniform float uSinkZ; uniform float uTime; uniform vec4 uDof; uniform float uShadow; uniform vec4 uSee; uniform float uSeeA; uniform float uCloudK; uniform vec4 uEdge;
+uniform vec4 uSkyZen; uniform vec4 uSkyMid; uniform vec4 uSkyHor; uniform float uSkyEdge; uniform float uHaze;
 varying float vDofZ; varying vec3 vWp;
-float r3Edge(vec3 w){ float dx = abs(w.x - uEdge.x), dz = uEdge.y - w.z / ${R3_ZS.toFixed(2)}; return max(smoothstep(uEdge.z - uEdge.w, uEdge.z, dx), smoothstep(uEdge.z - uEdge.w, uEdge.z, dz)); }
+float r3Drop(float z){ float bd = max(0.0, uBendZ - z), sd = max(0.0, uSinkZ - z); return uBendK * bd * bd + uSinkK * sd * sd; }
+// (to the sides the world fades out before the edge of what's drawn, which only a very wide screen ever shows; ahead it has
+// rolled away behind the horizon by then, and only the last tiles fade, in case anything still stands up over it)
+float r3Edge(vec3 w){ float dx = abs(w.x - uEdge.x), dz = uEdge.y - w.z / ${R3_ZS.toFixed(2)}; return max(smoothstep(uEdge.z - uEdge.w, uEdge.z, dx), smoothstep(uEdge.z - min(uEdge.w, 3.0), uEdge.z, dz)); }
 // the sky's color behind a point of the world (where it stands once the world is bent): what the haze fades it into, so
 // anything far off melts into the sky behind it rather than standing in it as a pale ghost (David, 28 October)
 vec3 r3SkyCol(vec3 w){
-  vec3 bp = vec3(w.x, w.y - uBendK * max(0.0, uBendZ - w.z) * max(0.0, uBendZ - w.z), w.z);
+  vec3 bp = vec3(w.x, w.y - r3Drop(w.z), w.z);
   float y = clamp(normalize(bp - cameraPosition).y - uSkyEdge, -0.2, 1.0);
   return mix(mix(uSkyHor.rgb, uSkyMid.rgb, smoothstep(-0.05, 0.015, y)), uSkyZen.rgb, smoothstep(0.015, 0.22, y));
 }
@@ -888,7 +924,7 @@ function r3Patch(mat, o) {
         sh.vertexShader = R3_GLSL + (o.see ? 'varying vec4 vSee; varying float vObjZ;\n' : '') + (o.vhead || '') + sh.vertexShader.replace('#include <project_vertex>', `
             vec4 bw = modelMatrix * ${o.inst ? 'instanceMatrix * ' : ''}vec4(transformed, 1.0);
             vWp = bw.xyz;
-            float bd = max(0.0, uBendZ - bw.z); bw.y -= uBendK * bd * bd;
+            bw.y -= r3Drop(bw.z);
             vec4 mvPosition = viewMatrix * bw;
             vDofZ = -mvPosition.z;
             gl_Position = projectionMatrix * mvPosition;${o.see ? `
@@ -920,7 +956,7 @@ function r3Patch(mat, o) {
         // (the new look: everything fades into the haze before the edge of what's drawn, so the world never ends in a line,
         // however far out the camera's zoomed: the fog alone, measured along the view, leaves the top of the screen thin)
         // (and the haze is the sky's own color behind each point, not one color for all)
-        if (!o.noEdge) fs = fs.replace('#include <fog_fragment>', '#ifdef USE_FOG\ngl_FragColor.rgb = mix(gl_FragColor.rgb, r3SkyCol(vWp), max(smoothstep(fogNear, fogFar, fogDepth), r3Edge(vWp)));\n#endif');
+        if (!o.noEdge) fs = fs.replace('#include <fog_fragment>', '#ifdef USE_FOG\ngl_FragColor.rgb = mix(gl_FragColor.rgb, r3SkyCol(vWp), max(uHaze * smoothstep(fogNear, fogFar, fogDepth), r3Edge(vWp)));\n#endif');
         // (a ghost's alpha is how see-through it is: the picture's own alpha, the depth of field's, is kept by its blending)
         fs = fs.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + (o.fend || '') + (o.ghost ? '\ngl_FragColor.a = 1.0 - r3Fade;' : o.noDof ? '' : o.dofFixed != null ? `\ngl_FragColor.a = ${o.dofFixed.toFixed(2)};` : '\ngl_FragColor.a = dofA(vDofZ);'));
         sh.fragmentShader = fs;
@@ -935,9 +971,9 @@ function r3Depth(tex) {
     const dm = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: tex, alphaTest: 0.5 });
     dm.onBeforeCompile = sh => {
         Object.assign(sh.uniforms, R3U);
-        sh.vertexShader = 'uniform float uBendK; uniform float uBendZ;\n' + sh.vertexShader.replace('#include <project_vertex>', `
+        sh.vertexShader = 'uniform float uBendK; uniform float uBendZ; uniform float uSinkK; uniform float uSinkZ;\nfloat r3Drop(float z){ float bd = max(0.0, uBendZ - z), sd = max(0.0, uSinkZ - z); return uBendK * bd * bd + uSinkK * sd * sd; }\n' + sh.vertexShader.replace('#include <project_vertex>', `
             vec4 bw = modelMatrix * vec4(transformed - vec3(-0.16, 0.23, 0.1), 1.0);
-            float bd = max(0.0, uBendZ - bw.z); bw.y -= uBendK * bd * bd;
+            bw.y -= r3Drop(bw.z);
             vec4 mvPosition = viewMatrix * bw;
             gl_Position = projectionMatrix * mvPosition;`);
     };
@@ -1099,10 +1135,10 @@ const R3Mirror = {
         // (nor the new look's ground, grass and the soft shade under things)
         if (typeof Env !== 'undefined' && Env.on && Env.built) for (const k of ['ground', 'grass', 'contact']) { const p = Env.built.parts[k]; if (p && p.meshes) for (const m of p.meshes) if (m.visible) hide.push(m); }
         for (const m of hide) m.visible = false;
-        const bk = R3U.uBendK.value, was = R.shadowMap.needsUpdate;
-        R3U.uBendK.value = 0; R3U.uRefl.value = 0; R.shadowMap.needsUpdate = false;
+        const bk = R3U.uBendK.value, sk = R3U.uSinkK.value, was = R.shadowMap.needsUpdate;
+        R3U.uBendK.value = 0; R3U.uSinkK.value = 0; R3U.uRefl.value = 0; R.shadowMap.needsUpdate = false;
         R.setRenderTarget(this.rt); R.clear(); R.render(r3.scene, cam); R.setRenderTarget(null);
-        R3U.uBendK.value = bk; R3U.uRefl.value = 1; R.shadowMap.needsUpdate = was;
+        R3U.uBendK.value = bk; R3U.uSinkK.value = sk; R3U.uRefl.value = 1; R.shadowMap.needsUpdate = was;
         for (const m of hide) m.visible = true;
         R3U.tRefl.value = this.rt.texture;
     },
