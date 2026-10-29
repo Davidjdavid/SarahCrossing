@@ -814,6 +814,10 @@ function clubList(mode) {
             for (const id of Object.keys(SONGS).filter(songUnlocked)) L.appendChild(row('ui_moves', SONGS[id].name, 'Watch Sarah dance it', false, () => finish({ song: id })));
             L.appendChild(el('p', null, "Songs (Joe's poems)"));
             for (const poem of karaokePoems()) L.appendChild(row('app_poems', poem[0], 'Hear Sarah sing it', false, () => finish({ poem })));
+            // (and the songs she wrote: 63_karaoke.js)
+            const mine = karaokeMine();
+            if (mine.length) L.appendChild(el('p', null, 'Songs you wrote'));
+            for (const poem of mine) L.appendChild(row('app_music', poem[0], 'Hear Sarah sing it', false, () => finish({ poem })));
         }
         P.body.appendChild(L);
     });

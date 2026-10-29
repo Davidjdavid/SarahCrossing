@@ -4563,3 +4563,230 @@ test('the Bank, the way a player does: an amount typed and put into savings, too
   assert.deepEqual(page.problems, []);
   await page.close();
 });
+
+test('karaoke: every leap in every song can be reached in time; the marker moves by the clock, quicker the longer it is held, and a finger slides it on a phone', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    // every two notes back to back in a line, in Joe's poems and in songs of every shape she could write: from the first,
+    // the marker gets inside the second's hit band by the end of the gap and the first quarter of it (the rest is ON KEY)
+    const songs = JOE_POEMS.concat([JOE_SUNSET_POEM]);
+    const words = ['sun', 'moon', 'happy', 'island', 'butterfly', 'ocean', 'dancing', 'together', 'a', 'the', 'beautiful', 'night', 'supercalifragilistic'];
+    for (let i = 0; i < 120; i++) {
+      const lines = [];
+      for (let l = 0; l < 1 + (i % 8); l++) lines.push(Array.from({ length: 1 + ((i * 3 + l) % 12) }, (_, k) => words[(i * 7 + k * 5 + l) % words.length]).join(' '));
+      songs.push(Object.assign(['Song ' + i, lines], { mine: { id: i } }));
+    }
+    let pairs = 0, late = 0, worst = 99;
+    for (const p of songs) {
+      const s = karaokeSong(p), mids = s.notes.map((n) => n.midi), range = Math.max(...mids) - Math.min(...mids) + 3;
+      for (let i = 1; i < s.notes.length; i++) {
+        const a = s.notes[i - 1], b = s.notes[i];
+        if (a.line !== b.line) continue;
+        const slack = karaReach(b.t0 - a.t1 + KARA_LATE * (b.t1 - b.t0)) - Math.max(0, Math.abs(b.midi - a.midi) - karaTolSemi(range));
+        pairs++;
+        if (slack < 0) late++;
+        worst = Math.min(worst, slack);
+      }
+    }
+    out.leaps = { many: pairs > 3000, late, slack: worst > 0 };
+    // on the stage: held for a quarter of a second from the bottom, it goes as far as karaReach says, by the clock
+    Audio2.unlock();
+    G.touchUsed = true;
+    Karaoke.start(JOE_POEMS[1]);
+    for (let i = 0; i < 200 && !Karaoke.ready; i++) await wait(50);
+    const range = Karaoke.hi - Karaoke.lo;
+    Karaoke.v = 0;
+    Karaoke.pitch(1, true);
+    const t0 = performance.now();
+    await wait(250);
+    Karaoke.pitch(1, false);
+    const dt = (performance.now() - t0) / 1000, moved = Karaoke.v * range;
+    out.held = moved >= karaReach(Math.max(0, dt - 0.12)) && moved <= karaReach(dt + 0.12);
+    // and stays where it's left
+    const v1 = Karaoke.v;
+    await wait(200);
+    out.stays = Karaoke.v === v1;
+    // on a phone: the arrows show, and a finger sliding up them takes the marker along, as far as it slides on the bar
+    const pads = document.querySelector('#karaokepads'), up = pads.querySelector('[data-k=up]');
+    out.pads = !pads.hidden && /slide/.test(document.querySelector('#dtip').textContent);
+    const ev = (type, y) => up.dispatchEvent(new PointerEvent(type, { pointerId: 7, clientY: y, bubbles: true, cancelable: true }));
+    Karaoke.v = 0.2;
+    ev('pointerdown', 400); ev('pointermove', 395); ev('pointermove', 380);
+    const v0 = Karaoke.v;
+    ev('pointermove', 380 - Karaoke.barPx / 2);
+    out.slide = Math.abs(Karaoke.v - (v0 + 0.5)) < 0.02;
+    ev('pointerup', 380 - Karaoke.barPx / 2);
+    out.slideEnds = !Karaoke.drag && !Karaoke.up;
+    Karaoke.quit();
+    await wait(300);
+    return out;
+  });
+  assert.deepEqual(res, { leaps: { many: true, late: 0, slack: true }, held: true, stays: true, pads: true, slide: true, slideEnds: true });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('karaoke: Sarah writes her own songs (tidied), sings them to a tune made from their words, changes and deletes them; old saves load', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const until = async (fn) => { for (let i = 0; i < 200 && !fn(); i++) await wait(50); return fn(); };
+    const chipOf = (re) => [...document.querySelectorAll('#panel .chip')].find((b) => re.test(b.textContent));
+    const say = UI.say;
+    UI.say = async () => {};
+    S.flags.karaokeTold = true;
+    try {
+      // a save from before has no songs of her own, and loads with none
+      const old = migrate(Object.assign(newState(), { karaoke: { best: { Shoe: 'B' }, day: -1, trophy: false } }));
+      const odd = migrate(Object.assign(newState(), { karaoke: { best: {}, day: -1, trophy: false, mine: 'oops' } }));
+      out.old = Array.isArray(old.karaoke.mine) && !old.karaoke.mine.length && old.karaoke.best.Shoe === 'B' && Array.isArray(odd.karaoke.mine);
+      // "Write a song" in the karaoke list: a title and the words, tidied (no markup, a line each, eight at most, none too long)
+      const night = karaokeNight();
+      await until(() => document.querySelector('#panel .kara-write'));
+      document.querySelector('#panel .kara-write').click();
+      await until(() => document.querySelector('#karawords'));
+      document.querySelector('#karatitle').value = '<b>Sea</b> Song!';
+      document.querySelector('#karawords').value = ['The sea is <i>blue</i>', '', '12345', 'The sand is warm and the sun is high above the island today, hooray']
+        .concat(Array.from({ length: 9 }, (_, i) => `Line ${i + 3} la la`)).join('\n');
+      chipOf(/^Write it/).click();
+      await until(() => document.querySelector('#panel .kara-mine'));
+      const s = S.karaoke.mine[0];
+      out.saved = { n: S.karaoke.mine.length, title: s.title, lines: s.lines.length, first: s.lines[0], long: s.lines.every((l) => l.length <= 40), clean: !s.lines.some((l) => /[<>]/.test(l)),
+        row: document.querySelector('#panel .kara-mine b').textContent, kept: migrate(JSON.parse(JSON.stringify(S))).karaoke.mine[0].title };
+      // the same words always make the same tune, other words another
+      const p = karaokeMine()[0], a = karaokeSong(p), b = karaokeSong(karaokeMine()[0]), other = karaokeSong(Object.assign([p[0], ['Something else entirely']], { mine: s }));
+      out.tune = JSON.stringify(a.notes.map((n) => n.midi)) === JSON.stringify(b.notes.map((n) => n.midi)) && a.notes.length > 8 && JSON.stringify(a.spec) !== JSON.stringify(other.spec);
+      // a tap sings it, on the stage, as her song
+      Audio2.unlock();
+      document.querySelector('#panel .kara-mine').click();
+      await until(() => Karaoke.ready);
+      out.stage = Karaoke.poem.mine === s && /a song by/.test(document.querySelector('#dsong').textContent);
+      Karaoke.quit();
+      await night;
+      // sung well: its own best, not one of Joe's poems'
+      Object.assign(Karaoke, { poem: karaokeMine()[0], totF: 100, hitF: 80, dTot: 0, dHit: 0, duet: null });
+      G.busy++;
+      await Karaoke.results();
+      out.best = { mine: s.best, notJoes: !(s.title in S.karaoke.best), rank: S.karaoke.ranks['my:' + s.id] };
+      // "Just watch" has it too
+      const watch = clubList('watch');
+      out.watch = document.querySelector('#panel').textContent.includes('Songs you wrote');
+      UI.close();
+      await watch;
+      // changed: the words as they were, new ones saved (a new tune, so the old best goes)
+      const night2 = karaokeNight();
+      await until(() => document.querySelector('#panel .kara-mine .chip'));
+      document.querySelector('#panel .kara-mine .chip').click();
+      await until(() => document.querySelector('#karawords'));
+      out.editing = document.querySelector('#karatitle').value === 'Sea Song!' && document.querySelector('#karawords').value.startsWith('The sea is blue\n');
+      document.querySelector('#karawords').value = 'New words for a new song\nAnd another line';
+      chipOf(/^Save it/).click();
+      await until(() => document.querySelector('#panel .kara-mine'));
+      out.changed = { n: S.karaoke.mine.length, lines: S.karaoke.mine[0].lines.join('/'), best: S.karaoke.mine[0].best === undefined };
+      // deleted, with a second tap to be sure
+      document.querySelector('#panel .kara-mine .chip').click();
+      await until(() => document.querySelector('#karawords'));
+      chipOf(/^Delete it/).click();
+      out.sure = S.karaoke.mine.length === 1 && !!chipOf(/^Tap again/);
+      chipOf(/^Tap again/).click();
+      await until(() => document.querySelector('#panel .kara-write'));
+      out.gone = S.karaoke.mine.length === 0 && !document.querySelector('#panel .kara-mine');
+      UI.close();
+      await night2;
+    } finally { UI.say = say; }
+    return out;
+  });
+  assert.deepEqual(res, {
+    old: true,
+    saved: { n: 1, title: 'Sea Song!', lines: 8, first: 'The sea is blue', long: true, clean: true, row: 'Sea Song!', kept: 'Sea Song!' },
+    tune: true, stage: true, best: { mine: 'S', notJoes: true, rank: 'S' }, watch: true, editing: true,
+    changed: { n: 1, lines: 'New words for a new song/And another line', best: true }, sure: true, gone: true,
+  });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
+
+test('karaoke: she sings the words out loud at the pitch she holds (off the note it wobbles and cracks), a duet partner sings in their own voice, and nothing with sound effects off', async () => {
+  const page = await device();
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const res = await page.evaluate(async () => {
+    const out = {}, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    // the words as syllables to sing: consonants in, the vowel (gliding to a second), the consonant out
+    out.syl = ['I', 'have', 'a', 'shoe.', 'blue', 'night'].map((w) => singSyllables(w, syllables(w)).map((x) => `${x.c}${x.c2 || ''}:${x.v}${x.v2 || ''}${x.co ? ':' + x.co : ''}`).join(' '));
+    // rendered offline: she sings the pitch asked (A3 here), a crack jumps away from it, "ah" and "ee" are different shapes
+    const SR = 44100;
+    const render = async (vowel, crackAt) => {
+      const c = new OfflineAudioContext(1, SR * 2, SR), V = Singer.make(c, c.destination, Singer.opts(VOICES.sarah, false));
+      Singer.tick(V, 57, true, 1, 0, false);
+      Singer.syl(V, { c: 'l', v: vowel }, 0.1, 1.8);
+      if (crackAt) Singer.crack(V, crackAt);
+      return (await c.startRendering()).getChannelData(0);
+    };
+    const pitch = (d, a, n) => {
+      const ac = [];
+      let mx = 0;
+      for (let lag = 20; lag < 900; lag++) {
+        let s = 0, e1 = 0, e2 = 0;
+        for (let i = 0; i < n; i++) { s += d[a + i] * d[a + i + lag]; e1 += d[a + i] ** 2; e2 += d[a + i + lag] ** 2; }
+        ac[lag] = s / Math.sqrt(e1 * e2 + 1e-12);
+        mx = Math.max(mx, ac[lag]);
+      }
+      for (let lag = 21; lag < 899; lag++) if (ac[lag] >= 0.9 * mx && ac[lag] >= ac[lag - 1] && ac[lag] >= ac[lag + 1]) return SR / lag;
+      return 0;
+    };
+    const band = (d, a, f) => { let re = 0, im = 0; for (let i = 0; i < 4096; i++) { const w = 2 * Math.PI * f * i / SR; re += d[a + i] * Math.cos(w); im += d[a + i] * Math.sin(w); } return Math.hypot(re, im); };
+    const ah = await render('a', 1.2), ee = await render('i');
+    out.pitch = Math.abs(pitch(ah, SR * 0.6, 2048) - 220) < 4;
+    out.crack = Math.abs(pitch(ah, Math.round(SR * 1.215), 1024) - 220) > 30;
+    out.vowels = band(ah, SR / 2, 880) > 3 * band(ee, SR / 2, 880) && band(ee, SR / 2, 2200) > band(ah, SR / 2, 2200);
+    // voices: Sarah an octave under the tune, a man's lower, Sully low too, Cece with her own quick wobble
+    out.voices = { sarah: Singer.opts(VOICES.sarah, false).shift, man: Singer.opts(VOICES.david, true).shift, sully: Singer.opts(VOICES.sully).shift, cece: Singer.opts(VOICES.cece).vibHz > 8 };
+    // on the stage, in a duet with Kai
+    Audio2.unlock();
+    Audio2.sfxOn = true;
+    Karaoke.start(JOE_POEMS[1], { duet: NPCs.get('kai') });
+    for (let i = 0; i < 200 && !Karaoke.ready; i++) await wait(50);
+    out.made = !!Karaoke.vo && !!Karaoke.vo2 && JSON.stringify(Karaoke.vo2.o) === JSON.stringify(Singer.opts(VOICES.kai, false));
+    // (skip ahead in the song)
+    const jump = (to) => { const s = Music.song, d = to - Karaoke.now(); if (s.audio) s.t0 -= d; else s.wall0 -= d; };
+    const N = Karaoke.song.notes, first = N.find((n) => n.line === 0), theirs = N.find((n) => n.line === 1);
+    jump(first.t0 + 0.05);
+    Karaoke.v = Karaoke.norm(first.midi);
+    Karaoke.hold(true);
+    await wait(150);
+    out.onNote = Karaoke.vo.on && Math.abs(Karaoke.vo.m - (first.midi + Karaoke.vo.o.shift)) < 0.05 && Karaoke.vo.cracks === 0;
+    // far off the note: a wobble, and cracks
+    Karaoke.v = Karaoke.norm(first.midi) > 0.5 ? 0 : 1;
+    await wait(1500);
+    out.offNote = Karaoke.vo.cracks > 0 && Karaoke.vo.vib > 60;
+    Karaoke.hold(false);
+    // their line: Kai sings it, near the note, in his voice
+    jump(theirs.t0 + 0.05);
+    await wait(150);
+    out.duet = Karaoke.vo2.on && Math.abs(Karaoke.vo2.m - (theirs.midi + Karaoke.vo2.o.shift)) < 1 && !Karaoke.vo.on;
+    // with sound effects off, nobody's heard
+    Audio2.sfxOn = false;
+    Karaoke.hold(true);
+    await wait(150);
+    out.muted = !Karaoke.vo.on && !Karaoke.vo2.on;
+    Audio2.sfxOn = true;
+    Karaoke.hold(false);
+    Karaoke.quit();
+    await wait(300);
+    out.gone = !Karaoke.vo && !Karaoke.vo2;
+    return out;
+  });
+  assert.deepEqual(res, {
+    syl: [':ai', 'h:ae:v', ':uh', 'sh:ou', 'bl:u', 'n:ai:t'],
+    pitch: true, crack: true, vowels: true, voices: { sarah: -12, man: -24, sully: -24, cece: true },
+    made: true, onNote: true, offNote: true, duet: true, muted: true, gone: true,
+  });
+  assert.deepEqual(page.problems, []);
+  await page.close();
+});
