@@ -223,7 +223,7 @@ function lunchOverride(id, day, d, work) {
     return null;
 }
 /* after work, some days, an errand (David, 27 October: "the Bank after work"): the Bank or the Post Office, wherever
-   those rooms are open (on beta, where they open into rooms: CIVIC_PREVIEW) */
+   those rooms are open (where they open into rooms: CIVIC_PREVIEW) */
 function errandOverride(id, day, d, work) {
     const end = (work || []).map(w => w.b).filter(b => b >= 13 && b <= 19).sort((a, b) => b - a)[0];
     if (end == null) return null;

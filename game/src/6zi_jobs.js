@@ -1,5 +1,5 @@
 /* ---- 6zi_jobs.js ---- */
-/* Island jobs at the Town Hall (on beta with the civic buildings: CIVIC_PREVIEW): three small jobs a day for sand
+/* Island jobs at the Town Hall (with the civic buildings: CIVIC_PREVIEW): three small jobs a day for sand
    dollars, one at a time: take packages round to the neighbors (they're in the talk menu: "A package for you!"), sweep
    the leaves off the square (piles to pick up), repaint the sign at the dock, or bring the Council some shells, fruit
    or fish (handed in at the counter, better paid than selling them). Pay comes as soon as a job's done. The jobs are

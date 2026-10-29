@@ -17,8 +17,9 @@ const ENV = {
     items: 0.6,         // and things lying on the ground
     fog: { near: 0.72, far: 1.12 },    // the haze, against how far is drawn: clear further out than the HD-2D view's (the edge itself fades: r3Edge)
 };
-/* Sarah's island in the new look too: on the beta site for now (localStorage sc-env-island = 1 or 0 to choose anywhere) */
-const ENV_ISLAND = (() => { const v = lsGet('sc-env-island'); return v === '1' ? true : v === '0' ? false : /^beta\./.test((window.location && location.hostname) || ''); })();
+/* Sarah's island in the new look too: on the beta site and the live one (David, 29 October: the newest island on live;
+   localStorage sc-env-island = 1 or 0 to choose anywhere, and the tests on this computer run without it) */
+const ENV_ISLAND = (() => { const v = lsGet('sc-env-island'); return v === '1' ? true : v === '0' ? false : /^beta\.|^(www\.)?sarahcrossing\.com$/.test((window.location && location.hostname) || ''); })();
 const Env = {
     on: false, built: null, failed: false,
     want() { return (LAB || ENV_ISLAND) && !this.failed; },

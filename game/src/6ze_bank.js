@@ -1,5 +1,5 @@
 /* ---- 6ze_bank.js ---- */
-/* The Bank of the Island, for real (on beta with the civic buildings: CIVIC_PREVIEW): a savings account that grows a
+/* The Bank of the Island, for real (with the civic buildings: CIVIC_PREVIEW): a savings account that grows a
    little every morning (the rate changes each week), savings goals, the statement of where Sarah's sand dollars came
    from and went (every addMoney says why: moneyFlow in 23_items.js), a safety deposit box for keepsakes, and the house
    loan when Ginger builds before it's paid for. Each replaces its sample screen (CIVIC_LIVE); the samples are still in

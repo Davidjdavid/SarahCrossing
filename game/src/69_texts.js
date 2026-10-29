@@ -76,7 +76,7 @@ function whereabouts(id) {
 }
 /* a neighbor's whole day, laid out (David, 27 October: on the beta site or with the debug tools it's fine to see it; in the
    game Sarah texts them to find out where they are and where they're going). localStorage sc-plans 1 or 0 to choose. */
-function plansShown() { const v = lsGet('sc-plans'); return v === '1' ? true : v === '0' ? false : !!window.__DEBUG || CIVIC_PREVIEW; }
+function plansShown() { const v = lsGet('sc-plans'); return v === '1' ? true : v === '0' ? false : !!window.__DEBUG || /^beta\./.test((window.location && location.hostname) || ''); }
 function appDayPlan(id) {
     const d = NPC_DEFS[id], p = Plans.get(id), dh = dayHour();
     const P = UI.open({ title: `${d.name}'s day`, phone: true, back: appFriends });

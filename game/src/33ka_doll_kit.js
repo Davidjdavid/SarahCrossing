@@ -6,8 +6,8 @@
    clothes and the salon's hair still dress it. Elbows and knees bend (each limb is two pieces jointed on a ball).
    The face is one of sixteen expressions painted on a sheet per look (EnvDolls.faceSheet) and chosen by moving the
    patch's picture: happy, surprised, sad, excited, talking...
-   It's in the test area and on Sarah's island on beta, the live site keeps the first dolls until David says so
-   (STYLE2: where the new look is, ENV_ISLAND; localStorage sc-style2 1 or 0 anywhere). */
+   It's in the test area and on Sarah's island on beta and live (STYLE2: where the new look is, ENV_ISLAND;
+   localStorage sc-style2 1 or 0 anywhere). */
 const STYLE2 = (() => { const v = lsGet('sc-style2'); return v === '1' ? true : v === '0' ? false : LAB || ENV_ISLAND; })();
 const DOLL2 = { H: 1.62, R: 0.215, HEAD: 0.782, NECK: 0.56 };
 /* how each hat (EnvDolls.extras) meets the hair, in head radii (EnvDolls.hatFit): cover [band, crown's middle height,

@@ -2,9 +2,10 @@
 /* The insides of the civic buildings on the square, built ahead of their features (docs/ROADMAP.md, "Late in
    development"): the Town Hall (Maki at the front desk), the Bank (Coco) and the Post Office (Cece); in their keeper's off
    hours the counters wait with a bell. Each counter opens the building's screens (6zd_civic_screens.js),
-   every one drawn with sample numbers and able to show each way it can go. Only on beta for now (CIVIC_PREVIEW: the beta
-   host, or localStorage sc-civic 1 or 0 anywhere); elsewhere their doors are still the signs in 24b_civic.js. */
-const CIVIC_PREVIEW = (() => { const v = lsGet('sc-civic'); return v === '1' ? true : v === '0' ? false : /^beta\./.test((window.location && location.hostname) || ''); })();
+   every one drawn with sample numbers and able to show each way it can go. On the beta and live sites (David, 29 October:
+   the same game on both; CIVIC_PREVIEW: their hosts, or localStorage sc-civic 1 or 0 anywhere); elsewhere, the tests on
+   this computer, their doors are still the signs in 24b_civic.js. */
+const CIVIC_PREVIEW = (() => { const v = lsGet('sc-civic'); return v === '1' ? true : v === '0' ? false : /^beta\.|^(www\.)?sarahcrossing\.com$/.test((window.location && location.hostname) || ''); })();
 function civicOpen(id) { return CIVIC_PREVIEW && !!ROOMS[id] && !!CIVIC_SIGNS[id]; }
 
 if (CIVIC_PREVIEW) {

@@ -1,5 +1,5 @@
 /* ---- 6zh_world.js ---- */
-/* The real world, by zip code (on beta with the civic buildings: CIVIC_PREVIEW), and the market. Sarah registers a zip
+/* The real world, by zip code (with the civic buildings: CIVIC_PREVIEW), and the market. Sarah registers a zip
    code at the Town Hall: the island can keep that town's time (her choice), the day's weather is that town's forecast
    for the day (looked up once a day, not live), and the morning paper gets the town's and the world's headlines. The
    server looks everything up (server/world.mjs: /api/world, /api/market), so the game never talks to anyone else.

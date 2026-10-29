@@ -1,5 +1,5 @@
 /* ---- 6zg_townhall.js ---- */
-/* The Town Hall, for real (on beta with the civic buildings: CIVIC_PREVIEW): ordinances that change the island from the
+/* The Town Hall, for real (with the civic buildings: CIVIC_PREVIEW): ordinances that change the island from the
    next morning (Early Bird and Night Owl move the shops' hours and when the neighbors wake and go to bed, Community
    Spirit gets them chatting more, Nature Conservation grows trees and flowers faster and brings out more wildlife), the
    census, the island's history (a timeline written as things happen), its records, statistics and achievements, new

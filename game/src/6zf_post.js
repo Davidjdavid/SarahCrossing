@@ -1,5 +1,5 @@
 /* ---- 6zf_post.js ---- */
-/* The Post Office, for real (on beta with the civic buildings: CIVIC_PREVIEW): letters to the neighbors with a present
+/* The Post Office, for real (with the civic buildings: CIVIC_PREVIEW): letters to the neighbors with a present
    if you like (delivered the next morning; they write back), postcards that turn up in the mail from places far away
    (a collection), now and then a mysterious special delivery, the island's own paper every morning (what Sarah and the
    neighbors did yesterday, the weather, the shops) with an archive of past papers, and tracking for IslandMart orders.

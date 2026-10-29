@@ -43,8 +43,9 @@ docs/DEPLOY.md for the server.
   runs on a slant, the step's outer corner tile is cut along its diagonal (a, b, c, d: its NW, NE, SE, SW corner is the
   other side's). It's still one tile for building and placing; a cut water tile's corner is ground you can walk onto
   (`Area.solidPx`, `inCut`), and the new look draws the edge as a straight diagonal (`EnvGround.kindPx`, `cutAt`).
-- The Town Hall, Post Office and Bank (`24b_civic.js`) are signs on the live site. On beta (`CIVIC_PREVIEW`: the beta host,
-  or `localStorage sc-civic` 1 or 0 anywhere; the tests run without it) they open into rooms (`6zc_civic.js`: the Town
+- The Town Hall, Post Office and Bank (`24b_civic.js`) are signs only where the civic rooms are off (the tests on this
+  computer). On the beta and live sites, the same game on both since David's word of 29 October (`CIVIC_PREVIEW`: their
+  hosts, or `localStorage sc-civic` 1 or 0 anywhere; the tests run without it), they open into rooms (`6zc_civic.js`: the Town
   Hall's desk, the Post Office and Bank counters, each with its keeper in their hours (David, 28 October: Maki at the Town
   Hall, Coco at the Bank, Cece at the Post Office: `ROOMS[id].staff`, their `work`, `WORK_MENUS`, `civicKeeper`) and a bell
   and a card on the honor system when they're off, the Council only there the day after Sarah's statue goes up (they come
@@ -195,8 +196,8 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
 - `?lab` in the address opens a small test island laid out like the concept art (`scripts/island/plan-lab.mjs`, made
   with `node scripts/make-island.mjs --plan lab` into `game/assets/lab/`). It runs on a throwaway save that is never
   written (`LAB` in 20_world.js; `Save.write` returns), with Joe and Maki on the square and everyone else asleep.
-  David approved the look for the whole island (25 October): it's on Sarah's island on beta (below), the live site
-  keeps the HD-2D view until he says so.
+  David approved the look for the whole island (25 October): it's on Sarah's island on beta (below), and on the live
+  site since 29 October (David: the newest island on live).
 - There `Env` (33a_env.js) draws the world as real 3D, built once when the area loads: the ground from half-tile
   height cells with a stone wall on anything steep (`EnvGround`), procedural surfaces (`EnvTex`), trees (`EnvTrees`),
   water (`EnvWater`; falls side by side are one sheet, `fallsJoined`), buildings and props (`EnvBuild`); the lawn (David, 29 October, after the GameCube shapes of the 28th)
@@ -211,8 +212,8 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   what's filled, the same tuft always in the same spot. No flowers but the ones you can pick. R3 still draws people, critters and
   anything `Env.takes(e)` leaves out, and its post pass (bloom, depth of field, the warm grade). Tune it in `ENV`
   (a level's height, the camera, depth of field, how big people stand).
-- Sarah's island is in the new look on the beta site (`ENV_ISLAND`: the beta host, or `localStorage sc-env-island` 1 or
-  0 anywhere; the tests run without it), once the models have loaded (the HD-2D view till then). There is no switch
+- Sarah's island is in the new look on the beta site and, since David's word of 29 October, the live one (`ENV_ISLAND`:
+  the beta or the live host, or `localStorage sc-env-island` 1 or 0 anywhere; the tests run without it), once the models have loaded (the HD-2D view till then). There is no switch
   back to the old look any more (David: "we don't need to see the old version when we play").
   The island is big, so the ground comes in pieces (`EnvChunk`, `ENV.CHUNK` tiles): each piece's pictures
   (kinds, damp banks) and mesh are made the first time it nears the view, those on screen at once, the next ones a few
@@ -496,8 +497,8 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   a time (`projectPay`); paid off, it's built the next morning (`projectsTick`, a letter from Sir Floret): the swing set,
   the hammock, the park clock, the stone tablet on the mountain top, the lighthouse restored (its door boarded,
   `door_boards`, until then: `lighthouseOpen`, `boardedLighthouse`; an island whose keeper's story had begun keeps it
-  open, and where the civic rooms are off, the live site, there's nowhere to pay so it's simply open, the QA pass of 29
-  October; on beta the four mysteries inside say so while it's boarded, `LIGHTHOUSE_SHUT`) and, once all those are built, Sarah's statue (`statue_sarah`, her doll in bronze). Where they stand is the plan's
+  open, and where the civic rooms are off there's nowhere to pay so it's simply open, the QA pass of 29
+  October; with the civic rooms the four mysteries inside say so while it's boarded, `LIGHTHOUSE_SHUT`) and, once all those are built, Sarah's statue (`statue_sarah`, her doll in bronze). Where they stand is the plan's
   `projects` (`W0.projects`; their props come after the community fence in `W0.props`, left out until built:
   `projectBuilt`; their spots aren't kept free, David, 28 October: what of Sarah's stands there when one goes up goes to her
   storage, `projectClear`, with Sir Floret's letter); `Projects` has what each does (`swingOn` swings Sarah, nothing said: her doll swings with the seats,
@@ -709,7 +710,7 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
 - The style test (David, 26 October: characters and props redone as cozy handcrafted miniatures after Animal Crossing:
   New Horizons; the rules it settled on are in docs/STYLE.md). In the test area and on Sarah's island on beta (`STYLE2`:
   `?lab` or `ENV_ISLAND`, or `localStorage sc-style2` 1 or 0 anywhere; its models, `doll_*`, `folk2_*`, `style_*`, load
-  only there), the live site keeps the first dolls until David approves it: people are chibi dolls from a Blender kit (`tools/blender/dolls.py`: `doll_kit` with each part in greys
+  only there; on live too since 29 October): people are chibi dolls from a Blender kit (`tools/blender/dolls.py`: `doll_kit` with each part in greys
   named `<part>__<role>` and its origin at its joint, elbows and knees jointed on balls; `doll_hair`, the hair sculpted as
   locks melted into one mass with grooves between them, its blue channel how far toward the dyed tips), put together and
   painted by `EnvDolls.make2` (33ka_doll_kit.js); a look with `masc` (Joe, David, James, John) gets the men's cut from
