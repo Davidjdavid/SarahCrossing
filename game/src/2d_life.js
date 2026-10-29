@@ -349,8 +349,11 @@ const Chats = {
             if (A.id === 'joe' || B.id === 'joe') add(CHAT_WITH_JOE, 3);
             else add(CHAT_JOE, 1.2);
         }
-        // (what was heard lately waits its turn: hearing the same thing twice should be rare)
-        const fresh = pool.filter(([l]) => !this.recent.includes(l));
+        // (what was heard lately waits its turn: hearing the same thing twice should be rare; a chat that names one of the two
+        // having it is somebody else's, and the café's sign and the plots for sale are news only till they're not, QA, 29 October)
+        const stale = l => { const s = [].concat(l).join(' '); return namesSelf(A.id, s) || namesSelf(B.id, s) || (/new sign on Market Lane/.test(s) && cafeOpen())
+            || (/sign says for sale/.test(s) && (seafarerHere() || mugHere())); };
+        const fresh = pool.filter(([l]) => !this.recent.includes(l) && !stale(l));
         return weighted(fresh.length ? fresh : pool, R);
     },
     recent: [],

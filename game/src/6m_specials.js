@@ -32,7 +32,8 @@ defSpecial('sew_spacesuit', 'sew', 'Spacesuit', 'quest:star', 'Somebody up there
 defSpecial('acc_tiara', 'acc', 'Tiara', 'score:sushi:4000', 'Score 4,000 in Sushi Swap. Royalty chains.', { item: 'acc_tiara' });
 defSpecial('acc_flowercrown', 'acc', 'Flower crown', 'stat:flowers:100', 'Pick or water lots and lots of flowers (100).', { item: 'acc_flowercrown' });
 defSpecial('acc_piratehat', 'acc', 'Pirate hat', 'quest:treasure', 'Buried treasure is traditionally guarded by a hat.', { item: 'acc_piratehat' });
-defSpecial('acc_wizardhat', 'acc', 'Wizard hat', 'score:garden:20000', 'Bonk your way to 20,000 in Gopher Garden. Magic.', { item: 'acc_wizardhat' });
+// (8,000, not 20,000: that took minutes of near-perfect bonking, QA, 29 October)
+defSpecial('acc_wizardhat', 'acc', 'Wizard hat', 'score:garden:8000', 'Bonk your way to 8,000 in Gopher Garden. Magic.', { item: 'acc_wizardhat' });
 defSpecial('acc_catears', 'acc', 'Cat ears', 'score:fruit:4000', 'Score 4,000 in Fruit Catch. Cats love catching things.', { item: 'acc_catears' });
 defSpecial('acc_halo', 'acc', 'Halo', 'quest:ghost', 'Help someone at the lighthouse find peace.', { item: 'acc_halo' });
 defSpecial('acc_goathorns', 'acc', 'Goat horns', 'quest:goat', "Be the goat's friend. It's a goat. It will know.", { item: 'acc_goathorns' });
@@ -300,7 +301,8 @@ function itemDesc(id) {
     if (t === 'wall' || t === 'floor') return `Put it up at home with Decorate.`;
     if (t === 'outfit') return `Add it to your wardrobe to wear it.`;
     if (t === 'acc') return it.special ? 'One of a kind. Add it to your wardrobe and wear it.' : `Add it to your wardrobe to wear it, or give it to a friend to wear.`;
-    if (t === 'tool') return { rod: 'Hold it and face the water to fish.', axe: 'Hold it to chop trees (they give wood).', shovel: 'Hold it to dig holes, dig up clams and plant saplings.' }[id] || 'A tool.';
+    if (t === 'tool') return { rod: 'Hold it and face the water to fish.', axe: 'Hold it to chop trees (they give wood).', shovel: 'Hold it to dig holes, dig up clams and plant saplings.',
+        can: 'Hold it to water the flowers in front of you. Two watered flowers of a kind side by side may grow a new one by morning, sometimes in a new color.' }[id] || 'A tool.';
     if (t === 'material') return id === 'wood' ? `Building wood. Ginger likes it as a gift, and neighbors may ask for some. Sell any extra.` : `A material.`;
     if (t === 'plant') return `Plant it in a hole dug with the shovel. It grows into a tree.`;
     if (t === 'display') return 'Set it up outside with Island edit.';

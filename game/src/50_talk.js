@@ -165,9 +165,10 @@ async function neighborTalk(n) {
     // a new heart, something new they share: personal, advice, a gift for her house, best friends (6zm_friendship.js)
     else await friendMilestone(n);
     // photo at five hearts
-    if (hearts(id) >= 5 && !r.photo) {
+    // (only those with a photo of their own: Shrimpy and Muggy have none yet, QA, 29 October)
+    if (hearts(id) >= 5 && !r.photo && ITEMS['photo_' + id]) {
         r.photo = true;
-        await UI.say(id, "Hey. I want you to have this. It's my photo. Don't make it weird.", { keep: true });
+        await UI.say(id, voiced(id, PHOTO_GIVE[id] || PHOTO_GIVE_ANY), { keep: true });
         receive('photo_' + id, 1);
         Sfx.play('fanfare');
     }
@@ -372,8 +373,8 @@ async function giftFlow(n) {
         n.emote = 'heart'; n.emoteT = 90;
         await UI.say('joe', fillItem(rpick(JOE_GIFT), itemId));
     } else {
-        const t = TALK[id];
-        const line = { love: t.loveLine, like: t.likeLine, dislike: t.likeLine, neutral: rpick(['Oh! For me? Thank you!', "That's so nice of you. Thanks!", 'Aw, thank you!']) }[tier];
+        // (their own thanks, or one of two more: a daily gift heard the same line for months, QA, 29 October: giftThanks, 6zzg_variety.js)
+        const line = tier === 'neutral' ? rpick(['Oh! For me? Thank you!', "That's so nice of you. Thanks!", 'Aw, thank you!']) : giftThanks(id, tier === 'dislike' ? 'like' : tier, itemId);
         n.emote = tier === 'love' ? 'heart' : 'note';
         n.emoteT = 80;
         await UI.say(id, line);

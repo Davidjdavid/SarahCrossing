@@ -653,7 +653,7 @@ async function roomChecks() {
             G.busy++;
             const n = NPCs.get(R.owner);
             n.emote = 'zzz'; n.emoteT = 90;
-            await UI.say(R.owner, voiced(R.owner, rpick(["*yawn* Oh, look at the time. It's my bedtime! Thanks for coming over.", "I'm getting sleepy. Come back tomorrow? Goodnight, {name}!"])));
+            await UI.say(R.owner, voiced(R.owner, (dayHour() < 12 ? rpick(["*yawn* Oh! {name}! I'm not up yet. Come back in a little while?", "Mmf... five more minutes. Come back later, {name}?"]) : rpick(["*yawn* Oh, look at the time. It's my bedtime! Thanks for coming over.", "I'm getting sleepy. Come back tomorrow? Goodnight, {name}!"]))));
             G.busy--;
             await leaveInterior();
         }

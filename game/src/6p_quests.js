@@ -14,7 +14,8 @@ const QUEST_INFO = {
     windmill: { title: 'The silent moonstone', icon: 'ic_q_cog' },
     star: { title: 'The blinking star', icon: 'ic_starcrystal' },
 };
-const QUEST_NOTE = 'An old note, in faded ink:\n\n"To whoever finds this, I buried my treasure where nobody would think to look.\nFrom the foot of the long pier, walk west past three palm trees.\nAt the third palm, face the sea and take four steps.\nDig where the sand turns dark.\n\n- Captain Gouda, 1887"';
+const LIGHTHOUSE_SHUT = "(The lighthouse is boarded up until it's restored: pay toward it at the Town Hall's Projects.)";
+const QUEST_NOTE = 'An old note, in faded ink:\n\n"To whoever finds this, I buried my treasure where nobody would think to look.\nFrom the foot of the long pier, walk west past three palm trees.\nAt the third palm, face the sea and walk down the sand\nto where it turns dark. Dig there.\n\n- Captain Gouda, 1887"';
 const QUEST_RUMORS = {
     treasure: ["Ginger says there's an old trunk in the barn that nobody's opened in years. She says it's not her trunk. She says that a lot.",
         'Sully says a pirate captain buried treasure on this island a long time ago. Captain Gouda. A cheese, probably.',
@@ -59,7 +60,7 @@ const Quests = {
         if (q === 'ghost' && s === 1) return "A ghost who wants chowder? Only one chowder on this island is worth coming back from the other side for. Sully's. Ask him.";
         if (q === 'goat' && s >= 1) { const step = TRADE_CHAIN[s - 1]; if (step) return `I heard you're doing some trading! Maybe ${NPC_DEFS[step[1]] ? (step[1] === 'goat' ? 'the goat' : NPC_DEFS[step[1]].name) : 'someone'} could use that ${itemName(step[0]).toLowerCase()}?`; }
         if (q === 'windmill' && s === 1) return "Ginger said one of the windmill's cogs went into a crate on the farm, one into a hollow tree in the forest, and one out to sea. Things that go out to sea end up at the lighthouse, if you ask me.";
-        if (q === 'treasure' && s === 1) return "Did you figure out the note? Walk west from the pier past three palms, then toward the sea. Four steps. Bring a shovel!";
+        if (q === 'treasure' && s === 1) return "Did you figure out the note? Walk west from the pier past three palms, then down toward the sea. Look for dark sand. Bring a shovel!";
         if (q === 'star' && s === 1) return 'You saw the blinking star too? Short, short, long. If only there was a big light to answer it with. Like a lighthouse. A working one.';
         return rpick(QUEST_RUMORS[q]);
     },
@@ -76,10 +77,16 @@ const Quests = {
         return { treasure: 'Captain Gouda\'s treasure is yours.', ghost: 'The old keeper is at peace, and the lighthouse shines every night.', goat: 'The goat has its golden bell.',
             windmill: 'The moonstone grinds moon flour. Pick some up in the windmill every day.', star: 'The star said hi back.', backroom: BACK_DONE }[q];
     },
+    /* (a step in the boarded lighthouse says so while it is: on beta it's restored through the Town Hall's projects) */
     hint(q) {
+        const t = this.hintBase(q), s = this.stage(q);
+        const inside = q === 'ghost' || (q === 'star' && s === 1) || (q === 'windmill' && s > 0) || (q === 'backroom' && s === 2);
+        return t && inside && !lighthouseOpen() ? t + ' ' + LIGHTHOUSE_SHUT : t;
+    },
+    hintBase(q) {
         const s = this.stage(q);
         switch (q) {
-            case 'treasure': return s ? 'From the foot of the pier, walk west past three palms. At the third, face the sea, take four steps, and dig where the sand is dark. (Hold the shovel!)'
+            case 'treasure': return s ? 'From the foot of the pier, walk west past three palms. At the third, face the sea, walk down the beach and dig where the sand is dark. (Hold the shovel!)'
                 : 'A rumor: there is an old trunk in the barn, up on the farm.';
             case 'ghost': return s === 1 ? `The keeper's ghost appears in the lamp room from 11 PM to 1 AM. He misses Martha's clam chowder.${S.recipes.includes('chowder') ? ' (You know the recipe!)' : ' (Sully knows chowder.)'}`
                 : 'A rumor: the old keeper still climbs the lighthouse stairs near midnight.';

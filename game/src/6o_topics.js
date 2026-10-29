@@ -44,7 +44,7 @@ function openerLine(n, first) {
     if (close) return close;
     const way = onTheWay(n);
     if (way && R() < 0.6) return voiced(id, way);
-    if (first && R() < 0.5) {
+    if (first && R() < 0.3) {
         const greet = { morning: 'Good morning, {name}!', afternoon: 'Hi, {name}! Good afternoon!', evening: 'Good evening, {name}!', night: "Hey, {name}! Up late? Me too. Obviously." }[partOfDay()];
         return voiced(id, greet);
     }
@@ -367,7 +367,7 @@ function skyLine() {
 const TIPS = [
     'Tip: trees that sparkle have something hidden in them. Shake them!', 'Tip: a big fish shadow means a big fish. Rare ones hide at night. Try the end of the pier.',
     'Tip: gems show up on the mountain top every day. One, two, sometimes three. They sell for a LOT.', 'Tip: you can only really chat with someone every few minutes. We need time to think of new stuff!',
-    'Tip: everybody likes one gift a day. More than that is just showing off.', 'One hug a day for each friend. Something to look forward to when you say hello.',
+    'Tip: everybody likes one gift a day. More than that is just showing off.', 'Say hello to each friend once a day. The little talks add up.',
     'Tip: eating good food sometimes gives you a little boost. Walking faster, better luck fishing, that kind of thing.', 'Tip: your phone has a To-do list. When people ask you for things, it keeps track. With hints!',
     'Tip: when you sit down to eat at Mac\'s, you can text a friend to come join you. Joe always says yes.', 'Tip: Sully\'s pottery studio is open {hours:studio}. Make something and donate it to the museum.',
     'Tip: the arcade gives tickets. Tickets get prizes. Prizes get admiration. From me.', 'Tip: you can pick which paintings hang in the museum. Brulee lets you swap them.',
@@ -377,7 +377,7 @@ const TIPS = [
     'Find sewing patterns to add more styles at Clementine\'s sewing machine.', 'Picked flowers grow back. Give them some time, then visit your patch again.',
     'Tip: Joe writes special poems about special things. Show him anything unusual you find.', 'Got a high score to beat? Check the arcade\'s opening hours and make an afternoon of it.',
     'Tip: Waffle\'s shop sells lamps and benches and hedges for outside. You can move the old ones around, too.', 'Tip: shells wash up fresh every morning. The rare ones are shy.',
-    'Tip: Ginger can make your house bigger. And give it a new roof. And a mailbox. Ginger loves a mailbox.', 'Tip: you can plant flower seeds in any hole you dig with the shovel.',
+    'Tip: Ginger can make your house bigger. And give it a new roof. And a mailbox. Ginger loves a mailbox.', 'Tip: you can plant flower seeds in any hole you dig with the shovel.', 'Tip: water two flowers of the same kind side by side. Some mornings a new one grows between them. Sometimes a color nobody\'s seen!',
     'Tip: the noodle cart in the plaza opens at night. Basil\'s specials change every day.', 'Tip: at the club, DJ Wasabi has tracks to dance to. Get good ranks and you learn new moves.',
     'Saying hello the first time each day helps you get to know a neighbor.', 'Tip: you can text people to ask where they are. Everyone answers. Eventually.',
 ];
@@ -644,6 +644,7 @@ const TALK_MORE = {
 /* ---------------------------------------------------------------- choosing what to talk about */
 /* more topics can be added from later files: [key, weight(n), line(n)] (a weight of 0 skips it) */
 const EXTRA_TOPICS = [];
+function namesSelf(id, line) { const nm = NPC_DEFS[id] && NPC_DEFS[id].name; return !!nm && new RegExp('\\b' + nm + '\\b').test(line); }
 function topicLine(n) {
     const id = n.id, r = rel(id), t = TALK[id] || { chat: [] };
     const own = () => {
@@ -662,7 +663,8 @@ function topicLine(n) {
         ['chili_arcade', id === 'chili' && n.area === 'arcade' ? 2 : 0, () => rpick(chiliLines())],
         ['rope', n.spotKey === 'rope_a' || n.spotKey === 'rope_b' ? 3 : 0, () => rpick(id === 'cuke' ? ROPE_TALK_CUKE : ROPE_TALK)],
         ['harvard', 1.2, () => rpick(R() < 0.55 ? HARVARD_FACTS : HARVARD_JOKES.concat(TITLE_GUESS))],
-        ['boston', id === 'sully' ? 2.5 : 1, () => rpick(BOSTON_FACTS)],
+        // (Sully's topic: the lines are his, "kid" and "back home" and all, QA, 29 October)
+        ['boston', id === 'sully' ? 2.5 : 0, () => rpick(BOSTON_FACTS)],
         ['trek', 0.9, () => rpick(TREK_LINES)],
         ['tama', 0.7, () => rpick(TAMA_LINES)],
         ['frasier', 0.9, () => rpick(FRASIER_LINES)],
@@ -690,6 +692,8 @@ function topicLine(n) {
         let x = R() * avail.reduce((a, b) => a + b[1], 0), pick = avail[0];
         for (const tp of avail) { x -= tp[1]; if (x <= 0) { pick = tp; break; } }
         const line = pick[2]();
+        // (a shared line that names whoever's saying it ("Sully said...", from Sully) is somebody else's: try another)
+        if (line && pick[0] !== 'own' && namesSelf(id, line)) continue;
         if (line && line !== r.lastTalk) { r.lastTopic = pick[0]; return line; }
     }
     return own() || rpick(OPENER_ANY);

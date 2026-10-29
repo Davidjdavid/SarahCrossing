@@ -34,7 +34,7 @@ const TM_MORE = {
         'I made a schedule for spontaneity. Tuesdays, 3 to 3:15. You are welcome to join. Please be on time.',
         'Cece apologized to me for being early. She was four minutes early. I have never felt so understood.',
         "Tea steeps for three minutes. Not 'about three.' Three. 'About' is how civilizations fall.",
-        'Somebody left the bench by the statue slightly crooked. I fixed it. Then I sat on it. It was a very good bench after that.',
+        'Somebody left the bench by the pond slightly crooked. I fixed it. Then I sat on it. It was a very good bench after that.',
         "When rice is too wet, you can't fix it. You start again. It is a good rule. I apply it to mornings.",
         "Joe asked me how long a haiku is. I said seventeen syllables. He wrote one with nineteen. Two of them were 'frog.' I allowed it.",
         'Do you make your bed every morning, {name}? Every afternoon, I mean. You wake up in the afternoon. I have adjusted the question.',

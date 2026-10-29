@@ -66,7 +66,7 @@ const HOUSE_GIFT = { maki: 'bonsai', kai: 'surfboard', basil: 'paper_lantern', w
 const HOUSE_GIFT_LINE = "I want you to have something for your house. I sent it in the mail. Put it somewhere you'll see it. Then think of me. Just a little.";
 /* at five hearts: the best-friend moment */
 const BEST_FRIEND = {
-    _: ["{name}... can I say something? You're my best friend on this island.", "That's it. That's the whole thing. I just wanted you to know. Okay. Hug?"],
+    _: ["{name}... can I say something? You're my best friend on this island.", "That's it. That's the whole thing. I just wanted you to know. Okay. Carry on!"],
     maki: ["{name}, I have measured it carefully. You are my best friend. The measurement is exact.", 'There is no margin of error. I checked twice. Precisely.'],
     kai: ['Dude. DUDE. You are my best friend. Like, best-best. Ride-or-die. Wave-or-die.', "I'm gonna paint it on my board. Small. Respectfully. But it's there."],
     sully: ["Kid. You know what you are? You're family. Best friend I've had since Boston.", "Don't make a thing of it. ...Okay, make a little thing of it."],
@@ -132,7 +132,7 @@ async function friendMilestone(n) {
         const up = addPts(id, 2);
         if (up) await heartUp(n, up);
     } else if (m === 4) {
-        await UI.say(id, voiced(id, HOUSE_GIFT_LINE), { keep: true });
+        await UI.say(id, voiced(id, HOUSE_GIFT_LINES[id] || HOUSE_GIFT_LINE), { keep: true });
         const g = HOUSE_GIFT[id];
         if (g && ITEMS[g]) sendMail({ from: id, subject: `Something for your house, from ${NPC_DEFS[id].name}`, body: `Dear {name},\nThis made me think of you. It wants to live at your house.\n- ${NPC_DEFS[id].name}`, gift: g });
     } else if (m === 5) {

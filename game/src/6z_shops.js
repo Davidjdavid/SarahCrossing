@@ -16,7 +16,7 @@ const SHOP_UP = {
         perks: [null,
             ['two more furniture choices each day', 'two wallpapers and two floors', "Fortune's pick: one piece 30% off every day", 'open 7 AM to 11 PM'],
             ['nine furniture choices each day', 'a furniture set of the week, 15% off (at the counter)', 'Fortune pays 10% more for what you sell', 'open 6 AM to midnight'],
-            ['twelve stages of furniture every day', 'three wallpapers and three floors', 'a bigger shop, all the way to the new back wall']],
+            ['twelve pieces of furniture every day', 'three wallpapers and three floors', 'a bigger shop, all the way to the new back wall']],
     },
     boutique: {
         owner: 'clementine', names: ["Clementine's", "Clementine's Atelier", 'Maison Clementine'],

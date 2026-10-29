@@ -240,6 +240,12 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   whole plan (the Friends app, `appDayPlan`) and a favor's "right now they're..." only show on beta or with the debug tools
   (`plansShown()`, localStorage `sc-plans` 1 or 0). A food folk's facing follows their walk too (`stepNpc`) and stopping
   turns them to the way they stand (`hdMotion`'s `went`), so Chili at the arcade counter faces the room.
+- More ways to say what's said most (6zzg_variety.js, the QA pass of 29 October): a gift's thanks (`giftThanks`: the
+  neighbor's loveLine/likeLine or two more of `GIFT_MORE`), a good friend's hello in their own words (`OPEN_CLOSE_OWN`),
+  the five-heart photo (`PHOTO_GIVE`; only those with a `photo_<id>` give one), the four-heart house gift
+  (`HOUSE_GIFT_LINES`) and everyone's best-friend moment; Shrimpy's and Muggy's hellos, too-soon lines and milestones;
+  Brulee's hint at the pottery hall. A shared line that names whoever's saying it is passed over (`namesSelf`, in
+  topicLine and `Chats.pick`, which also skips news gone stale), and Boston is Sully's topic.
 - Catchphrases (6zk_catchphrases.js): every neighbor has one (`CATCH`), said at the end of some of their lines (`voiced`'s
   `catchTail`); a good friend (four hearts) takes a new one from the talk menu ("New catchphrase?", `catchFlow`, typed in
   `askText`, tidied by `catchClean`) and reacts in their own way (`CATCH_REACT`); the Town Hall's Residents sets it too. Kept
@@ -462,7 +468,8 @@ weather's icon (`#wxic`, a moon on clear nights), the run and map buttons drawn 
   a time (`projectPay`); paid off, it's built the next morning (`projectsTick`, a letter from Sir Floret): the swing set,
   the hammock, the park clock, the stone tablet on the mountain top, the lighthouse restored (its door boarded,
   `door_boards`, until then: `lighthouseOpen`, `boardedLighthouse`; an island whose keeper's story had begun keeps it
-  open) and, once all those are built, Sarah's statue (`statue_sarah`, her doll in bronze). Where they stand is the plan's
+  open, and where the civic rooms are off, the live site, there's nowhere to pay so it's simply open, the QA pass of 29
+  October; on beta the four mysteries inside say so while it's boarded, `LIGHTHOUSE_SHUT`) and, once all those are built, Sarah's statue (`statue_sarah`, her doll in bronze). Where they stand is the plan's
   `projects` (`W0.projects`; their props come after the community fence in `W0.props`, left out until built:
   `projectBuilt`; their spots aren't kept free, David, 28 October: what of Sarah's stands there when one goes up goes to her
   storage, `projectClear`, with Sir Floret's letter); `Projects` has what each does (`swingOn` swings Sarah, nothing said: her doll swings with the seats,

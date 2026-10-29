@@ -380,7 +380,7 @@ Status: [x] done, [~] in progress, [ ] not started.
 - [x] The arcade's unlocks (hairstyles, clothes and the like) much harder: the watermelon in the Suika-like game, level 10
   in Spice Capsules, and so on for every game (a watermelon in Snack Stack, level 10 in Spice Capsules, 50,000 and level 12
   in Bento Blocks, 4,000 in Fruit Catch, 60 jumps at jump rope; five things that used to turn up by chance now come from
-  the back-room games: 12,000 in Dumpling Drop, 4,000 in Sushi Swap, 2,500 in Surf's Up, 20,000 in Gopher Garden, 2,000 in
+  the back-room games: 12,000 in Dumpling Drop, 4,000 in Sushi Swap, 2,500 in Surf's Up, 8,000 in Gopher Garden (20,000 at first; lowered in the QA pass, 29 October), 2,000 in
   Noodle Slurp; set against how the neighbors' best players score; and the other unlocks raised too: forty dances, a
   hundred flowers, fifteen museum pieces, twelve gold medals cooking, thirty of Joe's poems, six salon visits, fifty
   harvests)
@@ -500,7 +500,7 @@ under "Friendship, deeper", the testing under "Bugs", the town flag under the To
 ## David's list before testing (29 October)
 - [x] Arcade high scores: the top five on every game, with neighbors' scores, and David on top of each just under what
   unlocks its prize, so the high score is the unlock; an option at each cabinet to see its scores (Fortune Falls had no
-  unlock, so the Starstruck emote moved to it; Gopher Garden's 20,000 looks out of reach and might want lowering)
+  unlock, so the Starstruck emote moved to it; Gopher Garden's 20,000 looked out of reach: 8,000 since the QA pass)
 - [x] Every neighbor starts with places and things they like doing or never do, to suit them, for the designer to change
 - [x] Favors aren't asked for any more (no "Need anything?" in the talk menu or texts): a neighbor asks now and then, in
   person, when Sarah talks to them, and she can say not now

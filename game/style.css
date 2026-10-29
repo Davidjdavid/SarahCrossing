@@ -742,6 +742,8 @@ details.mlib > .row { margin: 0 6px 6px; }
 @media (min-width: 2300px) and (min-height: 1280px) { .hud-left, .hud-right, .hud-buttons, .hint, #dialog, #toasts { zoom: 1.6; } }
 /* (the keys' hint makes way for a dialogue, which would cover half of it) */
 #ui:has(#dialog:not([hidden])) .hint { visibility: hidden; }
+/* (and so does the dock wherever the dialogue sits over it, a phone or a narrow window: its edge peeked out under the box) */
+@media (max-width: 1240px) { #ui:has(#dialog:not([hidden])) .hud-buttons { visibility: hidden; } }
 /* ------------------------------------------------------------ the civic buildings' screens (6zd_civic_screens.js) */
 .cv-banner { margin: 10px 0; padding: 10px 12px 10px 38px; border-radius: 14px; font: 700 14px/1.4 var(--body); position: relative; }
 .cv-banner::before { position: absolute; left: 12px; top: 9px; font: 700 16px/1 var(--display); }

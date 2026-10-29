@@ -43,7 +43,9 @@ function projectOpen(p) {
     if (p.last) return PROJECTS.every(q => q.last || projectBuilt(q.id));
     return true;
 }
-function lighthouseOpen() { return projectBuilt('lighthouse'); }
+/* (the restoration is paid at the Town Hall's rooms; where those aren't open, the live site till David says, the lighthouse
+   is open as it always was: boarded with no way to pay, it held up four mysteries for good. QA, 29 October) */
+function lighthouseOpen() { return !CIVIC_PREVIEW || projectBuilt('lighthouse'); }
 /* the tiles a project's prop stands on */
 function projectTiles(p) {
     const odd = p.rot & 1, w0 = PROP_SIZE[p.kind] || 1, h0 = PROP_ROWS[p.kind] || 1, out = [];

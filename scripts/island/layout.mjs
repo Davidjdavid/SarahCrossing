@@ -594,7 +594,13 @@ class Island {
     const reach = this.flood(this.i(start[0], start[1]), (k) => !this.coll[k] && (this.land[k] || this.ter[k] === 'w'));
     const rows = (f) => { const out = []; for (let y = 0; y < H; y++) { let s = ''; for (let x = 0; x < W; x++) s += f(this.i(x, y)); out.push(s); } return out; };
     const water = (t) => (t === '~' ? 's' : t === 'o' ? 'p' : t === 'r' ? 'r' : t === 'h' ? 'h' : '.');
-    const palm = this.palms.filter(q => q.x > 30 && q.x < 110).sort((a, b) => a.x - b.x)[0] || this.palms[0];
+    // (the pirate's treasure is where Captain Gouda's note says: from the foot of the pier west past three palms, then from
+    // the third down the beach toward the sea, up to four steps, to where the sand turns dark; QA, 29 October: it was at
+    // the westmost palm, nine palms on)
+    const sandAt = (x, y) => { const k = this.i(x, y); return this.ter[k] === 's' && !this.coll[k] && !this.occ[k]; };
+    const west = this.pier ? this.palms.filter(q => q.x < this.pier.x0 && Math.abs(q.y - this.pierStart) < 12).sort((a, b) => b.x - a.x) : [];
+    const palm = west.slice(2).find(q => sandAt(q.x, q.y + 1)) || this.palms.filter(q => q.x > 30 && q.x < 110).sort((a, b) => a.x - b.x)[0] || this.palms[0];
+    let steps = 1; while (steps < 4 && sandAt(palm.x, palm.y + steps + 1)) steps++;
     return {
       world: {
         w: W, h: H,
@@ -609,7 +615,7 @@ class Island {
         rope: this.rope, waterfalls: this.waterfalls, fields: this.fields, windmill: this.windmill, stubs: this.stubs,
         squares: [this.plazaRect], statue: this.statue, bonfire: this.bonfire, goatpen: this.goatpen, oldTrees: this.oldTrees,
         pier: this.pier, camp: this.camp, tent: { w: 3, h: 2 },
-        treasure: { x: palm.x, y: palm.y + 3, palm: [palm.x, palm.y] }, gemSpots: this.gemSpots, ramps: this.ramps,
+        treasure: { x: palm.x, y: palm.y + steps, palm: [palm.x, palm.y] }, gemSpots: this.gemSpots, ramps: this.ramps,
         reach: rows((k) => (reach.has(k) ? '1' : '0')),
         cut: rows((k) => this.cut[k] || '.'),
         lots: this.P.lots || {}, community: this.community || null, projects: this.projects || {}, areas: this.P.areas || [],

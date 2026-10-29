@@ -2285,7 +2285,9 @@ test('asking to play: volleyball wherever they are by day, jump rope with a frie
 
 test('town projects: paid for at the Town Hall, built overnight; the lighthouse boarded till then; the statue last; the swings, the hammock', async () => {
   const page = await device();
-  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  // (without the Town Hall's rooms, nowhere to pay for it, the lighthouse is simply open: the live site till David says)
+  const liveOpen = await page.evaluate(() => !CIVIC_PREVIEW && lighthouseOpen());
+  await page.evaluate(() => { localStorage.setItem('sc-current', ''); localStorage.setItem('sc-civic', '1'); });
   await page.reload();
   await title(page);
   await page.evaluate(() => __dbg.quickStart());
@@ -2361,6 +2363,7 @@ test('town projects: paid for at the Town Hall, built overnight; the lighthouse 
   assert.deepEqual(res, { spots: 'clock,hammock,shrine,statue,swings', hidden: true, held: true, boarded: true, part: true, rest: true, notYet: true, built: 'true,true,true',
     statueLater: true, noStore: true, allBuilt: true, store: true, statueOpen: true, lighthouse: true, grandfathered: true,
     swinging: true, swung: true, hammock: true, screen: true });
+  assert.equal(liveOpen, true);
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

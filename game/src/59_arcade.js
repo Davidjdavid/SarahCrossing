@@ -663,7 +663,7 @@ const ARCADE_RECORD = {
     sushi: [3999, 'one point shy. on purpose?', 'acc_tiara'],               // 4,000
     fortune: [49990, 'one peg short, he says', 'emote_star'],              // 50,000 (points come in tens)
     fruit: [3995, 'let the last apple drop', 'acc_catears'],                // 4,000 (in fives)
-    garden: [19998, 'spared the last gopher', 'acc_wizardhat'],             // 20,000 (in twos)
+    garden: [7998, 'spared the last gopher', 'acc_wizardhat'],              // 8,000 (in twos)
     surf: [2499, 'did a spin, somehow', 'sew_cape'],                        // 2,500
     noodle: [1995, 'one bite short', 'hair_mullet'],                        // 2,000 (in fives)
 };

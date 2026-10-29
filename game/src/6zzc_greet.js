@@ -192,7 +192,8 @@ function closeOpener(n, first) {
     const id = n.id;
     if (id === 'joe' || id === 'goat' || !TALK[id]) return null;
     const h = hearts(id);
-    if (h >= 4 && R() < (first ? 0.45 : 0.25)) return voiced(id, OPEN_CLOSE[Math.floor(R() * OPEN_CLOSE.length)]);
+    // (in their own words two times in three: five shared lines from thirteen neighbors came round all day, QA, 29 October)
+    if (h >= 4 && R() < (first ? 0.3 : 0.15)) return voiced(id, OPEN_CLOSE_OWN[id] && R() < 0.67 ? rpick(OPEN_CLOSE_OWN[id]) : OPEN_CLOSE[Math.floor(R() * OPEN_CLOSE.length)]);
     if (h <= 0 && first && R() < 0.4) return voiced(id, OPEN_NEW[Math.floor(R() * OPEN_NEW.length)]);
     return null;
 }

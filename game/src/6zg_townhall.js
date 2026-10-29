@@ -180,7 +180,7 @@ CIVIC_LIVE.history = {
         if (tab === 'Statistics') {
             const st = S.stats || {}, g = el('div', 'cv-stats');
             const rows = [['Days on the island', daysPlayed()], ['Hours played', Math.floor((st.playMs || 0) / 3600e3)], ['Fish caught', st.fish], ['Beach finds', st.shell], ['Fruit picked', st.fruit],
-                ['Things sold', st.sold], ['Dishes cooked', st.cooked], ['Gifts given', st.gifts], ['Hugs', st.hugs], ['Letters mailed', st.letters], ['Arcade games', st.arcade], ['Games with neighbors', st.islandGames],
+                ['Things sold', st.sold], ['Dishes cooked', st.cooked], ['Gifts given', st.gifts], ['Flowers watered', st.watered], ['Letters mailed', st.letters], ['Arcade games', st.arcade], ['Games with neighbors', st.islandGames],
                 ['Dances', st.dances], ['Songs sung', st.karaoke], ['Wood chopped', st.wood], ['Gems found', st.gem]];
             for (const [t, v] of rows) { const c = el('div'); c.appendChild(el('b', null, fmtNum(v || 0))); c.appendChild(el('span', null, t)); g.appendChild(c); }
             b.appendChild(g);

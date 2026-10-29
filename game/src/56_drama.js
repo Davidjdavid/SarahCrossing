@@ -432,7 +432,8 @@ function voiced(id, text, gossip) {
         case 'coco': if (roll < 0.35) text = 'Okay, so. ' + text; else if (gossip && roll < 0.65) text += ' I would NEVER repeat this. (I have repeated it six times.)'; else if (roll < 0.5) text += catchTail(id); break;
         case 'kai': if (roll < 0.4) text += catchTail(id); else if (roll < 0.6) text = text.replace(/very /g, 'super '); break;
         case 'chili': if (roll < 0.3) text += catchTail(id); break;
-        case 'cece': if (roll < 0.3) text = 'Sorry! ' + text; else if (roll < 0.55) text += catchTail(id); break;
+        // (not when the line says sorry already: a third of hers do, and it came out twice, QA, 29 October)
+        case 'cece': if (/sorry/i.test(text)) break; if (roll < 0.3) text = 'Sorry! ' + text; else if (roll < 0.55) text += catchTail(id); break;
         case 'clementine': if (roll < 0.4) text = 'Darling. ' + text; else if (roll < 0.55) text += catchTail(id); break;
         case 'cuke': text = text.replace(/\.(\s|$)/g, '!$1'); if (roll < 0.25) text += catchTail(id); break;
         case 'maki': if (roll < 0.3) text = 'To be precise: ' + text; else if (roll < 0.45) text += catchTail(id); break;
@@ -442,6 +443,8 @@ function voiced(id, text, gossip) {
         case 'brulee': if (roll < 0.3) text = 'Ah. ' + text; else if (roll < 0.5) text += catchTail(id); break;
         case 'mac': if (roll < 0.3) text += ' Anyway, are you hungry?'; else if (roll < 0.42) text += catchTail(id); break;
         case 'joe': if (roll < 0.12) text += catchTail(id); break;
+        case 'scampi': if (roll < 0.3) text += catchTail(id); break;
+        case 'mug': if (roll < 0.3) text += catchTail(id); break;
     }
     return text;
 }
