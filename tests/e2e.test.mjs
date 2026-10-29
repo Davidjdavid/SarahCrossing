@@ -2030,11 +2030,12 @@ test('HD-2D: the island and rooms draw in 3D, taps land where they point, and th
     // (the windows at Sarah's own house, always lit at night: there's no house by the woods' pond since Maki moved into town)
     await page.evaluate(() => { __dbg.setTime(10, 24, 21.5); __dbg.at('home'); });
     await page.waitForFunction(() => [...R3.cards.values()].some(c => c.glow && c.glow.emissiveIntensity > 0.3), null, { timeout: 30000 });
-    await page.evaluate(() => __dbg.at('pond'));
-    await page.waitForFunction(() => R3.lilies && R3.lilies.mesh.count > 0, null, { timeout: 30000 });
-    // rain is drawn sharp on a canvas of its own at the screen's resolution
+    // rain is drawn sharp on a canvas of its own at the screen's resolution (checked here, where the view has settled:
+    // just after a teleport the software 3D on CI is slow for a while)
     await page.evaluate(() => { G.weather = 'rain'; });
     await page.waitForFunction(() => Weather.kind === 'rain' && R3.wxOn && getComputedStyle(R3.wx).display === 'block', null, { timeout: 20000 });
+    await page.evaluate(() => __dbg.at('pond'));
+    await page.waitForFunction(() => R3.lilies && R3.lilies.mesh.count > 0, null, { timeout: 30000 });
     await page.evaluate(() => { __dbg.setTime(10, 24, 10.4); __dbg.at('home'); });
     assert.ok(island.err < 1, `a tap lands where it points (off by ${island.err})`);
     // people, neighbors and props have HD art: every outfit, frame, hair style and accessory draws, and Sarah's card has
