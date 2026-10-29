@@ -809,7 +809,7 @@ test("Fortune's shop on Market Lane stays open after hours on the honor system; 
   await page.waitForFunction(() => G.mode === 'play' && !G.busy);
   const res = await page.evaluate(async () => {
     __dbg.setTime(10, 20, 23.5);
-    const out = { lane: W0.buildings.shop.y === W0.buildings.restaurant.y && W0.buildings.shop.x > W0.buildings.builder.x, closed: !roomOpen('shop') };
+    const out = { lane: W0.buildings.shop.y === W0.buildings.restaurant.y && W0.buildings.shop.x < W0.buildings.builder.x && W0.buildings.restaurant.x > W0.buildings.builder.x, closed: !roomOpen('shop') };
     const said = [], say0 = UI.say, ask0 = UI.ask;
     UI.say = async (who, t) => { said.push(t); };
     UI.ask = async () => 2;

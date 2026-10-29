@@ -377,7 +377,7 @@ const IslandGames = {
         const g = this.on;
         if (!g || g.kind !== 'tag' || g.phase === 'done' || !Heads.canvas()) return;
         const pts = [], N = 72;
-        for (let i = 0; i <= N; i++) { const a = i / N * Math.PI * 2; pts.push(at({ x: g.cx + Math.cos(a) * IG_FIELD, y: g.cy + Math.sin(a) * IG_FIELD * 0.92 }, 0)); }
+        for (let i = 0; i <= N; i++) { const a = i / N * Math.PI * 2; pts.push(at({ x: g.cx + Math.cos(a) * IG_FIELD, y: g.cy + Math.sin(a) * IG_FIELD }, 0)); }
         const c = Heads.g, k = Heads.k, out = Math.hypot(G.player.x - g.cx, G.player.y - g.cy) > IG_FIELD;
         c.setTransform(k, 0, 0, k, 0, 0);
         c.lineCap = 'round'; c.lineJoin = 'round';
