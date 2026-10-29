@@ -28,6 +28,8 @@ const Cloud = {
     /* ---------------------------------------------------------------- talking to the server */
     async api(method, url, body, opts) {
         opts = opts || {};
+        // (the QA room only ever reads: nothing of its throwaway island reaches the server)
+        if (QA && method !== 'GET') { const err = new Error('not from the QA room'); err.status = 403; throw err; }
         const init = { method, headers: { 'X-Sarah': '1' }, credentials: 'same-origin', cache: 'no-store', keepalive: !!opts.keepalive };
         if (body !== undefined) {
             let data = typeof body === 'string' ? body : JSON.stringify(body);

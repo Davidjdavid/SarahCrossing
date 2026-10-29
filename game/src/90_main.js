@@ -34,7 +34,7 @@ async function boot(hotData) {
     R3.load();
     if (R3.want) R3.init();
     Audio2.loadPrefs();
-    const opening = LAB ? Promise.resolve(null) : Cloud.boot();          // the island, from the server, while the pictures load
+    const opening = LAB || QA ? Promise.resolve(null) : Cloud.boot();    // the island, from the server, while the pictures load
     const designing = Design.load();                                     // and the island's design (6zza_designer.js)
     await Assets.load();
     fillIcons(document);
@@ -45,11 +45,12 @@ async function boot(hotData) {
     Design.apply();
     // a visitor sees Sarah's handmade things (in her house, in the museum) too
     if (Online.visitor() && Online.island) for (const f of [registerAllPottery, registerAllArt, registerAllDesigns]) { try { f(Online.island); } catch (e) { console.error('Sarah\'s things:', f.name, e); } }
-    S = LAB ? labState() : (hotState && migrate(hotState)) || Save.load(opened && opened.state) || newState();
+    S = LAB ? labState() : QA ? await qaState() : (hotState && migrate(hotState)) || Save.load(opened && opened.state) || newState();
     // an island that won't load stays untouched on the server; this device starts fresh instead of saving over it
     if (opened && !S.started) { Cloud.broken = Cloud.island || { summary: { islandName: opened.state.islandName } }; Save.wipe(); }
     if (!S.started) S = newState();
-    if (!LAB) {
+    if (QA) MusicLib.load();
+    else if (!LAB) {
         Cloud.ready();
         Cloud.loadPhotos();
         MusicLib.load();
@@ -61,7 +62,8 @@ async function boot(hotData) {
     G.area = G.areas.island;
     bindInput();
     try { if (hot && hot.snapshot) hot.snapshot(() => ({ state: S && S.started ? S : null })); } catch (e) { /* optional */ }
-    if (LAB) continueGame(); else showTitle();
+    if (LAB || QA) continueGame(); else showTitle();
+    QAPanel.init();
     requestAnimationFrame(loop);
     if (DEBUG) window.__dbg = {
         /* a civic screen in one of its states (6zd_civic_screens.js) */
@@ -395,6 +397,7 @@ function update() {
         }
     }
     if (G.frame % 300 === 0 && G.mode === 'play') Save.write();
+    if (QA) { QAPanel.tick(); if (G.frame % 600 === 300) QAPanel.carry(); }
     if (G.frame % 3600 === 1800 && G.mode === 'play') worldFetch();
     if (G.frame % 120 === 90 && G.mode === 'play' && CIVIC_PREVIEW) Jobs.tick();        // (a zip code not looked up yet today: 6zh_world.js)
     G.showPrompt = !G.touchUsed;

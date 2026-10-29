@@ -80,6 +80,13 @@ docs/DEPLOY.md for the server.
   `tests/fixtures/` has saves made by the one-page game; the end-to-end tests import them.
 - With `window.__DEBUG = true` set before the page loads, `window.__dbg` (quick start, teleport,
   give items, set the time...) and `window.__game` exist. The end-to-end tests use them.
+- The QA room (6zzf_qa.js, for the testing before going live): `?qa` on beta or this computer (anywhere with
+  localStorage `sc-qa` 1; build.mjs's head sets `IS_QA` and `__DEBUG`) plays a throwaway island that is never saved or
+  sent (`Save.write` returns, `Cloud.api` only reads, no friends online, the designer's save and music uploads refuse).
+  The QA button or the ` key opens `QAPanel`: go anywhere, the hour, date, season, weather and every holiday, days run
+  forward (`__dbg.nextDay`), hearts, money and things, unlocks (the shops' size, the house, the town projects...), every
+  game, the HUD hidden and a frame rate, snapshots (`sc-qa-snap:<name>`) and save codes brought in (through `migrate()`),
+  and notes of problems found with where and when (`sc-qa-notes`). A reload keeps its island (sessionStorage `sc-qa-carry`).
 
 ## The HD-2D view (31_render3d.js, 32*_hd*.js)
 

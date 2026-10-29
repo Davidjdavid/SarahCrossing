@@ -4,7 +4,7 @@
    ground under the jumper's feet), its handles in their hands, the turners' arms going round with it (ropeTurn, read by
    pose2 and poseFolk2). One tube rewritten each frame while the rope is out. */
 const EnvRope = {
-    SEG: 28, RAD: 6, R: 0.0155,
+    SEG: 28, RAD: 6, R: 0.024,
     build(group) {
         const n = (this.SEG + 1) * this.RAD, idx = [];
         this.pos = new Float32Array(n * 3);

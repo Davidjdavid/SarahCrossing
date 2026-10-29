@@ -656,6 +656,7 @@ const Design = {
         Env.dirty = true;
     },
     async save() {
+        if (QA) { UI.toast("The QA room doesn't save the island's design."); return false; }
         const d = this.work();
         d.v = 1; d.base = WORLD_PROPS;
         for (const k of Object.keys(d)) if (!DESIGN_PARTS.includes(k)) delete d[k];

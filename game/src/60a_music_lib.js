@@ -340,6 +340,7 @@ const MusicUpload = {
             job.now = x.path;
             tell();
             let ok = false;
+            if (QA) { job.err = "The QA room doesn't upload music."; job.stop = true; break; }
             for (let tries = 0; tries < 3 && !ok && !job.stop; tries++) {
                 try {
                     const res = await fetch('/api/music/file?path=' + encodeURIComponent(x.path), { method: 'PUT', headers: { 'X-Sarah': '1', 'Content-Type': x.f.type || 'application/octet-stream' }, body: x.f, credentials: 'same-origin' });

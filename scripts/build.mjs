@@ -98,6 +98,8 @@ const data = [
   `window.TEXTURES = ${JSON.stringify(textures)};`,
   `window.LAB = { world: ${JSON.stringify(readJson('assets/lab/world.json'))}, ground: ${JSON.stringify(labGround)} };`,
   "if (window.location && /[?&]lab(=|&|$)/.test(window.location.search)) { window.IS_LAB = true; window.WORLD_JSON = window.LAB.world; window.GROUND = window.LAB.ground; }",
+  // the QA room (game/src/6zzf_qa.js): on beta and this computer, or anywhere localStorage sc-qa is 1
+  "if (window.location && /[?&]qa(=|&|$)/.test(window.location.search) && (/^(beta\\.|localhost$|127\\.)/.test(location.hostname) || (function () { try { return localStorage.getItem('sc-qa') === '1'; } catch (e) { return false; } })())) { window.IS_QA = true; window.__DEBUG = true; }",
   '',
 ].join('\n');
 const dataJs = emit('data', '.js', data);
