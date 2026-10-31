@@ -76,8 +76,9 @@ const Online = {
 
     /* ---------------------------------------------------------------- the live connection */
     connect() {
-        // (not before this device says who's playing: it would show up as Sarah, and bump the real one)
-        if (!this.me || !Cloud.id || this.ws || this.replaced) return;
+        // (not before this device says who's playing: it would show up as Sarah, and bump the real one; never from the
+        // test area or the QA room's throwaway islands)
+        if (LAB || QA || !this.me || !Cloud.id || this.ws || this.replaced) return;
         const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/live/${encodeURIComponent(Cloud.id)}?who=${this.who()}`;
         let ws;
         try { ws = new WebSocket(url); } catch (e) { this.later(); return; }
@@ -91,7 +92,7 @@ const Online = {
             this.later();
         };
     },
-    later() { clearTimeout(this.retryT); this.retry = Math.min(30e3, (this.retry || 1000) * 2); this.retryT = setTimeout(() => this.connect(), this.retry); },
+    later() { clearTimeout(this.retryT); this.retry = Math.min(30e3, (this.retry || 1000) * 2); this.retryT = setTimeout(() => { this.retryT = null; this.connect(); }, this.retry); },
     send(m) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(m)); },
     /* a two-player game's message for one other person (6zv_versus.js) */
     game(to, d) { this.send({ t: 'game', to, d }); },
@@ -168,6 +169,9 @@ const Online = {
         }
         if (this.mineT && Date.now() - this.mineT > 6000) { Bubbles.hide(this.mineProxy()); this.mineT = 0; }
         if (this.mineT) { const pr = this.mineProxy(), p = G.player; if (p) { pr.x = p.x; pr.y = p.y; pr.area = G.area.id; } }
+        // (an island started or picked after the page opened only has its id now: connect then, not after a reload; the
+        // live site, 31 October: a new island's Sarah never connected, so nobody saw anybody)
+        if (!this.ws && !this.retryT && Date.now() - (this.tryAt || 0) > 1000) { this.tryAt = Date.now(); this.connect(); }
         if (G.frame % 6 === 0) this.tick(false);
         if (G.frame % 4 === 0) this.tags();
         if (G.frame % 30 === 0) this.chatButton();
