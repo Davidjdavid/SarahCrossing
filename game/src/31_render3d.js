@@ -169,18 +169,10 @@ const R3 = {
             if (Decor.on) { const pn = $('#panel'), side = pn.offsetWidth < innerWidth * 0.6; if (side) tx += pn.offsetWidth / innerWidth * 9 * TILE; else ty += pn.offsetHeight / innerHeight * 7 * TILE; }
         }
         else if (Env.on && !G.camTarget) {
+            // (the camera keeps its angle and distance whichever way she walks or runs: it used to lead her the way she was
+            // going, furthest running down the screen, and the view sliding about with her was more bother than help, 1 November)
             ty -= ENV.cam.ahead * (this.camera.aspect < 1 ? 0.5 : 1) * TILE;
-            // looking where she's going (David, 27 October: running down the screen, what was below her came into view too
-            // late to steer round): the camera leads her the way she's moving, most toward the camera, eased in and out
-            const L = this.lead || (this.lead = { x: p.x, y: p.y, vx: 0, vy: 0, ox: 0, oy: 0 }), f = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60));
-            let dx = p.x - L.x, dy = p.y - L.y;
-            L.x = p.x; L.y = p.y;
-            if (snap || this.areaId !== a.id || Math.hypot(dx, dy) > 12 * f) { dx = dy = 0; if (snap || this.areaId !== a.id) L.vx = L.vy = L.ox = L.oy = 0; }
-            const kv = 1 - Math.pow(0.85, f), ko = 1 - Math.pow(0.965, f), C = ENV.cam.lead;
-            L.vx += (dx / f - L.vx) * kv; L.vy += (dy / f - L.vy) * kv;
-            const sx = Math.max(-1, Math.min(1, L.vx / 2.1)), sy = Math.max(-1, Math.min(1, L.vy / 2.1));
-            L.ox += (sx * C[0] * TILE - L.ox) * ko; L.oy += (sy * (sy > 0 ? C[1] : C[2]) * TILE - L.oy) * ko;
-            tx += L.ox; ty += L.oy;
+            const f = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60));
             // (up at the lookout the camera eases down to look out over the sea it's there for: the boats going by, the
             // plane, a whale; ENV.cam.out is how many degrees lower and tiles further out)
             const lo = typeof SeaSky !== 'undefined' && SeaSky.atLookout() ? 1 : 0;
@@ -199,11 +191,15 @@ const R3 = {
         // (the camera rises and falls with the ground under Sarah's feet, not with where it looks: looking ahead past the
         // foot of a cliff, the ground up top used to lift it as if she were climbing)
         const X = tx / TILE, Z = ty / TILE * R3_ZS, GH = a.interior ? 0 : G.camTarget ? r3GroundH(tx, ty + 10) : r3GroundH(p.x, p.y);
-        if (snap || this.areaId !== a.id) { this.target.x = X; this.target.z = Z; this.camH = GH; }
+        if (snap || this.areaId !== a.id) { this.target.x = X; this.target.z = Z; this.camH = GH; this.camV = [0, 0]; }
         else {
-            // (the same follow however often the screen redraws)
-            const f = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60)), k = 1 - Math.pow(0.86, f), kh = 1 - Math.pow(0.92, f);
-            this.target.x += (X - this.target.x) * k; this.target.z += (Z - this.target.z) * k; this.camH += (GH - (this.camH || 0)) * kh;
+            // (the same follow however often the screen redraws: a spring that glides into motion as she sets off and settles
+            // as she stops, with no jolt either way; it used to start chasing at full pace at once, which read as jerky,
+            // 1 November. R3_FOLLOW is about how far behind it runs, in seconds)
+            const f = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60)), kh = 1 - Math.pow(0.92, f), dts = f / 60;
+            const V = this.camV || (this.camV = [0, 0]);
+            this.target.x = r3Spring(this.target.x, X, V, 0, dts); this.target.z = r3Spring(this.target.z, Z, V, 1, dts);
+            this.camH += (GH - (this.camH || 0)) * kh;
         }
         // (the new look on an upright phone: a wider view, or there's room for little more than Sarah)
         const tk = this.talkK || 0, pr = this.pitch() - tk * R3_TALK.pitch * Math.PI / 180 - (this.lookK || 0) * ENV.cam.out[0] * Math.PI / 180, d = this.dist() * (1 - tk * (this.mirror ? R3_TALK.mirror : R3_TALK.near)), cam = this.camera, fov = Env.on && !a.interior ? ENV.cam.fov * (cam.aspect < 1 ? 1.25 : 1) : R3_CAM.fov;
@@ -851,6 +847,13 @@ const R3 = {
    how quickly it eases in and back out (per frame at 60 a second) */
 const R3_TALK = { on: true, near: 0.48, pitch: 9, up: 0.35, ease: 0.07, mirror: 0.6, side: 1.6, below: 1.1 };
 const R3_CAM = { fov: 46, pitch: 29, pitchIn: 40, dist: 13, ly: 0.6, bendStart: 4, bendK: 0.007, lead: 4 };
+/* the camera's follow: a critically damped spring, about R3_FOLLOW seconds behind (x toward its target, its speed in V[i]) */
+const R3_FOLLOW = 0.1;
+function r3Spring(x, target, V, i, dt) {
+    const w = 2 / R3_FOLLOW, k = w * dt, e = 1 / (1 + k + 0.48 * k * k + 0.235 * k * k * k), d = x - target, tmp = (V[i] + w * d) * dt;
+    V[i] = (V[i] - w * tmp) * e;
+    return target + (d + tmp) * e;
+}
 // tiles ahead that get drawn (at the normal zoom); the new look further since David's note of 29 October (far trees half gone)
 const R3_FAR = { phone: 17, full: 27, envPhone: 24, envFull: 38 };
 // (the new look: the last tiles before the edge of what's drawn, where the world rolls away faster (at least min, at most

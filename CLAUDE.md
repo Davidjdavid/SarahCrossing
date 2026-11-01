@@ -146,9 +146,10 @@ docs/DEPLOY.md for the server.
   tile, the sea cliffs along a smooth outline: `r3Fine`); water moves and, on computers, reflects (`R3Mirror`); the
   ground up close is fine pixel art by kind (grass, dirt, cobbles, sand, stone walls on anything steep, stairs:
   `31a_ground3d.js`) where the painted picture would smear; tufts, lily pads and cattails are instanced meshes refilled
-  as the view moves. Tune the camera, bend and haze in `R3_CAM` / `R3_FOG`. In the new look the camera leads Sarah the way
-  she's moving, most when she runs toward the camera (`ENV.cam.lead`, `R3.lead`, eased in and out: David, 27 October,
-  running down she couldn't see what was coming), up at the lookout it eases down to look out over the sea (`ENV.cam.out`,
+  as the view moves. Tune the camera, bend and haze in `R3_CAM` / `R3_FOG`. In the new look the camera keeps its angle and
+  distance whichever way Sarah walks or runs (1 November: the lead that slid the view ahead of her, furthest running down,
+  is gone), following her on a critically damped spring about `R3_FOLLOW` seconds behind (`r3Spring`: it glides into
+  motion and settles, no jolt); up at the lookout it eases down to look out over the sea (`ENV.cam.out`,
   `R3.lookK`), and things are drawn ahead out to where the haze has them
   (`updateView`: a house beyond the ground at the top of the screen still stands up over the horizon, and used to blink
   in and out there).
@@ -170,6 +171,11 @@ docs/DEPLOY.md for the server.
   ground on screen every frame (`R3.fitShadow`: the screen's corners in the light's axes, its size in steps, its middle on
   whole texels so shadows don't crawl) and shadows fade out toward its edges (`r3ScEdge`, patched into three.js's
   `shadowmap_pars_fragment`): zoomed out, they used to stop in a line of light.
+- The game steps 60 times a second (`loop` in 90_main.js) and draws on every refresh with walkers placed between their
+  last two steps; a phone draws only after a step. A refresh within `STEP_SNAP` of a step (or half a step, 120 Hz) counts
+  as exactly that, so the steps never land 0, 2, 0, 2 to a refresh (the stutter while walking, 1 November), and what eases
+  (`G.frameMs`) eases by the time since the last picture. `node scripts/smooth-check.mjs OUT` (with STATIC_DIR a build)
+  drives `loop` with screens' timings and measures how evenly the view moves: run it after touching the loop or camera.
 - The ground's pieces (15 tiles square) are made just before they come into view, painted a few milliseconds a frame
   (`paintChunkSteps`), and painted again only when something drawn into them changes (`r3ChunkSig`: plots, things on the
   ground, Sarah's paths). Never paint pieces on a timer or several in one frame: that is what made walking hitch.

@@ -311,20 +311,29 @@ function setupForm() {
 }
 
 /* ---------------------------------------------------------------- loop */
-const STEP = 1000 / 60;
-let lastT = 0, acc = 0;
+const STEP = 1000 / 60, STEP_SNAP = 1.6;
+let lastT = 0, acc = 0, sinceDraw = 0;
 function loop(t) {
     requestAnimationFrame(loop);
     let dt = lastT ? t - lastT : STEP;
     lastT = t;
     if (dt > 250) dt = STEP;
+    // (a 60 Hz screen's refreshes come a hair early or late: each one counts as exactly one step, or for a while the steps
+    // land 0, 2, 0, 2 to a refresh, a picture shown twice and then a jump: a stutter while walking, worst on a phone, which
+    // only draws after a step. 1 November)
+    if (Math.abs(dt - STEP) < STEP_SNAP) dt = STEP;
+    // (and a 120 Hz screen's as exactly half a step, so the steps fall on every other refresh, never two in a row)
+    else if (Math.abs(dt - STEP / 2) < STEP_SNAP / 2) dt = STEP / 2;
     acc += dt;
+    sinceDraw += dt;
     let n = 0;
     while (acc >= STEP && n < 4) { keepSteps(); update(); acc -= STEP; n++; }
     if (n >= 4) acc = 0;
     // drawn on every refresh, not only after a step (60 steps a second land unevenly on a screen's refreshes, which
     // reads as jumpy), with whoever's walking placed between their last two steps; a phone draws after steps only
-    if (n || (G.frame > 0 && !R3.phone)) renderBetween(Math.min(1, acc / STEP), dt);
+    // (the time since the last picture, not since the last refresh: what eases, the camera's follow most of all, eases by
+    // the time that really passed between pictures)
+    if (n || (G.frame > 0 && !R3.phone)) { renderBetween(Math.min(1, acc / STEP), Math.min(250, sinceDraw)); sinceDraw = 0; }
 }
 /* everyone who walks: where they were before this step */
 function walkers() { const out = G.player ? [G.player] : []; if (G.area && G.mode !== 'title') for (const n of NPCs.here()) out.push(n); return out; }
