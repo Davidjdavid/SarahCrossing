@@ -180,7 +180,16 @@ docs/DEPLOY.md for the server.
   Sarah or the view moves (every other on a phone; standing still, every other step as before), the ground's pieces are
   made nearest the view first and further ahead (`Env.stream`), the culled instance lists upload only the copies in use
   (`updateRange`), and Auto quality also steps down a notch (to 0.55 at least, every six seconds at most) when more than 6%
-  of pictures come a refresh late (`watchSpeed`).
+  of pictures come a refresh late or most come slower than 50 a second (`watchSpeed`, which waits for the lighter trees).
+  2 November (David's second screencast, still choppy in the woods: a picture there asked for about 8 million triangles,
+  every leaf out to 36 tiles, then the shadows and the reflection again): on a computer the trees, palms, pines and bushes
+  further than `EnvCull.LOD_NEAR` tiles beyond Sarah are drawn in their phone version (`_lod1`, fetched after the island's
+  models, the trees' only for the season: `EnvModels.lods`, `lodWanted`, `lodsDone`); each such model's lighter copy
+  (`T.lod`) holds the far copies then the near ones, casts every shadow (the full one casts none), is cut to the far ones
+  just before the picture draws it (`onBeforeRender`, `EnvCull.prep`) and is all of them in the water's reflection
+  (`liteOn`); the reflection is drawn only with water on the screen near enough to show it (`Env.waterSeen`). About 3
+  million triangles there now. Settings > On screen > Frame rate shows the pictures a second, the slowest, and the
+  picture's quality and size (`HudFps`, `sc-fps`).
 - What's on screen (6zzp_hud.js, Settings > On screen, kept per device in `sc-hud`): the time card, the sand dollars, the
   run/map/zoom buttons, the key hints and the dock, each Always, When still (`hud-still`: fades away while Sarah walks,
   back after `HUD_STILL_MS` standing still; `body.hud-moving`) or Hidden (`hud-off`); the dock on a touch screen never hides

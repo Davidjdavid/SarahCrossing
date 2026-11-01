@@ -513,8 +513,14 @@ test('on screen, as each device likes it: the time card hidden, the sand dollars
   await page.evaluate(() => appSettings());
   await page.waitForSelector('[data-hud="time"] .chip, [data-hud="time"] button');
   const rows = await page.evaluate(() => [...document.querySelectorAll('[data-hud]')].map((r) => [r.dataset.hud, [...r.children].map((c) => c.textContent)]));
-  assert.deepEqual(rows.map((r) => r[0]), ['time', 'money', 'buttons', 'keys', 'dock']);
+  assert.deepEqual(rows.map((r) => r[0]), ['time', 'money', 'buttons', 'keys', 'dock', 'fps']);
   assert.deepEqual(rows[0][1], ['Always', 'When still', 'Hidden']);
+  // the frame rate, shown in a corner and kept
+  await page.click('[data-hud="fps"] >> text=Shown');
+  await until(() => page.evaluate(() => { const e = $('.hud-fps'); return !!e && !e.hidden && / fps · slowest \d+ ms/.test(e.textContent); }), 5000);
+  assert.equal(await page.evaluate(() => localStorage.getItem('sc-fps')), '1');
+  await page.click('[data-hud="fps"] >> text=Hidden');
+  assert.equal(await page.evaluate(() => $('.hud-fps').hidden), true);
   // the time card hidden, the sand dollars only when still
   await page.click('[data-hud="time"] >> text=Hidden');
   await page.click('[data-hud="money"] >> text=When still');
@@ -541,6 +547,56 @@ test('on screen, as each device likes it: the time card hidden, the sand dollars
     return { mode: HudPrefs.mode('dock'), off: $('#hudB').classList.contains('hud-off'), choices: HudPrefs.modes('dock').map((m) => m[1]) };
   });
   assert.deepEqual(touch, { mode: 'still', off: false, choices: ['Always', 'When still'] });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('the new look draws far trees in their lighter version: near copies in the full model, far ones in the lighter, every one casting its shadow once; the reflection takes them all lighter', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const r = await page.evaluate(() => {
+    // a made-up tree, placed in a row going north from the camera, and its lighter version
+    const full = new THREE.BoxGeometry(1, 1, 1, 4, 4, 4), lite = new THREE.BoxGeometry(1, 1, 1), mat = new THREE.MeshStandardMaterial();
+    EnvModels.models.tree_test = { parts: [{ geometry: full, material: mat }], name: 'tree_test', anchors: {}, sizes: {} };
+    const group = new THREE.Group(), xs = [0, 2, 5, 9, 14, 20, 27, 35];
+    const [m] = EnvModels.instances(group, 'tree_test', xs.map((d) => EnvModels.mat4(50, 0, (60 - d) * R3_ZS)));
+    const saved = { cam: R3.camera, target: R3.target, list: EnvCull.list, key: EnvCull.key, lodV: EnvCull.lodV };
+    R3.camera = { position: { x: 50, z: 60 * R3_ZS } }; R3.target = { x: 50, z: 60 * R3_ZS };
+    EnvCull.list = []; EnvCull.key = '';
+    EnvCull.track(m);
+    const out = {};
+    EnvCull.update(0, 0, 100, 100);
+    out.before = { full: m.count, lod: !!EnvCull.list[0].lod };
+    EnvModels.lods.tree_test = { parts: [{ geometry: lite, material: mat }], name: 'tree_test_lod1', anchors: {}, sizes: {} };
+    EnvModels.lodV = (EnvModels.lodV || 0) + 1;
+    EnvCull.update(0, 0, 100, 100);
+    const T = EnvCull.list[0], L = T.lod;
+    out.after = { full: m.count, far: T.kFar, all: T.kAll, lodCount: L.count, fullCasts: m.castShadow, lodCasts: L.castShadow, sameParent: L.parent === m.parent, lite: L.geometry === lite };
+    // the near ones are the closest of the row, the far ones the rest
+    out.nearZ = Array.from({ length: m.count }, (_, i) => Math.round(60 - m.instanceMatrix.array[i * 16 + 14] / R3_ZS)).sort((a, b) => a - b);
+    // drawn: the lighter copies cut down to the far ones; for the reflection all of them, the full ones hidden
+    L.onBeforeRender(); out.drawn = L.count;
+    EnvCull.prep(); out.prepped = L.count;
+    EnvCull.liteOn(true); out.lite = { fullShown: m.visible, lod: L.count }; L.onBeforeRender(); out.liteDrawn = L.count;
+    EnvCull.liteOn(false); out.back = m.visible;
+    Object.assign(R3, { camera: saved.cam, target: saved.target }); Object.assign(EnvCull, { list: saved.list, key: saved.key, lodV: saved.lodV });
+    delete EnvModels.models.tree_test; delete EnvModels.lods.tree_test;
+    return out;
+  });
+  const near = r.nearZ.length;
+  assert.deepEqual(r.before, { full: 8, lod: false });
+  assert.ok(near >= 2 && near <= 6, 'a few near ones: ' + r.nearZ);
+  assert.deepEqual(r.nearZ, [0, 2, 5, 9, 14, 20, 27, 35].slice(0, near));
+  assert.deepEqual(r.after, { full: near, far: 8 - near, all: 8, lodCount: 8, fullCasts: false, lodCasts: true, sameParent: true, lite: true });
+  assert.equal(r.drawn, 8 - near);
+  assert.equal(r.prepped, 8);
+  assert.deepEqual(r.lite, { fullShown: false, lod: 8 });
+  assert.equal(r.liteDrawn, 8);
+  assert.equal(r.back, true);
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });

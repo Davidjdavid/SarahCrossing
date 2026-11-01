@@ -414,6 +414,7 @@ function update() {
     G.showPrompt = !G.touchUsed;
 }
 function render() {
+    HudFps.frame();
     Heads.start();
     const hd = R3.active();
     R3.show(hd);

@@ -358,6 +358,8 @@ const R3 = {
             if (this.shadowsOn !== false && (mv ? this._shN % (this.phone ? 2 : 1) === 0 : step && G.frame % (this.phone ? 3 : 2) === 0)) this.renderer.shadowMap.needsUpdate = true;
             if (!this.warmed) this.warmPrograms();
             R3Mirror.render(this, a);
+            // (the far trees' lighter copies hold every tree for the shadows; the picture then draws only the far ones)
+            if (env) EnvCull.prep();
             Post3.render(this.scene, this.camera, R3U.uTime.value, this.grade, env && typeof EnvGhost !== 'undefined' && EnvGhost.on);
             this.overlay();
             this.watchSpeed();
@@ -375,7 +377,7 @@ const R3 = {
         if (this.tufts) this.tufts.mesh.visible = false;
         if (this.lilies) this.lilies.mesh.visible = false;
     },
-    /* if this device struggles, step down once: a smaller picture */
+    /* if this device struggles, step down: a smaller picture (and below 1, no reflections in the water) */
     watchSpeed() {
         // (on Auto only: a quality picked in Settings stays as picked)
         if (GFX.quality()) return;
@@ -383,6 +385,10 @@ const R3 = {
         this._last = now;
         // (only while playing on the island, and not across a pause: a menu, a door, the tab put away)
         if (!dt || dt > 250 || G.mode !== 'play' || UI.modal || (G.area && G.area.interior)) return;
+        // (nor before a computer's lighter trees are in, a few seconds after the island: till then it draws far more than
+        // it will, 2 November; twenty seconds at most)
+        this._wsT0 = this._wsT0 || now;
+        if (Env.on && typeof EnvModels !== 'undefined' && !EnvModels.lodsDone && now - this._wsT0 < 20000) { this.slow = []; return; }
         this.slow.push(dt);
         if (!this.stepped) {
             if (this.slow.length < 240) return;
@@ -393,14 +399,16 @@ const R3 = {
             if (med > 24) { this.quality = 0.6; this.resize(); }
             return;
         }
-        // and after that, every three seconds or so of play: a picture that keeps coming a refresh late here and there
-        // judders even at 60 a second most of the time (a big screen, 1 November), so a little less detail, a step at a
-        // time, never below 0.55, at most every six seconds
+        // and after that, every three seconds or so of play, a little less detail, a step at a time, never below 0.55, at
+        // most every six seconds, while the pictures come slower than 50 a second most of the time (a steady 35 used to
+        // pass: only frames late against the usual ones counted, 2 November) or keep coming a refresh late here and there
+        // (that judders even at 60 a second most of the time: a big screen, 1 November)
         if (this.slow.length < 180) return;
-        const fr = this.slow.slice().sort((p, q) => p - q), base = fr[Math.floor(fr.length * 0.2)];
+        const fr = this.slow.slice().sort((p, q) => p - q), base = fr[Math.floor(fr.length * 0.2)], med = fr[fr.length >> 1];
         const late = this.slow.filter(x => x > base * 1.5).length / this.slow.length;
         this.slow = [];
-        if (late > 0.06 && this.quality > 0.55 && now - (this.speedAt || 0) > 6000) {
+        this.speed = { med, late };
+        if ((late > 0.06 || med > 20) && this.quality > 0.55 && now - (this.speedAt || 0) > 6000) {
             this.quality = Math.max(0.55, Math.round((this.quality - 0.15) * 100) / 100);
             this.speedAt = now;
             this.resize();
@@ -1160,9 +1168,13 @@ function r3Sky(scene) {
 const R3Mirror = {
     rt: null, cam: null, bias: null, n: 0,
     render(r3, a) {
-        const on = !r3.phone && !a.interior && a.id === 'island' && !(r3.quality < 1);
+        // (and only with water in sight: Env.waterSeen)
+        const on = !r3.phone && !a.interior && a.id === 'island' && !(r3.quality < 1) && !(typeof Env !== 'undefined' && Env.on && !Env.waterSeen(r3));
         R3U.uRefl.value = on && this.rt ? 1 : 0;
-        if (!on || (this.n++ & 1)) return;
+        // (every other picture; at once when water has just come into sight, or it would show an old reflection)
+        if (!on) { this.was = false; return; }
+        if (this.was && (this.n++ & 1)) return;
+        this.was = true;
         const R = r3.renderer, sz = R.getDrawingBufferSize(new THREE.Vector2()), w = Math.max(1, Math.round(sz.x / 3)), h = Math.max(1, Math.round(sz.y / 3));
         if (!this.rt || this.rt.width !== w || this.rt.height !== h) {
             if (this.rt) this.rt.dispose();
@@ -1185,7 +1197,11 @@ const R3Mirror = {
         for (const m of hide) m.visible = false;
         const bk = R3U.uBendK.value, sk = R3U.uSinkK.value, was = R.shadowMap.needsUpdate;
         R3U.uBendK.value = 0; R3U.uSinkK.value = 0; R3U.uRefl.value = 0; R.shadowMap.needsUpdate = false;
+        // (every tree in its lighter version: the reflection is small and rippled)
+        const lite = typeof Env !== 'undefined' && Env.on && Env.built;
+        if (lite) EnvCull.liteOn(true);
         R.setRenderTarget(this.rt); R.clear(); R.render(r3.scene, cam); R.setRenderTarget(null);
+        if (lite) EnvCull.liteOn(false);
         R3U.uBendK.value = bk; R3U.uSinkK.value = sk; R3U.uRefl.value = 1; R.shadowMap.needsUpdate = was;
         for (const m of hide) m.visible = true;
         R3U.tRefl.value = this.rt.texture;

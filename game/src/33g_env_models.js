@@ -9,13 +9,26 @@
 const EnvModels = {
     OUTDOOR: new Set(['furn_lunar_lantern', 'furn_red_lantern', 'furn_heart_lamp', 'furn_cafe_table', 'furn_easel']),
     models: {}, textures: {}, ready: false, failed: false, _p: null, done: 0, total: 1,
+    /* (a computer draws the trees, palms, pines and bushes further off in their phone version: EnvCull's lod) */
+    lods: {}, LOD: /^(tree_|pine_|palm_|bush_)/,
     phone() { try { return matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 600; } catch (e) { return false; } },
     /* the names to fetch: each model once, its phone version on phones */
     names() {
         const all = Object.keys(window.MODELS || {}), phone = this.phone();
         // (the style test's models only where it's shown: 33ka_doll_kit.js)
         const test = typeof STYLE2 !== 'undefined' && STYLE2;
-        return all.filter(n => (phone ? !all.includes(n + '_lod1') : !/_lod\d$/.test(n)) && (test || !/^(doll_|folk2_|style_)/.test(n)));
+        return all.filter(n => (phone ? !all.includes(n + '_lod1') : !/_lod\d$/.test(n) || this.lodWanted(n)) && (test || !/^(doll_|folk2_|style_)/.test(n)));
+    },
+    /* a computer's lighter versions: the trees' only for the season they're in now (the season of the island when they
+       come to be fetched, after the island's own models), the rest all */
+    lodWanted(n) {
+        const base = n.replace(/_lod\d$/, '');
+        if (!this.LOD.test(base)) return false;
+        const m = /_(spring|fall|winter)$/.exec(base);
+        let season = null;
+        try { season = typeof S !== 'undefined' && S && typeof Clock !== 'undefined' ? Clock.season() : null; } catch (e) { season = null; }
+        if (!/^tree_/.test(base) || !season) return true;
+        return (m ? m[1] : 'summer') === season;
     },
     load() {
         if (this._p) return this._p;
@@ -30,8 +43,10 @@ const EnvModels = {
         // picture till it's in)
         // (but the lanterns the holidays put up on the island come with the island: 54_events.js decorateIsland; and the
         // easel a neighbor paints at, 33kd_doll_idle.js)
-        const after = n => /^(furn_|item_)/.test(n) && !this.OUTDOOR.has(n), first = names.filter(n => !after(n));
-        const later = names.filter(n => /^item_/.test(n)).concat(names.filter(n => /^furn_/.test(n) && !this.OUTDOOR.has(n)));   // (the small things first: they lie about outdoors)
+        // (and a computer's lighter trees, first of those: the island is drawn with the full ones till they're in)
+        const lod = n => /_lod\d$/.test(n) && !this.phone();
+        const after = n => (/^(furn_|item_)/.test(n) && !this.OUTDOOR.has(n)) || lod(n), first = names.filter(n => !after(n));
+        const later = names.filter(lod).concat(names.filter(n => /^item_/.test(n)), names.filter(n => /^furn_/.test(n) && !this.OUTDOOR.has(n)));   // (the small things first: they lie about outdoors)
         this.total = first.length + Object.keys(window.TEXTURES || {}).length;
         const get = n => new Promise((ok, bad) => loader.load(window.MODELS[n], g => ok([n, g]), undefined, bad));
         this._p = Promise.all(first.map(n => get(n).then(r => { this.done++; return r; })).concat(texs))
@@ -40,11 +55,22 @@ const EnvModels = {
                 this.ready = true;
                 // then the furniture and the things, a few at a time
                 let i = 0;
-                const next = () => { const n = later[i++]; if (!n) return; get(n).then(([n, g]) => { this.models[n] = this.prepare(g.scene, n); if (/^furn_/.test(n)) this.furnN = (this.furnN || 0) + 1; }).catch(e => console.warn('a model could not be loaded', n, e)).then(next); };
+                const next = () => {
+                    let n = later[i++];
+                    // (a tree's lighter version for another season than the island's now isn't fetched)
+                    while (n && lod(n) && !this.lodWanted(n)) n = later[i++];
+                    // (the lighter trees are all in once the queue has gone past them: R3.watchSpeed waits for them)
+                    if (!n || !lod(n)) setTimeout(() => { this.lodsDone = true; }, 1500);
+                    if (!n) return;
+                    get(n).then(([n, g]) => {
+                        if (lod(n)) { this.lods[n.replace(/_lod\d$/, '')] = this.prepare(g.scene, n); this.lodV = (this.lodV || 0) + 1; return; }
+                        this.models[n] = this.prepare(g.scene, n); if (/^furn_/.test(n)) this.furnN = (this.furnN || 0) + 1;
+                    }).catch(e => console.warn('a model could not be loaded', n, e)).then(next);
+                };
                 for (let k = 0; k < 4; k++) next();
                 return true;
             })
-            .catch(e => { console.error('the models could not be loaded (the new look draws its own)', e); this.failed = true; return false; });
+            .catch(e => { console.error('the models could not be loaded (the new look draws its own)', e); this.failed = true; this.lodsDone = true; return false; });
         return this._p;
     },
     has(name) { return this.ready && !!this.models[name]; },
@@ -158,8 +184,10 @@ const EnvModels = {
         o = o || {};
         const M = this.models[name], out = [];
         if (!M || !matrices.length) return out;
-        for (const p of M.parts) {
+        for (const [pi, p] of M.parts.entries()) {
             const mesh = new THREE.InstancedMesh(p.geometry, this.instMat(this.partMat(p, o.tint)), matrices.length);
+            // (which model and part: EnvCull puts the copies further off in the model's lighter version)
+            mesh.userData.model = name; mesh.userData.part = pi; if (o.tint) mesh.userData.tint = o.tint;
             matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
             mesh.instanceMatrix.needsUpdate = true;
             mesh.castShadow = o.shadow !== false; mesh.receiveShadow = true;

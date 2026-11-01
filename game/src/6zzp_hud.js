@@ -46,6 +46,40 @@ const HudPrefs = {
 };
 setInterval(() => { try { HudPrefs.tick(); } catch (e) { /* the page isn't ready yet */ } }, 100);
 
+/* The frame rate, shown in a corner when picked in Settings > On screen (kept per device, sc-fps): how many pictures a
+   second, the slowest in the last second, and the picture's quality (Auto steps it down by itself on a device that
+   can't keep up: R3.watchSpeed) and size, so smoothness can be checked on any computer (2 November) */
+const HudFps = {
+    el: null, n: 0, t: 0, last: 0, worst: 0,
+    on() { return lsGet('sc-fps') === '1'; },
+    set(on) { lsSet('sc-fps', on ? '1' : '0'); this.show(); },
+    show() {
+        if (!this.el) {
+            this.el = el('div', 'hud-fps');
+            document.body.appendChild(this.el);
+        }
+        this.el.hidden = !this.on();
+        this.t = performance.now(); this.n = 0; this.worst = 0; this.last = 0;
+    },
+    /* once a picture (render in 90_main.js) */
+    frame() {
+        if (!this.el) { if (!this.on()) return; this.show(); }
+        if (this.el.hidden) return;
+        const now = performance.now();
+        if (this.last) this.worst = Math.max(this.worst, now - this.last);
+        this.last = now; this.n++;
+        if (now - this.t < 1000) return;
+        const fps = Math.round(this.n * 1000 / (now - this.t));
+        let q = '';
+        if (typeof R3 !== 'undefined' && R3.ok && R3.shown) {
+            const c = R3.renderer.domElement;
+            q = ` · picture ${Math.round(R3.quality * 100)}%${GFX.quality() ? '' : ' (Auto)'} · ${c.width}×${c.height}`;
+        }
+        this.el.textContent = `${fps} fps · slowest ${Math.round(this.worst)} ms${q}`;
+        this.t = now; this.n = 0; this.worst = 0;
+    },
+};
+
 /* Settings: a row for each part, its mode picked from chips */
 function hudSetting() {
     const box = el('div', 'field');
@@ -69,6 +103,16 @@ function hudSetting() {
     };
     draw();
     box.appendChild(list);
+    // (and the frame rate, for checking how smoothly it runs)
+    const fr = el('div');
+    fr.style.cssText = 'margin:6px 0 2px';
+    fr.appendChild(el('b', null, 'Frame rate')).style.cssText = 'display:block;font-size:13px;margin-bottom:3px';
+    const frRow = el('div', 'st-row');
+    frRow.dataset.hud = 'fps';
+    const frDraw = () => { frRow.innerHTML = ''; for (const [on, name] of [[false, 'Hidden'], [true, 'Shown']]) frRow.appendChild(chip(name, () => { HudFps.set(on); Sfx.ui('tick'); frDraw(); }, HudFps.on() === on ? 'on' : '')); };
+    frDraw();
+    fr.appendChild(frRow);
+    box.appendChild(fr);
     box.appendChild(el('p', 'muted', 'When still: it fades away while you walk and comes back after a second or two of standing still.' + (HudPrefs.touch() ? ' The phone buttons can fade but never hide: they open Settings.' : ' Hidden things are still on their keys (P for the phone, I for the pocket, M for the map).')));
     return box;
 }

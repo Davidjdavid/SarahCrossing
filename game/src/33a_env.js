@@ -198,6 +198,28 @@ const Env = {
         if (k === 'rope' && typeof EnvRope !== 'undefined') return true;          // (the square's jump rope: 33y_env_rope.js)
         return false;
     },
+    /* is there water on screen near enough for its reflection to show (the reflection is a whole second picture of the
+       island: without water in sight there's no drawing it, 2 November). The ground on screen up to WATER_AHEAD tiles
+       ahead of Sarah; the sea far off at the horizon does without */
+    WATER_AHEAD: 22,
+    waterSeen(r3) {
+        const v = r3.view;
+        if (!v || !this.ground) return true;
+        const ty = r3.target.z / R3_ZS, key = [v.x0, v.x1, v.y1].map(n => Math.floor(n / TILE / 2)).join(',') + ',' + Math.floor(ty / 2);
+        if (key === this._wKey) return this._wSeen;
+        this._wKey = key;
+        const x0 = Math.floor(v.x0 / TILE), x1 = Math.ceil(v.x1 / TILE), y0 = Math.floor(Math.max(v.y0 / TILE, ty - this.WATER_AHEAD)), y1 = Math.ceil(v.y1 / TILE);
+        // (a water tile in the rectangle that's really on the screen, give or take a tile: the rectangle is wider than the
+        // screen near the top, and a pond just off to the side kept the reflection going)
+        const V = G.view;
+        let seen = false;
+        for (let y = y0; y <= y1 && !seen; y++) for (let x = x0; x <= x1; x++) {
+            if (!EnvGround.waterAt(x, y)) continue;
+            const p = r3.project((x + 0.5) * TILE, (y + 0.5) * TILE), m = p.s * TILE * 1.5;
+            if (!p.behind && p.x > -m && p.x < V.w + m && p.y > -m && p.y < V.h + m) { seen = true; break; }
+        }
+        return (this._wSeen = seen);
+    },
     /* the water's surface at a spot (world pixels), or null where there's none: the sea at 0, a stream or pond at its level */
     waterH(x, y) {
         if (!this.ground || (G.area && G.area.interior)) return null;
@@ -264,42 +286,103 @@ const EnvChunk = {
 
 /* Instanced things (trees, fruit, props, wall pieces, the dark under things) placed all over the island: each keeps the
    whole list of where its copies stand, and only the copies near the view are handed to the GPU. A copy moved (a shaken
-   tree, picked fruit, a turning windmill) is moved in the list. */
+   tree, picked fruit, a turning windmill) is moved in the list.
+   On a computer the trees, palms, pines and bushes further off than LOD_NEAR beyond Sarah are drawn in their lighter
+   version (the phones' own, EnvModels.lods), and every one of them casts its shadow and shows in the water as that (2
+   November, David's second screencast: in the woods a picture asked for five million triangles, full leaves out to 36
+   tiles, and the shadows and the reflection as many again; it judders on most graphics cards). Each such model's
+   lighter copy (T.lod) holds the far copies, then the near ones: the shadows take all of them (the full trees cast
+   none), the picture only the far ones (cut down just before it's drawn, onBeforeRender), the reflection all of them
+   with the full ones hidden (lite). */
 const EnvCull = {
-    list: [], key: '',
-    reset() { this.list = []; this.key = ''; },
+    list: [], key: '', LOD_NEAR: 9, lite: false, lodV: -1,
+    reset() { this.list = []; this.key = ''; this.lodV = -1; },
     track(m) {
         const n = m.count, all = new Float32Array(m.instanceMatrix.array.subarray(0, n * 16)), px = new Float32Array(n), pz = new Float32Array(n);
         for (let i = 0; i < n; i++) { px[i] = all[i * 16 + 12]; pz[i] = all[i * 16 + 14] / R3_ZS; }
         const cols = m.instanceColor ? new Float32Array(m.instanceColor.array.subarray(0, n * 3)) : null;
-        const T = { m, all, px, pz, n, cols, dirty: true };
+        const T = { m, all, px, pz, n, cols, dirty: true, lod: null, kFar: 0, kAll: 0, model: m.userData.model, part: m.userData.part };
         m.setMatrixAt = (i, M) => { M.toArray(all, i * 16); px[i] = all[i * 16 + 12]; pz[i] = all[i * 16 + 14] / R3_ZS; T.dirty = true; };
         this.list.push(T);
     },
+    /* the lighter versions that have come in since: a copy of each part beside the full one */
+    lods() {
+        const v = (typeof EnvModels !== 'undefined' && EnvModels.lodV) || 0;
+        if (v === this.lodV) return;
+        this.lodV = v;
+        for (const T of this.list) {
+            if (T.lod || !T.model || !T.m.parent) continue;
+            const L = EnvModels.lods[T.model], M = EnvModels.models[T.model];
+            if (!L || !M || L.parts.length !== M.parts.length) continue;
+            const p = L.parts[T.part], m = new THREE.InstancedMesh(p.geometry, EnvModels.instMat(EnvModels.partMat(p, T.m.userData.tint)), T.n);
+            if (T.cols) m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(T.n * 3), 3);
+            m.castShadow = T.m.castShadow; m.receiveShadow = T.m.receiveShadow; m.renderOrder = T.m.renderOrder;
+            m.frustumCulled = false; m.count = 0; m.visible = false;
+            m.userData.shared = true; m.userData.lodOf = T.m;
+            m.onBeforeRender = () => { if (!this.lite) m.count = T.kFar; };
+            T.m.castShadow = false;
+            T.m.parent.add(m);
+            T.lod = m; T.dirty = true;
+        }
+    },
     update(x0, y0, x1, y1) {
-        const key = [x0, y0, x1, y1].map(v => Math.floor(v / 2)).join(',');
+        this.lods();
+        // (where the lighter versions start: as far beyond Sarah as LOD_NEAR, measured from the camera, so zoomed out
+        // it's further; a step of a tile and a half before they're sorted again)
+        const cam = R3.camera, cx = cam ? cam.position.x : 0, cz = cam ? cam.position.z : 0;
+        const nr = Math.hypot(R3.target.x - cx, R3.target.z - cz) + this.LOD_NEAR * R3_ZS, nr2 = nr * nr;
+        const key = [x0, y0, x1, y1].map(v => Math.floor(v / 2)).concat([Math.floor(cx / 1.5), Math.floor(cz / 1.5), Math.round(nr)]).join(',');
         const moved = key !== this.key;
         this.key = key;
         for (const T of this.list) {
             if (!moved && !T.dirty) continue;
             T.dirty = false;
-            const dst = T.m.instanceMatrix.array, dc = T.cols && T.m.instanceColor.array;
-            let k = 0;
+            const dst = T.m.instanceMatrix.array, dc = T.cols && T.m.instanceColor.array, L = T.lod;
+            let k = 0, f = 0;
+            const near = L ? [] : null;
             for (let i = 0; i < T.n; i++) {
                 const x = T.px[i], z = T.pz[i];
                 // (a hidden copy is scaled to nothing: keep it out)
                 if (x < x0 || x > x1 || z < y0 || z > y1 || (T.all[i * 16] === 0 && T.all[i * 16 + 5] === 0 && T.all[i * 16 + 10] === 0)) continue;
+                if (L) {
+                    const dx = x - cx, dz = z * R3_ZS - cz;
+                    if (dx * dx + dz * dz < nr2) near.push(i);
+                    else { L.instanceMatrix.array.set(T.all.subarray(i * 16, i * 16 + 16), f * 16); if (dc) L.instanceColor.array.set(T.cols.subarray(i * 3, i * 3 + 3), f * 3); f++; }
+                    continue;
+                }
                 dst.set(T.all.subarray(i * 16, i * 16 + 16), k * 16);
                 if (dc) dc.set(T.cols.subarray(i * 3, i * 3 + 3), k * 3);
                 k++;
             }
+            if (L) {
+                // the near ones in the full version, and after the far ones in the lighter one (for the shadows)
+                const lc = L.instanceColor && L.instanceColor.array;
+                for (const [j, i] of near.entries()) {
+                    dst.set(T.all.subarray(i * 16, i * 16 + 16), j * 16);
+                    L.instanceMatrix.array.set(T.all.subarray(i * 16, i * 16 + 16), (f + j) * 16);
+                    if (dc) { dc.set(T.cols.subarray(i * 3, i * 3 + 3), j * 3); lc.set(T.cols.subarray(i * 3, i * 3 + 3), (f + j) * 3); }
+                }
+                k = near.length;
+                T.kFar = f; T.kAll = f + k;
+                L.count = T.kAll; L.visible = T.kAll > 0;
+                const ul = L.instanceMatrix.updateRange; ul.offset = 0; ul.count = Math.max(16, T.kAll * 16);
+                L.instanceMatrix.needsUpdate = true;
+                if (lc) { const uc = L.instanceColor.updateRange; uc.offset = 0; uc.count = Math.max(3, T.kAll * 3); L.instanceColor.needsUpdate = true; }
+            }
             T.m.count = k;
-            T.m.visible = k > 0;
+            T.m.visible = k > 0 && !this.lite;
             // (only the copies in use go to the graphics card, not the whole island's list each time the view moves on)
             const um = T.m.instanceMatrix.updateRange; um.offset = 0; um.count = Math.max(16, k * 16);
             T.m.instanceMatrix.needsUpdate = true;
             if (dc) { const uc = T.m.instanceColor.updateRange; uc.offset = 0; uc.count = Math.max(3, k * 3); T.m.instanceColor.needsUpdate = true; }
         }
+    },
+    /* before a picture: the lighter copies hold every tree again, for the shadows (the picture cuts them down) */
+    prep() { for (const T of this.list) if (T.lod) T.lod.count = T.kAll; },
+    /* the reflection (and anything else that can make do with less): every tree in its lighter version */
+    liteOn(on) {
+        this.lite = on;
+        for (const T of this.list) if (T.lod) { T.m.visible = !on && T.m.count > 0; T.lod.count = T.kAll; }
     },
 };
 
