@@ -414,6 +414,27 @@ test('playing together: David visits Sarah, they see each other, and his things 
   await david.context().close();
 });
 
+test('a new island goes online at once: Sarah starts one and is connected without reloading, so visitors see her', async () => {
+  // (the live site, 31 October: the connection was only tried as the page opened, before a new island had an id, so
+  // nobody saw anybody until a reload)
+  const sarah = await device();
+  await sarah.evaluate(() => localStorage.setItem('sc-current', ''));
+  await sarah.reload();
+  await title(sarah);
+  // (no island yet, so nothing to be online on)
+  assert.deepEqual(await sarah.evaluate(() => [Cloud.id || null, !!Online.ws]), [null, false]);
+  await sarah.evaluate(() => __dbg.quickStart());
+  await sarah.waitForFunction(() => G.mode === 'play');
+  await saveNow(sarah);
+  await until(() => sarah.evaluate(() => !!(Cloud.id && Online.ws && Online.ws.readyState === 1)), 15000);
+  const id = await sarah.evaluate(() => Cloud.id);
+  // and the server has her there, for anyone visiting to see
+  const here = await sarah.evaluate(async (i) => (await (await fetch(`/api/islands/${i}/people`)).json()).here, id);
+  assert.deepEqual(here, ['sarah']);
+  assert.deepEqual(sarah.problems.filter((p) => !/404/.test(p)), []);
+  await sarah.context().close();
+});
+
 test('two players online: Sarah asks David to play Bento Blocks; boards and junk cross; leaving hands over the win', async () => {
   const sarah = await device();
   await play(sarah);
