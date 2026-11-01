@@ -458,7 +458,7 @@ async function cheatGate() {
     G.busy++;
     let go = false;
     try {
-        let k = await UI.ask('phone', 'Unlock everything? You get every item, outfit, recipe, poem, song and move, every hidden treasure, every mystery solved, best friends with everyone, and everyone in your contacts.', ['Go on...', 'Never mind'], { keep: true });
+        let k = await UI.ask('phone', 'Unlock everything? You get every item, outfit, recipe, poem, song and move, every hidden treasure, every mystery solved, best friends with everyone, and everyone in your contacts. Captain Shrimpy and Muggy move in, the shops grow to their biggest and every town project is built.', ['Go on...', 'Never mind'], { keep: true });
         if (k !== 0) return;
         k = await UI.ask('phone', 'Warning: this is PERMANENT. There is no undo and no way back. Every surprise on the island gets spoiled, and this island stays in cheat mode forever.', ['I understand', 'Never mind'], { keep: true });
         if (k !== 0) return;
@@ -473,7 +473,7 @@ async function cheatGate() {
     Sfx.play('fanfare');
     G.busy++;
     try {
-        await UI.say('phone', ['Cheat mode is on. Everything is unlocked!', 'New things are waiting in your house storage, your wardrobe and your contacts. The house is as big as it gets (step out and back in if you are home).']);
+        await UI.say('phone', ['Cheat mode is on. Everything is unlocked!', 'New things are waiting in your house storage, your wardrobe, your mailbox and your contacts. The house and the shops are as big as they get (step out and back in if you are inside).']);
     } finally { G.busy--; }
 }
 function holdToConfirm(title, text) {
@@ -504,6 +504,9 @@ function holdToConfirm(title, text) {
 /* cheat mode: everything, all at once */
 function unlockEverything() {
     const day = Clock.dayNum(), top = HEARTS[HEARTS.length - 1];
+    // the newcomers first, so they're met and best friends below too: Captain Shrimpy moved in, Muggy's café open
+    try { if (seaStage() < 9) { seaState(); seaMoveIn(); } } catch (e) { console.error(e); }
+    try { if (mugStage() < 7) { mugState(); mugMoveIn(); } } catch (e) { console.error(e); }
     // everyone: met, in your contacts, best friends
     for (const id of Object.keys(NPC_DEFS)) { const r = rel(id); r.met = true; if ((r.pts || 0) < top) r.pts = top; }
     S.flags.metJoe = true;
@@ -519,6 +522,7 @@ function unlockEverything() {
     // clothes straight into the wardrobe; one of everything else into the house storage; the tools into the pocket
     for (const [id, it] of Object.entries(ITEMS)) {
         if (it.type === 'outfit' || it.type === 'acc') {
+            if (it.own) continue;                     // (the clothes David and the rest came in are theirs)
             const list = it.type === 'outfit' ? S.wardrobe.outfits : S.wardrobe.accs;
             if (it.wear && !list.includes(it.wear)) list.push(it.wear);
             S.seen[id] = S.seen[id] || day;
@@ -529,6 +533,35 @@ function unlockEverything() {
         if (['present', 'lost_invite', 'package'].includes(id)) continue;
         if (!ownedCount(id)) toStorage(id, 1);
     }
+    // what came later (1 November: cheat mode had missed it): Waffle's outdoor pieces, one of each, into storage, and the
+    // planter boxes Fortune mails; every mailbox style at the Post Office; the barn's key, the lighthouse keeper's sea
+    // chest open; the club's wallpaper and floor (an S rank's gift) and the trophies
+    for (const [id, it] of Object.entries(ITEMS)) if (it.type === 'display' && it.price > 0 && !it.keep && id.indexOf('@') < 0 && !ownedCount(id)) toStorage(id, 1);
+    try { planterMail(); } catch (e) { console.error(e); }
+    try { const P = post(); P.styles = [...new Set((P.styles || []).concat(MAILBOX_STYLES.map(m => m[0]).filter(Boolean)))]; } catch (e) { console.error(e); }
+    S.flags.barnKey = S.flags.barnKey || day;
+    S.flags.lhChest = S.flags.lhChest || day;
+    S.flags.clubDecor = true;
+    if (S.karaoke) S.karaoke.trophy = true;
+    if (S.rope) S.rope.trophy = true;
+    // the shops at their biggest (step out and back in to see them), every town project built today (the lighthouse
+    // restored, the statue on the square), the statue cast from Sarah as she is now
+    for (const id of Object.keys(SHOP_UP)) {
+        const sh = shopState(id);
+        if ((sh.level || 1) < SHOP_UP[id].names.length) { sh.level = SHOP_UP[id].names.length; sh.grand = sh.level; }
+        sh.reno = null; sh.offer = false;
+        if (G.areas[id]) G.areas[id].stale = true;
+    }
+    try {
+        const P = projState();
+        P.told = P.told || {};
+        for (const p of PROJECTS) {
+            P.paid[p.id] = Math.max(P.paid[p.id] || 0, p.cost);
+            if (P.done[p.id] == null) { P.done[p.id] = day; P.told[p.id] = day; townLog(PROJECT_DONE_LOG[p.id]); }
+        }
+        if (!statueState().spec) statueState().spec = hdSarahSpec();
+        projectsRefresh();
+    } catch (e) { console.error(e); }
     // the biggest house, the biggest pocket, the path kit, and plenty to spend
     S.house.level = HOUSE_EXPAND.length;
     if (G.areas.home) G.areas.home.stale = true;
