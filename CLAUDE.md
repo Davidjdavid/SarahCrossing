@@ -20,6 +20,19 @@ docs/DEPLOY.md for the server.
   looks and voices for that, and `NPCs.list` leaves them out; Joe is a neighbor. David's statue is gone from the island
   (29 October: its prop and plaque are kept in `W0.props` as `gone`, so every other prop keeps its number; the spot `statue`
   is "the lawn by Market Lane").
+- Everyone dresses up (6zzo_dressup.js, 1 November): David, James, John, Elizabeth and Joe, playing on Sarah's island, use
+  the salon, the sewing machine and the wardrobe as she does. Their look is their own save's (`look`, `wardrobe`, `player`
+  in PERSON_KEYS) over how they've always looked (`look()` and `hdOutfit` build on `HD_FOLKS`; the clothes they came in
+  are the outfit `out_<who>`, their glasses an accessory, seeded once by `dressSeed`, save flag `dress12`); `hdSarahSpec`
+  is whoever's playing, and the look goes out with their position to everyone (`Online.tick`, `hdRemoteLook`). The flat
+  views draw them from their HD picture a third the size (`dressSprite`, `shrinkHd`), or their own 16x24 sprite while
+  they look as they always have (`dressAsAlways`). A visitor's designs are `cu<who><n>`, never one of Sarah's names.
+- Playing together connects as soon as the island has an id (`Online.update` tries `connect` once a second while there's
+  no connection): a new island, or one picked after the page opened, used to stay offline until a reload (31 October).
+- Cheat mode (Settings > Secrets > Unlock everything, `unlockEverything` in 6w_extras.js) also moves Captain Shrimpy and
+  Muggy in, opens the café, builds every town project, grows the shops to their biggest, gives the barn key, opens the
+  lighthouse chest, mails the planter boxes and puts one of each of Waffle's outdoor pieces and every mailbox style in
+  Sarah's hands (1 November); the family's own clothes stay theirs.
 - The island (`game/assets/world.json` and its ground picture in pieces, `game/assets/ground/`) is made by
   `node scripts/make-island.mjs`, from `scripts/island/`: `plan.mjs` is the layout David picked (Harbor Square: the
   coast, each level's edge, rivers, ponds, the square, every path and trail, buildings, props and the neighbors' spots,

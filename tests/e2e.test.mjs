@@ -435,6 +435,104 @@ test('a new island goes online at once: Sarah starts one and is connected withou
   await sarah.context().close();
 });
 
+test('everyone dresses up: David has his hair done at the salon, wears Sarah-style clothes and sews, his own clothes stay in his wardrobe, and Sarah sees the new look', async () => {
+  const sarah = await device();
+  await sarah.evaluate(() => localStorage.setItem('sc-current', ''));
+  await sarah.reload();
+  await title(sarah);
+  await sarah.evaluate(() => __dbg.quickStart());
+  await sarah.waitForFunction(() => G.mode === 'play');
+  await saveNow(sarah);
+  const david = await device({ who: 'david' });
+  await play(david);
+  // he starts as he always looks: his own clothes in his wardrobe, his own picture
+  const start = await david.evaluate(() => ({ out: S.player.outfit, has: S.wardrobe.outfits.includes('david'), item: ITEMS.out_david && ITEMS.out_david.name,
+    always: dressAsAlways(), sprite: sarahSprite(S.player.outfit, 'down_stand'), hair: look().hair, beard: look().beard }));
+  assert.deepEqual(start, { out: 'david', has: true, item: "David's own clothes", always: true, sprite: 'david_down_stand', hair: 'davidcut', beard: '#c0502a' });
+  // the wardrobe and the salon open for him (they used to say "for now, you look great")
+  await david.evaluate(() => openWardrobe());
+  await until(() => david.evaluate(() => !!UI.modal && /David's own clothes/.test(document.body.textContent)));
+  await david.evaluate(() => UI.close(true));
+  const salon = await david.evaluate(async () => {
+    const p = Salon.run();
+    await new Promise((r) => setTimeout(r, 200));
+    const own = [...document.querySelectorAll('.st-row button')].some((b) => b.textContent === "David's own");
+    Salon.set('hair', 'bob'); Salon.set('hairCol', '#b494e0');
+    const frames = Salon.frames().every(Boolean);
+    Salon.finish(true);
+    const L = await p;
+    S.look = Object.assign({}, L); Save.touch();
+    return { own, frames, hair: L.hair, beard: L.beard, masc: L.masc };
+  });
+  assert.deepEqual(salon, { own: true, frames: true, hair: 'bob', beard: '#c0502a', masc: true });
+  // Sarah's outfit on him, then one he sews himself (its name never Sarah's)
+  const worn = await david.evaluate(async () => {
+    S.wardrobe.outfits.push('crimson'); S.player.outfit = 'crimson';
+    // at the sewing machine: sew something new, done, wear it now
+    const ask = UI.ask;
+    UI.ask = async () => 0;
+    try {
+      const go = sewingMachine();
+      for (let i = 0; i < 50 && !Sewing.res; i++) await new Promise((r) => setTimeout(r, 50));
+      Sewing.d.name = 'Pink suit'; Sewing.finish(Sewing.d);
+      await go;
+    } finally { UI.ask = ask; }
+    const id = S.player.outfit;
+    return { id, item: !!ITEMS['out_' + id], icon: !!Assets.dyn['cloth_' + id], spec: hdSarahSpec().look.hair, sprite: sarahSprite(S.player.outfit, 'down_stand'), always: dressAsAlways() };
+  });
+  assert.match(worn.id, /^cudavid\d+$/, 'never one of Sarah\'s design names');
+  assert.equal(worn.item, true); assert.equal(worn.icon, true); assert.equal(worn.spec, 'bob'); assert.equal(worn.always, false);
+  assert.match(worn.sprite, /^dr_/, 'a picture of him as he looks now');
+  // Sarah's game gets his new look with his position, and draws him with it
+  await david.evaluate(async () => { Save.touch(); Save.write(true); await Cloud.flush(); Online.tick(true); });
+  await until(() => sarah.evaluate(() => { const o = Online.others.get('david'); return !!(o && o.look && o.look.hd && o.look.hd.look.hair === 'bob'); }), 15000);
+  const seen = await sarah.evaluate(() => { const o = Online.others.get('david'), sp = hdRemoteLook('david', o.look); return { hair: sp.look.hair, beard: sp.look.beard, masc: sp.look.masc, frame: Online.frameOf(o) }; });
+  assert.equal(seen.hair, 'bob'); assert.equal(seen.beard, '#c0502a'); assert.equal(seen.masc, true);
+  assert.match(seen.frame, /^dr_/);
+  // and his look is in his own save on the server, not Sarah's
+  const back = await david.evaluate(async () => (await (await fetch(`/api/islands/${Cloud.id}/people/david`)).json()).state);
+  assert.equal(back.look.hair, 'bob');
+  assert.equal(back.player.outfit, worn.id);
+  const hers = await sarah.evaluate(async () => (await (await fetch('/api/islands/' + Cloud.id)).json()).state);
+  assert.notEqual((hers.look || {}).hair, 'bob');
+  assert.notEqual(await sarah.evaluate(() => look().hair), 'bob');
+  assert.deepEqual(sarah.problems, []);
+  assert.deepEqual(david.problems.filter((m) => !/404/.test(m)), []);
+  await sarah.context().close();
+  await david.context().close();
+});
+
+test('cheat mode unlocks the newer things too: Shrimpy and Muggy moved in, the café, every town project, the biggest shops, the barn, the sea chest, outdoor pieces and mailbox styles', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  const r = await page.evaluate(() => {
+    unlockEverything();
+    const disp = Object.entries(ITEMS).filter(([id, it]) => it.type === 'display' && it.price > 0 && !it.keep && !id.includes('@'));
+    return {
+      shrimpy: seafarerHere(), muggy: mugHere(), cafe: cafeOpen(), neighbors: ['scampi', 'mug'].every((id) => NEIGHBORS.includes(id)),
+      projects: PROJECTS.filter((p) => !projectBuilt(p.id)).map((p) => p.id), lighthouse: projectBuilt('lighthouse'),
+      shops: Object.keys(SHOP_UP).filter((id) => shopLevel(id) < SHOP_UP[id].names.length), barn: barnOpen(), chest: !!S.flags.lhChest,
+      outdoor: disp.filter(([id]) => !ownedCount(id)).map(([id]) => id).slice(0, 5), outdoorN: disp.length,
+      planters: S.mail.some((m) => (m.gifts || []).includes('dp_planterbox')), mailbox: MAILBOX_STYLES.filter((m) => m[0] && !post().styles.includes(m[0])).map((m) => m[0]),
+      specials: Object.keys(SPECIALS).filter((id) => !hasSpecial(id)), quests: QUEST_IDS.filter((q) => !Quests.done(q)),
+      best: ['scampi', 'mug', 'maki'].map((id) => rel(id).pts >= HEARTS[HEARTS.length - 1]), familyClothes: S.wardrobe.outfits.filter((o) => DRESS_PEOPLE.includes(o)),
+      cheat: S.flags.cheat != null,
+    };
+  });
+  assert.deepEqual(r, { shrimpy: true, muggy: true, cafe: true, neighbors: true, projects: [], lighthouse: true, shops: [], barn: true, chest: true,
+    outdoor: [], outdoorN: r.outdoorN, planters: true, mailbox: [], specials: [], quests: [], best: [true, true, true], familyClothes: [], cheat: true });
+  assert.ok(r.outdoorN > 20, String(r.outdoorN));
+  // the island still plays: a day goes by
+  await page.evaluate(() => __dbg.nextDay());
+  await page.waitForTimeout(500);
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('two players online: Sarah asks David to play Bento Blocks; boards and junk cross; leaving hands over the win', async () => {
   const sarah = await device();
   await play(sarah);
@@ -962,7 +1060,8 @@ test('the arcade back room: a hidden mystery from Chili to Sully to the lighthou
     const chili = NPCs.get('chili');
     chili.area = 'arcade';
     const out = { hidden: backOptions(chili).length === 0 && !Quests.todo().some((t) => t.title === 'The locked door') };
-    S.startDay -= 20;
+    // (twenty days on the island, counted from the game's date: setTime above can be before today's real date)
+    S.startDay = Clock.dayNum() - 20;
     for (const id of ARCADE_CABS) arc().plays[id] = 1;
     // answer every line as soon as it is asked
     const say = UI.say;
@@ -5040,7 +5139,7 @@ test('the arcade back room: once Sarah has tried the locked door, Chili hints ho
   const steps = await page.evaluate(async (label) => {
     const c = NPCs.get('chili'), tip = () => { const o = backOptions(c).find((q) => q.label === label); return o ? backTip(Quests.stage('backroom')).join(' ') : null; };
     const out = {};
-    S.startDay -= 20;
+    S.startDay = Clock.dayNum() - 20;
     for (const id of ARCADE_CABS) arc().plays[id] = 1;
     out.ready = [tip(), backOptions(c).map((o) => o.label)];
     Quests.set('backroom', 1); out.sully = /Sully/.test(tip());
