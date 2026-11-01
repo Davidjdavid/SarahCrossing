@@ -213,6 +213,7 @@ async function continueGame() {
         return;
     }
     const newDay = dailyCheck();
+    cheatCatchUp();
     newsCheck();
     Music.update(true);
     await waitFrames(20);

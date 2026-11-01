@@ -501,7 +501,15 @@ function holdToConfirm(title, text) {
         P.body.appendChild(btn('Never mind', 'alt', () => UI.close()));
     });
 }
-/* cheat mode: everything, all at once */
+/* cheat mode: everything, all at once (CHEAT_V: what it unlocks grew on 1 November; an island already in cheat mode
+   catches up once as it loads, cheatCatchUp) */
+const CHEAT_V = 12;
+function cheatCatchUp() {
+    if (!S || S.flags.cheat == null || (S.flags.cheatV || 0) >= CHEAT_V || Online.visitor() || LAB || QA) return false;
+    unlockEverything();
+    UI.toast('Cheat mode: the newer things are unlocked too. Check your mailbox and storage.', 'ui_present');
+    return true;
+}
 function unlockEverything() {
     const day = Clock.dayNum(), top = HEARTS[HEARTS.length - 1];
     // the newcomers first, so they're met and best friends below too: Captain Shrimpy moved in, Muggy's café open
@@ -569,9 +577,13 @@ function unlockEverything() {
     S.bag = BAGS.length;
     while (S.pocket.length < pocketSize()) S.pocket.push(null);
     S.flags.pathKit = true;
-    S.money = (S.money || 0) + 1000000;
-    if (S.arcade) S.arcade.tickets = (S.arcade.tickets || 0) + 10000;
-    S.flags.cheat = day;
+    // (plenty to spend the first time only: catching up adds just the things)
+    if (S.flags.cheat == null) {
+        S.money = (S.money || 0) + 1000000;
+        if (S.arcade) S.arcade.tickets = (S.arcade.tickets || 0) + 10000;
+        S.flags.cheat = day;
+    }
+    S.flags.cheatV = CHEAT_V;
     Save.touch();
     Save.write(true);
     HUD.update();

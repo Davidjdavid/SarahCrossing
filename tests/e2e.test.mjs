@@ -544,6 +544,13 @@ test('cheat mode unlocks the newer things too: Shrimpy and Muggy moved in, the c
   for (const t of ['The locked barn', 'Captain Shrimpy', 'Muggy', "The keeper's sea chest", 'Town projects', 'A new statue', "David's arcade records", 'Hybrid flowers', 'Museum Day', 'Pirate Day']) assert.ok(guide.titles.includes(t), t);
   assert.deepEqual(guide.done, { 'The locked barn': true, 'Captain Shrimpy': true, Muggy: true, "The keeper's sea chest": true, 'Town projects': true });
   assert.ok(guide.shown > 6, String(guide.shown));
+  // an island put in cheat mode before 1 November catches up once as it loads: the newer things, not another million
+  const caught = await page.evaluate(() => {
+    S.flags.cheatV = 0; S.sea.stage = 0; delete S.flags.barnKey; S.town.proj.done = {};
+    const money = S.money, first = cheatCatchUp(), again = cheatCatchUp();
+    return { first, again, shrimpy: seafarerHere(), barn: !!S.flags.barnKey, built: PROJECTS.every((p) => projectBuilt(p.id)), money: S.money - money };
+  });
+  assert.deepEqual(caught, { first: true, again: false, shrimpy: true, barn: true, built: true, money: 0 });
   // the island still plays: a day goes by
   await page.evaluate(() => __dbg.nextDay());
   await page.waitForTimeout(500);
