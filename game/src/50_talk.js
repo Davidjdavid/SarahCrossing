@@ -121,7 +121,7 @@ async function neighborTalk(n) {
             G.player.pose = 'cheer'; G.player.poseT = 40;
             Sfx.play('fanfare');
             receive('rod', 1);
-            await UI.say(null, 'Sarah got a fishing rod! Face the water and press A (or tap the water) to cast.');
+            await UI.say(null, 'Sarah got a fishing rod! Hold the rod, face the water and press E or Space (or tap the water) to cast.');
         }
         await teachRecipe(id, true);
         r.talkDay = day;

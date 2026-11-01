@@ -32,7 +32,11 @@ docs/DEPLOY.md for the server.
 - Cheat mode (Settings > Secrets > Unlock everything, `unlockEverything` in 6w_extras.js) also moves Captain Shrimpy and
   Muggy in, opens the café, builds every town project, grows the shops to their biggest, gives the barn key, opens the
   lighthouse chest, mails the planter boxes and puts one of each of Waffle's outdoor pieces and every mailbox style in
-  Sarah's hands (1 November); the family's own clothes stay theirs.
+  Sarah's hands (1 November); the family's own clothes stay theirs. The spoiler guide (Settings > Secrets) tells every
+  story as the game runs it now: the mysteries, then the barn key, Captain Shrimpy, Muggy, the sea chest, the town projects
+  and the statue (`storyEntries`, from the stories' own numbers: SEA_NEED, MUG_DONATED, PROJECTS...), David's arcade
+  records (`secretEntries`, from ARCADE_RECORD), hybrids, Museum Day and Pirate Day; a riddle's answer is `SPECIAL_ANSWERS`.
+  When a story changes, change its guide entry too.
 - The island (`game/assets/world.json` and its ground picture in pieces, `game/assets/ground/`) is made by
   `node scripts/make-island.mjs`, from `scripts/island/`: `plan.mjs` is the layout David picked (Harbor Square: the
   coast, each level's edge, rivers, ponds, the square, every path and trail, buildings, props and the neighbors' spots,

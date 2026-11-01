@@ -502,9 +502,10 @@ test('everyone dresses up: David has his hair done at the salon, wears Sarah-sty
   await david.context().close();
 });
 
-test('cheat mode unlocks the newer things too: Shrimpy and Muggy moved in, the café, every town project, the biggest shops, the barn, the sea chest, outdoor pieces and mailbox styles', async () => {
+test('cheat mode unlocks the newer things too: Shrimpy and Muggy moved in, the café, every town project, the biggest shops, the barn, the sea chest, outdoor pieces and mailbox styles; the spoiler guide tells every story as it runs now', async () => {
   const page = await device();
-  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  // (with the Town Hall's rooms, as on the live site: the projects and the boarded lighthouse are theirs)
+  await page.evaluate(() => { localStorage.setItem('sc-current', ''); localStorage.setItem('sc-civic', '1'); });
   await page.reload();
   await title(page);
   await page.evaluate(() => __dbg.quickStart());
@@ -526,6 +527,23 @@ test('cheat mode unlocks the newer things too: Shrimpy and Muggy moved in, the c
   assert.deepEqual(r, { shrimpy: true, muggy: true, cafe: true, neighbors: true, projects: [], lighthouse: true, shops: [], barn: true, chest: true,
     outdoor: [], outdoorN: r.outdoorN, planters: true, mailbox: [], specials: [], quests: [], best: [true, true, true], familyClothes: [], cheat: true });
   assert.ok(r.outdoorN > 20, String(r.outdoorN));
+  // the guide: every tab reads cleanly, the newer stories are in it, the old wrong hints are gone
+  const guide = await page.evaluate(() => {
+    const all = {};
+    for (const sec of ['quests', 'specials', 'club', 'trophies', 'secrets']) all[sec] = spoilerEntries(sec);
+    const text = JSON.stringify(all);
+    spoilerGuide('quests');
+    const shown = document.querySelectorAll('.row.spoil').length;
+    UI.close(true);
+    return { bad: (text.match(/undefined|NaN|\[object/g) || []), titles: Object.values(all).flat().map((e) => e[0]), shown,
+      stale: ['Press A', 'get close to Joe (two hearts)', 'longer hours', 'Main Street', 'Gallery Lane'].filter((w) => text.includes(w)),
+      done: Object.fromEntries(Object.values(all).flat().filter((e) => ['Captain Shrimpy', 'Muggy', 'The locked barn', 'Town projects', "The keeper's sea chest"].includes(e[0])).map((e) => [e[0], e[2]])) };
+  });
+  assert.deepEqual(guide.bad, []);
+  assert.deepEqual(guide.stale, []);
+  for (const t of ['The locked barn', 'Captain Shrimpy', 'Muggy', "The keeper's sea chest", 'Town projects', 'A new statue', "David's arcade records", 'Hybrid flowers', 'Museum Day', 'Pirate Day']) assert.ok(guide.titles.includes(t), t);
+  assert.deepEqual(guide.done, { 'The locked barn': true, 'Captain Shrimpy': true, Muggy: true, "The keeper's sea chest": true, 'Town projects': true });
+  assert.ok(guide.shown > 6, String(guide.shown));
   // the island still plays: a day goes by
   await page.evaluate(() => __dbg.nextDay());
   await page.waitForTimeout(500);

@@ -11,11 +11,11 @@ function whereIs(id) {
 const EASY_FRUIT = ['peach', 'apple', 'cherry', 'mango', 'lychee', 'coconut'];
 const EASY_SHELLS = ['clam', 'scallop', 'turban', 'cowrie'];
 const FRUIT_HINT = {
-    peach: 'Peach trees grow in the orchard east of the river, and a few around the village. Shake one!',
-    apple: 'Apple trees grow in the orchard, by the village and up on the farm. Shake one!',
-    cherry: 'Cherry trees grow in the orchard and out west. Shake one!',
-    mango: 'Mango trees grow in the orchard, near the pond and on the east side. Shake one!',
-    lychee: 'Lychee trees grow in the orchard, by the pond and near Cece\'s. Shake one!',
+    peach: 'Peach trees grow in the orchard north-east of the square, and one by the farm fields. Shake one!',
+    apple: 'Apple trees grow in the orchard north-east of the square and round the farm fields. Shake one!',
+    cherry: 'Cherry trees grow in the orchard north-east of the square and round the farm fields. Shake one!',
+    mango: 'Mango trees grow in the orchard north-east of the square, and one on the farm. Shake one!',
+    lychee: 'Lychee trees grow in the orchard north-east of the square. Shake one!',
     coconut: 'Coconuts grow on the palm trees along the beach. Shake a palm!',
 };
 const DELIVER_THINGS = ['a jar of homemade jam', 'a book I borrowed', 'a thank-you card', 'a scarf they left at my place', 'a mixtape', 'a little potted succulent',
@@ -82,7 +82,7 @@ const Requests = {
                 if (it.type === 'shell') return 'Shells wash up on the beaches every morning. The common ones are easy to find.';
                 if (it.type === 'fish') return `${fishNote(t.item)} Cast from the pier, the beach or a riverbank.`;
                 if (it.type === 'dish') return `Cook it at your kitchenette: ${Object.entries(RECIPE[t.item].need).map(([k, n]) => (n > 1 ? n + ' \u00d7 ' : '') + itemName(k)).join(', ')}. Fortune sells the pantry basics.`;
-                if (it.type === 'furniture') return "Fortune's Goods has it in stock today (the shop on Main Street). Buy it, take it out of storage, and bring it over.";
+                if (it.type === 'furniture') return "Fortune's Goods has it in stock today (Fortune's shop on Market Lane, by the square). Buy it, take it out of storage, and bring it over.";
                 if (it.type === 'staple') return "Fortune's Goods sells it (Pantry tab).";
                 if (it.type === 'veg') return 'Grow it in your garden (seeds at Fortune\'s), or check Fortune\'s for seeds today.';
                 if (it.type === 'material') return 'Chop a tree with the axe for wood.';
@@ -91,11 +91,11 @@ const Requests = {
             case 'type': return { flower: 'Wildflowers grow all over the island (except in winter). Fortune sells seeds too.', dish: 'Cook anything at your kitchenette.',
                 fish: 'Any fish at all. Cast a line off the pier.', acc: "Clementine's boutique sells accessories. Any one will do!", gem: 'Gems show up on the mountain top every day, near the lookout.',
                 art: 'Paint something at the easel in the museum.' }[t.type];
-            case 'pottery': return `Sully's studio on Gallery Lane is open ${hoursText('studio')}. Any color is fine. Check with Sully for the firing time.`;
+            case 'pottery': return `Sully's studio is on the alley; Sully's in ${hoursText('studio')}. Any color is fine. Check with Sully for the firing time.`;
             case 'deliver': return `The package is in your pocket. ${where(t.to)}`;
             case 'tell': return t.state === 'reply' ? where(t.from) : where(t.to);
-            case 'arcade': return t.state === 'ready' ? where(t.from) : `The arcade is on the Boardwalk. Your best in ${ARCADE_GAMES[t.game].name}: ${fmtNum(arc().best[t.game] || 0)}.`;
-            case 'sew': return t.state === 'ready' ? where(t.from) : "The sewing machine is at Clementine's boutique on Gallery Lane.";
+            case 'arcade': return t.state === 'ready' ? where(t.from) : `The arcade is on Market Lane. Your best in ${ARCADE_GAMES[t.game].name}: ${fmtNum(arc().best[t.game] || 0)}.`;
+            case 'sew': return t.state === 'ready' ? where(t.from) : "The sewing machine is at Clementine's boutique on the alley.";
         }
         return '';
     },

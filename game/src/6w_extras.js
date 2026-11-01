@@ -590,14 +590,21 @@ async function spoilerGate() {
     if (ok) spoilerGuide('quests');
 }
 const QUEST_GUIDE = {
-    treasure: ["The pirate's treasure", '1. Open the old trunk in the barn, up on the farm (the barn is locked until a friend gives Sarah a key). There is a pirate\'s note inside.\n2. From the foot of the pier, walk west along the water\'s edge, twenty-five paces, and dig where the sand is dark (hold the shovel).\nReward: a pirate hat, a treasure chest and an old map.'],
-    ghost: ['The keeper of the light', "1. Go up to the lighthouse's lamp room between 11 PM and 1 AM and talk to the old keeper's ghost.\n2. He misses his wife Martha's clam chowder. Ask Sully about the ghost: he teaches you his chowder.\n3. Cook clam chowder at home (dig clams on the beach with the shovel).\n4. Bring it to the ghost between 11 PM and 1 AM.\nReward: a halo, the Lighthouse Shanty for the club, and the lighthouse shines every night."],
+    treasure: ["The pirate's treasure", '1. Open the old trunk in the barn, up on the farm (the barn is locked until a friend gives Sarah a key). There is a pirate\'s note inside.\n2. From the foot of the pier, walk west along the water\'s edge, twenty-five paces, and dig where the sand is dark (hold the shovel).\nReward: 5,000 sand dollars, a ruby, a pirate hat, a treasure chest and an old map.'],
+    ghost: ['The keeper of the light', "1. Go up to the lighthouse's lamp room between 11 PM and 1 AM and talk to the old keeper's ghost.\n2. He misses his wife Martha's clam chowder. Ask Sully about the ghost: he teaches you his chowder.\n3. Cook clam chowder at home (dig clams where the sand bubbles on the beach, with the shovel).\n4. Bring it to the ghost between 11 PM and 1 AM.\nReward: the keeper's lantern, a halo, the Lighthouse Shanty for the club, and the lighthouse shines every night."],
     goat: ["The goat's golden bell", '1. Pet the goat on three different days.\n2. It gives you a tin can. Trade it around the island: the tin can to Chili (hot sauce), the hot sauce to Kai (a shell necklace), the necklace to Clementine (a silk scarf), the scarf to Brulee (a painting of the goat), and the painting to Coco (a golden bell).\n3. Give the golden bell to the goat.\nReward: goat horns and The Goat Waltz.'],
-    windmill: ['The silent moonstone', '1. Look at the moonstone inside the windmill: three cogs are missing. (Ginger remembers where they went.)\n2. Cog one: a crate up on the farm.\n3. Cog two: the hollow of the oldest big tree in the forest.\n4. Cog three: the driftwood in Driftwood Cove, on the west beach.\n5. Bring all three back to the moonstone.\nReward: a mini windmill and the mooncake recipe.'],
+    windmill: ['The silent moonstone', '1. Look at the moonstone inside the windmill: three cogs are missing. (Ginger remembers where they went.)\n2. Cog one: a crate up on the farm.\n3. Cog two: the hollow of the oldest big tree in the forest.\n4. Cog three: the driftwood in Driftwood Cove, on the west beach.\n5. Bring all three back to the moonstone.\nReward: a mini windmill, the mooncake recipe and moon flour (a scoop a day from the moonstone).'],
     star: ['The blinking star', "1. First, solve the lighthouse ghost's mystery so the lamp shines again.\n2. At night, look through the telescope at the lookout: one star blinks short, short, long.\n3. At night, answer it from the lighthouse's great lamp: short, short, long.\n4. Climb to the mountain top. Something fell there.\nReward: a star telescope, a space suit pattern, the song Starlight and a star crystal."],
 };
 const POOL_ANSWER = 'Luck! It can turn up in a fishing crate, in a sparkling tree (shake it), sometimes after cooking, or as a thank-you for a favor. Keep doing those and it will show up.';
+/* the finds whose hint is a riddle: the answer, for the guide */
+const SPECIAL_ANSWERS = {
+    acc_mustache: () => "Open the old sea chest in the lighthouse (once it's restored). The keeper's fancy mustache is inside.",
+    friend_scampi: () => storyGuide('scampi'),
+    friend_mug: () => storyGuide('mug'),
+};
 function specialAnswer(sp) {
+    if (SPECIAL_ANSWERS[sp.id]) return SPECIAL_ANSWERS[sp.id]();
     if (sp.src === 'pool') return POOL_ANSWER;
     if (sp.src.startsWith('quest:')) { const q = sp.src.slice(6); return `A reward for solving "${(QUEST_GUIDE[q] || [q])[0]}". See Mysteries.`; }
     return sp.hint || POOL_ANSWER;
@@ -607,7 +614,7 @@ function songHow(id) {
     if (!s) return '';
     if (s.special) { const sp = SPECIALS[s.special]; return sp ? (sp.src === 'pool' ? 'A hidden track. ' + POOL_HINT : 'A hidden track. Hint: ' + sp.hint) : 'A hidden track.'; }
     return { wiggle: 'Open from the start.', shuffle: 'Clear "Wasabi Wiggle" first.', owl: 'Clear "Spicy Tuna Shuffle" first.',
-        disco: 'Clear "Night Owl Anthem" first.', sonnet: 'Clear "Roller Disco Forever" first, or get close to Joe (two hearts).' }[id] || '';
+        disco: 'Clear "Night Owl Anthem" first.', sonnet: 'Open from the start: Joe is always your friend.' }[id] || '';
 }
 function moveHow(m) {
     const song = Object.keys(SONGS).find(id => SONGS[id].move === m);
@@ -618,8 +625,11 @@ function moveHow(m) {
 }
 function spoilerEntries(sec) {
     const out = [];
-    if (sec === 'quests') for (const q of QUEST_IDS) out.push([QUEST_GUIDE[q][0], (['ghost', 'star', 'backroom'].includes(q) && !lighthouseOpen() ? LIGHTHOUSE_SHUT + '\n' : '') + QUEST_GUIDE[q][1], Quests.done(q)]);
-    if (sec === 'specials') for (const [cat, label] of SPECIAL_CATS) for (const sp of Object.values(SPECIALS).filter(x => x.cat === cat)) out.push([`${sp.name} (${label.toLowerCase().replace(/s$/, '')})`, specialAnswer(sp), hasSpecial(sp.id)]);
+    if (sec === 'quests') {
+        for (const q of QUEST_IDS) out.push([QUEST_GUIDE[q][0], (['ghost', 'star', 'backroom'].includes(q) && !lighthouseOpen() ? LIGHTHOUSE_SHUT + '\n' : '') + QUEST_GUIDE[q][1], Quests.done(q)]);
+        for (const e of storyEntries()) out.push(e);
+    }
+    if (sec === 'specials') for (const [cat, label] of SPECIAL_CATS) for (const sp of Object.values(SPECIALS).filter(x => x.cat === cat)) out.push([`${sp.name} (${label.toLowerCase().replace(/ies$/, 'y').replace(/s$/, '')})`, specialAnswer(sp), hasSpecial(sp.id)]);
     if (sec === 'club') {
         for (const id of Object.keys(SONGS)) {
             const s = SONGS[id];
@@ -635,24 +645,57 @@ function spoilerEntries(sec) {
     }
     if (sec === 'trophies') {
         out.push(['Arcade trophy', "Trade 500 tickets for it at Chili's prize counter in the arcade.", !!S.seen.trophy_arcade]);
-        out.push(['Karaoke trophy', "Get an A or S rank singing one of Joe's poems at Club Wasabi.", !!(S.karaoke && S.karaoke.trophy)]);
+        out.push(['Karaoke trophy', "Get an A or S rank at karaoke at Club Wasabi: one of Joe's poems, or a song you wrote.", !!(S.karaoke && S.karaoke.trophy)]);
         out.push(['Jump rope trophy', 'Make 30 jumps in a row at the jump rope in the plaza (dry afternoons, 2:30 to 5:30 PM).', !!(S.rope && S.rope.trophy)]);
         out.push(['The club at home', "Get an S rank on any dance at Club Wasabi: DJ Wasabi gives you the club's wallpaper and floor.", !!S.flags.clubDecor]);
-        out.push(['The Cutest House on the Island', "The Cozy Council's top rating. They love lights, rugs, soft things and plants, furniture that matches a theme, and a new wallpaper and floor.", ((S.council && S.council.best) || 0) >= 27]);
+        out.push(['The Cutest House on the Island', "The Cozy Council's top rating: call them from your phone at home (once a day) and score 27 of 30. Sir Floret loves lights, rugs, soft things and plants. Dame Stalk wants one theme, with a wallpaper and floor to match. Sprout wants friends' photos, food on display and fun things.", ((S.council && S.council.best) || 0) >= 27]);
     }
     if (sec === 'secrets') {
         const need = (id, lv) => SHOP_UP[id].need[lv];
-        out.push(['Bigger shops', `The shops grow as you shop there. Fortune's three times: about ${need('shop', 1).days} days after you arrive, then after ${need('shop', 2).days} days and ${fmtNum(need('shop', 2).spent)} sand dollars spent there, then ${need('shop', 3).days} days and ${fmtNum(need('shop', 3).spent)} (Fortune tells you when). Clementine's twice: ${need('boutique', 1).days} days and ${fmtNum(need('boutique', 1).spent)}, then ${need('boutique', 2).days} days and ${fmtNum(need('boutique', 2).spent)}. Each time: more stock, a daily sale, longer hours and a grand-opening gift.`, shopLevel('shop') >= SHOP_UP.shop.names.length && shopLevel('boutique') >= SHOP_UP.boutique.names.length]);
+        out.push(['Bigger shops', `The shops grow as you shop there. Fortune's three times: about ${need('shop', 1).days} days after you arrive, then after ${need('shop', 2).days} days and ${fmtNum(need('shop', 2).spent)} sand dollars spent there, then ${need('shop', 3).days} days and ${fmtNum(need('shop', 3).spent)} (Fortune tells you when). Clementine's twice: ${need('boutique', 1).days} days and ${fmtNum(need('boutique', 1).spent)}, then ${need('boutique', 2).days} days and ${fmtNum(need('boutique', 2).spent)}. Each time: more stock, more on sale, the keeper behind the counter for longer, and a grand-opening gift.`, shopLevel('shop') >= SHOP_UP.shop.names.length && shopLevel('boutique') >= SHOP_UP.boutique.names.length]);
         out.push(['Gems', 'One to three gems sparkle on the mountain top every day. Fortune loves buying them.', false]);
         out.push(['Sparkling trees', 'A tree that sparkles has something hidden in it. Shake it!', false]);
         out.push(['The money tree', 'Dig at the glowing spot (it moves every day), bury some sand dollars in the hole, and a money tree grows. Shake it for three bags of sand dollars.', false]);
-        out.push(['Shooting stars', 'On some clear nights (the board\'s calendar says which) shooting stars cross the sky. Press A (or tap one) to make a wish.', false]);
-        out.push(['Crates and bottles', 'Fishing sometimes brings up a crate or a message in a bottle.', false]);
-        out.push(['Clams', 'Dig on the beach with the shovel to find clams (for chowder).', false]);
-        out.push(['Food boosts', "Homemade food, meals from Mac's, and bowls from Basil's cart always give a boost. Other food gives a boost 1 time in 10.", false]);
-        out.push(['The ghost', "The old keeper's ghost is in the lighthouse lamp room from 11 PM to 1 AM, until his mystery is solved.", Quests.done('ghost')]);
+        out.push(['Shooting stars', 'On some clear nights (the board\'s calendar says which) shooting stars cross the sky. Press E or Space (or tap one) to make a wish, and look on the beach the next morning.', false]);
+        out.push(['Crates and bottles', 'Fishing sometimes brings up a crate. Some mornings a message in a bottle washes up on the beach: pick it up and read it.', false]);
+        out.push(['Clams', 'Dig where the sand bubbles on the beach (a few spots every day) with the shovel to find clams, for chowder.', false]);
+        out.push(['Food boosts', "Homemade food, meals from Mac's, bowls from Basil's cart and a coffee from Muggy's always give a boost. Other food gives a boost 1 time in 10.", false]);
+        out.push(['The ghost', (lighthouseOpen() ? '' : LIGHTHOUSE_SHUT + '\n') + "The old keeper's ghost is in the lighthouse lamp room from 11 PM to 1 AM, until his mystery is solved.", Quests.done('ghost')]);
+        for (const e of secretEntries()) out.push(e);
     }
     return out;
+}
+/* the stories that came later (1 November: the guide had none of them), as the game really runs them */
+function storyGuide(id) {
+    if (id === 'scampi') return `About a week after you arrive, a giant shrimp lies out cold on the beach east of the pier. Talk to him. Bring him ${SEA_NEED.logs} pieces of wood, then the next day ${SEA_NEED.meals} home-cooked dishes, then the next day ${SEA_NEED.gems} gems. He sails the next morning: see him off for a parting gift. ${SEA_AWAY} days later he's back at the pier. Ask him to stay and pick his plot, and he moves in the next morning. Once he's farming, ask what he's got: seeds from the far islands, and their recipes as you become friends.`;
+    if (id === 'mug') return `Give the museum ${MUG_DONATED} things, and put a different pot of yours on every pedestal in the pottery hall (${MUSEUM_PEDESTALS.length} in all). Brulee writes the next morning: ask her about her letter at the museum. Each day an X turns up in the grass somewhere: dig it with the shovel. ${MUG_PIECES} pieces in all. Bring them to Brulee and Sully mends them. The next day, go outside: something comes looking for you. Ask it to stay and pick its plot. Muggy's café opens the next morning, and your first cup is free.`;
+    return '';
+}
+function listAnd(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
+function storyEntries() {
+    const out = [
+        ['The locked barn', 'The barn up on the farm is locked at first. Make friends with any neighbor but Joe, up to two hearts: the next morning they mail you the spare key. Take it from your mailbox and the barn is open for good.', !!S.flags.barnKey],
+        ['Captain Shrimpy', storyGuide('scampi'), seafarerHere()],
+        ['Muggy', storyGuide('mug'), mugHere()],
+        ["The keeper's sea chest", (lighthouseOpen() ? '' : LIGHTHOUSE_SHUT + '\n') + "Open the old sea chest in the lighthouse. The keeper's fancy mustache is inside.", !!S.flags.lhChest],
+    ];
+    // (the Town Hall's projects and the statue only where its rooms are open)
+    if (CIVIC_PREVIEW) {
+        const low = p => (p.name.charAt(0).toLowerCase() + p.name.slice(1)).replace(/ of Sarah$/, ' of you') + ` (${fmtNum(p.cost)})`;
+        out.push(['Town projects', `At the Town Hall, open Projects and put sand dollars toward one. Once it's paid off, it's built the next morning: ${PROJECTS.filter(p => !p.last).map(low).join(', ')}. Once all of those are built, ${PROJECTS.filter(p => p.last).map(low).join('')}.`, PROJECTS.every(p => projectBuilt(p.id))]);
+        out.push(['A new statue', 'The day after your statue goes up, go to the Town Hall\'s desk: the Council will cast a new one any time, free, ready the next morning. You, David, any neighbor, Dr. Frasier Crane, your Tamagotchi keychain or a rose.', false]);
+    }
+    return out;
+}
+function secretEntries() {
+    const recs = Object.entries(ARCADE_RECORD), sp = id => (SPECIALS[id] && SPECIALS[id].name) || id;
+    return [
+        ["David's arcade records", `Every cabinet's high-score board has DAVID on top, just short of a prize. Beat him to win it: ${recs.map(([id, r]) => `${ARCADE_GAMES[id].name} ${fmtNum(r[0])} (${sp(r[2])})`).join(', ')}. ${listAnd(BACK_CABS.map(id => ARCADE_GAMES[id].name))} are in the back room.`,
+            recs.every(([id, r]) => (arc().best[id] || 0) > r[0])],
+        ['Hybrid flowers', 'Water two flowers of a kind side by side. Some mornings a new one grows between them: two of a color make that color again, two colors the third, and now and then a rare color nobody has seen. Two of a rare color make it again.', false],
+        ['Museum Day', `On Museum Day (May 18) each of the museum's wings has a stamp stand just inside. Stamp them all that day, then talk to Brulee for a prize: one of the museum's own pieces, a different one each year.`, false],
+        ['Pirate Day', 'On Pirate Day (September 19) Kai sends you a map in a bottle: start at the landmark it names, walk the steps it says and dig at the X with the shovel. Treasure!', false],
+    ];
 }
 function spoilerGuide(sec) {
     const P = UI.open({ title: 'Spoiler guide', phone: true, back: appSettings });

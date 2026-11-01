@@ -28,12 +28,12 @@ function dailyCheck(force) {
         }
         if (!S.flags.toolsMail) {
             S.flags.toolsMail = true;
-            sendMail({ from: 'fortune', subject: 'New on the tool rack!', body: "Hello hello!\nNew at Fortune's Goods: an axe and a shovel!\nChop wood (trees give three pieces a day), dig holes, plant saplings, bury fruit to grow fruit trees.\nAnd if you ever see something glinting in the grass... dig it up. Trust the cookie.\n- Fortune" });
+            sendMail({ from: 'fortune', subject: 'New on the tool rack!', body: "Hello hello!\nNew at Fortune's Goods: an axe and a shovel!\nChop wood (a piece a swing; the third swing brings the tree down), dig holes, plant saplings, bury fruit to grow fruit trees.\nAnd if you ever see something glinting in the grass... dig it up. Trust the cookie.\n- Fortune" });
         }
         if (!S.flags.arcadeMail && day >= (S.startDay || day) + 2) {
             S.flags.arcadeMail = true;
             addTickets(10, true);
-            sendMail({ from: 'chili', subject: 'The arcade is OPEN', body: `Hey!\nThe arcade on the Boardwalk is open, ${hoursText('arcade')}. I run the prize counter in the afternoon (honor system when I'm on a break).\nPlay the cabinets, win tickets, trade them for prizes. Your first game on every machine is free.\nI put 10 tickets on your card to start. They're warm. Everything I touch is warm.\n- Chili` });
+            sendMail({ from: 'chili', subject: 'The arcade is OPEN', body: `Hey!\nThe arcade on Market Lane is open, any hour you like. I run the prize counter in the afternoon (honor system when I'm on a break).\nPlay the cabinets, win tickets, trade them for prizes. Your first game on every machine is free.\nI put 10 tickets on your card to start. They're warm. Everything I touch is warm.\n- Chili` });
         }
         if (!S.flags.karaokeMail && day >= (S.startDay || day) + 3) {
             S.flags.karaokeMail = true;
@@ -81,7 +81,7 @@ function newsCheck10() {
         "- If nobody's at a counter, it's the honor system! Leave the sand dollars in the jar. The jar keeps track. Somehow.\n" +
         "- There's a Run button now (the little shoe by the map, or press R). Zoom zoom.\n" +
         "- The map shows whose house is whose. No more knocking on the wrong door. (Coco LOVES when people knock on the wrong door.)\n" +
-        "- Look around! A volleyball court on the beach, an ice cream cart on the Boardwalk, a fountain on Main Street, and more.\n" +
+        "- Look around! A volleyball court on the beach, an ice cream cart, a grand fountain on the square, and more.\n" +
         "- Full pockets? New finds go straight to your house storage. Sand dollars always fit.\n" +
         "That's all! Now go outside. It's a nice day. It's always a nice day.\n- Fortune" });
     Save.touch();

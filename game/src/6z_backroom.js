@@ -73,6 +73,7 @@ function backOptions(n) {
 function backTip(s) {
     if (s === 3) return ["You have a KEY? Why are you talking to me? Go try it! I'll pretend I'm not watching. I'll be watching."];
     if (s === 2) return ["Sully gave the key to the lighthouse keeper? Then it's in the lighthouse. That guy kept everything. Go look in his desk.",
+        ...(lighthouseOpen() ? [] : ["Boarded up? Then somebody has to pay to fix it. Ask at the Town Hall."]),
         "And if the rejects bite, I was never here."];
     if (s === 1) return ['I told you. Ask Sully. He was here before me. Before the carpet. The rejects are his problem.'];
     const A = arc(), left = ARCADE_CABS.filter(id => !(A.plays[id] > 0)).map(id => ARCADE_GAMES[id].name), days = BACK_READY_DAYS - daysPlayed();

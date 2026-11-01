@@ -545,7 +545,7 @@ function appToday() {
         ['Who\'s up', `${up} ${plural(up, 'neighbor')} awake right now. Most are up by 9 AM and in bed around midnight.`],
         ["Fortune's hot item", `${itemName(st.hot)} (pays double)`],
         ['Shops', `Fortune's ${hoursText('shop')}. Clementine's ${hoursText('boutique')}. Mac's ${hoursText('restaurant')}. The museum ${hoursText('museum')}. Sully's studio ${hoursText('studio')}. Ginger's workshop ${hoursText('builder')}. Floss & Gloss ${hoursText('salon')}. Waffle's ${hoursText('displays')}. Noodle cart 8 PM to 1 AM. If nobody's at the counter, it's the honor system.`],
-        ['Arcade', `${cap(hoursText('arcade'))}, on the Boardwalk. Chili runs the prize counter most afternoons.`],
+        ['Arcade', 'Open any hour, on Market Lane. Chili runs the prize counter most afternoons.'],
         ['Club Wasabi', 'Busy from 9 PM. Practice any time.'],
         ['Joe', 'Up early (around 6:30 AM), to bed late. Sunset at the pier. Ask him for a poem.'],
     ];
@@ -1070,6 +1070,6 @@ function appArcade() {
     const sung = Object.keys(S.karaoke.best);
     row('f_trophy_karaoke', 'Karaoke', sung.length ? `${sung.length} ${plural(sung.length, 'poem')} sung \u00b7 ask DJ Wasabi for more` : "Ask DJ Wasabi at the club. You'll be singing Joe's poems.");
     P.body.appendChild(L);
-    P.body.appendChild(el('p', 'muted', `The arcade is on the Boardwalk, open ${hoursText('arcade')}. Chili works the prize counter most afternoons; the rest of the time it runs on the honor system.`));
+    P.body.appendChild(el('p', 'muted', `The arcade is on Market Lane, open any hour. Chili works the prize counter most afternoons; the rest of the time it runs on the honor system.`));
 }
 

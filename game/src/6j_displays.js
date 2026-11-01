@@ -266,7 +266,7 @@ const IslandEdit = {
     heldName() { const h = this.held; if (h.name) return h.name; return h.src === 'prop' ? (PROP_NAMES[h.kind] || h.kind.replace(/_/g, ' ')) : dispDef(h.id).name.toLowerCase(); },
     chooseNew() {
         const own = ownedDisplays();
-        if (!Object.keys(own).length) { UI.toast("Nothing to set down yet. Waffle's shop (up Main Street) sells lamps, benches, hedges and more."); return; }
+        if (!Object.keys(own).length) { UI.toast("Nothing to set down yet. Waffle's shop on the alley sells lamps, benches, hedges and more."); return; }
         const panel = $('#panel');
         panel.innerHTML = '';
         const head = el('div', 'phead');

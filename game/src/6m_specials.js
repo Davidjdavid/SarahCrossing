@@ -318,7 +318,7 @@ const QUEST_ITEM_DESC = {
     q_scarf: 'A silk scarf. Somebody at the museum wanted a model for a painting...',
     q_goatpic: 'A tiny painting of the goat. Somebody who loves to talk about the goat would treasure it.',
     q_bell: 'A golden bell. It would look perfect on a goat.',
-    q_cog: 'A brass cog from the old windmill. The millstone needs three of these.',
+    q_cog: 'A brass cog from the old windmill. The moonstone needs three of these.',
     package: 'A package to deliver. Your To-do list says who it\'s for.',
 };
 
