@@ -70,7 +70,8 @@ function playerFaceDir(p) {
 }
 /* glasses (or a monocle, or a fancy mustache) first, then whatever's on her head */
 function drawSarahAccs(ctx, x, y, d, flip) {
-    const e = S.player.eyes, a = S.player.acc;
+    // (a visitor in their own sprite has their glasses drawn on already: 6zzo_dressup.js)
+    const e = Online.visitor() && dressAsAlways() ? null : S.player.eyes, a = S.player.acc;
     if (e && Assets.has(`acc_${e}_${d}`)) spr(ctx, `acc_${e}_${d}`, x, y, flip);
     if (a && Assets.has(`acc_${a}_${d}`)) spr(ctx, `acc_${a}_${d}`, x, y, flip);
 }
@@ -81,7 +82,7 @@ function sarahPreview(px, frame) {
     const k = base.width / 16;
     const g = base.getContext('2d');
     g.imageSmoothingEnabled = false;
-    for (const id of [S.player.eyes, S.player.acc]) {
+    for (const id of [Online.visitor() && dressAsAlways() ? null : S.player.eyes, S.player.acc]) {
         const nm = id && `acc_${id}_down`, f = nm && Assets.frames[nm];
         if (!f) continue;
         const [sx, sy, w, h, ax, ay] = f;

@@ -57,7 +57,7 @@ function hdMoveFrame(e, moving, run, seed) {
 }
 
 function hdDrawPlayer(ctx, p) {
-    const spec = Online.visitor() ? hdFolkSpec(Online.who()) : hdSarahSpec();
+    const spec = hdSarahSpec();
     if (!spec || !HD_HAIR.waves) return false;
     if (p.sit && Math.abs(p.y - (p.sit.benchY - 1)) > 2) { p.sit = null; p.sy = undefined; }
     if (p.sit && p.sit.rot) { const [fr, flip] = hdMoveFrame(p, false, false, 1); drawSeated(ctx, sitClipY(p.sit), () => hdDraw(ctx, hdPersonFrame(spec, fr, hdBlinkNow(1)), p.x, Math.round(p.y), flip)); return true; }
@@ -110,7 +110,7 @@ function hdDrawNPC(ctx, n) {
 }
 
 function hdDrawOther(ctx, o) {
-    const spec = o.who === 'sarah' ? hdRemoteSarah(o.look) : hdFolkSpec(o.who);
+    const spec = hdRemoteLook(o.who, o.look);
     if (!spec) return false;
     const y = Math.round(o.y) - (o.hop || 0);
     const seed = hdSeed(o.who);
@@ -119,27 +119,36 @@ function hdDrawOther(ctx, o) {
     hdDraw(ctx, hdPersonFrame(spec, fr, hdBlinkNow(seed)), o.x, y, flip);
     return true;
 }
-/* Sarah, seen from a visitor's game: her look comes with her position (checked: it's from the network) */
+/* someone else playing, seen from this game: their look comes with their position (checked: it's from the network);
+   without one (an older game), Sarah in her outfit and anyone else as they've always looked */
 const HD_HEX = /^#[0-9a-fA-F]{6}$/;
-function hdRemoteSarah(look) {
+function hdRemoteLook(who, look) {
     const h = look && look.hd, col = (c, d) => (typeof c === 'string' && HD_HEX.test(c) ? c : d);
-    const base = { look: Object.assign({}, LOOK_DEFAULT), clothes: hdOutfit((look && typeof look.outfit === 'string' && look.outfit) || 'crimson'), eyes: null, acc: null };
+    const base = who !== 'sarah' && HD_FOLKS[who] ? hdFolkSpec(who)
+        : { look: Object.assign({}, LOOK_DEFAULT), clothes: hdOutfit((look && typeof look.outfit === 'string' && look.outfit) || 'crimson'), eyes: null, acc: null };
     if (!h || typeof h !== 'object' || !h.look || !h.clothes) return base;
-    const L = h.look, C = h.clothes, word = v => (typeof v === 'string' && /^[a-z]{1,16}$/.test(v) ? v : null);
-    return {
-        look: { hair: word(L.hair) || 'waves', hairCol: col(L.hairCol, LOOK_DEFAULT.hairCol), tipCol: col(L.tipCol, null), skin: col(L.skin, LOOK_DEFAULT.skin),
-            eyes: col(L.eyes, LOOK_DEFAULT.eyes), blush: !!L.blush, freckles: !!L.freckles },
+    // (a word: a style or a pattern; an accessory may come in a color, kind@color)
+    const L = h.look, C = h.clothes, B = base.look, word = v => (typeof v === 'string' && /^[a-z][a-z0-9_]{0,23}(@[a-z0-9_]{1,16})?$/.test(v) ? v : null);
+    const out = {
+        look: { hair: word(L.hair) || B.hair, hairCol: col(L.hairCol, B.hairCol), tipCol: col(L.tipCol, null), skin: col(L.skin, B.skin),
+            eyes: col(L.eyes, B.eyes), blush: !!L.blush, freckles: !!L.freckles },
         clothes: { style: word(C.style) || 'toppants', top: col(C.top, '#b3263a'), trim: col(C.trim, '#ffffff'), bottom: col(C.bottom, '#4d6d9f'), shoes: col(C.shoes, '#f3f1ee'),
             pat: word(C.pat), patCol: col(C.patCol, null), patWhere: word(C.patWhere),
             print: Array.isArray(C.print) && C.print.length <= 18 ? C.print.map(c => col(c, null)) : null },
         eyes: word(h.eyes), acc: word(h.acc) };
+    // (a beard, a men's cut of the clothes, David's skates: only where they're so)
+    if (col(L.beard, null)) { out.look.beard = col(L.beard, null); if (word(L.beardStyle)) out.look.beardStyle = word(L.beardStyle); }
+    if (L.masc) out.look.masc = true;
+    if (C.skates) out.clothes.skates = 1;
+    return out;
 }
+function hdRemoteSarah(look) { return hdRemoteLook('sarah', look); }
 
 /* draw ahead, one frame at a time while nothing else is new: Sarah's whole set and the neighbors in view, so the first
    step in a new direction doesn't wait for a drawing */
 function hdWarm() {
     if (!G.player) return;
-    const sp = Online.visitor() ? hdFolkSpec(Online.who()) : hdSarahSpec(), key = JSON.stringify(sp);
+    const sp = hdSarahSpec(), key = JSON.stringify(sp);
     // the way she's facing first: walking, running and standing; then every other way (made again when her look or the
     // way she faces changes, and gone through from the start)
     const face = G.player._hd ? HD_DIR8[G.player._hd.face][0] : 'down', dirs = [face].concat(['down', 'dside', 'side', 'uside', 'up'].filter(d => d !== face));

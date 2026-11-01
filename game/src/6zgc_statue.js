@@ -120,7 +120,7 @@ const EnvStatue = {
     bronzePart() { const M = EnvModels.models.statue_sarah; return M && M.parts.find(p => /bronze/.test((p.material && p.material.name) || '')); },
     /* the figure for who's up there (null when it can't be made yet: the new look's people still coming) */
     figure() {
-        const k = statueKind(), st = S.town && S.town.statue, spec = k === 'sarah' ? (st && st.spec) || hdSarahSpec() : null;
+        const k = statueKind(), st = S.town && S.town.statue, spec = k === 'sarah' ? (st && st.spec) || (Online.visitor() ? hdRemoteSarah(null) : hdSarahSpec()) : null;
         const key = k + '|' + (spec ? JSON.stringify(spec) : '') + (EnvDolls.kitReady() ? 'k' : '');
         if (key === this.key && this.group) return this.group;
         const B = this.bronzePart();

@@ -384,6 +384,8 @@ function migrate(st) {
         if (!st.wardrobe.accs.includes('glasses')) st.wardrobe.accs.push('glasses');
     }
     if (st.player.eyes && !FACE_ACCS.has(st.player.eyes)) st.player.eyes = null;
+    // David, James, John, Elizabeth and Joe dress up too (1 November): their own clothes and glasses in their wardrobe
+    if (Online.visitor() && !st.flags.dress12) dressSeed(st);
     // the shops grow with Sarah's shopping: counted from now, with a head start for what she has already bought
     if (!st.shops || typeof st.shops !== 'object') st.shops = base.shops;
     for (const k of ['shop', 'boutique']) if (!st.shops[k] || typeof st.shops[k] !== 'object') st.shops[k] = { spent: 0, level: 1 };

@@ -188,6 +188,9 @@ function registerDesign(id, d, L) {
         const s = sewFrame(d, dir, body, face, L);
         if (s) Assets.dyn[`sarah_${id}_${name}`] = { c: s.canvas(), w: 16, h: 24, ax: 8, ay: 23 };
     }
+    // (a visitor's own design, on them: 6zzo_dressup.js)
+    const mine = Online.visitor() && id.startsWith('cu' + Online.who()) && dressSprite({ look: L, clothes: hdDesign(d), eyes: null, acc: null }, 'down_stand');
+    if (mine) { Assets.dyn['cloth_' + id] = Assets.dyn[mine]; ITEMS['out_' + id] = { name: d.name || 'My design', type: 'outfit', price: 0, icon: 'cloth_' + id, wear: id, custom: true }; return; }
     const icon = sewFrame(d, 'down', 'stand', 'normal', L);
     Assets.dyn['cloth_' + id] = { c: icon.canvas(), w: 16, h: 24, ax: 8, ay: 23 };
     ITEMS['out_' + id] = { name: d.name || 'My design', type: 'outfit', price: 0, icon: 'cloth_' + id, wear: id, custom: true };
@@ -206,7 +209,7 @@ function sewName(d) {
 
 /* ---------------------------------------------------------------- the studio */
 const Sewing = {
-    run(d) { return visitorStop('look') ? Promise.resolve(null) : new Promise(res => this.start(d, res)); },
+    run(d) { return new Promise(res => this.start(d, res)); },
     start(d, res) {
         this.d = JSON.parse(JSON.stringify(d || newDesign()));
         if (!this.d.print) this.d.print = new Array(PRINT_W * PRINT_H).fill(null);
@@ -233,7 +236,9 @@ const Sewing = {
         g.fillStyle = '#f2d8c8'; g.fillRect(0, H - 5, W, 5);
         const views = [['down', 'stand', 'normal'], ['side', 'walkA', 'normal'], ['up', 'stand', 'normal'], ['down', 'sit', 'normal']];
         views.forEach(([dir, body, face], i) => {
-            const s = sewFrame(this.d, dir, body, face);
+            // (a visitor: on them, beard and all, 6zzo_dressup.js)
+            const n = Online.visitor() && dressSprite({ look: look(), clothes: hdDesign(this.d), eyes: null, acc: null }, `${dir}_${body}`), a = n && Assets.dyn[n];
+            const s = a ? { canvas: () => a.c } : sewFrame(this.d, dir, body, face);
             if (!s) return;
             g.fillStyle = 'rgba(59,42,69,0.15)'; g.fillRect(3 + i * 16 + 4, H - 6, 9, 2);
             g.drawImage(s.canvas(), 1 + i * 16, H - 28);
@@ -375,7 +380,8 @@ async function sewingMachine() {
     const price = base ? SEW_ALTER : SEW_PRICE;
     if (S.money < price) return;
     addMoney(-price, true, 'Clothes');
-    if (!id) { S.designSeq = (S.designSeq || 0) + 1; id = 'cu' + S.designSeq; }
+    // (a visitor's designs never share a name with Sarah's, whose are on their island too: the museum's dress forms)
+    if (!id) { S.designSeq = (S.designSeq || 0) + 1; id = (Online.visitor() ? 'cu' + Online.who() : 'cu') + S.designSeq; }
     designs()[id] = d;
     registerDesign(id, d);
     if (!S.wardrobe.outfits.includes(id)) S.wardrobe.outfits.push(id);
@@ -385,7 +391,7 @@ async function sewingMachine() {
     Bus.emit('sewn', { id, style: d.style, fresh: !base });
     const p = G.player;
     const w = await UI.ask(sp, sp ? rpick([`"${d.name}." Darling. I'm speechless. I am never speechless.`, `You MADE that? "${d.name}"? I'm putting you on the payroll.`])
-        : `Sarah finishes "${d.name}." It's in her wardrobe now.`, ['Wear it now!', 'Maybe later']);
+        : `${Online.name(Online.who())} finishes "${d.name}." It's in the wardrobe now.`, ['Wear it now!', 'Maybe later']);
     if (w === 0) {
         S.player.outfit = id;
         p.pose = 'happy'; p.poseT = 50; p.dir = 'down';

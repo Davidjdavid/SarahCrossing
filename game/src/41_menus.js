@@ -983,7 +983,6 @@ function openCooking(wok) {
 
 /* ---------------------------------------------------------------- wardrobe */
 function openWardrobe(fromPhone) {
-    if (visitorStop('look')) return;
     const P = UI.open({ title: 'Wardrobe', phone: false, back: fromPhone === true ? backToPhone : null });
     const draw = () => {
         P.body.innerHTML = '';

@@ -14,7 +14,12 @@ const SKIN_TONES = [['#fde7da', 'porcelain'], ['#fbd9c6', 'fair'], ['#f1c7a8', '
 const EYE_COLORS = [['#6c5236', 'hazel'], ['#4a2c1c', 'brown'], ['#2a1a14', 'dark brown'], ['#3f7a4a', 'green'], ['#3f6fb8', 'blue'],
     ['#6a7488', 'gray'], ['#a8742a', 'amber'], ['#7a4ab0', 'violet']];
 
-function look(st) { const s = st || S; return Object.assign({}, LOOK_DEFAULT, (s && s.look) || {}); }
+/* someone's look: what they've picked at the salon over where they started (Sarah's own; David, James and the rest
+   playing on her island start from how they've always looked, 6zzo_dressup.js) */
+function look(st) {
+    const s = st || S, f = s !== Online.island && Online.visitor() && HD_FOLKS[Online.who()];
+    return Object.assign({}, LOOK_DEFAULT, f ? f.look : null, (s && s.look) || {});
+}
 function lookIsDefault(L) { L = L || look(); return Object.keys(LOOK_DEFAULT).every(k => L[k] === LOOK_DEFAULT[k]); }
 function lookKey(L) { L = L || look(); return hash32(JSON.stringify(Object.keys(LOOK_DEFAULT).map(k => L[k]))).toString(36); }
 function mixHex(a, b, t) { const x = hexRgbA(a), y = hexRgbA(b); return rgbHex(x[0] + (y[0] - x[0]) * t, x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t); }
@@ -56,7 +61,8 @@ function underlay(rows, y0, back, over) {
 }
 /* the letters for one frame: dir (down/up/side), body (stand, walkA, sit, cheer...), face (normal/happy), sil (pants/dress) */
 function sarahRowsFor(dir, body, face, sil, L) {
-    const T = GD.sarahTpl, HT = T.hair, st = (HT && HT.styles[L.hair]) || null;
+    // (a style the letter templates don't have, a visitor's own cut, draws as the first style: a design's icon, a dress form)
+    const T = GD.sarahTpl, HT = T.hair, st = (HT && (HT.styles[L.hair] || HT.styles[LOOK_DEFAULT.hair])) || null;
     const blank = '.'.repeat(16);
     if (!st) return null;
     let head = st.head[dir === 'side' ? 'side' : dir].slice();
@@ -107,7 +113,7 @@ function lookFrame(outfit, dir, body, face, L) {
 /* the sprite name for a frame of Sarah ("down_stand", "side_hug"...) in an outfit, in her look */
 const SARAH_FRAMES = {};
 function sarahSprite(outfit, frame) {
-    if (Online.visitor()) return personFrame(Online.who(), frame);          // a visitor, as themselves
+    if (Online.visitor()) return visitorSprite(frame);                       // a visitor, as they look (6zzo_dressup.js)
     outfit = outfit || 'crimson';
     const L = look(), custom = !!(S.designs && S.designs[outfit]);
     if (!custom && lookIsDefault(L)) return `sarah_${outfit}_${frame}`;
@@ -125,7 +131,7 @@ function sarahSprite(outfit, frame) {
 
 /* ---------------------------------------------------------------- the salon chair */
 const Salon = {
-    run() { return visitorStop('look') ? Promise.resolve(null) : new Promise(res => this.start(res)); },
+    run() { return new Promise(res => this.start(res)); },
     start(res) {
         this.res = res;
         this.L = look();
@@ -145,6 +151,11 @@ const Salon = {
         this.draw();
     },
     frames() {
+        // (a visitor: their HD picture a third the size, beard and all, 6zzo_dressup.js)
+        if (Online.visitor()) return ['down_happy', 'side_stand', 'up_stand'].map(fr => {
+            const n = dressSprite(Object.assign(dressSpec(), { look: Object.assign({}, this.L) }), fr), a = n && Assets.dyn[n];
+            return a ? { canvas: () => a.c } : null;
+        });
         const o = S.player.outfit || 'crimson', L = this.L, custom = !!(S.designs && S.designs[o]);
         return [['down', 'stand', 'happy'], ['side', 'stand', 'normal'], ['up', 'stand', 'normal']].map(([d, b, f]) =>
             custom ? sewFrame(S.designs[o], d, b, f, L) : lookFrame(o, d, b, f, L));
@@ -192,6 +203,9 @@ const Salon = {
         if (this.tab === 'style') {
             U.tools.appendChild(stLabel('Hair style'));
             const row = el('div', 'st-row');
+            // (David, James, John, Elizabeth and Joe can always go back to their own cut)
+            const own = Online.visitor() && HD_FOLKS[Online.who()] && HD_FOLKS[Online.who()].look.hair;
+            if (own && !HT.styles[own]) row.appendChild(chip(`${Online.name(Online.who())}'s own`, () => this.set('hair', own), L.hair === own ? 'on' : ''));
             for (const id of HT.order) row.appendChild(chip(HT.styles[id].name, () => this.set('hair', id), L.hair === id ? 'on' : ''));
             U.tools.appendChild(row);
             if (HT.special && HT.special.length) {
@@ -252,7 +266,7 @@ async function salonChair() {
     // Floss out? The chair is self-serve on the honor system (the mirror is very encouraging)
     const k = await UI.ask(v, v ? rpick(['Sit, sugar, sit! What are we doing today?', 'The chair is warm and so is my heart. New look?', "Ooh, I've been DYING to get my hands on that hair. What'll it be?"])
         : 'A big comfy salon chair. Self-serve styling, honor system. Try a new look?', ['A new look!', 'Just looking'], { keep: true });
-    if (k !== 0) { await UI.say(v, v ? rpick(["Looking is free! Looking is how it starts.", 'Take your time, sugar. The chair will wait.']) : 'Sarah gives the chair a little spin. Maybe next time.'); return; }
+    if (k !== 0) { await UI.say(v, v ? rpick(["Looking is free! Looking is how it starts.", 'Take your time, sugar. The chair will wait.']) : `${Online.name(Online.who())} gives the chair a little spin. Maybe next time.`); return; }
     UI.hideDialog();
     const L = await Salon.run();
     if (!L) { await UI.say(v, v ? rpick(['Next time, sugar. The chair remembers you.', "No pressure! Hair is a journey."]) : 'No new look today. The chair understands.'); return; }
@@ -264,7 +278,7 @@ async function salonChair() {
     Sfx.play('fanfare');
     G.player.pose = 'cheer'; G.player.poseT = 60;
     const style = GD.sarahTpl.hair.styles[L.hair];
-    if (!v) { await UI.say(null, `Sarah drops the sand dollars in the honor jar and checks the mirror. ${before.hair !== L.hair ? (style ? style.name : 'New hair') + '!' : 'New colors!'} Floss would be proud.`); S.stats.salon = (S.stats.salon || 0) + 1; Bus.emit('look', L); return; }
+    if (!v) { await UI.say(null, `${Online.name(Online.who())} drops the sand dollars in the honor jar and checks the mirror. ${before.hair !== L.hair ? (style ? style.name : 'New hair') + '!' : 'New colors!'} Floss would be proud.`); S.stats.salon = (S.stats.salon || 0) + 1; Bus.emit('look', L); return; }
     await UI.say('floss', [before.hair !== L.hair ? `Ta-daa! ${style ? style.name : 'New hair'}! Sugar, you look like a whole new dessert.` : 'Ta-daa! Look at those colors. You look like a sunset. A sunset with great skin.',
         rpick(["Come back anytime. I'll be here, fluffing things.", "Go show everyone. Especially Clementine. She'll pretend she's not jealous."])]);
     S.stats.salon = (S.stats.salon || 0) + 1;

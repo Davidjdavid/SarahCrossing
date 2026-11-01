@@ -201,7 +201,7 @@ const Online = {
             const outfit = o.look && o.look.outfit, nm = `sarah_${outfit}_${f}`;
             return Assets.has(nm) ? nm : `sarah_crimson_${f}`;
         }
-        return personFrame(o.who, f);
+        return remoteSprite(o, f);
     },
     drawOther(ctx, o) {
         if (hdOn() && hdDrawOther(ctx, o)) return;
@@ -229,7 +229,7 @@ const Online = {
         if (!p || !this.ws || this.ws.readyState !== 1 || !G.area) return;
         if (G.mode === 'title' && !force) return;
         const st = { t: 'state', area: G.mode === 'play' ? G.area.id : null, x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10, dir: p.dir,
-            moving: !!p.moving, run: !!p.run, sit: !!p.sit, look: this.who() === 'sarah' ? { outfit: S.player.outfit, hd: hdSarahSpec() } : null };
+            moving: !!p.moving, run: !!p.run, sit: !!p.sit, look: { outfit: S.player.outfit, hd: hdSarahSpec() } };
         const key = JSON.stringify(st), now = Date.now();
         if (!force && key === this.lastState && now - this.stateAt < 5000) return;
         if (!force && now - this.stateAt < ONLINE_STATE_EVERY) return;
@@ -446,6 +446,5 @@ const VISITOR_STOP = {
     drop: ["Leave it on Sarah's island and it might get lost. It stays in your pocket."],
     take: ["That's something Sarah left here. Better leave it."],
     museum: ["Only islanders can donate. Brulee is very firm about it."],
-    look: ["New looks are coming for everyone soon. For now, you look great."],
     farm: ["That's Sarah's garden. You can admire it."],
 };

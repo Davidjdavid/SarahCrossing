@@ -32,13 +32,13 @@ const EnvDolls = {
     /* who's a doll and how they look: Sarah (or whoever is visiting as themselves), the island's people (the food folks
        stay as they are), and friends playing along online */
     specOf(e) {
-        if (e === G.player) return Online.visitor() ? hdFolkSpec(Online.who()) : hdSarahSpec();
+        if (e === G.player) return hdSarahSpec();
         // (a friend playing along online: before the neighbors, since they carry a def too, { human: true }, which isn't a
         // look; that made them flat cards in the new look, QA 29 October)
-        if (e.kind === 'remote' && e.who) return e.who === 'sarah' ? hdRemoteSarah(e.look) : hdFolkSpec(e.who);
+        if (e.kind === 'remote' && e.who) return hdRemoteLook(e.who, e.look);
         // (on Halloween night everyone's in costume: 6z_festivals.js)
         if (e.def) { const acc = (typeof halloweenCostume === 'function' && halloweenCostume(e.id)) || npcWearing(e.id); if (e.def.human) return hdFolkSpec(e.def.human, acc); const f = this.folkOf(e); return f ? { folk: f, acc } : null; }
-        if (e.who) return e.who === 'sarah' ? hdRemoteSarah(e.look) : hdFolkSpec(e.who);
+        if (e.who) return hdRemoteLook(e.who, e.look);
         if (e.kind === 'judge' || e.kind === 'ghost') { const f = this.folkOf(e); return f ? { folk: f } : null; }
         return null;
     },

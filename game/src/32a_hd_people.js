@@ -41,6 +41,8 @@ const HD_STYLE = {
 const HD_OUTFIT_STYLE = { crimson: 'knit', sundress: 'sundress', pajamas: 'pajamas', overalls: 'overalls', beach: 'beach', party: 'party',
     yukata: 'yukata', raincoat: 'raincoat', hoodie: 'hoodie', sweaterdress: 'sweaterdress', chef: 'chef', cozy: 'cozy', goth: 'goth', tennis: 'tennis' };
 function hdOutfit(id) {
+    // (the clothes David, James, John, Elizabeth and Joe came in: an outfit in their wardrobe, 6zzo_dressup.js)
+    if (HD_FOLKS[id]) return Object.assign({}, HD_FOLKS[id].clothes);
     const o = GD.sarahTpl && GD.sarahTpl.hair && GD.sarahTpl.hair.outfits[id];
     if (!o) return hdOutfit('crimson');
     const [sil, T, U, V, P, , F] = o;
@@ -67,7 +69,7 @@ const HD_FOLKS = {
     elizabeth: { look: { hair: 'sleek', hairCol: '#5a3622', tipCol: null, skin: '#fbd9c6', eyes: '#4a2c1c', blush: true },
         clothes: { style: 'toppants', top: '#4a78c8', trim: '#9ab8e8', bottom: '#2c3e66', shoes: '#efeae0' }, eyes: 'glasses' },
 };
-/* Sarah as she is right now */
+/* Sarah as she is right now (or whoever's playing on this device: their look, clothes and things worn are their own) */
 function hdSarahSpec() {
     // (trying something on at the salon or the sewing machine: she wears it before it's paid for, while S stays as it is,
     // Studio.tryOn in 58_potterygames.js)
