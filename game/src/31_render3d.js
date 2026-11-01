@@ -52,6 +52,9 @@ const R3 = {
             this.wx = wx;
             const r = new THREE.WebGLRenderer({ canvas: cv, antialias: false, alpha: false, powerPreference: 'high-performance' });
             r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+            r3LampGate();
+            // (the graphics card's name, for the frame rate in Settings: HudFps)
+            try { const gl = r.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); this.gpu = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER) || ''); } catch (e) { this.gpu = ''; }
             // (three.js leaves out each mesh standing outside the view, but the view bends what's far down toward the horizon
             // (R3_GLSL's bend): a part left out for standing over the top of the screen was bent into it, and a house lost its
             // roof up there while its walls stayed (David, 29 October: "houses and props show up partial"). So each sphere is
@@ -914,6 +917,20 @@ const R3_FOG = { col: [0.6, 0.77, 0.92], near: 0.6, far: 0.98 };     // a clear 
 const R3_ZS = 1.25;         // the flat art is drawn for a steeper view: stretch the ground a little in depth
 const R3_VS = 1.12;         // and stand cards a little taller so they don't look squashed from this angle
 
+/* The street lamps are eight point lights kept in the scene all the time (a change in how many there are would recompile
+   every material), dimmed to nothing by day and placed by the nearest lamps at night. three.js works out every one of
+   them for every pixel of every lit surface, the full shading of each, even dark: by day eight times over for nothing,
+   and at night for every pixel out of a lamp's reach. Each is only shaded where its light reaches now (its color times
+   the fall-off is more than nothing: directLight.visible), which changes nothing on the screen (2 November, David's
+   frame rate: 39 to 53 pictures a second on his computer, slowest wherever a lot is on screen) */
+function r3LampGate() {
+    const C = THREE.ShaderChunk, k = 'lights_fragment_begin', src = C[k];
+    if (!src || src.indexOf('r3 lamp gate') >= 0) return;
+    const at = src.indexOf('NUM_POINT_LIGHTS > 0 ) && defined( RE_Direct )'), call = 'RE_Direct( directLight, geometry, material, reflectedLight );';
+    const j = at < 0 ? -1 : src.indexOf(call, at);
+    if (j < 0) return;
+    C[k] = src.slice(0, j) + '/* r3 lamp gate */ if ( directLight.visible ) ' + src.slice(j);
+}
 function hasWebGL() {
     try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl'))); } catch (e) { return false; }
 }

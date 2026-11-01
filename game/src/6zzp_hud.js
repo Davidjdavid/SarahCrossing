@@ -76,6 +76,8 @@ const HudFps = {
             q = ` · picture ${Math.round(R3.quality * 100)}%${GFX.quality() ? '' : ' (Auto)'} · ${c.width}×${c.height}`;
         }
         this.el.textContent = `${fps} fps · slowest ${Math.round(this.worst)} ms${q}`;
+        // (and the graphics card, on a second line: what the picture is being drawn on)
+        if (typeof R3 !== 'undefined' && R3.gpu) this.el.appendChild(el('div', 'hud-fps-gpu', R3.gpu.replace(/^ANGLE \((.*)\)$/, '$1').replace(/\s*\(0x[0-9A-Fa-f]+\)/g, '').slice(0, 90)));
         this.t = now; this.n = 0; this.worst = 0;
     },
 };

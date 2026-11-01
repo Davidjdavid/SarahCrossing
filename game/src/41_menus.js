@@ -572,7 +572,7 @@ function appToday() {
 function gfxSetting() {
     const box = el('div', 'field');
     box.style.marginTop = '14px';
-    for (const [k, label, names, tip] of [['q', 'Picture quality', ['auto', 'low', 'medium', 'high'], 'Lower is smoother on slower devices. High shows reflections in the water.'],
+    for (const [k, label, names, tip] of [['q', 'Picture quality', ['auto', 'low', 'medium', 'high'], 'Auto keeps it smooth: it lowers the detail by itself while pictures come slowly. Low, Medium and High stay as picked (High shows reflections in the water).'],
         ['f', 'Draw distance', ['auto', 'near', 'normal', 'far'], 'How far off the island is drawn before the haze.']]) {
         box.appendChild(el('span', null, label));
         const row = el('div', 'st-row');

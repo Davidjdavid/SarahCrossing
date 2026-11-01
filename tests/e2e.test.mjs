@@ -551,7 +551,7 @@ test('on screen, as each device likes it: the time card hidden, the sand dollars
   await page.context().close();
 });
 
-test('the new look draws far trees in their lighter version: near copies in the full model, far ones in the lighter, every one casting its shadow once; the reflection takes them all lighter', async () => {
+test('the new look draws far trees in their lighter version: near copies in the full model, far ones in the lighter, every one casting its shadow once, nearest the camera first; the reflection takes them all lighter; the lamps shaded only where they reach', async () => {
   const page = await device();
   await page.evaluate(() => localStorage.setItem('sc-current', ''));
   await page.reload();
@@ -562,7 +562,8 @@ test('the new look draws far trees in their lighter version: near copies in the 
     // a made-up tree, placed in a row going north from the camera, and its lighter version
     const full = new THREE.BoxGeometry(1, 1, 1, 4, 4, 4), lite = new THREE.BoxGeometry(1, 1, 1), mat = new THREE.MeshStandardMaterial();
     EnvModels.models.tree_test = { parts: [{ geometry: full, material: mat }], name: 'tree_test', anchors: {}, sizes: {} };
-    const group = new THREE.Group(), xs = [0, 2, 5, 9, 14, 20, 27, 35];
+    // (placed out of order: the copies are handed over nearest the camera first)
+    const group = new THREE.Group(), xs = [27, 0, 14, 5, 35, 2, 20, 9];
     const [m] = EnvModels.instances(group, 'tree_test', xs.map((d) => EnvModels.mat4(50, 0, (60 - d) * R3_ZS)));
     const saved = { cam: R3.camera, target: R3.target, list: EnvCull.list, key: EnvCull.key, lodV: EnvCull.lodV };
     R3.camera = { position: { x: 50, z: 60 * R3_ZS } }; R3.target = { x: 50, z: 60 * R3_ZS };
@@ -577,7 +578,12 @@ test('the new look draws far trees in their lighter version: near copies in the 
     const T = EnvCull.list[0], L = T.lod;
     out.after = { full: m.count, far: T.kFar, all: T.kAll, lodCount: L.count, fullCasts: m.castShadow, lodCasts: L.castShadow, sameParent: L.parent === m.parent, lite: L.geometry === lite };
     // the near ones are the closest of the row, the far ones the rest
-    out.nearZ = Array.from({ length: m.count }, (_, i) => Math.round(60 - m.instanceMatrix.array[i * 16 + 14] / R3_ZS)).sort((a, b) => a - b);
+    out.nearZ = Array.from({ length: m.count }, (_, i) => Math.round(60 - m.instanceMatrix.array[i * 16 + 14] / R3_ZS));
+    out.farZ = Array.from({ length: T.kAll }, (_, i) => Math.round(60 - L.instanceMatrix.array[i * 16 + 14] / R3_ZS));
+    // (and the lamps are shaded only where their light reaches: one gate, in the point lights' loop)
+    r3LampGate(); r3LampGate();
+    const ch = THREE.ShaderChunk.lights_fragment_begin, gate = ch.indexOf('if ( directLight.visible ) RE_Direct');
+    out.gate = { n: ch.split('r3 lamp gate').length - 1, inPoint: gate > ch.indexOf('NUM_POINT_LIGHTS > 0') && (ch.indexOf('NUM_SPOT_LIGHTS > 0') < 0 || gate < ch.indexOf('NUM_SPOT_LIGHTS > 0')) };
     // drawn: the lighter copies cut down to the far ones; for the reflection all of them, the full ones hidden
     L.onBeforeRender(); out.drawn = L.count;
     EnvCull.prep(); out.prepped = L.count;
@@ -590,7 +596,9 @@ test('the new look draws far trees in their lighter version: near copies in the 
   const near = r.nearZ.length;
   assert.deepEqual(r.before, { full: 8, lod: false });
   assert.ok(near >= 2 && near <= 6, 'a few near ones: ' + r.nearZ);
-  assert.deepEqual(r.nearZ, [0, 2, 5, 9, 14, 20, 27, 35].slice(0, near));
+  assert.deepEqual(r.nearZ, [0, 2, 5, 9, 14, 20, 27, 35].slice(0, near), 'the near ones, nearest first');
+  assert.deepEqual(r.farZ, [9, 14, 20, 27, 35].slice(near - 3).concat([0, 2, 5, 9].slice(0, near)), 'the far ones nearest first, then the near ones for the shadows');
+  assert.deepEqual(r.gate, { n: 1, inPoint: true });
   assert.deepEqual(r.after, { full: near, far: 8 - near, all: 8, lodCount: 8, fullCasts: false, lodCasts: true, sameParent: true, lite: true });
   assert.equal(r.drawn, 8 - near);
   assert.equal(r.prepped, 8);

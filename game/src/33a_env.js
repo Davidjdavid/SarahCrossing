@@ -340,13 +340,26 @@ const EnvCull = {
             const dst = T.m.instanceMatrix.array, dc = T.cols && T.m.instanceColor.array, L = T.lod;
             let k = 0, f = 0;
             const near = L ? [] : null;
+            // (the copies in sight, nearest the camera first: what's nearer is drawn first and the graphics card skips what it
+            // hides behind, where drawn in the island's own order a near tree was often painted over a far one already
+            // worked out, leaf by leaf, 2 November)
+            const keep = this._keep || (this._keep = []);
+            keep.length = 0;
             for (let i = 0; i < T.n; i++) {
                 const x = T.px[i], z = T.pz[i];
                 // (a hidden copy is scaled to nothing: keep it out)
                 if (x < x0 || x > x1 || z < y0 || z > y1 || (T.all[i * 16] === 0 && T.all[i * 16 + 5] === 0 && T.all[i * 16 + 10] === 0)) continue;
+                const dx = x - cx, dz = z * R3_ZS - cz;
+                keep.push(dx * dx + dz * dz, i);
+            }
+            const order = this._order || (this._order = []);
+            order.length = 0;
+            for (let j = 0; j < keep.length; j += 2) order.push(j);
+            order.sort((a, b) => keep[a] - keep[b]);
+            for (const j of order) {
+                const i = keep[j + 1];
                 if (L) {
-                    const dx = x - cx, dz = z * R3_ZS - cz;
-                    if (dx * dx + dz * dz < nr2) near.push(i);
+                    if (keep[j] < nr2) near.push(i);
                     else { L.instanceMatrix.array.set(T.all.subarray(i * 16, i * 16 + 16), f * 16); if (dc) L.instanceColor.array.set(T.cols.subarray(i * 3, i * 3 + 3), f * 3); f++; }
                     continue;
                 }
@@ -1007,7 +1020,11 @@ const EnvGround = {
         const m = new THREE.Mesh(geo, mat);
         // (the ground takes shadows but doesn't cast them: a height grid shading itself comes out in stripes)
         m.receiveShadow = true; m.castShadow = false;
-        m.renderOrder = -2;
+        // (drawn after the solid things standing on it, the trees, buildings, walls and props, so the graphics card skips the
+        // ground hidden behind them: its picture is the costliest of all (a dozen pictures read a pixel), and drawn first it
+        // was worked out under every tree in the woods and then painted over, 2 November. What lies flat on it is pulled
+        // forward (polygonOffset) or see-through, drawn after everything solid anyway)
+        m.renderOrder = 1;
         c.group.add(m);
         c.meshes.push(m);
         this.meshes.push(m);

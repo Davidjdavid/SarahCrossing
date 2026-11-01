@@ -188,8 +188,12 @@ docs/DEPLOY.md for the server.
   (`T.lod`) holds the far copies then the near ones, casts every shadow (the full one casts none), is cut to the far ones
   just before the picture draws it (`onBeforeRender`, `EnvCull.prep`) and is all of them in the water's reflection
   (`liteOn`); the reflection is drawn only with water on the screen near enough to show it (`Env.waterSeen`). About 3
-  million triangles there now. Settings > On screen > Frame rate shows the pictures a second, the slowest, and the
-  picture's quality and size (`HudFps`, `sc-fps`).
+  million triangles there now. Settings > On screen > Frame rate shows the pictures a second, the slowest, the
+  picture's quality and size and the graphics card's name (`HudFps`, `sc-fps`, `R3.gpu`). Per pixel (David's frame rate,
+  2 November: 39 to 53 a second at 2465x1297 with Picture quality picked High, which never steps down): the eight lamps
+  are shaded only where their light reaches (`r3LampGate`, patched into three.js's `lights_fragment_begin`: by day,
+  nowhere), the ground is drawn after the solid things standing on it (`renderOrder` 1) and every instanced kind's copies
+  nearest the camera first (`EnvCull.update`), so the graphics card skips what's hidden; the screen looks the same.
 - What's on screen (6zzp_hud.js, Settings > On screen, kept per device in `sc-hud`): the time card, the sand dollars, the
   run/map/zoom buttons, the key hints and the dock, each Always, When still (`hud-still`: fades away while Sarah walks,
   back after `HUD_STILL_MS` standing still; `body.hud-moving`) or Hidden (`hud-off`); the dock on a touch screen never hides
