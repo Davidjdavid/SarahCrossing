@@ -146,9 +146,9 @@ docs/DEPLOY.md for the server.
   tile, the sea cliffs along a smooth outline: `r3Fine`); water moves and, on computers, reflects (`R3Mirror`); the
   ground up close is fine pixel art by kind (grass, dirt, cobbles, sand, stone walls on anything steep, stairs:
   `31a_ground3d.js`) where the painted picture would smear; tufts, lily pads and cattails are instanced meshes refilled
-  as the view moves. Tune the camera, bend and haze in `R3_CAM` / `R3_FOG`. In the new look the camera keeps its angle and
-  distance whichever way Sarah walks or runs (1 November: the lead that slid the view ahead of her, furthest running down,
-  is gone), following her on a critically damped spring about `R3_FOLLOW` seconds behind (`r3Spring`: it glides into
+  as the view moves. Tune the camera, bend and haze in `R3_CAM` / `R3_FOG`. In the new look the camera keeps one framing whichever way Sarah walks or runs: the one the old lead slid to running
+  down, now the default (`ENV.cam.below`: the view centred a tile and a half below her, more on an upright phone; 1 November),
+  following her on a critically damped spring about `R3_FOLLOW` seconds behind (`r3Spring`: it glides into
   motion and settles, no jolt); up at the lookout it eases down to look out over the sea (`ENV.cam.out`,
   `R3.lookK`), and things are drawn ahead out to where the haze has them
   (`updateView`: a house beyond the ground at the top of the screen still stands up over the horizon, and used to blink
@@ -176,6 +176,15 @@ docs/DEPLOY.md for the server.
   as exactly that, so the steps never land 0, 2, 0, 2 to a refresh (the stutter while walking, 1 November), and what eases
   (`G.frameMs`) eases by the time since the last picture. `node scripts/smooth-check.mjs OUT` (with STATIC_DIR a build)
   drives `loop` with screens' timings and measures how evenly the view moves: run it after touching the loop or camera.
+- Smoothness while moving (1 November, from David's 4K screencast): the sun's shadows are drawn on every picture while
+  Sarah or the view moves (every other on a phone; standing still, every other step as before), the ground's pieces are
+  made nearest the view first and further ahead (`Env.stream`), the culled instance lists upload only the copies in use
+  (`updateRange`), and Auto quality also steps down a notch (to 0.55 at least, every six seconds at most) when more than 6%
+  of pictures come a refresh late (`watchSpeed`).
+- What's on screen (6zzp_hud.js, Settings > On screen, kept per device in `sc-hud`): the time card, the sand dollars, the
+  run/map/zoom buttons, the key hints and the dock, each Always, When still (`hud-still`: fades away while Sarah walks,
+  back after `HUD_STILL_MS` standing still; `body.hud-moving`) or Hidden (`hud-off`); the dock on a touch screen never hides
+  (it's the way into Settings).
 - The ground's pieces (15 tiles square) are made just before they come into view, painted a few milliseconds a frame
   (`paintChunkSteps`), and painted again only when something drawn into them changes (`r3ChunkSig`: plots, things on the
   ground, Sarah's paths). Never paint pieces on a timer or several in one frame: that is what made walking hitch.

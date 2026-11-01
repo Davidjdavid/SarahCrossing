@@ -169,9 +169,10 @@ const R3 = {
             if (Decor.on) { const pn = $('#panel'), side = pn.offsetWidth < innerWidth * 0.6; if (side) tx += pn.offsetWidth / innerWidth * 9 * TILE; else ty += pn.offsetHeight / innerHeight * 7 * TILE; }
         }
         else if (Env.on && !G.camTarget) {
-            // (the camera keeps its angle and distance whichever way she walks or runs: it used to lead her the way she was
-            // going, furthest running down the screen, and the view sliding about with her was more bother than help, 1 November)
-            ty -= ENV.cam.ahead * (this.camera.aspect < 1 ? 0.5 : 1) * TILE;
+            // (the camera keeps one framing whichever way she walks or runs: the one it used to slide to running down the
+            // screen, Sarah a little above the middle with what's below her in view, now always; the view no longer slides
+            // about with her, 1 November. ENV.cam.below: tiles below her it looks, on a wide screen and an upright one)
+            ty += ENV.cam.below[this.camera.aspect < 1 ? 1 : 0] * TILE;
             const f = Math.min(4, (G.frameMs || 1000 / 60) / (1000 / 60));
             // (up at the lookout the camera eases down to look out over the sea it's there for: the boats going by, the
             // plane, a whale; ENV.cam.out is how many degrees lower and tiles further out)
@@ -348,7 +349,13 @@ const R3 = {
             this.updateLight(a);
             this.updateCards(a);
             R3U.uTime.value = (performance.now() - this.t0) / 1000;
-            if (step && G.frame % (this.phone ? 3 : 2) === 0 && this.shadowsOn !== false) this.renderer.shadowMap.needsUpdate = true;
+            // (the sun's shadows: while Sarah walks or the view moves, on every picture (every other on a phone); drawn only
+            // every other game step, her own shadow stepped along at half her pace right under her, a judder of its own, and
+            // at 120 or 144 a second it kept to the steps while she was drawn between them. Standing still, as before.
+            // 1 November)
+            const mv = !!(G.player && G.player.moving) || Math.abs(this.target.x - (this._shX == null ? this.target.x : this._shX)) + Math.abs(this.target.z - (this._shZ == null ? this.target.z : this._shZ)) > 1e-4;
+            this._shX = this.target.x; this._shZ = this.target.z; this._shN = (this._shN || 0) + 1;
+            if (this.shadowsOn !== false && (mv ? this._shN % (this.phone ? 2 : 1) === 0 : step && G.frame % (this.phone ? 3 : 2) === 0)) this.renderer.shadowMap.needsUpdate = true;
             if (!this.warmed) this.warmPrograms();
             R3Mirror.render(this, a);
             Post3.render(this.scene, this.camera, R3U.uTime.value, this.grade, env && typeof EnvGhost !== 'undefined' && EnvGhost.on);
@@ -371,16 +378,33 @@ const R3 = {
     /* if this device struggles, step down once: a smaller picture */
     watchSpeed() {
         // (on Auto only: a quality picked in Settings stays as picked)
-        if (this.stepped || GFX.quality()) return;
-        const now = performance.now();
-        if (this._last) this.slow.push(now - this._last);
+        if (GFX.quality()) return;
+        const now = performance.now(), dt = this._last ? now - this._last : 0;
         this._last = now;
-        if (this.slow.length < 240) return;
-        // (the typical frame once the first few seconds are over: a hitch while things load used to tip the average over
-        // and leave the picture coarse for the rest of the visit)
-        const fr = this.slow.slice(90).sort((p, q) => p - q), med = fr[fr.length >> 1];
-        this.stepped = true;
-        if (med > 24) { this.quality = 0.6; this.resize(); }
+        // (only while playing on the island, and not across a pause: a menu, a door, the tab put away)
+        if (!dt || dt > 250 || G.mode !== 'play' || UI.modal || (G.area && G.area.interior)) return;
+        this.slow.push(dt);
+        if (!this.stepped) {
+            if (this.slow.length < 240) return;
+            // (the typical frame once the first few seconds are over: a hitch while things load used to tip the average
+            // over and leave the picture coarse for the rest of the visit)
+            const fr = this.slow.slice(90).sort((p, q) => p - q), med = fr[fr.length >> 1];
+            this.stepped = true; this.slow = []; this.speedAt = now;
+            if (med > 24) { this.quality = 0.6; this.resize(); }
+            return;
+        }
+        // and after that, every three seconds or so of play: a picture that keeps coming a refresh late here and there
+        // judders even at 60 a second most of the time (a big screen, 1 November), so a little less detail, a step at a
+        // time, never below 0.55, at most every six seconds
+        if (this.slow.length < 180) return;
+        const fr = this.slow.slice().sort((p, q) => p - q), base = fr[Math.floor(fr.length * 0.2)];
+        const late = this.slow.filter(x => x > base * 1.5).length / this.slow.length;
+        this.slow = [];
+        if (late > 0.06 && this.quality > 0.55 && now - (this.speedAt || 0) > 6000) {
+            this.quality = Math.max(0.55, Math.round((this.quality - 0.15) * 100) / 100);
+            this.speedAt = now;
+            this.resize();
+        }
     },
     /* every kind of card material made once, up front: a material that shows up later in a new way (a tree going
        see-through the first time, a building's sides) would otherwise be compiled in the middle of a walk */

@@ -616,6 +616,7 @@ function appSettings() {
     if (!Online.visitor()) { b.appendChild(islandNameSetting()); b.appendChild(clockSetting()); }
     b.appendChild(zoomSetting());
     if (R3.available()) b.appendChild(gfxSetting());
+    b.appendChild(hudSetting());
     b.appendChild(el('h3', null, '')).style.margin = '8px 0 0';
     const note = el('p', 'muted', Cloud.problem === 'offline' ? "Can't reach the island server right now. Your island is kept on this device and saves online once the connection is back."
         : 'Your island saves online as you play, so it follows you to any device.');

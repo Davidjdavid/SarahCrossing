@@ -502,6 +502,49 @@ test('everyone dresses up: David has his hair done at the salon, wears Sarah-sty
   await david.context().close();
 });
 
+test('on screen, as each device likes it: the time card hidden, the sand dollars fading while Sarah walks and back once she stands still, kept on the device; the dock on a touch screen can fade but never hide', async () => {
+  const page = await device();
+  await page.evaluate(() => localStorage.setItem('sc-current', ''));
+  await page.reload();
+  await title(page);
+  await page.evaluate(() => __dbg.quickStart());
+  await page.waitForFunction(() => G.mode === 'play');
+  // Settings has a row of choices for each part
+  await page.evaluate(() => appSettings());
+  await page.waitForSelector('[data-hud="time"] .chip, [data-hud="time"] button');
+  const rows = await page.evaluate(() => [...document.querySelectorAll('[data-hud]')].map((r) => [r.dataset.hud, [...r.children].map((c) => c.textContent)]));
+  assert.deepEqual(rows.map((r) => r[0]), ['time', 'money', 'buttons', 'keys', 'dock']);
+  assert.deepEqual(rows[0][1], ['Always', 'When still', 'Hidden']);
+  // the time card hidden, the sand dollars only when still
+  await page.click('[data-hud="time"] >> text=Hidden');
+  await page.click('[data-hud="money"] >> text=When still');
+  await page.evaluate(() => UI.close(true));
+  const shown = await page.evaluate(() => ({ time: getComputedStyle($('#hudL .hud-status')).display, money: $('#hudR .pill.money').classList.contains('hud-still'), kept: JSON.parse(localStorage.getItem('sc-hud')) }));
+  assert.deepEqual(shown, { time: 'none', money: true, kept: { time: 'off', money: 'still' } });
+  // walking: away; standing still a second or two: back
+  await page.keyboard.down('ArrowRight');
+  await until(() => page.evaluate(() => document.body.classList.contains('hud-moving')), 5000);
+  await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(600);
+  assert.equal(await page.evaluate(() => document.body.classList.contains('hud-moving')), true, 'not back the moment she stops');
+  await until(() => page.evaluate(() => !document.body.classList.contains('hud-moving')), 5000);
+  // a reload keeps it
+  await page.reload();
+  await title(page);
+  await page.click('#tbtns button:has-text("Continue")');
+  await page.waitForFunction(() => G.mode === 'play');
+  await until(() => page.evaluate(() => getComputedStyle($('#hudL .hud-status')).display === 'none'), 5000);
+  // on a touch screen the dock (the way into the phone) is never hidden
+  const touch = await page.evaluate(() => {
+    G.touchUsed = true;
+    HudPrefs.set('dock', 'off');
+    return { mode: HudPrefs.mode('dock'), off: $('#hudB').classList.contains('hud-off'), choices: HudPrefs.modes('dock').map((m) => m[1]) };
+  });
+  assert.deepEqual(touch, { mode: 'still', off: false, choices: ['Always', 'When still'] });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
 test('cheat mode unlocks the newer things too: Shrimpy and Muggy moved in, the café, every town project, the biggest shops, the barn, the sea chest, outdoor pieces and mailbox styles; the spoiler guide tells every story as it runs now', async () => {
   const page = await device();
   // (with the Town Hall's rooms, as on the live site: the projects and the boarded lighthouse are theirs)

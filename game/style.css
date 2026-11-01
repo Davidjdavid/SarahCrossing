@@ -827,3 +827,9 @@ canvas.postcard { display: block; width: min(288px, 100%); height: auto; margin:
 .prof-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0 12px; }
 .prof-facts dt { font-weight: 700; opacity: 0.7; }
 .prof-facts dd { margin: 0; min-width: 0; }
+
+/* what's on screen, as each device likes it (6zzp_hud.js): hidden, or fading away while Sarah walks and back once she's
+   stood still a moment */
+.hud-off { display: none !important; }
+.hud-still { transition: opacity 0.6s ease; }
+body.hud-moving .hud-still { opacity: 0 !important; pointer-events: none; transition: opacity 0.3s ease; }

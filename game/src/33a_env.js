@@ -11,7 +11,7 @@ const ENV = {
     BASE: 0.25,         // the low ground's height above the sea
     RES: 4,             // height points a tile
     CHUNK: 16,          // tiles a ground piece
-    cam: { dist: 12.2, pitch: 34, fov: 44, ahead: 2.0, out: [13, 3] },    // ahead: tiles the view sits north of Sarah; out: at the lookout, degrees lower and tiles further
+    cam: { dist: 12.2, pitch: 34, fov: 44, below: [1.6, 2.6], out: [13, 3] },    // below: tiles south of Sarah the view centres on (wide, upright screen: where running down used to take it); out: at the lookout, degrees lower and tiles further
     dof: [25, 62, 7.6, 5.2],   // where the background starts to blur (and fully), where the foreground does (the concept keeps the trees behind the houses sharp)
     people: 1.3,        // how much bigger people stand than in the classic HD-2D view
     items: 0.6,         // and things lying on the ground
@@ -167,15 +167,17 @@ const Env = {
         const sig = pathsVer();
         if (B.pathsV == null) B.pathsV = sig;
         if (sig !== B.pathsV) { B.pathsV = sig; for (const c of B.chunks.values()) if (c.state === 2) c.stale = true; }
-        const seen = near(1), want = near(10);
+        const seen = near(1), want = near(14);
         // on screen: made now
         for (const [cx, cy] of seen) { const c = get(cx, cy); if (c.state !== 2 || c.stale) EnvChunk.finish(c, a); }
-        // just beyond: a few milliseconds a frame
-        const t0 = performance.now(), budget = r3.phone ? 4 : 3;
-        for (const [cx, cy] of want) {
-            const c = get(cx, cy);
-            if (c.state === 2 && !c.stale) continue;
-            EnvChunk.work(c, a, t0 + budget);
+        // just beyond: a few milliseconds a frame, nearest the view first (in reading order, the piece about to come on
+        // screen could wait behind ones in a corner behind Sarah, and was then made all at once as it came into view: a
+        // hitch of 20 ms and more while running, 1 November), and a little more time while one is nearly on screen
+        const gap = ([cx, cy]) => Math.max(0, vx0 - (cx + 1) * CH, cx * CH - vx1) + Math.max(0, vy0 - (cy + 1) * CH, cy * CH - vy1);
+        const todo = want.filter(([cx, cy]) => { const c = B.chunks.get(cx + ',' + cy); return !c || c.state !== 2 || c.stale; }).sort((p, q) => gap(p) - gap(q));
+        const t0 = performance.now(), budget = (r3.phone ? 4 : 3) * (todo.length && gap(todo[0]) < 4 ? 2 : 1);
+        for (const [cx, cy] of todo) {
+            EnvChunk.work(get(cx, cy), a, t0 + budget);
             if (performance.now() > t0 + budget) break;
         }
         const on = new Set(seen.map(([cx, cy]) => cx + ',' + cy));
@@ -293,8 +295,10 @@ const EnvCull = {
             }
             T.m.count = k;
             T.m.visible = k > 0;
+            // (only the copies in use go to the graphics card, not the whole island's list each time the view moves on)
+            const um = T.m.instanceMatrix.updateRange; um.offset = 0; um.count = Math.max(16, k * 16);
             T.m.instanceMatrix.needsUpdate = true;
-            if (dc) T.m.instanceColor.needsUpdate = true;
+            if (dc) { const uc = T.m.instanceColor.updateRange; uc.offset = 0; uc.count = Math.max(3, k * 3); T.m.instanceColor.needsUpdate = true; }
         }
     },
 };
