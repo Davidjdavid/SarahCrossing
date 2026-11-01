@@ -193,7 +193,10 @@ const Requests = {
        29 October: no asking them for one, by talk or text, so being asked feels special); she can say not now */
     chance: 0.25,
     async maybeAsk(n) {
-        if (this.from(n.id) || this.open().length >= REQ_MAX || R() > this.chance) return;
+        // (the browser tests turn the chance off, window.__noAsk, as igMaybeAsk does, unless a test sets it to always:
+        // a favor asked swapped the menu a test was checking, now and then, Basil's noodle cart)
+        const roll = window.__noAsk && this.chance < 1 ? 1 : R();
+        if (this.from(n.id) || this.open().length >= REQ_MAX || roll > this.chance) return;
         const id = n.id, t = this.make(n);
         const k = await UI.ask(id, voiced(id, rpick(FAVOR_ASK)), ['Sure!', 'Not right now'], { keep: true });
         if (k !== 0) { await UI.say(id, voiced(id, rpick(FAVOR_LATER)), { keep: true }); return; }
