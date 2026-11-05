@@ -103,7 +103,11 @@ const Cloud = {
             if (current == null || (current && !this.list.some(i => i.id === current))) current = this.list.length ? this.list[0].id : '';
             lsSet(CLOUD_CURRENT, current);
         }
-        if (Online.visitor()) return this.bootVisitor(current, reached);
+        // (a visitor never starts an island, so "a new one" means nothing to them: they join the island played most
+        // recently. A device that first opened the game before Sarah had an island, or where she picked a new one, kept
+        // that and told David she hadn't started, with her island right there in the list, 5 November. Only for this
+        // visit: what Sarah chose on the device stays hers)
+        if (Online.visitor()) return this.bootVisitor(current || (reached && this.list.length ? this.list[0].id : ''), reached);
         if (!current) {
             // a new island that was started while the server couldn't be reached
             const c = this.readCopy(null);

@@ -29,6 +29,9 @@ docs/DEPLOY.md for the server.
   they look as they always have (`dressAsAlways`). A visitor's designs are `cu<who><n>`, never one of Sarah's names.
 - Playing together connects as soon as the island has an id (`Online.update` tries `connect` once a second while there's
   no connection): a new island, or one picked after the page opened, used to stay offline until a reload (31 October).
+  A visitor on a device whose remembered island is "a new one" (`sc-current` '', from before Sarah had an island) joins
+  the most recently played island (`Cloud.boot`, without changing `sc-current`), and a visitor with no island open always
+  has the Islands button (5 November: David was told she hadn't started, her island right there in the list).
 - Cheat mode (Settings > Secrets > Unlock everything, `unlockEverything` in 6w_extras.js) also moves Captain Shrimpy and
   Muggy in, opens the café, builds every town project, grows the shops to their biggest, gives the barn key, opens the
   lighthouse chest, mails the planter boxes and puts one of each of Waffle's outdoor pieces and every mailbox style in

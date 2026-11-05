@@ -176,7 +176,8 @@ function showTitle() {
     if (visitor) {
         // a visitor plays on Sarah's island; only she starts islands or brings them in
         if (has) b.appendChild(btn('Continue', 'green', () => continueGame()));
-        if (Cloud.list.length > 1) b.appendChild(btn('Islands', 'alt', () => IslandList.open()));
+        // (and the list of islands whenever there's more than one, or none is open for them: they can always pick one)
+        if (Cloud.list.length > 1 || (!has && Cloud.list.length)) b.appendChild(btn('Islands', 'alt', () => IslandList.open()));
     } else {
         if (has) b.appendChild(btn('Continue', 'green', () => continueGame()));
         else b.appendChild(btn('Start', 'green', () => startNew()));

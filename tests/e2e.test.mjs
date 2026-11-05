@@ -371,6 +371,29 @@ test('a brand-new island is made on the server once the intro is done', async ()
   await page.context().close();
 });
 
+test('a visitor on a device that remembers "a new island" (opened before Sarah had one) still joins Sarah\'s island, and Sarah\'s own choice on that device is kept', async () => {
+  const sarah = await device();
+  await sarah.evaluate(() => __dbg.quickStart());
+  await sarah.waitForFunction(() => G.mode === 'play');
+  await saveNow(sarah);
+  await until(() => sarah.evaluate(() => !!Cloud.id && Cloud.seq === Cloud.sentSeq));
+  const name = await sarah.evaluate(() => S.islandName);
+  await sarah.context().close();
+  const david = await device({ who: 'david' });
+  // (as a device that first opened the game before there was an island, or where Sarah picked a new one)
+  await david.evaluate(() => localStorage.setItem('sc-current', ''));
+  await david.reload();
+  await title(david);
+  assert.match(await david.textContent('#ttag'), new RegExp('Welcome to ' + name + ', David!'));
+  assert.ok((await buttons(david)).includes('Continue'));
+  await play(david);
+  assert.equal(await david.evaluate(() => S.islandName), name);
+  assert.equal(await david.evaluate(() => localStorage.getItem('sc-current')), '');
+  // (his own things on the island aren't there yet on a first visit: a 404 the game expects)
+  assert.deepEqual(david.problems.filter((m) => !/404/.test(m)), []);
+  await david.context().close();
+});
+
 test('playing together: David visits Sarah, they see each other, and his things are his own', async () => {
   const sarah = await device();
   await play(sarah);
