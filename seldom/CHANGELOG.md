@@ -38,3 +38,6 @@
 - David got stuck at the first woods wall: "look the wrong way" read as turning Dot round. Ruth now adds, once the
   Spyglass is in hand, that it's the view that moves (hold X, look past the trees as far as it goes, let go, walk away
   from the trees out of the view's edge); Iris's hint says the same.
+- From David's screenshot: the red X (where Dot can't come in at the far edge) was drawn under the trees and hidden in
+  just the spot where it mattered. Dot's edge marks (the see-through copy and the X) are now drawn over everything, the
+  X bolder, outlined, blinking and kept inside the view.

@@ -43,6 +43,7 @@ const R = {
         const tx0 = Math.floor(r.x / TILE) - 1, ty0 = Math.floor(r.y / TILE) - 1;
         const tx1 = Math.ceil((r.x + r.w) / TILE) + 1, ty1 = Math.ceil((r.y + r.h) / TILE) + 3;
         const items = [];
+        D.late = []; D.lateLit = [];   /* Dot's edge marks: drawn over everything, so trees never hide them */
         const wf = Math.floor(G.t * 2.5) % 4;
         for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
             const ch = map.t(tx, ty), tt = TT[ch];
@@ -71,7 +72,9 @@ const R = {
         }
         items.sort((a, b) => a.y - b.y);
         for (const it of items) it.draw();
+        for (const f of D.late) f();
         if (!(opts && opts.terrain)) { Fx.draw(D); Light.draw(D, r, sx, sy, sw, sh); }
+        for (const f of D.lateLit) f();
         if (map.def.overlay) map.def.overlay(D, r);
         ctx.restore();
     },
@@ -174,14 +177,15 @@ function drawEnt(D, e, r) {
         for (const [dx, dy] of shifts) {
             const nb = { x: e.x + dx, y: e.y + dy, w: e.w, h: e.h };
             if (e === World.dot && (boxBlocked(e.map, nb, e) || !inZone(e.map, nb, 'wrap'))) {
-                /* Dot can't come in there: say so where Dot would have appeared */
-                const x = D.X(ecx(nb)), y = D.Y(nb.y - 6), k = D.k * 3;
-                ctx.strokeStyle = 'rgba(226,87,76,0.8)'; ctx.lineWidth = D.k * 1.5;
-                ctx.beginPath(); ctx.moveTo(x - k, y - k); ctx.lineTo(x + k, y + k); ctx.moveTo(x + k, y - k); ctx.lineTo(x - k, y + k); ctx.stroke();
+                /* Dot can't come in there: say so where Dot would have appeared (over the trees, lit at night) */
+                const k = D.k * 4, pad = k + D.k * 3;
+                const x = clamp(D.X(ecx(nb)), D.X(r.x) + pad, D.X(r.x + r.w) - pad), y = clamp(D.Y(nb.y - 6), D.Y(r.y) + pad, D.Y(r.y + r.h) - pad);
+                const cross = (c, wd) => { ctx.strokeStyle = c; ctx.lineWidth = wd; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - k, y - k); ctx.lineTo(x + k, y + k); ctx.moveTo(x + k, y - k); ctx.lineTo(x - k, y + k); ctx.stroke(); ctx.lineCap = 'butt'; };
+                (D.lateLit || []).push(() => { cross('rgba(42,27,45,0.85)', D.k * 3.5); cross(Math.floor(G.t * 3) % 2 ? '#ff6a5c' : '#e2574c', D.k * 2); });
                 continue;
             }
-            ctx.globalAlpha = 0.35; const ox = e.x, oy = e.y; e.x += dx; e.y += dy;
-            (K.draw || defaultDraw)(e, D); e.x = ox; e.y = oy; ctx.globalAlpha = 1;
+            const ghost = () => { ctx.globalAlpha = 0.35; const ox = e.x, oy = e.y; e.x += dx; e.y += dy; (K.draw || defaultDraw)(e, D); e.x = ox; e.y = oy; ctx.globalAlpha = 1; };
+            if (e === World.dot && D.late) D.late.push(ghost); else ghost();
         }
     }
 }
