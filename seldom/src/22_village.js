@@ -132,12 +132,12 @@ async function bandTalk() {
     await say('Funny thing about our song. Nobody\'s ever heard the end of it. Nobody\'s ever stayed that long.', 'band');
 }
 /* the band only plays while seen; the drums only once Tilt's back; and the song does end, for whoever watches long enough */
-const BAND_SONG_LOOPS = 6;
+const BAND_SONG_LOOPS = 20;
 KINDS.band.update = function (e, dt) {
     musicStep(e, dt);
     const S = SONGS[e.song]; if (!S) return;
     const loop = (60 / S.bpm / 4) * S.len;
-    if (!G.flags.lastNote && G.flags.drummer && e.st.mpos >= loop * BAND_SONG_LOOPS && !World.cutscene && G.state === 'play') {
+    if (!G.flags.lastNote && G.flags.drummer && e.st.mpos >= loop * BAND_SONG_LOOPS && !World.cutscene && G.state === 'play' && !Cam.eye && World.dot.map === e.map) {
         G.flags.lastNote = true; e.st.mpos = 0;
         scene(async () => { Sfx.play('chime'); await say('...and that\'s the end! The whole song! Nobody\'s ever stayed for all of it before. Here, a keepsake.', 'band'); giveCurio('note'); });
     }

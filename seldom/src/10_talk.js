@@ -79,8 +79,8 @@ async function talkTo(e) {
 }
 /* a scene: the island waits while it runs (the Laws still hold: only what's in view moves) */
 async function scene(fn) {
-    World.cutscene = true;
-    try { await fn(); } finally { World.cutscene = null; Cam.hold = null; }
+    World.cutscene = (World.cutscene || 0) + 1;
+    try { await fn(); } finally { World.cutscene = World.cutscene > 1 ? World.cutscene - 1 : null; if (!World.cutscene) Cam.hold = null; }
 }
 const wait = s => new Promise(res => { const until = G.t + s; World.triggers.push({ test: () => G.t >= until, run: res }); });
 const until = f => new Promise(res => World.triggers.push({ test: f, run: res }));

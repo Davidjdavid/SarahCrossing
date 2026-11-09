@@ -154,12 +154,12 @@ const UI = {
     drawMenu(ctx, X, Y, s) {
         ctx.fillStyle = 'rgba(10,6,14,0.6)'; ctx.fillRect(R.gx, R.gy, R.gw, R.gh);
         const items = this.menuItems();
-        const bw = 180, bh = this.menu === 'controls' ? 150 : 24 + items.length * 14, bx = (VIEW_W - bw) / 2, by = (VIEW_H - bh) / 2;
+        const ctl = this.menu === 'controls' ? Controls.lines().flatMap(l => wrapText(l, 290)) : null;
+        const bw = ctl ? 310 : 180, bh = ctl ? 34 + ctl.length * 10 : 24 + items.length * 14, bx = (VIEW_W - bw) / 2, by = (VIEW_H - bh) / 2;
         ctx.fillStyle = 'rgba(26,18,32,0.96)'; roundRect(ctx, X(bx), Y(by), bw * s, bh * s, 5 * s); ctx.fill();
         ctx.strokeStyle = P.cream; ctx.lineWidth = s; roundRect(ctx, X(bx + 1.5), Y(by + 1.5), (bw - 3) * s, (bh - 3) * s, 4 * s); ctx.stroke();
         if (this.menu === 'controls') {
-            const rows = Controls.lines();
-            rows.forEach((r, i) => drawText(ctx, r, X(bx + 10), Y(by + 10 + i * 10), i % 2 ? P.white : P.cream, s));
+            ctl.forEach((r, i) => drawText(ctx, r, X(bx + 10), Y(by + 10 + i * 10), P.cream, s));
             drawText(ctx, '→ Back', X(bx + 10), Y(by + bh - 14), P.yellow, s);
             return;
         }

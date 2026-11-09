@@ -106,3 +106,58 @@ See `PROJECT_STATE.md` for what is built. The intended path:
 Camera and film words hidden as ordinary names: **Iris** (the astronomer), **Pan** (the shepherd), **Dolly** (a sheep),
 **Ansel** (the old keeper), **Bridget** (Muybridge, the carpenter who only moves while watched), **Flash** (the fast kid),
 **Leica** (the dog), **Tilt** (the drummer who wandered off).
+
+## As built: every puzzle and its solutions (tile coordinates on the island map)
+
+**Act one (village, harbor).** Start on the pier (50,71). Ansel fishes; his fish bites after 14 s of being watched.
+- Eggs: the hen run (58-62, 41-44) has one wild egg. Pocket it, walk away (12+ tiles) and back: it's there again. Three
+  for Mrs. Crumb (bakery interior). The seventh egg picked is golden (curio).
+- Cake: the oven bakes only while seen (24 s); leaving the bakery pauses it.
+- Bridge: Bridget (64,42) builds only while seen (22 s). Opens the pasture.
+- Drummer: Tilt is frozen mid-step on the west beach (37,60); seen, he walks back to the bandstand, only while seen.
+  When he arrives the village song gets its drums.
+- Night: the island's hour moves only while the Great Clock (49-50, 34-37) is seen (1 h per 30 s). The bench by the
+  Clock (52,39) time-lapses everything in view 8x until night or morning. Lamp Night starts when all three errands are
+  done, it's night, and Dot is in the square. Reward: the Spyglass (look / pin).
+- Band: after 20 loops of being heard with drums, the song ends: "The Last Note" (curio).
+- Midnight: the Clock's bird drops a brass feather by the tower if the Clock is seen at midnight (curio).
+- Leica (Bound in the village) squeezed against the walled garden's hedge (42-46, 30-33) pops inside, digs, and brings
+  out a marble when she comes back out (curio).
+
+**Pasture.** Pan opens the pen (86-92, 44-50, gate on the north side 88-90). Sheep are Bound inside the pasture.
+Ways: drag a sheep with the trailing edge (walk away from it), push it with a pinned view's edge (look/pan), squeeze it
+against the pen's fence so it pops inside. All four penned: the Loupe (zoom in to 3x). Optional: the Ant Crown on the
+pond's islet (91,56) over the ants' twig bridge, only there at 3x.
+
+**Quarry.** Lux patrols (50-61, 30) and turns back anyone going north through the gate while he's seen. Ways: pin the view
+away from him when he's at the far end (he holds still), or zoom in. After you come back south he gives up for good.
+Hourglass gate (54-55, 22): the plate (44,24) opens it; the hourglass (41,24) runs only while seen (1.5 s). Ways: stand
+on the plate, look right so the hourglass leaves the view, then walk (it holds); zoom in; set a rock (wild) on the plate.
+The lever behind it (56,21) opens it for good. Stillfall: the falls come over only while the spring (44-45, 11) is seen;
+look down (or zoom in) until the curtain drains, then walk into the cave (44-45, 15): the Wide Glass (zoom out to 0.5).
+The chute: push the cut block at the top (59,7) down; it rolls only while seen. Ways: zoom out to see the whole chute,
+or let it freeze and walk round to the foot and look up at it. It breaks the cracked wall (64, 17-20) to the ferry ledge.
+
+**Woods (wrap zone 4-34 x 14-55).** Wall A (25-26): look left so the view's right edge is near Dot in the clearing, then
+walk right: Dot comes in at the left edge, beyond the wall. Rope A (23,33) opens a gate for next time. Wall D (rows
+40-52, thick): zoom out to 0.75 (not 0.5: you'd land in the stream), pin the view so its bottom edge is in the strip
+below (rows 53-55), walk north out of the top. Rope D (15,53) opens the tunnel for next time. Optional: Rover frozen in
+the far north (10,6) (cross the stream by wrapping vertically): the Old Sandwich (curio). Ruth wraps round with the view.
+
+**Hollow.** The black brook (rows 60-61): the ants' twig bridge at x 28 exists only at 3x zoom. The Faded appear only at
+night: night stays as long as the Clock isn't seen, so make it night in the village and walk down. The chapel door opens
+only at night. Four Faded fill the yard's gateway (16-19, 70): with Dot pressing into their line there are five in one
+band of the view; pin the view so Dot is the farthest from the middle and Dot flickers and walks through (or zoom out so
+the bands are taller). Mrs. Sepia gives the Prism. Leaving: flicker again or split the view (Tab) and walk across the
+seam to outside the yard. The rope by the east hedge (33,65) opens a gate to the harbor for next time.
+
+**Cape.** From the ferry ledge (65-66, 17-20) split the view, move the other half so its edge is on the cape (71+),
+walk across the seam. The lighthouse door (87,9) leads to the lamp room: set the four glasses.
+
+**Act three (the Eye).** Arrows move the view; Q/E resize; Tab splits; X moves the other half. Goals: night (the Clock),
+Ansel to the lighthouse (others optional: Iris, Pan, Flash), then a flame: the square's bonfire throws sparks east; split,
+put the left half's right edge just east of the fire and the right half's left edge just west of the lamp (87,3) at the
+matching height; a spark crossing the seam reaches the lamp. Walkers stop at the ledge ("How do we get across?") and
+cross on a seam like Dot did. Lit: the beam is a view of its own (things in it go on), the Faded are restored. Last look:
+Z closes the eye (iris-out), credits over that frame, then the island goes on in its light. Continue after the end: Dot
+walks again; the title says how many nights passed while you were away.

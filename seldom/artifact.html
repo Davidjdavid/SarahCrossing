@@ -1690,8 +1690,8 @@ async function talkTo(e) {
 }
 /* a scene: the island waits while it runs (the Laws still hold: only what's in view moves) */
 async function scene(fn) {
-    World.cutscene = true;
-    try { await fn(); } finally { World.cutscene = null; Cam.hold = null; }
+    World.cutscene = (World.cutscene || 0) + 1;
+    try { await fn(); } finally { World.cutscene = World.cutscene > 1 ? World.cutscene - 1 : null; if (!World.cutscene) Cam.hold = null; }
 }
 const wait = s => new Promise(res => { const until = G.t + s; World.triggers.push({ test: () => G.t >= until, run: res }); });
 const until = f => new Promise(res => World.triggers.push({ test: f, run: res }));
@@ -2109,12 +2109,12 @@ const UI = {
     drawMenu(ctx, X, Y, s) {
         ctx.fillStyle = 'rgba(10,6,14,0.6)'; ctx.fillRect(R.gx, R.gy, R.gw, R.gh);
         const items = this.menuItems();
-        const bw = 180, bh = this.menu === 'controls' ? 150 : 24 + items.length * 14, bx = (VIEW_W - bw) / 2, by = (VIEW_H - bh) / 2;
+        const ctl = this.menu === 'controls' ? Controls.lines().flatMap(l => wrapText(l, 290)) : null;
+        const bw = ctl ? 310 : 180, bh = ctl ? 34 + ctl.length * 10 : 24 + items.length * 14, bx = (VIEW_W - bw) / 2, by = (VIEW_H - bh) / 2;
         ctx.fillStyle = 'rgba(26,18,32,0.96)'; roundRect(ctx, X(bx), Y(by), bw * s, bh * s, 5 * s); ctx.fill();
         ctx.strokeStyle = P.cream; ctx.lineWidth = s; roundRect(ctx, X(bx + 1.5), Y(by + 1.5), (bw - 3) * s, (bh - 3) * s, 4 * s); ctx.stroke();
         if (this.menu === 'controls') {
-            const rows = Controls.lines();
-            rows.forEach((r, i) => drawText(ctx, r, X(bx + 10), Y(by + 10 + i * 10), i % 2 ? P.white : P.cream, s));
+            ctl.forEach((r, i) => drawText(ctx, r, X(bx + 10), Y(by + 10 + i * 10), P.cream, s));
             drawText(ctx, '→ Back', X(bx + 10), Y(by + bh - 14), P.yellow, s);
             return;
         }
@@ -3030,12 +3030,12 @@ async function bandTalk() {
     await say('Funny thing about our song. Nobody\'s ever heard the end of it. Nobody\'s ever stayed that long.', 'band');
 }
 /* the band only plays while seen; the drums only once Tilt's back; and the song does end, for whoever watches long enough */
-const BAND_SONG_LOOPS = 6;
+const BAND_SONG_LOOPS = 20;
 KINDS.band.update = function (e, dt) {
     musicStep(e, dt);
     const S = SONGS[e.song]; if (!S) return;
     const loop = (60 / S.bpm / 4) * S.len;
-    if (!G.flags.lastNote && G.flags.drummer && e.st.mpos >= loop * BAND_SONG_LOOPS && !World.cutscene && G.state === 'play') {
+    if (!G.flags.lastNote && G.flags.drummer && e.st.mpos >= loop * BAND_SONG_LOOPS && !World.cutscene && G.state === 'play' && !Cam.eye && World.dot.map === e.map) {
         G.flags.lastNote = true; e.st.mpos = 0;
         scene(async () => { Sfx.play('chime'); await say('...and that\'s the end! The whole song! Nobody\'s ever stayed for all of it before. Here, a keepsake.', 'band'); giveCurio('note'); });
     }
@@ -3902,7 +3902,7 @@ function walkerBrain(e, dt) {
 }
 const Eye = {
     t: 0, intro: 0, wide: null,
-    begin() {
+    begin(resume) {
         Cam.eye = true; Cam.split = false; Cam.mode = 'pinned'; Cam.zmin = 0.5; Cam.zmax = 3; Cam.zoom = Cam.ztarget = 1;
         Cam.ax = 87 * TILE; Cam.ay = 9 * TILE; Cam.clampMap(0);
         this.intro = 0; this.t = 0;
@@ -3910,10 +3910,11 @@ const Eye = {
             let e = ent(n); if (!e) continue;
             if (n === 'ansel') { e.hidden = false; if (e.map !== MAPS.island) continue; }
             if (e.map !== MAPS.island) { e.map.remove(e); e.map = MAPS.island; MAPS.island.ents.push(e); const home = { iris: [40, 36], ansel: [39, 49] }[n]; if (home) { e.x = home[0] * TILE + 3; e.y = home[1] * TILE + 6; } }
-            e.hidden = false; e.hold = false; e.brain = walkerBrain; e.st.leg = null; e.st.arrived = false; e.fixed = false;
+            e.hidden = false; e.hold = false; e.brain = walkerBrain; e.fixed = false;
+            if (!resume) { e.st.leg = null; e.st.arrived = false; }
         }
         const d = World.dot; d.hold = true; d.x = 87 * TILE + 3; d.y = 10 * TILE + 6; d.dir = 'up';
-        Fx.fadeIn(1.5);
+        if (!resume) Fx.fadeIn(1.5);
         Music.cut();
     },
     /* where on the screen the whole island is drawn */
@@ -4004,14 +4005,14 @@ Story.on('tick', (dt) => {
         });
     }
 });
-Story.on('restore', () => { if (G.flags.eye && !G.flags.ended) World.afterLoad = () => { Eye.begin(); Eye.intro = 99; G.flags.eyeTold = true; Fx.fade = 0; }; });
+Story.on('restore', () => { if (G.flags.eye && !G.flags.ended) World.afterLoad = () => { Eye.begin(true); Eye.intro = 99; G.flags.eyeTold = true; Fx.fade = 0; }; });
 
 /* lit: the light sweeps the island, and wherever it falls, things go on by themselves */
 async function lightTheLamp() {
     const F = G.flags;
     const ansel = ent('ansel');
     if (!ansel || !ansel.st.arrived) {
-        if (!F.needAnsel || G.t - F.needAnsel > 6) { F.needAnsel = G.t; const d = World.dot; bark(d, 'Wait! Grandpa needs to be here!', 3); }
+        if (!F.needAnsel || G.t - F.needAnsel > 6) { F.needAnsel = G.t; const d = World.dot; bark(d, 'Wait! Grandpa first!', 3); UI.showHint('The lamp catches for a moment, then gutters out. Dot calls: wait! Grandpa has to be here to see it!', 6); }
         return;
     }
     if (F.lit) return;

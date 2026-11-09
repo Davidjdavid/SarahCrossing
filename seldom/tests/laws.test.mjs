@@ -141,11 +141,12 @@ test('A save from the last act resumes as the Eye', async () => {
         Title.enter(); Game.newGame(); await Bot.talkThrough();
         Object.assign(G.flags, { festival: 1, spyglass: 1, loupe: 1, wideglass: 1, prism: 1, eye: 1, eyeTold: 1 });
         World.hour = 21; Eye.begin(); await Bot.step(5);
+        const a = ent('ansel'); a.st.arrived = true; a.x = 86 * TILE; a.y = 11 * TILE;
         Save.write(true);
         Title.enter(); Game.continueGame(); await Bot.step(5);
-        return [Cam.eye, G.state];
+        return [Cam.eye, G.state, !!ent('ansel').st.arrived, tileOf(ent('ansel'))[0] >= 84];
     });
-    assert.deepEqual(r, [true, 'play']);
+    assert.deepEqual(r, [true, 'play', true, true]);
 });
 
 test('secrets: the seventh egg is golden', async () => {

@@ -136,7 +136,7 @@ function walkerBrain(e, dt) {
 }
 const Eye = {
     t: 0, intro: 0, wide: null,
-    begin() {
+    begin(resume) {
         Cam.eye = true; Cam.split = false; Cam.mode = 'pinned'; Cam.zmin = 0.5; Cam.zmax = 3; Cam.zoom = Cam.ztarget = 1;
         Cam.ax = 87 * TILE; Cam.ay = 9 * TILE; Cam.clampMap(0);
         this.intro = 0; this.t = 0;
@@ -144,10 +144,11 @@ const Eye = {
             let e = ent(n); if (!e) continue;
             if (n === 'ansel') { e.hidden = false; if (e.map !== MAPS.island) continue; }
             if (e.map !== MAPS.island) { e.map.remove(e); e.map = MAPS.island; MAPS.island.ents.push(e); const home = { iris: [40, 36], ansel: [39, 49] }[n]; if (home) { e.x = home[0] * TILE + 3; e.y = home[1] * TILE + 6; } }
-            e.hidden = false; e.hold = false; e.brain = walkerBrain; e.st.leg = null; e.st.arrived = false; e.fixed = false;
+            e.hidden = false; e.hold = false; e.brain = walkerBrain; e.fixed = false;
+            if (!resume) { e.st.leg = null; e.st.arrived = false; }
         }
         const d = World.dot; d.hold = true; d.x = 87 * TILE + 3; d.y = 10 * TILE + 6; d.dir = 'up';
-        Fx.fadeIn(1.5);
+        if (!resume) Fx.fadeIn(1.5);
         Music.cut();
     },
     /* where on the screen the whole island is drawn */
@@ -238,14 +239,14 @@ Story.on('tick', (dt) => {
         });
     }
 });
-Story.on('restore', () => { if (G.flags.eye && !G.flags.ended) World.afterLoad = () => { Eye.begin(); Eye.intro = 99; G.flags.eyeTold = true; Fx.fade = 0; }; });
+Story.on('restore', () => { if (G.flags.eye && !G.flags.ended) World.afterLoad = () => { Eye.begin(true); Eye.intro = 99; G.flags.eyeTold = true; Fx.fade = 0; }; });
 
 /* lit: the light sweeps the island, and wherever it falls, things go on by themselves */
 async function lightTheLamp() {
     const F = G.flags;
     const ansel = ent('ansel');
     if (!ansel || !ansel.st.arrived) {
-        if (!F.needAnsel || G.t - F.needAnsel > 6) { F.needAnsel = G.t; const d = World.dot; bark(d, 'Wait! Grandpa needs to be here!', 3); }
+        if (!F.needAnsel || G.t - F.needAnsel > 6) { F.needAnsel = G.t; const d = World.dot; bark(d, 'Wait! Grandpa first!', 3); UI.showHint('The lamp catches for a moment, then gutters out. Dot calls: wait! Grandpa has to be here to see it!', 6); }
         return;
     }
     if (F.lit) return;
