@@ -43,7 +43,8 @@ function drawTitle(g, t) {
         if (on) { const w = textW(it) + 14; blob(g, VW / 2 - w / 2, y - 3, w, 13, C.y, C.k, roundRect(w, 13, 3)); }
         textC(g, it, VW / 2, y, on ? C.k : C.W);
     });
-    textC(g, focused ? 'arrows to move    Z to choose' : 'click here first, then press Z', VW / 2, VH - 12, focused ? C.G : C.Y);
+    if (UI.sureNew) textC(g, 'This replaces your saved game. Z again to start over.', VW / 2, VH - 12, C.r);
+    if (!UI.sureNew) textC(g, focused ? 'arrows to move    Z to choose' : 'click here first, then press Z', VW / 2, VH - 12, focused ? C.G : C.Y);
 }
 
 /* ---------- pause ---------- */

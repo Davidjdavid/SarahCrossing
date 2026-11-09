@@ -247,9 +247,9 @@ function handleEvents(ctx = {}) {
             case 'getdigit': { sfx('get'); const pp = pocketPos(e.pi); puff(pp.x + 6, pp.y + 6, C.Y, 8, 1, 0.5); break; }
             case 'refuse': sfx('refuse'); shake = 1.5; break;
             case 'age': sfx('grow'); if (ev) puff(cx, cy, C.l, 10, 1, 0.6, 1); break;
-            case 'sink': sfx('sink'); if (ev) puff(cx, cy + 4, C.c, 10, 1, 0.6, 1); break;
+            case 'sink': sfx('sink'); if (ev) puff(cx, cy + 4, C.c, 10, 1, 0.6, 1); undoTip(); break;
             case 'float': case 'rise': sfx('float'); if (ev) puff(cx, cy + 4, C.w, 8, 0.8, 0.6, 1); break;
-            case 'fall': sfx('fall'); if (ev) puff(cx, cy, C.T, 8, 1, 0.5); break;
+            case 'fall': sfx('fall'); if (ev) puff(cx, cy, C.T, 8, 1, 0.5); undoTip(); break;
             case 'fallme': sfx('fall'); break;
             case 'crackbreak': sfx('crack'); if (ev) puff(cx, cy, C.g, 14, 1.4, 0.6, 1); shake = 3; break;
             case 'gateopen': sfx('gate'); break;
@@ -292,6 +292,12 @@ function handleEvents(ctx = {}) {
     }
     for (const s of says) sayLines(s.lines, s.who);
     if (UI.endingPending && !UI.dlg) { UI.endingPending = false; startEnding(); }
+}
+/* the first time something is lost, a word about taking it back */
+function undoTip() {
+    try { if (localStorage.getItem('carry-the-one-undotip')) return; localStorage.setItem('carry-the-one-undotip', '1'); } catch (e) { if (UI.undoTipShown) return; }
+    UI.undoTipShown = true;
+    setTimeout(() => banner('U takes back a step', 'R starts the room over', C.Y, 3.2), 700);
 }
 function snapAllSoon() { VIS.clear(); FLY.length = 0; groundCache.key = null; }
 

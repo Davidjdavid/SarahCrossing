@@ -8,7 +8,8 @@ g0.imageSmoothingEnabled = false; gw.imageSmoothingEnabled = false;
 
 function copyCanvas(src) { const c = mkCanvas(src.width, src.height); c.getContext('2d').drawImage(src, 0, 0); return c; }
 function fit() {
-    const W = window.innerWidth, H = window.innerHeight;
+    const cs = getComputedStyle(document.body);
+    const W = window.innerWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0), H = window.innerHeight;
     const touch = document.body.classList.contains('touch');
     const avH = touch ? H - 170 : H;
     let s = Math.min(W / VW, avH / VH);
@@ -46,11 +47,13 @@ function press(k) {
 }
 function titleKey(k) {
     const items = titleItems();
-    if (k === 'u') { UI.titleI = (UI.titleI + items.length - 1) % items.length; sfx('menu'); }
-    if (k === 'd') { UI.titleI = (UI.titleI + 1) % items.length; sfx('menu'); }
+    if (k === 'u') { UI.titleI = (UI.titleI + items.length - 1) % items.length; UI.sureNew = false; sfx('menu'); }
+    if (k === 'd') { UI.titleI = (UI.titleI + 1) % items.length; UI.sureNew = false; sfx('menu'); }
     if (k === 'A' || k === 'START') {
         const it = items[UI.titleI];
+        if (it === 'New game' && hasSave() && !UI.sureNew) { UI.sureNew = true; sfx('menu'); return; }
         sfx('get');
+        UI.sureNew = false;
         if (it === 'Continue' && resumeSave()) begin(false);
         else { newGame(); begin(true); }
     }
