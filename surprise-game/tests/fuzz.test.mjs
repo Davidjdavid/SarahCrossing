@@ -13,12 +13,12 @@ function checkWorld(A, where) {
     assert.ok(G.p.x >= 0 && G.p.x < 16 && G.p.y >= 0 && G.p.y < 11, `${where}: player out of bounds`);
     assert.ok(A.ROOMS[G.room], `${where}: unknown room ${G.room}`);
     assert.ok(G.pocket.length >= 1 && G.pocket.length <= 3, `${where}: pocket size ${G.pocket.length}`);
-    const digit = (d, what) => assert.ok(d === null || (Number.isInteger(d) && d >= 0 && d <= 10), `${where}: bad digit ${d} in ${what}`);
-    G.pocket.forEach(d => digit(d, 'pocket'));
+    const digit = (d, what) => assert.ok(Number.isInteger(d) && d >= 0 && d <= 10, `${where}: bad digit ${d} in ${what}`);
+    G.pocket.forEach(d => d === null || digit(d, 'pocket'));
     for (const [k, ds] of Object.entries(G.p.s)) ds.forEach(d => digit(d, 'player.' + k));
     G.hour.forEach(d => digit(d, 'hour'));
     G.count.forEach(d => digit(d, 'count'));
-    assert.ok(Number.isFinite(G.road.p) || G.road.p === Infinity, `${where}: road p ${G.road.p}`);
+    assert.ok(Number.isFinite(G.road.p) && Number.isFinite(G.road.e), `${where}: road ${G.road.p},${G.road.e}`);
     assert.ok(!Number.isNaN(G.road.p) && !Number.isNaN(G.road.e), `${where}: road NaN`);
     for (const [id, r] of Object.entries(G.rooms)) for (const e of r.ents) {
         assert.ok(Number.isInteger(e.x) && Number.isInteger(e.y), `${where}: ${id}.${e.id} at ${e.x},${e.y}`);
@@ -32,14 +32,14 @@ function checkWorld(A, where) {
     }
 }
 
-for (const seed of [1, 2, 3, 4, 5, 6]) {
+for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
     test(`random play, seed ${seed}`, () => {
         const r = rng(seed * 7919);
         const A = load();
         A.newGame();
         const G = () => A.G;
         /* a generous start, so the dice reach everywhere */
-        G().pocket = [0, 9, 5];
+        G().pocket = seed % 3 === 0 ? [10, 0, 10] : [0, 9, 5];
         if (seed % 2) { G().items.specs = 1; G().items.watch = 1; }
         const rooms = Object.keys(A.ROOMS);
         for (let step = 0; step < 1500; step++) {

@@ -144,6 +144,8 @@ TALK.hillscope = () => F().lit ? ['Far off to the east, the lighthouse. Shining!
 TALK.guard = () => {
     const g = entById('guard');
     if (g && g.s && dval(g.s.age) < 16) return ['I\'m off duty! I\'m only little!'];
+    const aged = g && ageTalk(g);
+    if (aged) return aged;
     return cycle('guard', [['Clock Hill\'s closed. Orders.', 'I\'m off at sundown, mind. Not that I\'m telling you anything.'], ['Nothing up there but an old tower with no door.']]);
 };
 TALK.mirror = () => G.items.specs ? ['You. Age ' + dstr(G.p.s.age) + '.'] : ['You.'];

@@ -124,8 +124,11 @@ function snapCore(withRooms) {
     if (withRooms) s.rooms[G.room] = JSON.stringify(G.rooms[G.room]);
     return s;
 }
-function beginSnap() { pendingSnap = snapCore(true); }
-function touchRoom(id) { if (pendingSnap && !(id in pendingSnap.rooms)) pendingSnap.rooms[id] = JSON.stringify(G.rooms[id]); }
+function beginSnap() { pendingSnap = snapCore(true); pendingSnap.entry = entrySnap; }
+function touchRoom(id) {
+    if (pendingSnap && !(id in pendingSnap.rooms)) pendingSnap.rooms[id] = JSON.stringify(G.rooms[id]);
+    if (entrySnap && !(id in entrySnap.rooms)) entrySnap.rooms[id] = JSON.stringify(G.rooms[id]);
+}
 function commitSnap() { if (pendingSnap) { UNDO.push(pendingSnap); if (UNDO.length > 3000) UNDO.shift(); } pendingSnap = null; }
 function restoreSnap(s) {
     const core = JSON.parse(s.core);
@@ -137,13 +140,16 @@ function undo() {
     const s = UNDO.pop();
     if (!s) return false;
     restoreSnap(s);
+    if (s.entry) entrySnap = s.entry;
     EV.push({ t: 'undo' });
     return true;
 }
 function restartRoom() {
     if (!entrySnap) return false;
-    beginSnap(); for (const id in entrySnap.rooms) touchRoom(id); commitSnap();
-    restoreSnap(entrySnap);
+    const back = entrySnap;
+    beginSnap(); for (const id in back.rooms) touchRoom(id); commitSnap();
+    restoreSnap(back);
+    entrySnap = back;
     EV.push({ t: 'restart' });
     return true;
 }
@@ -411,7 +417,7 @@ function freeNear(room, x, y) {
     for (let r = 1; r < 6; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (ok(x + dx, y + dy)) return [x + dx, y + dy];
     return [x, y];
 }
-function takeStairs(e) { EV.push({ t: 'stairs' }); goRoom(e.to, e.tx, e.ty, 'fade', e.dir || 'd'); return 'room'; }
+function takeStairs(e) { EV.push({ t: 'stairs' }); const [x, y] = freeNear(e.to, e.tx, e.ty); goRoom(e.to, x, y, 'fade', e.dir || 'd'); return 'room'; }
 function enterHollow(e) { enterRoomAt('hollow', { room: G.room, x: e.x, y: e.y + (e.h || 1) }); return 'room'; }
 function fallThrough(hole) {
     EV.push({ t: 'fallme' });
@@ -442,7 +448,8 @@ function physics() {
     for (const e of R.ents) {
         if (e.gone || !OBJ[e.k]) continue;
         const wasWet = e.wet, wasFloat = e.wet && e.float;
-        if (isWater(e.x, e.y) && !bridgeAt(e.x, e.y)) {
+        const br = bridgeAt(e.x, e.y), holds = br && ['new', 'sound'].includes(bridgeStage(sv(br, 'age')));
+        if (isWater(e.x, e.y) && !holds) {
             e.wet = true;
             e.float = weightOf(e) === 0;
             if (!wasWet) EV.push({ t: e.float ? 'float' : 'sink', id: e.id });
@@ -714,6 +721,7 @@ function validAfter(e, key) {
     if (e.k === 'npc' && key === 'age' && dval(e.s.age) === 0) return false;
     if (e.k === 'milestone') {
         const R = G.road;
+        if (!Number.isFinite(R.p) || !Number.isFinite(R.e)) return false;
         if (R.p !== Infinity && R.e !== Infinity && R.p + R.e > 99) return false;
         return true;
     }
@@ -750,9 +758,13 @@ function roadChanged() {
     }
 }
 function transform(id) {
-    if (G.room === 'road') saveRoadDrops();
+    touchRoom('road'); touchRoom(id);
+    const carried = rs('road').ents.filter(e => e.k === 'loose' && !e.gone);
+    rs('road').ents = rs('road').ents.filter(e => e.k !== 'loose');
+    delete G.roadDrops[G.road.p];
     const [x, y] = freeNear(id, G.p.x, G.p.y);
     G.room = id; G.p.x = x; G.p.y = y;
+    for (const l of carried) { const [lx, ly] = canDrop(l.x, l.y) ? [l.x, l.y] : [x, y]; l.x = lx; l.y = ly; rs(id).ents.push(l); }
     EV.push({ t: 'room', how: 'morph', to: id });
     entrySnap = snapCore(true);
 }
@@ -835,8 +847,9 @@ function buy(e) {
     if (e.sold) return say(e.soldText || ['Sold out.']);
     if (!shopOpen()) return say(['The shop is closed.']);
     const price = dval(e.s.price), gold = pv('gold');
+    if (price === Infinity) return say(['That one\'s priceless, love. Not for sale.']);
     if (price > gold) { EV.push({ t: 'poor', id: e.id }); return HOOK.cantAfford ? HOOK.cantAfford(e) : say(['Not enough gold.']); }
-    G.p.s.gold = vdig(gold - price, 2);
+    if (gold !== Infinity) G.p.s.gold = vdig(gold - price, 2);   /* endless money stays endless, and stays one infinity */
     e.sold = true;
     EV.push({ t: 'buy', id: e.id });
     if (e.item === 'digit') giveDigit(e.digit); else getItem(e.item);
@@ -844,7 +857,7 @@ function buy(e) {
     return 'turn';
 }
 function getItem(id) {
-    if (id === 'satchel') { G.pocket.push(null); }
+    if (id === 'satchel' && G.pocket.length < 3) { G.pocket.push(null); }
     G.items[id] = (G.items[id] || 0) + 1;
     EV.push({ t: 'item', id });
     if (id === 'specs') EV.push({ t: 'reveal' });
@@ -876,11 +889,22 @@ function loadSave() {
     if (typeof localStorage === 'undefined') return null;
     try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; }
 }
+/* a save is only numbers: anything that isn't a digit becomes 0 */
+function sanitize(g) {
+    const fix = ds => Array.isArray(ds) ? ds.map(d => (Number.isInteger(d) && d >= 0 && d <= INF) ? d : 0) : ds;
+    for (const k in g.p.s) g.p.s[k] = fix(g.p.s[k]);
+    g.hour = fix(g.hour); g.count = fix(g.count); g.lamp = fix(g.lamp);
+    g.pocket = g.pocket.map(d => d === null ? null : fix([d])[0]);
+    for (const k of ['p', 'e']) if (!Number.isFinite(g.road[k])) g.road[k] = k === 'e' ? 99 : 0;
+    for (const id in g.rooms) for (const e of g.rooms[id].ents) if (e.s) for (const k in e.s) e.s[k] = fix(e.s[k]);
+    if (g.follow && g.follow.s) g.follow.s.age = fix(g.follow.s.age);
+}
 function hasSave() { return !!loadSave(); }
 function resumeSave() {
     const s = loadSave(); if (!s) return false;
     G = s;
     for (const id in ROOMS) if (!G.rooms[id]) G.rooms[id] = { ents: clone(ROOMS[id].ents || []) };
+    sanitize(G);
     G.dead = null;
     UNDO.length = 0;
     entrySnap = snapCore(true);

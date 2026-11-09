@@ -92,5 +92,10 @@ test('the bell at 9999 plays the ending through to the credits', async () => {
     assert.equal(await page.evaluate(() => __dbg.UI.mode), 'play');
     assert.equal(await page.evaluate(() => __dbg.G.room), 'harbor');
     await shot('after-ending');
+    /* there's no going back to before the end */
+    await page.keyboard.press('KeyR'); await page.waitForTimeout(300);
+    await page.keyboard.press('KeyU'); await page.waitForTimeout(300);
+    assert.equal(await page.evaluate(() => __dbg.G.room), 'harbor');
+    assert.ok(await page.evaluate(() => __dbg.G.flags.lit));
     assert.deepEqual(errors, []);
 });

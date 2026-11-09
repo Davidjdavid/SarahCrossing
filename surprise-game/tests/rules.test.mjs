@@ -322,3 +322,52 @@ test('the far shore: the sea is as wide as it says', () => {
     assert.ok(G.stamps.shore);
     assert.equal(G.pocket[0], 10, 'carrying infinity');
 });
+
+/* ---- from the independent review ---- */
+test('infinity at the shop: priceless things cannot be bought, endless gold stays one infinity', () => {
+    const { A, G, B } = fresh('shop', 7, 5, (A, G) => { G.p.s.gold = [10, 2]; A.entById('sh_nine').s.price = [10, 0]; });
+    B.move('u');
+    assert.ok(!A.entById('sh_nine').sold, 'priceless');
+    G.p.x = 9; B.move('u');
+    assert.ok(A.entById('sh_map').sold);
+    assert.deepEqual(J(G.p.s.gold), [10, 2], 'gold unchanged and never NaN');
+});
+
+test('starting a room over puts back what fell out of it, without copies', () => {
+    const { A, G, B } = fresh('westlane', 13, 9, (A, G) => { G.p.s.str = [9]; });
+    B.exit('d');
+    assert.equal(G.room, 'quarry');
+    for (let n = 0; n < 3; n++) { B.goto(2, 6); for (let i = 0; i < 5; i++) B.move('r'); assert.ok(A.findEnt('cr2').broken); A.restartRoom(); }
+    const inCellar = A.rs('cellar').ents.filter(e => e.id === 'q_boulder').length;
+    assert.equal(inCellar, 0);
+    assert.equal(A.rs('quarry').ents.filter(e => e.id === 'q_boulder').length, 1);
+});
+
+test('stairs never land you inside something', () => {
+    const { A, G, B } = fresh('cellar', 3, 3, (A, G) => { A.entById('q_boulder', 'quarry').x = 4; A.entById('q_boulder', 'quarry').y = 5; });
+    B.move('u');
+    assert.equal(G.room, 'quarry');
+    assert.ok(!(G.p.x === 4 && G.p.y === 5));
+});
+
+test('an unbuilt bridge holds nothing up', () => {
+    const { A, G, B } = fresh('westlane', 11, 5, (A, G) => { G.p.s.str = [9]; A.entById('wl_bridge').s.age = [0]; });
+    B.move('l'); B.move('l');
+    const p = A.entById('parcel5');
+    assert.equal(p.x, 8);
+    assert.ok(p.wet, 'into the river');
+});
+
+test('the road cannot be made endless', () => {
+    const { A, G, B } = fresh('eastlane', 15, 5, (A, G) => { G.pocket = [10]; });
+    B.move('r');
+    G.p.x = 7; G.p.y = 5; G.p.dir = 'u';
+    assert.equal(A.act({ t: 'swap', tg: { t: 'slot', id: 'ms_road', key: 'e', i: 0 }, pi: 0 }), false);
+});
+
+test('the little guard says so', () => {
+    const { A, G, B } = fresh('eastlane', 7, 2, (A, G) => { G.items.specs = 1; G.pocket = [0]; });
+    B.near(7, 1, 'u'); B.put(0, 'guard', 'age', 0);
+    B.bump(5, 2);
+    assert.ok(B.lines.some(l => /only little/.test(l)), B.lines.join('|'));
+});

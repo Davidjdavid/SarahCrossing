@@ -127,7 +127,7 @@ ROOMS.eastlane = {
     ents: [
         { k: 'lot', id: 'lot9', x: 2, y: 1, w: 3, h: 3, door: [1, 2], s: { age: [0], addr: [9] } },
         H('h4', 11, 1, [4], 'tock', null, 6),
-        NPC('guard', 7, 1, 'guard', AGE([2, 9], { aside: [5, 2] })),
+        NPC('guard', 7, 1, 'guard', AGE([2, 9], { aside: [5, 2], ownAge: true })),
         { k: 'milestone', id: 'ms_east', x: 13, y: 6, side: 'east' },
         DECO('el_bench', 5, 7, 'bench'),
         DECO('el_sign', 2, 6, 'sign', { text: ['Lot for sale. Build what you like.'] }),

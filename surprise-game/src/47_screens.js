@@ -159,6 +159,7 @@ function endingUpdate(dt) {
         E.phase = 3; E.t = 0;
         G.room = 'harbor'; G.hour = [2, 1]; G.p.x = 8; G.p.y = 4; G.p.dir = 'd';
         if (G.follow) { G.follow.x = 7; G.follow.y = 4; }
+        UNDO.length = 0; entrySnap = snapCore(true); autosave();
         VIS.clear();
         UI.mode = 'dialog';
         sayLines(['There you are.'], 'keeper');

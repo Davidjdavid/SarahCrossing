@@ -144,7 +144,7 @@ const digCache = new Map();
 function digitImg(d, col, scale = 1, flip = false) {
     const key = `${d}|${col}|${scale}|${flip}`;
     if (digCache.has(key)) return digCache.get(key);
-    const rows = DIG[d];
+    const rows = DIG[d] || DIG[0];
     const w = rows[0].length, h = rows.length;
     const cv = mkCanvas(w * scale, h * scale), g = cv.getContext('2d');
     g.fillStyle = col;
@@ -152,7 +152,7 @@ function digitImg(d, col, scale = 1, flip = false) {
     digCache.set(key, cv);
     return cv;
 }
-const digitW = d => DIG[d][0].length;
+const digitW = d => (DIG[d] || DIG[0])[0].length;
 
 /* ---------- icons for what a number means (5x5) ---------- */
 const ICON_SRC = {

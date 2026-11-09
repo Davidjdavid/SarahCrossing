@@ -133,3 +133,14 @@ Post-game: the world stays playable for the remaining stamps.
 - **Tock's line** about the clock was too explicit; now oblique ("It keeps it").
 - Undo through doors didn't restore the destination room's return point — found by the fuzz
   test.
+- **Independent review pass** (a separate reviewer reading only the code and notes) found 9
+  defects, all fixed with regression tests: ∞ at the shop could make gold NaN and freeze the
+  screen through the save (priceless items now refuse; endless gold stays one ∞; saves are
+  sanitized on load); a held key could shove the Mere crate into the lake (reeds now block it;
+  the plate's own need digit was always a fallback); "start this room over" duplicated things
+  that had fallen into other rooms (restart now restores every room the room's actions touched,
+  and undo remembers which room-start applies); ∞ milestones made the road unrepairable and
+  didn't survive saving (milestones refuse ∞); R after the ending un-lit the lamp (the ending
+  clears history); digits dropped on a road screen that then became the Cape were lost (they
+  travel along); stairs could land you inside a boulder; an unbuilt bridge held a parcel up;
+  the little guard's line never played.

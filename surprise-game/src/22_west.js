@@ -99,6 +99,7 @@ ROOMS.mere = {
         { k: 'tree', id: 'mere_sapling', x: 13, y: 3, s: { age: [0] } },
         DECO('mere_sign', 14, 6, 'sign', { text: ['THE MERE. The sluice feeds the mill. Weigh it down to open.'] }),
         DECO('mere_reeds', 11, 7, 'reeds', { walk: true }),
+        DECO('mere_bank', 8, 6, 'reeds', { text: ['Thick reeds. Nothing gets past them.'] }),
     ],
 };
 

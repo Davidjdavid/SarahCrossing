@@ -58,7 +58,7 @@ Most puzzles have several solutions; these are just the obvious ones.
 | Nowhere | Any door with an address nobody lives at (e.g. 9 before the lot is built, 47 on a fort door). The dead-letter office. |
 | Housewarming | East Lane's lot is a house of age 0. Give it an age; visit No. 9. |
 | The Old Dig | The Quarry's cracked floor holds 3. Be heavier (or push the 5-weight boulder in): fall into the cellar. Two 9s down there. |
-| The Far Shore | With spectacles, the sea at the Harbor shows its width: ∞. Swap a 0 or 1 into it: a shore appears. You now carry ∞. |
+| The Far Shore | With spectacles, the sea at the Harbor shows its width: ∞. Swap a 0 into it: the shore comes right up to the dock (a 1 leaves one row of sea between: cross it weighing nothing). You now carry ∞, which works almost everywhere (not in milestones: the road won't be endless). |
 | Halfway | Walk the Long Road honestly (no milestone swaps) to its 50th screen. |
 
 ## Smaller things
