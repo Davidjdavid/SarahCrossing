@@ -991,3 +991,9 @@ CI and the deploy run them too. Pushes to `claude/serene-mendel-8428vr` deploy t
 (https://beta.sarahcrossing.com, its own islands); the live site (Sarah's island) only changes when
 the Deploy workflow is run by hand with target `live` (or on a push to `main`). Never deploy live
 unless asked.
+
+## Seldom (seldom/): a separate game
+
+`seldom/` is a different game, not part of Sarah Crossing (its own code, tests and single-file build; nothing in
+`game/`, `server/` or the deploy touches it). Before working on it read `seldom/CLAUDE.md` and `seldom/PROJECT_STATE.md`
+(they hold spoilers: never repeat them in messages to David).
