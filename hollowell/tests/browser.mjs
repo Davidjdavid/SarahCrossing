@@ -146,6 +146,30 @@ const SCENARIOS = {
             await shot('bf_' + n);
         }
     },
+    async hushwood() {
+        await open();
+        await page.evaluate(() => { HW.preset('afterD4'); HW.step(5); HW.skipTalk(); HW.Progress.set('festival'); HW.warp('hollow', 125, 60); HW.step(60); HW.skipTalk(); });
+        await shot('hw_giant');
+        await page.evaluate(() => { HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(120); HW.skipTalk(); HW.step(200); HW.skipTalk(); HW.step(30); });
+        await shot('hw_road');
+        for (const [n, x, y] of [['hw_house', 128 + 19, 40 + 10], ['hw_puffs', 128 + 8, 40 + 26], ['hw_camp', 128 + 6, 40 + 31], ['hw_pond', 128 + 25, 40 + 29], ['hw_bank', 128 + 34, 40 + 15], ['hw_bed', 128 + 6, 40 + 10]]) {
+            await page.evaluate(([x, y]) => { HW.warp('hollow', x, y); HW.step(60); HW.skipTalk(); }, [x, y]);
+            await shot(n);
+        }
+    },
+    async slumber() {
+        await open();
+        await page.evaluate(() => { HW.newGame('Wren', { area: 'slumber', x: 29, y: 42, noAutosave: true }); for (const t of ['gloves', 'hook', 'paddle', 'bell', 'bedroll']) HW.Inv.giveTool(t); HW.step(10); });
+        const rooms = { porch: [29, 42], ward: [29, 31], linen: [17, 27], laundry: [42, 30], study: [64, 30], loft: [49, 34], landing: [29, 20], nursery: [17, 16], moonwalk: [42, 16], fort: [9, 9], boss: [29, 9] };
+        for (const [n, [x, y]] of Object.entries(rooms)) {
+            await page.evaluate(([x, y]) => { HW.warp('slumber', x, y); HW.step(40); HW.skipTalk(); HW.step(5); }, [x, y]);
+            await shot('sl_' + n);
+        }
+        await page.evaluate(() => { HW.walkTo(29, 6); HW.step(200); HW.skipTalk(); HW.step(60); });
+        await shot('sl_boss_fight');
+        await page.evaluate(() => { HW.warp('hummock_hollow', 9, 2); HW.step(40); });
+        await shot('hw_hollow');
+    },
     async bedroll() {
         await open();
         await page.evaluate(() => {

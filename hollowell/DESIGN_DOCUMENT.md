@@ -228,7 +228,7 @@ Unwinding festival and the open road (epilogue).
 | Kilnridge | Red clay canyons, mesas, kilns' smoke, cracked earth | Pots everywhere (shatter and reform), heat vents, wet clay | D2 Kiln |
 | Millwater (the Reaches) | River delta, reeds, piers, mills, a big lake | Currents, floating things, rafts | D3 Millrace |
 | Belfry Heights | Windswept cliffs, heather, bell shrines, stone stairs | Wind gusts, bells, eyelets on cliffs | D4 Belfry |
-| Hushwood | Dim forest of giant mushrooms and moss, sleeping beasts | Sleep spores, sleeping creatures, bouncy moss | D5 Slumberhouse |
+| Hushwood | Dim forest of giant mushrooms and moss, sleeping beasts | Sleep puffs (breathe the spores and you wake on your mark), Snorelings, bouncy moss, a sleeping giant across the road | D5 Slumberhouse |
 | Larkspur Fair | An abandoned fairground in a glade: tents, carousel, painted signs | Puppet statues, carnival props | D6 Marionette Hall |
 | Loomwood (with the Frayed Edge) | Silver birches, silk strands, moths, fog close by, strays | Taut silk lines, strays, moths | D8 Loom; O1 Stray House |
 | The Underside | Beneath everything: tunnels, workshops, spools, cords | Cords from above, counterweights, hatches | D7 Spoolworks; the Makings |

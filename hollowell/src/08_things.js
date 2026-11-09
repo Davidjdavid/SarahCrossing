@@ -118,7 +118,7 @@ class Pot extends Liftable {
 }
 class Crate extends Liftable {
     constructor(tx, ty, props = {}) { super('crate', tx, ty, props); this.floats = true; }
-    sprite() { return spr(this.marked === false ? 'crate_stray' : 'crate'); }
+    sprite() { return spr(this.look || (this.marked === false ? 'crate_stray' : 'crate')); }
 }
 class Bust extends GridThing {
     constructor(tx, ty, props = {}) { super('bust', tx, ty, Object.assign({ weight: WEIGHT.heavy }, props)); }

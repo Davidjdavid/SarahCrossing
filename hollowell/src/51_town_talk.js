@@ -71,9 +71,15 @@ TALK.burr = function* () {
         ["Nothing up there but fog and trees and more fog.", "Nobody's ever gone past the posts. Nobody's ever wanted to. That's how you know it's a good rule.", "I've stood at this post twenty years. Good post."]);
 };
 TALK.mallow = function* () {
+    if (Progress.flag('d5') && !Progress.flag('mallow_d5')) {
+        Progress.set('mallow_d5');
+        yield* say('mallow', "Ah, the Wanderer. You've been out to the Slumberhouse, I hear. All the way through? *yawn* Good, good. Did you sleep? You should always sleep there. Beds are made to be used.");
+        yield* say('mallow', "How do I know it's... comfy? Ha. Well. One hears things. A doctor hears everything. Here, let me look at you. Not a scratch. Splendid. Off you go.");
+        Inv.hp = Inv.maxHp; return;
+    }
     if (Inv.hp < Inv.maxHp) { Inv.hp = Inv.maxHp; Sfx.play('heart'); yield* say('mallow', "*yawn* Let's have a look... all better. Off you go. Doctor's orders: a nap, soon as you can."); return; }
     yield* firstThen('mallow', "Doctor Mallow. Hurt? Tired? Both? Come and see me, I'll patch you up. *yaaawn* Long night. Very long night.",
-        ["Sleep is the best medicine. Also the second best.", "You look healthy. Disgustingly healthy. Come back when you're not.", "If you ever feel a sort of... tug... behind the ribs? That's normal. Perfectly normal. Everyone has it."]);
+        Progress.flag('d5') ? ["Matron Hush? Never heard of her. Strict sort, was she? Hm.", "If you ever need to come home in a hurry, lie down. That's my advice. Lie down, and think of home.", "Sleep is the best medicine. Also the second best."] : ["Sleep is the best medicine. Also the second best.", "You look healthy. Disgustingly healthy. Come back when you're not.", "If you ever feel a sort of... tug... behind the ribs? That's normal. Perfectly normal. Everyone has it."]);
 };
 TALK.mabel = function* () {
     yield* firstThen('mabel', "Lost and Found. Mostly Found. Nothing's ever lost in the Hollow, they say. And yet I keep this shop.",

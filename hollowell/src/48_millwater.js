@@ -7,9 +7,9 @@
 const MILLRACE_ENTRY = { x: 29, y: 42 };
 
 const MILLWATER_ROWS = [
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
-    'YYY...,...............---"-"""--.-"-##.......###################',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYVVYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYVVYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
+    'YYY...,...............---"-""VV-.-"-##.......###################',
     'YYY,T...........-"-"-"~~~~~~~~~~|~~~~~~~~~~-~~~~~~~~~~~~~~~~~###',
     'YYY..........-"-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY......""--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',

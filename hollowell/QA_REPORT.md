@@ -30,7 +30,15 @@
   easy final boss and Returnball keeping half-scores. All fixed with 11 regression tests
   (`tests/review_d4.test.mjs`, plus heights and belfry updates); `npm test` 129/129.
 
+- 2026-11-09 (night, later): the fifth tool's kit (12 tests), Hushwood (7), the Slumberhouse (17 room and boss
+  tests, including what happens when you get it wrong) and a fifth playthrough leg; `npm test` 166/166. The
+  playthrough found a laundry layout that cut off a door (fixed) and the tests found boards that gave way under
+  Wren when she wobbled on an edge (fixed). Browser shots of every new room and the region checked.
+- Hints: rooms' "already solved" checks were mostly never true, so a hint could pop up after a room was done;
+  fixed generically (chests, doors, gates and levers by id).
+
 ## Unresolved issues
+- D5 and Hushwood haven't had a fresh-eyes review yet.
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
 ## Verification history
@@ -42,3 +50,4 @@
 | 2026-11-09 | Water kit, Millwater, the Millrace: 6 + 16 + 1 playthrough (87 in all); every room screenshotted | pass |
 | 2026-11-09 | D3 review fixes (+5 regression tests); Belfry kit, Heights, Belfry, festival (120 in all); screenshots | pass |
 | 2026-11-09 | D4 review fixes (12 issues, 3 softlocks; +11 regression tests, 129 in all); Belfry browser smoke | pass |
+| 2026-11-09 | Bedroll kit, Hushwood, Slumberhouse, playthrough leg 5 (166 in all); browser shots of every new room | pass |

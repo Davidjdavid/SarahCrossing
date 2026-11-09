@@ -9,7 +9,7 @@
 | D2 | Kiln | Kilnridge | Shards retrace the carried path | Hookline | Kilnwyrm | tested |
 | D3 | Millrace | Millwater | Currents vs the Return; rafts | Paddle | Old Grindle | tested |
 | D4 | Belfry | Belfry Heights | Wind displaces; bells snap home; sleepers | Recall Bell | Tollgrim | tested |
-| D5 | Slumberhouse | Hushwood | Your own mark; falls as travel | Bedroll | Mother Sloth | planned |
+| D5 | Slumberhouse | Hushwood | Your own mark; falls as travel; the trace remembers | Bedroll | Mother Sloth | tested |
 | D6 | Marionette Hall | Larkspur Fair | Remote bodies; synchronised puppets; flats | Crossbar | Great Marionette | planned |
 | D7 | Spoolworks | Underside | Two layers; cords; counterweights; linking | Needle | The Tangle | planned |
 | D8 | Loom | Loomwood | Permanence; warp threads; cutting | Shears | The Weaver | planned |
@@ -114,6 +114,9 @@ Keys: 3 keys (Ferry Pool, Shard Race, Upstream), 3 locks (Carousel W and E, Upst
 | Shrine boulder | Heights terrace 1 (140,29) | a boulder asleep on the stair; strike the shrine bell beside it | built, tested |
 | Heights cave | Heights terrace 1 (158,29) | a boulder asleep in a cave mouth out of the shrine's reach; the Recall Bell | built, tested |
 | S29 Returnball | Hollowell, east of the south road (100..107, 73..76), after Knot 4 | carry the ball through all five rings, throw it, step out of its way: it scores 5 on its way home | built, tested |
+| Hushwood plateau | the far bank (164..166, 44..49) | over the log bridge; the bouncy moss at the path's end hops you up over the ledge | built, tested |
+| S16 The giant's hollow | Hushwood, where Old Hummock slept (131,56) | wake the giant (the Recall Bell); lay the Bedroll up top; climb down: a round door, Linnet's note 6; Homeward back up (or climb the roots, the hard way) | built, tested |
+| S18 Bell in flight | anywhere, flying home | ring the Recall Bell while flying home: Wren snaps home at once | built, tested |
 | S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |
 
 ## D4 Belfry (`src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`; tests `tests/belfry.test.mjs`, `tests/belfry_kit.test.mjs`, `tests/heights.test.mjs`) - tested
@@ -141,44 +144,28 @@ push Wren (she walks at 1.3 a frame; a gust pushes 0.7-1.2); gripping something 
 
 Keys: 3 keys (Draught, Weathercock, Reach), 3 locks (Stair N, Stair E to the Rafters, Loft N).
 
-## Overworld secrets and Heart Patches
+## D5 Slumberhouse (`src/60_slumber.js`, `src/60b_slumber_foes.js`, kit `src/58_bedroll_kit.js`; tests `tests/slumber.test.mjs`, `tests/bedroll_kit.test.mjs`, `tests/hushwood.test.mjs`) - tested
 
-| Secret | Where | How | Status |
-|---|---|---|---|
-| Heart Patch | Meadowfold, behind the windmill (84,84) | walk round behind it | built |
-| Linnet note 2 | Meadowfold, under the stray hay bale (100,110) | push the bale: it doesn't come back | built |
-| Linnet note 1, portrait (S02) | Gran's house | with the Gloves, Z at the turned picture | built |
-| S01 budging | everyone in town | lean on them | built (lines for 17) |
-| Heart Patch | Thimble's shop | 120 buttons | built |
-| S12 Kids' Housekeeper | the town square, after Knot 1 (Otto's chalk X at hub 38,18) | push a crate straight away from his X and step aside: he comes at it from his side, which is the way it goes home, and his own yank bowls him over. Playground badge | built, tested |
-| S19 Behind the falls | Millwater, (171,110) | ride a float down the east side of the river (Paddle): the current turns in behind the falls to a hidden pool; open the chest from the float | built |
-| Basin below the falls | Millwater (172,114) | ride over the falls; a chest (50 buttons) and Linnet's bottle | built |
-| Lake rafts | Millwater: Wick's pier (146,95) and the north shore (168,83) | two rafts, each homed on its own side: paddle over (needs the Paddle); each goes home | built, tested |
-| Shrine boulder | Heights terrace 1 (140,29) | a boulder asleep on the stair; strike the shrine bell beside it | built, tested |
-| Heights cave | Heights terrace 1 (158,29) | a boulder asleep in a cave mouth out of the shrine's reach; the Recall Bell | built, tested |
-| S29 Returnball | Hollowell, east of the south road (100..107, 73..76), after Knot 4 | carry the ball through all five rings, throw it, step out of its way: it scores 5 on its way home | built, tested |
-| S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |
-
-## D4 Belfry (planned: `src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`)
-
-Rules (kit tested in `tests/belfry_kit.test.mjs`): a bell (struck by stick, throw or shards) or the Recall Bell
-rings: every marked thing out of place within 7 tiles snaps home at once (fast, force +1: a snapped bust
-shoves a stone block; a snapped crate shoves a crate). A ring wakes sleepers (things tied off where they lie:
-they go home) and bats. Gusts blow loose light/medium things a tile at a time downwind and push Wren.
-
-Grid 3x5 (a tower), entry at the bottom middle.
+Rules: lie in a bed and it is Wren's mark till she leaves the House or chooses another; rooms don't move it, and a
+fall (or a doze in sleep spores) home onto your own bed costs nothing. Flights home follow Wren's trace (loops
+erased), over anything that is gone now: crumbling boards give way after whatever stood on them steps off (they
+mend when Wren lands from a flight home or leaves the room); dreamcatchers light when a flight passes through. The
+Bedroll (from Matron Hush): tap C to lay it anywhere (on a float it goes where the float goes), hold C to fly
+Homeward along the trace (from another place, straight to it); what Wren carries comes too. Snorelings wake when
+someone walks near them a while, shuffle after you, then go to the nearest bed (a Bedroll counts).
 
 | Room | Cell | Teaches / puzzle | Solution | Reward |
 |---|---|---|---|---|
-| Bell Porch | 1,4 | A ring wakes sleepers | A boulder asleep across the stair north; strike the bell: it goes home. Two bats wake too | way north |
-| The Draught | 0,4 | Wind as a conveyor; strays fill pits | Line up two pale stray crates in the gust's lanes; the gust blows them into the pits round the key's island, filling a way | key 1 |
-| Hard Ringing | 2,4 | Snapped things shove harder | Push the bust out, push the stone onto its way home (it waits behind it); ring: the bust snaps home and shoves the stone onto the plate | Plan |
-| The Stair | 1,3 | Hub | Doors W, E; north door locked; bats in the rafters | - |
-| Rafters | 0,3 | Bells and wind together | A gust carries a crate along; ring the bell at the right moment to snap it home through a plate in passing (pulse) | key 2 |
-| Weathercock Hall | 2,3 | Gust timing; sleepers on plates | Wake sleepers in order so they snap over a plate while the gust holds a gate... | way up E |
-| Clangor's Loft | 1,2 | Mini-boss: Clangor (a bell-headed suit of armour; its own ring snaps things home through it) | Push busts out across its path; when it rings, they snap home through it | Recall Bell |
-| Echo Room | 2,2 | S15: bell-stones in the order of Gran's lullaby | Ring the stones in the lullaby's order (hummed by Gran at bedtime) | Heart Patch, Linnet's note 4 |
-| The Reach | 0,2 | Recall Bell: ring from the right place | Ring where only the right things are within reach | key 3 |
-| Bell Ropes | 1,1 | Recall Bell + Hookline + paddle-less raft? | ... | Pattern |
-| Workshop | 0,1 | Signature | Tess's brass T | Heart Patch |
-| The Great Bell | 1,0 | Boss: Tollgrim | The gargoyle hides in the great bell; the gust blows its clapper out; ring the Recall Bell as the clapper swings back so it slams home into the gargoyle | Knot, Heartstitch |
+| The Night Porch | 1,3 | Beds; boards that go; falls are travel | Lie in the bed; over the boards to the lever on the island; the boards are gone: fall home onto the bed, unhurt | the gate north |
+| The Long Ward | 1,2 | Hub; Snorelings | Beds all along; W open, E (lock) and N (lock) | - |
+| The Linen Cupboard | 0,2 | One walk over the boards | Light the three toggle lamps in one walk without treading a board twice; fall home | key A |
+| The Laundry | 2,2 | The trace remembers a ride | Ride the basket round the current under all three dreamcatchers; step ashore before the loop comes round (or the trace folds up); dive in: flying home lights them all | Plan |
+| Mallow's Study | 3,2 | Signature (S06) | Lay the Bedroll on the sleeping barrel by the grate, ring: it snaps home through the grate (riderless floats only); Homeward: you land on it in the study | Heart Patch, Maker's mark |
+| The Drying Loft | 2,3 | Bell + Hookline + falls | The hook bounces off the boulder asleep on the pillar; ring it home (and the Snorelings wake); hook over to the island; fall home | key B |
+| The Landing | 1,1 | Mini-boss: Matron Hush | She follows your footsteps exactly: cross the boards, they give way under her, she falls and flies home dazed; hit her (3x) | Bedroll |
+| The Nursery | 0,1 | Homeward carries | Lay the Bedroll up top, drop into the playpen, pick up the stray toy block (too big to throw), Homeward with it, set it down in the pit under the north door | the way to the fort (lock C) |
+| The Moonwalk | 2,1 | Homeward is quicker | Lay the Bedroll by the gate, push the block onto the far plate, Homeward, through the gate before the block goes home | key C |
+| Pillow Fort | 0,0 | Bait | Lay the Bedroll on the plate; wake a Snoreling; it chases, gives up and goes to the nearest bed, the Bedroll, and holds the plate | Pattern |
+| Mother Sloth's Room | 1,0 | Boss: Mother Sloth | Her arms catch you and reel you to her bed; lay the Bedroll out of reach (the star ring); caught, fly Homeward: too far, the arm snaps; both snapped, she slumps: knock her nightcap (3x). Out of reach she throws pillows | Knot, Heartstitch |
+
+Keys: 3 keys (Linen, Loft, Moonwalk), 3 locks (Ward E, Ward N, Nursery N). Pattern: the Landing's north door.

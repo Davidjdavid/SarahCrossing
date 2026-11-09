@@ -3,13 +3,12 @@
 _Last updated: 2026-11-09 (session 1, day 1, late)._
 
 ## Status
-**Act I done: 4 of 8 Houses, the festival.** Engine complete enough for the whole
-game; Hollowell (hub) with its buildings, interiors and townsfolk; the prologue and ceremony; Meadowfold; the
-Tidyhouse (D1, 14 rooms); Kilnridge and the Kiln (D2, 13 rooms, the Hookline); Millwater and the Millrace (D3,
-11 rooms, water: currents, rafts, wheels, the Paddle); the lake crossing, the cliff stair, Belfry Heights and the
-Belfry (D4, 12 rooms: bells, wind, sleepers, the Recall Bell); the Knotting Festival with Returnball. All covered
-by tests (120), including scripted playthroughs leg by leg from a fresh game to the fourth Knot.
-The fresh-eyes review of the slice is fixed (see QA_REPORT.md).
+**Five of eight Houses done (Act II half-way).** Engine complete enough for the whole game; Hollowell (hub) with
+its buildings, interiors and townsfolk; the prologue and ceremony; Meadowfold and the Tidyhouse (D1); Kilnridge
+and the Kiln (D2); Millwater and the Millrace (D3); the lake crossing, Belfry Heights and the Belfry (D4); the
+Knotting Festival; Hushwood and the Slumberhouse (D5, 11 rooms, the Bedroll: beds, Homeward, crumbling boards,
+dreamcatchers, Snorelings, Matron Hush, Mother Sloth). All covered by tests (166), including scripted
+playthroughs leg by leg from a fresh game to the fifth Knot. The D4 review's 12 findings are fixed.
 
 ## Done
 - Brief recorded verbatim (GAME_BRIEF.md).
@@ -30,17 +29,16 @@ The fresh-eyes review of the slice is fixed (see QA_REPORT.md).
   (`src/79_presets.js`) start a game at those points; `afterD3`, `afterD4` too.
 
 ## In progress
-- Act II: Hushwood (the rest of block 2,1: the sleeping giant on the east road, woken by the Recall Bell) and
-  the Slumberhouse (D5, the Bedroll).
+- A fresh-eyes review of D5 and Hushwood.
+- Act II: Larkspur Fair (block 0,1, below the Kilnridge high mesa: drop down with the Bedroll) and the
+  Marionette Hall (D6, the Crossbar), Reveal 1.
 
 ## Next priorities
-1. Hushwood + Slumberhouse (D5, Bedroll).
-2. Larkspur Fair + Marionette Hall (D6, Crossbar, Reveal 1).
-3. A fresh-eyes review of D4 and the Heights.
-3. Millwater + Millrace (D3), Belfry Heights + Belfry (D4), the festival; Hushwood + Slumberhouse (D5);
-   Larkspur + Marionette Hall (D6) and Reveal 1.
-4. Act III (Underside, D7, Makings), Act IV (D8, cutting, Drift, final), optional dungeons, secrets.
-5. Music for every region and House; art passes.
+1. Larkspur + Marionette Hall (D6, Crossbar, Reveal 1).
+2. Act III (the Underside, D7 Spoolworks, the three Makings with Tuck).
+3. Act IV (the Loom D8, cutting, the Drift, the Great Spool, the ending).
+4. Optional dungeons O1, O2; the remaining secrets (S11 Bedroll in the fog waits for the valley's edges).
+5. Music and art passes; a full QA pass; reviews.
 
 ## Known bugs
 - Busts look a little like chess pawns (art).

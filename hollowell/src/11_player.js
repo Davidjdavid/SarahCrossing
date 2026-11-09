@@ -126,6 +126,16 @@ class Player extends Ent {
         /* on a float that's moving: carried along */
         if (this.ride && Water.rider(this)) return;
         if (this.shove) return this.updateShove();
+        /* held fast (a boss's hand): no walking, but a tool can still be used */
+        if (this.pinned) {
+            this.walking = false; this.anim = 0;
+            if (!Script.blocking()) {
+                if (Input.pressed('tool')) Tools.use(this);
+                if (Input.down('tool')) Tools.hold(this); else Tools.unhold(this);
+            }
+            this.afterMove();
+            return;
+        }
         if (this.kx || this.ky) {
             this.moveAxis(this.kx, 0); this.moveAxis(0, this.ky);
             this.kx *= 0.78; this.ky *= 0.78;
@@ -318,7 +328,20 @@ class Player extends Ent {
         if (o.onLift) o.onLift(this);
     }
     throwCarry() {
-        const o = this.carry; this.carry = null;
+        const o = this.carry;
+        /* too big and soft to throw: set it down in front, if there's room (a pit takes it) */
+        if (o.noThrow) {
+            const f = this.front(), a = this.area, k = a.kind(f.tx, f.ty);
+            if (!a.inside(f.tx, f.ty) || k.solid || k.ledge || a.at(f.tx, f.ty)) { UI.toast('No room to put it down there.'); return; }
+            this.carry = null; o.carried = false; o.heldBy = null;
+            o.tx = f.tx; o.ty = f.ty; o.x = f.tx * T; o.y = f.ty * T;
+            a.place(o, o.tx, o.ty);
+            if (o.ret) Return.moved(o, o.tx, o.ty);
+            Sfx.play('push');
+            o.landed(false);
+            return;
+        }
+        this.carry = null;
         o.carried = false; o.heldBy = null;
         Thrown.start(o, this, this.dir);
         Sfx.play('throw');
@@ -328,7 +351,7 @@ class Player extends Ent {
         const o = this.carry; if (!o) return;
         this.carry = null; o.carried = false; o.heldBy = null;
         if (o.ret) { Return.sendHome(o); }
-        else { o.tx = this.tx; o.ty = this.ty; this.area.place(o, o.tx, o.ty); }
+        else { o.tx = this.tx; o.ty = this.ty; o.x = o.tx * T; o.y = o.ty * T; this.area.place(o, o.tx, o.ty); o.landed(false); }
     }
 
     /* ----- the stick ----- */

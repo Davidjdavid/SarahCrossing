@@ -117,13 +117,28 @@ const KNOT_LINES = [
 
 /* nudges: the Hints option. A room can say how to tell it's solved and what to nudge */
 const Nudges = {
+    /* "<house>_<id>" means that thing of the House is done: a chest opened, a door or gate opened, a lever pulled;
+       "<house>_chest:<id>" a chest opened; anything else is a story flag */
+    solved(a, c) {
+        if (typeof c === 'function') return c();
+        return c.split('&').every(t => {
+            t = t.trim();
+            if (Progress.flag(t)) return true;
+            const m = /^([a-z]+)_(?:chest:)?(\w+)$/.exec(t);
+            if (!m || m[1] !== a.id) return false;
+            const id = m[2];
+            if (Progress.areaFlag(a.id, 'chest:' + id) || Progress.areaFlag(a.id, 'door:' + id) || Progress.areaFlag(a.id, 'lever:' + id)) return true;
+            const e = a.find(id);
+            return !!(e && (e.opened || e.openedOnce || (e.kind === 'door' && e.open && e.type !== 'shutter') || (e.kind === 'lever' && e.on)));
+        });
+    },
     update(a) {
         if (!Settings.hints || !a.def.house || Progress.flag('noNudges')) return;
         const r = Cam.room; if (!r || !r.nudge) return;
         const n = r.nudge;
         const key = a.id + ':' + r.key;
         if (Progress.areaFlag(a.id, 'nudged:' + r.key)) return;
-        if (n.solved && Story.cond(n.solved)) return;
+        if (n.solved && Nudges.solved(a, n.solved)) return;
         const st = Stats.rooms[a.id + ':' + r.i];
         if (!st || st.t < (n.after || 60 * 60 * 3)) return;
         Progress.setAreaFlag(a.id, 'nudged:' + r.key);

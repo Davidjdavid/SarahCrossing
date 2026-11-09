@@ -447,3 +447,118 @@ test('from the third Knot: over the lake, up the cliff stair and the Heights, th
     ok(area() === 'hollow', 'back outside');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 });
+
+test('from the fourth Knot: the festival, the giant on the east road, Hushwood and the Slumberhouse to its Knot', () => {
+    const HW = loadGame();
+    const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
+    const walk = (x, y, m) => { let r = HW.walkTo(x, y); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y); } ok(r, m || `walk ${x},${y}`); };
+    const area = () => HW.G.map.id;
+    const thing = id => HW.G.map.find(id);
+    const until = (fn, max = 3000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
+    const talk = () => { HW.press('act', 1); HW.skipTalk(); };
+    const p = () => HW.player();
+    const landed = () => until(() => p().state === 'normal', 600);
+    const lay = () => { HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(2); };
+    const homeward = () => { HW.Inv.equipped = 'bedroll'; HW.hold('tool'); HW.step(24); HW.release(); HW.step(1); landed(); };
+    const S = { porch: [20, 33], ward: [20, 22], linen: [0, 22], laundry: [40, 22], loft: [40, 33], landing: [20, 11], nursery: [0, 11], moonwalk: [40, 11], fort: [0, 0], boss: [20, 0] };
+    const s = (r, x, y) => [S[r][0] + x, S[r][1] + y];
+    const steps = (r, path) => { for (const [x, y] of path) { const [tx, ty] = s(r, x, y), d = tx > p().tx ? 'right' : tx < p().tx ? 'left' : ty > p().ty ? 'down' : 'up'; for (let i = 0; i < 60 && (p().tx !== tx || p().ty !== ty); i++) { HW.hold(d); HW.step(1); } const along = d === 'left' || d === 'right' ? () => Math.abs(p().x - (tx * 16 + 8)) : () => Math.abs(p().y - (ty * 16 + 10)); for (let i = 0; i < 12 && along() > 2; i++) { HW.hold(d); HW.step(1); } HW.release(); ok(p().state === 'normal' && p().tx === tx && p().ty === ty, `stepped to ${r} ${x},${y}`); } };
+    const fallHome = dir => { HW.hold(dir); until(() => p().state === 'fall', 200); HW.release(); landed(); };
+    HW.preset('afterD4'); HW.step(10); HW.skipTalk();
+    HW.Inv.maxHp = HW.Inv.hp = 28;
+
+    /* home for the festival (the way down from the Heights is the way up, played in the leg before) */
+    HW.warp('hollow', 64 + 30, 40 + 34); HW.step(10); walk(64 + 30, 40 + 24); HW.step(10); HW.skipTalk(); HW.step(10);
+    ok(HW.Progress.flag('festival'), 'the festival');
+    /* the east road: ring the Bell at the giant */
+    walk(125, 60); HW.Inv.equipped = 'bell'; HW.press('tool', 1);
+    for (let i = 0; i < 30 && !HW.Progress.flag('giant_home'); i++) { HW.skipTalk(); HW.step(20); }
+    HW.skipTalk(); ok(HW.Progress.flag('giant_home'), 'the giant gone home');
+    /* over the moss to the Slumberhouse */
+    walk(128 + 12, 40 + 15); HW.hold('up'); until(() => p().ty <= 40 + 11 && p().state === 'normal', 150); HW.release(); HW.step(5);
+    walk(128 + 19, 40 + 9); HW.hold('up'); until(() => area() === 'slumber', 120); HW.release(); HW.step(30);
+    ok(area() === 'slumber', 'inside the Slumberhouse');
+    HW.G.cheats.god = true;      /* (Snorelings, Matron, Mother Sloth: the dodging isn't what this checks) */
+
+    /* the porch: the bed, the boards, the lever, a fall home */
+    walk(...s('porch', 4, 6)); HW.face('left'); talk();
+    walk(...s('porch', 9, 5)); steps('porch', [[10, 5], [11, 5], [12, 5], [13, 5], [14, 5], [15, 5]]);
+    HW.face('right'); HW.press('act', 1); HW.step(10); fallHome('left');
+    /* the linen cupboard: key A */
+    walk(...s('ward', 1, 5)); walk(...s('linen', 13, 6));
+    steps('linen', [[12, 6], [12, 5], [11, 5], [10, 5], [9, 5], [9, 4], [9, 3], [8, 3], [8, 4], [8, 5], [8, 6], [8, 7], [7, 7]]);
+    HW.step(20); fallHome('left');
+    walk(...s('linen', 3, 5)); HW.face('left'); talk(); ok(HW.Inv.keys('slumber') === 1, 'key A');
+    /* the laundry (lock A): ride under the dreamcatchers; the Plan */
+    walk(...s('ward', 18, 5)); HW.hold('right'); HW.step(40); HW.release(); HW.step(30);
+    walk(...s('laundry', 2, 8)); HW.hold('right'); HW.step(16); HW.release(); HW.step(4);
+    HW.Inv.equipped = 'paddle'; HW.hold(['tool', 'up']); HW.step(20); HW.release();
+    const bk = thing('ldBasket');
+    ok(until(() => bk.ty === s('laundry', 0, 2)[1] && bk.tx <= s('laundry', 7, 0)[0] && !bk.mv, 3000), 'round to the top');
+    HW.hold('up'); until(() => p().ty === s('laundry', 0, 1)[1] && !p().ride, 120); HW.step(10); HW.release();
+    fallHome('down'); HW.step(5);
+    walk(...s('laundry', 2, 1)); HW.face('left'); talk(); ok(HW.Inv.plans.includes('slumber'), 'the Plan');
+    /* the drying loft: key B */
+    walk(...s('laundry', 9, 9)); walk(...s('loft', 9, 1)); walk(...s('loft', 3, 1)); HW.face('left'); talk();
+    walk(...s('loft', 16, 2)); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(120);
+    walk(...s('loft', 13, 3)); HW.Inv.equipped = 'hook'; HW.face('down'); HW.press('tool', 1); HW.step(80);
+    walk(...s('loft', 14, 8)); HW.face('right'); talk(); ok(HW.Inv.keys('slumber') === 1, 'key B');
+    fallHome('left');
+    /* the landing (lock B): Matron Hush; the Bedroll */
+    walk(...s('loft', 9, 1)); walk(...s('laundry', 9, 9)); walk(...s('laundry', 1, 5)); walk(...s('ward', 9, 1));
+    HW.hold('up'); until(() => p().ty <= s('landing', 0, 9)[1] && !HW.Cam.busy, 200); HW.release(); HW.step(5);
+    HW.hold('up'); HW.step(8); HW.release(); HW.step(20); HW.skipTalk(); HW.step(10); HW.skipTalk();
+    const m = thing('matron');
+    walk(...s('landing', 9, 8)); HW.step(10); HW.skipTalk(); HW.step(20);
+    ok(m.state !== 'sleep', 'Matron awake');
+    for (let round = 0; round < 3 && m.alive; round++) {
+        walk(...s('landing', 9, 8));
+        steps('landing', [[9, 7], [9, 6], [9, 5], [9, 4], [9, 3], [9, 2], [9, 1]]);
+        ok(until(() => m.state === 'dazed', 900), 'Matron fell through');
+        walk(...s('landing', 2, 2)); walk(...s('landing', 4, 7)); walk(...s('landing', 4, 9)); HW.face('left'); HW.press('atk', 1); HW.step(20);
+    }
+    ok(!m.alive, 'Matron down'); HW.step(60); HW.skipTalk(); HW.step(10);
+    walk(...s('landing', 9, 9)); HW.face('up'); talk(); ok(HW.Inv.has('bedroll'), 'the Bedroll');
+    /* the moonwalk: key C */
+    walk(...s('landing', 18, 5)); walk(...s('moonwalk', 2, 4)); lay();
+    walk(...s('moonwalk', 15, 9)); HW.push('right', 1); homeward();
+    walk(...s('moonwalk', 2, 2)); HW.face('up'); talk(); ok(HW.Inv.keys('slumber') === 1, 'key C');
+    /* the nursery: the toy home over the drop; the fort: the Pattern */
+    walk(...s('moonwalk', 1, 5)); walk(...s('landing', 1, 5)); walk(...s('nursery', 8, 3)); lay();
+    walk(...s('nursery', 4, 5)); HW.hold('down'); until(() => p().ty === s('nursery', 0, 7)[1] && p().state === 'normal', 120); HW.release();
+    HW.face('down'); HW.press('act', 1); HW.step(10); ok(p().carry, 'the toy');
+    homeward(); HW.face('up'); HW.press('act', 1); HW.step(30);
+    walk(...s('nursery', 9, 1)); HW.hold('up'); HW.step(60); HW.release(); HW.step(30);
+    ok(p().ty <= s('fort', 0, 10)[1], 'into the fort');
+    walk(...s('fort', 16, 8)); lay();
+    const sn = thing('pfSnore2');
+    for (let i = 0; i < 6 && sn.mode !== 'chase'; i++) { walk(...s('fort', 15, 3)); walk(...s('fort', 18, 3)); }
+    walk(...s('fort', 14, 9));
+    ok(until(() => sn.mode === 'sleep' && thing('pfGate').open, 1500), 'a Snoreling asleep on the Bedroll, on the plate');
+    walk(...s('fort', 9, 3)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('slumber'), 'the Pattern');
+    /* Mother Sloth */
+    walk(...s('fort', 9, 9)); walk(...s('nursery', 9, 1)); walk(...s('nursery', 18, 5)); walk(...s('landing', 9, 1));
+    HW.hold('up'); HW.step(60); HW.release(); HW.step(30);
+    walk(...s('boss', 2, 9)); lay();
+    HW.step(1); walk(...s('boss', 9, 6)); HW.skipTalk(); HW.step(10); HW.skipTalk();
+    const sl = HW.G.map.ents.find(e => e.type === 'mothersloth');
+    for (let round = 0; round < 3 && sl.alive; round++) {
+        for (let k = 0; k < 4 && sl.state !== 'slump'; k++) {
+            HW.walkTo(...s('boss', 9, 6));
+            ok(until(() => !!p().pinned, 900), 'caught');
+            homeward();
+        }
+        ok(sl.state === 'slump', 'she slumps');
+        walk(...s('boss', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(20);
+    }
+    ok(!sl.alive, 'Mother Sloth down'); HW.step(100); HW.skipTalk(); HW.step(10);
+    HW.G.cheats.god = false;
+    const hoop = HW.ents('hoop')[0]; ok(hoop, 'the hoop');
+    walk(hoop.tx - 1, hoop.ty); HW.face('right'); HW.press('act', 1); HW.skipTalk(0); HW.step(300); HW.skipTalk(); HW.step(10); HW.skipTalk();
+    ok(HW.Inv.knots.includes('slumber') && HW.Progress.flag('d5'), 'the Sleeping Knot');
+    const exit = HW.ents('warp').find(w => w.to === 'hollow' && w.ty < 11);
+    ok(exit, 'a way out');
+    walk(exit.tx + 1, exit.ty); HW.hold('left'); until(() => area() === 'hollow', 200); HW.release(); HW.step(30);
+    ok(area() === 'hollow', 'back outside');
+    assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
+});

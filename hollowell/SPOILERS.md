@@ -118,7 +118,10 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 14. **S14 Bosses come back** (after each boss, revisit its arena): the boss re-formed, asleep; pet it.
 15. **S15 Echo room** (D4): ring bell-stones in the order of Gran's lullaby (hummed by Gran at bedtime,
     Linnet's theme): hidden room with a Heart Patch and Linnet's note 4.
-16. **S16 The sleeping giant's cave** (Hushwood): after it moves off the road, the hollow it slept in leads down.
+16. **S16 The sleeping giant's cave** (Hushwood): after Old Hummock goes home (the Recall Bell), the hollow he slept
+    in leads down; only with the Bedroll laid up top (or climb the roots back out, the hard way). Below: a small round
+    door painted the colour of the rock, a red X over the keyhole, somebody sawing and humming behind it (the
+    Underside); Linnet's note 6 across crumbling boards.
 17. **S17 Re-mark a sheep** (Needle): give a Meadowfold sheep a place in town; it lives there forever.
 18. **S18 Bell-and-bedroll**: ring the Bell while flying Homeward: Wren snaps home instantly (speed tech).
 19. **S19 Behind the falls** (Millwater): ride a float down the east side of the outlet river (needs the
@@ -179,8 +182,12 @@ be frightened of that." The Stray House's last room: Linnet's bracelet (for the 
   clapper out of the bell's mouth and he leans out to spit gravel; ring the Recall Bell then and the clapper
   snaps home with force into him: he drops out dazed below the bell; hit him (3x). Clangor (mini-boss) is the
   same idea with busts Wren displaces herself.
-- **Mother Sloth (D5)**: its thread-arms grab Wren and reel her to its bed; lay the Bedroll so that
-  Homeward drags Wren back across its arms' path, snapping its arms; then hit its nightcap.
+- **Matron Hush (D5 mini-boss)**: a sleepwalking nurse who puts her feet exactly where Wren put hers. Cross the
+  crumbling boards; they give way under her; she falls and flies home to her bed, dazed; hit her (3x). The Bedroll.
+- **Mother Sloth (D5)**: her long arms catch Wren and reel her to her bed. Lay the Bedroll outside her reach (a
+  ring of stars on the carpet); caught, go Homeward: flying further than she can reach snaps the arm. Both arms
+  snapped, she slumps and her nightcap is there to knock (3x). Out of reach, she lobs pillows. "Nothing ever gets
+  away from Mother... except what's going home." (Gran, in miniature.)
 - **Great Marionette (D6)**: walk Wren's own puppets around its legs to tangle the strings (sync puppets),
   or hook its control bar; it falls; the curtain drops: Jory above at the controls. Reveal 1.
 - **The Tangle (D7)**: re-thread its cords with the Needle so it pulls itself apart.
@@ -192,3 +199,12 @@ be frightened of that." The Stray House's last room: Linnet's bracelet (for the 
 The square in bunting; Gran's speech; Ives, Bram, Dad and Mum arrive late from four directions, out of breath,
 with clay, river water, brass dust and a feather duster on them (the first strong clue to Reveal 1). Gran points
 Wren at the east road and the sleeping giant. Returnball stays up afterwards.
+
+## Hushwood and the Slumberhouse (Knot 5, `src/59_hushwood.js`, `src/60_slumber.js`)
+Old Hummock, a giant asleep across the east road "since before Gran was born", wakes at the Recall Bell, apologises
+and lumbers home to his own bed. Hettie the forager has been camped by Lantern Pond ever since, unable to get home.
+The Slumberhouse is Doctor Mallow's: his case book in the study ("The Wanderer... Wakes where we put her", the last
+words crossed out hard), his monogram in the rug. Back in town he knows things about it he shouldn't ("How do I know
+it's comfy? One hears things"). The schoolhouse rules gained, faintly, "6. You have a place too" after Knot 4: the
+Bedroll is the first thing in the game that lets Wren choose where home is (it matters at the ending). Gran, after
+Knot 5: "Mind you always roll it up and bring it home. A Wanderer's place is at home."

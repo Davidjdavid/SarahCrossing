@@ -33,3 +33,11 @@ PRESETS.afterD4 = () => {
     Progress.setGoal('Home to Hollowell: it is the Knotting Festival.');
     World.enter('hollow', BELFRY_OUT.x, BELFRY_OUT.y, { dir: DOWN });
 };
+PRESETS.afterD5 = () => {
+    PRESETS.afterD4();
+    for (const f of ['festival', 'giant_awake', 'giant_home', 'giant_seen', 'met:hettie']) Progress.set(f);
+    Inv.giveTool('bedroll'); Inv.knots.push('slumber'); Inv.addHeart();
+    for (const f of ['d5', 'slumber_boss', 'slumber_matron', 'slumber_slothAwake', 'bedroll_laid', 'bed_first']) Progress.set(f);
+    Progress.setGoal('Home to Hollowell. (Somebody at the clinic will want to hear all about it.)');
+    World.enter('hollow', SLUMBER_OUT.x, SLUMBER_OUT.y, { dir: DOWN });
+};

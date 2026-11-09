@@ -210,7 +210,11 @@ class Crumble extends FloorThing {
         const w = this.weighed() || this.walkerOn();
         if (this.state === 'whole') { if (w) this.state = 'trod'; return; }
         if (this.state === 'trod') { if (!w) { this.state = 'cracking'; this.t = 0; Sfx.play('crumble', 0.4); } return; }
-        if (this.state === 'cracking') { if (++this.t >= (this.slow || 16)) this.fall(); }
+        if (this.state === 'cracking') {
+            /* a foot back on it straight away (a wobble on the edge) doesn't count as leaving it */
+            if (w && this.t < 6) { this.state = 'trod'; return; }
+            if (++this.t >= (this.slow || 16)) this.fall();
+        }
     }
     /* anything walking (a Snoreling, the Matron) weighs on it too */
     walkerOn() { for (const m of this.area.walkers) if (m.alive !== false && m.feetOn && m.feetOn(this.tx, this.ty)) return true; return false; }

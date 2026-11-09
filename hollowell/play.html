@@ -1600,7 +1600,7 @@ class Pot extends Liftable {
 }
 class Crate extends Liftable {
     constructor(tx, ty, props = {}) { super('crate', tx, ty, props); this.floats = true; }
-    sprite() { return spr(this.marked === false ? 'crate_stray' : 'crate'); }
+    sprite() { return spr(this.look || (this.marked === false ? 'crate_stray' : 'crate')); }
 }
 class Bust extends GridThing {
     constructor(tx, ty, props = {}) { super('bust', tx, ty, Object.assign({ weight: WEIGHT.heavy }, props)); }
@@ -2251,6 +2251,16 @@ class Player extends Ent {
         /* on a float that's moving: carried along */
         if (this.ride && Water.rider(this)) return;
         if (this.shove) return this.updateShove();
+        /* held fast (a boss's hand): no walking, but a tool can still be used */
+        if (this.pinned) {
+            this.walking = false; this.anim = 0;
+            if (!Script.blocking()) {
+                if (Input.pressed('tool')) Tools.use(this);
+                if (Input.down('tool')) Tools.hold(this); else Tools.unhold(this);
+            }
+            this.afterMove();
+            return;
+        }
         if (this.kx || this.ky) {
             this.moveAxis(this.kx, 0); this.moveAxis(0, this.ky);
             this.kx *= 0.78; this.ky *= 0.78;
@@ -2443,7 +2453,20 @@ class Player extends Ent {
         if (o.onLift) o.onLift(this);
     }
     throwCarry() {
-        const o = this.carry; this.carry = null;
+        const o = this.carry;
+        /* too big and soft to throw: set it down in front, if there's room (a pit takes it) */
+        if (o.noThrow) {
+            const f = this.front(), a = this.area, k = a.kind(f.tx, f.ty);
+            if (!a.inside(f.tx, f.ty) || k.solid || k.ledge || a.at(f.tx, f.ty)) { UI.toast('No room to put it down there.'); return; }
+            this.carry = null; o.carried = false; o.heldBy = null;
+            o.tx = f.tx; o.ty = f.ty; o.x = f.tx * T; o.y = f.ty * T;
+            a.place(o, o.tx, o.ty);
+            if (o.ret) Return.moved(o, o.tx, o.ty);
+            Sfx.play('push');
+            o.landed(false);
+            return;
+        }
+        this.carry = null;
         o.carried = false; o.heldBy = null;
         Thrown.start(o, this, this.dir);
         Sfx.play('throw');
@@ -2453,7 +2476,7 @@ class Player extends Ent {
         const o = this.carry; if (!o) return;
         this.carry = null; o.carried = false; o.heldBy = null;
         if (o.ret) { Return.sendHome(o); }
-        else { o.tx = this.tx; o.ty = this.ty; this.area.place(o, o.tx, o.ty); }
+        else { o.tx = this.tx; o.ty = this.ty; o.x = o.tx * T; o.y = o.ty * T; this.area.place(o, o.tx, o.ty); o.landed(false); }
     }
 
     /* ----- the stick ----- */
@@ -3399,7 +3422,7 @@ const World = {
         p.x = tx * T + 8; p.y = ty * T + 10;
         if (opts.px !== undefined) { p.x = opts.px; p.y = opts.py; }
         p.dir = opts.dir !== undefined ? (typeof opts.dir === 'string' ? dirByName(opts.dir) : opts.dir) : p.dir;
-        p.state = 'normal'; p.kx = p.ky = 0; p.shove = null; p.z = 0;
+        p.state = 'normal'; p.kx = p.ky = 0; p.shove = null; p.z = 0; p.pinned = null;
         p.setMark();
         Cam.snap(p);
         Stats.enterRoom(a, Cam.room);
@@ -5966,6 +5989,25 @@ SONGS.festival = {
     ],
 };
 
+/* Hushwood: a slow lullaby of a waltz (D dorian), half asleep itself */
+SONGS.hush = {
+    bpm: 80, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.17, vib: true, n: 'D5 - - - F5 E5 | D5 - - - A4 - | C5 - - - E5 D5 | C5 - - - G4 - | Bb4 - - - D5 C5 | A4 - F4 - G4 - | A4 - - - - - | . . . . . . | D5 - - - F5 E5 | D5 - A4 - C5 - | Bb4 - - - A4 G4 | F4 - G4 - A4 - | Bb4 - A4 - G4 - | E4 - F4 - E4 - | D4 - - - - - | . . . . . . ' },
+        { wave: 'triangle', vol: 0.18, n: 'D3 - - A3 - - | D3 - - A3 - - | C3 - - G3 - - | C3 - - G3 - - | Bb2 - - F3 - - | F2 - - C3 - - | A2 - - E3 - - | A2 - - - - - | D3 - - A3 - - | F2 - - C3 - - | G2 - - D3 - - | D3 - - A3 - - | G2 - - D3 - - | A2 - - E3 - - | D3 - - A3 - - | D3 - - - - - ' },
+        { wave: 'p12', vol: 0.035, n: '. F4 A4 . F4 A4 | . F4 A4 . F4 A4 | . E4 G4 . E4 G4 | . E4 G4 . E4 G4 | . D4 F4 . D4 F4 | . C4 F4 . C4 F4 | . C#4 E4 . C#4 E4 | . C#4 E4 . . . | . F4 A4 . F4 A4 | . C4 F4 . C4 F4 | . D4 G4 . D4 G4 | . F4 A4 . F4 A4 | . D4 G4 . D4 G4 | . C#4 E4 . C#4 E4 | . F4 A4 . F4 A4 | . . . . . . ' },
+    ],
+};
+/* the Slumberhouse: a music box winding down (F major), the hush of a clock that isn't there */
+SONGS.slumber = {
+    bpm: 92, div: 2,
+    ch: [
+        { wave: 'p12', vol: 0.075, n: 'C6 . A5 . F5 . | G5 . A5 . C6 . | Bb5 . G5 . E5 . | F5 . G5 . A5 . | D6 . Bb5 . G5 . | A5 . Bb5 . C6 . | A5 . F5 . G5 . | F5 . . . . . | C6 . A5 . F5 . | G5 . A5 . Bb5 . | A5 . F5 . D5 . | E5 . F5 . G5 . | Bb5 . A5 . G5 . | F5 . E5 . D5 . | C5 . E5 . G5 . | F5 . . . . . ' },
+        { wave: 'triangle', vol: 0.16, legato: 0.8, n: 'F3 - - C4 - - | C3 - - G3 - - | C3 - - E3 - - | F3 - - C4 - - | Bb2 - - F3 - - | F2 - - C3 - - | C3 - - E3 - - | F3 - - - - - | F3 - - C4 - - | E3 - - C4 - - | D3 - - A3 - - | C3 - - G3 - - | G2 - - D3 - - | A2 - - D3 - - | C3 - - G3 - - | F2 - - - - - ' },
+        { drum: true, vol: 0.03, n: 'h . . . h . | h . . . h . ' },
+    ],
+};
+
 // ---- 41_house_kit.js ----
 /* Things every House uses: levers, Knot hoops, House doors to the outside, nudges (the Hints option:
    if Wren is stuck in a room a long while, something in the room shifts a little), and the
@@ -6086,13 +6128,28 @@ const KNOT_LINES = [
 
 /* nudges: the Hints option. A room can say how to tell it's solved and what to nudge */
 const Nudges = {
+    /* "<house>_<id>" means that thing of the House is done: a chest opened, a door or gate opened, a lever pulled;
+       "<house>_chest:<id>" a chest opened; anything else is a story flag */
+    solved(a, c) {
+        if (typeof c === 'function') return c();
+        return c.split('&').every(t => {
+            t = t.trim();
+            if (Progress.flag(t)) return true;
+            const m = /^([a-z]+)_(?:chest:)?(\w+)$/.exec(t);
+            if (!m || m[1] !== a.id) return false;
+            const id = m[2];
+            if (Progress.areaFlag(a.id, 'chest:' + id) || Progress.areaFlag(a.id, 'door:' + id) || Progress.areaFlag(a.id, 'lever:' + id)) return true;
+            const e = a.find(id);
+            return !!(e && (e.opened || e.openedOnce || (e.kind === 'door' && e.open && e.type !== 'shutter') || (e.kind === 'lever' && e.on)));
+        });
+    },
     update(a) {
         if (!Settings.hints || !a.def.house || Progress.flag('noNudges')) return;
         const r = Cam.room; if (!r || !r.nudge) return;
         const n = r.nudge;
         const key = a.id + ':' + r.key;
         if (Progress.areaFlag(a.id, 'nudged:' + r.key)) return;
-        if (n.solved && Story.cond(n.solved)) return;
+        if (n.solved && Nudges.solved(a, n.solved)) return;
         const st = Stats.rooms[a.id + ':' + r.i];
         if (!st || st.t < (n.after || 60 * 60 * 3)) return;
         Progress.setAreaFlag(a.id, 'nudged:' + r.key);
@@ -8332,9 +8389,9 @@ CONTENT_INIT.push(initWaterKit);
 const MILLRACE_ENTRY = { x: 29, y: 42 };
 
 const MILLWATER_ROWS = [
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
-    'YYY...,...............---"-"""--.-"-##.......###################',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYVVYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYVVYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
+    'YYY...,...............---"-""VV-.-"-##.......###################',
     'YYY,T...........-"-"-"~~~~~~~~~~|~~~~~~~~~~-~~~~~~~~~~~~~~~~~###',
     'YYY..........-"-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY......""--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
@@ -9163,7 +9220,7 @@ TALK.gran = function* (npc) {
         } else yield* say('gran', "Go on, love. The Well. I'll be right behind you.");
         return;
     }
-    const lines = Progress.flag('d1') ? GRAN_AFTER_D1 : GRAN_ACT1;
+    const lines = Progress.flag('d5') ? GRAN_AFTER_D5 : Progress.flag('d4') ? GRAN_AFTER_D4 : Progress.flag('d1') ? GRAN_AFTER_D1 : GRAN_ACT1;
     const n = Progress.get('granTalk') || 0; Progress.set('granTalk', n + 1);
     yield* say('gran', lines[n % lines.length]);
 };
@@ -9177,6 +9234,18 @@ const GRAN_AFTER_D1 = [
     "Your first Knot! Did you feel it? The whole valley sat up a little straighter.",
     "Next is the Kiln, out west in Kilnridge. The road's blocked by that old boulder, but you're a clever thing.",
     "I always knew you'd be good at this. You've your aunt's... well. You've good hands.",
+];
+
+const GRAN_AFTER_D4 = [
+    "Four Knots! Halfway, love. The east road's next: the old giant's asleep across it. You've a bell now.",
+    "Hushwood's a sleepy old place. Don't let it get into your bones. Come home to your own bed.",
+    "You're so like... well. You're growing up, that's all.",
+];
+const GRAN_AFTER_D5 = [
+    "Five! Only one more House, then home for good. It's out west: Larkspur Fair, down below the high mesa in Kilnridge.",
+    "There's no stair down off the mesa. Folk used to say you'd need a way of coming home before you jumped. You've one now, haven't you?",
+    "Your bedroll. Hm. Mind you always roll it up and bring it home. A Wanderer's place is at home, {name}.",
+    "Don't stay out too long. The valley likes everyone where they belong.",
 ];
 
 /* the ceremony starts when Wren first steps out of the house after talking to Gran */
@@ -9306,9 +9375,15 @@ TALK.burr = function* () {
         ["Nothing up there but fog and trees and more fog.", "Nobody's ever gone past the posts. Nobody's ever wanted to. That's how you know it's a good rule.", "I've stood at this post twenty years. Good post."]);
 };
 TALK.mallow = function* () {
+    if (Progress.flag('d5') && !Progress.flag('mallow_d5')) {
+        Progress.set('mallow_d5');
+        yield* say('mallow', "Ah, the Wanderer. You've been out to the Slumberhouse, I hear. All the way through? *yawn* Good, good. Did you sleep? You should always sleep there. Beds are made to be used.");
+        yield* say('mallow', "How do I know it's... comfy? Ha. Well. One hears things. A doctor hears everything. Here, let me look at you. Not a scratch. Splendid. Off you go.");
+        Inv.hp = Inv.maxHp; return;
+    }
     if (Inv.hp < Inv.maxHp) { Inv.hp = Inv.maxHp; Sfx.play('heart'); yield* say('mallow', "*yawn* Let's have a look... all better. Off you go. Doctor's orders: a nap, soon as you can."); return; }
     yield* firstThen('mallow', "Doctor Mallow. Hurt? Tired? Both? Come and see me, I'll patch you up. *yaaawn* Long night. Very long night.",
-        ["Sleep is the best medicine. Also the second best.", "You look healthy. Disgustingly healthy. Come back when you're not.", "If you ever feel a sort of... tug... behind the ribs? That's normal. Perfectly normal. Everyone has it."]);
+        Progress.flag('d5') ? ["Matron Hush? Never heard of her. Strict sort, was she? Hm.", "If you ever need to come home in a hurry, lie down. That's my advice. Lie down, and think of home.", "Sleep is the best medicine. Also the second best."] : ["Sleep is the best medicine. Also the second best.", "You look healthy. Disgustingly healthy. Come back when you're not.", "If you ever feel a sort of... tug... behind the ribs? That's normal. Perfectly normal. Everyone has it."]);
 };
 TALK.mabel = function* () {
     yield* firstThen('mabel', "Lost and Found. Mostly Found. Nothing's ever lost in the Hollow, they say. And yet I keep this shop.",
@@ -9962,7 +10037,7 @@ CONTENT_INIT.push(initBelfryKit);
 // ---- 55_heights.js ----
 /* Belfry Heights (overworld block 2,0): windswept cliffs in three terraces above the lake, and the Belfry
    (D4, Mum's bell tower) on top. The way up from Millwater is the cliff stair, a ravine up the east side of
-   block 2,1 (Hushwood proper, the rest of that block, comes with the fifth House), reached by paddling over
+   block 2,1 (walled off from Hushwood, src/59_hushwood.js), reached by paddling over
    the lake to its north-east shore. On the Heights: a boulder asleep on the first stair (ring the shrine
    bell beside it and it goes home), a ledge the gusts blow across, a chasm the Hookline crosses. */
 
@@ -10011,49 +10086,6 @@ const HEIGHTS_ROWS = [
     '##########################################:::###################',
 ];
 
-const CLIFFSTAIR_ROWS = [
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-];
-
 defBlock({
     id: 'heights', bx: 2, by: 0, name: 'Belfry Heights', theme: 'heights', music: 'heights',
     rows: HEIGHTS_ROWS,
@@ -10089,18 +10121,6 @@ defBlock({
         { name: 'The Bluster', x: 3, y: 20, w: 58, h: 8 },
         { name: 'The Belfry', x: 3, y: 1, w: 58, h: 8 },
     ],
-});
-
-defBlock({
-    id: 'hushwood', bx: 2, by: 1, name: 'Hushwood', theme: 'hush', music: 'heights',
-    rows: CLIFFSTAIR_ROWS,
-    forest: ['tree_hush', 'pine'],
-    legend: {},
-    ents: [
-        { k: 'sign', x: 43, y: 37, text: 'THE CLIFF STAIR. Up to Belfry Heights. (Hushwood is through the trees. Nobody goes into Hushwood.)' },
-        { k: 'rest', x: 44, y: 20 },
-    ],
-    regions: [{ name: 'The Cliff Stair', x: 40, y: 0, w: 7, h: 40 }],
 });
 
 PEOPLE_DEF.brindle = { name: 'Brindle', col: '#d8b070', look: { body: 'adult', hair: 'long', hairC: '#9a6438', top: '#b48ce8', accent: '#fbf6ea', bottom: '#5a4a3a', skin: 'tan' } };
@@ -11138,7 +11158,11 @@ class Crumble extends FloorThing {
         const w = this.weighed() || this.walkerOn();
         if (this.state === 'whole') { if (w) this.state = 'trod'; return; }
         if (this.state === 'trod') { if (!w) { this.state = 'cracking'; this.t = 0; Sfx.play('crumble', 0.4); } return; }
-        if (this.state === 'cracking') { if (++this.t >= (this.slow || 16)) this.fall(); }
+        if (this.state === 'cracking') {
+            /* a foot back on it straight away (a wobble on the edge) doesn't count as leaving it */
+            if (w && this.t < 6) { this.state = 'trod'; return; }
+            if (++this.t >= (this.slow || 16)) this.fall();
+        }
     }
     /* anything walking (a Snoreling, the Matron) weighs on it too */
     walkerOn() { for (const m of this.area.walkers) if (m.alive !== false && m.feetOn && m.feetOn(this.tx, this.ty)) return true; return false; }
@@ -11381,6 +11405,1222 @@ function initBedrollKit() {
 }
 CONTENT_INIT.push(initBedrollKit);
 
+// ---- 59_hushwood.js ----
+/* Hushwood (overworld block 2,1): a dim wood of giant mushrooms and moss where everything is asleep. The road in
+   from town is blocked by Old Hummock, a giant asleep across it since before Gran was born; the Recall Bell
+   wakes him, and he lumbers home to his own bed in the north-west. The hollow where he lay goes down (S16: it's
+   a long way down, so only with a Bedroll laid up top to come home to). Bouncy moss hops you over the stream to
+   the Slumberhouse (House 5, Doctor Mallow's); sleep puffs line the trail through Puffball Hollow; Snorelings
+   doze in the ferns; Hettie the forager camps by Lantern Pond, where a weir (wound open from this side only)
+   lets a raft run down the channel to the lake at Millwater. The cliff stair up the east side stays walled off.
+   Map drafted by tools/mapgen/hushwood.py. */
+
+const SLUMBER_ENTRY = { x: 29, y: 42 };
+const HUSH = (x, y) => [128 + x, 40 + y];
+const GIANT_BED = { x: 3, y: 4 };
+
+const HUSHWOOD_ROWS = [
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.k......YYYY...........YYYYY........YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY........YYYY.XXXXXXXXXXYYYYY#...b...YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY........YYYY.XXXXXXXXXXYYYYY#k......YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY........YYYY.XXXXXXXXXXYYYYY#.......YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY........YYYY.XXXXXXXXXXYYYYY#....M..YY##:H:##YYYYYYYYYYYYYYYYY',
+    'YY....M...YYYY.XXXXXXXXXXYYYYY#....k..YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.............XXXX:XXXXXYYYYY#....k..YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..........::::::::.....YYYYY#.......YY##:::##YYYYYYYYYYYYYYYYY',
+    'YYk."b...,..:................YYvvvvvvvYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY....k.....:.........M......YY.....YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~..,....YYYY##:H:##YYYYYYYYYYYYYYYYY',
+    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYYYY.....:........k.....~~..,..:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYYYY.....:.......YYYYYY.~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..........:.......YYYYYY.~~.."..:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY......b...:.......YYYYYY.~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..........:.......YYYYYY.~~..qk.:.YYYY##:H:##YYYYYYYYYYYYYYYYY',
+    ':::::::::::::::............~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    ':::::::::::::::::::::::::::__::::::.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.........................~~.......YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..................M......~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY......:.k...qM........"..~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:.......kYYYYYYY...~~.qYYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:.......,YYYYYYY...~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:..b"....YYYYYYY,"~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:..M.....YYYYYYY.-~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY.".:........,".....:-~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:...............:.~~~~~~~~~-..YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.M....:::::::::::::::::.~~~~~~~~~-..YY##:H:##YYYYYYYYYYYYYYYYY',
+    'YY........................~~~~~~~~~.".YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY........,b.YYYYYYYYYY.k.-b.VV""YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.q..k......YYYYYYYYYY....b.VV..YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY...........YYYYYYYYYYq...b.VV..YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY...........YYYYYYYYYY....b.VV..YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYY.VV..YYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYY.VV..YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYVVYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYVVYYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+];
+
+defBlock({
+    id: 'hushwood', bx: 2, by: 1, name: 'Hushwood', theme: 'hush', music: 'hush',
+    rows: HUSHWOOD_ROWS,
+    forest: ['tree_hush', 'tree_hush', 'pine'],
+    legend: {
+        'M': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'mushroom_big', solid: [[0, 0], [1, 0]], ox: -8, oy: -26 } },
+        'k': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'mushrooms', solid: false } },
+        'q': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'glowcaps', solid: false } },
+    },
+    ents: [
+        /* the sleeping road */
+        { k: 'giant', x: 1, y: 18, id: 'giant' },
+        { k: 'hollowhole', x: 3, y: 16, id: 'hollowHole', if: 'giant_awake' },
+        { k: 'sign', x: 9, y: 18, text: 'HUSHWOOD. Please do not wake anything.' },
+        { k: 'rest', x: 10, y: 16 },
+        { k: 'snoreling', x: 15, y: 22, id: 'hwSnore1' },
+        /* over the stream to the Slumberhouse: bouncy moss, one each way */
+        { k: 'moss', x: 12, y: 14, dir: 'up', dist: 3, id: 'hwMossN' },
+        { k: 'moss', x: 10, y: 11, dir: 'down', dist: 3, id: 'hwMossS' },
+        { k: 'sign', x: 11, y: 15, text: 'MIND THE MOSS. It is VERY bouncy. (The stream is cold.)' },
+        { k: 'building', x: 15, y: 3, w: 10, h: 6, door: 4, art: 'slumber' },
+        { k: 'warp', x: 19, y: 8, to: 'slumber', tx2: SLUMBER_ENTRY.x, ty2: SLUMBER_ENTRY.y, face: 'up', dir: 'up' },
+        { k: 'sign', x: 17, y: 9, text: 'THE SLUMBERHOUSE. Visiting hours: whenever you wake up. Doctor M.' },
+        { k: 'puffball', x: 9, y: 10, id: 'hwPuffN' },
+        /* Old Hummock's own bed */
+        { k: 'giantbed', x: 2, y: 4 },
+        /* Puffball Hollow */
+        { k: 'sign', x: 9, y: 23, text: "PUFFBALL HOLLOW. Don't breathe in. (Honestly.)" },
+        { k: 'puffball', x: 9, y: 25, id: 'hwPuff1' }, { k: 'puffball', x: 7, y: 28, id: 'hwPuff2' }, { k: 'puffball', x: 14, y: 29, id: 'hwPuff3' }, { k: 'puffball', x: 19, y: 31, id: 'hwPuff4' },
+        { k: 'snoreling', x: 12, y: 26, id: 'hwSnore2' }, { k: 'snoreling', x: 5, y: 33, id: 'hwSnore3' },
+        /* Hettie's camp */
+        { k: 'deco', x: 3, y: 31, look: 'tent', solid: [[0, 0], [1, 0]], ox: 0, oy: -12, text: "Hettie's tent. It's been pitched here a long time: there's moss growing up the guy ropes." },
+        { k: 'campfire', x: 8, y: 33 },
+        { k: 'npc', who: 'hettie', x: 6, y: 33, face: 'right' },
+        /* Lantern Pond and the weir down to the lake */
+        { k: 'raft', x: 26, y: 29, id: 'hwRaft' },
+        { k: 'winch', x: 25, y: 31, id: 'hwWinch' },
+        { k: 'door', x: 29, y: 32, type: 'gate', when: 'flag:hush_weir', dir: 'h', id: 'hwWeirA' },
+        { k: 'door', x: 30, y: 32, type: 'gate', when: 'flag:hush_weir', dir: 'h', id: 'hwWeirB' },
+        { k: 'sign', x: 23, y: 28, text: 'LANTERN POND. The channel runs down to the Reaches. Wind the weir to let a boat through.' },
+        /* the far bank: the plateau over the ledge (bouncy moss up, the ledge down) */
+        { k: 'moss', x: 34, y: 12, dir: 'up', dist: 3, id: 'hwMossE' },
+        { k: 'chest', x: 36, y: 4, item: 'heartpatch', id: 'hwPatch' },
+        { k: 'snoreling', x: 32, y: 16, id: 'hwSnore4' },
+        { k: 'puffball', x: 33, y: 13, id: 'hwPuffE' },
+        /* the cliff stair, as it was */
+        { k: 'sign', x: 43, y: 37, text: 'THE CLIFF STAIR. Up to Belfry Heights. (Hushwood is through the trees. Nobody goes into Hushwood.)' },
+        { k: 'rest', x: 44, y: 20 },
+    ],
+    regions: [
+        { name: 'The Sleeping Road', x: 0, y: 14, w: 20, h: 8 },
+        { name: 'The Slumberhouse', x: 2, y: 2, w: 27, h: 10 },
+        { name: 'Puffball Hollow', x: 2, y: 22, w: 22, h: 14 },
+        { name: 'Lantern Pond', x: 24, y: 21, w: 15, h: 19 },
+        { name: 'The Far Bank', x: 29, y: 2, w: 10, h: 19 },
+        { name: 'The Cliff Stair', x: 40, y: 0, w: 7, h: 40 },
+    ],
+});
+
+PEOPLE_DEF.hettie = { name: 'Hettie', col: '#c8a868', look: { body: 'adult', hair: 'bun', hairC: '#8a8a8a', top: '#6a8a5a', accent: '#e8c08a', bottom: '#5a4a3a', skin: 'tan' } };
+TALK.hettie = function* () {
+    if (!Progress.flag('met:hettie')) {
+        Progress.set('met:hettie');
+        yield* say('hettie', "Well! A person! Awake! You'll be the Wanderer. Hettie. I pick mushrooms. Or I did, until that great lump fell asleep across the road and I couldn't get home.");
+        yield* say('hettie', "That was... oh, a while ago now. I made the best of it. Pitched my tent. It's very quiet here. Everything sleeps. You get used to it. You get very used to it.");
+        return;
+    }
+    yield* say('hettie', cycle('hettie', [
+        "The puffballs go POOF when you get close. Breathe it in and you'll nod off where you stand, and wake up wherever you last thought of as home. Saves walking, I suppose.",
+        "Snorelings. Little sleepwalkers. Wake one and it'll shuffle after you a while, then go and find a bed. Any bed. They're not fussy.",
+        "Doctor Mallow's place is over the stream. The Slumberhouse. Lovely man. Never sleeps himself, mind. Funny, that.",
+        "The weir on the pond: wind it and the boat'll take you all the way down to the Reaches. And back, if you leave it be. Boats here know where they live.",
+        Progress.flag('giant_home') ? "Old Hummock's gone home to his own bed at last. Up in the north-west. Snoring like a landslide. Good for him." : "Is he still across the road, the old lump? Bless him.",
+        "There's a hollow where he slept, isn't there? Don't go down it unless you've a way home. I mean it. I'm not climbing down after you.",
+    ]));
+};
+BUDGE.hettie = 'Hettie: "Mind my mushrooms!"';
+
+/* Old Hummock: asleep across the road. A ring wakes him; up he gets and home he goes */
+class Giant extends Ent {
+    constructor(tx, ty, p = {}) {
+        super('giant', p);
+        this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.t = 0;
+        this.state = Progress.flag('giant_home') ? 'home' : Progress.flag('giant_awake') ? 'home' : 'asleep';
+        if (this.state === 'home') this.goTo(128 + GIANT_BED.x, 40 + GIANT_BED.y);
+    }
+    goTo(tx, ty) { this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; }
+    get sortY() { return this.y + 64; }
+    /* asleep he fills the road; at home, his own bed */
+    blocks(x, y) { return this.state !== 'walking' && x >= this.tx && x < this.tx + 5 && y >= this.ty && y < this.ty + 4; }
+    hear(x, y) {
+        if (this.state !== 'asleep') return;
+        if (Math.hypot(this.x + 40 - x, this.y + 32 - y) > (Bells.REACH + 1) * T) return;
+        this.state = 'waking'; Progress.set('giant_awake'); Stats.count('giant');
+        Script.run(Hushwood.giantWakes(this));
+    }
+    update() { this.t++; }
+    interact() {
+        const g = this;
+        Script.run(function* () {
+            if (g.state === 'asleep') {
+                if (!Progress.flag('giant_seen')) { Progress.set('giant_seen'); yield* say(null, 'A giant, fast asleep across the road. He is covered in moss, and ferns, and a few small mushrooms. Each snore lifts the moss on his back like a tide.'); }
+                yield* say(null, cycle('giantpush', ["You push. You might as well push a hill.", "You shout HELLO right in his ear. He smiles in his sleep.", "You tickle his nose with a fern. He sneezes, and a bird you hadn't seen flies out of his beard."]));
+                if (Inv.has('bell')) yield* say(null, '(You have the Recall Bell. A ring wakes anything.)');
+            } else yield* say(null, cycle('giantbed', ['"Mm. Is it morning? ...No. Good."', '"Thank you for waking me, little Wanderer. I was in the way. I\'m always in the way. Mm."', '"Zzzzz."', '"I dreamed I was a mountain. Then I dreamed I was a road. Then you rang."']));
+        });
+        return true;
+    }
+    talkBox(p, f) { return f.tx >= this.tx && f.tx < this.tx + 5 && f.ty >= this.ty && f.ty < this.ty + 4; }
+    draw(cx, cy) {
+        const im = ART[this.state === 'walking' || this.state === 'waking' && this.up ? 'giant_up' : 'giant_sleep'];
+        if (!im) return;
+        const bob = this.state === 'walking' ? Math.abs(Math.sin(this.t / 8)) * 2 : Math.sin(this.t / 50) * 1;
+        Gfx.alpha(0.25); Gfx.circle(this.x - cx + 40, this.y - cy + 58, 30, PAL.ink); Gfx.alpha(1);
+        Gfx.img(im, this.x - cx, Math.round(this.y - cy + 64 - im.height - bob));
+        if (this.state === 'asleep' || this.state === 'home') {
+            const ph = (this.t % 120) / 120;
+            Gfx.alpha(Math.min(1, (1 - ph) * 2)); Font.draw('Z', this.x - cx + 62 + Math.round(ph * 8), this.y - cy + 4 - Math.round(ph * 16), '#e8e0ff'); Gfx.alpha(1);
+        }
+    }
+}
+SPAWN.giant = (x, y, p) => new Giant(x, y, p);
+
+/* his own bed: a mossy hollow in the north-west, empty until he's home */
+SPAWN.giantbed = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.giant_bed, solid: [], oy: 8 });
+    pr.baseY = -50; pr.floor = true;
+    pr.draw = function (cx, cy) { Gfx.img(this.im, this.x - cx, this.y - cy); };
+    return pr;
+};
+
+/* the hollow he slept in: a hole in the ground, a very long way down */
+SPAWN.hollowhole = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.hollow_hole, solid: [[0, 0]], ox: -8, oy: -4 });
+    pr.baseY = 4;
+    pr.interact = () => { Script.run(Hushwood.hole()); return true; };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+
+/* the weir winch: wound from this side, it lets a boat down the channel (and keeps it open) */
+SPAWN.winch = (x, y, p) => {
+    const pr = new Prop(x, y, { im: ART.winch, solid: [[0, 0]], oy: -8 });
+    pr.interact = () => {
+        Script.run(function* () {
+            if (Progress.flag('hush_weir')) { yield* say(null, 'The weir is wound up and pegged. The channel runs free down to the Reaches.'); return; }
+            yield* say(null, 'A big wooden winch, the rope running out to the weir across the channel. You lean on the handle. It creaks round, and round, and round.');
+            Progress.set('hush_weir'); Sfx.play('door'); G.shake = 4;
+            yield* say(null, 'The weir gates lift out of the water. The channel down to the lake is open.');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+
+/* a campfire: crackles, glows a little */
+SPAWN.campfire = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.campfire_0, solid: [[0, 0]], oy: 0, live: true });
+    pr.update = function () { this.t = (this.t || 0) + 1; };
+    pr.draw = function (cx, cy) { Gfx.img(ART['campfire_' + ((this.t >> 3) % 2)], this.x - cx, this.y - cy); };
+    pr.text = 'A little campfire. Hettie keeps it going with dry puffball skins. They burn blue.';
+    pr.interact = () => { Script.run(function* () { yield* say(null, pr.text); }); return true; };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+
+const Hushwood = {
+    *giantWakes(g) {
+        Music.play('silence');
+        G.shake = 20; Sfx.play('rumble');
+        yield 50;
+        yield* say(null, 'The ring rolls through the trees. The giant stops snoring. Somewhere, a bird stops singing to listen.');
+        g.up = true; G.shake = 10; Sfx.play('rumble');
+        yield 30;
+        yield* say(null, '"HRRRMMMMMMHH." He sits up, very slowly, and moss and leaves and one surprised squirrel slide off his shoulders.');
+        yield* say(null, '"Is it... morning? It\'s always morning somewhere. Oh. Oh dear. Was I across the road again? I was, wasn\'t I. I\'m so sorry, little Wanderer."');
+        yield* say(null, '"I meant to go home to bed. I only sat down for a moment. I\'ll go now. My bed\'s just over there. Mind your feet."');
+        /* up and away to his own bed, over the stream in a stride */
+        g.state = 'walking'; Sfx.play('rumble');
+        const fx = g.x, fy = g.y;
+        const bx = (128 + GIANT_BED.x) * T, by = (40 + GIANT_BED.y) * T;
+        for (let i = 0; i <= 150; i++) { const k = i / 150; g.x = lerp(fx, bx, k); g.y = lerp(fy, by, k); if (i % 30 === 0) { G.shake = 4; Sfx.play('land'); } yield 1; }
+        g.goTo(128 + GIANT_BED.x, 40 + GIANT_BED.y);
+        g.state = 'home'; g.up = false;
+        Progress.set('giant_home');
+        G.player.area.add(SPAWN.hollowhole(128 + 3, 40 + 16, {}));
+        Music.play('hush');
+        yield* say(null, 'Where he lay there is a long dent in the ground, the shape of a giant, and in the middle of it a deep dark hollow.');
+        Progress.setGoal('Hushwood: find the Slumberhouse, over the stream.');
+    },
+    *hole() {
+        if (!Inv.has('bedroll')) { yield* say(null, "A hollow in the ground, going straight down into the dark. You drop a pebble. It's a long time before you hear it land. You'd never climb back out."); return; }
+        const b = Inv.bedroll;
+        if (!b || b.area !== 'hollow') { yield* say(null, "A hollow, straight down into the dark. A long way down. You'd want your Bedroll laid somewhere up here first, to come home to."); return; }
+        const i = yield* ask(null, 'A hollow, straight down into the dark. Your Bedroll is laid up here to come home to. Climb down?', ['Climb down', 'Not now']);
+        if (i !== 0) return;
+        yield* fadeOut(30);
+        World.enter('hummock_hollow', 9, 2, { dir: DOWN });
+        Sfx.play('land');
+        yield* fadeIn(30);
+        if (!Progress.flag('hollow_in')) { Progress.set('hollow_in'); yield* say(null, 'You slither down a long chute of roots and moss and land on something soft. It is very dark, and it smells of giant.'); }
+    },
+};
+
+/* S16: the hollow under where the giant slept. A cave going down; a round door in the rock; Linnet's note */
+THEMES.hushcave = { floor: ['#5a6a5a', '#44544a', '#6e7e6a', '#2e3a32'], wall: ['#4a4a5e', '#3a3a4c', '#5e5e74', '#26263a'], stone: ['#4a4a5e', '#3a3a4c', '#5e5e74', '#26263a'], water: ['#3a6a8a', '#2a5070', '#5a8aa8', '#1a3450'], dark: '#1a1a26' };
+FLOORS.hushcave = {
+    floor: (x, th, v) => { fill(x, '#4e6450'); speckle(x, ['#5e7a5e', '#3e5240', '#7a9a6a'], 40 + v, 0.35); },
+    floor2: (x, th, v) => { fill(x, '#44544a'); speckle(x, ['#566a56', '#38463c'], 50 + v, 0.3); },
+    floor3: (x, th, v) => Paint.planks(x, ['#7a6a5a', '#5a4a3a', '#9a8a6a', '#3a2e22'], v, true),
+};
+WALLS.hushcave = {
+    edge: '#1a1a26',
+    top: (x) => { fill(x, '#2e2e3e'); speckle(x, ['#3a3a4c', '#4a6a4a'], 9, 0.2); },
+    face: (x, th, v) => { fill(x, '#4a4a5e'); speckle(x, ['#5e5e74', '#3a3a4c', '#5a7a5a'], 20 + v, 0.35); fill(x, '#26263a', 0, 15, 16, 1); },
+};
+LINNET_NOTES[6] = { title: "A note under the giant's hollow", text: "Underneath where the giant sleeps there's a hollow, and at the bottom of the hollow there's a little round door, and behind the door somebody was sawing wood and singing a work song. I didn't knock. I'm not brave yet. Nearly. - L." };
+NOTES.linnet6 = { title: LINNET_NOTES[6].title, text: LINNET_NOTES[6].text };
+defArea({
+    id: 'hummock_hollow', name: "The Giant's Hollow", family: 'dungeon', theme: 'hushcave', house: null, thread: THREAD.wren,
+    rows: [
+        '####################',
+        '#######.....########',
+        '######.......#######',
+        '#####.........######',
+        '####..........ooooo#',
+        '###...........ccccc.',
+        '###...........ooooo#',
+        '####..........######',
+        '#####........#######',
+        '######......########',
+        '####################',
+    ],
+    legend: { 'c': { k: 'floor', p: 'floor3', ent: 'crumble' } },
+    ents: [
+        { k: 'deco', x: 4, y: 4, look: 'round_door', solid: [[0, 0]], oy: -14, text: 'A small round door set into the rock, painted exactly the brown of the rock, with a red X stitched over the keyhole. It is locked from the other side. Behind it, very faintly: somebody sawing wood, and humming.' },
+        { k: 'linnetnote', x: 19, y: 5, note: 6 },
+        { k: 'chest', x: 9, y: 8, item: 'b20', id: 'hhChest' },
+        { k: 'deco', x: 9, y: 1, look: 'roots', solid: [[0, 0]], oy: -10, roots: true },
+        { k: 'snoreling', x: 6, y: 6, id: 'hhSnore' },
+    ],
+    rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
+    entry: { x: 9, y: 2 },
+    music: 'hush',
+    noBedroll: 'The moss down here is far too wet to lay a Bedroll on.',
+});
+/* the roots down here: climbable, just, if there's no other way home */
+{
+    const deco = SPAWN.deco;
+    SPAWN.deco = (tx, ty, p) => {
+        const pr = deco(tx, ty, p);
+        if (p.roots) {
+            pr.interact = () => {
+                Script.run(function* () {
+                    const i = yield* ask(null, 'Roots hang down the chute you came in by, slick with moss. You could climb them. It would take an age, and you would ache all over.', ['Climb', 'Not now']);
+                    if (i !== 0) return;
+                    yield* fadeOut(40);
+                    World.enter('hollow', ...HUSH(3, 17), { dir: DOWN });
+                    Inv.hp = Math.max(1, Inv.hp - 2);
+                    yield* fadeIn(30);
+                    yield* say(null, 'You haul yourself out at last, scraped and filthy and aching. Next time, the Bedroll.');
+                });
+                return true;
+            };
+            pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+        }
+        return pr;
+    };
+}
+
+/* the Slumberhouse from outside: a long low house under a lavender roof, its windows curtained, a moon over
+   the door, a lantern lit in the daytime, and the smoke from the chimney going up in Zs */
+FACADES.slumber = function () {
+    const w = 160, h = 102;
+    ART.f_slumber = paintSprite(w, h, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        /* chimney and its sleepy smoke */
+        R('#7a6a8a', 118, 6, 12, 26); R('#5a4a6a', 126, 6, 4, 26); R('#3e3250', 116, 4, 16, 3);
+        const z = (a, b, s) => { R('#e8e0f4', a, b, s, 1); for (let i = 0; i < s; i++) R('#e8e0f4', a + s - 1 - i, b + i, 1, 1); R('#e8e0f4', a, b + s - 1, s, 1); };
+        z(132, 0, 4); z(138, 2, 3);
+        /* the roof: a deep sweep of lavender shingles with a darker ridge */
+        const top = 14, bot = 52;
+        for (let j = top; j < bot; j++) {
+            const k = (j - top) / (bot - top), inset = Math.round(22 * (1 - k) * (1 - k));
+            for (let i = inset; i < w - inset; i++) {
+                const row = Math.floor((j - top) / 4);
+                let c = (j - top) % 4 === 3 ? '#7d5bc4' : '#b48ce8';
+                if ((j - top) % 4 === 0) c = '#c8a8f0';
+                if (((i + (row % 2) * 4) % 8) === 0 && (j - top) % 4 !== 3) c = '#9a76d8';
+                if (i === inset || i === w - inset - 1) c = '#4b3a8a';
+                R(c, i, j, 1, 1);
+            }
+        }
+        R('#4b3a8a', 22, top - 1, w - 44, 2); R('#e0d0fa', 23, top + 1, w - 46, 1);
+        /* moons and stars cut in the roof, glowing a little */
+        R('#f7e08a', 40, 26, 5, 5); R('#b48ce8', 42, 25, 4, 5); R('#f7e08a', 110, 30, 2, 2); R('#f7e08a', 78, 22, 2, 2); R('#fff4c0', 60, 34, 1, 1); R('#fff4c0', 96, 36, 1, 1);
+        /* eaves */
+        R('#4b3a8a', 0, 52, w, 3); R('#9a76d8', 0, 55, w, 1);
+        /* walls: cream plaster, timber framed */
+        R('#f4ecdc', 2, 56, w - 4, 40); R('#e0d6c2', 2, 56, w - 4, 2);
+        for (const px of [2, 36, 66, 94, 124, w - 6]) R('#8a6a4a', px, 56, 4, 40);
+        R('#8a6a4a', 2, 74, w - 4, 3);
+        /* round windows with the curtains drawn */
+        for (const cxw of [20, 52, 110, 141]) {
+            for (let j = -8; j <= 8; j++) for (let i = -8; i <= 8; i++) {
+                const d = i * i + j * j;
+                if (d <= 64) R(d > 49 ? '#5a3a2a' : (i < 0 ? '#b48ce8' : '#9a76d8'), cxw + i, 66 + j, 1, 1);
+            }
+            R('#5a3a2a', cxw, 58, 1, 16); R('#f7e08a', cxw - 1, 66, 2, 1);
+        }
+        /* the door: rounded, deep purple, a moon on it; steps */
+        R('#4b3a8a', 68, 62, 24, 34); R('#2e2450', 70, 64, 20, 32);
+        for (let j = 0; j < 6; j++) R('#4b3a8a', 68 + j, 62 - (6 - j) / 2, 24 - 2 * j, 1);
+        R('#7d5bc4', 72, 66, 16, 30); R('#9a76d8', 72, 66, 2, 30);
+        R('#f7e08a', 78, 72, 6, 6); R('#7d5bc4', 80, 71, 5, 6);
+        R('#e8b04a', 85, 82, 2, 2);
+        /* the moon sign over the door, and a lantern by it */
+        R('#5a3a2a', 62, 56, 36, 5); R('#f7e08a', 77, 50, 8, 8); R('#4b3a8a', 80, 49, 6, 7);
+        R('#3e3250', 98, 64, 2, 14); R('#f7d64a', 96, 70, 6, 7); R('#fff4c0', 97, 71, 4, 4); R('#3e3250', 96, 69, 6, 1);
+        /* the ground line, and a sleepy cat on the step */
+        R('#5a4a6a', 0, 96, w, 6); R('#7a6a8a', 0, 96, w, 1);
+        R('#e0913a', 58, 92, 7, 4); R('#e0913a', 63, 90, 3, 3); R('#a85e2a', 58, 95, 7, 1);
+    });
+};
+
+function initHushArt() {
+    /* Old Hummock asleep: a great mossy heap with a face */
+    ART.giant_sleep = paintSprite(80, 64, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        for (let j = 0; j < 64; j++) for (let i = 0; i < 80; i++) {
+            const dx = (i - 40) / 39, dy = (j - 40) / 26;
+            const d = dx * dx + dy * dy;
+            if (d > 1 || j < 10) continue;
+            let c = '#6a8a5a';
+            if (dy < -0.4) c = '#88aa6a';
+            if (dy > 0.5) c = '#4e6a48';
+            if (d > 0.85) c = '#2e3a2e';
+            if (hash2(i, j, 3) < 0.12 && d < 0.85) c = '#9ac07a';
+            R(c, i, j, 1, 1);
+        }
+        /* his face, on the left end, eyes shut */
+        R('#c8a07a', 6, 30, 22, 20); R('#a8805a', 6, 46, 22, 4); R('#2e3a2e', 5, 30, 1, 20);
+        R('#5a3a2a', 10, 38, 5, 1); R('#5a3a2a', 19, 38, 5, 1); R('#5a3a2a', 11, 39, 3, 1); R('#5a3a2a', 20, 39, 3, 1);
+        R('#d89a7a', 13, 41, 8, 6); R('#b87a5a', 13, 46, 8, 1);
+        R('#7a5a4a', 12, 48, 10, 1);
+        /* a fern, two mushrooms and a bird's nest growing on him */
+        R('#4e9a4e', 46, 8, 1, 10); for (let k = 0; k < 4; k++) { R('#6ac06a', 42 - k, 10 + k * 2, 4, 1); R('#6ac06a', 47, 11 + k * 2, 4, 1); }
+        R('#e8463c', 60, 14, 7, 4); R('#fbf6ea', 62, 15, 1, 1); R('#f4e6c8', 62, 18, 3, 4);
+        R('#b48ce8', 28, 16, 5, 3); R('#f4e6c8', 29, 19, 3, 3);
+        R('#8a6a4a', 64, 26, 10, 4); R('#6a4a2a', 65, 29, 8, 1);
+        /* a hand tucked under his cheek */
+        R('#c8a07a', 24, 50, 14, 8); R('#a8805a', 24, 57, 14, 1);
+    });
+    /* Old Hummock up on his feet (well, sitting up) */
+    ART.giant_up = paintSprite(80, 88, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        for (let j = 0; j < 88; j++) for (let i = 0; i < 80; i++) {
+            const dx = (i - 40) / 34, dy = (j - 56) / 32;
+            const d = dx * dx + dy * dy;
+            if (d > 1) continue;
+            let c = d > 0.85 ? '#2e3a2e' : dy < -0.5 ? '#88aa6a' : '#6a8a5a';
+            if (hash2(i, j, 5) < 0.12 && d < 0.85) c = '#9ac07a';
+            R(c, i, j, 1, 1);
+        }
+        R('#c8a07a', 26, 6, 28, 26); R('#2e3a2e', 25, 6, 30, 1); R('#a8805a', 26, 30, 28, 2);
+        R('#2a1f2d', 32, 14, 4, 4); R('#2a1f2d', 44, 14, 4, 4); R('#fbf6ea', 33, 14, 1, 1); R('#fbf6ea', 45, 14, 1, 1);
+        R('#d89a7a', 36, 18, 8, 7); R('#5a3a2a', 34, 27, 12, 2);
+        R('#c8a07a', 6, 50, 12, 18); R('#c8a07a', 62, 50, 12, 18);
+        R('#4e9a4e', 52, 0, 1, 10); R('#6ac06a', 49, 2, 3, 1); R('#6ac06a', 53, 4, 3, 1);
+    });
+    ART.giant_bed = paintSprite(96, 64, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        for (let j = 0; j < 64; j++) for (let i = 0; i < 96; i++) {
+            const dx = (i - 48) / 47, dy = (j - 32) / 31, d = dx * dx + dy * dy;
+            if (d > 1) continue;
+            R(d > 0.7 ? (hash2(i, j, 2) < 0.3 ? '#4e7a4a' : '#5e8a54') : (hash2(i, j, 9) < 0.2 ? '#3e5a40' : '#4a6a48'), i, j, 1, 1);
+        }
+    }, false);
+    ART.hollow_hole = paintSprite(32, 20, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        for (let j = 0; j < 20; j++) for (let i = 0; i < 32; i++) {
+            const dx = (i - 16) / 15, dy = (j - 10) / 9, d = dx * dx + dy * dy;
+            if (d > 1) continue;
+            R(d > 0.6 ? '#4e6a48' : d > 0.35 ? '#2e3a2e' : '#0e1214', i, j, 1, 1);
+        }
+        R('#7a5a3a', 10, 6, 2, 8); R('#7a5a3a', 20, 5, 1, 9);
+    });
+    ART.mushroom_big = paintSprite(32, 42, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R('#d8ccb8', 12, 18, 9, 24); R('#b8ab96', 18, 18, 3, 24); R('#f0e6d4', 13, 18, 2, 24);
+        for (let j = 0; j < 20; j++) for (let i = 0; i < 32; i++) {
+            const dx = (i - 16) / 15.5, dy = (j - 16) / 15, d = dx * dx + dy * dy;
+            if (d > 1 || j > 18) continue;
+            R(j > 16 ? '#7a3a5a' : d > 0.8 ? '#8a3a6a' : j < 8 ? '#d86a9a' : '#b84a7a', i, j, 1, 1);
+        }
+        for (const [a, b, s] of [[8, 6, 3], [18, 4, 4], [24, 10, 3], [12, 12, 2], [4, 12, 2]]) R('#fbe8f0', a, b, s, s - 1);
+    });
+    ART.mushrooms = paintSprite(16, 16, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R('#e8dcc8', 4, 10, 2, 5); R('#c84a6a', 2, 7, 6, 3); R('#fbe8f0', 3, 7, 1, 1);
+        R('#e8dcc8', 10, 11, 2, 4); R('#a86a3a', 8, 9, 6, 2); R('#e8dcc8', 12, 12, 1, 3); R('#c84a6a', 11, 10, 3, 2);
+    });
+    ART.glowcaps = paintSprite(16, 16, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R('#9adcf0', 3, 6, 5, 3); R('#d8f8ff', 4, 6, 2, 1); R('#c8e8e0', 5, 9, 1, 5);
+        R('#9adcf0', 9, 9, 4, 2); R('#c8e8e0', 10, 11, 1, 4); R('#7ab8e0', 11, 3, 3, 2); R('#c8e8e0', 12, 5, 1, 4);
+    });
+    ART.tent = paintSprite(32, 28, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        for (let j = 0; j < 24; j++) { const half = Math.round(j * 0.66); R(j % 6 === 5 ? '#8a7a4a' : '#b8a86a', 16 - half, 2 + j, half * 2, 1); }
+        R('#5a4a2a', 15, 0, 2, 26); R('#3a2e1a', 13, 12, 6, 14); R('#6a8a5a', 2, 25, 6, 2); R('#6a8a5a', 24, 25, 6, 2);
+    });
+    for (let f = 0; f < 2; f++) ART['campfire_' + f] = paintSprite(16, 16, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R('#6b4128', 2, 12, 12, 2); R('#4a2e1a', 4, 13, 8, 2);
+        R('#5a8ae0', 5 + f, 6, 6, 6); R('#9ad0f8', 6 + f, 8, 3, 4); R('#e8f8ff', 7, 10, 2, 2); R('#5a8ae0', 7 - f, 3, 2, 3);
+    });
+    ART.winch = paintSprite(16, 24, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R('#6b4128', 2, 8, 2, 16); R('#6b4128', 12, 8, 2, 16); R('#9a6438', 2, 10, 12, 8);
+        R('#d8c08a', 3, 11, 10, 6); R('#a88a5a', 3, 13, 10, 1); R('#5a3a2a', 13, 6, 2, 6); R('#5a3a2a', 13, 5, 3, 2);
+    });
+    ART.round_door = paintSprite(16, 30, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) { const d = (i - 7.5) ** 2 + (j - 7.5) ** 2; if (d < 64) R(d > 48 ? '#3a3a4c' : '#5a5a6e', i, 14 + j, 1, 1); }
+        R('#e8463c', 7, 20, 1, 1); R('#e8463c', 9, 20, 1, 1); R('#e8463c', 8, 21, 1, 1); R('#e8463c', 7, 22, 1, 1); R('#e8463c', 9, 22, 1, 1);
+    });
+    ART.roots = paintSprite(16, 26, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        for (const [a, b, l] of [[3, 0, 24], [7, 0, 20], [11, 0, 26], [13, 0, 14]]) { R('#6b4128', a, b, 2, l); R('#4e9a4e', a, b + Math.floor(l / 2), 2, 3); }
+    });
+}
+CONTENT_INIT.push(initHushArt);
+
+// ---- 60_slumber.js ----
+/* House 5: the Slumberhouse, in Hushwood. Doctor Mallow's House, lavender threads. A great dormitory at night.
+   Wren's own mark: lie down in a bed and that bed is where you wake, however far you go in here (rooms don't
+   move it), and a fall onto your own bed doesn't hurt, so falls are travel. Your trace remembers paths that are
+   gone: boards that crumble behind you, a ride on the current; flying home, you go back the way you came, over
+   anything, through dreamcatchers. Matron Hush follows your footsteps exactly; beaten, she leaves the Bedroll:
+   lay it anywhere and hold C to go Homeward. Old rules join in: currents and floats, the Hookline, the Recall
+   Bell and sleepers, strays filling pits, plates and their weights. Mother Sloth pulls you to her bed; fly home
+   from her grip, far enough, and her arms snap. */
+
+THEMES.slumberhouse = { floor: ['#8a8ac8', '#6a6aa8', '#a8a8e0', '#4a4a7a'], wall: ['#b48ce8', '#8a64c4', '#d8c8f8', '#4b3a8a'], stone: ['#9a8ab8', '#7a6a98', '#bcaed8', '#4e4268'], water: ['#6ab0d8', '#4a8ac0', '#a8d8f0', '#2a5a8a'], dark: '#1e1a34' };
+FLOORS.slumberhouse = {
+    /* soft blue carpet with little stars, old boards, and the night-blue tiles of the wards */
+    floor: (x, th, v) => { fill(x, '#6e74b8'); speckle(x, ['#7a80c4', '#646aac'], 70 + v, 0.35); if (v % 3 === 0) { fill(x, '#d8d0f8', 7, 7, 2, 1); fill(x, '#d8d0f8', 8, 6, 1, 3); } },
+    floor2: (x, th, v) => Paint.planks(x, ['#a88a6a', '#86684a', '#c4a684', '#5a4430'], v, true),
+    floor3: (x, th, v) => { fill(x, '#5a5e98'); fill(x, '#4a4e84', 0, 15, 16, 1); fill(x, '#4a4e84', 15, 0, 1, 16); speckle(x, ['#6a6ea8'], 40 + v, 0.15); },
+};
+WALLS.slumberhouse = {
+    edge: '#1e1a34',
+    top: (x) => { fill(x, '#3e2e6a'); speckle(x, ['#4b3a8a'], 8, 0.15); },
+    face: (x, th, v) => {
+        fill(x, '#b48ce8'); speckle(x, ['#a47ad8', '#c4a0f0'], 30 + v, 0.25);
+        fill(x, '#f7e08a', 3 + (v * 5) % 9, 4, 1, 1); fill(x, '#fbf6ea', 11 - (v * 3) % 7, 8, 1, 1);
+        fill(x, '#7d5bc4', 0, 12, 16, 1); fill(x, '#4b3a8a', 0, 15, 16, 1);
+    },
+};
+
+const SLUMBER_OUT = { x: 128 + 19, y: 40 + 9 };      /* the door out, at the front of the house */
+
+defHouse({
+    id: 'slumber', name: 'The Slumberhouse', place: 'The Slumberhouse', house: 'slumber', theme: 'slumberhouse', thread: THREAD.mallow, music: 'slumber',
+    knotName: 'Sleeping Knot',
+    entry: SLUMBER_ENTRY,
+    legend: { 'c': { k: 'floor', p: 'floor2', ent: 'crumble' } },
+    cells: {
+        /* ---------------- 1 The Night Porch: a bed is where you wake; boards that give way; falls are travel ---------------- */
+        '1,3': {
+            name: 'The Night Porch',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#.........ooooooooo#',
+                '#.........ooooo...o#',
+                '#.........ccccc...o#',
+                '#.........ooooo...o#',
+                '#.........ooooooooo#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'gate', when: 'nplever', id: 'npGate' },
+                { k: 'lever', x: 16, y: 5, id: 'npLever', sig: 'nplever', once: true },
+                { k: 'bed', x: 3, y: 6, id: 'npBed' },
+                { k: 'warp', x: 9, y: 10, to: 'hollow', tx2: SLUMBER_OUT.x, ty2: SLUMBER_OUT.y, dir: 'down', face: 'down' },
+                { k: 'sign', x: 5, y: 9, text: "THE SLUMBERHOUSE. Lie down a moment, why don't you. However far you wander in here, the bed you lay in is where you'll wake. (Mind the old boards.)" },
+            ],
+            nudge: { solved: () => Progress.areaFlag('slumber', 'lever:npLever'), after: 60 * 60 * 2, at: [3, 6], say: 'The bed by the door has its covers turned down, as if it were expecting someone. The boards across the pit creak.' },
+        },
+        /* ---------------- 2 The Long Ward (hub): beds all along, and the patients asleep in the aisles ---------------- */
+        '1,2': {
+            name: 'The Long Ward',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '....................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'lock', id: 'lwLockN' },
+                { k: 'door', x: 19, y: 5, type: 'lock', id: 'lwLockE', dir: 'v' },
+                { k: 'bed', x: 2, y: 1 }, { k: 'bed', x: 5, y: 1 }, { k: 'bed', x: 13, y: 1 }, { k: 'bed', x: 16, y: 1 },
+                { k: 'bed', x: 2, y: 7 }, { k: 'bed', x: 5, y: 7 }, { k: 'bed', x: 13, y: 7 }, { k: 'bed', x: 16, y: 7 },
+                { k: 'snoreling', x: 8, y: 3, id: 'lwSnore1' }, { k: 'snoreling', x: 11, y: 8, id: 'lwSnore2' },
+                { k: 'sign', x: 10, y: 9, text: "THE LONG WARD. Lights out. Patients will kindly stay in bed. (Snorelings: tread softly and they won't stir.)" },
+            ],
+        },
+        /* ---------------- 3 The Linen Cupboard: one walk over the boards, every lamp lit (key A) ---------------- */
+        '0,2': {
+            name: 'The Linen Cupboard',
+            rows: [
+                '####################',
+                '#..................#',
+                '#.....oooooooo.....#',
+                '#####.oo.cccoo.....#',
+                '#...#.ooccocoo.....#',
+                '#.....oocccc.o......',
+                '#...#.oocoocc......#',
+                '#####.o.ccocoo.....#',
+                '#.....oooooooo.....#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'plate', x: 8, y: 3, sig: 'lp1', mode: 'toggle' }, { k: 'plate', x: 12, y: 5, sig: 'lp2', mode: 'toggle' }, { k: 'plate', x: 7, y: 7, sig: 'lp3', mode: 'toggle' },
+                { k: 'door', x: 4, y: 5, type: 'gate', when: 'lp1&lp2&lp3', dir: 'v', id: 'lcGate' },
+                { k: 'chest', x: 2, y: 5, item: 'key', id: 'lcKey' },
+                { k: 'bed', x: 16, y: 1, id: 'lcBed' },
+                { k: 'sign', x: 17, y: 8, text: 'THE LINEN CUPBOARD. Three lamps on the old floor. Light them all at once and the cupboard opens. The boards only bear you the once.' },
+            ],
+            nudge: { solved: 'slumber_chest:lcKey', after: 60 * 60 * 3, at: [13, 6], say: 'The boards sag where they have been trodden before. You would have to plan the whole walk before you set foot on them, and fall home after.' },
+        },
+        /* ---------------- 4 The Laundry: ride the current under the dreamcatchers; jump in before it comes round (the Plan) ---------------- */
+        '2,2': {
+            name: 'The Laundry',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..V<<<<<<<<<<<<<..#',
+                '#..V............A...',
+                '#..V............A..#',
+                '...V............A~~~',
+                '#..V............A..#',
+                '#..>>>>>>>>>>>>>A..#',
+                '#..~...............#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'raft', x: 3, y: 8, id: 'ldBasket', look: 'basket', patience: 2400 },
+                { k: 'dreamring', x: 9, y: 7, sig: 'lr1', id: 'ldRing1' }, { k: 'dreamring', x: 16, y: 4, sig: 'lr2', id: 'ldRing2' }, { k: 'dreamring', x: 9, y: 2, sig: 'lr3', id: 'ldRing3' },
+                { k: 'chest', x: 1, y: 1, item: 'plan', id: 'ldPlan', hidden: true, when: 'lr1&lr2&lr3' },
+                { k: 'grate', x: 19, y: 5 },
+                { k: 'barrel', x: 22, y: 5, id: 'ldBarrel', sleeper: true, tiedOff: true, startAt: [17, 5], trace: [[22, 5], [21, 5], [20, 5], [19, 5], [18, 5], [17, 5]], pushLine: 'A washtub barrel, bobbing fast asleep by the grate. Bubbles come up, now and then, like snores.' },
+                { k: 'door', x: 19, y: 3, type: 'gate', when: 'stlever', dir: 'v', id: 'ldStudyDoor' },
+                { k: 'sign', x: 18, y: 9, text: 'THE LAUNDRY. The wash goes round and round. Whatever goes round comes back to where it started, and is none the wiser.' },
+                { k: 'sign', x: 1, y: 9, text: 'Hung over the tub: three dreamcatchers. They only catch you on your way home.' },
+            ],
+            nudge: { solved: () => Inv.plans.includes('slumber'), after: 60 * 60 * 3, at: [3, 8], say: "The basket bobs at its little dock. Out on the water, a dreamcatcher turns slowly, though nobody could ever walk under it." },
+        },
+        /* ---------------- 5 Mallow's Study (signature): only reached by sending your Bedroll home in the sleeping barrel ---------------- */
+        '3,2': {
+            name: "Mallow's Study",
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '...................#',
+                '#..................#',
+                '~~~~...............#',
+                '#~~~...............#',
+                '#~~~...............#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'lever', x: 2, y: 1, id: 'stLever', sig: 'stlever', once: true },
+                { k: 'signature', x: 10, y: 5, house: 'slumber' },
+                { k: 'deco', x: 14, y: 2, look: 'desk', solid: [[0, 0], [1, 0]], text: "Doctor Mallow's desk. A case book lies open: \"The Wanderer. Sleeps soundly. Dreams of the road. Wakes where we put her.\" The last three words have been crossed out, very hard." },
+                { k: 'deco', x: 17, y: 7, look: 'bookshelf_tall', solid: [[0, 0]], oy: -16, text: 'Books on sleep, on dreams, on threads, and one called KNOTS FOR BEGINNERS with a lot of pages turned down.' },
+                { k: 'chest', x: 16, y: 2, item: 'heartpatch', id: 'stPatch' },
+            ],
+        },
+        /* ---------------- 6 The Drying Loft: ring the sleeper off the pillar, hook over, fall home (key B) ---------------- */
+        '2,3': {
+            name: 'The Drying Loft',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#oooooooooooooooooo#',
+                '#oooooooooooo.ooooo#',
+                '#oooooooooooooooooo#',
+                '#oooooooooooooooooo#',
+                '#ooooooooooo....ooo#',
+                '#ooooooooooo....ooo#',
+                '####################',
+            ],
+            ents: [
+                { k: 'block', x: 6, y: 1, id: 'dlBoulder', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [13, 5], trace: [[6, 1], [6, 2], [6, 3], [7, 3], [8, 3], [9, 3], [10, 3], [11, 3], [12, 3], [13, 3], [13, 4], [13, 5]], pushLine: 'A boulder, asleep on a pillar out in the drop. How did it get out there? How does anything?' },
+                { k: 'eyelet', x: 13, y: 9 },
+                { k: 'chest', x: 15, y: 8, item: 'key', id: 'dlKey' },
+                { k: 'bed', x: 2, y: 1, id: 'dlBed' },
+                { k: 'snoreling', x: 4, y: 2, id: 'dlSnore1' }, { k: 'snoreling', x: 17, y: 2, id: 'dlSnore2' },
+                { k: 'sign', x: 17, y: 3, text: 'THE DRYING LOFT. Sheets, socks, and a long way down.' },
+            ],
+            nudge: { solved: 'slumber_chest:dlKey', after: 60 * 60 * 3, thing: 'dlBoulder', say: 'Out on its pillar, the sleeping boulder sits exactly between you and the ring on the island. A bell would wake it. A bell would wake everything.' },
+        },
+        /* ---------------- 7 The Landing (mini-boss): Matron Hush follows your footsteps (the Bedroll) ---------------- */
+        '1,1': {
+            name: 'The Landing',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#....cccccccccc....#',
+                '#....cccccccccc....#',
+                '.....cccccccccc.....',
+                '#....cccccccccc....#',
+                '#....cccccccccc....#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'big', id: 'laBig' },
+                { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'matron' }, { k: 'shutter', x: 0, y: 5, dir: 'v', group: 'matron' }, { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'matron' },
+                { k: 'deco', x: 1, y: 8, look: 'bed_big', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], oy: 0, text: "Matron's bed. Starched so stiff it could stand up by itself. It very nearly is." },
+                { k: 'matron', x: 3, y: 9, id: 'matron' },
+                { k: 'chest', x: 9, y: 8, item: 'bedroll', id: 'laBedroll', hidden: true, when: 'flag:slumber_matron', big: true },
+                { k: 'sign', x: 17, y: 1, text: "THE LANDING. Matron does her rounds in her sleep. She never misses a step: yours. (The floorboards here are older than she is.)" },
+            ],
+        },
+        /* ---------------- 8 The Nursery: carry the toy home over the drop it can't climb (key C's door) ---------------- */
+        '0,1': {
+            name: 'The Nursery',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#oooooooooooooooooo#',
+                '#..................#',
+                '#..................#',
+                '#...................',
+                '##vvvvvvvv#........#',
+                '##........#........#',
+                '##........#........#',
+                '##......o.#........#',
+                '####################',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'lock', id: 'nuLock' },
+                { k: 'crate', x: 4, y: 8, id: 'nuToy', marked: false, look: 'toyblock', noThrow: true },
+                { k: 'deco', x: 14, y: 7, look: 'crib', solid: [[0, 0], [1, 0]], oy: -6, text: 'A crib, empty. A mobile of little wooden moons turns over it, though there is no draught.' },
+                { k: 'sign', x: 12, y: 4, text: "THE NURSERY. Toys away by bedtime, please. (Someone has added, in crayon: THE BIG BLOCK DOESN'T GO BACK. IT NEVER GOES BACK.)" },
+            ],
+            nudge: { solved: () => !slumberPit('slumber', 0, 1, 9, 2), after: 60 * 60 * 3, thing: 'nuToy', say: "The toy block in the playpen doesn't belong anywhere. Whatever falls into a pit and doesn't come back fills it in. If only it could be got out of the playpen." },
+        },
+        /* ---------------- 9 The Moonwalk: be in two places at once, nearly (key C) ---------------- */
+        '2,1': {
+            name: 'The Moonwalk',
+            rows: [
+                '####################',
+                '#...#..............#',
+                '#...#..............#',
+                '##.##..#......#....#',
+                '#..................#',
+                '...........#.......#',
+                '#..................#',
+                '#......#......#....#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'door', x: 2, y: 3, type: 'gate', when: 'mwp', id: 'mwGate', passed: 'up' },
+                { k: 'chest', x: 2, y: 1, item: 'key', id: 'mwKey' },
+                { k: 'plate', x: 17, y: 9, sig: 'mwp' },
+                { k: 'wood', x: 16, y: 9, id: 'mwBlock' },
+                { k: 'sign', x: 5, y: 9, text: "THE MOONWALK. The gate in the corner stays open while the far plate is pressed. Nobody has ever walked it in time. (Nobody walks in here.)" },
+            ],
+            nudge: { solved: 'slumber_mwGate', after: 60 * 60 * 3, at: [2, 4], say: 'The gate is a long way from the plate. Walking back takes too long. Something faster than walking, then.' },
+        },
+        /* ---------------- 10 Pillow Fort: a Snoreling will sleep in any bed going, even yours (the Pattern) ---------------- */
+        '0,0': {
+            name: 'Pillow Fort',
+            rows: [
+                '####################',
+                '#......#...#.......#',
+                '#......#...#.......#',
+                '#......#...#.......#',
+                '#......##.##.......#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 4, type: 'gate', when: 'pfp', id: 'pfGate' },
+                { k: 'chest', x: 9, y: 2, item: 'pattern', id: 'pfPattern', big: true },
+                { k: 'plate', x: 16, y: 8, sig: 'pfp' },
+                { k: 'snoreling', x: 3, y: 2, id: 'pfSnore1' }, { k: 'snoreling', x: 17, y: 2, id: 'pfSnore2' },
+                { k: 'deco', x: 2, y: 7, look: 'pillowpile', solid: [[0, 0], [1, 0]], oy: -4, text: 'A heap of pillows, still warm.' },
+                { k: 'deco', x: 13, y: 6, look: 'pillowpile', solid: [[0, 0], [1, 0]], oy: -4, text: 'A heap of pillows. Somebody has built a little wall of them, and a little flag on top: a sock.' },
+                { k: 'sign', x: 18, y: 9, text: 'PILLOW FORT. The keep opens while someone holds down the plate. Snorelings will sleep anywhere that looks like a bed.' },
+            ],
+            nudge: { solved: () => Inv.hasPattern('slumber'), after: 60 * 60 * 4, at: [16, 8], say: 'A Snoreling, woken, shuffles about and then goes to the nearest bed it can find. Any bed at all. Even one somebody has just laid out.' },
+        },
+        /* ---------------- 11 Mother Sloth (boss) ---------------- */
+        '1,0': {
+            name: "Mother Sloth's Room",
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'mothersloth', x: 9, y: 2, id: 'sloth' },
+                { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'boss' },
+            ],
+        },
+    },
+    tick: a => Slumber.tick(a),
+    afterKnot: function* () { yield* Slumber.afterKnot(); },
+});
+/* a pit still there? (for nudges) */
+function slumberPit(area, cx, cy, x, y) { const a = G.map; if (!a || a.id !== area) return true; return a.kind(cx * 20 + x, cy * 11 + y).pit; }
+
+const Slumber = {
+    tick(a) {
+        /* the Moonwalk gate, latched once passed */
+        const g = a.find('mwGate');
+        if (g && g.openedOnce && !Progress.flag('slumber_mwGate')) Progress.set('slumber_mwGate');
+    },
+    *afterKnot() {
+        Progress.set('d5');
+        Progress.setGoal('Home to Hollowell. (Somebody at the clinic will want to hear all about it.)');
+        yield* say(null, 'All through the house, very softly, every bed creaks at once, as if everyone in them had turned over in their sleep.');
+        const a = G.map, r = a.rooms.find(r => r.key === '1,0');
+        a.add(new Warp(r.x + 3, r.y + 9, { to: 'hollow', tx2: SLUMBER_OUT.x, ty2: SLUMBER_OUT.y, face: 'down' }));
+        a.add(new Prop(r.x + 3, r.y + 9, { im: ART.exitlight, solid: [] }));
+    },
+};
+SIGNATURE_TEXT.slumber = "Stitched into the rug, lavender on lavender, so you'd only see it lying down: a crescent moon and the letters D.M. Someone signed this House where they'd see it last thing at night.";
+
+ITEM_LINES.bedroll = () => 'You found the {red}Bedroll{/}! Tap C to lay it down anywhere: that spot is home now. Hold C to go Homeward, flying back along your trace to it. What you carry comes too.';
+ITEM_AFTER.bedroll = function* () { Inv.equipped = 'bedroll'; };
+
+// ---- 60b_slumber_foes.js ----
+/* The Slumberhouse's own things: the grate floats slip through (but nobody riding one), Matron Hush (the
+   mini-boss: she follows your footsteps exactly, so lead her over boards that have just given way), and
+   Mother Sloth (the boss: her long arms catch you and reel you to her bed; fly home from her grip, further than
+   she can reach, and the arm snaps; with both snapped she slumps, and her nightcap is there to be knocked). */
+
+/* the grate under the Study: water and a float with nobody on it go through */
+class Grate extends Ent {
+    constructor(tx, ty, p = {}) { super('grate', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; }
+    blocks(x, y, who) {
+        if (x !== this.tx || y !== this.ty) return false;
+        const p = G.player;
+        if (who && who.floats && who.isGrid) return !!(p && p.area === this.area && (p.ride === who || (p.tx === who.tx && p.ty === who.ty && !p.flying)));
+        return true;
+    }
+    get sortY() { return this.y + 16; }
+    draw(cx, cy) { const x = this.x - cx, y = this.y - cy; for (let i = 1; i < 16; i += 4) Gfx.rect(x + i, y - 6, 2, 20, '#4b3a8a'); Gfx.rect(x, y - 6, 16, 2, '#3e2e6a'); }
+}
+SPAWN.grate = (x, y, p) => new Grate(x, y, p);
+
+/* ---------------- Matron Hush ---------------- */
+class Matron extends Enemy {
+    constructor(tx, ty, p = {}) {
+        super(tx, ty, Object.assign({ type: 'matron', hp: 3 }, p));
+        this.state = 'sleep'; this.st = 0; this.i = 0; this.weightN = 3; this.z = 0;
+    }
+    get arena() { return this.area.roomAt(this.hx, this.hy); }
+    hurtBox() { return this.alive && this.state === 'dazed' ? { x0: this.x - 8, x1: this.x + 8, y0: this.y - 20, y1: this.y + 3 } : (this.alive && this.state === 'follow' ? { x0: this.x - 6, x1: this.x + 6, y0: this.y - 22, y1: this.y + 2 } : null); }
+    onTile() { return false; }
+    feetOn(x, y) { return this.alive && (this.state === 'follow') && this.tx === x && this.ty === y; }
+    shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'matron') s.shut = shut; }
+    update() {
+        if (!this.alive) return this.updateYarn();
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area, r = this.arena;
+        if (this.state === 'sleep') {
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 2) {
+                this.state = 'follow'; this.st = 0; this.i = 0;
+                this.shutters(true);
+                Music.play('boss');
+                Script.run(SlumberFoes.matronIntro(this));
+            }
+            return;
+        }
+        /* Wren gone from the room mid-fight (flown home to a bed elsewhere): Matron goes back to bed, the doors open */
+        if ((p.area !== a || (Cam.room !== r && !p.flying && !Cam.busy)) && this.state !== 'fly') { this.toBed(); this.state = 'sleep'; this.shutters(false); Music.play('slumber'); return; }
+        if (Script.blocking()) return;
+        this.st++;
+        switch (this.state) {
+            case 'follow': {
+                /* step along Wren's footsteps, one by one */
+                const tr = p.trace;
+                if (!tr || !tr.length) break;
+                if (this.i >= tr.length || this.st === 1) this.i = this.nearest(tr);
+                const [gx, gy] = tr[Math.min(this.i, tr.length - 1)];
+                const tx = gx * T + 8, ty = gy * T + 10;
+                const lunge = (this.st % 300) > 240;
+                const sp = (0.95 + (3 - this.hp) * 0.12) * (lunge ? 1.6 : 1);
+                const dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy);
+                if (d <= sp) { this.x = tx; this.y = ty; if (this.i < tr.length - 1) this.i++; else { this.x += (p.x - this.x) * 0.05; this.y += (p.y - this.y) * 0.05; } }
+                else { this.x += dx / d * sp; this.y += dy / d * sp; this.dir = dirOf(dx, dy); }
+                this.anim++;
+                /* her footing gone: down she goes */
+                if (a.kind(this.tx, this.ty).pit) { this.state = 'fall'; this.st = 0; Sfx.play('fall'); Stats.count('boss:matron:fall'); break; }
+                if (p.state === 'normal' && Math.abs(p.x - this.x) < 9 && Math.abs(p.y - this.y) < 8) { p.hurt(1, this.x, this.y); Fx.text(p.x, p.y - 20, 'tucked in!', '#d8c8f8'); }
+                break;
+            }
+            case 'fall':
+                if (this.st >= 30) { this.state = 'fly'; this.st = 0; this.fx = this.x; this.fy = this.y; Sfx.play('flight'); }
+                break;
+            case 'fly': {
+                const k = Math.min(1, this.st / 50);
+                this.x = lerp(this.fx, this.hx * T + 8, k); this.y = lerp(this.fy, this.hy * T + 10, k); this.z = Math.sin(k * Math.PI) * 24;
+                if (k >= 1) { this.z = 0; this.state = 'dazed'; this.st = 0; Sfx.play('land'); Fx.dust(this.x, this.y); G.shake = 6; Crumble.mendAll(a, r); }
+                break;
+            }
+            case 'dazed':
+                if (this.st > 260) { this.state = 'follow'; this.st = 0; this.i = 0; Fx.text(this.x, this.y - 26, '!', '#f7d64a'); }
+                break;
+        }
+    }
+    nearest(tr) { let b = 0, bd = Infinity; for (let i = 0; i < tr.length; i++) { const d = Math.hypot(tr[i][0] * T + 8 - this.x, tr[i][1] * T + 10 - this.y); if (d < bd) { bd = d; b = i; } } return b; }
+    toBed() { this.x = this.hx * T + 8; this.y = this.hy * T + 10; this.z = 0; this.st = 0; Crumble.mendAll(this.area, this.arena); }
+    struck(by, dmg, dir) {
+        if (!this.alive || this.flash > 0) return;
+        if (this.state !== 'dazed') { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 10); if (by === G.player) Fx.text(this.x, this.y - 28, 'too starchy!', '#fbf6ea'); return; }
+        this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 6; Sfx.play('enemyhit');
+        if (this.hp <= 0) return this.defeat();
+        this.state = 'follow'; this.st = 0; this.i = 0;
+    }
+    shoved() { }
+    defeat() {
+        this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
+        Sfx.play('unravel'); Fx.yarn(this.x, this.y - 10, THREAD.mallow);
+        Progress.set('slumber_matron');
+        Script.run(SlumberFoes.matronDown(this));
+    }
+    draw(cx, cy) {
+        if (!this.alive) { if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.mallow); } return; }
+        const x = this.x - cx, y = this.y - cy;
+        if (this.state === 'fall') {
+            const k = 1 - this.st / 30, im = spr('matron_0');
+            if (!HEADLESS && im && k > 0) { Gfx.alpha(k); Gfx.ctx.drawImage(im, Math.round(x - 8 * k), Math.round(y - 26 * k), Math.round(16 * k), Math.round(28 * k)); Gfx.alpha(1); }
+            return;
+        }
+        Gfx.alpha(0.25); Gfx.rect(x - 6, y + 1, 12, 3, PAL.ink); Gfx.alpha(1);
+        const im = spr(this.state === 'dazed' ? 'matron_daze' : this.state === 'sleep' ? 'matron_sleep' : 'matron_' + ((this.anim >> 4) % 2));
+        const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
+        Gfx.img(img, x - 8, y - 26 - Math.round(this.z || 0));
+        if (this.state === 'dazed' && (this.t >> 3) % 2) Font.draw('z', x + 6, y - 30, '#e8e0ff');
+    }
+}
+SPAWN.matron = (x, y, p) => Progress.flag('slumber_matron') ? new Ent('none') : new Matron(x, y, p);
+
+/* ---------------- Mother Sloth ---------------- */
+const SLOTH = { REACH: 5.5, SNAP: 6.25 };
+class MotherSloth extends Enemy {
+    constructor(tx, ty, p = {}) {
+        super(tx, ty, Object.assign({ type: 'mothersloth', hp: 3 }, p));
+        this.state = 'sleep'; this.st = 0; this.weightN = 9; this.hidden = false; this.pillows = [];
+        const sx = tx * T + 8, sy = ty * T + 18;
+        this.arms = [{ side: -1, sx: sx - 34, sy, hx: sx - 34, hy: sy + 6, state: 'rest', t: 0, cool: 30 }, { side: 1, sx: sx + 34, sy, hx: sx + 34, hy: sy + 6, state: 'rest', t: 0, cool: 90 }];
+        this.capX = tx * T + 8; this.capY = (ty + 3) * T;
+    }
+    get arena() { return this.area.roomAt(this.hx, this.hy); }
+    onTile() { return false; }
+    feetOn() { return false; }
+    blocks(x, y) { return this.alive && x >= this.hx - 2 && x <= this.hx + 3 && y >= this.hy - 1 && y <= this.hy; }
+    hurtBox() { return this.alive && this.state === 'slump' ? { x0: this.capX - 12, x1: this.capX + 12, y0: this.capY - 14, y1: this.capY + 6 } : null; }
+    shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = shut; }
+    update() {
+        if (!this.alive) return this.updateYarn();
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area, r = this.arena;
+        this.updatePillows(p);
+        const inRoom = p.area === a && Cam.room === r && !Cam.busy;
+        if (this.state === 'sleep') {
+            if (inRoom && p.state === 'normal' && p.ty < r.y + r.h - 2) {
+                this.state = 'fight'; this.st = 0; this.shutters(true); Music.play('boss');
+                if (!Progress.flag('slumber_slothAwake')) { Progress.set('slumber_slothAwake'); Script.run(SlumberFoes.slothIntro(this)); }
+            }
+            return;
+        }
+        /* Wren flew home out of the room: the arms let go, the doors open; back in, it starts again */
+        if (!inRoom && !p.flying) {
+            for (const arm of this.arms) this.letGo(arm, true);
+            this.state = 'sleep'; this.shutters(false); Music.play('slumber');
+            return;
+        }
+        if (Script.blocking()) return;
+        this.st++;
+        if (this.state === 'fight') {
+            for (const arm of this.arms) this.updateArm(arm, p);
+            /* she lobs a pillow at anyone keeping out of reach */
+            const out = this.arms.every(arm => Math.hypot(p.x - arm.sx, p.y - arm.sy) > SLOTH.REACH * T);
+            if (out && p.state === 'normal' && this.st % (this.hp === 1 ? 110 : 170) === 90) this.throwPillow(p);
+            if (this.arms.every(arm => arm.state === 'snapped')) { this.state = 'slump'; this.st = 0; G.shake = 10; Sfx.play('rumble'); Fx.text(this.capX, this.capY - 30, 'z Z z', '#e8e0ff'); }
+        } else if (this.state === 'slump') {
+            if (this.st > 330) this.rise();
+        }
+    }
+    updateArm(arm, p) {
+        arm.t++;
+        const reachPx = SLOTH.REACH * T, dWren = Math.hypot(p.x - arm.sx, p.y - 6 - arm.sy);
+        const sp = 1.0 + (3 - this.hp) * 0.35;
+        switch (arm.state) {
+            case 'rest':
+                this.toward(arm, arm.sx, arm.sy + 6, 2);
+                if (arm.cool > 0) { arm.cool--; break; }
+                /* only one arm out at a time to begin with */
+                if (this.hp === 3 && this.arms.some(o => o !== arm && o.state !== 'rest' && o.state !== 'snapped')) break;
+                if (dWren < reachPx && p.state === 'normal' && !p.pinned) { arm.state = 'reach'; arm.t = 0; Sfx.play('twang'); }
+                break;
+            case 'reach':
+                if (dWren > reachPx + 8 || p.state !== 'normal' || (p.pinned && p.pinned !== arm)) { arm.state = 'rest'; arm.cool = 40; break; }
+                this.toward(arm, p.x, p.y - 6, sp);
+                if (Math.hypot(p.x - arm.hx, p.y - 6 - arm.hy) < 7 && p.inv <= 0) { arm.state = 'hold'; arm.t = 0; p.pinned = arm; Sfx.play('hook'); Fx.text(p.x, p.y - 22, 'caught!', '#d8c8f8'); }
+                break;
+            case 'hold':
+            case 'reel': {
+                if (p.state === 'flight') { arm.state = 'drag'; p.pinned = null; break; }
+                if (p.pinned !== arm) { this.letGo(arm); break; }
+                arm.hx = p.x; arm.hy = p.y - 6;
+                if (arm.state === 'hold' && arm.t > 45) { arm.state = 'reel'; arm.t = 0; }
+                if (arm.state === 'reel') {
+                    /* reeled in to her bed */
+                    const bx = this.capX, by = this.capY + 6, dx = bx - p.x, dy = by - p.y, d = Math.hypot(dx, dy);
+                    if (d < 10) { this.tuckIn(arm, p); break; }
+                    p.x += dx / d * 1.1; p.y += dy / d * 1.1;
+                }
+                break;
+            }
+            case 'drag':
+                /* holding on while Wren flies off: too far, and it snaps */
+                arm.hx = p.x; arm.hy = p.y - 6;
+                if (Math.hypot(p.x - arm.sx, p.y - 6 - arm.sy) > SLOTH.SNAP * T) { this.snap(arm); break; }
+                if (p.state !== 'flight') { if (p.state === 'normal') { arm.state = 'hold'; arm.t = 0; p.pinned = arm; } else this.letGo(arm); }
+                break;
+            case 'snapped':
+                arm.t++;
+                if (arm.t > 900) { arm.state = 'rest'; arm.cool = 60; Fx.sparkle(arm.sx, arm.sy, THREAD.mallow); }
+                break;
+        }
+    }
+    toward(arm, x, y, sp) { const dx = x - arm.hx, dy = y - arm.hy, d = Math.hypot(dx, dy); if (d <= sp) { arm.hx = x; arm.hy = y; } else { arm.hx += dx / d * sp; arm.hy += dy / d * sp; } }
+    letGo(arm, quiet) { const p = G.player; if (p && p.pinned === arm) p.pinned = null; if (arm.state !== 'snapped') { arm.state = 'rest'; arm.cool = 60; } }
+    snap(arm) {
+        arm.state = 'snapped'; arm.t = 0; arm.dropX = arm.hx; arm.dropY = arm.hy + 6;
+        const p = G.player; if (p && p.pinned === arm) p.pinned = null;
+        Sfx.play('unravel'); Sfx.play('hitthing'); G.shake = 8; G.hitstop = 6;
+        Fx.yarn(arm.hx, arm.hy, THREAD.mallow);
+        Stats.count('boss:sloth:snap');
+    }
+    tuckIn(arm, p) {
+        p.pinned = null; this.letGo(arm);
+        p.inv = 0; p.hurt(1, this.capX, this.capY - 20);
+        Fx.text(p.x, p.y - 22, 'tucked in!', '#d8c8f8');
+        arm.cool = 120;
+    }
+    throwPillow(p) {
+        const sx = this.capX, sy = this.capY - 10, d = Math.hypot(p.x - sx, p.y - sy) || 1, sp = 1.6 + (3 - this.hp) * 0.3;
+        this.pillows.push({ x: sx, y: sy, vx: (p.x - sx) / d * sp, vy: (p.y - 6 - sy) / d * sp, t: 0 });
+        Sfx.play('throw');
+    }
+    updatePillows(p) {
+        for (const s of this.pillows) {
+            s.t++; s.x += s.vx; s.y += s.vy;
+            if (p.state === 'normal' && Math.abs(p.x - s.x) < 7 && Math.abs(p.y - 4 - s.y) < 8) { p.hurt(1, s.x - s.vx * 4, s.y - s.vy * 4); s.done = true; Fx.poof(s.x, s.y); }
+            if (s.t > 220 || this.area.kind(tileOf(s.x), tileOf(s.y)).solid) { s.done = true; Fx.poof(s.x, s.y); }
+        }
+        this.pillows = this.pillows.filter(s => !s.done);
+    }
+    rise() {
+        this.state = 'fight'; this.st = 0;
+        for (const arm of this.arms) { arm.state = 'rest'; arm.cool = 60 + (arm.side > 0 ? 60 : 0); arm.hx = arm.sx; arm.hy = arm.sy + 6; }
+        Sfx.play('rumble'); G.shake = 6;
+    }
+    struck(by, dmg, dir) {
+        if (!this.alive || this.state !== 'slump' || this.flash > 0) return;
+        this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
+        Fx.poof(this.capX, this.capY - 8);
+        if (this.hp <= 0) return this.defeat();
+        this.rise();
+    }
+    shoved() { }
+    defeat() {
+        this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]]; this.pillows = [];
+        const p = G.player; if (p && p.pinned) p.pinned = null;
+        Sfx.play('unravel'); Fx.yarn(this.capX, this.capY - 20, THREAD.mallow);
+        Progress.set('slumber_boss');
+        Script.run(SlumberFoes.slothDown(this));
+    }
+    draw(cx, cy) {
+        for (const s of this.pillows) { Gfx.rect(s.x - cx - 4, s.y - cy - 3, 8, 6, '#fbf6ea'); Gfx.rect(s.x - cx - 4, s.y - cy + 2, 8, 1, '#d8c8f8'); }
+        const bx = this.hx * T - cx - 40, by = this.hy * T - cy - 30;
+        if (ART.sloth_bed) Gfx.img(ART.sloth_bed, bx, by);
+        if (!this.alive) { if ((this.yarnT || 0) < 160) { const k = 1 - this.yarnT / 160; Gfx.circle(this.capX - cx, this.capY - cy - 20, Math.round(14 * k), THREAD.mallow); } return; }
+        /* where her arms can reach: a ring of little stars in the carpet */
+        if (this.state !== 'sleep') {
+            Gfx.alpha(0.35);
+            for (const arm of this.arms) for (let i = 0; i < 48; i++) {
+                const t = i / 48 * Math.PI * 2, x = arm.sx + Math.cos(t) * SLOTH.REACH * T, y = arm.sy + Math.sin(t) * SLOTH.REACH * T;
+                if (this.arms.some(o => o !== arm && Math.hypot(x - o.sx, y - o.sy) < SLOTH.REACH * T)) continue;
+                Gfx.rect(x - cx, y - cy, 2, 2, '#f7e08a');
+            }
+            Gfx.alpha(1);
+        }
+        const body = spr(this.state === 'slump' ? 'sloth_slump' : this.state === 'sleep' ? 'sloth_sleep' : 'sloth_awake');
+        const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(body, '#ffffff') : body;
+        if (img) Gfx.img(img, this.hx * T - cx + 8 - img.width / 2, this.hy * T - cy - 30 + (this.state === 'slump' ? 22 : 0) + Math.round(Math.sin(this.t / 40) * 1.5));
+        for (const arm of this.arms) this.drawArm(arm, cx, cy);
+    }
+    drawArm(arm, cx, cy) {
+        if (this.state === 'sleep') return;
+        if (arm.state === 'snapped') {
+            Gfx.line(arm.sx - cx, arm.sy - cy, arm.sx - cx + arm.side * 4, arm.sy - cy + 10, '#8a6a4a');
+            if (arm.t < 200) { Gfx.alpha(1 - arm.t / 200); this.drawHand(arm.dropX - cx, arm.dropY - cy, arm.side); Gfx.alpha(1); }
+            return;
+        }
+        const x0 = arm.sx - cx, y0 = arm.sy - cy, x1 = arm.hx - cx, y1 = arm.hy - cy;
+        /* a long furry arm: a thick line with a lavender thread through it */
+        for (let o = -2; o <= 2; o++) Gfx.line(x0 + o * 0.5, y0 + o, x1 + o * 0.5, y1 + o, o === 0 ? '#a8845e' : '#7a5a3e');
+        Gfx.line(x0, y0, x1, y1, THREAD.mallow);
+        this.drawHand(x1, y1, arm.side);
+    }
+    drawHand(x, y, side) {
+        Gfx.circle(x, y, 4, '#7a5a3e'); Gfx.circle(x, y, 3, '#a8845e');
+        for (let i = -1; i <= 1; i++) Gfx.line(x + i * 2, y + 2, x + i * 3 + side, y + 6, '#3e2e22');
+    }
+}
+SPAWN.mothersloth = (x, y, p) => Progress.flag('slumber_boss') ? new Ent('none') : new MotherSloth(x, y, p);
+
+const SlumberFoes = {
+    *matronIntro(m) {
+        yield 20;
+        yield* say(null, 'In the starched bed by the wall, somebody sits bolt upright: a tall, tall nurse in a cap, her eyes tight shut. "LIGHTS OUT," she says. "Back to bed. NOW."');
+        yield* say(null, 'She gets up, still asleep, and comes after you, putting her feet exactly where you put yours. The doors swing shut.');
+    },
+    *matronDown(m) {
+        const a = m.area;
+        Music.play('silence');
+        yield 40;
+        yield* say(null, 'Matron Hush sighs, "Lights... out...", and unravels into a heap of lavender yarn that rolls under her own bed and stays there.');
+        m.shutters(false);
+        Sfx.play('appear');
+        Music.play('slumber');
+    },
+    *slothIntro(s) {
+        yield 20;
+        yield* say(null, 'Something enormous hangs over the four-poster: a sloth as big as a haycart, upside down, in a nightcap, fast asleep. Its arms are very, very long.');
+        yield* say(null, '"Mmmmh," it says, without opening its eyes. "Another one up past bedtime. Come here, dear. Come to bed. Nothing ever gets away from Mother."');
+        yield* say(null, '"...Nothing except what\'s going home, anyway. Mmh."');
+    },
+    *slothDown(s) {
+        const a = s.area;
+        Music.play('silence');
+        yield 50;
+        yield* say(null, 'Mother Sloth lets go of everything at once with a long, long sigh, and unravels into soft lavender yarn that drifts down, slowly, like a feather, into the floor.');
+        s.shutters(false);
+        const br = a.rooms.find(r => r.key === '1,0');
+        a.add(new Hoop(br.x + 15, br.y + 6));
+        a.add(new Pickup((br.x + 4) * T, (br.y + 6) * T, { what: 'heartstitch', id: 'slumberHeart' }));
+        Sfx.play('appear');
+        Music.play('slumber');
+    },
+};
+
+function initSlumberFoes() {
+    ENEMY.matron = { hp: 3, r: 7, tall: 26, yarn: THREAD.mallow, harmless: true };
+    ENEMY.mothersloth = { hp: 3, r: 10, tall: 30, yarn: THREAD.mallow, harmless: true, flies: true, swims: true };
+    const mt = { g: '#b48ce8', G: '#8a64c4', w: '#fbf6ea', W: '#d8d0e8', s: '#f0c8a8', e: '#2a1f2d', h: '#8a8a8a' };
+    const matron = (arms, eyes) => [
+        '.....kkkkkk.....', '....kwwwwwwk....', '...kwwWwwWwwk...', '...kkkkkkkkkk...', '....khhhhhhk....', '....kssssssk....', '....k' + eyes + 'k....', '....kssssssk....', '.....kssssk.....',
+        arms[0], arms[1], '..kgwwwwwwwwgk..', '..kgwwWwwWwwgk..', '..kgwwwwwwwwgk..', '..kggwwwwwwggk..', '..kgggwwwwgggk..', '..kggggggggggk..', '.kgggggggggggGk.', '.kggggggggggGGk.', '.kgggggggggGGGk.', '.kggggggggGGGGk.',
+        '.kgggggggGGGGGk.', '.kGGGGGGGGGGGGk.', '..kkkkkkkkkkkk..', '...kWk....kWk...', '...kkk....kkk...', '................', '................'];
+    defSprite('matron_0', matron(['kkkgggggggggkkkk', 'ksssgggggggsssk.'], 'eessee'), mt);
+    defSprite('matron_1', matron(['.kkkgggggggkkkk.', '.ksssgggggsssk..'], 'eessee'), mt);
+    defSprite('matron_sleep', matron(['...kgggggggk....', '...kgggggggk....'], 'eessee'), mt);
+    defSprite('matron_daze', matron(['..kgggggggggk...', '.ksgggggggggsk..'], 'ssesse'), mt);
+    ENEMY_DRAW.matron = () => null;
+    ART.sloth_bed = paintSprite(96, 60, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R('#5a3a2a', 4, 0, 5, 60); R('#5a3a2a', 87, 0, 5, 60); R('#7a4e32', 5, 0, 2, 60); R('#7a4e32', 88, 0, 2, 60);
+        R('#4b3a8a', 0, 0, 96, 6); R('#7d5bc4', 2, 6, 92, 3);
+        for (let i = 0; i < 9; i++) R(i % 2 ? '#b48ce8' : '#9a76d8', 8 + i * 9, 9, 9, 6);
+        R('#fbf6ea', 14, 30, 68, 10); R('#d8d0e8', 14, 38, 68, 2);
+        R('#b48ce8', 9, 38, 78, 18); R('#9a76d8', 9, 44, 78, 1); R('#9a76d8', 9, 50, 78, 1); R('#d8c8f8', 9, 38, 78, 1);
+        R('#5a3a2a', 4, 55, 88, 5);
+    });
+    const slothBody = (eyes, slump) => paintSprite(80, 56, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        for (let j = 0; j < 56; j++) for (let i = 0; i < 80; i++) {
+            const dx = (i - 40) / 32, dy = (j - 30) / 24, d = dx * dx + dy * dy;
+            if (d > 1) continue;
+            R(d > 0.85 ? '#5a4232' : hash2(i, j, 4) < 0.15 ? '#a8845e' : '#8a6a4a', i, j, 1, 1);
+        }
+        /* the face mask, and the nightcap */
+        R('#d8c0a0', 26, 22, 28, 18); R('#3e2e22', 26, 26, 8, 5); R('#3e2e22', 46, 26, 8, 5);
+        if (eyes) { R('#f7e08a', 29, 27, 2, 2); R('#f7e08a', 49, 27, 2, 2); } else { R('#d8c0a0', 28, 28, 5, 1); R('#d8c0a0', 47, 28, 5, 1); }
+        R('#3e2e22', 37, 32, 6, 3); R('#7a5a3e', 36, 37, 8, 1);
+        for (let j = 0; j < 16; j++) R(j % 4 === 3 ? '#7d5bc4' : '#b48ce8', 26 + Math.floor(j / 2), 8 + j - (slump ? 0 : 0), 28 - j, 1);
+        R('#fbf6ea', 24, 22, 32, 3); R('#fbf6ea', 54, 4, 5, 5);
+    });
+    SPR.sloth_sleep = slothBody(false); SPR.sloth_awake = slothBody(true); SPR.sloth_slump = slothBody(false, true);
+    ART.bed_big = paintSprite(32, 32, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R('#5a3a2a', 0, 0, 32, 32); R('#fbf6ea', 2, 2, 28, 28); R('#e0d8ec', 2, 12, 28, 1); R('#d8d0e8', 4, 4, 24, 6);
+        R('#fbf6ea', 2, 14, 28, 15); for (let i = 0; i < 4; i++) R('#e8e0f0', 2, 16 + i * 4, 28, 1); R('#5a3a2a', 0, 29, 32, 3);
+    });
+    ART.crib = paintSprite(32, 22, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R('#c8a07a', 0, 6, 32, 2); R('#c8a07a', 0, 18, 32, 2); for (let i = 0; i < 32; i += 4) R('#c8a07a', i, 6, 2, 14);
+        R('#d8c8f8', 2, 10, 28, 8); R('#7a4e32', 15, 0, 2, 6); R('#f7e08a', 8, 2, 3, 3); R('#f7e08a', 21, 2, 3, 3); R('#7a4e32', 9, 1, 14, 1);
+    });
+    ART.pillowpile = paintSprite(32, 20, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R('#fbf6ea', 1, 10, 16, 9); R('#d8c8f8', 15, 9, 16, 10); R('#f0d0e0', 7, 3, 16, 9);
+        R('#d8d0e8', 1, 18, 16, 1); R('#b48ce8', 15, 18, 16, 1); R('#e0b0c8', 7, 11, 16, 1); R('#e8463c', 22, 0, 1, 4); R('#fbf6ea', 23, 0, 4, 2);
+    });
+    defSprite('toyblock', ['................', '..kkkkkkkkkkkk..', '.kyyyyyyyyyyyyk.', '.kyyrryyyybbyyk.', '.kyyrryyyybbyyk.', '.kyyyyyyyyyyyyk.', '.kyyyykkkkyyyyk.', '.kyyykYYYYkyyyk.', '.kyyykYYYYkyyyk.', '.kyyyykkkkyyyyk.', '.kyyyyyyyyyyyyk.', '.kyyggyyyyrryyk.', '.kyyggyyyyrryyk.', '.kYYYYYYYYYYYYk.', '..kkkkkkkkkkkk..', '................'],
+        { y: '#f7d64a', Y: '#d9a33a', r: '#e8463c', b: '#4f9be0', g: '#5ac06a' });
+    defSprite('basket', ['................', '................', '..kkkkkkkkkkkk..', '.kbBbBbBbBbBbBk.', '.kBwwwwwwwwwwbk.', '.kbwwddwwwwwwBk.', '.kBwwwwwwddwwbk.', '.kbwwwwwwwwwwBk.', '.kBbBbBbBbBbBbk.', '.kbBbBbBbBbBbBk.', '..kkkkkkkkkkkk..', '................', '................', '................', '................', '................'],
+        { b: '#c8a068', B: '#9a7448', w: '#fbf6ea', d: '#d8c8f8' });
+    ART.monogram_slumber = paintSprite(16, 10, x => { x.fillStyle = '#b48ce8'; x.beginPath(); x.arc(4, 5, 4, 0, Math.PI * 2); x.fill(); x.fillStyle = '#4b3a8a'; x.beginPath(); x.arc(6, 4, 3.5, 0, Math.PI * 2); x.fill(); x.fillStyle = '#7d5bc4'; x.fillRect(9, 2, 1, 6); x.fillRect(10, 2, 1, 1); x.fillRect(11, 3, 1, 4); x.fillRect(10, 7, 1, 1); x.fillRect(13, 2, 1, 6); x.fillRect(14, 3, 1, 1); x.fillRect(15, 2, 1, 6); }, false);
+}
+CONTENT_INIT.push(initSlumberFoes);
+
 // ---- 79_presets.js ----
 /* Presets: game states at the start of each stretch, for the debug panel and the tests. */
 function presetBase(name = 'Wren') {
@@ -11416,6 +12656,14 @@ PRESETS.afterD4 = () => {
     for (const f of ['d4', 'belfry_boss', 'belfry_clangor', 'belfry_tollAwake', 'met:tess']) Progress.set(f);
     Progress.setGoal('Home to Hollowell: it is the Knotting Festival.');
     World.enter('hollow', BELFRY_OUT.x, BELFRY_OUT.y, { dir: DOWN });
+};
+PRESETS.afterD5 = () => {
+    PRESETS.afterD4();
+    for (const f of ['festival', 'giant_awake', 'giant_home', 'giant_seen', 'met:hettie']) Progress.set(f);
+    Inv.giveTool('bedroll'); Inv.knots.push('slumber'); Inv.addHeart();
+    for (const f of ['d5', 'slumber_boss', 'slumber_matron', 'slumber_slothAwake', 'bedroll_laid', 'bed_first']) Progress.set(f);
+    Progress.setGoal('Home to Hollowell. (Somebody at the clinic will want to hear all about it.)');
+    World.enter('hollow', SLUMBER_OUT.x, SLUMBER_OUT.y, { dir: DOWN });
 };
 
 // ---- 80_story_core.js ----

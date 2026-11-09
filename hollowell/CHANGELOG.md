@@ -37,3 +37,14 @@
   (12 rooms, a mini-boss, a boss, a musical secret), with room tests and a playthrough leg.
 - Engine: things placed in an overworld region with a set path now get it in the right place.
 - A town festival after the fourth dungeon, with an optional ball game.
+- Fixes from the fourth dungeon's review: a ledge that dropped you inside the cliff, sleeping things falling
+  asleep again on a reload (or being moved without waking them), the hook passing through shut gates and
+  swinging on chests, bells heard through walls, a chest appearing on top of you, a room that solved itself,
+  two puzzles beatable backwards, an easy boss, and the ball game keeping half-scores. Regression tests for each.
+- Room hints no longer pop up after a room is already done.
+- The fifth tool and its kit: beds, a place of your own, crumbling boards, dreamcatchers, bouncy moss, sleep
+  puffs, a new sleepy creature; a lab room and tests.
+- The fifth region (a road blocked by a sleeping giant, a mushroom wood, a camp, a pond with a channel down to
+  the lake, a plateau, a hidden hollow) and the fifth dungeon (11 rooms, a mini-boss, a boss), with tests for
+  every room and a playthrough leg from the fourth Knot to the fifth. New music for both.
+

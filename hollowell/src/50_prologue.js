@@ -41,7 +41,7 @@ TALK.gran = function* (npc) {
         } else yield* say('gran', "Go on, love. The Well. I'll be right behind you.");
         return;
     }
-    const lines = Progress.flag('d1') ? GRAN_AFTER_D1 : GRAN_ACT1;
+    const lines = Progress.flag('d5') ? GRAN_AFTER_D5 : Progress.flag('d4') ? GRAN_AFTER_D4 : Progress.flag('d1') ? GRAN_AFTER_D1 : GRAN_ACT1;
     const n = Progress.get('granTalk') || 0; Progress.set('granTalk', n + 1);
     yield* say('gran', lines[n % lines.length]);
 };
@@ -55,6 +55,18 @@ const GRAN_AFTER_D1 = [
     "Your first Knot! Did you feel it? The whole valley sat up a little straighter.",
     "Next is the Kiln, out west in Kilnridge. The road's blocked by that old boulder, but you're a clever thing.",
     "I always knew you'd be good at this. You've your aunt's... well. You've good hands.",
+];
+
+const GRAN_AFTER_D4 = [
+    "Four Knots! Halfway, love. The east road's next: the old giant's asleep across it. You've a bell now.",
+    "Hushwood's a sleepy old place. Don't let it get into your bones. Come home to your own bed.",
+    "You're so like... well. You're growing up, that's all.",
+];
+const GRAN_AFTER_D5 = [
+    "Five! Only one more House, then home for good. It's out west: Larkspur Fair, down below the high mesa in Kilnridge.",
+    "There's no stair down off the mesa. Folk used to say you'd need a way of coming home before you jumped. You've one now, haven't you?",
+    "Your bedroll. Hm. Mind you always roll it up and bring it home. A Wanderer's place is at home, {name}.",
+    "Don't stay out too long. The valley likes everyone where they belong.",
 ];
 
 /* the ceremony starts when Wren first steps out of the house after talking to Gran */

@@ -153,3 +153,22 @@ SONGS.festival = {
         { drum: true, vol: 0.08, n: 'k . h s . h | k . h s h h' },
     ],
 };
+
+/* Hushwood: a slow lullaby of a waltz (D dorian), half asleep itself */
+SONGS.hush = {
+    bpm: 80, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.17, vib: true, n: 'D5 - - - F5 E5 | D5 - - - A4 - | C5 - - - E5 D5 | C5 - - - G4 - | Bb4 - - - D5 C5 | A4 - F4 - G4 - | A4 - - - - - | . . . . . . | D5 - - - F5 E5 | D5 - A4 - C5 - | Bb4 - - - A4 G4 | F4 - G4 - A4 - | Bb4 - A4 - G4 - | E4 - F4 - E4 - | D4 - - - - - | . . . . . . ' },
+        { wave: 'triangle', vol: 0.18, n: 'D3 - - A3 - - | D3 - - A3 - - | C3 - - G3 - - | C3 - - G3 - - | Bb2 - - F3 - - | F2 - - C3 - - | A2 - - E3 - - | A2 - - - - - | D3 - - A3 - - | F2 - - C3 - - | G2 - - D3 - - | D3 - - A3 - - | G2 - - D3 - - | A2 - - E3 - - | D3 - - A3 - - | D3 - - - - - ' },
+        { wave: 'p12', vol: 0.035, n: '. F4 A4 . F4 A4 | . F4 A4 . F4 A4 | . E4 G4 . E4 G4 | . E4 G4 . E4 G4 | . D4 F4 . D4 F4 | . C4 F4 . C4 F4 | . C#4 E4 . C#4 E4 | . C#4 E4 . . . | . F4 A4 . F4 A4 | . C4 F4 . C4 F4 | . D4 G4 . D4 G4 | . F4 A4 . F4 A4 | . D4 G4 . D4 G4 | . C#4 E4 . C#4 E4 | . F4 A4 . F4 A4 | . . . . . . ' },
+    ],
+};
+/* the Slumberhouse: a music box winding down (F major), the hush of a clock that isn't there */
+SONGS.slumber = {
+    bpm: 92, div: 2,
+    ch: [
+        { wave: 'p12', vol: 0.075, n: 'C6 . A5 . F5 . | G5 . A5 . C6 . | Bb5 . G5 . E5 . | F5 . G5 . A5 . | D6 . Bb5 . G5 . | A5 . Bb5 . C6 . | A5 . F5 . G5 . | F5 . . . . . | C6 . A5 . F5 . | G5 . A5 . Bb5 . | A5 . F5 . D5 . | E5 . F5 . G5 . | Bb5 . A5 . G5 . | F5 . E5 . D5 . | C5 . E5 . G5 . | F5 . . . . . ' },
+        { wave: 'triangle', vol: 0.16, legato: 0.8, n: 'F3 - - C4 - - | C3 - - G3 - - | C3 - - E3 - - | F3 - - C4 - - | Bb2 - - F3 - - | F2 - - C3 - - | C3 - - E3 - - | F3 - - - - - | F3 - - C4 - - | E3 - - C4 - - | D3 - - A3 - - | C3 - - G3 - - | G2 - - D3 - - | A2 - - D3 - - | C3 - - G3 - - | F2 - - - - - ' },
+        { drum: true, vol: 0.03, n: 'h . . . h . | h . . . h . ' },
+    ],
+};

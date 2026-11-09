@@ -97,7 +97,7 @@ const World = {
         p.x = tx * T + 8; p.y = ty * T + 10;
         if (opts.px !== undefined) { p.x = opts.px; p.y = opts.py; }
         p.dir = opts.dir !== undefined ? (typeof opts.dir === 'string' ? dirByName(opts.dir) : opts.dir) : p.dir;
-        p.state = 'normal'; p.kx = p.ky = 0; p.shove = null; p.z = 0;
+        p.state = 'normal'; p.kx = p.ky = 0; p.shove = null; p.z = 0; p.pinned = null;
         p.setMark();
         Cam.snap(p);
         Stats.enterRoom(a, Cam.room);
