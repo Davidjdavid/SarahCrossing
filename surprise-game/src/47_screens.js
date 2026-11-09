@@ -84,16 +84,28 @@ function pauseSelect(i) {
 }
 
 /* ---------- the stamp album ---------- */
+/* each missing stamp has a rumor: a nudge, never the answer */
+const STAMP_RUMOR = {
+    hatch: 'Something in a nest is waiting to be.', hollow: 'The oldest tree keeps a door.', mirror: 'Some stones see things the other way up.',
+    hour: 'There is an hour no clock admits to.', nowhere: 'Some letters go nowhere. So can you.', house: 'An empty lot, waiting for its first birthday.',
+    cellar: 'The quarry floor can\'t hold everyone.', shore: 'The sea is only as wide as it says.', walk: 'Halfway is a place, if you walk there.',
+};
 function drawAlbum(g, t) {
     g.fillStyle = 'rgba(26,20,32,0.8)'; g.fillRect(0, 0, VW, VH);
-    panel(g, 20, 14, VW - 40, VH - 28, C.Y, C.k);
-    textC(g, 'Stamps', VW / 2, 20, C.k);
+    panel(g, 20, 8, VW - 40, VH - 16, C.Y, C.k);
+    textC(g, 'Stamps', VW / 2, 13, C.k);
+    const sel = UI.albumI || 0;
     STAMPS.forEach((id, i) => {
-        const cx = 40 + (i % 3) * 64, cy = 36 + Math.floor(i / 3) * 46;
-        if (G.stamps[id]) { g.drawImage(stampImg(id), cx + 10, cy, 24, 28); textC(g, STAMP_NAME[id], cx + 22, cy + 31, C.k); }
+        const cx = 40 + (i % 3) * 64, cy = 26 + Math.floor(i / 3) * 42;
+        if (i === sel) { const k = Math.sin(t * 6) > 0 ? C.o : C.u; g.strokeStyle = k; g.strokeRect(cx + 7.5, cy - 2.5, 29, 33); }
+        if (G.stamps[id]) g.drawImage(stampImg(id), cx + 10, cy, 24, 28);
         else { R(g, C.T, cx + 10, cy, 24, 28); dotted(g, cx + 10, cy, 24, 28, C.u); textC(g, '?', cx + 22, cy + 10, C.u); }
     });
-    textC(g, `${Object.keys(G.stamps).length} of ${STAMPS.length}`, VW / 2, VH - 24, C.u);
+    const id = STAMPS[sel];
+    const line = G.stamps[id] ? STAMP_NAME[id] : STAMP_RUMOR[id];
+    blob(g, 28, VH - 50, VW - 56, 26, C.w, C.u, roundRect(VW - 56, 26, 3));
+    wrap(line, VW - 72).slice(0, 2).forEach((l, i) => textC(g, l, VW / 2, VH - 46 + i * 10, G.stamps[id] ? C.k : C.u));
+    textC(g, `${Object.keys(G.stamps).length} of ${STAMPS.length}`, VW / 2, VH - 20, C.u);
 }
 
 /* ---------- the map ---------- */

@@ -40,7 +40,9 @@ function press(k) {
         case 'swap': case 'pocket': return swapKey(k);
         case 'dialog': return dialogKey(k);
         case 'pause': return pauseKey(k);
-        case 'album': case 'map': if (k !== 'u' && k !== 'd' && k !== 'l' && k !== 'r') { UI.mode = UI.albumFrom || 'pause'; UI.albumFrom = null; sfx('menu'); } return;
+        case 'album': case 'map':
+            if (UI.mode === 'album' && 'udlr'.includes(k)) { const i = UI.albumI || 0, m = { l: -1, r: 1, u: -3, d: 3 }[k]; const n = i + m; if (n >= 0 && n < STAMPS.length && !((k === 'l' && i % 3 === 0) || (k === 'r' && i % 3 === 2))) { UI.albumI = n; sfx('tick'); } return; }
+            if (k !== 'u' && k !== 'd' && k !== 'l' && k !== 'r') { UI.mode = UI.albumFrom || 'pause'; UI.albumFrom = null; sfx('menu'); } return;
         case 'dead': return deadKey(k);
         case 'ending': return endingKey(k);
     }
