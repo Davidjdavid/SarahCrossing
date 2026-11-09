@@ -296,7 +296,7 @@ function drawTags(g, e, t) {
             const dx = x + e.door[0] * TS + 8, dy = y + e.door[1] * TS;
             const { w } = tagSize(slotGet(e, 'addr').length, false);
             one('addr', dx - w / 2, dy - 10, { icon: false });
-            if (keys.includes('age')) { const { w: w2 } = tagSize(1); one('age', x + W / 2 - w2 / 2, y - 14); }
+            if (keys.includes('age')) one('age', dx + w / 2 + 2, dy - 10);   /* beside the door number: you touch both from the doorstep */
             return;
         }
         case 'door': { const { w } = tagSize(slotGet(e, 'addr').length, false); one('addr', x + 8 - w / 2, e.face === 'u' ? y + 3 : y - 6, { icon: false }); return; }

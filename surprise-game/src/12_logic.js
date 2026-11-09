@@ -699,7 +699,7 @@ function doSwap(tg, pi) {
     if (!validAfter(e, tg.key)) {
         slotSet(e, tg.key, before);
         G.road = prevRoad;
-        EV.push({ t: 'refuse', tg });
+        EV.push({ t: 'refuse', tg, why: refusedWhy });
         return false;
     }
     G.pocket[pi] = old;
@@ -709,25 +709,28 @@ function doSwap(tg, pi) {
     return true;
 }
 /* a thing can't come into being where something already stands */
+/* why the last swap was refused, so the screen can say so */
+let refusedWhy = null;
 function occupiedBesides(e) {
     for (let y = e.y; y < e.y + (e.h || 1); y++) for (let x = e.x; x < e.x + (e.w || 1); x++) {
-        if (G.p.x === x && G.p.y === y) return true;
-        if (G.follow && G.follow.x === x && G.follow.y === y) return true;
-        if (entsAt(x, y).some(o => o !== e && (solidFor(o) || OBJ[o.k] || o.k === 'loose'))) return true;
+        if (G.p.x === x && G.p.y === y) { refusedWhy = { why: 'you', x, y }; return true; }
+        if (G.follow && G.follow.x === x && G.follow.y === y) { refusedWhy = { why: 'way', x, y }; return true; }
+        if (entsAt(x, y).some(o => o !== e && (solidFor(o) || OBJ[o.k] || o.k === 'loose'))) { refusedWhy = { why: 'way', x, y }; return true; }
     }
     return false;
 }
 function validAfter(e, key) {
-    if (e.k === 'npc' && key === 'age' && dval(e.s.age) === 0) return false;
+    refusedWhy = null;
+    if (e.k === 'npc' && key === 'age' && dval(e.s.age) === 0) { refusedWhy = { why: 'person' }; return false; }
     if (e.k === 'milestone') {
         const R = G.road;
-        if (!Number.isFinite(R.p) || !Number.isFinite(R.e)) return false;
-        if (R.p !== Infinity && R.e !== Infinity && R.p + R.e > 99) return false;
+        if (!Number.isFinite(R.p) || !Number.isFinite(R.e)) { refusedWhy = { why: 'endless' }; return false; }
+        if (R.p + R.e > 99) { refusedWhy = { why: 'long' }; return false; }
         return true;
     }
     if (key === 'age' && e !== SELF && e !== G.follow && e.k !== 'npc' && solidFor(e) && occupiedBesides(e)) return false;
     if (key === 'age' && e.k === 'bridge') {
-        if (bridgeStage(sv(e, 'age')) === 'none' && (G.p.x === e.x && G.p.y === e.y || entsAt(e.x, e.y).some(o => OBJ[o.k]))) return false;
+        if (bridgeStage(sv(e, 'age')) === 'none' && (G.p.x === e.x && G.p.y === e.y || entsAt(e.x, e.y).some(o => OBJ[o.k]))) { refusedWhy = { why: 'way', x: e.x, y: e.y }; return false; }
     }
     if (e.k === 'lot' && key === 'age' && lotStage(sv(e, 'age')) !== 'none' && occupiedBesides(e)) return false;
     return true;

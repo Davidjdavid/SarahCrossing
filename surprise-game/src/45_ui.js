@@ -143,7 +143,7 @@ function doIt(c, pi) {
     UI.mode = 'play';
     const before = candPos(c);
     const r = act({ t: 'swap', tg: c, pi });
-    if (!r) { sfx('refuse'); shakeTags(c); EV.length = 0; return; }
+    if (!r) { if (!EV.some(e => e.t === 'refuse')) sfx('refuse'); handleEvents(); return; }
     handleEvents({ swapFrom: before, swapPi: pi, swapTg: c });
 }
 function shakeTags(c) { shake = 2; }
@@ -255,7 +255,17 @@ function handleEvents(ctx = {}) {
             }
             case 'drop': sfx('drop'); { const pp = pocketPos(e.pi); FLY.push({ v: e.v, x0: pp.x + 5, y0: pp.y + 3, x1: e.x * TS + 6, y1: e.y * TS + OY + 4, t: 0, dur: 0.3 }); } break;
             case 'getdigit': { sfx('get'); const pp = pocketPos(e.pi); puff(pp.x + 6, pp.y + 6, C.Y, 8, 1, 0.5); break; }
-            case 'refuse': sfx('refuse'); shake = 1.5; break;
+            case 'refuse': {
+                sfx('refuse'); shake = 1.5;
+                const w = e.why;
+                if (w) {
+                    const v = VIS.get('@');
+                    const at = w.x !== undefined ? { x: w.x * TS + 8, y: w.y * TS + OY } : v ? { x: v.x + 8, y: v.y } : null;
+                    const msg = { you: 'you\'re in the way', way: 'something\'s in the way', person: 'they\'d rather not', long: 'the road can\'t be that long', endless: 'the road won\'t be endless' }[w.why];
+                    if (at && msg) pop(at.x, at.y - 16, msg, C.Y);
+                }
+                break;
+            }
             case 'age': sfx('grow'); if (ev) puff(cx, cy, C.l, 10, 1, 0.6, 1); break;
             case 'sink': sfx('sink'); if (ev) puff(cx, cy + 4, C.c, 10, 1, 0.6, 1); undoTip(); break;
             case 'float': case 'rise': sfx('float'); if (ev) puff(cx, cy + 4, C.w, 8, 0.8, 0.6, 1); break;
