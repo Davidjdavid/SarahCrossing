@@ -109,6 +109,7 @@ async function actThree() {
     await Fx.fadeOut(0.8);
     World.go('island', 87, 10, 'up', { quiet: true });
     F.eye = true; F.quarryGate = true; F.luxGaveUp = true;
+    const sg = ent('stonegate'); if (sg) { sg.st.open = true; sg.st.o = 1; sg.solid = false; }   /* open for everyone walking to the cape */
     Eye.begin();
     Save.write(true);
 }

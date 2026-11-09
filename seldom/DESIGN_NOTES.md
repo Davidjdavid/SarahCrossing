@@ -161,3 +161,21 @@ matching height; a spark crossing the seam reaches the lamp. Walkers stop at the
 cross on a seam like Dot did. Lit: the beam is a view of its own (things in it go on), the Faded are restored. Last look:
 Z closes the eye (iris-out), credits over that frame, then the island goes on in its light. Continue after the end: Dot
 walks again; the title says how many nights passed while you were away.
+
+## The brief's five elements, as delivered
+
+- **A. Unusual physics.** Existence and time are a matter of being seen: the view is a physical thing (Still, Return,
+  Bound, Hour; and per place Wrap, Crowd, Tiny, Seam). Consistent everywhere, including the soundtrack (music comes from
+  things in the world and stops mid-note when they're off screen) and the game itself (the Away law: the tab hidden).
+- **B. A small world with an evolving hub.** One continuous island around a village: the Clock starts when first seen,
+  the bridge is built, the band gets its drummer, Lamp Night, the bonfire every night after, Lux gives up his gate, the
+  lit lighthouse sweeping the island and restoring the Faded; six curios, Rover, Ruth, shortcuts that open from the far
+  side, ambient sound from what's in view.
+- **C. Manipulating ordinary rules.** Time of day (watch the clock, or don't), whether a guard is watching, whether a
+  machine's timer runs, whether a waterfall flows, whether a bridge exists, which edge of the world joins which.
+- **D. Genre transformation.** A cozy top-down adventure (errands, a festival, a key item) → an adventure where you also
+  steer the camera → the camera alone over the whole island (an attention/god game: escort, ferry, carry fire), with the
+  reveal that the player was always the camera. Foreshadowed by the names (Iris, Pan, Dolly, Ansel, Leica, Bridget,
+  Tilt, Lux, Sepia), "the Eye" in folklore, Dot glancing up at the player, Leica looking "past Dot", the viewfinder UI.
+- **E. Original core interaction.** Framing: moving, pinning, resizing and splitting the view to decide what exists and
+  when, and using the frame's edges as a physical force (herding, squeezing, wrapping, seams).
