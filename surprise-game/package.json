@@ -1,0 +1,11 @@
+{
+  "name": "carry-the-one",
+  "private": true,
+  "type": "module",
+  "description": "A small game. Open play.html in a browser.",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "test": "node tools/check-world.mjs && node --test tests/*.test.mjs",
+    "e2e": "node tools/build.mjs && node --test tests/e2e/*.test.mjs"
+  }
+}
