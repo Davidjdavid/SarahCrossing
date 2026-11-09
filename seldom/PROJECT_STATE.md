@@ -3,15 +3,14 @@
 > Contains spoilers. Read this first when resuming (then `CLAUDE.md`, then `DESIGN_NOTES.md`). Never restart the project.
 
 - Branch: `claude/exciting-rubin-25jcjf` (SarahCrossing repo, folder `seldom/`).
-- Four-hour check-in: scheduled task `trig_01MXeaWdKGDDdZD8EoZnHgbV` (fires into this session). Delete it once the game
-  is finished and verified (definition of done in `GAME_BRIEF.md`).
+- Four-hour check-in: scheduled task `trig_01MXeaWdKGDDdZD8EoZnHgbV`, deleted when the game was finished (9 November).
 - Deliverables: `seldom/seldom.html` (one file, opens from disk) and the private claude.ai Artifact
   https://claude.ai/artifact/S9EUh2jjQ5MwP4zPJfV29v (built from `seldom/artifact.html`: rebuild, then publish that same
   file path to update it in place).
 
 ## Status (9 November 2026, first session; first check-in 08:20 UTC)
 
-**Phase:** full development done end to end; QA and refinement in progress.
+**Phase: done.** Complete, tested end to end (bot and four blind agent playtests covering every part), published.
 
 Done:
 - Engine: canvas renderer with a 16:9 letterboxed view, pixel font, art drawn in code, tiles, things, collision,
@@ -34,12 +33,14 @@ Done:
 
 ## Next priorities
 
-1. Act on the fourth blind playtest (woods, Hollow, the way to the cape, on the latest build).
-2. Final softlock review; then, if nothing serious is left, declare done: delete the check-in task, final docs, tell David.
-3. Nice to have: a sound pass by ear (not possible here), more decoration in the larger empty areas.
+The game meets the brief's definition of done; the four-hour check-in task was deleted. If David asks for more:
+- A sound pass by ear (levels were measured by rendering each song offline, not listened to).
+- More decoration in the larger open areas (the cape, the pasture's south).
+- Possible extra secrets; keep them consistent with the laws.
 
 ## Known issues / risks
 
-- Herding is the most physical puzzle; the bot only proves the drag-into-pen route (top edge). Players may find it fiddly.
+- Herding is the most physical puzzle (drag with the trailing edge, push with a pinned view, or squeeze through the fence);
+  tests prove the drag and the pinned push. Blind testers found it the most fiddly part before the view could go past the coast.
 - After un-splitting the view stays pinned; a hint appears after bumping the edge for a second.
 - Act three's fire alignment is forgiving (lamp catches sparks within ~2 tiles) but still the trickiest aim in the game.

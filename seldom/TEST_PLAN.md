@@ -55,4 +55,16 @@
    which edges a split joins was unclear (both joined edges now drawn in the seam's pink), the fire was hard to find at map
    size (now marked "Fire" and "Lamp", and a close-up of what the view sees sits in the corner), the credits were too fast,
    the title's lighthouse stayed dark after the end (now lit and sweeping).
-4. **The woods, the Hollow and the way to the cape (latest build).** Running.
+4. **The woods, the Hollow and the way to the cape (latest build), ~175 key presses.** Found the Prism with no help:
+   wrapped past both woods walls (one at 3x zoom, one at 0.75x, as the bark sign says), crossed the brook on the ants'
+   bridge at 3x, came back for night, and flickered through the Faded by putting Dot at the far side of the view. Problems
+   found and fixed: gates said "tied from the other side" from both sides (now the rope's side says the rope is here);
+   rope posts looked like decoration (a coil and a glint); the chapel note said "evening" but needed night (now "night");
+   a hint mentioned the Faded before they'd been seen (hints now in order); the altar replayed Mrs. Sepia's whole talk;
+   the clock had no day/night mark (a sun or moon beside it); the zoom label showed in-between values; snagging on corners
+   (Dot's footprint is slimmer).
+
+## Verdict
+
+Every part of the game has been played blind by a fresh agent and finished (acts one, two in two halves, three and
+the ending), and the bot plays the whole game start to credits on every change. 17 law tests pass.

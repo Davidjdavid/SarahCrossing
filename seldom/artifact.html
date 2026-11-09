@@ -1286,7 +1286,7 @@ const DOT_SPEED = 88;
 const DOT_SPEC = { skin: P.skin, hair: '#6b3f26', style: 'beanie', hat: P.red, top: P.teal, bottom: '#3a4a7a', shoes: P.brownD, blush: '#f29a8c' };
 
 kind('dot', {
-    w: 10, h: 7, ph: 22, figure: true, solid: true,
+    w: 8, h: 6, ph: 22, figure: true, solid: true,
     draw(e, d) {
         const moving = e.moving;
         let f = moving ? (Math.floor(e.anim * 8) % 4 === 1 ? 1 : Math.floor(e.anim * 8) % 4 === 3 ? 2 : 0) : 0;
@@ -2068,6 +2068,10 @@ const UI = {
             const hand = (a, len, w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.sin(a) * len, cy - Math.cos(a) * len); ctx.stroke(); };
             hand(h / 12 * Math.PI * 2, r * 0.5, 2 * s, P.ink); hand(m * Math.PI * 2, r * 0.8, 1.2 * s, P.redS);
             ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(cx, cy, 1.2 * s, 0, 7); ctx.fill();
+            /* a sun or a moon beside it: which half of the day the hands mean */
+            const hh = World.hour % 24, day = hh >= 6 && hh < 18, ix = cx + r + 6 * s, iy = cy + r * 0.4;
+            if (day) { ctx.fillStyle = P.yellow; ctx.beginPath(); ctx.arc(ix, iy, 2.6 * s, 0, 7); ctx.fill(); }
+            else { ctx.fillStyle = '#e8ecff'; ctx.beginPath(); ctx.arc(ix, iy, 2.6 * s, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(26,18,32,1)'; ctx.beginPath(); ctx.arc(ix + 1.3 * s, iy - 0.8 * s, 2.2 * s, 0, 7); ctx.fill(); }
             ctx.globalAlpha = 1;
         }
         if (Cam.eye) return;   /* the glasses are in the lens now */
@@ -2076,7 +2080,7 @@ const UI = {
             if (!G.flags[flag]) continue;
             const c = thing(pic); ctx.drawImage(c, X(x - c.width / 2), Y(16 - c.height / 2), c.width * s, c.height * s); x -= 18;
         }
-        if (Cam.zoom !== 1 && (Cam.zmin < 1 || Cam.zmax > 1)) drawText(ctx, 'x' + (Math.round(Cam.zoom * 100) / 100), X(VIEW_W - 30), Y(28), P.cream, s, P.ink);
+        if (Cam.zoom !== 1 && (Cam.zmin < 1 || Cam.zmax > 1)) drawText(ctx, 'x' + (Math.round(Cam.ztarget * 100) / 100), X(VIEW_W - 30), Y(28), P.cream, s, P.ink);
     },
     /* the notebook: the laws Dot has seen, and what's in the pockets */
     drawNotebook(ctx, X, Y, s) {
@@ -3678,11 +3682,20 @@ kind('woodgate', {
         box(D, e.x, e.y - 2, e.w, 2, '#5a3a22'); box(D, e.x, e.y + 7, e.w, 2, '#5a3a22');
     },
     update(e) { e.solid = !G.flags[e.flag]; },
-    act(e) { say(G.flags[e.flag] ? 'The gate stands open.' : 'A woodcutters\' gate, tied shut from the other side.'); },
+    act(e) {
+        if (G.flags[e.flag]) { say('The gate stands open.'); return; }
+        const rope = e.map.ents.find(o => o.kind === 'rope' && o.flag === e.flag), d = World.dot;
+        say(rope && dist(ecx(rope), ecy(rope), ecx(d), ecy(d)) < 4 * TILE ? 'A woodcutters\' gate, tied shut. The knot\'s on this side: the rope post is right here.' : 'A woodcutters\' gate, tied shut from the other side.');
+    },
 });
 kind('rope', {
     w: 8, h: 6, ph: 18, solid: true, fixed: true,
-    draw(e, D) { box(D, e.x + 3, e.y - 14, 2, 18, '#c99a62'); box(D, e.x + 1, e.y + 2, 6, 3, P.brownS); if (!G.flags[e.flag]) box(D, e.x + 2, e.y - 2, 4, 4, '#c99a62'); },
+    draw(e, D) {
+        /* a post with a coil of rope and a knot; it glints until pulled */
+        box(D, e.x + 2, e.y - 16, 4, 20, P.brownS); box(D, e.x + 1, e.y - 17, 6, 2, P.brownD);
+        if (!G.flags[e.flag]) { for (let i = 0; i < 3; i++) box(D, e.x, e.y - 10 + i * 3, 8, 2, i % 2 ? '#e0b878' : '#c99a62'); box(D, e.x + 6, e.y - 4, 2, 6, '#c99a62'); if (Math.floor(G.t * 1.5) % 4 === 0) box(D, e.x + 1, e.y - 11, 1, 1, P.white); }
+        else box(D, e.x + 5, e.y - 6, 2, 8, '#c99a62');
+    },
     act(e) { if (G.flags[e.flag]) { say('The rope\'s already pulled.'); return; } G.flags[e.flag] = true; Sfx.play('push'); say('Dot pulls the rope. Somewhere nearby, a gate swings open.'); Save.soon(); },
 });
 
@@ -3743,7 +3756,7 @@ ISLAND_ADD.push(function hollow(m) {
     /* the chapel in its yard */
     addProp(m, { id: 'chapel', tx: 14, ty: 62, tw: 8, th: 5, open: [[4, 4]], draw: drawChapel });
     m.doors = m.doors || [];
-    m.doors.push({ x: 18, y: 66, to: 'chapel', tx: 6, ty: 9, tdir: 'up', dir: 'up', locked: () => !Light.night(), lockedSay: () => 'The chapel door is shut. A note pinned to it, in very faint ink: "Evening service only."' });
+    m.doors.push({ x: 18, y: 66, to: 'chapel', tx: 6, ty: 9, tdir: 'up', dir: 'up', locked: () => !Light.night(), lockedSay: () => 'The chapel door is shut. A note pinned to it, in very faint ink: "Night service only. After the lamps are lit and the dark is properly dark."' });
     /* the Faded: four of them stand in the yard's gateway, waiting to be seen */
     for (let i = 0; i < 4; i++) m.addAt('faded', 16 + i, 70, { name: 'faded' + i, dir: 'down', song: i === 1 ? 'hollow' : null });
     for (const [x, y, n] of [[8, 66, 'drift1'], [28, 69, 'drift2'], [26, 73, 'drift3']]) m.addAt('faded', x, y, { name: n, drift: true });
@@ -3758,6 +3771,7 @@ kind('faded', {
     update(e, dt) {
         if (e.drift) { const a = e.t * 0.5 + e.ox; e.x = e.ox + Math.sin(a) * 18; e.y = e.oy + Math.cos(a * 0.7) * 8; e.dir = Math.cos(a) > 0 ? 'right' : 'left'; }
     },
+    onSeen(e) { if (!e.drift) G.flags.seenFaded = true; },
     act(e) {
         const lines = ['A faded figure. It looks up at you, very pleased to be seen.', '"Are you looking at us? Really looking? Oh, how lovely."', '"We\'re waiting our turn to be seen. It\'s a long queue."', '"Shh. The chapel\'s for evening service. We\'re the service. Sort of."'];
         say(lines[(e.st.n = (e.st.n || 0) + 1) % lines.length]);
@@ -3815,7 +3829,7 @@ async function sepiaTalk(e) {
 }
 async function prismTake(e) {
     if (G.flags.prism) { say('The altar is bare now, except for a little dust shaped like a triangle.'); return; }
-    if (!ent('sepia').st.spoke) { ent('sepia').st.spoke = true; await sepiaTalk(ent('sepia')); }
+    if (!ent('sepia').st.spoke) { ent('sepia').st.spoke = true; await say('Oh! Someone\'s looking at us. Take it, child. It was the last piece of the great lens. If the light is ever lit again, it would see us. Every night.', 'sepia'); }
     G.flags.prism = true; Sfx.play('get'); Fx.flash = 0.5;
     await say('Dot got the Prism!', null, { name: false });
     await say('Go on, try it. Cut the looking in two.', 'sepia');
@@ -4444,6 +4458,7 @@ function actTwoHint() {
     if (!F.woodsE) return 'To get south through the woods you need a taller view than usual. Not the tallest, though. Something in between.';
     if (!F.hollowSouth) return 'The black brook in the Hollow. Pan\'s Nan said the ants build bridges. Look close enough, and they\'re there.';
     if (!F.prism && !Light.night()) return 'The Faded only come out at night. And night only comes while the Great Clock is watched... and then stays, as long as nobody looks at the Clock again.';
+    if (!F.prism && !F.seenFaded) return 'The Hollow\'s chapel only opens at night, they say. Properly dark. And something keeps watch at its gate.';
     if (!F.prism) return 'Four in a line at the chapel gate? The old songs say there\'s only room for four in a line. The ones farthest from the middle flicker. Even you.';
     if (!F.wallBroken) return 'The foreman watched every block all the way down the chute from the top. If you could see that much at once...';
     if (!F.capeIn) return 'Mrs. Sepia said the old keepers never needed a boat. Cut the looking in two, and walk from one half to the other.';

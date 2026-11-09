@@ -23,3 +23,12 @@
 - `artifact.html` build for publishing; blind agent playtests set up (`tests/playserver.mjs`).
 - Fixes: nested scenes no longer cut each other short (found by the bot), resuming the last act keeps the walkers'
   progress, the band's song can't end during the last act, squeezing is noted only when something pops through a wall.
+
+## 9 November 2026 (blind playtests and finish)
+
+- Four blind playtests by fresh agents (act one; act two in two halves; act three and the ending), each finished, and
+  everything they found fixed (see TEST_PLAN.md): the view goes out over the sea at the island's edge, Dot can never be
+  lost out of view, creatures keep to their home ground, clearer notices, dialogue and hints, the last act's map made
+  readable (marks, joined edges, a close-up of what the view sees), steadier steering, slower credits, a lit title after
+  the end, rope posts and gates that read, a day/night mark on the clock, slimmer collisions, a little more walking pace.
+- Published as a private claude.ai link (artifact.html); the four-hour check-in task deleted: done.

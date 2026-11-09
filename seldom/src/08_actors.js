@@ -3,7 +3,7 @@ const DOT_SPEED = 88;
 const DOT_SPEC = { skin: P.skin, hair: '#6b3f26', style: 'beanie', hat: P.red, top: P.teal, bottom: '#3a4a7a', shoes: P.brownD, blush: '#f29a8c' };
 
 kind('dot', {
-    w: 10, h: 7, ph: 22, figure: true, solid: true,
+    w: 8, h: 6, ph: 22, figure: true, solid: true,
     draw(e, d) {
         const moving = e.moving;
         let f = moving ? (Math.floor(e.anim * 8) % 4 === 1 ? 1 : Math.floor(e.anim * 8) % 4 === 3 ? 2 : 0) : 0;

@@ -28,6 +28,7 @@ function actTwoHint() {
     if (!F.woodsE) return 'To get south through the woods you need a taller view than usual. Not the tallest, though. Something in between.';
     if (!F.hollowSouth) return 'The black brook in the Hollow. Pan\'s Nan said the ants build bridges. Look close enough, and they\'re there.';
     if (!F.prism && !Light.night()) return 'The Faded only come out at night. And night only comes while the Great Clock is watched... and then stays, as long as nobody looks at the Clock again.';
+    if (!F.prism && !F.seenFaded) return 'The Hollow\'s chapel only opens at night, they say. Properly dark. And something keeps watch at its gate.';
     if (!F.prism) return 'Four in a line at the chapel gate? The old songs say there\'s only room for four in a line. The ones farthest from the middle flicker. Even you.';
     if (!F.wallBroken) return 'The foreman watched every block all the way down the chute from the top. If you could see that much at once...';
     if (!F.capeIn) return 'Mrs. Sepia said the old keepers never needed a boat. Cut the looking in two, and walk from one half to the other.';

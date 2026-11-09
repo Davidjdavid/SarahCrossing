@@ -81,6 +81,10 @@ const UI = {
             const hand = (a, len, w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.sin(a) * len, cy - Math.cos(a) * len); ctx.stroke(); };
             hand(h / 12 * Math.PI * 2, r * 0.5, 2 * s, P.ink); hand(m * Math.PI * 2, r * 0.8, 1.2 * s, P.redS);
             ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(cx, cy, 1.2 * s, 0, 7); ctx.fill();
+            /* a sun or a moon beside it: which half of the day the hands mean */
+            const hh = World.hour % 24, day = hh >= 6 && hh < 18, ix = cx + r + 6 * s, iy = cy + r * 0.4;
+            if (day) { ctx.fillStyle = P.yellow; ctx.beginPath(); ctx.arc(ix, iy, 2.6 * s, 0, 7); ctx.fill(); }
+            else { ctx.fillStyle = '#e8ecff'; ctx.beginPath(); ctx.arc(ix, iy, 2.6 * s, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(26,18,32,1)'; ctx.beginPath(); ctx.arc(ix + 1.3 * s, iy - 0.8 * s, 2.2 * s, 0, 7); ctx.fill(); }
             ctx.globalAlpha = 1;
         }
         if (Cam.eye) return;   /* the glasses are in the lens now */
@@ -89,7 +93,7 @@ const UI = {
             if (!G.flags[flag]) continue;
             const c = thing(pic); ctx.drawImage(c, X(x - c.width / 2), Y(16 - c.height / 2), c.width * s, c.height * s); x -= 18;
         }
-        if (Cam.zoom !== 1 && (Cam.zmin < 1 || Cam.zmax > 1)) drawText(ctx, 'x' + (Math.round(Cam.zoom * 100) / 100), X(VIEW_W - 30), Y(28), P.cream, s, P.ink);
+        if (Cam.zoom !== 1 && (Cam.zmin < 1 || Cam.zmax > 1)) drawText(ctx, 'x' + (Math.round(Cam.ztarget * 100) / 100), X(VIEW_W - 30), Y(28), P.cream, s, P.ink);
     },
     /* the notebook: the laws Dot has seen, and what's in the pockets */
     drawNotebook(ctx, X, Y, s) {

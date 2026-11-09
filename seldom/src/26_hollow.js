@@ -18,7 +18,7 @@ ISLAND_ADD.push(function hollow(m) {
     /* the chapel in its yard */
     addProp(m, { id: 'chapel', tx: 14, ty: 62, tw: 8, th: 5, open: [[4, 4]], draw: drawChapel });
     m.doors = m.doors || [];
-    m.doors.push({ x: 18, y: 66, to: 'chapel', tx: 6, ty: 9, tdir: 'up', dir: 'up', locked: () => !Light.night(), lockedSay: () => 'The chapel door is shut. A note pinned to it, in very faint ink: "Evening service only."' });
+    m.doors.push({ x: 18, y: 66, to: 'chapel', tx: 6, ty: 9, tdir: 'up', dir: 'up', locked: () => !Light.night(), lockedSay: () => 'The chapel door is shut. A note pinned to it, in very faint ink: "Night service only. After the lamps are lit and the dark is properly dark."' });
     /* the Faded: four of them stand in the yard's gateway, waiting to be seen */
     for (let i = 0; i < 4; i++) m.addAt('faded', 16 + i, 70, { name: 'faded' + i, dir: 'down', song: i === 1 ? 'hollow' : null });
     for (const [x, y, n] of [[8, 66, 'drift1'], [28, 69, 'drift2'], [26, 73, 'drift3']]) m.addAt('faded', x, y, { name: n, drift: true });
@@ -33,6 +33,7 @@ kind('faded', {
     update(e, dt) {
         if (e.drift) { const a = e.t * 0.5 + e.ox; e.x = e.ox + Math.sin(a) * 18; e.y = e.oy + Math.cos(a * 0.7) * 8; e.dir = Math.cos(a) > 0 ? 'right' : 'left'; }
     },
+    onSeen(e) { if (!e.drift) G.flags.seenFaded = true; },
     act(e) {
         const lines = ['A faded figure. It looks up at you, very pleased to be seen.', '"Are you looking at us? Really looking? Oh, how lovely."', '"We\'re waiting our turn to be seen. It\'s a long queue."', '"Shh. The chapel\'s for evening service. We\'re the service. Sort of."'];
         say(lines[(e.st.n = (e.st.n || 0) + 1) % lines.length]);
@@ -90,7 +91,7 @@ async function sepiaTalk(e) {
 }
 async function prismTake(e) {
     if (G.flags.prism) { say('The altar is bare now, except for a little dust shaped like a triangle.'); return; }
-    if (!ent('sepia').st.spoke) { ent('sepia').st.spoke = true; await sepiaTalk(ent('sepia')); }
+    if (!ent('sepia').st.spoke) { ent('sepia').st.spoke = true; await say('Oh! Someone\'s looking at us. Take it, child. It was the last piece of the great lens. If the light is ever lit again, it would see us. Every night.', 'sepia'); }
     G.flags.prism = true; Sfx.play('get'); Fx.flash = 0.5;
     await say('Dot got the Prism!', null, { name: false });
     await say('Go on, try it. Cut the looking in two.', 'sepia');

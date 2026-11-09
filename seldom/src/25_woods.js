@@ -26,11 +26,20 @@ kind('woodgate', {
         box(D, e.x, e.y - 2, e.w, 2, '#5a3a22'); box(D, e.x, e.y + 7, e.w, 2, '#5a3a22');
     },
     update(e) { e.solid = !G.flags[e.flag]; },
-    act(e) { say(G.flags[e.flag] ? 'The gate stands open.' : 'A woodcutters\' gate, tied shut from the other side.'); },
+    act(e) {
+        if (G.flags[e.flag]) { say('The gate stands open.'); return; }
+        const rope = e.map.ents.find(o => o.kind === 'rope' && o.flag === e.flag), d = World.dot;
+        say(rope && dist(ecx(rope), ecy(rope), ecx(d), ecy(d)) < 4 * TILE ? 'A woodcutters\' gate, tied shut. The knot\'s on this side: the rope post is right here.' : 'A woodcutters\' gate, tied shut from the other side.');
+    },
 });
 kind('rope', {
     w: 8, h: 6, ph: 18, solid: true, fixed: true,
-    draw(e, D) { box(D, e.x + 3, e.y - 14, 2, 18, '#c99a62'); box(D, e.x + 1, e.y + 2, 6, 3, P.brownS); if (!G.flags[e.flag]) box(D, e.x + 2, e.y - 2, 4, 4, '#c99a62'); },
+    draw(e, D) {
+        /* a post with a coil of rope and a knot; it glints until pulled */
+        box(D, e.x + 2, e.y - 16, 4, 20, P.brownS); box(D, e.x + 1, e.y - 17, 6, 2, P.brownD);
+        if (!G.flags[e.flag]) { for (let i = 0; i < 3; i++) box(D, e.x, e.y - 10 + i * 3, 8, 2, i % 2 ? '#e0b878' : '#c99a62'); box(D, e.x + 6, e.y - 4, 2, 6, '#c99a62'); if (Math.floor(G.t * 1.5) % 4 === 0) box(D, e.x + 1, e.y - 11, 1, 1, P.white); }
+        else box(D, e.x + 5, e.y - 6, 2, 8, '#c99a62');
+    },
     act(e) { if (G.flags[e.flag]) { say('The rope\'s already pulled.'); return; } G.flags[e.flag] = true; Sfx.play('push'); say('Dot pulls the rope. Somewhere nearby, a gate swings open.'); Save.soon(); },
 });
 
