@@ -4043,7 +4043,8 @@ const Story = {
         return c.split('&').every(t => { t = t.trim(); return t[0] === '!' ? !Progress.flag(t.slice(1)) : Progress.flag(t); });
     },
     talk(npc) {
-        const f = TALK[npc.who];
+        /* a place can have its own words for someone (the Makers below the town talk shop) */
+        const f = (G.map && G.map.def.talk && G.map.def.talk[npc.who]) || TALK[npc.who];
         if (f) return () => f(npc);
         return function* () { yield* say(npc.who, '...'); };
     },
@@ -5698,9 +5699,10 @@ defBlock({
         { k: 'sign', x: 34, y: 37, text: 'South: Meadowfold. (Sheep. Mind the sheep.)' },
         { k: 'sign', x: 29, y: 4, text: 'North Road. Closed past the posts, by order of the Warden of the Well.' },
         { k: 'sign', x: 46, y: 18, text: 'East: Hushwood. The bridge is old, the road is older.' },
-        { k: 'sign', x: 5, y: 21, text: "West Gate. To Larkspur Fair. Locked from this side." },
+        { k: 'sign', x: 5, y: 21, text: "West Gate. To Larkspur Fair. Locked from this side.", if: '!fair_gate' },
+        { k: 'sign', x: 5, y: 21, text: "West Gate. To Larkspur Fair. (Open. Somebody drew the bolt on the far side.)", if: 'fair_gate' },
         { k: 'sign', x: 13, y: 12, text: 'The Ravels. (Gran, and {name}.)' },
-        { k: 'deco', x: 3, y: 19, look: 'fence_v', solid: [[0, 0]] }, { k: 'deco', x: 3, y: 20, look: 'fence_v', solid: [[0, 0]] },
+        { k: 'deco', x: 3, y: 19, look: 'fence_v', solid: [[0, 0]], id: 'westGateA', if: '!fair_gate' }, { k: 'deco', x: 3, y: 20, look: 'fence_v', solid: [[0, 0]], id: 'westGateB', if: '!fair_gate' },
         { k: 'rest', x: 28, y: 34 },
         /* townsfolk */
         { k: 'npc', who: 'burr', x: 32, y: 3, face: 'down', if: '!act3' },
@@ -6152,6 +6154,25 @@ SONGS.marionette = {
         { drum: true, vol: 0.05, n: 'k . h . s . h . | k . h . s . h h ' },
     ],
 };
+/* the Underside: a warm workshop under the floorboards, everything ticking (A minor, unhurried) */
+SONGS.underside = {
+    bpm: 96, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.06, n: 'A4 . C5 . E5 . D5 . | C5 . B4 . A4 . . . | G4 . B4 . D5 . C5 . | B4 . A4 . G4 . . . | F4 . A4 . C5 . B4 . | A4 . G4 . F4 . E4 . | E4 . G#4 . B4 . D5 . | C5 . B4 . A4 . . . ' },
+        { wave: 'triangle', vol: 0.17, n: 'A2 . . . E3 . . . | A2 . . . E3 . . . | G2 . . . D3 . . . | G2 . . . D3 . . . | F2 . . . C3 . . . | F2 . . . C3 . . . | E2 . . . B2 . . . | A2 . . . E3 . . . ' },
+        { drum: true, vol: 0.03, n: 'h . h . h . h . ' },
+    ],
+};
+/* the Spoolworks: spindles and shuttles, a machine that never stops (E minor, driving) */
+SONGS.spoolworks = {
+    bpm: 120, div: 2,
+    ch: [
+        { wave: 'p12', vol: 0.07, n: 'E5 . . G5 . . F#5 . | E5 . D5 . B4 . . . | C5 . . E5 . . D5 . | C5 . B4 . A4 . . . | E5 . . G5 . . B5 . | A5 . G5 . F#5 . E5 . | D5 . F#5 . A5 . F#5 . | E5 - - - . . . . ' },
+        { wave: 'triangle', vol: 0.17, n: 'E2 E3 B2 E3 E2 E3 B2 E3 | E2 E3 B2 E3 E2 E3 B2 E3 | C3 C4 G3 C4 C3 C4 G3 C4 | A2 A3 E3 A3 A2 A3 E3 A3 | E2 E3 B2 E3 E2 E3 B2 E3 | C3 C4 G3 C4 C3 C4 G3 C4 | D3 D4 A3 D4 D3 D4 A3 D4 | B2 B3 F#3 B3 B2 B3 F#3 B3 ' },
+        { drum: true, vol: 0.06, n: 'k . h . s . h . | k . h k s . h h ' },
+    ],
+};
+
 
 // ---- 41_house_kit.js ----
 /* Things every House uses: levers, Knot hoops, House doors to the outside, nudges (the Hints option:
@@ -6318,12 +6339,13 @@ const HOUSE_AFTER = {
     belfry: { flag: 'belfry_boss', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'belfryHeart' },
     slumber: { flag: 'slumber_boss', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'slumberHeart' },
     marionette: { flag: 'reveal1', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'marionetteHeart' },
+    spoolworks: { flag: 'd7', room: '1,0', heart: [9, 5], heartId: 'spoolHeart', noHoop: true },
 };
 const HouseAfter = {
     add(a) {
         const d = HOUSE_AFTER[a.id], br = d && a.rooms.find(r => r.key === d.room);
         if (!br) return;
-        if (!Inv.knots.includes(a.def.house) && !a.ents.some(e => e.kind === 'hoop')) a.add(new Hoop(br.x + d.hoop[0], br.y + d.hoop[1]));
+        if (!d.noHoop && !Inv.knots.includes(a.def.house) && !a.ents.some(e => e.kind === 'hoop')) a.add(new Hoop(br.x + d.hoop[0], br.y + d.hoop[1]));
         if (!a.ents.some(e => e.id === d.heartId)) a.add(new Pickup((br.x + d.heart[0]) * T, (br.y + d.heart[1]) * T, { what: 'heartstitch', id: d.heartId }));
     },
 };
@@ -6821,7 +6843,7 @@ SPAWN.signature = (tx, ty, p) => {
             if (first) Stats.count('secret:sig');
             yield* say(null, SIGNATURE_TEXT[p.house]);
             const n = ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'].filter(h => Progress.flag('sig:' + h)).length;
-            if (first) yield* say(null, `(Maker's marks found: ${n} of 6.)`);
+            if (first && ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'].includes(p.house)) yield* say(null, `(Maker's marks found: ${n} of 6.)`);
         });
         return true;
     };
@@ -13301,6 +13323,9 @@ SPAWN.bolt = (x, y) => {
         Script.run(function* () {
             if (Progress.flag('fair_gate')) { yield* say(null, 'The bolt is drawn. The gate to town stands open.'); return; }
             Progress.set('fair_gate'); Sfx.play('unlock');
+            /* the town's side of the West Gate (a fence in the road) opens with it */
+            const a = G.map;
+            for (const e of a.ents.filter(o => o.skey === 'westGateA' || o.skey === 'westGateB')) { for (const [dx, dy] of e.solid || []) a.staticSolid.delete((e.ty + dy) * 4096 + (e.tx + dx)); a.remove(e); Fx.poof(e.tx * T + 8, e.ty * T + 8); }
             yield* say(null, 'A big iron bolt, stiff with rust. You heave it back. The fair gate swings open onto the west road into town.');
         });
         return true;
@@ -14177,7 +14202,9 @@ const Spool = {
         if (!Layers.layered(area)) return;
         const have = area._cords || (area._cords = new Set());
         for (const e of area.ents) {
-            if (!e.isGrid || !e.ret || e.noCord || e.removed || have.has(e)) continue;
+            if (!(e.isGrid || e.cordable) || !e.ret || e.noCord || e.removed || have.has(e)) continue;
+            /* tied off from the start (set out that way) */
+            if (e.knotted && e._fixed0 === undefined) { e.knotted = false; this.knot(e, true); }
             if (!Layers.belowOf(area, area.roomAt(e.ret.mx, e.ret.my))) continue;
             have.add(e); area.add(new Cord(e));
         }
@@ -14211,10 +14238,12 @@ const Spool = {
             e.jolt = 14; this.jolt = { e, t: G.t };
         }
     },
-    knot(e) {
+    knot(e, quiet) {
         if (e.knotted) return;
         e.knotted = true; e._fixed0 = !!e.fixed; e.fixed = true; e._lift0 = e.liftable; e.liftable = false;
         if (e.heldBy && e.heldBy.release && e.heldBy !== G.player) e.heldBy.release();
+        if (e.onKnot) e.onKnot();
+        if (quiet) return;
         Sfx.play('tie'); Stats.count('knots');
         if (!Progress.flag('knot_first')) { Progress.set('knot_first'); G.pendingToast = 'You wind the cord round the cleat and tie it off. Up above, whatever it holds is held fast. (Z on the knot to undo it.)'; }
     },
@@ -14222,6 +14251,7 @@ const Spool = {
         if (!e.knotted) return;
         e.knotted = false; e.fixed = e._fixed0; e.liftable = e._lift0;
         Return.disturb(e);
+        if (e.onUntie) e.onUntie();
         Sfx.play('unclick');
     },
     /* the room upstairs, seen through the boards (drawn under everything down here) */
@@ -14279,6 +14309,11 @@ class Hatch extends GridThing {
         const to = up ? 'up' : down ? 'down' : null;
         if (!to || p.carry) { UI.toast(p.carry ? 'Not with your hands full.' : 'It goes nowhere.'); return true; }
         const [dx, dy] = up ? [up[0] - this.tx, up[1] - this.ty] : [down[0] - this.tx, down[1] - this.ty];
+        const there = a.at(p.tx + dx, p.ty + dy);
+        if (there && !there.removed && !(there.floats && Water.rideable(there))) {
+            UI.toast(to === 'up' ? "The trapdoor won't lift: something heavy is sitting on it, up there." : 'Something is in the way underneath.');
+            Sfx.play('hitthing'); return true;
+        }
         Script.run(function* () {
             Sfx.play('door');
             yield* fadeOut(10);
@@ -14509,6 +14544,995 @@ function initSpoolKit() {
 }
 CONTENT_INIT.push(initSpoolKit);
 
+// ---- 66_underside.js ----
+/* The Underside: under Hollowell, down the Staff stairs from the Inn. The Makers' own place: the Guild Hall (Gundry,
+   who keeps the Well up top and the Guild down here), the workshops (each Maker's bench, and their logbook of your
+   Wander, from what really happened: S22), the Seams (tunnels under the town with peepholes up into the houses, eight
+   private moments: S23), and the big door to the Spoolworks (House 7). After the Spoolworks: Wren's apprentice cot,
+   and the Making Floor (Tuck's Little Wander, src/68_makings.js). */
+
+/* a filled rectangle on a sprite being painted */
+const sq = (c, a, b, w, h, x) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+
+const UNDER_ENTRY = { x: 29, y: 19 };     /* the foot of the Staff stairs */
+const SPOOL_ENTRY = { x: 29, y: 31 };     /* inside the Spoolworks' gatehouse (src/67_spoolworks.js) */
+
+defHouse({
+    id: 'underside', name: 'The Underside', place: 'The Underside', theme: 'underside', thread: THREAD.guild, music: 'underside',
+    entry: UNDER_ENTRY, quietName: false,
+    legend: { 'H': { k: 'stairs', p: 'stairs' }, 'p': { k: 'wall', p: 'wall', ent: 'peephole' } },
+    talk: {},
+    cells: {
+        /* ---------------- the Staff stairs: from the Inn, down ---------------- */
+        '1,1': {
+            name: 'The Staff Stairs',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '....................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#........H.........#',
+                '####################',
+            ],
+            ents: [
+                { k: 'warp', x: 9, y: 9, to: 'inn', tx2: 13, ty2: 3, face: 'down' },
+                { k: 'sign', x: 11, y: 8, text: 'UP: THE INN. (Wipe your feet. Ives will know.) WEST AND EAST: THE SEAMS. NORTH: THE GUILD HALL.' },
+                { k: 'deco', x: 2, y: 2, look: 'spoolrack', ox: 0, solid: [[0, 0], [1, 0]], text: 'Racks of spools, every colour, labelled in a tiny hand: TIDYHOUSE, SPARE. KILN, SPARE. WREN, SPARE (RED).' },
+                { k: 'deco', x: 16, y: 2, look: 'spoolrack', ox: 0, solid: [[0, 0], [1, 0]] },
+            ],
+        },
+        /* ---------------- the Guild Hall ---------------- */
+        '1,0': {
+            name: 'The Guild Hall',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '....................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'warp', x: 9, y: 0, to: 'spoolworks', tx2: SPOOL_ENTRY.x, ty2: SPOOL_ENTRY.y, face: 'up', dir: 'up' },
+                { k: 'deco', x: 8, y: 0, look: 'bigdoor', ox: -8, oy: -4, solid: false, baseY: -100 },
+                { k: 'npc', who: 'gundry', x: 11, y: 3, face: 'down' },
+                { k: 'deco', x: 3, y: 6, look: 'longtable', ox: 0, solid: [[0, 0], [1, 0], [2, 0], [3, 0]], text: 'A long table scarred with a hundred years of knives and needles. Carved into it, among the initials: L.' },
+                { k: 'deco', x: 13, y: 6, look: 'longtable', ox: 0, solid: [[0, 0], [1, 0], [2, 0], [3, 0]] },
+                { k: 'sign', x: 7, y: 1, text: 'THE SPOOLWORKS. Guild members only. (And Wanderers who have seen the strings.)' },
+                { k: 'door', x: 19, y: 5, type: 'gate', when: 'flag:d7', dir: 'v', id: 'ghMaking' },
+                { k: 'bed', x: 1, y: 1, id: 'cot', look: 'cot', if: 'd7' },
+            ],
+        },
+        /* ---------------- the workshops: each Maker's bench and logbook ---------------- */
+        '0,0': {
+            name: 'The Workshops',
+            rows: [
+                '####################',
+                '#..#..#..#..#..#...#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'logbook', x: 1, y: 1, house: 'tidy' }, { k: 'logbook', x: 4, y: 1, house: 'kiln' }, { k: 'logbook', x: 7, y: 1, house: 'millrace' },
+                { k: 'logbook', x: 10, y: 1, house: 'belfry' }, { k: 'logbook', x: 13, y: 1, house: 'slumber' }, { k: 'logbook', x: 16, y: 1, house: 'marionette' },
+                { k: 'npc', who: 'ives', x: 2, y: 3, face: 'down' }, { k: 'npc', who: 'bram', x: 5, y: 3, face: 'down' }, { k: 'npc', who: 'ambrose', x: 8, y: 3, face: 'down' },
+                { k: 'npc', who: 'tess', x: 11, y: 3, face: 'down' }, { k: 'npc', who: 'mallow', x: 14, y: 3, face: 'down' }, { k: 'npc', who: 'jory', x: 17, y: 3, face: 'down' },
+                { k: 'deco', x: 3, y: 7, look: 'housemodel', ox: 0, solid: [[0, 0], [1, 0]], text: 'A little model of the Tidyhouse, every room, with pins in it. One pin is red and labelled YOU.' },
+                { k: 'deco', x: 9, y: 7, look: 'kilnwyrm_costume', ox: 0, solid: [[0, 0], [1, 0], [2, 0]], text: "The Kilnwyrm, in pieces: a painted canvas skin, a wooden frame, a sign: TAIL STILL STICKS. -B." },
+                { k: 'deco', x: 15, y: 7, look: 'spoolrack', ox: 0, solid: [[0, 0], [1, 0]] },
+            ],
+        },
+        /* ---------------- the Seams, west: tunnels under the houses ---------------- */
+        '0,1': {
+            name: 'The Seams',
+            rows: [
+                '########p######p####',
+                '#..................#',
+                '#..................#',
+                '#..##########......#',
+                '#..##########......#',
+                '#..##########.......',
+                '#..##########......#',
+                '#..##########......#',
+                '#..................#',
+                '#..................#',
+                '######p######p######',
+            ],
+            ents: [
+                { k: 'sign', x: 17, y: 8, text: "THE SEAMS. Mind your head. And mind your manners: the little holes are for WORK. -G." },
+            ],
+        },
+        /* ---------------- the Seams, east ---------------- */
+        '2,1': {
+            name: 'The Seams',
+            rows: [
+                '######p#######p#####',
+                '#..................#',
+                '#..................#',
+                '#.......######.....#',
+                '#.......######.....#',
+                '........######.....#',
+                '#.......######.....#',
+                '#.......######.....#',
+                '#..................#',
+                '#..................#',
+                '#####p#######p######',
+            ],
+            ents: [
+                { k: 'chest', x: 18, y: 1, item: 'heartpatch', id: 'seamsPatch', hidden: true, when: 'flag:s23' },
+                { k: 'deco', x: 17, y: 5, look: 'counterweight', ox: 0, solid: [[0, 0], [1, 0]], text: "A great iron counterweight hangs in a shaft, its rope running up and away north. A tag: NORTH GATE. DO NOT TOUCH. BY ORDER OF THE WARDEN." },
+            ],
+        },
+        /* ---------------- the Making Floor (Tuck's Little Wander: src/68_makings.js) ---------------- */
+        '2,0': {
+            name: 'The Making Floor',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '...................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'sign', x: 9, y: 2, text: "THE MAKING FLOOR. Quiet, please: Wanderer at work. (Upstairs.)" },
+            ],
+        },
+    },
+    onEnter: (a) => Underside.enter(a),
+});
+
+/* the peepholes: eight private moments in the town above (S23) */
+const PEEPS = {
+    '8,11': "Through the little hole: the bakery, after closing. Rosa sets a saucer of cream on the step. \"For the cat that isn't mine,\" she says to nobody, and Biscuit comes in out of the dark and drinks it.",
+    '15,11': "Through the little hole: the schoolhouse. Miss Quill pins up Tuck's eleventh drawing of you, next to an old, faded one of a girl in green ribbons. She straightens them both, twice.",
+    '6,21': "Through the little hole: Old Arlo's room. He gets up out of his chair, walks to the window, and back. Then again. He has to stop and hold the sill. \"Used to do this all day,\" he tells the window.",
+    '13,21': "Through the little hole: the Lost and Found. Auntie Mabel turns a stray button over and over, finds a scratched L on the back, and puts it on a shelf of its own, very carefully, with the others.",
+    '46,11': "Through the little hole: the tailor's back room. Seam is sewing a tiny green scarf, child-sized. On the bench: a list in big crooked letters. THINGS TUCK NEEDS FOR HIS WANDER. 1. A SCARF. 2. A STICK. 3. BRAVE.",
+    '54,11': "Through the little hole: Constable Burr's house. He polishes his boots, says \"Halt!\" to the mirror, then, much quieter, \"Go on, then. Go on.\" He sits down on the bed and doesn't move for a long time.",
+    '45,21': "Through the little hole: the clinic. Doctor Mallow is asleep at his desk with his cheek on the plans for the Slumberhouse, a mug of cocoa gone cold by his hand. He is smiling.",
+    '53,21': "Through the little hole: Gran's study. Gran sits with a heavy book open, writing. She stops, and looks up at the portrait turned to the wall, and for a long moment you think she'll turn it round. She doesn't. She writes another line.",
+};
+SPAWN.peephole = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.peephole, solid: [[0, 0]], oy: 0 });
+    pr.baseY = -40;
+    pr.interact = () => {
+        const k = x + ',' + y, text = PEEPS[k] || 'Through the little hole: somebody\'s ceiling. Somebody snoring.';
+        Script.run(function* () {
+            yield* say(null, text);
+            if (!Progress.flag('peep:' + k)) {
+                Progress.set('peep:' + k); Stats.count('peeps');
+                const n = Object.keys(PEEPS).filter(q => Progress.flag('peep:' + q)).length;
+                if (n >= Object.keys(PEEPS).length && !Progress.flag('s23')) {
+                    Progress.set('s23'); Stats.count('secret:peepholes');
+                    yield* say(null, "Eight little holes, eight little lives. You feel you know the town better than you did this morning, and you're not sure you should. Somewhere along the Seams, a lid clicks open.");
+                } else UI.toast(n + ' of ' + Object.keys(PEEPS).length + ' peepholes.', 90);
+            }
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+
+/* the logbooks: what each Maker wrote down while you were in their House (from what really happened) */
+const LOGBOOK_HOUSES = { tidy: ['ives', 'the Tidyhouse'], kiln: ['bram', 'the Kiln'], millrace: ['ambrose', 'the Millrace'], belfry: ['tess', 'the Belfry'], slumber: ['mallow', 'the Slumberhouse'], marionette: ['jory', 'the Marionette Hall'] };
+const Logbook = {
+    facts(area) {
+        let t = 0, nudges = 0, best = null;
+        for (const [k, r] of Object.entries(Stats.rooms)) {
+            const [a, i] = k.split(':'); if (a !== area) continue;
+            t += r.t; nudges += r.nudges || 0;
+            if (!best || r.t > best.t) best = { t: r.t, i: +i };
+        }
+        const def = AREAS[area], room = best && def && def.rooms && def.rooms[best.i];
+        return { mins: Math.max(1, Math.round(t / 3600)), nudges, room: room ? room.name : null, roomMins: best ? Math.max(1, Math.round(best.t / 3600)) : 0, been: t > 0 };
+    },
+    lines(area) {
+        const [who, house] = LOGBOOK_HOUSES[area], f = this.facts(area), n = G.wanderer || 'Wren';
+        if (!f.been) return [`${house.toUpperCase()}: WANDERER'S LOG. (Nothing yet. The pages are ready.)`];
+        const out = [`${house.toUpperCase()}: WANDERER'S LOG. ${n}. In the House about ${f.mins} minute${f.mins === 1 ? '' : 's'} all told.`];
+        if (f.room) out.push(({
+            ives: `Longest in ${f.room}: ${f.roomMins} min. Tidied it beautifully in the end. (I did have to re-dust after.)`,
+            bram: `${f.room}: ${f.roomMins} min! HA! Took me longer to build. Not by much.`,
+            ambrose: `Spent ${f.roomMins} min in ${f.room}. Kept dry, mostly. Proud of you, love.`,
+            tess: `${f.room}: ${f.roomMins} min. Rang true in the end. They always do, the good ones.`,
+            mallow: `${f.room}: ${f.roomMins} min. Patient. Didn't fall asleep once. *I* did.`,
+            jory: `${f.room}: ${f.roomMins} min! Applause from the wings (mine). Encore.`,
+        })[who]);
+        if (!Settings.hints && f.nudges === 0) out.push('The Wanderer asked us not to help. We respected that. (We were proud.)');
+        else if (f.nudges === 0) out.push("Nudges: none. Not one. We didn't have to lift a finger. A bit put out, frankly.");
+        else out.push(`Nudges: ${f.nudges}. Only little ones. ${who === 'bram' ? "You'd have got there. Probably. HA!" : 'You found it yourself, really.'}`);
+        return out;
+    },
+};
+class Logbook_ extends GridThing {
+    constructor(tx, ty, p = {}) { super('logbook', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, p)); }
+    interact() {
+        const lines = Logbook.lines(this.house);
+        if (!Progress.flag('log:' + this.house)) { Progress.set('log:' + this.house); Stats.count('logbooks'); if (Object.keys(LOGBOOK_HOUSES).every(h => Progress.flag('log:' + h))) Progress.set('s22'); }
+        Script.run(function* () { for (const l of lines) yield* say(null, l); });
+        return true;
+    }
+    sprite() { return spr('logbook'); }
+}
+SPAWN.logbook = (x, y, p) => new Logbook_(x, y, p);
+
+/* below the town, the Makers talk shop */
+const UNDER_TALK = AREAS.underside.talk;
+UNDER_TALK.gundry = function* () {
+    if (Progress.flag('d7')) {
+        yield* say('gundry', cycle('gundry_d7', ["Apprentice. Has a ring to it. Your cot's in the corner, by the way. Mind the spiders: they're Guild members too.", "Tuck's Little Wander's through the east door, when you're ready. Mind you don't make it too hard. He's six.", "Forty years I'd been meaning to sort that Tangle. Forty years."]));
+        return;
+    }
+    if (!Progress.flag('met_gundry_below')) {
+        Progress.set('met_gundry_below');
+        yield* say('gundry', "So. You found the stairs. Gundry. You know me: I keep the Well, up top. Oil the winch. Down here I keep the Guild. The Well's the easy part.");
+        yield* say('gundry', "Every Maker you've met learnt the trade down here, in the Spoolworks, where every thread in the valley's wound and weighted. A House is PLAYED from up top. It's WORKED from down here.");
+        yield* say('gundry', "Trouble is, the Spoolworks has got itself in a tangle. A proper one. Forty years I've been meaning to sort it.");
+        yield* say('gundry', "You want to learn to make, Wanderer? Learn how it works first. Through the big door. Every mark up top has its cord down below: tug one, tie one off, see what happens.");
+        yield* say('gundry', "And mind the hound. He was a good dog, once. Then somebody wound him too tight.");
+        Progress.setGoal('The Spoolworks: through the big door in the Guild Hall, under the Inn.');
+        return;
+    }
+    yield* say('gundry', cycle('gundry_pre', ["Through the big door. The Spoolworks. Tug, tie, mind the hound.", "The cords never lie. Whatever's up top, its thread comes down somewhere.", "The Tangle's in the heart of the Works. You'll know it. It knows you're coming."]));
+};
+const MAKER_LINES = {
+    ives: ["Welcome to the workshop, love. Shoes OFF. ...No, I'm joking. Mostly.", "Every crate in the Tidyhouse has a little brass ring under it, and every ring a thread, and I know every one by name.", "Read the log, if you like. I wrote it neat."],
+    bram: ["HA! The Wanderer, in the workshop! Mind the clay, it's everywhere. It's ALWAYS everywhere.", "The Kilnwyrm's in bits over there. Took three winters. Tail still sticks.", "My log's honest. Brutally honest. Read it and weep! Or laugh. Laugh's better."],
+    ambrose: ["There you are. Hello, love. Mind the puddle, that's mine.", "Grindle's in the millpond still. I go and give him a polish now and then.", "Your mum and I took turns at the sluices, every time you went near the Millrace. Best summer we've had."],
+    tess: ["Hello, my darling. Brass dust on everything. Sorry.", "Every bell in the Belfry I tuned myself. The Tollgrim's voice was your dad's idea. He does a good gargoyle.", "Up top, you rang the bells. Down here, we were pulling the ropes. Teamwork!"],
+    mallow: ["*yawn* Hello. Is it morning? It's always morning somewhere. Or night.", "Mother Sloth's arms are on pulleys. I pull them. It's very tiring.", "The logbook. Yes. I wrote some of it asleep. It's probably fine."],
+    jory: ["Welcome backstage! Well. Underneath-stage.", "Captain Tin's having a lie down. He's earned it.", "Have a look at my log! I've drawn the bits I liked. Mostly you falling over. Lovingly!"],
+};
+for (const who of Object.keys(MAKER_LINES)) UNDER_TALK[who] = function* () { yield* say(who, cycle('under_' + who, MAKER_LINES[who])); };
+
+const Underside = {
+    enter(a) {
+        if (!Progress.flag('underside_first')) {
+            Progress.set('underside_first');
+            Script.run(function* () {
+                yield 20;
+                yield* say(null, "Under the Inn, under the town: low beams, warm lamps, and everywhere, hanging from the boards overhead, threads. Thousands of them, every colour, running away into the dark like roots.");
+                yield* say(null, 'Somewhere a long way off, a machine is going round and round. It sounds like a heartbeat, if a heart were made of wood.');
+            });
+        }
+    },
+};
+
+/* the Staff door at the Inn, open after the reveal */
+SPAWN.staffdoor = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.staffdoor, solid: [[0, 0]], oy: -16 });
+    pr.interact = () => {
+        if (!Progress.flag('reveal1')) { Script.run(function* () { yield* say(null, 'A narrow door: STAFF ONLY. Locked. Something hums on the other side.'); }); return true; }
+        World.go('underside', UNDER_ENTRY.x, UNDER_ENTRY.y, { dir: UP, fade: true, from: 'inn' });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+
+function initUnderside() {
+    ART.peephole = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#2a1e16', 0, 0, 16, 16); R('#4a3626', 1, 1, 14, 14); R('#120c08', 6, 5, 4, 4); R('#f7e8b8', 7, 6, 2, 2); R('#6a4e38', 5, 10, 6, 1); });
+    ART.cot = paintSprite(16, 32, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3a26', 1, 2, 14, 28); R('#a8784a', 2, 3, 12, 26); R('#fbf6ea', 3, 4, 10, 6); R('#c42b4a', 3, 12, 10, 16); R('#e8463c', 3, 12, 10, 2); R('#5a3a26', 1, 28, 2, 4); R('#5a3a26', 13, 28, 2, 4); });
+    ART.bigdoor = paintSprite(48, 20, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#a8784a', 0, 0, 48, 4); R('#c9a24a', 2, 1, 44, 2); R('#6a4e38', 0, 4, 4, 16); R('#6a4e38', 44, 4, 4, 16); R('#f7d64a', 20, 0, 8, 3); });
+    SPR.cot = ART.cot;
+    const deco = (n, w, h, f) => { ART[n] = paintSprite(w, h, f); SPR[n] = ART[n]; };
+    deco('spoolrack', 32, 24, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3a26', 0, 0, 32, 24); R('#8a6a4e', 1, 1, 30, 22); const cols = ['#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8', '#d6304e', '#e8463c', '#8fd46a']; for (let i = 0; i < 8; i++) { R(cols[i], 2 + (i % 4) * 7, 3 + (i >> 2) * 10, 5, 7); R('#2a1e16', 2 + (i % 4) * 7, 3 + (i >> 2) * 10, 5, 1); R('#2a1e16', 2 + (i % 4) * 7, 9 + (i >> 2) * 10, 5, 1); } });
+    deco('longtable', 64, 20, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#6a4630', 0, 4, 64, 10); R('#9a6438', 1, 5, 62, 7); R('#4a3020', 2, 14, 3, 6); R('#4a3020', 59, 14, 3, 6); R('#c9a24a', 20, 6, 6, 3); R('#eef2f8', 40, 7, 8, 1); });
+    deco('housemodel', 32, 24, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3a26', 0, 14, 32, 10); R('#efe4cc', 4, 4, 24, 14); R('#3a4656', 4, 4, 24, 2); R('#2e9a96', 2, 0, 28, 5); R('#e8463c', 15, 10, 2, 2); });
+    deco('kilnwyrm_costume', 48, 24, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3a26', 0, 18, 48, 6); R('#e0913a', 4, 6, 40, 12); R('#c96a2a', 4, 6, 40, 2); for (let i = 0; i < 5; i++) R('#a8502a', 6 + i * 8, 10, 4, 4); R('#fbf6ea', 40, 8, 3, 3); });
+    deco('counterweight', 32, 32, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#c9a24a', 15, 0, 2, 12); R('#2a2e36', 4, 12, 24, 18); R('#484c56', 6, 14, 20, 14); R('#6a6e78', 6, 14, 20, 2); R('#fbf6ea', 10, 20, 12, 5); R('#c42b4a', 11, 21, 10, 1); });
+    defSprite('logbook', ['................', '................', '...kkkkkkkkkk...', '..kbbbbbbbbbbk..', '..kbwwwwbwwwbk..', '..kbwkkwbwkwbk..', '..kbwwwwbwwwbk..', '..kbwkwwbwkkbk..', '..kbwwwwbwwwbk..', '..kbbbbbbbbbbk..', '..kkkkkkkkkkkk..', '...kddddddddk...', '...kd......dk...', '...kd......dk...', '...kk......kk...', '................'], { b: '#7a4e32', w: '#fbf6ea', d: '#5a3a26' });
+}
+CONTENT_INIT.push(initUnderside);
+
+// ---- 67_spoolworks.js ----
+/* House 7: the Spoolworks, under the Guild Hall. The Guild's own works (Gundry's; umber thread), not part of the Wander:
+   every room is two, the Works floor up top and the Under-works below it, joined by hatches. Up top, things on their
+   marks; below, a cord hanging under every mark: tug it (snap home), hold it (tie off: held fast up top), undo it. A
+   counterweight on a plate below holds a gate shut above. Cog the Guild hound gives up the Needle (a new place for
+   anything: three stitches at a time); the Bobbin Loft wants four bobbins on four plates (three stitches and a knot);
+   the Tangle, in the heart of the Works, comes apart when all four of its bobbins are pulled away at once.
+   Gundry's own bench is up a ladder nobody can climb while a crate sits on the trapdoor. */
+
+THEMES.spoolworks = { floor: ['#9a7a5a', '#7a5a3e', '#b89670', '#4a3424'], wall: ['#8a5a3a', '#5a3a26', '#a8784a', '#2a1a10'], stone: ['#8a8076', '#6a6058', '#a89e94', '#3e3832'], water: ['#3f6f98', '#2e5478', '#6f9fc8', '#1c3450'], dark: '#140e0a' };
+FLOORS.spoolworks = {
+    /* boards worn pale down the middle, brass-capped seams; a woven runner; iron plate */
+    floor: (x, th, v) => Paint.planks(x, ['#a8865e', '#7a5a3e', '#c4a47c', '#4a3424'], v, false),
+    floor2: (x, th, v) => { fill(x, '#7a4e32'); for (let i = 0; i < 16; i += 2) fill(x, i % 4 ? '#8a5e3e' : '#6a4228', i, 0, 1, 16); fill(x, '#c9a24a', 0, 0, 16, 1); fill(x, '#c9a24a', 0, 15, 16, 1); },
+    floor3: (x, th, v) => { fill(x, '#5a5650'); speckle(x, ['#6a6660', '#4a4640'], 40 + v, 0.3); fill(x, '#3a3632', 0, 0, 16, 1); fill(x, '#3a3632', 0, 0, 1, 16); },
+};
+WALLS.spoolworks = {
+    edge: '#140e0a',
+    top: (x) => { fill(x, '#3a2618'); speckle(x, ['#4a3020'], 10, 0.2); },
+    face: (x, th, v) => {
+        /* brick, a brass pipe along it */
+        fill(x, '#8a5a3a'); for (let y = 0; y < 14; y += 4) { fill(x, '#6a4228', 0, y + 3, 16, 1); fill(x, '#6a4228', ((y >> 2) % 2) * 8 + 3, y, 1, 3); }
+        fill(x, '#c9a24a', 0, 6, 16, 2); fill(x, '#f7d64a', 0, 6, 16, 1); fill(x, '#140e0a', 0, 15, 16, 1);
+    },
+};
+
+const SPOOL_OUT = { x: 29, y: 1 };    /* back up in the Guild Hall, in front of the big door */
+
+defHouse({
+    id: 'spoolworks', name: 'The Spoolworks', place: 'The Spoolworks', house: 'spoolworks', theme: 'spoolworks', thread: THREAD.guild, music: 'spoolworks',
+    entry: SPOOL_ENTRY,
+    themeAt: (x, y) => y >= 33 ? 'underside' : 'spoolworks',
+    drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy),
+    cells: {
+        /* ================= the Works floor (up top) ================= */
+        /* ---------------- 1 The Gatehouse: a crate held fast from underneath ---------------- */
+        '1,2': {
+            name: 'The Gatehouse',
+            rows: [
+                '#########.##########',
+                '#.......#.#........#',
+                '#.......#.#........#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'warp', x: 9, y: 10, to: 'underside', tx2: SPOOL_OUT.x, ty2: SPOOL_OUT.y, face: 'down', dir: 'down' },
+                { k: 'wood', x: 13, y: 3, id: 'gaBlock', startAt: [9, 2], trace: [[13, 3], [12, 3], [11, 3], [10, 3], [9, 3], [9, 2]], knotted: true, patience: 90, pushLine: "It won't budge. Not a quiver. Something is holding it fast from underneath." },
+                { k: 'sign', x: 3, y: 8, text: "THE SPOOLWORKS. Up here, the Works floor; under it, the Under-works. Every mark up here has its cord down there. (Trapdoor in the corner.) -G." },
+                { k: 'deco', x: 2, y: 2, look: 'spoolrack', ox: 0, solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 16, y: 2, look: 'spoolrack', ox: 0, solid: [[0, 0], [1, 0]] },
+            ],
+            nudge: { solved: () => { const b = G.map.find('gaBlock'); return !b || !b.knotted; }, after: 60 * 60 * 2, at: [16, 8], say: 'The crate in the passage sits on nothing, but it is held as if somebody had hold of it. From underneath, somebody would.' },
+        },
+        /* ---------------- 2 The Winding Hall: the middle of the Works ---------------- */
+        '1,1': {
+            name: 'The Winding Hall',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '....................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'big', id: 'swBig' },
+                { k: 'door', x: 0, y: 5, type: 'gate', when: '!hw1', passed: 'left', dir: 'v', id: 'swGateW' },
+                { k: 'door', x: 19, y: 5, type: 'lock', dir: 'v', id: 'swLockE' },
+                { k: 'deco', x: 8, y: 4, look: 'winder', ox: 0, solid: [[0, 0], [1, 0], [2, 0], [3, 0]], text: 'The great winder: a wheel taller than you, every spoke wound with thread, turning so slowly you have to watch a long time to be sure it moves.' },
+                { k: 'sign', x: 3, y: 1, text: 'THE WINDING HALL. West: the Spool Store (its gate hangs on a weight below). East: the Kennel. North: the Heart of the Works.' },
+                { k: 'spoolmite', x: 4, y: 8 }, { k: 'spoolmite', x: 15, y: 2 },
+            ],
+        },
+        /* ---------------- 3 The Spool Store: push it on, tie it there (key) ---------------- */
+        '0,1': {
+            name: 'The Spool Store',
+            rows: [
+                '#########.##########',
+                '#...#..............#',
+                '#..................#',
+                '#...#..............#',
+                '#####..............#',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'door', x: 4, y: 2, type: 'gate', when: 'ss1', dir: 'v', id: 'ssGate' },
+                { k: 'chest', x: 2, y: 2, item: 'key', id: 'ssKey' },
+                { k: 'plate', x: 11, y: 6, sig: 'ss1' },
+                { k: 'wood', x: 11, y: 3, id: 'ssBlock', patience: 300 },
+                { k: 'deco', x: 15, y: 1, look: 'spoolrack', ox: 0, solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 6, y: 8, look: 'spoolrack', ox: 0, solid: [[0, 0], [1, 0]] },
+                { k: 'sign', x: 17, y: 4, text: "THE SPOOL STORE. The gate's on the plate. The plate's on whatever you put on it, for as long as it stays put. -G." },
+            ],
+            nudge: { solved: 'spoolworks_chest:ssKey', after: 60 * 60 * 3, at: [15, 8], say: 'The block goes back before you can get round to the gate. Up here, nothing will keep it on the plate. Down there, something might.' },
+        },
+        /* ---------------- 4 The Kennel: Cog the Guild hound (the Needle) ---------------- */
+        '2,1': {
+            name: 'The Kennel',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '...................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'deco', x: 9, y: 2, look: 'kennel', ox: -8, oy: -10, solid: [[0, 0]], text: "A kennel built like a little workshop. Over the door: COG. GOOD BOY. (MOSTLY.)" },
+                { k: 'cog', x: 9, y: 4, id: 'cog' },
+                { k: 'shutter', x: 0, y: 5, dir: 'v', group: 'cog' },
+                { k: 'chest', x: 5, y: 2, item: 'needle', id: 'kNeedle', hidden: true, when: 'flag:spool_cog', big: true },
+            ],
+        },
+        /* ---------------- 5 The Bobbin Loft: four bobbins, four plates (the Pattern) ---------------- */
+        '0,0': {
+            name: 'The Bobbin Loft',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'plate', x: 3, y: 3, sig: 'bl1', minWeight: 3 }, { k: 'plate', x: 15, y: 3, sig: 'bl2', minWeight: 3 },
+                { k: 'plate', x: 3, y: 8, sig: 'bl3', minWeight: 3 }, { k: 'plate', x: 15, y: 8, sig: 'bl4', minWeight: 3 },
+                { k: 'bobbin', x: 6, y: 4, id: 'blB1' }, { k: 'bobbin', x: 12, y: 4, id: 'blB2' }, { k: 'bobbin', x: 6, y: 7, id: 'blB3' }, { k: 'bobbin', x: 12, y: 7, id: 'blB4' },
+                { k: 'chest', x: 9, y: 2, item: 'pattern', id: 'blPattern', hidden: true, when: 'bl1&bl2&bl3&bl4' },
+                { k: 'door', x: 9, y: 10, type: 'gate', when: 'bl1&bl2&bl3&bl4', keep: true, id: 'blExit' },
+                { k: 'sign', x: 1, y: 1, text: 'THE BOBBIN LOFT. Four plates, four bobbins (iron cored: only a bobbin will do). The way out wants all four at once.' },
+            ],
+            nudge: { solved: 'spoolworks_chest:blPattern', after: 60 * 60 * 4, at: [9, 8], say: 'Three bobbins can be given new places on their plates. The fourth needs holding there, and nobody up here has a free hand.' },
+        },
+        /* ---------------- 6 The Heart of the Works: the Tangle ---------------- */
+        '1,0': {
+            name: 'The Heart of the Works',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'tangle', x: 9, y: 5, id: 'tangle' },
+                { k: 'tbobbin', x: 9, y: 2, id: 'tbN' }, { k: 'tbobbin', x: 4, y: 5, id: 'tbW' }, { k: 'tbobbin', x: 14, y: 5, id: 'tbE' }, { k: 'tbobbin', x: 9, y: 8, id: 'tbS' },
+                { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'tangle' },
+            ],
+        },
+        /* ---------------- 7 Gundry's Bench (signature): up a ladder, if the crate on the trapdoor shifts ---------------- */
+        '2,0': {
+            name: "Gundry's Bench",
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#........#.........#',
+                '#.......#.#........#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'crate', x: 9, y: 6, id: 'gbCrate' },
+                { k: 'signature', x: 4, y: 2, house: 'spoolworks' },
+                { k: 'chest', x: 15, y: 2, item: 'heartpatch', id: 'gbPatch' },
+                { k: 'deco', x: 11, y: 8, look: 'longtable', ox: 0, solid: [[0, 0], [1, 0], [2, 0], [3, 0]], text: "Gundry's bench. A Needle-shaped dent in the wood, worn smooth; a pair of spectacles; a drawing of a dog, labelled COG, AGED 2." },
+            ],
+        },
+        /* ================= the Under-works (below; up above shows through) ================= */
+        '1,5': {
+            name: 'Under the Gatehouse', above: '1,2',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'hatch', x: 16, y: 8 },
+                { k: 'sign', x: 2, y: 2, text: 'Z on a cord: a tug (whatever it holds goes home, now). Hold Z: tie it off (it stays put up there, whatever happens). Z on a knot: undo it. -G.' },
+                { k: 'spoolmite', x: 5, y: 7 },
+            ],
+        },
+        '1,4': {
+            name: 'Under the Winding Hall', above: '1,1',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '...................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'hatch', x: 17, y: 8 },
+                { k: 'plate', x: 12, y: 5, sig: 'hw1' },
+                { k: 'weight', x: 12, y: 5, id: 'hwWeight', patience: 240 },
+                { k: 'stray', x: 13, y: 6, id: 'hwStray' },
+                { k: 'sign', x: 15, y: 9, text: "COUNTERWEIGHT: SPOOL STORE GATE. On its plate, the gate's shut. Off it, it's open, till the weight goes home." },
+                { k: 'spoolmite', x: 6, y: 3 },
+            ],
+            nudge: { solved: 'spoolworks_swGateW', after: 60 * 60 * 3, thing: 'hwStray', say: 'The weight always goes back the way it came. Unless something heavy is standing in that way.' },
+        },
+        '0,4': {
+            name: 'Under the Spool Store', above: '0,1',
+            rows: [
+                '##.#################',
+                '##.#################',
+                '##..################',
+                '##.#################',
+                '#..................#',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'hatch', x: 15, y: 8 },
+                { k: 'weight', x: 2, y: 2, id: 'usWeight', noPush: true, pushLine: "An iron counterweight, bolted to nothing, far too heavy to shift an inch. Its mark is only a stitch in the floor, though." },
+                { k: 'chest', x: 5, y: 8, item: 'plan', id: 'usPlan' },
+                { k: 'sign', x: 5, y: 4, text: 'NORTH: UNDER THE LOFT. (A weight in the way. Too heavy for anybody. Its place is only stitched.)' },
+            ],
+            nudge: { solved: () => { const w = G.map.find('usWeight'); return !w || w.stitched; }, after: 60 * 60 * 2, at: [2, 2], say: "Nobody can push the weight. But a place can be given, and a stitch can be made: that's what Needles are for." },
+        },
+        '2,4': {
+            name: 'Under the Kennel', above: '2,1',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'hatch', x: 9, y: 8 }, { k: 'hatch', x: 17, y: 8 },
+            ],
+        },
+        '0,3': {
+            name: 'Under the Bobbin Loft', above: '0,0',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '##.#################',
+            ],
+            ents: [
+                { k: 'hatch', x: 9, y: 8 },
+            ],
+        },
+        '1,3': {
+            name: 'Under the Heart', above: '1,0',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'hatch', x: 2, y: 8 },
+            ],
+        },
+        '2,3': {
+            name: "Under Gundry's Bench", above: '2,0',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#........#.........#',
+                '#.......#.#........#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'hatch', x: 9, y: 5 },
+                { k: 'sign', x: 3, y: 8, text: "GUNDRY'S. KEEP OUT. (That means you, Bram.)" },
+            ],
+        },
+    },
+    tick: a => Spoolworks.tick(a),
+});
+
+const Spoolworks = {
+    tick(a) { },
+};
+SIGNATURE_TEXT.spoolworks = "Burnt into the bench with a hot needle: a little spool, and G.G. Under it, much smaller, much older: L. WAS HERE TOO.";
+
+/* bobbins: iron-cored, heavy, slow to go home */
+SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'bobbin', patience: 360 }, p));
+
+// ---- 67b_spool_foes.js ----
+/* The Spoolworks' creatures: spoolmites (little bobbin-bugs), Cog the Guild hound (the mini-boss: brass hide, but his
+   cord hangs under his kennel; tied off from below he's held wherever he is, struggling, and a knock makes him bolt),
+   and the Tangle (the boss: a knot of the Works' old threads, held together by its four bobbins' threads; pull all four
+   bobbins off their places at once and it comes apart round its core; knock the core and it yanks everything back). */
+
+/* ---------------- Cog ---------------- */
+class Cog extends Enemy {
+    constructor(tx, ty, p = {}) {
+        super(tx, ty, Object.assign({ type: 'cog', hp: 3 }, p));
+        this.state = 'sleep'; this.st = 0; this.cordable = true; this.weightN = 3;
+        /* his place, for his cord: the kennel's mark */
+        this.ret = { mx: tx, my: ty, area: null, color: THREAD.guild, state: 'home', trace: [[tx, ty]], timer: 99, patience: 99, snap: false, strain: 0, pace: 10 };
+    }
+    get px() { return this.x - 8; }
+    get py() { return this.y - 10; }
+    get arena() { return this.area.roomAt(this.hx, this.hy); }
+    hurtBox() { return this.alive && this.state !== 'sleep' ? { x0: this.x - 8, x1: this.x + 8, y0: this.y - 14, y1: this.y + 3 } : null; }
+    shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'cog') s.shut = shut; }
+    onKnot() { this.state = 'held'; this.st = 0; Fx.text(this.x, this.y - 22, 'yip!', '#f7d64a'); }
+    onUntie() { if (this.state === 'held') { this.state = 'bolt'; this.st = 0; } }
+    update() {
+        if (!this.alive) return this.updateYarn();
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area, r = this.arena;
+        const home = this.tx === this.hx && this.ty === this.hy;
+        if (!this.ret.snap) this.ret.state = home ? 'home' : 'away';
+        if (this.state === 'sleep') {
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal') {
+                this.state = 'chase'; this.st = 0; this.shutters(true); Music.play('boss');
+                Script.run(SpoolFoes.cogIntro(this));
+            }
+            return;
+        }
+        if (Script.blocking()) return;
+        this.st++;
+        if (this.knotted) { this.state = 'held'; this.anim++; return; }
+        const up = p.area === a && Cam.room === r && p.state === 'normal';
+        const sp = 0.85 + (3 - this.hp) * 0.22;
+        /* tugged home from below: off he goes, fast */
+        if (this.ret.snap && this.state !== 'bolt') { this.state = 'bolt'; this.st = 0; }
+        switch (this.state) {
+            case 'chase': {
+                if (!up) { this.state = 'sniff'; this.st = 0; break; }
+                const dx = p.x - this.x, dy = p.y - this.y, d = Math.hypot(dx, dy) || 1;
+                this.dir = dirOf(dx, dy);
+                this.move(dx / d * sp, dy / d * sp); this.anim++;
+                if (Math.abs(dx) < 10 && Math.abs(dy) < 8) p.hurt(1, this.x, this.y);
+                break;
+            }
+            case 'sniff':
+                /* where did she go? nose to the floor a while, then home */
+                if (up && this.st > 20) { this.state = 'chase'; this.st = 0; break; }
+                if (this.st > 120) { this.state = 'home'; this.st = 0; }
+                break;
+            case 'home': case 'bolt': {
+                const gx = this.hx * T + 8, gy = this.hy * T + 10, dx = gx - this.x, dy = gy - this.y, d = Math.hypot(dx, dy);
+                const s = this.state === 'bolt' ? (this.ret.snap ? 3.2 : 2.2) : 1.0;
+                if (d <= s) { this.x = gx; this.y = gy; this.ret.snap = false; this.state = 'sit'; this.st = 0; break; }
+                this.dir = dirOf(dx, dy);
+                if (!this.move(dx / d * s, dy / d * s)) { this.x += dx / d * s; this.y += dy / d * s; }
+                this.anim += 2;
+                break;
+            }
+            case 'sit':
+                if (up && this.st > 40) { this.state = 'chase'; this.st = 0; Fx.text(this.x, this.y - 22, '!', '#f7d64a'); Sfx.play('snort'); }
+                break;
+            case 'held':
+                this.state = 'bolt'; this.st = 0;
+                break;
+        }
+        this.traceStep();
+    }
+    struck(by, dmg, dir) {
+        if (!this.alive || this.flash > 0) return;
+        if (this.state !== 'held') {
+            Sfx.play('hitthing'); Fx.ring(this.x, this.y - 8);
+            if (by === G.player) Fx.text(this.x, this.y - 24, 'clang!', '#f7d64a');
+            if (dir >= 0) { this.x += DX[dir] * 3; this.y += DY[dir] * 3; }
+            return;
+        }
+        this.hp--; this.flash = 30; G.hitstop = 6; G.shake = 6; Sfx.play('enemyhit');
+        Stats.count('boss:cog:hit');
+        if (this.hp <= 0) return this.defeat();
+        /* he shakes the knot loose and bolts for his kennel */
+        Spool.untie(this);
+        this.state = 'bolt'; this.st = 0;
+        Fx.text(this.x, this.y - 24, 'yelp!', '#fbf6ea');
+    }
+    shoved() { }
+    defeat() {
+        this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
+        if (this.knotted) { this.knotted = false; }
+        Sfx.play('unravel'); Fx.yarn(this.x, this.y - 8, THREAD.guild);
+        Progress.set('spool_cog');
+        this.shutters(false);
+        Script.run(SpoolFoes.cogDown(this));
+    }
+    draw(cx, cy) {
+        if (!this.alive) { if ((this.yarnT || 0) < 90) { const k = 1 - this.yarnT / 90; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(7 * k), THREAD.guild); } return; }
+        const x = this.x - cx, y = this.y - cy;
+        Gfx.alpha(0.25); Gfx.rect(x - 7, y + 1, 14, 3, PAL.ink); Gfx.alpha(1);
+        let im = spr(this.state === 'held' ? 'cog_held' : this.state === 'sit' || this.state === 'sleep' ? 'cog_sit' : 'cog_' + ((this.anim >> 3) % 2));
+        if (this.flash > 0 && (this.flash >> 1) % 2) im = tinted(im, '#ffffff');
+        const shake = this.state === 'held' ? ((this.t >> 1) % 2 ? 1 : -1) : 0;
+        Gfx.img(im, x - 10 + shake, y - 18, this.dir === LEFT);
+        if (this.state === 'held') {
+            /* his cord, taut, straight down through the floor */
+            Gfx.line(x, y - 6, x, y + 4, THREAD.guild); Gfx.rect(x - 1, y + 3, 3, 2, '#c9a24a');
+        }
+        if (this.state === 'sniff' && (this.t >> 4) % 2) Font.draw('?', x + 8, y - 26, '#fbf6ea');
+    }
+}
+SPAWN.cog = (x, y, p) => Progress.flag('spool_cog') ? new Ent('none') : new Cog(x, y, p);
+
+/* ---------------- the Tangle ---------------- */
+class Tangle extends Ent {
+    constructor(tx, ty, p = {}) {
+        super('tangle', p);
+        this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T;
+        this.hp = 3; this.state = 'sleep'; this.st = 0; this.t = 0; this.flash = 0; this.alive = true;
+        this.balls = []; this.outT = 0; this.openT = 0; this.lashT = 0; this.pulled = 0;
+    }
+    get sortY() { return this.y + 22; }
+    blocks(x, y) { return this.alive && this.state !== 'open' && Math.abs(x - this.tx) <= 1 && Math.abs(y - this.ty) <= 1; }
+    onTile(x, y) { return this.blocks(x, y); }
+    get isWalker() { return false; }
+    bobbins() { return this.area.ents.filter(e => e.tbobbin && !e.removed); }
+    out(b) { return b.tx !== b.first[0] || b.ty !== b.first[1]; }
+    shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'tangle') s.shut = shut; }
+    update() {
+        if (!this.alive) return;
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area, r = a.roomAt(this.tx, this.ty);
+        if (this.state === 'sleep') {
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 2) {
+                this.rethread(false, true);
+                this.state = 'whole'; this.st = 0; this.shutters(true); Music.play('boss');
+                Script.run(SpoolFoes.tangleIntro(this));
+            }
+            return;
+        }
+        this.updateBalls(r);
+        if (Script.blocking()) return;
+        this.st++;
+        const bs = this.bobbins(), n = bs.filter(b => this.out(b)).length;
+        this.pulled = n;
+        if (this.state === 'whole') {
+            /* all four threads drawn out of it at once, held a moment: it comes apart */
+            if (n >= 4) {
+                if (++this.outT > 90) { this.state = 'open'; this.openT = 0; this.st = 0; Sfx.play('unravel'); G.shake = 8; Fx.yarn(this.x + 8, this.y + 4, THREAD.guild); if (!Progress.flag('tangle_open')) { Progress.set('tangle_open'); G.pendingToast = 'Every thread pulled out of it at once, the Tangle falls apart round a little hard knot at its heart.'; } }
+            } else this.outT = 0;
+            if (Cam.room === r && p.state === 'normal') this.attack(p);
+        } else if (this.state === 'open') {
+            this.openT++;
+            /* a bobbin back on its place, and it ties itself up again */
+            if (n < 4 || this.openT > 600) this.rethread(false);
+        }
+    }
+    attack(p) {
+        const period = [0, 70, 95, 120][this.hp];
+        if (this.st % period === 0) {
+            const cx = this.x + 8, cy = this.y + 4, dx = p.x - cx, dy = p.y - 6 - cy, d = Math.hypot(dx, dy) || 1, sp = 1.3 + (3 - this.hp) * 0.35;
+            this.balls.push({ x: cx, y: cy, vx: dx / d * sp, vy: dy / d * sp, life: 300 });
+            Sfx.play('throw');
+        }
+        /* too close: its cords lash out (a shiver first) */
+        const near = Math.hypot(p.x - (this.x + 8), p.y - (this.y + 10)) < 34;
+        if (this.lashT > 0) { if (--this.lashT === 0 && near) { p.hurt(1, this.x + 8, this.y + 8); Fx.ring(this.x + 8, this.y + 6, THREAD.guild); Sfx.play('twang'); } }
+        else if (near && this.st % 40 === 0) this.lashT = 26;
+    }
+    updateBalls(r) {
+        const a = this.area, p = G.player;
+        for (const b of this.balls) {
+            b.x += b.vx; b.y += b.vy; b.life--;
+            if (a.kind(tileOf(b.x), tileOf(b.y)).solid || a.roomAt(tileOf(b.x), tileOf(b.y)) !== r) b.life = 0;
+            const o = a.at(tileOf(b.x), tileOf(b.y)); if (o && o.tbobbin) b.life = 0;
+            if (p.area === a && p.state === 'normal' && Math.abs(p.x - b.x) < 6 && Math.abs(p.y - 6 - b.y) < 7) { p.hurt(1, b.x, b.y); b.life = 0; }
+        }
+        this.balls = this.balls.filter(b => b.life > 0);
+    }
+    hurtBox() { return this.alive && this.state === 'open' ? { x0: this.x - 2, x1: this.x + 18, y0: this.y - 8, y1: this.y + 16 } : null; }
+    struck(by, dmg, dir) {
+        if (!this.alive || this.flash > 0) return;
+        if (this.state !== 'open') { Sfx.play('hitthing'); return; }
+        this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
+        Stats.count('boss:tangle:hit');
+        if (this.hp <= 0) return this.defeat();
+        this.rethread(true);
+    }
+    /* it yanks every thread back into itself: stitches undone, knots slipped, bobbins snapped home */
+    rethread(hit, quiet) {
+        for (const b of this.bobbins()) {
+            const rec = Inv.stitches.find(s => s.area === this.area.id && s.key === Needle.key(b));
+            if (rec) Needle.unpick(rec);
+            if (b.knotted) Spool.untie(b);
+            if (b.ret && b.ret.state !== 'home') Return.snap(b);
+        }
+        this.state = 'whole'; this.st = 0; this.outT = 0; this.openT = 0;
+        if (quiet) return;
+        Sfx.play('twang'); G.shake = 6;
+        if (hit) Fx.text(this.x + 8, this.y - 20, 'it re-knots!', '#f7d64a');
+        const p = G.player;
+        if (p.area === this.area && this.blocks(p.tx, p.ty)) { p.hurt(1, this.x + 8, this.y + 8); p.unstick(); }
+    }
+    defeat() {
+        this.alive = false; this.balls = [];
+        Sfx.play('unravel'); Fx.yarn(this.x + 8, this.y, THREAD.guild);
+        Script.run(SpoolFoes.tangleDown(this));
+    }
+    draw(cx, cy) {
+        if (!this.alive) return;
+        const x = this.x + 8 - cx, y = this.y + 4 - cy;
+        /* threads from it to each bobbin: taut when pulled out */
+        for (const b of this.bobbins()) {
+            const bx = b.px + 8 - cx, by = b.py + 6 - cy, o = this.out(b);
+            Gfx.line(x, y, bx, by, o ? '#f7d64a' : THREAD.guild);
+        }
+        if (this.state === 'open' || this.state === 'sleep' && false) { }
+        if (this.state === 'open') {
+            /* the core: a small hard knot, dazed, threads lying loose */
+            for (let i = 0; i < 10; i++) { const t = i / 10 * Math.PI * 2; Gfx.line(x, y + 4, x + Math.cos(t) * 20, y + 4 + Math.sin(t) * 12, shade(THREAD.guild, -0.2)); }
+            const im = spr('tangle_core');
+            if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, x - 8, y - 6);
+            if ((this.t >> 3) % 2) Font.draw('*', x + 8, y - 12, '#f7d64a');
+        } else {
+            /* the Tangle itself: a ball of knotted cord, smaller for every thread drawn out of it */
+            const R = 22 - this.pulled * 3, wob = this.state === 'sleep' ? 0 : Math.sin(this.t / 10) * 1.5;
+            Gfx.alpha(0.3); Gfx.circle(x, y + 16, R - 4, PAL.ink); Gfx.alpha(1);
+            Gfx.circle(x, y + 2, R + wob, '#4a3020');
+            const cols = [THREAD.guild, '#c9925a', '#7a5233', THREAD.ives, THREAD.bram, THREAD.ambrose, THREAD.tess, THREAD.mallow, THREAD.jory];
+            for (let i = 0; i < 26; i++) {
+                const a0 = i * 2.39 + this.t / 120, rr = (R - 3) * (0.35 + 0.65 * ((i * 37) % 10) / 10);
+                const x0 = x + Math.cos(a0) * rr, y0 = y + 2 + Math.sin(a0) * rr * 0.9, x1 = x + Math.cos(a0 + 2.1) * rr, y1 = y + 2 + Math.sin(a0 + 2.1) * rr * 0.9;
+                Gfx.line(x0, y0, x1, y1, cols[i % cols.length]);
+            }
+            if (this.state !== 'sleep') { Gfx.rect(x - 6, y - 2, 3, 3, '#fbf6ea'); Gfx.rect(x + 3, y - 2, 3, 3, '#fbf6ea'); Gfx.rect(x - 5, y - 1, 1, 1, PAL.ink); Gfx.rect(x + 4, y - 1, 1, 1, PAL.ink); }
+            if (this.lashT > 0 && (this.t >> 1) % 2) Gfx.circle(x, y + 2, R + 4, THREAD.guild);
+            if (this.flash > 0 && (this.flash >> 1) % 2) { Gfx.alpha(0.5); Gfx.circle(x, y + 2, R, '#ffffff'); Gfx.alpha(1); }
+        }
+        for (const b of this.balls) { Gfx.circle(b.x - cx, b.y - cy, 3, THREAD.guild); Gfx.rect(b.x - cx - 2, b.y - cy - 1, 3, 1, '#e6c08a'); }
+    }
+}
+SPAWN.tangle = (x, y, p) => Progress.flag('spool_boss') ? new Ent('none') : new Tangle(x, y, p);
+/* the Tangle's bobbins: wooden, patient; their first places are what the Tangle's threads are measured from */
+SPAWN.tbobbin = (x, y, p) => { const b = new Block(x, y, Object.assign({ style: 'wood', look: 'bobbin_t', patience: 360 }, p)); b.tbobbin = true; b.first = [x, y]; return b; };
+
+/* ---------------- spoolmites ---------------- */
+SPAWN.spoolmite = (x, y, p) => new Enemy(x, y, Object.assign({ type: 'spoolmite' }, p));
+
+const SpoolFoes = {
+    *cogIntro(c) {
+        yield 20;
+        yield* say(null, 'In the kennel something whirs, clanks and unfolds: a hound of brass and springs and a great deal of thread, wound so tight it hums. COG, says the plate on its collar.');
+        yield* say(null, 'It sees you. Its tail begins to spin. The door behind you slams.');
+    },
+    *cogDown(c) {
+        yield 30;
+        yield* say(null, 'Cog runs down with a long, sad whirr, sits, and topples over. All the thread wound in him comes loose and runs away down the cracks in the floor like water.');
+        yield* say(null, 'By the kennel, a lid springs open with a little ping.');
+        Music.play('spoolworks');
+    },
+    *tangleIntro(t) {
+        yield 20;
+        yield* say(null, 'In the heart of the Works, held in the middle of the floor by four threads to four bobbins, sits a great knot of old cord: every colour, every House, every Wander there has ever been, all wound into one.');
+        yield* say(null, 'It opens two eyes made of buttons. It has been here a very long time, and it does not want to be undone.');
+    },
+    *tangleDown(t) {
+        const a = t.area, r = a.roomAt(t.tx, t.ty);
+        Music.play('silence');
+        yield 40;
+        yield* say(null, 'The little knot at the heart of the Tangle gives, and all of it, forty years of loose ends, slithers apart and away down every crack in the floor, back to wherever each thread belongs.');
+        t.shutters(false);
+        const g = a.add(new NPC(r.x + 9, r.y + 9, { who: 'gundry', face: 'up' }));
+        Fx.poof(g.x + 8, g.y + 8);
+        yield 20;
+        yield* say('gundry', "Well. I'll be. Forty years I've been meaning to do that. Forty years.");
+        yield* say('gundry', "You did it the right way, too. Not by pushing. By knowing what each thing was tied to, and where it ought to be.");
+        yield* say('gundry', "That's all a Maker is, Wanderer. Somebody who knows where the threads go.");
+        a.add(new Pickup((r.x + 9) * T, (r.y + 5) * T, { what: 'heartstitch', id: 'spoolHeart' }));
+        Sfx.play('appear');
+        yield* say('gundry', "Here. Take this, and come up to the Guild Hall when you're ready. I've got a cot for you, and a job.");
+        Fx.poof(g.x + 8, g.y + 8); a.remove(g);
+        Progress.set('spool_boss'); Progress.set('d7');
+        Progress.setGoal('Up to the Guild Hall, under the Inn: Gundry has a job for you.');
+        Music.play('spoolworks');
+        Save.autosave();
+    },
+};
+
+function initSpoolFoes() {
+    ENEMY.spoolmite = { hp: 2, ai: 'wander', chase: true, sight: 4, leash: 5, r: 5, tall: 10, speed: 0.55, yarn: THREAD.guild, drop: 0.4 };
+    const sm = { b: '#a8784a', B: '#7a5233', w: '#e6c08a', e: '#2a1f2d', l: '#4a3020' };
+    const mite = legs => ['................', '................', '................', '................', '.....kkkkkk.....', '....kwwwwwwk....', '...kbbbbbbbbk...', '...kBeBBBBeBk...', '...kbbbbbbbbk...', '...kBBBBBBBBk...', '....kwwwwwwk....', '.....kkkkkk.....', legs, '................', '................', '................'];
+    defSprite('spoolmite_0', mite('....kl.kl.kl....'), sm); defSprite('spoolmite_1', mite('...kl.kl.kl.....'), sm);
+    ENEMY_DRAW.spoolmite = e => spr('spoolmite_' + ((e.anim >> 3) % 2));
+    ENEMY.cog = { hp: 3, r: 7, tall: 14, yarn: THREAD.guild, weight: WEIGHT.heavy };
+    const cg = { b: '#c9a24a', B: '#8a6a2a', w: '#f7e8b8', e: '#2a1f2d', t: THREAD.guild, r: '#d6304e' };
+    const dog = (legs, tail) => ['....................', '..............kk....', '.............kbbk...', '............kbbbbk..', '............kbebbkk.', '...' + tail + '.....kbbbbbbk', '..kk..kkkkkkkbbbbkk.', '..kbkkbbbbbbbbbkk...', '...kbbbbbbbbbbbk....', '...kbBbBbBbBbBbk....', '...kbbbbbbbbbbbk....', '....kttttttttttk....', '....' + legs + '....', '....kk..kk..kk..kk..'.slice(0, 20), '....................', '....................', '....................', '....................'];
+    defSprite('cog_0', dog('kbk.kbk..kbk.kbk', 'kk'), cg); defSprite('cog_1', dog('.kbkkbk...kbkkbk', 'k.'), cg);
+    defSprite('cog_sit', dog('kbbk......kbbk..', '..'), cg);
+    defSprite('cog_held', dog('kbk.kbk..kbk.kbk', 'kk').map((r, i) => i === 11 ? '....krrrrrrrrrrk....' : r), cg);
+    defSprite('tangle_core', ['................', '.....kkkkkk.....', '....kttTTttk....', '...ktTkkkkTtk...', '...kTk.ww.kTk...', '..ktk.wwww.ktk..', '..kTk.wkkw.kTk..', '..ktk.wwww.ktk..', '...kTk.ww.kTk...', '...ktTkkkkTtk...', '....kttTTttk....', '.....kkkkkk.....', '................', '................', '................', '................'], { t: THREAD.guild, T: '#7a5233', w: '#fbf6ea' });
+    defSprite('bobbin', ['................', '..kkkkkkkkkkkk..', '..kiiiiiiiiiik..', '..kkkkkkkkkkkk..', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '..kkkkkkkkkkkk..', '..kiiiiiiiiiik..', '..kIIIIIIIIIIk..', '..kkkkkkkkkkkk..', '................'], { i: '#6a6e78', I: '#484c56', c: '#a8784a', C: '#7a5233' });
+    defSprite('bobbin_t', ['................', '..kkkkkkkkkkkk..', '..kwwwwwwwwwwk..', '..kkkkkkkkkkkk..', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '..kkkkkkkkkkkk..', '..kwwwwwwwwwwk..', '..kWWWWWWWWWWk..', '..kkkkkkkkkkkk..', '................'], { w: '#c9925a', W: '#9a6438', c: THREAD.guild, C: '#7a5233' });
+    ART.monogram_spoolworks = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#3a2618', 4, 4, 8, 8); R('#a8784a', 5, 5, 6, 2); R('#a8784a', 5, 9, 6, 2); R('#c9a24a', 7, 6, 2, 4); });
+    ART.winder = paintSprite(64, 30, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        R('#3a2618', 4, 24, 56, 6); R('#6a4630', 8, 20, 4, 6); R('#6a4630', 52, 20, 4, 6);
+        x.strokeStyle = '#a8784a'; x.lineWidth = 3; x.beginPath(); x.arc(32, 14, 12, 0, Math.PI * 2); x.stroke();
+        x.strokeStyle = '#c9a24a'; x.lineWidth = 1; for (let i = 0; i < 8; i++) { const t = i / 8 * Math.PI * 2; x.beginPath(); x.moveTo(32, 14); x.lineTo(32 + Math.cos(t) * 12, 14 + Math.sin(t) * 12); x.stroke(); }
+        const cols = [THREAD.ives, THREAD.bram, THREAD.ambrose, THREAD.tess, THREAD.mallow, THREAD.jory];
+        for (let i = 0; i < 6; i++) { x.strokeStyle = cols[i]; x.beginPath(); x.moveTo(20 + i * 4, 24); x.lineTo(32, 14); x.stroke(); }
+    });
+    ART.kennel = paintSprite(32, 26, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#6a4630', 2, 8, 28, 18); R('#a8784a', 4, 10, 24, 16); R('#3a2618', 11, 14, 10, 12); R('#c9a24a', 0, 4, 32, 6); R('#8a6a2a', 2, 0, 28, 5); R('#fbf6ea', 12, 11, 8, 2); });
+}
+CONTENT_INIT.push(initSpoolFoes);
+
+ITEM_LINES.needle = () => "You found the {red}Needle{/}! Face a thing (or, from underneath, its cord) and press C; walk the needle with the arrows, up to four tiles, and press C again: that's its place now, for good. It holds three stitches at a time: a fourth undoes the oldest.";
+ITEM_AFTER.needle = function* () { Inv.equipped = 'needle'; };
+
 // ---- 79_presets.js ----
 /* Presets: game states at the start of each stretch, for the debug panel and the tests. */
 function presetBase(name = 'Wren') {
@@ -14560,6 +15584,13 @@ PRESETS.afterD6 = () => {
     for (const f of ['d6', 'reveal1', 'marionette_boss', 'marionette_tin', 'marionette_tinAwake', 'marionette_gmAwake', 'crossbar_first', 'flat_first']) Progress.set(f);
     Progress.setGoal('Hollowell: the Inn, and the door marked STAFF ONLY. The Makers are waiting below.');
     World.enter('hollow', MARIONETTE_OUT.x, MARIONETTE_OUT.y, { dir: DOWN });
+};
+PRESETS.afterD7 = () => {
+    PRESETS.afterD6();
+    Inv.giveTool('needle'); Inv.addHeart();
+    for (const f of ['d7', 'spool_boss', 'spool_cog', 'met_gundry_below', 'underside_first', 'needle_first', 'hatch_down', 'hatch_up', 'tug_first', 'knot_first', 'tangle_open']) Progress.set(f);
+    Progress.setGoal('Up to the Guild Hall, under the Inn: Gundry has a job for you.');
+    World.enter('underside', 29, 4, { dir: DOWN });
 };
 
 // ---- 80_story_core.js ----

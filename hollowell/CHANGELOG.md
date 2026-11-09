@@ -60,4 +60,8 @@
   key order can shut a room for good; a too-easy room made to need its idea; several shortcuts closed; a boss warning
   made visible.
 - The seventh tool's kit: two layers, cords, knots, hatches, and giving things a new place; a lab room and tests.
+- The seventh area and dungeon: a place under the town (a guild hall, workshops with logbooks of your real play,
+  tunnels with peepholes) and a two-layer dungeon (seven room pairs, a mid-boss, a boss) with the seventh tool; tests
+  for every room and a playthrough leg; music for both.
+- Fixed: the road from the fair's gate into town was blocked by a fence that never opened.
 

@@ -64,6 +64,11 @@
   Soldiers are tin now (a whack turns them round). 9 regression tests (`tests/review_d6.test.mjs`); with the seventh
   tool's kit (7), `npm test` 215/215.
 
+- 2026-11-09 (night, late): the Underside (4 tests) and the Spoolworks (8 room, mini-boss and boss tests) and a seventh
+  playthrough leg (afterD6 to d7); `npm test` 228/228. The playthrough found the road from the fair's gate into town
+  blocked by a fence that never opened (fixed: drawing the bolt opens the town's side too). Browser shots of every new
+  room checked (two layers read clearly: the room above faint over the boards, cords under every mark).
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
@@ -80,3 +85,4 @@
 | 2026-11-09 | Crossbar kit, Larkspur, Marionette Hall, playthrough leg 6 (188 in all); browser shots | pass |
 | 2026-11-09 | D5 review fixes (17 issues, 5 softlocks; +11 regression tests, 199 in all) | pass |
 | 2026-11-09 | D6 review fixes (9 problems; +9 regression tests); the seventh tool's kit (+7); 215 in all; D6 browser shots | pass |
+| 2026-11-09 | Underside, Spoolworks (D7), playthrough leg 7 (228 in all); browser shots of all 20 new rooms | pass |

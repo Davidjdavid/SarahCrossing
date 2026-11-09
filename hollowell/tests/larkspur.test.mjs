@@ -37,13 +37,16 @@ test('off the high mesa into the straw: only with the Bedroll laid up top; then 
     go(HW, ...lk(58, 18)); HW.face('right'); HW.press('act', 1); HW.skipTalk();
     assert.ok(HW.Progress.flag('fair_gate'), 'bolt drawn');
     go(HW, 66, 59);
+    go(HW, 72, 59);      /* on into town: its side of the West Gate is open too */
     noErrors(HW);
 });
 
-test('from town, the fair gate is bolted on the far side', () => {
+test('from town, the fair gate is bolted on the far side; once drawn, the road runs both ways', () => {
     const HW = afterD5();
     HW.warp('hollow', 68, 59); HW.step(10);
     assert.equal(HW.walkTo(...lk(58, 19)), false);
+    HW.Progress.set('fair_gate'); HW.warp('hollow', 68, 59); HW.step(10);
+    assert.ok(HW.walkTo(...lk(58, 19)), 'through to the fair');
 });
 
 test("the painted hedge by the fortune teller's: a knock, cardboard, and a nook behind it", () => {

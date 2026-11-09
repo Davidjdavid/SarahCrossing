@@ -191,3 +191,22 @@ SONGS.marionette = {
         { drum: true, vol: 0.05, n: 'k . h . s . h . | k . h . s . h h ' },
     ],
 };
+/* the Underside: a warm workshop under the floorboards, everything ticking (A minor, unhurried) */
+SONGS.underside = {
+    bpm: 96, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.06, n: 'A4 . C5 . E5 . D5 . | C5 . B4 . A4 . . . | G4 . B4 . D5 . C5 . | B4 . A4 . G4 . . . | F4 . A4 . C5 . B4 . | A4 . G4 . F4 . E4 . | E4 . G#4 . B4 . D5 . | C5 . B4 . A4 . . . ' },
+        { wave: 'triangle', vol: 0.17, n: 'A2 . . . E3 . . . | A2 . . . E3 . . . | G2 . . . D3 . . . | G2 . . . D3 . . . | F2 . . . C3 . . . | F2 . . . C3 . . . | E2 . . . B2 . . . | A2 . . . E3 . . . ' },
+        { drum: true, vol: 0.03, n: 'h . h . h . h . ' },
+    ],
+};
+/* the Spoolworks: spindles and shuttles, a machine that never stops (E minor, driving) */
+SONGS.spoolworks = {
+    bpm: 120, div: 2,
+    ch: [
+        { wave: 'p12', vol: 0.07, n: 'E5 . . G5 . . F#5 . | E5 . D5 . B4 . . . | C5 . . E5 . . D5 . | C5 . B4 . A4 . . . | E5 . . G5 . . B5 . | A5 . G5 . F#5 . E5 . | D5 . F#5 . A5 . F#5 . | E5 - - - . . . . ' },
+        { wave: 'triangle', vol: 0.17, n: 'E2 E3 B2 E3 E2 E3 B2 E3 | E2 E3 B2 E3 E2 E3 B2 E3 | C3 C4 G3 C4 C3 C4 G3 C4 | A2 A3 E3 A3 A2 A3 E3 A3 | E2 E3 B2 E3 E2 E3 B2 E3 | C3 C4 G3 C4 C3 C4 G3 C4 | D3 D4 A3 D4 D3 D4 A3 D4 | B2 B3 F#3 B3 B2 B3 F#3 B3 ' },
+        { drum: true, vol: 0.06, n: 'k . h . s . h . | k . h k s . h h ' },
+    ],
+};
+

@@ -15,7 +15,8 @@ const Story = {
         return c.split('&').every(t => { t = t.trim(); return t[0] === '!' ? !Progress.flag(t.slice(1)) : Progress.flag(t); });
     },
     talk(npc) {
-        const f = TALK[npc.who];
+        /* a place can have its own words for someone (the Makers below the town talk shop) */
+        const f = (G.map && G.map.def.talk && G.map.def.talk[npc.who]) || TALK[npc.who];
         if (f) return () => f(npc);
         return function* () { yield* say(npc.who, '...'); };
     },

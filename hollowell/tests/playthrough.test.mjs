@@ -648,3 +648,92 @@ test('from the fifth Knot: over to Kilnridge, off the high mesa into Larkspur Fa
     ok(area() === 'hollow', 'back outside');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 });
+
+test('from the sixth Knot: the Staff door, the Underside, Gundry, the Spoolworks to the Tangle (the Needle)', () => {
+    const HW = loadGame();
+    const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
+    const walk = (x, y, m, max) => { let r = HW.walkTo(x, y, max); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y, max); } ok(r, m || `walk ${x},${y}`); };
+    const area = () => HW.G.map.id;
+    const thing = id => HW.G.map.find(id);
+    const until = (fn, max = 3000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
+    const talk = () => { HW.press('act', 1); HW.skipTalk(); };
+    const p = () => HW.player();
+    const S = { gate: [20, 22], wind: [20, 11], store: [0, 11], kennel: [40, 11], loft: [0, 0], heart: [20, 0], ugate: [20, 55], uwind: [20, 44], ustore: [0, 44], ukennel: [40, 44], uloft: [0, 33], uheart: [20, 33] };
+    const s = (r, x, y) => [S[r][0] + x, S[r][1] + y];
+    const hatch = (r, x, y, d) => { walk(...s(r, x, y)); HW.face(d); HW.press('act', 1); HW.step(40); };
+    const knot = () => { HW.hold('act'); HW.step(20); HW.release(); HW.step(2); };
+    const stitch = moves => { const names = { U: 'up', D: 'down', L: 'left', R: 'right' }; HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(2); for (const m of moves) { HW.hold(names[m]); HW.step(2); HW.release(); HW.step(8); } HW.press('tool', 1); HW.step(2); };
+    HW.preset('afterD6'); HW.step(10); HW.skipTalk();
+    HW.Inv.maxHp = HW.Inv.hp = 34;
+
+    /* home through the fair gate, to the Inn and its Staff door */
+    const door = HW.G.map.ents.find(e => e.kind === 'warp' && e.to === 'inn');
+    walk(door.tx, door.ty + 1, 'to the Inn', 60000); HW.hold('up'); until(() => area() === 'inn', 120); HW.release(); HW.step(30);
+    walk(13, 3); HW.face('up'); HW.press('act', 1); until(() => area() === 'underside', 120); HW.step(30); HW.skipTalk(); HW.step(5);
+    ok(area() === 'underside', 'down the Staff stairs');
+    walk(31, 4); HW.face('up'); talk();
+    ok(HW.Progress.flag('met_gundry_below'), 'Gundry');
+    walk(29, 1); HW.hold('up'); until(() => area() === 'spoolworks', 120); HW.release(); HW.step(30); HW.skipTalk();
+    ok(area() === 'spoolworks', 'into the Spoolworks');
+    HW.G.cheats.god = true;      /* (spoolmites, Cog's teeth, yarn balls: the dodging isn't what this checks) */
+
+    /* the Gatehouse: untie the crate from underneath */
+    hatch('gate', 16, 7, 'down'); walk(...s('ugate', 13, 4)); HW.face('up'); HW.press('act', 1); HW.step(3);
+    ok(until(() => HW.Return.isHome(thing('gaBlock')), 400), 'the crate goes home');
+    hatch('ugate', 16, 7, 'down');
+    walk(...s('gate', 9, 1)); HW.hold('up'); until(() => HW.Cam.room && HW.Cam.room.name === 'The Winding Hall' && !HW.Cam.busy, 200); HW.release(); HW.step(5);
+    /* under the Winding Hall: the counterweight off, the stray in its way */
+    hatch('wind', 17, 7, 'down');
+    walk(...s('uwind', 11, 5)); HW.push('right', 2); HW.step(25);
+    walk(...s('uwind', 13, 7)); HW.push('up', 1); HW.step(25);
+    hatch('uwind', 17, 7, 'down');
+    ok(thing('swGateW').open, 'the Spool Store gate');
+    walk(...s('wind', 1, 5)); HW.hold('left'); HW.step(40); HW.release(); HW.step(30);
+    /* the Spool Store: on the plate, tied off below; the Plan; the key */
+    walk(...s('store', 11, 2)); HW.push('down', 3); HW.step(25);
+    hatch('store', 15, 7, 'down'); walk(...s('ustore', 11, 4)); HW.face('up'); knot();
+    walk(...s('ustore', 5, 7)); HW.face('down'); talk(); ok(HW.Inv.plans.includes('spoolworks'), 'the Plan');
+    hatch('ustore', 15, 7, 'down');
+    walk(...s('store', 2, 3)); HW.face('up'); talk(); ok(HW.Inv.keys('spoolworks') === 1, 'the key');
+    /* the Kennel: Cog */
+    walk(...s('wind', 18, 5)); HW.hold('right'); HW.step(40); HW.release(); HW.step(20); HW.skipTalk(); HW.step(5);
+    const cog = HW.G.map.ents.find(e => e.type === 'cog');
+    for (let round = 0; round < 3 && cog.alive; round++) {
+        hatch('kennel', 9, 7, 'down'); until(() => cog.state === 'sit', 400);
+        walk(...s('ukennel', 9, 5)); HW.face('up'); knot(); ok(cog.knotted, 'Cog held');
+        hatch('ukennel', 9, 7, 'down'); walk(...s('kennel', 9, 5)); HW.face('up'); HW.press('atk', 1); HW.step(24);
+    }
+    ok(!cog.alive, 'Cog runs down'); HW.step(30); HW.skipTalk(); HW.step(10);
+    walk(...s('kennel', 5, 3)); HW.face('up'); talk(); ok(HW.Inv.has('needle'), 'the Needle');
+    /* under the Spool Store: the weight in the way, given a new place */
+    walk(...s('kennel', 1, 5)); hatch('wind', 17, 7, 'down');
+    walk(...s('ustore', 2, 4)); HW.face('up'); stitch('R'); until(() => HW.Return.isHome(thing('usWeight')), 60);
+    /* the Bobbin Loft: three stitched, the fourth tied off below */
+    hatch('uloft', 9, 7, 'down');
+    walk(...s('loft', 6, 5)); HW.face('up'); stitch('LLLU'); until(() => HW.Return.isHome(thing('blB1')), 120);
+    walk(...s('loft', 12, 5)); HW.face('up'); stitch('RRRU'); until(() => HW.Return.isHome(thing('blB2')), 120);
+    walk(...s('loft', 6, 6)); HW.face('down'); stitch('LLLD'); until(() => HW.Return.isHome(thing('blB3')), 120);
+    walk(...s('loft', 11, 7)); HW.push('right', 3); HW.step(25); walk(...s('loft', 15, 6)); HW.push('down', 1); HW.step(25);
+    hatch('loft', 9, 7, 'down'); walk(...s('uloft', 11, 7)); HW.face('right'); knot(); hatch('uloft', 9, 7, 'down');
+    walk(...s('loft', 9, 3)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('spoolworks'), 'the Pattern');
+    /* out of the Loft, through the Store and the Hall, up through the big door: the Tangle */
+    walk(...s('store', 9, 1)); walk(...s('wind', 9, 1)); HW.hold('up'); HW.step(40); HW.release(); HW.step(30);
+    walk(...s('heart', 6, 7)); HW.skipTalk(); HW.step(5);
+    const t = HW.G.map.ents.find(e => e.kind === 'tangle');
+    for (let round = 0; round < 3 && t.alive; round++) {
+        until(() => ['tbN', 'tbW', 'tbE', 'tbS'].every(id => HW.Return.isHome(thing(id)) && !thing(id).mv), 300);
+        walk(...s('heart', 8, 2)); HW.face('right'); stitch('UL'); until(() => HW.Return.isHome(thing('tbN')), 60);
+        walk(...s('heart', 4, 4)); HW.face('down'); stitch('LL'); until(() => HW.Return.isHome(thing('tbW')), 60);
+        walk(...s('heart', 14, 4)); HW.face('down'); stitch('RR'); until(() => HW.Return.isHome(thing('tbE')), 60);
+        walk(...s('heart', 8, 8)); HW.push('right', 2); HW.step(25);
+        hatch('heart', 2, 7, 'down'); walk(...s('uheart', 9, 7)); HW.face('down'); knot(); hatch('uheart', 2, 7, 'down');
+        ok(until(() => t.state === 'open', 300), 'the Tangle comes apart');
+        walk(...s('heart', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(30);
+    }
+    ok(!t.alive, 'the Tangle undone');
+    for (let i = 0; i < 20 && !HW.Progress.flag('d7'); i++) { HW.skipTalk(); HW.step(20); }
+    ok(HW.Progress.flag('d7'), 'Gundry: an apprentice');
+    walk(...s('heart', 9, 5)); HW.step(5);
+    ok(HW.Inv.maxHp === 36, 'a new heart');
+    assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
+});

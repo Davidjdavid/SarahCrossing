@@ -473,7 +473,7 @@ SPAWN.signature = (tx, ty, p) => {
             if (first) Stats.count('secret:sig');
             yield* say(null, SIGNATURE_TEXT[p.house]);
             const n = ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'].filter(h => Progress.flag('sig:' + h)).length;
-            if (first) yield* say(null, `(Maker's marks found: ${n} of 6.)`);
+            if (first && ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'].includes(p.house)) yield* say(null, `(Maker's marks found: ${n} of 6.)`);
         });
         return true;
     };

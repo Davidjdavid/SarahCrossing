@@ -197,7 +197,14 @@ be frightened of that." The Stray House's last room: Linnet's bracelet (for the 
   Mum, Mallow, Jory), explain the Houses are theirs, built for every Wanderer and worked from underneath, and that
   the last part of a Wander is learning to make; the Inn's Staff door is open. They all glance up at once, as if
   someone had called them (Gran: Reveal 2).
-- **The Tangle (D7)**: re-thread its cords with the Needle so it pulls itself apart.
+- **Cog (D7 mini-boss)**: the Guild's old watchdog, a brass hound wound too tight. The stick clangs off him; his
+  cord hangs under his kennel in the Under-works. Go below (he sniffs where you vanished, then trots home), tie his
+  cord off, climb up and knock him while he's held; he shakes loose and bolts. 3x. The Needle.
+- **The Tangle (D7)**: forty years of the Works' loose ends, held in a knot by four bobbins' threads. Pull all four
+  off their first places at once (three with the Needle, which only holds three, and the fourth pushed off and tied
+  off from below) and it comes apart round a little hard knot: knock it. It yanks every thread back (stitches unpicked,
+  knots slipped, bobbins snapped home): again, 3x, with yarn balls and lashing cords. Gundry: "That's all a Maker is.
+  Somebody who knows where the threads go." Apprenticeship.
 - **The Weaver (D8)**: cut the web strands that bind Wren; cut the anchors holding it aloft; it drops into
   its own loom.
 - **The Spool (Final)**: see DUNGEON_TRACKER.md.
@@ -224,3 +231,12 @@ The box office ledger: "Cast: one. Crew: six. Audience: the crew"; years of play
 ribbons (Linnet). The prompter's script has lines Wren hasn't said yet. Jory's bench: a half-carved face that looks
 like Gran, "FOR THE LAST ACT. (NOT YET.)", and puppets of every boss. Linnet's note 7 under the carousel horse: she
 followed the strings down (the Makers; the Underside).
+## The Underside and the Spoolworks (Act III, `src/66_underside.js`, `src/67_spoolworks.js`)
+Gundry, who oils the Well's winch up top ("turns by itself some nights"), is the Guild's master below. The Spool
+racks by the stairs: TIDYHOUSE, SPARE... WREN, SPARE (RED). The Guild Hall's table has an L carved among the
+initials; Gundry's bench says L. WAS HERE TOO (Linnet came down here on her Wander). The Seams' counterweight is
+tagged NORTH GATE. DO NOT TOUCH. BY ORDER OF THE WARDEN. The peepholes (S23): Rosa's cream for Biscuit; Miss Quill
+pinning Tuck's drawing beside an old one of a girl in green ribbons; Arlo practising walking; Mabel shelving a
+stray with an L; Seam sewing Tuck's scarf (a list: 3. BRAVE); Burr saying "Go on, then" to nobody; Mallow asleep on
+his plans; Gran writing in a heavy book, looking at the turned portrait, not turning it round.
+

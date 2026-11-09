@@ -56,7 +56,8 @@ walking into the fog pulls Wren back along their trace (until Act IV).
 | The high mesa | Kilnridge NW → Larkspur | Bedroll laid up top (a jump into the straw; back by Homeward) | Larkspur Fair, Marionette Hall (D6) |
 | The fair gate | Larkspur E ↔ Hollowell's west road | the bolt on the fair's side | a short way home from the fair |
 | The fair lift | Larkspur ↔ the high mesa | the Crossbar: the stagehand puppet onto the winch | up and down the cliff |
-| Inn Staff door | Hollowell Inn | Reveal 1 | The Underside, Spoolworks (D7) |
+| Inn Staff door | Hollowell Inn | Reveal 1 | The Underside (and through the Guild Hall, the Spoolworks, D7) |
+| West Gate | Hollowell's west road ↔ Larkspur | the bolt on the fair's side (opens the town's fence too) | the fair from town |
 | North stone gate | Hollowell N road | Needle (re-thread its counterweights from below) | Loomwood, Loom (D8) |
 | The fog | Every edge | Shears (cut your own thread) | The Drift |
 | The Well | Hollowell square | The Great Pull (Act IV) | The Great Spool (final) |
@@ -70,14 +71,20 @@ walking into the fog pulls Wren back along their trace (until Act IV).
 - The Seams (Underside tunnels) link the workshops under every House and the Guild Hall (Act III fast travel).
 - Bedroll Homeward: fast travel to wherever the Bedroll lies.
 
-## The Underside (maps `under_*`)
+## The Underside (as built: area `underside`, `src/66_underside.js`; cells of 20x11)
 
-- `under_hub`: beneath Hollowell: the Guild Hall (entrance from the Inn cellar), peepholes up into homes
-  (S23), the Hall of Names (Reveal 2), the Well shaft.
-- `under_d1`…`under_d6`: workshops beneath each House (logbooks, reset levers, signature props), joined by
-  `seams` tunnels.
-- `spoolworks` (D7): the Guild's own dungeon, two layers.
-- `making_1..3`: the rooms where Wren runs Tuck's Little Wander from below.
+- 1,1 The Staff Stairs (from the Inn's Staff door; arrival 29,19; stairs up at 29,20).
+- 1,0 The Guild Hall: Gundry; the big door north to the Spoolworks (29,0); the apprentice cot after D7; east, the
+  Making Floor (open after D7).
+- 0,0 The Workshops: each Maker at their bench with their logbook (S22), the Kilnwyrm in pieces, a model Tidyhouse.
+- 0,1 and 2,1 The Seams: tunnels under the town, four peepholes each in the walls (S23); the north gate's
+  counterweight (S32, Act IV) at the east end; the S23 chest.
+- 2,0 The Making Floor: Tuck's Little Wander (src/68_makings.js, next).
+- Later: the Way Down to the Hall of Names (Reveal 2), the Well shaft.
+
+## The Spoolworks (area `spoolworks`, D7, `src/67_spoolworks.js`)
+Two layers: the Works floor on rows 0–2 of cells, the Under-works on rows 3–5 (each below room is 33 tiles under its
+room, `above` in its cell). Entrance from the Guild Hall into the Gatehouse (29,31); out the same way.
 
 ## The Drift (map `drift`)
 Beyond the north-west fog (entered from the Frayed Edge after cutting). Open wild country drawn blank on

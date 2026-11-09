@@ -3,11 +3,12 @@
 _Last updated: 2026-11-09 (session 1, day 1, late)._
 
 ## Status
-**Six of eight Houses done: Acts I and II complete, Reveal 1 in.** Hollowell (hub); Meadowfold and the Tidyhouse (D1);
+**Seven Houses done: Acts I and II complete, Act III under way.** Hollowell (hub); Meadowfold and the Tidyhouse (D1);
 Kilnridge and the Kiln (D2); Millwater and the Millrace (D3); Belfry Heights and the Belfry (D4); the festival;
-Hushwood and the Slumberhouse (D5, the Bedroll); Larkspur Fair and the Marionette Hall (D6, the Crossbar: soldiers,
-flats, puppets, racks; Captain Tin; the Great Marionette; Reveal 1: the Makers). Tests cover every room and a scripted
-playthrough leg by leg from a fresh game to the sixth Knot.
+Hushwood and the Slumberhouse (D5, the Bedroll); Larkspur Fair and the Marionette Hall (D6, the Crossbar; Reveal 1);
+the Underside under the town (Gundry, the logbooks S22, the peepholes S23) and the Spoolworks (D7, two layers: cords,
+knots, hatches, counterweights; Cog; the Needle; the Tangle). Tests cover every room and a scripted playthrough leg
+by leg from a fresh game to the end of D7.
 
 ## Done
 - Brief recorded verbatim (GAME_BRIEF.md).
@@ -28,14 +29,14 @@ playthrough leg by leg from a fresh game to the sixth Knot.
   (`src/79_presets.js`) start a game at those points; `afterD3`, `afterD4` too.
 
 ## In progress
-- The fresh-eyes review of D5 and Hushwood (running); then one of D6 and Larkspur.
-- Act III: the Inn's Staff door to the Underside; the Spoolworks (D7, the Needle); the three Makings with Tuck (the
-  genre turn); the Hall of Names (Reveal 2).
+- A fresh-eyes review of D7 and the Underside.
+- The Makings (src/68_makings.js): Tuck's Little Wander, run from below (the genre turn); then the Hall of Names
+  (Reveal 2).
 
 ## Next priorities
-1. Act III (the Underside, D7 Spoolworks, the Makings with Tuck, Reveal 2).
-2. Act IV (the Loom D8, cutting, the Drift, the Great Spool, the ending).
-3. Optional dungeons O1, O2; the remaining secrets; planting the Drift-bloom seed (S11) in Gran's garden.
+1. The Makings with Tuck (3), Reveal 2.
+2. Act IV (the north gate, Loomwood, the Loom D8, the Shears, cutting, the Drift, Linnet, the Great Spool, the ending).
+3. Optional dungeons O1, O2; the remaining secrets; S11's seed planted in Gran's garden.
 4. Music and art passes; a full QA pass; reviews.
 
 ## Known bugs

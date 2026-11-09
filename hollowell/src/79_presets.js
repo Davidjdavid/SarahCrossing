@@ -49,3 +49,10 @@ PRESETS.afterD6 = () => {
     Progress.setGoal('Hollowell: the Inn, and the door marked STAFF ONLY. The Makers are waiting below.');
     World.enter('hollow', MARIONETTE_OUT.x, MARIONETTE_OUT.y, { dir: DOWN });
 };
+PRESETS.afterD7 = () => {
+    PRESETS.afterD6();
+    Inv.giveTool('needle'); Inv.addHeart();
+    for (const f of ['d7', 'spool_boss', 'spool_cog', 'met_gundry_below', 'underside_first', 'needle_first', 'hatch_down', 'hatch_up', 'tug_first', 'knot_first', 'tangle_open']) Progress.set(f);
+    Progress.setGoal('Up to the Guild Hall, under the Inn: Gundry has a job for you.');
+    World.enter('underside', 29, 4, { dir: DOWN });
+};

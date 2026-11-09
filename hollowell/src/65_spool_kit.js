@@ -90,7 +90,9 @@ const Spool = {
         if (!Layers.layered(area)) return;
         const have = area._cords || (area._cords = new Set());
         for (const e of area.ents) {
-            if (!e.isGrid || !e.ret || e.noCord || e.removed || have.has(e)) continue;
+            if (!(e.isGrid || e.cordable) || !e.ret || e.noCord || e.removed || have.has(e)) continue;
+            /* tied off from the start (set out that way) */
+            if (e.knotted && e._fixed0 === undefined) { e.knotted = false; this.knot(e, true); }
             if (!Layers.belowOf(area, area.roomAt(e.ret.mx, e.ret.my))) continue;
             have.add(e); area.add(new Cord(e));
         }
@@ -124,10 +126,12 @@ const Spool = {
             e.jolt = 14; this.jolt = { e, t: G.t };
         }
     },
-    knot(e) {
+    knot(e, quiet) {
         if (e.knotted) return;
         e.knotted = true; e._fixed0 = !!e.fixed; e.fixed = true; e._lift0 = e.liftable; e.liftable = false;
         if (e.heldBy && e.heldBy.release && e.heldBy !== G.player) e.heldBy.release();
+        if (e.onKnot) e.onKnot();
+        if (quiet) return;
         Sfx.play('tie'); Stats.count('knots');
         if (!Progress.flag('knot_first')) { Progress.set('knot_first'); G.pendingToast = 'You wind the cord round the cleat and tie it off. Up above, whatever it holds is held fast. (Z on the knot to undo it.)'; }
     },
@@ -135,6 +139,7 @@ const Spool = {
         if (!e.knotted) return;
         e.knotted = false; e.fixed = e._fixed0; e.liftable = e._lift0;
         Return.disturb(e);
+        if (e.onUntie) e.onUntie();
         Sfx.play('unclick');
     },
     /* the room upstairs, seen through the boards (drawn under everything down here) */
@@ -192,6 +197,11 @@ class Hatch extends GridThing {
         const to = up ? 'up' : down ? 'down' : null;
         if (!to || p.carry) { UI.toast(p.carry ? 'Not with your hands full.' : 'It goes nowhere.'); return true; }
         const [dx, dy] = up ? [up[0] - this.tx, up[1] - this.ty] : [down[0] - this.tx, down[1] - this.ty];
+        const there = a.at(p.tx + dx, p.ty + dy);
+        if (there && !there.removed && !(there.floats && Water.rideable(there))) {
+            UI.toast(to === 'up' ? "The trapdoor won't lift: something heavy is sitting on it, up there." : 'Something is in the way underneath.');
+            Sfx.play('hitthing'); return true;
+        }
         Script.run(function* () {
             Sfx.play('door');
             yield* fadeOut(10);

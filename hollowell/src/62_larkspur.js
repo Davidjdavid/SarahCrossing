@@ -188,6 +188,9 @@ SPAWN.bolt = (x, y) => {
         Script.run(function* () {
             if (Progress.flag('fair_gate')) { yield* say(null, 'The bolt is drawn. The gate to town stands open.'); return; }
             Progress.set('fair_gate'); Sfx.play('unlock');
+            /* the town's side of the West Gate (a fence in the road) opens with it */
+            const a = G.map;
+            for (const e of a.ents.filter(o => o.skey === 'westGateA' || o.skey === 'westGateB')) { for (const [dx, dy] of e.solid || []) a.staticSolid.delete((e.ty + dy) * 4096 + (e.tx + dx)); a.remove(e); Fx.poof(e.tx * T + 8, e.ty * T + 8); }
             yield* say(null, 'A big iron bolt, stiff with rust. You heave it back. The fair gate swings open onto the west road into town.');
         });
         return true;

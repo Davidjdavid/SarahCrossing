@@ -162,12 +162,13 @@ const HOUSE_AFTER = {
     belfry: { flag: 'belfry_boss', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'belfryHeart' },
     slumber: { flag: 'slumber_boss', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'slumberHeart' },
     marionette: { flag: 'reveal1', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'marionetteHeart' },
+    spoolworks: { flag: 'd7', room: '1,0', heart: [9, 5], heartId: 'spoolHeart', noHoop: true },
 };
 const HouseAfter = {
     add(a) {
         const d = HOUSE_AFTER[a.id], br = d && a.rooms.find(r => r.key === d.room);
         if (!br) return;
-        if (!Inv.knots.includes(a.def.house) && !a.ents.some(e => e.kind === 'hoop')) a.add(new Hoop(br.x + d.hoop[0], br.y + d.hoop[1]));
+        if (!d.noHoop && !Inv.knots.includes(a.def.house) && !a.ents.some(e => e.kind === 'hoop')) a.add(new Hoop(br.x + d.hoop[0], br.y + d.hoop[1]));
         if (!a.ents.some(e => e.id === d.heartId)) a.add(new Pickup((br.x + d.heart[0]) * T, (br.y + d.heart[1]) * T, { what: 'heartstitch', id: d.heartId }));
     },
 };

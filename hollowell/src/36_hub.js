@@ -77,9 +77,10 @@ defBlock({
         { k: 'sign', x: 34, y: 37, text: 'South: Meadowfold. (Sheep. Mind the sheep.)' },
         { k: 'sign', x: 29, y: 4, text: 'North Road. Closed past the posts, by order of the Warden of the Well.' },
         { k: 'sign', x: 46, y: 18, text: 'East: Hushwood. The bridge is old, the road is older.' },
-        { k: 'sign', x: 5, y: 21, text: "West Gate. To Larkspur Fair. Locked from this side." },
+        { k: 'sign', x: 5, y: 21, text: "West Gate. To Larkspur Fair. Locked from this side.", if: '!fair_gate' },
+        { k: 'sign', x: 5, y: 21, text: "West Gate. To Larkspur Fair. (Open. Somebody drew the bolt on the far side.)", if: 'fair_gate' },
         { k: 'sign', x: 13, y: 12, text: 'The Ravels. (Gran, and {name}.)' },
-        { k: 'deco', x: 3, y: 19, look: 'fence_v', solid: [[0, 0]] }, { k: 'deco', x: 3, y: 20, look: 'fence_v', solid: [[0, 0]] },
+        { k: 'deco', x: 3, y: 19, look: 'fence_v', solid: [[0, 0]], id: 'westGateA', if: '!fair_gate' }, { k: 'deco', x: 3, y: 20, look: 'fence_v', solid: [[0, 0]], id: 'westGateB', if: '!fair_gate' },
         { k: 'rest', x: 28, y: 34 },
         /* townsfolk */
         { k: 'npc', who: 'burr', x: 32, y: 3, face: 'down', if: '!act3' },

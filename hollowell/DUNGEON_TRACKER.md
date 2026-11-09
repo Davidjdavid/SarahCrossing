@@ -11,7 +11,7 @@
 | D4 | Belfry | Belfry Heights | Wind displaces; bells snap home; sleepers | Recall Bell | Tollgrim | tested |
 | D5 | Slumberhouse | Hushwood | Your own mark; falls as travel; the trace remembers | Bedroll | Mother Sloth | tested |
 | D6 | Marionette Hall | Larkspur Fair | Remote bodies: marching soldiers, flats, puppets at a distance, puppets in step | Crossbar | Great Marionette | tested |
-| D7 | Spoolworks | Underside | Two layers; cords; counterweights; linking | Needle | The Tangle | planned |
+| D7 | Spoolworks | Underside | Two layers: cords under marks (tug, tie off), hatches, counterweights; re-marking | Needle | The Tangle | tested |
 | D8 | Loom | Loomwood | Permanence; warp threads; cutting | Shears | The Weaver | planned |
 | F | Great Spool | under the Well | Six Knot-locks remixing every House | – | The Spool | planned |
 | O1 | Stray House | Frayed Edge | Nothing returns | Twin Bedroll | The Pile | planned |
@@ -122,6 +122,9 @@ Keys: 3 keys (Ferry Pool, Shard Race, Upstream), 3 locks (Carousel W and E, Upst
 | Linnet note 7 | Larkspur, under the carousel's wooden horse (31,62) | with the Crossbar: walk the horse off its spot | built, tested |
 | S11 Bedroll in the fog | the valley's edge, e.g. Larkspur's west (x 0..2) | lay the Bedroll near the fog, walk in: pulled home, you come back with a Drift-bloom seed | built, tested (planting: later) |
 | S13 The Wren puppet | Marionette Hall, the Rehearsal Room | with the Crossbar: walk the little wooden Wren onto its mark on the Tidyhouse set: a bow, a Heart Patch | built, tested |
+| S22 The logbooks | the Underside's Workshops (0,0) | read all six: each Maker reports your real play in their House | built, tested |
+| S23 Peepholes | the Seams, under the town | eight peepholes, eight private moments; all eight: a Heart Patch | built, tested |
+| Gundry's Bench (Heart Patch) | the Spoolworks, 2,0 (above), up from 2,3 | the Needle through the cord of the crate on the trapdoor | built, tested |
 | S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |
 
 ## D4 Belfry (`src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`; tests `tests/belfry.test.mjs`, `tests/belfry_kit.test.mjs`, `tests/heights.test.mjs`) - tested
@@ -198,3 +201,28 @@ together, the leading ones first, each that can.
 | The Great Stage | 1,0 | Boss: the Great Marionette | Two little Wrens on a rack: line them up against its feet (walk them so the feet stop them), then walk them all the way round: both strings tangle, it falls; knock its head (3x). Sandbags fall where you stand (a hit makes you let go) | Knot, Heartstitch; Reveal 1 |
 
 Keys: 3 keys (Pit, Rehearsal, Dressing), 2 locks (Auditorium E, Auditorium N): one spare whichever order. Pattern: the Wings' north door.
+
+## D7 The Spoolworks (`src/67_spoolworks.js`, `src/67b_spool_foes.js`, kit `src/65_spool_kit.js`; tests `tests/spoolworks.test.mjs`, `tests/spool_kit.test.mjs`) - tested
+
+Rules: every room is two, the Works floor and, 33 rows below, the Under-works, joined by hatches (a trapdoor up top,
+a ladder below; something standing where you'd come out keeps the trapdoor shut). Below, what's up above shows
+through faintly, and a cord hangs under every mark: tap Z for a tug (whatever it holds snaps home; at home, it jumps),
+hold Z to tie it off (held exactly where it is: no pushing, pulling, lifting, drifting, going home), Z on a knot to
+undo it. Counterweights are heavy weights on plates below; what's up above answers to the plate. The Needle (from
+Cog): face a thing, or its cord from below; C; walk the needle up to 4 tiles; C: its place now, for good (kept when the
+place is built afresh). Three stitches at a time, a fourth undoes the oldest; a stray can be given a place; the Needle
+on a stitched thing offers to unpick it.
+
+| Room (above / below) | Cells | Teaches / puzzle | Solution | Reward |
+|---|---|---|---|---|
+| The Gatehouse / Under the Gatehouse | 1,2 / 1,5 | Two layers; untie | The crate in the passage is tied off from below: down the trapdoor, undo its knot, and it goes home | the way in |
+| The Winding Hall / Under | 1,1 / 1,4 | Counterweights | The Spool Store gate is shut while its weight sits on its plate below: push the weight off, push the stray stone into its way home (one push), up the far hatch and through (it latches once passed) | the Spool Store |
+| The Spool Store / Under | 0,1 / 0,4 | Tie off | Push the block onto the plate, down the hatch, tie its cord off before its patience runs out: the gate stays open | key; the Plan (below) |
+| The Kennel / Under | 2,1 / 2,4 | Mini-boss: Cog | Brass hide (the stick clangs); his cord hangs under his kennel. Go below (he sniffs, then trots home), tie him off, come up and knock him: he bolts; 3x | the Needle |
+| Under the Spool Store, north | 0,4 | The Needle | The weight in the passage can't be pushed by anyone: give it a new place in the alcove | the way to the Loft |
+| The Bobbin Loft / Under | 0,0 / 0,3 | Three stitches and a knot | Four plates that only an iron-cored bobbin works: stitch three bobbins onto three plates (4 tiles each), push the fourth on and tie it off from below | Pattern; the way out to the Store latches |
+| Gundry's Bench / Under | 2,0 / 2,3 | The Needle through a cord | The crate on the trapdoor's far side keeps it shut: from below, the Needle through its cord moves it off | Maker's mark (G.G., and an old L.), Heart Patch |
+| The Heart of the Works / Under | 1,0 / 1,3 | Boss: the Tangle | Four bobbins tie it together: all four off their first places at once (for a moment) and it comes apart round its core: three stitched away, the fourth pushed off and tied below; knock the core; it yanks every thread back (stitches undone, knots slipped); 3x. Yarn balls and lashes meanwhile | Heartstitch; apprenticeship (d7) |
+
+Keys: one key (Spool Store) for one lock (the Kennel). Pattern: the Heart's big door.
+
