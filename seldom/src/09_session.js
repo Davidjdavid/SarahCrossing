@@ -54,6 +54,9 @@ const World = {
             if (K.noteStill && e.unseenFor > 0.8 && (e.z > 0 || e.moving)) { Notebook.saw('still', e); e.unseenFor = 0; }
         }
         Laws.wrap(); Laws.seam(); Laws.bound(); Laws.crowd();
+        /* whatever happens, Dot is never left out of view (a Dot nobody sees could never move again) */
+        const d = this.dot;
+        if (d && d.map === map && !Cam.eye && !World.cutscene && !Laws.seenBox(visBox(d))) { if (Cam.split) Cam.toggleSplit(); Cam.mode = 'follow'; Cam.snap(); }
         for (const p of map.props) if (p.update && p.seenNow) p.update(p, dt);
         if (G.state === 'play' && !this.cutscene && Input.hit.act && G.t - (Talk.closedAt || 0) > 0.3) this.interact();
         for (const tr of this.triggers.slice()) if (!tr.done && tr.test()) { tr.done = true; tr.run(); }

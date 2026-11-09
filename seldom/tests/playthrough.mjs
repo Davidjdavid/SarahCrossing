@@ -230,7 +230,7 @@ const CHAPTERS = {
         }
         if (Cam.split) Cam.toggleSplit();
         const late = walkers.filter(w => !w.st.arrived).map(w => w.name + '@' + tileOf(w));
-        if (late.length) { const a = ent('ansel'); return 'not everyone arrived: ' + late.join(' ') + ' | ansel ' + JSON.stringify({ seen: a.seen, hidden: a.hidden, hold: a.hold, st: a.st, goal: a.goal, route: a.route && a.route.length, brain: a.brain && a.brain.name, cam: Cam.rect(0), map: a.map.id, state: G.state, cut: !!World.cutscene }); }
+        if (late.length) { const a = ent(late[0].split('@')[0]); const m = World.map; const blk = [[89,42],[65,40],[50,40],[49,30],[49,25],[52,23],[55,21],[58,19],[66,19]].map(([x,y]) => x+','+y+':'+m.solidAt(x,y)); late.push('paths ' + JSON.stringify([findPath(m, 89, 42, 66, 19), findPath(m, 89, 42, 50, 40), findPath(m, 50, 40, 49, 25), findPath(m, 49, 25, 55, 21), findPath(m, 55, 21, 66, 19)].map(p => p ? p.length : 'none')) + blk.join(' ') + ' ents ' + JSON.stringify(m.ents.filter(e => e.solid && e.fixed && exists(e) && Math.abs(e.x/16-55)<12 && Math.abs(e.y/16-25)<8).map(e => e.kind + '@' + tileOf(e)))); return 'not everyone arrived: ' + late.join(' ') + ' | ansel ' + JSON.stringify({ seen: a.seen, hidden: a.hidden, hold: a.hold, st: a.st, goal: a.goal, route: a.route && a.route.length, brain: a.brain && a.brain.name, cam: Cam.rect(0), map: a.map.id, state: G.state, cut: !!World.cutscene }); }
     },
     async fire() {
         Cam.setZoom(0.5); Cam.zoom = 0.5; if (!Cam.split) Cam.toggleSplit();

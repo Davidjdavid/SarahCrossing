@@ -49,7 +49,7 @@ ISLAND_ADD.push(function village(m) {
     m.add('bridgework', 65 * TILE, 40 * TILE, { name: 'bridgework', w: 32, h: 32 });
     person(m, 'lux', 55, 30, { spec: LOOKS.lux, display: 'Watchman Lux', path: [[50, 30, 1.2], [61, 30, 1.2]], brain: luxBrain, talk: luxTalk, speed: 34 });
     m.add('gatewatch', 49 * TILE, 28 * TILE, { name: 'gatewatch', w: 32, h: 26 });
-    m.addAt('leica', 53, 39, { name: 'leica' });
+    m.addAt('leica', 53, 39, { name: 'leica', zone: { x: 36, y: 30, w: 29, h: 27 } });
     m.addAt('ball', 47, 38, { name: 'ball' });
     /* the hen run behind the bakery */
     m.addAt('chicken', 59, 42, { name: 'hen' });
@@ -237,7 +237,13 @@ async function holtTalk(e) {
 }
 
 /* ---------- Watchman Lux and the north gate ---------- */
-function luxBrain(e, dt) { if (G.flags.luxGaveUp) { e.dir = 'down'; return; } walkPath(e, dt); }
+function luxBrain(e, dt) {
+    if (G.flags.luxGaveUp) { e.dir = 'down'; return; }
+    walkPath(e, dt);
+    /* he lets you know he's watching (he is, for as long as he's seen) */
+    const d = World.dot, [tx, ty] = tileOf(d);
+    if (d.map === e.map && ty >= 30 && ty <= 33 && tx >= 46 && tx <= 53 && (!e.st.warned || G.t - e.st.warned > 8)) { e.st.warned = G.t; bark(e, 'I\'m watching you!', 2.5); }
+}
 async function luxTalk(e) {
     if (G.flags.luxGaveUp) { await say('Gate\'s open. I\'ve stopped pretending I can see everything. Very freeing, actually.', 'lux'); return; }
     await say('Quarry\'s shut. Has been for years. Nobody goes up there. Not on my watch!', 'lux');

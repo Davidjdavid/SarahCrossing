@@ -8,6 +8,10 @@ ISLAND_ADD.push(function woods(m) {
     m.add('rope', 23 * TILE + 4, 33 * TILE + 8, { name: 'ropeA', flag: 'gateA' });
     m.add('woodgate', 14 * TILE, 52 * TILE, { name: 'gateD', w: 16, h: 16, flag: 'gateD', side: 'south' });
     m.add('rope', 15 * TILE + 4, 53 * TILE + 8, { name: 'ropeD', flag: 'gateD' });
+    furn(m, 'stump', 8, 33, 18, 8, { say: 'A huge old stump. Somebody carved "WHICH WAY?" into it, and then underneath, "BOTH."' });
+    furn(m, 'mushrooms', 19, 31, 16, 6, { solid: false, say: 'A ring of red mushrooms. They look like they\'re about to say something.' });
+    furn(m, 'mossrock', 8, 54, 20, 8, { say: 'A mossy stone. "WOODCUTTERS\' REST. Hollow that way. Mind the ants."' });
+    furn(m, 'stump', 30, 47, 18, 8, { say: 'A stump with an axe-mark in it. No axe.' });
     m.addAt('sign', 20, 36, { text: 'Carved in the bark: "To go south, go north. You\'ll need to see further than you think. But not TOO far, or you\'ll land in the stream."' });
     /* Ruth, who keeps turning up */
     person(m, 'ruth', 18, 34, { spec: { skin: P.skinS, hair: '#8a3a2a', style: 'pigtails', top: '#5a8a4a', bottom: P.brownS, blush: '#f29a8c' }, display: 'Ruth', voice: { p: 480, w: 'triangle', v: 0.1 }, brain: ruthBrain, talk: ruthTalk });
@@ -17,7 +21,7 @@ ISLAND_ADD.push(function woods(m) {
 kind('woodgate', {
     w: 32, h: 16, ph: 22, solid: true, fixed: true,
     draw(e, D) {
-        if (G.flags[e.flag]) { box(D, e.x, e.y + e.h - 3, e.w, 3, '#6b4128'); return; }
+        if (G.flags[e.flag]) { box(D, e.x - 1, e.y - 8, 3, e.h + 8, '#8a5a34'); box(D, e.x + e.w - 2, e.y - 8, 3, e.h + 8, '#8a5a34'); box(D, e.x + 2, e.y + e.h - 2, e.w - 4, 2, 'rgba(60,40,20,0.35)'); return; }
         for (let x = 0; x < e.w; x += 4) box(D, e.x + x, e.y - 6, 3, e.h + 6, x % 8 ? '#8a5a34' : '#9a6a3a');
         box(D, e.x, e.y - 2, e.w, 2, '#5a3a22'); box(D, e.x, e.y + 7, e.w, 2, '#5a3a22');
     },

@@ -124,12 +124,14 @@ function walkerBrain(e, dt) {
         e.st.leg = best;
         e.st.toFirst = true;
     }
+    /* over the gap already (by a seam): on with the cape part of the way */
+    const onCape = (t => t[0] >= 71 && t[1] <= 24)(tileOf(e));
+    if (onCape && e.st.leg < 10) { e.st.leg = 10; e.st.toFirst = false; }
     const [tx, ty] = CAPE_ROUTE[Math.min(e.st.leg, CAPE_ROUTE.length - 1)];
     if (e.st.toFirst) { const [cx, cy] = tileOf(e); if (cx === tx && cy === ty) e.st.toFirst = false; else { goTo(e, tx, ty, dt, 46); return; } }
     const gx = tx * TILE + (TILE - e.w) / 2, gy = ty * TILE + TILE - e.h - 1;
     const arrived = walkTo(e, gx, gy, dt, 46);
-    const [cx] = tileOf(e);
-    if (cx >= 71) { e.st.leg = Math.max(e.st.leg, 10); }
+    if (onCape) { e.st.leg = Math.max(e.st.leg, 10); }
     if (arrived) { e.st.leg++; if (e.st.leg >= CAPE_ROUTE.length) e.st.arrived = true; }
     if (e.blockedT > 0.8 && e.st.leg === 9 && !e.st.waiting) { e.st.waiting = true; bark(e, 'How do we get across?', 3); }
     if (e.st.leg === 9) { e.blockedT = 0; e.dir = 'right'; e.moving = true; }

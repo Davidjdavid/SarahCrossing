@@ -40,7 +40,7 @@ kind('band', {
     },
     ownSong: true,
     update(e, dt) { musicStep(e, dt); },
-    act(e) { say(e.talkLine || '♪ The band plays on, as long as somebody\'s watching. ♪', null); },
+    act(e) { if (e.talk) talkTo(e); else say('♪ The band plays on, as long as somebody\'s watching. ♪', null); },
 });
 const BAND = [
     { skin: P.skinD, hair: '#2a1a1a', style: 'cap', hat: P.red, top: P.white, bottom: P.navy },
@@ -105,6 +105,9 @@ const FURN = {
         if (n >= 4) { ctx.fillStyle = 'rgba(255,255,255,' + (0.3 + Math.sin(G.t * 3) * 0.15) + ')'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill(); }
     },
     breadcounter(D, e) { FURN.counter(D, e); D.img(thing('bread'), e.x + 2, e.y - 14); },
+    stump(D, e) { box(D, e.x, e.y - 6, e.w, e.h + 6, '#8a5a34'); box(D, e.x + 1, e.y - 8, e.w - 2, 4, '#c99a62'); box(D, e.x + 4, e.y - 7, e.w - 8, 2, '#a8703f'); },
+    mushrooms(D, e) { for (let i = 0; i < 3; i++) { box(D, e.x + 2 + i * 5, e.y - 2, 2, 4, P.cream); box(D, e.x + i * 5, e.y - 5, 6, 3, i % 2 ? P.red : P.orange); box(D, e.x + 1 + i * 5, e.y - 4, 1, 1, P.white); } },
+    mossrock(D, e) { box(D, e.x, e.y - 8, e.w, e.h + 8, P.stoneS); box(D, e.x + 1, e.y - 9, e.w - 2, 4, '#5bae4c'); },
     crates(D, e) { D.img(thing('crate'), e.x, e.y + e.h - 16); D.img(thing('crate'), e.x + 6, e.y + e.h - 26); },
     organ(D, e) { box(D, e.x, e.y - 24, e.w, e.h + 24, '#5a3a4a'); for (let i = 0; i < 6; i++) box(D, e.x + 2 + i * 5, e.y - 30, 3, 10, P.stoneS); },
     crate(D, e) { D.img(thing('crate'), e.x, e.y + e.h - 16); },

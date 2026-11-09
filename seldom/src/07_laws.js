@@ -65,7 +65,7 @@ const Laws = {
             const [hx, hy] = moveEnt(e, dx, dy);
             if (hx || hy) {
                 /* squeezed: pop to the nearest open spot inside the view */
-                const spot = freeSpotIn(map, e, r, nx, ny);
+                const spot = freeSpotIn(map, e, r, nx, ny, e.zone);
                 if (spot) {
                     /* worth writing down when it went right through something (a fence, a hedge) */
                     const x0 = ecx(e), y0 = ecy(e), x1 = spot[0] + e.w / 2, y1 = spot[1] + e.h / 2;
@@ -94,7 +94,10 @@ const Laws = {
             /* only what just now went over the edge (not what a jump of the view left far behind) */
             if (Math.max(r.x - cx, cx - r.x - r.w, r.y - cy, cy - r.y - r.h) > 20) continue;
             const nb = { x: e.x + dx, y: e.y + dy, w: e.w, h: e.h };
-            if (!inZone(map, nb, 'wrap')) continue;   /* the edges only meet inside the woods */
+            if (!inZone(map, nb, 'wrap')) {   /* the edges only meet inside the woods: otherwise the edge is an edge */
+                if (e === World.dot) { e.x = clamp(e.x, r.x - e.w / 2 + 0.5, r.x + r.w - e.w / 2 - 0.5); e.y = clamp(e.y, r.y - e.h / 2 + 0.5, r.y + r.h - e.h / 2 - 0.5); Cam.bump[dx > 0 ? 'l' : dx < 0 ? 'r' : dy > 0 ? 't' : 'b'] = 1; }
+                continue;
+            }
             if (!boxBlocked(map, nb, e) && inRect(nb.x + nb.w / 2, nb.y + nb.h / 2, r) || e === World.dot && !boxBlocked(map, nb, e)) {
                 e.x += dx; e.y += dy; e.wrapped = 0.4; if (e.carrying) { e.carrying.x += dx; e.carrying.y += dy; }
                 Sfx.play('wrap'); Notebook.saw('wrap', e);
@@ -175,7 +178,7 @@ function inZone(map, e, law) {
     return false;
 }
 /* the nearest spot (tile steps outward from where it was pushed to) that's open and inside the view */
-function freeSpotIn(map, e, r, x0, y0) {
+function freeSpotIn(map, e, r, x0, y0, zone) {
     for (let rad = 1; rad < 10; rad++) {
         let best = null, bd = 1e9;
         for (let j = -rad; j <= rad; j++) for (let i = -rad; i <= rad; i++) {
@@ -184,6 +187,7 @@ function freeSpotIn(map, e, r, x0, y0) {
             const b = { x, y, w: e.w, h: e.h };
             if (b.x < r.x || b.y < r.y || b.x + b.w > r.x + r.w || b.y + b.h > r.y + r.h) continue;
             if (boxBlocked(map, b, e)) continue;
+            if (zone && !inRect((x + e.w / 2) / TILE, (y + e.h) / TILE, zone)) continue;
             const d = i * i + j * j; if (d < bd) { bd = d; best = [x, y]; }
         }
         if (best) return best;

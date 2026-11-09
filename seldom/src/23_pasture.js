@@ -88,3 +88,13 @@ kind('anthill', {
     act() { if (Cam.zoom >= TINY_ZOOM) say('Tiny voices: "Big one! Big one is looking! Quick, show it the crown!"'); else say('An anthill. You can\'t see any ants.'); },
 });
 KINDS.ant.update = function (e, dt) { e.x += e.vx * dt; if (Math.abs(e.x - e.ox) > 22) e.vx = -e.vx; };
+
+/* a sheep that strays off the pasture (or a dog off the village) goes home while nobody's looking */
+Story.on('tick', () => {
+    if (!World.map || World.map.id !== 'island' || G.frame % 30) return;
+    for (const n of ['dolly', 'lolly', 'molly', 'polly', 'leica']) {
+        const e = ent(n); if (!e || e.seen || e.penned) continue;
+        const [x, y] = tileOf(e);
+        if (e.zone && !inRect(x, y, e.zone)) { e.x = e.ox; e.y = e.oy; e.st.dug = false; }
+    }
+});

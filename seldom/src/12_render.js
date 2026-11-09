@@ -172,6 +172,14 @@ function drawEnt(D, e, r) {
         if (cx - r.x < m) shifts.push([r.w, 0]); if (r.x + r.w - cx < m) shifts.push([-r.w, 0]);
         if (cy - r.y < m) shifts.push([0, r.h]); if (r.y + r.h - cy < m) shifts.push([0, -r.h]);
         for (const [dx, dy] of shifts) {
+            const nb = { x: e.x + dx, y: e.y + dy, w: e.w, h: e.h };
+            if (e === World.dot && (boxBlocked(e.map, nb, e) || !inZone(e.map, nb, 'wrap'))) {
+                /* Dot can't come in there: say so where Dot would have appeared */
+                const x = D.X(ecx(nb)), y = D.Y(nb.y - 6), k = D.k * 3;
+                ctx.strokeStyle = 'rgba(226,87,76,0.8)'; ctx.lineWidth = D.k * 1.5;
+                ctx.beginPath(); ctx.moveTo(x - k, y - k); ctx.lineTo(x + k, y + k); ctx.moveTo(x + k, y - k); ctx.lineTo(x - k, y + k); ctx.stroke();
+                continue;
+            }
             ctx.globalAlpha = 0.35; const ox = e.x, oy = e.y; e.x += dx; e.y += dy;
             (K.draw || defaultDraw)(e, D); e.x = ox; e.y = oy; ctx.globalAlpha = 1;
         }

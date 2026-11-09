@@ -1150,7 +1150,7 @@ const Laws = {
             const [hx, hy] = moveEnt(e, dx, dy);
             if (hx || hy) {
                 /* squeezed: pop to the nearest open spot inside the view */
-                const spot = freeSpotIn(map, e, r, nx, ny);
+                const spot = freeSpotIn(map, e, r, nx, ny, e.zone);
                 if (spot) {
                     /* worth writing down when it went right through something (a fence, a hedge) */
                     const x0 = ecx(e), y0 = ecy(e), x1 = spot[0] + e.w / 2, y1 = spot[1] + e.h / 2;
@@ -1179,7 +1179,10 @@ const Laws = {
             /* only what just now went over the edge (not what a jump of the view left far behind) */
             if (Math.max(r.x - cx, cx - r.x - r.w, r.y - cy, cy - r.y - r.h) > 20) continue;
             const nb = { x: e.x + dx, y: e.y + dy, w: e.w, h: e.h };
-            if (!inZone(map, nb, 'wrap')) continue;   /* the edges only meet inside the woods */
+            if (!inZone(map, nb, 'wrap')) {   /* the edges only meet inside the woods: otherwise the edge is an edge */
+                if (e === World.dot) { e.x = clamp(e.x, r.x - e.w / 2 + 0.5, r.x + r.w - e.w / 2 - 0.5); e.y = clamp(e.y, r.y - e.h / 2 + 0.5, r.y + r.h - e.h / 2 - 0.5); Cam.bump[dx > 0 ? 'l' : dx < 0 ? 'r' : dy > 0 ? 't' : 'b'] = 1; }
+                continue;
+            }
             if (!boxBlocked(map, nb, e) && inRect(nb.x + nb.w / 2, nb.y + nb.h / 2, r) || e === World.dot && !boxBlocked(map, nb, e)) {
                 e.x += dx; e.y += dy; e.wrapped = 0.4; if (e.carrying) { e.carrying.x += dx; e.carrying.y += dy; }
                 Sfx.play('wrap'); Notebook.saw('wrap', e);
@@ -1260,7 +1263,7 @@ function inZone(map, e, law) {
     return false;
 }
 /* the nearest spot (tile steps outward from where it was pushed to) that's open and inside the view */
-function freeSpotIn(map, e, r, x0, y0) {
+function freeSpotIn(map, e, r, x0, y0, zone) {
     for (let rad = 1; rad < 10; rad++) {
         let best = null, bd = 1e9;
         for (let j = -rad; j <= rad; j++) for (let i = -rad; i <= rad; i++) {
@@ -1269,6 +1272,7 @@ function freeSpotIn(map, e, r, x0, y0) {
             const b = { x, y, w: e.w, h: e.h };
             if (b.x < r.x || b.y < r.y || b.x + b.w > r.x + r.w || b.y + b.h > r.y + r.h) continue;
             if (boxBlocked(map, b, e)) continue;
+            if (zone && !inRect((x + e.w / 2) / TILE, (y + e.h) / TILE, zone)) continue;
             const d = i * i + j * j; if (d < bd) { bd = d; best = [x, y]; }
         }
         if (best) return best;
@@ -1547,6 +1551,9 @@ const World = {
             if (K.noteStill && e.unseenFor > 0.8 && (e.z > 0 || e.moving)) { Notebook.saw('still', e); e.unseenFor = 0; }
         }
         Laws.wrap(); Laws.seam(); Laws.bound(); Laws.crowd();
+        /* whatever happens, Dot is never left out of view (a Dot nobody sees could never move again) */
+        const d = this.dot;
+        if (d && d.map === map && !Cam.eye && !World.cutscene && !Laws.seenBox(visBox(d))) { if (Cam.split) Cam.toggleSplit(); Cam.mode = 'follow'; Cam.snap(); }
         for (const p of map.props) if (p.update && p.seenNow) p.update(p, dt);
         if (G.state === 'play' && !this.cutscene && Input.hit.act && G.t - (Talk.closedAt || 0) > 0.3) this.interact();
         for (const tr of this.triggers.slice()) if (!tr.done && tr.test()) { tr.done = true; tr.run(); }
@@ -1956,6 +1963,14 @@ function drawEnt(D, e, r) {
         if (cx - r.x < m) shifts.push([r.w, 0]); if (r.x + r.w - cx < m) shifts.push([-r.w, 0]);
         if (cy - r.y < m) shifts.push([0, r.h]); if (r.y + r.h - cy < m) shifts.push([0, -r.h]);
         for (const [dx, dy] of shifts) {
+            const nb = { x: e.x + dx, y: e.y + dy, w: e.w, h: e.h };
+            if (e === World.dot && (boxBlocked(e.map, nb, e) || !inZone(e.map, nb, 'wrap'))) {
+                /* Dot can't come in there: say so where Dot would have appeared */
+                const x = D.X(ecx(nb)), y = D.Y(nb.y - 6), k = D.k * 3;
+                ctx.strokeStyle = 'rgba(226,87,76,0.8)'; ctx.lineWidth = D.k * 1.5;
+                ctx.beginPath(); ctx.moveTo(x - k, y - k); ctx.lineTo(x + k, y + k); ctx.moveTo(x + k, y - k); ctx.lineTo(x - k, y + k); ctx.stroke();
+                continue;
+            }
             ctx.globalAlpha = 0.35; const ox = e.x, oy = e.y; e.x += dx; e.y += dy;
             (K.draw || defaultDraw)(e, D); e.x = ox; e.y = oy; ctx.globalAlpha = 1;
         }
@@ -2438,7 +2453,7 @@ kind('band', {
     },
     ownSong: true,
     update(e, dt) { musicStep(e, dt); },
-    act(e) { say(e.talkLine || '♪ The band plays on, as long as somebody\'s watching. ♪', null); },
+    act(e) { if (e.talk) talkTo(e); else say('♪ The band plays on, as long as somebody\'s watching. ♪', null); },
 });
 const BAND = [
     { skin: P.skinD, hair: '#2a1a1a', style: 'cap', hat: P.red, top: P.white, bottom: P.navy },
@@ -2503,6 +2518,9 @@ const FURN = {
         if (n >= 4) { ctx.fillStyle = 'rgba(255,255,255,' + (0.3 + Math.sin(G.t * 3) * 0.15) + ')'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill(); }
     },
     breadcounter(D, e) { FURN.counter(D, e); D.img(thing('bread'), e.x + 2, e.y - 14); },
+    stump(D, e) { box(D, e.x, e.y - 6, e.w, e.h + 6, '#8a5a34'); box(D, e.x + 1, e.y - 8, e.w - 2, 4, '#c99a62'); box(D, e.x + 4, e.y - 7, e.w - 8, 2, '#a8703f'); },
+    mushrooms(D, e) { for (let i = 0; i < 3; i++) { box(D, e.x + 2 + i * 5, e.y - 2, 2, 4, P.cream); box(D, e.x + i * 5, e.y - 5, 6, 3, i % 2 ? P.red : P.orange); box(D, e.x + 1 + i * 5, e.y - 4, 1, 1, P.white); } },
+    mossrock(D, e) { box(D, e.x, e.y - 8, e.w, e.h + 8, P.stoneS); box(D, e.x + 1, e.y - 9, e.w - 2, 4, '#5bae4c'); },
     crates(D, e) { D.img(thing('crate'), e.x, e.y + e.h - 16); D.img(thing('crate'), e.x + 6, e.y + e.h - 26); },
     organ(D, e) { box(D, e.x, e.y - 24, e.w, e.h + 24, '#5a3a4a'); for (let i = 0; i < 6; i++) box(D, e.x + 2 + i * 5, e.y - 30, 3, 10, P.stoneS); },
     crate(D, e) { D.img(thing('crate'), e.x, e.y + e.h - 16); },
@@ -2967,7 +2985,7 @@ ISLAND_ADD.push(function village(m) {
     m.add('bridgework', 65 * TILE, 40 * TILE, { name: 'bridgework', w: 32, h: 32 });
     person(m, 'lux', 55, 30, { spec: LOOKS.lux, display: 'Watchman Lux', path: [[50, 30, 1.2], [61, 30, 1.2]], brain: luxBrain, talk: luxTalk, speed: 34 });
     m.add('gatewatch', 49 * TILE, 28 * TILE, { name: 'gatewatch', w: 32, h: 26 });
-    m.addAt('leica', 53, 39, { name: 'leica' });
+    m.addAt('leica', 53, 39, { name: 'leica', zone: { x: 36, y: 30, w: 29, h: 27 } });
     m.addAt('ball', 47, 38, { name: 'ball' });
     /* the hen run behind the bakery */
     m.addAt('chicken', 59, 42, { name: 'hen' });
@@ -3155,7 +3173,13 @@ async function holtTalk(e) {
 }
 
 /* ---------- Watchman Lux and the north gate ---------- */
-function luxBrain(e, dt) { if (G.flags.luxGaveUp) { e.dir = 'down'; return; } walkPath(e, dt); }
+function luxBrain(e, dt) {
+    if (G.flags.luxGaveUp) { e.dir = 'down'; return; }
+    walkPath(e, dt);
+    /* he lets you know he's watching (he is, for as long as he's seen) */
+    const d = World.dot, [tx, ty] = tileOf(d);
+    if (d.map === e.map && ty >= 30 && ty <= 33 && tx >= 46 && tx <= 53 && (!e.st.warned || G.t - e.st.warned > 8)) { e.st.warned = G.t; bark(e, 'I\'m watching you!', 2.5); }
+}
 async function luxTalk(e) {
     if (G.flags.luxGaveUp) { await say('Gate\'s open. I\'ve stopped pretending I can see everything. Very freeing, actually.', 'lux'); return; }
     await say('Quarry\'s shut. Has been for years. Nobody goes up there. Not on my watch!', 'lux');
@@ -3438,6 +3462,16 @@ kind('anthill', {
 });
 KINDS.ant.update = function (e, dt) { e.x += e.vx * dt; if (Math.abs(e.x - e.ox) > 22) e.vx = -e.vx; };
 
+/* a sheep that strays off the pasture (or a dog off the village) goes home while nobody's looking */
+Story.on('tick', () => {
+    if (!World.map || World.map.id !== 'island' || G.frame % 30) return;
+    for (const n of ['dolly', 'lolly', 'molly', 'polly', 'leica']) {
+        const e = ent(n); if (!e || e.seen || e.penned) continue;
+        const [x, y] = tileOf(e);
+        if (e.zone && !inRect(x, y, e.zone)) { e.x = e.ox; e.y = e.oy; e.st.dug = false; }
+    }
+});
+
 /* ---- 24_quarry.js ---- */
 /* Stillfall Quarry: machines whose two halves are far apart. Look at one half and not the other. */
 const HOURGLASS_T = 1.5;
@@ -3625,6 +3659,10 @@ ISLAND_ADD.push(function woods(m) {
     m.add('rope', 23 * TILE + 4, 33 * TILE + 8, { name: 'ropeA', flag: 'gateA' });
     m.add('woodgate', 14 * TILE, 52 * TILE, { name: 'gateD', w: 16, h: 16, flag: 'gateD', side: 'south' });
     m.add('rope', 15 * TILE + 4, 53 * TILE + 8, { name: 'ropeD', flag: 'gateD' });
+    furn(m, 'stump', 8, 33, 18, 8, { say: 'A huge old stump. Somebody carved "WHICH WAY?" into it, and then underneath, "BOTH."' });
+    furn(m, 'mushrooms', 19, 31, 16, 6, { solid: false, say: 'A ring of red mushrooms. They look like they\'re about to say something.' });
+    furn(m, 'mossrock', 8, 54, 20, 8, { say: 'A mossy stone. "WOODCUTTERS\' REST. Hollow that way. Mind the ants."' });
+    furn(m, 'stump', 30, 47, 18, 8, { say: 'A stump with an axe-mark in it. No axe.' });
     m.addAt('sign', 20, 36, { text: 'Carved in the bark: "To go south, go north. You\'ll need to see further than you think. But not TOO far, or you\'ll land in the stream."' });
     /* Ruth, who keeps turning up */
     person(m, 'ruth', 18, 34, { spec: { skin: P.skinS, hair: '#8a3a2a', style: 'pigtails', top: '#5a8a4a', bottom: P.brownS, blush: '#f29a8c' }, display: 'Ruth', voice: { p: 480, w: 'triangle', v: 0.1 }, brain: ruthBrain, talk: ruthTalk });
@@ -3634,7 +3672,7 @@ ISLAND_ADD.push(function woods(m) {
 kind('woodgate', {
     w: 32, h: 16, ph: 22, solid: true, fixed: true,
     draw(e, D) {
-        if (G.flags[e.flag]) { box(D, e.x, e.y + e.h - 3, e.w, 3, '#6b4128'); return; }
+        if (G.flags[e.flag]) { box(D, e.x - 1, e.y - 8, 3, e.h + 8, '#8a5a34'); box(D, e.x + e.w - 2, e.y - 8, 3, e.h + 8, '#8a5a34'); box(D, e.x + 2, e.y + e.h - 2, e.w - 4, 2, 'rgba(60,40,20,0.35)'); return; }
         for (let x = 0; x < e.w; x += 4) box(D, e.x + x, e.y - 6, 3, e.h + 6, x % 8 ? '#8a5a34' : '#9a6a3a');
         box(D, e.x, e.y - 2, e.w, 2, '#5a3a22'); box(D, e.x, e.y + 7, e.w, 2, '#5a3a22');
     },
@@ -3911,12 +3949,14 @@ function walkerBrain(e, dt) {
         e.st.leg = best;
         e.st.toFirst = true;
     }
+    /* over the gap already (by a seam): on with the cape part of the way */
+    const onCape = (t => t[0] >= 71 && t[1] <= 24)(tileOf(e));
+    if (onCape && e.st.leg < 10) { e.st.leg = 10; e.st.toFirst = false; }
     const [tx, ty] = CAPE_ROUTE[Math.min(e.st.leg, CAPE_ROUTE.length - 1)];
     if (e.st.toFirst) { const [cx, cy] = tileOf(e); if (cx === tx && cy === ty) e.st.toFirst = false; else { goTo(e, tx, ty, dt, 46); return; } }
     const gx = tx * TILE + (TILE - e.w) / 2, gy = ty * TILE + TILE - e.h - 1;
     const arrived = walkTo(e, gx, gy, dt, 46);
-    const [cx] = tileOf(e);
-    if (cx >= 71) { e.st.leg = Math.max(e.st.leg, 10); }
+    if (onCape) { e.st.leg = Math.max(e.st.leg, 10); }
     if (arrived) { e.st.leg++; if (e.st.leg >= CAPE_ROUTE.length) e.st.arrived = true; }
     if (e.blockedT > 0.8 && e.st.leg === 9 && !e.st.waiting) { e.st.waiting = true; bark(e, 'How do we get across?', 3); }
     if (e.st.leg === 9) { e.blockedT = 0; e.dir = 'right'; e.moving = true; }
