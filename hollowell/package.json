@@ -1,0 +1,12 @@
+{
+  "name": "hollowell",
+  "private": true,
+  "type": "module",
+  "description": "An adventure game. Open play.html in a browser to play.",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "test": "node tools/build.mjs && node --test tests/*.test.mjs",
+    "test:browser": "node tools/build.mjs && node tests/browser.mjs",
+    "shots": "node tools/build.mjs && node tests/browser.mjs --shots"
+  }
+}
