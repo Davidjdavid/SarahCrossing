@@ -85,3 +85,13 @@ Debug.atLighthouse = async function () {
     for (const n of ['still', 'return', 'hour', 'bound', 'squeeze', 'wrap', 'tiny', 'crowd', 'seam']) Notebook.got[n] = 1;
     World.hour = 22; World.go('lamproom', 5, 5, 'up', { quiet: true });
 };
+/* a game with the pasture and the quarry done (for playtesting the woods, the Hollow and the way to the cape) */
+Debug.afterQuarry = async function () {
+    await Debug.afterLampNight();
+    Object.assign(G.flags, { loupe: 1, wideglass: 1, penOpen: 1, quarry: 1, quarryGate: 1, luxGaveUp: 1, wallBroken: 1, seenPasture: 1 });
+    Cam.zmin = 0.5; Cam.zmax = 3;
+    const m = MAPS.island, p = m.props.find(q => q.id === 'crackwall'); p.gone = true; const b = m.find('block'); if (b) { b.removed = true; m.remove(b); } m.rebuildSolid();
+    for (const n of ['dolly', 'lolly', 'molly', 'polly']) { const s = ent(n); s.x = 89 * TILE; s.y = 47 * TILE; s.penned = true; }
+    for (const n of ['bound', 'squeeze']) Notebook.got[n] = 1;
+    World.hour = 14; Debug.go(48, 41); UI.hintT = 0;
+};

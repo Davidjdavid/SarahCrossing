@@ -13,6 +13,10 @@ genre turn, characters, secrets or ending). Commit messages too: keep them vague
   a single file that opens straight from disk. That file is the deliverable and is committed.
 - `seldom.html?debug` exposes `window.__seldom` and the globals (`Debug.go(tx, ty)`, `Bot`, `Laws`, `Cam`...).
   `?debug&skip` skips the opening scene. `?test` is the prototype's test ground (`20_testmap.js`).
+- Publishing: `node seldom/build.mjs` also writes `seldom/artifact.html`; publish that same file path with the Artifact
+  tool to update https://claude.ai/artifact/S9EUh2jjQ5MwP4zPJfV29v in place (private to David).
+- Blind playtests: `node seldom/tests/playserver.mjs PORT SHOTS 'Debug.afterLampNight()'` (or `afterQuarry`,
+  `atLighthouse`), then brief a fresh agent with only what a player would know; never let it read `seldom/`.
 - Tests: `node seldom/tests/run.mjs` (all), or `node seldom/tests/playthrough.mjs [shots-dir]` (the whole game, start to
   credits, played by `Bot` with the player's buttons) and `node seldom/tests/laws.test.mjs`. `tests/shot.mjs OUT "query"
   'js...' 'shot:name'` takes screenshots. Playwright's Chromium is preinstalled (createRequire).

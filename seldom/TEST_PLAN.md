@@ -48,4 +48,11 @@
    view); sheep dragged off the pasture stayed lost (they now keep to their pasture and go home unseen; Leica to the
    village); the band's talk never ran; open gates were hard to read; the woods all looked alike (landmarks); Lux now
    says he's watching. Not reached: the Hollow (needs the Loupe, which comes from the sheep).
-3. **The finale (from the lamp room).** Running.
+3. **The finale (from the lamp room), ~60 key presses.** Finished the game; the twist and the ending landed ("Thank you
+   for looking at us" and the snapshot of the last look). Problems found and fixed: name marks overlapped (now only where
+   they fit), the HUD's glasses covered the map (hidden in the last act), the goals panel covered the island (moved up,
+   smaller), steering speed changed with the box's size and the box could leave the island (now steady, kept on the map),
+   which edges a split joins was unclear (both joined edges now drawn in the seam's pink), the fire was hard to find at map
+   size (now marked "Fire" and "Lamp", and a close-up of what the view sees sits in the corner), the credits were too fast,
+   the title's lighthouse stayed dark after the end (now lit and sweeping).
+4. **The woods, the Hollow and the way to the cape (latest build).** Running.

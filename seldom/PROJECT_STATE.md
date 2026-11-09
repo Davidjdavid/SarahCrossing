@@ -5,7 +5,9 @@
 - Branch: `claude/exciting-rubin-25jcjf` (SarahCrossing repo, folder `seldom/`).
 - Four-hour check-in: scheduled task `trig_01MXeaWdKGDDdZD8EoZnHgbV` (fires into this session). Delete it once the game
   is finished and verified (definition of done in `GAME_BRIEF.md`).
-- Deliverable: `seldom/seldom.html` (one file, opens from disk). To be published as a private claude.ai Artifact link too.
+- Deliverables: `seldom/seldom.html` (one file, opens from disk) and the private claude.ai Artifact
+  https://claude.ai/artifact/S9EUh2jjQ5MwP4zPJfV29v (built from `seldom/artifact.html`: rebuild, then publish that same
+  file path to update it in place).
 
 ## Status (9 November 2026, first session; first check-in 08:20 UTC)
 
@@ -32,13 +34,9 @@ Done:
 
 ## Next priorities
 
-1. Act on the blind playtests (act one and act two; reports pending at the time of writing).
-2. A careful look at every screen (screenshots) and presentation polish: Dot glancing at the player when idle; the Eye
-   act's intro wording; split-view affordance (which half moves); cape decoration; interior art.
-3. Sound pass: check every song and effect for balance (can't be heard here: keep volumes conservative).
-4. Agent playtest without spoilers (a fresh agent playing from screenshots) for clarity of hints and pacing.
-5. Pacing review: hour rate (1 h per 30 s watched), hints, how long each area takes a first-timer.
-6. Publish the Artifact; write the user-facing "how to play" line (spoiler-free).
+1. Act on the fourth blind playtest (woods, Hollow, the way to the cape, on the latest build).
+2. Final softlock review; then, if nothing serious is left, declare done: delete the check-in task, final docs, tell David.
+3. Nice to have: a sound pass by ear (not possible here), more decoration in the larger empty areas.
 
 ## Known issues / risks
 
