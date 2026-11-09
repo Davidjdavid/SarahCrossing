@@ -1,5 +1,5 @@
 /* the things that act: Dot, people, critters, things to carry */
-const DOT_SPEED = 78;
+const DOT_SPEED = 88;
 const DOT_SPEC = { skin: P.skin, hair: '#6b3f26', style: 'beanie', hat: P.red, top: P.teal, bottom: '#3a4a7a', shoes: P.brownD, blush: '#f29a8c' };
 
 kind('dot', {

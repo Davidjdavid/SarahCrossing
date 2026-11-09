@@ -75,3 +75,13 @@ Debug.afterLampNight = async function () {
     World.hour = 21.5; Debug.go(50, 40); World.dot.dir = 'down';
     UI.showHint('Hold X (or Shift) and use the arrows to look around. Let go and the view stays put.', 12);
 };
+/* a game as it stands at the top of the lighthouse with all four glasses (for playtesting the last act) */
+Debug.atLighthouse = async function () {
+    await Debug.afterLampNight();
+    Object.assign(G.flags, { loupe: 1, wideglass: 1, prism: 1, penOpen: 1, quarry: 1, quarryGate: 1, luxGaveUp: 1, wallBroken: 1, gateA: 1, gateD: 1, gateH: 1, seenPasture: 1, woodsIn: 1, woodsB: 1, woodsE: 1, hollowIn: 1, hollowSouth: 1, capeIn: 1, ledge: 1 });
+    Cam.zmin = 0.5; Cam.zmax = 3;
+    const m = MAPS.island, p = m.props.find(q => q.id === 'crackwall'); p.gone = true; const b = m.find('block'); if (b) { b.removed = true; m.remove(b); } m.rebuildSolid();
+    for (const n of ['dolly', 'lolly', 'molly', 'polly']) { const s = ent(n); s.x = 89 * TILE; s.y = 47 * TILE; s.penned = true; }
+    for (const n of ['still', 'return', 'hour', 'bound', 'squeeze', 'wrap', 'tiny', 'crowd', 'seam']) Notebook.got[n] = 1;
+    World.hour = 22; World.go('lamproom', 5, 5, 'up', { quiet: true });
+};

@@ -102,10 +102,13 @@ test('Wrap only happens inside the woods', async () => {
 
 test('Crowd: a fifth figure in a line flickers', async () => {
     const r = await fresh(`
-        World.hour = 22; Debug.go(17, 72); await Bot.step(30);
+        World.hour = 22; Debug.go(20, 69); await Bot.step(20);
+        for (const n of ['drift1', 'drift2', 'drift3']) ent(n).removed = true;
         const g = [0, 1, 2, 3].map(i => ent('faded' + i));
+        g.forEach((e, i) => { e.x = (16 + i) * TILE + 3; e.y = 72 * TILE + 9; e.ox = e.x; e.oy = e.y; });
+        World.dot.x = 20 * TILE + 3; World.dot.y = 69 * TILE + 8; await Bot.step(3);
         const before = g.filter(e => e.flick).length;
-        Bot.keys({ up: true }); await Bot.step(20); Bot.keys(); await Bot.step(2);
+        World.dot.x = 20 * TILE + 3; World.dot.y = 72 * TILE + 8; await Bot.step(3);
         return [g.every(e => e.seen), before, g.filter(e => e.flick).length + (World.dot.flick ? 1 : 0)];`);
     assert.equal(r[0], true);
     assert.equal(r[1], 0, 'four in a line: nobody flickers');
