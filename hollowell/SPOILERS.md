@@ -113,7 +113,7 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 10. **S10 Hook the Well**: hook the great X on the Well's cap: Wren is reeled, the cap rattles, a glimpse of threads.
 11. **S11 Bedroll in the fog**: lay the Bedroll at the fog, walk in until pulled, Homeward: Wren comes back
     holding a Drift-bloom seed (plant it in Gran's garden; blooms in the epilogue).
-12. **S12 Kids' pretend Wander** (after D1): solve the kids' playground puzzle: their badge.
+12. **S12 Kids' Housekeeper** (after D1): the kids re-enact the Tidyhouse boss in the square; Otto tidies any crate moved, coming at it from his side; push one straight away from him and step aside, and his own yank bowls him over: the Playground badge.
 13. **S13 The Wren puppet** (D6): walk it through the stage set of the Tidyhouse foyer.
 14. **S14 Bosses come back** (after each boss, revisit its arena): the boss re-formed, asleep; pet it.
 15. **S15 Echo room** (D4): ring bell-stones in the order of Gran's lullaby (hummed by Gran at bedtime,
@@ -134,7 +134,7 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
     into the Drift and leads to the cottage's back way.
 26. **S26 The Unfinished House** (O2, optional dungeon).
 27. **S27 The Stray House** (O1, optional dungeon).
-28. **S28 Tidiness Trials** (Inn attic, after D1): three timed rooms, prize: Heart Patch and a teal scarf.
+28. **S28 Tidiness Trials** (Inn attic, after D1): three timed rooms (two at once; the long way home; home time: falling flies you home), prize: buttons, a Heart Patch and Ives' teal scarf (every stitch the same size: a quiet clue).
 29. **S29 Returnball** (festival and after): score 5: Heart Patch.
 30. **S30 Tuck's Aha!s** (Act III): get three Ahas in every Making: Tuck's drawing of Wren (Gran's fridge,
     shows in the epilogue).

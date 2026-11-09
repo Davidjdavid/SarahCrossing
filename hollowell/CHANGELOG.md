@@ -21,3 +21,5 @@
   from behind a bookcase.
 - Art: new pressure plates (toggle plates show their state); the first dungeon's building has its own front.
 - Writing: early hints toned down; townsfolk lines change as the story moves on.
+- Two optional activities in town after the first dungeon, each with tests: a kids' game in the square and
+  three timed trials upstairs at the inn.

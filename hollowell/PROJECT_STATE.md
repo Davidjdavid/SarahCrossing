@@ -6,7 +6,7 @@ _Last updated: 2026-11-09 (session 1, day 1, late)._
 **Vertical slice done and reviewed; Act I under way (2 of 8 Houses).** Engine complete enough for the whole
 game; Hollowell (hub) with its buildings, interiors and townsfolk; the prologue and ceremony; Meadowfold; the
 Tidyhouse (D1, 14 rooms); Kilnridge and the Kiln (D2, 13 rooms, the Hookline) all playable and covered by
-tests (51), including scripted playthroughs from a fresh game to the first Knot and from there to the second.
+tests (64), including scripted playthroughs from a fresh game to the first Knot and from there to the second.
 The fresh-eyes review of the slice is fixed (see QA_REPORT.md).
 
 ## Done
@@ -28,11 +28,11 @@ The fresh-eyes review of the slice is fixed (see QA_REPORT.md).
   (`src/79_presets.js`) start a game at those points.
 
 ## In progress
-- Hub activities (Kids' pretend Wander S12, Tidiness Trials S28); then Millwater + the Millrace (D3).
+- Millwater + the Millrace (D3, the Paddle).
 
 ## Next priorities
-1. Kids' pretend Wander (S12) and Tidiness Trials (S28) in town (things to do as the town grows quieter).
-2. Millwater + Millrace (D3, Paddle).
+1. Millwater + Millrace (D3, Paddle). (S12 and S28 are done: `src/52_kidgame.js`, `src/53_trials.js`.)
+2. Belfry Heights + Belfry (D4).
 3. Millwater + Millrace (D3), Belfry Heights + Belfry (D4), the festival; Hushwood + Slumberhouse (D5);
    Larkspur + Marionette Hall (D6) and Reveal 1.
 4. Act III (Underside, D7, Makings), Act IV (D8, cutting, Drift, final), optional dungeons, secrets.

@@ -70,6 +70,10 @@ interior({
         { k: 'deco', x: 11, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 9, y: 2, look: 'pedestal', id: 'pedestal', text: 'An empty velvet cushion under glass. A brass plate: THE WANDERER\'S KNOT.' },
         { k: 'staffdoor', x: 13, y: 2 },
+        /* the attic stairs: the Tidiness Trials, once the first Knot is tied (S28, src/53_trials.js) */
+        { k: 'deco', x: 1, y: 2, look: 'stairs_up', solid: false, baseY: -100 },
+        { k: 'warp', x: 1, y: 2, to: 'inn_attic', tx2: 2, ty2: 9, face: 'up', if: 'd1' },
+        { k: 'deco', x: 1, y: 2, look: 'rope_across', solid: [[0, 0]], baseY: 100, text: "A rope across the attic stairs, and a card: PRIVATE. TIDYING IN PROGRESS.", if: '!d1' },
         { k: 'npc', who: 'ives', x: 6, y: 1, face: 'down', counter: true },
     ],
 });
@@ -169,6 +173,7 @@ SPAWN.cellar = (tx, ty, p) => {
 };
 function initInteriorArt() {
     ART.stairs_up = paintSprite(16, 16, x => { for (let i = 0; i < 4; i++) { x.fillStyle = '#c9925a'; x.fillRect(0, i * 4, 16, 3); x.fillStyle = '#7a4e32'; x.fillRect(0, i * 4 + 3, 16, 1); } x.fillStyle = '#5a3a26'; x.fillRect(0, 0, 2, 16); x.fillRect(14, 0, 2, 16); }, false);
+    ART.rope_across = paintSprite(16, 16, x => { x.fillStyle = '#c9925a'; x.fillRect(1, 2, 2, 12); x.fillRect(13, 2, 2, 12); x.fillStyle = '#c42b4a'; for (let i = 0; i < 10; i++) x.fillRect(3 + i, 6 + Math.round(Math.sin(i / 9 * Math.PI) * 2), 1, 2); x.fillStyle = '#fbf6ea'; x.fillRect(5, 9, 6, 4); });
     ART.stairs_down = paintSprite(16, 16, x => { x.fillStyle = '#2a1f2d'; x.fillRect(0, 0, 16, 16); for (let i = 0; i < 4; i++) { x.fillStyle = '#9a6438'; x.fillRect(2, i * 4 + 1, 12, 2); } }, false);
     ART.pedestal = paintSprite(16, 22, x => {
         x.fillStyle = '#9a6438'; x.fillRect(3, 12, 10, 10); x.fillStyle = '#c9925a'; x.fillRect(3, 12, 10, 2);

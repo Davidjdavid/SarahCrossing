@@ -63,3 +63,5 @@ The shortcut lever by the Ballroom's east door opens the Linen Closets' west doo
 | Linnet note 1, portrait (S02) | Gran's house | with the Gloves, Z at the turned picture | built |
 | S01 budging | everyone in town | lean on them | built (lines for 17) |
 | Heart Patch | Thimble's shop | 120 buttons | built |
+| S12 Kids' Housekeeper | the town square, after Knot 1 (Otto's chalk X at hub 38,18) | push a crate straight away from his X and step aside: he comes at it from his side, which is the way it goes home, and his own yank bowls him over. Playground badge | built, tested |
+| S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |

@@ -29,9 +29,6 @@ TALK.tuck = function* () {
     yield* firstThen('tuck', "Are you going? Are you going NOW? When I'm big I'm going on a Wander too! I'm going to do ALL the Houses!",
         ["I'm practising. Watch. *pushes the sand* ...It came back. It always comes back.", "Bring me something from the Tidyhouse! A spoon or something!", "My mum says the Houses are older than the town. Older than Gran even!"]);
 };
-TALK.nell = function* () { yield* say('nell', Progress.flag('tagStopped') ? "Don't feel like running today. Funny. We always used to." : "Can't talk! Otto's IT!"); };
-TALK.otto = function* () { yield* say('otto', Progress.flag('tagStopped') ? "We're not playing. Dunno why. Just... don't want to go far." : "I'm IT! Unless you're IT. Are you playing?"); };
-TALK.bea = function* () { yield* say('bea', Progress.flag('tagStopped') ? "Feels like my feet like it here. Here here. This exact spot." : "You can't tag me, I'm on the well-step! The well-step is safe!"); };
 TALK.hob = function* () {
     if (Progress.flag('d3')) { yield* say('hob', "Used to walk the bank every day. Now I just... stand here. The fish don't mind."); return; }
     if (Progress.flag('d2')) { yield* say('hob', cycle('hob2', ["Two Knots, they say. The river's running a touch slower this week. Could be nothing. Fish don't seem to mind.", "Caught the same fish three days running. Same fish, same rock. I've named him Gerald.", "Folks up at the Kiln, eh? Clay always did come down the river with the spring."])); return; }
@@ -46,7 +43,17 @@ TALK.arlo = function* () {
             "I tried to walk to the lake last spring. Got as far as the bridge and turned round without meaning to. Old legs."]);
 };
 TALK.ives = function* () {
-    if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["You did it! I do hope it was tidy in there. Was it tidy?", "A Knot! Well. That calls for a good sweep of the step.", "If you need a lie-down, the beds upstairs are made. They're always made."])); return; }
+    if (Progress.flag('s28') && !Inv.has('tealscarf')) {
+        yield* say('ives', "All three? ALL three? Oh, that's- that's very tidy of you. Here. I knit them. I always knit them in teal; it's the only colour that sits still.");
+        yield* Story.getItem('tealscarf')();
+        return;
+    }
+    if (Progress.flag('d1') && !Progress.flag('met:trials')) {
+        Progress.set('met:trials');
+        yield* say('ives', "You did it! I do hope it was tidy in there. Oh, and if you're ever at a loose end: up in the attic I've set out some tidying for anyone who's quick. Trials, I call them. The stairs are just there.");
+        return;
+    }
+    if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["Have you tried my Trials? Up the attic stairs. Quick hands, that's the thing.", "You did it! I do hope it was tidy in there. Was it tidy?", "A Knot! Well. That calls for a good sweep of the step.", "If you need a lie-down, the beds upstairs are made. They're always made."])); return; }
     yield* firstThen('ives', "Welcome to the Spool & Thimble! Wipe your— oh, it's you, {name}! Off to the Tidyhouse? You'll love it. Everyone does.",
         ["A place for everything and everything in its place, that's what I always say. What everybody says, I suppose.", "If you need a lie-down, the beds upstairs are made. They're always made.", "Busy, busy. I'm always busy when there's a Wander on."]);
 };

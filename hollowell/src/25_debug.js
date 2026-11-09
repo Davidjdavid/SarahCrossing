@@ -56,7 +56,7 @@ function playerPath(area, sx, sy, gx, gy) {
 const PRESETS = {};    /* name -> () => sets up a game state (the content files add these) */
 
 const HW = {
-    G, Inv, Progress, Stats, Save, World, Script, Input, Return, AREAS, ERRORS, LOG, PRESETS, Auto, Story, Dialog, Cam,
+    G, Inv, Progress, Stats, Save, World, Script, Input, Return, AREAS, ERRORS, LOG, PRESETS, Auto, Story, Dialog, Cam, spr, get ART() { return ART; },
     newGame(name = 'Wren', opts = {}) { G.noAutosave = !!opts.noAutosave; Game.newGame(name, opts); if (opts.skipIntro) { Script.clear(); Dialog.active = false; UI.fadeA = 0; } return this.state(); },
     warp(id, x, y, dir) { World.enter(id, x, y, { dir }); return this.state(); },
     preset(name) { PRESETS[name](); return this.state(); },

@@ -112,6 +112,7 @@ const UI = {
         Gfx.alpha(1);
     },
     _hud(p) {
+        if (G.trial) Trials.draw();
         /* Wren's thread: a little red spool (until it's cut) */
         if (!Progress.flag('cut_self')) {
             const sp = (p && (p.state === 'flight')) ? Math.floor(G.t / 3) % 3 : 0;

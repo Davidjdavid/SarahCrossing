@@ -2999,6 +2999,7 @@ const UI = {
         Gfx.alpha(1);
     },
     _hud(p) {
+        if (G.trial) Trials.draw();
         /* Wren's thread: a little red spool (until it's cut) */
         if (!Progress.flag('cut_self')) {
             const sp = (p && (p.state === 'flight')) ? Math.floor(G.t / 3) % 3 : 0;
@@ -4365,7 +4366,7 @@ function playerPath(area, sx, sy, gx, gy) {
 const PRESETS = {};    /* name -> () => sets up a game state (the content files add these) */
 
 const HW = {
-    G, Inv, Progress, Stats, Save, World, Script, Input, Return, AREAS, ERRORS, LOG, PRESETS, Auto, Story, Dialog, Cam,
+    G, Inv, Progress, Stats, Save, World, Script, Input, Return, AREAS, ERRORS, LOG, PRESETS, Auto, Story, Dialog, Cam, spr, get ART() { return ART; },
     newGame(name = 'Wren', opts = {}) { G.noAutosave = !!opts.noAutosave; Game.newGame(name, opts); if (opts.skipIntro) { Script.clear(); Dialog.active = false; UI.fadeA = 0; } return this.state(); },
     warp(id, x, y, dir) { World.enter(id, x, y, { dir }); return this.state(); },
     preset(name) { PRESETS[name](); return this.state(); },
@@ -5280,12 +5281,16 @@ defBlock({
         { k: 'npc', who: 'arlo', x: 27, y: 23, face: 'left' },
         { k: 'npc', who: 'bram', x: 34, y: 24, face: 'down' },
         { k: 'npc', who: 'hob', x: 48, y: 24, face: 'right', route: [[48, 22, 120], [48, 28, 120]] },
-        { k: 'npc', who: 'nell', x: 24, y: 16, face: 'right', route: [[24, 16, 20], [27, 21, 10], [23, 21, 20]], if: '!tagStopped' },
-        { k: 'npc', who: 'otto', x: 38, y: 16, face: 'left', route: [[38, 16, 30], [35, 21, 10], [39, 21, 10]], if: '!tagStopped' },
-        { k: 'npc', who: 'bea', x: 24, y: 22, face: 'up', route: [[24, 22, 40], [26, 15, 10], [36, 15, 20]], if: '!tagStopped' },
-        { k: 'npc', who: 'nell', x: 24, y: 17, face: 'right', if: 'tagStopped' },
-        { k: 'npc', who: 'otto', x: 38, y: 17, face: 'left', if: 'tagStopped' },
-        { k: 'npc', who: 'bea', x: 25, y: 21, face: 'up', if: 'tagStopped' },
+        /* before the first Knot the kids play tag; after it, Housekeeper (S12, src/52_kidgame.js) */
+        { k: 'npc', who: 'nell', x: 24, y: 16, face: 'right', route: [[24, 16, 20], [27, 21, 10], [23, 21, 20]], if: '!d1' },
+        { k: 'npc', who: 'otto', x: 38, y: 16, face: 'left', route: [[38, 16, 30], [35, 21, 10], [39, 21, 10]], if: '!d1' },
+        { k: 'npc', who: 'bea', x: 24, y: 22, face: 'up', route: [[24, 22, 40], [26, 15, 10], [36, 15, 20]], if: '!d1' },
+        { k: 'deco', x: 38, y: 18, look: 'chalk_x', solid: false, baseY: -100, ox: 0, oy: 0, if: 'd1' },
+        { k: 'kidkeeper', x: 38, y: 18, crates: ['kc1', 'kc2'], if: 'd1&!s12' },
+        { k: 'npc', who: 'otto', x: 38, y: 18, face: 'down', if: 's12' },
+        { k: 'npc', who: 'nell', x: 34, y: 19, face: 'right', if: 'd1' },
+        { k: 'npc', who: 'bea', x: 40, y: 16, face: 'down', if: 'd1' },
+        { k: 'crate', x: 35, y: 17, id: 'kc1', if: 'd1' }, { k: 'crate', x: 41, y: 20, id: 'kc2', if: 'd1' },
         { k: 'npc', who: 'gundry', x: 33, y: 20, face: 'left' },
         { k: 'npc', who: 'gran', x: 29, y: 20, face: 'down', if: 'ceremony' },
         { k: 'critter', who: 'biscuit', look: 'cat', x: 14, y: 14, speed: 0.5, route: [[14, 14, 200], [19, 22, 90], [28, 25, 300], [35, 33, 120], [41, 33, 200], [44, 14, 160], [22, 12, 90]] },
@@ -5370,6 +5375,10 @@ interior({
         { k: 'deco', x: 11, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 9, y: 2, look: 'pedestal', id: 'pedestal', text: 'An empty velvet cushion under glass. A brass plate: THE WANDERER\'S KNOT.' },
         { k: 'staffdoor', x: 13, y: 2 },
+        /* the attic stairs: the Tidiness Trials, once the first Knot is tied (S28, src/53_trials.js) */
+        { k: 'deco', x: 1, y: 2, look: 'stairs_up', solid: false, baseY: -100 },
+        { k: 'warp', x: 1, y: 2, to: 'inn_attic', tx2: 2, ty2: 9, face: 'up', if: 'd1' },
+        { k: 'deco', x: 1, y: 2, look: 'rope_across', solid: [[0, 0]], baseY: 100, text: "A rope across the attic stairs, and a card: PRIVATE. TIDYING IN PROGRESS.", if: '!d1' },
         { k: 'npc', who: 'ives', x: 6, y: 1, face: 'down', counter: true },
     ],
 });
@@ -5469,6 +5478,7 @@ SPAWN.cellar = (tx, ty, p) => {
 };
 function initInteriorArt() {
     ART.stairs_up = paintSprite(16, 16, x => { for (let i = 0; i < 4; i++) { x.fillStyle = '#c9925a'; x.fillRect(0, i * 4, 16, 3); x.fillStyle = '#7a4e32'; x.fillRect(0, i * 4 + 3, 16, 1); } x.fillStyle = '#5a3a26'; x.fillRect(0, 0, 2, 16); x.fillRect(14, 0, 2, 16); }, false);
+    ART.rope_across = paintSprite(16, 16, x => { x.fillStyle = '#c9925a'; x.fillRect(1, 2, 2, 12); x.fillRect(13, 2, 2, 12); x.fillStyle = '#c42b4a'; for (let i = 0; i < 10; i++) x.fillRect(3 + i, 6 + Math.round(Math.sin(i / 9 * Math.PI) * 2), 1, 2); x.fillStyle = '#fbf6ea'; x.fillRect(5, 9, 6, 4); });
     ART.stairs_down = paintSprite(16, 16, x => { x.fillStyle = '#2a1f2d'; x.fillRect(0, 0, 16, 16); for (let i = 0; i < 4; i++) { x.fillStyle = '#9a6438'; x.fillRect(2, i * 4 + 1, 12, 2); } }, false);
     ART.pedestal = paintSprite(16, 22, x => {
         x.fillStyle = '#9a6438'; x.fillRect(3, 12, 10, 10); x.fillStyle = '#c9925a'; x.fillRect(3, 12, 10, 2);
@@ -7894,9 +7904,6 @@ TALK.tuck = function* () {
     yield* firstThen('tuck', "Are you going? Are you going NOW? When I'm big I'm going on a Wander too! I'm going to do ALL the Houses!",
         ["I'm practising. Watch. *pushes the sand* ...It came back. It always comes back.", "Bring me something from the Tidyhouse! A spoon or something!", "My mum says the Houses are older than the town. Older than Gran even!"]);
 };
-TALK.nell = function* () { yield* say('nell', Progress.flag('tagStopped') ? "Don't feel like running today. Funny. We always used to." : "Can't talk! Otto's IT!"); };
-TALK.otto = function* () { yield* say('otto', Progress.flag('tagStopped') ? "We're not playing. Dunno why. Just... don't want to go far." : "I'm IT! Unless you're IT. Are you playing?"); };
-TALK.bea = function* () { yield* say('bea', Progress.flag('tagStopped') ? "Feels like my feet like it here. Here here. This exact spot." : "You can't tag me, I'm on the well-step! The well-step is safe!"); };
 TALK.hob = function* () {
     if (Progress.flag('d3')) { yield* say('hob', "Used to walk the bank every day. Now I just... stand here. The fish don't mind."); return; }
     if (Progress.flag('d2')) { yield* say('hob', cycle('hob2', ["Two Knots, they say. The river's running a touch slower this week. Could be nothing. Fish don't seem to mind.", "Caught the same fish three days running. Same fish, same rock. I've named him Gerald.", "Folks up at the Kiln, eh? Clay always did come down the river with the spring."])); return; }
@@ -7911,7 +7918,17 @@ TALK.arlo = function* () {
             "I tried to walk to the lake last spring. Got as far as the bridge and turned round without meaning to. Old legs."]);
 };
 TALK.ives = function* () {
-    if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["You did it! I do hope it was tidy in there. Was it tidy?", "A Knot! Well. That calls for a good sweep of the step.", "If you need a lie-down, the beds upstairs are made. They're always made."])); return; }
+    if (Progress.flag('s28') && !Inv.has('tealscarf')) {
+        yield* say('ives', "All three? ALL three? Oh, that's- that's very tidy of you. Here. I knit them. I always knit them in teal; it's the only colour that sits still.");
+        yield* Story.getItem('tealscarf')();
+        return;
+    }
+    if (Progress.flag('d1') && !Progress.flag('met:trials')) {
+        Progress.set('met:trials');
+        yield* say('ives', "You did it! I do hope it was tidy in there. Oh, and if you're ever at a loose end: up in the attic I've set out some tidying for anyone who's quick. Trials, I call them. The stairs are just there.");
+        return;
+    }
+    if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["Have you tried my Trials? Up the attic stairs. Quick hands, that's the thing.", "You did it! I do hope it was tidy in there. Was it tidy?", "A Knot! Well. That calls for a good sweep of the step.", "If you need a lie-down, the beds upstairs are made. They're always made."])); return; }
     yield* firstThen('ives', "Welcome to the Spool & Thimble! Wipe your— oh, it's you, {name}! Off to the Tidyhouse? You'll love it. Everyone does.",
         ["A place for everything and everything in its place, that's what I always say. What everybody says, I suppose.", "If you need a lie-down, the beds upstairs are made. They're always made.", "Busy, busy. I'm always busy when there's a Wander on."]);
 };
@@ -8038,6 +8055,304 @@ SPAWN.staffdoor = (tx, ty) => {
     return pr;
 };
 SPAWN.shop = () => new Ent('none');
+
+// ---- 52_kidgame.js ----
+/* The kids' game in the square (S12, after the first Knot): "Housekeeper". Otto stands on a chalk X and
+   tidies: move one of the two crates and he says "Tsk!", trots over to the side of it facing his X and yanks
+   it home. Like the real one, if he's standing on its way home when he yanks, it bowls him over. */
+
+class KidKeeper extends NPC {
+    constructor(tx, ty, p = {}) {
+        super(tx, ty, Object.assign({ who: 'otto', face: 'left' }, p));
+        this.weight = WEIGHT.light;            /* a yanked crate knocks him over; one going home by itself waits */
+        this.hx = tx; this.hy = ty;
+        this.state = 'home'; this.st = 0;
+        this.free = true;                      /* his own mark walks with him: he goes home on his own legs */
+        this.crates = p.crates || [];
+    }
+    tick() {
+        super.tick();
+        this.st++;
+        if (this.state === 'down' || Script.running('talk')) return;
+        switch (this.state) {
+            case 'home': {
+                if (this.path || this.mv) break;
+                if (this.tx !== this.hx || this.ty !== this.hy) { this.walkTo(this.hx, this.hy, 2); break; }
+                const c = this.mess();
+                if (!c) { this.seen = null; this.bubble = null; this.dir = LEFT; break; }
+                if (this.seen !== c) { this.seen = c; this.st = 0; this.bubble = 'bang'; Sfx.play('twang'); this.dir = dirOf(c.tx - this.tx, c.ty - this.ty); }
+                else if (this.st > 24) { this.bubble = null; this.target = c; this.state = 'tidy'; this.st = 0; this.go(); }
+                break;
+            }
+            case 'tidy': {
+                const c = this.target;
+                if (!c || !c.ret || c.ret.state === 'home' || c.carried || !this.inPlay(c)) { this.back(); break; }
+                if (c.tx !== this.ctx || c.ty !== this.cty || (this.st % 20 === 0 && !this.mv)) this.go();   /* it moved, or a better spot came free */
+                if (this.path || this.mv) break;
+                if (Math.abs(c.tx - this.tx) + Math.abs(c.ty - this.ty) === 1) {
+                    this.dir = dirOf(c.tx - this.tx, c.ty - this.ty);
+                    if (c.mv || Return.held(c)) break;
+                    Return.snap(c); Sfx.play('tug');
+                    this.state = 'watch'; this.st = 0;
+                }
+                break;
+            }
+            case 'watch': if (this.st > 40) this.back(); break;
+            case 'back':
+                if (this.path || this.mv) break;
+                if (this.tx === this.hx && this.ty === this.hy) { this.state = 'home'; this.st = 0; }
+                else this.walkTo(this.hx, this.hy, 2);
+                break;
+        }
+    }
+    inPlay(c) { return c.tx >= 21 + 64 && c.tx <= 42 + 64 && c.ty >= 13 + 40 && c.ty <= 25 + 40; }
+    mess() {
+        for (const id of this.crates) {
+            const c = this.area.find(id);
+            if (c && c.ret && c.ret.state !== 'home' && !c.carried && !c.mv && !Return.held(c) && this.inPlay(c)) return c;
+        }
+        return null;
+    }
+    /* he always comes at it from the side facing his X (the nearest side that's free and reachable) */
+    go() {
+        const c = this.target; this.ctx = c.tx; this.cty = c.ty;
+        const sides = [0, 1, 2, 3].map(d => [c.tx + DX[d], c.ty + DY[d]])
+            .sort((a, b) => Math.hypot(a[0] - this.hx, a[1] - this.hy) - Math.hypot(b[0] - this.hx, b[1] - this.hy));
+        for (const [nx, ny] of sides) {
+            if (nx === this.tx && ny === this.ty) { this.path = null; this.walking = false; return; }
+            if (!this.area.freeForThing(nx, ny, this)) continue;
+            const p = findPath(this.area, this.tx, this.ty, nx, ny, this, 1500);
+            if (p) { this.path = p; this.walking = p.length > 0; this.walkSpeed = 2; return; }
+        }
+        this.path = null; this.walking = false;          /* nowhere to stand: wait */
+    }
+    back() { this.state = 'back'; this.target = null; this.bubble = null; this.walkTo(this.hx, this.hy, 2); }
+    shove(d, dur, by) {
+        super.shove(d, dur, by);
+        if (this.ret) { this.ret.mx = this.tx; this.ret.my = this.ty; this.ret.trace = [[this.tx, this.ty]]; this.ret.state = 'home'; }
+        if (this.state === 'down') return;
+        this.state = 'down'; this.path = null; this.walking = false; this.bubble = null;
+        G.shake = 4; Sfx.play('hitthing');
+        Stats.count('kidgame:won');
+        Script.run(KidGame.won(this));
+    }
+    draw(cx, cy) {
+        super.draw(cx, cy);
+        if (this.state === 'down') return;
+        /* a folded paper hat and a feather duster */
+        const im = this.sprite(); if (!im) return;
+        const sx = this.px - cx, top = this.py - cy - (im.height - T) - 2;
+        Gfx.img(spr('kid_hat'), sx + 3, top - 3);
+        if (this.state === 'watch' || this.state === 'tidy') Gfx.img(spr('kid_duster'), sx + (this.dir === LEFT ? -4 : 12), top + 6, this.dir === LEFT);
+    }
+}
+SPAWN.kidkeeper = (x, y, p) => new KidKeeper(x, y, p);
+
+const KidGame = {
+    won(otto) {
+        return function* () {
+            yield 30;
+            yield* say('otto', 'OOF! ...I got tidied! By my own tidying!');
+            yield* say('nell', '{name} beat the Housekeeper! Nobody beats the Housekeeper!');
+            yield* say('bea', "You get the badge. We made it ourselves. It's a button with a duster drawn on.");
+            yield* Story.getItem('kidbadge')();
+            Progress.set('s12');
+            yield* say('otto', "Next time I'm being the Wanderer. You can be the Housekeeper. You're good at it. At knowing how it goes, I mean.");
+        };
+    },
+};
+
+ITEMS.kidbadge = { name: 'Playground badge', kind: 'keepsake', desc: "A button with a feather duster drawn on it in ink: the Hollowell kids' highest honour." };
+
+TALK.otto = function* () {
+    if (Progress.flag('s12')) { yield* say('otto', cycle('otto3', ["Rematch? ...No. My X is comfy.", "I'm going to be a Wanderer when I'm big. Or a Housekeeper. Whichever goes further.", "Bea says I fell over funny. I did not fall over funny."])); return; }
+    if (Progress.flag('d1')) {
+        if (Progress.flag('tagStopped')) { yield* say('otto', cycle('otto2', ["I'm the Housekeeper. I stand on my X. I like my X. Tsk.", "Move a crate, go on. I'll tidy it. I always tidy it."])); return; }
+        yield* firstThen('otto', "I'm the Housekeeper! Tsk! TSK! Move anything in my square and I'll tidy it straight back where it goes!",
+            ["Tsk! Tsk! (That's Housekeeper for 'hello'.)", "I can see the crates from my X. I can see EVERYTHING from my X.", "You can't beat the Housekeeper. The Housekeeper always tidies."]);
+        return;
+    }
+    yield* say('otto', "I'm IT! Unless you're IT. Are you playing?");
+};
+TALK.nell = function* () {
+    if (Progress.flag('s12')) { yield* say('nell', "You're the best Wanderer ever. Don't tell Gran I said."); return; }
+    if (Progress.flag('d1')) {
+        if (Progress.flag('tagStopped')) { yield* say('nell', cycle('nell2', ["We don't play tag any more. Housekeeper's better. You don't have to go anywhere.", "Otto's been the Housekeeper all week. Nobody's ever beaten him."])); return; }
+        yield* firstThen('nell', "We're playing Housekeeper, like in the Tidyhouse! Otto's the Housekeeper. Nobody's ever beaten him.",
+            ["You push a crate and he comes and tidies it. Every time. It's very annoying.", "If you beat him you get the badge. We made the badge."]);
+        return;
+    }
+    yield* say('nell', "Can't talk! Otto's IT!");
+};
+TALK.bea = function* () {
+    if (Progress.flag('s12')) { yield* say('bea', 'Look after the badge! It took three goes to draw the duster.'); return; }
+    if (Progress.flag('d1')) {
+        yield* firstThen('bea', "You beat the real one, didn't you? How? Did you hit it with your stick?",
+            ["Otto always comes at things from his side. From his X. Always. He's very predictable.", "And he won't go round you. If you're in his way he just picks another side.", Progress.flag('tagStopped') ? "Feels like my feet like it here. Here here. This exact spot." : "I'm not playing. I'm the audience."]);
+        return;
+    }
+    yield* say('bea', "You can't tag me, I'm on the well-step! The well-step is safe!");
+};
+
+function initKidGame() {
+    defSprite('kid_hat', ['....kk....', '...kwwk...', '..kwwwwk..', '.kwwwwwwk.', 'kwwwwwwwwk', 'kkkkkkkkkk'], { w: '#fbf6ea' });
+    defSprite('kid_duster', ['..kk..', '.kppk.', 'kppppk', '.kppk.', '..kb..', '..kb..', '..kb..', '...k..'], { p: '#f59ac0', b: '#9a6438' });
+    defSprite('icon_kidbadge', ['................', '.....kkkkkk.....', '...kkyyyyyykk...', '..kyyYYYYYYyyk..', '..kyYYkkkkYYyk..', '.kyYYkppppkYYyk.', '.kyYYkppppkYYyk.', '.kyYYYkppkYYYyk.',
+        '.kyYYYkbbkYYYyk.', '.kyYYYYkbkYYYyk.', '..kyYYYkbkYYyk..', '..kyyYYYkYYyyk..', '...kkyyyyyykk...', '.....kkkkkk.....', '................', '................'], { y: '#f7d64a', Y: '#e8b04a', p: '#f59ac0', b: '#9a6438' });
+    ART.chalk_x = paintSprite(16, 16, x => {
+        x.fillStyle = '#f4f0e8';
+        for (let i = 2; i < 14; i++) { x.fillRect(i, i, 2, 1); x.fillRect(15 - i, i, 2, 1); }
+    }, false);
+}
+CONTENT_INIT.push(initKidGame);
+
+// ---- 53_trials.js ----
+/* The Tidiness Trials (S28, after the first Knot): three timed rooms in the Inn's attic, set out by the
+   innkeeper. Each is something already known, done against the clock:
+     1. Two at once: the first block into a pocket, the second onto the pocket's mouth, holding it in.
+     2. The long way home: a pot whose way home snakes round the whole room. Left to walk, it's too slow;
+        broken, its pieces fly home; carried back over its own path, the path gets shorter.
+     3. Home time: ring the bell at the end of a long corridor, then be back on the mat by the door before
+        it stops. Walking is too slow; falling flies you home along the way you came. */
+
+/* a serpentine path through a block of tiles, row by row */
+function snakePath(x0, y0, x1, y1) {
+    const out = [];
+    for (let y = y0, k = 0; y <= y1; y++, k++) {
+        if (k % 2 === 0) for (let x = x0; x <= x1; x++) out.push([x, y]);
+        else for (let x = x1; x >= x0; x--) out.push([x, y]);
+    }
+    return out;
+}
+const TRIAL2_PATH = snakePath(22, 2, 37, 8);
+
+const TRIALS = {
+    1: { name: 'Trial One: Two at Once', time: 20 * 60, start: 'plate', at: [3, 8], flag: 'trial1' },
+    2: { name: 'Trial Two: The Long Way Home', time: 15 * 60, start: 'plate', at: [21, 9], flag: 'trial2' },
+    3: { name: 'Trial Three: Home Time', time: 4 * 60, start: 'bell', flag: 'trial3' },
+};
+
+defArea({
+    id: 'inn_attic', name: 'The Attic', family: 'interior', theme: 'tidy', thread: THREAD.ives, music: 'inn', place: 'The Attic',
+    rows: [
+        /* room 1 (x 0-19), room 2 (20-39), room 3 (40-59) */
+        '####################' + '####################' + '####################',
+        '#......###.........#' + '#..................#' + '##.................#',
+        '#......#.#.........#' + '#..................#' + '##.##############..#',
+        '#..................#' + '#..................#' + '##.##############..#',
+        '#..................#' + '#..................#' + '##.##############..#',
+        '#...................' + '....................' + '...##############..#',
+        '#..................#' + '#..................#' + '#################..#',
+        '#..................#' + '#..................#' + '#..................#',
+        '#..................#' + '#..................#' + '#....oo............#',
+        '#..................#' + '#..................#' + '#..................#',
+        '####################' + '####################' + '####################',
+    ],
+    rooms: [{ x: 0, y: 0, w: 20, h: 11 }, { x: 20, y: 0, w: 20, h: 11 }, { x: 40, y: 0, w: 20, h: 11 }],
+    entry: { x: 2, y: 9 },
+    ents: [
+        { k: 'warp', x: 1, y: 9, to: 'inn', tx2: 2, ty2: 3, face: 'down' },
+        { k: 'deco', x: 1, y: 9, look: 'stairs_down', solid: false, baseY: -100 },
+        /* 1: two at once */
+        { k: 'plate', x: 3, y: 8, sig: 'start1', id: 'start1' },
+        { k: 'sign', x: 1, y: 7, text: "TRIAL ONE: TWO AT ONCE. Step on the start plate, then both plates down together before the bell. (Hint: one tidy thing can hold another in.) - I." },
+        { k: 'plate', x: 8, y: 2, sig: 't1a' }, { k: 'plate', x: 8, y: 3, sig: 't1b' },
+        { k: 'wood', x: 8, y: 5, id: 't1w1' }, { k: 'wood', x: 9, y: 3, id: 't1w2' },
+        { k: 'chest', x: 15, y: 2, item: 'b20', id: 't1chest', hidden: true, when: 'flag:trial1' },
+        { k: 'door', x: 19, y: 5, type: 'gate', when: 'flag:trial1', dir: 'v', id: 'tg1' },
+        /* 2: the long way home */
+        { k: 'plate', x: 21, y: 9, sig: 'start2', id: 'start2' },
+        { k: 'sign', x: 21, y: 7, text: "TRIAL TWO: THE LONG WAY HOME. Step on the start plate. The pot must be home on its shelf before the bell. It does dawdle so. - I." },
+        { k: 'deco', x: 22, y: 1, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
+        { k: 'pot', x: 22, y: 2, id: 'longPot', style: 'pot_teal', group: 'trial2', tiedOff: true, startAt: TRIAL2_PATH[TRIAL2_PATH.length - 1], trace: TRIAL2_PATH },
+        { k: 'chest', x: 36, y: 1, item: 'b30', id: 't2chest', hidden: true, when: 'flag:trial2' },
+        { k: 'door', x: 39, y: 5, type: 'gate', when: 'flag:trial2', dir: 'v', id: 'tg2' },
+        /* 3: home time */
+        { k: 'plate', x: 40, y: 5, sig: 'mat3', id: 'mat3' },
+        { k: 'sign', x: 44, y: 9, text: "TRIAL THREE: HOME TIME. Ring the bell at the far end, then be home on the plate by the door before it stops. The quickest way home is the way you came. - I." },
+        { k: 'crystal', x: 42, y: 8, sig: 'bell3', id: 'bell3' },
+        { k: 'chest', x: 41, y: 9, item: 'heartpatch', id: 't3chest', hidden: true, when: 'flag:trial3' },
+    ],
+    tick: a => Trials.tick(a),
+    onEnter: a => { G.trial = null; },
+});
+
+const Trials = {
+    tick(a) {
+        const p = G.player; if (!p || p.area !== a) return;
+        const tr = G.trial;
+        if (!tr) {
+            /* starting: a start plate, or the bell */
+            for (const n of [1, 2]) {
+                const T0 = TRIALS[n];
+                if (Signals.get(a, 'start' + n) && !Progress.flag(T0.flag) && !this.armed[n]) {
+                    this.armed[n] = true;
+                    if (n === 2 && a.find('longPot').shattered) continue;    /* wait for the pieces to settle */
+                    this.begin(a, n); return;
+                }
+                if (!Signals.get(a, 'start' + n)) this.armed[n] = false;
+            }
+            const bell = a.find('bell3');
+            if (bell && bell.on && !Progress.flag('trial3')) this.begin(a, 3);
+            return;
+        }
+        if (Script.blocking()) return;
+        tr.t--;
+        if (tr.t % 60 === 0 && tr.t > 0 && tr.t <= 180) Sfx.play('click');
+        if (this.won(a, tr.n)) { this.win(a, tr.n); return; }
+        if (tr.t <= 0) this.lose(a, tr.n);
+    },
+    armed: {},
+    begin(a, n) {
+        const T0 = TRIALS[n];
+        G.trial = { n, t: T0.time, max: T0.time };
+        Sfx.play('twang');
+        UI.showBanner(T0.name);
+        /* a fair start: everything in this room back in its place */
+        if (n === 1) for (const id of ['t1w1', 't1w2']) { const e = a.find(id); if (e && e.ret && e.ret.state !== 'home' && !Return.held(e)) Return.snap(e); }
+        if (n === 2) { const pot = a.find('longPot'); this.unhand(pot); Lever.setOut(pot); pot.tiedOff = false; pot.ret.timer = 20; }
+        Stats.count('trial:start:' + n);
+    },
+    /* take it out of Wren's arms (it's going back on its own) */
+    unhand(o) {
+        const p = G.player;
+        if (p.carry === o) { p.carry = null; o.carried = false; o.heldBy = null; }
+        else if (o.heldBy && o.heldBy.release) o.heldBy.release();
+    },
+    won(a, n) {
+        if (n === 1) return Signals.get(a, 't1a') && Signals.get(a, 't1b');
+        if (n === 2) { const pot = a.find('longPot'); return Return.isHome(pot) && !pot.shattered && !pot.carried; }
+        if (n === 3) { const p = G.player; return p.state === 'normal' && p.tx === 40 && p.ty === 5; }
+    },
+    win(a, n) {
+        G.trial = null;
+        Progress.set(TRIALS[n].flag);
+        Sfx.play('appear'); Sfx.play('item');
+        Stats.count('trial:won:' + n);
+        if (n === 3) { Progress.set('s28'); }
+        const all = [1, 2, 3].every(k => Progress.flag(TRIALS[k].flag));
+        UI.toast(all ? "Ding! All three trials done. Somebody downstairs will want to hear about it." : 'Ding! Trial done.', 200);
+    },
+    lose(a, n) {
+        G.trial = null;
+        Sfx.play('bell');
+        UI.toast('Brrring! Too slow. Everything goes back where it was.', 160);
+        if (n === 1) for (const id of ['t1w1', 't1w2']) { const e = a.find(id); if (e && e.ret && e.ret.state !== 'home') Return.snap(e); }
+        if (n === 2) { const pot = a.find('longPot'); this.unhand(pot); if (!pot.shattered) Lever.setOut(pot); }
+        if (n === 3) { const bell = a.find('bell3'); if (bell) bell.on = false; }
+        Stats.count('trial:lost:' + n);
+    },
+    /* the clock at the top of the screen */
+    draw() {
+        const tr = G.trial; if (!tr) return;
+        const s = Math.ceil(tr.t / 60), x = W / 2 - 22, y = 3;
+        Gfx.rect(x, y, 44, 14, PAL.ink); Gfx.rect(x + 1, y + 1, 42, 12, '#fbf3df');
+        Gfx.rect(x + 2, y + 10, Math.round(40 * tr.t / tr.max), 2, s <= 3 ? '#e8463c' : '#3fc1b5');
+        Font.draw((s <= 3 ? '{red}' : '') + '0:' + String(s).padStart(2, '0'), x + 13, y + 2, PAL.ink);
+    },
+};
+
+ITEMS.tealscarf = { name: 'Teal scarf', kind: 'keepsake', desc: "Knitted very evenly, in teal. Every stitch the same size. Every single one." };
 
 // ---- 79_presets.js ----
 /* Presets: game states at the start of each stretch, for the debug panel and the tests. */

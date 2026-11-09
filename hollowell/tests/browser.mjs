@@ -94,6 +94,22 @@ const SCENARIOS = {
         await page.evaluate(() => { HW.warp('inn', 7, 7); HW.step(10); });
         await shot('inn_inside');
     },
+    async extras() {
+        await open();
+        await page.evaluate(() => { HW.preset('afterD1'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 64 + 36, 40 + 21); HW.step(230); });
+        await shot('kids_game');
+        await page.evaluate(() => { HW.walkTo(64 + 36, 40 + 17); HW.push('left', 1); HW.walkTo(64 + 35, 40 + 19); HW.step(20); });
+        await shot('kids_tsk');
+        await page.evaluate(() => { for (let i = 0; i < 12; i++) { HW.step(30); HW.skipTalk(); } });
+        await page.evaluate(() => { HW.warp('inn', 7, 6); HW.step(30); });
+        await shot('inn_stairs');
+        for (const [n, x, y] of [['attic1', 3, 8], ['attic2', 21, 9], ['attic3', 43, 7]]) {
+            await page.evaluate(([x, y]) => { HW.Progress.set('trial1'); HW.Progress.set('trial2'); HW.warp('inn_attic', x, y); HW.step(40); }, [x, y]);
+            await shot(n);
+        }
+        await page.evaluate(() => { HW.Progress.set('trial1', false); HW.warp('inn_attic', 3, 7); HW.step(5); HW.walkTo(3, 8); HW.step(60); });
+        await shot('attic1_clock');
+    },
     async title() { await open(); await page.evaluate(() => { window.HW._paused = false; }); await page.waitForTimeout(400); await page.evaluate(() => { window.HW._paused = true; }); await shot('title'); },
     async lab() {
         await open();
