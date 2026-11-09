@@ -35,9 +35,6 @@ class Player extends Ent {
 
     /* ----- marks and traces ----- */
     setMark(tx = this.tx, ty = this.ty, area = this.area, force) {
-        /* a bed Wren lay down in, or the Bedroll, stays Wren's mark while Wren is in that place (src/58_bedroll_kit.js) */
-        if (!force && this.mark && this.mark.bed && this.mark.area === area.id) return;
-        if (!force && typeof Bedroll !== 'undefined' && Bedroll.lies(area)) { Bedroll.claim(this, area); return; }
         /* never on a doorway (a door may shut there): one step on into the room */
         const r = area.roomAt && area.roomAt(tx, ty);
         if (r && area.rooms.length > 1 && (tx === r.x || ty === r.y || tx === r.x + r.w - 1 || ty === r.y + r.h - 1)) {
@@ -45,10 +42,26 @@ class Player extends Ent {
             if (area.inside(nx, ny) && !area.kind(nx, ny).solid && !area.kind(nx, ny).deep && !area.kind(nx, ny).pit) { tx = nx; ty = ny; }
         }
         /* only solid, dry, open ground can be home (never deep water, a pit, or a raft) */
-        const k = area.kind(tx, ty);
-        if (k.deep || k.pit || k.fog || k.solid || (area.at && area.at(tx, ty) && area.at(tx, ty).floats)) { if (this.mark && this.mark.area === area.id) return; }
+        const k = area.kind(tx, ty), bad = k.deep || k.pit || k.fog || k.solid || (area.at && area.at(tx, ty) && area.at(tx, ty).floats);
+        /* the room's own mark (where Wren came in), kept even while a bed holds: rolling the Bedroll up goes back to it */
+        if (!bad && !force) this.roomMark = { area: area.id, tx, ty };
+        /* a bed Wren lay down in, or the Bedroll, stays Wren's mark while Wren is in that place (src/58_bedroll_kit.js) */
+        if (!force && this.mark && this.mark.bed && this.mark.area === area.id) return;
+        if (!force && typeof Bedroll !== 'undefined' && Bedroll.lies(area)) { Bedroll.claim(this, area); return; }
+        if (bad) { if (this.mark && this.mark.area === area.id) { if (this.mark.bed) this.mark = { area: area.id, tx: this.mark.tx, ty: this.mark.ty }; return; } }
         this.mark = { area: area.id, tx, ty };
         this.trace = [[tx, ty]];
+    }
+    /* no bed any more (the Bedroll rolled up or lost): the mark is the room's own again, the doorway Wren came in by */
+    dropBed() {
+        const a = this.area, m = this.roomMark;
+        if (m && m.area === a.id) { this.mark = { area: a.id, tx: m.tx, ty: m.ty }; this.trace = [[m.tx, m.ty]]; this.traceStep(); }
+        else this.setMark(this.tx, this.ty, a, true);
+    }
+    /* never left standing inside something (a block back at home after the place was built again, a closed gate) */
+    unstick() {
+        const [lx, ly] = this.landingSpot(this.tx, this.ty);
+        if (lx !== this.tx || ly !== this.ty) { this.x = lx * T + 8; this.y = ly * T + 10; }
     }
     traceStep() {
         const tx = this.tx, ty = this.ty, tr = this.trace;
@@ -333,6 +346,7 @@ class Player extends Ent {
         if (o.noThrow) {
             const f = this.front(), a = this.area, k = a.kind(f.tx, f.ty);
             if (!a.inside(f.tx, f.ty) || k.solid || k.ledge || a.at(f.tx, f.ty)) { UI.toast('No room to put it down there.'); return; }
+            if (k.pit && a.cell(f.tx, f.ty).narrow) { UI.toast("It's far too big for that little hole."); return; }
             this.carry = null; o.carried = false; o.heldBy = null;
             o.tx = f.tx; o.ty = f.ty; o.x = f.tx * T; o.y = f.ty * T;
             a.place(o, o.tx, o.ty);
@@ -436,7 +450,7 @@ class Player extends Ent {
             return true;
         };
         if (ok(tx, ty)) return [tx, ty];
-        for (let r = 1; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        for (let r = 1; r <= 5; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
             if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
             if (ok(tx + dx, ty + dy)) return [tx + dx, ty + dy];
         }
@@ -467,7 +481,7 @@ class Player extends Ent {
         f.t++;
         /* the Recall Bell rung on the way: Wren is a thing out of place, and snaps home at once (S18) */
         if (Inv.equipped === 'bell' && Inv.has('bell') && Input.pressed('tool') && f.t < f.dur - 2) {
-            f.t = f.dur; Sfx.play('bell'); Fx.ring(this.x, this.y - 8, '#f7d64a');
+            f.t = f.dur; f.snapped = true; Sfx.play('bell'); Fx.ring(this.x, this.y - 8, '#f7d64a');
             Stats.count('bellflight');
             if (!Progress.flag('s18')) { Progress.set('s18'); Stats.count('secret:bellflight'); G.pendingToast = 'You ring the Bell in mid-flight, and snap home like anything else out of place.'; }
         }
@@ -487,7 +501,7 @@ class Player extends Ent {
         if (f.t >= f.dur) { const m = this.mark; this.x = m.tx * T + 8; this.y = m.ty * T + 10; }
         if (this.carry) { this.carry.cx = this.x; this.carry.cy = this.y - 14; }
         /* whatever the flight passes through hears of it (dreamcatchers, a boss's arms) */
-        for (const e of this.area.ents) if (e.flyThrough && !e.removed) e.flyThrough(this, ox, oy, this.x, this.y);
+        if (!f.snapped) for (const e of this.area.ents) if (e.flyThrough && !e.removed) e.flyThrough(this, ox, oy, this.x, this.y);   /* (a snap home goes round, not through) */
         if (f.t >= f.dur) {
             const m = this.mark;
             const [lx, ly] = this.landingSpot(m.tx, m.ty);

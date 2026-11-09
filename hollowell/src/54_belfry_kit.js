@@ -22,7 +22,7 @@ const Bells = {
             if (Math.hypot(e.tx * T + 8 - x, e.ty * T + 8 - y) > reach * T + 4 || !here(e.tx, e.ty)) continue;
             if (e.sleeper && e.tiedOff) {
                 e.tiedOff = false; e.sleeper = false;
-                if (e.id && !e.resetSleep) Progress.setAreaFlag(area.id, 'woke:' + e.id);
+                if (e.id && !e.resetSleep && (!e.saveWake || e.saveWake(e))) Progress.setAreaFlag(area.id, 'woke:' + e.id);
                 if (e.onWake) e.onWake();
             }
             if (e.ret.state === 'home' || e.carried || e.shattered) continue;

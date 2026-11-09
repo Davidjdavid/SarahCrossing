@@ -30,7 +30,7 @@ defHouse({
     id: 'slumber', name: 'The Slumberhouse', place: 'The Slumberhouse', house: 'slumber', theme: 'slumberhouse', thread: THREAD.mallow, music: 'slumber',
     knotName: 'Sleeping Knot',
     entry: SLUMBER_ENTRY,
-    legend: { 'c': { k: 'floor', p: 'floor2', ent: 'crumble' } },
+    legend: { 'c': { k: 'floor', p: 'floor2', ent: 'crumble' }, 'n': { k: 'pit', p: 'pit', narrow: true } },
     cells: {
         /* ---------------- 1 The Night Porch: a bed is where you wake; boards that give way; falls are travel ---------------- */
         '1,3': {
@@ -100,7 +100,7 @@ defHouse({
             ],
             ents: [
                 { k: 'plate', x: 8, y: 3, sig: 'lp1', mode: 'toggle' }, { k: 'plate', x: 12, y: 5, sig: 'lp2', mode: 'toggle' }, { k: 'plate', x: 7, y: 7, sig: 'lp3', mode: 'toggle' },
-                { k: 'door', x: 4, y: 5, type: 'gate', when: 'lp1&lp2&lp3', dir: 'v', id: 'lcGate' },
+                { k: 'door', x: 4, y: 5, type: 'gate', when: 'lp1&lp2&lp3', dir: 'v', id: 'lcGate', keep: true },
                 { k: 'chest', x: 2, y: 5, item: 'key', id: 'lcKey' },
                 { k: 'bed', x: 16, y: 1, id: 'lcBed' },
                 { k: 'sign', x: 17, y: 8, text: 'THE LINEN CUPBOARD. Three lamps on the old floor. Light them all at once and the cupboard opens. The boards only bear you the once.' },
@@ -128,7 +128,7 @@ defHouse({
                 { k: 'dreamring', x: 9, y: 7, sig: 'lr1', id: 'ldRing1' }, { k: 'dreamring', x: 16, y: 4, sig: 'lr2', id: 'ldRing2' }, { k: 'dreamring', x: 9, y: 2, sig: 'lr3', id: 'ldRing3' },
                 { k: 'chest', x: 1, y: 1, item: 'plan', id: 'ldPlan', hidden: true, when: 'lr1&lr2&lr3' },
                 { k: 'grate', x: 19, y: 5 },
-                { k: 'barrel', x: 22, y: 5, id: 'ldBarrel', sleeper: true, tiedOff: true, startAt: [17, 5], trace: [[22, 5], [21, 5], [20, 5], [19, 5], [18, 5], [17, 5]], pushLine: 'A washtub barrel, bobbing fast asleep by the grate. Bubbles come up, now and then, like snores.' },
+                { k: 'barrel', x: 22, y: 5, id: 'ldBarrel', sleeper: true, tiedOff: true, saveWake: e => Bedroll.float === e, startAt: [17, 5], trace: [[22, 5], [21, 5], [20, 5], [19, 5], [18, 5], [17, 5]], pushLine: 'A washtub barrel, bobbing fast asleep by the grate. Bubbles come up, now and then, like snores.' },
                 { k: 'door', x: 19, y: 3, type: 'gate', when: 'stlever', dir: 'v', id: 'ldStudyDoor' },
                 { k: 'sign', x: 18, y: 9, text: 'THE LAUNDRY. The wash goes round and round. Whatever goes round comes back to where it started, and is none the wiser.' },
                 { k: 'sign', x: 1, y: 9, text: 'Hung over the tub: three dreamcatchers. They only catch you on your way home.' },
@@ -223,7 +223,7 @@ defHouse({
                 '##vvvvvvvv#........#',
                 '##........#........#',
                 '##........#........#',
-                '##......o.#........#',
+                '##......n.#........#',
                 '####################',
             ],
             ents: [
@@ -232,7 +232,7 @@ defHouse({
                 { k: 'deco', x: 14, y: 7, look: 'crib', solid: [[0, 0], [1, 0]], oy: -6, text: 'A crib, empty. A mobile of little wooden moons turns over it, though there is no draught.' },
                 { k: 'sign', x: 12, y: 4, text: "THE NURSERY. Toys away by bedtime, please. (Someone has added, in crayon: THE BIG BLOCK DOESN'T GO BACK. IT NEVER GOES BACK.)" },
             ],
-            nudge: { solved: () => !slumberPit('slumber', 0, 1, 9, 2), after: 60 * 60 * 3, thing: 'nuToy', say: "The toy block in the playpen doesn't belong anywhere. Whatever falls into a pit and doesn't come back fills it in. If only it could be got out of the playpen." },
+            nudge: { solved: () => Slumber.toyUsed(), after: 60 * 60 * 3, thing: 'nuToy', say: "The toy block in the playpen doesn't belong anywhere. Whatever falls into a pit and doesn't come back fills it in. If only it could be got out of the playpen." },
         },
         /* ---------------- 9 The Moonwalk: be in two places at once, nearly (key C) ---------------- */
         '2,1': {
@@ -309,13 +309,45 @@ defHouse({
         },
     },
     tick: a => Slumber.tick(a),
+    build: a => Slumber.build(a),
     afterKnot: function* () { yield* Slumber.afterKnot(); },
 });
 /* a pit still there? (for nudges) */
 function slumberPit(area, cx, cy, x, y) { const a = G.map; if (!a || a.id !== area) return true; return a.kind(cx * 20 + x, cy * 11 + y).pit; }
 
 const Slumber = {
+    NURSERY_PITS: () => { const r = []; for (let x = 1; x <= 18; x++) r.push([x, 11 + 2]); return r; },
+    toyUsed() { return this.NURSERY_PITS().some(([x, y]) => Progress.areaFlag('slumber', `fill:${x},${y}`)); },
+    build(a) {
+        /* the toy block, once it's filled the gap for good, is used up */
+        if (this.toyUsed()) { const t = a.find('nuToy'); if (t) a.remove(t); }
+    },
+    /* the Linen Cupboard's lamps go out when the boards mend (one walk, every lamp lit) */
+    linenReset(a) {
+        const r = a.rooms.find(q => q.key === '0,2');
+        for (const e of a.ents) if (e.kind === 'plate' && /^lp\d$/.test(e.sig) && e.mode === 'toggle') e.on = false;
+    },
     tick(a) {
+        /* the Linen Cupboard: leave it and the lamps go out with the boards mending */
+        const inL = !!(Cam.room && Cam.room.key === '0,2');
+        if (this._inL && !inL) this.linenReset(a);
+        this._inL = inL;
+        /* toys away by bedtime: the toy block won't leave the Nursery */
+        const toy = a.find('nuToy'), p = G.player;
+        if (toy && !toy.removed && p) {
+            const nr = a.rooms.find(q => q.key === '0,1');
+            const inN = (x, y) => x >= nr.x && y >= nr.y && x < nr.x + nr.w && y < nr.y + nr.h;
+            const out = toy.carried ? (p.state === 'normal' && !inN(p.tx, p.ty)) : (!toy.mv && !inN(toy.tx, toy.ty));
+            if (out) {
+                if (toy.carried) { p.carry = null; toy.carried = false; toy.heldBy = null; }
+                else a.unplace(toy, toy.tx, toy.ty);
+                const spot = [[4, 8], [5, 8], [3, 8], [6, 8], [4, 7], [5, 7]].find(([x, y]) => !a.at(nr.x + x, nr.y + y)) || [4, 8];
+                toy.tx = nr.x + spot[0]; toy.ty = nr.y + spot[1]; toy.x = toy.tx * T; toy.y = toy.ty * T;
+                a.place(toy, toy.tx, toy.ty);
+                Fx.poof(toy.tx * T + 8, toy.ty * T + 8);
+                UI.toast('The toy block wriggles free and bounces off back to the Nursery. (Toys away by bedtime.)', 160);
+            }
+        }
         /* the Moonwalk gate, latched once passed */
         const g = a.find('mwGate');
         if (g && g.openedOnce && !Progress.flag('slumber_mwGate')) Progress.set('slumber_mwGate');
@@ -333,3 +365,5 @@ SIGNATURE_TEXT.slumber = "Stitched into the rug, lavender on lavender, so you'd 
 
 ITEM_LINES.bedroll = () => 'You found the {red}Bedroll{/}! Tap C to lay it down anywhere: that spot is home now. Hold C to go Homeward, flying back along your trace to it. What you carry comes too.';
 ITEM_AFTER.bedroll = function* () { Inv.equipped = 'bedroll'; };
+/* falling home in the Linen Cupboard mends the boards, and puts the lamps out */
+Player.onLand.push(p => { const a = p.area; if (a && a.id === 'slumber') { const r = a.roomAt(p.tx, p.ty); if (r && r.key === '0,2') Slumber.linenReset(a); } });

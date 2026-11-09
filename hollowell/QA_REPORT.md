@@ -43,8 +43,18 @@
   held the strings (latches now), hint checks with house-prefixed ids that never resolved (fixed generically), and a
   boss drawn far too small (repainted). Browser shots of the fair and every room checked.
 
+- 2026-11-09 (late night): the fresh-eyes review of D5 found 17 issues, 5 of them softlocks: Wren standing inside a
+  block after a load or a far Homeward; a stray filling the playpen's only exit; the Study lost for good if the barrel
+  was rung home without the Bedroll; the Bedroll laid on an island whose only way off is a fall (falls then always
+  came back to it); a Bedroll laid on a float going stale when the place was rebuilt. Fixed generally: Wren is never
+  left inside anything when placed; rolling the Bedroll up (or losing it) gives back the room's own mark; a Bedroll on a
+  float follows its float home; every House's pause menu has "Back to the House's door". Also fixed: lamps and
+  dreamcatchers that could be lit piecemeal, the toy block leaving its room, stale sleepers, the Sloth's ring, hooks on
+  levers and bosses, the Bedroll on stairs, a repeated intro. 11 regression tests (`tests/review_d5.test.mjs`);
+  `npm test` 199/199.
+
 ## Unresolved issues
-- D5 and Hushwood: fresh-eyes review running. D6 and Larkspur haven't had one yet.
+- D6 and Larkspur: fresh-eyes review running.
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
 ## Verification history
@@ -58,3 +68,4 @@
 | 2026-11-09 | D4 review fixes (12 issues, 3 softlocks; +11 regression tests, 129 in all); Belfry browser smoke | pass |
 | 2026-11-09 | Bedroll kit, Hushwood, Slumberhouse, playthrough leg 5 (166 in all); browser shots of every new room | pass |
 | 2026-11-09 | Crossbar kit, Larkspur, Marionette Hall, playthrough leg 6 (188 in all); browser shots | pass |
+| 2026-11-09 | D5 review fixes (17 issues, 5 softlocks; +11 regression tests, 199 in all) | pass |

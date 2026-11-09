@@ -4,7 +4,7 @@
 
 class Lever extends GridThing {
     constructor(tx, ty, props = {}) {
-        super('lever', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, props));
+        super('lever', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, props));
         this.on = !!props.on;
     }
     onAdd(area) { super.onAdd(area); if (this.id && !this.release && Progress.areaFlag(area.id, 'lever:' + this.id)) { this.on = true; this.fired = true; } }

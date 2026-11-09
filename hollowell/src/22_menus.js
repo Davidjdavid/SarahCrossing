@@ -177,10 +177,13 @@ const PauseMenu = {
         } else if (tab === 'Options') {
             if (Input.pressed('act')) { Options.open(); Options.focus = true; }
         } else if (tab === 'Save') {
-            if (Input.pressed('up') || Input.pressed('down')) { this.sel = 1 - this.sel; Sfx.play('menu'); }
+            const n = this.saveItems().length;
+            if (Input.pressed('up')) { this.sel = (this.sel + n - 1) % n; Sfx.play('menu'); }
+            if (Input.pressed('down')) { this.sel = (this.sel + 1) % n; Sfx.play('menu'); }
             if (Input.pressed('act')) {
                 if (this.sel === 0) { Save.write(); Sfx.play('save'); this.saveMsg = 90; }
-                else { Save.write(); this.close(); Title.open(); }
+                else if (this.sel === 1) { Save.write(); this.close(); Title.open(); }
+                else { this.close(); PauseMenu.backToDoor(); }
             }
             if (this.saveMsg) this.saveMsg--;
         } else if (tab === 'Map') {
@@ -205,7 +208,7 @@ const PauseMenu = {
         if (tab === 'Journal') this.drawJournal();
         if (tab === 'Options') Options.draw(true);
         if (tab === 'Save') {
-            ['Save here', 'Save and go to the title'].forEach((s, i) => {
+            this.saveItems().forEach((s, i) => {
                 const y = 70 + i * 16;
                 if (i === this.sel) Font.draw('\x02', 110, y, PAL.red2);
                 Font.draw(s, 120, y, i === this.sel ? PAL.ink : PAL.grey3);
@@ -213,6 +216,21 @@ const PauseMenu = {
             if (this.saveMsg) Font.center('Saved. (The Way remembers.)', W / 2, 120, PAL.green3);
             Font.center('Your Wander is also kept whenever you go through a door.', W / 2, 150, PAL.grey3);
         }
+    },
+    /* in a House there's always a way out: back to its door, as if you'd fainted (but without the fainting) */
+    saveItems() {
+        const a = G.map, l = ['Save here', 'Save and go to the title'];
+        if (a && a.def.house && AREAS[a.id].entry && G.player && G.player.state === 'normal') l.push("Back to the House's door");
+        return l;
+    },
+    backToDoor() {
+        Script.run(function* () {
+            const e = AREAS[G.map.id].entry;
+            yield* fadeOut(20);
+            World.enter(G.map.id, e.x, e.y, { dir: UP });
+            Stats.count('backToDoor');
+            yield* fadeIn(20);
+        });
     },
     drawSatchel() {
         Font.draw('Tools', 22, 34, PAL.grey3);

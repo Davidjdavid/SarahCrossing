@@ -12,6 +12,7 @@ const Bedroll = {
     traces: {},           /* Wren's trace in the Bedroll's place, kept while she's elsewhere */
     float: null,          /* the float it lies on, if any */
     sleeper: null,        /* a Snoreling asleep on it */
+    floatId(o) { return o.id || (o.ret ? o.ret.mx + ',' + o.ret.my : null); },
     lies(area) { const b = Inv.bedroll; return !!(b && area && b.area === area.id); },
     mark() { const b = Inv.bedroll; return { area: b.area, tx: b.tx, ty: b.ty, bed: 'roll' }; },
     /* Wren arrives in the Bedroll's place: it's her mark again, and her old trace here still leads to it */
@@ -29,18 +30,22 @@ const Bedroll = {
     ground(a, tx, ty) {
         const k = a.kind(tx, ty), o = a.at(tx, ty);
         if (o && o.floats && Water.rideable(o)) return true;
-        return !(k.solid || k.pit || k.deep || k.fog || k.ledge || k.k === 'stairs' || o);
+        return !(k.solid || k.pit || k.deep || k.fog || k.ledge || a.kindName(tx, ty) === 'stairs' || o);
     },
     near(p) { const b = Inv.bedroll; return this.lies(p.area) && Math.abs(p.tx - b.tx) <= 1 && Math.abs(p.ty - b.ty) <= 1; },
     lay(p) {
         const a = p.area, tx = p.tx, ty = p.ty, o = a.at(tx, ty);
         if (p.carry) { UI.toast('Your hands are full.'); return; }
         if (a.def.noBedroll) { UI.toast(a.def.noBedroll === true ? "It won't lie flat here." : a.def.noBedroll); return; }
+        const nb = (a.def.noBedrollAt || []).find(([x0, y0, x1, y1]) => tx >= x0 && ty >= y0 && tx <= x1 && ty <= y1);
+        if (nb) { UI.toast(nb[4] || "It won't lie flat here."); return; }
         if (!this.ground(a, tx, ty) || a.ents.some(e => e.kind === 'warp' && e.tx === tx && e.ty === ty)) { UI.toast('Not here: somewhere flat and dry.'); return; }
         const moved = !!Inv.bedroll;
         if (this.sleeper) { this.sleeper.wake(); this.sleeper = null; }
         Inv.bedroll = { area: a.id, tx, ty, lx: tx, ly: ty };
         this.float = o && o.floats ? o : null;
+        /* which float it's on, to find it again when the place is built afresh (the float back at its own home) */
+        if (this.float) Inv.bedroll.fid = Bedroll.floatId(this.float);
         delete this.traces[a.id];
         p.mark = this.mark(); p.trace = [[tx, ty]];
         Sfx.play('lay'); Fx.poof(tx * T + 8, ty * T + 10);
@@ -51,14 +56,14 @@ const Bedroll = {
     rollUp(p) {
         if (this.sleeper) { UI.toast("Somebody's fast asleep on your Bedroll."); return; }
         Inv.bedroll = null; this.float = null; this.traces = {};
-        p.setMark(p.tx, p.ty, p.area, true);
+        p.dropBed();
         Sfx.play('lift'); UI.toast('Bedroll rolled up.', 60);
     },
     /* it's gone somewhere it can't stay (a board gave way under it, its float sank): back in Wren's pack */
     lost(why) {
         Inv.bedroll = null; this.float = null; this.traces = {}; this.sleeper = null;
         const p = G.player;
-        if (p && p.mark && p.mark.bed === 'roll') { if (p.state === 'normal') p.setMark(p.tx, p.ty, p.area, true); else p.mark.bed = false; }
+        if (p && p.mark && p.mark.bed === 'roll') { if (p.state === 'normal') p.dropBed(); else p.mark.bed = false; }
         G.pendingToast = why || 'Your Bedroll tumbled away... and turned up, rolled, in your pack.';
     },
     homeward(p) {
@@ -76,11 +81,20 @@ const Bedroll = {
         if (!AREAS[b.area] || p.area.def.noHomeward) { UI.toast(p.area.def.noHomeward || 'Home is too far away to fly to from here.'); return; }
         /* from another place: up and away, and down at the Bedroll */
         Stats.count('homeward:far');
+        /* what Wren carries can't come so far: it goes home, as things do */
+        if (p.carry) { p.dropCarry(); UI.toast('What you were carrying tugs out of your hands, homeward.', 120); }
         Script.run(function* () {
             Sfx.play('flight');
             const pl = G.player; pl.state = 'hop'; pl.hop = { fx: pl.x, fy: pl.y, tx: pl.x, ty: pl.y - 40, t: 0, dur: 30, h: 30 };
             yield* fadeOut(24);
             World.enter(b.area, b.tx, b.ty, { dir: DOWN });
+            /* the Bedroll may have gone with its float since (or been lost): land where it is now, on open ground */
+            Bedroll.update(G.map);
+            const nb = Inv.bedroll, q = G.player;
+            if (nb && nb.area === G.map.id) {
+                const [lx, ly] = q.landingSpot(nb.tx, nb.ty); q.x = lx * T + 8; q.y = ly * T + 10;
+                Bedroll.claim(q, G.map); Cam.snap(q);
+            }
             Sfx.play('land'); Fx.dust(G.player.x, G.player.y);
             G.player.inv = 40;
             for (const h of Player.onLand) h(G.player, null);
@@ -93,7 +107,14 @@ const Bedroll = {
         if (!this.lies(area)) { if (mat) area.remove(mat); if (this.float && this.float.area === area) this.float = null; return; }
         if (!mat) {
             mat = area.add(new BedrollMat(b.tx, b.ty));
-            /* after a load, find the float it was lying on */
+            /* the place built afresh (or a load): find the float it was lying on, wherever that is now */
+            if (!this.float && b.fid) {
+                const o = area.ents.find(e => e.floats && !e.removed && Bedroll.floatId(e) === b.fid);
+                if (o) {
+                    this.float = o; b.tx = o.tx; b.ty = o.ty;
+                    if (p && p.mark && p.mark.bed === 'roll' && p.mark.area === area.id) { p.mark.tx = b.tx; p.mark.ty = b.ty; }
+                }
+            }
             if (!this.float) { const o = area.at(b.tx, b.ty); if (o && o.floats) this.float = o; }
         }
         const f = this.float;
@@ -119,7 +140,7 @@ SFX.puff = (o, t) => Audio.hit(o, t, 0.4, 0.14, 600, 2400);
 /* keep the trace in the Bedroll's place when Wren goes elsewhere, so it still leads home on her return */
 {
     const enter = World.enter;
-    World.enter = function (...args) { Bedroll.stash(); return enter.apply(this, args); };
+    World.enter = function (...args) { Bedroll.stash(); Bedroll.float = null; Bedroll.sleeper = null; return enter.apply(this, args); };
 }
 
 /* the Bedroll where it lies: drawn on the floor (on its float, if it's on one) */
@@ -263,6 +284,8 @@ class DreamRing extends Ent {
         const dx = x1 - x0, dy = y1 - y0, L = dx * dx + dy * dy;
         const u = L ? clamp(((cx - x0) * dx + (cy - y0) * dy) / L, 0, 1) : 0;
         if (Math.hypot(x0 + dx * u - cx, y0 + dy * u - cy) > 9) return;
+        /* a flight that starts under the ring hasn't gone through it */
+        const f = pl.flight; if (f && f.pts && Math.hypot(f.pts[0][0] - cx, f.pts[0][1] - cy) < 14) return;
         if (!this.lit) { Sfx.play('blip'); Fx.ring(cx, cy - 8, '#d8c8f8'); Stats.count('dreamrings'); }
         this.lit = this.time;
     }

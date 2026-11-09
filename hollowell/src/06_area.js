@@ -89,6 +89,8 @@ class Area {
         if (!this.inside(x, y)) return false;
         const k = this.kind(x, y);
         if ((k.solid && !(k.crawl && e && e.small)) || k.ledge) return false;
+        /* a little hole: only small things fit down it */
+        if (k.pit && e && e.isGrid && !e.small && this.cell(x, y).narrow) return false;
         if (k.fog) return false;
         const o = this.at(x, y);
         if (o && o !== e) return false;

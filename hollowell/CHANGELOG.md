@@ -53,4 +53,7 @@
   lift, a hidden nook, the valley's foggy edge) and the sixth dungeon (10 rooms, a mini-boss, a boss), with tests for
   every room and a playthrough leg from the fifth Knot to the sixth. New music for both.
 - The story's first big turn.
+- Fixes from the fifth dungeon's review: never stuck inside things after loading or flying home; the room's own place
+  comes back when the bedroll is rolled up; a "back to the door" option in every dungeon's pause menu; several ways
+  to cheese or lose rooms closed.
 

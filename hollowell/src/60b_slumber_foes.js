@@ -88,6 +88,7 @@ class Matron extends Enemy {
         this.state = 'follow'; this.st = 0; this.i = 0;
     }
     shoved() { }
+    hooked(h) { Sfx.play('hookhit'); Fx.ring(this.x, this.y - 10); }
     defeat() {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 10, THREAD.mallow);
@@ -114,6 +115,7 @@ SPAWN.matron = (x, y, p) => Progress.flag('slumber_matron') ? new Ent('none') : 
 /* ---------------- Mother Sloth ---------------- */
 const SLOTH = { REACH: 5.5, SNAP: 6.25 };
 class MotherSloth extends Enemy {
+    hooked(h) { Sfx.play('hookhit'); }
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ type: 'mothersloth', hp: 3 }, p));
         this.state = 'sleep'; this.st = 0; this.weightN = 9; this.hidden = false; this.pillows = [];
@@ -242,6 +244,7 @@ class MotherSloth extends Enemy {
         this.rise();
     }
     shoved() { }
+    hooked(h) { Sfx.play('hookhit'); Fx.ring(this.x, this.y - 10); }
     defeat() {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]]; this.pillows = [];
         const p = G.player; if (p && p.pinned) p.pinned = null;
@@ -258,8 +261,8 @@ class MotherSloth extends Enemy {
         if (this.state !== 'sleep') {
             Gfx.alpha(0.6);
             for (const arm of this.arms) for (let i = 0; i < 48; i++) {
-                const t = i / 48 * Math.PI * 2, x = arm.sx + Math.cos(t) * SLOTH.REACH * T, y = arm.sy + Math.sin(t) * SLOTH.REACH * T;
-                if (this.arms.some(o => o !== arm && Math.hypot(x - o.sx, y - o.sy) < SLOTH.REACH * T)) continue;
+                const t = i / 48 * Math.PI * 2, x = arm.sx + Math.cos(t) * SLOTH.SNAP * T, y = arm.sy + Math.sin(t) * SLOTH.SNAP * T;
+                if (this.arms.some(o => o !== arm && Math.hypot(x - o.sx, y - o.sy) < SLOTH.SNAP * T)) continue;
                 Gfx.rect(x - cx, y - cy, 2, 2, '#f7e08a');
             }
             Gfx.alpha(1);
@@ -292,6 +295,8 @@ SPAWN.mothersloth = (x, y, p) => Progress.flag('slumber_boss') ? new Ent('none')
 const SlumberFoes = {
     *matronIntro(m) {
         yield 20;
+        if (Progress.flag('matron_met')) { yield* say(null, '"LIGHTS OUT," says Matron Hush, sitting bolt upright again. "I SAID. BACK. TO. BED."'); return; }
+        Progress.set('matron_met');
         yield* say(null, 'In the starched bed by the wall, somebody sits bolt upright: a tall, tall nurse in a cap, her eyes tight shut. "LIGHTS OUT," she says. "Back to bed. NOW."');
         yield* say(null, 'She gets up, still asleep, and comes after you, putting her feet exactly where you put yours. The doors swing shut.');
     },

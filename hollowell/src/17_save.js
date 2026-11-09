@@ -49,7 +49,7 @@ const Save = {
             World.enter(pos.area, 0, 0, { px: pos.x, py: pos.y, dir: pos.dir, noSave: true });
             /* in a House, start at the room's doorway (the mark) */
             if (pos.mark && pos.mark.area === pos.area && G.map.def.house) {
-                G.player.x = pos.mark.tx * T + 8; G.player.y = pos.mark.ty * T + 10; G.player.setMark(); Cam.snap(G.player);
+                G.player.x = pos.mark.tx * T + 8; G.player.y = pos.mark.ty * T + 10; G.player.unstick(); G.player.setMark(); Cam.snap(G.player);
             }
         } else World.enter(START.area, START.x, START.y, { noSave: true });
     },

@@ -942,6 +942,8 @@ class Area {
         if (!this.inside(x, y)) return false;
         const k = this.kind(x, y);
         if ((k.solid && !(k.crawl && e && e.small)) || k.ledge) return false;
+        /* a little hole: only small things fit down it */
+        if (k.pit && e && e.isGrid && !e.small && this.cell(x, y).narrow) return false;
         if (k.fog) return false;
         const o = this.at(x, y);
         if (o && o !== e) return false;
@@ -2161,9 +2163,6 @@ class Player extends Ent {
 
     /* ----- marks and traces ----- */
     setMark(tx = this.tx, ty = this.ty, area = this.area, force) {
-        /* a bed Wren lay down in, or the Bedroll, stays Wren's mark while Wren is in that place (src/58_bedroll_kit.js) */
-        if (!force && this.mark && this.mark.bed && this.mark.area === area.id) return;
-        if (!force && typeof Bedroll !== 'undefined' && Bedroll.lies(area)) { Bedroll.claim(this, area); return; }
         /* never on a doorway (a door may shut there): one step on into the room */
         const r = area.roomAt && area.roomAt(tx, ty);
         if (r && area.rooms.length > 1 && (tx === r.x || ty === r.y || tx === r.x + r.w - 1 || ty === r.y + r.h - 1)) {
@@ -2171,10 +2170,26 @@ class Player extends Ent {
             if (area.inside(nx, ny) && !area.kind(nx, ny).solid && !area.kind(nx, ny).deep && !area.kind(nx, ny).pit) { tx = nx; ty = ny; }
         }
         /* only solid, dry, open ground can be home (never deep water, a pit, or a raft) */
-        const k = area.kind(tx, ty);
-        if (k.deep || k.pit || k.fog || k.solid || (area.at && area.at(tx, ty) && area.at(tx, ty).floats)) { if (this.mark && this.mark.area === area.id) return; }
+        const k = area.kind(tx, ty), bad = k.deep || k.pit || k.fog || k.solid || (area.at && area.at(tx, ty) && area.at(tx, ty).floats);
+        /* the room's own mark (where Wren came in), kept even while a bed holds: rolling the Bedroll up goes back to it */
+        if (!bad && !force) this.roomMark = { area: area.id, tx, ty };
+        /* a bed Wren lay down in, or the Bedroll, stays Wren's mark while Wren is in that place (src/58_bedroll_kit.js) */
+        if (!force && this.mark && this.mark.bed && this.mark.area === area.id) return;
+        if (!force && typeof Bedroll !== 'undefined' && Bedroll.lies(area)) { Bedroll.claim(this, area); return; }
+        if (bad) { if (this.mark && this.mark.area === area.id) { if (this.mark.bed) this.mark = { area: area.id, tx: this.mark.tx, ty: this.mark.ty }; return; } }
         this.mark = { area: area.id, tx, ty };
         this.trace = [[tx, ty]];
+    }
+    /* no bed any more (the Bedroll rolled up or lost): the mark is the room's own again, the doorway Wren came in by */
+    dropBed() {
+        const a = this.area, m = this.roomMark;
+        if (m && m.area === a.id) { this.mark = { area: a.id, tx: m.tx, ty: m.ty }; this.trace = [[m.tx, m.ty]]; this.traceStep(); }
+        else this.setMark(this.tx, this.ty, a, true);
+    }
+    /* never left standing inside something (a block back at home after the place was built again, a closed gate) */
+    unstick() {
+        const [lx, ly] = this.landingSpot(this.tx, this.ty);
+        if (lx !== this.tx || ly !== this.ty) { this.x = lx * T + 8; this.y = ly * T + 10; }
     }
     traceStep() {
         const tx = this.tx, ty = this.ty, tr = this.trace;
@@ -2459,6 +2474,7 @@ class Player extends Ent {
         if (o.noThrow) {
             const f = this.front(), a = this.area, k = a.kind(f.tx, f.ty);
             if (!a.inside(f.tx, f.ty) || k.solid || k.ledge || a.at(f.tx, f.ty)) { UI.toast('No room to put it down there.'); return; }
+            if (k.pit && a.cell(f.tx, f.ty).narrow) { UI.toast("It's far too big for that little hole."); return; }
             this.carry = null; o.carried = false; o.heldBy = null;
             o.tx = f.tx; o.ty = f.ty; o.x = f.tx * T; o.y = f.ty * T;
             a.place(o, o.tx, o.ty);
@@ -2562,7 +2578,7 @@ class Player extends Ent {
             return true;
         };
         if (ok(tx, ty)) return [tx, ty];
-        for (let r = 1; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        for (let r = 1; r <= 5; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
             if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
             if (ok(tx + dx, ty + dy)) return [tx + dx, ty + dy];
         }
@@ -2593,7 +2609,7 @@ class Player extends Ent {
         f.t++;
         /* the Recall Bell rung on the way: Wren is a thing out of place, and snaps home at once (S18) */
         if (Inv.equipped === 'bell' && Inv.has('bell') && Input.pressed('tool') && f.t < f.dur - 2) {
-            f.t = f.dur; Sfx.play('bell'); Fx.ring(this.x, this.y - 8, '#f7d64a');
+            f.t = f.dur; f.snapped = true; Sfx.play('bell'); Fx.ring(this.x, this.y - 8, '#f7d64a');
             Stats.count('bellflight');
             if (!Progress.flag('s18')) { Progress.set('s18'); Stats.count('secret:bellflight'); G.pendingToast = 'You ring the Bell in mid-flight, and snap home like anything else out of place.'; }
         }
@@ -2613,7 +2629,7 @@ class Player extends Ent {
         if (f.t >= f.dur) { const m = this.mark; this.x = m.tx * T + 8; this.y = m.ty * T + 10; }
         if (this.carry) { this.carry.cx = this.x; this.carry.cy = this.y - 14; }
         /* whatever the flight passes through hears of it (dreamcatchers, a boss's arms) */
-        for (const e of this.area.ents) if (e.flyThrough && !e.removed) e.flyThrough(this, ox, oy, this.x, this.y);
+        if (!f.snapped) for (const e of this.area.ents) if (e.flyThrough && !e.removed) e.flyThrough(this, ox, oy, this.x, this.y);   /* (a snap home goes round, not through) */
         if (f.t >= f.dur) {
             const m = this.mark;
             const [lx, ly] = this.landingSpot(m.tx, m.ty);
@@ -3424,6 +3440,7 @@ const World = {
         if (opts.px !== undefined) { p.x = opts.px; p.y = opts.py; }
         p.dir = opts.dir !== undefined ? (typeof opts.dir === 'string' ? dirByName(opts.dir) : opts.dir) : p.dir;
         p.state = 'normal'; p.kx = p.ky = 0; p.shove = null; p.z = 0; p.pinned = null;
+        p.unstick();
         p.setMark();
         Cam.snap(p);
         Stats.enterRoom(a, Cam.room);
@@ -3532,7 +3549,7 @@ const Save = {
             World.enter(pos.area, 0, 0, { px: pos.x, py: pos.y, dir: pos.dir, noSave: true });
             /* in a House, start at the room's doorway (the mark) */
             if (pos.mark && pos.mark.area === pos.area && G.map.def.house) {
-                G.player.x = pos.mark.tx * T + 8; G.player.y = pos.mark.ty * T + 10; G.player.setMark(); Cam.snap(G.player);
+                G.player.x = pos.mark.tx * T + 8; G.player.y = pos.mark.ty * T + 10; G.player.unstick(); G.player.setMark(); Cam.snap(G.player);
             }
         } else World.enter(START.area, START.x, START.y, { noSave: true });
     },
@@ -4308,10 +4325,13 @@ const PauseMenu = {
         } else if (tab === 'Options') {
             if (Input.pressed('act')) { Options.open(); Options.focus = true; }
         } else if (tab === 'Save') {
-            if (Input.pressed('up') || Input.pressed('down')) { this.sel = 1 - this.sel; Sfx.play('menu'); }
+            const n = this.saveItems().length;
+            if (Input.pressed('up')) { this.sel = (this.sel + n - 1) % n; Sfx.play('menu'); }
+            if (Input.pressed('down')) { this.sel = (this.sel + 1) % n; Sfx.play('menu'); }
             if (Input.pressed('act')) {
                 if (this.sel === 0) { Save.write(); Sfx.play('save'); this.saveMsg = 90; }
-                else { Save.write(); this.close(); Title.open(); }
+                else if (this.sel === 1) { Save.write(); this.close(); Title.open(); }
+                else { this.close(); PauseMenu.backToDoor(); }
             }
             if (this.saveMsg) this.saveMsg--;
         } else if (tab === 'Map') {
@@ -4336,7 +4356,7 @@ const PauseMenu = {
         if (tab === 'Journal') this.drawJournal();
         if (tab === 'Options') Options.draw(true);
         if (tab === 'Save') {
-            ['Save here', 'Save and go to the title'].forEach((s, i) => {
+            this.saveItems().forEach((s, i) => {
                 const y = 70 + i * 16;
                 if (i === this.sel) Font.draw('\x02', 110, y, PAL.red2);
                 Font.draw(s, 120, y, i === this.sel ? PAL.ink : PAL.grey3);
@@ -4344,6 +4364,21 @@ const PauseMenu = {
             if (this.saveMsg) Font.center('Saved. (The Way remembers.)', W / 2, 120, PAL.green3);
             Font.center('Your Wander is also kept whenever you go through a door.', W / 2, 150, PAL.grey3);
         }
+    },
+    /* in a House there's always a way out: back to its door, as if you'd fainted (but without the fainting) */
+    saveItems() {
+        const a = G.map, l = ['Save here', 'Save and go to the title'];
+        if (a && a.def.house && AREAS[a.id].entry && G.player && G.player.state === 'normal') l.push("Back to the House's door");
+        return l;
+    },
+    backToDoor() {
+        Script.run(function* () {
+            const e = AREAS[G.map.id].entry;
+            yield* fadeOut(20);
+            World.enter(G.map.id, e.x, e.y, { dir: UP });
+            Stats.count('backToDoor');
+            yield* fadeIn(20);
+        });
     },
     drawSatchel() {
         Font.draw('Tools', 22, 34, PAL.grey3);
@@ -6065,7 +6100,7 @@ SONGS.marionette = {
 
 class Lever extends GridThing {
     constructor(tx, ty, props = {}) {
-        super('lever', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, props));
+        super('lever', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, props));
         this.on = !!props.on;
     }
     onAdd(area) { super.onAdd(area); if (this.id && !this.release && Progress.areaFlag(area.id, 'lever:' + this.id)) { this.on = true; this.fired = true; } }
@@ -9867,7 +9902,7 @@ const Bells = {
             if (Math.hypot(e.tx * T + 8 - x, e.ty * T + 8 - y) > reach * T + 4 || !here(e.tx, e.ty)) continue;
             if (e.sleeper && e.tiedOff) {
                 e.tiedOff = false; e.sleeper = false;
-                if (e.id && !e.resetSleep) Progress.setAreaFlag(area.id, 'woke:' + e.id);
+                if (e.id && !e.resetSleep && (!e.saveWake || e.saveWake(e))) Progress.setAreaFlag(area.id, 'woke:' + e.id);
                 if (e.onWake) e.onWake();
             }
             if (e.ret.state === 'home' || e.carried || e.shattered) continue;
@@ -11010,6 +11045,7 @@ const Bedroll = {
     traces: {},           /* Wren's trace in the Bedroll's place, kept while she's elsewhere */
     float: null,          /* the float it lies on, if any */
     sleeper: null,        /* a Snoreling asleep on it */
+    floatId(o) { return o.id || (o.ret ? o.ret.mx + ',' + o.ret.my : null); },
     lies(area) { const b = Inv.bedroll; return !!(b && area && b.area === area.id); },
     mark() { const b = Inv.bedroll; return { area: b.area, tx: b.tx, ty: b.ty, bed: 'roll' }; },
     /* Wren arrives in the Bedroll's place: it's her mark again, and her old trace here still leads to it */
@@ -11027,18 +11063,22 @@ const Bedroll = {
     ground(a, tx, ty) {
         const k = a.kind(tx, ty), o = a.at(tx, ty);
         if (o && o.floats && Water.rideable(o)) return true;
-        return !(k.solid || k.pit || k.deep || k.fog || k.ledge || k.k === 'stairs' || o);
+        return !(k.solid || k.pit || k.deep || k.fog || k.ledge || a.kindName(tx, ty) === 'stairs' || o);
     },
     near(p) { const b = Inv.bedroll; return this.lies(p.area) && Math.abs(p.tx - b.tx) <= 1 && Math.abs(p.ty - b.ty) <= 1; },
     lay(p) {
         const a = p.area, tx = p.tx, ty = p.ty, o = a.at(tx, ty);
         if (p.carry) { UI.toast('Your hands are full.'); return; }
         if (a.def.noBedroll) { UI.toast(a.def.noBedroll === true ? "It won't lie flat here." : a.def.noBedroll); return; }
+        const nb = (a.def.noBedrollAt || []).find(([x0, y0, x1, y1]) => tx >= x0 && ty >= y0 && tx <= x1 && ty <= y1);
+        if (nb) { UI.toast(nb[4] || "It won't lie flat here."); return; }
         if (!this.ground(a, tx, ty) || a.ents.some(e => e.kind === 'warp' && e.tx === tx && e.ty === ty)) { UI.toast('Not here: somewhere flat and dry.'); return; }
         const moved = !!Inv.bedroll;
         if (this.sleeper) { this.sleeper.wake(); this.sleeper = null; }
         Inv.bedroll = { area: a.id, tx, ty, lx: tx, ly: ty };
         this.float = o && o.floats ? o : null;
+        /* which float it's on, to find it again when the place is built afresh (the float back at its own home) */
+        if (this.float) Inv.bedroll.fid = Bedroll.floatId(this.float);
         delete this.traces[a.id];
         p.mark = this.mark(); p.trace = [[tx, ty]];
         Sfx.play('lay'); Fx.poof(tx * T + 8, ty * T + 10);
@@ -11049,14 +11089,14 @@ const Bedroll = {
     rollUp(p) {
         if (this.sleeper) { UI.toast("Somebody's fast asleep on your Bedroll."); return; }
         Inv.bedroll = null; this.float = null; this.traces = {};
-        p.setMark(p.tx, p.ty, p.area, true);
+        p.dropBed();
         Sfx.play('lift'); UI.toast('Bedroll rolled up.', 60);
     },
     /* it's gone somewhere it can't stay (a board gave way under it, its float sank): back in Wren's pack */
     lost(why) {
         Inv.bedroll = null; this.float = null; this.traces = {}; this.sleeper = null;
         const p = G.player;
-        if (p && p.mark && p.mark.bed === 'roll') { if (p.state === 'normal') p.setMark(p.tx, p.ty, p.area, true); else p.mark.bed = false; }
+        if (p && p.mark && p.mark.bed === 'roll') { if (p.state === 'normal') p.dropBed(); else p.mark.bed = false; }
         G.pendingToast = why || 'Your Bedroll tumbled away... and turned up, rolled, in your pack.';
     },
     homeward(p) {
@@ -11074,11 +11114,20 @@ const Bedroll = {
         if (!AREAS[b.area] || p.area.def.noHomeward) { UI.toast(p.area.def.noHomeward || 'Home is too far away to fly to from here.'); return; }
         /* from another place: up and away, and down at the Bedroll */
         Stats.count('homeward:far');
+        /* what Wren carries can't come so far: it goes home, as things do */
+        if (p.carry) { p.dropCarry(); UI.toast('What you were carrying tugs out of your hands, homeward.', 120); }
         Script.run(function* () {
             Sfx.play('flight');
             const pl = G.player; pl.state = 'hop'; pl.hop = { fx: pl.x, fy: pl.y, tx: pl.x, ty: pl.y - 40, t: 0, dur: 30, h: 30 };
             yield* fadeOut(24);
             World.enter(b.area, b.tx, b.ty, { dir: DOWN });
+            /* the Bedroll may have gone with its float since (or been lost): land where it is now, on open ground */
+            Bedroll.update(G.map);
+            const nb = Inv.bedroll, q = G.player;
+            if (nb && nb.area === G.map.id) {
+                const [lx, ly] = q.landingSpot(nb.tx, nb.ty); q.x = lx * T + 8; q.y = ly * T + 10;
+                Bedroll.claim(q, G.map); Cam.snap(q);
+            }
             Sfx.play('land'); Fx.dust(G.player.x, G.player.y);
             G.player.inv = 40;
             for (const h of Player.onLand) h(G.player, null);
@@ -11091,7 +11140,14 @@ const Bedroll = {
         if (!this.lies(area)) { if (mat) area.remove(mat); if (this.float && this.float.area === area) this.float = null; return; }
         if (!mat) {
             mat = area.add(new BedrollMat(b.tx, b.ty));
-            /* after a load, find the float it was lying on */
+            /* the place built afresh (or a load): find the float it was lying on, wherever that is now */
+            if (!this.float && b.fid) {
+                const o = area.ents.find(e => e.floats && !e.removed && Bedroll.floatId(e) === b.fid);
+                if (o) {
+                    this.float = o; b.tx = o.tx; b.ty = o.ty;
+                    if (p && p.mark && p.mark.bed === 'roll' && p.mark.area === area.id) { p.mark.tx = b.tx; p.mark.ty = b.ty; }
+                }
+            }
             if (!this.float) { const o = area.at(b.tx, b.ty); if (o && o.floats) this.float = o; }
         }
         const f = this.float;
@@ -11117,7 +11173,7 @@ SFX.puff = (o, t) => Audio.hit(o, t, 0.4, 0.14, 600, 2400);
 /* keep the trace in the Bedroll's place when Wren goes elsewhere, so it still leads home on her return */
 {
     const enter = World.enter;
-    World.enter = function (...args) { Bedroll.stash(); return enter.apply(this, args); };
+    World.enter = function (...args) { Bedroll.stash(); Bedroll.float = null; Bedroll.sleeper = null; return enter.apply(this, args); };
 }
 
 /* the Bedroll where it lies: drawn on the floor (on its float, if it's on one) */
@@ -11261,6 +11317,8 @@ class DreamRing extends Ent {
         const dx = x1 - x0, dy = y1 - y0, L = dx * dx + dy * dy;
         const u = L ? clamp(((cx - x0) * dx + (cy - y0) * dy) / L, 0, 1) : 0;
         if (Math.hypot(x0 + dx * u - cx, y0 + dy * u - cy) > 9) return;
+        /* a flight that starts under the ring hasn't gone through it */
+        const f = pl.flight; if (f && f.pts && Math.hypot(f.pts[0][0] - cx, f.pts[0][1] - cy) < 14) return;
         if (!this.lit) { Sfx.play('blip'); Fx.ring(cx, cy - 8, '#d8c8f8'); Stats.count('dreamrings'); }
         this.lit = this.time;
     }
@@ -11980,7 +12038,7 @@ defHouse({
     id: 'slumber', name: 'The Slumberhouse', place: 'The Slumberhouse', house: 'slumber', theme: 'slumberhouse', thread: THREAD.mallow, music: 'slumber',
     knotName: 'Sleeping Knot',
     entry: SLUMBER_ENTRY,
-    legend: { 'c': { k: 'floor', p: 'floor2', ent: 'crumble' } },
+    legend: { 'c': { k: 'floor', p: 'floor2', ent: 'crumble' }, 'n': { k: 'pit', p: 'pit', narrow: true } },
     cells: {
         /* ---------------- 1 The Night Porch: a bed is where you wake; boards that give way; falls are travel ---------------- */
         '1,3': {
@@ -12050,7 +12108,7 @@ defHouse({
             ],
             ents: [
                 { k: 'plate', x: 8, y: 3, sig: 'lp1', mode: 'toggle' }, { k: 'plate', x: 12, y: 5, sig: 'lp2', mode: 'toggle' }, { k: 'plate', x: 7, y: 7, sig: 'lp3', mode: 'toggle' },
-                { k: 'door', x: 4, y: 5, type: 'gate', when: 'lp1&lp2&lp3', dir: 'v', id: 'lcGate' },
+                { k: 'door', x: 4, y: 5, type: 'gate', when: 'lp1&lp2&lp3', dir: 'v', id: 'lcGate', keep: true },
                 { k: 'chest', x: 2, y: 5, item: 'key', id: 'lcKey' },
                 { k: 'bed', x: 16, y: 1, id: 'lcBed' },
                 { k: 'sign', x: 17, y: 8, text: 'THE LINEN CUPBOARD. Three lamps on the old floor. Light them all at once and the cupboard opens. The boards only bear you the once.' },
@@ -12078,7 +12136,7 @@ defHouse({
                 { k: 'dreamring', x: 9, y: 7, sig: 'lr1', id: 'ldRing1' }, { k: 'dreamring', x: 16, y: 4, sig: 'lr2', id: 'ldRing2' }, { k: 'dreamring', x: 9, y: 2, sig: 'lr3', id: 'ldRing3' },
                 { k: 'chest', x: 1, y: 1, item: 'plan', id: 'ldPlan', hidden: true, when: 'lr1&lr2&lr3' },
                 { k: 'grate', x: 19, y: 5 },
-                { k: 'barrel', x: 22, y: 5, id: 'ldBarrel', sleeper: true, tiedOff: true, startAt: [17, 5], trace: [[22, 5], [21, 5], [20, 5], [19, 5], [18, 5], [17, 5]], pushLine: 'A washtub barrel, bobbing fast asleep by the grate. Bubbles come up, now and then, like snores.' },
+                { k: 'barrel', x: 22, y: 5, id: 'ldBarrel', sleeper: true, tiedOff: true, saveWake: e => Bedroll.float === e, startAt: [17, 5], trace: [[22, 5], [21, 5], [20, 5], [19, 5], [18, 5], [17, 5]], pushLine: 'A washtub barrel, bobbing fast asleep by the grate. Bubbles come up, now and then, like snores.' },
                 { k: 'door', x: 19, y: 3, type: 'gate', when: 'stlever', dir: 'v', id: 'ldStudyDoor' },
                 { k: 'sign', x: 18, y: 9, text: 'THE LAUNDRY. The wash goes round and round. Whatever goes round comes back to where it started, and is none the wiser.' },
                 { k: 'sign', x: 1, y: 9, text: 'Hung over the tub: three dreamcatchers. They only catch you on your way home.' },
@@ -12173,7 +12231,7 @@ defHouse({
                 '##vvvvvvvv#........#',
                 '##........#........#',
                 '##........#........#',
-                '##......o.#........#',
+                '##......n.#........#',
                 '####################',
             ],
             ents: [
@@ -12182,7 +12240,7 @@ defHouse({
                 { k: 'deco', x: 14, y: 7, look: 'crib', solid: [[0, 0], [1, 0]], oy: -6, text: 'A crib, empty. A mobile of little wooden moons turns over it, though there is no draught.' },
                 { k: 'sign', x: 12, y: 4, text: "THE NURSERY. Toys away by bedtime, please. (Someone has added, in crayon: THE BIG BLOCK DOESN'T GO BACK. IT NEVER GOES BACK.)" },
             ],
-            nudge: { solved: () => !slumberPit('slumber', 0, 1, 9, 2), after: 60 * 60 * 3, thing: 'nuToy', say: "The toy block in the playpen doesn't belong anywhere. Whatever falls into a pit and doesn't come back fills it in. If only it could be got out of the playpen." },
+            nudge: { solved: () => Slumber.toyUsed(), after: 60 * 60 * 3, thing: 'nuToy', say: "The toy block in the playpen doesn't belong anywhere. Whatever falls into a pit and doesn't come back fills it in. If only it could be got out of the playpen." },
         },
         /* ---------------- 9 The Moonwalk: be in two places at once, nearly (key C) ---------------- */
         '2,1': {
@@ -12259,13 +12317,45 @@ defHouse({
         },
     },
     tick: a => Slumber.tick(a),
+    build: a => Slumber.build(a),
     afterKnot: function* () { yield* Slumber.afterKnot(); },
 });
 /* a pit still there? (for nudges) */
 function slumberPit(area, cx, cy, x, y) { const a = G.map; if (!a || a.id !== area) return true; return a.kind(cx * 20 + x, cy * 11 + y).pit; }
 
 const Slumber = {
+    NURSERY_PITS: () => { const r = []; for (let x = 1; x <= 18; x++) r.push([x, 11 + 2]); return r; },
+    toyUsed() { return this.NURSERY_PITS().some(([x, y]) => Progress.areaFlag('slumber', `fill:${x},${y}`)); },
+    build(a) {
+        /* the toy block, once it's filled the gap for good, is used up */
+        if (this.toyUsed()) { const t = a.find('nuToy'); if (t) a.remove(t); }
+    },
+    /* the Linen Cupboard's lamps go out when the boards mend (one walk, every lamp lit) */
+    linenReset(a) {
+        const r = a.rooms.find(q => q.key === '0,2');
+        for (const e of a.ents) if (e.kind === 'plate' && /^lp\d$/.test(e.sig) && e.mode === 'toggle') e.on = false;
+    },
     tick(a) {
+        /* the Linen Cupboard: leave it and the lamps go out with the boards mending */
+        const inL = !!(Cam.room && Cam.room.key === '0,2');
+        if (this._inL && !inL) this.linenReset(a);
+        this._inL = inL;
+        /* toys away by bedtime: the toy block won't leave the Nursery */
+        const toy = a.find('nuToy'), p = G.player;
+        if (toy && !toy.removed && p) {
+            const nr = a.rooms.find(q => q.key === '0,1');
+            const inN = (x, y) => x >= nr.x && y >= nr.y && x < nr.x + nr.w && y < nr.y + nr.h;
+            const out = toy.carried ? (p.state === 'normal' && !inN(p.tx, p.ty)) : (!toy.mv && !inN(toy.tx, toy.ty));
+            if (out) {
+                if (toy.carried) { p.carry = null; toy.carried = false; toy.heldBy = null; }
+                else a.unplace(toy, toy.tx, toy.ty);
+                const spot = [[4, 8], [5, 8], [3, 8], [6, 8], [4, 7], [5, 7]].find(([x, y]) => !a.at(nr.x + x, nr.y + y)) || [4, 8];
+                toy.tx = nr.x + spot[0]; toy.ty = nr.y + spot[1]; toy.x = toy.tx * T; toy.y = toy.ty * T;
+                a.place(toy, toy.tx, toy.ty);
+                Fx.poof(toy.tx * T + 8, toy.ty * T + 8);
+                UI.toast('The toy block wriggles free and bounces off back to the Nursery. (Toys away by bedtime.)', 160);
+            }
+        }
         /* the Moonwalk gate, latched once passed */
         const g = a.find('mwGate');
         if (g && g.openedOnce && !Progress.flag('slumber_mwGate')) Progress.set('slumber_mwGate');
@@ -12283,6 +12373,8 @@ SIGNATURE_TEXT.slumber = "Stitched into the rug, lavender on lavender, so you'd 
 
 ITEM_LINES.bedroll = () => 'You found the {red}Bedroll{/}! Tap C to lay it down anywhere: that spot is home now. Hold C to go Homeward, flying back along your trace to it. What you carry comes too.';
 ITEM_AFTER.bedroll = function* () { Inv.equipped = 'bedroll'; };
+/* falling home in the Linen Cupboard mends the boards, and puts the lamps out */
+Player.onLand.push(p => { const a = p.area; if (a && a.id === 'slumber') { const r = a.roomAt(p.tx, p.ty); if (r && r.key === '0,2') Slumber.linenReset(a); } });
 
 // ---- 60b_slumber_foes.js ----
 /* The Slumberhouse's own things: the grate floats slip through (but nobody riding one), Matron Hush (the
@@ -12375,6 +12467,7 @@ class Matron extends Enemy {
         this.state = 'follow'; this.st = 0; this.i = 0;
     }
     shoved() { }
+    hooked(h) { Sfx.play('hookhit'); Fx.ring(this.x, this.y - 10); }
     defeat() {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 10, THREAD.mallow);
@@ -12401,6 +12494,7 @@ SPAWN.matron = (x, y, p) => Progress.flag('slumber_matron') ? new Ent('none') : 
 /* ---------------- Mother Sloth ---------------- */
 const SLOTH = { REACH: 5.5, SNAP: 6.25 };
 class MotherSloth extends Enemy {
+    hooked(h) { Sfx.play('hookhit'); }
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ type: 'mothersloth', hp: 3 }, p));
         this.state = 'sleep'; this.st = 0; this.weightN = 9; this.hidden = false; this.pillows = [];
@@ -12529,6 +12623,7 @@ class MotherSloth extends Enemy {
         this.rise();
     }
     shoved() { }
+    hooked(h) { Sfx.play('hookhit'); Fx.ring(this.x, this.y - 10); }
     defeat() {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]]; this.pillows = [];
         const p = G.player; if (p && p.pinned) p.pinned = null;
@@ -12545,8 +12640,8 @@ class MotherSloth extends Enemy {
         if (this.state !== 'sleep') {
             Gfx.alpha(0.6);
             for (const arm of this.arms) for (let i = 0; i < 48; i++) {
-                const t = i / 48 * Math.PI * 2, x = arm.sx + Math.cos(t) * SLOTH.REACH * T, y = arm.sy + Math.sin(t) * SLOTH.REACH * T;
-                if (this.arms.some(o => o !== arm && Math.hypot(x - o.sx, y - o.sy) < SLOTH.REACH * T)) continue;
+                const t = i / 48 * Math.PI * 2, x = arm.sx + Math.cos(t) * SLOTH.SNAP * T, y = arm.sy + Math.sin(t) * SLOTH.SNAP * T;
+                if (this.arms.some(o => o !== arm && Math.hypot(x - o.sx, y - o.sy) < SLOTH.SNAP * T)) continue;
                 Gfx.rect(x - cx, y - cy, 2, 2, '#f7e08a');
             }
             Gfx.alpha(1);
@@ -12579,6 +12674,8 @@ SPAWN.mothersloth = (x, y, p) => Progress.flag('slumber_boss') ? new Ent('none')
 const SlumberFoes = {
     *matronIntro(m) {
         yield 20;
+        if (Progress.flag('matron_met')) { yield* say(null, '"LIGHTS OUT," says Matron Hush, sitting bolt upright again. "I SAID. BACK. TO. BED."'); return; }
+        Progress.set('matron_met');
         yield* say(null, 'In the starched bed by the wall, somebody sits bolt upright: a tall, tall nurse in a cap, her eyes tight shut. "LIGHTS OUT," she says. "Back to bed. NOW."');
         yield* say(null, 'She gets up, still asleep, and comes after you, putting her feet exactly where you put yours. The doors swing shut.');
     },
