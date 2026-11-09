@@ -162,7 +162,8 @@ class Tollgrim extends Enemy {
                 break;
             case 'peek':
                 this.hidden = false;
-                if (this.st % (this.hp === 1 ? 50 : 75) === 30) this.spit(p);
+                /* he comes out spitting: the first one straight away */
+                if (this.st === 8 || this.st % (this.hp === 1 ? 50 : 75) === 30) this.spit(p);
                 if (this.st > 330) { this.state = 'hide'; this.st = 0; }
                 break;
             case 'stunned':

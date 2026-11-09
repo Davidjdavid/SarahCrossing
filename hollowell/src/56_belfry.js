@@ -1,7 +1,7 @@
 /* House 4: the Belfry, on Belfry Heights. Mum's House (Tess), brass threads. A tower climbed floor by floor.
    Bells ring things home: everything out of place within reach snaps back at once, and shoves harder doing
    it. A ring wakes sleepers (things tied off where they lie: they go home) and bats. Gusts blow loose things
-   along and push Wren (holding on to something heavy keeps her put). The Recall Bell (from Clangor) rings
+   along and push Wren (holding on to something keeps her put). The Recall Bell (from Clangor) rings
    wherever Wren is; holding a thing (grip, paddle) keeps it from snapping. Old rules join in: strays fill
    pits; the snap shoves through whatever stands in the way home. Tollgrim lives in the great bell; the gust
    blows its clapper out, and the Recall Bell brings it slamming home into him. */
@@ -53,7 +53,7 @@ defHouse({
                 { k: 'warp', x: 9, y: 10, to: 'hollow', tx2: BELFRY_OUT.x, ty2: BELFRY_OUT.y, dir: 'down', face: 'down' },
                 { k: 'sign', x: 11, y: 9, text: 'THE BELFRY. Strike a bell, and listen. (Mind the bats.)' },
             ],
-            nudge: { solved: () => !Progress.areaFlag('belfry', 'sleep:bpBoulder'), after: 60 * 60 * 2, at: [6, 4], say: 'The bell by the door sways in the draught. The boulder in the doorway twitches, as if it were dreaming of bells.' },
+            nudge: { solved: () => Progress.areaFlag('belfry', 'woke:bpBoulder'), after: 60 * 60 * 2, at: [6, 4], say: 'The bell by the door sways in the draught. The boulder in the doorway twitches, as if it were dreaming of bells.' },
         },
         /* ---------------- 2 The Draught: the gust carries strays into the pits by the key ---------------- */
         '0,4': {
@@ -99,16 +99,17 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'plate', x: 2, y: 5, sig: 'wp' },
-                { k: 'crate', x: 2, y: 5, id: 'wwCrate' },
-                { k: 'gust', x: 2, y: 4, w: 14, h: 3, dir: 'right', period: 300, len: 130, force: 0.7, id: 'wwGust' },
-                { k: 'vane', x: 1, y: 3, gust: 'wwGust' },
-                { k: 'bell', x: 13, y: 2, id: 'wwBell' },
+                { k: 'plate', x: 12, y: 5, sig: 'wp' },
+                { k: 'crate', x: 12, y: 5, id: 'wwCrate', patience: 280, startAt: [5, 5], trace: [[12, 5], [11, 5], [10, 5], [9, 5], [8, 5], [7, 5], [6, 5], [5, 5]] },
+                /* a strong wind: nothing walks home through it; the gate's upwind, so nobody walks to it through a gust */
+                { k: 'gust', x: 6, y: 4, w: 10, h: 3, dir: 'left', period: 340, len: 130, phase: 100, force: 0.7, beats: true, id: 'wwGust' },
+                { k: 'vane', x: 15, y: 2, gust: 'wwGust' },
+                { k: 'bell', x: 11, y: 2, id: 'wwBell' },
                 { k: 'door', x: 16, y: 5, type: 'gate', when: 'wp', dir: 'v', id: 'wwGate', passed: 'right' },
                 { k: 'chest', x: 18, y: 5, item: 'plan', id: 'wwPlan' },
                 { k: 'sign', x: 1, y: 8, text: 'WINDWARD. The gate opens while the crate sits at home. The crate would love to sit at home.' },
             ],
-            nudge: { solved: 'belfry_wwGate', after: 60 * 60 * 3, at: [13, 2], say: 'The crate never gets home before the next gust takes it. Something would have to call it home all at once, in a lull.' },
+            nudge: { solved: 'belfry_wwGate', after: 60 * 60 * 3, at: [11, 2], say: 'The crate never gets home before the next gust takes it. Something would have to call it home all at once, in a lull.' },
         },
         /* ---------------- 4 The Stair (hub) ---------------- */
         '1,3': {
@@ -207,6 +208,7 @@ defHouse({
                 { k: 'shutter', x: 0, y: 5, dir: 'v', group: 'cl' }, { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'cl' },
                 { k: 'door', x: 9, y: 0, type: 'lock', id: 'clLockN' },
                 { k: 'chest', x: 9, y: 6, item: 'bell', id: 'clBell', hidden: true, when: 'flag:belfry_clangor', big: true },
+                { k: 'sign', x: 1, y: 9, text: "CLANGOR'S LOFT. When the old armour rings, everything out of place up here goes home at once, and woe betide whatever stands on its way." },
                 { k: 'block', x: 19, y: 4, id: 'clWall', look: 'wallblock', sleeper: true, tiedOff: true, startAt: [19, 5], trace: [[19, 4], [19, 5]], noPush: true, pushLine: 'A slab of wall, a bit too clean. It feels warm, like something asleep.' },
             ],
         },
@@ -228,9 +230,10 @@ defHouse({
             ],
             ents: [
                 { k: 'plate', x: 2, y: 2, sig: 'r1' }, { k: 'plate', x: 10, y: 9, sig: 'r2' },
-                { k: 'bust', x: 2, y: 2, id: 'reS1', sleeper: true, tiedOff: true, startAt: [17, 1], trace: [[2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2], [8, 2], [9, 2], [10, 2], [11, 2], [12, 2], [13, 2], [14, 2], [15, 2], [16, 2], [17, 2], [17, 1]] },
-                { k: 'bust', x: 10, y: 9, id: 'reS2', sleeper: true, tiedOff: true, startAt: [17, 9], trace: [[10, 9], [11, 9], [12, 9], [13, 9], [14, 9], [15, 9], [16, 9], [17, 9]] },
-                { k: 'door', x: 3, y: 8, type: 'gate', when: 'r1&!r2', dir: 'v', id: 'reGate', passed: 'left' },
+                { k: 'bust', x: 2, y: 2, id: 'reS1', sleeper: true, tiedOff: true, resetSleep: 'belfry_reach', startAt: [17, 1], trace: [[2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2], [8, 2], [9, 2], [10, 2], [11, 2], [12, 2], [13, 2], [14, 2], [15, 2], [16, 2], [17, 2], [17, 1]] },
+                { k: 'bust', x: 10, y: 9, id: 'reS2', sleeper: true, tiedOff: true, resetSleep: 'belfry_reach', startAt: [17, 9], trace: [[10, 9], [11, 9], [12, 9], [13, 9], [14, 9], [15, 9], [16, 9], [17, 9]] },
+                /* open while the near sleeper is home on its plate and the far one sleeps on (Belfry.tick says) */
+                { k: 'door', x: 3, y: 8, type: 'gate', when: 'r1&r2sleep', dir: 'v', id: 'reGate', passed: 'left' },
                 { k: 'chest', x: 1, y: 8, item: 'key', id: 'reKey' },
                 { k: 'sign', x: 18, y: 4, text: "THE REACH. A bell is heard seven strides off, and no further. Some sleepers are best left lying." },
             ],
@@ -279,7 +282,7 @@ defHouse({
             ents: [
                 { k: 'door', x: 9, y: 0, type: 'big', id: 'brBig' },
                 { k: 'plate', x: 5, y: 3, sig: 'p1' }, { k: 'plate', x: 17, y: 3, sig: 'p2' },
-                { k: 'crate', x: 5, y: 3, id: 'brC1', sleeper: true, tiedOff: true, startAt: [15, 6], trace: [[5, 3], [5, 4], [5, 5], [6, 5], [7, 5], [8, 5], [9, 5], [10, 5], [11, 5], [12, 5], [13, 5], [14, 5], [15, 5], [15, 6]] },
+                { k: 'crate', x: 5, y: 3, id: 'brC1', sleeper: true, tiedOff: true, resetSleep: 'belfry_ropes', onHome() { Belfry.ropesHome(this); }, startAt: [15, 6], trace: [[5, 3], [5, 4], [5, 5], [6, 5], [7, 5], [8, 5], [9, 5], [10, 5], [11, 5], [12, 5], [13, 5], [14, 5], [15, 5], [15, 6]] },
                 { k: 'crate', x: 17, y: 3, id: 'brC2' },
                 { k: 'chest', x: 9, y: 7, item: 'pattern', id: 'brPattern', hidden: true, when: 'flag:belfry_ropes', big: true },
                 { k: 'block', x: 0, y: 4, id: 'brWall', look: 'wallblock', sleeper: true, tiedOff: true, startAt: [0, 5], trace: [[0, 4], [0, 5]], noPush: true, pushLine: 'A slab of wall, a bit too clean. It feels warm, like something asleep.' },
@@ -346,8 +349,18 @@ defHouse({
 const Belfry = {
     seq: [],
     tick(a) {
-        /* Bell Ropes: the left plate pressed and the right one not, both at once */
-        if (Signals.get(a, 'p1') && !Signals.get(a, 'p2') && !Progress.flag('belfry_ropes')) { Progress.set('belfry_ropes'); Sfx.play('appear'); G.shake = 4; }
+        /* the Reach: the far sleeper still asleep */
+        const s2 = a.find('reS2');
+        if (s2 && Return.asleep(s2)) Signals.set(a, 'r2sleep');
+        const g = a.find('reGate');
+        if (g && g.open && !Progress.flag('belfry_reach')) Progress.set('belfry_reach');
+    },
+    /* Bell Ropes: the left crate comes home onto its plate while nothing presses the right one */
+    ropesHome(c) {
+        if (Progress.flag('belfry_ropes')) return;
+        const a = c.area, p2 = a.ents.find(e => e.kind === 'plate' && e.sig === 'p2');
+        if (p2 && p2.weighed()) return;
+        Progress.set('belfry_ropes'); Sfx.play('appear'); G.shake = 4;
     },
     /* the Echo Room's stones, struck in turn */
     stone(st) {

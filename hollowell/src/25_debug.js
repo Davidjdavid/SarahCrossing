@@ -60,6 +60,8 @@ const HW = {
     newGame(name = 'Wren', opts = {}) { G.noAutosave = !!opts.noAutosave; Game.newGame(name, opts); if (opts.skipIntro) { Script.clear(); Dialog.active = false; UI.fadeA = 0; } return this.state(); },
     warp(id, x, y, dir) { World.enter(id, x, y, { dir }); return this.state(); },
     preset(name) { PRESETS[name](); return this.state(); },
+    /* any of the game's own objects by name (tests, the console) */
+    global(name) { return (0, eval)(name); },
     give(id) { if (ITEMS[id] && ITEMS[id].kind === 'tool') Inv.giveTool(id); else Inv.items[id] = (Inv.items[id] || 0) + 1; },
     step(n = 1) { for (let i = 0; i < n; i++) Game.step(); },
     /* hold buttons for n steps then let go */

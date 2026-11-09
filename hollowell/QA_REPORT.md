@@ -22,8 +22,15 @@
 - `node tests/browser.mjs --shots tidy meadow kiln`: no page errors; new plates, the building front and the
   bookcase checked in screenshots.
 
+- 2026-11-09 (night): a fresh-eyes review of Dungeon 4 and the Heights found 12 issues, three of them
+  softlocks: a ledge that dropped Wren inside the cliff; woken sleepers falling asleep again whenever the
+  place was rebuilt (save/load, leaving); sleepers that could be pulled, gripped, lifted or hooked without a
+  ring. Also the Hookline passing shut gates and swinging on chests, rings carrying through walls, a chest
+  appearing under Wren, Windward solving itself, two puzzles beatable by doing things in another order, an
+  easy final boss and Returnball keeping half-scores. All fixed with 11 regression tests
+  (`tests/review_d4.test.mjs`, plus heights and belfry updates); `npm test` 129/129.
+
 ## Unresolved issues
-- Dungeon 4 and the Heights haven't had a fresh-eyes review yet.
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
 ## Verification history
@@ -34,3 +41,4 @@
 | 2026-11-09 | Town extras (S12, S28): 13 new tests (64 in all); screenshots of both checked | pass |
 | 2026-11-09 | Water kit, Millwater, the Millrace: 6 + 16 + 1 playthrough (87 in all); every room screenshotted | pass |
 | 2026-11-09 | D3 review fixes (+5 regression tests); Belfry kit, Heights, Belfry, festival (120 in all); screenshots | pass |
+| 2026-11-09 | D4 review fixes (12 issues, 3 softlocks; +11 regression tests, 129 in all); Belfry browser smoke | pass |

@@ -133,6 +133,8 @@ TOOLS.hook = {
         if (!area.inside(tx, ty)) { h.state = 'back'; return true; }
         const o = area.at(tx, ty);
         if (o && o !== p.carry && !(tx === p.tx && ty === p.ty)) {
+            /* a sleeper won't come; a chest is no post to swing on */
+            if (Return.asleep(o)) { h.state = 'back'; Sfx.play('hookhit'); Fx.text(o.tx * T + 8, o.ty * T - 4, 'z', '#d8c8f8'); return true; }
             if (o.eyelet || o.fixed || o.weight >= WEIGHT.heavy) {
                 if (o.eyelet || o.hookable !== false) return this.latch(h, area, tx, ty, o.eyelet ? 'eyelet' : 'thing');
                 h.state = 'back'; Sfx.play('hookhit'); return true;
@@ -142,6 +144,8 @@ TOOLS.hook = {
                 return true;
             }
         }
+        /* a shut gate (or anything standing in the way that isn't on the grid) stops the hook */
+        for (const b of area.blockers) if (b.blocks(tx, ty, h)) { if (b.hooked) b.hooked(h); h.state = 'back'; Sfx.play('hookhit'); return true; }
         /* an empty mark: where something belongs but isn't */
         for (const e of area.ents) if (e.ret && e.ret.state !== 'home' && e.ret.mx === tx && e.ret.my === ty && !(e.tx === tx && e.ty === ty)) return this.latch(h, area, tx, ty, 'mark');
         for (const e of area.ents) {

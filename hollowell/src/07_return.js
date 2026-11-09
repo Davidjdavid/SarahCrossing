@@ -72,6 +72,9 @@ const Return = {
         e.pendingHome = true;   /* placed when the mark is free */
         r.trace = [[r.mx, r.my]]; r.state = 'home'; r.snap = false;
     },
+    /* a sleeper tied off where it lies: nothing moves it but a ring */
+    asleep(e) { return !!(e && e.sleeper && e.tiedOff); },
+    sleepLine(e) { return (e && e.pushLine) || "It's fast asleep. It won't budge for anything but a bell."; },
     held(e) {
         return !!(e.heldBy || e.carried || e.tiedOff || e.flying || e.shattered || e.paddled || (e.isHeld && e.isHeld()));
     },
@@ -154,6 +157,9 @@ class GridThing extends Ent {
         this.z = 0;
     }
     onAdd(area) {
+        /* a sleeper woken once stays awake (at home) when the place is built again; puzzle sleepers (resetSleep) don't */
+        if (this.sleeper && this.id && !this.resetSleep && Progress.areaFlag(area.id, 'woke:' + this.id)) { this.sleeper = false; this.tiedOff = false; this.startAt = null; }
+        if (this.sleeper && this.startAt) this._sleep0 = { at: this.startAt.slice(), trace: this.trace ? this.trace.map(q => q.slice()) : null };
         area.place(this, this.tx, this.ty);
         if (this.marked !== false && !this.ret) Return.mark(this, { color: this.thread, patience: this.patience });
         /* things that start away from home (already displaced along a given trace) */
@@ -168,9 +174,9 @@ class GridThing extends Ent {
     get px() { return this.mv ? lerp(this.mv.fx, this.mv.tx, this.mv.t / this.mv.dur) * T : this.tx * T; }
     get py() { return this.mv ? lerp(this.mv.fy, this.mv.ty, this.mv.t / this.mv.dur) * T : this.ty * T; }
     get sortY() { return this.py + 15; }
-    canBeShoved(d) { return !this.mv && !this.fixed && this.area.freeForThing(this.tx + DX[d], this.ty + DY[d], this); }
+    canBeShoved(d) { return !this.mv && !this.fixed && !Return.asleep(this) && this.area.freeForThing(this.tx + DX[d], this.ty + DY[d], this); }
     /* pushed by the player (or shoved by a returning thing) */
-    canPush(d) { return !this.mv && !this.fixed && !this.noPush && this.area.freeForThing(this.tx + DX[d], this.ty + DY[d], this); }
+    canPush(d) { return !this.mv && !this.fixed && !this.noPush && !Return.asleep(this) && this.area.freeForThing(this.tx + DX[d], this.ty + DY[d], this); }
     push(d, dur = 16) {
         if (!this.canPush(d)) return false;
         this.startMove(this.tx + DX[d], this.ty + DY[d], dur);

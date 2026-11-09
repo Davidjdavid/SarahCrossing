@@ -128,14 +128,14 @@ push Wren (she walks at 1.3 a frame; a gust pushes 0.7-1.2); gripping something 
 |---|---|---|---|---|
 | Bell Porch | 1,4 | A ring wakes a sleeper | Strike the bell: the boulder asleep in the doorway goes home. Two bats wake | way north |
 | The Draught | 0,4 | Wind as a conveyor; strays fill pits | Push the two pale stray crates into the lane; the gust blows them into the two pits by the key | key 1 |
-| Windward | 2,4 | Wind displaces, a ring recalls | The gust keeps blowing the crate off its plate before it gets home; ring the bell in a lull: it snaps home and the gate opens | Plan |
+| Windward | 2,4 | Wind displaces, a ring recalls | A strong gust (nothing walks home through it) blows the crate off its plate toward the door; it never gets home by itself. Ring the bell early in a lull: it snaps home, the gate (upwind, so nobody slips through in a gust) opens | Plan |
 | The Stair | 1,3 | Hub | Bats; north door and east door locked | - |
 | Weathercock Walk | 0,3 | Hold on | Cross the walk between pits; when it blows, grip the bust above you | key 2 |
 | The Rafters | 2,3 | Optional | Ring: the sleeping slab of wall goes home (and six bats wake) | Heart Patch |
 | Clangor's Loft | 1,2 | Mini-boss: Clangor (its own ring snaps things home through it) | Push a bust out so Clangor stands on its way home when it rings: slammed, helm off, hit it (3x) | Recall Bell |
-| The Reach | 0,2 | Ring from the right place | Ring near the far sleeper only: it goes home onto the plate; wake the near one too and it lands on the other plate and shuts the gate | key 3 |
+| The Reach | 0,2 | Ring from the right place | Ring near the far sleeper only: it goes home onto the plate and the gate opens while the other sleeps on; wake both and it stays shut (leave the room and they lie down again) | key 3 |
 | Echo Room | 2,2 | S15, behind a sleeping slab | Strike the stones in Gran's lullaby: low, high, middle, high, low | Heart Patch, Linnet's note 4 |
-| Bell Ropes | 1,1 | Holding beats ringing | Pick up (or grip) the right-hand crate off its plate and ring: the sleeper comes home to the left plate with the right one empty | Pattern |
+| Bell Ropes | 1,1 | Holding beats ringing | Pick up (or grip) the right-hand crate off its plate and ring: the sleeper comes home to the left plate with the right one empty (it counts when it arrives; leave the room and it lies down again) | Pattern |
 | Workshop | 0,1 | Signature, behind a sleeping slab | Brass T; bell moulds; tuning forks | Heart Patch |
 | The Great Bell | 1,0 | Boss: Tollgrim | The gust blows the clapper out; Tollgrim leans out of the mouth to spit; ring the Recall Bell: the clapper snaps home into him, he drops out dazed; hit him (3x) | Knot, Heartstitch |
 

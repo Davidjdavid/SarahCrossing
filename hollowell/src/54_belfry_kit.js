@@ -13,17 +13,24 @@ const Bells = {
         Sfx.play('bell');
         Fx.ring(x, y - 6, '#f7d64a'); Fx.ring(x, y - 6, '#fff4c0');
         G.ringFx = { x, y, t: 0, r: reach * T, area };
+        /* a ring fills the room it's rung in, and no further: walls stop it */
+        const room = area.rooms && area.rooms.length > 1 ? area.roomAt(tileOf(x), tileOf(y)) : null;
+        const here = (tx, ty) => !room || area.roomAt(tx, ty) === room;
         let n = 0;
         for (const e of area.ents) {
             if (!e.isGrid || !e.ret || e.removed) continue;
-            if (Math.hypot(e.tx * T + 8 - x, e.ty * T + 8 - y) > reach * T + 4) continue;
-            if (e.sleeper && e.tiedOff) { e.tiedOff = false; e.sleeper = false; if (e.onWake) e.onWake(); }
+            if (Math.hypot(e.tx * T + 8 - x, e.ty * T + 8 - y) > reach * T + 4 || !here(e.tx, e.ty)) continue;
+            if (e.sleeper && e.tiedOff) {
+                e.tiedOff = false; e.sleeper = false;
+                if (e.id && !e.resetSleep) Progress.setAreaFlag(area.id, 'woke:' + e.id);
+                if (e.onWake) e.onWake();
+            }
             if (e.ret.state === 'home' || e.carried || e.shattered) continue;
             if (Return.held(e)) continue;                  /* holding beats the Return, even a ring */
             if (Return.snap(e)) n++;
         }
-        for (const m of area.walkers) if (m.wake && m.alive !== false && Math.hypot(m.x - x, m.y - y) < (reach + 3) * T) m.wake();
-        for (const e of area.ents) if (e.hear && e !== opts.from) e.hear(x, y);
+        for (const m of area.walkers) if (m.wake && m.alive !== false && Math.hypot(m.x - x, m.y - y) < (reach + 3) * T && here(tileOf(m.x), tileOf(m.y))) m.wake();
+        for (const e of area.ents) if (e.hear && e !== opts.from && (e.tx === undefined || here(e.tx, e.ty))) e.hear(x, y);
         Stats.count('rings'); if (n) Stats.count('snapped', n);
         return n;
     },
@@ -32,9 +39,38 @@ const Bells = {
         f.t++;
         const r = f.r * Math.min(1, f.t / 18);
         Gfx.alpha(Math.max(0, 0.6 - f.t / 40));
-        for (let i = 0; i < 32; i++) { const t = i / 32 * Math.PI * 2; Gfx.rect(f.x - cx + Math.cos(t) * r, f.y - cy - 6 + Math.sin(t) * r * 0.8, 2, 2, '#fff4c0'); }
+        for (let i = 0; i < 40; i++) { const t = i / 40 * Math.PI * 2; Gfx.rect(f.x - cx + Math.cos(t) * r, f.y - cy - 6 + Math.sin(t) * r, 2, 2, '#fff4c0'); }
         Gfx.alpha(1);
         if (f.t > 30) G.ringFx = null;
+    },
+    /* sleepers show it: a slow z drifting up */
+    drawSleep(a, cx, cy) {
+        for (const e of a.ents) {
+            if (!Return.asleep(e) || e.removed || e.hidden) continue;
+            const ph = ((G.t + e.uid * 37) % 90) / 90;
+            const x = e.px - cx + 10 + Math.round(ph * 4), y = e.py - cy - 2 - Math.round(ph * 10);
+            Gfx.alpha(Math.min(1, (1 - ph) * 2)); Font.draw('z', x, y, '#e8e0ff'); Gfx.alpha(1);
+        }
+    },
+    /* puzzle sleepers (resetSleep) lie down again where they were once Wren has left their room */
+    lastRoom: null,
+    keepSleeping(area) {
+        const r = Cam.room;
+        if (r !== this.lastRoom) { const left = this.lastRoom; this.lastRoom = r; if (left) for (const e of area.ents) if (e.resetSleep && e._sleep0 && area.roomAt(e._sleep0.at[0], e._sleep0.at[1]) === left) e._sleepAgain = true; }
+        for (const e of area.ents) {
+            if (!e._sleepAgain || e.mv || e.carried || e.heldBy) continue;
+            if (typeof e.resetSleep === 'string' && Progress.flag(e.resetSleep)) { e._sleepAgain = false; continue; }
+            if (area.roomAt(e._sleep0.at[0], e._sleep0.at[1]) === Cam.room) continue;
+            e._sleepAgain = false;
+            if (Return.asleep(e)) continue;
+            const [sx, sy] = e._sleep0.at;
+            if (area.at(sx, sy) && area.at(sx, sy) !== e) continue;
+            area.unplace(e, e.tx, e.ty);
+            e.tx = sx; e.ty = sy; e.x = sx * T; e.y = sy * T;
+            area.place(e, sx, sy);
+            e.sleeper = true; e.tiedOff = true;
+            if (e.ret) { e.ret.trace = (e._sleep0.trace || [[e.ret.mx, e.ret.my], [sx, sy]]).map(q => q.slice()); e.ret.state = 'away'; e.ret.timer = e.ret.patience; }
+        }
     },
 };
 
@@ -89,11 +125,14 @@ class Gust extends Ent {
         if (this.when) this.off = !Signals.eval(this.area, this.when);
         if (!this.on) return;
         const a = this.area, d = this.d;
+        /* a strong wind: nothing walks home through it (only a bell's snap gets through) */
+        if (this.beats) for (const e of a.ents) if (e.isGrid && e.ret && e.ret.state === 'returning' && !e.ret.snap && e.weight <= WEIGHT.medium && this.inside(e.tx, e.ty)) Return.disturb(e);
         if (this.t % 10 === 0) {
             /* blow loose things one tile downwind, the downwind ones first so a row moves together */
             const things = a.ents.filter(e => e.isGrid && !e.fixed && !e.mv && e.weight <= WEIGHT.medium && !e.carried && !Return.held(e) && !e.noWind && this.inside(e.tx, e.ty))
                 .sort((m, n) => (DX[d] * (n.tx - m.tx) + DY[d] * (n.ty - m.ty)));
             for (const e of things) {
+                /* going home, it leans into the wind; a strong wind (beats) blows back anything but a bell's snap */
                 if (e.ret && e.ret.state === 'returning') continue;   /* going home, it leans into the wind */
                 const nx = e.tx + DX[d], ny = e.ty + DY[d];
                 if (a.freeForThing(nx, ny, e)) { e.startMove(nx, ny, 10); Stats.count('blown'); }
@@ -159,7 +198,7 @@ TOOLS.bell = {
         this.cool = 40; p.ringT = 12;
         Bells.ring(p.area, p.x, p.y - 4, Bells.REACH);
     },
-    update(area) { if (this.cool > 0) this.cool--; const p = G.player; if (p && p.ringT > 0) p.ringT--; },
+    update(area) { if (this.cool > 0) this.cool--; const p = G.player; if (p && p.ringT > 0) p.ringT--; Bells.keepSleeping(area); },
     busy(p) { return p.ringT > 0; },
 };
 

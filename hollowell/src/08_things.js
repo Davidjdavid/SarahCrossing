@@ -289,7 +289,7 @@ class Door extends Ent {
 /* ---------- chests ---------- */
 class Chest extends GridThing {
     constructor(tx, ty, props = {}) {
-        super('chest', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, props));
+        super('chest', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, props));
         this.item = props.item; this.opened = false;
         this.big = !!props.big;
         this.hidden = !!props.hidden;     /* appears on a signal */
@@ -301,6 +301,9 @@ class Chest extends GridThing {
     }
     tick() {
         if (this.hidden && this.when && Signals.eval(this.area, this.when)) {
+            /* never appear on top of somebody: wait till the spot is clear */
+            const p = G.player, a = this.area;
+            if ((p && p.area === a && p.onTile(this.tx, this.ty)) || a.at(this.tx, this.ty) || a.walkers.some(m => m.alive !== false && m.onTile && m.onTile(this.tx, this.ty))) return;
             this.hidden = false; this.area.place(this, this.tx, this.ty);
             Sfx.play('appear'); Fx.poof(this.tx * T + 8, this.ty * T + 8); Fx.sparkle(this.tx * T + 8, this.ty * T + 4, PAL.yellow);
         }

@@ -30,7 +30,7 @@ const Save = {
     migrate(s) {
         if (!s || s.game !== 'hollowell') return null;
         /* v1 is the first; later shapes upgrade here, one step at a time */
-        s.inv = Object.assign({ hp: 6, maxHp: 6, buttons: 0, tools: [], keyCount: {}, patterns: [], plans: [], knots: [], patches: 0, patchIds: [], items: {} }, s.inv || {});
+        s.inv = Object.assign({ hp: 6, maxHp: 6, buttons: 0, tools: [], keyCount: {}, patterns: [], plans: [], knots: [], patches: 0, patchIds: [], items: {}, bedroll: null }, s.inv || {});
         s.progress = Object.assign({ flags: {}, areaFlags: {}, notes: [], journal: [], goal: '' }, s.progress || {});
         s.stats = Object.assign({ c: {}, rooms: {}, playFrames: 0, visited: {} }, s.stats || {});
         s.v = SAVE_V;

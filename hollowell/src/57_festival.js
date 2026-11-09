@@ -24,6 +24,8 @@
 
 class Ball extends Liftable {
     constructor(tx, ty, p = {}) { super('ball', tx, ty, p); this.floats = true; }
+    /* a fresh ball (the place built again): no score carried over from a throw that never finished */
+    onAdd(area) { super.onAdd(area); Returnball.score = 0; for (const r of area.ents) if (r.kind === 'goalring') r.hit = false; }
     sprite() { return spr('rball'); }
     onHome() { Returnball.home(this); }
 }

@@ -50,12 +50,15 @@ test('the draught: line the pale crates up in the lane; the gust blows them into
 test('windward: left alone the crate never makes it home between gusts; rung home in a lull, the gate opens', () => {
     const HW = game();
     enter(HW, 'windward', 1, 4);
-    const c = thing(HW, 'wwCrate'), g = thing(HW, 'wwGust');
-    go(HW, 'windward', 13, 3);
-    HW.step(900);
-    assert.ok(!thing(HW, 'wwGate').open || !HW.Return.isHome(c), 'not by itself');
-    until(HW, () => c.tx >= at('windward', 14, 5)[0] && !c.mv, 600);
-    until(HW, () => !g.on && !g.soon, 600);
+    const c = thing(HW, 'wwCrate'), g = thing(HW, 'wwGust'), gate = thing(HW, 'wwGate');
+    /* waiting by the gate for the crate to come home by itself: the wind never lets it, over many gusts */
+    go(HW, 'windward', 15, 5);
+    let open = 0;
+    for (let i = 0; i < 2400; i++) { if (gate.open) open++; HW.hold('right'); HW.step(1); }
+    HW.release();
+    assert.equal(open, 0, 'the gate never opens by itself');
+    assert.ok(HW.player().tx < at('windward', 16, 5)[0], 'and nobody slips through');
+    go(HW, 'windward', 11, 3);
     until(HW, () => g.on, 600); until(HW, () => !g.on, 600);
     strike(HW, 'up');
     assert.ok(until(HW, () => HW.Return.isHome(c), 80), 'snapped home');

@@ -386,9 +386,9 @@ test('from the third Knot: over the lake, up the cliff stair and the Heights, th
     until(() => !thing('drGust').on, 300);
     walk(...b('draught', 3, 5)); HW.face('left'); talk(); ok(HW.Inv.keys('belfry') === 1, 'key 1');
     /* windward: the plan */
-    walk(...b('draught', 18, 5)); walk(...b('windward', 13, 3));
+    walk(...b('draught', 18, 5)); walk(...b('windward', 11, 3));
     const wg = thing('wwGust'), wc = thing('wwCrate');
-    until(() => wc.tx >= b('windward', 14, 5)[0] && !wc.mv, 900); until(() => wg.on, 600); until(() => !wg.on, 600);
+    until(() => wg.on, 600); until(() => !wg.on, 600);
     HW.face('up'); HW.press('atk', 1); HW.step(12);
     ok(until(() => HW.Return.isHome(wc), 80), 'crate rung home');
     walk(...b('windward', 17, 5)); HW.face('right'); talk(); ok(HW.Inv.plans.includes('belfry'), 'plan');

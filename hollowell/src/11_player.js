@@ -34,7 +34,10 @@ class Player extends Ent {
     get busy() { return this.state !== 'normal' || Script.blocking(); }
 
     /* ----- marks and traces ----- */
-    setMark(tx = this.tx, ty = this.ty, area = this.area) {
+    setMark(tx = this.tx, ty = this.ty, area = this.area, force) {
+        /* a bed Wren lay down in, or the Bedroll, stays Wren's mark while Wren is in that place (src/58_bedroll_kit.js) */
+        if (!force && this.mark && this.mark.bed && this.mark.area === area.id) return;
+        if (!force && typeof Bedroll !== 'undefined' && Bedroll.lies(area)) { Bedroll.claim(this, area); return; }
         /* never on a doorway (a door may shut there): one step on into the room */
         const r = area.roomAt && area.roomAt(tx, ty);
         if (r && area.rooms.length > 1 && (tx === r.x || ty === r.y || tx === r.x + r.w - 1 || ty === r.y + r.h - 1)) {
@@ -242,7 +245,7 @@ class Player extends Ent {
         if (this.pushT >= need) {
             this.pushT = 0;
             if (o.onPushed && o.onPushed(this, d) === false) return;
-            if (o.noPush) { if (o.pushLine) UI.toast(o.pushLine); return; }
+            if (o.noPush || Return.asleep(o)) { if (o.pushLine || Return.asleep(o)) UI.toast(Return.sleepLine(o)); return; }
             if (!o.push(d, o.weight >= WEIGHT.heavy ? 20 : 16)) { if (o.ret) Sfx.play('push'); }
             else Stats.count('pushes');
         }
@@ -252,6 +255,7 @@ class Player extends Ent {
     tryGrip() {
         const o = this.thingInFront();
         if (!o || o.fixed || o.noGrip) return;
+        if (Return.asleep(o)) { if (Input.pressed('act')) UI.toast(Return.sleepLine(o)); return; }
         this.grip = o; o.heldBy = this;
         Sfx.play('click');
     }
@@ -298,6 +302,7 @@ class Player extends Ent {
         for (const e of cand) {
             if (e.interact && e.interact(this) !== false) { Stats.count('interactions'); return; }
         }
+        if (o && Return.asleep(o)) { UI.toast(Return.sleepLine(o)); return; }
         if (o && o.liftable && !o.mv) return this.lift(o);
         if (o && Inv.has('gloves')) this.tryGrip();
     }
@@ -382,16 +387,37 @@ class Player extends Ent {
         if (this.carry) this.dropCarry();
         if (this.grip) this.release();
         this.state = 'fall'; this.stateT = 0; this.fallWhy = why;
-        Sfx.play(why === 'water' ? 'splash' : 'fall');
+        Sfx.play(why === 'water' ? 'splash' : why === 'doze' ? 'yawn' : 'fall');
         if (why === 'water') Fx.splash(this.x, this.y);
-        Stats.count(why === 'water' ? 'sinks' : 'falls');
+        if (why === 'doze') Fx.text(this.x, this.y - 18, 'z z z', '#d8c8f8');
+        Stats.count(why === 'water' ? 'sinks' : why === 'doze' ? 'dozes' : 'falls');
     }
     updateFall() {
         if (this.stateT >= 26) {
-            Inv.hp = Math.max(0, Inv.hp - 1);
+            /* falling home onto your own bed doesn't hurt; nor does dozing off */
+            if (!this.softHome() && this.fallWhy !== 'doze') Inv.hp = Math.max(0, Inv.hp - 1);
             if (Inv.hp <= 0) { this.faint(); return; }
             this.flyHome();
         }
+    }
+    softHome() { return !!(this.mark && this.mark.bed && this.mark.area === this.area.id); }
+    /* where to come down at the end of a flight: the mark, or the nearest open spot to it */
+    landingSpot(tx, ty) {
+        const a = this.area;
+        const ok = (x, y) => {
+            if (!a.inside(x, y)) return false;
+            const k = a.kind(x, y), o = a.at(x, y);
+            if (o && Water.rideable(o)) return true;
+            if (k.solid || k.ledge || k.pit || k.deep || k.fog || o) return false;
+            for (const b of a.blockers) if (b.blocks(x, y, this)) return false;
+            return true;
+        };
+        if (ok(tx, ty)) return [tx, ty];
+        for (let r = 1; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+            if (ok(tx + dx, ty + dy)) return [tx + dx, ty + dy];
+        }
+        return [tx, ty];
     }
     /* fly back along the trace to the mark */
     flyHome(opts = {}) {
@@ -402,7 +428,11 @@ class Player extends Ent {
             if (m) { this.x = m.tx * T + 8; this.y = m.ty * T + 10; }
             return;
         }
+        if (opts.straight) pts.length = 0;
         pts.unshift([this.x, this.y]);
+        /* the mark may have moved since (a Bedroll on a float): finish there */
+        const m = this.mark, mx = m.tx * T + 8, my = m.ty * T + 10, last = pts[pts.length - 1];
+        if (last[0] !== mx || last[1] !== my) pts.push([mx, my]);
         let len = 0; for (let i = 1; i < pts.length; i++) len += dist(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]);
         const dur = opts.dur || clamp(Math.round(len / 4.5), 24, 110);
         this.flight = { pts, len, dur, t: 0, opts };
@@ -412,6 +442,13 @@ class Player extends Ent {
     updateFlight() {
         const f = this.flight;
         f.t++;
+        /* the Recall Bell rung on the way: Wren is a thing out of place, and snaps home at once (S18) */
+        if (Inv.equipped === 'bell' && Inv.has('bell') && Input.pressed('tool') && f.t < f.dur - 2) {
+            f.t = f.dur; Sfx.play('bell'); Fx.ring(this.x, this.y - 8, '#f7d64a');
+            Stats.count('bellflight');
+            if (!Progress.flag('s18')) { Progress.set('s18'); Stats.count('secret:bellflight'); G.pendingToast = 'You ring the Bell in mid-flight, and snap home like anything else out of place.'; }
+        }
+        const ox = this.x, oy = this.y;
         const k = f.t / f.dur, want = k * f.len;
         let acc = 0;
         for (let i = 1; i < f.pts.length; i++) {
@@ -424,27 +461,45 @@ class Player extends Ent {
             }
             acc += seg;
         }
+        if (f.t >= f.dur) { const m = this.mark; this.x = m.tx * T + 8; this.y = m.ty * T + 10; }
+        if (this.carry) { this.carry.cx = this.x; this.carry.cy = this.y - 14; }
+        /* whatever the flight passes through hears of it (dreamcatchers, a boss's arms) */
+        for (const e of this.area.ents) if (e.flyThrough && !e.removed) e.flyThrough(this, ox, oy, this.x, this.y);
         if (f.t >= f.dur) {
             const m = this.mark;
-            this.x = m.tx * T + 8; this.y = m.ty * T + 10;
+            const [lx, ly] = this.landingSpot(m.tx, m.ty);
+            this.x = lx * T + 8; this.y = ly * T + 10;
             this.state = 'normal'; this.inv = 40; this.flight = null;
             this.trace = [[m.tx, m.ty]];
+            if (lx !== m.tx || ly !== m.ty) this.trace.push([lx, ly]);
             Sfx.play('land'); Fx.dust(this.x, this.y);
+            for (const h of Player.onLand) h(this, f);
             if (f.opts.then) f.opts.then();
         }
     }
     startHop(tx, ty) {
         /* land on the first open tile below the ledge */
+        const a = this.area;
+        /* down past the ledge and any rock face under it, to the first open ground (a few tiles at most) */
         let ly = ty + 1;
-        while (this.area.kind(tx, ly).ledge) ly++;
-        this.hop = { fx: this.x, fy: this.y, tx: this.x, ty: ly * T + 8, t: 0, dur: 22 };
+        while (ly < ty + 6 && a.inside(tx, ly) && (a.kind(tx, ly).ledge || a.kind(tx, ly).solid)) ly++;
+        /* something standing just there: the ledge is a wall today */
+        if (a.inside(tx, ly) && a.at(tx, ly)) return;
+        /* nothing to land on: over the edge, and home along the trace */
+        if (!a.inside(tx, ly) || a.kind(tx, ly).solid || a.kind(tx, ly).ledge) { this.y = Math.max(this.y, ty * T + 4); this.startFall('pit'); return; }
+        this.hopTo(this.x, ly * T + 8, 14 + (ly - ty) * 8, 10 + (ly - ty) * 2);
+    }
+    /* a hop through the air to a spot (off a ledge, off bouncy moss) */
+    hopTo(px, py, dur = 22, h = 10) {
+        this.hop = { fx: this.x, fy: this.y, tx: px, ty: py, t: 0, dur, h };
         this.state = 'hop'; this.stateT = 0; Sfx.play('lift');
     }
     updateHop() {
         const h = this.hop; h.t++;
         const k = h.t / h.dur;
         this.x = lerp(h.fx, h.tx, k); this.y = lerp(h.fy, h.ty, k);
-        this.z = Math.sin(k * Math.PI) * 10;
+        this.z = Math.sin(k * Math.PI) * (h.h || 10);
+        if (this.carry) { this.carry.cx = this.x; this.carry.cy = this.y - 14; }
         if (h.t >= h.dur) { this.z = 0; this.state = 'normal'; Sfx.play('land'); Fx.dust(this.x, this.y); this.hop = null; }
     }
     canBeShoved(d) {
@@ -483,7 +538,7 @@ class Player extends Ent {
     draw(cx, cy) {
         if (this.hidden) return;
         if (this.liftT > 0) this.liftT--;
-        if (this.state === 'fall') {
+        if (this.state === 'fall' && this.fallWhy !== 'doze') {
             const k = 1 - this.stateT / 26;
             const { im } = this.sprite();
             if (!HEADLESS && im && k > 0) {
@@ -591,6 +646,9 @@ const Thrown = {
         }
     },
 };
+
+/* things that want to know when Wren comes down from a flight home (crumbling boards mend, and so on) */
+Player.onLand = [];
 
 /* ---------- shards: a broken thing flies home in pieces along its trace ---------- */
 const Shards = {

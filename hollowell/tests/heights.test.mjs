@@ -38,9 +38,11 @@ test('the lake: the raft at Wick\'s pier, paddled over to the north shore; it go
     /* back: the north raft */
     const n = HW.G.map.find('mwNorthRaft');
     go(HW, ...mw(40, 2)); HW.hold('down'); HW.step(12); HW.release(); HW.step(2);
-    assert.ok(paddleTo(HW, ...mw(40, 6)) && paddleTo(HW, ...mw(19, 6)) && paddleTo(HW, ...mw(19, 15)), 'back over');
+    assert.ok(paddleTo(HW, ...mw(40, 6)) && paddleTo(HW, ...mw(15, 6)) && paddleTo(HW, ...mw(15, 15)), 'back over');
     HW.hold('down'); HW.step(14); HW.release(); HW.step(2);
+    assert.equal(HW.player().ty, mw(15, 16)[1], 'ashore on the south side');
     assert.ok(until(HW, () => HW.Return.isHome(n), 2000), 'and it went home too');
+    assert.ok(HW.player().ty >= mw(15, 16)[1] && !HW.player().ride, 'still on the south side, not carried back');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 });
 
@@ -82,11 +84,25 @@ test('the Bluster: walk in the lulls, lean into it when it blows; then the chasm
 
 test('caught out in a gust and not leaning, Wren is blown off the ledge down to the first terrace', () => {
     const HW = heights();
-    HW.warp('hollow', ...ht(30, 21)); HW.step(10);
+    HW.warp('hollow', ...ht(36, 21)); HW.step(10);
     const g = HW.G.map.find('hGust');
     until(HW, () => g.on, 400);
     HW.step(400);
-    assert.ok(HW.player().ty >= ht(30, 28)[1], `blown down (at ${HW.player().ty})`);
+    const p = HW.player();
+    assert.equal(p.ty, ht(36, 30)[1], `blown down onto the first terrace, past the rock (at ${p.ty})`);
+    assert.ok(!HW.G.map.kind(p.tx, p.ty).solid, 'standing on open ground');
+    /* and she can walk off */
+    const y0 = p.y; HW.hold('down'); HW.step(20); HW.release();
+    assert.ok(p.y > y0, 'not stuck');
+});
+
+test('the Bluster ledge above the little cave is rock: no hopping down into it', () => {
+    const HW = heights();
+    for (const x of [29, 30, 31]) {
+        HW.warp('hollow', ...ht(x, 26)); HW.step(5);
+        HW.hold('down'); HW.step(60); HW.release(); HW.step(30);
+        assert.ok(HW.player().ty <= ht(x, 26)[1], `x ${x}: stays up top (at ${HW.player().ty})`);
+    }
 });
 
 test('after the Belfry: the Recall Bell wakes the boulder in the little cave (Heart Patch)', () => {

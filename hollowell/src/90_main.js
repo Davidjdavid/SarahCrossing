@@ -36,6 +36,10 @@ const Game = {
                 if (Input.pressed('map')) { PauseMenu.open(); PauseMenu.tab = 1; return; }
                 if (Input.pressed('prev')) Inv.cycleTool(-1);
                 if (Input.pressed('next')) Inv.cycleTool(1);
+            } else if (p && p.state === 'flight' && !Script.blocking() && !Dialog.active) {
+                /* in mid-flight there's time to change hands (for the Bell) */
+                if (Input.pressed('prev')) Inv.cycleTool(-1);
+                if (Input.pressed('next')) Inv.cycleTool(1);
             }
             Script.update();
             if (G.pendingToast) { UI.toast(G.pendingToast, 180); G.pendingToast = null; }
@@ -97,7 +101,7 @@ const Game = {
             Thrown.draw(cx, cy); Shards.draw(cx, cy); Tools.draw(cx, cy); GlazerShots.draw(cx, cy);
             if (a.def.drawOver) a.def.drawOver(a, cx, cy);
             Fx.draw(cx, cy);
-            Bells.drawFx(cx, cy);
+            Bells.drawFx(cx, cy); Bells.drawSleep(a, cx, cy);
             Knots.draw(cx, cy);
             if (G.holdUp) {
                 const im = spr(ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);
