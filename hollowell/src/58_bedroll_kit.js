@@ -374,13 +374,18 @@ AI.snore = (e, p) => {
             e.anim++;
             if (d > 9 * T) e.modeT += 3;
         }
-        if (e.modeT > (e.D.chase || 420)) { e.mode = 'bed'; e.modeT = 0; e.stuck = 0; }
+        if (e.modeT > (e.D.chase || 420)) {
+            /* off to the nearest bed: a Bedroll lying free close by, or its own */
+            const b = Inv.bedroll;
+            const dRoll = b && b.area === e.area.id && !Bedroll.sleeper && e.D.likesBeds !== false ? Math.hypot(b.tx * T + 8 - e.x, b.ty * T + 10 - e.y) : Infinity;
+            e.mode = 'bed'; e.modeT = 0; e.stuck = 0;
+            e.toRoll = dRoll < 12 * T && dRoll <= Math.hypot(e.hx * T + 8 - e.x, e.hy * T + 10 - e.y);
+        }
         return;
     }
     if (e.mode === 'bed') {
-        /* the nearest bed: a Bedroll lying free close by, or its own */
         const b = Inv.bedroll;
-        const roll = b && b.area === e.area.id && !Bedroll.sleeper && Math.hypot(b.tx * T + 8 - e.x, b.ty * T + 10 - e.y) < 9 * T && e.D.likesBeds !== false;
+        const roll = e.toRoll && b && b.area === e.area.id && !Bedroll.sleeper;
         const gx = roll ? b.tx * T + 8 : e.hx * T + 8, gy = roll ? b.ty * T + 10 : e.hy * T + 10;
         const dx = gx - e.x, dy = gy - e.y, d = Math.hypot(dx, dy);
         if (d < 1.5) {

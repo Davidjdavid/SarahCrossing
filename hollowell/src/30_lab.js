@@ -114,3 +114,34 @@ defArea({
     rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
     entry: { x: 15, y: 8 },
 });
+
+/* Wren's own mark: a bed, the Bedroll, crumbling boards, dreamcatchers, bouncy moss, sleep puffs, a Snoreling */
+defArea({
+    id: 'lab5', name: 'Lab 5', family: 'dungeon', theme: 'tidy', house: 'lab', thread: THREAD.mallow,
+    rows: [
+        '########################################',
+        '#.......................#..............#',
+        '#.......................#..............#',
+        '#.........oooooooo......#..............#',
+        '#.........cccccccc.....................#',
+        '#.........oooooooo......#..............#',
+        '#.......................#....~~~~~~~...#',
+        '#.......................#....~~~~~~~...#',
+        '#.......................#..............#',
+        '#.......................#..............#',
+        '########################################',
+    ],
+    legend: { 'c': { k: 'floor', p: 'floor3', ent: 'crumble' } },
+    ents: [
+        { k: 'bed', x: 2, y: 1, id: 'bed' },
+        { k: 'dreamring', x: 13, y: 4, id: 'ring1', sig: 'r1' },
+        { k: 'moss', x: 2, y: 8, id: 'moss' },
+        { k: 'puffball', x: 20, y: 8, id: 'puff' },
+        { k: 'crate', x: 6, y: 8, id: 'crate', marked: false },
+        { k: 'plate', x: 34, y: 2, sig: 'p1' },
+        { k: 'snoreling', x: 37, y: 9, id: 'snore' },
+        { k: 'raft', x: 35, y: 6, id: 'raft' },
+    ],
+    rooms: [{ x: 0, y: 0, w: 24, h: 11 }, { x: 24, y: 0, w: 16, h: 11 }],
+    entry: { x: 5, y: 5 },
+});

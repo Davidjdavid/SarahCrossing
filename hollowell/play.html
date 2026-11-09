@@ -4698,6 +4698,37 @@ defArea({
     entry: { x: 15, y: 8 },
 });
 
+/* Wren's own mark: a bed, the Bedroll, crumbling boards, dreamcatchers, bouncy moss, sleep puffs, a Snoreling */
+defArea({
+    id: 'lab5', name: 'Lab 5', family: 'dungeon', theme: 'tidy', house: 'lab', thread: THREAD.mallow,
+    rows: [
+        '########################################',
+        '#.......................#..............#',
+        '#.......................#..............#',
+        '#.........oooooooo......#..............#',
+        '#.........cccccccc.....................#',
+        '#.........oooooooo......#..............#',
+        '#.......................#....~~~~~~~...#',
+        '#.......................#....~~~~~~~...#',
+        '#.......................#..............#',
+        '#.......................#..............#',
+        '########################################',
+    ],
+    legend: { 'c': { k: 'floor', p: 'floor3', ent: 'crumble' } },
+    ents: [
+        { k: 'bed', x: 2, y: 1, id: 'bed' },
+        { k: 'dreamring', x: 13, y: 4, id: 'ring1', sig: 'r1' },
+        { k: 'moss', x: 2, y: 8, id: 'moss' },
+        { k: 'puffball', x: 20, y: 8, id: 'puff' },
+        { k: 'crate', x: 6, y: 8, id: 'crate', marked: false },
+        { k: 'plate', x: 34, y: 2, sig: 'p1' },
+        { k: 'snoreling', x: 37, y: 9, id: 'snore' },
+        { k: 'raft', x: 35, y: 6, id: 'raft' },
+    ],
+    rooms: [{ x: 0, y: 0, w: 24, h: 11 }, { x: 24, y: 0, w: 16, h: 11 }],
+    entry: { x: 5, y: 5 },
+});
+
 // ---- 31_art_world.js ----
 /* Painted art for the outdoors: trees, bushes, rocks, buildings, the Well, fences, and town things.
    Bigger pictures are painted in code (shapes shaded by light from the upper left, with a texture)
@@ -11271,13 +11302,18 @@ AI.snore = (e, p) => {
             e.anim++;
             if (d > 9 * T) e.modeT += 3;
         }
-        if (e.modeT > (e.D.chase || 420)) { e.mode = 'bed'; e.modeT = 0; e.stuck = 0; }
+        if (e.modeT > (e.D.chase || 420)) {
+            /* off to the nearest bed: a Bedroll lying free close by, or its own */
+            const b = Inv.bedroll;
+            const dRoll = b && b.area === e.area.id && !Bedroll.sleeper && e.D.likesBeds !== false ? Math.hypot(b.tx * T + 8 - e.x, b.ty * T + 10 - e.y) : Infinity;
+            e.mode = 'bed'; e.modeT = 0; e.stuck = 0;
+            e.toRoll = dRoll < 12 * T && dRoll <= Math.hypot(e.hx * T + 8 - e.x, e.hy * T + 10 - e.y);
+        }
         return;
     }
     if (e.mode === 'bed') {
-        /* the nearest bed: a Bedroll lying free close by, or its own */
         const b = Inv.bedroll;
-        const roll = b && b.area === e.area.id && !Bedroll.sleeper && Math.hypot(b.tx * T + 8 - e.x, b.ty * T + 10 - e.y) < 9 * T && e.D.likesBeds !== false;
+        const roll = e.toRoll && b && b.area === e.area.id && !Bedroll.sleeper;
         const gx = roll ? b.tx * T + 8 : e.hx * T + 8, gy = roll ? b.ty * T + 10 : e.hy * T + 10;
         const dx = gx - e.x, dy = gy - e.y, d = Math.hypot(dx, dy);
         if (d < 1.5) {

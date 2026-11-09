@@ -146,6 +146,22 @@ const SCENARIOS = {
             await shot('bf_' + n);
         }
     },
+    async bedroll() {
+        await open();
+        await page.evaluate(() => {
+            HW.newGame('Wren', { area: 'lab5', x: 5, y: 5, noAutosave: true }); HW.step(5);
+            for (const t of ['gloves', 'hook', 'paddle', 'bedroll']) HW.Inv.giveTool(t); HW.Inv.equipped = 'bedroll';
+            HW.walkTo(3, 6); HW.press('tool', 1); HW.step(30);
+            HW.walkTo(9, 4); HW.hold('right'); HW.step(60); HW.release(); HW.step(10);
+        });
+        await shot('br_boards');
+        await page.evaluate(() => { HW.walkTo(19, 4); HW.step(20); HW.hold('tool'); HW.step(22); HW.release(); HW.step(14); });
+        await shot('br_homeward');
+        await page.evaluate(() => { HW.step(120); HW.walkTo(20, 6); HW.step(20); });
+        await shot('br_puff');
+        await page.evaluate(() => { HW.step(200); HW.walkTo(34, 4); HW.step(10); });
+        await shot('br_snoreling');
+    },
     async title() { await open(); await page.evaluate(() => { window.HW._paused = false; }); await page.waitForTimeout(400); await page.evaluate(() => { window.HW._paused = true; }); await shot('title'); },
     async lab() {
         await open();
