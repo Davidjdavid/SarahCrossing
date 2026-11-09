@@ -31,6 +31,13 @@ Done:
 - Tests: `tests/laws.test.mjs` (16 passing), `tests/playthrough.mjs` (the bot finishes the game: about 11 minutes of game
   time for a bot that knows every answer).
 
+## David's play (9 November)
+
+David played it through to the end. Stuck once, at the first woods wall: "look the wrong way" read as turning Dot round,
+and the red X that would have told him where he stood wrong was hidden under the trees (both fixed). His verdict: really
+liked it; the pull-back at the end and solving the island at map scale, the game speaking to him at the end (a meta moment
+he didn't expect) and the puzzles were the highlights; "feels like little demos of what a real game could look like".
+
 ## Next priorities
 
 The game meets the brief's definition of done; the four-hour check-in task was deleted. If David asks for more:

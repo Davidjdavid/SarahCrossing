@@ -23,6 +23,7 @@
 |---|---|---|
 | 9 Nov | laws.test.mjs | 13/13 pass |
 | 9 Nov | playthrough.mjs | completes: opening to title, game time ~11 min for the bot, no page errors |
+| 9 Nov | David, by hand | finished the game; one sticking point (the first woods wall), fixed |
 
 ## Softlock review (so far)
 
