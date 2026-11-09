@@ -5968,8 +5968,8 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'marble', x: 3, y: 2, id: 'gb1' }, { k: 'marble', x: 16, y: 2, id: 'gb2' },
-                { k: 'marble', x: 3, y: 8, id: 'gb3' }, { k: 'marble', x: 16, y: 8, id: 'gb4' },
+                { k: 'marble', x: 3, y: 4, id: 'gb1' }, { k: 'marble', x: 16, y: 4, id: 'gb2' },
+                { k: 'marble', x: 9, y: 8, id: 'gb3' }, { k: 'marble', x: 9, y: 2, id: 'gb4' },
                 { k: 'pot', x: 1, y: 1, style: 'pot_teal' }, { k: 'pot', x: 18, y: 9, style: 'pot_teal' },
                 { k: 'housekeeper', x: 9, y: 4 },
                 { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'boss' },
@@ -6114,11 +6114,13 @@ AI.monger = (e, p) => {
 class Housekeeper extends Enemy {
     constructor(tx, ty) {
         super(tx, ty, { type: 'housekeeper', hp: 3 });
-        this.state = 'sleep'; this.st = 0; this.cd = 60; this.doors = 0;
+        this.state = 'sleep'; this.st = 0; this.cd = 90; this.doors = 0;
         this.weightN = WEIGHT.medium + 0.5;
+        this.homeX = tx; this.homeY = ty;
     }
     hurtBox() { if (!this.alive) return null; return { x0: this.x - 11, x1: this.x + 11, y0: this.y - 30, y1: this.y + 4 }; }
-    onTile(x, y) { if (!this.alive) return false; return x * T < this.x + 12 && (x + 1) * T > this.x - 12 && y * T < this.y + 5 && (y + 1) * T > this.y - 10; }
+    onTile(x, y) { if (!this.alive) return false; return x * T < this.x + 10 && (x + 1) * T > this.x - 10 && y * T < this.y + 5 && (y + 1) * T > this.y - 6; }
+    atHome() { return Math.abs(this.x - (this.homeX * T + 8)) < 2 && Math.abs(this.y - (this.homeY * T + 10)) < 2; }
     update() {
         if (!this.alive) return this.updateYarn();
         this.t++; if (this.flash > 0) this.flash--;
@@ -6134,37 +6136,59 @@ class Housekeeper extends Enemy {
         }
         if (Script.blocking()) return;
         this.st++;
-        if (this.kx || this.ky) { this.move(this.kx, this.ky); this.kx *= 0.8; this.ky *= 0.8; if (Math.abs(this.kx) + Math.abs(this.ky) < 0.3) this.kx = this.ky = 0; }
+        if (this.kx || this.ky) { this.move(this.kx, this.ky); this.kx *= 0.8; this.ky *= 0.8; if (Math.abs(this.kx) + Math.abs(this.ky) < 0.3) this.kx = this.ky = 0; this.traceStep(); }
+        const angry = this.hp <= 1;
         switch (this.state) {
-            case 'wake': if (this.st > 30) this.setState('stalk'); break;
-            case 'stalk': {
-                /* tidy first: anything out of place gets fetched */
-                const mess = a.ents.find(e => e.isGrid && e.ret && e.ret.state === 'away' && !e.carried && e.kind !== 'pot' && dist(e.px + 8, e.py + 8, this.x, this.y) < 200);
-                const tgt = mess ? { x: mess.px + 8, y: mess.py + 10 } : { x: p.x, y: p.y };
-                const dx = tgt.x - this.x, dy = tgt.y - this.y, d = Math.hypot(dx, dy) || 1;
-                const sp = this.hp <= 1 ? 0.9 : 0.6;
-                if (d > 4) { this.move(dx / d * sp, dy / d * sp); this.dir = dirOf(dx, dy); this.anim++; }
-                if (mess && d < 20) { Return.snap(mess); Sfx.play('tug'); }
-                /* line up with Wren: charge */
-                if (--this.cd <= 0 && !mess) {
+            case 'wake': if (this.st > 30) this.setState('home'); break;
+            /* it stands on its spot and watches. Mess: it goes and tidies it. Line up with it: it charges */
+            case 'home': {
+                const mess = a.ents.find(e => e.isGrid && e.ret && e.ret.state !== 'home' && e.kind !== 'pot' && !e.carried && e.weight >= WEIGHT.heavy);
+                if (mess && this.st > 20) { this.target = mess; this.setState('tidy'); break; }
+                if (this.st > (angry ? 40 : 70)) {
                     const ax = Math.abs(p.x - this.x), ay = Math.abs(p.y - this.y);
-                    if (ax < 10 || ay < 10) { this.chargeDir = ax < 10 ? (p.y < this.y ? UP : DOWN) : (p.x < this.x ? LEFT : RIGHT); this.setState('windup'); }
+                    if (ax < 12 || ay < 12) { this.chargeDir = ax < 12 ? (p.y < this.y ? UP : DOWN) : (p.x < this.x ? LEFT : RIGHT); this.dir = this.chargeDir; this.setState('windup'); }
                 }
                 break;
             }
-            case 'windup': if (this.st > 32) { this.setState('charge'); Sfx.play('boss'); } break;
-            case 'charge': {
-                const sp = this.hp <= 1 ? 3.6 : 3;
-                if (!this.move(DX[this.chargeDir] * sp, DY[this.chargeDir] * sp) || this.st > 90) { G.shake = 10; Sfx.play('push'); Fx.dust(this.x, this.y); this.setState('recoil'); }
+            /* walk over to the stray furniture and yank it home (look where you stand, Housekeeper) */
+            case 'tidy': {
+                const m = this.target;
+                if (!m || !m.ret || m.ret.state === 'home') { this.setState('return'); break; }
+                const gx = m.px + 8, gy = m.py + 10, dx = gx - this.x, dy = gy - this.y, d = Math.hypot(dx, dy) || 1;
+                if (d > 21 && this.st < 300) {
+                    const sp = angry ? 1.3 : 1.0;
+                    if (!this.move(dx / d * sp, dy / d * sp)) { if (!this.move(sign(dx) * sp, 0)) this.move(0, sign(dy) * sp); }
+                    this.dir = dirOf(dx, dy); this.anim++; this.traceStep();
+                } else { Return.snap(m); Sfx.play('tug'); this.rattle = 1; this.setState('watch'); }
                 break;
             }
-            case 'recoil': if (this.st > 40) { this.cd = 90; this.setState('stalk'); } break;
+            case 'watch': if (this.st > 40) this.setState('return'); break;
+            case 'windup': {
+                /* it can't abide mess: tidying comes before charging */
+                const mess = a.ents.find(e => e.isGrid && e.ret && e.ret.state !== 'home' && e.kind !== 'pot' && !e.carried && e.weight >= WEIGHT.heavy);
+                if (mess) { this.target = mess; this.setState('tidy'); break; }
+                if (this.st > (angry ? 28 : 36)) { this.setState('charge'); Sfx.play('boss'); }
+                break;
+            }
+            case 'charge': {
+                const sp = angry ? 3.4 : 2.8;
+                if (!this.move(DX[this.chargeDir] * sp, DY[this.chargeDir] * sp) || this.st > 90) { G.shake = 10; Sfx.play('push'); Fx.dust(this.x, this.y); this.setState('recoil'); }
+                this.traceStep();
+                break;
+            }
+            case 'recoil': if (this.st > 36) this.setState('return'); break;
+            /* everything goes back the way it came: so does it */
+            case 'return': {
+                if (this.trace.length < 2) { this.x = this.homeX * T + 8; this.y = this.homeY * T + 10; this.trace = [[this.homeX, this.homeY]]; this.setState('home'); break; }
+                this.goHome(angry ? 1.3 : 1.0); this.anim++;
+                break;
+            }
             case 'stunned':
                 this.doors = Math.min(1, this.st / 10);
-                if (this.st > 150) { this.doors = 0; this.cd = 60; this.setState('stalk'); }
+                if (this.st > 150) { this.doors = 0; this.setState('return'); }
                 break;
         }
-        if (p.state === 'normal' && this.state !== 'stunned' && Math.abs(p.x - this.x) < 14 && Math.abs(p.y - this.y) < 10) p.hurt(2, this.x, this.y);
+        if (p.state === 'normal' && this.state !== 'stunned' && Math.abs(p.x - this.x) < 13 && Math.abs(p.y - this.y) < 9) p.hurt(this.state === 'charge' ? 2 : 1, this.x, this.y);
     }
     setState(s) { this.state = s; this.st = 0; }
     /* a returning heavy thing slammed into it */
@@ -6196,17 +6220,18 @@ class Housekeeper extends Enemy {
     updateYarn() { this.yarnT++; }
     draw(cx, cy) {
         if (!this.alive) {
-            /* the last of it drains into a little hole in the floor */
             if (this.yarnT < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.ives); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
             return;
         }
         const x = this.x - cx, y = this.y - cy;
+        /* its own mark, under where it stands guard */
+        if (!this.atHome()) Marks.draw(this.homeX * T - cx, this.homeY * T - cy, THREAD.ives, true);
         let ox = 0;
-        if (this.state === 'windup') ox = (this.st >> 1) % 2 ? 1 : -1;
-        Gfx.alpha(0.3); Gfx.rect(x - 12, y + 2, 24, 3, PAL.ink); Gfx.alpha(1);
-        const im = spr(this.state === 'stunned' && this.doors >= 1 ? 'keeper_open' : this.state === 'sleep' ? 'keeper_sleep' : 'keeper');
+        if (this.state === 'windup' || (this.state === 'home' && this.rattle && (this.t >> 3) % 3 === 0)) ox = (this.st >> 1) % 2 ? 1 : -1;
+        Gfx.alpha(0.3); Gfx.rect(x - 12, y - 1, 24, 3, PAL.ink); Gfx.alpha(1);
+        const im = spr(this.state === 'stunned' && this.doors >= 1 ? 'keeper_open' : 'keeper');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        Gfx.img(img, x - 16 + ox, y - 38 + (this.state === 'charge' ? Math.sin(this.st) : 0));
+        Gfx.img(img, x - 16 + ox, y - 34);
     }
 }
 SPAWN.housekeeper = (tx, ty) => Progress.flag('tidy_boss') ? new Ent('none') : new Housekeeper(tx, ty);
@@ -6215,7 +6240,7 @@ const Tidy = {
     *bossIntro(k) {
         yield 20;
         yield* say(null, 'The great wardrobe at the end of the hall creaks, unfolds a pair of polished feet, and turns to face you. Its doors rattle like teeth.');
-        yield* say(null, 'It glares at the busts in the corners. It glares at you. You are clearly the messiest thing in the room.');
+        yield* say(null, "It stamps back onto a little teal cross in the middle of the floor, its own spot, and glares at you. You are clearly the messiest thing in the room.");
         G.boss = k;
     },
     *bossDown(k) {
@@ -6237,8 +6262,8 @@ const Tidy = {
         Progress.setGoal("Go back to Hollowell and tell Gran. Next, the Kiln in Kilnridge: the canyon road west of Meadowfold.");
         yield* say(null, 'A door opens in the far wall of the Grand Hall, letting in daylight and the smell of grass.');
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
-        a.add(new Warp(r.x + 9, 9, { to: 'hollow', tx2: TIDY_OUT.x, ty2: TIDY_OUT.y, face: 'down' }));
-        a.add(new Prop(r.x + 9, 9, { im: ART.exitlight, solid: [] }));
+        a.add(new Warp(r.x + 17, r.y + 9, { to: 'hollow', tx2: TIDY_OUT.x, ty2: TIDY_OUT.y, face: 'down' }));
+        a.add(new Prop(r.x + 17, r.y + 9, { im: ART.exitlight, solid: [] }));
     },
 };
 

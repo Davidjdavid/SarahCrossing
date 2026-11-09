@@ -10,7 +10,9 @@
   traces and collision, fast forward). `window.HW` is the test API.
 
 ## Results
-_None yet._
+- 2026-11-09: `npm test` 27/27 pass (Return rules 8, Tidyhouse rooms 18, playthrough 1).
+  The playthrough found and fixed: the Pantry nook softlock; walking into pickups mid-walk.
+- `node tests/browser.mjs --shots town meadow tidy`: no page errors; screenshots reviewed.
 
 ## Unresolved issues
 _None yet._
@@ -18,3 +20,4 @@ _None yet._
 ## Verification history
 | Date | What | Result |
 |---|---|---|
+| 2026-11-09 | Headless suite + browser smoke (title, town, Meadowfold, all D1 rooms) | pass |

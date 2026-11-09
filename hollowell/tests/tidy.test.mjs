@@ -279,3 +279,30 @@ test('the Housekeeper: slammed by a bust coming home, then struck while its door
     assert.ok(HW.Progress.flag('d1'));
     noErrors(HW);
 });
+
+test('the Housekeeper, for real: push a bust out toward the wall; it comes to tidy it and its own yank slams it', () => {
+    const HW = game();
+    HW.Inv.patterns.push('tidy');
+    HW.warp('tidy', ...at('ante', 1, 5));
+    HW.hold('left'); HW.step(50); HW.release();
+    HW.hold('left'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk();
+    const k = HW.ents('enemy').find(e => e.type === 'housekeeper');
+    for (let round = 0; round < 3 && k.alive; round++) {
+        /* (a person times this: step up to the bust just as it settles on its spot) */
+        go(HW, 'boss', 4, 3);
+        for (let i = 0; i < 900 && k.state !== 'home'; i++) HW.step(1);
+        go(HW, 'boss', 4, 4);
+        k.setState('home');
+        HW.push('left', 1);                         // the left bust (3,4) -> (2,4), out toward the wall
+        go(HW, 'boss', 3, 8);                       // out of the way
+        for (let i = 0; i < 600 && k.state !== 'stunned' && k.alive; i++) HW.step(1);
+        assert.equal(k.state, 'stunned', 'slammed by the bust it yanked home');
+        for (let i = 0; i < 12; i++) HW.step(1);
+        const p = HW.player(); p.x = k.x + 18; p.y = k.y; HW.face('left');
+        HW.press('atk', 1); HW.step(40);
+        for (let i = 0; i < 400 && k.alive && k.state !== 'home'; i++) HW.step(1);
+    }
+    HW.step(100); HW.skipTalk();
+    assert.ok(HW.Progress.flag('tidy_boss'), 'down for good');
+    noErrors(HW);
+});

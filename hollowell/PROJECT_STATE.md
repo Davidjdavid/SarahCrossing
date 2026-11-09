@@ -1,10 +1,12 @@
 # HOLLOWELL: Project State
 
-_Last updated: 2026-11-09 (session 1, day 1)._
+_Last updated: 2026-11-09 (session 1, day 1, evening)._
 
 ## Status
-**Phase 2 → 3.** Concept chosen (12+ candidates considered privately), full design written
-(DESIGN_DOCUMENT.md, SPOILERS.md, WORLD_MAP.md, DUNGEON_TRACKER.md). Technical foundation starting.
+**Phase 4 (vertical slice) nearly done.** Engine complete enough for the whole game; Hollowell (hub) with
+its buildings, interiors and townsfolk; the prologue and ceremony; Meadowfold; the Tidyhouse (D1, 14 rooms,
+mini-boss, boss, Knot) all playable and covered by tests, including a scripted playthrough from a fresh game
+to the first Knot and back out.
 
 ## Done
 - Brief recorded verbatim (GAME_BRIEF.md).
@@ -12,19 +14,31 @@ _Last updated: 2026-11-09 (session 1, day 1)._
 - Four-hourly check-in scheduled (trigger `trig_01RDdWnsj7kTWV96cSykoTdq`, cron `7 */4 * * *` UTC, fires
   into this session).
 
+## Done (engine and slice)
+- Engine: fixed-step loop, input (keys, pad, virtual), canvas with whole-number scaling, bitmap font,
+  sprites from pixel grids, painted tiles per theme with autotiling, areas from ASCII, the Return (marks,
+  traces with loop erasure, patience, shoving by weight, snap home, falls/sinks, shards), the player (push,
+  pull, grip, lift, throw, stick, falls and flights home along Wren's own trace, hops off ledges), camera with
+  rooms, generator scripts, dialogue with choices, HUD, toasts, banners, title, naming, pause menu (satchel,
+  map, journal, options, save), saves (3 slots + codes, migrate), chiptune synth and music, debug panel and
+  the HW test API with an autopilot.
+- Content: hub, 11 interiors, prologue, ceremony, townsfolk talk, Meadowfold, D1 complete.
+
 ## In progress
-- Engine foundation (src/): loop, input, renderer, tiles, sprites, font, text boxes, maps, entities,
-  collision, the Return, player, save/load, menus, audio, debug tools, headless test harness.
+- Reviewer pass on the slice; D2 (Kilnridge + the Kiln).
 
 ## Next priorities
-1. Engine foundation + headless tests of the Return rules.
-2. Vertical slice: Hollowell (hub), Meadowfold, D1 Tidyhouse complete with boss, secrets, Gloves.
-3. Fresh-context review of the slice; fix.
-4. Regions and dungeons in order (D2…D6), then Act III (Underside, D7, Makings), Act IV (D8, cutting,
-   Drift, final), optional dungeons, secrets, polish.
+1. Fix what the slice review finds.
+2. Kilnridge region and the Kiln (D2, Hookline); open the canyon road; Kids' pretend Wander (S12) and
+   Tidiness Trials (S28) in town.
+3. Millwater + Millrace (D3), Belfry Heights + Belfry (D4), the festival; Hushwood + Slumberhouse (D5);
+   Larkspur + Marionette Hall (D6) and Reveal 1.
+4. Act III (Underside, D7, Makings), Act IV (D8, cutting, Drift, final), optional dungeons, secrets.
+5. Music for every region and House; art passes.
 
 ## Known bugs
-None yet.
+- Busts look a little like chess pawns (art).
+- Enemies don't show their threads (by design for now).
 
 ## Definition of done checklist (from GAME_BRIEF.md §13)
 - [ ] Substantial, fully playable adventure
