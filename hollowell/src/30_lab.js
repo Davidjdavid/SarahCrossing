@@ -27,3 +27,33 @@ defArea({
     entry: { x: 2, y: 8 },
     music: 'tidy',
 });
+
+defArea({
+    id: 'lab2', name: 'Lab 2', family: 'dungeon', theme: 'tidy', house: 'lab', thread: THREAD.bram,
+    rows: [
+        '####################',
+        '#..................#',
+        '#..................#',
+        '#.......ooo........#',
+        '#.......ooo........#',
+        '#.......ooo........#',
+        '#..................#',
+        '#..................#',
+        '#..................#',
+        '#..................#',
+        '####################',
+    ],
+    ents: [
+        { k: 'pot', x: 2, y: 2, id: 'p1' }, { k: 'pot', x: 13, y: 8, id: 'p2' },
+        { k: 'charm', x: 4, y: 2, id: 'c1', sig: 'c1' },
+        { k: 'charm', x: 5, y: 7, id: 's1', seq: 'abc', order: 0, col: 'sun' },
+        { k: 'charm', x: 6, y: 7, id: 's2', seq: 'abc', order: 1, col: 'moon' },
+        { k: 'charm', x: 7, y: 7, id: 's3', seq: 'abc', order: 2, col: 'star' },
+        { k: 'charm', x: 9, y: 4, id: 'pitc', sig: 'pitc' },
+        { k: 'eyelet', x: 12, y: 4 },
+        { k: 'seal', x: 16, y: 2, id: 'seal1' },
+        { k: 'pot', x: 15, y: 6, id: 'p3' },
+    ],
+    rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
+    entry: { x: 2, y: 8 },
+});

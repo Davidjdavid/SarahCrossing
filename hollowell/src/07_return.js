@@ -209,7 +209,7 @@ class GridThing extends Ent {
     landed(returning) {
         const k = this.area.kind(this.tx, this.ty);
         /* a returning thing hangs on its thread over pits and water */
-        if (returning || (this.ret && this.ret.state === 'returning')) { if (this.onLanded) this.onLanded(); return; }
+        if (returning || this.hookPulled || (this.ret && this.ret.state === 'returning')) { if (this.onLanded) this.onLanded(); return; }
         if (k.pit) this.fall();
         else if (k.deep && !this.floats) this.sink();
         if (this.onLanded) this.onLanded();

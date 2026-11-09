@@ -57,6 +57,7 @@ defBlock({
         { k: 'sign', x: 47, y: 25, text: 'BRIDGE OUT. Hook on, if you have a hook.' },
         { k: 'sign', x: 34, y: 2, text: 'MEADOWFOLD. Mind the sheep. The sheep mind you.' },
         { k: 'rest', x: 38, y: 15 },
+        { k: 'eyelet', x: 55, y: 27 }, { k: 'eyelet', x: 47, y: 26 },
         { k: 'block', x: 4, y: 23, look: 'boulder_big', id: 'canyonBoulder', weight: WEIGHT.heavy, if: '!kilnPass', pushLine: '' },
         { k: 'block', x: 4, y: 22, look: 'boulder_big', id: 'canyonBoulder2', weight: WEIGHT.heavy, if: 'kilnPass' },
         { k: 'stray', x: 36, y: 30, look: 'haybale_stray', id: 'strayBale' },

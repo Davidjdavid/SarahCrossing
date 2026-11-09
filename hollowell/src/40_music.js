@@ -74,3 +74,23 @@ SONGS.knot = {
     ],
 };
 SONGS.silence = { bpm: 60, div: 1, ch: [{ wave: 'p12', vol: 0, n: '.' }] };
+
+/* Kilnridge: dry, bright, a bit of a swagger (D Dorian) */
+SONGS.kiln = {
+    bpm: 112, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.1, n: 'D5 - - E5 F5 - A5 - | G5 - F5 - E5 - C5 - | D5 - - E5 F5 - A5 - | B5 - A5 - G5 - - - | A5 - - G5 F5 - E5 - | D5 - C5 - A4 - C5 - | D5 - E5 - F5 - E5 - | D5 - - - - - . . ' },
+        { wave: 'triangle', vol: 0.22, n: 'D3 . A3 . D3 . A3 . | C3 . G3 . C3 . G3 . | D3 . A3 . D3 . A3 . | G2 . D3 . G2 . B2 . | F2 . C3 . F2 . C3 . | C3 . G3 . A2 . E3 . | D3 . A3 . C3 . G3 . | D3 . A3 . D3 - - . ' },
+        { wave: 'p12', vol: 0.045, n: '. F4 . A4 . F4 . A4 | . E4 . G4 . E4 . G4 | . F4 . A4 . F4 . A4 | . D4 . G4 . B4 . G4 | . F4 . A4 . F4 . A4 | . E4 . G4 . E4 . A4 | . F4 . A4 . E4 . G4 | . F4 . A4 . D4 . . ' },
+        { drum: true, vol: 0.1, n: 'k . h h s . h . | k . h . s . h h | k k h . s . h . | k . h . s h h . ' },
+    ],
+};
+/* the Kiln: hot, low, rhythmic (E Phrygian) */
+SONGS.kilnhouse = {
+    bpm: 96, div: 4,
+    ch: [
+        { wave: 'p50', vol: 0.07, legato: 0.6, n: 'E4 - . . F4 - . . E4 - . . . . B3 - | C4 - . . B3 - . . A3 - . . . . . . | E4 - . . F4 - . . G4 - . . . . F4 - | E4 - . . . . . . . . . . . . . . ' },
+        { wave: 'triangle', vol: 0.24, n: 'E2 . . E2 . . E3 . E2 . . E2 . . F2 . | E2 . . E2 . . E3 . E2 . . D2 . . C2 . | E2 . . E2 . . E3 . E2 . . E2 . . F2 . | E2 . . . . . . . E2 . . F2 . . E2 . ' },
+        { drum: true, vol: 0.09, n: 'k . . h . . s . k . h . s . h . | k . . h . . s . k . h . s h h . ' },
+    ],
+};

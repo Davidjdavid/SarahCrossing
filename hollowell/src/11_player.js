@@ -30,7 +30,7 @@ class Player extends Ent {
         return x * T < x1 && (x + 1) * T > x0 && y * T < y1 && (y + 1) * T > y0;
     }
     feetOn(x, y) { return !this.flying && tileOf(this.x) === x && tileOf(this.y) === y; }
-    get flying() { return this.state === 'flight' || this.state === 'hop'; }
+    get flying() { return this.state === 'flight' || this.state === 'hop' || this.state === 'reel'; }
     get busy() { return this.state !== 'normal' || Script.blocking(); }
 
     /* ----- marks and traces ----- */
@@ -107,6 +107,7 @@ class Player extends Ent {
             case 'flight': return this.updateFlight();
             case 'fall': return this.updateFall();
             case 'hop': return this.updateHop();
+            case 'reel': return this.updateReel();
             case 'faint': return;
         }
         if (this.shove) return this.updateShove();
@@ -118,7 +119,7 @@ class Player extends Ent {
         const cut = Script.blocking() || UI.modal();
         const ax = cut ? { x: 0, y: 0 } : Input.axis();
         if (this.swingT > 0) this.updateSwing();
-        if (this.toolT > 0) { this.toolT--; if (Tools.busy(this)) { this.afterMove(); return; } }
+        if (Tools.busy(this)) { this.walking = false; this.afterMove(); return; }
 
         /* a pull in progress finishes, whatever the buttons do */
         if (this.pullT > 0) {
@@ -513,7 +514,11 @@ const Thrown = {
             const k = area.kind(tx, ty);
             let stop = (k.solid && !k.deep && !k.pit && !k.ledge && !k.low) || !area.inside(tx, ty);
             const occ = area.at(tx, ty);
-            if (occ && occ !== t.o) { stop = true; if (occ.hit) occ.hit(t.o, t.d); }
+            if (occ && occ !== t.o) {
+                stop = true;
+                if (occ.hit) occ.hit(t.o, t.d);
+                else if (!occ.fixed && occ.weight <= t.o.weight && !occ.mv && occ.canPush && occ.canPush(t.d)) { occ.push(t.d, 8); Stats.count('knocks'); }
+            }
             for (const b of area.blockers) if (b.blocks(tx, ty)) stop = true;
             for (const e of area.ents) {
                 if (!e.hurtBox || e === t.o) continue;
@@ -522,7 +527,10 @@ const Thrown = {
             }
             if (!stop) {
                 t.x = nx; t.y = ny;
-                if (tx !== t.lastTx || ty !== t.lastTy) { t.lastTx = tx; t.lastTy = ty; Return.moved(t.o, tx, ty); }
+                if (tx !== t.lastTx || ty !== t.lastTy) {
+                    t.lastTx = tx; t.lastTy = ty; Return.moved(t.o, tx, ty);
+                    for (const e of area.ents) if (e.strike && e.tx === tx && e.ty === ty) e.strike(t.o);
+                }
             }
             if (stop || t.dist >= t.max) { t.done = true; this.land(t, area); }
         }
@@ -555,6 +563,11 @@ const Thrown = {
 /* ---------- shards: a broken thing flies home in pieces along its trace ---------- */
 const Shards = {
     list: [],
+    /* a flight of pieces along tiles (no pot behind it): creatures made of clay, thrown clay shots */
+    flight(area, path, opts = {}) {
+        if (path.length < 2) { if (opts.onDone) opts.onDone(); return; }
+        this.list.push({ o: { area, shardCol: opts.col || '#c4623a', fake: true, owner: opts.owner }, path, i: 0, t: 0, pace: opts.pace || 4, x: path[0][0] * T + 8, y: path[0][1] * T + 8, delay: opts.delay || 6, hurt: !!opts.hurt, onDone: opts.onDone });
+    },
     start(o, tx, ty) {
         const a = o.area;
         Sfx.play('shatter');
@@ -570,12 +583,12 @@ const Shards = {
     },
     update(area) {
         for (const s of this.list) {
-            if (s.o.area !== area) { s.done = true; this.reform(s); continue; }
+            if (s.o.area !== area) { s.done = true; if (!s.o.fake) this.reform(s); continue; }
             if (s.delay > 0) { s.delay--; continue; }
             s.t++;
             if (s.t >= s.pace) {
                 s.t = 0; s.i++;
-                if (s.i >= s.path.length) { this.reform(s); s.done = true; continue; }
+                if (s.i >= s.path.length) { if (s.o.fake) { if (s.onDone) s.onDone(); } else this.reform(s); s.done = true; continue; }
                 const [tx, ty] = s.path[s.i];
                 this.strike(area, tx, ty, s);
             }
@@ -589,6 +602,7 @@ const Shards = {
     strike(area, tx, ty, s) {
         const o = area.at(tx, ty);
         if (o && o !== s.o && o.hit) o.hit(s.o, -1, true);
+        for (const e of area.ents) if (e.strike && e.tx === tx && e.ty === ty) e.strike(s.o);
         for (const e of area.ents) {
             if (!e.hurtBox) continue;
             const h = e.hurtBox();
@@ -596,6 +610,8 @@ const Shards = {
             if (h && cx + 6 > h.x0 && cx - 6 < h.x1 && cy + 6 > h.y0 && cy - 6 < h.y1) e.struck(s.o, 1, -1, true);
         }
         if (s.o.onShardTile) s.o.onShardTile(tx, ty);
+        /* clay creatures' pieces hurt Wren too */
+        if (s.hurt) { const p = G.player; if (p && p.area === area && p.feetOn(tx, ty)) p.hurt(1, tx * T + 8 - DX[dirOf(1, 0)], ty * T + 8); }
     },
     reform(s) {
         const o = s.o;

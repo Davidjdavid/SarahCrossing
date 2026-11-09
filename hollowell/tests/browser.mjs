@@ -30,6 +30,23 @@ async function shot(name) {
     await page.locator('canvas').screenshot({ path: path.join(SHOTS, name + '.png') });
 }
 const SCENARIOS = {
+    async kiln() {
+        await open();
+        await page.evaluate(() => { HW.newGame('Wren', { area: 'hollow', x: 22, y: 95, noAutosave: true }); HW.Progress.set('ceremony'); HW.step(30); });
+        await shot('kr_kilndoor');
+        await page.evaluate(() => { HW.warp('hollow', 46, 112); HW.step(30); });
+        await shot('kr_camp');
+        await page.evaluate(() => { HW.warp('hollow', 58, 103); HW.step(30); });
+        await shot('kr_canyon');
+        await page.evaluate(() => { HW.warp('hollow', 50, 90); HW.step(30); });
+        await shot('kr_hawk');
+        const rooms = { entrance: [29, 41], hall: [29, 31], sms: [41, 27], doubling: [17, 27], glazer: [56, 20], gallery: [62, 16], bridge: [69, 24], furnace: [29, 20], racks: [17, 17], boss: [38, 5] };
+        await page.evaluate(() => { HW.newGame('Wren', { area: 'kiln', x: 29, y: 42, noAutosave: true }); HW.Inv.items.staff = 1; HW.step(20); });
+        for (const [n, [x, y]] of Object.entries(rooms)) {
+            await page.evaluate(([x, y]) => { HW.warp('kiln', x, y); HW.step(40); HW.skipTalk(); HW.step(5); }, [x, y]);
+            await shot('kiln_' + n);
+        }
+    },
     async meadow() {
         await open();
         await page.evaluate(() => { HW.newGame('Wren', { area: 'hollow', x: 64 + 31, y: 80 + 3, noAutosave: true }); HW.Progress.set('ceremony'); HW.step(30); });

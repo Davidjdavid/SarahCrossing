@@ -1383,7 +1383,7 @@ class GridThing extends Ent {
     landed(returning) {
         const k = this.area.kind(this.tx, this.ty);
         /* a returning thing hangs on its thread over pits and water */
-        if (returning || (this.ret && this.ret.state === 'returning')) { if (this.onLanded) this.onLanded(); return; }
+        if (returning || this.hookPulled || (this.ret && this.ret.state === 'returning')) { if (this.onLanded) this.onLanded(); return; }
         if (k.pit) this.fall();
         else if (k.deep && !this.floats) this.sink();
         if (this.onLanded) this.onLanded();
@@ -2125,7 +2125,7 @@ class Player extends Ent {
         return x * T < x1 && (x + 1) * T > x0 && y * T < y1 && (y + 1) * T > y0;
     }
     feetOn(x, y) { return !this.flying && tileOf(this.x) === x && tileOf(this.y) === y; }
-    get flying() { return this.state === 'flight' || this.state === 'hop'; }
+    get flying() { return this.state === 'flight' || this.state === 'hop' || this.state === 'reel'; }
     get busy() { return this.state !== 'normal' || Script.blocking(); }
 
     /* ----- marks and traces ----- */
@@ -2202,6 +2202,7 @@ class Player extends Ent {
             case 'flight': return this.updateFlight();
             case 'fall': return this.updateFall();
             case 'hop': return this.updateHop();
+            case 'reel': return this.updateReel();
             case 'faint': return;
         }
         if (this.shove) return this.updateShove();
@@ -2213,7 +2214,7 @@ class Player extends Ent {
         const cut = Script.blocking() || UI.modal();
         const ax = cut ? { x: 0, y: 0 } : Input.axis();
         if (this.swingT > 0) this.updateSwing();
-        if (this.toolT > 0) { this.toolT--; if (Tools.busy(this)) { this.afterMove(); return; } }
+        if (Tools.busy(this)) { this.walking = false; this.afterMove(); return; }
 
         /* a pull in progress finishes, whatever the buttons do */
         if (this.pullT > 0) {
@@ -2608,7 +2609,11 @@ const Thrown = {
             const k = area.kind(tx, ty);
             let stop = (k.solid && !k.deep && !k.pit && !k.ledge && !k.low) || !area.inside(tx, ty);
             const occ = area.at(tx, ty);
-            if (occ && occ !== t.o) { stop = true; if (occ.hit) occ.hit(t.o, t.d); }
+            if (occ && occ !== t.o) {
+                stop = true;
+                if (occ.hit) occ.hit(t.o, t.d);
+                else if (!occ.fixed && occ.weight <= t.o.weight && !occ.mv && occ.canPush && occ.canPush(t.d)) { occ.push(t.d, 8); Stats.count('knocks'); }
+            }
             for (const b of area.blockers) if (b.blocks(tx, ty)) stop = true;
             for (const e of area.ents) {
                 if (!e.hurtBox || e === t.o) continue;
@@ -2617,7 +2622,10 @@ const Thrown = {
             }
             if (!stop) {
                 t.x = nx; t.y = ny;
-                if (tx !== t.lastTx || ty !== t.lastTy) { t.lastTx = tx; t.lastTy = ty; Return.moved(t.o, tx, ty); }
+                if (tx !== t.lastTx || ty !== t.lastTy) {
+                    t.lastTx = tx; t.lastTy = ty; Return.moved(t.o, tx, ty);
+                    for (const e of area.ents) if (e.strike && e.tx === tx && e.ty === ty) e.strike(t.o);
+                }
             }
             if (stop || t.dist >= t.max) { t.done = true; this.land(t, area); }
         }
@@ -2650,6 +2658,11 @@ const Thrown = {
 /* ---------- shards: a broken thing flies home in pieces along its trace ---------- */
 const Shards = {
     list: [],
+    /* a flight of pieces along tiles (no pot behind it): creatures made of clay, thrown clay shots */
+    flight(area, path, opts = {}) {
+        if (path.length < 2) { if (opts.onDone) opts.onDone(); return; }
+        this.list.push({ o: { area, shardCol: opts.col || '#c4623a', fake: true, owner: opts.owner }, path, i: 0, t: 0, pace: opts.pace || 4, x: path[0][0] * T + 8, y: path[0][1] * T + 8, delay: opts.delay || 6, hurt: !!opts.hurt, onDone: opts.onDone });
+    },
     start(o, tx, ty) {
         const a = o.area;
         Sfx.play('shatter');
@@ -2665,12 +2678,12 @@ const Shards = {
     },
     update(area) {
         for (const s of this.list) {
-            if (s.o.area !== area) { s.done = true; this.reform(s); continue; }
+            if (s.o.area !== area) { s.done = true; if (!s.o.fake) this.reform(s); continue; }
             if (s.delay > 0) { s.delay--; continue; }
             s.t++;
             if (s.t >= s.pace) {
                 s.t = 0; s.i++;
-                if (s.i >= s.path.length) { this.reform(s); s.done = true; continue; }
+                if (s.i >= s.path.length) { if (s.o.fake) { if (s.onDone) s.onDone(); } else this.reform(s); s.done = true; continue; }
                 const [tx, ty] = s.path[s.i];
                 this.strike(area, tx, ty, s);
             }
@@ -2684,6 +2697,7 @@ const Shards = {
     strike(area, tx, ty, s) {
         const o = area.at(tx, ty);
         if (o && o !== s.o && o.hit) o.hit(s.o, -1, true);
+        for (const e of area.ents) if (e.strike && e.tx === tx && e.ty === ty) e.strike(s.o);
         for (const e of area.ents) {
             if (!e.hurtBox) continue;
             const h = e.hurtBox();
@@ -2691,6 +2705,8 @@ const Shards = {
             if (h && cx + 6 > h.x0 && cx - 6 < h.x1 && cy + 6 > h.y0 && cy - 6 < h.y1) e.struck(s.o, 1, -1, true);
         }
         if (s.o.onShardTile) s.o.onShardTile(tx, ty);
+        /* clay creatures' pieces hurt Wren too */
+        if (s.hurt) { const p = G.player; if (p && p.area === area && p.feetOn(tx, ty)) p.hurt(1, tx * T + 8 - DX[dirOf(1, 0)], ty * T + 8); }
     },
     reform(s) {
         const o = s.o;
@@ -3243,7 +3259,7 @@ const World = {
         if (prev && prev.def.house && (!AREAS[id] || AREAS[id].house !== prev.def.house)) Story.leaveHouse(prev.def.house);
         const a = this.build(id);
         G.map = a;
-        Fx.clear(); Thrown.list = []; Shards.list = [];
+        Fx.clear(); Thrown.list = []; Shards.list = []; if (typeof GlazerShots !== 'undefined') GlazerShots.list = []; if (TOOLS.hook) TOOLS.hook.h = null;
         let p = G.player;
         if (!p) { p = G.player = new Player(0, 0); }
         if (p.carry) { p.carry = null; }
@@ -4463,6 +4479,36 @@ defArea({
     music: 'tidy',
 });
 
+defArea({
+    id: 'lab2', name: 'Lab 2', family: 'dungeon', theme: 'tidy', house: 'lab', thread: THREAD.bram,
+    rows: [
+        '####################',
+        '#..................#',
+        '#..................#',
+        '#.......ooo........#',
+        '#.......ooo........#',
+        '#.......ooo........#',
+        '#..................#',
+        '#..................#',
+        '#..................#',
+        '#..................#',
+        '####################',
+    ],
+    ents: [
+        { k: 'pot', x: 2, y: 2, id: 'p1' }, { k: 'pot', x: 13, y: 8, id: 'p2' },
+        { k: 'charm', x: 4, y: 2, id: 'c1', sig: 'c1' },
+        { k: 'charm', x: 5, y: 7, id: 's1', seq: 'abc', order: 0, col: 'sun' },
+        { k: 'charm', x: 6, y: 7, id: 's2', seq: 'abc', order: 1, col: 'moon' },
+        { k: 'charm', x: 7, y: 7, id: 's3', seq: 'abc', order: 2, col: 'star' },
+        { k: 'charm', x: 9, y: 4, id: 'pitc', sig: 'pitc' },
+        { k: 'eyelet', x: 12, y: 4 },
+        { k: 'seal', x: 16, y: 2, id: 'seal1' },
+        { k: 'pot', x: 15, y: 6, id: 'p3' },
+    ],
+    rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
+    entry: { x: 2, y: 8 },
+});
+
 // ---- 31_art_world.js ----
 /* Painted art for the outdoors: trees, bushes, rocks, buildings, the Well, fences, and town things.
    Bigger pictures are painted in code (shapes shaded by light from the upper left, with a texture)
@@ -5453,6 +5499,26 @@ SONGS.knot = {
 };
 SONGS.silence = { bpm: 60, div: 1, ch: [{ wave: 'p12', vol: 0, n: '.' }] };
 
+/* Kilnridge: dry, bright, a bit of a swagger (D Dorian) */
+SONGS.kiln = {
+    bpm: 112, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.1, n: 'D5 - - E5 F5 - A5 - | G5 - F5 - E5 - C5 - | D5 - - E5 F5 - A5 - | B5 - A5 - G5 - - - | A5 - - G5 F5 - E5 - | D5 - C5 - A4 - C5 - | D5 - E5 - F5 - E5 - | D5 - - - - - . . ' },
+        { wave: 'triangle', vol: 0.22, n: 'D3 . A3 . D3 . A3 . | C3 . G3 . C3 . G3 . | D3 . A3 . D3 . A3 . | G2 . D3 . G2 . B2 . | F2 . C3 . F2 . C3 . | C3 . G3 . A2 . E3 . | D3 . A3 . C3 . G3 . | D3 . A3 . D3 - - . ' },
+        { wave: 'p12', vol: 0.045, n: '. F4 . A4 . F4 . A4 | . E4 . G4 . E4 . G4 | . F4 . A4 . F4 . A4 | . D4 . G4 . B4 . G4 | . F4 . A4 . F4 . A4 | . E4 . G4 . E4 . A4 | . F4 . A4 . E4 . G4 | . F4 . A4 . D4 . . ' },
+        { drum: true, vol: 0.1, n: 'k . h h s . h . | k . h . s . h h | k k h . s . h . | k . h . s h h . ' },
+    ],
+};
+/* the Kiln: hot, low, rhythmic (E Phrygian) */
+SONGS.kilnhouse = {
+    bpm: 96, div: 4,
+    ch: [
+        { wave: 'p50', vol: 0.07, legato: 0.6, n: 'E4 - . . F4 - . . E4 - . . . . B3 - | C4 - . . B3 - . . A3 - . . . . . . | E4 - . . F4 - . . G4 - . . . . F4 - | E4 - . . . . . . . . . . . . . . ' },
+        { wave: 'triangle', vol: 0.24, n: 'E2 . . E2 . . E3 . E2 . . E2 . . F2 . | E2 . . E2 . . E3 . E2 . . D2 . . C2 . | E2 . . E2 . . E3 . E2 . . E2 . . F2 . | E2 . . . . . . . E2 . . F2 . . E2 . ' },
+        { drum: true, vol: 0.09, n: 'k . . h . . s . k . h . s . h . | k . . h . . s . k . h . s h h . ' },
+    ],
+};
+
 // ---- 41_house_kit.js ----
 /* Things every House uses: levers, Knot hoops, House doors to the outside, nudges (the Hints option:
    if Wren is stuck in a room a long while, something in the room shifts a little), and the
@@ -6378,6 +6444,7 @@ defBlock({
         { k: 'sign', x: 47, y: 25, text: 'BRIDGE OUT. Hook on, if you have a hook.' },
         { k: 'sign', x: 34, y: 2, text: 'MEADOWFOLD. Mind the sheep. The sheep mind you.' },
         { k: 'rest', x: 38, y: 15 },
+        { k: 'eyelet', x: 55, y: 27 }, { k: 'eyelet', x: 47, y: 26 },
         { k: 'block', x: 4, y: 23, look: 'boulder_big', id: 'canyonBoulder', weight: WEIGHT.heavy, if: '!kilnPass', pushLine: '' },
         { k: 'block', x: 4, y: 22, look: 'boulder_big', id: 'canyonBoulder2', weight: WEIGHT.heavy, if: 'kilnPass' },
         { k: 'stray', x: 36, y: 30, look: 'haybale_stray', id: 'strayBale' },
@@ -6482,6 +6549,1070 @@ function initMeadowArt() {
         'kxxkwwwwrrrwwk..', 'kxexwwwwwrwwwk..', 'kxxkwwwwwwwwwk..', '.kk.kwwwwwwwk...', '...kxk....kxk...', '...kk......kk...', '................', '................'], { w: '#fbf6ea', x: '#4a4040', r: '#e8463c' });
 }
 CONTENT_INIT.unshift(initMeadowArt);
+
+// ---- 44_kiln_kit.js ----
+/* What the Kiln brings: charms hung from the ceiling over walkable floor (only flying things reach them:
+   shards, thrown things), clay seals that shatter, sequence locks, eyelets to hook onto, the Hookline, and
+   Crocks (pots that walk; break one and its shards fly home along the way it walked). */
+
+/* ---------- charms: hanging clay bells ---------- */
+class Charm extends Ent {
+    constructor(tx, ty, props = {}) {
+        super('charm', props);
+        this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T;
+        this.mode = props.mode || (props.seq ? 'seq' : 'toggle');     /* toggle | once | seq */
+        this.on = false; this.swing = 0; this.cool = 0;
+        this.col = props.col || 'ochre';
+        this.inert = false;
+    }
+    onAdd(area) { if (this.id && Progress.areaFlag(area.id, 'charm:' + this.id)) this.on = true; }
+    get sortY() { return this.y + 40; }
+    /* shards and thrown things strike it in passing */
+    strike(by) {
+        if (this.cool > 0) return;
+        this.cool = 14; this.swing = 30;
+        Sfx.play('charm');
+        Fx.ring(this.x + 8, this.y - 6, CHARM_COL[this.col] || '#f0b060');
+        if (this.mode === 'toggle') this.on = !this.on;
+        else if (this.mode === 'once') { this.on = true; if (this.id) Progress.setAreaFlag(this.area.id, 'charm:' + this.id); }
+        else if (this.mode === 'seq') SeqLocks.hit(this);
+        Stats.count('charms');
+    }
+    update() { if (this.swing > 0) this.swing--; if (this.cool > 0) this.cool--; if (this.on && this.sig) Signals.set(this.area, this.sig); }
+    draw(cx, cy) {
+        const x = this.x - cx + 8, y = this.y - cy;
+        const sw = Math.sin(this.swing / 3) * (this.swing / 30) * 3;
+        /* the chain from the ceiling, then the bell above head height */
+        for (let i = -14; i < -6; i += 2) Gfx.rect(x + Math.round(sw * (i + 14) / 8), y + i, 1, 1, '#5a4a3a');
+        const bx = x + Math.round(sw), by = y - 6;
+        const c = CHARM_COL[this.col] || '#e0913a', lit = this.on ? shade(c, 0.35) : c;
+        Gfx.rect(bx - 4, by, 8, 6, PAL.ink); Gfx.rect(bx - 3, by + 1, 6, 5, lit); Gfx.rect(bx - 5, by + 5, 10, 2, PAL.ink); Gfx.rect(bx - 4, by + 5, 8, 1, shade(lit, -0.2));
+        Gfx.rect(bx - 2, by + 1, 1, 3, shade(lit, 0.4));
+        if (this.glyph) Gfx.rect(bx - 1, by + 2, 2, 2, PAL.ink);
+        /* its shadow on the floor, so you can see where it hangs */
+        Gfx.alpha(0.18); Gfx.rect(x - 4, y + 9, 8, 2, PAL.ink); Gfx.alpha(1);
+    }
+}
+const CHARM_COL = { ochre: '#e0913a', sun: '#f7d64a', moon: '#9fd4f0', star: '#f59ac0', leaf: '#8fd46a', ember: '#e8463c' };
+SPAWN.charm = (x, y, p) => new Charm(x, y, p);
+
+/* a sequence lock: charms with seq: 'name' and order 0,1,2... must be struck in order */
+const SeqLocks = {
+    hit(c) {
+        const a = c.area, name = c.seq;
+        if (Progress.areaFlag(a.id, 'seq:' + name)) return;
+        const st = a.seqState = a.seqState || {};
+        const want = st[name] || 0;
+        const all = a.ents.filter(e => e.kind === 'charm' && e.seq === name);
+        if (c.order === want) {
+            st[name] = want + 1; c.on = true;
+            if (st[name] >= all.length) { Progress.setAreaFlag(a.id, 'seq:' + name); Sfx.play('appear'); }
+        } else {
+            st[name] = 0; for (const e of all) e.on = false;
+            Sfx.play('unclick'); Fx.text(c.x + 8, c.y - 12, '...', PAL.grey2);
+        }
+    },
+    tick(a) {
+        for (const e of a.ents) if (e.kind === 'charm' && e.seq && Progress.areaFlag(a.id, 'seq:' + e.seq)) { e.on = true; Signals.set(a, e.seq); }
+    },
+};
+
+/* clay seals: solid plugs that shatter when something flies into them */
+class Seal extends GridThing {
+    constructor(tx, ty, props = {}) { super('seal', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, props)); }
+    onAdd(area) { super.onAdd(area); if (this.id && Progress.areaFlag(area.id, 'seal:' + this.id)) area.remove(this); }
+    hit(by, d, shard) {
+        if (!by || (!shard && !by.flying && !by.isGrid)) { Sfx.play('hitthing'); return; }
+        Sfx.play('shatter'); Fx.burst(this.tx * T + 8, this.ty * T + 8, '#c4623a'); G.shake = 4;
+        if (this.id) Progress.setAreaFlag(this.area.id, 'seal:' + this.id);
+        this.area.remove(this);
+    }
+    onStruck() { UI.toast('Hard clay. Something thrown might crack it.'); }
+    sprite() { return spr('seal'); }
+}
+SPAWN.seal = (x, y, p) => new Seal(x, y, p);
+
+/* eyelets: brass rings on posts the Hookline catches on */
+class Eyelet extends GridThing {
+    constructor(tx, ty, props = {}) { super('eyelet', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, props)); this.eyelet = true; }
+    sprite() { return spr(this.wall ? 'eyelet_wall' : 'eyelet'); }
+}
+SPAWN.eyelet = (x, y, p) => new Eyelet(x, y, p);
+
+/* ---------- the Hookline ---------- */
+TOOLS.hook = {
+    h: null,
+    use(p) {
+        if (this.h || p.state !== 'normal') return;
+        this.h = { p, d: p.dir, x: p.x, y: p.y - 6, dist: 0, state: 'out', area: p.area, t: 0 };
+        Sfx.play('hook');
+    },
+    busy(p) { return !!this.h || p.state === 'reel'; },
+    update(area) {
+        const h = this.h; if (!h) return;
+        if (h.area !== area) { this.h = null; return; }
+        const p = h.p;
+        h.t++;
+        if (h.state === 'out') {
+            const sp = 5;
+            for (let s = 0; s < sp; s++) {
+                h.x += DX[h.d]; h.y += DY[h.d]; h.dist++;
+                const tx = tileOf(h.x), ty = tileOf(h.y + 6);
+                if (this.check(h, area, tx, ty)) return;
+                if (h.dist >= 7 * T + 4) { h.state = 'back'; Sfx.play('hookhit'); return; }
+            }
+        } else if (h.state === 'back') {
+            const dx = p.x - h.x, dy = (p.y - 6) - h.y, d = Math.hypot(dx, dy);
+            if (d < 7) { this.h = null; if (h.item) h.item.collect(p); return; }
+            h.x += dx / d * 6; h.y += dy / d * 6;
+            if (h.item) { h.item.x = h.x - 8; h.item.y = h.y - 4; }
+        } else if (h.state === 'pull') {
+            /* the caught thing comes to Wren a tile at a time */
+            const o = h.obj;
+            if (o.removed || o.carried) { o.hookPulled = false; this.h = null; return; }
+            if (!o.mv) {
+                const nx = o.tx - DX[h.d], ny = o.ty - DY[h.d];
+                if (!area.freeForThing(nx, ny, o) || h.steps-- <= 0) { o.hookPulled = false; this.h = null; Sfx.play('land'); o.landed(); return; }
+                o.hookPulled = true;
+                o.startMove(nx, ny, 5);
+                if (o.ret) Return.disturb(o);
+            }
+            h.x = o.px + 8; h.y = o.py + 4;
+        }
+    },
+    /* what the hook's tip has reached */
+    check(h, area, tx, ty) {
+        const p = h.p;
+        if (!area.inside(tx, ty)) { h.state = 'back'; return true; }
+        const o = area.at(tx, ty);
+        if (o && o !== p.carry) {
+            if (o.eyelet || o.fixed || o.weight >= WEIGHT.heavy) {
+                if (o.eyelet || o.hookable !== false) return this.latch(h, area, tx, ty, o.eyelet ? 'eyelet' : 'thing');
+                h.state = 'back'; Sfx.play('hookhit'); return true;
+            }
+            if (o.ret || o.liftable || o.weight <= WEIGHT.medium) {
+                h.state = 'pull'; h.obj = o; h.steps = 8; Sfx.play('hookhit'); Stats.count('hook:pull');
+                return true;
+            }
+        }
+        /* an empty mark: where something belongs but isn't */
+        for (const e of area.ents) if (e.ret && e.ret.state !== 'home' && e.ret.mx === tx && e.ret.my === ty && !(e.tx === tx && e.ty === ty)) return this.latch(h, area, tx, ty, 'mark');
+        for (const e of area.ents) {
+            if (e.kind === 'pickup' && Math.abs(e.x + 8 - h.x) < 9 && Math.abs(e.y + 8 - h.y - 6) < 10) { h.item = e; area.remove(e); h.state = 'back'; Sfx.play('hookhit'); return true; }
+            if (e.hurtBox) { const b = e.hurtBox(); if (b && h.x > b.x0 && h.x < b.x1 && h.y + 6 > b.y0 && h.y < b.y1) { if (e.hooked) e.hooked(h); else { e.stun = 60; e.flash = 10; Sfx.play('hookhit'); } h.state = 'back'; return true; } }
+        }
+        const k = area.kind(tx, ty);
+        if (k.solid && !k.low) { h.state = 'back'; Sfx.play('hookhit'); Fx.dust(h.x, h.y + 4); return true; }
+        return false;
+    },
+    /* caught: reel Wren over to it */
+    latch(h, area, tx, ty, what) {
+        const p = h.p;
+        Sfx.play('hookhit'); Stats.count('hook:latch');
+        /* land on the mark itself, or the tile in front of a post */
+        const lx = what === 'mark' ? tx : tx - DX[h.d], ly = what === 'mark' ? ty : ty - DY[h.d];
+        h.state = 'reel';
+        p.state = 'reel';
+        p.reel = { fx: p.x, fy: p.y, tx: lx * T + 8, ty: ly * T + 10, t: 0, h };
+        const d = Math.hypot(p.reel.tx - p.x, p.reel.ty - p.y);
+        p.reel.dur = Math.max(6, Math.round(d / 4.5));
+        h.x = tx * T + 8; h.y = ty * T + 2;
+        return true;
+    },
+    draw(cx, cy) {
+        const h = this.h; if (!h) return;
+        const p = h.p;
+        const sx = p.x - cx, sy = p.y - cy - 6;
+        Gfx.line(sx, sy + 1, h.x - cx, h.y - cy + 1, 'rgba(20,10,20,0.4)');
+        Gfx.line(sx, sy, h.x - cx, h.y - cy, '#d8c08a');
+        Gfx.img(spr('hooktip_' + DIR_NAME[h.d === LEFT ? RIGHT : h.d]), h.x - cx - 4, h.y - cy - 4, h.d === LEFT);
+    },
+};
+/* Wren reeling in along the line (pits and water don't matter: Wren's in the air) */
+Player.prototype.updateReel = function () {
+    const r = this.reel; r.t++;
+    const k = Math.min(1, r.t / r.dur);
+    this.x = lerp(r.fx, r.tx, k); this.y = lerp(r.fy, r.ty, k);
+    this.traceStep();
+    if (k >= 1) {
+        this.state = 'normal'; this.reel = null; TOOLS.hook.h = null;
+        Sfx.play('land'); Fx.dust(this.x, this.y);
+        this.afterMove();
+    }
+};
+
+function initKilnKit() {
+    defSym('seal', ['.kkkkkkk', 'kooooooo', 'koOooooo', 'kooOoOoo', 'kooooooo', 'koOooOoo', 'kooooooo', 'kOoooOoo',
+        'kooOoooo', 'kooooooo', 'koOooOoo', 'kooooooo', 'kOOOOOOO', 'kOOOOOOO', 'kOOOOOOO', '.kkkkkkk'],
+        { o: '#c4623a', O: '#93432c' }, { O: 'O' });
+    defSprite('eyelet', ['......kkkk......', '.....kyyyyk.....', '....kyk..kyk....', '....kyk..kyk....', '.....kyyyyk.....', '......kbbk......', '......kbbk......', '......kbbk......',
+        '......kbbk......', '......kbbk......', '......kbbk......', '.....kbbbbk.....', '....kbbbbbbk....', '....kBBBBBBk....', '.....kkkkkk.....', '................'],
+        { y: '#e2b45a', b: '#9a6438', B: '#6b4128' });
+    defSprite('eyelet_wall', ['................', '................', '................', '......kkkk......', '.....kyyyyk.....', '....kyk..kyk....', '....kyk..kyk....', '.....kyyyyk.....',
+        '......kyyk......', '.....kxxxxk.....', '.....kxxxxk.....', '......kkkk......', '................', '................', '................', '................'],
+        { y: '#e2b45a', x: '#7a6a5a' });
+    defSprite('hooktip_right', ['.kkkk...', 'kwwwwk..', '.kk.kwk.', '....kwk.', '.kk.kwk.', 'kwwwwk..', '.kkkk...', '........'], { w: '#dfe6ef' });
+    defSprite('hooktip_down', ['.k...k..', 'kwk.kwk.', 'kwk.kwk.', 'kwk.kwk.', '.kwwwk..', '..kkk...', '........', '........'], { w: '#dfe6ef' });
+    defSprite('hooktip_up', ['..kkk...', '.kwwwk..', 'kwk.kwk.', 'kwk.kwk.', 'kwk.kwk.', '.k...k..', '........', '........'], { w: '#dfe6ef' });
+    SFX.charm = (o, t) => { Audio.tone(o, t, 1046, 0.5, 'triangle', 0.14, { r: 0.4 }); Audio.tone(o, t, 1568, 0.3, 'sine', 0.05, { r: 0.25 }); };
+}
+CONTENT_INIT.push(initKilnKit);
+
+// ---- 45_kiln.js ----
+/* House 2: the Kiln, in Kilnridge. Bram's House, ochre threads. A broken pot's shards fly home back the way
+   it was carried and strike whatever hangs or stands on the way: Wren lays the shards' path by walking.
+   One flight rings many charms at once; the last one walked under rings first; doubling back erases a
+   stretch; the path can run through doorways and over chasms (the Hookline). The Kilnwyrm follows
+   Wren's footsteps, and so do the shards. */
+
+THEMES.kilnhouse = { floor: ['#e8b884', '#c78a52', '#f3d0a4', '#a86e3e'], wall: ['#b8583a', '#8a3c28', '#d67a54', '#5e261c'], stone: ['#c4623a', '#93432c', '#e08a5e', '#6a2e22'], water: ['#5fa6c8', '#3f80b0', '#9cd0e8', '#2b5a88'], dark: '#3a1810' };
+FLOORS.kilnhouse = {
+    floor: (x, th, v) => {
+        /* big terracotta tiles */
+        fill(x, '#d99a62'); fill(x, '#c4844e', 0, 7, 16, 1); fill(x, '#c4844e', 7, 0, 1, 16);
+        fill(x, '#e8b480', 0, 0, 7, 1); fill(x, '#e8b480', 8, 8, 7, 1);
+        speckle(x, ['#b87440'], 30 + v, 0.05);
+    },
+    floor2: (x, th, v) => { fill(x, '#a85a34'); speckle(x, ['#c0703e', '#8a4628'], 20 + v, 0.25); for (let i = 0; i < 16; i += 4) fill(x, '#7a3a20', 0, i, 16, 1); },
+    floor3: (x, th, v) => Paint.planks(x, ['#b07a4a', '#86562e', '#d09a64', '#5e3a1e'], v, true),
+};
+WALLS.kilnhouse = {
+    edge: '#3a1810',
+    top: (x) => { fill(x, '#6a2e1e'); speckle(x, ['#7a3a26'], 4, 0.15); },
+    face: (x, th, v) => {
+        Paint.bricks(x, ['#c4623a', '#93432c', '#e08a5e', '#5e261c'], v);
+        fill(x, '#3a1810', 0, 15, 16, 1);
+        if (v === 2) { fill(x, '#2a1410', 6, 6, 4, 5); fill(x, '#f39a3c', 7, 9, 2, 2); }   /* a little firebox */
+    },
+};
+
+const KILN_OUT = { x: 22, y: 80 + 14 };    /* the door out, in Kilnridge (set by the region) */
+
+defHouse({
+    id: 'kiln', name: 'The Kiln', place: 'The Kiln', house: 'kiln', theme: 'kilnhouse', thread: THREAD.bram, music: 'kilnhouse',
+    knotName: 'Fired Knot',
+    entry: { x: 29, y: 42 },
+    cells: {
+        /* ---------------- 1 Entrance ---------------- */
+        '1,3': {
+            name: 'Kiln Door',
+            rows: [
+                '#########.##########',
+                '#..............#...#',
+                '#..............#...#',
+                '#..............##.##',
+                '#....oooooooooo.....',
+                '#....oooooooooo....#',
+                '#....oooooooooo....#',
+                '.,,,,,,,,,,,,,,,,,.#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'seal', x: 9, y: 0, id: 'eSeal' },
+                { k: 'charm', x: 9, y: 5, mode: 'once', id: 'eCharm', sig: 'ek' },
+                { k: 'door', x: 17, y: 3, type: 'gate', when: 'ek', id: 'eGate', passed: 'up' },
+                { k: 'chest', x: 17, y: 1, item: 'key', id: 'eKey' },
+                { k: 'pot', x: 2, y: 8, id: 'ePot1' }, { k: 'pot', x: 16, y: 8, id: 'ePot2' },
+                { k: 'charm', x: 1, y: 7, mode: 'pulse', sig: 'lwr', col: 'leaf', id: 'lwrCharm', time: 200 },
+                { k: 'warp', x: 9, y: 10, to: 'hollow', tx2: KILN_OUT.x, ty2: KILN_OUT.y, dir: 'down', face: 'down' },
+                { k: 'sign', x: 11, y: 9, text: 'THE KILN. Mind the heat. Mind the pots. The pots mind you back.' },
+            ],
+            nudge: { solved: 'kiln_eGate', after: 60 * 60 * 2, at: [9, 5], say: 'The charm over the pit sways in the hot air. Anything flying past it would set it ringing.' },
+        },
+        /* ---------------- 1b Long Way Round (optional) ---------------- */
+        '0,3': {
+            name: 'Long Way Round',
+            rows: [
+                '####################',
+                '#,,,,,#............#',
+                '#,,,,,#............#',
+                '#,,,,,#............#',
+                '###.###............#',
+                '#..................#',
+                '#..................#',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'door', x: 3, y: 4, type: 'gate', when: 'lwr', id: 'lwrGate', passed: 'up' },
+                { k: 'chest', x: 3, y: 2, item: 'heartpatch', id: 'lwrPatch' },
+                { k: 'crock', x: 11, y: 3 },
+                { k: 'deco', x: 9, y: 6, look: 'kilnbig', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
+                { k: 'sign', x: 5, y: 5, text: 'A plaque by the little gate: "Rung from next door. Be here when it rings."' },
+            ],
+            nudge: { solved: 'kiln_lwrGate', after: 60 * 60 * 3, say: "The little gate answers to a charm in the next room. You'd have to be here, and it would have to ring there." },
+        },
+        /* ---------------- 2 Charm Hall: three at once ---------------- */
+        '1,2': {
+            name: 'Charm Hall',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#...###......###...#',
+                '#.......,,,,.......#',
+                '........,,,,........',
+                '#.......,,,,.......#',
+                '#...###......###...#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'charm', x: 5, y: 2, mode: 'pulse', sig: 'ha', col: 'ember', id: 'hA' },
+                { k: 'charm', x: 14, y: 2, mode: 'pulse', sig: 'hb', col: 'ember', id: 'hB' },
+                { k: 'charm', x: 9, y: 8, mode: 'pulse', sig: 'hc', col: 'ember', id: 'hC' },
+                { k: 'door', x: 9, y: 0, type: 'gate', when: 'ha&hb&hc', passed: 'up', id: 'hN' },
+                { k: 'door', x: 19, y: 5, type: 'lock', dir: 'v', id: 'hE' },
+                { k: 'pot', x: 2, y: 8, id: 'hPot' }, { k: 'pot', x: 17, y: 8, id: 'hPot2' },
+                { k: 'deco', x: 9, y: 4, look: 'kilnbig', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
+            ],
+            nudge: { solved: 'kiln_hN', after: 60 * 60 * 3, say: 'Three charms, all to ring at once. One throw only rings what it flies through... but the pieces go back the whole way you came.' },
+        },
+        /* ---------------- 3 Crock Pen ---------------- */
+        '2,3': {
+            name: 'Crock Pen',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..##..........##..#',
+                '...##..........##..#',
+                '#..................#',
+                '#..................#',
+                '#..##..........##..#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'crock', x: 6, y: 2 }, { k: 'crock', x: 13, y: 7 }, { k: 'crock', x: 15, y: 1 },
+                { k: 'shutter', x: 0, y: 4, dir: 'v', group: 'crocks' },
+                { k: 'chest', x: 17, y: 5, item: 'plan', id: 'cPlan', hidden: true, when: 'flag:kiln_crocksDone' },
+                { k: 'deco', x: 9, y: 5, look: 'kilnbig', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
+            ],
+        },
+        /* ---------------- 4 Sun, Moon, Star ---------------- */
+        '2,2': {
+            name: 'Sun, Moon, Star',
+            rows: [
+                '################.###',
+                '#..................#',
+                '#..................#',
+                '#..#############...#',
+                '#..#############...#',
+                '...#############...#',
+                '#..#############...#',
+                '#..#############...#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'charm', x: 9, y: 1, seq: 'sms', order: 2, col: 'star', glyph: true, id: 'smsStar' },
+                { k: 'charm', x: 17, y: 5, seq: 'sms', order: 1, col: 'moon', glyph: true, id: 'smsMoon' },
+                { k: 'charm', x: 9, y: 9, seq: 'sms', order: 0, col: 'sun', glyph: true, id: 'smsSun' },
+                { k: 'pot', x: 1, y: 8, id: 'smsPot' },
+                { k: 'door', x: 16, y: 0, type: 'gate', when: 'sms', passed: 'up', id: 'smsN' },
+                { k: 'mural', x: 8, y: 3, text: 'A mural painted on the clay: a sun, then a moon, then a star, in a row. Underneath, in somebody\'s neat hand: "In that order, please."' },
+            ],
+            nudge: { solved: 'kiln_smsN', after: 60 * 60 * 3, say: 'The pieces fly home starting from where they broke. Whatever you passed last, they reach first.' },
+        },
+        /* ---------------- 5 Doubling Back ---------------- */
+        '0,2': {
+            name: 'Doubling Back',
+            rows: [
+                '####################',
+                '####################',
+                '############.#....##',
+                '############.#....##',
+                '############.###.###',
+                '#...................',
+                '#.################.#',
+                '#.################.#',
+                '#..................#',
+                '####################',
+                '####################',
+            ],
+            ents: [
+                { k: 'charm', x: 5, y: 5, mode: 'pulse', sig: 'da', col: 'leaf', id: 'dA' },
+                { k: 'charm', x: 12, y: 2, mode: 'pulse', sig: 'db', col: 'leaf', id: 'dB' },
+                { k: 'pot', x: 17, y: 8, id: 'dPot' },
+                { k: 'chest', x: 15, y: 2, item: 'key', id: 'dKey', hidden: true, when: 'da&db' },
+            ],
+            nudge: { solved: 'kiln_dKey', after: 60 * 60 * 3, at: [12, 2], say: "Walking back the way you came unpicks the thread: the pieces would skip that bit. Finish where the charm is." },
+        },
+        /* ---------------- 6 The Glazer (Hookline) ---------------- */
+        '2,1': {
+            name: 'Glazing Room',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#.##............##.#',
+                '#.##............##.#',
+                '#..................#',
+                '#...................',
+                '#..................#',
+                '#.##............##.#',
+                '#.##............##.#',
+                '#..................#',
+                '################.###',
+            ],
+            ents: [
+                { k: 'glazer', x: 9, y: 2 },
+                { k: 'shutter', x: 16, y: 10, group: 'glazer' }, { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'glazer' },
+                { k: 'door', x: 9, y: 0, type: 'lock', id: 'gN' },
+                { k: 'chest', x: 9, y: 6, item: 'hook', id: 'hookChest', hidden: true, when: 'flag:kiln_glazer', big: true },
+            ],
+        },
+        /* ---------------- 7 Chasm Gallery ---------------- */
+        '3,1': {
+            name: 'Chasm Gallery',
+            rows: [
+                '####################',
+                '#...ooo....ooo.....#',
+                '#...ooo....ooo.....#',
+                '#...ooo....ooo.....#',
+                '#...ooo....ooo.....#',
+                '....ooo....ooo.....#',
+                '#...ooo....ooo.....#',
+                '#...ooo....ooo.....#',
+                '#...ooo....ooo.....#',
+                '#...ooo....ooo.....#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'eyelet', x: 8, y: 2 }, { k: 'eyelet', x: 15, y: 7 }, { k: 'eyelet', x: 2, y: 8 },
+                { k: 'pot', x: 17, y: 2, id: 'cgPot' },
+                { k: 'chest', x: 17, y: 9, item: 'heartpatch', id: 'cgPatch' },
+                { k: 'sign', x: 1, y: 1, text: 'GALLERY OF CHASMS. Admire them from the edge, or from a hook.' },
+            ],
+            nudge: { solved: 'kiln_cgPatch', at: [8, 2], say: 'A brass ring glints on a post across the chasm, just the right height for a hook.' },
+        },
+        /* ---------------- 8 Bridge of Cords ---------------- */
+        '3,2': {
+            name: 'Bridge of Cords',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#oooooooooooooooooo#',
+                '#oooooooooooooooooo#',
+                '#oooooooooooooooooo#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'charm', x: 6, y: 5, mode: 'once', sig: 'bc', id: 'bCharm' },
+                { k: 'eyelet', x: 6, y: 1 },
+                { k: 'eyelet', x: 14, y: 9 },
+                { k: 'pot', x: 3, y: 8, id: 'bPot' },
+                { k: 'chest', x: 17, y: 2, item: 'key', id: 'bKey', hidden: true, when: 'bc' },
+            ],
+            nudge: { solved: 'kiln_bKey', after: 60 * 60 * 3, at: [6, 5], say: 'The charm hangs over the drop, out of reach of any throw from the edge. But a path can cross a chasm, if you fly it.' },
+        },
+        /* ---------------- 9 Furnace Hall ---------------- */
+        '1,1': {
+            name: 'Furnace Hall',
+            rows: [
+                '####################',
+                '#...ooo............#',
+                '#...ooo............#',
+                '#...ooo............#',
+                '#...ooo............#',
+                '....ooo............#',
+                '#...ooo............#',
+                '#...ooo............#',
+                '#...ooo............#',
+                '#...ooo............#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'crate', x: 3, y: 5, id: 'fCrate' },
+                { k: 'pot', x: 16, y: 2, id: 'fPot' }, { k: 'pot', x: 16, y: 8, id: 'fPot2' },
+                { k: 'door', x: 0, y: 5, type: 'lock', dir: 'v', id: 'fW' },
+                { k: 'deco', x: 14, y: 4, look: 'kilnbig', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
+                { k: 'sign', x: 12, y: 9, text: 'No hooks over the furnace pit, please. Nothing over there to hook on to anyway. (The crate does not count.)' },
+            ],
+            nudge: { solved: 'kiln_fW', after: 60 * 60 * 3, at: [3, 5], say: "Where the crate sits, there's a little stitched cross. Knock the crate off it and there'd be nothing on that cross at all..." },
+        },
+        /* ---------------- 10 Drying Racks (the Pattern) ---------------- */
+        '0,1': {
+            name: 'Drying Racks',
+            rows: [
+                '#########,##########',
+                '#..................#',
+                '#..................#',
+                '#......ooooo.......#',
+                '#......ooooo.......#',
+                '#......ooooo........',
+                '#......ooooo.......#',
+                '#......ooooo.......#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'charm', x: 16, y: 2, mode: 'pulse', sig: 'ra', col: 'sun', id: 'rA', time: 220 },
+                { k: 'charm', x: 16, y: 8, mode: 'pulse', sig: 'rb', col: 'sun', id: 'rB', time: 220 },
+                { k: 'charm', x: 9, y: 5, mode: 'pulse', sig: 'rc', col: 'sun', id: 'rC', time: 220 },
+                { k: 'charm', x: 2, y: 8, mode: 'pulse', sig: 'rd', col: 'sun', id: 'rD', time: 220 },
+                { k: 'eyelet', x: 5, y: 5 },
+                { k: 'pot', x: 18, y: 6, id: 'rPot' },
+                { k: 'chest', x: 2, y: 2, item: 'pattern', id: 'kPattern', hidden: true, when: 'ra&rb&rc&rd', big: true },
+                { k: 'crackwall', x: 9, y: 0, id: 'sigSeal' },
+                { k: 'deco', x: 1, y: 4, look: 'rack', solid: [[0, 0]] }, { k: 'deco', x: 17, y: 4, look: 'rack', solid: [[0, 0]] },
+            ],
+            nudge: { solved: 'kiln_kPattern', after: 60 * 60 * 4, say: 'Four charms, one flight. The path will have to cross the pit... and you can only cross it on a line.' },
+        },
+        /* ---------------- 11 Signature room ---------------- */
+        '0,0': {
+            name: 'Potting Shed',
+            rows: [
+                '####################',
+                '####################',
+                '#####..........#####',
+                '#####..........#####',
+                '#####..........#####',
+                '#####..........#####',
+                '#####..........#####',
+                '#####..........#####',
+                '#####..........#####',
+                '#########,##########',
+                '#########,##########',
+            ],
+            ents: [
+                { k: 'signature', x: 9, y: 5, house: 'kiln' },
+                { k: 'deco', x: 6, y: 2, look: 'mosaic', solid: false, oy: -8, baseY: -100, text: "A mosaic set into the wall, made of hundreds of broken bits of pot: a big laughing man with a beard, holding up a jug. It's signed in ochre: B." },
+                { k: 'deco', x: 13, y: 7, look: 'wheel', text: "A potter's wheel, still turning slowly. Somebody was here not long ago." },
+                { k: 'pot', x: 7, y: 7 }, { k: 'pot', x: 12, y: 3 },
+                { k: 'deco', x: 10, y: 3, look: 'sandwich', solid: false, text: "Half a cheese sandwich on a plate. There's a bite out of it the size of a very large man." },
+            ],
+        },
+        /* ---------------- 12 Glaze Vats (before the boss) ---------------- */
+        '2,0': {
+            name: 'Glaze Vats',
+            rows: [
+                '####################',
+                '#..................#',
+                '#.vv............vv.#',
+                '#.vv............vv.#',
+                '#..................#',
+                '...................#',
+                '#..................#',
+                '#.vv............vv.#',
+                '#.vv............vv.#',
+                '#..................#',
+                '#########.##########',
+            ],
+            legend: {},
+            ents: [
+                { k: 'door', x: 0, y: 5, type: 'big', dir: 'v', id: 'kBoss' },
+                { k: 'pot', x: 8, y: 3, drop: 'heart' }, { k: 'pot', x: 11, y: 3, drop: 'heart' }, { k: 'pot', x: 9, y: 8 },
+                { k: 'sign', x: 5, y: 5, text: "THE KILN'S HEART. Something long and glazed sleeps in there. It follows people. Do not let it follow you." },
+            ],
+        },
+        /* ---------------- 13 The Kiln's Heart (boss) ---------------- */
+        '1,0': {
+            name: "The Kiln's Heart",
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'urn', x: 2, y: 2 }, { k: 'urn', x: 17, y: 2 }, { k: 'urn', x: 2, y: 8 }, { k: 'urn', x: 17, y: 8 },
+                { k: 'kilnwyrm', x: 9, y: 2 },
+                { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'boss' },
+            ],
+        },
+    },
+    legend: { 'v': { k: 'low', p: 'vat' } },
+    tick: a => KilnLogic.tick(a),
+    afterKnot: function* () { yield* Kiln.afterKnot(); },
+});
+
+const KilnLogic = {
+    tick(a) {
+        for (const d of a.ents) if (d.kind === 'door' && d.id && d.open && (d.openedOnce || d.type !== 'gate')) Progress.set('kiln_' + d.id);
+        for (const c of a.ents) if (c.kind === 'chest' && c.opened) Progress.set('kiln_' + c.id);
+        /* the Crock Pen clears when its crocks are all broken at once */
+        const room = Cam.room;
+        if (room && room.key === '2,3' && !Progress.flag('kiln_crocksDone')) {
+            const crocks = a.ents.filter(e => e.type === 'crock' && e.room === '2,3');
+            if (crocks.length && crocks.some(c => c.alive) && G.player && room === a.roomAt(G.player.tx, G.player.ty)) {
+                for (const s of a.ents) if (s.kind === 'door' && s.group === 'crocks') s.shut = true;
+            }
+            if (crocks.length && crocks.every(c => !c.alive)) {
+                Progress.set('kiln_crocksDone'); Sfx.play('appear');
+                for (const s of a.ents) if (s.kind === 'door' && s.group === 'crocks') s.shut = false;
+            }
+        }
+    },
+};
+
+/* pulse charms: lit for a while each time they're struck */
+const _charmStrike = Charm.prototype.strike;
+Charm.prototype.strike = function (by) {
+    if (this.mode === 'pulse') {
+        if (this.cool > 0) return;
+        this.cool = 10; this.swing = 30; this.pulse = this.time || 160; Sfx.play('charm');
+        Fx.ring(this.x + 8, this.y - 6, CHARM_COL[this.col] || '#f0b060');
+        Stats.count('charms');
+        return;
+    }
+    return _charmStrike.call(this, by);
+};
+const _charmUpdate = Charm.prototype.update;
+Charm.prototype.update = function () {
+    if (this.mode === 'pulse') { if (this.pulse > 0) { this.pulse--; this.on = true; } else this.on = false; }
+    _charmUpdate.call(this);
+};
+
+/* ---------- the clay creatures ---------- */
+/* Crocks: walking pots. One knock shatters them; the pieces fly home the way the crock walked, and they hurt */
+ENEMY.crock = { hp: 1, speed: 0.45, leash: 5, sight: 4, ai: 'wander', chase: true, chaseMul: 1.6, r: 6, tall: 12, yarn: '#c4623a', drop: 0.3 };
+ENEMY_DRAW.crock = e => spr('crock_' + (Math.floor(e.anim / 8) % 2));
+SPAWN.crock = (x, y, p) => {
+    const e = new Enemy(x, y, Object.assign({ type: 'crock' }, p));
+    e.die = function (quiet) {
+        this.alive = false; this.yarnT = 0;
+        Sfx.play('shatter'); Fx.burst(this.x, this.y - 6, '#c4623a');
+        Stats.count('defeated:crock');
+        if (G.rng() < 0.3) this.area.add(new Pickup(this.x - 8, this.y - 12, { what: G.rng() < 0.5 ? 'heart' : 'b1', vz: 2.5, life: 480 }));
+        const path = this.trace.slice().reverse();
+        path.unshift([this.tx, this.ty]);
+        this.hidden = true;
+        Shards.flight(this.area, path, { col: '#c4623a', hurt: true, owner: this, onDone: () => { this.reformT = 240; } });
+    };
+    e.updateYarn = function () { if (this.reformT > 0 && --this.reformT === 0 && !Progress.flag('kiln_crocksDone_' + this.room)) { if (this.room !== '2,3' || !Progress.flag('kiln_crocksDone')) { this.alive = true; this.hp = 1; this.x = this.hx * T + 8; this.y = this.hy * T + 10; this.trace = [[this.hx, this.hy]]; this.hidden = false; Fx.poof(this.x, this.y - 6); } } };
+    const d0 = e.draw; e.draw = function (cx, cy) { if (!this.hidden) d0.call(this, cx, cy); };
+    return e;
+};
+
+/* the Glazer: a clay knight who throws clay shot. The shot breaks; its pieces fly back to the Glazer's
+   hand along the same line, and the Glazer is still standing on that line */
+class Glazer extends Enemy {
+    constructor(tx, ty) {
+        super(tx, ty, { type: 'glazer', hp: 3 });
+        this.state = 'sleep'; this.st = 0;
+    }
+    hurtBox() { if (!this.alive) return null; return { x0: this.x - 8, x1: this.x + 8, y0: this.y - 22, y1: this.y + 4 }; }
+    update() {
+        if (!this.alive) return;
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area;
+        if (this.state === 'sleep') {
+            if (p.area === a && Cam.room && Cam.room.key === '2,1' && !Cam.busy) {
+                this.state = 'walk'; this.st = 0;
+                for (const s of a.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = true;
+                Music.play('boss');
+                Script.run(function* () { yield* say(null, 'A clay knight with a glazed shield gets up from the potting bench, rolling a ball of clay between its hands.'); });
+            }
+            return;
+        }
+        if (Script.blocking()) return;
+        this.st++;
+        switch (this.state) {
+            case 'walk': {
+                /* line up with Wren */
+                const dx = p.x - this.x, dy = p.y - this.y;
+                const ax = Math.abs(dx), ay = Math.abs(dy);
+                if ((ax < 8 || ay < 8) && this.st > 40) { this.dir = ax < 8 ? (dy < 0 ? UP : DOWN) : (dx < 0 ? LEFT : RIGHT); this.setState('aim'); break; }
+                if (ax < ay) this.move(sign(dx) * 0.7, 0); else this.move(0, sign(dy) * 0.7);
+                this.anim++;
+                break;
+            }
+            case 'aim': if (this.st > 26) { this.throwShot(); this.setState('hold'); } break;
+            case 'hold': if (this.st > 70) this.setState('walk'); break;
+            case 'hurt': if (this.st > 30) this.setState('walk'); break;
+        }
+        if (p.state === 'normal' && Math.abs(p.x - this.x) < 11 && Math.abs(p.y - this.y) < 8) p.hurt(1, this.x, this.y);
+    }
+    setState(s) { this.state = s; this.st = 0; }
+    throwShot() {
+        Sfx.play('throw');
+        const path = [[this.tx, this.ty]];
+        let x = this.tx, y = this.ty;
+        for (let i = 0; i < 9; i++) {
+            const nx = x + DX[this.dir], ny = y + DY[this.dir];
+            const k = this.area.kind(nx, ny);
+            if ((k.solid && !k.low) || this.area.at(nx, ny)) break;
+            x = nx; y = ny; path.push([x, y]);
+            const p = G.player;
+            if (p.feetOn(x, y)) break;
+        }
+        this.shot = { path, i: 0, t: 0 };
+        GlazerShots.list.push({ g: this, path, i: 0, t: 0 });
+    }
+    struck(by, dmg, dir, shard) {
+        if (!this.alive || this.flash > 0) return;
+        if (!shard) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 10); return; }   /* the stick bounces off its glaze */
+        this.hp--; this.flash = 30; Sfx.play('enemyhit'); G.hitstop = 6; this.setState('hurt');
+        Stats.count('boss:glazer:shards');
+        if (this.hp <= 0) {
+            this.alive = false; Sfx.play('shatter'); Fx.burst(this.x, this.y - 10, '#c4623a'); Fx.burst(this.x, this.y - 4, '#5ad1c5');
+            Progress.set('kiln_glazer');
+            for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = false;
+            Music.play('kilnhouse');
+            Script.run(function* () { yield 40; yield* say(null, 'The Glazer cracks from head to foot and falls apart into a heap of pottery. Its own shot, coming home, was the one thing its shield never faced.'); });
+        }
+    }
+    draw(cx, cy) {
+        if (!this.alive) return;
+        const im = spr(this.state === 'aim' ? 'glazer_aim' : 'glazer');
+        const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
+        Gfx.alpha(0.25); Gfx.rect(this.x - cx - 7, this.y - cy + 1, 14, 3, PAL.ink); Gfx.alpha(1);
+        Gfx.img(img, this.x - cx - 8, this.y - cy - 22, this.dir === LEFT);
+    }
+}
+SPAWN.glazer = (x, y) => Progress.flag('kiln_glazer') ? new Ent('none') : new Glazer(x, y);
+/* the Glazer's clay shot: out along the line, it breaks, the pieces come back the same way */
+const GlazerShots = {
+    list: [],
+    update(area) {
+        for (const s of this.list) {
+            if (s.g.area !== area) { s.done = true; continue; }
+            if (++s.t < 3) continue;
+            s.t = 0; s.i++;
+            const p = G.player;
+            if (s.i >= s.path.length) {
+                s.done = true;
+                const [lx, ly] = s.path[s.path.length - 1];
+                if (p.feetOn(lx, ly)) p.hurt(1, lx * T + 8 - DX[s.g.dir] * 8, ly * T + 8 - DY[s.g.dir] * 8);
+                Sfx.play('shatter'); Fx.burst(lx * T + 8, ly * T + 8, '#c4623a');
+                /* home along the same line, through the thrower if it's still there */
+                Shards.flight(area, s.path.slice().reverse(), { col: '#c4623a', hurt: true, pace: 4, delay: 8 });
+            }
+        }
+        this.list = this.list.filter(s => !s.done);
+    },
+    draw(cx, cy) {
+        for (const s of this.list) {
+            const [x, y] = s.path[Math.min(s.i, s.path.length - 1)];
+            Gfx.circle(x * T + 8 - cx, y * T + 2 - cy, 3, '#c4623a'); Gfx.rect(x * T + 6 - cx, y * T - cy, 2, 2, '#e8a070');
+        }
+    },
+};
+
+/* urns in the boss's chamber: pots that come home quickly */
+SPAWN.urn = (x, y, p) => new Pot(x, y, Object.assign({ style: 'urn', patience: 60 }, p));
+
+/* the Kilnwyrm: a long glazed serpent of pots. It follows exactly where Wren has walked */
+class Kilnwyrm extends Enemy {
+    constructor(tx, ty) {
+        super(tx, ty, { type: 'kilnwyrm', hp: 3 });
+        this.state = 'sleep'; this.st = 0;
+        this.segs = 7; this.trail = []; this.path = [];
+        this.speed = 0.8;
+        for (let i = 0; i < 80; i++) this.trail.push([this.x, this.y - i]);
+    }
+    hurtBox() { if (!this.alive) return null; return { x0: this.x - 9, x1: this.x + 9, y0: this.y - 16, y1: this.y + 4 }; }
+    onTile(x, y) { return false; }
+    update() {
+        if (!this.alive) { this.deadT = (this.deadT || 0) + 1; return; }
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area;
+        if (this.state === 'sleep') {
+            if (p.area === a && Cam.room && Cam.room.key === '1,0' && !Cam.busy) {
+                this.state = 'follow'; this.st = 0;
+                for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
+                Music.play('boss');
+                Script.run(Kiln.bossIntro(this));
+            }
+            return;
+        }
+        if (Script.blocking()) return;
+        this.st++;
+        /* the path it follows: every step Wren takes */
+        const last = this.path[this.path.length - 1];
+        if (p.state !== 'flight' && (!last || dist(last[0], last[1], p.x, p.y) > 3)) this.path.push([p.x, p.y]);
+        if (this.state === 'hurt') { if (this.st > 50) this.state = 'follow'; return; }
+        const sp = this.speed * (this.hp === 1 ? 1.5 : this.hp === 2 ? 1.2 : 1);
+        let left = sp;
+        while (left > 0 && this.path.length) {
+            const [tx, ty] = this.path[0], d = dist(this.x, this.y, tx, ty);
+            if (d <= left) { this.x = tx; this.y = ty; this.path.shift(); left -= d; }
+            else { this.x += (tx - this.x) / d * left; this.y += (ty - this.y) / d * left; this.dir = dirOf(tx - this.x, ty - this.y); left = 0; }
+            this.trail.unshift([this.x, this.y]);
+        }
+        if (this.trail.length > 200) this.trail.length = 200;
+        if (p.state === 'normal' && dist(p.x, p.y, this.x, this.y) < 12) { p.hurt(1, this.x, this.y); }
+    }
+    struck(by, dmg, dir, shard) {
+        if (!this.alive || this.flash > 0) return;
+        if (!shard) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 8); return; }  /* glazed: only its own kind breaks it */
+        this.hp--; this.flash = 40; Sfx.play('enemyhit'); Sfx.play('shatter'); G.hitstop = 8; G.shake = 8;
+        this.segs = Math.max(2, this.segs - 2); this.state = 'hurt'; this.st = 0;
+        Stats.count('boss:kiln:shards');
+        /* it reels back along its own trail */
+        this.path = [];
+        if (this.hp <= 0) this.defeat();
+    }
+    defeat() {
+        this.alive = false;
+        Sfx.play('unravel'); for (let i = 0; i < this.segs; i++) { const s = this.trail[Math.min(this.trail.length - 1, i * 10)]; Fx.burst(s[0], s[1] - 6, '#c4623a'); }
+        Progress.set('kiln_boss');
+        Script.run(Kiln.bossDown(this));
+    }
+    draw(cx, cy) {
+        if (!this.alive) {
+            if ((this.deadT || 0) < 100) { const k = 1 - this.deadT / 100; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(9 * k), THREAD.bram); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
+            return;
+        }
+        const fl = this.flash > 0 && (this.flash >> 1) % 2;
+        for (let i = this.segs; i >= 1; i--) {
+            const s = this.trail[Math.min(this.trail.length - 1, i * 11)];
+            const im = spr(i === this.segs ? 'wyrm_tail' : 'wyrm_seg');
+            Gfx.alpha(0.22); Gfx.rect(s[0] - cx - 6, s[1] - cy, 12, 3, PAL.ink); Gfx.alpha(1);
+            Gfx.img(fl ? tinted(im, '#ffffff') : im, s[0] - cx - 8, s[1] - cy - 14);
+        }
+        const hd = spr('wyrm_head_' + DIR_NAME[this.dir === LEFT ? RIGHT : this.dir]);
+        Gfx.img(fl ? tinted(hd, '#ffffff') : hd, this.x - cx - 8, this.y - cy - 16, this.dir === LEFT);
+    }
+}
+SPAWN.kilnwyrm = (x, y) => Progress.flag('kiln_boss') ? new Ent('none') : new Kilnwyrm(x, y);
+
+const Kiln = {
+    *bossIntro(w) {
+        yield 20;
+        yield* say(null, 'In the heat at the heart of the Kiln, something long and glazed uncoils. Its head turns, sniffs the floor where you just walked, and starts to follow your footprints.');
+        yield* say(null, 'Its glaze is as hard as the Glazer\'s shield. Nothing you swing will crack it.');
+    },
+    *bossDown(w) {
+        const a = w.area;
+        Music.play('silence');
+        yield 40;
+        yield* say(null, 'The Kilnwyrm comes apart pot by pot, and every last piece goes rattling across the floor and down a crack by the wall, back to wherever it belongs.');
+        for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
+        const br = a.rooms.find(r => r.key === '1,0');
+        a.add(new Hoop(br.x + 9, br.y + 4));
+        a.add(new Pickup((br.x + 9) * T, (br.y + 7) * T, { what: 'heartstitch', id: 'kilnHeart' }));
+        Sfx.play('appear');
+        Music.play('kilnhouse');
+    },
+    *afterKnot() {
+        Progress.set('d2');
+        Progress.setGoal('Back to Hollowell. Then east: the broken bridge in Meadowfold, and Millwater beyond it. Your Hookline should get you over.');
+        yield* say(null, 'A door opens in the side of the chamber, onto a ledge high on the mesa and a long view over Kilnridge.');
+        const a = G.map, r = a.rooms.find(r => r.key === '1,0');
+        a.add(new Warp(r.x + 17, r.y + 9, { to: 'hollow', tx2: KILN_OUT.x, ty2: KILN_OUT.y, face: 'down' }));
+        a.add(new Prop(r.x + 17, r.y + 9, { im: ART.exitlight, solid: [] }));
+    },
+};
+SIGNATURE_TEXT.kiln = "Pressed into the clay floor, as if with a big thumb: an ochre B, and a little jug. Someone signed this House like you'd sign the bottom of a pot.";
+
+/* a wall that's only clay, cracked: something thrown hard would go through */
+SPAWN.crackwall = (x, y, p) => { const s = new Seal(x, y, p); s.sprite = () => spr('crackwall'); s.onStruck = () => UI.toast('The wall sounds hollow here.'); return s; };
+SPAWN.mural = (tx, ty, p) => {
+    const pr = new Prop(tx, ty, { im: ART.mural, solid: [], oy: -10 });
+    pr.baseY = -100;
+    pr.interact = () => { Script.run(function* () { yield* say(null, p.text); }); return true; };
+    pr.talkBox = (pl, f) => f.ty === ty + 1 || f.ty === ty;
+    return pr;
+};
+
+function initKilnArt() {
+    defSprite('crock_0', ['................', '................', '.....kkkkkk.....', '....kyoooooOk...', '....kkkkkkkkk...', '.....koowooOk...', '....kooookoooOk.', '...kooooooooooOk',
+        '...koooooooooOOk', '...kOooooooooOOk', '....kOOoooooOOk.', '.....kOOOOOOOk..', '.....kbk..kbk...', '.....kk....kk...', '................', '................'], { o: '#d98f3a', O: '#a8602a', y: '#f2bc78', w: '#ffffff', b: '#6b4128' });
+    defSprite('crock_1', ['................', '................', '.....kkkkkk.....', '....kyoooooOk...', '....kkkkkkkkk...', '.....koowooOk...', '....kooookoooOk.', '...kooooooooooOk',
+        '...koooooooooOOk', '...kOooooooooOOk', '....kOOoooooOOk.', '.....kOOOOOOOk..', '....kbk....kbk..', '....kk......kk..', '................', '................'], { o: '#d98f3a', O: '#a8602a', y: '#f2bc78', w: '#ffffff', b: '#6b4128' });
+    const gz = ['......kkkk......', '.....kqqqqk.....', '....kqwkwkqk....', '....kqqqqqqk....', '.....kkqqkk.....', '...kkooooookk...', '..koookkkkooook.', '..kooqqqqqqoook.',
+        '..kooqQQQQqoook.', '..kooqqqqqqoook.', '...kooookoooo k.', '....kooooooook..', '....koookkoook..', '....kbbk..kbbk..', '....kkkk..kkkk..', '................', '................', '................', '................', '................', '................', '................'];
+    defSprite('glazer', gz.map(r => r.replace(' ', 'k')), { q: '#5ad1c5', Q: '#2e9a96', o: '#c4623a', w: '#ffffff', b: '#5e261c' });
+    defSprite('glazer_aim', gz.map((r, i) => i === 1 ? '..kk.kqqqqk.....' : i === 2 ? '.kook.qwkwkqk...' : r.replace(' ', 'k')).map(r => r.padEnd(16, '.').slice(0, 16)), { q: '#5ad1c5', Q: '#2e9a96', o: '#c4623a', w: '#ffffff', b: '#5e261c' });
+    defSym('urn', ['........', '......kk', '.....kyo', '.....kkk', '....kooo', '...kyooo', '..kyoooo', '..kooooo', '..koOooo', '..kooOoo', '..kOoooo', '...kOooo', '....kOOO', '.....kkk', '........', '........'], { o: '#c4623a', O: '#93432c', y: '#e8a070' }, { y: 'o' });
+    defSym('wyrm_seg', ['........', '........', '........', '....kkkk', '...kyyoo', '..kyoooo', '..kooOOO', '..kqqqqq', '..kQQQQQ', '..kooooo', '..kOoooo', '...kOOoo', '....kkkk', '........', '........', '........'], { o: '#c4623a', O: '#93432c', y: '#e8a070', q: '#5ad1c5', Q: '#2e9a96' });
+    defSym('wyrm_tail', ['........', '........', '........', '........', '........', '.....kkk', '....kyoo', '....kooo', '....kqqq', '....kOoo', '.....kkk', '........', '........', '........', '........', '........'], { o: '#c4623a', O: '#93432c', y: '#e8a070', q: '#5ad1c5' });
+    defSprite('wyrm_head_down', ['................', '....kkkkkkkk....', '...kqqqqqqqqk...', '..kqQqqqqqqQqk..', '..kqqwkqqwkqqk..', '..kqqkkqqkkqqk..', '..kqqqqqqqqqqk..', '..kooooooooook..',
+        '..koOooooooOok..', '...kooRRRRook...', '...kooRwwRook...', '....kooooook....', '.....kkkkkk.....', '................', '................', '................'], { q: '#5ad1c5', Q: '#2e9a96', o: '#c4623a', O: '#93432c', w: '#ffffff', R: '#6a1a1a' });
+    defSprite('wyrm_head_up', ['................', '....kkkkkkkk....', '...kqqqqqqqqk...', '..kqQqqqqqqQqk..', '..kqqqqqqqqqqk..', '..kqqqqqqqqqqk..', '..kqqQqqqqQqqk..', '..kooooooooook..',
+        '..koOooooooOok..', '...kooooooook...', '...kooooooook...', '....kooooook....', '.....kkkkkk.....', '................', '................', '................'], { q: '#5ad1c5', Q: '#2e9a96', o: '#c4623a', O: '#93432c' });
+    defSprite('wyrm_head_right', ['................', '................', '....kkkkkkk.....', '...kqqqqqqqkk...', '..kqqqqqwkqqqk..', '..kqQqqqkkqqqqk.', '..kqqqqqqqqqqqk.', '..kooooooooRRRk.',
+        '..koOooooooRwwk.', '..koooooooRRRk..', '...kooooooook...', '....kkkkkkkk....', '................', '................', '................', '................'], { q: '#5ad1c5', Q: '#2e9a96', o: '#c4623a', O: '#93432c', w: '#ffffff', R: '#6a1a1a' });
+    defSprite('crackwall', ['kkkkkkkkkkkkkkkk', 'kooooOooooooOook', 'koOoooooOooooook', 'kooooooko0oOoook', 'kOooooko.koooook', 'kooooko...kooOok', 'kooook.....koook', 'koOook......kook',
+        'koook.......kook', 'koooko.....koOok', 'kOoooko...koooook', 'koooooko.koooook', 'kooOoooookoooOok', 'kooooooooooooook', 'kOOOOOOOOOOOOOOk', 'kkkkkkkkkkkkkkkk'].map(r => r.slice(0, 16).replace(/0/g, 'o')), { o: '#c4623a', O: '#93432c' });
+    ART.kilnbig = paintSprite(32, 38, x => {
+        for (let j = 8; j < 38; j++) { const w = Math.round(10 + Math.min(j - 8, 12) * 0.5); for (let i = 16 - w; i < 16 + w; i++) { x.fillStyle = (i - (16 - w)) < 3 ? '#e08a5e' : (16 + w - i) < 4 ? '#93432c' : (j + i) % 7 === 0 ? '#a8502e' : '#c4623a'; x.fillRect(i, j, 1, 1); } }
+        x.fillStyle = '#2a1410'; x.fillRect(10, 24, 12, 12); x.fillStyle = '#f39a3c'; x.fillRect(12, 29, 8, 6); x.fillStyle = '#f7d64a'; x.fillRect(14, 30, 4, 4);
+        x.fillStyle = '#6a2e22'; x.fillRect(13, 0, 6, 9); x.fillStyle = '#8a7a6a'; x.fillRect(12, 0, 8, 2);
+    });
+    ART.mural = paintSprite(48, 22, x => {
+        x.fillStyle = '#e8b884'; x.fillRect(0, 0, 48, 22); x.fillStyle = '#a86e3e'; x.fillRect(0, 0, 48, 1); x.fillRect(0, 21, 48, 1);
+        x.fillStyle = '#f7d64a'; x.fillRect(5, 7, 8, 8); x.fillStyle = '#f39a3c'; x.fillRect(7, 5, 4, 1); x.fillRect(7, 16, 4, 1); x.fillRect(3, 9, 1, 4); x.fillRect(14, 9, 1, 4);
+        x.fillStyle = '#9fd4f0'; x.fillRect(21, 6, 7, 10); x.fillStyle = '#e8b884'; x.fillRect(24, 6, 4, 8);
+        x.fillStyle = '#f59ac0'; x.fillRect(38, 6, 2, 10); x.fillRect(34, 10, 10, 2); x.fillRect(36, 8, 6, 6);
+    });
+    ART.rack = paintSprite(16, 24, x => { x.fillStyle = '#7a4e32'; x.fillRect(1, 0, 2, 24); x.fillRect(13, 0, 2, 24); for (let j = 4; j < 24; j += 7) { x.fillStyle = '#9a6438'; x.fillRect(1, j, 14, 2); x.fillStyle = '#d98f3a'; x.fillRect(3, j - 4, 4, 4); x.fillRect(9, j - 3, 3, 3); } });
+    ART.mosaic = paintSprite(40, 24, x => {
+        for (let j = 0; j < 24; j += 3) for (let i = 0; i < 40; i += 3) { x.fillStyle = ['#c4623a', '#d98f3a', '#e8b884', '#93432c', '#f2bc78'][Math.floor(hash2(i, j, 4) * 5)]; x.fillRect(i, j, 2, 2); }
+        x.fillStyle = '#5a3a26'; x.fillRect(15, 4, 10, 10); x.fillStyle = '#e0a080'; x.fillRect(16, 6, 8, 6); x.fillStyle = '#2a1a14'; x.fillRect(16, 11, 8, 4); x.fillStyle = '#ffffff'; x.fillRect(18, 12, 4, 1);
+        x.fillStyle = '#5ad1c5'; x.fillRect(26, 6, 5, 8);
+    });
+    ART.wheel = paintSprite(16, 16, x => { x.fillStyle = '#7a4e32'; x.fillRect(6, 8, 4, 8); x.fillStyle = '#9a6438'; x.fillRect(1, 6, 14, 4); x.fillStyle = '#c4623a'; x.fillRect(4, 2, 8, 5); x.fillStyle = '#e8a070'; x.fillRect(5, 2, 3, 2); });
+    ART.sandwich = paintSprite(12, 8, x => { x.fillStyle = '#e8ecef'; x.fillRect(0, 4, 12, 3); x.fillStyle = '#f0d080'; x.fillRect(2, 2, 6, 3); x.fillStyle = '#e8b04a'; x.fillRect(2, 3, 6, 1); x.fillStyle = '#e8ecef'; x.fillRect(6, 2, 2, 1); }, false);
+    ART.monogram_kiln = paintSprite(16, 10, x => { x.fillStyle = '#e0913a'; x.fillRect(3, 1, 2, 8); x.fillRect(5, 1, 3, 2); x.fillRect(5, 4, 3, 1); x.fillRect(5, 7, 3, 2); x.fillRect(8, 2, 1, 2); x.fillRect(8, 5, 1, 2); x.fillStyle = '#a8602a'; x.fillRect(11, 3, 3, 5); x.fillRect(12, 2, 1, 1); }, false);
+    /* the vats: low clay basins of glaze */
+    FLOORS.kilnhouse.vat = (x) => { fill(x, '#93432c'); fill(x, '#5ad1c5', 2, 2, 12, 11); fill(x, '#8fe6dc', 3, 3, 4, 2); fill(x, '#5e261c', 0, 14, 16, 2); };
+}
+CONTENT_INIT.push(initKilnArt);
+ITEM_LINES.hook = () => "You found the {red}Hookline{/}! C to throw the hook. It catches on brass rings and on any stitched cross with nothing on it, and reels you over; light things it reels to you.";
+
+// ---- 46_kilnridge.js ----
+/* Kilnridge (overworld block 0,2): red clay canyons west of Meadowfold. The Kiln is cut into the big mesa;
+   the potters' camp sits in the basin; a switchback climbs the hawk's mesa; crocks wander. The canyon
+   road comes in from Meadowfold on the east. */
+
+const KILNRIDGE_ROWS = [
+    '%###############################################################',
+    '%###############################################################',
+    '%###############################################################',
+    '%##.fffffff....,,,...................,....,.....,............###',
+    '%##......,.,#####################....".,.,,...,..............###',
+    '%##.........##."........"......##......,.,....#############..###',
+    '%##.".,..,,.##..YYY.......,.,..##...,...."....##.........##..###',
+    '%##.....,.,.##..YYY"...........##...."..,.....##.........##..###',
+    '%##,.".,....##..YYY.......,....#HH..,...r.....##.........##..###',
+    '%##........,##"................#HH.,..........##......^..##,.###',
+    '%##"###H###.##................"##.............##.........##..###',
+    '%##.......".##............".,..##...,.........##.........##..###',
+    '%##vvvvvvv..#####################.......,,....##.........##..###',
+    '%##.....,"..##########:##########.....",......##.........##".###',
+    '%##...,...."...,......:,...,........"...".....##H##########..###',
+    '%##.....^^.....,....,.:....."."...............##H##########".###',
+    '%##.....^......"......:.......,......,......:::H..,..........###',
+    '%##............,".....:..........,..r...."..:,..."..,........###',
+    '%##..........,........:.....................:......."......,.###',
+    '%##"..................:.....................:..,.............###',
+    '%##...r...............:.....,..,.,..............".".,........###',
+    '%##....."...........,.:....................,.,...............###',
+    '%##........,.......,,.:................,.................#######',
+    '%##.,...,........"....::::::::::::::::::::::::::::::::::::::::::',
+    '%##"....,..,,.................:..............,.,......,..#######',
+    '%##.....,"....r.....,.....,...:...",..............".,........###',
+    '%##.......,........"......,...:.,...^^............"..........###',
+    '%##..^^.........,.............:.,...^....,......"..."...,....###',
+    '%##....,........,.....,..,....:...."..............."..,.,.,..###',
+    '%##.,.,.......,,.."...........:.....,...;;;;;;;;;;;;;,.......###',
+    '%########r.................r..:.........;;;;;;;;;;;;;...,.r..###',
+    '%##..............,............:::::::::.;;;;;;;;;;;;;........###',
+    '%########......^^.,.............,...,...;;;;;;;;;;;;;........###',
+    '%##...........".^..,"....".,.".......,..;;;;;;;;;;;;;........###',
+    '%##...".".............."..,....................,...........,.###',
+    '%##..........,..,..........,...............................,.###',
+    '%##..................."...........,........,."....^..........###',
+    '%###############################################################',
+    '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',
+    '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',
+];
+
+defBlock({
+    id: 'kilnridge', bx: 0, by: 2, name: 'Kilnridge', theme: 'kiln', music: 'kiln',
+    rows: KILNRIDGE_ROWS,
+    forest: ['tree_autumn'],
+    legend: {},
+    ents: [
+        { k: 'deco', x: 20, y: 11, look: 'kilnfacade', solid: [], ox: 0, oy: -14, baseY: 34 },
+        { k: 'warp', x: 22, y: 13, to: 'kiln', tx2: 29, ty2: 42, face: 'up', dir: 'up' },
+        { k: 'rest', x: 25, y: 15 },
+        { k: 'sign', x: 24, y: 16, text: 'THE KILN. Open to Wanderers. Mind the pots: they mind you.' },
+        { k: 'sign', x: 55, y: 22, text: 'KILNRIDGE. Clay, kilns, pots, crocks, and more pots.' },
+        { k: 'building', x: 41, y: 26, w: 4, h: 3, style: 'ochre', door: null, windows: [0, 3], wallH: 18, variant: 'kr1' },
+        { k: 'building', x: 47, y: 26, w: 4, h: 3, style: 'ochre', door: null, windows: [0, 3], wallH: 18, variant: 'kr2', chimneyX: 6 },
+        { k: 'deco', x: 51, y: 30, look: 'kilnbig', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
+        { k: 'deco', x: 39, y: 32, look: 'rack', solid: [[0, 0]] }, { k: 'deco', x: 40, y: 32, look: 'rack', solid: [[0, 0]] },
+        { k: 'npc', who: 'annie', x: 44, y: 30, face: 'down' },
+        { k: 'npc', who: 'tal', x: 49, y: 32, face: 'left' },
+        { k: 'pot', x: 42, y: 33 }, { k: 'pot', x: 47, y: 30 }, { k: 'pot', x: 50, y: 33 },
+        { k: 'pot', x: 52, y: 7 }, { k: 'pot', x: 54, y: 12 },
+        { k: 'nest', x: 47, y: 16 },
+        { k: 'urnseal', x: 3, y: 31, id: 'linnetUrn' },
+        { k: 'linnetnote', x: 3, y: 31, note: 3, under: 'linnetUrn' },
+        { k: 'crock', x: 30, y: 20 }, { k: 'crock', x: 12, y: 26 }, { k: 'crock', x: 36, y: 35 }, { k: 'crock', x: 52, y: 20 }, { k: 'crock', x: 6, y: 6 },
+        { k: 'pickup', x: 15, y: 7, what: 'b20', id: 'mesaButtons' },
+    ],
+    onEnter: (a, o) => { },
+    tick: a => {
+        const p = G.player;
+        if (p && !Progress.flag('kilnPass') && p.x < 64 * T) Progress.set('kilnPass');
+    },
+});
+
+PEOPLE_DEF.annie = { name: 'Ochre Annie', col: '#f0b060', look: { body: 'adult', hair: 'long', hairC: '#c4623a', top: '#c9925a', accent: '#93432c', bottom: '#5a3a26', skin: 'tan' } };
+PEOPLE_DEF.tal = { name: 'Tal', col: '#c8d8f0', look: { body: 'adult', hair: 'cap', hairC: '#3a3a5a', top: '#5a7aa8', accent: '#e6c08a', bottom: '#45403f', skin: 'brown', extra: ['beard'] } };
+TALK.annie = function* () {
+    yield* firstThen('annie', "Annie. I dig the clay. Bram buys the clay. Bram breaks the pots. The pots come back. It's a living.",
+        ["Strange thing: the Kiln's been here forever, but the inside always smells of fresh clay. Like someone's been working.", "Throw a pot at a crock and it'll fly to bits, and the bits'll go home the way the crock walked. Don't stand where the crock's been.", "Up on the hawk's mesa there's a nest right over the path down. That bird's got something shiny up there."]);
+};
+TALK.tal = function* () {
+    yield* firstThen('tal', "Tal, tinker. I mend things. Well. Nothing in the Hollow stays broken, so mostly I just sit here.",
+        ["They say there's a bridge out east of Meadowfold. Washed away. Folk with a hook get across, I'm told.", "That little crack in the west cliff? Wind whistles through it. Something in there, I reckon. Clay, I reckon. Old clay.", "You ever wonder where the bits go, when a pot flies home? They go home. Obviously. But where's home for a pot?"]);
+};
+BUDGE.annie = 'Ochre Annie: "Easy! I dig clay, I don\'t get dug."';
+BUDGE.tal = 'Tal: "Mind my tools."';
+
+/* the hawk's nest over the switchback: struck by flying pieces it tips out what's in it (S20) */
+SPAWN.nest = (tx, ty) => {
+    const c = new Charm(tx, ty, { mode: 'once', id: 'hawknest', col: 'ochre' });
+    c.draw = function (cx, cy) {
+        const x = this.x - cx + 8, y = this.y - cy;
+        Gfx.img(ART.deadtree, x - 12, y - 30);
+        if (!this.on) Gfx.img(ART.nest, x - 6, y - 14);
+        Gfx.alpha(0.18); Gfx.rect(x - 4, y + 9, 8, 2, PAL.ink); Gfx.alpha(1);
+    };
+    const strike = c.strike;
+    c.strike = function (by) {
+        if (this.on) return;
+        strike.call(this, by);
+        this.area.add(new Pickup(this.x, this.y - 10, { what: 'heartpatch', id: 'hawkPatch', vz: 1.5 }));
+        Sfx.play('appear');
+    };
+    return c;
+};
+/* an old cracked urn, wedged at the end of the crevice */
+SPAWN.urnseal = (x, y, p) => { const s = new Seal(x, y, p); s.sprite = () => spr('urn_cracked'); s.onStruck = () => UI.toast('An old urn, cracked all over. A good knock from a distance would do it.'); return s; };
+LINNET_NOTES[3] = { title: 'A note in a cracked urn', text: "I broke a pot in the Kiln and watched the bits go home and I could SEE THE THREAD. Just for a moment. It went down through the floor. Down. Not back to the shelf: down. Who's down there? - L." };
+NOTES.linnet3 = { title: LINNET_NOTES[3].title, text: LINNET_NOTES[3].text };
+
+function initKilnridgeArt() {
+    ART.kilnfacade = paintSprite(48, 48, x => {
+        /* an arch of fired brick round the door, a chimney behind smoking */
+        for (let j = 0; j < 48; j++) for (let i = 0; i < 48; i++) {
+            const dx = i - 24, dy = j - 30, r = Math.hypot(dx, dy * 1.2);
+            if (j > 14 && r < 22 && !(Math.abs(dx) < 7 && j > 28)) {
+                const brick = (Math.floor(j / 4) + Math.floor((i + (Math.floor(j / 4) % 2) * 3) / 6)) % 2;
+                x.fillStyle = j % 4 === 3 ? '#5e261c' : brick ? '#b8583a' : '#c4623a';
+                if (r > 19) x.fillStyle = '#8a3c28';
+                x.fillRect(i, j, 1, 1);
+            }
+        }
+        x.fillStyle = '#2a1410'; x.fillRect(17, 28, 14, 20); x.fillStyle = '#f39a3c'; x.globalAlpha = 0.35; x.fillRect(18, 38, 12, 10); x.globalAlpha = 1;
+        x.fillStyle = '#e8a070'; x.fillRect(20, 18, 8, 6); x.fillStyle = '#93432c'; x.fillRect(21, 19, 6, 4); x.fillStyle = '#f7d64a'; x.fillRect(23, 20, 2, 2);
+        x.fillStyle = '#6a2e22'; x.fillRect(34, 0, 7, 16); x.fillStyle = '#8a7a6a'; x.fillRect(33, 0, 9, 2);
+    });
+    ART.deadtree = paintSprite(24, 34, x => {
+        x.fillStyle = '#7a5a40'; x.fillRect(11, 8, 3, 26); x.fillRect(5, 6, 2, 10); x.fillRect(6, 15, 6, 2); x.fillRect(16, 4, 2, 12); x.fillRect(13, 13, 4, 2);
+        x.fillStyle = '#5a3e2a'; x.fillRect(13, 8, 1, 26); x.fillRect(3, 4, 2, 3); x.fillRect(18, 2, 2, 3);
+    });
+    ART.nest = paintSprite(12, 8, x => { x.fillStyle = '#9a6438'; x.fillRect(0, 3, 12, 5); x.fillStyle = '#c9925a'; for (let i = 0; i < 12; i += 2) x.fillRect(i, 3 + (i % 4 ? 1 : 0), 2, 1); x.fillStyle = '#f07a9a'; x.fillRect(4, 1, 4, 3); x.fillStyle = '#ffd8e4'; x.fillRect(5, 1, 1, 1); });
+    defSym('urn_cracked', ['........', '......kk', '.....kyo', '.....kkk', '....kook', '...kyoko', '..kyooko', '..kookoo', '..koOooo', '..kookOo', '..kOokoo', '...kOooo', '....kOOO', '.....kkk', '........', '........'], { o: '#a8805a', O: '#7a5a3a', y: '#c8a07a' }, { y: 'o' });
+}
+CONTENT_INIT.push(initKilnridgeArt);
 
 // ---- 50_prologue.js ----
 /* The morning of the Wander: waking up, Gran, the ceremony at the Well. */
@@ -6839,11 +7970,12 @@ const Game = {
             for (const e of a.ents.slice()) if (!e.floor && !e.removed && !e.inert) e.update();
             if (p) p.update();
             for (const e of a.ents.slice()) if (e.floor && !e.removed) e.update();
-            Thrown.update(a); Shards.update(a); Tools.update(a);
+            Thrown.update(a); Shards.update(a); Tools.update(a); GlazerShots.update(a);
             Fx.update();
             if (a.def.tick) a.def.tick(a);
             if (Story.tick) Story.tick(a);
             Nudges.update(a);
+            SeqLocks.tick(a);
             Cam.update(p);
             World.checkRegion();
             if (G.shake > 0) G.shake--;
@@ -6882,7 +8014,7 @@ const Game = {
                 for (let i = i0; i + 1 < pts.length; i++) Gfx.line(pts[i][0] - cx, pts[i][1] - cy, pts[i + 1][0] - cx, pts[i + 1][1] - cy, THREAD.wren);
                 const m = p.mark; Marks.draw(m.tx * T - cx, m.ty * T - cy, THREAD.wren, true);
             }
-            Thrown.draw(cx, cy); Shards.draw(cx, cy); Tools.draw(cx, cy);
+            Thrown.draw(cx, cy); Shards.draw(cx, cy); Tools.draw(cx, cy); GlazerShots.draw(cx, cy);
             if (a.def.drawOver) a.def.drawOver(a, cx, cy);
             Fx.draw(cx, cy);
             Knots.draw(cx, cy);

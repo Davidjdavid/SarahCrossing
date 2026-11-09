@@ -49,11 +49,12 @@ const Game = {
             for (const e of a.ents.slice()) if (!e.floor && !e.removed && !e.inert) e.update();
             if (p) p.update();
             for (const e of a.ents.slice()) if (e.floor && !e.removed) e.update();
-            Thrown.update(a); Shards.update(a); Tools.update(a);
+            Thrown.update(a); Shards.update(a); Tools.update(a); GlazerShots.update(a);
             Fx.update();
             if (a.def.tick) a.def.tick(a);
             if (Story.tick) Story.tick(a);
             Nudges.update(a);
+            SeqLocks.tick(a);
             Cam.update(p);
             World.checkRegion();
             if (G.shake > 0) G.shake--;
@@ -92,7 +93,7 @@ const Game = {
                 for (let i = i0; i + 1 < pts.length; i++) Gfx.line(pts[i][0] - cx, pts[i][1] - cy, pts[i + 1][0] - cx, pts[i + 1][1] - cy, THREAD.wren);
                 const m = p.mark; Marks.draw(m.tx * T - cx, m.ty * T - cy, THREAD.wren, true);
             }
-            Thrown.draw(cx, cy); Shards.draw(cx, cy); Tools.draw(cx, cy);
+            Thrown.draw(cx, cy); Shards.draw(cx, cy); Tools.draw(cx, cy); GlazerShots.draw(cx, cy);
             if (a.def.drawOver) a.def.drawOver(a, cx, cy);
             Fx.draw(cx, cy);
             Knots.draw(cx, cy);
