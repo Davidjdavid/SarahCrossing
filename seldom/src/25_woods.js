@@ -60,6 +60,7 @@ async function ruthTalk(e) {
     }
     if (G.flags.gateA) { await say('You found the woodcutters\' rope! Now I can... still not get home, because my home is the other way. Never mind.', 'ruth'); return; }
     await say('If you want to get somewhere in here, look the wrong way, then walk the wrong way. That\'s what I\'ve worked out. It\'s not helped me much.', 'ruth');
+    if (G.flags.spyglass) await say('Turning round doesn\'t help, I\'ve tried. Hold X and look past the trees, as far as the view will go. Let go, so it stays. Then walk away from the trees, right out of the edge of what you can see.', 'ruth');
 }
 function roverBrain(e, dt) {
     if (!e.st.woke) { e.st.woke = true; e.st.walk = 1.4; bark(e, '...and so I said—', 2); }

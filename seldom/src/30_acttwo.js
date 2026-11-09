@@ -24,7 +24,7 @@ function actTwoHint() {
         if (!F.quarryGate && !ent('stonegate').st.o) return 'The quarry gate\'s sand only runs while the hourglass is seen. Stand on the stone, look away from the sand... and keep looking away.';
         return 'Stillfall. The water only comes over while the spring at the top is seen. Hmm. What if you didn\'t look at the top?';
     }
-    if (!F.woodsB) return 'Ruth from the woods came by. She says, in the Turnabout Woods, the way through a wall is to look past it, then walk the wrong way.';
+    if (!F.woodsB) return 'Ruth from the woods came by. She says it isn\'t which way you face. Hold X and look past the trees as far as you can, let go, then walk away from them, out of the edge of the view.';
     if (!F.woodsE) return 'To get south through the woods you need a taller view than usual. Not the tallest, though. Something in between.';
     if (!F.hollowSouth) return 'The black brook in the Hollow. Pan\'s Nan said the ants build bridges. Look close enough, and they\'re there.';
     if (!F.prism && !Light.night()) return 'The Faded only come out at night. And night only comes while the Great Clock is watched... and then stays, as long as nobody looks at the Clock again.';

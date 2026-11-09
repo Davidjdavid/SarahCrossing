@@ -32,3 +32,9 @@
   readable (marks, joined edges, a close-up of what the view sees), steadier steering, slower credits, a lit title after
   the end, rope posts and gates that read, a day/night mark on the clock, slimmer collisions, a little more walking pace.
 - Published as a private claude.ai link (artifact.html); the four-hour check-in task deleted: done.
+
+## 9 November 2026 (David's first play)
+
+- David got stuck at the first woods wall: "look the wrong way" read as turning Dot round. Ruth now adds, once the
+  Spyglass is in hand, that it's the view that moves (hold X, look past the trees as far as it goes, let go, walk away
+  from the trees out of the view's edge); Iris's hint says the same.
