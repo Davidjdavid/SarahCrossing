@@ -73,7 +73,7 @@ const Return = {
         r.trace = [[r.mx, r.my]]; r.state = 'home'; r.snap = false;
     },
     held(e) {
-        return !!(e.heldBy || e.carried || e.tiedOff || e.flying || e.shattered || (e.isHeld && e.isHeld()));
+        return !!(e.heldBy || e.carried || e.tiedOff || e.flying || e.shattered || e.paddled || (e.isHeld && e.isHeld()));
     },
 
     /* one step for a grid thing */
@@ -99,7 +99,7 @@ const Return = {
         if (tr.length < 2) { this.arrive(e); return; }
         const [nx, ny] = tr[tr.length - 2];
         const d = dirOf(nx - e.tx, ny - e.ty);
-        const pace = r.snap ? RET.snapPace : r.pace;
+        const pace = r.snap ? RET.snapPace : Water.pace(e, d, r.pace);
         if (Math.abs(nx - e.tx) + Math.abs(ny - e.ty) !== 1) {
             /* the trace jumps (a throw, a flight): fly straight to it */
             e.startMove(nx, ny, pace * 2, true);
@@ -181,6 +181,7 @@ class GridThing extends Ent {
     shove(d, dur, by) { this.startMove(this.tx + DX[d], this.ty + DY[d], dur); }
     startMove(nx, ny, dur, returning = false) {
         const a = this.area;
+        if (this.floats) Water.board(this);
         /* the source tile stays held until the move ends */
         a.place(this, nx, ny);
         /* during the move it holds both tiles (so plates feel it in passing) */
@@ -226,17 +227,19 @@ class GridThing extends Ent {
         this.area.unplace(this, this.tx, this.ty);
         this.area.remove(this);
         this.area.setCell(this.tx, this.ty, this.area.family === 'outdoor' ? ':' : ',');
+        this.area.flow.delete(key2(this.tx, this.ty));
         Progress.setAreaFlag(this.area.id, `fill:${this.tx},${this.ty}`);
     }
     sink() {
         Fx.splash(this.tx * T + 8, this.ty * T + 8);
         Sfx.play('splash');
         if (this.ret) Return.sendHome(this);
-        else { this.area.remove(this); }
+        else this.floats ? this.area.remove(this) : this.fillPit();     /* a stray stone fills the water in */
     }
     update() {
         this.stepMove();
         if (this.ret) Return.update(this);
+        if (this.floats) Water.drift(this);
         if (this.tick) this.tick();
     }
     sprite() { return null; }

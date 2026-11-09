@@ -77,6 +77,7 @@ const Game = {
             }
             if (G.cheats.grid) for (let tx = x0; tx <= x0 + 21; tx++) { Gfx.alpha(0.15); Gfx.rect(tx * T - cx, 0, 1, H, PAL.white); for (let ty = y0; ty <= y0 + 12; ty++) Gfx.rect(0, ty * T - cy, W, 1, PAL.white); Gfx.alpha(1); }
             if (a.def.drawGround) a.def.drawGround(a, cx, cy);
+            Water.drawFlow(a, cx, cy);
             /* things lying on the floor, then threads, then everything standing, sorted by depth */
             const floor = a.ents.filter(e => e.floor && e.x > cx - 40 && e.x < cx + W + 40 && e.y > cy - 40 && e.y < cy + H + 40);
             for (const e of floor) e.draw(cx, cy);

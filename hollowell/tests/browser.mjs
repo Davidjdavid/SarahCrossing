@@ -110,6 +110,13 @@ const SCENARIOS = {
         await page.evaluate(() => { HW.Progress.set('trial1', false); HW.warp('inn_attic', 3, 7); HW.step(5); HW.walkTo(3, 8); HW.step(60); });
         await shot('attic1_clock');
     },
+    async water() {
+        await open();
+        await page.evaluate(() => { HW.newGame('Wren', { area: 'lab3', x: 15, y: 3, noAutosave: true }); HW.step(5); HW.walkTo(1, 5); HW.step(60); });
+        await shot('water_lab');
+        await page.evaluate(() => { HW.hold('right'); HW.step(12); HW.release(); HW.step(200); });
+        await shot('water_ride');
+    },
     async title() { await open(); await page.evaluate(() => { window.HW._paused = false; }); await page.waitForTimeout(400); await page.evaluate(() => { window.HW._paused = true; }); await shot('title'); },
     async lab() {
         await open();

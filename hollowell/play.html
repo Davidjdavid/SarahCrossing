@@ -862,6 +862,9 @@ const LEGENDS = {
         '^': { k: 'rock', p: 'cliff' }, 'o': { k: 'pit', p: 'pit' }, 'v': { k: 'ledge', p: 'ledge' },
         '_': { k: 'bridge', p: 'bridgeH' }, '|': { k: 'bridge', p: 'bridgeV' }, '%': { k: 'fog', p: 'fog' },
         'H': { k: 'stairs', p: 'stairs' }, ' ': { k: 'void', p: 'void' },
+        /* currents: deep water flowing the way the arrow points (src/47_water_kit.js) */
+        '>': { k: 'current', p: 'current', flow: 2 }, '<': { k: 'current', p: 'current', flow: 1 },
+        'A': { k: 'current', p: 'current', flow: 3 }, 'V': { k: 'current', p: 'current', flow: 0 },
     },
     dungeon: {
         '.': { k: 'floor', p: 'floor' }, ',': { k: 'floor', p: 'floor2' }, ':': { k: 'floor', p: 'floor3' },
@@ -869,6 +872,8 @@ const LEGENDS = {
         '-': { k: 'shallow', p: 'water' }, 'H': { k: 'stairs', p: 'stairs' }, '^': { k: 'spikes', p: 'spikes' },
         ' ': { k: 'void', p: 'void' }, '_': { k: 'bridge', p: 'bridgeH' }, '|': { k: 'bridge', p: 'bridgeV' },
         'v': { k: 'ledge', p: 'ledge' },
+        '>': { k: 'current', p: 'current', flow: 2 }, '<': { k: 'current', p: 'current', flow: 1 },
+        'A': { k: 'current', p: 'current', flow: 3 }, 'V': { k: 'current', p: 'current', flow: 0 },
     },
     interior: {
         '.': { k: 'floor', p: 'floor' }, ',': { k: 'floor', p: 'floor2' }, ':': { k: 'floor', p: 'floor3' },
@@ -994,14 +999,14 @@ const TileDraw = {
             case 'path': c = tileCanvas(`${tn}:path:${v}`, x => Paint.path(x, th, v)); break;
             case 'cobble': c = tileCanvas(`${tn}:cobble:${v % 2}`, x => Paint.cobble(x, th, v)); break;
             case 'sand': c = tileCanvas(`${tn}:sand:${v}`, x => Paint.sand(x, th, v)); break;
-            case 'water': case 'deep': {
+            case 'water': case 'deep': case 'current': {
                 const f = Math.floor(this.frame / 20) % 8;
                 const land = k => !['water', 'shallow', 'current', 'void', 'bridge'].includes(k);
                 const n = land(area.cell(tx, ty - 1).k) ? 1 : 0, s = land(area.cell(tx, ty + 1).k) ? 1 : 0;
                 const w = land(area.cell(tx - 1, ty).k) ? 1 : 0, e = land(area.cell(tx + 1, ty).k) ? 1 : 0;
                 const mask = n | s << 1 | w << 2 | e << 3;
                 c = tileCanvas(`${tn}:${p}:${v}:${f}:${mask}`, x => {
-                    (p === 'deep' ? Paint.deep : Paint.water)(x, th, v, f);
+                    (p === 'water' ? Paint.water : Paint.deep)(x, th, v, f);
                     const foam = th.water[2], edge = shade(th.water[3], -0.1);
                     const wob = i => (Math.floor(hash2(i, f, 3) * 2));
                     if (n) { fill(x, edge, 0, 0, 16, 2); for (let i = 0; i < 16; i++) px(x, i, 2 + wob(i), foam); }
@@ -1247,7 +1252,7 @@ const Return = {
         r.trace = [[r.mx, r.my]]; r.state = 'home'; r.snap = false;
     },
     held(e) {
-        return !!(e.heldBy || e.carried || e.tiedOff || e.flying || e.shattered || (e.isHeld && e.isHeld()));
+        return !!(e.heldBy || e.carried || e.tiedOff || e.flying || e.shattered || e.paddled || (e.isHeld && e.isHeld()));
     },
 
     /* one step for a grid thing */
@@ -1273,7 +1278,7 @@ const Return = {
         if (tr.length < 2) { this.arrive(e); return; }
         const [nx, ny] = tr[tr.length - 2];
         const d = dirOf(nx - e.tx, ny - e.ty);
-        const pace = r.snap ? RET.snapPace : r.pace;
+        const pace = r.snap ? RET.snapPace : Water.pace(e, d, r.pace);
         if (Math.abs(nx - e.tx) + Math.abs(ny - e.ty) !== 1) {
             /* the trace jumps (a throw, a flight): fly straight to it */
             e.startMove(nx, ny, pace * 2, true);
@@ -1355,6 +1360,7 @@ class GridThing extends Ent {
     shove(d, dur, by) { this.startMove(this.tx + DX[d], this.ty + DY[d], dur); }
     startMove(nx, ny, dur, returning = false) {
         const a = this.area;
+        if (this.floats) Water.board(this);
         /* the source tile stays held until the move ends */
         a.place(this, nx, ny);
         /* during the move it holds both tiles (so plates feel it in passing) */
@@ -1400,17 +1406,19 @@ class GridThing extends Ent {
         this.area.unplace(this, this.tx, this.ty);
         this.area.remove(this);
         this.area.setCell(this.tx, this.ty, this.area.family === 'outdoor' ? ':' : ',');
+        this.area.flow.delete(key2(this.tx, this.ty));
         Progress.setAreaFlag(this.area.id, `fill:${this.tx},${this.ty}`);
     }
     sink() {
         Fx.splash(this.tx * T + 8, this.ty * T + 8);
         Sfx.play('splash');
         if (this.ret) Return.sendHome(this);
-        else { this.area.remove(this); }
+        else this.floats ? this.area.remove(this) : this.fillPit();     /* a stray stone fills the water in */
     }
     update() {
         this.stepMove();
         if (this.ret) Return.update(this);
+        if (this.floats) Water.drift(this);
         if (this.tick) this.tick();
     }
     sprite() { return null; }
@@ -2163,10 +2171,10 @@ class Player extends Ent {
         if (k.ledge) return true;
         if (k.deep && !this.canSwim()) {
             const o = a.at(tx, ty);
-            if (!(o && o.floats && o.rideable)) return true;
+            if (!Water.rideable(o)) return true;
         }
         const o = a.at(tx, ty);
-        if (o && o !== this.carry && !o.walkOn) return true;
+        if (o && o !== this.carry && !o.walkOn && !Water.rideable(o)) return true;
         for (const b of a.blockers) if (b.blocks(tx, ty, this)) return true;
         return false;
     }
@@ -2213,6 +2221,8 @@ class Player extends Ent {
             case 'reel': return this.updateReel();
             case 'faint': return;
         }
+        /* on a float that's moving: carried along */
+        if (this.ride && Water.rider(this)) return;
         if (this.shove) return this.updateShove();
         if (this.kx || this.ky) {
             this.moveAxis(this.kx, 0); this.moveAxis(0, this.ky);
@@ -2223,6 +2233,8 @@ class Player extends Ent {
         const ax = cut ? { x: 0, y: 0 } : Input.axis();
         if (this.swingT > 0) this.updateSwing();
         if (Tools.busy(this)) { this.walking = false; this.afterMove(); return; }
+        /* paddling: C held on something floating steers it instead of walking */
+        if (!cut && Inv.equipped === 'paddle' && Input.down('tool') && TOOLS.paddle.float(this)) { TOOLS.paddle.hold(this); this.walking = false; this.anim = 0; this.afterMove(); return; }
 
         /* a pull in progress finishes, whatever the buttons do */
         if (this.pullT > 0) {
@@ -2293,7 +2305,7 @@ class Player extends Ent {
         let n = 0; for (const [dx, dy] of pts) if (this.area.kind(tileOf(this.x + dx), tileOf(this.y + dy)).pit) n++;
         return n >= 3;
     }
-    onRaft() { const o = this.area.at(this.tx, this.ty); return o && o.floats && o.rideable; }
+    onRaft() { return Water.rideable(this.area.at(this.tx, this.ty)); }
 
     tryPush(d) {
         const f = this.front();
@@ -4526,6 +4538,35 @@ defArea({
     ],
     rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
     entry: { x: 2, y: 8 },
+});
+
+/* water: a current, a ferry, a wheel, a pond to paddle on */
+defArea({
+    id: 'lab3', name: 'Lab 3', family: 'dungeon', theme: 'tidy', house: 'lab', thread: THREAD.ambrose,
+    rows: [
+        '####################',
+        '#..................#',
+        '#.>>>>>>>~##########',
+        '#..................#',
+        '#..................#',
+        '#.>>>>>>>>>>~......#',
+        '#.~~~~~~...........#',
+        '#.~~~~~~...........#',
+        '#.~~~~~~...........#',
+        '#.~~~~~~...........#',
+        '####################',
+    ],
+    ents: [
+        { k: 'crate', x: 2, y: 3, id: 'crate' },
+        { k: 'raft', x: 2, y: 5, id: 'ferry' },
+        { k: 'wheel', x: 6, y: 4, face: 'down', sig: 'w1', id: 'wheel' },
+        { k: 'raft', x: 7, y: 8, id: 'raft' },
+        { k: 'crate', x: 7, y: 9, id: 'floater' },
+        { k: 'block', x: 10, y: 7, id: 'stone' },
+        { k: 'block', x: 10, y: 6, id: 'stray', stray: true },
+    ],
+    rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
+    entry: { x: 15, y: 3 },
 });
 
 // ---- 31_art_world.js ----
@@ -7762,6 +7803,185 @@ function initKilnridgeArt() {
 }
 CONTENT_INIT.push(initKilnridgeArt);
 
+// ---- 47_water_kit.js ----
+/* Water, for the Millrace and Millwater. Currents carry floating things away (the trace grows as they go,
+   so they come back the long way, slower against the flow); rafts carry Wren; a waterwheel on a bank turns
+   while something floats past it; and the Paddle: stand on anything floating and steer it. Paddling counts
+   as holding, so a paddled thing neither drifts nor goes home. */
+
+const Water = {
+    DRIFT_WAIT: 14, HOME_WAIT: 100, DRIFT_PACE: 20,
+    /* can Wren stand on this? rafts always; anything else floating once she has the Paddle */
+    rideable(o) {
+        if (!o || !o.floats || o.carried || o.shattered) return false;
+        if (!o.area.kind(o.tx, o.ty).water) return false;
+        return !!o.rideable || Inv.has('paddle');
+    },
+    /* a floating thing on a current drifts a tile at a time, unless something holds it */
+    drift(e) {
+        const a = e.area;
+        const d = a.flow.get(key2(e.tx, e.ty));
+        if (d === undefined || e.mv) { e.driftT = 0; return; }
+        if (e.carried || e.heldBy || e.tiedOff || e.shattered || e.flying || e.paddled) { e.driftT = 0; return; }
+        if (e.ret && e.ret.state === 'returning') return;         /* the Return outpulls the river */
+        /* at its own mark it bobs a while before the river takes it (a ferry waits at its landing) */
+        const wait = e.ret && e.ret.state === 'home' ? this.HOME_WAIT : this.DRIFT_WAIT;
+        if ((e.driftT = (e.driftT || 0) + 1) < wait) return;
+        e.driftT = 0;
+        const nx = e.tx + DX[d], ny = e.ty + DY[d];
+        if (!a.kind(nx, ny).water || !a.freeForThing(nx, ny, e)) return;     /* a bank or something in the way */
+        e.startMove(nx, ny, this.DRIFT_PACE);
+        Stats.count('drifts');
+    },
+    /* a returning thing going against the flow goes at half speed */
+    pace(e, d, pace) {
+        if (!e.floats) return pace;
+        const fl = e.area.flow.get(key2(e.tx, e.ty));
+        return fl !== undefined && fl === OPP[d] ? pace * 2 : pace;
+    },
+    /* whoever stands on a float as it sets off goes with it */
+    board(e) {
+        const p = G.player;
+        if (!p || p.area !== e.area || p.state !== 'normal' || p.ride === e) return;
+        if (!this.rideable(e) || p.tx !== e.tx || p.ty !== e.ty) return;
+        p.ride = e; p.rideOx = p.x - e.tx * T; p.rideOy = p.y - e.ty * T;
+    },
+    /* Wren on a moving float: carried along. True while it's moving (Wren can't walk) */
+    rider(p) {
+        const r = p.ride;
+        if (!r || r.removed || r.area !== p.area || r.carried) { p.ride = null; return false; }
+        if (r.mv) {
+            p.x = r.px + p.rideOx; p.y = r.py + p.rideOy;
+            p.walking = false; p.anim = 0;
+            p.traceStep();
+            if (p.carry) { p.carry.cx = p.x; p.carry.cy = p.y - 14; }
+            return true;
+        }
+        p.x = r.tx * T + p.rideOx; p.y = r.ty * T + p.rideOy;     /* where it stopped, exactly */
+        p.ride = null; p.traceStep();
+        return false;
+    },
+    /* foam streaks running along the currents */
+    drawFlow(a, cx, cy) {
+        if (!a.flow.size) return;
+        const x0 = Math.floor(cx / T) - 1, y0 = Math.floor(cy / T) - 1;
+        for (let ty = y0; ty <= y0 + Math.ceil(H / T) + 1; ty++) for (let tx = x0; tx <= x0 + Math.ceil(W / T) + 1; tx++) {
+            const d = a.flow.get(key2(tx, ty)); if (d === undefined) continue;
+            const sx = tx * T - cx, sy = ty * T - cy;
+            /* flowing water is a shade darker than still water, with white streaks running along it */
+            Gfx.alpha(0.14); Gfx.rect(sx, sy, T, T, '#123a7a'); Gfx.alpha(1);
+            for (let n = 0; n < 3; n++) {
+                const ph = Math.floor(G.t * 0.7 + hash2(tx, ty, n) * 16 + n * 6) % 16;
+                const off = 2 + Math.floor(hash2(ty * 3 + n, tx, 5) * 12);
+                Gfx.alpha(n === 2 ? 0.5 : 0.85);
+                const len = n === 2 ? 3 : 5;
+                if (d === RIGHT) Gfx.rect(sx + ph - 2, sy + off, len, 1, '#ffffff');
+                else if (d === LEFT) Gfx.rect(sx + 16 - ph - 3, sy + off, len, 1, '#ffffff');
+                else if (d === DOWN) Gfx.rect(sx + off, sy + ph - 2, 1, len, '#ffffff');
+                else Gfx.rect(sx + off, sy + 16 - ph - 3, 1, len, '#ffffff');
+                Gfx.alpha(1);
+            }
+        }
+    },
+};
+
+/* a raft: rideable, light, floats; moored on still water or set to run a current like a ferry */
+class Raft extends GridThing {
+    constructor(tx, ty, props = {}) {
+        super('raft', tx, ty, Object.assign({ weight: WEIGHT.light }, props));
+        this.floats = true; this.rideable = true; this.walkOn = true; this.noPush = true;
+    }
+    sprite() { return spr(this.look || 'raft'); }
+    get sortY() { return this.py - 4; }   /* under whoever's standing on it */
+}
+SPAWN.raft = (x, y, p) => new Raft(x, y, p);
+
+/* a barrel: floats, liftable, rideable with the Paddle */
+class Barrel extends Liftable {
+    constructor(tx, ty, props = {}) { super('barrel', tx, ty, props); this.floats = true; }
+    sprite() { return spr('barrel_g'); }
+}
+SPAWN.barrel = (x, y, p) => new Barrel(x, y, p);
+
+/* a waterwheel on the bank: turns while something floats on the water tile in front of it.
+   mode 'hold': on while it turns; 'pulse': on for a while after (time) */
+class Wheel extends GridThing {
+    constructor(tx, ty, props = {}) {
+        super('wheel', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, props));
+        this.sig = props.sig || 'wheel'; this.mode = props.mode || 'pulse'; this.time = props.time || 300;
+        this.face = props.face !== undefined ? dirByName(props.face) : DOWN;
+        this.timer = 0; this.ang = 0; this.on = false;
+    }
+    get watch() { return this.at || [this.tx + DX[this.face], this.ty + DY[this.face]]; }
+    tick() {
+        const [wx, wy] = this.watch;
+        const o = this.area.at(wx, wy);
+        const p = G.player;
+        const turning = (o && o.floats) || (p && p.area === this.area && p.ride && p.tx === wx && p.ty === wy);
+        if (turning) { if (!this.turning) Sfx.play('click'); this.timer = this.time; this.ang += 0.12; }
+        else if (this.timer > 0) { this.timer--; this.ang += 0.04 * this.timer / this.time; }
+        this.turning = !!turning;
+        this.on = this.mode === 'hold' ? this.turning : this.timer > 0;
+        if (this.on) Signals.set(this.area, this.sig);
+    }
+    draw(cx, cy) {
+        const x = this.tx * T - cx + 8, y = this.ty * T - cy + 6;
+        Gfx.circle(x, y, 9, '#6b4128'); Gfx.circle(x, y, 7, '#9a6438'); Gfx.circle(x, y, 2, '#3a2418');
+        for (let i = 0; i < 6; i++) {
+            const t = this.ang + i * Math.PI / 3;
+            Gfx.line(x, y, x + Math.cos(t) * 9, y + Math.sin(t) * 9, '#e6c08a');
+            Gfx.rect(Math.round(x + Math.cos(t) * 9) - 1, Math.round(y + Math.sin(t) * 9) - 1, 3, 3, '#c9925a');
+        }
+        if (this.on && this.mode === 'pulse') {
+            const n = Math.ceil(this.timer / 60);
+            for (let i = 0; i < n && i < 8; i++) Gfx.rect(this.tx * T - cx + 3 + i * 2, this.ty * T - cy + 15, 1, 2, PAL.yellow);
+        }
+    }
+}
+SPAWN.wheel = (x, y, p) => new Wheel(x, y, p);
+
+/* the Paddle: hold C on anything floating to steer it a tile at a time; C on the bank pokes a float away */
+TOOLS.paddle = {
+    float(p) { const o = p.area.at(p.tx, p.ty); return Water.rideable(o) ? o : null; },
+    use(p) {
+        if (this.float(p)) return;
+        const f = p.front(), o = p.area.at(f.tx, f.ty);
+        if (o && o.floats && !o.mv && p.area.kind(o.tx, o.ty).water) {
+            const nx = o.tx + DX[p.dir], ny = o.ty + DY[p.dir];
+            if (p.area.kind(nx, ny).water && p.area.freeForThing(nx, ny, o)) { o.startMove(nx, ny, 16); Sfx.play('splash'); return; }
+        }
+        UI.toast('Stand on something floating and hold C to paddle.');
+    },
+    hold(p) {
+        const o = this.float(p);
+        if (this.held && this.held !== o) this.unhold(p);
+        if (!o) return;
+        this.held = o; o.paddled = true;
+        if (this.cool > 0) { this.cool--; return; }
+        if (o.mv) return;
+        const ax = Input.axis();
+        if (!ax.x && !ax.y) return;
+        const d = ax.x < 0 ? LEFT : ax.x > 0 ? RIGHT : ax.y < 0 ? UP : DOWN;
+        p.dir = d;
+        const nx = o.tx + DX[d], ny = o.ty + DY[d];
+        if (!p.area.kind(nx, ny).water || !p.area.freeForThing(nx, ny, o)) return;
+        o.startMove(nx, ny, 18);
+        this.cool = 4;
+        Sfx.play('splash', 0.4); Stats.count('paddles');
+    },
+    unhold(p) { if (this.held) { this.held.paddled = false; if (this.held.ret && !this.held.mv) Return.disturb(this.held); this.held = null; } },
+};
+
+function initWaterKit() {
+    defSprite('raft', ['................', '................', 'kkkkkkkkkkkkkkkk', 'kbbbkbbbkbbbkbbk', 'kbubkbubkbubkbuk', 'kbubkbubkbubkbuk', 'kbbbkbbbkbbbkbbk', 'kBBBkBBBkBBBkBBk',
+        'kbbbkbbbkbbbkbbk', 'kbubkbubkbubkbuk', 'kbbbkbbbkbbbkbbk', 'kBBBkBBBkBBBkBBk', 'kkkkkkkkkkkkkkkk', '.wwwwwwwwwwwwww.', '................', '................'],
+        { b: '#c9925a', B: '#9a6438', u: '#e6c08a', w: '#a5dcf7' });
+    defSprite('barrel_g', ['....kkkkkkkk....', '...kbbbbbbbbk...', '..kuuuuuuuuuuk..', '..kbbbbbbbbbbk..', '..kXXXXXXXXXXk..', '..kbubbbbbbbbk..', '..kbubbbbbbbbk..', '..kbubbbbbbbbk..',
+        '..kXXXXXXXXXXk..', '..kbubbbbbbbbk..', '..kbubbbbbbbbk..', '..kXXXXXXXXXXk..', '..kBBBBBBBBBBk..', '...kkkkkkkkkk...', '................', '................'],
+        { b: '#b8743c', B: '#7a4420', u: '#e0a060', X: '#6a635e' });
+}
+CONTENT_INIT.push(initWaterKit);
+
 // ---- 50_prologue.js ----
 /* The morning of the Wander: waking up, Gran, the ceremony at the Well. */
 
@@ -8475,6 +8695,7 @@ const Game = {
             }
             if (G.cheats.grid) for (let tx = x0; tx <= x0 + 21; tx++) { Gfx.alpha(0.15); Gfx.rect(tx * T - cx, 0, 1, H, PAL.white); for (let ty = y0; ty <= y0 + 12; ty++) Gfx.rect(0, ty * T - cy, W, 1, PAL.white); Gfx.alpha(1); }
             if (a.def.drawGround) a.def.drawGround(a, cx, cy);
+            Water.drawFlow(a, cx, cy);
             /* things lying on the floor, then threads, then everything standing, sorted by depth */
             const floor = a.ents.filter(e => e.floor && e.x > cx - 40 && e.x < cx + W + 40 && e.y > cy - 40 && e.y < cy + H + 40);
             for (const e of floor) e.draw(cx, cy);

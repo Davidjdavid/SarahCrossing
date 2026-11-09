@@ -11,6 +11,9 @@ const LEGENDS = {
         '^': { k: 'rock', p: 'cliff' }, 'o': { k: 'pit', p: 'pit' }, 'v': { k: 'ledge', p: 'ledge' },
         '_': { k: 'bridge', p: 'bridgeH' }, '|': { k: 'bridge', p: 'bridgeV' }, '%': { k: 'fog', p: 'fog' },
         'H': { k: 'stairs', p: 'stairs' }, ' ': { k: 'void', p: 'void' },
+        /* currents: deep water flowing the way the arrow points (src/47_water_kit.js) */
+        '>': { k: 'current', p: 'current', flow: 2 }, '<': { k: 'current', p: 'current', flow: 1 },
+        'A': { k: 'current', p: 'current', flow: 3 }, 'V': { k: 'current', p: 'current', flow: 0 },
     },
     dungeon: {
         '.': { k: 'floor', p: 'floor' }, ',': { k: 'floor', p: 'floor2' }, ':': { k: 'floor', p: 'floor3' },
@@ -18,6 +21,8 @@ const LEGENDS = {
         '-': { k: 'shallow', p: 'water' }, 'H': { k: 'stairs', p: 'stairs' }, '^': { k: 'spikes', p: 'spikes' },
         ' ': { k: 'void', p: 'void' }, '_': { k: 'bridge', p: 'bridgeH' }, '|': { k: 'bridge', p: 'bridgeV' },
         'v': { k: 'ledge', p: 'ledge' },
+        '>': { k: 'current', p: 'current', flow: 2 }, '<': { k: 'current', p: 'current', flow: 1 },
+        'A': { k: 'current', p: 'current', flow: 3 }, 'V': { k: 'current', p: 'current', flow: 0 },
     },
     interior: {
         '.': { k: 'floor', p: 'floor' }, ',': { k: 'floor', p: 'floor2' }, ':': { k: 'floor', p: 'floor3' },
@@ -143,14 +148,14 @@ const TileDraw = {
             case 'path': c = tileCanvas(`${tn}:path:${v}`, x => Paint.path(x, th, v)); break;
             case 'cobble': c = tileCanvas(`${tn}:cobble:${v % 2}`, x => Paint.cobble(x, th, v)); break;
             case 'sand': c = tileCanvas(`${tn}:sand:${v}`, x => Paint.sand(x, th, v)); break;
-            case 'water': case 'deep': {
+            case 'water': case 'deep': case 'current': {
                 const f = Math.floor(this.frame / 20) % 8;
                 const land = k => !['water', 'shallow', 'current', 'void', 'bridge'].includes(k);
                 const n = land(area.cell(tx, ty - 1).k) ? 1 : 0, s = land(area.cell(tx, ty + 1).k) ? 1 : 0;
                 const w = land(area.cell(tx - 1, ty).k) ? 1 : 0, e = land(area.cell(tx + 1, ty).k) ? 1 : 0;
                 const mask = n | s << 1 | w << 2 | e << 3;
                 c = tileCanvas(`${tn}:${p}:${v}:${f}:${mask}`, x => {
-                    (p === 'deep' ? Paint.deep : Paint.water)(x, th, v, f);
+                    (p === 'water' ? Paint.water : Paint.deep)(x, th, v, f);
                     const foam = th.water[2], edge = shade(th.water[3], -0.1);
                     const wob = i => (Math.floor(hash2(i, f, 3) * 2));
                     if (n) { fill(x, edge, 0, 0, 16, 2); for (let i = 0; i < 16; i++) px(x, i, 2 + wob(i), foam); }

@@ -60,10 +60,10 @@ class Player extends Ent {
         if (k.ledge) return true;
         if (k.deep && !this.canSwim()) {
             const o = a.at(tx, ty);
-            if (!(o && o.floats && o.rideable)) return true;
+            if (!Water.rideable(o)) return true;
         }
         const o = a.at(tx, ty);
-        if (o && o !== this.carry && !o.walkOn) return true;
+        if (o && o !== this.carry && !o.walkOn && !Water.rideable(o)) return true;
         for (const b of a.blockers) if (b.blocks(tx, ty, this)) return true;
         return false;
     }
@@ -110,6 +110,8 @@ class Player extends Ent {
             case 'reel': return this.updateReel();
             case 'faint': return;
         }
+        /* on a float that's moving: carried along */
+        if (this.ride && Water.rider(this)) return;
         if (this.shove) return this.updateShove();
         if (this.kx || this.ky) {
             this.moveAxis(this.kx, 0); this.moveAxis(0, this.ky);
@@ -120,6 +122,8 @@ class Player extends Ent {
         const ax = cut ? { x: 0, y: 0 } : Input.axis();
         if (this.swingT > 0) this.updateSwing();
         if (Tools.busy(this)) { this.walking = false; this.afterMove(); return; }
+        /* paddling: C held on something floating steers it instead of walking */
+        if (!cut && Inv.equipped === 'paddle' && Input.down('tool') && TOOLS.paddle.float(this)) { TOOLS.paddle.hold(this); this.walking = false; this.anim = 0; this.afterMove(); return; }
 
         /* a pull in progress finishes, whatever the buttons do */
         if (this.pullT > 0) {
@@ -190,7 +194,7 @@ class Player extends Ent {
         let n = 0; for (const [dx, dy] of pts) if (this.area.kind(tileOf(this.x + dx), tileOf(this.y + dy)).pit) n++;
         return n >= 3;
     }
-    onRaft() { const o = this.area.at(this.tx, this.ty); return o && o.floats && o.rideable; }
+    onRaft() { return Water.rideable(this.area.at(this.tx, this.ty)); }
 
     tryPush(d) {
         const f = this.front();

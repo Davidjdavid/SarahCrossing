@@ -57,3 +57,32 @@ defArea({
     rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
     entry: { x: 2, y: 8 },
 });
+
+/* water: a current, a ferry, a wheel, a pond to paddle on */
+defArea({
+    id: 'lab3', name: 'Lab 3', family: 'dungeon', theme: 'tidy', house: 'lab', thread: THREAD.ambrose,
+    rows: [
+        '####################',
+        '#..................#',
+        '#.>>>>>>>~##########',
+        '#..................#',
+        '#..................#',
+        '#.>>>>>>>>>>~......#',
+        '#.~~~~~~...........#',
+        '#.~~~~~~...........#',
+        '#.~~~~~~...........#',
+        '#.~~~~~~...........#',
+        '####################',
+    ],
+    ents: [
+        { k: 'crate', x: 2, y: 3, id: 'crate' },
+        { k: 'raft', x: 2, y: 5, id: 'ferry' },
+        { k: 'wheel', x: 6, y: 4, face: 'down', sig: 'w1', id: 'wheel' },
+        { k: 'raft', x: 7, y: 8, id: 'raft' },
+        { k: 'crate', x: 7, y: 9, id: 'floater' },
+        { k: 'block', x: 10, y: 7, id: 'stone' },
+        { k: 'block', x: 10, y: 6, id: 'stray', stray: true },
+    ],
+    rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
+    entry: { x: 15, y: 3 },
+});
