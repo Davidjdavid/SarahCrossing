@@ -92,7 +92,6 @@ TALK.seam = function* () {
     yield* firstThen('seam', "Sebastian Seam, tailor. That scarf: red, of course. A Wanderer's colour. You wear it beautifully.",
         ["I'm working on something very big for a client. Very hush-hush.", "Everyone's thread is a different colour, you know. Figuratively. Mostly figuratively.", "Come back when you've a few buttons and I'll make you something with presence."]);
 };
-TALK.ambrose = function* () { yield* say('ambrose', "Hello, my Wanderer! Busy, busy. Always busy before a Wander. I'm proud of you."); };
 TALK.tess = function* () { yield* say('tess', "There's my bell-ringer's bairn! Listen to the bells when you're out: they'll tell you where you are."); };
 
 /* what they say when Wren leans on them (S01: everyone has one) */

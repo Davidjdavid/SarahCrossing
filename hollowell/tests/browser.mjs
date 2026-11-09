@@ -28,6 +28,7 @@ async function shot(name) {
     await page.evaluate(() => window.HW.step(1));
     await page.waitForTimeout(60);
     await page.locator('canvas').screenshot({ path: path.join(SHOTS, name + '.png') });
+    if (process.env.SHOT_ERRS) console.log(name, errors.length);
 }
 const SCENARIOS = {
     async kiln() {
@@ -116,6 +117,20 @@ const SCENARIOS = {
         await shot('water_lab');
         await page.evaluate(() => { HW.hold('right'); HW.step(12); HW.release(); HW.step(200); });
         await shot('water_ride');
+    },
+    async mill() {
+        await open();
+        await page.evaluate(() => { HW.preset('afterD2'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 128 + 8, 80 + 26); HW.step(230); });
+        await shot('mw_west');
+        for (const [n, x, y] of [['mw_mill', 128 + 29, 80 + 23], ['mw_ferry', 128 + 37, 80 + 27], ['mw_millrace', 128 + 47, 80 + 27], ['mw_falls', 128 + 36, 80 + 33]]) {
+            await page.evaluate(([x, y]) => { HW.warp('hollow', x, y); HW.step(60); HW.skipTalk(); }, [x, y]);
+            await shot(n);
+        }
+        const rooms = { wheel: [29, 41], ferry: [17, 38], backwash: [41, 38], carousel: [29, 30], shard: [17, 27], snap: [41, 27], upstream: [29, 20], overflow: [17, 16], twowheels: [41, 16], workshop: [4, 8], pond: [29, 9] };
+        for (const [n, [x, y]] of Object.entries(rooms)) {
+            await page.evaluate(([x, y]) => { HW.warp('millrace', x, y); HW.step(40); HW.skipTalk(); HW.step(5); }, [x, y]);
+            await shot('mr_' + n);
+        }
     },
     async title() { await open(); await page.evaluate(() => { window.HW._paused = false; }); await page.waitForTimeout(400); await page.evaluate(() => { window.HW._paused = true; }); await shot('title'); },
     async lab() {

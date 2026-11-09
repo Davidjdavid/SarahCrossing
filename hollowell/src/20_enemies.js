@@ -82,7 +82,7 @@ class Enemy extends Ent {
         AI[ai](this, p);
         this.traceStep();
         /* touching Wren */
-        if (p && p.area === this.area && p.state === 'normal' && !this.D.harmless && this.mode !== 'home') {
+        if (p && p.area === this.area && p.state === 'normal' && !this.D.harmless && this.mode !== 'home' && !this.hidden) {
             if (Math.abs(p.x - this.x) < (this.D.r || 5) + 4 && Math.abs(p.y - this.y) < 7) p.hurt(this.D.dmg || 1, this.x, this.y);
         }
         /* pits and water */
@@ -97,7 +97,7 @@ class Enemy extends Ent {
         G.shake = 6;
     }
     struck(by, dmg, dir, shard) {
-        if (!this.alive || this.flash > 0) return;
+        if (!this.alive || this.flash > 0 || this.hidden) return;
         if (this.D.armored && !shard && !(by && by.isGrid)) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 6); if (dir >= 0) { this.kx = DX[dir] * 1.5; this.ky = DY[dir] * 1.5; } return; }
         this.hp -= dmg; this.flash = 18;
         Sfx.play('enemyhit'); G.hitstop = 3;

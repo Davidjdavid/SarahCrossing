@@ -121,8 +121,9 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 16. **S16 The sleeping giant's cave** (Hushwood): after it moves off the road, the hollow it slept in leads down.
 17. **S17 Re-mark a sheep** (Needle): give a Meadowfold sheep a place in town; it lives there forever.
 18. **S18 Bell-and-bedroll**: ring the Bell while flying Homeward: Wren snaps home instantly (speed tech).
-19. **S19 Raft ride to the hidden channel** (Millwater): let a marked raft drift past the waterfall lip, it
-    returns through a cave behind the falls with you aboard: Heart Patch.
+19. **S19 Behind the falls** (Millwater): ride a float down the east side of the outlet river (needs the
+    Paddle to get onto it): the current turns in behind the falls to a hidden pool with a Heart Patch chest;
+    the float takes you back upstream when it goes home. Below the falls, a beach with Linnet's bottle.
 20. **S20 Shard sniper** (Kilnridge): carry a pot along the cliff path past the hawk's nest, shatter it
     at the bottom: the shards go back up the path and knock the Heart Patch out of the nest.
 21. **S21 The Lost & Found**: 16 strays across the valley (each scratched "L"); return them to Auntie Mabel;
@@ -170,8 +171,10 @@ be frightened of that." The Stray House's last room: Linnet's bracelet (for the 
 - **Kilnwyrm (D2)**: hook a tail segment off (it's displaced), dodge; the segment's thread drags back along
   the wyrm's path, shattering against the head if routed so. Or carry an arena urn across the head's
   circuit and shatter it. Three head hits.
-- **Old Grindle (D3)**: it gulps floating things; float barrels to it (currents); full, it sinks and is
-  snapped home, exposing its gear-heart; hit it from a raft. Alternatives: block its intake with a crate dam.
+- **Old Grindle (D3)**: bolted to the millpond's intake, it gulps barrels that float to its mouth along the two
+  currents; full, it settles at its mark for a while with its gear-heart showing; ride the self-running raft
+  up the south current to its mouth and strike the heart (3x). Each time it spits the barrels home. Ride up
+  while it's hungry and it bites you into the water. Its spit is the danger on the banks.
 - **Tollgrim (D4)**: the gargoyle hides in the great bell; wind blows its clapper out; ring the Recall Bell
   as the clapper swings back so it slams home with the gargoyle half out (stunned). Or ride the gust.
 - **Mother Sloth (D5)**: its thread-arms grab Wren and reel her to its bed; lay the Bedroll so that

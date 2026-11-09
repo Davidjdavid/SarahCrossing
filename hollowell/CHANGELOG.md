@@ -23,3 +23,9 @@
 - Writing: early hints toned down; townsfolk lines change as the story moves on.
 - Two optional activities in town after the first dungeon, each with tests: a kids' game in the square and
   three timed trials upstairs at the inn.
+- Water: currents carry floating things off and the Return brings them back the long way; rafts carry the
+  player; waterwheels; a new tool. Deep water can be stepped into on purpose (you go home).
+- The third region (a lake, a river with falls, a self-running ferry, the player's father's mill, two
+  secrets behind and below the falls) and the third dungeon (11 rooms, a mini-boss, a boss), with room tests
+  and a scripted playthrough from the second dungeon to the third.
+- Fixed: marks set in doorways move one step into the room (a door could shut on them).

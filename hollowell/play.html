@@ -679,6 +679,7 @@ const TK = {
     pit: { solid: false, pit: true },
     ledge: { solid: false, ledge: true },                   /* hop down (south) only */
     bridge: { solid: false },
+    bridgew: { solid: false, water: true, over: true },    /* a bridge over moving water: floats go under it */
     stairs: { solid: false },
     tree: { solid: true },
     bush: { solid: true, cut: true },
@@ -946,7 +947,8 @@ class Area {
         /* gates and other blockers that aren't grid things */
         for (const b of this.blockers) if (b.blocks(x, y, e)) return false;
         /* the player and walkers occupy tiles too */
-        if (e && e.isGrid && G.player && G.player.area === this && !G.player.dead && G.player.onTile(x, y) && e !== G.player) return false;
+        const pl = G.player;
+        if (e && e.isGrid && pl && pl.area === this && !pl.dead && pl.onTile(x, y) && e !== pl && !(e.floats && pl.tx === e.tx && pl.ty === e.ty)) return false;   /* (a float isn't blocked by whoever's riding it) */
         for (const m of this.walkers) if (m !== e && m.alive !== false && m.onTile && m.onTile(x, y)) return false;
         return true;
     }
@@ -1001,7 +1003,7 @@ const TileDraw = {
             case 'sand': c = tileCanvas(`${tn}:sand:${v}`, x => Paint.sand(x, th, v)); break;
             case 'water': case 'deep': case 'current': {
                 const f = Math.floor(this.frame / 20) % 8;
-                const land = k => !['water', 'shallow', 'current', 'void', 'bridge'].includes(k);
+                const land = k => !['water', 'shallow', 'current', 'void', 'bridge', 'bridgew'].includes(k);
                 const n = land(area.cell(tx, ty - 1).k) ? 1 : 0, s = land(area.cell(tx, ty + 1).k) ? 1 : 0;
                 const w = land(area.cell(tx - 1, ty).k) ? 1 : 0, e = land(area.cell(tx + 1, ty).k) ? 1 : 0;
                 const mask = n | s << 1 | w << 2 | e << 3;
@@ -1033,7 +1035,8 @@ const TileDraw = {
                 break;
             }
             case 'ledge': c = tileCanvas(`${tn}:ledge:${v}`, x => {
-                Paint.grass(x, th, v);
+                /* indoors a ledge is the floor's edge; outdoors, grass */
+                if (th.grass) Paint.grass(x, th, v); else if (FLOORS[tn] && FLOORS[tn].floor) FLOORS[tn].floor(x, th, v); else fill(x, (th.floor || ['#c8b898'])[0]);
                 fill(x, th.stone[3], 0, 10, 16, 2); fill(x, th.stone[1], 0, 12, 16, 3); fill(x, th.stone[2], 0, 12, 16, 1);
                 fill(x, shade(th.stone[3], -0.3), 0, 15, 16, 1);
             }); break;
@@ -2146,6 +2149,12 @@ class Player extends Ent {
 
     /* ----- marks and traces ----- */
     setMark(tx = this.tx, ty = this.ty, area = this.area) {
+        /* never on a doorway (a door may shut there): one step on into the room */
+        const r = area.roomAt && area.roomAt(tx, ty);
+        if (r && area.rooms.length > 1 && (tx === r.x || ty === r.y || tx === r.x + r.w - 1 || ty === r.y + r.h - 1)) {
+            const nx = tx + DX[this.dir], ny = ty + DY[this.dir];
+            if (area.inside(nx, ny) && !area.kind(nx, ny).solid && !area.kind(nx, ny).deep && !area.kind(nx, ny).pit) { tx = nx; ty = ny; }
+        }
         this.mark = { area: area.id, tx, ty };
         this.trace = [[tx, ty]];
     }
@@ -2171,7 +2180,8 @@ class Player extends Ent {
         if (k.ledge) return true;
         if (k.deep && !this.canSwim()) {
             const o = a.at(tx, ty);
-            if (!Water.rideable(o)) return true;
+            /* from a float you can't step off into deep water; from the bank you can, and under you go */
+            if (!Water.rideable(o) && (this.ride || this.onRaft() || this.carry || !this.diving)) return true;
         }
         const o = a.at(tx, ty);
         if (o && o !== this.carry && !o.walkOn && !Water.rideable(o)) return true;
@@ -2273,6 +2283,12 @@ class Player extends Ent {
         } else this.pushT = 0;
         this.walking = moving;
         if (moving) { this.anim++; this.stillT = 0; } else { this.anim = 0; this.stillT++; }
+        /* leaning on the edge of deep water a moment, Wren steps in (and under): no falling in by accident */
+        if (!moving && (ax.x || ax.y) && !this.carry && !this.ride && !this.onRaft() && this.state === 'normal') {
+            const f = this.front(), k = this.area.kind(f.tx, f.ty);
+            if (k.deep && !Water.rideable(this.area.at(f.tx, f.ty))) { if (++this.edgeT > 24) this.diving = true; }
+            else { this.edgeT = 0; this.diving = false; }
+        } else if (!this.diving || !moving) { this.edgeT = 0; if (!moving) this.diving = false; }
 
         if (!cut && this.state === 'normal') {
             if (Input.pressed('act')) this.action();
@@ -2289,7 +2305,7 @@ class Player extends Ent {
         const k = this.area.kind(tileOf(this.x), tileOf(this.y));
         /* standing over a pit: fall */
         if (k.pit && this.overPit()) this.startFall('pit');
-        else if (k.deep && !this.onRaft()) this.startFall('water');
+        else if (k.deep && !this.onRaft() && this.overDeep()) { this.diving = false; this.startFall('water'); }
         if (k.hurt && this.inv <= 0) this.hurt(1, this.x - DX[this.dir] * 8, this.y - DY[this.dir] * 8);
         /* the fog at the edge of the valley */
         if (k.fog && !Progress.flag('cut_self')) {
@@ -2306,6 +2322,12 @@ class Player extends Ent {
         return n >= 3;
     }
     onRaft() { return Water.rideable(this.area.at(this.tx, this.ty)); }
+    overDeep() {
+        const pts = [[-3, -2], [3, -2], [-3, 3], [3, 3]];
+        let n = 0;
+        for (const [dx, dy] of pts) { const tx = tileOf(this.x + dx), ty = tileOf(this.y + dy); if (this.area.kind(tx, ty).deep && !Water.rideable(this.area.at(tx, ty))) n++; }
+        return n >= 3;
+    }
 
     tryPush(d) {
         const f = this.front();
@@ -3760,7 +3782,7 @@ class Enemy extends Ent {
         AI[ai](this, p);
         this.traceStep();
         /* touching Wren */
-        if (p && p.area === this.area && p.state === 'normal' && !this.D.harmless && this.mode !== 'home') {
+        if (p && p.area === this.area && p.state === 'normal' && !this.D.harmless && this.mode !== 'home' && !this.hidden) {
             if (Math.abs(p.x - this.x) < (this.D.r || 5) + 4 && Math.abs(p.y - this.y) < 7) p.hurt(this.D.dmg || 1, this.x, this.y);
         }
         /* pits and water */
@@ -3775,7 +3797,7 @@ class Enemy extends Ent {
         G.shake = 6;
     }
     struck(by, dmg, dir, shard) {
-        if (!this.alive || this.flash > 0) return;
+        if (!this.alive || this.flash > 0 || this.hidden) return;
         if (this.D.armored && !shard && !(by && by.isGrid)) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 6); if (dir >= 0) { this.kx = DX[dir] * 1.5; this.ky = DY[dir] * 1.5; } return; }
         this.hp -= dmg; this.flash = 18;
         Sfx.play('enemyhit'); G.hitstop = 3;
@@ -4952,6 +4974,45 @@ const FACADES = {
             R('#d0c8b8', 63, 84, 18, 2);
         });
     },
+    /* the Millrace: a tall timber mill straddling the race, a great wheel on its river side, blue trim */
+    millrace() {
+        const w = 128, h = 86;
+        ART.f_millrace = paintSprite(w, h, x => {
+            const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+            /* roof: a steep gable in dark shingle with a hoist hood at the top */
+            for (let j = 0; j < 36; j++) {
+                const inset = Math.max(0, Math.round(40 - j * 1.25));
+                for (let i = inset; i < w - inset; i++) {
+                    let c = (j % 4 === 3) ? '#4a3a4e' : '#62506a';
+                    if (((i + (Math.floor(j / 4) % 2) * 4) % 8) === 0 && j % 4 !== 3) c = '#54445c';
+                    if (i === inset || i === w - inset - 1) c = '#2e2236';
+                    R(c, i, j + 4, 1, 1);
+                }
+            }
+            R('#9a6438', 56, 0, 16, 12); R('#6b4128', 56, 0, 16, 2); R('#3a2418', 60, 4, 8, 8); R('#c9925a', 63, 4, 2, 8);
+            /* timber walls, weatherboard */
+            R('#c9925a', 2, 40, w - 4, 42);
+            for (let j = 40; j < 82; j += 4) R('#9a6438', 2, j + 3, w - 4, 1);
+            for (const px of [2, 40, 86, w - 6]) R('#6b4128', px, 40, 4, 42);
+            R('#4f9be0', 2, 39, w - 4, 2); R('#2e6ab0', 2, 41, w - 4, 1);
+            /* windows with blue shutters, the door in the middle */
+            const win = (px, py) => { R('#2e6ab0', px - 3, py, 3, 10); R('#2e6ab0', px + 10, py, 3, 10); R('#fbf3df', px - 1, py - 1, 12, 12); R('#4fb0e0', px, py, 10, 10); R('#a5dcf7', px + 1, py + 1, 3, 3); R('#fbf3df', px + 4, py, 2, 10); };
+            win(16, 48); win(102, 48); win(16, 66); win(102, 66);
+            R('#6b4128', 50, 56, 28, 30); R('#4f9be0', 52, 58, 24, 28); R('#2e6ab0', 63, 58, 2, 28); R('#f7d64a', 60, 72, 2, 2); R('#f7d64a', 66, 72, 2, 2);
+            R('#fbf3df', 46, 52, 36, 4); R('#2e6ab0', 50, 53, 28, 2);
+            /* the great wheel on the river side (west), turning round a hub */
+            const cx = 10, cy = 62;
+            x.fillStyle = '#3a2418'; x.beginPath(); x.arc(cx, cy, 22, Math.PI * 0.5, Math.PI * 1.5); x.fill();
+            x.fillStyle = '#7a4e32'; x.beginPath(); x.arc(cx, cy, 20, Math.PI * 0.5, Math.PI * 1.5); x.fill();
+            x.fillStyle = '#3a2418'; x.beginPath(); x.arc(cx, cy, 14, Math.PI * 0.5, Math.PI * 1.5); x.fill();
+            for (let i = 0; i < 12; i++) { const t = Math.PI * 0.5 + i * Math.PI / 11; R('#e6c08a', Math.round(cx + Math.cos(t) * 18) - 1, Math.round(cy + Math.sin(t) * 18) - 1, 3, 3); R('#9a6438', Math.round(cx + Math.cos(t) * 9), Math.round(cy + Math.sin(t) * 9), 2, 2); }
+            R('#c9925a', cx - 2, cy - 2, 5, 5);
+            /* water spilling off the wheel */
+            for (let j = 0; j < 22; j++) R(j % 3 ? '#a5dcf7' : '#ffffff', 2 + (j % 3), 64 + j, 2, 1);
+            /* a stone plinth */
+            R('#a8b0a8', 2, 82, w - 4, 4); R('#c8d0c8', 2, 82, w - 4, 1);
+        });
+    },
 };
 
 // ---- 32_overworld.js ----
@@ -5666,6 +5727,26 @@ SONGS.kilnhouse = {
         { wave: 'p50', vol: 0.07, legato: 0.6, n: 'E4 - . . F4 - . . E4 - . . . . B3 - | C4 - . . B3 - . . A3 - . . . . . . | E4 - . . F4 - . . G4 - . . . . F4 - | E4 - . . . . . . . . . . . . . . ' },
         { wave: 'triangle', vol: 0.24, n: 'E2 . . E2 . . E3 . E2 . . E2 . . F2 . | E2 . . E2 . . E3 . E2 . . D2 . . C2 . | E2 . . E2 . . E3 . E2 . . E2 . . F2 . | E2 . . . . . . . E2 . . F2 . . E2 . ' },
         { drum: true, vol: 0.09, n: 'k . . h . . s . k . h . s . h . | k . . h . . s . k . h . s h h . ' },
+    ],
+};
+
+/* Millwater: a lilting boat song (F major, 6/8), the Return motif turning up as a ripple in the bass */
+SONGS.water = {
+    bpm: 96, div: 3,
+    ch: [
+        { wave: 'p25', vol: 0.09, vib: true, n: 'C5 - A4 F4 - A4 | C5 - D5 C5 - - | Bb4 - G4 E4 - G4 | Bb4 - C5 A4 - - | C5 - A4 F4 - A4 | F5 - E5 D5 - C5 | Bb4 - A4 G4 - A4 | F4 - - - . . | A4 - C5 F5 - E5 | D5 - C5 Bb4 - A4 | G4 - Bb4 D5 - C5 | Bb4 - A4 G4 - . | A4 - C5 F5 - G5 | A5 - G5 F5 - D5 | C5 - A4 G4 - E4 | F4 - - - . .' },
+        { wave: 'triangle', vol: 0.2, n: 'F2 . C3 A3 . C3 | F2 . C3 A3 . C3 | C2 . G2 Bb2 . G2 | F2 . C3 A3 . C3 | F2 . C3 A3 . C3 | Bb2 . F3 D3 . F3 | C3 . G3 E3 . G3 | F2 . C3 F3 . . | D2 . A2 F3 . A2 | Bb2 . F3 D3 . F3 | G2 . D3 Bb2 . D3 | C3 . G3 E3 . G3 | F2 . C3 A3 . C3 | D3 . A3 F3 . A3 | C3 . G3 A3 . C3 | F2 . C3 F2 . .' },
+        { wave: 'p12', vol: 0.04, n: '. . F4 . . A4 | . . F4 . . A4 | . . E4 . . G4 | . . F4 . . A4 | . . F4 . . A4 | . . D4 . . F4 | . . E4 . . G4 | . . A4 . . . | . . F4 . . A4 | . . D4 . . F4 | . . D4 . . G4 | . . E4 . . G4 | . . F4 . . A4 | . . F4 . . A4 | . . E4 . . G4 | . . A4 . . .' },
+    ],
+};
+/* the Millrace: water and machinery (D Dorian), a steady wheel in the bass, the tune running over it */
+SONGS.millrace = {
+    bpm: 132, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.08, legato: 0.6, n: 'D5 - . F5 E5 - D5 - | C5 - A4 - B4 - C5 - | D5 - . F5 G5 - A5 - | G5 - F5 - E5 - - - | F5 - . E5 D5 - C5 - | B4 - G4 - A4 - B4 - | C5 - D5 - E5 - C5 - | D5 - - - . . . . ' },
+        { wave: 'triangle', vol: 0.22, n: 'D2 . A2 D3 . A2 D3 . | C2 . G2 C3 . G2 C3 . | D2 . A2 D3 . A2 D3 . | A1 . E2 A2 . E2 A2 . | Bb1 . F2 Bb2 . F2 Bb2 . | G1 . D2 G2 . D2 G2 . | A1 . E2 A2 . C#3 A2 . | D2 . A2 D3 . A2 D2 . ' },
+        { wave: 'p12', vol: 0.04, n: 'F4 A4 F4 A4 F4 A4 F4 A4 | E4 G4 E4 G4 E4 G4 E4 G4 | F4 A4 F4 A4 F4 A4 F4 A4 | E4 A4 E4 A4 C#4 E4 C#4 E4 | F4 Bb4 F4 Bb4 F4 Bb4 F4 Bb4 | D4 G4 D4 G4 D4 G4 B4 G4 | E4 A4 E4 A4 C#4 E4 G4 E4 | F4 A4 F4 A4 D4 F4 A4 . ' },
+        { drum: true, vol: 0.08, n: 'k . h . s . h . | k . h k s . h h' },
     ],
 };
 
@@ -7829,7 +7910,13 @@ const Water = {
         if ((e.driftT = (e.driftT || 0) + 1) < wait) return;
         e.driftT = 0;
         const nx = e.tx + DX[d], ny = e.ty + DY[d];
-        if (!a.kind(nx, ny).water || !a.freeForThing(nx, ny, e)) return;     /* a bank or something in the way */
+        if (!a.kind(nx, ny).water) return;                                  /* the bank */
+        if (!a.freeForThing(nx, ny, e)) {
+            /* something swimming in the way gets bumped */
+            for (const m of a.walkers) if (m.bonk && m.alive !== false && m.onTile && m.onTile(nx, ny)) m.bonk(e, d);
+            return;
+        }
+        e.driftMove = true;
         e.startMove(nx, ny, this.DRIFT_PACE);
         Stats.count('drifts');
     },
@@ -7841,10 +7928,14 @@ const Water = {
     },
     /* whoever stands on a float as it sets off goes with it */
     board(e) {
+        /* moved by anything but the current (a push, the hook, a paddle): it settles a moment before drifting */
+        if (!e.driftMove) e.driftT = -36;
+        e.driftMove = false;
         const p = G.player;
         if (!p || p.area !== e.area || p.state !== 'normal' || p.ride === e) return;
         if (!this.rideable(e) || p.tx !== e.tx || p.ty !== e.ty) return;
-        p.ride = e; p.rideOx = p.x - e.tx * T; p.rideOy = p.y - e.ty * T;
+        /* aboard: stand in the middle of it */
+        p.ride = e; p.rideOx = 8; p.rideOy = 10;
     },
     /* Wren on a moving float: carried along. True while it's moving (Wren can't walk) */
     rider(p) {
@@ -7972,7 +8063,29 @@ TOOLS.paddle = {
     unhold(p) { if (this.held) { this.held.paddled = false; if (this.held.ret && !this.held.mv) Return.disturb(this.held); this.held = null; } },
 };
 
+/* reed snappers: wait under the water by their reeds; come close and one pops up and nips. A whack while
+   it's up sends it under for good (until next time) */
+AI.snap = (e, p) => {
+    e.modeT++;
+    const near = p && p.area === e.area && p.state === 'normal' && Math.abs(p.x - e.x) < 28 && Math.abs(p.y - e.y) < 24;
+    if (e.mode !== 'up') {
+        e.hidden = true;
+        if (near && e.modeT > 50) { e.mode = 'up'; e.modeT = 0; e.hidden = false; Sfx.play('splash'); Fx.splash(e.x, e.y - 2); }
+        return;
+    }
+    e.hidden = false;
+    if (p) e.dir = p.x < e.x ? LEFT : RIGHT;
+    if (e.modeT > 80) { e.mode = 'idle'; e.modeT = 0; e.hidden = true; }
+};
+
 function initWaterKit() {
+    ENEMY.snapper = { hp: 1, ai: 'snap', swims: true, flies: true, r: 6, tall: 12, yarn: '#6ab07a', drop: 0.5 };
+    defSprite('snapper', ['................', '................', '....kkkk........', '...kggggk.......', '..kgwkgggk......', '..kggggggGk.....', '..krrrrrrrkk....', '..kwkwkwkk......',
+        '..krrrrrrrkk....', '..kggggggGGk....', '...kgggGGGk.....', '..kbbbbbbbbk....', '.kbBbBbBbBbBk...', 'kbbbbbbbbbbbbk..', '................', '................'],
+        { g: '#6ab07a', G: '#3f7a52', r: '#c42b4a', w: '#ffffff', b: '#4fb0e0', B: '#a5dcf7' });
+    defSprite('snap_ripple', ['................', '................', '................', '................', '................', '................', '................', '................',
+        '................', '................', '................', '...BBB...BBB....', '..B...B.B...B...', '................', '................', '................'], { B: '#d8f2fc' });
+    ENEMY_DRAW.snapper = e => e.hidden ? ((e.t >> 4) % 3 ? spr('snap_ripple') : null) : spr('snapper');
     defSprite('raft', ['................', '................', 'kkkkkkkkkkkkkkkk', 'kbbbkbbbkbbbkbbk', 'kbubkbubkbubkbuk', 'kbubkbubkbubkbuk', 'kbbbkbbbkbbbkbbk', 'kBBBkBBBkBBBkBBk',
         'kbbbkbbbkbbbkbbk', 'kbubkbubkbubkbuk', 'kbbbkbbbkbbbkbbk', 'kBBBkBBBkBBBkBBk', 'kkkkkkkkkkkkkkkk', '.wwwwwwwwwwwwww.', '................', '................'],
         { b: '#c9925a', B: '#9a6438', u: '#e6c08a', w: '#a5dcf7' });
@@ -7981,6 +8094,777 @@ function initWaterKit() {
         { b: '#b8743c', B: '#7a4420', u: '#e0a060', X: '#6a635e' });
 }
 CONTENT_INIT.push(initWaterKit);
+
+// ---- 48_millwater.js ----
+/* Millwater, the Reaches (overworld block 2,2): a big lake, its outlet river running south over the falls,
+   Dad's mill on the lake shore, and the Millrace (D3) on the far bank above the falls. The far bank is only
+   reached by water: the ferry, which runs itself (its mark is on the crossing current: down and back, all
+   day). Behind the falls, where the east side of the river turns into the cliff, a hidden pool (S19). */
+
+/* where Wren comes into the Millrace (its entrance hall's door) */
+const MILLRACE_ENTRY = { x: 29, y: 42 };
+
+const MILLWATER_ROWS = [
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY###',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY###',
+    'YYY...,...............---"-"""--.-"---"""""..###################',
+    'YYY,T...........-"-"-"~~~~~~~~~~|~~~~~~~~~~-~~~~~~~~~~~~~~~~~###',
+    'YYY..........-"-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY......""--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY...,--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY..."~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY.."~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYYb."~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY.-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY.."~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY..."~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY....-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY.....-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY......-""~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY.........---"~~|~~~~~~~~~~~~~~~~~~~~VVV~~~~~~~~~~~~~~~~~~~###',
+    'YYY.............""|-"~~~~~~~~~~~~~~~~~~VVV--~~~~~~~~~~~~~~~~~###',
+    'YYY...............|..--."--.--.-.-.---"VVV...................###',
+    'YYY........r..;;;;;;;;;...XXXXXX...T...VVV...................###',
+    'YYY......T....;;;;;;;;;...XXXXXX.......VVV...................###',
+    'YYY....r..................XXXXXX....b..VVV...................###',
+    'YYY....................................VVV..XXXXXXXX.........###',
+    'YYY.....,......r.,.....................VVV..XXXXXXXX.........###',
+    'YYY....................................VVV..XXXXXXXX.........###',
+    'YYY....................................VVV..XXX:XXXX.........###',
+    '::::::::::::::::::::::::::::::::::::::_>>>~::::::::..........###',
+    '::::::::::::::::::::::::::::::::::::::_VVV.::::::::..........###',
+    'YYY....................................VVV.....:.............###',
+    'YYY....................................VVV####...............###',
+    'YYY...........................,..######VV>>~.###################',
+    'YYY......................b.......######VVV#~####################',
+    'YYY.....,.........".......,,.....######VVV######################',
+    'YYYr.......b.....................######VVV....##################',
+    'YYY...r...T..T.....r........T....######VVV....##################',
+    'YYY..............................######VVV....##################',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY###',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY###',
+    'YYY%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%###',
+    'YYY%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%###',
+];
+
+defBlock({
+    id: 'millwater', bx: 2, by: 2, name: 'Millwater', sub: 'the Reaches', theme: 'water', music: 'water',
+    rows: MILLWATER_ROWS,
+    forest: ['tree', 'tree2', 'tree_birch'],
+    legend: {},
+    ents: [
+        /* Dad's mill on the shore, its wheel in the lake */
+        { k: 'building', x: 26, y: 19, w: 6, h: 3, style: 'cottage', door: null, windows: [0, 1, 4, 5], wallH: 20, chimneyX: 8, variant: 'dadmill' },
+        { k: 'deco', x: 32, y: 18, look: 'millwheel', solid: [[0, 0]], ox: -4, oy: -8, baseY: 20 },
+        { k: 'npc', who: 'ambrose', x: 29, y: 22, face: 'down' },
+        { k: 'npc', who: 'fen', x: 12, y: 21, face: 'down', route: [[12, 21, 200], [19, 21, 160]] },
+        { k: 'npc', who: 'wick', x: 18, y: 17, face: 'up' },
+        { k: 'sign', x: 6, y: 25, text: 'MILLWATER. The Reaches. (East: the falls, and the Millrace above them. Ferry at the end of the road.)' },
+        { k: 'rest', x: 9, y: 24 },
+        /* the ferry: its mark is on the crossing current, so it runs across and back by itself */
+        { k: 'raft', x: 39, y: 26, id: 'mwFerry', patience: 150 },
+        { k: 'sign', x: 37, y: 25, text: "FERRY. It runs itself: over, back, over, back. Hop on when it's in. (Off at the far side quick, mind.)" },
+        /* the far bank: the Millrace */
+        { k: 'building', x: 44, y: 21, w: 8, h: 5, door: 3, art: 'millrace' },
+        { k: 'warp', x: 47, y: 25, to: 'millrace', tx2: MILLRACE_ENTRY.x, ty2: MILLRACE_ENTRY.y, face: 'up', dir: 'up' },
+        { k: 'rest', x: 53, y: 27 },
+        { k: 'sign', x: 50, y: 27, text: 'THE MILLRACE. Wanderers welcome. Hold on to your hat.' },
+        /* behind the falls (S19), and the beach below them */
+        { k: 'falls', x: 39, y: 30, w: 6, h: 2 },
+        { k: 'chest', x: 44, y: 30, item: 'heartpatch', id: 'mwCave' },
+        { k: 'chest', x: 44, y: 34, item: 'b50', id: 'mwBasin' },
+        { k: 'deco', x: 43, y: 35, look: 'note_bottle', solid: [[0, 0]], text: 'A bottle with a note in it: "If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. - L."' },
+        /* reed snappers in the shallows */
+        { k: 'enemy', x: 7, y: 15, type: 'snapper' }, { k: 'enemy', x: 22, y: 18, type: 'snapper' }, { k: 'enemy', x: 42, y: 18, type: 'snapper' },
+    ],
+    regions: [
+        { name: 'The Reaches', x: 0, y: 2, w: 39, h: 34 },
+        { name: 'Millrace Falls', x: 42, y: 18, w: 19, h: 12 },
+    ],
+});
+
+PEOPLE_DEF.fen = { name: 'Fen', col: '#9ad870', look: { body: 'adult', hair: 'bun', hairC: '#5a3a26', top: '#6a9a52', accent: '#e6c08a', bottom: '#4a5a3a', skin: 'tan' } };
+PEOPLE_DEF.wick = { name: 'Wick', col: '#f0c060', look: { body: 'child', hair: 'short', hairC: '#e8b04a', top: '#e8463c', accent: '#fbf6ea', bottom: '#3f6ad8', skin: 'light' } };
+
+TALK.ambrose = function* () {
+    if (Progress.flag('d3')) { yield* say('ambrose', cycle('amb3', ["Three Knots! Your gran'll be... well. She'll be Gran about it. I'm proud as anything.", "The mill's been grinding sweeter since you came out of the Millrace. Don't ask me why. I'm sure I don't know why.", "Mind the falls on your way, love. Everything comes back. Still: mind them."])); return; }
+    if (!Progress.flag('met:ambrose')) {
+        Progress.set('met:ambrose');
+        yield* say('ambrose', "{name}! Look at you! Two Knots already! Come here. Mind the flour.");
+        yield* say('ambrose', "The Millrace is over the river, above the falls. The ferry'll take you; it goes over and comes back on its own, like everything else round here.");
+        yield* say('ambrose', "I'd come and see you off at the door, but... the mill. Always the mill. Busy, busy.");
+        return;
+    }
+    yield* say('ambrose', cycle('amb1', ["Things in the water drift off, and come back the long way, slower against the current. Every miller knows that. Mind you use it.", "I'm not allowed to help, you know. Wander rules. But if I WERE allowed, I'd say: ride it there, ride it back.", "Your mum rang the noon bell five minutes early today. She's excited. She'd never say."]));
+};
+TALK.fen = function* () {
+    yield* firstThen('fen', "Reeds, mostly. I cut them, they grow back where they were. Steady work.",
+        ["Watch the shallows: snappers. They pop up out of the reeds and nip. A good whack sends them under.", "The ferry's never been late in my lifetime. Never been early either. Same as the sun.", "The falls are loud today. Or I'm quiet. One of the two."]);
+};
+TALK.wick = function* () {
+    yield* firstThen('wick', "Shh! I'm fishing. ...I've never caught one. They all swim home.",
+        ["If you drop something in the river it goes off down the falls and comes back up later all by itself. I tried it with my shoe.", "Dad says behind the falls there's nothing. I think there's a cave. Caves are always behind falls.", "You can't swim in the deep bits. You go under and then you're back where you started, coughing."]);
+};
+BUDGE.fen = 'Fen: "Careful, I\'ve a sickle."';
+BUDGE.wick = 'Wick: "Hey! You scared the fish!"';
+
+/* the falls: a curtain of water over the gorge (and over the pool behind it) */
+class Falls extends Ent {
+    constructor(tx, ty, p) { super('falls', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.w = p.w || 3; this.h = p.h || 2; }
+    get sortY() { return (this.ty + this.h) * T + 8; }
+    draw(cx, cy) {
+        const x0 = this.tx * T - cx, y0 = this.ty * T - cy, w = this.w * T, h = this.h * T;
+        Gfx.rect(x0, y0, w, h, '#7cc8ee');
+        for (let i = 0; i < w; i += 2) {
+            const ph = (G.t * 2 + hash2(i, 0, 7) * 40) % h;
+            Gfx.rect(x0 + i, y0 + ph, 1, 5, '#e8f8ff');
+            Gfx.rect(x0 + i + 1, y0 + (ph + h / 2) % h, 1, 3, '#a5dcf7');
+        }
+        Gfx.alpha(0.6); Gfx.rect(x0, y0 + h - 3, w, 3, '#ffffff'); Gfx.alpha(1);
+        for (let i = 0; i < 6; i++) Gfx.circle(x0 + ((G.t * 0.7 + i * 17) % w), y0 + h - 1, 2, '#ffffff');
+    }
+}
+SPAWN.falls = (x, y, p) => new Falls(x, y, p);
+
+function initMillwaterArt() {
+    ART.millwheel = paintSprite(24, 24, x => {
+        x.fillStyle = '#6b4128'; x.beginPath(); x.arc(12, 12, 11, 0, Math.PI * 2); x.fill();
+        x.fillStyle = '#9a6438'; x.beginPath(); x.arc(12, 12, 9, 0, Math.PI * 2); x.fill();
+        x.fillStyle = '#3a2418'; x.fillRect(10, 10, 4, 4);
+        x.fillStyle = '#e6c08a'; for (let i = 0; i < 8; i++) { const t = i * Math.PI / 4; x.fillRect(Math.round(12 + Math.cos(t) * 9) - 1, Math.round(12 + Math.sin(t) * 9) - 1, 3, 3); x.fillRect(Math.round(12 + Math.cos(t) * 5), Math.round(12 + Math.sin(t) * 5), 1, 1); }
+    });
+    ART.note_bottle = paintSprite(10, 14, x => { x.fillStyle = '#6ab08a'; x.fillRect(2, 4, 6, 9); x.fillRect(4, 1, 2, 3); x.fillStyle = '#a8e0c0'; x.fillRect(3, 5, 1, 6); x.fillStyle = '#fbf3df'; x.fillRect(4, 6, 3, 5); x.fillStyle = '#9a6438'; x.fillRect(4, 0, 2, 2); });
+}
+CONTENT_INIT.push(initMillwaterArt);
+
+// ---- 49_millrace.js ----
+/* House 3: the Millrace, above the falls in Millwater. Dad's House (Ambrose), blue threads. Water carries
+   floating things off along the currents; the Return brings them back the long way, slower upstream.
+   A raft whose mark sits on a current runs by itself like a ferry; rafts carry Wren both ways; a
+   waterwheel on a bank turns while something floats in front of it; the Paddle (from the Snapjaw) steers
+   anything floating, and paddling holds a thing where it is. Earlier tools join in: the Hookline reels a
+   raft over to you; a pot carried on a ride sends its shards back along the ride; strays fill water in.
+   Old Grindle gulps floating barrels at its intake; full, it settles at its mark and its gear-heart shows. */
+
+THEMES.millhouse = { floor: ['#d8b98a', '#b48a5a', '#ecd2a8', '#8a6440'], wall: ['#8c98a4', '#66727e', '#aab6c0', '#3e4852'], stone: ['#a8b0a8', '#848c86', '#c8d0c8', '#5c645e'], water: ['#4fb0e0', '#3586c8', '#9ad8f2', '#22508e'], dark: '#1c2630' };
+FLOORS.millhouse = {
+    floor: (x, th, v) => Paint.planks(x, ['#d2ae78', '#a8804e', '#e8cc98', '#7a5a36'], v, false),
+    floor2: (x, th, v) => { fill(x, '#a8b0a8'); speckle(x, ['#949c96', '#bcc4bc'], 40 + v, 0.3); fill(x, '#7c847e', 0, 15, 16, 1); fill(x, '#7c847e', 15, 0, 1, 16); },
+    floor3: (x, th, v) => Paint.planks(x, ['#9a7a52', '#7a5a36', '#b8966a', '#5a4026'], v, true),
+};
+WALLS.millhouse = {
+    edge: '#1c2630',
+    top: (x) => { fill(x, '#46525e'); speckle(x, ['#525e6a'], 6, 0.15); },
+    face: (x, th, v) => {
+        Paint.bricks(x, ['#8c98a4', '#66727e', '#aab6c0', '#3e4852'], v);
+        fill(x, '#4f9be0', 0, 13, 16, 1); fill(x, '#1c2630', 0, 15, 16, 1);
+        if (v === 3) { fill(x, '#3a2418', 5, 4, 6, 6); fill(x, '#7cc8ee', 6, 5, 4, 4); }   /* a little porthole */
+    },
+};
+
+const MILL_OUT = { x: 128 + 47, y: 80 + 26 };    /* the door out, on Millrace Falls */
+
+defHouse({
+    id: 'millrace', name: 'The Millrace', place: 'The Millrace', house: 'mill', theme: 'millhouse', thread: THREAD.ambrose, music: 'millrace',
+    knotName: 'Running Knot',
+    entry: MILLRACE_ENTRY,
+    legend: {
+        'I': { k: 'bridgew', p: 'bridgeV', flow: RIGHT },     /* a footbridge over a current running east */
+    },
+    cells: {
+        /* ---------------- 1 Wheel Hall (entrance): drift, and a wheel that turns as things float past ---------------- */
+        '1,3': {
+            name: 'Wheel Hall',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..>>>>>>I>>>>>>>~.#',
+                '#..................#',
+                '#..................#',
+                '....................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'crate', x: 3, y: 3, id: 'whCrate' },
+                { k: 'wheel', x: 12, y: 1, face: 'down', sig: 'wh', id: 'whWheel', time: 360 },
+                { k: 'door', x: 9, y: 0, type: 'gate', when: 'wh', id: 'whGate', passed: 'up' },
+                { k: 'pot', x: 1, y: 9, id: 'whPot1' }, { k: 'pot', x: 18, y: 9, id: 'whPot2' },
+                { k: 'warp', x: 9, y: 10, to: 'hollow', tx2: MILL_OUT.x, ty2: MILL_OUT.y, dir: 'down', face: 'down' },
+                { k: 'sign', x: 11, y: 9, text: "THE MILLRACE. What floats goes where the water goes. Then it comes home, the long way round." },
+            ],
+            nudge: { solved: 'millrace_whGate', after: 60 * 60 * 2, thing: 'whCrate', say: 'The crate sits right by the race. The wheel above the water creaks, as if it would like something to turn it.' },
+        },
+        /* ---------------- 2 Ferry Pool: a raft that runs itself out to an island and back ---------------- */
+        '0,3': {
+            name: 'Ferry Pool',
+            rows: [
+                '####################',
+                '#~~~~~~~~~~~~~~~~..#',
+                '#~....~~~~~~~~~~~..#',
+                '#~....~<<<<<<<<<<..#',
+                '#~....~~~~~~~~~~A..#',
+                '#~~~~~~~~~~~~~~~A...',
+                '#~~~~~~~~~~~~~~~A..#',
+                '#~~~~~~~~~~~~~~~~..#',
+                '#~~~~~~~~~~~~~~~~..#',
+                '#~~~~~~~~~~~~~~~~..#',
+                '####################',
+            ],
+            ents: [
+                { k: 'raft', x: 16, y: 6, id: 'fpFerry' },
+                { k: 'chest', x: 3, y: 3, item: 'key', id: 'fpKey' },
+                { k: 'pot', x: 2, y: 2, id: 'fpPot' },
+                { k: 'sign', x: 18, y: 8, text: "FERRY POOL. The ferry goes out to the island and comes back by itself. If you miss it, it'll be along again." },
+            ],
+            nudge: { solved: 'millrace_chest:fpKey', after: 60 * 60 * 2, thing: 'fpFerry', say: 'The raft bobs at its landing, then sets off. It always comes back to the same spot.' },
+        },
+        /* ---------------- 3 Backwash: hook the raft over to you; the current takes you both back ---------------- */
+        '2,3': {
+            name: 'Backwash',
+            rows: [
+                '####################',
+                '#########...########',
+                '#########...########',
+                '#########...########',
+                '##.>>>>>>~..########',
+                '.........##v########',
+                '#..................#',
+                '#..............~~..#',
+                '#..............~~..#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'raft', x: 9, y: 4, id: 'bwRaft' },
+                { k: 'chest', x: 10, y: 2, item: 'plan', id: 'bwPlan' },
+                { k: 'pot', x: 1, y: 9, id: 'bwPot' }, { k: 'pot', x: 18, y: 6, id: 'bwPot2' },
+                { k: 'enemy', x: 15, y: 7, type: 'snapper' },
+                { k: 'sign', x: 1, y: 6, text: "BACKWASH. What you pull to you, the water takes back. (Hold on.)" },
+            ],
+            nudge: { solved: 'millrace_chest:bwPlan', after: 60 * 60 * 3, thing: 'bwRaft', say: "The raft's a long way off across the water. If only something could reach it from the landing." },
+        },
+        /* ---------------- 4 Carousel: a raft going round and round a millstone pillar to four landings ---------------- */
+        '1,2': {
+            name: 'The Carousel',
+            rows: [
+                '#########.##########',
+                '#########.##########',
+                '#########.##########',
+                '#####>>>>>>>>>V#####',
+                '#####A########V#####',
+                '.....A########V.....',
+                '#####A########V#####',
+                '#####A<<<<<<<<<#####',
+                '#########.##########',
+                '#########.##########',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'raft', x: 9, y: 7, id: 'caRaft' },
+                { k: 'door', x: 1, y: 5, type: 'lock', id: 'caLockW', dir: 'v' },
+                { k: 'door', x: 18, y: 5, type: 'lock', id: 'caLockE', dir: 'v' },
+                { k: 'sign', x: 10, y: 9, text: 'ALL ROUND THE MILLSTONE: west, north, east, and home again.' },
+            ],
+        },
+        /* ---------------- 5 Shard Race: carry a pot on the ride; smash it at the end; the pieces ride back under the charms ---------------- */
+        '0,2': {
+            name: 'Shard Race',
+            rows: [
+                '####################',
+                '###############..#.#',
+                '##>>>>>>>>>>>>~....#',
+                '##A############..#.#',
+                '##A##############..#',
+                '##A<<<<<<<<<<<<<<...',
+                '#################..#',
+                '####################',
+                '####################',
+                '####################',
+                '####################',
+            ],
+            ents: [
+                { k: 'raft', x: 16, y: 5, id: 'srFerry' },
+                { k: 'pot', x: 18, y: 4, id: 'srPot1' }, { k: 'pot', x: 18, y: 6, id: 'srPot2' },
+                { k: 'charm', x: 8, y: 2, mode: 'pulse', sig: 'sr1', col: 'sun', time: 150, id: 'srC1' },
+                { k: 'charm', x: 2, y: 4, mode: 'pulse', sig: 'sr2', col: 'moon', time: 150, id: 'srC2' },
+                { k: 'charm', x: 9, y: 5, mode: 'pulse', sig: 'sr3', col: 'star', time: 150, id: 'srC3' },
+                { k: 'door', x: 17, y: 2, type: 'gate', when: 'sr1&sr2&sr3', id: 'srGate', passed: 'right', dir: 'v' },
+                { k: 'chest', x: 18, y: 2, item: 'key', id: 'srKey' },
+            ],
+            nudge: { solved: 'millrace_srGate', after: 60 * 60 * 3, at: [9, 5], say: 'Three charms hang over the race, a long ride apart. One flight back along the ride would ring them all.' },
+        },
+        /* ---------------- 6 Snapjaw's Race (mini-boss): float crates down onto it; the Paddle ---------------- */
+        '2,2': {
+            name: "Snapjaw's Race",
+            rows: [
+                '####################',
+                '#...........V#######',
+                '#...........V#######',
+                '#...........V#######',
+                '#...........V#######',
+                '............V#######',
+                '#...........V#######',
+                '#...........V#######',
+                '#...........V#######',
+                '#...........~#######',
+                '####################',
+            ],
+            ents: [
+                { k: 'crate', x: 11, y: 1, id: 'sjCrate1' }, { k: 'crate', x: 11, y: 3, id: 'sjCrate2' },
+                { k: 'snapjaw', x: 12, y: 6, id: 'snapjaw' },
+                { k: 'shutter', x: 0, y: 5, dir: 'v', group: 'sj' },
+                { k: 'chest', x: 4, y: 5, item: 'paddle', id: 'sjPaddle', hidden: true, when: 'flag:millrace_snapjaw', big: true },
+                { k: 'pot', x: 1, y: 1, id: 'sjPot1' }, { k: 'pot', x: 1, y: 9, id: 'sjPot2' },
+            ],
+        },
+        /* ---------------- 7 Upstream: paddle up the race to the key, and the big door ---------------- */
+        '1,1': {
+            name: 'Upstream',
+            rows: [
+                '#########.##########',
+                '#......#...#.......#',
+                '#......##V##.......#',
+                '#......##V##.......#',
+                '#......##V##.......#',
+                '.......##V##........',
+                '#......##V##.......#',
+                '#......##V##.......#',
+                '#......##~##.......#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'raft', x: 9, y: 8, id: 'upRaft' },
+                { k: 'chest', x: 10, y: 1, item: 'key', id: 'upKey' },
+                { k: 'door', x: 9, y: 0, type: 'big', id: 'upBig' },
+                { k: 'door', x: 18, y: 5, type: 'lock', id: 'upLockE', dir: 'v' },
+                { k: 'sign', x: 8, y: 1, text: "TOP OF THE RACE. The quick way back down is the wet way. (Everything comes home.)" },
+                { k: 'sign', x: 8, y: 9, text: "UPSTREAM. Nothing goes up the race by itself." },
+                { k: 'pot', x: 1, y: 1, id: 'upPot1' }, { k: 'pot', x: 18, y: 1, id: 'upPot2' }, { k: 'pot', x: 1, y: 9, id: 'upPot3' },
+                { k: 'enemy', x: 3, y: 4, type: 'nibbler' }, { k: 'enemy', x: 15, y: 7, type: 'nibbler' },
+            ],
+            nudge: { solved: 'millrace_chest:upKey', after: 60 * 60 * 3, thing: 'upRaft', say: 'The raft waits at the foot of the race. Rafts only go where the water goes... unless somebody steers.' },
+        },
+        /* ---------------- 8 Overflow: strays fill the water in (stepping stones), the way to the workshop ---------------- */
+        '0,1': {
+            name: 'Overflow',
+            rows: [
+                '####.###############',
+                '#.......VV.........#',
+                '#.......VV.........#',
+                '#.......VV.........#',
+                '#.......VV.........#',
+                '#.......VV..........',
+                '#.......VV.........#',
+                '#.......VV.........#',
+                '#.......VV.........#',
+                '#.......~~.........#',
+                '####################',
+            ],
+            ents: [
+                { k: 'block', x: 12, y: 2, id: 'ovStray1', stray: true },
+                { k: 'block', x: 14, y: 7, id: 'ovStray2', stray: true },
+                { k: 'block', x: 13, y: 4, id: 'ovStone' },
+                { k: 'pot', x: 2, y: 2, id: 'ovPot' },
+                { k: 'sign', x: 17, y: 8, text: "OVERFLOW. Odd old millstones lie about here, belonging nowhere. Mind they don't fall in." },
+            ],
+            nudge: { solved: () => Progress.areaFlag('millrace', 'fill:9,16') || Progress.areaFlag('millrace', 'fill:8,16') || Progress.areaFlag('millrace', 'fill:9,15') || Progress.areaFlag('millrace', 'fill:8,15'), after: 60 * 60 * 3, thing: 'ovStray1', say: "The pale millstones don't seem to belong anywhere. Things that belong nowhere stay wherever they end up." },
+        },
+        /* ---------------- 9 The Two Wheels: hold the raft on one wheel until the crate reaches the other (Pattern) ---------------- */
+        '2,1': {
+            name: 'The Two Wheels',
+            rows: [
+                '####################',
+                '############.#######',
+                '#.>>>>>>>>>>~#######',
+                '#.............#V####',
+                '#.............#V####',
+                '..............#V####',
+                '#.............#V####',
+                '#.............#V####',
+                '#.............#V####',
+                '#.............#~.###',
+                '####################',
+            ],
+            ents: [
+                { k: 'raft', x: 2, y: 2, id: 'twRaft' },
+                { k: 'wheel', x: 12, y: 1, face: 'down', sig: 'tw1', mode: 'hold', id: 'twWheel1' },
+                { k: 'door', x: 15, y: 4, type: 'gate', when: 'tw1', id: 'twSluice', dir: 'h' },
+                { k: 'crate', x: 15, y: 3, id: 'twCrate' },
+                { k: 'wheel', x: 16, y: 9, face: 'left', sig: 'tw2', mode: 'hold', id: 'twWheel2' },
+                { k: 'chest', x: 7, y: 6, item: 'pattern', id: 'twPattern', hidden: true, when: 'flag:millrace_twoWheels', big: true },
+                { k: 'sign', x: 1, y: 9, text: "TWO WHEELS. When both turn together, the race gives up its pattern. (One wheel, one sluice: a long way between.)" },
+                { k: 'enemy', x: 5, y: 8, type: 'dustbunny' },
+            ],
+            nudge: { solved: 'millrace_twoWheels', after: 60 * 60 * 4, thing: 'twRaft', say: "The raft only sits on the first wheel a moment before it heads home. Something would have to keep it there." },
+        },
+        /* ---------------- 10 Dad's workshop (signature room) ---------------- */
+        '0,0': {
+            name: 'Workshop',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####.###############',
+            ],
+            ents: [
+                { k: 'deco', x: 3, y: 1, look: 'drafting', solid: [[0, 0], [1, 0]], text: "A drafting table. Pinned to it: a careful drawing of a waterwheel, a raft, and an island, labelled RACE, THIRD GO. In the corner, in blue: A.R." },
+                { k: 'deco', x: 9, y: 1, look: 'sampler_ambrose', solid: false, oy: -8, baseY: -100, text: 'A sampler, stitched in blue: a wheel and the letters A.R.' },
+                { k: 'deco', x: 14, y: 2, look: 'spoolrack', solid: [[0, 0], [1, 0]], text: 'A rack of spools: every one blue. A label on the shelf: SPARE THREAD (MILL). DO NOT LET IT TANGLE.' },
+                { k: 'deco', x: 6, y: 6, look: 'model_mill', solid: [[0, 0], [1, 0]], text: "A little model of the Millrace, with a tiny raft on a tiny string. The string runs down through a hole in the table." },
+                { k: 'chest', x: 16, y: 7, item: 'heartpatch', id: 'wsPatch' },
+                { k: 'signature', x: 10, y: 5, house: 'mill' },
+                { k: 'deco', x: 2, y: 8, look: 'flourbag', text: 'A sack of flour, stamped with a wheel. Funny place for flour.' },
+            ],
+        },
+        /* ---------------- 11 The Millpond: Old Grindle ---------------- */
+        '1,0': {
+            name: 'The Millpond',
+            rows: [
+                '####################',
+                '#~~~~~~~~~~~~~~~~~~#',
+                '#...~~~~~~~~~~~~...#',
+                '#...~~~~~~~~~~~~...#',
+                '#.>>>>>>>~~<<<<<<<.#',
+                '#.~~~~~~~A~~~~~~~~.#',
+                '#.~~~~~~~A~~~~~~~~.#',
+                '#.~~~~~~~A~~~~~~~~.#',
+                '#.~~~~~~~A~~~~~~~~.#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'grindle', x: 9, y: 3, id: 'grindle' },
+                { k: 'barrel', x: 2, y: 3, id: 'gbW' }, { k: 'barrel', x: 17, y: 3, id: 'gbE' },
+                { k: 'sign', x: 3, y: 3, text: 'THE MILLPOND. Do not feed the machinery.' },
+                { k: 'raft', x: 9, y: 8, id: 'gRaft' },
+                { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'boss' },
+            ],
+        },
+    },
+    tick: a => Mill.tick(a),
+    onEnter: a => Mill.enter(a),
+    afterKnot: function* () { yield* Mill.afterKnot(); },
+});
+
+const Mill = {
+    enter(a) {},
+    tick(a) {
+        if (Signals.get(a, 'tw1') && Signals.get(a, 'tw2') && !Progress.flag('millrace_twoWheels')) {
+            Progress.set('millrace_twoWheels'); Sfx.play('appear'); G.shake = 4;
+        }
+    },
+    *afterKnot() {
+        Progress.set('d3');
+        Progress.setGoal('Next, Belfry Heights: across the lake from Millwater, up the cliff stair. (The Paddle will get you over.)');
+        yield* say(null, 'Somewhere below, a great wheel turns over once, and stops. A hatch in the millpond wall swings open onto the falls.');
+        const a = G.map, r = a.rooms.find(r => r.key === '1,0');
+        a.add(new Warp(r.x + 2, r.y + 9, { to: 'hollow', tx2: MILL_OUT.x, ty2: MILL_OUT.y, face: 'down' }));
+        a.add(new Prop(r.x + 2, r.y + 9, { im: ART.exitlight, solid: [] }));
+    },
+};
+
+// ---- 49b_millrace_foes.js ----
+/* The Millrace's two big ones. The Snapjaw swims up and down its race; only what the water brings down on
+   it hurts it (a crate drifting into it, or one going home into it). Old Grindle, the mill automaton bolted
+   to the millpond's intake, gulps barrels that float to its mouth; full, it settles and its gear-heart
+   shows, and Wren rides the raft up to strike it. */
+
+class Snapjaw extends Enemy {
+    constructor(tx, ty, p = {}) {
+        super(tx, ty, Object.assign({ type: 'snapjaw', hp: 3 }, p));
+        this.hx = tx; this.top = ty - 4; this.bot = ty + 2;
+        this.state = 'sleep'; this.st = 0; this.vy = 0.55;
+        this.weightN = 0.5;          /* anything floating that comes home into it bumps it */
+    }
+    onTile(x, y) { return this.alive && !this.hidden && x === this.hx && y === this.ty; }
+    feetOn() { return false; }
+    hurtBox() { return this.alive && !this.hidden ? { x0: this.x - 8, x1: this.x + 8, y0: this.y - 14, y1: this.y + 2 } : null; }
+    update() {
+        if (!this.alive) return this.updateYarn();
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area;
+        if (this.state === 'sleep') {
+            const r = a.roomAt(this.hx, this.hy);
+            if (p.area === a && Cam.room === r && !Cam.busy && p.tx > r.x) {
+                this.state = 'swim'; this.st = 0;
+                for (const s of a.ents) if (s.kind === 'door' && s.group === 'sj') s.shut = true;
+                Music.play('boss');
+                Script.run(MillFoes.snapIntro(this));
+            }
+            return;
+        }
+        if (Script.blocking()) return;
+        this.st++;
+        switch (this.state) {
+            case 'swim': {
+                this.hidden = false;
+                const ny = this.y + this.vy;
+                if (tileOf(ny) < this.top || tileOf(ny) > this.bot || this.blockedAt(tileOf(ny + sign(this.vy) * 6))) this.vy = -this.vy;
+                else this.y = ny;
+                this.dir = this.vy < 0 ? UP : DOWN;
+                /* Wren on the bank right beside it: it rears up to bite */
+                if (p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 14 && this.st > 40) { this.state = 'rear'; this.st = 0; }
+                break;
+            }
+            case 'rear':
+                if (this.st === 24) {
+                    Sfx.play('splash'); Fx.splash(this.x - 10, this.y - 4);
+                    if (p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 16) p.hurt(1, this.x, this.y);
+                }
+                if (this.st > 50) { this.state = 'swim'; this.st = 0; }
+                break;
+            case 'dive':
+                this.hidden = true;
+                if (this.st > 100) { this.state = 'swim'; this.st = 0; this.hidden = false; }
+                break;
+        }
+    }
+    /* is a floating thing sitting in the race just there? */
+    blockedAt(ty) { const o = this.area.at(this.hx, ty); return o && o.floats; }
+    /* a crate brought down the race into it (drifting or going home) */
+    bonk(by, d) {
+        if (!this.alive || this.hidden || this.state === 'dive') return;
+        this.hp--; this.flash = 30; G.hitstop = 6; G.shake = 6;
+        Sfx.play('enemyhit'); Sfx.play('hitthing');
+        Stats.count('boss:snapjaw:bonk');
+        if (this.hp <= 0) return this.defeat();
+        this.state = 'dive'; this.st = 0; this.hidden = true;
+        UI.toast(['Bonk! The Snapjaw goes under, rattled.', 'Bonk! It thrashes and dives.', ''][2 - this.hp] || 'Bonk!', 90);
+    }
+    shoved(d, pace, by) { this.bonk(by, d); }
+    struck(by, dmg, dir, shard) {
+        if (!this.alive || this.hidden) return;
+        Sfx.play('hitthing'); Fx.ring(this.x, this.y - 8);
+        if (!Progress.flag('sj_hint')) { Progress.set('sj_hint'); UI.toast("It's all scales. Whatever comes down the race at it would hit harder.", 200); }
+    }
+    defeat() {
+        this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
+        Sfx.play('unravel'); Fx.yarn(this.x, this.y - 8, THREAD.ambrose);
+        Progress.set('millrace_snapjaw');
+        for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'sj') s.shut = false;
+        Script.run(MillFoes.snapDown(this));
+    }
+    draw(cx, cy) {
+        if (!this.alive) {
+            if ((this.yarnT || 0) < 120) { this.yarnT = (this.yarnT || 0) + 1; const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.ambrose); }
+            return;
+        }
+        const x = this.x - cx, y = this.y - cy;
+        if (this.hidden) { if ((this.t >> 3) % 2) Gfx.img(spr('snap_ripple'), x - 8, y - 12); return; }
+        const im = spr(this.state === 'rear' && this.st > 10 ? 'snapjaw_open' : 'snapjaw');
+        const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
+        Gfx.img(img, x - 12, y - 22 - (this.state === 'rear' ? Math.min(6, this.st >> 2) : 0), this.dir === DOWN);
+        Gfx.alpha(0.5); Gfx.rect(x - 10, y - 2, 20, 2, '#ffffff'); Gfx.alpha(1);
+    }
+}
+SPAWN.snapjaw = (x, y, p) => Progress.flag('millrace_snapjaw') ? new Ent('none') : new Snapjaw(x, y, p);
+
+/* Old Grindle: two tiles wide at its intake; barrels that float to the mouth tiles under it get gulped */
+class Grindle extends GridThing {
+    constructor(tx, ty, p = {}) {
+        super('grindle', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p));
+        this.hp = 3; this.state = 'sleep'; this.st = 0; this.full = 0; this.need = 2; this.flash = 0;
+        this.spits = []; this.alive = true;
+    }
+    onAdd(area) { area.place(this, this.tx, this.ty); area.place(this, this.tx + 1, this.ty); }
+    get mouths() { return [[this.tx, this.ty + 1], [this.tx + 1, this.ty + 1]]; }
+    hurtBox() { return this.alive ? { x0: this.tx * T, x1: this.tx * T + 32, y0: this.ty * T - 12, y1: this.ty * T + 16 } : null; }
+    tick() {
+        const p = G.player, a = this.area;
+        if (!this.alive) return;
+        if (this.flash > 0) this.flash--;
+        if (this.state === 'sleep') {
+            const r = a.roomAt(this.tx, this.ty);
+            if (p.area === a && Cam.room === r && !Cam.busy && p.ty < r.y + r.h - 1) {     /* (in off the doorstep, so the shutter doesn't close on Wren) */
+                this.state = 'home'; this.st = 0;
+                for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
+                Music.play('boss');
+                Script.run(MillFoes.grindleIntro(this));
+            }
+            return;
+        }
+        this.updateSpits();
+        if (Script.blocking()) return;
+        this.st++;
+        const angry = this.hp === 1;
+        switch (this.state) {
+            case 'home': {
+                /* gulp whatever floated to its mouth */
+                for (const [mx, my] of this.mouths) {
+                    const o = a.at(mx, my);
+                    if (o && o.kind === 'barrel' && !o.mv) this.gulp(o);
+                }
+                if (this.state !== 'home') break;
+                /* Wren on the water at its mouth: it snaps */
+                if (p.state === 'normal' && p.ride && this.mouths.some(([mx, my]) => p.tx === mx && p.ty === my)) { this.state = 'chomp'; this.st = 0; break; }
+                /* otherwise it spits at her */
+                if (this.st > (angry ? 80 : 130) && p.state === 'normal') { this.spit(p); this.st = 0; }
+                break;
+            }
+            case 'chomp':
+                if (this.st === 26) {
+                    Sfx.play('boss'); G.shake = 6;
+                    if (p.state === 'normal' && this.mouths.some(([mx, my]) => p.tx === mx && p.ty === my)) { p.hurt(1, this.tx * T + 16, this.ty * T); p.ride = null; p.startFall('water'); }
+                }
+                if (this.st > 50) { this.state = 'home'; this.st = 0; }
+                break;
+            case 'full':
+                /* settled at its mark, gear-heart showing */
+                if (this.st > 1200) this.spitOut();
+                break;
+            case 'hurt':
+                if (this.st > 50) this.spitOut();
+                break;
+        }
+    }
+    gulp(o) {
+        this.area.unplace(o, o.tx, o.ty);
+        o.swallowed = true; o.tiedOff = true; o.hidden = true;
+        this.full++; Sfx.play('pop'); Sfx.play('splash'); G.shake = 3;
+        Stats.count('boss:grindle:gulp');
+        if (this.full >= this.need) {
+            this.state = 'full'; this.st = 0; Sfx.play('rumble');
+            UI.toast('Old Grindle gulps, shudders, and settles low in the water. Something glints on its back.', 160);
+        }
+    }
+    /* everything it swallowed goes home */
+    spitOut() {
+        for (const o of this.area.ents) if (o.swallowed) {
+            o.swallowed = false; o.tiedOff = false; o.hidden = false;
+            Return.sendHome(o);
+        }
+        this.full = 0; this.state = 'home'; this.st = 0;
+    }
+    spit(p) {
+        const sx = this.tx * T + 16, sy = this.ty * T + 6;
+        const d = Math.hypot(p.x - sx, p.y - sy) || 1, sp = this.hp === 1 ? 2.2 : 1.7;
+        this.spits.push({ x: sx, y: sy, vx: (p.x - sx) / d * sp, vy: (p.y - sy) / d * sp, t: 0 });
+        Sfx.play('splash');
+    }
+    updateSpits() {
+        const p = G.player;
+        for (const s of this.spits) {
+            s.t++; s.x += s.vx; s.y += s.vy;
+            if (p.state === 'normal' && Math.abs(p.x - s.x) < 6 && Math.abs(p.y - 4 - s.y) < 7) { p.hurt(1, s.x - s.vx * 4, s.y - s.vy * 4); s.done = true; Fx.splash(s.x, s.y); }
+            const k = this.area.kind(tileOf(s.x), tileOf(s.y));
+            if (s.t > 200 || k.solid) { s.done = true; Fx.splash(s.x, s.y); }
+        }
+        this.spits = this.spits.filter(s => !s.done);
+    }
+    hit(p, d) { this.struck(p, 1, d); }
+    struck(by, dmg, dir) {
+        if (!this.alive) return;
+        if (this.state !== 'full') { Sfx.play('hitthing'); Fx.ring(this.tx * T + 16, this.ty * T); return; }
+        this.hp--; this.flash = 40; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
+        Stats.count('boss:grindle:hit');
+        if (this.hp <= 0) return this.defeat();
+        this.state = 'hurt'; this.st = 0; this.need = 2;
+    }
+    defeat() {
+        this.alive = false; this.spits = [];
+        Sfx.play('unravel'); Fx.yarn(this.tx * T + 16, this.ty * T, THREAD.ambrose);
+        for (const o of this.area.ents) if (o.swallowed) { o.swallowed = false; o.tiedOff = false; o.hidden = false; Return.sendHome(o); }
+        this.area.unplace(this, this.tx, this.ty); this.area.unplace(this, this.tx + 1, this.ty);
+        Progress.set('millrace_boss');
+        Script.run(MillFoes.grindleDown(this));
+    }
+    draw(cx, cy) {
+        for (const s of this.spits) { Gfx.circle(s.x - cx, s.y - cy, 3, '#a5dcf7'); Gfx.rect(s.x - cx - 1, s.y - cy - 2, 2, 2, '#ffffff'); }
+        if (!this.alive) return;
+        const x = this.tx * T - cx, y = this.ty * T - cy;
+        const sink = this.state === 'full' || this.state === 'hurt' ? 5 : 0;
+        const bob = Math.round(Math.sin(G.t / 20) * 1);
+        const im = spr(this.state === 'chomp' && this.st > 12 ? 'grindle_open' : 'grindle');
+        const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
+        Gfx.img(img, x, y - 18 + sink + bob);
+        if (this.state === 'full') Gfx.img(spr('grindle_heart'), x + 12, y - 16 + sink + bob);
+        Gfx.alpha(0.55); Gfx.rect(x - 2, y + 12, 36, 2, '#ffffff'); Gfx.alpha(1);
+    }
+}
+SPAWN.grindle = (x, y, p) => Progress.flag('millrace_boss') ? new Ent('none') : new Grindle(x, y, p);
+
+/* a barrel swallowed is out of play: not drawn, can't be touched */
+{
+    const sprite0 = Barrel.prototype.sprite;
+    Barrel.prototype.sprite = function () { return this.hidden ? null : sprite0.call(this); };
+}
+
+const MillFoes = {
+    *snapIntro(s) {
+        yield 20;
+        yield* say(null, 'Something long and green surfaces in the race, all teeth and scales, and slaps the water. The door grinds shut behind you.');
+    },
+    *snapDown(s) {
+        Music.play('silence');
+        yield 40;
+        yield* say(null, 'The Snapjaw rolls over, unravels into a ball of blue yarn and bobs away down the race.');
+        Music.play('millrace');
+        Sfx.play('appear');
+    },
+    *grindleIntro(g) {
+        yield 20;
+        yield* say(null, "In the middle of the millpond, bolted to the intake, a great iron pike lifts its head and opens a mouth like a mill hopper. OLD GRINDLE, says the brass plate on its nose. It's hungry.");
+    },
+    *grindleDown(g) {
+        const a = g.area;
+        Music.play('silence');
+        yield 40;
+        yield* say(null, "Old Grindle's gears spin loose. Its plates fold up like a fan, and the whole fish sinks with a sigh into the intake, gone back wherever it came from.");
+        for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
+        const br = a.rooms.find(r => r.key === '1,0');
+        a.add(new Hoop(br.x + 17, br.y + 9));       /* at the east end of the bank, clear of the raft's landing and the way out */
+        a.add(new Pickup((br.x + 4) * T, (br.y + 9) * T, { what: 'heartstitch', id: 'millHeart' }));
+        Sfx.play('appear');
+        Music.play('millrace');
+    },
+};
+SIGNATURE_TEXT.mill = "Painted on a floorboard in blue, very small: a mill wheel and the letters A.R. Someone signed this House the way a miller stamps a flour sack.";
+
+function initMillraceArt() {
+    ENEMY.snapjaw = { hp: 3, swims: true, r: 8, tall: 16, yarn: THREAD.ambrose };
+    defSprite('snapjaw', ['........................', '........................', '.........kkkkkk.........', '.......kkggggggkk.......', '......kgggwkkgggGk......', '.....kggggkkkgggGGk.....', '.....kgggggggggGGGk.....', '....kgGgGgGgGgGgGGGk....',
+        '....kggggggggggggGGk....', '....krrrrrrrrrrrrrrk....', '....kwkwkwkwkwkwkwkk....', '....krrrrrrrrrrrrrrk....', '.....kggggggggggGGk.....', '......kgGgGgGgGGGk......', '.....kkggggggggGGkk.....', '....kbbkkkkkkkkkkbbk....',
+        '...kbBbbBbbBbbBbbBbk....', '..kbbbbbbbbbbbbbbbbbk...', '........................', '........................', '........................', '........................', '........................', '........................'],
+        { g: '#4f9a5a', G: '#2e6a3e', r: '#c42b4a', w: '#ffffff', b: '#4fb0e0', B: '#a5dcf7' });
+    defSprite('snapjaw_open', ['........................', '.........kkkkkk.........', '.......kkggggggkk.......', '......kgggwkkgggGk......', '.....kggggkkkgggGGk.....', '....kgGgGgGgGgGgGGGk....', '....krrrrrrrrrrrrrrk....', '....kwkwkwkwkwkwkwkk....',
+        '....kr..............k...', '....kr..............k...', '....kwkwkwkwkwkwkwkk....', '....krrrrrrrrrrrrrrk....', '.....kggggggggggGGk.....', '......kgGgGgGgGGGk......', '.....kkggggggggGGkk.....', '....kbbkkkkkkkkkkbbk....',
+        '...kbBbbBbbBbbBbbBbk....', '..kbbbbbbbbbbbbbbbbbk...', '........................', '........................', '........................', '........................', '........................', '........................'],
+        { g: '#4f9a5a', G: '#2e6a3e', r: '#c42b4a', w: '#ffffff', b: '#4fb0e0', B: '#a5dcf7' });
+    const grind = (open) => paintSprite(32, 32, x => {
+        const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        /* an iron pike: riveted plates, a hopper mouth, a brass nameplate */
+        R('#5c645e', 2, 8, 28, 18); R('#848c86', 3, 9, 26, 6); R('#3e4852', 2, 24, 28, 2);
+        for (let i = 4; i < 30; i += 5) { R('#c8d0c8', i, 10, 1, 1); R('#c8d0c8', i, 21, 1, 1); }
+        R('#5c645e', 26, 4, 5, 6); R('#848c86', 27, 5, 3, 3);      /* dorsal fin */
+        R('#3e4852', 0, 12, 3, 8);                                  /* tail */
+        R('#f7d64a', 12, 14, 8, 3); R('#b88a2a', 12, 16, 8, 1);    /* nameplate */
+        R('#fbf3df', 22, 11, 4, 4); R('#1c2630', 23, 12, 2, 2);    /* eye */
+        if (open) { R('#1c2630', 6, 20, 20, 8); R('#fbf3df', 7, 20, 2, 2); R('#fbf3df', 11, 20, 2, 2); R('#fbf3df', 15, 20, 2, 2); R('#fbf3df', 19, 20, 2, 2); R('#fbf3df', 23, 20, 2, 2); }
+        else { R('#1c2630', 6, 22, 20, 3); }
+    });
+    ART.grindle = grind(false); ART.grindle_open = grind(true);
+    SPR.grindle = ART.grindle; SPR.grindle_open = ART.grindle_open;
+    defSprite('grindle_heart', ['...kkkkk..', '..kyyyyyk.', '.kyrRRryyk', 'kyrRwRRryk', 'kyRRRRRRyk', 'kyrRRRRryk', '.kyrRRryk.', '..kyyyyk..', '...kkkk...'], { y: '#f7d64a', r: '#e8463c', R: '#c42b4a', w: '#ffffff' });
+    ART.drafting = paintSprite(32, 20, x => { x.fillStyle = '#9a6438'; x.fillRect(2, 8, 28, 3); x.fillRect(4, 11, 2, 9); x.fillRect(26, 11, 2, 9); x.fillStyle = '#fbf3df'; x.fillRect(4, 1, 24, 8); x.fillStyle = '#4f9be0'; x.fillRect(7, 3, 6, 4); x.fillRect(16, 4, 9, 1); x.fillRect(16, 6, 7, 1); x.fillStyle = '#2e6ab0'; x.fillRect(9, 4, 2, 2); });
+    ART.sampler_ambrose = paintSprite(26, 20, x => { x.fillStyle = '#9a6438'; x.fillRect(0, 0, 26, 20); x.fillStyle = '#fbf3df'; x.fillRect(2, 2, 22, 16); x.fillStyle = '#4f9be0'; x.beginPath(); x.arc(8, 10, 5, 0, Math.PI * 2); x.fill(); x.fillStyle = '#fbf3df'; x.fillRect(7, 9, 2, 2); x.fillStyle = '#2e6ab0'; x.fillRect(15, 6, 1, 8); x.fillRect(16, 6, 2, 1); x.fillRect(18, 7, 1, 2); x.fillRect(16, 9, 2, 1); x.fillRect(20, 6, 1, 8); x.fillRect(21, 6, 2, 1); x.fillRect(22, 7, 1, 2); x.fillRect(21, 9, 1, 1); x.fillRect(22, 10, 1, 4); });
+    ART.spoolrack = paintSprite(32, 26, x => { x.fillStyle = '#7a4e32'; x.fillRect(0, 0, 32, 26); x.fillStyle = '#3a2418'; x.fillRect(2, 2, 28, 22); for (let r = 0; r < 2; r++) { x.fillStyle = '#9a6438'; x.fillRect(2, 12 + r * 11, 28, 2); for (let i = 0; i < 5; i++) { x.fillStyle = '#e6c08a'; x.fillRect(4 + i * 5, 4 + r * 11, 4, 8); x.fillStyle = '#4f9be0'; x.fillRect(4 + i * 5, 6 + r * 11, 4, 4); } } });
+    ART.model_mill = paintSprite(32, 20, x => { x.fillStyle = '#9a6438'; x.fillRect(0, 10, 32, 4); x.fillRect(2, 14, 2, 6); x.fillRect(28, 14, 2, 6); x.fillStyle = '#4fb0e0'; x.fillRect(3, 6, 26, 4); x.fillStyle = '#c9925a'; x.fillRect(18, 1, 8, 6); x.fillStyle = '#62506a'; x.fillRect(17, 0, 10, 2); x.fillStyle = '#e6c08a'; x.fillRect(7, 5, 6, 2); x.fillStyle = '#e8463c'; x.fillRect(10, 2, 1, 4); });
+    ART.flourbag = paintSprite(14, 16, x => { x.fillStyle = '#efe4cc'; x.fillRect(1, 3, 12, 12); x.fillRect(3, 1, 8, 3); x.fillStyle = '#c8b898'; x.fillRect(1, 13, 12, 2); x.fillStyle = '#4f9be0'; x.beginPath(); x.arc(7, 9, 3, 0, Math.PI * 2); x.fill(); });
+    ART.monogram_mill = paintSprite(16, 10, x => { x.fillStyle = '#4f9be0'; x.fillRect(1, 2, 1, 6); x.fillRect(2, 2, 2, 1); x.fillRect(4, 3, 1, 5); x.fillRect(2, 5, 2, 1); x.fillRect(7, 2, 1, 6); x.fillRect(8, 2, 2, 1); x.fillRect(10, 3, 1, 1); x.fillRect(8, 4, 2, 1); x.fillRect(10, 5, 1, 3); x.fillStyle = '#2e6ab0'; x.beginPath(); x.arc(13, 5, 2, 0, Math.PI * 2); x.fill(); }, false);
+}
+CONTENT_INIT.push(initMillraceArt);
 
 // ---- 50_prologue.js ----
 /* The morning of the Wander: waking up, Gran, the ceremony at the Well. */
@@ -8187,7 +9071,6 @@ TALK.seam = function* () {
     yield* firstThen('seam', "Sebastian Seam, tailor. That scarf: red, of course. A Wanderer's colour. You wear it beautifully.",
         ["I'm working on something very big for a client. Very hush-hush.", "Everyone's thread is a different colour, you know. Figuratively. Mostly figuratively.", "Come back when you've a few buttons and I'll make you something with presence."]);
 };
-TALK.ambrose = function* () { yield* say('ambrose', "Hello, my Wanderer! Busy, busy. Always busy before a Wander. I'm proud of you."); };
 TALK.tess = function* () { yield* say('tess', "There's my bell-ringer's bairn! Listen to the bells when you're out: they'll tell you where you are."); };
 
 /* what they say when Wren leans on them (S01: everyone has one) */
@@ -8488,7 +9371,7 @@ defArea({
         { k: 'chest', x: 36, y: 1, item: 'b30', id: 't2chest', hidden: true, when: 'flag:trial2' },
         { k: 'door', x: 39, y: 5, type: 'gate', when: 'flag:trial2', dir: 'v', id: 'tg2' },
         /* 3: home time */
-        { k: 'plate', x: 40, y: 5, sig: 'mat3', id: 'mat3' },
+        { k: 'plate', x: 41, y: 5, sig: 'mat3', id: 'mat3' },
         { k: 'sign', x: 44, y: 9, text: "TRIAL THREE: HOME TIME. Ring the bell at the far end, then be home on the plate by the door before it stops. The quickest way home is the way you came. - I." },
         { k: 'crystal', x: 42, y: 8, sig: 'bell3', id: 'bell3' },
         { k: 'chest', x: 41, y: 9, item: 'heartpatch', id: 't3chest', hidden: true, when: 'flag:trial3' },
@@ -8542,7 +9425,7 @@ const Trials = {
     won(a, n) {
         if (n === 1) return Signals.get(a, 't1a') && Signals.get(a, 't1b');
         if (n === 2) { const pot = a.find('longPot'); return Return.isHome(pot) && !pot.shattered && !pot.carried; }
-        if (n === 3) { const p = G.player; return p.state === 'normal' && p.tx === 40 && p.ty === 5; }
+        if (n === 3) { const p = G.player; return p.state === 'normal' && p.tx === 41 && p.ty === 5; }
     },
     win(a, n) {
         G.trial = null;
@@ -8595,6 +9478,13 @@ PRESETS.afterD2 = () => {
     for (const f of ['d2', 'kiln_boss', 'kilnPass', 'tagStopped']) Progress.set(f);
     Progress.setGoal('East: the broken bridge in Meadowfold, and Millwater beyond it.');
     World.enter('hollow', KILN_OUT.x, KILN_OUT.y, { dir: DOWN });
+};
+PRESETS.afterD3 = () => {
+    PRESETS.afterD2();
+    Inv.giveTool('paddle'); Inv.knots.push('mill'); Inv.addHeart();
+    for (const f of ['d3', 'millrace_boss', 'millrace_snapjaw', 'met:ambrose']) Progress.set(f);
+    Progress.setGoal('Next, Belfry Heights: across the lake from Millwater, up the cliff stair. (The Paddle will get you over.)');
+    World.enter('hollow', MILL_OUT.x, MILL_OUT.y, { dir: DOWN });
 };
 
 // ---- 80_story_core.js ----

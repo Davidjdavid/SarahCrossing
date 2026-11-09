@@ -23,7 +23,8 @@
   bookcase checked in screenshots.
 
 ## Unresolved issues
-_None yet._
+- Dungeon 3 hasn't had a fresh-eyes review yet (next).
+- The overworld's lake crossing to the north shore (for Dungeon 4) isn't built yet.
 
 ## Verification history
 | Date | What | Result |
@@ -31,3 +32,4 @@ _None yet._
 | 2026-11-09 | Headless suite + browser smoke (title, town, Meadowfold, all D1 rooms) | pass |
 | 2026-11-09 | Slice review fixes; D2 and Kilnridge; 51 headless tests + browser smoke | pass |
 | 2026-11-09 | Town extras (S12, S28): 13 new tests (64 in all); screenshots of both checked | pass |
+| 2026-11-09 | Water kit, Millwater, the Millrace: 6 + 16 + 1 playthrough (87 in all); every room screenshotted | pass |

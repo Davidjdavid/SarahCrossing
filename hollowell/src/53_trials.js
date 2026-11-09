@@ -59,7 +59,7 @@ defArea({
         { k: 'chest', x: 36, y: 1, item: 'b30', id: 't2chest', hidden: true, when: 'flag:trial2' },
         { k: 'door', x: 39, y: 5, type: 'gate', when: 'flag:trial2', dir: 'v', id: 'tg2' },
         /* 3: home time */
-        { k: 'plate', x: 40, y: 5, sig: 'mat3', id: 'mat3' },
+        { k: 'plate', x: 41, y: 5, sig: 'mat3', id: 'mat3' },
         { k: 'sign', x: 44, y: 9, text: "TRIAL THREE: HOME TIME. Ring the bell at the far end, then be home on the plate by the door before it stops. The quickest way home is the way you came. - I." },
         { k: 'crystal', x: 42, y: 8, sig: 'bell3', id: 'bell3' },
         { k: 'chest', x: 41, y: 9, item: 'heartpatch', id: 't3chest', hidden: true, when: 'flag:trial3' },
@@ -113,7 +113,7 @@ const Trials = {
     won(a, n) {
         if (n === 1) return Signals.get(a, 't1a') && Signals.get(a, 't1b');
         if (n === 2) { const pot = a.find('longPot'); return Return.isHome(pot) && !pot.shattered && !pot.carried; }
-        if (n === 3) { const p = G.player; return p.state === 'normal' && p.tx === 40 && p.ty === 5; }
+        if (n === 3) { const p = G.player; return p.state === 'normal' && p.tx === 41 && p.ty === 5; }
     },
     win(a, n) {
         G.trial = null;

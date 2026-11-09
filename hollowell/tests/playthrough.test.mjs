@@ -203,3 +203,128 @@ test('from the first Knot: the canyon road, Kilnridge, the Kiln to its Knot', ()
     ok(HW.Inv.knots.includes('kiln') && HW.Progress.flag('d2'), 'the Fired Knot');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 });
+
+test('from the second Knot: the broken bridge, Millwater, the ferry, the Millrace to its Knot', () => {
+    const HW = loadGame();
+    const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
+    const walk = (x, y, m) => { let r = HW.walkTo(x, y); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y); } ok(r, m || `walk ${x},${y}`); };
+    const area = () => HW.G.map.id;
+    const thing = id => HW.G.map.find(id);
+    const until = (fn, max = 3000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
+    const talk = () => { HW.press('act', 1); HW.skipTalk(); };
+    const M = { wheel: [20, 33], ferry: [0, 33], backwash: [40, 33], carousel: [20, 22], snap: [40, 22], upstream: [20, 11], twowheels: [40, 11], pond: [20, 0] };
+    const m = (r, x, y) => [M[r][0] + x, M[r][1] + y];
+    const at = (o, x, y) => o.tx === x && o.ty === y && !o.mv;
+    const board = (raft, [x, y], dir, max = 2000) => { ok(until(() => at(raft, x, y), max), `raft at ${x},${y}`); HW.hold(dir); HW.step(10); HW.release(); HW.step(1); ok(HW.player().tx === x && HW.player().ty === y, 'aboard'); };
+    const off = dir => { HW.hold(dir); HW.step(14); HW.release(); HW.step(2); };
+    HW.preset('afterD2'); HW.step(10);
+    HW.Inv.maxHp = HW.Inv.hp = 24;
+
+    /* the broken bridge in Meadowfold: hook the eyelet on the far side */
+    walk(64 + 48, 80 + 27, 'to the broken bridge');
+    walk(64 + 49, 80 + 27); HW.Inv.equipped = 'hook'; HW.face('right'); HW.press('tool', 1); HW.step(60);
+    ok(HW.player().tx >= 64 + 53, 'over the gap');
+    walk(128 + 10, 80 + 27, 'into Millwater');
+    /* the ferry over the river */
+    walk(128 + 38, 80 + 26, 'to the dock');
+    board(thing('mwFerry'), [128 + 39, 80 + 26], 'right');
+    ok(until(() => at(thing('mwFerry'), 128 + 42, 80 + 26), 400), 'across');
+    off('right');
+    walk(128 + 47, 80 + 26); HW.hold('up'); until(() => area() === 'millrace', 120); HW.release(); HW.step(30);
+    ok(area() === 'millrace', 'inside the Millrace');
+    HW.Inv.maxHp = HW.Inv.hp = 24;
+
+    /* wheel hall */
+    walk(...m('wheel', 3, 4)); HW.push('up', 1);
+    ok(until(() => thing('whGate').open, 500), 'wheel gate');
+    walk(...m('wheel', 9, 1)); HW.step(4); walk(...m('carousel', 9, 9)); walk(...m('wheel', 9, 1));   /* through once: it stays open */
+    /* ferry pool: key 1 */
+    walk(...m('wheel', 1, 5)); walk(...m('ferry', 17, 6));
+    board(thing('fpFerry'), m('ferry', 16, 6), 'left');
+    ok(until(() => at(thing('fpFerry'), ...m('ferry', 6, 3)), 800), 'at the island');
+    off('left'); walk(...m('ferry', 4, 3)); HW.face('left'); talk();
+    ok(HW.Inv.keys('mill') === 1, 'key 1');
+    walk(...m('ferry', 5, 3)); board(thing('fpFerry'), m('ferry', 6, 3), 'right', 2500);
+    ok(until(() => at(thing('fpFerry'), ...m('ferry', 16, 6)), 800), 'back'); off('right');
+    /* backwash: the plan */
+    walk(...m('ferry', 18, 5)); walk(...m('backwash', 2, 4));
+    HW.Inv.equipped = 'hook'; HW.face('right'); HW.press('tool', 1);
+    ok(until(() => at(thing('bwRaft'), ...m('backwash', 3, 4)), 200), 'raft hooked over'); off('right');
+    ok(until(() => at(thing('bwRaft'), ...m('backwash', 9, 4)), 600), 'carried back'); off('right');
+    walk(...m('backwash', 10, 3)); HW.face('up'); talk(); ok(HW.Inv.plans.includes('mill'), 'plan');
+    walk(...m('backwash', 11, 4)); HW.hold('down'); HW.step(40); HW.release(); HW.step(10);
+    /* the carousel, round to the east landing; unlock the Snapjaw's door */
+    walk(...m('backwash', 1, 5)); walk(...m('wheel', 9, 1)); walk(...m('carousel', 9, 8));
+    board(thing('caRaft'), m('carousel', 9, 7), 'up');
+    ok(until(() => at(thing('caRaft'), ...m('carousel', 14, 5)), 900), 'east landing'); off('right');
+    walk(...m('carousel', 17, 5)); HW.hold('right'); HW.step(60); HW.release();
+    walk(...m('snap', 1, 5)); HW.step(30); HW.skipTalk();
+    /* the Snapjaw */
+    const s = HW.ents('enemy').find(e => e.type === 'snapjaw');
+    ok(s && s.state === 'swim', 'Snapjaw awake');
+    for (let round = 0; round < 12 && s.alive; round++) {
+        const c = thing(round % 2 ? 'sjCrate2' : 'sjCrate1');
+        until(() => HW.Return.isHome(c), 1500);
+        walk(...m('snap', 10, c.ty - M.snap[1]));
+        until(() => s.state === 'swim' && s.ty > c.ty + 1 && s.vy < 0, 900);
+        HW.face('right'); HW.push('right', 1); HW.step(200);
+    }
+    ok(!s.alive, 'Snapjaw beaten'); HW.step(60); HW.skipTalk();
+    walk(...m('snap', 4, 6)); HW.face('up'); talk(); ok(HW.Inv.has('paddle'), 'the Paddle');
+    /* back round to the north landing and up into Upstream */
+    walk(...m('carousel', 16, 5)); walk(...m('carousel', 15, 5)); HW.face('left');
+    board(thing('caRaft'), m('carousel', 14, 5), 'left', 2000);
+    ok(until(() => at(thing('caRaft'), ...m('carousel', 9, 7)), 900), 'home again'); off('down');
+    board(thing('caRaft'), m('carousel', 9, 7), 'up', 2000);
+    ok(until(() => at(thing('caRaft'), ...m('carousel', 9, 3)), 900), 'north landing'); off('up');
+    walk(...m('carousel', 9, 1)); walk(...m('upstream', 9, 9));
+    /* upstream: paddle up for key 3 */
+    HW.Inv.equipped = 'paddle';
+    board(thing('upRaft'), m('upstream', 9, 8), 'up');
+    HW.hold(['tool', 'up']); ok(until(() => at(thing('upRaft'), ...m('upstream', 9, 2)), 600), 'paddled up');
+    HW.release(); HW.step(1); off('up');
+    HW.face('right'); talk(); ok(HW.Inv.keys('mill') === 1, 'key 3');
+    HW.step(250); HW.hold('down'); until(() => HW.player().state === 'normal' && HW.player().ty >= m('upstream', 9, 8)[1], 500); HW.release(); HW.step(10);
+    /* two wheels: the Pattern */
+    walk(...m('upstream', 17, 5)); HW.hold('right'); HW.step(60); HW.release();
+    walk(...m('twowheels', 1, 2));
+    board(thing('twRaft'), m('twowheels', 2, 2), 'right', 2000);
+    ok(until(() => at(thing('twRaft'), ...m('twowheels', 12, 2)), 800), 'at the first wheel');
+    HW.hold(['tool']); ok(until(() => HW.Progress.flag('millrace_twoWheels'), 600), 'two wheels'); HW.release(); HW.step(2); off('down');
+    walk(...m('twowheels', 7, 7)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('mill'), 'Pattern');
+    /* up the race again to the big door */
+    walk(...m('twowheels', 1, 5)); walk(...m('upstream', 9, 9));
+    board(thing('upRaft'), m('upstream', 9, 8), 'up', 2000);
+    HW.hold(['tool', 'up']); ok(until(() => at(thing('upRaft'), ...m('upstream', 9, 2)), 600), 'up again'); HW.release(); HW.step(1); off('up');
+    HW.hold('up'); HW.step(50); HW.release(); HW.step(30); HW.skipTalk();
+    walk(...m('pond', 9, 9)); HW.step(30); HW.skipTalk();
+    /* Old Grindle */
+    const g = thing('grindle');
+    ok(g && g.state !== 'sleep', 'Grindle awake');
+    HW.G.cheats.god = true;      /* (dodging its spit isn't what this checks) */
+    for (let round = 0; round < 4 && g.alive; round++) {
+        until(() => g.state === 'home', 900);
+        until(() => HW.Return.isHome(thing('gbW')) && HW.Return.isHome(thing('gbE')), 900);
+        HW.Inv.equipped = 'hook';
+        walk(...m('pond', 2, 2)); HW.push('down', 1); walk(...m('pond', 2, 2));
+        walk(...m('pond', 17, 2)); HW.push('down', 1); walk(...m('pond', 17, 2));
+        ok(until(() => g.state === 'full', 900), 'full');
+        walk(...m('pond', 9, 9));
+        board(thing('gRaft'), m('pond', 9, 8), 'up', 1500);
+        ok(until(() => at(thing('gRaft'), ...m('pond', 9, 4)), 400), 'at its mouth');
+        HW.face('up'); HW.press('atk', 1); HW.step(80);
+        HW.hold('down'); until(() => HW.player().ty >= m('pond', 9, 9)[1] && HW.player().state === 'normal', 600); HW.release();
+    }
+    HW.G.cheats.god = false;
+    ok(!g.alive, 'Grindle down');
+    HW.step(200); HW.skipTalk();
+    if (HW.player().ty < m('pond', 9, 9)[1]) { ok(until(() => at(thing('gRaft'), ...m('pond', 9, 8)), 900), 'raft home'); off('down'); }   /* still afloat: ride back in */
+    const hoop = HW.ents('hoop')[0]; ok(hoop, 'the hoop');
+    walk(hoop.tx - 1, hoop.ty); HW.face('right'); HW.press('act', 1); HW.skipTalk(0); HW.step(300); HW.skipTalk(); HW.step(10); HW.skipTalk();
+    ok(HW.Inv.knots.includes('mill') && HW.Progress.flag('d3'), 'the Running Knot');
+    const exit = HW.ents('warp').find(w => w.to === 'hollow' && w.ty < 11);
+    ok(exit, 'a way out');
+    walk(exit.tx + 1, exit.ty); HW.hold('left'); until(() => area() === 'hollow', 200); HW.release(); HW.step(30);
+    ok(area() === 'hollow', 'back outside');
+    assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
+});

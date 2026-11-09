@@ -35,6 +35,12 @@ class Player extends Ent {
 
     /* ----- marks and traces ----- */
     setMark(tx = this.tx, ty = this.ty, area = this.area) {
+        /* never on a doorway (a door may shut there): one step on into the room */
+        const r = area.roomAt && area.roomAt(tx, ty);
+        if (r && area.rooms.length > 1 && (tx === r.x || ty === r.y || tx === r.x + r.w - 1 || ty === r.y + r.h - 1)) {
+            const nx = tx + DX[this.dir], ny = ty + DY[this.dir];
+            if (area.inside(nx, ny) && !area.kind(nx, ny).solid && !area.kind(nx, ny).deep && !area.kind(nx, ny).pit) { tx = nx; ty = ny; }
+        }
         this.mark = { area: area.id, tx, ty };
         this.trace = [[tx, ty]];
     }
@@ -60,7 +66,8 @@ class Player extends Ent {
         if (k.ledge) return true;
         if (k.deep && !this.canSwim()) {
             const o = a.at(tx, ty);
-            if (!Water.rideable(o)) return true;
+            /* from a float you can't step off into deep water; from the bank you can, and under you go */
+            if (!Water.rideable(o) && (this.ride || this.onRaft() || this.carry || !this.diving)) return true;
         }
         const o = a.at(tx, ty);
         if (o && o !== this.carry && !o.walkOn && !Water.rideable(o)) return true;
@@ -162,6 +169,12 @@ class Player extends Ent {
         } else this.pushT = 0;
         this.walking = moving;
         if (moving) { this.anim++; this.stillT = 0; } else { this.anim = 0; this.stillT++; }
+        /* leaning on the edge of deep water a moment, Wren steps in (and under): no falling in by accident */
+        if (!moving && (ax.x || ax.y) && !this.carry && !this.ride && !this.onRaft() && this.state === 'normal') {
+            const f = this.front(), k = this.area.kind(f.tx, f.ty);
+            if (k.deep && !Water.rideable(this.area.at(f.tx, f.ty))) { if (++this.edgeT > 24) this.diving = true; }
+            else { this.edgeT = 0; this.diving = false; }
+        } else if (!this.diving || !moving) { this.edgeT = 0; if (!moving) this.diving = false; }
 
         if (!cut && this.state === 'normal') {
             if (Input.pressed('act')) this.action();
@@ -178,7 +191,7 @@ class Player extends Ent {
         const k = this.area.kind(tileOf(this.x), tileOf(this.y));
         /* standing over a pit: fall */
         if (k.pit && this.overPit()) this.startFall('pit');
-        else if (k.deep && !this.onRaft()) this.startFall('water');
+        else if (k.deep && !this.onRaft() && this.overDeep()) { this.diving = false; this.startFall('water'); }
         if (k.hurt && this.inv <= 0) this.hurt(1, this.x - DX[this.dir] * 8, this.y - DY[this.dir] * 8);
         /* the fog at the edge of the valley */
         if (k.fog && !Progress.flag('cut_self')) {
@@ -195,6 +208,12 @@ class Player extends Ent {
         return n >= 3;
     }
     onRaft() { return Water.rideable(this.area.at(this.tx, this.ty)); }
+    overDeep() {
+        const pts = [[-3, -2], [3, -2], [-3, 3], [3, 3]];
+        let n = 0;
+        for (const [dx, dy] of pts) { const tx = tileOf(this.x + dx), ty = tileOf(this.y + dy); if (this.area.kind(tx, ty).deep && !Water.rideable(this.area.at(tx, ty))) n++; }
+        return n >= 3;
+    }
 
     tryPush(d) {
         const f = this.front();

@@ -152,7 +152,7 @@ test('trial two: or carry it back over its own path, which shortens it', () => {
 
 test('trial three: ring the bell, fall in, fly home along the way you came onto the plate (S28)', () => {
     const HW = attic(['trial1', 'trial2']);
-    goA(HW, 38, 5); goA(HW, 40, 5); HW.step(5);
+    goA(HW, 38, 5); goA(HW, 41, 5); HW.step(5);
     goA(HW, 43, 8); HW.face('left'); HW.press('atk', 1); HW.step(10);
     assert.ok(HW.G.trial && HW.G.trial.n === 3, 'the bell rang');
     goA(HW, 44, 8); HW.hold('right');
@@ -166,9 +166,9 @@ test('trial three: ring the bell, fall in, fly home along the way you came onto 
 
 test('trial three: walking back is too slow', () => {
     const HW = attic(['trial1', 'trial2']);
-    goA(HW, 38, 5); goA(HW, 40, 5); HW.step(5);
+    goA(HW, 38, 5); goA(HW, 41, 5); HW.step(5);
     goA(HW, 43, 8); HW.face('left'); HW.press('atk', 1); HW.step(10);
-    goA(HW, 40, 5); HW.step(5);
+    goA(HW, 41, 5); HW.step(5);
     assert.equal(HW.Progress.flag('trial3'), false);
 });
 

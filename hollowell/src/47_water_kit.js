@@ -23,7 +23,13 @@ const Water = {
         if ((e.driftT = (e.driftT || 0) + 1) < wait) return;
         e.driftT = 0;
         const nx = e.tx + DX[d], ny = e.ty + DY[d];
-        if (!a.kind(nx, ny).water || !a.freeForThing(nx, ny, e)) return;     /* a bank or something in the way */
+        if (!a.kind(nx, ny).water) return;                                  /* the bank */
+        if (!a.freeForThing(nx, ny, e)) {
+            /* something swimming in the way gets bumped */
+            for (const m of a.walkers) if (m.bonk && m.alive !== false && m.onTile && m.onTile(nx, ny)) m.bonk(e, d);
+            return;
+        }
+        e.driftMove = true;
         e.startMove(nx, ny, this.DRIFT_PACE);
         Stats.count('drifts');
     },
@@ -35,10 +41,14 @@ const Water = {
     },
     /* whoever stands on a float as it sets off goes with it */
     board(e) {
+        /* moved by anything but the current (a push, the hook, a paddle): it settles a moment before drifting */
+        if (!e.driftMove) e.driftT = -36;
+        e.driftMove = false;
         const p = G.player;
         if (!p || p.area !== e.area || p.state !== 'normal' || p.ride === e) return;
         if (!this.rideable(e) || p.tx !== e.tx || p.ty !== e.ty) return;
-        p.ride = e; p.rideOx = p.x - e.tx * T; p.rideOy = p.y - e.ty * T;
+        /* aboard: stand in the middle of it */
+        p.ride = e; p.rideOx = 8; p.rideOy = 10;
     },
     /* Wren on a moving float: carried along. True while it's moving (Wren can't walk) */
     rider(p) {
@@ -166,7 +176,29 @@ TOOLS.paddle = {
     unhold(p) { if (this.held) { this.held.paddled = false; if (this.held.ret && !this.held.mv) Return.disturb(this.held); this.held = null; } },
 };
 
+/* reed snappers: wait under the water by their reeds; come close and one pops up and nips. A whack while
+   it's up sends it under for good (until next time) */
+AI.snap = (e, p) => {
+    e.modeT++;
+    const near = p && p.area === e.area && p.state === 'normal' && Math.abs(p.x - e.x) < 28 && Math.abs(p.y - e.y) < 24;
+    if (e.mode !== 'up') {
+        e.hidden = true;
+        if (near && e.modeT > 50) { e.mode = 'up'; e.modeT = 0; e.hidden = false; Sfx.play('splash'); Fx.splash(e.x, e.y - 2); }
+        return;
+    }
+    e.hidden = false;
+    if (p) e.dir = p.x < e.x ? LEFT : RIGHT;
+    if (e.modeT > 80) { e.mode = 'idle'; e.modeT = 0; e.hidden = true; }
+};
+
 function initWaterKit() {
+    ENEMY.snapper = { hp: 1, ai: 'snap', swims: true, flies: true, r: 6, tall: 12, yarn: '#6ab07a', drop: 0.5 };
+    defSprite('snapper', ['................', '................', '....kkkk........', '...kggggk.......', '..kgwkgggk......', '..kggggggGk.....', '..krrrrrrrkk....', '..kwkwkwkk......',
+        '..krrrrrrrkk....', '..kggggggGGk....', '...kgggGGGk.....', '..kbbbbbbbbk....', '.kbBbBbBbBbBk...', 'kbbbbbbbbbbbbk..', '................', '................'],
+        { g: '#6ab07a', G: '#3f7a52', r: '#c42b4a', w: '#ffffff', b: '#4fb0e0', B: '#a5dcf7' });
+    defSprite('snap_ripple', ['................', '................', '................', '................', '................', '................', '................', '................',
+        '................', '................', '................', '...BBB...BBB....', '..B...B.B...B...', '................', '................', '................'], { B: '#d8f2fc' });
+    ENEMY_DRAW.snapper = e => e.hidden ? ((e.t >> 4) % 3 ? spr('snap_ripple') : null) : spr('snapper');
     defSprite('raft', ['................', '................', 'kkkkkkkkkkkkkkkk', 'kbbbkbbbkbbbkbbk', 'kbubkbubkbubkbuk', 'kbubkbubkbubkbuk', 'kbbbkbbbkbbbkbbk', 'kBBBkBBBkBBBkBBk',
         'kbbbkbbbkbbbkbbk', 'kbubkbubkbubkbuk', 'kbbbkbbbkbbbkbbk', 'kBBBkBBBkBBBkBBk', 'kkkkkkkkkkkkkkkk', '.wwwwwwwwwwwwww.', '................', '................'],
         { b: '#c9925a', B: '#9a6438', u: '#e6c08a', w: '#a5dcf7' });

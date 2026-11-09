@@ -94,3 +94,23 @@ SONGS.kilnhouse = {
         { drum: true, vol: 0.09, n: 'k . . h . . s . k . h . s . h . | k . . h . . s . k . h . s h h . ' },
     ],
 };
+
+/* Millwater: a lilting boat song (F major, 6/8), the Return motif turning up as a ripple in the bass */
+SONGS.water = {
+    bpm: 96, div: 3,
+    ch: [
+        { wave: 'p25', vol: 0.09, vib: true, n: 'C5 - A4 F4 - A4 | C5 - D5 C5 - - | Bb4 - G4 E4 - G4 | Bb4 - C5 A4 - - | C5 - A4 F4 - A4 | F5 - E5 D5 - C5 | Bb4 - A4 G4 - A4 | F4 - - - . . | A4 - C5 F5 - E5 | D5 - C5 Bb4 - A4 | G4 - Bb4 D5 - C5 | Bb4 - A4 G4 - . | A4 - C5 F5 - G5 | A5 - G5 F5 - D5 | C5 - A4 G4 - E4 | F4 - - - . .' },
+        { wave: 'triangle', vol: 0.2, n: 'F2 . C3 A3 . C3 | F2 . C3 A3 . C3 | C2 . G2 Bb2 . G2 | F2 . C3 A3 . C3 | F2 . C3 A3 . C3 | Bb2 . F3 D3 . F3 | C3 . G3 E3 . G3 | F2 . C3 F3 . . | D2 . A2 F3 . A2 | Bb2 . F3 D3 . F3 | G2 . D3 Bb2 . D3 | C3 . G3 E3 . G3 | F2 . C3 A3 . C3 | D3 . A3 F3 . A3 | C3 . G3 A3 . C3 | F2 . C3 F2 . .' },
+        { wave: 'p12', vol: 0.04, n: '. . F4 . . A4 | . . F4 . . A4 | . . E4 . . G4 | . . F4 . . A4 | . . F4 . . A4 | . . D4 . . F4 | . . E4 . . G4 | . . A4 . . . | . . F4 . . A4 | . . D4 . . F4 | . . D4 . . G4 | . . E4 . . G4 | . . F4 . . A4 | . . F4 . . A4 | . . E4 . . G4 | . . A4 . . .' },
+    ],
+};
+/* the Millrace: water and machinery (D Dorian), a steady wheel in the bass, the tune running over it */
+SONGS.millrace = {
+    bpm: 132, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.08, legato: 0.6, n: 'D5 - . F5 E5 - D5 - | C5 - A4 - B4 - C5 - | D5 - . F5 G5 - A5 - | G5 - F5 - E5 - - - | F5 - . E5 D5 - C5 - | B4 - G4 - A4 - B4 - | C5 - D5 - E5 - C5 - | D5 - - - . . . . ' },
+        { wave: 'triangle', vol: 0.22, n: 'D2 . A2 D3 . A2 D3 . | C2 . G2 C3 . G2 C3 . | D2 . A2 D3 . A2 D3 . | A1 . E2 A2 . E2 A2 . | Bb1 . F2 Bb2 . F2 Bb2 . | G1 . D2 G2 . D2 G2 . | A1 . E2 A2 . C#3 A2 . | D2 . A2 D3 . A2 D2 . ' },
+        { wave: 'p12', vol: 0.04, n: 'F4 A4 F4 A4 F4 A4 F4 A4 | E4 G4 E4 G4 E4 G4 E4 G4 | F4 A4 F4 A4 F4 A4 F4 A4 | E4 A4 E4 A4 C#4 E4 C#4 E4 | F4 Bb4 F4 Bb4 F4 Bb4 F4 Bb4 | D4 G4 D4 G4 D4 G4 B4 G4 | E4 A4 E4 A4 C#4 E4 G4 E4 | F4 A4 F4 A4 D4 F4 A4 . ' },
+        { drum: true, vol: 0.08, n: 'k . h . s . h . | k . h k s . h h' },
+    ],
+};

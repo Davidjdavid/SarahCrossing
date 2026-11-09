@@ -16,6 +16,7 @@ const TK = {
     pit: { solid: false, pit: true },
     ledge: { solid: false, ledge: true },                   /* hop down (south) only */
     bridge: { solid: false },
+    bridgew: { solid: false, water: true, over: true },    /* a bridge over moving water: floats go under it */
     stairs: { solid: false },
     tree: { solid: true },
     bush: { solid: true, cut: true },

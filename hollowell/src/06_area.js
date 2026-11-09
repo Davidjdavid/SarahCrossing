@@ -95,7 +95,8 @@ class Area {
         /* gates and other blockers that aren't grid things */
         for (const b of this.blockers) if (b.blocks(x, y, e)) return false;
         /* the player and walkers occupy tiles too */
-        if (e && e.isGrid && G.player && G.player.area === this && !G.player.dead && G.player.onTile(x, y) && e !== G.player) return false;
+        const pl = G.player;
+        if (e && e.isGrid && pl && pl.area === this && !pl.dead && pl.onTile(x, y) && e !== pl && !(e.floats && pl.tx === e.tx && pl.ty === e.ty)) return false;   /* (a float isn't blocked by whoever's riding it) */
         for (const m of this.walkers) if (m !== e && m.alive !== false && m.onTile && m.onTile(x, y)) return false;
         return true;
     }
@@ -150,7 +151,7 @@ const TileDraw = {
             case 'sand': c = tileCanvas(`${tn}:sand:${v}`, x => Paint.sand(x, th, v)); break;
             case 'water': case 'deep': case 'current': {
                 const f = Math.floor(this.frame / 20) % 8;
-                const land = k => !['water', 'shallow', 'current', 'void', 'bridge'].includes(k);
+                const land = k => !['water', 'shallow', 'current', 'void', 'bridge', 'bridgew'].includes(k);
                 const n = land(area.cell(tx, ty - 1).k) ? 1 : 0, s = land(area.cell(tx, ty + 1).k) ? 1 : 0;
                 const w = land(area.cell(tx - 1, ty).k) ? 1 : 0, e = land(area.cell(tx + 1, ty).k) ? 1 : 0;
                 const mask = n | s << 1 | w << 2 | e << 3;
@@ -182,7 +183,8 @@ const TileDraw = {
                 break;
             }
             case 'ledge': c = tileCanvas(`${tn}:ledge:${v}`, x => {
-                Paint.grass(x, th, v);
+                /* indoors a ledge is the floor's edge; outdoors, grass */
+                if (th.grass) Paint.grass(x, th, v); else if (FLOORS[tn] && FLOORS[tn].floor) FLOORS[tn].floor(x, th, v); else fill(x, (th.floor || ['#c8b898'])[0]);
                 fill(x, th.stone[3], 0, 10, 16, 2); fill(x, th.stone[1], 0, 12, 16, 3); fill(x, th.stone[2], 0, 12, 16, 1);
                 fill(x, shade(th.stone[3], -0.3), 0, 15, 16, 1);
             }); break;

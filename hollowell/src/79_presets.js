@@ -19,3 +19,10 @@ PRESETS.afterD2 = () => {
     Progress.setGoal('East: the broken bridge in Meadowfold, and Millwater beyond it.');
     World.enter('hollow', KILN_OUT.x, KILN_OUT.y, { dir: DOWN });
 };
+PRESETS.afterD3 = () => {
+    PRESETS.afterD2();
+    Inv.giveTool('paddle'); Inv.knots.push('mill'); Inv.addHeart();
+    for (const f of ['d3', 'millrace_boss', 'millrace_snapjaw', 'met:ambrose']) Progress.set(f);
+    Progress.setGoal('Next, Belfry Heights: across the lake from Millwater, up the cliff stair. (The Paddle will get you over.)');
+    World.enter('hollow', MILL_OUT.x, MILL_OUT.y, { dir: DOWN });
+};

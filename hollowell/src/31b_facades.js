@@ -75,4 +75,43 @@ const FACADES = {
             R('#d0c8b8', 63, 84, 18, 2);
         });
     },
+    /* the Millrace: a tall timber mill straddling the race, a great wheel on its river side, blue trim */
+    millrace() {
+        const w = 128, h = 86;
+        ART.f_millrace = paintSprite(w, h, x => {
+            const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+            /* roof: a steep gable in dark shingle with a hoist hood at the top */
+            for (let j = 0; j < 36; j++) {
+                const inset = Math.max(0, Math.round(40 - j * 1.25));
+                for (let i = inset; i < w - inset; i++) {
+                    let c = (j % 4 === 3) ? '#4a3a4e' : '#62506a';
+                    if (((i + (Math.floor(j / 4) % 2) * 4) % 8) === 0 && j % 4 !== 3) c = '#54445c';
+                    if (i === inset || i === w - inset - 1) c = '#2e2236';
+                    R(c, i, j + 4, 1, 1);
+                }
+            }
+            R('#9a6438', 56, 0, 16, 12); R('#6b4128', 56, 0, 16, 2); R('#3a2418', 60, 4, 8, 8); R('#c9925a', 63, 4, 2, 8);
+            /* timber walls, weatherboard */
+            R('#c9925a', 2, 40, w - 4, 42);
+            for (let j = 40; j < 82; j += 4) R('#9a6438', 2, j + 3, w - 4, 1);
+            for (const px of [2, 40, 86, w - 6]) R('#6b4128', px, 40, 4, 42);
+            R('#4f9be0', 2, 39, w - 4, 2); R('#2e6ab0', 2, 41, w - 4, 1);
+            /* windows with blue shutters, the door in the middle */
+            const win = (px, py) => { R('#2e6ab0', px - 3, py, 3, 10); R('#2e6ab0', px + 10, py, 3, 10); R('#fbf3df', px - 1, py - 1, 12, 12); R('#4fb0e0', px, py, 10, 10); R('#a5dcf7', px + 1, py + 1, 3, 3); R('#fbf3df', px + 4, py, 2, 10); };
+            win(16, 48); win(102, 48); win(16, 66); win(102, 66);
+            R('#6b4128', 50, 56, 28, 30); R('#4f9be0', 52, 58, 24, 28); R('#2e6ab0', 63, 58, 2, 28); R('#f7d64a', 60, 72, 2, 2); R('#f7d64a', 66, 72, 2, 2);
+            R('#fbf3df', 46, 52, 36, 4); R('#2e6ab0', 50, 53, 28, 2);
+            /* the great wheel on the river side (west), turning round a hub */
+            const cx = 10, cy = 62;
+            x.fillStyle = '#3a2418'; x.beginPath(); x.arc(cx, cy, 22, Math.PI * 0.5, Math.PI * 1.5); x.fill();
+            x.fillStyle = '#7a4e32'; x.beginPath(); x.arc(cx, cy, 20, Math.PI * 0.5, Math.PI * 1.5); x.fill();
+            x.fillStyle = '#3a2418'; x.beginPath(); x.arc(cx, cy, 14, Math.PI * 0.5, Math.PI * 1.5); x.fill();
+            for (let i = 0; i < 12; i++) { const t = Math.PI * 0.5 + i * Math.PI / 11; R('#e6c08a', Math.round(cx + Math.cos(t) * 18) - 1, Math.round(cy + Math.sin(t) * 18) - 1, 3, 3); R('#9a6438', Math.round(cx + Math.cos(t) * 9), Math.round(cy + Math.sin(t) * 9), 2, 2); }
+            R('#c9925a', cx - 2, cy - 2, 5, 5);
+            /* water spilling off the wheel */
+            for (let j = 0; j < 22; j++) R(j % 3 ? '#a5dcf7' : '#ffffff', 2 + (j % 3), 64 + j, 2, 1);
+            /* a stone plinth */
+            R('#a8b0a8', 2, 82, w - 4, 4); R('#c8d0c8', 2, 82, w - 4, 1);
+        });
+    },
 };

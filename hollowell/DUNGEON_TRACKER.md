@@ -6,8 +6,8 @@
 | Id | Dungeon | Region | Grammar | Tool | Boss | Status |
 |---|---|---|---|---|---|---|
 | D1 | Tidyhouse | Meadowfold | The Return (timing, passing plates, ramming, path shape) | Gloves | Grand Housekeeper | tested |
-| D2 | Kiln | Kilnridge | Shards retrace the carried path | Hookline | Kilnwyrm | planned |
-| D3 | Millrace | Millwater | Currents vs the Return; rafts | Paddle | Old Grindle | planned |
+| D2 | Kiln | Kilnridge | Shards retrace the carried path | Hookline | Kilnwyrm | tested |
+| D3 | Millrace | Millwater | Currents vs the Return; rafts | Paddle | Old Grindle | tested |
 | D4 | Belfry | Belfry Heights | Wind displaces; bells snap home; sleepers | Recall Bell | Tollgrim | planned |
 | D5 | Slumberhouse | Hushwood | Your own mark; falls as travel | Bedroll | Mother Sloth | planned |
 | D6 | Marionette Hall | Larkspur Fair | Remote bodies; synchronised puppets; flats | Crossbar | Great Marionette | planned |
@@ -54,6 +54,50 @@ Nudges (Hints): every puzzle room has one (`nudge` in the room def), after 2-4 m
 Secrets: S04 Staff Only (pantry), S05 pie (kitchen), S06 signature (attic), Heart Patches in the Conservatory and the Attic.
 The shortcut lever by the Ballroom's east door opens the Linen Closets' west door from then on.
 
+## D2 Kiln (`src/45_kiln.js`, `src/44_kiln_kit.js`, tests `tests/kiln.test.mjs`, `tests/kiln_kit.test.mjs`) - tested
+
+| Room | Cell | Teaches / puzzle | Solution | Reward |
+|---|---|---|---|---|
+| Kiln Door | 1,3 | Shards strike what they pass | Throw a pot through the charm over the pit (key nook); a thrown pot breaks the clay seal north | key 1, way on |
+| Long Way Round | 0,3 | Carried path = shard path | Carry the pot under the pulse charm, through the door, to the gate; throw it there | optional, pots |
+| Charm Hall | 1,2 | One flight rings many | Walk a pot under all three charms, smash it at the far end | way north |
+| Crock Pen | 2,3 | Crocks (enemies) | - | - |
+| Sun, Moon, Star | 2,2 | Order: the last walked rings first | Walk under them star-moon-sun | way on |
+| Doubling Back | 0,2 | Loop erasure | Round the ring and finish in the spur (not back along the corridor) | key 2 |
+| Glazing Room | 2,1 | Mini-boss: the Glazer (its own shot comes home through it) | Hit its shot back past it | Hookline |
+| Chasm Gallery | 3,1 | Hookline over chasms | Hook across both | Heart Patch |
+| Bridge of Cords | 3,2 | Shards follow reels | Carry a pot while reeling over the drop | way on |
+| Furnace Hall | 1,1 | Hook empty marks | Knock the crate off its mark, hook the empty mark, reel over | way on |
+| Drying Racks | 0,1 | Combination: four charms, a reel in the middle | One flight with a reel over the pit | Pattern; cracked wall to the Potting Shed |
+| Potting Shed | 0,0 | Signature (S06) | Bram's thumbprint B | Heart Patch |
+| Glaze Vats | 2,0 | Antechamber | - | - |
+| Kiln's Heart | 1,0 | Boss: the Kilnwyrm (follows Wren's footsteps; only shards crack it) | Lay a path through its circuit carrying an urn and smash it so the shards come back along it | Knot, Heartstitch |
+
+## D3 Millrace (`src/49_millrace.js`, `src/49b_millrace_foes.js`, `src/47_water_kit.js`, tests `tests/millrace.test.mjs`, `tests/water_kit.test.mjs`) - tested
+
+Rules: floats (crates, wood, rafts, barrels) drift a tile at a time along currents; the trace grows as they go;
+they come home the long way, half speed against the flow. A float whose mark is on a current runs by itself
+like a ferry (waits at its mark, goes, waits at the end, comes back). Rafts carry Wren (and what Wren carries).
+Wheels watch a water tile: `pulse` turns a while after a float passes, `hold` only while one sits there. The
+Paddle: hold C on a float to steer it a tile at a time; paddling holds it (no drift, no return). Strays fill
+water in. Deep water can be stepped into on purpose (lean on the edge): Wren sinks and flies home.
+
+| Room | Cell | Teaches / puzzle | Solution | Reward |
+|---|---|---|---|---|
+| Wheel Hall | 1,3 | Drift; a pulse wheel | Push the crate into the race; as it floats past the wheel the north gate opens for a while (and again on its way back) | way north |
+| Ferry Pool | 0,3 | A ferry: ride there and back | Board at the landing, ride out to the island, open the chest; it comes back for you on its next run | key 1 |
+| Backwash | 2,3 | Hookline + current | Hook the raft over from the landing; it drifts home along the current with Wren aboard to the platform; hop down the ledge | Plan |
+| The Carousel | 1,2 | A ring current (hub) | The raft goes round the millstone stopping at home; get on and off at the W, N, E landings. W and E doors locked | - |
+| Shard Race | 0,2 | Kiln + rafts | Carry a pot on the ferry under three charms, smash it at the far landing: its shards ride back under them all at once | key 2 |
+| Snapjaw's Race | 2,2 | Mini-boss: the Snapjaw (only what the race brings hurts it) | Push crates into the race when it's below and coming up: they drift into it (3x) | Paddle |
+| Upstream | 1,1 | Paddle against the current | Paddle up the race to the ledge; to get down, lean into the water and fly home. Big door north; E door locked | key 3 |
+| Overflow | 0,1 | Strays fill water | Push two pale stray millstones into the double race to make a crossing | way to the Workshop |
+| The Two Wheels | 2,1 | Holding (Paddle or Gloves) | Ride to the first hold-wheel and keep the raft there (paddle, or grip it from the bank) while the sluice lets the crate down to the second; both turn: the Pattern | Pattern |
+| Workshop | 0,0 | Signature (S06) | Blue A.R. on the floor; drafting table, model mill | Heart Patch |
+| The Millpond | 1,0 | Boss: Old Grindle | Push both barrels into the currents; it gulps them and settles; ride the ferry up to its mouth and strike the gear-heart (3x). On its mouth while it's hungry, it bites you into the water | Knot, Heartstitch |
+
+Keys: 3 keys (Ferry Pool, Shard Race, Upstream), 3 locks (Carousel W and E, Upstream E): any order works.
+
 ## Overworld secrets and Heart Patches
 
 | Secret | Where | How | Status |
@@ -64,4 +108,6 @@ The shortcut lever by the Ballroom's east door opens the Linen Closets' west doo
 | S01 budging | everyone in town | lean on them | built (lines for 17) |
 | Heart Patch | Thimble's shop | 120 buttons | built |
 | S12 Kids' Housekeeper | the town square, after Knot 1 (Otto's chalk X at hub 38,18) | push a crate straight away from his X and step aside: he comes at it from his side, which is the way it goes home, and his own yank bowls him over. Playground badge | built, tested |
+| S19 Behind the falls | Millwater, (171,110) | ride a float down the east side of the river (Paddle): the current turns in behind the falls to a hidden pool; open the chest from the float | built |
+| Basin below the falls | Millwater (172,114) | ride over the falls; a chest (50 buttons) and Linnet's bottle | built |
 | S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |
