@@ -320,7 +320,7 @@ function drawTags(g, e, t) {
     const total = sizes.reduce((a, b) => a + b, 0) + (keys.length - 1) * 2;
     let tx = x + W / 2 - total / 2;
     const lift = e.k === 'wall' && wallStage(sv(e, 'age')) === 'rubble' ? 2 : e.k === 'tree' ? (treeStage(sv(e, 'age')) === 'seed' || treeStage(sv(e, 'age')) === 'sprout' ? 4 : -2) : -8;
-    const ty = e.k === 'tree' ? y + 4 : (OBJ[e.k] && e.wet && !e.float) ? y + 3 : y + lift;
+    const ty = e.k === 'tree' ? y + 9 : (OBJ[e.k] && e.wet && !e.float) ? y + 3 : y + lift;
     keys.forEach((k, i) => { one(k, tx, ty); tx += sizes[i] + 2; });
 }
 

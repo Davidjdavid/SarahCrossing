@@ -108,3 +108,28 @@ Ring at 9999 → cascade animation outside the tower (each window rolls 9→0 bo
 the one carried up into the lamp) → beam → a ship's light → Harbor: the Keeper's son
 steps off. Title card, a few lines of credits, the island's numbers (steps, swaps, stamps).
 Post-game: the world stays playable for the remaining stamps.
+
+## 7. What changed during playtesting (changelog)
+
+- **Rafts, not fill.** Heavy things sink and stay sunk (not a Sokoban bridge); only weight 0
+  floats. Setting a sunk thing to 0 makes it rise — the Mere puzzle is built on that.
+- **Monsters can't be pushed.** Bumping a monster always attacks; pushing the golem out of
+  the gateway was confusing and dodged the fight.
+- **The golem winds up** ("!") for one turn before it strikes, so stepping next to it isn't
+  instant death and the player always gets one action to disarm it.
+- **Rotten bridges just won't hold you** (they creak) instead of collapsing and destroying
+  their digit.
+- **Gifts drop beside you, not under you**, when your satchel is full (the first 0 tip was
+  hidden under the player sprite).
+- **Doors only exist while their house stands** (hidden house ages with spectacles), and
+  people have hidden ages too; the guard steps aside as a child. The spectacles reveal felt
+  thin with only a handful of hidden numbers.
+- **"Walk home"** in the pause menu: the second floor's one-way ledge plus autosave could
+  otherwise strand a player who reloads in the lower part.
+- **A one-time undo tip** the first time something sinks or falls; the death screen already
+  taught undo, a lost parcel didn't.
+- **Stamp rumors.** Missing stamps show a cryptic one-liner in the album, so secrets are
+  hinted without being explained.
+- **Tock's line** about the clock was too explicit; now oblique ("It keeps it").
+- Undo through doors didn't restore the destination room's return point — found by the fuzz
+  test.
