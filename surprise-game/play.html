@@ -2285,7 +2285,7 @@ const digitW = d => (DIG[d] || DIG[0])[0].length;
 /* ---------- icons for what a number means (5x5) ---------- */
 const ICON_SRC = {
     wt: ['.###.', '..#..', '#####', '#####', '.###.'],
-    str: ['.##..', '#####', '#####', '.####', '..##.'],
+    str: ['....#', '...#.', '#.#..', '.#...', '#.#..'],
     hp: ['#.#..', '#####', '#####', '.###.', '..#..'],
     age: ['#####', '.###.', '..#..', '.#.#.', '#####'],
     addr: ['..#..', '.###.', '#####', '.#.#.', '.###.'],
@@ -3449,16 +3449,17 @@ function selfCardPos() {
     const v = VIS.get('@') || { x: G.p.x * TS, y: G.p.y * TS + OY };
     const keys = slotKeys(SELF);
     const w = keys.reduce((a, k) => a + tagSize(slotGet(SELF, k).length).w + 2, 0) + 4;
-    let x = Math.round(v.x + 8 - w / 2), y = Math.round(v.y - 30);
+    let x = Math.round(v.x + 8 - w / 2), y = Math.round(v.y - 38);
     if (y < TOP + 2) y = Math.round(v.y + 20);
     x = clamp(x, 2, VW - w - 2);
     return { x, y, w, keys };
 }
 function drawSelfCard(g) {
     const { x, y, w, keys } = selfCardPos();
-    blob(g, x, y, w, 14, C.K, C.k, roundRect(w, 14, 3));
+    blob(g, x, y, w, 24, C.K, C.k, roundRect(w, 24, 3));
     let cx = x + 3;
-    for (const k of keys) { const { w: tw } = drawTag(g, SELF, k, slotGet(SELF, k), cx, y + 2); cx += tw + 2; }
+    const WORD = { hp: 'hp', str: 'str', wt: 'wt', age: 'age', hour: 'time', gold: 'gold' };
+    for (const k of keys) { const { w: tw } = drawTag(g, SELF, k, slotGet(SELF, k), cx, y + 2); textC(g, WORD[k] || k, cx + tw / 2, y + 13, C.W); cx += tw + 2; }
 }
 function candPos(c) {
     if (c.t === 'drop') return { x: c.x * TS + 6, y: c.y * TS + OY + 5, w: 4 };
