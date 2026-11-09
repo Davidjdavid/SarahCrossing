@@ -193,23 +193,37 @@ const Eye = {
             if (k >= 1) { const L2 = 6 * R.s; ctx.fillStyle = i ? '#9fe8ff' : P.cream; for (const [cx, cy] of [[sx, sy], [sx + sw, sy], [sx, sy + sh], [sx + sw, sy + sh]]) ctx.fillRect(cx - L2 / 2, cy - L2 / 2, L2, L2); }
         });
         if (Cam.split && k >= 1) {
-            const [A, B] = frames;
-            ctx.strokeStyle = 'rgba(255,200,240,0.8)'; ctx.setLineDash([4 * R.s, 3 * R.s]); ctx.lineWidth = R.s;
+            /* the two edges that are one place, both drawn in the seam's colour */
+            const [A, B] = frames, pulse = 0.6 + Math.sin(G.t * 5) * 0.3;
+            ctx.strokeStyle = `rgba(255,140,210,${pulse})`; ctx.lineWidth = Math.max(3, R.s * 1.6);
+            ctx.beginPath(); ctx.moveTo(ox + (A.x + A.w) * s, oy + A.y * s); ctx.lineTo(ox + (A.x + A.w) * s, oy + (A.y + A.h) * s);
+            ctx.moveTo(ox + B.x * s, oy + B.y * s); ctx.lineTo(ox + B.x * s, oy + (B.y + B.h) * s); ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,200,240,0.5)'; ctx.setLineDash([3 * R.s, 3 * R.s]); ctx.lineWidth = R.s * 0.6;
             ctx.beginPath(); ctx.moveTo(ox + (A.x + A.w) * s, oy + (A.y + A.h / 2) * s); ctx.lineTo(ox + B.x * s, oy + (B.y + B.h / 2) * s); ctx.stroke(); ctx.setLineDash([]);
         }
         if (G.flags.lit) Beam.draw(ctx, ox, oy, s);
         /* little marks for the folk walking to the cape */
-        if (k >= 1 && !G.flags.lit) for (const n of EYE_WALKERS) {
-            const p = ent(n); if (!p || p.map !== MAPS.island || p.st.arrived) continue;
-            const x = ox + ecx(p) * s, y = oy + (p.y - 10) * s;
-            ctx.fillStyle = p.seen ? P.yellow : P.cream; ctx.beginPath(); ctx.arc(x, y, 2.4 * R.s, 0, 7); ctx.fill();
-            drawText(ctx, NAMES[n] || n, x + 4 * R.s, y - 4 * R.s, P.cream, R.s * 0.8, '#00000088');
+        if (k >= 1 && !G.flags.lit) {
+            /* little marks: the folk walking to the cape, the fire, the lamp (names only where they don't crowd) */
+            const marks = [];
+            for (const n of EYE_WALKERS) { const p = ent(n); if (p && p.map === MAPS.island && !p.st.arrived) marks.push([ecx(p), p.y - 10, NAMES[n] || n, p.seen ? P.yellow : P.cream]); }
+            const bf = ent('bonfire'); if (bf) marks.push([ecx(bf), bf.y, 'Fire', P.orange]);
+            const lp = ent('lhlamp'); if (lp) marks.push([ecx(lp), lp.y, 'Lamp', '#fff6c8']);
+            const taken = [];
+            for (const [wx, wy, label, col] of marks) {
+                const x = ox + wx * s, y = oy + wy * s;
+                ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 2.4 * R.s, 0, 7); ctx.fill();
+                const w = textWidth(label) * R.s * 0.8, box = { x: x + 4 * R.s, y: y - 4 * R.s, w, h: 7 * R.s };
+                if (taken.some(t => overlap(t, box))) continue;
+                taken.push(box); drawText(ctx, label, box.x, box.y, col, R.s * 0.8, '#000000aa');
+            }
         }
-        if (k >= 1 && !World.cutscene && !G.flags.lit) this.drawGoals(ctx);
+        if (k >= 1 && !G.flags.ended) this.drawInset(ctx);
+        if (k >= 1 && !G.flags.lastLook && (!World.cutscene || G.flags.lit)) this.drawGoals(ctx);
         if (G.flags.lastLook && !G.flags.ended && G.state === 'play' && !World.cutscene) {
             const t = 'Look at whatever you like.   Z: close your eye.';
-            ctx.fillStyle = 'rgba(26,18,32,0.8)'; roundRect(ctx, R.gx + (VIEW_W / 2 - textWidth(t) / 2 - 8) * R.s, R.gy + (VIEW_H - 22) * R.s, (textWidth(t) + 16) * R.s, 14 * R.s, 4 * R.s); ctx.fill();
-            drawText(ctx, t, R.gx + (VIEW_W / 2 - textWidth(t) / 2) * R.s, R.gy + (VIEW_H - 19) * R.s, P.cream, R.s);
+            ctx.fillStyle = 'rgba(26,18,32,0.8)'; roundRect(ctx, R.gx + (VIEW_W / 2 - textWidth(t) / 2 - 8) * R.s, R.gy + 4 * R.s, (textWidth(t) + 16) * R.s, 14 * R.s, 4 * R.s); ctx.fill();
+            drawText(ctx, t, R.gx + (VIEW_W / 2 - textWidth(t) / 2) * R.s, R.gy + 7 * R.s, P.cream, R.s);
         }
     },
     goals() {
@@ -217,17 +231,30 @@ const Eye = {
         return [
             [Light.night(), 'Night (the island keeps the Great Clock\'s hour)'],
             [here('ansel'), 'Grandpa Ansel at the lighthouse'],
-            [EYE_WALKERS.slice(1).every(here), 'Everyone else (if you can)'],
+            [EYE_WALKERS.slice(1).every(here), 'Iris, Pan and Flash too (if you can)'],
             [F.lit, 'A flame for the lamp'],
         ];
     },
     drawGoals(ctx) {
-        const s = R.s;
-        const g = this.goals();
-        const k = s * 0.75;
-        ctx.fillStyle = 'rgba(26,18,32,0.82)'; roundRect(ctx, R.gx + 4 * s, R.gy + R.gh - 42 * s, 150 * s, 38 * s, 4 * s); ctx.fill();
-        g.forEach(([ok, t], i) => drawText(ctx, (ok ? '✓ ' : '· ') + t, R.gx + 9 * s, R.gy + R.gh - 38 * s + i * 8.5 * s, ok ? P.yellow : P.cream, k));
-        drawText(ctx, 'Arrows: move   Q/E: size   Tab: split   X: other half', R.gx + 160 * s, R.gy + R.gh - 10 * s, '#c9b8e8', k, '#00000088');
+        const s = R.s, g = this.goals(), k = s * 0.7;
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = 'rgba(26,18,32,0.78)'; roundRect(ctx, R.gx + 24 * s, R.gy + 3 * s, 132 * s, 34 * s, 4 * s); ctx.fill();
+        g.forEach(([ok, t], i) => drawText(ctx, (ok ? '✓ ' : '· ') + t, R.gx + 28 * s, R.gy + 6.5 * s + i * 7.5 * s, ok ? P.yellow : P.cream, k));
+        ctx.globalAlpha = 1;
+        drawText(ctx, 'Arrows: move   Q/E: size   Tab: split   X: other half', R.gx + 4 * s, R.gy + R.gh - 9 * s, '#c9b8e8', k, '#00000088');
+    },
+    /* what the view sees, close up, in the corner (the old screen, in a way) */
+    drawInset(ctx) {
+        const s = R.s, frames = Cam.frames(), W = 112, H = 63;
+        const x0 = R.gx + (VIEW_W - W - 4) * s, y0 = R.gy + (VIEW_H - H - 4) * s;
+        ctx.fillStyle = '#120c18'; ctx.fillRect(x0 - 2 * s, y0 - 2 * s, (W + 4) * s, (H + 4) * s);
+        const ww = W / frames.length;
+        frames.forEach((r, i) => {
+            const fh = ww * r.h / r.w, fy = y0 + (H - fh) / 2 * s;
+            R.drawWorld(r, x0 + i * ww * s, fy, ww * s, fh * s, i);
+        });
+        if (frames.length > 1) { ctx.fillStyle = 'rgba(255,140,210,0.9)'; ctx.fillRect(x0 + ww * s - s, y0, 2 * s, H * s); }
+        ctx.strokeStyle = P.cream; ctx.lineWidth = s; ctx.strokeRect(x0 - 1.5 * s, y0 - 1.5 * s, (W + 3) * s, (H + 3) * s);
     },
 };
 Story.on('tick', (dt) => {

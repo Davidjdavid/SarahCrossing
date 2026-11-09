@@ -1,4 +1,5 @@
 /* the end: one last look, the eye closes on it, and that picture is what the credits roll over */
+const CREDIT_SPEED = 13;
 const CREDITS = [
     ['SELDOM', 'title'],
     ['a little island, seldom seen', 'sub'],
@@ -38,7 +39,7 @@ const Ending = {
     update(dt) {
         this.t += dt;
         if (this.phase === 'iris' && this.t > 2.6) { this.phase = 'credits'; this.t = 0; }
-        else if (this.phase === 'credits' && (this.t > CREDITS.length * 1.6 + 6 || Input.hit.act && this.t > 3)) { this.phase = 'after'; this.t = 0; }
+        else if (this.phase === 'credits' && (this.t > (VIEW_H + 40 + CREDITS.length * 18) / CREDIT_SPEED + 5 || Input.hit.act && this.t > 3)) { this.phase = 'after'; this.t = 0; }
         else if (this.phase === 'after' && Input.hit.act && this.t > 1.5) { Game.toTitle(); }
         if (this.phase === 'after') { Beam.a = (Beam.a + dt * 0.5) % (Math.PI * 2); Cam.ax += Math.sin(this.t * 0.07) * 6 * dt; Cam.clampMap(0); }
     },
@@ -58,7 +59,7 @@ const Ending = {
             ctx.drawImage(this.snap, X(px0), Y(py0), pw * s, ph * s);
             drawText(ctx, 'Seldom, the last look', X(px0), Y(py0 + ph + 3), P.brownD, s);
             ctx.globalAlpha = 1;
-            const y0 = VIEW_H + 10 - this.t * 22;
+            const y0 = VIEW_H + 10 - this.t * CREDIT_SPEED;
             CREDITS.forEach(([a, b], i) => {
                 const y = y0 + i * 18; if (y < -20 || y > VIEW_H + 10) return;
                 if (b === 'title') drawText(ctx, a, X(300 - textWidth(a)), Y(y), P.cream, s * 2);

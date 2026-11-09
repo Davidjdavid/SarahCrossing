@@ -1,7 +1,7 @@
 /* the title screen */
 const Title = {
     sel: 0, t: 0, has: false,
-    enter() { this.t = 0; this.has = !!Save.read(); this.sel = this.has ? 0 : 1; G.state = 'title'; },
+    enter() { this.t = 0; const sv = Save.read(); this.has = !!sv; this.ended = !!(sv && sv.flags && sv.flags.ended); this.sel = this.has ? 0 : 1; G.state = 'title'; },
     items() { return this.has ? ['Continue', 'New game'] : ['Begin']; },
     update(dt) {
         this.t += dt;
@@ -27,7 +27,9 @@ const Title = {
         ctx.fillStyle = '#20406a'; ctx.fillRect(X(0), Y(150), R.gw, (VIEW_H - 150) * s);
         for (let i = 0; i < 30; i++) { const x = (hash2(i, 3, 9) * VIEW_W + this.t * 6 * (i % 3 + 1)) % VIEW_W, y = 152 + hash2(i, 4, 9) * 60; ctx.fillStyle = 'rgba(160,200,255,0.35)'; ctx.fillRect(X(x), Y(y), 6 * s, s); }
         ctx.fillStyle = '#2a2440'; ctx.beginPath(); ctx.moveTo(X(250), Y(152)); ctx.lineTo(X(290), Y(128)); ctx.lineTo(X(340), Y(132)); ctx.lineTo(X(384), Y(150)); ctx.lineTo(X(384), Y(156)); ctx.lineTo(X(250), Y(156)); ctx.fill();
-        const lh = lighthouseCanvas(false); ctx.drawImage(lh, X(300), Y(132 - lh.height * 0.6), lh.width * 0.6 * s, lh.height * 0.6 * s);
+        const lit = this.ended;
+        if (lit) { const a = this.t * 0.6, cx = X(312), cy = Y(132 - 104 * 0.6 + 8); const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, 260 * s); g2.addColorStop(0, 'rgba(255,240,180,0.45)'); g2.addColorStop(1, 'rgba(255,240,180,0)'); ctx.fillStyle = g2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, 260 * s, a - 0.16, a + 0.16); ctx.closePath(); ctx.fill(); }
+        const lh = lighthouseCanvas(lit); ctx.drawImage(lh, X(300), Y(132 - lh.height * 0.6), lh.width * 0.6 * s, lh.height * 0.6 * s);
         drawText(ctx, 'SELDOM', X(VIEW_W / 2 - textWidth('SELDOM') * 2.5), Y(54), P.cream, s * 5, '#120c18');
         drawText(ctx, 'a little island, seldom seen', X(VIEW_W / 2 - textWidth('a little island, seldom seen') / 2), Y(98), '#c9b8e8', s);
         const items = this.items();

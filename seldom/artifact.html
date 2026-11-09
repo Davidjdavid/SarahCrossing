@@ -967,7 +967,7 @@ const Cam = {
     clampMap(i) {
         const m = World.map, w = this.fw(), h = this.fh();
         let cx = i ? this.bx : this.ax, cy = i ? this.by : this.ay;
-        const pad = m.def.pad || 0;
+        const pad = this.eye ? 0 : (m.def.pad || 0);
         if (m.pw + pad * 2 <= w) cx = m.pw / 2; else cx = clamp(cx, w / 2 - pad, m.pw - w / 2 + pad);
         if (m.ph + pad * 2 <= h) cy = m.ph / 2; else cy = clamp(cy, h / 2 - pad, m.ph - h / 2 + pad);
         if (i) { this.bx = cx; this.by = cy; } else { this.ax = cx; this.ay = cy; }
@@ -1044,7 +1044,7 @@ const Cam = {
         } else if (this.eye && G.state === 'play') {
             /* the last act: the arrows move the view itself */
             const [x, y] = Input.axis();
-            const sp = 150 / this.zoom * dt * (Input.down.act ? 2 : 1);
+            const sp = 260 * dt * (Input.down.act ? 2 : 1);   /* the same speed on the island's map at any size */
             this.ax += x * sp; this.ay += y * sp; this.clampMap(0);
         }
         if (!this.split && this.mode === 'follow' && d && !this.eye) {
@@ -2070,6 +2070,7 @@ const UI = {
             ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(cx, cy, 1.2 * s, 0, 7); ctx.fill();
             ctx.globalAlpha = 1;
         }
+        if (Cam.eye) return;   /* the glasses are in the lens now */
         let x = VIEW_W - 16;
         for (const [flag, pic] of [['prism', 'prism'], ['wideglass', 'wideglass'], ['loupe', 'loupe'], ['spyglass', 'spyglass']]) {
             if (!G.flags[flag]) continue;
@@ -4018,23 +4019,37 @@ const Eye = {
             if (k >= 1) { const L2 = 6 * R.s; ctx.fillStyle = i ? '#9fe8ff' : P.cream; for (const [cx, cy] of [[sx, sy], [sx + sw, sy], [sx, sy + sh], [sx + sw, sy + sh]]) ctx.fillRect(cx - L2 / 2, cy - L2 / 2, L2, L2); }
         });
         if (Cam.split && k >= 1) {
-            const [A, B] = frames;
-            ctx.strokeStyle = 'rgba(255,200,240,0.8)'; ctx.setLineDash([4 * R.s, 3 * R.s]); ctx.lineWidth = R.s;
+            /* the two edges that are one place, both drawn in the seam's colour */
+            const [A, B] = frames, pulse = 0.6 + Math.sin(G.t * 5) * 0.3;
+            ctx.strokeStyle = `rgba(255,140,210,${pulse})`; ctx.lineWidth = Math.max(3, R.s * 1.6);
+            ctx.beginPath(); ctx.moveTo(ox + (A.x + A.w) * s, oy + A.y * s); ctx.lineTo(ox + (A.x + A.w) * s, oy + (A.y + A.h) * s);
+            ctx.moveTo(ox + B.x * s, oy + B.y * s); ctx.lineTo(ox + B.x * s, oy + (B.y + B.h) * s); ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,200,240,0.5)'; ctx.setLineDash([3 * R.s, 3 * R.s]); ctx.lineWidth = R.s * 0.6;
             ctx.beginPath(); ctx.moveTo(ox + (A.x + A.w) * s, oy + (A.y + A.h / 2) * s); ctx.lineTo(ox + B.x * s, oy + (B.y + B.h / 2) * s); ctx.stroke(); ctx.setLineDash([]);
         }
         if (G.flags.lit) Beam.draw(ctx, ox, oy, s);
         /* little marks for the folk walking to the cape */
-        if (k >= 1 && !G.flags.lit) for (const n of EYE_WALKERS) {
-            const p = ent(n); if (!p || p.map !== MAPS.island || p.st.arrived) continue;
-            const x = ox + ecx(p) * s, y = oy + (p.y - 10) * s;
-            ctx.fillStyle = p.seen ? P.yellow : P.cream; ctx.beginPath(); ctx.arc(x, y, 2.4 * R.s, 0, 7); ctx.fill();
-            drawText(ctx, NAMES[n] || n, x + 4 * R.s, y - 4 * R.s, P.cream, R.s * 0.8, '#00000088');
+        if (k >= 1 && !G.flags.lit) {
+            /* little marks: the folk walking to the cape, the fire, the lamp (names only where they don't crowd) */
+            const marks = [];
+            for (const n of EYE_WALKERS) { const p = ent(n); if (p && p.map === MAPS.island && !p.st.arrived) marks.push([ecx(p), p.y - 10, NAMES[n] || n, p.seen ? P.yellow : P.cream]); }
+            const bf = ent('bonfire'); if (bf) marks.push([ecx(bf), bf.y, 'Fire', P.orange]);
+            const lp = ent('lhlamp'); if (lp) marks.push([ecx(lp), lp.y, 'Lamp', '#fff6c8']);
+            const taken = [];
+            for (const [wx, wy, label, col] of marks) {
+                const x = ox + wx * s, y = oy + wy * s;
+                ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 2.4 * R.s, 0, 7); ctx.fill();
+                const w = textWidth(label) * R.s * 0.8, box = { x: x + 4 * R.s, y: y - 4 * R.s, w, h: 7 * R.s };
+                if (taken.some(t => overlap(t, box))) continue;
+                taken.push(box); drawText(ctx, label, box.x, box.y, col, R.s * 0.8, '#000000aa');
+            }
         }
-        if (k >= 1 && !World.cutscene && !G.flags.lit) this.drawGoals(ctx);
+        if (k >= 1 && !G.flags.ended) this.drawInset(ctx);
+        if (k >= 1 && !G.flags.lastLook && (!World.cutscene || G.flags.lit)) this.drawGoals(ctx);
         if (G.flags.lastLook && !G.flags.ended && G.state === 'play' && !World.cutscene) {
             const t = 'Look at whatever you like.   Z: close your eye.';
-            ctx.fillStyle = 'rgba(26,18,32,0.8)'; roundRect(ctx, R.gx + (VIEW_W / 2 - textWidth(t) / 2 - 8) * R.s, R.gy + (VIEW_H - 22) * R.s, (textWidth(t) + 16) * R.s, 14 * R.s, 4 * R.s); ctx.fill();
-            drawText(ctx, t, R.gx + (VIEW_W / 2 - textWidth(t) / 2) * R.s, R.gy + (VIEW_H - 19) * R.s, P.cream, R.s);
+            ctx.fillStyle = 'rgba(26,18,32,0.8)'; roundRect(ctx, R.gx + (VIEW_W / 2 - textWidth(t) / 2 - 8) * R.s, R.gy + 4 * R.s, (textWidth(t) + 16) * R.s, 14 * R.s, 4 * R.s); ctx.fill();
+            drawText(ctx, t, R.gx + (VIEW_W / 2 - textWidth(t) / 2) * R.s, R.gy + 7 * R.s, P.cream, R.s);
         }
     },
     goals() {
@@ -4042,17 +4057,30 @@ const Eye = {
         return [
             [Light.night(), 'Night (the island keeps the Great Clock\'s hour)'],
             [here('ansel'), 'Grandpa Ansel at the lighthouse'],
-            [EYE_WALKERS.slice(1).every(here), 'Everyone else (if you can)'],
+            [EYE_WALKERS.slice(1).every(here), 'Iris, Pan and Flash too (if you can)'],
             [F.lit, 'A flame for the lamp'],
         ];
     },
     drawGoals(ctx) {
-        const s = R.s;
-        const g = this.goals();
-        const k = s * 0.75;
-        ctx.fillStyle = 'rgba(26,18,32,0.82)'; roundRect(ctx, R.gx + 4 * s, R.gy + R.gh - 42 * s, 150 * s, 38 * s, 4 * s); ctx.fill();
-        g.forEach(([ok, t], i) => drawText(ctx, (ok ? '✓ ' : '· ') + t, R.gx + 9 * s, R.gy + R.gh - 38 * s + i * 8.5 * s, ok ? P.yellow : P.cream, k));
-        drawText(ctx, 'Arrows: move   Q/E: size   Tab: split   X: other half', R.gx + 160 * s, R.gy + R.gh - 10 * s, '#c9b8e8', k, '#00000088');
+        const s = R.s, g = this.goals(), k = s * 0.7;
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = 'rgba(26,18,32,0.78)'; roundRect(ctx, R.gx + 24 * s, R.gy + 3 * s, 132 * s, 34 * s, 4 * s); ctx.fill();
+        g.forEach(([ok, t], i) => drawText(ctx, (ok ? '✓ ' : '· ') + t, R.gx + 28 * s, R.gy + 6.5 * s + i * 7.5 * s, ok ? P.yellow : P.cream, k));
+        ctx.globalAlpha = 1;
+        drawText(ctx, 'Arrows: move   Q/E: size   Tab: split   X: other half', R.gx + 4 * s, R.gy + R.gh - 9 * s, '#c9b8e8', k, '#00000088');
+    },
+    /* what the view sees, close up, in the corner (the old screen, in a way) */
+    drawInset(ctx) {
+        const s = R.s, frames = Cam.frames(), W = 112, H = 63;
+        const x0 = R.gx + (VIEW_W - W - 4) * s, y0 = R.gy + (VIEW_H - H - 4) * s;
+        ctx.fillStyle = '#120c18'; ctx.fillRect(x0 - 2 * s, y0 - 2 * s, (W + 4) * s, (H + 4) * s);
+        const ww = W / frames.length;
+        frames.forEach((r, i) => {
+            const fh = ww * r.h / r.w, fy = y0 + (H - fh) / 2 * s;
+            R.drawWorld(r, x0 + i * ww * s, fy, ww * s, fh * s, i);
+        });
+        if (frames.length > 1) { ctx.fillStyle = 'rgba(255,140,210,0.9)'; ctx.fillRect(x0 + ww * s - s, y0, 2 * s, H * s); }
+        ctx.strokeStyle = P.cream; ctx.lineWidth = s; ctx.strokeRect(x0 - 1.5 * s, y0 - 1.5 * s, (W + 3) * s, (H + 3) * s);
     },
 };
 Story.on('tick', (dt) => {
@@ -4296,6 +4324,7 @@ function curioShelfText() {
 
 /* ---- 29_ending.js ---- */
 /* the end: one last look, the eye closes on it, and that picture is what the credits roll over */
+const CREDIT_SPEED = 13;
 const CREDITS = [
     ['SELDOM', 'title'],
     ['a little island, seldom seen', 'sub'],
@@ -4335,7 +4364,7 @@ const Ending = {
     update(dt) {
         this.t += dt;
         if (this.phase === 'iris' && this.t > 2.6) { this.phase = 'credits'; this.t = 0; }
-        else if (this.phase === 'credits' && (this.t > CREDITS.length * 1.6 + 6 || Input.hit.act && this.t > 3)) { this.phase = 'after'; this.t = 0; }
+        else if (this.phase === 'credits' && (this.t > (VIEW_H + 40 + CREDITS.length * 18) / CREDIT_SPEED + 5 || Input.hit.act && this.t > 3)) { this.phase = 'after'; this.t = 0; }
         else if (this.phase === 'after' && Input.hit.act && this.t > 1.5) { Game.toTitle(); }
         if (this.phase === 'after') { Beam.a = (Beam.a + dt * 0.5) % (Math.PI * 2); Cam.ax += Math.sin(this.t * 0.07) * 6 * dt; Cam.clampMap(0); }
     },
@@ -4355,7 +4384,7 @@ const Ending = {
             ctx.drawImage(this.snap, X(px0), Y(py0), pw * s, ph * s);
             drawText(ctx, 'Seldom, the last look', X(px0), Y(py0 + ph + 3), P.brownD, s);
             ctx.globalAlpha = 1;
-            const y0 = VIEW_H + 10 - this.t * 22;
+            const y0 = VIEW_H + 10 - this.t * CREDIT_SPEED;
             CREDITS.forEach(([a, b], i) => {
                 const y = y0 + i * 18; if (y < -20 || y > VIEW_H + 10) return;
                 if (b === 'title') drawText(ctx, a, X(300 - textWidth(a)), Y(y), P.cream, s * 2);
@@ -4442,7 +4471,7 @@ async function actTwoAnsel(e) {
 /* the title screen */
 const Title = {
     sel: 0, t: 0, has: false,
-    enter() { this.t = 0; this.has = !!Save.read(); this.sel = this.has ? 0 : 1; G.state = 'title'; },
+    enter() { this.t = 0; const sv = Save.read(); this.has = !!sv; this.ended = !!(sv && sv.flags && sv.flags.ended); this.sel = this.has ? 0 : 1; G.state = 'title'; },
     items() { return this.has ? ['Continue', 'New game'] : ['Begin']; },
     update(dt) {
         this.t += dt;
@@ -4468,7 +4497,9 @@ const Title = {
         ctx.fillStyle = '#20406a'; ctx.fillRect(X(0), Y(150), R.gw, (VIEW_H - 150) * s);
         for (let i = 0; i < 30; i++) { const x = (hash2(i, 3, 9) * VIEW_W + this.t * 6 * (i % 3 + 1)) % VIEW_W, y = 152 + hash2(i, 4, 9) * 60; ctx.fillStyle = 'rgba(160,200,255,0.35)'; ctx.fillRect(X(x), Y(y), 6 * s, s); }
         ctx.fillStyle = '#2a2440'; ctx.beginPath(); ctx.moveTo(X(250), Y(152)); ctx.lineTo(X(290), Y(128)); ctx.lineTo(X(340), Y(132)); ctx.lineTo(X(384), Y(150)); ctx.lineTo(X(384), Y(156)); ctx.lineTo(X(250), Y(156)); ctx.fill();
-        const lh = lighthouseCanvas(false); ctx.drawImage(lh, X(300), Y(132 - lh.height * 0.6), lh.width * 0.6 * s, lh.height * 0.6 * s);
+        const lit = this.ended;
+        if (lit) { const a = this.t * 0.6, cx = X(312), cy = Y(132 - 104 * 0.6 + 8); const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, 260 * s); g2.addColorStop(0, 'rgba(255,240,180,0.45)'); g2.addColorStop(1, 'rgba(255,240,180,0)'); ctx.fillStyle = g2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, 260 * s, a - 0.16, a + 0.16); ctx.closePath(); ctx.fill(); }
+        const lh = lighthouseCanvas(lit); ctx.drawImage(lh, X(300), Y(132 - lh.height * 0.6), lh.width * 0.6 * s, lh.height * 0.6 * s);
         drawText(ctx, 'SELDOM', X(VIEW_W / 2 - textWidth('SELDOM') * 2.5), Y(54), P.cream, s * 5, '#120c18');
         drawText(ctx, 'a little island, seldom seen', X(VIEW_W / 2 - textWidth('a little island, seldom seen') / 2), Y(98), '#c9b8e8', s);
         const items = this.items();

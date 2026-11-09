@@ -83,6 +83,7 @@ const UI = {
             ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(cx, cy, 1.2 * s, 0, 7); ctx.fill();
             ctx.globalAlpha = 1;
         }
+        if (Cam.eye) return;   /* the glasses are in the lens now */
         let x = VIEW_W - 16;
         for (const [flag, pic] of [['prism', 'prism'], ['wideglass', 'wideglass'], ['loupe', 'loupe'], ['spyglass', 'spyglass']]) {
             if (!G.flags[flag]) continue;

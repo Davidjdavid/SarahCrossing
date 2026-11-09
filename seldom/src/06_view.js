@@ -32,7 +32,7 @@ const Cam = {
     clampMap(i) {
         const m = World.map, w = this.fw(), h = this.fh();
         let cx = i ? this.bx : this.ax, cy = i ? this.by : this.ay;
-        const pad = m.def.pad || 0;
+        const pad = this.eye ? 0 : (m.def.pad || 0);
         if (m.pw + pad * 2 <= w) cx = m.pw / 2; else cx = clamp(cx, w / 2 - pad, m.pw - w / 2 + pad);
         if (m.ph + pad * 2 <= h) cy = m.ph / 2; else cy = clamp(cy, h / 2 - pad, m.ph - h / 2 + pad);
         if (i) { this.bx = cx; this.by = cy; } else { this.ax = cx; this.ay = cy; }
@@ -109,7 +109,7 @@ const Cam = {
         } else if (this.eye && G.state === 'play') {
             /* the last act: the arrows move the view itself */
             const [x, y] = Input.axis();
-            const sp = 150 / this.zoom * dt * (Input.down.act ? 2 : 1);
+            const sp = 260 * dt * (Input.down.act ? 2 : 1);   /* the same speed on the island's map at any size */
             this.ax += x * sp; this.ay += y * sp; this.clampMap(0);
         }
         if (!this.split && this.mode === 'follow' && d && !this.eye) {
