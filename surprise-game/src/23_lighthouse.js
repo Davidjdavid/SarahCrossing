@@ -19,7 +19,7 @@ ROOMS.road = {
     ents: [
         { k: 'milestone', id: 'ms_road', x: 7, y: 4, side: 'both' },
         { k: 'stamp', id: 'st_walk', x: 10, y: 4, stamp: 'walk', when: 'walk' },
-        NPC('walker', 12, 6, 'walker', AGE([3, 3], { when: 'walk', always: true })),
+        NPC('walker', 12, 6, 'walker', AGE([3, 3], { when: 'half', always: true })),
     ],
 };
 

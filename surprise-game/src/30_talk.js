@@ -86,7 +86,10 @@ TALK.prisoner = () => cycle('pr', [['They locked me in when the war started. The
 TALK.clerk = () => cycle('clerk', [['Dead letters. Addressed to numbers where nobody lives.'], ['You\'re the first to arrive here on purpose. Or by accident. Hard to tell, here.']]);
 TALK.hourling = () => cycle('hl', [['...'], ['You found an hour that isn\'t. Most people only ever get twenty-four.', 'Take what\'s in the chest. Nobody else will.']]);
 TALK.miner = () => cycle('miner', [['Heavy, are you? Me too, once.'], ['I left some nines down here. Nobody digs for nines any more.']]);
-TALK.walker = () => cycle('walker', [['Halfway! I think. I\'ve been walking a while.'], ['The milestones are only numbers, you know.', 'I never had the heart to change one.']]);
+TALK.walker = () => {
+    if (!F().honest) return ['You got here quick. Too quick.', 'Halfway only counts if you walk it. From one end, no fiddling with the milestones.'];
+    return cycle('walker', [['Halfway! You walked it too? Good for you.', 'There\'s something here for people like us.'], ['The milestones are only numbers, you know.', 'I never had the heart to change one.']]);
+};
 TALK.son = () => cycle('son', [['Mum says you climbed the whole tower. Thank you.'], ['Ten thousand ships. And I was the one that carried it over.']]);
 TALK.keeper2 = () => cycle('keeper2', [['I\'ll leave it on now. Always.'], ['Go and see the town, dear. They\'ll want to thank you.']]);
 TALK.keeper = () => {
@@ -124,14 +127,15 @@ HOOK.delivered = (parcel, room) => {
 HOOK.lit = () => { F().lit = true; EV.push({ t: 'ending' }); };
 const WHEN = {
     shore: () => { const s = entById('sea', 'harbor'); return !!s && dval(s.s.d) <= 1; },
-    walk: () => G.road.p === 50 && !!F().honest && G.road.e !== Infinity,
+    walk: () => G.road.p === 50 && G.road.e > 0 && !!F().honest,
+    half: () => G.road.p === 50 && G.road.e > 0,
     lit: () => !!F().lit,
 };
 HOOK.swapped = (e, key, took, gave) => {
     if (e.k === 'milestone') F().honest = false;
 };
 HOOK.onRoom = (id, from) => {
-    if (id === 'road' && from === 'eastlane') F().honest = true;
+    if (id === 'road' && (from === 'eastlane' || from === 'cliff')) F().honest = true;
     if (id === 'eastlane' || id === 'cliff') F().honest = false;
     if (!F().seen) F().seen = {};
     F().seen[id] = true;

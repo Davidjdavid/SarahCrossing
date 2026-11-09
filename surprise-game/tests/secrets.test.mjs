@@ -109,6 +109,15 @@ test('the far shore', () => {
     got(G, 'shore');
 });
 
+test('halfway: walking it from the far end counts too', () => {
+    const { G, B } = at('cliff', 1, 5, (A, G) => { G.road.p = 99; G.road.e = 0; });
+    B.goto(0, 5); B.move('l');
+    for (let i = 0; i < 48; i++) { B.goto(0, 5); B.move('l'); }
+    assert.equal(G.road.p, 50);
+    B.goto(10, 4);
+    assert.ok(G.stamps.walk);
+});
+
 test('halfway: walk the long road honestly', () => {
     const { G, B } = at('eastlane', 15, 5);
     B.move('r');
@@ -127,6 +136,9 @@ test('no stamp for a road made short', () => {
     B.goto(0, 5); B.move('l');                    // 50
     assert.equal(G.road.p, 50);
     assert.ok(!A.present(A.entById('st_walk')), 'only for the honest walker');
+    assert.ok(A.present(A.entById('walker')), 'but someone is there to say so');
+    B.bump(12, 6);
+    assert.ok(B.lines.some(l => /walk it/.test(l)), B.lines.join('|'));
 });
 
 test('all nine stamps', () => { assert.deepEqual([...stampsAll].sort(), ['cellar', 'hatch', 'hollow', 'hour', 'house', 'mirror', 'nowhere', 'shore', 'walk']); });
