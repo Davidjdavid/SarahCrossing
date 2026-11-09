@@ -143,3 +143,13 @@ SONGS.lullaby = {
         { wave: 'p12', vol: 0.04, n: 'G3 . D4 . B3 . D4 . G3 . D4 . B3 . D4 . | G3 . D4 . B3 . D4 . G3 . . . . . . . ' },
     ],
 };
+
+/* the Knotting Festival: a jig (D major), the town's tune dancing */
+SONGS.festival = {
+    bpm: 144, div: 3,
+    ch: [
+        { wave: 'p25', vol: 0.09, n: 'D5 . F#5 A5 . F#5 | E5 . D5 C#5 . A4 | B4 . D5 G5 . F#5 | E5 . C#5 A4 . . | D5 . F#5 A5 . B5 | A5 . F#5 D5 . F#5 | E5 . G5 F#5 . E5 | D5 . . D5 . . ' },
+        { wave: 'triangle', vol: 0.2, n: 'D3 . A3 D3 . A3 | A2 . E3 A2 . E3 | G2 . D3 G2 . D3 | A2 . E3 A2 . C#3 | D3 . A3 D3 . A3 | D3 . A3 F#3 . A3 | A2 . E3 A2 . E3 | D3 . A2 D3 . . ' },
+        { drum: true, vol: 0.08, n: 'k . h s . h | k . h s h h' },
+    ],
+};

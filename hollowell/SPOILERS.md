@@ -136,7 +136,7 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 26. **S26 The Unfinished House** (O2, optional dungeon).
 27. **S27 The Stray House** (O1, optional dungeon).
 28. **S28 Tidiness Trials** (Inn attic, after D1): three timed rooms (two at once; the long way home; home time: falling flies you home), prize: buttons, a Heart Patch and Ives' teal scarf (every stitch the same size: a quiet clue).
-29. **S29 Returnball** (festival and after): score 5: Heart Patch.
+29. **S29 Returnball** (festival and after): carry the ball through the five rings and let it go; each ring it goes back through scores; five in one go: a Heart Patch from Pip.
 30. **S30 Tuck's Aha!s** (Act III): get three Ahas in every Making: Tuck's drawing of Wren (Gran's fridge,
     shows in the epilogue).
 31. **S31 Moth Matron's silk** (Loomwood): optional mini-boss in a hollow birch; Long silk for the Hookline.
@@ -175,8 +175,10 @@ be frightened of that." The Stray House's last room: Linnet's bracelet (for the 
   currents; full, it settles at its mark for a while with its gear-heart showing; ride the self-running raft
   up the south current to its mouth and strike the heart (3x). Each time it spits the barrels home. Ride up
   while it's hungry and it bites you into the water. Its spit is the danger on the banks.
-- **Tollgrim (D4)**: the gargoyle hides in the great bell; wind blows its clapper out; ring the Recall Bell
-  as the clapper swings back so it slams home with the gargoyle half out (stunned). Or ride the gust.
+- **Tollgrim (D4)**: the gargoyle lives in the great bell; every few seconds a gust (only once he's awake) blows the
+  clapper out of the bell's mouth and he leans out to spit gravel; ring the Recall Bell then and the clapper
+  snaps home with force into him: he drops out dazed below the bell; hit him (3x). Clangor (mini-boss) is the
+  same idea with busts Wren displaces herself.
 - **Mother Sloth (D5)**: its thread-arms grab Wren and reel her to its bed; lay the Bedroll so that
   Homeward drags Wren back across its arms' path, snapping its arms; then hit its nightcap.
 - **Great Marionette (D6)**: walk Wren's own puppets around its legs to tangle the strings (sync puppets),
@@ -185,3 +187,8 @@ be frightened of that." The Stray House's last room: Linnet's bracelet (for the 
 - **The Weaver (D8)**: cut the web strands that bind Wren; cut the anchors holding it aloft; it drops into
   its own loom.
 - **The Spool (Final)**: see DUNGEON_TRACKER.md.
+
+## The Knotting Festival (after Knot 4, `src/57_festival.js`)
+The square in bunting; Gran's speech; Ives, Bram, Dad and Mum arrive late from four directions, out of breath,
+with clay, river water, brass dust and a feather duster on them (the first strong clue to Reveal 1). Gran points
+Wren at the east road and the sleeping giant. Returnball stays up afterwards.

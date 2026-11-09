@@ -178,3 +178,32 @@ test('all three done: Ives knits a scarf', () => {
     HW.warp('inn', 6, 3); HW.step(5); HW.face('up'); HW.press('act', 1); HW.skipTalk(); HW.step(40); HW.skipTalk();
     assert.ok(HW.Inv.has('tealscarf'));
 });
+
+/* ---------------- the Knotting Festival and Returnball (S29) ---------------- */
+test('after the fourth Knot: the festival in the square, once', () => {
+    const HW = loadGame();
+    HW.preset('afterD4'); HW.step(10); HW.skipTalk();
+    HW.warp('hollow', HX + 30, HY + 30); HW.step(10);
+    HW.walkTo(HX + 30, HY + 24);                 /* (the scene starts as soon as she's in the square) */
+    HW.step(10);
+    assert.ok(HW.Progress.flag('festival'), 'it began');
+    HW.skipTalk();
+    assert.ok(HW.G.map.find('rbBall'), 'the Returnball court is up');
+    noErrors(HW);
+});
+
+test('Returnball: carried through all five rings and thrown, it scores five on its way home (S29)', () => {
+    const HW = loadGame();
+    HW.preset('afterD4'); HW.step(10); HW.skipTalk(); HW.Progress.set('festival');
+    HW.warp('hollow', HX + 36, HY + 35); HW.step(10);
+    HW.face('up'); HW.press('act', 1); HW.step(10);
+    assert.ok(HW.player().carry, 'holding the ball');
+    for (const [x, y] of [[38, 35], [38, 33], [41, 33], [43, 33], [43, 35], [43, 36], [40, 36], [37, 36]]) assert.ok(HW.walkTo(HX + x, HY + y), `carry to ${x},${y}`);
+    HW.face('left'); HW.press('act', 1); HW.step(20);
+    assert.ok(HW.walkTo(HX + 39, HY + 34), 'out of its way home');
+    for (let i = 0; i < 900 && !HW.Progress.flag('s29'); i++) HW.step(1);
+    assert.ok(HW.Progress.flag('s29'), 'five');
+    HW.skipTalk();
+    assert.ok(HW.Inv.patches >= 1);
+    noErrors(HW);
+});

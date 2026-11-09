@@ -3,11 +3,12 @@
 _Last updated: 2026-11-09 (session 1, day 1, late)._
 
 ## Status
-**Act I under way: 3 of 8 Houses done.** Engine complete enough for the whole
+**Act I done: 4 of 8 Houses, the festival.** Engine complete enough for the whole
 game; Hollowell (hub) with its buildings, interiors and townsfolk; the prologue and ceremony; Meadowfold; the
 Tidyhouse (D1, 14 rooms); Kilnridge and the Kiln (D2, 13 rooms, the Hookline); Millwater and the Millrace (D3,
-11 rooms, water: currents, rafts, wheels, the Paddle) all playable and covered by tests (87), including
-scripted playthroughs from a fresh game to the first Knot, from there to the second, and from there to the third.
+11 rooms, water: currents, rafts, wheels, the Paddle); the lake crossing, the cliff stair, Belfry Heights and the
+Belfry (D4, 12 rooms: bells, wind, sleepers, the Recall Bell); the Knotting Festival with Returnball. All covered
+by tests (120), including scripted playthroughs leg by leg from a fresh game to the fourth Knot.
 The fresh-eyes review of the slice is fixed (see QA_REPORT.md).
 
 ## Done
@@ -26,15 +27,16 @@ The fresh-eyes review of the slice is fixed (see QA_REPORT.md).
   the HW test API with an autopilot.
 - Content: hub, 11 interiors, prologue, ceremony, townsfolk talk, Meadowfold, D1 complete; Kilnridge and D2
   complete (charms, seals, eyelets, the Hookline, the Glazer, the Kilnwyrm). Presets `afterD1`, `afterD2`
-  (`src/79_presets.js`) start a game at those points; `afterD3` too.
+  (`src/79_presets.js`) start a game at those points; `afterD3`, `afterD4` too.
 
 ## In progress
-- Fresh-eyes review of D3; then Belfry Heights + the Belfry (D4, the Recall Bell).
+- Act II: Hushwood (the rest of block 2,1: the sleeping giant on the east road, woken by the Recall Bell) and
+  the Slumberhouse (D5, the Bedroll).
 
 ## Next priorities
-1. Belfry Heights + Belfry (D4, Recall Bell): reached across the lake (Paddle) to the cliff stair at the
-   north shore pier (Millwater 160,82), up through the east edge. The Knotting Festival in town after D4.
-2. Hushwood + Slumberhouse (D5).
+1. Hushwood + Slumberhouse (D5, Bedroll).
+2. Larkspur Fair + Marionette Hall (D6, Crossbar, Reveal 1).
+3. A fresh-eyes review of D4 and the Heights.
 3. Millwater + Millrace (D3), Belfry Heights + Belfry (D4), the festival; Hushwood + Slumberhouse (D5);
    Larkspur + Marionette Hall (D6) and Reveal 1.
 4. Act III (Underside, D7, Makings), Act IV (D8, cutting, Drift, final), optional dungeons, secrets.

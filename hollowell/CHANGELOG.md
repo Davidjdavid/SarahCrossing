@@ -29,3 +29,11 @@
   secrets behind and below the falls) and the third dungeon (11 rooms, a mini-boss, a boss), with room tests
   and a scripted playthrough from the second dungeon to the third.
 - Fixed: marks set in doorways move one step into the room (a door could shut on them).
+- Fixes from the third dungeon's review: a key-order softlock, marks set on deep water (a sinking loop),
+  stepping onto moving floats, the hook catching your own raft, flowing water drawn on filled tiles, a
+  tougher mini-boss, distinct "hold" wheels, and more. Regression tests for each.
+- Bells and wind: a ring calls everything nearby home at once; sleepers; gusts; a new tool.
+- The fourth region (the lake crossing, a cliff stair, three windy terraces, a chasm) and the fourth dungeon
+  (12 rooms, a mini-boss, a boss, a musical secret), with room tests and a playthrough leg.
+- Engine: things placed in an overworld region with a set path now get it in the right place.
+- A town festival after the fourth dungeon, with an optional ball game.

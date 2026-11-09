@@ -8,7 +8,7 @@
 | D1 | Tidyhouse | Meadowfold | The Return (timing, passing plates, ramming, path shape) | Gloves | Grand Housekeeper | tested |
 | D2 | Kiln | Kilnridge | Shards retrace the carried path | Hookline | Kilnwyrm | tested |
 | D3 | Millrace | Millwater | Currents vs the Return; rafts | Paddle | Old Grindle | tested |
-| D4 | Belfry | Belfry Heights | Wind displaces; bells snap home; sleepers | Recall Bell | Tollgrim | planned |
+| D4 | Belfry | Belfry Heights | Wind displaces; bells snap home; sleepers | Recall Bell | Tollgrim | tested |
 | D5 | Slumberhouse | Hushwood | Your own mark; falls as travel | Bedroll | Mother Sloth | planned |
 | D6 | Marionette Hall | Larkspur Fair | Remote bodies; synchronised puppets; flats | Crossbar | Great Marionette | planned |
 | D7 | Spoolworks | Underside | Two layers; cords; counterweights; linking | Needle | The Tangle | planned |
@@ -110,6 +110,53 @@ Keys: 3 keys (Ferry Pool, Shard Race, Upstream), 3 locks (Carousel W and E, Upst
 | S12 Kids' Housekeeper | the town square, after Knot 1 (Otto's chalk X at hub 38,18) | push a crate straight away from his X and step aside: he comes at it from his side, which is the way it goes home, and his own yank bowls him over. Playground badge | built, tested |
 | S19 Behind the falls | Millwater, (171,110) | ride a float down the east side of the river (Paddle): the current turns in behind the falls to a hidden pool; open the chest from the float | built |
 | Basin below the falls | Millwater (172,114) | ride over the falls; a chest (50 buttons) and Linnet's bottle | built |
+| Lake rafts | Millwater: Wick's pier (146,95) and the north shore (168,83) | two rafts, each homed on its own side: paddle over (needs the Paddle); each goes home | built, tested |
+| Shrine boulder | Heights terrace 1 (140,29) | a boulder asleep on the stair; strike the shrine bell beside it | built, tested |
+| Heights cave | Heights terrace 1 (158,29) | a boulder asleep in a cave mouth out of the shrine's reach; the Recall Bell | built, tested |
+| S29 Returnball | Hollowell, east of the south road (100..107, 73..76), after Knot 4 | carry the ball through all five rings, throw it, step out of its way: it scores 5 on its way home | built, tested |
+| S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |
+
+## D4 Belfry (`src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`; tests `tests/belfry.test.mjs`, `tests/belfry_kit.test.mjs`, `tests/heights.test.mjs`) - tested
+
+Rules: a bell (struck by the stick, a throw or shards) or the Recall Bell rings: every marked thing out of place
+within 7 tiles snaps home at once (fast, force +1). Holding a thing (carry, grip, paddle) keeps it from
+snapping; the Recall Bell can be rung while gripping. A ring wakes sleepers (things tied off where they lie: they
+go home) and bats. Gusts blow loose light/medium things a tile at a time downwind (not things going home) and
+push Wren (she walks at 1.3 a frame; a gust pushes 0.7-1.2); gripping something heavy holds her put.
+
+| Room | Cell | Teaches / puzzle | Solution | Reward |
+|---|---|---|---|---|
+| Bell Porch | 1,4 | A ring wakes a sleeper | Strike the bell: the boulder asleep in the doorway goes home. Two bats wake | way north |
+| The Draught | 0,4 | Wind as a conveyor; strays fill pits | Push the two pale stray crates into the lane; the gust blows them into the two pits by the key | key 1 |
+| Windward | 2,4 | Wind displaces, a ring recalls | The gust keeps blowing the crate off its plate before it gets home; ring the bell in a lull: it snaps home and the gate opens | Plan |
+| The Stair | 1,3 | Hub | Bats; north door and east door locked | - |
+| Weathercock Walk | 0,3 | Hold on | Cross the walk between pits; when it blows, grip the bust above you | key 2 |
+| The Rafters | 2,3 | Optional | Ring: the sleeping slab of wall goes home (and six bats wake) | Heart Patch |
+| Clangor's Loft | 1,2 | Mini-boss: Clangor (its own ring snaps things home through it) | Push a bust out so Clangor stands on its way home when it rings: slammed, helm off, hit it (3x) | Recall Bell |
+| The Reach | 0,2 | Ring from the right place | Ring near the far sleeper only: it goes home onto the plate; wake the near one too and it lands on the other plate and shuts the gate | key 3 |
+| Echo Room | 2,2 | S15, behind a sleeping slab | Strike the stones in Gran's lullaby: low, high, middle, high, low | Heart Patch, Linnet's note 4 |
+| Bell Ropes | 1,1 | Holding beats ringing | Pick up (or grip) the right-hand crate off its plate and ring: the sleeper comes home to the left plate with the right one empty | Pattern |
+| Workshop | 0,1 | Signature, behind a sleeping slab | Brass T; bell moulds; tuning forks | Heart Patch |
+| The Great Bell | 1,0 | Boss: Tollgrim | The gust blows the clapper out; Tollgrim leans out of the mouth to spit; ring the Recall Bell: the clapper snaps home into him, he drops out dazed; hit him (3x) | Knot, Heartstitch |
+
+Keys: 3 keys (Draught, Weathercock, Reach), 3 locks (Stair N, Stair E to the Rafters, Loft N).
+
+## Overworld secrets and Heart Patches
+
+| Secret | Where | How | Status |
+|---|---|---|---|
+| Heart Patch | Meadowfold, behind the windmill (84,84) | walk round behind it | built |
+| Linnet note 2 | Meadowfold, under the stray hay bale (100,110) | push the bale: it doesn't come back | built |
+| Linnet note 1, portrait (S02) | Gran's house | with the Gloves, Z at the turned picture | built |
+| S01 budging | everyone in town | lean on them | built (lines for 17) |
+| Heart Patch | Thimble's shop | 120 buttons | built |
+| S12 Kids' Housekeeper | the town square, after Knot 1 (Otto's chalk X at hub 38,18) | push a crate straight away from his X and step aside: he comes at it from his side, which is the way it goes home, and his own yank bowls him over. Playground badge | built, tested |
+| S19 Behind the falls | Millwater, (171,110) | ride a float down the east side of the river (Paddle): the current turns in behind the falls to a hidden pool; open the chest from the float | built |
+| Basin below the falls | Millwater (172,114) | ride over the falls; a chest (50 buttons) and Linnet's bottle | built |
+| Lake rafts | Millwater: Wick's pier (146,95) and the north shore (168,83) | two rafts, each homed on its own side: paddle over (needs the Paddle); each goes home | built, tested |
+| Shrine boulder | Heights terrace 1 (140,29) | a boulder asleep on the stair; strike the shrine bell beside it | built, tested |
+| Heights cave | Heights terrace 1 (158,29) | a boulder asleep in a cave mouth out of the shrine's reach; the Recall Bell | built, tested |
+| S29 Returnball | Hollowell, east of the south road (100..107, 73..76), after Knot 4 | carry the ball through all five rings, throw it, step out of its way: it scores 5 on its way home | built, tested |
 | S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |
 
 ## D4 Belfry (planned: `src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`)
