@@ -21,15 +21,18 @@ Done:
   quarry (+ cave), woods, Hollow (+ chapel), cape (+ lamp room), act three (the Eye: pull-back, gathering the island,
   fire across the seam, the lit beam as the island's own view), the ending (last look, iris-out, credits over the last
   frame, the island going on after), post-ending continue ("N nights went by on Seldom").
-- Curios (6 secrets): The Last Note (watch the band to the end), Golden Egg (**not yet implemented**), Ant Crown,
-  Old Sandwich (Rover), Clockwork Feather (**not yet implemented**), Lost Marble (**not yet implemented**).
+- Curios (6 secrets, all in): The Last Note (the band's song to its end), Golden Egg (7th egg), Ant Crown, Old Sandwich
+  (Rover), Clockwork Feather (the Clock seen at midnight), Lost Marble (Leica squeezed into the walled garden).
+- Touch controls (pad and buttons drawn over the game on touch screens), gamepad, mouse wheel / right-drag.
+- `artifact.html`: the same build as an Artifact page (the host adds the document skeleton).
+- Playtesting: `tests/playserver.mjs` holds the game in a headless browser for blind agent playtests over HTTP
+  (`/do?k=`, `/shot`, `/text`); `Debug.afterLampNight()` sets up a game just after act one.
 - Tests: `tests/laws.test.mjs` (13 passing), `tests/playthrough.mjs` (the bot finishes the game: about 11 minutes of game
   time for a bot that knows every answer).
 
 ## Next priorities
 
-1. Implement the three missing curios (golden egg: 7th egg; feather: watch the Clock at midnight; marble: Leica squeezed
-   into the walled garden).
+1. Act on the blind playtests (act one and act two; reports pending at the time of writing).
 2. A careful look at every screen (screenshots) and presentation polish: Dot glancing at the player when idle; the Eye
    act's intro wording; split-view affordance (which half moves); cape decoration; interior art.
 3. Sound pass: check every song and effect for balance (can't be heard here: keep volumes conservative).

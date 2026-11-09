@@ -53,3 +53,14 @@ const Bot = {
     async act() { await this.press('act'); await this.talkThrough(); },
     async until(f, max) { for (let i = 0; i < (max || 6000); i++) { if (f()) return true; if (G.state === 'talk') await this.talkThrough(); await this.step(1); } return false; },
 };
+
+/* a game as it stands right after Lamp Night (for playtesting the second act) */
+Debug.afterLampNight = async function () {
+    Title.enter(); Game.newGame(); await Bot.talkThrough();
+    Object.assign(G.flags, { started: 1, clockSeen: 1, eggsGiven: 1, cakeBaking: 1, cake: 1, bridge: 1, drummer: 1, festival: 1, spyglass: 1, lanterns: 1, ballGame: 1 });
+    for (const [x, y] of [[65, 40], [66, 40], [65, 41], [66, 41]]) setTile(MAPS.island, x, y, 'b');
+    ent('bridgework').st.p = 1; ent('tilt').hidden = true; ent('ansel').hidden = true; ent('ansel').st.bit = true; ent('flash').hidden = true;
+    for (const n of ['still', 'return', 'hour']) Notebook.got[n] = 1;
+    World.hour = 21.5; Debug.go(50, 40); World.dot.dir = 'down';
+    UI.showHint('Hold X (or Shift) and use the arrows to look around. Let go and the view stays put.', 12);
+};

@@ -54,7 +54,7 @@ A3 . . . C4 . . . F4 . . .   E4 . . . . . . . . . . .` },
 /* the wind chimes in the woods: a music-box waltz */
 song('woods', {
     bpm: 100, parts: [
-        { wave: 'pulse', vol: 0.12, oct: 1, notes: `
+        { wave: 'pulse', vol: 0.16, oct: 1, notes: `
 D5 . A4 . F#4 . A4 . D5 . E5 .   F#5 . . . E5 . D5 . C#5 . A4 .
 B4 . G4 . D4 . G4 . B4 . D5 .   A4 . . . . . . . . . . .
 D5 . A4 . F#4 . A4 . D5 . E5 .   F#5 . . . A5 . G5 . F#5 . E5 .
@@ -97,7 +97,7 @@ G4 . . . E4 . . .   C5 . . . . . . .   A4 . . . F4 . . .   D4 . . . . . . .` },
 /* a little music box (home), and the lit lighthouse */
 song('lullaby', {
     bpm: 76, parts: [
-        { wave: 'pulse', vol: 0.1, oct: 1, notes: `
+        { wave: 'pulse', vol: 0.14, oct: 1, notes: `
 E5 . C5 . G4 . C5 . E5 . G5 . E5 . . .   F5 . D5 . A4 . D5 . F5 . A5 . F5 . . .
 E5 . C5 . G4 . C5 . E5 . D5 . C5 . . .   D5 . B4 . G4 . B4 . C5 . . . . . . .` },
         { wave: 'triangle', vol: 0.24, notes: `

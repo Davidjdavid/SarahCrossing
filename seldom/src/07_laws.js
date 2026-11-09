@@ -66,7 +66,14 @@ const Laws = {
             if (hx || hy) {
                 /* squeezed: pop to the nearest open spot inside the view */
                 const spot = freeSpotIn(map, e, r, nx, ny);
-                if (spot) { Fx.puff(ecx(e), ecy(e), 'pop'); e.x = spot[0]; e.y = spot[1]; Sfx.play('pop'); Notebook.saw('squeeze', e); }
+                if (spot) {
+                    /* worth writing down when it went right through something (a fence, a hedge) */
+                    const x0 = ecx(e), y0 = ecy(e), x1 = spot[0] + e.w / 2, y1 = spot[1] + e.h / 2;
+                    let through = false;
+                    for (let i = 1; i < 8; i++) if (e.map.solidAt(Math.floor(lerp(x0, x1, i / 8) / TILE), Math.floor(lerp(y0, y1, i / 8) / TILE))) through = true;
+                    Fx.puff(x0, y0, 'pop'); e.x = spot[0]; e.y = spot[1]; Sfx.play('pop');
+                    if (through) Notebook.saw('squeeze', e);
+                }
             }
             e.pushed = 0.3;
             if (Math.hypot(dx, dy) < 8) e.pushDist = (e.pushDist || 0) + Math.hypot(dx, dy);

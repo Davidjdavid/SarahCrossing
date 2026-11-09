@@ -9,7 +9,7 @@ import path from 'node:path';
 import url from 'node:url';
 const { chromium } = createRequire(import.meta.url)('playwright');
 const HERE = path.dirname(url.fileURLToPath(import.meta.url));
-const PORT = +(process.argv[2] || 8765), SHOTS = process.argv[3] || '/tmp';
+const PORT = +(process.argv[2] || 8765), SHOTS = process.argv[3] || '/tmp', SETUP = process.argv[4] || '';
 const KEYS = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', z: 'z', x: 'x', c: 'c', q: 'q', e: 'e', n: 'n', tab: 'Tab', esc: 'Escape', shift: 'Shift', space: 'Space', enter: 'Enter', w: 'w', a: 'a', s: 's', d: 'd' };
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1152, height: 648 } });
@@ -17,6 +17,7 @@ const errors = [];
 page.on('pageerror', e => errors.push(String(e.message || e)));
 await page.goto('file://' + path.join(HERE, '..', 'seldom.html') + '?debug');
 await page.evaluate(() => { try { localStorage.clear(); } catch (e) { } });
+if (SETUP) { await page.waitForTimeout(300); await page.evaluate(SETUP); }
 let n = 0;
 async function act(spec) {
     for (const part of spec.split(',').map(s => s.trim()).filter(Boolean)) {

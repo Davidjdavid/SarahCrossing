@@ -15,7 +15,7 @@ const Audio2 = {
             this.noiseBuf = b; this.ok = true; this.applyVolume();
         } catch (e) { this.ok = false; }
     },
-    applyVolume() { if (!this.ok) return; this.sfx.gain.value = Settings.volume * 0.5; this.mus.gain.value = Settings.music * 0.32; },
+    applyVolume() { if (!this.ok) return; this.sfx.gain.value = Settings.volume * 0.5; this.mus.gain.value = Settings.music * 0.38; },
     now() { return this.ctx ? this.ctx.currentTime : 0; },
     /* one note: wave, frequency, start, length, volume, where to (a gain node) */
     tone(type, f, t, len, vol, out, slide) {
