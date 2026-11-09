@@ -4,7 +4,8 @@ const R = {
     init(cv) { this.cv = cv; this.ctx = cv.getContext('2d'); this.resize(); addEventListener('resize', () => this.resize()); },
     resize() {
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        this.cv.width = Math.floor(innerWidth * dpr); this.cv.height = Math.floor(innerHeight * dpr);
+        const w = this.cv.clientWidth || innerWidth, h = this.cv.clientHeight || innerHeight;
+        this.cv.width = Math.floor(w * dpr); this.cv.height = Math.floor(h * dpr);
         this.W = this.cv.width; this.H = this.cv.height;
         let s = Math.min(this.W / VIEW_W, this.H / VIEW_H);
         if (s >= 3) s = Math.floor(s * 2) / 2;
@@ -31,6 +32,7 @@ const R = {
             this.drawViewUI(regs);
         }
         UI.draw(ctx);
+        Touch.draw(ctx);
     },
     /* draw world rect r into the screen rect (sx, sy, sw, sh) */
     drawWorld(r, sx, sy, sw, sh, fi, opts) {
@@ -100,13 +102,16 @@ const R = {
         if (Cam.looking || pinned) {
             const a = Cam.looking ? 0.95 : 0.45, L = 10 * s, t = Math.max(1, s);
             ctx.fillStyle = `rgba(255,248,236,${a})`;
-            for (const [rx, ry, rw, rh] of regs) {
+            regs.forEach(([rx, ry, rw, rh], ri) => {
                 const m = 4 * s;
+                /* split: the half that moves (the one Dot isn't in) gets the bright corners */
+                if (Cam.split) ctx.fillStyle = ri === Cam.home ? 'rgba(255,248,236,0.3)' : `rgba(159,232,255,${Cam.looking ? 1 : 0.7})`;
                 ctx.fillRect(rx + m, ry + m, L, t); ctx.fillRect(rx + m, ry + m, t, L);
                 ctx.fillRect(rx + rw - m - L, ry + m, L, t); ctx.fillRect(rx + rw - m - t, ry + m, t, L);
                 ctx.fillRect(rx + m, ry + rh - m - t, L, t); ctx.fillRect(rx + m, ry + rh - m - L, t, L);
                 ctx.fillRect(rx + rw - m - L, ry + rh - m - t, L, t); ctx.fillRect(rx + rw - m - t, ry + rh - m - L, t, L);
-            }
+                if (Cam.split && ri !== Cam.home && (G.t - (Cam.splitAt || 0) < 6 || Cam.looking)) drawText(ctx, 'X: move this half', rx + 10 * s, ry + rh - 16 * s, '#9fe8ff', s, P.ink);
+            });
             if (Cam.looking) { ctx.fillStyle = Math.floor(G.t * 2) % 2 ? P.red : '#7a2a2e'; ctx.beginPath(); ctx.arc(this.gx + this.gw - 14 * s, this.gy + 14 * s, 3 * s, 0, 7); ctx.fill(); }
         }
     },
@@ -128,7 +133,9 @@ const Draw = {
     person(id, spec, e, f) {
         const c = personFrame(id, spec, e.dir, f);
         this.shadow(e, 10);
+        if (e.alpha) this.ctx.globalAlpha = e.alpha * (0.85 + Math.sin(G.t * 2) * 0.1);
         this.img(c, ecx(e) - c.width / 2, e.y + e.h - c.height + 1 - (e.z || 0) + (e.bob || 0));
+        if (e.alpha) this.ctx.globalAlpha = 1;
     },
     thing(e, name, f, flip, o) {
         let c = thing(name, f);

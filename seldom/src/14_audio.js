@@ -150,3 +150,29 @@ const Music = {
 };
 /* a source's clock: call from its update (so it only moves while seen) */
 function musicStep(e, dt) { e.st.mpos = (e.st.mpos || 0) + dt; }
+
+/* the island's own small sounds, from whatever is in view: the sea, birds by day, crickets at night, wind up high */
+const Ambience = {
+    next: 0,
+    update() {
+        if (!Audio2.ok || !World.map || G.state !== 'play' || World.lapse) return;
+        if (G.t < this.next) return;
+        this.next = G.t + 2.5 + Math.random() * 4;
+        const r = Cam.homeRect(), m = World.map;
+        if (m.def.indoor) { if (m.id === 'bakery' || m.id === 'home') Ambience.crackle(); return; }
+        let water = 0, n = 0, wild = 0, gravel = 0;
+        for (let y = Math.floor(r.y / TILE); y < (r.y + r.h) / TILE; y += 2) for (let x = Math.floor(r.x / TILE); x < (r.x + r.w) / TILE; x += 2) {
+            const ch = m.t(x, y), t = TT[ch]; n++;
+            if (t && t.water) water++; else if (ch === 'p' || ch === '#') gravel++; else if (ch === 'G' || ch === 'P' || ch === '"' || ch === '.' || ch === ',') wild++;
+        }
+        if (!n) return;
+        const t = Audio2.now(), night = Light.night();
+        if (water / n > 0.2) Audio2.noise(t, 1.6, 0.05 * (water / n), Audio2.sfx, 300);
+        else if (gravel / n > 0.4) Audio2.noise(t, 1.2, 0.025, Audio2.sfx, 900);
+        if (wild / n > 0.3) {
+            if (night) { for (let i = 0; i < 3; i++) Audio2.tone('sine', 4200 + Math.random() * 300, t + i * 0.09, 0.04, 0.02); }
+            else { const f = 2400 + Math.random() * 1200; Audio2.tone('sine', f, t, 0.08, 0.03, null, f * 1.3); Audio2.tone('sine', f * 1.1, t + 0.12, 0.07, 0.025, null, f * 0.9); }
+        }
+    },
+    crackle() { const t = Audio2.now(); for (let i = 0; i < 4; i++) Audio2.noise(t + Math.random() * 0.8, 0.03, 0.03, Audio2.sfx, 2000); },
+};

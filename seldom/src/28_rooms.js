@@ -70,6 +70,7 @@ async function irisTalk(e) {
 function irisMusing() {
     const F = G.flags;
     if (!F.festival) return 'The Great Clock. It keeps the island\'s hour, but clocks can\'t tell time by themselves, you know. Somebody has to watch them.';
+    const aside = irisAside(); if (aside && Math.random() < 0.5) return aside;
     if (!F.prism) return 'Where does the looking come from, Dot? Not your eyes. You\'re in the picture too. I\'ve been trying to work out who\'s holding the spyglass.';
     return 'The lighthouse was the island\'s own eye. With it lit, we wouldn\'t need anyone else to look at us. Strange thought, isn\'t it?';
 }
@@ -91,7 +92,9 @@ room('bakery', [
 ], {
     exit: ['island', 60, 39],
     init(m) {
-        for (let x = 1; x <= 10; x++) if (x !== 9) furn(m, 'counter', x, 3, 16, 8, { say: 'Bread, buns, and a smell that makes the whole room cozy.' });
+        for (let x = 1; x <= 10; x++) if (x !== 9) furn(m, x % 3 === 1 ? 'breadcounter' : 'counter', x, 3, 16, 8, { say: 'Bread, buns, and a smell that makes the whole room cozy.' });
+        furn(m, 'window', 3, 0, 16, 2, { solid: false, say: 'The window looks out on the square. You can just see the Great Clock.' });
+        furn(m, 'plant', 10, 6, 14, 8, { say: 'A potted fern, slightly floury.' });
         furn(m, 'oven', 7, 1, 22, 10, { name: 'oven', say: () => ovenText() });
         furn(m, 'barrel', 1, 1, 12, 8, { say: 'Flour.' });
         furn(m, 'barrel', 2, 1, 12, 8, { say: 'More flour.' });
@@ -114,6 +117,7 @@ function ovenText() {
 }
 async function crumbTalk(e) {
     const F = G.flags;
+    if (F.cake && !F.festival && !e.st.gold) { e.st.gold = true; await say('The cake\'s ready! You know, my granny swore that hen once laid a golden egg. The seventh one of the day, she said. Seventh!', 'crumb'); return; }
     if (F.cake) { await say(F.festival ? (invHas('egg') ? 'More eggs? Bless you. I\'ll make a quiche.' : 'Best cake I ever baked. Watched every minute of it.') : 'The cake\'s ready! I\'ll bring it to the square tonight. If it ever is tonight.', 'crumb'); if (F.festival && invHas('egg')) invTake('egg', World.inv.egg); return; }
     if (F.cakeBaking) { await say('It\'s in! Now don\'t take your eyes off that oven. A watched cake bakes, that\'s what my mother said.', 'crumb'); return; }
     const n = World.inv.egg || 0;

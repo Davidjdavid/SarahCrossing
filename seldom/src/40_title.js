@@ -31,11 +31,12 @@ const Title = {
         drawText(ctx, 'SELDOM', X(VIEW_W / 2 - textWidth('SELDOM') * 2.5), Y(54), P.cream, s * 5, '#120c18');
         drawText(ctx, 'a little island, seldom seen', X(VIEW_W / 2 - textWidth('a little island, seldom seen') / 2), Y(98), '#c9b8e8', s);
         const items = this.items();
+        if (!document.hasFocus() && !Touch.on && Math.floor(this.t * 2) % 2) drawText(ctx, 'Click the game first, then use the keys', X(VIEW_W / 2 - textWidth('Click the game first, then use the keys') / 2), Y(108), P.yellow, s, '#120c18');
         items.forEach((it, i) => {
             const t = (i === this.sel ? '→ ' : '   ') + (it === 'New game' && this.confirm ? 'New game? (erases the save) Press again' : it);
             drawText(ctx, t, X(VIEW_W / 2 - 40), Y(120 + i * 12), i === this.sel ? P.yellow : P.cream, s, '#120c18');
         });
-        drawText(ctx, 'Z or Space to choose', X(6), Y(VIEW_H - 12), '#8a7aa8', s);
+        drawText(ctx, 'Arrows or WASD: move    Z or Space: choose / talk    Esc: menu', X(6), Y(VIEW_H - 12), '#8a7aa8', s);
         drawText(ctx, 'v1', X(VIEW_W - 14), Y(VIEW_H - 12), '#8a7aa8', s);
     },
 };

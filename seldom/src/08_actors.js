@@ -6,7 +6,9 @@ kind('dot', {
     w: 10, h: 7, ph: 22, figure: true,
     draw(e, d) {
         const moving = e.moving;
-        const f = moving ? (Math.floor(e.anim * 8) % 4 === 1 ? 1 : Math.floor(e.anim * 8) % 4 === 3 ? 2 : 0) : 0;
+        let f = moving ? (Math.floor(e.anim * 8) % 4 === 1 ? 1 : Math.floor(e.anim * 8) % 4 === 3 ? 2 : 0) : 0;
+        /* left standing a while, Dot turns round and looks up: not at anything on the island */
+        if (!moving && e.idle > 7 && !World.talking && G.state === 'play') { if (e.dir !== 'down') { e.dir = 'down'; } if ((e.idle % 6) < 2.2) f = 3; }
         d.person('dot', DOT_SPEC, e, f);
     },
     update(e, dt) {
@@ -19,7 +21,8 @@ kind('dot', {
         }
         let [ax, ay] = Input.axis();
         e.moving = !!(ax || ay);
-        if (!e.moving) { e.anim = 0; return; }
+        if (!e.moving) { e.anim = 0; e.idle = (e.idle || 0) + dt; return; }
+        e.idle = 0;
         e.dir = dirOf(ax, ay, e.dir);
         e.anim += dt;
         const sp = DOT_SPEED * dt * (e.slow ? 0.5 : 1);

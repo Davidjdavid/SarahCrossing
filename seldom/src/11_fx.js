@@ -37,10 +37,10 @@ const Fx = {
 
 /* the notebook: Dot writes a law down the first time it happens in front of the player, never before */
 const LAWS = [
-    { key: 'still', title: 'Still', text: 'Things I can\'t see hold still. The ball waited in the air for me to come back and look.' },
-    { key: 'return', title: 'Return', text: 'Wild things that leave my sight go back to where they started, the next time I look there.' },
+    { key: 'still', title: 'Still', text: 'Things I can\'t see hold perfectly still. A ball waits in the air; a person waits mid-step. When I look again, they carry on as if nothing happened.' },
+    { key: 'return', title: 'Return', text: 'Wild things (eggs, critters, things that grow) that leave my sight are gone. The next time I look where they started, they\'re back there, good as new.' },
     { key: 'hour', title: 'The Hour', text: 'The tower\'s hands only move while someone is looking at them. And the whole island keeps the tower\'s time.' },
-    { key: 'bound', title: 'Bound', text: 'Some creatures can\'t bear to be out of sight. The edge of what I see pushes them along.' },
+    { key: 'bound', title: 'Bound', text: 'Some creatures can\'t bear to be out of sight. They won\'t leave what I can see, so its edge pushes them along wherever it goes.' },
     { key: 'squeeze', title: 'Squeeze', text: 'Squash a Bound thing between the edge and a wall and it pops out somewhere it fits. Even through a fence.' },
     { key: 'wrap', title: 'Turnabout', text: 'In the woods, the edges of what I see meet. Go out one side, come in the other.' },
     { key: 'crowd', title: 'Crowds', text: 'There\'s only room for four of us in a line. The ones farthest from the middle flicker, and flickering, they pass right through each other.' },
@@ -58,7 +58,7 @@ const Notebook = {
         const L = LAWS.find(l => l.key === key); if (!L) return;
         this.got[key] = G.t;
         G.flags.notebook = true;
-        Fx.toast('Dot wrote in the notebook: ' + L.title, 'note');
+        Fx.toast((this.count() === 1 ? 'Dot wrote in the notebook (N to read): ' : 'Dot wrote in the notebook: ') + L.title, 'note');
         Sfx.play('write');
         Save.soon();
     },

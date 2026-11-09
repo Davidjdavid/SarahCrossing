@@ -12,8 +12,10 @@ const Cam = {
     bump: { l: 0, r: 0, t: 0, b: 0 },
     eye: false,              /* the last act: the view moves on its own, no Dot */
     hold: null,              /* a scripted framing {x, y, zoom} for scenes */
-    fw() { return (this.split ? VIEW_W / 2 : VIEW_W) / this.zoom; },
-    fh() { return VIEW_H / this.zoom; },
+    /* rooms are shown a little closer (they're small); the laws don't care, everything in a room is in view */
+    roomScale() { return World.map && World.map.def.indoor && !this.eye ? 1.5 : 1; },
+    fw() { return (this.split ? VIEW_W / 2 : VIEW_W) / (this.zoom * this.roomScale()); },
+    fh() { return VIEW_H / (this.zoom * this.roomScale()); },
     rect(i) {
         const w = this.fw(), h = this.fh();
         const cx = i ? this.bx : this.ax, cy = i ? this.by : this.ay;
@@ -131,7 +133,7 @@ const Cam = {
             this.home = World.dot && !this.eye && ecx(World.dot) >= cx ? 1 : 0;
             if (World.dot) World.dot.lastFrame = this.home;
             this.mode = 'pinned';
-            Sfx.play('split');
+            Sfx.play('split'); this.splitAt = G.t;
             Notebook.saw('seam-split');
         } else {
             /* whole again, round the half Dot is in */

@@ -253,6 +253,14 @@ const CHAPTERS = {
         await Bot.step(120); await Bot.press('act');
         if (G.state !== 'title') return 'not back at the title';
     },
+    async afterwards() {
+        /* the island after the end: continue, and Dot can walk about again */
+        Title.enter(); Game.continueGame(); await Bot.step(30); await Bot.talkThrough();
+        if (Cam.eye) return 'still the eye after the end';
+        if (!G.flags.ended || !G.flags.lit) return 'the end was not kept';
+        const x0 = World.dot.x; Bot.keys({ left: true }); await Bot.step(30); Bot.keys();
+        if (World.dot.x >= x0) return 'Dot cannot move after the end';
+    },
 };
 
 const browser = await chromium.launch();

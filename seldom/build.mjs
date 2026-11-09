@@ -35,6 +35,24 @@ ${js}
 `;
 }
 
+/* the same game as a claude.ai Artifact page: no doctype or html/head/body of its own (the host wraps it) */
+export function artifactPage(js) {
+    return `<title>Seldom</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root { --ground: #000000; color-scheme: dark; }
+html, body { height: 100%; margin: 0; background: var(--ground); overflow: hidden; }
+body { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); box-sizing: border-box; }
+canvas { display: block; width: 100%; height: 100%; outline: none; image-rendering: pixelated; touch-action: none; }
+</style>
+<canvas id="game" tabindex="0" aria-label="Seldom, a small game. Click, then use the keyboard."></canvas>
+<script>
+${js}
+</script>
+`;
+}
+
 const js = joinSources();
 fs.writeFileSync(path.join(HERE, 'seldom.html'), page(js));
+fs.writeFileSync(path.join(HERE, 'artifact.html'), artifactPage(js));
 console.log('wrote seldom/seldom.html', Math.round(js.length / 1024) + ' KB of script');

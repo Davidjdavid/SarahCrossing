@@ -41,6 +41,7 @@ ISLAND_ADD.push(function village(m) {
     m.add('band', 708, 658, { name: 'band', song: 'village', w: 40, h: 12, talk: bandTalk });
     furn(m, 'bench', 52, 39, 26, 5, { name: 'bench', onAct: benchSit });
     m.addAt('sign', 47, 45, { text: 'SELDOM SQUARE. Lamp Night tonight! (Weather and hour permitting.)' });
+    m.addAt('sign', 42, 37, { text: 'OBSERVATORY. Iris B. Puzzles welcome. Knock (just walk in).' });
     /* people */
     person(m, 'holt', 54, 39, { spec: LOOKS.holt, display: 'Old Holt', day: [[0, 24, { x: 54, y: 39, dir: 'left' }]], talk: holtTalk, speed: 20 });
     person(m, 'flash', 46, 38, { spec: LOOKS.flash, day: [[5.5, 19.5, { x: 46, y: 38, dir: 'right' }], [19.5, 5.5, { x: 39, y: 50, home: true }]], door: [39, 48], talk: flashTalk, speed: 60 });
@@ -59,6 +60,8 @@ ISLAND_ADD.push(function village(m) {
     person(m, 'tilt', 37, 60, { spec: LOOKS.tilt, brain: tiltBrain, talk: tiltTalk, dir: 'right', speed: 30 });
     m.addAt('sign', 52, 61, { text: 'SELDOM HARBOR. Boats: none expected. (None ever are.)' });
     addProp(m, { id: 'boat', tx: 47, ty: 68, tw: 2, th: 2, fh: 1, draw: drawBoat });
+    furn(m, 'crates', 48, 60, 22, 10, { say: 'Crates of nets, rope and old floats. Nobody has fished from a boat here in years.' });
+    furn(m, 'barrel', 53, 60, 12, 8, { say: 'A barrel that smells like the sea.' });
 });
 
 /* ---------- the opening ---------- */
@@ -221,11 +224,13 @@ async function flashTalk(e) {
 }
 
 /* ---------- Old Holt on his bench ---------- */
-async function holtTalk() {
+async function holtTalk(e) {
     const F = G.flags;
     if (!F.clockSeen) { await say('Hm.', 'holt'); return; }
     if (!F.festival) {
+        if (lampReady() && !Light.night()) { await say('Everything\'s ready but the night. Sit on the bench a while, Dot, and watch the tower with me. The evening comes quicker that way.', 'holt'); return; }
         if (Light.night()) { await say('Night at last. In my day, the lighthouse swept right over this bench. We never needed anybody to watch the tower then.', 'holt'); return; }
+        if (e.st.n = (e.st.n || 0) + 1, e.st.n % 3 === 0) { await say('At midnight a little bird pops out of the tower. Nobody\'s seen it in years. Nobody\'s been watching at midnight.', 'holt'); return; }
         await say('The tower\'s hands are moving again. First time in ages. Must be somebody watching it.', 'holt'); return;
     }
     await say('When the lighthouse was lit, the hour moved wherever its light fell. Watched by the island itself, you see. Nobody had to stand around.', 'holt');
@@ -387,3 +392,37 @@ function lapseDone() {
     if (L.until === 'day' && World.hour % 24 >= 7.5 && World.hour % 24 < 8) return true;
     return false;
 }
+
+/* ---------- little secrets in the village ---------- */
+/* the hen's seventh egg is golden */
+Story.on('got', (what, e) => {
+    if (what !== 'egg') return;
+    G.flags.eggsPicked = (G.flags.eggsPicked || 0) + 1;
+    if (e && e.golden) { e.golden = false; invTake('egg'); giveCurio('goldegg'); say('A golden egg! Warm, and very heavy for an egg.'); }
+});
+KINDS.egg.respawn = function (e) { if ((G.flags.eggsPicked || 0) >= 6 && !G.flags.curio_goldegg) e.golden = true; };
+KINDS.egg.draw = function (e, D) { D.thing(e, e.golden ? 'goldegg' : 'egg'); if (e.golden && Math.floor(G.t * 3) % 2) box(D, e.x + 2, e.y - 6, 1, 1, P.white); };
+/* at midnight the tower's little door opens and its bird comes out, for whoever is watching */
+function midnight() {
+    if (G.flags.curio_feather || G.flags.featherDropped) return;
+    G.flags.featherDropped = true;
+    Fx.sparkle(50 * TILE, 35 * TILE, P.gold); Sfx.play('bell');
+    const h = ent('holt'); if (h && h.seen) bark(h, 'The bird! The little bird!', 3);
+    MAPS.island.add('feather', 50 * TILE - 3, 38 * TILE + 6, { name: 'feather' });
+}
+kind('feather', {
+    w: 8, h: 4, ph: 8, fixed: true,
+    draw(e, D) { box(D, e.x, e.y + 1, 8, 2, P.gold); box(D, e.x + 1, e.y, 5, 1, P.goldS); box(D, e.x + 7, e.y + 2, 2, 1, P.brownS); },
+    act(e) { e.removed = true; e.map.remove(e); giveCurio('feather'); say('A tiny feather made of brass, with a spring for a quill.'); },
+});
+/* Leica, squeezed into the garden nobody can get into, digs something up and brings it out */
+const GARDEN = { x: 43, y: 31, w: 3, h: 2 };
+Story.on('tick', () => {
+    const l = ent('leica'); if (!l || G.flags.curio_marble) return;
+    const [x, y] = tileOf(l);
+    if (inRect(x, y, GARDEN)) { if (!l.st.dug) { l.st.dug = true; bark(l, '*dig dig dig*', 3); Sfx.play('push'); Save.soon(); } }
+    else if (l.st.dug && l.seen && !World.cutscene) {
+        l.st.dug = false;
+        scene(async () => { bark(l, 'Woof!', 2); await say('Leica drops something at Dot\'s feet. A glass marble, with a tiny lighthouse inside it.'); giveCurio('marble'); });
+    }
+});

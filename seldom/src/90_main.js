@@ -74,7 +74,8 @@ function tick(dt, fast) {
             World.triggers = World.triggers.filter(t => !t.done);
         } else if (G.state === 'notebook') UI.updateNotebook();
         else if (G.state === 'menu') UI.updateMenu();
-        Fx.update(dt); UI.update(dt); if (!World.lapse) Music.update(); Save.tick();
+        Fx.update(dt); UI.update(dt); if (!World.lapse) Music.update(); Ambience.update(); Save.tick();
+        if (G.state === 'play' && G.t - (G.lastAuto || 0) > 30) { G.lastAuto = G.t; Save.write(); }
     } catch (err) { report('tick', err); if (G.debug) throw err; }
 }
 
@@ -82,7 +83,7 @@ function boot() {
     const cv = document.getElementById('game');
     G.debug = !!window.__DEBUG || /[?&]debug/.test(location.search);
     Save.loadSettings();
-    R.init(cv); Input.init(cv);
+    R.init(cv); Input.init(cv); Touch.init(cv);
     cv.focus();
     if (/[?&]test/.test(location.search)) { START.map = 'test'; MAP_MAKERS.length = 0; MAP_MAKERS.push(buildTestMap); START.onNew = () => { G.flags.spyglass = true; G.flags.prism = true; Cam.zmin = 0.5; Cam.zmax = 3; }; G.noSave = true; }
     document.addEventListener('visibilitychange', () => { if (document.hidden) G.hiddenAt = Date.now(); else if (G.hiddenAt) { G.awayFor = Date.now() - G.hiddenAt; G.hiddenAt = 0; Story.hooks.away && Story.hooks.away.forEach(f => f(G.awayFor)); } });

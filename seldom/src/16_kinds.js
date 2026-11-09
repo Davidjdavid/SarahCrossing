@@ -8,7 +8,7 @@ kind('clock', {
         const before = World.hour;
         World.hour += dt * HOUR_RATE * (World.timeScale || 1);
         if (Math.floor(before) !== Math.floor(World.hour)) { Sfx.play('tock'); Story.hourChanged(Math.floor(World.hour)); }
-        if (World.hour >= 24) { World.hour -= 24; World.day++; }
+        if (World.hour >= 24) { World.hour -= 24; World.day++; if (typeof midnight === 'function') midnight(); }
     },
     onSeen(e) { if (e.unseenFor > 20 && World.map.id !== 'test') Notebook.saw('hour'); },
 });
@@ -92,7 +92,20 @@ const FURN = {
     barrel(D, e) { box(D, e.x, e.y - 10, e.w, e.h + 10, P.brown); box(D, e.x, e.y - 6, e.w, 1, P.brownD); box(D, e.x, e.y - 1, e.w, 1, P.brownD); },
     plant(D, e) { box(D, e.x + 2, e.y - 4, e.w - 4, e.h + 4, '#a8603a'); D.img(treeCanvas('bush', 0), ecx(e) - 9, e.y - 16); },
     stairs(D, e) { for (let i = 0; i < 4; i++) box(D, e.x, e.y - 12 + i * 4, e.w, 3, i % 2 ? '#8a8378' : '#a39a8c'); },
-    lens(D, e) { box(D, e.x, e.y - 20, e.w, e.h + 20, P.greyD); const n = G.flags.lensSet || 0; for (let i = 0; i < 4; i++) box(D, e.x + 3 + i * (e.w - 6) / 4, e.y - 16, (e.w - 6) / 4 - 2, 12, i < n ? '#bfe6ff' : '#2a2440'); },
+    lens(D, e) {
+        /* the great lens: a brass drum of four glasses round the lamp */
+        const ctx = D.ctx, cx = D.X(ecx(e)), cy = D.Y(e.y - 8), r = 20 * D.k, n = G.flags.lensSet || 0;
+        box(D, e.x + 4, e.y - 2, e.w - 8, e.h + 2, '#5c574f');
+        ctx.fillStyle = P.goldS; ctx.beginPath(); ctx.arc(cx, cy, r + 3 * D.k, 0, 7); ctx.fill();
+        for (let i = 0; i < 4; i++) {
+            ctx.fillStyle = i < n ? (G.flags.lit ? '#fff6c8' : '#bfe6ff') : '#2a2440';
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, -Math.PI / 2 + i * Math.PI / 2 + 0.08, -Math.PI / 2 + (i + 1) * Math.PI / 2 - 0.08); ctx.closePath(); ctx.fill();
+        }
+        ctx.fillStyle = P.gold; ctx.beginPath(); ctx.arc(cx, cy, 5 * D.k, 0, 7); ctx.fill();
+        if (n >= 4) { ctx.fillStyle = 'rgba(255,255,255,' + (0.3 + Math.sin(G.t * 3) * 0.15) + ')'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill(); }
+    },
+    breadcounter(D, e) { FURN.counter(D, e); D.img(thing('bread'), e.x + 2, e.y - 14); },
+    crates(D, e) { D.img(thing('crate'), e.x, e.y + e.h - 16); D.img(thing('crate'), e.x + 6, e.y + e.h - 26); },
     organ(D, e) { box(D, e.x, e.y - 24, e.w, e.h + 24, '#5a3a4a'); for (let i = 0; i < 6; i++) box(D, e.x + 2 + i * 5, e.y - 30, 3, 10, P.stoneS); },
     crate(D, e) { D.img(thing('crate'), e.x, e.y + e.h - 16); },
     chest(D, e) { box(D, e.x, e.y - 8, e.w, e.h + 8, P.brown); box(D, e.x, e.y - 8, e.w, 3, P.brownS); box(D, ecx(e) - 1, e.y - 4, 2, 2, P.gold); },

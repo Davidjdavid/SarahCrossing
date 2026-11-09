@@ -4,6 +4,9 @@ ISLAND_ADD.push(function cape(m) {
     m.doors = m.doors || [];
     m.doors.push({ x: 87, y: 9, to: 'lamproom', tx: 5, ty: 8, tdir: 'up', dir: 'up', locked: () => G.flags.eye && !G.flags.ended, lockedSay: () => null });
     m.add('lhlamp', 87 * TILE + 4, 3 * TILE + 14, { name: 'lhlamp', w: 24, h: 10 });
+    furn(m, 'bench', 79, 6, 26, 5, { say: 'The keepers\' bench. Someone carved into it: "Watch the sea, and it watches back."' });
+    house(m, 'keepercot', 75, 11, 4, 3, { tw: 4, th: 3, wall: '#c8c0b0', roof: '#5a6a8a', door: 1, windows: [3] }, ['island', 0, 0, () => true, () => 'The old keeper\'s cottage, boarded up for ninety-nine years.']);
+    for (const [x, y] of [[82, 15], [92, 13], [73, 7]]) m.addAt('rock', x, y, { name: 'caperock' + x });
     m.addAt('sign', 74, 16, { text: 'THE CAPE. The ferry used to run from the ledge across the Gap. The ferry was the keeper. The keeper had a way with glass.' });
     m.addAt('sign', 66, 17, { text: 'The old ferry ledge. Across the Gap, the cape. Nothing to cross on but water. The keepers never needed a boat, they say.' });
     /* the bonfire on the square, kept every night since Lamp Night */
@@ -218,9 +221,10 @@ const Eye = {
     drawGoals(ctx) {
         const s = R.s;
         const g = this.goals();
-        ctx.fillStyle = 'rgba(26,18,32,0.8)'; roundRect(ctx, R.gx + 4 * s, R.gy + R.gh - 52 * s, 180 * s, 48 * s, 4 * s); ctx.fill();
-        g.forEach(([ok, t], i) => drawText(ctx, (ok ? '✓ ' : '· ') + t, R.gx + 10 * s, R.gy + R.gh - 47 * s + i * 11 * s, ok ? P.yellow : P.cream, s));
-        drawText(ctx, 'Arrows: move   Q/E: size   Tab: split   X: move the other half', R.gx + 190 * s, R.gy + R.gh - 12 * s, '#c9b8e8', s * 0.8, '#00000088');
+        const k = s * 0.75;
+        ctx.fillStyle = 'rgba(26,18,32,0.82)'; roundRect(ctx, R.gx + 4 * s, R.gy + R.gh - 42 * s, 150 * s, 38 * s, 4 * s); ctx.fill();
+        g.forEach(([ok, t], i) => drawText(ctx, (ok ? '✓ ' : '· ') + t, R.gx + 9 * s, R.gy + R.gh - 38 * s + i * 8.5 * s, ok ? P.yellow : P.cream, k));
+        drawText(ctx, 'Arrows: move   Q/E: size   Tab: split   X: other half', R.gx + 160 * s, R.gy + R.gh - 10 * s, '#c9b8e8', k, '#00000088');
     },
 };
 Story.on('tick', (dt) => {

@@ -22,9 +22,11 @@ const World = {
         for (const e of m.ents) { e.seen = false; e.originSeen = false; }
         Laws.see();
         if (!opts || !opts.quiet) { Fx.fadeIn(0.35); Sfx.play('door'); }
+        UI.areaT = 0; UI.areaName = m.def.indoor ? UI.areaName : null;
         if (m.def.enter) m.def.enter(m, from);
         Story.entered(m, from);
         Music.mapChanged();
+        Save.soon();
     },
     /* Dot stepping onto doors */
     step(d) {

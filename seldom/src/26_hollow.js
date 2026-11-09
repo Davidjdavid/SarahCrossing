@@ -74,7 +74,7 @@ room('chapel', [
         furn(m, 'organ', 9, 1, 34, 8, { say: 'An old organ. When you look at it, faintly, it plays.' });
         m.add('organ', 9 * TILE, 1 * TILE + 8, { name: 'organsrc', song: 'hollow', w: 34, h: 8, loud: 400 });
         for (let y = 4; y <= 8; y += 2) { furn(m, 'pew', 2, y, 48, 6, { say: 'A pew. Someone faint is sitting on it, very politely.' }); furn(m, 'pew', 8, y, 48, 6, { say: 'A pew, worn smooth by people who were not, strictly, there.' }); }
-        person(m, 'sepia', 6, 3, { spec: { skin: '#e8f0ff', hair: '#c8d0e8', style: 'bun', top: '#b8c0e0', bottom: '#a0a8d0', skirt: '#a0a8d0', tall: true }, display: 'Mrs. Sepia', voice: { p: 330, w: 'sine', v: 0.12, wob: 0.05 }, brain: e => { e.dir = 'down'; }, talk: sepiaTalk, ghostly: true });
+        person(m, 'sepia', 6, 3, { spec: { skin: '#e4ecff', hair: '#8890b8', style: 'bun', top: '#b8c0e0', bottom: '#a0a8d0', skirt: '#a0a8d0', tall: true, glasses: '#8890b8' }, alpha: 0.8, display: 'Mrs. Sepia', voice: { p: 330, w: 'sine', v: 0.12, wob: 0.05 }, brain: e => { e.dir = 'down'; }, talk: sepiaTalk, ghostly: true });
     },
 });
 kind('organ', { w: 34, h: 8, ph: 30, fixed: true, draw() { } });

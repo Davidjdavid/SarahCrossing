@@ -33,6 +33,11 @@ function actTwoHint() {
     if (!F.capeIn) return 'Mrs. Sepia said the old keepers never needed a boat. Cut the looking in two, and walk from one half to the other.';
     return 'The lighthouse, Dot. Bring it the glasses.';
 }
+function irisAside() {
+    const F = G.flags;
+    if (!F.curio_marble) return 'Leica sits by the little walled garden behind my observatory every day and whines. Nobody can get in there. Nobody our size.';
+    return null;
+}
 async function actTwoAnsel(e) {
     const F = G.flags;
     const n = ['spyglass', 'loupe', 'wideglass', 'prism'].filter(k => F[k]).length;

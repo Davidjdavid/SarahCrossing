@@ -147,6 +147,77 @@ const Input = {
     consume(b) { delete this.hit[b]; },
 };
 
+/* ---- 01b_touch.js ---- */
+/* on a touch screen: a pad and buttons drawn over the game (they press the same named buttons as the keys) */
+const Touch = {
+    on: false, ids: {}, pad: null,
+    init(cv) {
+        const start = e => { this.on = true; Audio2.unlock(); if (G.state === 'title') Input.click = true; this.handle(e); e.preventDefault(); };
+        cv.addEventListener('touchstart', start, { passive: false });
+        cv.addEventListener('touchmove', e => { this.handle(e); e.preventDefault(); }, { passive: false });
+        cv.addEventListener('touchend', e => { this.handle(e); e.preventDefault(); }, { passive: false });
+        cv.addEventListener('touchcancel', e => { this.handle(e); }, { passive: false });
+    },
+    /* where the controls sit, in canvas pixels */
+    layout() {
+        const u = Math.min(R.W, R.H) / 9, m = u * 0.4;
+        return {
+            u, pad: { x: m + u * 1.4, y: R.H - m - u * 1.4, r: u * 1.3 },
+            buttons: [
+                { b: 'act', label: 'Z', x: R.W - m - u * 0.8, y: R.H - m - u * 1.3, r: u * 0.75 },
+                { b: 'look', label: 'X', x: R.W - m - u * 2.4, y: R.H - m - u * 0.8, r: u * 0.6 },
+                { b: 'center', label: 'C', x: R.W - m - u * 2.4, y: R.H - m - u * 2.2, r: u * 0.45 },
+                { b: 'zout', label: '-', x: R.W - m - u * 0.5, y: m + u * 1.6, r: u * 0.4 },
+                { b: 'zin', label: '+', x: R.W - m - u * 1.5, y: m + u * 1.6, r: u * 0.4 },
+                { b: 'split', label: 'Tab', x: R.W - m - u * 2.5, y: m + u * 1.6, r: u * 0.4 },
+                { b: 'menu', label: 'Esc', x: m + u * 0.5, y: m + u * 1.6, r: u * 0.4 },
+                { b: 'notebook', label: 'N', x: m + u * 1.5, y: m + u * 1.6, r: u * 0.4 },
+            ],
+        };
+    },
+    handle(e) {
+        const L = this.layout(), rc = R.cv.getBoundingClientRect(), dpr = R.W / (rc.width || innerWidth);
+        const held = {};
+        for (const t of e.touches) {
+            const x = (t.clientX - rc.left) * dpr, y = (t.clientY - rc.top) * dpr;
+            const dx = x - L.pad.x, dy = y - L.pad.y;
+            if (Math.hypot(dx, dy) < L.pad.r * 1.6) {
+                const a = Math.atan2(dy, dx), d = Math.hypot(dx, dy);
+                if (d > L.pad.r * 0.25) {
+                    const s = Math.sin(a), c = Math.cos(a);
+                    if (c > 0.38) held.right = true; if (c < -0.38) held.left = true;
+                    if (s > 0.38) held.down = true; if (s < -0.38) held.up = true;
+                }
+                this.pad = [dx, dy];
+                continue;
+            }
+            for (const b of L.buttons) if (Math.hypot(x - b.x, y - b.y) < b.r * 1.25) held[b.b] = true;
+        }
+        if (!e.touches.length || !Object.keys(held).some(k => ['up', 'down', 'left', 'right'].includes(k))) this.pad = null;
+        Input.touch = held;
+    },
+    draw(ctx) {
+        if (!this.on || G.state === 'title') return;
+        const L = this.layout();
+        ctx.save(); ctx.globalAlpha = 0.35;
+        ctx.fillStyle = '#fff8ec'; ctx.beginPath(); ctx.arc(L.pad.x, L.pad.y, L.pad.r, 0, 7); ctx.fill();
+        ctx.globalAlpha = 0.6; ctx.fillStyle = '#2a1b2d';
+        const p = this.pad || [0, 0], k = Math.min(1, L.pad.r * 0.6 / (Math.hypot(p[0], p[1]) || 1));
+        ctx.beginPath(); ctx.arc(L.pad.x + p[0] * k, L.pad.y + p[1] * k, L.pad.r * 0.4, 0, 7); ctx.fill();
+        for (const b of L.buttons) {
+            if ((b.b === 'look' || b.b === 'center') && !G.flags.spyglass) continue;
+            if ((b.b === 'zin' || b.b === 'zout') && !(Cam.zmin < 1 || Cam.zmax > 1)) continue;
+            if (b.b === 'split' && !G.flags.prism) continue;
+            ctx.globalAlpha = Input.touch[b.b] ? 0.7 : 0.35; ctx.fillStyle = '#fff8ec';
+            ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
+            ctx.globalAlpha = 0.9;
+            const s = Math.max(1, b.r / (b.label.length > 1 ? 14 : 9));
+            drawText(ctx, b.label, b.x - textWidth(b.label) * s / 2, b.y - 4 * s, '#2a1b2d', s);
+        }
+        ctx.restore();
+    },
+};
+
 /* ---- 02_font.js ---- */
 /* a pixel font (5x8 cells, proportional), drawn from the text below so every word on screen matches the art */
 const FONT_SRC = [
@@ -380,7 +451,9 @@ function personGrid(sp, dir, f) {
         shade(g, top, topS, (x) => x >= 11 + round);
         ell(g, 8, hy, 4.8, 4.4, sp.skin);
         if (!up) {
-            px(g, 6, hy, P.ink); px(g, 9, hy, P.ink);
+            const ey = f === 3 ? hy - 1 : hy;
+            px(g, 6, ey, P.ink); px(g, 9, ey, P.ink);
+            if (f === 3) { px(g, 6, ey - 1, P.white); px(g, 9, ey - 1, P.white); }
             if (sp.blush) { px(g, 5, hy + 2, sp.blush); px(g, 10, hy + 2, sp.blush); }
             if (sp.glasses) { px(g, 5, hy, sp.glasses); px(g, 7, hy, sp.glasses); px(g, 8, hy, sp.glasses); px(g, 10, hy, sp.glasses); }
             if (sp.beard) { rect(g, 5, hy + 2, 6, 3, sp.beard); px(g, 4, hy + 1, sp.beard); px(g, 11, hy + 1, sp.beard); }
@@ -878,8 +951,10 @@ const Cam = {
     bump: { l: 0, r: 0, t: 0, b: 0 },
     eye: false,              /* the last act: the view moves on its own, no Dot */
     hold: null,              /* a scripted framing {x, y, zoom} for scenes */
-    fw() { return (this.split ? VIEW_W / 2 : VIEW_W) / this.zoom; },
-    fh() { return VIEW_H / this.zoom; },
+    /* rooms are shown a little closer (they're small); the laws don't care, everything in a room is in view */
+    roomScale() { return World.map && World.map.def.indoor && !this.eye ? 1.5 : 1; },
+    fw() { return (this.split ? VIEW_W / 2 : VIEW_W) / (this.zoom * this.roomScale()); },
+    fh() { return VIEW_H / (this.zoom * this.roomScale()); },
     rect(i) {
         const w = this.fw(), h = this.fh();
         const cx = i ? this.bx : this.ax, cy = i ? this.by : this.ay;
@@ -997,7 +1072,7 @@ const Cam = {
             this.home = World.dot && !this.eye && ecx(World.dot) >= cx ? 1 : 0;
             if (World.dot) World.dot.lastFrame = this.home;
             this.mode = 'pinned';
-            Sfx.play('split');
+            Sfx.play('split'); this.splitAt = G.t;
             Notebook.saw('seam-split');
         } else {
             /* whole again, round the half Dot is in */
@@ -1207,7 +1282,9 @@ kind('dot', {
     w: 10, h: 7, ph: 22, figure: true,
     draw(e, d) {
         const moving = e.moving;
-        const f = moving ? (Math.floor(e.anim * 8) % 4 === 1 ? 1 : Math.floor(e.anim * 8) % 4 === 3 ? 2 : 0) : 0;
+        let f = moving ? (Math.floor(e.anim * 8) % 4 === 1 ? 1 : Math.floor(e.anim * 8) % 4 === 3 ? 2 : 0) : 0;
+        /* left standing a while, Dot turns round and looks up: not at anything on the island */
+        if (!moving && e.idle > 7 && !World.talking && G.state === 'play') { if (e.dir !== 'down') { e.dir = 'down'; } if ((e.idle % 6) < 2.2) f = 3; }
         d.person('dot', DOT_SPEC, e, f);
     },
     update(e, dt) {
@@ -1220,7 +1297,8 @@ kind('dot', {
         }
         let [ax, ay] = Input.axis();
         e.moving = !!(ax || ay);
-        if (!e.moving) { e.anim = 0; return; }
+        if (!e.moving) { e.anim = 0; e.idle = (e.idle || 0) + dt; return; }
+        e.idle = 0;
         e.dir = dirOf(ax, ay, e.dir);
         e.anim += dt;
         const sp = DOT_SPEED * dt * (e.slow ? 0.5 : 1);
@@ -1425,9 +1503,11 @@ const World = {
         for (const e of m.ents) { e.seen = false; e.originSeen = false; }
         Laws.see();
         if (!opts || !opts.quiet) { Fx.fadeIn(0.35); Sfx.play('door'); }
+        UI.areaT = 0; UI.areaName = m.def.indoor ? UI.areaName : null;
         if (m.def.enter) m.def.enter(m, from);
         Story.entered(m, from);
         Music.mapChanged();
+        Save.soon();
     },
     /* Dot stepping onto doors */
     step(d) {
@@ -1660,10 +1740,10 @@ const Fx = {
 
 /* the notebook: Dot writes a law down the first time it happens in front of the player, never before */
 const LAWS = [
-    { key: 'still', title: 'Still', text: 'Things I can\'t see hold still. The ball waited in the air for me to come back and look.' },
-    { key: 'return', title: 'Return', text: 'Wild things that leave my sight go back to where they started, the next time I look there.' },
+    { key: 'still', title: 'Still', text: 'Things I can\'t see hold perfectly still. A ball waits in the air; a person waits mid-step. When I look again, they carry on as if nothing happened.' },
+    { key: 'return', title: 'Return', text: 'Wild things (eggs, critters, things that grow) that leave my sight are gone. The next time I look where they started, they\'re back there, good as new.' },
     { key: 'hour', title: 'The Hour', text: 'The tower\'s hands only move while someone is looking at them. And the whole island keeps the tower\'s time.' },
-    { key: 'bound', title: 'Bound', text: 'Some creatures can\'t bear to be out of sight. The edge of what I see pushes them along.' },
+    { key: 'bound', title: 'Bound', text: 'Some creatures can\'t bear to be out of sight. They won\'t leave what I can see, so its edge pushes them along wherever it goes.' },
     { key: 'squeeze', title: 'Squeeze', text: 'Squash a Bound thing between the edge and a wall and it pops out somewhere it fits. Even through a fence.' },
     { key: 'wrap', title: 'Turnabout', text: 'In the woods, the edges of what I see meet. Go out one side, come in the other.' },
     { key: 'crowd', title: 'Crowds', text: 'There\'s only room for four of us in a line. The ones farthest from the middle flicker, and flickering, they pass right through each other.' },
@@ -1681,7 +1761,7 @@ const Notebook = {
         const L = LAWS.find(l => l.key === key); if (!L) return;
         this.got[key] = G.t;
         G.flags.notebook = true;
-        Fx.toast('Dot wrote in the notebook: ' + L.title, 'note');
+        Fx.toast((this.count() === 1 ? 'Dot wrote in the notebook (N to read): ' : 'Dot wrote in the notebook: ') + L.title, 'note');
         Sfx.play('write');
         Save.soon();
     },
@@ -1695,7 +1775,8 @@ const R = {
     init(cv) { this.cv = cv; this.ctx = cv.getContext('2d'); this.resize(); addEventListener('resize', () => this.resize()); },
     resize() {
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        this.cv.width = Math.floor(innerWidth * dpr); this.cv.height = Math.floor(innerHeight * dpr);
+        const w = this.cv.clientWidth || innerWidth, h = this.cv.clientHeight || innerHeight;
+        this.cv.width = Math.floor(w * dpr); this.cv.height = Math.floor(h * dpr);
         this.W = this.cv.width; this.H = this.cv.height;
         let s = Math.min(this.W / VIEW_W, this.H / VIEW_H);
         if (s >= 3) s = Math.floor(s * 2) / 2;
@@ -1722,6 +1803,7 @@ const R = {
             this.drawViewUI(regs);
         }
         UI.draw(ctx);
+        Touch.draw(ctx);
     },
     /* draw world rect r into the screen rect (sx, sy, sw, sh) */
     drawWorld(r, sx, sy, sw, sh, fi, opts) {
@@ -1791,13 +1873,16 @@ const R = {
         if (Cam.looking || pinned) {
             const a = Cam.looking ? 0.95 : 0.45, L = 10 * s, t = Math.max(1, s);
             ctx.fillStyle = `rgba(255,248,236,${a})`;
-            for (const [rx, ry, rw, rh] of regs) {
+            regs.forEach(([rx, ry, rw, rh], ri) => {
                 const m = 4 * s;
+                /* split: the half that moves (the one Dot isn't in) gets the bright corners */
+                if (Cam.split) ctx.fillStyle = ri === Cam.home ? 'rgba(255,248,236,0.3)' : `rgba(159,232,255,${Cam.looking ? 1 : 0.7})`;
                 ctx.fillRect(rx + m, ry + m, L, t); ctx.fillRect(rx + m, ry + m, t, L);
                 ctx.fillRect(rx + rw - m - L, ry + m, L, t); ctx.fillRect(rx + rw - m - t, ry + m, t, L);
                 ctx.fillRect(rx + m, ry + rh - m - t, L, t); ctx.fillRect(rx + m, ry + rh - m - L, t, L);
                 ctx.fillRect(rx + rw - m - L, ry + rh - m - t, L, t); ctx.fillRect(rx + rw - m - t, ry + rh - m - L, t, L);
-            }
+                if (Cam.split && ri !== Cam.home && (G.t - (Cam.splitAt || 0) < 6 || Cam.looking)) drawText(ctx, 'X: move this half', rx + 10 * s, ry + rh - 16 * s, '#9fe8ff', s, P.ink);
+            });
             if (Cam.looking) { ctx.fillStyle = Math.floor(G.t * 2) % 2 ? P.red : '#7a2a2e'; ctx.beginPath(); ctx.arc(this.gx + this.gw - 14 * s, this.gy + 14 * s, 3 * s, 0, 7); ctx.fill(); }
         }
     },
@@ -1819,7 +1904,9 @@ const Draw = {
     person(id, spec, e, f) {
         const c = personFrame(id, spec, e.dir, f);
         this.shadow(e, 10);
+        if (e.alpha) this.ctx.globalAlpha = e.alpha * (0.85 + Math.sin(G.t * 2) * 0.1);
         this.img(c, ecx(e) - c.width / 2, e.y + e.h - c.height + 1 - (e.z || 0) + (e.bob || 0));
+        if (e.alpha) this.ctx.globalAlpha = 1;
     },
     thing(e, name, f, flip, o) {
         let c = thing(name, f);
@@ -2205,6 +2292,32 @@ const Music = {
 /* a source's clock: call from its update (so it only moves while seen) */
 function musicStep(e, dt) { e.st.mpos = (e.st.mpos || 0) + dt; }
 
+/* the island's own small sounds, from whatever is in view: the sea, birds by day, crickets at night, wind up high */
+const Ambience = {
+    next: 0,
+    update() {
+        if (!Audio2.ok || !World.map || G.state !== 'play' || World.lapse) return;
+        if (G.t < this.next) return;
+        this.next = G.t + 2.5 + Math.random() * 4;
+        const r = Cam.homeRect(), m = World.map;
+        if (m.def.indoor) { if (m.id === 'bakery' || m.id === 'home') Ambience.crackle(); return; }
+        let water = 0, n = 0, wild = 0, gravel = 0;
+        for (let y = Math.floor(r.y / TILE); y < (r.y + r.h) / TILE; y += 2) for (let x = Math.floor(r.x / TILE); x < (r.x + r.w) / TILE; x += 2) {
+            const ch = m.t(x, y), t = TT[ch]; n++;
+            if (t && t.water) water++; else if (ch === 'p' || ch === '#') gravel++; else if (ch === 'G' || ch === 'P' || ch === '"' || ch === '.' || ch === ',') wild++;
+        }
+        if (!n) return;
+        const t = Audio2.now(), night = Light.night();
+        if (water / n > 0.2) Audio2.noise(t, 1.6, 0.05 * (water / n), Audio2.sfx, 300);
+        else if (gravel / n > 0.4) Audio2.noise(t, 1.2, 0.025, Audio2.sfx, 900);
+        if (wild / n > 0.3) {
+            if (night) { for (let i = 0; i < 3; i++) Audio2.tone('sine', 4200 + Math.random() * 300, t + i * 0.09, 0.04, 0.02); }
+            else { const f = 2400 + Math.random() * 1200; Audio2.tone('sine', f, t, 0.08, 0.03, null, f * 1.3); Audio2.tone('sine', f * 1.1, t + 0.12, 0.07, 0.025, null, f * 0.9); }
+        }
+    },
+    crackle() { const t = Audio2.now(); for (let i = 0; i < 4; i++) Audio2.noise(t + Math.random() * 0.8, 0.03, 0.03, Audio2.sfx, 2000); },
+};
+
 /* ---- 15_save.js ---- */
 /* saving: the island in localStorage (one slot), written at moments that matter and every so often.
    Anything that can't be stored (a private window) just isn't, and the game says so once. */
@@ -2277,7 +2390,7 @@ kind('clock', {
         const before = World.hour;
         World.hour += dt * HOUR_RATE * (World.timeScale || 1);
         if (Math.floor(before) !== Math.floor(World.hour)) { Sfx.play('tock'); Story.hourChanged(Math.floor(World.hour)); }
-        if (World.hour >= 24) { World.hour -= 24; World.day++; }
+        if (World.hour >= 24) { World.hour -= 24; World.day++; if (typeof midnight === 'function') midnight(); }
     },
     onSeen(e) { if (e.unseenFor > 20 && World.map.id !== 'test') Notebook.saw('hour'); },
 });
@@ -2361,7 +2474,20 @@ const FURN = {
     barrel(D, e) { box(D, e.x, e.y - 10, e.w, e.h + 10, P.brown); box(D, e.x, e.y - 6, e.w, 1, P.brownD); box(D, e.x, e.y - 1, e.w, 1, P.brownD); },
     plant(D, e) { box(D, e.x + 2, e.y - 4, e.w - 4, e.h + 4, '#a8603a'); D.img(treeCanvas('bush', 0), ecx(e) - 9, e.y - 16); },
     stairs(D, e) { for (let i = 0; i < 4; i++) box(D, e.x, e.y - 12 + i * 4, e.w, 3, i % 2 ? '#8a8378' : '#a39a8c'); },
-    lens(D, e) { box(D, e.x, e.y - 20, e.w, e.h + 20, P.greyD); const n = G.flags.lensSet || 0; for (let i = 0; i < 4; i++) box(D, e.x + 3 + i * (e.w - 6) / 4, e.y - 16, (e.w - 6) / 4 - 2, 12, i < n ? '#bfe6ff' : '#2a2440'); },
+    lens(D, e) {
+        /* the great lens: a brass drum of four glasses round the lamp */
+        const ctx = D.ctx, cx = D.X(ecx(e)), cy = D.Y(e.y - 8), r = 20 * D.k, n = G.flags.lensSet || 0;
+        box(D, e.x + 4, e.y - 2, e.w - 8, e.h + 2, '#5c574f');
+        ctx.fillStyle = P.goldS; ctx.beginPath(); ctx.arc(cx, cy, r + 3 * D.k, 0, 7); ctx.fill();
+        for (let i = 0; i < 4; i++) {
+            ctx.fillStyle = i < n ? (G.flags.lit ? '#fff6c8' : '#bfe6ff') : '#2a2440';
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, -Math.PI / 2 + i * Math.PI / 2 + 0.08, -Math.PI / 2 + (i + 1) * Math.PI / 2 - 0.08); ctx.closePath(); ctx.fill();
+        }
+        ctx.fillStyle = P.gold; ctx.beginPath(); ctx.arc(cx, cy, 5 * D.k, 0, 7); ctx.fill();
+        if (n >= 4) { ctx.fillStyle = 'rgba(255,255,255,' + (0.3 + Math.sin(G.t * 3) * 0.15) + ')'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill(); }
+    },
+    breadcounter(D, e) { FURN.counter(D, e); D.img(thing('bread'), e.x + 2, e.y - 14); },
+    crates(D, e) { D.img(thing('crate'), e.x, e.y + e.h - 16); D.img(thing('crate'), e.x + 6, e.y + e.h - 26); },
     organ(D, e) { box(D, e.x, e.y - 24, e.w, e.h + 24, '#5a3a4a'); for (let i = 0; i < 6; i++) box(D, e.x + 2 + i * 5, e.y - 30, 3, 10, P.stoneS); },
     crate(D, e) { D.img(thing('crate'), e.x, e.y + e.h - 16); },
     chest(D, e) { box(D, e.x, e.y - 8, e.w, e.h + 8, P.brown); box(D, e.x, e.y - 8, e.w, 3, P.brownS); box(D, ecx(e) - 1, e.y - 4, 2, 2, P.gold); },
@@ -2739,8 +2865,9 @@ function paintIsland() {
     rect(36, 39, 7, 3, ':'); rect(58, 40, 7, 2, ':');            /* west road to the woods, east road to the bridge */
     rect(39, 49, 2, 3, ':'); rect(39, 51, 11, 1, ':');
     rect(39, 36, 4, 2, ':');
-    for (const [x, y] of [[37, 31], [37, 34], [37, 44], [37, 53], [46, 52], [55, 53], [63, 31], [63, 52], [61, 47], [56, 31], [44, 31], [37, 48]]) set(x, y, 'T');
-    for (const [x, y] of [[42, 47], [43, 47], [56, 47], [57, 47], [47, 31], [48, 31], [52, 31], [53, 31]]) set(x, y, 'o');
+    for (const [x, y] of [[37, 31], [37, 34], [37, 44], [37, 53], [46, 52], [55, 53], [63, 31], [63, 52], [61, 47], [56, 31], [37, 48]]) set(x, y, 'T');
+    for (const [x, y] of [[42, 47], [43, 47], [56, 47], [57, 47], [52, 31], [53, 31]]) set(x, y, 'o');
+    rect(42, 30, 5, 4, 'o'); rect(43, 31, 3, 2, ',');            /* the walled garden behind the observatory (nobody can get in) */
     scatter(36, 30, 29, 26, ',', 0.05, 71, ['.']);
     rect(58, 41, 5, 4, '.'); rect(58, 41, 5, 1, 'f'); rect(58, 44, 5, 1, 'f'); rect(58, 41, 1, 4, 'f'); rect(62, 41, 1, 4, 'f'); set(60, 41, '.');   /* the hen run */
     /* ---- the Harbor (south) ---- */
@@ -2816,6 +2943,7 @@ ISLAND_ADD.push(function village(m) {
     m.add('band', 708, 658, { name: 'band', song: 'village', w: 40, h: 12, talk: bandTalk });
     furn(m, 'bench', 52, 39, 26, 5, { name: 'bench', onAct: benchSit });
     m.addAt('sign', 47, 45, { text: 'SELDOM SQUARE. Lamp Night tonight! (Weather and hour permitting.)' });
+    m.addAt('sign', 42, 37, { text: 'OBSERVATORY. Iris B. Puzzles welcome. Knock (just walk in).' });
     /* people */
     person(m, 'holt', 54, 39, { spec: LOOKS.holt, display: 'Old Holt', day: [[0, 24, { x: 54, y: 39, dir: 'left' }]], talk: holtTalk, speed: 20 });
     person(m, 'flash', 46, 38, { spec: LOOKS.flash, day: [[5.5, 19.5, { x: 46, y: 38, dir: 'right' }], [19.5, 5.5, { x: 39, y: 50, home: true }]], door: [39, 48], talk: flashTalk, speed: 60 });
@@ -2834,6 +2962,8 @@ ISLAND_ADD.push(function village(m) {
     person(m, 'tilt', 37, 60, { spec: LOOKS.tilt, brain: tiltBrain, talk: tiltTalk, dir: 'right', speed: 30 });
     m.addAt('sign', 52, 61, { text: 'SELDOM HARBOR. Boats: none expected. (None ever are.)' });
     addProp(m, { id: 'boat', tx: 47, ty: 68, tw: 2, th: 2, fh: 1, draw: drawBoat });
+    furn(m, 'crates', 48, 60, 22, 10, { say: 'Crates of nets, rope and old floats. Nobody has fished from a boat here in years.' });
+    furn(m, 'barrel', 53, 60, 12, 8, { say: 'A barrel that smells like the sea.' });
 });
 
 /* ---------- the opening ---------- */
@@ -2996,11 +3126,13 @@ async function flashTalk(e) {
 }
 
 /* ---------- Old Holt on his bench ---------- */
-async function holtTalk() {
+async function holtTalk(e) {
     const F = G.flags;
     if (!F.clockSeen) { await say('Hm.', 'holt'); return; }
     if (!F.festival) {
+        if (lampReady() && !Light.night()) { await say('Everything\'s ready but the night. Sit on the bench a while, Dot, and watch the tower with me. The evening comes quicker that way.', 'holt'); return; }
         if (Light.night()) { await say('Night at last. In my day, the lighthouse swept right over this bench. We never needed anybody to watch the tower then.', 'holt'); return; }
+        if (e.st.n = (e.st.n || 0) + 1, e.st.n % 3 === 0) { await say('At midnight a little bird pops out of the tower. Nobody\'s seen it in years. Nobody\'s been watching at midnight.', 'holt'); return; }
         await say('The tower\'s hands are moving again. First time in ages. Must be somebody watching it.', 'holt'); return;
     }
     await say('When the lighthouse was lit, the hour moved wherever its light fell. Watched by the island itself, you see. Nobody had to stand around.', 'holt');
@@ -3162,6 +3294,40 @@ function lapseDone() {
     if (L.until === 'day' && World.hour % 24 >= 7.5 && World.hour % 24 < 8) return true;
     return false;
 }
+
+/* ---------- little secrets in the village ---------- */
+/* the hen's seventh egg is golden */
+Story.on('got', (what, e) => {
+    if (what !== 'egg') return;
+    G.flags.eggsPicked = (G.flags.eggsPicked || 0) + 1;
+    if (e && e.golden) { e.golden = false; invTake('egg'); giveCurio('goldegg'); say('A golden egg! Warm, and very heavy for an egg.'); }
+});
+KINDS.egg.respawn = function (e) { if ((G.flags.eggsPicked || 0) >= 6 && !G.flags.curio_goldegg) e.golden = true; };
+KINDS.egg.draw = function (e, D) { D.thing(e, e.golden ? 'goldegg' : 'egg'); if (e.golden && Math.floor(G.t * 3) % 2) box(D, e.x + 2, e.y - 6, 1, 1, P.white); };
+/* at midnight the tower's little door opens and its bird comes out, for whoever is watching */
+function midnight() {
+    if (G.flags.curio_feather || G.flags.featherDropped) return;
+    G.flags.featherDropped = true;
+    Fx.sparkle(50 * TILE, 35 * TILE, P.gold); Sfx.play('bell');
+    const h = ent('holt'); if (h && h.seen) bark(h, 'The bird! The little bird!', 3);
+    MAPS.island.add('feather', 50 * TILE - 3, 38 * TILE + 6, { name: 'feather' });
+}
+kind('feather', {
+    w: 8, h: 4, ph: 8, fixed: true,
+    draw(e, D) { box(D, e.x, e.y + 1, 8, 2, P.gold); box(D, e.x + 1, e.y, 5, 1, P.goldS); box(D, e.x + 7, e.y + 2, 2, 1, P.brownS); },
+    act(e) { e.removed = true; e.map.remove(e); giveCurio('feather'); say('A tiny feather made of brass, with a spring for a quill.'); },
+});
+/* Leica, squeezed into the garden nobody can get into, digs something up and brings it out */
+const GARDEN = { x: 43, y: 31, w: 3, h: 2 };
+Story.on('tick', () => {
+    const l = ent('leica'); if (!l || G.flags.curio_marble) return;
+    const [x, y] = tileOf(l);
+    if (inRect(x, y, GARDEN)) { if (!l.st.dug) { l.st.dug = true; bark(l, '*dig dig dig*', 3); Sfx.play('push'); Save.soon(); } }
+    else if (l.st.dug && l.seen && !World.cutscene) {
+        l.st.dug = false;
+        scene(async () => { bark(l, 'Woof!', 2); await say('Leica drops something at Dot\'s feet. A glass marble, with a tiny lighthouse inside it.'); giveCurio('marble'); });
+    }
+});
 
 /* ---- 23_pasture.js ---- */
 /* Pan's Pasture: sheep that can't bear to be out of sight, a pen, an orchard, and something very small by the pond */
@@ -3577,7 +3743,7 @@ room('chapel', [
         furn(m, 'organ', 9, 1, 34, 8, { say: 'An old organ. When you look at it, faintly, it plays.' });
         m.add('organ', 9 * TILE, 1 * TILE + 8, { name: 'organsrc', song: 'hollow', w: 34, h: 8, loud: 400 });
         for (let y = 4; y <= 8; y += 2) { furn(m, 'pew', 2, y, 48, 6, { say: 'A pew. Someone faint is sitting on it, very politely.' }); furn(m, 'pew', 8, y, 48, 6, { say: 'A pew, worn smooth by people who were not, strictly, there.' }); }
-        person(m, 'sepia', 6, 3, { spec: { skin: '#e8f0ff', hair: '#c8d0e8', style: 'bun', top: '#b8c0e0', bottom: '#a0a8d0', skirt: '#a0a8d0', tall: true }, display: 'Mrs. Sepia', voice: { p: 330, w: 'sine', v: 0.12, wob: 0.05 }, brain: e => { e.dir = 'down'; }, talk: sepiaTalk, ghostly: true });
+        person(m, 'sepia', 6, 3, { spec: { skin: '#e4ecff', hair: '#8890b8', style: 'bun', top: '#b8c0e0', bottom: '#a0a8d0', skirt: '#a0a8d0', tall: true, glasses: '#8890b8' }, alpha: 0.8, display: 'Mrs. Sepia', voice: { p: 330, w: 'sine', v: 0.12, wob: 0.05 }, brain: e => { e.dir = 'down'; }, talk: sepiaTalk, ghostly: true });
     },
 });
 kind('organ', { w: 34, h: 8, ph: 30, fixed: true, draw() { } });
@@ -3608,6 +3774,9 @@ ISLAND_ADD.push(function cape(m) {
     m.doors = m.doors || [];
     m.doors.push({ x: 87, y: 9, to: 'lamproom', tx: 5, ty: 8, tdir: 'up', dir: 'up', locked: () => G.flags.eye && !G.flags.ended, lockedSay: () => null });
     m.add('lhlamp', 87 * TILE + 4, 3 * TILE + 14, { name: 'lhlamp', w: 24, h: 10 });
+    furn(m, 'bench', 79, 6, 26, 5, { say: 'The keepers\' bench. Someone carved into it: "Watch the sea, and it watches back."' });
+    house(m, 'keepercot', 75, 11, 4, 3, { tw: 4, th: 3, wall: '#c8c0b0', roof: '#5a6a8a', door: 1, windows: [3] }, ['island', 0, 0, () => true, () => 'The old keeper\'s cottage, boarded up for ninety-nine years.']);
+    for (const [x, y] of [[82, 15], [92, 13], [73, 7]]) m.addAt('rock', x, y, { name: 'caperock' + x });
     m.addAt('sign', 74, 16, { text: 'THE CAPE. The ferry used to run from the ledge across the Gap. The ferry was the keeper. The keeper had a way with glass.' });
     m.addAt('sign', 66, 17, { text: 'The old ferry ledge. Across the Gap, the cape. Nothing to cross on but water. The keepers never needed a boat, they say.' });
     /* the bonfire on the square, kept every night since Lamp Night */
@@ -3822,9 +3991,10 @@ const Eye = {
     drawGoals(ctx) {
         const s = R.s;
         const g = this.goals();
-        ctx.fillStyle = 'rgba(26,18,32,0.8)'; roundRect(ctx, R.gx + 4 * s, R.gy + R.gh - 52 * s, 180 * s, 48 * s, 4 * s); ctx.fill();
-        g.forEach(([ok, t], i) => drawText(ctx, (ok ? '✓ ' : '· ') + t, R.gx + 10 * s, R.gy + R.gh - 47 * s + i * 11 * s, ok ? P.yellow : P.cream, s));
-        drawText(ctx, 'Arrows: move   Q/E: size   Tab: split   X: move the other half', R.gx + 190 * s, R.gy + R.gh - 12 * s, '#c9b8e8', s * 0.8, '#00000088');
+        const k = s * 0.75;
+        ctx.fillStyle = 'rgba(26,18,32,0.82)'; roundRect(ctx, R.gx + 4 * s, R.gy + R.gh - 42 * s, 150 * s, 38 * s, 4 * s); ctx.fill();
+        g.forEach(([ok, t], i) => drawText(ctx, (ok ? '✓ ' : '· ') + t, R.gx + 9 * s, R.gy + R.gh - 38 * s + i * 8.5 * s, ok ? P.yellow : P.cream, k));
+        drawText(ctx, 'Arrows: move   Q/E: size   Tab: split   X: other half', R.gx + 160 * s, R.gy + R.gh - 10 * s, '#c9b8e8', k, '#00000088');
     },
 };
 Story.on('tick', (dt) => {
@@ -3969,6 +4139,7 @@ async function irisTalk(e) {
 function irisMusing() {
     const F = G.flags;
     if (!F.festival) return 'The Great Clock. It keeps the island\'s hour, but clocks can\'t tell time by themselves, you know. Somebody has to watch them.';
+    const aside = irisAside(); if (aside && Math.random() < 0.5) return aside;
     if (!F.prism) return 'Where does the looking come from, Dot? Not your eyes. You\'re in the picture too. I\'ve been trying to work out who\'s holding the spyglass.';
     return 'The lighthouse was the island\'s own eye. With it lit, we wouldn\'t need anyone else to look at us. Strange thought, isn\'t it?';
 }
@@ -3990,7 +4161,9 @@ room('bakery', [
 ], {
     exit: ['island', 60, 39],
     init(m) {
-        for (let x = 1; x <= 10; x++) if (x !== 9) furn(m, 'counter', x, 3, 16, 8, { say: 'Bread, buns, and a smell that makes the whole room cozy.' });
+        for (let x = 1; x <= 10; x++) if (x !== 9) furn(m, x % 3 === 1 ? 'breadcounter' : 'counter', x, 3, 16, 8, { say: 'Bread, buns, and a smell that makes the whole room cozy.' });
+        furn(m, 'window', 3, 0, 16, 2, { solid: false, say: 'The window looks out on the square. You can just see the Great Clock.' });
+        furn(m, 'plant', 10, 6, 14, 8, { say: 'A potted fern, slightly floury.' });
         furn(m, 'oven', 7, 1, 22, 10, { name: 'oven', say: () => ovenText() });
         furn(m, 'barrel', 1, 1, 12, 8, { say: 'Flour.' });
         furn(m, 'barrel', 2, 1, 12, 8, { say: 'More flour.' });
@@ -4013,6 +4186,7 @@ function ovenText() {
 }
 async function crumbTalk(e) {
     const F = G.flags;
+    if (F.cake && !F.festival && !e.st.gold) { e.st.gold = true; await say('The cake\'s ready! You know, my granny swore that hen once laid a golden egg. The seventh one of the day, she said. Seventh!', 'crumb'); return; }
     if (F.cake) { await say(F.festival ? (invHas('egg') ? 'More eggs? Bless you. I\'ll make a quiche.' : 'Best cake I ever baked. Watched every minute of it.') : 'The cake\'s ready! I\'ll bring it to the square tonight. If it ever is tonight.', 'crumb'); if (F.festival && invHas('egg')) invTake('egg', World.inv.egg); return; }
     if (F.cakeBaking) { await say('It\'s in! Now don\'t take your eyes off that oven. A watched cake bakes, that\'s what my mother said.', 'crumb'); return; }
     const n = World.inv.egg || 0;
@@ -4187,6 +4361,11 @@ function actTwoHint() {
     if (!F.capeIn) return 'Mrs. Sepia said the old keepers never needed a boat. Cut the looking in two, and walk from one half to the other.';
     return 'The lighthouse, Dot. Bring it the glasses.';
 }
+function irisAside() {
+    const F = G.flags;
+    if (!F.curio_marble) return 'Leica sits by the little walled garden behind my observatory every day and whines. Nobody can get in there. Nobody our size.';
+    return null;
+}
 async function actTwoAnsel(e) {
     const F = G.flags;
     const n = ['spyglass', 'loupe', 'wideglass', 'prism'].filter(k => F[k]).length;
@@ -4235,11 +4414,12 @@ const Title = {
         drawText(ctx, 'SELDOM', X(VIEW_W / 2 - textWidth('SELDOM') * 2.5), Y(54), P.cream, s * 5, '#120c18');
         drawText(ctx, 'a little island, seldom seen', X(VIEW_W / 2 - textWidth('a little island, seldom seen') / 2), Y(98), '#c9b8e8', s);
         const items = this.items();
+        if (!document.hasFocus() && !Touch.on && Math.floor(this.t * 2) % 2) drawText(ctx, 'Click the game first, then use the keys', X(VIEW_W / 2 - textWidth('Click the game first, then use the keys') / 2), Y(108), P.yellow, s, '#120c18');
         items.forEach((it, i) => {
             const t = (i === this.sel ? '→ ' : '   ') + (it === 'New game' && this.confirm ? 'New game? (erases the save) Press again' : it);
             drawText(ctx, t, X(VIEW_W / 2 - 40), Y(120 + i * 12), i === this.sel ? P.yellow : P.cream, s, '#120c18');
         });
-        drawText(ctx, 'Z or Space to choose', X(6), Y(VIEW_H - 12), '#8a7aa8', s);
+        drawText(ctx, 'Arrows or WASD: move    Z or Space: choose / talk    Esc: menu', X(6), Y(VIEW_H - 12), '#8a7aa8', s);
         drawText(ctx, 'v1', X(VIEW_W - 14), Y(VIEW_H - 12), '#8a7aa8', s);
     },
 };
@@ -4378,7 +4558,8 @@ function tick(dt, fast) {
             World.triggers = World.triggers.filter(t => !t.done);
         } else if (G.state === 'notebook') UI.updateNotebook();
         else if (G.state === 'menu') UI.updateMenu();
-        Fx.update(dt); UI.update(dt); if (!World.lapse) Music.update(); Save.tick();
+        Fx.update(dt); UI.update(dt); if (!World.lapse) Music.update(); Ambience.update(); Save.tick();
+        if (G.state === 'play' && G.t - (G.lastAuto || 0) > 30) { G.lastAuto = G.t; Save.write(); }
     } catch (err) { report('tick', err); if (G.debug) throw err; }
 }
 
@@ -4386,7 +4567,7 @@ function boot() {
     const cv = document.getElementById('game');
     G.debug = !!window.__DEBUG || /[?&]debug/.test(location.search);
     Save.loadSettings();
-    R.init(cv); Input.init(cv);
+    R.init(cv); Input.init(cv); Touch.init(cv);
     cv.focus();
     if (/[?&]test/.test(location.search)) { START.map = 'test'; MAP_MAKERS.length = 0; MAP_MAKERS.push(buildTestMap); START.onNew = () => { G.flags.spyglass = true; G.flags.prism = true; Cam.zmin = 0.5; Cam.zmax = 3; }; G.noSave = true; }
     document.addEventListener('visibilitychange', () => { if (document.hidden) G.hiddenAt = Date.now(); else if (G.hiddenAt) { G.awayFor = Date.now() - G.hiddenAt; G.hiddenAt = 0; Story.hooks.away && Story.hooks.away.forEach(f => f(G.awayFor)); } });

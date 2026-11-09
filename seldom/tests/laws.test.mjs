@@ -148,4 +148,37 @@ test('A save from the last act resumes as the Eye', async () => {
     assert.deepEqual(r, [true, 'play']);
 });
 
+test('secrets: the seventh egg is golden', async () => {
+    const r = await fresh(`
+        for (let i = 0; i < 7; i++) {
+            Debug.go(60, 43); await Bot.step(5); await Bot.face('right'); await Bot.act();
+            Debug.go(45, 50); await Bot.step(5);
+        }
+        return [G.flags.eggsPicked, !!G.flags.curio_goldegg];`);
+    assert.deepEqual(r, [7, true]);
+});
+
+test('secrets: the tower bird at midnight', async () => {
+    const r = await fresh(`
+        World.hour = 23.9; Debug.go(51, 40); await Bot.step(200);
+        const f = MAPS.island.find('feather');
+        if (!f) return 'no feather';
+        Debug.go(50, 39); await Bot.step(5); await Bot.face('up'); await Bot.act();
+        return !!G.flags.curio_feather;`);
+    assert.equal(r, true);
+});
+
+test('secrets: Leica squeezed into the walled garden', async () => {
+    const r = await fresh(`
+        G.flags.spyglass = true;
+        const l = ent('leica'); l.x = 48 * TILE; l.y = 31 * TILE + 6; l.st.t = 99;
+        Debug.go(40, 37); await Bot.step(20);
+        const ins = [];
+        for (let i = 0; i < 90; i++) { await Bot.look({ left: true }, 2); const [x, y] = tileOf(l); if (x >= 43 && x <= 45 && y >= 31 && y <= 32) { ins.push(i); } }
+        await Bot.press('center'); await Bot.step(60); await Bot.talkThrough();
+        return [ins.length > 0, !!l.st.dug || !!G.flags.curio_marble, !!G.flags.curio_marble, tileOf(l).join(',')];`);
+    assert.equal(r[0], true, 'Leica got into the garden: ' + r[3]);
+    assert.equal(r[1], true);
+});
+
 test('no page errors along the way', () => { assert.deepEqual(errors, []); });

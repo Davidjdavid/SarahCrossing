@@ -103,7 +103,9 @@ function personGrid(sp, dir, f) {
         shade(g, top, topS, (x) => x >= 11 + round);
         ell(g, 8, hy, 4.8, 4.4, sp.skin);
         if (!up) {
-            px(g, 6, hy, P.ink); px(g, 9, hy, P.ink);
+            const ey = f === 3 ? hy - 1 : hy;
+            px(g, 6, ey, P.ink); px(g, 9, ey, P.ink);
+            if (f === 3) { px(g, 6, ey - 1, P.white); px(g, 9, ey - 1, P.white); }
             if (sp.blush) { px(g, 5, hy + 2, sp.blush); px(g, 10, hy + 2, sp.blush); }
             if (sp.glasses) { px(g, 5, hy, sp.glasses); px(g, 7, hy, sp.glasses); px(g, 8, hy, sp.glasses); px(g, 10, hy, sp.glasses); }
             if (sp.beard) { rect(g, 5, hy + 2, 6, 3, sp.beard); px(g, 4, hy + 1, sp.beard); px(g, 11, hy + 1, sp.beard); }
