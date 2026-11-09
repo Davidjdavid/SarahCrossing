@@ -175,3 +175,59 @@ defArea({
     rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
     entry: { x: 3, y: 3 },
 });
+
+/* two layers: a room and its Underside; cords, tugs, knots, a hatch, a counterweight; the Needle */
+defHouse({
+    id: 'lab7', name: 'Lab 7', theme: 'tidy', house: 'lab', thread: THREAD.guild,
+    themeAt: (x, y) => y >= 11 ? 'underside' : 'tidy',
+    drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy),
+    entry: { x: 2, y: 2 },
+    cells: {
+        '0,0': {
+            name: 'Upstairs',
+            rows: [
+                '####################',
+                '#..............#...#',
+                '#..............#...#',
+                '#..............#...#',
+                '#..............#...#',
+                '#..................#',
+                '#..............#...#',
+                '#..............#...#',
+                '#..............#...#',
+                '#..............#...#',
+                '####################',
+            ],
+            ents: [
+                { k: 'wood', x: 4, y: 3, id: 'kA' },
+                { k: 'wood', x: 8, y: 3, id: 'kB', startAt: [8, 5], trace: [[8, 3], [8, 4], [8, 5]] },
+                { k: 'plate', x: 8, y: 5, sig: 'lp' },
+                { k: 'wood', x: 11, y: 7, id: 'kC' },
+                { k: 'stray', x: 5, y: 8, id: 'kS' },
+                { k: 'door', x: 15, y: 5, type: 'gate', when: '!cw', dir: 'v', id: 'cwGate' },
+            ],
+        },
+        '0,1': {
+            name: 'Underneath', above: '0,0',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'hatch', x: 2, y: 8 },
+                { k: 'plate', x: 12, y: 5, sig: 'cw' },
+                { k: 'weight', x: 12, y: 5, id: 'cwWeight' },
+            ],
+        },
+    },
+});
+

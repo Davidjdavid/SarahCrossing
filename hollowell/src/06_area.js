@@ -216,7 +216,7 @@ const TileDraw = {
             case 'void': c = tileCanvas('void', x => fill(x, PAL.night)); break;
             case 'forest': c = tileCanvas(`${tn}:forest:${v}`, x => { fill(x, shade(th.grass[3], -0.35)); speckle(x, [shade(th.grass[3], -0.2)], v + 9, 0.15); }); break;
             case 'spikes': c = tileCanvas(`${tn}:spikes`, x => {
-                this.floor(x, area, 'floor', v);
+                this.floor(x, area, 'floor', v, tn);
                 for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
                     const bx = 2 + i * 8, by = 3 + j * 8;
                     fill(x, '#5a5060', bx, by + 3, 5, 2);
@@ -232,7 +232,7 @@ const TileDraw = {
             }
             default: {
                 /* floors, by theme */
-                c = tileCanvas(`${tn}:${p}:${v}`, x => this.floor(x, area, p, v));
+                c = tileCanvas(`${tn}:${p}:${v}`, x => this.floor(x, area, p, v, tn));
             }
         }
         Gfx.img(c, sx, sy);
@@ -254,8 +254,8 @@ const TileDraw = {
         if (!below) { fill(x, shade(s3, -0.35), 0, 14, 16, 2); }
     },
 
-    floor(x, area, p, v) {
-        const tn = area.themeName, th = area.theme;
+    floor(x, area, p, v, tn0) {
+        const tn = tn0 || area.themeName, th = THEMES[tn] || area.theme;
         const F = FLOORS[tn] && FLOORS[tn][p];
         if (F) return F(x, th, v);
         if (th.floor) { fill(x, th.floor[0]); speckle(x, [th.floor[2]], v + 3, 0.06); return; }

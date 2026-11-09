@@ -168,6 +168,16 @@ const SCENARIOS = {
         await page.evaluate(() => { HW.walkTo(29, 8); HW.step(80); HW.skipTalk(); HW.step(40); HW.skipTalk(); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(30); });
         await shot('mh_boss');
     },
+    async spoolkit() {
+        await open();
+        await page.evaluate(() => { HW.newGame('Wren', { area: 'lab7', x: 2, y: 2, noAutosave: true }); for (const t of ['gloves', 'hook', 'paddle', 'bell', 'bedroll', 'crossbar', 'needle']) HW.Inv.giveTool(t); HW.step(10); });
+        await page.evaluate(() => { HW.walkTo(3, 3); HW.push('right', 1); HW.step(30); });
+        await shot('sk_above');
+        await page.evaluate(() => { HW.walkTo(2, 7); HW.face('down'); HW.press('act', 1); HW.step(40); HW.walkTo(6, 16); HW.step(5); });
+        await shot('sk_below');
+        await page.evaluate(() => { HW.walkTo(8, 13); HW.face('down'); HW.hold('act'); HW.step(20); HW.release(); HW.step(5); HW.walkTo(11, 19); HW.face('up'); HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(2); HW.hold('left'); HW.step(2); HW.release(); HW.step(8); HW.hold('up'); HW.step(2); HW.release(); HW.step(8); });
+        await shot('sk_needle');
+    },
     async larkspur() {
         await open();
         await page.evaluate(() => { HW.preset('afterD5'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 12, 84); HW.step(40); HW.skipTalk(); });

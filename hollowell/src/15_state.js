@@ -29,7 +29,8 @@ const Inv = {
         this.keyCount = {}; this.patterns = []; this.plans = [];
         this.knots = []; this.patches = 0; this.patchIds = [];
         this.items = {};                    /* quest things, notes, strays */
-        this.bedroll = null;                /* where the Bedroll lies: { area, tx, ty, lx, ly } (src/58_bedroll_kit.js) */
+        this.bedroll = null;
+        this.stitches = [];                 /* the Needle's stitches: [{ area, key, from, to, trace, stray }] (src/65_spool_kit.js) */                /* where the Bedroll lies: { area, tx, ty, lx, ly } (src/58_bedroll_kit.js) */
     },
     has(id) { return this.tools.includes(id) || !!this.items[id]; },
     keys(h) { return this.keyCount[h] || 0; },

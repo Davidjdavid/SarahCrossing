@@ -46,14 +46,14 @@ const World = {
         const a = new Area(def);
         for (const s of a._spawns) {
             const f = SPAWN[s.L.ent];
-            if (f) a.add(f(s.x, s.y, Object.assign({}, s.L.props || {})));
+            if (f) { const e = f(s.x, s.y, Object.assign({}, s.L.props || {})); e.skey = '@' + s.x + ',' + s.y; a.add(e); }
         }
         for (const e of def.ents || []) {
             if (e.if && !Story.cond(e.if)) continue;
             const f = SPAWN[e.k];
             if (!f) { log('no spawn kind', e.k); continue; }
             const props = Object.assign({}, e); delete props.k; delete props.x; delete props.y;
-            a.add(f(e.x, e.y, props));
+            const ent = f(e.x, e.y, props); ent.skey = e.id || ('@' + e.x + ',' + e.y); a.add(ent);
         }
         /* things changed for good (pits filled with strays...) */
         const af = Progress.areaFlags[id] || {};
@@ -150,7 +150,9 @@ function defHouse(def) {
             if (o.startAt) o.startAt = [o.startAt[0] + ox, o.startAt[1] + oy];
             ents.push(o);
         }
-        rooms.push({ x: ox, y: oy, w: RW, h: RH, name: c.name || '', key: k, nudge: c.nudge, dark: c.dark });
+        let above = null;
+        if (c.above) { const [ax, ay] = c.above.split(',').map(Number); above = { key: c.above, dx: (ax - cx) * RW, dy: (ay - cy) * RH }; }
+        rooms.push({ x: ox, y: oy, w: RW, h: RH, name: c.name || '', key: k, nudge: c.nudge, dark: c.dark, above });
     }
     return defArea(Object.assign({ family: 'dungeon' }, def, { rows: rows.map(r => r.join('')), ents, rooms }));
 }
