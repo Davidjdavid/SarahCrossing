@@ -35,6 +35,8 @@ function drawHud(g, t) {
     /* your own numbers */
     let x = POCKET_X + 15 + G.pocket.length * 15 + 4;
     const self = (key, ds) => {
+        const warn = WARN.get('@:' + key);
+        if (warn && Math.sin(warn * 14) > -0.2) { blob(g, x - 2, 2, 9 + ds.length * 5, 12, C.R, C.r, roundRect(9 + ds.length * 5, 12, 2)); }
         g.drawImage(iconImg(key, ICON_COL[key]), x, 5); x += 7;
         for (const d of ds) { if (!FLY.some(f => f.hide && f.hide.id === '@' && f.hide.key === key)) g.drawImage(digitImg(d, C.w, 1), x, 5); x += 5; }
         x += 5;
@@ -226,7 +228,15 @@ function handleEvents(ctx = {}) {
         switch (e.t) {
             case 'step': sfx(e.heavy ? 'heavystep' : 'step'); if (e.heavy) { shake = 1.5; puff(G.p.x * TS + 8, G.p.y * TS + OY + 14, C.T, 3, 0.4, 0.3); } break;
             case 'bump': sfx('bump'); break;
-            case 'heavy': sfx('heavy'); shake = 1; for (const id of e.ids) { const v = VIS.get(id); if (v) pop(v.x + 8, v.y - 4, 'too heavy', C.W); } break;
+            case 'heavy': {
+                /* show the two numbers that disagree: its weight against your strength */
+                sfx('heavy'); shake = 1;
+                const v = VIS.get(e.ids[0]);
+                if (v) POPS.push({ x: v.x + 8, y: v.y - 6, cmp: true, w: e.w, s: e.s, life: 1.6, max: 1.6 });
+                for (const id of e.ids) WARN.set(id + ':wt', 1.6);
+                WARN.set('@:str', 1.6);
+                break;
+            }
             case 'push': sfx('push'); break;
             case 'pushmove': break;
             case 'swap': {

@@ -254,7 +254,7 @@ function tryPush(first, d) {
     }
     let total = 0;
     for (const e of chain) total += weightOf(e);
-    if (total > pv('str')) { EV.push({ t: 'heavy', ids: chain.map(e => e.id) }); return false; }
+    if (total > pv('str')) { EV.push({ t: 'heavy', ids: chain.map(e => e.id), w: total, s: pv('str') }); return false; }
     if (x < 0 || y < 0 || x >= MW || y >= MH) { EV.push({ t: 'bump' }); return false; }
     const last = chain[chain.length - 1];
     /* a parcel into a door */

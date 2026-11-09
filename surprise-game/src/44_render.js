@@ -2,6 +2,7 @@
 
 const VIS = new Map();        /* where each thing is drawn (eases toward where it is) */
 const BOUNCE = new Map();     /* id -> seconds left of a little hop when its number changes */
+const WARN = new Map();       /* 'id:key' -> seconds left of a blink on a number that said no */
 const FX = [];                /* particles */
 const POPS = [];              /* floating words and numbers */
 const FLY = [];               /* digits in flight between a tag and the satchel */
@@ -253,7 +254,8 @@ function drawTag(g, e, key, ds, x, y, opt = {}) {
     const icon = opt.icon !== false;
     const { w, h } = tagSize(ds.length, icon);
     x = Math.round(x); y = Math.round(y);
-    const fill = hidden ? C.e : bolted ? C.W : C.w, line = hidden ? C.E : C.k;
+    const warn = WARN.get(e.id + ':' + key), blinkOn = warn && Math.sin(warn * 14) > -0.2;
+    const fill = blinkOn ? C.p : hidden ? C.e : bolted ? C.W : C.w, line = blinkOn ? C.R : hidden ? C.E : C.k;
     blob(g, x, y, w, h, fill, line, roundRect(w, h, 2));
     let cx = x + 2;
     if (icon) { g.drawImage(iconImg(key, hidden ? C.E : ICON_COL[key] || C.G), cx, y + 2); cx += 6; }
@@ -379,14 +381,32 @@ function drawLight(g, t, ents) {
 /* ---------- effects ---------- */
 function stepFx(dt) {
     for (const [id, b] of BOUNCE) { if (b - dt <= 0) BOUNCE.delete(id); else BOUNCE.set(id, b - dt); }
+    for (const [id, b] of WARN) { if (b - dt <= 0) WARN.delete(id); else WARN.set(id, b - dt); }
     for (let i = FX.length - 1; i >= 0; i--) { const p = FX[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 40 * dt; p.life -= dt; if (p.life <= 0) FX.splice(i, 1); }
     for (let i = POPS.length - 1; i >= 0; i--) { const p = POPS[i]; p.y -= 18 * dt; p.life -= dt; if (p.life <= 0) POPS.splice(i, 1); }
     shake = Math.max(0, shake - dt * 30);
     flash = Math.max(0, flash - dt * 2.5);
 }
+/* weight 2 > strength 1, in pictures */
+function drawCompare(g, p) {
+    const ws = p.w === Infinity ? [INF] : String(p.w).split('').map(Number), ss = p.s === Infinity ? [INF] : String(p.s).split('').map(Number);
+    const w = 6 + ws.length * 5 + 9 + 6 + ss.length * 5 + 4;
+    const x = Math.round(p.x - w / 2), y = Math.round(p.y) - 12;
+    blob(g, x, y, w, 11, C.w, C.R, roundRect(w, 11, 3));
+    let cx = x + 2;
+    g.drawImage(iconImg('wt', ICON_COL.wt), cx, y + 3); cx += 6;
+    for (const d of ws) { g.drawImage(digitImg(d, C.k, 1), cx, y + 3); cx += 5; }
+    cx += 1; text(g, '>', cx, y + 2, C.R); cx += 7;
+    g.drawImage(iconImg('str', ICON_COL.str), cx, y + 3); cx += 6;
+    for (const d of ss) { g.drawImage(digitImg(d, C.k, 1), cx, y + 3); cx += 5; }
+}
 function drawFx(g) {
     for (const p of FX) { g.globalAlpha = Math.max(0, p.life / p.max); g.fillStyle = p.col; g.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size); }
     g.globalAlpha = 1;
-    for (const p of POPS) { g.globalAlpha = Math.min(1, p.life / p.max * 2); textC(g, p.str, p.x, Math.round(p.y), p.col, C.k); }
+    for (const p of POPS) {
+        g.globalAlpha = Math.min(1, p.life / p.max * 2);
+        if (p.cmp) drawCompare(g, p);
+        else textC(g, p.str, p.x, Math.round(p.y), p.col, C.k);
+    }
     g.globalAlpha = 1;
 }
