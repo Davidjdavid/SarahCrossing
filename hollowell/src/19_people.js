@@ -130,6 +130,14 @@ class NPC extends GridThing {
         this.path = path; this.walking = !!(path && path.length); this.walkSpeed = speed;
     }
     tick() {
+        if (this.route && !this.path && !this.mv && !Script.running('talk') && !this.stopped) {
+            if (this.routeWait > 0) this.routeWait--;
+            else {
+                const [rx, ry, w] = this.route[this.ri = (this.ri || 0) % this.route.length];
+                if (this.tx === rx && this.ty === ry) { this.ri++; this.routeWait = w || 60; }
+                else { this.free = true; this.walkTo(rx, ry, this.routeSpeed || 1); if (!this.path) { this.ri++; this.routeWait = 30; } }
+            }
+        }
         if (this.path && !this.mv) {
             if (!this.path.length) { this.path = null; this.walking = false; if (this.ret && !this.free) { /* stays a stranger to its spot */ } return; }
             const [nx, ny] = this.path[0];

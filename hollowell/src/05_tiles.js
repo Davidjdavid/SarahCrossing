@@ -26,6 +26,8 @@ const TK = {
     spikes: { solid: false, hurt: true },
     ice: { solid: false, ice: true },
     roof: { solid: true },
+    prop: { solid: true },
+    low: { solid: true, low: true },          /* a counter: blocks walking, things fly over it */
 };
 
 /* Themes: the palette each painter uses */

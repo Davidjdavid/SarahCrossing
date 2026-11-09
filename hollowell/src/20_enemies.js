@@ -89,6 +89,13 @@ class Enemy extends Ent {
         const k = this.area.kind(this.tx, this.ty);
         if ((k.pit && !this.D.flies) || (k.deep && !this.D.swims)) this.die(true);
     }
+    /* a returning thing heavier than it slams into it */
+    shoved(d, pace, by) {
+        if (!this.alive) return;
+        this.kx = DX[d] * 4; this.ky = DY[d] * 4;
+        this.struck(by, by.weight >= WEIGHT.heavy ? 2 : 1, d, true);
+        G.shake = 6;
+    }
     struck(by, dmg, dir, shard) {
         if (!this.alive || this.flash > 0) return;
         if (this.D.armored && !shard && !(by && by.isGrid)) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 6); if (dir >= 0) { this.kx = DX[dir] * 1.5; this.ky = DY[dir] * 1.5; } return; }

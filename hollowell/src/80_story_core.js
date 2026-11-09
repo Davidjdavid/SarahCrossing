@@ -14,4 +14,3 @@ Story.placeName = function (id) {
 function initContent() {
     for (const f of CONTENT_INIT) f();
 }
-const CONTENT_INIT = [];

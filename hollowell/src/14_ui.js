@@ -119,20 +119,23 @@ const UI = {
             }
         }
         /* buttons */
-        Gfx.img(spr('hud_button'), W - 40, 3);
-        Font.draw(String(Inv.buttons), W - 30, 4, PAL.white, Infinity, PAL.ink);
+        Gfx.img(spr('hud_button'), W - 34, 4);
+        Font.draw(String(Inv.buttons), W - 24, 5, PAL.white, Infinity, PAL.ink);
         /* the tool in hand */
         const tool = Inv.equipped;
-        stitchedBox(W - 62, 1, 20, 20, { fill: '#fbf3df' });
-        if (tool) { const ic = spr('icon_' + tool); if (ic) Gfx.img(ic, W - 60, 3); }
-        Font.draw('C', W - 48, 13, PAL.grey3);
+        if (tool) {
+            stitchedBox(W - 58, 1, 20, 20, { fill: '#fbf3df' });
+            const ic = spr('icon_' + tool); if (ic) Gfx.img(ic, W - 56, 3);
+            Font.draw('C', W - 44, 13, PAL.grey3);
+        }
         /* keys in a House */
         const area = G.map;
         if (area && area.def.house) {
             const k = Inv.keys(area.def.house);
-            Gfx.img(spr('key'), W - 82, 1);
-            Font.draw('x' + k, W - 70, 6, PAL.white, Infinity, PAL.ink);
-            if (Inv.hasPattern(area.def.house)) Gfx.img(spr('hud_pattern'), W - 96, 4);
+            const kx = tool ? W - 84 : W - 62;
+            Gfx.img(spr('key'), kx, 1);
+            Font.draw('x' + k, kx + 12, 6, PAL.white, Infinity, PAL.ink);
+            if (Inv.hasPattern(area.def.house)) Gfx.img(spr('hud_pattern'), kx - 12, 6);
         }
     },
     draw() {

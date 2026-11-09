@@ -88,6 +88,9 @@ function reportError(e) {
     if (!HEADLESS) console.error(e);
 }
 
+/* content files push their set-up functions here; boot runs them once the art helpers exist */
+const CONTENT_INIT = [];
+
 // ---- 01_input.js ----
 /* Input: the keyboard, a gamepad, and a virtual pad the tests and the autopilot press.
    Buttons: up down left right act atk tool prev next menu map. Input.down(b) while held,
@@ -686,6 +689,8 @@ const TK = {
     spikes: { solid: false, hurt: true },
     ice: { solid: false, ice: true },
     roof: { solid: true },
+    prop: { solid: true },
+    low: { solid: true, low: true },          /* a counter: blocks walking, things fly over it */
 };
 
 /* Themes: the palette each painter uses */
@@ -895,6 +900,7 @@ class Area {
         this.regions = def.regions || [];
         this.flow = new Map();              /* "x,y" -> direction of a current */
         this.overlays = [];
+        this.staticSolid = new Set();       /* tiles blocked by buildings, trees and other props */
         const spawns = [];
         for (let y = 0; y < this.h; y++) {
             for (let x = 0; x < this.w; x++) {
@@ -912,7 +918,10 @@ class Area {
 
     inside(x, y) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
     cell(x, y) { return this.inside(x, y) ? this.cells[y * this.w + x] : this.legend[' '] || { k: 'void' }; }
-    kind(x, y) { return TK[this.cell(x, y).k] || TK.void; }
+    kind(x, y) {
+        if (this.staticSolid.size && this.staticSolid.has(y * 4096 + x)) return TK.prop;
+        return TK[this.cell(x, y).k] || TK.void;
+    }
     kindName(x, y) { return this.cell(x, y).k; }
     setCell(x, y, ch) { if (this.inside(x, y)) { this.cells[y * this.w + x] = this.legend[ch]; this.chars[y * this.w + x] = ch; this._dirty = true; } }
 
@@ -951,7 +960,8 @@ class Area {
     add(e) {
         e.area = this;
         this.ents.push(e);
-        if (e.blocks) this.blockers.push(e);
+        if (e.blocks && e.staticBlock) { for (const [dx, dy] of e.solid) this.staticSolid.add((e.ty + dy) * 4096 + (e.tx + dx)); }
+        else if (e.blocks) this.blockers.push(e);
         if (e.isWalker) this.walkers.push(e);
         if (e.onAdd) e.onAdd(this);
         return e;
@@ -972,7 +982,7 @@ const TileDraw = {
     frame: 0,
     draw(area, tx, ty, sx, sy) {
         const L = area.cell(tx, ty);
-        const th = area.theme, tn = area.themeName;
+        const tn = area.def.themeAt ? area.def.themeAt(tx, ty) : area.themeName, th = THEMES[tn] || area.theme;
         const v = Math.floor(hash2(tx, ty, 99) * 4);
         let c;
         const p = L.p;
@@ -1046,6 +1056,7 @@ const TileDraw = {
                 break;
             }
             case 'void': c = tileCanvas('void', x => fill(x, PAL.night)); break;
+            case 'forest': c = tileCanvas(`${tn}:forest:${v}`, x => { fill(x, shade(th.grass[3], -0.35)); speckle(x, [shade(th.grass[3], -0.2)], v + 9, 0.15); }); break;
             case 'spikes': c = tileCanvas(`${tn}:spikes`, x => {
                 this.floor(x, area, 'floor', v);
                 for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
@@ -1283,9 +1294,11 @@ const Return = {
             e.startMove(nx, ny, pace, true);
             return;
         }
+        let pushedOne = false;
         for (const m of e.area.walkers) {
-            if (m.onTile && m.onTile(nx, ny) && m.weightN !== undefined && m.weightN < force && m.shoved) { m.shoved(d, pace, e); }
+            if (m.onTile && m.onTile(nx, ny) && m.weightN !== undefined && m.weightN < force && m.shoved) { m.shoved(d, pace, e); pushedOne = true; }
         }
+        if (pushedOne) return;
         r.strain++;
     },
 };
@@ -1315,7 +1328,15 @@ class GridThing extends Ent {
     }
     onAdd(area) {
         area.place(this, this.tx, this.ty);
-        if (this.marked !== false && !this.ret) Return.mark(this, { color: this.thread });
+        if (this.marked !== false && !this.ret) Return.mark(this, { color: this.thread, patience: this.patience });
+        /* things that start away from home (already displaced along a given trace) */
+        if (this.startAt && this.ret) {
+            area.unplace(this, this.tx, this.ty);
+            this.tx = this.startAt[0]; this.ty = this.startAt[1]; this.x = this.tx * T; this.y = this.ty * T;
+            area.place(this, this.tx, this.ty);
+            this.ret.trace = (this.trace || [[this.ret.mx, this.ret.my], this.startAt]).map(p => p.slice());
+            this.ret.state = 'away'; this.ret.timer = this.ret.patience;
+        }
     }
     get px() { return this.mv ? lerp(this.mv.fx, this.mv.tx, this.mv.t / this.mv.dur) * T : this.tx * T; }
     get py() { return this.mv ? lerp(this.mv.fy, this.mv.ty, this.mv.t / this.mv.dur) * T : this.ty * T; }
@@ -1355,12 +1376,14 @@ class GridThing extends Ent {
                     if (tr.length === 1) Return.arrive(this);
                 } else Return.moved(this, this.tx, this.ty);
             }
-            this.landed();
+            this.landed(m.returning);
         }
     }
     /* arrived on a tile: pits, water */
-    landed() {
+    landed(returning) {
         const k = this.area.kind(this.tx, this.ty);
+        /* a returning thing hangs on its thread over pits and water */
+        if (returning || (this.ret && this.ret.state === 'returning')) { if (this.onLanded) this.onLanded(); return; }
         if (k.pit) this.fall();
         else if (k.deep && !this.floats) this.sink();
         if (this.onLanded) this.onLanded();
@@ -1541,7 +1564,7 @@ class Block extends GridThing {
         if (props.stray) this.marked = false;
         this.floats = this.style === 'wood';
     }
-    sprite() { return spr(this.marked === false ? 'block_stray' : 'block_' + this.style); }
+    sprite() { return spr(this.look || (this.marked === false ? 'block_stray' : 'block_' + this.style)); }
 }
 
 /* liftable things: pots and crates */
@@ -1587,16 +1610,17 @@ class Plate extends FloorThing {
     }
     update() {
         const w = this.weighed();
-        if (w && !this.down) { Sfx.play('click'); if (this.mode === 'toggle') this.on = !this.on; if (this.mode === 'timed') this.timer = this.time || 300; }
+        if (w && !this.down) { Sfx.play('click'); if (this.mode === 'toggle') this.on = !this.on; if (this.mode === 'timed' || this.mode === 'pulse') this.timer = this.time || 300; }
         if (!w && this.down) Sfx.play('unclick');
         this.down = w;
         if (this.mode === 'hold') this.on = w;
         if (this.mode === 'timed') { if (this.timer > 0) this.timer--; this.on = w || this.timer > 0; }
+        if (this.mode === 'pulse') { if (this.timer > 0) this.timer--; this.on = this.timer > 0; }
         if (this.on) Signals.set(this.area, this.sig);
     }
     draw(cx, cy) {
         Gfx.img(spr(this.down ? 'plate_down' : 'plate'), this.x - cx, this.y - cy);
-        if (this.mode === 'timed' && this.timer > 0 && !this.down) {
+        if ((this.mode === 'timed' || this.mode === 'pulse') && this.timer > 0 && (!this.down || this.mode === 'pulse')) {
             const n = Math.ceil(this.timer / 60);
             for (let i = 0; i < n && i < 8; i++) Gfx.rect(this.x - cx + 3 + i * 2, this.y - cy + 2, 1, 2, PAL.yellow);
         }
@@ -1646,13 +1670,19 @@ class Door extends Ent {
         this.dir = props.dir || 'h';          /* h: in a horizontal wall (you pass up/down), v: in a vertical wall */
     }
     onAdd(area) {
-        if (this.id && Progress.areaFlag(area.id, 'door:' + this.id)) { this.open = true; this.anim = 8; this.locked = false; }
+        if (this.id && Progress.areaFlag(area.id, 'door:' + this.id)) { this.open = true; this.anim = 8; this.locked = false; this.openedOnce = true; this.keep = true; }
     }
     blocks(x, y) { return !this.open && x === this.tx && y === this.ty; }
     update() {
         if (this.type === 'gate' || this.type === 'shutter') {
             let want = this.type === 'gate' ? Signals.eval(this.area, this.when) : !this.shut;
             if (this.keep && this.openedOnce) want = true;
+            if (this.open && this.passed && !this.openedOnce) {
+                const p = G.player, d = dirByName(this.passed);
+                if (p && p.area === this.area && (d === UP ? p.ty < this.ty : d === DOWN ? p.ty > this.ty : d === LEFT ? p.tx < this.tx : p.tx > this.tx) && Math.abs((d === UP || d === DOWN ? p.tx - this.tx : p.ty - this.ty)) < 3) {
+                    this.openedOnce = true; this.keep = true; if (this.id) Progress.setAreaFlag(this.area.id, 'door:' + this.id);
+                }
+            }
             if (want && !this.open) {
                 /* don't close on someone; open */
                 this.open = true; Sfx.play('door');
@@ -1778,7 +1808,7 @@ class Pickup extends Ent {
         Gfx.img(im, this.x - cx, this.y - cy - this.z + bob - 2);
     }
 }
-const PICKUP_SPRITE = { heart: 'heart', b1: 'button1', b5: 'button5', b20: 'button20', key: 'key', heartpatch: 'heartpatch' };
+const PICKUP_SPRITE = { heart: 'heart', b1: 'button1', b5: 'button5', b20: 'button20', key: 'key', heartpatch: 'heartpatch', heartstitch: 'heart' };
 
 /* plain props that just stand there (a decoration with an optional collision box) */
 class Prop extends Ent {
@@ -1786,6 +1816,8 @@ class Prop extends Ent {
         super('prop', props);
         this.tx = tx; this.ty = ty; this.x = tx * T + (props.ox || 0); this.y = ty * T + (props.oy || 0);
         this.solid = props.solid || [];     /* tiles it blocks, relative [dx,dy] */
+        this.staticBlock = !props.moves;    /* fixed props block through the area's tile map, not a list */
+        this.inert = !props.live;
     }
     blocks(x, y) { return this.solid.some(([dx, dy]) => this.tx + dx === x && this.ty + dy === y); }
     get sortY() { return this.y + (this.baseY !== undefined ? this.baseY : (this.im ? this.im.height : 16)); }
@@ -2154,7 +2186,7 @@ class Player extends Ent {
     }
     /* the thing (grid) right in front of Wren */
     front(dist = 1) {
-        const tx = tileOf(this.x + DX[this.dir] * (PBOX.hw + 3)), ty = tileOf(this.y + DY[this.dir] * (PBOX.hh + 4));
+        const tx = tileOf(this.x + DX[this.dir] * 12), ty = tileOf(this.y - 4 + DY[this.dir] * 12);
         return { tx: tx + DX[this.dir] * (dist - 1), ty: ty + DY[this.dir] * (dist - 1) };
     }
     thingInFront() {
@@ -2183,9 +2215,19 @@ class Player extends Ent {
         if (this.swingT > 0) this.updateSwing();
         if (this.toolT > 0) { this.toolT--; if (Tools.busy(this)) { this.afterMove(); return; } }
 
+        /* a pull in progress finishes, whatever the buttons do */
+        if (this.pullT > 0) {
+            this.pullT--;
+            const k = 1 - this.pullT / 18;
+            this.x = lerp(this.pullFrom.x, this.pullFrom.tx, k); this.y = lerp(this.pullFrom.y, this.pullFrom.ty, k);
+            this.walking = true; this.anim++;
+            if (this.pullT === 0) { this.x = this.pullFrom.tx; this.y = this.pullFrom.ty; }
+            this.afterMove();
+            return;
+        }
         /* grip (Gloves): hold the action button against a thing */
         if (!cut && this.grip) {
-            if (!Input.down('act') || this.grip.removed || !this.adjacentTo(this.grip)) this.release();
+            if (!Input.down('act') || this.grip.removed || (!this.grip.mv && !this.adjacentTo(this.grip))) this.release();
         }
         let moving = false;
         if (this.state === 'normal' && this.swingT <= 0 && (ax.x || ax.y)) {
@@ -2214,7 +2256,7 @@ class Player extends Ent {
         if (!cut && this.state === 'normal') {
             if (Input.pressed('act')) this.action();
             else if (Input.down('act') && !this.grip && !this.carry && Inv.has('gloves')) this.tryGrip();
-            if (Input.pressed('atk') && !this.carry && this.swingT <= 0 && !this.grip) this.startSwing();
+            if (Input.pressed('atk') && !this.carry && this.swingT <= 0 && !this.grip && Inv.has('staff')) this.startSwing();
             if (Input.pressed('tool') && !this.grip) Tools.use(this);
             if (Input.down('tool')) Tools.hold(this); else Tools.unhold(this);
         }
@@ -2253,6 +2295,7 @@ class Player extends Ent {
             for (const b of this.area.blockers) if (b.tryUnlock && b.blocks(f.tx, f.ty)) { if (!this._knock || G.t - this._knock > 40) { this._knock = G.t; b.tryUnlock(this); } }
             return;
         }
+        if (o.mv) { this.pushT = 0; return; }
         /* roughly lined up with it */
         const off = (d === LEFT || d === RIGHT) ? Math.abs(this.y - (o.ty * T + 8)) : Math.abs(this.x - (o.tx * T + 8));
         if (off > 7) { this.pushT = 0; return; }
@@ -2298,13 +2341,6 @@ class Player extends Ent {
                 }
             }
         }
-        if (this.pullT) {
-            this.pullT--;
-            const k = 1 - this.pullT / 18;
-            this.x = lerp(this.pullFrom.x, this.pullFrom.tx, k); this.y = lerp(this.pullFrom.y, this.pullFrom.ty, k);
-            if (this.pullT === 0) { this.x = this.pullFrom.tx; this.y = this.pullFrom.ty; }
-            return true;
-        }
         if (want === this.dir) { this.tryPush(this.dir); }
         return false;
     }
@@ -2318,6 +2354,11 @@ class Player extends Ent {
         const o = a.at(f.tx, f.ty);
         if (o) cand.push(o);
         for (const e of a.ents) if (e !== o && e.interact && e.talkBox && e.talkBox(this, f)) cand.push(e);
+        /* across a counter */
+        if (!cand.length) {
+            const o2 = a.at(f.tx + DX[this.dir], f.ty + DY[this.dir]);
+            if (o2 && o2.counter && a.kind(f.tx, f.ty).solid) cand.push(o2);
+        }
         for (const e of cand) {
             if (e.interact && e.interact(this) !== false) { Stats.count('interactions'); return; }
         }
@@ -2565,7 +2606,7 @@ const Thrown = {
             t.z = Math.max(0, 12 - Math.pow(t.dist / t.max, 2) * 12);
             /* walls and standing things stop it */
             const k = area.kind(tx, ty);
-            let stop = (k.solid && !k.deep && !k.pit && !k.ledge) || !area.inside(tx, ty);
+            let stop = (k.solid && !k.deep && !k.pit && !k.ledge && !k.low) || !area.inside(tx, ty);
             const occ = area.at(tx, ty);
             if (occ && occ !== t.o) { stop = true; if (occ.hit) occ.hit(t.o, t.d); }
             for (const b of area.blockers) if (b.blocks(tx, ty)) stop = true;
@@ -2614,6 +2655,7 @@ const Shards = {
         Sfx.play('shatter');
         Fx.burst(tx * T + 8, ty * T + 8, o.shardCol || '#d98f3a');
         Stats.count('shatters');
+        if (o.drop && !o.dropped) { o.dropped = true; a.add(new Pickup(tx * T, ty * T, { what: o.drop, vz: 2, life: 600 })); }
         if (!o.ret) { a.remove(o); return; }
         o.shattered = true;
         /* the way home: the trace reversed, from where it broke */
@@ -2938,20 +2980,23 @@ const UI = {
             }
         }
         /* buttons */
-        Gfx.img(spr('hud_button'), W - 40, 3);
-        Font.draw(String(Inv.buttons), W - 30, 4, PAL.white, Infinity, PAL.ink);
+        Gfx.img(spr('hud_button'), W - 34, 4);
+        Font.draw(String(Inv.buttons), W - 24, 5, PAL.white, Infinity, PAL.ink);
         /* the tool in hand */
         const tool = Inv.equipped;
-        stitchedBox(W - 62, 1, 20, 20, { fill: '#fbf3df' });
-        if (tool) { const ic = spr('icon_' + tool); if (ic) Gfx.img(ic, W - 60, 3); }
-        Font.draw('C', W - 48, 13, PAL.grey3);
+        if (tool) {
+            stitchedBox(W - 58, 1, 20, 20, { fill: '#fbf3df' });
+            const ic = spr('icon_' + tool); if (ic) Gfx.img(ic, W - 56, 3);
+            Font.draw('C', W - 44, 13, PAL.grey3);
+        }
         /* keys in a House */
         const area = G.map;
         if (area && area.def.house) {
             const k = Inv.keys(area.def.house);
-            Gfx.img(spr('key'), W - 82, 1);
-            Font.draw('x' + k, W - 70, 6, PAL.white, Infinity, PAL.ink);
-            if (Inv.hasPattern(area.def.house)) Gfx.img(spr('hud_pattern'), W - 96, 4);
+            const kx = tool ? W - 84 : W - 62;
+            Gfx.img(spr('key'), kx, 1);
+            Font.draw('x' + k, kx + 12, 6, PAL.white, Infinity, PAL.ink);
+            if (Inv.hasPattern(area.def.house)) Gfx.img(spr('hud_pattern'), kx - 12, 6);
         }
     },
     draw() {
@@ -3141,7 +3186,9 @@ class Warp extends FloorThing {
         if (this.dir !== undefined && p.dir !== dirByName(this.dir)) return;
         if (this.when && !Signals.eval(this.area, this.when)) return;
         this.armed = false;
-        World.go(this.to, this.tx2, this.ty2, { dir: this.face, fade: true, from: this.area.id });
+        let x2 = this.tx2, y2 = this.ty2;
+        if (x2 === 'door') [x2, y2] = INTERIOR_DOOR[this.to];
+        World.go(this.to, x2, y2, { dir: this.face, fade: true, from: this.area.id });
     }
     draw() { }
 }
@@ -3220,7 +3267,8 @@ const World = {
     checkRegion(first) {
         const p = G.player, a = G.map;
         if (!p || !a) return;
-        const r = a.regionAt(p.tx, p.ty);
+        let r = a.regionAt(p.tx, p.ty);
+        if (r && r.quiet) r = a.regions.find(q => !q.quiet && p.tx >= q.x && p.ty >= q.y && p.tx < q.x + q.w && p.ty < q.y + q.h) || null;
         const name = r ? r.name : a.name;
         if (name !== G.regionName) {
             G.regionName = name;
@@ -3231,6 +3279,35 @@ const World = {
         }
     },
 };
+
+/* Houses (dungeons): rooms of 20x11 tiles on a grid. cells: { "cx,cy": { rows: [11 x 20], ents, name } }.
+   Room ents are in room coordinates; they're moved into place here. */
+function defHouse(def) {
+    const RW = 20, RH = 11;
+    let mx = 0, my = 0;
+    for (const k of Object.keys(def.cells)) { const [cx, cy] = k.split(',').map(Number); mx = Math.max(mx, cx + 1); my = Math.max(my, cy + 1); }
+    const rows = [];
+    for (let y = 0; y < my * RH; y++) rows.push(new Array(mx * RW).fill(' '));
+    const ents = [], rooms = [];
+    for (const [k, c] of Object.entries(def.cells)) {
+        const [cx, cy] = k.split(',').map(Number);
+        const ox = cx * RW, oy = cy * RH;
+        if (c.rows.length !== RH) throw new Error(def.id + ' ' + k + ': ' + c.rows.length + ' rows');
+        c.rows.forEach((r, y) => {
+            if (r.length !== RW) throw new Error(def.id + ' ' + k + ' row ' + y + ' is ' + r.length + ' wide: ' + r);
+            for (let x = 0; x < RW; x++) rows[oy + y][ox + x] = r[x];
+        });
+        for (const e of c.ents || []) {
+            const o = Object.assign({}, e, { x: e.x + ox, y: e.y + oy, room: k });
+            if (o.tx2 !== undefined && o.local) { o.tx2 += ox; o.ty2 += oy; }
+            if (o.trace) o.trace = o.trace.map(([x, y]) => [x + ox, y + oy]);
+            if (o.startAt) o.startAt = [o.startAt[0] + ox, o.startAt[1] + oy];
+            ents.push(o);
+        }
+        rooms.push({ x: ox, y: oy, w: RW, h: RH, name: c.name || '', key: k, nudge: c.nudge, dark: c.dark });
+    }
+    return defArea(Object.assign({ family: 'dungeon' }, def, { rows: rows.map(r => r.join('')), ents, rooms }));
+}
 
 // ---- 17_save.js ----
 /* Saving: three slots in this browser's storage, plus a code to carry a save elsewhere.
@@ -3486,6 +3563,14 @@ class NPC extends GridThing {
         this.path = path; this.walking = !!(path && path.length); this.walkSpeed = speed;
     }
     tick() {
+        if (this.route && !this.path && !this.mv && !Script.running('talk') && !this.stopped) {
+            if (this.routeWait > 0) this.routeWait--;
+            else {
+                const [rx, ry, w] = this.route[this.ri = (this.ri || 0) % this.route.length];
+                if (this.tx === rx && this.ty === ry) { this.ri++; this.routeWait = w || 60; }
+                else { this.free = true; this.walkTo(rx, ry, this.routeSpeed || 1); if (!this.path) { this.ri++; this.routeWait = 30; } }
+            }
+        }
         if (this.path && !this.mv) {
             if (!this.path.length) { this.path = null; this.walking = false; if (this.ret && !this.free) { /* stays a stranger to its spot */ } return; }
             const [nx, ny] = this.path[0];
@@ -3634,6 +3719,13 @@ class Enemy extends Ent {
         const k = this.area.kind(this.tx, this.ty);
         if ((k.pit && !this.D.flies) || (k.deep && !this.D.swims)) this.die(true);
     }
+    /* a returning thing heavier than it slams into it */
+    shoved(d, pace, by) {
+        if (!this.alive) return;
+        this.kx = DX[d] * 4; this.ky = DY[d] * 4;
+        this.struck(by, by.weight >= WEIGHT.heavy ? 2 : 1, d, true);
+        G.shake = 6;
+    }
     struck(by, dmg, dir, shard) {
         if (!this.alive || this.flash > 0) return;
         if (this.D.armored && !shard && !(by && by.isGrid)) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 6); if (dir >= 0) { this.kx = DX[dir] * 1.5; this.ky = DY[dir] * 1.5; } return; }
@@ -3748,7 +3840,7 @@ SPAWN.enemy = (x, y, p) => new Enemy(x, y, p);
 const PEOPLE = {};     /* id -> { name, col, voice } */
 const TALK = {};       /* id -> function* (npc) : what they say now */
 const BUDGE = {};      /* id -> line when pushed off their spot */
-const START = { area: 'lab', x: 2, y: 8 };
+const START = { area: 'gran_room', x: 6, y: 3 };
 
 const Story = {
     name(id) { return id === 'wren' ? G.wanderer : (PEOPLE[id] && PEOPLE[id].name) || id; },
@@ -4270,16 +4362,25 @@ const HW = {
     face(d) { G.player.dir = typeof d === 'string' ? dirByName(d) : d; },
     /* push the thing in front n tiles (walk into it) */
     push(d, n = 1) {
-        const dn = typeof d === 'string' ? d : DIR_NAME[d];
+        const dn = typeof d === 'string' ? d : DIR_NAME[d], di = dirByName(dn);
         for (let i = 0; i < n; i++) {
-            const p = G.player, f = p.front ? null : null;
-            const o = p.area.at(tileOf(p.x + DX[dirByName(dn)] * 12), tileOf(p.y + DY[dirByName(dn)] * 12));
-            let steps = 0;
+            let moved = null, steps = 0;
             this.hold(dn);
-            while (steps++ < 120) { Game.step(); if (o && o.mv) break; }
-            while (o && o.mv && steps++ < 200) Game.step();
+            while (steps++ < 160 && !moved) {
+                Game.step();
+                const p = G.player, f = p.front();
+                const o = p.area.at(f.tx, f.ty);
+                if (o && o.mv) moved = o;
+            }
+            while (moved && moved.mv && steps++ < 260) Game.step();
             this.release(); Game.step();
         }
+    },
+    /* stand-in for aiming in a fight: hit a creature as a thrown pot or a slam would */
+    hitEnemy(e) {
+        if (!e.alive) return;
+        if (e.shoved && e.type === 'housekeeper') { if (e.state !== 'stunned') e.shoved(DOWN, 10, { weight: 3 }); for (let i = 0; i < 12; i++) Game.step(); e.flash = 0; e.struck(G.player, 1, UP); return; }
+        e.flash = 0; e.struck({ isGrid: true, weight: 1 }, 1, -1, true);
     },
     state() {
         const p = G.player;
@@ -4362,6 +4463,2287 @@ defArea({
     music: 'tidy',
 });
 
+// ---- 31_art_world.js ----
+/* Painted art for the outdoors: trees, bushes, rocks, buildings, the Well, fences, and town things.
+   Bigger pictures are painted in code (shapes shaded by light from the upper left, with a texture)
+   and outlined automatically, so they sit with the pixel sprites. */
+
+function paintSprite(w, h, fn, outline = true) {
+    const c = Gfx.makeCanvas(w, h);
+    if (HEADLESS) return c;
+    const x = c.getContext('2d');
+    fn(x, c);
+    if (outline) outlineCanvas(c);
+    return c;
+}
+/* fill a disc pixel by pixel with a colour chosen per pixel */
+function discPx(x, cx, cy, r, colFn) {
+    for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) {
+        if (i * i + j * j > r * r + r * 0.6) continue;
+        const col = colFn(cx + i, cy + j, i / r, j / r);
+        if (col) { x.fillStyle = col; x.fillRect(cx + i, cy + j, 1, 1); }
+    }
+}
+
+const ART = {};          /* name -> canvas */
+
+function treeArt(name, pal, seed = 1, opts = {}) {
+    const w = opts.w || 32, h = opts.h || 36;
+    ART[name] = paintSprite(w, h, x => {
+        const [lo, mid, hi, dark] = pal.leaf;
+        /* trunk */
+        const tx = w / 2;
+        x.fillStyle = pal.bark[1]; x.fillRect(tx - 3, h - 12, 6, 12);
+        x.fillStyle = pal.bark[0]; x.fillRect(tx - 3, h - 12, 2, 12);
+        x.fillStyle = pal.bark[2]; x.fillRect(tx + 2, h - 12, 1, 12);
+        x.fillStyle = pal.bark[2]; x.fillRect(tx - 1, h - 9, 1, 3); x.fillRect(tx + 1, h - 5, 1, 2);
+        /* roots */
+        x.fillStyle = pal.bark[1]; x.fillRect(tx - 5, h - 2, 3, 2); x.fillRect(tx + 2, h - 2, 3, 2);
+        /* canopy: overlapping clumps */
+        const clumps = opts.clumps || [[16, 13, 11], [9, 16, 7], [23, 16, 7], [12, 8, 7], [21, 8, 7], [16, 20, 8]];
+        for (const [cx, cy, r] of clumps) {
+            discPx(x, cx, cy, r, (px, py, u, v) => {
+                const light = -u * 0.5 - v * 0.8 + (hash2(px, py, seed) - 0.5) * 0.7;
+                if (light > 0.55) return hi;
+                if (light > 0.05) return mid;
+                if (light > -0.6) return lo;
+                return dark;
+            });
+        }
+        /* leaf texture: little dark notches */
+        for (let n = 0; n < 40; n++) {
+            const px = Math.floor(hash2(n, seed, 3) * w), py = Math.floor(hash2(seed, n, 5) * (h - 10));
+            const d = x.getImageData(px, py, 1, 1).data;
+            if (d[3] > 0) { x.fillStyle = dark; x.fillRect(px, py, 1, 1); x.fillStyle = hi; if (py > 0) x.fillRect(px, py - 1, 1, 1); }
+        }
+        if (pal.fruit) for (let n = 0; n < 5; n++) {
+            const px = 6 + Math.floor(hash2(n, seed, 9) * (w - 12)), py = 5 + Math.floor(hash2(seed, n, 11) * 16);
+            const d = x.getImageData(px, py, 1, 1).data;
+            if (d[3] > 0) { x.fillStyle = pal.fruit; x.fillRect(px, py, 2, 2); x.fillStyle = '#ffffff'; x.fillRect(px, py, 1, 1); }
+        }
+    });
+}
+
+function pineArt(name, pal, seed = 1) {
+    ART[name] = paintSprite(26, 40, x => {
+        x.fillStyle = pal.bark[1]; x.fillRect(11, 32, 4, 8);
+        x.fillStyle = pal.bark[0]; x.fillRect(11, 32, 1, 8);
+        const tiers = [[13, 2, 4, 8], [13, 7, 7, 13], [13, 13, 9, 20], [13, 19, 11, 28], [13, 25, 12, 34]];
+        for (const [cx, top, half, bot] of tiers) {
+            for (let y = top; y <= bot; y++) {
+                const k = (y - top) / (bot - top), hw = Math.round(half * k);
+                for (let i = -hw; i <= hw; i++) {
+                    const u = i / (hw || 1);
+                    const l = -u * 0.6 + (1 - k) * 0.5 + (hash2(cx + i, y, seed) - 0.5) * 0.5;
+                    x.fillStyle = l > 0.5 ? pal.leaf[2] : l > -0.1 ? pal.leaf[1] : l > -0.6 ? pal.leaf[0] : pal.leaf[3];
+                    x.fillRect(cx + i, y, 1, 1);
+                }
+            }
+        }
+    });
+}
+
+function bushArt(name, pal, seed = 1, w = 16, h = 14) {
+    ART[name] = paintSprite(w, h, x => {
+        const clumps = [[w / 2, h / 2 + 1, 6], [w / 2 - 4, h / 2 + 2, 4], [w / 2 + 4, h / 2 + 2, 4], [w / 2 - 2, h / 2 - 2, 4], [w / 2 + 3, h / 2 - 2, 4]];
+        for (const [cx, cy, r] of clumps) discPx(x, Math.round(cx), Math.round(cy), r, (px, py, u, v) => {
+            const l = -u * 0.5 - v * 0.8 + (hash2(px, py, seed) - 0.5) * 0.8;
+            return l > 0.55 ? pal[2] : l > 0 ? pal[1] : l > -0.6 ? pal[0] : pal[3];
+        });
+        if (pal[4]) for (let n = 0; n < 4; n++) { const px = 3 + Math.floor(hash2(n, seed, 1) * (w - 6)), py = 2 + Math.floor(hash2(seed, n, 2) * (h - 6)); x.fillStyle = pal[4]; x.fillRect(px, py, 2, 2); x.fillStyle = '#fff8e0'; x.fillRect(px, py, 1, 1); }
+    });
+}
+
+function rockArt(name, pal, seed = 1, w = 16, h = 14) {
+    ART[name] = paintSprite(w, h, x => {
+        discPx(x, w / 2, h / 2 + 1, Math.min(w, h) / 2 - 1, (px, py, u, v) => {
+            if (v < -0.75 && Math.abs(u) > 0.5) return null;
+            const l = -u * 0.6 - v * 0.9 + (hash2(px, py, seed) - 0.5) * 0.4;
+            return l > 0.6 ? pal[2] : l > 0 ? pal[1] : l > -0.6 ? pal[0] : pal[3];
+        });
+    });
+}
+
+/* buildings: a roof seen from above, a front wall with a door and windows, painted to a style */
+const BSTYLE = {
+    cottage: { roof: ['#c45a4a', '#9a3a3a', '#e07a64', '#6e2a2a'], wall: ['#f4e6c8', '#d8c49e'], timber: '#7a4e32', trim: '#5a3a26', door: '#8a5a3a', win: '#7ec8f0' },
+    blue: { roof: ['#4a7ac4', '#2e5a98', '#6a9ae0', '#1e3a6a'], wall: ['#f0e8d4', '#d4c8ac'], timber: '#6b4128', trim: '#45281c', door: '#6b4128', win: '#bfe8fb' },
+    green: { roof: ['#5aa05a', '#3a7a42', '#7cc070', '#245a2e'], wall: ['#f4e6c8', '#d8c49e'], timber: '#7a4e32', trim: '#5a3a26', door: '#9a6438', win: '#7ec8f0' },
+    plum: { roof: ['#8a5aa0', '#6a3a80', '#aa7cc4', '#4a2a5a'], wall: ['#f0e4d8', '#d4c4b4'], timber: '#5a3a3a', trim: '#3e2828', door: '#7a4a4a', win: '#c8e8f8' },
+    inn: { roof: ['#3fa8a0', '#2a7e78', '#6ad0c4', '#1e5a56'], wall: ['#f6ead0', '#dccaa4'], timber: '#6b4128', trim: '#45281c', door: '#9a3a4a', win: '#ffe8a0' },
+    stone: { roof: ['#8a8070', '#6a6050', '#aaa090', '#4a4438'], wall: ['#c8bcac', '#a89c8c'], timber: '#6a6050', trim: '#4a4438', door: '#6b4128', win: '#7ec8f0' },
+    ochre: { roof: ['#d98f3a', '#a8642a', '#f0b060', '#7a4420'], wall: ['#f4e6c8', '#d8c49e'], timber: '#7a4e32', trim: '#5a3a26', door: '#6b4128', win: '#7ec8f0' },
+    school: { roof: ['#b0434a', '#8a2a32', '#d06a6a', '#5a1a22'], wall: ['#e8d8b8', '#cdb88c'], timber: '#6b4128', trim: '#45281c', door: '#3a5a8a', win: '#bfe8fb' },
+};
+
+function buildingArt(name, wT, hT, style, opts = {}) {
+    const S = BSTYLE[style] || BSTYLE.cottage;
+    const w = wT * T, wallH = opts.wallH || 22, h = hT * T + 6;
+    const roofH = h - wallH;
+    const doorX = opts.door !== undefined ? opts.door * T + 3 : Math.floor(w / 2 / T) * T + 3;
+    ART[name] = paintSprite(w, h, x => {
+        /* front wall */
+        const wy = roofH;
+        x.fillStyle = S.wall[0]; x.fillRect(1, wy, w - 2, wallH);
+        for (let j = 0; j < wallH; j++) for (let i = 1; i < w - 1; i++) if (hash2(i, j, 7) < 0.08) { x.fillStyle = S.wall[1]; x.fillRect(i, wy + j, 1, 1); }
+        /* timber frame */
+        if (!opts.noTimber) {
+            x.fillStyle = S.timber;
+            x.fillRect(1, wy, w - 2, 2); x.fillRect(1, wy + wallH - 3, w - 2, 3);
+            for (let i = 1; i < w; i += T) x.fillRect(i, wy, 2, wallH);
+            x.fillRect(w - 3, wy, 2, wallH);
+        }
+        /* windows */
+        const wins = opts.windows || [];
+        for (const wx of wins) {
+            const px0 = wx * T + 3;
+            x.fillStyle = S.trim; x.fillRect(px0 - 1, wy + 4, 12, 11);
+            x.fillStyle = S.win; x.fillRect(px0, wy + 5, 10, 9);
+            x.fillStyle = shade(S.win, 0.5); x.fillRect(px0 + 1, wy + 6, 3, 3);
+            x.fillStyle = S.trim; x.fillRect(px0 + 4, wy + 5, 1, 9); x.fillRect(px0, wy + 9, 10, 1);
+            /* flower box */
+            x.fillStyle = '#8a5a3a'; x.fillRect(px0 - 1, wy + 15, 12, 3);
+            for (let i = 0; i < 5; i++) { x.fillStyle = ['#e8463c', '#f7d64a', '#f59ac0', '#fbf6ea', '#b48ce8'][(i + wx) % 5]; x.fillRect(px0 + i * 2, wy + 13, 2, 2); }
+        }
+        /* door */
+        if (opts.door !== null) {
+            x.fillStyle = S.trim; x.fillRect(doorX - 1, wy + 3, 12, wallH - 3);
+            x.fillStyle = S.door; x.fillRect(doorX, wy + 4, 10, wallH - 4);
+            x.fillStyle = shade(S.door, 0.2); x.fillRect(doorX + 1, wy + 5, 3, wallH - 7); x.fillRect(doorX + 6, wy + 5, 3, wallH - 7);
+            x.fillStyle = '#f7d64a'; x.fillRect(doorX + 7, wy + 12, 1, 2);
+            x.fillStyle = S.trim; x.fillRect(doorX, wy + 3, 10, 1);
+        }
+        /* roof: rows of shingles, the ridge on top, eaves overhanging the wall */
+        const [r0, r1, r2, r3] = S.roof;
+        for (let j = 0; j < roofH + 3; j++) {
+            for (let i = 0; i < w; i++) {
+                const row = Math.floor(j / 4), off = (row % 2) * 4;
+                const edge = (i + off) % 8 === 0;
+                let col = j < 3 ? r2 : r0;
+                if (j % 4 === 3) col = r1;
+                if (edge && j > 2) col = r1;
+                if (hash2(i, j, 13) < 0.05) col = r2;
+                if (j >= roofH) col = j === roofH + 2 ? r3 : r1;   /* eaves */
+                if (i === 0 || i === w - 1) col = r3;
+                x.fillStyle = col; x.fillRect(i, j, 1, 1);
+            }
+        }
+        /* the ridge */
+        x.fillStyle = r3; x.fillRect(0, 0, w, 1);
+        x.fillStyle = r2; x.fillRect(1, 1, w - 2, 1);
+        /* chimney */
+        if (opts.chimney !== false) {
+            const cx = opts.chimneyX !== undefined ? opts.chimneyX : w - 14;
+            x.fillStyle = '#9a8a7a'; x.fillRect(cx, 2, 7, 9); x.fillStyle = '#7a6a5a'; x.fillRect(cx + 5, 2, 2, 9);
+            x.fillStyle = '#5a4a3a'; x.fillRect(cx - 1, 1, 9, 2);
+        }
+        if (opts.sign) {
+            const sx = opts.sign.x * T + 2;
+            x.fillStyle = S.trim; x.fillRect(sx, wy - 1, 14, 9);
+            x.fillStyle = opts.sign.col || '#f4e0a8'; x.fillRect(sx + 1, wy, 12, 7);
+            x.fillStyle = S.trim; x.fillRect(sx + 3, wy + 2, 8, 1); x.fillRect(sx + 3, wy + 4, 6, 1);
+            if (opts.sign.icon) opts.sign.icon(x, sx + 1, wy);
+        }
+    });
+    return { h, roofH };
+}
+
+function initWorldArt() {
+    const meadowLeaf = { leaf: ['#4fa84a', '#6fc65a', '#a0e078', '#2e7a43'], bark: ['#9a6438', '#6b4128', '#45281c'] };
+    treeArt('tree', meadowLeaf, 1);
+    treeArt('tree2', meadowLeaf, 7, { clumps: [[16, 14, 10], [8, 18, 7], [24, 17, 7], [11, 9, 7], [22, 9, 6], [16, 21, 8]] });
+    treeArt('tree_apple', Object.assign({ fruit: '#e8463c' }, meadowLeaf), 4);
+    treeArt('tree_autumn', { leaf: ['#d9832a', '#f0a840', '#f8d070', '#a85a20'], bark: meadowLeaf.bark }, 3);
+    treeArt('tree_hush', { leaf: ['#3e7a6a', '#4f9a80', '#7ac4a0', '#245a4e'], bark: ['#7a6a8a', '#5a4a6a', '#3a2e4a'] }, 5);
+    treeArt('tree_birch', { leaf: ['#9ac89a', '#b8dcb0', '#e0f0d8', '#6a9a72'], bark: ['#f4f4f0', '#d8dcd8', '#5a5a5a'] }, 6);
+    pineArt('pine', { leaf: ['#2e7a5a', '#3f9a6a', '#6cc08a', '#1d4d3e'], bark: ['#7a4e32', '#5a3a26'] }, 2);
+    bushArt('bush', ['#3f9a4a', '#5ab85a', '#8ad87a', '#2a6a36'], 1);
+    bushArt('bush_berry', ['#3f9a4a', '#5ab85a', '#8ad87a', '#2a6a36', '#d03a5a'], 2);
+    bushArt('hedge', ['#3a8a44', '#4fa84a', '#7cc864', '#235a30'], 3, 16, 16);
+    rockArt('rock', ['#968878', '#b8aa98', '#d6cab6', '#6e6458'], 1);
+    rockArt('rock_red', ['#93432c', '#c4623a', '#e08a5e', '#6a2e22'], 2);
+    rockArt('boulder', ['#8a8070', '#a89c8c', '#c8bcac', '#5e564a'], 3, 16, 16);
+    /* the stump with a stitched cross on it: a rest spot (sit to tie off your thread) */
+    ART.stump = paintSprite(16, 14, x => {
+        x.fillStyle = '#9a6438'; x.fillRect(2, 5, 12, 8); x.fillStyle = '#6b4128'; x.fillRect(2, 10, 12, 3);
+        x.fillStyle = '#e6c08a'; x.fillRect(2, 2, 12, 5); x.fillStyle = '#c9925a';
+        for (let i = 0; i < 3; i++) x.fillRect(4 + i, 3 + (i % 2), 6 - i * 2, 1);
+        x.fillStyle = '#e8463c'; x.fillRect(6, 3, 1, 1); x.fillRect(9, 3, 1, 1); x.fillRect(7, 4, 2, 1); x.fillRect(6, 5, 1, 1); x.fillRect(9, 5, 1, 1);
+    });
+    /* the Well: stone ring, wooden posts, a red roof, a winch with its rope */
+    ART.well = paintSprite(48, 50, x => {
+        /* ring */
+        for (let j = 0; j < 16; j++) for (let i = 0; i < 40; i++) {
+            const c = (Math.floor(i / 6) + Math.floor(j / 4)) % 2 ? '#b8aa98' : '#a09280';
+            x.fillStyle = j % 4 === 3 || (i + (Math.floor(j / 4) % 2) * 3) % 6 === 0 ? '#6e6458' : c;
+            x.fillRect(4 + i, 32 + j, 1, 1);
+        }
+        x.fillStyle = '#d6cab6'; x.fillRect(4, 30, 40, 3);
+        x.fillStyle = '#2a1f2d'; x.fillRect(8, 31, 32, 2);
+        /* posts */
+        x.fillStyle = '#7a4e32'; x.fillRect(7, 8, 4, 24); x.fillRect(37, 8, 4, 24);
+        x.fillStyle = '#9a6438'; x.fillRect(7, 8, 2, 24); x.fillRect(37, 8, 2, 24);
+        /* winch */
+        x.fillStyle = '#c9925a'; x.fillRect(11, 15, 26, 4); x.fillStyle = '#e6c08a'; x.fillRect(11, 15, 26, 1);
+        x.fillStyle = '#6b4128'; x.fillRect(41, 14, 3, 2); x.fillRect(43, 14, 1, 6);
+        /* rope: wound on the winch and hanging down into the dark */
+        for (let i = 13; i < 35; i += 2) { x.fillStyle = '#d8b880'; x.fillRect(i, 15, 1, 4); }
+        x.fillStyle = '#e8463c'; x.fillRect(23, 19, 1, 13);
+        /* roof */
+        for (let j = 0; j < 10; j++) {
+            const inset = Math.max(0, 9 - j) * 0.6;
+            for (let i = Math.floor(inset); i < 48 - Math.floor(inset); i++) {
+                x.fillStyle = j < 2 ? '#e07a64' : (i + j) % 6 === 0 ? '#9a3a3a' : j % 3 === 2 ? '#a84a40' : '#c45a4a';
+                x.fillRect(i, j, 1, 1);
+            }
+        }
+        x.fillStyle = '#6e2a2a'; x.fillRect(0, 9, 48, 1);
+    });
+    /* a wooden fence post and rails */
+    ART.fence = paintSprite(16, 16, x => {
+        x.fillStyle = '#c9925a'; x.fillRect(0, 5, 16, 3); x.fillRect(0, 10, 16, 3);
+        x.fillStyle = '#e6c08a'; x.fillRect(0, 5, 16, 1); x.fillRect(0, 10, 16, 1);
+        x.fillStyle = '#9a6438'; x.fillRect(6, 2, 4, 13); x.fillStyle = '#c9925a'; x.fillRect(6, 2, 2, 13);
+    });
+    ART.fence_v = paintSprite(16, 16, x => {
+        x.fillStyle = '#9a6438'; x.fillRect(6, 0, 4, 16); x.fillStyle = '#c9925a'; x.fillRect(6, 0, 2, 16);
+        x.fillStyle = '#6b4128'; x.fillRect(6, 7, 4, 2);
+    });
+    ART.lamp = paintSprite(10, 30, x => {
+        x.fillStyle = '#4a4a5a'; x.fillRect(4, 8, 2, 20); x.fillRect(2, 27, 6, 3);
+        x.fillStyle = '#2e2e3a'; x.fillRect(1, 1, 8, 2); x.fillRect(2, 3, 6, 6);
+        x.fillStyle = '#ffe8a0'; x.fillRect(3, 4, 4, 4); x.fillStyle = '#fff8e0'; x.fillRect(3, 4, 2, 2);
+    });
+    ART.bench = paintSprite(32, 16, x => {
+        x.fillStyle = '#9a6438'; x.fillRect(1, 2, 30, 3); x.fillStyle = '#c9925a'; x.fillRect(1, 2, 30, 1);
+        x.fillStyle = '#c9925a'; x.fillRect(0, 7, 32, 4); x.fillStyle = '#e6c08a'; x.fillRect(0, 7, 32, 1);
+        x.fillStyle = '#6b4128'; x.fillRect(3, 11, 3, 5); x.fillRect(26, 11, 3, 5); x.fillRect(3, 4, 2, 3); x.fillRect(27, 4, 2, 3);
+    });
+    ART.barrel = paintSprite(14, 16, x => {
+        x.fillStyle = '#9a6438'; x.fillRect(1, 2, 12, 13); x.fillStyle = '#c9925a'; x.fillRect(2, 2, 4, 13);
+        x.fillStyle = '#6b4128'; x.fillRect(1, 4, 12, 1); x.fillRect(1, 11, 12, 1); x.fillStyle = '#e6c08a'; x.fillRect(2, 1, 10, 2);
+    });
+    ART.flowerbed = paintSprite(16, 12, x => {
+        x.fillStyle = '#7a4e32'; x.fillRect(0, 6, 16, 6); x.fillStyle = '#9a6438'; x.fillRect(0, 6, 16, 1);
+        for (let i = 0; i < 6; i++) { x.fillStyle = '#4fa84a'; x.fillRect(1 + i * 2.6, 3, 2, 4); x.fillStyle = ['#e8463c', '#f7d64a', '#f59ac0'][i % 3]; x.fillRect(1 + i * 2.6, 1 + (i % 2), 3, 3); }
+    });
+    ART.haybale = paintSprite(16, 14, x => {
+        x.fillStyle = '#e8c860'; x.fillRect(1, 2, 14, 11); x.fillStyle = '#f8e090'; x.fillRect(1, 2, 14, 3);
+        x.fillStyle = '#b8942a'; for (let i = 2; i < 15; i += 3) x.fillRect(i, 5, 1, 7); x.fillStyle = '#9a6438'; x.fillRect(1, 7, 14, 1);
+    });
+    ART.stall = paintSprite(48, 36, x => {
+        /* striped awning over a counter */
+        for (let i = 0; i < 48; i++) for (let j = 0; j < 12; j++) { x.fillStyle = Math.floor(i / 6) % 2 ? '#fbf6ea' : '#e8463c'; x.fillRect(i, j + (i % 6 === 0 ? 0 : 0), 1, 1); }
+        for (let i = 0; i < 48; i += 6) { x.fillStyle = Math.floor(i / 6) % 2 ? '#fbf6ea' : '#e8463c'; x.fillRect(i + 1, 12, 4, 2); }
+        x.fillStyle = '#7a4e32'; x.fillRect(2, 12, 3, 22); x.fillRect(43, 12, 3, 22);
+        x.fillStyle = '#c9925a'; x.fillRect(0, 24, 48, 10); x.fillStyle = '#e6c08a'; x.fillRect(0, 24, 48, 2);
+        x.fillStyle = '#9a6438'; for (let i = 4; i < 48; i += 8) x.fillRect(i, 27, 1, 7);
+    });
+}
+
+/* a building standing in the world: its picture, the tiles it blocks, and a door you walk into */
+SPAWN.building = (tx, ty, p) => {
+    const name = 'b_' + (p.style || 'cottage') + '_' + p.w + 'x' + p.h + '_' + (p.door !== undefined ? p.door : 'm') + '_' + (p.windows || []).join('.') + (p.sign ? 's' + p.sign.x : '') + (p.variant || '');
+    if (!ART[name]) buildingArt(name, p.w, p.h, p.style, p);
+    const im = ART[name];
+    const solid = [];
+    const doorX = p.door !== undefined ? p.door : Math.floor(p.w / 2);
+    for (let j = 0; j < p.h; j++) for (let i = 0; i < p.w; i++) if (!(j === p.h - 1 && i === doorX && p.door !== null)) solid.push([i, j]);
+    const prop = new Prop(tx, ty, { im, solid, oy: -6, baseY: im.height });
+    prop.isBuilding = true;
+    return prop;
+};
+SPAWN.tree = (tx, ty, p) => {
+    const im = ART[p.look || 'tree'];
+    const pr = new Prop(tx, ty, { im, solid: p.deco ? [] : p.small ? [[0, 0]] : [[0, 1], [1, 1]], ox: 0, oy: -(im.height - 32), baseY: im.height - 2 });
+    if (p.small) pr.solid = [[0, 0]];
+    return pr;
+};
+SPAWN.deco = (tx, ty, p) => {
+    const im = ART[p.look];
+    const pr = new Prop(tx, ty, { im, solid: p.solid === false ? [] : (p.solid || [[0, 0]]), ox: p.ox !== undefined ? p.ox : Math.round((16 - im.width) / 2), oy: p.oy !== undefined ? p.oy : 16 - im.height, flip: p.flip });
+    pr.baseY = p.baseY !== undefined ? p.baseY : im.height;
+    if (p.text) { pr.interact = () => { Script.run(function* () { yield* say(null, p.text); }); return true; }; pr.talkBox = (pl, f) => pr.solid.some(([dx, dy]) => tx + dx === f.tx && ty + dy === f.ty); }
+    return pr;
+};
+
+// ---- 32_overworld.js ----
+/* The Hollow: one big outdoor map put together from nine blocks of 64x40 tiles (a region each, the town in
+   the middle). Each block has its own theme (palette), music and names; forest ('Y') gets its trees placed
+   automatically; unfinished blocks are fog. */
+
+const OW = { bw: 64, bh: 40, cols: 3, rows: 3, blocks: {} };
+function defBlock(b) { OW.blocks[b.bx + ',' + b.by] = b; return b; }
+
+const OW_LEGEND = {
+    'Y': { k: 'tree', p: 'forest' }, 'X': { k: 'roof', p: 'grass' },
+    'T': { k: 'grass', p: 'grass', ent: 'tree', props: { look: 'tree' } },
+    'A': { k: 'grass', p: 'grass', ent: 'tree', props: { look: 'tree_apple' } },
+    'b': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'bush' } },
+    'B': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'bush_berry' } },
+    'r': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'rock' } },
+    'f': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'fence' } },
+    'l': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'fence_v' } },
+    'h': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'haybale' } },
+    'n': { k: 'grass', p: 'grass', ent: 'rest' },
+    'w': { k: 'grass', p: 'flowers', ent: 'deco', props: { look: 'flowerbed', solid: [[0, 0]] } },
+    'm': { k: 'path', p: 'cobble', ent: 'deco', props: { look: 'flowerbed', solid: [[0, 0]] } },
+};
+
+function buildOverworld() {
+    const W2 = OW.bw * OW.cols, H2 = OW.bh * OW.rows;
+    const rows = [];
+    const themes = [];
+    const ents = [], regions = [];
+    for (let y = 0; y < H2; y++) rows.push(new Array(W2).fill('%'));
+    for (let by = 0; by < OW.rows; by++) for (let bx = 0; bx < OW.cols; bx++) {
+        const b = OW.blocks[bx + ',' + by];
+        const ox = bx * OW.bw, oy = by * OW.bh;
+        themes.push(b ? b.theme : 'town');
+        if (!b) continue;
+        const br = b.rows;
+        for (let y = 0; y < OW.bh; y++) for (let x = 0; x < OW.bw; x++) rows[oy + y][ox + x] = (br[y] && br[y][x]) || '%';
+        for (const e of b.ents || []) ents.push(Object.assign({}, e, { x: e.x + ox, y: e.y + oy, block: b.id }));
+        regions.push({ name: b.name, sub: b.sub, x: ox, y: oy, w: OW.bw, h: OW.bh, music: b.music, mark: true, id: b.id });
+        for (const r of b.regions || []) regions.unshift(Object.assign({}, r, { x: r.x + ox, y: r.y + oy, music: r.music || b.music }));
+    }
+    /* trees on the forest */
+    for (let y = 0; y < H2 - 1; y += 2) for (let x = (y / 2) % 2; x < W2 - 1; x += 2) {
+        if (rows[y][x] === 'Y' && rows[y + 1][x] === 'Y' && rows[y][x + 1] === 'Y' && rows[y + 1][x + 1] === 'Y') {
+            const b = OW.blocks[Math.floor(x / OW.bw) + ',' + Math.floor(y / OW.bh)];
+            const looks = (b && b.forest) || ['tree', 'tree2'];
+            const look = looks[Math.floor(hash2(x, y, 5) * looks.length)];
+            ents.push({ k: 'tree', x, y, look, deco: true });
+        }
+    }
+    defArea({
+        id: 'hollow', name: 'The Hollow', family: 'outdoor', theme: 'town',
+        rows: rows.map(r => r.join('')),
+        legend: Object.assign({}, OW_LEGEND, ...Object.values(OW.blocks).map(b => b.legend || {})),
+        ents, regions,
+        themeAt: (tx, ty) => themes[clamp(Math.floor(ty / OW.bh), 0, OW.rows - 1) * OW.cols + clamp(Math.floor(tx / OW.bw), 0, OW.cols - 1)],
+        music: 'town', quietName: false,
+        tick: a => { for (const b of Object.values(OW.blocks)) if (b.tick) b.tick(a); },
+        onEnter: (a, o) => { for (const b of Object.values(OW.blocks)) if (b.onEnter) b.onEnter(a, o); },
+    });
+}
+CONTENT_INIT.push(buildOverworld);
+
+/* rest spots: a stump with a stitched cross. Sit (Z) to tie off your thread here: your mark, and a save */
+SPAWN.rest = (tx, ty, p) => {
+    const pr = new Prop(tx, ty, { im: ART.stump, solid: [[0, 0]], oy: 2 });
+    pr.interact = () => {
+        Script.run(function* () {
+            const pl = G.player;
+            const i = yield* ask(null, 'A stump with a little red cross stitched into the bark. Tie off your thread here?', ['Tie off (save)', 'Not now']);
+            if (i === 0) {
+                pl.setMark(tx, ty + 1);
+                Inv.hp = Math.max(Inv.hp, Math.min(Inv.maxHp, Inv.hp + 2));
+                Save.write(); Sfx.play('save');
+                UI.toast('Tied off. (Saved.)');
+                Progress.set('rested');
+            }
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+
+// ---- 34_furniture.js ----
+/* Furniture and things indoors, painted in code. */
+
+function initFurniture() {
+    const wood = ['#c9925a', '#9a6438', '#e6c08a', '#6b4128'];
+    ART.bed = paintSprite(18, 30, x => {
+        x.fillStyle = wood[1]; x.fillRect(1, 0, 16, 6); x.fillStyle = wood[0]; x.fillRect(2, 1, 14, 3);
+        x.fillStyle = '#fbf6ea'; x.fillRect(2, 6, 14, 6); x.fillStyle = '#e8dcc8'; x.fillRect(2, 10, 14, 2);
+        x.fillStyle = '#c0505a'; x.fillRect(1, 12, 16, 15); x.fillStyle = '#d86a6a'; x.fillRect(1, 12, 16, 3);
+        for (let i = 3; i < 16; i += 4) for (let j = 16; j < 27; j += 4) { x.fillStyle = '#f0c040'; x.fillRect(i, j, 1, 1); }
+        x.fillStyle = wood[1]; x.fillRect(1, 27, 16, 3);
+    });
+    ART.bed_gran = paintSprite(18, 30, x => {
+        x.fillStyle = wood[3]; x.fillRect(1, 0, 16, 6); x.fillStyle = wood[1]; x.fillRect(2, 1, 14, 3);
+        x.fillStyle = '#fbf6ea'; x.fillRect(2, 6, 14, 6);
+        x.fillStyle = '#5a8ad0'; x.fillRect(1, 12, 16, 15); x.fillStyle = '#7aa8e8'; x.fillRect(1, 12, 16, 3);
+        for (let i = 2; i < 16; i += 3) { x.fillStyle = '#fbf6ea'; x.fillRect(i, 18, 2, 1); x.fillRect(i, 23, 2, 1); }
+        x.fillStyle = wood[3]; x.fillRect(1, 27, 16, 3);
+    });
+    ART.table = paintSprite(32, 20, x => {
+        x.fillStyle = wood[0]; x.fillRect(1, 2, 30, 10); x.fillStyle = wood[2]; x.fillRect(1, 2, 30, 2);
+        x.fillStyle = wood[1]; x.fillRect(1, 12, 30, 3); x.fillStyle = wood[3]; x.fillRect(3, 15, 3, 5); x.fillRect(26, 15, 3, 5);
+        x.fillStyle = '#fbf6ea'; x.fillRect(10, 4, 12, 6); x.fillStyle = '#e8463c'; x.fillRect(14, 5, 4, 3);
+    });
+    ART.stool = paintSprite(12, 12, x => {
+        x.fillStyle = wood[0]; x.fillRect(1, 2, 10, 4); x.fillStyle = wood[2]; x.fillRect(1, 2, 10, 1);
+        x.fillStyle = wood[3]; x.fillRect(2, 6, 2, 6); x.fillRect(8, 6, 2, 6);
+    });
+    ART.shelf = paintSprite(32, 30, x => {
+        x.fillStyle = wood[1]; x.fillRect(0, 0, 32, 30); x.fillStyle = wood[3]; x.fillRect(2, 2, 28, 26);
+        for (let r = 0; r < 3; r++) {
+            const y = 3 + r * 9;
+            x.fillStyle = wood[0]; x.fillRect(2, y + 7, 28, 2);
+            for (let i = 0; i < 9; i++) {
+                const h = 4 + Math.floor(hash2(i, r, 3) * 3), c = ['#c0505a', '#5a8ad0', '#4fa84a', '#e8b04a', '#8a5aa0', '#fbf6ea'][Math.floor(hash2(r, i, 4) * 6)];
+                x.fillStyle = c; x.fillRect(3 + i * 3, y + 7 - h, 2, h);
+            }
+        }
+    });
+    ART.hearth = paintSprite(32, 32, x => {
+        x.fillStyle = '#a89c8c'; x.fillRect(0, 4, 32, 28); x.fillStyle = '#c8bcac'; x.fillRect(0, 4, 32, 3);
+        for (let j = 0; j < 28; j += 5) for (let i = (j / 5 % 2) * 4; i < 32; i += 8) { x.fillStyle = '#8a7e70'; x.fillRect(i, 7 + j, 1, 4); }
+        x.fillStyle = '#2a1f2d'; x.fillRect(8, 14, 16, 18);
+        x.fillStyle = '#f39a3c'; x.fillRect(11, 24, 10, 6); x.fillStyle = '#f7d64a'; x.fillRect(13, 22, 6, 6); x.fillStyle = '#fbf6ea'; x.fillRect(15, 25, 2, 3);
+        x.fillStyle = '#6b4128'; x.fillRect(10, 29, 12, 3);
+        x.fillStyle = '#7a4e32'; x.fillRect(0, 2, 32, 3);
+    });
+    ART.rug = paintSprite(48, 32, x => {
+        x.fillStyle = '#b0434a'; x.fillRect(0, 0, 48, 32); x.fillStyle = '#d06a6a'; x.fillRect(3, 3, 42, 26);
+        x.fillStyle = '#f0c070'; x.fillRect(6, 6, 36, 20); x.fillStyle = '#b0434a'; x.fillRect(9, 9, 30, 14);
+        for (let i = 12; i < 36; i += 6) { x.fillStyle = '#f0c070'; x.fillRect(i, 15, 3, 2); }
+    }, false);
+    ART.rug_small = paintSprite(32, 16, x => {
+        x.fillStyle = '#4a7ac4'; x.fillRect(0, 0, 32, 16); x.fillStyle = '#6a9ae0'; x.fillRect(2, 2, 28, 12);
+        for (let i = 4; i < 30; i += 4) { x.fillStyle = '#fbf6ea'; x.fillRect(i, 7, 2, 2); }
+    }, false);
+    ART.portrait_turned = paintSprite(16, 18, x => {
+        x.fillStyle = '#9a6438'; x.fillRect(1, 1, 14, 16); x.fillStyle = '#c9925a'; x.fillRect(2, 2, 12, 14);
+        x.fillStyle = '#9a6438'; x.fillRect(7, 2, 2, 14); x.fillRect(2, 8, 12, 2);
+    });
+    ART.portrait_linnet = paintSprite(16, 18, x => {
+        x.fillStyle = '#d9a33a'; x.fillRect(1, 1, 14, 16); x.fillStyle = '#9fd4f0'; x.fillRect(3, 3, 10, 12);
+        x.fillStyle = '#7a4e32'; x.fillRect(5, 4, 6, 6); x.fillStyle = '#f2c49b'; x.fillRect(6, 6, 4, 4);
+        x.fillStyle = '#2a1f2d'; x.fillRect(6, 7, 1, 1); x.fillRect(9, 7, 1, 1);
+        x.fillStyle = '#8fd46a'; x.fillRect(5, 10, 6, 5); x.fillStyle = '#7a4e32'; x.fillRect(4, 6, 1, 6); x.fillRect(11, 6, 1, 6);
+    });
+    ART.window = paintSprite(16, 14, x => {
+        x.fillStyle = '#7a4e32'; x.fillRect(0, 0, 16, 14); x.fillStyle = '#9fdcf5'; x.fillRect(2, 2, 12, 10);
+        x.fillStyle = '#d8f2ff'; x.fillRect(3, 3, 4, 3); x.fillStyle = '#7a4e32'; x.fillRect(7, 2, 2, 10); x.fillRect(2, 6, 12, 2);
+        x.fillStyle = '#e8c860'; x.fillRect(0, 12, 16, 2);
+    });
+    ART.plant = paintSprite(14, 18, x => {
+        x.fillStyle = '#c4623a'; x.fillRect(3, 11, 8, 7); x.fillStyle = '#e08a5e'; x.fillRect(3, 11, 8, 2);
+        discPx(x, 7, 7, 6, (px, py, u, v) => (-u - v + hash2(px, py, 2)) > 0.6 ? '#8ad87a' : hash2(px, py, 1) < 0.15 ? null : '#4fa84a');
+    });
+    ART.counter = paintSprite(48, 22, x => {
+        x.fillStyle = wood[0]; x.fillRect(0, 2, 48, 8); x.fillStyle = wood[2]; x.fillRect(0, 2, 48, 2);
+        x.fillStyle = wood[1]; x.fillRect(0, 10, 48, 12);
+        for (let i = 4; i < 48; i += 12) { x.fillStyle = wood[3]; x.fillRect(i, 12, 8, 8); x.fillStyle = wood[0]; x.fillRect(i + 1, 13, 6, 6); }
+    });
+    ART.doormat = paintSprite(16, 10, x => {
+        x.fillStyle = '#9a6438'; x.fillRect(1, 2, 14, 7); x.fillStyle = '#c9925a';
+        for (let i = 2; i < 15; i += 2) x.fillRect(i, 3, 1, 5);
+    }, false);
+    ART.desk = paintSprite(32, 20, x => {
+        x.fillStyle = wood[1]; x.fillRect(1, 2, 30, 9); x.fillStyle = wood[0]; x.fillRect(1, 2, 30, 2);
+        x.fillStyle = wood[3]; x.fillRect(1, 11, 30, 3); x.fillRect(2, 14, 3, 6); x.fillRect(27, 14, 3, 6);
+        x.fillStyle = '#fbf6ea'; x.fillRect(6, 4, 8, 5); x.fillStyle = '#2a1f2d'; x.fillRect(7, 5, 5, 1); x.fillRect(7, 7, 4, 1);
+        x.fillStyle = '#e8463c'; x.fillRect(20, 3, 6, 6); x.fillStyle = '#fbf6ea'; x.fillRect(22, 5, 2, 2);
+    });
+    ART.chest_wood = paintSprite(16, 14, x => {
+        x.fillStyle = wood[1]; x.fillRect(1, 2, 14, 11); x.fillStyle = wood[0]; x.fillRect(1, 2, 14, 4);
+        x.fillStyle = '#f7d64a'; x.fillRect(7, 6, 2, 3); x.fillStyle = wood[3]; x.fillRect(1, 6, 14, 1);
+    });
+    ART.cellar_door = paintSprite(16, 16, x => {
+        x.fillStyle = '#5a3a26'; x.fillRect(0, 0, 16, 16); x.fillStyle = '#7a4e32'; x.fillRect(1, 1, 14, 14);
+        for (let i = 1; i < 15; i += 4) { x.fillStyle = '#5a3a26'; x.fillRect(i, 1, 1, 14); }
+        x.fillStyle = '#9a9188'; x.fillRect(5, 6, 6, 4); x.fillStyle = '#2a1f2d'; x.fillRect(7, 7, 2, 2);
+    });
+    ART.blackboard = paintSprite(48, 26, x => {
+        x.fillStyle = '#7a4e32'; x.fillRect(0, 0, 48, 26); x.fillStyle = '#2e4a3a'; x.fillRect(2, 2, 44, 20);
+        x.fillStyle = '#e8ece4'; for (let j = 5; j < 20; j += 4) for (let i = 5; i < 42; i++) if (hash2(i, j, 4) < 0.5) x.fillRect(i, j, 1, 1);
+        x.fillStyle = '#c9925a'; x.fillRect(0, 22, 48, 4);
+    });
+}
+CONTENT_INIT.unshift(initFurniture);
+CONTENT_INIT.unshift(initWorldArt);
+
+// ---- 35_people.js ----
+/* The people of Hollowell: how they look and sound. Their lines are in the story files. */
+
+const PEOPLE_DEF = {
+    gran: { name: 'Gran', col: '#f0e6d0', look: { body: 'elder', hair: 'bun', hairC: '#e8e4e0', top: '#6a8ac4', accent: '#f0e6d0', bottom: '#4a4a6a', skin: 'light', extra: ['glasses'] } },
+    quill: { name: 'Miss Quill', col: '#c8d8f0', look: { body: 'adult', hair: 'bun', hairC: '#3a2a2a', top: '#3a5a8a', accent: '#fbf6ea', bottom: '#2a3a5a', skin: 'pale', extra: ['glasses'] } },
+    tuck: { name: 'Tuck', col: '#f7d64a', look: { body: 'child', hair: 'tuft', hairC: '#e0b040', top: '#5ab85a', accent: '#3a7a3a', bottom: '#3a5fae', skin: 'light' } },
+    nell: { name: 'Nell', col: '#f59ac0', look: { body: 'child', hair: 'long', hairC: '#2a1a1a', top: '#f07a9a', accent: '#fbf6ea', bottom: '#7a4a6a', skin: 'brown' } },
+    otto: { name: 'Otto', col: '#9fdcf5', look: { body: 'child', hair: 'cap', hairC: '#6b4128', top: '#e8463c', accent: '#3a5fae', bottom: '#45403f', skin: 'tan' } },
+    bea: { name: 'Bea', col: '#c8e66a', look: { body: 'child', hair: 'bun', hairC: '#d9832a', top: '#f7d64a', accent: '#e8463c', bottom: '#6b4128', skin: 'light' } },
+    hob: { name: 'Fisher Hob', col: '#7ec8f0', look: { body: 'adult', hair: 'cap', hairC: '#9a9188', top: '#3a7ab8', accent: '#e6c08a', bottom: '#5a4a3a', skin: 'tan', extra: ['beard'] } },
+    arlo: { name: 'Old Arlo', col: '#e6c08a', look: { body: 'elder', hair: 'bald', hairC: '#f0f0f0', top: '#9a6438', accent: '#c9925a', bottom: '#45403f', skin: 'tan', extra: ['mustache'] } },
+    ives: { name: 'Mother Ives', col: '#5ad1c5', look: { body: 'adult', hair: 'bun', hairC: '#8a4a2a', top: '#2e9a96', accent: '#fbf6ea', bottom: '#1f5d63', skin: 'light' } },
+    bram: { name: 'Bram', col: '#f0b060', look: { body: 'adult', hair: 'short', hairC: '#2a1a14', top: '#d98f3a', accent: '#9a6438', bottom: '#5a3a26', skin: 'dark', extra: ['beard'] } },
+    rosa: { name: 'Rosa', col: '#f8c8a0', look: { body: 'adult', hair: 'long', hairC: '#e0b040', top: '#f4e6c8', accent: '#e8463c', bottom: '#9a3a4a', skin: 'light' } },
+    thimble: { name: 'Thimble', col: '#d8c8f0', look: { body: 'adult', hair: 'short', hairC: '#7a7a8a', top: '#7d5bc4', accent: '#f7d64a', bottom: '#3e3a3c', skin: 'pale', extra: ['glasses'] } },
+    seam: { name: 'Sebastian Seam', col: '#f07a9a', look: { body: 'adult', hair: 'tuft', hairC: '#1a1a1a', top: '#d0608e', accent: '#fbf6ea', bottom: '#2a2a3a', skin: 'brown' } },
+    mallow: { name: 'Doctor Mallow', col: '#c9b3f0', look: { body: 'adult', hair: 'bald', hairC: '#c8c0b8', top: '#fbf6ea', accent: '#b48ce8', bottom: '#4b3a8a', skin: 'light', extra: ['glasses', 'mustache'] } },
+    mabel: { name: 'Auntie Mabel', col: '#c8e66a', look: { body: 'elder', hair: 'long', hairC: '#c8c8d0', top: '#8a5aa0', accent: '#f7d64a', bottom: '#4a2a5a', skin: 'dark' } },
+    burr: { name: 'Constable Burr', col: '#9a9188', look: { body: 'adult', hair: 'cap', hairC: '#3a3a5a', top: '#2b5aa8', accent: '#f7d64a', bottom: '#1f3270', skin: 'light', extra: ['mustache'] } },
+    gundry: { name: 'Gundry', col: '#c9925a', look: { body: 'adult', hair: 'short', hairC: '#c4623a', top: '#7a5233', accent: '#e6c08a', bottom: '#45281c', skin: 'tan' } },
+    ambrose: { name: 'Dad', col: '#7ec8f0', look: { body: 'adult', hair: 'short', hairC: '#a5532a', top: '#4f9be0', accent: '#fbf6ea', bottom: '#5a4a3a', skin: 'light', extra: ['beard'] } },
+    tess: { name: 'Mum', col: '#f7d64a', look: { body: 'adult', hair: 'long', hairC: '#3a2a1a', top: '#e8c04a', accent: '#a6772a', bottom: '#6b4128', skin: 'tan' } },
+    jory: { name: 'Jory', col: '#d6304e', look: { body: 'elder', hair: 'tuft', hairC: '#f0f0f0', top: '#c42b4a', accent: '#f7d64a', bottom: '#2a1f2d', skin: 'light', extra: ['glasses'] } },
+};
+
+function initPeople() {
+    for (const [id, d] of Object.entries(PEOPLE_DEF)) {
+        PEOPLE[id] = d; SPEAKER_COL[id] = d.col;
+        makePerson(id, d.look);
+    }
+    SPEAKER_COL.wren = '#e8463c';
+    VOICES.bram = 'low'; VOICES.burr = 'low'; VOICES.hob = 'low'; VOICES.arlo = 'low'; VOICES.ambrose = 'low'; VOICES.gundry = 'low';
+    /* animals */
+    defSprite('cat_0', ['................', '................', '................', '................', '................', '................', '..k...k.........', '.kok.kok........',
+        '.koookoook...kk.', '.kowooowok..kok.', '.kooooooookkok..', '..kOOooooooook..', '...koooOOooook..', '...kOk.kOk.kOk..', '....k...k...k...', '................'],
+        { o: '#f0a050', O: '#c87830', w: '#2a1f2d' });
+    defSprite('cat_1', ['................', '................', '................', '................', '................', '................', '..k...k.........', '.kok.kok........',
+        '.koookoook...kk.', '.kowooowok..kok.', '.kooooooookkok..', '..kOOooooooook..', '...koooOOooook..', '..kOk..kOkkOk...', '...k....k..k....', '................'],
+        { o: '#f0a050', O: '#c87830', w: '#2a1f2d' });
+    defSprite('dog_0', ['................', '................', '................', '................', '................', '..kk............', '.kbbk...........', '.kbwbkkkkkkkk...',
+        '.kbbbwwwwwwwwk..', '..kkbwwwwwwwwbk.', '...kwwwwwwwwbbk.', '...kwbwwwwbwwk..', '...kbk.kbk.kbk..', '...kk..kk..kk...', '................', '................'],
+        { w: '#f4e6c8', b: '#9a6438' });
+    defSprite('bubble_dots', ['.kkkkkkk.', 'kwwwwwwwk', 'kwkwkwkwk', 'kwwwwwwwk', '.kkkwkkk.', '....k....'], {});
+    defSprite('bubble_heart', ['.kkkkkkk.', 'kwrwwwrwk', 'kwrrwrrwk', 'kwwrrrwwk', '.kkkrkkk.', '....k....'], {});
+    defSprite('bubble_bang', ['.kkkkkkk.', 'kwwwrwwwk', 'kwwwrwwwk', 'kwwwwwwwk', '.kkkrkkk.', '....k....'], {});
+}
+CONTENT_INIT.push(initPeople);
+
+/* animals that go where they like (Biscuit) or chase a ball (Pudding) */
+class Critter extends Ent {
+    constructor(tx, ty, props = {}) {
+        super('critter', props);
+        this.x = tx * T + 8; this.y = ty * T + 10; this.dir = RIGHT; this.t = 0; this.anim = 0;
+        this.route = props.route || null; this.ri = 0; this.wait = 0;
+    }
+    get sortY() { return this.y + 1; }
+    update() {
+        this.t++;
+        if (this.follow) {
+            const p = G.player, d = dist(p.x, p.y, this.x, this.y);
+            if (d > 24) { const dx = p.x - this.x, dy = p.y - this.y; this.x += dx / d * 1.1; this.y += dy / d * 1.1; this.dir = dx < 0 ? LEFT : RIGHT; this.anim++; }
+            return;
+        }
+        if (!this.route) return;
+        if (this.wait > 0) { this.wait--; return; }
+        const [gx, gy, w] = this.route[this.ri];
+        const tx = gx * T + 8, ty = gy * T + 10, dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy);
+        if (d < 1) { this.ri = (this.ri + 1) % this.route.length; this.wait = w || 60; return; }
+        const sp = this.speed || 0.6;
+        this.x += dx / d * Math.min(sp, d); this.y += dy / d * Math.min(sp, d);
+        if (Math.abs(dx) > 0.3) this.dir = dx < 0 ? LEFT : RIGHT;
+        this.anim++;
+    }
+    interact() { const f = CRITTER_TALK[this.who]; if (f) Script.run(f(this)); return true; }
+    talkBox(p, f) { return Math.abs(f.tx * T + 8 - this.x) < 12 && Math.abs(f.ty * T + 8 - this.y) < 12; }
+    draw(cx, cy) {
+        const im = spr(this.look + '_' + (Math.floor(this.anim / 10) % 2));
+        Gfx.alpha(0.2); Gfx.rect(this.x - cx - 4, this.y - cy + 1, 8, 2, PAL.ink); Gfx.alpha(1);
+        if (im) Gfx.img(im, this.x - cx - 8, this.y - cy - 13, this.dir === LEFT);
+    }
+}
+const CRITTER_TALK = {};
+SPAWN.critter = (x, y, p) => new Critter(x, y, p);
+SPAWN.npc = (x, y, p) => new NPC(x, y, p);
+
+// ---- 36_hub.js ----
+/* Hollowell, the town in the middle of the Hollow (block 1,1 of the overworld). Buildings, the Well, the
+   townsfolk and where they stand. Who says what is in the story files. */
+
+const HUB_ROWS = [
+        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY====YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY====YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY::::YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+        'YYYYYYY.b.........T...........::::.b.............-~~~-.......YYY',
+        'YYYYYYY.....".......b.......b.::::..XXXXX.,.T....-~~~-...T...YYY',
+        'YYYYYYY.ffffffffff....XXXXXX..::::..XXXXX........-~~~-.......YYY',
+        'YYY.....lA.......l....XXXXXX,.::::,.XXXXX.b",....-~~~-.......YYY',
+        'YYY.T"..l"XXXXXX,l...,XXXXXX.,::::..XX:XX........-~~~-.......YYY',
+        'YYY..,..l.XXXXXX,l....XX:XXX..::::....:..XXXXXXXX-~~~-".,....YYY',
+        'YYY...,.l,XXXXXX.l......::....::::....:..XXXXXXXX-~~~-"XXXXXXYYY',
+        'YYY...,.l,XX:XXX.l......::....::::...":..XXXXXXXX-~~~-.XXXXXXYYY',
+        'YYY..,..l...::...l......::....::::....:..XXXXXXXX-~~~-.XXXXXXYYY',
+        'YYY."...ffff::ffff.....,:::::::::::::::".XXX:XXXX-~~~-"XX:XXXYYY',
+        'YYY.........::.......m====================m.==...-~~~-...:...YYY',
+        'YYY.........::...."..======================......-~~~-...:b..YYY',
+        'YYY.XXXXX,..::.......======================...T..-~~~-,..:...YYY',
+        'YYY.XXXXX...::.....,.======================......-~~~-.,.:"r.YYY',
+        'YYY.XX:XX,..::...,...======================".....-~~~-,..:...YYY',
+        'YYY...:....,::::::::::=====================......-~~~-...:...YYY',
+        'YYY::::::::::::::::::======================::::::_____::::::::::',
+        'YYY::::::::::::::::::======================::::::_____::::::::::',
+        'YYY................,.======================......-~~~-.......YYY',
+        'YYY..T"."...T........======================......-~~~-....T..YYY',
+        'YYY..................======================......-~~~-.......YYY',
+        'YYY......."...b,.....======================......-~~~-.......YYY',
+        'YYY..XXXXXXX.,.,.....======================..,...-~~~-,.T..,.YYY',
+        'YYY..XXXXXXX.........m====================m....b.-~~~-......bYYY',
+        'YYY..XXXXXXX....XXXXXX........::::....==......,..-~~~-.......YYY',
+        'YYY..XXX:XXX....XXXXXX......,.::::..XXXXXX.......-~~~-.".....YYY',
+        'YYY.....::::::::::::::........::::.,XXXXXX......,-~~~-.......YYY',
+        'YYY.....::......XX:XXX........::::,.XXXXXX....r..-~~~-.YYYYYYYYY',
+        'YYYb.;;;;;;..,....::::::::::::::::..XX:XXX.......-~~~-.YYYYYYYYY',
+        'YYY..;;;;;;.......:...........:::::::::..........-~~~-,YYYYYYYYY',
+        'YYY..;;;;;;.....XXXXX......T..::::..........T....-~~~-.YYYYYYYYY',
+        'YYYYY;;;;;;.,...XXXXX.......,.::::..,....".......-~~~-.YYYYYYYYY',
+        'YYYYY......"....XX:XX...T.....::::...,...........-~~~-.YYYYYYYYY',
+        'YYYYY........b................::::...........b...-~~~-.YYYYYYYYY',
+        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY::::YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY::::YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY::::YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+];
+
+/* doors: [building x, y, w, h, style, door dx, interior id, windows, extra] */
+const HUB_BUILDINGS = [
+    { id: 'gran', x: 10, y: 7, w: 6, h: 4, style: 'cottage', door: 2, to: 'gran_house', windows: [0, 4], chimneyX: 70 },
+    { id: 'inn', x: 41, y: 8, w: 8, h: 5, style: 'inn', door: 3, to: 'inn', windows: [0, 1, 5, 6], wallH: 26, sign: { x: 1 } },
+    { id: 'school', x: 5, y: 25, w: 7, h: 4, style: 'school', door: 3, to: 'school', windows: [0, 1, 5] },
+    { id: 'store', x: 16, y: 27, w: 6, h: 4, style: 'green', door: 2, to: 'store', windows: [0, 4], sign: { x: 3 } },
+    { id: 'bakery', x: 36, y: 28, w: 6, h: 4, style: 'ochre', door: 2, to: 'bakery', windows: [0, 4], sign: { x: 3 } },
+    { id: 'tailor', x: 36, y: 4, w: 5, h: 4, style: 'plum', door: 2, to: 'tailor', windows: [0, 4], sign: { x: 3 } },
+    { id: 'toys', x: 22, y: 5, w: 6, h: 4, style: 'blue', door: 2, to: 'toys', windows: [0, 4] },
+    { id: 'lostfound', x: 4, y: 15, w: 5, h: 3, style: 'stone', door: 2, to: 'lostfound', windows: [0, 4], wallH: 20 },
+    { id: 'tuckhouse', x: 16, y: 33, w: 5, h: 3, style: 'cottage', door: 2, to: 'tuckhouse', windows: [0, 4], wallH: 20, variant: 'b' },
+    { id: 'clinic', x: 55, y: 9, w: 6, h: 4, style: 'blue', door: 2, to: 'clinic', windows: [0, 4], sign: { x: 3 }, variant: 'c' },
+];
+
+defBlock({
+    id: 'hollowell', bx: 1, by: 1, name: 'Hollowell', theme: 'town', music: 'town',
+    rows: HUB_ROWS,
+    forest: ['tree', 'tree2', 'tree', 'pine'],
+    ents: [
+        ...HUB_BUILDINGS.map(b => Object.assign({ k: 'building' }, b)),
+        ...HUB_BUILDINGS.map(b => ({ k: 'warp', x: b.x + b.door, y: b.y + b.h - 1, to: b.to, tx2: 'door', ty2: 'door', face: 'up', dir: 'up' })),
+        { k: 'deco', x: 30, y: 18, look: 'well', ox: 0, oy: -18, solid: [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1]], text: 'The Well. Carved round its stones: EVERYTHING IN ITS PLACE.', id: 'well' },
+        { k: 'deco', x: 25, y: 23, look: 'bench', ox: 0, oy: 2, solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 35, y: 24, look: 'stall', ox: 0, oy: -20, solid: [[0, 0], [1, 0], [2, 0]] },
+        { k: 'deco', x: 20, y: 15, look: 'lamp', solid: [[0, 0]], ox: 3, oy: -14 },
+        { k: 'deco', x: 43, y: 15, look: 'lamp', solid: [[0, 0]], ox: 3, oy: -14 },
+        { k: 'deco', x: 20, y: 24, look: 'lamp', solid: [[0, 0]], ox: 3, oy: -14 },
+        { k: 'deco', x: 43, y: 24, look: 'lamp', solid: [[0, 0]], ox: 3, oy: -14 },
+        { k: 'deco', x: 40, y: 13, look: 'barrel' }, { k: 'deco', x: 49, y: 12, look: 'barrel', solid: false },
+        { k: 'deco', x: 15, y: 31, look: 'barrel' },
+        { k: 'sign', x: 34, y: 37, text: 'South: Meadowfold. (Sheep. Mind the sheep.)' },
+        { k: 'sign', x: 29, y: 4, text: 'North Road. Closed past the posts, by order of the Warden of the Well.' },
+        { k: 'sign', x: 46, y: 18, text: 'East: Hushwood. The bridge is old, the road is older.' },
+        { k: 'sign', x: 5, y: 21, text: "West Gate. To Larkspur Fair. Locked from this side." },
+        { k: 'sign', x: 13, y: 12, text: 'The Ravels. (Gran, and {name}.)' },
+        { k: 'deco', x: 3, y: 19, look: 'fence_v', solid: [[0, 0]] }, { k: 'deco', x: 3, y: 20, look: 'fence_v', solid: [[0, 0]] },
+        { k: 'rest', x: 28, y: 34 },
+        /* townsfolk */
+        { k: 'npc', who: 'burr', x: 32, y: 3, face: 'down', if: '!act3' },
+        { k: 'npc', who: 'quill', x: 10, y: 30, face: 'down' },
+        { k: 'npc', who: 'tuck', x: 7, y: 32, face: 'right' },
+        { k: 'npc', who: 'arlo', x: 27, y: 23, face: 'left' },
+        { k: 'npc', who: 'bram', x: 34, y: 24, face: 'down' },
+        { k: 'npc', who: 'hob', x: 48, y: 24, face: 'right', route: [[48, 22, 120], [48, 28, 120]] },
+        { k: 'npc', who: 'nell', x: 24, y: 16, face: 'right', route: [[24, 16, 20], [27, 21, 10], [23, 21, 20]], if: '!tagStopped' },
+        { k: 'npc', who: 'otto', x: 38, y: 16, face: 'left', route: [[38, 16, 30], [35, 21, 10], [39, 21, 10]], if: '!tagStopped' },
+        { k: 'npc', who: 'bea', x: 24, y: 22, face: 'up', route: [[24, 22, 40], [26, 15, 10], [36, 15, 20]], if: '!tagStopped' },
+        { k: 'npc', who: 'nell', x: 24, y: 17, face: 'right', if: 'tagStopped' },
+        { k: 'npc', who: 'otto', x: 38, y: 17, face: 'left', if: 'tagStopped' },
+        { k: 'npc', who: 'bea', x: 25, y: 21, face: 'up', if: 'tagStopped' },
+        { k: 'npc', who: 'gundry', x: 33, y: 20, face: 'left' },
+        { k: 'npc', who: 'gran', x: 29, y: 20, face: 'down', if: 'ceremony' },
+        { k: 'critter', who: 'biscuit', look: 'cat', x: 14, y: 14, speed: 0.5, route: [[14, 14, 200], [19, 22, 90], [28, 25, 300], [35, 33, 120], [41, 33, 200], [44, 14, 160], [22, 12, 90]] },
+        { k: 'critter', who: 'pudding', look: 'dog', x: 40, y: 22, speed: 1.0, route: [[40, 22, 40], [41, 16, 20], [36, 25, 30], [40, 25, 20]], if: '!dogStopped' },
+    ],
+    onEnter: a => Ceremony.check(a),
+    regions: [
+        { name: 'Town Square', x: 21, y: 13, w: 22, h: 14, quiet: true },
+    ],
+});
+
+// ---- 37_interiors.js ----
+/* Indoors in Hollowell. interior() lays out a room: the back wall two tiles high, side walls, a doorway
+   in the front wall that goes back out to the building's door in town. */
+
+const INTERIOR_DOOR = {};      /* interior id -> [x, y] where you stand coming in */
+
+function interior(def) {
+    const w = def.w, h = def.h, dx = def.door;
+    const rows = [];
+    for (let y = 0; y < h; y++) {
+        let r = '';
+        for (let x = 0; x < w; x++) {
+            if (y <= 1 || x === 0 || x === w - 1) r += '#';
+            else if (y === h - 1) r += (x === dx ? '.' : '#');
+            else r += def.floor ? def.floor(x, y) : '.';
+        }
+        rows.push(r);
+    }
+    if (def.rows) def.rows(rows);
+    INTERIOR_DOOR[def.id] = [dx, h - 2];
+    const ents = (def.ents || []).slice();
+    if (def.out) {
+        const b = HUB_BUILDINGS.find(b => b.to === def.id);
+        const ox = OW.bw * 1, oy = OW.bh * 1;
+        ents.push({ k: 'warp', x: dx, y: h - 1, to: 'hollow', tx2: ox + b.x + b.door, ty2: oy + b.y + b.h, face: 'down', dir: 'down' });
+        ents.push({ k: 'deco', x: dx, y: h - 2, look: 'doormat', solid: false, oy: 8, baseY: -100 });
+    }
+    return defArea(Object.assign({ family: 'interior', theme: 'house', music: 'home', rooms: [{ x: 0, y: 0, w, h }] }, def, { rows, ents, entry: { x: dx, y: h - 2 } }));
+}
+
+/* Gran's house: downstairs */
+interior({
+    id: 'gran_house', name: "Gran's house", place: 'Home', w: 13, h: 9, door: 6, out: true,
+    floor: (x, y) => (x >= 4 && x <= 8 && y >= 4 && y <= 6) ? ',' : '.',
+    ents: [
+        { k: 'deco', x: 5, y: 1, look: 'hearth', ox: 0, oy: -16, solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 2, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
+        { k: 'portrait', x: 9, y: 1 },
+        { k: 'deco', x: 10, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 5, y: 4, look: 'table', ox: 0, oy: 0, solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 4, y: 4, look: 'stool', solid: false }, { k: 'deco', x: 7, y: 4, look: 'stool', solid: false },
+        { k: 'deco', x: 11, y: 6, look: 'plant' },
+        { k: 'cellar', x: 1, y: 6 },
+        { k: 'warp', x: 1, y: 2, to: 'gran_room', tx2: 1, ty2: 3, face: 'down' },
+        { k: 'deco', x: 1, y: 2, look: 'stairs_up', solid: false, baseY: -100 },
+        { k: 'npc', who: 'gran', x: 8, y: 3, face: 'down', if: '!ceremony' },
+        { k: 'npc', who: 'gran', x: 6, y: 3, face: 'down', if: 'gran_home' },
+    ],
+});
+/* Wren's room upstairs */
+interior({
+    id: 'gran_room', name: 'Your room', place: 'Home', w: 10, h: 7, door: -1,
+    floor: (x, y) => (x >= 4 && x <= 7 && y >= 3 && y <= 4) ? ',' : '.',
+    ents: [
+        { k: 'deco', x: 4, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
+        { k: 'bed', x: 7, y: 2, look: 'bed', id: 'wrenbed' },
+        { k: 'deco', x: 2, y: 2, look: 'desk', ox: 0, oy: 0, solid: [[0, 0], [1, 0]], text: "Your desk. A drawing of the Well, a pencil worn to a stub, and a list: THINGS TO SEE ON MY WANDER. It's very long." },
+        { k: 'deco', x: 8, y: 5, look: 'chest_wood', text: "Your toy box. A wooden horse, a top, a spool of red thread you've had since you were tiny." },
+        { k: 'warp', x: 1, y: 2, to: 'gran_house', tx2: 2, ty2: 2, face: 'down' },
+        { k: 'deco', x: 1, y: 2, look: 'stairs_down', solid: false, baseY: -100 },
+    ],
+});
+interior({
+    id: 'inn', name: 'The Spool & Thimble', place: 'The Inn', w: 15, h: 9, door: 7, out: true, music: 'inn',
+    floor: (x, y) => (y === 4 && x > 1 && x < 13) ? ':' : '.',
+    ents: [
+        { k: 'deco', x: 2, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
+        { k: 'deco', x: 12, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
+        { k: 'deco', x: 5, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
+        { k: 'deco', x: 2, y: 5, look: 'table', solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 10, y: 5, look: 'table', solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 11, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 9, y: 2, look: 'pedestal', id: 'pedestal', text: 'An empty velvet cushion under glass. A brass plate: THE WANDERER\'S KNOT.' },
+        { k: 'staffdoor', x: 13, y: 2 },
+        { k: 'npc', who: 'ives', x: 6, y: 1, face: 'down', counter: true },
+    ],
+});
+interior({
+    id: 'store', name: 'Thimble & Things', place: 'Thimble & Things', w: 11, h: 8, door: 5, out: true, music: 'shop',
+    ents: [
+        { k: 'deco', x: 3, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
+        { k: 'deco', x: 1, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 8, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 1, y: 5, look: 'barrel' }, { k: 'deco', x: 9, y: 5, look: 'plant' },
+        { k: 'npc', who: 'thimble', x: 4, y: 1, face: 'down', counter: true },
+        { k: 'shop', x: 3, y: 3 },
+    ],
+});
+interior({
+    id: 'bakery', name: "Rosa's Bakery", place: 'The Bakery', w: 11, h: 8, door: 5, out: true, music: 'shop',
+    ents: [
+        { k: 'deco', x: 3, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
+        { k: 'deco', x: 8, y: 1, look: 'hearth', ox: 0, oy: -16, solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 1, y: 5, look: 'table', solid: [[0, 0], [1, 0]] },
+        { k: 'npc', who: 'rosa', x: 4, y: 1, face: 'down', counter: true },
+    ],
+});
+interior({
+    id: 'tailor', name: "Seam's", place: 'The Tailor', w: 10, h: 8, door: 5, out: true, music: 'shop',
+    ents: [
+        { k: 'deco', x: 2, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
+        { k: 'deco', x: 7, y: 2, look: 'dressform', solid: [[0, 0]] },
+        { k: 'deco', x: 8, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
+        { k: 'deco', x: 1, y: 5, look: 'rug_small', solid: false, baseY: -100 },
+        { k: 'npc', who: 'seam', x: 3, y: 1, face: 'down', counter: true },
+    ],
+});
+interior({
+    id: 'toys', name: "Jory's Toys", place: "Jory's Toys", w: 10, h: 8, door: 5, out: true, music: 'shop',
+    ents: [
+        { k: 'deco', x: 2, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
+        { k: 'deco', x: 6, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 3, y: 4, look: 'sign_closed', text: 'A card on the counter: GONE FOR THE SEASON. BACK WHEN I\'M BACK. - J.' },
+    ],
+    if: true,
+});
+interior({
+    id: 'school', name: 'The Schoolhouse', place: 'School', w: 13, h: 9, door: 6, out: true, music: 'home',
+    ents: [
+        { k: 'deco', x: 5, y: 1, look: 'blackboard', ox: 0, oy: -8, solid: false, baseY: -100, id: 'blackboard' },
+        { k: 'blackboard', x: 6, y: 2 },
+        { k: 'deco', x: 2, y: 4, look: 'desk', solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 5, y: 4, look: 'desk', solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 8, y: 4, look: 'desk', solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 11, y: 2, look: 'plant' },
+    ],
+});
+interior({
+    id: 'lostfound', name: 'Lost & Found', place: 'Lost & Found', w: 10, h: 8, door: 5, out: true, music: 'shop',
+    ents: [
+        { k: 'deco', x: 2, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
+        { k: 'deco', x: 6, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 7, y: 5, look: 'barrel' }, { k: 'deco', x: 1, y: 5, look: 'chest_wood' },
+        { k: 'npc', who: 'mabel', x: 3, y: 1, face: 'down', counter: true },
+    ],
+});
+interior({
+    id: 'tuckhouse', name: "Tuck's house", place: "Tuck's house", w: 10, h: 7, door: 5, out: true,
+    ents: [
+        { k: 'deco', x: 2, y: 2, look: 'table', solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 7, y: 1, look: 'bed', ox: 0, oy: -12, solid: [[0, 0]] },
+        { k: 'deco', x: 4, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
+        { k: 'deco', x: 1, y: 4, look: 'plant' },
+    ],
+});
+interior({
+    id: 'clinic', name: "Doctor Mallow's", place: 'The Clinic', w: 12, h: 8, door: 6, out: true, music: 'home',
+    ents: [
+        { k: 'deco', x: 2, y: 1, look: 'bed_gran', ox: 0, oy: -12, solid: [[0, 0]] }, { k: 'deco', x: 4, y: 1, look: 'bed_gran', ox: 0, oy: -12, solid: [[0, 0]] },
+        { k: 'deco', x: 8, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 10, y: 5, look: 'plant' },
+        { k: 'npc', who: 'mallow', x: 6, y: 3, face: 'down' },
+    ],
+});
+
+/* a bed you can sleep in: your mark at home, heals and saves */
+SPAWN.bed = (tx, ty, p) => {
+    const pr = new Prop(tx, ty, { im: ART[p.look || 'bed'], solid: [[0, 0], [0, 1]], ox: -1, oy: -2 });
+    pr.mark = true;
+    pr.interact = () => { Script.run(Story.sleepInBed()); return true; };
+    pr.talkBox = (pl, f) => f.tx === tx && (f.ty === ty || f.ty === ty + 1);
+    pr.draw = function (cx, cy) {
+        Prop.prototype.draw.call(this, cx, cy);
+    };
+    return pr;
+};
+/* the cellar door in Gran's house: locked */
+SPAWN.cellar = (tx, ty, p) => {
+    const pr = new Prop(tx, ty, { im: ART.cellar_door, solid: [[0, 0]], oy: 0 });
+    pr.sortY0 = -50;
+    pr.interact = () => { Script.run(Story.cellarDoor()); return true; };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+function initInteriorArt() {
+    ART.stairs_up = paintSprite(16, 16, x => { for (let i = 0; i < 4; i++) { x.fillStyle = '#c9925a'; x.fillRect(0, i * 4, 16, 3); x.fillStyle = '#7a4e32'; x.fillRect(0, i * 4 + 3, 16, 1); } x.fillStyle = '#5a3a26'; x.fillRect(0, 0, 2, 16); x.fillRect(14, 0, 2, 16); }, false);
+    ART.stairs_down = paintSprite(16, 16, x => { x.fillStyle = '#2a1f2d'; x.fillRect(0, 0, 16, 16); for (let i = 0; i < 4; i++) { x.fillStyle = '#9a6438'; x.fillRect(2, i * 4 + 1, 12, 2); } }, false);
+    ART.pedestal = paintSprite(16, 22, x => {
+        x.fillStyle = '#9a6438'; x.fillRect(3, 12, 10, 10); x.fillStyle = '#c9925a'; x.fillRect(3, 12, 10, 2);
+        x.fillStyle = '#b0434a'; x.fillRect(4, 8, 8, 4); x.fillStyle = '#d0608e'; x.fillRect(4, 8, 8, 1);
+        x.globalAlpha = 0.5; x.fillStyle = '#d8f2ff'; x.fillRect(2, 0, 12, 12); x.globalAlpha = 1;
+        x.fillStyle = '#ffffff'; x.fillRect(3, 1, 2, 4);
+    });
+    ART.dressform = paintSprite(14, 26, x => {
+        x.fillStyle = '#6b4128'; x.fillRect(6, 18, 2, 6); x.fillRect(3, 24, 8, 2);
+        x.fillStyle = '#d0608e'; x.fillRect(2, 4, 10, 14); x.fillStyle = '#f07a9a'; x.fillRect(3, 4, 4, 14);
+        x.fillStyle = '#c9925a'; x.fillRect(5, 1, 4, 3);
+    });
+    ART.staffdoor = paintSprite(16, 32, x => { x.fillStyle = '#5a3a26'; x.fillRect(1, 2, 14, 30); x.fillStyle = '#7a4e32'; x.fillRect(2, 3, 12, 28); x.fillStyle = '#fbf6ea'; x.fillRect(4, 8, 8, 4); x.fillStyle = '#c42b4a'; x.fillRect(5, 9, 6, 1); x.fillRect(5, 11, 4, 1); x.fillStyle = '#f7d64a'; x.fillRect(11, 18, 2, 2); });
+    ART.sign_closed = paintSprite(12, 10, x => { x.fillStyle = '#fbf6ea'; x.fillRect(0, 2, 12, 8); x.fillStyle = '#c42b4a'; x.fillRect(2, 4, 8, 1); x.fillRect(2, 6, 6, 1); });
+}
+CONTENT_INIT.unshift(initInteriorArt);
+
+/* the blackboard in the school: the Rules of the Return (they change as the Wander goes on) */
+SPAWN.blackboard = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: null, solid: [] });
+    pr.interact = () => { Script.run(Story.blackboard()); return true; };
+    pr.talkBox = (pl, f) => f.ty <= 2 && f.tx >= 5 && f.tx <= 7;
+    return pr;
+};
+
+/* the picture that faces the wall (S02, Linnet's first note) */
+SPAWN.portrait = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.portrait_turned, solid: [], oy: -10 });
+    pr.baseY = -100;
+    pr.interact = () => {
+        Script.run(function* () {
+            if (!Inv.has('gloves')) { yield* say(null, "A picture, turned to face the wall. It has always been like that. When you try to turn it, it slides straight back, like everything does."); return; }
+            pr.im = ART.portrait_linnet; Sfx.play('tug');
+            yield* say(null, 'You grip the frame with your Gloves and turn it round. It strains to turn back, but you hold on.');
+            yield* say(null, 'A young woman with a green scarf grins out of the painting, wind in her hair. She looks a bit like you. She looks a bit like Gran.');
+            if (!Progress.flag('linnet1')) {
+                Progress.set('linnet1'); Progress.addNote('linnet1'); Stats.count('secret:linnet'); Progress.set('portrait');
+                yield* say(null, 'A folded note slips out from behind the frame and drops at your feet.');
+                yield* say(null, '"' + LINNET_NOTES[1].text + '"');
+            }
+            const gran = pr.area.ents.find(e => e.who === 'gran');
+            if (gran) yield* say('gran', "...Put that back, love. Please. Some things are best left facing the wall.");
+            pr.im = ART.portrait_turned; Sfx.play('pop');
+            yield* say(null, 'You let go, and the picture swings back to face the wall.');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+
+// ---- 40_music.js ----
+/* The music. One token a step ("C5", "-" hold, "." rest; drums k s h). div: steps per beat.
+   The Return motif (up and back: G A C A G) turns up in the title and the town, and comes back reversed
+   at the very end. Gran's lullaby is Linnet's theme. */
+
+SONGS.title = {
+    bpm: 72, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.12, vib: true, n: 'G4 A4 C5 - A4 G4 - - | E5 - D5 C5 D5 - - - | C5 A4 G4 - A4 - C5 - | D5 - - - - - . . | G4 A4 C5 - A4 G4 - - | E5 - G5 - F5 E5 D5 - | C5 - D5 E5 D5 C5 A4 - | C5 - - - - - . .' },
+        { wave: 'triangle', vol: 0.22, n: 'C3 - G3 - E3 - G3 - | F2 - C3 - A2 - C3 - | A2 - E3 - C3 - E3 - | G2 - D3 - G2 - B2 - | C3 - G3 - E3 - G3 - | A2 - E3 - C3 - E3 - | F2 - C3 - G2 - D3 - | C3 - G3 - C3 - - -' },
+        { wave: 'p12', vol: 0.05, n: 'E4 . G4 . E4 . G4 . | A4 . C5 . A4 . C5 . | E4 . A4 . E4 . A4 . | D4 . G4 . B4 . G4 . | E4 . G4 . E4 . G4 . | E4 . A4 . E4 . A4 . | A4 . C5 . B4 . D5 . | E4 . G4 . C5 - - .' },
+    ],
+};
+SONGS.town = {
+    bpm: 104, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.11, n: 'G4 A4 C5 - A4 G4 - . | E4 G4 C5 - D5 - E5 - | F5 - E5 D5 C5 - A4 - | G4 - - - - - . . | G4 A4 C5 - A4 G4 - . | E4 G4 C5 - D5 - E5 - | F5 E5 D5 - G4 - B4 - | C5 - - - - - . . | E5 - E5 F5 G5 - E5 - | D5 - D5 E5 F5 - D5 - | C5 - C5 D5 E5 - C5 A4 | B4 - G4 - A4 - B4 - | E5 - E5 F5 G5 - E5 - | D5 - F5 - E5 - D5 - | C5 - E5 - D5 - B4 - | C5 - - - - - . .' },
+        { wave: 'triangle', vol: 0.2, n: 'C3 . G3 . C3 . G3 . | C3 . G3 . E3 . G3 . | F2 . C3 . F2 . C3 . | G2 . D3 . G2 . B2 . | C3 . G3 . C3 . G3 . | A2 . E3 . A2 . E3 . | F2 . C3 . G2 . D3 . | C3 . G3 . C3 - - . | C3 . G3 . C3 . G3 . | D3 . A3 . D3 . A3 . | A2 . E3 . A2 . E3 . | G2 . D3 . G2 . D3 . | C3 . G3 . C3 . G3 . | F2 . C3 . F2 . C3 . | G2 . D3 . G2 . D3 . | C3 . G3 . C3 - - .' },
+        { wave: 'p12', vol: 0.045, n: '. E4 . G4 . E4 . G4 | . E4 . G4 . G4 . C5 | . A4 . C5 . A4 . C5 | . B4 . D5 . B4 . D5 | . E4 . G4 . E4 . G4 | . E4 . A4 . E4 . A4 | . A4 . C5 . B4 . D5 | . E4 . G4 . E4 . . | . E4 . G4 . E4 . G4 | . F4 . A4 . F4 . A4 | . E4 . A4 . E4 . A4 | . D4 . G4 . B4 . G4 | . E4 . G4 . E4 . G4 | . A4 . C5 . A4 . C5 | . B4 . D5 . B4 . D5 | . E4 . G4 . C5 . .' },
+        { drum: true, vol: 0.1, n: 'k . h . s . h . | k . h . s . h h | k . h . s . h . | k . h . s . h . ' },
+    ],
+};
+SONGS.home = {
+    bpm: 66, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.2, vib: true, n: 'A4 - C5 - E5 - D5 C5 | A4 - G4 - - - - - | A4 - C5 - D5 - E5 G5 | E5 - - - - - - - | D5 - C5 - A4 - G4 A4 | C5 - A4 - G4 - E4 - | G4 - A4 - C5 - D5 C5 | A4 - - - - - - -' },
+        { wave: 'p12', vol: 0.05, n: 'A3 - E4 - A4 - E4 - | F3 - C4 - F4 - C4 - | D3 - A3 - D4 - A3 - | E3 - B3 - E4 - B3 - | F3 - C4 - F4 - C4 - | C3 - G3 - C4 - G3 - | D3 - A3 - E3 - B3 - | A3 - E4 - A4 - - -' },
+    ],
+};
+SONGS.inn = {
+    bpm: 132, div: 3,
+    ch: [
+        { wave: 'p50', vol: 0.09, n: 'D5 - B4 G4 - B4 | D5 - G5 - - . | E5 - C5 A4 - C5 | E5 - A5 - - . | F#5 - D5 A4 - D5 | F#5 - A5 G5 - E5 | D5 - B4 A4 - F#4 | G4 - - - - .' },
+        { wave: 'triangle', vol: 0.2, n: 'G2 . . D3 . . | G2 . . D3 . . | A2 . . E3 . . | A2 . . E3 . . | D3 . . A3 . . | D3 . . A2 . . | D3 . . D3 . . | G2 . . G2 . .' },
+        { drum: true, vol: 0.08, n: 'k . h s . h | k . h s . h | k . h s . h | k . h s h h' },
+    ],
+};
+SONGS.shop = {
+    bpm: 112, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.09, n: 'C5 . E5 . G5 . E5 . | F5 . A5 . G5 - - . | E5 . C5 . D5 . B4 . | C5 - - . . . . . ' },
+        { wave: 'triangle', vol: 0.18, n: 'C3 . . . G2 . . . | F2 . . . C3 . . . | A2 . . . G2 . . . | C3 . G2 . C3 . . .' },
+    ],
+};
+SONGS.meadow = {
+    bpm: 128, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.1, n: 'D5 - B4 - G4 - B4 - | C5 - A4 - F#4 - A4 - | B4 - G4 - D5 - G5 - | F#5 - - - E5 - D5 - | D5 - B4 - G4 - B4 - | C5 - E5 - A4 - C5 - | B4 - D5 - A4 - F#4 - | G4 - - - - - . . | E5 - G5 - E5 - D5 - | C5 - E5 - C5 - B4 - | A4 - C5 - B4 - G4 - | A4 - - - - - . . | E5 - G5 - B5 - G5 - | F#5 - D5 - A4 - C5 - | B4 - G4 - A4 - F#4 - | G4 - - - - - . .' },
+        { wave: 'triangle', vol: 0.2, n: 'G2 . D3 . G2 . D3 . | D3 . A2 . D3 . A2 . | G2 . D3 . E2 . B2 . | D3 . A2 . D3 . A2 . | G2 . D3 . G2 . D3 . | A2 . E3 . A2 . E3 . | D3 . A2 . D3 . A2 . | G2 . D3 . G2 . . . | C3 . G3 . C3 . G3 . | A2 . E3 . A2 . E3 . | D3 . A3 . G2 . D3 . | D3 . A2 . D3 . A2 . | C3 . G3 . E3 . G3 . | D3 . A3 . D3 . A3 . | D3 . A2 . D3 . A2 . | G2 . D3 . G2 . . .' },
+        { drum: true, vol: 0.09, n: 'k . h k s . h . | k . h . s . h h' },
+    ],
+};
+SONGS.tidy = {
+    bpm: 120, div: 3,
+    ch: [
+        { wave: 'p25', vol: 0.09, legato: 0.5, n: 'A4 . C5 . E5 . | D5 . C5 . B4 . | A4 . C5 . E5 . | G#4 - - . . . | A4 . C5 . E5 . | F5 . E5 . D5 . | C5 . B4 . A4 . | E5 - - . . . | F5 . E5 . D5 . | C5 . D5 . E5 . | D5 . C5 . B4 . | A4 . B4 . C5 . | B4 . A4 . G#4 . | A4 . B4 . C5 . | B4 . G#4 . E4 . | A4 - - . . .' },
+        { wave: 'triangle', vol: 0.18, legato: 0.4, n: 'A2 . E3 . E3 . | D3 . F3 . F3 . | A2 . E3 . E3 . | E2 . G#2 . G#2 . | A2 . E3 . E3 . | D3 . F3 . F3 . | E2 . G#2 . B2 . | E2 . G#2 . B2 . | D3 . F3 . A3 . | C3 . E3 . G3 . | G2 . B2 . D3 . | A2 . C3 . E3 . | E2 . G#2 . B2 . | A2 . C3 . E3 . | E2 . G#2 . B2 . | A2 . E3 . A2 .' },
+        { drum: true, vol: 0.06, n: 'k . h . h . | s . h . h .' },
+    ],
+};
+SONGS.boss = {
+    bpm: 150, div: 2,
+    ch: [
+        { wave: 'p50', vol: 0.08, n: 'E5 . E5 . G5 . E5 . | D#5 . F#5 . B4 . . . | E5 . E5 . G5 . A5 . | B5 - - - A5 . G5 . | C6 . B5 . A5 . G5 . | F#5 . G5 . A5 . F#5 . | E5 . D#5 . E5 . F#5 . | B4 - - - . . . .' },
+        { wave: 'triangle', vol: 0.22, n: 'E2 E3 E2 E3 E2 E3 E2 E3 | B1 B2 B1 B2 B1 B2 B1 B2 | E2 E3 E2 E3 E2 E3 E2 E3 | G2 G3 G2 G3 A2 A3 A2 A3 | C3 C4 C3 C4 C3 C4 C3 C4 | D3 D4 D3 D4 D3 D4 D3 D4 | E2 E3 E2 E3 C3 C4 C3 C4 | B1 B2 B1 B2 B1 B2 B1 B2' },
+        { wave: 'p25', vol: 0.04, n: 'B4 . G4 . B4 . G4 . | F#4 . D#4 . F#4 . D#4 . | B4 . G4 . B4 . G4 . | D5 . B4 . E5 . C5 . | E5 . C5 . E5 . C5 . | F#5 . D5 . F#5 . D5 . | B4 . G4 . A4 . E4 . | F#4 . D#4 . F#4 . D#4 .' },
+        { drum: true, vol: 0.11, n: 'k . h k s . h . | k k h . s . h s' },
+    ],
+};
+SONGS.knot = {
+    bpm: 80, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.2, vib: true, n: 'C5 - E5 - G5 - - - | A5 - G5 - E5 - - - | F5 - E5 - D5 - C5 - | C5 - - - - - - - ' },
+        { wave: 'p12', vol: 0.05, n: 'C4 G4 E4 G4 C4 G4 E4 G4 | F4 A4 C5 A4 C4 G4 E4 G4 | F4 A4 D4 G4 B4 G4 D4 G4 | C4 G4 E4 G4 C5 - - -' },
+    ],
+};
+SONGS.silence = { bpm: 60, div: 1, ch: [{ wave: 'p12', vol: 0, n: '.' }] };
+
+// ---- 41_house_kit.js ----
+/* Things every House uses: levers, Knot hoops, House doors to the outside, nudges (the Hints option:
+   if Wren is stuck in a room a long while, something in the room shifts a little), and the
+   "all home" check for rooms that want everything back in its place. */
+
+class Lever extends GridThing {
+    constructor(tx, ty, props = {}) {
+        super('lever', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, props));
+        this.on = !!props.on;
+    }
+    onAdd(area) { super.onAdd(area); if (this.id && Progress.areaFlag(area.id, 'lever:' + this.id)) { this.on = true; this.fired = true; } }
+    interact() {
+        if (this.once && this.on) return false;
+        this.on = !this.on; Sfx.play('click'); Sfx.play('door');
+        if (this.id) Progress.setAreaFlag(this.area.id, 'lever:' + this.id, this.on);
+        if (this.onPull) this.onPull(this);
+        if (this.release) for (const e of this.area.ents) if (e.group === this.release) { e.tiedOff = false; if (e.ret) e.ret.timer = 20; }
+        return true;
+    }
+    tick() { if (this.on && this.sig) Signals.set(this.area, this.sig); }
+    sprite() { return spr(this.on ? 'lever_on' : 'lever_off'); }
+}
+SPAWN.lever = (x, y, p) => new Lever(x, y, p);
+
+/* the Knot hoop: where a House's Knot gets tied */
+class Hoop extends Ent {
+    constructor(tx, ty, props = {}) { super('hoop', props); this.tx = tx; this.ty = ty; this.x = tx * T - 8; this.y = ty * T - 16; this.t = 0; }
+    get sortY() { return this.y + 32; }
+    onAdd(area) { area.staticSolid.add(this.ty * 4096 + this.tx); }
+    update() { this.t++; }
+    interact() { if (this.tied) return false; Script.run(Knots.tie(this)); return true; }
+    talkBox(p, f) { return f.tx === this.tx && f.ty === this.ty; }
+    draw(cx, cy) {
+        const x = this.x - cx, y = this.y - cy;
+        /* a big embroidery hoop on a stand, threads of every colour running into the floor */
+        Gfx.rect(x + 14, y + 26, 4, 8, '#6b4128');
+        for (let a = 0; a < 40; a++) {
+            const t = a / 40 * Math.PI * 2;
+            Gfx.rect(x + 16 + Math.cos(t) * 13, y + 14 + Math.sin(t) * 13, 2, 2, a % 2 ? '#c9925a' : '#9a6438');
+        }
+        if (!this.tied) {
+            const cols = [THREAD.ives, THREAD.bram, THREAD.ambrose, THREAD.tess, THREAD.mallow, THREAD.jory];
+            for (let i = 0; i < 6; i++) {
+                const t = this.t / 40 + i;
+                Gfx.line(x + 16 + Math.cos(t) * 8, y + 14 + Math.sin(t) * 8, x + 16, y + 34, cols[i]);
+            }
+            if ((this.t >> 3) % 2) Gfx.img(spr('knot'), x + 8, y + 6);
+        }
+    }
+}
+SPAWN.hoop = (x, y, p) => new Hoop(x, y, p);
+
+/* the door out of a House */
+SPAWN.exit = (x, y, p) => new Warp(x, y, Object.assign({ to: 'hollow' }, p));
+
+const Knots = {
+    tie(hoop) {
+        return function* () {
+            const p = G.player, a = G.map, house = a.def.house;
+            const i = yield* ask(null, "The House's Knot hangs in the hoop, every colour of thread running into it and down through the floor. Tie it?", ['Tie the Knot', 'Not yet']);
+            if (i !== 0) return;
+            hoop.tied = true;
+            G.hideHud = true;
+            Music.play('silence');
+            Sfx.play('knot');
+            /* threads pull taut from every side toward the middle */
+            for (let t = 0; t < 120; t++) { G.knotFx = t; if (t % 20 === 0) G.shake = 4; yield 1; }
+            G.knotFx = 0;
+            Sfx.play('knot');
+            UI.fadeA = 1; UI.fade = { from: 1, to: 0, t: 0, dur: 50 };
+            yield 30;
+            Inv.knots.push(house);
+            Progress.set(house + '_knot');
+            Music.play('knot');
+            G.holdUp = { id: 'knot' };
+            p.state = 'hold';
+            yield* say(null, `You tied the ${a.def.knotName || 'Knot'}! ` + KNOT_LINES[Inv.knots.length - 1]);
+            G.holdUp = null; p.state = 'normal';
+            yield* say(null, 'Far away, at the bottom of the Hollow, the Well creaks once, like a winch taking up slack.');
+            G.hideHud = false;
+            if (a.def.afterKnot) yield* a.def.afterKnot();
+            Save.autosave();
+        };
+    },
+    /* every thread in the House streaming into the hoop (drawn over the room) */
+    draw(cx, cy) {
+        const t = G.knotFx; if (!t) return;
+        const p = G.player;
+        const tx = p.x - cx, ty = p.y - cy - 20;
+        const cols = [THREAD.ives, THREAD.bram, THREAD.ambrose, THREAD.tess, THREAD.mallow, THREAD.jory, '#ffffff'];
+        for (let i = 0; i < 28; i++) {
+            const a = i / 28 * Math.PI * 2 + t * 0.01, r = 220 * (1 - t / 120);
+            Gfx.line(tx + Math.cos(a) * r, ty + Math.sin(a) * r, tx, ty, cols[i % cols.length]);
+        }
+        Gfx.alpha(Math.min(0.6, t / 160)); Gfx.rect(0, 0, W, H, '#fff6e0'); Gfx.alpha(1);
+    },
+};
+const KNOT_LINES = [
+    'One Knot of six. You feel steadier, somehow, as if the ground under you had been pinned down a little tighter.',
+    'Two Knots of six.', 'Three Knots of six.', 'Four Knots of six.', 'Five Knots of six.', 'Six Knots! The Wander is nearly done.',
+];
+
+/* nudges: the Hints option. A room can say how to tell it's solved and what to nudge */
+const Nudges = {
+    update(a) {
+        if (!Settings.hints || !a.def.house || Progress.flag('noNudges')) return;
+        const r = Cam.room; if (!r || !r.nudge) return;
+        const n = r.nudge;
+        const key = a.id + ':' + r.key;
+        if (Progress.areaFlag(a.id, 'nudged:' + r.key)) return;
+        if (n.solved && Story.cond(n.solved)) return;
+        const st = Stats.rooms[a.id + ':' + r.i];
+        if (!st || st.t < (n.after || 60 * 60 * 3)) return;
+        Progress.setAreaFlag(a.id, 'nudged:' + r.key);
+        st.nudges = (st.nudges || 0) + 1;
+        Stats.count('nudges');
+        Stats.nudgeLog = Stats.nudgeLog || [];
+        (Stats.c.nudgeRooms = Stats.c.nudgeRooms || []).push(key);
+        if (n.at) { const [x, y] = n.at; Fx.sparkle((r.x + x) * T + 8, (r.y + y) * T + 4, '#fff6c0'); Fx.ring((r.x + x) * T + 8, (r.y + y) * T + 8, '#fff6c0'); }
+        if (n.thing) { const o = a.ents.find(e => e.id === n.thing); if (o) { o.nudgeT = 90; Fx.sparkle(o.tx * T + 8, o.ty * T + 2, '#fff6c0'); } }
+        Sfx.play('twang');
+        if (n.say) UI.toast(n.say, 240);
+    },
+};
+
+function initHouseKit() {
+    defSprite('lever_off', ['................', '................', '................', '..........kk....', '.........kwk....', '........kwk.....', '.......kbk......', '......kbk.......',
+        '.....kbk........', '...kkkkkkkk.....', '..kgggggggGk....', '..kgggggggGk....', '..kGGGGGGGGk....', '...kkkkkkkk.....', '................', '................'], { b: '#9a6438', g: '#9a9188', G: '#6a635e', w: '#e8463c' });
+    defSprite('lever_on', ['................', '................', '................', '....kk..........', '....kwk.........', '.....kwk........', '......kbk.......', '.......kbk......',
+        '........kbk.....', '...kkkkkkkk.....', '..kgggggggGk....', '..kgggggggGk....', '..kGGGGGGGGk....', '...kkkkkkkk.....', '................', '................'], { b: '#9a6438', g: '#9a9188', G: '#6a635e', w: '#5ad1c5' });
+}
+CONTENT_INIT.push(initHouseKit);
+
+// ---- 42_tidyhouse.js ----
+/* House 1: the Tidyhouse, in Meadowfold. The Return itself: patience as a timer, plates pressed in
+   passing, heavier shoves lighter, a thing at home blocks the way home, carrying and throwing traces,
+   and (with the Gloves) pulling and gripping. The finale tidies a room whose returns deadlock.
+   Room by room in DUNGEON_TRACKER.md. Teal threads. */
+
+/* where the Tidyhouse's door is, out in Meadowfold (overworld tiles) */
+const TIDY_OUT = { x: 64 + 44, y: 80 + 13 };
+
+const TIDY_LEGEND = {
+    'l': { k: 'low', p: 'counter' },
+    'U': { k: 'floor', p: 'floor', ent: 'bust' }, 'u': { k: 'floor', p: 'floor2', ent: 'bust' },
+    'p': { k: 'floor', p: 'floor3', ent: 'pot', props: { style: 'pot_teal' } },
+};
+
+defHouse({
+    id: 'tidy', name: 'The Tidyhouse', place: 'The Tidyhouse', house: 'tidy', theme: 'tidy', thread: THREAD.ives, music: 'tidy',
+    knotName: 'Tidy Knot', legend: TIDY_LEGEND,
+    entry: { x: 29, y: 42 },
+    cells: {
+        /* ---------------- 1 Foyer ---------------- */
+        '1,3': {
+            name: 'Foyer',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#.,,,,,,,,,,,,,,,,.#',
+                '#.,U............U,.#',
+                '#.,..............,.#',
+                '.................,..',
+                '#.,..............,.#',
+                '#.,U............U,.#',
+                '#.,,,,,,,,,,,,,,,,.#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'wood', x: 4, y: 5, patience: 200, id: 'foyerBlock' },
+                { k: 'plate', x: 6, y: 5, sig: 'f1' },
+                { k: 'door', x: 9, y: 0, type: 'gate', when: 'f1', passed: 'up', id: 'fN' },
+                { k: 'door', x: 19, y: 5, type: 'lock', dir: 'v', id: 'fE' },
+                { k: 'sign', x: 11, y: 9, text: 'THE TIDYHOUSE. Please leave everything exactly as you found it. (It will insist.)' },
+                { k: 'warp', x: 9, y: 10, to: 'hollow', tx2: TIDY_OUT.x, ty2: TIDY_OUT.y, dir: 'down', face: 'down' },
+            ],
+            nudge: { solved: 'tidy_fN', after: 60 * 60 * 2, thing: 'foyerBlock', say: 'Somewhere in the walls, something ticks... like a block counting before it goes home.' },
+        },
+        /* ---------------- 2 Kitchen ---------------- */
+        '0,3': {
+            name: 'Kitchen',
+            rows: [
+                '####################',
+                '#:::::::#::::::::::#',
+                '#:::::::#::::::::::#',
+                '#lllllll#::::::::::#',
+                '#::::::::::::::::::#',
+                '#:::::::::::::::::::',
+                '#::::::::::::::::::#',
+                '#::::::::::::::::::#',
+                '#::::::::::::::::::#',
+                '#::::::::::::::::::#',
+                '####################',
+            ],
+            ents: [
+                { k: 'crystal', x: 4, y: 1, sig: 'kc', id: 'kCrystal', keepOn: true },
+                { k: 'chest', x: 13, y: 2, item: 'key', id: 'kKey', hidden: true, when: 'kc' },
+                { k: 'pot', x: 12, y: 5, style: 'pot_teal' }, { k: 'pot', x: 16, y: 4, style: 'pot_teal' }, { k: 'pot', x: 11, y: 7, style: 'pot_teal' },
+                { k: 'deco', x: 15, y: 1, look: 'stove', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 2, y: 7, look: 'table', solid: [[0, 0], [1, 0]] },
+                { k: 'pie', x: 3, y: 7 },
+                { k: 'deco', x: 9, y: 9, look: 'barrel' }, { k: 'deco', x: 17, y: 9, look: 'barrel' },
+            ],
+            nudge: { solved: 'kc', at: [4, 1], say: 'A pot on the shelf wobbles, as if it would like to be thrown.' },
+        },
+        /* ---------------- 3 Gallery ---------------- */
+        '2,3': {
+            name: 'Gallery',
+            rows: [
+                '####################',
+                '#.......#.#........#',
+                '#.......#.#........#',
+                '#.......#.#........#',
+                '#...#####.######.###',
+                '...................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'wood', x: 7, y: 5, id: 'galBlock' },
+                { k: 'bust', x: 9, y: 5, patience: 190, id: 'galBust' },
+                { k: 'plate', x: 10, y: 5, sig: 'g1' },
+                { k: 'door', x: 16, y: 4, type: 'gate', when: 'g1', passed: 'up', id: 'gG' },
+                { k: 'chest', x: 16, y: 1, item: 'plan', id: 'gPlan' },
+                { k: 'deco', x: 2, y: 1, look: 'painting', solid: false, oy: -12, baseY: -100 },
+                { k: 'deco', x: 5, y: 1, look: 'painting2', solid: false, oy: -12, baseY: -100 },
+                { k: 'enemy', x: 5, y: 8, type: 'dustbunny' },
+                { k: 'pot', x: 17, y: 9, style: 'pot_teal' },
+            ],
+            nudge: { solved: 'g1', thing: 'galBust', say: 'The bust looks very pleased with its spot. Nothing gets past it once it is home.' },
+        },
+        /* ---------------- 4 Hall of Busts ---------------- */
+        '1,2': {
+            name: 'Hall of Busts',
+            rows: [
+                '###.################',
+                '#..................#',
+                '#..................#',
+                '########...........#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                ',,,,,,,,,,,,,,,,,,,,',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#########,##########',
+            ],
+            ents: [
+                { k: 'bust', x: 9, y: 6, id: 'hallBust' },
+                { k: 'plate', x: 9, y: 7, sig: 'hb' },
+                { k: 'wood', x: 8, y: 4, id: 'hallBlock' },
+                { k: 'bust', x: 2, y: 8 }, { k: 'bust', x: 17, y: 8 },
+                { k: 'door', x: 3, y: 0, type: 'gate', when: 'hb', passed: 'up', id: 'hN' },
+                { k: 'door', x: 19, y: 5, type: 'lock', dir: 'v', id: 'hE' },
+                { k: 'enemy', x: 15, y: 2, type: 'nibbler' },
+            ],
+            nudge: { solved: 'hb', after: 60 * 60 * 4, thing: 'hallBust', say: 'The bust in the middle looks restless. It would knock anything out of its way, going home.' },
+        },
+        /* ---------------- 5 Pantry ---------------- */
+        '0,2': {
+            name: 'Pantry',
+            rows: [
+                '####################',
+                '#::::::::::::::::::#',
+                '#::::::::::::::::::#',
+                '#::::::::::::::::::#',
+                '#::ooo:::::::::::::#',
+                '#::o:o::::::::::::::',
+                '#::ooo::::::##:#####',
+                '#:::::::::::#::::::#',
+                '#:::::::::::#::::::#',
+                '#:::::::::::#::::::#',
+                '####################',
+            ],
+            ents: [
+                { k: 'plate', x: 4, y: 5, sig: 'pt' },
+                { k: 'crate', x: 10, y: 2 }, { k: 'crate', x: 15, y: 3 },
+                { k: 'door', x: 14, y: 6, type: 'gate', when: 'pt', passed: 'down', id: 'pG' },
+                { k: 'chest', x: 16, y: 8, item: 'key', id: 'pKey' },
+                { k: 'wood', x: 16, y: 1, look: 'cupboard', id: 'cupboard' },
+                { k: 'staffonly', x: 16, y: 0 },
+                { k: 'deco', x: 2, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 9, y: 9, look: 'barrel' }, { k: 'deco', x: 1, y: 9, look: 'barrel' },
+                { k: 'sign', x: 7, y: 3, text: 'Tins, jars, sacks. Everything labelled. One shelf is labelled THROWING CRATES.' },
+            ],
+            nudge: { solved: 'tidy_pKey', at: [4, 5], say: "A crate creaks. The little island looks just about one good throw away." },
+        },
+        /* ---------------- 6 Parlor ---------------- */
+        '2,2': {
+            name: 'Parlor',
+            rows: [
+                '################,###',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                ',,,,,,,,,,,,,,,,,,,,',
+                '#############,,,,,,#',
+                '#............,,,,,,#',
+                '#............,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '####################',
+            ],
+            ents: [
+                { k: 'wood', x: 2, y: 7, id: 'parBlock' },
+                { k: 'plate', x: 4, y: 7, sig: 'pp', mode: 'pulse', time: 190 },
+                { k: 'door', x: 16, y: 0, type: 'gate', when: 'pp', passed: 'up', id: 'pN' },
+                { k: 'deco', x: 3, y: 2, look: 'armchair' }, { k: 'deco', x: 6, y: 2, look: 'armchair', flip: true },
+                { k: 'deco', x: 4, y: 3, look: 'rug_small', solid: false, baseY: -100 },
+                { k: 'deco', x: 10, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 17, y: 8, look: 'plant' },
+            ],
+            nudge: { solved: 'tidy_pN', thing: 'parBlock', say: 'The plate in the corridor clicks every time anything goes over it. Even on the way home.' },
+        },
+        /* ---------------- 7 Conservatory ---------------- */
+        '3,2': {
+            name: 'Conservatory',
+            rows: [
+                '####################',
+                '#.............#....#',
+                '#.#############....#',
+                '#............##....#',
+                '#.############.#.###',
+                '...................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'plate', x: 6, y: 3, sig: 'ca', mode: 'toggle' },
+                { k: 'plate', x: 12, y: 3, sig: 'cb', mode: 'toggle' },
+                { k: 'crate', x: 5, y: 7 },
+                { k: 'door', x: 16, y: 4, type: 'gate', when: 'ca&cb', passed: 'up', id: 'cG' },
+                { k: 'chest', x: 17, y: 1, item: 'heartpatch', id: 'consPatch' },
+                { k: 'deco', x: 3, y: 8, look: 'plant' }, { k: 'deco', x: 8, y: 6, look: 'plant' }, { k: 'deco', x: 14, y: 8, look: 'plant' }, { k: 'deco', x: 17, y: 6, look: 'plant' },
+                { k: 'sign', x: 1, y: 6, text: 'Seedlings. Do not tread on the plates more than strictly necessary.' },
+            ],
+            nudge: { solved: 'tidy_cG', after: 60 * 60 * 4, say: 'You count the clicks of the plates on the way in and on the way out. Odd. Even. Odd.' },
+        },
+        /* ---------------- 8 Linen closets (the Dust Monger) ---------------- */
+        '2,1': {
+            name: 'Linen Closets',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#.##............##.#',
+                '#.##..U.........##.#',
+                '#..................#',
+                '....................',
+                '#..................#',
+                '#.##.........U..##.#',
+                '#.##............##.#',
+                '#..................#',
+                '################.###',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'lock', id: 'lN' },
+                { k: 'door', x: 0, y: 5, type: 'gate', dir: 'v', when: 'flag:tidy_shortcut', id: 'lW' },
+                { k: 'shutter', x: 16, y: 10, group: 'monger' }, { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'monger' },
+                { k: 'pot', x: 1, y: 1, style: 'pot_teal' }, { k: 'pot', x: 18, y: 9, style: 'pot_teal' }, { k: 'pot', x: 18, y: 1, style: 'pot_teal' },
+                { k: 'chest', x: 9, y: 5, item: 'gloves', id: 'gloves', hidden: true, when: 'flag:tidy_monger', big: true },
+                { k: 'monger', x: 9, y: 4 },
+            ],
+        },
+        /* ---------------- 9 Laundry ---------------- */
+        '3,1': {
+            name: 'Laundry',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..........###.....#',
+                '#..........#.......#',
+                '...........###.....#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'chest', x: 12, y: 4, item: 'key', id: 'lKey' },
+                { k: 'wood', x: 13, y: 4, id: 'laundryBlock' },
+                { k: 'deco', x: 3, y: 2, look: 'washtub' }, { k: 'deco', x: 5, y: 2, look: 'washtub' },
+                { k: 'deco', x: 16, y: 7, look: 'basket' }, { k: 'deco', x: 3, y: 8, look: 'basket' },
+                { k: 'enemy', x: 6, y: 7, type: 'dustbunny' }, { k: 'enemy', x: 15, y: 2, type: 'nibbler' },
+                { k: 'sign', x: 1, y: 1, text: 'LAUNDRY. A Gloves-only zone, apparently. Someone has drawn a little hand pulling a little block.' },
+            ],
+            nudge: { solved: 'tidy_lKey', thing: 'laundryBlock', say: "The block in the cubby can't be pushed in any further. It could come out, though." },
+        },
+        /* ---------------- 10 Ballroom: the tidy-up ---------------- */
+        '1,1': {
+            name: 'Ballroom',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#....##########....#',
+                '....................',
+                '#....##########....#',
+                '##..............ooo#',
+                '#...............o.o#',
+                '##..............ooo#',
+                '###.################',
+            ],
+            ents: [
+                { k: 'wood', x: 2, y: 5, id: 'ballA', group: 'ball', tiedOff: true, startAt: [17, 8],
+                    trace: [[2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5], [8, 5], [9, 5], [10, 5], [11, 5], [12, 5], [13, 5], [14, 5], [15, 5], [16, 5], [17, 5], [17, 6], [17, 7], [17, 8]] },
+                { k: 'wood', x: 17, y: 3, id: 'ballB', group: 'ball', tiedOff: true, startAt: [1, 8],
+                    trace: [[17, 3], [16, 3], [15, 3], [15, 4], [15, 5], [14, 5], [13, 5], [12, 5], [11, 5], [10, 5], [9, 5], [8, 5], [7, 5], [6, 5], [5, 5], [4, 5], [4, 6], [4, 7], [4, 8], [3, 8], [2, 8], [1, 8]] },
+                { k: 'lever', x: 6, y: 9, release: 'ball', once: true, id: 'ballLever' },
+                { k: 'lever', x: 18, y: 4, id: 'shortcut', onFlag: 'tidy_shortcut' },
+                { k: 'chest', x: 9, y: 2, item: 'pattern', id: 'pattern', hidden: true, when: 'flag:tidy_ballDone', big: true },
+                { k: 'sign', x: 7, y: 9, text: 'TIDY UP. Pull the lever and everything goes back where it belongs. (Probably.)' },
+            ],
+            nudge: { solved: 'tidy_ballDone', after: 60 * 60 * 4, say: "Two threads, one corridor. One of them will have to wait its turn... or be held." },
+        },
+        /* ---------------- 11 Library ---------------- */
+        '0,1': {
+            name: 'Library',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'block', x: 9, y: 1, look: 'bookshelf', id: 'secretShelf', weight: WEIGHT.heavy, noPush: true, pushLine: "The bookshelf won't budge forward. It is very solidly against the wall." },
+                { k: 'deco', x: 2, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 }, { k: 'deco', x: 5, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 12, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 }, { k: 'deco', x: 15, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 3, y: 5, look: 'table', solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 13, y: 6, look: 'table', solid: [[0, 0], [1, 0]] },
+                { k: 'deco', x: 7, y: 8, look: 'armchair' },
+                { k: 'sign', x: 17, y: 8, text: 'PLEASE DO NOT PULL THE BOOKSHELVES. (Thank you.)' },
+                { k: 'book', x: 9, y: 4, text: "A book lies open on the floor: 'Secret Passages for Beginners. Chapter One: Behind the Bookcase. Chapter Two: Also Behind the Bookcase.'" },
+            ],
+        },
+        /* ---------------- 12 Attic (the Maker's signature room) ---------------- */
+        '0,0': {
+            name: 'Attic',
+            rows: [
+                '####################',
+                '####################',
+                '####............####',
+                '####............####',
+                '####............####',
+                '####............####',
+                '####............####',
+                '####............####',
+                '####............####',
+                '#########.##########',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'deco', x: 6, y: 1, look: 'sampler_ives', solid: false, oy: -2, baseY: -100, text: "A sampler, stitched in teal: a little house, a little bucket, a little broom, and the letters M. I. in the corner. Under them, very small: 'for the Wanderer'." },
+                { k: 'deco', x: 5, y: 3, look: 'armchair' },
+                { k: 'deco', x: 7, y: 3, look: 'table', solid: [[0, 0], [1, 0]], text: "A teapot, still warm. Two cups. One has a little lipstick on the rim." },
+                { k: 'chest', x: 13, y: 3, item: 'heartpatch', id: 'atticPatch' },
+                { k: 'signature', x: 10, y: 6, house: 'tidy' },
+                { k: 'deco', x: 5, y: 7, look: 'basket' }, { k: 'deco', x: 14, y: 7, look: 'plant' },
+            ],
+        },
+        /* ---------------- 13 Antechamber ---------------- */
+        '2,0': {
+            name: 'Antechamber',
+            rows: [
+                '####################',
+                '#..................#',
+                '#.,,,,,,,,,,,,,,,,.#',
+                '#.,..............,.#',
+                '#.,..............,.#',
+                '..,..............,.#',
+                '#.,..............,.#',
+                '#.,..............,.#',
+                '#.,,,,,,,,,,,,,,,,.#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'door', x: 0, y: 5, type: 'big', dir: 'v', id: 'bossDoor' },
+                { k: 'pot', x: 4, y: 3, style: 'pot_teal', drop: 'heart' }, { k: 'pot', x: 15, y: 3, style: 'pot_teal', drop: 'heart' },
+                { k: 'pot', x: 4, y: 7, style: 'pot_teal' }, { k: 'pot', x: 15, y: 7, style: 'pot_teal' },
+                { k: 'sign', x: 3, y: 5, text: 'THE GRAND HALL. The Housekeeper is in. Please wipe your feet and do not touch the furniture.' },
+            ],
+        },
+        /* ---------------- 14 The Grand Hall (boss) ---------------- */
+        '1,0': {
+            name: 'The Grand Hall',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'marble', x: 3, y: 2, id: 'gb1' }, { k: 'marble', x: 16, y: 2, id: 'gb2' },
+                { k: 'marble', x: 3, y: 8, id: 'gb3' }, { k: 'marble', x: 16, y: 8, id: 'gb4' },
+                { k: 'pot', x: 1, y: 1, style: 'pot_teal' }, { k: 'pot', x: 18, y: 9, style: 'pot_teal' },
+                { k: 'housekeeper', x: 9, y: 4 },
+                { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'boss' },
+            ],
+        },
+    },
+    tick: a => TidyLogic.tick(a),
+    onEnter: a => TidyLogic.enter(a),
+    afterKnot: function* () { yield* Tidy.afterKnot(); },
+});
+
+const TidyLogic = {
+    enter(a) {
+        /* the lever by the linen door: remember it */
+        if (Progress.flag('tidy_shortcut')) { const l = a.find('shortcut'); if (l) l.on = true; }
+    },
+    tick(a) {
+        /* the ballroom: both blocks home */
+        if (!Progress.flag('tidy_ballDone')) {
+            const ball = a.ents.filter(e => e.group === 'ball');
+            if (ball.length && ball.every(b => Return.isHome(b) && !b.tiedOff)) { Progress.set('tidy_ballDone'); Sfx.play('appear'); }
+        }
+        const sc = a.find('shortcut');
+        if (sc && sc.on && !Progress.flag('tidy_shortcut')) Progress.set('tidy_shortcut');
+        /* remember doors that stay open as story flags (for nudges and the tracker) */
+        for (const d of a.ents) if (d.kind === 'door' && d.id && d.open && (d.openedOnce || d.type !== 'gate')) Progress.set('tidy_' + d.id);
+        for (const c of a.ents) if (c.kind === 'chest' && c.opened) Progress.set('tidy_' + c.id);
+    },
+};
+
+/* the warm pie (S05) */
+SPAWN.pie = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.pie, solid: [], oy: -6 });
+    pr.live = true;
+    pr.interact = () => {
+        if (Progress.flag('pie')) { Script.run(function* () { yield* say(null, 'An empty pie dish. Crumbs.'); }); return true; }
+        Script.run(function* () {
+            yield* say(null, "A pie, still warm, steam curling off it. A note is tucked under the dish: 'For my favourite Wanderer. Don't tell.'");
+            Inv.hp = Inv.maxHp; Sfx.play('heart');
+            Progress.set('pie'); Stats.count('secret:pie');
+            pr.im = ART.pie_empty;
+            yield* say(null, 'You eat the whole pie. You feel wonderful. Who on earth bakes pies in a House nobody lives in?');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => (f.tx === tx || f.tx === tx - 1) && f.ty === ty;
+    if (Progress.flag('pie')) pr.im = ART.pie_empty;
+    return pr;
+};
+/* the Staff Only door behind the cupboard (S04) */
+SPAWN.staffonly = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.staffdoor_wall, solid: [], oy: -2 });
+    pr.baseY = -50;
+    pr.interact = () => {
+        Script.run(function* () {
+            const p = G.player;
+            if (!p.feetOn(tx, ty + 1)) return;
+            if (Progress.flag('staffonly')) { yield* say(null, 'STAFF ONLY. Locked tight. Somebody has wedged a chair under the handle on the other side.'); return; }
+            Progress.set('staffonly'); Stats.count('secret:staffonly');
+            yield* say(null, 'A narrow door behind where the cupboard stood: STAFF ONLY. You try the handle. It opens...');
+            G.staffPeek = 1;
+            Sfx.play('door');
+            yield 40;
+            yield* say(null, '...onto a dim little space full of ropes and pulleys, and a woman in a teal apron with her back to you, winding a crank.');
+            yield* say('???', 'Nothing to see! Shoo! Shoo!');
+            G.staffPeek = 0;
+            Sfx.play('doorshut'); G.shake = 8;
+            yield 30;
+            yield* say(null, 'The door slams. There is a scrape of a chair being wedged under the handle.');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+SPAWN.book = (tx, ty, p) => {
+    const pr = new Prop(tx, ty, { im: ART.book, solid: [], oy: 4 });
+    pr.baseY = -50;
+    pr.interact = () => { Script.run(function* () { yield* say(null, p.text); }); return true; };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+/* a Maker's signature, hidden somewhere in each House (S06) */
+SPAWN.signature = (tx, ty, p) => {
+    const pr = new Prop(tx, ty, { im: ART['monogram_' + p.house], solid: [], oy: 4 });
+    pr.baseY = -50;
+    pr.interact = () => {
+        Script.run(function* () {
+            const first = !Progress.flag('sig:' + p.house);
+            Progress.set('sig:' + p.house);
+            if (first) Stats.count('secret:sig');
+            yield* say(null, SIGNATURE_TEXT[p.house]);
+            const n = ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'].filter(h => Progress.flag('sig:' + h)).length;
+            if (first) yield* say(null, `(Maker's marks found: ${n} of 6.)`);
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+const SIGNATURE_TEXT = {
+    tidy: "Stitched into the floorboards, small and neat, a teal monogram: M.I. And a tiny embroidered broom. Someone signed this House, the way you'd sign a sampler.",
+};
+
+/* shutters: close while a fight is on */
+SPAWN.shutter = (x, y, p) => {
+    const d = new Door(x, y, Object.assign({ type: 'shutter' }, p));
+    d.shut = false; d.open = true; d.anim = 8;
+    return d;
+};
+
+/* the Dust Monger: a huge dust bunny. The stick bounces off its fluff; it fears coming-home furniture */
+SPAWN.monger = (tx, ty) => {
+    if (Progress.flag('tidy_monger')) return new Ent('none');
+    const e = new Enemy(tx, ty, { type: 'monger', hp: 4 });
+    e.onDie = () => {
+        Progress.set('tidy_monger');
+        for (const s of e.area.ents) if (s.kind === 'door' && s.group === 'monger') s.shut = false;
+        Music.play('tidy');
+        Script.run(function* () { yield 60; yield* say(null, 'The Dust Monger bursts into a hundred dust bunnies, which all hop away under the furniture. Something glints in the middle of the floor.'); });
+    };
+    e.wakeT = 0;
+    return e;
+};
+ENEMY.monger = { hp: 4, speed: 1.4, leash: 12, sight: 12, ai: 'monger', yarn: '#e4dcd0', r: 10, tall: 20, armored: true, dmg: 2, drop: 0, weight: WEIGHT.medium };
+ENEMY_DRAW.monger = e => spr(e.z > 1 ? 'monger_1' : 'monger_0');
+AI.monger = (e, p) => {
+    const a = e.area;
+    if (!e.awake) {
+        if (p.area === a && Cam.room && Cam.room.key === '2,1' && !Cam.busy) {
+            e.awake = true;
+            for (const s of a.ents) if (s.kind === 'door' && s.group === 'monger') s.shut = true;
+            Music.play('boss');
+            Script.run(function* () { yield* say(null, 'A heap of fluff in the middle of the room shudders, stands up, and looks at you. It is a dust bunny the size of a sofa.'); yield* say(null, 'Your stick would just bounce off it. Something heavier, maybe...'); });
+        }
+        return;
+    }
+    AI.hop(e, p);
+};
+
+/* the Grand Housekeeper: a wardrobe that keeps the hall tidy */
+class Housekeeper extends Enemy {
+    constructor(tx, ty) {
+        super(tx, ty, { type: 'housekeeper', hp: 3 });
+        this.state = 'sleep'; this.st = 0; this.cd = 60; this.doors = 0;
+        this.weightN = WEIGHT.medium + 0.5;
+    }
+    hurtBox() { if (!this.alive) return null; return { x0: this.x - 11, x1: this.x + 11, y0: this.y - 30, y1: this.y + 4 }; }
+    onTile(x, y) { if (!this.alive) return false; return x * T < this.x + 12 && (x + 1) * T > this.x - 12 && y * T < this.y + 5 && (y + 1) * T > this.y - 10; }
+    update() {
+        if (!this.alive) return this.updateYarn();
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area;
+        if (this.state === 'sleep') {
+            if (p.area === a && Cam.room && Cam.room.key === '1,0' && !Cam.busy) {
+                this.state = 'wake'; this.st = 0;
+                for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
+                Music.play('boss');
+                Script.run(Tidy.bossIntro(this));
+            }
+            return;
+        }
+        if (Script.blocking()) return;
+        this.st++;
+        if (this.kx || this.ky) { this.move(this.kx, this.ky); this.kx *= 0.8; this.ky *= 0.8; if (Math.abs(this.kx) + Math.abs(this.ky) < 0.3) this.kx = this.ky = 0; }
+        switch (this.state) {
+            case 'wake': if (this.st > 30) this.setState('stalk'); break;
+            case 'stalk': {
+                /* tidy first: anything out of place gets fetched */
+                const mess = a.ents.find(e => e.isGrid && e.ret && e.ret.state === 'away' && !e.carried && e.kind !== 'pot' && dist(e.px + 8, e.py + 8, this.x, this.y) < 200);
+                const tgt = mess ? { x: mess.px + 8, y: mess.py + 10 } : { x: p.x, y: p.y };
+                const dx = tgt.x - this.x, dy = tgt.y - this.y, d = Math.hypot(dx, dy) || 1;
+                const sp = this.hp <= 1 ? 0.9 : 0.6;
+                if (d > 4) { this.move(dx / d * sp, dy / d * sp); this.dir = dirOf(dx, dy); this.anim++; }
+                if (mess && d < 20) { Return.snap(mess); Sfx.play('tug'); }
+                /* line up with Wren: charge */
+                if (--this.cd <= 0 && !mess) {
+                    const ax = Math.abs(p.x - this.x), ay = Math.abs(p.y - this.y);
+                    if (ax < 10 || ay < 10) { this.chargeDir = ax < 10 ? (p.y < this.y ? UP : DOWN) : (p.x < this.x ? LEFT : RIGHT); this.setState('windup'); }
+                }
+                break;
+            }
+            case 'windup': if (this.st > 32) { this.setState('charge'); Sfx.play('boss'); } break;
+            case 'charge': {
+                const sp = this.hp <= 1 ? 3.6 : 3;
+                if (!this.move(DX[this.chargeDir] * sp, DY[this.chargeDir] * sp) || this.st > 90) { G.shake = 10; Sfx.play('push'); Fx.dust(this.x, this.y); this.setState('recoil'); }
+                break;
+            }
+            case 'recoil': if (this.st > 40) { this.cd = 90; this.setState('stalk'); } break;
+            case 'stunned':
+                this.doors = Math.min(1, this.st / 10);
+                if (this.st > 150) { this.doors = 0; this.cd = 60; this.setState('stalk'); }
+                break;
+        }
+        if (p.state === 'normal' && this.state !== 'stunned' && Math.abs(p.x - this.x) < 14 && Math.abs(p.y - this.y) < 10) p.hurt(2, this.x, this.y);
+    }
+    setState(s) { this.state = s; this.st = 0; }
+    /* a returning heavy thing slammed into it */
+    shoved(d, pace, by) {
+        if (!this.alive || this.state === 'stunned') return;
+        this.kx = DX[d] * 3; this.ky = DY[d] * 3;
+        G.shake = 12; G.hitstop = 6; Sfx.play('hitthing'); Sfx.play('boss');
+        this.setState('stunned');
+        Stats.count('boss:tidy:slam');
+    }
+    struck(by, dmg, dir, shard) {
+        if (!this.alive) return;
+        if (shard && this.state !== 'stunned') {
+            /* flying shards make its doors pop open for a moment */
+            this.setState('stunned'); this.st = 70; Stats.count('boss:tidy:shards'); Sfx.play('hitthing'); return;
+        }
+        if (this.state !== 'stunned' || this.doors < 1) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 14); return; }
+        if (this.flash > 0) return;
+        this.hp--; this.flash = 30; Sfx.play('enemyhit'); G.hitstop = 8; G.shake = 6;
+        this.setState('recoil'); this.doors = 0;
+        if (this.hp <= 0) this.defeat();
+    }
+    defeat() {
+        this.alive = false; this.yarnT = 0; this.trace = [[this.tx, this.ty]];
+        Sfx.play('unravel'); Fx.yarn(this.x, this.y - 16, THREAD.ives); Fx.yarn(this.x, this.y - 8, THREAD.ives);
+        Progress.set('tidy_boss');
+        Script.run(Tidy.bossDown(this));
+    }
+    updateYarn() { this.yarnT++; }
+    draw(cx, cy) {
+        if (!this.alive) {
+            /* the last of it drains into a little hole in the floor */
+            if (this.yarnT < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.ives); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
+            return;
+        }
+        const x = this.x - cx, y = this.y - cy;
+        let ox = 0;
+        if (this.state === 'windup') ox = (this.st >> 1) % 2 ? 1 : -1;
+        Gfx.alpha(0.3); Gfx.rect(x - 12, y + 2, 24, 3, PAL.ink); Gfx.alpha(1);
+        const im = spr(this.state === 'stunned' && this.doors >= 1 ? 'keeper_open' : this.state === 'sleep' ? 'keeper_sleep' : 'keeper');
+        const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
+        Gfx.img(img, x - 16 + ox, y - 38 + (this.state === 'charge' ? Math.sin(this.st) : 0));
+    }
+}
+SPAWN.housekeeper = (tx, ty) => Progress.flag('tidy_boss') ? new Ent('none') : new Housekeeper(tx, ty);
+
+const Tidy = {
+    *bossIntro(k) {
+        yield 20;
+        yield* say(null, 'The great wardrobe at the end of the hall creaks, unfolds a pair of polished feet, and turns to face you. Its doors rattle like teeth.');
+        yield* say(null, 'It glares at the busts in the corners. It glares at you. You are clearly the messiest thing in the room.');
+        G.boss = k;
+    },
+    *bossDown(k) {
+        const a = k.area;
+        G.boss = null;
+        Music.play('silence');
+        yield 30;
+        yield* say(null, 'The Housekeeper shudders, unravels into a heap of teal yarn, and the yarn runs away across the floor and down a little hole you had not noticed, like water down a drain.');
+        for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
+        const br = a.rooms.find(r => r.key === '1,0');
+        a.add(new Hoop(br.x + 9, br.y + 5));
+        a.add(new Pickup((br.x + 9) * T, (br.y + 7) * T, { what: 'heartstitch', id: 'tidyHeart' }));
+        Sfx.play('appear');
+        Music.play('tidy');
+    },
+    *afterKnot() {
+        Progress.set('d1');
+        Progress.set('tagStopped');
+        Progress.setGoal("Go back to Hollowell and tell Gran. Next, the Kiln in Kilnridge: the canyon road west of Meadowfold.");
+        yield* say(null, 'A door opens in the far wall of the Grand Hall, letting in daylight and the smell of grass.');
+        const a = G.map, r = a.rooms.find(r => r.key === '1,0');
+        a.add(new Warp(r.x + 9, 9, { to: 'hollow', tx2: TIDY_OUT.x, ty2: TIDY_OUT.y, face: 'down' }));
+        a.add(new Prop(r.x + 9, 9, { im: ART.exitlight, solid: [] }));
+    },
+};
+
+function initTidyArt() {
+    ART.pie = paintSprite(16, 10, x => { x.fillStyle = '#c8d0d8'; x.fillRect(1, 5, 14, 4); x.fillStyle = '#d9a050'; x.fillRect(2, 2, 12, 5); x.fillStyle = '#f0c070'; x.fillRect(3, 2, 10, 2); x.fillStyle = '#a8602a'; for (let i = 3; i < 13; i += 3) x.fillRect(i, 4, 1, 2); x.fillStyle = '#ffffff'; x.globalAlpha = 0.6; x.fillRect(6, 0, 1, 2); x.fillRect(9, 0, 1, 1); x.globalAlpha = 1; });
+    ART.pie_empty = paintSprite(16, 10, x => { x.fillStyle = '#c8d0d8'; x.fillRect(1, 5, 14, 4); x.fillStyle = '#e8ecef'; x.fillRect(2, 5, 12, 2); x.fillStyle = '#d9a050'; x.fillRect(5, 6, 1, 1); x.fillRect(9, 5, 1, 1); });
+    ART.staffdoor_wall = paintSprite(16, 18, x => { x.fillStyle = '#4a2e22'; x.fillRect(2, 0, 12, 18); x.fillStyle = '#6b4128'; x.fillRect(3, 1, 10, 16); x.fillStyle = '#fbf6ea'; x.fillRect(4, 4, 8, 3); x.fillStyle = '#c42b4a'; x.fillRect(5, 5, 6, 1); x.fillStyle = '#f7d64a'; x.fillRect(11, 10, 1, 2); }, false);
+    ART.stove = paintSprite(32, 28, x => { x.fillStyle = '#4a4a5a'; x.fillRect(0, 6, 32, 22); x.fillStyle = '#6a6a7a'; x.fillRect(0, 6, 32, 3); x.fillStyle = '#2a2a3a'; x.fillRect(4, 14, 10, 10); x.fillRect(18, 14, 10, 10); x.fillStyle = '#f39a3c'; x.fillRect(6, 20, 6, 3); x.fillStyle = '#9a9aa8'; x.fillRect(6, 2, 8, 5); x.fillStyle = '#c0505a'; x.fillRect(20, 3, 8, 4); });
+    ART.painting = paintSprite(28, 22, x => { x.fillStyle = '#d9a33a'; x.fillRect(0, 0, 28, 22); x.fillStyle = '#9fd4f0'; x.fillRect(3, 3, 22, 16); x.fillStyle = '#8fd46a'; x.fillRect(3, 13, 22, 6); x.fillStyle = '#9a6438'; x.fillRect(13, 8, 3, 6); x.fillStyle = '#4fa84a'; x.fillRect(10, 5, 9, 5); });
+    ART.painting2 = paintSprite(20, 24, x => { x.fillStyle = '#9a6438'; x.fillRect(0, 0, 20, 24); x.fillStyle = '#f4e6c8'; x.fillRect(3, 3, 14, 18); x.fillStyle = '#c0505a'; x.fillRect(7, 6, 6, 6); x.fillStyle = '#f2c49b'; x.fillRect(8, 7, 4, 4); x.fillStyle = '#5a8ad0'; x.fillRect(6, 12, 8, 7); });
+    ART.armchair = paintSprite(18, 18, x => { x.fillStyle = '#9a3a4a'; x.fillRect(1, 1, 16, 9); x.fillStyle = '#c45a6a'; x.fillRect(2, 2, 14, 7); x.fillStyle = '#9a3a4a'; x.fillRect(0, 8, 18, 7); x.fillStyle = '#c45a6a'; x.fillRect(3, 9, 12, 4); x.fillStyle = '#6b4128'; x.fillRect(1, 15, 2, 3); x.fillRect(15, 15, 2, 3); });
+    ART.washtub = paintSprite(18, 16, x => { x.fillStyle = '#9aa8b8'; x.fillRect(1, 4, 16, 11); x.fillStyle = '#c8d4e0'; x.fillRect(1, 4, 16, 2); x.fillStyle = '#7ec8f0'; x.fillRect(3, 6, 12, 3); x.fillStyle = '#ffffff'; x.fillRect(5, 3, 3, 2); x.fillRect(10, 2, 2, 2); });
+    ART.basket = paintSprite(16, 14, x => { x.fillStyle = '#c9925a'; x.fillRect(1, 5, 14, 9); x.fillStyle = '#9a6438'; for (let i = 1; i < 15; i += 2) x.fillRect(i, 6, 1, 7); x.fillStyle = '#fbf6ea'; x.fillRect(2, 2, 6, 4); x.fillStyle = '#5ad1c5'; x.fillRect(8, 2, 6, 4); });
+    ART.book = paintSprite(14, 8, x => { x.fillStyle = '#fbf6ea'; x.fillRect(1, 1, 12, 6); x.fillStyle = '#9a3a4a'; x.fillRect(0, 2, 14, 1); x.fillRect(6, 1, 2, 6); x.fillStyle = '#9a9188'; for (let i = 2; i < 6; i += 2) { x.fillRect(2, i + 1, 3, 1); x.fillRect(9, i + 1, 3, 1); } });
+    ART.sampler_ives = paintSprite(28, 22, x => { x.fillStyle = '#9a6438'; x.fillRect(0, 0, 28, 22); x.fillStyle = '#fbf3df'; x.fillRect(2, 2, 24, 18); x.fillStyle = '#3fc1b5'; x.fillRect(6, 7, 8, 7); x.fillRect(5, 6, 10, 1); x.fillRect(16, 9, 2, 5); x.fillRect(20, 12, 4, 2); x.fillStyle = '#2e9a96'; x.fillRect(18, 16, 2, 1); x.fillRect(21, 16, 2, 1); for (let i = 3; i < 25; i += 2) { x.fillRect(i, 3, 1, 1); x.fillRect(i, 18, 1, 1); } });
+    ART.monogram_tidy = paintSprite(16, 10, x => { x.fillStyle = '#3fc1b5'; x.fillRect(2, 2, 1, 6); x.fillRect(3, 3, 1, 1); x.fillRect(4, 4, 1, 1); x.fillRect(5, 3, 1, 1); x.fillRect(6, 2, 1, 6); x.fillRect(9, 2, 1, 6); x.fillRect(8, 2, 3, 1); x.fillRect(8, 7, 3, 1); x.fillStyle = '#2e9a96'; x.fillRect(12, 4, 3, 1); x.fillRect(13, 5, 1, 3); }, false);
+    ART.exitlight = paintSprite(16, 16, x => { x.globalAlpha = 0.5; x.fillStyle = '#fff6c0'; x.fillRect(3, 0, 10, 16); x.globalAlpha = 1; x.fillStyle = '#fff6e0'; x.fillRect(6, 2, 4, 12); }, false);
+    defSprite('bookshelf', ['.kkkkkkkkkkkkkk.', 'kbbbbbbbbbbbbbbk', 'kbKKKKKKKKKKKKbk', 'kbrraagyymrraKbk', 'kbrraagyymrraKbk', 'kbbbbbbbbbbbbbbk', 'kbKKKKKKKKKKKKbk', 'kbyyrgaamyygrKbk',
+        'kbyyrgaamyygrKbk', 'kbbbbbbbbbbbbbbk', 'kbKKKKKKKKKKKKbk', 'kbaamyygrraamKbk', 'kbaamyygrraamKbk', 'kbbbbbbbbbbbbbbk', 'kBBBBBBBBBBBBBBk', '.kkkkkkkkkkkkkk.'],
+        { b: '#9a6438', B: '#6b4128', K: '#3a2418', r: '#c0505a', a: '#5a8ad0', g: '#4fa84a', y: '#e8b04a', m: '#8a5aa0' });
+    defSprite('cupboard', ['.kkkkkkkkkkkkkk.', 'kuuuuuuuuuuuuuuk', 'kUUUUUUUUUUUUUUk', 'kbbbbbbkkbbbbbbk', 'kbqqqqbkkbqqqqbk', 'kbqbbqbkkbqbbqbk', 'kbqqqqbkkbqqqqbk', 'kbbbbbbkkbbbbbbk',
+        'kbbbbbykkybbbbbk', 'kbbbbbbkkbbbbbbk', 'kbqqqqbkkbqqqqbk', 'kbqbbqbkkbqbbqbk', 'kbqqqqbkkbqqqqbk', 'kbbbbbbkkbbbbbbk', 'kBBBBBBBBBBBBBBk', '.kk..........kk.'],
+        { u: '#8fd6c8', U: '#5fb7a8', b: '#3c8a80', B: '#245a54', q: '#5fb7a8', y: '#f7d64a' });
+    /* the Dust Monger */
+    const mong = ['................................', '.........kk.........kk..........', '........kggk.......kggk.........', '........kggk.......kggk.........', '........kgik.......kigk.........', '........kggkkkkkkkkkggk.........', '......kkgggggggggggggggkk.......',
+        '.....kgggggggggggggggggggk......', '....kgggwwkggggggggwwkgggGk.....', '....kgggwkkggggggggwkkgggGk.....', '...kggggggggggiigggggggggGGk....', '...kgggggggggggggggggggggGGk....', '..kggggggggggggggggggggggGGGk...', '..kgGgggggggggggggggggggGgGGk...',
+        '..kgggGggggggggggggggggGggGGk...', '..kGgggggGgggggggggggGgggGGGk...', '...kGGgggggggggggggggggGGGGk....', '....kGGGGGGGGGGGGGGGGGGGGGk.....', '.....kkkkkkkkkkkkkkkkkkkkk......', '......kgggk..........kgggk......', '.......kkk............kkk.......'];
+    defSprite('monger_0', mong, { g: '#e4dcd0', G: '#b0a698', w: '#ffffff', i: '#f59ac0' });
+    defSprite('monger_1', mong.slice(1).concat(['................................']), { g: '#e4dcd0', G: '#b0a698', w: '#ffffff', i: '#f59ac0' });
+    /* the Housekeeper: a teal wardrobe with feet and a face in its doors */
+    const kp = [
+        '.......kkkkkkkkkkkkkkkkkk.......', '......kyyyyyyyyyyyyyyyyyyk......', '.....kqqqqqqqqqqqqqqqqqqqqk.....', '....kqQQQQQQQQQQQQQQQQQQQQqk....', '....kqQkkkkkkkkkkkkkkkkkkQqk....',
+        '....kqQkqqqqqqqkkqqqqqqqkQqk....', '....kqQkqwwwqqqkkqqwwwqqkQqk....', '....kqQkqwkkqqqkkqqkkwqqkQqk....', '....kqQkqwwwqqqkkqqwwwqqkQqk....', '....kqQkqqqqqqqkkqqqqqqqkQqk....',
+        '....kqQkqqqqqqykkyqqqqqqkQqk....', '....kqQkqqqqqqqkkqqqqqqqkQqk....', '....kqQkqqqqkkkkkkkkqqqqkQqk....', '....kqQkqqqkrrrrrrrrkqqqkQqk....', '....kqQkqqqkrRRRRRRrkqqqkQqk....',
+        '....kqQkqqqqkkkkkkkkqqqqkQqk....', '....kqQkqqqqqqqkkqqqqqqqkQqk....', '....kqQkqqqqqqqkkqqqqqqqkQqk....', '....kqQkqqqqqqqkkqqqqqqqkQqk....', '....kqQkkkkkkkkkkkkkkkkkkQqk....',
+        '....kqQQQQQQQQQQQQQQQQQQQQqk....', '....kqqqqqqqqqqqqqqqqqqqqqqk....', '....kqQQQQQQQQQQQQQQQQQQQQqk....', '....kqQkkkkkkkkkkkkkkkkkkQqk....', '....kqQkqqqqqqqqqqqqqqqqkQqk....',
+        '....kqQkqqqqqqqyyqqqqqqqkQqk....', '....kqQkqqqqqqqqqqqqqqqqkQqk....', '....kqQkkkkkkkkkkkkkkkkkkQqk....', '....kqqqqqqqqqqqqqqqqqqqqqqk....', '....kkkkkkkkkkkkkkkkkkkkkkkk....',
+        '.....kbbk..............kbbk.....', '....kbbbbk............kbbbbk....', '....kkkkkk............kkkkkk....'];
+    const KL = { q: '#5fb7a8', Q: '#3c8a80', y: '#f7d64a', w: '#fbf6ea', r: '#9a3a4a', R: '#c45a6a', b: '#6b4128' };
+    defSprite('keeper', kp, KL);
+    defSprite('keeper_sleep', swapChars(kp, { w: 'q' }), KL);
+    const open = kp.slice();
+    for (let i = 4; i <= 19; i++) open[i] = '...kqQ' + (i === 4 || i === 19 ? 'kkkkkkkkkkkkkkkkkkkk' : 'k' + (i >= 9 && i <= 13 ? 'KKKKKKmmmmKKKKKK' : 'KKKKKKKKKKKKKKKK') + 'kkk') + 'Qqk...';
+    defSprite('keeper_open', open.map(r => r.slice(0, 32).padEnd(32, '.')), Object.assign({}, KL, { K: '#1e3a3a', m: '#e8463c' }));
+}
+CONTENT_INIT.push(initTidyArt);
+ITEM_LINES.plan = () => 'You found the {blue}House plan{/}! Every room of the Tidyhouse, drawn in a neat hand. (Open the map with M.)';
+ITEM_LINES.pattern = () => "You found the {blue}Pattern{/}! A square of teal cloth stitched in a pattern like a lock's insides. The big door in this House is stitched to match.";
+ITEM_LINES.gloves = () => 'You found the {red}Gloves{/}! Hold Z against something to grip it: while you hold on, it stays put. Step back while gripping to pull it.';
+ITEM_LINES.heartstitch = () => 'A {red}Heartstitch{/}! Your hearts grow by one.';
+ITEM_LINES.key = () => 'A {blue}small key{/}! It opens one locked door in this House.';
+ITEM_LINES.heartpatch = () => 'A {red}Heart Patch{/}! ' + (Inv.patches % 4 === 0 ? '' : `(${Inv.patches % 4} of 4.)`);
+ITEM_AFTER.gloves = function* () { Progress.set('gotGloves'); };
+
+// ---- 43_meadowfold.js ----
+/* Meadowfold (overworld block 1,2): fields south of town, sheep, the windmill, the Tidyhouse, the canyon
+   road west to Kilnridge (a boulder only Gloves can shift) and the broken bridge east to Millwater. */
+
+const MEADOW_ROWS = [
+        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY::::YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY::::YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+        'YYYY......,...."".,."...."....::::.,"....".".....-~~~-....,.YYYY',
+        'YYYY.."...,.....,...,.,,..T.",::::.bbbbb,....,...-~~~-......YYYY',
+        'YYYY,.T,,...,.............,...::::....,".........-~~~-."...,YYYY',
+        'YYYY"...,........"............::::..,......",....-~~~-.T....YYYY',
+        'YYYY....,...,....".XXX......,.::::..T..,...."....-~~~-."....YYYY',
+        'YYYY....,...,".....XXX..",....::::".,....,"......-~~~-..."..YYYY',
+        'YYYY,..,,.T........XXX".,...",::::......XXXXXXXXX-~~~-....,.YYYY',
+        'YYYY......,...................::::."..".XXXXXXXXX-~~~-......YYYY',
+        'YYYY..."..,.".......,......"..::::.,.,..XXXXXXXXX-~~~-,.....YYYY',
+        'YYYY...............,..."......::::".....XXXXXXXXX-~~~-......YYYY',
+        'YYYY.....,......,....,".T.....::::.."...XXXX:XXXX-~~~-...T..YYYY',
+        'YYYY............,,............::::...,.."..:::...-~~~-......YYYY',
+        'YYYY..,.,.bbbbbb...,........r.::::..,..."..:::.".-~~~-......YYYY',
+        'YYYY........."".,,...........,::::.,.".....:::...-~~~-.r....YYYY',
+        'YYYY.r......".........."".....::::...,.....:::...-~~~-....,.YYYY',
+        'YYYY........,...",..."........::::.........:::...-~~~-......YYYY',
+        'YYYY..........T..............,:::::::::::::::::::-~~~-......YYYY',
+        'YYYY"...".........,.,.........:::::::::::::::::::-~~~-......YYYY',
+        '########................."....::::...............-~~~-..T...YYYY',
+        '####::##,........,...,........::::...............-~~~-......YYYY',
+        '####::##::::::::::::::::::::::::::......T,.....".-~~~-......YYYY',
+        '::::::::::::::::::::::::::::::::::.......,.."....-~~~-,.....YYYY',
+        '########........,.,.....,.....::::,.....,........-~~~-......YYYY',
+        '########..............r...."..::::...."...,.,....-~~~-......YYYY',
+        'YYYY"".."...,."..,.,..."......:::::::::::::::::::_~~~_::::::::::',
+        'YYYY....fffff.fffff,........".:::::::::::::::::::_~~~_::::::::::',
+        'YYYY....l......"."l.,..................,.........-~~~-...".,YYYY',
+        'YYYY....l.........l.........................,....-~~~-......YYYY',
+        'YYYY..T.l.,.".....l."...-----"..............,."r.-~~~-..."..YYYY',
+        'YYYY.,..l.........l....-~~~~~-.."....."....,.....-~~~-......YYYY',
+        'YYYY....l,......,.l....-~~~~~-.",....T..,".......-~~~-...T..YYYY',
+        'YYYY....l....."...l..,.-~~~~~-,....,.......,T....-~~~-.,..."YYYY',
+        'YYYY..,.fffffffffff.....~~~~~..,.......,.........-~~~-."....YYYY',
+        'YYYY..".........,........"....".".....r....."..."-~~~-.."...YYYY',
+        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY%%%%%YYYYYYYYYY',
+        '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',
+        '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',
+];
+
+defBlock({
+    id: 'meadow', bx: 1, by: 2, name: 'Meadowfold', theme: 'meadow', music: 'meadow',
+    rows: MEADOW_ROWS,
+    forest: ['tree', 'tree2', 'tree_apple', 'tree'],
+    ents: [
+        { k: 'building', x: 40, y: 8, w: 9, h: 5, style: 'inn', door: 4, windows: [0, 1, 2, 6, 7, 8], wallH: 28, chimneyX: 20, variant: 'tidy' },
+        { k: 'warp', x: 44, y: 12, to: 'tidy', tx2: 29, ty2: 42, face: 'up', dir: 'up' },
+        { k: 'windmill', x: 19, y: 6 },
+        { k: 'sign', x: 34, y: 17, text: 'East: the Tidyhouse. (Please wipe your feet.) Further east: the old bridge to Millwater.' },
+        { k: 'sign', x: 29, y: 21, text: 'West: Canyon Road, to Kilnridge.' },
+        { k: 'sign', x: 47, y: 25, text: 'BRIDGE OUT. Hook on, if you have a hook.' },
+        { k: 'sign', x: 34, y: 2, text: 'MEADOWFOLD. Mind the sheep. The sheep mind you.' },
+        { k: 'rest', x: 38, y: 15 },
+        { k: 'block', x: 4, y: 23, look: 'boulder_big', id: 'canyonBoulder', weight: WEIGHT.heavy, if: '!kilnPass', pushLine: '' },
+        { k: 'block', x: 4, y: 22, look: 'boulder_big', id: 'canyonBoulder2', weight: WEIGHT.heavy, if: 'kilnPass' },
+        { k: 'stray', x: 36, y: 30, look: 'haybale_stray', id: 'strayBale' },
+        { k: 'linnetnote', x: 36, y: 30, note: 2, under: 'strayBale' },
+        { k: 'pickup', x: 20, y: 4, what: 'heartpatch', id: 'meadowPatch' },
+        { k: 'npc', who: 'pip', x: 13, y: 26, face: 'down' },
+        { k: 'critter', who: 'sheep', look: 'sheep', x: 10, y: 29, speed: 0.3, route: [[10, 29, 120], [14, 31, 90], [11, 32, 150]] },
+        { k: 'critter', who: 'sheep', look: 'sheep', x: 16, y: 30, speed: 0.3, route: [[16, 30, 150], [12, 29, 100], [15, 32, 80]] },
+        { k: 'critter', who: 'sheep', look: 'sheep', x: 12, y: 32, speed: 0.25, route: [[12, 32, 200], [16, 28, 120]] },
+        { k: 'enemy', x: 10, y: 10, type: 'nibbler' }, { k: 'enemy', x: 25, y: 18, type: 'nibbler' }, { k: 'enemy', x: 56, y: 9, type: 'nibbler' },
+        { k: 'enemy', x: 38, y: 33, type: 'nibbler' },
+    ],
+    regions: [
+        { name: 'Canyon Road', x: 0, y: 19, w: 8, h: 8, quiet: true },
+    ],
+});
+
+PEOPLE_DEF.pip = { name: 'Pip', col: '#c8e66a', look: { body: 'child', hair: 'cap', hairC: '#c9925a', top: '#8fd46a', accent: '#f4e6c8', bottom: '#6b4128', skin: 'tan' } };
+TALK.pip = function* () {
+    yield* firstThen('pip', "I'm Pip. I mind the sheep. Well, the sheep mind themselves, mostly. Wander off, wander back. Same three spots, every day, forever.",
+        ["See that hay bale under the big tree? It got moved in a storm years ago and it never went back. Gives me the shivers.", "Grandad says when he was little the sheep went all the way to the lake. Now they won't leave the pen.", "The Tidyhouse is just east. My mum says it's the oldest house in the Hollow. It's always so clean."]);
+};
+BUDGE.pip = 'Pip: "Baa. Sorry. Habit."';
+CRITTER_TALK.sheep = () => function* () { yield* say(null, ['A sheep. It looks at you, chews, and looks away.', 'Baa.', "The sheep has a little red cross dyed into its fleece. So do all of them."][Math.floor(G.rng() * 3)]); };
+
+/* the windmill: a stone tower with sails that turn */
+class Windmill extends Ent {
+    constructor(tx, ty) { super('windmill'); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T - 32; this.inert = false; this.solid = [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]]; this.staticBlock = true; }
+    blocks(x, y) { return this.solid.some(([dx, dy]) => this.tx + dx === x && this.ty + dy === y); }
+    get sortY() { return this.ty * T + 48; }
+    draw(cx, cy) {
+        const x = this.tx * T - cx, y = this.ty * T - cy;
+        Gfx.img(ART.windmill, x, y - 40);
+        /* sails */
+        const hx = x + 24, hy = y - 22, a0 = G.t / 90;
+        for (let i = 0; i < 4; i++) {
+            const a = a0 + i * Math.PI / 2, ex = hx + Math.cos(a) * 28, ey = hy + Math.sin(a) * 28;
+            Gfx.line(hx, hy, ex, ey, '#6b4128');
+            const px = -Math.sin(a), py = Math.cos(a);
+            for (let k = 8; k < 28; k += 2) { const sx = hx + Math.cos(a) * k, sy = hy + Math.sin(a) * k; Gfx.line(sx, sy, sx + px * 6, sy + py * 6, k % 4 ? '#f4e6c8' : '#d8c49e'); }
+        }
+        Gfx.circle(hx, hy, 3, '#6b4128'); Gfx.rect(hx - 1, hy - 1, 2, 2, '#c9925a');
+    }
+}
+SPAWN.windmill = (x, y) => new Windmill(x, y);
+
+/* Linnet's notes: found under strays, behind things, in places the Return can't reach */
+const LINNET_NOTES = {
+    1: { title: "A note behind Gran's portrait", text: "This is my Wander, my first day. Gran's turned my picture to the wall because she says I'll be back before it gets dusty. I'll turn it round myself when I get home. - L." },
+    2: { title: 'A note under a hay bale', text: "Day three. This bale was in the way so I pushed it, and it DIDN'T GO BACK. A stray! Mabel says they're terribly rare. Someone cut its thread, she says, but who cuts a hay bale? I'm hiding this under it. - L." },
+};
+SPAWN.linnetnote = (tx, ty, p) => {
+    const pr = new Prop(tx, ty, { im: ART.note, solid: [], oy: 2 });
+    pr.baseY = -60; pr.inert = false;
+    pr.update = () => { if (pr.under) { const b = pr.area.find(pr.under); pr.hiddenNow = b && b.tx === tx && b.ty === ty; } };
+    pr.under = p.under;
+    pr.draw = function (cx, cy) { if (!this.hiddenNow && !Progress.flag('linnet' + p.note)) { Gfx.img(ART.carvedL, this.x - cx, this.y - cy - 2); Gfx.img(this.im, this.x - cx + 4, this.y - cy + 2); } };
+    pr.interact = () => {
+        if (pr.hiddenNow || Progress.flag('linnet' + p.note)) return false;
+        Script.run(function* () {
+            Progress.set('linnet' + p.note); Progress.addNote('linnet' + p.note);
+            Stats.count('secret:linnet');
+            yield* say(null, 'Someone has carved a little "L." into the ground here. Tucked into the grass beside it, a folded note, yellow with age.');
+            yield* say(null, '"' + LINNET_NOTES[p.note].text + '"');
+            const n = Object.keys(LINNET_NOTES).filter(k => Progress.flag('linnet' + k)).length;
+            yield* say(null, `(Notes found: ${n}.)`);
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+for (const [k, v] of Object.entries(LINNET_NOTES)) NOTES['linnet' + k] = { title: v.title, text: v.text };
+
+function initMeadowArt() {
+    ART.windmill = paintSprite(48, 88, x => {
+        /* a stone tower, a door, a little window, a wooden cap */
+        for (let j = 30; j < 88; j++) {
+            const w = Math.round(14 + (j - 30) * 0.15);
+            for (let i = 24 - w; i < 24 + w; i++) {
+                const brick = (Math.floor((j - 30) / 5) + Math.floor((i + (Math.floor((j - 30) / 5) % 2) * 3) / 6)) % 2;
+                x.fillStyle = (j - 30) % 5 === 4 ? '#8a7e70' : brick ? '#d6cab6' : '#c8bcac';
+                if (i < 24 - w + 3) x.fillStyle = '#e8dcc8';
+                if (i > 24 + w - 4) x.fillStyle = '#a89c8c';
+                x.fillRect(i, j, 1, 1);
+            }
+        }
+        x.fillStyle = '#7a4e32'; x.fillRect(19, 72, 10, 16); x.fillStyle = '#9a6438'; x.fillRect(20, 73, 8, 15);
+        x.fillStyle = '#2a1f2d'; x.fillRect(21, 48, 6, 7); x.fillStyle = '#9fdcf5'; x.fillRect(22, 49, 4, 5);
+        for (let j = 10; j < 32; j++) { const w = Math.round((j - 10) * 0.75); x.fillStyle = j < 14 ? '#e07a64' : '#c45a4a'; x.fillRect(24 - w, j, w * 2, 1); }
+    });
+    ART.boulder_big = ART.boulder;
+    ART.note = paintSprite(8, 8, x => { x.fillStyle = '#f4e0a8'; x.fillRect(0, 1, 8, 6); x.fillStyle = '#d8c080'; x.fillRect(0, 4, 8, 1); x.fillStyle = '#8a7a5a'; x.fillRect(2, 2, 4, 1); });
+    ART.carvedL = paintSprite(16, 16, x => { x.fillStyle = '#5a4a3a'; x.fillRect(4, 3, 2, 9); x.fillRect(4, 11, 6, 2); x.fillRect(11, 11, 2, 2); }, false);
+    defSprite('haybale_stray', ['................', '................', '.kkkkkkkkkkkkkk.', 'kyyyyyyyyyyyyyyk', 'kYyyYyyYyyYyyYyk', 'kyyyyyyyyyyyyyyk', 'kUUUUUUUUUUUUUUk', 'kyyYyyYyyYyyYyyk',
+        'kyyyyyyyyyyyyyyk', 'kYyyYyyYyyYyyYyk', 'kyyyyyyyyyyyyyyk', 'kUUUUUUUUUUUUUUk', 'kYYYYYYYYYYYYYYk', '.kkkkkkkkkkkkkk.', '................', '................'], { y: '#f0d070', Y: '#c8a040', U: '#9a6438' });
+    defSprite('boulder_big', ['.....kkkkkk.....', '...kkggggggkk...', '..kggwwgggggGk..', '.kggwggggggggGk.', '.kgggggggggggGGk', 'kgggggggggggggGk', 'kggggggggggggGGk', 'kgGgggggggggGGGk',
+        'kggGggggggggGGGk', 'kgggggggggGGGGGk', '.kGggggggGGGGGk.', '.kGGGgggGGGGGGk.', '..kGGGGGGGGGGk..', '...kkkGGGGkkk...', '......kkkk......', '................'], { g: '#b8aa98', G: '#8a7e70', w: '#e0d6c4' });
+    defSprite('sheep_0', ['................', '................', '................', '................', '......kkkkk.....', '....kkwwwwwkk...', '...kwwwwwwwwwk..', '.kkkwwwwwrwwwk..',
+        'kxxkwwwwrrrwwk..', 'kxexwwwwwrwwwk..', 'kxxkwwwwwwwwwk..', '.kk.kwwwwwwwk...', '....kxk..kxk....', '....kk....kk....', '................', '................'], { w: '#fbf6ea', x: '#4a4040', r: '#e8463c' });
+    defSprite('sheep_1', ['................', '................', '................', '................', '......kkkkk.....', '....kkwwwwwkk...', '...kwwwwwwwwwk..', '.kkkwwwwwrwwwk..',
+        'kxxkwwwwrrrwwk..', 'kxexwwwwwrwwwk..', 'kxxkwwwwwwwwwk..', '.kk.kwwwwwwwk...', '...kxk....kxk...', '...kk......kk...', '................', '................'], { w: '#fbf6ea', x: '#4a4040', r: '#e8463c' });
+}
+CONTENT_INIT.unshift(initMeadowArt);
+
+// ---- 50_prologue.js ----
+/* The morning of the Wander: waking up, Gran, the ceremony at the Well. */
+
+const Prologue = {
+    start() {
+        G.hideHud = true;
+        World.enter('gran_room', 6, 3, { dir: DOWN, noSave: true });
+        const p = G.player;
+        p.x = 7 * T + 8; p.y = 2 * T + 10; p.state = 'sleep';
+        UI.fadeA = 1;
+        Progress.setGoal('Get up and go downstairs to see Gran.');
+        Script.run(function* () {
+            yield 30;
+            yield* fadeIn(60);
+            yield 40;
+            yield* say('gran', "{name}! Up you get, love! The whole town's waiting on you, and you're still in bed on your Wander day!");
+            yield 20;
+            p.state = 'normal'; p.x = 6 * T + 8; p.y = 3 * T + 10; p.dir = DOWN;
+            Sfx.play('land'); Fx.dust(p.x, p.y);
+            yield 20;
+            G.hideHud = false;
+            yield* say(null, 'Today you go on your Wander. You have been waiting for this your whole life.');
+            Save.autosave();
+        });
+    },
+};
+
+/* Gran, at home, the morning of the ceremony */
+TALK.gran = function* (npc) {
+    if (!Progress.flag('ceremony')) {
+        if (!Progress.flag('talkedGran')) {
+            yield* say('gran', [
+                "There you are. Let me look at you. Scarf on straight, good. Boots? Good.",
+                "Every Wanderer before you walked out of a house just like this one, on a morning just like this one. And every one of them came home. The Way always brings you home.",
+                "Now off to the Well with you. I'll be right behind.",
+            ]);
+            Progress.set('talkedGran');
+            Progress.setGoal('Go to the Well in the middle of town, where everyone is waiting.');
+        } else yield* say('gran', "Go on, love. The Well. I'll be right behind you.");
+        return;
+    }
+    const lines = Progress.flag('d1') ? GRAN_AFTER_D1 : GRAN_ACT1;
+    const n = Progress.get('granTalk') || 0; Progress.set('granTalk', n + 1);
+    yield* say('gran', lines[n % lines.length]);
+};
+const GRAN_ACT1 = [
+    "The Tidyhouse is down in Meadowfold, past the sheep. Mind your manners in there; it's a tidy old place.",
+    "If you get stuck, stand still a while and look at what goes back where. It nearly always tells you.",
+    "My hands? Old, love. Too much knitting. Go on with you.",
+    "Everything in its place, {name}. You'll see. It's a comfort, when you're grown.",
+];
+const GRAN_AFTER_D1 = [
+    "Your first Knot! Did you feel it? The whole valley sat up a little straighter.",
+    "Next is the Kiln, out west in Kilnridge. The road's blocked by that old boulder, but you're a clever thing.",
+    "I always knew you'd be good at this. You've your aunt's... well. You've good hands.",
+];
+
+/* the ceremony starts when Wren first steps out of the house after talking to Gran */
+const Ceremony = {
+    check(area) {
+        if (area.id !== 'hollow' || Progress.flag('ceremony') || !Progress.flag('talkedGran')) return;
+        Progress.set('ceremony');
+        Script.run(Ceremony.run, { name: 'ceremony' });
+    },
+    *run() {
+        const ox = 64, oy = 40;
+        const a = G.map, p = G.player;
+        /* the town gathers at the Well */
+        const crowd = [['ives', 27, 21, 'up'], ['bram', 34, 21, 'up'], ['rosa', 28, 22, 'up'], ['thimble', 33, 22, 'up'], ['seam', 26, 20, 'right'], ['mallow', 35, 20, 'left'], ['mabel', 30, 22, 'up'], ['quill', 31, 22, 'up']];
+        const added = [];
+        for (const [who, x, y, f] of crowd) { const n = a.add(new NPC(ox + x, oy + y, { who, face: f })); added.push(n); }
+        let gran = a.ents.find(e => e.who === 'gran');
+        if (!gran) gran = a.add(new NPC(ox + 29, oy + 20, { who: 'gran', face: 'down' }));
+        G.hideHud = true;
+        yield 20;
+        yield* walkTo(p, ox + 30, oy + 23);
+        yield* walkTo(p, ox + 30, oy + 21 + 2);
+        p.dir = UP;
+        yield 20;
+        yield* say('gran', [
+            "Hollowell! Hush now, hush. Bram, put the pot down.",
+            "Every year the Hollow wakes up a little weaker. Strays turn up that won't go home. The Way forgets itself.",
+            "So every so often, one of our young ones goes on the Wander: through the six Houses, to tie the six Knots that hold the Hollow in its shape.",
+            "This year, it's {name}.",
+        ]);
+        for (const n of added) n.bubble = 'heart';
+        Sfx.play('appear');
+        yield 50;
+        for (const n of added) n.bubble = null;
+        yield* say('quill', [
+            "Ahem. The Rules of the Return, as every child knows them.",
+            "One: everything has its place. Two: whatever is moved goes back the way it came. Three: nothing is ever lost in the Hollow.",
+        ]);
+        yield* say('gran', "And now your Wanderstaff. Your grandad cut it from the old apple tree. It's done this before.");
+        yield* Story.getItem('staff')();
+        yield* say('gran', [
+            "First, the Tidyhouse, down in Meadowfold, south of town. Then you'll find the rest; they're not hard to find. They want to be found.",
+            "And whatever happens, love: the Way always brings you home.",
+        ]);
+        yield* say('ives', "And wipe your feet!");
+        for (const n of added) a.remove(n);
+        Fx.poof(p.x, p.y - 20);
+        G.hideHud = false;
+        Progress.setGoal('Find the Tidyhouse in Meadowfold, south of town, and tie its Knot.');
+        UI.toast('X swings the Wanderstaff.', 200);
+        Save.autosave();
+    },
+};
+ITEM_LINES.staff = () => 'You got the {red}Wanderstaff{/}! Press X to swing it: it knocks light things aside and flips crystals.';
+
+// ---- 51_town_talk.js ----
+/* What the townsfolk say. Lines move on with the Wander (flags d1..d6 and the rest). */
+
+function cycle(id, lines) {
+    const k = 'talk:' + id;
+    const n = Progress.get(k) || 0; Progress.set(k, n + 1);
+    return lines[n % lines.length];
+}
+function* firstThen(id, first, rest) {
+    if (!Progress.flag('met:' + id)) { Progress.set('met:' + id); yield* say(id, first); return; }
+    yield* say(id, cycle(id, rest));
+}
+
+TALK.quill = function* () {
+    if (!Progress.flag('quiz1') && Progress.flag('ceremony')) {
+        yield* say('quill', "Ah, the Wanderer! A quick question before you go, since you're here. When you push a block and walk away, what does it do?");
+        const i = yield* ask('quill', 'Well?', ['Goes back the way it came', 'Goes straight home', 'Stays where I left it']);
+        if (i === 0) {
+            yield* say('quill', "Exactly right. The way it came, not the quickest way. People forget that. Here, a gold star. Well, a button.");
+            Inv.buttons += 5; Sfx.play('button'); Progress.set('quiz1');
+        } else if (i === 1) yield* say('quill', "Close, but no. It goes back the way it came: every step it took, in reverse. Think about it and come back.");
+        else yield* say('quill', "Stays? In the Hollow? Goodness, no. Come back when you've thought it over.");
+        return;
+    }
+    yield* firstThen('quill', "Miss Quill. I taught you your letters, and the Rules. The blackboard in the schoolhouse has them all, if you've forgotten any.",
+        ["The schoolhouse is open, if you want to read the Rules again.", "A Wanderer who thinks before pushing is worth two who don't.", "Tuck has drawn eleven pictures of you this week. Eleven."]);
+};
+TALK.tuck = function* () {
+    if (Progress.flag('d1')) { yield* say('tuck', cycle('tuck1', ["Was there a monster? Was it HUGE? I bet it was huge.", "When I do my Wander I'm going to do it faster than you. No offence.", "Mum says I'm too little. I'm NOT too little."])); return; }
+    yield* firstThen('tuck', "Are you going? Are you going NOW? When I'm big I'm going on a Wander too! I'm going to do ALL the Houses!",
+        ["I'm practising. Watch. *pushes the sand* ...It came back. It always comes back.", "Bring me something from the Tidyhouse! A spoon or something!", "My mum says the Houses are older than the town. Older than Gran even!"]);
+};
+TALK.nell = function* () { yield* say('nell', Progress.flag('tagStopped') ? "Don't feel like running today. Funny. We always used to." : "Can't talk! Otto's IT!"); };
+TALK.otto = function* () { yield* say('otto', Progress.flag('tagStopped') ? "We're not playing. Dunno why. Just... don't want to go far." : "I'm IT! Unless you're IT. Are you playing?"); };
+TALK.bea = function* () { yield* say('bea', Progress.flag('tagStopped') ? "Feels like my feet like it here. Here here. This exact spot." : "You can't tag me, I'm on the well-step! The well-step is safe!"); };
+TALK.hob = function* () {
+    if (Progress.flag('d3')) { yield* say('hob', "Used to walk the bank every day. Now I just... stand here. The fish don't mind."); return; }
+    yield* firstThen('hob', "Morning, Wanderer. Fish come back too, you know. Throw one in, back it swims to its own rock. Never lost a fish yet.",
+        ["The river comes down from the north, past the posts. Nobody's been up there. Nobody ever needs to.", "Mind the water. The deep bits'll send you home soaking.", "Old Arlo says I used to fish down the whole river. Can't picture it."]);
+};
+TALK.arlo = function* () {
+    yield* firstThen('arlo', "Sit down, sit down. Ah, the Wander. I remember mine. Long time ago now. Before the posts went up.",
+        ["When I was a lad, folk used to walk about. Up the hills, down to the lake, just for the doing of it. Can't think why we stopped.",
+            "Your aunt did her Wander from this very square. Your Gran won't talk of it, so I won't either.",
+            "You know what I like about this bench? It's always here. I'm always here. Ha.",
+            "I tried to walk to the lake last spring. Got as far as the bridge and turned round without meaning to. Old legs."]);
+};
+TALK.ives = function* () {
+    if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["You did it! Was it tidy? Was the pantry— er. Did you like it? The House, I mean. In general.", "I've heard there's a pie in that House. Not that I'd know. Not that anybody bakes in there. Ha.", "Up in the attic I've set out some tidying for anyone who's quick. Trials, I call them. Go on up when you've the time."])); return; }
+    yield* firstThen('ives', "Welcome to the Spool & Thimble! Wipe your— oh, it's you, {name}! Off to the Tidyhouse? You'll love it. I mean, I expect you will. It's very clean, I've heard.",
+        ["A place for everything and everything in its place, that's what I always say. What everybody says, I suppose.", "Mind the second step in the linen closet. ...So I've heard. People say. About the Tidyhouse.", "If you need a lie-down, the beds upstairs are made. They're always made."]);
+};
+TALK.bram = function* () {
+    if (Progress.flag('d1') && !Progress.flag('d2')) { yield* say('bram', cycle('bram1', ["The Kiln? Hot place, I'd guess. Very hot. Bring water. Not that I've— ha! Go on.", "Smash a pot out there and watch the bits fly home. Prettiest thing in the Hollow.", "Big boulder in the canyon road, west of Meadowfold. Pushing won't do it. You'll want a grip on it."])); return; }
+    yield* firstThen('bram', "HA! The Wanderer! Here, smash one of my pots. Go on! It comes back. That's the beauty of the Hollow: nothing's ever really broken.",
+        ["Pots, jugs, bowls. All come home to the shelf. Makes the trade a bit slow, I'll grant you.", "Ever notice the bits fly back the way the pot went? Not the short way. The way it WENT.", "My dad made pots. His dad made pots. Same pots, some of them."]);
+};
+TALK.gundry = function* () {
+    yield* firstThen('gundry', "Gundry. I keep the Well. Oil the winch, sweep the step, that sort of thing.",
+        ["This old winch turns by itself some nights. Wind, I expect.", "Don't go dropping things down the Well, Wanderer. They come back up, and they're not happy about it.", "Your Gran's the Warden. I just do the oiling. She does... the rest."]);
+};
+TALK.burr = function* () {
+    yield* firstThen('burr', "Halt! Oh, it's the Wanderer. North Road's closed past the posts. Always has been. Warden's orders.",
+        ["Nothing up there but fog and trees and more fog.", "Nobody's ever gone past the posts. Nobody's ever wanted to. That's how you know it's a good rule.", "I've stood at this post twenty years. Good post."]);
+};
+TALK.mallow = function* () {
+    if (Inv.hp < Inv.maxHp) { Inv.hp = Inv.maxHp; Sfx.play('heart'); yield* say('mallow', "*yawn* Let's have a look... all better. Off you go. Doctor's orders: a nap, soon as you can."); return; }
+    yield* firstThen('mallow', "Doctor Mallow. Hurt? Tired? Both? Come and see me, I'll patch you up. *yaaawn* Long night. Very long night.",
+        ["Sleep is the best medicine. Also the second best.", "You look healthy. Disgustingly healthy. Come back when you're not.", "If you ever feel a sort of... tug... behind the ribs? That's normal. Perfectly normal. Everyone has it."]);
+};
+TALK.mabel = function* () {
+    yield* firstThen('mabel', "Lost and Found. Mostly Found. Nothing's ever lost in the Hollow, they say. And yet I keep this shop.",
+        ["If you ever find a thing that doesn't go home, bring it here. A stray, we call it. I collect them.", "Strays are turning up more these days. Out by the edges, mostly. Odd little things.", "Everything in its place. Except my things. My things are in MY place."]);
+};
+TALK.thimble = function* () {
+    yield* firstThen('thimble', "Thimble & Things! Wander supplies, bandages, string, things. Mostly things.", ["Buttons spend fine here, Wanderer.", "I'd sell you a map but you don't need one: the House plans are in the Houses. Funny that.", "String's selling well this year. The Guild orders by the mile."]);
+    yield* Shop.run('thimble');
+};
+TALK.rosa = function* () {
+    yield* firstThen('rosa', "Hello love! Tuck won't stop talking about you. Eleven drawings. ELEVEN. Here, have a bun for the road.",
+        ["Bread's warm, if you want some. A bun puts a bit of heart back in you.", "When Tuck's Wander comes I'll be a mess. Don't tell him.", "I bake the same loaves every morning. Same tins, same shelf. You'd think I'd get bored."]);
+    if (!Progress.flag('rosaBun')) { Progress.set('rosaBun'); Inv.heal(4); Sfx.play('heart'); }
+};
+TALK.seam = function* () {
+    yield* firstThen('seam', "Sebastian Seam, tailor. That scarf: red, of course. A Wanderer's colour. You wear it beautifully.",
+        ["I'm working on something very big for a client. Very hush-hush. Very... scaly.", "Everyone's thread is a different colour, you know. Figuratively. Mostly figuratively.", "Come back when you've a few buttons and I'll make you something with presence."]);
+};
+TALK.ambrose = function* () { yield* say('ambrose', "Hello, my Wanderer! Busy, busy. Always busy before a Wander. I'm proud of you."); };
+TALK.tess = function* () { yield* say('tess', "There's my bell-ringer's bairn! Listen to the bells when you're out: they'll tell you where you are."); };
+
+/* what they say when Wren leans on them (S01: everyone has one) */
+Object.assign(BUDGE, {
+    gran: "Gran: \"Oh! Careful, love. I'll just... go back where I was.\"",
+    quill: 'Miss Quill: "Rule two, {name}. I go back the way I came."',
+    tuck: 'Tuck: "Hey! ...Whoa, I went back by myself!"',
+    nell: 'Nell: "Oi! No pushing!"', otto: 'Otto: "Ha! Tagged!"', bea: 'Bea: "Not off the well-step!"',
+    hob: 'Fisher Hob: "Easy there. The bank\'s that way."',
+    arlo: 'Old Arlo: "Steady! I\'ve stood here sixty years."',
+    ives: 'Mother Ives: "Don\'t shove, dear! A place for everything!"',
+    bram: 'Bram: "HA! Like a boulder, me."',
+    gundry: 'Gundry: "Mind the Well."',
+    burr: 'Constable Burr: "Hold your horses!"',
+    mallow: 'Doctor Mallow: "Mmf? Oh. Sleepwalking again."',
+    mabel: 'Auntie Mabel: "Not a stray, dear. I go home."',
+    thimble: 'Thimble: "Oof. Things!"',
+    rosa: 'Rosa: "Whoops! Floury hands!"',
+    seam: 'Seam: "Mind the hem!"',
+});
+CRITTER_TALK.biscuit = () => function* () {
+    const n = (Progress.get('biscuitPets') || 0) + 1; Progress.set('biscuitPets', n);
+    yield* say(null, n === 1 ? "Biscuit, the town cat. The cat goes wherever it likes. You've never once seen it go back to anywhere." : n === 2 ? "Biscuit purrs and looks at you as if it knows something you don't. Cats always look like that." : "Biscuit. Purring.");
+};
+CRITTER_TALK.pudding = () => function* () { yield* say(null, "Pudding chases a ball. It rolls back to Pudding every time. Pudding has never once been surprised by this."); };
+
+/* the schoolhouse blackboard: the Rules */
+Story.blackboard = function* () {
+    const rules = [
+        'THE RULES OF THE RETURN',
+        '1. Everything has its place.',
+        '2. Whatever is moved goes back the way it came.',
+        '3. Nothing is ever lost in the Hollow.',
+    ];
+    if (Progress.flag('d1')) rules.push('4. Heavier shoves lighter.');
+    if (Progress.flag('d2')) rules.push('5. Broken things come home in pieces.');
+    yield* say(null, rules.join('\n'));
+    if (Progress.flag('d4') && !Progress.flag('reveal1')) yield* say(null, "Under the rules, rubbed out but still faintly there: '6. You have a place too.'");
+};
+Story.cellarDoor = function* () {
+    if (Progress.flag('reveal2')) { yield* say(null, "The cellar door. Locked from the inside now."); return; }
+    yield* say(null, "The cellar door. Locked. Gran keeps the key on a string round her neck. If you put your ear to it, you can hear something turning, very slowly, far below.");
+    Progress.set('heardCellar');
+};
+Story.sleepInBed = function* () {
+    const i = yield* ask(null, 'Your bed. Rest a while?', ['Sleep (heal and save)', 'Not now']);
+    if (i !== 0) return;
+    const p = G.player;
+    yield* fadeOut(30);
+    Inv.hp = Inv.maxHp;
+    p.setMark();
+    Save.write();
+    yield 30;
+    yield* fadeIn(30);
+    Sfx.play('save');
+    yield* say(null, 'You feel rested. (Saved.)');
+};
+
+/* shops: a few things for buttons */
+const SHOPS = {
+    thimble: [
+        { id: 'bandage', name: 'Bandage (heals 2 hearts)', price: 8, buy: () => { Inv.heal(4); Sfx.play('heart'); } },
+        { id: 'shop_patch', name: 'Heart Patch', price: 120, once: true, buy: () => Script.run(Story.getItem('heartpatch', 'shop_patch')) },
+        { id: 'string', name: 'A ball of string', price: 3, buy: () => { Inv.items.string = (Inv.items.string || 0) + 1; } },
+    ],
+};
+ITEMS.string = { name: 'Ball of string', kind: 'quest', desc: "Thimble's best. It doesn't do anything. It's string." };
+const Shop = {
+    *run(id) {
+        const list = SHOPS[id].filter(it => !(it.once && Progress.flag('bought:' + it.id)));
+        const choices = list.map(it => `${it.name} - ${it.price}`).concat(['Nothing, thanks']);
+        const i = yield* ask(id, 'Anything you fancy?', choices);
+        if (i < 0 || i >= list.length) return;
+        const it = list[i];
+        if (Inv.buttons < it.price) { yield* say(id, "Not enough buttons, I'm afraid. Come back with a few more."); return; }
+        Inv.buttons -= it.price; Progress.set('bought:' + it.id); Sfx.play('button');
+        it.buy();
+        yield* say(id, 'Thank you kindly!');
+    },
+};
+SPAWN.staffdoor = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.staffdoor, solid: [[0, 0]], oy: -16 });
+    pr.interact = () => { Script.run(function* () { yield* say(null, Progress.flag('reveal1') ? 'STAFF ONLY. The door is open for you now.' : 'A narrow door: STAFF ONLY. Locked. Something hums on the other side.'); }); return true; };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+SPAWN.shop = () => new Ent('none');
+
 // ---- 80_story_core.js ----
 /* Starting a Wander, place names, and the content hook. The prologue and everyone's lines live in the
    content files; this is what ties them together. */
@@ -4379,7 +6761,6 @@ Story.placeName = function (id) {
 function initContent() {
     for (const f of CONTENT_INIT) f();
 }
-const CONTENT_INIT = [];
 
 // ---- 90_main.js ----
 /* The game: scenes (title, naming, play), the step (60 a second, fixed) and the picture. */
@@ -4430,13 +6811,14 @@ const Game = {
             if (!a) return;
             if (Cam.busy) { Cam.update(p); return; }
             Signals.begin(a);
-            for (const e of a.ents.slice()) if (!e.floor && !e.removed) e.update();
+            for (const e of a.ents.slice()) if (!e.floor && !e.removed && !e.inert) e.update();
             if (p) p.update();
             for (const e of a.ents.slice()) if (e.floor && !e.removed) e.update();
             Thrown.update(a); Shards.update(a); Tools.update(a);
             Fx.update();
             if (a.def.tick) a.def.tick(a);
             if (Story.tick) Story.tick(a);
+            Nudges.update(a);
             Cam.update(p);
             World.checkRegion();
             if (G.shake > 0) G.shake--;
@@ -4460,10 +6842,10 @@ const Game = {
             if (G.cheats.grid) for (let tx = x0; tx <= x0 + 21; tx++) { Gfx.alpha(0.15); Gfx.rect(tx * T - cx, 0, 1, H, PAL.white); for (let ty = y0; ty <= y0 + 12; ty++) Gfx.rect(0, ty * T - cy, W, 1, PAL.white); Gfx.alpha(1); }
             if (a.def.drawGround) a.def.drawGround(a, cx, cy);
             /* things lying on the floor, then threads, then everything standing, sorted by depth */
-            const floor = a.ents.filter(e => e.floor);
+            const floor = a.ents.filter(e => e.floor && e.x > cx - 40 && e.x < cx + W + 40 && e.y > cy - 40 && e.y < cy + H + 40);
             for (const e of floor) e.draw(cx, cy);
             Threads.draw(a, cx, cy);
-            const stand = a.ents.filter(e => !e.floor);
+            const stand = a.ents.filter(e => !e.floor && e.x > cx - 80 && e.x < cx + W + 40 && e.y > cy - 80 && e.y < cy + H + 80);
             stand.push(p);
             stand.sort((m, n) => m.sortY - n.sortY);
             for (const e of stand) e.draw(cx, cy);
@@ -4478,6 +6860,7 @@ const Game = {
             Thrown.draw(cx, cy); Shards.draw(cx, cy); Tools.draw(cx, cy);
             if (a.def.drawOver) a.def.drawOver(a, cx, cy);
             Fx.draw(cx, cy);
+            Knots.draw(cx, cy);
             if (G.holdUp) {
                 const im = spr(ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);
                 if (im) Gfx.img(im, p.x - cx - im.width / 2, p.y - cy - 30);

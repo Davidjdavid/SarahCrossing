@@ -87,16 +87,25 @@ const HW = {
     face(d) { G.player.dir = typeof d === 'string' ? dirByName(d) : d; },
     /* push the thing in front n tiles (walk into it) */
     push(d, n = 1) {
-        const dn = typeof d === 'string' ? d : DIR_NAME[d];
+        const dn = typeof d === 'string' ? d : DIR_NAME[d], di = dirByName(dn);
         for (let i = 0; i < n; i++) {
-            const p = G.player, f = p.front ? null : null;
-            const o = p.area.at(tileOf(p.x + DX[dirByName(dn)] * 12), tileOf(p.y + DY[dirByName(dn)] * 12));
-            let steps = 0;
+            let moved = null, steps = 0;
             this.hold(dn);
-            while (steps++ < 120) { Game.step(); if (o && o.mv) break; }
-            while (o && o.mv && steps++ < 200) Game.step();
+            while (steps++ < 160 && !moved) {
+                Game.step();
+                const p = G.player, f = p.front();
+                const o = p.area.at(f.tx, f.ty);
+                if (o && o.mv) moved = o;
+            }
+            while (moved && moved.mv && steps++ < 260) Game.step();
             this.release(); Game.step();
         }
+    },
+    /* stand-in for aiming in a fight: hit a creature as a thrown pot or a slam would */
+    hitEnemy(e) {
+        if (!e.alive) return;
+        if (e.shoved && e.type === 'housekeeper') { if (e.state !== 'stunned') e.shoved(DOWN, 10, { weight: 3 }); for (let i = 0; i < 12; i++) Game.step(); e.flash = 0; e.struck(G.player, 1, UP); return; }
+        e.flash = 0; e.struck({ isGrid: true, weight: 1 }, 1, -1, true);
     },
     state() {
         const p = G.player;

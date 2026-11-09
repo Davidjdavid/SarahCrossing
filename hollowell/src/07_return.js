@@ -120,9 +120,11 @@ const Return = {
             e.startMove(nx, ny, pace, true);
             return;
         }
+        let pushedOne = false;
         for (const m of e.area.walkers) {
-            if (m.onTile && m.onTile(nx, ny) && m.weightN !== undefined && m.weightN < force && m.shoved) { m.shoved(d, pace, e); }
+            if (m.onTile && m.onTile(nx, ny) && m.weightN !== undefined && m.weightN < force && m.shoved) { m.shoved(d, pace, e); pushedOne = true; }
         }
+        if (pushedOne) return;
         r.strain++;
     },
 };
@@ -152,7 +154,15 @@ class GridThing extends Ent {
     }
     onAdd(area) {
         area.place(this, this.tx, this.ty);
-        if (this.marked !== false && !this.ret) Return.mark(this, { color: this.thread });
+        if (this.marked !== false && !this.ret) Return.mark(this, { color: this.thread, patience: this.patience });
+        /* things that start away from home (already displaced along a given trace) */
+        if (this.startAt && this.ret) {
+            area.unplace(this, this.tx, this.ty);
+            this.tx = this.startAt[0]; this.ty = this.startAt[1]; this.x = this.tx * T; this.y = this.ty * T;
+            area.place(this, this.tx, this.ty);
+            this.ret.trace = (this.trace || [[this.ret.mx, this.ret.my], this.startAt]).map(p => p.slice());
+            this.ret.state = 'away'; this.ret.timer = this.ret.patience;
+        }
     }
     get px() { return this.mv ? lerp(this.mv.fx, this.mv.tx, this.mv.t / this.mv.dur) * T : this.tx * T; }
     get py() { return this.mv ? lerp(this.mv.fy, this.mv.ty, this.mv.t / this.mv.dur) * T : this.ty * T; }
@@ -192,12 +202,14 @@ class GridThing extends Ent {
                     if (tr.length === 1) Return.arrive(this);
                 } else Return.moved(this, this.tx, this.ty);
             }
-            this.landed();
+            this.landed(m.returning);
         }
     }
     /* arrived on a tile: pits, water */
-    landed() {
+    landed(returning) {
         const k = this.area.kind(this.tx, this.ty);
+        /* a returning thing hangs on its thread over pits and water */
+        if (returning || (this.ret && this.ret.state === 'returning')) { if (this.onLanded) this.onLanded(); return; }
         if (k.pit) this.fall();
         else if (k.deep && !this.floats) this.sink();
         if (this.onLanded) this.onLanded();

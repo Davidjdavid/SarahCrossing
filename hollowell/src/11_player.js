@@ -91,7 +91,7 @@ class Player extends Ent {
     }
     /* the thing (grid) right in front of Wren */
     front(dist = 1) {
-        const tx = tileOf(this.x + DX[this.dir] * (PBOX.hw + 3)), ty = tileOf(this.y + DY[this.dir] * (PBOX.hh + 4));
+        const tx = tileOf(this.x + DX[this.dir] * 12), ty = tileOf(this.y - 4 + DY[this.dir] * 12);
         return { tx: tx + DX[this.dir] * (dist - 1), ty: ty + DY[this.dir] * (dist - 1) };
     }
     thingInFront() {
@@ -120,9 +120,19 @@ class Player extends Ent {
         if (this.swingT > 0) this.updateSwing();
         if (this.toolT > 0) { this.toolT--; if (Tools.busy(this)) { this.afterMove(); return; } }
 
+        /* a pull in progress finishes, whatever the buttons do */
+        if (this.pullT > 0) {
+            this.pullT--;
+            const k = 1 - this.pullT / 18;
+            this.x = lerp(this.pullFrom.x, this.pullFrom.tx, k); this.y = lerp(this.pullFrom.y, this.pullFrom.ty, k);
+            this.walking = true; this.anim++;
+            if (this.pullT === 0) { this.x = this.pullFrom.tx; this.y = this.pullFrom.ty; }
+            this.afterMove();
+            return;
+        }
         /* grip (Gloves): hold the action button against a thing */
         if (!cut && this.grip) {
-            if (!Input.down('act') || this.grip.removed || !this.adjacentTo(this.grip)) this.release();
+            if (!Input.down('act') || this.grip.removed || (!this.grip.mv && !this.adjacentTo(this.grip))) this.release();
         }
         let moving = false;
         if (this.state === 'normal' && this.swingT <= 0 && (ax.x || ax.y)) {
@@ -151,7 +161,7 @@ class Player extends Ent {
         if (!cut && this.state === 'normal') {
             if (Input.pressed('act')) this.action();
             else if (Input.down('act') && !this.grip && !this.carry && Inv.has('gloves')) this.tryGrip();
-            if (Input.pressed('atk') && !this.carry && this.swingT <= 0 && !this.grip) this.startSwing();
+            if (Input.pressed('atk') && !this.carry && this.swingT <= 0 && !this.grip && Inv.has('staff')) this.startSwing();
             if (Input.pressed('tool') && !this.grip) Tools.use(this);
             if (Input.down('tool')) Tools.hold(this); else Tools.unhold(this);
         }
@@ -190,6 +200,7 @@ class Player extends Ent {
             for (const b of this.area.blockers) if (b.tryUnlock && b.blocks(f.tx, f.ty)) { if (!this._knock || G.t - this._knock > 40) { this._knock = G.t; b.tryUnlock(this); } }
             return;
         }
+        if (o.mv) { this.pushT = 0; return; }
         /* roughly lined up with it */
         const off = (d === LEFT || d === RIGHT) ? Math.abs(this.y - (o.ty * T + 8)) : Math.abs(this.x - (o.tx * T + 8));
         if (off > 7) { this.pushT = 0; return; }
@@ -235,13 +246,6 @@ class Player extends Ent {
                 }
             }
         }
-        if (this.pullT) {
-            this.pullT--;
-            const k = 1 - this.pullT / 18;
-            this.x = lerp(this.pullFrom.x, this.pullFrom.tx, k); this.y = lerp(this.pullFrom.y, this.pullFrom.ty, k);
-            if (this.pullT === 0) { this.x = this.pullFrom.tx; this.y = this.pullFrom.ty; }
-            return true;
-        }
         if (want === this.dir) { this.tryPush(this.dir); }
         return false;
     }
@@ -255,6 +259,11 @@ class Player extends Ent {
         const o = a.at(f.tx, f.ty);
         if (o) cand.push(o);
         for (const e of a.ents) if (e !== o && e.interact && e.talkBox && e.talkBox(this, f)) cand.push(e);
+        /* across a counter */
+        if (!cand.length) {
+            const o2 = a.at(f.tx + DX[this.dir], f.ty + DY[this.dir]);
+            if (o2 && o2.counter && a.kind(f.tx, f.ty).solid) cand.push(o2);
+        }
         for (const e of cand) {
             if (e.interact && e.interact(this) !== false) { Stats.count('interactions'); return; }
         }
@@ -502,7 +511,7 @@ const Thrown = {
             t.z = Math.max(0, 12 - Math.pow(t.dist / t.max, 2) * 12);
             /* walls and standing things stop it */
             const k = area.kind(tx, ty);
-            let stop = (k.solid && !k.deep && !k.pit && !k.ledge) || !area.inside(tx, ty);
+            let stop = (k.solid && !k.deep && !k.pit && !k.ledge && !k.low) || !area.inside(tx, ty);
             const occ = area.at(tx, ty);
             if (occ && occ !== t.o) { stop = true; if (occ.hit) occ.hit(t.o, t.d); }
             for (const b of area.blockers) if (b.blocks(tx, ty)) stop = true;
@@ -551,6 +560,7 @@ const Shards = {
         Sfx.play('shatter');
         Fx.burst(tx * T + 8, ty * T + 8, o.shardCol || '#d98f3a');
         Stats.count('shatters');
+        if (o.drop && !o.dropped) { o.dropped = true; a.add(new Pickup(tx * T, ty * T, { what: o.drop, vz: 2, life: 600 })); }
         if (!o.ret) { a.remove(o); return; }
         o.shattered = true;
         /* the way home: the trace reversed, from where it broke */

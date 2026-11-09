@@ -46,13 +46,14 @@ const Game = {
             if (!a) return;
             if (Cam.busy) { Cam.update(p); return; }
             Signals.begin(a);
-            for (const e of a.ents.slice()) if (!e.floor && !e.removed) e.update();
+            for (const e of a.ents.slice()) if (!e.floor && !e.removed && !e.inert) e.update();
             if (p) p.update();
             for (const e of a.ents.slice()) if (e.floor && !e.removed) e.update();
             Thrown.update(a); Shards.update(a); Tools.update(a);
             Fx.update();
             if (a.def.tick) a.def.tick(a);
             if (Story.tick) Story.tick(a);
+            Nudges.update(a);
             Cam.update(p);
             World.checkRegion();
             if (G.shake > 0) G.shake--;
@@ -76,10 +77,10 @@ const Game = {
             if (G.cheats.grid) for (let tx = x0; tx <= x0 + 21; tx++) { Gfx.alpha(0.15); Gfx.rect(tx * T - cx, 0, 1, H, PAL.white); for (let ty = y0; ty <= y0 + 12; ty++) Gfx.rect(0, ty * T - cy, W, 1, PAL.white); Gfx.alpha(1); }
             if (a.def.drawGround) a.def.drawGround(a, cx, cy);
             /* things lying on the floor, then threads, then everything standing, sorted by depth */
-            const floor = a.ents.filter(e => e.floor);
+            const floor = a.ents.filter(e => e.floor && e.x > cx - 40 && e.x < cx + W + 40 && e.y > cy - 40 && e.y < cy + H + 40);
             for (const e of floor) e.draw(cx, cy);
             Threads.draw(a, cx, cy);
-            const stand = a.ents.filter(e => !e.floor);
+            const stand = a.ents.filter(e => !e.floor && e.x > cx - 80 && e.x < cx + W + 40 && e.y > cy - 80 && e.y < cy + H + 80);
             stand.push(p);
             stand.sort((m, n) => m.sortY - n.sortY);
             for (const e of stand) e.draw(cx, cy);
@@ -94,6 +95,7 @@ const Game = {
             Thrown.draw(cx, cy); Shards.draw(cx, cy); Tools.draw(cx, cy);
             if (a.def.drawOver) a.def.drawOver(a, cx, cy);
             Fx.draw(cx, cy);
+            Knots.draw(cx, cy);
             if (G.holdUp) {
                 const im = spr(ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);
                 if (im) Gfx.img(im, p.x - cx - im.width / 2, p.y - cy - 30);

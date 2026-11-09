@@ -100,7 +100,7 @@ class Block extends GridThing {
         if (props.stray) this.marked = false;
         this.floats = this.style === 'wood';
     }
-    sprite() { return spr(this.marked === false ? 'block_stray' : 'block_' + this.style); }
+    sprite() { return spr(this.look || (this.marked === false ? 'block_stray' : 'block_' + this.style)); }
 }
 
 /* liftable things: pots and crates */
@@ -146,16 +146,17 @@ class Plate extends FloorThing {
     }
     update() {
         const w = this.weighed();
-        if (w && !this.down) { Sfx.play('click'); if (this.mode === 'toggle') this.on = !this.on; if (this.mode === 'timed') this.timer = this.time || 300; }
+        if (w && !this.down) { Sfx.play('click'); if (this.mode === 'toggle') this.on = !this.on; if (this.mode === 'timed' || this.mode === 'pulse') this.timer = this.time || 300; }
         if (!w && this.down) Sfx.play('unclick');
         this.down = w;
         if (this.mode === 'hold') this.on = w;
         if (this.mode === 'timed') { if (this.timer > 0) this.timer--; this.on = w || this.timer > 0; }
+        if (this.mode === 'pulse') { if (this.timer > 0) this.timer--; this.on = this.timer > 0; }
         if (this.on) Signals.set(this.area, this.sig);
     }
     draw(cx, cy) {
         Gfx.img(spr(this.down ? 'plate_down' : 'plate'), this.x - cx, this.y - cy);
-        if (this.mode === 'timed' && this.timer > 0 && !this.down) {
+        if ((this.mode === 'timed' || this.mode === 'pulse') && this.timer > 0 && (!this.down || this.mode === 'pulse')) {
             const n = Math.ceil(this.timer / 60);
             for (let i = 0; i < n && i < 8; i++) Gfx.rect(this.x - cx + 3 + i * 2, this.y - cy + 2, 1, 2, PAL.yellow);
         }
@@ -205,13 +206,19 @@ class Door extends Ent {
         this.dir = props.dir || 'h';          /* h: in a horizontal wall (you pass up/down), v: in a vertical wall */
     }
     onAdd(area) {
-        if (this.id && Progress.areaFlag(area.id, 'door:' + this.id)) { this.open = true; this.anim = 8; this.locked = false; }
+        if (this.id && Progress.areaFlag(area.id, 'door:' + this.id)) { this.open = true; this.anim = 8; this.locked = false; this.openedOnce = true; this.keep = true; }
     }
     blocks(x, y) { return !this.open && x === this.tx && y === this.ty; }
     update() {
         if (this.type === 'gate' || this.type === 'shutter') {
             let want = this.type === 'gate' ? Signals.eval(this.area, this.when) : !this.shut;
             if (this.keep && this.openedOnce) want = true;
+            if (this.open && this.passed && !this.openedOnce) {
+                const p = G.player, d = dirByName(this.passed);
+                if (p && p.area === this.area && (d === UP ? p.ty < this.ty : d === DOWN ? p.ty > this.ty : d === LEFT ? p.tx < this.tx : p.tx > this.tx) && Math.abs((d === UP || d === DOWN ? p.tx - this.tx : p.ty - this.ty)) < 3) {
+                    this.openedOnce = true; this.keep = true; if (this.id) Progress.setAreaFlag(this.area.id, 'door:' + this.id);
+                }
+            }
             if (want && !this.open) {
                 /* don't close on someone; open */
                 this.open = true; Sfx.play('door');
@@ -337,7 +344,7 @@ class Pickup extends Ent {
         Gfx.img(im, this.x - cx, this.y - cy - this.z + bob - 2);
     }
 }
-const PICKUP_SPRITE = { heart: 'heart', b1: 'button1', b5: 'button5', b20: 'button20', key: 'key', heartpatch: 'heartpatch' };
+const PICKUP_SPRITE = { heart: 'heart', b1: 'button1', b5: 'button5', b20: 'button20', key: 'key', heartpatch: 'heartpatch', heartstitch: 'heart' };
 
 /* plain props that just stand there (a decoration with an optional collision box) */
 class Prop extends Ent {
@@ -345,6 +352,8 @@ class Prop extends Ent {
         super('prop', props);
         this.tx = tx; this.ty = ty; this.x = tx * T + (props.ox || 0); this.y = ty * T + (props.oy || 0);
         this.solid = props.solid || [];     /* tiles it blocks, relative [dx,dy] */
+        this.staticBlock = !props.moves;    /* fixed props block through the area's tile map, not a list */
+        this.inert = !props.live;
     }
     blocks(x, y) { return this.solid.some(([dx, dy]) => this.tx + dx === x && this.ty + dy === y); }
     get sortY() { return this.y + (this.baseY !== undefined ? this.baseY : (this.im ? this.im.height : 16)); }

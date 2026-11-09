@@ -49,6 +49,7 @@ class Area {
         this.regions = def.regions || [];
         this.flow = new Map();              /* "x,y" -> direction of a current */
         this.overlays = [];
+        this.staticSolid = new Set();       /* tiles blocked by buildings, trees and other props */
         const spawns = [];
         for (let y = 0; y < this.h; y++) {
             for (let x = 0; x < this.w; x++) {
@@ -66,7 +67,10 @@ class Area {
 
     inside(x, y) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
     cell(x, y) { return this.inside(x, y) ? this.cells[y * this.w + x] : this.legend[' '] || { k: 'void' }; }
-    kind(x, y) { return TK[this.cell(x, y).k] || TK.void; }
+    kind(x, y) {
+        if (this.staticSolid.size && this.staticSolid.has(y * 4096 + x)) return TK.prop;
+        return TK[this.cell(x, y).k] || TK.void;
+    }
     kindName(x, y) { return this.cell(x, y).k; }
     setCell(x, y, ch) { if (this.inside(x, y)) { this.cells[y * this.w + x] = this.legend[ch]; this.chars[y * this.w + x] = ch; this._dirty = true; } }
 
@@ -105,7 +109,8 @@ class Area {
     add(e) {
         e.area = this;
         this.ents.push(e);
-        if (e.blocks) this.blockers.push(e);
+        if (e.blocks && e.staticBlock) { for (const [dx, dy] of e.solid) this.staticSolid.add((e.ty + dy) * 4096 + (e.tx + dx)); }
+        else if (e.blocks) this.blockers.push(e);
         if (e.isWalker) this.walkers.push(e);
         if (e.onAdd) e.onAdd(this);
         return e;
@@ -126,7 +131,7 @@ const TileDraw = {
     frame: 0,
     draw(area, tx, ty, sx, sy) {
         const L = area.cell(tx, ty);
-        const th = area.theme, tn = area.themeName;
+        const tn = area.def.themeAt ? area.def.themeAt(tx, ty) : area.themeName, th = THEMES[tn] || area.theme;
         const v = Math.floor(hash2(tx, ty, 99) * 4);
         let c;
         const p = L.p;
@@ -200,6 +205,7 @@ const TileDraw = {
                 break;
             }
             case 'void': c = tileCanvas('void', x => fill(x, PAL.night)); break;
+            case 'forest': c = tileCanvas(`${tn}:forest:${v}`, x => { fill(x, shade(th.grass[3], -0.35)); speckle(x, [shade(th.grass[3], -0.2)], v + 9, 0.15); }); break;
             case 'spikes': c = tileCanvas(`${tn}:spikes`, x => {
                 this.floor(x, area, 'floor', v);
                 for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {

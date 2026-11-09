@@ -31,7 +31,9 @@ class Warp extends FloorThing {
         if (this.dir !== undefined && p.dir !== dirByName(this.dir)) return;
         if (this.when && !Signals.eval(this.area, this.when)) return;
         this.armed = false;
-        World.go(this.to, this.tx2, this.ty2, { dir: this.face, fade: true, from: this.area.id });
+        let x2 = this.tx2, y2 = this.ty2;
+        if (x2 === 'door') [x2, y2] = INTERIOR_DOOR[this.to];
+        World.go(this.to, x2, y2, { dir: this.face, fade: true, from: this.area.id });
     }
     draw() { }
 }
@@ -110,7 +112,8 @@ const World = {
     checkRegion(first) {
         const p = G.player, a = G.map;
         if (!p || !a) return;
-        const r = a.regionAt(p.tx, p.ty);
+        let r = a.regionAt(p.tx, p.ty);
+        if (r && r.quiet) r = a.regions.find(q => !q.quiet && p.tx >= q.x && p.ty >= q.y && p.tx < q.x + q.w && p.ty < q.y + q.h) || null;
         const name = r ? r.name : a.name;
         if (name !== G.regionName) {
             G.regionName = name;
@@ -121,3 +124,32 @@ const World = {
         }
     },
 };
+
+/* Houses (dungeons): rooms of 20x11 tiles on a grid. cells: { "cx,cy": { rows: [11 x 20], ents, name } }.
+   Room ents are in room coordinates; they're moved into place here. */
+function defHouse(def) {
+    const RW = 20, RH = 11;
+    let mx = 0, my = 0;
+    for (const k of Object.keys(def.cells)) { const [cx, cy] = k.split(',').map(Number); mx = Math.max(mx, cx + 1); my = Math.max(my, cy + 1); }
+    const rows = [];
+    for (let y = 0; y < my * RH; y++) rows.push(new Array(mx * RW).fill(' '));
+    const ents = [], rooms = [];
+    for (const [k, c] of Object.entries(def.cells)) {
+        const [cx, cy] = k.split(',').map(Number);
+        const ox = cx * RW, oy = cy * RH;
+        if (c.rows.length !== RH) throw new Error(def.id + ' ' + k + ': ' + c.rows.length + ' rows');
+        c.rows.forEach((r, y) => {
+            if (r.length !== RW) throw new Error(def.id + ' ' + k + ' row ' + y + ' is ' + r.length + ' wide: ' + r);
+            for (let x = 0; x < RW; x++) rows[oy + y][ox + x] = r[x];
+        });
+        for (const e of c.ents || []) {
+            const o = Object.assign({}, e, { x: e.x + ox, y: e.y + oy, room: k });
+            if (o.tx2 !== undefined && o.local) { o.tx2 += ox; o.ty2 += oy; }
+            if (o.trace) o.trace = o.trace.map(([x, y]) => [x + ox, y + oy]);
+            if (o.startAt) o.startAt = [o.startAt[0] + ox, o.startAt[1] + oy];
+            ents.push(o);
+        }
+        rooms.push({ x: ox, y: oy, w: RW, h: RH, name: c.name || '', key: k, nudge: c.nudge, dark: c.dark });
+    }
+    return defArea(Object.assign({ family: 'dungeon' }, def, { rows: rows.map(r => r.join('')), ents, rooms }));
+}

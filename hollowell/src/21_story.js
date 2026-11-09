@@ -4,7 +4,7 @@
 const PEOPLE = {};     /* id -> { name, col, voice } */
 const TALK = {};       /* id -> function* (npc) : what they say now */
 const BUDGE = {};      /* id -> line when pushed off their spot */
-const START = { area: 'lab', x: 2, y: 8 };
+const START = { area: 'gran_room', x: 6, y: 3 };
 
 const Story = {
     name(id) { return id === 'wren' ? G.wanderer : (PEOPLE[id] && PEOPLE[id].name) || id; },

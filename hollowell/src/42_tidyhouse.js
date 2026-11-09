@@ -1,0 +1,705 @@
+/* House 1: the Tidyhouse, in Meadowfold. The Return itself: patience as a timer, plates pressed in
+   passing, heavier shoves lighter, a thing at home blocks the way home, carrying and throwing traces,
+   and (with the Gloves) pulling and gripping. The finale tidies a room whose returns deadlock.
+   Room by room in DUNGEON_TRACKER.md. Teal threads. */
+
+/* where the Tidyhouse's door is, out in Meadowfold (overworld tiles) */
+const TIDY_OUT = { x: 64 + 44, y: 80 + 13 };
+
+const TIDY_LEGEND = {
+    'l': { k: 'low', p: 'counter' },
+    'U': { k: 'floor', p: 'floor', ent: 'bust' }, 'u': { k: 'floor', p: 'floor2', ent: 'bust' },
+    'p': { k: 'floor', p: 'floor3', ent: 'pot', props: { style: 'pot_teal' } },
+};
+
+defHouse({
+    id: 'tidy', name: 'The Tidyhouse', place: 'The Tidyhouse', house: 'tidy', theme: 'tidy', thread: THREAD.ives, music: 'tidy',
+    knotName: 'Tidy Knot', legend: TIDY_LEGEND,
+    entry: { x: 29, y: 42 },
+    cells: {
+        /* ---------------- 1 Foyer ---------------- */
+        '1,3': {
+            name: 'Foyer',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#.,,,,,,,,,,,,,,,,.#',
+                '#.,U............U,.#',
+                '#.,..............,.#',
+                '.................,..',
+                '#.,..............,.#',
+                '#.,U............U,.#',
+                '#.,,,,,,,,,,,,,,,,.#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'wood', x: 4, y: 5, patience: 200, id: 'foyerBlock' },
+                { k: 'plate', x: 6, y: 5, sig: 'f1' },
+                { k: 'door', x: 9, y: 0, type: 'gate', when: 'f1', passed: 'up', id: 'fN' },
+                { k: 'door', x: 19, y: 5, type: 'lock', dir: 'v', id: 'fE' },
+                { k: 'sign', x: 11, y: 9, text: 'THE TIDYHOUSE. Please leave everything exactly as you found it. (It will insist.)' },
+                { k: 'warp', x: 9, y: 10, to: 'hollow', tx2: TIDY_OUT.x, ty2: TIDY_OUT.y, dir: 'down', face: 'down' },
+            ],
+            nudge: { solved: 'tidy_fN', after: 60 * 60 * 2, thing: 'foyerBlock', say: 'Somewhere in the walls, something ticks... like a block counting before it goes home.' },
+        },
+        /* ---------------- 2 Kitchen ---------------- */
+        '0,3': {
+            name: 'Kitchen',
+            rows: [
+                '####################',
+                '#:::::::#::::::::::#',
+                '#:::::::#::::::::::#',
+                '#lllllll#::::::::::#',
+                '#::::::::::::::::::#',
+                '#:::::::::::::::::::',
+                '#::::::::::::::::::#',
+                '#::::::::::::::::::#',
+                '#::::::::::::::::::#',
+                '#::::::::::::::::::#',
+                '####################',
+            ],
+            ents: [
+                { k: 'crystal', x: 4, y: 1, sig: 'kc', id: 'kCrystal', keepOn: true },
+                { k: 'chest', x: 13, y: 2, item: 'key', id: 'kKey', hidden: true, when: 'kc' },
+                { k: 'pot', x: 12, y: 5, style: 'pot_teal' }, { k: 'pot', x: 16, y: 4, style: 'pot_teal' }, { k: 'pot', x: 11, y: 7, style: 'pot_teal' },
+                { k: 'deco', x: 15, y: 1, look: 'stove', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 2, y: 7, look: 'table', solid: [[0, 0], [1, 0]] },
+                { k: 'pie', x: 3, y: 7 },
+                { k: 'deco', x: 9, y: 9, look: 'barrel' }, { k: 'deco', x: 17, y: 9, look: 'barrel' },
+            ],
+            nudge: { solved: 'kc', at: [4, 1], say: 'A pot on the shelf wobbles, as if it would like to be thrown.' },
+        },
+        /* ---------------- 3 Gallery ---------------- */
+        '2,3': {
+            name: 'Gallery',
+            rows: [
+                '####################',
+                '#.......#.#........#',
+                '#.......#.#........#',
+                '#.......#.#........#',
+                '#...#####.######.###',
+                '...................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'wood', x: 7, y: 5, id: 'galBlock' },
+                { k: 'bust', x: 9, y: 5, patience: 190, id: 'galBust' },
+                { k: 'plate', x: 10, y: 5, sig: 'g1' },
+                { k: 'door', x: 16, y: 4, type: 'gate', when: 'g1', passed: 'up', id: 'gG' },
+                { k: 'chest', x: 16, y: 1, item: 'plan', id: 'gPlan' },
+                { k: 'deco', x: 2, y: 1, look: 'painting', solid: false, oy: -12, baseY: -100 },
+                { k: 'deco', x: 5, y: 1, look: 'painting2', solid: false, oy: -12, baseY: -100 },
+                { k: 'enemy', x: 5, y: 8, type: 'dustbunny' },
+                { k: 'pot', x: 17, y: 9, style: 'pot_teal' },
+            ],
+            nudge: { solved: 'g1', thing: 'galBust', say: 'The bust looks very pleased with its spot. Nothing gets past it once it is home.' },
+        },
+        /* ---------------- 4 Hall of Busts ---------------- */
+        '1,2': {
+            name: 'Hall of Busts',
+            rows: [
+                '###.################',
+                '#..................#',
+                '#..................#',
+                '########...........#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                ',,,,,,,,,,,,,,,,,,,,',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#########,##########',
+            ],
+            ents: [
+                { k: 'bust', x: 9, y: 6, id: 'hallBust' },
+                { k: 'plate', x: 9, y: 7, sig: 'hb' },
+                { k: 'wood', x: 8, y: 4, id: 'hallBlock' },
+                { k: 'bust', x: 2, y: 8 }, { k: 'bust', x: 17, y: 8 },
+                { k: 'door', x: 3, y: 0, type: 'gate', when: 'hb', passed: 'up', id: 'hN' },
+                { k: 'door', x: 19, y: 5, type: 'lock', dir: 'v', id: 'hE' },
+                { k: 'enemy', x: 15, y: 2, type: 'nibbler' },
+            ],
+            nudge: { solved: 'hb', after: 60 * 60 * 4, thing: 'hallBust', say: 'The bust in the middle looks restless. It would knock anything out of its way, going home.' },
+        },
+        /* ---------------- 5 Pantry ---------------- */
+        '0,2': {
+            name: 'Pantry',
+            rows: [
+                '####################',
+                '#::::::::::::::::::#',
+                '#::::::::::::::::::#',
+                '#::::::::::::::::::#',
+                '#::ooo:::::::::::::#',
+                '#::o:o::::::::::::::',
+                '#::ooo::::::##:#####',
+                '#:::::::::::#::::::#',
+                '#:::::::::::#::::::#',
+                '#:::::::::::#::::::#',
+                '####################',
+            ],
+            ents: [
+                { k: 'plate', x: 4, y: 5, sig: 'pt' },
+                { k: 'crate', x: 10, y: 2 }, { k: 'crate', x: 15, y: 3 },
+                { k: 'door', x: 14, y: 6, type: 'gate', when: 'pt', passed: 'down', id: 'pG' },
+                { k: 'chest', x: 16, y: 8, item: 'key', id: 'pKey' },
+                { k: 'wood', x: 16, y: 1, look: 'cupboard', id: 'cupboard' },
+                { k: 'staffonly', x: 16, y: 0 },
+                { k: 'deco', x: 2, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 9, y: 9, look: 'barrel' }, { k: 'deco', x: 1, y: 9, look: 'barrel' },
+                { k: 'sign', x: 7, y: 3, text: 'Tins, jars, sacks. Everything labelled. One shelf is labelled THROWING CRATES.' },
+            ],
+            nudge: { solved: 'tidy_pKey', at: [4, 5], say: "A crate creaks. The little island looks just about one good throw away." },
+        },
+        /* ---------------- 6 Parlor ---------------- */
+        '2,2': {
+            name: 'Parlor',
+            rows: [
+                '################,###',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                ',,,,,,,,,,,,,,,,,,,,',
+                '#############,,,,,,#',
+                '#............,,,,,,#',
+                '#............,,,,,,#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '####################',
+            ],
+            ents: [
+                { k: 'wood', x: 2, y: 7, id: 'parBlock' },
+                { k: 'plate', x: 4, y: 7, sig: 'pp', mode: 'pulse', time: 190 },
+                { k: 'door', x: 16, y: 0, type: 'gate', when: 'pp', passed: 'up', id: 'pN' },
+                { k: 'deco', x: 3, y: 2, look: 'armchair' }, { k: 'deco', x: 6, y: 2, look: 'armchair', flip: true },
+                { k: 'deco', x: 4, y: 3, look: 'rug_small', solid: false, baseY: -100 },
+                { k: 'deco', x: 10, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 17, y: 8, look: 'plant' },
+            ],
+            nudge: { solved: 'tidy_pN', thing: 'parBlock', say: 'The plate in the corridor clicks every time anything goes over it. Even on the way home.' },
+        },
+        /* ---------------- 7 Conservatory ---------------- */
+        '3,2': {
+            name: 'Conservatory',
+            rows: [
+                '####################',
+                '#.............#....#',
+                '#.#############....#',
+                '#............##....#',
+                '#.############.#.###',
+                '...................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'plate', x: 6, y: 3, sig: 'ca', mode: 'toggle' },
+                { k: 'plate', x: 12, y: 3, sig: 'cb', mode: 'toggle' },
+                { k: 'crate', x: 5, y: 7 },
+                { k: 'door', x: 16, y: 4, type: 'gate', when: 'ca&cb', passed: 'up', id: 'cG' },
+                { k: 'chest', x: 17, y: 1, item: 'heartpatch', id: 'consPatch' },
+                { k: 'deco', x: 3, y: 8, look: 'plant' }, { k: 'deco', x: 8, y: 6, look: 'plant' }, { k: 'deco', x: 14, y: 8, look: 'plant' }, { k: 'deco', x: 17, y: 6, look: 'plant' },
+                { k: 'sign', x: 1, y: 6, text: 'Seedlings. Do not tread on the plates more than strictly necessary.' },
+            ],
+            nudge: { solved: 'tidy_cG', after: 60 * 60 * 4, say: 'You count the clicks of the plates on the way in and on the way out. Odd. Even. Odd.' },
+        },
+        /* ---------------- 8 Linen closets (the Dust Monger) ---------------- */
+        '2,1': {
+            name: 'Linen Closets',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#.##............##.#',
+                '#.##..U.........##.#',
+                '#..................#',
+                '....................',
+                '#..................#',
+                '#.##.........U..##.#',
+                '#.##............##.#',
+                '#..................#',
+                '################.###',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'lock', id: 'lN' },
+                { k: 'door', x: 0, y: 5, type: 'gate', dir: 'v', when: 'flag:tidy_shortcut', id: 'lW' },
+                { k: 'shutter', x: 16, y: 10, group: 'monger' }, { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'monger' },
+                { k: 'pot', x: 1, y: 1, style: 'pot_teal' }, { k: 'pot', x: 18, y: 9, style: 'pot_teal' }, { k: 'pot', x: 18, y: 1, style: 'pot_teal' },
+                { k: 'chest', x: 9, y: 5, item: 'gloves', id: 'gloves', hidden: true, when: 'flag:tidy_monger', big: true },
+                { k: 'monger', x: 9, y: 4 },
+            ],
+        },
+        /* ---------------- 9 Laundry ---------------- */
+        '3,1': {
+            name: 'Laundry',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..........###.....#',
+                '#..........#.......#',
+                '...........###.....#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'chest', x: 12, y: 4, item: 'key', id: 'lKey' },
+                { k: 'wood', x: 13, y: 4, id: 'laundryBlock' },
+                { k: 'deco', x: 3, y: 2, look: 'washtub' }, { k: 'deco', x: 5, y: 2, look: 'washtub' },
+                { k: 'deco', x: 16, y: 7, look: 'basket' }, { k: 'deco', x: 3, y: 8, look: 'basket' },
+                { k: 'enemy', x: 6, y: 7, type: 'dustbunny' }, { k: 'enemy', x: 15, y: 2, type: 'nibbler' },
+                { k: 'sign', x: 1, y: 1, text: 'LAUNDRY. A Gloves-only zone, apparently. Someone has drawn a little hand pulling a little block.' },
+            ],
+            nudge: { solved: 'tidy_lKey', thing: 'laundryBlock', say: "The block in the cubby can't be pushed in any further. It could come out, though." },
+        },
+        /* ---------------- 10 Ballroom: the tidy-up ---------------- */
+        '1,1': {
+            name: 'Ballroom',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#....##########....#',
+                '....................',
+                '#....##########....#',
+                '##..............ooo#',
+                '#...............o.o#',
+                '##..............ooo#',
+                '###.################',
+            ],
+            ents: [
+                { k: 'wood', x: 2, y: 5, id: 'ballA', group: 'ball', tiedOff: true, startAt: [17, 8],
+                    trace: [[2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5], [8, 5], [9, 5], [10, 5], [11, 5], [12, 5], [13, 5], [14, 5], [15, 5], [16, 5], [17, 5], [17, 6], [17, 7], [17, 8]] },
+                { k: 'wood', x: 17, y: 3, id: 'ballB', group: 'ball', tiedOff: true, startAt: [1, 8],
+                    trace: [[17, 3], [16, 3], [15, 3], [15, 4], [15, 5], [14, 5], [13, 5], [12, 5], [11, 5], [10, 5], [9, 5], [8, 5], [7, 5], [6, 5], [5, 5], [4, 5], [4, 6], [4, 7], [4, 8], [3, 8], [2, 8], [1, 8]] },
+                { k: 'lever', x: 6, y: 9, release: 'ball', once: true, id: 'ballLever' },
+                { k: 'lever', x: 18, y: 4, id: 'shortcut', onFlag: 'tidy_shortcut' },
+                { k: 'chest', x: 9, y: 2, item: 'pattern', id: 'pattern', hidden: true, when: 'flag:tidy_ballDone', big: true },
+                { k: 'sign', x: 7, y: 9, text: 'TIDY UP. Pull the lever and everything goes back where it belongs. (Probably.)' },
+            ],
+            nudge: { solved: 'tidy_ballDone', after: 60 * 60 * 4, say: "Two threads, one corridor. One of them will have to wait its turn... or be held." },
+        },
+        /* ---------------- 11 Library ---------------- */
+        '0,1': {
+            name: 'Library',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'block', x: 9, y: 1, look: 'bookshelf', id: 'secretShelf', weight: WEIGHT.heavy, noPush: true, pushLine: "The bookshelf won't budge forward. It is very solidly against the wall." },
+                { k: 'deco', x: 2, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 }, { k: 'deco', x: 5, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 12, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 }, { k: 'deco', x: 15, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 3, y: 5, look: 'table', solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 13, y: 6, look: 'table', solid: [[0, 0], [1, 0]] },
+                { k: 'deco', x: 7, y: 8, look: 'armchair' },
+                { k: 'sign', x: 17, y: 8, text: 'PLEASE DO NOT PULL THE BOOKSHELVES. (Thank you.)' },
+                { k: 'book', x: 9, y: 4, text: "A book lies open on the floor: 'Secret Passages for Beginners. Chapter One: Behind the Bookcase. Chapter Two: Also Behind the Bookcase.'" },
+            ],
+        },
+        /* ---------------- 12 Attic (the Maker's signature room) ---------------- */
+        '0,0': {
+            name: 'Attic',
+            rows: [
+                '####################',
+                '####################',
+                '####............####',
+                '####............####',
+                '####............####',
+                '####............####',
+                '####............####',
+                '####............####',
+                '####............####',
+                '#########.##########',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'deco', x: 6, y: 1, look: 'sampler_ives', solid: false, oy: -2, baseY: -100, text: "A sampler, stitched in teal: a little house, a little bucket, a little broom, and the letters M. I. in the corner. Under them, very small: 'for the Wanderer'." },
+                { k: 'deco', x: 5, y: 3, look: 'armchair' },
+                { k: 'deco', x: 7, y: 3, look: 'table', solid: [[0, 0], [1, 0]], text: "A teapot, still warm. Two cups. One has a little lipstick on the rim." },
+                { k: 'chest', x: 13, y: 3, item: 'heartpatch', id: 'atticPatch' },
+                { k: 'signature', x: 10, y: 6, house: 'tidy' },
+                { k: 'deco', x: 5, y: 7, look: 'basket' }, { k: 'deco', x: 14, y: 7, look: 'plant' },
+            ],
+        },
+        /* ---------------- 13 Antechamber ---------------- */
+        '2,0': {
+            name: 'Antechamber',
+            rows: [
+                '####################',
+                '#..................#',
+                '#.,,,,,,,,,,,,,,,,.#',
+                '#.,..............,.#',
+                '#.,..............,.#',
+                '..,..............,.#',
+                '#.,..............,.#',
+                '#.,..............,.#',
+                '#.,,,,,,,,,,,,,,,,.#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'door', x: 0, y: 5, type: 'big', dir: 'v', id: 'bossDoor' },
+                { k: 'pot', x: 4, y: 3, style: 'pot_teal', drop: 'heart' }, { k: 'pot', x: 15, y: 3, style: 'pot_teal', drop: 'heart' },
+                { k: 'pot', x: 4, y: 7, style: 'pot_teal' }, { k: 'pot', x: 15, y: 7, style: 'pot_teal' },
+                { k: 'sign', x: 3, y: 5, text: 'THE GRAND HALL. The Housekeeper is in. Please wipe your feet and do not touch the furniture.' },
+            ],
+        },
+        /* ---------------- 14 The Grand Hall (boss) ---------------- */
+        '1,0': {
+            name: 'The Grand Hall',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'marble', x: 3, y: 2, id: 'gb1' }, { k: 'marble', x: 16, y: 2, id: 'gb2' },
+                { k: 'marble', x: 3, y: 8, id: 'gb3' }, { k: 'marble', x: 16, y: 8, id: 'gb4' },
+                { k: 'pot', x: 1, y: 1, style: 'pot_teal' }, { k: 'pot', x: 18, y: 9, style: 'pot_teal' },
+                { k: 'housekeeper', x: 9, y: 4 },
+                { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'boss' },
+            ],
+        },
+    },
+    tick: a => TidyLogic.tick(a),
+    onEnter: a => TidyLogic.enter(a),
+    afterKnot: function* () { yield* Tidy.afterKnot(); },
+});
+
+const TidyLogic = {
+    enter(a) {
+        /* the lever by the linen door: remember it */
+        if (Progress.flag('tidy_shortcut')) { const l = a.find('shortcut'); if (l) l.on = true; }
+    },
+    tick(a) {
+        /* the ballroom: both blocks home */
+        if (!Progress.flag('tidy_ballDone')) {
+            const ball = a.ents.filter(e => e.group === 'ball');
+            if (ball.length && ball.every(b => Return.isHome(b) && !b.tiedOff)) { Progress.set('tidy_ballDone'); Sfx.play('appear'); }
+        }
+        const sc = a.find('shortcut');
+        if (sc && sc.on && !Progress.flag('tidy_shortcut')) Progress.set('tidy_shortcut');
+        /* remember doors that stay open as story flags (for nudges and the tracker) */
+        for (const d of a.ents) if (d.kind === 'door' && d.id && d.open && (d.openedOnce || d.type !== 'gate')) Progress.set('tidy_' + d.id);
+        for (const c of a.ents) if (c.kind === 'chest' && c.opened) Progress.set('tidy_' + c.id);
+    },
+};
+
+/* the warm pie (S05) */
+SPAWN.pie = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.pie, solid: [], oy: -6 });
+    pr.live = true;
+    pr.interact = () => {
+        if (Progress.flag('pie')) { Script.run(function* () { yield* say(null, 'An empty pie dish. Crumbs.'); }); return true; }
+        Script.run(function* () {
+            yield* say(null, "A pie, still warm, steam curling off it. A note is tucked under the dish: 'For my favourite Wanderer. Don't tell.'");
+            Inv.hp = Inv.maxHp; Sfx.play('heart');
+            Progress.set('pie'); Stats.count('secret:pie');
+            pr.im = ART.pie_empty;
+            yield* say(null, 'You eat the whole pie. You feel wonderful. Who on earth bakes pies in a House nobody lives in?');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => (f.tx === tx || f.tx === tx - 1) && f.ty === ty;
+    if (Progress.flag('pie')) pr.im = ART.pie_empty;
+    return pr;
+};
+/* the Staff Only door behind the cupboard (S04) */
+SPAWN.staffonly = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.staffdoor_wall, solid: [], oy: -2 });
+    pr.baseY = -50;
+    pr.interact = () => {
+        Script.run(function* () {
+            const p = G.player;
+            if (!p.feetOn(tx, ty + 1)) return;
+            if (Progress.flag('staffonly')) { yield* say(null, 'STAFF ONLY. Locked tight. Somebody has wedged a chair under the handle on the other side.'); return; }
+            Progress.set('staffonly'); Stats.count('secret:staffonly');
+            yield* say(null, 'A narrow door behind where the cupboard stood: STAFF ONLY. You try the handle. It opens...');
+            G.staffPeek = 1;
+            Sfx.play('door');
+            yield 40;
+            yield* say(null, '...onto a dim little space full of ropes and pulleys, and a woman in a teal apron with her back to you, winding a crank.');
+            yield* say('???', 'Nothing to see! Shoo! Shoo!');
+            G.staffPeek = 0;
+            Sfx.play('doorshut'); G.shake = 8;
+            yield 30;
+            yield* say(null, 'The door slams. There is a scrape of a chair being wedged under the handle.');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+SPAWN.book = (tx, ty, p) => {
+    const pr = new Prop(tx, ty, { im: ART.book, solid: [], oy: 4 });
+    pr.baseY = -50;
+    pr.interact = () => { Script.run(function* () { yield* say(null, p.text); }); return true; };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+/* a Maker's signature, hidden somewhere in each House (S06) */
+SPAWN.signature = (tx, ty, p) => {
+    const pr = new Prop(tx, ty, { im: ART['monogram_' + p.house], solid: [], oy: 4 });
+    pr.baseY = -50;
+    pr.interact = () => {
+        Script.run(function* () {
+            const first = !Progress.flag('sig:' + p.house);
+            Progress.set('sig:' + p.house);
+            if (first) Stats.count('secret:sig');
+            yield* say(null, SIGNATURE_TEXT[p.house]);
+            const n = ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'].filter(h => Progress.flag('sig:' + h)).length;
+            if (first) yield* say(null, `(Maker's marks found: ${n} of 6.)`);
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+const SIGNATURE_TEXT = {
+    tidy: "Stitched into the floorboards, small and neat, a teal monogram: M.I. And a tiny embroidered broom. Someone signed this House, the way you'd sign a sampler.",
+};
+
+/* shutters: close while a fight is on */
+SPAWN.shutter = (x, y, p) => {
+    const d = new Door(x, y, Object.assign({ type: 'shutter' }, p));
+    d.shut = false; d.open = true; d.anim = 8;
+    return d;
+};
+
+/* the Dust Monger: a huge dust bunny. The stick bounces off its fluff; it fears coming-home furniture */
+SPAWN.monger = (tx, ty) => {
+    if (Progress.flag('tidy_monger')) return new Ent('none');
+    const e = new Enemy(tx, ty, { type: 'monger', hp: 4 });
+    e.onDie = () => {
+        Progress.set('tidy_monger');
+        for (const s of e.area.ents) if (s.kind === 'door' && s.group === 'monger') s.shut = false;
+        Music.play('tidy');
+        Script.run(function* () { yield 60; yield* say(null, 'The Dust Monger bursts into a hundred dust bunnies, which all hop away under the furniture. Something glints in the middle of the floor.'); });
+    };
+    e.wakeT = 0;
+    return e;
+};
+ENEMY.monger = { hp: 4, speed: 1.4, leash: 12, sight: 12, ai: 'monger', yarn: '#e4dcd0', r: 10, tall: 20, armored: true, dmg: 2, drop: 0, weight: WEIGHT.medium };
+ENEMY_DRAW.monger = e => spr(e.z > 1 ? 'monger_1' : 'monger_0');
+AI.monger = (e, p) => {
+    const a = e.area;
+    if (!e.awake) {
+        if (p.area === a && Cam.room && Cam.room.key === '2,1' && !Cam.busy) {
+            e.awake = true;
+            for (const s of a.ents) if (s.kind === 'door' && s.group === 'monger') s.shut = true;
+            Music.play('boss');
+            Script.run(function* () { yield* say(null, 'A heap of fluff in the middle of the room shudders, stands up, and looks at you. It is a dust bunny the size of a sofa.'); yield* say(null, 'Your stick would just bounce off it. Something heavier, maybe...'); });
+        }
+        return;
+    }
+    AI.hop(e, p);
+};
+
+/* the Grand Housekeeper: a wardrobe that keeps the hall tidy */
+class Housekeeper extends Enemy {
+    constructor(tx, ty) {
+        super(tx, ty, { type: 'housekeeper', hp: 3 });
+        this.state = 'sleep'; this.st = 0; this.cd = 60; this.doors = 0;
+        this.weightN = WEIGHT.medium + 0.5;
+    }
+    hurtBox() { if (!this.alive) return null; return { x0: this.x - 11, x1: this.x + 11, y0: this.y - 30, y1: this.y + 4 }; }
+    onTile(x, y) { if (!this.alive) return false; return x * T < this.x + 12 && (x + 1) * T > this.x - 12 && y * T < this.y + 5 && (y + 1) * T > this.y - 10; }
+    update() {
+        if (!this.alive) return this.updateYarn();
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area;
+        if (this.state === 'sleep') {
+            if (p.area === a && Cam.room && Cam.room.key === '1,0' && !Cam.busy) {
+                this.state = 'wake'; this.st = 0;
+                for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
+                Music.play('boss');
+                Script.run(Tidy.bossIntro(this));
+            }
+            return;
+        }
+        if (Script.blocking()) return;
+        this.st++;
+        if (this.kx || this.ky) { this.move(this.kx, this.ky); this.kx *= 0.8; this.ky *= 0.8; if (Math.abs(this.kx) + Math.abs(this.ky) < 0.3) this.kx = this.ky = 0; }
+        switch (this.state) {
+            case 'wake': if (this.st > 30) this.setState('stalk'); break;
+            case 'stalk': {
+                /* tidy first: anything out of place gets fetched */
+                const mess = a.ents.find(e => e.isGrid && e.ret && e.ret.state === 'away' && !e.carried && e.kind !== 'pot' && dist(e.px + 8, e.py + 8, this.x, this.y) < 200);
+                const tgt = mess ? { x: mess.px + 8, y: mess.py + 10 } : { x: p.x, y: p.y };
+                const dx = tgt.x - this.x, dy = tgt.y - this.y, d = Math.hypot(dx, dy) || 1;
+                const sp = this.hp <= 1 ? 0.9 : 0.6;
+                if (d > 4) { this.move(dx / d * sp, dy / d * sp); this.dir = dirOf(dx, dy); this.anim++; }
+                if (mess && d < 20) { Return.snap(mess); Sfx.play('tug'); }
+                /* line up with Wren: charge */
+                if (--this.cd <= 0 && !mess) {
+                    const ax = Math.abs(p.x - this.x), ay = Math.abs(p.y - this.y);
+                    if (ax < 10 || ay < 10) { this.chargeDir = ax < 10 ? (p.y < this.y ? UP : DOWN) : (p.x < this.x ? LEFT : RIGHT); this.setState('windup'); }
+                }
+                break;
+            }
+            case 'windup': if (this.st > 32) { this.setState('charge'); Sfx.play('boss'); } break;
+            case 'charge': {
+                const sp = this.hp <= 1 ? 3.6 : 3;
+                if (!this.move(DX[this.chargeDir] * sp, DY[this.chargeDir] * sp) || this.st > 90) { G.shake = 10; Sfx.play('push'); Fx.dust(this.x, this.y); this.setState('recoil'); }
+                break;
+            }
+            case 'recoil': if (this.st > 40) { this.cd = 90; this.setState('stalk'); } break;
+            case 'stunned':
+                this.doors = Math.min(1, this.st / 10);
+                if (this.st > 150) { this.doors = 0; this.cd = 60; this.setState('stalk'); }
+                break;
+        }
+        if (p.state === 'normal' && this.state !== 'stunned' && Math.abs(p.x - this.x) < 14 && Math.abs(p.y - this.y) < 10) p.hurt(2, this.x, this.y);
+    }
+    setState(s) { this.state = s; this.st = 0; }
+    /* a returning heavy thing slammed into it */
+    shoved(d, pace, by) {
+        if (!this.alive || this.state === 'stunned') return;
+        this.kx = DX[d] * 3; this.ky = DY[d] * 3;
+        G.shake = 12; G.hitstop = 6; Sfx.play('hitthing'); Sfx.play('boss');
+        this.setState('stunned');
+        Stats.count('boss:tidy:slam');
+    }
+    struck(by, dmg, dir, shard) {
+        if (!this.alive) return;
+        if (shard && this.state !== 'stunned') {
+            /* flying shards make its doors pop open for a moment */
+            this.setState('stunned'); this.st = 70; Stats.count('boss:tidy:shards'); Sfx.play('hitthing'); return;
+        }
+        if (this.state !== 'stunned' || this.doors < 1) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 14); return; }
+        if (this.flash > 0) return;
+        this.hp--; this.flash = 30; Sfx.play('enemyhit'); G.hitstop = 8; G.shake = 6;
+        this.setState('recoil'); this.doors = 0;
+        if (this.hp <= 0) this.defeat();
+    }
+    defeat() {
+        this.alive = false; this.yarnT = 0; this.trace = [[this.tx, this.ty]];
+        Sfx.play('unravel'); Fx.yarn(this.x, this.y - 16, THREAD.ives); Fx.yarn(this.x, this.y - 8, THREAD.ives);
+        Progress.set('tidy_boss');
+        Script.run(Tidy.bossDown(this));
+    }
+    updateYarn() { this.yarnT++; }
+    draw(cx, cy) {
+        if (!this.alive) {
+            /* the last of it drains into a little hole in the floor */
+            if (this.yarnT < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.ives); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
+            return;
+        }
+        const x = this.x - cx, y = this.y - cy;
+        let ox = 0;
+        if (this.state === 'windup') ox = (this.st >> 1) % 2 ? 1 : -1;
+        Gfx.alpha(0.3); Gfx.rect(x - 12, y + 2, 24, 3, PAL.ink); Gfx.alpha(1);
+        const im = spr(this.state === 'stunned' && this.doors >= 1 ? 'keeper_open' : this.state === 'sleep' ? 'keeper_sleep' : 'keeper');
+        const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
+        Gfx.img(img, x - 16 + ox, y - 38 + (this.state === 'charge' ? Math.sin(this.st) : 0));
+    }
+}
+SPAWN.housekeeper = (tx, ty) => Progress.flag('tidy_boss') ? new Ent('none') : new Housekeeper(tx, ty);
+
+const Tidy = {
+    *bossIntro(k) {
+        yield 20;
+        yield* say(null, 'The great wardrobe at the end of the hall creaks, unfolds a pair of polished feet, and turns to face you. Its doors rattle like teeth.');
+        yield* say(null, 'It glares at the busts in the corners. It glares at you. You are clearly the messiest thing in the room.');
+        G.boss = k;
+    },
+    *bossDown(k) {
+        const a = k.area;
+        G.boss = null;
+        Music.play('silence');
+        yield 30;
+        yield* say(null, 'The Housekeeper shudders, unravels into a heap of teal yarn, and the yarn runs away across the floor and down a little hole you had not noticed, like water down a drain.');
+        for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
+        const br = a.rooms.find(r => r.key === '1,0');
+        a.add(new Hoop(br.x + 9, br.y + 5));
+        a.add(new Pickup((br.x + 9) * T, (br.y + 7) * T, { what: 'heartstitch', id: 'tidyHeart' }));
+        Sfx.play('appear');
+        Music.play('tidy');
+    },
+    *afterKnot() {
+        Progress.set('d1');
+        Progress.set('tagStopped');
+        Progress.setGoal("Go back to Hollowell and tell Gran. Next, the Kiln in Kilnridge: the canyon road west of Meadowfold.");
+        yield* say(null, 'A door opens in the far wall of the Grand Hall, letting in daylight and the smell of grass.');
+        const a = G.map, r = a.rooms.find(r => r.key === '1,0');
+        a.add(new Warp(r.x + 9, 9, { to: 'hollow', tx2: TIDY_OUT.x, ty2: TIDY_OUT.y, face: 'down' }));
+        a.add(new Prop(r.x + 9, 9, { im: ART.exitlight, solid: [] }));
+    },
+};
+
+function initTidyArt() {
+    ART.pie = paintSprite(16, 10, x => { x.fillStyle = '#c8d0d8'; x.fillRect(1, 5, 14, 4); x.fillStyle = '#d9a050'; x.fillRect(2, 2, 12, 5); x.fillStyle = '#f0c070'; x.fillRect(3, 2, 10, 2); x.fillStyle = '#a8602a'; for (let i = 3; i < 13; i += 3) x.fillRect(i, 4, 1, 2); x.fillStyle = '#ffffff'; x.globalAlpha = 0.6; x.fillRect(6, 0, 1, 2); x.fillRect(9, 0, 1, 1); x.globalAlpha = 1; });
+    ART.pie_empty = paintSprite(16, 10, x => { x.fillStyle = '#c8d0d8'; x.fillRect(1, 5, 14, 4); x.fillStyle = '#e8ecef'; x.fillRect(2, 5, 12, 2); x.fillStyle = '#d9a050'; x.fillRect(5, 6, 1, 1); x.fillRect(9, 5, 1, 1); });
+    ART.staffdoor_wall = paintSprite(16, 18, x => { x.fillStyle = '#4a2e22'; x.fillRect(2, 0, 12, 18); x.fillStyle = '#6b4128'; x.fillRect(3, 1, 10, 16); x.fillStyle = '#fbf6ea'; x.fillRect(4, 4, 8, 3); x.fillStyle = '#c42b4a'; x.fillRect(5, 5, 6, 1); x.fillStyle = '#f7d64a'; x.fillRect(11, 10, 1, 2); }, false);
+    ART.stove = paintSprite(32, 28, x => { x.fillStyle = '#4a4a5a'; x.fillRect(0, 6, 32, 22); x.fillStyle = '#6a6a7a'; x.fillRect(0, 6, 32, 3); x.fillStyle = '#2a2a3a'; x.fillRect(4, 14, 10, 10); x.fillRect(18, 14, 10, 10); x.fillStyle = '#f39a3c'; x.fillRect(6, 20, 6, 3); x.fillStyle = '#9a9aa8'; x.fillRect(6, 2, 8, 5); x.fillStyle = '#c0505a'; x.fillRect(20, 3, 8, 4); });
+    ART.painting = paintSprite(28, 22, x => { x.fillStyle = '#d9a33a'; x.fillRect(0, 0, 28, 22); x.fillStyle = '#9fd4f0'; x.fillRect(3, 3, 22, 16); x.fillStyle = '#8fd46a'; x.fillRect(3, 13, 22, 6); x.fillStyle = '#9a6438'; x.fillRect(13, 8, 3, 6); x.fillStyle = '#4fa84a'; x.fillRect(10, 5, 9, 5); });
+    ART.painting2 = paintSprite(20, 24, x => { x.fillStyle = '#9a6438'; x.fillRect(0, 0, 20, 24); x.fillStyle = '#f4e6c8'; x.fillRect(3, 3, 14, 18); x.fillStyle = '#c0505a'; x.fillRect(7, 6, 6, 6); x.fillStyle = '#f2c49b'; x.fillRect(8, 7, 4, 4); x.fillStyle = '#5a8ad0'; x.fillRect(6, 12, 8, 7); });
+    ART.armchair = paintSprite(18, 18, x => { x.fillStyle = '#9a3a4a'; x.fillRect(1, 1, 16, 9); x.fillStyle = '#c45a6a'; x.fillRect(2, 2, 14, 7); x.fillStyle = '#9a3a4a'; x.fillRect(0, 8, 18, 7); x.fillStyle = '#c45a6a'; x.fillRect(3, 9, 12, 4); x.fillStyle = '#6b4128'; x.fillRect(1, 15, 2, 3); x.fillRect(15, 15, 2, 3); });
+    ART.washtub = paintSprite(18, 16, x => { x.fillStyle = '#9aa8b8'; x.fillRect(1, 4, 16, 11); x.fillStyle = '#c8d4e0'; x.fillRect(1, 4, 16, 2); x.fillStyle = '#7ec8f0'; x.fillRect(3, 6, 12, 3); x.fillStyle = '#ffffff'; x.fillRect(5, 3, 3, 2); x.fillRect(10, 2, 2, 2); });
+    ART.basket = paintSprite(16, 14, x => { x.fillStyle = '#c9925a'; x.fillRect(1, 5, 14, 9); x.fillStyle = '#9a6438'; for (let i = 1; i < 15; i += 2) x.fillRect(i, 6, 1, 7); x.fillStyle = '#fbf6ea'; x.fillRect(2, 2, 6, 4); x.fillStyle = '#5ad1c5'; x.fillRect(8, 2, 6, 4); });
+    ART.book = paintSprite(14, 8, x => { x.fillStyle = '#fbf6ea'; x.fillRect(1, 1, 12, 6); x.fillStyle = '#9a3a4a'; x.fillRect(0, 2, 14, 1); x.fillRect(6, 1, 2, 6); x.fillStyle = '#9a9188'; for (let i = 2; i < 6; i += 2) { x.fillRect(2, i + 1, 3, 1); x.fillRect(9, i + 1, 3, 1); } });
+    ART.sampler_ives = paintSprite(28, 22, x => { x.fillStyle = '#9a6438'; x.fillRect(0, 0, 28, 22); x.fillStyle = '#fbf3df'; x.fillRect(2, 2, 24, 18); x.fillStyle = '#3fc1b5'; x.fillRect(6, 7, 8, 7); x.fillRect(5, 6, 10, 1); x.fillRect(16, 9, 2, 5); x.fillRect(20, 12, 4, 2); x.fillStyle = '#2e9a96'; x.fillRect(18, 16, 2, 1); x.fillRect(21, 16, 2, 1); for (let i = 3; i < 25; i += 2) { x.fillRect(i, 3, 1, 1); x.fillRect(i, 18, 1, 1); } });
+    ART.monogram_tidy = paintSprite(16, 10, x => { x.fillStyle = '#3fc1b5'; x.fillRect(2, 2, 1, 6); x.fillRect(3, 3, 1, 1); x.fillRect(4, 4, 1, 1); x.fillRect(5, 3, 1, 1); x.fillRect(6, 2, 1, 6); x.fillRect(9, 2, 1, 6); x.fillRect(8, 2, 3, 1); x.fillRect(8, 7, 3, 1); x.fillStyle = '#2e9a96'; x.fillRect(12, 4, 3, 1); x.fillRect(13, 5, 1, 3); }, false);
+    ART.exitlight = paintSprite(16, 16, x => { x.globalAlpha = 0.5; x.fillStyle = '#fff6c0'; x.fillRect(3, 0, 10, 16); x.globalAlpha = 1; x.fillStyle = '#fff6e0'; x.fillRect(6, 2, 4, 12); }, false);
+    defSprite('bookshelf', ['.kkkkkkkkkkkkkk.', 'kbbbbbbbbbbbbbbk', 'kbKKKKKKKKKKKKbk', 'kbrraagyymrraKbk', 'kbrraagyymrraKbk', 'kbbbbbbbbbbbbbbk', 'kbKKKKKKKKKKKKbk', 'kbyyrgaamyygrKbk',
+        'kbyyrgaamyygrKbk', 'kbbbbbbbbbbbbbbk', 'kbKKKKKKKKKKKKbk', 'kbaamyygrraamKbk', 'kbaamyygrraamKbk', 'kbbbbbbbbbbbbbbk', 'kBBBBBBBBBBBBBBk', '.kkkkkkkkkkkkkk.'],
+        { b: '#9a6438', B: '#6b4128', K: '#3a2418', r: '#c0505a', a: '#5a8ad0', g: '#4fa84a', y: '#e8b04a', m: '#8a5aa0' });
+    defSprite('cupboard', ['.kkkkkkkkkkkkkk.', 'kuuuuuuuuuuuuuuk', 'kUUUUUUUUUUUUUUk', 'kbbbbbbkkbbbbbbk', 'kbqqqqbkkbqqqqbk', 'kbqbbqbkkbqbbqbk', 'kbqqqqbkkbqqqqbk', 'kbbbbbbkkbbbbbbk',
+        'kbbbbbykkybbbbbk', 'kbbbbbbkkbbbbbbk', 'kbqqqqbkkbqqqqbk', 'kbqbbqbkkbqbbqbk', 'kbqqqqbkkbqqqqbk', 'kbbbbbbkkbbbbbbk', 'kBBBBBBBBBBBBBBk', '.kk..........kk.'],
+        { u: '#8fd6c8', U: '#5fb7a8', b: '#3c8a80', B: '#245a54', q: '#5fb7a8', y: '#f7d64a' });
+    /* the Dust Monger */
+    const mong = ['................................', '.........kk.........kk..........', '........kggk.......kggk.........', '........kggk.......kggk.........', '........kgik.......kigk.........', '........kggkkkkkkkkkggk.........', '......kkgggggggggggggggkk.......',
+        '.....kgggggggggggggggggggk......', '....kgggwwkggggggggwwkgggGk.....', '....kgggwkkggggggggwkkgggGk.....', '...kggggggggggiigggggggggGGk....', '...kgggggggggggggggggggggGGk....', '..kggggggggggggggggggggggGGGk...', '..kgGgggggggggggggggggggGgGGk...',
+        '..kgggGggggggggggggggggGggGGk...', '..kGgggggGgggggggggggGgggGGGk...', '...kGGgggggggggggggggggGGGGk....', '....kGGGGGGGGGGGGGGGGGGGGGk.....', '.....kkkkkkkkkkkkkkkkkkkkk......', '......kgggk..........kgggk......', '.......kkk............kkk.......'];
+    defSprite('monger_0', mong, { g: '#e4dcd0', G: '#b0a698', w: '#ffffff', i: '#f59ac0' });
+    defSprite('monger_1', mong.slice(1).concat(['................................']), { g: '#e4dcd0', G: '#b0a698', w: '#ffffff', i: '#f59ac0' });
+    /* the Housekeeper: a teal wardrobe with feet and a face in its doors */
+    const kp = [
+        '.......kkkkkkkkkkkkkkkkkk.......', '......kyyyyyyyyyyyyyyyyyyk......', '.....kqqqqqqqqqqqqqqqqqqqqk.....', '....kqQQQQQQQQQQQQQQQQQQQQqk....', '....kqQkkkkkkkkkkkkkkkkkkQqk....',
+        '....kqQkqqqqqqqkkqqqqqqqkQqk....', '....kqQkqwwwqqqkkqqwwwqqkQqk....', '....kqQkqwkkqqqkkqqkkwqqkQqk....', '....kqQkqwwwqqqkkqqwwwqqkQqk....', '....kqQkqqqqqqqkkqqqqqqqkQqk....',
+        '....kqQkqqqqqqykkyqqqqqqkQqk....', '....kqQkqqqqqqqkkqqqqqqqkQqk....', '....kqQkqqqqkkkkkkkkqqqqkQqk....', '....kqQkqqqkrrrrrrrrkqqqkQqk....', '....kqQkqqqkrRRRRRRrkqqqkQqk....',
+        '....kqQkqqqqkkkkkkkkqqqqkQqk....', '....kqQkqqqqqqqkkqqqqqqqkQqk....', '....kqQkqqqqqqqkkqqqqqqqkQqk....', '....kqQkqqqqqqqkkqqqqqqqkQqk....', '....kqQkkkkkkkkkkkkkkkkkkQqk....',
+        '....kqQQQQQQQQQQQQQQQQQQQQqk....', '....kqqqqqqqqqqqqqqqqqqqqqqk....', '....kqQQQQQQQQQQQQQQQQQQQQqk....', '....kqQkkkkkkkkkkkkkkkkkkQqk....', '....kqQkqqqqqqqqqqqqqqqqkQqk....',
+        '....kqQkqqqqqqqyyqqqqqqqkQqk....', '....kqQkqqqqqqqqqqqqqqqqkQqk....', '....kqQkkkkkkkkkkkkkkkkkkQqk....', '....kqqqqqqqqqqqqqqqqqqqqqqk....', '....kkkkkkkkkkkkkkkkkkkkkkkk....',
+        '.....kbbk..............kbbk.....', '....kbbbbk............kbbbbk....', '....kkkkkk............kkkkkk....'];
+    const KL = { q: '#5fb7a8', Q: '#3c8a80', y: '#f7d64a', w: '#fbf6ea', r: '#9a3a4a', R: '#c45a6a', b: '#6b4128' };
+    defSprite('keeper', kp, KL);
+    defSprite('keeper_sleep', swapChars(kp, { w: 'q' }), KL);
+    const open = kp.slice();
+    for (let i = 4; i <= 19; i++) open[i] = '...kqQ' + (i === 4 || i === 19 ? 'kkkkkkkkkkkkkkkkkkkk' : 'k' + (i >= 9 && i <= 13 ? 'KKKKKKmmmmKKKKKK' : 'KKKKKKKKKKKKKKKK') + 'kkk') + 'Qqk...';
+    defSprite('keeper_open', open.map(r => r.slice(0, 32).padEnd(32, '.')), Object.assign({}, KL, { K: '#1e3a3a', m: '#e8463c' }));
+}
+CONTENT_INIT.push(initTidyArt);
+ITEM_LINES.plan = () => 'You found the {blue}House plan{/}! Every room of the Tidyhouse, drawn in a neat hand. (Open the map with M.)';
+ITEM_LINES.pattern = () => "You found the {blue}Pattern{/}! A square of teal cloth stitched in a pattern like a lock's insides. The big door in this House is stitched to match.";
+ITEM_LINES.gloves = () => 'You found the {red}Gloves{/}! Hold Z against something to grip it: while you hold on, it stays put. Step back while gripping to pull it.';
+ITEM_LINES.heartstitch = () => 'A {red}Heartstitch{/}! Your hearts grow by one.';
+ITEM_LINES.key = () => 'A {blue}small key{/}! It opens one locked door in this House.';
+ITEM_LINES.heartpatch = () => 'A {red}Heart Patch{/}! ' + (Inv.patches % 4 === 0 ? '' : `(${Inv.patches % 4} of 4.)`);
+ITEM_AFTER.gloves = function* () { Progress.set('gotGloves'); };

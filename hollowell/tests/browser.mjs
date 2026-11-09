@@ -30,6 +30,50 @@ async function shot(name) {
     await page.locator('canvas').screenshot({ path: path.join(SHOTS, name + '.png') });
 }
 const SCENARIOS = {
+    async meadow() {
+        await open();
+        await page.evaluate(() => { HW.newGame('Wren', { area: 'hollow', x: 64 + 31, y: 80 + 3, noAutosave: true }); HW.Progress.set('ceremony'); HW.step(30); });
+        await shot('meadow_north');
+        await page.evaluate(() => { HW.warp('hollow', 64 + 44, 80 + 14); HW.step(30); });
+        await shot('meadow_tidyhouse');
+        await page.evaluate(() => { HW.warp('hollow', 64 + 14, 80 + 24); HW.step(30); });
+        await shot('meadow_pen');
+        await page.evaluate(() => { HW.warp('hollow', 64 + 8, 80 + 23); HW.step(30); });
+        await shot('meadow_canyon');
+        await page.evaluate(() => { HW.warp('hollow', 64 + 45, 80 + 27); HW.step(30); });
+        await shot('meadow_bridge');
+    },
+    async tidy() {
+        await open();
+        await page.evaluate(() => { HW.newGame('Wren', { area: 'tidy', x: 29, y: 42, noAutosave: true }); HW.Inv.items.staff = 1; HW.step(30); });
+        await shot('tidy_foyer');
+        const rooms = { kitchen: [10, 38], gallery: [50, 38], hall: [29, 30], pantry: [10, 27], parlor: [50, 27], cons: [70, 27], linen: [56, 20], laundry: [70, 16], ball: [23, 19], library: [10, 16], attic: [9, 8], ante: [49, 9], boss: [38, 5] };
+        for (const [n, [x, y]] of Object.entries(rooms)) {
+            await page.evaluate(([x, y]) => { HW.warp('tidy', x, y); HW.step(40); HW.skipTalk(); HW.step(5); }, [x, y]);
+            await shot('tidy_' + n);
+        }
+    },
+    async town() {
+        await open();
+        await page.evaluate(() => { HW.newGame('Wren', { noAutosave: true }); HW.step(200); });
+        await shot('prologue_room');
+        await page.evaluate(() => { HW.skipTalk(); HW.step(30); });
+        await shot('room_awake');
+        await page.evaluate(() => { HW.warp('gran_house', 6, 6); HW.step(10); });
+        await shot('gran_house');
+        await page.evaluate(() => { HW.Progress.set('talkedGran'); HW.warp('hollow', 64 + 12, 40 + 11, 'down'); HW.step(120); });
+        await shot('ceremony');
+        await page.evaluate(() => { HW.skipTalk(); HW.step(60); });
+        await shot('town_square');
+        await page.evaluate(() => { HW.warp('hollow', 64 + 12, 40 + 13, 'down'); HW.step(30); });
+        await shot('town_gran');
+        await page.evaluate(() => { HW.warp('hollow', 64 + 44, 40 + 15, 'down'); HW.step(30); });
+        await shot('town_inn');
+        await page.evaluate(() => { HW.warp('hollow', 64 + 20, 40 + 32, 'down'); HW.step(30); });
+        await shot('town_south');
+        await page.evaluate(() => { HW.warp('inn', 7, 7); HW.step(10); });
+        await shot('inn_inside');
+    },
     async title() { await open(); await page.evaluate(() => { window.HW._paused = false; }); await page.waitForTimeout(400); await page.evaluate(() => { window.HW._paused = true; }); await shot('title'); },
     async lab() {
         await open();

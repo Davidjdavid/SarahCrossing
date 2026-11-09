@@ -67,3 +67,6 @@ function reportError(e) {
     ERRORS.push(String(e && e.stack || e));
     if (!HEADLESS) console.error(e);
 }
+
+/* content files push their set-up functions here; boot runs them once the art helpers exist */
+const CONTENT_INIT = [];
