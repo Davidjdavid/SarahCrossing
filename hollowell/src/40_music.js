@@ -114,3 +114,23 @@ SONGS.millrace = {
         { drum: true, vol: 0.08, n: 'k . h . s . h . | k . h k s . h h' },
     ],
 };
+
+/* Belfry Heights: wide open, windy (A mixolydian), a horn-call tune over open fifths */
+SONGS.heights = {
+    bpm: 100, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.09, vib: true, n: 'E5 - - - A5 - G5 - | E5 - D5 - E5 - - - | C#5 - E5 - A5 - B5 - | G5 - - - - - . . | A5 - - - G5 - E5 - | D5 - E5 - G5 - A5 - | B5 - A5 - G5 - E5 - | A5 - - - - - . . ' },
+        { wave: 'triangle', vol: 0.2, n: 'A2 . E3 . A2 . E3 . | G2 . D3 . G2 . D3 . | A2 . E3 . A2 . E3 . | D2 . A2 . G2 . D3 . | A2 . E3 . A2 . E3 . | G2 . D3 . G2 . D3 . | D2 . A2 . E2 . B2 . | A2 . E3 . A2 . . . ' },
+        { wave: 'p12', vol: 0.035, n: 'A4 . E4 . A4 . E4 . | G4 . D4 . G4 . D4 . | A4 . E4 . A4 . E4 . | F#4 . D4 . G4 . D4 . | A4 . E4 . A4 . E4 . | G4 . D4 . G4 . D4 . | F#4 . A4 . G4 . B4 . | A4 . E4 . A4 . . . ' },
+    ],
+};
+/* the Belfry: a peal (G major), bells changing over a steady stroke */
+SONGS.belfry = {
+    bpm: 120, div: 2,
+    ch: [
+        { wave: 'p12', vol: 0.07, n: 'G5 . D5 . B4 . G4 . | A4 . B4 . D5 . G5 . | G5 . E5 . C5 . A4 . | B4 . D5 . G5 . D5 . | E5 . C5 . G4 . C5 . | D5 . B4 . G4 . B4 . | C5 . A4 . F#4 . A4 . | G4 . . . G5 . . . ' },
+        { wave: 'p25', vol: 0.07, legato: 0.7, n: 'B4 - - - - - - - | C5 - - - - - - - | C5 - - - - - - - | B4 - - - - - - - | C5 - - - - - - - | B4 - - - - - - - | A4 - - - - - - - | G4 - - - - - - - ' },
+        { wave: 'triangle', vol: 0.2, n: 'G2 . . . D3 . . . | D2 . . . G2 . . . | C3 . . . A2 . . . | G2 . . . D3 . . . | C3 . . . G2 . . . | G2 . . . D3 . . . | D3 . . . A2 . . . | G2 . . . G2 . . . ' },
+        { drum: true, vol: 0.05, n: 'k . . . h . . . | k . . . s . . . ' },
+    ],
+};

@@ -114,4 +114,36 @@ const FACADES = {
             R('#a8b0a8', 2, 82, w - 4, 4); R('#c8d0c8', 2, 82, w - 4, 1);
         });
     },
+    /* the Belfry: a tall stone bell tower; the great bell hangs in the open arch at the top */
+    belfry() {
+        const w = 160, h = 102;
+        ART.f_belfry = paintSprite(w, h, x => {
+            const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+            const stone = (x0, y0, ww, hh) => {
+                R('#a39aa8', x0, y0, ww, hh);
+                for (let j = 0; j < hh; j += 6) for (let i = ((j / 6) % 2) * 6; i < ww; i += 12) { R('#7f7688', x0 + i, y0 + j, 1, 6); }
+                for (let j = 5; j < hh; j += 6) R('#7f7688', x0, y0 + j, ww, 1);
+                R('#c4bccb', x0, y0, ww, 1);
+            };
+            /* the tower: a broad base, a narrower shaft, the open belfry, a pointed roof */
+            stone(10, 60, 140, 42);
+            stone(40, 22, 80, 40);
+            R('#5a5264', 36, 58, 88, 4); R('#c4bccb', 36, 58, 88, 1);           /* string course */
+            R('#3e3a52', 50, 26, 60, 26);                                      /* the open arch */
+            x.fillStyle = '#3e3a52'; x.beginPath(); x.arc(80, 27, 30, Math.PI, 0); x.fill();
+            /* the great bell */
+            x.fillStyle = '#b88a2a'; x.beginPath(); x.moveTo(64, 50); x.quadraticCurveTo(66, 24, 80, 22); x.quadraticCurveTo(94, 24, 96, 50); x.closePath(); x.fill();
+            x.fillStyle = '#e8b04a'; x.beginPath(); x.moveTo(68, 48); x.quadraticCurveTo(70, 28, 80, 25); x.quadraticCurveTo(84, 26, 86, 30); x.lineTo(74, 48); x.closePath(); x.fill();
+            R('#f7d64a', 62, 48, 36, 3); R('#8a6420', 78, 18, 4, 6); R('#6b4128', 50, 17, 60, 3);
+            /* roof */
+            for (let j = 0; j < 20; j++) { const half = Math.round(j * 2.4); R(j % 3 === 2 ? '#3e3a52' : '#5a5264', 80 - half, j, half * 2, 1); }
+            R('#e8b04a', 79, 0, 2, 4);
+            /* windows down the base, the door */
+            for (const px of [22, 128]) { R('#2e2a3a', px, 70, 10, 14); x.fillStyle = '#2e2a3a'; x.beginPath(); x.arc(px + 5, 70, 5, Math.PI, 0); x.fill(); R('#e8b04a', px + 4, 72, 2, 10); }
+            R('#5a5264', 62, 68, 36, 34); R('#6b4128', 66, 72, 28, 30);
+            x.fillStyle = '#6b4128'; x.beginPath(); x.arc(80, 72, 14, Math.PI, 0); x.fill();
+            R('#9a6438', 68, 74, 11, 28); R('#9a6438', 81, 74, 11, 28); R('#e8b04a', 77, 86, 2, 3); R('#e8b04a', 81, 86, 2, 3);
+            R('#b88a2a', 64, 66, 32, 2);
+        });
+    },
 };

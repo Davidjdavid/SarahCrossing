@@ -41,6 +41,9 @@ class Player extends Ent {
             const nx = tx + DX[this.dir], ny = ty + DY[this.dir];
             if (area.inside(nx, ny) && !area.kind(nx, ny).solid && !area.kind(nx, ny).deep && !area.kind(nx, ny).pit) { tx = nx; ty = ny; }
         }
+        /* only solid, dry, open ground can be home (never deep water, a pit, or a raft) */
+        const k = area.kind(tx, ty);
+        if (k.deep || k.pit || k.fog || k.solid || (area.at && area.at(tx, ty) && area.at(tx, ty).floats)) { if (this.mark && this.mark.area === area.id) return; }
         this.mark = { area: area.id, tx, ty };
         this.trace = [[tx, ty]];
     }
@@ -172,7 +175,11 @@ class Player extends Ent {
         /* leaning on the edge of deep water a moment, Wren steps in (and under): no falling in by accident */
         if (!moving && (ax.x || ax.y) && !this.carry && !this.ride && !this.onRaft() && this.state === 'normal') {
             const f = this.front(), k = this.area.kind(f.tx, f.ty);
-            if (k.deep && !Water.rideable(this.area.at(f.tx, f.ty))) { if (++this.edgeT > 24) this.diving = true; }
+            if (k.deep && !Water.rideable(this.area.at(f.tx, f.ty)) && !(this.area.at(f.tx, f.ty) && this.area.at(f.tx, f.ty).floats)) {
+                ++this.edgeT;
+                if (this.edgeT === 16) { Fx.splash(f.tx * T + 8, f.ty * T + 6); Sfx.play('splash', 0.3); }   /* a warning: teetering on the edge */
+                if (this.edgeT > 40) this.diving = true;
+            }
             else { this.edgeT = 0; this.diving = false; }
         } else if (!this.diving || !moving) { this.edgeT = 0; if (!moving) this.diving = false; }
 
@@ -180,7 +187,7 @@ class Player extends Ent {
             if (Input.pressed('act')) this.action();
             else if (Input.down('act') && !this.grip && !this.carry && Inv.has('gloves')) this.tryGrip();
             if (Input.pressed('atk') && !this.carry && this.swingT <= 0 && !this.grip && Inv.has('staff')) this.startSwing();
-            if (Input.pressed('tool') && !this.grip) Tools.use(this);
+            if (Input.pressed('tool') && (!this.grip || Inv.equipped === 'bell')) Tools.use(this);   /* hold on with one hand, ring with the other */
             if (Input.down('tool')) Tools.hold(this); else Tools.unhold(this);
         }
         this.afterMove();

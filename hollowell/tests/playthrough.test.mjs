@@ -262,13 +262,19 @@ test('from the second Knot: the broken bridge, Millwater, the ferry, the Millrac
     /* the Snapjaw */
     const s = HW.ents('enemy').find(e => e.type === 'snapjaw');
     ok(s && s.state === 'swim', 'Snapjaw awake');
+    HW.G.cheats.god = true;      /* (it bites while you bait it; the dodging isn't what this checks) */
     for (let round = 0; round < 12 && s.alive; round++) {
         const c = thing(round % 2 ? 'sjCrate2' : 'sjCrate1');
-        until(() => HW.Return.isHome(c), 1500);
+        until(() => HW.Return.isHome(c) && s.state === 'swim', 2000);
         walk(...m('snap', 10, c.ty - M.snap[1]));
-        until(() => s.state === 'swim' && s.ty > c.ty + 1 && s.vy < 0, 900);
-        HW.face('right'); HW.push('right', 1); HW.step(200);
+        HW.face('right'); HW.push('right', 1);
+        const hp0 = s.hp;
+        walk(...m('snap', 11, 6));
+        until(() => !s.alive || s.hp !== hp0, 700);
+        if (!s.alive) break;
+        walk(...m('snap', 6, 5));
     }
+    HW.G.cheats.god = false;
     ok(!s.alive, 'Snapjaw beaten'); HW.step(60); HW.skipTalk();
     walk(...m('snap', 4, 6)); HW.face('up'); talk(); ok(HW.Inv.has('paddle'), 'the Paddle');
     /* back round to the north landing and up into Upstream */
@@ -283,7 +289,7 @@ test('from the second Knot: the broken bridge, Millwater, the ferry, the Millrac
     board(thing('upRaft'), m('upstream', 9, 8), 'up');
     HW.hold(['tool', 'up']); ok(until(() => at(thing('upRaft'), ...m('upstream', 9, 2)), 600), 'paddled up');
     HW.release(); HW.step(1); off('up');
-    HW.face('right'); talk(); ok(HW.Inv.keys('mill') === 1, 'key 3');
+    HW.face('right'); talk(); ok(HW.Inv.keys('mill') === 2, 'key 3 (and key 1 still)');
     HW.step(250); HW.hold('down'); until(() => HW.player().state === 'normal' && HW.player().ty >= m('upstream', 9, 8)[1], 500); HW.release(); HW.step(10);
     /* two wheels: the Pattern */
     walk(...m('upstream', 17, 5)); HW.hold('right'); HW.step(60); HW.release();

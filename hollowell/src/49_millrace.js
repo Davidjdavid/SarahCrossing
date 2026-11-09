@@ -126,7 +126,6 @@ defHouse({
             ents: [
                 { k: 'raft', x: 9, y: 7, id: 'caRaft' },
                 { k: 'door', x: 1, y: 5, type: 'lock', id: 'caLockW', dir: 'v' },
-                { k: 'door', x: 18, y: 5, type: 'lock', id: 'caLockE', dir: 'v' },
                 { k: 'sign', x: 10, y: 9, text: 'ALL ROUND THE MILLSTONE: west, north, east, and home again.' },
             ],
         },
@@ -153,7 +152,7 @@ defHouse({
                 { k: 'charm', x: 2, y: 4, mode: 'pulse', sig: 'sr2', col: 'moon', time: 150, id: 'srC2' },
                 { k: 'charm', x: 9, y: 5, mode: 'pulse', sig: 'sr3', col: 'star', time: 150, id: 'srC3' },
                 { k: 'door', x: 17, y: 2, type: 'gate', when: 'sr1&sr2&sr3', id: 'srGate', passed: 'right', dir: 'v' },
-                { k: 'chest', x: 18, y: 2, item: 'key', id: 'srKey' },
+                { k: 'chest', x: 18, y: 2, item: 'heartpatch', id: 'srPatch' },
             ],
             nudge: { solved: 'millrace_srGate', after: 60 * 60 * 3, at: [9, 5], say: 'Three charms hang over the race, a long ride apart. One flight back along the ride would ring them all.' },
         },
@@ -229,10 +228,11 @@ defHouse({
                 { k: 'block', x: 12, y: 2, id: 'ovStray1', stray: true },
                 { k: 'block', x: 14, y: 7, id: 'ovStray2', stray: true },
                 { k: 'block', x: 13, y: 4, id: 'ovStone' },
+                { k: 'block', x: 16, y: 5, id: 'ovStray3', stray: true },
                 { k: 'pot', x: 2, y: 2, id: 'ovPot' },
                 { k: 'sign', x: 17, y: 8, text: "OVERFLOW. Odd old millstones lie about here, belonging nowhere. Mind they don't fall in." },
             ],
-            nudge: { solved: () => Progress.areaFlag('millrace', 'fill:9,16') || Progress.areaFlag('millrace', 'fill:8,16') || Progress.areaFlag('millrace', 'fill:9,15') || Progress.areaFlag('millrace', 'fill:8,15'), after: 60 * 60 * 3, thing: 'ovStray1', say: "The pale millstones don't seem to belong anywhere. Things that belong nowhere stay wherever they end up." },
+            nudge: { solved: () => [1, 2, 3, 4, 5, 6, 7, 8].some(y => Progress.areaFlag('millrace', `fill:8,${11 + y}`) && Progress.areaFlag('millrace', `fill:9,${11 + y}`)), after: 60 * 60 * 3, thing: 'ovStray1', say: "The pale millstones don't seem to belong anywhere. Things that belong nowhere stay wherever they end up." },
         },
         /* ---------------- 9 The Two Wheels: hold the raft on one wheel until the crate reaches the other (Pattern) ---------------- */
         '2,1': {

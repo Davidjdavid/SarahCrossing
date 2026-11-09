@@ -111,3 +111,27 @@ Keys: 3 keys (Ferry Pool, Shard Race, Upstream), 3 locks (Carousel W and E, Upst
 | S19 Behind the falls | Millwater, (171,110) | ride a float down the east side of the river (Paddle): the current turns in behind the falls to a hidden pool; open the chest from the float | built |
 | Basin below the falls | Millwater (172,114) | ride over the falls; a chest (50 buttons) and Linnet's bottle | built |
 | S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |
+
+## D4 Belfry (planned: `src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`)
+
+Rules (kit tested in `tests/belfry_kit.test.mjs`): a bell (struck by stick, throw or shards) or the Recall Bell
+rings: every marked thing out of place within 7 tiles snaps home at once (fast, force +1: a snapped bust
+shoves a stone block; a snapped crate shoves a crate). A ring wakes sleepers (things tied off where they lie:
+they go home) and bats. Gusts blow loose light/medium things a tile at a time downwind and push Wren.
+
+Grid 3x5 (a tower), entry at the bottom middle.
+
+| Room | Cell | Teaches / puzzle | Solution | Reward |
+|---|---|---|---|---|
+| Bell Porch | 1,4 | A ring wakes sleepers | A boulder asleep across the stair north; strike the bell: it goes home. Two bats wake too | way north |
+| The Draught | 0,4 | Wind as a conveyor; strays fill pits | Line up two pale stray crates in the gust's lanes; the gust blows them into the pits round the key's island, filling a way | key 1 |
+| Hard Ringing | 2,4 | Snapped things shove harder | Push the bust out, push the stone onto its way home (it waits behind it); ring: the bust snaps home and shoves the stone onto the plate | Plan |
+| The Stair | 1,3 | Hub | Doors W, E; north door locked; bats in the rafters | - |
+| Rafters | 0,3 | Bells and wind together | A gust carries a crate along; ring the bell at the right moment to snap it home through a plate in passing (pulse) | key 2 |
+| Weathercock Hall | 2,3 | Gust timing; sleepers on plates | Wake sleepers in order so they snap over a plate while the gust holds a gate... | way up E |
+| Clangor's Loft | 1,2 | Mini-boss: Clangor (a bell-headed suit of armour; its own ring snaps things home through it) | Push busts out across its path; when it rings, they snap home through it | Recall Bell |
+| Echo Room | 2,2 | S15: bell-stones in the order of Gran's lullaby | Ring the stones in the lullaby's order (hummed by Gran at bedtime) | Heart Patch, Linnet's note 4 |
+| The Reach | 0,2 | Recall Bell: ring from the right place | Ring where only the right things are within reach | key 3 |
+| Bell Ropes | 1,1 | Recall Bell + Hookline + paddle-less raft? | ... | Pattern |
+| Workshop | 0,1 | Signature | Tess's brass T | Heart Patch |
+| The Great Bell | 1,0 | Boss: Tollgrim | The gargoyle hides in the great bell; the gust blows its clapper out; ring the Recall Bell as the clapper swings back so it slams home into the gargoyle | Knot, Heartstitch |

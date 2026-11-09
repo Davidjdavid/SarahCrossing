@@ -8,6 +8,7 @@ const Water = {
     /* can Wren stand on this? rafts always; anything else floating once she has the Paddle */
     rideable(o) {
         if (!o || !o.floats || o.carried || o.shattered) return false;
+        if (o.mv && G.player && G.player.ride !== o) return false;       /* not one that's moving off (or in) */
         if (!o.area.kind(o.tx, o.ty).water) return false;
         return !!o.rideable || Inv.has('paddle');
     },
@@ -131,6 +132,11 @@ class Wheel extends GridThing {
     draw(cx, cy) {
         const x = this.tx * T - cx + 8, y = this.ty * T - cy + 6;
         Gfx.circle(x, y, 9, '#6b4128'); Gfx.circle(x, y, 7, '#9a6438'); Gfx.circle(x, y, 2, '#3a2418');
+        if (this.mode === 'hold') {
+            /* a holding wheel: a red ratchet hub and a pawl, it only turns while something sits there */
+            Gfx.circle(x, y, 4, '#c42b4a'); Gfx.circle(x, y, 2, '#6e2232');
+            Gfx.rect(x + 6, y - 11, 2, 6, '#c42b4a'); Gfx.rect(x + 4, y - 6, 4, 2, '#c42b4a');
+        }
         for (let i = 0; i < 6; i++) {
             const t = this.ang + i * Math.PI / 3;
             Gfx.line(x, y, x + Math.cos(t) * 9, y + Math.sin(t) * 9, '#e6c08a');
@@ -169,7 +175,8 @@ TOOLS.paddle = {
         p.dir = d;
         const nx = o.tx + DX[d], ny = o.ty + DY[d];
         if (!p.area.kind(nx, ny).water || !p.area.freeForThing(nx, ny, o)) return;
-        o.startMove(nx, ny, 18);
+        const fl = p.area.flow.get(key2(o.tx, o.ty));
+        o.startMove(nx, ny, fl === OPP[d] ? 32 : fl === d ? 12 : 18);      /* hard going upstream */
         this.cool = 4;
         Sfx.play('splash', 0.4); Stats.count('paddles');
     },

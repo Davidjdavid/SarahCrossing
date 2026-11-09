@@ -19,7 +19,7 @@ const Bells = {
             if (Math.hypot(e.tx * T + 8 - x, e.ty * T + 8 - y) > reach * T + 4) continue;
             if (e.sleeper && e.tiedOff) { e.tiedOff = false; e.sleeper = false; if (e.onWake) e.onWake(); }
             if (e.ret.state === 'home' || e.carried || e.shattered) continue;
-            if (e.heldBy && e.heldBy.release) e.heldBy.release();
+            if (Return.held(e)) continue;                  /* holding beats the Return, even a ring */
             if (Return.snap(e)) n++;
         }
         for (const m of area.walkers) if (m.wake && m.alive !== false && Math.hypot(m.x - x, m.y - y) < (reach + 3) * T) m.wake();
@@ -79,7 +79,7 @@ class Gust extends Ent {
         this.w = p.w || 4; this.h = p.h || 4;
         this.d = dirByName(p.dir || 'right');
         this.period = p.period || 360; this.len = p.len || 150; this.phase = p.phase || 0;
-        this.t = 0; this.floor = true;
+        this.t = 0; this.floor = true; this.force = p.force || 0.16;
     }
     get on() { return !this.off && ((this.t + this.phase) % this.period) < this.len; }
     get soon() { const k = (this.t + this.phase) % this.period; return k > this.period - 60; }
@@ -94,7 +94,7 @@ class Gust extends Ent {
             const things = a.ents.filter(e => e.isGrid && !e.fixed && !e.mv && e.weight <= WEIGHT.medium && !e.carried && !Return.held(e) && !e.noWind && this.inside(e.tx, e.ty))
                 .sort((m, n) => (DX[d] * (n.tx - m.tx) + DY[d] * (n.ty - m.ty)));
             for (const e of things) {
-                if (e.ret && e.ret.state === 'returning' && !e.ret.snap) continue;   /* going home, it leans into the wind */
+                if (e.ret && e.ret.state === 'returning') continue;   /* going home, it leans into the wind */
                 const nx = e.tx + DX[d], ny = e.ty + DY[d];
                 if (a.freeForThing(nx, ny, e)) { e.startMove(nx, ny, 10); Stats.count('blown'); }
             }
@@ -102,7 +102,7 @@ class Gust extends Ent {
         /* Wren leans into it */
         const p = G.player;
         if (p && p.area === a && p.state === 'normal' && !p.ride && this.inside(p.tx, p.ty) && !(p.grip)) {
-            p.kx += DX[d] * 0.16; p.ky += DY[d] * 0.16;
+            p.kx += DX[d] * this.force; p.ky += DY[d] * this.force;
             p.kx = clamp(p.kx, -1.6, 1.6); p.ky = clamp(p.ky, -1.6, 1.6);
         }
         for (const m of a.walkers) if (m.alive && m.D && m.D.light && this.inside(m.tx, m.ty)) { m.kx = DX[d] * 1.5; m.ky = DY[d] * 1.5; }
@@ -156,11 +156,11 @@ SPAWN.vane = (x, y, p) => new Vane(x, y, p);
 TOOLS.bell = {
     use(p) {
         if (this.cool > 0) return;
-        this.cool = 40; p.ringT = 24;
+        this.cool = 40; p.ringT = 12;
         Bells.ring(p.area, p.x, p.y - 4, Bells.REACH);
     },
-    update(area) { if (this.cool > 0) this.cool--; },
-    busy(p) { return p.ringT > 0 && p.ringT-- > 0; },
+    update(area) { if (this.cool > 0) this.cool--; const p = G.player; if (p && p.ringT > 0) p.ringT--; },
+    busy(p) { return p.ringT > 0; },
 };
 
 /* belfry bats: hang asleep until a bell rings near them; then flap about after Wren; then roost again */
@@ -185,8 +185,12 @@ function initBelfryKit() {
     defSprite('bat_0', ['k............k', 'km..........mk', 'kmm..kkkk..mmk', '.kmmkmmmmkmmk.', '..kmmwmmwmmk..', '...kmmmmmmk...', '....kk..kk....'], { m: '#7d5bc4', w: '#f7d64a' });
     defSprite('bat_1', ['..............', '.....kkkk.....', 'kkkkkmmmmkkkkk', 'kmmmmwmmwmmmmk', '.kkmmmmmmmmkk.', '...kk....kk...', '..............'], { m: '#7d5bc4', w: '#f7d64a' });
     ENEMY_DRAW.bat = e => e.mode === 'sleep' ? spr('bat_sleep') : spr('bat_' + ((e.t >> 3) % 2));
+    defSprite('boulder_b', ['....kkkkkkkk....', '..kkggggggggkk..', '.kgggwwggggggGk.', 'kggwwgggggggGGGk', 'kgggggggggggGGGk', 'kggggggggggGGGGk', 'kgggggggggGGGGGk', 'kGgggggggGGGGGGk',
+        'kGGgggggGGGGGGGk', 'kGGGGGGGGGGGGGGk', '.kGGGGGGGGGGGGk.', '..kkkkkkkkkkkk..', '................', '................', '................', '................'].slice(0, 12).concat(['................', '................', '................', '................']),
+        { g: '#a39aa8', G: '#7f7688', w: '#c4bccb' });
     defSprite('bell_hang', ['......kkkk......', '.....kyyyyk.....', '....kyywyyyk....', '....kyywyyyk....', '...kyyyyyyyyk...', '...kyyyyyyyyk...', '..kyyyyyyyyyyk..', '..kYYYYYYYYYYk..',
         '.kkkkkkkkkkkkkk.', '.......kk.......', '......kYYk......', '.......kk.......'], { y: '#e8b04a', Y: '#b88a2a', w: '#fff4c0' });
+    ART.shrine_post = paintSprite(10, 16, x => { x.fillStyle = '#7a4e32'; x.fillRect(3, 0, 4, 16); x.fillStyle = '#9a6438'; x.fillRect(3, 0, 2, 16); x.fillStyle = '#a39aa8'; x.fillRect(0, 12, 10, 4); });
 }
 CONTENT_INIT.push(initBelfryKit);
 

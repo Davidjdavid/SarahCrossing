@@ -7,9 +7,9 @@
 const MILLRACE_ENTRY = { x: 29, y: 42 };
 
 const MILLWATER_ROWS = [
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY###',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY###',
-    'YYY...,...............---"-"""--.-"---"""""..###################',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
+    'YYY...,...............---"-"""--.-"-##.......###################',
     'YYY,T...........-"-"-"~~~~~~~~~~|~~~~~~~~~~-~~~~~~~~~~~~~~~~~###',
     'YYY..........-"-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY......""--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
@@ -66,6 +66,12 @@ defBlock({
         /* the ferry: its mark is on the crossing current, so it runs across and back by itself */
         { k: 'raft', x: 39, y: 26, id: 'mwFerry', patience: 150 },
         { k: 'sign', x: 37, y: 25, text: "FERRY. It runs itself: over, back, over, back. Hop on when it's in. (Off at the far side quick, mind.)" },
+        /* two rafts on the lake, one at Wick's pier, one at the north shore below the cliff stair: each goes
+           back to its own landing, so there's always one waiting on either side (the Paddle takes you over) */
+        { k: 'raft', x: 18, y: 15, id: 'mwLakeRaft' },
+        { k: 'raft', x: 40, y: 3, id: 'mwNorthRaft' },
+        { k: 'sign', x: 17, y: 18, text: "WICK'S PIER. (The raft's for anyone who can paddle. Over the lake: the cliff stair, and the Heights.)" },
+        { k: 'sign', x: 42, y: 2, text: 'THE CLIFF STAIR. Up to Belfry Heights.' },
         /* the far bank: the Millrace */
         { k: 'building', x: 44, y: 21, w: 8, h: 5, door: 3, art: 'millrace' },
         { k: 'warp', x: 47, y: 25, to: 'millrace', tx2: MILLRACE_ENTRY.x, ty2: MILLRACE_ENTRY.y, face: 'up', dir: 'up' },
@@ -77,10 +83,11 @@ defBlock({
         { k: 'chest', x: 44, y: 34, item: 'b50', id: 'mwBasin' },
         { k: 'deco', x: 43, y: 35, look: 'note_bottle', solid: [[0, 0]], text: 'A bottle with a note in it: "If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. - L."' },
         /* reed snappers in the shallows */
-        { k: 'enemy', x: 7, y: 15, type: 'snapper' }, { k: 'enemy', x: 22, y: 18, type: 'snapper' }, { k: 'enemy', x: 42, y: 18, type: 'snapper' },
+        { k: 'enemy', x: 4, y: 10, type: 'snapper' }, { k: 'enemy', x: 22, y: 18, type: 'snapper' }, { k: 'enemy', x: 42, y: 17, type: 'snapper' },
     ],
     regions: [
-        { name: 'The Reaches', x: 0, y: 2, w: 39, h: 34 },
+        { name: 'The Reaches', x: 0, y: 2, w: 42, h: 34 },
+        { name: 'North Shore', x: 38, y: 0, w: 7, h: 3 },
         { name: 'Millrace Falls', x: 42, y: 18, w: 19, h: 12 },
     ],
 });

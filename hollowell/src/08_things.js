@@ -32,6 +32,8 @@ function initThingSprites() {
         '..kUUUUUUUUUUk..', '..kbbbbbbbbbbk..', '..kbBbbbbbbBbk..', '..kbbBbbbbBbbk..', '..kbbbBBBBbbbk..',
         '..kbbbBBBBbbbk..', '..kbbBbbbbBbbk..', '..kbBbbbbbbBbk..', '..kBBBBBBBBBBk..', '..kkkkkkkkkkkk..', '................'],
         { u: '#e6b47a', U: '#c48a52', b: '#b47a44', B: '#7e4e2a' });
+    /* a stray crate: pale, belongs nowhere */
+    defSprite('crate_stray', SPR_SRC.crate.rows, { u: '#f0f8e0', U: '#d8e8b8', b: '#c8dca8', B: '#98b07a' });
     /* pot */
     const potHalf = ['........', '........', '.....kkk', '....kyoo', '....kOOO', '.....koo', '....kyoo', '...kyooo',
         '..kyoooo', '..kooooo', '..kooooo', '..kOoooo', '...kOOoo', '....kOOO', '.....kkk', '........'];
@@ -116,7 +118,7 @@ class Pot extends Liftable {
 }
 class Crate extends Liftable {
     constructor(tx, ty, props = {}) { super('crate', tx, ty, props); this.floats = true; }
-    sprite() { return spr('crate'); }
+    sprite() { return spr(this.marked === false ? 'crate_stray' : 'crate'); }
 }
 class Bust extends GridThing {
     constructor(tx, ty, props = {}) { super('bust', tx, ty, Object.assign({ weight: WEIGHT.heavy }, props)); }

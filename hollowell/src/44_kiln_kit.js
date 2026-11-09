@@ -132,7 +132,7 @@ TOOLS.hook = {
         const p = h.p;
         if (!area.inside(tx, ty)) { h.state = 'back'; return true; }
         const o = area.at(tx, ty);
-        if (o && o !== p.carry) {
+        if (o && o !== p.carry && !(tx === p.tx && ty === p.ty)) {
             if (o.eyelet || o.fixed || o.weight >= WEIGHT.heavy) {
                 if (o.eyelet || o.hookable !== false) return this.latch(h, area, tx, ty, o.eyelet ? 'eyelet' : 'thing');
                 h.state = 'back'; Sfx.play('hookhit'); return true;

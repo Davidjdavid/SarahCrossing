@@ -32,26 +32,44 @@ class Snapjaw extends Enemy {
         switch (this.state) {
             case 'swim': {
                 this.hidden = false;
+                /* Wren on the bank of the race: it comes for her */
+                const onBank = p.state === 'normal' && p.tx === this.hx - 1;
+                if (onBank && Math.abs(p.y - this.y) > 4) this.vy = sign(p.y - this.y) * 0.8;
+                else if (!onBank) this.vy = sign(this.vy || 1) * 0.55;
                 const ny = this.y + this.vy;
                 if (tileOf(ny) < this.top || tileOf(ny) > this.bot || this.blockedAt(tileOf(ny + sign(this.vy) * 6))) this.vy = -this.vy;
                 else this.y = ny;
                 this.dir = this.vy < 0 ? UP : DOWN;
                 /* Wren on the bank right beside it: it rears up to bite */
-                if (p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 14 && this.st > 40) { this.state = 'rear'; this.st = 0; }
+                if (p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 14 && this.st > 20) { this.state = 'rear'; this.st = 0; break; }
+                /* something floating close in the race: it ducks under (unless it's busy biting) */
+                if (this.floatNear()) { this.state = 'duck'; this.st = 0; this.hidden = true; Fx.splash(this.x, this.y - 2); }
                 break;
             }
+            case 'duck':
+                this.hidden = true;
+                if (this.st > 50 && !this.floatNear()) { this.state = 'swim'; this.st = 0; this.hidden = false; }
+                break;
             case 'rear':
-                if (this.st === 24) {
+                if (this.st === 30) {
                     Sfx.play('splash'); Fx.splash(this.x - 10, this.y - 4);
                     if (p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 16) p.hurt(1, this.x, this.y);
                 }
-                if (this.st > 50) { this.state = 'swim'; this.st = 0; }
+                if (this.st > 70) {
+                    /* still there? it goes for her again (and keeps its eyes on her, not the water) */
+                    if (p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 14) this.st = 0;
+                    else { this.state = 'swim'; this.st = 0; }
+                }
                 break;
             case 'dive':
                 this.hidden = true;
                 if (this.st > 100) { this.state = 'swim'; this.st = 0; this.hidden = false; }
                 break;
         }
+    }
+    floatNear() {
+        for (let k = -2; k <= 2; k++) { if (!k) continue; const o = this.area.at(this.hx, this.ty + k); if (o && o.floats) return true; }
+        return false;
     }
     /* is a floating thing sitting in the race just there? */
     blockedAt(ty) { const o = this.area.at(this.hx, ty); return o && o.floats; }
@@ -88,6 +106,7 @@ class Snapjaw extends Enemy {
         const im = spr(this.state === 'rear' && this.st > 10 ? 'snapjaw_open' : 'snapjaw');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
         Gfx.img(img, x - 12, y - 22 - (this.state === 'rear' ? Math.min(6, this.st >> 2) : 0), this.dir === DOWN);
+        if (this.state === 'rear' && !Progress.flag('sj_rear')) { Progress.set('sj_rear'); UI.toast("It rears up out of the race to bite, and forgets to watch the water.", 200); }
         Gfx.alpha(0.5); Gfx.rect(x - 10, y - 2, 20, 2, '#ffffff'); Gfx.alpha(1);
     }
 }

@@ -108,7 +108,7 @@ test('shard race: carry a pot on the ride, smash it at the end: the pieces ring 
     HW.face('right'); HW.press('act', 1);
     assert.ok(until(HW, () => thing(HW, 'srGate').open, 300), 'all three rang at once');
     go(HW, 'shard', 17, 2); HW.face('right'); HW.press('act', 1); HW.skipTalk();
-    assert.equal(HW.Inv.keys('mill'), 1, 'the key');
+    assert.equal(HW.Inv.patches, 1, 'a Heart Patch');
     noErrors(HW);
 });
 
@@ -126,19 +126,26 @@ function snapGame() {
     HW.warp('millrace', ...at('snap', 1, 5)); HW.step(30); HW.skipTalk(); HW.step(5);
     return HW;
 }
-test("snapjaw: the stick bounces off; crates floated down onto it beat it, and the Paddle", () => {
+test("snapjaw: it ducks a crate coming down the race, unless it's rearing up to bite you: then the crate hits (Paddle)", () => {
     const HW = snapGame();
+    HW.G.cheats.god = true;                      /* (it bites; this checks the trick, not the dodging) */
     const s = HW.ents('enemy').find(e => e.type === 'snapjaw');
     assert.ok(s && s.state === 'swim', 'awake');
+    /* a crate sent down while it's just swimming: it ducks and the crate floats past */
+    go(HW, 'snap', 10, 1); HW.face('right'); HW.push('right', 1);
+    HW.step(400);
+    assert.equal(s.hp, 3, 'ducked');
     for (let round = 0; round < 12 && s.alive; round++) {
-        const id = round % 2 ? 'sjCrate2' : 'sjCrate1', c = thing(HW, id);
-        until(HW, () => HW.Return.isHome(c), 1500);
+        const c = thing(HW, round % 2 ? 'sjCrate2' : 'sjCrate1');
+        until(HW, () => HW.Return.isHome(c) && s.state === 'swim', 2000);
         const row = c.ty - R.snap[1];
-        go(HW, 'snap', 10, row);
-        /* launch it when the Snapjaw is below and coming up toward it */
-        until(HW, () => s.state === 'swim' && s.ty > c.ty + 1 && s.vy < 0, 900);
-        HW.face('right'); HW.push('right', 1);
-        HW.step(200);
+        go(HW, 'snap', 10, row); HW.face('right'); HW.push('right', 1);
+        /* then stand on the bank beside it so it rears up as the crate arrives */
+        const hp0 = s.hp;
+        go(HW, 'snap', 11, 6);                   /* on the bank: it comes and rears at her, and the crate comes down onto it */
+        for (let i = 0; i < 700 && s.alive && s.hp === hp0; i++) HW.step(1);
+        if (!s.alive) break;
+        go(HW, 'snap', 6, 5);
     }
     assert.ok(!s.alive, 'beaten');
     assert.ok(HW.Progress.flag('millrace_snapjaw'));
@@ -146,6 +153,16 @@ test("snapjaw: the stick bounces off; crates floated down onto it beat it, and t
     go(HW, 'snap', 4, 6); HW.face('up'); HW.press('act', 1); HW.skipTalk();
     assert.ok(HW.Inv.has('paddle'), 'the Paddle');
     noErrors(HW);
+});
+
+test('keys: the way to the Paddle is never locked, so no order of unlocking strands you', () => {
+    const HW = game();
+    const locks = HW.G.map.ents.filter(e => e.kind === 'door' && e.type === 'lock');
+    assert.equal(JSON.stringify(locks.map(d => d.id).sort()), JSON.stringify(['caLockW', 'upLockE']));
+    const keys = HW.G.map.ents.filter(e => e.kind === 'chest' && e.item === 'key');
+    assert.equal(JSON.stringify(keys.map(c => c.id).sort()), JSON.stringify(['fpKey', 'upKey']));
+    HW.warp('millrace', ...at('carousel', 15, 5)); HW.step(5);
+    go(HW, 'snap', 1, 5);
 });
 
 test('upstream: paddle up the race against the current to the key; jump in to go home', () => {
@@ -161,7 +178,7 @@ test('upstream: paddle up the race against the current to the key; jump in to go
     HW.face('right'); HW.press('act', 1); HW.skipTalk();
     assert.equal(HW.Inv.keys('mill'), 1, 'the key');
     HW.step(200);                                         /* the raft has drifted off home */
-    HW.hold('down'); HW.step(70); HW.release();
+    HW.hold('down'); HW.step(90); HW.release();
     assert.ok(until(HW, () => HW.player().state === 'normal' && HW.player().ty >= at('upstream', 9, 8)[1], 400), 'leaned on the edge, stepped in, and flew home');
     noErrors(HW);
 });
@@ -265,4 +282,39 @@ test('the millpond: on the raft at its mouth while it is hungry, it bites', () =
     until(HW, () => HW.Inv.hp < hp, 600);
     assert.notEqual(HW.player().ride, r, 'knocked off into the water');
     assert.ok(HW.Inv.hp < hp, 'bitten');
+});
+
+test('review fixes: a dive into the river from the far bank costs one heart and lands on dry ground', () => {
+    const HW = loadGame();
+    HW.preset('afterD2'); HW.step(10); HW.skipTalk();
+    HW.warp('hollow', 128 + 43, 80 + 28); HW.step(10);
+    HW.walkTo(128 + 42, 80 + 28); HW.step(5);
+    const hp = HW.Inv.hp;
+    HW.hold('left'); HW.step(60); HW.release();
+    assert.ok(until(HW, () => HW.player().state === 'normal', 400));
+    HW.step(120);
+    assert.ok(HW.Inv.hp >= hp - 1, `lost at most one (${hp} -> ${HW.Inv.hp})`);
+    const p = HW.player(), k = HW.G.map.kind(p.tx, p.ty);
+    assert.ok(!k.deep && !k.pit, 'on dry ground');
+});
+
+test('review fixes: the Hookline thrown from a raft leaves the raft alone', () => {
+    const HW = game(['paddle']);
+    HW.Inv.equipped = 'paddle';
+    HW.warp('millrace', ...at('upstream', 9, 9)); HW.step(5);
+    const r = thing(HW, 'upRaft');
+    board(HW, r, 'upstream', 9, 8, 'up');
+    HW.hold(['tool', 'up']); until(HW, () => isAt(r, 'upstream', 9, 4), 400); HW.release(); HW.step(2);
+    HW.Inv.equipped = 'hook'; HW.face('up'); HW.press('tool', 1); HW.step(40);
+    assert.ok(r.ty <= at('upstream', 9, 5)[1], `the raft stayed put (at ${r.tx},${r.ty})`);
+});
+
+test('review fixes: stepping at a raft as it pulls away does not drop Wren in the water', () => {
+    const HW = game();
+    HW.warp('millrace', ...at('carousel', 9, 8)); HW.step(5);
+    const r = thing(HW, 'caRaft'), hp = HW.Inv.hp;
+    until(HW, () => r.mv, 400);
+    HW.hold('up'); HW.step(20); HW.release(); HW.step(30);
+    assert.equal(HW.Inv.hp, hp, 'no sinking');
+    assert.equal(HW.player().state, 'normal');
 });
