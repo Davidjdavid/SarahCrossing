@@ -1,12 +1,13 @@
 /* the village: home, the square, the post office, the shop, east lane, clock hill, the harbor.
    maps are 16x11 tiles. interiors use the same grid, the rest of it dark. */
 
-const H = (id, x, y, addr, look, extra) => Object.assign({ k: 'house', id, x, y, w: 3, h: 3, door: [1, 2], s: { addr }, look }, extra || {});
+const H = (id, x, y, addr, look, extra, age) => Object.assign({ k: 'house', id, x, y, w: 3, h: 3, door: [1, 2], s: age ? { addr, age: [age] } : { addr }, hide: ['age'], look }, extra || {});
+const AGE = (a, extra) => Object.assign({ s: { age: a }, hide: ['age'], a0: dval(a) }, extra || {});
 const NPC = (id, x, y, look, extra) => Object.assign({ k: 'npc', id, x, y, look }, extra || {});
 const DECO = (id, x, y, look, extra) => Object.assign({ k: 'deco', id, x, y, look }, extra || {});
 
 ROOMS.home = {
-    name: 'Home', out: false, music: 'home', entry: [7, 8], ret: { room: 'square', x: 2, y: 4 }, takes: true,
+    name: 'Home', out: false, music: 'home', host: { room: 'square', id: 'h1' }, entry: [7, 8], ret: { room: 'square', x: 2, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWwWWWWWwWW  ',
@@ -47,20 +48,20 @@ ROOMS.square = {
         '########;;######',
     ],
     ents: [
-        H('h1', 1, 1, [1], 'home'),
-        H('h2', 12, 1, [2], 'post'),
-        H('h3', 1, 6, [3], 'shop'),
+        H('h1', 1, 1, [1], 'home', null, 4),
+        H('h2', 12, 1, [2], 'post', null, 7),
+        H('h3', 1, 6, [3], 'shop', null, 5),
         { k: 'clock', id: 'townclock', x: 10, y: 2, text: ['The town clock. It has never once been wrong.'] },
         DECO('well', 12, 7, 'well', { text: ['A well. Very deep. You can\'t see the bottom.'] }),
         DECO('sq_bench', 5, 8, 'bench'),
-        NPC('gran', 4, 8, 'gran'),
-        NPC('pip', 11, 8, 'pip', { s: { age: [0, 8] }, hide: ['age'] }),
+        NPC('gran', 4, 8, 'gran', AGE([8, 1])),
+        NPC('pip', 11, 8, 'pip', AGE([0, 8], { ownAge: true })),
         DECO('sq_flowers1', 13, 9, 'flowerpot', { walk: false }),
     ],
 };
 
 ROOMS.post = {
-    name: 'Post Office', out: false, music: 'home', entry: [7, 8], ret: { room: 'square', x: 13, y: 4 }, takes: true,
+    name: 'Post Office', out: false, music: 'home', host: { room: 'square', id: 'h2' }, entry: [7, 8], ret: { room: 'square', x: 13, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWbbbWWwWWWW  ',
@@ -75,7 +76,7 @@ ROOMS.post = {
         '                ',
     ],
     ents: [
-        NPC('postmaster', 5, 3, 'postmaster', { when: 'always' }),
+        NPC('postmaster', 5, 3, 'postmaster', AGE([5, 2], { when: 'always', ownAge: true })),
         DECO('album', 11, 2, 'album'),
         DECO('postscale', 12, 5, 'scale', { text: ['A scale for parcels. It reads 0.'] }),
         DECO('postsacks', 3, 2, 'sacks'),
@@ -83,7 +84,7 @@ ROOMS.post = {
 };
 
 ROOMS.shop = {
-    name: 'Dot\'s', out: false, music: 'shop', entry: [7, 8], ret: { room: 'square', x: 2, y: 9 }, takes: true,
+    name: 'Dot\'s', out: false, music: 'shop', host: { room: 'square', id: 'h3' }, entry: [7, 8], ret: { room: 'square', x: 2, y: 9 }, takes: true,
     map: [
         '                ',
         '  WWWWWwWWwWWW  ',
@@ -98,7 +99,7 @@ ROOMS.shop = {
         '                ',
     ],
     ents: [
-        NPC('dot', 10, 3, 'dot', { when: 'always' }),
+        NPC('dot', 10, 3, 'dot', AGE([3, 4], { when: 'always' })),
         { k: 'shelf', id: 'sh_satchel', x: 5, y: 4, item: 'satchel', s: { price: [3, 0, 0] } },
         { k: 'shelf', id: 'sh_nine', x: 7, y: 4, item: 'digit', digit: 9, s: { price: [9, 0] } },
         { k: 'shelf', id: 'sh_map', x: 9, y: 4, item: 'map', s: { price: [4, 0] } },
@@ -125,8 +126,8 @@ ROOMS.eastlane = {
     ],
     ents: [
         { k: 'lot', id: 'lot9', x: 2, y: 1, w: 3, h: 3, door: [1, 2], s: { age: [0], addr: [9] } },
-        H('h4', 11, 1, [4], 'tock'),
-        NPC('guard', 7, 1, 'guard'),
+        H('h4', 11, 1, [4], 'tock', null, 6),
+        NPC('guard', 7, 1, 'guard', AGE([2, 9], { aside: [5, 2] })),
         { k: 'milestone', id: 'ms_east', x: 13, y: 6, side: 'east' },
         DECO('el_bench', 5, 7, 'bench'),
         DECO('el_sign', 2, 6, 'sign', { text: ['Lot for sale. Build what you like.'] }),
@@ -135,7 +136,7 @@ ROOMS.eastlane = {
 };
 
 ROOMS.tock = {
-    name: 'Tock\'s Clocks', out: false, music: 'home', entry: [7, 8], ret: { room: 'eastlane', x: 12, y: 4 }, takes: true,
+    name: 'Tock\'s Clocks', out: false, music: 'home', host: { room: 'eastlane', id: 'h4' }, entry: [7, 8], ret: { room: 'eastlane', x: 12, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWWWWWWWWWW  ',
@@ -150,7 +151,7 @@ ROOMS.tock = {
         '                ',
     ],
     ents: [
-        NPC('tock', 6, 3, 'tock', { when: 'always' }),
+        NPC('tock', 6, 3, 'tock', AGE([4, 6], { when: 'always' })),
         DECO('tock_bench', 5, 3, 'workbench'),
         DECO('tock_c1', 4, 1, 'wallclock'), DECO('tock_c2', 8, 1, 'wallclock'), DECO('tock_c3', 11, 1, 'wallclock'),
         DECO('tock_gf', 12, 5, 'grandfather', { text: ['A grandfather clock, stopped at a quarter past nothing.'] }),
@@ -198,7 +199,7 @@ ROOMS.clockhill = {
     ents: [
         { k: 'door', id: 'towerdoor', x: 7, y: 5, to: 'clocktower', when: 'eerie', look: 'towerdoor' },
         DECO('tower', 6, 2, 'tower', { w: 3, h: 4, text: ['The old clock tower. No door. No hands. It stopped before anyone remembers.'] }),
-        { k: 'scope', id: 'hillscope', x: 12, y: 4, look: 'scope', text: null },
+        { k: 'scope', id: 'hillscope', x: 12, y: 4, look: 'scope' },
         DECO('hill_bench', 3, 6, 'bench'),
     ],
 };
@@ -243,8 +244,8 @@ ROOMS.harbor = {
         '%%%%%%%%%%%%%%%%',
     ],
     ents: [
-        H('h6', 2, 1, [6], 'fisher'),
-        NPC('marlo', 8, 8, 'marlo'),
+        H('h6', 2, 1, [6], 'fisher', null, 8),
+        NPC('marlo', 8, 8, 'marlo', AGE([5, 8])),
         { k: 'sea', id: 'sea', x: 0, y: 6, w: 16, h: 5, s: { d: [INF] }, hide: ['d'], touch: [[7, 9], [8, 9], [6, 8], [9, 8], [6, 7], [9, 7], [6, 6], [9, 6]] },
         DECO('hb_rope', 12, 3, 'barrel'),
         DECO('hb_nets', 13, 2, 'nets', { text: ['Nets, drying. Nothing in them for weeks.'] }),
@@ -266,7 +267,7 @@ ROOMS.harbor = {
 };
 
 ROOMS.fisher = {
-    name: 'No. 6', out: false, music: 'home', entry: [7, 8], ret: { room: 'harbor', x: 3, y: 4 }, takes: true,
+    name: 'No. 6', out: false, music: 'home', host: { room: 'harbor', id: 'h6' }, entry: [7, 8], ret: { room: 'harbor', x: 3, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWwWWWWwWWW  ',

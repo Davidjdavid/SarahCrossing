@@ -68,7 +68,6 @@ TALK.tock = () => cycle('tock', [
     ['The town clock IS the time, you know. Change one and you\'ve changed the other.'],
     ['They say the old tower on the hill keeps an hour that isn\'t on any clock.', 'Twenty-five o\'clock. Ninety o\'clock. Nonsense, of course.'],
 ]);
-TALK.guard = () => cycle('guard', [['Clock Hill\'s closed. Orders.', 'I\'m off at sundown, mind. Not that I\'m telling you anything.'], ['Nothing up there but an old tower with no door.']]);
 TALK.marlo = () => {
     if (F().lit) return ['Boats! Boats again! I\'d nearly forgotten what they look like.'];
     if (G.items.specs) return ['You\'re looking at the sea funny. It\'s wide.', 'Always has been. Wide as anything.'];
@@ -140,6 +139,12 @@ HOOK.onRoom = (id, from) => {
 HOOK.selfAge = () => {
     const a = dval(G.p.s.age);
     if (a === 0) die('unborn');
+};
+TALK.hillscope = () => F().lit ? ['Far off to the east, the lighthouse. Shining!'] : ['Far off to the east: a lighthouse, standing dark.', 'Its windows have numbers in them.'];
+TALK.guard = () => {
+    const g = entById('guard');
+    if (g && g.s && dval(g.s.age) < 16) return ['I\'m off duty! I\'m only little!'];
+    return cycle('guard', [['Clock Hill\'s closed. Orders.', 'I\'m off at sundown, mind. Not that I\'m telling you anything.'], ['Nothing up there but an old tower with no door.']]);
 };
 TALK.mirror = () => G.items.specs ? ['You. Age ' + dstr(G.p.s.age) + '.'] : ['You.'];
 TALK.album = () => { EV.push({ t: 'album' }); return null; };

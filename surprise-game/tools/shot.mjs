@@ -20,7 +20,7 @@ await snap('00-title');
 const steps = JSON.parse(process.argv[3] || '[]');
 for (const s of steps) {
   if (s.key) { for (const k of [].concat(s.key)) { await page.keyboard.press(k); await page.waitForTimeout(s.wait ?? 160); } }
-  if (s.eval) await page.evaluate(s.eval);
+  if (s.eval) { await page.evaluate(s.eval); await page.waitForTimeout(s.wait ?? 100); }
   if (s.shot) await snap(s.shot);
 }
 console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no errors');

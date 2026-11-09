@@ -17,18 +17,18 @@ ROOMS.westlane = {
         '#######~~####;##',
     ],
     ents: [
-        H('h5', 4, 1, [5], 'five'),
-        H('h7', 11, 1, [7], 'seven'),
+        H('h5', 4, 1, [5], 'five', null, 3),
+        H('h7', 11, 1, [7], 'seven', null, 8),
         { k: 'bridge', id: 'wl_bridge', x: 7, y: 5, w: 2, s: { age: [9] } },
         { k: 'parcel', id: 'parcel5', x: 10, y: 5, s: { wt: [2], to: [5] } },
-        NPC('sev', 14, 3, 'sev', { s: { age: [7, 7] }, hide: ['age'] }),
+        NPC('sev', 14, 3, 'sev', AGE([7, 7], { ownAge: true })),
         DECO('wl_bench', 14, 2, 'bench'),
         DECO('wl_sign', 10, 7, 'sign', { text: ['WEST LANE BRIDGE. Built in the year 1. Mind your step.'] }),
     ],
 };
 
 ROOMS.five = {
-    name: 'No. 5', out: false, music: 'home', entry: [7, 8], ret: { room: 'westlane', x: 5, y: 4 }, takes: true,
+    name: 'No. 5', out: false, music: 'home', host: { room: 'westlane', id: 'h5' }, entry: [7, 8], ret: { room: 'westlane', x: 5, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWwWWWWwWWW  ',
@@ -43,7 +43,7 @@ ROOMS.five = {
         '                ',
     ],
     ents: [
-        NPC('fife', 6, 3, 'fife', { when: 'always' }),
+        NPC('fife', 6, 3, 'fife', AGE([6, 5], { when: 'always' })),
         DECO('fi5_chair', 5, 3, 'chair'),
         DECO('fi5_yarn', 11, 2, 'yarn', { text: ['Yarn. A great deal of yarn.'] }),
         DECO('fi5_bed', 12, 6, 'bed', { h: 2 }),
@@ -52,7 +52,7 @@ ROOMS.five = {
 };
 
 ROOMS.seven = {
-    name: 'No. 7', out: false, music: 'home', entry: [7, 8], ret: { room: 'westlane', x: 12, y: 4 }, takes: true,
+    name: 'No. 7', out: false, music: 'home', host: { room: 'westlane', id: 'h7' }, entry: [7, 8], ret: { room: 'westlane', x: 12, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWWWwWWWWWW  ',
@@ -119,17 +119,17 @@ ROOMS.mill = {
         '####~###########',
     ],
     ents: [
-        H('h8', 1, 1, [8], 'mill'),
+        H('h8', 1, 1, [8], 'mill', null, 7),
         { k: 'deco', id: 'wheel', x: 5, y: 2, w: 1, h: 2, look: 'wheel', text: ['The waterwheel.'] },
         { k: 'counter', id: 'millcount', x: 6, y: 2, s: { cnt: [0, 4, 2] }, far: { cnt: [true, false, false] }, flow: 'millFlow', drop: [7, 4], touch: [[6, 2], [6, 3]] },
         { k: 'chest', id: 'strongbox', x: 9, y: 2, item: 'watch', lock: 'millLock', look: 'strongbox', lockText: ['A strongbox. Its lock is wired to the wheel\'s counter. The counter\'s hundreds are up out of reach.'] },
-        NPC('grist', 10, 6, 'grist'),
+        NPC('grist', 10, 6, 'grist', AGE([6, 1])),
         DECO('mill_sacks', 13, 8, 'sacks', { text: ['Flour sacks.'] }),
     ],
 };
 
 ROOMS.millhouse = {
-    name: 'No. 8', out: false, music: 'home', entry: [7, 8], ret: { room: 'mill', x: 2, y: 4 }, takes: true,
+    name: 'No. 8', out: false, music: 'home', host: { room: 'mill', id: 'h8' }, entry: [7, 8], ret: { room: 'mill', x: 2, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWWWwWWWWWW  ',
@@ -157,8 +157,8 @@ ROOMS.quarry = {
     map: [
         '#######~~####:##',
         '#....o.~~....:.#',
-        '#......~~....:.#',
-        '#...o..~~.....:#',
+        '#.....~~~~...:.#',
+        '#...o.~~~~....:#',
         '#.....-----...:#',
         ':::::.-----.::::',
         '#.....-----....#',
@@ -198,6 +198,6 @@ ROOMS.cellar = {
         { k: 'loose', id: 'cel9a', x: 10, y: 3, s: { v: [9] } },
         { k: 'loose', id: 'cel9b', x: 12, y: 4, s: { v: [9] } },
         DECO('cel_cart', 5, 7, 'cart', { text: ['A mine cart full of rubble. And numbers, half-buried.'] }),
-        NPC('miner', 9, 6, 'miner', { when: 'always', always: true }),
+        NPC('miner', 9, 6, 'miner', AGE([9, 0], { when: 'always', always: true })),
     ],
 };

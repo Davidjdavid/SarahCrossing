@@ -122,7 +122,8 @@ kind('tree', { solid: e => sv(e, 'age') >= 3, bump: e => (e.hollow && sv(e, 'age
 kind('wall', { solid: e => wallStage(sv(e, 'age')) === 'wall' });
 kind('bridge', { solid: e => bridgeStage(sv(e, 'age')) === 'rotten', bump: e => { EV.push({ t: 'creak', e: e.id }); return false; } });
 kind('lot', { solid: e => lotStage(sv(e, 'age')) !== 'none', bump: (e, x, y) => lotBump(e, x, y) });
-kind('house', { bump: (e, x, y) => houseBump(e, x, y) });
+const standing = e => !(e.s && e.s.age) || lotStage(sv(e, 'age')) === 'house';
+kind('house', { solid: e => !(e.s && e.s.age) || lotStage(sv(e, 'age')) !== 'none', bump: (e, x, y) => houseBump(e, x, y) });
 kind('door', { bump: e => doorBump(e) });
 kind('plate', { solid: () => false });
 kind('crack', { solid: () => false });
@@ -445,7 +446,7 @@ function tryPush(first, d) {
 function doorAt(x, y) {
     for (const e of entsAt(x, y)) {
         if (e.k === 'door') return e;
-        if ((e.k === 'house' || (e.k === 'lot' && lotStage(sv(e, 'age')) === 'house')) && x === e.x + e.door[0] && y === e.y + e.door[1]) return e;
+        if ((e.k === 'house' || e.k === 'lot') && standing(e) && x === e.x + e.door[0] && y === e.y + e.door[1]) return e;
     }
     return null;
 }
@@ -556,7 +557,7 @@ function enterRoomAt(id, ret) {
     goRoom(id, x, y, 'fade', 'u');
 }
 function houseBump(e, x, y) {
-    if (x === e.x + e.door[0] && y === e.y + e.door[1]) return enterAddr(dval(e.s.addr), { room: G.room, x, y: y + 1 });
+    if (standing(e) && x === e.x + e.door[0] && y === e.y + e.door[1]) return enterAddr(dval(e.s.addr), { room: G.room, x, y: y + 1 });
     EV.push({ t: 'bump' });
     return 'face';
 }
@@ -790,6 +791,7 @@ function swapTargets() {
     for (const [x, y] of reachTiles()) {
         for (const e of rs().ents) {
             if (e.gone || !present(e) || seen.has(e.id) || !touchable(e, x, y)) continue;
+            if (e.k === 'crack' && e.broken) continue;
             if (e.k === 'npc' && !(e.hide && G.items.specs)) continue;
             if (e.k === 'loose') { out.push({ t: 'loose', id: e.id }); seen.add(e.id); continue; }
             let any = false;
@@ -888,7 +890,7 @@ function validAfter(e, key) {
         if (R.p !== Infinity && R.e !== Infinity && R.p + R.e > 99) return false;
         return true;
     }
-    if (key === 'age' && e !== SELF && e !== G.follow && solidFor(e) && occupiedBesides(e)) return false;
+    if (key === 'age' && e !== SELF && e !== G.follow && e.k !== 'npc' && solidFor(e) && occupiedBesides(e)) return false;
     if (key === 'age' && e.k === 'bridge') {
         if (bridgeStage(sv(e, 'age')) === 'none' && (G.p.x === e.x && G.p.y === e.y || entsAt(e.x, e.y).some(o => OBJ[o.k]))) return false;
     }
@@ -908,7 +910,9 @@ function afterSwap(e, key, took, gave) {
     if (key === 'age' && (e.k === 'egg' || e === G.follow)) chickChanged(e);
     if (key === 'age' && e.k !== 'egg') EV.push({ t: 'age', id: e.id });
     if (e.k === 'milestone') roadChanged();
+    if (key === 'hour') EV.push({ t: 'hour' });
     if (e === SELF && key === 'age' && HOOK.selfAge) HOOK.selfAge();
+    if (e.k === 'npc' && key === 'age') { EV.push({ t: 'age', id: e.id }); if (e.aside && dval(e.s.age) < 16 && !(G.p.x === e.aside[0] && G.p.y === e.aside[1])) { e.x = e.aside[0]; e.y = e.aside[1]; } }
     if (HOOK.swapped) HOOK.swapped(e, key, took, gave);
 }
 function roadChanged() {
@@ -964,10 +968,22 @@ function moveFollower(ox, oy) {
 function say(lines, who) { if (!lines) return false; EV.push({ t: 'say', lines: Array.isArray(lines) ? lines : [lines], who }); return 'talk'; }
 function talkTo(e) {
     const f = TALK[e.id];
-    const lines = f ? f(e) : e.text;
+    const lines = (!e.ownAge && ageTalk(e)) || (f ? f(e) : e.text);
     if (!lines) return false;
     EV.push({ t: 'say', lines, who: e.id });
     return 'talk';
+}
+/* anyone whose age you've changed has something to say about it */
+function ageTalk(e) {
+    if (!e.s || !e.s.age || e.a0 === undefined) return null;
+    const a = dval(e.s.age);
+    if (a === e.a0) return null;
+    if (a === Infinity) return ['I have seen the stars be born.', 'It was nice. A bit long.'];
+    if (a < 13) return ['(in a very small voice) Everything is so BIG.'];
+    if (a < 20) return ['Ugh. Whatever.'];
+    if (a >= 90) return ['Eh? Speak up, dear. I\'m ' + a + '.'];
+    if (a > e.a0) return ['I feel... older. Wiser? No. Just older.'];
+    return ['I feel younger! Not young. But younger.'];
 }
 function openChest(e) {
     if (e.open) return say(e.emptyText || ['Empty.']);
@@ -1048,12 +1064,13 @@ function resumeSave() {
 /* the village: home, the square, the post office, the shop, east lane, clock hill, the harbor.
    maps are 16x11 tiles. interiors use the same grid, the rest of it dark. */
 
-const H = (id, x, y, addr, look, extra) => Object.assign({ k: 'house', id, x, y, w: 3, h: 3, door: [1, 2], s: { addr }, look }, extra || {});
+const H = (id, x, y, addr, look, extra, age) => Object.assign({ k: 'house', id, x, y, w: 3, h: 3, door: [1, 2], s: age ? { addr, age: [age] } : { addr }, hide: ['age'], look }, extra || {});
+const AGE = (a, extra) => Object.assign({ s: { age: a }, hide: ['age'], a0: dval(a) }, extra || {});
 const NPC = (id, x, y, look, extra) => Object.assign({ k: 'npc', id, x, y, look }, extra || {});
 const DECO = (id, x, y, look, extra) => Object.assign({ k: 'deco', id, x, y, look }, extra || {});
 
 ROOMS.home = {
-    name: 'Home', out: false, music: 'home', entry: [7, 8], ret: { room: 'square', x: 2, y: 4 }, takes: true,
+    name: 'Home', out: false, music: 'home', host: { room: 'square', id: 'h1' }, entry: [7, 8], ret: { room: 'square', x: 2, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWwWWWWWwWW  ',
@@ -1094,20 +1111,20 @@ ROOMS.square = {
         '########;;######',
     ],
     ents: [
-        H('h1', 1, 1, [1], 'home'),
-        H('h2', 12, 1, [2], 'post'),
-        H('h3', 1, 6, [3], 'shop'),
+        H('h1', 1, 1, [1], 'home', null, 4),
+        H('h2', 12, 1, [2], 'post', null, 7),
+        H('h3', 1, 6, [3], 'shop', null, 5),
         { k: 'clock', id: 'townclock', x: 10, y: 2, text: ['The town clock. It has never once been wrong.'] },
         DECO('well', 12, 7, 'well', { text: ['A well. Very deep. You can\'t see the bottom.'] }),
         DECO('sq_bench', 5, 8, 'bench'),
-        NPC('gran', 4, 8, 'gran'),
-        NPC('pip', 11, 8, 'pip', { s: { age: [0, 8] }, hide: ['age'] }),
+        NPC('gran', 4, 8, 'gran', AGE([8, 1])),
+        NPC('pip', 11, 8, 'pip', AGE([0, 8], { ownAge: true })),
         DECO('sq_flowers1', 13, 9, 'flowerpot', { walk: false }),
     ],
 };
 
 ROOMS.post = {
-    name: 'Post Office', out: false, music: 'home', entry: [7, 8], ret: { room: 'square', x: 13, y: 4 }, takes: true,
+    name: 'Post Office', out: false, music: 'home', host: { room: 'square', id: 'h2' }, entry: [7, 8], ret: { room: 'square', x: 13, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWbbbWWwWWWW  ',
@@ -1122,7 +1139,7 @@ ROOMS.post = {
         '                ',
     ],
     ents: [
-        NPC('postmaster', 5, 3, 'postmaster', { when: 'always' }),
+        NPC('postmaster', 5, 3, 'postmaster', AGE([5, 2], { when: 'always', ownAge: true })),
         DECO('album', 11, 2, 'album'),
         DECO('postscale', 12, 5, 'scale', { text: ['A scale for parcels. It reads 0.'] }),
         DECO('postsacks', 3, 2, 'sacks'),
@@ -1130,7 +1147,7 @@ ROOMS.post = {
 };
 
 ROOMS.shop = {
-    name: 'Dot\'s', out: false, music: 'shop', entry: [7, 8], ret: { room: 'square', x: 2, y: 9 }, takes: true,
+    name: 'Dot\'s', out: false, music: 'shop', host: { room: 'square', id: 'h3' }, entry: [7, 8], ret: { room: 'square', x: 2, y: 9 }, takes: true,
     map: [
         '                ',
         '  WWWWWwWWwWWW  ',
@@ -1145,7 +1162,7 @@ ROOMS.shop = {
         '                ',
     ],
     ents: [
-        NPC('dot', 10, 3, 'dot', { when: 'always' }),
+        NPC('dot', 10, 3, 'dot', AGE([3, 4], { when: 'always' })),
         { k: 'shelf', id: 'sh_satchel', x: 5, y: 4, item: 'satchel', s: { price: [3, 0, 0] } },
         { k: 'shelf', id: 'sh_nine', x: 7, y: 4, item: 'digit', digit: 9, s: { price: [9, 0] } },
         { k: 'shelf', id: 'sh_map', x: 9, y: 4, item: 'map', s: { price: [4, 0] } },
@@ -1172,8 +1189,8 @@ ROOMS.eastlane = {
     ],
     ents: [
         { k: 'lot', id: 'lot9', x: 2, y: 1, w: 3, h: 3, door: [1, 2], s: { age: [0], addr: [9] } },
-        H('h4', 11, 1, [4], 'tock'),
-        NPC('guard', 7, 1, 'guard'),
+        H('h4', 11, 1, [4], 'tock', null, 6),
+        NPC('guard', 7, 1, 'guard', AGE([2, 9], { aside: [5, 2] })),
         { k: 'milestone', id: 'ms_east', x: 13, y: 6, side: 'east' },
         DECO('el_bench', 5, 7, 'bench'),
         DECO('el_sign', 2, 6, 'sign', { text: ['Lot for sale. Build what you like.'] }),
@@ -1182,7 +1199,7 @@ ROOMS.eastlane = {
 };
 
 ROOMS.tock = {
-    name: 'Tock\'s Clocks', out: false, music: 'home', entry: [7, 8], ret: { room: 'eastlane', x: 12, y: 4 }, takes: true,
+    name: 'Tock\'s Clocks', out: false, music: 'home', host: { room: 'eastlane', id: 'h4' }, entry: [7, 8], ret: { room: 'eastlane', x: 12, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWWWWWWWWWW  ',
@@ -1197,7 +1214,7 @@ ROOMS.tock = {
         '                ',
     ],
     ents: [
-        NPC('tock', 6, 3, 'tock', { when: 'always' }),
+        NPC('tock', 6, 3, 'tock', AGE([4, 6], { when: 'always' })),
         DECO('tock_bench', 5, 3, 'workbench'),
         DECO('tock_c1', 4, 1, 'wallclock'), DECO('tock_c2', 8, 1, 'wallclock'), DECO('tock_c3', 11, 1, 'wallclock'),
         DECO('tock_gf', 12, 5, 'grandfather', { text: ['A grandfather clock, stopped at a quarter past nothing.'] }),
@@ -1245,7 +1262,7 @@ ROOMS.clockhill = {
     ents: [
         { k: 'door', id: 'towerdoor', x: 7, y: 5, to: 'clocktower', when: 'eerie', look: 'towerdoor' },
         DECO('tower', 6, 2, 'tower', { w: 3, h: 4, text: ['The old clock tower. No door. No hands. It stopped before anyone remembers.'] }),
-        { k: 'scope', id: 'hillscope', x: 12, y: 4, look: 'scope', text: null },
+        { k: 'scope', id: 'hillscope', x: 12, y: 4, look: 'scope' },
         DECO('hill_bench', 3, 6, 'bench'),
     ],
 };
@@ -1290,8 +1307,8 @@ ROOMS.harbor = {
         '%%%%%%%%%%%%%%%%',
     ],
     ents: [
-        H('h6', 2, 1, [6], 'fisher'),
-        NPC('marlo', 8, 8, 'marlo'),
+        H('h6', 2, 1, [6], 'fisher', null, 8),
+        NPC('marlo', 8, 8, 'marlo', AGE([5, 8])),
         { k: 'sea', id: 'sea', x: 0, y: 6, w: 16, h: 5, s: { d: [INF] }, hide: ['d'], touch: [[7, 9], [8, 9], [6, 8], [9, 8], [6, 7], [9, 7], [6, 6], [9, 6]] },
         DECO('hb_rope', 12, 3, 'barrel'),
         DECO('hb_nets', 13, 2, 'nets', { text: ['Nets, drying. Nothing in them for weeks.'] }),
@@ -1313,7 +1330,7 @@ ROOMS.harbor = {
 };
 
 ROOMS.fisher = {
-    name: 'No. 6', out: false, music: 'home', entry: [7, 8], ret: { room: 'harbor', x: 3, y: 4 }, takes: true,
+    name: 'No. 6', out: false, music: 'home', host: { room: 'harbor', id: 'h6' }, entry: [7, 8], ret: { room: 'harbor', x: 3, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWwWWWWwWWW  ',
@@ -1576,18 +1593,18 @@ ROOMS.westlane = {
         '#######~~####;##',
     ],
     ents: [
-        H('h5', 4, 1, [5], 'five'),
-        H('h7', 11, 1, [7], 'seven'),
+        H('h5', 4, 1, [5], 'five', null, 3),
+        H('h7', 11, 1, [7], 'seven', null, 8),
         { k: 'bridge', id: 'wl_bridge', x: 7, y: 5, w: 2, s: { age: [9] } },
         { k: 'parcel', id: 'parcel5', x: 10, y: 5, s: { wt: [2], to: [5] } },
-        NPC('sev', 14, 3, 'sev', { s: { age: [7, 7] }, hide: ['age'] }),
+        NPC('sev', 14, 3, 'sev', AGE([7, 7], { ownAge: true })),
         DECO('wl_bench', 14, 2, 'bench'),
         DECO('wl_sign', 10, 7, 'sign', { text: ['WEST LANE BRIDGE. Built in the year 1. Mind your step.'] }),
     ],
 };
 
 ROOMS.five = {
-    name: 'No. 5', out: false, music: 'home', entry: [7, 8], ret: { room: 'westlane', x: 5, y: 4 }, takes: true,
+    name: 'No. 5', out: false, music: 'home', host: { room: 'westlane', id: 'h5' }, entry: [7, 8], ret: { room: 'westlane', x: 5, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWwWWWWwWWW  ',
@@ -1602,7 +1619,7 @@ ROOMS.five = {
         '                ',
     ],
     ents: [
-        NPC('fife', 6, 3, 'fife', { when: 'always' }),
+        NPC('fife', 6, 3, 'fife', AGE([6, 5], { when: 'always' })),
         DECO('fi5_chair', 5, 3, 'chair'),
         DECO('fi5_yarn', 11, 2, 'yarn', { text: ['Yarn. A great deal of yarn.'] }),
         DECO('fi5_bed', 12, 6, 'bed', { h: 2 }),
@@ -1611,7 +1628,7 @@ ROOMS.five = {
 };
 
 ROOMS.seven = {
-    name: 'No. 7', out: false, music: 'home', entry: [7, 8], ret: { room: 'westlane', x: 12, y: 4 }, takes: true,
+    name: 'No. 7', out: false, music: 'home', host: { room: 'westlane', id: 'h7' }, entry: [7, 8], ret: { room: 'westlane', x: 12, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWWWwWWWWWW  ',
@@ -1678,17 +1695,17 @@ ROOMS.mill = {
         '####~###########',
     ],
     ents: [
-        H('h8', 1, 1, [8], 'mill'),
+        H('h8', 1, 1, [8], 'mill', null, 7),
         { k: 'deco', id: 'wheel', x: 5, y: 2, w: 1, h: 2, look: 'wheel', text: ['The waterwheel.'] },
         { k: 'counter', id: 'millcount', x: 6, y: 2, s: { cnt: [0, 4, 2] }, far: { cnt: [true, false, false] }, flow: 'millFlow', drop: [7, 4], touch: [[6, 2], [6, 3]] },
         { k: 'chest', id: 'strongbox', x: 9, y: 2, item: 'watch', lock: 'millLock', look: 'strongbox', lockText: ['A strongbox. Its lock is wired to the wheel\'s counter. The counter\'s hundreds are up out of reach.'] },
-        NPC('grist', 10, 6, 'grist'),
+        NPC('grist', 10, 6, 'grist', AGE([6, 1])),
         DECO('mill_sacks', 13, 8, 'sacks', { text: ['Flour sacks.'] }),
     ],
 };
 
 ROOMS.millhouse = {
-    name: 'No. 8', out: false, music: 'home', entry: [7, 8], ret: { room: 'mill', x: 2, y: 4 }, takes: true,
+    name: 'No. 8', out: false, music: 'home', host: { room: 'mill', id: 'h8' }, entry: [7, 8], ret: { room: 'mill', x: 2, y: 4 }, takes: true,
     map: [
         '                ',
         '  WWWWWwWWWWWW  ',
@@ -1716,8 +1733,8 @@ ROOMS.quarry = {
     map: [
         '#######~~####:##',
         '#....o.~~....:.#',
-        '#......~~....:.#',
-        '#...o..~~.....:#',
+        '#.....~~~~...:.#',
+        '#...o.~~~~....:#',
         '#.....-----...:#',
         ':::::.-----.::::',
         '#.....-----....#',
@@ -1757,7 +1774,7 @@ ROOMS.cellar = {
         { k: 'loose', id: 'cel9a', x: 10, y: 3, s: { v: [9] } },
         { k: 'loose', id: 'cel9b', x: 12, y: 4, s: { v: [9] } },
         DECO('cel_cart', 5, 7, 'cart', { text: ['A mine cart full of rubble. And numbers, half-buried.'] }),
-        NPC('miner', 9, 6, 'miner', { when: 'always', always: true }),
+        NPC('miner', 9, 6, 'miner', AGE([9, 0], { when: 'always', always: true })),
     ],
 };
 
@@ -1783,7 +1800,7 @@ ROOMS.road = {
     ents: [
         { k: 'milestone', id: 'ms_road', x: 7, y: 4, side: 'both' },
         { k: 'stamp', id: 'st_walk', x: 10, y: 4, stamp: 'walk', when: 'walk' },
-        NPC('walker', 12, 6, 'walker', { when: 'walk', always: true }),
+        NPC('walker', 12, 6, 'walker', AGE([3, 3], { when: 'walk', always: true })),
     ],
 };
 
@@ -1830,7 +1847,7 @@ ROOMS.lh0 = LH('The Lighthouse', [
     DECO('lh0_shelf', 12, 3, 'shelf'),
     { k: 'cat', id: 'cat', x: 11, y: 2, s: { wt: [9] }, bed: [4, 8] },
     DECO('catbed', 4, 8, 'catbed', { walk: true }),
-    NPC('keeper', 5, 4, 'keeper', { when: 'always' }),
+    NPC('keeper', 5, 4, 'keeper', AGE([8, 8], { when: 'always', ownAge: true })),
     DECO('keeperchair', 5, 3, 'rocker'),
     DECO('lh0_stove', 3, 2, 'stove', { text: ['A little stove. A kettle, still warm.'] }),
     DECO('lh0_photo', 10, 1, 'frame', { text: ['A photo of a boy on a boat, waving.'] }),
@@ -1992,7 +2009,6 @@ TALK.tock = () => cycle('tock', [
     ['The town clock IS the time, you know. Change one and you\'ve changed the other.'],
     ['They say the old tower on the hill keeps an hour that isn\'t on any clock.', 'Twenty-five o\'clock. Ninety o\'clock. Nonsense, of course.'],
 ]);
-TALK.guard = () => cycle('guard', [['Clock Hill\'s closed. Orders.', 'I\'m off at sundown, mind. Not that I\'m telling you anything.'], ['Nothing up there but an old tower with no door.']]);
 TALK.marlo = () => {
     if (F().lit) return ['Boats! Boats again! I\'d nearly forgotten what they look like.'];
     if (G.items.specs) return ['You\'re looking at the sea funny. It\'s wide.', 'Always has been. Wide as anything.'];
@@ -2064,6 +2080,12 @@ HOOK.onRoom = (id, from) => {
 HOOK.selfAge = () => {
     const a = dval(G.p.s.age);
     if (a === 0) die('unborn');
+};
+TALK.hillscope = () => F().lit ? ['Far off to the east, the lighthouse. Shining!'] : ['Far off to the east: a lighthouse, standing dark.', 'Its windows have numbers in them.'];
+TALK.guard = () => {
+    const g = entById('guard');
+    if (g && g.s && dval(g.s.age) < 16) return ['I\'m off duty! I\'m only little!'];
+    return cycle('guard', [['Clock Hill\'s closed. Orders.', 'I\'m off at sundown, mind. Not that I\'m telling you anything.'], ['Nothing up there but an old tower with no door.']]);
 };
 TALK.mirror = () => G.items.specs ? ['You. Age ' + dstr(G.p.s.age) + '.'] : ['You.'];
 TALK.album = () => { EV.push({ t: 'album' }); return null; };
@@ -2923,6 +2945,7 @@ function shipImg() {
 /* putting the room on screen: ground, things, numbers, light, effects */
 
 const VIS = new Map();        /* where each thing is drawn (eases toward where it is) */
+const BOUNCE = new Map();     /* id -> seconds left of a little hop when its number changes */
 const FX = [];                /* particles */
 const POPS = [];              /* floating words and numbers */
 const FLY = [];               /* digits in flight between a tag and the satchel */
@@ -2974,6 +2997,7 @@ function drawScene(g, t) {
     const id = G.room;
     g.drawImage(ground(id), 0, OY);
     drawWaterFx(g, id, t, OY);
+    if (id === 'road') drawRoadDecor(g, t);
     const ents = rs().ents.filter(e => !e.gone && present(e));
     TAGS = {};
     /* things lying flat and things under the water */
@@ -2996,12 +3020,29 @@ function drawScene(g, t) {
     drawFx(g);
 }
 
+/* the long road looks a little different every step of the way */
+function drawRoadDecor(g, t) {
+    const p = G.road.p === Infinity ? 999 : G.road.p;
+    const rows = [2, 3, 4, 6, 7, 8];
+    for (let i = 0; i < 9; i++) {
+        const h = k => hash2(p, i, k);
+        const x = 1 + Math.floor(h(1) * 14), y = rows[Math.floor(h(2) * rows.length)];
+        const px = x * TS + Math.floor(h(3) * 8), py = y * TS + OY + Math.floor(h(4) * 8);
+        const kind = Math.floor(h(5) * 6);
+        if (kind <= 1) { const c = [C.r, C.y, C.w, C.p, C.v][Math.floor(h(6) * 5)]; for (let j = 0; j < 3; j++) { R(g, C.N, px + j * 3, py + 3, 1, 3); R(g, c, px + j * 3 - 1, py + 2, 3, 1); R(g, c, px + j * 3, py + 1, 1, 3); } }
+        else if (kind === 2) { blob(g, px, py + 3, 6, 4, C.g, C.k, ellipse(3, 2, 3, 2)); }
+        else if (kind === 3) { for (let j = 0; j < 4; j++) R(g, C.D, px + j * 2, py + (j % 2), 1, 5); }
+        else if (kind === 4 && h(7) < 0.4) { blob(g, px - 2, py + 2, 12, 5, C.c, C.b, ellipse(6, 2.5, 6, 2.5)); }
+        else if (kind === 5 && h(8) < 0.5) { const bx = px + Math.sin(t * 1.3 + i) * 10, by = py - 4 + Math.sin(t * 2.1 + i) * 4, f = Math.floor(t * 8 + i) % 2; R(g, [C.y, C.w, C.p][i % 3], bx - (f ? 2 : 1), by, f ? 2 : 1, 2); R(g, [C.y, C.w, C.p][i % 3], bx + 1, by, f ? 2 : 1, 2); P1(g, C.k, bx, by); }
+    }
+}
 function entPx(e) { const v = target(e.id, e.x * TS, e.y * TS + OY); return v; }
 function shadow(g, x, y, w = 10) { g.fillStyle = 'rgba(20,10,30,0.28)'; g.fillRect(x + 8 - w / 2, y + 13, w, 3); g.fillRect(x + 8 - w / 2 + 1, y + 12, w - 2, 1); }
 
 function drawEnt(g, e, t) {
     const v = entPx(e);
-    const x = Math.round(v.x), y = Math.round(v.y);
+    const bt = BOUNCE.get(e.id) || 0;
+    const x = Math.round(v.x), y = Math.round(v.y) - Math.round(Math.sin(bt / 0.3 * Math.PI) * 3);
     const a = k => sv(e, k);
     switch (e.k) {
         case 'crate': case 'boulder': case 'anchor': case 'parcel': {
@@ -3028,7 +3069,7 @@ function drawEnt(g, e, t) {
         case 'lot': { const img = lotImg(lotStage(a('age'))); g.drawImage(img, x, y - 4); break; }
         case 'house': {
             if (e.look === 'lighthouse') { const img = lighthouseImg(!!G.flags.lit); g.drawImage(img, x, y + 80 - img.height); drawLighthouseWindows(g, x, y + 80 - img.height); }
-            else g.drawImage(houseImg(e.look), x, y - 4);
+            else { const st = e.s && e.s.age ? lotStage(sv(e, 'age')) : 'house'; g.drawImage(st === 'house' ? houseImg(e.look) : lotImg(st), x, y - 4); }
             break;
         }
         case 'door': g.drawImage(doorImg(e.look || 'door'), x, y); if (e.look === 'towerdoor') { puffMaybe(x + 8, y + 8, C.v, t); } break;
@@ -3117,8 +3158,11 @@ function drawNpc(g, e, x, y, t) {
     let look = L;
     if (L === 'pip' || L === 'sev') { /* ages show */ }
     const facing = e.face || 'd';
-    const b = Math.floor(t * 1.5 + e.x) % 2;
-    g.drawImage(personImg(look, facing, 0), x, y - (b ? 1 : 0) + (b ? 1 : 0));
+    const age = e.s && e.s.age ? dval(e.s.age) : 30;
+    if (age >= 70 && LOOKS[look] && !LOOKS[look + '_old']) LOOKS[look + '_old'] = Object.assign({}, LOOKS[look], { hair: 'W', cane: true, style: LOOKS[look].style === 'spiky' ? 'short' : LOOKS[look].style });
+    if (age >= 70 && LOOKS[look + '_old']) look = look + '_old';
+    if (age < 13 && L !== 'pip') g.drawImage(personImg(look, facing, 0), x + 2, y + 4, 12, 12);
+    else g.drawImage(personImg(look, facing, 0), x, y);
     if (L === 'grist_in' || e.id === 'grist_in' || e.id === 'marlo_in' || e.id === 'sev_in') zzz(g, x + 11, y, t);
     if (L === 'dot' && !shopOpen()) zzz(g, x + 11, y, t);
 }
@@ -3129,7 +3173,7 @@ function drawPlayer(g, t) {
     const walking = Math.abs(v.tx - v.x) + Math.abs(v.ty - v.y) > 0.5;
     const frame = walking ? (Math.floor(t * 8) % 2) : 0;
     const wt = pv('wt');
-    const floatY = wt === 0 ? Math.round(Math.sin(t * 3) * 1.5) - 2 : 0;
+    const floatY = (wt === 0 ? Math.round(Math.sin(t * 3) * 1.5) - 2 : 0) - Math.round(Math.sin((BOUNCE.get('@') || 0) / 0.3 * Math.PI) * 3);
     const old = G.items.specs && dval(G.p.s.age) >= 60;
     if (G.dead === 'sink') { g.globalAlpha = 0.5; }
     shadow(g, x, y + (wt === 0 ? 1 : 0), wt === 0 ? 8 : 10);
@@ -3231,7 +3275,7 @@ function lightSources(ents) {
     for (const e of ents) {
         const v = VIS.get(e.id); if (!v) continue;
         if (e.look === 'torch') L.push([v.x + 8, v.y, 34]);
-        if (e.k === 'house' && e.look !== 'lighthouse') { L.push([v.x + 12, v.y + 36, 18]); L.push([v.x + 37, v.y + 36, 18]); }
+        if (e.k === 'house' && e.look !== 'lighthouse' && standing(e)) { L.push([v.x + 12, v.y + 36, 18]); L.push([v.x + 37, v.y + 36, 18]); }
         if (e.k === 'house' && e.look === 'lighthouse' && G.flags.lit) L.push([v.x + 24, v.y - 30, 90]);
         if (e.k === 'lot' && lotStage(sv(e, 'age')) === 'house') L.push([v.x + 24, v.y + 36, 22]);
         if (e.k === 'clock') L.push([v.x + 8, v.y - 8, 22]);
@@ -3276,6 +3320,7 @@ function drawLight(g, t, ents) {
 
 /* ---------- effects ---------- */
 function stepFx(dt) {
+    for (const [id, b] of BOUNCE) { if (b - dt <= 0) BOUNCE.delete(id); else BOUNCE.set(id, b - dt); }
     for (let i = FX.length - 1; i >= 0; i--) { const p = FX[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 40 * dt; p.life -= dt; if (p.life <= 0) FX.splice(i, 1); }
     for (let i = POPS.length - 1; i >= 0; i--) { const p = POPS[i]; p.y -= 18 * dt; p.life -= dt; if (p.life <= 0) POPS.splice(i, 1); }
     shake = Math.max(0, shake - dt * 30);
@@ -3363,7 +3408,7 @@ function candPos(c) {
     return p ? p[c.i] : null;
 }
 function openSwap() {
-    const cands = swapTargets();
+    const cands = swapTargets().filter(c => c.t === 'drop' || candPos(c) || c.id === '@');
     if (!cands.length) return;
     const [dx, dy] = DIR[G.p.dir];
     const fx = G.p.x + dx, fy = G.p.y + dy;
@@ -3523,6 +3568,7 @@ function handleEvents(ctx = {}) {
             case 'swap': {
                 sfx('swap');
                 const tg = ctx.swapTg || e.tg;
+                if (tg && tg.id && tg.t !== 'loose') BOUNCE.set(tg.id, 0.3);
                 const from = ctx.swapFrom || (tg && candPos(tg));
                 const pp = pocketPos(e.pi);
                 if (from) {
@@ -3576,6 +3622,7 @@ function handleEvents(ctx = {}) {
             case 'undo': sfx('undo'); snapAllSoon(); break;
             case 'restart': sfx('undo'); snapAllSoon(); break;
             case 'ending': UI.endingPending = true; break;
+            case 'hour': { const h = hourVal(), b = band(); sfx('flip'); banner(b === 'eerie' ? '??:??' : String(h).padStart(2, '0') + ':00', { day: 'day', dusk: 'dusk', night: 'night', eerie: 'the hour that isn\'t' }[b], b === 'eerie' ? C.v : C.Y, 1.6); setMusic(musicFor(G.room)); break; }
             case 'album': UI.mode = 'album'; UI.albumFrom = 'play'; sfx('menu'); break;
         }
     }
@@ -3842,7 +3889,7 @@ function drawTitle(g, t) {
         if (on) { const w = textW(it) + 14; blob(g, VW / 2 - w / 2, y - 3, w, 13, C.y, C.k, roundRect(w, 13, 3)); }
         textC(g, it, VW / 2, y, on ? C.k : C.W);
     });
-    textC(g, 'arrows to move    Z to choose', VW / 2, VH - 12, C.G);
+    textC(g, focused ? 'arrows to move    Z to choose' : 'click here first, then press Z', VW / 2, VH - 12, focused ? C.G : C.Y);
 }
 
 /* ---------- pause ---------- */
@@ -4040,7 +4087,8 @@ const held = { dir: null, since: 0, last: 0 };
 let pendingKey = null;
 function press(k) {
     audioInit(); audioResume();
-    if (UI.trans && ('udlrA'.includes(k))) { pendingKey = k; return; }
+    /* while a room slides in, a step waits for it; everything else goes through */
+    if (UI.trans && UI.mode === 'play' && 'udlr'.includes(k)) { pendingKey = k; return; }
     switch (UI.mode) {
         case 'title': return titleKey(k);
         case 'play': return playKey(k);
@@ -4067,7 +4115,7 @@ function begin(fresh) {
     UI.mode = 'play'; VIS.clear(); FX.length = 0; FLY.length = 0; UI.dlg = null; UI.dlgQ = []; UI.banner = null;
     groundCache.key = null;
     setMusic(musicFor(G.room));
-    UI.trans = { how: 'fade', t: 0, dur: 0.8 };
+    UI.trans = { how: 'fade', t: 0, dur: 0.5 };
     if (fresh) UI.hint = true;
     if (!fresh) banner(ROOMS[G.room].name, null, C.w, 1.4);
 }
@@ -4149,6 +4197,11 @@ function setupTouch() {
     fit();
 }
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) setupTouch();
+/* inside a frame the page needs a click before it hears keys */
+SCREEN.addEventListener('pointerdown', () => { window.focus(); audioInit(); audioResume(); });
+let focused = typeof document.hasFocus === 'function' ? document.hasFocus() : true;
+window.addEventListener('focus', () => { focused = true; });
+window.addEventListener('blur', () => { focused = false; });
 
 /* ---------- each frame ---------- */
 let lastT = performance.now();

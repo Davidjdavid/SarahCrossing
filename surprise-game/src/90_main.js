@@ -31,7 +31,8 @@ const held = { dir: null, since: 0, last: 0 };
 let pendingKey = null;
 function press(k) {
     audioInit(); audioResume();
-    if (UI.trans && ('udlrA'.includes(k))) { pendingKey = k; return; }
+    /* while a room slides in, a step waits for it; everything else goes through */
+    if (UI.trans && UI.mode === 'play' && 'udlr'.includes(k)) { pendingKey = k; return; }
     switch (UI.mode) {
         case 'title': return titleKey(k);
         case 'play': return playKey(k);
@@ -58,7 +59,7 @@ function begin(fresh) {
     UI.mode = 'play'; VIS.clear(); FX.length = 0; FLY.length = 0; UI.dlg = null; UI.dlgQ = []; UI.banner = null;
     groundCache.key = null;
     setMusic(musicFor(G.room));
-    UI.trans = { how: 'fade', t: 0, dur: 0.8 };
+    UI.trans = { how: 'fade', t: 0, dur: 0.5 };
     if (fresh) UI.hint = true;
     if (!fresh) banner(ROOMS[G.room].name, null, C.w, 1.4);
 }
@@ -140,6 +141,11 @@ function setupTouch() {
     fit();
 }
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) setupTouch();
+/* inside a frame the page needs a click before it hears keys */
+SCREEN.addEventListener('pointerdown', () => { window.focus(); audioInit(); audioResume(); });
+let focused = typeof document.hasFocus === 'function' ? document.hasFocus() : true;
+window.addEventListener('focus', () => { focused = true; });
+window.addEventListener('blur', () => { focused = false; });
 
 /* ---------- each frame ---------- */
 let lastT = performance.now();

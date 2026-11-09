@@ -1,6 +1,7 @@
 /* putting the room on screen: ground, things, numbers, light, effects */
 
 const VIS = new Map();        /* where each thing is drawn (eases toward where it is) */
+const BOUNCE = new Map();     /* id -> seconds left of a little hop when its number changes */
 const FX = [];                /* particles */
 const POPS = [];              /* floating words and numbers */
 const FLY = [];               /* digits in flight between a tag and the satchel */
@@ -52,6 +53,7 @@ function drawScene(g, t) {
     const id = G.room;
     g.drawImage(ground(id), 0, OY);
     drawWaterFx(g, id, t, OY);
+    if (id === 'road') drawRoadDecor(g, t);
     const ents = rs().ents.filter(e => !e.gone && present(e));
     TAGS = {};
     /* things lying flat and things under the water */
@@ -74,12 +76,29 @@ function drawScene(g, t) {
     drawFx(g);
 }
 
+/* the long road looks a little different every step of the way */
+function drawRoadDecor(g, t) {
+    const p = G.road.p === Infinity ? 999 : G.road.p;
+    const rows = [2, 3, 4, 6, 7, 8];
+    for (let i = 0; i < 9; i++) {
+        const h = k => hash2(p, i, k);
+        const x = 1 + Math.floor(h(1) * 14), y = rows[Math.floor(h(2) * rows.length)];
+        const px = x * TS + Math.floor(h(3) * 8), py = y * TS + OY + Math.floor(h(4) * 8);
+        const kind = Math.floor(h(5) * 6);
+        if (kind <= 1) { const c = [C.r, C.y, C.w, C.p, C.v][Math.floor(h(6) * 5)]; for (let j = 0; j < 3; j++) { R(g, C.N, px + j * 3, py + 3, 1, 3); R(g, c, px + j * 3 - 1, py + 2, 3, 1); R(g, c, px + j * 3, py + 1, 1, 3); } }
+        else if (kind === 2) { blob(g, px, py + 3, 6, 4, C.g, C.k, ellipse(3, 2, 3, 2)); }
+        else if (kind === 3) { for (let j = 0; j < 4; j++) R(g, C.D, px + j * 2, py + (j % 2), 1, 5); }
+        else if (kind === 4 && h(7) < 0.4) { blob(g, px - 2, py + 2, 12, 5, C.c, C.b, ellipse(6, 2.5, 6, 2.5)); }
+        else if (kind === 5 && h(8) < 0.5) { const bx = px + Math.sin(t * 1.3 + i) * 10, by = py - 4 + Math.sin(t * 2.1 + i) * 4, f = Math.floor(t * 8 + i) % 2; R(g, [C.y, C.w, C.p][i % 3], bx - (f ? 2 : 1), by, f ? 2 : 1, 2); R(g, [C.y, C.w, C.p][i % 3], bx + 1, by, f ? 2 : 1, 2); P1(g, C.k, bx, by); }
+    }
+}
 function entPx(e) { const v = target(e.id, e.x * TS, e.y * TS + OY); return v; }
 function shadow(g, x, y, w = 10) { g.fillStyle = 'rgba(20,10,30,0.28)'; g.fillRect(x + 8 - w / 2, y + 13, w, 3); g.fillRect(x + 8 - w / 2 + 1, y + 12, w - 2, 1); }
 
 function drawEnt(g, e, t) {
     const v = entPx(e);
-    const x = Math.round(v.x), y = Math.round(v.y);
+    const bt = BOUNCE.get(e.id) || 0;
+    const x = Math.round(v.x), y = Math.round(v.y) - Math.round(Math.sin(bt / 0.3 * Math.PI) * 3);
     const a = k => sv(e, k);
     switch (e.k) {
         case 'crate': case 'boulder': case 'anchor': case 'parcel': {
@@ -106,7 +125,7 @@ function drawEnt(g, e, t) {
         case 'lot': { const img = lotImg(lotStage(a('age'))); g.drawImage(img, x, y - 4); break; }
         case 'house': {
             if (e.look === 'lighthouse') { const img = lighthouseImg(!!G.flags.lit); g.drawImage(img, x, y + 80 - img.height); drawLighthouseWindows(g, x, y + 80 - img.height); }
-            else g.drawImage(houseImg(e.look), x, y - 4);
+            else { const st = e.s && e.s.age ? lotStage(sv(e, 'age')) : 'house'; g.drawImage(st === 'house' ? houseImg(e.look) : lotImg(st), x, y - 4); }
             break;
         }
         case 'door': g.drawImage(doorImg(e.look || 'door'), x, y); if (e.look === 'towerdoor') { puffMaybe(x + 8, y + 8, C.v, t); } break;
@@ -195,8 +214,11 @@ function drawNpc(g, e, x, y, t) {
     let look = L;
     if (L === 'pip' || L === 'sev') { /* ages show */ }
     const facing = e.face || 'd';
-    const b = Math.floor(t * 1.5 + e.x) % 2;
-    g.drawImage(personImg(look, facing, 0), x, y - (b ? 1 : 0) + (b ? 1 : 0));
+    const age = e.s && e.s.age ? dval(e.s.age) : 30;
+    if (age >= 70 && LOOKS[look] && !LOOKS[look + '_old']) LOOKS[look + '_old'] = Object.assign({}, LOOKS[look], { hair: 'W', cane: true, style: LOOKS[look].style === 'spiky' ? 'short' : LOOKS[look].style });
+    if (age >= 70 && LOOKS[look + '_old']) look = look + '_old';
+    if (age < 13 && L !== 'pip') g.drawImage(personImg(look, facing, 0), x + 2, y + 4, 12, 12);
+    else g.drawImage(personImg(look, facing, 0), x, y);
     if (L === 'grist_in' || e.id === 'grist_in' || e.id === 'marlo_in' || e.id === 'sev_in') zzz(g, x + 11, y, t);
     if (L === 'dot' && !shopOpen()) zzz(g, x + 11, y, t);
 }
@@ -207,7 +229,7 @@ function drawPlayer(g, t) {
     const walking = Math.abs(v.tx - v.x) + Math.abs(v.ty - v.y) > 0.5;
     const frame = walking ? (Math.floor(t * 8) % 2) : 0;
     const wt = pv('wt');
-    const floatY = wt === 0 ? Math.round(Math.sin(t * 3) * 1.5) - 2 : 0;
+    const floatY = (wt === 0 ? Math.round(Math.sin(t * 3) * 1.5) - 2 : 0) - Math.round(Math.sin((BOUNCE.get('@') || 0) / 0.3 * Math.PI) * 3);
     const old = G.items.specs && dval(G.p.s.age) >= 60;
     if (G.dead === 'sink') { g.globalAlpha = 0.5; }
     shadow(g, x, y + (wt === 0 ? 1 : 0), wt === 0 ? 8 : 10);
@@ -309,7 +331,7 @@ function lightSources(ents) {
     for (const e of ents) {
         const v = VIS.get(e.id); if (!v) continue;
         if (e.look === 'torch') L.push([v.x + 8, v.y, 34]);
-        if (e.k === 'house' && e.look !== 'lighthouse') { L.push([v.x + 12, v.y + 36, 18]); L.push([v.x + 37, v.y + 36, 18]); }
+        if (e.k === 'house' && e.look !== 'lighthouse' && standing(e)) { L.push([v.x + 12, v.y + 36, 18]); L.push([v.x + 37, v.y + 36, 18]); }
         if (e.k === 'house' && e.look === 'lighthouse' && G.flags.lit) L.push([v.x + 24, v.y - 30, 90]);
         if (e.k === 'lot' && lotStage(sv(e, 'age')) === 'house') L.push([v.x + 24, v.y + 36, 22]);
         if (e.k === 'clock') L.push([v.x + 8, v.y - 8, 22]);
@@ -354,6 +376,7 @@ function drawLight(g, t, ents) {
 
 /* ---------- effects ---------- */
 function stepFx(dt) {
+    for (const [id, b] of BOUNCE) { if (b - dt <= 0) BOUNCE.delete(id); else BOUNCE.set(id, b - dt); }
     for (let i = FX.length - 1; i >= 0; i--) { const p = FX[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 40 * dt; p.life -= dt; if (p.life <= 0) FX.splice(i, 1); }
     for (let i = POPS.length - 1; i >= 0; i--) { const p = POPS[i]; p.y -= 18 * dt; p.life -= dt; if (p.life <= 0) POPS.splice(i, 1); }
     shake = Math.max(0, shake - dt * 30);

@@ -47,7 +47,8 @@ kind('tree', { solid: e => sv(e, 'age') >= 3, bump: e => (e.hollow && sv(e, 'age
 kind('wall', { solid: e => wallStage(sv(e, 'age')) === 'wall' });
 kind('bridge', { solid: e => bridgeStage(sv(e, 'age')) === 'rotten', bump: e => { EV.push({ t: 'creak', e: e.id }); return false; } });
 kind('lot', { solid: e => lotStage(sv(e, 'age')) !== 'none', bump: (e, x, y) => lotBump(e, x, y) });
-kind('house', { bump: (e, x, y) => houseBump(e, x, y) });
+const standing = e => !(e.s && e.s.age) || lotStage(sv(e, 'age')) === 'house';
+kind('house', { solid: e => !(e.s && e.s.age) || lotStage(sv(e, 'age')) !== 'none', bump: (e, x, y) => houseBump(e, x, y) });
 kind('door', { bump: e => doorBump(e) });
 kind('plate', { solid: () => false });
 kind('crack', { solid: () => false });

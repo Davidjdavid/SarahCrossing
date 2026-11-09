@@ -72,7 +72,7 @@ function candPos(c) {
     return p ? p[c.i] : null;
 }
 function openSwap() {
-    const cands = swapTargets();
+    const cands = swapTargets().filter(c => c.t === 'drop' || candPos(c) || c.id === '@');
     if (!cands.length) return;
     const [dx, dy] = DIR[G.p.dir];
     const fx = G.p.x + dx, fy = G.p.y + dy;
@@ -232,6 +232,7 @@ function handleEvents(ctx = {}) {
             case 'swap': {
                 sfx('swap');
                 const tg = ctx.swapTg || e.tg;
+                if (tg && tg.id && tg.t !== 'loose') BOUNCE.set(tg.id, 0.3);
                 const from = ctx.swapFrom || (tg && candPos(tg));
                 const pp = pocketPos(e.pi);
                 if (from) {
@@ -285,6 +286,7 @@ function handleEvents(ctx = {}) {
             case 'undo': sfx('undo'); snapAllSoon(); break;
             case 'restart': sfx('undo'); snapAllSoon(); break;
             case 'ending': UI.endingPending = true; break;
+            case 'hour': { const h = hourVal(), b = band(); sfx('flip'); banner(b === 'eerie' ? '??:??' : String(h).padStart(2, '0') + ':00', { day: 'day', dusk: 'dusk', night: 'night', eerie: 'the hour that isn\'t' }[b], b === 'eerie' ? C.v : C.Y, 1.6); setMusic(musicFor(G.room)); break; }
             case 'album': UI.mode = 'album'; UI.albumFrom = 'play'; sfx('menu'); break;
         }
     }

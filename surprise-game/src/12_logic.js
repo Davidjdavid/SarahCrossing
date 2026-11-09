@@ -273,7 +273,7 @@ function tryPush(first, d) {
 function doorAt(x, y) {
     for (const e of entsAt(x, y)) {
         if (e.k === 'door') return e;
-        if ((e.k === 'house' || (e.k === 'lot' && lotStage(sv(e, 'age')) === 'house')) && x === e.x + e.door[0] && y === e.y + e.door[1]) return e;
+        if ((e.k === 'house' || e.k === 'lot') && standing(e) && x === e.x + e.door[0] && y === e.y + e.door[1]) return e;
     }
     return null;
 }
@@ -384,7 +384,7 @@ function enterRoomAt(id, ret) {
     goRoom(id, x, y, 'fade', 'u');
 }
 function houseBump(e, x, y) {
-    if (x === e.x + e.door[0] && y === e.y + e.door[1]) return enterAddr(dval(e.s.addr), { room: G.room, x, y: y + 1 });
+    if (standing(e) && x === e.x + e.door[0] && y === e.y + e.door[1]) return enterAddr(dval(e.s.addr), { room: G.room, x, y: y + 1 });
     EV.push({ t: 'bump' });
     return 'face';
 }
@@ -618,6 +618,7 @@ function swapTargets() {
     for (const [x, y] of reachTiles()) {
         for (const e of rs().ents) {
             if (e.gone || !present(e) || seen.has(e.id) || !touchable(e, x, y)) continue;
+            if (e.k === 'crack' && e.broken) continue;
             if (e.k === 'npc' && !(e.hide && G.items.specs)) continue;
             if (e.k === 'loose') { out.push({ t: 'loose', id: e.id }); seen.add(e.id); continue; }
             let any = false;
@@ -716,7 +717,7 @@ function validAfter(e, key) {
         if (R.p !== Infinity && R.e !== Infinity && R.p + R.e > 99) return false;
         return true;
     }
-    if (key === 'age' && e !== SELF && e !== G.follow && solidFor(e) && occupiedBesides(e)) return false;
+    if (key === 'age' && e !== SELF && e !== G.follow && e.k !== 'npc' && solidFor(e) && occupiedBesides(e)) return false;
     if (key === 'age' && e.k === 'bridge') {
         if (bridgeStage(sv(e, 'age')) === 'none' && (G.p.x === e.x && G.p.y === e.y || entsAt(e.x, e.y).some(o => OBJ[o.k]))) return false;
     }
@@ -736,7 +737,9 @@ function afterSwap(e, key, took, gave) {
     if (key === 'age' && (e.k === 'egg' || e === G.follow)) chickChanged(e);
     if (key === 'age' && e.k !== 'egg') EV.push({ t: 'age', id: e.id });
     if (e.k === 'milestone') roadChanged();
+    if (key === 'hour') EV.push({ t: 'hour' });
     if (e === SELF && key === 'age' && HOOK.selfAge) HOOK.selfAge();
+    if (e.k === 'npc' && key === 'age') { EV.push({ t: 'age', id: e.id }); if (e.aside && dval(e.s.age) < 16 && !(G.p.x === e.aside[0] && G.p.y === e.aside[1])) { e.x = e.aside[0]; e.y = e.aside[1]; } }
     if (HOOK.swapped) HOOK.swapped(e, key, took, gave);
 }
 function roadChanged() {
@@ -792,10 +795,22 @@ function moveFollower(ox, oy) {
 function say(lines, who) { if (!lines) return false; EV.push({ t: 'say', lines: Array.isArray(lines) ? lines : [lines], who }); return 'talk'; }
 function talkTo(e) {
     const f = TALK[e.id];
-    const lines = f ? f(e) : e.text;
+    const lines = (!e.ownAge && ageTalk(e)) || (f ? f(e) : e.text);
     if (!lines) return false;
     EV.push({ t: 'say', lines, who: e.id });
     return 'talk';
+}
+/* anyone whose age you've changed has something to say about it */
+function ageTalk(e) {
+    if (!e.s || !e.s.age || e.a0 === undefined) return null;
+    const a = dval(e.s.age);
+    if (a === e.a0) return null;
+    if (a === Infinity) return ['I have seen the stars be born.', 'It was nice. A bit long.'];
+    if (a < 13) return ['(in a very small voice) Everything is so BIG.'];
+    if (a < 20) return ['Ugh. Whatever.'];
+    if (a >= 90) return ['Eh? Speak up, dear. I\'m ' + a + '.'];
+    if (a > e.a0) return ['I feel... older. Wiser? No. Just older.'];
+    return ['I feel younger! Not young. But younger.'];
 }
 function openChest(e) {
     if (e.open) return say(e.emptyText || ['Empty.']);

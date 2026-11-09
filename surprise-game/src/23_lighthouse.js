@@ -19,7 +19,7 @@ ROOMS.road = {
     ents: [
         { k: 'milestone', id: 'ms_road', x: 7, y: 4, side: 'both' },
         { k: 'stamp', id: 'st_walk', x: 10, y: 4, stamp: 'walk', when: 'walk' },
-        NPC('walker', 12, 6, 'walker', { when: 'walk', always: true }),
+        NPC('walker', 12, 6, 'walker', AGE([3, 3], { when: 'walk', always: true })),
     ],
 };
 
@@ -66,7 +66,7 @@ ROOMS.lh0 = LH('The Lighthouse', [
     DECO('lh0_shelf', 12, 3, 'shelf'),
     { k: 'cat', id: 'cat', x: 11, y: 2, s: { wt: [9] }, bed: [4, 8] },
     DECO('catbed', 4, 8, 'catbed', { walk: true }),
-    NPC('keeper', 5, 4, 'keeper', { when: 'always' }),
+    NPC('keeper', 5, 4, 'keeper', AGE([8, 8], { when: 'always', ownAge: true })),
     DECO('keeperchair', 5, 3, 'rocker'),
     DECO('lh0_stove', 3, 2, 'stove', { text: ['A little stove. A kettle, still warm.'] }),
     DECO('lh0_photo', 10, 1, 'frame', { text: ['A photo of a boy on a boat, waving.'] }),
