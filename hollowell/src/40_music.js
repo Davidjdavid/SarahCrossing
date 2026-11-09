@@ -134,3 +134,12 @@ SONGS.belfry = {
         { drum: true, vol: 0.05, n: 'k . . . h . . . | k . . . s . . . ' },
     ],
 };
+
+/* Gran's lullaby (Linnet's theme): low, high, in between, high, low */
+SONGS.lullaby = {
+    bpm: 66, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.16, vib: true, n: 'G4 - - - D5 - - - B4 - - - D5 - - - | G4 - - - - - - - . . . . . . . . ' },
+        { wave: 'p12', vol: 0.04, n: 'G3 . D4 . B3 . D4 . G3 . D4 . B3 . D4 . | G3 . D4 . B3 . D4 . G3 . . . . . . . ' },
+    ],
+};

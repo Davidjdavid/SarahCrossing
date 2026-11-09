@@ -79,7 +79,7 @@ class Gust extends Ent {
         this.w = p.w || 4; this.h = p.h || 4;
         this.d = dirByName(p.dir || 'right');
         this.period = p.period || 360; this.len = p.len || 150; this.phase = p.phase || 0;
-        this.t = 0; this.floor = true; this.force = p.force || 0.16;
+        this.t = 0; this.floor = true; this.force = p.force || 0.7;     /* how hard it pushes Wren, pixels a frame (she walks at 1.3) */
     }
     get on() { return !this.off && ((this.t + this.phase) % this.period) < this.len; }
     get soon() { const k = (this.t + this.phase) % this.period; return k > this.period - 60; }
@@ -102,8 +102,8 @@ class Gust extends Ent {
         /* Wren leans into it */
         const p = G.player;
         if (p && p.area === a && p.state === 'normal' && !p.ride && this.inside(p.tx, p.ty) && !(p.grip)) {
-            p.kx += DX[d] * this.force; p.ky += DY[d] * this.force;
-            p.kx = clamp(p.kx, -1.6, 1.6); p.ky = clamp(p.ky, -1.6, 1.6);
+            p.moveAxis(DX[d] * this.force, 0); p.moveAxis(0, DY[d] * this.force);
+            p.traceStep();
         }
         for (const m of a.walkers) if (m.alive && m.D && m.D.light && this.inside(m.tx, m.ty)) { m.kx = DX[d] * 1.5; m.ky = DY[d] * 1.5; }
     }

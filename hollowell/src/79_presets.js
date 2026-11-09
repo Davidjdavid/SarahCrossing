@@ -26,3 +26,10 @@ PRESETS.afterD3 = () => {
     Progress.setGoal('Next, Belfry Heights: across the lake from Millwater, up the cliff stair. (The Paddle will get you over.)');
     World.enter('hollow', MILL_OUT.x, MILL_OUT.y, { dir: DOWN });
 };
+PRESETS.afterD4 = () => {
+    PRESETS.afterD3();
+    Inv.giveTool('bell'); Inv.knots.push('belfry'); Inv.addHeart();
+    for (const f of ['d4', 'belfry_boss', 'belfry_clangor', 'belfry_tollAwake', 'met:tess']) Progress.set(f);
+    Progress.setGoal('Home to Hollowell: it is the Knotting Festival.');
+    World.enter('hollow', BELFRY_OUT.x, BELFRY_OUT.y, { dir: DOWN });
+};

@@ -334,3 +334,116 @@ test('from the second Knot: the broken bridge, Millwater, the ferry, the Millrac
     ok(area() === 'hollow', 'back outside');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 });
+
+test('from the third Knot: over the lake, up the cliff stair and the Heights, the Belfry to its Knot', () => {
+    const HW = loadGame();
+    const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
+    const walk = (x, y, m) => { let r = HW.walkTo(x, y); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y); } ok(r, m || `walk ${x},${y}`); };
+    const area = () => HW.G.map.id;
+    const thing = id => HW.G.map.find(id);
+    const until = (fn, max = 3000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
+    const talk = () => { HW.press('act', 1); HW.skipTalk(); };
+    const p = () => HW.player();
+    const at = (o, x, y) => o.tx === x && o.ty === y && !o.mv;
+    const off = dir => { HW.hold(dir); HW.step(14); HW.release(); HW.step(2); };
+    const paddleTo = (x, y) => { for (let i = 0; i < 2000 && (p().tx !== x || p().ty !== y); i++) { const d = p().tx < x ? 'right' : p().tx > x ? 'left' : p().ty < y ? 'down' : 'up'; HW.hold(['tool', d]); HW.step(1); } HW.release(); HW.step(2); ok(p().tx === x && p().ty === y, `paddled to ${x},${y}`); };
+    const B = { porch: [20, 44], draught: [0, 44], windward: [40, 44], stair: [20, 33], weather: [0, 33], loft: [20, 22], reach: [0, 22], ropes: [20, 11], bell: [20, 0] };
+    const b = (r, x, y) => [B[r][0] + x, B[r][1] + y];
+    HW.preset('afterD3'); HW.step(10); HW.skipTalk();
+    HW.Inv.maxHp = HW.Inv.hp = 24;
+
+    /* back over the river on the ferry, round to Wick's pier, paddle over the lake */
+    walk(128 + 43, 80 + 26);
+    ok(until(() => at(thing('mwFerry'), 128 + 42, 80 + 26), 2000), 'ferry in'); off('left');
+    ok(until(() => at(thing('mwFerry'), 128 + 39, 80 + 26), 800), 'over'); off('left');
+    walk(128 + 18, 80 + 16, "to Wick's pier");
+    HW.Inv.equipped = 'paddle'; off('up');
+    paddleTo(128 + 18, 80 + 6); paddleTo(128 + 39, 80 + 6); paddleTo(128 + 39, 80 + 3); off('up');
+    /* the cliff stair and the Heights */
+    walk(128 + 43, 80 + 0); walk(128 + 43, 38, 'up the cliff stair');
+    walk(128 + 13, 31); HW.face('right'); HW.press('atk', 1); HW.step(40);
+    walk(128 + 12, 22, 'past the woken boulder');
+    const g = thing('hGust');
+    for (let i = 0; i < 4000 && p().tx < 128 + 52; i++) {
+        if (g.on || g.soon) { HW.hold('up'); HW.step(1); }
+        else { HW.release(); HW.walkTo(Math.min(p().tx + 3, 128 + 52), 21); }
+    }
+    HW.release(); ok(p().tx >= 128 + 52, 'over the Bluster');
+    walk(128 + 52, 17); walk(128 + 45, 12);
+    HW.Inv.equipped = 'hook'; HW.face('left'); HW.press('tool', 1); HW.step(60);
+    walk(128 + 30, 8); HW.hold('up'); until(() => area() === 'belfry', 120); HW.release(); HW.step(30);
+    ok(area() === 'belfry', 'inside the Belfry');
+    HW.Inv.maxHp = HW.Inv.hp = 24;
+    HW.G.cheats.god = true;      /* (bats and bosses: the dodging isn't what this checks) */
+
+    /* porch */
+    walk(...b('porch', 6, 5)); HW.face('up'); HW.press('atk', 1); HW.step(60);
+    /* the draught: key 1 */
+    walk(...b('porch', 1, 5)); walk(...b('draught', 10, 8)); HW.push('up', 2);
+    ok(until(() => !HW.G.map.kind(...b('draught', 5, 5)).pit, 600), 'first pit');
+    walk(...b('draught', 13, 2)); HW.push('down', 2);
+    ok(until(() => !HW.G.map.kind(...b('draught', 4, 5)).pit, 600), 'second pit');
+    until(() => !thing('drGust').on, 300);
+    walk(...b('draught', 3, 5)); HW.face('left'); talk(); ok(HW.Inv.keys('belfry') === 1, 'key 1');
+    /* windward: the plan */
+    walk(...b('draught', 18, 5)); walk(...b('windward', 13, 3));
+    const wg = thing('wwGust'), wc = thing('wwCrate');
+    until(() => wc.tx >= b('windward', 14, 5)[0] && !wc.mv, 900); until(() => wg.on, 600); until(() => !wg.on, 600);
+    HW.face('up'); HW.press('atk', 1); HW.step(12);
+    ok(until(() => HW.Return.isHome(wc), 80), 'crate rung home');
+    walk(...b('windward', 17, 5)); HW.face('right'); talk(); ok(HW.Inv.plans.includes('belfry'), 'plan');
+    /* the stair, then weathercock walk: key 2 */
+    walk(...b('windward', 1, 5)); walk(...b('porch', 9, 1)); walk(...b('stair', 1, 5)); walk(...b('weather', 18, 5));
+    const cg = thing('wcGust');
+    for (const x of [13, 9, 5]) { until(() => !cg.on, 400); walk(...b('weather', x, 5)); HW.face('up'); HW.hold(['act']); until(() => cg.on, 400); until(() => !cg.on, 400); HW.release(); HW.step(2); }
+    walk(...b('weather', 2, 5)); HW.face('left'); talk(); ok(HW.Inv.keys('belfry') === 2, 'key 2');
+    /* the stair's north lock; Clangor */
+    walk(...b('weather', 18, 5)); walk(...b('stair', 9, 1)); HW.hold('up'); HW.step(60); HW.release(); HW.step(30); HW.skipTalk();
+    walk(...b('loft', 9, 8)); HW.step(20); HW.skipTalk();
+    const c = HW.ents('enemy').find(e => e.type === 'clangor');
+    ok(c && c.state !== 'sleep', 'Clangor awake');
+    for (let round = 0; round < 3 && c.alive; round++) {
+        const bust = thing('clB1');
+        until(() => HW.Return.isHome(bust), 600);
+        c.state = 'ring'; c.st = -100000; c.x = b('loft', 16, 8)[0] * 16 + 8; c.y = b('loft', 16, 8)[1] * 16 + 10;   /* (a person lures it; held still here) */
+        walk(...b('loft', 3, 3)); HW.push('right', 3); walk(...b('loft', 7, 6));
+        c.x = b('loft', 5, 3)[0] * 16 + 8; c.y = b('loft', 5, 3)[1] * 16 + 10; c.state = 'windup'; c.st = 39;
+        ok(until(() => c.state === 'stunned', 120), 'slammed'); HW.step(30);
+        p().x = c.x + 16; p().y = c.y; HW.face('left'); HW.press('atk', 1); HW.step(30);
+    }
+    ok(!c.alive, 'Clangor down'); HW.step(100); HW.skipTalk();
+    walk(...b('loft', 9, 7)); HW.face('up'); talk(); ok(HW.Inv.has('bell'), 'the Recall Bell');
+    /* the reach: key 3 */
+    walk(...b('loft', 1, 5)); walk(...b('reach', 16, 1)); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(80);
+    walk(...b('reach', 2, 8)); HW.face('left'); talk(); ok(HW.Inv.keys('belfry') === 2, 'key 3');
+    /* the loft's north lock; bell ropes: the Pattern */
+    walk(...b('reach', 18, 5)); walk(...b('loft', 9, 1)); HW.hold('up'); HW.step(60); HW.release(); HW.step(20);
+    walk(...b('ropes', 16, 3)); HW.face('right'); talk(); ok(p().carry, 'holding the crate');
+    walk(...b('ropes', 14, 3)); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(80);
+    ok(HW.Progress.flag('belfry_ropes'), 'the ropes');
+    HW.face('right'); HW.press('act', 1); HW.step(30);
+    walk(...b('ropes', 9, 8)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('belfry'), 'Pattern');
+    /* the great bell */
+    walk(...b('ropes', 9, 1)); HW.hold('up'); HW.step(60); HW.release(); HW.step(30); HW.skipTalk();
+    walk(...b('bell', 9, 9)); HW.step(30); HW.skipTalk();
+    const t = HW.ents('enemy').find(e => e.type === 'tollgrim');
+    ok(t && t.state !== 'sleep', 'Tollgrim awake');
+    for (let round = 0; round < 5 && t.alive; round++) {
+        walk(...b('bell', 6, 7));
+        ok(until(() => t.state === 'peek', 1500), 'he leans out');
+        HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(4);
+        ok(until(() => t.state === 'stunned', 60), 'slammed'); HW.step(20);
+        p().x = t.x - 16; p().y = t.y; HW.face('right'); HW.press('atk', 1); HW.step(30);
+    }
+    ok(!t.alive, 'Tollgrim down');
+    HW.step(200); HW.skipTalk();
+    HW.G.cheats.god = false;
+    const hoop = HW.ents('hoop')[0]; ok(hoop, 'the hoop');
+    walk(hoop.tx - 1, hoop.ty); HW.face('right'); HW.press('act', 1); HW.skipTalk(0); HW.step(300); HW.skipTalk(); HW.step(10); HW.skipTalk();
+    ok(HW.Inv.knots.includes('belfry') && HW.Progress.flag('d4'), 'the Ringing Knot');
+    const exit = HW.ents('warp').find(w => w.to === 'hollow' && w.ty < 11);
+    ok(exit, 'a way out');
+    walk(exit.tx + 1, exit.ty); HW.hold('left'); until(() => area() === 'hollow', 200); HW.release(); HW.step(30);
+    ok(area() === 'hollow', 'back outside');
+    assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
+});

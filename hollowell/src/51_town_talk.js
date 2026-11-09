@@ -144,8 +144,12 @@ Story.sleepInBed = function* () {
     Inv.hp = Inv.maxHp;
     p.setMark();
     Save.write();
+    /* downstairs, Gran hums the old tune */
+    Music.play('lullaby');
+    yield* say(null, "From downstairs comes Gran's humming: the old bedtime tune, the one she's hummed for as long as you can remember. Low... high... in between... high... and low again.");
     yield 30;
     yield* fadeIn(30);
+    Music.play(G.map.def.music || 'home');
     Sfx.play('save');
     yield* say(null, 'You feel rested. (Saved.)');
 };

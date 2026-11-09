@@ -101,7 +101,7 @@ defHouse({
             ents: [
                 { k: 'plate', x: 2, y: 5, sig: 'wp' },
                 { k: 'crate', x: 2, y: 5, id: 'wwCrate' },
-                { k: 'gust', x: 2, y: 4, w: 14, h: 3, dir: 'right', period: 300, len: 130, force: 0.18, id: 'wwGust' },
+                { k: 'gust', x: 2, y: 4, w: 14, h: 3, dir: 'right', period: 300, len: 130, force: 0.7, id: 'wwGust' },
                 { k: 'vane', x: 1, y: 3, gust: 'wwGust' },
                 { k: 'bell', x: 13, y: 2, id: 'wwBell' },
                 { k: 'door', x: 16, y: 5, type: 'gate', when: 'wp', dir: 'v', id: 'wwGate', passed: 'right' },
@@ -152,7 +152,7 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'gust', x: 2, y: 3, w: 15, h: 5, dir: 'down', period: 260, len: 120, force: 0.3, id: 'wcGust' },
+                { k: 'gust', x: 2, y: 3, w: 15, h: 5, dir: 'down', period: 260, len: 120, force: 1.2, id: 'wcGust' },
                 { k: 'vane', x: 18, y: 6, gust: 'wcGust' },
                 { k: 'bust', x: 5, y: 4, id: 'wcBust1' }, { k: 'bust', x: 9, y: 4, id: 'wcBust2' }, { k: 'bust', x: 13, y: 4, id: 'wcBust3' },
                 { k: 'chest', x: 1, y: 5, item: 'key', id: 'wcKey' },
@@ -366,8 +366,8 @@ const Belfry = {
         Progress.setGoal('Home to Hollowell: it is the Knotting Festival.');
         yield* say(null, 'Every bell in the tower rings at once, then all fall quiet together. Down in the valley, very faintly, the town bell answers.');
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
-        a.add(new Warp(r.x + 1, r.y + 9, { to: 'hollow', tx2: BELFRY_OUT.x, ty2: BELFRY_OUT.y, face: 'down' }));
-        a.add(new Prop(r.x + 1, r.y + 9, { im: ART.exitlight, solid: [] }));
+        a.add(new Warp(r.x + 3, r.y + 9, { to: 'hollow', tx2: BELFRY_OUT.x, ty2: BELFRY_OUT.y, face: 'down' }));
+        a.add(new Prop(r.x + 3, r.y + 9, { im: ART.exitlight, solid: [] }));
     },
 };
 SIGNATURE_TEXT.belfry = "Engraved in the brass plate on the floor, small and neat: a bell and the letter T. Someone signed this House the way a founder signs a bell, on the inside where only the ringer sees.";

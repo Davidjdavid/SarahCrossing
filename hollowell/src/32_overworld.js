@@ -33,7 +33,14 @@ function buildOverworld() {
         if (!b) continue;
         const br = b.rows;
         for (let y = 0; y < OW.bh; y++) for (let x = 0; x < OW.bw; x++) rows[oy + y][ox + x] = (br[y] && br[y][x]) || '%';
-        for (const e of b.ents || []) ents.push(Object.assign({}, e, { x: e.x + ox, y: e.y + oy, block: b.id }));
+        for (const e of b.ents || []) {
+            const o = Object.assign({}, e, { x: e.x + ox, y: e.y + oy, block: b.id });
+            /* paths and spots given with a thing are in the block's own tiles too */
+            if (o.trace) o.trace = o.trace.map(([x, y]) => [x + ox, y + oy]);
+            if (o.startAt) o.startAt = [o.startAt[0] + ox, o.startAt[1] + oy];
+            if (o.at) o.at = [o.at[0] + ox, o.at[1] + oy];
+            ents.push(o);
+        }
         regions.push({ name: b.name, sub: b.sub, x: ox, y: oy, w: OW.bw, h: OW.bh, music: b.music, mark: true, id: b.id });
         for (const r of b.regions || []) regions.unshift(Object.assign({}, r, { x: r.x + ox, y: r.y + oy, music: r.music || b.music }));
     }

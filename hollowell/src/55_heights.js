@@ -35,8 +35,8 @@ const HEIGHTS_ROWS = [
     '###r........:...........b....,................r...........,..###',
     '###.........:....."....b...r.................................###',
     '###.........:.......vvvvvvvvvvvvvvvvvvvvvvvvvvvvv.........,b.###',
-    '############H###################################################',
-    '############H###################################################',
+    '############H################...################################',
+    '############H#################.#################################',
     '###.".r.....::::::::::::::::::::::::::::::::.................###',
     '###.....,..................................:.................###',
     '###........".........,.......".,...........:."...............###',
@@ -98,7 +98,8 @@ defBlock({
     forest: ['pine', 'tree_birch'],
     legend: {},
     ents: [
-        /* terrace 1: the shrine bell, and the boulder asleep on the stair */
+        /* terrace 1: the shrine bell, and the boulder asleep on the stair; along the path, a little cave stopped up
+           by another sleeping boulder, out of the shrine's reach (after the Belfry: the Recall Bell) */
         { k: 'bell', x: 14, y: 31, id: 'hShrine' },
         { k: 'deco', x: 14, y: 32, look: 'shrine_post', solid: [[0, 0]], oy: -4, text: 'A little shrine with a bell on a bracket. Carved underneath: RING, AND ALL COMES HOME.' },
         { k: 'block', x: 11, y: 30, id: 'hBoulder', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [12, 29], trace: [[11, 30], [12, 30], [12, 29]], noPush: true, pushLine: "A boulder, fast asleep on the stair. It doesn't budge. It snores, faintly." },
@@ -107,12 +108,11 @@ defBlock({
         { k: 'npc', who: 'brindle', x: 30, y: 34, face: 'down', route: [[30, 34, 240], [22, 36, 200]] },
         { k: 'critter', who: 'goat', look: 'sheep', x: 26, y: 35, speed: 0.4, route: [[26, 35, 200], [33, 37, 160]] },
         /* terrace 2: the windy ledge (gusts blow south, toward the drop) */
-        { k: 'gust', x: 13, y: 20, w: 39, h: 7, dir: 'down', period: 300, len: 110, force: 0.22, id: 'hGust' },
+        { k: 'gust', x: 13, y: 20, w: 39, h: 7, dir: 'down', period: 300, len: 110, force: 1.0, id: 'hGust' },
         { k: 'vane', x: 11, y: 20 }, { k: 'vane', x: 53, y: 20 },
-        { k: 'sign', x: 11, y: 22, text: 'THE BLUSTER. Walk in the lulls. (The vanes spin up before it blows.)' },
-        /* a cave in the cliff above the ledge, stopped up by a sleeping boulder (after the Belfry: the Recall Bell) */
-        { k: 'block', x: 30, y: 18, id: 'hCaveRock', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [30, 19], trace: [[30, 18], [30, 19]], noPush: true, pushLine: 'A boulder, asleep in the mouth of a little cave.' },
-        { k: 'chest', x: 30, y: 17, item: 'heartpatch', id: 'hCave' },
+        { k: 'sign', x: 11, y: 22, text: 'THE BLUSTER. Walk in the lulls; lean into it when it blows. (The vanes spin up first.)' },
+        { k: 'block', x: 31, y: 28, id: 'hCaveRock', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [30, 29], trace: [[31, 28], [30, 28], [30, 29]], noPush: true, pushLine: 'A boulder, asleep in the mouth of a little cave. No bell nearby will reach it.' },
+        { k: 'chest', x: 29, y: 28, item: 'heartpatch', id: 'hCave' },
         /* terrace 3: the chasm, eyelets either side */
         { k: 'eyelet', x: 38, y: 12 }, { k: 'eyelet', x: 46, y: 12 },
         { k: 'rest', x: 33, y: 13 },

@@ -10,6 +10,9 @@ const Prologue = {
         Progress.setGoal('Get up and go downstairs to see Gran.');
         Script.run(function* () {
             yield 30;
+            Music.play('lullaby');
+            yield* say(null, "Half asleep, you hear Gran humming downstairs: the bedtime tune she always hums. Low... high... in between... high... and low again. It goes round and round.");
+            Music.play('home');
             yield* fadeIn(60);
             yield 40;
             yield* say('gran', "{name}! Up you get, love! The whole town's waiting on you, and you're still in bed on your Wander day!");

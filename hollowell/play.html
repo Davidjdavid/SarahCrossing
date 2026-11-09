@@ -5120,7 +5120,14 @@ function buildOverworld() {
         if (!b) continue;
         const br = b.rows;
         for (let y = 0; y < OW.bh; y++) for (let x = 0; x < OW.bw; x++) rows[oy + y][ox + x] = (br[y] && br[y][x]) || '%';
-        for (const e of b.ents || []) ents.push(Object.assign({}, e, { x: e.x + ox, y: e.y + oy, block: b.id }));
+        for (const e of b.ents || []) {
+            const o = Object.assign({}, e, { x: e.x + ox, y: e.y + oy, block: b.id });
+            /* paths and spots given with a thing are in the block's own tiles too */
+            if (o.trace) o.trace = o.trace.map(([x, y]) => [x + ox, y + oy]);
+            if (o.startAt) o.startAt = [o.startAt[0] + ox, o.startAt[1] + oy];
+            if (o.at) o.at = [o.at[0] + ox, o.at[1] + oy];
+            ents.push(o);
+        }
         regions.push({ name: b.name, sub: b.sub, x: ox, y: oy, w: OW.bw, h: OW.bh, music: b.music, mark: true, id: b.id });
         for (const r of b.regions || []) regions.unshift(Object.assign({}, r, { x: r.x + ox, y: r.y + oy, music: r.music || b.music }));
     }
@@ -5836,6 +5843,15 @@ SONGS.belfry = {
         { wave: 'p25', vol: 0.07, legato: 0.7, n: 'B4 - - - - - - - | C5 - - - - - - - | C5 - - - - - - - | B4 - - - - - - - | C5 - - - - - - - | B4 - - - - - - - | A4 - - - - - - - | G4 - - - - - - - ' },
         { wave: 'triangle', vol: 0.2, n: 'G2 . . . D3 . . . | D2 . . . G2 . . . | C3 . . . A2 . . . | G2 . . . D3 . . . | C3 . . . G2 . . . | G2 . . . D3 . . . | D3 . . . A2 . . . | G2 . . . G2 . . . ' },
         { drum: true, vol: 0.05, n: 'k . . . h . . . | k . . . s . . . ' },
+    ],
+};
+
+/* Gran's lullaby (Linnet's theme): low, high, in between, high, low */
+SONGS.lullaby = {
+    bpm: 66, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.16, vib: true, n: 'G4 - - - D5 - - - B4 - - - D5 - - - | G4 - - - - - - - . . . . . . . . ' },
+        { wave: 'p12', vol: 0.04, n: 'G3 . D4 . B3 . D4 . G3 . D4 . B3 . D4 . | G3 . D4 . B3 . D4 . G3 . . . . . . . ' },
     ],
 };
 
@@ -8254,7 +8270,7 @@ defBlock({
         { k: 'deco', x: 32, y: 18, look: 'millwheel', solid: [[0, 0]], ox: -4, oy: -8, baseY: 20 },
         { k: 'npc', who: 'ambrose', x: 29, y: 22, face: 'down' },
         { k: 'npc', who: 'fen', x: 12, y: 21, face: 'down', route: [[12, 21, 200], [19, 21, 160]] },
-        { k: 'npc', who: 'wick', x: 18, y: 17, face: 'up' },
+        { k: 'npc', who: 'wick', x: 17, y: 17, face: 'right' },
         { k: 'sign', x: 6, y: 25, text: 'MILLWATER. The Reaches. (East: the falls, and the Millrace above them. Ferry at the end of the road.)' },
         { k: 'rest', x: 9, y: 24 },
         /* the ferry: its mark is on the crossing current, so it runs across and back by itself */
@@ -8265,7 +8281,7 @@ defBlock({
         { k: 'raft', x: 18, y: 15, id: 'mwLakeRaft' },
         { k: 'raft', x: 40, y: 3, id: 'mwNorthRaft' },
         { k: 'sign', x: 17, y: 18, text: "WICK'S PIER. (The raft's for anyone who can paddle. Over the lake: the cliff stair, and the Heights.)" },
-        { k: 'sign', x: 42, y: 2, text: 'THE CLIFF STAIR. Up to Belfry Heights.' },
+        { k: 'sign', x: 44, y: 2, text: 'THE CLIFF STAIR. Up to Belfry Heights.' },
         /* the far bank: the Millrace */
         { k: 'building', x: 44, y: 21, w: 8, h: 5, door: 3, art: 'millrace' },
         { k: 'warp', x: 47, y: 25, to: 'millrace', tx2: MILLRACE_ENTRY.x, ty2: MILLRACE_ENTRY.y, face: 'up', dir: 'up' },
@@ -9001,6 +9017,9 @@ const Prologue = {
         Progress.setGoal('Get up and go downstairs to see Gran.');
         Script.run(function* () {
             yield 30;
+            Music.play('lullaby');
+            yield* say(null, "Half asleep, you hear Gran humming downstairs: the bedtime tune she always hums. Low... high... in between... high... and low again. It goes round and round.");
+            Music.play('home');
             yield* fadeIn(60);
             yield 40;
             yield* say('gran', "{name}! Up you get, love! The whole town's waiting on you, and you're still in bed on your Wander day!");
@@ -9245,8 +9264,12 @@ Story.sleepInBed = function* () {
     Inv.hp = Inv.maxHp;
     p.setMark();
     Save.write();
+    /* downstairs, Gran hums the old tune */
+    Music.play('lullaby');
+    yield* say(null, "From downstairs comes Gran's humming: the old bedtime tune, the one she's hummed for as long as you can remember. Low... high... in between... high... and low again.");
     yield 30;
     yield* fadeIn(30);
+    Music.play(G.map.def.music || 'home');
     Sfx.play('save');
     yield* say(null, 'You feel rested. (Saved.)');
 };
@@ -9661,7 +9684,7 @@ class Gust extends Ent {
         this.w = p.w || 4; this.h = p.h || 4;
         this.d = dirByName(p.dir || 'right');
         this.period = p.period || 360; this.len = p.len || 150; this.phase = p.phase || 0;
-        this.t = 0; this.floor = true; this.force = p.force || 0.16;
+        this.t = 0; this.floor = true; this.force = p.force || 0.7;     /* how hard it pushes Wren, pixels a frame (she walks at 1.3) */
     }
     get on() { return !this.off && ((this.t + this.phase) % this.period) < this.len; }
     get soon() { const k = (this.t + this.phase) % this.period; return k > this.period - 60; }
@@ -9684,8 +9707,8 @@ class Gust extends Ent {
         /* Wren leans into it */
         const p = G.player;
         if (p && p.area === a && p.state === 'normal' && !p.ride && this.inside(p.tx, p.ty) && !(p.grip)) {
-            p.kx += DX[d] * this.force; p.ky += DY[d] * this.force;
-            p.kx = clamp(p.kx, -1.6, 1.6); p.ky = clamp(p.ky, -1.6, 1.6);
+            p.moveAxis(DX[d] * this.force, 0); p.moveAxis(0, DY[d] * this.force);
+            p.traceStep();
         }
         for (const m of a.walkers) if (m.alive && m.D && m.D.light && this.inside(m.tx, m.ty)) { m.kx = DX[d] * 1.5; m.ky = DY[d] * 1.5; }
     }
@@ -9820,8 +9843,8 @@ const HEIGHTS_ROWS = [
     '###r........:...........b....,................r...........,..###',
     '###.........:....."....b...r.................................###',
     '###.........:.......vvvvvvvvvvvvvvvvvvvvvvvvvvvvv.........,b.###',
-    '############H###################################################',
-    '############H###################################################',
+    '############H################...################################',
+    '############H#################.#################################',
     '###.".r.....::::::::::::::::::::::::::::::::.................###',
     '###.....,..................................:.................###',
     '###........".........,.......".,...........:."...............###',
@@ -9883,7 +9906,8 @@ defBlock({
     forest: ['pine', 'tree_birch'],
     legend: {},
     ents: [
-        /* terrace 1: the shrine bell, and the boulder asleep on the stair */
+        /* terrace 1: the shrine bell, and the boulder asleep on the stair; along the path, a little cave stopped up
+           by another sleeping boulder, out of the shrine's reach (after the Belfry: the Recall Bell) */
         { k: 'bell', x: 14, y: 31, id: 'hShrine' },
         { k: 'deco', x: 14, y: 32, look: 'shrine_post', solid: [[0, 0]], oy: -4, text: 'A little shrine with a bell on a bracket. Carved underneath: RING, AND ALL COMES HOME.' },
         { k: 'block', x: 11, y: 30, id: 'hBoulder', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [12, 29], trace: [[11, 30], [12, 30], [12, 29]], noPush: true, pushLine: "A boulder, fast asleep on the stair. It doesn't budge. It snores, faintly." },
@@ -9892,12 +9916,11 @@ defBlock({
         { k: 'npc', who: 'brindle', x: 30, y: 34, face: 'down', route: [[30, 34, 240], [22, 36, 200]] },
         { k: 'critter', who: 'goat', look: 'sheep', x: 26, y: 35, speed: 0.4, route: [[26, 35, 200], [33, 37, 160]] },
         /* terrace 2: the windy ledge (gusts blow south, toward the drop) */
-        { k: 'gust', x: 13, y: 20, w: 39, h: 7, dir: 'down', period: 300, len: 110, force: 0.22, id: 'hGust' },
+        { k: 'gust', x: 13, y: 20, w: 39, h: 7, dir: 'down', period: 300, len: 110, force: 1.0, id: 'hGust' },
         { k: 'vane', x: 11, y: 20 }, { k: 'vane', x: 53, y: 20 },
-        { k: 'sign', x: 11, y: 22, text: 'THE BLUSTER. Walk in the lulls. (The vanes spin up before it blows.)' },
-        /* a cave in the cliff above the ledge, stopped up by a sleeping boulder (after the Belfry: the Recall Bell) */
-        { k: 'block', x: 30, y: 18, id: 'hCaveRock', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [30, 19], trace: [[30, 18], [30, 19]], noPush: true, pushLine: 'A boulder, asleep in the mouth of a little cave.' },
-        { k: 'chest', x: 30, y: 17, item: 'heartpatch', id: 'hCave' },
+        { k: 'sign', x: 11, y: 22, text: 'THE BLUSTER. Walk in the lulls; lean into it when it blows. (The vanes spin up first.)' },
+        { k: 'block', x: 31, y: 28, id: 'hCaveRock', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [30, 29], trace: [[31, 28], [30, 28], [30, 29]], noPush: true, pushLine: 'A boulder, asleep in the mouth of a little cave. No bell nearby will reach it.' },
+        { k: 'chest', x: 29, y: 28, item: 'heartpatch', id: 'hCave' },
         /* terrace 3: the chasm, eyelets either side */
         { k: 'eyelet', x: 38, y: 12 }, { k: 'eyelet', x: 46, y: 12 },
         { k: 'rest', x: 33, y: 13 },
@@ -10051,7 +10074,7 @@ defHouse({
             ents: [
                 { k: 'plate', x: 2, y: 5, sig: 'wp' },
                 { k: 'crate', x: 2, y: 5, id: 'wwCrate' },
-                { k: 'gust', x: 2, y: 4, w: 14, h: 3, dir: 'right', period: 300, len: 130, force: 0.18, id: 'wwGust' },
+                { k: 'gust', x: 2, y: 4, w: 14, h: 3, dir: 'right', period: 300, len: 130, force: 0.7, id: 'wwGust' },
                 { k: 'vane', x: 1, y: 3, gust: 'wwGust' },
                 { k: 'bell', x: 13, y: 2, id: 'wwBell' },
                 { k: 'door', x: 16, y: 5, type: 'gate', when: 'wp', dir: 'v', id: 'wwGate', passed: 'right' },
@@ -10102,7 +10125,7 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'gust', x: 2, y: 3, w: 15, h: 5, dir: 'down', period: 260, len: 120, force: 0.3, id: 'wcGust' },
+                { k: 'gust', x: 2, y: 3, w: 15, h: 5, dir: 'down', period: 260, len: 120, force: 1.2, id: 'wcGust' },
                 { k: 'vane', x: 18, y: 6, gust: 'wcGust' },
                 { k: 'bust', x: 5, y: 4, id: 'wcBust1' }, { k: 'bust', x: 9, y: 4, id: 'wcBust2' }, { k: 'bust', x: 13, y: 4, id: 'wcBust3' },
                 { k: 'chest', x: 1, y: 5, item: 'key', id: 'wcKey' },
@@ -10316,8 +10339,8 @@ const Belfry = {
         Progress.setGoal('Home to Hollowell: it is the Knotting Festival.');
         yield* say(null, 'Every bell in the tower rings at once, then all fall quiet together. Down in the valley, very faintly, the town bell answers.');
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
-        a.add(new Warp(r.x + 1, r.y + 9, { to: 'hollow', tx2: BELFRY_OUT.x, ty2: BELFRY_OUT.y, face: 'down' }));
-        a.add(new Prop(r.x + 1, r.y + 9, { im: ART.exitlight, solid: [] }));
+        a.add(new Warp(r.x + 3, r.y + 9, { to: 'hollow', tx2: BELFRY_OUT.x, ty2: BELFRY_OUT.y, face: 'down' }));
+        a.add(new Prop(r.x + 3, r.y + 9, { im: ART.exitlight, solid: [] }));
     },
 };
 SIGNATURE_TEXT.belfry = "Engraved in the brass plate on the floor, small and neat: a bell and the letter T. Someone signed this House the way a founder signs a bell, on the inside where only the ringer sees.";
@@ -10656,6 +10679,13 @@ PRESETS.afterD3 = () => {
     for (const f of ['d3', 'millrace_boss', 'millrace_snapjaw', 'met:ambrose']) Progress.set(f);
     Progress.setGoal('Next, Belfry Heights: across the lake from Millwater, up the cliff stair. (The Paddle will get you over.)');
     World.enter('hollow', MILL_OUT.x, MILL_OUT.y, { dir: DOWN });
+};
+PRESETS.afterD4 = () => {
+    PRESETS.afterD3();
+    Inv.giveTool('bell'); Inv.knots.push('belfry'); Inv.addHeart();
+    for (const f of ['d4', 'belfry_boss', 'belfry_clangor', 'belfry_tollAwake', 'met:tess']) Progress.set(f);
+    Progress.setGoal('Home to Hollowell: it is the Knotting Festival.');
+    World.enter('hollow', BELFRY_OUT.x, BELFRY_OUT.y, { dir: DOWN });
 };
 
 // ---- 80_story_core.js ----

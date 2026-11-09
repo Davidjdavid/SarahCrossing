@@ -132,6 +132,20 @@ const SCENARIOS = {
             await shot('mr_' + n);
         }
     },
+    async belfry() {
+        await open();
+        await page.evaluate(() => { HW.preset('afterD3'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 128 + 39, 80 + 3); HW.step(230); });
+        await shot('ht_northshore');
+        for (const [n, x, y] of [['ht_t1', 128 + 14, 33], ['ht_bluster', 128 + 30, 22], ['ht_chasm', 128 + 44, 13], ['ht_belfry', 128 + 31, 9]]) {
+            await page.evaluate(([x, y]) => { HW.warp('hollow', x, y); HW.step(60); HW.skipTalk(); }, [x, y]);
+            await shot(n);
+        }
+        const rooms = { porch: [29, 52], draught: [17, 49], windward: [41, 49], stair: [29, 41], weather: [17, 38], rafters: [41, 38], loft: [29, 30], reach: [17, 27], echo: [41, 27], ropes: [29, 19], workshop: [17, 16], bell: [29, 9] };
+        for (const [n, [x, y]] of Object.entries(rooms)) {
+            await page.evaluate(([x, y]) => { HW.warp('belfry', x, y); HW.step(40); HW.skipTalk(); HW.step(5); }, [x, y]);
+            await shot('bf_' + n);
+        }
+    },
     async title() { await open(); await page.evaluate(() => { window.HW._paused = false; }); await page.waitForTimeout(400); await page.evaluate(() => { window.HW._paused = true; }); await shot('title'); },
     async lab() {
         await open();

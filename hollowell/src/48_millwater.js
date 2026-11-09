@@ -60,7 +60,7 @@ defBlock({
         { k: 'deco', x: 32, y: 18, look: 'millwheel', solid: [[0, 0]], ox: -4, oy: -8, baseY: 20 },
         { k: 'npc', who: 'ambrose', x: 29, y: 22, face: 'down' },
         { k: 'npc', who: 'fen', x: 12, y: 21, face: 'down', route: [[12, 21, 200], [19, 21, 160]] },
-        { k: 'npc', who: 'wick', x: 18, y: 17, face: 'up' },
+        { k: 'npc', who: 'wick', x: 17, y: 17, face: 'right' },
         { k: 'sign', x: 6, y: 25, text: 'MILLWATER. The Reaches. (East: the falls, and the Millrace above them. Ferry at the end of the road.)' },
         { k: 'rest', x: 9, y: 24 },
         /* the ferry: its mark is on the crossing current, so it runs across and back by itself */
@@ -71,7 +71,7 @@ defBlock({
         { k: 'raft', x: 18, y: 15, id: 'mwLakeRaft' },
         { k: 'raft', x: 40, y: 3, id: 'mwNorthRaft' },
         { k: 'sign', x: 17, y: 18, text: "WICK'S PIER. (The raft's for anyone who can paddle. Over the lake: the cliff stair, and the Heights.)" },
-        { k: 'sign', x: 42, y: 2, text: 'THE CLIFF STAIR. Up to Belfry Heights.' },
+        { k: 'sign', x: 44, y: 2, text: 'THE CLIFF STAIR. Up to Belfry Heights.' },
         /* the far bank: the Millrace */
         { k: 'building', x: 44, y: 21, w: 8, h: 5, door: 3, art: 'millrace' },
         { k: 'warp', x: 47, y: 25, to: 'millrace', tx2: MILLRACE_ENTRY.x, ty2: MILLRACE_ENTRY.y, face: 'up', dir: 'up' },
