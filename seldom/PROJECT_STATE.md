@@ -7,7 +7,7 @@
   is finished and verified (definition of done in `GAME_BRIEF.md`).
 - Deliverable: `seldom/seldom.html` (one file, opens from disk). To be published as a private claude.ai Artifact link too.
 
-## Status (9 November 2026, first session)
+## Status (9 November 2026, first session; first check-in 08:20 UTC)
 
 **Phase:** full development done end to end; QA and refinement in progress.
 
@@ -27,7 +27,7 @@ Done:
 - `artifact.html`: the same build as an Artifact page (the host adds the document skeleton).
 - Playtesting: `tests/playserver.mjs` holds the game in a headless browser for blind agent playtests over HTTP
   (`/do?k=`, `/shot`, `/text`); `Debug.afterLampNight()` sets up a game just after act one.
-- Tests: `tests/laws.test.mjs` (13 passing), `tests/playthrough.mjs` (the bot finishes the game: about 11 minutes of game
+- Tests: `tests/laws.test.mjs` (16 passing), `tests/playthrough.mjs` (the bot finishes the game: about 11 minutes of game
   time for a bot that knows every answer).
 
 ## Next priorities

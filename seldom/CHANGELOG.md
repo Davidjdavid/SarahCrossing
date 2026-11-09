@@ -13,3 +13,13 @@
   ant bridge moved clear of the chapel, Dot rescued when a tiny bridge vanishes under them, the Hollow walled off from the
   harbor (with a gate that opens from the Hollow's side), signs moved out of a narrow cut, the seam made forgiving
   (reach and landing), sparks fly over water, wrapping only inside the woods, tangled people separate.
+
+## 9 November 2026 (first check-in)
+
+- All six secrets in (golden egg, tower bird at midnight, Leica and the walled garden, plus the three before).
+- Presentation: rooms framed closer, Dot glances up at the player when left standing, split-view cue (which half moves),
+  ghostly Mrs. Sepia, the great lens drawn properly, decorations at the bakery, harbor and cape, wider controls panel.
+- Touch controls for phones and tablets; ambient sound from what's in view; autosave every 30 s and on every door.
+- `artifact.html` build for publishing; blind agent playtests set up (`tests/playserver.mjs`).
+- Fixes: nested scenes no longer cut each other short (found by the bot), resuming the last act keeps the walkers'
+  progress, the band's song can't end during the last act, squeezing is noted only when something pops through a wall.
