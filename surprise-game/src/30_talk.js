@@ -65,7 +65,7 @@ TALK.sev = e => {
 TALK.sev_in = TALK.sev;
 TALK.tock = () => cycle('tock', [
     ['Tock\'s Clocks. I don\'t fix them. I listen to them.'],
-    ['The town clock IS the time, you know. Change one and you\'ve changed the other.'],
+    ['That town clock doesn\'t tell the time, you know. It keeps it.', 'Big difference.'],
     ['They say the old tower on the hill keeps an hour that isn\'t on any clock.', 'Twenty-five o\'clock. Ninety o\'clock. Nonsense, of course.'],
 ]);
 TALK.marlo = () => {

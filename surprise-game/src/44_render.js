@@ -60,7 +60,7 @@ function drawScene(g, t) {
     for (const e of ents) if (isFlat(e)) drawEnt(g, e, t);
     /* standing things and people, by their feet */
     const stand = ents.filter(e => !isFlat(e));
-    const list = stand.map(e => ({ e, y: (e.y + (e.h || 1)) * TS + (e.k === 'npc' || MONSTER[e.k] ? 0.5 : 0) }));
+    const list = stand.map(e => ({ e, y: (e.y + (e.h || 1)) * TS + (e.k === 'npc' || MONSTER[e.k] ? 0.5 : 0) + (e.k === 'door' ? 0.2 : 0) }));
     list.push({ e: 'player', y: G.p.y * TS + 16.6 });
     if (G.follow) list.push({ e: 'follow', y: G.follow.y * TS + 16.4 });
     list.sort((a, b) => a.y - b.y);
@@ -70,6 +70,8 @@ function drawScene(g, t) {
         else drawEnt(g, it.e, t);
     }
     drawLight(g, t, ents);
+    /* a door that only exists outside of time glows in its own colors */
+    for (const e of ents) if (e.look === 'towerdoor') drawEnt(g, e, t);
     /* numbers glow over everything, even at night */
     for (const e of ents) drawTags(g, e, t);
     if (G.follow) drawTags(g, G.follow, t);

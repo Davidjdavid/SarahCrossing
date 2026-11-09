@@ -14,7 +14,7 @@ const ITEM_TEXT = {
     satchel: ['A bigger satchel!'],
     map: ['A map of the island. (Open it from the menu.)'],
     watch: ['A pocket watch. It keeps whatever time you tell it.'],
-    specs: ['Spectacles.'],
+    specs: ['Spectacles.', 'Everything looks... more numbered.'],
 };
 const STAMP_NAME = { hatch: 'Hatchling', hollow: 'The Hollow', mirror: 'Upside Down', hour: 'The Hour That Isn\'t', nowhere: 'Nowhere', house: 'Housewarming', cellar: 'The Old Dig', shore: 'The Far Shore', walk: 'Halfway' };
 

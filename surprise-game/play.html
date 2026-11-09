@@ -119,7 +119,7 @@ kind('boulder', weighty);
 kind('anchor', weighty);
 kind('parcel', weighty);
 kind('tree', { solid: e => sv(e, 'age') >= 3, bump: e => (e.hollow && sv(e, 'age') >= 9) ? enterHollow(e) : say(e.age9line && sv(e, 'age') >= 9 ? e.age9line : null) });
-kind('wall', { solid: e => wallStage(sv(e, 'age')) === 'wall' });
+kind('wall', { solid: e => wallStage(sv(e, 'age')) === 'wall', bump: e => say(e.text || null) });
 kind('bridge', { solid: e => bridgeStage(sv(e, 'age')) === 'rotten', bump: e => { EV.push({ t: 'creak', e: e.id }); return false; } });
 kind('lot', { solid: e => lotStage(sv(e, 'age')) !== 'none', bump: (e, x, y) => lotBump(e, x, y) });
 const standing = e => !(e.s && e.s.age) || lotStage(sv(e, 'age')) === 'house';
@@ -132,7 +132,7 @@ kind('loose', { solid: () => false });
 kind('stamp', { solid: () => false });
 kind('npc', { bump: e => talkTo(e) });
 kind('sign', { bump: e => say(e.text) });
-kind('clock', { bump: e => say(e.text || null) });
+kind('clock', { bump: e => TALK[e.id] ? talkTo(e) : say(e.text || null) });
 kind('milestone', { bump: e => false });
 kind('shelf', { bump: e => buy(e) });
 kind('drum', { bump: e => false });
@@ -148,7 +148,7 @@ kind('deco', { solid: e => !e.walk, bump: e => TALK[e.id] ? talkTo(e) : say(e.te
 kind('slime', { bump: e => attack(e) });
 kind('rattle', { bump: e => attack(e) });
 kind('golem', { push: false, bump: e => attack(e) });
-kind('scope', { bump: e => say(e.text || null) });
+kind('scope', { bump: e => TALK[e.id] ? talkTo(e) : say(e.text || null) });
 kind('lamp', { bump: e => false });
 kind('sea', { solid: () => false });
 const MONSTER = { slime: 1, rattle: 1, golem: 1 };
@@ -2006,7 +2006,7 @@ TALK.sev = e => {
 TALK.sev_in = TALK.sev;
 TALK.tock = () => cycle('tock', [
     ['Tock\'s Clocks. I don\'t fix them. I listen to them.'],
-    ['The town clock IS the time, you know. Change one and you\'ve changed the other.'],
+    ['That town clock doesn\'t tell the time, you know. It keeps it.', 'Big difference.'],
     ['They say the old tower on the hill keeps an hour that isn\'t on any clock.', 'Twenty-five o\'clock. Ninety o\'clock. Nonsense, of course.'],
 ]);
 TALK.marlo = () => {
@@ -3004,7 +3004,7 @@ function drawScene(g, t) {
     for (const e of ents) if (isFlat(e)) drawEnt(g, e, t);
     /* standing things and people, by their feet */
     const stand = ents.filter(e => !isFlat(e));
-    const list = stand.map(e => ({ e, y: (e.y + (e.h || 1)) * TS + (e.k === 'npc' || MONSTER[e.k] ? 0.5 : 0) }));
+    const list = stand.map(e => ({ e, y: (e.y + (e.h || 1)) * TS + (e.k === 'npc' || MONSTER[e.k] ? 0.5 : 0) + (e.k === 'door' ? 0.2 : 0) }));
     list.push({ e: 'player', y: G.p.y * TS + 16.6 });
     if (G.follow) list.push({ e: 'follow', y: G.follow.y * TS + 16.4 });
     list.sort((a, b) => a.y - b.y);
@@ -3014,6 +3014,8 @@ function drawScene(g, t) {
         else drawEnt(g, it.e, t);
     }
     drawLight(g, t, ents);
+    /* a door that only exists outside of time glows in its own colors */
+    for (const e of ents) if (e.look === 'towerdoor') drawEnt(g, e, t);
     /* numbers glow over everything, even at night */
     for (const e of ents) drawTags(g, e, t);
     if (G.follow) drawTags(g, G.follow, t);
@@ -3350,7 +3352,7 @@ const ITEM_TEXT = {
     satchel: ['A bigger satchel!'],
     map: ['A map of the island. (Open it from the menu.)'],
     watch: ['A pocket watch. It keeps whatever time you tell it.'],
-    specs: ['Spectacles.'],
+    specs: ['Spectacles.', 'Everything looks... more numbered.'],
 };
 const STAMP_NAME = { hatch: 'Hatchling', hollow: 'The Hollow', mirror: 'Upside Down', hour: 'The Hour That Isn\'t', nowhere: 'Nowhere', house: 'Housewarming', cellar: 'The Old Dig', shore: 'The Far Shore', walk: 'Halfway' };
 
