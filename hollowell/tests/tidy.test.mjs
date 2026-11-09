@@ -62,8 +62,8 @@ test('gallery: the bust comes home behind the block and keeps it on the plate', 
     HW.hold('right'); HW.step(40); HW.release();
     go(HW, 'gallery', 9, 6);
     HW.push('up', 2);                       // bust into the pocket
-    go(HW, 'gallery', 6, 5);
-    HW.push('right', 3);                    // block through the bust's home onto the plate
+    go(HW, 'gallery', 7, 5);
+    HW.push('right', 2);                    // block through the bust's home onto the plate
     HW.step(300);
     assert.equal(thing(HW, 'galBust').tx, 40 + 9, 'bust home');
     assert.equal(thing(HW, 'galBlock').tx, 40 + 10, 'block still on the plate');
@@ -88,7 +88,7 @@ test('hall of busts: the bust coming home shoves the block onto the plate and ho
     assert.ok(thing(HW, 'hN').open, 'north door open');
     go(HW, 'hall', 3, 1);
     HW.step(5);
-    go(HW, 'ball', 3, 8);
+    go(HW, 'ball', 3, 9);
     noErrors(HW);
 });
 
@@ -192,16 +192,25 @@ test('laundry: pull the block out of the cubby and slip in for the key', () => {
     noErrors(HW);
 });
 
-test('ballroom: stand in the way of one so the other gets through first, and they tidy up', () => {
+test('ballroom: grip one at the corridor\'s mouth so the other gets through, and they tidy up', () => {
     const HW = game();
+    HW.Inv.giveTool('gloves');
     HW.warp('tidy', ...at('ball', 6, 8));
     HW.face('down'); HW.press('act', 1);      // the lever at (6,9)
     const A = thing(HW, 'ballA'), B = thing(HW, 'ballB');
-    go(HW, 'ball', 4, 6);                     // in B's way, out of A's
+    go(HW, 'ball', 5, 7);                     // beside B's way up over the pits
+    HW.face('left');
+    let held = false;
+    for (let i = 0; i < 600 && !held; i++) {
+        HW.step(1);
+        if (B.tx === 20 + 4 && B.ty === 11 + 7) { HW.hold(['act']); HW.step(2); held = !!HW.player().grip; }
+    }
+    assert.ok(held, 'gripped B over the pit');
     for (let i = 0; i < 900 && !HW.Return.isHome(A); i++) HW.step(1);
-    assert.ok(HW.Return.isHome(A), 'A got home while B waited behind Wren');
-    go(HW, 'ball', 6, 7);
-    for (let i = 0; i < 900 && !HW.Return.isHome(B); i++) HW.step(1);
+    assert.ok(HW.Return.isHome(A), 'A got home while Wren held B');
+    HW.release(); HW.step(2);
+    go(HW, 'ball', 6, 8);
+    for (let i = 0; i < 1200 && !HW.Return.isHome(B); i++) HW.step(1);
     assert.ok(HW.Return.isHome(B), 'B got home');
     HW.step(5);
     assert.ok(HW.Progress.flag('tidy_ballDone'));
@@ -211,34 +220,51 @@ test('ballroom: stand in the way of one so the other gets through first, and the
     noErrors(HW);
 });
 
-test('ballroom: jammed in the corridor, pull one back out with the Gloves', () => {
+test('ballroom: standing in a bust\'s way only gets Wren shoved', () => {
+    const HW = game();
+    HW.warp('tidy', ...at('ball', 6, 8));
+    HW.face('down'); HW.press('act', 1);
+    go(HW, 'ball', 17, 6);                    // in A's way
+    HW.step(1200);
+    assert.equal(HW.Progress.flag('tidy_ballDone'), false);
+});
+
+test('ballroom: jammed in the corridor, pull one back out with the Gloves and out of the line', () => {
     const HW = game();
     HW.Inv.giveTool('gloves');
     HW.warp('tidy', ...at('ball', 6, 8));
     HW.face('down'); HW.press('act', 1);
     const A = thing(HW, 'ballA'), B = thing(HW, 'ballB');
-    HW.step(400);
+    HW.step(500);
     assert.ok(!HW.Return.isHome(A) && !HW.Return.isHome(B), 'jammed');
-    // B is in the corridor with its back to the west end: pull it out, then push it down out of the line
+    // B is in the corridor with its back to the west end: pull it out to the corridor's mouth
     go(HW, 'ball', B.tx - 20 - 1, 5);
     HW.face('right'); HW.hold(['act']); HW.step(3);
     HW.hold(['act', 'left']);
-    for (let i = 0; i < 400 && B.tx > 20 + 4; i++) HW.step(1);
+    for (let i = 0; i < 600 && B.tx > 20 + 4; i++) HW.step(1);
     HW.release(); HW.step(20);
+    // then up out of the line, so A can pass beneath it
     go(HW, 'ball', 4, 4);
-    HW.push('down', 1);
+    HW.face('down'); HW.hold(['act']); HW.step(3);
+    HW.hold(['act', 'up']);
+    for (let i = 0; i < 200 && B.ty > 11 + 4; i++) HW.step(1);
+    HW.release(); HW.step(2);
     go(HW, 'ball', 1, 2);
-    for (let i = 0; i < 1200 && !(HW.Return.isHome(A) && HW.Return.isHome(B)); i++) HW.step(1);
+    for (let i = 0; i < 1500 && !(HW.Return.isHome(A) && HW.Return.isHome(B)); i++) HW.step(1);
     assert.ok(HW.Return.isHome(A) && HW.Return.isHome(B), 'both home');
     noErrors(HW);
 });
 
-test('ballroom: let go together, they deadlock in the corridor', () => {
+test('ballroom: let go together, they deadlock in the corridor; the lever sets them out again', () => {
     const HW = game();
     HW.warp('tidy', ...at('ball', 6, 8));
     HW.face('down'); HW.press('act', 1);
     HW.step(1200);
     assert.equal(HW.Progress.flag('tidy_ballDone'), false);
+    HW.face('down'); HW.press('act', 1);
+    const A = thing(HW, 'ballA'), B = thing(HW, 'ballB');
+    assert.deepEqual([A.tx, A.ty, B.tx, B.ty], [20 + 17, 11 + 8, 20 + 1, 11 + 8], 'set out again');
+    assert.ok(A.tiedOff && B.tiedOff);
 });
 
 test('library: pull the bookshelf and the passage to the attic opens (S06)', () => {

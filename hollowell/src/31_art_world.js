@@ -277,8 +277,9 @@ function initWorldArt() {
 
 /* a building standing in the world: its picture, the tiles it blocks, and a door you walk into */
 SPAWN.building = (tx, ty, p) => {
-    const name = 'b_' + (p.style || 'cottage') + '_' + p.w + 'x' + p.h + '_' + (p.door !== undefined ? p.door : 'm') + '_' + (p.windows || []).join('.') + (p.sign ? 's' + p.sign.x : '') + (p.variant || '');
-    if (!ART[name]) buildingArt(name, p.w, p.h, p.style, p);
+    if (p.art && !ART['f_' + p.art]) FACADES[p.art]();
+    const name = p.art ? 'f_' + p.art : 'b_' + (p.style || 'cottage') + '_' + p.w + 'x' + p.h + '_' + (p.door !== undefined ? p.door : 'm') + '_' + (p.windows || []).join('.') + (p.sign ? 's' + p.sign.x : '') + (p.variant || '');
+    if (!ART[name] && !p.art) buildingArt(name, p.w, p.h, p.style, p);
     const im = ART[name];
     const solid = [];
     const doorX = p.door !== undefined ? p.door : Math.floor(p.w / 2);

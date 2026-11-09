@@ -18,7 +18,7 @@ const Dialog = {
     active: false, who: null, pages: [], page: 0, shown: 0, choices: null, sel: 0, picked: -1, opts: {},
     open(who, text, opts = {}) {
         this.active = true; this.who = who; this.opts = opts;
-        const lines = Font.wrap(Story.fill(text), 286);
+        const lines = Font.wrap(Story.fill(text), 282);
         this.pages = [];
         for (let i = 0; i < lines.length; i += 3) this.pages.push(lines.slice(i, i + 3));
         this.page = 0; this.shown = 0; this.choices = opts.choices || null; this.sel = 0; this.picked = -1;
@@ -104,6 +104,14 @@ const UI = {
     drawHUD() {
         if (G.hideHud) return;
         const p = G.player;
+        /* when Wren (or a doorway) is up under the HUD, it steps back */
+        const under = p && (p.y - Cam.y) < 40;
+        this.hudA = approach(this.hudA === undefined ? 1 : this.hudA, under ? 0.35 : 1, 0.08);
+        Gfx.alpha(this.hudA);
+        this._hud(p);
+        Gfx.alpha(1);
+    },
+    _hud(p) {
         /* Wren's thread: a little red spool (until it's cut) */
         if (!Progress.flag('cut_self')) {
             const sp = (p && (p.state === 'flight')) ? Math.floor(G.t / 3) % 3 : 0;
@@ -140,8 +148,9 @@ const UI = {
     },
     draw() {
         /* toasts */
+        const ty0 = this.banner ? (this.banner.sub ? 62 : 52) : 22;
         this.toasts.forEach((t, i) => {
-            const w = Font.width(t.s) + 16, x = (W - w) / 2, y = 22 + i * 16;
+            const w = Font.width(t.s) + 16, x = (W - w) / 2, y = ty0 + i * 16;
             const a = t.t < 8 ? t.t / 8 : t.t > t.dur - 10 ? (t.dur - t.t) / 10 : 1;
             Gfx.alpha(a); stitchedBox(x, y, w, 14); Font.draw(t.s, x + 8, y + 3, PAL.ink); Gfx.alpha(1);
         });

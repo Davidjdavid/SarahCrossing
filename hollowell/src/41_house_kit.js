@@ -7,14 +7,30 @@ class Lever extends GridThing {
         super('lever', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, props));
         this.on = !!props.on;
     }
-    onAdd(area) { super.onAdd(area); if (this.id && Progress.areaFlag(area.id, 'lever:' + this.id)) { this.on = true; this.fired = true; } }
+    onAdd(area) { super.onAdd(area); if (this.id && !this.release && Progress.areaFlag(area.id, 'lever:' + this.id)) { this.on = true; this.fired = true; } }
     interact() {
         if (this.once && this.on) return false;
+        if (this.release && this.solved && this.solved()) { UI.toast('Everything here is already where it belongs.'); return true; }
         this.on = !this.on; Sfx.play('click'); Sfx.play('door');
-        if (this.id) Progress.setAreaFlag(this.area.id, 'lever:' + this.id, this.on);
+        if (this.id && !this.release) Progress.setAreaFlag(this.area.id, 'lever:' + this.id, this.on);
         if (this.onPull) this.onPull(this);
-        if (this.release) for (const e of this.area.ents) if (e.group === this.release) { e.tiedOff = false; if (e.ret) e.ret.timer = 20; }
+        if (this.release) {
+            const group = this.area.ents.filter(e => e.group === this.release);
+            if (this.on) for (const e of group) { e.tiedOff = false; if (e.ret) e.ret.timer = 20; }
+            else for (const e of group) Lever.setOut(e);   /* pulled back: everything set out again, tied, as it started */
+        }
         return true;
+    }
+    static setOut(e) {
+        if (!e.startAt || !e.ret) return;
+        const a = e.area;
+        if (e.heldBy && e.heldBy.release) e.heldBy.release();
+        a.unplace(e, e.tx, e.ty); if (e.mv) a.unplace(e, e.mv.fx, e.mv.fy);
+        e.mv = null; e.tx = e.startAt[0]; e.ty = e.startAt[1]; e.x = e.tx * T; e.y = e.ty * T;
+        a.place(e, e.tx, e.ty);
+        e.ret.trace = e.trace.map(p => p.slice()); e.ret.state = 'away'; e.ret.snap = false; e.ret.timer = e.ret.patience;
+        e.tiedOff = true;
+        Fx.poof(e.tx * T + 8, e.ty * T + 8);
     }
     tick() { if (this.on && this.sig) Signals.set(this.area, this.sig); }
     sprite() { return spr(this.on ? 'lever_on' : 'lever_off'); }

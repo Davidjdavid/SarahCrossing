@@ -51,13 +51,13 @@ function initThingSprites() {
     defSym('chest_big', ['........', '..kkkkkk', '.kyyyyyy', '.kuuuuuu', '.kuUUUUU', '.kuuuuuu', '.kkkkkkk', '.kbbbyyy',
         '.kbbbykk', '.kbbbbyy', '.kbBBBBB', '.kybbbbb', '.kBBBBBB', '.kkkkkkk', '........', '........'],
         { u: '#6ab0e0', U: '#3a7ab8', b: '#2e5a98', B: '#1e3a6a', y: '#f7d64a' });
-    /* pressure plate: up and pressed */
-    defSym('plate', ['........', '........', '........', '........', '..kkkkkk', '.kGggggg', '.kgwgggg', '.kgggggg',
-        '.kgggggg', '.kgggggg', '.kgggggg', '.kGGGGGG', '.kxxxxxx', '..kkkkkk', '........', '........'],
-        { g: '#c8b894', G: '#a89874', w: '#ece0c4', x: '#6e6046' });
-    defSym('plate_down', ['........', '........', '........', '........', '........', '..kkkkkk', '.kGGGGGG', '.kgggggg',
-        '.kgggggg', '.kgggggg', '.kgggggg', '.kgggggg', '.kxxxxxx', '..kkkkkk', '........', '........'],
-        { g: '#a89874', G: '#887854', x: '#5e5036' });
+    /* pressure plate: a raised stone pad in a brass frame; pressed, it sinks flush */
+    defSprite('plate', ['................', '................', '..kkkkkkkkkkkk..', '.kbbbbbbbbbbbbk.', '.kbwwwwwwwwwwBk.', '.kbwppppppppPBk.', '.kbwppppppppPBk.',
+        '.kbwppppppppPBk.', '.kbwppppppppPBk.', '.kbwppppppppPBk.', '.kbwPPPPPPPPPBk.', '.kbBBBBBBBBBBBk.', '.kxxxxxxxxxxxxk.', '..kkkkkkkkkkkk..', '................', '................'],
+        { b: '#c99a5a', B: '#8a5a2e', w: '#f0e4c8', p: '#d8c8a4', P: '#b4a27e', x: '#6e5e42' });
+    defSprite('plate_down', ['................', '................', '................', '..kkkkkkkkkkkk..', '.kbbbbbbbbbbbbk.', '.kbBBBBBBBBBBbk.', '.kbBppppppppbbk.',
+        '.kbBppppppppbbk.', '.kbBppppppppbbk.', '.kbBppppppppbbk.', '.kbBppppppppbbk.', '.kbbbbbbbbbbbbk.', '.kxxxxxxxxxxxxk.', '..kkkkkkkkkkkk..', '................', '................'],
+        { b: '#b8884a', B: '#7a4a22', p: '#a8966e', x: '#5e4e34' });
     /* crystal switch */
     const crys = ['........', '......kk', '.....kww', '....kwaa', '....kaaa', '....kaaa', '.....kaa', '......kk',
         '.....kgg', '....kggg', '...kGGGG', '...kgggg', '...kGGGG', '...kkkkk', '........', '........'];
@@ -156,6 +156,13 @@ class Plate extends FloorThing {
     }
     draw(cx, cy) {
         Gfx.img(spr(this.down ? 'plate_down' : 'plate'), this.x - cx, this.y - cy);
+        if (this.mode === 'toggle') {
+            /* a lamp set in the pad: lit while the plate is on, dark while off */
+            const lx = this.x - cx + 6, ly = this.y - cy + (this.down ? 7 : 6);
+            Gfx.rect(lx, ly, 4, 4, PAL.ink);
+            Gfx.rect(lx + 1, ly + 1, 2, 2, this.on ? '#5ad1c5' : '#4a3e2c');
+            if (this.on) { Gfx.rect(lx + 1, ly + 1, 1, 1, '#d8fff8'); Gfx.alpha(0.35 + 0.15 * Math.sin(G.t / 8)); Gfx.rect(lx - 1, ly - 1, 6, 6, '#5ad1c5'); Gfx.alpha(1); }
+        }
         if ((this.mode === 'timed' || this.mode === 'pulse') && this.timer > 0 && (!this.down || this.mode === 'pulse')) {
             const n = Math.ceil(this.timer / 60);
             for (let i = 0; i < n && i < 8; i++) Gfx.rect(this.x - cx + 3 + i * 2, this.y - cy + 2, 1, 2, PAL.yellow);

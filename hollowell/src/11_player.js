@@ -497,7 +497,9 @@ class Player extends Ent {
 const Thrown = {
     list: [],
     start(o, p, d) {
-        const t = { o, d, x: p.x, y: p.y - 12, z: 12, t: 0, dist: 0, max: 4 * T + 4, speed: 3.2, lastTx: p.tx, lastTy: p.ty };
+        /* from the middle of Wren's tile, so a throw always lands the same number of tiles away */
+        const sx = (d === LEFT || d === RIGHT) ? p.tx * T + 8 : p.x, sy = (d === UP || d === DOWN) ? p.ty * T + 10 : p.y;
+        const t = { o, d, x: sx, y: sy - 12, z: 12, t: 0, dist: 0, max: 4 * T, speed: 3.2, lastTx: p.tx, lastTy: p.ty };
         o.flying = true;
         this.list.push(t);
         Stats.count('throws');

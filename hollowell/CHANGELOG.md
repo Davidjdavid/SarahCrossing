@@ -9,3 +9,15 @@
 - The Tidyhouse (D1): 14 rooms, the Gloves, the Dust Monger, the Grand Housekeeper, the first Knot.
 - Tests: the Return's rules, every D1 room, the D1 boss, and a scripted playthrough from a fresh game.
 - Fixed: a softlock in the Pantry's key nook (its gate now stays open once you go through).
+- Second region and the second dungeon (13 rooms, mini-boss, boss), a new tool, room-by-room tests and a
+  scripted playthrough from the first Knot to the second.
+- Fresh-eyes review of the first two dungeons, fixed: keys stay in your pocket when you leave a House; levers
+  that set things out can be pulled again to reset; a creature in a returning thing's way takes the knock
+  before you do; throws start from the middle of your tile; text wraps by measured width; toasts sit below
+  banners; the HUD fades when you walk under it.
+- First dungeon: the finale now needs the dungeon's tool (and can be reset); the first rooms run on standard
+  timings; the boss tells you what it's reacting to, only to things in its own hall, and no longer has an
+  easy way round its weak spot; a secret passage stays open once found; a gap in a wall no longer peeks out
+  from behind a bookcase.
+- Art: new pressure plates (toggle plates show their state); the first dungeon's building has its own front.
+- Writing: early hints toned down; townsfolk lines change as the story moves on.

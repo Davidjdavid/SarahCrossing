@@ -64,11 +64,14 @@ const SCENARIOS = {
         await open();
         await page.evaluate(() => { HW.newGame('Wren', { area: 'tidy', x: 29, y: 42, noAutosave: true }); HW.Inv.items.staff = 1; HW.step(30); });
         await shot('tidy_foyer');
-        const rooms = { kitchen: [10, 38], gallery: [50, 38], hall: [29, 30], pantry: [10, 27], parlor: [50, 27], cons: [70, 27], linen: [56, 20], laundry: [70, 16], ball: [23, 19], library: [10, 16], attic: [9, 8], ante: [49, 9], boss: [38, 5] };
+        const rooms = { kitchen: [10, 38], gallery: [50, 38], hall: [29, 30], pantry: [10, 27], parlor: [50, 27], cons: [70, 27], linen: [56, 20], laundry: [70, 16], ball: [26, 18], library: [10, 16], attic: [9, 8], ante: [49, 9], boss: [38, 5] };
         for (const [n, [x, y]] of Object.entries(rooms)) {
             await page.evaluate(([x, y]) => { HW.warp('tidy', x, y); HW.step(40); HW.skipTalk(); HW.step(5); }, [x, y]);
             await shot('tidy_' + n);
         }
+        /* the conservatory with one plate on */
+        await page.evaluate(() => { HW.warp('tidy', 60 + 6, 22 + 3); HW.step(4); HW.walkTo(60 + 8, 22 + 3); HW.step(30); });
+        await shot('tidy_cons_on');
     },
     async town() {
         await open();

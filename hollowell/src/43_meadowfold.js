@@ -49,7 +49,7 @@ defBlock({
     rows: MEADOW_ROWS,
     forest: ['tree', 'tree2', 'tree_apple', 'tree'],
     ents: [
-        { k: 'building', x: 40, y: 8, w: 9, h: 5, style: 'inn', door: 4, windows: [0, 1, 2, 6, 7, 8], wallH: 28, chimneyX: 20, variant: 'tidy' },
+        { k: 'building', x: 40, y: 8, w: 9, h: 5, door: 4, art: 'tidyhouse' },
         { k: 'warp', x: 44, y: 12, to: 'tidy', tx2: 29, ty2: 42, face: 'up', dir: 'up' },
         { k: 'windmill', x: 19, y: 6 },
         { k: 'sign', x: 34, y: 17, text: 'East: the Tidyhouse. (Please wipe your feet.) Further east: the old bridge to Millwater.' },
@@ -77,8 +77,10 @@ defBlock({
 
 PEOPLE_DEF.pip = { name: 'Pip', col: '#c8e66a', look: { body: 'child', hair: 'cap', hairC: '#c9925a', top: '#8fd46a', accent: '#f4e6c8', bottom: '#6b4128', skin: 'tan' } };
 TALK.pip = function* () {
+    if (Progress.flag('d2')) { yield* say('pip', cycle('pip2', ["The sheep came home early today. All three, straight to their spots, before I'd even called. Good sheep.", "Did you go up the canyon? Mum says nobody's been up there in ages. She says it like it's a rule.", "I tried to teach the sheep a new spot. They looked at me like I'd said something rude."])); return; }
+    if (Progress.flag('d1')) { yield* say('pip', cycle('pip1', ["You came out of the Tidyhouse! Was it clean? I bet it was clean.", "There's a big boulder in the canyon, west of the pen. Been there since before Grandad. Somebody with a good grip could shift it, maybe.", "A Knot! Can I see it? ...It looks like a knot."])); return; }
     yield* firstThen('pip', "I'm Pip. I mind the sheep. Well, the sheep mind themselves, mostly. Wander off, wander back. Same three spots, every day, forever.",
-        ["See that hay bale under the big tree? It got moved in a storm years ago and it never went back. Gives me the shivers.", "Grandad says when he was little the sheep went all the way to the lake. Now they won't leave the pen.", "The Tidyhouse is just east. My mum says it's the oldest house in the Hollow. It's always so clean."]);
+        ["See that hay bale under the big tree? It got moved in a storm years ago and it never went back. Gives me the shivers.", "Count them every night: same three sheep. Never one more, never one less. Restful, that.", "The Tidyhouse is just east. My mum says it's the oldest house in the Hollow. It's always so clean."]);
 };
 BUDGE.pip = 'Pip: "Baa. Sorry. Habit."';
 CRITTER_TALK.sheep = () => function* () { yield* say(null, ['A sheep. It looks at you, chews, and looks away.', 'Baa.', "The sheep has a little red cross dyed into its fleece. So do all of them."][Math.floor(G.rng() * 3)]); };

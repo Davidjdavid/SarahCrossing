@@ -647,6 +647,7 @@ const Kiln = {
     },
     *afterKnot() {
         Progress.set('d2');
+        Progress.set('tagStopped');
         Progress.setGoal('Back to Hollowell. Then east: the broken bridge in Meadowfold, and Millwater beyond it. Your Hookline should get you over.');
         yield* say(null, 'A door opens in the side of the chamber, onto a ledge high on the mesa and a long view over Kilnridge.');
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');

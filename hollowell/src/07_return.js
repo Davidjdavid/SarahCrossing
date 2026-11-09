@@ -114,17 +114,18 @@ const Return = {
             e.startMove(nx, ny, pace, true);
             return;
         }
+        /* creatures in the way get knocked first (a boss on the way home takes the hit, not Wren) */
+        let pushedOne = false;
+        for (const m of e.area.walkers) {
+            if (m.onTile && m.onTile(nx, ny) && m.weightN !== undefined && m.weightN < force && m.shoved) { m.shoved(d, pace, e); pushedOne = true; }
+        }
+        if (pushedOne) return;
         const p = G.player;
         if (p && p.area === e.area && p.onTile(nx, ny) && force >= WEIGHT.heavy && p.canBeShoved(d)) {
             p.shoved(d, pace);
             e.startMove(nx, ny, pace, true);
             return;
         }
-        let pushedOne = false;
-        for (const m of e.area.walkers) {
-            if (m.onTile && m.onTile(nx, ny) && m.weightN !== undefined && m.weightN < force && m.shoved) { m.shoved(d, pace, e); pushedOne = true; }
-        }
-        if (pushedOne) return;
         r.strain++;
     },
 };

@@ -1,12 +1,13 @@
 # HOLLOWELL: Project State
 
-_Last updated: 2026-11-09 (session 1, day 1, evening)._
+_Last updated: 2026-11-09 (session 1, day 1, late)._
 
 ## Status
-**Phase 4 (vertical slice) nearly done.** Engine complete enough for the whole game; Hollowell (hub) with
-its buildings, interiors and townsfolk; the prologue and ceremony; Meadowfold; the Tidyhouse (D1, 14 rooms,
-mini-boss, boss, Knot) all playable and covered by tests, including a scripted playthrough from a fresh game
-to the first Knot and back out.
+**Vertical slice done and reviewed; Act I under way (2 of 8 Houses).** Engine complete enough for the whole
+game; Hollowell (hub) with its buildings, interiors and townsfolk; the prologue and ceremony; Meadowfold; the
+Tidyhouse (D1, 14 rooms); Kilnridge and the Kiln (D2, 13 rooms, the Hookline) all playable and covered by
+tests (51), including scripted playthroughs from a fresh game to the first Knot and from there to the second.
+The fresh-eyes review of the slice is fixed (see QA_REPORT.md).
 
 ## Done
 - Brief recorded verbatim (GAME_BRIEF.md).
@@ -22,15 +23,16 @@ to the first Knot and back out.
   rooms, generator scripts, dialogue with choices, HUD, toasts, banners, title, naming, pause menu (satchel,
   map, journal, options, save), saves (3 slots + codes, migrate), chiptune synth and music, debug panel and
   the HW test API with an autopilot.
-- Content: hub, 11 interiors, prologue, ceremony, townsfolk talk, Meadowfold, D1 complete.
+- Content: hub, 11 interiors, prologue, ceremony, townsfolk talk, Meadowfold, D1 complete; Kilnridge and D2
+  complete (charms, seals, eyelets, the Hookline, the Glazer, the Kilnwyrm). Presets `afterD1`, `afterD2`
+  (`src/79_presets.js`) start a game at those points.
 
 ## In progress
-- Reviewer pass on the slice; D2 (Kilnridge + the Kiln).
+- Hub activities (Kids' pretend Wander S12, Tidiness Trials S28); then Millwater + the Millrace (D3).
 
 ## Next priorities
-1. Fix what the slice review finds.
-2. Kilnridge region and the Kiln (D2, Hookline); open the canyon road; Kids' pretend Wander (S12) and
-   Tidiness Trials (S28) in town.
+1. Kids' pretend Wander (S12) and Tidiness Trials (S28) in town (things to do as the town grows quieter).
+2. Millwater + Millrace (D3, Paddle).
 3. Millwater + Millrace (D3), Belfry Heights + Belfry (D4), the festival; Hushwood + Slumberhouse (D5);
    Larkspur + Marionette Hall (D6) and Reveal 1.
 4. Act III (Underside, D7, Makings), Act IV (D8, cutting, Drift, final), optional dungeons, secrets.
@@ -38,6 +40,7 @@ to the first Knot and back out.
 
 ## Known bugs
 - Busts look a little like chess pawns (art).
+- A creature can stand where a block needs to go; the player has to shoo it (works, but worth watching).
 - Enemies don't show their threads (by design for now).
 
 ## Definition of done checklist (from GAME_BRIEF.md §13)

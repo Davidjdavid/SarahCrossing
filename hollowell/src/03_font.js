@@ -157,11 +157,11 @@ const Font = {
     wrap(s, maxW) {
         const out = [];
         for (const para of s.split('\n')) {
-            let line = '', lw = 0;
+            let line = '';
             for (const word of para.split(' ')) {
-                const ww = this.width(word), sp = line ? this.charW(' ') : 0;
-                if (line && lw + sp + ww > maxW) { out.push(line); line = word; lw = ww; }
-                else { line = line ? line + ' ' + word : word; lw += sp + ww; }
+                const cand = line ? line + ' ' + word : word;
+                if (line && this.width(cand) > maxW) { out.push(line); line = word; }
+                else line = cand;
             }
             out.push(line);
         }

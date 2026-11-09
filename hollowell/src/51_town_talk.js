@@ -34,8 +34,9 @@ TALK.otto = function* () { yield* say('otto', Progress.flag('tagStopped') ? "We'
 TALK.bea = function* () { yield* say('bea', Progress.flag('tagStopped') ? "Feels like my feet like it here. Here here. This exact spot." : "You can't tag me, I'm on the well-step! The well-step is safe!"); };
 TALK.hob = function* () {
     if (Progress.flag('d3')) { yield* say('hob', "Used to walk the bank every day. Now I just... stand here. The fish don't mind."); return; }
+    if (Progress.flag('d2')) { yield* say('hob', cycle('hob2', ["Two Knots, they say. The river's running a touch slower this week. Could be nothing. Fish don't seem to mind.", "Caught the same fish three days running. Same fish, same rock. I've named him Gerald.", "Folks up at the Kiln, eh? Clay always did come down the river with the spring."])); return; }
     yield* firstThen('hob', "Morning, Wanderer. Fish come back too, you know. Throw one in, back it swims to its own rock. Never lost a fish yet.",
-        ["The river comes down from the north, past the posts. Nobody's been up there. Nobody ever needs to.", "Mind the water. The deep bits'll send you home soaking.", "Old Arlo says I used to fish down the whole river. Can't picture it."]);
+        ["The river comes down from the north, past the posts. Nobody's been up there. Nobody ever needs to.", "Mind the water. The deep bits'll send you home soaking.", "Best spot's right here. Always has been. Funny how a spot gets to be yours."]);
 };
 TALK.arlo = function* () {
     yield* firstThen('arlo', "Sit down, sit down. Ah, the Wander. I remember mine. Long time ago now. Before the posts went up.",
@@ -45,9 +46,9 @@ TALK.arlo = function* () {
             "I tried to walk to the lake last spring. Got as far as the bridge and turned round without meaning to. Old legs."]);
 };
 TALK.ives = function* () {
-    if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["You did it! Was it tidy? Was the pantry— er. Did you like it? The House, I mean. In general.", "I've heard there's a pie in that House. Not that I'd know. Not that anybody bakes in there. Ha.", "Up in the attic I've set out some tidying for anyone who's quick. Trials, I call them. Go on up when you've the time."])); return; }
-    yield* firstThen('ives', "Welcome to the Spool & Thimble! Wipe your— oh, it's you, {name}! Off to the Tidyhouse? You'll love it. I mean, I expect you will. It's very clean, I've heard.",
-        ["A place for everything and everything in its place, that's what I always say. What everybody says, I suppose.", "Mind the second step in the linen closet. ...So I've heard. People say. About the Tidyhouse.", "If you need a lie-down, the beds upstairs are made. They're always made."]);
+    if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["You did it! I do hope it was tidy in there. Was it tidy?", "A Knot! Well. That calls for a good sweep of the step.", "If you need a lie-down, the beds upstairs are made. They're always made."])); return; }
+    yield* firstThen('ives', "Welcome to the Spool & Thimble! Wipe your— oh, it's you, {name}! Off to the Tidyhouse? You'll love it. Everyone does.",
+        ["A place for everything and everything in its place, that's what I always say. What everybody says, I suppose.", "If you need a lie-down, the beds upstairs are made. They're always made.", "Busy, busy. I'm always busy when there's a Wander on."]);
 };
 TALK.bram = function* () {
     if (Progress.flag('d1') && !Progress.flag('d2')) { yield* say('bram', cycle('bram1', ["The Kiln? Hot place, I'd guess. Very hot. Bring water. Not that I've— ha! Go on.", "Smash a pot out there and watch the bits fly home. Prettiest thing in the Hollow.", "Big boulder in the canyon road, west of Meadowfold. Pushing won't do it. You'll want a grip on it."])); return; }
@@ -72,7 +73,7 @@ TALK.mabel = function* () {
         ["If you ever find a thing that doesn't go home, bring it here. A stray, we call it. I collect them.", "Strays are turning up more these days. Out by the edges, mostly. Odd little things.", "Everything in its place. Except my things. My things are in MY place."]);
 };
 TALK.thimble = function* () {
-    yield* firstThen('thimble', "Thimble & Things! Wander supplies, bandages, string, things. Mostly things.", ["Buttons spend fine here, Wanderer.", "I'd sell you a map but you don't need one: the House plans are in the Houses. Funny that.", "String's selling well this year. The Guild orders by the mile."]);
+    yield* firstThen('thimble', "Thimble & Things! Wander supplies, bandages, string, things. Mostly things.", ["Buttons spend fine here, Wanderer.", "Bandages, for the bumps. Everyone comes home with bumps.", "String's selling well this year. The Guild orders by the mile."]);
     yield* Shop.run('thimble');
 };
 TALK.rosa = function* () {
@@ -82,7 +83,7 @@ TALK.rosa = function* () {
 };
 TALK.seam = function* () {
     yield* firstThen('seam', "Sebastian Seam, tailor. That scarf: red, of course. A Wanderer's colour. You wear it beautifully.",
-        ["I'm working on something very big for a client. Very hush-hush. Very... scaly.", "Everyone's thread is a different colour, you know. Figuratively. Mostly figuratively.", "Come back when you've a few buttons and I'll make you something with presence."]);
+        ["I'm working on something very big for a client. Very hush-hush.", "Everyone's thread is a different colour, you know. Figuratively. Mostly figuratively.", "Come back when you've a few buttons and I'll make you something with presence."]);
 };
 TALK.ambrose = function* () { yield* say('ambrose', "Hello, my Wanderer! Busy, busy. Always busy before a Wander. I'm proud of you."); };
 TALK.tess = function* () { yield* say('tess', "There's my bell-ringer's bairn! Listen to the bells when you're out: they'll tell you where you are."); };

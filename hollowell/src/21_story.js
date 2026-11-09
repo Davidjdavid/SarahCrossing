@@ -98,13 +98,12 @@ const Story = {
         });
     },
     /* small keys fly back into their House */
+    /* small keys belong to their House: outside, they tug toward it (S08) */
     leaveHouse(house) {
         const k = Inv.keys(house);
         if (k > 0) {
-            Inv.keyCount[house] = 0;
-            Progress.set('keys_went_home');
-            G.pendingToast = k === 1 ? 'Your small key tugs free and flies back into the House.' : 'Your small keys tug free and fly back into the House.';
-            Progress.setAreaFlag('house:' + house, 'keysBack', (Progress.areaFlags['house:' + house] || {}).keysBack + k || k);
+            if (!Progress.flag('keys_tug')) G.pendingToast = 'The small key in your pocket tugs back toward the House, like a dog on a lead.';
+            Progress.set('keys_tug');
         }
     },
 };
