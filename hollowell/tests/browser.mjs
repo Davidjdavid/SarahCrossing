@@ -157,6 +157,26 @@ const SCENARIOS = {
             await shot(n);
         }
     },
+    async marionette() {
+        await open();
+        await page.evaluate(() => { HW.newGame('Wren', { area: 'marionette', x: 29, y: 42, noAutosave: true }); for (const t of ['gloves', 'hook', 'paddle', 'bell', 'bedroll', 'crossbar']) HW.Inv.giveTool(t); HW.step(10); });
+        const rooms = { foyer: [29, 40], box: [44, 38], aud: [29, 31], pit: [10, 27], reh: [46, 27], wings: [29, 20], dress: [5, 18], props: [49, 20], shop: [50, 5], stage: [29, 9] };
+        for (const [n, [x, y]] of Object.entries(rooms)) {
+            await page.evaluate(([x, y]) => { HW.warp('marionette', x, y); HW.step(40); HW.skipTalk(); HW.step(5); }, [x, y]);
+            await shot('mh_' + n);
+        }
+        await page.evaluate(() => { HW.walkTo(29, 8); HW.step(80); HW.skipTalk(); HW.step(40); HW.skipTalk(); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(30); });
+        await shot('mh_boss');
+    },
+    async larkspur() {
+        await open();
+        await page.evaluate(() => { HW.preset('afterD5'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 12, 84); HW.step(40); HW.skipTalk(); });
+        await shot('lk_mesa');
+        for (const [n, x, y] of [['lk_straw', 12, 74], ['lk_midway', 31, 60], ['lk_hall', 31, 51], ['lk_pen', 53, 52], ['lk_fortune', 11, 53], ['lk_gate', 57, 59]]) {
+            await page.evaluate(([x, y]) => { HW.warp('hollow', x, y); HW.step(60); HW.skipTalk(); }, [x, y]);
+            await shot(n);
+        }
+    },
     async slumber() {
         await open();
         await page.evaluate(() => { HW.newGame('Wren', { area: 'slumber', x: 29, y: 42, noAutosave: true }); for (const t of ['gloves', 'hook', 'paddle', 'bell', 'bedroll']) HW.Inv.giveTool(t); HW.step(10); });

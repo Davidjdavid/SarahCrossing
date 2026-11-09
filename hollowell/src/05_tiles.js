@@ -29,6 +29,7 @@ const TK = {
     roof: { solid: true },
     prop: { solid: true },
     low: { solid: true, low: true },          /* a counter: blocks walking, things fly over it */
+    crawl: { solid: true, crawl: true },      /* a little hole in a wall: puppets and small things through */
 };
 
 /* Themes: the palette each painter uses */

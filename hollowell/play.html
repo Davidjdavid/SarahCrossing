@@ -692,6 +692,7 @@ const TK = {
     roof: { solid: true },
     prop: { solid: true },
     low: { solid: true, low: true },          /* a counter: blocks walking, things fly over it */
+    crawl: { solid: true, crawl: true },      /* a little hole in a wall: puppets and small things through */
 };
 
 /* Themes: the palette each painter uses */
@@ -940,7 +941,7 @@ class Area {
     freeForThing(x, y, e) {
         if (!this.inside(x, y)) return false;
         const k = this.kind(x, y);
-        if (k.solid || k.ledge) return false;
+        if ((k.solid && !(k.crawl && e && e.small)) || k.ledge) return false;
         if (k.fog) return false;
         const o = this.at(x, y);
         if (o && o !== e) return false;
@@ -4752,6 +4753,36 @@ defArea({
     entry: { x: 5, y: 5 },
 });
 
+/* puppets: a puppet through a hole and over spikes to a plate; a rack of two; a toy soldier; a painted flat */
+defArea({
+    id: 'lab6', name: 'Lab 6', family: 'dungeon', theme: 'tidy', house: 'lab', thread: THREAD.jory,
+    rows: [
+        '####################',
+        '#........#.........#',
+        '#........#.........#',
+        '#........O..^^^....#',
+        '#........#.........#',
+        '#........#.........#',
+        '#..................#',
+        '#........#.........#',
+        '#........#.........#',
+        '#........#.........#',
+        '####################',
+    ],
+    legend: { 'O': { k: 'crawl', p: 'wall', ent: 'crawlhole' } },
+    ents: [
+        { k: 'puppet', x: 6, y: 3, id: 'pA' },
+        { k: 'plate', x: 17, y: 3, sig: 'lp' },
+        { k: 'door', x: 9, y: 6, type: 'gate', when: 'lp', dir: 'v', id: 'labGate' },
+        { k: 'rack', x: 2, y: 8, group: 'g', id: 'rack' },
+        { k: 'puppet', x: 5, y: 8, id: 'pB', group: 'g' }, { k: 'puppet', x: 5, y: 6, id: 'pC', group: 'g' },
+        { k: 'soldier', x: 12, y: 8, id: 'sol', facing: 'right' },
+        { k: 'flat', x: 14, y: 6, id: 'flat' },
+    ],
+    rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
+    entry: { x: 3, y: 3 },
+});
+
 // ---- 31_art_world.js ----
 /* Painted art for the outdoors: trees, bushes, rocks, buildings, the Well, fences, and town things.
    Bigger pictures are painted in code (shapes shaded by light from the upper left, with a texture)
@@ -6005,6 +6036,25 @@ SONGS.slumber = {
         { wave: 'p12', vol: 0.075, n: 'C6 . A5 . F5 . | G5 . A5 . C6 . | Bb5 . G5 . E5 . | F5 . G5 . A5 . | D6 . Bb5 . G5 . | A5 . Bb5 . C6 . | A5 . F5 . G5 . | F5 . . . . . | C6 . A5 . F5 . | G5 . A5 . Bb5 . | A5 . F5 . D5 . | E5 . F5 . G5 . | Bb5 . A5 . G5 . | F5 . E5 . D5 . | C5 . E5 . G5 . | F5 . . . . . ' },
         { wave: 'triangle', vol: 0.16, legato: 0.8, n: 'F3 - - C4 - - | C3 - - G3 - - | C3 - - E3 - - | F3 - - C4 - - | Bb2 - - F3 - - | F2 - - C3 - - | C3 - - E3 - - | F3 - - - - - | F3 - - C4 - - | E3 - - C4 - - | D3 - - A3 - - | C3 - - G3 - - | G2 - - D3 - - | A2 - - D3 - - | C3 - - G3 - - | F2 - - - - - ' },
         { drum: true, vol: 0.03, n: 'h . . . h . | h . . . h . ' },
+    ],
+};
+/* Larkspur Fair: a calliope waltz with nobody to dance to it (A minor, a little off) */
+SONGS.fair = {
+    bpm: 132, div: 1,
+    ch: [
+        { wave: 'p25', vol: 0.08, vib: true, n: 'E5 - - | C5 D5 E5 | A5 - - | G5 - - | F5 - E5 | D5 - C5 | B4 - - | E5 - - | E5 - - | C5 D5 E5 | A5 - - | C6 - - | B5 - A5 | G#5 - B5 | A5 - - | . . . ' },
+        { wave: 'triangle', vol: 0.18, n: 'A2 E3 E3 | A2 E3 E3 | F2 C3 C3 | C3 G3 G3 | D3 A3 A3 | A2 E3 E3 | E2 B2 B2 | E2 G#2 B2 | A2 E3 E3 | A2 E3 E3 | F2 C3 C3 | A2 E3 E3 | D3 A3 A3 | E2 B2 B2 | A2 E3 A3 | A2 . . ' },
+        { wave: 'p12', vol: 0.04, n: '. C4 E4 | . C4 E4 | . A3 C4 | . C4 E4 | . D4 F4 | . C4 E4 | . G#3 D4 | . G#3 B3 | . C4 E4 | . C4 E4 | . A3 C4 | . C4 E4 | . D4 F4 | . G#3 D4 | . C4 E4 | . . . ' },
+        { drum: true, vol: 0.05, n: 'k . h | s . h ' },
+    ],
+};
+/* the Marionette Hall: a music-hall overture on a toy piano (G major, then the minor for the dark wings) */
+SONGS.marionette = {
+    bpm: 112, div: 2,
+    ch: [
+        { wave: 'p12', vol: 0.08, n: 'G5 . B5 . D6 . B5 . | C6 . A5 . F#5 . A5 . | G5 . D5 . B4 . D5 . | E5 - - . D5 - - . | G5 . B5 . D6 . B5 . | E6 . C6 . A5 . C6 . | B5 . G5 . A5 . F#5 . | G5 - - - . . . . | Bb5 . G5 . D5 . G5 . | A5 . F5 . C5 . F5 . | G5 . Eb5 . Bb4 . Eb5 . | D5 - - . . . . . | B5 . G5 . D5 . G5 . | C6 . A5 . F#5 . A5 . | B5 . A5 . G5 . F#5 . | G5 - - - . . . . ' },
+        { wave: 'triangle', vol: 0.18, n: 'G2 . D3 . G2 . D3 . | D2 . A2 . D2 . A2 . | G2 . D3 . G2 . D3 . | C3 . G2 . D3 . A2 . | G2 . D3 . G2 . D3 . | C3 . G3 . C3 . G3 . | D3 . A2 . D3 . A2 . | G2 . D3 . G2 . . . | G2 . D3 . G2 . D3 . | F2 . C3 . F2 . C3 . | Eb2 . Bb2 . Eb2 . Bb2 . | D2 . A2 . D2 . . . | G2 . D3 . G2 . D3 . | D2 . A2 . D2 . A2 . | D3 . C3 . B2 . A2 . | G2 . D3 . G2 . . . ' },
+        { drum: true, vol: 0.05, n: 'k . h . s . h . | k . h . s . h h ' },
     ],
 };
 
@@ -11910,7 +11960,7 @@ CONTENT_INIT.push(initHushArt);
 THEMES.slumberhouse = { floor: ['#8a8ac8', '#6a6aa8', '#a8a8e0', '#4a4a7a'], wall: ['#b48ce8', '#8a64c4', '#d8c8f8', '#4b3a8a'], stone: ['#9a8ab8', '#7a6a98', '#bcaed8', '#4e4268'], water: ['#6ab0d8', '#4a8ac0', '#a8d8f0', '#2a5a8a'], dark: '#1e1a34' };
 FLOORS.slumberhouse = {
     /* soft blue carpet with little stars, old boards, and the night-blue tiles of the wards */
-    floor: (x, th, v) => { fill(x, '#6e74b8'); speckle(x, ['#7a80c4', '#646aac'], 70 + v, 0.35); if (v % 3 === 0) { fill(x, '#d8d0f8', 7, 7, 2, 1); fill(x, '#d8d0f8', 8, 6, 1, 3); } },
+    floor: (x, th, v) => { fill(x, '#6e74b8'); speckle(x, ['#7a80c4', '#646aac'], 70 + v, 0.35); if (v === 3 && hash2(v, 7, 3) < 2) { fill(x, '#c8c0f0', 7, 7, 3, 1); fill(x, '#c8c0f0', 8, 6, 1, 3); } },
     floor2: (x, th, v) => Paint.planks(x, ['#a88a6a', '#86684a', '#c4a684', '#5a4430'], v, true),
     floor3: (x, th, v) => { fill(x, '#5a5e98'); fill(x, '#4a4e84', 0, 15, 16, 1); fill(x, '#4a4e84', 15, 0, 1, 16); speckle(x, ['#6a6ea8'], 40 + v, 0.15); },
 };
@@ -12493,7 +12543,7 @@ class MotherSloth extends Enemy {
         if (!this.alive) { if ((this.yarnT || 0) < 160) { const k = 1 - this.yarnT / 160; Gfx.circle(this.capX - cx, this.capY - cy - 20, Math.round(14 * k), THREAD.mallow); } return; }
         /* where her arms can reach: a ring of little stars in the carpet */
         if (this.state !== 'sleep') {
-            Gfx.alpha(0.35);
+            Gfx.alpha(0.6);
             for (const arm of this.arms) for (let i = 0; i < 48; i++) {
                 const t = i / 48 * Math.PI * 2, x = arm.sx + Math.cos(t) * SLOTH.REACH * T, y = arm.sy + Math.sin(t) * SLOTH.REACH * T;
                 if (this.arms.some(o => o !== arm && Math.hypot(x - o.sx, y - o.sy) < SLOTH.REACH * T)) continue;
@@ -12621,6 +12671,1171 @@ function initSlumberFoes() {
 }
 CONTENT_INIT.push(initSlumberFoes);
 
+// ---- 61_crossbar_kit.js ----
+/* Puppets, for Larkspur Fair and the Marionette Hall (House 6). The Crossbar: press C at a puppet in sight to
+   take its strings; while you hold them you stand still and the arrows walk the puppet a tile at a time; press
+   C (or Z) again to let go, and the puppet walks home along its trace like anything else. A rack holds the
+   strings of several puppets at once: take the rack and they all step together (each that can). Puppets are as
+   heavy as a person (plates feel them), small enough for the little holes in the walls, and don't mind spikes.
+   Also here: toy soldiers that march in a line and turn at walls, and painted flats (scenery that looks like
+   wall, until a knock shows it's cardboard). */
+
+const Crossbar = {
+    REACH: 8,
+    ctl: null,           /* { puppets: [...], rack } while Wren holds the strings */
+    repeat: 0,
+    sightOf(p) {
+        const a = p.area, room = a.rooms && a.rooms.length > 1 ? a.roomAt(p.tx, p.ty) : null;
+        return e => Math.hypot(e.tx - p.tx, e.ty - p.ty) <= this.REACH && (!room || a.roomAt(e.tx, e.ty) === room);
+    },
+    /* what C would take: a rack in front, else the nearest puppet in sight on the side Wren faces */
+    target(p) {
+        const a = p.area, f = p.front(), o = a.at(f.tx, f.ty);
+        if (o && o.kind === 'rack') return { rack: o, puppets: a.ents.filter(e => e.kind === 'puppet' && e.group === o.group && !e.removed) };
+        const seen = this.sightOf(p);
+        let best = null, bd = Infinity;
+        for (const e of a.ents) {
+            if (e.kind !== 'puppet' || e.removed || e.racked || !seen(e)) continue;
+            const dx = e.tx - p.tx, dy = e.ty - p.ty;
+            if (DX[p.dir] * dx + DY[p.dir] * dy <= 0) continue;
+            const d = Math.hypot(dx, dy);
+            if (d < bd) { bd = d; best = e; }
+        }
+        return best ? { puppets: [best] } : null;
+    },
+    take(p) {
+        const t = this.target(p);
+        if (!t || !t.puppets.length) { UI.toast(this.hinted ? 'No puppet in sight.' : 'Face a puppet (or a crossbar rack) and press C to take its strings.'); this.hinted = true; return; }
+        this.ctl = t; p.pinned = 'crossbar';
+        for (const e of t.puppets) { e.heldBy = p; e.worked = true; if (e.ret) e.ret.timer = e.ret.patience; }
+        Sfx.play('twang'); Stats.count('crossbar');
+        if (!Progress.flag('crossbar_first')) { Progress.set('crossbar_first'); UI.toast('Arrows walk the puppet. C again to let go.', 150); }
+    },
+    release(p) {
+        const c = this.ctl; if (!c) return;
+        this.ctl = null;
+        if (p && p.pinned === 'crossbar') p.pinned = null;
+        for (const e of c.puppets) {
+            e.heldBy = null; e.worked = false;
+            /* let go, a puppet goes home (after its patience, like anything else: time to take the strings up again) */
+            if (e.ret && e.ret.state !== 'home') { e.ret.state = 'away'; e.ret.timer = e.ret.patience; }
+        }
+        Sfx.play('unclick');
+    },
+    update(area) {
+        const p = G.player, c = this.ctl;
+        if (!c) return;
+        if (!p || p.area !== area || p.state !== 'normal' || c.puppets.some(e => e.removed || e.area !== area)) { this.release(p); return; }
+        if (Script.blocking()) return;
+        if (Input.pressed('act') || Inv.equipped !== 'crossbar') { this.release(p); return; }
+        const ax = Input.axis();
+        if (!ax.x && !ax.y) { this.repeat = 0; return; }
+        if (c.puppets.some(e => e.mv)) return;
+        if (this.repeat > 0) { this.repeat--; return; }
+        const d = ax.x < 0 ? LEFT : ax.x > 0 ? RIGHT : ax.y < 0 ? UP : DOWN;
+        let moved = false;
+        /* the ones in front go first, so a line steps together */
+        const order = c.puppets.slice().sort((m, n) => (DX[d] * (n.tx - m.tx) + DY[d] * (n.ty - m.ty)));
+        const going = [];
+        for (const e of order) {
+            e.dir = d;
+            /* a puppet just stepping off the tile ahead has as good as left it */
+            for (const m of going) if (m.mv && m.mv.fx === e.tx + DX[d] && m.mv.fy === e.ty + DY[d]) area.unplace(m, m.mv.fx, m.mv.fy);
+            if (e.step(d)) { moved = true; going.push(e); }
+        }
+        if (moved) { this.repeat = 2; Sfx.play('step', 0.4); }
+        else if (!this.bumped) { this.bumped = 8; Sfx.play('hitthing', 0.3); }
+        if (this.bumped > 0) this.bumped--;
+    },
+    draw(cx, cy) {
+        const c = this.ctl, p = G.player;
+        if (!c || !p) return;
+        const hx = p.x - cx, hy = p.y - cy - 24;
+        Gfx.rect(hx - 6, hy, 12, 2, '#9a6438'); Gfx.rect(hx - 1, hy - 2, 2, 6, '#9a6438');
+        for (const e of c.puppets) {
+            const ex = e.px - cx + 8, ey = e.py - cy - 8;
+            Gfx.alpha(0.8); Gfx.line(hx, hy, ex, ey - 6, THREAD.jory); Gfx.alpha(1);
+        }
+    },
+};
+
+TOOLS.crossbar = {
+    use(p) { if (Crossbar.ctl) Crossbar.release(p); else Crossbar.take(p); },
+    update(area) { Crossbar.update(area); },
+    draw(cx, cy) { Crossbar.draw(cx, cy); },
+};
+
+/* a puppet: a wooden figure on a stand; heavy as a person, small enough for the holes */
+class Puppet extends GridThing {
+    constructor(tx, ty, p = {}) {
+        super('puppet', tx, ty, Object.assign({ weight: WEIGHT.medium, thread: THREAD.jory }, p));
+        this.small = true; this.dir = DOWN; this.bob = 0;
+    }
+    canPush(d) { return false; }
+    /* walked by its strings: a tile in a direction (light things in the way get a nudge) */
+    step(d) {
+        if (this.mv) return false;
+        const a = this.area, nx = this.tx + DX[d], ny = this.ty + DY[d];
+        const o = a.at(nx, ny);
+        if (o && o !== this && !o.fixed && o.weight <= WEIGHT.light && o.canPush && o.canPush(d)) { o.push(d, 12); return false; }
+        if (!a.freeForThing(nx, ny, this)) return false;
+        if (a.kind(nx, ny).pit || (a.kind(nx, ny).deep && !this.floats)) return false;      /* a puppet won't walk off an edge */
+        this.startMove(nx, ny, 12);
+        this.bob = 12;
+        return true;
+    }
+    tick() { if (this.bob > 0) this.bob--; }
+    sprite() { return spr((this.look || 'puppet') + (this.worked ? '_up' : '')); }
+    draw(cx, cy) {
+        const im = this.sprite(); if (!im) return;
+        const x = this.px - cx, y = this.py - cy - (this.worked ? 2 : 0) - (this.bob > 6 ? 1 : 0);
+        Gfx.alpha(0.25); Gfx.rect(x + 3, this.py - cy + 13, 10, 2, PAL.ink); Gfx.alpha(1);
+        Gfx.img(im, x, y - (im.height - 16), this.dir === LEFT);
+    }
+}
+SPAWN.puppet = (x, y, p) => new Puppet(x, y, p);
+
+/* a crossbar rack: take it and every puppet strung to it steps together */
+class Rack extends GridThing {
+    constructor(tx, ty, p = {}) { super('rack', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p)); }
+    onAdd(area) { super.onAdd(area); for (const e of area.ents) if (e.kind === 'puppet' && e.group === this.group) e.racked = true; }
+    sprite() { return spr('rack'); }
+    draw(cx, cy) {
+        const im = spr('rack'); if (im) Gfx.img(im, this.px - cx, this.py - cy - 8);
+        /* its strings run off to its puppets, faintly */
+        Gfx.alpha(0.25);
+        for (const e of this.area.ents) if (e.kind === 'puppet' && e.group === this.group) Gfx.line(this.px - cx + 8, this.py - cy - 6, e.px - cx + 8, e.py - cy - 14, THREAD.jory);
+        Gfx.alpha(1);
+    }
+}
+SPAWN.rack = (x, y, p) => new Rack(x, y, p);
+
+/* the little round holes in walls (the tile kind 'crawl'): drawn over the wall */
+SPAWN.crawlhole = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.crawlhole, solid: [], oy: 0 });
+    pr.baseY = -40;
+    return pr;
+};
+
+/* toy soldiers: march straight on, about-turn (or turn right) at anything in the way */
+AI.march = (e, p) => {
+    e.modeT++;
+    const sp = e.D.speed || 0.6;
+    if (e.march === undefined) e.march = dirByName(e.facing || 'right');
+    const d = e.march;
+    e.dir = d; e.anim++;
+    if (!e.move(DX[d] * sp, DY[d] * sp)) {
+        e.march = e.turn === 'right' ? (d === UP ? RIGHT : d === RIGHT ? DOWN : d === DOWN ? LEFT : UP) : OPP[d];
+        /* square up on the tile as it turns */
+        e.x = e.tx * T + 8; e.y = e.ty * T + 10;
+    }
+};
+SPAWN.soldier = (x, y, p) => new Enemy(x, y, Object.assign({ type: 'soldier' }, p));
+
+/* painted flats: stage scenery standing in for a wall; a knock and it falls over, cardboard */
+class Flat extends GridThing {
+    constructor(tx, ty, p = {}) { super('flat', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p)); this.down = false; }
+    hit(by, d) { this.knock(); }
+    onStruck() { this.knock(); }
+    knock() {
+        if (this.down) return;
+        this.down = true; this.area.unplace(this, this.tx, this.ty);
+        Sfx.play('push'); Fx.dust(this.tx * T + 8, this.ty * T + 12);
+        Stats.count('flats');
+        if (!Progress.flag('flat_first')) { Progress.set('flat_first'); G.pendingToast = "It falls flat with a slap. It's cardboard: painted cardboard, propped up on a stick."; }
+    }
+    get sortY() { return this.down ? this.py - 20 : this.py + 15; }
+    sprite() { return spr(this.down ? 'flat_down' : (this.look || 'flat')); }
+}
+SPAWN.flat = (x, y, p) => new Flat(x, y, p);
+
+function initCrossbarKit() {
+    ENEMY.soldier = { hp: 2, ai: 'march', r: 5, tall: 14, speed: 0.6, yarn: THREAD.jory, weight: WEIGHT.medium, drop: 0.3 };
+    const sd = { r: '#d6304e', R: '#9a1e36', b: '#2e3a7a', g: '#f7d64a', s: '#f0c8a0', w: '#fbf6ea', k: '#2a1f2d' };
+    const soldier = leg => ['.....kkkk.....', '....kbbbbk....', '....kbbbbk....', '....kbbbbk....', '...kkggggkk...', '....kssssk....', '....kswswk....', '....kssssk....', '...krrrrrrk...', '..krRrggrRrk..', '..krrrggrrrk..', '..ksrrrrrrsk..', '...kbbbbbbk...', '...kbbk' + leg + 'bk...', '...kkk....kkk.'.slice(0, 14)];
+    defSprite('soldier_0', soldier('kb'), sd); defSprite('soldier_1', soldier('bk'), sd);
+    ENEMY_DRAW.soldier = e => spr('soldier_' + ((e.anim >> 4) % 2));
+    /* puppets: a little jointed wooden figure on a stand (and lifted on its strings when worked) */
+    const pp = { w: '#e6c08a', W: '#c49a62', d: '#8a6040', r: '#d6304e', R: '#9a1e36', e: '#2a1f2d', y: '#f7d64a', b: '#4f9be0' };
+    const puppet = (top, arms) => ['......kkkk......', '.....kwwwwk.....', '.....kwewek.....', '.....kwwwwk.....', '......kWWk......', '....' + arms + '....', '...kwk' + top + 'kwk...', '...kk.' + top + '.kk...', '......krrk......', '......kWWk......', '.....kw..wk.....', '.....kw..wk.....', '.....kW..Wk.....', '....kkk..kkk....', '...kddddddddk...', '...kkkkkkkkkk...'];
+    defSprite('puppet', puppet('rrrr', 'kkrrrrrrkk'), pp); defSprite('puppet_up', puppet('rrrr', 'kwrrrrrrwk'), pp);
+    defSprite('puppet_wren', ['......kkkk......', '.....kRRRRk.....', '....kRwwwwRk....', '.....kwewek.....', '.....kwwwwk.....', '....kkrrrrkk....', '...kwkrrrrkwk...', '...kk.rrrr.kk...', '......kbbk......', '......kWWk......', '.....kb..bk.....', '.....kb..bk.....', '.....kW..Wk.....', '....kkk..kkk....', '...kddddddddk...', '...kkkkkkkkkk...'], Object.assign({}, pp, { R: '#8a5a3a' }));
+    SPR.puppet_wren_up = SPR.puppet_wren;
+    defSprite('rack', ['................', '.kkkkkkkkkkkkkk.', '.kddddddddddddk.', '.kkkkkkddkkkkkk.', '......kddk......', '......kddk......', '......kddk......', '......kddk......', '......kddk......', '......kddk......', '......kddk......', '......kddk......', '....kkddddkk....', '...kddddddddk...', '...kkkkkkkkkk...', '................'], { d: '#9a6438' });
+    defSprite('flat', ['kkkkkkkkkkkkkkkk', 'kaaaaaaaaaaaaaak', 'kaAaaaaaaaaaAaak', 'kaaaaaaAaaaaaaak', 'kaaaaaaaaaaaaaak', 'kAaaaaaaaaAaaaak', 'kaaaaaaaaaaaaaak', 'kaaaaAaaaaaaaaAk', 'kaaaaaaaaaaaaaak', 'kaaaaaaaaaaaaaak', 'kaaAaaaaaAaaaaak', 'kaaaaaaaaaaaaaak', 'kccccccccccccccc', 'kccccccccccccccc', 'kkkkkkkkkkkkkkkk', '................'], { a: '#a39aa8', A: '#8a8296', c: '#7f7688' });
+    defSprite('flat_down', ['................', '................', '................', '................', '................', '................', '................', '................', '................', '................', '................', '.kkkkkkkkkkkkkk.', 'kbbbbbbbbbbbbbbk', 'kbBbbbbbBbbbbbbk', '.kkkkkkkkkkkkkk.', '................'], { b: '#c8a878', B: '#a8885a' });
+    ART.crawlhole = paintSprite(16, 16, x => { x.fillStyle = '#1a1420'; x.beginPath(); x.arc(8, 13, 6, Math.PI, 0); x.fill(); x.fillRect(2, 13, 12, 3); x.fillStyle = '#4a3a5a'; x.fillRect(2, 15, 12, 1); });
+}
+CONTENT_INIT.push(initCrossbarKit);
+
+// ---- 62_larkspur.js ----
+/* Larkspur Fair (overworld block 0,1): an old fairground in a glade at the valley's western edge, the fog close
+   by. Nobody comes; nobody can: the only ways in are a jump off Kilnridge's high mesa into the straw (only with a
+   Bedroll laid up top to come home to) and, once you're in, the east gate to town, bolted on this side. The
+   carousel (Linnet's note 7 under its wooden horse), the fortune teller's tent, a painted hedge, a pen with a
+   bed of nails, toy soldiers on parade, and the Marionette Hall (House 6, Jory's). After the Hall, the Crossbar
+   works the puppet on the mesa that winds the lift. The fog on the west: lay a Bedroll by it, walk in, and come
+   back holding something (S11). Map drafted by tools/mapgen/larkspur.py. */
+
+const MARIONETTE_ENTRY = { x: 29, y: 42 };
+const LARK = (x, y) => [x, 40 + y];
+
+const LARKSPUR_ROWS = [
+    '%%%YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
+    '%%%YYYY.YYYYYYYYYYYYYYY..................,YYYYYY..........".YYYY',
+    '%%%YYYY.b...YYYYYYYYYYY..XXXXXXXXXXXXXX...YYYYYY..lfffffffl.YYYY',
+    '%%%YYYY.b...YYYYYYYYYYY,.XXXXXXXXXXXXXX...YYYYYY.,l.......l.YYYY',
+    '%%%YYYY.b...YYYYYYYYYYY..XXXXXXXXXXXXXX...YYYYYY..l.!!!!!.l.YYYY',
+    '%%%YYYY.b...b............XXXXXXXXXXXXXX.,.YYYYYY..l.!!!!!.l.YYYY',
+    '%%%YYYY"bb.bb".."......".XXXXXXXXXXXXXX..".w......l.!!!!!.l"YYYY',
+    '%%%......................XXXXXXXXXXXXXX........w..l.."....l.YYYY',
+    '%%%...,......w...........XXXXXX:XXXXXXX...........lfffOfffl.YYYY',
+    '%%%.................,".........:.........::::::::::::.......YYYY',
+    '%%%................."..........:.........:..................YYYY',
+    '%%%.....:....,.................:.........:................."YYYY',
+    '%%%...".:..,w..................:.........:..........w.".....YYYY',
+    '%%%.,...:.............===================:......"..,.......wYYYY',
+    '%%%.....:.,...........===================...................YYYY',
+    '%%%.....:....,.,......===================....,...,........,.YYYY',
+    '%%%.....:.............===================.......w...........YYYY',
+    '%%%.....::::::::::::::===================...................YYYY',
+    '%%%...w...............===================:::::::::::::::::::::::',
+    '%%%........,........,.===================:::::::::::::::::::::::',
+    '%%%,.......,..........===================...................YYYY',
+    '%%%YYYY......w........===================................ww.YYYY',
+    '%%%YYYY....,,.,.......===================......,..YYYYYYYY..YYYY',
+    '%%%YYYY...............===================.........YYYYYYYY..YYYY',
+    '%%%YYYY...............===================.......,.YYYYYYYY..YYYY',
+    '%%%YYYY..........:::::===================.......w,YYYYYYYY..YYYY',
+    '%%%YYYY..w,......:....===================.........YYYYYYYY..YYYY',
+    '%%%YYYY..........:............:...................YYYYYYYY..YYYY',
+    '%%%YYYY..........:............:.........w.........YYYYYYYY,.YYYY',
+    '%%%".............:......w.....:..YYYYYYYYY........YYYYYYYY..YYYY',
+    '%%%..............:............:.,YYYYYYYYY........YYYYYYYY.,YYYY',
+    '%%%..............:..w.........:..YYYYYYYYYw.......YYYYYYYY..YYYY',
+    '%%%.........::::::............:..YYYYYYYYY........YYYYYYYY..YYYY',
+    '%%%.....................:::::::..YYYYYYYYY...............,.,YYYY',
+    '%%%......,.........,..w....................,.............w..YYYY',
+    '%%%#########################################################YYYY',
+    '%%%#########################################################YYYY',
+    '%%%#########################################################YYYY',
+    '%%%#########################################################YYYY',
+];
+
+defBlock({
+    id: 'larkspur', bx: 0, by: 1, name: 'Larkspur Fair', theme: 'fair', music: 'fair',
+    rows: LARKSPUR_ROWS,
+    forest: ['tree', 'tree2'],
+    legend: { 'O': { k: 'crawl', p: 'fence', ent: 'crawlhole' }, '!': { k: 'spikes', p: 'spikes' } },
+    ents: [
+        /* where you come down: straw bales under the mesa */
+        { k: 'deco', x: 11, y: 35, look: 'haystack', solid: [[0, 0]], oy: -6, text: 'A great heap of straw. There is a dent in the top of it the exact shape of somebody falling off a mesa.' },
+        { k: 'deco', x: 14, y: 35, look: 'haystack', solid: [[0, 0]], oy: -6, text: 'More straw. Someone stacked it under the cliff on purpose.' },
+        { k: 'sign', x: 15, y: 32, text: "LARKSPUR FAIR. Closed for the season. (Which season? It doesn't say.)" },
+        { k: 'rest', x: 20, y: 31 },
+        /* the lift up to the mesa: wound by the puppet up top */
+        { k: 'lift', x: 25, y: 35, id: 'larkLift', down: true },
+        { k: 'sign', x: 27, y: 35, text: 'THE LIFT. Wound from the top by the stagehand. (The stagehand is a puppet. Please be kind to him.)' },
+        /* the carousel, and its wooden horse (Linnet's note 7 underneath) */
+        { k: 'carousel', x: 28, y: 17 },
+        { k: 'puppet', x: 31, y: 22, id: 'carouselHorse', look: 'puppet_horse' },
+        { k: 'linnetnote', x: 31, y: 22, note: 7, under: 'carouselHorse' },
+        /* the fortune teller */
+        { k: 'deco', x: 10, y: 10, look: 'tent_fortune', solid: [[0, 0], [1, 0], [2, 0]], ox: 0, oy: -20, text: "MADAME ROOK SEES ALL. (Madame Rook is round the front.)" },
+        { k: 'npc', who: 'rook', x: 12, y: 12, face: 'down' },
+        /* the painted hedge, and what's behind it */
+        { k: 'flat', x: 10, y: 7, id: 'larkFlat', look: 'flat_hedge' },
+        { k: 'chest', x: 10, y: 4, item: 'b50', id: 'larkNook' },
+        /* the pen with its bed of nails: a puppet through the hole, over the nails, onto the plate */
+        { k: 'plate', x: 54, y: 4, sig: 'penplate' },
+        { k: 'puppet', x: 56, y: 11, id: 'penPuppet' },
+        { k: 'chest', x: 52, y: 11, item: 'heartpatch', id: 'larkPen', hidden: true, when: 'penplate' },
+        { k: 'sign', x: 49, y: 11, text: "THE AMAZING PUPPET FAKIR. Walks on nails! (Strings not included.)" },
+        /* toy soldiers on parade */
+        { k: 'soldier', x: 44, y: 19, facing: 'left', id: 'larkSol1' }, { k: 'soldier', x: 24, y: 15, facing: 'right', id: 'larkSol2' }, { k: 'soldier', x: 38, y: 24, facing: 'up', turn: 'right', id: 'larkSol3' },
+        /* the theatre */
+        { k: 'building', x: 25, y: 3, w: 14, h: 7, door: 6, art: 'marionette' },
+        { k: 'warp', x: 31, y: 9, to: 'marionette', tx2: MARIONETTE_ENTRY.x, ty2: MARIONETTE_ENTRY.y, face: 'up', dir: 'up' },
+        { k: 'npc', who: 'pell', x: 33, y: 11, face: 'down' },
+        /* the east gate to town, bolted on this side */
+        { k: 'door', x: 61, y: 19, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateA' },
+        { k: 'door', x: 61, y: 20, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateB' },
+        { k: 'bolt', x: 59, y: 18 },
+        /* the edge of the valley */
+        { k: 'sign', x: 4, y: 19, text: 'THE EDGE. No further. (The fog will see to that.)' },
+    ],
+    regions: [
+        { name: 'The Straw', x: 3, y: 28, w: 30, h: 8 },
+        { name: 'The Midway', x: 20, y: 12, w: 22, h: 16 },
+        { name: 'The Marionette Hall', x: 20, y: 2, w: 22, h: 10 },
+        { name: 'The Edge', x: 3, y: 8, w: 6, h: 20, mark: false },
+    ],
+});
+
+/* the jump: off the high mesa in Kilnridge, into the straw */
+OW.blocks['0,2'].ents.push(
+    { k: 'leap', x: 12, y: 3, id: 'mesaLeap' },
+    { k: 'puppet', x: 24, y: 3, id: 'stagehand', look: 'puppet' },
+    { k: 'crank', x: 25, y: 3, id: 'liftCrank' },
+    { k: 'lift', x: 22, y: 3, id: 'mesaLift' },
+);
+/* the town's west road runs on to the fair's gate */
+{
+    for (const y of [19, 20]) HUB_ROWS[y] = ':::' + HUB_ROWS[y].slice(3);
+    OW.blocks['1,1'].ents.push({ k: 'sign', x: 3, y: 18, text: 'LARKSPUR FAIR, this way. (The gate is bolted on the far side. It always has been.)' });
+}
+
+PEOPLE_DEF.rook = { name: 'Madame Rook', col: '#7d5bc4', look: { body: 'elder', hair: 'bun', hairC: '#2a1f2d', top: '#7d5bc4', accent: '#f7d64a', bottom: '#4b3a8a', skin: 'tan' } };
+PEOPLE_DEF.pell = { name: 'Pell', col: '#e8463c', look: { body: 'adult', hair: 'short', hairC: '#c45a3a', top: '#e8463c', accent: '#fbf6ea', bottom: '#2e3a7a', skin: 'light', extra: ['mustache'] } };
+TALK.rook = function* () {
+    if (!Progress.flag('met:rook')) {
+        Progress.set('met:rook');
+        yield* say('rook', "Ah. A Wanderer. I saw you coming. Well: I heard the straw. Madame Rook, seer of all things, mostly things in the straw.");
+        yield* say('rook', "Cross my palm with a button and I'll tell your fortune. ...No? Then here it is for free: you will go into the theatre. Everyone does.");
+        return;
+    }
+    if (Progress.flag('reveal1')) { yield* say('rook', cycle('rook2', ["I knew. Of course I knew. I've watched them carry the scenery in for forty years.", "The fog? The fog is not my department.", "Your fortune: you are going to be very busy, very soon."])); return; }
+    yield* say('rook', cycle('rook', [
+        "I see... a stage. I see strings. I see a little puppet that looks very like you. Hm. Probably nothing.",
+        "The soldiers march till they meet a wall, then about they turn. Nobody ever taught them to go round.",
+        "That hedge by my tent. Don't you think it's a bit... flat?",
+        "The fog over there pulls you home if you go in. Unless you've somewhere else to come home to. Then who knows what you'd bring back.",
+        "The lift? The stagehand winds it, from the top. He's a puppet. Somebody would have to work him.",
+    ]));
+};
+TALK.pell = function* () {
+    if (Progress.flag('reveal1')) { yield* say('pell', cycle('pell2', ["Show's over! What a show, eh? Jory's still taking bows.", "Roll up! Roll up! ...Oh, it's you. Bravo, kid. BRAVO."])); return; }
+    yield* say('pell', cycle('pell', [
+        "Roll up! Roll up! The Marionette Hall! Tonight's show: THE WANDERER! Starring... well. You, I suppose. Go on in!",
+        "No, I don't know who's working the puppets. Nobody knows. That's the magic of theatre!",
+        "The house lights are up and the seats are all empty. Perfect conditions.",
+    ]));
+};
+BUDGE.rook = 'Madame Rook: "I foresaw that."';
+BUDGE.pell = 'Pell: "Steady on! Steady on!"';
+
+LINNET_NOTES[7] = { title: "A note under the carousel's horse", text: "The horse on the carousel walked off its pole for me. Someone was working it, from somewhere. They make the Houses, you know. They make all of it, for us, out of love, and they're very good at it, and they cry when we get things right. I followed the strings down. - L." };
+NOTES.linnet7 = { title: LINNET_NOTES[7].title, text: LINNET_NOTES[7].text };
+
+/* off the edge of the mesa (only with a Bedroll laid up top: there's no climbing back) */
+SPAWN.leap = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.leap_edge, solid: [], oy: -4 });
+    pr.baseY = -40;
+    pr.interact = () => { Script.run(Larkspur.leap()); return true; };
+    pr.talkBox = (pl, f) => (f.tx === x && f.ty === y) || (f.tx === x && f.ty === y - 1);
+    return pr;
+};
+/* the lift: down at the fair and up on the mesa, running once the stagehand has wound it */
+SPAWN.lift = (x, y, p) => {
+    const pr = new Prop(x, y, { im: ART.lift, solid: [[0, 0]], oy: -10 });
+    pr.interact = () => {
+        Script.run(function* () {
+            if (!Progress.flag('fair_lift')) { yield* say(null, p.down ? "A rickety lift, its cage hanging at the top of the cliff. A rope runs up to a winch on the mesa. Nobody's up there to wind it." : "The top of the lift. The winch handle is huge: worked by the stagehand puppet beside it, if anyone worked the stagehand."); return; }
+            const i = yield* ask(null, p.down ? 'The lift. Ride up to the mesa?' : 'The lift. Ride down to the fair?', ['Ride', 'Not now']);
+            if (i !== 0) return;
+            yield* fadeOut(24);
+            const [tx, ty] = p.down ? [23, 83] : LARK(24, 34);
+            const pl = G.player; pl.x = tx * T + 8; pl.y = ty * T + 10; pl.setMark(); Cam.snap(pl);
+            Sfx.play('door');
+            yield* fadeIn(24);
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+/* the winch for the lift: a stagehand (a puppet) on it winds it */
+class Crank extends FloorThing {
+    constructor(tx, ty, p = {}) { super('crank', tx, ty, p); }
+    update() { if (!Progress.flag('fair_lift') && this.weighed()) { Progress.set('fair_lift'); Sfx.play('door'); G.shake = 4; G.pendingToast = 'The stagehand leans on the winch. Far below, the lift cage rattles down to the fair.'; } }
+    draw(cx, cy) { Gfx.img(ART.crank, this.x - cx, this.y - cy); }
+}
+SPAWN.crank = (x, y, p) => new Crank(x, y, p);
+/* the bolt on the fair's side of the east gate */
+SPAWN.bolt = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.bolt, solid: [[0, 0]], oy: -6 });
+    pr.interact = () => {
+        Script.run(function* () {
+            if (Progress.flag('fair_gate')) { yield* say(null, 'The bolt is drawn. The gate to town stands open.'); return; }
+            Progress.set('fair_gate'); Sfx.play('unlock');
+            yield* say(null, 'A big iron bolt, stiff with rust. You heave it back. The fair gate swings open onto the west road into town.');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+/* the carousel: turns slowly by itself, whether anyone rides or not */
+SPAWN.carousel = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.carousel_0, solid: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [1, 3], [2, 3], [3, 3], [4, 3]], oy: -26, live: true });
+    pr.update = function () { this.t = (this.t || 0) + 1; };
+    pr.draw = function (cx, cy) { Gfx.img(ART['carousel_' + ((this.t >> 4) % 2)], this.x - cx, this.y - cy); };
+    pr.baseY = 92;
+    return pr;
+};
+
+const Larkspur = {
+    *leap() {
+        if (!Inv.has('bedroll')) { yield* say(null, "The mesa drops away to a fairground, far below: tents, a carousel, a theatre, all very small. It's a long way down, and no way back up."); return; }
+        const b = Inv.bedroll;
+        if (!b || b.area !== 'hollow') { yield* say(null, "The fairground is a long way below. You could jump into the straw, but there's no climbing back up. You'd want your Bedroll laid somewhere first, to come home to."); return; }
+        const i = yield* ask(null, 'A fairground, far below, and a heap of straw right under the edge. Jump?', ['Jump', 'Not now']);
+        if (i !== 0) return;
+        Sfx.play('flight');
+        yield* fadeOut(20);
+        const p = G.player, [tx, ty] = LARK(12, 34);
+        p.x = tx * T + 8; p.y = ty * T + 10; p.dir = UP; p.setMark(); Cam.snap(p);
+        Sfx.play('land');
+        yield* fadeIn(30);
+        Fx.dust(p.x, p.y);
+        if (!Progress.flag('leapt')) { Progress.set('leapt'); yield* say(null, 'You land in the straw with a whump, and lie there a moment, looking up at the mesa. It is a very long way up.'); }
+    },
+};
+
+/* S11: lay the Bedroll by the fog, walk in till it pulls you, and you come home holding something */
+ITEMS.driftseed = { name: 'Drift-bloom seed', kind: 'quest', desc: "A seed from somewhere past the fog. It's warm. Something to plant at home." };
+{
+    const pull = Story.fogPull;
+    Story.fogPull = function (p) {
+        const b = Inv.bedroll;
+        const near = b && b.area === p.area.id && Math.hypot(b.tx - p.tx, b.ty - p.ty) <= 6;
+        pull.call(this, p);
+        if (near && !Progress.flag('s11')) { Progress.set('s11'); Stats.count('secret:driftseed'); G.pendingSeed = true; }
+    };
+    /* once the fog's own words are said and Wren is home: the seed */
+    const prev = Story.tick;
+    Story.tick = a => {
+        if (prev) prev(a);
+        const p = G.player;
+        if (G.pendingSeed && p && p.state === 'normal' && !Script.blocking() && !Dialog.active) {
+            G.pendingSeed = false;
+            Script.run(function* () {
+                yield* say(null, 'You land on your Bedroll with something in your fist that you did not take in with you: a fat brown seed, warm as a hand.');
+                yield* Story.getItem('driftseed')();
+            });
+        }
+    };
+}
+
+/* the theatre, from outside: red velvet, gold, a painted proscenium over the doors, posters */
+FACADES.marionette = function () {
+    const w = 224, h = 118;
+    ART.f_marionette = paintSprite(w, h, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        /* the pediment: a gold-edged gable with a mask in it */
+        for (let j = 0; j < 30; j++) { const half = Math.round(j * 3.4); R(j % 6 === 5 ? '#a8742a' : '#c42b4a', 112 - half, 4 + j, half * 2, 1); }
+        R('#f7d64a', 12, 34, 200, 3);
+        R('#fbf6ea', 104, 14, 16, 14); R('#2a1f2d', 107, 18, 3, 3); R('#2a1f2d', 114, 18, 3, 3); R('#2a1f2d', 108, 23, 8, 2);
+        /* columns and walls */
+        R('#9a1e36', 8, 37, 208, 75);
+        for (const cxo of [10, 50, 166, 206]) { R('#f4e6c8', cxo - 4, 37, 10, 75); R('#d8c8a8', cxo + 4, 37, 2, 75); R('#f7d64a', cxo - 6, 37, 14, 3); }
+        /* the doors under a lit sign */
+        R('#2a1f2d', 84, 60, 56, 52); R('#c42b4a', 88, 64, 22, 48); R('#c42b4a', 114, 64, 22, 48); R('#f7d64a', 108, 84, 2, 6); R('#f7d64a', 114, 84, 2, 6);
+        R('#2a1f2d', 70, 42, 84, 14); R('#f7d64a', 72, 44, 80, 10);
+        for (let i = 0; i < 20; i++) R(i % 2 ? '#fff4c0' : '#e8b04a', 72 + i * 4, 40, 2, 2);
+        /* posters either side: a puppet, and a girl with a stick */
+        R('#fbf6ea', 20, 56, 22, 30); R('#d6304e', 26, 62, 10, 16); R('#e6c08a', 28, 58, 6, 6); R('#2a1f2d', 30, 50, 1, 8);
+        R('#fbf6ea', 182, 56, 22, 30); R('#e8463c', 188, 64, 10, 14); R('#8a5a3a', 189, 58, 8, 6); R('#9a6438', 198, 60, 2, 18);
+        R('#5a1428', 0, 112, w, 6); R('#f7d64a', 0, 112, w, 1);
+    });
+};
+
+function initLarkspurArt() {
+    const sq = (c, a, b, ww, hh, x) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+    ART.haystack = paintSprite(20, 22, x => {
+        for (let j = 0; j < 20; j++) { const half = Math.round(Math.sqrt(Math.max(0, 100 - (j - 10) * (j - 10))) ); sq(j % 4 === 0 ? '#c8a050' : '#e8c068', 10 - half, 2 + j, half * 2, 1, x); }
+        sq('#a8803a', 2, 19, 16, 3, x);
+    });
+    for (let f = 0; f < 2; f++) ART['carousel_' + f] = paintSprite(96, 92, x => {
+        const R = (c, a, b, ww, hh) => sq(c, a, b, ww, hh, x);
+        /* the canopy: striped, scalloped, a flag on top */
+        for (let j = 0; j < 22; j++) { const half = Math.round(10 + j * 1.75); for (let i = -half; i < half; i++) R(((Math.floor((i + f * 6) / 6) % 2) === 0) ? '#d6304e' : '#fbf6ea', 48 + i, 10 + j, 1, 1); }
+        for (let i = 0; i < 12; i++) R('#f7d64a', 10 + i * 6.5, 32, 5, 3);
+        R('#9a6438', 47, 0, 2, 12); R('#f7d64a', 49, 1, 7, 5);
+        /* the turning floor, the poles, the horses going round */
+        R('#5a1428', 6, 72, 84, 10); R('#f7d64a', 6, 72, 84, 2); R('#9a1e36', 6, 82, 84, 4);
+        for (let i = 0; i < 6; i++) { const px = 12 + ((i * 14 + f * 7) % 78); R('#f7d64a', px, 35, 2, 38); R(i % 2 ? '#fbf6ea' : '#e6c08a', px - 5, 54 + (i % 2) * 4, 12, 7); R('#2a1f2d', px + 4, 55 + (i % 2) * 4, 2, 2); }
+        R('#c42b4a', 42, 35, 12, 37); R('#f7d64a', 42, 35, 12, 2);
+    });
+    defSprite('puppet_horse', ['................', '...........kk...', '..........kwwk..', '.........kwwewk.', '........kwwwwk..', '...kkkkkkwwwk...', '..kwwwwwwwwwk...', '.kwwwwwwwwwwk...', '.kWwwwwwwwWWk...', '..kWWWWWWWWk....', '..kw.kw.kw.kw...', '..kw.kw.kw.kw...', '..kk.kk.kk.kk...', '....kyyyyyk.....', '...kddddddddk...', '...kkkkkkkkkk...'], { w: '#fbf6ea', W: '#d8c8a8', e: '#2a1f2d', y: '#f7d64a', d: '#9a6438' });
+    SPR.puppet_horse_up = SPR.puppet_horse;
+    defSprite('flat_hedge', ['kkkkkkkkkkkkkkkk', 'kgGggGgggGggGggk', 'kGggggGggggGgggk', 'kggGgggggGgggGgk', 'kgggggGggggggggk', 'kGggGgggGgggGggk', 'kgggggggggggggGk', 'kggGgggGggggggggk'.slice(0, 16), 'kgggggggggGggggk', 'kGgggGgggggggGgk', 'kggggggGgggggggk', 'kgGgggggggGggggk', 'kdddddddddddddddk'.slice(0, 16), 'kdddddddddddddddk'.slice(0, 16), 'kkkkkkkkkkkkkkkk', '................'], { g: '#5ea84c', G: '#3e7a3a', d: '#7a5a3a' });
+    ART.tent_fortune = paintSprite(48, 40, x => {
+        const R = (c, a, b, ww, hh) => sq(c, a, b, ww, hh, x);
+        for (let j = 0; j < 36; j++) { const half = Math.round(4 + j * 0.6); for (let i = -half; i < half; i++) R(((Math.floor(i / 4) % 2) === 0) ? '#7d5bc4' : '#2e2450', 24 + i, 2 + j, 1, 1); }
+        R('#2a1f2d', 18, 22, 12, 16); R('#f7d64a', 23, 0, 2, 4); R('#f7d64a', 22, 26, 4, 4);
+    });
+    ART.lift = paintSprite(16, 26, x => { const R = (c, a, b, ww, hh) => sq(c, a, b, ww, hh, x); R('#6b4128', 0, 6, 2, 20); R('#6b4128', 14, 6, 2, 20); R('#9a6438', 0, 6, 16, 2); R('#9a6438', 0, 22, 16, 4); R('#c8a07a', 2, 8, 12, 14); R('#a88a5a', 2, 14, 12, 1); R('#d8c08a', 7, 0, 2, 6); });
+    ART.crank = paintSprite(16, 16, x => { const R = (c, a, b, ww, hh) => sq(c, a, b, ww, hh, x); R('#6b4128', 2, 6, 12, 8); R('#9a6438', 3, 7, 10, 6); R('#d8c08a', 7, 2, 2, 6); R('#5a3a2a', 6, 1, 6, 2); });
+    ART.bolt = paintSprite(16, 18, x => { const R = (c, a, b, ww, hh) => sq(c, a, b, ww, hh, x); R('#6b4128', 4, 2, 8, 16); R('#7a6a6a', 2, 6, 12, 4); R('#a89a9a', 2, 6, 12, 1); R('#5a4a4a', 12, 5, 3, 6); });
+    ART.leap_edge = paintSprite(16, 10, x => { const R = (c, a, b, ww, hh) => sq(c, a, b, ww, hh, x); R('#c4623a', 0, 4, 16, 2); R('#8a3c26', 0, 6, 16, 2); R('#e8b884', 3, 2, 3, 2); R('#e8b884', 10, 2, 3, 2); });
+}
+CONTENT_INIT.push(initLarkspurArt);
+
+// ---- 63_marionette.js ----
+/* House 6: the Marionette Hall, at Larkspur Fair. Jory's House, crimson threads. A theatre with nobody in the
+   seats. Remote bodies: toy soldiers that march till they meet something and turn (shape their beat and they
+   press plates for you); painted flats that look like walls until a knock shows the cardboard; and, from
+   Captain Tin, the Crossbar: puppets walked from a distance, through little holes, over nails, three at once
+   on a rack. Old rules join in: strays stay where they're pushed, the Bedroll gets you home from under the
+   stage. The Great Marionette dances on its strings; walk your own puppets round its feet till the strings
+   tangle and down it comes. And the curtain falls on whoever was working it. (Reveal 1.) */
+
+THEMES.marionette = { floor: ['#c8a878', '#a07e52', '#e0c494', '#76583a'], wall: ['#9a1e36', '#6a1426', '#c42b4a', '#3a0a16'], stone: ['#9a8a7a', '#7a6a5a', '#bcae9e', '#4e4238'], water: ['#5fb5e8', '#3f8fd8', '#a5dcf7', '#2b5aa8'], dark: '#1a0a10' };
+FLOORS.marionette = {
+    /* stage boards, red carpet with a gold edge, the dark of the wings */
+    floor: (x, th, v) => Paint.planks(x, ['#c8a070', '#a07a4a', '#dcb886', '#6e4e2e'], v, false),
+    floor2: (x, th, v) => { fill(x, '#a8203a'); speckle(x, ['#b8304a', '#982038'], 50 + v, 0.3); fill(x, '#f7d64a', 0, 0, 16, 1); },
+    floor3: (x, th, v) => { fill(x, '#3a2a30'); speckle(x, ['#4a3a40', '#2a1a20'], 30 + v, 0.3); },
+};
+WALLS.marionette = {
+    edge: '#1a0a10',
+    top: (x) => { fill(x, '#3a0a16'); speckle(x, ['#5a1426'], 8, 0.15); },
+    face: (x, th, v) => {
+        fill(x, '#9a1e36'); for (let i = 0; i < 16; i += 4) fill(x, '#7a1428', i, 0, 1, 12);
+        fill(x, '#f7d64a', 0, 12, 16, 1); fill(x, '#c8a070', 0, 13, 16, 2); fill(x, '#1a0a10', 0, 15, 16, 1);
+    },
+};
+
+const MARIONETTE_OUT = { x: 31, y: 40 + 10 };     /* the doors out, onto the fair */
+
+defHouse({
+    id: 'marionette', name: 'The Marionette Hall', place: 'The Marionette Hall', house: 'marionette', theme: 'marionette', thread: THREAD.jory, music: 'marionette',
+    knotName: 'Dancing Knot',
+    entry: MARIONETTE_ENTRY,
+    legend: { 'O': { k: 'crawl', p: 'wall', ent: 'crawlhole' }, ';': { k: 'floor', p: 'floor2' } },
+    cells: {
+        /* ---------------- 1 The Foyer: toy soldiers on parade; a wall that's only a painted flat ---------------- */
+        '1,3': {
+            name: 'The Foyer',
+            rows: [
+                '#########.##########',
+                '#........;.........#',
+                '#........;.........#',
+                '#........;.........#',
+                '#........;.........#',
+                '#........;..........',
+                '#........;.........#',
+                '#........;.........#',
+                '#........;.........#',
+                '#........;.........#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'flat', x: 19, y: 5, id: 'foFlat', look: 'flat_red' },
+                { k: 'soldier', x: 3, y: 3, facing: 'right', id: 'foSol1' }, { k: 'soldier', x: 16, y: 7, facing: 'left', id: 'foSol2' },
+                { k: 'warp', x: 9, y: 10, to: 'hollow', tx2: MARIONETTE_OUT.x, ty2: MARIONETTE_OUT.y, dir: 'down', face: 'down' },
+                { k: 'sign', x: 11, y: 9, text: "THE MARIONETTE HALL. Tonight: THE WANDERER. (Toy soldiers march till they meet something, then about turn. Don't be the something.)" },
+                { k: 'deco', x: 2, y: 9, look: 'poster', solid: [[0, 0]], oy: -14, text: 'A poster: a girl with a stick, painted in bright colours, standing on a stage. Underneath: STARRING YOU.' },
+            ],
+            nudge: { solved: () => Progress.areaFlag('marionette', 'visited:boxoffice'), after: 60 * 60 * 3, at: [19, 5], say: 'The east wall of the foyer wobbles a little every time a soldier goes past it.' },
+        },
+        /* ---------------- 2 The Box Office (behind the flat): the Plan ---------------- */
+        '2,3': {
+            name: 'The Box Office',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '...................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'chest', x: 10, y: 3, item: 'plan', id: 'boPlan' },
+                { k: 'deco', x: 6, y: 6, look: 'booth', solid: [[0, 0], [1, 0]], oy: -12, text: 'The ticket booth. A ledger lies open: "THE WANDERER. Cast: one. Crew: six. Audience: the crew." Six names, rubbed out.' },
+                { k: 'deco', x: 15, y: 2, look: 'poster', solid: [[0, 0]], oy: -14, text: "Old playbills, years and years of them. THE WANDERER. THE WANDERER. THE WANDERER. Every one a different face. One, a girl with green ribbons, has a moustache drawn on." },
+            ],
+        },
+        /* ---------------- 3 The Auditorium (hub): rows of empty seats ---------------- */
+        '1,2': {
+            name: 'The Auditorium',
+            rows: [
+                '#########.##########',
+                '#........;.........#',
+                '#..................#',
+                '#........;.........#',
+                '#........;.........#',
+                '.........;..........',
+                '#........;.........#',
+                '#........;.........#',
+                '#........;.........#',
+                '#........;.........#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'lock', id: 'auLockN' },
+                { k: 'door', x: 19, y: 5, type: 'lock', id: 'auLockE', dir: 'v' },
+                { k: 'deco', x: 2, y: 3, look: 'seats', solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]], text: 'Plush red seats. Nobody in them. There is a small dent in one, about the size of a grandmother.' },
+                { k: 'deco', x: 11, y: 3, look: 'seats', solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]] },
+                { k: 'deco', x: 2, y: 7, look: 'seats', solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]] },
+                { k: 'deco', x: 11, y: 7, look: 'seats', solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]] },
+                { k: 'soldier', x: 9, y: 2, facing: 'right', id: 'auSol' },
+                { k: 'sign', x: 17, y: 9, text: 'THE AUDITORIUM. Please do not talk during the performance. (There is no one to talk to.)' },
+            ],
+        },
+        /* ---------------- 4 The Orchestra Pit: give the soldier a new beat across the plate (key A) ---------------- */
+        '0,2': {
+            name: 'The Orchestra Pit',
+            rows: [
+                '####################',
+                '#...#..............#',
+                '#...#..............#',
+                '##.##..............#',
+                '#..................#',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'door', x: 2, y: 3, type: 'gate', when: 'opp', id: 'opGate' },
+                { k: 'chest', x: 2, y: 1, item: 'key', id: 'opKey' },
+                { k: 'plate', x: 9, y: 6, sig: 'opp', mode: 'timed', time: 360 },
+                { k: 'soldier', x: 5, y: 9, facing: 'right', turn: 'right', id: 'opSol' },
+                { k: 'block', x: 10, y: 2, id: 'opBlock', marked: false },
+                { k: 'deco', x: 14, y: 6, look: 'drum', solid: [[0, 0]], text: 'A big drum. Somebody has painted on it: PLAYED BY B.' },
+                { k: 'sign', x: 17, y: 1, text: "THE ORCHESTRA PIT. Our drummer marches round and round the edge, turning right at every wall. He has never once crossed the middle." },
+            ],
+            nudge: { solved: 'marionette_chest:opKey', after: 60 * 60 * 3, thing: 'opBlock', say: 'The drummer turns right at anything in his way, not only walls. Put something in his way, and see where he goes instead.' },
+        },
+        /* ---------------- 5 Rehearsal Room: down the trapdoor for the key, home by the Bedroll (key B); S13 the Wren puppet ---------------- */
+        '2,2': {
+            name: 'The Rehearsal Room',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..........#.......#',
+                '#..........#.......#',
+                '#..........#.......#',
+                '...........#.......#',
+                '#vvvvvvvvvv#.......#',
+                '#..........#.......#',
+                '#..........#.......#',
+                '#........o.#.......#',
+                '####################',
+            ],
+            ents: [
+                { k: 'chest', x: 5, y: 8, item: 'key', id: 'rhKey' },
+                { k: 'deco', x: 2, y: 9, look: 'prompter', solid: [[0, 0]], oy: -6, text: "The prompter's box, under the stage. A script lies open: THE WANDERER, ACT ONE. Every line you've said today is in it. Some you haven't said yet." },
+                /* the stage set: the Tidyhouse's foyer in miniature, and a little wooden you (S13, with the Crossbar) */
+                { k: 'rack', x: 15, y: 9, group: 'wren', id: 'rhRack' },
+                { k: 'puppet', x: 13, y: 7, id: 'wrenPuppet', look: 'puppet_wren', group: 'wren' },
+                { k: 'deco', x: 14, y: 2, look: 'set_tidy', solid: [[0, 0], [1, 0], [2, 0], [3, 0]], oy: -8, text: 'A stage set, built small: a grand foyer, a staircase, a portrait of a woman with a feather duster. You have been here. You have been here this week.' },
+                { k: 'plate', x: 16, y: 4, sig: 'rhSet' },
+                { k: 'chest', x: 17, y: 6, item: 'heartpatch', id: 'rhPatch', hidden: true, when: 'flag:s13' },
+                { k: 'sign', x: 8, y: 1, text: "THE REHEARSAL ROOM. Mind the trapdoor. (There is no ladder. There has never been a ladder. Stagehands come up the hard way.)" },
+            ],
+            nudge: { solved: 'marionette_chest:rhKey', after: 60 * 60 * 3, at: [5, 5], say: "Under the stage there's no way back up. Unless you'd left somewhere to come home to." },
+        },
+        /* ---------------- 6 The Wings (mini-boss): Captain Tin marches; knock the flat and he marches on, down a trapdoor (the Crossbar) ---------------- */
+        '1,1': {
+            name: 'The Wings',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '....................',
+                '#.o..............o.#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'big', id: 'wiBig' },
+                { k: 'door', x: 19, y: 5, type: 'lock', id: 'wiLockE', dir: 'v' },
+                { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'tin' }, { k: 'shutter', x: 0, y: 5, dir: 'v', group: 'tin' }, { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'tin' },
+                { k: 'flat', x: 4, y: 6, id: 'wiFlatW', look: 'flat_red', respring: true }, { k: 'flat', x: 15, y: 6, id: 'wiFlatE', look: 'flat_red', respring: true },
+                { k: 'captain', x: 9, y: 6, id: 'tin' },
+                { k: 'chest', x: 9, y: 3, item: 'crossbar', id: 'wiCrossbar', hidden: true, when: 'flag:marionette_tin', big: true },
+            ],
+        },
+        /* ---------------- 7 The Dressing Rooms: a puppet through the holes, over the nails, onto the plate (key C) ---------------- */
+        '0,1': {
+            name: 'The Dressing Rooms',
+            rows: [
+                '####################',
+                '#...#....^^....#...#',
+                '#...O....^^....O...#',
+                '#...#....^^....#...#',
+                '##O#################',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'puppet', x: 2, y: 7, id: 'drPuppet' },
+                { k: 'plate', x: 17, y: 2, sig: 'drp' },
+                { k: 'chest', x: 10, y: 7, item: 'key', id: 'drKey', hidden: true, when: 'drp' },
+                { k: 'deco', x: 8, y: 9, look: 'mirror', solid: [[0, 0]], oy: -12, text: 'A dressing-room mirror ringed with bulbs. Stuck in the frame: a sketch of the Kilnwyrm costume, with notes. "Tail: TOO FLOPPY. -J."' },
+                { k: 'sign', x: 17, y: 9, text: 'THE DRESSING ROOMS. The little doors are for the little people.' },
+            ],
+            nudge: { solved: 'marionette_chest:drKey', after: 60 * 60 * 3, thing: 'drPuppet', say: 'The holes in the walls are puppet-sized. The puppet is right there.' },
+        },
+        /* ---------------- 8 The Prop Store: three puppets on one rack, three plates (the Pattern) ---------------- */
+        '2,1': {
+            name: 'The Prop Store',
+            rows: [
+                '##O##############.##',
+                '#...###########....#',
+                '#...#.........#....#',
+                '#...#.....#...#....#',
+                '#...#.#..##...#....#',
+                '....#.#.......#....#',
+                '#...#.........#....#',
+                '#...###########....#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'door', x: 17, y: 0, type: 'gate', when: 'wsp', id: 'psWorkshop', keep: true },
+                { k: 'rack', x: 9, y: 8, group: 'trio', id: 'psRack' },
+                { k: 'puppet', x: 5, y: 2, id: 'psA', group: 'trio' }, { k: 'puppet', x: 5, y: 4, id: 'psB', group: 'trio' }, { k: 'puppet', x: 5, y: 6, id: 'psC', group: 'trio' },
+                { k: 'plate', x: 12, y: 4, sig: 'pp1' }, { k: 'plate', x: 11, y: 5, sig: 'pp2' }, { k: 'plate', x: 11, y: 6, sig: 'pp3' },
+                { k: 'chest', x: 16, y: 8, item: 'pattern', id: 'psPattern', hidden: true, when: 'pp1&pp2&pp3', big: true },
+                { k: 'puppet', x: 2, y: 3, id: 'psLone' },
+                { k: 'sign', x: 18, y: 9, text: 'THE PROP STORE. Three on a string: where one goes, they all go, as far as each can.' },
+            ],
+            nudge: { solved: () => Inv.hasPattern('marionette'), after: 60 * 60 * 4, at: [9, 8], say: 'The three puppets step together, but a wall stops one and not the others. That is the whole trick: let the walls hold some back.' },
+        },
+        /* ---------------- 9 Jory's Workshop (signature): a puppet through the little door opens the big one ---------------- */
+        '2,0': {
+            name: "Jory's Workshop",
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '##O##############.##',
+            ],
+            ents: [
+                { k: 'plate', x: 2, y: 8, sig: 'wsp' },
+                { k: 'signature', x: 10, y: 5, house: 'marionette' },
+                { k: 'deco', x: 5, y: 2, look: 'bench', solid: [[0, 0], [1, 0]], oy: -6, text: "Jory's bench: chisels, paint, a half-carved wooden face that looks a bit like Gran. A label: FOR THE LAST ACT. (NOT YET.)" },
+                { k: 'deco', x: 14, y: 2, look: 'puppets_hung', solid: [[0, 0], [1, 0], [2, 0]], oy: -14, text: 'Puppets hanging on a rail: a Housekeeper, a wyrm in three pieces, a mill-beast, a gargoyle, a sloth in a nightcap. Every one you have met.' },
+                { k: 'chest', x: 16, y: 5, item: 'b50', id: 'wsButtons' },
+            ],
+        },
+        /* ---------------- 10 The Great Stage (boss) ---------------- */
+        '1,0': {
+            name: 'The Great Stage',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#;;;;;;;;;;;;;;;;;;#',
+                '#;;;;;;;;;;;;;;;;;;#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'marionette', x: 9, y: 3, id: 'greatMarionette' },
+                { k: 'rack', x: 9, y: 8, group: 'boss', id: 'gsRack' },
+                { k: 'puppet', x: 3, y: 6, id: 'gsWrenA', look: 'puppet_wren', group: 'boss' }, { k: 'puppet', x: 9, y: 6, id: 'gsWrenB', look: 'puppet_wren', group: 'boss' },
+                { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'boss' },
+            ],
+        },
+    },
+    tick: a => MarionetteHall.tick(a),
+    afterKnot: function* () { yield* MarionetteHall.afterKnot(); },
+});
+
+const MarionetteHall = {
+    tick(a) {
+        const r = Cam.room;
+        if (r && r.key === '2,3') Progress.setAreaFlag('marionette', 'visited:boxoffice');
+        /* S13: the little wooden Wren walked onto the set's mark */
+        if (Signals.get(a, 'rhSet') && !Progress.flag('s13')) {
+            Progress.set('s13'); Stats.count('secret:wrenpuppet');
+            Sfx.play('appear');
+            G.pendingToast = 'The little wooden you takes a bow on the miniature foyer. From somewhere above, very faintly, one pair of hands claps.';
+        }
+    },
+    *afterKnot() {
+        Progress.set('d6');
+        yield* say(null, 'The Knot pulls tight. Up in the flies, six people you know very well start, very quietly, to cry.');
+        const a = G.map, r = a.rooms.find(r => r.key === '1,0');
+        a.add(new Warp(r.x + 3, r.y + 9, { to: 'hollow', tx2: MARIONETTE_OUT.x, ty2: MARIONETTE_OUT.y, face: 'down' }));
+        a.add(new Prop(r.x + 3, r.y + 9, { im: ART.exitlight, solid: [] }));
+    },
+};
+SIGNATURE_TEXT.marionette = "Carved into the bench, worn smooth by elbows: a little crimson J with a string tied round it. Someone signed this House where only a puppet-maker would ever sit.";
+ITEM_LINES.crossbar = () => "You found the {red}Crossbar{/}! Face a puppet you can see and press C to take up its strings: you stand still and it walks for you. C again to let go, and it walks home. Some racks hold several puppets at once.";
+ITEM_AFTER.crossbar = function* () { Inv.equipped = 'crossbar'; };
+
+/* a flat that springs back up a while after it's knocked down (stagehands) */
+{
+    const knock = Flat.prototype.knock;
+    Flat.prototype.knock = function () {
+        const was = this.down;
+        knock.call(this);
+        if (!was && this.respring) this.springT = 300;
+    };
+    Flat.prototype.tick = function () {
+        if (this.springT > 0 && --this.springT === 0 && this.down) {
+            if (this.area.at(this.tx, this.ty) || (G.player && G.player.onTile(this.tx, this.ty)) || this.area.walkers.some(m => m.alive !== false && m.onTile && m.onTile(this.tx, this.ty))) { this.springT = 30; return; }
+            this.down = false; this.area.place(this, this.tx, this.ty); Sfx.play('door'); Fx.dust(this.tx * T + 8, this.ty * T + 12);
+        }
+    };
+}
+
+// ---- 63b_marionette_foes.js ----
+/* The Marionette Hall's performers. Captain Tin, the drum major (mini-boss): marches back and forth between two
+   painted flats, about-turning at each; knock one down as he comes and he marches on, into the trapdoor behind it;
+   dazed in the trap, his tin hat is off: hit him (3x). The Great Marionette (boss): dances on its strings over two
+   great feet; walk your two little wooden Wrens (one rack) all the way round its feet and the strings tangle; it
+   falls, and its head is there to knock (3x). Then the curtain. */
+
+/* ---------------- Captain Tin ---------------- */
+class Captain extends Enemy {
+    constructor(tx, ty, p = {}) { super(tx, ty, Object.assign({ type: 'captain', hp: 3 }, p)); this.state = 'sleep'; this.st = 0; this.march = RIGHT; this.weightN = 3.5; }
+    get arena() { return this.area.roomAt(this.hx, this.hy); }
+    onTile() { return false; }
+    feetOn(x, y) { return this.alive && this.state === 'march' && this.tx === x && this.ty === y; }
+    hurtBox() { return this.alive && (this.state === 'dazed' || this.state === 'march') ? { x0: this.x - 8, x1: this.x + 8, y0: this.y - 22, y1: this.y + 3 } : null; }
+    shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'tin') s.shut = shut; }
+    update() {
+        if (!this.alive) return this.updateYarn();
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area, r = this.arena;
+        if (this.state === 'sleep') {
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 2) {
+                this.state = 'march'; this.st = 0; this.shutters(true); Music.play('boss');
+                if (!Progress.flag('marionette_tinAwake')) { Progress.set('marionette_tinAwake'); Script.run(MarionetteFoes.tinIntro(this)); }
+            }
+            return;
+        }
+        if (p.area !== a || (Cam.room !== r && !p.flying && !Cam.busy)) { this.reset(); return; }
+        if (Script.blocking()) return;
+        this.st++;
+        if (this.state === 'march') {
+            /* tile by tile: on to the next tile's middle, or about turn at anything standing there */
+            const sp = 0.7 + (3 - this.hp) * 0.2;
+            const gx = (this.tx + DX[this.march]) * T + 8, gy = this.ty * T + 10;
+            const nx = this.tx + DX[this.march], k = a.kind(nx, this.ty);
+            const blocked = k.solid || a.at(nx, this.ty) || a.blockers.some(b => b !== this && b.blocks(nx, this.ty, this));
+            if (blocked && Math.abs(this.x - (this.tx * T + 8)) < sp + 0.5) { this.x = this.tx * T + 8; this.march = OPP[this.march]; Sfx.play('hitthing', 0.4); }
+            else { this.x += DX[this.march] * sp; this.dir = this.march; this.anim++; }
+            if (a.kind(this.tx, this.ty).pit && Math.abs(this.x - (this.tx * T + 8)) < 3) { this.state = 'fall'; this.st = 0; Sfx.play('fall'); G.shake = 6; Stats.count('boss:tin:fall'); }
+            if (p.state === 'normal' && Math.abs(p.x - this.x) < 11 && Math.abs(p.y - this.y) < 8) p.hurt(1, this.x, this.y);
+        } else if (this.state === 'fall') {
+            if (this.st > 20) { this.state = 'dazed'; this.st = 0; }
+        } else if (this.state === 'dazed') {
+            if (this.st > 240) this.climbOut();
+        }
+    }
+    climbOut() {
+        this.state = 'march'; this.st = 0;
+        this.x = this.hx * T + 8; this.y = this.hy * T + 10; this.march = this.march === RIGHT ? LEFT : RIGHT;
+        Fx.dust(this.x, this.y); Sfx.play('land');
+    }
+    reset() {
+        this.state = 'sleep'; this.st = 0; this.x = this.hx * T + 8; this.y = this.hy * T + 10;
+        this.shutters(false); Music.play('marionette');
+        for (const f of this.area.ents) if (f.kind === 'flat' && f.respring && f.down) { f.springT = 1; }
+    }
+    struck(by, dmg, dir) {
+        if (!this.alive || this.flash > 0) return;
+        if (this.state !== 'dazed') { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 12); return; }
+        this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 6; Sfx.play('enemyhit');
+        if (this.hp <= 0) return this.defeat();
+        this.climbOut();
+    }
+    shoved() { }
+    defeat() {
+        this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
+        Sfx.play('unravel'); Fx.yarn(this.x, this.y - 10, THREAD.jory);
+        Progress.set('marionette_tin');
+        Script.run(MarionetteFoes.tinDown(this));
+    }
+    draw(cx, cy) {
+        if (!this.alive) { if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(9 * k), THREAD.jory); } return; }
+        const x = this.x - cx, y = this.y - cy;
+        if (this.state === 'dazed' || this.state === 'fall') {
+            const im = spr('captain_trap'); if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, x - 10, y - 14);
+            if ((this.t >> 3) % 2) Font.draw('*', x + 6, y - 22, '#f7d64a');
+            return;
+        }
+        Gfx.alpha(0.25); Gfx.rect(x - 7, y + 1, 14, 3, PAL.ink); Gfx.alpha(1);
+        const im = spr('captain_' + ((this.anim >> 4) % 2));
+        if (im) Gfx.img(im, x - 10, y - 30, this.march === LEFT);
+    }
+}
+SPAWN.captain = (x, y, p) => Progress.flag('marionette_tin') ? new Ent('none') : new Captain(x, y, p);
+
+/* ---------------- The Great Marionette ---------------- */
+class GreatMarionette extends Enemy {
+    constructor(tx, ty, p = {}) {
+        super(tx, ty, Object.assign({ type: 'greatmarionette', hp: 3 }, p));
+        this.state = 'sleep'; this.st = 0; this.weightN = 9;
+        /* its two great feet, on the stage below it */
+        this.feet = [[tx - 2, ty + 2], [tx + 3, ty + 2]];
+        this.tangled = [false, false];
+        this.wind = new Map();      /* puppet uid -> [winding round foot 0, foot 1] */
+        this.bags = [];
+    }
+    get arena() { return this.area.roomAt(this.hx, this.hy); }
+    onTile() { return false; }
+    feetOn() { return false; }
+    blocks(x, y) { return this.alive && this.state !== 'down' && this.feet.some(([fx, fy]) => fx === x && fy === y); }
+    hurtBox() { if (!this.alive || this.state !== 'down') return null; const hx = (this.hx + 0.5) * T, hy = (this.hy + 4) * T; return { x0: hx - 14, x1: hx + 14, y0: hy - 12, y1: hy + 8 }; }
+    shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = shut; }
+    puppets() { return this.area.ents.filter(e => e.kind === 'puppet' && e.group === 'boss' && !e.removed); }
+    update() {
+        if (!this.alive) return this.updateYarn();
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area, r = this.arena;
+        if (this.state === 'sleep') {
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 1) {
+                this.state = 'dance'; this.st = 0; this.shutters(true); Music.play('boss');
+                if (!Progress.flag('marionette_gmAwake')) { Progress.set('marionette_gmAwake'); Script.run(MarionetteFoes.gmIntro(this)); }
+            }
+            return;
+        }
+        if (p.area !== a || (Cam.room !== r && !p.flying && !Cam.busy)) { this.state = 'sleep'; this.shutters(false); this.untangle(); Music.play('marionette'); return; }
+        if (Script.blocking()) return;
+        this.st++;
+        this.updateBags(p);
+        if (this.state === 'dance') {
+            this.windUp();
+            /* sandbags drop where Wren stands, now and then (a shadow first) */
+            if (this.st % (this.hp === 1 ? 180 : this.hp === 2 ? 240 : 300) === 100 && p.state === 'normal') this.bags.push({ x: p.x, y: p.y, t: 0 });
+            if (this.tangled[0] && this.tangled[1]) { this.state = 'down'; this.st = 0; G.shake = 14; Sfx.play('rumble'); Sfx.play('hitthing'); Stats.count('boss:gm:fall'); }
+        } else if (this.state === 'down') {
+            if (this.st > 420) this.rise();
+        }
+    }
+    /* how far each puppet has gone round each foot: a full lap ties that foot's string */
+    windUp() {
+        for (const e of this.puppets()) {
+            const cx = e.px + 8, cy = e.py + 8;
+            let w = this.wind.get(e.uid);
+            if (!w) { w = { last: this.feet.map(([fx, fy]) => Math.atan2(cy - (fy * T + 8), cx - (fx * T + 8))), sum: [0, 0] }; this.wind.set(e.uid, w); }
+            if (e.ret && e.ret.state === 'home') { w.sum = [0, 0]; }
+            this.feet.forEach(([fx, fy], i) => {
+                const ang = Math.atan2(cy - (fy * T + 8), cx - (fx * T + 8));
+                let d = ang - w.last[i]; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+                w.sum[i] += d; w.last[i] = ang;
+                if (!this.tangled[i] && Math.abs(w.sum[i]) > Math.PI * 2 - 0.2) {
+                    this.tangled[i] = true; Sfx.play('twang'); G.shake = 4;
+                    Fx.text(fx * T + 8, fy * T - 10, 'tangled!', '#f7d64a');
+                }
+            });
+        }
+    }
+    untangle() { this.tangled = [false, false]; this.wind.clear(); }
+    updateBags(p) {
+        for (const b of this.bags) {
+            b.t++;
+            if (b.t === 60) { Sfx.play('land'); Fx.dust(b.x, b.y); if (p.state === 'normal' && Math.abs(p.x - b.x) < 10 && Math.abs(p.y - b.y) < 9) { const hp = Inv.hp; p.hurt(1, b.x, b.y - 4); if (Inv.hp < hp && Crossbar.ctl) Crossbar.release(p); } }
+        }
+        this.bags = this.bags.filter(b => b.t < 80);
+    }
+    rise() {
+        this.state = 'dance'; this.st = 0; this.untangle();
+        for (const e of this.puppets()) if (!e.heldBy && e.ret && e.ret.state !== 'home') { e.ret.state = 'returning'; e.ret.timer = 0; }
+        Sfx.play('rumble'); G.shake = 6;
+    }
+    struck(by, dmg, dir) {
+        if (!this.alive || this.state !== 'down' || this.flash > 0) return;
+        this.hp--; this.flash = 30; G.hitstop = 10; G.shake = 10; Sfx.play('enemyhit');
+        if (this.hp <= 0) return this.defeat();
+        this.rise();
+    }
+    shoved() { }
+    defeat() {
+        this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]]; this.bags = [];
+        if (Crossbar.ctl) Crossbar.release(G.player);
+        Sfx.play('unravel');
+        Progress.set('marionette_boss');
+        Script.run(MarionetteFoes.curtain(this));
+    }
+    draw(cx, cy) {
+        for (const b of this.bags) {
+            const k = Math.min(1, b.t / 60);
+            Gfx.alpha(0.2 + 0.3 * k); Gfx.circle(b.x - cx, b.y - cy + 2, Math.round(4 + 4 * k), PAL.ink); Gfx.alpha(1);
+            if (b.t < 60) { const y = b.y - cy - 120 * (1 - k); Gfx.line(b.x - cx, y - 40, b.x - cx, y - 6, '#cfc6b8'); Gfx.rect(b.x - cx - 4, y - 8, 8, 9, '#a88a5a'); }
+            else Gfx.rect(b.x - cx - 4, b.y - cy - 6, 8, 7, '#a88a5a');
+        }
+        if (!this.alive) return;
+        const bx = this.hx * T - cx, by = this.hy * T - cy, sway = this.state === 'dance' ? Math.round(Math.sin(this.t / 20) * 3) : 0;
+        if (this.state === 'down') {
+            const im = ART.gm_down; if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, Math.round((this.hx + 0.5) * T - cx - im.width / 2), (this.hy + 2) * T - cy);
+            return;
+        }
+        /* a great wooden you, hanging over its two feet: legs down to them, strings up into the dark */
+        const [[f0x, f0y], [f1x, f1y]] = this.feet;
+        const mx = ((f0x + f1x) / 2 + 0.5) * T - cx + sway, top = f0y * T - cy - 74;
+        const im = ART.gm_body;
+        for (const [i, [fx, fy]] of this.feet.entries()) {
+            const sx = fx * T - cx + 8, sy = fy * T - cy + 6;
+            const hip = mx + (i ? 10 : -10);
+            for (let o = -1; o <= 1; o++) Gfx.line(hip + o, top + 56, sx + o, sy - 6, o ? '#8a6040' : '#c49a62');
+            Gfx.line(sx, sy - 8, sx + sway, -10, this.tangled[i] ? '#f7d64a' : '#cfc6b8');
+            Gfx.img(spr('gm_foot'), sx - 8, sy - 10);
+        }
+        if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, Math.round(mx - im.width / 2), top);
+        Gfx.line(mx - 20, top + 24, mx - 20 + sway, -10, '#cfc6b8'); Gfx.line(mx + 20, top + 24, mx + 20 + sway, -10, '#cfc6b8'); Gfx.line(mx, top, mx, -10, '#cfc6b8');
+        /* the puppets' strings round its feet: where each little Wren has been, faintly */
+        for (const e of this.puppets()) {
+            const w = this.wind.get(e.uid); if (!w) continue;
+            this.feet.forEach(([fx, fy], i) => { const f = Math.min(1, Math.abs(w.sum[i]) / (Math.PI * 2)); if (f > 0.2) { Gfx.alpha(0.6); Gfx.circle(fx * T - cx + 8, fy * T - cy + 8, Math.round(6 + 6 * f), THREAD.jory); Gfx.alpha(1); } });
+        }
+    }
+}
+SPAWN.marionette = (x, y, p) => Progress.flag('marionette_boss') ? new Ent('none') : new GreatMarionette(x, y, p);
+
+const MarionetteFoes = {
+    *tinIntro(c) {
+        yield 20;
+        yield* say(null, 'A drum roll from nowhere. A toy soldier taller than your dad marches out of the wings, a drum on his chest and a feather in his hat. "LEFT! RIGHT! LEFT! RIGHT!" He marches between two painted flats, and about-turns at each.');
+    },
+    *tinDown(c) {
+        Music.play('silence');
+        yield 30;
+        yield* say(null, 'Captain Tin salutes, very stiffly, falls over backwards, and unravels into a coil of crimson yarn that drains away through a crack in the boards.');
+        c.shutters(false); Sfx.play('appear'); Music.play('marionette');
+    },
+    *gmIntro(g) {
+        yield 20;
+        yield* say(null, 'The curtain rises on its own. Centre stage, on strings that go up and up into the dark, a marionette three times your height begins to dance. It has your scarf. It has your stick. It has your face.');
+        yield* say(null, 'At the front of the stage, a crossbar on a stand, and two little wooden Wrens on its strings.');
+    },
+    *curtain(g) {
+        const a = g.area;
+        Music.play('silence');
+        yield 40;
+        yield* say(null, 'The Great Marionette folds up, joint by joint, and crashes to the boards. Then the curtain comes down on it, WHUMP, in a great red heap.');
+        yield 40;
+        yield* say(null, 'Silence. Then, from somewhere above, a small cross voice: "Oh, BOTHER."');
+        yield* say(null, "You look up. Up in the flies, at the end of a dozen strings, hanging from a bosun's chair with a crossbar the size of a door in his hands, is Jory. Jory the toymaker. Jory who sold you a spinning top for your sixth birthday.");
+        yield* say('jory', "Ah. Hello, {name}. This is... awkward. I'd prepared a much better ending. There were going to be fireworks.");
+        yield* Reveal1.run(g);
+    },
+};
+
+function initMarionetteFoes() {
+    ENEMY.captain = { hp: 3, r: 8, tall: 30, yarn: THREAD.jory, harmless: true };
+    ENEMY.greatmarionette = { hp: 3, r: 12, tall: 40, yarn: THREAD.jory, harmless: true, flies: true, swims: true };
+    const cp = { r: '#d6304e', R: '#9a1e36', b: '#2e3a7a', B: '#1e2a5a', g: '#f7d64a', G: '#c8a83a', s: '#f0c8a0', w: '#fbf6ea', f: '#fbf6ea' };
+    const capt = leg => ['.........ff.........', '........fwwf........', '.......kbbbbk.......', '......kbbbbbbk......', '......kbbbbbbk......', '......kbbbbbbk......', '.....kkggggggkk.....', '......kssssssk......', '......kswsswsk......', '......kssssssk......', '.......kssssk.......', '.....kkrrrrrrkk.....', '....krRrggggrRrk....', '...ksrrrggggrrrsk...', '...kskrrggggrrksk...', '...kk.krrrrrrk.kk...', '.....kwwwwwwwwk.....', '.....kwgwgwgwgk.....', '.....kwwwwwwwwk.....', '......kbbbbbbk......', '......kbBkkbBk......', '......kbBk' + leg + 'Bk......'.slice(0, 20), '......kkkk.kkkk.....', '....................'];
+    defSprite('captain_0', capt('kbB'), cp); defSprite('captain_1', capt('.bB'), cp);
+    defSprite('captain_trap', ['....................', '....................', '.......kbbbbk.......', '......kbbbbbbk......', '.....kkggggggkk.....', '......kssssssk......', '......ksxssxsk......', '......kssssssk......', '....kkrrrrrrrrkk....', '...krrrrggggrrrrk...', '..kkkkkkkkkkkkkkkk..', '..k..............k..', '..kkkkkkkkkkkkkkkk..', '....................'], Object.assign({ x: '#2a1f2d' }, cp));
+    const gm = { w: '#e6c08a', W: '#c49a62', d: '#8a6040', r: '#e8463c', R: '#a82a26', e: '#2a1f2d', h: '#8a5a3a', s: '#9a6438' };
+    ART.gm_body = paintSprite(64, 60, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        /* a jointed wooden girl in a red scarf: you, three times over */
+        R('#8a5a3a', 18, 0, 28, 8); R('#6b4128', 16, 6, 32, 6);
+        R('#e6c08a', 20, 6, 24, 20); R('#c49a62', 20, 24, 24, 2); R('#2a1f2d', 25, 13, 3, 4); R('#2a1f2d', 36, 13, 3, 4); R('#fbf6ea', 26, 13, 1, 1); R('#fbf6ea', 37, 13, 1, 1); R('#a8442a', 29, 21, 6, 2);
+        R('#e8463c', 14, 26, 36, 6); R('#a82a26', 14, 31, 36, 2); R('#e8463c', 42, 30, 6, 12);
+        R('#e8b04a', 16, 32, 32, 18); R('#c8903a', 16, 46, 32, 4); R('#6b4128', 30, 34, 4, 14);
+        R('#e6c08a', 6, 30, 8, 6); R('#e6c08a', 50, 30, 8, 6); R('#c49a62', 4, 36, 6, 12); R('#c49a62', 54, 36, 6, 12);
+        R('#9a6438', 57, 18, 3, 34); R('#6b4128', 57, 18, 3, 2);
+        R('#4f6aa8', 18, 50, 28, 8); R('#2e3a7a', 18, 56, 28, 2);
+        for (const [a, b] of [[12, 34], [52, 34], [32, 52]]) { R('#2a1f2d', a, b, 2, 2); }
+    });
+    ART.gm_down = paintSprite(96, 40, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R('#8a5a3a', 4, 8, 20, 6); R('#e6c08a', 6, 12, 20, 18); R('#2a1f2d', 10, 18, 4, 1); R('#2a1f2d', 18, 18, 4, 1); R('#a8442a', 12, 25, 6, 2);
+        R('#e8463c', 26, 14, 20, 8); R('#e8b04a', 44, 12, 26, 16); R('#4f6aa8', 68, 14, 18, 12); R('#c49a62', 84, 16, 10, 6); R('#c49a62', 40, 28, 14, 6);
+        R('#9a6438', 20, 34, 60, 3); R('#cfc6b8', 30, 0, 1, 14); R('#cfc6b8', 60, 0, 1, 12);
+    });
+    defSprite('gm_body_old', ['..........kkkkkkkkkkkk..........', '.........khhhhhhhhhhhhk.........', '........khhhhhhhhhhhhhhk........', '........khwwwwwwwwwwwwhk........', '........kwwwwwwwwwwwwwwk........', '........kwwekwwwwwwkewwk........', '........kwwwwwwwwwwwwwwk........', '........kwwwwwwRRwwwwwwk........', '.........kwwwwwwwwwwwwk.........', '..........kkkkwwwwkkkkk.........', '......kkkkrrrrrrrrrrrrkkkk......', '.....krrrrrrrrrrrrrrrrrrrrk.....', '....krRrrrrrrrrrrrrrrrrrrRrk....', '...kwkrrrrrrrrrrrrrrrrrrrrkwk...', '...kwkrrrrrrrrrrrrrrrrrrrrkwk...', '...kwk.krrrrrrrrrrrrrrrrk.kwk...', '...kk..kRRRRRRRRRRRRRRRRk..kk...', '.......kddddddddddddddddk.......', '.......kd..............dk.......', '.......kd..............dk.......', '.......kd..............dk.......', '.......kd..............dk.......', '.......kW..............Wk.......', '.......kk..............kk.......'], gm);
+    defSprite('gm_foot', ['................', '................', '................', '................', '................', '................', '................', '...kkkkkkkkkk...', '..kddddddddddk..', '..kdWWWWWWWWdk..', '..kdddddddddddk.'.slice(0, 16), '..kkkkkkkkkkkk..', '................', '................', '................', '................'], gm);
+    defSprite('gm_down', ['................................................................', '..........kkkkkkkkkkkk..........................................', '.........khhhhhhhhhhhhk...kkkkkkkkkkkkkkkkkkkkkkkkkkkk...........', '........khwwwwwwwwwwwwhk.krrrrrrrrrrrrrrrrrrrrrrrrrrrrk...........', '........kwwxwwwwwwxwwwwkkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrk..kkkkkk...', '........kwwwwwwwwwwwwwwkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrkkkddddddk..', '.........kwwwwwRRwwwwwk.kRRRRRRRRRRRRRRRRRRRRRRRRRRRRk.kddddddk..', '..........kkkkkkkkkkkk...kkkkkkkkkkkkkkkkkkkkkkkkkkkkk..kkkkkkk..', '................................................................'], Object.assign({ x: '#2a1f2d' }, gm));
+    ART.flat_red = null;
+    defSprite('flat_red', ['kkkkkkkkkkkkkkkk', 'krrrrrrrrrrrrrrk', 'krRrrrrrrrrrrRrk', 'krrrrrrrrrrrrrrk', 'krrrrRrrrrrRrrrk', 'krrrrrrrrrrrrrrk', 'kRrrrrrrrrrrrrrk', 'krrrrrrRrrrrrrrk', 'krrrrrrrrrrrrrrk', 'krrRrrrrrrrrrRrk', 'krrrrrrrrrrrrrrk', 'kggggggggggggggk', 'kccccccccccccccc', 'kccccccccccccccc', 'kkkkkkkkkkkkkkkk', '................'], { r: '#9a1e36', R: '#7a1428', g: '#f7d64a', c: '#c8a070' });
+    const furn = (w, h, fn) => paintSprite(w, h, x => fn((c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); }));
+    ART.poster = furn(16, 30, R => { R('#c8a070', 2, 0, 12, 22); R('#fbf6ea', 3, 1, 10, 20); R('#e8463c', 5, 6, 6, 10); R('#8a5a3a', 6, 3, 4, 4); R('#9a6438', 11, 5, 1, 12); R('#5a3a2a', 7, 22, 2, 8); });
+    ART.booth = furn(32, 28, R => { R('#9a1e36', 0, 6, 32, 22); R('#f7d64a', 0, 6, 32, 2); R('#3a0a16', 6, 10, 20, 10); R('#fbf6ea', 8, 12, 16, 6); R('#c8a070', 0, 24, 32, 4); R('#f7d64a', 10, 0, 12, 6); R('#9a1e36', 11, 1, 10, 4); });
+    ART.seats = furn(96, 18, R => { for (let i = 0; i < 6; i++) { R('#5a1428', i * 16 + 1, 2, 14, 14); R('#c42b4a', i * 16 + 2, 3, 12, 8); R('#9a1e36', i * 16 + 2, 11, 12, 4); } R('#3a0a16', 0, 16, 96, 2); });
+    ART.drum = furn(16, 18, R => { R('#d6304e', 1, 4, 14, 12); R('#fbf6ea', 1, 2, 14, 4); R('#f7d64a', 1, 8, 14, 1); R('#f7d64a', 1, 12, 14, 1); R('#9a6438', 3, 0, 1, 4); R('#9a6438', 12, 0, 1, 4); });
+    ART.prompter = furn(16, 22, R => { R('#3a2a30', 0, 6, 16, 16); R('#c8a070', 0, 4, 16, 3); R('#fff4c0', 4, 10, 8, 4); });
+    ART.set_tidy = furn(64, 24, R => { R('#efe4cc', 0, 4, 64, 20); R('#5fb7a8', 0, 0, 64, 6); R('#3c8a80', 0, 6, 64, 1); for (let i = 4; i < 64; i += 16) { R('#9a3a4a', i, 10, 8, 10); } R('#c8a070', 28, 8, 8, 16); R('#f7d64a', 31, 2, 2, 4); });
+    ART.mirror = furn(16, 26, R => { R('#c8a070', 0, 0, 16, 22); R('#cfe6f4', 2, 2, 12, 16); R('#fff4c0', 0, 0, 2, 2); R('#fff4c0', 14, 0, 2, 2); R('#fff4c0', 0, 20, 2, 2); R('#fff4c0', 14, 20, 2, 2); R('#5a3a2a', 6, 22, 4, 4); });
+    ART.bench = furn(32, 22, R => { R('#9a6438', 0, 6, 32, 6); R('#6b4128', 2, 12, 3, 10); R('#6b4128', 27, 12, 3, 10); R('#c8c0b8', 6, 2, 5, 4); R('#e6c08a', 18, 1, 8, 5); R('#2a1f2d', 20, 3, 1, 1); R('#2a1f2d', 23, 3, 1, 1); });
+    ART.puppets_hung = furn(48, 30, R => { R('#6b4128', 0, 0, 48, 2); const c = ['#5fb7a8', '#e0913a', '#4f9be0', '#7f7688', '#8a6a4a']; for (let i = 0; i < 5; i++) { R('#cfc6b8', 4 + i * 9, 2, 1, 6); R(c[i], 1 + i * 9, 8, 7, 12); R('#e6c08a', 2 + i * 9, 5, 5, 4); } });
+    ART.monogram_marionette = paintSprite(16, 10, x => { x.fillStyle = '#d6304e'; x.fillRect(8, 1, 2, 6); x.fillRect(4, 6, 5, 2); x.fillRect(3, 4, 2, 3); x.fillStyle = '#f7d64a'; x.fillRect(6, 0, 6, 1); x.fillRect(11, 0, 1, 3); }, false);
+}
+CONTENT_INIT.push(initMarionetteFoes);
+
+// ---- 64_reveal1.js ----
+/* Reveal 1: the Houses are made. The Great Marionette's curtain comes down on Jory at the controls, and the
+   rest of the Makers come out of the wings, covered in clay and river water and brass dust and feathers: the
+   Houses are theirs, built new for every Wanderer and worked from underneath, a gift. The last part of a Wander
+   is learning to make one. The Staff door at the Inn opens. ("Hints" become the Makers' nudges.) */
+
+const Reveal1 = {
+    *run(g) {
+        const a = g.area, br = a.rooms.find(r => r.key === '1,0');
+        const at = (x, y) => [br.x + x, br.y + y];
+        Music.play('lullaby');
+        const jory = a.add(new NPC(...at(9, 2), { who: 'jory', face: 'down' }));
+        Fx.poof(jory.x * 1 + 8, jory.y + 8);
+        yield 30;
+        yield* say('jory', "Bother, bother, bother. Hold on. I'll come down. Mind the sandbags.");
+        const cast = [['ives', 3, 5, 'right'], ['bram', 5, 4, 'right'], ['ambrose', 14, 4, 'left'], ['tess', 16, 5, 'left'], ['mallow', 12, 2, 'down']];
+        for (const [who, x, y, f] of cast) { a.add(new NPC(...at(x, y), { who, face: f })); Sfx.play('step'); yield 14; }
+        yield* say('ives', "Jory! You've dropped the whole— oh. Oh, she's looking right at us.");
+        yield* say('bram', "HA! Well! That's torn it!");
+        yield* say('ambrose', "Hello, love. Er. Surprise?");
+        yield* say(null, "They shuffle into a line across the stage like a cast taking a bow: Ives with her feather duster, Bram up to the elbows in clay, your dad dripping, your mum glittering with brass dust, Doctor Mallow in his slippers. Nobody quite looks at you.");
+        yield* say('tess', "We were going to tell you at the end, {name}. We always tell the Wanderer at the end. You're just... early.");
+        yield* say('tess', "The Houses, love. We make them. We always have. Ives keeps the Tidyhouse, Bram the Kiln, your dad the Millrace, me the Belfry, Mallow the Slumberhouse, and Jory this old place.");
+        yield* say('jory', "And the bosses. Mostly the bosses. Do you know how long the Kilnwyrm took? Three winters. The tail never did work properly.");
+        yield* say('ambrose', "We take them down after every Wander and build them again for the next one. Every room. Every puzzle. Every crate that shivers before it goes home.");
+        yield* say('ives', "We watch from underneath. There are little holes. And when you're stuck a long while, we nudge something. Just a little. Just so you'd find it yourself.");
+        yield* say('bram', "The going-home, though: that's not us. Well, it IS us that keeps it running. Every mark's got a thread, and every thread goes down, and somebody's got to wind them all. Takes some winding!");
+        yield* say('mallow', "*yawn* Which is why nobody in this valley ever gets any sleep in Wander season.");
+        yield* say('tess', "It's a gift, {name}. The Wander. It's the best thing this town knows how to make, and every one of us had one, and now you've had yours. Well, nearly.");
+        yield* say('jory', "Because here's the thing. The last part of a Wander isn't a House. It's the bit where you learn to make one. Come down and see.");
+        yield* say('jory', "Under the Inn there's a door marked STAFF ONLY. It's open now. We'll be waiting for you below.");
+        yield* say(null, "Then, all at the same moment, they look up, at nothing, the way people do when they think they've heard their name called from another room.");
+        yield* say('tess', "...Tie your Knot, love. Gran'll want to hear all about it.");
+        Progress.set('reveal1');
+        for (const e of a.ents.slice()) if (e.kind === 'npc' && ['ives', 'bram', 'ambrose', 'tess', 'mallow', 'jory'].includes(e.who)) { Fx.poof(e.x + 8, e.y + 8); a.remove(e); }
+        Sfx.play('appear');
+        g.shutters(false);
+        a.add(new Hoop(br.x + 15, br.y + 6));
+        a.add(new Pickup((br.x + 4) * T, (br.y + 6) * T, { what: 'heartstitch', id: 'marionetteHeart' }));
+        Music.play('marionette');
+        Progress.setGoal('Tie the Dancing Knot. Then: the Inn in Hollowell, the door marked STAFF ONLY.');
+        UI.toast("The Options' Hints are the Makers' nudges now.", 200);
+    },
+};
+{
+    const prev = MarionetteHall.afterKnot;
+    MarionetteHall.afterKnot = function* () {
+        yield* prev.call(this);
+        Progress.setGoal('Hollowell: the Inn, and the door marked STAFF ONLY. The Makers are waiting below.');
+    };
+}
+
 // ---- 79_presets.js ----
 /* Presets: game states at the start of each stretch, for the debug panel and the tests. */
 function presetBase(name = 'Wren') {
@@ -12664,6 +13879,14 @@ PRESETS.afterD5 = () => {
     for (const f of ['d5', 'slumber_boss', 'slumber_matron', 'slumber_slothAwake', 'bedroll_laid', 'bed_first']) Progress.set(f);
     Progress.setGoal('Home to Hollowell. (Somebody at the clinic will want to hear all about it.)');
     World.enter('hollow', SLUMBER_OUT.x, SLUMBER_OUT.y, { dir: DOWN });
+};
+PRESETS.afterD6 = () => {
+    PRESETS.afterD5();
+    for (const f of ['leapt', 'fair_gate', 'met:rook']) Progress.set(f);
+    Inv.giveTool('crossbar'); Inv.knots.push('marionette'); Inv.addHeart();
+    for (const f of ['d6', 'reveal1', 'marionette_boss', 'marionette_tin', 'marionette_tinAwake', 'marionette_gmAwake', 'crossbar_first', 'flat_first']) Progress.set(f);
+    Progress.setGoal('Hollowell: the Inn, and the door marked STAFF ONLY. The Makers are waiting below.');
+    World.enter('hollow', MARIONETTE_OUT.x, MARIONETTE_OUT.y, { dir: DOWN });
 };
 
 // ---- 80_story_core.js ----

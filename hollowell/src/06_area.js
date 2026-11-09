@@ -88,7 +88,7 @@ class Area {
     freeForThing(x, y, e) {
         if (!this.inside(x, y)) return false;
         const k = this.kind(x, y);
-        if (k.solid || k.ledge) return false;
+        if ((k.solid && !(k.crawl && e && e.small)) || k.ledge) return false;
         if (k.fog) return false;
         const o = this.at(x, y);
         if (o && o !== e) return false;

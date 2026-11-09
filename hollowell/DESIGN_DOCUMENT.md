@@ -267,7 +267,8 @@ All marked to nests unless noted. Light combat; the stick does 1 damage. Enemies
 - **Gustlings** (Heights/D4): push you with wind.
 - **Belfry bats** (D4): asleep until a bell rings.
 - **Snorelings** (Hushwood/D5): asleep; awake they chase; spores.
-- **Toy soldiers** (Larkspur/D6): march in lines, turn at walls.
+- **Toy soldiers** (Larkspur/D6): march straight on and turn at anything in their way (about-turn, or always
+  right); they weigh on plates as they pass and can be steered by putting things in their beat.
 - **Cord-snakes** (Underside/D7): slither along cords.
 - **Moths** (Loomwood/D8): drawn to movement, bind with silk.
 - **Strays** (the Drift): critters that don't return; peaceful.

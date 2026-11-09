@@ -145,3 +145,33 @@ defArea({
     rooms: [{ x: 0, y: 0, w: 24, h: 11 }, { x: 24, y: 0, w: 16, h: 11 }],
     entry: { x: 5, y: 5 },
 });
+
+/* puppets: a puppet through a hole and over spikes to a plate; a rack of two; a toy soldier; a painted flat */
+defArea({
+    id: 'lab6', name: 'Lab 6', family: 'dungeon', theme: 'tidy', house: 'lab', thread: THREAD.jory,
+    rows: [
+        '####################',
+        '#........#.........#',
+        '#........#.........#',
+        '#........O..^^^....#',
+        '#........#.........#',
+        '#........#.........#',
+        '#..................#',
+        '#........#.........#',
+        '#........#.........#',
+        '#........#.........#',
+        '####################',
+    ],
+    legend: { 'O': { k: 'crawl', p: 'wall', ent: 'crawlhole' } },
+    ents: [
+        { k: 'puppet', x: 6, y: 3, id: 'pA' },
+        { k: 'plate', x: 17, y: 3, sig: 'lp' },
+        { k: 'door', x: 9, y: 6, type: 'gate', when: 'lp', dir: 'v', id: 'labGate' },
+        { k: 'rack', x: 2, y: 8, group: 'g', id: 'rack' },
+        { k: 'puppet', x: 5, y: 8, id: 'pB', group: 'g' }, { k: 'puppet', x: 5, y: 6, id: 'pC', group: 'g' },
+        { k: 'soldier', x: 12, y: 8, id: 'sol', facing: 'right' },
+        { k: 'flat', x: 14, y: 6, id: 'flat' },
+    ],
+    rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
+    entry: { x: 3, y: 3 },
+});

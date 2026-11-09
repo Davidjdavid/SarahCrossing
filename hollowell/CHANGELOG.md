@@ -47,4 +47,10 @@
 - The fifth region (a road blocked by a sleeping giant, a mushroom wood, a camp, a pond with a channel down to
   the lake, a plateau, a hidden hollow) and the fifth dungeon (11 rooms, a mini-boss, a boss), with tests for
   every room and a playthrough leg from the fourth Knot to the fifth. New music for both.
+- The sixth tool's kit: puppets worked from a distance, racks of puppets in step, marching toy soldiers, painted
+  scenery; a lab room and tests.
+- The sixth region (a fairground under the canyon's high mesa: a jump in, a bolted gate out, a carousel, a pen, a
+  lift, a hidden nook, the valley's foggy edge) and the sixth dungeon (10 rooms, a mini-boss, a boss), with tests for
+  every room and a playthrough leg from the fifth Knot to the sixth. New music for both.
+- The story's first big turn.
 

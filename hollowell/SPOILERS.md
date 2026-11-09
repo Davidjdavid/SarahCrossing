@@ -188,8 +188,15 @@ be frightened of that." The Stray House's last room: Linnet's bracelet (for the 
   ring of stars on the carpet); caught, go Homeward: flying further than she can reach snaps the arm. Both arms
   snapped, she slumps and her nightcap is there to knock (3x). Out of reach, she lobs pillows. "Nothing ever gets
   away from Mother... except what's going home." (Gran, in miniature.)
-- **Great Marionette (D6)**: walk Wren's own puppets around its legs to tangle the strings (sync puppets),
-  or hook its control bar; it falls; the curtain drops: Jory above at the controls. Reveal 1.
+- **Captain Tin (D6 mini-boss)**: a drum-major toy soldier marching between two painted flats; knock one down as
+  he comes and he marches on into the trapdoor behind it; dazed, his hat's off: hit him (3x). The Crossbar.
+- **Great Marionette (D6)**: a giant wooden Wren on strings over two great feet. Two little wooden Wrens on one
+  rack: walk them right so each foot stops one (lining them up with the feet), then all the way round: both strings
+  tangle and it falls; knock its head (3x). Sandbags drop where Wren stands. Then the curtain comes down and Jory is
+  in the flies at the controls: Reveal 1 (`src/64_reveal1.js`): the Makers come out of the wings (Ives, Bram, Dad,
+  Mum, Mallow, Jory), explain the Houses are theirs, built for every Wanderer and worked from underneath, and that
+  the last part of a Wander is learning to make; the Inn's Staff door is open. They all glance up at once, as if
+  someone had called them (Gran: Reveal 2).
 - **The Tangle (D7)**: re-thread its cords with the Needle so it pulls itself apart.
 - **The Weaver (D8)**: cut the web strands that bind Wren; cut the anchors holding it aloft; it drops into
   its own loom.
@@ -208,3 +215,12 @@ words crossed out hard), his monogram in the rug. Back in town he knows things a
 it's comfy? One hears things"). The schoolhouse rules gained, faintly, "6. You have a place too" after Knot 4: the
 Bedroll is the first thing in the game that lets Wren choose where home is (it matters at the ending). Gran, after
 Knot 5: "Mind you always roll it up and bring it home. A Wanderer's place is at home."
+
+## Larkspur Fair and the Marionette Hall (Knot 6, `src/62_larkspur.js`, `src/63_marionette.js`)
+The way in is a jump off Kilnridge's high mesa into a straw heap (only with a Bedroll laid up top); the way out is
+the bolt on the east gate, or later the lift (work the stagehand puppet on the mesa onto the winch with the
+Crossbar). Madame Rook the fortune teller hints; Pell the barker sells the show: "THE WANDERER, starring... well, you".
+The box office ledger: "Cast: one. Crew: six. Audience: the crew"; years of playbills, one with a girl in green
+ribbons (Linnet). The prompter's script has lines Wren hasn't said yet. Jory's bench: a half-carved face that looks
+like Gran, "FOR THE LAST ACT. (NOT YET.)", and puppets of every boss. Linnet's note 7 under the carousel horse: she
+followed the strings down (the Makers; the Underside).

@@ -562,3 +562,89 @@ test('from the fourth Knot: the festival, the giant on the east road, Hushwood a
     ok(area() === 'hollow', 'back outside');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 });
+
+test('from the fifth Knot: over to Kilnridge, off the high mesa into Larkspur Fair, the Marionette Hall to its Knot (Reveal 1)', () => {
+    const HW = loadGame();
+    const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
+    const walk = (x, y, m, max) => { let r = HW.walkTo(x, y, max); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y, max); } ok(r, m || `walk ${x},${y}`); };
+    const area = () => HW.G.map.id;
+    const thing = id => HW.G.map.find(id);
+    const until = (fn, max = 3000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
+    const talk = () => { HW.press('act', 1); HW.skipTalk(); };
+    const p = () => HW.player();
+    const strings = moves => { const names = { U: 'up', D: 'down', L: 'left', R: 'right' }; for (const m of moves) { const ps = HW.global('Crossbar').ctl.puppets; HW.hold(names[m]); until(() => ps.some(e => e.mv), 12); until(() => !ps.some(e => e.mv), 30); HW.release(); HW.step(3); } };
+    const M = { foyer: [20, 33], box: [40, 33], aud: [20, 22], pit: [0, 22], reh: [40, 22], wings: [20, 11], dress: [0, 11], props: [40, 11], stage: [20, 0] };
+    const m = (r, x, y) => [M[r][0] + x, M[r][1] + y];
+    HW.preset('afterD5'); HW.step(10); HW.skipTalk();
+    HW.Inv.maxHp = HW.Inv.hp = 32;
+
+    /* back over the stream, along the road, through town and the canyon, up to the high mesa */
+    walk(128 + 10, 40 + 10); HW.hold('down'); until(() => p().ty >= 40 + 14 && p().state === 'normal', 150); HW.release();
+    walk(15, 83, 'to the high mesa', 60000);
+    HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(2);
+    walk(12, 83); HW.face('up'); HW.press('act', 1); HW.skipTalk(0); HW.step(60); HW.skipTalk();
+    ok(p().ty === 74, 'into the straw');
+    walk(31, 50); HW.hold('up'); until(() => area() === 'marionette', 120); HW.release(); HW.step(30);
+    ok(area() === 'marionette', 'inside the Marionette Hall');
+    HW.G.cheats.god = true;      /* (soldiers, the Captain, sandbags: the dodging isn't what this checks) */
+
+    /* the foyer's flat; the Plan */
+    walk(...m('foyer', 18, 5)); HW.face('right'); HW.press('atk', 1); HW.step(20);
+    walk(...m('box', 10, 4)); HW.face('up'); talk(); ok(HW.Inv.plans.includes('marionette'), 'the Plan');
+    /* the orchestra pit: key A */
+    walk(...m('box', 1, 5)); walk(...m('foyer', 9, 1)); walk(...m('aud', 9, 9)); walk(...m('aud', 1, 5)); walk(...m('pit', 10, 1)); HW.push('down', 2);
+    walk(...m('pit', 3, 6)); ok(until(() => thing('opGate').open, 3000), 'the drummer crossed the plate');
+    walk(...m('pit', 2, 2)); HW.face('up'); talk(); ok(HW.Inv.keys('marionette') === 1, 'key A');
+    /* the rehearsal room (lock A): key B */
+    walk(...m('pit', 18, 5)); walk(...m('aud', 18, 5)); HW.hold('right'); HW.step(40); HW.release(); HW.step(30);
+    walk(...m('reh', 5, 4)); HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(2);
+    walk(...m('reh', 5, 5)); HW.hold('down'); until(() => p().ty === m('reh', 0, 7)[1] && p().state === 'normal', 120); HW.release();
+    HW.face('down'); talk(); ok(HW.Inv.keys('marionette') === 1, 'key B');
+    HW.Inv.equipped = 'bedroll'; HW.hold('tool'); HW.step(24); HW.release(); until(() => p().state === 'normal', 300);
+    /* the wings (lock B): Captain Tin; the Crossbar */
+    walk(...m('reh', 1, 5)); walk(...m('aud', 9, 1)); HW.hold('up'); until(() => p().ty <= m('wings', 0, 9)[1] && !HW.Cam.busy, 200); HW.release(); HW.step(5);
+    HW.hold('up'); HW.step(10); HW.release(); HW.skipTalk(); HW.step(5);
+    const c = thing('tin');
+    for (let round = 0; round < 3 && c.alive; round++) {
+        walk(...m('wings', 4, 5));
+        ok(until(() => c.state === 'march' && c.march === 1 && c.x < m('wings', 8, 0)[0] * 16, 1500), 'coming left');
+        HW.face('down'); HW.press('atk', 1); HW.step(14);
+        ok(until(() => c.state === 'dazed', 200), 'into the trap');
+        walk(...m('wings', 2, 5)); HW.face('down'); HW.press('atk', 1); HW.step(14); HW.step(330);
+    }
+    ok(!c.alive, 'Captain Tin down'); HW.step(60); HW.skipTalk(); HW.step(10);
+    walk(...m('wings', 9, 4)); HW.face('up'); talk(); ok(HW.Inv.has('crossbar'), 'the Crossbar');
+    /* the dressing rooms: key C */
+    walk(...m('wings', 1, 5)); walk(...m('dress', 2, 9)); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(2);
+    strings('UUUUURR' + 'RRRRRRRRRRRRR'); HW.step(5); HW.press('tool', 1); HW.step(5);
+    walk(...m('dress', 9, 7)); HW.face('right'); talk(); ok(HW.Inv.keys('marionette') === 1, 'key C');
+    /* the prop store (lock C): the Pattern */
+    walk(...m('dress', 18, 5)); walk(...m('wings', 18, 5)); HW.hold('right'); HW.step(40); HW.release(); HW.step(30);
+    walk(...m('props', 9, 9)); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(2);
+    strings('DRDRDRRDRURUR'); HW.step(5); HW.press('tool', 1); HW.step(5);
+    walk(...m('props', 16, 9)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('marionette'), 'the Pattern');
+    /* the great stage */
+    walk(...m('props', 1, 5)); walk(...m('wings', 9, 1)); HW.hold('up'); HW.step(60); HW.release(); HW.step(30); HW.skipTalk(); HW.step(20); HW.skipTalk();
+    const g = HW.G.map.ents.find(e => e.type === 'greatmarionette');
+    HW.Inv.equipped = 'crossbar';
+    for (let round = 0; round < 3 && g.alive; round++) {
+        walk(...m('stage', 9, 9)); HW.face('up'); HW.press('tool', 1); HW.step(2);
+        strings('URRR' + 'URRDDLLU');
+        ok(until(() => g.state === 'down', 60), 'it falls');
+        HW.press('tool', 1); HW.step(3);
+        walk(...m('stage', 8, 8)); HW.face('up'); HW.press('atk', 1); HW.step(24);
+        if (g.alive) until(() => thing('gsWrenA').ret.state === 'home' && thing('gsWrenB').ret.state === 'home', 600);
+    }
+    ok(!g.alive, 'the Great Marionette down');
+    for (let i = 0; i < 40 && !HW.Progress.flag('reveal1'); i++) { HW.skipTalk(); HW.step(20); }
+    ok(HW.Progress.flag('reveal1'), 'Reveal 1'); HW.skipTalk(); HW.step(20);
+    HW.G.cheats.god = false;
+    const hoop = HW.ents('hoop')[0]; ok(hoop, 'the hoop');
+    walk(hoop.tx - 1, hoop.ty); HW.face('right'); HW.press('act', 1); HW.skipTalk(0); HW.step(300); HW.skipTalk(); HW.step(10); HW.skipTalk();
+    ok(HW.Inv.knots.includes('marionette') && HW.Progress.flag('d6'), 'the Dancing Knot');
+    const exit = HW.ents('warp').find(w => w.to === 'hollow' && w.ty < 11);
+    ok(exit, 'a way out');
+    walk(exit.tx + 1, exit.ty); HW.hold('left'); until(() => area() === 'hollow', 200); HW.release(); HW.step(30);
+    ok(area() === 'hollow', 'back outside');
+    assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
+});

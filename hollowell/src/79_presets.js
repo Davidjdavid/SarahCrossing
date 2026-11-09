@@ -41,3 +41,11 @@ PRESETS.afterD5 = () => {
     Progress.setGoal('Home to Hollowell. (Somebody at the clinic will want to hear all about it.)');
     World.enter('hollow', SLUMBER_OUT.x, SLUMBER_OUT.y, { dir: DOWN });
 };
+PRESETS.afterD6 = () => {
+    PRESETS.afterD5();
+    for (const f of ['leapt', 'fair_gate', 'met:rook']) Progress.set(f);
+    Inv.giveTool('crossbar'); Inv.knots.push('marionette'); Inv.addHeart();
+    for (const f of ['d6', 'reveal1', 'marionette_boss', 'marionette_tin', 'marionette_tinAwake', 'marionette_gmAwake', 'crossbar_first', 'flat_first']) Progress.set(f);
+    Progress.setGoal('Hollowell: the Inn, and the door marked STAFF ONLY. The Makers are waiting below.');
+    World.enter('hollow', MARIONETTE_OUT.x, MARIONETTE_OUT.y, { dir: DOWN });
+};

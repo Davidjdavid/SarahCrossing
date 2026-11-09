@@ -37,8 +37,14 @@
 - Hints: rooms' "already solved" checks were mostly never true, so a hint could pop up after a room was done;
   fixed generically (chests, doors, gates and levers by id).
 
+- 2026-11-09 (late night): the sixth tool's kit (5 tests), Larkspur (7), the Marionette Hall (9 room, mini-boss
+  and boss tests) and a sixth playthrough leg; `npm test` 188/188. Found while building: puppets moving in step
+  blocked one another (fixed: the leading ones move first and free their tiles), a door that shut on Wren while she
+  held the strings (latches now), hint checks with house-prefixed ids that never resolved (fixed generically), and a
+  boss drawn far too small (repainted). Browser shots of the fair and every room checked.
+
 ## Unresolved issues
-- D5 and Hushwood haven't had a fresh-eyes review yet.
+- D5 and Hushwood: fresh-eyes review running. D6 and Larkspur haven't had one yet.
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
 ## Verification history
@@ -51,3 +57,4 @@
 | 2026-11-09 | D3 review fixes (+5 regression tests); Belfry kit, Heights, Belfry, festival (120 in all); screenshots | pass |
 | 2026-11-09 | D4 review fixes (12 issues, 3 softlocks; +11 regression tests, 129 in all); Belfry browser smoke | pass |
 | 2026-11-09 | Bedroll kit, Hushwood, Slumberhouse, playthrough leg 5 (166 in all); browser shots of every new room | pass |
+| 2026-11-09 | Crossbar kit, Larkspur, Marionette Hall, playthrough leg 6 (188 in all); browser shots | pass |

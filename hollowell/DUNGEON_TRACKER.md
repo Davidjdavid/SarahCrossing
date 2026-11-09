@@ -10,7 +10,7 @@
 | D3 | Millrace | Millwater | Currents vs the Return; rafts | Paddle | Old Grindle | tested |
 | D4 | Belfry | Belfry Heights | Wind displaces; bells snap home; sleepers | Recall Bell | Tollgrim | tested |
 | D5 | Slumberhouse | Hushwood | Your own mark; falls as travel; the trace remembers | Bedroll | Mother Sloth | tested |
-| D6 | Marionette Hall | Larkspur Fair | Remote bodies; synchronised puppets; flats | Crossbar | Great Marionette | planned |
+| D6 | Marionette Hall | Larkspur Fair | Remote bodies: marching soldiers, flats, puppets at a distance, puppets in step | Crossbar | Great Marionette | tested |
 | D7 | Spoolworks | Underside | Two layers; cords; counterweights; linking | Needle | The Tangle | planned |
 | D8 | Loom | Loomwood | Permanence; warp threads; cutting | Shears | The Weaver | planned |
 | F | Great Spool | under the Well | Six Knot-locks remixing every House | – | The Spool | planned |
@@ -117,6 +117,11 @@ Keys: 3 keys (Ferry Pool, Shard Race, Upstream), 3 locks (Carousel W and E, Upst
 | Hushwood plateau | the far bank (164..166, 44..49) | over the log bridge; the bouncy moss at the path's end hops you up over the ledge | built, tested |
 | S16 The giant's hollow | Hushwood, where Old Hummock slept (131,56) | wake the giant (the Recall Bell); lay the Bedroll up top; climb down: a round door, Linnet's note 6; Homeward back up (or climb the roots, the hard way) | built, tested |
 | S18 Bell in flight | anywhere, flying home | ring the Recall Bell while flying home: Wren snaps home at once | built, tested |
+| Larkspur's painted hedge | Larkspur, by the fortune teller's (10,47) | knock the flat: a nook with 50 buttons | built, tested |
+| Larkspur pen (Heart Patch) | Larkspur, the fakir's pen (50..58, 43..49) | with the Crossbar: the puppet through the little hole, over the nails, onto the plate | built, tested |
+| Linnet note 7 | Larkspur, under the carousel's wooden horse (31,62) | with the Crossbar: walk the horse off its spot | built, tested |
+| S11 Bedroll in the fog | the valley's edge, e.g. Larkspur's west (x 0..2) | lay the Bedroll near the fog, walk in: pulled home, you come back with a Drift-bloom seed | built, tested (planting: later) |
+| S13 The Wren puppet | Marionette Hall, the Rehearsal Room | with the Crossbar: walk the little wooden Wren onto its mark on the Tidyhouse set: a bow, a Heart Patch | built, tested |
 | S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |
 
 ## D4 Belfry (`src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`; tests `tests/belfry.test.mjs`, `tests/belfry_kit.test.mjs`, `tests/heights.test.mjs`) - tested
@@ -169,3 +174,27 @@ someone walks near them a while, shuffle after you, then go to the nearest bed (
 | Mother Sloth's Room | 1,0 | Boss: Mother Sloth | Her arms catch you and reel you to her bed; lay the Bedroll out of reach (the star ring); caught, fly Homeward: too far, the arm snaps; both snapped, she slumps: knock her nightcap (3x). Out of reach she throws pillows | Knot, Heartstitch |
 
 Keys: 3 keys (Linen, Loft, Moonwalk), 3 locks (Ward E, Ward N, Nursery N). Pattern: the Landing's north door.
+
+## D6 Marionette Hall (`src/63_marionette.js`, `src/63b_marionette_foes.js`, kit `src/61_crossbar_kit.js`, the reveal `src/64_reveal1.js`; tests `tests/marionette.test.mjs`, `tests/crossbar_kit.test.mjs`, `tests/larkspur.test.mjs`) - tested
+
+Rules: toy soldiers march straight on and turn at anything in their way (about-turn, or turn right); they weigh on
+plates as they pass. Painted flats stand in for walls until knocked down (cardboard). The Crossbar: C at a puppet in
+sight (8 tiles, the same room, the side Wren faces) takes its strings; Wren stands still and the arrows walk it a
+tile at a time; C or Z lets go and it goes home after its patience. Puppets weigh on plates, fit through the little
+holes in walls (tile kind `crawl`), don't mind spikes, won't walk off an edge. A rack holds several puppets: they step
+together, the leading ones first, each that can.
+
+| Room | Cell | Teaches / puzzle | Solution | Reward |
+|---|---|---|---|---|
+| The Foyer | 1,3 | Soldiers; flats | The east wall wobbles when soldiers pass: knock it down | the way to the Box Office |
+| The Box Office | 2,3 | - | Behind the flat | Plan |
+| The Auditorium | 1,2 | Hub | Seats; W open, E (lock) and N (lock) | - |
+| The Orchestra Pit | 0,2 | Shape a soldier's beat | The drummer goes round the room's edge turning right; push the stray block into the top of his beat: he turns down early, across the timed plate, and the alcove opens | key A |
+| The Rehearsal Room | 2,2 | Bedroll | Lay it up top, drop through the trapdoor to the key, Homeward (or the hole in the under-stage floor, which hurts). S13 later | key B |
+| The Wings | 1,1 | Mini-boss: Captain Tin | He marches between two flats; knock one as he comes and he marches on into the trapdoor behind it; dazed, hit him (3x). The flats spring back up | Crossbar |
+| The Dressing Rooms | 0,1 | Crossbar | The puppet through three little holes and over the nails onto the plate | key C |
+| The Prop Store | 2,1 | A rack | Three puppets on one rack, walls holding some back: DRDRDRRDRURUR puts all three on the plates | Pattern |
+| Jory's Workshop | 2,0 | Signature | A lone puppet through the little hole in the Prop Store's north wall onto the plate inside: the door opens for good | Maker's mark, 50 buttons |
+| The Great Stage | 1,0 | Boss: the Great Marionette | Two little Wrens on a rack: line them up against its feet (walk them so the feet stop them), then walk them all the way round: both strings tangle, it falls; knock its head (3x). Sandbags fall where you stand (a hit makes you let go) | Knot, Heartstitch; Reveal 1 |
+
+Keys: 3 keys (Pit, Rehearsal, Dressing), 3 locks (Auditorium E, Auditorium N, Wings E). Pattern: the Wings' north door.

@@ -172,3 +172,22 @@ SONGS.slumber = {
         { drum: true, vol: 0.03, n: 'h . . . h . | h . . . h . ' },
     ],
 };
+/* Larkspur Fair: a calliope waltz with nobody to dance to it (A minor, a little off) */
+SONGS.fair = {
+    bpm: 132, div: 1,
+    ch: [
+        { wave: 'p25', vol: 0.08, vib: true, n: 'E5 - - | C5 D5 E5 | A5 - - | G5 - - | F5 - E5 | D5 - C5 | B4 - - | E5 - - | E5 - - | C5 D5 E5 | A5 - - | C6 - - | B5 - A5 | G#5 - B5 | A5 - - | . . . ' },
+        { wave: 'triangle', vol: 0.18, n: 'A2 E3 E3 | A2 E3 E3 | F2 C3 C3 | C3 G3 G3 | D3 A3 A3 | A2 E3 E3 | E2 B2 B2 | E2 G#2 B2 | A2 E3 E3 | A2 E3 E3 | F2 C3 C3 | A2 E3 E3 | D3 A3 A3 | E2 B2 B2 | A2 E3 A3 | A2 . . ' },
+        { wave: 'p12', vol: 0.04, n: '. C4 E4 | . C4 E4 | . A3 C4 | . C4 E4 | . D4 F4 | . C4 E4 | . G#3 D4 | . G#3 B3 | . C4 E4 | . C4 E4 | . A3 C4 | . C4 E4 | . D4 F4 | . G#3 D4 | . C4 E4 | . . . ' },
+        { drum: true, vol: 0.05, n: 'k . h | s . h ' },
+    ],
+};
+/* the Marionette Hall: a music-hall overture on a toy piano (G major, then the minor for the dark wings) */
+SONGS.marionette = {
+    bpm: 112, div: 2,
+    ch: [
+        { wave: 'p12', vol: 0.08, n: 'G5 . B5 . D6 . B5 . | C6 . A5 . F#5 . A5 . | G5 . D5 . B4 . D5 . | E5 - - . D5 - - . | G5 . B5 . D6 . B5 . | E6 . C6 . A5 . C6 . | B5 . G5 . A5 . F#5 . | G5 - - - . . . . | Bb5 . G5 . D5 . G5 . | A5 . F5 . C5 . F5 . | G5 . Eb5 . Bb4 . Eb5 . | D5 - - . . . . . | B5 . G5 . D5 . G5 . | C6 . A5 . F#5 . A5 . | B5 . A5 . G5 . F#5 . | G5 - - - . . . . ' },
+        { wave: 'triangle', vol: 0.18, n: 'G2 . D3 . G2 . D3 . | D2 . A2 . D2 . A2 . | G2 . D3 . G2 . D3 . | C3 . G2 . D3 . A2 . | G2 . D3 . G2 . D3 . | C3 . G3 . C3 . G3 . | D3 . A2 . D3 . A2 . | G2 . D3 . G2 . . . | G2 . D3 . G2 . D3 . | F2 . C3 . F2 . C3 . | Eb2 . Bb2 . Eb2 . Bb2 . | D2 . A2 . D2 . . . | G2 . D3 . G2 . D3 . | D2 . A2 . D2 . A2 . | D3 . C3 . B2 . A2 . | G2 . D3 . G2 . . . ' },
+        { drum: true, vol: 0.05, n: 'k . h . s . h . | k . h . s . h h ' },
+    ],
+};
