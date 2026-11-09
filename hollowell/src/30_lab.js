@@ -86,3 +86,31 @@ defArea({
     rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
     entry: { x: 15, y: 3 },
 });
+
+/* wind and bells */
+defArea({
+    id: 'lab4', name: 'Lab 4', family: 'dungeon', theme: 'tidy', house: 'lab', thread: THREAD.tess,
+    rows: [
+        '####################',
+        '#..................#',
+        '#..................#',
+        '#..................#',
+        '#..................#',
+        '#..................#',
+        '#..................#',
+        '#..................#',
+        '#..................#',
+        '#..................#',
+        '####################',
+    ],
+    ents: [
+        { k: 'gust', x: 1, y: 1, w: 12, h: 2, dir: 'right', period: 400, len: 200, phase: 200, id: 'gust' },
+        { k: 'crate', x: 2, y: 1, id: 'crate' },
+        { k: 'bell', x: 15, y: 5, id: 'bell' },
+        { k: 'block', x: 4, y: 5, id: 'stone' },
+        { k: 'wood', x: 3, y: 7, id: 'sleeper', sleeper: true, tiedOff: true, startAt: [10, 7], trace: [[3, 7], [4, 7], [5, 7], [6, 7], [7, 7], [8, 7], [9, 7], [10, 7]] },
+        { k: 'enemy', x: 17, y: 8, type: 'bat' },
+    ],
+    rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
+    entry: { x: 15, y: 8 },
+});

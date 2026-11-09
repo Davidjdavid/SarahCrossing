@@ -97,6 +97,7 @@ const Game = {
             Thrown.draw(cx, cy); Shards.draw(cx, cy); Tools.draw(cx, cy); GlazerShots.draw(cx, cy);
             if (a.def.drawOver) a.def.drawOver(a, cx, cy);
             Fx.draw(cx, cy);
+            Bells.drawFx(cx, cy);
             Knots.draw(cx, cy);
             if (G.holdUp) {
                 const im = spr(ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);

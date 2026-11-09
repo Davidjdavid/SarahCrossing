@@ -82,7 +82,7 @@ class Enemy extends Ent {
         AI[ai](this, p);
         this.traceStep();
         /* touching Wren */
-        if (p && p.area === this.area && p.state === 'normal' && !this.D.harmless && this.mode !== 'home' && !this.hidden) {
+        if (p && p.area === this.area && p.state === 'normal' && !this.D.harmless && this.mode !== 'home' && this.mode !== 'sleep' && !this.hidden) {
             if (Math.abs(p.x - this.x) < (this.D.r || 5) + 4 && Math.abs(p.y - this.y) < 7) p.hurt(this.D.dmg || 1, this.x, this.y);
         }
         /* pits and water */
