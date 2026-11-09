@@ -55,7 +55,7 @@ const World = {
         }
         Laws.wrap(); Laws.seam(); Laws.bound(); Laws.crowd();
         for (const p of map.props) if (p.update && p.seenNow) p.update(p, dt);
-        if (G.state === 'play' && !this.cutscene && Input.hit.act) this.interact();
+        if (G.state === 'play' && !this.cutscene && Input.hit.act && G.t - (Talk.closedAt || 0) > 0.3) this.interact();
         for (const tr of this.triggers.slice()) if (!tr.done && tr.test()) { tr.done = true; tr.run(); }
         Story.tick(dt);
     },
@@ -105,6 +105,7 @@ function pickUp(d, e) {
         World.inv[K.pocket] = (World.inv[K.pocket] || 0) + 1;
         if (e.wild) { e.gone = true; e.taken = false; } else { e.removed = true; d.map.remove(e); }
         Sfx.play('pick'); Fx.pickup(ecx(e), e.y, K.pocket);
+        Fx.toast('Pocketed: ' + (ITEM_NAMES[K.pocket] || K.pocket).replace(/s$/, '').toLowerCase() + ' (' + World.inv[K.pocket] + ' in Dot\'s pockets)');
         Story.got(K.pocket, e);
         return;
     }

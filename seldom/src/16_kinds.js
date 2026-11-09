@@ -110,7 +110,7 @@ const FURN = {
     crate(D, e) { D.img(thing('crate'), e.x, e.y + e.h - 16); },
     chest(D, e) { box(D, e.x, e.y - 8, e.w, e.h + 8, P.brown); box(D, e.x, e.y - 8, e.w, 3, P.brownS); box(D, ecx(e) - 1, e.y - 4, 2, 2, P.gold); },
     bench(D, e) { box(D, e.x, e.y - 5, e.w, 3, '#b07a46'); box(D, e.x, e.y - 9, e.w, 2, '#8a5a34'); box(D, e.x + 1, e.y - 2, 1, 4, P.brownD); box(D, e.x + e.w - 2, e.y - 2, 1, 4, P.brownD); },
-    window(D, e) { box(D, e.x, e.y - 24, e.w, 14, '#5a3a22'); box(D, e.x + 1, e.y - 23, e.w - 2, 12, Light.night() ? '#2a3566' : '#9fd3f0'); },
+    window(D, e) { box(D, e.x, e.y - 12, e.w, 12, '#5a3a22'); box(D, e.x + 1, e.y - 11, e.w - 2, 10, Light.night() ? '#2a3566' : '#9fd3f0'); box(D, e.x + e.w / 2 - 0.5, e.y - 11, 1, 10, '#5a3a22'); },
     rug(D, e) { box(D, e.x, e.y, e.w, e.h, '#b8434f'); box(D, e.x + 2, e.y + 2, e.w - 4, e.h - 4, '#c9566a'); },
     fireplace(D, e) { box(D, e.x, e.y - 18, e.w, e.h + 18, P.stoneS); box(D, e.x + 4, e.y - 8, e.w - 8, 8, '#2a1b2d'); if (e.lit !== false) box(D, e.x + 6, e.y - 5 - Math.abs(Math.sin(G.t * 9)) * 2, e.w - 12, 5, P.orange); },
 };

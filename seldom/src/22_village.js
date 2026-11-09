@@ -84,8 +84,8 @@ function anselBrain(e, dt) {
     if (G.flags.festival) { if (!e.hidden) { const [tx, ty] = tileOf(e); if (tx === 39 && ty === 49) { e.hidden = true; } else goTo(e, 39, 49, dt); } return; }
     if (!e.st.bit) {
         e.dir = 'down';
-        e.st.fish = (e.st.fish || 0) + dt;   /* the fish only bite while someone's watching */
-        if (e.st.fish > 14) { e.st.bit = true; bark(e, 'A bite!'); Sfx.play('splash'); }
+        if (!World.cutscene) e.st.fish = (e.st.fish || 0) + dt;   /* the fish only bite while someone's watching */
+        if (e.st.fish > 20) { e.st.bit = true; bark(e, 'A bite!'); Sfx.play('splash'); }
         return;
     }
     goTo(e, 48, 43, dt);
@@ -216,7 +216,7 @@ async function flashTalk(e) {
         await say('Wanna see my super throw? Go long, Dot!', 'flash');
         F.ballGame = true;
         const b = ent('ball');
-        if (b && !b.held) { b.x = ecx(e); b.y = e.y - 2; b.z = 10; b.vx = 4; b.vy = -150; b.vz = 200; Sfx.play('throw'); }
+        if (b && !b.held) { b.x = ecx(e) - b.w / 2; b.y = e.y - 2; b.z = 10; b.vx = 30; b.vy = -230; b.vz = 260; Sfx.play('throw'); bark(e, 'Super throw!', 2); }
         return;
     }
     if (F.festival && !F.quarry) { await say('Lux says nobody gets past him. But he can\'t watch the gate AND get watched himself, can he?', 'flash'); return; }
@@ -316,13 +316,13 @@ async function lampNight() {
     G.flags.festival = true;
     await scene(async () => {
         await Fx.fadeOut(0.6);
-        const spots = { ansel: [48, 40, 'down'], iris: [52, 40, 'down'], crumb: [54, 40, 'down'], bridget: [46, 40, 'down'], flash: [50, 42, 'up'], holt: [54, 39, 'left'], pan: [56, 41, 'left'] };
+        const spots = { ansel: [49, 39, 'down'], iris: [52, 39, 'down'], crumb: [54, 41, 'left'], bridget: [46, 41, 'right'], flash: [48, 43, 'up'], holt: [55, 39, 'left'], pan: [53, 43, 'up'] };
         for (const n in spots) {
             const e = ent(n); if (!e) continue;
             if (e.map !== World.map) { e.map.remove(e); e.map = World.map; World.map.ents.push(e); }
             e.hidden = false; e.x = spots[n][0] * TILE + 3; e.y = spots[n][1] * TILE + 8; e.dir = spots[n][2]; e.hold = true;
         }
-        const d = World.dot; d.x = 50 * TILE + 3; d.y = 40 * TILE + 8; d.dir = 'up';
+        const d = World.dot; d.x = 50 * TILE + 3; d.y = 41 * TILE + 8; d.dir = 'up';
         Cam.hold = { x: 50.5 * TILE, y: 39 * TILE, speed: 99 };
         G.flags.lanterns = true;
         Fx.fadeIn(0.8); await wait(1);
@@ -339,6 +339,7 @@ async function lampNight() {
         await say('Bring them home, Dot. Maybe the old light can be lit again. Happy Lamp Night, everyone.', 'ansel');
         /* later that night, everyone goes home */
         await Fx.fadeOut(0.8);
+        await say('Later that night, the lanterns drift out to sea, and everyone goes home to bed.', null, { name: false });
         for (const n in spots) { const e = ent(n); if (e) e.hold = false; }
         const homes = { pan: ['island', 89, 42], bridget: ['island', 64, 42], iris: ['observatory', 5, 4], crumb: ['bakery', 5, 2], holt: ['island', 54, 39] };
         for (const n in homes) {

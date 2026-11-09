@@ -58,7 +58,7 @@ const Talk = {
             const y = by + 10 + (c.lines.length + i) * lineH;
             drawText(ctx, (i === this.choice ? '→ ' : '   ') + o, X(bx + 14), Y(y), i === this.choice ? P.yellow : P.cream, s);
         });
-        if (this.full() && !c.options && Math.floor(G.t * 3) % 2) drawText(ctx, '↓', X(bx + bw - 12), Y(by + bh - 11), P.yellow, s);
+        if (this.full() && !c.options) { const more = this.q.length > 0; if (!more || Math.floor(G.t * 3) % 2) drawText(ctx, more ? '↓' : '·', X(bx + bw - 12), Y(by + bh - 11), P.yellow, s); }
     },
 };
 const NAMES = {};

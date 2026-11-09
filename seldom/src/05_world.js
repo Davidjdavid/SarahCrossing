@@ -114,7 +114,7 @@ function moveEnt(e, dx, dy) {
         if (!b) e.x += dx; else {
             hitX = b;
             /* slide round corners a little, like the old games */
-            if (!dy && e.corner) for (const s of [1, -1]) { const nb2 = { x: e.x + dx, y: e.y + s * 3, w: e.w, h: e.h }; if (!boxBlocked(map, nb2, e) && !boxBlocked(map, { x: e.x, y: e.y + s * 3, w: e.w, h: e.h }, e)) { e.y += s * Math.min(1, Math.abs(dx)); break; } }
+            if (!dy && e.corner) for (const r of [2, 4, 6]) { let done = false; for (const s of [1, -1]) { const nb2 = { x: e.x + dx, y: e.y + s * r, w: e.w, h: e.h }; if (!boxBlocked(map, nb2, e) && !boxBlocked(map, { x: e.x, y: e.y + s * r, w: e.w, h: e.h }, e)) { e.y += s * Math.min(1.2, Math.abs(dx)); done = true; break; } } if (done) break; }
         }
     }
     if (dy) {
@@ -122,7 +122,7 @@ function moveEnt(e, dx, dy) {
         const b = boxBlocked(map, nb, e);
         if (!b) e.y += dy; else {
             hitY = b;
-            if (!dx && e.corner) for (const s of [1, -1]) { const nb2 = { x: e.x + s * 3, y: e.y + dy, w: e.w, h: e.h }; if (!boxBlocked(map, nb2, e) && !boxBlocked(map, { x: e.x + s * 3, y: e.y, w: e.w, h: e.h }, e)) { e.x += s * Math.min(1, Math.abs(dy)); break; } }
+            if (!dx && e.corner) for (const r of [2, 4, 6]) { let done = false; for (const s of [1, -1]) { const nb2 = { x: e.x + s * r, y: e.y + dy, w: e.w, h: e.h }; if (!boxBlocked(map, nb2, e) && !boxBlocked(map, { x: e.x + s * r, y: e.y, w: e.w, h: e.h }, e)) { e.x += s * Math.min(1.2, Math.abs(dy)); done = true; break; } } if (done) break; }
         }
     }
     return [hitX, hitY];

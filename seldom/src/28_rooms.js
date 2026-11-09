@@ -133,7 +133,7 @@ async function crumbTalk(e) {
         await say('She lays one egg, and that\'s it. Every time I look in the hen run, there\'s the one egg. The run\'s just outside, by the east road.', 'crumb');
         return;
     }
-    await say(n ? `That's ${n}. I need three. Just the one in the run? Same as always.` : 'Three eggs, Dot. The hen run\'s just outside, by the east road.', 'crumb');
+    await say(n ? `That's ${n}. ${3 - n === 1 ? 'One more!' : 'Two more!'} The hen only ever has the one in the run at a time, mind.` : 'Three eggs, Dot. The hen run\'s just outside, by the east road.', 'crumb');
 }
 Story.on('entered', (m) => {
     /* after Lamp Night, the folk who live indoors go home */

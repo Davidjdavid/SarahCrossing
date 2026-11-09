@@ -113,8 +113,8 @@ const Cam = {
             this.ax += x * sp; this.ay += y * sp; this.clampMap(0);
         }
         if (!this.split && this.mode === 'follow' && d && !this.eye) {
-            const tx = ecx(d) + (DIRS[d.dir][0] * 10), ty = ecy(d) - 6 + DIRS[d.dir][1] * 6;
-            const k = Math.min(1, dt * 7);
+            const tx = ecx(d) + (DIRS[d.dir][0] * 8), ty = ecy(d) - 6 + DIRS[d.dir][1] * 5;
+            const k = Math.min(1, dt * 11);
             this.ax = lerp(this.ax, tx, k); this.ay = lerp(this.ay, ty, k);
             this.keepDot(0); this.clampMap(0);
         }

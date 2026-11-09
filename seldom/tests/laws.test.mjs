@@ -70,6 +70,17 @@ test('Bound: the edge of the view drags a sheep along', async () => {
     assert.equal(r[1], true);
 });
 
+test('Bound: a pinned view, moved, sweeps a sheep into Pan\'s pen', async () => {
+    const r = await fresh(`
+        G.flags.spyglass = true; G.flags.penOpen = true;
+        const s = ent('molly'); s.x = 82 * TILE; s.y = 47 * TILE; s.st.t = 99;
+        Debug.go(94, 47); await Bot.step(20);
+        await Bot.look({ right: true }, 120);
+        await Bot.step(10);
+        return [tileOf(s).join(','), !!s.penned];`);
+    assert.equal(r[1], true, 'the sheep ended up at ' + r[0]);
+});
+
 test('Wrap: in the woods, walking out one edge comes in at the other', async () => {
     const r = await fresh(`
         G.flags.spyglass = true; Debug.go(28, 38); await Bot.step(20);

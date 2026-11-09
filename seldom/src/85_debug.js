@@ -51,6 +51,17 @@ const Bot = {
     async look(k, n) { this.keys(Object.assign({ look: true }, k)); await this.step(n); this.keys(); await this.step(2); },
     async face(dir) { this.keys({ [dir]: true }); await this.step(2); this.keys(); await this.step(1); },
     async act() { await this.press('act'); await this.talkThrough(); },
+    /* walk up to someone (from whichever side is free) and talk to them */
+    async talkTo(name) {
+        const e = ent(name); if (!e) return false;
+        for (const [dx, dy, dir] of [[0, -1, 'down'], [0, 1, 'up'], [-1, 0, 'right'], [1, 0, 'left']]) {
+            const [x, y] = tileOf(e);
+            if (World.map.solidAt(x + dx, y + dy)) continue;
+            if (!await this.walkTo(x + dx, y + dy, 1500)) continue;
+            await this.face(dir); await this.act(); return true;
+        }
+        return false;
+    },
     async until(f, max) { for (let i = 0; i < (max || 6000); i++) { if (f()) return true; if (G.state === 'talk') await this.talkThrough(); await this.step(1); } return false; },
 };
 

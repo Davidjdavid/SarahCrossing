@@ -54,18 +54,17 @@ const CHAPTERS = {
         if (!G.flags.spyglass) return 'no spyglass';
     },
     async pasture() {
-        if (!await Bot.walkTo(89, 41)) return 'no Pan';
-        await Bot.face('down'); await Bot.act();
+        if (!await Bot.talkTo('pan')) return 'no Pan';
         if (!G.flags.penOpen) return 'pen not opened';
         /* drag each sheep down into the pen with the top edge of the view */
         for (const n of ['dolly', 'lolly', 'molly', 'polly']) {
             const s = ent(n);
             s.x = 89 * TILE + 1; s.y = 38 * TILE; s.st.t = 3;
             await Bot.walkTo(89, 43, 600);
-            await Bot.walkTo(89, 58, 900);
+            await Bot.walkTo(89, 53, 900);
             if (!s.penned) return n + ' not penned, at ' + tileOf(s);
         }
-        await Bot.walkTo(89, 41); await Bot.face('down'); await Bot.act();
+        await Bot.talkTo('pan');
         if (!G.flags.loupe) return 'no loupe';
     },
     async lux() {

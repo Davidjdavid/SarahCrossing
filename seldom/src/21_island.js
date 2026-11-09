@@ -73,7 +73,7 @@ function paintIsland() {
     scatter(68, 28, 28, 36, '"', 0.12, 61, ['.']); scatter(68, 28, 28, 36, ',', 0.05, 62, ['.']);
     rect(67, 34, 18, 2, '~'); set(75, 34, 'v'); set(75, 35, 'v');   /* the brook, with a footbridge */
     rect(86, 44, 7, 1, 'f'); rect(86, 50, 7, 1, 'f'); rect(86, 44, 1, 7, 'f'); rect(92, 44, 1, 7, 'f');   /* Pan's pen */
-    rect(87, 45, 5, 5, '.'); rect(88, 44, 3, 1, '.');
+    rect(87, 45, 5, 5, '.'); rect(87, 44, 5, 1, '.');
     rect(71, 51, 7, 7, '.'); for (const [x, y] of [[72, 52], [75, 52], [72, 55], [75, 55], [78, 53]]) set(x, y, 'T');   /* the orchard */
     rect(88, 54, 7, 5, '~'); rect(91, 56, 2, 1, '.');             /* the duck pond and its islet */
     for (const [x, y] of [[69, 31], [94, 31], [70, 62], [95, 60], [83, 59], [80, 30]]) set(x, y, 'T');
@@ -102,7 +102,7 @@ function paintIsland() {
 function buildIsland() {
     const rows = paintIsland();
     const m = new GameMap({
-        id: 'island', rows, fill: 'd', outside: 'd', bg: '#3b7fc0',
+        id: 'island', rows, fill: 'd', outside: 'd', bg: '#3b7fc0', pad: 15 * TILE, edgeTile: true,
         zones: [
             { law: 'wrap', x: 4, y: 14, w: 31, h: 42, name: 'Turnabout Woods' },
             { name: 'The Village', x: 36, y: 30, w: 29, h: 26 },

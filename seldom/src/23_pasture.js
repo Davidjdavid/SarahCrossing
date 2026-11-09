@@ -6,7 +6,7 @@ NAMES.pan = 'Pan';
 ISLAND_ADD.push(function pasture(m) {
     person(m, 'pan', 89, 42, { spec: LOOKS.pan, song: 'pasture', loud: 150, day: [[0, 24, { x: 89, y: 42, dir: 'down' }]], talk: panTalk });
     for (const [n, x, y] of [['dolly', 72, 35], ['lolly', 79, 46], ['molly', 82, 56], ['polly', 93, 36]]) m.addAt('sheep', x, y, { name: n, zone: PASTURE });
-    addProp(m, { id: 'pengate', tx: 88, ty: 44, tw: 3, th: 1, fh: 1, draw: drawPenGate });
+    addProp(m, { id: 'pengate', tx: 87, ty: 44, tw: 5, th: 1, fh: 1, draw: drawPenGate });
     house(m, 'panhouse', 86, 30, 4, 3, { tw: 4, th: 3, wall: '#e8d8b0', roof: '#6cbf5a', door: 1, windows: [2, 3], timber: true }, ['island', 0, 0, () => true, () => 'Pan\'s house. It smells strongly of sheep.']);
     addProp(m, { id: 'windmill', tx: 78, ty: 28, tw: 3, th: 3, fh: 2, draw: drawWindmill, update: (p, dt) => { p.st = p.st || {}; p.st.a = (p.st.a || 0) + dt * 0.8; } });
     for (const [x, y] of [[72, 53], [75, 53], [72, 56], [75, 56], [78, 54]]) m.addAt('apple', x, y, { name: 'apple' + x + y });
@@ -20,7 +20,7 @@ ISLAND_ADD.push(function pasture(m) {
 
 function drawPenGate(D, p) {
     if (G.flags.penOpen) return;
-    for (let i = 0; i < 3; i++) { const x = (p.tx + i) * TILE; box(D, x, p.ty * TILE + 6, 16, 2, P.white); box(D, x, p.ty * TILE + 11, 16, 2, P.white); box(D, x + 7, p.ty * TILE + 3, 2, 12, '#c08b55'); }
+    for (let i = 0; i < p.tw; i++) { const x = (p.tx + i) * TILE; box(D, x, p.ty * TILE + 6, 16, 2, P.white); box(D, x, p.ty * TILE + 11, 16, 2, P.white); box(D, x + 7, p.ty * TILE + 3, 2, 12, '#c08b55'); }
 }
 function drawWindmill(D, p) {
     const c = windmillBody(), x = p.tx * TILE + 24 - c.width / 2, y = (p.ty + p.th) * TILE - c.height;

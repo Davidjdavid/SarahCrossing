@@ -3,7 +3,7 @@ const DOT_SPEED = 78;
 const DOT_SPEC = { skin: P.skin, hair: '#6b3f26', style: 'beanie', hat: P.red, top: P.teal, bottom: '#3a4a7a', shoes: P.brownD, blush: '#f29a8c' };
 
 kind('dot', {
-    w: 10, h: 7, ph: 22, figure: true,
+    w: 10, h: 7, ph: 22, figure: true, solid: true,
     draw(e, d) {
         const moving = e.moving;
         let f = moving ? (Math.floor(e.anim * 8) % 4 === 1 ? 1 : Math.floor(e.anim * 8) % 4 === 3 ? 2 : 0) : 0;
@@ -46,6 +46,15 @@ kind('dot', {
         const [hx, hy] = moveEnt(e, dx, dy);
         const hit = hx || hy;
         if (hit && hit.kind && KINDS[hit.kind].push) KINDS[hit.kind].push(hit, e.dir, e);
+        /* someone standing in the way steps aside after a moment */
+        if (hit && hit.kind === 'person' && !hit.hold && World.talking !== hit) {
+            hit.nudgeT = (hit.nudgeT || 0) + dt;
+            if (hit.nudgeT > 0.35) {
+                hit.nudgeT = 0;
+                const [fx, fy] = DIRS[e.dir];
+                for (const s of [1, -1]) { const nx = hit.x + (fy ? s * 14 : 0), ny = hit.y + (fx ? s * 12 : 0); if (!boxBlocked(hit.map, { x: nx, y: ny, w: hit.w, h: hit.h }, hit)) { hit.x = nx; hit.y = ny; hit.goal = null; bark(hit, 'Oh! Sorry.', 1.2); break; } }
+            }
+        }
         if (e.carrying) carryPos(e);
         /* stepping on things (doors, plates) */
         World.step(e);

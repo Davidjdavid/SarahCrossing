@@ -54,9 +54,9 @@ const UI = {
         }
         if (this.hintT > 0 && this.hint && G.state === 'play') {
             const a = Math.min(1, this.hintT); ctx.globalAlpha = a * 0.9;
-            const w = textWidth(this.hint) + 12;
-            ctx.fillStyle = 'rgba(26,18,32,0.85)'; roundRect(ctx, X(VIEW_W / 2 - w / 2), Y(VIEW_H - 22), w * s, 13 * s, 4 * s); ctx.fill();
-            drawText(ctx, this.hint, X(VIEW_W / 2 - w / 2 + 6), Y(VIEW_H - 19), P.cream, s);
+            const lines = wrapText(this.hint, 330), w = Math.max(...lines.map(textWidth)) + 12, h = 4 + lines.length * 10;
+            ctx.fillStyle = 'rgba(26,18,32,0.85)'; roundRect(ctx, X(VIEW_W / 2 - w / 2), Y(VIEW_H - 9 - h), w * s, h * s, 4 * s); ctx.fill();
+            lines.forEach((ln, i) => drawText(ctx, ln, X(VIEW_W / 2 - w / 2 + 6), Y(VIEW_H - 6 - h + i * 10), P.cream, s));
             ctx.globalAlpha = 1;
         }
         if (Fx.toasts.length && G.state !== 'title') {
@@ -73,13 +73,15 @@ const UI = {
     },
     drawHud(ctx, X, Y, s) {
         if (World.map && !World.map.def.noClock) {
-            const cx = X(16), cy = Y(16), r = 10 * s;
+            const cx = X(12), cy = Y(12), r = 7.5 * s;
+            ctx.globalAlpha = 0.85;
             ctx.fillStyle = 'rgba(26,18,32,0.75)'; ctx.beginPath(); ctx.arc(cx, cy, r + 2 * s, 0, 7); ctx.fill();
             ctx.fillStyle = Light.night() ? '#d8dcf8' : P.white; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
             const h = World.hour % 12, m = (World.hour % 1);
             const hand = (a, len, w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.sin(a) * len, cy - Math.cos(a) * len); ctx.stroke(); };
             hand(h / 12 * Math.PI * 2, r * 0.5, 2 * s, P.ink); hand(m * Math.PI * 2, r * 0.8, 1.2 * s, P.redS);
             ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(cx, cy, 1.2 * s, 0, 7); ctx.fill();
+            ctx.globalAlpha = 1;
         }
         let x = VIEW_W - 16;
         for (const [flag, pic] of [['prism', 'prism'], ['wideglass', 'wideglass'], ['loupe', 'loupe'], ['spyglass', 'spyglass']]) {
@@ -109,10 +111,11 @@ const UI = {
             wrapText(L.text, bw / 2 - 22).forEach((ln, i) => drawText(ctx, ln, X(bx + bw / 2 + 10), Y(by + 22 + i * 10), P.ink, s));
         } else drawText(ctx, 'Not yet...', X(bx + bw / 2 + 10), Y(by + 22), '#a8946c', s);
         const inv = Object.entries(World.inv).filter(([, n]) => n > 0);
-        if (inv.length) {
-            drawText(ctx, 'Pockets:', X(bx + bw / 2 + 10), Y(by + bh - 30), P.brownD, s);
-            inv.forEach(([k, n], i) => drawText(ctx, (ITEM_NAMES[k] || k) + ' ' + n, X(bx + bw / 2 + 10 + (i % 3) * 50), Y(by + bh - 20 + Math.floor(i / 3) * 9), P.ink, s));
-        }
+        const cur = Object.keys(CURIOS).filter(k => G.flags['curio_' + k]);
+        const lines = [];
+        if (inv.length) lines.push('Pockets: ' + inv.map(([k, n]) => (ITEM_NAMES[k] || k) + ' ' + n).join(', '));
+        if (cur.length) lines.push('Curios found: ' + cur.length + ' of 6 (on Dot\'s shelf at home)');
+        lines.flatMap(l => wrapText(l, bw / 2 - 22)).forEach((ln, i, all) => drawText(ctx, ln, X(bx + bw / 2 + 10), Y(by + bh - 12 - (all.length - i) * 10), P.brownD, s));
         drawText(ctx, 'N or Esc to close', X(bx + 10), Y(by + bh - 12), '#a8946c', s);
     },
     updateNotebook() {
