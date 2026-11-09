@@ -53,7 +53,7 @@ defHouse({
                 { k: 'sign', x: 11, y: 9, text: "THE MARIONETTE HALL. Tonight: THE WANDERER. (Toy soldiers march till they meet something, then about turn. Don't be the something.)" },
                 { k: 'deco', x: 2, y: 9, look: 'poster', solid: [[0, 0]], oy: -14, text: 'A poster: a girl with a stick, painted in bright colours, standing on a stage. Underneath: STARRING YOU.' },
             ],
-            nudge: { solved: () => Progress.areaFlag('marionette', 'visited:boxoffice'), after: 60 * 60 * 3, at: [19, 5], say: 'The east wall of the foyer wobbles a little every time a soldier goes past it.' },
+            nudge: { solved: () => Progress.areaFlag('marionette', 'visited:boxoffice'), after: 60 * 60 * 3, at: [19, 5], say: "The east wall of the foyer is a slightly different red from the rest, and it isn't quite straight. As if it were only painted on something." },
         },
         /* ---------------- 2 The Box Office (behind the flat): the Plan ---------------- */
         '2,3': {
@@ -121,15 +121,15 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'door', x: 2, y: 3, type: 'gate', when: 'opp', id: 'opGate' },
+                { k: 'door', x: 2, y: 3, type: 'gate', when: 'opp', id: 'opGate', passed: 'up' },
                 { k: 'chest', x: 2, y: 1, item: 'key', id: 'opKey' },
-                { k: 'plate', x: 9, y: 6, sig: 'opp', mode: 'timed', time: 360 },
+                { k: 'plate', x: 9, y: 6, sig: 'opp', mode: 'pulse', time: 80 },
                 { k: 'soldier', x: 5, y: 9, facing: 'right', turn: 'right', id: 'opSol' },
                 { k: 'block', x: 10, y: 2, id: 'opBlock', marked: false },
                 { k: 'deco', x: 14, y: 6, look: 'drum', solid: [[0, 0]], text: 'A big drum. Somebody has painted on it: PLAYED BY B.' },
-                { k: 'sign', x: 17, y: 1, text: "THE ORCHESTRA PIT. Our drummer marches round and round the edge, turning right at every wall. He has never once crossed the middle." },
+                { k: 'sign', x: 17, y: 1, text: "THE ORCHESTRA PIT. Our drummer marches round and round the edge, turning right at every wall. He has never once crossed the middle. (The gate by the music stands opens a moment for each footfall on the drum-plate: wait for it there.)" },
             ],
-            nudge: { solved: 'marionette_chest:opKey', after: 60 * 60 * 3, thing: 'opBlock', say: 'The drummer turns right at anything in his way, not only walls. Put something in his way, and see where he goes instead.' },
+            nudge: { solved: 'marionette_chest:opKey', after: 60 * 60 * 3, thing: 'opBlock', say: 'The drummer turns right at anything in his way, not only walls. Put something in his way, see where he goes instead, and be waiting at the gate when he crosses the plate.' },
         },
         /* ---------------- 5 Rehearsal Room: down the trapdoor for the key, home by the Bedroll (key B); S13 the Wren puppet ---------------- */
         '2,2': {
@@ -154,7 +154,7 @@ defHouse({
                 { k: 'rack', x: 15, y: 9, group: 'wren', id: 'rhRack' },
                 { k: 'puppet', x: 13, y: 7, id: 'wrenPuppet', look: 'puppet_wren', group: 'wren' },
                 { k: 'deco', x: 14, y: 2, look: 'set_tidy', solid: [[0, 0], [1, 0], [2, 0], [3, 0]], oy: -8, text: 'A stage set, built small: a grand foyer, a staircase, a portrait of a woman with a feather duster. You have been here. You have been here this week.' },
-                { k: 'plate', x: 16, y: 4, sig: 'rhSet' },
+                { k: 'plate', x: 16, y: 4, sig: 'rhSet', puppetOnly: true },
                 { k: 'chest', x: 17, y: 6, item: 'heartpatch', id: 'rhPatch', hidden: true, when: 'flag:s13' },
                 { k: 'sign', x: 8, y: 1, text: "THE REHEARSAL ROOM. Mind the trapdoor. (There is no ladder. There has never been a ladder. Stagehands come up the hard way.)" },
             ],
@@ -178,7 +178,7 @@ defHouse({
             ],
             ents: [
                 { k: 'door', x: 9, y: 0, type: 'big', id: 'wiBig' },
-                { k: 'door', x: 19, y: 5, type: 'lock', id: 'wiLockE', dir: 'v' },
+                { k: 'door', x: 19, y: 5, type: 'gate', when: 'flag:marionette_tin', keep: true, id: 'wiLockE', dir: 'v' },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'tin' }, { k: 'shutter', x: 0, y: 5, dir: 'v', group: 'tin' }, { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'tin' },
                 { k: 'flat', x: 4, y: 6, id: 'wiFlatW', look: 'flat_red', respring: true }, { k: 'flat', x: 15, y: 6, id: 'wiFlatE', look: 'flat_red', respring: true },
                 { k: 'captain', x: 9, y: 6, id: 'tin' },
@@ -283,6 +283,7 @@ defHouse({
                 { k: 'puppet', x: 3, y: 6, id: 'gsWrenA', look: 'puppet_wren', group: 'boss' }, { k: 'puppet', x: 9, y: 6, id: 'gsWrenB', look: 'puppet_wren', group: 'boss' },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'boss' },
             ],
+            nudge: { solved: 'reveal1', after: 60 * 60 * 3, at: [9, 5], say: "The great feet stamp, and every string runs straight up past them. A little Wren walked right round a foot, and round, would wind its own string round it. Two of them, round both feet at once..." },
         },
     },
     tick: a => MarionetteHall.tick(a),

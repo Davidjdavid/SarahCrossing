@@ -153,6 +153,34 @@ const Nudges = {
     },
 };
 
+/* a House's boss beaten but its Knot not yet tied: the Hoop and the boss's Heartstitch are there whenever the House is
+   built again (after leaving it, or a load), not only right after the fight */
+const HOUSE_AFTER = {
+    tidy: { flag: 'tidy_boss', room: '1,0', hoop: [9, 5], heart: [9, 7], heartId: 'tidyHeart' },
+    kiln: { flag: 'kiln_boss', room: '1,0', hoop: [9, 4], heart: [9, 7], heartId: 'kilnHeart' },
+    millrace: { flag: 'millrace_boss', room: '1,0', hoop: [17, 9], heart: [4, 9], heartId: 'millHeart' },
+    belfry: { flag: 'belfry_boss', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'belfryHeart' },
+    slumber: { flag: 'slumber_boss', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'slumberHeart' },
+    marionette: { flag: 'reveal1', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'marionetteHeart' },
+};
+const HouseAfter = {
+    add(a) {
+        const d = HOUSE_AFTER[a.id], br = d && a.rooms.find(r => r.key === d.room);
+        if (!br) return;
+        if (!Inv.knots.includes(a.def.house) && !a.ents.some(e => e.kind === 'hoop')) a.add(new Hoop(br.x + d.hoop[0], br.y + d.hoop[1]));
+        if (!a.ents.some(e => e.id === d.heartId)) a.add(new Pickup((br.x + d.heart[0]) * T, (br.y + d.heart[1]) * T, { what: 'heartstitch', id: d.heartId }));
+    },
+};
+{
+    const build0 = World.build;
+    World.build = function (id) {
+        const a = build0.call(this, id);
+        const d = HOUSE_AFTER[id];
+        if (d && Progress.flag(d.flag)) HouseAfter.add(a);
+        return a;
+    };
+}
+
 function initHouseKit() {
     defSprite('lever_off', ['................', '................', '................', '..........kk....', '.........kwk....', '........kwk.....', '.......kbk......', '......kbk.......',
         '.....kbk........', '...kkkkkkkk.....', '..kgggggggGk....', '..kgggggggGk....', '..kGGGGGGGGk....', '...kkkkkkkk.....', '................', '................'], { b: '#9a6438', g: '#9a9188', G: '#6a635e', w: '#e8463c' });

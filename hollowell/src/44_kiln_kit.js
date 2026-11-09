@@ -139,6 +139,8 @@ TOOLS.hook = {
                 if (o.eyelet || o.hookable !== false) return this.latch(h, area, tx, ty, o.eyelet ? 'eyelet' : 'thing');
                 h.state = 'back'; Sfx.play('hookhit'); return true;
             }
+            /* only strings move a puppet */
+            if (o.kind === 'puppet') { h.state = 'back'; Sfx.play('hookhit'); return true; }
             if (o.ret || o.liftable || o.weight <= WEIGHT.medium) {
                 h.state = 'pull'; h.obj = o; h.steps = 8; Sfx.play('hookhit'); Stats.count('hook:pull');
                 return true;

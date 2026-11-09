@@ -82,7 +82,7 @@ defBlock({
         { k: 'chest', x: 52, y: 11, item: 'heartpatch', id: 'larkPen', hidden: true, when: 'penplate' },
         { k: 'sign', x: 49, y: 11, text: "THE AMAZING PUPPET FAKIR. Walks on nails! (Strings not included.)" },
         /* toy soldiers on parade */
-        { k: 'soldier', x: 44, y: 19, facing: 'left', id: 'larkSol1' }, { k: 'soldier', x: 24, y: 15, facing: 'right', id: 'larkSol2' }, { k: 'soldier', x: 38, y: 24, facing: 'up', turn: 'right', id: 'larkSol3' },
+        { k: 'soldier', x: 44, y: 19, facing: 'left', id: 'larkSol1' }, { k: 'soldier', x: 24, y: 15, facing: 'right', id: 'larkSol2' }, { k: 'soldier', x: 38, y: 24, facing: 'left', id: 'larkSol3' },
         /* the theatre */
         { k: 'building', x: 25, y: 3, w: 14, h: 7, door: 6, art: 'marionette' },
         { k: 'warp', x: 31, y: 9, to: 'marionette', tx2: MARIONETTE_ENTRY.x, ty2: MARIONETTE_ENTRY.y, face: 'up', dir: 'up' },
@@ -106,7 +106,7 @@ defBlock({
 OW.blocks['0,2'].ents.push(
     { k: 'leap', x: 12, y: 3, id: 'mesaLeap' },
     { k: 'puppet', x: 24, y: 3, id: 'stagehand', look: 'puppet' },
-    { k: 'crank', x: 25, y: 3, id: 'liftCrank' },
+    { k: 'crank', x: 25, y: 3, id: 'liftCrank', puppetOnly: true },
     { k: 'lift', x: 22, y: 3, id: 'mesaLift' },
 );
 /* the town's west road runs on to the fair's gate */
@@ -164,7 +164,7 @@ SPAWN.lift = (x, y, p) => {
             const i = yield* ask(null, p.down ? 'The lift. Ride up to the mesa?' : 'The lift. Ride down to the fair?', ['Ride', 'Not now']);
             if (i !== 0) return;
             yield* fadeOut(24);
-            const [tx, ty] = p.down ? [23, 83] : LARK(24, 34);
+            const [tx, ty] = p.down ? [21, 83] : LARK(24, 34);
             const pl = G.player; pl.x = tx * T + 8; pl.y = ty * T + 10; pl.setMark(); Cam.snap(pl);
             Sfx.play('door');
             yield* fadeIn(24);
@@ -230,7 +230,7 @@ ITEMS.driftseed = { name: 'Drift-bloom seed', kind: 'quest', desc: "A seed from 
         const b = Inv.bedroll;
         const near = b && b.area === p.area.id && Math.hypot(b.tx - p.tx, b.ty - p.ty) <= 6;
         pull.call(this, p);
-        if (near && !Progress.flag('s11')) { Progress.set('s11'); Stats.count('secret:driftseed'); G.pendingSeed = true; }
+        if (near && !Progress.flag('s11')) { Progress.set('s11'); Stats.count('secret:driftseed'); Inv.items.driftseed = 1; G.pendingSeed = true; }
     };
     /* once the fog's own words are said and Wren is home: the seed */
     const prev = Story.tick;
@@ -241,6 +241,7 @@ ITEMS.driftseed = { name: 'Drift-bloom seed', kind: 'quest', desc: "A seed from 
             G.pendingSeed = false;
             Script.run(function* () {
                 yield* say(null, 'You land on your Bedroll with something in your fist that you did not take in with you: a fat brown seed, warm as a hand.');
+                delete Inv.items.driftseed;    /* (it was kept safe from the moment the fog let go; now it's shown) */
                 yield* Story.getItem('driftseed')();
             });
         }

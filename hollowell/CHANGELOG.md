@@ -56,4 +56,8 @@
 - Fixes from the fifth dungeon's review: never stuck inside things after loading or flying home; the room's own place
   comes back when the bedroll is rolled up; a "back to the door" option in every dungeon's pause menu; several ways
   to cheese or lose rooms closed.
+- Fixes from the sixth dungeon's review: a dungeon's prize and story scene can no longer be lost by leaving early; no
+  key order can shut a room for good; a too-easy room made to need its idea; several shortcuts closed; a boss warning
+  made visible.
+- The seventh tool's kit: two layers, cords, knots, hatches, and giving things a new place; a lab room and tests.
 

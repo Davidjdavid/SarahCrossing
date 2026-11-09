@@ -53,8 +53,18 @@
   levers and bosses, the Bedroll on stairs, a repeated intro. 11 regression tests (`tests/review_d5.test.mjs`);
   `npm test` 199/199.
 
+- 2026-11-09 (late night): the fresh-eyes review of D6 found 9 problems: the reveal, Hoop and Heartstitch lost for
+  good by leaving or loading between the boss and the Knot (true of every House: now each House puts its Hoop and heart
+  back whenever it's built again until the Knot is tied, and the Marionette's flag is only set once the reveal is
+  done); a key order that shut the Rehearsal Room (the Wings' east door now opens when Captain Tin falls); an Orchestra
+  Pit Wren or a stray could solve alone (a pulse plate: only someone waiting at the gate gets through); rack puppets
+  taken singly and through walls; Crossbar secrets done without the Crossbar (plates only puppets' feet work; the hook
+  doesn't pull puppets); sandbags hidden behind the rack (drawn over everything now, the first one later); the lift
+  boxing Wren in; returning puppets blocking each other (they find a way round or slip past); a soldier on the pen.
+  Soldiers are tin now (a whack turns them round). 9 regression tests (`tests/review_d6.test.mjs`); with the seventh
+  tool's kit (7), `npm test` 215/215.
+
 ## Unresolved issues
-- D6 and Larkspur: fresh-eyes review running.
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
 ## Verification history
@@ -69,3 +79,4 @@
 | 2026-11-09 | Bedroll kit, Hushwood, Slumberhouse, playthrough leg 5 (166 in all); browser shots of every new room | pass |
 | 2026-11-09 | Crossbar kit, Larkspur, Marionette Hall, playthrough leg 6 (188 in all); browser shots | pass |
 | 2026-11-09 | D5 review fixes (17 issues, 5 softlocks; +11 regression tests, 199 in all) | pass |
+| 2026-11-09 | D6 review fixes (9 problems; +9 regression tests); the seventh tool's kit (+7); 215 in all; D6 browser shots | pass |

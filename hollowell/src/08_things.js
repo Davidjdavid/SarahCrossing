@@ -132,6 +132,7 @@ class FloorThing extends Ent {
     /* is anything weighing on this tile? */
     weighed() {
         const a = this.area, o = a.at(this.tx, this.ty);
+        if (this.puppetOnly) return !!(o && o.kind === 'puppet' && !o.carried);
         if (o && !o.carried && !o.flying && o.weight >= (this.minWeight || 1)) return true;
         const p = G.player;
         if (p && p.area === a && !p.flying && !p.dead && p.feetOn(this.tx, this.ty) && (this.minWeight || 1) <= WEIGHT.medium) return true;

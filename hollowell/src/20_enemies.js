@@ -98,7 +98,7 @@ class Enemy extends Ent {
     }
     struck(by, dmg, dir, shard) {
         if (!this.alive || this.flash > 0 || this.hidden) return;
-        if (this.D.armored && !shard && !(by && by.isGrid)) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 6); if (dir >= 0) { this.kx = DX[dir] * 1.5; this.ky = DY[dir] * 1.5; } return; }
+        if (this.D.armored && !shard && !(by && by.isGrid)) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 6); if (dir >= 0) { this.kx = DX[dir] * 1.5; this.ky = DY[dir] * 1.5; } if (this.onArmor) this.onArmor(dir); return; }
         this.hp -= dmg; this.flash = 18;
         Sfx.play('enemyhit'); G.hitstop = 3;
         const p = G.player;

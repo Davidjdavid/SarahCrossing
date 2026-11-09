@@ -189,12 +189,12 @@ together, the leading ones first, each that can.
 | The Foyer | 1,3 | Soldiers; flats | The east wall wobbles when soldiers pass: knock it down | the way to the Box Office |
 | The Box Office | 2,3 | - | Behind the flat | Plan |
 | The Auditorium | 1,2 | Hub | Seats; W open, E (lock) and N (lock) | - |
-| The Orchestra Pit | 0,2 | Shape a soldier's beat | The drummer goes round the room's edge turning right; push the stray block into the top of his beat: he turns down early, across the timed plate, and the alcove opens | key A |
+| The Orchestra Pit | 0,2 | Shape a soldier's beat | The drummer goes round the room's edge turning right; push the stray block into the top of his beat: he turns down early, across the plate (a pulse: the gate opens a moment per footfall), and Wren, waiting at the gate, slips through | key A |
 | The Rehearsal Room | 2,2 | Bedroll | Lay it up top, drop through the trapdoor to the key, Homeward (or the hole in the under-stage floor, which hurts). S13 later | key B |
-| The Wings | 1,1 | Mini-boss: Captain Tin | He marches between two flats; knock one as he comes and he marches on into the trapdoor behind it; dazed, hit him (3x). The flats spring back up | Crossbar |
+| The Wings | 1,1 | Mini-boss: Captain Tin | He marches between two flats; knock one as he comes and he marches on into the trapdoor behind it; dazed, hit him (3x). The flats spring back up; the east door opens when he falls | Crossbar |
 | The Dressing Rooms | 0,1 | Crossbar | The puppet through three little holes and over the nails onto the plate | key C |
 | The Prop Store | 2,1 | A rack | Three puppets on one rack, walls holding some back: DRDRDRRDRURUR puts all three on the plates | Pattern |
 | Jory's Workshop | 2,0 | Signature | A lone puppet through the little hole in the Prop Store's north wall onto the plate inside: the door opens for good | Maker's mark, 50 buttons |
 | The Great Stage | 1,0 | Boss: the Great Marionette | Two little Wrens on a rack: line them up against its feet (walk them so the feet stop them), then walk them all the way round: both strings tangle, it falls; knock its head (3x). Sandbags fall where you stand (a hit makes you let go) | Knot, Heartstitch; Reveal 1 |
 
-Keys: 3 keys (Pit, Rehearsal, Dressing), 3 locks (Auditorium E, Auditorium N, Wings E). Pattern: the Wings' north door.
+Keys: 3 keys (Pit, Rehearsal, Dressing), 2 locks (Auditorium E, Auditorium N): one spare whichever order. Pattern: the Wings' north door.

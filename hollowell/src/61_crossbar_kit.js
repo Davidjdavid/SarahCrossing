@@ -12,8 +12,22 @@ const Crossbar = {
     repeat: 0,
     sightOf(p) {
         const a = p.area, room = a.rooms && a.rooms.length > 1 ? a.roomAt(p.tx, p.ty) : null;
-        return e => Math.hypot(e.tx - p.tx, e.ty - p.ty) <= this.REACH && (!room || a.roomAt(e.tx, e.ty) === room);
+        return e => Math.hypot(e.tx - p.tx, e.ty - p.ty) <= this.REACH && (!room || a.roomAt(e.tx, e.ty) === room) && this.clear(a, p.tx, p.ty, e.tx, e.ty);
     },
+    /* indoors, walls are in the way (little holes aren't); outdoors you can see up a cliff or over a fence */
+    clear(a, x0, y0, x1, y1) {
+        if (a.family === 'outdoor') return true;
+        const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) * 2;
+        for (let i = 1; i < n; i++) {
+            const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n);
+            if ((x === x0 && y === y0) || (x === x1 && y === y1)) continue;
+            const k = a.kind(x, y);
+            if (k.solid && !k.crawl) return false;
+        }
+        return true;
+    },
+    /* a puppet on a rack is only worked from its rack */
+    onRack(e) { return !!e.group && e.area.ents.some(o => o.kind === 'rack' && o.group === e.group && !o.removed); },
     /* what C would take: a rack in front, else the nearest puppet in sight on the side Wren faces */
     target(p) {
         const a = p.area, f = p.front(), o = a.at(f.tx, f.ty);
@@ -21,7 +35,7 @@ const Crossbar = {
         const seen = this.sightOf(p);
         let best = null, bd = Infinity;
         for (const e of a.ents) {
-            if (e.kind !== 'puppet' || e.removed || e.racked || !seen(e)) continue;
+            if (e.kind !== 'puppet' || e.removed || this.onRack(e) || !seen(e)) continue;
             const dx = e.tx - p.tx, dy = e.ty - p.ty;
             if (DX[p.dir] * dx + DY[p.dir] * dy <= 0) continue;
             const d = Math.hypot(dx, dy);
@@ -110,7 +124,47 @@ class Puppet extends GridThing {
         this.bob = 12;
         return true;
     }
-    tick() { if (this.bob > 0) this.bob--; }
+    tick() {
+        if (this.bob > 0) this.bob--;
+        /* two puppets going home can stand nose to nose on each other's way: they find a way round, or slip past */
+        const r = this.ret;
+        if (r && r.state === 'returning' && !this.mv && r.strain > 45 && r.trace.length >= 2) {
+            const [nx, ny] = r.trace[r.trace.length - 2], o = this.area.at(nx, ny);
+            if (o && o.kind === 'puppet' && !o.mv && !o.heldBy) {
+                const ot = o.ret && o.ret.trace;
+                if (o.ret && o.ret.state === 'returning' && ot.length >= 2 && ot[ot.length - 2][0] === this.tx && ot[ot.length - 2][1] === this.ty) {
+                    /* face to face: slip past each other */
+                    const a = this.area; a.unplace(this, this.tx, this.ty); a.unplace(o, o.tx, o.ty);
+                    const mx = this.tx, my = this.ty;
+                    this.startMove(nx, ny, r.pace, true); o.startMove(mx, my, o.ret.pace, true);
+                    r.strain = 0; o.ret.strain = 0;
+                    return;
+                }
+                const way = this.findWay(r.mx, r.my);
+                if (way) { r.trace = way; r.strain = 0; }
+            }
+        }
+    }
+    /* a way home round whatever's in the way (tiles a puppet can stand on), as a trace from the mark to here */
+    findWay(mx, my) {
+        const a = this.area, start = key2(this.tx, this.ty), prev = new Map([[start, null]]), q = [[this.tx, this.ty]];
+        while (q.length) {
+            const [x, y] = q.shift();
+            if (x === mx && y === my) {
+                const out = []; let k = key2(x, y), c = [x, y];
+                while (c) { out.push(c); const pk = prev.get(key2(c[0], c[1])); c = pk; }
+                return out;     /* mark first ... here last */
+            }
+            for (const d of [UP, DOWN, LEFT, RIGHT]) {
+                const nx = x + DX[d], ny = y + DY[d], k = key2(nx, ny);
+                if (prev.has(k) || prev.size > 400) continue;
+                const kk = a.kind(nx, ny);
+                if (kk.pit || kk.deep || !a.freeForThing(nx, ny, this)) continue;
+                prev.set(k, [x, y]); q.push([nx, ny]);
+            }
+        }
+        return null;
+    }
     sprite() { return spr((this.look || 'puppet') + (this.worked ? '_up' : '')); }
     draw(cx, cy) {
         const im = this.sprite(); if (!im) return;
@@ -156,7 +210,8 @@ AI.march = (e, p) => {
         e.x = e.tx * T + 8; e.y = e.ty * T + 10;
     }
 };
-SPAWN.soldier = (x, y, p) => new Enemy(x, y, Object.assign({ type: 'soldier' }, p));
+/* tin soldiers: a whack doesn't hurt them, it turns them round */
+SPAWN.soldier = (x, y, p) => { const e = new Enemy(x, y, Object.assign({ type: 'soldier' }, p)); e.onArmor = () => { if (e.march !== undefined) { e.march = OPP[e.march]; e.x = e.tx * T + 8; e.y = e.ty * T + 10; } }; return e; };
 
 /* painted flats: stage scenery standing in for a wall; a knock and it falls over, cardboard */
 class Flat extends GridThing {
@@ -176,7 +231,7 @@ class Flat extends GridThing {
 SPAWN.flat = (x, y, p) => new Flat(x, y, p);
 
 function initCrossbarKit() {
-    ENEMY.soldier = { hp: 2, ai: 'march', r: 5, tall: 14, speed: 0.6, yarn: THREAD.jory, weight: WEIGHT.medium, drop: 0.3 };
+    ENEMY.soldier = { hp: 2, ai: 'march', r: 5, tall: 14, speed: 0.6, yarn: THREAD.jory, weight: WEIGHT.medium, drop: 0.3, armored: true };
     const sd = { r: '#d6304e', R: '#9a1e36', b: '#2e3a7a', g: '#f7d64a', s: '#f0c8a0', w: '#fbf6ea', k: '#2a1f2d' };
     const soldier = leg => ['.....kkkk.....', '....kbbbbk....', '....kbbbbk....', '....kbbbbk....', '...kkggggkk...', '....kssssk....', '....kswswk....', '....kssssk....', '...krrrrrrk...', '..krRrggrRrk..', '..krrrggrrrk..', '..ksrrrrrrsk..', '...kbbbbbbk...', '...kbbk' + leg + 'bk...', '...kkk....kkk.'.slice(0, 14)];
     defSprite('soldier_0', soldier('kb'), sd); defSprite('soldier_1', soldier('bk'), sd);

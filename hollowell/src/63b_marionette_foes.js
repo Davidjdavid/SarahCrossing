@@ -117,7 +117,7 @@ class GreatMarionette extends Enemy {
         if (this.state === 'dance') {
             this.windUp();
             /* sandbags drop where Wren stands, now and then (a shadow first) */
-            if (this.st % (this.hp === 1 ? 180 : this.hp === 2 ? 240 : 300) === 100 && p.state === 'normal') this.bags.push({ x: p.x, y: p.y, t: 0 });
+            if (this.st > 360 && this.st % (this.hp === 1 ? 180 : this.hp === 2 ? 240 : 300) === 100 && p.state === 'normal') this.bags.push({ x: p.x, y: p.y, t: 0 });
             if (this.tangled[0] && this.tangled[1]) { this.state = 'down'; this.st = 0; G.shake = 14; Sfx.play('rumble'); Sfx.play('hitthing'); Stats.count('boss:gm:fall'); }
         } else if (this.state === 'down') {
             if (this.st > 420) this.rise();
@@ -165,16 +165,19 @@ class GreatMarionette extends Enemy {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]]; this.bags = [];
         if (Crossbar.ctl) Crossbar.release(G.player);
         Sfx.play('unravel');
-        Progress.set('marionette_boss');
         Script.run(MarionetteFoes.curtain(this));
     }
-    draw(cx, cy) {
+    draw(cx, cy) { this.drawBody(cx, cy); }
+    /* the sandbags: drawn over everything (src: TOOLS._gmBags), so their shadows show where they'll land */
+    drawBags(cx, cy) {
         for (const b of this.bags) {
             const k = Math.min(1, b.t / 60);
             Gfx.alpha(0.2 + 0.3 * k); Gfx.circle(b.x - cx, b.y - cy + 2, Math.round(4 + 4 * k), PAL.ink); Gfx.alpha(1);
             if (b.t < 60) { const y = b.y - cy - 120 * (1 - k); Gfx.line(b.x - cx, y - 40, b.x - cx, y - 6, '#cfc6b8'); Gfx.rect(b.x - cx - 4, y - 8, 8, 9, '#a88a5a'); }
             else Gfx.rect(b.x - cx - 4, b.y - cy - 6, 8, 7, '#a88a5a');
         }
+    }
+    drawBody(cx, cy) {
         if (!this.alive) return;
         const bx = this.hx * T - cx, by = this.hy * T - cy, sway = this.state === 'dance' ? Math.round(Math.sin(this.t / 20) * 3) : 0;
         if (this.state === 'down') {
@@ -201,6 +204,7 @@ class GreatMarionette extends Enemy {
         }
     }
 }
+TOOLS._gmBags = { draw(cx, cy) { const a = G.map; if (!a || a.id !== 'marionette') return; for (const e of a.ents) if (e instanceof GreatMarionette) e.drawBags(cx, cy); } };
 SPAWN.marionette = (x, y, p) => Progress.flag('marionette_boss') ? new Ent('none') : new GreatMarionette(x, y, p);
 
 const MarionetteFoes = {

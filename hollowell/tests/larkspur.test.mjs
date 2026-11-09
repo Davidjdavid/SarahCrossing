@@ -91,8 +91,8 @@ test('the lift: from the foot of the cliff, work the stagehand up on the mesa on
     assert.ok(HW.Progress.flag('fair_lift'), 'wound');
     HW.press('tool', 1); HW.step(3); HW.skipTalk();
     HW.face('right'); HW.press('act', 1); HW.skipTalk(0); HW.step(60);
-    assert.deepEqual([HW.player().tx, HW.player().ty], [23, 83], 'up on the mesa');
-    HW.face('left'); HW.press('act', 1); HW.skipTalk(0); HW.step(60);
+    assert.deepEqual([HW.player().tx, HW.player().ty], [21, 83], 'up on the mesa, clear of the stagehand');
+    HW.face('right'); HW.press('act', 1); HW.skipTalk(0); HW.step(60);
     assert.deepEqual([HW.player().tx, HW.player().ty], lk(24, 34), 'and down again');
     noErrors(HW);
 });

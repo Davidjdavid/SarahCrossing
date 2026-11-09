@@ -30,7 +30,7 @@ const Reveal1 = {
         yield* say('jory', "Under the Inn there's a door marked STAFF ONLY. It's open now. We'll be waiting for you below.");
         yield* say(null, "Then, all at the same moment, they look up, at nothing, the way people do when they think they've heard their name called from another room.");
         yield* say('tess', "...Tie your Knot, love. Gran'll want to hear all about it.");
-        Progress.set('reveal1');
+        Progress.set('marionette_boss'); Progress.set('reveal1');
         for (const e of a.ents.slice()) if (e.kind === 'npc' && ['ives', 'bram', 'ambrose', 'tess', 'mallow', 'jory'].includes(e.who)) { Fx.poof(e.x + 8, e.y + 8); a.remove(e); }
         Sfx.play('appear');
         g.shutters(false);

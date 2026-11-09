@@ -1617,6 +1617,7 @@ class FloorThing extends Ent {
     /* is anything weighing on this tile? */
     weighed() {
         const a = this.area, o = a.at(this.tx, this.ty);
+        if (this.puppetOnly) return !!(o && o.kind === 'puppet' && !o.carried);
         if (o && !o.carried && !o.flying && o.weight >= (this.minWeight || 1)) return true;
         const p = G.player;
         if (p && p.area === a && !p.flying && !p.dead && p.feetOn(this.tx, this.ty) && (this.minWeight || 1) <= WEIGHT.medium) return true;
@@ -3919,7 +3920,7 @@ class Enemy extends Ent {
     }
     struck(by, dmg, dir, shard) {
         if (!this.alive || this.flash > 0 || this.hidden) return;
-        if (this.D.armored && !shard && !(by && by.isGrid)) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 6); if (dir >= 0) { this.kx = DX[dir] * 1.5; this.ky = DY[dir] * 1.5; } return; }
+        if (this.D.armored && !shard && !(by && by.isGrid)) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 6); if (dir >= 0) { this.kx = DX[dir] * 1.5; this.ky = DY[dir] * 1.5; } if (this.onArmor) this.onArmor(dir); return; }
         this.hp -= dmg; this.flash = 18;
         Sfx.play('enemyhit'); G.hitstop = 3;
         const p = G.player;
@@ -6308,6 +6309,34 @@ const Nudges = {
     },
 };
 
+/* a House's boss beaten but its Knot not yet tied: the Hoop and the boss's Heartstitch are there whenever the House is
+   built again (after leaving it, or a load), not only right after the fight */
+const HOUSE_AFTER = {
+    tidy: { flag: 'tidy_boss', room: '1,0', hoop: [9, 5], heart: [9, 7], heartId: 'tidyHeart' },
+    kiln: { flag: 'kiln_boss', room: '1,0', hoop: [9, 4], heart: [9, 7], heartId: 'kilnHeart' },
+    millrace: { flag: 'millrace_boss', room: '1,0', hoop: [17, 9], heart: [4, 9], heartId: 'millHeart' },
+    belfry: { flag: 'belfry_boss', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'belfryHeart' },
+    slumber: { flag: 'slumber_boss', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'slumberHeart' },
+    marionette: { flag: 'reveal1', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'marionetteHeart' },
+};
+const HouseAfter = {
+    add(a) {
+        const d = HOUSE_AFTER[a.id], br = d && a.rooms.find(r => r.key === d.room);
+        if (!br) return;
+        if (!Inv.knots.includes(a.def.house) && !a.ents.some(e => e.kind === 'hoop')) a.add(new Hoop(br.x + d.hoop[0], br.y + d.hoop[1]));
+        if (!a.ents.some(e => e.id === d.heartId)) a.add(new Pickup((br.x + d.heart[0]) * T, (br.y + d.heart[1]) * T, { what: 'heartstitch', id: d.heartId }));
+    },
+};
+{
+    const build0 = World.build;
+    World.build = function (id) {
+        const a = build0.call(this, id);
+        const d = HOUSE_AFTER[id];
+        if (d && Progress.flag(d.flag)) HouseAfter.add(a);
+        return a;
+    };
+}
+
 function initHouseKit() {
     defSprite('lever_off', ['................', '................', '................', '..........kk....', '.........kwk....', '........kwk.....', '.......kbk......', '......kbk.......',
         '.....kbk........', '...kkkkkkkk.....', '..kgggggggGk....', '..kgggggggGk....', '..kGGGGGGGGk....', '...kkkkkkkk.....', '................', '................'], { b: '#9a6438', g: '#9a9188', G: '#6a635e', w: '#e8463c' });
@@ -7378,6 +7407,8 @@ TOOLS.hook = {
                 if (o.eyelet || o.hookable !== false) return this.latch(h, area, tx, ty, o.eyelet ? 'eyelet' : 'thing');
                 h.state = 'back'; Sfx.play('hookhit'); return true;
             }
+            /* only strings move a puppet */
+            if (o.kind === 'puppet') { h.state = 'back'; Sfx.play('hookhit'); return true; }
             if (o.ret || o.liftable || o.weight <= WEIGHT.medium) {
                 h.state = 'pull'; h.obj = o; h.steps = 8; Sfx.play('hookhit'); Stats.count('hook:pull');
                 return true;
@@ -12842,8 +12873,22 @@ const Crossbar = {
     repeat: 0,
     sightOf(p) {
         const a = p.area, room = a.rooms && a.rooms.length > 1 ? a.roomAt(p.tx, p.ty) : null;
-        return e => Math.hypot(e.tx - p.tx, e.ty - p.ty) <= this.REACH && (!room || a.roomAt(e.tx, e.ty) === room);
+        return e => Math.hypot(e.tx - p.tx, e.ty - p.ty) <= this.REACH && (!room || a.roomAt(e.tx, e.ty) === room) && this.clear(a, p.tx, p.ty, e.tx, e.ty);
     },
+    /* indoors, walls are in the way (little holes aren't); outdoors you can see up a cliff or over a fence */
+    clear(a, x0, y0, x1, y1) {
+        if (a.family === 'outdoor') return true;
+        const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) * 2;
+        for (let i = 1; i < n; i++) {
+            const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n);
+            if ((x === x0 && y === y0) || (x === x1 && y === y1)) continue;
+            const k = a.kind(x, y);
+            if (k.solid && !k.crawl) return false;
+        }
+        return true;
+    },
+    /* a puppet on a rack is only worked from its rack */
+    onRack(e) { return !!e.group && e.area.ents.some(o => o.kind === 'rack' && o.group === e.group && !o.removed); },
     /* what C would take: a rack in front, else the nearest puppet in sight on the side Wren faces */
     target(p) {
         const a = p.area, f = p.front(), o = a.at(f.tx, f.ty);
@@ -12851,7 +12896,7 @@ const Crossbar = {
         const seen = this.sightOf(p);
         let best = null, bd = Infinity;
         for (const e of a.ents) {
-            if (e.kind !== 'puppet' || e.removed || e.racked || !seen(e)) continue;
+            if (e.kind !== 'puppet' || e.removed || this.onRack(e) || !seen(e)) continue;
             const dx = e.tx - p.tx, dy = e.ty - p.ty;
             if (DX[p.dir] * dx + DY[p.dir] * dy <= 0) continue;
             const d = Math.hypot(dx, dy);
@@ -12940,7 +12985,47 @@ class Puppet extends GridThing {
         this.bob = 12;
         return true;
     }
-    tick() { if (this.bob > 0) this.bob--; }
+    tick() {
+        if (this.bob > 0) this.bob--;
+        /* two puppets going home can stand nose to nose on each other's way: they find a way round, or slip past */
+        const r = this.ret;
+        if (r && r.state === 'returning' && !this.mv && r.strain > 45 && r.trace.length >= 2) {
+            const [nx, ny] = r.trace[r.trace.length - 2], o = this.area.at(nx, ny);
+            if (o && o.kind === 'puppet' && !o.mv && !o.heldBy) {
+                const ot = o.ret && o.ret.trace;
+                if (o.ret && o.ret.state === 'returning' && ot.length >= 2 && ot[ot.length - 2][0] === this.tx && ot[ot.length - 2][1] === this.ty) {
+                    /* face to face: slip past each other */
+                    const a = this.area; a.unplace(this, this.tx, this.ty); a.unplace(o, o.tx, o.ty);
+                    const mx = this.tx, my = this.ty;
+                    this.startMove(nx, ny, r.pace, true); o.startMove(mx, my, o.ret.pace, true);
+                    r.strain = 0; o.ret.strain = 0;
+                    return;
+                }
+                const way = this.findWay(r.mx, r.my);
+                if (way) { r.trace = way; r.strain = 0; }
+            }
+        }
+    }
+    /* a way home round whatever's in the way (tiles a puppet can stand on), as a trace from the mark to here */
+    findWay(mx, my) {
+        const a = this.area, start = key2(this.tx, this.ty), prev = new Map([[start, null]]), q = [[this.tx, this.ty]];
+        while (q.length) {
+            const [x, y] = q.shift();
+            if (x === mx && y === my) {
+                const out = []; let k = key2(x, y), c = [x, y];
+                while (c) { out.push(c); const pk = prev.get(key2(c[0], c[1])); c = pk; }
+                return out;     /* mark first ... here last */
+            }
+            for (const d of [UP, DOWN, LEFT, RIGHT]) {
+                const nx = x + DX[d], ny = y + DY[d], k = key2(nx, ny);
+                if (prev.has(k) || prev.size > 400) continue;
+                const kk = a.kind(nx, ny);
+                if (kk.pit || kk.deep || !a.freeForThing(nx, ny, this)) continue;
+                prev.set(k, [x, y]); q.push([nx, ny]);
+            }
+        }
+        return null;
+    }
     sprite() { return spr((this.look || 'puppet') + (this.worked ? '_up' : '')); }
     draw(cx, cy) {
         const im = this.sprite(); if (!im) return;
@@ -12986,7 +13071,8 @@ AI.march = (e, p) => {
         e.x = e.tx * T + 8; e.y = e.ty * T + 10;
     }
 };
-SPAWN.soldier = (x, y, p) => new Enemy(x, y, Object.assign({ type: 'soldier' }, p));
+/* tin soldiers: a whack doesn't hurt them, it turns them round */
+SPAWN.soldier = (x, y, p) => { const e = new Enemy(x, y, Object.assign({ type: 'soldier' }, p)); e.onArmor = () => { if (e.march !== undefined) { e.march = OPP[e.march]; e.x = e.tx * T + 8; e.y = e.ty * T + 10; } }; return e; };
 
 /* painted flats: stage scenery standing in for a wall; a knock and it falls over, cardboard */
 class Flat extends GridThing {
@@ -13006,7 +13092,7 @@ class Flat extends GridThing {
 SPAWN.flat = (x, y, p) => new Flat(x, y, p);
 
 function initCrossbarKit() {
-    ENEMY.soldier = { hp: 2, ai: 'march', r: 5, tall: 14, speed: 0.6, yarn: THREAD.jory, weight: WEIGHT.medium, drop: 0.3 };
+    ENEMY.soldier = { hp: 2, ai: 'march', r: 5, tall: 14, speed: 0.6, yarn: THREAD.jory, weight: WEIGHT.medium, drop: 0.3, armored: true };
     const sd = { r: '#d6304e', R: '#9a1e36', b: '#2e3a7a', g: '#f7d64a', s: '#f0c8a0', w: '#fbf6ea', k: '#2a1f2d' };
     const soldier = leg => ['.....kkkk.....', '....kbbbbk....', '....kbbbbk....', '....kbbbbk....', '...kkggggkk...', '....kssssk....', '....kswswk....', '....kssssk....', '...krrrrrrk...', '..krRrggrRrk..', '..krrrggrrrk..', '..ksrrrrrrsk..', '...kbbbbbbk...', '...kbbk' + leg + 'bk...', '...kkk....kkk.'.slice(0, 14)];
     defSprite('soldier_0', soldier('kb'), sd); defSprite('soldier_1', soldier('bk'), sd);
@@ -13109,7 +13195,7 @@ defBlock({
         { k: 'chest', x: 52, y: 11, item: 'heartpatch', id: 'larkPen', hidden: true, when: 'penplate' },
         { k: 'sign', x: 49, y: 11, text: "THE AMAZING PUPPET FAKIR. Walks on nails! (Strings not included.)" },
         /* toy soldiers on parade */
-        { k: 'soldier', x: 44, y: 19, facing: 'left', id: 'larkSol1' }, { k: 'soldier', x: 24, y: 15, facing: 'right', id: 'larkSol2' }, { k: 'soldier', x: 38, y: 24, facing: 'up', turn: 'right', id: 'larkSol3' },
+        { k: 'soldier', x: 44, y: 19, facing: 'left', id: 'larkSol1' }, { k: 'soldier', x: 24, y: 15, facing: 'right', id: 'larkSol2' }, { k: 'soldier', x: 38, y: 24, facing: 'left', id: 'larkSol3' },
         /* the theatre */
         { k: 'building', x: 25, y: 3, w: 14, h: 7, door: 6, art: 'marionette' },
         { k: 'warp', x: 31, y: 9, to: 'marionette', tx2: MARIONETTE_ENTRY.x, ty2: MARIONETTE_ENTRY.y, face: 'up', dir: 'up' },
@@ -13133,7 +13219,7 @@ defBlock({
 OW.blocks['0,2'].ents.push(
     { k: 'leap', x: 12, y: 3, id: 'mesaLeap' },
     { k: 'puppet', x: 24, y: 3, id: 'stagehand', look: 'puppet' },
-    { k: 'crank', x: 25, y: 3, id: 'liftCrank' },
+    { k: 'crank', x: 25, y: 3, id: 'liftCrank', puppetOnly: true },
     { k: 'lift', x: 22, y: 3, id: 'mesaLift' },
 );
 /* the town's west road runs on to the fair's gate */
@@ -13191,7 +13277,7 @@ SPAWN.lift = (x, y, p) => {
             const i = yield* ask(null, p.down ? 'The lift. Ride up to the mesa?' : 'The lift. Ride down to the fair?', ['Ride', 'Not now']);
             if (i !== 0) return;
             yield* fadeOut(24);
-            const [tx, ty] = p.down ? [23, 83] : LARK(24, 34);
+            const [tx, ty] = p.down ? [21, 83] : LARK(24, 34);
             const pl = G.player; pl.x = tx * T + 8; pl.y = ty * T + 10; pl.setMark(); Cam.snap(pl);
             Sfx.play('door');
             yield* fadeIn(24);
@@ -13257,7 +13343,7 @@ ITEMS.driftseed = { name: 'Drift-bloom seed', kind: 'quest', desc: "A seed from 
         const b = Inv.bedroll;
         const near = b && b.area === p.area.id && Math.hypot(b.tx - p.tx, b.ty - p.ty) <= 6;
         pull.call(this, p);
-        if (near && !Progress.flag('s11')) { Progress.set('s11'); Stats.count('secret:driftseed'); G.pendingSeed = true; }
+        if (near && !Progress.flag('s11')) { Progress.set('s11'); Stats.count('secret:driftseed'); Inv.items.driftseed = 1; G.pendingSeed = true; }
     };
     /* once the fog's own words are said and Wren is home: the seed */
     const prev = Story.tick;
@@ -13268,6 +13354,7 @@ ITEMS.driftseed = { name: 'Drift-bloom seed', kind: 'quest', desc: "A seed from 
             G.pendingSeed = false;
             Script.run(function* () {
                 yield* say(null, 'You land on your Bedroll with something in your fist that you did not take in with you: a fat brown seed, warm as a hand.');
+                delete Inv.items.driftseed;    /* (it was kept safe from the moment the fog let go; now it's shown) */
                 yield* Story.getItem('driftseed')();
             });
         }
@@ -13385,7 +13472,7 @@ defHouse({
                 { k: 'sign', x: 11, y: 9, text: "THE MARIONETTE HALL. Tonight: THE WANDERER. (Toy soldiers march till they meet something, then about turn. Don't be the something.)" },
                 { k: 'deco', x: 2, y: 9, look: 'poster', solid: [[0, 0]], oy: -14, text: 'A poster: a girl with a stick, painted in bright colours, standing on a stage. Underneath: STARRING YOU.' },
             ],
-            nudge: { solved: () => Progress.areaFlag('marionette', 'visited:boxoffice'), after: 60 * 60 * 3, at: [19, 5], say: 'The east wall of the foyer wobbles a little every time a soldier goes past it.' },
+            nudge: { solved: () => Progress.areaFlag('marionette', 'visited:boxoffice'), after: 60 * 60 * 3, at: [19, 5], say: "The east wall of the foyer is a slightly different red from the rest, and it isn't quite straight. As if it were only painted on something." },
         },
         /* ---------------- 2 The Box Office (behind the flat): the Plan ---------------- */
         '2,3': {
@@ -13453,15 +13540,15 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'door', x: 2, y: 3, type: 'gate', when: 'opp', id: 'opGate' },
+                { k: 'door', x: 2, y: 3, type: 'gate', when: 'opp', id: 'opGate', passed: 'up' },
                 { k: 'chest', x: 2, y: 1, item: 'key', id: 'opKey' },
-                { k: 'plate', x: 9, y: 6, sig: 'opp', mode: 'timed', time: 360 },
+                { k: 'plate', x: 9, y: 6, sig: 'opp', mode: 'pulse', time: 80 },
                 { k: 'soldier', x: 5, y: 9, facing: 'right', turn: 'right', id: 'opSol' },
                 { k: 'block', x: 10, y: 2, id: 'opBlock', marked: false },
                 { k: 'deco', x: 14, y: 6, look: 'drum', solid: [[0, 0]], text: 'A big drum. Somebody has painted on it: PLAYED BY B.' },
-                { k: 'sign', x: 17, y: 1, text: "THE ORCHESTRA PIT. Our drummer marches round and round the edge, turning right at every wall. He has never once crossed the middle." },
+                { k: 'sign', x: 17, y: 1, text: "THE ORCHESTRA PIT. Our drummer marches round and round the edge, turning right at every wall. He has never once crossed the middle. (The gate by the music stands opens a moment for each footfall on the drum-plate: wait for it there.)" },
             ],
-            nudge: { solved: 'marionette_chest:opKey', after: 60 * 60 * 3, thing: 'opBlock', say: 'The drummer turns right at anything in his way, not only walls. Put something in his way, and see where he goes instead.' },
+            nudge: { solved: 'marionette_chest:opKey', after: 60 * 60 * 3, thing: 'opBlock', say: 'The drummer turns right at anything in his way, not only walls. Put something in his way, see where he goes instead, and be waiting at the gate when he crosses the plate.' },
         },
         /* ---------------- 5 Rehearsal Room: down the trapdoor for the key, home by the Bedroll (key B); S13 the Wren puppet ---------------- */
         '2,2': {
@@ -13486,7 +13573,7 @@ defHouse({
                 { k: 'rack', x: 15, y: 9, group: 'wren', id: 'rhRack' },
                 { k: 'puppet', x: 13, y: 7, id: 'wrenPuppet', look: 'puppet_wren', group: 'wren' },
                 { k: 'deco', x: 14, y: 2, look: 'set_tidy', solid: [[0, 0], [1, 0], [2, 0], [3, 0]], oy: -8, text: 'A stage set, built small: a grand foyer, a staircase, a portrait of a woman with a feather duster. You have been here. You have been here this week.' },
-                { k: 'plate', x: 16, y: 4, sig: 'rhSet' },
+                { k: 'plate', x: 16, y: 4, sig: 'rhSet', puppetOnly: true },
                 { k: 'chest', x: 17, y: 6, item: 'heartpatch', id: 'rhPatch', hidden: true, when: 'flag:s13' },
                 { k: 'sign', x: 8, y: 1, text: "THE REHEARSAL ROOM. Mind the trapdoor. (There is no ladder. There has never been a ladder. Stagehands come up the hard way.)" },
             ],
@@ -13510,7 +13597,7 @@ defHouse({
             ],
             ents: [
                 { k: 'door', x: 9, y: 0, type: 'big', id: 'wiBig' },
-                { k: 'door', x: 19, y: 5, type: 'lock', id: 'wiLockE', dir: 'v' },
+                { k: 'door', x: 19, y: 5, type: 'gate', when: 'flag:marionette_tin', keep: true, id: 'wiLockE', dir: 'v' },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'tin' }, { k: 'shutter', x: 0, y: 5, dir: 'v', group: 'tin' }, { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'tin' },
                 { k: 'flat', x: 4, y: 6, id: 'wiFlatW', look: 'flat_red', respring: true }, { k: 'flat', x: 15, y: 6, id: 'wiFlatE', look: 'flat_red', respring: true },
                 { k: 'captain', x: 9, y: 6, id: 'tin' },
@@ -13615,6 +13702,7 @@ defHouse({
                 { k: 'puppet', x: 3, y: 6, id: 'gsWrenA', look: 'puppet_wren', group: 'boss' }, { k: 'puppet', x: 9, y: 6, id: 'gsWrenB', look: 'puppet_wren', group: 'boss' },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'boss' },
             ],
+            nudge: { solved: 'reveal1', after: 60 * 60 * 3, at: [9, 5], say: "The great feet stamp, and every string runs straight up past them. A little Wren walked right round a foot, and round, would wind its own string round it. Two of them, round both feet at once..." },
         },
     },
     tick: a => MarionetteHall.tick(a),
@@ -13780,7 +13868,7 @@ class GreatMarionette extends Enemy {
         if (this.state === 'dance') {
             this.windUp();
             /* sandbags drop where Wren stands, now and then (a shadow first) */
-            if (this.st % (this.hp === 1 ? 180 : this.hp === 2 ? 240 : 300) === 100 && p.state === 'normal') this.bags.push({ x: p.x, y: p.y, t: 0 });
+            if (this.st > 360 && this.st % (this.hp === 1 ? 180 : this.hp === 2 ? 240 : 300) === 100 && p.state === 'normal') this.bags.push({ x: p.x, y: p.y, t: 0 });
             if (this.tangled[0] && this.tangled[1]) { this.state = 'down'; this.st = 0; G.shake = 14; Sfx.play('rumble'); Sfx.play('hitthing'); Stats.count('boss:gm:fall'); }
         } else if (this.state === 'down') {
             if (this.st > 420) this.rise();
@@ -13828,16 +13916,19 @@ class GreatMarionette extends Enemy {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]]; this.bags = [];
         if (Crossbar.ctl) Crossbar.release(G.player);
         Sfx.play('unravel');
-        Progress.set('marionette_boss');
         Script.run(MarionetteFoes.curtain(this));
     }
-    draw(cx, cy) {
+    draw(cx, cy) { this.drawBody(cx, cy); }
+    /* the sandbags: drawn over everything (src: TOOLS._gmBags), so their shadows show where they'll land */
+    drawBags(cx, cy) {
         for (const b of this.bags) {
             const k = Math.min(1, b.t / 60);
             Gfx.alpha(0.2 + 0.3 * k); Gfx.circle(b.x - cx, b.y - cy + 2, Math.round(4 + 4 * k), PAL.ink); Gfx.alpha(1);
             if (b.t < 60) { const y = b.y - cy - 120 * (1 - k); Gfx.line(b.x - cx, y - 40, b.x - cx, y - 6, '#cfc6b8'); Gfx.rect(b.x - cx - 4, y - 8, 8, 9, '#a88a5a'); }
             else Gfx.rect(b.x - cx - 4, b.y - cy - 6, 8, 7, '#a88a5a');
         }
+    }
+    drawBody(cx, cy) {
         if (!this.alive) return;
         const bx = this.hx * T - cx, by = this.hy * T - cy, sway = this.state === 'dance' ? Math.round(Math.sin(this.t / 20) * 3) : 0;
         if (this.state === 'down') {
@@ -13864,6 +13955,7 @@ class GreatMarionette extends Enemy {
         }
     }
 }
+TOOLS._gmBags = { draw(cx, cy) { const a = G.map; if (!a || a.id !== 'marionette') return; for (const e of a.ents) if (e instanceof GreatMarionette) e.drawBags(cx, cy); } };
 SPAWN.marionette = (x, y, p) => Progress.flag('marionette_boss') ? new Ent('none') : new GreatMarionette(x, y, p);
 
 const MarionetteFoes = {
@@ -13973,7 +14065,7 @@ const Reveal1 = {
         yield* say('jory', "Under the Inn there's a door marked STAFF ONLY. It's open now. We'll be waiting for you below.");
         yield* say(null, "Then, all at the same moment, they look up, at nothing, the way people do when they think they've heard their name called from another room.");
         yield* say('tess', "...Tie your Knot, love. Gran'll want to hear all about it.");
-        Progress.set('reveal1');
+        Progress.set('marionette_boss'); Progress.set('reveal1');
         for (const e of a.ents.slice()) if (e.kind === 'npc' && ['ives', 'bram', 'ambrose', 'tess', 'mallow', 'jory'].includes(e.who)) { Fx.poof(e.x + 8, e.y + 8); a.remove(e); }
         Sfx.play('appear');
         g.shutters(false);
