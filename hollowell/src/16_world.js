@@ -88,6 +88,7 @@ const World = {
         if (prev && prev.def.house && (!AREAS[id] || AREAS[id].house !== prev.def.house)) Story.leaveHouse(prev.def.house);
         const a = this.build(id);
         G.map = a;
+        TileDraw.warm(a);
         Fx.clear(); Thrown.list = []; Shards.list = []; if (typeof GlazerShots !== 'undefined') GlazerShots.list = []; if (TOOLS.hook) TOOLS.hook.h = null;
         let p = G.player;
         if (!p) { p = G.player = new Player(0, 0); }

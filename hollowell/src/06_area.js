@@ -136,7 +136,17 @@ class Area {
 
 /* ---------- drawing the ground ---------- */
 const TileDraw = {
-    frame: 0,
+    frame: 0, warmed: new Set(),
+    /* every tile of a place painted once, when it's first entered (the screen is fading then): walking into a room
+       never stops to paint its floor (a hitch, on a slow machine) */
+    warm(area) {
+        if (HEADLESS || this.warmed.has(area.id)) return;
+        this.warmed.add(area.id);
+        const scratch = this._scratch || (this._scratch = Gfx.makeCanvas(T, T)), c0 = Gfx.ctx;
+        Gfx.ctx = scratch.getContext('2d');
+        try { for (let ty = 0; ty < area.h; ty++) for (let tx = 0; tx < area.w; tx++) this.draw(area, tx, ty, 0, 0); }
+        catch (e) { } finally { Gfx.ctx = c0; }
+    },
     draw(area, tx, ty, sx, sy) {
         const L = area.cell(tx, ty);
         const tn = area.def.themeAt ? area.def.themeAt(tx, ty) : area.themeName, th = THEMES[tn] || area.theme;

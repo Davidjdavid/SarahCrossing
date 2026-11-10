@@ -132,17 +132,25 @@ const Sfx = {
 /* ---------- music ---------- */
 const SONGS = {};
 const Music = {
-    cur: null, next: 0, step: 0, timer: null, fade: 1, playing: null,
+    cur: null, next: 0, step: 0, timer: null, fade: 1, playing: null, bus: null,
+    /* each song plays through a volume of its own, so a change of music is a short crossfade, never a cut */
+    newBus() {
+        const c = Audio.ctx, t = c.currentTime;
+        if (this.bus) { const old = this.bus; try { old.gain.cancelScheduledValues(t); old.gain.setValueAtTime(old.gain.value, t); old.gain.linearRampToValueAtTime(0, t + 0.6); } catch (e) { } setTimeout(() => { try { old.disconnect(); } catch (e) { } }, 900); }
+        const b = c.createGain(); b.gain.setValueAtTime(0.0001, t); b.gain.linearRampToValueAtTime(1, t + 0.35); b.connect(Audio.music);
+        this.bus = b;
+    },
     play(id) {
         if (this.playing === id) return;
         this.playing = id;
         this.cur = SONGS[id] || null;
         this.step = 0;
         if (!Audio.ok) return;
-        this.next = Audio.ctx.currentTime + 0.1;
+        this.newBus();
+        this.next = Audio.ctx.currentTime + 0.12;
         if (this.cur && !this.cur._parsed) parseSong(this.cur);
     },
-    stop() { this.playing = null; this.cur = null; },
+    stop() { this.playing = null; this.cur = null; if (Audio.ok && this.bus) { this.newBus(); } },
     /* called every frame: schedule what's due in the next 0.15 s */
     tick() {
         if (!Audio.ok || !this.cur) return;
@@ -153,17 +161,18 @@ const Music = {
         if (this.next < ctx.currentTime - 0.5) this.next = ctx.currentTime + 0.05;
         while (this.next < ctx.currentTime + 0.15) {
             const i = this.step % s.len;
+            const out = this.bus || Audio.music;
             for (const ch of s._ch) {
                 const ev = ch.ev[i % ch.ev.length];
                 if (!ev) continue;
                 if (ch.drum) {
-                    const o = Audio.music;
+                    const o = out;
                     if (ev === 'k') Audio.tone(o, this.next, 150, 0.12, 'triangle', ch.vol * 1.6, { slide: 45 });
                     else if (ev === 's') { Audio.hit(o, this.next, 0.12, ch.vol, 1200, 7000); Audio.tone(o, this.next, 220, 0.05, 'triangle', ch.vol * 0.6); }
                     else if (ev === 'h') Audio.hit(o, this.next, 0.03, ch.vol * 0.5, 6000, 12000);
                     else if (ev === 'H') Audio.hit(o, this.next, 0.12, ch.vol * 0.4, 5000, 12000);
                 } else {
-                    Audio.tone(Audio.music, this.next, ev.f, ev.n * stepDur * (ch.legato || 0.92), ch.wave, ch.vol, { vib: ch.vib && ev.n >= 4, a: ch.attack || 0.006, r: ch.rel });
+                    Audio.tone(out, this.next, ev.f, ev.n * stepDur * (ch.legato || 0.92), ch.wave, ch.vol, { vib: ch.vib && ev.n >= 4, a: ch.attack || 0.006, r: ch.rel });
                 }
             }
             this.step++;
