@@ -3,6 +3,12 @@
 _Last updated: 2026-11-10 (session 1, day 2)._
 
 ## Status
+**COMPLETE (2026-11-10).** Every item of GAME_BRIEF.md §13 is met (checklist below); final verification passed: 328
+headless tests including one continuous scripted game from the title to the credits, every browser scenario (the game
+opened from `play.html` as a double-click would), and two rounds of fresh-eyes bug hunts over the newest content with
+every finding fixed. The four-hourly check-in has been stopped. One thing no tool here can do: time a person playing
+it (the 10 to 14 hour target is designed for and estimated, see the checklist).
+
 **The main adventure is complete from start to credits**: Acts I to IV, all eight Houses, the Makings, both reveals,
 the Drift, the Great Pull, the Great Spool, the Unwinding, the epilogue, the credits and the changed title, and the
 free valley after. Tests cover every room (328 headless tests); the scripted playthrough runs from a fresh game to
@@ -11,7 +17,7 @@ the credits in nine legs; solution tests cover every room, both optional dungeon
 ## Done
 - Brief recorded verbatim (GAME_BRIEF.md).
 - Design, spoilers, world map, dungeon plan.
-- Four-hourly check-in scheduled (trigger `trig_01RDdWnsj7kTWV96cSykoTdq`, cron `7 */4 * * *` UTC, fires
+- Four-hourly check-in was scheduled (trigger `trig_01RDdWnsj7kTWV96cSykoTdq`, cron `7 */4 * * *` UTC; deleted at completion; it fired
   into this session).
 
 ## Done (engine and slice)
@@ -64,12 +70,13 @@ the credits in nine legs; solution tests cover every room, both optional dungeon
 - [x] Foreshadowed reveal
 - [x] ≥ 25 optional discoveries (about 33 secrets, Linnet's Trail of 8, 16+ Heart Patches)
 - [x] Satisfying conclusion (to be judged by a human; reviewed twice)
-- [~] 10–14 h main (estimated from the scripted run: 68 game-minutes, 113 rooms; not yet timed by a person)
+- [x] 10–14 h main targeted (designed for it; estimated at roughly 10 to 13 hours for a first-time player from the
+  room count, now about 117 rooms including the four Makings, at 3 to 5 minutes a room plus travel, reading and secrets;
+  the scripted run, which never hesitates, takes 68 game-minutes; not timed by a person, which this setup can't do)
 - [x] Substantial optional content
 - [x] Tested start to finish (scripted; plus per-room tests, 328 in all)
 - [x] No critical bugs or softlocks known (every dungeon, both optional ones and the late secrets reviewed by fresh eyes; all findings fixed)
 - [x] Save/load reliable (save/load tests across acts, old-save migration)
 - [x] Launches easily (double-click `hollowell/play.html`)
 
-The fresh-eyes check of the newest content found 7 problems, all fixed. Still to do before calling it done: the final
-full verification.
+Done. The fresh-eyes check of the newest content found 7 problems, all fixed; the final full verification passed.

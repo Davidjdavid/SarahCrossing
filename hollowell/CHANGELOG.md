@@ -102,3 +102,4 @@
 - Art: more variety in the last main dungeon (worn floors, small things on the walls) and movement in the air past the fog.
 - Fixes from a second fresh look at the newest pieces (7 findings: a freeze in the finale, an invisible wall left behind,
   a secret reachable the wrong way, and smaller things); regression tests.
+- Final verification passed; the project is marked complete.
