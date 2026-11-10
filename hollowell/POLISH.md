@@ -146,7 +146,11 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   short way; two new rooms, the Fly Tower and the Trap Room; stage boards, footlights, rigging).
 - Done too: House 5 (Slumberhouse: Mother Sloth in three rounds, 50 s instead of 102; Matron two hits; two new rooms,
   the Milk Kitchen and the Dreaming Door; bed curtains and night-lights).
-- Running: House 8 (Loom), the Makings act, the Great Spool rebuild.
+- Done too: House 8 (Loom: the Weaver in three beats, 28 s instead of 81; the Shuttle two hits; two new rooms, the
+  Larder and the Warp Walk; the First Spinner's loom drawn, the Weaver's defeat shown). All eight Houses reworked.
+- Running: the Makings act, the Great Spool rebuild, the overworld group A (Meadowfold, Kilnridge, Millwater, the
+  Heights).
+- Then: the overworld group B (Hushwood, Larkspur Fair, the Loomwood, the Drift).
 - Owed after the Houses: SPOILERS.md and DESIGN_DOCUMENT.md rewritten for every House's new boss and rooms; the
   browser scenarios' screenshot lists extended to the new rooms.
 - Next: (the Great Spool started)
