@@ -99,10 +99,25 @@ defBlock({
 
 PEOPLE_DEF.pip = { name: 'Pip', col: '#c8e66a', look: { body: 'child', hair: 'cap', hairC: '#c9925a', top: '#8fd46a', accent: '#f4e6c8', bottom: '#6b4128', skin: 'tan' } };
 TALK.pip = function* () {
-    if (Progress.flag('d2')) { yield* say('pip', cycle('pip2', ["The sheep came home early today. All three, straight to their spots, before I'd even called. Good sheep.", "Did you go up the canyon? Mum says nobody's been up there in ages. She says it like it's a rule.", "I tried to teach the sheep a new spot. They looked at me like I'd said something rude."])); return; }
-    if (Progress.flag('d1')) { yield* say('pip', cycle('pip1', ["You came out of the Tidyhouse! Was it clean? I bet it was clean.", "There's a big boulder in the canyon, west of the pen. Been there since before Grandad. Somebody with a good grip could shift it, maybe.", "A Knot! Can I see it? ...It looks like a knot."])); return; }
+    /* S17: Lucky's place is on this side of the river now (the Needle) */
+    const lucky = (Inv.stitches || []).find(r => r.area === 'hollow' && r.key === 'lucky');
+    if (lucky && lucky.to[0] < 64 + 49 && !Progress.flag('s17')) {
+        Progress.set('s17'); Stats.count('secret:lucky');
+        yield* say('pip', "LUCKY! She's on our side! She's lying down on this side like it's her spot. It IS her spot. How did you DO that?");
+        yield* say('pip', "Grandad said whoever brought her home was to have this. I always thought that would be me. I don't mind. Much.");
+        yield* Story.getItem('heartpatch', 'luckyPatch')();
+        return;
+    }
+    if (Progress.flag('s17')) { yield* say('pip', cycle('pip17', ["Lucky's home. She still shouts at the river, but now it's out of habit.", "I counted them tonight. Four. FOUR. I counted them three times."])); return; }
+    const extra = [
+        "See Lucky over the river? Born over there the spring of the big flood, and that's her spot now. She won't come over. She CAN'T come over. She just stands there and shouts at me.",
+        Progress.areaFlag('hollow', 'woke:oldTup') ? "Old Tup's UP. A bell rang somewhere and he just got up and walked off, after all these years. Grandad would have cried." : "Old Tup sleeps in Grandad's bothy doorway, up in the Old Fold. He's been asleep there since before I was born. Grandad used to say a good bell would shift him.",
+        Progress.flag('fold_counted') ? "You got the stones in the Old Fold to count! Nobody's done that since Grandad. He always said the counting was the stones' job, not his." : "Grandad counted the sheep home at the Old Fold every night. Yan, tan, tethera. He said the stones did the counting, really. I never knew what he meant.",
+    ];
+    if (Progress.flag('d2')) { yield* say('pip', cycle('pip2', ["The sheep came home early today. All three, straight to their spots, before I'd even called. Good sheep.", "Did you go up the canyon? Mum says nobody's been up there in ages. She says it like it's a rule.", "I tried to teach the sheep a new spot. They looked at me like I'd said something rude."].concat(extra))); return; }
+    if (Progress.flag('d1')) { yield* say('pip', cycle('pip1', ["You came out of the Tidyhouse! Was it clean? I bet it was clean.", "There's a big boulder in the canyon, west of the pen. Been there since before Grandad. Somebody with a good grip could shift it, maybe.", "A Knot! Can I see it? ...It looks like a knot."].concat(extra))); return; }
     yield* firstThen('pip', "I'm Pip. I mind the sheep. Well, the sheep mind themselves, mostly. Wander off, wander back. Same three spots, every day, forever.",
-        ["See that hay bale under the big tree? It got moved in a storm years ago and it never went back. Gives me the shivers.", "Count them every night: same three sheep. Never one more, never one less. Restful, that.", "The Tidyhouse is just east. My mum says it's the oldest house in the Hollow. It's always so clean."]);
+        ["See that hay bale under the big tree? It got moved in a storm years ago and it never went back. Gives me the shivers.", "Count them every night: same three sheep. Never one more, never one less. Restful, that.", "The Tidyhouse is just east. My mum says it's the oldest house in the Hollow. It's always so clean."].concat(extra));
 };
 BUDGE.pip = 'Pip: "Baa. Sorry. Habit."';
 CRITTER_TALK.sheep = () => function* () { yield* say(null, ['A sheep. It looks at you, chews, and looks away.', 'Baa.', "The sheep has a little red cross dyed into its fleece. So do all of them."][Math.floor(G.rng() * 3)]); };
@@ -402,6 +417,9 @@ OWA.paint.drystone = {
 };
 
 function initMeadowArt2() {
+    ART.tally_book = paintSprite(14, 10, x => { x.fillStyle = '#7a4e32'; x.fillRect(0, 2, 14, 8); x.fillStyle = '#f4e6c8'; x.fillRect(1, 1, 12, 6); x.fillStyle = '#9a8a6a'; for (let i = 2; i < 12; i += 2) x.fillRect(i, 3, 1, 3); x.fillStyle = '#e8463c'; x.fillRect(11, 2, 1, 4); });
+    defSprite('icon_clapper', ['................', '.......kk.......', '......kyyk......', '.......kk.......', '.......kxk......', '.......kxk......', '.......kxk......', '.......kxk......',
+        '.......kxk......', '......kxxxk.....', '.....kxxxxxk....', '.....kxXxxxk....', '.....kxxxXxk....', '......kxxxk.....', '.......kkk......', '................'], { x: '#7a7468', X: '#4a463e', y: '#c9925a' });
     /* the ram: big, curly-horned, a black face */
     defSprite('ram_0', ['................', '.........kkkkk..', '.......kkwwwwwk.', '..kkk.kwwwwwwwwk', '.kyYyk.wwwwwrwwk', 'kyyYyykwwwwrrrwk', 'kyxxxyywwwwwrwwk', 'kxexxxkwwwwwwwwk',
         'kxxxxxkwwwwwwwwk', '.kxxxkkwwwwwwwk.', '..kkk..kwwwwwk..', '......kxk..kxk..', '......kxk..kxk..', '......kk....kk..', '................', '................'], { w: '#f0eadc', x: '#3a3436', r: '#e8463c', y: '#c8b88a', Y: '#9a8a62' });
@@ -415,15 +433,5 @@ function initMeadowArt2() {
     /* a counting stone: flat, worn, set in the turf */
     defSprite('tallystone', ['................', '................', '...kkkkkkkkkk...', '..kggwwggggggk..', '.kgwggggggggGGk.', '.kggggggggggGGk.', '.kggggggggggGGk.', '.kggggggggggGGk.',
         '.kggggggggggGGk.', '.kgGGGGGGGGGGGk.', '..kGGGGGGGGGGk..', '...kkkkkkkkkk...', '................', '................', '................', '................'], { g: '#c8c0b0', G: '#9a9284', w: '#e8e0d0' });
-    /* a stone bothy, turf on its roof, a dark doorway */
-    ART.bothy = paintSprite(48, 44, x => {
-        const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
-        for (let j = 0; j < 18; j++) { const inset = Math.max(0, 7 - j) ; R(j < 3 ? '#8ac860' : j % 3 === 0 ? '#5a9a44' : '#6aa84a', inset, j, 48 - inset * 2, 1); }
-        for (let i = 0; i < 48; i += 3) R('#4a7a34', i + (i % 2), 15, 2, 3);
-        for (let row = 0; row < 8; row++) for (let i = (row % 2) * 3; i < 48; i += 6) R(['#b8b0a0', '#a8a090', '#c8c0b0'][(i + row) % 3], i, 18 + row * 3, 5, 3);
-        for (let row = 0; row < 8; row++) R('#7a7468', 0, 20 + row * 3, 48, 1);
-        R('#2a1f2d', 18, 26, 12, 18); R('#1a141a', 19, 27, 10, 17); R('#6a6458', 17, 25, 14, 2);
-        R('#2a1f2d', 6, 26, 6, 6); R('#f4d48a', 7, 27, 4, 4);
-    });
 }
 CONTENT_INIT.push(initMeadowArt2);
