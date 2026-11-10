@@ -1,11 +1,11 @@
-// Regression tests for the bug hunt over the optional Houses, the late secrets and the Great Spool's antechambers.
+// Regression tests for the bug hunt over the optional Houses, the late secrets and the Great Spool's rooms.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
 
 const SR = { pl: [20, 0] };
 const UR = { lb: [40, 22], ga: [20, 11], dh: [20, 22] };
-const GS = { climb: [40, 11], ferry: [20, 11], mill: [0, 11] };
+const GS = { slumber: [0, 11] };
 const rel = R => (r, x, y) => [R[r][0] + x, R[r][1] + y];
 const until = (HW, fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
 const noErrors = HW => assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
@@ -20,18 +20,18 @@ const pushAt = (HW, x, y, d, n) => { assert.ok(HW.walkTo(x, y), `walk to ${x},${
 const step = (HW, d) => { HW.hold(d); HW.step(16); HW.release(); HW.step(4); };
 const paddleTo = (HW, x, y) => { const p = HW.player(); for (let i = 0; i < 2000 && (p.tx !== x || p.ty !== y); i++) { HW.hold(['tool', p.tx < x ? 'right' : p.tx > x ? 'left' : p.ty < y ? 'down' : 'up']); HW.step(1); } HW.release(); HW.step(20); };
 
-test('1: the ferry cut on the far side, and Wren back on the near side without it: the Hookline brings it over', () => {
+test('1: the Night Ferry\'s raft sent under the arch with nobody and nothing aboard: the room\'s brake brings it back, and so does a reload', () => {
     const at = rel(GS), HW = game('afterDrift');
-    HW.warp('greatspool', ...at('climb', 1, 5)); HW.step(30); HW.skipTalk();
-    HW.walkTo(...at('ferry', 14, 5)); step(HW, 'left'); HW.Inv.equipped = 'paddle'; paddleTo(HW, ...at('ferry', 7, 5)); step(HW, 'left');
-    HW.walkTo(...at('ferry', 6, 5)); HW.face('right'); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(3); HW.skipTalk(); HW.step(30);
-    const H2 = reload(HW), f = H2.G.map.find('gsFerry');
-    assert.deepEqual([f.tx, f.ty], at('ferry', 7, 5), 'left on the far side');
-    assert.ok(H2.player().tx > at('ferry', 13, 0)[0], 'and Wren on the near side');
-    H2.walkTo(...at('ferry', 14, 5)); H2.face('left'); H2.Inv.equipped = 'hook'; H2.press('tool', 1); H2.step(120);
-    assert.ok(f.tx >= at('ferry', 12, 0)[0], 'pulled over');
-    step(H2, 'left'); H2.Inv.equipped = 'paddle'; paddleTo(H2, ...at('ferry', 7, 5)); step(H2, 'left');
-    assert.ok(H2.walkTo(...at('mill', 16, 5)), 'on to the Knot');
+    HW.warp('greatspool', ...at('slumber', 18, 5)); HW.step(30); HW.skipTalk();
+    HW.walkTo(...at('slumber', 13, 7)); step(HW, 'left');
+    HW.Inv.equipped = 'paddle'; paddleTo(HW, ...at('slumber', 5, 7)); paddleTo(HW, ...at('slumber', 5, 5)); step(HW, 'right');
+    HW.step(300);
+    const f = HW.G.map.find('gsSRaft');
+    assert.deepEqual([f.tx, f.ty], at('slumber', 5, 2), 'gone under the arch alone');
+    const H2 = reload(HW), f2 = H2.G.map.find('gsSRaft');
+    assert.deepEqual([f2.tx, f2.ty], at('slumber', 12, 7), 'a reload: back on its place');
+    assert.ok(HW.walkTo(...at('slumber', 17, 6)), 'to the brake'); HW.face('right'); HW.press('act', 1); HW.step(30);
+    assert.deepEqual([f.tx, f.ty], at('slumber', 12, 7), 'the brake: back on its place');
     noErrors(HW); noErrors(H2);
 });
 

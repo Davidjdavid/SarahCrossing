@@ -37,11 +37,13 @@ const OWA = {
             const x0 = b.bx * OW.bw + sx, y0 = b.by * OW.bh + sy;
             if (!a.inside(x0, y0) || wall(x0, y0) || lv[y0 * a.w + x0] >= 0) continue;
             const q = [[x0, y0]]; lv[y0 * a.w + x0] = L;
+            /* (each block's levels are its own: a flood stops at its edge) */
+            const inB = (x, y) => x >= b.bx * OW.bw && y >= b.by * OW.bh && x < (b.bx + 1) * OW.bw && y < (b.by + 1) * OW.bh;
             while (q.length) {
                 const [x, y] = q.pop();
                 for (let d = 0; d < 4; d++) {
                     const nx = x + DX[d], ny = y + DY[d];
-                    if (!a.inside(nx, ny) || lv[ny * a.w + nx] >= 0 || wall(nx, ny)) continue;
+                    if (!a.inside(nx, ny) || !inB(nx, ny) || lv[ny * a.w + nx] >= 0 || wall(nx, ny)) continue;
                     lv[ny * a.w + nx] = L; q.push([nx, ny]);
                 }
             }
@@ -61,6 +63,8 @@ const OWA = {
         }
         return 0;
     },
+    /* a smooth field 0..3 over the land (patches that fade in and out across tiles) */
+    field(tx, ty, s, sx = 7, sy = 5, bias = 0) { return Math.floor(clamp(this.n2(tx / sx, ty / sy, s) * 1.7 - 0.45 + bias, 0, 0.999) * 4); },
     isCliff(a, x, y) { const k = a.cell(x, y).k; return (k === 'cliff' || k === 'rock') && a.cell(x, y).p === 'cliff'; },
     /* what a cliff tile is: the face (and how far up it) or the plateau's top, and which of its sides fall away */
     cliffMask(a, tx, ty) {
@@ -70,21 +74,23 @@ const OWA = {
             let yb = y; while (yb < a.h - 1 && cl(x, yb + 1)) yb++; yb++;
             const La = this.lvAt(a, x, ya, -1), Lb = this.lvAt(a, x, yb, 1);
             const run = yb - ya - 1, up = yb - y;
-            const faceH = run >= 3 ? 2 : 1;
-            const hi = La === null || Lb === null ? this.RIM : Math.max(La, Lb);
+            const bk = this.blockAt(x, y), faceH = Math.min(run, (bk && bk.faceH) || (run >= 3 ? 2 : 1));
+            /* (a wall between ground of one level is a ridge, higher than both) */
+            const hi = La === null || Lb === null ? this.RIM : La === Lb ? La + 1 : Math.max(La, Lb);
             const face = La !== null && Lb !== null && La > Lb && up <= faceH;
             return { face, up, hi, La, Lb };
         };
-        const me = info(tx, ty);
+        const rimOf = (x, y) => { const b = this.blockAt(x, y); return !!(b && b.rim && b.rim.some(([x0, y0, x1, y1]) => x - b.bx * OW.bw >= x0 && x - b.bx * OW.bw <= x1 && y - b.by * OW.bh >= y0 && y - b.by * OW.bh <= y1)); };
+        const me = rimOf(tx, ty) ? { face: false, hi: this.RIM } : info(tx, ty);
         const side = dx => {
             const x = tx + dx;
             if (!a.inside(x, ty)) return 's';                         /* (off the map: the same) */
-            if (cl(x, ty)) { const o = info(x, ty); return o.face === me.face ? 's' : o.face ? 'f' : 't'; }
+            if (cl(x, ty)) { const o = rimOf(x, ty) ? { face: false } : info(x, ty); return o.face === me.face ? 's' : o.face ? 'f' : 't'; }
             const L = this.lvAt(a, x, ty); return L === null || L >= me.hi ? 's' : 'o';
         };
         const l = side(-1), r = side(1);
         if (me.face) {
-            const above = cl(tx, ty - 1) ? (info(tx, ty - 1).face ? 'f' : 't') : 'o';
+            const above = cl(tx, ty - 1) ? (!rimOf(tx, ty - 1) && info(tx, ty - 1).face ? 'f' : 't') : 'o';
             const below = cl(tx, ty + 1) ? 'f' : 'o';
             return 'F' + me.up + above + below + l + r;
         }
@@ -149,8 +155,9 @@ const OWA = {
             const m = this.cliffMask(a, tx, ty);
             return tileCanvas(`ow:${tn}:cliff:${v}:${m}`, x => (m[0] === 'F' ? this.cliffs[style].face : this.cliffs[style].top)(x, th, v, m));
         }
+        /* (a painter can read a field laid over the land, a level 0..3 from the tile's place: heather thicker here, thinner there) */
         const g = this.ground[style] && this.ground[style][p];
-        if (g) return tileCanvas(`ow:${tn}:${p}:${v}`, x => g(x, th, v));
+        if (g) { const fl = g.field ? g.field(tx, ty) : 0, fn = g.draw || g; return tileCanvas(`ow:${tn}:${p}:${v}:${fl}`, x => fn(x, th, v, fl)); }
         return this.capture(a, tx, ty, tn);
     },
     /* the game's own painter, in a given theme (what it would have drawn there) */

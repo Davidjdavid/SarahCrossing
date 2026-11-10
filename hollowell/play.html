@@ -6393,11 +6393,13 @@ const OWA = {
             const x0 = b.bx * OW.bw + sx, y0 = b.by * OW.bh + sy;
             if (!a.inside(x0, y0) || wall(x0, y0) || lv[y0 * a.w + x0] >= 0) continue;
             const q = [[x0, y0]]; lv[y0 * a.w + x0] = L;
+            /* (each block's levels are its own: a flood stops at its edge) */
+            const inB = (x, y) => x >= b.bx * OW.bw && y >= b.by * OW.bh && x < (b.bx + 1) * OW.bw && y < (b.by + 1) * OW.bh;
             while (q.length) {
                 const [x, y] = q.pop();
                 for (let d = 0; d < 4; d++) {
                     const nx = x + DX[d], ny = y + DY[d];
-                    if (!a.inside(nx, ny) || lv[ny * a.w + nx] >= 0 || wall(nx, ny)) continue;
+                    if (!a.inside(nx, ny) || !inB(nx, ny) || lv[ny * a.w + nx] >= 0 || wall(nx, ny)) continue;
                     lv[ny * a.w + nx] = L; q.push([nx, ny]);
                 }
             }
@@ -6417,6 +6419,8 @@ const OWA = {
         }
         return 0;
     },
+    /* a smooth field 0..3 over the land (patches that fade in and out across tiles) */
+    field(tx, ty, s, sx = 7, sy = 5, bias = 0) { return Math.floor(clamp(this.n2(tx / sx, ty / sy, s) * 1.7 - 0.45 + bias, 0, 0.999) * 4); },
     isCliff(a, x, y) { const k = a.cell(x, y).k; return (k === 'cliff' || k === 'rock') && a.cell(x, y).p === 'cliff'; },
     /* what a cliff tile is: the face (and how far up it) or the plateau's top, and which of its sides fall away */
     cliffMask(a, tx, ty) {
@@ -6426,21 +6430,23 @@ const OWA = {
             let yb = y; while (yb < a.h - 1 && cl(x, yb + 1)) yb++; yb++;
             const La = this.lvAt(a, x, ya, -1), Lb = this.lvAt(a, x, yb, 1);
             const run = yb - ya - 1, up = yb - y;
-            const faceH = run >= 3 ? 2 : 1;
-            const hi = La === null || Lb === null ? this.RIM : Math.max(La, Lb);
+            const bk = this.blockAt(x, y), faceH = Math.min(run, (bk && bk.faceH) || (run >= 3 ? 2 : 1));
+            /* (a wall between ground of one level is a ridge, higher than both) */
+            const hi = La === null || Lb === null ? this.RIM : La === Lb ? La + 1 : Math.max(La, Lb);
             const face = La !== null && Lb !== null && La > Lb && up <= faceH;
             return { face, up, hi, La, Lb };
         };
-        const me = info(tx, ty);
+        const rimOf = (x, y) => { const b = this.blockAt(x, y); return !!(b && b.rim && b.rim.some(([x0, y0, x1, y1]) => x - b.bx * OW.bw >= x0 && x - b.bx * OW.bw <= x1 && y - b.by * OW.bh >= y0 && y - b.by * OW.bh <= y1)); };
+        const me = rimOf(tx, ty) ? { face: false, hi: this.RIM } : info(tx, ty);
         const side = dx => {
             const x = tx + dx;
             if (!a.inside(x, ty)) return 's';                         /* (off the map: the same) */
-            if (cl(x, ty)) { const o = info(x, ty); return o.face === me.face ? 's' : o.face ? 'f' : 't'; }
+            if (cl(x, ty)) { const o = rimOf(x, ty) ? { face: false } : info(x, ty); return o.face === me.face ? 's' : o.face ? 'f' : 't'; }
             const L = this.lvAt(a, x, ty); return L === null || L >= me.hi ? 's' : 'o';
         };
         const l = side(-1), r = side(1);
         if (me.face) {
-            const above = cl(tx, ty - 1) ? (info(tx, ty - 1).face ? 'f' : 't') : 'o';
+            const above = cl(tx, ty - 1) ? (!rimOf(tx, ty - 1) && info(tx, ty - 1).face ? 'f' : 't') : 'o';
             const below = cl(tx, ty + 1) ? 'f' : 'o';
             return 'F' + me.up + above + below + l + r;
         }
@@ -6505,8 +6511,9 @@ const OWA = {
             const m = this.cliffMask(a, tx, ty);
             return tileCanvas(`ow:${tn}:cliff:${v}:${m}`, x => (m[0] === 'F' ? this.cliffs[style].face : this.cliffs[style].top)(x, th, v, m));
         }
+        /* (a painter can read a field laid over the land, a level 0..3 from the tile's place: heather thicker here, thinner there) */
         const g = this.ground[style] && this.ground[style][p];
-        if (g) return tileCanvas(`ow:${tn}:${p}:${v}`, x => g(x, th, v));
+        if (g) { const fl = g.field ? g.field(tx, ty) : 0, fn = g.draw || g; return tileCanvas(`ow:${tn}:${p}:${v}:${fl}`, x => fn(x, th, v, fl)); }
         return this.capture(a, tx, ty, tn);
     },
     /* the game's own painter, in a given theme (what it would have drawn there) */
@@ -6678,6 +6685,182 @@ OWA.rockTop = function (x, th, v, m, o = {}) {
     if (l === 'f') fill(x, mix(s1, s3, 0.5), 0, 0, 1, 16);
     if (r === 'f') fill(x, mix(s1, s3, 0.5), 15, 0, 1, 16);
 };
+
+// ---- 33w_fog.js ----
+/* The fog at the edge of the valley, drawn as what it is: a bank of fine threads pulled taut at the limit of their
+   reach, white and lilac, billowing a little as it drifts, its edge soft and never on a tile line (it spills over the
+   ground at its foot in rounded tongues that come and go). The threads glint now and then; after the Unwinding
+   they're gone slack and it's only a mist. Only the picture: what a fog tile does is still 06_area.js's and
+   11_player.js's business. Drawn in every outdoor place with fog in it (the Hollow, and the Drift from the far side). */
+
+const Fog = {
+    S: 128,                    /* the billows repeat every S pixels (drawn from a picture S + 16 square) */
+    tex: null,
+    BASE: '#d9d5df',
+    /* each land tile's fog neighbours, and each fog tile's distance from the land and which way it lies */
+    info(a) {
+        if (a._fog && a._fog.n === a.cells.length) return a._fog;
+        const w = a.w, h = a.h, near = new Uint8Array(w * h), depth = new Uint8Array(w * h), dir = new Uint8Array(w * h);
+        const fog = (x, y) => a.inside(x, y) && a.cells[y * w + x].k === 'fog';
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+            const i = y * w + x;
+            if (fog(x, y)) {
+                let d = 9, hz = 0, vt = 0;
+                for (let r = 1; r <= 4 && d === 9; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !a.inside(x + dx, y + dy) || fog(x + dx, y + dy)) continue;
+                    d = r;
+                    if (Math.abs(dx) >= Math.abs(dy)) hz++; else vt++;
+                }
+                depth[i] = d; dir[i] = vt > hz ? 2 : 1;
+            } else {
+                let m = 0;
+                [[0, -1], [1, 0], [0, 1], [-1, 0], [1, -1], [1, 1], [-1, 1], [-1, -1]].forEach(([dx, dy], b) => { if (fog(x + dx, y + dy)) m |= 1 << b; });
+                near[i] = m;
+            }
+        }
+        /* deep in, the threads keep to the way of the nearest edge */
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (depth[i] === 9) dir[i] = x > 0 && dir[i - 1] ? dir[i - 1] : y > 0 && dir[i - w] ? dir[i - w] : 1; }
+        return (a._fog = { n: a.cells.length, near, depth, dir });
+    },
+    /* the billows: soft noise that wraps, lighter puffs and lilac hollows */
+    makeTex() {
+        const S = this.S, c = Gfx.makeCanvas(S + 16, S + 16), x = c.getContext('2d');
+        const n2 = (px, py, sc, s) => {
+            const P = S / sc, fx = px / sc, fy = py / sc, i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j, U = u * u * (3 - 2 * u), V = v * v * (3 - 2 * v);
+            const g = (a, b) => hash2(((a % P) + P) % P, ((b % P) + P) % P, s);
+            return lerp(lerp(g(i, j), g(i + 1, j), U), lerp(g(i, j + 1), g(i + 1, j + 1), U), V);
+        };
+        for (let py = 0; py < S + 16; py++) for (let px0 = 0; px0 < S + 16; px0++) {
+            const X = px0 % S, Y = py % S;
+            const v = n2(X, Y, 32, 3) * 0.6 + n2(X, Y, 16, 7) * 0.3 + n2(X, Y, 8, 11) * 0.1;
+            /* in bands, as pixel art clouds are: a puff's body, its lit top, a hollow's shade */
+            if (v > 0.66) x.fillStyle = 'rgba(255,253,255,0.62)';
+            else if (v > 0.57) x.fillStyle = 'rgba(246,244,250,0.42)';
+            else if (v < 0.33) x.fillStyle = 'rgba(150,140,180,0.30)';
+            else if (v < 0.4) x.fillStyle = 'rgba(176,168,200,0.18)';
+            else continue;
+            x.fillRect(px0, py, 1, 1);
+        }
+        return c;
+    },
+    /* the fog's own tile, plain: the billows and threads are laid over it */
+    tile(v) {
+        return tileCanvas('fogbase:' + v, x => {
+            fill(x, this.BASE);
+            for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) { const r = hash2(i, j, v + 140); if (r < 0.06) px(x, i, j, '#e6e2ec'); else if (r > 0.95) px(x, i, j, '#ccc6d4'); }
+        });
+    },
+    /* how far a tongue of fog reaches over the ground at a point along the edge (pixels, 0 to 14), slowly changing */
+    reach(u, t) {
+        const n = (z, s) => { const i = Math.floor(z), f = z - i, k = f * f * (3 - 2 * f); return lerp(hash2(i, 5, s), hash2(i + 1, 5, s), k); };
+        return 2 + n(u / 19 + t, 91) * 8 + n(u / 7 - t * 1.7, 92) * 4;
+    },
+    spill(sx, sy, gx, gy, m, t, al) {
+        const body = '#dcd8e2', edge = '#ebe8f0';
+        const run = (L, f) => { L = Math.round(L); if (L <= 0) return; f(0, L - 1, body); f(L - 1, 1, edge); };
+        Gfx.alpha(al);
+        if (m & 8) for (let j = 0; j < T; j++) run(this.reach(gy + j, t), (o, n, c) => Gfx.rect(sx + o, sy + j, n, 1, c));
+        if (m & 2) for (let j = 0; j < T; j++) run(this.reach(gy + j + 999, t), (o, n, c) => Gfx.rect(sx + T - o - n, sy + j, n, 1, c));
+        if (m & 1) for (let i = 0; i < T; i++) run(this.reach(gx + i + 333, t) * 0.8, (o, n, c) => Gfx.rect(sx + i, sy + o, 1, n, c));
+        if (m & 4) for (let i = 0; i < T; i++) run(this.reach(gx + i + 666, t) * 0.8, (o, n, c) => Gfx.rect(sx + i, sy + T - o - n, 1, n, c));
+        /* only a corner touches the fog: a little round wisp in it */
+        const corner = (b, cx, cy) => {
+            if (!(m & (1 << b))) return;
+            const r = 3 + this.reach(gx * 3 + gy + b * 50, t) * 0.35;
+            for (let j = 0; j < r; j++) { const w = Math.round(Math.sqrt(r * r - j * j)); Gfx.rect(cx < 8 ? sx : sx + T - w, cy < 8 ? sy + j : sy + T - 1 - j, w, 1, body); }
+        };
+        if (!(m & 9)) corner(7, 0, 0);
+        if (!(m & 3)) corner(4, 15, 0);
+        if (!(m & 6)) corner(5, 15, 15);
+        if (!(m & 12)) corner(6, 0, 15);
+        Gfx.alpha(1);
+    },
+    draw(a, cx, cy) {
+        if (HEADLESS || !a) return;
+        const F = this.info(a);
+        if (!this.tex) this.tex = this.makeTex();
+        const S = this.S, slack = Progress.flag('unwound'), pull = Progress.flag('great_pull') && !slack;
+        const tx0 = Math.floor(cx / T), ty0 = Math.floor(cy / T);
+        const d1 = Math.floor(G.t / 7), d2 = Math.floor(G.t / 13), t = G.t / 900;
+        for (let ty = ty0; ty <= ty0 + Math.ceil(H / T); ty++) for (let tx = tx0; tx <= tx0 + Math.ceil(W / T); tx++) {
+            if (!a.inside(tx, ty)) continue;
+            const i = ty * a.w + tx, sx = tx * T - cx, sy = ty * T - cy, gx = tx * T, gy = ty * T;
+            if (a.cells[i].k !== 'fog') {
+                if (F.near[i]) this.spill(sx, sy, gx, gy, F.near[i], t, slack ? 0.55 : 1);
+                continue;
+            }
+            const deep = F.depth[i];
+            /* two layers of billows drifting their own ways (thicker at the front of the bank) */
+            const ux = (((gx + d1) % S) + S) % S, uy = (((gy + (d1 >> 1)) % S) + S) % S;
+            Gfx.ctx.drawImage(this.tex, ux, uy, T, T, sx, sy, T, T);
+            const vx = (((gx - d2 + 37) % S) + S) % S, vy = (((gy + 61) % S) + S) % S;
+            Gfx.alpha(deep <= 2 ? 0.9 : 0.5); Gfx.ctx.drawImage(this.tex, vx, vy, T, T, sx, sy, T, T); Gfx.alpha(1);
+            if (slack) continue;
+            /* the threads: long and straight, out from the valley into the bank, coming and going along their length */
+            const hz = F.dir[i] !== 2, lane = hz ? ty : tx, along = hz ? gx : gy;
+            for (let k = 0; k < 3; k++) {
+                const off = 1 + Math.floor(hash2(lane, k, 81) * 13);
+                const b = hash2(Math.floor((along + k * 41) / 64), lane * 3 + k, 82) * 0.6 + hash2(Math.floor((along + k * 13) / 32), lane + k * 5, 83) * 0.4;
+                if (b < 0.28) continue;
+                const al = Math.min(0.85, 0.25 + (b - 0.28) * 1.3) * (deep >= 5 ? 0.7 : 1);
+                const tr = pull ? Math.round(Math.sin(G.t / 3 + lane + k)) : 0, o = off + tr;
+                Gfx.alpha(al * 0.5);
+                if (hz) Gfx.rect(sx, sy + o + 1, T, 1, '#a89ec0'); else Gfx.rect(sx + o + 1, sy, 1, T, '#a89ec0');
+                Gfx.alpha(al);
+                if (hz) Gfx.rect(sx, sy + o, T, 1, '#ffffff'); else Gfx.rect(sx + o, sy, 1, T, '#ffffff');
+                /* a glint running along it, now and then */
+                const P = 520 + Math.floor(hash2(lane, k, 84) * 600), g = Math.floor(along / P) * P + (G.t * 2 + Math.floor(hash2(k, lane, 85) * P)) % P, gl = g - along;
+                if (gl >= 0 && gl < T) { Gfx.alpha(1); if (hz) Gfx.rect(sx + gl, sy + o, Math.min(5, T - gl), 1, '#fffbd8'); else Gfx.rect(sx + o, sy + gl, 1, Math.min(5, T - gl), '#fffbd8'); }
+                Gfx.alpha(1);
+            }
+        }
+    },
+};
+/* fog tiles drawn plain (the old tile's fine lines all ran one way, like a slab's grain), everything else as before */
+{
+    const draw0 = TileDraw.draw;
+    TileDraw.draw = function (area, tx, ty, sx, sy) {
+        if (area.cell(tx, ty).p === 'fog' && area.family === 'outdoor') { Gfx.img(Fog.tile(Math.floor(hash2(tx, ty, 99) * 4)), sx, sy); return; }
+        return draw0.call(this, area, tx, ty, sx, sy);
+    };
+}
+CONTENT_INIT.push(() => {
+    const g0 = AREAS.hollow.drawGround;
+    AREAS.hollow.drawGround = (a, cx, cy) => { if (g0) g0(a, cx, cy); Fog.draw(a, cx, cy); };
+});
+
+// ---- 33x_soft_edges.js ----
+/* Softer seams for the blocks that ask for them (b.blobSeam, with the art kit's `soft`): where the kit frays a block
+   into its neighbour by a wandering edge, these fray in patches instead, as ground really changes: tongues and islands
+   of the neighbour's ground over the band, thinning away from the seam, so the change never runs along a line. The kit
+   decides which side frays, which neighbour, how far, and draws rock and water as before; only the patching is new. */
+{
+    const tile0 = OWA.tile;
+    OWA.tile = function (a, tx, ty) {
+        const b = this.blockAt(tx, ty);
+        if (HEADLESS || !b || !b.owArt || !b.blobSeam) return tile0.call(this, a, tx, ty);
+        const s = this.seamOf(a, tx, ty);
+        if (!s) return tile0.call(this, a, tx, ty);
+        const p = a.cell(tx, ty).p;
+        if (this.BLEND_BY_SHADE[p] || (this.paint[p] && this.paint[p].shade)) return tile0.call(this, a, tx, ty);
+        const tn = this.themeOf(a, tx, ty);
+        const c0 = this.canvasIn(a, tx, ty, tn), c1 = this.canvasIn(a, tx, ty, s.tn);
+        if (!c0 || !c1) return c0;
+        return tileCanvas(`blob:${tx},${ty}:${this.idOf(c0)}:${this.idOf(c1)}`, x => {
+            const A = c0.getContext('2d').getImageData(0, 0, T, T), B = c1.getContext('2d').getImageData(0, 0, T, T), o = A.data, q = B.data;
+            const bp = s.band * T;
+            for (let py = 0; py < T; py++) for (let px0 = 0; px0 < T; px0++) {
+                const gx = tx * T + px0, gy = ty * T + py;
+                const dist = s.side === 'l' ? gx - b.bx * OW.bw * T : s.side === 'r' ? (b.bx + 1) * OW.bw * T - 1 - gx : s.side === 'u' ? gy - b.by * OW.bh * T : (b.by + 1) * OW.bh * T - 1 - gy;
+                /* patches: big soft ones and small ragged ones on top, in both directions, so islands form */
+                const n = this.n2(gx / 26, gy / 26, 17) * 0.62 + this.n2(gx / 9, gy / 9, 19) * 0.28 + this.n2(gx / 3, gy / 3, 23) * 0.1;
+                const lim = bp * (0.06 + 0.9 * n * n * 1.3);
+                if (dist < lim) { const i = (py * T + px0) * 4; o[i] = q[i]; o[i + 1] = q[i + 1]; o[i + 2] = q[i + 2]; o[i + 3] = q[i + 3]; }
+            }
+            x.putImageData(A, 0, 0);
+        });
+    };
+}
 
 // ---- 34_furniture.js ----
 /* Furniture and things indoors, painted in code. */
@@ -10645,37 +10828,37 @@ const KILNRIDGE_ROWS = [
     '%###############################################################',
     '%###############################################################',
     '%##.fffffff....,,,...................,....,.....,............###',
-    '%##......,.,#####################....".,.,,...,..............###',
-    '%##.........##."........"......##......,.,....#############..###',
-    '%##.".,..,,.##..YYY.......,.,..##...,...."....##.........##..###',
-    '%##.....,.,.##..YYY"...........##...."..,.....##.........##..###',
-    '%##,.".,....##..YYY.......,....#HH..,...r.....##.........##..###',
-    '%##........,##"................#HH.,..........##......^..##,.###',
-    '%##"###H###.##................"##.............##.........##..###',
-    '%##.......".##............".,..##...,.........##.........##..###',
-    '%##vvvvvvv..#####################.......,,....##.........##..###',
-    '%##.....,"..##########:##########.....",......##.........##".###',
-    '%##...,...."...,......:,...,........"...".....##H##########..###',
-    '%##.....^^.....,....,.:....."."...............##H##########".###',
-    '%##.....^......"......:.......,......,......:::H..,..........###',
-    '%##............,".....:..........,..r...."..:,..."..,........###',
-    '%##..........,........:.....................:......."......,.###',
-    '%##"..................:.....................:..,.............###',
-    '%##...r...............:.....,..,.,..............".".,........###',
+    '%##......,.#####################################################',
+    '%##........##.."........"......##......,.,....#############..###',
+    '%##.".,..,,##...........YYY.,..##...,...."....##.........##..###',
+    '%##.....,.,#####..."....YYY....##...."..^.....##.........##..###',
+    '%##,.".,...###.#........YYY....##...,.........##.........##..###',
+    '%######H########...............##..,^.........##......^..##..###',
+    '%######H#####................."##.............##.........##..###',
+    '%##......."##.............".,..##...,......^..##.........##..###',
+    '%##........################H#####.......,,....##.........##..###',
+    '%##.....,".###########:####H#####.....",......##.........##..###',
+    '%##...,...."..c,...l..:,.l.,........"...".....##H##########..###',
+    '%##.....^......,...l,.:..l.."."....^..........##H##########..###',
+    '%##......^....."...fff:fff....,......,......:::H..,........#.###',
+    '%##............,".....:..c.......,......."..:,..."..,.......^###',
+    '%##..........,........:.^^^........................."......,.###',
+    '%##"..................:.^.^....................,.............###',
+    '%##...................:.^^^.,..,.,..............".".,.......c###',
     '%##....."...........,.:....................,.,...............###',
     '%##........,.......,,.:................,.................#######',
     '%##.,...,........"....::::::::::::::::::::::::::::::::::::::::::',
     '%##"....,..,,.................:..............,.,......,..#######',
-    '%##.....,"....r.....,.....,...:...",..............".,........###',
+    '%##.....,"..........,.....,...:...",..............".,........###',
     '%##.......,........"......,...:.,...^^............"..........###',
     '%##..^^.........,.............:.,...^....,......"..."...,....###',
-    '%##....,........,.....,..,....:...."..............."..,.,.,..###',
-    '%##.,.,.......,,.."...........:.....,...;;;;;;;;;;;;;,.......###',
-    '%########r.................r..:.........;;;;;;;;;;;;;...,.r..###',
-    '%##..............,............:::::::::.;;;;;;;;;;;;;........###',
-    '%########......^^.,.............,...,...;;;;;;;;;;;;;........###',
-    '%##...........".^..,"....".,.".......,..;;;;;;;;;;;;;........###',
-    '%##...".".............."..,....................,...........,.###',
+    '%##....,...########H#########.:...."..............."..,.,.,..###',
+    '%##.,.,....#...........#....#.:.....,...;;;;;;;;;;;;;,.......###',
+    '%########..#...........#....#.:.........;;;;;;;;;;;;;..cccc..###',
+    '%##........#..c.............#.:::::::::.;;;;;;;;;;;;;..cccc..###',
+    '%########..#....ccccc..#....#...,...,...;;;;;;;;;;;;;..cccc..###',
+    '%##........#....ccccc..#....#".......,..;;;;;;;;;;;;;........###',
+    '%##..."."..##################..................,...........,.###',
     '%##..........,..,..........,...............................,.###',
     '%##..................."...........,........,."....^..........###',
     '%###############################################################',
@@ -10687,12 +10870,17 @@ defBlock({
     id: 'kilnridge', bx: 0, by: 2, name: 'Kilnridge', theme: 'kiln', music: 'kiln', owArt: true, soft: 3,
     rows: KILNRIDGE_ROWS,
     forest: ['tree_autumn'],
-    legend: {},
+    legend: { 'c': { k: 'clay', p: 'wetclay' } },
+    /* the canyon floor; the Kiln Mesa's top (its chimney a hollow in it); the hawk's mesa; the High Mesa over the fair; the
+       slot behind the dam; the firing hole; the pit and the kiln yard down in it */
+    levels: [[30, 20, 1], [20, 6, 2], [16, 8, 1], [52, 10, 2], [20, 3, 3], [59, 10, 1], [13, 26, 1], [15, 30, 0], [25, 30, 0]],
+    faceH: 2,
+    rim: [[1, 0, 2, 39], [3, 0, 63, 2], [61, 0, 63, 21], [61, 25, 63, 37], [3, 37, 60, 37]],
     ents: [
         { k: 'deco', x: 20, y: 11, look: 'kilnfacade', solid: [], ox: 0, oy: -14, baseY: 34 },
         { k: 'warp', x: 22, y: 13, to: 'kiln', tx2: 29, ty2: 42, face: 'up', dir: 'up' },
-        { k: 'rest', x: 25, y: 15 },
-        { k: 'sign', x: 24, y: 16, text: 'THE KILN. Open to Wanderers. Mind the pots: they mind you.' },
+        { k: 'rest', x: 27, y: 15 },
+        { k: 'sign', x: 20, y: 18, text: 'THE KILN. Open to Wanderers. Mind the pots: they mind you.' },
         { k: 'sign', x: 55, y: 22, text: 'KILNRIDGE. Clay, kilns, pots, crocks, and more pots.' },
         { k: 'building', x: 41, y: 26, w: 4, h: 3, style: 'ochre', door: null, windows: [0, 3], wallH: 18, variant: 'kr1' },
         { k: 'building', x: 47, y: 26, w: 4, h: 3, style: 'ochre', door: null, windows: [0, 3], wallH: 18, variant: 'kr2', chimneyX: 6 },
@@ -10705,15 +10893,74 @@ defBlock({
         { k: 'nest', x: 47, y: 16 },
         { k: 'urnseal', x: 3, y: 31, id: 'linnetUrn' },
         { k: 'linnetnote', x: 3, y: 31, note: 3, under: 'linnetUrn' },
-        { k: 'crock', x: 30, y: 20 }, { k: 'crock', x: 12, y: 26 }, { k: 'crock', x: 36, y: 35 }, { k: 'crock', x: 52, y: 20 }, { k: 'crock', x: 6, y: 6 },
-        { k: 'pickup', x: 15, y: 7, what: 'b20', id: 'mesaButtons' },
+        { k: 'crock', x: 30, y: 20 }, { k: 'crock', x: 5, y: 22 }, { k: 'crock', x: 36, y: 35 }, { k: 'crock', x: 52, y: 20 }, { k: 'crock', x: 6, y: 6 },
+        { k: 'pickup', x: 29, y: 6, what: 'b20', id: 'mesaButtons' },
+        /* the Kiln's forecourt: its gate opens once the ground's been fired (the firing hole by the road), or for anybody
+           who's been in already (an older Wander) */
+        { k: 'door', x: 22, y: 16, type: 'gate', when: 'fgHole|flag:visited:kiln', dir: 'h', id: 'kilnGate' },
+        { k: 'vent', x: 25, y: 17, dir: 'down', dist: 2, period: 280, id: 'fgVent1' },
+        { k: 'charm', x: 25, y: 19, mode: 'once', id: 'fgHole', sig: 'fgHole', col: 'ember' },
+        { k: 'pot', x: 17, y: 19, id: 'fgPot1' }, { k: 'pot', x: 18, y: 21, id: 'fgPot2' },
+        /* the Firing Ground: the old potters' pit, its vent firing through a gate held open from the far corner */
+        { k: 'vent', x: 14, y: 31, dir: 'right', dist: 11, period: 300, phase: 150, id: 'fgVent2' },
+        { k: 'plate', x: 12, y: 33, sig: 'fgPlate', minWeight: WEIGHT.medium },
+        { k: 'door', x: 23, y: 31, type: 'gate', when: 'fgPlate|fgKiln', dir: 'v', id: 'fgGate' },
+        { k: 'charm', x: 25, y: 31, mode: 'once', id: 'fgKiln', sig: 'fgKiln', col: 'ember' },
+        { k: 'crate', x: 18, y: 31, id: 'fgCrate' },
+        { k: 'pot', x: 14, y: 29, id: 'fgPot3' }, { k: 'pot', x: 21, y: 29, id: 'fgPot4' },
+        { k: 'deco', x: 25, y: 29, look: 'kiln_dome', solid: [[0, 0], [1, 0]], oy: -20, text: 'An old beehive kiln, the bricks black inside. Warm, still, the way a stone stays warm after the sun goes in.' },
+        { k: 'chest', x: 27, y: 32, item: 'heartpatch', id: 'fgPatch' },
+        { k: 'brampot', x: 24, y: 33 },
+        /* the vent under the Kiln Mesa, asleep under a boulder that rolled onto it (a ring wakes it) */
+        { k: 'vent', x: 14, y: 14, dir: 'up', dist: 6, period: 300, phase: 60, id: 'chimneyVent' },
+        { k: 'block', x: 11, y: 14, id: 'ventBoulder', look: 'boulder_big', weight: WEIGHT.heavy, sleeper: true, tiedOff: true, startAt: [14, 14], trace: [[11, 14], [12, 14], [13, 14], [14, 14]], noPush: true, pushLine: "A boulder, fast asleep right on top of a vent. The ground under it grumbles. It doesn't budge." },
+        { k: 'charm', x: 14, y: 8, mode: 'once', id: 'chimney', sig: 'chimneyLit', col: 'ember' },
+        { k: 'chest', x: 17, y: 10, item: 'b50', id: 'chimneyChest', hidden: true, when: 'chimneyLit' },
+        { k: 'pot', x: 16, y: 15, id: 'cvPot1' }, { k: 'pot', x: 17, y: 17, id: 'cvPot2' },
+        /* the clay dam over the slot (it takes three knocks, one on top of another) */
+        { k: 'claydam', x: 60, y: 16, id: 'clayDam' },
+        { k: 'vent', x: 60, y: 20, dir: 'up', dist: 4, period: 180, id: 'damVent' },
+        { k: 'chest', x: 60, y: 6, item: 'heartpatch', id: 'slotPatch' },
+        { k: 'deco', x: 59, y: 9, look: 'pot_stack', solid: [[0, 0]], oy: -6, text: "Crocks, a dozen of them, not finished: no legs yet, no faces, set out in the cleft to dry. One of them is very slightly turned toward you. It wasn't, a moment ago." },
+        /* the canyon's dressing: spires, heaps of broken pots, finished ones stacked to sell */
+        { k: 'deco', x: 38, y: 13, look: 'hoodoo', solid: [[0, 0]], oy: -28 }, { k: 'deco', x: 44, y: 7, look: 'hoodoo', solid: [[0, 0]], oy: -28 },
+        { k: 'deco', x: 6, y: 13, look: 'hoodoo', solid: [[0, 0]], oy: -28 }, { k: 'deco', x: 33, y: 33, look: 'hoodoo', solid: [[0, 0]], oy: -28 },
+        { k: 'deco', x: 56, y: 35, look: 'hoodoo', solid: [[0, 0]], oy: -28 },
+        { k: 'deco', x: 38, y: 29, look: 'pot_stack', solid: [[0, 0]], oy: -6 }, { k: 'deco', x: 53, y: 27, look: 'shard_heap', solid: false },
+        { k: 'deco', x: 9, y: 20, look: 'shard_heap', solid: false }, { k: 'deco', x: 27, y: 18, look: 'shard_heap', solid: false },
     ],
     onEnter: (a, o) => { },
     tick: a => {
         const p = G.player;
         if (p && !Progress.flag('kilnPass') && p.x < 64 * T) Progress.set('kilnPass');
+        Vents.update(a);
+    },
+    drawOver: (a, cx, cy) => {
+        Vents.draw(a, cx, cy);
+        /* smoke from the chimneys: the Kiln's, the potters' kiln's */
+        for (const [sx, sy] of [[20 * T + 37, 80 * T + 11 * T - 14], [51 * T + 16, 80 * T + 30 * T - 10]]) {
+            if (sx - cx < -30 || sx - cx > W + 30 || sy - cy < -60 || sy - cy > H + 20) continue;
+            for (let i = 0; i < 6; i++) {
+                const ph = ((G.t + i * 23) % 140) / 140, x = sx - cx + Math.sin(ph * 5 + i) * 3 + ph * 10, y = sy - cy - ph * 46;
+                Gfx.alpha(0.45 * (1 - ph)); Gfx.circle(x, y, 2 + ph * 4, ph < 0.3 ? '#a89888' : '#d8ccc0'); Gfx.alpha(1);
+            }
+        }
     },
 });
+
+/* Bram's first pot, hidden in the old kiln yard */
+SPAWN.brampot = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: spr('bram_pot'), solid: [[0, 0]], oy: 0 });
+    pr.interact = () => {
+        Script.run(function* () {
+            yield* say(null, 'A little pot, lopsided, a thumbprint pressed into its side. Scratched round its belly in big wobbly letters: BRAM. AGE 9. MY FIRST WANDER POT. WHEN I AM BIG I WILL MAKE BETTER ONES THAN THIS.');
+            if (!Progress.flag('brampot')) { Progress.set('brampot'); Stats.count('secret:brampot'); yield* say(null, "Somebody kept it all these years, and set it down out here where only somebody patient would find it."); }
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
 
 PEOPLE_DEF.annie = { name: 'Ochre Annie', col: '#f0b060', look: { body: 'adult', hair: 'long', hairC: '#c4623a', top: '#c9925a', accent: '#93432c', bottom: '#5a3a26', skin: 'tan' } };
 PEOPLE_DEF.tal = { name: 'Tal', col: '#c8d8f0', look: { body: 'adult', hair: 'cap', hairC: '#3a3a5a', top: '#5a7aa8', accent: '#e6c08a', bottom: '#45403f', skin: 'brown', extra: ['beard'] } };
@@ -10776,11 +11023,301 @@ function initKilnridgeArt() {
 }
 CONTENT_INIT.push(initKilnridgeArt);
 
-/* Kilnridge's rock: red sandstone in layers */
-OWA.cliffs.kiln = {
-    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { tint: ['#d67a54', '#c4623a', '#e8946a', '#b8583a'], band1: [0, 3, 7, 10, 13], band2: [0, 4, 8, 12], seed: 3 }),
-    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { topCol: '#d48a62', tuft: ['#b8904a', '#d8b060'], seed: 3 }),
+
+/* ---------- wet clay, vents, and a dam that mends ----------
+   Wet clay: soft going (Wren wades), and anything that comes to rest in it (pushed, thrown, fired) sticks fast, unbroken:
+   it's held, so it doesn't go home (rule 3) until it's lifted out or gripped. A vent keeps its own mouth wet with steam;
+   every so often it breathes out hard, and whatever's stuck in its mouth is flung up and over whatever's in front (walls
+   too), landing a set way off. What's flung lays its thread along its flight like anything thrown, so when a pot breaks
+   where it lands its pieces fly home back over the wall it crossed, then along wherever it was carried. A clay dam takes
+   three knocks to break, but the clay settles back if it's left alone a little while. */
+TK.clay = { solid: false, slow: true, clay: true };
+const CLAY = { clay: true };          /* what's holding a thing that's stuck in the clay */
+const Clay = {
+    at(a, x, y) { return !!a.kind(x, y).clay; },
+    stuck(o) { return o.heldBy === CLAY; },
+    stick(o) {
+        if (o.heldBy || o.carried || o.fixed || o.weight > WEIGHT.light) return;
+        o.heldBy = CLAY; o.stuckNoPush = !o.noPush; o.noPush = true;
+        Fx.dust(o.tx * T + 8, o.ty * T + 13);
+    },
+    unstick(o) { if (o.heldBy === CLAY) o.heldBy = null; if (o.stuckNoPush) { o.noPush = false; o.stuckNoPush = false; } },
 };
+{
+    /* coming to rest on clay (a push, a hook's last tug; not a thing going home, which walks on through) */
+    const landed0 = GridThing.prototype.landed;
+    GridThing.prototype.landed = function (returning) {
+        landed0.call(this, returning);
+        if (!returning && !this.removed && !this.hookPulled && this.area && this.ret && this.ret.state !== 'returning' && Clay.at(this.area, this.tx, this.ty) && !this.area.kind(this.tx, this.ty).pit) Clay.stick(this);
+    };
+    /* thrown into clay: it sticks there, whole */
+    const land0 = Thrown.land;
+    Thrown.land = function (t, area) {
+        const o = t.o, tx = t.lastTx, ty = t.lastTy;
+        if (Clay.at(area, tx, ty) && !area.at(tx, ty) && o.weight <= WEIGHT.light) {
+            o.flying = false; o.tx = tx; o.ty = ty; o.x = tx * T; o.y = ty * T;
+            area.place(o, tx, ty);
+            if (o.ret) Return.moved(o, tx, ty);
+            Sfx.play('land'); Clay.stick(o);
+            return;
+        }
+        return land0.call(this, t, area);
+    };
+    /* lifting it out (or taking hold of it) frees it */
+    const lift0 = Player.prototype.lift;
+    Player.prototype.lift = function (o) { Clay.unstick(o); return lift0.call(this, o); };
+    const grip0 = Player.prototype.tryGrip;
+    Player.prototype.tryGrip = function () { const o = this.thingInFront(); if (o && Clay.stuck(o)) Clay.unstick(o); return grip0.call(this); };
+}
+SFX.vent = (o, t) => { Audio.hit(o, t, 0.5, 0.2, 300, 3000); Audio.tone(o, t, 110, 0.4, 'triangle', 0.12, { slide: 220 }); };
+
+/* a vent: a crack in the clay with heat coming off it, wet round its mouth */
+class Vent extends FloorThing {
+    constructor(tx, ty, p = {}) {
+        super('vent', tx, ty, p);
+        this.d = dirByName(p.dir || 'up'); this.dist = p.dist || 4;
+        this.period = p.period || 300; this.phase = p.phase || 0; this.t = 0; this.puffT = 0;
+        this.inert = false;
+    }
+    get k() { return (this.t + this.phase) % this.period; }
+    get soon() { return !this.off && this.k > this.period - 70; }
+    update() {
+        this.t++;
+        if (this.puffT > 0) this.puffT--;
+        if (this.off || this.k !== 0) return;
+        const a = this.area;
+        /* (a sleeping boulder on its mouth smothers it) */
+        const o = a.at(this.tx, this.ty);
+        if (o && Return.asleep(o)) return;
+        this.puffT = 40;
+        if (a === G.map && G.player) { const p = G.player; if (Math.abs(p.tx - this.tx) < 12 && Math.abs(p.ty - this.ty) < 8) Sfx.play('vent', 0.6); }
+        if (o && !o.fixed && !o.mv && !o.carried && o.weight <= WEIGHT.light && (!o.heldBy || o.heldBy === CLAY)) Vents.fire(o, this);
+        /* standing in it: a hot breath, and off you step */
+        const p = G.player;
+        if (p && p.area === a && p.state === 'normal' && p.feetOn(this.tx, this.ty)) {
+            p.kx = -DX[this.d] * 2.6 || (p.x < this.tx * T + 8 ? -2.6 : 2.6); p.ky = -DY[this.d] * 2.6;
+            Fx.text(p.x, p.y - 20, 'Hot!', '#f39a3c');
+        }
+    }
+    draw(cx, cy) {
+        const x = this.tx * T - cx, y = this.ty * T - cy, soon = this.soon, on = this.puffT > 0;
+        /* the wet mouth, the crack, the glow inside it (brighter as it's about to go) */
+        const im = spr('vent_mouth'); if (im) Gfx.img(im, x, y);
+        const glow = on ? '#ffe08a' : soon ? (((G.t >> 2) % 2) ? '#f8b050' : '#f39a3c') : '#c4623a';
+        Gfx.rect(x + 5, y + 7, 6, 2, glow); Gfx.rect(x + 7, y + 6, 2, 4, glow);
+        if (soon || on) { Gfx.alpha(0.35); Gfx.rect(x + 3, y + 5, 10, 6, glow); Gfx.alpha(1); }
+    }
+}
+SPAWN.vent = (x, y, p) => new Vent(x, y, p);
+
+const Vents = {
+    flights: [],
+    /* up it goes, over whatever's in front, and down a set way off */
+    fire(o, v) {
+        const a = v.area;
+        Clay.unstick(o);
+        a.unplace(o, o.tx, o.ty);
+        o.flying = true; o.mv = null;
+        /* the tiles it passes over; it comes down on the last open one, or stops short at a thing standing up in its way */
+        const path = [];
+        let land = null;
+        for (let i = 1; i <= v.dist; i++) {
+            const x = v.tx + DX[v.d] * i, y = v.ty + DY[v.d] * i;
+            if (!a.inside(x, y)) break;
+            const occ = a.at(x, y);
+            if (occ && occ !== o && !occ.walkOn) { path.push({ x, y, hit: occ }); break; }
+            let shut = false; for (const b of a.blockers) if (b.blocks(x, y, o)) shut = true;
+            if (shut) { path.push({ x, y, hit: null, shut: true }); break; }
+            path.push({ x, y });
+            const k = a.kind(x, y);
+            if (!k.solid || k.deep || k.pit) land = { x, y };
+        }
+        this.flights.push({ o, v, path, land, i: 0, t: 0, x: v.tx * T + 8, y: v.ty * T + 8, z: 0, a });
+        Stats.count('vent:fired');
+    },
+    update(a) {
+        for (const f of this.flights) {
+            if (f.a !== a || f.o.area !== a) { f.done = true; this.drop(f, true); continue; }
+            f.t++;
+            const n = f.path.length, dur = Math.max(10, n * 6), k = Math.min(1, f.t / dur);
+            const ex = (f.path.length ? f.path[f.path.length - 1].x : f.v.tx) * T + 8, ey = (f.path.length ? f.path[f.path.length - 1].y : f.v.ty) * T + 8;
+            const tx = lerp(f.v.tx * T + 8, ex, k), ty = lerp(f.v.ty * T + 8, ey, k);
+            f.x = tx; f.y = ty; f.z = Math.sin(k * Math.PI) * (18 + n * 3);
+            /* over each tile: charms and bells hanging in the air there are struck (its thread jumps straight from the
+               vent to where it comes down, the way a thread goes over a wall) */
+            const idx = Math.min(n - 1, Math.floor(k * n - 0.001));
+            while (f.i <= idx && f.i < n) {
+                const s = f.path[f.i++];
+                if (s.hit || s.shut) {
+                    if (s.hit && s.hit.hit) s.hit.hit(f.o, f.v.d);
+                    f.done = true; this.drop(f); break;
+                }
+                for (const e of a.ents) if (e.strike && e.tx === s.x && e.ty === s.y && e !== f.o) e.strike(f.o);
+            }
+            if (!f.done && f.t >= dur) { f.done = true; this.drop(f); }
+        }
+        this.flights = this.flights.filter(f => !f.done);
+    },
+    /* down it comes: into clay (whole), a pit or water, or onto the ground (a pot breaks) */
+    drop(f, away) {
+        const o = f.o, a = f.a;
+        o.flying = false;
+        let { x, y } = f.land || { x: f.v.tx, y: f.v.ty };
+        if (a.at(x, y) && a.at(x, y) !== o) {
+            /* (something's landed there since: the nearest open tile back along the way) */
+            const back = f.path.slice().reverse().find(s => !a.at(s.x, s.y) && !a.kind(s.x, s.y).solid);
+            if (back) { x = back.x; y = back.y; } else { x = f.v.tx; y = f.v.ty; }
+        }
+        if (o.ret) Return.moved(o, x, y);
+        if (away || o.removed) { if (o.ret) Return.sendHome(o); else { o.tx = x; o.ty = y; o.x = x * T; o.y = y * T; a.place(o, x, y); } return; }
+        const k = a.kind(x, y);
+        if (Clay.at(a, x, y) && !a.at(x, y)) { o.tx = x; o.ty = y; o.x = x * T; o.y = y * T; a.place(o, x, y); Sfx.play('land'); Clay.stick(o); return; }
+        if (o.breaks && !k.pit && !k.deep) { o.tx = x; o.ty = y; Shards.start(o, x, y); return; }
+        o.tx = x; o.ty = y; o.x = x * T; o.y = y * T;
+        a.place(o, x, y); Sfx.play('land');
+        o.landed(false);
+    },
+    draw(a, cx, cy) {
+        for (const f of this.flights) {
+            if (f.a !== a) continue;
+            const im = f.o.sprite && f.o.sprite();
+            Gfx.alpha(0.25); Gfx.rect(f.x - cx - 4, f.y - cy + 4, 8, 2, PAL.ink); Gfx.alpha(1);
+            if (im) Gfx.img(im, f.x - cx - 8, f.y - cy - 8 - f.z);
+        }
+    },
+};
+
+/* a dam of hard clay across a cleft: three knocks from flying things in quick succession break it; left alone, it settles */
+class ClayDam extends GridThing {
+    constructor(tx, ty, p = {}) { super('dam', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, p)); this.hp = 3; this.mendT = 0; }
+    onAdd(area) { super.onAdd(area); if (this.id && Progress.areaFlag(area.id, 'seal:' + this.id)) area.remove(this); }
+    hit(by, d, shard) {
+        if (!by || (!shard && !by.flying)) { Sfx.play('hitthing'); return; }
+        this.hp--; this.mendT = this.mend || 270; G.shake = 4;
+        Sfx.play('shatter'); Fx.burst(this.tx * T + 8, this.ty * T + 6, '#b8583a');
+        if (this.hp > 0) return;
+        if (this.id) Progress.setAreaFlag(this.area.id, 'seal:' + this.id);
+        Fx.burst(this.tx * T + 8, this.ty * T + 8, '#e08a5e'); Sfx.play('door'); G.shake = 10;
+        Stats.count('secret:dam');
+        this.area.remove(this);
+    }
+    onStruck() { UI.toast(this.hp < 3 ? 'The cracks in the dam are already closing up.' : 'Hard clay, thick as a wall. It would take a good many knocks, one on top of another.'); }
+    tick() { if (this.hp < 3 && --this.mendT <= 0) { this.hp = 3; if (this.area === G.map) Sfx.play('unclick'); } }
+    sprite() { return spr('clay_dam_' + (3 - this.hp)); }
+}
+SPAWN.claydam = (x, y, p) => new ClayDam(x, y, p);
+
+/* ---------- Kilnridge's look: a canyon floor of red clay dust, cracked where it's driest; dry grass; sandstone in layers ---------- */
+OWA.ground.kiln = {
+    grass: {
+        field: (tx, ty) => OWA.field(tx, ty, 57, 6, 5, -0.05),
+        draw(x, th, v, fl) {
+            const [g0, g1, g2, g3] = th.grass;
+            fill(x, g0);
+            speckle(x, [g1], 11 + v * 13, 0.13); speckle(x, [g2], 23 + v * 7, 0.07);
+            /* cracks where it's dried out (a cell of dried mud, edged dark, its lip catching the light) */
+            for (let n = 0; n < [0, 1, 3, 4][fl]; n++) {
+                let cx = Math.floor(hash2(v + fl * 5, n, 81) * 14) + 1, cy = Math.floor(hash2(n, v + fl * 5, 82) * 14) + 1;
+                for (let st = 0; st < 7; st++) {
+                    px(x, cx, cy, '#9a5a34'); if (cy + 1 < 16) px(x, cx, cy + 1, mix(g0, g2, 0.6));
+                    const r = hash2(n * 7 + st, v + fl, 83);
+                    if (r < 0.45) cx = clamp(cx + 1, 0, 15); else if (r < 0.7) cy = clamp(cy + 1, 0, 15); else if (r < 0.85) cy = clamp(cy - 1, 0, 15); else cx = clamp(cx - 1, 0, 15);
+                }
+            }
+            /* pebbles, and now and then a bit of broken pot */
+            for (let n = 0; n < 2; n++) { const sx = Math.floor(hash2(v, n, 91) * 14) + 1, sy = Math.floor(hash2(n, v, 92) * 13) + 2; px(x, sx, sy, '#b07850'); px(x, sx + 1, sy, '#c89068'); px(x, sx, sy + 1, '#8a5638'); }
+            if (v === 1 && fl < 2) { px(x, 10, 11, '#c4623a'); px(x, 11, 11, '#e08a5e'); px(x, 10, 12, '#93432c'); }
+            if (v === 3) { px(x, 4, 6, '#b8a050'); px(x, 5, 5, '#d8c070'); px(x, 3, 5, '#b8a050'); }
+        },
+    },
+    /* the canyon's flowers: little orange and yellow stars close to the dust */
+    flowers(x, th, v) {
+        OWA.ground.kiln.grass.draw(x, th, v, 0);
+        const cols = [['#f39a3c', '#fbe08a'], ['#f7d64a', '#fff4c0'], ['#e8463c', '#f7d64a'], ['#fbf6ea', '#f39a3c']];
+        for (let n = 0; n < 2; n++) {
+            const [pe, mi] = cols[Math.floor(hash2(v, n, 9) * cols.length)], fx = 3 + Math.floor(hash2(n, v, 1) * 9), fy = 3 + Math.floor(hash2(v + 3, n, 2) * 9);
+            px(x, fx, fy - 1, pe); px(x, fx - 1, fy, pe); px(x, fx + 1, fy, pe); px(x, fx, fy, mi); px(x, fx, fy + 1, '#8a7a3a'); px(x, fx + 1, fy + 2, '#8a7a3a');
+        }
+    },
+    /* dry grass in clumps, bleached at the tips */
+    tallgrass(x, th, v) {
+        OWA.ground.kiln.grass.draw(x, th, v, 0);
+        for (let i = 0; i < 6; i++) {
+            const bx = 2 + i * 2 + (i % 2), h = 5 + Math.floor(hash2(i, v, 4) * 5);
+            for (let j = 0; j < h; j++) px(x, bx + (j > h - 3 ? (i % 2 ? 1 : -1) : 0), 15 - j, j > h - 3 ? '#f0dca0' : j > h / 2 ? '#d8b868' : '#b89048');
+        }
+    },
+    /* the track: clay packed hard and pale, two ruts worn in it */
+    path(x, th, v) {
+        const [p0, p1, p2] = th.path;
+        fill(x, p0); speckle(x, [p1], 31 + v, 0.15); speckle(x, [p2], 41 + v, 0.08);
+        for (let n = 0; n < 2; n++) { const sx = Math.floor(hash2(v, n, 12) * 13) + 1, sy = Math.floor(hash2(n, v, 13) * 13) + 1; px(x, sx, sy, '#c89870'); px(x, sx + 1, sy, p1); }
+    },
+    /* under the autumn trees: red earth and fallen leaves */
+    forest(x, th, v) { fill(x, '#7a3a24'); speckle(x, ['#8a4a2a', '#6a3020'], v + 9, 0.3); speckle(x, ['#f0a840', '#d9832a'], v + 21, 0.06); },
+    /* wet clay: dark and glossy, a sheen on it, a puddle in the hollows */
+    wetclay(x, th, v) {
+        fill(x, '#8a4a30'); speckle(x, ['#7a3e28', '#9a5638'], 50 + v, 0.3);
+        for (let n = 0; n < 3; n++) { const sx = Math.floor(hash2(v, n, 51) * 12) + 1, sy = Math.floor(hash2(n, v, 52) * 13) + 1; fill(x, '#b87050', sx, sy, 3, 1); px(x, sx, sy + 1, '#6a3420'); }
+        if (v % 2) { fill(x, '#6a3a30', 6, 9, 5, 3); fill(x, '#8aa8b8', 7, 10, 3, 1); px(x, 7, 9, '#c8d8e0'); }
+        for (let i = 0; i < 16; i += 5) px(x, (i + v * 3) % 16, 14, '#6a3420');
+    },
+    /* steps cut into the sandstone */
+    stairs(x, th) {
+        const [s0, s1, s2, s3] = th.stone;
+        for (let i = 0; i < 4; i++) { const y = i * 4; fill(x, mix(s0, s2, 0.35), 0, y, 16, 2); fill(x, s0, 0, y + 2, 16, 1); fill(x, mix(s1, s3, 0.5), 0, y + 3, 16, 1); }
+        fill(x, s3, 0, 0, 1, 16); fill(x, s3, 15, 0, 1, 16);
+    },
+};
+OWA.cliffs.kiln = {
+    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { tint: ['#c4623a', '#a84e30', '#d67a54', '#93432c', '#b8583a'], band1: [0, 3, 7, 10, 13], band2: [0, 4, 8, 12], lip: ['#c78a52', '#d9a067', '#e8b884'], rimTop: ['#e08a5e', '#b0603e', '#8a4430'], seed: 3 }),
+    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { topCol: '#a85a3a', tuft: ['#c8a050', '#e0c070'], seed: 3 }),
+};
+
+function initKilnridgeArt2() {
+    /* a vent's mouth: wet clay round a crack, a little steam beading */
+    defSprite('vent_mouth', ['................', '.....kkkkkk.....', '...kkuuuuuukk...', '..kuuUUUUUUuuk..', '.kuUUkkkkkkUUuk.', '.kuUkkkkkkkkUuk.', 'kuUUkk....kkUUuk', 'kuUkk......kkUuk',
+        'kuUkk......kkUuk', 'kuUUkk....kkUUuk', '.kuUkkkkkkkkUuk.', '.kuUUkkkkkkUUuk.', '..kuuUUUUUUuuk..', '...kkuuuuuukk...', '.....kkkkkk.....', '................'], { u: '#a86040', U: '#7a3e28' });
+    /* the dam: a plug of hard clay, cracking */
+    for (let c = 0; c < 3; c++) {
+        const rows = ['.kkkkkkkkkkkkkk.', 'kuuuuuuuuuuuuuuk', 'kuUuuuuUuuuuUuuk', 'kuuuuuuuuuuuuuuk', 'kuuuUuuuuuuUuuuk', 'kuuuuuuuuuuuuuuk', 'kUuuuuUuuuuuuuUk', 'kuuuuuuuuuuuuuuk',
+            'kuuuUuuuuuUuuuuk', 'kuuuuuuuuuuuuuuk', 'kuUuuuuuUuuuuuuk', 'kuuuuuuuuuuuuuuk', 'kUUUUUUUUUUUUUUk', 'kUUUUUUUUUUUUUUk', 'kUUUUUUUUUUUUUUk', '.kkkkkkkkkkkkkk.'].map(r => r.split(''));
+        const cracks = [[[3, 2], [4, 3], [4, 4], [5, 5], [5, 6], [6, 7]], [[11, 3], [10, 4], [10, 5], [11, 6], [11, 7], [10, 8], [9, 9]], [[6, 8], [7, 9], [7, 10], [8, 11], [3, 9], [2, 10], [12, 9], [13, 10]]];
+        for (let i = 0; i < c; i++) for (const [cx, cy] of cracks[i]) rows[cy][cx] = 'k';
+        defSprite('clay_dam_' + c, rows.map(r => r.join('')), { u: '#c06a44', U: '#8a4430' });
+    }
+    /* a hoodoo: a spire of clay with a cap of harder stone */
+    ART.hoodoo = paintSprite(16, 44, x => {
+        for (let j = 6; j < 44; j++) {
+            const w = Math.round(3 + (j / 44) * 4 + Math.sin(j / 3.5) * 1.2);
+            for (let i = 8 - w; i < 8 + w; i++) {
+                const l = -(i - 8) / w * 0.6 + (hash2(i, j, 7) - 0.5) * 0.4, band = Math.floor(j / 5) % 2;
+                x.fillStyle = l > 0.35 ? (band ? '#f0a070' : '#e8946a') : l > -0.25 ? (band ? '#d67a54' : '#c4623a') : '#93432c'; x.fillRect(i, j, 1, 1);
+            }
+        }
+        for (let j = 0; j < 7; j++) { const w = j < 2 ? 4 + j : 6; for (let i = 8 - w; i < 8 + w; i++) { x.fillStyle = j < 2 ? '#e0d0b8' : i < 8 ? '#c8b8a0' : '#a89880'; x.fillRect(i, j + 1, 1, 1); } }
+    });
+    /* an old beehive kiln, cold for years */
+    ART.kiln_dome = paintSprite(40, 36, x => {
+        for (let j = 0; j < 32; j++) for (let i = 0; i < 40; i++) {
+            const u = (i - 20) / 19, w = (j - 30) / 28; if (u * u + w * w > 1) continue;
+            const row = Math.floor(j / 4), brick = (row + Math.floor((i + (row % 2) * 3) / 6)) % 2;
+            const l = -u * 0.6 - w * 0.5 + (hash2(i, j, 4) - 0.5) * 0.3;
+            x.fillStyle = j % 4 === 3 ? '#6a2e22' : l > 0.5 ? '#e08a5e' : brick ? '#b8583a' : '#c4623a'; x.fillRect(i, j + 2, 1, 1);
+        }
+        x.fillStyle = '#2a1410'; x.fillRect(14, 20, 12, 14); x.fillStyle = '#4a2418'; x.fillRect(15, 21, 10, 12);
+        x.fillStyle = '#6a2e22'; x.fillRect(13, 19, 14, 2); x.fillStyle = '#8a7a6a'; x.fillRect(17, 0, 6, 4);
+    });
+    /* a stack of finished pots, and a heap of the broken ones */
+    ART.pot_stack = paintSprite(16, 22, x => {
+        const pot = (ox, oy, c) => { const [a, b, d] = c; x.fillStyle = b; x.fillRect(ox + 1, oy + 1, 6, 6); x.fillStyle = a; x.fillRect(ox + 1, oy + 1, 3, 5); x.fillStyle = d; x.fillRect(ox + 2, oy, 4, 1); x.fillRect(ox + 1, oy + 6, 6, 1); };
+        pot(0, 14, ['#f2bc78', '#d98f3a', '#a8602a']); pot(8, 14, ['#e8946a', '#c4623a', '#93432c']); pot(4, 7, ['#f2bc78', '#d98f3a', '#a8602a']); pot(4, 0, ['#9ae0d8', '#4fb8b0', '#2e7e78']);
+    });
+    ART.shard_heap = paintSprite(16, 10, x => { for (let n = 0; n < 16; n++) { const sx = Math.floor(hash2(n, 2, 5) * 13), sy = 3 + Math.floor(hash2(2, n, 6) * 6); x.fillStyle = ['#d98f3a', '#c4623a', '#a8602a', '#4fb8b0'][n % 4]; x.fillRect(sx, sy, 3 - (n % 2), 2); } });
+    /* a pot with a child's thumbprint pressed in it, and letters scratched round its belly */
+    defSym('bram_pot', ['........', '........', '.....kkk', '....kyoo', '....kOOO', '.....koo', '....kyoo', '...kyooo', '..kyookk', '..kookyk', '..kooook', '..kOoooo', '...kOOoo', '....kOOO', '.....kkk', '........'], { o: '#c08050', O: '#8a5638', y: '#e0a878' }, { y: 'o' });
+}
+CONTENT_INIT.push(initKilnridgeArt2);
 
 // ---- 47_water_kit.js ----
 /* Water, for the Millrace and Millwater. Currents carry floating things away (the trace grows as they go,
@@ -12990,23 +13527,23 @@ const BELFRY_ENTRY = { x: 29, y: 53 };
 
 const HEIGHTS_ROWS = [
     '################################################################',
-    '###.,...........".......r..................................."###',
-    '###..r...............,....XXXXXXXXXX.......................,.###',
-    '###.......................XXXXXXXXXX..............b..........###',
-    '###....,........r.,.......XXXXXXXXXX.........................###',
+    '###.,...........".......r.............................z......###',
+    '###..r...............,....XXXXXXXXXX..................z......###',
+    '###.......................XXXXXXXXXX..................z......###',
+    '###.............r.,.......XXXXXXXXXX..................zzzzzzz###',
     '###."......,..............XXXXXXXXXX........"....,...........###',
     '###....,..."..........r.".XXXXXXXXXX.....r...r...............###',
     '###...,...........,.......XXXX:XXXXX...r.....................###',
     '###.....".....................::...................,.........###',
     '##############################H#################################',
     '##############################H#################################',
-    '###.....................................ooooo.......:........###',
-    '###...........................::::::::::ooooo::::::::........###',
-    '###...............,b....................ooooo.......:........###',
-    '###.............b......,................ooooo.......:........###',
-    '###.b...............................b...ooooo.......:........###',
-    '###.....................................ooooo.......:........###',
-    '###.....................................ooooo..."...:........###',
+    '###zzzzzzz^zzzzzzzzzzz^zz...............zzzzz.......:........###',
+    '###z^^zzzzzz..zzzz..zzzzz.....::::::::::zzzzz::::::::........###',
+    '###zzzzzzzzzzzzzzzzzzzzzz...............zzzzz.......:........###',
+    '###zzzzzzzz...zzzzz..^zzz...............zzzzz.......:........###',
+    '###zzz...zz...zzzzz.zzzzz...............zzzzz.......:........###',
+    '###z^z...zzzzzzzzzzzzzz^z...............zzzzz.......:........###',
+    '###zzzzzz^zzzzzz^zzzzzzzz...............zzzzz..."...:........###',
     '####################################################H###########',
     '####################################################H###########',
     '###.........:................................................###',
@@ -13014,19 +13551,19 @@ const HEIGHTS_ROWS = [
     '###.........:................................................###',
     '###.........:................................................###',
     '###"........:................................................###',
-    '###r........:...........b....,................r...........,..###',
-    '###.........:....."....b...r.................................###',
-    '###.........:.......vvvvvvvv#####vvvvvvvvvvvvvvvv.........,b.###',
+    '###r........:................,................r...........,..###',
+    '###.........:....."........r.................................###',
+    '###.........:.......vvvvvvvv#####vvvvvvvvvvvvvvvv.........,..###',
     '############H################...################################',
     '############H#################.#################################',
     '###.".r.....::::::::::::::::::::::::::::::::.................###',
     '###.....,..................................:.................###',
     '###........".........,.......".,...........:."...............###',
-    '###..".........................,....,......:.................###',
+    '###............................,...........:.................###',
     '###........................................:.................###',
-    '###.....b......................"...........:............,....###',
+    '###............................"...........:............,....###',
     '###...........,..............,.r...........:......,..........###',
-    '###....b...................................:............,....###',
+    '###........................................:............,....###',
     '###........r...................,...........:...r.........."..###',
     '##########################################:::###################',
 ];
@@ -13037,7 +13574,11 @@ defBlock({
     levels: [[20, 34, 0], [20, 23, 1], [20, 14, 2], [20, 4, 3]],
     rows: HEIGHTS_ROWS,
     forest: ['pine', 'tree_birch'],
-    legend: {},
+    legend: {
+        /* (the Heights' own: a chasm with a lip, and heather) */
+        'z': { k: 'pit', p: 'chasm' },
+        'e': { k: 'grass', p: 'heather' },
+    },
     ents: [
         /* terrace 1: the shrine bell, and the boulder asleep on the stair; along the path, a little cave stopped up
            by another sleeping boulder, out of the shrine's reach (after the Belfry: the Recall Bell) */
@@ -13062,10 +13603,37 @@ defBlock({
         { k: 'warp', x: 30, y: 7, to: 'belfry', tx2: BELFRY_ENTRY.x, ty2: BELFRY_ENTRY.y, face: 'up', dir: 'up' },
         { k: 'npc', who: 'tess', x: 33, y: 8, face: 'down' },
         { k: 'sign', x: 28, y: 8, text: 'THE BELFRY. Ring once for the Wanderer. (Twice if lost.)' },
-        { k: 'enemy', x: 20, y: 14, type: 'nibbler' }, { k: 'enemy', x: 50, y: 34, type: 'nibbler' },
+        { k: 'enemy', x: 34, y: 15, type: 'nibbler' }, { k: 'enemy', x: 50, y: 34, type: 'nibbler' },
+        /* the Crags: pinnacles in a chasm, crossed on the Hookline (an eyelet; then only where things belong and aren't) */
+        { k: 'gust', x: 3, y: 11, w: 22, h: 4, dir: 'right', period: 330, len: 130, force: 0.05, id: 'cragGust' },
+        { k: 'vane', x: 26, y: 11, gust: 'cragGust' },
+        { k: 'rest', x: 27, y: 16 },
+        { k: 'sign', x: 28, y: 12, text: 'THE CRAGS. The wind up here takes anything that isn\'t held down. The old bell-ringers crossed them for luck, and came back down the quick way.' },
+        { k: 'eyelet', x: 18, y: 12 },
+        { k: 'crate', x: 19, y: 14, id: 'cragCrate' },
+        { k: 'block', x: 13, y: 15, id: 'cragBoulder', look: 'boulder_b', sleeper: true, tiedOff: true, resetSleep: true, startAt: [13, 12], trace: [[13, 15], [13, 14], [13, 13], [13, 12]], noPush: true, pushLine: 'A boulder, asleep on its little pinnacle. Its thread runs off over the drop to where it belongs.' },
+        { k: 'pot', x: 8, y: 15, id: 'cragPot' },
+        { k: 'chest', x: 6, y: 16, item: 'heartpatch', id: 'cragPatch' },
+        { k: 'ringstone', x: 6, y: 15 },
+        /* the Eyrie: a nook in the north-east cut off by a crevice the draught blows a crate into (and it pops home) */
+        { k: 'gust', x: 47, y: 1, w: 7, h: 3, dir: 'right', period: 300, len: 90, force: 0.35, id: 'eyrieGust' },
+        { k: 'crate', x: 51, y: 2, id: 'eyrieCrate' },
+        { k: 'chest', x: 59, y: 2, item: 'heartpatch', id: 'eyriePatch' },
+        { k: 'deco', x: 57, y: 1, look: 'eyrie_nest', solid: [[0, 0]], oy: -2, text: 'An old eagles\' nest, empty for years, as big as a cartwheel. Woven in among the sticks: a strip of green ribbon, bleached nearly white by the wind.' },
+        /* the moor: cairns, gorse, hawthorns the wind has combed */
+        { k: 'deco', x: 9, y: 4, look: 'cairn', solid: [[0, 0]], text: 'A cairn. Everyone who comes up here adds a stone. You add one. It stays where you put it, which is more than most things up here do.' },
+        { k: 'deco', x: 48, y: 25, look: 'cairn', solid: [[0, 0]] },
+        { k: 'deco', x: 6, y: 36, look: 'cairn', solid: [[0, 0]] },
+        { k: 'deco', x: 38, y: 33, look: 'gorse', solid: [[0, 0]] }, { k: 'deco', x: 56, y: 37, look: 'gorse', solid: [[0, 0]] }, { k: 'deco', x: 4, y: 26, look: 'gorse', solid: [[0, 0]] },
+        { k: 'deco', x: 50, y: 3, look: 'gorse', solid: [[0, 0]] }, { k: 'deco', x: 24, y: 25, look: 'gorse', solid: [[0, 0]] }, { k: 'deco', x: 23, y: 26, look: 'gorse', solid: [[0, 0]] }, { k: 'deco', x: 59, y: 27, look: 'heather_clump', solid: [[0, 0]] }, { k: 'deco', x: 8, y: 35, look: 'gorse', solid: [[0, 0]] }, { k: 'deco', x: 7, y: 37, look: 'heather_clump', solid: [[0, 0]] },
+        { k: 'deco', x: 44, y: 6, look: 'heather_clump', solid: [[0, 0]] }, { k: 'deco', x: 15, y: 5, look: 'heather_clump', solid: [[0, 0]] }, { k: 'deco', x: 33, y: 16, look: 'heather_clump', solid: [[0, 0]] },
+        { k: 'tree', x: 4, y: 29, look: 'tree_bent', small: true }, { k: 'tree', x: 56, y: 33, look: 'tree_bent2', small: true }, { k: 'tree', x: 47, y: 13, look: 'tree_bent', small: true },
+        { k: 'tree', x: 8, y: 6, look: 'tree_bent2', small: true }, { k: 'tree', x: 51, y: 6, look: 'tree_bent', small: true }, { k: 'tree', x: 58, y: 25, look: 'tree_bent', small: true },
     ],
     regions: [
         { name: 'The Bluster', x: 3, y: 20, w: 58, h: 8 },
+        { name: 'The Crags', x: 3, y: 11, w: 26, h: 7 },
+        { name: 'The Eyrie', x: 55, y: 1, w: 6, h: 3 },
         { name: 'The Belfry', x: 3, y: 1, w: 58, h: 8 },
     ],
 });
@@ -13075,7 +13643,9 @@ PEOPLE_DEF.tess = PEOPLE_DEF.tess || { name: 'Mum', col: '#e8b04a', look: { body
 
 TALK.brindle = function* () {
     yield* firstThen('brindle', "Goats, heather and wind. That's the Heights. The goats are mostly wind too, some days.",
-        ["That boulder on the stair? Rolled down in a storm and fell asleep there. Ring the shrine bell. Wakes anything.", "The Bluster blows on and off, regular as a clock. Watch the vanes.", "Your mum's up top. She's been up top since before the sun."]);
+        ["That boulder on the stair? Rolled down in a storm and fell asleep there. Ring the shrine bell. Wakes anything.", "The Bluster blows on and off, regular as a clock. Watch the vanes.", "Your mum's up top. She's been up top since before the sun.",
+            "The old ringers used to cross the Crags for luck, past the chasm. The wind does half the work, they'd say. I never did know what they meant, and I never asked. Too windy to ask.",
+            "Something keeps tumbling into the crevice up by the old eyrie. Pops right back out again, every time. Like a kettle. A wooden kettle."]);
 };
 TALK.tess = function* () {
     if (Progress.flag('d4')) { yield* say('tess', cycle('tess4', ["Four Knots! Did you hear the bells ringing for you? That was me. Well. Some of it.", "Get yourself home for the festival. Everyone'll be there. Everyone always is.", "My bell-ringer's bairn. Go on, then."])); return; }
@@ -13089,13 +13659,205 @@ TALK.tess = function* () {
     yield* say('tess', cycle('tess1', ["A ring reaches as far as you can throw a shout. Seven strides, about.", "When it's windy, everything wanders. When the bell goes, everything comes back. That's the Heights for you.", "Did your dad feed you? He never feeds you."]));
 };
 BUDGE.brindle = 'Brindle: "Mind the goats."';
+
+/* the Ringers' Stone, at the far end of the Crags: everyone who got across carved their initial and a little bell */
+SPAWN.ringstone = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.ringstone, solid: [[0, 0]], oy: -14 });
+    pr.baseY = 30;
+    pr.interact = () => {
+        Script.run(function* () {
+            if (Progress.flag('crags_carved')) { yield* say(null, "The Ringers' Stone. Low down, very old, H. A long way above it, L. And above that, newest of all, your own initial and a little bell, the scratches still pale."); return; }
+            yield* say(null, "A standing stone, worn smooth by the wind and carved all over with initials, a little bell scratched beside each one: everybody who ever got across the Crags.");
+            yield* say(null, "Low down, very old and nearly worn away: H. A long way above it, sharper, years later: L. Above that there's smooth stone, as if nobody has been out here since.");
+            const i = yield* ask(null, 'Carve your own?', ['Carve it', 'Not now']);
+            if (i !== 0) return;
+            Progress.set('crags_carved'); Stats.count('secret:crags'); Sfx.play('charm');
+            yield* say(null, 'You scratch a little bell into the stone with the end of your stick, and your initial beside it. The wind blows the dust off it straight away, as if it had been waiting.');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
 BUDGE.tess = 'Mum: "Oof! Hello, love."';
 
-/* the Heights' rock: grey-violet blocks, lichen; heather on top */
-OWA.cliffs.heights = {
-    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { blocks: true, band1: [0, 5, 10], band2: [0, 6, 11], lichen: ['#c8d890', '#e8e0a0', '#a8c0a0'], seed: 5 }),
-    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { tuft: ['#9a6aa8', '#c48ad0'], seed: 5 }),
+/* ---------- the Heights' look: moor grass bent by the wind, heather, stony tracks, grey-violet rock, the chasm ---------- */
+THEMES.heights.grass = ['#a9bf74', '#93aa62', '#c4d48e', '#6e8a4c'];
+THEMES.heights.stone = ['#a69cae', '#7d7490', '#cbc3d2', '#4e465e'];
+const HEIGHTS_HEATHER = ['#9a62a2', '#b884c0', '#6e4a78', '#d8b0dc'];
+OWA.ground.heights = {
+    /* short wiry grass, a little straw-coloured, every blade leaning the same way, heather coming and going through it */
+    grass: {
+        field: (tx, ty) => OWA.field(tx, ty, 31, 6, 4),
+        draw(x, th, v, fl) {
+            const [g0, g1, g2, g3] = th.grass;
+            const base = g0;
+            fill(x, base);
+            speckle(x, [mix(base, g1, 0.8)], 11 + v * 13, 0.18);
+            speckle(x, [mix(base, g2, 0.7)], 23 + v * 7, 0.06);
+            /* heather's own dark foliage, thicker where the field says */
+            speckle(x, ['#7a8650', '#6e7a4a'], 37 + v * 5 + fl, [0, 0.03, 0.06, 0.1][fl]);
+            for (let n = 0; n < 6; n++) {
+                const bx = Math.floor(hash2(v, n, 3) * 14) + 1, by = Math.floor(hash2(n, v, 5) * 12) + 3;
+                px(x, bx, by, g3); px(x, bx + 1, by - 1, g1); px(x, bx + 1, by - 2, n % 2 ? g2 : '#d8cc90');
+            }
+            /* clumps of heather: a dark sprig, purple bells on it, a light one on top */
+            for (let n = 0; n < [0, 1, 3, 5][fl]; n++) {
+                const hx = Math.floor(hash2(v + fl * 4, n, 61) * 13) + 1, hy = Math.floor(hash2(n, v + fl * 4, 62) * 12) + 3;
+                px(x, hx, hy + 1, '#5e6a40'); px(x, hx + 1, hy + 1, '#5e6a40');
+                px(x, hx, hy, HEIGHTS_HEATHER[0]); px(x, hx + 1, hy, HEIGHTS_HEATHER[1]); px(x, hx + 1, hy - 1, HEIGHTS_HEATHER[3]);
+                if (n % 2) { px(x, hx + 2, hy + 1, HEIGHTS_HEATHER[0]); px(x, hx - 1, hy + 1, HEIGHTS_HEATHER[2]); }
+            }
+            if (!fl && v === 3) { px(x, 11, 5, '#e8e0b0'); px(x, 12, 5, '#d8cc90'); }
+        },
+    },
+    /* heather and harebells in the grass */
+    flowers(x, th, v) {
+        OWA.ground.heights.grass.draw(x, th, v, 1);
+        for (let n = 0; n < 3; n++) {
+            const fx = 2 + Math.floor(hash2(n, v, 1) * 11), fy = 3 + Math.floor(hash2(v + 3, n, 2) * 10);
+            if ((n + v) % 2) { px(x, fx, fy, '#7aa0e8'); px(x, fx + 1, fy, '#a8c4f8'); px(x, fx, fy - 1, '#a8c4f8'); px(x, fx, fy + 1, th.grass[3]); }
+            else { px(x, fx, fy, '#f4f0d8'); px(x, fx + 1, fy, '#f8e070'); px(x, fx, fy + 1, th.grass[3]); }
+        }
+    },
+    /* tall bents, combed over by the wind */
+    tallgrass(x, th, v) {
+        const [g0, g1, g2, g3] = th.grass;
+        fill(x, g0); speckle(x, [g1], 31 + v, 0.12);
+        for (let i = 0; i < 7; i++) {
+            const bx = 1 + i * 2, h = 6 + Math.floor(hash2(i, v, 4) * 5);
+            for (let j = 0; j < h; j++) px(x, Math.min(15, bx + Math.floor(j * j / 18)), 15 - j, j > h - 3 ? '#d8d090' : j > h / 2 ? g2 : g1);
+            px(x, bx, 15, g3);
+        }
+    },
+    /* a stony track: trodden earth with flat stones in it */
+    path(x, th, v) {
+        const [p0, p1, p2] = th.path;
+        fill(x, p0); speckle(x, [p1], 31 + v, 0.18); speckle(x, [p2], 41 + v, 0.07);
+        for (let n = 0; n < 2; n++) {
+            const sx = 1 + Math.floor(hash2(v, n, 12) * 10), sy = 1 + Math.floor(hash2(n, v, 13) * 11), w = 3 + (n + v) % 3;
+            fill(x, th.stone[0], sx, sy, w, 2); fill(x, th.stone[2], sx, sy, w - 1, 1); fill(x, th.stone[1], sx, sy + 2, w, 1);
+        }
+    },
+    /* under the pines: needles and heather */
+    forest(x, th, v) { fill(x, '#4a5440'); speckle(x, ['#5a6a48', '#3a4232'], v + 9, 0.3); speckle(x, [HEIGHTS_HEATHER[2]], v + 19, 0.05); },
+    /* heather, thick (it frays into the grass round it) */
+    heather(x, th, v) {
+        OWA.ground.heights.grass.draw(x, th, v, 3);
+        for (let n = 0; n < 4; n++) {
+            const hx = Math.floor(hash2(v, n, 71) * 14), hy = Math.floor(hash2(n, v, 72) * 13) + 1, c = HEIGHTS_HEATHER[(n + v) % 2];
+            px(x, hx, hy, c); px(x, hx + 1, hy, c); px(x, hx, hy + 1, HEIGHTS_HEATHER[2]); if (n % 2) px(x, hx + 1, hy - 1, HEIGHTS_HEATHER[3]);
+        }
+    },
+    /* steps cut in the rock, worn in the middle */
+    stairs(x, th) {
+        const [s0, s1, s2, s3] = th.stone;
+        for (let i = 0; i < 4; i++) {
+            const y = i * 4;
+            fill(x, mix(s0, s2, 0.4), 0, y, 16, 2); fill(x, s0, 0, y + 2, 16, 1); fill(x, mix(s1, s3, 0.5), 0, y + 3, 16, 1);
+            fill(x, mix(s0, '#c8b896', 0.35), 5, y, 6, 2);
+        }
+        fill(x, s3, 0, 0, 1, 16); fill(x, s3, 15, 0, 1, 16);
+    },
 };
+OWA.cliffs.heights = {
+    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { blocks: true, band1: [0, 5, 10], band2: [0, 6, 11], lip: ['#7e8a52', '#6a7a4a', '#9aa86a'], lichen: ['#c8d890', '#e8e0a0', '#a8c0a0'], seed: 5 }),
+    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { topCol: '#9c94a8', tuft: [HEIGHTS_HEATHER[0], HEIGHTS_HEATHER[1]], seed: 5 }),
+};
+/* a chasm: the far wall going down into the dark, rocky lips, a breath of mist far below */
+OWA.paint.chasm = {
+    shade: true,
+    mask(a, tx, ty) {
+        const pit = (x, y) => a.inside(x, y) && a.cell(x, y).k === 'pit';
+        return (pit(tx, ty - 1) ? 'n' : '-') + (pit(tx, ty + 1) ? 's' : '-') + (pit(tx - 1, ty) ? 'w' : '-') + (pit(tx + 1, ty) ? 'e' : '-') + (pit(tx, ty - 2) || !pit(tx, ty - 1) ? '' : '2');
+    },
+    draw(x, th, v, m) {
+        const [s0, s1, s2, s3] = th.stone;
+        const n = m[0] === 'n', s = m[1] === 's', w = m[2] === 'w', e = m[3] === 'e', deep2 = m[4] === '2';
+        /* the depths */
+        for (let j = 0; j < 16; j++) fill(x, mix('#2c2438', '#120e1a', Math.min(1, (j + (n ? 10 : 0)) / 22)), 0, j, 16, 1);
+        speckle(x, ['#3a3248'], 70 + v, 0.05);
+        /* the far wall: rock falling away from the lip above */
+        if (!n || deep2) {
+            const top = n ? -6 : 0;
+            for (let j = 0; j < 12; j++) {
+                const y = top + j; if (y < 0) continue;
+                const k = j / 12, c = mix(mix(s0, s1, 0.3), '#2c2438', k * k);
+                fill(x, c, 0, y, 16, 1);
+                for (let i = 0; i < 16; i++) if (hash2(i, j + v * 16, 77) < 0.12) px(x, i, y, mix(c, s3, 0.6));
+                if (j % 4 === 3) fill(x, mix(c, '#120e1a', 0.4), 0, y, 16, 1);
+            }
+            if (!n) { fill(x, mix(s2, '#ffffff', 0.15), 0, 0, 16, 1); fill(x, s0, 0, 1, 16, 1); }
+        }
+        /* mist far down */
+        if (s || n) for (let i = 0; i < 3; i++) { const mx = Math.floor(hash2(v, i, 81) * 12), my = 9 + Math.floor(hash2(i, v, 82) * 5); x.globalAlpha = 0.18; fill(x, '#c8c0e0', mx, my, 4 + i, 1); x.globalAlpha = 1; }
+        /* the lips: rock edges on either side, the near edge's lip below */
+        if (!w) { fill(x, mix(s1, '#120e1a', 0.3), 0, 0, 3, 16); fill(x, s0, 0, 0, 1, 16); fill(x, s3, 2, 0, 1, 16); }
+        if (!e) { fill(x, mix(s1, '#120e1a', 0.5), 13, 0, 3, 16); fill(x, s1, 15, 0, 1, 16); fill(x, s3, 13, 0, 1, 16); }
+        if (!s) { fill(x, s3, 0, 13, 16, 1); fill(x, s1, 0, 14, 16, 1); fill(x, mix(s0, s2, 0.4), 0, 15, 16, 1); }
+    },
+};
+
+function initHeightsArt() {
+    /* a hawthorn bent by the wind: the trunk leans east, the crown swept along after it, a few leaves flying */
+    const bent = (name, leaf, bark, seed, berries) => {
+        ART[name] = paintSprite(36, 36, x => {
+            const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+            for (let j = 0; j < 18; j++) {
+                const k = j / 18, cx = Math.round(14 + k * k * 9);
+                R(bark[1], cx - 2, 35 - j, 4, 1); R(bark[0], cx - 2, 35 - j, 1, 1); R(bark[2], cx + 1, 35 - j, 1, 1);
+            }
+            R(bark[1], 9, 34, 4, 2); R(bark[1], 16, 34, 4, 2); R(bark[1], 20, 22, 6, 2); R(bark[0], 20, 22, 6, 1);
+            const clumps = [[22, 14, 9, 6], [14, 15, 6, 5], [29, 12, 6, 5], [20, 9, 7, 4], [27, 18, 5, 4]];
+            for (const [cx, cy, rx, ry] of clumps) for (let j = -ry; j <= ry; j++) for (let i = -rx; i <= rx; i++) {
+                const u = i / rx, w = j / ry; if (u * u + w * w > 1) continue;
+                const l = -u * 0.35 - w * 0.9 + (hash2(cx + i, cy + j, seed) - 0.5) * 0.8;
+                R(l > 0.55 ? leaf[2] : l > 0 ? leaf[1] : l > -0.6 ? leaf[0] : leaf[3], cx + i, cy + j, 1, 1);
+            }
+            /* streaming twigs downwind */
+            for (const [a, b] of [[33, 10], [34, 15], [32, 19]]) { R(leaf[3], a, b, 2, 1); R(leaf[0], a - 1, b, 1, 1); }
+            if (berries) for (let n = 0; n < 7; n++) { const bx = 12 + Math.floor(hash2(n, seed, 9) * 20), by = 9 + Math.floor(hash2(seed, n, 11) * 10); const d = x.getImageData(bx, by, 1, 1).data; if (d[3]) { R(berries, bx, by, 1, 1); R('#ffd0c8', bx, by - 1, 1, 1); } }
+        });
+    };
+    bent('tree_bent', ['#5a8a4a', '#76a258', '#a4c47a', '#3a5e3e'], ['#8a6a50', '#6a4e3a', '#4a3428'], 3, '#d83a3a');
+    bent('tree_bent2', ['#6a8a4e', '#86a45e', '#b0c884', '#44603e'], ['#8a7058', '#6a5240', '#463428'], 9);
+    /* a cairn: flat stones stacked by passers-by, the top one set on edge */
+    ART.cairn = paintSprite(16, 22, x => {
+        const st = [[8, 19, 7, 3], [7, 15, 6, 3], [9, 11, 5, 3], [7, 7, 4, 3], [8, 3, 2, 3]];
+        st.forEach(([cx, cy, rx, ry], i) => discPx(x, cx, cy, Math.max(rx, ry), (px, py, u, w) => {
+            if ((py - cy) * (py - cy) * rx * rx + (px - cx) * (px - cx) * ry * ry > rx * rx * ry * ry) return null;
+            const l = -u * 0.6 - w * 1.0 + (hash2(px, py, 4 + i) - 0.5) * 0.5;
+            return l > 0.5 ? '#d4ccd8' : l > -0.1 ? '#aaa0b4' : l > -0.7 ? '#857c94' : '#5e5670';
+        }));
+    });
+    /* heather in a clump, and gorse with its yellow flowers */
+    bushArt('heather_clump', ['#6a7a4a', '#8a5a98', '#b47ac0', '#4a5638', '#e0a8e0'], 13, 16, 12);
+    bushArt('gorse', ['#4a7038', '#5e8a44', '#86ac5a', '#2e4a2a', '#f4d040'], 17, 16, 14);
+    /* the Ringers' Stone: a tall stone carved with initials and little bells */
+    ART.ringstone = paintSprite(16, 30, x => {
+        for (let j = 2; j < 30; j++) { const w = j < 6 ? 3 + j : 7 - (j > 26 ? 1 : 0); for (let i = 8 - w; i < 8 + w; i++) { const l = -(i - 8) / 7 * 0.6 + (hash2(i, j, 5) - 0.5) * 0.4; x.fillStyle = l > 0.35 ? '#cfc7d6' : l > -0.2 ? '#a69cae' : '#7d7490'; x.fillRect(i, j, 1, 1); } }
+        x.fillStyle = '#5e5670'; for (const [a, b] of [[5, 9], [9, 10], [6, 14], [10, 15], [5, 19], [9, 21]]) { x.fillRect(a, b, 2, 1); x.fillRect(a, b + 1, 1, 2); }
+        x.fillStyle = '#e2b45a'; x.fillRect(11, 8, 2, 2); x.fillRect(4, 17, 2, 2);
+    });
+    /* the eagles' old nest: a great tangle of sticks */
+    ART.eyrie_nest = paintSprite(28, 16, x => {
+        for (let j = 0; j < 14; j++) for (let i = 0; i < 28; i++) {
+            const u = (i - 13.5) / 13.5, w = (j - 8) / 6; if (u * u + w * w > 1) continue;
+            const ring = u * u + w * w > 0.45 || j > 9;
+            const r = hash2(i, j, 33);
+            x.fillStyle = !ring ? (r < 0.5 ? '#4a3424' : '#3a281c') : r < 0.3 ? '#a87a50' : r < 0.6 ? '#8a6040' : r < 0.85 ? '#6a4a30' : '#c49a68';
+            x.fillRect(i, j + 1, 1, 1);
+        }
+        for (const [a, b, c, d] of [[0, 6, 6, 1], [22, 4, 6, 1], [3, 11, 5, 1], [20, 12, 7, 1]]) { x.fillStyle = '#6a4a30'; x.fillRect(a, b, c, d); }
+        x.fillStyle = '#8ac87a'; x.fillRect(16, 5, 4, 1); x.fillStyle = '#d8ecc8'; x.fillRect(19, 5, 2, 1);
+    });
+    /* a proper birch: white bark ringed with black, a crown of small bright leaves (it was washed out before) */
+    treeArt('tree_birch', { leaf: ['#7ab86a', '#9cd07a', '#cce8a0', '#4e8a52'], bark: ['#f4f2ea', '#d6d6cc', '#3a3a3a'] }, 6, { clumps: [[16, 12, 8], [10, 16, 6], [22, 15, 6], [13, 7, 5], [20, 7, 5], [16, 19, 6]] });
+    {
+        const c = ART.tree_birch; if (!HEADLESS) { const x = c.getContext('2d'); x.fillStyle = '#3a3a3a'; for (const [a, b] of [[14, 27], [16, 30], [15, 32], [17, 25]]) x.fillRect(a, b, 2, 1); }
+    }
+}
+CONTENT_INIT.push(initHeightsArt);
 
 // ---- 56_belfry.js ----
 /* House 4: the Belfry, on Belfry Heights. Mum's House (Tess), brass threads. A tower climbed floor by floor.
@@ -14855,8 +15617,11 @@ CONTENT_INIT.push(initBedrollKit);
    a long way down, so only with a Bedroll laid up top to come home to). Bouncy moss hops you over the stream to
    the Slumberhouse (House 5, Doctor Mallow's); sleep puffs line the trail through Puffball Hollow; Snorelings
    doze in the ferns; Hettie the forager camps by Lantern Pond, where a weir (wound open from this side only)
-   lets a raft run down the channel to the lake at Millwater. The cliff stair up the east side stays walled off.
-   Map drafted by tools/mapgen/hushwood.py. */
+   lets a raft run down the channel to the lake at Millwater. The cliff stair up the east side stays walled off from
+   the wood, but a crack in its far wall leads into Mallow's Nursery: three cradles behind a low hedge, and three
+   Snorelings to put to bed in them (they follow you; the spores put them to sleep where they stand). Lantern Pond's
+   four lanterns light only while their stones weigh on them (a stone stitched there with the Needle stays); all four,
+   and the lantern on the isle lights. Map drafted by tools/mapgen/hushwood.py. */
 
 const SLUMBER_ENTRY = { x: 29, y: 42 };
 const HUSH = (x, y) => [128 + x, 40 + y];
@@ -14870,33 +15635,33 @@ const HUSHWOOD_ROWS = [
     'YY........YYYY.XXXXXXXXXXYYYYY#k......YY##:::##YYYYYYYYYYYYYYYYY',
     'YY........YYYY.XXXXXXXXXXYYYYY#.......YY##:::##YYYYYYYYYYYYYYYYY',
     'YY........YYYY.XXXXXXXXXXYYYYY#....M..YY##:H:##YYYYYYYYYYYYYYYYY',
-    'YY....M...YYYY.XXXXXXXXXXYYYYY#....k..YY##:::##YYYYYYYYYYYYYYYYY',
-    'YY.............XXXX:XXXXXYYYYY#....k..YY##:::##YYYYYYYYYYYYYYYYY',
-    'YY..........::::::::.....YYYYY#.......YY##:::##YYYYYYYYYYYYYYYYY',
-    'YYk."b...,..:................YYvvvvvvvYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY....k.....:.........M......YY.....YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~..,....YYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYY.....:........k.....~~..,..:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYY.....:.......YYYYYY.~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY..........:.......YYYYYY.~~.."..:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY......b...:.......YYYYYY.~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY..........:.......YYYYYY.~~..qk.:.YYYY##:H:##YYYYYYYYYYYYYYYYY',
-    ':::::::::::::::............~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    ':::::::::::::::::::::::::::__::::::.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY.........................~~.......YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY..................M......~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY......:.k...qM........"..~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:.......kYYYYYYY...~~.qYYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:.......,YYYYYYY...~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:..b"....YYYYYYY,"~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:..M.....YYYYYYY.-~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY.".:........,".....:-~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:...............:.~~~~~~~~~-..YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY....M...YYYY.XXXXXXXXXXYYYYY#....k..YY##:::##YYYYYYY...YYYYYYY',
+    'YY.............XXXX:XXXXXYYYYY#....k..YY##:::##YYYYYYY...YYYYYYY',
+    'YY..........::::::::.....YYYYY#.......YY##:::##YYY.k.M..M..k.YYY',
+    'YYk."b...,..:................YYvvvvvvvYY##:::::::.............YY',
+    'YY....k.....:.........M......YY.....YYYY##:::##YY.............YY',
+    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~..,....YYYY##:H:##YY1111111111111YY',
+    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~.....:.YYYY##:::##YY1..11..11..11YY',
+    'YYYYYYY.....:........k.....~~..,..:.YYYY##:::##YY.............YY',
+    'YYYYYYY.....:.......YYYYYY.~~.....:.YYYY##:::##YY...q.....k...YY',
+    'YY..........:.......YYYYYY.~~.."..:.YYYY##:::##YY.............YY',
+    'YY......b...:.......YYYYYY.~~.....:.YYYY##:::##YY..M.......M..YY',
+    'YY..........:.......YYYYYY.~~..qk.:.YYYY##:H:##YY.............YY',
+    ':::::::::::::::............~~.....:.YYYY##:::##YY.............YY',
+    ':::::::::::::::::::::::::::__::::::.YYYY##:::##YY...k.....q...YY',
+    'YY.........................~~.......YYYY##:::##YY.............YY',
+    'YY..................M......~~..YYYYYYYYY##:::##YY.............YY',
+    'YY......:.k...qM........"..~~..YYYYYYYYY##:::##YY.............YY',
+    'YYYYY...:.......kYYYYYYY...~~..YYYYYYYYY##:H:##YY.............YY',
+    'YYYYY...:.......,YYYYYYY...~~.....YYYYYY##:::##YY1122...M.....YY',
+    'YYYYY...:..b"....YYYYYY.,"~~~~~~~~~...YY##:::##YY.322.........YY',
+    'YYYYY...:..M.....YYYYYYY.-~~~~~~~~~...YY##:::##YY111...k...q..YY',
+    'YYYYY.".:........,".....:-~~~~..~~~...YY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:...............:.~~~~..~~~-..YY##:::##YYYYYYYYYYYYYYYYY',
     'YY.M....:::::::::::::::::.~~~~~~~~~-..YY##:H:##YYYYYYYYYYYYYYYYY',
     'YY........................~~~~~~~~~.".YY##:::##YYYYYYYYYYYYYYYYY',
-    'YY........,b.YYYYYYYYYY.k.-b.VV""YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY.q..k......YYYYYYYYYY....b.VV..YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY........,b.YYYYYYYYYY.k.-b.VV.....YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.q..k......YYYYYYYYYY....b.VV.....YYYY##:::##YYYYYYYYYYYYYYYYY',
     'YY...........YYYYYYYYYYq...b.VV..YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
     'YY...........YYYYYYYYYY....b.VV..YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYY.VV..YYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
@@ -14906,14 +15671,20 @@ const HUSHWOOD_ROWS = [
 ];
 
 defBlock({
-    id: 'hushwood', bx: 2, by: 1, name: 'Hushwood', theme: 'hush', music: 'hush',
+    id: 'hushwood', bx: 2, by: 1, name: 'Hushwood', theme: 'hush', music: 'hush', owArt: true, soft: 4, blobSeam: true,
     rows: HUSHWOOD_ROWS,
-    forest: ['tree_hush', 'tree_hush', 'pine'],
+    forest: ['tree_hush', 'tree_hush', 'pine', 'tree_hush2'],
     legend: {
         'M': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'mushroom_big', solid: [[0, 0], [1, 0]], ox: -8, oy: -26 } },
         'k': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'mushrooms', solid: false } },
         'q': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'glowcaps', solid: false } },
+        /* the Nursery's low hedge (it stops a body; a hook or a throw goes over), brambles, a hole only a little one fits */
+        '1': { k: 'low', p: 'grass', ent: 'deco', props: { look: 'nursery_hedge', solid: false, oy: -3 } },
+        '2': { k: 'spikes', p: 'hthorn' },
+        '3': { k: 'crawl', p: 'grass', ent: 'deco', props: { look: 'nursery_hole', solid: false, oy: -3 } },
     },
+    drawGround: (a, cx, cy) => Hushwood.ground(a, cx, cy),
+    drawOver: (a, cx, cy) => Hushwood.over(a, cx, cy),
     ents: [
         /* the sleeping road */
         { k: 'giant', x: 1, y: 18, id: 'giant' },
@@ -14953,12 +15724,42 @@ defBlock({
         /* the cliff stair, as it was */
         { k: 'sign', x: 43, y: 37, text: 'THE CLIFF STAIR. Up to Belfry Heights. (Hushwood is through the trees. Nobody goes into Hushwood.)' },
         { k: 'rest', x: 44, y: 20 },
+        /* Lantern Pond's lanterns: each lit while something heavy stands on the stone at its foot; the stones go home */
+        { k: 'pondlantern', x: 30, y: 24, sig: 'lpN' }, { k: 'lanternstone', x: 30, y: 25, sig: 'lpN', minWeight: WEIGHT.heavy },
+        { k: 'pondlantern', x: 37, y: 27, sig: 'lpE' }, { k: 'lanternstone', x: 36, y: 27, sig: 'lpE', minWeight: WEIGHT.heavy },
+        { k: 'pondlantern', x: 32, y: 33, sig: 'lpS' }, { k: 'lanternstone', x: 32, y: 32, sig: 'lpS', minWeight: WEIGHT.heavy },
+        { k: 'pondlantern', x: 23, y: 26, sig: 'lpW' }, { k: 'lanternstone', x: 24, y: 26, sig: 'lpW', minWeight: WEIGHT.heavy },
+        { k: 'block', x: 32, y: 25, id: 'lpStoneN', look: 'mossstone', stitchName: 'a mossy stone' },
+        { k: 'block', x: 36, y: 29, id: 'lpStoneE', look: 'mossstone', stitchName: 'a mossy stone' },
+        { k: 'block', x: 34, y: 32, id: 'lpStoneS', look: 'mossstone', stitchName: 'a mossy stone' },
+        { k: 'block', x: 24, y: 28, id: 'lpStoneW', look: 'mossstone', stitchName: 'a mossy stone' },
+        /* the isle, and its great lantern; all four lit, it lights, and something is there to find */
+        { k: 'greatlantern', x: 31, y: 28 },
+        { k: 'chest', x: 30, y: 28, item: 'heartpatch', id: 'lpIsle', hidden: true, when: 'lpN&lpE&lpS&lpW' },
+        /* Mallow's Nursery, through the crack in the cliff stair's far wall */
+        { k: 'sign', x: 50, y: 9, text: "THE NURSERY. Lights out at moonrise. Quiet in the cradles, please. -Dr M." },
+        { k: 'puffball', x: 50, y: 13, id: 'nuPuffA' }, { k: 'cradle', x: 51, y: 13, sig: 'nuA' },
+        { k: 'puffball', x: 54, y: 13, id: 'nuPuffB' }, { k: 'cradle', x: 55, y: 13, sig: 'nuB' },
+        { k: 'puffball', x: 58, y: 13, id: 'nuPuffC' }, { k: 'cradle', x: 59, y: 13, sig: 'nuC' },
+        { k: 'snoreling', x: 50, y: 22, id: 'nuSnoreA', type: 'snoreling_n' },
+        { k: 'snoreling', x: 55, y: 26, id: 'nuSnoreB', type: 'snoreling_n' },
+        { k: 'snoreling', x: 60, y: 21, id: 'nuSnoreC', type: 'snoreling_n' },
+        { k: 'moss', x: 61, y: 11, dir: 'down', dist: 3, id: 'nuMossIn' },
+        { k: 'moss', x: 49, y: 14, dir: 'up', dist: 3, id: 'nuMossOut' },
+        { k: 'door', x: 55, y: 9, type: 'gate', when: 'nuA&nuB&nuC', dir: 'h', id: 'nuGate', passed: 'up' },
+        { k: 'chest', x: 54, y: 8, item: 'heartpatch', id: 'nuPatch' },
+        { k: 'chest', x: 56, y: 8, item: 'b50', id: 'nuToy', hidden: true, when: 'nuA&nuB&nuC&nuD' },
+        { k: 'nurserybook', x: 55, y: 7 },
+        /* the little wooden one Jory carved, and its own cradle, in the brambles behind a hole only it fits */
+        { k: 'puppet', x: 53, y: 23, id: 'nuDolly', look: 'puppet_snore' },
+        { k: 'cradle', x: 49, y: 26, sig: 'nuD' },
     ],
     regions: [
         { name: 'The Sleeping Road', x: 0, y: 14, w: 20, h: 8 },
         { name: 'The Slumberhouse', x: 2, y: 2, w: 27, h: 10 },
         { name: 'Puffball Hollow', x: 2, y: 22, w: 22, h: 14 },
         { name: 'Lantern Pond', x: 24, y: 21, w: 15, h: 19 },
+        { name: "Mallow's Nursery", x: 47, y: 6, w: 17, h: 23 },
         { name: 'The Far Bank', x: 29, y: 2, w: 10, h: 19 },
         { name: 'The Cliff Stair', x: 40, y: 0, w: 7, h: 40 },
     ],
@@ -15477,6 +16278,285 @@ function initHushArt() {
     });
 }
 CONTENT_INIT.push(initHushArt);
+
+/* ---------- Mallow's Nursery and Lantern Pond ---------- */
+NOTES.nursery = { title: "Doctor Mallow's nursery book", text: "THE NURSERY. Snorelings in training: Puddle, Mop and Dozy. They go to bed wherever they are when they're tired, which is anywhere. A puff of spores and they're off. Night 1,204: all three down by moonrise, the little wooden one too (Jory's: he says it sets an example). The Wanderer's year again soon. I do hope this one sleeps well. -M." };
+/* a cradle: a pressure plate in a little crib (whatever lies in it, or stands in it, weighs it down); somebody in it
+   already, nobody else gets in */
+SPAWN.cradle = (x, y, p) => {
+    const c = new Plate(x, y, p);
+    c.blocks = function (tx, ty, who) {
+        if (tx !== this.tx || ty !== this.ty || !this.area) return false;
+        const pl = G.player;
+        if (pl && pl !== who && pl.area === this.area && !pl.flying && pl.feetOn(tx, ty)) return true;
+        return this.area.walkers.some(m => m !== who && m.alive !== false && m.feetOn && m.feetOn(tx, ty));
+    };
+    c.draw = function (cx, cy) { Gfx.img(ART[this.down ? 'cradle_down' : 'cradle'], this.x - cx, this.y - cy); };
+    return c;
+};
+/* a stone at a lantern's foot: a plate that only something heavy weighs down */
+SPAWN.lanternstone = (x, y, p) => {
+    const c = new Plate(x, y, p);
+    c.draw = function (cx, cy) { Gfx.img(ART[this.down ? 'lanternstone_down' : 'lanternstone'], this.x - cx, this.y - cy); };
+    return c;
+};
+/* a paper lantern on a post: lit while its stone is weighed down */
+SPAWN.pondlantern = (x, y, p) => {
+    const pr = new Prop(x, y, { im: ART.pond_lantern, solid: [[0, 0]], oy: -16 });
+    pr.sig = p.sig;
+    pr.draw = function (cx, cy) {
+        const on = this.area && Signals.get(this.area, this.sig), x0 = this.x - cx, y0 = this.y - cy;
+        if (on) { Gfx.alpha(0.22 + 0.06 * Math.sin(G.t / 9 + this.tx)); Gfx.circle(x0 + 8, y0 + 9, 13, '#ffd27a'); Gfx.alpha(0.3); Gfx.circle(x0 + 8, y0 + 9, 7, '#fff0b0'); Gfx.alpha(1); }
+        Gfx.img(ART[on ? 'pond_lantern_lit' : 'pond_lantern'], x0, y0);
+    };
+    pr.interact = () => { Script.run(function* () { yield* say(null, Signals.get(pr.area, pr.sig) ? 'The paper lantern glows, warm as a window. Its flat stone is weighed down.' : 'A paper lantern on a post, cold. At its foot, a round flat stone with a lantern carved in it, a little proud of the ground.'); }); return true; };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+/* the stone lantern on the isle: alight when all four round the pond are */
+SPAWN.greatlantern = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.great_lantern, solid: [[0, 0]], oy: -18 });
+    pr.lit = () => pr.area && ['lpN', 'lpE', 'lpS', 'lpW'].every(s => Signals.get(pr.area, s));
+    pr.draw = function (cx, cy) {
+        const on = this.lit(), x0 = this.x - cx, y0 = this.y - cy;
+        if (on) { Gfx.alpha(0.18 + 0.05 * Math.sin(G.t / 11)); Gfx.circle(x0 + 8, y0 + 12, 20, '#ffd27a'); Gfx.alpha(1); }
+        Gfx.img(ART[on ? 'great_lantern_lit' : 'great_lantern'], x0, y0);
+    };
+    pr.interact = () => { Script.run(function* () { yield* say(null, pr.lit() ? 'The old stone lantern is alight, for the first time in years. Its light lies on the water all the way to the shore.' : "An old stone lantern on the isle, its little windows dark. Moss on its roof. Round the pond, four paper lanterns on posts look back at it."); }); return true; };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+/* the Nursery's book, on a stand in the alcove */
+SPAWN.nurserybook = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.nursery_book, solid: [[0, 0]], oy: -6 });
+    pr.interact = () => {
+        Script.run(function* () {
+            if (!Progress.flag('nursery_book')) { Progress.set('nursery_book'); Progress.addNote('nursery'); Stats.count('secret:nursery'); }
+            yield* say(null, 'A big soft book on a stand, its pages smelling of lavender. On the cover: THE NURSERY.');
+            yield* say(null, '"' + NOTES.nursery.text + '"');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+
+/* ---------- the look of the wood: moss underfoot, ferns, loam paths with roots across them; and in the air under the
+   trees a dimness, drifting mist and spores (thinning toward the edges of the wood) ---------- */
+THEMES.hush.grass = ['#68a266', '#58905b', '#84bc7a', '#427850'];
+THEMES.hush.path = ['#9c8564', '#80694e', '#b8a07a'];
+OWA.ground.hush = {
+    /* moss: soft cushions with a lit top and a shadowed foot, a few pores; now and then a leaf, spores, sorrel */
+    grass(x, th, v) {
+        const [g0, g1, g2, g3] = th.grass;
+        fill(x, g0);
+        speckle(x, [g1], 12 + v * 13, 0.12);
+        for (let n = 0; n < 5; n++) {
+            const cx = Math.floor(hash2(v, n, 31) * 14) + 1, cy = Math.floor(hash2(n, v, 32) * 13) + 2, w = 2 + (n + v) % 2;
+            fill(x, g2, cx, cy, w, 1); px(x, cx - 1, cy + 1, g1); fill(x, mix(g0, g2, 0.4), cx, cy + 1, w, 1); fill(x, g1, cx, cy + 2, w, 1);
+        }
+        for (let n = 0; n < 3; n++) px(x, Math.floor(hash2(n, v, 33) * 16), Math.floor(hash2(v, n, 34) * 16), g3);
+        if (v === 1) { px(x, 4, 11, '#c87a3a'); px(x, 5, 11, '#e09848'); px(x, 5, 10, '#a85e2a'); px(x, 10, 4, '#6a5038'); px(x, 11, 5, '#6a5038'); }
+        if (v === 2) { px(x, 3, 4, '#e8f4ff'); px(x, 12, 9, '#d8ecff'); px(x, 8, 13, '#e8f4ff'); }
+        if (v === 3) { px(x, 9, 6, '#9ad48a'); px(x, 10, 6, '#9ad48a'); px(x, 9, 5, '#b8e8a0'); px(x, 10, 7, g3); }
+    },
+    /* bluebells and the odd glowcap in the moss */
+    flowers(x, th, v) {
+        OWA.ground.hush.grass(x, th, v);
+        for (let n = 0; n < 3; n++) {
+            const fx = 2 + Math.floor(hash2(n, v, 41) * 11), fy = 3 + Math.floor(hash2(v + 3, n, 42) * 10);
+            if ((n + v) % 3 === 2) { px(x, fx, fy, '#c8f4ff'); px(x, fx + 1, fy, '#8ad8f0'); px(x, fx, fy + 1, '#e0e8d8'); px(x, fx, fy + 2, th.grass[3]); }
+            else { px(x, fx, fy - 1, th.grass[3]); px(x, fx + 1, fy - 1, th.grass[3]); px(x, fx, fy, '#7a8ae8'); px(x, fx + 1, fy + 1, '#5a64c8'); px(x, fx, fy + 1, '#a8b4f8'); px(x, fx - 1, fy + 2, th.grass[3]); }
+        }
+    },
+    /* ferns: fronds arching up from the moss, a leaflet each side at every step */
+    tallgrass(x, th, v) {
+        OWA.ground.hush.grass(x, th, v);
+        const fern = (bx, h, lean, col, hi) => {
+            for (let j = 0; j < h; j++) {
+                const fx = bx + Math.round(lean * j * j / (h * h) * 4), fy = 15 - j;
+                px(x, fx, fy, '#2e5a3e');
+                if (j > 1 && j % 2 === 0 && j < h - 1) { const w = Math.max(1, Math.round((h - j) / 2.5)); fill(x, col, fx - w, fy, w, 1); fill(x, col, fx + 1, fy, w, 1); px(x, fx - w, fy - 1, hi); }
+            }
+            px(x, bx + Math.round(lean * 4), 15 - h, hi);
+        };
+        fern(4 + v % 2, 10 + v % 3, -1, '#4e9a5a', '#86c47a');
+        fern(10 + (v >> 1), 12 - v % 2, 1, '#3e8a50', '#76b46a');
+    },
+    /* a loam path, roots across it, a few pebbles */
+    path(x, th, v) {
+        const [p0, p1, p2] = th.path;
+        fill(x, p0); speckle(x, [p1], 31 + v, 0.18); speckle(x, [p2], 41 + v, 0.06);
+        if (v % 2 === 0) {
+            /* a root, wandering across (its own colour, a highlight along its top) */
+            let ry = 3 + Math.floor(hash2(v, 1, 51) * 10);
+            for (let i = 0; i < 16; i++) { if (hash2(i, v, 52) < 0.22) ry += hash2(v, i, 53) < 0.5 ? -1 : 1; ry = clamp(ry, 2, 13); px(x, i, ry, '#5e4430'); px(x, i, ry - 1, '#8a6a48'); px(x, i, ry + 1, mix(p0, '#3a2a1c', 0.4)); }
+        }
+        for (let n = 0; n < 2; n++) { const sx = 1 + Math.floor(hash2(v, n, 54) * 13), sy = 1 + Math.floor(hash2(n, v, 55) * 13); px(x, sx, sy, '#b8b0a0'); px(x, sx + 1, sy, '#8a8274'); }
+        if (v === 3) { px(x, 11, 12, '#4c8457'); px(x, 12, 11, '#5d9862'); px(x, 3, 3, '#4c8457'); }
+    },
+    /* under the trees: dark, ferny */
+    forest(x, th, v) {
+        fill(x, '#335640'); speckle(x, ['#3c624a', '#284634'], v + 9, 0.3);
+        for (let n = 0; n < 2; n++) { const fx = 2 + Math.floor(hash2(v, n, 61) * 12), fy = 6 + Math.floor(hash2(n, v, 62) * 8); px(x, fx, fy, '#34584a'); px(x, fx - 1, fy + 1, '#2e4e40'); px(x, fx + 1, fy + 1, '#2e4e40'); px(x, fx, fy + 2, '#2a4436'); }
+    },
+    /* brambles: purple-brown stems looped over the moss, thorns, a few dark berries */
+    hthorn(x, th, v) {
+        OWA.ground.hush.grass(x, th, v);
+        for (let n = 0; n < 3; n++) {
+            let sx = Math.floor(hash2(v, n, 71) * 16), sy = 15;
+            for (let j = 0; j < 18; j++) {
+                px(x, ((sx % 16) + 16) % 16, sy, '#4a2a3e'); if (j % 3 === 1) px(x, ((sx + 1) % 16 + 16) % 16, sy, '#c8b0c0');
+                sx += hash2(j, n + v, 72) < 0.5 ? 1 : -1; sy -= hash2(n, j + v, 73) < 0.75 ? 1 : 0; if (sy < 1) break;
+            }
+        }
+        for (let n = 0; n < 2; n++) { const bx = 3 + Math.floor(hash2(v, n, 74) * 10), by = 3 + Math.floor(hash2(n, v, 75) * 10); px(x, bx, by, '#2a1638'); px(x, bx + 1, by, '#3a2050'); px(x, bx, by - 1, '#7a5aa0'); }
+    },
+};
+Object.assign(Hushwood, {
+    /* how deep in the wood a point is, 0 at its edges (with the town, the Heights, the Reaches) to 1 four tiles in */
+    depth(wx, wy) { return clamp(Math.min(wx - 128 * T, wy - 40 * T, 80 * T - wy) / (4 * T), 0, 1); },
+    /* small things on the ground: across the edge with the town, moss creeping out over the town's grass and road and the
+       town's grass in tufts among the moss, more of each nearer the edge (so it never changes on a line); in the wood, fallen
+       leaves and toadstools here and there */
+    ground(a, cx, cy) {
+        if (HEADLESS || cx + W < 124 * T || cy + H < 40 * T || cy > 80 * T) return;
+        const tx0 = Math.max(124, Math.floor(cx / T)), tx1 = Math.floor((cx + W) / T), ty0 = Math.max(40, Math.floor(cy / T)), ty1 = Math.min(79, Math.floor((cy + H) / T));
+        for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+            const p = a.cell(tx, ty).p;
+            if (!(p === 'grass' || p === 'flowers' || p === 'tallgrass' || p === 'path' || p === 'forest')) continue;
+            const d = tx + 0.5 - 128;
+            for (let n = 0; n < 3; n++) {
+                const r = hash2(tx * 3 + n, ty, 201), ox = Math.floor(hash2(tx, ty * 3 + n, 202) * 12), oy = Math.floor(hash2(ty, tx + n, 203) * 12);
+                let im = null;
+                if (d < 4 && d > -4) {
+                    /* the edge: moss going west, grass tufts coming east */
+                    if (d < 0 && r < 0.55 * (1 + d / 4)) im = ART['hw_moss' + (n % 3)];
+                    else if (d > 0 && r < 0.5 * (1 - d / 4) && p !== 'forest') im = ART['hw_tuft' + (n % 2)];
+                    else if (d < 0 && p === 'forest' && r < 0.7 * (1 + d / 4)) im = ART.hw_fern;
+                } else if (d >= 4 && n === 0 && p !== 'forest' && p !== 'path' && r < 0.06) im = ART[r < 0.03 ? 'hw_leaves' : 'hw_toad'];
+                if (im) Gfx.img(im, tx * T - cx + ox, ty * T - cy + oy);
+            }
+        }
+    },
+    over(a, cx, cy) {
+        if (HEADLESS || cx + W < 128 * T || cy + H < 40 * T || cy > 80 * T) return;
+        const k0 = Math.min(this.depth(cx, cy), this.depth(cx, cy + H), this.depth(cx + W, cy), this.depth(cx + W, cy + H));
+        /* the dimness under the trees: deepening over the wood's first few tiles, its edge wandering (runs of equal shade
+           drawn at once) */
+        if (k0 >= 1) { Gfx.alpha(0.17); Gfx.rect(0, 0, W, H, '#16203a'); }
+        else for (let sy = 0; sy < H; sy += 4) {
+            let run = 0, q0 = -1;
+            for (let sx = 0; sx <= W; sx += 4) {
+                const wx = cx + sx + 2, wy = cy + sy + 2, wob = (hash2(Math.floor(wy / 12), 3, 211) - 0.5) * 20 + (hash2(Math.floor(wx / 8), Math.floor(wy / 8), 212) - 0.5) * 8;
+                const q = sx < W ? Math.round(this.depth(wx + wob, wy + wob * 0.5) * 12) : -2;
+                if (q !== q0) { if (q0 > 0) { Gfx.alpha(0.17 * q0 / 12); Gfx.rect(sx - run * 4, sy, run * 4, 4, '#16203a'); } q0 = q; run = 0; }
+                run++;
+            }
+        }
+        Gfx.alpha(1);
+        /* mist lying in long soft banks, drifting */
+        for (let i = 0; i < 9; i++) {
+            const wx = 128 * T + ((i * 331 + G.t * (0.12 + (i % 3) * 0.05)) % (64 * T)), wy = 40 * T + 24 + (i * 157) % (38 * T);
+            const x = wx - cx, y = wy - cy, rx = 46 + (i % 4) * 9, ry = 5 + i % 3;
+            if (x < -rx || x > W + rx || y < -ry || y > H + ry) continue;
+            const k = this.depth(wx, wy); if (k <= 0) continue;
+            Gfx.alpha(0.07 * k);
+            for (let j = -ry; j <= ry; j++) { const w = Math.round(rx * Math.sqrt(1 - (j * j) / (ry * ry))); Gfx.rect(x - w, y + j, w * 2 + 1, 1, '#dce4f4'); }
+        }
+        /* spores, drifting up through the gloom (a layer that moves at half the ground's pace) */
+        for (let i = 0; i < 26; i++) {
+            const sx = (((i * 73 - cx * 0.5 + Math.sin(G.t / 60 + i) * 6) % W) + W) % W, sy = H - (((i * 41 + G.t * (0.18 + (i % 4) * 0.05) + cy * 0.5) % (H + 20)) + H + 20) % (H + 20);
+            const k = this.depth(cx + sx, cy + sy); if (k <= 0) continue;
+            Gfx.alpha((0.35 + 0.35 * Math.sin(G.t / 13 + i * 2)) * k);
+            Gfx.rect(sx, sy, 1, 1, i % 3 ? '#e8f8d0' : '#c8e8ff');
+            Gfx.alpha(1);
+        }
+        Gfx.alpha(1);
+        /* the Nursery: while its three sleep, the mushrooms by its gate glow */
+        if (Signals.get(a, 'nuA') && Signals.get(a, 'nuB') && Signals.get(a, 'nuC')) {
+            for (const mx of [53, 56]) { const x = (128 + mx) * T + 16 - cx, y = (40 + 9) * T - 14 - cy; Gfx.alpha(0.2 + 0.06 * Math.sin(G.t / 15 + mx)); Gfx.circle(x, y, 16, '#f0c8ff'); Gfx.alpha(1); }
+        }
+    },
+});
+
+function initHushArt2() {
+    ENEMY.snoreling_n = Object.assign({}, ENEMY.snoreling, { chase: 1500 });
+    ENEMY_DRAW.snoreling_n = ENEMY_DRAW.snoreling;
+    treeArt('tree_hush2', { leaf: ['#3a6e66', '#4a8a78', '#6eb294', '#24504a'], bark: ['#8a7a9a', '#64547a', '#3a2e4a'] }, 9, { clumps: [[16, 15, 10], [8, 18, 7], [24, 18, 7], [11, 10, 6], [21, 10, 6], [16, 21, 8]] });
+    {
+        /* moss hanging from its boughs */
+        const c = ART.tree_hush2; if (!HEADLESS) { const x = c.getContext('2d'); for (const [a, b, l] of [[7, 22, 5], [12, 25, 4], [21, 24, 6], [26, 21, 4]]) { x.fillStyle = '#8ac47a'; x.fillRect(a, b, 1, l); x.fillStyle = '#5a9a5a'; x.fillRect(a + 1, b + 1, 1, l - 2); } }
+    }
+    const k = '#2a1f2d';
+    defSprite('mossstone', ['................', '....kkkkkkk.....', '..kkMMmMMmmkk...', '.kmMMmmmMmmmmk..', '.kMmmmmmmmmmmmk.', 'kmmmmgmmmmmmgmmk', 'kgmmgggmmgggggmk', 'kgsggggggggsgggk', 'ksgggggggggggggk', 'kgggsgggggggsggk', 'kggggggsggggggSk', 'ksggggggggggggSk', 'kgggggggsgggSSSk', '.kSggggggggSSSk.', '..kkSSSSSSSSkk..', '....kkkkkkkk....'],
+        { m: '#5f9a58', M: '#8cc474', g: '#8a86a2', s: '#aca8c4', S: '#5e5a78' });
+    defSprite('puppet_snore', ['.......cc.......', '......cCcc......', '.....cCcccw.....', '....kkkkkkww....', '...kmmmmmmmmk...', '..kmmmmmmmmmmk..', '..kmmekmmekmmk..', '..kmmmmmmmmmmk..', '..kMmpmmmmpmMk..', '...kMMMMMMMMk...', '....kkmmmmkk....', '......kWWk......', '......kWWk......', '....kkkWWkkk....', '...kddddddddk...', '...kkkkkkkkkk...'],
+        { m: '#d8b4ec', M: '#a884cc', c: '#6a8ec8', C: '#4a6aa8', w: '#fbf6ea', e: k, p: '#f0a0b8', W: '#c49a62', d: '#8a6040' });
+    SPR.puppet_snore_up = SPR.puppet_snore;
+    const R = (x, c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+    /* a cradle: a little wicker crib, a white pillow at its head, a lavender quilt stitched in squares (pressed: the quilt
+       sunk in the middle where somebody's lying) */
+    for (const down of [false, true]) ART[down ? 'cradle_down' : 'cradle'] = paintSprite(16, 16, x => {
+        R(x, '#5a3a24', 1, 1, 14, 14); R(x, '#5a3a24', 0, 2, 16, 12);
+        for (let j = 2; j < 14; j++) for (let i = 1; i < 15; i++) if (i < 2 || i > 13 || j < 3 || j > 12) R(x, (i + j) % 2 ? '#c8945a' : '#a8743e', i, j, 1, 1);
+        R(x, '#e8c08a', 2, 2, 12, 1);
+        R(x, '#fbf6ea', 3, 3, 10, 3); R(x, '#e0d8ec', 3, 5, 10, 1); R(x, '#ffffff', 4, 3, 3, 1);
+        for (let j = 6; j < 13; j++) for (let i = 2; i < 14; i++) {
+            const sq = ((i >> 2) + (j >> 2)) % 2, sag = down && i > 4 && i < 11 && j > 7;
+            R(x, sag ? (sq ? '#7d5bc4' : '#6a4aae') : (sq ? '#b48ce8' : '#9a76d8'), i, j, 1, 1);
+        }
+        R(x, '#d8c8f8', 2, 6, 12, 1); R(x, '#4b3a8a', 2, 12, 12, 1);
+    });
+    /* the round flat stone at a lantern's foot, a lantern carved in it (pressed: sunk, the carving dark) */
+    for (const down of [false, true]) ART[down ? 'lanternstone_down' : 'lanternstone'] = paintSprite(16, 16, x => {
+        discPx(x, 8, 8, 6, (px0, py0, u, v) => { const l = -u * 0.5 - v * 0.7 + (hash2(px0, py0, 4) - 0.5) * 0.4 - (down ? 0.5 : 0); return l > 0.45 ? '#c8c4d4' : l > -0.15 ? '#a09cb4' : l > -0.7 ? '#7e7a94' : '#5e5a74'; });
+        const c = down ? '#3e3a54' : '#5e5a74';
+        R(x, c, 7, 4, 2, 1); R(x, c, 6, 5, 4, 1); R(x, c, 6, 6, 1, 4); R(x, c, 9, 6, 1, 4); R(x, c, 6, 10, 4, 1); R(x, down ? '#e8b04a' : '#7e7a94', 7, 7, 2, 2);
+    });
+    /* a paper lantern on a post with a hook */
+    for (const lit of [false, true]) ART[lit ? 'pond_lantern_lit' : 'pond_lantern'] = paintSprite(16, 32, x => {
+        R(x, '#4a3424', 7, 4, 3, 28); R(x, '#6a4e36', 7, 4, 1, 28); R(x, '#4a3424', 7, 4, 7, 2); R(x, '#3a2618', 12, 6, 1, 2);
+        const body = lit ? ['#fff4c0', '#f7d64a', '#e8a83a', '#c8782a'] : ['#f4ecdc', '#e0d4bc', '#c8b898', '#a89878'];
+        R(x, '#3a2618', 10, 8, 5, 1); R(x, '#3a2618', 10, 18, 5, 1);
+        for (let j = 9; j < 18; j++) { const w = j < 11 || j > 15 ? 3 : 5, x0 = 12 - (w >> 1); for (let i = 0; i < w; i++) R(x, i === 0 ? body[0] : i === w - 1 ? body[2] : body[1], x0 + i, j, 1, 1); }
+        for (const j of [11, 14]) R(x, body[3], 10, j, 5, 1);
+        R(x, '#c84a3a', 12, 19, 1, 3);
+        R(x, '#3a2618', 5, 30, 7, 2);
+    });
+    /* the stone lantern on the isle (lit: its windows alight) */
+    for (const lit of [false, true]) ART[lit ? 'great_lantern_lit' : 'great_lantern'] = paintSprite(16, 34, x => {
+        const st = ['#c4c0d0', '#9c98b0', '#76728e', '#54506c'];
+        R(x, st[2], 3, 30, 10, 4); R(x, st[1], 3, 30, 10, 1); R(x, st[2], 6, 20, 4, 10); R(x, st[1], 6, 20, 1, 10);
+        R(x, st[2], 2, 17, 12, 3); R(x, st[0], 2, 17, 12, 1);
+        R(x, st[1], 3, 9, 10, 8); R(x, lit ? '#f7d64a' : '#2e2a40', 5, 11, 2, 4); R(x, lit ? '#fff4c0' : '#2e2a40', 9, 11, 2, 4); R(x, st[3], 12, 9, 1, 8);
+        for (let j = 0; j < 6; j++) R(x, j < 2 ? '#8cc474' : st[j % 2 ? 1 : 0], 1 + Math.max(0, 5 - j * 2) - 1, 3 + j, 16 - 2 * Math.max(0, 5 - j * 2), 1);
+        R(x, st[2], 7, 0, 2, 3); R(x, '#5f9a58', 2, 7, 4, 1); R(x, '#5f9a58', 10, 8, 3, 1);
+    });
+    /* the Nursery's low hedge, clipped round, with lavender flowers; the one with a little round hole in its foot */
+    for (const hole of [false, true]) ART[hole ? 'nursery_hole' : 'nursery_hedge'] = paintSprite(16, 19, x => {
+        for (let j = 0; j < 17; j++) for (let i = 0; i < 16; i++) {
+            const top = j < 4 ? Math.abs(i - 7.5) > 6.5 + j * 0.5 : false; if (top) continue;
+            const l = -(i - 8) / 10 * 0.4 - (j - 7) / 9 * 0.8 + (hash2(i, j, hole ? 5 : 4) - 0.5) * 0.7;
+            R(x, l > 0.55 ? '#8ad87a' : l > 0 ? '#5ab85a' : l > -0.55 ? '#3f9a4a' : '#2a6a36', i, j + 2, 1, 1);
+        }
+        for (const [a, b] of [[3, 5], [10, 4], [6, 9], [12, 10]]) { R(x, '#c8a8f0', a, b, 1, 1); R(x, '#9a76d8', a + 1, b + 1, 1, 1); }
+        if (hole) { R(x, '#120c14', 5, 12, 6, 7); R(x, '#120c14', 6, 11, 4, 1); R(x, '#2a1f2d', 5, 12, 1, 7); }
+    });
+    /* things on the ground: moss cushions, a fern sprig, the town's grass in a tuft, fallen leaves, a toadstool */
+    for (let i = 0; i < 3; i++) ART['hw_moss' + i] = paintSprite(6 + i, 4, x => { R(x, '#84bc7a', 1, 0, 3 + i, 1); R(x, '#68a266', 0, 1, 5 + i, 2); R(x, '#4c7e52', 1, 3, 3 + i, 1); R(x, '#a8d890', 1, 1, 1, 1); }, false);
+    ART.hw_fern = paintSprite(7, 6, x => { R(x, '#3c6a48', 3, 1, 1, 5); for (const j of [1, 3]) { R(x, '#4e8a58', 0, j, 3, 1); R(x, '#4e8a58', 4, j + 1, 3, 1); } R(x, '#6aa86a', 3, 0, 1, 1); }, false);
+    for (let i = 0; i < 2; i++) ART['hw_tuft' + i] = paintSprite(5, 5, x => { R(x, '#7cc35c', 0, 2, 1, 3); R(x, '#8fd46a', 2, 0, 1, 5); R(x, '#a9e07f', 4, 1 + i, 1, 4 - i); R(x, '#5fa84c', 1, 4, 3, 1); }, false);
+    ART.hw_leaves = paintSprite(7, 4, x => { R(x, '#c87a3a', 0, 1, 2, 1); R(x, '#e09848', 1, 0, 2, 1); R(x, '#a8603a', 4, 2, 2, 1); R(x, '#d8a050', 5, 1, 2, 1); R(x, '#6a5038', 2, 3, 3, 1); }, false);
+    ART.hw_toad = paintSprite(5, 5, x => { R(x, '#e8dcc8', 2, 2, 1, 3); R(x, '#c84a6a', 0, 0, 5, 2); R(x, '#fbe8f0', 1, 0, 1, 1); R(x, '#8a2a4a', 0, 2, 5, 1); }, false);
+    /* the Nursery's book on a little stand */
+    ART.nursery_book = paintSprite(16, 22, x => {
+        R(x, '#6a4e36', 7, 10, 2, 11); R(x, '#4a3424', 4, 20, 8, 2);
+        R(x, '#7d5bc4', 1, 2, 14, 9); R(x, '#fbf6ea', 2, 3, 6, 6); R(x, '#f0e8d8', 8, 3, 6, 6); R(x, '#4b3a8a', 7, 2, 2, 9);
+        for (let j = 4; j < 8; j += 2) { R(x, '#b8a8c8', 3, j, 4, 1); R(x, '#b8a8c8', 9, j, 4, 1); }
+    });
+}
+CONTENT_INIT.push(initHushArt2);
 
 // ---- 60_slumber.js ----
 /* House 5: the Slumberhouse, in Hushwood. Doctor Mallow's House, lavender threads. A great dormitory at night.
@@ -23656,14 +24736,17 @@ CONTENT_INIT.push(() => {
    - The rest is the Return's: held things wait (carried, gripped, paddled, on strings); heavier shoves lighter (a tile
      on along the way), it waits behind anything as heavy or fixed, and a heavy one shoves Wren; it presses plates in
      passing; it hangs on its thread over holes and water; a float carries whoever's on it (the river can't have a
-     float that's being wound; it can a loose one, till something stops it).
+     float that's being wound; it can a loose one, every drift starting its patience again, till something stops it).
+     An arch over water is too low to ride under: a float goes under on its own, and scrapes off whoever's aboard.
    - Broken, its pieces fly the way the threads run, from where it broke, striking what they pass; then it's whole on
      its mark again.
    - A ring winds everything out of place in its reach at once, fast, shoving harder; a sleeper woken goes too.
    - Every thread here is drawn too taut for the Shears or the Needle (the six great threads at the top, gone slack a
      moment, aside).
    - Wren's own thread is cut: nothing pulls her. Her Bedroll is the one place that stays put; laid here, a fall takes
-     her to it (and on a float it goes where the float goes). */
+     her to it (and on a float it goes where the float goes).
+   - Each Knot's room has a brake by its door (a ratchet): everything in the room out of its place goes up into the drum
+     at once and is laid back where it belongs, and the room's sleepers lie down again where they lay. */
 const Pull = {
     fx: [],                 /* things being wound into the face (drawn rising into it) */
     on(a) { return !!(a && a.def && a.def.pull && !Progress.flag('unwound')); },
@@ -23684,8 +24767,6 @@ const Pull = {
         const a = e.area, r = e.ret, d = this.dir(a, e.tx, e.ty), nx = e.tx + DX[d], ny = e.ty + DY[d], p = G.player;
         const pace = r.snap ? RET.snapPace : Water.pace(e, d, r.pace);
         if (this.face(a, e, nx, ny)) { this.windIn(e); return; }
-        /* a float going under an arch too low to ride: whoever's on it is scraped off */
-        if (p && p.ride === e && a.kind(nx, ny).arch) { p.ride = null; Sfx.play('hitthing'); Fx.dust(p.x, p.y); if (!Progress.flag('arch_scraped')) { Progress.set('arch_scraped'); G.pendingToast = 'The arch is too low to ride under: it scrapes you off into the water.'; } }
         if (a.freeForThing(nx, ny, e)) { this.go(e, nx, ny, pace); r.strain = 0; return; }
         const o = a.at(nx, ny), force = e.weight + (r.snap ? 1 : 0);
         if (o && o.isGrid && !o.fixed && o.weight < force && o.canBeShoved && o.canBeShoved(d)) {
@@ -23699,7 +24780,16 @@ const Pull = {
         if (p && p.area === a && p.onTile(nx, ny) && force >= WEIGHT.heavy && p.canBeShoved(d)) { p.shoved(d, pace); this.go(e, nx, ny, pace); return; }
         r.strain++;
     },
-    go(e, nx, ny, pace) { e.startMove(nx, ny, pace, true); if (e.mv) e.mv.pull = true; },
+    go(e, nx, ny, pace) {
+        const p = G.player, a = e.area, aboard = p && p.area === a && p.state === 'normal' && p.tx === e.tx && p.ty === e.ty;
+        e.startMove(nx, ny, pace, true); if (e.mv) e.mv.pull = true;
+        /* a float going under an arch too low to ride: whoever's aboard is scraped off it, into the water */
+        if (aboard && a.kind(nx, ny).arch) {
+            if (p.ride === e) p.ride = null;
+            Sfx.play('hitthing'); Fx.dust(p.x, p.y);
+            if (!Progress.flag('arch_scraped')) { Progress.set('arch_scraped'); G.pendingToast = 'The arch is too low to ride under: it scrapes you off into the water.'; }
+        }
+    },
     /* into the drum, and (as soon as its mark is clear) down onto its mark */
     windIn(e, quiet) {
         const a = e.area, p = G.player, riding = p && p.ride === e;
@@ -23760,7 +24850,9 @@ const Pull = {
 {
     const update0 = Return.update;
     Return.update = function (e) {
-        const r = e.ret;
+        const r = e.ret, p = G.player;
+        /* the drum holds a thing over its place while Wren stands there (a float too: she isn't riding it) */
+        if (e.pendingHome && p && p.area === e.area && p.onTile(e.tx, e.ty) && Pull.on(e.area)) return;
         if (r && !e.removed && !e.pendingHome && r.state === 'returning' && !e.mv && !r.sewing && Pull.on(e.area) && !this.held(e)) return Pull.step(e);
         return update0.call(this, e);
     };
@@ -23904,20 +24996,20 @@ defHouse({
                 { k: 'deco', x: 7, y: 2, look: 'spoolpost', solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]], text: 'The foot of the Great Spool: a drum of thread as wide as a house, every colour, turning, and every turn a little tighter.' },
             ],
         },
-        /* ---------------- the Millrace's Knot: the river takes a loose float as far as it can; the Pull takes it up ---------------- */
+        /* ---------------- the Millrace's Knot: the river keeps a loose float till it runs out; then the Pull takes it up ---------------- */
         '0,2': {
             name: 'The Mill-Leat',
-            rows: ['####################', '#~~~~~~~~~~~~~~~~..#', '#~~~~~~~#~~~~~~~~..#', '#~~~~~~~~~~~...~~..#', '#~~~~~~~~~~~...~~..#', '#~~~~~~~~~~~~~~~~...', '#>>>>>>>>-~~~~~~~..#', '####~~~~~.~~~~~~~..#', '#..................#', '#...#..............#', '####################'],
+            rows: ['####################', '#~~~~~~~~~~~~~~~~..#', '#~~~~#~~~~~~~~~~~..#', '#~~~~~~~~~~~...~~..#', '#~~~~~~~~~~~...~~..#', '#~~~~~~~~~~~~~~~~...', '#####<<<<<<~~~~~~..#', '########...~~~~~~..#', '#..................#', '#...#..............#', '####################'],
             ents: [
-                { k: 'wheel', x: 7, y: 3, face: 'right', mode: 'hold', sig: 'gsMw', id: 'gsMWheel' },
+                { k: 'wheel', x: 4, y: 3, face: 'right', mode: 'hold', sig: 'gsMw', id: 'gsMWheel' },
                 { k: 'raft', x: 13, y: 5, id: 'gsMRaft' },
                 { k: 'door', x: 4, y: 8, type: 'gate', when: 'gsMw', dir: 'v', passed: 'left', id: 'gsMGate' },
                 { k: 'knotlock', x: 2, y: 8, house: 'mill' },
                 { k: 'ratchet', x: 18, y: 8 },
-                { k: 'sign', x: 10, y: 8, text: "Your dad's hand, on a board by the jetty: THE LEAT RUNS TILL SOMETHING STOPS IT. (The wheel only turns while something sits on its water.)" },
+                { k: 'sign', x: 8, y: 9, text: "Your dad's hand, on a board by the jetty: THE LEAT RUNS TILL SOMETHING STOPS IT. (The wheel only turns while something sits on its water.)" },
                 { k: 'gsdeco', x: 13, y: 3, look: 'gs_millhouse', solid: [[0, 0]] },
             ],
-            nudge: { solved: 'untie:mill', after: 60 * 150, at: [9, 6], say: GS_SAY.mill + ' twitches at the shallows, where the leat runs out.' },
+            nudge: { solved: 'untie:mill', after: 60 * 150, at: [10, 6], say: GS_SAY.mill + ' twitches at the head of the leat, by the jetty.' },
         },
         /* ---------------- the Belfry's Knot: a gale nobody walks through; a boulder asleep beyond it; woken, it goes north ---------------- */
         '2,2': {
@@ -23977,7 +25069,7 @@ defHouse({
                 { k: 'door', x: 17, y: 6, type: 'gate', when: 'gsMp', dir: 'v', passed: 'right', id: 'gsMaGate' },
                 { k: 'knotlock', x: 18, y: 2, house: 'marionette' },
                 { k: 'ratchet', x: 1, y: 7 },
-                { k: 'sign', x: 8, y: 9, text: "Pencilled on the prompt box in Jory's hand: UNDERSTUDY: IN THROUGH THE LITTLE DOOR. THE ROCK STAYS ON ITS MARK. (IT'S PAINTED. IT'S VERY HEAVY PAINT.)" },
+                { k: 'sign', x: 8, y: 9, text: "Pencilled on the prompt box in Jory's hand: QUIET IN THE BOX. THE ROCK STAYS ON ITS MARK. (IT'S PAINTED. IT'S VERY HEAVY PAINT.)" },
                 { k: 'gsdeco', x: 1, y: 9, look: 'gs_rail', solid: [[0, 0], [1, 0]], text: "A rail of costumes for a show that never opened: a crimson cape, a gold doublet, a blue gown, every one with JORY stitched in its collar." },
                 { k: 'gsdeco', x: 5, y: 9, look: 'gs_ghostlight', text: "A ghost light: one bare bulb on a stand, left burning on an empty stage so nobody falls off it in the dark." },
                 { k: 'gsdeco', x: 12, y: 9, look: 'gs_flats', solid: [[0, 0], [1, 0]] },
@@ -24202,6 +25294,12 @@ const GreatSpool = {
                 yield 50;
                 yield* say(null, 'The foot of the Well. Things come tumbling down the shaft after you, every marked thing in the valley, and none of them stays where it lands.');
             });
+        }
+        /* stepped off a float just as the river took it on: her feet are on the bank but her shoulders over the water,
+           where she can't move; she finds her feet */
+        if (p.state === 'normal' && !p.ride && !p.shove && !p.boxFree(p.x, p.y)) {
+            const k = a.kind(p.tx, p.ty), cx = p.tx * T + 8, cy = p.ty * T + 10;
+            if (!k.solid && !k.deep && p.boxFree(cx, cy)) { p.x = cx; p.y = cy; }
         }
         if (!Progress.flag('spool_met') && r && r.name === 'The Top of the Spool' && p.state === 'normal' && !Script.blocking() && !Cam.busy) Script.run(this.meet());
         /* back after a save: Gran is still at the Spool; and if every great thread was cut, the end goes on */
@@ -24453,7 +25551,8 @@ const SPOOL_LOOKS = {
 };
 for (const [name, L] of Object.entries(SPOOL_LOOKS)) {
     const [b0, b1, b2, b3] = L.boards;
-    THEMES[name] = { floor: [b0, b1, b2, b3], wall: [shade(L.wind[0], -0.35), shade(L.wind[0], -0.55), L.wind[0], '#120e16'], stone: ['#5a5068', '#463e54', '#7a7090', '#241e2e'], water: L.water, dark: '#0c0a12', look: L };
+    /* (a theme's wall colours [2] and [3] are what gates are painted with: brass bars, like the drum's flanges) */
+    THEMES[name] = { floor: [b0, b1, b2, b3], wall: [shade(L.wind[0], -0.35), shade(L.wind[0], -0.55), '#e0b850', '#5a3a1e'], stone: ['#5a5068', '#463e54', '#7a7090', '#241e2e'], water: L.water, dark: '#0c0a12', look: L };
     FLOORS[name] = {
         /* the Spool's own boards, laid the way the threads run (north), a fibre of thread caught in the grain */
         floor: (x, th, v) => {
@@ -24619,11 +25718,12 @@ const SpoolArt = {
         Gfx.rect(x + 2, y + 10, 3, 4, col); Gfx.rect(x + 11, y + 10, 3, 4, col); Gfx.rect(x + 2, y + 13, 3, 1, shade(col, -0.4)); Gfx.rect(x + 11, y + 13, 3, 1, shade(col, -0.4));
         if ((G.t >> 4) % 2) Gfx.rect(x + 6, y + 3, 2, 2, '#ffffff');
     },
-    /* the Climb: what's flying, and once it's begun, a stitched line where each lane starts */
+    /* the Climb: what's flying, and once it's begun, a stitched line along the near side of each lane (a hit puts you back
+       behind it) */
     lane(l, cx, cy) {
         if (!l.on) return;
         const r = l.area.roomAt(l.tx, l.ty);
-        if (r) for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) { if (l.area.kind(tx, l.ty + 1).solid) continue; const sx = tx * T - cx, sy = (l.ty + 1) * T - cy + 14; Gfx.rect(sx + 2, sy, 4, 1, '#e8463c'); Gfx.rect(sx + 10, sy, 4, 1, '#e8463c'); }
+        if (r) for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) { if (l.area.kind(tx, l.ty + 1).solid) continue; const sx = tx * T - cx, sy = (l.ty + 1) * T - cy; Gfx.rect(sx + 2, sy, 4, 1, '#e8463c'); Gfx.rect(sx + 10, sy, 4, 1, '#e8463c'); }
         for (const j of l.flying) Gfx.img(spr(['block_wood', 'pot', 'crate'][j.k]) || spr('block_wood'), j.x - cx - 8, l.ty * T - cy - 4 + Math.sin(j.x / 6) * 2);
     },
     /* the Kiln's cracked charm: a split down it */

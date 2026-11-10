@@ -152,6 +152,14 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   a second child, Otto; 6 bot-minutes instead of 2.5).
 - Running: the Great Spool rebuild, the overworld group A (Meadowfold, Kilnridge, Millwater, the Heights), the
   overworld group B (Hushwood, Larkspur Fair, the Loomwood, the Drift).
+- David's direction of 10 November (vibes, not a list; the game stays its own thing, not a copy): puzzles simple in
+  the first House and the land open then, harder House by House up to real ahas that combine tools; no hints unless
+  asked (the opt-in nudges stay as they are; no new hint character), no answer signs; the road to later Houses takes
+  more effort, made of the game's own puzzles, not borrowed padding; each new tool used out in the world before the
+  next House; things seen early that a later tool opens; something found by exploring that matters later; reasons
+  to go back to town and talk after each beat. Folded into the two overworld helpers' briefs; running too: the
+  difficulty curve over Houses 1-8 (scratchpad difficulty_brief.md). Queued: the town between Houses (town_brief.md:
+  new lines at every stage, small favours with each new tool, chained).
 - Owed by the coordinator: PROJECT_STATE.md's counts (rooms, Makings); SPOILERS.md and DESIGN_DOCUMENT.md for every
   House's new boss and rooms.
 - Owed after the Houses: SPOILERS.md and DESIGN_DOCUMENT.md rewritten for every House's new boss and rooms; the

@@ -4,8 +4,11 @@
    a long way down, so only with a Bedroll laid up top to come home to). Bouncy moss hops you over the stream to
    the Slumberhouse (House 5, Doctor Mallow's); sleep puffs line the trail through Puffball Hollow; Snorelings
    doze in the ferns; Hettie the forager camps by Lantern Pond, where a weir (wound open from this side only)
-   lets a raft run down the channel to the lake at Millwater. The cliff stair up the east side stays walled off.
-   Map drafted by tools/mapgen/hushwood.py. */
+   lets a raft run down the channel to the lake at Millwater. The cliff stair up the east side stays walled off from
+   the wood, but a crack in its far wall leads into Mallow's Nursery: three cradles behind a low hedge, and three
+   Snorelings to put to bed in them (they follow you; the spores put them to sleep where they stand). Lantern Pond's
+   four lanterns light only while their stones weigh on them (a stone stitched there with the Needle stays); all four,
+   and the lantern on the isle lights. Map drafted by tools/mapgen/hushwood.py. */
 
 const SLUMBER_ENTRY = { x: 29, y: 42 };
 const HUSH = (x, y) => [128 + x, 40 + y];
@@ -19,33 +22,33 @@ const HUSHWOOD_ROWS = [
     'YY........YYYY.XXXXXXXXXXYYYYY#k......YY##:::##YYYYYYYYYYYYYYYYY',
     'YY........YYYY.XXXXXXXXXXYYYYY#.......YY##:::##YYYYYYYYYYYYYYYYY',
     'YY........YYYY.XXXXXXXXXXYYYYY#....M..YY##:H:##YYYYYYYYYYYYYYYYY',
-    'YY....M...YYYY.XXXXXXXXXXYYYYY#....k..YY##:::##YYYYYYYYYYYYYYYYY',
-    'YY.............XXXX:XXXXXYYYYY#....k..YY##:::##YYYYYYYYYYYYYYYYY',
-    'YY..........::::::::.....YYYYY#.......YY##:::##YYYYYYYYYYYYYYYYY',
-    'YYk."b...,..:................YYvvvvvvvYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY....k.....:.........M......YY.....YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~..,....YYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYY.....:........k.....~~..,..:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYYYY.....:.......YYYYYY.~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY..........:.......YYYYYY.~~.."..:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY......b...:.......YYYYYY.~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY..........:.......YYYYYY.~~..qk.:.YYYY##:H:##YYYYYYYYYYYYYYYYY',
-    ':::::::::::::::............~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    ':::::::::::::::::::::::::::__::::::.YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY.........................~~.......YYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY..................M......~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY......:.k...qM........"..~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:.......kYYYYYYY...~~.qYYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:.......,YYYYYYY...~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:..b"....YYYYYYY,"~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:..M.....YYYYYYY.-~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY.".:........,".....:-~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:...............:.~~~~~~~~~-..YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY....M...YYYY.XXXXXXXXXXYYYYY#....k..YY##:::##YYYYYYY...YYYYYYY',
+    'YY.............XXXX:XXXXXYYYYY#....k..YY##:::##YYYYYYY...YYYYYYY',
+    'YY..........::::::::.....YYYYY#.......YY##:::##YYY.k.M..M..k.YYY',
+    'YYk."b...,..:................YYvvvvvvvYY##:::::::.............YY',
+    'YY....k.....:.........M......YY.....YYYY##:::##YY.............YY',
+    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~..,....YYYY##:H:##YY1111111111111YY',
+    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~.....:.YYYY##:::##YY1..11..11..11YY',
+    'YYYYYYY.....:........k.....~~..,..:.YYYY##:::##YY.............YY',
+    'YYYYYYY.....:.......YYYYYY.~~.....:.YYYY##:::##YY...q.....k...YY',
+    'YY..........:.......YYYYYY.~~.."..:.YYYY##:::##YY.............YY',
+    'YY......b...:.......YYYYYY.~~.....:.YYYY##:::##YY..M.......M..YY',
+    'YY..........:.......YYYYYY.~~..qk.:.YYYY##:H:##YY.............YY',
+    ':::::::::::::::............~~.....:.YYYY##:::##YY.............YY',
+    ':::::::::::::::::::::::::::__::::::.YYYY##:::##YY...k.....q...YY',
+    'YY.........................~~.......YYYY##:::##YY.............YY',
+    'YY..................M......~~..YYYYYYYYY##:::##YY.............YY',
+    'YY......:.k...qM........"..~~..YYYYYYYYY##:::##YY.............YY',
+    'YYYYY...:.......kYYYYYYY...~~..YYYYYYYYY##:H:##YY.............YY',
+    'YYYYY...:.......,YYYYYYY...~~.....YYYYYY##:::##YY1122...M.....YY',
+    'YYYYY...:..b"....YYYYYY.,"~~~~~~~~~...YY##:::##YY.322.........YY',
+    'YYYYY...:..M.....YYYYYYY.-~~~~~~~~~...YY##:::##YY111...k...q..YY',
+    'YYYYY.".:........,".....:-~~~~..~~~...YY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:...............:.~~~~..~~~-..YY##:::##YYYYYYYYYYYYYYYYY',
     'YY.M....:::::::::::::::::.~~~~~~~~~-..YY##:H:##YYYYYYYYYYYYYYYYY',
     'YY........................~~~~~~~~~.".YY##:::##YYYYYYYYYYYYYYYYY',
-    'YY........,b.YYYYYYYYYY.k.-b.VV""YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YY.q..k......YYYYYYYYYY....b.VV..YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY........,b.YYYYYYYYYY.k.-b.VV.....YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.q..k......YYYYYYYYYY....b.VV.....YYYY##:::##YYYYYYYYYYYYYYYYY',
     'YY...........YYYYYYYYYYq...b.VV..YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
     'YY...........YYYYYYYYYY....b.VV..YYYYYYY##:::##YYYYYYYYYYYYYYYYY',
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYY.VV..YYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
@@ -55,14 +58,20 @@ const HUSHWOOD_ROWS = [
 ];
 
 defBlock({
-    id: 'hushwood', bx: 2, by: 1, name: 'Hushwood', theme: 'hush', music: 'hush',
+    id: 'hushwood', bx: 2, by: 1, name: 'Hushwood', theme: 'hush', music: 'hush', owArt: true, soft: 4, blobSeam: true,
     rows: HUSHWOOD_ROWS,
-    forest: ['tree_hush', 'tree_hush', 'pine'],
+    forest: ['tree_hush', 'tree_hush', 'pine', 'tree_hush2'],
     legend: {
         'M': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'mushroom_big', solid: [[0, 0], [1, 0]], ox: -8, oy: -26 } },
         'k': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'mushrooms', solid: false } },
         'q': { k: 'grass', p: 'grass', ent: 'deco', props: { look: 'glowcaps', solid: false } },
+        /* the Nursery's low hedge (it stops a body; a hook or a throw goes over), brambles, a hole only a little one fits */
+        '1': { k: 'low', p: 'grass', ent: 'deco', props: { look: 'nursery_hedge', solid: false, oy: -3 } },
+        '2': { k: 'spikes', p: 'hthorn' },
+        '3': { k: 'crawl', p: 'grass', ent: 'deco', props: { look: 'nursery_hole', solid: false, oy: -3 } },
     },
+    drawGround: (a, cx, cy) => Hushwood.ground(a, cx, cy),
+    drawOver: (a, cx, cy) => Hushwood.over(a, cx, cy),
     ents: [
         /* the sleeping road */
         { k: 'giant', x: 1, y: 18, id: 'giant' },
@@ -102,12 +111,42 @@ defBlock({
         /* the cliff stair, as it was */
         { k: 'sign', x: 43, y: 37, text: 'THE CLIFF STAIR. Up to Belfry Heights. (Hushwood is through the trees. Nobody goes into Hushwood.)' },
         { k: 'rest', x: 44, y: 20 },
+        /* Lantern Pond's lanterns: each lit while something heavy stands on the stone at its foot; the stones go home */
+        { k: 'pondlantern', x: 30, y: 24, sig: 'lpN' }, { k: 'lanternstone', x: 30, y: 25, sig: 'lpN', minWeight: WEIGHT.heavy },
+        { k: 'pondlantern', x: 37, y: 27, sig: 'lpE' }, { k: 'lanternstone', x: 36, y: 27, sig: 'lpE', minWeight: WEIGHT.heavy },
+        { k: 'pondlantern', x: 32, y: 33, sig: 'lpS' }, { k: 'lanternstone', x: 32, y: 32, sig: 'lpS', minWeight: WEIGHT.heavy },
+        { k: 'pondlantern', x: 23, y: 26, sig: 'lpW' }, { k: 'lanternstone', x: 24, y: 26, sig: 'lpW', minWeight: WEIGHT.heavy },
+        { k: 'block', x: 32, y: 25, id: 'lpStoneN', look: 'mossstone', stitchName: 'a mossy stone' },
+        { k: 'block', x: 36, y: 29, id: 'lpStoneE', look: 'mossstone', stitchName: 'a mossy stone' },
+        { k: 'block', x: 34, y: 32, id: 'lpStoneS', look: 'mossstone', stitchName: 'a mossy stone' },
+        { k: 'block', x: 24, y: 28, id: 'lpStoneW', look: 'mossstone', stitchName: 'a mossy stone' },
+        /* the isle, and its great lantern; all four lit, it lights, and something is there to find */
+        { k: 'greatlantern', x: 31, y: 28 },
+        { k: 'chest', x: 30, y: 28, item: 'heartpatch', id: 'lpIsle', hidden: true, when: 'lpN&lpE&lpS&lpW' },
+        /* Mallow's Nursery, through the crack in the cliff stair's far wall */
+        { k: 'sign', x: 50, y: 9, text: "THE NURSERY. Lights out at moonrise. Quiet in the cradles, please. -Dr M." },
+        { k: 'puffball', x: 50, y: 13, id: 'nuPuffA' }, { k: 'cradle', x: 51, y: 13, sig: 'nuA' },
+        { k: 'puffball', x: 54, y: 13, id: 'nuPuffB' }, { k: 'cradle', x: 55, y: 13, sig: 'nuB' },
+        { k: 'puffball', x: 58, y: 13, id: 'nuPuffC' }, { k: 'cradle', x: 59, y: 13, sig: 'nuC' },
+        { k: 'snoreling', x: 50, y: 22, id: 'nuSnoreA', type: 'snoreling_n' },
+        { k: 'snoreling', x: 55, y: 26, id: 'nuSnoreB', type: 'snoreling_n' },
+        { k: 'snoreling', x: 60, y: 21, id: 'nuSnoreC', type: 'snoreling_n' },
+        { k: 'moss', x: 61, y: 11, dir: 'down', dist: 3, id: 'nuMossIn' },
+        { k: 'moss', x: 49, y: 14, dir: 'up', dist: 3, id: 'nuMossOut' },
+        { k: 'door', x: 55, y: 9, type: 'gate', when: 'nuA&nuB&nuC', dir: 'h', id: 'nuGate', passed: 'up' },
+        { k: 'chest', x: 54, y: 8, item: 'heartpatch', id: 'nuPatch' },
+        { k: 'chest', x: 56, y: 8, item: 'b50', id: 'nuToy', hidden: true, when: 'nuA&nuB&nuC&nuD' },
+        { k: 'nurserybook', x: 55, y: 7 },
+        /* the little wooden one Jory carved, and its own cradle, in the brambles behind a hole only it fits */
+        { k: 'puppet', x: 53, y: 23, id: 'nuDolly', look: 'puppet_snore' },
+        { k: 'cradle', x: 49, y: 26, sig: 'nuD' },
     ],
     regions: [
         { name: 'The Sleeping Road', x: 0, y: 14, w: 20, h: 8 },
         { name: 'The Slumberhouse', x: 2, y: 2, w: 27, h: 10 },
         { name: 'Puffball Hollow', x: 2, y: 22, w: 22, h: 14 },
         { name: 'Lantern Pond', x: 24, y: 21, w: 15, h: 19 },
+        { name: "Mallow's Nursery", x: 47, y: 6, w: 17, h: 23 },
         { name: 'The Far Bank', x: 29, y: 2, w: 10, h: 19 },
         { name: 'The Cliff Stair', x: 40, y: 0, w: 7, h: 40 },
     ],
@@ -626,3 +665,282 @@ function initHushArt() {
     });
 }
 CONTENT_INIT.push(initHushArt);
+
+/* ---------- Mallow's Nursery and Lantern Pond ---------- */
+NOTES.nursery = { title: "Doctor Mallow's nursery book", text: "THE NURSERY. Snorelings in training: Puddle, Mop and Dozy. They go to bed wherever they are when they're tired, which is anywhere. A puff of spores and they're off. Night 1,204: all three down by moonrise, the little wooden one too (Jory's: he says it sets an example). The Wanderer's year again soon. I do hope this one sleeps well. -M." };
+/* a cradle: a pressure plate in a little crib (whatever lies in it, or stands in it, weighs it down); somebody in it
+   already, nobody else gets in */
+SPAWN.cradle = (x, y, p) => {
+    const c = new Plate(x, y, p);
+    c.blocks = function (tx, ty, who) {
+        if (tx !== this.tx || ty !== this.ty || !this.area) return false;
+        const pl = G.player;
+        if (pl && pl !== who && pl.area === this.area && !pl.flying && pl.feetOn(tx, ty)) return true;
+        return this.area.walkers.some(m => m !== who && m.alive !== false && m.feetOn && m.feetOn(tx, ty));
+    };
+    c.draw = function (cx, cy) { Gfx.img(ART[this.down ? 'cradle_down' : 'cradle'], this.x - cx, this.y - cy); };
+    return c;
+};
+/* a stone at a lantern's foot: a plate that only something heavy weighs down */
+SPAWN.lanternstone = (x, y, p) => {
+    const c = new Plate(x, y, p);
+    c.draw = function (cx, cy) { Gfx.img(ART[this.down ? 'lanternstone_down' : 'lanternstone'], this.x - cx, this.y - cy); };
+    return c;
+};
+/* a paper lantern on a post: lit while its stone is weighed down */
+SPAWN.pondlantern = (x, y, p) => {
+    const pr = new Prop(x, y, { im: ART.pond_lantern, solid: [[0, 0]], oy: -16 });
+    pr.sig = p.sig;
+    pr.draw = function (cx, cy) {
+        const on = this.area && Signals.get(this.area, this.sig), x0 = this.x - cx, y0 = this.y - cy;
+        if (on) { Gfx.alpha(0.22 + 0.06 * Math.sin(G.t / 9 + this.tx)); Gfx.circle(x0 + 8, y0 + 9, 13, '#ffd27a'); Gfx.alpha(0.3); Gfx.circle(x0 + 8, y0 + 9, 7, '#fff0b0'); Gfx.alpha(1); }
+        Gfx.img(ART[on ? 'pond_lantern_lit' : 'pond_lantern'], x0, y0);
+    };
+    pr.interact = () => { Script.run(function* () { yield* say(null, Signals.get(pr.area, pr.sig) ? 'The paper lantern glows, warm as a window. Its flat stone is weighed down.' : 'A paper lantern on a post, cold. At its foot, a round flat stone with a lantern carved in it, a little proud of the ground.'); }); return true; };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+/* the stone lantern on the isle: alight when all four round the pond are */
+SPAWN.greatlantern = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.great_lantern, solid: [[0, 0]], oy: -18 });
+    pr.lit = () => pr.area && ['lpN', 'lpE', 'lpS', 'lpW'].every(s => Signals.get(pr.area, s));
+    pr.draw = function (cx, cy) {
+        const on = this.lit(), x0 = this.x - cx, y0 = this.y - cy;
+        if (on) { Gfx.alpha(0.18 + 0.05 * Math.sin(G.t / 11)); Gfx.circle(x0 + 8, y0 + 12, 20, '#ffd27a'); Gfx.alpha(1); }
+        Gfx.img(ART[on ? 'great_lantern_lit' : 'great_lantern'], x0, y0);
+    };
+    pr.interact = () => { Script.run(function* () { yield* say(null, pr.lit() ? 'The old stone lantern is alight, for the first time in years. Its light lies on the water all the way to the shore.' : "An old stone lantern on the isle, its little windows dark. Moss on its roof. Round the pond, four paper lanterns on posts look back at it."); }); return true; };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+/* the Nursery's book, on a stand in the alcove */
+SPAWN.nurserybook = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.nursery_book, solid: [[0, 0]], oy: -6 });
+    pr.interact = () => {
+        Script.run(function* () {
+            if (!Progress.flag('nursery_book')) { Progress.set('nursery_book'); Progress.addNote('nursery'); Stats.count('secret:nursery'); }
+            yield* say(null, 'A big soft book on a stand, its pages smelling of lavender. On the cover: THE NURSERY.');
+            yield* say(null, '"' + NOTES.nursery.text + '"');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+
+/* ---------- the look of the wood: moss underfoot, ferns, loam paths with roots across them; and in the air under the
+   trees a dimness, drifting mist and spores (thinning toward the edges of the wood) ---------- */
+THEMES.hush.grass = ['#68a266', '#58905b', '#84bc7a', '#427850'];
+THEMES.hush.path = ['#9c8564', '#80694e', '#b8a07a'];
+OWA.ground.hush = {
+    /* moss: soft cushions with a lit top and a shadowed foot, a few pores; now and then a leaf, spores, sorrel */
+    grass(x, th, v) {
+        const [g0, g1, g2, g3] = th.grass;
+        fill(x, g0);
+        speckle(x, [g1], 12 + v * 13, 0.12);
+        for (let n = 0; n < 5; n++) {
+            const cx = Math.floor(hash2(v, n, 31) * 14) + 1, cy = Math.floor(hash2(n, v, 32) * 13) + 2, w = 2 + (n + v) % 2;
+            fill(x, g2, cx, cy, w, 1); px(x, cx - 1, cy + 1, g1); fill(x, mix(g0, g2, 0.4), cx, cy + 1, w, 1); fill(x, g1, cx, cy + 2, w, 1);
+        }
+        for (let n = 0; n < 3; n++) px(x, Math.floor(hash2(n, v, 33) * 16), Math.floor(hash2(v, n, 34) * 16), g3);
+        if (v === 1) { px(x, 4, 11, '#c87a3a'); px(x, 5, 11, '#e09848'); px(x, 5, 10, '#a85e2a'); px(x, 10, 4, '#6a5038'); px(x, 11, 5, '#6a5038'); }
+        if (v === 2) { px(x, 3, 4, '#e8f4ff'); px(x, 12, 9, '#d8ecff'); px(x, 8, 13, '#e8f4ff'); }
+        if (v === 3) { px(x, 9, 6, '#9ad48a'); px(x, 10, 6, '#9ad48a'); px(x, 9, 5, '#b8e8a0'); px(x, 10, 7, g3); }
+    },
+    /* bluebells and the odd glowcap in the moss */
+    flowers(x, th, v) {
+        OWA.ground.hush.grass(x, th, v);
+        for (let n = 0; n < 3; n++) {
+            const fx = 2 + Math.floor(hash2(n, v, 41) * 11), fy = 3 + Math.floor(hash2(v + 3, n, 42) * 10);
+            if ((n + v) % 3 === 2) { px(x, fx, fy, '#c8f4ff'); px(x, fx + 1, fy, '#8ad8f0'); px(x, fx, fy + 1, '#e0e8d8'); px(x, fx, fy + 2, th.grass[3]); }
+            else { px(x, fx, fy - 1, th.grass[3]); px(x, fx + 1, fy - 1, th.grass[3]); px(x, fx, fy, '#7a8ae8'); px(x, fx + 1, fy + 1, '#5a64c8'); px(x, fx, fy + 1, '#a8b4f8'); px(x, fx - 1, fy + 2, th.grass[3]); }
+        }
+    },
+    /* ferns: fronds arching up from the moss, a leaflet each side at every step */
+    tallgrass(x, th, v) {
+        OWA.ground.hush.grass(x, th, v);
+        const fern = (bx, h, lean, col, hi) => {
+            for (let j = 0; j < h; j++) {
+                const fx = bx + Math.round(lean * j * j / (h * h) * 4), fy = 15 - j;
+                px(x, fx, fy, '#2e5a3e');
+                if (j > 1 && j % 2 === 0 && j < h - 1) { const w = Math.max(1, Math.round((h - j) / 2.5)); fill(x, col, fx - w, fy, w, 1); fill(x, col, fx + 1, fy, w, 1); px(x, fx - w, fy - 1, hi); }
+            }
+            px(x, bx + Math.round(lean * 4), 15 - h, hi);
+        };
+        fern(4 + v % 2, 10 + v % 3, -1, '#4e9a5a', '#86c47a');
+        fern(10 + (v >> 1), 12 - v % 2, 1, '#3e8a50', '#76b46a');
+    },
+    /* a loam path, roots across it, a few pebbles */
+    path(x, th, v) {
+        const [p0, p1, p2] = th.path;
+        fill(x, p0); speckle(x, [p1], 31 + v, 0.18); speckle(x, [p2], 41 + v, 0.06);
+        if (v % 2 === 0) {
+            /* a root, wandering across (its own colour, a highlight along its top) */
+            let ry = 3 + Math.floor(hash2(v, 1, 51) * 10);
+            for (let i = 0; i < 16; i++) { if (hash2(i, v, 52) < 0.22) ry += hash2(v, i, 53) < 0.5 ? -1 : 1; ry = clamp(ry, 2, 13); px(x, i, ry, '#5e4430'); px(x, i, ry - 1, '#8a6a48'); px(x, i, ry + 1, mix(p0, '#3a2a1c', 0.4)); }
+        }
+        for (let n = 0; n < 2; n++) { const sx = 1 + Math.floor(hash2(v, n, 54) * 13), sy = 1 + Math.floor(hash2(n, v, 55) * 13); px(x, sx, sy, '#b8b0a0'); px(x, sx + 1, sy, '#8a8274'); }
+        if (v === 3) { px(x, 11, 12, '#4c8457'); px(x, 12, 11, '#5d9862'); px(x, 3, 3, '#4c8457'); }
+    },
+    /* under the trees: dark, ferny */
+    forest(x, th, v) {
+        fill(x, '#335640'); speckle(x, ['#3c624a', '#284634'], v + 9, 0.3);
+        for (let n = 0; n < 2; n++) { const fx = 2 + Math.floor(hash2(v, n, 61) * 12), fy = 6 + Math.floor(hash2(n, v, 62) * 8); px(x, fx, fy, '#34584a'); px(x, fx - 1, fy + 1, '#2e4e40'); px(x, fx + 1, fy + 1, '#2e4e40'); px(x, fx, fy + 2, '#2a4436'); }
+    },
+    /* brambles: purple-brown stems looped over the moss, thorns, a few dark berries */
+    hthorn(x, th, v) {
+        OWA.ground.hush.grass(x, th, v);
+        for (let n = 0; n < 3; n++) {
+            let sx = Math.floor(hash2(v, n, 71) * 16), sy = 15;
+            for (let j = 0; j < 18; j++) {
+                px(x, ((sx % 16) + 16) % 16, sy, '#4a2a3e'); if (j % 3 === 1) px(x, ((sx + 1) % 16 + 16) % 16, sy, '#c8b0c0');
+                sx += hash2(j, n + v, 72) < 0.5 ? 1 : -1; sy -= hash2(n, j + v, 73) < 0.75 ? 1 : 0; if (sy < 1) break;
+            }
+        }
+        for (let n = 0; n < 2; n++) { const bx = 3 + Math.floor(hash2(v, n, 74) * 10), by = 3 + Math.floor(hash2(n, v, 75) * 10); px(x, bx, by, '#2a1638'); px(x, bx + 1, by, '#3a2050'); px(x, bx, by - 1, '#7a5aa0'); }
+    },
+};
+Object.assign(Hushwood, {
+    /* how deep in the wood a point is, 0 at its edges (with the town, the Heights, the Reaches) to 1 four tiles in */
+    depth(wx, wy) { return clamp(Math.min(wx - 128 * T, wy - 40 * T, 80 * T - wy) / (4 * T), 0, 1); },
+    /* small things on the ground: across the edge with the town, moss creeping out over the town's grass and road and the
+       town's grass in tufts among the moss, more of each nearer the edge (so it never changes on a line); in the wood, fallen
+       leaves and toadstools here and there */
+    ground(a, cx, cy) {
+        if (HEADLESS || cx + W < 124 * T || cy + H < 40 * T || cy > 80 * T) return;
+        const tx0 = Math.max(124, Math.floor(cx / T)), tx1 = Math.floor((cx + W) / T), ty0 = Math.max(40, Math.floor(cy / T)), ty1 = Math.min(79, Math.floor((cy + H) / T));
+        for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+            const p = a.cell(tx, ty).p;
+            if (!(p === 'grass' || p === 'flowers' || p === 'tallgrass' || p === 'path' || p === 'forest')) continue;
+            const d = tx + 0.5 - 128;
+            for (let n = 0; n < 3; n++) {
+                const r = hash2(tx * 3 + n, ty, 201), ox = Math.floor(hash2(tx, ty * 3 + n, 202) * 12), oy = Math.floor(hash2(ty, tx + n, 203) * 12);
+                let im = null;
+                if (d < 4 && d > -4) {
+                    /* the edge: moss going west, grass tufts coming east */
+                    if (d < 0 && r < 0.55 * (1 + d / 4)) im = ART['hw_moss' + (n % 3)];
+                    else if (d > 0 && r < 0.5 * (1 - d / 4) && p !== 'forest') im = ART['hw_tuft' + (n % 2)];
+                    else if (d < 0 && p === 'forest' && r < 0.7 * (1 + d / 4)) im = ART.hw_fern;
+                } else if (d >= 4 && n === 0 && p !== 'forest' && p !== 'path' && r < 0.06) im = ART[r < 0.03 ? 'hw_leaves' : 'hw_toad'];
+                if (im) Gfx.img(im, tx * T - cx + ox, ty * T - cy + oy);
+            }
+        }
+    },
+    over(a, cx, cy) {
+        if (HEADLESS || cx + W < 128 * T || cy + H < 40 * T || cy > 80 * T) return;
+        const k0 = Math.min(this.depth(cx, cy), this.depth(cx, cy + H), this.depth(cx + W, cy), this.depth(cx + W, cy + H));
+        /* the dimness under the trees: deepening over the wood's first few tiles, its edge wandering (runs of equal shade
+           drawn at once) */
+        if (k0 >= 1) { Gfx.alpha(0.17); Gfx.rect(0, 0, W, H, '#16203a'); }
+        else for (let sy = 0; sy < H; sy += 4) {
+            let run = 0, q0 = -1;
+            for (let sx = 0; sx <= W; sx += 4) {
+                const wx = cx + sx + 2, wy = cy + sy + 2, wob = (hash2(Math.floor(wy / 12), 3, 211) - 0.5) * 20 + (hash2(Math.floor(wx / 8), Math.floor(wy / 8), 212) - 0.5) * 8;
+                const q = sx < W ? Math.round(this.depth(wx + wob, wy + wob * 0.5) * 12) : -2;
+                if (q !== q0) { if (q0 > 0) { Gfx.alpha(0.17 * q0 / 12); Gfx.rect(sx - run * 4, sy, run * 4, 4, '#16203a'); } q0 = q; run = 0; }
+                run++;
+            }
+        }
+        Gfx.alpha(1);
+        /* mist lying in long soft banks, drifting */
+        for (let i = 0; i < 9; i++) {
+            const wx = 128 * T + ((i * 331 + G.t * (0.12 + (i % 3) * 0.05)) % (64 * T)), wy = 40 * T + 24 + (i * 157) % (38 * T);
+            const x = wx - cx, y = wy - cy, rx = 46 + (i % 4) * 9, ry = 5 + i % 3;
+            if (x < -rx || x > W + rx || y < -ry || y > H + ry) continue;
+            const k = this.depth(wx, wy); if (k <= 0) continue;
+            Gfx.alpha(0.07 * k);
+            for (let j = -ry; j <= ry; j++) { const w = Math.round(rx * Math.sqrt(1 - (j * j) / (ry * ry))); Gfx.rect(x - w, y + j, w * 2 + 1, 1, '#dce4f4'); }
+        }
+        /* spores, drifting up through the gloom (a layer that moves at half the ground's pace) */
+        for (let i = 0; i < 26; i++) {
+            const sx = (((i * 73 - cx * 0.5 + Math.sin(G.t / 60 + i) * 6) % W) + W) % W, sy = H - (((i * 41 + G.t * (0.18 + (i % 4) * 0.05) + cy * 0.5) % (H + 20)) + H + 20) % (H + 20);
+            const k = this.depth(cx + sx, cy + sy); if (k <= 0) continue;
+            Gfx.alpha((0.35 + 0.35 * Math.sin(G.t / 13 + i * 2)) * k);
+            Gfx.rect(sx, sy, 1, 1, i % 3 ? '#e8f8d0' : '#c8e8ff');
+            Gfx.alpha(1);
+        }
+        Gfx.alpha(1);
+        /* the Nursery: while its three sleep, the mushrooms by its gate glow */
+        if (Signals.get(a, 'nuA') && Signals.get(a, 'nuB') && Signals.get(a, 'nuC')) {
+            for (const mx of [53, 56]) { const x = (128 + mx) * T + 16 - cx, y = (40 + 9) * T - 14 - cy; Gfx.alpha(0.2 + 0.06 * Math.sin(G.t / 15 + mx)); Gfx.circle(x, y, 16, '#f0c8ff'); Gfx.alpha(1); }
+        }
+    },
+});
+
+function initHushArt2() {
+    ENEMY.snoreling_n = Object.assign({}, ENEMY.snoreling, { chase: 1500 });
+    ENEMY_DRAW.snoreling_n = ENEMY_DRAW.snoreling;
+    treeArt('tree_hush2', { leaf: ['#3a6e66', '#4a8a78', '#6eb294', '#24504a'], bark: ['#8a7a9a', '#64547a', '#3a2e4a'] }, 9, { clumps: [[16, 15, 10], [8, 18, 7], [24, 18, 7], [11, 10, 6], [21, 10, 6], [16, 21, 8]] });
+    {
+        /* moss hanging from its boughs */
+        const c = ART.tree_hush2; if (!HEADLESS) { const x = c.getContext('2d'); for (const [a, b, l] of [[7, 22, 5], [12, 25, 4], [21, 24, 6], [26, 21, 4]]) { x.fillStyle = '#8ac47a'; x.fillRect(a, b, 1, l); x.fillStyle = '#5a9a5a'; x.fillRect(a + 1, b + 1, 1, l - 2); } }
+    }
+    const k = '#2a1f2d';
+    defSprite('mossstone', ['................', '....kkkkkkk.....', '..kkMMmMMmmkk...', '.kmMMmmmMmmmmk..', '.kMmmmmmmmmmmmk.', 'kmmmmgmmmmmmgmmk', 'kgmmgggmmgggggmk', 'kgsggggggggsgggk', 'ksgggggggggggggk', 'kgggsgggggggsggk', 'kggggggsggggggSk', 'ksggggggggggggSk', 'kgggggggsgggSSSk', '.kSggggggggSSSk.', '..kkSSSSSSSSkk..', '....kkkkkkkk....'],
+        { m: '#5f9a58', M: '#8cc474', g: '#8a86a2', s: '#aca8c4', S: '#5e5a78' });
+    defSprite('puppet_snore', ['.......cc.......', '......cCcc......', '.....cCcccw.....', '....kkkkkkww....', '...kmmmmmmmmk...', '..kmmmmmmmmmmk..', '..kmmekmmekmmk..', '..kmmmmmmmmmmk..', '..kMmpmmmmpmMk..', '...kMMMMMMMMk...', '....kkmmmmkk....', '......kWWk......', '......kWWk......', '....kkkWWkkk....', '...kddddddddk...', '...kkkkkkkkkk...'],
+        { m: '#d8b4ec', M: '#a884cc', c: '#6a8ec8', C: '#4a6aa8', w: '#fbf6ea', e: k, p: '#f0a0b8', W: '#c49a62', d: '#8a6040' });
+    SPR.puppet_snore_up = SPR.puppet_snore;
+    const R = (x, c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+    /* a cradle: a little wicker crib, a white pillow at its head, a lavender quilt stitched in squares (pressed: the quilt
+       sunk in the middle where somebody's lying) */
+    for (const down of [false, true]) ART[down ? 'cradle_down' : 'cradle'] = paintSprite(16, 16, x => {
+        R(x, '#5a3a24', 1, 1, 14, 14); R(x, '#5a3a24', 0, 2, 16, 12);
+        for (let j = 2; j < 14; j++) for (let i = 1; i < 15; i++) if (i < 2 || i > 13 || j < 3 || j > 12) R(x, (i + j) % 2 ? '#c8945a' : '#a8743e', i, j, 1, 1);
+        R(x, '#e8c08a', 2, 2, 12, 1);
+        R(x, '#fbf6ea', 3, 3, 10, 3); R(x, '#e0d8ec', 3, 5, 10, 1); R(x, '#ffffff', 4, 3, 3, 1);
+        for (let j = 6; j < 13; j++) for (let i = 2; i < 14; i++) {
+            const sq = ((i >> 2) + (j >> 2)) % 2, sag = down && i > 4 && i < 11 && j > 7;
+            R(x, sag ? (sq ? '#7d5bc4' : '#6a4aae') : (sq ? '#b48ce8' : '#9a76d8'), i, j, 1, 1);
+        }
+        R(x, '#d8c8f8', 2, 6, 12, 1); R(x, '#4b3a8a', 2, 12, 12, 1);
+    });
+    /* the round flat stone at a lantern's foot, a lantern carved in it (pressed: sunk, the carving dark) */
+    for (const down of [false, true]) ART[down ? 'lanternstone_down' : 'lanternstone'] = paintSprite(16, 16, x => {
+        discPx(x, 8, 8, 6, (px0, py0, u, v) => { const l = -u * 0.5 - v * 0.7 + (hash2(px0, py0, 4) - 0.5) * 0.4 - (down ? 0.5 : 0); return l > 0.45 ? '#c8c4d4' : l > -0.15 ? '#a09cb4' : l > -0.7 ? '#7e7a94' : '#5e5a74'; });
+        const c = down ? '#3e3a54' : '#5e5a74';
+        R(x, c, 7, 4, 2, 1); R(x, c, 6, 5, 4, 1); R(x, c, 6, 6, 1, 4); R(x, c, 9, 6, 1, 4); R(x, c, 6, 10, 4, 1); R(x, down ? '#e8b04a' : '#7e7a94', 7, 7, 2, 2);
+    });
+    /* a paper lantern on a post with a hook */
+    for (const lit of [false, true]) ART[lit ? 'pond_lantern_lit' : 'pond_lantern'] = paintSprite(16, 32, x => {
+        R(x, '#4a3424', 7, 4, 3, 28); R(x, '#6a4e36', 7, 4, 1, 28); R(x, '#4a3424', 7, 4, 7, 2); R(x, '#3a2618', 12, 6, 1, 2);
+        const body = lit ? ['#fff4c0', '#f7d64a', '#e8a83a', '#c8782a'] : ['#f4ecdc', '#e0d4bc', '#c8b898', '#a89878'];
+        R(x, '#3a2618', 10, 8, 5, 1); R(x, '#3a2618', 10, 18, 5, 1);
+        for (let j = 9; j < 18; j++) { const w = j < 11 || j > 15 ? 3 : 5, x0 = 12 - (w >> 1); for (let i = 0; i < w; i++) R(x, i === 0 ? body[0] : i === w - 1 ? body[2] : body[1], x0 + i, j, 1, 1); }
+        for (const j of [11, 14]) R(x, body[3], 10, j, 5, 1);
+        R(x, '#c84a3a', 12, 19, 1, 3);
+        R(x, '#3a2618', 5, 30, 7, 2);
+    });
+    /* the stone lantern on the isle (lit: its windows alight) */
+    for (const lit of [false, true]) ART[lit ? 'great_lantern_lit' : 'great_lantern'] = paintSprite(16, 34, x => {
+        const st = ['#c4c0d0', '#9c98b0', '#76728e', '#54506c'];
+        R(x, st[2], 3, 30, 10, 4); R(x, st[1], 3, 30, 10, 1); R(x, st[2], 6, 20, 4, 10); R(x, st[1], 6, 20, 1, 10);
+        R(x, st[2], 2, 17, 12, 3); R(x, st[0], 2, 17, 12, 1);
+        R(x, st[1], 3, 9, 10, 8); R(x, lit ? '#f7d64a' : '#2e2a40', 5, 11, 2, 4); R(x, lit ? '#fff4c0' : '#2e2a40', 9, 11, 2, 4); R(x, st[3], 12, 9, 1, 8);
+        for (let j = 0; j < 6; j++) R(x, j < 2 ? '#8cc474' : st[j % 2 ? 1 : 0], 1 + Math.max(0, 5 - j * 2) - 1, 3 + j, 16 - 2 * Math.max(0, 5 - j * 2), 1);
+        R(x, st[2], 7, 0, 2, 3); R(x, '#5f9a58', 2, 7, 4, 1); R(x, '#5f9a58', 10, 8, 3, 1);
+    });
+    /* the Nursery's low hedge, clipped round, with lavender flowers; the one with a little round hole in its foot */
+    for (const hole of [false, true]) ART[hole ? 'nursery_hole' : 'nursery_hedge'] = paintSprite(16, 19, x => {
+        for (let j = 0; j < 17; j++) for (let i = 0; i < 16; i++) {
+            const top = j < 4 ? Math.abs(i - 7.5) > 6.5 + j * 0.5 : false; if (top) continue;
+            const l = -(i - 8) / 10 * 0.4 - (j - 7) / 9 * 0.8 + (hash2(i, j, hole ? 5 : 4) - 0.5) * 0.7;
+            R(x, l > 0.55 ? '#8ad87a' : l > 0 ? '#5ab85a' : l > -0.55 ? '#3f9a4a' : '#2a6a36', i, j + 2, 1, 1);
+        }
+        for (const [a, b] of [[3, 5], [10, 4], [6, 9], [12, 10]]) { R(x, '#c8a8f0', a, b, 1, 1); R(x, '#9a76d8', a + 1, b + 1, 1, 1); }
+        if (hole) { R(x, '#120c14', 5, 12, 6, 7); R(x, '#120c14', 6, 11, 4, 1); R(x, '#2a1f2d', 5, 12, 1, 7); }
+    });
+    /* things on the ground: moss cushions, a fern sprig, the town's grass in a tuft, fallen leaves, a toadstool */
+    for (let i = 0; i < 3; i++) ART['hw_moss' + i] = paintSprite(6 + i, 4, x => { R(x, '#84bc7a', 1, 0, 3 + i, 1); R(x, '#68a266', 0, 1, 5 + i, 2); R(x, '#4c7e52', 1, 3, 3 + i, 1); R(x, '#a8d890', 1, 1, 1, 1); }, false);
+    ART.hw_fern = paintSprite(7, 6, x => { R(x, '#3c6a48', 3, 1, 1, 5); for (const j of [1, 3]) { R(x, '#4e8a58', 0, j, 3, 1); R(x, '#4e8a58', 4, j + 1, 3, 1); } R(x, '#6aa86a', 3, 0, 1, 1); }, false);
+    for (let i = 0; i < 2; i++) ART['hw_tuft' + i] = paintSprite(5, 5, x => { R(x, '#7cc35c', 0, 2, 1, 3); R(x, '#8fd46a', 2, 0, 1, 5); R(x, '#a9e07f', 4, 1 + i, 1, 4 - i); R(x, '#5fa84c', 1, 4, 3, 1); }, false);
+    ART.hw_leaves = paintSprite(7, 4, x => { R(x, '#c87a3a', 0, 1, 2, 1); R(x, '#e09848', 1, 0, 2, 1); R(x, '#a8603a', 4, 2, 2, 1); R(x, '#d8a050', 5, 1, 2, 1); R(x, '#6a5038', 2, 3, 3, 1); }, false);
+    ART.hw_toad = paintSprite(5, 5, x => { R(x, '#e8dcc8', 2, 2, 1, 3); R(x, '#c84a6a', 0, 0, 5, 2); R(x, '#fbe8f0', 1, 0, 1, 1); R(x, '#8a2a4a', 0, 2, 5, 1); }, false);
+    /* the Nursery's book on a little stand */
+    ART.nursery_book = paintSprite(16, 22, x => {
+        R(x, '#6a4e36', 7, 10, 2, 11); R(x, '#4a3424', 4, 20, 8, 2);
+        R(x, '#7d5bc4', 1, 2, 14, 9); R(x, '#fbf6ea', 2, 3, 6, 6); R(x, '#f0e8d8', 8, 3, 6, 6); R(x, '#4b3a8a', 7, 2, 2, 9);
+        for (let j = 4; j < 8; j += 2) { R(x, '#b8a8c8', 3, j, 4, 1); R(x, '#b8a8c8', 9, j, 4, 1); }
+    });
+}
+CONTENT_INIT.push(initHushArt2);

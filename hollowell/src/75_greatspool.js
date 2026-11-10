@@ -15,14 +15,17 @@
    - The rest is the Return's: held things wait (carried, gripped, paddled, on strings); heavier shoves lighter (a tile
      on along the way), it waits behind anything as heavy or fixed, and a heavy one shoves Wren; it presses plates in
      passing; it hangs on its thread over holes and water; a float carries whoever's on it (the river can't have a
-     float that's being wound; it can a loose one, till something stops it).
+     float that's being wound; it can a loose one, every drift starting its patience again, till something stops it).
+     An arch over water is too low to ride under: a float goes under on its own, and scrapes off whoever's aboard.
    - Broken, its pieces fly the way the threads run, from where it broke, striking what they pass; then it's whole on
      its mark again.
    - A ring winds everything out of place in its reach at once, fast, shoving harder; a sleeper woken goes too.
    - Every thread here is drawn too taut for the Shears or the Needle (the six great threads at the top, gone slack a
      moment, aside).
    - Wren's own thread is cut: nothing pulls her. Her Bedroll is the one place that stays put; laid here, a fall takes
-     her to it (and on a float it goes where the float goes). */
+     her to it (and on a float it goes where the float goes).
+   - Each Knot's room has a brake by its door (a ratchet): everything in the room out of its place goes up into the drum
+     at once and is laid back where it belongs, and the room's sleepers lie down again where they lay. */
 const Pull = {
     fx: [],                 /* things being wound into the face (drawn rising into it) */
     on(a) { return !!(a && a.def && a.def.pull && !Progress.flag('unwound')); },
@@ -43,8 +46,6 @@ const Pull = {
         const a = e.area, r = e.ret, d = this.dir(a, e.tx, e.ty), nx = e.tx + DX[d], ny = e.ty + DY[d], p = G.player;
         const pace = r.snap ? RET.snapPace : Water.pace(e, d, r.pace);
         if (this.face(a, e, nx, ny)) { this.windIn(e); return; }
-        /* a float going under an arch too low to ride: whoever's on it is scraped off */
-        if (p && p.ride === e && a.kind(nx, ny).arch) { p.ride = null; Sfx.play('hitthing'); Fx.dust(p.x, p.y); if (!Progress.flag('arch_scraped')) { Progress.set('arch_scraped'); G.pendingToast = 'The arch is too low to ride under: it scrapes you off into the water.'; } }
         if (a.freeForThing(nx, ny, e)) { this.go(e, nx, ny, pace); r.strain = 0; return; }
         const o = a.at(nx, ny), force = e.weight + (r.snap ? 1 : 0);
         if (o && o.isGrid && !o.fixed && o.weight < force && o.canBeShoved && o.canBeShoved(d)) {
@@ -58,7 +59,16 @@ const Pull = {
         if (p && p.area === a && p.onTile(nx, ny) && force >= WEIGHT.heavy && p.canBeShoved(d)) { p.shoved(d, pace); this.go(e, nx, ny, pace); return; }
         r.strain++;
     },
-    go(e, nx, ny, pace) { e.startMove(nx, ny, pace, true); if (e.mv) e.mv.pull = true; },
+    go(e, nx, ny, pace) {
+        const p = G.player, a = e.area, aboard = p && p.area === a && p.state === 'normal' && p.tx === e.tx && p.ty === e.ty;
+        e.startMove(nx, ny, pace, true); if (e.mv) e.mv.pull = true;
+        /* a float going under an arch too low to ride: whoever's aboard is scraped off it, into the water */
+        if (aboard && a.kind(nx, ny).arch) {
+            if (p.ride === e) p.ride = null;
+            Sfx.play('hitthing'); Fx.dust(p.x, p.y);
+            if (!Progress.flag('arch_scraped')) { Progress.set('arch_scraped'); G.pendingToast = 'The arch is too low to ride under: it scrapes you off into the water.'; }
+        }
+    },
     /* into the drum, and (as soon as its mark is clear) down onto its mark */
     windIn(e, quiet) {
         const a = e.area, p = G.player, riding = p && p.ride === e;
@@ -119,7 +129,9 @@ const Pull = {
 {
     const update0 = Return.update;
     Return.update = function (e) {
-        const r = e.ret;
+        const r = e.ret, p = G.player;
+        /* the drum holds a thing over its place while Wren stands there (a float too: she isn't riding it) */
+        if (e.pendingHome && p && p.area === e.area && p.onTile(e.tx, e.ty) && Pull.on(e.area)) return;
         if (r && !e.removed && !e.pendingHome && r.state === 'returning' && !e.mv && !r.sewing && Pull.on(e.area) && !this.held(e)) return Pull.step(e);
         return update0.call(this, e);
     };
@@ -263,20 +275,20 @@ defHouse({
                 { k: 'deco', x: 7, y: 2, look: 'spoolpost', solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]], text: 'The foot of the Great Spool: a drum of thread as wide as a house, every colour, turning, and every turn a little tighter.' },
             ],
         },
-        /* ---------------- the Millrace's Knot: the river takes a loose float as far as it can; the Pull takes it up ---------------- */
+        /* ---------------- the Millrace's Knot: the river keeps a loose float till it runs out; then the Pull takes it up ---------------- */
         '0,2': {
             name: 'The Mill-Leat',
-            rows: ['####################', '#~~~~~~~~~~~~~~~~..#', '#~~~~~~~#~~~~~~~~..#', '#~~~~~~~~~~~...~~..#', '#~~~~~~~~~~~...~~..#', '#~~~~~~~~~~~~~~~~...', '#>>>>>>>>-~~~~~~~..#', '####~~~~~.~~~~~~~..#', '#..................#', '#...#..............#', '####################'],
+            rows: ['####################', '#~~~~~~~~~~~~~~~~..#', '#~~~~#~~~~~~~~~~~..#', '#~~~~~~~~~~~...~~..#', '#~~~~~~~~~~~...~~..#', '#~~~~~~~~~~~~~~~~...', '#####<<<<<<~~~~~~..#', '########...~~~~~~..#', '#..................#', '#...#..............#', '####################'],
             ents: [
-                { k: 'wheel', x: 7, y: 3, face: 'right', mode: 'hold', sig: 'gsMw', id: 'gsMWheel' },
+                { k: 'wheel', x: 4, y: 3, face: 'right', mode: 'hold', sig: 'gsMw', id: 'gsMWheel' },
                 { k: 'raft', x: 13, y: 5, id: 'gsMRaft' },
                 { k: 'door', x: 4, y: 8, type: 'gate', when: 'gsMw', dir: 'v', passed: 'left', id: 'gsMGate' },
                 { k: 'knotlock', x: 2, y: 8, house: 'mill' },
                 { k: 'ratchet', x: 18, y: 8 },
-                { k: 'sign', x: 10, y: 8, text: "Your dad's hand, on a board by the jetty: THE LEAT RUNS TILL SOMETHING STOPS IT. (The wheel only turns while something sits on its water.)" },
+                { k: 'sign', x: 8, y: 9, text: "Your dad's hand, on a board by the jetty: THE LEAT RUNS TILL SOMETHING STOPS IT. (The wheel only turns while something sits on its water.)" },
                 { k: 'gsdeco', x: 13, y: 3, look: 'gs_millhouse', solid: [[0, 0]] },
             ],
-            nudge: { solved: 'untie:mill', after: 60 * 150, at: [9, 6], say: GS_SAY.mill + ' twitches at the shallows, where the leat runs out.' },
+            nudge: { solved: 'untie:mill', after: 60 * 150, at: [10, 6], say: GS_SAY.mill + ' twitches at the head of the leat, by the jetty.' },
         },
         /* ---------------- the Belfry's Knot: a gale nobody walks through; a boulder asleep beyond it; woken, it goes north ---------------- */
         '2,2': {
@@ -561,6 +573,12 @@ const GreatSpool = {
                 yield 50;
                 yield* say(null, 'The foot of the Well. Things come tumbling down the shaft after you, every marked thing in the valley, and none of them stays where it lands.');
             });
+        }
+        /* stepped off a float just as the river took it on: her feet are on the bank but her shoulders over the water,
+           where she can't move; she finds her feet */
+        if (p.state === 'normal' && !p.ride && !p.shove && !p.boxFree(p.x, p.y)) {
+            const k = a.kind(p.tx, p.ty), cx = p.tx * T + 8, cy = p.ty * T + 10;
+            if (!k.solid && !k.deep && p.boxFree(cx, cy)) { p.x = cx; p.y = cy; }
         }
         if (!Progress.flag('spool_met') && r && r.name === 'The Top of the Spool' && p.state === 'normal' && !Script.blocking() && !Cam.busy) Script.run(this.meet());
         /* back after a save: Gran is still at the Spool; and if every great thread was cut, the end goes on */

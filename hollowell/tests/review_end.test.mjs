@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
 
-const R = { foot: [40, 33], slumber: [0, 33], mario: [80, 33], belfry: [80, 11], loft: [60, 11], top: [40, 0] };
+const R = { foot: [20, 33], slumber: [0, 11], mario: [40, 11], belfry: [40, 22], top: [20, 0] };
 const at = (r, x, y) => [R[r][0] + x, R[r][1] + y];
 const until = (HW, fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
 const noErrors = HW => assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
@@ -12,26 +12,25 @@ const snip = HW => { HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(3)
 function game(preset = 'afterDrift') { const HW = loadGame(); HW.preset(preset); HW.step(10); HW.skipTalk(); return HW; }
 const spool = HW => { HW.warp('greatspool', ...at('foot', 9, 8)); HW.step(30); HW.skipTalk(); };
 
-test('1/8: the Belfry Knot\'s sleeper cut by the Shears wakes a stray (pushed out of the doorway); rung home, it stays home after a rebuild', () => {
+test('1/8: down the Spool the Shears won\'t take a sleeper\'s thread (too taut: it sleeps on); a Knot\'s gate, once passed, stays open when the room is built afresh', () => {
     const HW = game(); spool(HW);
-    HW.warp('greatspool', ...at('belfry', 2, 5)); HW.step(20);
-    go(HW, 'belfry', 9, 5); HW.face('right'); snip(HW);
+    HW.warp('greatspool', ...at('belfry', 14, 9)); HW.step(20);
+    HW.face('up'); snip(HW);
     const b = HW.G.map.find('gsBBoulder');
-    assert.ok(!b.ret && !b.sleeper, 'a stray, awake');
-    HW.push('right', 1); HW.step(10);
-    assert.notDeepEqual([b.tx, b.ty], at('belfry', 10, 5), 'out of the doorway');
-    const H2 = game(); spool(H2);
-    H2.warp('greatspool', ...at('belfry', 6, 5)); H2.step(20); H2.Inv.equipped = 'bell'; H2.press('tool', 1); H2.step(120);
-    H2.warp('greatspool', ...at('foot', 9, 8)); H2.step(20); spool(H2);
-    const b2 = H2.G.map.find('gsBBoulder');
-    assert.deepEqual([b2.tx, b2.ty], at('belfry', 13, 8), 'at home, out of the doorway, after a rebuild');
-    noErrors(HW); noErrors(H2);
+    assert.ok(b.ret && b.sleeper && b.tiedOff, 'asleep, on its thread');
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(120);
+    assert.ok(HW.G.map.find('gsBGate').open, 'rung north onto the plate: the gate');
+    go(HW, 'belfry', 16, 3);
+    spool(HW); HW.warp('greatspool', ...at('belfry', 16, 2)); HW.step(20);
+    assert.ok(HW.G.map.find('gsBGate').open, 'open after a rebuild');
+    assert.ok(HW.walkTo(...at('belfry', 13, 5)), 'and the way out with it');
+    noErrors(HW);
 });
 
 test('2/5: puppets, Gran and Linnet are not for the Shears', () => {
     const HW = game(); spool(HW);
-    HW.warp('greatspool', ...at('mario', 2, 5)); HW.step(20);
-    go(HW, 'mario', 7, 3); HW.face('down'); snip(HW);
+    HW.warp('greatspool', ...at('mario', 1, 5)); HW.step(20);
+    go(HW, 'mario', 4, 7); HW.face('down'); snip(HW);
     assert.ok(HW.G.map.find('gsPuppet').ret, 'the puppet keeps its strings');
     HW.Progress.set('spool_met');
     HW.warp('greatspool', ...at('top', 9, 5)); HW.step(30);
@@ -73,15 +72,11 @@ test('6/7: cut during the Pull, they come free of it; nobody with a thread is in
     noErrors(HW);
 });
 
-test('10/12/13: down the Slumberhouse ledge with no Bedroll, a hint; a Knot untied is saved; the goal counts the Knots', () => {
+test('10/12/13: a Knot untied is saved; the goal counts the Knots', () => {
     const HW = game(); spool(HW);
     assert.match(HW.Progress.goal, /0 of 6/);
-    HW.warp('greatspool', ...at('slumber', 17, 5)); HW.step(20);
-    go(HW, 'slumber', 9, 5); HW.hold('down'); HW.step(40); HW.release(); HW.step(10);
-    let hinted = false; const UI = HW.global('UI');
-    for (let i = 0; i < 1000 && !hinted; i++) { HW.step(1); hinted = UI.toasts.some(t => /No way back up/.test(t.s)); }
-    assert.ok(hinted, 'the hint');
-    go(HW, 'slumber', 9, 7); HW.face('down'); HW.press('act', 1); HW.step(3); HW.skipTalk(); HW.step(5);
+    HW.warp('greatspool', ...at('slumber', 6, 2)); HW.step(20);
+    HW.face('down'); HW.press('act', 1); HW.step(3); HW.skipTalk(); HW.step(5);
     assert.match(HW.Progress.goal, /1 of 6/);
     const s = HW.Save.read(HW.Save.slot);
     assert.ok(s && s.progress.flags['untie:slumber'], 'saved');

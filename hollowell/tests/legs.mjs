@@ -1180,13 +1180,12 @@ export const LEG9 = (HW, chain) => {
     const until = (fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
     const pos = () => `${HW.G.map.id} ${HW.player().tx},${HW.player().ty}`;
     const walk = (x, y, max = 30000) => ok(HW.walkTo(x, y, max), `walk to ${x},${y} (at ${pos()})`);
-    const G = { foot: [40, 33], nursery: [20, 33], slumber: [0, 33], gallery: [60, 33], mario: [80, 33], hub: [40, 22], parlour: [20, 22], tidy: [0, 22], crossing: [60, 22], kiln: [80, 22], climb: [40, 11], ferry: [20, 11], mill: [0, 11], loft: [60, 11], belfry: [80, 11], top: [40, 0] };
+    const G = { top: [20, 0], slumber: [0, 11], climb: [20, 11], mario: [40, 11], mill: [0, 22], hub: [20, 22], belfry: [40, 22], tidy: [0, 33], foot: [20, 33], kiln: [40, 33] };
     const g = (r, x, y) => [G[r][0] + x, G[r][1] + y];
     const go = (r, x, y) => walk(...g(r, x, y), 3000);
     const act = d => { HW.face(d); HW.press('act', 1); HW.step(3); HW.skipTalk(); HW.step(5); };
     const step = d => { HW.hold(d); HW.step(16); HW.release(); HW.step(4); };
     const paddleTo = (x, y) => { const p = HW.player(); HW.Inv.equipped = 'paddle'; for (let i = 0; i < 2000 && (p.tx !== x || p.ty !== y); i++) { HW.hold(['tool', p.tx < x ? 'right' : p.tx > x ? 'left' : p.ty < y ? 'down' : 'up']); HW.step(1); } HW.release(); HW.step(20); };
-    const stitch = moves => { const names = { U: 'up', D: 'down', L: 'left', R: 'right' }; HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(2); for (const m of moves) { HW.hold(names[m]); HW.step(2); HW.release(); HW.step(8); } HW.press('tool', 1); HW.step(40); };
     const tool = (t, d) => { if (d) HW.face(d); HW.Inv.equipped = t; HW.press('tool', 1); HW.step(3); HW.skipTalk(); };
     HW.Inv.stitches = [];
     /* from the Loom's door down the Loomwood road to the Frayed Edge; the Shears at the fog, on your own thread */
@@ -1207,45 +1206,49 @@ export const LEG9 = (HW, chain) => {
     HW.walkTo(95, 60, 40000); HW.step(10); HW.skipTalk(); walk(95, 60, 40000);
     HW.face('up'); HW.press('act', 1); HW.step(3); HW.skipTalk(0); HW.step(60); HW.skipTalk();
     ok(HW.G.map.id === 'greatspool', 'down the Well');
-    /* the Great Spool: west first (the Nursery Stair and the Slumberhouse's Knot), then east (the Puppet Gallery and the
-       Marionette Hall's), up to the Winding Room (the Tidy Parlour, the Tidyhouse's; the Kiln Crossing, the Kiln's),
-       up to the Climb (the Ferry Landing, the Millrace's; the Bell Loft, the Belfry's) */
-    go('nursery', 14, 5); tool('bedroll');
-    go('nursery', 11, 5); tool('hook', 'left'); HW.step(60);
-    go('slumber', 9, 5); HW.hold('down'); HW.step(40); HW.release(); HW.step(10);
-    go('slumber', 9, 7); act('down');
-    HW.Inv.equipped = 'bedroll'; HW.hold('tool'); HW.step(24); HW.release(); HW.step(200); HW.skipTalk();
-    go('gallery', 3, 4); tool('crossbar', 'up');
-    const gp = HW.G.map.find('gsGPuppet');
-    for (let i = 0; i < 6; i++) { HW.hold('left'); until(() => gp.mv, 20); until(() => !gp.mv, 30); HW.release(); HW.step(1); }
-    HW.press('tool', 1); HW.step(2); HW.face('up'); stitch('L');
-    go('mario', 7, 2); tool('crossbar', 'down');
-    const mp = HW.G.map.find('gsPuppet');
-    const walkP = (d, k) => { for (let i = 0; i < k; i++) { HW.hold(d); until(() => mp.mv, 20); until(() => !mp.mv, 30); HW.release(); HW.step(1); } };
-    walkP('right', 6); walkP('up', 2); walkP('right', 1); HW.press('tool', 1); HW.step(2);
-    go('mario', 5, 8); act('down'); go('mario', 5, 6);
-    go('hub', 1, 5); go('parlour', 17, 4); HW.push('down', 3); HW.step(5);
-    go('parlour', 17, 7); tool('shears', 'down');
-    go('tidy', 18, 5); go('tidy', 15, 7); HW.push('left', 2); HW.step(10); go('tidy', 12, 8); HW.push('up', 5); HW.step(5);
-    go('tidy', 3, 5); act('left');
-    go('tidy', 18, 5); go('parlour', 18, 5); go('hub', 18, 5);
-    go('crossing', 3, 4); HW.face('up'); HW.press('act', 1); HW.step(20);
-    go('crossing', 5, 5); step('right'); paddleTo(...g('crossing', 13, 5)); step('right');
-    HW.face('right'); HW.press('act', 1); HW.step(120);
-    go('kiln', 9, 5); tool('hook', 'right'); HW.step(60);
-    go('kiln', 15, 5); act('right');
-    go('kiln', 13, 8); tool('hook', 'left'); HW.step(60);
-    go('crossing', 14, 5); step('left'); paddleTo(...g('crossing', 6, 5)); step('left');
-    go('hub', 9, 1); go('climb', 1, 5); go('ferry', 14, 5);
-    step('left'); paddleTo(...g('ferry', 7, 5)); step('left'); go('ferry', 6, 5); tool('shears', 'right');
-    go('mill', 14, 5); step('left'); paddleTo(...g('mill', 6, 5)); step('left');
-    go('mill', 3, 5); act('left');
-    go('mill', 5, 5); step('right'); paddleTo(...g('mill', 13, 5)); step('right');
-    go('ferry', 6, 5); step('right'); paddleTo(...g('ferry', 13, 5)); step('right');
-    go('climb', 18, 5); go('loft', 9, 4); tool('bell'); HW.step(120);
-    go('loft', 12, 4); HW.face('up'); stitch('RRR');
-    go('belfry', 6, 5); tool('bell'); HW.step(120);
-    go('belfry', 16, 4); act('up');
+    /* the Great Spool: the Airing Cupboard (west of the Foot) and the Glazing Gallery (east); the Foot's own crate, wound
+       north onto its plate in the pillar's lee; up to the Winding Room: the Mill-Leat (west) and the Gale Loft (east); up
+       to the Climb: the Night Ferry (west) and the Prompt Box (east) */
+    const walkP = (pup, d, k) => { for (let i = 0; i < k; i++) { HW.hold(d); until(() => pup.mv, 20); until(() => !pup.mv, 30); HW.release(); HW.step(1); } };
+    go('tidy', 17, 3); HW.push('left', 2); HW.step(5); go('tidy', 14, 2); HW.push('down', 4); HW.step(5);
+    go('tidy', 14, 6); HW.face('down'); HW.hold('act'); HW.step(5);
+    HW.Inv.equipped = 'bell'; HW.hold(['act', 'tool']); HW.step(2); HW.hold('act'); HW.step(60); HW.release(); HW.step(2);
+    go('tidy', 14, 5); HW.step(200);
+    ok(HW.find('gsTGate').open, 'the mangle home over the block');
+    go('tidy', 2, 2); act('up');
+    go('kiln', 9, 9); tool('crossbar', 'right');
+    const kp = HW.find('gsKPuppet');
+    walkP(kp, 'left', 4); walkP(kp, 'up', 1); HW.press('tool', 1); HW.step(2);
+    until(() => kp.ret.state === 'returning', 300); HW.step(80);
+    go('kiln', 2, 7); HW.face('down'); HW.press('act', 1); HW.step(20);
+    go('kiln', 4, 4); HW.face('right'); HW.press('act', 1); HW.step(140);
+    ok(HW.find('gsKGate').open, 'sun, moon, star');
+    go('kiln', 16, 8); act('right');
+    go('foot', 9, 7); HW.push('left', 3); HW.step(5); go('foot', 9, 8);
+    ok(until(() => HW.find('gsFGate').open, 900), 'the crate on the plate, in the lee');
+    go('hub', 9, 9);
+    go('mill', 13, 8); tool('hook', 'up'); HW.step(60); step('up');
+    paddleTo(...g('mill', 11, 7)); paddleTo(...g('mill', 11, 6)); paddleTo(...g('mill', 10, 6));
+    HW.hold('down'); until(() => HW.player().ty === g('mill', 0, 8)[1], 150); HW.release(); HW.step(4);
+    ok(until(() => HW.find('gsMGate').open, 900), 'the raft down the leat, up onto the wheel\'s water');
+    go('mill', 3, 8); act('left');
+    go('belfry', 5, 6); tool('hook', 'right'); HW.step(60);
+    go('belfry', 14, 9); tool('bell'); HW.step(120);
+    ok(HW.find('gsBGate').open, 'the boulder on the iron plate');
+    go('belfry', 16, 3); go('belfry', 17, 3); act('up');
+    go('belfry', 10, 5); HW.hold('left'); HW.step(60); HW.release(); HW.step(30);
+    go('slumber', 13, 7); step('left'); paddleTo(...g('slumber', 5, 7)); paddleTo(...g('slumber', 5, 5)); HW.step(20);
+    tool('bedroll'); step('right'); HW.step(300);
+    HW.Inv.equipped = 'bedroll'; HW.hold('tool'); HW.step(24); HW.release(); HW.step(150); HW.skipTalk();
+    step('right'); go('slumber', 6, 2); act('down');
+    go('slumber', 8, 3); act('right'); HW.step(20);
+    go('mario', 4, 6); tool('crossbar', 'down');
+    const mp = HW.find('gsPuppet');
+    walkP(mp, 'right', 6); walkP(mp, 'up', 3); HW.press('tool', 1); HW.step(2);
+    go('mario', 9, 5); tool('crossbar', 'right'); walkP(mp, 'right', 3); HW.press('tool', 1); HW.step(60);
+    tool('bell'); HW.step(80);
+    ok(HW.find('gsMaGate').open, 'the painted rock on the plate');
+    go('mario', 16, 6); go('mario', 18, 6); go('mario', 18, 3); act('up');
     ok(HW.Progress.flag('spool_all'), 'all six Knots undone');
     /* up the Climb by the pillars' lee; Gran; the six great threads */
     for (const [x, y] of [[15, 9], [15, 8], [15, 7], [3, 7], [3, 6], [3, 5], [15, 5], [15, 4], [15, 3], [3, 3], [3, 2], [3, 1], [9, 1]]) go('climb', x, y);

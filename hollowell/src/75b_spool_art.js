@@ -16,7 +16,8 @@ const SPOOL_LOOKS = {
 };
 for (const [name, L] of Object.entries(SPOOL_LOOKS)) {
     const [b0, b1, b2, b3] = L.boards;
-    THEMES[name] = { floor: [b0, b1, b2, b3], wall: [shade(L.wind[0], -0.35), shade(L.wind[0], -0.55), L.wind[0], '#120e16'], stone: ['#5a5068', '#463e54', '#7a7090', '#241e2e'], water: L.water, dark: '#0c0a12', look: L };
+    /* (a theme's wall colours [2] and [3] are what gates are painted with: brass bars, like the drum's flanges) */
+    THEMES[name] = { floor: [b0, b1, b2, b3], wall: [shade(L.wind[0], -0.35), shade(L.wind[0], -0.55), '#e0b850', '#5a3a1e'], stone: ['#5a5068', '#463e54', '#7a7090', '#241e2e'], water: L.water, dark: '#0c0a12', look: L };
     FLOORS[name] = {
         /* the Spool's own boards, laid the way the threads run (north), a fibre of thread caught in the grain */
         floor: (x, th, v) => {
@@ -182,11 +183,12 @@ const SpoolArt = {
         Gfx.rect(x + 2, y + 10, 3, 4, col); Gfx.rect(x + 11, y + 10, 3, 4, col); Gfx.rect(x + 2, y + 13, 3, 1, shade(col, -0.4)); Gfx.rect(x + 11, y + 13, 3, 1, shade(col, -0.4));
         if ((G.t >> 4) % 2) Gfx.rect(x + 6, y + 3, 2, 2, '#ffffff');
     },
-    /* the Climb: what's flying, and once it's begun, a stitched line where each lane starts */
+    /* the Climb: what's flying, and once it's begun, a stitched line along the near side of each lane (a hit puts you back
+       behind it) */
     lane(l, cx, cy) {
         if (!l.on) return;
         const r = l.area.roomAt(l.tx, l.ty);
-        if (r) for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) { if (l.area.kind(tx, l.ty + 1).solid) continue; const sx = tx * T - cx, sy = (l.ty + 1) * T - cy + 14; Gfx.rect(sx + 2, sy, 4, 1, '#e8463c'); Gfx.rect(sx + 10, sy, 4, 1, '#e8463c'); }
+        if (r) for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) { if (l.area.kind(tx, l.ty + 1).solid) continue; const sx = tx * T - cx, sy = (l.ty + 1) * T - cy; Gfx.rect(sx + 2, sy, 4, 1, '#e8463c'); Gfx.rect(sx + 10, sy, 4, 1, '#e8463c'); }
         for (const j of l.flying) Gfx.img(spr(['block_wood', 'pot', 'crate'][j.k]) || spr('block_wood'), j.x - cx - 8, l.ty * T - cy - 4 + Math.sin(j.x / 6) * 2);
     },
     /* the Kiln's cracked charm: a split down it */
