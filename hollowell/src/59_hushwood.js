@@ -383,57 +383,193 @@ FACADES.slumber = function () {
 };
 
 function initHushArt() {
-    /* Old Hummock asleep: a great mossy heap with a face */
+    /* Old Hummock: a huge, gentle, mossy old giant. Painted from shaded lumps lit from the top left (as the trees
+       are), each part with its own ink edge: warm weathered skin, a blanket of moss with ferns and mushrooms growing in
+       it, a great grey beard with moss in it, a big round nose */
+    const HK = { skin: ['#f2cfa6', '#dca97e', '#b47e5a', '#83563e'], moss: ['#b6d888', '#88b864', '#5c8e4e', '#3a6442'],
+        beard: ['#f0eee0', '#cfcab4', '#a29c86', '#726c5c'], nose: ['#f6bfa2', '#e4967c', '#bc6e5a', '#8e4c40'], ink: '#2a1f2d' };
+    /* a shaded lump (an ellipse); o.ring gives it an ink edge, o.clip(i, j) keeps only part of it */
+    const lump = (x, cx, cy, rx, ry, pal, seed, o = {}) => {
+        const P = (c, i, j) => { x.fillStyle = c; x.fillRect(i, j, 1, 1); };
+        const inE = (i, j, ax, ay) => { const u = (i + 0.5 - cx) / ax, v = (j + 0.5 - cy) / ay; return u * u + v * v <= 1; };
+        for (let j = Math.floor(cy - ry - 1); j <= cy + ry + 1; j++) for (let i = Math.floor(cx - rx - 1); i <= cx + rx + 1; i++) {
+            if (o.clip && !o.clip(i, j)) continue;
+            if (inE(i, j, rx, ry)) {
+                const u = (i + 0.5 - cx) / rx, v = (j + 0.5 - cy) / ry;
+                const l = -u * 0.55 - v * 0.8 + (hash2(i, j, seed) - 0.5) * (o.noise !== undefined ? o.noise : 0.35);
+                P(l > 0.6 ? pal[0] : l > -0.05 ? pal[1] : l > -0.75 ? pal[2] : pal[3], i, j);
+            } else if (o.ring && inE(i, j, rx + 1, ry + 1)) P(HK.ink, i, j);
+        }
+    };
+    const R = (x, c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+    /* a thick limb: a chain of shaded discs from (ax, ay) to (bx, by), radius ra to rb, inked round the whole */
+    const tube = (x, ax, ay, bx, by, ra, rb, pal, seed) => {
+        const n = Math.ceil(Math.hypot(bx - ax, by - ay));
+        for (const pass of [0, 1]) for (let k = 0; k <= n; k++) {
+            const t = k / n, cx = ax + (bx - ax) * t, cy = ay + (by - ay) * t, r = ra + (rb - ra) * t + (pass ? 0 : 1);
+            for (let j = Math.floor(cy - r); j <= cy + r; j++) for (let i = Math.floor(cx - r); i <= cx + r; i++) {
+                const u = (i + 0.5 - cx) / r, v = (j + 0.5 - cy) / r;
+                if (u * u + v * v > 1) continue;
+                const l = -u * 0.55 - v * 0.8 + (hash2(i, j, seed) - 0.5) * 0.35;
+                x.fillStyle = !pass ? HK.ink : l > 0.6 ? pal[0] : l > -0.05 ? pal[1] : l > -0.75 ? pal[2] : pal[3];
+                x.fillRect(i, j, 1, 1);
+            }
+        }
+    };
+    /* the things growing on him: a fern, a toadstool, a little purple cap, a bird's nest with eggs */
+    const fern = (x, fx, fy, h, flip) => {
+        const sx = flip ? -1 : 1;
+        for (let k = 0; k < h; k++) {
+            const px = fx + sx * Math.floor(k * k / (h * 2.5)), py = fy - k;
+            R(x, '#2e6a36', px, py, 1, 1);
+            if (k % 2 === 1 && k < h - 1) { const w = Math.max(1, Math.round((h - k) / 1.8)); R(x, '#78cc6c', px - w, py, w, 1); R(x, '#4e9a4e', px + 1, py, w, 1); R(x, '#a8e890', px - w, py - 1, Math.max(1, w - 1), 1); }
+        }
+    };
+    const toadstool = (x, mx, my, big, cap, capD) => {
+        const w = big ? 7 : 5;
+        R(x, HK.ink, mx - 1, my - 3, 3, 4); R(x, '#f4e8d0', mx, my - 3, 1, 3);
+        R(x, HK.ink, mx - (w >> 1) - 1, my - 6 - (big ? 1 : 0), w + 2, big ? 5 : 4); R(x, cap, mx - (w >> 1), my - 6 - (big ? 1 : 0) + 1, w, big ? 3 : 2);
+        R(x, capD, mx - (w >> 1), my - 3, w, 1); R(x, '#ffffff', mx - (w >> 1) + 1, my - 5 - (big ? 1 : 0), 1, 1); if (big) R(x, '#ffffff', mx + 1, my - 5, 1, 1);
+    };
+    const nest = (x, nx, ny) => {
+        for (const [ex, ey] of [[nx - 3, ny - 3], [nx, ny - 4], [nx + 2, ny - 3]]) { R(x, '#cfe8f2', ex, ey, 2, 2); R(x, '#ffffff', ex, ey, 1, 1); R(x, '#8ab8cc', ex + 1, ey + 1, 1, 1); }
+        lump(x, nx, ny, 5, 2.5, ['#c8a070', '#9a7448', '#74542e', '#523a20'], 70, { ring: true, clip: (i, j) => j >= ny - 1 });
+        R(x, '#d8b480', nx - 4, ny - 1, 9, 1); R(x, '#74542e', nx - 3, ny + 1, 2, 1); R(x, '#74542e', nx + 1, ny, 2, 1);
+    };
+    /* asleep: lying on his side across the road, his head on the left resting on his hand, his knees drawn up */
     ART.giant_sleep = paintSprite(80, 64, x => {
-        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
-        for (let j = 0; j < 64; j++) for (let i = 0; i < 80; i++) {
-            const dx = (i - 40) / 39, dy = (j - 40) / 26;
-            const d = dx * dx + dy * dy;
-            if (d > 1 || j < 10) continue;
-            let c = '#6a8a5a';
-            if (dy < -0.4) c = '#88aa6a';
-            if (dy > 0.5) c = '#4e6a48';
-            if (d > 0.85) c = '#2e3a2e';
-            if (hash2(i, j, 3) < 0.12 && d < 0.85) c = '#9ac07a';
-            R(c, i, j, 1, 1);
+        const ground = (i, j) => j <= 61;
+        const TUNIC = ['#a07a52', '#80603e', '#5e442c', '#40301e'];
+        /* the body under its blanket of moss: shoulder, hip, thigh, and his knees drawn up toward you */
+        lump(x, 34, 37, 18, 21, HK.moss, 3, { clip: ground });
+        lump(x, 52, 33, 17, 22, HK.moss, 4, { clip: ground });
+        lump(x, 63, 44, 13, 14, HK.moss, 5, { clip: ground });
+        lump(x, 64, 53, 12, 9, HK.moss, 6, { clip: ground });
+        /* moss clumps standing up along his back */
+        for (const [a, b, r] of [[22, 22, 3], [29, 17, 4], [39, 14, 4], [48, 11, 4], [57, 11, 4], [65, 18, 3], [71, 29, 3]]) lump(x, a, b, r, r - 1, HK.moss, 7 + a);
+        /* his tunic, peeping out under the moss along the bottom, and the moss hanging over it in fringes */
+        for (let i = 24; i < 58; i++) { const h = 3 + Math.floor(hash2(i, 2, 9) * 3); R(x, TUNIC[1], i, 61 - h, 1, h); R(x, TUNIC[3], i, 61, 1, 1); }
+        for (let i = 24; i < 58; i += 2) R(x, HK.moss[2 + (i % 4 ? 1 : 0)], i, 55 + Math.floor(hash2(i, 1, 4) * 3), 1, 2);
+        /* one big bare foot poking out from under the moss at the far end, toes and all */
+        lump(x, 72, 56, 6, 4, HK.skin, 11, { ring: true, clip: ground });
+        for (const [tx, ty] of [[77, 52], [78, 55], [78, 58]]) lump(x, tx, ty, 1.7, 1.5, HK.skin, 12 + ty, { ring: true, clip: ground });
+        R(x, HK.skin[0], 69, 53, 3, 1);
+        for (let i = 64; i < 70; i++) R(x, HK.moss[i % 2 ? 2 : 3], i, 53 + Math.floor(hash2(i, 7, 3) * 4), 1, 3);
+        /* moss texture: little lighter tufts and dark hollows */
+        for (let n = 0; n < 80; n++) {
+            const i = 16 + Math.floor(hash2(n, 3, 21) * 62), j = 8 + Math.floor(hash2(3, n, 22) * 46);
+            const d = x.getImageData(i, j, 1, 1).data;
+            if (d[3] && d[1] > d[0] + 20) { R(x, n % 3 ? HK.moss[0] : HK.moss[3], i, j, 1, 1); if (n % 3) R(x, HK.moss[2], i, j + 1, 1, 1); }
         }
-        /* his face, on the left end, eyes shut */
-        R('#c8a07a', 6, 30, 22, 20); R('#a8805a', 6, 46, 22, 4); R('#2e3a2e', 5, 30, 1, 20);
-        R('#5a3a2a', 10, 38, 5, 1); R('#5a3a2a', 19, 38, 5, 1); R('#5a3a2a', 11, 39, 3, 1); R('#5a3a2a', 20, 39, 3, 1);
-        R('#d89a7a', 13, 41, 8, 6); R('#b87a5a', 13, 46, 8, 1);
-        R('#7a5a4a', 12, 48, 10, 1);
-        /* a fern, two mushrooms and a bird's nest growing on him */
-        R('#4e9a4e', 46, 8, 1, 10); for (let k = 0; k < 4; k++) { R('#6ac06a', 42 - k, 10 + k * 2, 4, 1); R('#6ac06a', 47, 11 + k * 2, 4, 1); }
-        R('#e8463c', 60, 14, 7, 4); R('#fbf6ea', 62, 15, 1, 1); R('#f4e6c8', 62, 18, 3, 4);
-        R('#b48ce8', 28, 16, 5, 3); R('#f4e6c8', 29, 19, 3, 3);
-        R('#8a6a4a', 64, 26, 10, 4); R('#6a4a2a', 65, 29, 8, 1);
-        /* a hand tucked under his cheek */
-        R('#c8a07a', 24, 50, 14, 8); R('#a8805a', 24, 57, 14, 1);
+        /* the head: weathered skin, tufts of mossy hair, an ear */
+        lump(x, 17, 38, 15, 14, HK.skin, 13, { ring: true });
+        for (const [a, b, r] of [[6, 29, 4], [12, 26, 5], [20, 25, 5], [27, 28, 4], [30, 33, 3]]) lump(x, a, b, r, r - 1, HK.moss, 14 + a, { ring: true, clip: (i, j) => j < b + 2 || i > 28 });
+        lump(x, 29, 39, 3, 4, HK.skin, 15, { ring: true });
+        R(x, HK.skin[3], 29, 39, 1, 2);
+        /* bushy brows, eyes shut in a smile, rosy cheeks, the big round nose */
+        lump(x, 10, 33, 3, 1.5, HK.beard, 16); lump(x, 23, 33, 3, 1.5, HK.beard, 17);
+        for (const ex of [7, 20]) { R(x, '#4a2e22', ex, 36, 1, 1); R(x, '#4a2e22', ex + 1, 37, 4, 1); R(x, '#4a2e22', ex + 5, 36, 1, 1); R(x, '#4a2e22', ex + 1, 38, 1, 1); R(x, '#4a2e22', ex + 4, 38, 1, 1); }
+        R(x, '#e89a8a', 6, 41, 3, 2); R(x, '#e89a8a', 24, 41, 3, 2);
+        lump(x, 16, 42, 5, 4, HK.nose, 18, { ring: true });
+        R(x, '#fde0d0', 14, 40, 2, 1);
+        /* moustache and beard, with moss caught in it, spilling down over his hand */
+        lump(x, 17, 53, 13, 8, HK.beard, 19, { ring: true, clip: (i, j) => j > 45 && j <= 61 });
+        lump(x, 11, 48, 5, 3, HK.beard, 20, { ring: true }); lump(x, 21, 48, 5, 3, HK.beard, 21, { ring: true });
+        for (const [a, b] of [[10, 54], [19, 57], [24, 52], [14, 59]]) { R(x, HK.moss[1], a, b, 2, 1); R(x, HK.moss[3], a, b + 1, 2, 1); }
+        /* his hand under his cheek, fingers curled */
+        lump(x, 5, 56, 5, 5, HK.skin, 22, { ring: true, clip: ground });
+        for (const f of [53, 56, 59]) R(x, HK.skin[3], 1, f, 3, 1);
+        R(x, HK.skin[0], 3, 52, 3, 1);
+        /* his other arm, draped over his side, the hand hanging over his knee */
+        tube(x, 30, 31, 43, 33, 6, 5, HK.moss, 23); tube(x, 43, 33, 52, 42, 5, 4, HK.moss, 25);
+        for (const [a, b] of [[52, 49], [55, 50], [58, 50], [61, 48]]) lump(x, a, b, 1.8, 2, HK.skin, 26 + a, { ring: true });
+        lump(x, 56, 45, 6, 4, HK.skin, 24, { ring: true });
+        for (const f of [54, 57, 60]) R(x, HK.skin[2], f, 47, 1, 2);
+        R(x, HK.skin[0], 53, 42, 4, 1);
+        /* what grows on him */
+        fern(x, 44, 12, 9, false); fern(x, 41, 13, 6, true);
+        toadstool(x, 58, 11, true, '#e8463c', '#a82a26');
+        toadstool(x, 31, 18, false, '#b48ce8', '#7d5bc4');
+        nest(x, 60, 19);
+        R(x, '#fbf6ea', 65, 24, 1, 1); R(x, '#f7d64a', 66, 25, 1, 1); R(x, '#fbf6ea', 67, 24, 1, 1);
     });
-    /* Old Hummock up on his feet (well, sitting up) */
+    /* awake: sitting up, blinking, his hands on his knees */
     ART.giant_up = paintSprite(80, 88, x => {
-        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
-        for (let j = 0; j < 88; j++) for (let i = 0; i < 80; i++) {
-            const dx = (i - 40) / 34, dy = (j - 56) / 32;
-            const d = dx * dx + dy * dy;
-            if (d > 1) continue;
-            let c = d > 0.85 ? '#2e3a2e' : dy < -0.5 ? '#88aa6a' : '#6a8a5a';
-            if (hash2(i, j, 5) < 0.12 && d < 0.85) c = '#9ac07a';
-            R(c, i, j, 1, 1);
+        const TUNIC = ['#c88a5a', '#a86a40', '#7e4c2e', '#563420'], TROUS = ['#9a8a64', '#7a6c4c', '#5a5038', '#3e3826'];
+        /* the great mossy back and shoulders like a hillside, a tunic at the front with a rope belt */
+        lump(x, 40, 62, 36, 25, HK.moss, 31, { clip: (i, j) => j <= 86 });
+        for (const [a, b, r] of [[8, 52, 4], [72, 52, 4], [13, 44, 4], [67, 44, 4], [22, 38, 4], [58, 38, 4]]) lump(x, a, b, r, r - 1, HK.moss, 33 + a);
+        lump(x, 40, 66, 18, 15, TUNIC, 32, { ring: true });
+        R(x, HK.ink, 22, 71, 37, 3); R(x, '#e8cf98', 22, 72, 37, 1);
+        lump(x, 44, 73, 2, 2, ['#f0dca8', '#e8cf98', '#b89a62', '#8a7448'], 34, { ring: true }); R(x, '#b89a62', 44, 75, 1, 3); R(x, '#b89a62', 46, 75, 1, 2);
+        /* his knees drawn up, his bare feet tucked in between them, toes and all */
+        for (const fx of [35, 45]) {
+            lump(x, fx, 84, 5, 3, HK.skin, 36 + fx, { ring: true, clip: (i, j) => j <= 86 });
+            for (const t of [-3, 0, 3]) lump(x, fx + t, 86, 1.5, 1.3, HK.skin, 37 + fx + t, { ring: true, clip: (i, j) => j <= 87 });
         }
-        R('#c8a07a', 26, 6, 28, 26); R('#2e3a2e', 25, 6, 30, 1); R('#a8805a', 26, 30, 28, 2);
-        R('#2a1f2d', 32, 14, 4, 4); R('#2a1f2d', 44, 14, 4, 4); R('#fbf6ea', 33, 14, 1, 1); R('#fbf6ea', 45, 14, 1, 1);
-        R('#d89a7a', 36, 18, 8, 7); R('#5a3a2a', 34, 27, 12, 2);
-        R('#c8a07a', 6, 50, 12, 18); R('#c8a07a', 62, 50, 12, 18);
-        R('#4e9a4e', 52, 0, 1, 10); R('#6ac06a', 49, 2, 3, 1); R('#6ac06a', 53, 4, 3, 1);
+        for (const kx of [20, 60]) lump(x, kx, 78, 13, 8, TROUS, 35 + kx, { ring: true, clip: (i, j) => j <= 86 });
+        /* his arms in sleeves of moss, bent, and his big hands on his knees, fingers over the front */
+        for (const sd of [-1, 1]) {
+            const ax = 40 + sd * 29;
+            tube(x, ax, 48, ax + sd * 2, 62, 7, 6, HK.moss, 39 + sd);
+            tube(x, ax + sd * 2, 62, ax - sd * 7, 70, 6, 5, HK.moss, 41 + sd);
+            const hx = ax - sd * 10;
+            for (const k of [-4, -1, 2, 5]) lump(x, hx + k * -sd - (sd > 0 ? 1 : 0), 77, 1.7, 2.2, HK.skin, 45 + k + sd, { ring: true });
+            lump(x, hx, 73, 6, 4, HK.skin, 44 + sd, { ring: true });
+            lump(x, hx + sd * 6, 71, 2, 2, HK.skin, 46 + sd, { ring: true });
+            R(x, HK.skin[0], hx - 3, 70, 3, 1);
+        }
+        /* moss texture */
+        for (let n = 0; n < 90; n++) {
+            const i = 4 + Math.floor(hash2(n, 5, 41) * 72), j = 36 + Math.floor(hash2(5, n, 42) * 48);
+            const d = x.getImageData(i, j, 1, 1).data;
+            if (d[3] && d[1] > d[0] + 20) { R(x, n % 3 ? HK.moss[0] : HK.moss[3], i, j, 1, 1); if (n % 3) R(x, HK.moss[2], i, j + 1, 1, 1); }
+        }
+        /* the head */
+        lump(x, 40, 27, 18, 17, HK.skin, 43, { ring: true });
+        lump(x, 22, 28, 3, 5, HK.skin, 44, { ring: true }); lump(x, 58, 28, 3, 5, HK.skin, 45, { ring: true });
+        for (const [a, b, rx, ry] of [[25, 17, 5, 5], [56, 17, 5, 5], [30, 11, 7, 6], [50, 11, 7, 6], [40, 8, 8, 6], [23, 24, 3, 4], [58, 24, 3, 4]]) lump(x, a, b, rx, ry, HK.moss, 46 + a + b, { ring: true });
+        /* brows, eyes just opening (sleepy, kind), cheeks, the great nose */
+        lump(x, 32, 20, 5, 2, HK.beard, 50); lump(x, 48, 20, 5, 2, HK.beard, 51);
+        R(x, HK.beard[2], 27, 21, 1, 1); R(x, HK.beard[2], 53, 21, 1, 1);
+        for (const ex of [29, 45]) { R(x, HK.ink, ex, 24, 6, 4); R(x, HK.ink, ex + 1, 23, 4, 1); R(x, '#fbf6ea', ex + 1, 25, 4, 2); R(x, '#4a2e22', ex + 2, 25, 2, 2); R(x, '#fbf6ea', ex + 2, 25, 1, 1); R(x, HK.skin[2], ex, 22, 6, 1); }
+        R(x, '#e89a8a', 25, 30, 4, 2); R(x, '#e89a8a', 51, 30, 4, 2);
+        lump(x, 40, 30, 6, 5, HK.nose, 52, { ring: true });
+        R(x, '#fde0d0', 37, 27, 2, 1);
+        /* beard and moustache, down over his chest */
+        lump(x, 40, 45, 16, 11, HK.beard, 53, { ring: true, clip: (i, j) => j > 34 });
+        lump(x, 34, 37, 6, 3, HK.beard, 54, { ring: true }); lump(x, 46, 37, 6, 3, HK.beard, 55, { ring: true });
+        R(x, '#7a4a3a', 37, 40, 6, 1); R(x, '#7a4a3a', 36, 39, 1, 1); R(x, '#7a4a3a', 43, 39, 1, 1);
+        for (const [a, b] of [[30, 46], [44, 50], [49, 43], [36, 53]]) { R(x, HK.moss[1], a, b, 2, 1); R(x, HK.moss[3], a, b + 1, 2, 1); }
+        fern(x, 52, 6, 8, false);
+        toadstool(x, 30, 7, false, '#e8463c', '#a82a26');
     });
+    /* his own bed: a hollow in the moss, worn into the shape of him, a pillow of moss at the head end */
     ART.giant_bed = paintSprite(96, 64, x => {
-        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        const P = (c, i, j) => { x.fillStyle = c; x.fillRect(i, j, 1, 1); };
         for (let j = 0; j < 64; j++) for (let i = 0; i < 96; i++) {
-            const dx = (i - 48) / 47, dy = (j - 32) / 31, d = dx * dx + dy * dy;
-            if (d > 1) continue;
-            R(d > 0.7 ? (hash2(i, j, 2) < 0.3 ? '#4e7a4a' : '#5e8a54') : (hash2(i, j, 9) < 0.2 ? '#3e5a40' : '#4a6a48'), i, j, 1, 1);
+            const dx = (i + 0.5 - 48) / 47, dy = (j + 0.5 - 32) / 31, d = dx * dx + dy * dy, h = hash2(i, j, 2);
+            if (d > 1 - (h < 0.25 ? 0.04 : 0)) continue;
+            const ix = (i + 0.5 - 52) / 38, iy = (j + 0.5 - 34) / 22, di = ix * ix + iy * iy;
+            let c;
+            if (di < 1) {
+                /* the hollow: in shadow under its back (top) edge, lighter toward the front, softly mottled */
+                const v = iy + (h - 0.5) * 0.4;
+                c = v < -0.5 ? '#2a4432' : v < -0.1 ? '#36583e' : v < 0.35 ? '#41664a' : '#4c7652';
+                if (di > 0.78 && iy > 0.25) c = h < 0.5 ? '#5e8a5a' : '#567f52';
+                if (hash2(i, j, 5) < 0.04) c = '#6a9a5e';
+            } else {
+                /* the rim: lumpy moss, lit on top */
+                c = dy < -0.2 ? (h < 0.3 ? '#9ac47a' : '#86b464') : dy < 0.5 ? (h < 0.3 ? '#78a458' : '#6a9a52') : (h < 0.3 ? '#4e7a44' : '#5a8a4c');
+                if (d > 0.9) c = dy < 0 ? '#5a8a4c' : '#3a6442';
+                if (di < 1.12 && iy < 0) c = '#3e6446';
+            }
+            P(c, i, j);
         }
+        /* the moss pillow at the head end, and a few tufts and flowers on the rim */
+        lump(x, 15, 30, 10, 8, HK.moss, 61, { ring: true });
+        for (const [a, b] of [[30, 4], [62, 3], [82, 9], [88, 40], [70, 58], [36, 59], [8, 46], [50, 2], [20, 10]]) { P('#c8e894', a, b); P('#88b864', a + 1, b); P('#c8e894', a, b - 1); }
+        for (const [a, b] of [[44, 2], [78, 56], [12, 16]]) { P('#fbf6ea', a, b); P('#f7d64a', a + 1, b); P('#fbf6ea', a + 2, b); }
     }, false);
     ART.hollow_hole = paintSprite(32, 20, x => {
         const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };

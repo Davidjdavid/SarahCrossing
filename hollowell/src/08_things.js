@@ -292,6 +292,7 @@ class Door extends Ent {
         const th = this.area.theme;
         const bar = this.type === 'lock' ? '#8a5a2a' : this.type === 'big' ? '#2e5a98' : (th.wall ? th.wall[3] : '#5a4a4a');
         const hi = this.type === 'lock' ? '#c89050' : this.type === 'big' ? '#6ab0e0' : (th.wall ? th.wall[2] : '#9a8a8a');
+        if (this.dir === 'v' && (this.type === 'lock' || this.type === 'big')) return this.drawSide(sx, sy, a);
         if (this.dir === 'h') {
             const hgt = 16 - a * 2;
             Gfx.rect(sx, sy, 16, hgt, PAL.ink);
@@ -306,6 +307,28 @@ class Door extends Ent {
         if ((this.type === 'lock' || this.type === 'big') && a === 0) {
             Gfx.rect(sx + 5, sy + 5, 6, 6, PAL.ink); Gfx.rect(sx + 6, sy + 6, 4, 4, this.type === 'big' ? '#f7d64a' : '#e8b04a');
             Gfx.rect(sx + 7, sy + 7, 2, 3, PAL.ink);
+        }
+    }
+    /* a locked door in a side wall: the doorway in shadow, and in it a tall narrow door seen side on (it stands up over
+       the wall's face above), planked and banded with iron, its padlock hanging on the side toward the middle of the
+       room. Unlocking, it slides up into the wall */
+    drawSide(sx, sy, a) {
+        const r = this.area.roomAt(this.tx, this.ty), flip = !!r && this.tx < r.x + r.w / 2;
+        const R = (dx, dy, w, h, c) => { if (w > 0 && h > 0) Gfx.rect(flip ? sx + 16 - dx - w : sx + dx, sy + dy, w, h, c); };
+        const big = this.type === 'big';
+        const [wd, wd2, wdHi, band] = big ? ['#4a8ad0', '#2e5a98', '#8cc4ee', '#f7d64a'] : ['#c9925a', '#9a6438', '#e6c08a', '#5a5264'];
+        R(0, 0, 16, 16, '#1c1418'); R(0, 0, 16, 1, PAL.ink); R(1, 1, 3, 15, '#2c2228');
+        const rise = a * 2, top = -6 - rise, bot = 15 - rise;
+        if (bot - top < 3) return;
+        const y0 = Math.max(top, -6);
+        R(5, y0, 8, bot - y0 + 1, PAL.ink);
+        R(6, y0 + 1, 6, bot - y0 - 1, wd); R(6, y0 + 1, 1, bot - y0 - 1, wdHi); R(9, y0 + 1, 1, bot - y0 - 1, wd2); R(11, y0 + 1, 1, bot - y0 - 1, wd2);
+        for (const by of [top + 4, bot - 5]) if (by > y0 && by < bot) { R(6, by, 6, 2, band); R(6, by, 6, 1, big ? '#fff4c0' : '#8a8296'); }
+        if (a === 0) {
+            /* the padlock: a shackle through a hasp on the door's edge, a brass body with a keyhole */
+            R(3, 2, 3, 1, PAL.ink); R(2, 3, 1, 3, PAL.ink); R(6, 3, 1, 3, PAL.ink); R(3, 3, 3, 1, '#a39aa8');
+            R(1, 5, 7, 7, PAL.ink); R(2, 6, 5, 5, big ? '#f7d64a' : '#e8b04a'); R(2, 6, 5, 1, '#fff4c0'); R(2, 10, 5, 1, big ? '#c8903a' : '#a8742a');
+            R(4, 7, 1, 2, PAL.ink); R(4, 9, 1, 1, PAL.ink);
         }
     }
 }

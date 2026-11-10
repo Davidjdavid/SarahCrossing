@@ -256,7 +256,7 @@ class MotherSloth extends Enemy {
         for (const s of this.pillows) { Gfx.rect(s.x - cx - 4, s.y - cy - 3, 8, 6, '#fbf6ea'); Gfx.rect(s.x - cx - 4, s.y - cy + 2, 8, 1, '#d8c8f8'); }
         const bx = this.hx * T - cx - 40, by = this.hy * T - cy - 30;
         if (ART.sloth_bed) Gfx.img(ART.sloth_bed, bx, by);
-        if (!this.alive) { if ((this.yarnT || 0) < 160) { const k = 1 - this.yarnT / 160; Gfx.circle(this.capX - cx, this.capY - cy - 20, Math.round(14 * k), THREAD.mallow); } return; }
+        if (!this.alive) { if ((this.yarnT || 0) < 160) this.drawFeather(cx, cy, this.yarnT || 0); return; }
         /* where her arms can reach: a ring of little stars in the carpet */
         if (this.state !== 'sleep') {
             Gfx.alpha(0.6);
@@ -284,6 +284,35 @@ class MotherSloth extends Enemy {
         for (let o = -2; o <= 2; o++) Gfx.line(x0 + o * 0.5, y0 + o, x1 + o * 0.5, y1 + o, o === 0 ? '#a8845e' : '#7a5a3e');
         Gfx.line(x0, y0, x1, y1, THREAD.mallow);
         this.drawHand(x1, y1, arm.side);
+    }
+    /* what's left of her: a soft lavender feather that rocks to and fro as it drifts down off the bed, and sinks into
+       the floor (drawn pixel by pixel at its tilt: a quill, a vane wider on one side, a notch or two in it) */
+    drawFeather(cx, cy, t) {
+        const k = Math.min(1, t / 130), fall = 1 - (1 - k) * (1 - k), sw = Math.sin(t / 16) * 9;
+        const fx = Math.round(this.capX - cx + sw), fy = Math.round(this.capY - cy - 46 + fall * 50);
+        const th = -0.35 + Math.cos(t / 16) * 0.5, ux = Math.cos(th), uy = Math.sin(th), L = 17;
+        const a = t < 130 ? 1 : Math.max(0, 1 - (t - 130) / 30);
+        if (a <= 0) return;
+        Gfx.alpha((0.06 + 0.2 * fall) * a); Gfx.rect(fx - 6, Math.round(this.capY - cy + 5), 12, 2, PAL.ink);
+        Gfx.alpha(a);
+        /* 0 outside, 1/2 the vane above/below the shaft (in light and dark barbs), 3 the shaft, 4 the bare quill */
+        const inside = (lx, ly) => {
+            if (lx < 0 || lx > L) return 0;
+            const s = lx / L, al = Math.abs(ly);
+            if (s < 0.16) return al < 0.6 ? 4 : 0;
+            const w = Math.pow(Math.sin(Math.min(1, (s - 0.16) / 0.82) * Math.PI), 0.7) * (ly < 0 ? 3 : 4.2);
+            if ((ly < -1.4 && Math.abs(s - 0.5) < 0.04) || (ly > 1.6 && Math.abs(s - 0.7) < 0.04)) return 0;
+            if (al < 0.55) return 3;
+            return al <= w ? (ly < 0 ? 1 : 2) : 0;
+        };
+        const cols = { 1: ['#e6dafc', '#c9b3f0'], 2: ['#b49ae6', '#9a7ad8'], 3: ['#f8f4fe', '#f8f4fe'], 4: ['#d8c8f8', '#d8c8f8'] };
+        for (let j = -11; j <= 11; j++) for (let i = -11; i <= 11; i++) {
+            const lx = i * ux + j * uy + L / 2, ly = -i * uy + j * ux, v = inside(lx, ly);
+            let col = v ? cols[v][Math.floor(lx - Math.abs(ly) * 0.9 + 20) % 3 === 0 ? 1 : 0] : null;
+            if (!col && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([di, dj]) => inside((i + di) * ux + (j + dj) * uy + L / 2, -(i + di) * uy + (j + dj) * ux))) col = '#4b3a8a';
+            if (col) Gfx.rect(fx + i, fy + j, 1, 1, col);
+        }
+        Gfx.alpha(1);
     }
     drawHand(x, y, side) {
         Gfx.circle(x, y, 4, '#7a5a3e'); Gfx.circle(x, y, 3, '#a8845e');

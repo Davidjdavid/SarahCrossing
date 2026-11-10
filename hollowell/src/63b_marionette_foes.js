@@ -179,24 +179,57 @@ class GreatMarionette extends Enemy {
     }
     drawBody(cx, cy) {
         if (!this.alive) return;
-        const bx = this.hx * T - cx, by = this.hy * T - cy, sway = this.state === 'dance' ? Math.round(Math.sin(this.t / 20) * 3) : 0;
+        const dance = this.state === 'dance', t = this.t, sway = dance ? Math.round(Math.sin(t / 20) * 3) : 0;
+        const flash = this.flash > 0 && (this.flash >> 1) % 2;
         if (this.state === 'down') {
-            const im = ART.gm_down; if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, Math.round((this.hx + 0.5) * T - cx - im.width / 2), (this.hy + 2) * T - cy);
+            const im = ART.gm_down; if (!im) return;
+            const dx = Math.round((this.hx + 0.5) * T - cx - im.width / 2), dy = (this.hy + 2) * T - cy + 40 - im.height;
+            /* its strings, gone slack, sagging down from the flies to its hands */
+            for (const [hx, side] of [[25, -1], [72, 1]]) { const mid = Math.round(dy / 2); Gfx.line(dx + hx + side * 6, -10, dx + hx + side * 9, mid, '#cfc6b8'); Gfx.line(dx + hx + side * 9, mid, dx + hx, dy + 43, '#cfc6b8'); }
+            Gfx.img(flash ? tinted(im, '#ffffff') : im, dx, dy);
             return;
         }
-        /* a great wooden you, hanging over its two feet: legs down to them, strings up into the dark */
+        /* a great wooden you on strings: a carved head with your hair and a painted face, your scarf, jointed arms and
+           legs pegged at every joint, a stick in its hand; its feet stand on the stage, and every string runs up to the
+           control bar overhead */
+        const R = (c, x, y, w, h) => Gfx.rect(x, y, w, h, c);
         const [[f0x, f0y], [f1x, f1y]] = this.feet;
         const mx = ((f0x + f1x) / 2 + 0.5) * T - cx + sway, top = f0y * T - cy - 74;
-        const im = ART.gm_body;
+        const hop = dance ? Math.round(Math.abs(Math.sin(t / 20)) * 2) : 0, sw = dance ? Math.sin(t / 10) : 0;
+        const im = ART.gm_body, bx = Math.round(mx) - 18, by = top + 6 - hop, bar = Math.round(mx), barY = 2;
+        const SL = '#cfc6b8';
+        /* the legs: a hip peg, a thigh, a knee peg (the knees kick out as it dances), a shin down to the boot */
         for (const [i, [fx, fy]] of this.feet.entries()) {
-            const sx = fx * T - cx + 8, sy = fy * T - cy + 6;
-            const hip = mx + (i ? 10 : -10);
-            for (let o = -1; o <= 1; o++) Gfx.line(hip + o, top + 56, sx + o, sy - 6, o ? '#8a6040' : '#c49a62');
-            Gfx.line(sx, sy - 8, sx + sway, -10, this.tangled[i] ? '#f7d64a' : '#cfc6b8');
+            const sx = fx * T - cx + 8, sy = fy * T - cy + 6, side = i ? 1 : -1;
+            const hx = bx + (i ? 23 : 12), hy = by + 47, ax = sx, ay = sy - 5;
+            const kick = 5 + (dance ? Math.sin(t / 10 + i * Math.PI) * 3 : 0);
+            const kx = Math.round((hx + ax) / 2 + side * kick * 0.4), ky = Math.round((hy + ay) / 2 - kick);
+            Gfx.line(sx, sy - 7, bar + side * 35, barY + 2, this.tangled[i] ? '#f7d64a' : SL);
             Gfx.img(spr('gm_foot'), sx - 8, sy - 10);
+            GMArt.rod(R, kx, ky, ax, ay, 2, '#3a5fae', '#5a80c8');
+            GMArt.rod(R, hx, hy, kx, ky, 2, '#3a5fae', '#5a80c8');
+            GMArt.peg(R, kx, ky); GMArt.peg(R, hx, hy);
         }
-        if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, Math.round(mx - im.width / 2), top);
-        Gfx.line(mx - 20, top + 24, mx - 20 + sway, -10, '#cfc6b8'); Gfx.line(mx + 20, top + 24, mx + 20 + sway, -10, '#cfc6b8'); Gfx.line(mx, top, mx, -10, '#cfc6b8');
+        if (im) Gfx.img(flash ? tinted(im, '#ffffff') : im, bx, by);
+        /* the arms: sleeves to the elbow pegs, wooden forearms and hands; the right hand holds the stick */
+        const arms = [[bx + 9, by + 29, -1, sw], [bx + 26, by + 29, 1, -sw]];
+        const hands = [];
+        for (const [sx, sy, side, s] of arms) {
+            const ex = sx + side * 6, ey = sy + 7 + Math.round(s * 2), hx = sx + side * (side > 0 ? 9 : 8), hy = sy + (side > 0 ? 12 : 15) + Math.round(s * 3);
+            hands.push([hx, hy]);
+            if (side > 0) GMArt.rod(R, hx + 3, hy - 17, hx - 2, hy + 12, 1, '#9a6438', '#c9925a');
+            GMArt.rod(R, ex, ey, hx, hy, 1, '#ecc895', '#fff0d0');
+            GMArt.rod(R, sx, sy, ex, ey, 2, '#e7ad3c', '#f4c860');
+            GMArt.peg(R, ex, ey); GMArt.peg(R, sx, sy);
+            GMArt.disc(R, hx, hy, 3, PAL.ink); GMArt.disc(R, hx, hy, 2, '#ecc895'); R('#fff0d0', hx - 1, hy - 1, 1, 1); R('#d4a46a', hx + 1, hy + 1, 1, 1);
+        }
+        /* the strings, and the control bar they hang from (a rope runs on up from it into the flies) */
+        Gfx.line(bar, barY + 7, bx + 18, by + 1, SL);
+        hands.forEach(([hx, hy], i) => Gfx.line(bar + (i ? 15 : -15), barY + 3, hx, hy - 2, SL));
+        R(SL, bar, -12, 1, barY + 10);
+        R(PAL.ink, bar - 37, barY - 1, 75, 5); R('#9a6438', bar - 36, barY, 73, 3); R('#c9925a', bar - 36, barY, 73, 1); R('#6b4128', bar - 36, barY + 2, 73, 1);
+        R(PAL.ink, bar - 2, barY - 4, 5, 13); R('#9a6438', bar - 1, barY - 3, 3, 11); R('#c9925a', bar - 1, barY - 3, 1, 11);
+        for (const ex of [-36, 36, -15, 15]) R('#e8b04a', bar + ex, barY + 1, 1, 1);
         /* the puppets' strings round its feet: where each little Wren has been, faintly */
         for (const e of this.puppets()) {
             const w = this.wind.get(e.uid); if (!w) continue;
@@ -204,6 +237,31 @@ class GreatMarionette extends Enemy {
         }
     }
 }
+/* drawing the Great Marionette's wooden parts: rods with an ink edge and a lit edge, round pegs at the joints. R is a
+   rect function, so the same parts draw on the screen or into a picture as it's painted */
+const GMArt = {
+    line(R, x0, y0, x1, y1, c) {
+        x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+        const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+        let e = dx + dy;
+        for (let n = 0; n < 400; n++) {
+            R(c, x0, y0, 1, 1);
+            if (x0 === x1 && y0 === y1) break;
+            const e2 = 2 * e;
+            if (e2 >= dy) { e += dy; x0 += sx; }
+            if (e2 <= dx) { e += dx; y0 += sy; }
+        }
+    },
+    rod(R, x0, y0, x1, y1, h, col, hi) {
+        const steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
+        for (let o = -h - 1; o <= h + 1; o++) {
+            const c = Math.abs(o) === h + 1 ? PAL.ink : o === -h ? hi : col;
+            GMArt.line(R, x0 + (steep ? o : 0), y0 + (steep ? 0 : o), x1 + (steep ? o : 0), y1 + (steep ? 0 : o), c);
+        }
+    },
+    disc(R, cx, cy, r, col) { for (let j = -r; j <= r; j++) { const w = Math.floor(Math.sqrt(r * r - j * j + r * 0.6)); R(col, cx - w, cy + j, w * 2 + 1, 1); } },
+    peg(R, cx, cy) { GMArt.disc(R, cx, cy, 2, PAL.ink); GMArt.disc(R, cx, cy, 1, '#c49a62'); R('#ecc895', cx - 1, cy - 1, 1, 1); },
+};
 TOOLS._gmBags = { draw(cx, cy) { const a = G.map; if (!a || a.id !== 'marionette') return; for (const e of a.ents) if (e instanceof GreatMarionette) e.drawBags(cx, cy); } };
 SPAWN.marionette = (x, y, p) => Progress.flag('marionette_boss') ? new Ent('none') : new GreatMarionette(x, y, p);
 
@@ -244,26 +302,82 @@ function initMarionetteFoes() {
     defSprite('captain_0', capt('kbB'), cp); defSprite('captain_1', capt('.bB'), cp);
     defSprite('captain_trap', ['....................', '....................', '.......kbbbbk.......', '......kbbbbbbk......', '.....kkggggggkk.....', '......kssssssk......', '......ksxssxsk......', '......kssssssk......', '....kkrrrrrrrrkk....', '...krrrrggggrrrrk...', '..kkkkkkkkkkkkkkkk..', '..k..............k..', '..kkkkkkkkkkkkkkkk..', '....................'], Object.assign({ x: '#2a1f2d' }, cp));
     const gm = { w: '#e6c08a', W: '#c49a62', d: '#8a6040', r: '#e8463c', R: '#a82a26', e: '#2a1f2d', h: '#8a5a3a', s: '#9a6438' };
-    ART.gm_body = paintSprite(64, 60, x => {
-        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
-        /* a jointed wooden girl in a red scarf: you, three times over */
-        R('#8a5a3a', 18, 0, 28, 8); R('#6b4128', 16, 6, 32, 6);
-        R('#e6c08a', 20, 6, 24, 20); R('#c49a62', 20, 24, 24, 2); R('#2a1f2d', 25, 13, 3, 4); R('#2a1f2d', 36, 13, 3, 4); R('#fbf6ea', 26, 13, 1, 1); R('#fbf6ea', 37, 13, 1, 1); R('#a8442a', 29, 21, 6, 2);
-        R('#e8463c', 14, 26, 36, 6); R('#a82a26', 14, 31, 36, 2); R('#e8463c', 42, 30, 6, 12);
-        R('#e8b04a', 16, 32, 32, 18); R('#c8903a', 16, 46, 32, 4); R('#6b4128', 30, 34, 4, 14);
-        R('#e6c08a', 6, 30, 8, 6); R('#e6c08a', 50, 30, 8, 6); R('#c49a62', 4, 36, 6, 12); R('#c49a62', 54, 36, 6, 12);
-        R('#9a6438', 57, 18, 3, 34); R('#6b4128', 57, 18, 3, 2);
-        R('#4f6aa8', 18, 50, 28, 8); R('#2e3a7a', 18, 56, 28, 2);
-        for (const [a, b] of [[12, 34], [52, 34], [32, 52]]) { R('#2a1f2d', a, b, 2, 2); }
-    });
-    ART.gm_down = paintSprite(96, 40, x => {
-        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
-        R('#8a5a3a', 4, 8, 20, 6); R('#e6c08a', 6, 12, 20, 18); R('#2a1f2d', 10, 18, 4, 1); R('#2a1f2d', 18, 18, 4, 1); R('#a8442a', 12, 25, 6, 2);
-        R('#e8463c', 26, 14, 20, 8); R('#e8b04a', 44, 12, 26, 16); R('#4f6aa8', 68, 14, 18, 12); R('#c49a62', 84, 16, 10, 6); R('#c49a62', 40, 28, 14, 6);
-        R('#9a6438', 20, 34, 60, 3); R('#cfc6b8', 30, 0, 1, 14); R('#cfc6b8', 60, 0, 1, 12);
+    /* the Great Marionette: a carved head with your hair and a painted face (its jaw on a hinge), your scarf knotted
+       at the neck, a jacket with buttons, hips in blue with peg holes for the legs; its arms and legs are drawn
+       jointed as it dances (GMArt) */
+    const GMB = { h: '#a5532a', H: '#743620', l: '#c8743a', w: '#ecc895', W: '#d4a46a', d: '#a87a48', D: '#c49a62', e: '#fbf6ea', c: '#f07a7a', m: '#a8442a',
+        r: '#e8463c', R: '#b02b2e', o: '#f5786c', t: '#e7ad3c', T: '#b67d26', y: '#f4c860', p: '#3a5fae', P: '#25407e', a: '#5a80c8' };
+    const GM_ROWS = [
+        '.............kkkkkkkkkk.............',
+        '...........kkhhhhllhhhhkk...........',
+        '..........khhhhhllhhhhhhhk..........',
+        '.........khhhhhllhhhhhhhhhk.........',
+        '........khhhhhllhhhhhhhhhhHk........',
+        '........khhhhhlhhhhhhhhhhhHk........',
+        '.......khhhhhhhhhhhhhhhhhhHHk.......',
+        '.......khhhhhhhhhhhhhhhhhhhHk.......',
+        '.......khhhhwhhhhhhhwhhhhhHHk.......',
+        '.......khhwwwwhhhhwwwwwhhhhHk.......',
+        '.......khwwwwwwwwwwwwwwwwwhHk.......',
+        '.......khwwwwwwwwwwwwwwwwwWHk.......',
+        '.......khwwkkwwwwwwwwkkwwwWHk.......',
+        '.......khwwkewwwwwwwwkewwwWHk.......',
+        '.......khwwkkwwwwwwwwkkwwwWHk.......',
+        '.......khwccwwwwwwwwwwccwwWHk.......',
+        '.......khwwwwwwwmmmmwwwwwwWHk.......',
+        '.......kHwwwwwdwwwwdwwwwwWWHk.......',
+        '........kwwwwwdwwwwdwwwwWWHk........',
+        '........kWwwwwdwwwwdwwwWWWk.........',
+        '.........kWWwwddddddwwWWWk..........',
+        '..........kkWWWWWWWWWWWWkk..........',
+        '............kkkkkddkkkkk............',
+        '................kDdk................',
+        '..........kkkkkkkkkkkkkkkk..........',
+        '.........kooooorrrrrrrrRRRk.........',
+        '.........krrrrrrrrrrrrkrrrRk........',
+        '.........kRRRRRRRRRRRRkrrrrRk.......',
+        '.........kkkkkkkkkkkkkkrrrrRk.......',
+        '........kdttttttttttttkrRkrRk.......',
+        '........kdtttttttkttttkrRkdk........',
+        '........kytttttttTttttkrRkTk........',
+        '........kytttttttTtttttkrRkk........',
+        '........kytttttttktttttkrRkk........',
+        '........kytttttttTtttttkrRkk........',
+        '........kytttttttTttttttkrRk........',
+        '........kytttttttkttttttkrRk........',
+        '........kttttttttTttttttkRkk........',
+        '........kttttttttTtttttttTTk........',
+        '........kttttttttktttttttTTk........',
+        '........kttttttttTtttttttTTk........',
+        '........kTTTTTTTTTTTTTTTTTTk........',
+        '.........kkkkkkkkkkkkkkkkkk.........',
+        '...............kddddk...............',
+        '..........kkkkkkkkkkkkkkkk..........',
+        '..........kapppppppppppPPk..........',
+        '..........kapppppppppppPPk..........',
+        '..........kadppppppppppdPk..........',
+        '..........kapppppppppppPPk..........',
+        '..........kPPPPPPPPPPPPPPk..........',
+        '..........kkkkkkkkkkkkkkkk..........'];
+    ART.gm_body = defSprite('gm_body', GM_ROWS, GMB);
+    /* fallen: folded up in a heap on the boards, its head lolling, its legs splayed, its strings gone slack */
+    ART.gm_down = paintSprite(96, 52, x => {
+        const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        for (const [kx, ky, fx, fy, hx] of [[26, 42, 13, 47, 42], [70, 42, 83, 47, 53]]) {
+            GMArt.rod(R, kx, ky, fx, fy, 2, '#3a5fae', '#5a80c8'); GMArt.rod(R, hx, 48, kx, ky, 2, '#3a5fae', '#5a80c8'); GMArt.peg(R, kx, ky);
+            stampPx(x, ['..kkkk..', '.kbubBk.', 'kbuubbBk', 'kbbbbbBk', 'kSSSSSSk', '.kkkkkk.'], { b: '#7a4a2c', B: '#5a341e', u: '#9a6a44', S: '#45281c' }, fx - 4, fy - 2);
+        }
+        GM_ROWS.forEach((r, j) => { const sh = j < 23 ? Math.floor((22 - j) / 5) : 0; for (let i = 0; i < r.length; i++) { const c = GMB[r[i]] || (r[i] === 'k' ? PAL.ink : null); if (c) R(c, 30 + i + sh, 1 + j, 1, 1); } });
+        for (const [sx, sy, ex, ey, hx, hy] of [[39, 30, 31, 39, 25, 46], [56, 30, 65, 39, 72, 46]]) {
+            GMArt.rod(R, ex, ey, hx, hy, 1, '#ecc895', '#fff0d0'); GMArt.rod(R, sx, sy, ex, ey, 2, '#e7ad3c', '#f4c860'); GMArt.peg(R, ex, ey); GMArt.peg(R, sx, sy);
+            GMArt.disc(R, hx, hy, 3, PAL.ink); GMArt.disc(R, hx, hy, 2, '#ecc895'); R('#fff0d0', hx - 1, hy - 1, 1, 1);
+        }
+        GMArt.rod(R, 60, 49, 91, 43, 1, '#9a6438', '#c9925a');
     });
     defSprite('gm_body_old', ['..........kkkkkkkkkkkk..........', '.........khhhhhhhhhhhhk.........', '........khhhhhhhhhhhhhhk........', '........khwwwwwwwwwwwwhk........', '........kwwwwwwwwwwwwwwk........', '........kwwekwwwwwwkewwk........', '........kwwwwwwwwwwwwwwk........', '........kwwwwwwRRwwwwwwk........', '.........kwwwwwwwwwwwwk.........', '..........kkkkwwwwkkkkk.........', '......kkkkrrrrrrrrrrrrkkkk......', '.....krrrrrrrrrrrrrrrrrrrrk.....', '....krRrrrrrrrrrrrrrrrrrrRrk....', '...kwkrrrrrrrrrrrrrrrrrrrrkwk...', '...kwkrrrrrrrrrrrrrrrrrrrrkwk...', '...kwk.krrrrrrrrrrrrrrrrk.kwk...', '...kk..kRRRRRRRRRRRRRRRRk..kk...', '.......kddddddddddddddddk.......', '.......kd..............dk.......', '.......kd..............dk.......', '.......kd..............dk.......', '.......kd..............dk.......', '.......kW..............Wk.......', '.......kk..............kk.......'], gm);
-    defSprite('gm_foot', ['................', '................', '................', '................', '................', '................', '................', '...kkkkkkkkkk...', '..kddddddddddk..', '..kdWWWWWWWWdk..', '..kdddddddddddk.'.slice(0, 16), '..kkkkkkkkkkkk..', '................', '................', '................', '................'], gm);
+    /* its feet: wooden boots like yours, the ankle peg's hole on top */
+    defSprite('gm_foot', ['................', '................', '................', '................', '................', '......kkkk......', '.....kbdbBk.....', '.....kbbbBk.....',
+        '.....kbbbBk.....', '....kkbbbBkk....', '...kbubbbbbBk...', '..kbuubbbbbBBk..', '..kbbbbbbbbbBk..', '..kSSSSSSSSSSk..', '...kkkkkkkkkk...', '................'], { b: '#7a4a2c', B: '#5a341e', u: '#9a6a44', S: '#45281c', d: '#3a2418' });
     defSprite('gm_down', ['................................................................', '..........kkkkkkkkkkkk..........................................', '.........khhhhhhhhhhhhk...kkkkkkkkkkkkkkkkkkkkkkkkkkkk...........', '........khwwwwwwwwwwwwhk.krrrrrrrrrrrrrrrrrrrrrrrrrrrrk...........', '........kwwxwwwwwwxwwwwkkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrk..kkkkkk...', '........kwwwwwwwwwwwwwwkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrkkkddddddk..', '.........kwwwwwRRwwwwwk.kRRRRRRRRRRRRRRRRRRRRRRRRRRRRk.kddddddk..', '..........kkkkkkkkkkkk...kkkkkkkkkkkkkkkkkkkkkkkkkkkkk..kkkkkkk..', '................................................................'], Object.assign({ x: '#2a1f2d' }, gm));
     ART.flat_red = null;
     defSprite('flat_red', ['kkkkkkkkkkkkkkkk', 'krrrrrrrrrrrrrrk', 'krRrrrrrrrrrrRrk', 'krrrrrrrrrrrrrrk', 'krrrrRrrrrrRrrrk', 'krrrrrrrrrrrrrrk', 'kRrrrrrrrrrrrrrk', 'krrrrrrRrrrrrrrk', 'krrrrrrrrrrrrrrk', 'krrRrrrrrrrrrRrk', 'krrrrrrrrrrrrrrk', 'kggggggggggggggk', 'kccccccccccccccc', 'kccccccccccccccc', 'kkkkkkkkkkkkkkkk', '................'], { r: '#9a1e36', R: '#7a1428', g: '#f7d64a', c: '#c8a070' });

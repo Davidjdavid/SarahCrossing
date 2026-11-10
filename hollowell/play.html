@@ -1899,6 +1899,7 @@ class Door extends Ent {
         const th = this.area.theme;
         const bar = this.type === 'lock' ? '#8a5a2a' : this.type === 'big' ? '#2e5a98' : (th.wall ? th.wall[3] : '#5a4a4a');
         const hi = this.type === 'lock' ? '#c89050' : this.type === 'big' ? '#6ab0e0' : (th.wall ? th.wall[2] : '#9a8a8a');
+        if (this.dir === 'v' && (this.type === 'lock' || this.type === 'big')) return this.drawSide(sx, sy, a);
         if (this.dir === 'h') {
             const hgt = 16 - a * 2;
             Gfx.rect(sx, sy, 16, hgt, PAL.ink);
@@ -1913,6 +1914,28 @@ class Door extends Ent {
         if ((this.type === 'lock' || this.type === 'big') && a === 0) {
             Gfx.rect(sx + 5, sy + 5, 6, 6, PAL.ink); Gfx.rect(sx + 6, sy + 6, 4, 4, this.type === 'big' ? '#f7d64a' : '#e8b04a');
             Gfx.rect(sx + 7, sy + 7, 2, 3, PAL.ink);
+        }
+    }
+    /* a locked door in a side wall: the doorway in shadow, and in it a tall narrow door seen side on (it stands up over
+       the wall's face above), planked and banded with iron, its padlock hanging on the side toward the middle of the
+       room. Unlocking, it slides up into the wall */
+    drawSide(sx, sy, a) {
+        const r = this.area.roomAt(this.tx, this.ty), flip = !!r && this.tx < r.x + r.w / 2;
+        const R = (dx, dy, w, h, c) => { if (w > 0 && h > 0) Gfx.rect(flip ? sx + 16 - dx - w : sx + dx, sy + dy, w, h, c); };
+        const big = this.type === 'big';
+        const [wd, wd2, wdHi, band] = big ? ['#4a8ad0', '#2e5a98', '#8cc4ee', '#f7d64a'] : ['#c9925a', '#9a6438', '#e6c08a', '#5a5264'];
+        R(0, 0, 16, 16, '#1c1418'); R(0, 0, 16, 1, PAL.ink); R(1, 1, 3, 15, '#2c2228');
+        const rise = a * 2, top = -6 - rise, bot = 15 - rise;
+        if (bot - top < 3) return;
+        const y0 = Math.max(top, -6);
+        R(5, y0, 8, bot - y0 + 1, PAL.ink);
+        R(6, y0 + 1, 6, bot - y0 - 1, wd); R(6, y0 + 1, 1, bot - y0 - 1, wdHi); R(9, y0 + 1, 1, bot - y0 - 1, wd2); R(11, y0 + 1, 1, bot - y0 - 1, wd2);
+        for (const by of [top + 4, bot - 5]) if (by > y0 && by < bot) { R(6, by, 6, 2, band); R(6, by, 6, 1, big ? '#fff4c0' : '#8a8296'); }
+        if (a === 0) {
+            /* the padlock: a shackle through a hasp on the door's edge, a brass body with a keyhole */
+            R(3, 2, 3, 1, PAL.ink); R(2, 3, 1, 3, PAL.ink); R(6, 3, 1, 3, PAL.ink); R(3, 3, 3, 1, '#a39aa8');
+            R(1, 5, 7, 7, PAL.ink); R(2, 6, 5, 5, big ? '#f7d64a' : '#e8b04a'); R(2, 6, 5, 1, '#fff4c0'); R(2, 10, 5, 1, big ? '#c8903a' : '#a8742a');
+            R(4, 7, 1, 2, PAL.ink); R(4, 9, 1, 1, PAL.ink);
         }
     }
 }
@@ -11155,37 +11178,21 @@ class Vane extends GridThing {
         const x = this.tx * T - cx + 8, y = this.ty * T - cy, g = this.g;
         /* an iron foot and pole */
         Gfx.rect(x - 5, y + 9, 10, 5, PAL.ink); Gfx.rect(x - 4, y + 10, 8, 3, '#6a635e'); Gfx.rect(x - 4, y + 10, 8, 1, '#a39aa8');
-        Gfx.rect(x - 2, y - 15, 4, 25, PAL.ink); Gfx.rect(x - 1, y - 14, 2, 24, '#6a635e'); Gfx.rect(x - 1, y - 14, 1, 24, '#a39aa8');
-        /* the compass cross under the arrow: east and west across, north and south running back into the picture, a
-           brass knob on each arm, the north one bigger */
-        const cy0 = y - 7;
-        Gfx.rect(x - 7, cy0 - 1, 14, 3, PAL.ink); Gfx.rect(x - 6, cy0, 12, 1, '#6a635e');
-        Gfx.line(x + 4, cy0 - 3, x - 4, cy0 + 3, PAL.ink); Gfx.line(x + 3, cy0 - 3, x - 4, cy0 + 2, '#6a635e');
-        for (const [kx, ky, r] of [[-7, 0, 1], [7, 0, 1], [4, -3, 2], [-4, 3, 1]]) { Gfx.rect(x + kx - r, cy0 + ky - r, r * 2 + 1, r * 2 + 1, PAL.ink); Gfx.rect(x + kx - r + 1, cy0 + ky - r + 1, r * 2 - 1, r * 2 - 1, '#e8b04a'); }
-        /* the arrow on top points where the next gust will blow; it swings about as the wind gets up, and quivers in it */
-        const d = g ? g.d : RIGHT;
-        const th = [Math.PI / 2, Math.PI, 0, -Math.PI / 2][d] + (g && (g.on || g.soon) ? Math.sin(this.ang * 1.7) * (g.on ? 0.1 : 0.4) : Math.sin(this.ang) * 0.05);
-        const px = x, py = y - 17, ux = Math.cos(th), uy = Math.sin(th) * 0.7, vx = -Math.sin(th), vy = Math.cos(th) * 0.7;
-        const at = (a, b) => [px + ux * a + vx * b, py + uy * a + vy * b];
-        Vane.tri(...at(8, 0), ...at(3, -3), ...at(3, 3), '#f7d64a', '#c8903a');
-        Vane.tri(...at(-8, -3), ...at(-4, 0), ...at(-8, 3), '#e8463c', '#a82a26');
-        Vane.tri(...at(-8, -3), ...at(-5, -3), ...at(-4, 0), '#e8463c', '#a82a26');
-        Vane.tri(...at(-8, 3), ...at(-5, 3), ...at(-4, 0), '#e8463c', '#a82a26');
-        const [t0x, t0y] = at(-5, 0), [t1x, t1y] = at(4, 0);
-        Gfx.line(t0x, t0y + 1, t1x, t1y + 1, PAL.ink); Gfx.line(t0x, t0y, t1x, t1y, '#e8b04a');
-        Gfx.rect(px - 1, py - 1, 2, 2, PAL.ink);
-    }
-    /* a little filled triangle with an ink edge (its lower right side in the shade colour), for the arrow and its fin */
-    static tri(ax, ay, bx, by, qx, qy, col, dark) {
-        const x0 = Math.floor(Math.min(ax, bx, qx)) - 1, x1 = Math.ceil(Math.max(ax, bx, qx)) + 1, y0 = Math.floor(Math.min(ay, by, qy)) - 1, y1 = Math.ceil(Math.max(ay, by, qy)) + 1;
-        const ed = (x1_, y1_, x2_, y2_, x, y) => ((x2_ - x1_) * (y - y1_) - (y2_ - y1_) * (x - x1_)) / (Math.hypot(x2_ - x1_, y2_ - y1_) || 1);
-        const s = Math.sign(ed(ax, ay, bx, by, qx, qy)) || 1;
-        for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) {
-            const cxp = i + 0.5, cyp = j + 0.5;
-            const m = Math.min(s * ed(ax, ay, bx, by, cxp, cyp), s * ed(bx, by, qx, qy, cxp, cyp), s * ed(qx, qy, ax, ay, cxp, cyp));
-            if (m >= 0.35) Gfx.rect(i, j, 1, 1, cyp > (ay + by + qy) / 3 + 0.5 ? dark : col);
-            else if (m > -0.75) Gfx.rect(i, j, 1, 1, PAL.ink);
-        }
+        Gfx.rect(x - 1, y - 16, 3, 26, PAL.ink); Gfx.rect(x - 1, y - 15, 2, 25, '#6a635e'); Gfx.rect(x - 1, y - 15, 1, 25, '#a39aa8');
+        /* the compass cross: east and west across, north and south running back into the picture, a brass knob at
+           each end (north's a little star) */
+        const c0 = y - 5;
+        Gfx.rect(x - 6, c0 - 1, 13, 3, PAL.ink); Gfx.rect(x - 5, c0, 11, 1, '#6a635e');
+        Gfx.line(x + 4, c0 - 4, x - 3, c0 + 3, PAL.ink); Gfx.line(x + 3, c0 - 4, x - 3, c0 + 2, '#6a635e');
+        Gfx.rect(x - 7, c0, 1, 1, '#e8b04a'); Gfx.rect(x + 7, c0, 1, 1, '#e8b04a'); Gfx.rect(x - 4, c0 + 3, 1, 1, '#e8b04a');
+        Gfx.rect(x + 4, c0 - 6, 1, 3, '#f7d64a'); Gfx.rect(x + 3, c0 - 5, 3, 1, '#f7d64a');
+        /* the arrow on top points where the next gust will blow: as a gust comes it spins round and round, then
+           points again, quivering while the wind blows */
+        let d = g ? g.d : RIGHT, jx = 0, jy = 0;
+        if (g && g.soon && !g.on) d = [RIGHT, DOWN, LEFT, UP][Math.floor(this.ang * 2.2) % 4];
+        else if (g && g.on && (G.t >> 2) % 2) { if (d === LEFT || d === RIGHT) jy = 1; else jx = 1; }
+        const im = spr('vane_' + (d === LEFT ? 'right' : DIR_NAME[d]));
+        if (im) Gfx.img(im, x - Math.floor(im.width / 2) + jx + (d === LEFT || d === RIGHT ? 0 : 1), y - 17 - Math.floor(im.height / 2) + jy, d === LEFT);
     }
 }
 SPAWN.vane = (x, y, p) => new Vane(x, y, p);
@@ -11228,6 +11235,11 @@ function initBelfryKit() {
         { g: '#a39aa8', G: '#7f7688', w: '#c4bccb' });
     defSprite('bell_hang', ['......kkkk......', '.....kyyyyk.....', '....kyywyyyk....', '....kyywyyyk....', '...kyyyyyyyyk...', '...kyyyyyyyyk...', '..kyyyyyyyyyyk..', '..kYYYYYYYYYYk..',
         '.kkkkkkkkkkkkkk.', '.......kk.......', '......kYYk......', '.......kk.......'], { y: '#e8b04a', Y: '#b88a2a', w: '#fff4c0' });
+    /* the weathervane's arrow, pointing each way (left is right, flipped); seen end on, it's foreshortened */
+    const va = { y: '#f7d64a', Y: '#c8903a', s: '#e8b04a', r: '#e8463c', R: '#a82a26' };
+    defSprite('vane_right', ['kk.........k....', 'krk........kk...', '.krkkkkkkkkkyk..', '..krssssssssyyk.', '.kRkkkkkkkkkYk..', 'kRk........kk...', 'kk.........k....'], va);
+    defSprite('vane_down', ['k.....k', 'krk.krk', '.krkRk.', '..ksk..', '..ksk..', '..ksk..', 'kkksYkk', 'kyyyyYk', '.kyyYk.', '..kYk..', '...k...'], va);
+    defSprite('vane_up', ['...k...', '..kyk..', '.kyyYk.', 'kyyyYYk', 'kkksskk', '..ksk..', '..ksk..', '..ksk..', '.krkRk.', 'krk.kRk', 'k.....k'], va);
     ART.shrine_post = paintSprite(10, 16, x => { x.fillStyle = '#7a4e32'; x.fillRect(3, 0, 4, 16); x.fillStyle = '#9a6438'; x.fillRect(3, 0, 2, 16); x.fillStyle = '#a39aa8'; x.fillRect(0, 12, 10, 4); });
 }
 CONTENT_INIT.push(initBelfryKit);
@@ -13025,57 +13037,193 @@ FACADES.slumber = function () {
 };
 
 function initHushArt() {
-    /* Old Hummock asleep: a great mossy heap with a face */
+    /* Old Hummock: a huge, gentle, mossy old giant. Painted from shaded lumps lit from the top left (as the trees
+       are), each part with its own ink edge: warm weathered skin, a blanket of moss with ferns and mushrooms growing in
+       it, a great grey beard with moss in it, a big round nose */
+    const HK = { skin: ['#f2cfa6', '#dca97e', '#b47e5a', '#83563e'], moss: ['#b6d888', '#88b864', '#5c8e4e', '#3a6442'],
+        beard: ['#f0eee0', '#cfcab4', '#a29c86', '#726c5c'], nose: ['#f6bfa2', '#e4967c', '#bc6e5a', '#8e4c40'], ink: '#2a1f2d' };
+    /* a shaded lump (an ellipse); o.ring gives it an ink edge, o.clip(i, j) keeps only part of it */
+    const lump = (x, cx, cy, rx, ry, pal, seed, o = {}) => {
+        const P = (c, i, j) => { x.fillStyle = c; x.fillRect(i, j, 1, 1); };
+        const inE = (i, j, ax, ay) => { const u = (i + 0.5 - cx) / ax, v = (j + 0.5 - cy) / ay; return u * u + v * v <= 1; };
+        for (let j = Math.floor(cy - ry - 1); j <= cy + ry + 1; j++) for (let i = Math.floor(cx - rx - 1); i <= cx + rx + 1; i++) {
+            if (o.clip && !o.clip(i, j)) continue;
+            if (inE(i, j, rx, ry)) {
+                const u = (i + 0.5 - cx) / rx, v = (j + 0.5 - cy) / ry;
+                const l = -u * 0.55 - v * 0.8 + (hash2(i, j, seed) - 0.5) * (o.noise !== undefined ? o.noise : 0.35);
+                P(l > 0.6 ? pal[0] : l > -0.05 ? pal[1] : l > -0.75 ? pal[2] : pal[3], i, j);
+            } else if (o.ring && inE(i, j, rx + 1, ry + 1)) P(HK.ink, i, j);
+        }
+    };
+    const R = (x, c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+    /* a thick limb: a chain of shaded discs from (ax, ay) to (bx, by), radius ra to rb, inked round the whole */
+    const tube = (x, ax, ay, bx, by, ra, rb, pal, seed) => {
+        const n = Math.ceil(Math.hypot(bx - ax, by - ay));
+        for (const pass of [0, 1]) for (let k = 0; k <= n; k++) {
+            const t = k / n, cx = ax + (bx - ax) * t, cy = ay + (by - ay) * t, r = ra + (rb - ra) * t + (pass ? 0 : 1);
+            for (let j = Math.floor(cy - r); j <= cy + r; j++) for (let i = Math.floor(cx - r); i <= cx + r; i++) {
+                const u = (i + 0.5 - cx) / r, v = (j + 0.5 - cy) / r;
+                if (u * u + v * v > 1) continue;
+                const l = -u * 0.55 - v * 0.8 + (hash2(i, j, seed) - 0.5) * 0.35;
+                x.fillStyle = !pass ? HK.ink : l > 0.6 ? pal[0] : l > -0.05 ? pal[1] : l > -0.75 ? pal[2] : pal[3];
+                x.fillRect(i, j, 1, 1);
+            }
+        }
+    };
+    /* the things growing on him: a fern, a toadstool, a little purple cap, a bird's nest with eggs */
+    const fern = (x, fx, fy, h, flip) => {
+        const sx = flip ? -1 : 1;
+        for (let k = 0; k < h; k++) {
+            const px = fx + sx * Math.floor(k * k / (h * 2.5)), py = fy - k;
+            R(x, '#2e6a36', px, py, 1, 1);
+            if (k % 2 === 1 && k < h - 1) { const w = Math.max(1, Math.round((h - k) / 1.8)); R(x, '#78cc6c', px - w, py, w, 1); R(x, '#4e9a4e', px + 1, py, w, 1); R(x, '#a8e890', px - w, py - 1, Math.max(1, w - 1), 1); }
+        }
+    };
+    const toadstool = (x, mx, my, big, cap, capD) => {
+        const w = big ? 7 : 5;
+        R(x, HK.ink, mx - 1, my - 3, 3, 4); R(x, '#f4e8d0', mx, my - 3, 1, 3);
+        R(x, HK.ink, mx - (w >> 1) - 1, my - 6 - (big ? 1 : 0), w + 2, big ? 5 : 4); R(x, cap, mx - (w >> 1), my - 6 - (big ? 1 : 0) + 1, w, big ? 3 : 2);
+        R(x, capD, mx - (w >> 1), my - 3, w, 1); R(x, '#ffffff', mx - (w >> 1) + 1, my - 5 - (big ? 1 : 0), 1, 1); if (big) R(x, '#ffffff', mx + 1, my - 5, 1, 1);
+    };
+    const nest = (x, nx, ny) => {
+        for (const [ex, ey] of [[nx - 3, ny - 3], [nx, ny - 4], [nx + 2, ny - 3]]) { R(x, '#cfe8f2', ex, ey, 2, 2); R(x, '#ffffff', ex, ey, 1, 1); R(x, '#8ab8cc', ex + 1, ey + 1, 1, 1); }
+        lump(x, nx, ny, 5, 2.5, ['#c8a070', '#9a7448', '#74542e', '#523a20'], 70, { ring: true, clip: (i, j) => j >= ny - 1 });
+        R(x, '#d8b480', nx - 4, ny - 1, 9, 1); R(x, '#74542e', nx - 3, ny + 1, 2, 1); R(x, '#74542e', nx + 1, ny, 2, 1);
+    };
+    /* asleep: lying on his side across the road, his head on the left resting on his hand, his knees drawn up */
     ART.giant_sleep = paintSprite(80, 64, x => {
-        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
-        for (let j = 0; j < 64; j++) for (let i = 0; i < 80; i++) {
-            const dx = (i - 40) / 39, dy = (j - 40) / 26;
-            const d = dx * dx + dy * dy;
-            if (d > 1 || j < 10) continue;
-            let c = '#6a8a5a';
-            if (dy < -0.4) c = '#88aa6a';
-            if (dy > 0.5) c = '#4e6a48';
-            if (d > 0.85) c = '#2e3a2e';
-            if (hash2(i, j, 3) < 0.12 && d < 0.85) c = '#9ac07a';
-            R(c, i, j, 1, 1);
+        const ground = (i, j) => j <= 61;
+        const TUNIC = ['#a07a52', '#80603e', '#5e442c', '#40301e'];
+        /* the body under its blanket of moss: shoulder, hip, thigh, and his knees drawn up toward you */
+        lump(x, 34, 37, 18, 21, HK.moss, 3, { clip: ground });
+        lump(x, 52, 33, 17, 22, HK.moss, 4, { clip: ground });
+        lump(x, 63, 44, 13, 14, HK.moss, 5, { clip: ground });
+        lump(x, 64, 53, 12, 9, HK.moss, 6, { clip: ground });
+        /* moss clumps standing up along his back */
+        for (const [a, b, r] of [[22, 22, 3], [29, 17, 4], [39, 14, 4], [48, 11, 4], [57, 11, 4], [65, 18, 3], [71, 29, 3]]) lump(x, a, b, r, r - 1, HK.moss, 7 + a);
+        /* his tunic, peeping out under the moss along the bottom, and the moss hanging over it in fringes */
+        for (let i = 24; i < 58; i++) { const h = 3 + Math.floor(hash2(i, 2, 9) * 3); R(x, TUNIC[1], i, 61 - h, 1, h); R(x, TUNIC[3], i, 61, 1, 1); }
+        for (let i = 24; i < 58; i += 2) R(x, HK.moss[2 + (i % 4 ? 1 : 0)], i, 55 + Math.floor(hash2(i, 1, 4) * 3), 1, 2);
+        /* one big bare foot poking out from under the moss at the far end, toes and all */
+        lump(x, 72, 56, 6, 4, HK.skin, 11, { ring: true, clip: ground });
+        for (const [tx, ty] of [[77, 52], [78, 55], [78, 58]]) lump(x, tx, ty, 1.7, 1.5, HK.skin, 12 + ty, { ring: true, clip: ground });
+        R(x, HK.skin[0], 69, 53, 3, 1);
+        for (let i = 64; i < 70; i++) R(x, HK.moss[i % 2 ? 2 : 3], i, 53 + Math.floor(hash2(i, 7, 3) * 4), 1, 3);
+        /* moss texture: little lighter tufts and dark hollows */
+        for (let n = 0; n < 80; n++) {
+            const i = 16 + Math.floor(hash2(n, 3, 21) * 62), j = 8 + Math.floor(hash2(3, n, 22) * 46);
+            const d = x.getImageData(i, j, 1, 1).data;
+            if (d[3] && d[1] > d[0] + 20) { R(x, n % 3 ? HK.moss[0] : HK.moss[3], i, j, 1, 1); if (n % 3) R(x, HK.moss[2], i, j + 1, 1, 1); }
         }
-        /* his face, on the left end, eyes shut */
-        R('#c8a07a', 6, 30, 22, 20); R('#a8805a', 6, 46, 22, 4); R('#2e3a2e', 5, 30, 1, 20);
-        R('#5a3a2a', 10, 38, 5, 1); R('#5a3a2a', 19, 38, 5, 1); R('#5a3a2a', 11, 39, 3, 1); R('#5a3a2a', 20, 39, 3, 1);
-        R('#d89a7a', 13, 41, 8, 6); R('#b87a5a', 13, 46, 8, 1);
-        R('#7a5a4a', 12, 48, 10, 1);
-        /* a fern, two mushrooms and a bird's nest growing on him */
-        R('#4e9a4e', 46, 8, 1, 10); for (let k = 0; k < 4; k++) { R('#6ac06a', 42 - k, 10 + k * 2, 4, 1); R('#6ac06a', 47, 11 + k * 2, 4, 1); }
-        R('#e8463c', 60, 14, 7, 4); R('#fbf6ea', 62, 15, 1, 1); R('#f4e6c8', 62, 18, 3, 4);
-        R('#b48ce8', 28, 16, 5, 3); R('#f4e6c8', 29, 19, 3, 3);
-        R('#8a6a4a', 64, 26, 10, 4); R('#6a4a2a', 65, 29, 8, 1);
-        /* a hand tucked under his cheek */
-        R('#c8a07a', 24, 50, 14, 8); R('#a8805a', 24, 57, 14, 1);
+        /* the head: weathered skin, tufts of mossy hair, an ear */
+        lump(x, 17, 38, 15, 14, HK.skin, 13, { ring: true });
+        for (const [a, b, r] of [[6, 29, 4], [12, 26, 5], [20, 25, 5], [27, 28, 4], [30, 33, 3]]) lump(x, a, b, r, r - 1, HK.moss, 14 + a, { ring: true, clip: (i, j) => j < b + 2 || i > 28 });
+        lump(x, 29, 39, 3, 4, HK.skin, 15, { ring: true });
+        R(x, HK.skin[3], 29, 39, 1, 2);
+        /* bushy brows, eyes shut in a smile, rosy cheeks, the big round nose */
+        lump(x, 10, 33, 3, 1.5, HK.beard, 16); lump(x, 23, 33, 3, 1.5, HK.beard, 17);
+        for (const ex of [7, 20]) { R(x, '#4a2e22', ex, 36, 1, 1); R(x, '#4a2e22', ex + 1, 37, 4, 1); R(x, '#4a2e22', ex + 5, 36, 1, 1); R(x, '#4a2e22', ex + 1, 38, 1, 1); R(x, '#4a2e22', ex + 4, 38, 1, 1); }
+        R(x, '#e89a8a', 6, 41, 3, 2); R(x, '#e89a8a', 24, 41, 3, 2);
+        lump(x, 16, 42, 5, 4, HK.nose, 18, { ring: true });
+        R(x, '#fde0d0', 14, 40, 2, 1);
+        /* moustache and beard, with moss caught in it, spilling down over his hand */
+        lump(x, 17, 53, 13, 8, HK.beard, 19, { ring: true, clip: (i, j) => j > 45 && j <= 61 });
+        lump(x, 11, 48, 5, 3, HK.beard, 20, { ring: true }); lump(x, 21, 48, 5, 3, HK.beard, 21, { ring: true });
+        for (const [a, b] of [[10, 54], [19, 57], [24, 52], [14, 59]]) { R(x, HK.moss[1], a, b, 2, 1); R(x, HK.moss[3], a, b + 1, 2, 1); }
+        /* his hand under his cheek, fingers curled */
+        lump(x, 5, 56, 5, 5, HK.skin, 22, { ring: true, clip: ground });
+        for (const f of [53, 56, 59]) R(x, HK.skin[3], 1, f, 3, 1);
+        R(x, HK.skin[0], 3, 52, 3, 1);
+        /* his other arm, draped over his side, the hand hanging over his knee */
+        tube(x, 30, 31, 43, 33, 6, 5, HK.moss, 23); tube(x, 43, 33, 52, 42, 5, 4, HK.moss, 25);
+        for (const [a, b] of [[52, 49], [55, 50], [58, 50], [61, 48]]) lump(x, a, b, 1.8, 2, HK.skin, 26 + a, { ring: true });
+        lump(x, 56, 45, 6, 4, HK.skin, 24, { ring: true });
+        for (const f of [54, 57, 60]) R(x, HK.skin[2], f, 47, 1, 2);
+        R(x, HK.skin[0], 53, 42, 4, 1);
+        /* what grows on him */
+        fern(x, 44, 12, 9, false); fern(x, 41, 13, 6, true);
+        toadstool(x, 58, 11, true, '#e8463c', '#a82a26');
+        toadstool(x, 31, 18, false, '#b48ce8', '#7d5bc4');
+        nest(x, 60, 19);
+        R(x, '#fbf6ea', 65, 24, 1, 1); R(x, '#f7d64a', 66, 25, 1, 1); R(x, '#fbf6ea', 67, 24, 1, 1);
     });
-    /* Old Hummock up on his feet (well, sitting up) */
+    /* awake: sitting up, blinking, his hands on his knees */
     ART.giant_up = paintSprite(80, 88, x => {
-        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
-        for (let j = 0; j < 88; j++) for (let i = 0; i < 80; i++) {
-            const dx = (i - 40) / 34, dy = (j - 56) / 32;
-            const d = dx * dx + dy * dy;
-            if (d > 1) continue;
-            let c = d > 0.85 ? '#2e3a2e' : dy < -0.5 ? '#88aa6a' : '#6a8a5a';
-            if (hash2(i, j, 5) < 0.12 && d < 0.85) c = '#9ac07a';
-            R(c, i, j, 1, 1);
+        const TUNIC = ['#c88a5a', '#a86a40', '#7e4c2e', '#563420'], TROUS = ['#9a8a64', '#7a6c4c', '#5a5038', '#3e3826'];
+        /* the great mossy back and shoulders like a hillside, a tunic at the front with a rope belt */
+        lump(x, 40, 62, 36, 25, HK.moss, 31, { clip: (i, j) => j <= 86 });
+        for (const [a, b, r] of [[8, 52, 4], [72, 52, 4], [13, 44, 4], [67, 44, 4], [22, 38, 4], [58, 38, 4]]) lump(x, a, b, r, r - 1, HK.moss, 33 + a);
+        lump(x, 40, 66, 18, 15, TUNIC, 32, { ring: true });
+        R(x, HK.ink, 22, 71, 37, 3); R(x, '#e8cf98', 22, 72, 37, 1);
+        lump(x, 44, 73, 2, 2, ['#f0dca8', '#e8cf98', '#b89a62', '#8a7448'], 34, { ring: true }); R(x, '#b89a62', 44, 75, 1, 3); R(x, '#b89a62', 46, 75, 1, 2);
+        /* his knees drawn up, his bare feet tucked in between them, toes and all */
+        for (const fx of [35, 45]) {
+            lump(x, fx, 84, 5, 3, HK.skin, 36 + fx, { ring: true, clip: (i, j) => j <= 86 });
+            for (const t of [-3, 0, 3]) lump(x, fx + t, 86, 1.5, 1.3, HK.skin, 37 + fx + t, { ring: true, clip: (i, j) => j <= 87 });
         }
-        R('#c8a07a', 26, 6, 28, 26); R('#2e3a2e', 25, 6, 30, 1); R('#a8805a', 26, 30, 28, 2);
-        R('#2a1f2d', 32, 14, 4, 4); R('#2a1f2d', 44, 14, 4, 4); R('#fbf6ea', 33, 14, 1, 1); R('#fbf6ea', 45, 14, 1, 1);
-        R('#d89a7a', 36, 18, 8, 7); R('#5a3a2a', 34, 27, 12, 2);
-        R('#c8a07a', 6, 50, 12, 18); R('#c8a07a', 62, 50, 12, 18);
-        R('#4e9a4e', 52, 0, 1, 10); R('#6ac06a', 49, 2, 3, 1); R('#6ac06a', 53, 4, 3, 1);
+        for (const kx of [20, 60]) lump(x, kx, 78, 13, 8, TROUS, 35 + kx, { ring: true, clip: (i, j) => j <= 86 });
+        /* his arms in sleeves of moss, bent, and his big hands on his knees, fingers over the front */
+        for (const sd of [-1, 1]) {
+            const ax = 40 + sd * 29;
+            tube(x, ax, 48, ax + sd * 2, 62, 7, 6, HK.moss, 39 + sd);
+            tube(x, ax + sd * 2, 62, ax - sd * 7, 70, 6, 5, HK.moss, 41 + sd);
+            const hx = ax - sd * 10;
+            for (const k of [-4, -1, 2, 5]) lump(x, hx + k * -sd - (sd > 0 ? 1 : 0), 77, 1.7, 2.2, HK.skin, 45 + k + sd, { ring: true });
+            lump(x, hx, 73, 6, 4, HK.skin, 44 + sd, { ring: true });
+            lump(x, hx + sd * 6, 71, 2, 2, HK.skin, 46 + sd, { ring: true });
+            R(x, HK.skin[0], hx - 3, 70, 3, 1);
+        }
+        /* moss texture */
+        for (let n = 0; n < 90; n++) {
+            const i = 4 + Math.floor(hash2(n, 5, 41) * 72), j = 36 + Math.floor(hash2(5, n, 42) * 48);
+            const d = x.getImageData(i, j, 1, 1).data;
+            if (d[3] && d[1] > d[0] + 20) { R(x, n % 3 ? HK.moss[0] : HK.moss[3], i, j, 1, 1); if (n % 3) R(x, HK.moss[2], i, j + 1, 1, 1); }
+        }
+        /* the head */
+        lump(x, 40, 27, 18, 17, HK.skin, 43, { ring: true });
+        lump(x, 22, 28, 3, 5, HK.skin, 44, { ring: true }); lump(x, 58, 28, 3, 5, HK.skin, 45, { ring: true });
+        for (const [a, b, rx, ry] of [[25, 17, 5, 5], [56, 17, 5, 5], [30, 11, 7, 6], [50, 11, 7, 6], [40, 8, 8, 6], [23, 24, 3, 4], [58, 24, 3, 4]]) lump(x, a, b, rx, ry, HK.moss, 46 + a + b, { ring: true });
+        /* brows, eyes just opening (sleepy, kind), cheeks, the great nose */
+        lump(x, 32, 20, 5, 2, HK.beard, 50); lump(x, 48, 20, 5, 2, HK.beard, 51);
+        R(x, HK.beard[2], 27, 21, 1, 1); R(x, HK.beard[2], 53, 21, 1, 1);
+        for (const ex of [29, 45]) { R(x, HK.ink, ex, 24, 6, 4); R(x, HK.ink, ex + 1, 23, 4, 1); R(x, '#fbf6ea', ex + 1, 25, 4, 2); R(x, '#4a2e22', ex + 2, 25, 2, 2); R(x, '#fbf6ea', ex + 2, 25, 1, 1); R(x, HK.skin[2], ex, 22, 6, 1); }
+        R(x, '#e89a8a', 25, 30, 4, 2); R(x, '#e89a8a', 51, 30, 4, 2);
+        lump(x, 40, 30, 6, 5, HK.nose, 52, { ring: true });
+        R(x, '#fde0d0', 37, 27, 2, 1);
+        /* beard and moustache, down over his chest */
+        lump(x, 40, 45, 16, 11, HK.beard, 53, { ring: true, clip: (i, j) => j > 34 });
+        lump(x, 34, 37, 6, 3, HK.beard, 54, { ring: true }); lump(x, 46, 37, 6, 3, HK.beard, 55, { ring: true });
+        R(x, '#7a4a3a', 37, 40, 6, 1); R(x, '#7a4a3a', 36, 39, 1, 1); R(x, '#7a4a3a', 43, 39, 1, 1);
+        for (const [a, b] of [[30, 46], [44, 50], [49, 43], [36, 53]]) { R(x, HK.moss[1], a, b, 2, 1); R(x, HK.moss[3], a, b + 1, 2, 1); }
+        fern(x, 52, 6, 8, false);
+        toadstool(x, 30, 7, false, '#e8463c', '#a82a26');
     });
+    /* his own bed: a hollow in the moss, worn into the shape of him, a pillow of moss at the head end */
     ART.giant_bed = paintSprite(96, 64, x => {
-        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        const P = (c, i, j) => { x.fillStyle = c; x.fillRect(i, j, 1, 1); };
         for (let j = 0; j < 64; j++) for (let i = 0; i < 96; i++) {
-            const dx = (i - 48) / 47, dy = (j - 32) / 31, d = dx * dx + dy * dy;
-            if (d > 1) continue;
-            R(d > 0.7 ? (hash2(i, j, 2) < 0.3 ? '#4e7a4a' : '#5e8a54') : (hash2(i, j, 9) < 0.2 ? '#3e5a40' : '#4a6a48'), i, j, 1, 1);
+            const dx = (i + 0.5 - 48) / 47, dy = (j + 0.5 - 32) / 31, d = dx * dx + dy * dy, h = hash2(i, j, 2);
+            if (d > 1 - (h < 0.25 ? 0.04 : 0)) continue;
+            const ix = (i + 0.5 - 52) / 38, iy = (j + 0.5 - 34) / 22, di = ix * ix + iy * iy;
+            let c;
+            if (di < 1) {
+                /* the hollow: in shadow under its back (top) edge, lighter toward the front, softly mottled */
+                const v = iy + (h - 0.5) * 0.4;
+                c = v < -0.5 ? '#2a4432' : v < -0.1 ? '#36583e' : v < 0.35 ? '#41664a' : '#4c7652';
+                if (di > 0.78 && iy > 0.25) c = h < 0.5 ? '#5e8a5a' : '#567f52';
+                if (hash2(i, j, 5) < 0.04) c = '#6a9a5e';
+            } else {
+                /* the rim: lumpy moss, lit on top */
+                c = dy < -0.2 ? (h < 0.3 ? '#9ac47a' : '#86b464') : dy < 0.5 ? (h < 0.3 ? '#78a458' : '#6a9a52') : (h < 0.3 ? '#4e7a44' : '#5a8a4c');
+                if (d > 0.9) c = dy < 0 ? '#5a8a4c' : '#3a6442';
+                if (di < 1.12 && iy < 0) c = '#3e6446';
+            }
+            P(c, i, j);
         }
+        /* the moss pillow at the head end, and a few tufts and flowers on the rim */
+        lump(x, 15, 30, 10, 8, HK.moss, 61, { ring: true });
+        for (const [a, b] of [[30, 4], [62, 3], [82, 9], [88, 40], [70, 58], [36, 59], [8, 46], [50, 2], [20, 10]]) { P('#c8e894', a, b); P('#88b864', a + 1, b); P('#c8e894', a, b - 1); }
+        for (const [a, b] of [[44, 2], [78, 56], [12, 16]]) { P('#fbf6ea', a, b); P('#f7d64a', a + 1, b); P('#fbf6ea', a + 2, b); }
     }, false);
     ART.hollow_hole = paintSprite(32, 20, x => {
         const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
@@ -13763,7 +13911,7 @@ class MotherSloth extends Enemy {
         for (const s of this.pillows) { Gfx.rect(s.x - cx - 4, s.y - cy - 3, 8, 6, '#fbf6ea'); Gfx.rect(s.x - cx - 4, s.y - cy + 2, 8, 1, '#d8c8f8'); }
         const bx = this.hx * T - cx - 40, by = this.hy * T - cy - 30;
         if (ART.sloth_bed) Gfx.img(ART.sloth_bed, bx, by);
-        if (!this.alive) { if ((this.yarnT || 0) < 160) { const k = 1 - this.yarnT / 160; Gfx.circle(this.capX - cx, this.capY - cy - 20, Math.round(14 * k), THREAD.mallow); } return; }
+        if (!this.alive) { if ((this.yarnT || 0) < 160) this.drawFeather(cx, cy, this.yarnT || 0); return; }
         /* where her arms can reach: a ring of little stars in the carpet */
         if (this.state !== 'sleep') {
             Gfx.alpha(0.6);
@@ -13791,6 +13939,35 @@ class MotherSloth extends Enemy {
         for (let o = -2; o <= 2; o++) Gfx.line(x0 + o * 0.5, y0 + o, x1 + o * 0.5, y1 + o, o === 0 ? '#a8845e' : '#7a5a3e');
         Gfx.line(x0, y0, x1, y1, THREAD.mallow);
         this.drawHand(x1, y1, arm.side);
+    }
+    /* what's left of her: a soft lavender feather that rocks to and fro as it drifts down off the bed, and sinks into
+       the floor (drawn pixel by pixel at its tilt: a quill, a vane wider on one side, a notch or two in it) */
+    drawFeather(cx, cy, t) {
+        const k = Math.min(1, t / 130), fall = 1 - (1 - k) * (1 - k), sw = Math.sin(t / 16) * 9;
+        const fx = Math.round(this.capX - cx + sw), fy = Math.round(this.capY - cy - 46 + fall * 50);
+        const th = -0.35 + Math.cos(t / 16) * 0.5, ux = Math.cos(th), uy = Math.sin(th), L = 17;
+        const a = t < 130 ? 1 : Math.max(0, 1 - (t - 130) / 30);
+        if (a <= 0) return;
+        Gfx.alpha((0.06 + 0.2 * fall) * a); Gfx.rect(fx - 6, Math.round(this.capY - cy + 5), 12, 2, PAL.ink);
+        Gfx.alpha(a);
+        /* 0 outside, 1/2 the vane above/below the shaft (in light and dark barbs), 3 the shaft, 4 the bare quill */
+        const inside = (lx, ly) => {
+            if (lx < 0 || lx > L) return 0;
+            const s = lx / L, al = Math.abs(ly);
+            if (s < 0.16) return al < 0.6 ? 4 : 0;
+            const w = Math.pow(Math.sin(Math.min(1, (s - 0.16) / 0.82) * Math.PI), 0.7) * (ly < 0 ? 3 : 4.2);
+            if ((ly < -1.4 && Math.abs(s - 0.5) < 0.04) || (ly > 1.6 && Math.abs(s - 0.7) < 0.04)) return 0;
+            if (al < 0.55) return 3;
+            return al <= w ? (ly < 0 ? 1 : 2) : 0;
+        };
+        const cols = { 1: ['#e6dafc', '#c9b3f0'], 2: ['#b49ae6', '#9a7ad8'], 3: ['#f8f4fe', '#f8f4fe'], 4: ['#d8c8f8', '#d8c8f8'] };
+        for (let j = -11; j <= 11; j++) for (let i = -11; i <= 11; i++) {
+            const lx = i * ux + j * uy + L / 2, ly = -i * uy + j * ux, v = inside(lx, ly);
+            let col = v ? cols[v][Math.floor(lx - Math.abs(ly) * 0.9 + 20) % 3 === 0 ? 1 : 0] : null;
+            if (!col && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([di, dj]) => inside((i + di) * ux + (j + dj) * uy + L / 2, -(i + di) * uy + (j + dj) * ux))) col = '#4b3a8a';
+            if (col) Gfx.rect(fx + i, fy + j, 1, 1, col);
+        }
+        Gfx.alpha(1);
     }
     drawHand(x, y, side) {
         Gfx.circle(x, y, 4, '#7a5a3e'); Gfx.circle(x, y, 3, '#a8845e');
@@ -14980,24 +15157,57 @@ class GreatMarionette extends Enemy {
     }
     drawBody(cx, cy) {
         if (!this.alive) return;
-        const bx = this.hx * T - cx, by = this.hy * T - cy, sway = this.state === 'dance' ? Math.round(Math.sin(this.t / 20) * 3) : 0;
+        const dance = this.state === 'dance', t = this.t, sway = dance ? Math.round(Math.sin(t / 20) * 3) : 0;
+        const flash = this.flash > 0 && (this.flash >> 1) % 2;
         if (this.state === 'down') {
-            const im = ART.gm_down; if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, Math.round((this.hx + 0.5) * T - cx - im.width / 2), (this.hy + 2) * T - cy);
+            const im = ART.gm_down; if (!im) return;
+            const dx = Math.round((this.hx + 0.5) * T - cx - im.width / 2), dy = (this.hy + 2) * T - cy + 40 - im.height;
+            /* its strings, gone slack, sagging down from the flies to its hands */
+            for (const [hx, side] of [[25, -1], [72, 1]]) { const mid = Math.round(dy / 2); Gfx.line(dx + hx + side * 6, -10, dx + hx + side * 9, mid, '#cfc6b8'); Gfx.line(dx + hx + side * 9, mid, dx + hx, dy + 43, '#cfc6b8'); }
+            Gfx.img(flash ? tinted(im, '#ffffff') : im, dx, dy);
             return;
         }
-        /* a great wooden you, hanging over its two feet: legs down to them, strings up into the dark */
+        /* a great wooden you on strings: a carved head with your hair and a painted face, your scarf, jointed arms and
+           legs pegged at every joint, a stick in its hand; its feet stand on the stage, and every string runs up to the
+           control bar overhead */
+        const R = (c, x, y, w, h) => Gfx.rect(x, y, w, h, c);
         const [[f0x, f0y], [f1x, f1y]] = this.feet;
         const mx = ((f0x + f1x) / 2 + 0.5) * T - cx + sway, top = f0y * T - cy - 74;
-        const im = ART.gm_body;
+        const hop = dance ? Math.round(Math.abs(Math.sin(t / 20)) * 2) : 0, sw = dance ? Math.sin(t / 10) : 0;
+        const im = ART.gm_body, bx = Math.round(mx) - 18, by = top + 6 - hop, bar = Math.round(mx), barY = 2;
+        const SL = '#cfc6b8';
+        /* the legs: a hip peg, a thigh, a knee peg (the knees kick out as it dances), a shin down to the boot */
         for (const [i, [fx, fy]] of this.feet.entries()) {
-            const sx = fx * T - cx + 8, sy = fy * T - cy + 6;
-            const hip = mx + (i ? 10 : -10);
-            for (let o = -1; o <= 1; o++) Gfx.line(hip + o, top + 56, sx + o, sy - 6, o ? '#8a6040' : '#c49a62');
-            Gfx.line(sx, sy - 8, sx + sway, -10, this.tangled[i] ? '#f7d64a' : '#cfc6b8');
+            const sx = fx * T - cx + 8, sy = fy * T - cy + 6, side = i ? 1 : -1;
+            const hx = bx + (i ? 23 : 12), hy = by + 47, ax = sx, ay = sy - 5;
+            const kick = 5 + (dance ? Math.sin(t / 10 + i * Math.PI) * 3 : 0);
+            const kx = Math.round((hx + ax) / 2 + side * kick * 0.4), ky = Math.round((hy + ay) / 2 - kick);
+            Gfx.line(sx, sy - 7, bar + side * 35, barY + 2, this.tangled[i] ? '#f7d64a' : SL);
             Gfx.img(spr('gm_foot'), sx - 8, sy - 10);
+            GMArt.rod(R, kx, ky, ax, ay, 2, '#3a5fae', '#5a80c8');
+            GMArt.rod(R, hx, hy, kx, ky, 2, '#3a5fae', '#5a80c8');
+            GMArt.peg(R, kx, ky); GMArt.peg(R, hx, hy);
         }
-        if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, Math.round(mx - im.width / 2), top);
-        Gfx.line(mx - 20, top + 24, mx - 20 + sway, -10, '#cfc6b8'); Gfx.line(mx + 20, top + 24, mx + 20 + sway, -10, '#cfc6b8'); Gfx.line(mx, top, mx, -10, '#cfc6b8');
+        if (im) Gfx.img(flash ? tinted(im, '#ffffff') : im, bx, by);
+        /* the arms: sleeves to the elbow pegs, wooden forearms and hands; the right hand holds the stick */
+        const arms = [[bx + 9, by + 29, -1, sw], [bx + 26, by + 29, 1, -sw]];
+        const hands = [];
+        for (const [sx, sy, side, s] of arms) {
+            const ex = sx + side * 6, ey = sy + 7 + Math.round(s * 2), hx = sx + side * (side > 0 ? 9 : 8), hy = sy + (side > 0 ? 12 : 15) + Math.round(s * 3);
+            hands.push([hx, hy]);
+            if (side > 0) GMArt.rod(R, hx + 3, hy - 17, hx - 2, hy + 12, 1, '#9a6438', '#c9925a');
+            GMArt.rod(R, ex, ey, hx, hy, 1, '#ecc895', '#fff0d0');
+            GMArt.rod(R, sx, sy, ex, ey, 2, '#e7ad3c', '#f4c860');
+            GMArt.peg(R, ex, ey); GMArt.peg(R, sx, sy);
+            GMArt.disc(R, hx, hy, 3, PAL.ink); GMArt.disc(R, hx, hy, 2, '#ecc895'); R('#fff0d0', hx - 1, hy - 1, 1, 1); R('#d4a46a', hx + 1, hy + 1, 1, 1);
+        }
+        /* the strings, and the control bar they hang from (a rope runs on up from it into the flies) */
+        Gfx.line(bar, barY + 7, bx + 18, by + 1, SL);
+        hands.forEach(([hx, hy], i) => Gfx.line(bar + (i ? 15 : -15), barY + 3, hx, hy - 2, SL));
+        R(SL, bar, -12, 1, barY + 10);
+        R(PAL.ink, bar - 37, barY - 1, 75, 5); R('#9a6438', bar - 36, barY, 73, 3); R('#c9925a', bar - 36, barY, 73, 1); R('#6b4128', bar - 36, barY + 2, 73, 1);
+        R(PAL.ink, bar - 2, barY - 4, 5, 13); R('#9a6438', bar - 1, barY - 3, 3, 11); R('#c9925a', bar - 1, barY - 3, 1, 11);
+        for (const ex of [-36, 36, -15, 15]) R('#e8b04a', bar + ex, barY + 1, 1, 1);
         /* the puppets' strings round its feet: where each little Wren has been, faintly */
         for (const e of this.puppets()) {
             const w = this.wind.get(e.uid); if (!w) continue;
@@ -15005,6 +15215,31 @@ class GreatMarionette extends Enemy {
         }
     }
 }
+/* drawing the Great Marionette's wooden parts: rods with an ink edge and a lit edge, round pegs at the joints. R is a
+   rect function, so the same parts draw on the screen or into a picture as it's painted */
+const GMArt = {
+    line(R, x0, y0, x1, y1, c) {
+        x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+        const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+        let e = dx + dy;
+        for (let n = 0; n < 400; n++) {
+            R(c, x0, y0, 1, 1);
+            if (x0 === x1 && y0 === y1) break;
+            const e2 = 2 * e;
+            if (e2 >= dy) { e += dy; x0 += sx; }
+            if (e2 <= dx) { e += dx; y0 += sy; }
+        }
+    },
+    rod(R, x0, y0, x1, y1, h, col, hi) {
+        const steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
+        for (let o = -h - 1; o <= h + 1; o++) {
+            const c = Math.abs(o) === h + 1 ? PAL.ink : o === -h ? hi : col;
+            GMArt.line(R, x0 + (steep ? o : 0), y0 + (steep ? 0 : o), x1 + (steep ? o : 0), y1 + (steep ? 0 : o), c);
+        }
+    },
+    disc(R, cx, cy, r, col) { for (let j = -r; j <= r; j++) { const w = Math.floor(Math.sqrt(r * r - j * j + r * 0.6)); R(col, cx - w, cy + j, w * 2 + 1, 1); } },
+    peg(R, cx, cy) { GMArt.disc(R, cx, cy, 2, PAL.ink); GMArt.disc(R, cx, cy, 1, '#c49a62'); R('#ecc895', cx - 1, cy - 1, 1, 1); },
+};
 TOOLS._gmBags = { draw(cx, cy) { const a = G.map; if (!a || a.id !== 'marionette') return; for (const e of a.ents) if (e instanceof GreatMarionette) e.drawBags(cx, cy); } };
 SPAWN.marionette = (x, y, p) => Progress.flag('marionette_boss') ? new Ent('none') : new GreatMarionette(x, y, p);
 
@@ -15045,26 +15280,82 @@ function initMarionetteFoes() {
     defSprite('captain_0', capt('kbB'), cp); defSprite('captain_1', capt('.bB'), cp);
     defSprite('captain_trap', ['....................', '....................', '.......kbbbbk.......', '......kbbbbbbk......', '.....kkggggggkk.....', '......kssssssk......', '......ksxssxsk......', '......kssssssk......', '....kkrrrrrrrrkk....', '...krrrrggggrrrrk...', '..kkkkkkkkkkkkkkkk..', '..k..............k..', '..kkkkkkkkkkkkkkkk..', '....................'], Object.assign({ x: '#2a1f2d' }, cp));
     const gm = { w: '#e6c08a', W: '#c49a62', d: '#8a6040', r: '#e8463c', R: '#a82a26', e: '#2a1f2d', h: '#8a5a3a', s: '#9a6438' };
-    ART.gm_body = paintSprite(64, 60, x => {
-        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
-        /* a jointed wooden girl in a red scarf: you, three times over */
-        R('#8a5a3a', 18, 0, 28, 8); R('#6b4128', 16, 6, 32, 6);
-        R('#e6c08a', 20, 6, 24, 20); R('#c49a62', 20, 24, 24, 2); R('#2a1f2d', 25, 13, 3, 4); R('#2a1f2d', 36, 13, 3, 4); R('#fbf6ea', 26, 13, 1, 1); R('#fbf6ea', 37, 13, 1, 1); R('#a8442a', 29, 21, 6, 2);
-        R('#e8463c', 14, 26, 36, 6); R('#a82a26', 14, 31, 36, 2); R('#e8463c', 42, 30, 6, 12);
-        R('#e8b04a', 16, 32, 32, 18); R('#c8903a', 16, 46, 32, 4); R('#6b4128', 30, 34, 4, 14);
-        R('#e6c08a', 6, 30, 8, 6); R('#e6c08a', 50, 30, 8, 6); R('#c49a62', 4, 36, 6, 12); R('#c49a62', 54, 36, 6, 12);
-        R('#9a6438', 57, 18, 3, 34); R('#6b4128', 57, 18, 3, 2);
-        R('#4f6aa8', 18, 50, 28, 8); R('#2e3a7a', 18, 56, 28, 2);
-        for (const [a, b] of [[12, 34], [52, 34], [32, 52]]) { R('#2a1f2d', a, b, 2, 2); }
-    });
-    ART.gm_down = paintSprite(96, 40, x => {
-        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
-        R('#8a5a3a', 4, 8, 20, 6); R('#e6c08a', 6, 12, 20, 18); R('#2a1f2d', 10, 18, 4, 1); R('#2a1f2d', 18, 18, 4, 1); R('#a8442a', 12, 25, 6, 2);
-        R('#e8463c', 26, 14, 20, 8); R('#e8b04a', 44, 12, 26, 16); R('#4f6aa8', 68, 14, 18, 12); R('#c49a62', 84, 16, 10, 6); R('#c49a62', 40, 28, 14, 6);
-        R('#9a6438', 20, 34, 60, 3); R('#cfc6b8', 30, 0, 1, 14); R('#cfc6b8', 60, 0, 1, 12);
+    /* the Great Marionette: a carved head with your hair and a painted face (its jaw on a hinge), your scarf knotted
+       at the neck, a jacket with buttons, hips in blue with peg holes for the legs; its arms and legs are drawn
+       jointed as it dances (GMArt) */
+    const GMB = { h: '#a5532a', H: '#743620', l: '#c8743a', w: '#ecc895', W: '#d4a46a', d: '#a87a48', D: '#c49a62', e: '#fbf6ea', c: '#f07a7a', m: '#a8442a',
+        r: '#e8463c', R: '#b02b2e', o: '#f5786c', t: '#e7ad3c', T: '#b67d26', y: '#f4c860', p: '#3a5fae', P: '#25407e', a: '#5a80c8' };
+    const GM_ROWS = [
+        '.............kkkkkkkkkk.............',
+        '...........kkhhhhllhhhhkk...........',
+        '..........khhhhhllhhhhhhhk..........',
+        '.........khhhhhllhhhhhhhhhk.........',
+        '........khhhhhllhhhhhhhhhhHk........',
+        '........khhhhhlhhhhhhhhhhhHk........',
+        '.......khhhhhhhhhhhhhhhhhhHHk.......',
+        '.......khhhhhhhhhhhhhhhhhhhHk.......',
+        '.......khhhhwhhhhhhhwhhhhhHHk.......',
+        '.......khhwwwwhhhhwwwwwhhhhHk.......',
+        '.......khwwwwwwwwwwwwwwwwwhHk.......',
+        '.......khwwwwwwwwwwwwwwwwwWHk.......',
+        '.......khwwkkwwwwwwwwkkwwwWHk.......',
+        '.......khwwkewwwwwwwwkewwwWHk.......',
+        '.......khwwkkwwwwwwwwkkwwwWHk.......',
+        '.......khwccwwwwwwwwwwccwwWHk.......',
+        '.......khwwwwwwwmmmmwwwwwwWHk.......',
+        '.......kHwwwwwdwwwwdwwwwwWWHk.......',
+        '........kwwwwwdwwwwdwwwwWWHk........',
+        '........kWwwwwdwwwwdwwwWWWk.........',
+        '.........kWWwwddddddwwWWWk..........',
+        '..........kkWWWWWWWWWWWWkk..........',
+        '............kkkkkddkkkkk............',
+        '................kDdk................',
+        '..........kkkkkkkkkkkkkkkk..........',
+        '.........kooooorrrrrrrrRRRk.........',
+        '.........krrrrrrrrrrrrkrrrRk........',
+        '.........kRRRRRRRRRRRRkrrrrRk.......',
+        '.........kkkkkkkkkkkkkkrrrrRk.......',
+        '........kdttttttttttttkrRkrRk.......',
+        '........kdtttttttkttttkrRkdk........',
+        '........kytttttttTttttkrRkTk........',
+        '........kytttttttTtttttkrRkk........',
+        '........kytttttttktttttkrRkk........',
+        '........kytttttttTtttttkrRkk........',
+        '........kytttttttTttttttkrRk........',
+        '........kytttttttkttttttkrRk........',
+        '........kttttttttTttttttkRkk........',
+        '........kttttttttTtttttttTTk........',
+        '........kttttttttktttttttTTk........',
+        '........kttttttttTtttttttTTk........',
+        '........kTTTTTTTTTTTTTTTTTTk........',
+        '.........kkkkkkkkkkkkkkkkkk.........',
+        '...............kddddk...............',
+        '..........kkkkkkkkkkkkkkkk..........',
+        '..........kapppppppppppPPk..........',
+        '..........kapppppppppppPPk..........',
+        '..........kadppppppppppdPk..........',
+        '..........kapppppppppppPPk..........',
+        '..........kPPPPPPPPPPPPPPk..........',
+        '..........kkkkkkkkkkkkkkkk..........'];
+    ART.gm_body = defSprite('gm_body', GM_ROWS, GMB);
+    /* fallen: folded up in a heap on the boards, its head lolling, its legs splayed, its strings gone slack */
+    ART.gm_down = paintSprite(96, 52, x => {
+        const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        for (const [kx, ky, fx, fy, hx] of [[26, 42, 13, 47, 42], [70, 42, 83, 47, 53]]) {
+            GMArt.rod(R, kx, ky, fx, fy, 2, '#3a5fae', '#5a80c8'); GMArt.rod(R, hx, 48, kx, ky, 2, '#3a5fae', '#5a80c8'); GMArt.peg(R, kx, ky);
+            stampPx(x, ['..kkkk..', '.kbubBk.', 'kbuubbBk', 'kbbbbbBk', 'kSSSSSSk', '.kkkkkk.'], { b: '#7a4a2c', B: '#5a341e', u: '#9a6a44', S: '#45281c' }, fx - 4, fy - 2);
+        }
+        GM_ROWS.forEach((r, j) => { const sh = j < 23 ? Math.floor((22 - j) / 5) : 0; for (let i = 0; i < r.length; i++) { const c = GMB[r[i]] || (r[i] === 'k' ? PAL.ink : null); if (c) R(c, 30 + i + sh, 1 + j, 1, 1); } });
+        for (const [sx, sy, ex, ey, hx, hy] of [[39, 30, 31, 39, 25, 46], [56, 30, 65, 39, 72, 46]]) {
+            GMArt.rod(R, ex, ey, hx, hy, 1, '#ecc895', '#fff0d0'); GMArt.rod(R, sx, sy, ex, ey, 2, '#e7ad3c', '#f4c860'); GMArt.peg(R, ex, ey); GMArt.peg(R, sx, sy);
+            GMArt.disc(R, hx, hy, 3, PAL.ink); GMArt.disc(R, hx, hy, 2, '#ecc895'); R('#fff0d0', hx - 1, hy - 1, 1, 1);
+        }
+        GMArt.rod(R, 60, 49, 91, 43, 1, '#9a6438', '#c9925a');
     });
     defSprite('gm_body_old', ['..........kkkkkkkkkkkk..........', '.........khhhhhhhhhhhhk.........', '........khhhhhhhhhhhhhhk........', '........khwwwwwwwwwwwwhk........', '........kwwwwwwwwwwwwwwk........', '........kwwekwwwwwwkewwk........', '........kwwwwwwwwwwwwwwk........', '........kwwwwwwRRwwwwwwk........', '.........kwwwwwwwwwwwwk.........', '..........kkkkwwwwkkkkk.........', '......kkkkrrrrrrrrrrrrkkkk......', '.....krrrrrrrrrrrrrrrrrrrrk.....', '....krRrrrrrrrrrrrrrrrrrrRrk....', '...kwkrrrrrrrrrrrrrrrrrrrrkwk...', '...kwkrrrrrrrrrrrrrrrrrrrrkwk...', '...kwk.krrrrrrrrrrrrrrrrk.kwk...', '...kk..kRRRRRRRRRRRRRRRRk..kk...', '.......kddddddddddddddddk.......', '.......kd..............dk.......', '.......kd..............dk.......', '.......kd..............dk.......', '.......kd..............dk.......', '.......kW..............Wk.......', '.......kk..............kk.......'], gm);
-    defSprite('gm_foot', ['................', '................', '................', '................', '................', '................', '................', '...kkkkkkkkkk...', '..kddddddddddk..', '..kdWWWWWWWWdk..', '..kdddddddddddk.'.slice(0, 16), '..kkkkkkkkkkkk..', '................', '................', '................', '................'], gm);
+    /* its feet: wooden boots like yours, the ankle peg's hole on top */
+    defSprite('gm_foot', ['................', '................', '................', '................', '................', '......kkkk......', '.....kbdbBk.....', '.....kbbbBk.....',
+        '.....kbbbBk.....', '....kkbbbBkk....', '...kbubbbbbBk...', '..kbuubbbbbBBk..', '..kbbbbbbbbbBk..', '..kSSSSSSSSSSk..', '...kkkkkkkkkk...', '................'], { b: '#7a4a2c', B: '#5a341e', u: '#9a6a44', S: '#45281c', d: '#3a2418' });
     defSprite('gm_down', ['................................................................', '..........kkkkkkkkkkkk..........................................', '.........khhhhhhhhhhhhk...kkkkkkkkkkkkkkkkkkkkkkkkkkkk...........', '........khwwwwwwwwwwwwhk.krrrrrrrrrrrrrrrrrrrrrrrrrrrrk...........', '........kwwxwwwwwwxwwwwkkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrk..kkkkkk...', '........kwwwwwwwwwwwwwwkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrkkkddddddk..', '.........kwwwwwRRwwwwwk.kRRRRRRRRRRRRRRRRRRRRRRRRRRRRk.kddddddk..', '..........kkkkkkkkkkkk...kkkkkkkkkkkkkkkkkkkkkkkkkkkkk..kkkkkkk..', '................................................................'], Object.assign({ x: '#2a1f2d' }, gm));
     ART.flat_red = null;
     defSprite('flat_red', ['kkkkkkkkkkkkkkkk', 'krrrrrrrrrrrrrrk', 'krRrrrrrrrrrrRrk', 'krrrrrrrrrrrrrrk', 'krrrrRrrrrrRrrrk', 'krrrrrrrrrrrrrrk', 'kRrrrrrrrrrrrrrk', 'krrrrrrRrrrrrrrk', 'krrrrrrrrrrrrrrk', 'krrRrrrrrrrrrRrk', 'krrrrrrrrrrrrrrk', 'kggggggggggggggk', 'kccccccccccccccc', 'kccccccccccccccc', 'kkkkkkkkkkkkkkkk', '................'], { r: '#9a1e36', R: '#7a1428', g: '#f7d64a', c: '#c8a070' });
