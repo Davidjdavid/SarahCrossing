@@ -103,3 +103,19 @@
 - Fixes from a second fresh look at the newest pieces (7 findings: a freeze in the finale, an invisible wall left behind,
   a secret reachable the wrong way, and smaller things); regression tests.
 - Final verification passed; the project is marked complete.
+
+## 2026-11-10 (polish campaign)
+- Smoother: the game now takes exactly one step per screen refresh on ordinary 60 Hz screens (it used to stutter);
+  the screen is sized in real pixels on scaled screens (no shimmer at 125% or 150%); a place's floor is painted as you
+  enter it (no stall on the first look); thread lines draw much faster.
+- A controller works, every key and button can be changed in Options, and the game's hints name what you've set; the
+  name screen takes a controller too. A screen filter option (crisp, or two old-television looks).
+- Text checked everywhere for running out of its box, off the screen or onto other text; the menus fixed where it did.
+  The satchel shows everything you carry (pick a thing to read about it); the journal's notes can be read again.
+- Fixes found by running the whole game in a real browser: the first line of the game was hidden under the fade;
+  answers to a question could appear above the top of the screen; an animal that blinked out every other step; ten
+  found things that showed no picture; animals walking over roofs and fences; a missing character in the font; words
+  from the room above never shown when you work from underneath; floating words stacking on each other.
+- The game in its own page with instructions beside it (a private link).
+- Music changes with a short crossfade instead of a cut.
+

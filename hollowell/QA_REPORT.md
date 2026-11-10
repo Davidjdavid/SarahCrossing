@@ -225,3 +225,4 @@
 | 2026-11-10 | One continuous game, title to credits, no presets (311 in all, 2 min) | pass |
 | 2026-11-10 | Design critique items (+3); the Hanging Gallery (+1); optional dungeons' bug hunt fixes (+7); Making 4 (+2); 324 in all; Loom and Making screenshots | pass |
 | 2026-11-10 | Second fresh-eyes hunt's fixes (+4); 328 in all; every browser scenario (the isle's rocks checked) | pass |
+| 2026-11-10 | Polish round 1 (POLISH.md findings 1-15): pacing, scaling, probe runs (45 kinds -> 4), menu sweep, controller, live run 1 (792 pictures, 0 errors); 335 in all; browser checks incl. `scaling` and `gamepad` | pass |
