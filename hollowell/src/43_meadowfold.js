@@ -443,3 +443,5 @@ function initMeadowArt2() {
         '.kggggggggggGGk.', '.kgGGGGGGGGGGGk.', '..kGGGGGGGGGGk..', '...kkkkkkkkkk...', '................', '................', '................', '................'], { g: '#c8c0b0', G: '#9a9284', w: '#e8e0d0' });
 }
 CONTENT_INIT.push(initMeadowArt2);
+/* the quilt counts Meadowfold's finds too (src/78c_polish.js) */
+CONTENT_INIT.push(() => QUILT[0][1].push(() => Progress.flag('fold_counted'), () => Progress.areaFlag('hollow', 'chest:bothyPatch'), () => Progress.flag('s17')));

@@ -238,3 +238,5 @@ function initMillwaterLook() {
     });
 }
 CONTENT_INIT.push(initMillwaterLook);
+/* the quilt counts Heron Rock too (src/78c_polish.js) */
+CONTENT_INIT.push(() => QUILT[0][1].push(() => Progress.areaFlag('hollow', 'chest:mwHeron')));

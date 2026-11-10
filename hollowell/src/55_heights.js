@@ -362,3 +362,5 @@ function initHeightsArt() {
     }
 }
 CONTENT_INIT.push(initHeightsArt);
+/* the quilt counts the Heights' finds too (src/78c_polish.js) */
+CONTENT_INIT.push(() => QUILT[0][1].push(() => Progress.areaFlag('hollow', 'chest:cragPatch'), () => Progress.flag('crags_carved'), () => Progress.areaFlag('hollow', 'chest:eyriePatch'), () => Progress.areaFlag('hollow', 'oldbell')));

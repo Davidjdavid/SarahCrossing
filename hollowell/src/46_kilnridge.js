@@ -497,3 +497,5 @@ function initKilnridgeArt2() {
     defSym('bram_pot', ['........', '........', '.....kkk', '....kyoo', '....kOOO', '.....koo', '....kyoo', '...kyooo', '..kyookk', '..kookyk', '..kooook', '..kOoooo', '...kOOoo', '....kOOO', '.....kkk', '........'], { o: '#c08050', O: '#8a5638', y: '#e0a878' }, { y: 'o' });
 }
 CONTENT_INIT.push(initKilnridgeArt2);
+/* the quilt counts Kilnridge's finds too (src/78c_polish.js) */
+CONTENT_INIT.push(() => QUILT[0][1].push(() => Progress.areaFlag('hollow', 'chest:fgPatch'), () => Progress.flag('brampot'), () => Progress.areaFlag('hollow', 'chest:chimneyChest'), () => Progress.areaFlag('hollow', 'chest:slotPatch')));

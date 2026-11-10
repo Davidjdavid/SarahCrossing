@@ -35,10 +35,10 @@ walking into the fog pulls Wren back along their trace (until Act IV).
 | Id | Region | Approx. tiles | Music | Notes |
 |---|---|---|---|---|
 | `hollowell` | Hollowell (hub) | x 50–150, y 38–78 | `town` (fuller after D4, open after the ending) | The Well in the square; river through the east side; bridge; school; playground; shops; Gran's house NW of the square; the Inn E; the north road to the stone gate; the hills (O2) N. |
-| `meadow` | Meadowfold | x 100–150, y 78–112 | `meadow` | Sheep pens, windmill, hedge maze, the Tidyhouse (D1) on a rise SE; a cave to Kilnridge (opens from the Kiln side). |
-| `kiln` | Kilnridge | x 0–100, y 78–150 (west part) | `kiln` | Red canyon; the pass from town is blocked by a boulder in a niche (Gloves); kilns, mesas, a hawk's nest cliff path; the Kiln (D2) built into a mesa; a high mesa overlooking Larkspur (one-way drop). |
-| `millwater` | Millwater (the Reaches) | block 2,2: x 128–191, y 80–119 (`src/48_millwater.js`) | `water` | The big lake (north half), Dad's mill on its shore, reeds and snappers, Fen and Wick; the road in from the broken bridge (rows 106-107); the outlet river south over the falls; the self-running ferry at the end of the road (167,106) across to Millrace Falls, the far bank (only reached by water) with the Millrace door (175,105); the hidden pool behind the falls (S19, 171,110) and the basin below. |
-| `heights` | Belfry Heights | block 2,0: x 128–191, y 0–39 (`src/55_heights.js`) | `heights` | Reached across the lake by raft (Paddle) to the cliff stair, or later the high path from Loomwood; wind gusts; bell shrines; eyelets up the cliffs; the Belfry (D4) at the top; the river's source falls. |
+| `meadow` | Meadowfold | block 1,2: x 64–127, y 80–119 (`src/43_meadowfold.js`) | `meadow` | Hay meadow, wheat, hedgerows and dry-stone walls; the pen by the pond (sheep that shy from Wren and amble home the way they were driven); windmill; the Tidyhouse (D1) on a rise SE; the Old Fold (68–82, 90–98: counting stones, Old Tup's bothy); Lucky the lamb across the river (S17, 119,112); the canyon west to Kilnridge, red rock both sides. |
+| `kiln` | Kilnridge | block 0,2: x 0–63, y 80–119 (`src/46_kilnridge.js`) | `kiln` | Red canyon of level mesas; steam vents (fire what's in their mouths) and wet clay (holds what lands in it); the pass from town is blocked by a boulder in a niche (Gloves); the Kiln (D2) in the Kiln Mesa, its forecourt gate shut till the firing hole by the road is fired (22,96); the Firing Ground (pit 11–28, 108–114); the sleeping vent and the mesa's chimney (14,94 / 14,88); the clay dam in the slot (60,96); a hawk's nest cliff path; a high mesa overlooking Larkspur (one-way drop). |
+| `millwater` | Millwater (the Reaches) | block 2,2: x 128–191, y 80–119 (`src/48_millwater.js`) | `water` | The big lake (north half), Dad's mill on its shore, reeds and snappers, Fen and Wick; the road in from the broken bridge (rows 106-107); the outlet river south over the falls; the self-running ferry at the end of the road (167,106) across to Millrace Falls, the far bank (only reached by water) with the Millrace door (175,105); the hidden pool behind the falls (S19, 171,110) and the basin below; a band of shallows and reeds all round the lake, lily pads; Heron Rock off the east reach's south shore (177–181, 91–95). |
+| `heights` | Belfry Heights | block 2,0: x 128–191, y 0–39 (`src/55_heights.js`) | `heights` | Reached across the lake by raft (Paddle) to the cliff stair, or later the high path from Loomwood; wind gusts; bell shrines; eyelets up the cliffs; heather, gorse and wind-bent trees; the Crags west of the Bluster (131–152, 11–17); the Eyrie NE (183–188, 1–3); the ringers' old bell, dumb (161,32); the Belfry (D4) at the top; the river's source falls. |
 | `hush` | Hushwood | block 2,1: x 128–167, y 40–79 (`src/59_hushwood.js`; the cliff stair ravine x 168–174 stays walled off) | `hush` | The Sleeping Road in from town (rows 59–60), blocked by Old Hummock until the Recall Bell; giant mushrooms, glowcaps, sleep puffs (Puffball Hollow) and Snorelings; the stream crossed by bouncy moss (one pad each way) to the Slumberhouse (D5, door 147,48); Hummock's own bed NW; Hettie's camp SW; Lantern Pond with a raft and a weir (wound from this side) down a channel (x 157–158, a current) into the Millwater lake; the far bank over a log bridge, its plateau (moss up, ledge down, Heart Patch); the giant's hollow (S16, 131,56). |
 | `larkspur` | Larkspur Fair | block 0,1: x 0–63, y 40–79 (`src/62_larkspur.js`) | `fair` | Under Kilnridge's high mesa (the jump at 12,83 needs a Bedroll laid up top; the straw at 12,74); the midway and carousel (Linnet's note 7); the fortune teller and a painted hedge (nook); the fakir's pen (Heart Patch, Crossbar); toy soldiers; the Marionette Hall (D6, door 31,49); the lift up to the mesa (the stagehand on the winch, Crossbar); the east gate to town's west road (bolted on the fair's side); the fog close on the west (S11). |
 | `loomwood` | The Loomwood & Frayed Edge | block 1,0: x 64–127, y 0–39 (`src/71_loomwood.js`) | `loom` | Behind the north stone gate (rows 36-37, x 94-97; opened by its counterweight in the Seams). Silver birches, moths, silk strands (one hides a clearing with a Heart Patch, 120,10), a stream with a log bridge; the Loom (D8, door 95,9) in the north; the Frayed Edge (west, x 67-78): strays, the Stray House (O1, door 72,6); fog north and west. |
@@ -121,3 +121,26 @@ Terrace 2 (rows 20-27): the Bluster, a ledge the gusts blow toward a drop back t
 Mum outside. The cliff stair is a ravine up the east side of block 2,1 (x 170-172), reached from Millwater's
 north-east shore (x 166-172, y 82), which is only reached by water: two rafts, one at Wick's pier and one at
 the north shore, each going home to its own side (the Paddle).
+
+### Off the roads in the south and on the Heights (group A additions)
+- **Meadowfold, the Old Fold** (68–82, 90–98, way in 75,98): a ring of dry-stone walls round Old Tup's bothy (door 75,95),
+  three bands of counting stones across it (yan 78–81,94; tan 75,91–92; tethera 69–72,94). Nettle the ewe (home 70,96).
+  The stones count a sheep walking home: drive her round one way and leave her; she counts herself home yan, tan,
+  tethera, and Grandad's tally box opens (81,91: the ringers' clapper). Old Tup asleep in the bothy door till the Recall
+  Bell (the bothy's Heart Patch, 76,94). Lucky across the river (119,112): hooked over she goes home; the Needle gives
+  her a place on this side (S17, Pip).
+- **Kilnridge**: the forecourt gate (22,96) on the road to the Kiln, opened by firing the hole in the rock by the road
+  (vent 25,97, hole 25,99); the Firing Ground (pit 11–28, 108–114): the vent at its west end (14,111) fires a pot east along
+  the row, through a gate open only while Wren stands on the plate (12,113), into the kiln-charm (25,111); the crate on
+  that row shoved off it into the wet clay, where it sticks; Heart Patch (27,112), Bram's first pot (24,113). The sleeping vent (14,94): a boulder asleep on it (Recall Bell), then a pot fired up the Kiln Mesa's chimney
+  (14,88): 50 buttons (17,90). The clay dam in the slot (60,96): only a pot given its place in the vent's mouth below
+  (the Needle) breaks it; Heart Patch at the slot's head (60,86).
+- **Millwater, Heron Rock** (177–181, 91–95): a barrel lives on the rock, low rocks round it but on the south. Reeled
+  ashore (the Hookline from 179,98) it leaves its mark empty; set it out of the line and hook the mark: over to the rock,
+  Heart Patch (179,93). The eel-catcher's post on the shore (178,99) is the way back.
+- **Belfry Heights, the Crags** (131–152, 11–17, west of the Bluster): a chasm with stacks in it, crossed on the
+  Hookline four ways (an eyelet; a crate's mark the gust empties; a boulder's mark, asleep elsewhere; a pot's mark you
+  empty yourself); the Ringers' Stone to carve (134,15) and a Heart Patch (134,16). **The Eyrie** (183–188, 1–3): the
+  draught blows a crate into the crevice and it pops home; cut loose (the Shears) it fills it for good: Heart Patch
+  (187,2). **The ringers' old bell** (161,32): dumb without its clapper (from the Old Fold); hung, a strike wakes the
+  cave's boulder (158,29) long before the Recall Bell.
