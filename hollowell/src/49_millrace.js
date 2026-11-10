@@ -24,6 +24,39 @@ WALLS.millhouse = {
 
 const MILL_OUT = { x: 128 + 47, y: 80 + 26 };    /* the door out, on Millrace Falls */
 
+/* a ferry bell: a little brass bell on a post by a landing, with a rope. Rung, its ferry stops waiting: at its own
+   landing it sets off now, out at the far end it starts for home now. (Somebody, somewhere, hears it and gives the
+   ferry's thread a tug.) */
+class BellRope extends GridThing {
+    constructor(tx, ty, p = {}) { super('bellrope', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, p)); this.swing = 0; }
+    interact() {
+        this.swing = 40; Sfx.play('charm'); Fx.ring(this.tx * T + 8, this.ty * T - 10, '#f7d64a');
+        Stats.count('ferrybell');
+        const f = this.area.find(this.ferry);
+        if (!f || f.removed || f.swallowed || !f.ret || f.mv || f.ret.state === 'returning') return true;   /* (already on its way) */
+        if (f.ret.state === 'home') f.driftT = Water.HOME_WAIT - 1;
+        else if (!Return.held(f)) f.ret.timer = 1;
+        return true;
+    }
+    tick() { if (this.swing > 0) this.swing--; }
+    draw(cx, cy) {
+        const x = this.tx * T - cx, y = this.ty * T - cy, wet = this.area.kind(this.tx, this.ty).water;
+        if (wet) { Gfx.alpha(0.6); Gfx.rect(x + 3, y + 13, 10, 2, '#d8f2fc'); Gfx.alpha(1); }
+        else { Gfx.alpha(0.25); Gfx.rect(x + 4, y + 13, 9, 2, PAL.ink); Gfx.alpha(1); }
+        /* the post and its arm */
+        Gfx.rect(x + 6, y - 10, 4, 25, PAL.ink); Gfx.rect(x + 7, y - 9, 2, 23, '#9a6438'); Gfx.rect(x + 7, y - 9, 1, 23, '#c9925a');
+        Gfx.rect(x + 6, y - 12, 9, 3, PAL.ink); Gfx.rect(x + 7, y - 11, 7, 1, '#c9925a');
+        /* the bell hangs off the arm and swings when rung; its rope down the post */
+        const sw = Math.round(Math.sin(this.swing / 4) * (this.swing / 40) * 2);
+        const bx = x + 12 + sw, by = y - 9;
+        Gfx.rect(bx - 3, by, 7, 6, PAL.ink); Gfx.rect(bx - 2, by + 1, 5, 4, '#f7d64a'); Gfx.rect(bx - 2, by + 1, 1, 3, '#fff4c0');
+        Gfx.rect(bx - 4, by + 5, 9, 2, PAL.ink); Gfx.rect(bx - 3, by + 5, 7, 1, '#b88a2a');
+        Gfx.rect(bx, by + 7, 1, 1, PAL.ink);
+        Gfx.line(bx, by + 7, x + 10, y + 6, '#e6c08a'); Gfx.rect(x + 10, y + 6, 2, 3, '#c9925a');
+    }
+}
+SPAWN.bellrope = (x, y, p) => new BellRope(x, y, p);
+
 defHouse({
     id: 'millrace', name: 'The Millrace', place: 'The Millrace', house: 'mill', theme: 'millhouse', thread: THREAD.ambrose, music: 'millrace',
     knotName: 'Running Knot',
@@ -288,28 +321,33 @@ defHouse({
                 { k: 'deco', x: 2, y: 8, look: 'flourbag', text: 'A sack of flour, stamped with a wheel. Funny place for flour.' },
             ],
         },
-        /* ---------------- 11 The Millpond: Old Grindle ---------------- */
+        /* ---------------- 11 The Millpond: Old Grindle (three rounds; the sluice turns the races between them) ---------------- */
         '1,0': {
             name: 'The Millpond',
             rows: [
                 '####################',
                 '#~~~~~~~~~~~~~~~~~~#',
-                '#...~~~~~~~~~~~~...#',
-                '#...~~~~~~~~~~~~...#',
-                '#.>>>>>>>~~<<<<<<<.#',
+                '#.....~~~~~~~~.....#',
+                '#.....~~~~~~~~.....#',
+                '#....>>>>~~<<<<....#',
+                '#.~~~~~~~~~~~~~~~~..',
                 '#.~~~~~~~A~~~~~~~~.#',
                 '#.~~~~~~~A~~~~~~~~.#',
-                '#.~~~~~~~A~~~~~~~~.#',
-                '#.~~~~~~~A~~~~~~~~.#',
+                '#..................#',
                 '#..................#',
                 '#########.##########',
             ],
             ents: [
                 { k: 'grindle', x: 9, y: 3, id: 'grindle' },
-                { k: 'barrel', x: 2, y: 3, id: 'gbW' }, { k: 'barrel', x: 17, y: 3, id: 'gbE' },
-                { k: 'sign', x: 3, y: 3, text: 'THE MILLPOND. Do not feed the machinery.' },
-                { k: 'raft', x: 9, y: 8, id: 'gRaft' },
+                { k: 'sluice', x: 13, y: 0, id: 'gSluice' },
+                /* two barrels on the bank at the heads of the side races */
+                { k: 'barrel', x: 5, y: 3, id: 'gbW' }, { k: 'barrel', x: 14, y: 3, id: 'gbE' },
+                { k: 'raft', x: 9, y: 7, id: 'gRaft' },
+                { k: 'bellrope', x: 8, y: 7, ferry: 'gRaft', id: 'gBell' },
+                { k: 'pot', x: 7, y: 9, id: 'gPot1' }, { k: 'pot', x: 12, y: 9, id: 'gPot2' },
+                { k: 'sign', x: 2, y: 2, text: 'THE MILLPOND. Do not feed the machinery.' },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'boss' },
+                { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'boss' },
             ],
         },
     },

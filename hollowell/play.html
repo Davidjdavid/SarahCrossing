@@ -1588,6 +1588,17 @@ const Threads = {
                 Gfx.alpha(1);
             }
         }
+        /* creatures keep the law too: each walks home along its own trail to its nest, so its thread shows, faintly
+           (lure one away and its way home is plain to see, plates and all); not the big ones, who keep their own */
+        for (const m of area.walkers || []) {
+            if (m.alive === false || m.hidden || !m.trace || m.trace.length < 2 || m.hp >= 3 || m.noThread) continue;
+            const col = m.thread || (m.D && m.D.yarn) || THREAD.none, tr = m.trace;
+            Gfx.alpha(0.5);
+            for (let i = 0; i + 1 < tr.length; i++) Gfx.line(tr[i][0] * T + 8 - cx, tr[i][1] * T + 9 - cy, tr[i + 1][0] * T + 8 - cx, tr[i + 1][1] * T + 9 - cy, col);
+            const [lx, ly] = tr[tr.length - 1]; Gfx.line(lx * T + 8 - cx, ly * T + 9 - cy, m.x - cx, m.y - cy - 2, col);
+            Gfx.alpha(1);
+            Marks.draw(tr[0][0] * T - cx, tr[0][1] * T - cy, col, true);
+        }
     },
 };
 /* the little stitched cross that is a thing's place */
@@ -3054,6 +3065,8 @@ const Shards = {
         if (o && o !== s.o && o.hit) o.hit(s.o, -1, true);
         for (const e of area.ents) if (e.strike && e.tx === tx && e.ty === ty) e.strike(s.o);
         for (const e of area.ents) {
+            /* (a long thing can be hit anywhere along it, not just at its head) */
+            if (e.hitsTile && e.hitsTile(tx, ty)) { e.struck(s.o, 1, -1, true); continue; }
             if (!e.hurtBox) continue;
             const h = e.hurtBox();
             const cx = tx * T + 8, cy = ty * T + 8;
@@ -8386,7 +8399,7 @@ SPAWN.shutter = (x, y, p) => {
 /* the Dust Monger: a huge dust bunny. The stick bounces off its fluff; it fears coming-home furniture */
 SPAWN.monger = (tx, ty) => {
     if (Progress.flag('tidy_monger')) return new Ent('none');
-    const e = new Enemy(tx, ty, { type: 'monger', hp: 4 });
+    const e = new Enemy(tx, ty, { type: 'monger', hp: 2 });     /* (two hits: a mini-boss shouldn't outstay its idea) */
     e.onDie = () => {
         Progress.set('tidy_monger');
         for (const s of e.area.ents) if (s.kind === 'door' && s.group === 'monger') s.shut = false;
@@ -8396,7 +8409,7 @@ SPAWN.monger = (tx, ty) => {
     e.wakeT = 0;
     return e;
 };
-ENEMY.monger = { hp: 4, speed: 1.4, leash: 12, sight: 12, ai: 'monger', yarn: '#e4dcd0', r: 10, tall: 20, armored: true, dmg: 2, drop: 0, weight: WEIGHT.medium };
+ENEMY.monger = { hp: 2, speed: 1.4, leash: 12, sight: 12, ai: 'monger', yarn: '#e4dcd0', r: 10, tall: 20, armored: true, dmg: 2, drop: 0, weight: WEIGHT.medium };
 ENEMY_DRAW.monger = e => spr(e.z > 1 ? 'monger_1' : 'monger_0');
 AI.monger = (e, p) => {
     const a = e.area;
@@ -8440,13 +8453,24 @@ class Housekeeper extends Enemy {
         this.st++;
         if (this.kx || this.ky) { this.move(this.kx, this.ky); this.kx *= 0.8; this.ky *= 0.8; if (Math.abs(this.kx) + Math.abs(this.ky) < 0.3) this.kx = this.ky = 0; this.traceStep(); }
         const angry = this.hp <= 1;
+        /* three beats: (1) it walks over to the mess and yanks it, so it can stand in the way of its own yank;
+           (2) it has learnt: it yanks from its cross and never goes over, so the way home has to pass through its
+           cross (it leaves it only to charge); (3) it never leaves its cross and yanks the moment anything's out of
+           place: hold the thing (the Gloves) and the yank drags the Housekeeper to it instead */
+        const phase = 4 - Math.max(1, Math.min(3, this.hp));
         switch (this.state) {
             case 'wake': if (this.st > 30) this.setState('home'); break;
             /* it stands on its spot and watches. Mess: it goes and tidies it. Line up with it: it charges */
             case 'home': {
+                if (phase > (this.told || 1) && this.atHome()) {
+                    this.told = phase;
+                    UI.toast(phase === 2 ? "The Housekeeper plants itself on its cross. It won't go to the mess any more: it yanks things home from where it stands."
+                        : "Its doors bang. It won't leave its cross for anything now, and it yanks the moment anything's out of its place.", 260);
+                }
                 const mess = this.mess();
-                if (mess && this.st > 20) { this.target = mess; this.tsk(); this.setState('tidy'); break; }
-                if (this.st > (angry ? 40 : 70)) {
+                if (mess && phase === 1 && this.st > 20) { this.target = mess; this.tsk(); this.setState('tidy'); break; }
+                if (mess && phase > 1 && this.st > (phase === 3 ? 8 : 24) && this.atHome()) { this.target = mess; this.tsk(); this.setState('reach'); break; }
+                if (phase < 3 && this.st > (angry ? 40 : 70)) {
                     const ax = Math.abs(p.x - this.x), ay = Math.abs(p.y - this.y);
                     if (ax < 12 || ay < 12) { this.chargeDir = ax < 12 ? (p.y < this.y ? UP : DOWN) : (p.x < this.x ? LEFT : RIGHT); this.dir = this.chargeDir; this.setState('windup'); }
                 }
@@ -8465,6 +8489,26 @@ class Housekeeper extends Enemy {
                 break;
             }
             case 'watch': if (this.st > 40) this.setState('return'); break;
+            /* (2, 3) a thread out from where it stands, and a yank */
+            case 'reach': {
+                const m = this.target;
+                if (!m || !m.ret || m.ret.state === 'home') { this.setState('home'); break; }
+                if (this.st === 10) { Return.snap(m); Sfx.play('tug'); this.rattle = 1; }
+                /* held fast: the thread goes taut, and the one that comes is the Housekeeper */
+                if (this.st > 12 && phase === 3 && Return.held(m)) { this.setState('dragged'); Sfx.play('tug'); break; }
+                if (this.st > 50) this.setState('home');
+                break;
+            }
+            case 'dragged': {
+                const m = this.target;
+                if (!m || !Return.held(m) || this.st > 120) { this.setState('return'); break; }
+                const gx = m.px + 8, gy = m.py + 10, dx = gx - this.x, dy = gy - this.y, d = Math.hypot(dx, dy) || 1;
+                if (d > 20 && this.move(dx / d * 3.2, dy / d * 3.2)) { this.traceStep(); this.anim++; break; }
+                /* into the thing it was pulling on: bang */
+                G.shake = 12; G.hitstop = 6; Sfx.play('hitthing'); Sfx.play('boss'); Fx.dust(this.x, this.y);
+                this.setState('stunned'); Stats.count('boss:tidy:dragged');
+                break;
+            }
             case 'windup': {
                 /* it can't abide mess: tidying comes before charging */
                 const mess = this.mess();
@@ -8474,11 +8518,12 @@ class Housekeeper extends Enemy {
             }
             case 'charge': {
                 const sp = angry ? 3.4 : 2.8;
-                if (!this.move(DX[this.chargeDir] * sp, DY[this.chargeDir] * sp) || this.st > 90) { G.shake = 10; Sfx.play('push'); Fx.dust(this.x, this.y); this.setState('recoil'); }
+                if (!this.move(DX[this.chargeDir] * sp, DY[this.chargeDir] * sp) || this.st > 90) { G.shake = 10; Sfx.play('push'); Fx.dust(this.x, this.y); this.charged = true; this.setState('recoil'); }
                 this.traceStep();
                 break;
             }
-            case 'recoil': if (this.st > 36) this.setState('return'); break;
+            /* (in its second beat it's slower to come home after a charge: long enough to get round to a bust) */
+            case 'recoil': if (this.st > (phase === 2 && this.charged ? 110 : 36)) { this.charged = false; this.setState('return'); } break;
             /* everything goes back the way it came: so does it */
             case 'return': {
                 if (this.trace.length < 2) { this.x = this.homeX * T + 8; this.y = this.homeY * T + 10; this.trace = [[this.homeX, this.homeY]]; this.setState('home'); break; }
@@ -8542,6 +8587,11 @@ class Housekeeper extends Enemy {
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
         Gfx.img(img, x - 16 + ox, y - 34);
         if (this.bang > 0) Gfx.img(spr('bubble_bang'), x - 4, y - 46);
+        /* its reaching thread, out to what it's yanking (taut and bright while it's being dragged) */
+        if ((this.state === 'reach' || this.state === 'dragged') && this.target && !this.target.removed) {
+            const m = this.target, mx = m.px + 8 - cx, my = m.py + 8 - cy;
+            Gfx.line(x, y - 16, mx, my, this.state === 'dragged' ? shade(THREAD.ives, 0.5) : THREAD.ives);
+        }
     }
 }
 SPAWN.housekeeper = (tx, ty) => Progress.flag('tidy_boss') ? new Ent('none') : new Housekeeper(tx, ty);
@@ -9496,7 +9546,7 @@ SPAWN.crock = (x, y, p) => {
    hand along the same line, and the Glazer is still standing on that line */
 class Glazer extends Enemy {
     constructor(tx, ty) {
-        super(tx, ty, { type: 'glazer', hp: 3 });
+        super(tx, ty, { type: 'glazer', hp: 2 });     /* (two hits: a mini-boss shouldn't outstay its idea) */
         this.state = 'sleep'; this.st = 0;
     }
     hurtBox() { if (!this.alive) return null; return { x0: this.x - 8, x1: this.x + 8, y0: this.y - 22, y1: this.y + 4 }; }
@@ -9626,10 +9676,16 @@ class Kilnwyrm extends Enemy {
         }
         if (Script.blocking()) return;
         this.st++;
+        /* three beats: (1) it follows Wren's footprints, so shards carried home along them meet it; (2) it gives up on
+           footprints and runs round the room's rim: the shards' way home has to cross the rim (and loop erasure will cut
+           a careless loop out of it) just as it comes by; (3) it coils down in a pit at the Kiln's heart: only a way
+           home that flies over the pit (a Hookline reel, carrying) reaches it */
+        const phase = 4 - Math.max(1, Math.min(3, this.hp));
+        if (this.state === 'hurt') { if (this.st > 50) { this.state = phase === 1 ? 'follow' : phase === 2 ? 'rim' : 'pit'; this.st = 0; if (phase > (this.told || 1)) this.beginPhase(phase); } return; }
+        if (this.state === 'rim' || this.state === 'pit') return this.ring(phase, p);
         /* the path it follows: every step Wren takes */
         const last = this.path[this.path.length - 1];
         if (p.state !== 'flight' && (!last || dist(last[0], last[1], p.x, p.y) > 3)) this.path.push([p.x, p.y]);
-        if (this.state === 'hurt') { if (this.st > 50) this.state = 'follow'; return; }
         const sp = this.speed * (this.hp === 1 ? 1.5 : this.hp === 2 ? 1.2 : 1);
         let left = sp;
         while (left > 0 && this.path.length) {
@@ -9640,6 +9696,55 @@ class Kilnwyrm extends Enemy {
         }
         if (this.trail.length > 200) this.trail.length = 200;
         if (p.state === 'normal' && dist(p.x, p.y, this.x, this.y) < 12) { p.hurt(1, this.x, this.y); }
+    }
+    /* the room it's in (the Kiln's Heart), in tiles */
+    get room() { return this._room || (this._room = this.area.rooms.find(r => r.key === '1,0')); }
+    beginPhase(n) {
+        this.told = n; this.path = [];
+        const r = this.room, a = this.area, p = G.player;
+        if (n === 2) {
+            this.state = 'rim'; this.s = this.rimNear();
+            UI.toast("The Kilnwyrm stops sniffing for your footprints. It pours itself off round the edge of the room, the long way round, faster and faster.", 260);
+        } else if (n === 3) {
+            this.state = 'pit';
+            /* the floor at the Kiln's heart cracks open (anything standing there hops back off it first) */
+            for (let y = 3; y <= 7; y++) for (let x = 7; x <= 11; x++) a.setCell(r.x + x, r.y + y, 'o');
+            if (p.tx >= r.x + 7 && p.tx <= r.x + 11 && p.ty >= r.y + 3 && p.ty <= r.y + 7) { p.x = (p.tx < r.x + 9 ? r.x + 6 : r.x + 12) * T + 8; Fx.dust(p.x, p.y); }
+            for (const [x, y] of [[5, 5], [13, 5]]) a.add(SPAWN.eyelet(r.x + x, r.y + y, {}));
+            G.shake = 14; Sfx.play('rumble');
+            UI.toast("The floor at the heart of the Kiln cracks open into a glowing pit. The Kilnwyrm coils itself down into it, out of reach. Brass eyes stand at either side.", 300);
+        }
+    }
+    /* (2) round the rim of the room, (3) round and round in the pit */
+    rimPt(s) {
+        const r = this.room, x0 = (r.x + 1) * T + 8, y0 = (r.y + 1) * T + 10, w = 17 * T, h = 8 * T, L = 2 * (w + h);
+        s = ((s % L) + L) % L;
+        if (s < w) return [x0 + s, y0]; s -= w;
+        if (s < h) return [x0 + w, y0 + s]; s -= h;
+        if (s < w) return [x0 + w - s, y0 + h]; s -= w;
+        return [x0, y0 + h - s];
+    }
+    rimNear() { let best = 0, bd = 1e9; for (let s = 0; s < 800; s += 4) { const [x, y] = this.rimPt(s); const d = dist(x, y, this.x, this.y); if (d < bd) { bd = d; best = s; } } return best; }
+    ring(phase, p) {
+        const r = this.room;
+        if (phase === 2) {
+            this.s += 1.35;
+            const [nx, ny] = this.rimPt(this.s);
+            this.dir = dirOf(nx - this.x, ny - this.y); this.x = nx; this.y = ny;
+            if (p.state === 'normal' && dist(p.x, p.y, this.x, this.y) < 12) p.hurt(1, this.x, this.y);
+        } else {
+            this.s = (this.s || 0) + 0.035;
+            const cx = (r.x + 9) * T + 8, cy = (r.y + 5) * T + 10, nx = cx + Math.cos(this.s) * 26, ny = cy + Math.sin(this.s) * 22;
+            this.dir = dirOf(nx - this.x, ny - this.y); this.x = nx; this.y = ny;
+        }
+        this.trail.unshift([this.x, this.y]); if (this.trail.length > 200) this.trail.length = 200;
+    }
+    /* shards break it wherever they meet it, head or coil */
+    hitsTile(tx, ty) {
+        if (!this.alive || this.flash > 0 || this.state === 'sleep') return false;
+        const cx = tx * T + 8, cy = ty * T + 8;
+        for (let i = 0; i <= this.segs; i++) { const sg = i ? this.trail[Math.min(this.trail.length - 1, i * 11)] : [this.x, this.y]; if (Math.abs(sg[0] - cx) < 11 && Math.abs(sg[1] - 6 - cy) < 11) return true; }
+        return false;
     }
     struck(by, dmg, dir, shard) {
         if (!this.alive || this.flash > 0) return;
@@ -9653,6 +9758,8 @@ class Kilnwyrm extends Enemy {
     }
     defeat() {
         this.alive = false;
+        /* (the pit closes over: the floor the Knot's hoop will stand on) */
+        if (this.told === 3) { const r = this.room; for (let y = 3; y <= 7; y++) for (let x = 7; x <= 11; x++) this.area.setCell(r.x + x, r.y + y, '.'); }
         Sfx.play('unravel'); for (let i = 0; i < this.segs; i++) { const s = this.trail[Math.min(this.trail.length - 1, i * 10)]; Fx.burst(s[0], s[1] - 6, '#c4623a'); }
         Progress.set('kiln_boss');
         Script.run(Kiln.bossDown(this));
@@ -9982,7 +10089,9 @@ const Water = {
             return true;
         }
         p.x = r.tx * T + p.rideOx; p.y = r.ty * T + p.rideOy;     /* where it stopped, exactly */
-        p.ride = null; p.traceStep();
+        p.ride = null;
+        if (!r.area.kind(r.tx, r.ty).water) p.unstick();            /* (home on the bank: it sets its rider down beside it) */
+        p.traceStep();
         return false;
     },
     /* foam streaks running along the currents */
@@ -10310,6 +10419,39 @@ WALLS.millhouse = {
 
 const MILL_OUT = { x: 128 + 47, y: 80 + 26 };    /* the door out, on Millrace Falls */
 
+/* a ferry bell: a little brass bell on a post by a landing, with a rope. Rung, its ferry stops waiting: at its own
+   landing it sets off now, out at the far end it starts for home now. (Somebody, somewhere, hears it and gives the
+   ferry's thread a tug.) */
+class BellRope extends GridThing {
+    constructor(tx, ty, p = {}) { super('bellrope', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, p)); this.swing = 0; }
+    interact() {
+        this.swing = 40; Sfx.play('charm'); Fx.ring(this.tx * T + 8, this.ty * T - 10, '#f7d64a');
+        Stats.count('ferrybell');
+        const f = this.area.find(this.ferry);
+        if (!f || f.removed || f.swallowed || !f.ret || f.mv || f.ret.state === 'returning') return true;   /* (already on its way) */
+        if (f.ret.state === 'home') f.driftT = Water.HOME_WAIT - 1;
+        else if (!Return.held(f)) f.ret.timer = 1;
+        return true;
+    }
+    tick() { if (this.swing > 0) this.swing--; }
+    draw(cx, cy) {
+        const x = this.tx * T - cx, y = this.ty * T - cy, wet = this.area.kind(this.tx, this.ty).water;
+        if (wet) { Gfx.alpha(0.6); Gfx.rect(x + 3, y + 13, 10, 2, '#d8f2fc'); Gfx.alpha(1); }
+        else { Gfx.alpha(0.25); Gfx.rect(x + 4, y + 13, 9, 2, PAL.ink); Gfx.alpha(1); }
+        /* the post and its arm */
+        Gfx.rect(x + 6, y - 10, 4, 25, PAL.ink); Gfx.rect(x + 7, y - 9, 2, 23, '#9a6438'); Gfx.rect(x + 7, y - 9, 1, 23, '#c9925a');
+        Gfx.rect(x + 6, y - 12, 9, 3, PAL.ink); Gfx.rect(x + 7, y - 11, 7, 1, '#c9925a');
+        /* the bell hangs off the arm and swings when rung; its rope down the post */
+        const sw = Math.round(Math.sin(this.swing / 4) * (this.swing / 40) * 2);
+        const bx = x + 12 + sw, by = y - 9;
+        Gfx.rect(bx - 3, by, 7, 6, PAL.ink); Gfx.rect(bx - 2, by + 1, 5, 4, '#f7d64a'); Gfx.rect(bx - 2, by + 1, 1, 3, '#fff4c0');
+        Gfx.rect(bx - 4, by + 5, 9, 2, PAL.ink); Gfx.rect(bx - 3, by + 5, 7, 1, '#b88a2a');
+        Gfx.rect(bx, by + 7, 1, 1, PAL.ink);
+        Gfx.line(bx, by + 7, x + 10, y + 6, '#e6c08a'); Gfx.rect(x + 10, y + 6, 2, 3, '#c9925a');
+    }
+}
+SPAWN.bellrope = (x, y, p) => new BellRope(x, y, p);
+
 defHouse({
     id: 'millrace', name: 'The Millrace', place: 'The Millrace', house: 'mill', theme: 'millhouse', thread: THREAD.ambrose, music: 'millrace',
     knotName: 'Running Knot',
@@ -10574,28 +10716,33 @@ defHouse({
                 { k: 'deco', x: 2, y: 8, look: 'flourbag', text: 'A sack of flour, stamped with a wheel. Funny place for flour.' },
             ],
         },
-        /* ---------------- 11 The Millpond: Old Grindle ---------------- */
+        /* ---------------- 11 The Millpond: Old Grindle (three rounds; the sluice turns the races between them) ---------------- */
         '1,0': {
             name: 'The Millpond',
             rows: [
                 '####################',
                 '#~~~~~~~~~~~~~~~~~~#',
-                '#...~~~~~~~~~~~~...#',
-                '#...~~~~~~~~~~~~...#',
-                '#.>>>>>>>~~<<<<<<<.#',
+                '#.....~~~~~~~~.....#',
+                '#.....~~~~~~~~.....#',
+                '#....>>>>~~<<<<....#',
+                '#.~~~~~~~~~~~~~~~~..',
                 '#.~~~~~~~A~~~~~~~~.#',
                 '#.~~~~~~~A~~~~~~~~.#',
-                '#.~~~~~~~A~~~~~~~~.#',
-                '#.~~~~~~~A~~~~~~~~.#',
+                '#..................#',
                 '#..................#',
                 '#########.##########',
             ],
             ents: [
                 { k: 'grindle', x: 9, y: 3, id: 'grindle' },
-                { k: 'barrel', x: 2, y: 3, id: 'gbW' }, { k: 'barrel', x: 17, y: 3, id: 'gbE' },
-                { k: 'sign', x: 3, y: 3, text: 'THE MILLPOND. Do not feed the machinery.' },
-                { k: 'raft', x: 9, y: 8, id: 'gRaft' },
+                { k: 'sluice', x: 13, y: 0, id: 'gSluice' },
+                /* two barrels on the bank at the heads of the side races */
+                { k: 'barrel', x: 5, y: 3, id: 'gbW' }, { k: 'barrel', x: 14, y: 3, id: 'gbE' },
+                { k: 'raft', x: 9, y: 7, id: 'gRaft' },
+                { k: 'bellrope', x: 8, y: 7, ferry: 'gRaft', id: 'gBell' },
+                { k: 'pot', x: 7, y: 9, id: 'gPot1' }, { k: 'pot', x: 12, y: 9, id: 'gPot2' },
+                { k: 'sign', x: 2, y: 2, text: 'THE MILLPOND. Do not feed the machinery.' },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'boss' },
+                { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'boss' },
             ],
         },
     },
@@ -10623,13 +10770,17 @@ const Mill = {
 
 // ---- 49b_millrace_foes.js ----
 /* The Millrace's two big ones. The Snapjaw swims up and down its race; only what the water brings down on
-   it hurts it (a crate drifting into it, or one going home into it). Old Grindle, the mill automaton bolted
-   to the millpond's intake, gulps barrels that float to its mouth; full, it settles and its gear-heart
-   shows, and Wren rides the raft up to strike it. */
+   it hurts it (a crate drifting into it, or one going home into it). It ducks anything floating its way,
+   except when it has reared up out of the race at Wren on the bank: then it hunts along the bank for her a
+   good while, its back to the water. Two knocks see it off. Old Grindle, the mill automaton bolted to the
+   millpond's intake, swallows whatever floats to rest in its open mouth; one mouthful fills it, it settles
+   and its gear-heart shows. Struck, it turns the pond's sluice (the races run another way) and comes back
+   another way: three rounds (below). */
 
+const SJ = { bite: 36, hold: 170 };      /* the rear: the bite comes this long after it rises; it stays up hunting till hold */
 class Snapjaw extends Enemy {
     constructor(tx, ty, p = {}) {
-        super(tx, ty, Object.assign({ type: 'snapjaw', hp: 3 }, p));
+        super(tx, ty, Object.assign({ type: 'snapjaw', hp: 2 }, p));
         this.hx = tx; this.top = ty - 4; this.bot = ty + 2;
         this.state = 'sleep'; this.st = 0; this.vy = 0.55;
         this.weightN = 0.5;          /* anything floating that comes home into it bumps it */
@@ -10674,17 +10825,19 @@ class Snapjaw extends Enemy {
                 this.hidden = true;
                 if (this.st > 50 && !this.floatNear()) { this.state = 'swim'; this.st = 0; this.hidden = false; }
                 break;
-            case 'rear':
-                if (this.st === 30) {
+            case 'rear': {
+                /* up out of the race, jaws open (a clear moment to step back), then the snap */
+                const beside = p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 16;
+                if (this.st === SJ.bite) {
                     Sfx.play('splash'); Fx.splash(this.x - 10, this.y - 4);
-                    if (p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 16) p.hurt(1, this.x, this.y);
+                    if (beside) p.hurt(1, this.x, this.y);
                 }
-                if (this.st > 70) {
-                    /* still there? it goes for her again (and keeps its eyes on her, not the water) */
-                    if (p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 14) this.st = 0;
-                    else { this.state = 'swim'; this.st = 0; }
-                }
+                /* then it stays up, hunting along the bank for her with its back to the race (anything the water brings
+                   down now hits it square); back within reach, she gets another snap */
+                if (this.st > SJ.bite + 30 && beside) this.st = 0;
+                else if (this.st > SJ.hold) { this.state = 'swim'; this.st = 0; }
                 break;
+            }
             case 'dive':
                 this.hidden = true;
                 if (this.st > 100) { this.state = 'swim'; this.st = 0; this.hidden = false; }
@@ -10705,7 +10858,7 @@ class Snapjaw extends Enemy {
         Stats.count('boss:snapjaw:bonk');
         if (this.hp <= 0) return this.defeat();
         this.state = 'dive'; this.st = 0; this.hidden = true;
-        UI.toast(['Bonk! The Snapjaw goes under, rattled.', 'Bonk! It thrashes and dives.', ''][2 - this.hp] || 'Bonk!', 90);
+        UI.toast('Bonk! The Snapjaw goes under, rattled.', 90);
     }
     shoved(d, pace, by) { this.bonk(by, d); }
     struck(by, dmg, dir, shard) {
@@ -10727,32 +10880,68 @@ class Snapjaw extends Enemy {
         }
         const x = this.x - cx, y = this.y - cy;
         if (this.hidden) { if ((this.t >> 3) % 2) Gfx.img(spr('snap_ripple'), x - 8, y - 12); return; }
-        const im = spr(this.state === 'rear' && this.st > 10 ? 'snapjaw_open' : 'snapjaw');
+        /* rearing: jaws open till the snap; then hunting, it sways along the bank snapping at the air */
+        const rear = this.state === 'rear', hunt = rear && this.st > SJ.bite;
+        const open = rear && ((this.st > 10 && this.st <= SJ.bite) || (hunt && (this.st >> 3) % 3 === 0));
+        const im = spr(open ? 'snapjaw_open' : 'snapjaw');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        Gfx.img(img, x - 12, y - 22 - (this.state === 'rear' ? Math.min(6, this.st >> 2) : 0), this.dir === DOWN);
+        const sway = hunt ? ((this.st >> 4) % 2 ? -1 : 1) : 0;
+        Gfx.img(img, x - 12 + sway, y - 22 - (rear ? Math.min(6, this.st >> 2) : 0), this.dir === DOWN);
         if (this.state === 'rear' && !Progress.flag('sj_rear')) { Progress.set('sj_rear'); UI.toast("It rears up out of the race to bite, and forgets to watch the water.", 200); }
         Gfx.alpha(0.5); Gfx.rect(x - 10, y - 2, 20, 2, '#ffffff'); Gfx.alpha(1);
     }
 }
 SPAWN.snapjaw = (x, y, p) => Progress.flag('millrace_snapjaw') ? new Ent('none') : new Snapjaw(x, y, p);
 
-/* Old Grindle: two tiles wide at its intake; barrels that float to the mouth tiles under it get gulped */
+/* Old Grindle, bolted to the millpond's intake (two tiles wide); its mouth is the two water tiles below it. While its
+   mouth hangs open, anything floating that comes to rest in it is swallowed (whoever's riding it is snapped off into
+   the pond first): one mouthful fills it, and it settles low with its gear-heart showing for a while. Each time it's
+   struck it sulks till Wren is back on the bank, then heaves the pond's sluice round, and the races run another way
+   (GRINDLE_FLOW: [x0, x1, y, way] in the room):
+   1. the side races carry floats into its mouth; the ferry race runs up to just below it;
+   2. the side races run away from its mouth, and the ferry race runs right into it (an empty ferry fills it too);
+   3. it clamps its jaw for good, and one race runs straight past its teeth: only the pieces of a pot get in. */
+const GRINDLE_FLOW = {
+    1: [[5, 8, 4, RIGHT], [11, 14, 4, LEFT], [9, 9, 6, UP], [9, 9, 7, UP]],
+    2: [[5, 7, 4, LEFT], [12, 14, 4, RIGHT], [9, 9, 5, UP], [9, 9, 6, UP], [9, 9, 7, UP]],
+    3: [[5, 14, 4, RIGHT], [9, 9, 5, UP], [9, 9, 6, UP], [9, 9, 7, UP]],
+};
+const GR = { spit: { 1: 200, 2: 170, 3: 140 }, spitSpeed: { 1: 1.7, 2: 1.9, 3: 2.1 }, full: 900 };
 class Grindle extends GridThing {
     constructor(tx, ty, p = {}) {
         super('grindle', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p));
-        this.hp = 3; this.state = 'sleep'; this.st = 0; this.full = 0; this.need = 2; this.flash = 0;
+        this.hp = 3; this.phase = 1; this.state = 'sleep'; this.st = 0; this.flash = 0;
         this.spits = []; this.alive = true; this.footW = 2;
     }
     onAdd(area) { area.place(this, this.tx, this.ty); area.place(this, this.tx + 1, this.ty); }
+    get pond() { return this.area.roomAt(this.tx, this.ty); }
     get mouths() { return [[this.tx, this.ty + 1], [this.tx + 1, this.ty + 1]]; }
-    hurtBox() { return this.alive ? { x0: this.tx * T, x1: this.tx * T + 32, y0: this.ty * T - 12, y1: this.ty * T + 16 } : null; }
+    get open() { return this.state === 'home' || this.state === 'chomp'; }
+    /* settled low (full, smarting) or clamped shut at the waterline, its head comes down over its mouth */
+    hurtBox() {
+        if (!this.alive) return null;
+        const low = this.state === 'full' || this.state === 'hurt' || this.state === 'shut';
+        return { x0: this.tx * T, x1: this.tx * T + 32, y0: this.ty * T - 12, y1: this.ty * T + (low ? 24 : 16) };
+    }
+    /* the races as they run in a round */
+    setFlow(phase) {
+        const a = this.area, r = this.pond;
+        for (let y = r.y + 1; y < r.y + r.h - 1; y++) for (let x = r.x + 1; x < r.x + r.w - 1; x++) a.flow.delete(key2(x, y));
+        for (const [x0, x1, y, d] of GRINDLE_FLOW[phase]) for (let x = x0; x <= x1; x++) a.flow.set(key2(r.x + x, r.y + y), d);
+    }
+    /* (wholly on the bank: not a toe over the water, where a float might be about to leave) */
+    ashore(p) {
+        if (p.area !== this.area || p.state !== 'normal' || p.ride) return false;
+        return [[-PBOX.hw, -PBOX.hh], [PBOX.hw - 0.01, -PBOX.hh], [-PBOX.hw, PBOX.hh - 0.01], [PBOX.hw - 0.01, PBOX.hh - 0.01]].every(([dx, dy]) => !this.area.kind(tileOf(p.x + dx), tileOf(p.y + dy)).water);
+    }
     tick() {
         const p = G.player, a = this.area;
         if (!this.alive) return;
         if (this.flash > 0) this.flash--;
         if (this.state === 'sleep') {
-            const r = a.roomAt(this.tx, this.ty);
-            if (p.area === a && Cam.room === r && !Cam.busy && p.ty < r.y + r.h - 1) {     /* (in off the doorstep, so the shutter doesn't close on Wren) */
+            const r = this.pond;
+            /* (in off a doorstep first, so the shutters don't close on Wren) */
+            if (p.area === a && Cam.room === r && !Cam.busy && p.ty < r.y + r.h - 1 && p.tx < r.x + r.w - 1) {
                 this.state = 'home'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
                 Music.play(bossSong('mill'));
@@ -10763,19 +10952,18 @@ class Grindle extends GridThing {
         this.updateSpits();
         if (Script.blocking()) return;
         this.st++;
-        const angry = this.hp === 1;
         switch (this.state) {
             case 'home': {
-                /* gulp whatever floated to its mouth */
+                /* whatever floats to rest in its open mouth, it swallows; whoever's riding it is snapped off first */
                 for (const [mx, my] of this.mouths) {
                     const o = a.at(mx, my);
-                    if (o && o.kind === 'barrel' && !o.mv) this.gulp(o);
+                    if (!o || !o.floats || o.mv || o.swallowed || o.carried) continue;
+                    if (p.state === 'normal' && p.tx === mx && p.ty === my) { this.state = 'chomp'; this.st = 0; }
+                    else this.gulp(o);
+                    break;
                 }
                 if (this.state !== 'home') break;
-                /* Wren on the water at its mouth: it snaps */
-                if (p.state === 'normal' && p.ride && this.mouths.some(([mx, my]) => p.tx === mx && p.ty === my)) { this.state = 'chomp'; this.st = 0; break; }
-                /* otherwise it spits at her */
-                if (this.st > (angry ? 80 : 130) && p.state === 'normal') { this.spit(p); this.st = 0; }
+                if (this.st > GR.spit[this.phase] && p.state === 'normal') { this.spit(p); this.st = 0; }
                 break;
             }
             case 'chomp':
@@ -10786,23 +10974,29 @@ class Grindle extends GridThing {
                 if (this.st > 50) { this.state = 'home'; this.st = 0; }
                 break;
             case 'full':
-                /* settled at its mark, gear-heart showing */
-                if (this.st > 1200) this.spitOut();
+                /* settled low, gear-heart showing; given long enough it brings it all back up */
+                if (this.st > GR.full) { this.spitOut(); this.state = 'home'; this.st = 0; }
                 break;
             case 'hurt':
-                if (this.st > 50) this.spitOut();
+                if (this.st > 50) { this.spitOut(); this.state = 'sulk'; this.st = 0; }
+                break;
+            case 'sulk':
+                /* sunk low and sulking till Wren is back on the bank; then it heaves at the sluice */
+                if (this.st > 20 && this.ashore(p)) this.turn();
+                break;
+            case 'shut':
+                if (this.st > GR.spit[3] && p.state === 'normal') { this.spit(p); this.st = 0; }
                 break;
         }
     }
     gulp(o) {
         this.area.unplace(o, o.tx, o.ty);
         o.swallowed = true; o.tiedOff = true; o.hidden = true;
-        this.full++; Sfx.play('pop'); Sfx.play('splash'); G.shake = 3;
+        Sfx.play('pop'); Sfx.play('splash'); Sfx.play('rumble'); G.shake = 3;
+        Fx.splash(o.tx * T + 8, o.ty * T + 8);
         Stats.count('boss:grindle:gulp');
-        if (this.full >= this.need) {
-            this.state = 'full'; this.st = 0; Sfx.play('rumble');
-            UI.toast('Old Grindle gulps, shudders, and settles low in the water. Something glints on its back.', 160);
-        }
+        this.state = 'full'; this.st = 0;
+        UI.toast('Old Grindle gulps it down, shudders, and settles low in the water. Its gear-heart glints on its back.', 160);
     }
     /* everything it swallowed goes home */
     spitOut() {
@@ -10810,11 +11004,18 @@ class Grindle extends GridThing {
             o.swallowed = false; o.tiedOff = false; o.hidden = false;
             Return.sendHome(o);
         }
-        this.full = 0; this.state = 'home'; this.st = 0;
+    }
+    turn() {
+        this.state = 'turn'; this.st = 0; this.phase++;
+        this.setFlow(this.phase);
+        const s = this.area.ents.find(e => e.kind === 'sluice'); if (s) s.spin = 90;
+        Sfx.play('rumble'); G.shake = 10;
+        Stats.count('boss:grindle:turn');
+        Script.run(MillFoes.turn(this));
     }
     spit(p) {
         const sx = this.tx * T + 16, sy = this.ty * T + 6;
-        const d = Math.hypot(p.x - sx, p.y - sy) || 1, sp = this.hp === 1 ? 2.2 : 1.7;
+        const d = Math.hypot(p.x - sx, p.y - sy) || 1, sp = GR.spitSpeed[this.phase];
         this.spits.push({ x: sx, y: sy, vx: (p.x - sx) / d * sp, vy: (p.y - sy) / d * sp, t: 0 });
         Sfx.play('splash');
     }
@@ -10828,19 +11029,24 @@ class Grindle extends GridThing {
         }
         this.spits = this.spits.filter(s => !s.done);
     }
-    hit(p, d) { this.struck(p, 1, d); }
-    struck(by, dmg, dir) {
-        if (!this.alive) return;
-        if (this.state !== 'full') { Sfx.play('hitthing'); Fx.ring(this.tx * T + 16, this.ty * T); return; }
+    hit(by, d, shard) { this.struck(by, 1, d, shard); }
+    /* full, anything that lands a blow on its gear-heart hurts it; clamped shut, only flying pieces get between its teeth */
+    struck(by, dmg, dir, shard) {
+        if (!this.alive || this.flash > 0) return;
+        if (this.state === 'full' || (this.state === 'shut' && shard)) return this.hurt();
+        Sfx.play('hitthing'); Fx.ring(this.tx * T + 16, this.ty * T);
+        if (this.state === 'shut' && !Progress.flag('grindle_shut')) { Progress.set('grindle_shut'); UI.toast("Clang! Its jaw is shut fast. The gear-heart turns in there, behind its teeth.", 200); }
+    }
+    hurt() {
         this.hp--; this.flash = 40; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
         Stats.count('boss:grindle:hit');
         if (this.hp <= 0) return this.defeat();
-        this.state = 'hurt'; this.st = 0; this.need = 2;
+        this.state = 'hurt'; this.st = 0;
     }
     defeat() {
         this.alive = false; this.spits = [];
         Sfx.play('unravel'); Fx.yarn(this.tx * T + 16, this.ty * T, THREAD.ambrose);
-        for (const o of this.area.ents) if (o.swallowed) { o.swallowed = false; o.tiedOff = false; o.hidden = false; Return.sendHome(o); }
+        this.spitOut();
         this.area.unplace(this, this.tx, this.ty); this.area.unplace(this, this.tx + 1, this.ty);
         Progress.set('millrace_boss');
         Script.run(MillFoes.grindleDown(this));
@@ -10849,21 +11055,47 @@ class Grindle extends GridThing {
         for (const s of this.spits) { Gfx.circle(s.x - cx, s.y - cy, 3, '#a5dcf7'); Gfx.rect(s.x - cx - 1, s.y - cy - 2, 2, 2, '#ffffff'); }
         if (!this.alive) return;
         const x = this.tx * T - cx, y = this.ty * T - cy;
-        const sink = this.state === 'full' || this.state === 'hurt' ? 5 : 0;
-        const bob = Math.round(Math.sin(G.t / 20) * 1);
-        const im = spr(this.state === 'chomp' && this.st > 12 ? 'grindle_open' : 'grindle');
+        const low = this.state === 'full' || this.state === 'hurt' || this.state === 'sulk' ? 5 : this.state === 'turn' ? 3 : 0;
+        const bob = this.state === 'sulk' ? 0 : Math.round(Math.sin(G.t / 20) * 1);
+        const look = this.state === 'chomp' && this.st > 12 ? 'grindle_open' : this.state === 'shut' ? 'grindle_shut' : this.open ? 'grindle_hungry' : 'grindle';
+        const im = spr(look);
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        Gfx.img(img, x, y - 18 + sink + bob);
-        if (this.state === 'full') Gfx.img(spr('grindle_heart'), x + 12, y - 16 + sink + bob);
+        Gfx.img(img, x, y - 18 + low + bob);
+        if (this.state === 'full' || this.state === 'hurt') Gfx.img(spr('grindle_heart'), x + 11, y - 16 + low + bob);
+        if (this.state === 'shut') { Gfx.alpha(0.35 + 0.25 * Math.sin(G.t / 6)); Gfx.rect(x + 9, y + 3 + bob, 14, 3, '#e8463c'); Gfx.alpha(1); }
         Gfx.alpha(0.55); Gfx.rect(x - 2, y + 12, 36, 2, '#ffffff'); Gfx.alpha(1);
     }
 }
 SPAWN.grindle = (x, y, p) => Progress.flag('millrace_boss') ? new Ent('none') : new Grindle(x, y, p);
 
-/* a barrel swallowed is out of play: not drawn, can't be touched */
+/* the millpond's sluice: a great iron wheel set in the wall over the intake; Grindle heaves it round each time it's hurt */
+class Sluice extends Ent {
+    constructor(tx, ty, p = {}) { super('sluice', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.ang = 0.3; this.spin = 0; }
+    get sortY() { return this.y + 6; }
+    update() { if (this.spin > 0) { this.spin--; this.ang += 0.075 * Math.min(1, this.spin / 25 + 0.15); } }
+    draw(cx, cy) {
+        const x = this.x - cx + 16, y = this.y - cy + 9;
+        /* the gate frame in the wall under it, then the wheel: iron rim, spokes, brass hub, a red handle on the rim */
+        Gfx.rect(x - 9, y + 4, 18, 14, PAL.ink); Gfx.rect(x - 8, y + 5, 16, 12, '#5c645e'); Gfx.rect(x - 6, y + 7, 12, 10, '#3e4852');
+        for (let i = 0; i < 3; i++) Gfx.rect(x - 6, y + 8 + i * 3, 12, 1, '#7c847e');
+        Gfx.circle(x, y, 12, PAL.ink); Gfx.circle(x, y, 11, '#6a635e'); Gfx.circle(x, y, 9, '#3e4852');
+        for (let i = 0; i < 6; i++) {
+            const t = this.ang + i * Math.PI / 3;
+            Gfx.line(x, y, x + Math.cos(t) * 9, y + Math.sin(t) * 9, '#a8b0a8');
+        }
+        Gfx.circle(x, y, 3, PAL.ink); Gfx.circle(x, y, 2, '#e2b45a');
+        const hx = x + Math.cos(this.ang) * 11, hy = y + Math.sin(this.ang) * 11;
+        Gfx.circle(hx, hy, 2, PAL.ink); Gfx.rect(Math.round(hx) - 1, Math.round(hy) - 1, 2, 2, '#c42b4a');
+    }
+}
+SPAWN.sluice = (x, y, p) => new Sluice(x, y, p);
+
+/* a float swallowed is out of play: not drawn, can't be touched */
 {
     const sprite0 = Barrel.prototype.sprite;
     Barrel.prototype.sprite = function () { return this.hidden ? null : sprite0.call(this); };
+    const raft0 = Raft.prototype.sprite;
+    Raft.prototype.sprite = function () { return this.hidden ? null : raft0.call(this); };
 }
 
 const MillFoes = {
@@ -10882,6 +11114,13 @@ const MillFoes = {
         yield 20;
         yield* say(null, "At the head of the millpond, bolted to the intake, a great iron pike lifts its head and opens a mouth like a mill hopper. OLD GRINDLE, says the brass plate on its nose. It's hungry.");
     },
+    /* the sluice turns: the races run another way, and Grindle with them */
+    *turn(g) {
+        yield 50;
+        if (g.phase === 2) yield* say(null, "Old Grindle heaves its iron head against the sluice. The great wheel grinds over and the whole millpond turns about: the side races run away from its mouth now, and the ferry race runs straight into it. Its round eye swivels to the raft.");
+        else yield* say(null, "Grindle wrenches the sluice round once more, then clamps its iron jaw shut with a clang. It won't be fed again. One race runs straight past its teeth now; between them, deep in its throat, the gear-heart spins.");
+        g.state = g.phase === 3 ? 'shut' : 'home'; g.st = 0;
+    },
     *grindleDown(g) {
         const a = g.area;
         Music.play('silence');
@@ -10898,7 +11137,7 @@ const MillFoes = {
 SIGNATURE_TEXT.mill = "Painted on a floorboard in blue, very small: a mill wheel and the letters A.R. Someone signed this House the way a miller stamps a flour sack.";
 
 function initMillraceArt() {
-    ENEMY.snapjaw = { hp: 3, swims: true, r: 8, tall: 16, yarn: THREAD.ambrose };
+    ENEMY.snapjaw = { hp: 2, swims: true, r: 8, tall: 16, yarn: THREAD.ambrose };
     defSprite('snapjaw', ['........................', '........................', '.........kkkkkk.........', '.......kkggggggkk.......', '......kgggwkkgggGk......', '.....kggggkkkgggGGk.....', '.....kgggggggggGGGk.....', '....kgGgGgGgGgGgGGGk....',
         '....kggggggggggggGGk....', '....krrrrrrrrrrrrrrk....', '....kwkwkwkwkwkwkwkk....', '....krrrrrrrrrrrrrrk....', '.....kggggggggggGGk.....', '......kgGgGgGgGGGk......', '.....kkggggggggGGkk.....', '....kbbkkkkkkkkkkbbk....',
         '...kbBbbBbbBbbBbbBbk....', '..kbbbbbbbbbbbbbbbbbk...', '........................', '........................', '........................', '........................', '........................', '........................'],
@@ -10907,20 +11146,62 @@ function initMillraceArt() {
         '....kr..............k...', '....kr..............k...', '....kwkwkwkwkwkwkwkk....', '....krrrrrrrrrrrrrrk....', '.....kggggggggggGGk.....', '......kgGgGgGgGGGk......', '.....kkggggggggGGkk.....', '....kbbkkkkkkkkkkbbk....',
         '...kbBbbBbbBbbBbbBbk....', '..kbbbbbbbbbbbbbbbbbk...', '........................', '........................', '........................', '........................', '........................', '........................'],
         { g: '#4f9a5a', G: '#2e6a3e', r: '#c42b4a', w: '#ffffff', b: '#4fb0e0', B: '#a5dcf7' });
-    const grind = (open) => paintSprite(32, 32, x => {
+    /* Old Grindle's head, front on: riveted iron plates lit from the upper left, a fin behind, round eyes in brass rings,
+       its nameplate on the snout, and a hopper of a mouth: shut, hungry, wide for a bite, or clamped (teeth locked,
+       side plates sprung, the gear-heart glowing between the teeth) */
+    const grind = (mode) => paintSprite(32, 32, x => {
         const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
-        /* an iron pike: riveted plates, a hopper mouth, a brass nameplate */
-        R('#5c645e', 2, 8, 28, 18); R('#848c86', 3, 9, 26, 6); R('#3e4852', 2, 24, 28, 2);
-        for (let i = 4; i < 30; i += 5) { R('#c8d0c8', i, 10, 1, 1); R('#c8d0c8', i, 21, 1, 1); }
-        R('#5c645e', 26, 4, 5, 6); R('#848c86', 27, 5, 3, 3);      /* dorsal fin */
-        R('#3e4852', 0, 12, 3, 8);                                  /* tail */
-        R('#f7d64a', 12, 14, 8, 3); R('#b88a2a', 12, 16, 8, 1);    /* nameplate */
-        R('#fbf3df', 22, 11, 4, 4); R('#1c2630', 23, 12, 2, 2);    /* eye */
-        if (open) { R('#1c2630', 6, 20, 20, 8); R('#fbf3df', 7, 20, 2, 2); R('#fbf3df', 11, 20, 2, 2); R('#fbf3df', 15, 20, 2, 2); R('#fbf3df', 19, 20, 2, 2); R('#fbf3df', 23, 20, 2, 2); }
-        else { R('#1c2630', 6, 22, 20, 3); }
+        const IRON = ['#c8d0c8', '#a8b0a8', '#848c86', '#5c645e', '#3e4852'];
+        /* the fin behind the head */
+        for (let j = 0; j < 8; j++) { const w = 2 + (j >> 1); R(j < 3 ? IRON[2] : IRON[3], 16 - w, j, w * 2, 1); }
+        for (const fx of [13, 16, 19]) R(IRON[4], fx, 2, 1, 5);
+        /* the head: one big rounded plate, shaded */
+        const sprung = mode === 'shut' ? 1 : 0;
+        for (let j = 3; j < 27; j++) for (let i = 1; i < 31; i++) {
+            const u = (i - 15.5) / 14.5, v = (j - 14) / 12;
+            if (u * u + v * v > 1) continue;
+            const l = -u * 0.55 - v * 0.7 + (hash2(i, j, 31) - 0.5) * 0.25;
+            R(IRON[l > 0.5 ? 0 : l > 0.15 ? 1 : l > -0.25 ? 2 : l > -0.65 ? 3 : 4], i, j, 1, 1);
+        }
+        /* gill plates at the sides (sprung open on a clamped jaw: dark gaps with the heart's glow behind) */
+        for (const side of [-1, 1]) {
+            const gx = side < 0 ? 5 - sprung : 26 + sprung;
+            for (let j = 9; j < 21; j++) { const bow = Math.round(Math.sin((j - 9) / 12 * Math.PI) * 2); R(IRON[4], gx - side * bow, j, 1, 1); if (sprung) R(j % 3 ? '#1c2630' : '#c42b4a', gx - side * bow + side, j, 1, 1); }
+        }
+        /* rivets along the brow and the cheeks */
+        for (let i = 6; i <= 25; i += 4) R(IRON[0], i, 6, 1, 1);
+        for (const [rx, ry] of [[4, 13], [27, 13], [5, 18], [26, 18], [9, 20], [22, 20]]) R(IRON[0], rx, ry, 1, 1);
+        /* eyes in brass rings */
+        for (const ex of [8, 23]) {
+            R('#b88a2a', ex - 3, 9, 6, 6); R('#f7d64a', ex - 3, 9, 6, 1); R('#f7d64a', ex - 3, 9, 1, 6);
+            R('#fbf3df', ex - 2, 10, 4, 4);
+            const look = mode === 'closed' ? 0 : 1;
+            R('#1c2630', ex - 1 + (ex < 16 ? look : -look), 11, 2, 2 + (mode === 'open' ? 1 : 0));
+            if (mode === 'closed') R(IRON[3], ex - 2, 10, 4, 2);      /* heavy-lidded, settled */
+        }
+        /* the nameplate on the snout */
+        R('#b88a2a', 11, 15, 10, 4); R('#f7d64a', 11, 15, 10, 1);
+        for (let i = 12; i < 20; i += 2) R('#6a4a1a', i, 17, 1, 1);
+        /* the mouth */
+        const mx0 = 7, mw = 18;
+        if (mode === 'closed') {
+            R(IRON[4], mx0, 22, mw, 1); R(IRON[3], mx0 + 1, 23, mw - 2, 2); R(IRON[2], mx0 + 2, 23, mw - 4, 1);
+        } else if (mode === 'shut') {
+            /* clamped: teeth locked in a zigzag, a red glow between them */
+            R('#1c2630', mx0, 21, mw, 4); R('#e8463c', mx0 + 2, 22, mw - 4, 2);
+            for (let i = 0; i < mw; i += 3) { R('#fbf3df', mx0 + i, 21, 2, 2); R('#fbf3df', mx0 + i + 1, 23, 2, 2); }
+            R(IRON[4], mx0 - 1, 20, mw + 2, 1); R(IRON[3], mx0, 25, mw, 2);
+        } else {
+            /* a hopper: a dark funnel, teeth top and bottom (wider when it bites) */
+            const h = mode === 'open' ? 10 : 6, y0 = mode === 'open' ? 19 : 20;
+            for (let j = 0; j < h; j++) { const inset = Math.round(j * 0.6); R('#1c2630', mx0 + inset, y0 + j, mw - inset * 2, 1); }
+            R('#3a1c22', mx0 + 4, y0 + 2, mw - 8, h - 3);
+            for (let i = 0; i < mw - 1; i += 3) R('#fbf3df', mx0 + i, y0, 2, 2);
+            for (let i = 3; i < mw - 4; i += 3) R('#fbf3df', mx0 + i, y0 + h - 2, 2, 2);
+        }
     });
-    ART.grindle = grind(false); ART.grindle_open = grind(true);
-    SPR.grindle = ART.grindle; SPR.grindle_open = ART.grindle_open;
+    ART.grindle = grind('closed'); ART.grindle_hungry = grind('hungry'); ART.grindle_open = grind('open'); ART.grindle_shut = grind('shut');
+    for (const k of ['grindle', 'grindle_hungry', 'grindle_open', 'grindle_shut']) SPR[k] = ART[k];
     defSprite('grindle_heart', ['...kkkkk..', '..kyyyyyk.', '.kyrRRryyk', 'kyrRwRRryk', 'kyRRRRRRyk', 'kyrRRRRryk', '.kyrRRryk.', '..kyyyyk..', '...kkkk...'], { y: '#f7d64a', r: '#e8463c', R: '#c42b4a', w: '#ffffff' });
     ART.drafting = paintSprite(32, 20, x => { x.fillStyle = '#9a6438'; x.fillRect(2, 8, 28, 3); x.fillRect(4, 11, 2, 9); x.fillRect(26, 11, 2, 9); x.fillStyle = '#fbf3df'; x.fillRect(4, 1, 24, 8); x.fillStyle = '#4f9be0'; x.fillRect(7, 3, 6, 4); x.fillRect(16, 4, 9, 1); x.fillRect(16, 6, 7, 1); x.fillStyle = '#2e6ab0'; x.fillRect(9, 4, 2, 2); });
     ART.sampler_ambrose = paintSprite(26, 20, x => { x.fillStyle = '#9a6438'; x.fillRect(0, 0, 26, 20); x.fillStyle = '#fbf3df'; x.fillRect(2, 2, 22, 16); x.fillStyle = '#4f9be0'; x.beginPath(); x.arc(8, 10, 5, 0, Math.PI * 2); x.fill(); x.fillStyle = '#fbf3df'; x.fillRect(7, 9, 2, 2); x.fillStyle = '#2e6ab0'; x.fillRect(15, 6, 1, 8); x.fillRect(16, 6, 2, 1); x.fillRect(18, 7, 1, 2); x.fillRect(16, 9, 2, 1); x.fillRect(20, 6, 1, 8); x.fillRect(21, 6, 2, 1); x.fillRect(22, 7, 1, 2); x.fillRect(21, 9, 1, 1); x.fillRect(22, 10, 1, 4); });

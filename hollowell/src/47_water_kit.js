@@ -63,7 +63,9 @@ const Water = {
             return true;
         }
         p.x = r.tx * T + p.rideOx; p.y = r.ty * T + p.rideOy;     /* where it stopped, exactly */
-        p.ride = null; p.traceStep();
+        p.ride = null;
+        if (!r.area.kind(r.tx, r.ty).water) p.unstick();            /* (home on the bank: it sets its rider down beside it) */
+        p.traceStep();
         return false;
     },
     /* foam streaks running along the currents */
