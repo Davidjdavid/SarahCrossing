@@ -309,7 +309,7 @@ function defMaking(n, cells) {
         id: 'making' + n, name: MAKING_NAMES[n - 1], place: 'The Making Floor', house: 'making' + n, making: n, theme: 'tidy', thread: THREAD.ives, music: 'underside',
         entry: { x: 3, y: 16 },
         themeAt: (x, y) => y >= 11 ? 'underside' : ['tidy', 'kilnhouse', 'house', 'millhouse'][n - 1],
-        drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy),
+        drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy), drawFront: (a, cx, cy) => Spool.drawAboveFront(a, cx, cy),
         tick: a => Making.tick(a),
         onEnter: a => Making.start(a),
         cells,

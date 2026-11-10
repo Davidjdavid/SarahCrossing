@@ -155,7 +155,11 @@ const UI = {
     toast(s, dur = 120) {
         s = Story.fill(s); if (this.toasts.some(t => t.s === s)) return;
         let low = false;
-        if (G.scene === 'play' && G.map && G.player) { const c = Dialog.coverage(); low = c(20, 52) > c(H - 40, H - 6) + 0.2; }
+        if (G.scene === 'play' && G.map && G.player) {
+            /* (where it would go at the top: under a banner and any notices already showing there) */
+            const y0 = (this.banner ? (this.banner.sub ? 62 : 52) : 22) + this.toasts.filter(t => !t.low).reduce((n, t) => n + 11 + 10 * (t.lines ? t.lines.length : 1), 0);
+            const c = Dialog.coverage(); low = c(y0 - 2, y0 + 22) > c(H - 40, H - 6) + 0.2;
+        }
         this.toasts.push({ s, t: 0, dur, low });
     },
     showBanner(s, sub) { this.banner = { s, sub, t: 0 }; },

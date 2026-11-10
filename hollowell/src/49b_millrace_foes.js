@@ -131,7 +131,7 @@ class Grindle extends GridThing {
             if (p.area === a && Cam.room === r && !Cam.busy && p.ty < r.y + r.h - 1) {     /* (in off the doorstep, so the shutter doesn't close on Wren) */
                 this.state = 'home'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
-                Music.play('boss');
+                Music.play(bossSong('mill'));
                 Script.run(MillFoes.grindleIntro(this));
             }
             return;

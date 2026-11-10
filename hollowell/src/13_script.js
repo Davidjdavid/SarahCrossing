@@ -48,6 +48,8 @@ function faceSpeaker(who) {
     const dx = p.tx - n.tx, dy = p.ty - n.ty;
     if (Math.abs(dx) + Math.abs(dy) > 6 || (dx === 0 && dy === 0)) return;
     n.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? LEFT : RIGHT) : (dy < 0 ? UP : DOWN);
+    /* and she to them, if she's standing about with her hands free */
+    if (p.state === 'normal' && !p.carry && !p.ride && !p.walking && Math.abs(dx) + Math.abs(dy) <= 4) p.dir = OPP[n.dir];
 }
 function* say(who, text, opts = {}) {
     const lines = Array.isArray(text) ? text : [text];

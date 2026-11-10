@@ -137,7 +137,7 @@ class MotherSloth extends Enemy {
         const inRoom = p.area === a && Cam.room === r && !Cam.busy;
         if (this.state === 'sleep') {
             if (inRoom && p.state === 'normal' && p.ty < r.y + r.h - 2) {
-                this.state = 'fight'; this.st = 0; this.shutters(true); Music.play('boss');
+                this.state = 'fight'; this.st = 0; this.shutters(true); Music.play(bossSong('slumber'));
                 if (!Progress.flag('slumber_slothAwake')) { Progress.set('slumber_slothAwake'); Script.run(SlumberFoes.slothIntro(this)); }
             }
             return;

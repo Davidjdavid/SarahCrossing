@@ -246,3 +246,6 @@ SONGS.pull = {
         { drum: true, vol: 0.07, n: 'k . h k s . h . | k k h . s . h h ' },
     ],
 };
+
+/* a House's boss has its own tune when there is one (its House's motif, arranged for the fight); else the boss tune */
+function bossSong(h) { return SONGS['boss_' + h] ? 'boss_' + h : 'boss'; }

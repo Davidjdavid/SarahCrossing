@@ -180,7 +180,7 @@ defArea({
 defHouse({
     id: 'lab7', name: 'Lab 7', theme: 'tidy', house: 'lab', thread: THREAD.guild,
     themeAt: (x, y) => y >= 11 ? 'underside' : 'tidy',
-    drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy),
+    drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy), drawFront: (a, cx, cy) => Spool.drawAboveFront(a, cx, cy),
     entry: { x: 2, y: 2 },
     cells: {
         '0,0': {

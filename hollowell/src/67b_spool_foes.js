@@ -135,7 +135,7 @@ class Tangle extends Ent {
         if (this.state === 'sleep') {
             if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 2) {
                 this.rethread(false, true);
-                this.state = 'whole'; this.st = 0; this.shutters(true); Music.play('boss');
+                this.state = 'whole'; this.st = 0; this.shutters(true); Music.play(bossSong('spoolworks'));
                 Script.run(SpoolFoes.tangleIntro(this));
             }
             return;

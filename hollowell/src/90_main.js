@@ -94,6 +94,7 @@ const Game = {
             G.onScreen = floor.concat(stand);
             stand.sort((m, n) => m.sortY - n.sortY);
             for (const e of stand) e.draw(cx, cy);
+            if (a.def.drawFront) a.def.drawFront(a, cx, cy);
             if (p.state === 'flight' && p.flight) {
                 /* Wren's own thread, red, during the flight home */
                 const f = p.flight, pts = f.pts;

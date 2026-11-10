@@ -99,7 +99,7 @@ class Weaver extends Ent {
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area, r = this.arena;
         if (this.state === 'sleep') {
-            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal') { this.state = 'aloft'; this.st = 0; this.shutters(true); Music.play('boss'); Script.run(LoomFoes.weaverIntro(this)); }
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal') { this.state = 'aloft'; this.st = 0; this.shutters(true); Music.play(bossSong('loom')); Script.run(LoomFoes.weaverIntro(this)); }
             return;
         }
         /* silk on Wren wears off in time (or the Shears snip it) */

@@ -539,7 +539,7 @@ class Housekeeper extends Enemy {
             if (p.area === a && Cam.room && Cam.room.key === '1,0' && !Cam.busy) {
                 this.state = 'wake'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
-                Music.play('boss');
+                Music.play(bossSong('tidy'));
                 Script.run(Tidy.bossIntro(this));
             }
             return;
@@ -697,7 +697,29 @@ function initTidyArt() {
     ART.book = paintSprite(14, 8, x => { x.fillStyle = '#fbf6ea'; x.fillRect(1, 1, 12, 6); x.fillStyle = '#9a3a4a'; x.fillRect(0, 2, 14, 1); x.fillRect(6, 1, 2, 6); x.fillStyle = '#9a9188'; for (let i = 2; i < 6; i += 2) { x.fillRect(2, i + 1, 3, 1); x.fillRect(9, i + 1, 3, 1); } });
     ART.sampler_ives = paintSprite(28, 22, x => { x.fillStyle = '#9a6438'; x.fillRect(0, 0, 28, 22); x.fillStyle = '#fbf3df'; x.fillRect(2, 2, 24, 18); x.fillStyle = '#3fc1b5'; x.fillRect(6, 7, 8, 7); x.fillRect(5, 6, 10, 1); x.fillRect(16, 9, 2, 5); x.fillRect(20, 12, 4, 2); x.fillStyle = '#2e9a96'; x.fillRect(18, 16, 2, 1); x.fillRect(21, 16, 2, 1); for (let i = 3; i < 25; i += 2) { x.fillRect(i, 3, 1, 1); x.fillRect(i, 18, 1, 1); } });
     ART.monogram_tidy = paintSprite(16, 10, x => { x.fillStyle = '#3fc1b5'; x.fillRect(2, 2, 1, 6); x.fillRect(3, 3, 1, 1); x.fillRect(4, 4, 1, 1); x.fillRect(5, 3, 1, 1); x.fillRect(6, 2, 1, 6); x.fillRect(9, 2, 1, 6); x.fillRect(8, 2, 3, 1); x.fillRect(8, 7, 3, 1); x.fillStyle = '#2e9a96'; x.fillRect(12, 4, 3, 1); x.fillRect(13, 5, 1, 3); }, false);
-    ART.exitlight = paintSprite(16, 16, x => { x.globalAlpha = 0.5; x.fillStyle = '#fff6c0'; x.fillRect(3, 0, 10, 16); x.globalAlpha = 1; x.fillStyle = '#fff6e0'; x.fillRect(6, 2, 4, 12); }, false);
+    /* the way out after a House's Knot: a doorway of daylight cut through the wall at the foot of the room (the
+       picture's lower half lies over that wall), framed in wood, a stone step, the grass outside, and the light
+       spilling in across the floor with a few motes in it */
+    ART.exitlight = paintSprite(16, 32, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        for (let j = 2; j < 16; j++) {
+            const k = (j - 2) / 13, half = Math.round(8 - k * 2), a = Math.min(1, (j - 1) / 5);
+            x.globalAlpha = a * (0.3 + 0.25 * k); R('#fff1b8', 8 - half, j, half * 2, 1);
+            x.globalAlpha = a * (0.2 + 0.3 * k); R('#fffbe8', 8 - half + 2, j, half * 2 - 4, 1);
+        }
+        x.globalAlpha = 0.9;
+        for (const [a, b] of [[5, 5], [11, 7], [7, 10], [12, 12], [3, 9]]) R('#ffffff', a, b, 1, 1);
+        x.globalAlpha = 1;
+        /* the opening, the step and the outdoors */
+        R('#2a1f2d', 0, 16, 16, 16);
+        R('#fffbe8', 2, 16, 12, 16); R('#fff4c8', 2, 21, 12, 5); R('#e4f2b0', 2, 26, 12, 3); R('#b8e08a', 2, 29, 12, 3);
+        R('#cfc6b8', 2, 16, 12, 2); R('#efe8de', 2, 16, 12, 1);
+        for (const a of [4, 9, 12]) R('#8fcc6a', a, 30, 1, 2);
+        /* the frame */
+        R('#8a5a34', 0, 16, 2, 16); R('#c9925a', 0, 16, 1, 16); R('#8a5a34', 14, 16, 2, 16); R('#c9925a', 14, 16, 1, 16);
+        R('#2a1f2d', 2, 18, 1, 14); R('#2a1f2d', 13, 18, 1, 14);
+        R('#e6c08a', 0, 16, 16, 1);
+    }, false);
     /* a tall single bookcase, as tall as the others, so it hides what's behind it */
     {
         const wood = ['#c9925a', '#9a6438', '#6b4128', '#3a2418'];

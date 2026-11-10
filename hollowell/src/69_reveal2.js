@@ -91,11 +91,11 @@ defHouse({
 
 /* Tuck's fresh spool: the errand */
 SPAWN.freshspool = (x, y, p) => {
-    const pr = new Prop(x, y, { im: ART.freshspool, solid: [[0, 0]], oy: -4 });
+    const pr = new Prop(x, y, { im: Inv.items.tuckspool ? ART.freshspool_gone : ART.freshspool, solid: [[0, 0]], oy: -4 });
     pr.interact = () => {
         if (Inv.items.tuckspool) return false;
         Script.run(function* () {
-            Inv.items.tuckspool = 1; Sfx.play('smallitem');
+            Inv.items.tuckspool = 1; Sfx.play('smallitem'); pr.im = ART.freshspool_gone;
             yield* say(null, 'A fresh spool on a little stand, bright green, labelled TUCK in Gundry\'s big square letters. You tuck it in your satchel.');
             yield* say(null, "From the old hall beyond, very faintly, comes a sound like a winch turning. Click. Click. Click.");
             Progress.setGoal("Tuck's spool is in your satchel. (And there's a door east, into the old hall...)");
@@ -181,13 +181,15 @@ const Reveal2 = {
         Progress.set('reveal2');
         Progress.set('well_locked');
         Stats.count('reveal2');
-        World.enter('gran_room', 4, 3, { dir: DOWN });
-        G.player.state = 'sleep';
+        World.enter('gran_room', 6, 3, { dir: DOWN });
+        const me = G.player;
+        me.state = 'sleep'; me.inBed = G.map.ents.find(e => e.skey === 'wrenbed');
         yield 60;
         yield* fadeIn(60);
-        G.player.state = 'normal'; G.hideHud = false;
         Music.play('lullaby');
         yield* say(null, "You wake in your own bed. It's morning. The house is very quiet.");
+        me.state = 'normal'; me.inBed = null; G.hideHud = false; Sfx.play('land'); Fx.dust(me.x, me.y);
+        yield 20;
         yield* say(null, "Gran's chair is empty. On the kitchen table, a cup of tea gone cold. And the door to the well cellar, which is never locked, is locked.");
         yield* say(null, "When you look down at your hands, you can see your own thread, faintly, running from your heart down through the floor. You can see everybody's now.");
         Progress.setGoal("Linnet cut herself loose with the First Spinner's Shears, from the old Loom. Gundry, under the Inn, may know where that is.");
@@ -202,6 +204,18 @@ const Reveal2 = {
         if (Progress.flag('reveal2') && !Progress.flag('cut:' + this.who) && this.who !== 'biscuit' && this.who !== 'linnet') {
             const x = this.px + 8 - cx, y = this.py + 4 - cy;
             Gfx.alpha(0.35); Gfx.line(x, y, x, y + 12, (PEOPLE_DEF[this.who] && PEOPLE_DEF[this.who].col) || THREAD.town); Gfx.alpha(1);
+        }
+        return draw0.call(this, cx, cy);
+    };
+}
+
+/* ...and Wren's own, red, from her heart down through the floor (until she cuts it) */
+{
+    const draw0 = Player.prototype.draw;
+    Player.prototype.draw = function (cx, cy) {
+        if (Progress.flag('reveal2') && !Progress.flag('cut_self') && !this.hidden && this.state === 'normal' && G.map && !G.map.def.house) {
+            const x = this.x - cx, y = this.y - cy - 4 - (this.z || 0);
+            Gfx.alpha(0.4); Gfx.line(x, y, x, y + 12, THREAD.wren); Gfx.alpha(1);
         }
         return draw0.call(this, cx, cy);
     };
@@ -244,6 +258,8 @@ SPAWN.gateweight = (x, y, p) => {
 
 function initReveal2() {
     ART.freshspool = paintSprite(16, 20, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#4a4054', 3, 16, 10, 4); R('#8a8096', 3, 4, 10, 2); R('#8a8096', 3, 14, 10, 2); R('#5ab85a', 4, 6, 8, 8); R('#8ad88a', 4, 6, 8, 1); R('#3a7a3a', 4, 13, 8, 1); });
+    /* (the stand, once the spool's in the satchel) */
+    ART.freshspool_gone = paintSprite(16, 20, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#4a4054', 3, 16, 10, 4); R('#6a6078', 7, 6, 2, 10); });
     defSprite('ledger', ['................', '................', '..kkkkkkkkkkkk..', '.kwwwwwkwwwwwwk.', '.kwkkwwkwkkkwwk.', '.kwwwwwkwwwwwwk.', '.kwkkkwkwkkwwwk.', '.kwwwwwkwwwwwwk.', '..kkkkkkkkkkkk..', '.......kk.......', '.......dd.......', '.......dd.......', '.......dd.......', '.....kddddk.....', '....kkkkkkkk....', '................'], { w: '#efe4cc', d: '#5a3a26' });
 }
 CONTENT_INIT.push(initReveal2);

@@ -29,7 +29,7 @@ defHouse({
     id: 'spoolworks', name: 'The Spoolworks', place: 'The Spoolworks', house: 'spoolworks', theme: 'spoolworks', thread: THREAD.guild, music: 'spoolworks',
     entry: SPOOL_ENTRY,
     themeAt: (x, y) => y >= 33 ? 'underside' : 'spoolworks',
-    drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy),
+    drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy), drawFront: (a, cx, cy) => Spool.drawAboveFront(a, cx, cy),
     cells: {
         /* ================= the Works floor (up top) ================= */
         /* ---------------- 1 The Gatehouse: a crate held fast from underneath ---------------- */

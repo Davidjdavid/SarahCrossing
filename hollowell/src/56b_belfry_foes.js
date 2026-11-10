@@ -144,7 +144,7 @@ class Tollgrim extends Enemy {
                 this.state = 'hide'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
                 Progress.set('belfry_tollAwake');
-                Music.play('boss');
+                Music.play(bossSong('belfry'));
                 Script.run(BelfryFoes.tollIntro(this));
             }
             return;
