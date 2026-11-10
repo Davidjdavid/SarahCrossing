@@ -8,43 +8,43 @@ const BELFRY_ENTRY = { x: 29, y: 53 };
 
 const HEIGHTS_ROWS = [
     '################################################################',
-    '###.,...........".......r..................................."###',
-    '###..r...............,....XXXXXXXXXX.......................,.###',
-    '###.......................XXXXXXXXXX..............b..........###',
-    '###....,........r.,.......XXXXXXXXXX.........................###',
-    '###."......,..............XXXXXXXXXX........"....,...........###',
-    '###....,..."..........r.".XXXXXXXXXX.....r...r...............###',
-    '###...,...........,.......XXXX:XXXXX...r.....................###',
+    '###.,...........".......r.............................z......###',
+    '###..r.............ee,....XXXXXXXXXX..................z......###',
+    '###..ee...................XXXXXXXXXX..............b...z......###',
+    '###...ee........r.,.......XXXXXXXXXX....ee............zzzzzzz###',
+    '###."......,..............XXXXXXXXXX.....e.."....,...........###',
+    '###....,..."ee........r.".XXXXXXXXXX.....r...r...............###',
+    '###...,......e....,.......XXXX:XXXXX...r.....ee..............###',
     '###.....".....................::...................,.........###',
     '##############################H#################################',
     '##############################H#################################',
-    '###.....................................ooooo.......:........###',
-    '###...........................::::::::::ooooo::::::::........###',
-    '###...............,b....................ooooo.......:........###',
-    '###.............b......,................ooooo.......:........###',
-    '###.b...............................b...ooooo.......:........###',
-    '###.....................................ooooo.......:........###',
-    '###.....................................ooooo..."...:........###',
+    '###zzzzzzz^zzzzzzzzzzz^zz...............zzzzz.......:........###',
+    '###z^^zzzzzz..zzzz..zzzzz.....::::::::::zzzzz::::::::........###',
+    '###zzzzzzzzzzzzzzzzzzzzzz.ee............zzzzz.......:....ee..###',
+    '###zzzzzzzzz..zzzzz..^zzz.e.............zzzzz.......:.....e..###',
+    '###zzz...zzz..zzzzzzzzzzz..........ee...zzzzz..ee...:........###',
+    '###zzz...zzzzzzz^zzzzzz^z...........e...zzzzz...e...:........###',
+    '###zzzzzz^zzzzzz^zzzzzzzz...............zzzzz..."...:........###',
     '####################################################H###########',
     '####################################################H###########',
     '###.........:................................................###',
     '###.........:::::::::::::::::::::::::::::::::::::::::........###',
     '###.........:................................................###',
-    '###.........:................................................###',
-    '###"........:................................................###',
-    '###r........:...........b....,................r...........,..###',
+    '###.........:...........................................ee...###',
+    '###".ee.....:............................................e...###',
+    '###r..e.....:...........b....,..........ee....r...........,..###',
     '###.........:....."....b...r.................................###',
     '###.........:.......vvvvvvvv#####vvvvvvvvvvvvvvvv.........,b.###',
     '############H################...################################',
     '############H#################.#################################',
     '###.".r.....::::::::::::::::::::::::::::::::.................###',
-    '###.....,..................................:.................###',
+    '###.....,..................................:.............ee..###',
     '###........".........,.......".,...........:."...............###',
-    '###..".........................,....,......:.................###',
-    '###........................................:.................###',
+    '###..ee........................,...ee......:.................###',
+    '###...ee...................................:.................###',
     '###.....b......................"...........:............,....###',
-    '###...........,..............,.r...........:......,..........###',
-    '###....b...................................:............,....###',
+    '###...........,.....ee.......,.r...........:......,.ee.......###',
+    '###....b.............e.....................:.........e..,....###',
     '###........r...................,...........:...r.........."..###',
     '##########################################:::###################',
 ];
@@ -109,8 +109,158 @@ TALK.tess = function* () {
 BUDGE.brindle = 'Brindle: "Mind the goats."';
 BUDGE.tess = 'Mum: "Oof! Hello, love."';
 
-/* the Heights' rock: grey-violet blocks, lichen; heather on top */
-OWA.cliffs.heights = {
-    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { blocks: true, band1: [0, 5, 10], band2: [0, 6, 11], lichen: ['#c8d890', '#e8e0a0', '#a8c0a0'], seed: 5 }),
-    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { tuft: ['#9a6aa8', '#c48ad0'], seed: 5 }),
+/* ---------- the Heights' look: moor grass bent by the wind, heather, stony tracks, grey-violet rock, the chasm ---------- */
+THEMES.heights.grass = ['#a9bf74', '#93aa62', '#c4d48e', '#6e8a4c'];
+THEMES.heights.stone = ['#a69cae', '#7d7490', '#cbc3d2', '#4e465e'];
+const HEIGHTS_HEATHER = ['#a05aa8', '#c47ac8', '#7a3e88', '#e0a8e0'];
+OWA.ground.heights = {
+    /* short wiry grass, a little straw-coloured, every blade leaning the same way */
+    grass(x, th, v) {
+        const [g0, g1, g2, g3] = th.grass;
+        fill(x, g0);
+        speckle(x, [g1], 11 + v * 13, 0.14);
+        speckle(x, [g2], 23 + v * 7, 0.05);
+        for (let n = 0; n < 5; n++) {
+            const bx = Math.floor(hash2(v, n, 3) * 14) + 1, by = Math.floor(hash2(n, v, 5) * 12) + 3;
+            px(x, bx, by, g3); px(x, bx + 1, by - 1, g1); px(x, bx + 1, by - 2, g2);
+        }
+        if (v === 2) { px(x, 4, 11, HEIGHTS_HEATHER[0]); px(x, 5, 10, HEIGHTS_HEATHER[1]); px(x, 4, 12, g3); }
+        if (v === 3) { px(x, 11, 5, '#e8e0b0'); px(x, 12, 5, '#d8cc90'); }
+    },
+    /* heather and harebells in the grass */
+    flowers(x, th, v) {
+        OWA.ground.heights.grass(x, th, v);
+        for (let n = 0; n < 3; n++) {
+            const fx = 2 + Math.floor(hash2(n, v, 1) * 11), fy = 3 + Math.floor(hash2(v + 3, n, 2) * 10);
+            if ((n + v) % 3 === 2) { px(x, fx, fy, '#7aa0e8'); px(x, fx + 1, fy, '#a8c4f8'); px(x, fx, fy + 1, th.grass[3]); }
+            else { px(x, fx, fy, HEIGHTS_HEATHER[1]); px(x, fx + 1, fy, HEIGHTS_HEATHER[0]); px(x, fx, fy - 1, HEIGHTS_HEATHER[3]); px(x, fx + 1, fy + 1, th.grass[3]); }
+        }
+    },
+    /* tall bents, combed over by the wind */
+    tallgrass(x, th, v) {
+        const [g0, g1, g2, g3] = th.grass;
+        fill(x, g0); speckle(x, [g1], 31 + v, 0.12);
+        for (let i = 0; i < 7; i++) {
+            const bx = 1 + i * 2, h = 6 + Math.floor(hash2(i, v, 4) * 5);
+            for (let j = 0; j < h; j++) px(x, Math.min(15, bx + Math.floor(j * j / 18)), 15 - j, j > h - 3 ? '#d8d090' : j > h / 2 ? g2 : g1);
+            px(x, bx, 15, g3);
+        }
+    },
+    /* a stony track: trodden earth with flat stones in it */
+    path(x, th, v) {
+        const [p0, p1, p2] = th.path;
+        fill(x, p0); speckle(x, [p1], 31 + v, 0.18); speckle(x, [p2], 41 + v, 0.07);
+        for (let n = 0; n < 2; n++) {
+            const sx = 1 + Math.floor(hash2(v, n, 12) * 10), sy = 1 + Math.floor(hash2(n, v, 13) * 11), w = 3 + (n + v) % 3;
+            fill(x, th.stone[0], sx, sy, w, 2); fill(x, th.stone[2], sx, sy, w - 1, 1); fill(x, th.stone[1], sx, sy + 2, w, 1);
+        }
+    },
+    /* under the pines: needles and heather */
+    forest(x, th, v) { fill(x, '#4a5440'); speckle(x, ['#5a6a48', '#3a4232'], v + 9, 0.3); speckle(x, [HEIGHTS_HEATHER[2]], v + 19, 0.05); },
+    /* heather, thick */
+    heather(x, th, v) {
+        fill(x, '#6a7a4a');
+        speckle(x, ['#5a6a3e', '#7e8a52'], 50 + v, 0.35);
+        for (let n = 0; n < 9; n++) {
+            const hx = Math.floor(hash2(v, n, 61) * 15), hy = Math.floor(hash2(n, v, 62) * 15);
+            const c = HEIGHTS_HEATHER[(n + v) % 3];
+            px(x, hx, hy, c); px(x, hx + 1, hy, c); px(x, hx, hy + 1, HEIGHTS_HEATHER[2]); if (n % 3 === 0) px(x, hx + 1, hy - 1, HEIGHTS_HEATHER[3]);
+        }
+    },
+    /* steps cut in the rock, worn in the middle */
+    stairs(x, th) {
+        const [s0, s1, s2, s3] = th.stone;
+        for (let i = 0; i < 4; i++) {
+            const y = i * 4;
+            fill(x, mix(s0, s2, 0.4), 0, y, 16, 2); fill(x, s0, 0, y + 2, 16, 1); fill(x, mix(s1, s3, 0.5), 0, y + 3, 16, 1);
+            fill(x, mix(s0, '#c8b896', 0.35), 5, y, 6, 2);
+        }
+        fill(x, s3, 0, 0, 1, 16); fill(x, s3, 15, 0, 1, 16);
+    },
 };
+OWA.cliffs.heights = {
+    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { blocks: true, band1: [0, 5, 10], band2: [0, 6, 11], lip: ['#7e8a52', '#6a7a4a', '#9aa86a'], lichen: ['#c8d890', '#e8e0a0', '#a8c0a0'], seed: 5 }),
+    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { topCol: '#9c94a8', tuft: [HEIGHTS_HEATHER[0], HEIGHTS_HEATHER[1]], seed: 5 }),
+};
+/* a chasm: the far wall going down into the dark, rocky lips, a breath of mist far below */
+OWA.paint.chasm = {
+    shade: true,
+    mask(a, tx, ty) {
+        const pit = (x, y) => a.inside(x, y) && a.cell(x, y).k === 'pit';
+        return (pit(tx, ty - 1) ? 'n' : '-') + (pit(tx, ty + 1) ? 's' : '-') + (pit(tx - 1, ty) ? 'w' : '-') + (pit(tx + 1, ty) ? 'e' : '-') + (pit(tx, ty - 2) || !pit(tx, ty - 1) ? '' : '2');
+    },
+    draw(x, th, v, m) {
+        const [s0, s1, s2, s3] = th.stone;
+        const n = m[0] === 'n', s = m[1] === 's', w = m[2] === 'w', e = m[3] === 'e', deep2 = m[4] === '2';
+        /* the depths */
+        for (let j = 0; j < 16; j++) fill(x, mix('#2c2438', '#120e1a', Math.min(1, (j + (n ? 10 : 0)) / 22)), 0, j, 16, 1);
+        speckle(x, ['#3a3248'], 70 + v, 0.05);
+        /* the far wall: rock falling away from the lip above */
+        if (!n || deep2) {
+            const top = n ? -6 : 0;
+            for (let j = 0; j < 12; j++) {
+                const y = top + j; if (y < 0) continue;
+                const k = j / 12, c = mix(mix(s0, s1, 0.3), '#2c2438', k * k);
+                fill(x, c, 0, y, 16, 1);
+                for (let i = 0; i < 16; i++) if (hash2(i, j + v * 16, 77) < 0.12) px(x, i, y, mix(c, s3, 0.6));
+                if (j % 4 === 3) fill(x, mix(c, '#120e1a', 0.4), 0, y, 16, 1);
+            }
+            if (!n) { fill(x, mix(s2, '#ffffff', 0.15), 0, 0, 16, 1); fill(x, s0, 0, 1, 16, 1); }
+        }
+        /* mist far down */
+        if (s || n) for (let i = 0; i < 3; i++) { const mx = Math.floor(hash2(v, i, 81) * 12), my = 9 + Math.floor(hash2(i, v, 82) * 5); x.globalAlpha = 0.18; fill(x, '#c8c0e0', mx, my, 4 + i, 1); x.globalAlpha = 1; }
+        /* the lips: rock edges on either side, the near edge's lip below */
+        if (!w) { fill(x, mix(s1, '#120e1a', 0.3), 0, 0, 3, 16); fill(x, s0, 0, 0, 1, 16); fill(x, s3, 2, 0, 1, 16); }
+        if (!e) { fill(x, mix(s1, '#120e1a', 0.5), 13, 0, 3, 16); fill(x, s1, 15, 0, 1, 16); fill(x, s3, 13, 0, 1, 16); }
+        if (!s) { fill(x, s3, 0, 13, 16, 1); fill(x, s1, 0, 14, 16, 1); fill(x, mix(s0, s2, 0.4), 0, 15, 16, 1); }
+    },
+};
+
+function initHeightsArt() {
+    /* a hawthorn bent by the wind: the trunk leans east, the crown swept along after it, a few leaves flying */
+    const bent = (name, leaf, bark, seed, berries) => {
+        ART[name] = paintSprite(36, 36, x => {
+            const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+            for (let j = 0; j < 18; j++) {
+                const k = j / 18, cx = Math.round(14 + k * k * 9);
+                R(bark[1], cx - 2, 35 - j, 4, 1); R(bark[0], cx - 2, 35 - j, 1, 1); R(bark[2], cx + 1, 35 - j, 1, 1);
+            }
+            R(bark[1], 9, 34, 4, 2); R(bark[1], 16, 34, 4, 2); R(bark[1], 20, 22, 6, 2); R(bark[0], 20, 22, 6, 1);
+            const clumps = [[22, 14, 9, 6], [14, 15, 6, 5], [29, 12, 6, 5], [20, 9, 7, 4], [27, 18, 5, 4]];
+            for (const [cx, cy, rx, ry] of clumps) for (let j = -ry; j <= ry; j++) for (let i = -rx; i <= rx; i++) {
+                const u = i / rx, w = j / ry; if (u * u + w * w > 1) continue;
+                const l = -u * 0.35 - w * 0.9 + (hash2(cx + i, cy + j, seed) - 0.5) * 0.8;
+                R(l > 0.55 ? leaf[2] : l > 0 ? leaf[1] : l > -0.6 ? leaf[0] : leaf[3], cx + i, cy + j, 1, 1);
+            }
+            /* streaming twigs downwind */
+            for (const [a, b] of [[33, 10], [34, 15], [32, 19]]) { R(leaf[3], a, b, 2, 1); R(leaf[0], a - 1, b, 1, 1); }
+            if (berries) for (let n = 0; n < 7; n++) { const bx = 12 + Math.floor(hash2(n, seed, 9) * 20), by = 9 + Math.floor(hash2(seed, n, 11) * 10); const d = x.getImageData(bx, by, 1, 1).data; if (d[3]) { R(berries, bx, by, 1, 1); R('#ffd0c8', bx, by - 1, 1, 1); } }
+        });
+    };
+    bent('tree_bent', ['#5a8a4a', '#76a258', '#a4c47a', '#3a5e3e'], ['#8a6a50', '#6a4e3a', '#4a3428'], 3, '#d83a3a');
+    bent('tree_bent2', ['#6a8a4e', '#86a45e', '#b0c884', '#44603e'], ['#8a7058', '#6a5240', '#463428'], 9);
+    /* a cairn: flat stones stacked by passers-by, the top one set on edge */
+    ART.cairn = paintSprite(16, 22, x => {
+        const st = [[8, 19, 7, 3], [7, 15, 6, 3], [9, 11, 5, 3], [7, 7, 4, 3], [8, 3, 2, 3]];
+        st.forEach(([cx, cy, rx, ry], i) => discPx(x, cx, cy, Math.max(rx, ry), (px, py, u, w) => {
+            if ((py - cy) * (py - cy) * rx * rx + (px - cx) * (px - cx) * ry * ry > rx * rx * ry * ry) return null;
+            const l = -u * 0.6 - w * 1.0 + (hash2(px, py, 4 + i) - 0.5) * 0.5;
+            return l > 0.5 ? '#d4ccd8' : l > -0.1 ? '#aaa0b4' : l > -0.7 ? '#857c94' : '#5e5670';
+        }));
+    });
+    /* heather in a clump, and gorse with its yellow flowers */
+    bushArt('heather_clump', ['#6a7a4a', '#8a5a98', '#b47ac0', '#4a5638', '#e0a8e0'], 13, 16, 12);
+    bushArt('gorse', ['#4a7038', '#5e8a44', '#86ac5a', '#2e4a2a', '#f4d040'], 17, 16, 14);
+    /* the Ringers' Stone: a tall stone carved with initials and little bells */
+    ART.ringstone = paintSprite(16, 30, x => {
+        for (let j = 2; j < 30; j++) { const w = j < 6 ? 3 + j : 7 - (j > 26 ? 1 : 0); for (let i = 8 - w; i < 8 + w; i++) { const l = -(i - 8) / 7 * 0.6 + (hash2(i, j, 5) - 0.5) * 0.4; x.fillStyle = l > 0.35 ? '#cfc7d6' : l > -0.2 ? '#a69cae' : '#7d7490'; x.fillRect(i, j, 1, 1); } }
+        x.fillStyle = '#5e5670'; for (const [a, b] of [[5, 9], [9, 10], [6, 14], [10, 15], [5, 19], [9, 21]]) { x.fillRect(a, b, 2, 1); x.fillRect(a, b + 1, 1, 2); }
+        x.fillStyle = '#e2b45a'; x.fillRect(11, 8, 2, 2); x.fillRect(4, 17, 2, 2);
+    });
+    /* a proper birch: white bark ringed with black, a crown of small bright leaves (it was washed out before) */
+    treeArt('tree_birch', { leaf: ['#7ab86a', '#9cd07a', '#cce8a0', '#4e8a52'], bark: ['#f4f2ea', '#d6d6cc', '#3a3a3a'] }, 6, { clumps: [[16, 12, 8], [10, 16, 6], [22, 15, 6], [13, 7, 5], [20, 7, 5], [16, 19, 6]] });
+    {
+        const c = ART.tree_birch; if (!HEADLESS) { const x = c.getContext('2d'); x.fillStyle = '#3a3a3a'; for (const [a, b] of [[14, 27], [16, 30], [15, 32], [17, 25]]) x.fillRect(a, b, 2, 1); }
+    }
+}
+CONTENT_INIT.push(initHeightsArt);

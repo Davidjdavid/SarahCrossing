@@ -336,7 +336,7 @@ defHouse({
                 { k: 'door', x: 17, y: 6, type: 'gate', when: 'gsMp', dir: 'v', passed: 'right', id: 'gsMaGate' },
                 { k: 'knotlock', x: 18, y: 2, house: 'marionette' },
                 { k: 'ratchet', x: 1, y: 7 },
-                { k: 'sign', x: 8, y: 9, text: "Pencilled on the prompt box in Jory's hand: UNDERSTUDY: IN THROUGH THE LITTLE DOOR. THE ROCK STAYS ON ITS MARK. (IT'S PAINTED. IT'S VERY HEAVY PAINT.)" },
+                { k: 'sign', x: 8, y: 9, text: "Pencilled on the prompt box in Jory's hand: QUIET IN THE BOX. THE ROCK STAYS ON ITS MARK. (IT'S PAINTED. IT'S VERY HEAVY PAINT.)" },
                 { k: 'gsdeco', x: 1, y: 9, look: 'gs_rail', solid: [[0, 0], [1, 0]], text: "A rail of costumes for a show that never opened: a crimson cape, a gold doublet, a blue gown, every one with JORY stitched in its collar." },
                 { k: 'gsdeco', x: 5, y: 9, look: 'gs_ghostlight', text: "A ghost light: one bare bulb on a stand, left burning on an empty stage so nobody falls off it in the dark." },
                 { k: 'gsdeco', x: 12, y: 9, look: 'gs_flats', solid: [[0, 0], [1, 0]] },

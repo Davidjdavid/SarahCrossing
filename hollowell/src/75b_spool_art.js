@@ -24,7 +24,7 @@ for (const [name, L] of Object.entries(SPOOL_LOOKS)) {
             for (const o of [0, 8]) { fill(x, b2, o, 0, 1, 16); fill(x, b3, o + 7, 0, 1, 16); }
             const e = (v * 5 + 3) % 16; fill(x, b3, 1, e, 6, 1); fill(x, b3, 9, (e + 9) % 16, 6, 1);
             speckle(x, [b1], 40 + v, 0.1);
-            if (v === 0) { x.globalAlpha = 0.4; const c = L.run[1 % L.run.length]; px(x, 11, 4, c); px(x, 12, 5, c); px(x, 12, 6, c); px(x, 13, 7, c); x.globalAlpha = 1; }
+            if (v === 0) { x.globalAlpha = 0.3; const c = L.run[1 % L.run.length]; px(x, 11, 4, c); px(x, 12, 5, c); px(x, 12, 6, c); px(x, 13, 7, c); x.globalAlpha = 1; }
         },
         floor2: (x, th, v) => { fill(x, b1); speckle(x, [b0, b3], 30 + v, 0.25); },
         floor3: (x, th, v) => { fill(x, b3); for (let i = 1; i < 16; i += 3) fill(x, b1, i, 0, 1, 16); },
@@ -82,7 +82,7 @@ const SpoolArt = {
             const lx = r.x * T + T + Math.floor((i + 0.25 + hash2(i, r.x, r.y) * 0.5) * (r.w - 2) * T / n), tx = Math.floor(lx / T), sx = lx - cx, col = run[i % run.length];
             for (let ty = r.y + 1; ty < r.y + r.h - 1; ty++) {
                 const k = a.kind(tx, ty); if (k.solid && !k.arch) continue;
-                Gfx.alpha(k.water ? 0.1 : 0.18); Gfx.rect(sx, ty * T - cy, 1, T, col);
+                Gfx.alpha(k.water ? 0.12 : 0.24); Gfx.rect(sx, ty * T - cy, 1, T, col);
             }
             for (let f = 0; f < 2; f++) {
                 const y = bot - (G.t * 0.3 + hash2(i, f, r.x * 7 + r.y) * len) % len, k = a.kind(tx, Math.floor(y / T));
