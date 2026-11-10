@@ -190,7 +190,7 @@ const SCENARIOS = {
     async spoolworks() {
         await open();
         await page.evaluate(() => { HW.preset('afterD6'); HW.step(5); HW.skipTalk(); HW.Inv.giveTool('needle'); });
-        const rooms = { gate: [29, 31], ugate: [29, 64], wind: [29, 20], uwind: [29, 53], store: [12, 20], ustore: [12, 53], kennel: [44, 16], ukennel: [49, 53], loft: [9, 9], uloft: [9, 42], heart: [26, 7], uheart: [29, 42], bench: [49, 9], ubench: [49, 42] };
+        const rooms = { gate: [29, 31], ugate: [29, 64], wind: [29, 20], uwind: [29, 53], store: [12, 20], ustore: [12, 53], kennel: [44, 16], ukennel: [49, 53], practice: [46, 28], upractice: [49, 61], rope: [15, 27], urope: [12, 61], loft: [9, 9], uloft: [9, 42], heart: [26, 7], uheart: [29, 42], bench: [49, 9], ubench: [49, 42] };
         for (const [n, [x, y]] of Object.entries(rooms)) {
             await page.evaluate(([x, y]) => { HW.warp('spoolworks', x, y); HW.step(40); HW.skipTalk(); HW.step(20); HW.skipTalk(); }, [x, y]);
             await shot('sw_' + n);

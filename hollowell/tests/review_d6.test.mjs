@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
+import { hearMakers } from './legs.mjs';
 
 const R = { foyer: [20, 33], box: [40, 33], aud: [20, 22], pit: [0, 22], reh: [40, 22], wings: [20, 11], dress: [0, 11], props: [40, 11], shop: [40, 0], stage: [20, 0] };
 const at = (room, x, y) => [R[room][0] + x, R[room][1] + y];
@@ -42,6 +43,7 @@ test('1: the Hoop, the heart and the reveal are never lost by leaving (or loadin
     HW.Inv.patterns.push('marionette'); HW.Progress.set('marionette_tin'); HW.Progress.set('marionette_tinAwake');
     const g = beatBoss(HW);
     assert.ok(!g.alive, 'beaten');
+    HW.skipTalk(); HW.step(20); hearMakers(HW);
     for (let i = 0; i < 40 && !HW.Progress.flag('reveal1'); i++) { HW.skipTalk(); HW.step(20); }
     assert.ok(HW.Progress.flag('reveal1') && HW.Progress.flag('marionette_boss'));
     HW.warp('hollow', 31, 51); HW.step(10); inHall(HW, 'stage', 9, 9);

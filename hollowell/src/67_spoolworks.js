@@ -13,19 +13,18 @@ FLOORS.spoolworks = {
     /* oiled wood blocks laid basket-weave (two to a square, each square turned), oil dark in the joints, and the
        Works' thread-dust caught in them: not the planks of the Houses up the valley */
     floor: (x, th, v) => {
-        fill(x, '#3a2418');
+        fill(x, '#5e3c26');
         for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
-            const X = i * 8, Y = j * 8, across = (i + j + (v >> 1)) % 2 === 0;
+            const X = i * 8, Y = j * 8, across = (i + j) % 2 === 0;
             for (let k = 0; k < 2; k++) {
-                const tone = ['#9c6a40', '#8e6038', '#a8764a'][Math.floor(hash2(i * 2 + k, j + v * 3, 41) * 3)];
-                if (across) { fill(x, tone, X, Y + k * 4, 8, 3); fill(x, shade(tone, 0.16), X, Y + k * 4, 7, 1); px(x, X + 7, Y + k * 4 + 2, shade(tone, -0.25)); }
-                else { fill(x, tone, X + k * 4, Y, 3, 8); fill(x, shade(tone, 0.16), X + k * 4, Y, 1, 7); px(x, X + k * 4 + 2, Y + 7, shade(tone, -0.25)); }
+                const tone = ['#9c6a40', '#94643c', '#a4704a'][Math.floor(hash2(i * 2 + k, j + v * 3, 41) * 3)];
+                if (across) { fill(x, tone, X, Y + k * 4, 8, 3); fill(x, shade(tone, 0.12), X, Y + k * 4, 7, 1); }
+                else { fill(x, tone, X + k * 4, Y, 3, 8); fill(x, shade(tone, 0.12), X + k * 4, Y, 1, 7); }
             }
         }
-        speckle(x, ['#7a4e2c', '#b88a5e'], 70 + v, 0.05);
-        /* a fibre or two in the joints, in the Makers' colours */
-        const f = ['#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a'][v];
-        if (hash2(v, 7, 3) < 0.7) { px(x, 3 + v, 7, f); px(x, 4 + v, 7, f); px(x, 5 + v, 8, shade(f, -0.2)); }
+        speckle(x, ['#86582f', '#b0805a'], 70 + v, 0.04);
+        /* now and then a stray end of thread caught in a joint */
+        if (v === 3) { const f = '#5a7ea8'; px(x, 9, 7, f); px(x, 10, 6, f); px(x, 11, 7, shade(f, -0.2)); }
     },
     floor2: (x, th, v) => { fill(x, '#7a4e32'); for (let i = 0; i < 16; i += 2) fill(x, i % 4 ? '#8a5e3e' : '#6a4228', i, 0, 1, 16); fill(x, '#c9a24a', 0, 0, 16, 1); fill(x, '#c9a24a', 0, 15, 16, 1); },
     /* an iron walkway plate, riveted */
@@ -49,17 +48,16 @@ WALLS.spoolworks = {
 THEMES.underworks = { floor: ['#6e6258', '#5a4e46', '#86796c', '#2e2620'], wall: ['#7a6e64', '#5e544c', '#948a80', '#2e2620'], stone: ['#7a6e64', '#5e544c', '#948a80', '#2e2620'], water: ['#3f6f98', '#2e5478', '#6f9fc8', '#1c3450'], dark: '#120c08' };
 FLOORS.underworks = {
     floor: (x, th, v) => {
-        fill(x, '#3a3028');
-        const slabs = [[[1, 1, 8, 6], [10, 1, 6, 6], [1, 8, 5, 8], [7, 8, 9, 8]], [[1, 1, 5, 9], [7, 1, 9, 5], [7, 7, 9, 9], [1, 11, 5, 5]], [[1, 1, 15, 5], [1, 7, 7, 9], [9, 7, 7, 9]], [[1, 1, 6, 15], [8, 1, 8, 7], [8, 9, 8, 7]]][v];
+        fill(x, '#4a3e36');
+        const slabs = [[[1, 1, 15, 7], [1, 9, 9, 7], [11, 9, 5, 7]], [[1, 1, 7, 15], [9, 1, 7, 9], [9, 11, 7, 5]], [[1, 1, 10, 6], [12, 1, 4, 6], [1, 8, 15, 8]], [[1, 1, 15, 15]]][v];
         slabs.forEach(([X, Y, w, h], n) => {
-            const t = ['#6e6258', '#665a50', '#76695e', '#6a5e54'][Math.floor(hash2(n, v, 5) * 4)];
-            fill(x, t, X, Y, w, h); fill(x, shade(t, 0.14), X, Y, w, 1); fill(x, shade(t, 0.14), X, Y, 1, h); fill(x, shade(t, -0.18), X, Y + h - 1, w, 1);
+            const t = ['#6e6258', '#6a5e54', '#72665b'][Math.floor(hash2(n, v, 5) * 3)];
+            fill(x, t, X, Y, w, h); fill(x, shade(t, 0.1), X, Y, w, 1); fill(x, shade(t, -0.12), X, Y + h - 1, w, 1);
         });
-        speckle(x, ['#5a4e46', '#80746a'], 50 + v, 0.08);
-        /* lint in the joints, and a thread-end */
-        for (let i = 0; i < 16; i++) if (hash2(i, v, 9) < 0.25) px(x, i, 0, '#b8aa98');
-        const f = ['#3fc1b5', '#e0913a', '#b48ce8', '#4f9be0'][v];
-        if (hash2(v, 3, 8) < 0.6) { px(x, 9, 7, f); px(x, 10, 7, f); px(x, 11, 6, f); }
+        speckle(x, ['#62564c', '#7a6e62'], 50 + v, 0.06);
+        /* lint gathered along a joint, and now and then a thread-end */
+        for (let i = 1; i < 16; i++) if (hash2(i, v, 9) < 0.18) px(x, i, 0, '#9a8c7c');
+        if (v === 2) { const f = '#b48ce8'; px(x, 9, 7, f); px(x, 10, 7, f); px(x, 11, 6, shade(f, -0.2)); }
     },
     floor2: (x, th, v) => { fill(x, '#7a6248'); speckle(x, ['#8a7258', '#6a5238'], 40 + v, 0.3); },
     floor3: (x, th, v) => { fill(x, '#3a2c22'); speckle(x, ['#4a3a2c', '#2a2018'], 30 + v, 0.35); },
@@ -214,7 +212,7 @@ defHouse({
                 { k: 'puppet', x: 11, y: 3, id: 'paWren', group: 'pa', look: 'puppet_wren', showThrough: true, stitchName: 'the little wooden Wren' },
                 { k: 'puppet', x: 13, y: 3, id: 'paBoy', group: 'pa', look: 'puppet_boy', showThrough: true, stitchName: 'the little wooden boy' },
                 { k: 'plate', x: 11, y: 8, sig: 'pa1' }, { k: 'plate', x: 13, y: 6, sig: 'pa2' },
-                { k: 'deco', x: 16, y: 0, look: 'spoolshelf', solid: false, baseY: -100 }, { k: 'deco', x: 3, y: 0, look: 'practiceboard', solid: false, baseY: -100 },
+                { k: 'deco', x: 16, y: 0, look: 'spoolshelf', solid: false, baseY: -100 }, { k: 'deco', x: 6, y: 0, look: 'practiceboard', solid: false, baseY: -100 },
                 { k: 'sign', x: 17, y: 8, text: "THE PRACTICE FLOOR. Every apprentice learns to work a House from underneath. Puppets first: they forgive you. -G." },
             ],
             nudge: { solved: 'spoolworks_gaGateE', after: 60 * 60 * 3, at: [12, 3], say: 'Two practice puppets, and not a string on them up here. Their strings run down through the floor.' },
@@ -238,9 +236,11 @@ defHouse({
             ents: [
                 { k: 'crate', x: 2, y: 2, id: 'rwCrate', patience: 180, stitchName: 'the old crate' },
                 { k: 'chest', x: 2, y: 8, item: 'key', id: 'rwKey' },
-                { k: 'deco', x: 11, y: 2, look: 'ropes', solid: false, baseY: -100 }, { k: 'deco', x: 11, y: 7, look: 'ropes', solid: false, baseY: -100 },
-                { k: 'deco', x: 1, y: 2, look: 'ropes_w', solid: false, baseY: -100 }, { k: 'deco', x: 1, y: 7, look: 'ropes_w', solid: false, baseY: -100 },
-                { k: 'deco', x: 19, y: 1, look: 'ropejack', solid: false, baseY: -100 }, { k: 'deco', x: 19, y: 6, look: 'ropejack', solid: false, baseY: -100 },
+                /* the ropes laid along the walk, from the jack on the east wall to the post on the west, snapped where the floor went */
+                { k: 'deco', x: 11, y: 2, look: 'ropes', ox: 0, solid: false, baseY: -100 }, { k: 'deco', x: 11, y: 7, look: 'ropes', ox: 0, solid: false, baseY: -100 },
+                { k: 'deco', x: 1, y: 2, look: 'ropes_w', ox: 0, solid: false, baseY: -100 }, { k: 'deco', x: 1, y: 7, look: 'ropes_w', ox: 0, solid: false, baseY: -100 },
+                { k: 'deco', x: 19, y: 2, look: 'ropejack', ox: 0, solid: false, baseY: -100 }, { k: 'deco', x: 19, y: 7, look: 'ropejack', ox: 0, solid: false, baseY: -100 },
+                { k: 'deco', x: 0, y: 2, look: 'ropepost', ox: 0, solid: false, baseY: -100 }, { k: 'deco', x: 0, y: 7, look: 'ropepost', ox: 0, solid: false, baseY: -100 },
                 { k: 'sign', x: 17, y: 9, text: "THE ROPEWALK. The floor went in the big frost, and the ropes with it. Mind the gap. -G." },
             ],
             nudge: { solved: 'spoolworks_chest:rwKey', after: 60 * 60 * 3, at: [2, 2], say: "That crate's too far off, and never in line with anywhere you can stand. From underneath, though, everything up here hangs within reach." },
@@ -369,7 +369,7 @@ defHouse({
             rows: [
                 '##.#################',
                 '##.#################',
-                '##..################',
+                '##.#################',
                 '##.#################',
                 '#..................#',
                 '#..................#',
@@ -512,9 +512,13 @@ defHouse({
         },
     },
     tick: a => Spoolworks.tick(a),
+    build: a => Spoolworks.build(a),
 });
 
 const Spoolworks = {
+    /* (an older save may hold a stitch for the weight that used to stand under the Spool Store: it's gone now, and a
+       stitch for nothing shouldn't take up one of the Needle's three) */
+    build(a) { if (Inv.stitches) Inv.stitches = Inv.stitches.filter(r => !(r.area === 'spoolworks' && r.key === 'usWeight')); },
     tick(a) {
         /* the Bobbin Loft opens when all four plates have been held down together a moment (not a single frame) */
         const all = ['bl1', 'bl2', 'bl3', 'bl4'].every(s => Signals.get(a, s));
@@ -598,18 +602,26 @@ function initSpoolworks() {
         R('#e8e4d8', 22, 5, 4, 1); R('#e8e4d8', 24, 5, 1, 6); R('#e8e4d8', 21, 8, 7, 1);
     });
     /* the ropewalk's rope jack (on the east wall) and its ropes, snapped where the floor went */
-    deco('ropejack', 16, 32, x => {
+    deco('ropejack', 16, 16, x => {
+        /* the jack the strands are twisted from: a crank wheel on a block, three hooks */
         const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
-        R('#6a4630', 3, 2, 10, 26); R('#9a6438', 4, 3, 8, 24);
-        x.strokeStyle = '#c9a24a'; x.lineWidth = 1; x.beginPath(); x.arc(8, 15, 6, 0, Math.PI * 2); x.stroke();
-        for (let i = 0; i < 3; i++) { R('#c9a24a', 2, 10 + i * 5, 3, 2); R('#e8d8b0', 0, 10 + i * 5, 3, 1); }
+        R('#6a4630', 5, 1, 9, 14); R('#9a6438', 6, 2, 7, 12);
+        x.strokeStyle = '#c9a24a'; x.lineWidth = 1; x.beginPath(); x.arc(10, 8, 3, 0, Math.PI * 2); x.stroke();
+        for (const y of [4, 8, 12]) { R('#c9a24a', 2, y, 4, 1); R('#c9a24a', 2, y - 1, 1, 1); }
     });
-    const ropes = (n, west) => deco(n, 112, 16, x => {
+    deco('ropepost', 16, 16, x => {
+        /* the far post, the strands' ends tied round it */
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        R('#6a4630', 4, 1, 6, 14); R('#9a6438', 5, 2, 4, 12);
+        for (const y of [4, 8, 12]) { R('#d8c08a', 3, y, 9, 1); R('#a8905a', 10, y + 1, 4, 1); }
+    });
+    const ropes = (n, west) => deco(n, west ? 112 : 128, 16, x => {
+        const w = west ? 112 : 128;
         const strand = (y0, c, c2) => {
-            for (let i = 0; i < 112; i++) {
-                const fr = west ? i > 104 - (y0 % 3) * 2 : i < 6 + (y0 % 3) * 2;     /* the frayed end at the gap */
-                const dy = fr ? Math.round(Math.sin(i * 1.3 + y0) * 1.5) + (west ? i - 104 : 6 - i) / 3 : 0;
-                x.fillStyle = (i + y0) % 4 < 2 ? c : c2; x.fillRect(i, y0 + Math.round(dy), 1, 1);
+            for (let i = 0; i < w; i++) {
+                const end = west ? w - 8 - (y0 % 3) * 2 : 8 + (y0 % 3) * 2, fr = west ? i > end : i < end;     /* the frayed end at the gap */
+                const dy = fr ? Math.round(Math.sin(i * 1.3 + y0) * 1.2 + (west ? i - end : end - i) / 2) : 0;
+                x.fillStyle = (i + y0) % 4 < 2 ? c : c2; x.fillRect(i, y0 + dy, 1, 1);
             }
         };
         strand(4, '#d8c08a', '#a8905a'); strand(8, '#c9a46a', '#99743e'); strand(12, '#d8c08a', '#a8905a');

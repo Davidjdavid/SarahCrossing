@@ -58,8 +58,8 @@ test('4: the Tangle pulls a loose bobbin back in; only held ones (stitched, tied
     enter(HW, 'heart', 9, 9); HW.walkTo(...at('heart', 6, 7)); HW.step(5); HW.skipTalk(); HW.step(5);
     const t = HW.G.map.ents.find(e => e.kind === 'tangle'), B = id => thing(HW, id);
     go(HW, 'heart', 8, 2); HW.face('right'); stitch(HW, 'UL'); until(HW, () => HW.Return.isHome(B('tbN')), 60);
-    go(HW, 'heart', 4, 4); HW.face('down'); stitch(HW, 'LL'); until(HW, () => HW.Return.isHome(B('tbW')), 60);
-    go(HW, 'heart', 14, 4); HW.face('down'); stitch(HW, 'RR'); until(HW, () => HW.Return.isHome(B('tbE')), 60);
+    go(HW, 'heart', 6, 4); HW.face('down'); stitch(HW, 'LL'); until(HW, () => HW.Return.isHome(B('tbW')), 60);
+    go(HW, 'heart', 12, 4); HW.face('down'); stitch(HW, 'RR'); until(HW, () => HW.Return.isHome(B('tbE')), 60);
     go(HW, 'heart', 8, 8); HW.push('right', 2); HW.step(20); go(HW, 'heart', 13, 8);
     assert.ok(!until(HW, () => t.state === 'open', 500), 'never opens');
     assert.deepEqual([B('tbS').tx, B('tbS').ty], at('heart', 9, 8), 'yanked back in');

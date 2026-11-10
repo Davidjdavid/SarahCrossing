@@ -236,8 +236,8 @@ class Tangle extends Ent {
         Sfx.play('twang'); G.shake = 4;
         this.squeeze();
     }
-    /* winding itself up where Wren stands: out she comes, with a knock */
-    squeeze() { const p = G.player; if (p.area === this.area && this.blocks(p.tx, p.ty, null)) { p.hurt(1, this.x + 8, this.y + 8); p.unstick(); } }
+    /* winding itself up where Wren stands: out she comes (with a knock, if it's caught her napping) */
+    squeeze(hurt = true) { const p = G.player; if (p.area === this.area && this.blocks(p.tx, p.ty, null)) { if (hurt) p.hurt(1, this.x + 8, this.y + 8); p.unstick(); } }
     /* a knock: it yanks every thread; knots slip, anything out and not held snaps home (a stitched bobbin is home) */
     yank() {
         let slipped = false;
@@ -340,10 +340,10 @@ class Tangle extends Ent {
                 Gfx.line(x0, y0, x1, y1, cols[i % cols.length]);
             }
             /* its eyes: stitched shut, till it opens them (two buttons, two holes each) */
-            if (this.eyes) for (const ex of [x - 5, x + 5]) {
-                Gfx.rect(ex - 1, hy - 3, 3, 1, PAL.ink); Gfx.rect(ex - 1, hy + 1, 3, 1, PAL.ink); Gfx.rect(ex - 2, hy - 2, 1, 3, PAL.ink); Gfx.rect(ex + 2, hy - 2, 1, 3, PAL.ink);
-                Gfx.rect(ex - 1, hy - 2, 3, 3, '#e8b04a'); Gfx.rect(ex - 1, hy - 2, 1, 1, '#fff0b0'); Gfx.rect(ex - 1, hy - 1, 1, 1, '#5a3a1a'); Gfx.rect(ex + 1, hy - 1, 1, 1, '#5a3a1a');
-            } else { Gfx.rect(x - 7, hy - 1, 5, 1, PAL.ink); Gfx.rect(x + 3, hy - 1, 5, 1, PAL.ink); for (const ex of [x - 6, x - 4, x + 4, x + 6]) Gfx.rect(ex, hy, 1, 1, PAL.ink); }
+            if (this.eyes) for (const ex of [x - 6, x + 6]) {
+                Gfx.circle(ex, hy, 4, PAL.ink); Gfx.circle(ex, hy, 3, '#e8b04a'); Gfx.rect(ex - 2, hy - 2, 2, 1, '#fff0b0');
+                Gfx.rect(ex - 1, hy, 1, 1, '#5a3a1a'); Gfx.rect(ex + 1, hy, 1, 1, '#5a3a1a');
+            } else for (const ex of [x - 6, x + 6]) { Gfx.rect(ex - 3, hy, 7, 1, PAL.ink); for (const d of [-2, 0, 2]) Gfx.rect(ex + d, hy - 1, 1, 3, PAL.ink); }
             if (this.lashT > 0 && (this.t >> 1) % 2) Gfx.circle(x, hy + 2, R + 4, THREAD.guild);
             if (this.flash > 0 && (this.flash >> 1) % 2) { Gfx.alpha(0.5); Gfx.circle(x, hy + 2, R, '#ffffff'); Gfx.alpha(1); }
         }
@@ -397,7 +397,7 @@ const SpoolFoes = {
     /* knocked twice: the hoist torn down and wound round the trapdoor, and then it hauls */
     *tangleHaul(t) {
         const slipped = t.yank();
-        t.state = 'haul'; t.st = 0; t.haulT = 0; t.gone = true; t.seal();
+        t.state = 'haul'; t.st = 0; t.haulT = 0; t.gone = true; t.seal(); t.squeeze(false);
         G.shake = 8; Sfx.play('rumble');
         yield 40;
         const h = t.trap();
@@ -438,7 +438,7 @@ const SpoolFoes = {
             const up = Signals.get(a, 'hoist');
             /* (hooked into the top of the Tangle while it hangs there or lies let down; else empty, up or down) */
             const top = t ? oy + 5 * T + 6 - Math.round(t.lift) - (22 - t.pulled * 3) : 0;
-            const hookY = t && (t.state === 'up' || t.state === 'down' || t.lift > 1) ? top - 2 : up ? oy + 30 : oy + 4 * T;
+            const hookY = t && (t.state === 'up' || t.state === 'down' || t.lift > 1) ? top - 2 : up ? oy + 17 : oy + 4 * T;
             Gfx.line(px0 + 3, py0, px0 + 3, hookY, '#d8c8a8'); Gfx.line(px0 + 4, py0, px0 + 4, hookY, '#8a7a5a');
             Gfx.line(wx, py0 + 2, px0 - 3, py0 + 2, '#d8c8a8'); Gfx.line(wx, py0 + 2, wx, gy, '#d8c8a8'); Gfx.line(wx + 1, py0 + 3, wx + 1, gy, '#8a7a5a');
             Gfx.rect(wx - 1, gy, 6, 2, '#c9a24a'); Gfx.rect(wx, gy - 1, 4, 1, '#f7d64a');

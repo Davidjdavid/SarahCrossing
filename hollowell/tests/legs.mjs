@@ -7,6 +7,17 @@ const TIDY = { foyer: [20, 33], kitchen: [0, 33], gallery: [40, 33], hall: [20, 
 function t(room, x, y) { const [ox, oy] = TIDY[room]; return [ox + x, oy + y]; }
 
 
+/* Reveal 1, on the great stage: walk up to each Maker in the line and hear them out (after the sixth, the end of it plays) */
+export function hearMakers(HW) {
+    for (let k = 0; k < 8; k++) {
+        const n = HW.G.map.ents.find(e => e.kind === 'npc' && e.r1 && e.bubble);
+        if (!n) return;
+        const spot = [[n.tx, n.ty + 1, 'up'], [n.tx - 1, n.ty, 'right'], [n.tx + 1, n.ty, 'left']].find(([x, y]) => HW.walkTo(x, y));
+        assert.ok(spot, `up to ${n.who}`);
+        HW.face(spot[2]); HW.press('act', 1); HW.skipTalk();
+    }
+}
+
 /* at the top: carry a crate under a great thread near its post, let the Pull drag it along (slack), and cut */
 export function slackAndCut(HW, post, origin) {
     const a = HW.G.map, p = HW.player();
@@ -705,6 +716,10 @@ export const LEG6 = (HW, chain) => {
         if (g.alive) until(() => thing('gsWrenA').ret.state === 'home' && thing('gsWrenB').ret.state === 'home', 600);
     }
     ok(!g.alive, 'the Great Marionette down');
+    /* the curtain, Jory, the Makers in a line; then each of them heard out */
+    HW.skipTalk(); HW.step(20);
+    ok(HW.G.map.ents.filter(e => e.r1).length === 6, 'six Makers on the stage');
+    hearMakers(HW);
     for (let i = 0; i < 40 && !HW.Progress.flag('reveal1'); i++) { HW.skipTalk(); HW.step(20); }
     ok(HW.Progress.flag('reveal1'), 'Reveal 1'); HW.skipTalk(); HW.step(20);
     HW.G.cheats.god = false;
@@ -726,11 +741,13 @@ export const LEG7 = (HW, chain) => {
     const until = (fn, max = 3000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
     const talk = () => { HW.press('act', 1); HW.skipTalk(); };
     const p = () => HW.player();
-    const S = { gate: [20, 22], wind: [20, 11], store: [0, 11], kennel: [40, 11], loft: [0, 0], heart: [20, 0], ugate: [20, 55], uwind: [20, 44], ustore: [0, 44], ukennel: [40, 44], uloft: [0, 33], uheart: [20, 33] };
+    const S = { gate: [20, 22], wind: [20, 11], store: [0, 11], kennel: [40, 11], practice: [40, 22], rope: [0, 22], loft: [0, 0], heart: [20, 0], ugate: [20, 55], uwind: [20, 44], ustore: [0, 44], ukennel: [40, 44], upractice: [40, 55], urope: [0, 55], uloft: [0, 33], uheart: [20, 33] };
     const s = (r, x, y) => [S[r][0] + x, S[r][1] + y];
     const hatch = (r, x, y, d) => { walk(...s(r, x, y)); HW.face(d); HW.press('act', 1); HW.step(40); };
     const knot = () => { HW.hold('act'); HW.step(20); HW.release(); HW.step(2); };
     const stitch = moves => { const names = { U: 'up', D: 'down', L: 'left', R: 'right' }; HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(2); for (const m of moves) { HW.hold(names[m]); HW.step(2); HW.release(); HW.step(8); } HW.press('tool', 1); HW.step(2); };
+    const rack = moves => { const names = { U: 'up', D: 'down', L: 'left', R: 'right' }; HW.Inv.equipped = 'crossbar'; HW.press('tool', 1); HW.step(2); for (const m of moves) { HW.hold(names[m]); HW.step(4); HW.release(); HW.step(14); } HW.press('tool', 1); HW.step(2); };
+    const into = (name, d) => { HW.hold(d); until(() => HW.Cam.room && HW.Cam.room.name === name && !HW.Cam.busy, 240); HW.release(); HW.step(2); ok(HW.Cam.room.name === name, 'into ' + name); };
     if (chain) chain('afterD6'); else HW.preset('afterD6'); HW.step(10); HW.skipTalk();
     HW.Inv.maxHp = HW.Inv.hp = 34;
 
@@ -764,19 +781,43 @@ export const LEG7 = (HW, chain) => {
     walk(...s('ustore', 5, 7)); HW.face('down'); talk(); ok(HW.Inv.plans.includes('spoolworks'), 'the Plan');
     hatch('ustore', 15, 5, 'right');
     walk(...s('store', 2, 3)); HW.face('up'); talk(); ok(HW.Inv.keys('spoolworks') === 1, 'the key');
-    /* the Kennel: Cog */
-    walk(...s('wind', 18, 5)); HW.hold('right'); HW.step(40); HW.release(); HW.step(20); HW.skipTalk(); HW.step(5);
+    /* the Kennel: Cog (he wakes once she's well inside); two knocks */
+    walk(...s('wind', 18, 5)); HW.hold('right'); HW.step(40); HW.release(); HW.step(5); walk(...s('kennel', 3, 5)); HW.step(2); HW.skipTalk(); HW.step(5);
     const cog = HW.G.map.ents.find(e => e.type === 'cog');
-    for (let round = 0; round < 3 && cog.alive; round++) {
+    for (let round = 0; round < 3 && cog.alive && !cog.down; round++) {
         hatch('kennel', 9, 7, 'down'); until(() => cog.state === 'sit', 400);
         walk(...s('ukennel', 9, 5)); HW.face('up'); knot(); ok(cog.knotted, 'Cog held');
         hatch('ukennel', 9, 7, 'down'); walk(...s('kennel', 9, 5)); HW.face('up'); HW.press('atk', 1); HW.step(24);
     }
-    ok(!cog.alive, 'Cog runs down'); HW.step(30); HW.skipTalk(); HW.step(10);
+    HW.skipTalk(); HW.step(10);
+    ok(!cog.alive, 'Cog runs down');
     walk(...s('kennel', 5, 3)); HW.face('up'); talk(); ok(HW.Inv.has('needle'), 'the Needle');
-    /* under the Spool Store: the weight in the way, given a new place */
-    walk(...s('kennel', 1, 5)); hatch('store', 15, 5, 'right');
-    walk(...s('ustore', 2, 4)); HW.face('up'); stitch('R'); until(() => HW.Return.isHome(thing('usWeight')), 60);
+    /* the Kennel's south door: the weight in the way, given a new place */
+    walk(...s('practice', 9, 0)); HW.face('down'); stitch('R'); ok(until(() => HW.Return.isHome(thing('paWeight')), 60), 'the weight in its nook');
+    /* the Practice Floor, from the rack below: the boy onto his plate and tied off; the little Wren on, alone, and tied */
+    walk(...s('practice', 9, 3)); hatch('practice', 3, 7, 'down');
+    walk(...s('upractice', 12, 4)); HW.face('up'); rack('DDD');
+    walk(...s('upractice', 13, 4)); HW.face('up'); knot();
+    walk(...s('upractice', 12, 4)); HW.face('up'); rack('DD');
+    walk(...s('upractice', 11, 4)); HW.face('up'); knot();
+    ok(thing('paWren').knotted && thing('paBoy').knotted, 'both puppets held on their plates');
+    hatch('upractice', 3, 7, 'down');
+    walk(...s('practice', 1, 5)); into('The Gatehouse', 'left');
+    walk(...s('gate', 3, 5)); ok(HW.Progress.areaFlag('spoolworks', 'door:gaGateE'), 'out through the Gatehouse door');
+    /* the Ropewalk, across the hall: below, the crate moved into line through its cord and tied off; hooked over the gap */
+    walk(...s('gate', 1, 5)); into('The Ropewalk', 'left');
+    hatch('rope', 15, 7, 'down');
+    walk(...s('urope', 2, 3)); HW.face('up'); stitch('RRRR'); ok(until(() => HW.Return.isHome(thing('rwCrate')), 120), 'the crate in line');
+    walk(...s('urope', 6, 3)); HW.face('up'); knot(); ok(thing('rwCrate').knotted, 'tied off');
+    hatch('urope', 15, 7, 'down');
+    walk(...s('rope', 11, 2)); HW.face('left'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); until(() => p().state === 'normal' && !HW.global('TOOLS').hook.h, 120); HW.step(2);
+    ok(p().tx === s('rope', 7, 2)[0], 'hooked over the gap');
+    walk(...s('rope', 2, 7)); HW.face('down'); talk(); ok(HW.Inv.keys('spoolworks') === 1, 'the Ropewalk key');
+    /* out by its far door into the Spool Store, down the hatch; the lock north, to the Loft */
+    walk(...s('rope', 4, 1)); into('The Spool Store', 'up');
+    hatch('store', 15, 5, 'right');
+    walk(...s('ustore', 2, 2)); HW.hold('up'); HW.step(60); HW.release(); HW.step(5);
+    ok(HW.Inv.keys('spoolworks') === 0, 'unlocked');
     /* the Bobbin Loft: three stitched, the fourth tied off below */
     hatch('uloft', 9, 7, 'down');
     walk(...s('loft', 6, 5)); HW.face('up'); stitch('LLLU'); until(() => HW.Return.isHome(thing('blB1')), 120);
@@ -789,16 +830,31 @@ export const LEG7 = (HW, chain) => {
     walk(...s('store', 9, 1)); walk(...s('wind', 9, 1)); HW.hold('up'); HW.step(40); HW.release(); HW.step(30);
     walk(...s('heart', 6, 7)); HW.skipTalk(); HW.step(5);
     const t = HW.G.map.ents.find(e => e.kind === 'tangle');
-    for (let round = 0; round < 3 && t.alive; round++) {
-        until(() => ['tbN', 'tbW', 'tbE', 'tbS'].every(id => HW.Return.isHome(thing(id)) && !thing(id).mv), 300);
-        walk(...s('heart', 8, 2)); HW.face('right'); stitch('UL'); until(() => HW.Return.isHome(thing('tbN')), 60);
-        walk(...s('heart', 4, 4)); HW.face('down'); stitch('LL'); until(() => HW.Return.isHome(thing('tbW')), 60);
-        walk(...s('heart', 14, 4)); HW.face('down'); stitch('RR'); until(() => HW.Return.isHome(thing('tbE')), 60);
-        walk(...s('heart', 8, 8)); HW.push('right', 2); HW.step(25);
-        hatch('heart', 2, 7, 'down'); walk(...s('uheart', 9, 7)); HW.face('down'); knot(); hatch('uheart', 2, 7, 'down');
-        ok(until(() => t.state === 'open', 300), 'the Tangle comes apart');
-        walk(...s('heart', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(30);
-    }
+    /* 1: three stitched away, the fourth pushed off and tied below; knock the core */
+    until(() => ['tbN', 'tbW', 'tbE', 'tbS'].every(id => HW.Return.isHome(thing(id)) && !thing(id).mv), 300);
+    walk(...s('heart', 8, 2)); HW.face('right'); stitch('UL'); until(() => HW.Return.isHome(thing('tbN')), 60);
+    walk(...s('heart', 6, 4)); HW.face('down'); stitch('LL'); until(() => HW.Return.isHome(thing('tbW')), 60);
+    walk(...s('heart', 12, 4)); HW.face('down'); stitch('RR'); until(() => HW.Return.isHome(thing('tbE')), 60);
+    walk(...s('heart', 8, 8)); HW.push('right', 2); HW.step(25);
+    hatch('heart', 2, 7, 'down'); walk(...s('uheart', 9, 7)); HW.face('down'); knot(); hatch('uheart', 2, 7, 'down');
+    ok(until(() => t.state === 'open', 300), 'the Tangle comes apart');
+    walk(...s('heart', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(30); HW.skipTalk(); HW.step(5);
+    ok(t.hp === 2 && t.state === 'up', 'up on the hoist');
+    /* 2: below, the hoist's counterweight off its plate: down it comes; knock it */
+    hatch('heart', 2, 7, 'down'); walk(...s('uheart', 1, 7)); HW.push('up', 1);
+    ok(until(() => t.state === 'down', 120), 'let down');
+    hatch('uheart', 2, 7, 'down'); walk(...s('heart', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(30); HW.skipTalk(); HW.step(5);
+    ok(t.hp === 1 && t.state === 'haul', 'it hauls everything in');
+    /* 3: the fourth gripped and held out, the Bell rung with the other hand: everything goes home at once, where it
+       was put; knock the core */
+    until(() => t.haulT === 0 && thing('tbN').ret.state !== 'home', 400);
+    walk(...s('heart', 10, 8)); HW.face('left'); HW.hold('act'); HW.step(3);
+    HW.hold(['act', 'right']); until(() => p().tx === s('heart', 11, 8)[0] && !thing('tbS').mv, 60); HW.hold('act'); HW.step(2);
+    until(() => t.haulT === 2, 200);
+    HW.Inv.equipped = 'bell'; HW.hold(['act', 'tool']); HW.step(1); HW.hold('act');
+    ok(until(() => t.state === 'open', 90), 'every thread out at once');
+    HW.release(); HW.step(2);
+    walk(...s('heart', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(30);
     ok(!t.alive, 'the Tangle undone');
     for (let i = 0; i < 20 && !HW.Progress.flag('d7'); i++) { HW.skipTalk(); HW.step(20); }
     ok(HW.Progress.flag('d7'), 'Gundry: an apprentice');

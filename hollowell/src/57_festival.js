@@ -125,7 +125,7 @@ const Festival = {
             yield 1;
         }
         yield 30;
-        yield* say(null, "Bram has clay up to his elbows. Your dad is soaked to the shoulder. Your mum's hair is full of brass dust. Ives has a feather duster in her apron pocket.");
+        yield* say(null, "Bram has clay up to his elbows. Your dad is soaked to the shoulder. Your mum's hair is full of brass dust. Ives has a feather duster in her apron pocket.", { focus: [X + 31, Y + 22] });
         yield* say('tess', 'Sorry! Sorry. Busy day.');
         yield* say('ambrose', 'Very busy.');
         yield* say('bram', "Pots don't make themselves! HA!");
@@ -227,9 +227,9 @@ const MakerProps = {
     },
     crossbar(R, d, t) {
         /* (as wide as a door, held up in both hands; a few slack strings still hanging off it) */
-        R(PAL.ink, -7, 6, 30, 5); R('#9a6438', -6, 7, 28, 3); R('#c9925a', -6, 7, 28, 1);
-        R(PAL.ink, 6, 3, 4, 11); R('#9a6438', 7, 4, 2, 9);
-        for (const x of [-5, 0, 16, 21]) R('#cfc6b8', x, 10, 1, 4 + (x & 3));
+        R(PAL.ink, -7, 11, 30, 5); R('#9a6438', -6, 12, 28, 3); R('#c9925a', -6, 12, 28, 1);
+        R(PAL.ink, 6, 9, 4, 10); R('#9a6438', 7, 10, 2, 8);
+        for (const x of [-5, 0, 16, 21]) R('#cfc6b8', x, 15, 1, 4 + (x & 3));
     },
     draw(n, sx, sy) {
         const f = MakerProps[n.prop]; if (!f) return;

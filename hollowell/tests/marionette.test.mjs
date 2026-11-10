@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
+import { hearMakers } from './legs.mjs';
 
 const R = { foyer: [20, 33], box: [40, 33], aud: [20, 22], pit: [0, 22], reh: [40, 22], wings: [20, 11], dress: [0, 11], props: [40, 11], shop: [40, 0], stage: [20, 0] };
 const at = (room, x, y) => [R[room][0] + x, R[room][1] + y];
@@ -161,6 +162,11 @@ test('the great stage: line your two little Wrens up against its feet, walk them
         if (g.alive) until(HW, () => thing(HW, 'gsWrenA').ret.state === 'home' && thing(HW, 'gsWrenB').ret.state === 'home', 600);
     }
     assert.ok(!g.alive, 'down for good');
+    /* the curtain, Jory, the Makers lined up on the stage, each heard out in turn; then the end of it */
+    HW.skipTalk(); HW.step(20);
+    assert.equal(HW.G.map.ents.filter(e => e.r1).length, 6, 'six Makers on the stage');
+    assert.ok(!HW.Progress.flag('reveal1'), 'not till they have all been heard');
+    hearMakers(HW);
     for (let i = 0; i < 40 && !HW.Progress.flag('reveal1'); i++) { HW.skipTalk(); HW.step(20); }
     assert.ok(HW.Progress.flag('reveal1'), 'Reveal 1');
     HW.skipTalk(); HW.step(20);

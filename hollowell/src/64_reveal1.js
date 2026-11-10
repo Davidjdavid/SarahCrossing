@@ -52,7 +52,7 @@ const Reveal1 = {
     },
     /* the rest of the Makers out of the wings, into a line; then the stage is yours */
     *run(g) {
-        const a = g.area, br = a.rooms.find(r => r.key === '1,0'), p = G.player, rig = this.rig;
+        const a = g.area, br = a.rooms.find(r => r.key === '1,0'), rig = this.rig;
         this.g = g; this.heard = new Set();
         const go = (n, tx, ty, sp) => { n.goal = [br.x + tx, br.y + ty, sp]; n.stuck = 0; n.walkTo(br.x + tx, br.y + ty, sp); };
         const out = (who, x, y, tx, ty) => {
@@ -110,9 +110,8 @@ const Reveal1 = {
         yield* this.finish(this.g);
     },
     *finish(g) {
-        const a = g.area, br = a.rooms.find(r => r.key === '1,0'), p = G.player;
+        const a = g.area, br = a.rooms.find(r => r.key === '1,0');
         const cast = a.ents.filter(e => e.kind === 'npc' && e.r1);
-        const jory = cast.find(e => e.who === 'jory');
         G.hideHud = true;
         yield 20;
         yield* say('jory', "Here's the thing. The last part of a Wander isn't a House: it's learning to make one. Under the Inn there's a door marked STAFF ONLY. It's open now. Come down and see.");
@@ -208,9 +207,11 @@ AREAS.marionette.ents.push({ k: 'deco', x: 20 + 6, y: 0 + 4, look: 'curtain_heap
     const prev = MarionetteHall.afterKnot;
     MarionetteHall.afterKnot = function* () {
         /* up in the flies, six faces you know, looking down, crying very quietly */
-        const a = G.map, r = a.rooms.find(q => q.key === '1,0'), peek = r ? a.add(new FliesPeek(r)) : null;
+        const a = G.map, r = a.rooms.find(q => q.key === '1,0'), peek = r ? a.add(new FliesPeek(r)) : null, hud = G.hideHud;
+        G.hideHud = true;
         yield* prev.call(this);
         if (peek) a.remove(peek);
+        G.hideHud = hud;
         Progress.setGoal('Hollowell: the Inn, and the door marked STAFF ONLY. The Makers are waiting below.');
     };
 }
@@ -221,11 +222,11 @@ class FliesPeek extends Ent {
     draw(cx, cy) {
         ['ives', 'bram', 'ambrose', 'tess', 'mallow', 'jory'].forEach((who, i) => {
             const im = personFrame(who, DOWN, 0); if (!im) return;
-            const x = (this.r.x + [4, 6, 8, 11, 13, 15][i]) * T - cx, y = this.r.y * T - cy + 4 + Math.round(Math.sin(this.t / 30 + i) * 0.6);
+            const x = (this.r.x + [4, 6, 8, 11, 13, 15][i]) * T - cx, y = this.r.y * T - cy + 6 + Math.round(Math.sin(this.t / 30 + i) * 0.6);
             Gfx.sub(im, 0, 0, 16, 10, x, y);
             if ((this.t + i * 11) % 40 < 22) Gfx.rect(x + 4 + (i % 2) * 7, y + 9 + ((this.t + i * 11) % 40 >> 2), 1, 2, '#9fd4f0');
         });
-        Gfx.rect(this.r.x * T - cx + 16, this.r.y * T - cy + 13, 288, 2, '#3a0a16');
+        Gfx.rect(this.r.x * T - cx + 16, this.r.y * T - cy + 15, 288, 2, '#3a0a16');
     }
 }
 

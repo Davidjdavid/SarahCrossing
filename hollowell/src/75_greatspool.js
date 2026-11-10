@@ -403,25 +403,27 @@ const GreatSpool = {
         yield* say('gran', i === 0 ? "...Let go." : "...Home.");
         /* and she takes her hands off the Spool and comes to you, and Linnet to her other side: one hand in yours, one in
            Linnet's (shown, not told: Ending.hands draws the hands held) */
-        const fits = s => free(p.tx + s, p.ty, gran) && free(p.tx + 2 * s, p.ty, linnet) && route(gran, p.tx + s, p.ty) && route(linnet, p.tx + 2 * s, p.ty, [[p.tx + s, p.ty]]);
-        let s = p.tx < r.x + 10 ? 1 : -1;
-        if (!fits(s)) s = -s;
-        if (!fits(s)) { yield* walkTo(p, r.x + 8, r.y + 6); s = 1; }
-        p.dir = s > 0 ? RIGHT : LEFT;
-        const spots = [[gran, p.tx + s, 0.6, []], [linnet, p.tx + 2 * s, 0.8, [[p.tx + s, p.ty]]]];
-        go(gran, p.tx + s, p.ty, 0.6);
-        yield 40;
-        go(linnet, p.tx + 2 * s, p.ty, 0.8, [[p.tx + s, p.ty]]);
-        for (let t = 0; t < 420 && spots.some(([n, x]) => n.walking || n.mv || n.tx !== x || n.ty !== p.ty); t++) {
-            /* (one held up by the other a while finds its way again) */
-            if (t % 90 === 89) for (const [n, x, sp, avoid] of spots) if (!n.mv && (n.tx !== x || n.ty !== p.ty)) go(n, x, p.ty, sp, avoid);
-            yield 1;
+        if (gran) {
+            const fits = s => free(p.tx + s, p.ty, gran) && free(p.tx + 2 * s, p.ty, linnet) && route(gran, p.tx + s, p.ty) && route(linnet, p.tx + 2 * s, p.ty, [[p.tx + s, p.ty]]);
+            let s = p.tx < r.x + 10 ? 1 : -1;
+            if (!fits(s)) s = -s;
+            if (!fits(s)) { yield* walkTo(p, r.x + 8, r.y + 6); s = 1; }
+            p.dir = s > 0 ? RIGHT : LEFT;
+            const spots = [[gran, p.tx + s, 0.6, []], [linnet, p.tx + 2 * s, 0.8, [[p.tx + s, p.ty]]]];
+            go(gran, p.tx + s, p.ty, 0.6);
+            yield 40;
+            go(linnet, p.tx + 2 * s, p.ty, 0.8, [[p.tx + s, p.ty]]);
+            for (let t = 0; t < 420 && spots.some(([n, x]) => n.walking || n.mv || n.tx !== x || n.ty !== p.ty); t++) {
+                /* (one held up by the other a while finds its way again) */
+                if (t % 90 === 89) for (const [n, x, sp, avoid] of spots) if (!n.mv && (n.tx !== x || n.ty !== p.ty)) go(n, x, p.ty, sp, avoid);
+                yield 1;
+            }
+            for (const [n, x] of spots) if (n.tx !== x || n.ty !== p.ty) { a.unplace(n, n.tx, n.ty); n.mv = null; n.path = null; n.walking = false; n.tx = x; n.ty = p.ty; n.x = n.tx * T; n.y = n.ty * T; a.place(n, n.tx, n.ty); }
+            yield 12;
+            p.dir = gran.dir = linnet.dir = DOWN; gran.fixedFace = linnet.fixedFace = true;
+            Ending.hands = s > 0 ? [p, gran, linnet] : [linnet, gran, p];
+            yield 100;
         }
-        for (const [n, x] of spots) if (n.tx !== x || n.ty !== p.ty) { a.unplace(n, n.tx, n.ty); n.mv = null; n.path = null; n.walking = false; n.tx = x; n.ty = p.ty; n.x = n.tx * T; n.y = n.ty * T; a.place(n, n.tx, n.ty); }
-        yield 12;
-        p.dir = gran.dir = linnet.dir = DOWN; gran.fixedFace = linnet.fixedFace = true;
-        Ending.hands = s > 0 ? [p, gran, linnet] : [linnet, gran, p];
-        yield 100;
         yield* Ending.unwinding();
     },
 };

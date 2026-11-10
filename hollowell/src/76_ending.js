@@ -25,9 +25,9 @@ const Ending = {
         G.slack = { t: 0, from: ring };
         yield* fadeIn(60);
         yield 30;
-        for (let i = 0; i < 110; i++) { G.slack.t++; yield 1; }
+        for (let i = 0; i < 95; i++) { G.slack.t++; yield 1; }
         yield* say(null, 'Every thread in the valley goes slack at once. Then, for a long moment, nothing at all.', { focus: [95, 56] });
-        for (let i = 0; i < 70; i++) { G.slack.t++; yield 1; }
+        for (let i = 0; i < 50; i++) { G.slack.t++; yield 1; }
         G.slack = null;
         Music.play('drift');
         /* the birds: up off the roofs and away over the edge of the valley; a long while; and back */
@@ -35,21 +35,21 @@ const Ending = {
         yield* camLook({ x: 98 * T, y: 47 * T }, 120);
         yield 30;
         flock.go();
-        for (let i = 0; i < 150; i++) yield 1;
+        for (let i = 0; i < 125; i++) yield 1;
         yield* say(null, 'They fly out over the edge of the valley, further than anything has ever flown from here.', { focus: [98, 45] });
         yield 40;
         yield* say(null, 'You watch the sky a long time.', { focus: [98, 45] });
         flock.back();
         for (let i = 0; i < 400 && !flock.landed; i++) yield 1;
-        yield 40;
+        yield 20;
         /* then everyone steps off their spot: Miss Quill takes the children up the hill, Old Arlo walks down to the
            river (Fisher Hob is out in a boat), the Makers come over to you, everyone else wherever they like */
         yield* camLook(95, 60, 120);
         const arlo = Ending.scatter(a, ring, p);
-        for (let i = 0; i < 60; i++) { Ending.nudge(); yield 1; }
-        for (let i = 0; i < 420 && arlo && (i < 40 || arlo.tx !== 113 || arlo.ty !== 62 || arlo.mv); i++) { Ending.nudge(); Cam.look = { x: arlo.px + 8, y: arlo.py + 8 }; yield 1; }
+        for (let i = 0; i < 40; i++) { Ending.nudge(); yield 1; }
+        for (let i = 0; i < 420 && arlo && (i < 40 || arlo.tx !== 112 || arlo.ty !== 62 || arlo.mv); i++) { Ending.nudge(); Cam.look = { x: arlo.px + 8, y: arlo.py + 8 }; yield 1; }
         if (arlo) arlo.dir = RIGHT;
-        for (let i = 0; i < 30; i++) { Ending.nudge(); yield 1; }
+        for (let i = 0; i < 20; i++) { Ending.nudge(); yield 1; }
         yield* say(null, 'Nobody, anywhere, is standing on their spot.');
         yield* camBack(120);
         for (let i = 0; i < 120 && Ending.walks.some(([n, x, y]) => n.tx !== x || n.ty !== y || n.mv); i++) { Ending.nudge(); yield 1; }
@@ -58,14 +58,14 @@ const Ending = {
         /* the road north, through what's left of the fog */
         G.mist = { t: 0 };
         yield* camLook(96, 36, 150);
-        for (let i = 0; i < 70; i++) { G.mist.t++; yield 1; }
+        for (let i = 0; i < 50; i++) { G.mist.t++; yield 1; }
         yield* say(null, 'Over the north woods the fog has thinned to nothing but a morning mist, and through it, there is a road.');
         G.mist = null;
         /* Gran and Linnet on the bench by her gate, Biscuit between them; by the gate, the bloom */
         G.benchCat = true;
         const cat = a.ents.find(e => e.kind === 'critter' && e.who === 'biscuit'); if (cat) a.remove(cat);
         yield* camLook(77, 52, 150);
-        yield 20;
+        yield 10;
         yield* say(null, "Gran and Linnet sit on the bench together, not saying much. Biscuit sits between them, purring like a winch.", { focus: [79, 53] });
         if (Progress.flag('seed_planted')) yield* say(null, 'By the gate, the seed you brought back from past the fog has opened.', { focus: [73, 51] });
         if (Inv.items.bracelet) { yield* say(null, Progress.flag('bracelet_top') ? "Gran has Linnet's bracelet on her wrist now, the green thread a little faded. Every so often she turns it round, and Linnet pretends not to see." : "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
@@ -110,6 +110,8 @@ const Ending = {
        standing in rings round the Well where they were dragged, facing it, the south side left open for you. Fisher
        Hob is out on the river in a boat. Returns them */
     ring(a) {
+        /* (nothing else about: no wild things wandering into the shots) */
+        for (const e of a.ents.filter(e => e.kind === 'enemy')) a.remove(e);
         const hob = a.ents.find(e => e.kind === 'npc' && e.who === 'hob'); if (hob) a.remove(hob);
         a.add(new RowBoat(116, 61));
         const inTown = e => e.kind === 'npc' && e.tx >= 64 && e.tx < 128 && e.ty >= 40 && e.ty < 80 && e.who !== 'gran' && e.who !== 'linnet';
@@ -154,7 +156,7 @@ const Ending = {
         Ending.walks = [];
         for (const e of ring) {
             e.stopped = false; e.fixedFace = false; e.free = true;
-            if (e.who === 'arlo') { arlo = e; send(e, 113, 62, 0.7); }
+            if (e.who === 'arlo') { arlo = e; send(e, 112, 62, 0.7); }
             else if (e.who === 'quill') send(e, ...up[0], 0.8);
             else if (kids.includes(e.who)) send(e, ...up[1 + (k++ % 5)], 0.9);
             else if (near[e.who]) send(e, p.tx + near[e.who][0], p.ty + near[e.who][1], 0.9);
@@ -429,7 +431,7 @@ const AFTER_LINES = {
 Object.assign(Ending, {
     drawSlack(a, cx, cy) {
         const s = G.slack; if (!s || a.id !== 'hollow') return;
-        const k = clamp((s.t - 10) / 80, 0, 1), e = k * k * (3 - 2 * k), fade = s.t > 120 ? Math.max(0, 1 - (s.t - 120) / 60) : 1;
+        const k = clamp((s.t - 10) / 75, 0, 1), e = k * k * (3 - 2 * k), fade = s.t > 95 ? Math.max(0, 1 - (s.t - 95) / 48) : 1;
         const wx = 95 * T + 8 - cx, wy = 58 * T + 2 - cy;
         const cols = [THREAD.ives, THREAD.bram, THREAD.ambrose, THREAD.tess, THREAD.mallow, THREAD.jory, THREAD.guild, THREAD.town];
         /* taut: straight and trembling; going slack: sagging, its ends dropping to the ground, and lying there */

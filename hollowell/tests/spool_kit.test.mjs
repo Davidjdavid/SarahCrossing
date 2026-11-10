@@ -142,6 +142,8 @@ test('the Needle holds three stitches: a fourth undoes the oldest; a stray can b
     go(HW, 9, 3); HW.face('left'); HW.step(2);
     go(HW, 8, 2); HW.face('down'); stitch(HW, 'R');
     assert.equal(HW.Inv.stitches.length, 3, 'still three');
+    const said = HW.global('UI').toasts.map(t => t.s).find(s => /oldest/.test(s)) || '';
+    assert.match(said, /your oldest lets go: the wooden block here goes back to its old place/, 'it says plainly which thing let go: ' + said);
     until(HW, () => HW.Return.isHome(A) && A.tx === 4, 300);
     assert.deepEqual([A.tx, A.ty], [4, 3], 'the oldest stitch came undone: back to its old place');
     noErrors(HW);

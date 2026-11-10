@@ -220,29 +220,35 @@ together, the leading ones first, each that can.
 
 Keys: 3 keys (Pit, Rehearsal, Dressing), 2 locks (Auditorium E, Auditorium N): one spare whichever order. Pattern: the Wings' north door.
 
-## D7 The Spoolworks (`src/67_spoolworks.js`, `src/67b_spool_foes.js`, kit `src/65_spool_kit.js`; tests `tests/spoolworks.test.mjs`, `tests/spool_kit.test.mjs`) - tested
+## D7 The Spoolworks (`src/67_spoolworks.js`, `src/67b_spool_foes.js`, kit `src/65_spool_kit.js`; tests `tests/spoolworks.test.mjs`, `tests/spool_kit.test.mjs`, `tests/review_d7.test.mjs`) - tested
 
 Rules: every room is two, the Works floor and, 33 rows below, the Under-works, joined by hatches (a trapdoor up top,
-a ladder below; something standing where you'd come out keeps the trapdoor shut). Below, what's up above shows
-through faintly, and a cord hangs under every mark: tap Z for a tug (whatever it holds snaps home; at home, it jumps),
-hold Z to tie it off (held exactly where it is: no pushing, pulling, lifting, drifting, going home), Z on a knot to
-undo it. Counterweights are heavy weights on plates below; what's up above answers to the plate. The Needle (from
-Cog): face a thing, or its cord from below; C; walk the needle up to 4 tiles; C: its place now, for good (kept when the
-place is built afresh). Three stitches at a time, a fourth undoes the oldest; a stray can be given a place; the Needle
-on a stitched thing offers to unpick it.
+a ladder below; something standing where you'd come out keeps the trapdoor shut). Below, what's up above shows through
+faintly (its walls over open floor as their plan, hatched and dashed round; a hole up there as light coming down), and a
+cord hangs under every mark: tap Z for a tug (whatever it holds snaps home; at home, it jumps), hold Z to tie it off
+(held exactly where it is: no pushing, pulling, lifting, drifting, going home, stepping with a rack; and fixed, so the
+Hookline bites into it like a post), Z on a knot to undo it. Counterweights are heavy weights on plates below; what's up
+above answers to the plate. The Needle (from Cog): face a thing, or its cord from below; C; walk the needle up to 4
+tiles from where the thing is now; C: its place now, for good (kept when the place is built afresh; its cord moves with
+it). Three stitches at a time, a fourth undoes the oldest (the notice says what and where); a stray can be given a
+place; the Needle on a stitched thing offers to unpick it. Its own floors: oiled wood blocks laid basket-weave up top,
+thread-dusted flagstones below.
 
 | Room (above / below) | Cells | Teaches / puzzle | Solution | Reward |
 |---|---|---|---|---|
-| The Gatehouse / Under the Gatehouse | 1,2 / 1,5 | Two layers; untie | The crate in the passage is tied off from below: down the trapdoor, undo its knot, and it goes home | the way in |
+| The Gatehouse / Under the Gatehouse | 1,2 / 1,5 | Two layers; untie | The crate at the passage's mouth is tied off from below: down the trapdoor, undo its knot, and it goes home. Side doors: east (the Practice Floor's), west (the Ropewalk's), shut till later | the way in |
 | The Winding Hall / Under | 1,1 / 1,4 | Counterweights | The Spool Store gate is shut while its weight sits on its plate below: push the weight off, push the stray stone into its way home (one push), up the far hatch and through (it latches once passed) | the Spool Store |
-| The Spool Store / Under | 0,1 / 0,4 | Tie off | Push the block onto the plate, down the hatch, tie its cord off before its patience runs out: the gate stays open | key; the Plan (below) |
-| The Kennel / Under | 2,1 / 2,4 | Mini-boss: Cog | Brass hide (the stick clangs); his cord hangs under his kennel. Go below (he sniffs, then trots home), tie him off, come up and knock him: he bolts; 3x | the Needle |
-| Under the Spool Store, north | 0,4 | The Needle | The weight in the passage can't be pushed by anyone: give it a new place in the alcove | the way to the Loft |
+| The Spool Store / Under | 0,1 / 0,4 | Tie off | Push the block onto the plate, down the hatch, tie its cord off before its patience runs out: the gate stays open. Its south door (from the Ropewalk) is shut from this side | key 1; the Plan (below) |
+| The Kennel / Under | 2,1 / 2,4 | Mini-boss: Cog | Brass hide (the stick clangs); his cord hangs under his kennel. Go below (he sniffs, then trots home), tie him off, come up and knock him: he bolts; twice. He wakes once Wren's well in (the door slams behind her); run down, he sits and topples, then his thread runs off, then the chest comes up | the Needle |
+| The Practice Floor's door | 2,2 (north) | The Needle | The weight in the Kennel's south doorway can't be pushed by anyone: give it a new place in its nook | the way on |
+| The Practice Floor / Under | 2,2 / 2,5 | Synthesis: the Crossbar from below; knots (or the Needle) | The apprentices' rack is below, its strings up through the floor to two puppets on stands; two runs, a plate in each at different depths; the Gatehouse door is open while both plates are down (and for good once through). Let go and they walk home. Walk them down till the boy's on his plate, tie his cord off (a knotted puppet doesn't step with its rack), walk the little Wren on alone, tie hers; up and out. (Or walk them near and stitch them on through their cords: the rack takes them past the Needle's four tiles) | the Ropewalk opens |
+| The Ropewalk / Under | 0,2 / 0,5 | Synthesis: the Needle through a cord; the Hookline | The floor's fallen in down the middle; the crate across is out of the Hookline's reach and in line with nowhere. Below, the Needle through its cord moves it into line (its cord goes with it); tie it off: the hook bites into a thing held fast and reels Wren over. (Or hook it across to this side, push it aside, and hook its empty mark.) The key; out by the far door into the Spool Store | key 2 |
+| Under the Spool Store, north | 0,4 | Locked | The way north to the Loft (key 2) | the way to the Loft |
 | The Bobbin Loft / Under | 0,0 / 0,3 | Three stitches and a knot | Four plates that only an iron-cored bobbin works: stitch three bobbins onto three plates (4 tiles each), push the fourth on and tie it off from below | Pattern; the way out to the Store latches |
 | Gundry's Bench / Under | 2,0 / 2,3 | The Needle through a cord | The crate on the trapdoor's far side keeps it shut: from below, the Needle through its cord moves it off | Maker's mark (G.G., and an old L.), Heart Patch |
-| The Heart of the Works / Under | 1,0 / 1,3 | Boss: the Tangle | Four bobbins tie it together: all four off their first places at once (for a moment) and it comes apart round its core: three stitched away, the fourth pushed off and tied below; knock the core; it yanks every thread back (stitches undone, knots slipped); 3x. Yarn balls and lashes meanwhile | Heartstitch; apprenticeship (d7) |
+| The Heart of the Works / Under | 1,0 / 1,3 | Boss: the Tangle (three phases) | 1: four bobbins tie it together; all four off their first places and held there at once (three stitched away, the fourth pushed off and tied below) and it comes apart round its core: knock it. A knock: it yanks every thread (knots slip; a stitched bobbin's at home, so it stays). 2: it hangs itself on the Heart's old hoist, out of reach (Wren walks under it; yarn rains down); the hoist answers to its counterweight below: push the weight off its plate and down it comes, loose: knock it. 3: it tears the hoist down, winds the line round the trapdoor (no knots now) and on its beat hauls every thread in a tile, stitched bobbins off their new places too: grip the fourth and pull it out, ring the Recall Bell with the other hand: everything goes home at once, home being where the Needle put it; it comes apart; let go and knock it while it's dazed | Heartstitch; apprenticeship (d7) |
 
-Keys: one key (Spool Store) for one lock (the Kennel). Pattern: the Heart's big door.
+Keys: two keys (Spool Store, Ropewalk) for two locks (the Kennel; under the Spool Store, north). Pattern: the Heart's big door.
 
 ## The Makings: Tuck's Little Wander (`src/68_makings.js`; tests `tests/makings.test.mjs`) - tested
 

@@ -256,7 +256,7 @@ defHouse({
             ents: [
                 { k: 'plate', x: 2, y: 8, sig: 'wsp' },
                 { k: 'signature', x: 10, y: 5, house: 'marionette' },
-                { k: 'deco', x: 5, y: 2, look: 'bench', solid: [[0, 0], [1, 0]], oy: -6, text: "Jory's bench: chisels, paint, a half-carved wooden face that looks a bit like Gran. A label: FOR THE LAST ACT. (NOT YET.)" },
+                { k: 'deco', x: 5, y: 2, look: 'workbench', solid: [[0, 0], [1, 0]], oy: -6, text: "Jory's bench: chisels, paint, a half-carved wooden face that looks a bit like Gran. A label: FOR THE LAST ACT. (NOT YET.)" },
                 { k: 'deco', x: 14, y: 2, look: 'puppets_hung', solid: [[0, 0], [1, 0], [2, 0]], oy: -14, text: 'Puppets hanging on a rail: a Housekeeper, a wyrm in three pieces, a mill-beast, a gargoyle, a sloth in a nightcap. Every one you have met.' },
                 { k: 'chest', x: 16, y: 5, item: 'b50', id: 'wsButtons' },
             ],

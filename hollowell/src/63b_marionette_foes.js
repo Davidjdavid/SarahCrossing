@@ -400,7 +400,7 @@ function initMarionetteFoes() {
     ART.prompter = furn(16, 22, R => { R('#3a2a30', 0, 6, 16, 16); R('#c8a070', 0, 4, 16, 3); R('#fff4c0', 4, 10, 8, 4); });
     ART.set_tidy = furn(64, 24, R => { R('#efe4cc', 0, 4, 64, 20); R('#5fb7a8', 0, 0, 64, 6); R('#3c8a80', 0, 6, 64, 1); for (let i = 4; i < 64; i += 16) { R('#9a3a4a', i, 10, 8, 10); } R('#c8a070', 28, 8, 8, 16); R('#f7d64a', 31, 2, 2, 4); });
     ART.mirror = furn(16, 26, R => { R('#c8a070', 0, 0, 16, 22); R('#cfe6f4', 2, 2, 12, 16); R('#fff4c0', 0, 0, 2, 2); R('#fff4c0', 14, 0, 2, 2); R('#fff4c0', 0, 20, 2, 2); R('#fff4c0', 14, 20, 2, 2); R('#5a3a2a', 6, 22, 4, 4); });
-    ART.bench = furn(32, 22, R => { R('#9a6438', 0, 6, 32, 6); R('#6b4128', 2, 12, 3, 10); R('#6b4128', 27, 12, 3, 10); R('#c8c0b8', 6, 2, 5, 4); R('#e6c08a', 18, 1, 8, 5); R('#2a1f2d', 20, 3, 1, 1); R('#2a1f2d', 23, 3, 1, 1); });
+    ART.workbench = furn(32, 22, R => { R('#9a6438', 0, 6, 32, 6); R('#6b4128', 2, 12, 3, 10); R('#6b4128', 27, 12, 3, 10); R('#c8c0b8', 6, 2, 5, 4); R('#e6c08a', 18, 1, 8, 5); R('#2a1f2d', 20, 3, 1, 1); R('#2a1f2d', 23, 3, 1, 1); });
     ART.puppets_hung = furn(48, 30, R => { R('#6b4128', 0, 0, 48, 2); const c = ['#5fb7a8', '#e0913a', '#4f9be0', '#7f7688', '#8a6a4a']; for (let i = 0; i < 5; i++) { R('#cfc6b8', 4 + i * 9, 2, 1, 6); R(c[i], 1 + i * 9, 8, 7, 12); R('#e6c08a', 2 + i * 9, 5, 5, 4); } });
     ART.monogram_marionette = paintSprite(16, 10, x => { x.fillStyle = '#d6304e'; x.fillRect(8, 1, 2, 6); x.fillRect(4, 6, 5, 2); x.fillRect(3, 4, 2, 3); x.fillStyle = '#f7d64a'; x.fillRect(6, 0, 6, 1); x.fillRect(11, 0, 1, 3); }, false);
 }

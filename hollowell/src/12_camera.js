@@ -61,7 +61,10 @@ const Cam = {
         /* outdoors, a gentle follow; indoors, exact */
         if (p.area.family === 'outdoor' || this.look || this.lookEase) {
             const k = this.look || this.lookEase ? 0.08 : 0.2;
-            this.x = Math.round(lerp(this.x, t.x, k)); this.y = Math.round(lerp(this.y, t.y, k));
+            /* (eased by a fraction, but never less than a pixel a step: rounding a small fraction used to leave it
+               stuck a few pixels short) */
+            const ease = (c, g) => { const d = g - c; if (!d) return c; const st = d * k; return Math.round(c + (Math.abs(st) < 1 ? Math.sign(d) * Math.min(1, Math.abs(d)) : st)); };
+            this.x = ease(this.x, t.x); this.y = ease(this.y, t.y);
             if (this.lookEase && Math.abs(this.x - t.x) < 1 && Math.abs(this.y - t.y) < 1) this.lookEase = false;
             if (Math.abs(this.x - t.x) < 1) this.x = t.x; if (Math.abs(this.y - t.y) < 1) this.y = t.y;
         } else { this.x = t.x; this.y = t.y; }

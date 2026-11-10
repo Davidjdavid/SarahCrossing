@@ -215,19 +215,20 @@ test('a save in the middle of the end: the top room takes it up again', () => {
     noErrors(H2);
 });
 
-test('after: everyone walks where they like; Gran and Linnet in the garden; Linnet gone from the Drift; saves and loads', () => {
+test('after: everyone walks where they like; Gran and Linnet on the bench by her gate; Linnet gone from the Drift; saves and loads', () => {
     const HW = game('afterEnding');
     HW.step(600);
     const npcs = HW.G.map.ents.filter(e => e.kind === 'npc');
     const gran = npcs.find(e => e.who === 'gran'), lin = npcs.find(e => e.who === 'linnet');
-    assert.deepEqual([gran.tx, gran.ty], [78, 51], 'Gran by her house');
-    assert.deepEqual([lin.tx, lin.ty], [79, 51], 'and Linnet');
+    assert.deepEqual([gran.tx, gran.ty, gran.seated], [78, 53, true], 'Gran on the bench by her gate');
+    assert.deepEqual([lin.tx, lin.ty, lin.seated], [80, 53, true], 'and Linnet');
+    assert.ok(HW.G.map.ents.some(e => e.solid && e.solid.length === 3 && e.tx === 78 && e.ty === 53), 'the bench');
     assert.ok(npcs.filter(e => e.who !== 'gran' && e.who !== 'linnet').every(e => e.route && !e.ret), 'everyone else free, on a round of their own');
     assert.ok(!npcs.some(e => e.dragged), 'nobody dragged');
     /* what they say now */
     /* (folk walk about now: they can be in the way a moment) */
-    for (let i = 0; i < 5 && !HW.walkTo(77, 51, 3000); i++) HW.step(30);
-    walk(HW, 77, 51); HW.face('right'); HW.press('act', 1); HW.step(3);
+    for (let i = 0; i < 5 && !HW.walkTo(78, 54, 3000); i++) HW.step(30);
+    walk(HW, 78, 54); HW.face('up'); HW.press('act', 1); HW.step(3);
     const D = HW.global('Dialog');
     assert.ok(D.active && D.who === 'gran' && HW.global('AFTER_LINES').gran.some(l => l.startsWith(D.pages[0][0].slice(0, 12))), 'Gran says something new');
     HW.skipTalk();

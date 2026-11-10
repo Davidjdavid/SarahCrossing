@@ -170,7 +170,8 @@ const Spool = {
                 else TileDraw.draw(a, tx, ty, sx, sy);
             }
             const inR = e => { const tx = e.tx !== undefined ? e.tx : tileOf(e.x), ty = e.ty !== undefined ? e.ty : tileOf(e.y); return tx >= ar.x && ty >= ar.y && tx < ar.x + ar.w && ty < ar.y + ar.h; };
-            const list = a.ents.filter(e => e.kind !== 'cord' && !e.removed && inR(e));
+            /* (a door up there in a wall that's solid down here too isn't drawn: it would look like a door down here) */
+            const list = a.ents.filter(e => e.kind !== 'cord' && !e.removed && inR(e) && !(e.kind === 'door' && a.kind(e.tx - r.above.dx, e.ty - r.above.dy).solid));
             for (const e of list) if (e.floor) e.draw(ux, uy);
             Threads.draw({ ents: list, id: a.id }, ux, uy);
             for (const e of list.filter(e => !e.floor).sort((m, n) => m.sortY - n.sortY)) e.draw(ux, uy);
@@ -185,7 +186,7 @@ const Spool = {
     /* a wall up above, seen from below: its plan, hatched, its edges dashed */
     plan(a, tx, ty, sx, sy) {
         const wall = (x, y) => { const k = a.kindName(x, y); return k === 'wall' || k === 'void'; };
-        Gfx.img(tileCanvas('spool:plan', x => { for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) if ((i + j) % 4 === 0) px(x, i, j, '#efe2c4'); }), sx, sy);
+        Gfx.img(tileCanvas('spool:plan', x => { for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) if ((i + j) % 4 === 0) px(x, i, j, '#d6c9ad'); }), sx, sy);
         for (let i = 0; i < 16; i += 4) {
             if (!wall(tx, ty - 1)) Gfx.rect(sx + i, sy, 2, 1, '#fff6dc');
             if (!wall(tx, ty + 1)) Gfx.rect(sx + i, sy + 15, 2, 1, '#fff6dc');
@@ -460,7 +461,8 @@ TOOLS._spool = { update(area) { Spool.update(area); }, draw(cx, cy) { Spool.draw
         return a;
     };
     const hud0 = UI.drawHUD;
-    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud) { Gfx.alpha(this.hudA === undefined ? 1 : this.hudA); Needle.drawHud(); Gfx.alpha(1); } };
+    /* (under a notice, a banner or words at the top the little stitches would sit under the panel: left out then) */
+    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud && !(Dialog.active && Dialog.top) && !this.banner && !this.toasts.some(t => !t.low)) { Gfx.alpha(this.hudA === undefined ? 1 : this.hudA); Needle.drawHud(); Gfx.alpha(1); } };
 }
 
 function initSpoolKit() {
