@@ -119,17 +119,18 @@ test('8: the Drafting Hall stairs stay open once both lamps were lit', () => {
 test('new 1/2: a thread cut mid-step lets go of the tile it was leaving; the drum never trips on a thing cut in flight', () => {
     const HW = loadGame(); HW.preset('afterReveal2'); HW.step(10); HW.skipTalk();
     HW.Progress.set('north_gate'); HW.Progress.set('gundry_r2'); HW.Inv.giveTool('shears'); HW.Inv.keyCount.loom = 1;
-    const at = (x, y) => [40 + x, 11 + y];
+    /* (one of the Weighing Room's old weights, pushed round a corner and cut as it steps home round it) */
+    const at = (x, y) => [40 + x, 22 + y];
     HW.warp('loom', ...at(6, 5)); HW.step(30); HW.skipTalk();
-    const a = HW.G.map, w = a.find('brW1');
-    HW.walkTo(...at(4, 4)); HW.push('up', 1); HW.step(5);
-    HW.walkTo(...at(5, 2)); HW.push('left', 1); HW.step(5);
-    HW.walkTo(...at(3, 3)); HW.push('up', 1); HW.step(5);
-    HW.walkTo(...at(5, 2)); HW.face('left');
-    until(HW, () => w.ret.state === 'returning' && w.mv && w.mv.fx === at(3, 0)[0] && w.mv.fy === at(0, 2)[1], 900);
+    const a = HW.G.map, w = a.find('wrW1');
+    HW.walkTo(...at(4, 1)); HW.push('down', 1); HW.step(5);
+    HW.walkTo(...at(5, 3)); HW.push('left', 1); HW.step(5);
+    HW.walkTo(...at(3, 2)); HW.push('down', 1); HW.step(5);
+    HW.walkTo(...at(5, 3)); HW.face('left');
+    assert.ok(until(HW, () => w.ret.state === 'returning' && w.mv && w.mv.fx === at(3, 0)[0] && w.mv.fy === at(0, 3)[1], 900), 'stepping home round the corner');
     HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(3); HW.skipTalk();
     assert.ok(!w.ret, 'cut');
-    assert.ok(a.at(...at(3, 2)) !== w, 'no ghost on the tile it left');
+    assert.ok(a.at(...at(3, 3)) !== w, 'no ghost on the tile it left');
     noErrors(HW);
     /* a thing in the drum's flight is out of sight: the Shears don't find it */
     const S = HW.global('Shears');

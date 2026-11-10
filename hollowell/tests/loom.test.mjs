@@ -200,11 +200,17 @@ test('the Bridge Room: the strand cut first, the weight is stranded till an offc
     noErrors(HW);
 });
 
-test('the Bridge Room: an older save that spent the room\'s old weights (one in the gap, one cut on the old plate) still finishes it', () => {
+test('the Bridge Room: an older save, made before the room was rebuilt, that had spent its two old weights (one dropped in the gap, one cut and left on the old plate, the Pattern not yet taken) loads into the new room and still finishes it', () => {
     const HW = game(true);
     HW.Inv.giveTool('needle');
+    /* what such a save holds: brW1 and brW2 were the room's old weights (gone from it now), the gap at the old crossing filled */
     for (const [k, v] of [['gone:brW1', true], ['cut:brW2', at('br', 14, 5).join(',')], [`fill:${at('br', 9, 5).join(',')}`, true]]) HW.Progress.setAreaFlag('loom', k, v);
     enter(HW, 'br', 18, 5);
+    const a = HW.G.map, br = a.roomAt(...at('br', 9, 5));
+    assert.ok(!a.find('brW1') && !a.find('brW2'), 'the old weights are nowhere');
+    assert.ok(!a.at(...at('br', 14, 5)), 'nothing left on the old plate\'s spot');
+    assert.equal(a.ents.filter(e => e.look === 'loomweight' && !e.removed && a.roomAt(e.tx, e.ty) === br).length, 1, 'the one weight: the new, wedged one');
+    assert.ok(!a.kind(...at('br', 9, 5)).pit, 'the old crossing stays filled');
     assert.ok(!thing(HW, 'brPattern') || thing(HW, 'brPattern').hidden, 'no Pattern yet');
     go(HW, 'br', 12, 2); HW.face('left'); stitch(HW, 'RRR');
     go(HW, 'br', 10, 2); HW.push('right', 1); HW.step(10); go(HW, 'br', 11, 2); HW.face('right'); snip(HW);
