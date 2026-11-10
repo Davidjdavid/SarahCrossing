@@ -345,7 +345,14 @@ const PauseMenu = {
         Font.draw('{red}Now', 22, 34, PAL.ink);
         const goal = Font.wrap(Story.fill(Progress.goal || 'Wander.'), 270).slice(0, 4);
         goal.forEach((l, i) => Font.draw(l, 24, 46 + i * 10, PAL.ink));
-        const ny = 46 + goal.length * 10 + 6;
+        let ny = 46 + goal.length * 10 + 6;
+        /* what's going on in town that's new, until it's done (so a new thing is told, not stumbled on) */
+        const news = TOWN_NEWS.filter(([on, done]) => on() && !done()).map(n => n[2]);
+        if (news.length) {
+            const lines = Font.wrap('{red}Also in town:{/} ' + news.join('; ') + '.', 270).slice(0, 2);
+            lines.forEach((l, i) => Font.draw(l, 24, ny + i * 10, PAL.ink));
+            ny += lines.length * 10 + 6;
+        }
         Font.draw('{red}Notes', 22, ny, PAL.ink);
         if (!notes.length) Font.draw('Nothing written yet.', 24, ny + 12, PAL.grey3);
         const rows = Math.max(1, Math.floor((150 - (ny + 12)) / 10));
@@ -362,6 +369,12 @@ const PauseMenu = {
     notes() { return Progress.notes.filter(n => NOTES[n]).slice().reverse(); },
 };
 const NOTES = {};      /* id -> { title, text } */
+/* new things to do in town: [shown when, done when, what] */
+const TOWN_NEWS = [
+    [() => Progress.flag('d1'), () => Progress.flag('s12'), "Otto's game in the square"],
+    [() => Progress.flag('d1'), () => Progress.flag('s28'), "the Tidiness Trials up the Inn's attic stairs"],
+    [() => Progress.flag('d4'), () => Progress.flag('s29'), 'Returnball, by the south road'],
+];
 
 const Options = {
     sel: 0, focus: false,
@@ -420,7 +433,54 @@ const MapView = {
             Gfx.rect(ox + tx * sc, oy + ty * sc, sc, sc, vis ? col : mix(col, '#e8dcc0', 0.6));
         }
         const p = G.player;
+        if (a.id === 'hollow') this.drawValley(a, ox, oy, sc, seen);
         if ((G.t >> 3) % 2) Gfx.rect(ox + (p.x / T) * sc - 1, oy + (p.y / T) * sc - 1, 3, 3, PAL.red);
     },
+    /* the valley's map tells: the regions' names once you've been there, every House's door in its Maker's colour once
+       seen (a Knot tied, a knot drawn on it), the Well, and a flag where the goal points */
+    drawValley(a, ox, oy, sc, seen) {
+        const been = (x0, y0, w, h) => { for (let y = y0; y < y0 + h; y += 4) for (let x = x0; x < x0 + w; x += 4) if (seen[(x >> 2) + ',' + (y >> 2)]) return true; return false; };
+        const placed = [];
+        for (const r of a.regions) if (r.w === 64 && r.h === 40 && been(r.x, r.y, r.w, r.h)) {
+            const name = r.name.replace(/^The /, ''), cx = ox + (r.x + r.w / 2) * sc, tw = Font.width(name);
+            const lx = Math.round(clamp(cx - tw / 2, ox + 1, ox + a.w * sc - tw - 1));
+            let ly = Math.round(oy + (r.y + r.h * 0.72) * sc - 4);
+            /* (two names never run into each other: the second steps down a line) */
+            for (let k = 0; k < 3 && placed.some(q => lx < q[2] + 3 && lx + tw + 3 > q[0] && ly < q[3] && ly + 9 > q[1]); k++) ly += 10;
+            placed.push([lx, ly, lx + tw, ly + 9]);
+            Gfx.alpha(0.9); Font.draw(name, lx, ly, PAL.white, Infinity, PAL.ink); Gfx.alpha(1);
+        }
+        for (const [h, x, y, col] of MAP_HOUSES) {
+            const known = seen[(x >> 2) + ',' + (y >> 2)] || Inv.knots && Inv.knots.includes(h);
+            if (!known) continue;
+            const dx = ox + x * sc, dy = oy + y * sc;
+            Gfx.rect(dx - 2, dy - 2, 5, 5, PAL.ink); Gfx.rect(dx - 1, dy - 1, 3, 3, col);
+            if (Inv.knots && Inv.knots.includes(h)) Gfx.rect(dx, dy, 1, 1, '#f7d64a');
+        }
+        Gfx.rect(ox + 95 * sc - 2, oy + 58 * sc - 1, 5, 4, PAL.ink); Gfx.rect(ox + 95 * sc - 1, oy + 58 * sc, 3, 2, '#9a9188');
+        const pin = mapPin(a);
+        if (pin && (G.t >> 4) % 4) {
+            const px = ox + pin[0] * sc, py = oy + pin[1] * sc;
+            Gfx.rect(px, py - 9, 1, 9, PAL.ink); Gfx.rect(px + 1, py - 9, 5, 4, PAL.ink); Gfx.rect(px + 1, py - 8, 4, 2, PAL.red);
+        }
+    },
 };
+/* the Houses' doors on the valley's map: [house, x, y, colour] */
+const MAP_HOUSES = [['tidy', 108, 92, THREAD.ives], ['kiln', 22, 93, THREAD.bram], ['mill', 175, 105, THREAD.ambrose], ['belfry', 158, 7, THREAD.tess],
+    ['slumber', 147, 48, THREAD.mallow], ['marionette', 31, 49, THREAD.jory], ['loom', 95, 9, THREAD.loom]];
+/* where the goal points, read from its words: the first place it names (a House, a building, a landmark; a region only
+   if it names none of those); the longer name wins where two start together */
+const MAP_SPOTS = [[/\bTidyhouse\b/, 108, 92], [/\bKiln\b/, 22, 93], [/\bMillrace\b/, 175, 105], [/\bBelfry\b/, 158, 7], [/\bSlumberhouse\b/, 147, 48],
+    [/\bMarionette Hall\b/, 31, 49], [/\bLoom\b/, 95, 9], [/\bInn\b|\bGuild Hall\b|\bSpoolworks\b|\bMaking Floor\b|\bWay Down\b|\bUnderside\b/, 108, 52],
+    [/\bWell\b|\bGreat Spool\b/, 95, 58], [/\bclinic\b/, 121, 52], [/\bgiant\b|\beast road\b/, 129, 58], [/\bFrayed Edge\b|\bfog\b/, 73, 13], [/\bcliff stair\b/, 171, 60],
+    [/\bbroken bridge\b/, 126, 96], [/\bcanyon road\b/, 66, 102]];
+function mapPin(a) {
+    const g = Progress.goal; if (!g) return null;
+    let best = null;
+    const consider = (i, len, x, y) => { if (i >= 0 && (!best || i < best.i || (i === best.i && len > best.len))) best = { i, len, x, y }; };
+    for (const [re, x, y] of MAP_SPOTS) { const m = re.exec(g); if (m) consider(m.index, m[0].length, x, y); }
+    /* (a named place beats a region: "Home to Hollowell. (...the clinic...)" points at the clinic) */
+    if (!best) for (const r of a.regions) { const i = g.indexOf(r.name); if (i >= 0) consider(i, r.name.length, r.x + r.w / 2, r.y + r.h / 2); }
+    return best ? [best.x, best.y] : null;
+}
 const MAP_COL = { grass: '#9cd070', path: '#e8cc98', sand: '#f0dcb0', water: '#5aaee6', shallow: '#8ccaf0', cliff: '#8a7a6a', rock: '#7a6a5a', wall: '#5a4a4a', floor: '#e8dcc0', pit: '#2a1f2d', tree: '#3e8a48', bridge: '#c9925a', fog: '#e0dce4', void: '#e8dcc0', stairs: '#b8a890', roof: '#b0434a', current: '#5aaee6', ledge: '#b8a890', spikes: '#9a9188' };

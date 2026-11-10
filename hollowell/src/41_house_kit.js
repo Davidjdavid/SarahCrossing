@@ -72,14 +72,16 @@ const Knots = {
     tie(hoop) {
         return function* () {
             const p = G.player, a = G.map, house = a.def.house;
-            const i = yield* ask(null, "The House's Knot hangs in the hoop, every colour of thread running into it and down through the floor. Tie it?", ['Tie the Knot', 'Not yet']);
+            /* (the first time it's all told; after that, the ceremony is quicker, and the Well's answer grows) */
+            const first = !Inv.knots.length;
+            const i = yield* ask(null, first ? "The House's Knot hangs in the hoop, every colour of thread running into it and down through the floor. Tie it?" : "The House's Knot hangs in the hoop. Tie it?", ['Tie the Knot', 'Not yet']);
             if (i !== 0) return;
             hoop.tied = true;
             G.hideHud = true;
             Music.play('silence');
             Sfx.play('knot');
             /* threads pull taut from every side toward the middle */
-            for (let t = 0; t < 120; t++) { G.knotFx = t; if (t % 20 === 0) G.shake = 4; yield 1; }
+            for (let t = first ? 0 : 50; t < 120; t++) { G.knotFx = t; if (t % 20 === 0) G.shake = 4; yield 1; }
             G.knotFx = 0;
             Sfx.play('knot');
             UI.fadeA = 1; UI.fade = { from: 1, to: 0, t: 0, dur: 50 };
@@ -91,7 +93,7 @@ const Knots = {
             p.state = 'hold';
             yield* say(null, `You tied the ${a.def.knotName || 'Knot'}! ` + KNOT_LINES[Inv.knots.length - 1]);
             G.holdUp = null; p.state = 'normal';
-            yield* say(null, 'Far away, at the bottom of the Hollow, the Well creaks once, like a winch taking up slack.');
+            yield* say(null, WELL_CREAKS[Math.min(Inv.knots.length, WELL_CREAKS.length) - 1]);
             G.hideHud = false;
             if (a.def.afterKnot) yield* a.def.afterKnot();
             Save.autosave();
@@ -110,6 +112,14 @@ const Knots = {
         Gfx.alpha(Math.min(0.6, t / 160)); Gfx.rect(0, 0, W, H, '#fff6e0'); Gfx.alpha(1);
     },
 };
+const WELL_CREAKS = [
+    'Far away, at the bottom of the Hollow, the Well creaks once, like a winch taking up slack.',
+    'Far away, the Well creaks again, a little longer this time.',
+    'Somewhere a long way under your feet, something winds one turn tighter. The Well creaks.',
+    'The Well creaks. This time you could swear you felt it, in your chest, like a stitch pulled snug.',
+    'The Well creaks, long and slow, and for a moment every thread in the room leans the same way: home.',
+    'Far off, the Well gives a groan like a rope at full stretch. Then it is quiet. Very quiet.',
+];
 const KNOT_LINES = [
     'One Knot of six. You feel steadier, somehow, as if the ground under you had been pinned down a little tighter.',
     'Two Knots of six.', 'Three Knots of six.', 'Four Knots of six.', 'Five Knots of six.', 'Six Knots! The Wander is nearly done.',

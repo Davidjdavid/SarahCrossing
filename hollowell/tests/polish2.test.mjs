@@ -104,3 +104,13 @@ test('sitting and waiting: offered in a House room with things out of place; end
     assert.equal(p.state, 'normal', 'Wren up again');
     assert.equal(t.ret.state, 'home', 'the thing came home');
 });
+
+test('the map points where the goal says', () => {
+    const HW = loadGame();
+    HW.preset('afterD1'); HW.step(5); HW.skipTalk();
+    const P = HW.global('Progress'), pin = () => JSON.parse(JSON.stringify(HW.global('mapPin')(HW.G.map)));     /* (out of the game's own realm) */
+    P.setGoal('Next, the Kiln in Kilnridge: the canyon road west of Meadowfold.'); assert.deepEqual(pin(), [22, 93], 'the Kiln door');
+    P.setGoal('Home to Hollowell. (Somebody at the clinic will want to hear all about it.)'); assert.deepEqual(pin(), [121, 52], 'the clinic');
+    P.setGoal('Home to Hollowell: it is the Knotting Festival.'); assert.deepEqual(pin(), [96, 60], 'the town');
+    P.setGoal('Next, Belfry Heights: across the lake from Millwater, up the cliff stair.'); assert.deepEqual(pin(), [158, 7], 'the Belfry');
+});
