@@ -598,9 +598,16 @@ export const LEG5 = (HW, chain) => {
     walk(125, 60); HW.Inv.equipped = 'bell'; HW.press('tool', 1);
     for (let i = 0; i < 30 && !HW.Progress.flag('giant_home'); i++) { HW.skipTalk(); HW.step(20); }
     HW.skipTalk(); ok(HW.Progress.flag('giant_home'), 'the giant gone home');
-    /* over the moss to the Slumberhouse */
-    walk(128 + 12, 40 + 15); HW.hold('up'); until(() => p().ty <= 40 + 11 && p().state === 'normal', 150); HW.release(); HW.step(5);
-    walk(128 + 19, 40 + 9); HW.hold('up'); until(() => area() === 'slumber', 120); HW.release(); HW.step(30);
+    /* over the moss; the Slumberhouse's door opens while Mallow's three Snorelings sleep in the garden's cradles: rung awake
+       from across the stream, they follow along the far bank and file into the cradles; each put down where it lies by the
+       puffball beside it, hooked from across the water (the far one first, so no cloud catches the others) */
+    walk(128 + 12, 40 + 16); HW.hold('up'); until(() => p().ty <= 40 + 11 && p().state === 'normal', 150); HW.release(); HW.step(5);
+    walk(128 + 13, 40 + 11); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(10);
+    walk(128 + 24, 40 + 11);
+    const cradled = c => ['nuSnoreA', 'nuSnoreB', 'nuSnoreC'].some(i => thing(i).tx === 128 + c && thing(i).ty === 40 + 14);
+    ok(until(() => [16, 20, 24].every(cradled), 900), 'three in the cradles');
+    for (const c of [24, 20, 16]) { walk(128 + c - 1, 40 + 11); HW.face('down'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); HW.step(70); }
+    walk(128 + 19, 40 + 10); walk(128 + 19, 40 + 9); HW.hold('up'); until(() => area() === 'slumber', 120); HW.release(); HW.step(30);
     ok(area() === 'slumber', 'inside the Slumberhouse');
     HW.G.cheats.god = true;      /* (Snorelings, Matron, Mother Sloth: the dodging isn't what this checks) */
 
@@ -737,11 +744,21 @@ export const LEG6 = (HW, chain) => {
     HW.Inv.maxHp = HW.Inv.hp = 32;
 
     /* back over the stream, along the road, through town and the canyon, up to the high mesa */
-    walk(128 + 10, 40 + 10); HW.hold('down'); until(() => p().ty >= 40 + 14 && p().state === 'normal', 150); HW.release();
+    walk(128 + 11, 40 + 11); HW.hold('left'); until(() => p().ty >= 40 + 14 && p().state === 'normal', 150); HW.release();
     walk(15, 83, 'to the high mesa', 60000);
     HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(2);
     walk(12, 83); HW.face('up'); HW.press('act', 1); HW.skipTalk(0); HW.step(60); HW.skipTalk();
     ok(p().ty === 74, 'into the straw');
+    /* the Hall's portcullis winds up only while both parade pads are held: a pale crate from by the fog (the fair's own
+       crates go home) set down in each pen's open end while its soldier is on the pad boxes it in there */
+    for (const [id, sol, gx, face] of [['lkStray1', 'pgSolA', 28, 'right'], ['lkStray2', 'pgSolB', 34, 'left']]) {
+        const c = thing(id);
+        walk(c.tx + 1, c.ty, 'to ' + id, 20000); HW.face('left'); HW.press('act', 1); HW.step(10);
+        walk(gx, 53, 'to the pen', 20000); HW.face(face);
+        const s = thing(sol);
+        until(() => s.ty === 52 && Math.abs(s.y - (52 * 16 + 10)) < 3, 300); HW.press('act', 1); HW.step(5);
+    }
+    HW.step(100); ok(thing('pgGate').open, 'the portcullis wound up');
     walk(31, 50); HW.hold('up'); until(() => area() === 'marionette', 120); HW.release(); HW.step(30);
     ok(area() === 'marionette', 'inside the Marionette Hall');
     HW.G.cheats.god = true;      /* (soldiers, the Captain, sandbags: the dodging isn't what this checks) */
@@ -1087,6 +1104,13 @@ export const LEG8 = (HW, chain) => {
     ok(HW.Progress.flag('north_gate'), 'the north gate swings open');
     /* (up into the town by the Underside's stair) up the north road, through the gate, the Loomwood road to the Loom */
     HW.warp('hollow', 96, 44); HW.step(20); HW.skipTalk();
+    /* the warp across the Loom's door lifts only while its four sockets hold weights: three stitched there for good (the
+       far one over the stream among them), the last pushed on by the door, and through before it goes home */
+    walk(64 + 54, 17, 30000); HW.face('right'); stitch('RR'); HW.step(10);
+    walk(64 + 39, 11, 30000); HW.face('left'); stitch('LL'); HW.step(10);
+    walk(64 + 24, 20, 30000); HW.face('up'); stitch('UU'); HW.step(40);
+    walk(64 + 26, 15, 30000); HW.push('up', 2); HW.step(26);
+    ok(HW.G.map.find('lgWarp').lifted, 'the warp lifted');
     walk(95, 10, 30000); HW.hold('up'); until(() => HW.G.map.id === 'loom', 120); HW.release(); HW.step(20); HW.skipTalk();
     ok(HW.G.map.id === 'loom', 'into the Loom');
     const L = { th: [20, 33], wh: [20, 22], oy: [0, 22], sr: [20, 11], wr: [40, 22], br: [40, 11], web: [20, 0], hg: [40, 33], lr: [60, 22], ww: [60, 11] };

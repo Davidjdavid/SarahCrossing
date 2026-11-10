@@ -46,7 +46,8 @@ test('1/12: the Shears do nothing in a Making (a nibbler, Tuck from below); an o
 test('2: the north gate opened early (the secret) gets you to the Loomwood, but the Loom wants the Guild\'s key (Gundry, after Reveal 2)', () => {
     const HW = loadGame(); HW.preset('afterD7'); HW.step(10); HW.skipTalk();
     HW.Progress.set('north_gate'); HW.Progress.set('s32');
-    HW.warp('hollow', 96, 44); HW.step(10);
+    HW.Progress.set('loom_open');       /* (the warp across the door lifted: its own puzzle, tests/loomwood.test.mjs) */
+    HW.warp('hollow', 96, 44); HW.step(40);
     assert.ok(HW.walkTo(95, 10, 30000), 'up the Loomwood road');
     HW.hold('up'); HW.step(90); HW.release(); HW.step(10);
     assert.equal(HW.G.map.id, 'hollow', 'the doors stay shut');

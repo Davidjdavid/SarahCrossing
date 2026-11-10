@@ -90,7 +90,7 @@ const Game = {
             const floor = a.ents.filter(e => e.floor && e.x > cx - 40 && e.x < cx + W + 40 && e.y > cy - 40 && e.y < cy + H + 40);
             for (const e of floor) e.draw(cx, cy);
             Threads.draw(a, cx, cy);
-            const stand = a.ents.filter(e => !e.floor && e.x > cx - 80 && e.x < cx + W + 40 && e.y > cy - 80 && e.y < cy + H + 80);
+            const stand = a.ents.filter(e => !e.floor && e.x > cx - 80 - (e.im ? e.im.width : 0) && e.x < cx + W + 40 && e.y > cy - 80 - (e.im ? e.im.height : 0) && e.y < cy + H + 80);    /* (a tall thing whose foot is still on screen: a big building's facade) */
             stand.push(p);
             G.onScreen = floor.concat(stand);
             stand.sort((m, n) => m.sortY - n.sortY);

@@ -77,18 +77,25 @@ defBlock({
         { k: 'sheep', x: 10, y: 29, id: 'penSheep1', grazes: true }, { k: 'sheep', x: 16, y: 30, id: 'penSheep2', grazes: true, face: 'right' }, { k: 'sheep', x: 12, y: 32, id: 'penSheep3', grazes: true },
         /* the Old Fold: three counting stones that count sheep coming home; Nettle's place by the gate; Old Tup asleep in the
            bothy's doorway since before Pip was born (a ring would wake him) */
-        { k: 'sheep', x: 6, y: 17, id: 'nettle', talk: "Nettle, it says on the tag in her ear. She has a look about her as if she's been counting something and lost her place." },
-        { k: 'tally', x: 16, y: 16, n: 1, group: 'fold', done: 'fold_counted' },
-        { k: 'tally', x: 16, y: 12, n: 2, group: 'fold', done: 'fold_counted' },
-        { k: 'tally', x: 6, y: 12, n: 3, group: 'fold', done: 'fold_counted' },
+        { k: 'sheep', x: 6, y: 16, id: 'nettle', talk: "Nettle, it says on the tag in her ear. She has a look about her as if she's been counting something and lost her place." },
+        { k: 'tally', x: 14, y: 14, n: 1, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 15, y: 14, n: 1, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 16, y: 14, n: 1, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 17, y: 14, n: 1, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 11, y: 11, n: 2, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 11, y: 12, n: 2, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 5, y: 14, n: 3, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 6, y: 14, n: 3, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 7, y: 14, n: 3, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 8, y: 14, n: 3, group: 'fold', done: 'fold_counted' },
         { k: 'chest', x: 17, y: 11, item: 'clapper', id: 'foldChest', hidden: true, when: 'flag:fold_counted' },
         { k: 'sign', x: 12, y: 19, text: "THE OLD FOLD. Built by Pip's great-grandad. Sheep counted home here every night for a hundred years." },
         { k: 'sheep', x: 12, y: 16, id: 'oldTup', ram: true, sleeper: true, tiedOff: true, startAt: [11, 15], trace: [[12, 16], [11, 16], [11, 15]], pushLine: "Old Tup, asleep in the bothy's doorway. Pip says he's been asleep there since before she was born. He snores like a gate.",
             talk: "Old Tup, the ram, asleep across the bothy's doorway. He is enormous, and he smells of rain." },
         { k: 'chest', x: 12, y: 14, item: 'heartpatch', id: 'bothyPatch' },
-        { k: 'deco', x: 10, y: 14, look: 'tally_book', solid: [[0, 0]], oy: 2, text: "A tally book, on a shelf of stone. Every page, a column of little strokes: yan, tan, tethera, a sheep each, counted home. The last page is in a child's writing: GRANDAD SAYS THEY ALWAYS COME HOME. I SAID WHAT IF ONE DOESN'T. HE SAID THEN YOU GO AND FETCH IT. - P." },
+        { k: 'deco', x: 10, y: 14, look: 'tally_book', solid: [[0, 0]], oy: 2, text: "A tally book, on a shelf of stone. Every page, a column of little strokes: yan, tan, tethera, a sheep each, counted home. The last page is in a child's writing: GRANDAD SAYS THE STONES DO THE COUNTING AND HE JUST WRITES IT DOWN. I SAID THAT'S CHEATING. HE SAID THAT'S SHEPHERDING. - P." },
         /* Lucky: born over the river, and that's her place, so that's where she goes */
-        { k: 'sheep', x: 56, y: 32, id: 'lucky', lamb: true, grazes: true, talk: "A lamb with a red cross dyed on her and LUCKY painted on her bell. She bleats at the river, and at you, and at the river again." },
+        { k: 'sheep', x: 55, y: 32, id: 'lucky', lamb: true, grazes: true, talk: "A lamb with a red cross dyed on her and LUCKY painted on her bell. She bleats at the river, and at you, and at the river again." },
         { k: 'enemy', x: 24, y: 13, type: 'nibbler' }, { k: 'enemy', x: 25, y: 18, type: 'nibbler' }, { k: 'enemy', x: 56, y: 9, type: 'nibbler' },
         { k: 'enemy', x: 40, y: 33, type: 'nibbler' },
     ],
@@ -277,10 +284,11 @@ class TallyStone extends FloorThing {
         const a = this.area, all = a.ents.filter(e => e.kind === 'tally' && e.group === this.group);
         if (Progress.flag(this.done)) return;
         const st = a.tally = a.tally || {}, want = (st[this.group] || 0) + 1;
+        if (this.n === want - 1) return;          /* (another stone of the band just counted) */
         if (this.n === want) {
-            st[this.group] = want; this.lit = true; Sfx.play('click');
+            st[this.group] = want; for (const e of all) if (e.n === this.n) e.lit = true; Sfx.play('click');
             Fx.text(this.x + 8, this.y - 6, TALLY_WORDS[this.n - 1] + '!', '#fff4c0');
-            if (want === all.length) { Progress.set(this.done); Sfx.play('appear'); Stats.count('secret:fold'); }
+            if (!all.some(e => e.n > want)) { Progress.set(this.done); Sfx.play('appear'); Stats.count('secret:fold'); }
         } else {
             st[this.group] = 0; for (const e of all) e.lit = false;
             Sfx.play('unclick'); Fx.text(this.x + 8, this.y - 6, '...', PAL.grey2);

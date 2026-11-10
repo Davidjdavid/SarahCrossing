@@ -67,6 +67,8 @@ defBlock({
         { k: 'deco', x: 14, y: 32, look: 'shrine_post', solid: [[0, 0]], oy: -4, text: 'A little shrine with a bell on a bracket. Carved underneath: RING, AND ALL COMES HOME.' },
         { k: 'block', x: 11, y: 30, id: 'hBoulder', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [12, 29], trace: [[11, 30], [12, 30], [12, 29]], noPush: true, pushLine: "A boulder, fast asleep on the stair. It doesn't budge. It snores, faintly." },
         { k: 'sign', x: 44, y: 31, text: 'BELFRY HEIGHTS. Mind the wind. Mind the drop. Mind your mother.' },
+        /* the ringers' old bell by the little cave, dumb: its clapper went down the hill years ago (it's in Meadowfold's Old Fold) */
+        { k: 'oldbell', x: 33, y: 32, id: 'oldBell' },
         { k: 'rest', x: 46, y: 33 },
         { k: 'npc', who: 'brindle', x: 30, y: 34, face: 'down', route: [[30, 34, 240], [22, 36, 200]] },
         { k: 'critter', who: 'goat', look: 'sheep', x: 26, y: 35, speed: 0.4, route: [[26, 35, 200], [33, 37, 160]] },
@@ -125,8 +127,7 @@ PEOPLE_DEF.tess = PEOPLE_DEF.tess || { name: 'Mum', col: '#e8b04a', look: { body
 TALK.brindle = function* () {
     yield* firstThen('brindle', "Goats, heather and wind. That's the Heights. The goats are mostly wind too, some days.",
         ["That boulder on the stair? Rolled down in a storm and fell asleep there. Ring the shrine bell. Wakes anything.", "The Bluster blows on and off, regular as a clock. Watch the vanes.", "Your mum's up top. She's been up top since before the sun.",
-            "The old ringers used to cross the Crags for luck, past the chasm. The wind does half the work, they'd say. I never did know what they meant, and I never asked. Too windy to ask.",
-            "Something keeps tumbling into the crevice up by the old eyrie. Pops right back out again, every time. Like a kettle. A wooden kettle."]);
+            "The old ringers used to cross the Crags for luck, past the chasm. The wind does half the work, they'd say. I never did know what they meant, and I never asked. Too windy to ask."]);
 };
 TALK.tess = function* () {
     if (Progress.flag('d4')) { yield* say('tess', cycle('tess4', ["Four Knots! Did you hear the bells ringing for you? That was me. Well. Some of it.", "Get yourself home for the festival. Everyone'll be there. Everyone always is.", "My bell-ringer's bairn. Go on, then."])); return; }
@@ -140,6 +141,28 @@ TALK.tess = function* () {
     yield* say('tess', cycle('tess1', ["A ring reaches as far as you can throw a shout. Seven strides, about.", "When it's windy, everything wanders. When the bell goes, everything comes back. That's the Heights for you.", "Did your dad feed you? He never feeds you."]));
 };
 BUDGE.brindle = 'Brindle: "Mind the goats."';
+
+/* the ringers' old bell: with its clapper back it rings like any bell (and wakes what sleeps in reach) */
+class OldBell extends Bell {
+    constructor(tx, ty, p) { super(tx, ty, p); this.fitted = false; }
+    onAdd(area) { if (Progress.areaFlag(area.id, 'oldbell')) this.fitted = true; }
+    ring() { if (this.fitted) return super.ring(); if (this.cool > 0) return; this.cool = 30; this.swing = 20; Sfx.play('hitthing'); Fx.text(this.x + 8, this.y - 14, 'clonk', PAL.grey2); }
+    interact() {
+        const b = this;
+        Script.run(function* () {
+            if (b.fitted) { yield* say(null, "The ringers' old bell, its clapper back where it belongs. A good knock would ring it."); return; }
+            if (!Inv.items.clapper) { yield* say(null, "An old bell on a post, green with age. Somebody's taken its clapper: it hangs there with nothing inside, dumb. Carved on the post: RUNG FOR THE FLOCK. RUNG FOR THE LOST."); return; }
+            const i = yield* ask(null, "An old bell with no clapper. The one you found in the Old Fold would fit it. Hang it in?", ['Hang it in', 'Not now']);
+            if (i !== 0) return;
+            b.fitted = true; Progress.setAreaFlag(b.area.id, 'oldbell'); Sfx.play('unlock'); Stats.count('secret:oldbell');
+            yield* say(null, 'The clapper drops into place with a little ting, as if it had been waiting.');
+        });
+        return true;
+    }
+    talkBox(pl, f) { return f.tx === this.tx && f.ty === this.ty; }
+    draw(cx, cy) { super.draw(cx, cy); const x = this.x - cx, y = this.y - cy; Gfx.rect(x + 7, y - 2, 2, 18, '#6b4128'); Gfx.rect(x + 7, y - 2, 1, 18, '#9a6438'); }
+}
+SPAWN.oldbell = (x, y, p) => new OldBell(x, y, p);
 
 /* the Ringers' Stone, at the far end of the Crags: everyone who got across carved their initial and a little bell */
 SPAWN.ringstone = (tx, ty) => {

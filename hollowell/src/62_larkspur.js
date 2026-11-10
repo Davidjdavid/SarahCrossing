@@ -4,7 +4,9 @@
    carousel (Linnet's note 7 under its wooden horse), the fortune teller's tent, a painted hedge, a pen with a
    bed of nails, toy soldiers on parade, and the Marionette Hall (House 6, Jory's). After the Hall, the Crossbar
    works the puppet on the mesa that winds the lift. The fog on the west: lay a Bedroll by it, walk in, and come
-   back holding something (S11). Map drafted by tools/mapgen/larkspur.py. */
+   back holding something (S11). The Hall's forecourt is shut by a portcullis that winds up only while both its
+   parade pads are held down; a toy soldier marches up and down over each, in its own little pen. A balloon strains at
+   its tether by the fog. Map drafted by tools/mapgen/larkspur.py. */
 
 const MARIONETTE_ENTRY = { x: 29, y: 42 };
 const LARK = (x, y) => [x, 40 + y];
@@ -20,11 +22,11 @@ const LARKSPUR_ROWS = [
     '%%%YYYY"bb.bb".."......".XXXXXXXXXXXXXX..".w......l.!!!!!.l"YYYY',
     '%%%......................XXXXXXXXXXXXXX........w..l.."....l.YYYY',
     '%%%...,......w...........XXXXXX:XXXXXXX...........lfffOfffl.YYYY',
-    '%%%.................,".........:.........::::::::::::.......YYYY',
-    '%%%................."..........:.........:..................YYYY',
-    '%%%.....:....,.................:.........:................."YYYY',
-    '%%%...".:..,w..................:.........:..........w.".....YYYY',
-    '%%%.,...:.............===================:......"..,.......wYYYY',
+    '%%%.................,"......l..:..l......::::::::::::.......YYYY',
+    '%%%.................".......fff:fff......:..................YYYY',
+    '%%%.....:....,..............l.l:l.l......:................."YYYY',
+    '%%%...".:..,w.................l:l........:..........w.".....YYYY',
+    '%%%.,...:.............=======4===4=======:......"..,.......wYYYY',
     '%%%.....:.,...........===================...................YYYY',
     '%%%.....:....,.,......===================....,...,........,.YYYY',
     '%%%.....:.............===================.......w...........YYYY',
@@ -53,10 +55,16 @@ const LARKSPUR_ROWS = [
 ];
 
 defBlock({
-    id: 'larkspur', bx: 0, by: 1, name: 'Larkspur Fair', theme: 'fair', music: 'fair',
+    id: 'larkspur', bx: 0, by: 1, name: 'Larkspur Fair', theme: 'fair', music: 'fair', owArt: true, soft: 4, blobSeam: true,
     rows: LARKSPUR_ROWS,
-    forest: ['tree', 'tree2'],
-    legend: { 'O': { k: 'crawl', p: 'fence', ent: 'crawlhole' }, '!': { k: 'spikes', p: 'spikes' } },
+    forest: ['tree', 'tree2', 'tree_fair'],
+    legend: {
+        'O': { k: 'crawl', p: 'fence', ent: 'crawlhole' }, '!': { k: 'spikes', p: 'spikes' },
+        /* a fence post set in the square's cobbles */
+        '4': { k: 'path', p: 'cobble', ent: 'deco', props: { look: 'fence_v' } },
+    },
+    drawGround: (a, cx, cy) => Larkspur.ground(a, cx, cy),
+    drawOver: (a, cx, cy) => Larkspur.over(a, cx, cy),
     ents: [
         /* where you come down: straw bales under the mesa */
         { k: 'deco', x: 11, y: 35, look: 'haystack', solid: [[0, 0]], oy: -6, text: 'A great heap of straw. There is a dent in the top of it the exact shape of somebody falling off a mesa.' },
@@ -86,7 +94,21 @@ defBlock({
         /* the theatre */
         { k: 'building', x: 25, y: 3, w: 14, h: 7, door: 6, art: 'marionette' },
         { k: 'warp', x: 31, y: 9, to: 'marionette', tx2: MARIONETTE_ENTRY.x, ty2: MARIONETTE_ENTRY.y, face: 'up', dir: 'up' },
-        { k: 'npc', who: 'pell', x: 33, y: 11, face: 'down' },
+        { k: 'npc', who: 'pell', x: 36, y: 12, face: 'left' },
+        /* the forecourt's portcullis: it winds up only while both parade pads are held down; a soldier in each pen */
+        { k: 'portcullis', x: 31, y: 11, when: 'pgA&pgB|flag:hall_open|flag:d6', id: 'pgGate' },
+        { k: 'drumpad', x: 29, y: 12, sig: 'pgA' }, { k: 'drumpad', x: 33, y: 12, sig: 'pgB' },
+        { k: 'deco', x: 21, y: 14, look: 'fairpole', solid: [[0, 0]] }, { k: 'deco', x: 42, y: 15, look: 'fairpole', solid: [[0, 0]] },
+        { k: 'deco', x: 21, y: 27, look: 'fairpole', solid: [[0, 0]] }, { k: 'deco', x: 42, y: 27, look: 'fairpole', solid: [[0, 0]] },
+        { k: 'soldier', x: 29, y: 13, facing: 'up', id: 'pgSolA' }, { k: 'soldier', x: 33, y: 12, facing: 'down', id: 'pgSolB' },
+        /* the fair's prop crates (they know where they live), and two pale ones by the fog with an L on each */
+        { k: 'crate', x: 25, y: 12, id: 'lkProp1' }, { k: 'crate', x: 37, y: 14, id: 'lkProp2' },
+        { k: 'crate', x: 4, y: 14, id: 'lkStray1', marked: false, noThrow: true, look: 'crate_l' },
+        { k: 'crate', x: 4, y: 33, id: 'lkStray2', marked: false, noThrow: true, look: 'crate_l' },
+        /* the balloon ascent, closed: its basket tugging west at a single glowing thread */
+        { k: 'balloon', x: 5, y: 30, id: 'lkBalloon' },
+        /* the big wheel in the west meadow, stopped */
+        { k: 'deco', x: 15, y: 22, look: 'bigwheel', solid: [[0, 0], [1, 0], [2, 0], [3, 0]], ox: -16, text: 'The big wheel, stopped with one car at the top. Nobody has ridden it in a long time: there are birds nesting in the top car.' },
         /* the east gate to town, bolted on this side */
         { k: 'door', x: 61, y: 19, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateA' },
         { k: 'door', x: 61, y: 20, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateB' },
@@ -313,3 +335,169 @@ function initLarkspurArt() {
     ART.leap_edge = paintSprite(16, 10, x => { const R = (c, a, b, ww, hh) => sq(c, a, b, ww, hh, x); R('#c4623a', 0, 4, 16, 2); R('#8a3c26', 0, 6, 16, 2); R('#e8b884', 3, 2, 3, 2); R('#e8b884', 10, 2, 3, 2); });
 }
 CONTENT_INIT.push(initLarkspurArt);
+
+/* ---------- the Hall's forecourt: a portcullis wound up by two parade pads ---------- */
+/* it winds up slowly while what it wants holds, and drops fast when it doesn't (never onto anybody) */
+class Portcullis extends Door {
+    constructor(tx, ty, p = {}) { super(tx, ty, Object.assign({ type: 'gate', dir: 'h' }, p)); this.rise = 0; }
+    onAdd(area) { super.onAdd(area); if (Signals.eval(area, (this.when || '').split('|').filter(t => t.startsWith('flag:')).join('|'))) { this.rise = 60; this.open = true; } }
+    update() {
+        const want = Signals.eval(this.area, this.when), was = this.open;
+        if (want) { if (this.rise < 60 && ++this.rise % 12 === 1) Sfx.play('click', 0.35); }
+        else if (this.rise > 0) { const p = G.player; if (!(p && p.area === this.area && p.onTile(this.tx, this.ty))) this.rise = Math.max(0, this.rise - 6); }
+        this.open = this.rise >= 60;
+        if (this.open && !was) Sfx.play('door');
+        if (!this.open && was) Sfx.play('doorshut');
+    }
+    get sortY() { return this.y + 15; }
+    draw(cx, cy) {
+        const sx = this.x - cx, sy = this.y - cy, h = Math.round(26 * (1 - this.rise / 60));
+        /* the grille, rising into the red bar overhead (which stays) */
+        if (h > 0) {
+            for (let i = 1; i < 16; i += 4) { Gfx.rect(sx + i, sy - 10, 2, h, PAL.ink); Gfx.rect(sx + i, sy - 10, 1, h, '#e8c86a'); }
+            for (let j = 2; j < h; j += 6) { Gfx.rect(sx, sy - 10 + j, 16, 2, PAL.ink); Gfx.rect(sx, sy - 10 + j, 16, 1, '#c9a24a'); }
+            for (let i = 1; i < 16; i += 4) Gfx.rect(sx + i, sy - 10 + h, 2, 1, '#8a6a2a');
+        }
+        Gfx.rect(sx - 1, sy - 14, 18, 5, PAL.ink); Gfx.rect(sx, sy - 13, 16, 3, '#d6304e'); Gfx.rect(sx, sy - 13, 16, 1, '#f07080');
+    }
+}
+SPAWN.portcullis = (x, y, p) => new Portcullis(x, y, p);
+/* a parade pad: a drum let into the ground; anything standing on it holds it down */
+SPAWN.drumpad = (x, y, p) => {
+    const c = new Plate(x, y, p);
+    c.draw = function (cx, cy) { Gfx.img(ART[this.down ? 'drumpad_down' : 'drumpad'], this.x - cx, this.y - cy); };
+    return c;
+};
+/* once you've been in, the forecourt's open to you */
+{
+    const enter0 = World.enter;
+    World.enter = function (id, ...rest) {
+        if ((id === 'marionette' || (Progress.areaFlags && Progress.areaFlags.marionette)) && !Progress.flag('hall_open')) Progress.set('hall_open');
+        return enter0.call(this, id, ...rest);
+    };
+}
+
+/* ---------- the balloon ascent: a basket by the fog, its balloon pulling west at a single bright thread ---------- */
+class Balloon extends GridThing {
+    constructor(tx, ty, p = {}) { super('balloon', tx, ty, Object.assign({ weight: WEIGHT.medium, noPush: true, thread: THREAD.jory }, p)); this.t = 0; this.away = null; }
+    canPush() { return false; }
+    tick() { this.t++; }
+    interact() {
+        Script.run(function* () { yield* say(null, 'A wicker basket under a striped balloon, CLOSED painted on its side. The balloon leans west over the fog, straining, held down by one bright thread to a peg in the grass.'); });
+        return true;
+    }
+    /* cut, up it goes, west over the fog, and away */
+    onCut(quiet) {
+        if (quiet) { this.area.remove(this); return; }
+        Progress.set('balloon_away'); Stats.count('balloon');
+        this.away = { t: 0 }; this.area.unplace(this, this.tx, this.ty);
+        G.pendingToast = 'Snip. The basket lifts off the grass, and up, and drifts away west over the fog.';
+    }
+    update() {
+        super.update();
+        if (this.away && ++this.away.t > 240) this.area.remove(this);
+    }
+    get sortY() { return this.y + 30; }
+    draw(cx, cy) {
+        const k = this.away ? this.away.t / 240 : 0, bob = Math.round(Math.sin(this.t / 30) * 1.5);
+        const x = this.x - cx - 8 - Math.round(k * k * 120), y = this.y - cy - 40 + bob - Math.round(k * 60);
+        if (!this.away) {
+            /* the tether, glowing, to its peg */
+            Gfx.line(x + 16, y + 48, this.x - cx + 14, this.y - cy + 13, THREAD.jory);
+            Gfx.rect(this.x - cx + 13, this.y - cy + 12, 3, 3, '#6b4128');
+            Gfx.alpha(0.25); Gfx.rect(this.x - cx + 2, this.y - cy + 13, 12, 2, PAL.ink); Gfx.alpha(1);
+        }
+        Gfx.img(ART.balloon, x, y, false, this.away ? Math.max(0, 1 - k * 1.2) : 1);
+    }
+}
+SPAWN.balloon = (x, y, p) => Progress.flag('balloon_away') ? new Ent('none') : new Balloon(x, y, p);
+
+/* ---------- the fair's look: trampled meadow, sawdust walks, larkspur in the grass, bunting over the square ---------- */
+OWA.ground.fair = {
+    /* meadow grass, trodden paler in patches, clover */
+    grass(x, th, v) {
+        const [g0, g1, g2, g3] = th.grass;
+        fill(x, g0); speckle(x, [g1], 11 + v * 13, 0.12); speckle(x, [g2], 23 + v * 7, 0.04);
+        /* now and then a trodden spot, the grass flattened paler */
+        if (v === 3) for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) { const d = Math.hypot((i - 9) * 1.3, j - 10); if (d < 3 + hash2(i, j, 5) * 2) px(x, i, j, hash2(i, j, 6) < 0.5 ? '#b4d088' : '#a8c87c'); }
+        for (let n = 0; n < 3; n++) { const bx = 1 + Math.floor(hash2(v, n, 3) * 14), by = 2 + Math.floor(hash2(n, v, 5) * 13); px(x, bx, by, g3); px(x, bx, by - 1, g1); }
+        if (v === 2) { px(x, 4, 5, '#5a9a4a'); px(x, 5, 5, '#5a9a4a'); px(x, 4, 4, '#7cc06a'); px(x, 5, 6, g3); }
+    },
+    /* larkspur: spikes of blue and violet flowers */
+    flowers(x, th, v) {
+        OWA.ground.fair.grass(x, th, v);
+        const cols = [['#7a8ae8', '#b4c0f8'], ['#9a6ad8', '#c8a8f0'], ['#e87aa8', '#f8c0d8']];
+        for (let n = 0; n < 2; n++) {
+            const [c0, c1] = cols[(n + v) % 3], fx = 3 + Math.floor(hash2(n, v, 1) * 10), fy = 6 + Math.floor(hash2(v + 3, n, 2) * 6);
+            px(x, fx, fy + 4, th.grass[3]); px(x, fx, fy + 3, '#4a8a3a');
+            for (let j = 0; j < 4; j++) { px(x, fx, fy - j, j % 2 ? c1 : c0); if (j < 3) px(x, fx + (j % 2 ? -1 : 1), fy - j, c0); }
+        }
+    },
+    /* sawdust: pale shavings over trodden earth */
+    path(x, th, v) {
+        const [p0, p1, p2] = th.path;
+        fill(x, p0); speckle(x, [p1], 31 + v, 0.16); speckle(x, ['#f8ecc8'], 41 + v, 0.1);
+        for (let n = 0; n < 4; n++) { const sx = Math.floor(hash2(v, n, 12) * 14), sy = Math.floor(hash2(n, v, 13) * 15); px(x, sx, sy, '#c89a5a'); px(x, sx + 1, sy, '#e8c08a'); px(x, sx + 2, sy + (n % 2), '#c89a5a'); }
+        if (v === 3) { fill(x, '#fbf6ea', 10, 4, 3, 2); px(x, 10, 4, '#e8463c'); px(x, 12, 5, '#e8463c'); }
+    },
+    tallgrass(x, th, v) {
+        const [g0, g1, g2, g3] = th.grass;
+        fill(x, g0);
+        for (let i = 0; i < 7; i++) { const bx = 1 + i * 2, h = 7 + Math.floor(hash2(i, v, 4) * 6); for (let j = 0; j < h; j++) px(x, Math.min(15, bx + (j > h - 4 ? 1 : 0)), 15 - j, j > h - 3 ? '#d8e8a0' : j > h / 2 ? g2 : g1); px(x, bx, 15, g3); }
+    },
+    forest(x, th, v) { fill(x, '#3a6a32'); speckle(x, ['#467a3a', '#2e5a2a'], v + 9, 0.3); },
+};
+Object.assign(Larkspur, {
+    ground() { },
+    /* bunting strung from pole to pole over the square, swaying */
+    RUNS: [[[21, 14], [42, 15]], [[21, 27], [42, 27]]],
+    over(a, cx, cy) {
+        if (HEADLESS || cx > 64 * T || cx + W < 0 || cy + H < 40 * T || cy > 80 * T) return;
+        const cols = ['#e8463c', '#f7d64a', '#4f9be0', '#fbf6ea', '#5ab85a', '#d0608e'];
+        for (const [[x0, y0], [x1, y1]] of this.RUNS) {
+            const ax = x0 * T + 8 - cx, ay = (40 + y0) * T - 34 - cy, bx = x1 * T + 8 - cx, by = (40 + y1) * T - 34 - cy;
+            if (Math.max(ax, bx) < -20 || Math.min(ax, bx) > W + 20 || Math.max(ay, by) < -30 || Math.min(ay, by) > H + 30) continue;
+            const n = Math.max(2, Math.round(Math.hypot(bx - ax, by - ay) / 7)), sway = Math.sin(G.t / 50 + x0) * 2;
+            let px0 = ax, py0 = ay;
+            for (let i = 1; i <= n; i++) {
+                const u = i / n, sag = Math.sin(u * Math.PI) * (14 + sway), qx = ax + (bx - ax) * u, qy = ay + (by - ay) * u + sag;
+                Gfx.line(px0, py0, qx, qy, '#5a3a2a');
+                if (i < n) { const c = cols[i % cols.length]; Gfx.rect(qx - 2, qy + 1, 5, 1, c); Gfx.rect(qx - 1, qy + 2, 3, 1, c); Gfx.rect(qx, qy + 3, 1, 1, c); }
+                px0 = qx; py0 = qy;
+            }
+        }
+    },
+});
+
+function initLarkspurArt2() {
+    const R = (x, c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+    treeArt('tree_fair', { leaf: ['#4fa84a', '#6fc65a', '#a0e078', '#2e7a43'], bark: ['#9a6438', '#6b4128', '#45281c'], fruit: '#f59ac0' }, 8);
+    /* a stray crate with an L scratched in its side */
+    defSprite('crate_l', SPR_SRC.crate.rows.map((r, j) => j === 8 ? '..kbbkbbbbbbbk..' : j === 9 ? '..kbbkbbbBbbbk..' : j === 10 ? '..kbbkkkbBbbbk..' : r), { u: '#f0f8e0', U: '#d8e8b8', b: '#c8dca8', B: '#98b07a' });
+    /* a parade pad: a drum let into the ground, red rim and a white skin (held down: the skin sunk and shadowed) */
+    for (const down of [false, true]) ART[down ? 'drumpad_down' : 'drumpad'] = paintSprite(16, 16, x => {
+        discPx(x, 8, 8, 7, (px0, py0, u, v) => { const d = u * u + v * v; if (d > 0.62) return v < 0 ? '#e8463c' : '#9a1e36'; const l = -u * 0.4 - v * 0.6 - (down ? 0.6 : 0); return l > 0.2 ? '#fbf6ea' : l > -0.3 ? '#e8dcc8' : '#c8b898'; });
+        for (const [a, b] of [[2, 8], [14, 8], [8, 2], [8, 14]]) R(x, '#f7d64a', a - (a > 8 ? 1 : 0), b - (b > 8 ? 1 : 0), 1, 1);
+    });
+    /* a striped pole for the bunting, a gilded knob on top */
+    ART.fairpole = paintSprite(8, 44, x => { for (let j = 4; j < 44; j++) { R(x, (j >> 2) % 2 ? '#e8463c' : '#fbf6ea', 2, j, 4, 1); R(x, '#2a1f2d', 5, j, 1, 1); } R(x, '#f7d64a', 1, 0, 6, 5); R(x, '#fff4c0', 2, 1, 2, 2); });
+    /* the balloon: a striped envelope, its ropes, the wicker basket */
+    ART.balloon = paintSprite(32, 56, x => {
+        for (let j = 0; j < 34; j++) { const w = Math.round(Math.sqrt(Math.max(0, 1 - ((j - 15) / 17) ** 2)) * 14 * (j > 24 ? 1 - (j - 24) / 16 : 1)); for (let i = -w; i < w; i++) { const band = Math.floor((i + 14) / 4) % 2, l = -i / 14 * 0.6 - (j - 12) / 20; R(x, band ? (l > 0.3 ? '#ff8a7a' : l > -0.2 ? '#e8463c' : '#a82a26') : (l > 0.3 ? '#ffffff' : l > -0.2 ? '#f4ecdc' : '#c8bca8'), 16 + i, j, 1, 1); } }
+        R(x, '#7a4e32', 9, 34, 1, 10); R(x, '#7a4e32', 22, 34, 1, 10); R(x, '#7a4e32', 13, 33, 1, 11); R(x, '#7a4e32', 18, 33, 1, 11);
+        R(x, '#9a6438', 8, 44, 16, 10); for (let j = 44; j < 54; j += 2) R(x, '#c9925a', 8, j, 16, 1); for (let i = 8; i < 24; i += 3) R(x, '#6b4128', i, 44, 1, 10); R(x, '#e6c08a', 8, 44, 16, 1);
+    });
+    /* the big wheel: a rim of red and white on spokes, gondolas hanging, an A-frame of timber */
+    ART.bigwheel = paintSprite(96, 112, x => {
+        const cx = 48, cy = 46, r = 40;
+        R(x, '#6b4128', 20, 50, 4, 62); R(x, '#6b4128', 72, 50, 4, 62);
+        for (let j = 0; j < 62; j++) { R(x, '#9a6438', 22 + Math.round(j * 0.42), 46 + j, 3, 1); R(x, '#7a4e32', 72 - Math.round(j * 0.42), 46 + j, 3, 1); }
+        for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; for (let t = 4; t < r; t++) R(x, '#d8c8a8', Math.round(cx + Math.cos(a) * t), Math.round(cy + Math.sin(a) * t), 1, 1); }
+        for (let k = 0; k < 360; k++) { const a = k / 360 * Math.PI * 2; R(x, Math.floor(k / 15) % 2 ? '#e8463c' : '#fbf6ea', Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r), 2, 2); }
+        R(x, '#f7d64a', cx - 4, cy - 4, 8, 8); R(x, '#a8742a', cx - 2, cy - 2, 4, 4);
+        const gc = ['#4f9be0', '#5ab85a', '#f7d64a', '#d0608e', '#7d5bc4', '#e0913a', '#3fc1b5', '#e8463c'];
+        for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 - Math.PI / 2, gx = Math.round(cx + Math.cos(a) * r), gy = Math.round(cy + Math.sin(a) * r); R(x, '#5a3a2a', gx, gy, 1, 4); R(x, gc[k], gx - 5, gy + 4, 11, 6); R(x, shade(gc[k], -0.35), gx - 5, gy + 9, 11, 1); R(x, '#fbf6ea', gx - 3, gy + 5, 3, 2); }
+        R(x, '#8a7a6a', 14, 106, 68, 6); R(x, '#a89c8c', 14, 106, 68, 2);
+    });
+}
+CONTENT_INIT.push(initLarkspurArt2);

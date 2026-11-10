@@ -1,5 +1,6 @@
 // Larkspur Fair (overworld block 0,1): the jump off the mesa, the bolt on the east gate, the painted hedge, the
-// pen, the carousel's horse (Linnet's note 7), the lift wound by the stagehand, the fog (S11).
+// pen, the carousel's horse (Linnet's note 7), the lift wound by the stagehand, the fog (S11), the Hall's portcullis
+// (two parade pads, a soldier marching over each), the balloon by the fog (the Shears).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
@@ -110,5 +111,69 @@ test('S11: lay the Bedroll by the fog and walk in; it pulls you home to the Bedr
     for (let i = 0; i < 10; i++) { HW.skipTalk(); HW.step(10); }
     assert.ok(HW.Progress.flag('s11'), 'S11');
     assert.ok(HW.Inv.items.driftseed, 'a Drift-bloom seed');
+    noErrors(HW);
+});
+
+/* the forecourt: a soldier marches up and down over each parade pad in its own pen; the portcullis winds up only while
+   both pads are held at once. A crate set down in a pen's open end, while its soldier is on the pad, boxes it in there
+   for good (the fair's own crates go home; the pale ones by the fog stay where they're put) */
+export function paradeGate(HW) {
+    const go2 = (x, y) => assert.ok(HW.walkTo(x, y, 20000), `walk to ${x},${y} (at ${HW.player().tx},${HW.player().ty})`);
+    const a = HW.G.map;
+    for (const [id, sol, gap, face] of [['lkStray1', 'pgSolA', [28, 13], 'right'], ['lkStray2', 'pgSolB', [34, 13], 'left']]) {
+        const c = a.find(id);
+        go2(c.tx + 1, c.ty); HW.face('left'); HW.press('act', 1); HW.step(10);
+        assert.ok(HW.player().carry === c, 'carrying ' + id);
+        go2(...lk(...gap)); HW.face(face);
+        const s = a.find(sol);
+        until(HW, () => s.ty === lk(0, 12)[1] && Math.abs(s.y - (lk(0, 12)[1] * 16 + 10)) < 3, 300);
+        HW.press('act', 1); HW.step(5);
+        assert.ok(!HW.player().carry, 'set down');
+    }
+}
+test('the forecourt: a pale crate boxes each soldier onto its pad; the portcullis winds up; into the Hall', () => {
+    const HW = afterD5();
+    HW.warp('hollow', ...lk(12, 34)); HW.step(10);
+    const a = HW.G.map, S = HW.global('Signals');
+    assert.equal(HW.walkTo(...lk(31, 10), 20000), false, 'the portcullis is down');
+    paradeGate(HW);
+    HW.step(30);
+    assert.ok(S.get(a, 'pgA') && S.get(a, 'pgB'), 'both pads held');
+    HW.step(70);
+    assert.ok(a.find('pgGate').open, 'wound up');
+    go(HW, ...lk(31, 10)); HW.hold('up'); HW.step(40); HW.release(); HW.step(30);
+    assert.equal(HW.G.map.id, 'marionette', 'in');
+    assert.ok(HW.Progress.flag('hall_open'), 'and open to her from now on');
+    noErrors(HW);
+});
+test('the forecourt: one soldier boxed in is not enough (the other only touches its pad in passing), and the fair\'s own crates go home', () => {
+    const HW = afterD5();
+    HW.warp('hollow', ...lk(26, 13)); HW.step(10);
+    const a = HW.G.map, gate = a.find('pgGate');
+    /* a prop crate set in the west pen: it goes home, and its soldier is free again */
+    const prop = a.find('lkProp1');
+    go(HW, ...lk(26, 12)); HW.face('left'); HW.press('act', 1); HW.step(10);
+    go(HW, ...lk(28, 13)); HW.face('right');
+    until(HW, () => a.find('pgSolA').ty === lk(0, 12)[1], 300); HW.press('act', 1); HW.step(10);
+    HW.step(400);
+    assert.ok(prop.ret.state === 'home', 'the prop crate went home');
+    /* one pale crate: the west pad held, the east one only in passing: the portcullis never winds right up */
+    const c = a.find('lkStray1');
+    go(HW, c.tx + 1, c.ty); HW.face('left'); HW.press('act', 1); HW.step(10);
+    go(HW, ...lk(28, 13)); HW.face('right');
+    until(HW, () => a.find('pgSolA').ty === lk(0, 12)[1], 300); HW.press('act', 1); HW.step(10);
+    let opened = false; for (let i = 0; i < 600; i++) { HW.step(1); if (gate.open) opened = true; }
+    assert.ok(!opened, 'never open');
+    noErrors(HW);
+});
+test('the balloon by the fog: its thread cut with the Shears, it lifts off and drifts away west', () => {
+    const HW = afterD5(['shears']);
+    HW.warp('hollow', ...lk(5, 31)); HW.step(10);
+    const b = HW.G.map.find('lkBalloon');
+    assert.ok(b, 'the balloon');
+    HW.face('up'); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(5); HW.skipTalk();
+    assert.ok(HW.Progress.flag('balloon_away'), 'away');
+    HW.step(300);
+    assert.ok(!HW.G.map.find('lkBalloon'), 'gone over the fog');
     noErrors(HW);
 });

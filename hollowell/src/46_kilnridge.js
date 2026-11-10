@@ -52,7 +52,7 @@ defBlock({
     legend: { 'c': { k: 'clay', p: 'wetclay' } },
     /* the canyon floor; the Kiln Mesa's top (its chimney a hollow in it); the hawk's mesa; the High Mesa over the fair; the
        slot behind the dam; the firing hole; the pit and the kiln yard down in it */
-    levels: [[30, 20, 1], [20, 6, 2], [16, 8, 1], [52, 10, 2], [20, 3, 3], [59, 10, 1], [13, 26, 1], [15, 30, 0], [25, 30, 0]],
+    levels: [[30, 20, 1], [20, 6, 2], [14, 8, 3], [52, 10, 2], [20, 3, 3], [59, 10, 1], [13, 26, 1], [15, 30, 0], [25, 30, 0]],
     faceH: 2,
     rim: [[1, 0, 2, 39], [3, 0, 63, 2], [61, 0, 63, 21], [61, 25, 63, 37], [3, 37, 60, 37]],
     ents: [
