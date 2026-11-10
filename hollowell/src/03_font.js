@@ -107,6 +107,7 @@ for (const line of FONT_SRC.split('\n')) {
 }
 FONT[' '] = { w: 3, rows: [] };
 FONT['\u2014'] = { w: 6, rows: ['......', '......', '......', '######', '......', '......', '......', '......'] };    /* a dash, as in "Wipe your- oh" */
+FONT['\u00a0'] = { w: 3, rows: [] };    /* a space that never breaks a line ("4 of 6") */
 FONT['\xb7'] = { w: 3, rows: ['...', '...', '...', '.#.', '...', '...', '...', '...'] };    /* a middle dot, between the buttons on the title */
 /* a few icons in the text: \x01 heart, \x02 arrow, \x03 button, \x04 spool */
 FONT['\x01'] = { w: 7, rows: ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...', '.......', '.......'] };

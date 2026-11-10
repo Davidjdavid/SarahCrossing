@@ -50,7 +50,8 @@ const Fx = {
         for (const p of this.list) {
             const up = ar && p.x >= ar.x * T && p.x < (ar.x + ar.w) * T && p.y >= ar.y * T && p.y < (ar.y + ar.h) * T;
             const x = p.x - (up ? ux : cx), y = p.y - (up ? uy : cy);
-            if (p.text) { Font.center(p.text, x, y, p.col, PAL.ink); continue; }
+            /* (floating words keep on the screen, clear of the HUD's strip, however near the edge they started) */
+            if (p.text) { const hw = Font.width(p.text) / 2; Font.center(p.text, clamp(x, hw + 2, W - hw - 2), Math.max(y, 24), p.col, PAL.ink); continue; }
             if (p.fall) {
                 const k = p.life / 24, im = p.im;
                 if (HEADLESS || !im) continue;

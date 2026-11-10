@@ -196,7 +196,7 @@ class KnotLock extends GridThing {
             if (i !== 0) return;
             Progress.set('untie:' + h); Sfx.play('unclick'); Sfx.play('knot'); G.shake = 6; Stats.count('untied');
             const n = KNOT_HOUSES.filter(k => Progress.flag('untie:' + k)).length;
-            yield* say(null, n < 6 ? `It comes undone in your fingers, and somewhere above, the Spool shudders and slows. (${n} of 6.)` : 'The sixth Knot comes undone. Overhead, the Great Spool groans, and stops turning, and for the first time in your life there is no sound of winding anywhere.');
+            yield* say(null, n < 6 ? `It comes undone in your fingers, and somewhere above, the Spool shudders and slows. (${n}\u00a0of\u00a06.)` : 'The sixth Knot comes undone. Overhead, the Great Spool groans, and stops turning, and for the first time in your life there is no sound of winding anywhere.');
             if (n >= 6) { Progress.set('spool_all'); Progress.setGoal('Up the Climb to the top of the Spool. Gran is there.'); }
             else Progress.setGoal(`Untie the Knots of the Wander, in the rooms round the Spool's foot (${n} of 6).`);
             Save.autosave();
@@ -236,7 +236,7 @@ class GreatPost extends GridThing {
         Progress.set('great:' + this.house); Sfx.play('snip'); G.shake = 8; Fx.ring(this.tx * T + 8, this.ty * T, KNOT_COL[this.house]);
         const n = KNOT_HOUSES.filter(h => Progress.flag('great:' + h)).length;
         if (n >= 6) Script.run(GreatSpool.finale(), { name: 'finale' });
-        else { UI.toast(`A great thread parts with a sound like a bell cracking. (${n} of 6.)`, 120); Save.autosave(); }
+        else { UI.toast(`A great thread parts with a sound like a bell cracking. (${n}\u00a0of\u00a06.)`, 120); Save.autosave(); }
     }
     draw(cx, cy) {
         const x = this.tx * T - cx, y = this.ty * T - cy, col = KNOT_COL[this.house];

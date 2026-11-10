@@ -267,7 +267,7 @@ const Threads = {
         const c = Gfx.ctx;
         for (const e of area.ents) {
             const r = e.ret;
-            if (!r || r.state === 'home' || e.hideThread) continue;
+            if (!r || r.state === 'home' || e.hideThread || e.hiddenYank) continue;
             if (r.area && r.area !== area.id) continue;
             const pts = r.trace.map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
             /* to where the thing is now (mid-move) */
