@@ -144,7 +144,8 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
     in leads down; only with the Bedroll laid up top (or climb the roots back out, the hard way). Below: a small round
     door painted the colour of the rock, a red X over the keyhole, somebody sawing and humming behind it (the
     Underside); Linnet's note 6 across crumbling boards.
-17. **S17 Re-mark a sheep** (Needle): not built (sheep are critters, not things the Needle takes).
+17. **S17 Lucky over the river** (Meadowfold; the Hookline, then the Needle): Pip's lamb is stranded on the far bank; hooked
+    over, she only goes home again; given a place on this bank with the Needle (from where she lands), she stays: Pip's Heart Patch.
 18. **S18 Bell-and-bedroll**: ring the Bell while flying Homeward: Wren snaps home instantly (speed tech).
 19. **S19 Behind the falls** (Millwater): ride a float down the east side of the outlet river (needs the
     Paddle to get onto it): the current turns in behind the falls to a hidden pool with a Heart Patch chest;
@@ -176,6 +177,21 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
     notes, Makers' marks, old foes patted, fog-silk hollows, the two optional houses).
 39. **Nothing returns, Wren included** (the Stray House): a fall in there leaves her where she fell.
 36. **Heart Patches** (16 total) placements are listed in DUNGEON_TRACKER.md "Overworld secrets".
+40. **The Old Fold** (Meadowfold): the counting stones count a sheep walking home, not one driven: drive Nettle round the
+    fold the opposite way and leave her; she counts herself home yan, tan, tethera: Grandad's tally box, the ringers'
+    clapper. Old Tup asleep in the bothy door: the Recall Bell, the bothy's Heart Patch.
+41. **The ringers' old bell** (the Heights, 161,32): dumb; hang the clapper (from the Old Fold) and strike it: it wakes the
+    cave's boulder long before the Recall Bell (found early, used later).
+42. **The Crags** (the Heights): four crossings on the Hookline (an eyelet; the gust empties a crate's mark; a boulder asleep
+    elsewhere leaves its mark empty; empty a pot's mark yourself); the Ringers' Stone (carve your initial above H. and L.)
+    and a Heart Patch. **The Eyrie**: cut the crate the draught blows into the crevice loose (the Shears): it fills it for
+    good: a Heart Patch.
+43. **Kilnridge's vents**: the Firing Ground (the crate shoved off the line into the wet clay; a pot fired through a gate held open by Wren on
+    the plate: Heart Patch, and
+    Bram's first pot, age 9); the sleeping vent (the Recall Bell wakes the boulder off it; a pot fired up the Kiln Mesa's
+    chimney: 50 buttons); the clay dam (a pot given its place in the vent's mouth with the Needle breaks it: Heart Patch).
+44. **Heron Rock** (Millwater): reel the barrel ashore, set it out of the line, hook its empty mark: a Heart Patch; the
+    eel-catcher's post brings you back.
 
 ### Linnet's Trail (the major secret chain)
 Eight notes from Linnet's own Wander, each by a carved "L.", each needing a different mechanic:

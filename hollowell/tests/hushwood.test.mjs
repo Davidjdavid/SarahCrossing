@@ -239,7 +239,7 @@ test('on the isle, early: an old loom weight, lying in the moss', () => {
     assert.ok(HW.Inv.items.oldweight, 'the loom weight');
     noErrors(HW);
 });
-test('the little wooden one: with the Crossbar (and the three asleep), walked through the hole into its cradle: a Heart Patch', () => {
+test('the little wooden one: with the Crossbar (and the three asleep), walked through the hole into its cradle: thirty buttons', () => {
     const HW = loadGame();
     HW.preset('afterD6'); HW.step(10); HW.skipTalk(); HW.Inv.maxHp = HW.Inv.hp = 40;
     HW.warp('hollow', ...hw(10, 19)); HW.step(10);
@@ -254,7 +254,8 @@ test('the little wooden one: with the Crossbar (and the three asleep), walked th
     HW.step(5);
     assert.ok(!a.find('nuPatch').hidden, 'all four asleep: a chest');
     HW.press('tool', 1); HW.step(5);
+    const b0 = HW.Inv.buttons;
     go(HW, ...hw(13, 10)); HW.face('up'); HW.press('act', 1); HW.skipTalk();
-    assert.ok(HW.Inv.patches >= 1, 'a Heart Patch');
+    assert.equal(HW.Inv.buttons, b0 + 30, 'thirty buttons');
     noErrors(HW);
 });

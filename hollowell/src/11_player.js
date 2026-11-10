@@ -128,6 +128,7 @@ class Player extends Ent {
     /* ----- each step ----- */
     update() {
         if (this.inv > 0) this.inv--;
+        if (this.hitT > 0) this.hitT--;
         this.stateT++;
         switch (this.state) {
             case 'flight': return this.updateFlight();
@@ -370,7 +371,7 @@ class Player extends Ent {
 
     /* ----- the stick ----- */
     startSwing() {
-        this.swingT = 16; Sfx.play('swing'); this.swingHit = new Set();
+        this.swingT = 16; Sfx.play('swing'); this.swingHit = new Set(); this.swingFelt = false;
         Stats.count('swings');
     }
     swingBox() {
@@ -397,7 +398,11 @@ class Player extends Ent {
         for (const e of a.ents) {
             if (this.swingHit.has(e) || !e.hurtBox) continue;
             const h = e.hurtBox();
-            if (h && h.x0 < b.x1 && h.x1 > b.x0 && h.y0 < b.y1 && h.y1 > b.y0) { this.swingHit.add(e); e.struck(this, 1, this.dir); }
+            if (h && h.x0 < b.x1 && h.x1 > b.x0 && h.y0 < b.y1 && h.y1 > b.y0) {
+                this.swingHit.add(e); e.struck(this, 1, this.dir);
+                /* the stick meets something: a spark where it struck and the smallest stop, whether it gave or not */
+                if (!this.swingFelt) { this.swingFelt = true; G.hitstop = Math.max(G.hitstop, 2); Fx.spark((Math.max(h.x0, b.x0) + Math.min(h.x1, b.x1)) / 2, (Math.max(h.y0, b.y0) + Math.min(h.y1, b.y1)) / 2); }
+            }
         }
     }
 
@@ -405,7 +410,7 @@ class Player extends Ent {
     hurt(n, fx, fy) {
         if (this.inv > 0 || this.flying || this.state === 'faint' || G.cheats.god) return;
         Inv.hp = Math.max(0, Inv.hp - n);
-        this.inv = 70;
+        this.inv = 70; this.hitT = 10;      /* (a flash first, then the blinking spell) */
         const d = Math.hypot(this.x - fx, this.y - fy) || 1;
         this.kx = (this.x - fx) / d * 3.2; this.ky = (this.y - fy) / d * 3.2;
         Sfx.play('hurt'); G.shake = 6; G.hitstop = 4;
@@ -588,7 +593,7 @@ class Player extends Ent {
             }
             return;
         }
-        if (this.inv > 0 && this.state === 'normal' && (this.inv >> 2) % 2 && this.inv < 69) return;
+        if (this.inv > 0 && this.state === 'normal' && !(this.hitT > 0) && (this.inv >> 2) % 2 && this.inv < 60) return;
         /* asleep in a bed: her head on its pillow, the rest of her under its quilt */
         if (this.state === 'sleep' && this.inBed && !this.inBed.removed) { const b = this.inBed, h = spr('wren_sleep_head'); if (h) Gfx.img(h, b.x - cx + Math.round((b.im ? b.im.width : 16) / 2) - 8, b.y - cy + 2); return; }
         const { im, flip } = this.sprite();
@@ -598,7 +603,8 @@ class Player extends Ent {
         let sx = this.x - cx - 8, sy = this.y - cy - 13 - z;
         if (this.walking && (Math.floor(this.anim / 8) % 2)) sy -= 1;
         if (this.pushT > 3) sx += DX[this.dir] * 1;
-        Gfx.img(im, sx, sy, flip);
+        /* just hit: she flashes white and red a moment (it holds through the hit's stop) */
+        Gfx.img(this.hitT > 0 ? tinted(im, (this.hitT >> 1) % 2 ? '#ffffff' : '#ff6a5a') : im, sx, sy, flip);
         if (this.carry) {
             const c = this.carry, ci = c.sprite();
             if (ci) Gfx.img(ci, this.x - cx - 8, this.y - cy - 25 - z);

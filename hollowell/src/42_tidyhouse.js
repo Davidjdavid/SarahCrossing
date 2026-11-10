@@ -256,7 +256,7 @@ defHouse({
                 { k: 'deco', x: 3, y: 2, look: 'washtub' }, { k: 'deco', x: 5, y: 2, look: 'washtub' },
                 { k: 'deco', x: 16, y: 7, look: 'basket' }, { k: 'deco', x: 3, y: 8, look: 'basket' },
                 { k: 'enemy', x: 6, y: 7, type: 'dustbunny' }, { k: 'enemy', x: 15, y: 2, type: 'nibbler' },
-                { k: 'sign', x: 1, y: 1, text: 'LAUNDRY. A Gloves-only zone, apparently. Someone has drawn a little hand pulling a little block.' },
+                { k: 'sign', x: 1, y: 1, text: 'LAUNDRY. Wash on Monday, mangle on Tuesday, fold on Wednesday. The good linen is kept in the cubby.' },
             ],
             nudge: { solved: 'tidy_lKey', thing: 'laundryBlock', say: "The block in the cubby can't be pushed in any further. It could come out, though." },
         },
@@ -381,7 +381,7 @@ defHouse({
             ents: [
                 { k: 'bust', x: 3, y: 4, id: 'gb1' }, { k: 'bust', x: 16, y: 4, id: 'gb2' },
                 { k: 'bust', x: 9, y: 8, id: 'gb3' }, { k: 'bust', x: 9, y: 2, id: 'gb4' },
-                { k: 'pot', x: 1, y: 1, style: 'pot_teal' }, { k: 'pot', x: 18, y: 9, style: 'pot_teal' },
+                { k: 'pot', x: 1, y: 1, style: 'pot_teal', drop: 'heart' }, { k: 'pot', x: 18, y: 9, style: 'pot_teal', drop: 'heart' },
                 { k: 'housekeeper', x: 9, y: 4 },
                 { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'boss' },
             ],
@@ -501,7 +501,7 @@ SPAWN.monger = (tx, ty) => {
         Music.play('tidy');
         Script.run(function* () { yield 60; yield* say(null, 'The Dust Monger bursts into a hundred dust bunnies, which all hop away under the furniture. Something glints in the middle of the floor.'); });
     };
-    e.wakeT = 0;
+    e.wakeT = 0; e.flopT = 120;
     return e;
 };
 ENEMY.monger = { hp: 2, speed: 1.4, leash: 12, sight: 12, ai: 'monger', yarn: '#e4dcd0', r: 10, tall: 20, armored: true, dmg: 2, drop: 0, weight: WEIGHT.medium };
@@ -515,6 +515,23 @@ AI.monger = (e, p) => {
             Music.play('boss');
             Script.run(function* () { yield* say(null, 'A heap of fluff in the middle of the room shudders, stands up, and looks at you. It is a dust bunny the size of a sofa.'); yield* say(null, 'Your stick would just bounce off all that fluff. Something thrown might not...'); });
         }
+        return;
+    }
+    /* its one big move: it crouches low, shivering, and comes down out of the air on the spot where Wren stood (its
+       shadow's there first): a full heart if she's still under it */
+    const f = e.flop;
+    if (f) {
+        e.shake = ++f.t <= f.crouch;
+        if (f.t <= f.crouch) { e.z = -2; return; }
+        const k = Math.min(1, (f.t - f.crouch) / f.air);
+        e.x = lerp(f.fx, f.tx, k); e.y = lerp(f.fy, f.ty, k); e.z = Math.sin(k * Math.PI) * 34;
+        if (k >= 1) { e.z = 0; e.flop = null; e.modeT = 40; e.settle(); e.traceStep(); Fx.poof(e.x, e.y - 4); }
+        return;
+    }
+    if (++e.flopT > 280 && !(e.hopT > 0) && p.state === 'normal' && p.area === a && Cam.room && Cam.room.key === '2,1') {
+        e.flopT = 0;
+        e.flop = { t: 0, crouch: tellFor(1), air: 28, fx: e.x, fy: e.y, tx: p.x, ty: p.y };
+        Hazard.drop(e, p.x, p.y, { r: 20, dmg: 2, tell: e.flop.crouch + e.flop.air, shake: 8, col: '#b0a698' });
         return;
     }
     AI.hop(e, p);

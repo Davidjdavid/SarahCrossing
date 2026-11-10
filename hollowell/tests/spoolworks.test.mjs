@@ -299,25 +299,27 @@ test('under the Spool Store: the way north is locked; the key from the Ropewalk 
     noErrors(HW);
 });
 
-test('the Bobbin Loft: three bobbins stitched onto three plates, the fourth pushed on and tied off from underneath (the Pattern)', () => {
+test('the Bobbin Loft: no bobbin shifts by hand; one stitched onto its plate and tied off below, then the other three stitched: the fourth stitch lets go of the first, but its knot holds it (the Pattern)', () => {
     const HW = game(['needle']);
     enter(HW, 'loft', 9, 9);
     const B = id => thing(HW, id);
+    go(HW, 'loft', 11, 7); HW.push('right', 1); HW.step(10);
+    assert.deepEqual([B('blB4').tx, B('blB4').ty], at('loft', 12, 7), 'a bobbin will not be pushed');
     go(HW, 'loft', 6, 5); HW.face('up'); stitch(HW, 'LLLU'); until(HW, () => HW.Return.isHome(B('blB1')), 120);
+    assert.deepEqual([B('blB1').tx, B('blB1').ty], at('loft', 3, 3));
+    hatch(HW, 'loft', 9, 7, 'down');
+    go(HW, 'uloft', 3, 4); HW.face('up'); knot(HW);
+    assert.ok(B('blB1').knotted, 'the first tied off below, on its plate');
+    hatch(HW, 'uloft', 9, 7, 'down');
     go(HW, 'loft', 12, 5); HW.face('up'); stitch(HW, 'RRRU'); until(HW, () => HW.Return.isHome(B('blB2')), 120);
     go(HW, 'loft', 6, 6); HW.face('down'); stitch(HW, 'LLLD'); until(HW, () => HW.Return.isHome(B('blB3')), 120);
-    assert.deepEqual([B('blB1').tx, B('blB1').ty], at('loft', 3, 3));
-    assert.deepEqual([B('blB3').tx, B('blB3').ty], at('loft', 3, 8));
     /* the fourth: Wren can't stand in for it, a bobbin must */
     go(HW, 'loft', 15, 8); HW.step(10);
     assert.ok(B('blPattern').hidden, 'Wren is no bobbin');
-    go(HW, 'loft', 11, 7); HW.push('right', 3); HW.step(25);
-    go(HW, 'loft', 15, 6); HW.push('down', 1); HW.step(25);
-    assert.deepEqual([B('blB4').tx, B('blB4').ty], at('loft', 15, 8), 'pushed onto the last plate');
-    hatch(HW, 'loft', 9, 7, 'down');
-    go(HW, 'uloft', 11, 7); HW.face('right'); knot(HW);
-    assert.ok(B('blB4').knotted);
-    hatch(HW, 'uloft', 9, 7, 'down');
+    go(HW, 'loft', 12, 6); HW.face('down'); stitch(HW, 'RRRD'); until(HW, () => HW.Return.isHome(B('blB4')), 120);
+    assert.equal(HW.Inv.stitches.length, 3, 'the first stitch let go');
+    HW.step(60);
+    assert.deepEqual([B('blB1').tx, B('blB1').ty], at('loft', 3, 3), 'but the knot holds the first where it is');
     HW.step(310);
     assert.ok(!B('blPattern').hidden, 'the Pattern chest');
     go(HW, 'loft', 9, 3); HW.face('up'); HW.press('act', 1); HW.skipTalk();

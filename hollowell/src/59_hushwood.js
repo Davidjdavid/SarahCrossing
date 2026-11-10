@@ -134,7 +134,7 @@ defBlock({
         /* by the house, a fourth cradle behind a little round hole in the hedge, and the wooden one Jory carved */
         { k: 'cradle', x: 14, y: 7, sig: 'nuD' },
         { k: 'puppet', x: 17, y: 10, id: 'nuDolly', look: 'puppet_snore' },
-        { k: 'chest', x: 13, y: 9, item: 'heartpatch', id: 'nuPatch', hidden: true, when: 'nuA&nuB&nuC&nuD' },
+        { k: 'chest', x: 13, y: 9, item: 'b30', id: 'nuPatch', hidden: true, when: 'nuA&nuB&nuC&nuD' },
         /* something lost on the isle, long ago */
         { k: 'lostweight', x: 31, y: 29 },
     ],

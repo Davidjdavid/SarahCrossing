@@ -264,12 +264,13 @@ defHouse({
             ents: [
                 { k: 'plate', x: 3, y: 3, sig: 'bl1', minWeight: 3 }, { k: 'plate', x: 15, y: 3, sig: 'bl2', minWeight: 3 },
                 { k: 'plate', x: 3, y: 8, sig: 'bl3', minWeight: 3 }, { k: 'plate', x: 15, y: 8, sig: 'bl4', minWeight: 3 },
-                { k: 'bobbin', x: 6, y: 4, id: 'blB1' }, { k: 'bobbin', x: 12, y: 4, id: 'blB2' }, { k: 'bobbin', x: 6, y: 7, id: 'blB3' }, { k: 'bobbin', x: 12, y: 7, id: 'blB4' },
+                /* (wound full on iron cores: nobody shifts one by hand; only a stitch moves them) */
+                { k: 'bobbin', x: 6, y: 4, id: 'blB1', full: true }, { k: 'bobbin', x: 12, y: 4, id: 'blB2', full: true }, { k: 'bobbin', x: 6, y: 7, id: 'blB3', full: true }, { k: 'bobbin', x: 12, y: 7, id: 'blB4', full: true },
                 { k: 'chest', x: 9, y: 2, item: 'pattern', id: 'blPattern', hidden: true, when: 'blHeld' },
                 { k: 'door', x: 9, y: 10, type: 'gate', when: 'blHeld', keep: true, id: 'blExit' },
                 { k: 'sign', x: 1, y: 1, text: 'THE BOBBIN LOFT. Four plates, four bobbins (iron cored: only a bobbin will do). The way out wants all four at once.' },
             ],
-            nudge: { solved: 'spoolworks_chest:blPattern', after: 60 * 60 * 4, at: [9, 8], say: 'Three bobbins can be given new places on their plates. The fourth needs holding there, and nobody up here has a free hand.' },
+            nudge: { solved: 'spoolworks_chest:blPattern', after: 60 * 60 * 4, at: [9, 8], say: 'Three stitches is all the Needle will hold. A bobbin held fast some other way would not need one.' },
         },
         /* ---------------- 8 The Heart of the Works: the Tangle ---------------- */
         '1,0': {
@@ -537,7 +538,8 @@ const Spoolworks = {
 SIGNATURE_TEXT.spoolworks = "Burnt into the bench with a hot needle: a little spool, and G.G. Under it, much smaller, much older: L. WAS HERE TOO.";
 
 /* bobbins: iron-cored, heavy, slow to go home */
-SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'bobbin', patience: 240 }, p));
+SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'bobbin', patience: 240 },
+    p.full ? { noPush: true, noPull: true, pushLine: "Wound full on its iron core: it won't shift an inch by hand." } : {}, p));
 
 /* the Heart's hoist counterweight: an iron weight on a line that runs up through the boards */
 {

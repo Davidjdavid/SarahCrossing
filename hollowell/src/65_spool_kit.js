@@ -364,18 +364,20 @@ const Needle = {
         if (Inv.stitches.length > this.MAX) {
             const oldest = Inv.stitches[0];
             this.unpick(oldest);
-            UI.toast(this.letGo(oldest), 200);
+            /* (something that's held where it is when its stitch lets go, tied off below or gripped, stays put) */
+            const was = oldest.area === a.id && a.ents.find(o => this.key(o) === oldest.key && !o.removed);
+            UI.toast(this.letGo(oldest, !!(was && was.ret && Return.held(was))), 200);
         }
     },
     /* what a stitched thing is called, for saying which one let go */
     noun(e) { return e.stitchName || NEEDLE_NOUNS[e.look] || NEEDLE_NOUNS[e.kind + ':' + e.style] || NEEDLE_NOUNS[e.kind] || 'the ' + e.kind; },
     /* the oldest stitch let go: say plainly what it was and where (older saves' stitches don't know what they were) */
-    letGo(rec) {
+    letGo(rec, held) {
         const def = AREAS[rec.area], at = rec.from || rec.to;
         const room = at && def && def.rooms ? def.rooms.find(r => at[0] >= r.x && at[1] >= r.y && at[0] < r.x + r.w && at[1] < r.y + r.h) : null;
         const here = room && G.map && G.map.id === rec.area && Cam.room && Cam.room.key === room.key, n = room && room.name;
         const where = here ? ' here' : !n ? '' : /^Under /.test(n) ? ' under ' + n.slice(6) : /Floor$/.test(n) ? ' on ' + n.replace(/^The /, 'the ') : ' in ' + n.replace(/^The /, 'the ');
-        return 'The Needle only holds three stitches, so your oldest lets go: ' + (rec.noun || (rec.chalk ? 'a sewn plank' : 'something')) + where + (rec.chalk ? ' goes back to chalk.' : ' goes back to its old place.');
+        return 'The Needle only holds three stitches, so your oldest lets go: ' + (rec.noun || (rec.chalk ? 'a sewn plank' : 'something')) + where + (rec.chalk ? ' goes back to chalk.' : held ? ' would go back to its old place, but something is holding it where it is.' : ' goes back to its old place.');
     },
     /* a stitch undone: the thing's old place back, and its way home is the way it came */
     unpick(rec) {

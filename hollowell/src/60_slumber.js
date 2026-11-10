@@ -258,7 +258,7 @@ defHouse({
                 { k: 'chest', x: 2, y: 1, item: 'key', id: 'mwKey' },
                 { k: 'plate', x: 17, y: 9, sig: 'mwp' },
                 { k: 'wood', x: 16, y: 9, id: 'mwBlock' },
-                { k: 'sign', x: 5, y: 9, text: "THE MOONWALK. The gate in the corner stays open while the far plate is pressed. Nobody has ever walked it in time. (Nobody walks in here.)" },
+                { k: 'sign', x: 5, y: 9, text: "THE MOONWALK. The gate in the corner stays open while the far plate is pressed. Nobody has ever walked it in time." },
             ],
             nudge: { solved: 'slumber_mwGate', after: 60 * 60 * 3, at: [2, 4], say: 'The gate is a long way from the plate. Walking back takes too long. Something faster than walking, then.' },
         },

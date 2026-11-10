@@ -32,7 +32,9 @@ class Charm extends Ent {
         /* the chain from the ceiling, then the bell above head height */
         for (let i = -14; i < -6; i += 2) Gfx.rect(x + Math.round(sw * (i + 14) / 8), y + i, 1, 1, '#5a4a3a');
         const bx = x + Math.round(sw), by = y - 6;
-        const c = CHARM_COL[this.col] || '#e0913a', lit = this.on ? shade(c, 0.35) : c;
+        /* (a sequence charm whose ring is dying away flickers before it goes dark) */
+        const st = this.seq && this.fade && this.area && this.area.seqState, dying = st && st[this.seq + ':t'] > 0 && st[this.seq + ':t'] < 40 && (G.t >> 2) % 2;
+        const c = CHARM_COL[this.col] || '#e0913a', lit = this.on && !dying ? shade(c, 0.35) : c;
         Gfx.rect(bx - 4, by, 8, 6, PAL.ink); Gfx.rect(bx - 3, by + 1, 6, 5, lit); Gfx.rect(bx - 5, by + 5, 10, 2, PAL.ink); Gfx.rect(bx - 4, by + 5, 8, 1, shade(lit, -0.2));
         Gfx.rect(bx - 2, by + 1, 1, 3, shade(lit, 0.4));
         if (this.glyph) Gfx.rect(bx - 1, by + 2, 2, 2, PAL.ink);
@@ -43,7 +45,8 @@ class Charm extends Ent {
 const CHARM_COL = { ochre: '#e0913a', sun: '#f7d64a', moon: '#9fd4f0', star: '#f59ac0', leaf: '#8fd46a', ember: '#e8463c' };
 SPAWN.charm = (x, y, p) => new Charm(x, y, p);
 
-/* a sequence lock: charms with seq: 'name' and order 0,1,2... must be struck in order */
+/* a sequence lock: charms with seq: 'name' and order 0,1,2... must be struck in order. With fade: n, a charm only rings
+   on for n frames: the next must be struck before the last has died away, or they all fall silent and it starts over */
 const SeqLocks = {
     hit(c) {
         const a = c.area, name = c.seq;
@@ -53,14 +56,21 @@ const SeqLocks = {
         const all = a.ents.filter(e => e.kind === 'charm' && e.seq === name);
         if (c.order === want) {
             st[name] = want + 1; c.on = true;
-            if (st[name] >= all.length) { Progress.setAreaFlag(a.id, 'seq:' + name); Sfx.play('appear'); }
-        } else {
-            st[name] = 0; for (const e of all) e.on = false;
-            Sfx.play('unclick'); Fx.text(c.x + 8, c.y - 12, '...', PAL.grey2);
-        }
+            if (c.fade) { st[name + ':t'] = c.fade; st[name + ':c'] = c; }
+            if (st[name] >= all.length) { st[name + ':t'] = 0; Progress.setAreaFlag(a.id, 'seq:' + name); Sfx.play('appear'); }
+        } else this.silence(a, name, c);
+    },
+    silence(a, name, c) {
+        const st = a.seqState;
+        st[name] = 0; st[name + ':t'] = 0;
+        for (const e of a.ents) if (e.kind === 'charm' && e.seq === name) e.on = false;
+        Sfx.play('unclick'); Fx.text(c.x + 8, c.y - 12, '...', PAL.grey2);
     },
     tick(a) {
         for (const e of a.ents) if (e.kind === 'charm' && e.seq && Progress.areaFlag(a.id, 'seq:' + e.seq)) { e.on = true; Signals.set(a, e.seq); }
+        /* the ring dying away */
+        const st = a.seqState; if (!st) return;
+        for (const k in st) if (k.endsWith(':t') && st[k] > 0 && --st[k] === 0) { const name = k.slice(0, -2); if (!Progress.areaFlag(a.id, 'seq:' + name)) this.silence(a, name, st[name + ':c']); }
     },
 };
 

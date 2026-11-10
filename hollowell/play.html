@@ -2269,6 +2269,8 @@ const Fx = {
         this.add({ x, y, life: 20, ring: 2, col: '#e4f6ff' });
     },
     ring(x, y, col = '#ffffff') { this.add({ x, y, life: 16, ring: 1, col }); },
+    /* where the stick strikes something: a quick white star */
+    spark(x, y) { this.add({ x, y, life: 7, spark: true, col: '#ffffff' }); for (let i = 0; i < 4; i++) { const a = (i + 0.5) / 4 * Math.PI * 2; this.add({ x, y, vx: Math.cos(a) * 1.4, vy: Math.sin(a) * 1.1, life: 8, col: '#fff6c0', r: 1 }); } },
     burst(x, y, col) {
         for (let i = 0; i < 10; i++) { const a = Math.random() * Math.PI * 2, s = 0.6 + Math.random() * 1.4; this.add({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 22, col, r: 1.5, grow: -0.05 }); }
     },
@@ -2322,6 +2324,12 @@ const Fx = {
             if (p.star) {
                 Gfx.rect(x, y, 1, 1, p.col);
                 if (p.life > 8) { Gfx.rect(x - 1, y, 3, 1, p.col); Gfx.rect(x, y - 1, 1, 3, p.col); }
+                continue;
+            }
+            if (p.spark) {
+                const s = p.life > 4 ? 3 : 2;
+                Gfx.rect(x - s, y, s * 2 + 1, 1, p.col); Gfx.rect(x, y - s, 1, s * 2 + 1, p.col);
+                if (p.life > 4) { Gfx.rect(x - 1, y - 1, 3, 3, p.col); }
                 continue;
             }
             const r = p.r || 1;
@@ -2462,6 +2470,7 @@ class Player extends Ent {
     /* ----- each step ----- */
     update() {
         if (this.inv > 0) this.inv--;
+        if (this.hitT > 0) this.hitT--;
         this.stateT++;
         switch (this.state) {
             case 'flight': return this.updateFlight();
@@ -2704,7 +2713,7 @@ class Player extends Ent {
 
     /* ----- the stick ----- */
     startSwing() {
-        this.swingT = 16; Sfx.play('swing'); this.swingHit = new Set();
+        this.swingT = 16; Sfx.play('swing'); this.swingHit = new Set(); this.swingFelt = false;
         Stats.count('swings');
     }
     swingBox() {
@@ -2731,7 +2740,11 @@ class Player extends Ent {
         for (const e of a.ents) {
             if (this.swingHit.has(e) || !e.hurtBox) continue;
             const h = e.hurtBox();
-            if (h && h.x0 < b.x1 && h.x1 > b.x0 && h.y0 < b.y1 && h.y1 > b.y0) { this.swingHit.add(e); e.struck(this, 1, this.dir); }
+            if (h && h.x0 < b.x1 && h.x1 > b.x0 && h.y0 < b.y1 && h.y1 > b.y0) {
+                this.swingHit.add(e); e.struck(this, 1, this.dir);
+                /* the stick meets something: a spark where it struck and the smallest stop, whether it gave or not */
+                if (!this.swingFelt) { this.swingFelt = true; G.hitstop = Math.max(G.hitstop, 2); Fx.spark((Math.max(h.x0, b.x0) + Math.min(h.x1, b.x1)) / 2, (Math.max(h.y0, b.y0) + Math.min(h.y1, b.y1)) / 2); }
+            }
         }
     }
 
@@ -2739,7 +2752,7 @@ class Player extends Ent {
     hurt(n, fx, fy) {
         if (this.inv > 0 || this.flying || this.state === 'faint' || G.cheats.god) return;
         Inv.hp = Math.max(0, Inv.hp - n);
-        this.inv = 70;
+        this.inv = 70; this.hitT = 10;      /* (a flash first, then the blinking spell) */
         const d = Math.hypot(this.x - fx, this.y - fy) || 1;
         this.kx = (this.x - fx) / d * 3.2; this.ky = (this.y - fy) / d * 3.2;
         Sfx.play('hurt'); G.shake = 6; G.hitstop = 4;
@@ -2922,7 +2935,7 @@ class Player extends Ent {
             }
             return;
         }
-        if (this.inv > 0 && this.state === 'normal' && (this.inv >> 2) % 2 && this.inv < 69) return;
+        if (this.inv > 0 && this.state === 'normal' && !(this.hitT > 0) && (this.inv >> 2) % 2 && this.inv < 60) return;
         /* asleep in a bed: her head on its pillow, the rest of her under its quilt */
         if (this.state === 'sleep' && this.inBed && !this.inBed.removed) { const b = this.inBed, h = spr('wren_sleep_head'); if (h) Gfx.img(h, b.x - cx + Math.round((b.im ? b.im.width : 16) / 2) - 8, b.y - cy + 2); return; }
         const { im, flip } = this.sprite();
@@ -2932,7 +2945,8 @@ class Player extends Ent {
         let sx = this.x - cx - 8, sy = this.y - cy - 13 - z;
         if (this.walking && (Math.floor(this.anim / 8) % 2)) sy -= 1;
         if (this.pushT > 3) sx += DX[this.dir] * 1;
-        Gfx.img(im, sx, sy, flip);
+        /* just hit: she flashes white and red a moment (it holds through the hit's stop) */
+        Gfx.img(this.hitT > 0 ? tinted(im, (this.hitT >> 1) % 2 ? '#ffffff' : '#ff6a5a') : im, sx, sy, flip);
         if (this.carry) {
             const c = this.carry, ci = c.sprite();
             if (ci) Gfx.img(ci, this.x - cx - 8, this.y - cy - 25 - z);
@@ -4438,6 +4452,199 @@ function initEnemySprites() {
     ENEMY_DRAW.dustbunny = e => spr('dust_0');
 }
 SPAWN.enemy = (x, y, p) => new Enemy(x, y, p);
+
+/* ---------- the blows: every attack shows itself before it lands ----------
+   A blow has a tell first (a pose, a flash, a sound and, for anything that lands somewhere, a mark on the floor where it
+   will land): longer early in the game, shorter later (TELL, by House), and a little shorter again in a boss's later
+   beats. It lands only through Wren's own hurt(), so stepping out of the marked place is always enough, and her blinking
+   spell after a hit covers whatever comes straight after it. Nothing lands while anyone is talking. */
+const TELL = [36, 40, 36, 32, 28, 26, 24, 22, 20];
+function tellFor(house, beat = 1) { return Math.max(16, Math.round((TELL[house] || TELL[0]) * (beat >= 3 ? 0.8 : beat === 2 ? 0.9 : 1))); }
+SFX.warn = (o, t) => { Audio.tone(o, t, 494, 0.05, 'p25', 0.07); Audio.tone(o, t + 0.06, 740, 0.08, 'p25', 0.07); };
+/* a boss's blows go when it does: beaten, gone back to sleep (Wren left), or gone from the place */
+const ownerGone = (o, area) => !o || o.removed || o.alive === false || o.area !== area || o.state === 'sleep';
+
+/* a blow that lands on the floor: tiles that light up and then are struck (a lane, a sweep, a row), a shadow that grows
+   where something will drop (r px round), or a ring of stitches round a spot (r px out; the blow fills it). It hurts
+   whoever's feet are inside when it lands, and for `live` frames after. */
+class Hazard extends Ent {
+    constructor(owner, o) {
+        super('hazard');
+        Object.assign(this, { shape: 'tiles', tell: 30, live: 4, dmg: 1, col: '#e8463c', fx: 'dust', r: 12, t: 0, shake: 3 }, o);
+        this.owner = owner;
+        if (this.tiles) { this.x = this.tiles.reduce((s, q) => s + q[0], 0) / this.tiles.length * T + 8; this.y = this.tiles.reduce((s, q) => s + q[1], 0) / this.tiles.length * T + 8; }
+    }
+    static tiles(owner, tiles, o = {}) { return tiles.length ? owner.area.add(new Hazard(owner, Object.assign({ shape: 'tiles', tiles }, o))) : null; }
+    static drop(owner, x, y, o = {}) { return owner.area.add(new Hazard(owner, Object.assign({ shape: 'drop', x, y }, o))); }
+    static ring(owner, x, y, r, o = {}) { return owner.area.add(new Hazard(owner, Object.assign({ shape: 'ring', x, y, r }, o))); }
+    /* (under everyone while it warns; whatever drops is drawn over them as it comes down) */
+    get sortY() { return this.look && this.t > this.tell - 30 ? this.y + 200 : -900 + this.y; }
+    get landed() { return this.t >= this.tell; }
+    covers(x, y) {
+        if (this.shape === 'tiles') return this.tiles.some(([tx, ty]) => tileOf(x) === tx && tileOf(y) === ty);
+        const dx = x - this.x, dy = (y - this.y) / 0.7;
+        return dx * dx + dy * dy < this.r * this.r;
+    }
+    update() {
+        if (ownerGone(this.owner, this.area)) { this.area.remove(this); return; }
+        if (Script.blocking()) return;
+        this.t++;
+        if (this.t === 1 && !this.quiet) Sfx.play('warn');
+        if (this.t === this.tell) this.land();
+        if (this.landed && this.t < this.tell + this.live) {
+            const p = G.player;
+            if (p && p.area === this.area && p.state === 'normal' && this.covers(p.x, p.y)) {
+                const [fx, fy] = this.from || [this.x, this.y + 4];
+                p.hurt(this.dmg, fx, fy);
+            }
+        }
+        if (this.t >= this.tell + this.live + 10) this.area.remove(this);
+    }
+    land() {
+        G.shake = Math.max(G.shake, this.shake);
+        Sfx.play(this.sound || (this.fx === 'splash' ? 'splash' : this.fx === 'yarn' || this.fx === 'silk' ? 'twang' : 'land'));
+        const pts = this.shape === 'tiles' ? this.tiles.map(([x, y]) => [x * T + 8, y * T + 9]) : [[this.x, this.y]];
+        for (const [x, y] of pts) {
+            if (this.fx === 'splash') Fx.splash(x, y);
+            else if (this.fx === 'sparks' || this.fx === 'clay') Fx.burst(x, y - 3, this.fx === 'clay' ? '#c4623a' : '#f7d64a');
+            else if (this.fx === 'yarn' || this.fx === 'silk') Fx.yarn(x, y - 3, this.col);
+            else Fx.dust(x, y);
+        }
+        if (this.shape !== 'tiles') Fx.ring(this.x, this.y, this.shape === 'ring' ? shade(this.col, 0.4) : '#ffffff');
+        if (this.onLand) this.onLand(this);
+    }
+    draw(cx, cy) {
+        const t = this.t, k = Math.min(1, t / this.tell), col = this.col;
+        /* faster and brighter as it comes */
+        const blink = !this.landed && ((t / Math.max(3, Math.round(10 - 7 * k))) | 0) % 2 === 0;
+        if (this.shape === 'tiles') {
+            for (const [tx, ty] of this.tiles) {
+                const x = tx * T - cx, y = ty * T - cy;
+                Gfx.alpha(this.landed ? 0.45 : 0.1 + 0.25 * k + (blink ? 0.08 : 0)); Gfx.rect(x + 1, y + 1, 14, 14, this.landed ? '#ffffff' : col); Gfx.alpha(1);
+                if (!this.landed) Tells.stitchTile(x, y, blink ? shade(col, 0.45) : col);
+            }
+            return;
+        }
+        const x = this.x - cx, y = this.y - cy;
+        if (this.shape === 'drop') {
+            if (!this.landed) {
+                const r = Math.round(3 + (this.r - 3) * k);
+                Gfx.alpha(0.18 + 0.4 * k); Tells.ellipse(x, y, r, PAL.ink); Gfx.alpha(1);
+                if (blink) Tells.stitchRing(x, y, r + 2, col, 14);
+            }
+        } else if (!this.landed) {
+            Gfx.alpha(0.06 + 0.12 * k); Tells.ellipse(x, y, this.r, col); Gfx.alpha(1);
+            Tells.stitchRing(x, y, this.r, blink ? shade(col, 0.45) : col, Math.max(16, Math.round(this.r / 2.5)));
+        }
+        /* what's coming down, from up out of sight */
+        if (this.look && !this.landed && t > this.tell - 30) this.look(x, y - (this.tell - t) * 5, this);
+    }
+}
+/* the tells' own marks: stitches, as everything in this valley is sewn */
+const Tells = {
+    stitchTile(x, y, col) { for (let i = 1; i < 15; i += 4) { Gfx.rect(x + i, y + 1, 2, 1, col); Gfx.rect(x + i, y + 14, 2, 1, col); Gfx.rect(x + 1, y + i, 1, 2, col); Gfx.rect(x + 14, y + i, 1, 2, col); } },
+    stitchRing(x, y, r, col, n = 16) { for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; Gfx.rect(Math.round(x + Math.cos(a) * r) - 1, Math.round(y + Math.sin(a) * r * 0.7), 2, 1, col); } },
+    ellipse(x, y, r, col) { for (let dy = -Math.round(r * 0.7); dy <= Math.round(r * 0.7); dy++) { const w = Math.round(Math.sqrt(Math.max(0, 1 - (dy / (r * 0.7 || 1)) ** 2)) * r); Gfx.rect(x - w, y + dy, w * 2 + 1, 1, col); } },
+    /* the "!" over a thing about to strike */
+    bang(x, y) { const im = spr('bubble_bang'); if (im) Gfx.img(im, Math.round(x) - 4, Math.round(y)); },
+    /* a glow gathering at a spot (a mouth, a hand) before something's spat or thrown */
+    glow(x, y, k, col) { const r = Math.round(1 + 3 * k); Gfx.alpha(0.35 + 0.4 * k); Gfx.circle(x, y, r + 1, col); Gfx.alpha(1); Gfx.circle(x, y, Math.max(1, r - 1), '#ffffff'); },
+};
+
+/* something a boss flings: it flies out in a line and lands; and being marked, like everything, it lies there with its
+   thread running back the way it came. When its patience runs out it shivers and its thread pulls tight (the Return's own
+   tell), and home it flies along it, striking whatever's on the way: Wren, and any creature but the one it belongs to.
+   (Dropped into a pit or deep water it's home at once, as anything is.) path: tiles, its place first */
+class Flung extends Ent {
+    constructor(owner, path, o = {}) {
+        super('flung');
+        Object.assign(this, { pace: 3, back: 3, wait: 80, tell: 24, dmg: 1, col: '#e8b04a', hurtOut: true }, o);
+        this.owner = owner; this.path = path.map(q => q.slice()); this.state = 'out'; this.t = 0; this.i = 0;
+        this.x = this.path[0][0] * T + 8; this.y = this.path[0][1] * T + 8;
+    }
+    /* the tiles from a spot toward another, in a straight line, as far as `max` or the first wall */
+    static line(area, from, to, max = 8) {
+        const out = [from.slice()];
+        const dx = to[0] - from[0], dy = to[1] - from[1], n = Math.max(Math.abs(dx), Math.abs(dy));
+        if (!n) return out;
+        for (let i = 1; i <= Math.max(n, max) && out.length <= max; i++) {
+            const x = Math.round(from[0] + dx * i / n), y = Math.round(from[1] + dy * i / n), last = out[out.length - 1];
+            if (x === last[0] && y === last[1]) continue;
+            const k = area.kind(x, y);
+            if (!area.inside(x, y) || (k.solid && !k.low && !k.pit && !k.deep) || area.at(x, y)) break;
+            out.push([x, y]);
+        }
+        return out;
+    }
+    get sortY() { return this.state === 'lie' ? this.y + 4 : this.y + 60; }
+    get tight() { return this.state === 'home' || (this.state === 'lie' && this.t > this.wait - this.tell); }
+    update() {
+        if (ownerGone(this.owner, this.area)) { this.area.remove(this); return; }
+        if (Script.blocking()) return;
+        this.t++;
+        const pace = this.state === 'home' ? this.back : this.pace;
+        if (this.state === 'out') {
+            if (this.t % pace === 0 && this.i < this.path.length - 1) {
+                this.i++;
+                if (this.strike(this.path[this.i], this.hurtOut)) this.path.length = this.i + 1;   /* (it stops where it struck) */
+            }
+            if (this.i >= this.path.length - 1) {
+                this.state = 'lie'; this.t = 0;
+                const [tx, ty] = this.path[this.i], k = this.area.kind(tx, ty);
+                Sfx.play('land'); Fx.dust(tx * T + 8, ty * T + 10);
+                if (k.pit || k.deep) { this.state = 'home'; this.i = 0; this.home(true); return; }
+            }
+        } else if (this.state === 'lie') {
+            if (this.t === this.wait - this.tell) Sfx.play('twang');
+            if (this.t >= this.wait) { this.state = 'home'; this.t = 0; }
+        } else if (this.state === 'home') {
+            if (this.t % pace === 0) { this.i--; if (this.i > 0) this.strike(this.path[this.i], true); }
+            if (this.i <= 0) this.home();
+        }
+        /* where it is now, between the tile it left and the next */
+        const j = this.state === 'out' ? Math.min(this.path.length - 1, this.i + 1) : Math.max(0, this.i - 1);
+        const u = this.state === 'lie' ? 0 : Math.min(1, (this.t % pace) / pace);
+        const [ax, ay] = this.path[this.i], [bx, by] = this.path[j];
+        this.x = lerp(ax, bx, u) * T + 8; this.y = lerp(ay, by, u) * T + 8;
+    }
+    home(snap) {
+        const [hx, hy] = this.path[0];
+        if (snap) Fx.poof(hx * T + 8, hy * T + 6); else Sfx.play('hitthing', 0.4);
+        this.area.remove(this);
+        if (this.onHome) this.onHome(this);
+    }
+    /* what's standing on a tile it flies into: Wren, or a creature (not its own) */
+    strike([tx, ty], hurts) {
+        const p = G.player, a = this.area;
+        let hit = false;
+        /* (knocked on the way it was going: from the tile it came from) */
+        const [fx, fy] = this.path[this.state === 'home' ? Math.min(this.path.length - 1, this.i + 1) : Math.max(0, this.i - 1)];
+        if (hurts && p && p.area === a && p.state === 'normal' && p.feetOn(tx, ty)) { p.hurt(this.dmg, fx * T + 8, fy * T + 10); hit = true; }
+        for (const e of a.ents.slice()) {
+            if (e === this.owner || e === this || e.removed || e.kind !== 'enemy' || !e.hurtBox) continue;
+            const h = e.hurtBox(), cx = tx * T + 8, cy = ty * T + 8;
+            if (h && cx + 6 > h.x0 && cx - 6 < h.x1 && cy + 6 > h.y0 && cy - 6 < h.y1) e.struck(this, 1, -1, true);
+        }
+        return hit;
+    }
+    draw(cx, cy) {
+        /* its thread, back along the way it came to its place; bright and straight once it's about to go */
+        const pts = this.path.slice(0, this.i + 1).map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
+        pts.push([this.x - cx, this.y + 1 - cy]);
+        const col = this.tight ? shade(this.col, 0.45) : this.col;
+        for (let i = 0; i + 1 < pts.length; i++) {
+            Gfx.line(pts[i][0], pts[i][1] + 1, pts[i + 1][0], pts[i + 1][1] + 1, 'rgba(20,10,20,0.35)');
+            Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], col);
+        }
+        const sh = this.state === 'lie' && this.tight ? ((this.t >> 1) % 2 ? 1 : -1) : 0;
+        const x = Math.round(this.x - cx) + sh, y = Math.round(this.y - cy) - (this.state === 'lie' ? 0 : 5);
+        if (this.state !== 'lie') { Gfx.alpha(0.25); Gfx.rect(x - 3, Math.round(this.y - cy) + 4, 6, 2, PAL.ink); Gfx.alpha(1); }
+        if (this.look) this.look(x, y, this);
+        else { Gfx.circle(x, y, 3, PAL.ink); Gfx.circle(x, y, 2, this.col); Gfx.rect(x - 1, y - 1, 1, 1, '#ffffff'); }
+    }
+}
+/* a heart shaken loose in a long fight (a boss knocked into its next beat drops one) */
+function bossHeart(area, x, y) { const h = area.add(new Pickup(Math.round(x) - 8, Math.round(y) - 12, { what: 'heart', vz: 2.5, life: 900 })); return h; }
 
 // ---- 21_story.js ----
 /* The story's machinery: who's who, what they say (TALK, filled by the content files), getting things,
@@ -6520,8 +6727,20 @@ const OWA = {
     capture(a, tx, ty, tn) {
         const d = a.def, ta = d.themeAt, img = Gfx.img; let got = null;
         d.themeAt = () => tn; Gfx.img = c => { got = c; };
-        try { OWA.draw0.call(TileDraw, a, tx, ty, 0, 0); } finally { d.themeAt = ta; Gfx.img = img; }
+        try { OWA.draw0.call(TileDraw, this.wet(a, tx, ty), tx, ty, 0, 0); } finally { d.themeAt = ta; Gfx.img = img; }
         return got;
+    },
+    /* a low rock standing in the water is water to the water round it (no ring of foam round each stone, as if each
+       stood in a pool of its own): in the blocks that ask (b.lowRocks), the water's painter sees water there */
+    WET: { k: 'water', p: 'deep' },
+    wet(a, tx, ty) {
+        const b = this.blockAt(tx, ty), p = a.cell(tx, ty).p;
+        if (!b || !b.lowRocks || !(p === 'deep' || p === 'water' || p === 'current')) return a;
+        const lo = (x, y) => { const q = a.cell(x, y); return q.k === 'low' && q.p === 'deep'; };
+        if (!(lo(tx, ty) || lo(tx - 1, ty) || lo(tx + 1, ty) || lo(tx, ty - 1) || lo(tx, ty + 1))) return a;
+        const px = Object.create(a);
+        px.cell = (x, y) => lo(x, y) ? this.WET : a.cell(x, y);
+        return px;
     },
     _ids: new WeakMap(), _n: 0,
     idOf(c) { let i = this._ids.get(c); if (!i) { i = ++this._n; this._ids.set(c, i); } return i; },
@@ -9097,7 +9316,7 @@ defHouse({
                 { k: 'deco', x: 3, y: 2, look: 'washtub' }, { k: 'deco', x: 5, y: 2, look: 'washtub' },
                 { k: 'deco', x: 16, y: 7, look: 'basket' }, { k: 'deco', x: 3, y: 8, look: 'basket' },
                 { k: 'enemy', x: 6, y: 7, type: 'dustbunny' }, { k: 'enemy', x: 15, y: 2, type: 'nibbler' },
-                { k: 'sign', x: 1, y: 1, text: 'LAUNDRY. A Gloves-only zone, apparently. Someone has drawn a little hand pulling a little block.' },
+                { k: 'sign', x: 1, y: 1, text: 'LAUNDRY. Wash on Monday, mangle on Tuesday, fold on Wednesday. The good linen is kept in the cubby.' },
             ],
             nudge: { solved: 'tidy_lKey', thing: 'laundryBlock', say: "The block in the cubby can't be pushed in any further. It could come out, though." },
         },
@@ -9222,7 +9441,7 @@ defHouse({
             ents: [
                 { k: 'bust', x: 3, y: 4, id: 'gb1' }, { k: 'bust', x: 16, y: 4, id: 'gb2' },
                 { k: 'bust', x: 9, y: 8, id: 'gb3' }, { k: 'bust', x: 9, y: 2, id: 'gb4' },
-                { k: 'pot', x: 1, y: 1, style: 'pot_teal' }, { k: 'pot', x: 18, y: 9, style: 'pot_teal' },
+                { k: 'pot', x: 1, y: 1, style: 'pot_teal', drop: 'heart' }, { k: 'pot', x: 18, y: 9, style: 'pot_teal', drop: 'heart' },
                 { k: 'housekeeper', x: 9, y: 4 },
                 { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'boss' },
             ],
@@ -10095,6 +10314,8 @@ function initMeadowArt2() {
         '.kggggggggggGGk.', '.kgGGGGGGGGGGGk.', '..kGGGGGGGGGGk..', '...kkkkkkkkkk...', '................', '................', '................', '................'], { g: '#c8c0b0', G: '#9a9284', w: '#e8e0d0' });
 }
 CONTENT_INIT.push(initMeadowArt2);
+/* the quilt counts Meadowfold's finds too (src/78c_polish.js) */
+CONTENT_INIT.push(() => QUILT[0][1].push(() => Progress.flag('fold_counted'), () => Progress.areaFlag('hollow', 'chest:bothyPatch'), () => Progress.flag('s17')));
 
 // ---- 44_kiln_kit.js ----
 /* What the Kiln brings: charms hung from the ceiling over walkable floor (only flying things reach them:
@@ -10131,7 +10352,9 @@ class Charm extends Ent {
         /* the chain from the ceiling, then the bell above head height */
         for (let i = -14; i < -6; i += 2) Gfx.rect(x + Math.round(sw * (i + 14) / 8), y + i, 1, 1, '#5a4a3a');
         const bx = x + Math.round(sw), by = y - 6;
-        const c = CHARM_COL[this.col] || '#e0913a', lit = this.on ? shade(c, 0.35) : c;
+        /* (a sequence charm whose ring is dying away flickers before it goes dark) */
+        const st = this.seq && this.fade && this.area && this.area.seqState, dying = st && st[this.seq + ':t'] > 0 && st[this.seq + ':t'] < 40 && (G.t >> 2) % 2;
+        const c = CHARM_COL[this.col] || '#e0913a', lit = this.on && !dying ? shade(c, 0.35) : c;
         Gfx.rect(bx - 4, by, 8, 6, PAL.ink); Gfx.rect(bx - 3, by + 1, 6, 5, lit); Gfx.rect(bx - 5, by + 5, 10, 2, PAL.ink); Gfx.rect(bx - 4, by + 5, 8, 1, shade(lit, -0.2));
         Gfx.rect(bx - 2, by + 1, 1, 3, shade(lit, 0.4));
         if (this.glyph) Gfx.rect(bx - 1, by + 2, 2, 2, PAL.ink);
@@ -10142,7 +10365,8 @@ class Charm extends Ent {
 const CHARM_COL = { ochre: '#e0913a', sun: '#f7d64a', moon: '#9fd4f0', star: '#f59ac0', leaf: '#8fd46a', ember: '#e8463c' };
 SPAWN.charm = (x, y, p) => new Charm(x, y, p);
 
-/* a sequence lock: charms with seq: 'name' and order 0,1,2... must be struck in order */
+/* a sequence lock: charms with seq: 'name' and order 0,1,2... must be struck in order. With fade: n, a charm only rings
+   on for n frames: the next must be struck before the last has died away, or they all fall silent and it starts over */
 const SeqLocks = {
     hit(c) {
         const a = c.area, name = c.seq;
@@ -10152,14 +10376,21 @@ const SeqLocks = {
         const all = a.ents.filter(e => e.kind === 'charm' && e.seq === name);
         if (c.order === want) {
             st[name] = want + 1; c.on = true;
-            if (st[name] >= all.length) { Progress.setAreaFlag(a.id, 'seq:' + name); Sfx.play('appear'); }
-        } else {
-            st[name] = 0; for (const e of all) e.on = false;
-            Sfx.play('unclick'); Fx.text(c.x + 8, c.y - 12, '...', PAL.grey2);
-        }
+            if (c.fade) { st[name + ':t'] = c.fade; st[name + ':c'] = c; }
+            if (st[name] >= all.length) { st[name + ':t'] = 0; Progress.setAreaFlag(a.id, 'seq:' + name); Sfx.play('appear'); }
+        } else this.silence(a, name, c);
+    },
+    silence(a, name, c) {
+        const st = a.seqState;
+        st[name] = 0; st[name + ':t'] = 0;
+        for (const e of a.ents) if (e.kind === 'charm' && e.seq === name) e.on = false;
+        Sfx.play('unclick'); Fx.text(c.x + 8, c.y - 12, '...', PAL.grey2);
     },
     tick(a) {
         for (const e of a.ents) if (e.kind === 'charm' && e.seq && Progress.areaFlag(a.id, 'seq:' + e.seq)) { e.on = true; Signals.set(a, e.seq); }
+        /* the ring dying away */
+        const st = a.seqState; if (!st) return;
+        for (const k in st) if (k.endsWith(':t') && st[k] > 0 && --st[k] === 0) { const name = k.slice(0, -2); if (!Progress.areaFlag(a.id, 'seq:' + name)) this.silence(a, name, st[name + ':c']); }
     },
 };
 
@@ -10465,12 +10696,12 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'charm', x: 9, y: 1, seq: 'sms', order: 2, col: 'star', glyph: true, id: 'smsStar' },
-                { k: 'charm', x: 17, y: 5, seq: 'sms', order: 1, col: 'moon', glyph: true, id: 'smsMoon' },
-                { k: 'charm', x: 9, y: 9, seq: 'sms', order: 0, col: 'sun', glyph: true, id: 'smsSun' },
+                { k: 'charm', x: 9, y: 1, seq: 'sms', order: 2, col: 'star', glyph: true, fade: 150, id: 'smsStar' },
+                { k: 'charm', x: 17, y: 5, seq: 'sms', order: 1, col: 'moon', glyph: true, fade: 150, id: 'smsMoon' },
+                { k: 'charm', x: 9, y: 9, seq: 'sms', order: 0, col: 'sun', glyph: true, fade: 150, id: 'smsSun' },
                 { k: 'pot', x: 1, y: 8, id: 'smsPot' },
                 { k: 'door', x: 16, y: 0, type: 'gate', when: 'sms', passed: 'up', id: 'smsN' },
-                { k: 'mural', x: 8, y: 3, text: 'A mural painted on the clay: a sun, then a moon, then a star, in a row. Underneath, in somebody\'s neat hand: "In that order, please."' },
+                { k: 'mural', x: 8, y: 3, text: 'A mural painted on the clay: a sun, then a moon, then a star, in a row. Underneath, in somebody\'s neat hand: "In that order, please. All in one breath."' },
             ],
             nudge: { solved: 'kiln_smsN', after: 60 * 60 * 3, say: 'The pieces fly home starting from where they broke. Whatever you passed last, they reach first.' },
         },
@@ -11597,6 +11828,8 @@ function initKilnridgeArt2() {
     defSym('bram_pot', ['........', '........', '.....kkk', '....kyoo', '....kOOO', '.....koo', '....kyoo', '...kyooo', '..kyookk', '..kookyk', '..kooook', '..kOoooo', '...kOOoo', '....kOOO', '.....kkk', '........'], { o: '#c08050', O: '#8a5638', y: '#e0a878' }, { y: 'o' });
 }
 CONTENT_INIT.push(initKilnridgeArt2);
+/* the quilt counts Kilnridge's finds too (src/78c_polish.js) */
+CONTENT_INIT.push(() => QUILT[0][1].push(() => Progress.areaFlag('hollow', 'chest:fgPatch'), () => Progress.flag('brampot'), () => Progress.areaFlag('hollow', 'chest:chimneyChest'), () => Progress.areaFlag('hollow', 'chest:slotPatch')));
 
 // ---- 47_water_kit.js ----
 /* Water, for the Millrace and Millwater. Currents carry floating things away (the trace grows as they go,
@@ -11841,7 +12074,7 @@ const MILLWATER_ROWS = [
     'YYY.-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY.--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY..-R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQQQQ~~~~~~~###',
-    'YYY...--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q..^Q~~~~~~~###',
+    'YYY...--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q..rQ~~~~~~~###',
     'YYY....R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q...Q~~~~~~~###',
     'YYY.....R-R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQ~QQ~~~~~~~###',
     'YYY........R--R-~~|~~~~~~~~~~~~~~~~~~~~VVV~~~~~~~~~~~~~~~~~~~###',
@@ -11871,7 +12104,7 @@ const MILLWATER_ROWS = [
 ];
 
 defBlock({
-    id: 'millwater', bx: 2, by: 2, name: 'Millwater', sub: 'the Reaches', theme: 'water', music: 'water', owArt: true, soft: 3,
+    id: 'millwater', bx: 2, by: 2, name: 'Millwater', sub: 'the Reaches', theme: 'water', music: 'water', owArt: true, soft: 3, lowRocks: true,
     rows: MILLWATER_ROWS,
     forest: ['tree', 'tree2', 'tree_birch'],
     legend: {},
@@ -11997,13 +12230,20 @@ const MillLook = {
             const sx = (ox + lx) * T - cx, sy = (oy + ly) * T - cy;
             if (sx < -T || sy < -T || sx > W + T || sy > H + T) continue;
             const bob = Math.round(Math.sin(G.t / 50 + h * 6.3) * 0.6);
-            /* two or three pads a tile, each a round leaf with its notch, and now and then a flower */
+            /* two or three pads a tile, lying flat: round leaves split to the middle, now and then a flower on one */
             for (let n = 0; n < 2 + (h > 0.6 ? 1 : 0); n++) {
-                const px0 = sx + 3 + Math.floor(hash2(lx + n, ly, 59) * 9), py0 = sy + 3 + Math.floor(hash2(ly, lx + n, 60) * 9) + bob, r = n === 0 ? 4 : 3;
-                Gfx.alpha(0.3); Gfx.circle(px0 + 1, py0 + 2, r, '#1d4a6a'); Gfx.alpha(1);
-                Gfx.circle(px0, py0, r, '#2f7a3a'); Gfx.circle(px0, py0 - 1, r - 1, '#58a848'); Gfx.rect(px0 - 1, py0 - r + 1, 1, 1, '#9ad870');
-                Gfx.rect(px0, py0 - r, 1, r, '#2f7a3a');
-                if (n === 0 && h > 0.72) { Gfx.rect(px0 - 1, py0 - 2, 3, 2, '#fbf6ea'); Gfx.rect(px0, py0 - 3, 1, 1, '#f59ac0'); Gfx.rect(px0, py0 - 2, 1, 1, '#f7d64a'); }
+                const x0 = sx + 4 + Math.floor(hash2(lx + n, ly, 59) * 8), y0 = sy + 3 + Math.floor(hash2(ly, lx + n, 60) * 10) + bob;
+                const r = n === 0 ? 4 : 3, hh = r === 4 ? 2 : 1, cut = Math.floor(hash2(lx, ly + n, 61) * 4);
+                Gfx.alpha(0.25); Gfx.rect(x0 - r + 1, y0 + hh + 1, 2 * r - 1, 1, '#123a5a'); Gfx.alpha(1);
+                for (let j = -hh; j <= hh; j++) {
+                    const w = Math.round(r * Math.sqrt(1 - (j / (hh + 0.6)) ** 2));
+                    Gfx.rect(x0 - w, y0 + j, 2 * w + 1, 1, j === hh ? '#2f6e34' : j < 0 ? '#6cbc50' : '#4a9a3e');
+                }
+                /* the split, from the middle out to the rim */
+                const sx2 = [1, -1, 1, -1][cut], sy2 = cut < 2 ? -1 : 1;
+                for (let k = 1; k <= r - 1; k++) Gfx.rect(x0 + sx2 * k, y0 + (k > 1 ? sy2 : 0), 1, 1, '#2f6e34');
+                Gfx.rect(x0 - r + 1, y0 - hh, 2, 1, '#9ad870');
+                if (n === 0 && h > 0.72) { Gfx.rect(x0 - 1, y0 - 2, 3, 2, '#fbf6ea'); Gfx.rect(x0, y0 - 3, 1, 1, '#f59ac0'); Gfx.rect(x0, y0 - 2, 1, 1, '#f7d64a'); }
             }
         }
     },
@@ -12025,14 +12265,16 @@ OWA.ground.water = {
     },
     flowers(x, th, v) { OWA.ground.water.grass.draw(x, th, v, 3); },
     tallgrass(x, th, v) { OWA.ground.meadow.tallgrass(x, th, v); },
-    path(x, th, v) { OWA.ground.meadow.path(x, th, v); },
+    /* (the road's the same road as Meadowfold's, over the bridge) */
+    path(x, th, v) { OWA.ground.meadow.path(x, THEMES.meadow, v); },
     forest(x, th, v) { fill(x, '#355e3e'); speckle(x, ['#40704a', '#2c5034'], v + 9, 0.3); speckle(x, ['#5a9058'], v + 21, 0.05); },
     /* rushes standing in the shallows, a bulrush or two */
     reeds(x, th, v) { OWA.ground.meadow.reeds(x, th, v); },
 };
+/* the rock along the north shore is the same grey rock as the Heights' */
 OWA.cliffs.water = {
-    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { blocks: true, band1: [0, 5, 10], band2: [0, 6, 11], moss: ['#4e9a56', '#6fbd68'], seed: 9 }),
-    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { topCol: '#9aa29a', tuft: ['#4e9a56', '#6fbd68'], seed: 9 }),
+    face: (x, th, v, m) => OWA.cliffs.heights.face(x, THEMES.heights, v, m),
+    top: (x, th, v, m) => OWA.cliffs.heights.top(x, THEMES.heights, v, m),
 };
 function initMillwaterLook() {
     /* the stone heron on its rock */
@@ -12050,6 +12292,8 @@ function initMillwaterLook() {
     });
 }
 CONTENT_INIT.push(initMillwaterLook);
+/* the quilt counts Heron Rock too (src/78c_polish.js) */
+CONTENT_INIT.push(() => QUILT[0][1].push(() => Progress.areaFlag('hollow', 'chest:mwHeron')));
 
 // ---- 49_millrace.js ----
 /* House 3: the Millrace, above the falls in Millwater. Dad's House (Ambrose), blue threads. Water carries
@@ -12439,13 +12683,13 @@ defHouse({
             ],
             ents: [
                 { k: 'raft', x: 4, y: 2, id: 'brFerry', homeWait: 40 },
-                { k: 'charm', x: 6, y: 2, seq: 'brs', order: 0, col: 'sun', glyph: true, id: 'brSun' },
-                { k: 'charm', x: 9, y: 2, seq: 'brs', order: 1, col: 'moon', glyph: true, id: 'brMoon' },
-                { k: 'charm', x: 12, y: 2, seq: 'brs', order: 2, col: 'star', glyph: true, id: 'brStar' },
+                { k: 'charm', x: 6, y: 2, seq: 'brs', order: 0, col: 'sun', glyph: true, fade: 150, id: 'brSun' },
+                { k: 'charm', x: 9, y: 2, seq: 'brs', order: 1, col: 'moon', glyph: true, fade: 150, id: 'brMoon' },
+                { k: 'charm', x: 12, y: 2, seq: 'brs', order: 2, col: 'star', glyph: true, fade: 150, id: 'brStar' },
                 { k: 'eyelet', x: 17, y: 2 },
                 { k: 'pot', x: 13, y: 8, id: 'brPot1' }, { k: 'pot', x: 16, y: 8, id: 'brPot2' },
                 { k: 'millpattern', x: 2, y: 4, id: 'brPattern', hidden: true, when: 'brs', big: true },
-                { k: 'sign', x: 1, y: 3, look: 'mill_carving', text: "A carved board on a post by the landing: a sun, then a moon, then a star, each with little lines round it as if it were ringing. In that order, the carving seems to say." },
+                { k: 'sign', x: 1, y: 3, look: 'mill_carving', text: "A carved board on a post by the landing: a sun, then a moon, then a star, all three with little lines round them, ringing at once. In that order, the carving seems to say, and all together." },
                 { k: 'sign', x: 1, y: 7, text: "THE BELL RACE. Three clay bells hang over the race. Rung in their proper order, they give up the race's pattern." },
             ],
             nudge: { solved: 'millrace_chest:brPattern', after: 60 * 60 * 4, at: [12, 2], say: "Whatever the pieces passed last, they ring first. Going out, the ferry passes these bells one way round; coming home, the other." },
@@ -14244,6 +14488,8 @@ function initHeightsArt() {
     }
 }
 CONTENT_INIT.push(initHeightsArt);
+/* the quilt counts the Heights' finds too (src/78c_polish.js) */
+CONTENT_INIT.push(() => QUILT[0][1].push(() => Progress.areaFlag('hollow', 'chest:cragPatch'), () => Progress.flag('crags_carved'), () => Progress.areaFlag('hollow', 'chest:eyriePatch'), () => Progress.areaFlag('hollow', 'oldbell')));
 
 // ---- 56_belfry.js ----
 /* House 4: the Belfry, on Belfry Heights. Mum's House (Tess), brass threads. A tower climbed floor by floor.
@@ -14434,7 +14680,7 @@ defHouse({
                 { k: 'vane', x: 18, y: 6, gust: 'wcGust' },
                 { k: 'bust', x: 5, y: 4, id: 'wcBust1' }, { k: 'bust', x: 9, y: 4, id: 'wcBust2' }, { k: 'bust', x: 13, y: 4, id: 'wcBust3' },
                 { k: 'chest', x: 1, y: 5, item: 'key', id: 'wcKey' },
-                { k: 'sign', x: 18, y: 9, text: "WEATHERCOCK WALK. When it blows, hold on to something that won't." },
+                { k: 'sign', x: 18, y: 9, text: "WEATHERCOCK WALK. The gusts come down off the roof every few breaths, hard enough to lift a roof slate." },
             ],
             nudge: { solved: 'belfry_chest:wcKey', after: 60 * 60 * 3, thing: 'wcBust2', say: "The busts don't shift an inch in the wind. Someone holding on to one wouldn't either." },
         },
@@ -14512,7 +14758,7 @@ defHouse({
                 /* open while the near sleeper is home on its plate and the far one sleeps on (Belfry.tick says) */
                 { k: 'door', x: 3, y: 8, type: 'gate', when: 'r1&r2sleep', dir: 'v', id: 'reGate', passed: 'left' },
                 { k: 'chest', x: 1, y: 8, item: 'key', id: 'reKey' },
-                { k: 'sign', x: 18, y: 4, text: "THE REACH. A bell is heard seven strides off, and no further. Some sleepers are best left lying." },
+                { k: 'sign', x: 18, y: 4, text: "THE REACH. A bell is heard seven strides off, and no further. The gate goes by the top plate, and stays shut while the bottom sleeper is awake." },
             ],
             nudge: { solved: 'belfry_reGate', after: 60 * 60 * 3, thing: 'reS1', say: "Two sleepers, a long way apart. Ring close to one and the other won't hear." },
         },
@@ -14658,7 +14904,7 @@ defHouse({
                 { k: 'door', x: 14, y: 0, type: 'gate', when: 'fb|flag:belfry_boss', id: 'fbGate', passed: 'up' },
                 { k: 'deco', x: 2, y: 1, look: 'bellrope', solid: [[0, 0]], text: 'A bell-rope with a red woollen grip, hanging out of the dark. The bell it rang came down long ago.' },
                 { k: 'deco', x: 17, y: 3, look: 'bellrope', solid: [[0, 0]], text: 'Another bell-rope. A tug, and nothing at all happens far above.' },
-                { k: 'sign', x: 1, y: 3, text: 'THE BELL FRAME. Whatever goes home goes back the way it came, and waits behind whatever got home first.' },
+                { k: 'sign', x: 1, y: 3, text: 'THE BELL FRAME. The gate north keeps to the plate in the frame. (The boulder came down with the old bell, and has slept by the frame ever since.)' },
             ],
             nudge: { solved: 'belfry_fbGate', after: 60 * 60 * 3, thing: 'fbRock', say: "The sleeping boulder's place is right above the plate. Woken, it would sit in the way of anything coming home up the gap." },
         },
@@ -17218,7 +17464,7 @@ defHouse({
                 { k: 'chest', x: 2, y: 1, item: 'key', id: 'mwKey' },
                 { k: 'plate', x: 17, y: 9, sig: 'mwp' },
                 { k: 'wood', x: 16, y: 9, id: 'mwBlock' },
-                { k: 'sign', x: 5, y: 9, text: "THE MOONWALK. The gate in the corner stays open while the far plate is pressed. Nobody has ever walked it in time. (Nobody walks in here.)" },
+                { k: 'sign', x: 5, y: 9, text: "THE MOONWALK. The gate in the corner stays open while the far plate is pressed. Nobody has ever walked it in time." },
             ],
             nudge: { solved: 'slumber_mwGate', after: 60 * 60 * 3, at: [2, 4], say: 'The gate is a long way from the plate. Walking back takes too long. Something faster than walking, then.' },
         },
@@ -20652,18 +20898,20 @@ const Needle = {
         if (Inv.stitches.length > this.MAX) {
             const oldest = Inv.stitches[0];
             this.unpick(oldest);
-            UI.toast(this.letGo(oldest), 200);
+            /* (something that's held where it is when its stitch lets go, tied off below or gripped, stays put) */
+            const was = oldest.area === a.id && a.ents.find(o => this.key(o) === oldest.key && !o.removed);
+            UI.toast(this.letGo(oldest, !!(was && was.ret && Return.held(was))), 200);
         }
     },
     /* what a stitched thing is called, for saying which one let go */
     noun(e) { return e.stitchName || NEEDLE_NOUNS[e.look] || NEEDLE_NOUNS[e.kind + ':' + e.style] || NEEDLE_NOUNS[e.kind] || 'the ' + e.kind; },
     /* the oldest stitch let go: say plainly what it was and where (older saves' stitches don't know what they were) */
-    letGo(rec) {
+    letGo(rec, held) {
         const def = AREAS[rec.area], at = rec.from || rec.to;
         const room = at && def && def.rooms ? def.rooms.find(r => at[0] >= r.x && at[1] >= r.y && at[0] < r.x + r.w && at[1] < r.y + r.h) : null;
         const here = room && G.map && G.map.id === rec.area && Cam.room && Cam.room.key === room.key, n = room && room.name;
         const where = here ? ' here' : !n ? '' : /^Under /.test(n) ? ' under ' + n.slice(6) : /Floor$/.test(n) ? ' on ' + n.replace(/^The /, 'the ') : ' in ' + n.replace(/^The /, 'the ');
-        return 'The Needle only holds three stitches, so your oldest lets go: ' + (rec.noun || (rec.chalk ? 'a sewn plank' : 'something')) + where + (rec.chalk ? ' goes back to chalk.' : ' goes back to its old place.');
+        return 'The Needle only holds three stitches, so your oldest lets go: ' + (rec.noun || (rec.chalk ? 'a sewn plank' : 'something')) + where + (rec.chalk ? ' goes back to chalk.' : held ? ' would go back to its old place, but something is holding it where it is.' : ' goes back to its old place.');
     },
     /* a stitch undone: the thing's old place back, and its way home is the way it came */
     unpick(rec) {
@@ -21441,12 +21689,13 @@ defHouse({
             ents: [
                 { k: 'plate', x: 3, y: 3, sig: 'bl1', minWeight: 3 }, { k: 'plate', x: 15, y: 3, sig: 'bl2', minWeight: 3 },
                 { k: 'plate', x: 3, y: 8, sig: 'bl3', minWeight: 3 }, { k: 'plate', x: 15, y: 8, sig: 'bl4', minWeight: 3 },
-                { k: 'bobbin', x: 6, y: 4, id: 'blB1' }, { k: 'bobbin', x: 12, y: 4, id: 'blB2' }, { k: 'bobbin', x: 6, y: 7, id: 'blB3' }, { k: 'bobbin', x: 12, y: 7, id: 'blB4' },
+                /* (wound full on iron cores: nobody shifts one by hand; only a stitch moves them) */
+                { k: 'bobbin', x: 6, y: 4, id: 'blB1', full: true }, { k: 'bobbin', x: 12, y: 4, id: 'blB2', full: true }, { k: 'bobbin', x: 6, y: 7, id: 'blB3', full: true }, { k: 'bobbin', x: 12, y: 7, id: 'blB4', full: true },
                 { k: 'chest', x: 9, y: 2, item: 'pattern', id: 'blPattern', hidden: true, when: 'blHeld' },
                 { k: 'door', x: 9, y: 10, type: 'gate', when: 'blHeld', keep: true, id: 'blExit' },
                 { k: 'sign', x: 1, y: 1, text: 'THE BOBBIN LOFT. Four plates, four bobbins (iron cored: only a bobbin will do). The way out wants all four at once.' },
             ],
-            nudge: { solved: 'spoolworks_chest:blPattern', after: 60 * 60 * 4, at: [9, 8], say: 'Three bobbins can be given new places on their plates. The fourth needs holding there, and nobody up here has a free hand.' },
+            nudge: { solved: 'spoolworks_chest:blPattern', after: 60 * 60 * 4, at: [9, 8], say: 'Three stitches is all the Needle will hold. A bobbin held fast some other way would not need one.' },
         },
         /* ---------------- 8 The Heart of the Works: the Tangle ---------------- */
         '1,0': {
@@ -21714,7 +21963,8 @@ const Spoolworks = {
 SIGNATURE_TEXT.spoolworks = "Burnt into the bench with a hot needle: a little spool, and G.G. Under it, much smaller, much older: L. WAS HERE TOO.";
 
 /* bobbins: iron-cored, heavy, slow to go home */
-SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'bobbin', patience: 240 }, p));
+SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'bobbin', patience: 240 },
+    p.full ? { noPush: true, noPull: true, pushLine: "Wound full on its iron core: it won't shift an inch by hand." } : {}, p));
 
 /* the Heart's hoist counterweight: an iron weight on a line that runs up through the boards */
 {
@@ -24216,7 +24466,7 @@ defHouse({
                 '####################',
                 '#..#........#......#',
                 '#..#........#......#',
-                '#ooo........#......#',
+                '#ooo#.......#......#',
                 '#ooo...............#',
                 '#ooo................',
                 '#..................#',

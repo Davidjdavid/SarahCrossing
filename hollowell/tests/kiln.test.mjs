@@ -90,6 +90,20 @@ test('sun, moon, star: the other way round rings them backwards', () => {
     assert.equal(thing(HW, 'smsN').open, false);
 });
 
+test('sun, moon, star: rung one at a time, each has died away before the next, and they fall silent', () => {
+    const HW = game();
+    HW.warp('kiln', ...at('sms', 1, 6)); HW.step(2);
+    const lit = () => ['smsSun', 'smsMoon', 'smsStar'].map(id => thing(HW, id).on ? 1 : 0).join('');
+    go(HW, 'sms', 1, 7); lift(HW, 'down'); go(HW, 'sms', 1, 9); go(HW, 'sms', 10, 9); toss(HW, 'right');
+    let sun = false; for (let i = 0; i < 120 && !sun; i++) { HW.step(1); sun = thing(HW, 'smsSun').on; }
+    assert.ok(sun, 'the sun rings by itself');
+    HW.step(200);
+    assert.equal(lit(), '000', 'and dies away');
+    go(HW, 'sms', 1, 7); lift(HW, 'down'); go(HW, 'sms', 2, 8); go(HW, 'sms', 17, 8); go(HW, 'sms', 17, 4); toss(HW, 'up'); HW.step(300);
+    go(HW, 'sms', 1, 7); lift(HW, 'down'); go(HW, 'sms', 1, 1); go(HW, 'sms', 10, 1); toss(HW, 'right'); HW.step(300);
+    assert.equal(thing(HW, 'smsN').open, false, 'one at a time never opens it');
+});
+
 test('doubling back: round the ring and finish in the spur', () => {
     const HW = game();
     HW.warp('kiln', ...at('doubling', 16, 8)); HW.step(2);

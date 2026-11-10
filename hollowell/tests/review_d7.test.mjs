@@ -37,18 +37,17 @@ test('2: the Spool Store: running for the gate is too slow, and the gate never s
     noErrors(HW);
 });
 
-test('3: the Bobbin Loft wants all four held together a moment; a fourth just pushed on goes home first', () => {
+test('3: the Bobbin Loft: four stitches never hold four bobbins (the fourth lets the first go home), and all four must be down together a moment', () => {
     const HW = game(['needle']);
     enter(HW, 'loft', 9, 9);
     const B = id => thing(HW, id);
     go(HW, 'loft', 6, 5); HW.face('up'); stitch(HW, 'LLLU'); until(HW, () => HW.Return.isHome(B('blB1')), 120);
     go(HW, 'loft', 12, 5); HW.face('up'); stitch(HW, 'RRRU'); until(HW, () => HW.Return.isHome(B('blB2')), 120);
     go(HW, 'loft', 6, 6); HW.face('down'); stitch(HW, 'LLLD'); until(HW, () => HW.Return.isHome(B('blB3')), 120);
-    go(HW, 'loft', 11, 7); HW.push('right', 3); HW.step(25); go(HW, 'loft', 15, 6); HW.push('down', 1);
-    HW.step(30);
-    assert.ok(B('blPattern').hidden, 'not after a moment');
+    go(HW, 'loft', 12, 6); HW.face('down'); stitch(HW, 'RRRD');
+    assert.ok(until(HW, () => HW.Return.isHome(B('blB1')) && B('blB1').tx === at('loft', 6, 4)[0], 400), 'the first stitch let go: home it goes');
     HW.step(400);
-    assert.ok(B('blPattern').hidden, 'nor after it went home');
+    assert.ok(B('blPattern').hidden, 'never all four at once');
     noErrors(HW);
 });
 
@@ -78,12 +77,12 @@ test('5: Homeward does not fly through the floor between the layers', () => {
 
 test('6/7: a thing with the Needle in it waits; townsfolk will not take the Needle', () => {
     const HW = game(['needle']);
-    enter(HW, 'loft', 9, 9);
-    const b = thing(HW, 'blB4');
-    go(HW, 'loft', 11, 7); HW.push('right', 2); HW.step(25);
-    go(HW, 'loft', 15, 7); HW.face('left');
+    enter(HW, 'store', 17, 5);
+    const b = thing(HW, 'ssBlock');
+    go(HW, 'store', 15, 2); HW.push('down', 1); HW.step(10);
+    go(HW, 'store', 15, 6); HW.face('up');
     HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(400);
-    assert.deepEqual([b.tx, b.ty], at('loft', 14, 7), 'held still while stitching');
+    assert.deepEqual([b.tx, b.ty], at('store', 15, 4), 'held still while stitching');
     HW.press('atk', 1); HW.step(3);
     const H2 = loadGame(); H2.preset('afterD7'); H2.step(10); H2.skipTalk(); H2.Inv.stitches = [];
     H2.warp('underside', 9, 5); H2.step(20); H2.skipTalk();

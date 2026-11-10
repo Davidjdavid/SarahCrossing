@@ -936,13 +936,15 @@ export const LEG7 = (HW, chain) => {
     hatch('store', 15, 5, 'right');
     walk(...s('ustore', 2, 2)); HW.hold('up'); HW.step(60); HW.release(); HW.step(5);
     ok(HW.Inv.keys('spoolworks') === 0, 'unlocked');
-    /* the Bobbin Loft: three stitched, the fourth tied off below */
+    /* the Bobbin Loft: the first stitched onto its plate and tied off below; the other three stitched (the fourth stitch
+       lets go of the first, but its knot holds it there) */
     hatch('uloft', 9, 7, 'down');
     walk(...s('loft', 6, 5)); HW.face('up'); stitch('LLLU'); until(() => HW.Return.isHome(thing('blB1')), 120);
+    hatch('loft', 9, 7, 'down'); walk(...s('uloft', 3, 4)); HW.face('up'); knot(); hatch('uloft', 9, 7, 'down');
     walk(...s('loft', 12, 5)); HW.face('up'); stitch('RRRU'); until(() => HW.Return.isHome(thing('blB2')), 120);
     walk(...s('loft', 6, 6)); HW.face('down'); stitch('LLLD'); until(() => HW.Return.isHome(thing('blB3')), 120);
-    walk(...s('loft', 11, 7)); HW.push('right', 3); HW.step(25); walk(...s('loft', 15, 6)); HW.push('down', 1); HW.step(25);
-    hatch('loft', 9, 7, 'down'); walk(...s('uloft', 11, 7)); HW.face('right'); knot(); hatch('uloft', 9, 7, 'down');
+    walk(...s('loft', 12, 6)); HW.face('down'); stitch('RRRD'); until(() => HW.Return.isHome(thing('blB4')), 120);
+    ok(thing('blB1').knotted && thing('blB1').tx === s('loft', 3, 3)[0], 'the knot holds the first');
     HW.step(310); walk(...s('loft', 9, 3)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('spoolworks'), 'the Pattern');
     /* out of the Loft, through the Store and the Hall, up through the big door: the Tangle */
     walk(...s('store', 9, 1)); walk(...s('wind', 9, 1)); HW.hold('up'); HW.step(40); HW.release(); HW.step(30);

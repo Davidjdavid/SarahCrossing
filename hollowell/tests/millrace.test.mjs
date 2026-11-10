@@ -532,6 +532,14 @@ test('the bell race: out and back on the ferry with the pot, the thread unpicks 
     assert.ok(!HW.Progress.areaFlag('millrace', 'seq:brs'));
     assert.ok(HW.G.map.ents.filter(e => e.kind === 'charm').every(c => !c.on));
 });
+test('the bell race: pots thrown from the bank one bell at a time: each dies away before the next is struck', () => {
+    const HW = bellGame();
+    for (const bx of [6, 9, 12]) {
+        potFromBank(HW); go(HW, 'bells', bx, 6); HW.face('up'); HW.press('act', 1); HW.step(200);
+    }
+    assert.ok(!HW.Progress.areaFlag('millrace', 'seq:brs'));
+    assert.ok(HW.G.map.ents.filter(e => e.kind === 'charm').every(c => !c.on), 'all silent');
+});
 test('the bell race: a game that already held the Pattern (it used to be in the Two Wheels) finds buttons in its chest', () => {
     const HW = game();
     HW.Inv.patterns.push('mill');
