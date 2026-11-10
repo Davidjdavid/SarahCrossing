@@ -39,7 +39,7 @@ const HUSHWOOD_ROWS = [
     'YY.........................~~.......YYYY##:::##YYYYYYYYYYYYYYYYY',
     'YY..................M......~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
     'YY......:.k...qM........"..~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:.......kYYYYYYY...~~..YYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:.......kYYYYYYY...~~.....YYYYYY##:H:##YYYYYYYYYYYYYYYYY',
     'YYYYY...:.......,YYYYYYY...~~.....YYYYYY##:::##YYYYYYYYYYYYYYYYY',
     'YYYYY...:..b"....YYYYYY.,"~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
     'YYYYY...:..M.....YYYYYYY.-~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
@@ -136,7 +136,7 @@ defBlock({
         { k: 'puppet', x: 17, y: 10, id: 'nuDolly', look: 'puppet_snore' },
         { k: 'chest', x: 13, y: 9, item: 'heartpatch', id: 'nuPatch', hidden: true, when: 'nuA&nuB&nuC&nuD' },
         /* something lost on the isle, long ago */
-        { k: 'loomweight', x: 31, y: 29 },
+        { k: 'lostweight', x: 31, y: 29 },
     ],
     regions: [
         { name: 'The Sleeping Road', x: 0, y: 14, w: 20, h: 8 },
@@ -711,15 +711,15 @@ SPAWN.greatlantern = (x, y) => {
 };
 
 /* an old loom weight, lost on the isle in Lantern Pond (it fits somewhere in the north, much later) */
-ITEMS.loomweight = { name: 'old loom weight', kind: 'quest', desc: 'A fist-sized lump of grey stone with a hole worn through it, far heavier than it looks.' };
-SPAWN.loomweight = (x, y) => {
+ITEMS.oldweight = { name: 'old loom weight', kind: 'quest', desc: 'A fist-sized lump of grey stone with a hole worn through it, far heavier than it looks.' };
+SPAWN.lostweight = (x, y) => {
     const pr = new Prop(x, y, { im: ART.loomweight_ground, solid: [], oy: 0 });
     pr.baseY = 4; pr.inert = false;
-    const gone = () => Progress.flag('loomweight_got');
+    const gone = () => Progress.flag('oldweight_got');
     pr.draw = function (cx, cy) { if (!gone()) Gfx.img(this.im, this.x - cx, this.y - cy); };
     pr.interact = () => {
         if (gone()) return false;
-        Script.run(function* () { Progress.set('loomweight_got'); Stats.count('secret:loomweight'); yield* Story.getItem('loomweight')(); });
+        Script.run(function* () { Progress.set('oldweight_got'); Stats.count('secret:oldweight'); yield* Story.getItem('oldweight')(); });
         return true;
     };
     pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
@@ -948,7 +948,7 @@ function initHushArt2() {
         discPx(x, 8, 10, 4, (px0, py0, u, v) => { const l = -u * 0.6 - v * 0.8 + (hash2(px0, py0, 6) - 0.5) * 0.4; return l > 0.5 ? '#c4c0cc' : l > -0.1 ? '#9a96a6' : l > -0.7 ? '#76728a' : '#58546c'; });
         R(x, '#2a1f2d', 7, 9, 2, 2); R(x, '#4c8457', 3, 13, 3, 1); R(x, '#4c8457', 11, 13, 2, 1);
     });
-    defSprite('icon_loomweight', ['................', '................', '......kkkk......', '....kkwggxkk....', '...kwggggggxk...', '...kgggggggxk...', '..kwggkkkggxxk..', '..kgggk..kgxxk..', '..kgggk..kgxxk..', '..kgggkkkkgxxk..', '...kggggggxxk...', '...kgggggxxxk...', '....kkxxxxkk....', '......kkkk......', '................', '................']);
+    defSprite('icon_oldweight', ['................', '................', '......kkkk......', '....kkwggxkk....', '...kwggggggxk...', '...kgggggggxk...', '..kwggkkkggxxk..', '..kgggk..kgxxk..', '..kgggk..kgxxk..', '..kgggkkkkgxxk..', '...kggggggxxk...', '...kgggggxxxk...', '....kkxxxxkk....', '......kkkk......', '................', '................']);
     /* things on the ground: moss cushions, a fern sprig, the town's grass in a tuft, fallen leaves, a toadstool */
     for (let i = 0; i < 3; i++) ART['hw_moss' + i] = paintSprite(6 + i, 4, x => { R(x, '#84bc7a', 1, 0, 3 + i, 1); R(x, '#68a266', 0, 1, 5 + i, 2); R(x, '#4c7e52', 1, 3, 3 + i, 1); R(x, '#a8d890', 1, 1, 1, 1); }, false);
     ART.hw_fern = paintSprite(7, 6, x => { R(x, '#3c6a48', 3, 1, 1, 5); for (const j of [1, 3]) { R(x, '#4e8a58', 0, j, 3, 1); R(x, '#4e8a58', 4, j + 1, 3, 1); } R(x, '#6aa86a', 3, 0, 1, 1); }, false);

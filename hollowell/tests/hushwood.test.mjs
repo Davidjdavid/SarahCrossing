@@ -91,14 +91,15 @@ test('the garden: rung awake from across the stream, they file into the cradles;
 test('the garden, the other way: woken one at a time by walking near; each into the first free cradle', () => {
     const HW = inWood();
     const S = HW.global('Signals'), a = HW.G.map, sn = i => a.find(i);
-    const near = { nuSnoreA: [[8, 18], [9, 18]], nuSnoreB: [[15, 18], [17, 18]], nuSnoreC: [[19, 18], [21, 18]] };
+    const inCradle = e => [16, 20, 24].includes(e.tx - 128) && e.ty === hw(0, 14)[1];
     const free = () => [16, 20, 24].filter(c => !S.get(a, { 16: 'nuA', 20: 'nuB', 24: 'nuC' }[c]));
     go(HW, ...hw(12, 16)); north(HW);
-    for (let round = 0; round < 6 && free().length; round++) {
+    for (let round = 0; round < 8 && free().length; round++) {
         if (!ids.some(i => sn(i).mode !== 'sleep')) {
-            const id = ids.find(i => sn(i).mode === 'sleep' && !cradled(HW, sn(i).tx - 128));
+            /* (one asleep anywhere but a cradle: over the stream, and walk about near it till it stirs) */
+            const e = ids.map(sn).find(m => !inCradle(m)), x = e.tx - 128, y = Math.max(16, e.ty - 40 + 2);
             south(HW); go(HW, ...hw(10, 17)); go(HW, ...hw(12, 18));
-            for (let i = 0; i < 30 && sn(id).mode === 'sleep'; i++) go(HW, ...hw(...near[id][i % 2]));
+            for (let i = 0; i < 30 && e.mode === 'sleep'; i++) go(HW, ...hw(x + (i % 2 ? 1 : -1), y));
             go(HW, ...hw(12, 17)); north(HW);
         }
         go(HW, ...hw(free()[0], 11));
@@ -113,8 +114,8 @@ test('the garden, the other way: woken one at a time by walking near; each into 
 });
 test('the garden: a cradle feels whoever is in it, Wren too, and lets nobody else in', () => {
     const HW = inWood();
-    const a = HW.G.map, S = HW.global('Signals');
     HW.warp('hollow', ...hw(16, 15)); HW.step(5);
+    const a = HW.G.map, S = HW.global('Signals');
     HW.hold('up'); HW.step(20); HW.release(); HW.step(5);
     assert.deepEqual([HW.player().tx, HW.player().ty], hw(16, 14), 'standing in a cradle');
     assert.ok(S.get(a, 'nuA') && !S.get(a, 'nuB'), 'only her own');
@@ -200,25 +201,26 @@ test("Lantern Pond: four lanterns, four stones, three stitches; the fourth stone
     const HW = afterD4(); HW.preset('afterD7'); HW.step(10); HW.skipTalk(); HW.Inv.maxHp = HW.Inv.hp = 40; HW.Inv.stitches = [];
     HW.warp('hollow', ...hw(25, 30)); HW.step(10);
     const a = HW.G.map, S = HW.global('Signals'), lit = () => ['lpN', 'lpE', 'lpS', 'lpW'].filter(s => S.get(a, s));
+    const far = (x, y) => assert.ok(HW.walkTo(x, y, 20000), `walk to ${x},${y}`);
     /* pushed on, a stone lights its lantern a moment, then goes home */
     go(HW, ...hw(24, 29)); HW.push('up', 2); HW.step(3);
     assert.deepEqual(lit(), ['lpW'], 'one lit');
     HW.step(260);
     assert.deepEqual(lit(), [], 'and out again: the stone went home');
     /* three stitched onto their stones for good */
-    go(HW, ...hw(33, 25)); HW.face('left'); stitch(HW, 'LL');
-    go(HW, ...hw(36, 30)); HW.face('up'); stitch(HW, 'UU');
-    go(HW, ...hw(35, 32)); HW.face('left'); stitch(HW, 'LL');
+    far(...hw(33, 25)); HW.face('left'); stitch(HW, 'LL');
+    far(...hw(36, 30)); HW.face('up'); stitch(HW, 'UU');
+    far(...hw(35, 32)); HW.face('left'); stitch(HW, 'LL');
     HW.step(200);
     assert.deepEqual(lit(), ['lpN', 'lpE', 'lpS'], 'three lit and staying lit');
     /* the fourth: pushed on and gripped */
-    go(HW, ...hw(24, 29)); HW.push('up', 2); HW.hold('act'); HW.step(20);
+    far(...hw(24, 29)); HW.push('up', 2); HW.hold('act'); HW.step(20);
     assert.deepEqual(lit(), ['lpN', 'lpE', 'lpS', 'lpW'], 'all four');
     HW.release(); HW.step(5);
     assert.ok(!a.find('lpIsle').hidden, 'something on the isle');
     /* over on the raft; the chest; the raft hooked back */
     const p = HW.player();
-    go(HW, ...hw(25, 29)); HW.hold('right'); HW.step(16); HW.release(); HW.step(4);
+    far(...hw(25, 29)); HW.hold('right'); HW.step(16); HW.release(); HW.step(4);
     HW.Inv.equipped = 'paddle';
     for (let i = 0; i < 300 && p.tx < hw(29, 0)[0]; i++) { HW.hold(['tool', 'right']); HW.step(1); }
     HW.release(); HW.hold('right'); HW.step(20); HW.release(); HW.step(5);
@@ -234,7 +236,7 @@ test('on the isle, early: an old loom weight, lying in the moss', () => {
     const HW = afterD4();
     HW.warp('hollow', ...hw(30, 29)); HW.step(10);
     HW.face('right'); HW.press('act', 1); HW.skipTalk();
-    assert.ok(HW.Inv.items.loomweight, 'the loom weight');
+    assert.ok(HW.Inv.items.oldweight, 'the loom weight');
     noErrors(HW);
 });
 test('the little wooden one: with the Crossbar (and the three asleep), walked through the hole into its cradle: a Heart Patch', () => {

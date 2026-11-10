@@ -166,6 +166,11 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   to go back to town and talk after each beat. Folded into the two overworld helpers' briefs; running too: the
   difficulty curve over Houses 1-8 (scratchpad difficulty_brief.md). Queued: the town between Houses (town_brief.md:
   new lines at every stage, small favours with each new tool, chained).
+- David's puzzle notes, later the same day (calibration, not content: his own examples must not appear, he'll be
+  looking for them): the moments he loves are a known tool used where you didn't expect it (in plain sight, passed by
+  before it clicks); noticing what the game doesn't point out (a pattern quietly broken); consequences that turn up
+  somewhere else, discovered not announced; cause and effect planned ahead. Peaks, growing later in the game. Passed
+  to the difficulty, overworld and town helpers.
 - Owed by the coordinator: PROJECT_STATE.md's counts (rooms, Makings); SPOILERS.md and DESIGN_DOCUMENT.md for every
   House's new boss and rooms.
 - Owed after the Houses: SPOILERS.md and DESIGN_DOCUMENT.md rewritten for every House's new boss and rooms; the
