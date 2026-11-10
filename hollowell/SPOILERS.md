@@ -194,49 +194,64 @@ Porch. The Stray House: DUNGEON_TRACKER.md "O1". Its reward is the bracelet (the
 and a Heartstitch; the Twin Bedroll was dropped (one Bedroll is enough for everything in the game).
 
 ## 5. Boss solutions
+Every boss has three beats (polish campaign, 10 November): the first applies the House's lesson; the second changes
+the arena or the boss's rule; the third wants something learnt earlier too. Nothing has to be set up again between
+beats, and each change is told by a line or a notice and a visible change. Every mini-boss falls in two hits.
+DUNGEON_TRACKER.md has the full details and the tests.
 
-- **Grand Housekeeper (D1)**: it charges along the floor's tracks toward you; displace heavy busts so their
-  trace crosses its lane, the returning bust slams it (stunned; its door swings open), hit the key-heart
-  inside. Alternatives: a thrown crate's return; luring it into a returning block; gripping a bust and
-  releasing at the right moment (Gloves). Three hits.
-- **Kilnwyrm (D2)**: hook a tail segment off (it's displaced), dodge; the segment's thread drags back along
-  the wyrm's path, shattering against the head if routed so. Or carry an arena urn across the head's
-  circuit and shatter it. Three head hits.
-- **Old Grindle (D3)**: bolted to the millpond's intake, it gulps barrels that float to its mouth along the two
-  currents; full, it settles at its mark for a while with its gear-heart showing; ride the self-running raft
-  up the south current to its mouth and strike the heart (3x). Each time it spits the barrels home. Ride up
-  while it's hungry and it bites you into the water. Its spit is the danger on the banks.
-- **Tollgrim (D4)**: the gargoyle lives in the great bell; every few seconds a gust (only once he's awake) blows the
-  clapper out of the bell's mouth and he leans out to spit gravel; ring the Recall Bell then and the clapper
-  snaps home with force into him: he drops out dazed below the bell; hit him (3x). Clangor (mini-boss) is the
-  same idea with busts Wren displaces herself.
-- **Matron Hush (D5 mini-boss)**: a sleepwalking nurse who puts her feet exactly where Wren put hers. Cross the
-  crumbling boards; they give way under her; she falls and flies home to her bed, dazed; hit her (3x). The Bedroll.
-- **Mother Sloth (D5)**: her long arms catch Wren and reel her to her bed. Lay the Bedroll outside her reach (a
-  ring of stars on the carpet); caught, go Homeward: flying further than she can reach snaps the arm. Both arms
-  snapped, she slumps and her nightcap is there to knock (3x). Out of reach, she lobs pillows. "Nothing ever gets
-  away from Mother... except what's going home." (Gran, in miniature.)
-- **Captain Tin (D6 mini-boss)**: a drum-major toy soldier marching between two painted flats; knock one down as
-  he comes and he marches on into the trapdoor behind it; dazed, his hat's off: hit him (3x). The Crossbar.
-- **Great Marionette (D6)**: a giant wooden Wren on strings over two great feet. Two little wooden Wrens on one
-  rack: walk them right so each foot stops one (lining them up with the feet), then all the way round: both strings
-  tangle and it falls; knock its head (3x). Sandbags drop where Wren stands. Then the curtain comes down and Jory is
-  in the flies at the controls: Reveal 1 (`src/64_reveal1.js`): the Makers come out of the wings (Ives, Bram, Dad,
-  Mum, Mallow, Jory), explain the Houses are theirs, built for every Wanderer and worked from underneath, and that
-  the last part of a Wander is learning to make; the Inn's Staff door is open. They all glance up at once, as if
-  someone had called them (Gran: Reveal 2).
-- **Cog (D7 mini-boss)**: the Guild's old watchdog, a brass hound wound too tight. The stick clangs off him; his
-  cord hangs under his kennel in the Under-works. Go below (he sniffs where you vanished, then trots home), tie his
-  cord off, climb up and knock him while he's held; he shakes loose and bolts. 3x. The Needle.
-- **The Tangle (D7)**: forty years of the Works' loose ends, held in a knot by four bobbins' threads. Pull all four
-  off their first places at once (three with the Needle, which only holds three, and the fourth pushed off and tied
-  off from below) and it comes apart round a little hard knot: knock it. It yanks every thread back (stitches unpicked,
-  knots slipped, bobbins snapped home): again, 3x, with yarn balls and lashing cords. Gundry: "That's all a Maker is.
-  Somebody who knows where the threads go." Apprenticeship.
-- **The Shuttle (D8 mini-boss)**: the loom's lost shuttle flying its lane; an offcut in its way jams it; knock it.
-- **The Weaver (D8)**: hung by four anchor threads over its loom, spitting silk that binds (snip free with the
-  Shears); cut the anchors and it drops into its own loom; knock it; it spins new anchors; 3x. Under its web: I MEANT TO
-  UNPICK THEM IN THE SPRING. -THE FIRST SPINNER.
+- **Grand Housekeeper (D1)**: (1) push a bust out toward the wall: it walks over to yank it home and stands in its
+  own yank's way: slammed, its doors swing open, hit its heart; (2) it plants itself on its cross and yanks from
+  there: bait a charge (stand in line with it), and while it's away push the top bust down across its cross: home
+  again, it yanks the bust back the way it came, through itself; (3) it never leaves its cross and yanks the moment
+  anything's out of place: grip a bust with the Gloves and hold on: the yank drags the Housekeeper into the bust.
+  The Dust Monger (mini-boss): two hits from coming-home furniture or thrown things.
+- **Kilnwyrm (D2)**: (1) it follows Wren's footprints, so an urn's shards carried home along them meet it; (2) it
+  runs the room's rim: carry an urn out across the rim and back in another way (no loop: loop erasure would cut the
+  crossing out) and throw as it comes round; (3) it coils in a pit opened at the Kiln's heart: carry an urn and reel
+  over the pit on the Hookline; the shards fly home over the pit, through its coils. The Glazer: two hits.
+- **Old Grindle (D3)**: (1) push a barrel into a side current; it gulps it and settles with its gear-heart showing;
+  ride the ferry (the ferry bell sends it at once) to below its mouth and strike; (2) the sluice turns the currents:
+  barrels drift away and the ferry would carry Wren into its bite: stand on a barrel with the Paddle, paddle up
+  beside the mouth, strike; (3) its jaw clamps shut: carry a pot aboard, push off with the Paddle and smash it past
+  the teeth: the pieces fly home along the ride, between them, to the heart. The Snapjaw: two hits; step back from
+  its bite on the bank and push a crate down the current while it hunts with its back to the water.
+- **Tollgrim (D4)**: only the clapper coming home on a bell's snap knocks him out, dazed. (1) the gust blows the
+  clapper out, he leans out to spit, ring: the clapper slams home into him; (2) the wind turns (east shutters open,
+  a gale under the bell, the clapper pinned to the west wall) and he ducks back in at any ring within seven strides:
+  ring from beside the clapper but out of his hearing, or strike the old bell in the west bay; (3) he watches Wren
+  and stays in while she's near the clapper: carry a pot under the old bell and away, then smash it: the pieces fly
+  home under the bell and ring it from afar. Clangor: two hits (a bust's way home through him when he rings).
+- **Mother Sloth (D5)**: an arm snaps only when pulled outside her ring of stars. (1) lay the Bedroll outside the
+  stars; caught, fly Homeward: the arm snaps; both snapped, knock her nightcap; (2) the floor outside the stars drops
+  into the dark but for a row of old boards: walk out over them (they give way behind her) and back in, get caught,
+  fly Homeward: the flight follows the way Wren walked, over the missing boards; (3) the boards drop too and only the
+  brass-ringed bedposts stand in the dark: caught in line with one, hook it: the reel drags Wren out past the stars.
+  Out of reach she lobs pillows. Matron Hush (mini-boss): two hits; she puts her feet where Wren put hers, so lead
+  her over the crumbling boards. The Bedroll.
+- **Great Marionette (D6)**: (1) walk the two little Wrens on the rack round its feet: the strings tangle, it falls,
+  knock its head; (2) it marches round the stage like the toy soldiers, turning right at whatever's in its way; a
+  third little Wren comes down on its own string: put it in the march so the turn brings a foot onto the stage trap;
+  (3) its strings go slack and its control bar hangs out of reach: pull the bar down with the Hookline, take its
+  strings with the Crossbar and walk it onto the trap yourself. Then the curtain comes down on it in a red heap and
+  Reveal 1 (`src/64_reveal1.js`): Jory lowered from the flies in a bosun's chair, the Makers out of the wings into a
+  line, then heard out one by one (Ives, Bram, Dad, Mum, Mallow, Jory: their Houses, built for every Wanderer and
+  worked from underneath; the last part of a Wander is learning to make); the Inn's Staff door is open; they all
+  look up at once (Gran: Reveal 2). Captain Tin (mini-boss): two hits; knock a flat as he comes and he marches into
+  the trapdoor behind it. The Crossbar.
+- **The Tangle (D7)**: four bobbins' threads hold it together. (1) all four off their first places at once (three
+  stitched with the Needle, the fourth pushed off and tied below): it comes apart; knock the core; (2) it hooks
+  itself on the Heart's old hoist up in the rafters: below, push the hoist's counterweight off its plate and it
+  drops, loose; knock it; (3) it hauls every loose bobbin a tile toward its first place every two seconds, and no
+  knot holds: grip the fourth bobbin out and ring the Recall Bell with the other hand: everything snaps home at once,
+  and home is where the Needle put it. Gundry: "That's all a Maker is. Somebody who knows where the threads go."
+  Cog (mini-boss): two knocks, with his cord tied off from below; he sits, topples and unravels. The Needle.
+- **The Weaver (D8)**: (1) hung by four anchor threads over the First Spinner's loom: cut them all (snip free of its
+  binding silk) and it drops into the well of the loom; knock it; (2) it hangs by one thread of its own from the
+  breast-beam and drops onto Wren (its shadow first): a slack thread slides off the blades, so cut it ahead of the
+  Weaver while it climbs home over the well with the thread pulled tight; (3) it clings to the breast-beam out of
+  reach: the Hookline drags it down its own well, where it hangs low and dazed: cut or knock it. It ends a heap of
+  grey silk in the well, the web drifting down like snow, and the breast-beam's words show: I MEANT TO UNPICK THEM
+  IN THE SPRING. -THE FIRST SPINNER. The Shuttle (mini-boss): two knocks, jammed by an offcut in its lane. The Shears.
 - **The Spool (Final)**: see DUNGEON_TRACKER.md.
 
 ## The Knotting Festival (after Knot 4, `src/57_festival.js`)
