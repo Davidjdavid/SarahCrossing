@@ -4,11 +4,11 @@
    a long way down, so only with a Bedroll laid up top to come home to). Bouncy moss hops you over the stream to
    the Slumberhouse (House 5, Doctor Mallow's); sleep puffs line the trail through Puffball Hollow; Snorelings
    doze in the ferns; Hettie the forager camps by Lantern Pond, where a weir (wound open from this side only)
-   lets a raft run down the channel to the lake at Millwater. The cliff stair up the east side stays walled off from
-   the wood, but a crack in its far wall leads into Mallow's Nursery: three cradles behind a low hedge, and three
-   Snorelings to put to bed in them (they follow you; the spores put them to sleep where they stand). Lantern Pond's
-   four lanterns light only while their stones weigh on them (a stone stitched there with the Needle stays); all four,
-   and the lantern on the isle lights. Map drafted by tools/mapgen/hushwood.py. */
+   lets a raft run down the channel to the lake at Millwater. The cliff stair up the east side stays walled off.
+   The Slumberhouse's door opens while Mallow's three Snorelings sleep in the three cradles in the stream's south
+   bank (they follow you; a puffball's spores put one to sleep where it stands; somebody in a cradle, nobody else
+   gets in); a fourth cradle by the house is for the little wooden one. Lantern Pond's four lanterns light only while
+   their stones weigh on them; all four, and the lantern on the isle lights. Map drafted by tools/mapgen/hushwood.py. */
 
 const SLUMBER_ENTRY = { x: 29, y: 42 };
 const HUSH = (x, y) => [128 + x, 40 + y];
@@ -21,28 +21,28 @@ const HUSHWOOD_ROWS = [
     'YY........YYYY.XXXXXXXXXXYYYYY#...b...YY##:::##YYYYYYYYYYYYYYYYY',
     'YY........YYYY.XXXXXXXXXXYYYYY#k......YY##:::##YYYYYYYYYYYYYYYYY',
     'YY........YYYY.XXXXXXXXXXYYYYY#.......YY##:::##YYYYYYYYYYYYYYYYY',
-    'YY........YYYY.XXXXXXXXXXYYYYY#....M..YY##:H:##YYYYYYYYYYYYYYYYY',
-    'YY....M...YYYY.XXXXXXXXXXYYYYY#....k..YY##:::##YYYYYYY...YYYYYYY',
-    'YY.............XXXX:XXXXXYYYYY#....k..YY##:::##YYYYYYY...YYYYYYY',
-    'YY..........::::::::.....YYYYY#.......YY##:::##YYY.k.M..M..k.YYY',
-    'YYk."b...,..:................YYvvvvvvvYY##:::::::.............YY',
-    'YY....k.....:.........M......YY.....YYYY##:::##YY.............YY',
-    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~..,....YYYY##:H:##YY1111111111111YY',
-    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~.....:.YYYY##:::##YY1..11..11..11YY',
-    'YYYYYYY.....:........k.....~~..,..:.YYYY##:::##YY.............YY',
-    'YYYYYYY.....:.......YYYYYY.~~.....:.YYYY##:::##YY...q.....k...YY',
-    'YY..........:.......YYYYYY.~~.."..:.YYYY##:::##YY.............YY',
-    'YY......b...:.......YYYYYY.~~.....:.YYYY##:::##YY..M.......M..YY',
-    'YY..........:.......YYYYYY.~~..qk.:.YYYY##:H:##YY.............YY',
-    ':::::::::::::::............~~.....:.YYYY##:::##YY.............YY',
-    ':::::::::::::::::::::::::::__::::::.YYYY##:::##YY...k.....q...YY',
-    'YY.........................~~.......YYYY##:::##YY.............YY',
-    'YY..................M......~~..YYYYYYYYY##:::##YY.............YY',
-    'YY......:.k...qM........"..~~..YYYYYYYYY##:::##YY.............YY',
-    'YYYYY...:.......kYYYYYYY...~~..YYYYYYYYY##:H:##YY.............YY',
-    'YYYYY...:.......,YYYYYYY...~~.....YYYYYY##:::##YY1122...M.....YY',
-    'YYYYY...:..b"....YYYYYY.,"~~~~~~~~~...YY##:::##YY.322.........YY',
-    'YYYYY...:..M.....YYYYYYY.-~~~~~~~~~...YY##:::##YY111...k...q..YY',
+    'YY........YYYY1XXXXXXXXXXYYYYY#....M..YY##:H:##YYYYYYYYYYYYYYYYY',
+    'YY....M...YYYY.XXXXXXXXXXYYYYY#....k..YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY............3XXXX:XXXXXYYYYY#....k..YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..........::::::::.....YYYYY#.......YY##:::##YYYYYYYYYYYYYYYYY',
+    'YYk."b...,..:................YYvvvvvvvYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY....k.....:................YY.....YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~..,....YYYY##:H:##YYYYYYYYYYYYYYYYY',
+    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYYYY11111111..11..11..11~~..,..:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYYYY.....:..............~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..........:.........YYYY.~~.."..:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY......b...:.........YYYY.~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..........:..............~~..qk.:.YYYY##:H:##YYYYYYYYYYYYYYYYY',
+    ':::::::::::::::............~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    ':::::::::::::::::::::::::::__::::::.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.........................~~.......YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..................M......~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY......:.k...qM........"..~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:.......kYYYYYYY...~~..YYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:.......,YYYYYYY...~~.....YYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:..b"....YYYYYY.,"~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:..M.....YYYYYYY.-~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
     'YYYYY.".:........,".....:-~~~~..~~~...YY##:::##YYYYYYYYYYYYYYYYY',
     'YYYYY...:...............:.~~~~..~~~-..YY##:::##YYYYYYYYYYYYYYYYY',
     'YY.M....:::::::::::::::::.~~~~~~~~~-..YY##:H:##YYYYYYYYYYYYYYYYY',
@@ -80,11 +80,11 @@ defBlock({
         { k: 'rest', x: 10, y: 16 },
         { k: 'snoreling', x: 15, y: 22, id: 'hwSnore1' },
         /* over the stream to the Slumberhouse: bouncy moss, one each way */
-        { k: 'moss', x: 12, y: 14, dir: 'up', dist: 3, id: 'hwMossN' },
-        { k: 'moss', x: 10, y: 11, dir: 'down', dist: 3, id: 'hwMossS' },
-        { k: 'sign', x: 11, y: 15, text: 'MIND THE MOSS. It is VERY bouncy. (The stream is cold.)' },
+        { k: 'moss', x: 12, y: 15, dir: 'up', dist: 4, id: 'hwMossN' },
+        { k: 'moss', x: 10, y: 11, dir: 'down', dist: 4, id: 'hwMossS' },
+        { k: 'sign', x: 11, y: 16, text: 'MIND THE MOSS. It is VERY bouncy. (The stream is cold.)' },
         { k: 'building', x: 15, y: 3, w: 10, h: 6, door: 4, art: 'slumber' },
-        { k: 'warp', x: 19, y: 8, to: 'slumber', tx2: SLUMBER_ENTRY.x, ty2: SLUMBER_ENTRY.y, face: 'up', dir: 'up' },
+        { k: 'warp', x: 19, y: 8, to: 'slumber', tx2: SLUMBER_ENTRY.x, ty2: SLUMBER_ENTRY.y, face: 'up', dir: 'up', when: 'nuA&nuB&nuC|flag:slumber_open|flag:d5', lockedLine: "The round lavender door won't open. From somewhere inside comes a long, slow yawn." },
         { k: 'sign', x: 17, y: 9, text: 'THE SLUMBERHOUSE. Visiting hours: whenever you wake up. Doctor M.' },
         { k: 'puffball', x: 9, y: 10, id: 'hwPuffN' },
         /* Old Hummock's own bed */
@@ -123,30 +123,27 @@ defBlock({
         /* the isle, and its great lantern; all four lit, it lights, and something is there to find */
         { k: 'greatlantern', x: 31, y: 28 },
         { k: 'chest', x: 30, y: 28, item: 'heartpatch', id: 'lpIsle', hidden: true, when: 'lpN&lpE&lpS&lpW' },
-        /* Mallow's Nursery, through the crack in the cliff stair's far wall */
-        { k: 'sign', x: 50, y: 9, text: "THE NURSERY. Lights out at moonrise. Quiet in the cradles, please. -Dr M." },
-        { k: 'puffball', x: 50, y: 13, id: 'nuPuffA' }, { k: 'cradle', x: 51, y: 13, sig: 'nuA' },
-        { k: 'puffball', x: 54, y: 13, id: 'nuPuffB' }, { k: 'cradle', x: 55, y: 13, sig: 'nuB' },
-        { k: 'puffball', x: 58, y: 13, id: 'nuPuffC' }, { k: 'cradle', x: 59, y: 13, sig: 'nuC' },
-        { k: 'snoreling', x: 50, y: 22, id: 'nuSnoreA', type: 'snoreling_n' },
-        { k: 'snoreling', x: 55, y: 26, id: 'nuSnoreB', type: 'snoreling_n' },
-        { k: 'snoreling', x: 60, y: 21, id: 'nuSnoreC', type: 'snoreling_n' },
-        { k: 'moss', x: 61, y: 11, dir: 'down', dist: 3, id: 'nuMossIn' },
-        { k: 'moss', x: 49, y: 14, dir: 'up', dist: 3, id: 'nuMossOut' },
-        { k: 'door', x: 55, y: 9, type: 'gate', when: 'nuA&nuB&nuC', dir: 'h', id: 'nuGate', passed: 'up' },
-        { k: 'chest', x: 54, y: 8, item: 'heartpatch', id: 'nuPatch' },
-        { k: 'chest', x: 56, y: 8, item: 'b50', id: 'nuToy', hidden: true, when: 'nuA&nuB&nuC&nuD' },
-        { k: 'nurserybook', x: 55, y: 7 },
-        /* the little wooden one Jory carved, and its own cradle, in the brambles behind a hole only it fits */
-        { k: 'puppet', x: 53, y: 23, id: 'nuDolly', look: 'puppet_snore' },
-        { k: 'cradle', x: 49, y: 26, sig: 'nuD' },
+        /* the Slumberhouse's garden: three cradles in the stream's south bank, a puffball beside each; Mallow's three
+           Snorelings asleep in the meadow behind. The door opens while all three are asleep in the cradles */
+        { k: 'puffball', x: 15, y: 14, id: 'nuPuffA' }, { k: 'cradle', x: 16, y: 14, sig: 'nuA' },
+        { k: 'puffball', x: 19, y: 14, id: 'nuPuffB' }, { k: 'cradle', x: 20, y: 14, sig: 'nuB' },
+        { k: 'puffball', x: 23, y: 14, id: 'nuPuffC' }, { k: 'cradle', x: 24, y: 14, sig: 'nuC' },
+        { k: 'snoreling', x: 8, y: 16, id: 'nuSnoreA', type: 'snoreling_n' },
+        { k: 'snoreling', x: 16, y: 16, id: 'nuSnoreB', type: 'snoreling_n' },
+        { k: 'snoreling', x: 20, y: 16, id: 'nuSnoreC', type: 'snoreling_n' },
+        /* by the house, a fourth cradle behind a little round hole in the hedge, and the wooden one Jory carved */
+        { k: 'cradle', x: 14, y: 7, sig: 'nuD' },
+        { k: 'puppet', x: 17, y: 10, id: 'nuDolly', look: 'puppet_snore' },
+        { k: 'chest', x: 13, y: 9, item: 'heartpatch', id: 'nuPatch', hidden: true, when: 'nuA&nuB&nuC&nuD' },
+        /* something lost on the isle, long ago */
+        { k: 'loomweight', x: 31, y: 29 },
     ],
     regions: [
         { name: 'The Sleeping Road', x: 0, y: 14, w: 20, h: 8 },
         { name: 'The Slumberhouse', x: 2, y: 2, w: 27, h: 10 },
         { name: 'Puffball Hollow', x: 2, y: 22, w: 22, h: 14 },
         { name: 'Lantern Pond', x: 24, y: 21, w: 15, h: 19 },
-        { name: "Mallow's Nursery", x: 47, y: 6, w: 17, h: 23 },
+        { name: "The Slumberhouse Garden", x: 7, y: 14, w: 20, h: 4 },
         { name: 'The Far Bank', x: 29, y: 2, w: 10, h: 19 },
         { name: 'The Cliff Stair', x: 40, y: 0, w: 7, h: 40 },
     ],
@@ -667,7 +664,6 @@ function initHushArt() {
 CONTENT_INIT.push(initHushArt);
 
 /* ---------- Mallow's Nursery and Lantern Pond ---------- */
-NOTES.nursery = { title: "Doctor Mallow's nursery book", text: "THE NURSERY. Snorelings in training: Puddle, Mop and Dozy. They go to bed wherever they are when they're tired, which is anywhere. A puff of spores and they're off. Night 1,204: all three down by moonrise, the little wooden one too (Jory's: he says it sets an example). The Wanderer's year again soon. I do hope this one sleeps well. -M." };
 /* a cradle: a pressure plate in a little crib (whatever lies in it, or stands in it, weighs it down); somebody in it
    already, nobody else gets in */
 SPAWN.cradle = (x, y, p) => {
@@ -713,20 +709,37 @@ SPAWN.greatlantern = (x, y) => {
     pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
     return pr;
 };
-/* the Nursery's book, on a stand in the alcove */
-SPAWN.nurserybook = (x, y) => {
-    const pr = new Prop(x, y, { im: ART.nursery_book, solid: [[0, 0]], oy: -6 });
+
+/* an old loom weight, lost on the isle in Lantern Pond (it fits somewhere in the north, much later) */
+ITEMS.loomweight = { name: 'old loom weight', kind: 'quest', desc: 'A fist-sized lump of grey stone with a hole worn through it, far heavier than it looks.' };
+SPAWN.loomweight = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.loomweight_ground, solid: [], oy: 0 });
+    pr.baseY = 4; pr.inert = false;
+    const gone = () => Progress.flag('loomweight_got');
+    pr.draw = function (cx, cy) { if (!gone()) Gfx.img(this.im, this.x - cx, this.y - cy); };
     pr.interact = () => {
-        Script.run(function* () {
-            if (!Progress.flag('nursery_book')) { Progress.set('nursery_book'); Progress.addNote('nursery'); Stats.count('secret:nursery'); }
-            yield* say(null, 'A big soft book on a stand, its pages smelling of lavender. On the cover: THE NURSERY.');
-            yield* say(null, '"' + NOTES.nursery.text + '"');
-        });
+        if (gone()) return false;
+        Script.run(function* () { Progress.set('loomweight_got'); Stats.count('secret:loomweight'); yield* Story.getItem('loomweight')(); });
         return true;
     };
     pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
     return pr;
 };
+{
+    /* the garden's three asleep: a bolt slides back somewhere in the house; once you've been in, the door's open to you */
+    const tick0 = OW.blocks['2,1'].tick;
+    OW.blocks['2,1'].tick = a => {
+        if (tick0) tick0(a);
+        const all = Signals.get(a, 'nuA') && Signals.get(a, 'nuB') && Signals.get(a, 'nuC');
+        if (all && !Hushwood.bolted && !Progress.flag('slumber_open') && !Progress.flag('d5')) { G.pendingToast = 'Somewhere inside the Slumberhouse, a bolt slides back.'; Sfx.play('unlock'); }
+        Hushwood.bolted = all;
+    };
+    const enter0 = World.enter;
+    World.enter = function (id, ...rest) {
+        if (id === 'slumber' || (Progress.areaFlags && Progress.areaFlags.slumber)) { if (!Progress.flag('slumber_open')) Progress.set('slumber_open'); }
+        return enter0.call(this, id, ...rest);
+    };
+}
 
 /* ---------- the look of the wood: moss underfoot, ferns, loam paths with roots across them; and in the air under the
    trees a dimness, drifting mist and spores (thinning toward the edges of the wood) ---------- */
@@ -860,9 +873,9 @@ Object.assign(Hushwood, {
             Gfx.alpha(1);
         }
         Gfx.alpha(1);
-        /* the Nursery: while its three sleep, the mushrooms by its gate glow */
+        /* while the garden's three sleep in their cradles, the Slumberhouse's round windows glow */
         if (Signals.get(a, 'nuA') && Signals.get(a, 'nuB') && Signals.get(a, 'nuC')) {
-            for (const mx of [53, 56]) { const x = (128 + mx) * T + 16 - cx, y = (40 + 9) * T - 14 - cy; Gfx.alpha(0.2 + 0.06 * Math.sin(G.t / 15 + mx)); Gfx.circle(x, y, 16, '#f0c8ff'); Gfx.alpha(1); }
+            for (const wx of [20, 52, 110, 141]) { const x = (128 + 15) * T + wx - cx, y = (40 + 3) * T - 6 + 66 - cy; Gfx.alpha(0.22 + 0.05 * Math.sin(G.t / 17 + wx)); Gfx.circle(x, y, 10, '#ffe8a0'); Gfx.alpha(1); }
         }
     },
 });
@@ -930,17 +943,17 @@ function initHushArt2() {
         for (const [a, b] of [[3, 5], [10, 4], [6, 9], [12, 10]]) { R(x, '#c8a8f0', a, b, 1, 1); R(x, '#9a76d8', a + 1, b + 1, 1, 1); }
         if (hole) { R(x, '#120c14', 5, 12, 6, 7); R(x, '#120c14', 6, 11, 4, 1); R(x, '#2a1f2d', 5, 12, 1, 7); }
     });
+    /* the loom weight: lying in the moss, and as the satchel shows it */
+    ART.loomweight_ground = paintSprite(16, 16, x => {
+        discPx(x, 8, 10, 4, (px0, py0, u, v) => { const l = -u * 0.6 - v * 0.8 + (hash2(px0, py0, 6) - 0.5) * 0.4; return l > 0.5 ? '#c4c0cc' : l > -0.1 ? '#9a96a6' : l > -0.7 ? '#76728a' : '#58546c'; });
+        R(x, '#2a1f2d', 7, 9, 2, 2); R(x, '#4c8457', 3, 13, 3, 1); R(x, '#4c8457', 11, 13, 2, 1);
+    });
+    defSprite('icon_loomweight', ['................', '................', '......kkkk......', '....kkwggxkk....', '...kwggggggxk...', '...kgggggggxk...', '..kwggkkkggxxk..', '..kgggk..kgxxk..', '..kgggk..kgxxk..', '..kgggkkkkgxxk..', '...kggggggxxk...', '...kgggggxxxk...', '....kkxxxxkk....', '......kkkk......', '................', '................']);
     /* things on the ground: moss cushions, a fern sprig, the town's grass in a tuft, fallen leaves, a toadstool */
     for (let i = 0; i < 3; i++) ART['hw_moss' + i] = paintSprite(6 + i, 4, x => { R(x, '#84bc7a', 1, 0, 3 + i, 1); R(x, '#68a266', 0, 1, 5 + i, 2); R(x, '#4c7e52', 1, 3, 3 + i, 1); R(x, '#a8d890', 1, 1, 1, 1); }, false);
     ART.hw_fern = paintSprite(7, 6, x => { R(x, '#3c6a48', 3, 1, 1, 5); for (const j of [1, 3]) { R(x, '#4e8a58', 0, j, 3, 1); R(x, '#4e8a58', 4, j + 1, 3, 1); } R(x, '#6aa86a', 3, 0, 1, 1); }, false);
     for (let i = 0; i < 2; i++) ART['hw_tuft' + i] = paintSprite(5, 5, x => { R(x, '#7cc35c', 0, 2, 1, 3); R(x, '#8fd46a', 2, 0, 1, 5); R(x, '#a9e07f', 4, 1 + i, 1, 4 - i); R(x, '#5fa84c', 1, 4, 3, 1); }, false);
     ART.hw_leaves = paintSprite(7, 4, x => { R(x, '#c87a3a', 0, 1, 2, 1); R(x, '#e09848', 1, 0, 2, 1); R(x, '#a8603a', 4, 2, 2, 1); R(x, '#d8a050', 5, 1, 2, 1); R(x, '#6a5038', 2, 3, 3, 1); }, false);
     ART.hw_toad = paintSprite(5, 5, x => { R(x, '#e8dcc8', 2, 2, 1, 3); R(x, '#c84a6a', 0, 0, 5, 2); R(x, '#fbe8f0', 1, 0, 1, 1); R(x, '#8a2a4a', 0, 2, 5, 1); }, false);
-    /* the Nursery's book on a little stand */
-    ART.nursery_book = paintSprite(16, 22, x => {
-        R(x, '#6a4e36', 7, 10, 2, 11); R(x, '#4a3424', 4, 20, 8, 2);
-        R(x, '#7d5bc4', 1, 2, 14, 9); R(x, '#fbf6ea', 2, 3, 6, 6); R(x, '#f0e8d8', 8, 3, 6, 6); R(x, '#4b3a8a', 7, 2, 2, 9);
-        for (let j = 4; j < 8; j += 2) { R(x, '#b8a8c8', 3, j, 4, 1); R(x, '#b8a8c8', 9, j, 4, 1); }
-    });
 }
 CONTENT_INIT.push(initHushArt2);

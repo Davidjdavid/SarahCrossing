@@ -171,6 +171,15 @@ export const LEG2 = (HW, chain) => {
     ok(thing('canyonBoulder').ty === 80 + 22, 'boulder pulled into the niche');
     walk(64 + 5, 80 + 21); walk(64 + 5, 80 + 23); walk(64 + 2, 80 + 23); walk(58, 80 + 23, 'into Kilnridge');
     ok(HW.Progress.flag('kilnPass'), 'through');
+    /* the Kiln's forecourt: a pot into the vent's wet mouth (it stays, held by the clay) and the vent throws it over the rock
+       into the firing hole (another go if a crock gets in the way) */
+    for (let i = 0; i < 4 && !thing('kilnGate').open; i++) {
+        const pot = thing('fgPot1');
+        until(() => HW.Return.isHome(pot) && !pot.pendingHome && !pot.shattered, 900);
+        walk(17, 80 + 18); lift('down'); walk(21, 80 + 17); toss('right'); HW.step(30);
+        until(() => thing('kilnGate').open || !(pot.heldBy && pot.heldBy.clay), 700); HW.step(60);
+    }
+    ok(thing('kilnGate').open, 'the firing hole fired: the forecourt gate is open');
     walk(22, 80 + 14, 'to the Kiln door'); HW.hold('up'); until(() => area() === 'kiln', 120); HW.release(); HW.step(30);
     ok(area() === 'kiln', 'inside the Kiln');
     HW.Inv.maxHp = HW.Inv.hp = 16;

@@ -9817,6 +9817,104 @@ function initMeadowArt() {
 }
 CONTENT_INIT.unshift(initMeadowArt);
 
+/* ---------- sheep: marked like everything else (a red cross dyed in the fleece; a sheep's place is its spot). A sheep shies
+   from Wren a step at a time, straight away from her (or along a wall, away from her side), so she can drive it; left
+   alone it ambles home the way it was driven, back the way it came. Going home it pays her no mind (it waits behind her
+   if she's in its way). A ram is heavy (he shoves a ewe aside on his way home); a lamb is light, and small. ---------- */
+SFX.baa = (o, t) => { Audio.tone(o, t, 330, 0.1, 'p25', 0.07, { slide: 300 }); Audio.tone(o, t + 0.1, 300, 0.22, 'p25', 0.06, { slide: 280 }); };
+class Sheep extends GridThing {
+    constructor(tx, ty, p = {}) {
+        super('sheep', tx, ty, Object.assign({ weight: p.ram ? WEIGHT.heavy : p.lamb ? WEIGHT.light : WEIGHT.medium, patience: 200 }, p));
+        this.small = !!p.lamb; this.noPush = true; this.anim = 0; this.baaT = -99;
+        this.dir = p.face === 'right' ? RIGHT : LEFT;
+        this.look = p.look || (p.ram ? 'ram' : p.lamb ? 'lamb' : 'sheep');
+    }
+    onAdd(area) { super.onAdd(area); if (this.ret) { this.ret.color = '#e8463c'; this.ret.pace = 14; } }
+    canPush() { return false; }
+    /* a step away, if the ground's fit to stand on */
+    step(d, quiet) {
+        const a = this.area, nx = this.tx + DX[d], ny = this.ty + DY[d], k = a.kind(nx, ny);
+        if (k.pit || k.deep || k.fog || k.clay || k.ledge) return false;
+        if (!a.freeForThing(nx, ny, this)) return false;
+        if (d === LEFT || d === RIGHT) this.dir = d;
+        this.startMove(nx, ny, this.small ? 12 : 15);
+        if (!quiet && G.t - this.baaT > 70) { this.baaT = G.t; Sfx.play('baa', 0.45); }
+        return true;
+    }
+    tick() {
+        if (this.mv) { this.anim++; return; }
+        if (this.heldBy || this.carried || Return.asleep(this) || this.flying) return;
+        if (this.ret && this.ret.state === 'returning') return;
+        const p = G.player;
+        if (!p || p.area !== this.area || p.state !== 'normal' || p.ride || p.pinned) return this.graze();
+        const dx = this.tx * T + 8 - p.x, dy = this.ty * T + 8 - (p.y - 3);
+        if (dx * dx + dy * dy > 21 * 21) return this.graze();
+        const horiz = Math.abs(dx) >= Math.abs(dy);
+        const pri = horiz ? (dx >= 0 ? RIGHT : LEFT) : (dy >= 0 ? DOWN : UP);
+        const side = horiz ? dy : dx, tie = hash2(this.tx, this.ty, 17) < 0.5;
+        const sec = horiz ? (side > 0 || (side === 0 && tie) ? DOWN : UP) : (side > 0 || (side === 0 && tie) ? RIGHT : LEFT);
+        for (const d of [pri, sec, OPP[sec]]) if (this.step(d)) return;
+    }
+    /* now and then a sheep at home wanders a step and comes back (those that graze) */
+    graze() {
+        if (!this.grazes || !this.ret || this.ret.state !== 'home') return;
+        const k = G.t + this.uid * 131;
+        if (k % 420 !== 0) return;
+        this.step(Math.floor(hash2(this.uid, Math.floor(k / 420), 31) * 4), true);
+    }
+    interact() {
+        const s = this;
+        Script.run(function* () { yield* say(null, s.talk ? (typeof s.talk === 'function' ? s.talk(s) : s.talk) : cycle('sheeptalk', ['A sheep. It looks at you, chews, and looks away.', 'Baa.', 'The sheep has a little red cross dyed into its fleece. So do all of them.'])); });
+        return true;
+    }
+    sprite() { return spr(this.look + '_' + (this.mv ? Math.floor(this.anim / 5) % 2 : 0)); }
+    draw(cx, cy) {
+        const im = this.sprite(); if (!im) return;
+        let shake = 0; const r = this.ret;
+        if (r && r.state === 'away' && !Return.held(this) && r.timer < 30) shake = (G.t >> 1) % 2 ? 1 : -1;
+        Gfx.alpha(0.22); Gfx.rect(this.px - cx + 3, this.py - cy + 13, 10, 2, PAL.ink); Gfx.alpha(1);
+        Gfx.img(im, this.px - cx + shake, this.py - cy - (im.height - T), this.dir === RIGHT);
+    }
+}
+SPAWN.sheep = (x, y, p) => new Sheep(x, y, p);
+
+/* ---------- the counting stones in the Old Fold: they count sheep coming home, in order (yan, tan, tethera) ---------- */
+const TALLY_WORDS = ['yan', 'tan', 'tethera', 'methera', 'pip'];
+class TallyStone extends FloorThing {
+    constructor(tx, ty, p = {}) { super('tally', tx, ty, p); this.lit = false; this.prev = null; this.inert = false; }
+    onAdd(area) { if (Progress.flag(this.done)) this.lit = true; }
+    update() {
+        const a = this.area, o = a.at(this.tx, this.ty);
+        if (o !== this.prev && o && o.kind === 'sheep' && o.ret && o.ret.state === 'returning') this.counted(o);
+        this.prev = o;
+    }
+    counted(o) {
+        const a = this.area, all = a.ents.filter(e => e.kind === 'tally' && e.group === this.group);
+        if (Progress.flag(this.done)) return;
+        const st = a.tally = a.tally || {}, want = (st[this.group] || 0) + 1;
+        if (this.n === want) {
+            st[this.group] = want; this.lit = true; Sfx.play('click');
+            Fx.text(this.x + 8, this.y - 6, TALLY_WORDS[this.n - 1] + '!', '#fff4c0');
+            if (want === all.length) { Progress.set(this.done); Sfx.play('appear'); Stats.count('secret:fold'); }
+        } else {
+            st[this.group] = 0; for (const e of all) e.lit = false;
+            Sfx.play('unclick'); Fx.text(this.x + 8, this.y - 6, '...', PAL.grey2);
+        }
+    }
+    draw(cx, cy) {
+        const x = this.x - cx, y = this.y - cy;
+        Gfx.img(spr('tallystone'), x, y);
+        /* its notches, one for each it counts for */
+        for (let i = 0; i < this.n; i++) Gfx.rect(x + 5 + i * 2 - (this.n - 1), y + 6, 1, 4, this.lit ? '#fff4c0' : '#5a5250');
+        if (this.lit) { Gfx.alpha(0.25 + 0.1 * Math.sin(G.t / 10)); Gfx.rect(x + 2, y + 3, 12, 10, '#fff4c0'); Gfx.alpha(1); }
+    }
+}
+SPAWN.tally = (x, y, p) => new TallyStone(x, y, p);
+
+/* the clapper of the old ringers' bell (Grandad brought it down off the Heights to call the flock in with) */
+ITEMS.clapper = { name: "Ringers' clapper", kind: 'quest', desc: "An old bell's clapper, heavy as a fist. It came off a bell up on the Heights, Pip's grandad said." };
+ITEM_LINES.clapper = () => "You found an old {blue}bell's clapper{/}, wrapped in sacking: a heavy iron tongue with a ring through the top. Somewhere there's a bell missing it.";
+
 // ---- 44_kiln_kit.js ----
 /* What the Kiln brings: charms hung from the ceiling over walkable floor (only flying things reach them:
    shards, thrown things), clay seals that shatter, sequence locks, eyelets to hook onto, the Hookline, and
@@ -10827,7 +10925,7 @@ const KILNRIDGE_ROWS = [
     '%###############################################################',
     '%###############################################################',
     '%###############################################################',
-    '%##.fffffff....,,,...................,....,.....,............###',
+    '%##.ffffff.....,,,...................,....,.....,............###',
     '%##......,.#####################################################',
     '%##........##.."........"......##......,.,....#############..###',
     '%##.".,..,,##...........YYY.,..##...,...."....##.........##..###',
@@ -10841,7 +10939,7 @@ const KILNRIDGE_ROWS = [
     '%##...,...."..c,...l..:,.l.,........"...".....##H##########..###',
     '%##.....^......,...l,.:..l.."."....^..........##H##########..###',
     '%##......^....."...fff:fff....,......,......:::H..,........#.###',
-    '%##............,".....:..c.......,......."..:,..."..,.......^###',
+    '%##............,".....:..c.......,......."..:,..."..,........###',
     '%##..........,........:.^^^........................."......,.###',
     '%##"..................:.^.^....................,.............###',
     '%##...................:.^^^.,..,.,..............".".,.......c###',
@@ -10897,7 +10995,7 @@ defBlock({
         { k: 'pickup', x: 29, y: 6, what: 'b20', id: 'mesaButtons' },
         /* the Kiln's forecourt: its gate opens once the ground's been fired (the firing hole by the road), or for anybody
            who's been in already (an older Wander) */
-        { k: 'door', x: 22, y: 16, type: 'gate', when: 'fgHole|flag:visited:kiln', dir: 'h', id: 'kilnGate' },
+        { k: 'door', x: 22, y: 16, type: 'gate', when: 'fgHole|flag:visited:kiln|flag:d2', dir: 'h', id: 'kilnGate' },
         { k: 'vent', x: 25, y: 17, dir: 'down', dist: 2, period: 280, id: 'fgVent1' },
         { k: 'charm', x: 25, y: 19, mode: 'once', id: 'fgHole', sig: 'fgHole', col: 'ember' },
         { k: 'pot', x: 17, y: 19, id: 'fgPot1' }, { k: 'pot', x: 18, y: 21, id: 'fgPot2' },
@@ -15617,11 +15715,11 @@ CONTENT_INIT.push(initBedrollKit);
    a long way down, so only with a Bedroll laid up top to come home to). Bouncy moss hops you over the stream to
    the Slumberhouse (House 5, Doctor Mallow's); sleep puffs line the trail through Puffball Hollow; Snorelings
    doze in the ferns; Hettie the forager camps by Lantern Pond, where a weir (wound open from this side only)
-   lets a raft run down the channel to the lake at Millwater. The cliff stair up the east side stays walled off from
-   the wood, but a crack in its far wall leads into Mallow's Nursery: three cradles behind a low hedge, and three
-   Snorelings to put to bed in them (they follow you; the spores put them to sleep where they stand). Lantern Pond's
-   four lanterns light only while their stones weigh on them (a stone stitched there with the Needle stays); all four,
-   and the lantern on the isle lights. Map drafted by tools/mapgen/hushwood.py. */
+   lets a raft run down the channel to the lake at Millwater. The cliff stair up the east side stays walled off.
+   The Slumberhouse's door opens while Mallow's three Snorelings sleep in the three cradles in the stream's south
+   bank (they follow you; a puffball's spores put one to sleep where it stands; somebody in a cradle, nobody else
+   gets in); a fourth cradle by the house is for the little wooden one. Lantern Pond's four lanterns light only while
+   their stones weigh on them; all four, and the lantern on the isle lights. Map drafted by tools/mapgen/hushwood.py. */
 
 const SLUMBER_ENTRY = { x: 29, y: 42 };
 const HUSH = (x, y) => [128 + x, 40 + y];
@@ -15634,28 +15732,28 @@ const HUSHWOOD_ROWS = [
     'YY........YYYY.XXXXXXXXXXYYYYY#...b...YY##:::##YYYYYYYYYYYYYYYYY',
     'YY........YYYY.XXXXXXXXXXYYYYY#k......YY##:::##YYYYYYYYYYYYYYYYY',
     'YY........YYYY.XXXXXXXXXXYYYYY#.......YY##:::##YYYYYYYYYYYYYYYYY',
-    'YY........YYYY.XXXXXXXXXXYYYYY#....M..YY##:H:##YYYYYYYYYYYYYYYYY',
-    'YY....M...YYYY.XXXXXXXXXXYYYYY#....k..YY##:::##YYYYYYY...YYYYYYY',
-    'YY.............XXXX:XXXXXYYYYY#....k..YY##:::##YYYYYYY...YYYYYYY',
-    'YY..........::::::::.....YYYYY#.......YY##:::##YYY.k.M..M..k.YYY',
-    'YYk."b...,..:................YYvvvvvvvYY##:::::::.............YY',
-    'YY....k.....:.........M......YY.....YYYY##:::##YY.............YY',
-    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~..,....YYYY##:H:##YY1111111111111YY',
-    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~.....:.YYYY##:::##YY1..11..11..11YY',
-    'YYYYYYY.....:........k.....~~..,..:.YYYY##:::##YY.............YY',
-    'YYYYYYY.....:.......YYYYYY.~~.....:.YYYY##:::##YY...q.....k...YY',
-    'YY..........:.......YYYYYY.~~.."..:.YYYY##:::##YY.............YY',
-    'YY......b...:.......YYYYYY.~~.....:.YYYY##:::##YY..M.......M..YY',
-    'YY..........:.......YYYYYY.~~..qk.:.YYYY##:H:##YY.............YY',
-    ':::::::::::::::............~~.....:.YYYY##:::##YY.............YY',
-    ':::::::::::::::::::::::::::__::::::.YYYY##:::##YY...k.....q...YY',
-    'YY.........................~~.......YYYY##:::##YY.............YY',
-    'YY..................M......~~..YYYYYYYYY##:::##YY.............YY',
-    'YY......:.k...qM........"..~~..YYYYYYYYY##:::##YY.............YY',
-    'YYYYY...:.......kYYYYYYY...~~..YYYYYYYYY##:H:##YY.............YY',
-    'YYYYY...:.......,YYYYYYY...~~.....YYYYYY##:::##YY1122...M.....YY',
-    'YYYYY...:..b"....YYYYYY.,"~~~~~~~~~...YY##:::##YY.322.........YY',
-    'YYYYY...:..M.....YYYYYYY.-~~~~~~~~~...YY##:::##YY111...k...q..YY',
+    'YY........YYYY1XXXXXXXXXXYYYYY#....M..YY##:H:##YYYYYYYYYYYYYYYYY',
+    'YY....M...YYYY.XXXXXXXXXXYYYYY#....k..YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY............3XXXX:XXXXXYYYYY#....k..YY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..........::::::::.....YYYYY#.......YY##:::##YYYYYYYYYYYYYYYYY',
+    'YYk."b...,..:................YYvvvvvvvYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY....k.....:................YY.....YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~..,....YYYY##:H:##YYYYYYYYYYYYYYYYY',
+    'YY.~~~~~~~~~~~~~~~~~~~~~~~~~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYYYY11111111..11..11..11~~..,..:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYYYY.....:..............~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..........:.........YYYY.~~.."..:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY......b...:.........YYYY.~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..........:..............~~..qk.:.YYYY##:H:##YYYYYYYYYYYYYYYYY',
+    ':::::::::::::::............~~.....:.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    ':::::::::::::::::::::::::::__::::::.YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY.........................~~.......YYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY..................M......~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YY......:.k...qM........"..~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:.......kYYYYYYY...~~..YYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:.......,YYYYYYY...~~.....YYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:..b"....YYYYYY.,"~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:..M.....YYYYYYY.-~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
     'YYYYY.".:........,".....:-~~~~..~~~...YY##:::##YYYYYYYYYYYYYYYYY',
     'YYYYY...:...............:.~~~~..~~~-..YY##:::##YYYYYYYYYYYYYYYYY',
     'YY.M....:::::::::::::::::.~~~~~~~~~-..YY##:H:##YYYYYYYYYYYYYYYYY',
@@ -15693,11 +15791,11 @@ defBlock({
         { k: 'rest', x: 10, y: 16 },
         { k: 'snoreling', x: 15, y: 22, id: 'hwSnore1' },
         /* over the stream to the Slumberhouse: bouncy moss, one each way */
-        { k: 'moss', x: 12, y: 14, dir: 'up', dist: 3, id: 'hwMossN' },
-        { k: 'moss', x: 10, y: 11, dir: 'down', dist: 3, id: 'hwMossS' },
-        { k: 'sign', x: 11, y: 15, text: 'MIND THE MOSS. It is VERY bouncy. (The stream is cold.)' },
+        { k: 'moss', x: 12, y: 15, dir: 'up', dist: 4, id: 'hwMossN' },
+        { k: 'moss', x: 10, y: 11, dir: 'down', dist: 4, id: 'hwMossS' },
+        { k: 'sign', x: 11, y: 16, text: 'MIND THE MOSS. It is VERY bouncy. (The stream is cold.)' },
         { k: 'building', x: 15, y: 3, w: 10, h: 6, door: 4, art: 'slumber' },
-        { k: 'warp', x: 19, y: 8, to: 'slumber', tx2: SLUMBER_ENTRY.x, ty2: SLUMBER_ENTRY.y, face: 'up', dir: 'up' },
+        { k: 'warp', x: 19, y: 8, to: 'slumber', tx2: SLUMBER_ENTRY.x, ty2: SLUMBER_ENTRY.y, face: 'up', dir: 'up', when: 'nuA&nuB&nuC|flag:slumber_open|flag:d5', lockedLine: "The round lavender door won't open. From somewhere inside comes a long, slow yawn." },
         { k: 'sign', x: 17, y: 9, text: 'THE SLUMBERHOUSE. Visiting hours: whenever you wake up. Doctor M.' },
         { k: 'puffball', x: 9, y: 10, id: 'hwPuffN' },
         /* Old Hummock's own bed */
@@ -15736,30 +15834,27 @@ defBlock({
         /* the isle, and its great lantern; all four lit, it lights, and something is there to find */
         { k: 'greatlantern', x: 31, y: 28 },
         { k: 'chest', x: 30, y: 28, item: 'heartpatch', id: 'lpIsle', hidden: true, when: 'lpN&lpE&lpS&lpW' },
-        /* Mallow's Nursery, through the crack in the cliff stair's far wall */
-        { k: 'sign', x: 50, y: 9, text: "THE NURSERY. Lights out at moonrise. Quiet in the cradles, please. -Dr M." },
-        { k: 'puffball', x: 50, y: 13, id: 'nuPuffA' }, { k: 'cradle', x: 51, y: 13, sig: 'nuA' },
-        { k: 'puffball', x: 54, y: 13, id: 'nuPuffB' }, { k: 'cradle', x: 55, y: 13, sig: 'nuB' },
-        { k: 'puffball', x: 58, y: 13, id: 'nuPuffC' }, { k: 'cradle', x: 59, y: 13, sig: 'nuC' },
-        { k: 'snoreling', x: 50, y: 22, id: 'nuSnoreA', type: 'snoreling_n' },
-        { k: 'snoreling', x: 55, y: 26, id: 'nuSnoreB', type: 'snoreling_n' },
-        { k: 'snoreling', x: 60, y: 21, id: 'nuSnoreC', type: 'snoreling_n' },
-        { k: 'moss', x: 61, y: 11, dir: 'down', dist: 3, id: 'nuMossIn' },
-        { k: 'moss', x: 49, y: 14, dir: 'up', dist: 3, id: 'nuMossOut' },
-        { k: 'door', x: 55, y: 9, type: 'gate', when: 'nuA&nuB&nuC', dir: 'h', id: 'nuGate', passed: 'up' },
-        { k: 'chest', x: 54, y: 8, item: 'heartpatch', id: 'nuPatch' },
-        { k: 'chest', x: 56, y: 8, item: 'b50', id: 'nuToy', hidden: true, when: 'nuA&nuB&nuC&nuD' },
-        { k: 'nurserybook', x: 55, y: 7 },
-        /* the little wooden one Jory carved, and its own cradle, in the brambles behind a hole only it fits */
-        { k: 'puppet', x: 53, y: 23, id: 'nuDolly', look: 'puppet_snore' },
-        { k: 'cradle', x: 49, y: 26, sig: 'nuD' },
+        /* the Slumberhouse's garden: three cradles in the stream's south bank, a puffball beside each; Mallow's three
+           Snorelings asleep in the meadow behind. The door opens while all three are asleep in the cradles */
+        { k: 'puffball', x: 15, y: 14, id: 'nuPuffA' }, { k: 'cradle', x: 16, y: 14, sig: 'nuA' },
+        { k: 'puffball', x: 19, y: 14, id: 'nuPuffB' }, { k: 'cradle', x: 20, y: 14, sig: 'nuB' },
+        { k: 'puffball', x: 23, y: 14, id: 'nuPuffC' }, { k: 'cradle', x: 24, y: 14, sig: 'nuC' },
+        { k: 'snoreling', x: 8, y: 16, id: 'nuSnoreA', type: 'snoreling_n' },
+        { k: 'snoreling', x: 16, y: 16, id: 'nuSnoreB', type: 'snoreling_n' },
+        { k: 'snoreling', x: 20, y: 16, id: 'nuSnoreC', type: 'snoreling_n' },
+        /* by the house, a fourth cradle behind a little round hole in the hedge, and the wooden one Jory carved */
+        { k: 'cradle', x: 14, y: 7, sig: 'nuD' },
+        { k: 'puppet', x: 17, y: 10, id: 'nuDolly', look: 'puppet_snore' },
+        { k: 'chest', x: 13, y: 9, item: 'heartpatch', id: 'nuPatch', hidden: true, when: 'nuA&nuB&nuC&nuD' },
+        /* something lost on the isle, long ago */
+        { k: 'loomweight', x: 31, y: 29 },
     ],
     regions: [
         { name: 'The Sleeping Road', x: 0, y: 14, w: 20, h: 8 },
         { name: 'The Slumberhouse', x: 2, y: 2, w: 27, h: 10 },
         { name: 'Puffball Hollow', x: 2, y: 22, w: 22, h: 14 },
         { name: 'Lantern Pond', x: 24, y: 21, w: 15, h: 19 },
-        { name: "Mallow's Nursery", x: 47, y: 6, w: 17, h: 23 },
+        { name: "The Slumberhouse Garden", x: 7, y: 14, w: 20, h: 4 },
         { name: 'The Far Bank', x: 29, y: 2, w: 10, h: 19 },
         { name: 'The Cliff Stair', x: 40, y: 0, w: 7, h: 40 },
     ],
@@ -16280,7 +16375,6 @@ function initHushArt() {
 CONTENT_INIT.push(initHushArt);
 
 /* ---------- Mallow's Nursery and Lantern Pond ---------- */
-NOTES.nursery = { title: "Doctor Mallow's nursery book", text: "THE NURSERY. Snorelings in training: Puddle, Mop and Dozy. They go to bed wherever they are when they're tired, which is anywhere. A puff of spores and they're off. Night 1,204: all three down by moonrise, the little wooden one too (Jory's: he says it sets an example). The Wanderer's year again soon. I do hope this one sleeps well. -M." };
 /* a cradle: a pressure plate in a little crib (whatever lies in it, or stands in it, weighs it down); somebody in it
    already, nobody else gets in */
 SPAWN.cradle = (x, y, p) => {
@@ -16326,20 +16420,37 @@ SPAWN.greatlantern = (x, y) => {
     pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
     return pr;
 };
-/* the Nursery's book, on a stand in the alcove */
-SPAWN.nurserybook = (x, y) => {
-    const pr = new Prop(x, y, { im: ART.nursery_book, solid: [[0, 0]], oy: -6 });
+
+/* an old loom weight, lost on the isle in Lantern Pond (it fits somewhere in the north, much later) */
+ITEMS.loomweight = { name: 'old loom weight', kind: 'quest', desc: 'A fist-sized lump of grey stone with a hole worn through it, far heavier than it looks.' };
+SPAWN.loomweight = (x, y) => {
+    const pr = new Prop(x, y, { im: ART.loomweight_ground, solid: [], oy: 0 });
+    pr.baseY = 4; pr.inert = false;
+    const gone = () => Progress.flag('loomweight_got');
+    pr.draw = function (cx, cy) { if (!gone()) Gfx.img(this.im, this.x - cx, this.y - cy); };
     pr.interact = () => {
-        Script.run(function* () {
-            if (!Progress.flag('nursery_book')) { Progress.set('nursery_book'); Progress.addNote('nursery'); Stats.count('secret:nursery'); }
-            yield* say(null, 'A big soft book on a stand, its pages smelling of lavender. On the cover: THE NURSERY.');
-            yield* say(null, '"' + NOTES.nursery.text + '"');
-        });
+        if (gone()) return false;
+        Script.run(function* () { Progress.set('loomweight_got'); Stats.count('secret:loomweight'); yield* Story.getItem('loomweight')(); });
         return true;
     };
     pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
     return pr;
 };
+{
+    /* the garden's three asleep: a bolt slides back somewhere in the house; once you've been in, the door's open to you */
+    const tick0 = OW.blocks['2,1'].tick;
+    OW.blocks['2,1'].tick = a => {
+        if (tick0) tick0(a);
+        const all = Signals.get(a, 'nuA') && Signals.get(a, 'nuB') && Signals.get(a, 'nuC');
+        if (all && !Hushwood.bolted && !Progress.flag('slumber_open') && !Progress.flag('d5')) { G.pendingToast = 'Somewhere inside the Slumberhouse, a bolt slides back.'; Sfx.play('unlock'); }
+        Hushwood.bolted = all;
+    };
+    const enter0 = World.enter;
+    World.enter = function (id, ...rest) {
+        if (id === 'slumber' || (Progress.areaFlags && Progress.areaFlags.slumber)) { if (!Progress.flag('slumber_open')) Progress.set('slumber_open'); }
+        return enter0.call(this, id, ...rest);
+    };
+}
 
 /* ---------- the look of the wood: moss underfoot, ferns, loam paths with roots across them; and in the air under the
    trees a dimness, drifting mist and spores (thinning toward the edges of the wood) ---------- */
@@ -16473,9 +16584,9 @@ Object.assign(Hushwood, {
             Gfx.alpha(1);
         }
         Gfx.alpha(1);
-        /* the Nursery: while its three sleep, the mushrooms by its gate glow */
+        /* while the garden's three sleep in their cradles, the Slumberhouse's round windows glow */
         if (Signals.get(a, 'nuA') && Signals.get(a, 'nuB') && Signals.get(a, 'nuC')) {
-            for (const mx of [53, 56]) { const x = (128 + mx) * T + 16 - cx, y = (40 + 9) * T - 14 - cy; Gfx.alpha(0.2 + 0.06 * Math.sin(G.t / 15 + mx)); Gfx.circle(x, y, 16, '#f0c8ff'); Gfx.alpha(1); }
+            for (const wx of [20, 52, 110, 141]) { const x = (128 + 15) * T + wx - cx, y = (40 + 3) * T - 6 + 66 - cy; Gfx.alpha(0.22 + 0.05 * Math.sin(G.t / 17 + wx)); Gfx.circle(x, y, 10, '#ffe8a0'); Gfx.alpha(1); }
         }
     },
 });
@@ -16543,18 +16654,18 @@ function initHushArt2() {
         for (const [a, b] of [[3, 5], [10, 4], [6, 9], [12, 10]]) { R(x, '#c8a8f0', a, b, 1, 1); R(x, '#9a76d8', a + 1, b + 1, 1, 1); }
         if (hole) { R(x, '#120c14', 5, 12, 6, 7); R(x, '#120c14', 6, 11, 4, 1); R(x, '#2a1f2d', 5, 12, 1, 7); }
     });
+    /* the loom weight: lying in the moss, and as the satchel shows it */
+    ART.loomweight_ground = paintSprite(16, 16, x => {
+        discPx(x, 8, 10, 4, (px0, py0, u, v) => { const l = -u * 0.6 - v * 0.8 + (hash2(px0, py0, 6) - 0.5) * 0.4; return l > 0.5 ? '#c4c0cc' : l > -0.1 ? '#9a96a6' : l > -0.7 ? '#76728a' : '#58546c'; });
+        R(x, '#2a1f2d', 7, 9, 2, 2); R(x, '#4c8457', 3, 13, 3, 1); R(x, '#4c8457', 11, 13, 2, 1);
+    });
+    defSprite('icon_loomweight', ['................', '................', '......kkkk......', '....kkwggxkk....', '...kwggggggxk...', '...kgggggggxk...', '..kwggkkkggxxk..', '..kgggk..kgxxk..', '..kgggk..kgxxk..', '..kgggkkkkgxxk..', '...kggggggxxk...', '...kgggggxxxk...', '....kkxxxxkk....', '......kkkk......', '................', '................']);
     /* things on the ground: moss cushions, a fern sprig, the town's grass in a tuft, fallen leaves, a toadstool */
     for (let i = 0; i < 3; i++) ART['hw_moss' + i] = paintSprite(6 + i, 4, x => { R(x, '#84bc7a', 1, 0, 3 + i, 1); R(x, '#68a266', 0, 1, 5 + i, 2); R(x, '#4c7e52', 1, 3, 3 + i, 1); R(x, '#a8d890', 1, 1, 1, 1); }, false);
     ART.hw_fern = paintSprite(7, 6, x => { R(x, '#3c6a48', 3, 1, 1, 5); for (const j of [1, 3]) { R(x, '#4e8a58', 0, j, 3, 1); R(x, '#4e8a58', 4, j + 1, 3, 1); } R(x, '#6aa86a', 3, 0, 1, 1); }, false);
     for (let i = 0; i < 2; i++) ART['hw_tuft' + i] = paintSprite(5, 5, x => { R(x, '#7cc35c', 0, 2, 1, 3); R(x, '#8fd46a', 2, 0, 1, 5); R(x, '#a9e07f', 4, 1 + i, 1, 4 - i); R(x, '#5fa84c', 1, 4, 3, 1); }, false);
     ART.hw_leaves = paintSprite(7, 4, x => { R(x, '#c87a3a', 0, 1, 2, 1); R(x, '#e09848', 1, 0, 2, 1); R(x, '#a8603a', 4, 2, 2, 1); R(x, '#d8a050', 5, 1, 2, 1); R(x, '#6a5038', 2, 3, 3, 1); }, false);
     ART.hw_toad = paintSprite(5, 5, x => { R(x, '#e8dcc8', 2, 2, 1, 3); R(x, '#c84a6a', 0, 0, 5, 2); R(x, '#fbe8f0', 1, 0, 1, 1); R(x, '#8a2a4a', 0, 2, 5, 1); }, false);
-    /* the Nursery's book on a little stand */
-    ART.nursery_book = paintSprite(16, 22, x => {
-        R(x, '#6a4e36', 7, 10, 2, 11); R(x, '#4a3424', 4, 20, 8, 2);
-        R(x, '#7d5bc4', 1, 2, 14, 9); R(x, '#fbf6ea', 2, 3, 6, 6); R(x, '#f0e8d8', 8, 3, 6, 6); R(x, '#4b3a8a', 7, 2, 2, 9);
-        for (let j = 4; j < 8; j += 2) { R(x, '#b8a8c8', 3, j, 4, 1); R(x, '#b8a8c8', 9, j, 4, 1); }
-    });
 }
 CONTENT_INIT.push(initHushArt2);
 
@@ -24927,8 +25038,8 @@ TK.arch = { solid: true, water: true, deep: true, arch: true };
 const KNOT_HOUSES = ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'];
 const KNOT_COL = { tidy: THREAD.ives, kiln: THREAD.bram, mill: THREAD.ambrose, belfry: THREAD.tess, slumber: THREAD.mallow, marionette: THREAD.jory };
 const HOUSE_NAMES = { tidy: 'Tidyhouse', kiln: 'Kiln', mill: 'Millrace', belfry: 'Belfry', slumber: 'Slumberhouse', marionette: 'Marionette Hall' };
-/* where each room is (its top-left tile), and whose thread each Knot's room is wound with */
-const GS_ROOMS = { top: [20, 0], slumber: [0, 11], climb: [20, 11], mario: [40, 11], mill: [0, 22], hub: [20, 22], belfry: [40, 22], tidy: [0, 33], foot: [20, 33], kiln: [40, 33] };
+/* whose thread each Knot's room is wound with, by cell (the top, the Climb and the Winding Room above the Foot, up the
+   middle; a Knot's room either side of each of the lower three) */
 const GS_ROOM_HOUSE = { '0,3': 'tidy', '2,3': 'kiln', '0,2': 'mill', '2,2': 'belfry', '0,1': 'slumber', '2,1': 'marionette' };
 const GREAT_ENTRY = { x: 29, y: 41 };
 const GS_SAY = { tidy: "Mother Ives's teal thread", kiln: "Bram's ochre thread", mill: "Your dad's blue thread", belfry: "Your mum's brass thread", slumber: "Doctor Mallow's lavender thread", marionette: "Jory's crimson thread" };
@@ -24949,7 +25060,7 @@ defHouse({
                 { k: 'crate', x: 8, y: 7, id: 'gsFCrate' },
                 { k: 'sign', x: 13, y: 9, text: "Six Knots, tied in six rooms round the Spool's foot: the Wander's, every one you tied. A seventh place waits at the top, an empty peg, for the Wanderer's own." },
             ],
-            nudge: { solved: 'greatspool_gsFGate', after: 60 * 100, at: [5, 3], say: 'A thread in the wall twitches over the plate, in the lee of the post.' },
+            nudge: { solved: 'greatspool_gsFGate', after: 60 * 100, at: [5, 3], say: 'A thread in the wall twitches over the plate, in the lee of the pillar.' },
         },
         /* ---------------- the Tidyhouse's Knot: the drum lays a thing back the moment its place is clear ---------------- */
         '0,3': {
@@ -25054,7 +25165,7 @@ defHouse({
                 { k: 'deco', x: 2, y: 2, look: 'bed', solid: [[0, 0], [0, 1]], oy: 0, baseY: 30, text: "Doctor Mallow's spare bed, turned down and waiting, a hot-water bottle in it gone cold." },
                 { k: 'nightlight', x: 3, y: 1 }, { k: 'nightlight', x: 7, y: 1 },
                 { k: 'ratchet', x: 18, y: 6 },
-                { k: 'sign', x: 15, y: 9, text: "A card in Doctor Mallow's hand: LIGHTS OUT AT EIGHT. THE NIGHT FERRY GOES UP AT NINE. (The bedroom's through the arch. Mind your heads.)" },
+                { k: 'sign', x: 15, y: 9, text: "A card in Doctor Mallow's hand: LIGHTS OUT AT EIGHT. NO RIDING THE FERRY TO BED. (The bedroom's through the arch. Mind your heads.)" },
             ],
             nudge: { solved: 'untie:slumber', after: 60 * 150, at: [5, 5], say: GS_SAY.slumber + ' twitches under the arch: something floating there by itself would go under.' },
         },
@@ -25523,10 +25634,8 @@ CONTENT_INIT.push(initGreatSpool);
         if (s.progress.areaFlags && s.progress.areaFlags.greatspool) delete s.progress.areaFlags.greatspool;
         if (s.inv && s.inv.bedroll && s.inv.bedroll.area === 'greatspool') s.inv.bedroll = null;
         if (s.inv && Array.isArray(s.inv.stitches)) s.inv.stitches = s.inv.stitches.filter(r => r.area !== 'greatspool');
-        if (s.pos && s.pos.area === 'greatspool') {
-            s.pos = { area: 'greatspool', x: GREAT_ENTRY.x * T + 8, y: GREAT_ENTRY.y * T + 10, dir: UP, mark: { area: 'greatspool', tx: GREAT_ENTRY.x, ty: GREAT_ENTRY.y } };
-            f.gs_foot_told = true;
-        }
+        /* (at the foot it's told again how things are down here now) */
+        if (s.pos && s.pos.area === 'greatspool') s.pos = { area: 'greatspool', x: GREAT_ENTRY.x * T + 8, y: GREAT_ENTRY.y * T + 10, dir: UP, mark: { area: 'greatspool', tx: GREAT_ENTRY.x, ty: GREAT_ENTRY.y } };
         f.gs2 = true;
         return s;
     };
