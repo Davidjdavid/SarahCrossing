@@ -291,7 +291,7 @@ class SpoolDrum extends Ent {
                     j.gone = true;
                     /* spat back onto its shelf */
                     const e = j.thing;
-                    if (e && !e.removed) { const [hx, hy] = [e.ret.mx, e.ret.my]; e.tx = hx; e.ty = hy; e.x = hx * T; e.y = hy * T; e.hiddenYank = false; e.inert = false; e.ret.trace = [[hx, hy]]; e.ret.state = 'home'; a.place(e, hx, hy); Fx.poof(hx * T + 8, hy * T + 8); }
+                    if (e && !e.removed && e.ret) { const [hx, hy] = [e.ret.mx, e.ret.my]; e.tx = hx; e.ty = hy; e.x = hx * T; e.y = hy * T; e.hiddenYank = false; e.inert = false; e.ret.trace = [[hx, hy]]; e.ret.state = 'home'; a.place(e, hx, hy); Fx.poof(hx * T + 8, hy * T + 8); }
                     continue;
                 }
                 j.x += dx / d * 1.6; j.y += dy / d * 1.6;

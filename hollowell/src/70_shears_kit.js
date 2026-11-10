@@ -23,8 +23,11 @@ const Shears = {
         return null;
     },
     /* the thing whose thread runs over a tile (tight: on its way home; or any, slack too) */
+    /* (tight as the thread is drawn: on its way home, or about to be, and not held or tied; never a thing out of sight) */
     taut(a, x, y, tight) {
-        return a.ents.find(e => e.isGrid && e.ret && e.ret.state !== 'home' && (!tight || e.ret.state === 'returning') && !e.removed && !e.noCut && e.ret.trace && !(e.tx === x && e.ty === y) && e.ret.trace.some(([tx, ty]) => tx === x && ty === y));
+        const isTight = e => !Return.held(e) && (e.ret.state === 'returning' || (e.ret.state === 'away' && e.ret.timer < 30));
+        return a.ents.find(e => e.isGrid && e.ret && e.ret.state !== 'home' && !e.removed && !e.noCut && !e.hidden && !e.hiddenYank && !e.inert && !e.swallowed
+            && (!tight || isTight(e)) && e.ret.trace && !(e.tx === x && e.ty === y) && e.ret.trace.some(([tx, ty]) => tx === x && ty === y));
     },
     use(p) {
         /* the Makings are Tuck's Wander, and the Makers' kit: not for cutting */
@@ -55,9 +58,14 @@ const Shears = {
             e.ret = null; e.stitched = false; e.cutFree = true;
             /* (a cut thing is tied to nothing: a sleeper wakes a stray, and can be pushed) */
             if (e.sleeper) { e.sleeper = false; e.tiedOff = false; e.noPush = false; }
-            if (e.isGrid) { e.marked = false; if (e.mv) { e.mv = null; a.unplace(e, e.tx, e.ty); e.x = e.tx * T; e.y = e.ty * T; a.place(e, e.tx, e.ty); } }
-            /* cut loose over a hole (hanging on its thread a moment ago): down it goes, and fills it */
-            if (e.isGrid && e.landed && !e.removed && a.kind(e.tx, e.ty).pit) e.landed(false);
+            if (e.isGrid) {
+                e.marked = false; e.tiedOff = false; if (!e.fixed) e.noPush = false;
+                /* mid-step: it ends up on the tile it was stepping onto, and lets go of the one it was leaving */
+                if (e.mv) { a.unplace(e, e.mv.fx, e.mv.fy); e.mv = null; a.unplace(e, e.tx, e.ty); e.x = e.tx * T; e.y = e.ty * T; a.place(e, e.tx, e.ty); }
+            }
+            /* cut loose over a hole or deep water (hanging on its thread a moment ago): down it goes, and fills it */
+            const k = a.kind(e.tx, e.ty);
+            if (e.isGrid && e.landed && !e.removed && (k.pit || (k.deep && !e.floats))) e.landed(false);
             if (k) Progress.setAreaFlag(a.id, 'cut:' + k, e.tx + ',' + e.ty);
         }
         if (!quiet) {

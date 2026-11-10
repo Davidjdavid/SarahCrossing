@@ -100,3 +100,5 @@
   things); regression tests.
 - A fourth part to the third act's change of pace (three rooms that turn one of its rules round), with tests.
 - Art: more variety in the last main dungeon (worn floors, small things on the walls) and movement in the air past the fog.
+- Fixes from a second fresh look at the newest pieces (7 findings: a freeze in the finale, an invisible wall left behind,
+  a secret reachable the wrong way, and smaller things); regression tests.

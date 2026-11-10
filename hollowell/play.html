@@ -5391,6 +5391,8 @@ const OW_LEGEND = {
     'n': { k: 'grass', p: 'grass', ent: 'rest' },
     'w': { k: 'grass', p: 'flowers', ent: 'deco', props: { look: 'flowerbed', solid: [[0, 0]] } },
     'm': { k: 'path', p: 'cobble', ent: 'deco', props: { look: 'flowerbed', solid: [[0, 0]] } },
+    /* a low rock in deep water: nothing walks or floats onto it; a hook flies over it */
+    'Q': { k: 'low', p: 'deep', ent: 'deco', props: { look: 'rock', solid: false } },
 };
 
 function buildOverworld() {
@@ -16044,7 +16046,8 @@ defMaking(4, {
             /* the heavy one, tied off in the passage; its place is up the shaft, behind a gate the plate opens */
             { k: 'block', x: 11, y: 1, id: 'm4H', startAt: [11, 5], trace: [[11, 1], [11, 2], [11, 3], [11, 4], [11, 5]], knotted: true, patience: 20 },
             { k: 'plate', x: 10, y: 5, sig: 'm4a' },
-            { k: 'door', x: 11, y: 4, type: 'gate', when: 'm4a', dir: 'h', id: 'm4Gate', keep: true },
+            /* (open for the rest of a run once open; no id, so a fresh run starts shut) */
+            { k: 'door', x: 11, y: 4, type: 'gate', when: 'm4a', dir: 'h', keep: true },
         ],
     },
     '1,0': {
@@ -16052,7 +16055,7 @@ defMaking(4, {
         rows: ['####################', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '####################'],
         ents: [
             { k: 'plate', x: 18, y: 5, sig: 'm4b' }, { k: 'plate', x: 18, y: 1, sig: 'm4c' },
-            { k: 'door', x: 19, y: 5, type: 'gate', when: 'm4b&m4c', dir: 'v', id: 'm4Gate2', keep: true },
+            { k: 'door', x: 19, y: 5, type: 'gate', when: 'm4b&m4c', dir: 'v', keep: true },
             /* home on the far plate, tied off at the bottom: its way home runs straight through where he'll sit */
             { k: 'block', x: 18, y: 1, id: 'm4H2', startAt: [18, 8], trace: [[18, 1], [18, 2], [18, 3], [18, 4], [18, 5], [18, 6], [18, 7], [18, 8]], knotted: true, patience: 20 },
             { k: 'crate', x: 12, y: 3, id: 'm4Crate' },
@@ -16416,8 +16419,11 @@ const Shears = {
         return null;
     },
     /* the thing whose thread runs over a tile (tight: on its way home; or any, slack too) */
+    /* (tight as the thread is drawn: on its way home, or about to be, and not held or tied; never a thing out of sight) */
     taut(a, x, y, tight) {
-        return a.ents.find(e => e.isGrid && e.ret && e.ret.state !== 'home' && (!tight || e.ret.state === 'returning') && !e.removed && !e.noCut && e.ret.trace && !(e.tx === x && e.ty === y) && e.ret.trace.some(([tx, ty]) => tx === x && ty === y));
+        const isTight = e => !Return.held(e) && (e.ret.state === 'returning' || (e.ret.state === 'away' && e.ret.timer < 30));
+        return a.ents.find(e => e.isGrid && e.ret && e.ret.state !== 'home' && !e.removed && !e.noCut && !e.hidden && !e.hiddenYank && !e.inert && !e.swallowed
+            && (!tight || isTight(e)) && e.ret.trace && !(e.tx === x && e.ty === y) && e.ret.trace.some(([tx, ty]) => tx === x && ty === y));
     },
     use(p) {
         /* the Makings are Tuck's Wander, and the Makers' kit: not for cutting */
@@ -16448,9 +16454,14 @@ const Shears = {
             e.ret = null; e.stitched = false; e.cutFree = true;
             /* (a cut thing is tied to nothing: a sleeper wakes a stray, and can be pushed) */
             if (e.sleeper) { e.sleeper = false; e.tiedOff = false; e.noPush = false; }
-            if (e.isGrid) { e.marked = false; if (e.mv) { e.mv = null; a.unplace(e, e.tx, e.ty); e.x = e.tx * T; e.y = e.ty * T; a.place(e, e.tx, e.ty); } }
-            /* cut loose over a hole (hanging on its thread a moment ago): down it goes, and fills it */
-            if (e.isGrid && e.landed && !e.removed && a.kind(e.tx, e.ty).pit) e.landed(false);
+            if (e.isGrid) {
+                e.marked = false; e.tiedOff = false; if (!e.fixed) e.noPush = false;
+                /* mid-step: it ends up on the tile it was stepping onto, and lets go of the one it was leaving */
+                if (e.mv) { a.unplace(e, e.mv.fx, e.mv.fy); e.mv = null; a.unplace(e, e.tx, e.ty); e.x = e.tx * T; e.y = e.ty * T; a.place(e, e.tx, e.ty); }
+            }
+            /* cut loose over a hole or deep water (hanging on its thread a moment ago): down it goes, and fills it */
+            const k = a.kind(e.tx, e.ty);
+            if (e.isGrid && e.landed && !e.removed && (k.pit || (k.deep && !e.floats))) e.landed(false);
             if (k) Progress.setAreaFlag(a.id, 'cut:' + k, e.tx + ',' + e.ty);
         }
         if (!quiet) {
@@ -16945,7 +16956,7 @@ defHouse({
                 { k: 'loomweight', x: 16, y: 8, id: 'hgW2', group: 'hang', tiedOff: true, hookable: false, noPush: true, startAt: [2, 4], trace: HANG_PATH(16, 8, 2) },
                 { k: 'lever', x: 17, y: 2, release: 'hang' },
                 { k: 'chest', x: 9, y: 8, item: 'key', id: 'wrKey' },
-                { k: 'sign', x: 10, y: 1, text: 'Carved small on the wall: WHAT HANGS FROM A THREAD FALLS WHEN IT IS CUT. (And, smaller: a slack thread slides off the blades. A tight one parts anywhere. -L.)' },
+                { k: 'sign', x: 10, y: 1, text: 'Carved small on the wall: WHAT HANGS FROM A THREAD FALLS WHEN IT IS CUT. (And, smaller: a slack thread slides off the blades. A tight one parts anywhere. Wasted one? There are spares in the chute upstairs. -L.)' },
             ],
         },
         /* ---------------- 7 The Bridge Room: silk won't hold iron (the Pattern) ---------------- */
@@ -17871,7 +17882,7 @@ class SpoolDrum extends Ent {
                     j.gone = true;
                     /* spat back onto its shelf */
                     const e = j.thing;
-                    if (e && !e.removed) { const [hx, hy] = [e.ret.mx, e.ret.my]; e.tx = hx; e.ty = hy; e.x = hx * T; e.y = hy * T; e.hiddenYank = false; e.inert = false; e.ret.trace = [[hx, hy]]; e.ret.state = 'home'; a.place(e, hx, hy); Fx.poof(hx * T + 8, hy * T + 8); }
+                    if (e && !e.removed && e.ret) { const [hx, hy] = [e.ret.mx, e.ret.my]; e.tx = hx; e.ty = hy; e.x = hx * T; e.y = hy * T; e.hiddenYank = false; e.inert = false; e.ret.trace = [[hx, hy]]; e.ret.state = 'home'; a.place(e, hx, hy); Fx.poof(hx * T + 8, hy * T + 8); }
                     continue;
                 }
                 j.x += dx / d * 1.6; j.y += dy / d * 1.6;
@@ -19250,6 +19261,10 @@ AREAS.drift.ents.push({ k: 'critter', who: 'biscuit', look: 'cat', x: 20, y: 23,
 {
     const B = OW.blocks['2,2'];
     for (const y of [9, 10]) B.rows[y] = B.rows[y].slice(0, 13) + '..' + B.rows[y].slice(15);
+    /* a ring of low rocks round it: no raft gets alongside; the hooks fly over them */
+    const set = (x, y, c) => { B.rows[y] = B.rows[y].slice(0, x) + c + B.rows[y].slice(x + 1); };
+    for (let x = 12; x <= 15; x++) { set(x, 8, 'Q'); set(x, 11, 'Q'); }
+    for (const y of [9, 10]) { set(12, y, 'Q'); set(15, y, 'Q'); }
     /* the isle's two open tiles are one above the other: the Long Hook from the west shore lands on the lower; the chest
        stands in the way of a hook from the north shore, and the post on the north shore is the way off without one */
     B.ents.push(

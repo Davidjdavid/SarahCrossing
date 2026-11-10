@@ -114,3 +114,66 @@ test('8: the Drafting Hall stairs stay open once both lamps were lit', () => {
     assert.ok(H2.G.map.find('ufStairs').open, 'still open after a load');
     noErrors(HW); noErrors(H2);
 });
+
+/* ---------- the second look, at the newest pieces ---------- */
+test('new 1/2: a thread cut mid-step lets go of the tile it was leaving; the drum never trips on a thing cut in flight', () => {
+    const HW = loadGame(); HW.preset('afterReveal2'); HW.step(10); HW.skipTalk();
+    HW.Progress.set('north_gate'); HW.Progress.set('gundry_r2'); HW.Inv.giveTool('shears'); HW.Inv.keyCount.loom = 1;
+    const at = (x, y) => [40 + x, 11 + y];
+    HW.warp('loom', ...at(6, 5)); HW.step(30); HW.skipTalk();
+    const a = HW.G.map, w = a.find('brW1');
+    HW.walkTo(...at(4, 4)); HW.push('up', 1); HW.step(5);
+    HW.walkTo(...at(5, 2)); HW.push('left', 1); HW.step(5);
+    HW.walkTo(...at(3, 3)); HW.push('up', 1); HW.step(5);
+    HW.walkTo(...at(5, 2)); HW.face('left');
+    until(HW, () => w.ret.state === 'returning' && w.mv && w.mv.fx === at(3, 0)[0] && w.mv.fy === at(0, 2)[1], 900);
+    HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(3); HW.skipTalk();
+    assert.ok(!w.ret, 'cut');
+    assert.ok(a.at(...at(3, 2)) !== w, 'no ghost on the tile it left');
+    noErrors(HW);
+    /* a thing in the drum's flight is out of sight: the Shears don't find it */
+    const S = HW.global('Shears');
+    w.hiddenYank = true; w.inert = true;
+    assert.ok(!S.taut(a, w.tx, w.ty + 1, false), 'not while hidden');
+});
+
+test('new 3: no raft gets alongside the far isle', () => {
+    const HW = game();
+    HW.warp('hollow', 128 + 4, 80 + 10); HW.step(10); HW.skipTalk();
+    const a = HW.G.map;
+    for (let x = 12; x <= 15; x++) for (const y of [8, 11]) assert.ok(a.kind(128 + x, 80 + y).low, 'rocks round it');
+    assert.ok(!a.freeForThing(128 + 13, 80 + 11, a.find('mwLakeRaft')), 'not for a raft');
+    noErrors(HW);
+});
+
+test('new 4: the fourth Making starts with its gates shut every time', () => {
+    const HW = loadGame(); HW.preset('afterD7'); HW.step(10); HW.skipTalk();
+    for (const n of [1, 2, 3]) HW.Progress.set('making' + n);
+    HW.warp('making4', 3, 16); HW.step(10); HW.skipTalk();
+    const doors = () => HW.G.map.ents.filter(e => e.kind === 'door');
+    for (const d of doors()) { d.open = true; d.openedOnce = true; }
+    HW.step(5);
+    HW.warp('making4', 3, 16); HW.step(10); HW.skipTalk();
+    assert.ok(doors().every(d => !d.open), 'shut again');
+    noErrors(HW);
+});
+
+test('new 5/6/7: tied things are slack; a thread drawn tight is tight to the Shears; cut over deep water, it sinks', () => {
+    const HW = loadGame(); HW.preset('afterReveal2'); HW.step(10); HW.skipTalk();
+    HW.Progress.set('north_gate'); HW.Progress.set('gundry_r2'); HW.Inv.giveTool('shears');
+    const at = (x, y) => [40 + x, 33 + y];
+    HW.warp('loom', ...at(14, 1)); HW.step(20); HW.skipTalk();
+    const S = HW.global('Shears'), a = HW.G.map, w1 = a.find('hgW1');
+    assert.ok(!S.taut(a, ...at(10, 4), true), 'tied out: slack');
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(10);
+    assert.ok(!S.taut(a, ...at(10, 4), true), 'rung, but still tied: slack');
+    HW.walkTo(...at(16, 2)); HW.face('right'); HW.press('act', 1); HW.step(2);
+    until(HW, () => w1.ret.state === 'away' && w1.ret.timer < 30, 60);
+    assert.ok(S.taut(a, ...at(10, 4), true) === w1, 'about to go: drawn tight, and tight to the Shears');
+    /* the trench turned to deep water under it: cut there, it sinks (and fills it) */
+    until(HW, () => w1.tx >= at(6, 0)[0], 300);
+    const x = w1.tx; a.setCell(x, at(0, 4)[1], '~');
+    S.cut(w1);
+    assert.ok(w1.removed && !a.kind(x, at(0, 4)[1]).deep, 'sank, and filled it');
+    noErrors(HW);
+});

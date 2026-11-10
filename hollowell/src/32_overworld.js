@@ -18,6 +18,8 @@ const OW_LEGEND = {
     'n': { k: 'grass', p: 'grass', ent: 'rest' },
     'w': { k: 'grass', p: 'flowers', ent: 'deco', props: { look: 'flowerbed', solid: [[0, 0]] } },
     'm': { k: 'path', p: 'cobble', ent: 'deco', props: { look: 'flowerbed', solid: [[0, 0]] } },
+    /* a low rock in deep water: nothing walks or floats onto it; a hook flies over it */
+    'Q': { k: 'low', p: 'deep', ent: 'deco', props: { look: 'rock', solid: false } },
 };
 
 function buildOverworld() {

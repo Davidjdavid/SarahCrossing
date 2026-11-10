@@ -202,7 +202,7 @@ defHouse({
                 { k: 'loomweight', x: 16, y: 8, id: 'hgW2', group: 'hang', tiedOff: true, hookable: false, noPush: true, startAt: [2, 4], trace: HANG_PATH(16, 8, 2) },
                 { k: 'lever', x: 17, y: 2, release: 'hang' },
                 { k: 'chest', x: 9, y: 8, item: 'key', id: 'wrKey' },
-                { k: 'sign', x: 10, y: 1, text: 'Carved small on the wall: WHAT HANGS FROM A THREAD FALLS WHEN IT IS CUT. (And, smaller: a slack thread slides off the blades. A tight one parts anywhere. -L.)' },
+                { k: 'sign', x: 10, y: 1, text: 'Carved small on the wall: WHAT HANGS FROM A THREAD FALLS WHEN IT IS CUT. (And, smaller: a slack thread slides off the blades. A tight one parts anywhere. Wasted one? There are spares in the chute upstairs. -L.)' },
             ],
         },
         /* ---------------- 7 The Bridge Room: silk won't hold iron (the Pattern) ---------------- */

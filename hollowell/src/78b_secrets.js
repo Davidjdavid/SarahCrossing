@@ -181,6 +181,10 @@ AREAS.drift.ents.push({ k: 'critter', who: 'biscuit', look: 'cat', x: 20, y: 23,
 {
     const B = OW.blocks['2,2'];
     for (const y of [9, 10]) B.rows[y] = B.rows[y].slice(0, 13) + '..' + B.rows[y].slice(15);
+    /* a ring of low rocks round it: no raft gets alongside; the hooks fly over them */
+    const set = (x, y, c) => { B.rows[y] = B.rows[y].slice(0, x) + c + B.rows[y].slice(x + 1); };
+    for (let x = 12; x <= 15; x++) { set(x, 8, 'Q'); set(x, 11, 'Q'); }
+    for (const y of [9, 10]) { set(12, y, 'Q'); set(15, y, 'Q'); }
     /* the isle's two open tiles are one above the other: the Long Hook from the west shore lands on the lower; the chest
        stands in the way of a hook from the north shore, and the post on the north shore is the way off without one */
     B.ents.push(

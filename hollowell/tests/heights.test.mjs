@@ -38,7 +38,8 @@ test('the lake: the raft at Wick\'s pier, paddled over to the north shore; it go
     /* back: the north raft */
     const n = HW.G.map.find('mwNorthRaft');
     go(HW, ...mw(40, 2)); HW.hold('down'); HW.step(12); HW.release(); HW.step(2);
-    assert.ok(paddleTo(HW, ...mw(40, 6)) && paddleTo(HW, ...mw(15, 6)) && paddleTo(HW, ...mw(15, 15)), 'back over');
+    /* (round the far isle's rocks, not through them) */
+    assert.ok(paddleTo(HW, ...mw(40, 6)) && paddleTo(HW, ...mw(16, 6)) && paddleTo(HW, ...mw(16, 15)) && paddleTo(HW, ...mw(15, 15)), 'back over');
     HW.hold('down'); HW.step(14); HW.release(); HW.step(2);
     assert.equal(HW.player().ty, mw(15, 16)[1], 'ashore on the south side');
     assert.ok(until(HW, () => HW.Return.isHome(n), 2000), 'and it went home too');

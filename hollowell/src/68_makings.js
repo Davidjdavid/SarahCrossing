@@ -401,7 +401,8 @@ defMaking(4, {
             /* the heavy one, tied off in the passage; its place is up the shaft, behind a gate the plate opens */
             { k: 'block', x: 11, y: 1, id: 'm4H', startAt: [11, 5], trace: [[11, 1], [11, 2], [11, 3], [11, 4], [11, 5]], knotted: true, patience: 20 },
             { k: 'plate', x: 10, y: 5, sig: 'm4a' },
-            { k: 'door', x: 11, y: 4, type: 'gate', when: 'm4a', dir: 'h', id: 'm4Gate', keep: true },
+            /* (open for the rest of a run once open; no id, so a fresh run starts shut) */
+            { k: 'door', x: 11, y: 4, type: 'gate', when: 'm4a', dir: 'h', keep: true },
         ],
     },
     '1,0': {
@@ -409,7 +410,7 @@ defMaking(4, {
         rows: ['####################', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '####################'],
         ents: [
             { k: 'plate', x: 18, y: 5, sig: 'm4b' }, { k: 'plate', x: 18, y: 1, sig: 'm4c' },
-            { k: 'door', x: 19, y: 5, type: 'gate', when: 'm4b&m4c', dir: 'v', id: 'm4Gate2', keep: true },
+            { k: 'door', x: 19, y: 5, type: 'gate', when: 'm4b&m4c', dir: 'v', keep: true },
             /* home on the far plate, tied off at the bottom: its way home runs straight through where he'll sit */
             { k: 'block', x: 18, y: 1, id: 'm4H2', startAt: [18, 8], trace: [[18, 1], [18, 2], [18, 3], [18, 4], [18, 5], [18, 6], [18, 7], [18, 8]], knotted: true, patience: 20 },
             { k: 'crate', x: 12, y: 3, id: 'm4Crate' },

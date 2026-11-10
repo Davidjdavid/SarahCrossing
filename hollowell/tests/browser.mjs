@@ -122,7 +122,7 @@ const SCENARIOS = {
         await open();
         await page.evaluate(() => { HW.preset('afterD2'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 128 + 8, 80 + 26); HW.step(230); });
         await shot('mw_west');
-        for (const [n, x, y] of [['mw_mill', 128 + 29, 80 + 23], ['mw_ferry', 128 + 37, 80 + 27], ['mw_millrace', 128 + 47, 80 + 27], ['mw_falls', 128 + 36, 80 + 33]]) {
+        for (const [n, x, y] of [['mw_mill', 128 + 29, 80 + 23], ['mw_ferry', 128 + 37, 80 + 27], ['mw_millrace', 128 + 47, 80 + 27], ['mw_falls', 128 + 36, 80 + 33], ['mw_isle', 128 + 13, 80 + 4]]) {
             await page.evaluate(([x, y]) => { HW.warp('hollow', x, y); HW.step(60); HW.skipTalk(); }, [x, y]);
             await shot(n);
         }

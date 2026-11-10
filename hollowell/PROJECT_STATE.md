@@ -5,7 +5,7 @@ _Last updated: 2026-11-10 (session 1, day 2)._
 ## Status
 **The main adventure is complete from start to credits**: Acts I to IV, all eight Houses, the Makings, both reveals,
 the Drift, the Great Pull, the Great Spool, the Unwinding, the epilogue, the credits and the changed title, and the
-free valley after. Tests cover every room (324 headless tests); the scripted playthrough runs from a fresh game to
+free valley after. Tests cover every room (328 headless tests); the scripted playthrough runs from a fresh game to
 the credits in nine legs; solution tests cover every room, both optional dungeons and the secrets. Presets `afterDrift` and `afterEnding` start late games.
 
 ## Done
@@ -66,10 +66,10 @@ the credits in nine legs; solution tests cover every room, both optional dungeon
 - [x] Satisfying conclusion (to be judged by a human; reviewed twice)
 - [~] 10–14 h main (estimated from the scripted run: 68 game-minutes, 113 rooms; not yet timed by a person)
 - [x] Substantial optional content
-- [x] Tested start to finish (scripted; plus per-room tests, 324 in all)
+- [x] Tested start to finish (scripted; plus per-room tests, 328 in all)
 - [x] No critical bugs or softlocks known (every dungeon, both optional ones and the late secrets reviewed by fresh eyes; all findings fixed)
 - [x] Save/load reliable (save/load tests across acts, old-save migration)
 - [x] Launches easily (double-click `hollowell/play.html`)
 
-Still to do before calling it done: a fresh-eyes check of the newest content (the Hanging Gallery, Making 4, the bug
-fixes), then a final full verification.
+The fresh-eyes check of the newest content found 7 problems, all fixed. Still to do before calling it done: the final
+full verification.

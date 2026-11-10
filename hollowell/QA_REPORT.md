@@ -188,6 +188,16 @@
   the Bridge Garden and the Pantry; the Loading Bay and the Washhouse filled from their chutes; the Mending Room's pins
   walked over; the Long Gap's stray pushed into a gap; the Puppet Gallery done with the Needle alone.
 
+- 2026-11-10: a second fresh-eyes hunt over the newest pieces (the Hanging Gallery, Making 4, the "cut a tight thread
+  anywhere" rule, the fixes above): 7 findings, all fixed with regression tests (`tests/review_opt.test.mjs`, "new"):
+  cutting a thing the Great Spool's drum had dragged out of sight froze the game (the Shears never find a hidden thing,
+  and the drum minds a thing with no thread); a thread cut mid-step left an invisible wall on the tile the thing was
+  leaving (it lets go of it now: this mattered for the Hanging Gallery's own solution); the far isle could be reached
+  by raft (a ring of low rocks round it: nothing floats or walks onto them, the hooks fly over); Making 4's gates stayed
+  open on a second run; the Bell made a tied-out weight's thread count as tight (tied things are slack); a thread drawn
+  tight was slack to the Shears for its last half-second (they agree now); a thing cut over deep water stood on it (it
+  sinks). The Hanging Gallery's sign now points to the spare weights upstairs if both are wasted.
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
@@ -214,3 +224,4 @@
 | 2026-11-10 | Playthrough legs 8 and 9: fresh game to credits in nine legs (310 in all); three bugs found and fixed | pass |
 | 2026-11-10 | One continuous game, title to credits, no presets (311 in all, 2 min) | pass |
 | 2026-11-10 | Design critique items (+3); the Hanging Gallery (+1); optional dungeons' bug hunt fixes (+7); Making 4 (+2); 324 in all; Loom and Making screenshots | pass |
+| 2026-11-10 | Second fresh-eyes hunt's fixes (+4); 328 in all; every browser scenario (the isle's rocks checked) | pass |
