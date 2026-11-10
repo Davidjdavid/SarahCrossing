@@ -250,7 +250,7 @@ const PauseMenu = {
         if (id) { const I = ITEMS[id]; Font.draw('{red}' + I.name, 24, 78, PAL.ink); Font.wrap(I.desc, 270).forEach((l, i) => Font.draw(l, 24, 90 + i * 10, PAL.ink)); }
         else Font.draw('No tools yet.', 24, 80, PAL.grey3);
         /* things */
-        Font.draw('Hearts ' + Math.ceil(Inv.maxHp / 2) + '   Heart Patches ' + (Inv.patches % 4) + '/4   Buttons ' + Inv.buttons, 24, 122, PAL.ink);
+        Font.draw((Progress.flag('cut_self') ? 'Hearts: none (nothing to unravel)' : 'Hearts ' + Math.ceil(Inv.maxHp / 2) + '   Heart Patches ' + (Inv.patches % 4) + '/4') + '   Buttons ' + Inv.buttons, 24, 122, PAL.ink);
         Font.draw('Knots: ' + (Inv.knots.length ? '' : 'none yet'), 24, 136, PAL.ink);
         Inv.knots.forEach((k, i) => Gfx.img(spr('knot'), 64 + i * 18, 132));
         const things = Object.keys(Inv.items).filter(k => ITEMS[k] && ITEMS[k].kind !== 'hidden');

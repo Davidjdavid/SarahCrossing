@@ -139,7 +139,9 @@ const UI = {
         }
         /* keys in a House */
         const area = G.map;
-        if (area && area.def.house) {
+        /* (a House with no locks and no keys to find shows no key count) */
+        if (area && area.def.house && area.hasKeys === undefined) area.hasKeys = area.ents.some(e => (e.kind === 'door' && e.type === 'lock') || (e.kind === 'chest' && e.item === 'key'));
+        if (area && area.def.house && (area.hasKeys || Inv.keys(area.def.house) > 0)) {
             const k = Inv.keys(area.def.house);
             const kx = tool ? W - 84 : W - 62;
             Gfx.img(spr('key'), kx, 1);
