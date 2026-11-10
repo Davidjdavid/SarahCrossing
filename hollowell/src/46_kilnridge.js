@@ -76,7 +76,7 @@ defBlock({
         { k: 'pickup', x: 29, y: 6, what: 'b20', id: 'mesaButtons' },
         /* the Kiln's forecourt: its gate opens once the ground's been fired (the firing hole by the road), or for anybody
            who's been in already (an older Wander) */
-        { k: 'door', x: 22, y: 16, type: 'gate', when: 'fgHole|flag:visited:kiln', dir: 'h', id: 'kilnGate' },
+        { k: 'door', x: 22, y: 16, type: 'gate', when: 'fgHole|flag:visited:kiln|flag:d2', dir: 'h', id: 'kilnGate' },
         { k: 'vent', x: 25, y: 17, dir: 'down', dist: 2, period: 280, id: 'fgVent1' },
         { k: 'charm', x: 25, y: 19, mode: 'once', id: 'fgHole', sig: 'fgHole', col: 'ember' },
         { k: 'pot', x: 17, y: 19, id: 'fgPot1' }, { k: 'pot', x: 18, y: 21, id: 'fgPot2' },
