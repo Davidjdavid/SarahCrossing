@@ -87,3 +87,5 @@
   inconsistencies, saving inside the last dungeon); regression tests.
 - The final dungeon rebuilt: six new rooms, each pairing an earlier dungeon's idea with a later tool, and a gauntlet on
   the way to the top; tests.
+- The scripted playthrough reaches the credits (two more legs); three bugs it found fixed (two ways to get stuck on the
+  way, a blocked doorway).

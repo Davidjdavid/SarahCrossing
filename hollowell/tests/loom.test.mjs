@@ -64,8 +64,8 @@ test('the Shuttle Run: an offcut in its lane jams it; knock it while it is jamme
     enter(HW, 'sr', 9, 9); HW.skipTalk();
     const s = HW.G.map.ents.find(e => e.kind === 'shuttle');
     assert.notEqual(s.state, 'sleep');
-    go(HW, 'sr', 9, 8); HW.face('down'); HW.press('act', 1); HW.step(10);
-    HW.push('up', 2); HW.step(10);
+    go(HW, 'sr', 8, 8); HW.face('down'); HW.press('act', 1); HW.step(10);
+    go(HW, 'sr', 9, 8); HW.push('up', 2); HW.step(10);
     for (let round = 0; round < 3 && s.alive; round++) {
         assert.ok(until(HW, () => s.state === 'stuck', 600), `round ${round + 1}: jammed`);
         HW.walkTo(...at('sr', (s.x >> 4) - 20, 6)) || HW.walkTo(...at('sr', (s.x >> 4) - 19, 6));

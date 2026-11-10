@@ -5,9 +5,8 @@ _Last updated: 2026-11-10 (session 1, day 2)._
 ## Status
 **The main adventure is complete from start to credits**: Acts I to IV, all eight Houses, the Makings, both reveals,
 the Drift, the Great Pull, the Great Spool, the Unwinding, the epilogue, the credits and the changed title, and the
-free valley after. Tests cover every room (274 headless tests); scripted playthrough legs run from a fresh game to
-the end of D7, and solution tests cover everything after (the Makings, Reveal 2, the Loom, the fog, the Drift, the
-Great Spool, the end). Presets `afterDrift` and `afterEnding` start late games.
+free valley after. Tests cover every room (274 headless tests); the scripted playthrough runs from a fresh game to
+the credits in nine legs; solution tests cover every room, both optional dungeons and the secrets. Presets `afterDrift` and `afterEnding` start late games.
 
 ## Done
 - Brief recorded verbatim (GAME_BRIEF.md).
@@ -34,8 +33,8 @@ Great Spool, the end). Presets `afterDrift` and `afterEnding` start late games.
 1. Both optional dungeons are built and tested: O1 the Stray House (Linnet's Trail opens it; the bracelet changes the
    ending) and O2 the Unfinished House (the Guild pin or the Loom; the Long Hook).
 2. Secrets: all built but S17 and S21 (dropped, see SPOILERS.md). The final-act review's findings are fixed and the Great Spool is rebuilt (16 rooms).
-3. Playthrough legs 8 (the Makings to the Loom) and 9 (the fog to the credits); a fresh-eyes review of the final
-   act; a full-length QA playthrough.
+3. Done: playthrough legs 8 and 9 (a fresh game to the credits, scripted, in nine legs). Next: a fresh-eyes review of
+   the whole game's pacing and the two optional dungeons; a single continuous run with no presets between legs.
 4. Music and art passes (the Drift is plain; the epilogue could use more on screen); pacing and playtime review.
 
 ## Known bugs

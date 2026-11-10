@@ -140,6 +140,15 @@
   text. 7 regression tests (`tests/review_end.test.mjs`). Item 9 too: the Great Spool is sixteen rooms now (six
   antechambers pairing each House with a later tool; the Climb a gauntlet); still to do: some UI leftovers (hearts in the Satchel, the key counter in keyless Houses).
 
+- 2026-11-10: playthrough legs 8 (from the seventh Knot: Gundry's job, the three Makings, the Way Down, the Hall of
+  Names, the north gate, the Loomwood, every Loom room in order, the Weaver) and 9 (from the eighth Knot: the fog, the
+  Drift, Linnet, the Pull, the whole Great Spool, the end, after), walking between rooms instead of warping. The
+  scripted playthrough now runs from a fresh game to the credits in nine legs (each leg starts from the preset that
+  matches where the one before ends; area-to-area hops that the leg before already walked are warps). Writing them
+  found three real bugs, all fixed: a sign in front of Making 2's little door; the Way Down only appeared the next
+  time the Underside was built (after Making 3 there was no way on until you left and came back); the Shuttle Run's
+  chute stood in its own doorway, so it couldn't be walked into from the Warp Hall (the room test had warped in).
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
@@ -163,3 +172,4 @@
 | 2026-11-10 | The Stray House (O1) and Linnet's Trail notes 4, 5, 8 (+11; 285 in all); screenshots | pass |
 | 2026-11-10 | The Unfinished House (O2) (+9; 294 in all); screenshots | pass |
 | 2026-11-10 | Late secrets (+6); final-act review fixes (+7); the Great Spool rebuilt to 16 rooms (+1); 308 in all; screenshots | pass |
+| 2026-11-10 | Playthrough legs 8 and 9: fresh game to credits in nine legs (310 in all); three bugs found and fixed | pass |

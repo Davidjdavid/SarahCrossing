@@ -109,7 +109,7 @@ defHouse({
                 { k: 'door', x: 9, y: 0, type: 'big', id: 'srBig' },
                 { k: 'shuttle', x: 1, y: 5, id: 'shuttle' },
                 { k: 'warpthread', x: 0, y: 5, len: 1, dir: 'v', id: 'srSilkW' },
-                { k: 'chute', x: 9, y: 9, drop: [9, 7], id: 'srChute' },
+                { k: 'chute', x: 8, y: 9, drop: [9, 7], id: 'srChute' },      /* (beside the door, not in it) */
                 { k: 'chest', x: 9, y: 2, item: 'shears', id: 'srShears', hidden: true, when: 'flag:loom_shuttle', big: true },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'shuttle' }, { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'shuttle' },
             ],

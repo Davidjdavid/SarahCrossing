@@ -14789,7 +14789,7 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'sign', x: 9, y: 2, text: "THE MAKING FLOOR. Quiet, please: Wanderer at work. (Upstairs.)" },
+                { k: 'sign', x: 11, y: 4, text: "THE MAKING FLOOR. Quiet, please: Wanderer at work. (Upstairs.)" },
             ],
         },
     },
@@ -15927,6 +15927,10 @@ const Making = {
     },
     *afterAll() {
         Progress.set('makings_done');
+        /* the Way Down opens off the Making Floor now, not only the next time the place is built */
+        const a = G.map;
+        if (a && a.id === 'underside' && !a.ents.some(e => e.kind === 'warp' && e.to === 'deep'))
+            for (const e of AREAS.underside.ents.filter(d => d.if === 'makings_done')) { const ent = SPAWN[e.k](e.x, e.y, Object.assign({}, e)); ent.skey = '@' + e.x + ',' + e.y; a.add(ent); }
         yield* say('gundry', "Three Little Houses, and he never once saw your hands. You're a Maker, apprentice. Near enough.");
         yield* say('gundry', "One more job, and it's an honour: every Wanderer gets a fresh spool of their own for the Wander, a new thread. Tuck's is in the deep store, down the Way Down. Go and fetch it.");
         yield* say('gundry', "Mind, it's old down there. Older than the Guild. Don't touch the big ones.");
@@ -16795,7 +16799,7 @@ defHouse({
                 { k: 'door', x: 9, y: 0, type: 'big', id: 'srBig' },
                 { k: 'shuttle', x: 1, y: 5, id: 'shuttle' },
                 { k: 'warpthread', x: 0, y: 5, len: 1, dir: 'v', id: 'srSilkW' },
-                { k: 'chute', x: 9, y: 9, drop: [9, 7], id: 'srChute' },
+                { k: 'chute', x: 8, y: 9, drop: [9, 7], id: 'srChute' },      /* (beside the door, not in it) */
                 { k: 'chest', x: 9, y: 2, item: 'shears', id: 'srShears', hidden: true, when: 'flag:loom_shuttle', big: true },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'shuttle' }, { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'shuttle' },
             ],

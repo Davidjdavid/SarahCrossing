@@ -151,7 +151,7 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'sign', x: 9, y: 2, text: "THE MAKING FLOOR. Quiet, please: Wanderer at work. (Upstairs.)" },
+                { k: 'sign', x: 11, y: 4, text: "THE MAKING FLOOR. Quiet, please: Wanderer at work. (Upstairs.)" },
             ],
         },
     },

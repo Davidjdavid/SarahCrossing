@@ -287,6 +287,10 @@ const Making = {
     },
     *afterAll() {
         Progress.set('makings_done');
+        /* the Way Down opens off the Making Floor now, not only the next time the place is built */
+        const a = G.map;
+        if (a && a.id === 'underside' && !a.ents.some(e => e.kind === 'warp' && e.to === 'deep'))
+            for (const e of AREAS.underside.ents.filter(d => d.if === 'makings_done')) { const ent = SPAWN[e.k](e.x, e.y, Object.assign({}, e)); ent.skey = '@' + e.x + ',' + e.y; a.add(ent); }
         yield* say('gundry', "Three Little Houses, and he never once saw your hands. You're a Maker, apprentice. Near enough.");
         yield* say('gundry', "One more job, and it's an honour: every Wanderer gets a fresh spool of their own for the Wander, a new thread. Tuck's is in the deep store, down the Way Down. Go and fetch it.");
         yield* say('gundry', "Mind, it's old down there. Older than the Guild. Don't touch the big ones.");

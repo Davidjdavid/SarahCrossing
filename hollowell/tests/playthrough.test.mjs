@@ -737,3 +737,233 @@ test('from the sixth Knot: the Staff door, the Underside, Gundry, the Spoolworks
     ok(HW.Inv.maxHp === 36, 'a new heart');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 });
+
+test('from the seventh Knot: Gundry\'s job, the three Makings for Tuck, the Way Down and the Hall of Names, the north gate, the Loomwood, the Loom to the Weaver (the Shears)', () => {
+    const HW = loadGame();
+    HW.preset('afterD7'); HW.step(10); HW.skipTalk();
+    const ok = (c, m) => assert.ok(c, m);
+    const until = (fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
+    const pos = () => `${HW.G.map.id} ${HW.player().tx},${HW.player().ty}`;
+    const walk = (x, y, max = 6000) => ok(HW.walkTo(x, y, max), `walk to ${x},${y} (at ${pos()})`);
+    const act = d => { HW.face(d); HW.press('act', 1); HW.step(3); HW.skipTalk(); HW.step(5); };
+    const tug = () => { HW.press('act', 1); HW.step(3); };
+    const knot = () => { HW.hold('act'); HW.step(20); HW.release(); HW.step(2); };
+    const tuck = () => HW.G.map.find('tuck');
+    const ahas = () => [...HW.global('Making').cur.ahas];
+    const under = (x, y, side = 'down') => { const [dx, dy] = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] }[side]; walk(x + dx, y + 11 + dy); HW.face({ down: 'up', up: 'down', left: 'right', right: 'left' }[side]); };
+    const stitch = moves => { const names = { U: 'up', D: 'down', L: 'left', R: 'right' }; HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(2); for (const m of moves) { HW.hold(names[m]); HW.step(2); HW.release(); HW.step(8); } HW.press('tool', 1); HW.step(30); };
+    const finishMaking = n => { const t = tuck(); ok(until(() => t.state === 'done', 2500), `Tuck reaches the hoop (${t.tx},${t.ty} ${t.state})`); for (let i = 0; i < 16 && HW.G.map.id !== 'underside'; i++) { HW.skipTalk(); HW.step(20); } for (let i = 0; i < 6; i++) { HW.skipTalk(); HW.step(10); } ok(HW.Progress.flag('making' + n), 'Making ' + n); };
+    const littleDoor = x => { walk(x, 2); HW.hold('up'); until(() => HW.G.map.id !== 'underside', 120); HW.release(); HW.step(20); HW.skipTalk(); HW.step(5); };
+    HW.Inv.stitches = [];
+    /* Gundry, in the Guild Hall: the job */
+    walk(31, 4); act('up');
+    ok(HW.Progress.flag('gundry_job'), "Gundry's job");
+    /* Making 1 */
+    littleDoor(44); ok(HW.G.map.id === 'making1', 'into Making 1');
+    let t = tuck();
+    under(2, 1, 'down'); tug(); until(() => ahas().includes('found'), 400); until(() => t.state === 'sit', 600);
+    under(10, 5, 'down'); tug(); until(() => t.state === 'sit' && t.tx > 20, 900);
+    const K1 = HW.G.map.find('m1K'); under(28, 6, 'down'); tug(); until(() => K1.ty === 7 && !K1.mv, 400); knot();
+    walk(45, 16); finishMaking(1);
+    /* Making 2 */
+    littleDoor(49); t = tuck();
+    under(5, 8, 'up'); tug(); until(() => ahas().includes('found'), 400);
+    under(10, 2, 'down'); tug(); HW.step(20); knot();
+    until(() => t.state === 'sit' && t.tx === 16, 900);
+    under(16, 5, 'down'); tug(); until(() => t.tx >= 20 && t.state === 'sit', 1200);
+    under(23, 3, 'down'); tug(); until(() => t.tx <= 25, 200);
+    under(29, 9, 'up'); HW.press('act', 1); HW.step(3);
+    walk(45, 16); finishMaking(2);
+    /* Making 3 */
+    littleDoor(54); t = tuck();
+    under(5, 8, 'up'); tug(); until(() => ahas().includes('found'), 400); until(() => t.state === 'sit', 600);
+    under(10, 5, 'down'); stitch('U');
+    until(() => t.tx >= 14, 400);
+    under(25, 3, 'down'); tug(); HW.step(20); knot();
+    until(() => t.state === 'sit' && t.tx > 20, 900);
+    const K3 = HW.G.map.find('m3K'); under(28, 6, 'down'); tug(); until(() => K3.ty === 7 && !K3.mv, 400); knot();
+    walk(45, 16); finishMaking(3);
+    for (let i = 0; i < 10; i++) { HW.skipTalk(); HW.step(10); }
+    ok(HW.Progress.flag('makings_done'), 'the Makings');
+    /* the Way Down; Tuck's spool in the deep store; the Hall of Names; Wren's own spool; the ledger */
+    walk(57, 8); HW.hold('down'); HW.step(30); HW.release(); HW.step(40); HW.skipTalk();
+    ok(HW.G.map.id === 'deep', 'down the Way Down');
+    walk(9, 7); act('up'); ok(HW.Inv.items.tuckspool, "Tuck's spool");
+    walk(21, 5); HW.step(20);
+    const wren = HW.G.map.ents.find(e => e.kind === 'namespool' && e.spec[1] === 'wren');
+    walk(wren.tx, wren.ty + 1); act('up');
+    walk(37, 4); HW.face('up'); HW.press('act', 1);
+    for (let i = 0; i < 60 && !HW.Progress.flag('reveal2'); i++) { HW.skipTalk(); HW.step(10); }
+    for (let i = 0; i < 20; i++) { HW.skipTalk(); HW.step(10); }
+    ok(HW.Progress.flag('reveal2') && HW.G.map.id === 'gran_room', 'Reveal 2; home in bed');
+    /* (down to the Guild Hall again, by the Inn's Staff door, as in the leg before) */
+    HW.warp('underside', 31, 5); HW.step(20); HW.skipTalk();
+    walk(31, 4); act('up');
+    ok(HW.Progress.flag('gundry_r2') && HW.Inv.items.guildkey, "Gundry: the Shears, the gate, the Guild's key");
+    walk(56, 16); HW.face('right'); stitch('D');
+    ok(HW.Progress.flag('north_gate'), 'the north gate swings open');
+    /* (up into the town by the Underside's stair) up the north road, through the gate, the Loomwood road to the Loom */
+    HW.warp('hollow', 96, 44); HW.step(20); HW.skipTalk();
+    walk(95, 10, 30000); HW.hold('up'); until(() => HW.G.map.id === 'loom', 120); HW.release(); HW.step(20); HW.skipTalk();
+    ok(HW.G.map.id === 'loom', 'into the Loom');
+    const L = { th: [20, 33], wh: [20, 22], oy: [0, 22], sr: [20, 11], wr: [40, 22], br: [40, 11], web: [20, 0] };
+    const l = (r, x, y) => [L[r][0] + x, L[r][1] + y];
+    const lgo = (r, x, y) => walk(...l(r, x, y));
+    const lpush = (r, x, y, d, n) => { lgo(r, x, y); HW.push(d, n); HW.step(25); };
+    const snip = d => { HW.face(d); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(3); HW.skipTalk(); };
+    const strike = d => { HW.face(d); HW.press('atk', 1); HW.step(14); };
+    /* the Threshold: two offcuts into the trench */
+    lpush('th', 5, 8, 'up', 2); lpush('th', 13, 7, 'left', 7); lpush('th', 5, 8, 'up', 3);
+    /* the Offcut Yard: the key */
+    lgo('oy', 18, 5);
+    lpush('oy', 7, 6, 'left', 4); lpush('oy', 2, 7, 'up', 1);
+    lpush('oy', 8, 3, 'down', 2); lpush('oy', 9, 6, 'left', 6); lpush('oy', 2, 7, 'up', 2);
+    lpush('oy', 5, 9, 'up', 2); lpush('oy', 6, 6, 'left', 3); lpush('oy', 2, 7, 'up', 3);
+    lgo('oy', 1, 2); act('up'); ok(HW.Inv.keys('loom') === 1, 'a key');
+    /* the Warp Hall's lock; the Shuttle Run: an offcut jams the Shuttle; three knocks; the Shears */
+    lgo('wh', 9, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();
+    HW.G.cheats.god = true;
+    const sh = HW.G.map.ents.find(e => e.kind === 'shuttle');
+    lgo('sr', 8, 8); HW.face('down'); HW.press('act', 1); HW.step(10); lgo('sr', 9, 8); HW.push('up', 2); HW.step(10);
+    for (let round = 0; round < 3 && sh.alive; round++) {
+        until(() => sh.state === 'stuck', 600);
+        HW.walkTo(...l('sr', (sh.x >> 4) - 20, 6)) || HW.walkTo(...l('sr', (sh.x >> 4) - 19, 6));
+        const hp = sh.hp; for (let k = 0; k < 6 && sh.hp === hp && sh.state === 'stuck'; k++) strike('up');
+        if (!sh.alive) break;
+        HW.step(20);
+        const b = HW.G.map.ents.find(e => e.kind === 'block' && !e.removed && HW.G.map.roomAt(e.tx, e.ty) === sh.arena);
+        if (b.ty === l('sr', 0, 6)[1]) { HW.walkTo(b.tx, b.ty + 1); HW.push('up', 1); } else if (b.ty === l('sr', 0, 4)[1]) { HW.walkTo(b.tx, b.ty - 1); HW.push('down', 1); }
+        HW.step(10);
+    }
+    ok(!sh.alive, 'the Shuttle splits');
+    HW.step(30); HW.skipTalk(); HW.step(10);
+    lgo('sr', 9, 3); act('up'); ok(HW.Inv.has('shears'), 'the Shears');
+    HW.G.cheats.god = false;
+    /* the Warp Hall's east silk; the Weighing Room: three old weights cut free into the chasm; the key */
+    lgo('wh', 18, 5); snip('right');
+    lgo('wr', 4, 5); snip('right'); HW.push('right', 3); HW.step(30);
+    lgo('wr', 4, 1); snip('down'); HW.push('down', 3); HW.step(30);
+    lpush('wr', 3, 5, 'right', 5);
+    lgo('wr', 4, 9); snip('up'); HW.push('up', 3); HW.step(30);
+    lpush('wr', 3, 5, 'right', 6);
+    lgo('wr', 16, 7); act('down'); ok(HW.Inv.keys('loom') === 1, 'the key');
+    /* the Bridge Room, by its lock: a weight cut free breaks the silk and fills the gap; the other over onto the plate */
+    lgo('wr', 15, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30);
+    lgo('br', 12, 5); lgo('br', 6, 5);
+    lgo('br', 3, 3); snip('right');
+    lpush('br', 4, 2, 'down', 2); lpush('br', 3, 5, 'right', 5);
+    lpush('br', 4, 8, 'up', 2); lpush('br', 3, 5, 'right', 10);
+    HW.step(5); lgo('br', 16, 3); act('up'); ok(HW.Inv.hasPattern('loom'), 'the Pattern');
+    /* back round to the Run and up through the big door: the Web */
+    lgo('wr', 15, 1); lgo('wh', 18, 5); lgo('sr', 9, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();
+    HW.G.cheats.god = true;
+    HW.walkTo(...l('web', 9, 7)); HW.step(5); HW.skipTalk();
+    const w = HW.G.map.ents.find(e => e.kind === 'weaver');
+    const free = () => { if (HW.player().pinned === 'silk') { HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(2); } };
+    for (let round = 0; round < 3 && w.alive; round++) {
+        until(() => w.state === 'aloft', 400);
+        for (const [x, y, f] of [[3, 2, 'left'], [16, 2, 'right'], [3, 8, 'left'], [16, 8, 'right']]) {
+            for (let k = 0; k < 4; k++) { free(); if (HW.walkTo(...l('web', x, y))) break; HW.step(5); }
+            free(); snip(f);
+        }
+        until(() => w.state === 'down', 200);
+        for (let k = 0; k < 6; k++) { free(); if (HW.walkTo(...l('web', 9, 4), 120)) break; }
+        const hp = w.hp; for (let k = 0; k < 8 && w.hp === hp && w.state === 'down'; k++) { free(); strike('down'); }
+        HW.step(10);
+    }
+    ok(!w.alive, 'the Weaver');
+    for (let i = 0; i < 20 && !HW.Progress.flag('d8'); i++) { HW.skipTalk(); HW.step(20); }
+    ok(HW.Progress.flag('d8'), 'the Loom done');
+    assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
+});
+
+test('from the eighth Knot: your own thread at the fog, the Drift and Linnet, home on foot into the Pull, down the Well, the Great Spool, the end, and after', () => {
+    const HW = loadGame();
+    HW.preset('afterD8'); HW.step(10); HW.skipTalk();
+    const ok = (c, m) => assert.ok(c, m);
+    const until = (fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
+    const pos = () => `${HW.G.map.id} ${HW.player().tx},${HW.player().ty}`;
+    const walk = (x, y, max = 30000) => ok(HW.walkTo(x, y, max), `walk to ${x},${y} (at ${pos()})`);
+    const G = { foot: [40, 33], nursery: [20, 33], slumber: [0, 33], gallery: [60, 33], mario: [80, 33], hub: [40, 22], parlour: [20, 22], tidy: [0, 22], crossing: [60, 22], kiln: [80, 22], climb: [40, 11], ferry: [20, 11], mill: [0, 11], loft: [60, 11], belfry: [80, 11], top: [40, 0] };
+    const g = (r, x, y) => [G[r][0] + x, G[r][1] + y];
+    const go = (r, x, y) => walk(...g(r, x, y), 3000);
+    const act = d => { HW.face(d); HW.press('act', 1); HW.step(3); HW.skipTalk(); HW.step(5); };
+    const step = d => { HW.hold(d); HW.step(16); HW.release(); HW.step(4); };
+    const paddleTo = (x, y) => { const p = HW.player(); HW.Inv.equipped = 'paddle'; for (let i = 0; i < 2000 && (p.tx !== x || p.ty !== y); i++) { HW.hold(['tool', p.tx < x ? 'right' : p.tx > x ? 'left' : p.ty < y ? 'down' : 'up']); HW.step(1); } HW.release(); HW.step(20); };
+    const stitch = moves => { const names = { U: 'up', D: 'down', L: 'left', R: 'right' }; HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(2); for (const m of moves) { HW.hold(names[m]); HW.step(2); HW.release(); HW.step(8); } HW.press('tool', 1); HW.step(40); };
+    const tool = (t, d) => { if (d) HW.face(d); HW.Inv.equipped = t; HW.press('tool', 1); HW.step(3); HW.skipTalk(); };
+    HW.Inv.stitches = [];
+    /* from the Loom's door down the Loomwood road to the Frayed Edge; the Shears at the fog, on your own thread */
+    walk(67, 19); tool('shears', 'left'); HW.step(5);
+    ok(HW.Progress.flag('cut_self'), 'her own thread cut');
+    HW.hold('left'); until(() => HW.G.map.id === 'drift', 200); HW.release(); HW.step(40); HW.skipTalk();
+    ok(HW.G.map.id === 'drift', 'the Drift');
+    /* over the stream on a stray boulder, to Linnet in her garden; a Drift-bloom seed from her gate */
+    walk(44, 16); HW.push('left', 3); HW.step(20);
+    walk(13, 23); act('up');
+    ok(HW.Inv.items.driftseed, 'a seed');
+    walk(18, 22); act('up'); HW.skipTalk();
+    ok(HW.Progress.flag('great_pull'), 'Linnet; the Pull');
+    /* home east on foot; the seed into Gran's garden on the way; the square */
+    walk(59, 19); HW.hold('right'); until(() => HW.G.map.id === 'hollow', 200); HW.release(); HW.step(40); HW.skipTalk();
+    HW.walkTo(74, 51, 40000); HW.step(10); HW.skipTalk(); walk(74, 51, 40000); act('left');
+    ok(HW.Progress.flag('seed_planted'), 'planted');
+    HW.walkTo(95, 60, 40000); HW.step(10); HW.skipTalk(); walk(95, 60, 40000);
+    HW.face('up'); HW.press('act', 1); HW.step(3); HW.skipTalk(0); HW.step(60); HW.skipTalk();
+    ok(HW.G.map.id === 'greatspool', 'down the Well');
+    /* the Great Spool: west first (the Nursery Stair and the Slumberhouse's Knot), then east (the Puppet Gallery and the
+       Marionette Hall's), up to the Winding Room (the Tidy Parlour, the Tidyhouse's; the Kiln Crossing, the Kiln's),
+       up to the Climb (the Ferry Landing, the Millrace's; the Bell Loft, the Belfry's) */
+    go('nursery', 14, 5); tool('bedroll');
+    go('nursery', 11, 5); tool('hook', 'left'); HW.step(60);
+    go('slumber', 9, 5); HW.hold('down'); HW.step(40); HW.release(); HW.step(10);
+    go('slumber', 9, 7); act('down');
+    HW.Inv.equipped = 'bedroll'; HW.hold('tool'); HW.step(24); HW.release(); HW.step(200); HW.skipTalk();
+    go('gallery', 3, 4); tool('crossbar', 'up');
+    const gp = HW.G.map.find('gsGPuppet');
+    for (let i = 0; i < 6; i++) { HW.hold('left'); until(() => gp.mv, 20); until(() => !gp.mv, 30); HW.release(); HW.step(1); }
+    HW.press('tool', 1); HW.step(2); HW.face('up'); stitch('L');
+    go('mario', 7, 2); tool('crossbar', 'down');
+    const mp = HW.G.map.find('gsPuppet');
+    const walkP = (d, k) => { for (let i = 0; i < k; i++) { HW.hold(d); until(() => mp.mv, 20); until(() => !mp.mv, 30); HW.release(); HW.step(1); } };
+    walkP('right', 6); walkP('up', 2); walkP('right', 1); HW.press('tool', 1); HW.step(2);
+    go('mario', 5, 8); act('down'); go('mario', 5, 6);
+    go('hub', 1, 5); go('parlour', 17, 4); HW.push('down', 3); HW.step(5);
+    go('parlour', 17, 7); tool('shears', 'down');
+    go('tidy', 18, 5); go('tidy', 15, 7); HW.push('left', 2); HW.step(10); go('tidy', 12, 8); HW.push('up', 5); HW.step(5);
+    go('tidy', 3, 5); act('left');
+    go('tidy', 18, 5); go('parlour', 18, 5); go('hub', 18, 5);
+    go('crossing', 3, 4); HW.face('up'); HW.press('act', 1); HW.step(20);
+    go('crossing', 5, 5); step('right'); paddleTo(...g('crossing', 13, 5)); step('right');
+    HW.face('right'); HW.press('act', 1); HW.step(120);
+    go('kiln', 9, 5); tool('hook', 'right'); HW.step(60);
+    go('kiln', 15, 5); act('right');
+    go('kiln', 13, 8); tool('hook', 'left'); HW.step(60);
+    go('crossing', 14, 5); step('left'); paddleTo(...g('crossing', 6, 5)); step('left');
+    go('hub', 9, 1); go('climb', 1, 5); go('ferry', 14, 5);
+    step('left'); paddleTo(...g('ferry', 6, 5)); step('left'); go('ferry', 5, 5); tool('shears', 'right');
+    go('mill', 14, 5); step('left'); paddleTo(...g('mill', 6, 5)); step('left');
+    go('mill', 3, 5); act('left');
+    go('mill', 5, 5); step('right'); paddleTo(...g('mill', 13, 5)); step('right');
+    go('ferry', 5, 5); step('right'); paddleTo(...g('ferry', 13, 5)); step('right');
+    go('climb', 18, 5); go('loft', 9, 4); tool('bell'); HW.step(120);
+    go('loft', 12, 4); HW.face('up'); stitch('RRR');
+    go('belfry', 6, 5); tool('bell'); HW.step(120);
+    go('belfry', 16, 4); act('up');
+    ok(HW.Progress.flag('spool_all'), 'all six Knots undone');
+    /* up the Climb by the pillars' lee; Gran; the six great threads */
+    for (const [x, y] of [[15, 9], [15, 8], [15, 7], [3, 7], [3, 6], [3, 5], [15, 5], [15, 4], [15, 3], [3, 3], [3, 2], [3, 1], [9, 1]]) go('climb', x, y);
+    HW.hold('up'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk(); HW.step(20); HW.skipTalk();
+    ok(HW.Progress.flag('spool_met'), 'Gran at the Spool');
+    HW.G.cheats.god = true;     /* (the junk only knocks you about; this keeps the walk tidy) */
+    for (const [x, y, d] of [[2, 2, 'left'], [17, 2, 'right'], [2, 5, 'left'], [17, 5, 'right'], [2, 8, 'left'], [17, 8, 'right']]) { go('top', x, y); tool('shears', d); }
+    for (let i = 0; i < 120 && !HW.Progress.flag('unwound'); i++) { HW.skipTalk(); HW.step(20); }
+    ok(HW.Progress.flag('unwound'), 'the Unwinding');
+    for (let i = 0; i < 400 && (HW.G.hideHud || HW.G.credits); i++) { HW.skipTalk(); HW.step(20); }
+    /* after: the free valley; the Drift-bloom by Gran's gate; a save that says it's over */
+    ok(HW.G.map.id === 'hollow' && !HW.G.hideHud, 'back to the valley');
+    ok(HW.G.map.ents.some(e => e.who === 'linnet') && HW.G.map.ents.some(e => e.who === 'gran'), 'Gran and Linnet home');
+    const s = HW.Save.snapshot();
+    ok(s.progress.flags.unwound, 'saved as over');
+    assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
+});
