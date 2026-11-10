@@ -46,6 +46,21 @@ const DRIFT_ROWS = [
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY~YYYYYYYYYYYYYYYYYYYY%%%%',
 ];
 
+/* the Drift's own ground (these letters are the Drift's alone) */
+const DRIFT_LEGEND = Object.assign({}, OW_LEGEND, {
+    'h': { k: 'grass', p: 'heath' },            /* heather and dry grass */
+    'j': { k: 'grass', p: 'oldroad' },          /* an old road gone back to grass, its cobbles showing through */
+    'd': { k: 'path', p: 'mud' },               /* the mill pond's bed, once it's run out */
+    'k': { k: 'rock', p: 'drywall' },           /* a dry-stone wall, tumbled in places */
+    'K': { k: 'rock', p: 'racewall' },          /* the mill's dressed stone: the race's walls, the dam */
+});
+/* the old mill: the pond (x, y, w, h), the sluice in its dam, how long the wheel keeps its sluice up after a float has
+   gone by (frames), how far up the sluice must be wound before its catch holds, and the milestone on the pond's bed */
+const MILL = {
+    pond: [35, 9, 8, 4], sluice: [40, 13], TIME: 240, FULL: 900,
+    stone: { x: 37, y: 10, look: 'drift_milestone', text: "A milestone, furred with weed, beside the drowned road. Cut deep in its face: HOLLOWELL 3. On its back, worn nearly away: AND THE WIDE WORLD. The road went in, once, before there was any fog." },
+};
+
 PEOPLE_DEF.linnet = { name: 'Linnet', col: THREAD.linnet, look: { body: 'adult', hair: 'long', hairC: '#8a4a2a', top: '#5ab85a', accent: '#8fd46a', bottom: '#3a6a3a', skin: 'light' } };
 
 defArea({
@@ -86,8 +101,7 @@ defArea({
         { k: 'barrel', x: 46, y: 3, id: 'drBarrel', marked: false },
         { k: 'barrel', x: 48, y: 5, id: 'drBarrel2', marked: false },
         { k: 'stray', x: 47, y: 7, id: 'drBoulder3' },
-        /* on the pond's bed, under the water: the old road, its milestone, a toll box */
-        Object.assign({ k: 'deco', if: 'drift_millpond' }, MILL.stone),
+        /* on the pond's bed, under the water: the old road, its milestone (Mill.build), a toll box */
         { k: 'chest', x: 41, y: 10, item: 'b50', id: 'drToll', hidden: true, when: 'flag:drift_millpond' },
         /* what came over the fog from the fair, if it was cut loose */
         { k: 'driftballoon', x: 58, y: 6, if: 'balloon_away' },
@@ -107,6 +121,18 @@ const Drift = {
         if (p.tx >= 60 && p.state === 'normal') World.go('hollow', 67, p.ty < 20 ? 19 : 20, { dir: RIGHT, fade: true });
     },
     *meet(n) {
+        /* what she's noticed, out here: the mill going, a balloon come over the fog */
+        if (Progress.flag('met_linnet') && Progress.flag('drift_millpond') && !Progress.flag('linnet_mill')) {
+            Progress.set('linnet_mill');
+            yield* say('linnet', "You've had the old mill going. The pond's run out! I tried, my first year. I'd push a barrel down the race and watch it turn the wheel once, and then it was gone, and that was that.");
+            yield* say('linnet', "Out here nothing comes round twice. Unless somebody gives it a reason to. ...You're Tess's girl, all right.");
+            return;
+        }
+        if (Progress.flag('met_linnet') && Progress.flag('balloon_away') && !Progress.flag('linnet_balloon')) {
+            Progress.set('linnet_balloon');
+            yield* say('linnet', "Something came over the fog the other day: a balloon, striped, from the fair by the look of it. It's caught in the tree by the old wall. I haven't had the heart to get it down.");
+            return;
+        }
         if (Progress.flag('met_linnet')) { yield* say('linnet', cycle('linnet_after', ["Go on, Wren. I'll come. I promise I'll come.", "She can't pull you. Remember that. Nothing can, now, unless you let it.", "Tell Biscuit I said hello. Ha! He knows."])); return; }
         Progress.set('met_linnet'); Stats.count('met:linnet');
         yield* say('linnet', "Hello? ...Oh. Oh, look at you. You've got Tess's chin. You're Tess's girl. You're Wren.");
@@ -196,10 +222,14 @@ function initDrift() {
 }
 CONTENT_INIT.push(initDrift);
 
-/* the Drift's woods: every 2x2 of forest is a tree, as in the Hollow */
-for (let y = 0; y < DRIFT_ROWS.length - 1; y += 2) for (let x = (y / 2) % 2; x < DRIFT_ROWS[0].length - 1; x += 2) {
-    const R = DRIFT_ROWS;
-    if (R[y][x] === 'Y' && R[y + 1][x] === 'Y' && R[y][x + 1] === 'Y' && R[y + 1][x + 1] === 'Y') AREAS.drift.ents.push({ k: 'tree', x, y, look: ['birch', 'tree', 'tree2'][Math.floor(hash2(x, y, 7) * 3)], deco: true });
+/* the Drift's woods: a tree to every 2x2 of forest, and more in between where it's thick; wild trees, mostly (oak,
+   rowan, birch, a pine or two), none quite in line with the next (each nudged a little when the place is built) */
+{
+    const R = DRIFT_ROWS, Y = (x, y) => R[y] && R[y][x] === 'Y' && R[y][x + 1] === 'Y' && R[y + 1] && R[y + 1][x] === 'Y' && R[y + 1][x + 1] === 'Y';
+    const LOOKS = ['tree_wild', 'tree_wild', 'tree_wild2', 'tree_rowan', 'tree_birch', 'tree_wild2', 'pine', 'tree_wild'];
+    const plant = (x, y) => AREAS.drift.ents.push({ k: 'drifttree', x, y, look: LOOKS[Math.floor(hash2(x, y, 7) * LOOKS.length)] });
+    for (let y = 0; y < R.length - 1; y += 2) for (let x = 0; x < R[0].length - 1; x += 2) if (Y(x, y)) plant(x, y);
+    for (let y = 1; y < R.length - 1; y += 2) for (let x = 1; x < R[0].length - 1; x += 2) if (Y(x, y) && hash2(x, y, 9) < 0.4) plant(x, y);
 }
 /* a Drift-bloom gone to seed by Linnet's gate: one seed (S11), for anybody who never got one from the fog */
 SPAWN.driftbloomseed = (tx, ty) => {

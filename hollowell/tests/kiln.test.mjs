@@ -206,8 +206,9 @@ test('drying racks: a thrown pot breaks the hollow wall into the potting shed (s
     noErrors(HW);
 });
 
-test('the Kilnwyrm, three ways: shards along its trail; shards across its rim as it comes round; shards reeled over its pit', () => {
+test('the Kilnwyrm, three ways, its moves going all the while: shards along its trail; shards across its rim as it comes round; shards reeled over its pit', () => {
     const HW = game(['hook']);
+    HW.G.cheats.god = true;                      /* (its blows land but don't hurt here: the dodging is checked below) */
     HW.Inv.patterns.push('kiln'); HW.Inv.maxHp = HW.Inv.hp = 20;
     HW.warp('kiln', ...at('vats', 1, 5)); HW.hold('left'); HW.step(50); HW.release();
     HW.hold('left'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk();
@@ -238,5 +239,98 @@ test('the Kilnwyrm, three ways: shards along its trail; shards across its rim as
     HW.step(120); HW.skipTalk();
     assert.ok(flag(HW, 'kiln_boss'), 'the Kilnwyrm is broken');
     assert.ok(!HW.G.map.kind(R0[0] + 9, R0[1] + 4).pit, 'the pit closed over');
+    const c = HW.Stats.c;
+    assert.ok(c['boss:kiln:dart'] >= 1 && c['boss:kiln:glob'] >= 1 && c['boss:kiln:shed'] >= 1, 'it darted, spat glaze and shed pieces of itself');
     noErrors(HW);
+});
+
+/* into the Kiln's Heart, the wyrm awake (and, for a later beat, knocked straight into it) */
+function wyrm(HW, beat = 1) {
+    HW.Inv.patterns.push('kiln'); HW.Inv.maxHp = HW.Inv.hp = 12;
+    HW.warp('kiln', ...at('vats', 1, 5)); HW.hold('left'); HW.step(50); HW.release();
+    HW.hold('left'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk();
+    const w = HW.ents('enemy').find(e => e.type === 'kilnwyrm');
+    if (beat > 1) { w.hp = 4 - beat; w.state = 'hurt'; w.st = 60; w.cool = 0; HW.step(2); HW.skipTalk(); }
+    return w;
+}
+const blows = (HW, o) => HW.G.map.ents.filter(e => e.kind === 'hazard' && e.owner === o);
+const until = (HW, fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
+test("the Kilnwyrm's dart: close behind Wren it rears up hissing, its mouth aglow; keep walking and it falls short, stand still and it bites (a full heart)", () => {
+    for (const dodge of [true, false]) {
+        const HW = game(['hook']);
+        const w = wyrm(HW);
+        assert.ok(until(HW, () => w.state === 'rear', 900), 'it rears');
+        assert.ok(w.tellN >= 30, 'a fair tell');
+        const hp = HW.Inv.hp, d = HW.global('dirOf')(HW.player().x - w.x, HW.player().y - w.y);
+        if (dodge) { HW.hold(['down', 'left', 'right', 'up'][d]); HW.step(60); HW.release(); }
+        assert.ok(until(HW, () => w.state === 'follow', 200), 'it darted');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'walked on: it fell short');
+        else assert.equal(HW.Inv.hp, hp - 2, 'stood still: bitten');
+        noErrors(HW);
+    }
+});
+test("the Kilnwyrm's glaze (round the rim): its mouth aglow, a shadow where Wren stands; out from under it, and the puddle it leaves still burns", () => {
+    for (const dodge of [true, false]) {
+        const HW = game(['hook']);
+        const w = wyrm(HW, 2);
+        assert.equal(w.state, 'rim');
+        go(HW, 'boss', 9, 5);
+        assert.ok(until(HW, () => blows(HW, w).some(h => h.covers(HW.player().x, HW.player().y)), 600), 'a shadow on Wren');
+        const g = blows(HW, w).find(h => h.covers(HW.player().x, HW.player().y)), hp = HW.Inv.hp;
+        if (dodge) { HW.hold('down'); HW.step(28); HW.release(); }
+        assert.ok(until(HW, () => g.landed, 100)); HW.step(2);
+        if (dodge) {
+            assert.equal(HW.Inv.hp, hp, 'out from under it');
+            HW.player().inv = 0; HW.hold('up'); HW.step(28); HW.release(); HW.step(4);
+            assert.ok(HW.Inv.hp < hp, 'back into the puddle: it burns');
+        } else assert.ok(HW.Inv.hp < hp, 'under it: hit');
+        noErrors(HW);
+    }
+});
+test("the Kilnwyrm's shedding (in its pit): pieces come down round the edge (shadows first) and lie on their threads to the pit; off the threads when they shiver home", () => {
+    for (const dodge of [true, false]) {
+        const HW = game(['hook']);
+        const w = wyrm(HW, 3);
+        assert.equal(w.state, 'pit');
+        go(HW, 'boss', 13, 8); w.cool = 0; w.shedLast = false;
+        assert.ok(until(HW, () => blows(HW, w).length >= 3, 600), 'it rattles: shadows round the pit');
+        const flung = () => HW.G.map.ents.filter(e => e.kind === 'flung' && e.owner === w);
+        assert.ok(until(HW, () => flung().length >= 3, 120), 'pieces lying on their threads');
+        const lines = flung().map(f => f.path), p = HW.player(), R0 = R.boss;
+        const on = (x, y) => lines.some(l => l.some(([a, b]) => a === x && b === y));
+        if (dodge) {
+            /* somewhere close that no thread runs over */
+            let best = null;
+            for (let y = 1; y <= 9; y++) for (let x = 1; x <= 18; x++) { const [tx, ty] = [R0[0] + x, R0[1] + y], k = HW.G.map.kind(tx, ty); if (!k.solid && !k.pit && !on(tx, ty) && !HW.G.map.at(tx, ty) && (!best || Math.abs(tx - p.tx) + Math.abs(ty - p.ty) < best[2])) best = [tx, ty, Math.abs(tx - p.tx) + Math.abs(ty - p.ty)]; }
+            assert.ok(HW.walkTo(best[0], best[1]), 'off every thread');
+        } else {
+            /* onto a thread, a tile out from where its piece lies */
+            const l = lines.find(q => q.length > 3), [x, y] = l[l.length - 2];
+            assert.ok(HW.walkTo(x, y), 'on a thread');
+        }
+        const hp = HW.Inv.hp; HW.player().inv = 0;
+        assert.ok(until(HW, () => !flung().length, 200), 'home along their threads');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'none struck her');
+        else assert.ok(HW.Inv.hp < hp, 'struck on its way home');
+        noErrors(HW);
+    }
+});
+test('the Glazer: too close and it braces behind its shield (its "!", the tiles ahead lit); step out of them, or be barged (a full heart)', () => {
+    for (const dodge of [true, false]) {
+        const HW = game();
+        HW.Inv.maxHp = HW.Inv.hp = 10;
+        HW.warp('kiln', ...at('glazer', 16, 9)); HW.step(60); HW.skipTalk();
+        const g = HW.ents('enemy').find(e => e.type === 'glazer');
+        go(HW, 'glazer', 6, 6);
+        g.x = HW.player().x + 22; g.y = HW.player().y; g.setState('walk'); g.st = 40;
+        assert.ok(until(HW, () => g.state === 'brace', 10), 'it braces');
+        const lit = blows(HW, g).find(h => h.dmg > 0);
+        assert.ok(lit && lit.covers(HW.player().x, HW.player().y), 'Wren on the lit tiles');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('up'); HW.step(24); HW.release(); }
+        assert.ok(until(HW, () => g.state === 'hold', 100), 'it barged');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'stepped out of its way');
+        else assert.equal(HW.Inv.hp, hp - 2, 'barged');
+        noErrors(HW);
+    }
 });

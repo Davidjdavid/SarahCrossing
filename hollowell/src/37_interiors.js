@@ -61,6 +61,7 @@ interior({
 });
 interior({
     id: 'inn', name: 'The Spool & Thimble', place: 'The Inn', w: 15, h: 9, door: 7, out: true, music: 'inn',
+    onEnter: a => TownLooks.inn(a),
     floor: (x, y) => (y === 4 && x > 1 && x < 13) ? ':' : '.',
     ents: [
         { k: 'deco', x: 2, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
@@ -70,6 +71,8 @@ interior({
         { k: 'deco', x: 11, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 9, y: 2, look: 'pedestal', id: 'pedestal', text: 'An empty velvet cushion under glass. A brass plate: THE WANDERER\'S KNOT.' },
         { k: 'staffdoor', x: 13, y: 2 },
+        /* once the Makers have owned up, the Staff door stands ajar: lamplight from below on the floorboards */
+        { k: 'deco', x: 13, y: 3, look: 'staff_light', solid: false, baseY: -100, if: 'reveal1' },
         /* the attic stairs: the Tidiness Trials, once the first Knot is tied (S28, src/53_trials.js) */
         { k: 'deco', x: 1, y: 2, look: 'stairs_up', solid: false, baseY: -100 },
         { k: 'warp', x: 1, y: 2, to: 'inn_attic', tx2: 2, ty2: 9, face: 'up', if: 'd1' },
@@ -106,12 +109,17 @@ interior({
         { k: 'npc', who: 'seam', x: 3, y: 1, face: 'down', counter: true },
     ],
 });
+/* the toy shop, shut "for the season": the front shop, and behind a wall (a door, and a little hole low down) Jory's
+   back room (a favour, src/51c_town_favours.js) */
 interior({
-    id: 'toys', name: "Jory's Toys", place: "Jory's Toys", w: 10, h: 8, door: 5, out: true, music: 'shop',
+    id: 'toys', name: "Jory's Toys", place: "Jory's Toys", w: 12, h: 10, door: 6, out: true, music: 'shop',
+    rows: r => { r[4] = '###.####O###'; },
+    legend: { 'O': { k: 'crawl', p: 'wall', ent: 'crawlhole' } },
     ents: [
-        { k: 'deco', x: 2, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
+        { k: 'deco', x: 1, y: 7, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
+        { k: 'deco', x: 2, y: 7, look: 'sign_closed', solid: [[0, 0]], oy: -14, baseY: 40, text: 'A card on the counter: GONE FOR THE SEASON. BACK WHEN I\'M BACK. - J.' },
+        { k: 'deco', x: 9, y: 5, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 6, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
-        { k: 'deco', x: 3, y: 4, look: 'sign_closed', text: 'A card on the counter: GONE FOR THE SEASON. BACK WHEN I\'M BACK. - J.' },
     ],
     if: true,
 });
@@ -124,12 +132,13 @@ interior({
         { k: 'deco', x: 11, y: 2, look: 'plant' },
     ],
 });
+/* the Lost & Found: Mabel's counter, her shelves of strays, and the strays on the floor (a favour, src/51c_town_favours.js) */
 interior({
-    id: 'lostfound', name: 'Lost & Found', place: 'Lost & Found', w: 10, h: 8, door: 5, out: true, music: 'shop',
+    id: 'lostfound', name: 'Lost & Found', place: 'Lost & Found', w: 12, h: 9, door: 6, out: true, music: 'shop',
     ents: [
         { k: 'deco', x: 2, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
-        { k: 'deco', x: 6, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
-        { k: 'deco', x: 7, y: 5, look: 'barrel' }, { k: 'deco', x: 1, y: 5, look: 'chest_wood' },
+        { k: 'deco', x: 8, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]], text: "Shelves of strays: a single glove, a teaspoon, a bootlace, a doorknob with no door. Every one has a little L scratched on it somewhere." },
+        { k: 'deco', x: 10, y: 7, look: 'barrel' }, { k: 'deco', x: 1, y: 7, look: 'chest_wood' },
         { k: 'npc', who: 'mabel', x: 3, y: 1, face: 'down', counter: true },
     ],
 });

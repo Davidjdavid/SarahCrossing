@@ -165,9 +165,16 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   forecourt gate wants a pot fired first; seams softened; a ripple when wading. Not done: Millwater's revisits.
   Tests 37/37 for its regions. Heart Patches in the world now about 40 (4 to a heart; the design said 16): the
   other helpers were asked to add few or none; the docs' count to be fixed at the end.
-- Running: the overworld group B (Hushwood, Larkspur Fair, the Loomwood, the Drift), the difficulty curve (Houses
-  1-8), the town between Houses, the bosses and combat; a full-spoiler overview document for a reviewer (David
-  won't read it).
+- Done too: the difficulty curve, round 1 (scratchpad difficulty/CURVE.md: every main-path room rated 1-5). Fixed:
+  House 2's Sun, Moon, Star and House 3's Bell Race (the carved order could be followed one bell at a time with no
+  idea needed; their rings now fade after a moment, so it takes the one flight or ride that rings them in reverse:
+  the intended aha), House 7's Bobbin Loft (now the Needle's stitch and a knot below together), House 8's Offcut Yard
+  (a short cut closed); five answer signs rewritten (the Laundry, the Weathercock Walk, the Reach, the Bell Frame, the
+  Moonwalk). Curve after: H1 2 2 3 2 2 3 2 3; H2 2 3 3 3 3 3 3; H3 2 1 2 2 3 4 4; H4 1 2 3 3 3 3 4 4; H5 2 3 3 2 3 2 3 4
+  5; H6 1 3 2 2 3 5 4; H7 2 3 2 1 3 4 5; H8 2 3 2 3 4 5 3. Round 2 running: 6-8 more rooms in Houses 5-8 raised.
+- Running: the overworld group B (Hushwood, Larkspur Fair, the Loomwood, the Drift), the difficulty curve round 2
+  (Houses 5-8), the town between Houses, the bosses and combat; a full-spoiler overview document for a reviewer
+  (David won't read it).
 - David's direction of 10 November (vibes, not a list; the game stays its own thing, not a copy): puzzles simple in
   the first House and the land open then, harder House by House up to real ahas that combine tools; no hints unless
   asked (the opt-in nudges stay as they are; no new hint character), no answer signs; the road to later Houses takes

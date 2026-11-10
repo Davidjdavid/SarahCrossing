@@ -145,25 +145,36 @@ const Town = {
     };
 }
 
-/* when the north gate opens, the first time you're back in town you see it: up the North Road, standing open */
+/* when the north gate opens (under the town, told only as a far-off grinding), the first time you come out into town
+   you're shown it: up the North Road, standing open. (Only coming out through a door: a jump straight into town, as
+   the tests make, leaves it to the notice by the gate itself, src/71_loomwood.js.) */
 const TownLooks = {
+    pending: false,
+    /* the Inn, the first time after the first reveal: the Staff door stands ajar (a notice, not a scene: nothing stops) */
+    inn(a) {
+        if (!Progress.flag('reveal1') || Progress.flag('inn_staffSeen') || Progress.flag('great_pull')) return;
+        Progress.set('inn_staffSeen');
+        UI.toast('At the back of the Inn, the door marked STAFF ONLY stands ajar. Lamplight, and a hum, come up from below.', 220);
+    },
+    enter(a, o) { this.pending = !!(o && o.from) && Progress.flag('north_gate') && !Progress.flag('north_gate_seen') && !Progress.flag('great_pull'); },
     tick(a) {
         const p = G.player;
-        if (!p || p.area !== a || p.state !== 'normal' || Script.blocking() || Dialog.active || Cam.busy) return;
+        if (!this.pending || !p || p.area !== a || p.state !== 'normal' || Script.blocking() || Dialog.active || Cam.busy) return;
         if (p.tx < 64 || p.tx >= 128 || p.ty < 40 || p.ty >= 80) return;
-        if (Progress.flag('north_gate') && !Progress.flag('north_gate_seen') && !Progress.flag('great_pull')) {
-            Progress.set('north_gate_seen');
-            Script.run(function* () {
-                yield 10;
-                yield* camLook(95, 38);
-                yield 20;
-                yield* say(null, "Up the North Road, past where Burr's post was: the old stone gate, standing open. Beyond it, silver trees.", { focus: [95, 37] });
-                yield* camBack();
-            });
-        }
+        this.pending = false;
+        if (Progress.flag('north_gate_seen')) return;
+        Progress.set('north_gate_seen');
+        Script.run(function* () {
+            yield 10;
+            yield* camLook(95, 38);
+            yield 20;
+            yield* say(null, "Up the North Road, past Burr's post: the old stone gate, standing open for the first time in anybody's memory. Beyond it, silver trees.", { focus: [95, 37] });
+            yield* camBack();
+        });
     },
 };
 {
-    const tick0 = OW.blocks['1,1'].tick;
-    OW.blocks['1,1'].tick = a => { if (tick0) tick0(a); TownLooks.tick(a); };
+    const B = OW.blocks['1,1'], tick0 = B.tick, enter0 = B.onEnter;
+    B.tick = a => { if (tick0) tick0(a); TownLooks.tick(a); };
+    B.onEnter = (a, o) => { if (enter0) enter0(a, o); TownLooks.enter(a, o); };
 }

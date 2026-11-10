@@ -287,6 +287,8 @@ class Hazard extends Ent {
             return;
         }
         const x = this.x - cx, y = this.y - cy;
+        /* what's left lying once it's landed (a puddle that still burns, while it lasts) */
+        if (this.landed && this.lookLanded) { this.lookLanded(x, y, this); return; }
         if (this.shape === 'drop') {
             if (!this.landed) {
                 const r = Math.round(3 + (this.r - 3) * k);
@@ -321,9 +323,11 @@ class Flung extends Ent {
         super('flung');
         Object.assign(this, { pace: 3, back: 3, wait: 80, tell: 24, dmg: 1, col: '#e8b04a', hurtOut: true }, o);
         this.owner = owner; this.path = path.map(q => q.slice()); this.state = 'out'; this.t = 0; this.i = 0;
-        this.x = this.path[0][0] * T + 8; this.y = this.path[0][1] * T + 8;
+        /* (shed where it lies: it starts out lying there, on its thread) */
+        if (this.lying) { this.state = 'lie'; this.i = this.path.length - 1; }
+        this.x = this.path[this.i][0] * T + 8; this.y = this.path[this.i][1] * T + 8;
     }
-    /* the tiles from a spot toward another, in a straight line, as far as `max` or the first wall */
+    /* the tiles from a spot toward another, in a straight line, on past it as far as `max` or the first wall (a throw) */
     static line(area, from, to, max = 8) {
         const out = [from.slice()];
         const dx = to[0] - from[0], dy = to[1] - from[1], n = Math.max(Math.abs(dx), Math.abs(dy));
@@ -335,6 +339,12 @@ class Flung extends Ent {
             if (!area.inside(x, y) || (k.solid && !k.low && !k.pit && !k.deep) || area.at(x, y)) break;
             out.push([x, y]);
         }
+        return out;
+    }
+    /* every tile on the straight line from one tile to another, ends included (a thing flown high over all of it) */
+    static between(from, to) {
+        const out = [], dx = to[0] - from[0], dy = to[1] - from[1], n = Math.max(Math.abs(dx), Math.abs(dy), 1);
+        for (let i = 0; i <= n; i++) { const x = Math.round(from[0] + dx * i / n), y = Math.round(from[1] + dy * i / n), l = out[out.length - 1]; if (!l || l[0] !== x || l[1] !== y) out.push([x, y]); }
         return out;
     }
     get sortY() { return this.state === 'lie' ? this.y + 4 : this.y + 60; }
@@ -406,5 +416,10 @@ class Flung extends Ent {
 }
 /* a boss knocked off its feet (stunned, struck): whatever it was about to do doesn't come */
 function calmBlows(owner) { const a = owner.area; if (a) for (const e of a.ents.slice()) if (e.kind === 'hazard' && e.owner === owner && !e.landed) a.remove(e); }
-/* a heart shaken loose in a long fight (a boss knocked into its next beat drops one) */
-function bossHeart(area, x, y) { const h = area.add(new Pickup(Math.round(x) - 8, Math.round(y) - 12, { what: 'heart', vz: 2.5, life: 900 })); return h; }
+/* a heart shaken loose in a long fight (a boss knocked into its next beat drops one), on floor Wren can reach */
+function bossHeart(area, x, y) {
+    let tx = tileOf(x), ty = tileOf(y);
+    const ok = (a, b) => { const k = area.kind(a, b); return area.inside(a, b) && !k.solid && !k.pit && !k.deep && !k.ledge && !area.at(a, b); };
+    for (let r = 0; r <= 4 && !ok(tx, ty); r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && ok(tileOf(x) + dx, tileOf(y) + dy)) { tx = tileOf(x) + dx; ty = tileOf(y) + dy; dx = dy = r + 1; }
+    return area.add(new Pickup(tx * T, ty * T, { what: 'heart', vz: 2.5, life: 900 }));
+}

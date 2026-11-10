@@ -4537,6 +4537,8 @@ class Hazard extends Ent {
             return;
         }
         const x = this.x - cx, y = this.y - cy;
+        /* what's left lying once it's landed (a puddle that still burns, while it lasts) */
+        if (this.landed && this.lookLanded) { this.lookLanded(x, y, this); return; }
         if (this.shape === 'drop') {
             if (!this.landed) {
                 const r = Math.round(3 + (this.r - 3) * k);
@@ -4571,9 +4573,11 @@ class Flung extends Ent {
         super('flung');
         Object.assign(this, { pace: 3, back: 3, wait: 80, tell: 24, dmg: 1, col: '#e8b04a', hurtOut: true }, o);
         this.owner = owner; this.path = path.map(q => q.slice()); this.state = 'out'; this.t = 0; this.i = 0;
-        this.x = this.path[0][0] * T + 8; this.y = this.path[0][1] * T + 8;
+        /* (shed where it lies: it starts out lying there, on its thread) */
+        if (this.lying) { this.state = 'lie'; this.i = this.path.length - 1; }
+        this.x = this.path[this.i][0] * T + 8; this.y = this.path[this.i][1] * T + 8;
     }
-    /* the tiles from a spot toward another, in a straight line, as far as `max` or the first wall */
+    /* the tiles from a spot toward another, in a straight line, on past it as far as `max` or the first wall (a throw) */
     static line(area, from, to, max = 8) {
         const out = [from.slice()];
         const dx = to[0] - from[0], dy = to[1] - from[1], n = Math.max(Math.abs(dx), Math.abs(dy));
@@ -4585,6 +4589,12 @@ class Flung extends Ent {
             if (!area.inside(x, y) || (k.solid && !k.low && !k.pit && !k.deep) || area.at(x, y)) break;
             out.push([x, y]);
         }
+        return out;
+    }
+    /* every tile on the straight line from one tile to another, ends included (a thing flown high over all of it) */
+    static between(from, to) {
+        const out = [], dx = to[0] - from[0], dy = to[1] - from[1], n = Math.max(Math.abs(dx), Math.abs(dy), 1);
+        for (let i = 0; i <= n; i++) { const x = Math.round(from[0] + dx * i / n), y = Math.round(from[1] + dy * i / n), l = out[out.length - 1]; if (!l || l[0] !== x || l[1] !== y) out.push([x, y]); }
         return out;
     }
     get sortY() { return this.state === 'lie' ? this.y + 4 : this.y + 60; }
@@ -4656,8 +4666,13 @@ class Flung extends Ent {
 }
 /* a boss knocked off its feet (stunned, struck): whatever it was about to do doesn't come */
 function calmBlows(owner) { const a = owner.area; if (a) for (const e of a.ents.slice()) if (e.kind === 'hazard' && e.owner === owner && !e.landed) a.remove(e); }
-/* a heart shaken loose in a long fight (a boss knocked into its next beat drops one) */
-function bossHeart(area, x, y) { const h = area.add(new Pickup(Math.round(x) - 8, Math.round(y) - 12, { what: 'heart', vz: 2.5, life: 900 })); return h; }
+/* a heart shaken loose in a long fight (a boss knocked into its next beat drops one), on floor Wren can reach */
+function bossHeart(area, x, y) {
+    let tx = tileOf(x), ty = tileOf(y);
+    const ok = (a, b) => { const k = area.kind(a, b); return area.inside(a, b) && !k.solid && !k.pit && !k.deep && !k.ledge && !area.at(a, b); };
+    for (let r = 0; r <= 4 && !ok(tx, ty); r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && ok(tileOf(x) + dx, tileOf(y) + dy)) { tx = tileOf(x) + dx; ty = tileOf(y) + dy; dx = dy = r + 1; }
+    return area.add(new Pickup(tx * T, ty * T, { what: 'heart', vz: 2.5, life: 900 }));
+}
 
 // ---- 21_story.js ----
 /* The story's machinery: who's who, what they say (TALK, filled by the content files), getting things,
@@ -7510,6 +7525,7 @@ interior({
 });
 interior({
     id: 'inn', name: 'The Spool & Thimble', place: 'The Inn', w: 15, h: 9, door: 7, out: true, music: 'inn',
+    onEnter: a => TownLooks.inn(a),
     floor: (x, y) => (y === 4 && x > 1 && x < 13) ? ':' : '.',
     ents: [
         { k: 'deco', x: 2, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
@@ -7519,6 +7535,8 @@ interior({
         { k: 'deco', x: 11, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 9, y: 2, look: 'pedestal', id: 'pedestal', text: 'An empty velvet cushion under glass. A brass plate: THE WANDERER\'S KNOT.' },
         { k: 'staffdoor', x: 13, y: 2 },
+        /* once the Makers have owned up, the Staff door stands ajar: lamplight from below on the floorboards */
+        { k: 'deco', x: 13, y: 3, look: 'staff_light', solid: false, baseY: -100, if: 'reveal1' },
         /* the attic stairs: the Tidiness Trials, once the first Knot is tied (S28, src/53_trials.js) */
         { k: 'deco', x: 1, y: 2, look: 'stairs_up', solid: false, baseY: -100 },
         { k: 'warp', x: 1, y: 2, to: 'inn_attic', tx2: 2, ty2: 9, face: 'up', if: 'd1' },
@@ -7555,12 +7573,17 @@ interior({
         { k: 'npc', who: 'seam', x: 3, y: 1, face: 'down', counter: true },
     ],
 });
+/* the toy shop, shut "for the season": the front shop, and behind a wall (a door, and a little hole low down) Jory's
+   back room (a favour, src/51c_town_favours.js) */
 interior({
-    id: 'toys', name: "Jory's Toys", place: "Jory's Toys", w: 10, h: 8, door: 5, out: true, music: 'shop',
+    id: 'toys', name: "Jory's Toys", place: "Jory's Toys", w: 12, h: 10, door: 6, out: true, music: 'shop',
+    rows: r => { r[4] = '###.####O###'; },
+    legend: { 'O': { k: 'crawl', p: 'wall', ent: 'crawlhole' } },
     ents: [
-        { k: 'deco', x: 2, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
+        { k: 'deco', x: 1, y: 7, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
+        { k: 'deco', x: 2, y: 7, look: 'sign_closed', solid: [[0, 0]], oy: -14, baseY: 40, text: 'A card on the counter: GONE FOR THE SEASON. BACK WHEN I\'M BACK. - J.' },
+        { k: 'deco', x: 9, y: 5, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 6, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
-        { k: 'deco', x: 3, y: 4, look: 'sign_closed', text: 'A card on the counter: GONE FOR THE SEASON. BACK WHEN I\'M BACK. - J.' },
     ],
     if: true,
 });
@@ -7573,12 +7596,13 @@ interior({
         { k: 'deco', x: 11, y: 2, look: 'plant' },
     ],
 });
+/* the Lost & Found: Mabel's counter, her shelves of strays, and the strays on the floor (a favour, src/51c_town_favours.js) */
 interior({
-    id: 'lostfound', name: 'Lost & Found', place: 'Lost & Found', w: 10, h: 8, door: 5, out: true, music: 'shop',
+    id: 'lostfound', name: 'Lost & Found', place: 'Lost & Found', w: 12, h: 9, door: 6, out: true, music: 'shop',
     ents: [
         { k: 'deco', x: 2, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
-        { k: 'deco', x: 6, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
-        { k: 'deco', x: 7, y: 5, look: 'barrel' }, { k: 'deco', x: 1, y: 5, look: 'chest_wood' },
+        { k: 'deco', x: 8, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]], text: "Shelves of strays: a single glove, a teaspoon, a bootlace, a doorknob with no door. Every one has a little L scratched on it somewhere." },
+        { k: 'deco', x: 10, y: 7, look: 'barrel' }, { k: 'deco', x: 1, y: 7, look: 'chest_wood' },
         { k: 'npc', who: 'mabel', x: 3, y: 1, face: 'down', counter: true },
     ],
 });
@@ -11101,18 +11125,39 @@ class Glazer extends Enemy {
                 /* line up with Wren */
                 const dx = p.x - this.x, dy = p.y - this.y;
                 const ax = Math.abs(dx), ay = Math.abs(dy);
-                if ((ax < 8 || ay < 8) && this.st > 40) { this.dir = ax < 8 ? (dy < 0 ? UP : DOWN) : (dx < 0 ? LEFT : RIGHT); this.setState('aim'); break; }
+                /* (its one dangerous move: come too close and it braces behind its shield, then barges two tiles on) */
+                if (Math.hypot(dx, dy) < 30 && this.st > 30 && p.state === 'normal') { this.brace(dirOf(dx, dy)); break; }
+                if ((ax < 8 || ay < 8) && this.st > 40) { this.dir = ax < 8 ? (dy < 0 ? UP : DOWN) : (dx < 0 ? LEFT : RIGHT); this.aim(); break; }
                 if (ax < ay) this.move(sign(dx) * 0.7, 0); else this.move(0, sign(dy) * 0.7);
                 this.anim++;
                 break;
             }
-            case 'aim': if (this.st > 26) { this.throwShot(); this.setState('hold'); } break;
+            case 'aim': if (this.st >= this.tellN) { this.throwShot(); this.setState('hold'); } break;
             case 'hold': if (this.st > 70) this.setState('walk'); break;
             case 'hurt': if (this.st > 30) this.setState('walk'); break;
+            case 'brace': if (this.st >= this.tellN) { this.setState('barge'); Sfx.play('boss'); } break;
+            case 'barge':
+                if (this.st > 8 || !this.move(DX[this.dir] * 4, DY[this.dir] * 4)) { G.shake = 6; Fx.dust(this.x, this.y); this.setState('hold'); }
+                break;
         }
         if (p.state === 'normal' && Math.abs(p.x - this.x) < 11 && Math.abs(p.y - this.y) < 8) p.hurt(1, this.x, this.y);
     }
     setState(s) { this.state = s; this.st = 0; }
+    /* the shot's tell: it rolls the clay in its hands, and the line it'll fly lights up (and the way it'll come home) */
+    aim() {
+        this.tellN = tellFor(2); this.setState('aim');
+        const tiles = []; let x = this.tx, y = this.ty;
+        for (let i = 0; i < 9; i++) { x += DX[this.dir]; y += DY[this.dir]; const k = this.area.kind(x, y); if ((k.solid && !k.low) || this.area.at(x, y)) break; tiles.push([x, y]); }
+        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 0, live: 0, col: '#f39a3c' });
+    }
+    /* the barge: shield up, and the two tiles ahead of it lit; then it comes through them (a full heart) */
+    brace(d) {
+        this.dir = d; this.tellN = tellFor(2); this.setState('brace');
+        const tiles = []; let x = this.tx, y = this.ty;
+        for (let i = 0; i < 3; i++) { x += DX[d]; y += DY[d]; const k = this.area.kind(x, y); if (k.solid || this.area.at(x, y)) break; tiles.push([x, y]); }
+        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 2, live: 9, col: '#e8463c', from: [this.x, this.y] });
+        Stats.count('boss:glazer:barge');
+    }
     throwShot() {
         Sfx.play('throw');
         const path = [[this.tx, this.ty]];
@@ -11131,7 +11176,7 @@ class Glazer extends Enemy {
     struck(by, dmg, dir, shard) {
         if (!this.alive || this.flash > 0) return;
         if (!shard) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 10); return; }   /* the stick bounces off its glaze */
-        this.hp--; this.flash = 30; Sfx.play('enemyhit'); G.hitstop = 6; this.setState('hurt');
+        this.hp--; this.flash = 30; Sfx.play('enemyhit'); G.hitstop = 6; this.setState('hurt'); calmBlows(this);
         Stats.count('boss:glazer:shards');
         if (this.hp <= 0) {
             this.alive = false; Sfx.play('shatter'); Fx.burst(this.x, this.y - 10, '#c4623a'); Fx.burst(this.x, this.y - 4, '#5ad1c5');
@@ -11146,7 +11191,10 @@ class Glazer extends Enemy {
         const im = spr(this.state === 'aim' ? 'glazer_aim' : 'glazer');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
         Gfx.alpha(0.25); Gfx.rect(this.x - cx - 7, this.y - cy + 1, 14, 3, PAL.ink); Gfx.alpha(1);
-        Gfx.img(img, this.x - cx - 8, this.y - cy - 22, this.dir === LEFT);
+        /* bracing: crouched behind its shield, shivering, its "!" up */
+        const sh = this.state === 'brace' ? ((this.st >> 1) % 2 ? 1 : -1) : 0, low = this.state === 'brace' ? 2 : 0;
+        Gfx.img(img, this.x - cx - 8 + sh, this.y - cy - 22 + low, this.dir === LEFT);
+        if (this.state === 'brace') { Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 16, 14, 12, '#5ad1c5'); Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 16, 14, 1, '#bff3ee'); Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 5, 14, 1, '#2e9a96'); Tells.bang(this.x - cx, this.y - cy - 36); }
     }
 }
 SPAWN.glazer = (x, y) => Progress.flag('kiln_glazer') ? new Ent('none') : new Glazer(x, y);
@@ -11181,11 +11229,16 @@ const GlazerShots = {
 /* urns in the boss's chamber: pots that come home quickly */
 SPAWN.urn = (x, y, p) => new Pot(x, y, Object.assign({ style: 'urn', patience: 60 }, p));
 
-/* the Kilnwyrm: a long glazed serpent of pots. It follows exactly where Wren has walked */
+/* the Kilnwyrm: a long glazed serpent of pots. It follows exactly where Wren has walked. Its moves (TELL[2]): following,
+   it rears up and darts along her footprints (a full heart: keep moving and it falls short); round the rim, it lobs a
+   glob of hot glaze where she stands (its shadow first), which lies there a while, still hot; coiled in the pit, it
+   rattles and sheds pieces of itself round the pit's edge (their shadows first), and each lies on its thread back to the
+   pit till it shivers and flies home along it. Each beat it's knocked into, a heart rolls free. */
+const KW = { near: 40, dart: 54, dartSp: 3.2, cool: [0, 140, 120, 100], glob: 13, puddle: 150, shed: 4 };
 class Kilnwyrm extends Enemy {
     constructor(tx, ty) {
         super(tx, ty, { type: 'kilnwyrm', hp: 3 });
-        this.state = 'sleep'; this.st = 0;
+        this.state = 'sleep'; this.st = 0; this.cool = 60; this.glowT = 0; this.rattleT = 0;
         this.segs = 7; this.trail = []; this.path = [];
         this.speed = 0.8;
         for (let i = 0; i < 80; i++) this.trail.push([this.x, this.y - i]);
@@ -11213,11 +11266,18 @@ class Kilnwyrm extends Enemy {
            home that flies over the pit (a Hookline reel, carrying) reaches it */
         const phase = 4 - Math.max(1, Math.min(3, this.hp));
         if (this.state === 'hurt') { if (this.st > 50) { this.state = phase === 1 ? 'follow' : phase === 2 ? 'rim' : 'pit'; this.st = 0; if (phase > (this.told || 1)) this.beginPhase(phase); } return; }
+        if (this.glowT > 0) this.glowT--; if (this.rattleT > 0) this.rattleT--;
         if (this.state === 'rim' || this.state === 'pit') return this.ring(phase, p);
-        /* the path it follows: every step Wren takes */
+        /* the path it follows: every step Wren takes (heard even while it rears) */
         const last = this.path[this.path.length - 1];
         if (p.state !== 'flight' && (!last || dist(last[0], last[1], p.x, p.y) > 3)) this.path.push([p.x, p.y]);
-        const sp = this.speed * (this.hp === 1 ? 1.5 : this.hp === 2 ? 1.2 : 1);
+        if (this.cool > 0) this.cool--;
+        /* close behind her: it rears, hissing, its mouth aglow, and then darts on along her footprints */
+        if (this.state === 'rear') { if (++this.st2 >= this.tellN) { this.state = 'dart'; this.dartLeft = KW.dart; Sfx.play('throw'); } return; }
+        if (this.state === 'follow' && this.cool <= 0 && p.state === 'normal' && p.area === a && dist(p.x, p.y, this.x, this.y) < KW.near) {
+            this.state = 'rear'; this.st2 = 0; this.tellN = tellFor(2); Sfx.play('warn'); Stats.count('boss:kiln:dart'); return;
+        }
+        const sp = this.state === 'dart' ? KW.dartSp : this.speed * (this.hp === 1 ? 1.5 : this.hp === 2 ? 1.2 : 1);
         let left = sp;
         while (left > 0 && this.path.length) {
             const [tx, ty] = this.path[0], d = dist(this.x, this.y, tx, ty);
@@ -11225,8 +11285,9 @@ class Kilnwyrm extends Enemy {
             else { this.x += (tx - this.x) / d * left; this.y += (ty - this.y) / d * left; this.dir = dirOf(tx - this.x, ty - this.y); left = 0; }
             this.trail.unshift([this.x, this.y]);
         }
+        if (this.state === 'dart' && ((this.dartLeft -= sp - left) <= 0 || !this.path.length)) { this.state = 'follow'; this.cool = KW.cool[1]; }
         if (this.trail.length > 200) this.trail.length = 200;
-        if (p.state === 'normal' && dist(p.x, p.y, this.x, this.y) < 12) { p.hurt(1, this.x, this.y); }
+        if (p.state === 'normal' && dist(p.x, p.y, this.x, this.y) < 12) { p.hurt(this.state === 'dart' ? 2 : 1, this.x, this.y); }
     }
     /* the room it's in (the Kiln's Heart), in tiles */
     get room() { return this._room || (this._room = this.area.rooms.find(r => r.key === '1,0')); }
@@ -11269,6 +11330,41 @@ class Kilnwyrm extends Enemy {
             this.dir = dirOf(nx - this.x, ny - this.y); this.x = nx; this.y = ny;
         }
         this.trail.unshift([this.x, this.y]); if (this.trail.length > 200) this.trail.length = 200;
+        /* its blows, in turn: (2) a glob of glaze; (3) a shedding, then a glob */
+        if (this.cool > 0) this.cool--;
+        else if (p.state === 'normal' && p.area === this.area && this.area.roomAt(p.tx, p.ty) === r) {
+            if (phase === 3 && !this.shedLast) this.shed(); else this.glob(p, phase);
+            this.shedLast = phase === 3 && !this.shedLast;
+        }
+    }
+    /* its head glows; then a glob of hot glaze flies up and comes down where she stood (its shadow there first), and lies
+       there a while as a puddle, still hot */
+    glob(p, phase) {
+        const tell = tellFor(2, phase);
+        this.glowT = tell; Sfx.play('warn');
+        Hazard.drop(this, p.x, p.y, { r: KW.glob, dmg: 1, tell: tell + 18, live: KW.puddle, fx: 'clay', col: '#f39a3c', quiet: true, look: Kiln.drawGlob, lookLanded: Kiln.drawPuddle });
+        this.cool = KW.cool[phase];
+        Stats.count('boss:kiln:glob');
+    }
+    /* (3) it rattles its coils, and pieces of it fly up out of the pit and come down round its edge (their shadows first):
+       two near Wren, two anywhere; each lies on its thread back to the pit, then shivers and flies home along it */
+    shed() {
+        const r = this.room, a = this.area, p = G.player, tell = tellFor(2, 3);
+        const inPit = (x, y) => x >= r.x + 7 && x <= r.x + 11 && y >= r.y + 3 && y <= r.y + 7;
+        const cand = [];
+        for (let y = r.y + 1; y <= r.y + 9; y++) for (let x = r.x + 5; x <= r.x + 13; x++) { const k = a.kind(x, y); if (!inPit(x, y) && !k.solid && !k.pit && !a.at(x, y)) cand.push([x, y]); }
+        cand.sort((m, n) => dist(m[0], m[1], p.tx, p.ty) - dist(n[0], n[1], p.tx, p.ty));
+        const picks = [];
+        const take = (from, n) => { for (let i = 0; i < n && from.length; i++) picks.push(from.splice(Math.floor(G.rng() * from.length), 1)[0]); };
+        const near = cand.splice(0, 6); take(near, 2); take(cand, KW.shed - 2);
+        const home = [r.x + 9, r.y + 5];
+        for (const [x, y] of picks) Hazard.drop(this, x * T + 8, y * T + 10, {
+            r: 10, dmg: 1, tell, fx: 'clay', col: '#c4623a', quiet: true, look: Kiln.drawShard,
+            onLand: () => this.area.add(new Flung(this, Flung.between(home, [x, y]), { lying: true, wait: 64, tell: 26, back: 3, dmg: 1, col: THREAD.bram, look: Kiln.drawShard })),
+        });
+        this.rattleT = tell; Sfx.play('warn'); Sfx.play('rumble');
+        this.cool = KW.cool[3] + 40;
+        Stats.count('boss:kiln:shed');
     }
     /* shards break it wherever they meet it, head or coil */
     hitsTile(tx, ty) {
@@ -11281,11 +11377,13 @@ class Kilnwyrm extends Enemy {
         if (!this.alive || this.flash > 0) return;
         if (!shard) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 8); return; }  /* glazed: only its own kind breaks it */
         this.hp--; this.flash = 40; Sfx.play('enemyhit'); Sfx.play('shatter'); G.hitstop = 8; G.shake = 8;
-        this.segs = Math.max(2, this.segs - 2); this.state = 'hurt'; this.st = 0;
+        this.segs = Math.max(2, this.segs - 2); this.state = 'hurt'; this.st = 0; this.glowT = this.rattleT = 0; this.cool = 90;
+        calmBlows(this);
         Stats.count('boss:kiln:shards');
         /* it reels back along its own trail */
         this.path = [];
         if (this.hp <= 0) this.defeat();
+        else { const p = G.player; bossHeart(this.area, p.x + 20, p.y); }
     }
     defeat() {
         this.alive = false;
@@ -11301,19 +11399,39 @@ class Kilnwyrm extends Enemy {
             return;
         }
         const fl = this.flash > 0 && (this.flash >> 1) % 2;
+        /* rattling its coils (about to shed): every piece of it shivers */
+        const rat = this.rattleT > 0 ? ((this.t >> 1) % 2 ? 1 : -1) : 0;
         for (let i = this.segs; i >= 1; i--) {
             const s = this.trail[Math.min(this.trail.length - 1, i * 11)];
             const im = spr(i === this.segs ? 'wyrm_tail' : 'wyrm_seg');
             Gfx.alpha(0.22); Gfx.rect(s[0] - cx - 6, s[1] - cy, 12, 3, PAL.ink); Gfx.alpha(1);
-            Gfx.img(fl ? tinted(im, '#ffffff') : im, s[0] - cx - 8, s[1] - cy - 14);
+            Gfx.img(fl ? tinted(im, '#ffffff') : im, s[0] - cx - 8 + (i % 2 ? rat : -rat), s[1] - cy - 14);
         }
+        /* rearing: its head up off the floor, hissing, and its mouth aglow; about to spit glaze: its mouth aglow */
+        const rear = this.state === 'rear', lift = rear ? Math.round(5 * Math.min(1, this.st2 / 10)) : 0;
         const hd = spr('wyrm_head_' + DIR_NAME[this.dir === LEFT ? RIGHT : this.dir]);
-        Gfx.img(fl ? tinted(hd, '#ffffff') : hd, this.x - cx - 8, this.y - cy - 16, this.dir === LEFT);
+        Gfx.img(fl ? tinted(hd, '#ffffff') : hd, this.x - cx - 8 + (rear ? ((this.t >> 1) % 2 ? 1 : -1) : 0), this.y - cy - 16 - lift, this.dir === LEFT);
+        if (rear || this.glowT > 0) {
+            const k = rear ? this.st2 / (this.tellN || 30) : 1 - this.glowT / (tellFor(2, 2) || 30);
+            Tells.glow(this.x - cx + DX[this.dir] * 5, this.y - cy - 9 - lift + DY[this.dir] * 2, Math.min(1, k), '#f39a3c');
+        }
+        if (rear) Tells.bang(this.x - cx, this.y - cy - 30 - lift);
     }
 }
 SPAWN.kilnwyrm = (x, y) => Progress.flag('kiln_boss') ? new Ent('none') : new Kilnwyrm(x, y);
 
 const Kiln = {
+    /* a glob of hot glaze, coming down; the puddle it leaves (fading as it cools); a piece of the wyrm, shed */
+    drawGlob(x, y) { Gfx.circle(x, y - 3, 3, PAL.ink); Gfx.circle(x, y - 3, 2, '#f39a3c'); Gfx.rect(x - 1, y - 4, 1, 1, '#fff0b0'); },
+    drawPuddle(x, y, h) {
+        const left = h.tell + h.live - h.t, k = Math.min(1, left / 40);
+        Gfx.alpha(0.4 + 0.5 * k); Tells.ellipse(x, y, h.r, '#c4623a'); Tells.ellipse(x, y - 1, h.r - 3, '#f39a3c'); Gfx.alpha(1);
+        if ((G.t >> 3) % 3 === 0) Gfx.rect(x - 3 + ((G.t >> 4) % 5), y - 3, 2, 1, '#fff0b0');
+    },
+    drawShard(x, y, f) {
+        const sp = f && f.state && f.state !== 'lie' && (G.t >> 2) % 2;
+        Gfx.rect(x - 3, y - 3, 7, 5, PAL.ink); Gfx.rect(x - 2, y - 2, 5, 3, sp ? '#e8a070' : '#c4623a'); Gfx.rect(x - 2, y - 2, 2, 1, '#5ad1c5');
+    },
     *bossIntro(w) {
         yield 20;
         yield* say(null, 'In the heat at the heart of the Kiln, something long and glazed uncoils. Its head turns, sniffs the floor where you just walked, and starts to follow your footprints.');
@@ -13651,6 +13769,188 @@ SPAWN.staffdoor = (tx, ty) => {
     return pr;
 };
 SPAWN.shop = () => new Ent('none');
+
+// ---- 51b_town_life.js ----
+/* The town moves on. After each turn of the Wander the townsfolk have something new to say: each line is said once, the
+   first times you talk to them after it (only the newest turn's, so nothing comes out stale), and then they're their
+   usual selves again. Some of them know more than they let on, before the first reveal. Freed townsfolk's lines are in
+   src/73_freed.js (FREE_LINES); the small favours in town are src/51c_town_favours.js. */
+
+const TOWN_STAGES = ['d1', 'd2', 'd3', 'd4', 'd5', 'reveal1', 'd7', 'reveal2', 'd8'];
+/* stage -> who -> lines (a line may be a function, for one that depends on how things stand) */
+const TOWN_LINES = {
+    d1: {
+        quill: ["Rule four's up on the board now: heavier shoves lighter. It always goes up the morning after a Wanderer's first Knot. Never a day before. I only hold the chalk."],
+        gundry: ["Heard your Knot go, in the night. The old winch gave a turn all on its own. Wind, I expect."],
+        rosa: ["One Knot! Tuck's drawn you a twelfth picture. You're holding a cupboard over your head, and the cupboard's crying."],
+        arlo: ["One Knot, eh? I felt it in my knees. Like weather coming in. Funny old things, knees."],
+        mabel: ["Back from the Tidyhouse, are you? Nothing in there ever goes missing, they say. Lucky old house."],
+    },
+    d2: {
+        bram: ["The Kiln! HA! Hot, was it? And the big fellow, the serpent? Did his tail stick? It's always the tail. ...So I'd imagine."],
+        seam: ["I've had a monstrous order this month, {name}. Scales. Hundreds of them, glazed. Don't ask; I'm sworn. I keep a secret the way I keep a hem."],
+        quill: ["Rule five: broken things come home in pieces. Tuck smashed his milk jug to see if it was true. The jug came home. The milk didn't."],
+        burr: ["Two Knots. Fog's a shade thicker up the road this week. Not that I'm complaining. It's good fog."],
+        mallow: ["*yawn* Two Knots already. You know what a Wanderer needs most? Sleep. You know what I haven't had all month? Same answer."],
+    },
+    d3: {
+        rosa: ["Your dad came in for a loaf this morning, wet to the knees. Said he'd fallen in the millpond. Twice. Then he winked, which isn't like him."],
+        ives: ["Three Knots! And dry as toast, look at you. I hear some people came home soaking. Not me. I've been here all week. Tidying."],
+        gundry: ["Three. The winch turned twice in the night this time. I oiled it. It turned anyway."],
+        arlo: ["Hob's stopped walking the bank. Just stands there now. I told him, Hob, you'll take root. He said, too late, Arlo."],
+        thimble: ["The Guild's ordered four miles of string this week. FOUR. What are they knitting, a road?"],
+    },
+    d4: {
+        ives: ["What a festival! I was a teeny bit late. Something came up. Several somethings. Have you had cake? Have more cake."],
+        bram: ["Did I miss Hesper's speech? I was up to my elbows. In pots. HA! Pots, all week. Nothing but pots."],
+        quill: ["Somebody chalked a sixth rule on my board and rubbed it out again. It wasn't me. I'd like to know who. I'd like to know why it was rubbed out even more."],
+        hob: ["Pudding's stopped chasing his ball. Just lies there and looks at it. I know how he feels."],
+        tuck: ["Did you see the bunting? I helped! I held the end! ...It went back up by itself after, but I HELD it."],
+    },
+    d5: {
+        burr: ["Moved my post in a few steps. The fog's closer than it was. Don't ask how I know. A constable knows."],
+        tuck: ["How many Houses are there? Are they the same ones every time? Will they still be there when I'm big? Will they WAIT for me?"],
+        rosa: ["Your gran's looking tired, love. She was out by the Well half the night. Said she couldn't sleep. Said it twice, as if she wanted me to believe it."],
+        arlo: ["Five. In my day the whole town walked out past the bridge to meet the Wanderer at five. Singing, if you can believe it. Can't think why we stopped."],
+        seam: ["Is that a bedroll? May I? ...Close, even stitching. Lavender thread. Whoever made this knew exactly what they were doing."],
+    },
+    reveal1: {
+        bram: ["So! You know. HA! What a weight off. Mind, I'd still like a word about what you did to that wyrm."],
+        ives: ["No more fibbing about the tidying, love. I HAVE been tidying. Only underneath, mostly."],
+        mallow: ["*yawn* So you know. Good. Then I can tell you why I'm tired: I've been working a giant sloth's arms on pulleys all month. One gets stiff."],
+        rosa: ["You know, don't you? About the Houses. Every grown-up in Hollowell knows. We all found out on our own Wanders. I cried for a week. Then I baked."],
+        quill: ["Ah. You've found out. Don't tell the little ones. It's the one rule I'll never put up on the board."],
+        seam: ["You saw the scales through my back window. Of course you did. The next Wanderer's getting a dragon. Not a word, {name}."],
+    },
+    d7: {
+        tuck: ["I'm doing a LITTLE Wander! Miss Quill says it's practice. I've been practising being brave. Twice!"],
+        rosa: ["Tuck's Little Wander. You'll keep an eye on him, won't you? From wherever it is you lot keep an eye from. Let him get stuck. Only a little bit stuck."],
+        thimble: ["So THAT'S what the Guild wants all that string for. Thirty years I've sold it them, and I never once asked."],
+        ives: ["An apprentice! Shoes off in the workshop, mind. And remember, love: a Maker never tells. Not even when it's very, very funny."],
+        arlo: ["You've sawdust on your sleeve, {name}. And a bit of thread. Somebody's teaching you something. Like the old days."],
+        nell: ["Tuck's doing a Little Wander and he's only SIX. I'm EIGHT. Nobody's made ME a Little Wander."],
+    },
+    reveal2: {
+        arlo: ["You've seen something. You've the look your aunt had, the week before she went. Sit a minute. No? No."],
+        burr: ["Your gran's shut herself in. Warden's orders: nobody's to fuss. I'm fussing. Quietly."],
+        quill: ["Somebody wrote a seventh rule on my board in the night. Pressed so hard the chalk snapped. I haven't rubbed it out. I'm not sure I'm allowed to."],
+        rosa: ["I took your gran a loaf. She said through the door, leave it on the step, love. And the loaf went home before she'd opened it. Everything goes home."],
+        hob: ["You keep looking at my boots. What is it? ...Is it the thread? I always thought I'd made that up."],
+        bea: ["Everyone's gone quiet. Grown-ups go quiet when there's a secret. I'm keeping a list."],
+    },
+    d8: {
+        quill: ["The First Spinner's own Shears? ...Might I see them? Purely as an educator. Purely."],
+        rosa: [() => Progress.flag('cut:hob') ? "Hob's gone up the river! HOB! He waved at me. Forty years I've known that man and I never once saw him wave." : "They say you can cut a body loose with those. I don't know if I'd want it. I don't know that I wouldn't."],
+        tuck: [() => Progress.flag('cut:nell') ? "Nell ran past the posts and came back and she's not even in TROUBLE!" : "Are those the scissors? Can you cut MY string? Have I got a string? Mum says not. Mum's looking at the floor."],
+        mabel: ["If you cut me loose, I'll still keep the shop. But I might shut it on Tuesdays. Or go and find out who L is."],
+        gundry: ["The First Spinner's blades. Careful with them, Wanderer. A thread's only a thread. But it's always somebody's."],
+    },
+};
+/* Gran's own: once each, then her usual run of lines (src/50_prologue.js; after the first reveal, new ones, below) */
+TOWN_LINES.d2.gran = ["Two Knots! The Kiln's a hot old place. Your grandad came home from it with no eyebrows. Mind yours."];
+TOWN_LINES.d3.gran = ["Your dad says you were very brave in the water. He was very wet when he said it. I didn't ask."];
+TOWN_LINES.reveal1.gran = ["They told you, then. The Makers. It's a good tradition, love: the best thing this town knows how to do. Every Wanderer looked after, every step of the way."];
+TOWN_LINES.d7.gran = ["An apprentice! Gundry's a good man. Mind he doesn't show you anything that'll keep you up at night."];
+const GRAN_AFTER_R1 = [
+    "Six Knots. There's only the seventh left, at the very end, and that one's mine to give you. Not yet. Soon.",
+    "Go down and see the Makers, if they've asked you. Then come home for your tea. Always come home for your tea.",
+    "I'm proud of you, love. I'd have you stay just as you are, if I could.",
+];
+const GRAN_AFTER_D7 = [
+    "Tuck's Little Wander. You'll be good to him. You were always good with the little ones.",
+    "Come home for your tea. The Spoolworks will keep. Everything keeps, in the Hollow.",
+    "I'm proud of you, love. I'd have you stay just as you are, if I could.",
+];
+
+const Town = {
+    /* the newest turn of the Wander that this person has lines for */
+    stage(who) {
+        for (let i = TOWN_STAGES.length - 1; i >= 0; i--) {
+            const s = TOWN_STAGES[i];
+            if (Progress.flag(s) && TOWN_LINES[s][who]) return s;
+        }
+        return null;
+    },
+    /* the next line of it you haven't heard: said, and true; otherwise false (and they're their usual selves) */
+    *news(who, opts = {}) {
+        if (!opts.always && !Progress.flag('met:' + who)) return false;
+        if (Progress.flag('cut:' + who)) {
+            /* cut free, they're somebody new: their own lines from now on (src/73_freed.js) */
+            const F = typeof FREE_LINES !== 'undefined' && FREE_LINES[who];
+            if (!F) return false;
+            yield* say(who, cycle('free_' + who, F));
+            return true;
+        }
+        const s = this.stage(who); if (!s) return false;
+        const L = TOWN_LINES[s][who], k = 'news:' + s + ':' + who, n = Progress.get(k) || 0;
+        if (n >= L.length) return false;
+        Progress.set(k, n + 1);
+        const line = L[n];
+        yield* say(who, typeof line === 'function' ? line() : line);
+        return true;
+    },
+    /* every line, for the checks (with each function's answer both ways) */
+    allLines() {
+        const out = [];
+        const flags = Progress.flags;
+        for (const s of TOWN_STAGES) for (const [who, L] of Object.entries(TOWN_LINES[s])) for (const l of L) {
+            if (typeof l !== 'function') { out.push([who, l]); continue; }
+            for (const v of [false, true]) {
+                const saved = Object.assign({}, flags);
+                for (const f of ['cut:hob', 'cut:nell']) Progress.flags[f] = v;
+                out.push([who, l()]);
+                Progress.flags = saved;
+            }
+        }
+        return out.concat(GRAN_AFTER_R1.map(l => ['gran', l]), GRAN_AFTER_D7.map(l => ['gran', l]));
+    },
+};
+
+/* Gran: her news first, once each; after the first reveal her usual lines move on too (they'd still say "one more House") */
+{
+    const g0 = TALK.gran;
+    TALK.gran = function* (npc) {
+        if (!Progress.flag('ceremony')) return yield* g0(npc);
+        if (yield* Town.news('gran', { always: true })) return;
+        if (Progress.flag('d7')) { yield* say('gran', cycle('granD7', GRAN_AFTER_D7)); return; }
+        if (Progress.flag('reveal1')) { yield* say('gran', cycle('granR1', GRAN_AFTER_R1)); return; }
+        yield* g0(npc);
+    };
+}
+
+/* when the north gate opens (under the town, told only as a far-off grinding), the first time you come out into town
+   you're shown it: up the North Road, standing open. (Only coming out through a door: a jump straight into town, as
+   the tests make, leaves it to the notice by the gate itself, src/71_loomwood.js.) */
+const TownLooks = {
+    pending: false,
+    /* the Inn, the first time after the first reveal: the Staff door stands ajar (a notice, not a scene: nothing stops) */
+    inn(a) {
+        if (!Progress.flag('reveal1') || Progress.flag('inn_staffSeen') || Progress.flag('great_pull')) return;
+        Progress.set('inn_staffSeen');
+        UI.toast('At the back of the Inn, the door marked STAFF ONLY stands ajar. Lamplight, and a hum, come up from below.', 220);
+    },
+    enter(a, o) { this.pending = !!(o && o.from) && Progress.flag('north_gate') && !Progress.flag('north_gate_seen') && !Progress.flag('great_pull'); },
+    tick(a) {
+        const p = G.player;
+        if (!this.pending || !p || p.area !== a || p.state !== 'normal' || Script.blocking() || Dialog.active || Cam.busy) return;
+        if (p.tx < 64 || p.tx >= 128 || p.ty < 40 || p.ty >= 80) return;
+        this.pending = false;
+        if (Progress.flag('north_gate_seen')) return;
+        Progress.set('north_gate_seen');
+        Script.run(function* () {
+            yield 10;
+            yield* camLook(95, 38);
+            yield 20;
+            yield* say(null, "Up the North Road, past Burr's post: the old stone gate, standing open for the first time in anybody's memory. Beyond it, silver trees.", { focus: [95, 37] });
+            yield* camBack();
+        });
+    },
+};
+{
+    const B = OW.blocks['1,1'], tick0 = B.tick, enter0 = B.onEnter;
+    B.tick = a => { if (tick0) tick0(a); TownLooks.tick(a); };
+    B.onEnter = (a, o) => { if (enter0) enter0(a, o); TownLooks.enter(a, o); };
+}
 
 // ---- 52_kidgame.js ----
 /* The kids' game in the square (S12, after the first Knot): "Housekeeper". Otto stands on a chalk X and
@@ -25589,47 +25889,62 @@ Shears.onPersonCut = n => Freed.free(n);
    cottage with a garden. Meeting her, Wren's gone-ness reaches Gran: the Great Pull begins (src/75_greatspool.js). */
 
 const DRIFT_ROWS = [
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
-    '..............."............,........"..~...........^.......%%%%',
-    '..YYYYYYYY...,......,,..,,..YYYYYYYY....~...........^.......%%%%',
-    '..YYYYYYYY..,........,......YYYYYYYY..".~.,.......",,.",..."%%%%',
-    '..YYYYYYYY......,,....,.....YYYYYYYY....~...........^.......%%%%',
-    '..YYYYYYYY..................YYYYYYYY,...~...........^"......%%%%',
-    '..YYYYYYYY......,.,...,.....YYYYYYYY....~."...."....^,..,...%%%%',
-    ',.YYYYYYYY".,........,......YYYYYYYY....~.,.........^.......%%%%',
-    '..YYYYYYYY......,..........,YYYYYYYY.,..~.".......,,........%%%%',
-    '..YYYYYYYY,....,..".........."..........~.,......,..^.......%%%%',
-    '..."....,..............,......"...,.....~.....,.....^.".....%%%%',
-    '..............XXXXXXXX..................~.....,..,.,^.......%%%%',
-    '"..........".,XXXXXXXX..................~.,"........^.....,.%%%%',
-    '........"...,.XXXXXXXX....,.......".....~.,.............,...%%%%',
-    '..............XXXXXXXX.......,....."....~.....,.....^.,.....%%%%',
-    '..............XXXXXXXX...........,....."~........,.,^,...,..%%%%',
-    '.................:........,,............~...".......^.......%%%%',
-    '::::::::::::::::::::::::::::::::::::::::~:::::::::::::::::::%%%%',
-    '::::::::::::::::::::::::::::::::::::::::~:::::::::::::::::::%%%%',
-    '...........,,,,,,,,,,,,,,,....,.........~...........^......,%%%%',
-    '...........,,,,,,,,,,,,,,,,.............~.........".^.......%%%%',
-    '...........,,,,,,,,,,,,,,,.,."..........~.,.........^"...,..%%%%',
-    '..,........,,,,,,,,,,,,,,,..............~...."......^...."..%%%%',
-    '...........,,,,,,,,,,,,,,,.,............~...YYYYYYY.........%%%%',
-    '......"....,,,,,,,,,,,,,,,.....,...."...~.,.YYYYYYY.^.......%%%%',
-    '....,.....,...............".......,.....~...YYYYYYY.^.......%%%%',
-    '....YYYYYYYYY.............YYYYYYYYY.....~...YYYYYYY.^.".....%%%%',
-    ',.,.YYYYYYYYY.............YYYYYYYYY.."".~...YYYYYYY.^....,..%%%%',
-    '....YYYYYYYYY.............YYYYYYYYY....,~.,.YYYYYYY.........%%%%',
-    '....YYYYYYYYY.............YYYYYYYYY.,,..~...YYYYYYY"^.....,.%%%%',
-    '....YYYYYYYYY...,.........YYYYYYYYY.,..,~...YYYYYYY.^.......%%%%',
-    '....YYYYYYYYY.............YYYYYYYYY.....~...YYYYYYY.^.....,.%%%%',
-    ',...YYYYYYYYY.............YYYYYYYYY.,...~...YYYYYYY.^.......%%%%',
-    '....YYYYYYYYY.............YYYYYYYYY,....~................,..%%%%',
-    '....YYYYYYYYY..........."..........,....~..,."..,...^.......%%%%',
-    '..............................,".".,....~...,......,^.......%%%%',
-    '...."..............,...............,....~......"".,.^.......%%%%',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY%%%%',
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY%%%%',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYVYYYYYYYYYYYYYYY%%%%',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYVYYYYYYYYYYYYYYY%%%%',
+    'YYYYYYYYYYYYYYYY.....hYYhh...",,YYYY..YY..YKVK,..,,,.khhYYYY%%%%',
+    'YYYYYYYYYYYYYYYY....hhYYhh.""","YYYY"XXXXXXKV....,,,.khhYYYY%%%%',
+    'YYYYYYYYYYYYYY..hhhhhhhhhh."""YYYYYY"XXXXXXKVK...,.,,kh.YY..%%%%',
+    'YYYYYYYYYYYYYY..hhhhhhhhhh,"""YYYYYY"XXXXXXKVK..,,,,,k..YY..%%%%',
+    'YYYYYYYYYYYYYY..hhhhhhhh.h,...YYYY.""XXXXXX.VK..,,,,,k......%%%%',
+    'YYYYYYYYYYYYYY..hhhhhhhh.h....YYYY.."XXXXXXKV....,,,,k......%%%%',
+    'YYYYYYYYYYYYYY..hhhhhhhh....,,.............KVK..,,,,,k......%%%%',
+    'YYYYYYYYYYYYYY...hhhhhh.....,,,,...~~~~~~~~KKK..,,,,,.hh....%%%%',
+    'YYYY,,.,,,........hhhh...""",,,,...~~~~~~~~.....,,,,,.hhh,,,%%%%',
+    'YYYY,.....,...........""jjjjjjjjjjj~~~~~~~~......,,,.khhhh.,%%%%',
+    'YY........,.""XXXXXXXX""",,""".....~~~~~~~~.........kkhhhh..%%%%',
+    'YY........,...XXXXXXXX"",,,"".....KKKKKK~KKK........k.hhhh..%%%%',
+    'YY........,...XXXXXXXX..,,,.............~...........k.hhhhh.%%%%',
+    'YY............XXXXXXXX..,,,.....".......~......."...k.hhhhhh%%%%',
+    'YY............XXXXXXXX..,,,...."""""....~......"""..k.hhhhhh%%%%',
+    'YY..............".......,,::::::""".....~.......".....hhhhhh%%%%',
+    '......::::::::::::::::::::::::::::::::..~.::::::::::::::::::%%%%',
+    '::::::::::::::::::::::::::,,,,,,::::::..~.::::::::::::::::::%%%%',
+    'YY,""..."",....,..,,...,,,.,,,,,........~...,,........hhhhhh%%%%',
+    'YY,""...""..,,.,,,..,....,,,,,,,........~...........k.hhhhhh%%%%',
+    'YY.""..."".,..,..,....,,,.,,,,,.........~"..........k,hhhhh.%%%%',
+    'YY....,....,,.,,,,,..,..,..,,.........."~"..........k.hhhhh.%%%%',
+    'YY...,,,YY.,.,,....,,.,....,...........~~"..YYYYYY,,k.hhhh..%%%%',
+    'YY...,,,YY,.,.,,..,,,,.,.,,,...........~,,..YYYYYY,,k.hhhh..%%%%',
+    'YY....YYYYYY..,,....,,.,,..,YYYY.......~""..YYYYYYYYk.hhhh..%%%%',
+    'YY....YYYYYY................YYYY.......~""".YYYYYYYY.kh.....%%%%',
+    'YYYYYYYYYYYYYYYY..........YYYYYYYY,,,..~""".YYYYYYYYYY".....%%%%',
+    'YYYYYYYYYYYYYYYY..........YYYYYYYY,,,,~~"...YYYYYYYYYY.....h%%%%',
+    'YY..YYYYYYYYYY............YYYYYYYYYY,,~.....YYYYYYYY"k.....h%%%%',
+    'YY..YYYYYYYYYY............YYYYYYYYYY,,~.....YYYYYYYY"k.....h%%%%',
+    'YY..YYYYYYYYYY....."".....YYYYYYYY,,,,~,..,.YYYYYYYY.k......%%%%',
+    'YY..YYYYYYYYYY....."""....YYYYYYYY.,,,~...,.YYYYYYYY.k,,....%%%%',
+    'YYYYYYYYYYYY"......""""...,.YYYYYY...,~~..,...........,,....%%%%',
+    'YYYYYYYYYYYY,........"".....YYYYYY..,,,~,,,,,h........,,,...%%%%',
+    'YYYY.,YYYY.,,...YY....""".YY..YYYY.,,,Y~,,YYYYYY..YY.k,,,.YY%%%%',
+    'YYYY..YYYY.,,...YY....."".YY..YYYY.,,,Y~,,YYYYYY..YY.k....YY%%%%',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY~YYYYYYYYYYYYYYYYYYYY%%%%',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY~YYYYYYYYYYYYYYYYYYYY%%%%',
 ];
+
+/* the Drift's own ground (these letters are the Drift's alone) */
+const DRIFT_LEGEND = Object.assign({}, OW_LEGEND, {
+    'h': { k: 'grass', p: 'heath' },            /* heather and dry grass */
+    'j': { k: 'grass', p: 'oldroad' },          /* an old road gone back to grass, its cobbles showing through */
+    'd': { k: 'path', p: 'mud' },               /* the mill pond's bed, once it's run out */
+    'k': { k: 'rock', p: 'drywall' },           /* a dry-stone wall, tumbled in places */
+    'K': { k: 'rock', p: 'racewall' },          /* the mill's dressed stone: the race's walls, the dam */
+});
+/* the old mill: the pond (x, y, w, h), the sluice in its dam, how long the wheel keeps its sluice up after a float has
+   gone by (frames), how far up the sluice must be wound before its catch holds, and the milestone on the pond's bed */
+const MILL = {
+    pond: [35, 9, 8, 4], sluice: [40, 13], TIME: 240, FULL: 900,
+    stone: { x: 37, y: 10, look: 'drift_milestone', text: "A milestone, furred with weed, beside the drowned road. Cut deep in its face: HOLLOWELL 3. On its back, worn nearly away: AND THE WIDE WORLD. The road went in, once, before there was any fog." },
+};
 
 PEOPLE_DEF.linnet = { name: 'Linnet', col: THREAD.linnet, look: { body: 'adult', hair: 'long', hairC: '#8a4a2a', top: '#5ab85a', accent: '#8fd46a', bottom: '#3a6a3a', skin: 'light' } };
 
@@ -25647,7 +25962,10 @@ defArea({
             Gfx.alpha(1);
         }
     },
-    rows: DRIFT_ROWS, legend: OW_LEGEND,
+    /* the ground, then the fog bank seen from outside (its threads, its edge spilling onto the grass) */
+    drawGround: (a, cx, cy) => { DriftArt.ground(a, cx, cy); Fog.draw(a, cx, cy); },
+    rows: DRIFT_ROWS, legend: DRIFT_LEGEND,
+    build: a => Mill.build(a),
     ents: [
         /* Linnet's cottage and garden */
         { k: 'building', x: 14, y: 12, w: 8, h: 5, door: null, style: 'cottage', variant: 'linnet' },
@@ -25660,6 +25978,18 @@ defArea({
         { k: 'stray', x: 43, y: 16, id: 'drBoulder' }, { k: 'stray', x: 46, y: 21, id: 'drBoulder2' },
         { k: 'sign', x: 55, y: 17, text: 'An old marker stone, half sunk. Carved on it, worn nearly smooth: THE HOLLOW ENDS HERE.' },
         { k: 'rest', x: 30, y: 20 },
+        /* the old mill, up the stream: a race down out of the woods turns its wheel; the wheel winds up the sluice in
+           the mill pond's dam, but only while it's turning, and nothing out here comes round twice */
+        { k: 'driftmill', x: 37, y: 3 },
+        { k: 'millwheel', x: 43, y: 6, face: 'right', sig: 'millWheel', time: MILL.TIME },
+        { k: 'sluice', x: 40, y: 13, id: 'drSluice' },
+        { k: 'barrel', x: 46, y: 3, id: 'drBarrel', marked: false },
+        { k: 'barrel', x: 48, y: 5, id: 'drBarrel2', marked: false },
+        { k: 'stray', x: 47, y: 7, id: 'drBoulder3' },
+        /* on the pond's bed, under the water: the old road, its milestone (Mill.build), a toll box */
+        { k: 'chest', x: 41, y: 10, item: 'b50', id: 'drToll', hidden: true, when: 'flag:drift_millpond' },
+        /* what came over the fog from the fair, if it was cut loose */
+        { k: 'driftballoon', x: 58, y: 6, if: 'balloon_away' },
     ],
     regions: [
         { name: 'The Drift', x: 0, y: 0, w: 60, h: 40 },
@@ -25676,6 +26006,18 @@ const Drift = {
         if (p.tx >= 60 && p.state === 'normal') World.go('hollow', 67, p.ty < 20 ? 19 : 20, { dir: RIGHT, fade: true });
     },
     *meet(n) {
+        /* what she's noticed, out here: the mill going, a balloon come over the fog */
+        if (Progress.flag('met_linnet') && Progress.flag('drift_millpond') && !Progress.flag('linnet_mill')) {
+            Progress.set('linnet_mill');
+            yield* say('linnet', "You've had the old mill going. The pond's run out! I tried, my first year. I'd push a barrel down the race and watch it turn the wheel once, and then it was gone, and that was that.");
+            yield* say('linnet', "Out here nothing comes round twice. Unless somebody gives it a reason to. ...You're Tess's girl, all right.");
+            return;
+        }
+        if (Progress.flag('met_linnet') && Progress.flag('balloon_away') && !Progress.flag('linnet_balloon')) {
+            Progress.set('linnet_balloon');
+            yield* say('linnet', "Something came over the fog the other day: a balloon, striped, from the fair by the look of it. It's caught in the tree by the old wall. I haven't had the heart to get it down.");
+            return;
+        }
         if (Progress.flag('met_linnet')) { yield* say('linnet', cycle('linnet_after', ["Go on, Wren. I'll come. I promise I'll come.", "She can't pull you. Remember that. Nothing can, now, unless you let it.", "Tell Biscuit I said hello. Ha! He knows."])); return; }
         Progress.set('met_linnet'); Stats.count('met:linnet');
         yield* say('linnet', "Hello? ...Oh. Oh, look at you. You've got Tess's chin. You're Tess's girl. You're Wren.");
@@ -25765,10 +26107,14 @@ function initDrift() {
 }
 CONTENT_INIT.push(initDrift);
 
-/* the Drift's woods: every 2x2 of forest is a tree, as in the Hollow */
-for (let y = 0; y < DRIFT_ROWS.length - 1; y += 2) for (let x = (y / 2) % 2; x < DRIFT_ROWS[0].length - 1; x += 2) {
-    const R = DRIFT_ROWS;
-    if (R[y][x] === 'Y' && R[y + 1][x] === 'Y' && R[y][x + 1] === 'Y' && R[y + 1][x + 1] === 'Y') AREAS.drift.ents.push({ k: 'tree', x, y, look: ['birch', 'tree', 'tree2'][Math.floor(hash2(x, y, 7) * 3)], deco: true });
+/* the Drift's woods: a tree to every 2x2 of forest, and more in between where it's thick; wild trees, mostly (oak,
+   rowan, birch, a pine or two), none quite in line with the next (each nudged a little when the place is built) */
+{
+    const R = DRIFT_ROWS, Y = (x, y) => R[y] && R[y][x] === 'Y' && R[y][x + 1] === 'Y' && R[y + 1] && R[y + 1][x] === 'Y' && R[y + 1][x + 1] === 'Y';
+    const LOOKS = ['tree_wild', 'tree_wild', 'tree_wild2', 'tree_rowan', 'tree_birch', 'tree_wild2', 'pine', 'tree_wild'];
+    const plant = (x, y) => AREAS.drift.ents.push({ k: 'drifttree', x, y, look: LOOKS[Math.floor(hash2(x, y, 7) * LOOKS.length)] });
+    for (let y = 0; y < R.length - 1; y += 2) for (let x = 0; x < R[0].length - 1; x += 2) if (Y(x, y)) plant(x, y);
+    for (let y = 1; y < R.length - 1; y += 2) for (let x = 1; x < R[0].length - 1; x += 2) if (Y(x, y) && hash2(x, y, 9) < 0.4) plant(x, y);
 }
 /* a Drift-bloom gone to seed by Linnet's gate: one seed (S11), for anybody who never got one from the fog */
 SPAWN.driftbloomseed = (tx, ty) => {

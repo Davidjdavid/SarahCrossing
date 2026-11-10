@@ -576,11 +576,16 @@ const GlazerShots = {
 /* urns in the boss's chamber: pots that come home quickly */
 SPAWN.urn = (x, y, p) => new Pot(x, y, Object.assign({ style: 'urn', patience: 60 }, p));
 
-/* the Kilnwyrm: a long glazed serpent of pots. It follows exactly where Wren has walked */
+/* the Kilnwyrm: a long glazed serpent of pots. It follows exactly where Wren has walked. Its moves (TELL[2]): following,
+   it rears up and darts along her footprints (a full heart: keep moving and it falls short); round the rim, it lobs a
+   glob of hot glaze where she stands (its shadow first), which lies there a while, still hot; coiled in the pit, it
+   rattles and sheds pieces of itself round the pit's edge (their shadows first), and each lies on its thread back to the
+   pit till it shivers and flies home along it. Each beat it's knocked into, a heart rolls free. */
+const KW = { near: 40, dart: 54, dartSp: 3.2, cool: [0, 140, 120, 100], glob: 13, puddle: 150, shed: 4 };
 class Kilnwyrm extends Enemy {
     constructor(tx, ty) {
         super(tx, ty, { type: 'kilnwyrm', hp: 3 });
-        this.state = 'sleep'; this.st = 0;
+        this.state = 'sleep'; this.st = 0; this.cool = 60; this.glowT = 0; this.rattleT = 0;
         this.segs = 7; this.trail = []; this.path = [];
         this.speed = 0.8;
         for (let i = 0; i < 80; i++) this.trail.push([this.x, this.y - i]);
@@ -608,11 +613,18 @@ class Kilnwyrm extends Enemy {
            home that flies over the pit (a Hookline reel, carrying) reaches it */
         const phase = 4 - Math.max(1, Math.min(3, this.hp));
         if (this.state === 'hurt') { if (this.st > 50) { this.state = phase === 1 ? 'follow' : phase === 2 ? 'rim' : 'pit'; this.st = 0; if (phase > (this.told || 1)) this.beginPhase(phase); } return; }
+        if (this.glowT > 0) this.glowT--; if (this.rattleT > 0) this.rattleT--;
         if (this.state === 'rim' || this.state === 'pit') return this.ring(phase, p);
-        /* the path it follows: every step Wren takes */
+        /* the path it follows: every step Wren takes (heard even while it rears) */
         const last = this.path[this.path.length - 1];
         if (p.state !== 'flight' && (!last || dist(last[0], last[1], p.x, p.y) > 3)) this.path.push([p.x, p.y]);
-        const sp = this.speed * (this.hp === 1 ? 1.5 : this.hp === 2 ? 1.2 : 1);
+        if (this.cool > 0) this.cool--;
+        /* close behind her: it rears, hissing, its mouth aglow, and then darts on along her footprints */
+        if (this.state === 'rear') { if (++this.st2 >= this.tellN) { this.state = 'dart'; this.dartLeft = KW.dart; Sfx.play('throw'); } return; }
+        if (this.state === 'follow' && this.cool <= 0 && p.state === 'normal' && p.area === a && dist(p.x, p.y, this.x, this.y) < KW.near) {
+            this.state = 'rear'; this.st2 = 0; this.tellN = tellFor(2); Sfx.play('warn'); Stats.count('boss:kiln:dart'); return;
+        }
+        const sp = this.state === 'dart' ? KW.dartSp : this.speed * (this.hp === 1 ? 1.5 : this.hp === 2 ? 1.2 : 1);
         let left = sp;
         while (left > 0 && this.path.length) {
             const [tx, ty] = this.path[0], d = dist(this.x, this.y, tx, ty);
@@ -620,8 +632,9 @@ class Kilnwyrm extends Enemy {
             else { this.x += (tx - this.x) / d * left; this.y += (ty - this.y) / d * left; this.dir = dirOf(tx - this.x, ty - this.y); left = 0; }
             this.trail.unshift([this.x, this.y]);
         }
+        if (this.state === 'dart' && ((this.dartLeft -= sp - left) <= 0 || !this.path.length)) { this.state = 'follow'; this.cool = KW.cool[1]; }
         if (this.trail.length > 200) this.trail.length = 200;
-        if (p.state === 'normal' && dist(p.x, p.y, this.x, this.y) < 12) { p.hurt(1, this.x, this.y); }
+        if (p.state === 'normal' && dist(p.x, p.y, this.x, this.y) < 12) { p.hurt(this.state === 'dart' ? 2 : 1, this.x, this.y); }
     }
     /* the room it's in (the Kiln's Heart), in tiles */
     get room() { return this._room || (this._room = this.area.rooms.find(r => r.key === '1,0')); }
@@ -664,6 +677,41 @@ class Kilnwyrm extends Enemy {
             this.dir = dirOf(nx - this.x, ny - this.y); this.x = nx; this.y = ny;
         }
         this.trail.unshift([this.x, this.y]); if (this.trail.length > 200) this.trail.length = 200;
+        /* its blows, in turn: (2) a glob of glaze; (3) a shedding, then a glob */
+        if (this.cool > 0) this.cool--;
+        else if (p.state === 'normal' && p.area === this.area && this.area.roomAt(p.tx, p.ty) === r) {
+            if (phase === 3 && !this.shedLast) this.shed(); else this.glob(p, phase);
+            this.shedLast = phase === 3 && !this.shedLast;
+        }
+    }
+    /* its head glows; then a glob of hot glaze flies up and comes down where she stood (its shadow there first), and lies
+       there a while as a puddle, still hot */
+    glob(p, phase) {
+        const tell = tellFor(2, phase);
+        this.glowT = tell; Sfx.play('warn');
+        Hazard.drop(this, p.x, p.y, { r: KW.glob, dmg: 1, tell: tell + 18, live: KW.puddle, fx: 'clay', col: '#f39a3c', quiet: true, look: Kiln.drawGlob, lookLanded: Kiln.drawPuddle });
+        this.cool = KW.cool[phase];
+        Stats.count('boss:kiln:glob');
+    }
+    /* (3) it rattles its coils, and pieces of it fly up out of the pit and come down round its edge (their shadows first):
+       two near Wren, two anywhere; each lies on its thread back to the pit, then shivers and flies home along it */
+    shed() {
+        const r = this.room, a = this.area, p = G.player, tell = tellFor(2, 3);
+        const inPit = (x, y) => x >= r.x + 7 && x <= r.x + 11 && y >= r.y + 3 && y <= r.y + 7;
+        const cand = [];
+        for (let y = r.y + 1; y <= r.y + 9; y++) for (let x = r.x + 5; x <= r.x + 13; x++) { const k = a.kind(x, y); if (!inPit(x, y) && !k.solid && !k.pit && !a.at(x, y)) cand.push([x, y]); }
+        cand.sort((m, n) => dist(m[0], m[1], p.tx, p.ty) - dist(n[0], n[1], p.tx, p.ty));
+        const picks = [];
+        const take = (from, n) => { for (let i = 0; i < n && from.length; i++) picks.push(from.splice(Math.floor(G.rng() * from.length), 1)[0]); };
+        const near = cand.splice(0, 6); take(near, 2); take(cand, KW.shed - 2);
+        const home = [r.x + 9, r.y + 5];
+        for (const [x, y] of picks) Hazard.drop(this, x * T + 8, y * T + 10, {
+            r: 10, dmg: 1, tell, fx: 'clay', col: '#c4623a', quiet: true, look: Kiln.drawShard,
+            onLand: () => this.area.add(new Flung(this, Flung.between(home, [x, y]), { lying: true, wait: 64, tell: 26, back: 3, dmg: 1, col: THREAD.bram, look: Kiln.drawShard })),
+        });
+        this.rattleT = tell; Sfx.play('warn'); Sfx.play('rumble');
+        this.cool = KW.cool[3] + 40;
+        Stats.count('boss:kiln:shed');
     }
     /* shards break it wherever they meet it, head or coil */
     hitsTile(tx, ty) {
@@ -676,11 +724,13 @@ class Kilnwyrm extends Enemy {
         if (!this.alive || this.flash > 0) return;
         if (!shard) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 8); return; }  /* glazed: only its own kind breaks it */
         this.hp--; this.flash = 40; Sfx.play('enemyhit'); Sfx.play('shatter'); G.hitstop = 8; G.shake = 8;
-        this.segs = Math.max(2, this.segs - 2); this.state = 'hurt'; this.st = 0;
+        this.segs = Math.max(2, this.segs - 2); this.state = 'hurt'; this.st = 0; this.glowT = this.rattleT = 0; this.cool = 90;
+        calmBlows(this);
         Stats.count('boss:kiln:shards');
         /* it reels back along its own trail */
         this.path = [];
         if (this.hp <= 0) this.defeat();
+        else { const p = G.player; bossHeart(this.area, p.x + 20, p.y); }
     }
     defeat() {
         this.alive = false;
@@ -696,19 +746,39 @@ class Kilnwyrm extends Enemy {
             return;
         }
         const fl = this.flash > 0 && (this.flash >> 1) % 2;
+        /* rattling its coils (about to shed): every piece of it shivers */
+        const rat = this.rattleT > 0 ? ((this.t >> 1) % 2 ? 1 : -1) : 0;
         for (let i = this.segs; i >= 1; i--) {
             const s = this.trail[Math.min(this.trail.length - 1, i * 11)];
             const im = spr(i === this.segs ? 'wyrm_tail' : 'wyrm_seg');
             Gfx.alpha(0.22); Gfx.rect(s[0] - cx - 6, s[1] - cy, 12, 3, PAL.ink); Gfx.alpha(1);
-            Gfx.img(fl ? tinted(im, '#ffffff') : im, s[0] - cx - 8, s[1] - cy - 14);
+            Gfx.img(fl ? tinted(im, '#ffffff') : im, s[0] - cx - 8 + (i % 2 ? rat : -rat), s[1] - cy - 14);
         }
+        /* rearing: its head up off the floor, hissing, and its mouth aglow; about to spit glaze: its mouth aglow */
+        const rear = this.state === 'rear', lift = rear ? Math.round(5 * Math.min(1, this.st2 / 10)) : 0;
         const hd = spr('wyrm_head_' + DIR_NAME[this.dir === LEFT ? RIGHT : this.dir]);
-        Gfx.img(fl ? tinted(hd, '#ffffff') : hd, this.x - cx - 8, this.y - cy - 16, this.dir === LEFT);
+        Gfx.img(fl ? tinted(hd, '#ffffff') : hd, this.x - cx - 8 + (rear ? ((this.t >> 1) % 2 ? 1 : -1) : 0), this.y - cy - 16 - lift, this.dir === LEFT);
+        if (rear || this.glowT > 0) {
+            const k = rear ? this.st2 / (this.tellN || 30) : 1 - this.glowT / (tellFor(2, 2) || 30);
+            Tells.glow(this.x - cx + DX[this.dir] * 5, this.y - cy - 9 - lift + DY[this.dir] * 2, Math.min(1, k), '#f39a3c');
+        }
+        if (rear) Tells.bang(this.x - cx, this.y - cy - 30 - lift);
     }
 }
 SPAWN.kilnwyrm = (x, y) => Progress.flag('kiln_boss') ? new Ent('none') : new Kilnwyrm(x, y);
 
 const Kiln = {
+    /* a glob of hot glaze, coming down; the puddle it leaves (fading as it cools); a piece of the wyrm, shed */
+    drawGlob(x, y) { Gfx.circle(x, y - 3, 3, PAL.ink); Gfx.circle(x, y - 3, 2, '#f39a3c'); Gfx.rect(x - 1, y - 4, 1, 1, '#fff0b0'); },
+    drawPuddle(x, y, h) {
+        const left = h.tell + h.live - h.t, k = Math.min(1, left / 40);
+        Gfx.alpha(0.4 + 0.5 * k); Tells.ellipse(x, y, h.r, '#c4623a'); Tells.ellipse(x, y - 1, h.r - 3, '#f39a3c'); Gfx.alpha(1);
+        if ((G.t >> 3) % 3 === 0) Gfx.rect(x - 3 + ((G.t >> 4) % 5), y - 3, 2, 1, '#fff0b0');
+    },
+    drawShard(x, y, f) {
+        const sp = f && f.state && f.state !== 'lie' && (G.t >> 2) % 2;
+        Gfx.rect(x - 3, y - 3, 7, 5, PAL.ink); Gfx.rect(x - 2, y - 2, 5, 3, sp ? '#e8a070' : '#c4623a'); Gfx.rect(x - 2, y - 2, 2, 1, '#5ad1c5');
+    },
     *bossIntro(w) {
         yield 20;
         yield* say(null, 'In the heat at the heart of the Kiln, something long and glazed uncoils. Its head turns, sniffs the floor where you just walked, and starts to follow your footprints.');

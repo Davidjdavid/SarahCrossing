@@ -153,4 +153,6 @@
   idea, in any order; a look and a tune of its own; a long climb that no longer sends you all the way back down.
 - Four regions of the valley redrawn with their own ground and landmarks, each with a puzzle place of its own and
   spots that later tools open; the seams where regions meet are gone.
+- Every puzzle room rated for difficulty against a curve that starts gentle and ends hard; rooms that could be
+  solved without their idea now want it, and signs that described a step now say only how the place behaves.
 
