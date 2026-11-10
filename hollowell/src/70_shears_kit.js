@@ -37,7 +37,7 @@ const Shears = {
             const a = p.area, f = p.front();
             if ((a.kind(f.tx, f.ty).fog || a.kind(p.tx, p.ty).fog) && !Progress.flag('cut_self')) return Script.run(Shears.selfCut());
             if (this.taut(a, f.tx, f.ty, false)) { UI.toast("The thread's lying slack there: it only slides off the blades. Cut it at the thing itself, or while it's pulled tight.", 200); return; }
-            UI.toast(this.hinted ? 'Nothing with a thread there.' : 'Face something with a thread (or its cord, from underneath) and press C to cut it.');
+            UI.toast(this.hinted ? 'Nothing with a thread there.' : 'Face something with a thread (or its cord, from underneath) and press [tool] to cut it.');
             this.hinted = true; return;
         }
         if (e.noCut) { UI.toast(e.noCutLine || "The Shears won't close on that."); return; }

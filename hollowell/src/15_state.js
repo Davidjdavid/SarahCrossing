@@ -2,15 +2,15 @@
    and the settings. All of it is what a save holds. */
 
 const ITEMS = {
-    gloves: { name: 'Gloves', kind: 'tool', desc: 'Hold Z against a block to grip it: it stays put while you hold on. Step back to pull it.' },
-    hook: { name: 'Hookline', kind: 'tool', desc: 'C: throw the hook. Catches on eyelets and empty marks and reels you over; reels light things to you.' },
+    gloves: { name: 'Gloves', kind: 'tool', desc: 'Hold [act] against a block to grip it: it stays put while you hold on. Step back to pull it.' },
+    hook: { name: 'Hookline', kind: 'tool', desc: '[tool]: throw the hook. Catches on eyelets and empty marks and reels you over; reels light things to you.' },
     paddle: { name: 'Paddle', kind: 'tool', desc: 'Stand on anything that floats and paddle it about.' },
-    bell: { name: 'Recall Bell', kind: 'tool', desc: 'C: ring it. Everything nearby that is out of place goes straight home.' },
-    bedroll: { name: 'Bedroll', kind: 'tool', desc: 'C: lay it down to make a place of your own. Hold C to go home to it.' },
-    crossbar: { name: 'Crossbar', kind: 'tool', desc: 'C: take up the strings of a puppet you can see, and walk it.' },
-    needle: { name: 'Needle', kind: 'tool', desc: "C: give a thing a new place. Up to three at a time." },
-    shears: { name: 'Shears', kind: 'tool', desc: 'C: cut a thread. What is cut stays where it is.' },
-    staff: { name: 'Wanderstaff', kind: 'gear', desc: 'X: swing it. Knocks light things aside, flips crystals.' },
+    bell: { name: 'Recall Bell', kind: 'tool', desc: '[tool]: ring it. Everything nearby that is out of place goes straight home.' },
+    bedroll: { name: 'Bedroll', kind: 'tool', desc: '[tool]: lay it down to make a place of your own. Hold [tool] to go home to it.' },
+    crossbar: { name: 'Crossbar', kind: 'tool', desc: '[tool]: take up the strings of a puppet you can see, and walk it.' },
+    needle: { name: 'Needle', kind: 'tool', desc: "[tool]: give a thing a new place. Up to three at a time." },
+    shears: { name: 'Shears', kind: 'tool', desc: '[tool]: cut a thread. What is cut stays where it is.' },
+    staff: { name: 'Wanderstaff', kind: 'gear', desc: '[atk]: swing it. Knocks light things aside, flips crystals.' },
     satchel: { name: 'Satchel', kind: 'gear', desc: "A Wanderer's bag." },
     key: { name: 'Small key', kind: 'key', desc: 'Opens a locked door in the House it came from.' },
     pattern: { name: 'Pattern', kind: 'key', desc: "The House's master pattern: the big lock is stitched to match it." },
@@ -101,16 +101,41 @@ const Stats = {
     },
 };
 
+/* Where saves and settings are kept: the browser's own storage, and a copy in memory in case the browser won't keep
+   anything (a private window); onSet/onRemove let a page that hosts the game keep a copy elsewhere too. */
+const Store = {
+    mem: {}, onSet: null, onRemove: null,
+    get(k) {
+        try { const v = localStorage.getItem(k); if (v !== null) return v; } catch { }
+        return Object.prototype.hasOwnProperty.call(this.mem, k) ? this.mem[k] : null;
+    },
+    set(k, v, quiet) {
+        this.mem[k] = v;
+        let ok = false; try { localStorage.setItem(k, v); ok = true; } catch { }
+        if (!quiet && this.onSet) { try { this.onSet(k, v); } catch { } }
+        return ok;
+    },
+    remove(k, quiet) {
+        delete this.mem[k];
+        try { localStorage.removeItem(k); } catch { }
+        if (!quiet && this.onRemove) { try { this.onRemove(k); } catch { } }
+    },
+};
+
 const Settings = {
     textSpeed: 1, shake: true, hints: true,
     load() {
-        try { Object.assign(this, JSON.parse(localStorage.getItem('hollowell-settings') || '{}')); } catch { }
+        try { Object.assign(this, JSON.parse(Store.get('hollowell-settings') || '{}')); } catch { }
+        /* the buttons as the player set them (the arrows and Escape always kept) */
+        if (this.keys && typeof this.keys === 'object') Input.keymap = Object.assign({}, this.keys, typeof KEYS_FIXED !== 'undefined' ? KEYS_FIXED : {});
+        if (this.pads && typeof this.pads === 'object') Input.padmap = Object.assign({}, typeof PAD_DEFAULT !== 'undefined' ? JSON.parse(JSON.stringify(PAD_DEFAULT)) : {}, this.pads);
+        this.crt = this.crt | 0;
         Audio.vol.music = this.music !== undefined ? this.music : 0.6;
         Audio.vol.sfx = this.sfx !== undefined ? this.sfx : 0.8;
     },
     save() {
         this.music = Audio.vol.music; this.sfx = Audio.vol.sfx;
-        try { localStorage.setItem('hollowell-settings', JSON.stringify({ textSpeed: this.textSpeed, shake: this.shake, hints: this.hints, music: this.music, sfx: this.sfx, keys: Input.keymap })); } catch { }
+        Store.set('hollowell-settings', JSON.stringify({ textSpeed: this.textSpeed, shake: this.shake, hints: this.hints, music: this.music, sfx: this.sfx, keys: Input.keymap, pads: Input.padmap, crt: this.crt | 0 }));
         Audio.setVolumes();
     },
 };

@@ -11,7 +11,7 @@ const KEYMAP_DEFAULT = {
     KeyC: 'tool', KeyL: 'tool',
     KeyQ: 'prev', KeyE: 'next',
     Enter: 'menu', Escape: 'menu',
-    Tab: 'map', KeyM: 'map',
+    KeyM: 'map', Tab: 'map',
 };
 
 const Input = {

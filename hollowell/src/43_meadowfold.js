@@ -68,7 +68,7 @@ defBlock({
         { k: 'critter', who: 'sheep', look: 'sheep', x: 16, y: 30, speed: 0.3, route: [[16, 30, 150], [12, 29, 100], [15, 32, 80]] },
         { k: 'critter', who: 'sheep', look: 'sheep', x: 12, y: 32, speed: 0.25, route: [[12, 32, 200], [16, 28, 120]] },
         { k: 'enemy', x: 10, y: 10, type: 'nibbler' }, { k: 'enemy', x: 25, y: 18, type: 'nibbler' }, { k: 'enemy', x: 56, y: 9, type: 'nibbler' },
-        { k: 'enemy', x: 38, y: 33, type: 'nibbler' },
+        { k: 'enemy', x: 40, y: 33, type: 'nibbler' },
     ],
     regions: [
         { name: 'Canyon Road', x: 0, y: 19, w: 8, h: 8, quiet: true },

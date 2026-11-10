@@ -73,7 +73,8 @@ const Dialog = {
         const last = this.page === this.pages.length - 1;
         if (done && last && this.choices) {
             const cw = Math.max(...this.choices.map(c => Font.width(c))) + 20, chh = this.choices.length * 11 + 8;
-            const cx = x + w - cw - 4, cy = y - chh - 2;
+            /* above the box, or (when the box is at the top of the screen) below it: always on screen */
+            const cx = x + w - cw - 4, cy = top ? y + h + 2 : y - chh - 2;
             stitchedBox(cx, cy, cw, chh);
             this.choices.forEach((c, i) => {
                 if (i === this.sel) Font.draw('\x02', cx + 5, cy + 5 + i * 11, PAL.red2);
@@ -89,7 +90,7 @@ const SPEAKER_COL = {};
 const UI = {
     fadeA: 0, fade: null, toasts: [], banner: null, menu: null,
     modal() { return Dialog.active || !!this.menu; },
-    toast(s, dur = 120) { if (this.toasts.some(t => t.s === s)) return; this.toasts.push({ s, t: 0, dur }); },
+    toast(s, dur = 120) { s = Story.fill(s); if (this.toasts.some(t => t.s === s)) return; this.toasts.push({ s, t: 0, dur }); },
     showBanner(s, sub) { this.banner = { s, sub, t: 0 }; },
     update() {
         if (this.fade) {
@@ -128,14 +129,18 @@ const UI = {
             }
         }
         /* buttons */
-        Gfx.img(spr('hud_button'), W - 34, 4);
-        Font.draw(String(Inv.buttons), W - 24, 5, PAL.white, Infinity, PAL.ink);
+        /* (the count right-aligned to the edge, however many) */
+        const bs = String(Inv.buttons), bx = W - 5 - Font.width(bs);
+        Gfx.img(spr('hud_button'), bx - 10, 4);
+        Font.draw(bs, bx, 5, PAL.white, Infinity, PAL.ink);
         /* the tool in hand */
         const tool = Inv.equipped;
         if (tool) {
             stitchedBox(W - 58, 1, 20, 20, { fill: '#fbf3df' });
             const ic = spr('icon_' + tool); if (ic) Gfx.img(ic, W - 56, 3);
-            Font.draw('C', W - 44, 13, PAL.grey3);
+            /* the key (or button) that uses it, under the box */
+            const kl = keyLabel('tool');
+            Font.draw(kl, Math.round(W - 48 - Font.width(kl) / 2), 23, PAL.white, Infinity, PAL.ink);
         }
         /* keys in a House */
         const area = G.map;

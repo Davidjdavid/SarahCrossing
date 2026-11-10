@@ -40,11 +40,35 @@ function initPeople() {
     defSprite('dog_0', ['................', '................', '................', '................', '................', '..kk............', '.kbbk...........', '.kbwbkkkkkkkk...',
         '.kbbbwwwwwwwwk..', '..kkbwwwwwwwwbk.', '...kwwwwwwwwbbk.', '...kwbwwwwbwwk..', '...kbk.kbk.kbk..', '...kk..kk..kk...', '................', '................'],
         { w: '#f4e6c8', b: '#9a6438' });
+    defSprite('dog_1', ['................', '................', '................', '................', '................', '..kk............', '.kbbk...........', '.kbwbkkkkkkkk...',
+        '.kbbbwwwwwwwwk..', '..kkbwwwwwwwwbk.', '...kwwwwwwwwbbk.', '...kwbwwwwbwwk..', '..kbk..kbkkbk...', '..kk...kk.kk....', '................', '................'],
+        { w: '#f4e6c8', b: '#9a6438' });
     defSprite('bubble_dots', ['.kkkkkkk.', 'kwwwwwwwk', 'kwkwkwkwk', 'kwwwwwwwk', '.kkkwkkk.', '....k....'], {});
     defSprite('bubble_heart', ['.kkkkkkk.', 'kwrwwwrwk', 'kwrrwrrwk', 'kwwrrrwwk', '.kkkrkkk.', '....k....'], {});
     defSprite('bubble_bang', ['.kkkkkkk.', 'kwwwrwwwk', 'kwwwrwwwk', 'kwwwwwwwk', '.kkkrkkk.', '....k....'], {});
 }
 CONTENT_INIT.push(initPeople);
+
+/* a critter's way to (gx, gy) over open ground, or to the reachable tile nearest it (a waypoint on a doorstep, a hole...) */
+function critterPath(a, sx, sy, gx, gy, max = 3000) {
+    const prev = new Map([[key2(sx, sy), null]]), q = [[sx, sy]];
+    let best = [sx, sy], bd = Math.abs(sx - gx) + Math.abs(sy - gy), n = 0;
+    const open = (x, y) => { const k = a.kind(x, y); return a.inside(x, y) && !(k.solid || k.pit || k.deep || k.ledge || k.fog || k.void) && !a.at(x, y); };
+    while (q.length && n++ < max) {
+        const [x, y] = q.shift();
+        const d = Math.abs(x - gx) + Math.abs(y - gy);
+        if (d < bd) { bd = d; best = [x, y]; }
+        if (d === 0) break;
+        for (let i = 0; i < 4; i++) {
+            const nx = x + DX[i], ny = y + DY[i], k = key2(nx, ny);
+            if (prev.has(k) || !open(nx, ny)) continue;
+            prev.set(k, [x, y]); q.push([nx, ny]);
+        }
+    }
+    const path = []; let c = best;
+    while (c && !(c[0] === sx && c[1] === sy)) { path.unshift(c); c = prev.get(key2(c[0], c[1])); }
+    return path;
+}
 
 /* animals that go where they like (Biscuit) or chase a ball (Pudding) */
 class Critter extends Ent {
@@ -64,8 +88,15 @@ class Critter extends Ent {
         if (!this.route) return;
         if (this.wait > 0) { this.wait--; return; }
         const [gx, gy, w] = this.route[this.ri];
-        const tx = gx * T + 8, ty = gy * T + 10, dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy);
-        if (d < 1) { this.ri = (this.ri + 1) % this.route.length; this.wait = w || 60; return; }
+        /* round things, never through them: tile to tile to the next spot on its round (or as near as it can get) */
+        if (!this.path || this.pathFor !== this.ri) { this.path = critterPath(this.area, Math.floor(this.x / T), Math.floor((this.y - 2) / T), gx, gy); this.pathFor = this.ri; }
+        const next = this.path[0];
+        const tx = next ? next[0] * T + 8 : this.x, ty = next ? next[1] * T + 10 : this.y, dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy);
+        if (d < 1) {
+            if (next) { this.x = tx; this.y = ty; this.path.shift(); }
+            if (!this.path.length) { this.ri = (this.ri + 1) % this.route.length; this.wait = w || 60; this.path = null; }
+            return;
+        }
         const sp = this.speed || 0.6;
         this.x += dx / d * Math.min(sp, d); this.y += dy / d * Math.min(sp, d);
         if (Math.abs(dx) > 0.3) this.dir = dx < 0 ? LEFT : RIGHT;

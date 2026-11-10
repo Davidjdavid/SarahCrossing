@@ -20,6 +20,7 @@ export function loadGame() {
         performance: { now: () => Date.now() },
     };
     sandbox.globalThis = sandbox;
+    sandbox.__SRC = SRC;      /* (the probe maps lines back to source files) */
     vm.createContext(sandbox);
     vm.runInContext(SRC, sandbox, { filename: 'hollowell.js' });
     const HW = sandbox.HW;

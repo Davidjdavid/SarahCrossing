@@ -743,7 +743,7 @@ function initTidyArt() {
 CONTENT_INIT.push(initTidyArt);
 ITEM_LINES.plan = () => 'You found the {blue}House plan{/}! Every room of the Tidyhouse, drawn in a neat hand. (Open the map with M.)';
 ITEM_LINES.pattern = () => "You found the {blue}Pattern{/}! A square of teal cloth stitched in a pattern like a lock's insides. The big door in this House is stitched to match.";
-ITEM_LINES.gloves = () => 'You found the {red}Gloves{/}! Hold Z against something to grip it: while you hold on, it stays put. Step back while gripping to pull it.';
+ITEM_LINES.gloves = () => 'You found the {red}Gloves{/}! Hold [act] against something to grip it: while you hold on, it stays put. Step back while gripping to pull it.';
 ITEM_LINES.heartstitch = () => 'A {red}Heartstitch{/}! Your hearts grow by one.';
 ITEM_LINES.key = () => 'A {blue}small key{/}! It opens one locked door in this House.';
 ITEM_LINES.heartpatch = () => 'A {red}Heart Patch{/}! ' + (Inv.patches % 4 === 0 ? '' : `(${Inv.patches % 4} of 4.)`);

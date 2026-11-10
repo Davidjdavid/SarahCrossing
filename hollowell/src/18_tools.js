@@ -7,7 +7,7 @@ const Tools = {
         const id = Inv.equipped; if (!id) return;
         const t = TOOLS[id];
         if (t && t.use) { t.use(p); Stats.count('tool:' + id); }
-        else if (id === 'gloves') UI.toast('Hold Z against something to grip it.');
+        else if (id === 'gloves') UI.toast('Hold [act] against something to grip it.');
     },
     hold(p) { const t = TOOLS[Inv.equipped]; if (t && t.hold) t.hold(p); },
     unhold(p) { for (const k in TOOLS) if (TOOLS[k].unhold) TOOLS[k].unhold(p); },

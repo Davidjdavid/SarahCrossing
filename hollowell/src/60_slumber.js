@@ -363,7 +363,7 @@ const Slumber = {
 };
 SIGNATURE_TEXT.slumber = "Stitched into the rug, lavender on lavender, so you'd only see it lying down: a crescent moon and the letters D.M. Someone signed this House where they'd see it last thing at night.";
 
-ITEM_LINES.bedroll = () => 'You found the {red}Bedroll{/}! Tap C to lay it down anywhere: that spot is home now. Hold C to go Homeward, flying back along your trace to it. What you carry comes too.';
+ITEM_LINES.bedroll = () => 'You found the {red}Bedroll{/}! Tap [tool] to lay it down anywhere: that spot is home now. Hold [tool] to go Homeward, flying back along your trace to it. What you carry comes too.';
 ITEM_AFTER.bedroll = function* () { Inv.equipped = 'bedroll'; };
 /* falling home in the Linen Cupboard mends the boards, and puts the lamps out */
 Player.onLand.push(p => { const a = p.area; if (a && a.id === 'slumber') { const r = a.roomAt(p.tx, p.ty); if (r && r.key === '0,2') Slumber.linenReset(a); } });

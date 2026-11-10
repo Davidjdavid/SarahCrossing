@@ -74,8 +74,8 @@ const Ending = {
         Gfx.alpha(1);
     },
 };
-function localSet(k, v) { try { localStorage.setItem(k, v); } catch { } }
-function localGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function localSet(k, v) { Store.set(k, v); }
+function localGet(k) { return Store.get(k); }
 {
     const draw0 = UI.draw;
     UI.draw = function () { draw0.call(this); if (G.credits) Ending.drawCredits(); };

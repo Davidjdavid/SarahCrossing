@@ -106,6 +106,7 @@ for (const line of FONT_SRC.split('\n')) {
     FONT[ch] = { w: rows[0].length, rows };
 }
 FONT[' '] = { w: 3, rows: [] };
+FONT['\u2014'] = { w: 6, rows: ['......', '......', '......', '######', '......', '......', '......', '......'] };    /* a dash, as in "Wipe your- oh" */
 /* a few icons in the text: \x01 heart, \x02 arrow, \x03 button, \x04 spool */
 FONT['\x01'] = { w: 7, rows: ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...', '.......', '.......'] };
 FONT['\x02'] = { w: 4, rows: ['#...', '##..', '###.', '####', '###.', '##..', '#...', '....'] };

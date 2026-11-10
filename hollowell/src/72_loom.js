@@ -320,5 +320,5 @@ function initLoom() {
     SPR.wallhank = ART.wallhank; SPR.wallbobbins = ART.wallbobbins;
 }
 CONTENT_INIT.push(initLoom);
-ITEM_LINES.shears = () => "You found the {red}Shears{/}: the First Spinner's own. Face something with a thread (or its cord, from below) and press C: snip. It's a stray now, for good. People too. And, at the fog, your own.";
+ITEM_LINES.shears = () => "You found the {red}Shears{/}: the First Spinner's own. Face something with a thread (or its cord, from below) and press [tool]: snip. It's a stray now, for good. People too. And, at the fog, your own.";
 ITEM_AFTER.shears = function* () { Inv.equipped = 'shears'; };

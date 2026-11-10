@@ -41,4 +41,7 @@ ${js.replace(/<\/script>/g, '<\\/script>')}
 </html>
 `;
 fs.writeFileSync(path.join(ROOT, 'play.html'), html);
+/* the same game in a page of its own (published as a link): tools/page.html with the script inside */
+const page = fs.readFileSync(path.join(ROOT, 'tools', 'page.html'), 'utf8').replace('/*GAME_JS*/', () => js.replace(/<\/script>/g, '<\\/script>'));
+fs.writeFileSync(path.join(ROOT, 'dist', 'hollowell_page.html'), page);
 console.log(`built play.html (${(html.length / 1024).toFixed(0)} KB) from ${files.length} files`);

@@ -367,6 +367,53 @@ const SCENARIOS = {
             await ctx.close();
         }
     },
+    /* a controller (simulated): name the Wanderer from the letter grid, walk with the stick, change a button in
+       Controls, and the game's words name the controller's buttons */
+    async gamepad() {
+        await page.goto('file://' + path.join(ROOT, 'play.html') + '?debug');
+        await page.waitForFunction(() => window.HW && window.HW.G);
+        /* (no saves from the scenarios before: the title's first choice is a new game) */
+        await page.evaluate(() => { try { localStorage.clear(); } catch { } window.onbeforeunload = null; });
+        await page.goto('file://' + path.join(ROOT, 'play.html') + '?debug');
+        await page.waitForFunction(() => window.HW && window.HW.G);
+        await page.evaluate(() => { try { localStorage.clear(); } catch { } HW.global('Title').slots = HW.Save.list(); });
+        await page.evaluate(() => {
+            const pad = { id: 'Test Pad (STANDARD GAMEPAD)', connected: true, mapping: 'standard', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+            window.__pad = pad; navigator.getGamepads = () => [pad];
+            window.__press = (i, on) => { pad.buttons[i] = { pressed: on, value: on ? 1 : 0 }; };
+            HW._paused = true;
+        });
+        const tap = async i => { await page.evaluate(i => { __press(i, true); HW.step(2); __press(i, false); HW.step(2); }, i); };
+        /* the title: New Wander (A), then the name: B clears, d-pad right x3 to D, A, ... then Start */
+        await page.evaluate(() => { HW.global('Title').open(); HW.step(5); });
+        for (let k = 0; k < 4 && (await page.evaluate(() => HW.G.scene)) !== 'name'; k++) { await tap(0); await page.evaluate(() => HW.step(20)); }
+        const scene = await page.evaluate(() => HW.G.scene);
+        if (scene !== 'name') errors.push('gamepad: not at the name screen: ' + scene);
+        await tap(1); await tap(1); await tap(1); await tap(1);                 /* (B: takes the default name back, letter by letter) */
+        for (const b of [15, 15, 15]) await tap(b); await tap(0);              /* D */
+        await tap(13); for (let i = 0; i < 4; i++) await tap(14); await tap(0); /* down a row, left to Q? -> any letter */
+        const nm = await page.evaluate(() => HW.global('NameEntry').name);
+        if (!/^D[a-z]$/.test(nm)) errors.push('gamepad: name from the grid is ' + JSON.stringify(nm));
+        await tap(9); await page.evaluate(() => { HW.step(200); HW.skipTalk(); HW.step(50); HW.skipTalk(); });
+        const s2 = await page.evaluate(() => ({ scene: HW.G.scene, name: HW.G.wanderer }));
+        if (s2.scene !== 'play' || s2.name !== nm) errors.push('gamepad: Start didn\'t begin the game: ' + JSON.stringify(s2));
+        /* walk with the stick */
+        const x0 = await page.evaluate(() => HW.player().x);
+        await page.evaluate(() => { __pad.axes[0] = 1; HW.step(30); __pad.axes[0] = 0; HW.step(2); });
+        const x1 = await page.evaluate(() => HW.player().x);
+        if (!(x1 > x0)) errors.push('gamepad: the stick didn\'t move Wren');
+        /* the words name the controller's buttons; rebind the tool to RB */
+        const lbl = await page.evaluate(() => HW.global('fillKeys')('[tool]'));
+        if (lbl !== 'B') errors.push('gamepad: [tool] reads ' + lbl);
+        await page.evaluate(() => { const M = HW.global('PauseMenu'); M.open(); M.tab = M.tabs.indexOf('Options'); HW.global('Options').focus = true; const C = HW.global('Controls'); C.start(); C.sel = C.list().indexOf('tool'); HW.step(2); });
+        await tap(0); await tap(5);
+        const map = await page.evaluate(() => JSON.stringify(HW.global('Input').padmap.tool));
+        if (map !== '[5]') errors.push('gamepad: rebinding the tool to RB gave ' + map);
+        const lbl2 = await page.evaluate(() => HW.global('fillKeys')('[tool]'));
+        if (lbl2 !== 'RB') errors.push('gamepad: after rebinding, [tool] reads ' + lbl2);
+        await page.evaluate(() => { HW.global('Controls').close(); HW.global('PauseMenu').close(); });
+        if (wantShots) { await page.evaluate(() => HW.step(2)); await page.waitForTimeout(80); await page.screenshot({ path: path.join(SHOTS, 'pad_play.png') }); }
+    },
     async title() { await open(); await page.evaluate(() => { window.HW._paused = false; }); await page.waitForTimeout(400); await page.evaluate(() => { window.HW._paused = true; }); await shot('title'); },
     async lab() {
         await open();

@@ -19,12 +19,12 @@ const Save = {
     },
     write(n = this.slot) {
         if (G.noSave) return false;
-        try { localStorage.setItem(this.key(n), JSON.stringify(this.snapshot())); return true; }
+        try { Store.set(this.key(n), JSON.stringify(this.snapshot())); return true; }
         catch (e) { reportError(e); return false; }
     },
     autosave() { if (G.scene === 'play' && !G.noSave) this.write(); },
     read(n) {
-        try { const s = localStorage.getItem(this.key(n)); return s ? this.migrate(JSON.parse(s)) : null; }
+        try { const s = Store.get(this.key(n)); return s ? this.migrate(JSON.parse(s)) : null; }
         catch (e) { return null; }
     },
     migrate(s) {
@@ -54,7 +54,7 @@ const Save = {
         } else World.enter(START.area, START.x, START.y, { noSave: true });
     },
     list() { return [1, 2, 3].map(n => ({ n, s: this.read(n) })); },
-    erase(n) { try { localStorage.removeItem(this.key(n)); } catch { } },
+    erase(n) { Store.remove(this.key(n)); },
     /* a save code: the save as text, to copy somewhere safe */
     code(n = this.slot) {
         const s = this.read(n) || this.snapshot();

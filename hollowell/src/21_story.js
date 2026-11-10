@@ -9,7 +9,8 @@ const START = { area: 'gran_room', x: 6, y: 3 };
 const Story = {
     name(id) { return id === 'wren' ? G.wanderer : (PEOPLE[id] && PEOPLE[id].name) || id; },
     /* {name} in text becomes the Wanderer's name */
-    fill(s) { return String(s).replace(/\{name\}/g, G.wanderer || 'Wren'); },
+    /* {name} is the Wanderer's name; [tool] and the like, the button bound to it now (src/22b_controls.js) */
+    fill(s) { s = String(s).replace(/\{name\}/g, G.wanderer || 'Wren'); return typeof fillKeys === 'function' ? fillKeys(s) : s; },
     cond(c) {
         if (typeof c === 'function') return c();
         return c.split('&').every(t => { t = t.trim(); return t[0] === '!' ? !Progress.flag(t.slice(1)) : Progress.flag(t); });

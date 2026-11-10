@@ -120,4 +120,4 @@ const Ceremony = {
         Save.autosave();
     },
 };
-ITEM_LINES.staff = () => 'You got the {red}Wanderstaff{/}! Press X to swing it: it knocks light things aside and flips crystals.';
+ITEM_LINES.staff = () => 'You got the {red}Wanderstaff{/}! Press [atk] to swing it: it knocks light things aside and flips crystals.';

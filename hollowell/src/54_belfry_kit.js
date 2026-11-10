@@ -47,6 +47,7 @@ const Bells = {
     drawSleep(a, cx, cy) {
         for (const e of a.ents) {
             if (!Return.asleep(e) || e.removed || e.hidden) continue;
+            if (e.px - cx < -24 || e.px - cx > W + 8 || e.py - cy < -24 || e.py - cy > H + 8) continue;     /* (only those on screen) */
             const ph = ((G.t + e.uid * 37) % 90) / 90;
             const x = e.px - cx + 10 + Math.round(ph * 4), y = e.py - cy - 2 - Math.round(ph * 10);
             Gfx.alpha(Math.min(1, (1 - ph) * 2)); Font.draw('z', x, y, '#e8e0ff'); Gfx.alpha(1);

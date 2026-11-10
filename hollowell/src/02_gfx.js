@@ -58,13 +58,51 @@ const Gfx = {
         fit();
         this.screen.focus();
     },
-    /* the frame onto the screen */
+    /* the frame onto the screen (through the screen filter, if one's chosen in Options) */
     present() {
         if (HEADLESS || !this.sctx) return;
         const v = this.view, x = this.sctx;
         x.imageSmoothingEnabled = false;
-        x.fillStyle = '#17121a'; x.fillRect(0, 0, this.screen.width, this.screen.height);
+        x.fillStyle = this.bezel || '#17121a'; x.fillRect(0, 0, this.screen.width, this.screen.height);
         x.drawImage(this.canvas, 0, 0, W, H, v.x, v.y, v.w, v.h);
+        const f = typeof Settings !== 'undefined' ? Settings.crt | 0 : 0;
+        if (f) this.crt(x, v, f);
+    },
+    /* an old television's picture, drawn with the plain canvas (no graphics-card tricks that can come out in the wrong
+       colours on some machines) and flat (a curved screen hides what's at its edges): the pixels' hard corners softened
+       by a little of a smoothed copy, a dark line along the foot of every row of pixels, a soft glow, darker corners */
+    crt(x, v, f) {
+        const sc = Math.max(1, Math.round(v.sc)), strong = f === 2;
+        x.save();
+        x.imageSmoothingEnabled = true;
+        x.globalAlpha = strong ? 0.42 : 0.3;
+        x.drawImage(this.canvas, 0, 0, W, H, v.x, v.y, v.w, v.h);
+        x.globalCompositeOperation = 'screen'; x.globalAlpha = strong ? 0.22 : 0.14;
+        x.drawImage(this.canvas, 0, 0, W, H, v.x - sc * 0.5, v.y - sc * 0.5, v.w + sc, v.h + sc);
+        x.restore();
+        if (sc >= 3) {
+            const key = sc + ':' + f;
+            if (this._scanKey !== key) {
+                const c = document.createElement('canvas'); c.width = 1; c.height = sc;
+                const g = c.getContext('2d'), dark = Math.max(1, Math.round(sc * (strong ? 0.42 : 0.3)));
+                g.fillStyle = `rgba(0,0,0,${strong ? 0.42 : 0.26})`; g.fillRect(0, sc - dark, 1, dark);
+                if (sc >= 5) { g.fillStyle = `rgba(255,255,255,${strong ? 0.05 : 0.03})`; g.fillRect(0, 0, 1, 1); }
+                this._scan = x.createPattern(c, 'repeat'); this._scanKey = key;
+            }
+            x.save(); x.translate(v.x, v.y); x.fillStyle = this._scan; x.fillRect(0, 0, v.w, v.h); x.restore();
+        }
+        if (strong && sc >= 3) {
+            /* the faintest colour stripes of a tube's phosphors */
+            if (!this._mask) { const c = document.createElement('canvas'); c.width = 3; c.height = 1; const g = c.getContext('2d'); ['rgba(255,80,80,0.06)', 'rgba(80,255,80,0.05)', 'rgba(80,80,255,0.06)'].forEach((col, i) => { g.fillStyle = col; g.fillRect(i, 0, 1, 1); }); this._mask = x.createPattern(c, 'repeat'); }
+            x.save(); x.translate(v.x, v.y); x.fillStyle = this._mask; x.fillRect(0, 0, v.w, v.h); x.restore();
+        }
+        const vk = v.w + 'x' + v.h + ':' + f;
+        if (this._vigKey !== vk) {
+            const g = x.createRadialGradient(v.x + v.w / 2, v.y + v.h / 2, Math.min(v.w, v.h) * 0.45, v.x + v.w / 2, v.y + v.h / 2, Math.hypot(v.w, v.h) * 0.62);
+            g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${strong ? 0.42 : 0.26})`);
+            this._vig = g; this._vigKey = vk;
+        }
+        x.fillStyle = this._vig; x.fillRect(v.x, v.y, v.w, v.h);
     },
 
     makeCanvas(w, h) {

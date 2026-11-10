@@ -117,7 +117,7 @@ class Grindle extends GridThing {
     constructor(tx, ty, p = {}) {
         super('grindle', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p));
         this.hp = 3; this.state = 'sleep'; this.st = 0; this.full = 0; this.need = 2; this.flash = 0;
-        this.spits = []; this.alive = true;
+        this.spits = []; this.alive = true; this.footW = 2;
     }
     onAdd(area) { area.place(this, this.tx, this.ty); area.place(this, this.tx + 1, this.ty); }
     get mouths() { return [[this.tx, this.ty + 1], [this.tx + 1, this.ty + 1]]; }

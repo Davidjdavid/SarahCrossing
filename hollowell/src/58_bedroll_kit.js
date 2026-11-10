@@ -50,7 +50,7 @@ const Bedroll = {
         p.mark = this.mark(); p.trace = [[tx, ty]];
         Sfx.play('lay'); Fx.poof(tx * T + 8, ty * T + 10);
         Stats.count('bedroll:lay');
-        if (!Progress.flag('bedroll_laid')) { Progress.set('bedroll_laid'); UI.toast('Bedroll laid. This is home now. (Hold C to come back to it.)', 200); }
+        if (!Progress.flag('bedroll_laid')) { Progress.set('bedroll_laid'); UI.toast('Bedroll laid. This is home now. (Hold [tool] to come back to it.)', 200); }
         else if (moved) UI.toast('Bedroll laid here.', 70);
     },
     rollUp(p) {

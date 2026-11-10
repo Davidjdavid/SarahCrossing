@@ -611,7 +611,7 @@ class Kilnwyrm extends Enemy {
     }
     draw(cx, cy) {
         if (!this.alive) {
-            if ((this.deadT || 0) < 100) { const k = 1 - this.deadT / 100; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(9 * k), THREAD.bram); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
+            if ((this.deadT || 0) < 100) { const k = 1 - (this.deadT || 0) / 100; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(9 * k), THREAD.bram); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
             return;
         }
         const fl = this.flash > 0 && (this.flash >> 1) % 2;
@@ -711,4 +711,4 @@ function initKilnArt() {
     FLOORS.kilnhouse.vat = (x) => { fill(x, '#93432c'); fill(x, '#5ad1c5', 2, 2, 12, 11); fill(x, '#8fe6dc', 3, 3, 4, 2); fill(x, '#5e261c', 0, 14, 16, 2); };
 }
 CONTENT_INIT.push(initKilnArt);
-ITEM_LINES.hook = () => "You found the {red}Hookline{/}! C to throw the hook. It catches on brass rings and on any stitched cross with nothing on it, and reels you over; light things it reels to you.";
+ITEM_LINES.hook = () => "You found the {red}Hookline{/}! [tool] to throw the hook. It catches on brass rings and on any stitched cross with nothing on it, and reels you over; light things it reels to you.";

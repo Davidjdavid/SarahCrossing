@@ -260,7 +260,7 @@ const Needle = {
     use(p) {
         if (this.st) return this.confirm(p);
         const t = this.target(p);
-        if (!t) { UI.toast(this.hinted ? 'Nothing to stitch there.' : 'Face a thing (or its cord, from underneath) and press C to give it a new place.'); this.hinted = true; return; }
+        if (!t) { UI.toast(this.hinted ? 'Nothing to stitch there.' : 'Face a thing (or its cord, from underneath) and press [tool] to give it a new place.'); this.hinted = true; return; }
         const e = t.thing;
         if (e.knotted) { UI.toast("It's tied off underneath. Undo the knot first."); return; }
         if (!this.able(e)) { UI.toast(Return.asleep(e) ? "It's asleep; the needle won't take." : "The needle won't go into that."); return; }
@@ -282,7 +282,7 @@ const Needle = {
         e.heldBy = e.heldBy || { needle: true };
         p.pinned = 'needle';
         Sfx.play('twang');
-        if (!Progress.flag('needle_first')) { Progress.set('needle_first'); UI.toast('Arrows walk the needle (up to 4). C: that\'s its place now. Z: never mind.', 200); }
+        if (!Progress.flag('needle_first')) { Progress.set('needle_first'); UI.toast('Arrows walk the needle (up to 4). [tool]: that\'s its place now. [act]: never mind.', 200); }
     },
     stepOk(e, x, y) {
         const a = e.area, k = a.kind(x, y);

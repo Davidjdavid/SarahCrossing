@@ -55,7 +55,7 @@ const Title = {
                     Font.draw(Story.placeName(s.s.pos && s.s.pos.area), 252 - Font.width(Story.placeName(s.s.pos && s.s.pos.area)), y + 3, PAL.grey3);
                 } else Font.draw('- empty -', 82, y + 3, PAL.grey2);
             });
-            if (this.confirm) Font.center('Start over in this slot? Press Z again.', W / 2, 158, PAL.red2);
+            if (this.confirm) Font.center(fillKeys('Start over in this slot? Press [act] again.'), W / 2, 158, PAL.red2);
             return;
         }
         const it = this.items();
@@ -119,21 +119,29 @@ const BigFont = {
     },
 };
 
+/* naming the Wanderer: type it, or (with a controller) pick the letters from the grid: the d-pad moves, [act] picks,
+   [atk] takes one back, [menu] is done */
+const NAME_GRID = ['ABCDEFGHIJ', 'KLMNOPQRST', "UVWXYZ-' ", '<>'];
 const NameEntry = {
-    name: '', t: 0,
+    name: '', t: 0, gx: 0, gy: 0,
     open() {
-        G.scene = 'name'; this.name = 'Wren'; this.t = 0; this.fresh = true;
+        G.scene = 'name'; this.name = 'Wren'; this.t = 0; this.fresh = true; this.gx = 0; this.gy = 0;
         Input.textHandler = e => {
             if (G.scene !== 'name') return false;
-            if (e.key === 'Backspace') { this.name = this.fresh ? '' : this.name.slice(0, -1); this.fresh = false; return true; }
+            if (e.key === 'Backspace') { this.back(); return true; }
             if (e.key === 'Enter') { this.done(); return true; }
-            if (e.key.length === 1 && /[A-Za-z0-9 '\-]/.test(e.key) && this.name.length < 10) {
-                if (this.fresh) { this.name = ''; this.fresh = false; }
-                this.name += e.key; return true;
-            }
+            if (e.key.length === 1 && /[A-Za-z0-9 '\-]/.test(e.key) && this.name.length < 10) { this.add(e.key, true); return true; }
             return false;
         };
     },
+    add(ch, typed) {
+        if (this.fresh) { this.name = ''; this.fresh = false; }
+        if (this.name.length >= 10) { Sfx.play('hitthing'); return; }
+        /* (picked from the grid: a capital to start a word, small letters after) */
+        if (!typed && /[A-Z]/.test(ch) && this.name.length && !/[ \-']$/.test(this.name)) ch = ch.toLowerCase();
+        this.name += ch; if (!typed) Sfx.play('menu');
+    },
+    back() { this.name = this.fresh ? '' : this.name.slice(0, -1); this.fresh = false; Sfx.play('cancel'); },
     done() {
         const n = this.name.trim() || 'Wren';
         Input.textHandler = null;
@@ -142,15 +150,38 @@ const NameEntry = {
     },
     update() {
         this.t++;
-        if (HEADLESS && Input.pressed('act')) this.done();
+        if (HEADLESS && Input.pressed('act')) { this.done(); return; }
+        const rows = NAME_GRID.length;
+        if (Input.pressed('up')) { this.gy = (this.gy + rows - 1) % rows; Sfx.play('menu'); }
+        if (Input.pressed('down')) { this.gy = (this.gy + 1) % rows; Sfx.play('menu'); }
+        const row = NAME_GRID[this.gy];
+        if (Input.pressed('left')) { this.gx = (this.gx + row.length - 1) % row.length; Sfx.play('menu'); }
+        if (Input.pressed('right')) { this.gx = (this.gx + 1) % row.length; Sfx.play('menu'); }
+        this.gx = Math.min(this.gx, row.length - 1);
+        if (Input.pressed('menu')) { this.done(); return; }
+        if (Input.pressed('atk')) this.back();
+        if (Input.pressed('act')) {
+            const ch = row[this.gx];
+            if (ch === '<') this.back(); else if (ch === '>') this.done(); else this.add(ch);
+        }
     },
     draw() {
         TitleArt.draw(this.t);
-        stitchedBox(70, 84, 180, 64);
-        Font.center("What is the Wanderer's name?", W / 2, 92, PAL.ink);
-        Gfx.rect(110, 108, 100, 14, '#fff8e8'); Gfx.frame(110, 108, 100, 14, '#b0434a');
-        Font.center(this.name + ((this.t >> 4) % 2 ? '_' : ' '), W / 2, 111, PAL.ink);
-        Font.center('Type a name, then Enter', W / 2, 130, PAL.grey3);
+        stitchedBox(70, 64, 180, 108);
+        Font.center("What is the Wanderer's name?", W / 2, 72, PAL.ink);
+        Gfx.rect(110, 84, 100, 14, '#fff8e8'); Gfx.frame(110, 84, 100, 14, '#b0434a');
+        Font.center(this.name + ((this.t >> 4) % 2 ? '_' : ' '), W / 2, 87, PAL.ink);
+        NAME_GRID.forEach((row, ry) => {
+            const last = ry === NAME_GRID.length - 1;
+            [...row].forEach((ch, rx) => {
+                const label = last ? (ch === '<' ? 'Back' : 'Done') : ch === ' ' ? '_' : ch;
+                const x = last ? 116 + rx * 54 : 92 + rx * 14, y = 104 + ry * 12, w = last ? 34 : 10;
+                const on = rx === this.gx && ry === this.gy;
+                if (on) { Gfx.rect(x - 2, y - 2, w + 4, 12, '#f2d49a'); Gfx.frame(x - 2, y - 2, w + 4, 12, '#b0434a'); }
+                Font.center(label, x + w / 2, y, on ? PAL.ink : PAL.grey3);
+            });
+        });
+        Font.center(Input.lastKind === 'pad' ? fillKeys('[act] picks   [atk] takes back   [menu] done') : 'Type a name, then Enter', W / 2, 158, PAL.grey3);
     },
 };
 
@@ -158,21 +189,38 @@ const NameEntry = {
 const PauseMenu = {
     tabs: ['Satchel', 'Map', 'Journal', 'Options', 'Save'],
     tab: 0, sel: 0, t: 0,
-    open() { UI.menu = this; this.t = 0; this.sel = 0; Sfx.play('menu'); },
+    open() { UI.menu = this; this.t = 0; this.sel = 0; this.row = 0; this.tsel = 0; this.nsel = 0; this.reading = null; Sfx.play('menu'); },
     close() { UI.menu = null; Input.swallow(); Settings.save(); },
     update() {
         this.t++;
         if (this.tabs[this.tab] === 'Options' && Options.focus) { Options.update(() => { Options.focus = false; }); return; }
+        /* reading a note: X (or Z at its end) puts it down */
+        if (this.reading) {
+            const n = NOTES[this.reading], pages = Math.max(1, Math.ceil(Font.wrap(Story.fill(n.text || ''), 270).length / 11));
+            if (Input.pressed('act') && (this.rpage || 0) < pages - 1) { this.rpage = (this.rpage || 0) + 1; Sfx.play('menu'); return; }
+            if (Input.pressed('act') || Input.pressed('atk') || Input.pressed('menu')) { this.reading = null; this.rpage = 0; Sfx.play('cancel'); return; }
+            return;
+        }
         if (Input.pressed('menu') || (Input.pressed('atk') && !this.saveMsg)) { this.close(); Sfx.play('cancel'); return; }
         if (Input.pressed('prev') || (Input.pressed('left') && this.tabs[this.tab] !== 'Satchel')) { this.tab = (this.tab + this.tabs.length - 1) % this.tabs.length; this.sel = 0; Sfx.play('menu'); }
         else if (Input.pressed('next') || (Input.pressed('right') && this.tabs[this.tab] !== 'Satchel')) { this.tab = (this.tab + 1) % this.tabs.length; this.sel = 0; Sfx.play('menu'); }
         const tab = this.tabs[this.tab];
         if (tab === 'Satchel') {
-            const n = Inv.tools.length;
+            const things = this.things();
+            if ((Input.pressed('down') && this.row !== 1 && things.length) || (Input.pressed('up') && this.row === 1)) { this.row = this.row === 1 ? 0 : 1; this.tsel = Math.min(this.tsel || 0, Math.max(0, things.length - 1)); Sfx.play('menu'); }
+            const n = this.row === 1 ? things.length : Inv.tools.length;
             if (n) {
-                if (Input.pressed('left')) { this.sel = (this.sel + n - 1) % n; Sfx.play('menu'); }
-                if (Input.pressed('right')) { this.sel = (this.sel + 1) % n; Sfx.play('menu'); }
-                if (Input.pressed('act')) { Inv.equipped = Inv.tools[this.sel]; Sfx.play('select'); }
+                const k = this.row === 1 ? 'tsel' : 'sel';
+                if (Input.pressed('left')) { this[k] = ((this[k] || 0) + n - 1) % n; Sfx.play('menu'); }
+                if (Input.pressed('right')) { this[k] = ((this[k] || 0) + 1) % n; Sfx.play('menu'); }
+                if (Input.pressed('act') && this.row !== 1) { Inv.equipped = Inv.tools[this.sel]; Sfx.play('select'); }
+            }
+        } else if (tab === 'Journal') {
+            const notes = this.notes();
+            if (notes.length) {
+                if (Input.pressed('up')) { this.nsel = ((this.nsel || 0) + notes.length - 1) % notes.length; Sfx.play('menu'); }
+                if (Input.pressed('down')) { this.nsel = ((this.nsel || 0) + 1) % notes.length; Sfx.play('menu'); }
+                if (Input.pressed('act')) { this.reading = notes[Math.min(this.nsel || 0, notes.length - 1)]; this.rpage = 0; Sfx.play('select'); }
             }
         } else if (tab === 'Options') {
             if (Input.pressed('act')) { Options.open(); Options.focus = true; }
@@ -234,38 +282,79 @@ const PauseMenu = {
             yield* fadeIn(20);
         });
     },
+    /* the satchel: tools on one row, things on the next (each picked with the arrows, its name and what it is below);
+       hearts, patches and buttons at the foot, the Knots tied up top. Laid out to fit with every tool and thing held. */
+    things() { return Object.keys(Inv.items).filter(k => ITEMS[k] && ITEMS[k].kind !== 'hidden' && ITEMS[k].kind !== 'tool'); },
     drawSatchel() {
-        Font.draw('Tools', 22, 34, PAL.grey3);
+        Font.draw('Tools', 22, 33, PAL.grey3);
+        /* the Knots tied, at the right of the Tools line */
+        if (Inv.knots.length) { const kx = 302 - Inv.knots.length * 14; Font.draw('Knots', kx - 30, 33, PAL.grey3); Inv.knots.forEach((k, i) => Gfx.img(spr('knot'), kx + i * 14, 27)); }
+        const n = TOOL_ORDER.length, sp = Math.min(34, Math.floor((280 - 24) / Math.max(1, n - 1)));
         TOOL_ORDER.forEach((id, i) => {
-            const x = 24 + i * 34, y = 46;
+            const x = 24 + i * sp, y = 45;
             const has = Inv.tools.includes(id);
             Gfx.rect(x, y, 24, 24, has ? '#fff6e0' : '#e6d6b2'); Gfx.frame(x, y, 24, 24, '#b8a07a');
             if (has) {
                 Gfx.img(spr('icon_' + id), x + 4, y + 4);
-                if (Inv.tools[this.sel] === id) { Gfx.frame(x - 1, y - 1, 26, 26, PAL.red2); Gfx.frame(x - 2, y - 2, 28, 28, PAL.red2); }
-                if (Inv.equipped === id) Font.draw('C', x + 18, y + 16, PAL.red2);
+                if (this.row !== 1 && Inv.tools[this.sel] === id) { Gfx.frame(x - 1, y - 1, 26, 26, PAL.red2); Gfx.frame(x - 2, y - 2, 28, 28, PAL.red2); }
+                /* the one in hand: a red pip in its corner */
+                if (Inv.equipped === id) { Gfx.rect(x + 17, y + 17, 6, 6, PAL.red2); Gfx.rect(x + 19, y + 19, 2, 2, '#ffffff'); }
             } else Font.center('?', x + 12, y + 8, '#c8b48c');
         });
-        const id = Inv.tools[this.sel];
-        if (id) { const I = ITEMS[id]; Font.draw('{red}' + I.name, 24, 78, PAL.ink); Font.wrap(I.desc, 270).forEach((l, i) => Font.draw(l, 24, 90 + i * 10, PAL.ink)); }
-        else Font.draw('No tools yet.', 24, 80, PAL.grey3);
-        /* things */
-        Font.draw((Progress.flag('cut_self') ? 'Hearts: none (nothing to unravel)' : 'Hearts ' + Math.ceil(Inv.maxHp / 2) + '   Heart Patches ' + (Inv.patches % 4) + '/4') + '   Buttons ' + Inv.buttons, 24, 122, PAL.ink);
-        Font.draw('Knots: ' + (Inv.knots.length ? '' : 'none yet'), 24, 136, PAL.ink);
-        Inv.knots.forEach((k, i) => Gfx.img(spr('knot'), 64 + i * 18, 132));
-        const things = Object.keys(Inv.items).filter(k => ITEMS[k] && ITEMS[k].kind !== 'hidden');
-        if (things.length) Font.draw('Also: ' + things.map(k => ITEMS[k].name).join(', '), 24, 154, PAL.grey3);
+        const things = this.things();
+        Font.draw('Things', 22, 74, PAL.grey3);
+        if (!things.length) Font.draw('Nothing else yet.', 60, 74, PAL.grey3);
+        const perRow = 12;
+        things.forEach((id, i) => {
+            const x = 24 + (i % perRow) * 22, y = 84 + Math.floor(i / perRow) * 22;
+            Gfx.rect(x, y, 20, 20, '#fff6e0'); Gfx.frame(x, y, 20, 20, '#b8a07a');
+            const im = spr(ITEM_ICON[id] || ('icon_' + id)) || spr(id);
+            if (im) Gfx.img(im, x + 10 - im.width / 2, y + 10 - im.height / 2); else Font.center('?', x + 10, y + 6, '#c8b48c');
+            if (this.row === 1 && this.tsel === i) { Gfx.frame(x - 1, y - 1, 22, 22, PAL.red2); Gfx.frame(x - 2, y - 2, 24, 24, PAL.red2); }
+        });
+        /* what the picked one is */
+        const descY = 84 + Math.max(1, Math.ceil(things.length / perRow)) * 22 + 2;
+        const pick = this.row === 1 ? things[this.tsel] : Inv.tools[this.sel];
+        if (pick) {
+            const I = ITEMS[pick];
+            Font.draw('{red}' + I.name, 24, descY, PAL.ink);
+            const room = Math.max(1, Math.floor((150 - (descY + 10)) / 10));
+            Font.wrap(Story.fill(I.desc || ''), 270).slice(0, room).forEach((l, i) => Font.draw(l, 24, descY + 10 + i * 10, PAL.ink));
+        } else Font.draw('No tools yet.', 24, descY, PAL.grey3);
+        /* the foot: hearts, patches, buttons */
+        const foot = (Progress.flag('cut_self') ? 'No hearts: nothing to unravel' : 'Hearts ' + Math.ceil(Inv.maxHp / 2) + '   Heart Patches ' + (Inv.patches % 4) + '/4') + '   Buttons ' + Inv.buttons;
+        Font.draw(foot, 24, 156, PAL.ink);
     },
+    /* the journal: what's next, and the notes found (pick one to read it again) */
     drawJournal() {
+        const notes = this.notes();
+        if (this.reading) {
+            const n = NOTES[this.reading];
+            Font.draw('{red}' + n.title, 22, 34, PAL.ink);
+            const lines = Font.wrap(Story.fill(n.text || ''), 270), per = 11, pages = Math.max(1, Math.ceil(lines.length / per));
+            const pg = Math.min(this.rpage || 0, pages - 1);
+            lines.slice(pg * per, pg * per + per).forEach((l, i) => Font.draw(l, 24, 48 + i * 10, PAL.ink));
+            Font.draw(pages > 1 && pg < pages - 1 ? fillKeys('[act] more   [atk] back') : fillKeys('[atk] back'), 24, 160, PAL.grey3);
+            return;
+        }
         Font.draw('{red}Now', 22, 34, PAL.ink);
-        Font.wrap(Progress.goal || 'Wander.', 270).forEach((l, i) => Font.draw(l, 24, 46 + i * 10, PAL.ink));
-        Font.draw('{red}Notes', 22, 82, PAL.ink);
-        const notes = Progress.notes.map(n => NOTES[n]).filter(Boolean);
-        if (!notes.length) Font.draw('Nothing written yet.', 24, 94, PAL.grey3);
-        notes.slice(-6).forEach((n, i) => Font.draw('- ' + n.title, 24, 94 + i * 10, PAL.ink));
+        const goal = Font.wrap(Story.fill(Progress.goal || 'Wander.'), 270).slice(0, 4);
+        goal.forEach((l, i) => Font.draw(l, 24, 46 + i * 10, PAL.ink));
+        const ny = 46 + goal.length * 10 + 6;
+        Font.draw('{red}Notes', 22, ny, PAL.ink);
+        if (!notes.length) Font.draw('Nothing written yet.', 24, ny + 12, PAL.grey3);
+        const rows = Math.max(1, Math.floor((150 - (ny + 12)) / 10));
+        const top = Math.max(0, Math.min((this.nsel || 0) - rows + 1, notes.length - rows));
+        notes.slice(top, top + rows).forEach((id, i) => {
+            const k = top + i, on = k === (this.nsel || 0);
+            if (on) Font.draw('\x02', 18, ny + 12 + i * 10, PAL.red2);
+            Font.draw(NOTES[id].title, 24, ny + 12 + i * 10, on ? PAL.ink : PAL.grey3);
+        });
+        if (notes.length > rows) Font.draw((top > 0 ? '^ ' : '  ') + (top + rows < notes.length ? 'v' : ''), 290, ny, PAL.grey3);
         const t = Stats.playFrames / 60;
-        Font.draw(`Time wandering: ${Math.floor(t / 3600)}h ${Math.floor(t / 60) % 60}m`, 24, 160, PAL.grey3);
+        Font.draw(`Time wandering: ${Math.floor(t / 3600)}h ${Math.floor(t / 60) % 60}m` + (notes.length ? fillKeys('   [act] read a note') : ''), 24, 160, PAL.grey3);
     },
+    notes() { return Progress.notes.filter(n => NOTES[n]).slice().reverse(); },
 };
 const NOTES = {};      /* id -> { title, text } */
 
@@ -299,8 +388,8 @@ const Options = {
             Font.draw(r[0], x, yy, on ? PAL.ink : PAL.grey3);
             Font.draw(String(r[1]()), x + 130, yy, on ? PAL.red2 : PAL.grey3);
         });
-        if (inMenu && !this.focus) Font.draw('Press Z to change settings.', x, y + 84, PAL.grey3);
-        if (inMenu) Font.draw('Keys: arrows/WASD move, Z act, X stick, C tool, Q/E tools, Enter menu, M map.', 22, 150, PAL.grey3);
+
+        if (inMenu) Font.draw(fillKeys(this.focus ? '[act] or the arrows change it.   [atk] when done.' : 'Press [act] to change settings.'), 22, 156, PAL.grey3);
     },
 };
 

@@ -310,7 +310,7 @@ const MarionetteHall = {
     },
 };
 SIGNATURE_TEXT.marionette = "Carved into the bench, worn smooth by elbows: a little crimson J with a string tied round it. Someone signed this House where only a puppet-maker would ever sit.";
-ITEM_LINES.crossbar = () => "You found the {red}Crossbar{/}! Face a puppet you can see and press C to take up its strings: you stand still and it walks for you. C again to let go, and it walks home. Some racks hold several puppets at once.";
+ITEM_LINES.crossbar = () => "You found the {red}Crossbar{/}! Face a puppet you can see and press [tool] to take up its strings: you stand still and it walks for you. [tool] again to let go, and it walks home. Some racks hold several puppets at once.";
 ITEM_AFTER.crossbar = function* () { Inv.equipped = 'crossbar'; };
 
 /* a flat that springs back up a while after it's knocked down (stagehands) */

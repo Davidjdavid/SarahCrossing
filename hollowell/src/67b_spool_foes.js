@@ -321,5 +321,5 @@ function initSpoolFoes() {
 }
 CONTENT_INIT.push(initSpoolFoes);
 
-ITEM_LINES.needle = () => "You found the {red}Needle{/}! Face a thing (or, from underneath, its cord) and press C; walk the needle with the arrows, up to four tiles, and press C again: that's its place now, for good. It holds three stitches at a time: a fourth undoes the oldest.";
+ITEM_LINES.needle = () => "You found the {red}Needle{/}! Face a thing (or, from underneath, its cord) and press [tool]; walk the needle with the arrows, up to four tiles, and press [tool] again: that's its place now, for good. It holds three stitches at a time: a fourth undoes the oldest.";
 ITEM_AFTER.needle = function* () { Inv.equipped = 'needle'; };

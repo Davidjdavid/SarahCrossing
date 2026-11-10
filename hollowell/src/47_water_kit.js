@@ -160,7 +160,7 @@ TOOLS.paddle = {
             const nx = o.tx + DX[p.dir], ny = o.ty + DY[p.dir];
             if (p.area.kind(nx, ny).water && p.area.freeForThing(nx, ny, o)) { o.startMove(nx, ny, 16); Sfx.play('splash'); return; }
         }
-        UI.toast('Stand on something floating and hold C to paddle.');
+        UI.toast('Stand on something floating and hold [tool] to paddle.');
     },
     hold(p) {
         const o = this.float(p);

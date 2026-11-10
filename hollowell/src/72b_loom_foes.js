@@ -138,7 +138,7 @@ class Weaver extends Ent {
             if (a.kind(tileOf(s.x), tileOf(s.y)).solid || a.roomAt(tileOf(s.x), tileOf(s.y)) !== r) s.life = 0;
             if (p.area === a && p.state === 'normal' && Math.abs(p.x - s.x) < 7 && Math.abs(p.y - 6 - s.y) < 8) {
                 s.life = 0; if (p.pinned === 'silk') p.hurt(1, s.x, s.y); p.pinned = 'silk'; this.bindT = 150; Sfx.play('hook'); Fx.text(p.x, p.y - 22, 'bound!', '#e4ecf5');
-                if (!Progress.flag('silk_bound')) { Progress.set('silk_bound'); G.pendingToast = 'Silk, wound tight round you. The Shears would make short work of it. (C)'; }
+                if (!Progress.flag('silk_bound')) { Progress.set('silk_bound'); G.pendingToast = 'Silk, wound tight round you. The Shears would make short work of it. ([tool])'; }
             }
         }
         this.shots = this.shots.filter(s => s.life > 0);

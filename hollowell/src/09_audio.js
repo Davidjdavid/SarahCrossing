@@ -3,7 +3,9 @@
    Sound effects are small recipes. Everything is silent headless and until the first key press. */
 
 const Audio = {
-    ctx: null, master: null, music: null, sfx: null, ok: false,
+    ctx: null, master: null, music: null, sfx: null, ok: false, muted: false,
+    /* all sound off or on (a page hosting the game has a button for it) */
+    setMuted(m) { this.muted = !!m; if (this.master) this.master.gain.value = this.muted ? 0 : 0.5; },
     vol: { music: 0.6, sfx: 0.8 },
     waves: {},
     unlock() {
@@ -12,7 +14,7 @@ const Audio = {
             try {
                 const AC = window.AudioContext || window.webkitAudioContext;
                 this.ctx = new AC();
-                this.master = this.ctx.createGain(); this.master.gain.value = 0.5; this.master.connect(this.ctx.destination);
+                this.master = this.ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.5; this.master.connect(this.ctx.destination);
                 this.music = this.ctx.createGain(); this.music.connect(this.master);
                 this.sfx = this.ctx.createGain(); this.sfx.connect(this.master);
                 this.setVolumes();

@@ -219,7 +219,7 @@ defHouse({
             ],
             ents: [
                 { k: 'hatch', x: 16, y: 8 },
-                { k: 'sign', x: 2, y: 2, text: 'Z on a cord: a tug (whatever it holds goes home, now). Hold Z: tie it off (it stays put up there, whatever happens). Z on a knot: undo it. -G.' },
+                { k: 'sign', x: 2, y: 2, text: '[act] on a cord: a tug (whatever it holds goes home, now). Hold [act]: tie it off (it stays put up there, whatever happens). [act] on a knot: undo it. -G.' },
                 { k: 'spoolmite', x: 5, y: 7 },
             ],
         },

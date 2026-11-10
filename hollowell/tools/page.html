@@ -1,0 +1,274 @@
+<title>Hollowell</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: the game in a stitched cloth frame on the left, how to play on a stitched panel to the right; stacked on
+   narrow screens. One night-time look, taken from the game's own menus (cream cloth, ink, a red running stitch). */
+:root {
+  color-scheme: dark;
+  --night: #15111b;        /* the page */
+  --night-2: #1f1928;      /* the side panel */
+  --night-3: #2b2338;      /* rules, key caps */
+  --cloth: #f6ecd2;        /* the frame's cloth */
+  --cloth-2: #e4d3ad;      /* its shadow */
+  --ink: #2a1f2d;          /* text on cloth */
+  --stitch: #c0505a;       /* the running stitch */
+  --gold: #e8b04a;         /* headings on the night */
+  --text: #eee4f2;         /* text on the night */
+  --muted: #a99bb3;        /* quieter text on the night */
+  --glass: #0e0b12;        /* the screen around the picture */
+  --ok: #6fcf8f;
+  --display: "Pixelify Sans", "Silkscreen", ui-monospace, monospace;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+html, body { background: var(--night); color: var(--text); }
+body {
+  margin: 0; font-family: var(--body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 40px;
+  background:
+    radial-gradient(1200px 600px at 30% 0%, #2a1f3a 0%, transparent 60%),
+    var(--night);
+}
+.wrap { max-width: 1440px; margin: 0 auto; display: grid; gap: 22px; }
+header { display: grid; gap: 10px; }
+h1 {
+  margin: 0; font-family: var(--display); font-weight: 600; letter-spacing: 0.04em; line-height: 1;
+  font-size: clamp(40px, 7vw, 72px); color: var(--gold); text-wrap: balance;
+  text-shadow: 0 3px 0 #7a4b16;
+}
+.lede { margin: 0; color: var(--muted); max-width: 62ch; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button.pill {
+  font: 600 14px/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text); background: var(--night-3); border: 1px solid #4a3d5c; border-radius: 999px;
+  padding: 10px 16px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center;
+}
+button.pill:hover { border-color: var(--gold); }
+button.pill:focus-visible, .screen:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+button.pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+button.pill[aria-pressed="true"] .dot { background: var(--ok); }
+button.pill.primary { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 320px); gap: 24px; align-items: start; }
+.col { min-width: 0; }
+@media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+/* the frame: cloth over a wooden edge, a running stitch just inside it */
+.frame {
+  position: relative; background: var(--cloth); border-radius: 22px; padding: 22px 22px 18px; width: fit-content; max-width: 100%; box-sizing: border-box;
+  box-shadow: 0 0 0 4px #6b4128, 0 0 0 7px #3a2416, 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+.frame::before {
+  content: ""; position: absolute; inset: 9px; border-radius: 15px; pointer-events: none;
+  border: 2px dashed var(--stitch); opacity: 0.85;
+}
+.bezel { background: var(--glass); border-radius: 12px; padding: 10px; box-shadow: inset 0 0 0 2px #000, inset 0 6px 18px rgba(0, 0, 0, 0.6); }
+.screen { position: relative; margin: 0 auto; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; background: var(--glass); outline: none; }
+.screen canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; outline: none; }
+.focus-cue {
+  position: absolute; inset: auto 0 10px 0; margin: 0 auto; width: max-content; max-width: 92%;
+  font: 600 13px/1.2 var(--display); letter-spacing: 0.06em; color: var(--ink); background: var(--cloth);
+  border: 2px solid var(--ink); border-radius: 6px; padding: 7px 10px; box-shadow: 0 2px 0 var(--stitch);
+  pointer-events: none;
+}
+.under { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; padding: 12px 4px 0; color: var(--ink); }
+.label { font: 600 22px/1 var(--display); letter-spacing: 0.08em; }
+.pad-state { font-size: 13px; color: #5a4a5e; }
+.pad-state b { color: var(--ink); }
+.screen:fullscreen { width: 100vw; height: 100vh; aspect-ratio: auto; background: #000; }
+
+/* the side panel: the game's own stitched look, at night */
+aside {
+  position: relative; background: var(--night-2); border: 2px solid #4a3d5c; border-radius: 14px; padding: 26px 22px 20px;
+  min-width: 0;
+}
+aside::before { content: ""; position: absolute; inset: 6px; border: 1px dashed rgba(232, 176, 74, 0.45); border-radius: 10px; pointer-events: none; }
+.tag {
+  position: absolute; top: -12px; left: 18px; background: var(--night); padding: 0 8px;
+  font: 600 14px/24px var(--display); letter-spacing: 0.12em; color: var(--gold); text-transform: uppercase;
+}
+aside p { margin: 0 0 12px; }
+h2 { margin: 18px 0 8px; font: 600 15px/1.2 var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+td { padding: 7px 4px; border-top: 1px solid var(--night-3); vertical-align: top; }
+td:first-child { color: var(--text); width: 46%; }
+kbd {
+  display: inline-block; min-width: 1.6em; text-align: center; font: 600 12px/1 var(--display); letter-spacing: 0.04em;
+  color: var(--text); background: var(--night-3); border: 1px solid #4a3d5c; border-bottom-width: 2px; border-radius: 5px;
+  padding: 4px 6px; margin: 0 2px 2px 0;
+}
+.small { font-size: 13px; color: var(--muted); }
+.note { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--night-3); padding-top: 12px; margin-top: 14px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Hollowell</h1>
+    <p class="lede">A top-down adventure for keyboard or controller. It runs right here in the page, and it saves as you go.</p>
+    <div class="bar">
+      <button class="pill primary" id="play" type="button">Play</button>
+      <button class="pill" id="sound" type="button" aria-pressed="true"><span class="dot"></span><span id="soundTxt">Sound on</span></button>
+      <button class="pill" id="filter" type="button">Screen: <span id="filterTxt">Crisp</span></button>
+      <button class="pill" id="full" type="button">Full screen</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="col" id="col">
+    <section class="frame" aria-label="The game">
+      <div class="bezel">
+        <div class="screen" id="screen" tabindex="0">
+          <canvas id="game" tabindex="-1" aria-label="Hollowell"></canvas>
+          <div class="focus-cue" id="cue" hidden>Click here, then play</div>
+        </div>
+      </div>
+      <div class="under">
+        <span class="label">HOLLOWELL</span>
+        <span class="pad-state" id="padState">Controller: plug one in and press a button</span>
+      </div>
+    </section>
+    </div>
+
+    <aside>
+      <span class="tag">How to play</span>
+      <p>You play a kid from a small valley town, setting out on a big day. The valley has more going on than it lets on: dungeons of hand-made rooms, tools that open up places you've already walked past, and secrets tucked into its corners.</p>
+      <p>The world runs on a few rules of its own. Push things around and watch what they do. Every puzzle follows from what you notice.</p>
+
+      <h2>Controls</h2>
+      <table>
+        <tr><td>Move</td><td><kbd>Arrows</kbd><kbd>WASD</kbd><br><span class="small">D-pad or left stick</span></td></tr>
+        <tr><td>Talk, lift, read, pick</td><td><kbd>Z</kbd><br><span class="small">A</span></td></tr>
+        <tr><td>Swing your stick</td><td><kbd>X</kbd><br><span class="small">X</span></td></tr>
+        <tr><td>Use your tool</td><td><kbd>C</kbd><br><span class="small">B</span></td></tr>
+        <tr><td>Change tool</td><td><kbd>Q</kbd><kbd>E</kbd><br><span class="small">LB, RB</span></td></tr>
+        <tr><td>Menu</td><td><kbd>Enter</kbd><br><span class="small">Start</span></td></tr>
+        <tr><td>Map</td><td><kbd>M</kbd><br><span class="small">Back</span></td></tr>
+      </table>
+      <p class="small" style="margin-top:10px">Every key and button can be changed in the game's menu, under Options, then Controls. The game's own hints follow whatever you set.</p>
+
+      <h2>Screen</h2>
+      <p class="small">The Screen button switches between crisp pixels and two old-television looks. The same choice is in Options.</p>
+
+      <h2>Saving</h2>
+      <p class="small">The game keeps your place whenever you go through a door, and you can save from the menu any time. There are three save slots. On this page your saves stay in this browser<span id="cloudNote">, and with your account when you're signed in, so you can carry on from another computer</span>.</p>
+
+      <p class="note">Click the game once so your keyboard reaches it. A controller works in this window when the browser lets the page read it; the line under the screen says if it can't. Sound starts with your first key or button press.</p>
+    </aside>
+  </div>
+</div>
+
+<script>
+/*GAME_JS*/
+</script>
+<script>
+/* the page around the game: the screen sized to whole game pixels, the buttons, the controller line, and saves kept
+   with the viewer's account (a private copy per person) as well as in this browser */
+(() => {
+  const HW = window.HW, $ = id => document.getElementById(id);
+  const G = HW.G, Gfx = HW.global('Gfx'), Input = HW.global('Input'), Settings = HW.global('Settings'), Audio = HW.global('Audio'), Store = HW.global('Store');
+  Gfx.bezel = '#0e0b12';
+  const screen = $('screen');
+  const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { } } };
+
+  /* the screen: as many whole game pixels as fit */
+  const size = () => {
+    if (document.fullscreenElement === screen) { screen.style.width = ''; screen.style.height = ''; return; }
+    /* (the column, less the frame's and the glass's edges) */
+    const dpr = window.devicePixelRatio || 1, avail = $('col').clientWidth - 64;
+    const s = Math.max(1, Math.floor(avail * dpr / 320));
+    screen.style.width = (320 * s / dpr) + 'px'; screen.style.height = (180 * s / dpr) + 'px';
+  };
+  addEventListener('resize', size); size();
+  try { new ResizeObserver(size).observe($('col')); } catch { }
+
+  /* keys reach the game once the page has focus */
+  const focusGame = () => { try { screen.focus({ preventScroll: true }); } catch { } };
+  screen.addEventListener('pointerdown', focusGame);
+  $('play').addEventListener('click', () => { focusGame(); Audio.unlock(); screen.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
+  setInterval(() => { $('cue').hidden = document.hasFocus(); }, 400);
+
+  /* sound */
+  const setSound = on => { Audio.setMuted(!on); $('sound').setAttribute('aria-pressed', on ? 'true' : 'false'); $('soundTxt').textContent = on ? 'Sound on' : 'Sound off'; ls.set('hollowell-page-sound', on ? '1' : '0'); };
+  setSound(ls.get('hollowell-page-sound') !== '0');
+  $('sound').addEventListener('click', () => { Audio.unlock(); setSound(Audio.muted); focusGame(); });
+
+  /* the screen filter, the same setting as the game's Options */
+  const NAMES = ['Crisp', 'Soft TV', 'Strong TV'];
+  const showFilter = () => { $('filterTxt').textContent = NAMES[Settings.crt | 0]; };
+  $('filter').addEventListener('click', () => { Settings.crt = ((Settings.crt | 0) + 1) % 3; Settings.save(); HW.global('Pace').dirty = true; showFilter(); focusGame(); });
+  showFilter(); setInterval(showFilter, 700);
+
+  /* full screen (the browser may say no) */
+  $('full').addEventListener('click', () => { const r = screen.requestFullscreen ? screen.requestFullscreen() : null; if (r && r.catch) r.catch(() => { }); focusGame(); });
+  document.addEventListener('fullscreenchange', size);
+
+  /* the controller line */
+  setInterval(() => {
+    const el = $('padState');
+    if (Input.padBlocked) el.innerHTML = 'Controller: <b>this window can’t read it</b>. Open the page in its own tab to use one.';
+    else if (Input.padName) el.innerHTML = 'Controller: <b>connected</b>';
+    else el.textContent = 'Controller: plug one in and press a button';
+  }, 600);
+
+  /* saves with the viewer's account: each person's own copy, read when the page opens, written a moment after the game
+     saves; whichever is newer wins */
+  const meta = (() => { try { return JSON.parse(ls.get('hollowell-sync-at') || '{}'); } catch { return {}; } })();
+  const saveMeta = () => ls.set('hollowell-sync-at', JSON.stringify(meta));
+  const KEYS = /^hollowell-(slot-\d|settings|ended)/;
+  let col = null; const pending = {}; let timer = null, busy = false;
+  const flush = async () => {
+    timer = null; if (!col || busy) return;
+    busy = true;
+    try {
+      for (const k of Object.keys(pending)) {
+        const v = pending[k]; delete pending[k];
+        const doc = col.doc(k);
+        try { if (v === null) await doc.delete(); else await doc.set({ k, v, at: meta[k] || Date.now() }); } catch (e) { if (e && e.code === 'unavailable') pending[k] = v; }
+      }
+    } finally { busy = false; if (Object.keys(pending).length && !timer) timer = setTimeout(flush, 5000); }
+  };
+  const queue = (k, v) => { if (!KEYS.test(k)) return; meta[k] = Date.now(); saveMeta(); pending[k] = v; if (!timer) timer = setTimeout(flush, 2500); };
+  Store.onSet = (k, v) => queue(k, v);
+  Store.onRemove = k => queue(k, null);
+  addEventListener('pagehide', () => { if (timer) { clearTimeout(timer); flush(); } });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && timer) { clearTimeout(timer); flush(); } });
+  (async () => {
+    try {
+      if (!window.claude || !window.claude.use) throw 0;
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      if (!db || !user) throw 0;
+      const uid = await user.id();
+      if (!uid) throw 0;
+      col = db.collection('data/users/' + uid);
+      const snap = await col.get();
+      const seen = new Set();
+      for (const d of snap.docs) {
+        const b = d.data ? d.data() : d.data;
+        if (!b || typeof b.k !== 'string' || typeof b.v !== 'string' || !KEYS.test(b.k)) continue;
+        seen.add(b.k);
+        const local = Store.get(b.k);
+        if (local === null || (b.at || 0) > (meta[b.k] || 0)) { Store.set(b.k, b.v, true); meta[b.k] = b.at || Date.now(); }
+        else if ((meta[b.k] || 0) > (b.at || 0)) pending[b.k] = local;
+      }
+      /* saves only this browser has: up they go */
+      for (const k of ['hollowell-slot-1', 'hollowell-slot-2', 'hollowell-slot-3', 'hollowell-settings']) if (!seen.has(k) && Store.get(k) !== null) { meta[k] = meta[k] || Date.now(); pending[k] = Store.get(k); }
+      saveMeta();
+      if (Store.get('hollowell-settings')) { try { Settings.load(); } catch { } }
+      HW.refreshTitle();
+      if (Object.keys(pending).length) timer = setTimeout(flush, 1000);
+    } catch (e) {
+      col = null;
+      const n = $('cloudNote'); if (n) n.textContent = '';
+    }
+  })();
+
+  /* a new version of this page arriving while someone plays: carry their place over */
+  const hot = window.claude && window.claude.hot;
+  if (hot && typeof hot.snapshot === 'function') hot.snapshot(() => ({ save: G.scene === 'play' && G.player ? HW.Save.snapshot() : null }));
+  const start = data => { try { if (data && data.save) HW.global('Game').load(HW.Save.migrate(data.save)); } catch { } };
+  if (hot && typeof hot.ready === 'function') hot.ready(start); else start((hot && hot.data) || {});
+})();
+</script>

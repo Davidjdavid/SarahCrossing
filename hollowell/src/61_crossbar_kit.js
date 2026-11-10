@@ -45,11 +45,11 @@ const Crossbar = {
     },
     take(p) {
         const t = this.target(p);
-        if (!t || !t.puppets.length) { UI.toast(this.hinted ? 'No puppet in sight.' : 'Face a puppet (or a crossbar rack) and press C to take its strings.'); this.hinted = true; return; }
+        if (!t || !t.puppets.length) { UI.toast(this.hinted ? 'No puppet in sight.' : 'Face a puppet (or a crossbar rack) and press [tool] to take its strings.'); this.hinted = true; return; }
         this.ctl = t; p.pinned = 'crossbar';
         for (const e of t.puppets) { e.heldBy = p; e.worked = true; if (e.ret) e.ret.timer = e.ret.patience; }
         Sfx.play('twang'); Stats.count('crossbar');
-        if (!Progress.flag('crossbar_first')) { Progress.set('crossbar_first'); UI.toast('Arrows walk the puppet. C again to let go.', 150); }
+        if (!Progress.flag('crossbar_first')) { Progress.set('crossbar_first'); UI.toast('Arrows walk the puppet. [tool] again to let go.', 150); }
     },
     release(p) {
         const c = this.ctl; if (!c) return;

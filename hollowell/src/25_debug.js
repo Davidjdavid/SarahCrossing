@@ -109,6 +109,8 @@ const HW = {
         if (e.shoved && e.type === 'housekeeper') { if (e.state !== 'stunned') e.shoved(DOWN, 10, { weight: 3 }); for (let i = 0; i < 12; i++) Game.step(); e.flash = 0; e.struck(G.player, 1, UP); return; }
         e.flash = 0; e.struck({ isGrid: true, weight: 1 }, 1, -1, true);
     },
+    /* (a hosting page: saves came in from elsewhere; the title screen lists them again) */
+    refreshTitle() { if (G.scene === 'title') Title.slots = Save.list(); },
     state() {
         const p = G.player;
         return { scene: G.scene, area: G.map && G.map.id, tx: p && p.tx, ty: p && p.ty, x: p && p.x, y: p && p.y, hp: Inv.hp, state: p && p.state, errors: ERRORS.length, dialog: Dialog.active };
