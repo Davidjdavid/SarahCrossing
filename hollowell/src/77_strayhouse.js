@@ -194,7 +194,9 @@ class Pile extends Ent {
         if (!order.some(d => this.free(d))) { this.state = 'strain'; this.st = 0; Sfx.play('hitthing', 0.5); return; }
         for (const d of order) {
             const nx = this.tx + DX[d], ny = this.ty + DY[d];
-            if (p.area === a && p.state === 'normal' && this.tiles(nx, ny).some(([x, y]) => x === p.tx && y === p.ty)) {
+            /* (any tile Wren's feet touch, not just her middle: it never shuts a tile round her) */
+            if (p.area === a && this.tiles(nx, ny).some(([x, y]) => p.onTile(x, y))) {
+                if (p.state !== 'normal') { this.st = period - 6; return; }
                 if (this.free(d)) { p.hurt(2, (this.tx + 1) * T, (this.ty + 1) * T); Sfx.play('hitthing'); return; }
                 continue;
             }
@@ -271,7 +273,9 @@ const StrayHouse = {
         yield* say(null, "The Pile heaves one last time and comes apart: a kettle, a coat stand, a pram wheel, a hundred odd shoes, lying about the floor. Just things. Nothing's holding them. Nothing needs to.");
         const a = pile.area;
         for (const [dx, dy] of [[0, 0], [1, 1]]) { const x = pile.tx + dx, y = pile.ty + dy; if (!a.at(x, y)) { const b = a.add(new Block(x, y, { stray: true })); b.skey = 'pile:' + dx; Fx.poof(x * T + 8, y * T + 8); } }
-        if (!a.ents.some(e => e.id === 'pileHeart')) a.add(new Pickup((pile.tx) * T, (pile.ty - 1) * T, { what: 'heartstitch', id: 'pileHeart' }));
+        /* the Heartstitch on a free floor tile where it came apart (never in a wall) */
+        const r = pile.arena, spot = [[1, 0], [0, 1], [0, -1], [2, 0], [-1, 0]].map(([dx, dy]) => [pile.tx + dx, pile.ty + dy]).find(([x, y]) => !a.at(x, y) && !a.kind(x, y).solid && !a.kind(x, y).pit && a.roomAt(x, y) === r) || [r.x + 9, r.y + 3];
+        if (!a.ents.some(e => e.id === 'pileHeart')) a.add(new Pickup(spot[0] * T, spot[1] * T, { what: 'heartstitch', id: 'pileHeart' }));
         Progress.setGoal("West of the Pile's room: Linnet's own room.");
         Save.autosave();
     },

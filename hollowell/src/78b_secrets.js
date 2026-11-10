@@ -3,8 +3,16 @@
    Biscuit's collar (S25), the far isle in Millwater lake, only for the Long Hook (S31). */
 
 /* ---------- S01: every townsperson budged off their spot ---------- */
+/* everyone who stands anywhere they can be nudged (not those only ever found behind a counter) */
+Story.budgeable = function () {
+    const seen = {}, free = {};
+    const look = ents => { for (const e of ents || []) if (e.k === 'npc' && e.who) { seen[e.who] = 1; if (!e.counter) free[e.who] = 1; } };
+    for (const a of Object.values(AREAS)) look(a.ents);
+    for (const b of Object.values(OW.blocks)) look(b.ents);
+    return Object.keys(BUDGE).filter(w => free[w] || !seen[w]);
+};
 Story.checkBudgedAll = function () {
-    const all = Object.keys(BUDGE), n = all.filter(w => Progress.flag('budged:' + w)).length;
+    const all = Story.budgeable(), n = all.filter(w => Progress.flag('budged:' + w)).length;
     if (n < all.length || Progress.flag('s01')) return;
     Progress.set('s01'); Stats.count('secret:budged');
     Script.run(function* () {
@@ -173,9 +181,11 @@ AREAS.drift.ents.push({ k: 'critter', who: 'biscuit', look: 'cat', x: 20, y: 23,
 {
     const B = OW.blocks['2,2'];
     for (const y of [9, 10]) B.rows[y] = B.rows[y].slice(0, 13) + '..' + B.rows[y].slice(15);
+    /* the isle's two open tiles are one above the other: the Long Hook from the west shore lands on the lower; the chest
+       stands in the way of a hook from the north shore, and the post on the north shore is the way off without one */
     B.ents.push(
-        { k: 'eyelet', x: 14, y: 10 }, { k: 'eyelet', x: 3, y: 10 },
-        { k: 'chest', x: 13, y: 9, item: 'heartpatch', id: 'islePatch' },
+        { k: 'eyelet', x: 14, y: 10 }, { k: 'eyelet', x: 3, y: 10 }, { k: 'eyelet', x: 13, y: 3 },
+        { k: 'chest', x: 14, y: 9, item: 'heartpatch', id: 'islePatch' },
         { k: 'sign', x: 4, y: 8, text: "THE ISLE OF NOWHERE. (Too far to hook. Too far to swim. Not too far to want. -H.)" });
 }
 {

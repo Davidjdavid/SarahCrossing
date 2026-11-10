@@ -17,6 +17,15 @@ WALLS.loomhouse = {
     face: (x, th, v) => { fill(x, '#6a7484'); for (let y = 3; y < 14; y += 5) fill(x, '#5a6070', 0, y, 16, 1); fill(x, '#e4ecf5', (v * 5) % 15, 0, 1, 14); fill(x, '#1a1e26', 0, 15, 16, 1); },
 };
 
+/* the Hanging Gallery's weights: hung out at the trench's west end, home along it, then down the far side to the east */
+function HANG_PATH(hx, hy, sx) {
+    const p = [[hx, hy], [hx, 7]];
+    for (let x = hx - 1; x >= 14; x--) p.push([x, 7]);
+    p.push([14, 6], [14, 5]);
+    for (let x = 14; x >= sx; x--) p.push([x, 4]);
+    return p;
+}
+
 defHouse({
     id: 'loom', name: 'The Loom', place: 'The Loom', house: 'loom', theme: 'loomhouse', thread: THREAD.loom, music: 'loom',
     entry: LOOM_ENTRY, noNudges: true,
@@ -150,13 +159,39 @@ defHouse({
                 '#.......ooo........#',
                 '#.......ooo........#',
                 '#.......ooo........#',
-                '####################',
+                '##############.#####',
             ],
             ents: [
                 { k: 'loomweight', x: 4, y: 2, id: 'wrW1' }, { k: 'loomweight', x: 4, y: 8, id: 'wrW2' }, { k: 'loomweight', x: 5, y: 5, id: 'wrW3' },
-                { k: 'chest', x: 16, y: 8, item: 'key', id: 'wrKey' },
                 { k: 'chute', x: 1, y: 9, drop: [2, 8], id: 'wrChute', weights: true },
                 { k: 'sign', x: 2, y: 9, text: 'The old loom weights, each on its silver thread. They have hung in the same places for longer than anyone remembers.' },
+            ],
+        },
+        /* ---------------- 6b The Hanging Gallery, under the Weighing Room: two old weights asleep beyond a trench, each on its
+           thread back to its hook up this side; ring them awake and they come home hanging over the trench: snip a thread
+           (anywhere along it) while its weight is over the gap, and down it goes, and stays (the key) ---------------- */
+        '2,3': {
+            name: 'The Hanging Gallery',
+            rows: [
+                '##############.#####',
+                '#..................#',
+                '#..................#',
+                '####...............#',
+                '#oooooooooooooo#####',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                /* hung out over the trench on their threads (tied: a lever lets them go), home at the far end of the far side */
+                { k: 'loomweight', x: 17, y: 8, id: 'hgW1', group: 'hang', tiedOff: true, hookable: false, noPush: true, startAt: [3, 4], trace: HANG_PATH(17, 8, 3) },
+                { k: 'loomweight', x: 16, y: 8, id: 'hgW2', group: 'hang', tiedOff: true, hookable: false, noPush: true, startAt: [2, 4], trace: HANG_PATH(16, 8, 2) },
+                { k: 'lever', x: 17, y: 2, release: 'hang' },
+                { k: 'chest', x: 9, y: 8, item: 'key', id: 'wrKey' },
+                { k: 'sign', x: 10, y: 1, text: 'Carved small on the wall: WHAT HANGS FROM A THREAD FALLS WHEN IT IS CUT. (And, smaller: a slack thread slides off the blades. A tight one parts anywhere. -L.)' },
             ],
         },
         /* ---------------- 7 The Bridge Room: silk won't hold iron (the Pattern) ---------------- */

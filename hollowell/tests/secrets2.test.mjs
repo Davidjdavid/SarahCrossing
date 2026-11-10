@@ -11,7 +11,8 @@ const act = (HW, d) => { HW.face(d); HW.press('act', 1); HW.step(3); HW.skipTalk
 
 test('S01: the last townsperson budged: Arlo\'s line and the Frayed Ribbon', () => {
     const HW = game();
-    const B = Object.keys(HW.global('BUDGE'));
+    const B = HW.global('Story').budgeable();
+    assert.ok(!B.includes('thimble') && !B.includes('mabel') && B.length >= 20, 'nobody only found behind a counter: ' + B.length);
     for (const w of B.slice(1)) HW.Progress.set('budged:' + w);
     HW.global('Story').budged({ who: B[0] }); HW.step(30); HW.skipTalk();
     assert.ok(HW.Progress.flag('s01') && HW.Inv.items.ribbon);
@@ -71,11 +72,25 @@ test('S25: with six of Linnet\'s notes, Biscuit\'s collar; S31: the far isle, by
     clear();
     HW.Inv.equipped = 'hook'; HW.face('right'); HW.press('tool', 1); HW.step(90);
     assert.deepEqual([HW.player().tx, HW.player().ty], [128 + 13, 80 + 10], 'over to the isle');
-    act(HW, 'up');
+    assert.ok(HW.walkTo(128 + 13, 80 + 9)); act(HW, 'right');
     assert.ok(HW.Progress.flag('s31') && HW.Inv.patches >= 1, 'the chest');
+    HW.walkTo(128 + 13, 80 + 10);
     clear(); HW.Inv.equipped = 'hook'; HW.face('left'); HW.press('tool', 1); HW.step(90);
     assert.deepEqual([HW.player().tx, HW.player().ty], [128 + 4, 80 + 10], 'and back');
     noErrors(HW);
+});
+
+test('S31: no way onto the isle from the north shore; the post there is the way off, thread or no thread', () => {
+    for (const pre of ['afterD8', 'afterEnding']) {
+        const HW = game(pre);
+        HW.warp('hollow', 128 + 14, 80 + 4); HW.step(10); HW.skipTalk();
+        HW.Inv.equipped = 'hook'; HW.face('down'); HW.press('tool', 1); HW.step(60);
+        assert.equal(HW.player().ty, 80 + 4, 'the chest turns the hook back');
+        HW.warp('hollow', 128 + 13, 80 + 9); HW.step(10); HW.skipTalk();
+        HW.Inv.equipped = 'hook'; HW.face('up'); HW.press('tool', 1); HW.step(60);
+        assert.deepEqual([HW.player().tx, HW.player().ty], [128 + 13, 80 + 4], 'off by the north post');
+        noErrors(HW);
+    }
 });
 
 test('fog-silk hollows in three early regions: shut until the Shears; the quilt counts them', () => {

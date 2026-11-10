@@ -39,6 +39,7 @@ function buildOverworld() {
             if (o.trace) o.trace = o.trace.map(([x, y]) => [x + ox, y + oy]);
             if (o.startAt) o.startAt = [o.startAt[0] + ox, o.startAt[1] + oy];
             if (o.at) o.at = [o.at[0] + ox, o.at[1] + oy];
+            if (o.route) o.route = o.route.map(([x, y, ...w]) => [x + ox, y + oy, ...w]);
             ents.push(o);
         }
         regions.push({ name: b.name, sub: b.sub, x: ox, y: oy, w: OW.bw, h: OW.bh, music: b.music, mark: true, id: b.id });

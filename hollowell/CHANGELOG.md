@@ -94,3 +94,7 @@
   found the long secret chain; the climax's look strengthened; clues placed where the story promised them.
 - The end shown, not only told; a tally of discoveries kept somewhere you can read it; three early places that only the
   late game opens; small touches in the optional houses and past the edge.
+- A new room in the last main dungeon, built on a new use of its tool.
+- Fixes from the optional dungeons' bug hunt (11 findings: two ways to get stuck for good, a way to skip a dungeon's
+  finale, a crash, a secret that couldn't be finished, wandering townsfolk and animals heading the wrong way, and smaller
+  things); regression tests.

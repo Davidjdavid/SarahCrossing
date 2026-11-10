@@ -832,7 +832,7 @@ const LEG8 = (HW, chain) => {
     HW.warp('hollow', 96, 44); HW.step(20); HW.skipTalk();
     walk(95, 10, 30000); HW.hold('up'); until(() => HW.G.map.id === 'loom', 120); HW.release(); HW.step(20); HW.skipTalk();
     ok(HW.G.map.id === 'loom', 'into the Loom');
-    const L = { th: [20, 33], wh: [20, 22], oy: [0, 22], sr: [20, 11], wr: [40, 22], br: [40, 11], web: [20, 0] };
+    const L = { th: [20, 33], wh: [20, 22], oy: [0, 22], sr: [20, 11], wr: [40, 22], br: [40, 11], web: [20, 0], hg: [40, 33] };
     const l = (r, x, y) => [L[r][0] + x, L[r][1] + y];
     const lgo = (r, x, y) => walk(...l(r, x, y));
     const lpush = (r, x, y, d, n) => { lgo(r, x, y); HW.push(d, n); HW.step(25); };
@@ -872,7 +872,9 @@ const LEG8 = (HW, chain) => {
     lpush('wr', 3, 5, 'right', 5);
     lgo('wr', 4, 9); snip('up'); HW.push('up', 3); HW.step(30);
     lpush('wr', 3, 5, 'right', 6);
-    lgo('wr', 16, 7); act('down'); ok(HW.Inv.keys('loom') === 1, 'the key');
+    /* down to the Hanging Gallery: the weights let go, one cut as it hangs over the trench; across to the key */
+    lgo('hg', 16, 2); act('right'); lgo('hg', 12, 3); snip('down');
+    lgo('hg', 9, 7); act('down'); ok(HW.Inv.keys('loom') === 1, 'the key');
     /* the Bridge Room, by its lock: a weight cut free breaks the silk and fills the gap; the other over onto the plate */
     lgo('wr', 15, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30);
     lgo('br', 12, 5); lgo('br', 6, 5);
@@ -967,11 +969,11 @@ const LEG9 = (HW, chain) => {
     go('kiln', 13, 8); tool('hook', 'left'); HW.step(60);
     go('crossing', 14, 5); step('left'); paddleTo(...g('crossing', 6, 5)); step('left');
     go('hub', 9, 1); go('climb', 1, 5); go('ferry', 14, 5);
-    step('left'); paddleTo(...g('ferry', 6, 5)); step('left'); go('ferry', 5, 5); tool('shears', 'right');
+    step('left'); paddleTo(...g('ferry', 7, 5)); step('left'); go('ferry', 6, 5); tool('shears', 'right');
     go('mill', 14, 5); step('left'); paddleTo(...g('mill', 6, 5)); step('left');
     go('mill', 3, 5); act('left');
     go('mill', 5, 5); step('right'); paddleTo(...g('mill', 13, 5)); step('right');
-    go('ferry', 5, 5); step('right'); paddleTo(...g('ferry', 13, 5)); step('right');
+    go('ferry', 6, 5); step('right'); paddleTo(...g('ferry', 13, 5)); step('right');
     go('climb', 18, 5); go('loft', 9, 4); tool('bell'); HW.step(120);
     go('loft', 12, 4); HW.face('up'); stitch('RRR');
     go('belfry', 6, 5); tool('bell'); HW.step(120);

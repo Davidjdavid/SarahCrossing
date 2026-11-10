@@ -5412,6 +5412,7 @@ function buildOverworld() {
             if (o.trace) o.trace = o.trace.map(([x, y]) => [x + ox, y + oy]);
             if (o.startAt) o.startAt = [o.startAt[0] + ox, o.startAt[1] + oy];
             if (o.at) o.at = [o.at[0] + ox, o.at[1] + oy];
+            if (o.route) o.route = o.route.map(([x, y, ...w]) => [x + ox, y + oy, ...w]);
             ents.push(o);
         }
         regions.push({ name: b.name, sub: b.sub, x: ox, y: oy, w: OW.bw, h: OW.bh, music: b.music, mark: true, id: b.id });
@@ -8734,7 +8735,7 @@ defBlock({
         { k: 'chest', x: 44, y: 34, item: 'b50', id: 'mwBasin' },
         { k: 'deco', x: 43, y: 35, look: 'note_bottle', solid: [[0, 0]], text: 'A bottle with a note in it: "If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. - L."' },
         /* reed snappers in the shallows */
-        { k: 'enemy', x: 4, y: 10, type: 'snapper' }, { k: 'enemy', x: 22, y: 18, type: 'snapper' }, { k: 'enemy', x: 42, y: 17, type: 'snapper' },
+        { k: 'enemy', x: 7, y: 13, type: 'snapper' }, { k: 'enemy', x: 22, y: 18, type: 'snapper' }, { k: 'enemy', x: 42, y: 17, type: 'snapper' },
     ],
     regions: [
         { name: 'The Reaches', x: 0, y: 2, w: 42, h: 34 },
@@ -14525,7 +14526,7 @@ const Needle = {
         if (Inv.stitches.length > this.MAX) {
             const oldest = Inv.stitches[0];
             this.unpick(oldest);
-            const rm = AREAS[oldest.area] && AREAS[oldest.area].rooms ? (AREAS[oldest.area].rooms.find(r => oldest.from[0] >= r.x && oldest.from[1] >= r.y && oldest.from[0] < r.x + r.w && oldest.from[1] < r.y + r.h) || {}).name : null;
+            const rm = oldest.from && AREAS[oldest.area] && AREAS[oldest.area].rooms ? (AREAS[oldest.area].rooms.find(r => oldest.from[0] >= r.x && oldest.from[1] >= r.y && oldest.from[0] < r.x + r.w && oldest.from[1] < r.y + r.h) || {}).name : null;
             UI.toast('Three stitches is all the Needle holds: the oldest comes undone' + (rm ? ' (in ' + rm + ').' : '.'), 160);
         }
     },
@@ -16368,8 +16369,15 @@ const Shears = {
         if (o && (o.ret || o.cuttable)) return o;
         const w = a.ents.find(e => e.cuttable && !e.isGrid && e.cutAt && e.cutAt(f.tx, f.ty));
         if (w) return w;
+        /* a thread drawn tight (its thing on the way home) can be cut anywhere along it, back to its mark */
+        const hung = this.taut(a, f.tx, f.ty, true);
+        if (hung) return hung;
         for (const m of a.walkers) if (m.alive && m.ret && m.onTile && m.onTile(f.tx, f.ty)) return m;
         return null;
+    },
+    /* the thing whose thread runs over a tile (tight: on its way home; or any, slack too) */
+    taut(a, x, y, tight) {
+        return a.ents.find(e => e.isGrid && e.ret && e.ret.state !== 'home' && (!tight || e.ret.state === 'returning') && !e.removed && !e.noCut && e.ret.trace && !(e.tx === x && e.ty === y) && e.ret.trace.some(([tx, ty]) => tx === x && ty === y));
     },
     use(p) {
         /* the Makings are Tuck's Wander, and the Makers' kit: not for cutting */
@@ -16378,6 +16386,7 @@ const Shears = {
         if (!e) {
             const a = p.area, f = p.front();
             if ((a.kind(f.tx, f.ty).fog || a.kind(p.tx, p.ty).fog) && !Progress.flag('cut_self')) return Script.run(Shears.selfCut());
+            if (this.taut(a, f.tx, f.ty, false)) { UI.toast("The thread's lying slack there: it only slides off the blades. Cut it at the thing itself, or while it's pulled tight.", 200); return; }
             UI.toast(this.hinted ? 'Nothing with a thread there.' : 'Face something with a thread (or its cord, from underneath) and press C to cut it.');
             this.hinted = true; return;
         }
@@ -16400,6 +16409,8 @@ const Shears = {
             /* (a cut thing is tied to nothing: a sleeper wakes a stray, and can be pushed) */
             if (e.sleeper) { e.sleeper = false; e.tiedOff = false; e.noPush = false; }
             if (e.isGrid) { e.marked = false; if (e.mv) { e.mv = null; a.unplace(e, e.tx, e.ty); e.x = e.tx * T; e.y = e.ty * T; a.place(e, e.tx, e.ty); } }
+            /* cut loose over a hole (hanging on its thread a moment ago): down it goes, and fills it */
+            if (e.isGrid && e.landed && !e.removed && a.kind(e.tx, e.ty).pit) e.landed(false);
             if (k) Progress.setAreaFlag(a.id, 'cut:' + k, e.tx + ',' + e.ty);
         }
         if (!quiet) {
@@ -16709,6 +16720,15 @@ WALLS.loomhouse = {
     face: (x, th, v) => { fill(x, '#6a7484'); for (let y = 3; y < 14; y += 5) fill(x, '#5a6070', 0, y, 16, 1); fill(x, '#e4ecf5', (v * 5) % 15, 0, 1, 14); fill(x, '#1a1e26', 0, 15, 16, 1); },
 };
 
+/* the Hanging Gallery's weights: hung out at the trench's west end, home along it, then down the far side to the east */
+function HANG_PATH(hx, hy, sx) {
+    const p = [[hx, hy], [hx, 7]];
+    for (let x = hx - 1; x >= 14; x--) p.push([x, 7]);
+    p.push([14, 6], [14, 5]);
+    for (let x = 14; x >= sx; x--) p.push([x, 4]);
+    return p;
+}
+
 defHouse({
     id: 'loom', name: 'The Loom', place: 'The Loom', house: 'loom', theme: 'loomhouse', thread: THREAD.loom, music: 'loom',
     entry: LOOM_ENTRY, noNudges: true,
@@ -16842,13 +16862,39 @@ defHouse({
                 '#.......ooo........#',
                 '#.......ooo........#',
                 '#.......ooo........#',
-                '####################',
+                '##############.#####',
             ],
             ents: [
                 { k: 'loomweight', x: 4, y: 2, id: 'wrW1' }, { k: 'loomweight', x: 4, y: 8, id: 'wrW2' }, { k: 'loomweight', x: 5, y: 5, id: 'wrW3' },
-                { k: 'chest', x: 16, y: 8, item: 'key', id: 'wrKey' },
                 { k: 'chute', x: 1, y: 9, drop: [2, 8], id: 'wrChute', weights: true },
                 { k: 'sign', x: 2, y: 9, text: 'The old loom weights, each on its silver thread. They have hung in the same places for longer than anyone remembers.' },
+            ],
+        },
+        /* ---------------- 6b The Hanging Gallery, under the Weighing Room: two old weights asleep beyond a trench, each on its
+           thread back to its hook up this side; ring them awake and they come home hanging over the trench: snip a thread
+           (anywhere along it) while its weight is over the gap, and down it goes, and stays (the key) ---------------- */
+        '2,3': {
+            name: 'The Hanging Gallery',
+            rows: [
+                '##############.#####',
+                '#..................#',
+                '#..................#',
+                '####...............#',
+                '#oooooooooooooo#####',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                /* hung out over the trench on their threads (tied: a lever lets them go), home at the far end of the far side */
+                { k: 'loomweight', x: 17, y: 8, id: 'hgW1', group: 'hang', tiedOff: true, hookable: false, noPush: true, startAt: [3, 4], trace: HANG_PATH(17, 8, 3) },
+                { k: 'loomweight', x: 16, y: 8, id: 'hgW2', group: 'hang', tiedOff: true, hookable: false, noPush: true, startAt: [2, 4], trace: HANG_PATH(16, 8, 2) },
+                { k: 'lever', x: 17, y: 2, release: 'hang' },
+                { k: 'chest', x: 9, y: 8, item: 'key', id: 'wrKey' },
+                { k: 'sign', x: 10, y: 1, text: 'Carved small on the wall: WHAT HANGS FROM A THREAD FALLS WHEN IT IS CUT. (And, smaller: a slack thread slides off the blades. A tight one parts anywhere. -L.)' },
             ],
         },
         /* ---------------- 7 The Bridge Room: silk won't hold iron (the Pattern) ---------------- */
@@ -17601,7 +17647,8 @@ defHouse({
         /* ---------------- the Ferry Landing (on the way to the Millrace's Knot): a ferry that always goes home ---------------- */
         '1,1': {
             name: 'The Ferry Landing',
-            rows: ['####################', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '......~~~~~~~~......', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '####################'],
+            /* (seven wide: a ferry cut and left on the far side is always in the Hookline's reach from the near one) */
+            rows: ['####################', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '.......~~~~~~~......', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '####################'],
             ents: [
                 { k: 'raft', x: 13, y: 5, id: 'gsFerry', patience: 240 },
                 { k: 'sign', x: 3, y: 8, text: "Your dad's hand: THE FERRY ALWAYS GOES HOME. IT'S A GOOD FERRY. (How'll you get back, then?)" },
@@ -18455,7 +18502,9 @@ class Pile extends Ent {
         if (!order.some(d => this.free(d))) { this.state = 'strain'; this.st = 0; Sfx.play('hitthing', 0.5); return; }
         for (const d of order) {
             const nx = this.tx + DX[d], ny = this.ty + DY[d];
-            if (p.area === a && p.state === 'normal' && this.tiles(nx, ny).some(([x, y]) => x === p.tx && y === p.ty)) {
+            /* (any tile Wren's feet touch, not just her middle: it never shuts a tile round her) */
+            if (p.area === a && this.tiles(nx, ny).some(([x, y]) => p.onTile(x, y))) {
+                if (p.state !== 'normal') { this.st = period - 6; return; }
                 if (this.free(d)) { p.hurt(2, (this.tx + 1) * T, (this.ty + 1) * T); Sfx.play('hitthing'); return; }
                 continue;
             }
@@ -18532,7 +18581,9 @@ const StrayHouse = {
         yield* say(null, "The Pile heaves one last time and comes apart: a kettle, a coat stand, a pram wheel, a hundred odd shoes, lying about the floor. Just things. Nothing's holding them. Nothing needs to.");
         const a = pile.area;
         for (const [dx, dy] of [[0, 0], [1, 1]]) { const x = pile.tx + dx, y = pile.ty + dy; if (!a.at(x, y)) { const b = a.add(new Block(x, y, { stray: true })); b.skey = 'pile:' + dx; Fx.poof(x * T + 8, y * T + 8); } }
-        if (!a.ents.some(e => e.id === 'pileHeart')) a.add(new Pickup((pile.tx) * T, (pile.ty - 1) * T, { what: 'heartstitch', id: 'pileHeart' }));
+        /* the Heartstitch on a free floor tile where it came apart (never in a wall) */
+        const r = pile.arena, spot = [[1, 0], [0, 1], [0, -1], [2, 0], [-1, 0]].map(([dx, dy]) => [pile.tx + dx, pile.ty + dy]).find(([x, y]) => !a.at(x, y) && !a.kind(x, y).solid && !a.kind(x, y).pit && a.roomAt(x, y) === r) || [r.x + 9, r.y + 3];
+        if (!a.ents.some(e => e.id === 'pileHeart')) a.add(new Pickup(spot[0] * T, spot[1] * T, { what: 'heartstitch', id: 'pileHeart' }));
         Progress.setGoal("West of the Pile's room: Linnet's own room.");
         Save.autosave();
     },
@@ -18641,7 +18692,7 @@ defHouse({
             name: 'The Drafting Hall',
             rows: ['#########.##########', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
             ents: [
-                { k: 'door', x: 9, y: 0, type: 'gate', when: 'ufW&ufE', dir: 'h', id: 'ufStairs' },
+                { k: 'door', x: 9, y: 0, type: 'gate', when: 'ufW&ufE', dir: 'h', id: 'ufStairs', keep: true },
                 { k: 'lamp', x: 4, y: 1, sig: 'ufW', look: 'lantern' }, { k: 'lamp', x: 15, y: 1, sig: 'ufE', look: 'lantern' },
                 { k: 'deco', x: 2, y: 7, look: 'desk', solid: [[0, 0], [1, 0]], ox: 0, text: "Mr Ives's drafting table. A plan of the whole House, beautifully drawn, every gap and every bridge; and in the corner, in a shakier hand: FOR WHOEVER COMES NEXT. I'M SORRY IT'S NOT DONE." },
                 { k: 'sign', x: 15, y: 8, text: 'Pencilled on the wall: THE NEEDLE HOLDS THREE. A FOURTH STITCH UNDOES THE FIRST. (WHEREVER IT IS. WHOEVER IS ON IT.)' },
@@ -18738,7 +18789,10 @@ class ChalkPiece extends Ent {
         this.sewn = false;
         for (const [x, y] of this.tiles()) {
             a.setCell(x, y, 'o');
-            const o = a.at(x, y); if (o && o.landed) o.landed(false);
+            const o = a.at(x, y);
+            /* a thing given its place on the plank: that place is gone, so its stitch goes too (or it would hang there) */
+            if (o && o.stitched) { const rec = Inv.stitches.find(s => s.area === a.id && s.key === Needle.key(o)); if (rec) Needle.unpick(rec); }
+            if (o && o.landed) o.landed(false);
             for (const w of a.ents) if (w.onUnsew) w.onUnsew(x, y);
         }
         if (!quiet && p && p.area === a && this.covers(p.tx, p.ty) && p.state === 'normal') p.startFall('pit');
@@ -18822,7 +18876,8 @@ SPAWN.chalk = (x, y, p) => new ChalkPiece(x, y, p);
    under him comes undone he drops, and his own old thread hauls him back to the start */
 class IvesWalker extends GridThing {
     constructor(tx, ty, p = {}) {
-        super('npc', tx, ty, Object.assign({ weight: WEIGHT.medium, marked: false, hookable: false, noNeedle: true, noCut: true, noCutLine: "His thread's his own business, he says." }, p));
+        /* (as heavy as a post to the Hookline: it bounces off him rather than haul him about) */
+        super('npc', tx, ty, Object.assign({ weight: WEIGHT.fixed, marked: false, hookable: false, noPush: true, noNeedle: true, noCut: true, noCutLine: "His thread's his own business, he says." }, p));
         this.who = 'mrives'; this.sprId = 'mrives'; this.dir = RIGHT; this.t = 0; this.wait = 60; this.home = [tx, ty]; this.person = true; this.anim = 0;
         this.done = Progress.flag('ives_done');
     }
@@ -18845,6 +18900,8 @@ class IvesWalker extends GridThing {
         if (this.done || Script.blocking()) return;
         const p = G.player, a = this.area;
         if (!p || p.area !== a || Cam.room !== a.roomAt(this.tx, this.ty)) return;
+        /* moved off his walk somehow: his own old thread hauls him back to the start */
+        if (this.ty !== this.home[1] || a.roomAt(this.tx, this.ty) !== a.roomAt(this.home[0], this.home[1])) { this.warpTo(this.home[0], this.home[1]); this.wait = 120; this.dir = RIGHT; Fx.poof(this.tx * T + 8, this.ty * T + 8); return; }
         if (this.wait > 0) { this.wait--; return; }
         const r = a.roomAt(this.tx, this.ty), nx = this.tx + 1;
         if (nx > r.x + 16) { this.finish(); return; }
@@ -18947,8 +19004,16 @@ CONTENT_INIT.push(initUnfinished);
    Biscuit's collar (S25), the far isle in Millwater lake, only for the Long Hook (S31). */
 
 /* ---------- S01: every townsperson budged off their spot ---------- */
+/* everyone who stands anywhere they can be nudged (not those only ever found behind a counter) */
+Story.budgeable = function () {
+    const seen = {}, free = {};
+    const look = ents => { for (const e of ents || []) if (e.k === 'npc' && e.who) { seen[e.who] = 1; if (!e.counter) free[e.who] = 1; } };
+    for (const a of Object.values(AREAS)) look(a.ents);
+    for (const b of Object.values(OW.blocks)) look(b.ents);
+    return Object.keys(BUDGE).filter(w => free[w] || !seen[w]);
+};
 Story.checkBudgedAll = function () {
-    const all = Object.keys(BUDGE), n = all.filter(w => Progress.flag('budged:' + w)).length;
+    const all = Story.budgeable(), n = all.filter(w => Progress.flag('budged:' + w)).length;
     if (n < all.length || Progress.flag('s01')) return;
     Progress.set('s01'); Stats.count('secret:budged');
     Script.run(function* () {
@@ -19117,9 +19182,11 @@ AREAS.drift.ents.push({ k: 'critter', who: 'biscuit', look: 'cat', x: 20, y: 23,
 {
     const B = OW.blocks['2,2'];
     for (const y of [9, 10]) B.rows[y] = B.rows[y].slice(0, 13) + '..' + B.rows[y].slice(15);
+    /* the isle's two open tiles are one above the other: the Long Hook from the west shore lands on the lower; the chest
+       stands in the way of a hook from the north shore, and the post on the north shore is the way off without one */
     B.ents.push(
-        { k: 'eyelet', x: 14, y: 10 }, { k: 'eyelet', x: 3, y: 10 },
-        { k: 'chest', x: 13, y: 9, item: 'heartpatch', id: 'islePatch' },
+        { k: 'eyelet', x: 14, y: 10 }, { k: 'eyelet', x: 3, y: 10 }, { k: 'eyelet', x: 13, y: 3 },
+        { k: 'chest', x: 14, y: 9, item: 'heartpatch', id: 'islePatch' },
         { k: 'sign', x: 4, y: 8, text: "THE ISLE OF NOWHERE. (Too far to hook. Too far to swim. Not too far to want. -H.)" });
 }
 {

@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
 
-const R = { th: [20, 33], wh: [20, 22], oy: [0, 22], sr: [20, 11], sp: [0, 11], wr: [40, 22], br: [40, 11], web: [20, 0] };
+const R = { th: [20, 33], wh: [20, 22], oy: [0, 22], sr: [20, 11], sp: [0, 11], wr: [40, 22], br: [40, 11], web: [20, 0], hg: [40, 33] };
 const at = (room, x, y) => [R[room][0] + x, R[room][1] + y];
 const until = (HW, fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
 const go = (HW, room, x, y) => assert.ok(HW.walkTo(...at(room, x, y)), `walk to ${room} ${x},${y} (at ${HW.player().tx},${HW.player().ty})`);
@@ -103,8 +103,37 @@ test('the Weighing Room: cut the old weights free and fill the chasm (key)', () 
     go(HW, 'wr', 4, 9); HW.face('up'); snip(HW); HW.push('up', 3); HW.step(30);
     pushAt(HW, 'wr', 3, 5, 'right', 6);
     assert.ok(!HW.G.map.kind(...at('wr', 10, 5)).pit, 'three');
-    go(HW, 'wr', 16, 7); HW.face('down'); HW.press('act', 1); HW.skipTalk();
+    /* the key's down in the Hanging Gallery now */
+    go(HW, 'hg', 16, 2); HW.face('right'); HW.press('act', 1); HW.step(2);
+    go(HW, 'hg', 12, 3); HW.face('down'); snip(HW);
+    go(HW, 'hg', 9, 7); HW.face('down'); HW.press('act', 1); HW.skipTalk();
     assert.equal(HW.Inv.keys('loom'), 1, 'the key');
+    noErrors(HW);
+});
+
+test('the Hanging Gallery: a slack thread slides off; a tight one is cut anywhere and its weight drops into the trench; missed, the lever sets them out again', () => {
+    const HW = game(true);
+    HW.warp('loom', ...at('hg', 14, 1)); HW.step(20); HW.skipTalk();
+    const w1 = thing(HW, 'hgW1'), w2 = thing(HW, 'hgW2');
+    /* tied out over the trench: slack, and nothing to hook across by */
+    go(HW, 'hg', 12, 3); HW.face('down'); snip(HW);
+    assert.ok(w1.ret && w2.ret, 'slack: not cut');
+    HW.Inv.equipped = 'hook'; HW.press('tool', 1); HW.step(60);
+    assert.equal(HW.player().ty, at('hg', 0, 3)[1], 'the hook finds nothing to pull Wren over by');
+    /* let go, and missed: they come home on the far side; the lever pulled back sets them out again */
+    go(HW, 'hg', 16, 2); HW.face('right'); HW.press('act', 1);
+    until(HW, () => w1.ret.state === 'home' && w2.ret.state === 'home', 900);
+    assert.deepEqual([w1.tx, w1.ty], at('hg', 17, 8), 'home on the far side');
+    HW.press('act', 1); HW.step(2);
+    assert.deepEqual([w1.tx, w1.ty], at('hg', 3, 4), 'set out again');
+    /* again, and cut on the way: down it goes, a way over */
+    HW.press('act', 1); HW.step(2);
+    go(HW, 'hg', 13, 3); HW.face('down');
+    until(HW, () => w1.tx >= at('hg', 6, 0)[0], 300); snip(HW);
+    assert.ok(w1.removed, 'dropped');
+    const x = w1.tx;
+    assert.ok(!HW.G.map.kind(x, at('hg', 0, 4)[1]).pit && x < at('hg', 13, 0)[0], 'filled where it hung, not where it was cut');
+    assert.ok(HW.walkTo(x, at('hg', 0, 6)[1]), 'over');
     noErrors(HW);
 });
 

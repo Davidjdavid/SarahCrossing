@@ -226,11 +226,14 @@ const SCENARIOS = {
             await page.evaluate(([x, y]) => { HW.warp('hollow', x, y); HW.step(60); HW.skipTalk(); }, [x, y]);
             await shot(n);
         }
-        const rooms = { th: [29, 40], wh: [29, 29], oy: [12, 28], sr: [29, 19], sp: [9, 16], wr: [52, 27], br: [52, 16], web: [29, 9] };
+        const rooms = { th: [29, 40], wh: [29, 29], oy: [12, 28], sr: [29, 19], sp: [9, 16], wr: [52, 27], br: [52, 16], web: [29, 9], hg: [54, 35] };
         for (const [n, [x, y]] of Object.entries(rooms)) {
             await page.evaluate(([x, y]) => { HW.warp('loom', x, y); HW.step(40); HW.skipTalk(); HW.step(30); HW.skipTalk(); }, [x, y]);
             await shot('lm_' + n);
         }
+        /* the Hanging Gallery's weights let go, on their way home over the trench */
+        await page.evaluate(() => { HW.walkTo(56, 35); HW.face('right'); HW.press('act', 1); HW.step(70); });
+        await shot('lm_hg_moving');
     },
     async ending() {
         await open();

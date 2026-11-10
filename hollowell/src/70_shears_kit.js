@@ -16,8 +16,15 @@ const Shears = {
         if (o && (o.ret || o.cuttable)) return o;
         const w = a.ents.find(e => e.cuttable && !e.isGrid && e.cutAt && e.cutAt(f.tx, f.ty));
         if (w) return w;
+        /* a thread drawn tight (its thing on the way home) can be cut anywhere along it, back to its mark */
+        const hung = this.taut(a, f.tx, f.ty, true);
+        if (hung) return hung;
         for (const m of a.walkers) if (m.alive && m.ret && m.onTile && m.onTile(f.tx, f.ty)) return m;
         return null;
+    },
+    /* the thing whose thread runs over a tile (tight: on its way home; or any, slack too) */
+    taut(a, x, y, tight) {
+        return a.ents.find(e => e.isGrid && e.ret && e.ret.state !== 'home' && (!tight || e.ret.state === 'returning') && !e.removed && !e.noCut && e.ret.trace && !(e.tx === x && e.ty === y) && e.ret.trace.some(([tx, ty]) => tx === x && ty === y));
     },
     use(p) {
         /* the Makings are Tuck's Wander, and the Makers' kit: not for cutting */
@@ -26,6 +33,7 @@ const Shears = {
         if (!e) {
             const a = p.area, f = p.front();
             if ((a.kind(f.tx, f.ty).fog || a.kind(p.tx, p.ty).fog) && !Progress.flag('cut_self')) return Script.run(Shears.selfCut());
+            if (this.taut(a, f.tx, f.ty, false)) { UI.toast("The thread's lying slack there: it only slides off the blades. Cut it at the thing itself, or while it's pulled tight.", 200); return; }
             UI.toast(this.hinted ? 'Nothing with a thread there.' : 'Face something with a thread (or its cord, from underneath) and press C to cut it.');
             this.hinted = true; return;
         }
@@ -48,6 +56,8 @@ const Shears = {
             /* (a cut thing is tied to nothing: a sleeper wakes a stray, and can be pushed) */
             if (e.sleeper) { e.sleeper = false; e.tiedOff = false; e.noPush = false; }
             if (e.isGrid) { e.marked = false; if (e.mv) { e.mv = null; a.unplace(e, e.tx, e.ty); e.x = e.tx * T; e.y = e.ty * T; a.place(e, e.tx, e.ty); } }
+            /* cut loose over a hole (hanging on its thread a moment ago): down it goes, and fills it */
+            if (e.isGrid && e.landed && !e.removed && a.kind(e.tx, e.ty).pit) e.landed(false);
             if (k) Progress.setAreaFlag(a.id, 'cut:' + k, e.tx + ',' + e.ty);
         }
         if (!quiet) {

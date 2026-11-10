@@ -173,6 +173,21 @@
   Kilnridge and Millwater that only the Shears open; the Stray House leaves a fallen Wren where she fell; Linnet's cut-loose
   things lying about the Drift (+2 tests). Still to do from it: a richer Loom, a fourth Making, more visual variety.
 
+- 2026-11-10: bug hunt over the optional dungeons, the late secrets and the Great Spool's antechambers (11 findings).
+  Fixed, with regression tests (`tests/review_opt.test.mjs`, `tests/secrets2.test.mjs`): the Ferry Landing could leave
+  the ferry cut on the far side with Wren on the near one, for good (the river is now seven wide: the Hookline always
+  reaches it); the far isle could be reached the wrong way and strand Wren once her thread was cut (its tiles joined,
+  the chest blocks the north line, a post on the north shore as a way off, the reed snapper moved off the Long Hook's
+  line); Mr Ives could be hooked off his walk to skip it (the hook bounces; off his walk he goes back to the start);
+  the Pile could shut a tile round Wren's feet in a nook's slit (it checks every tile her feet touch); a crash when a
+  fourth stitch pushed out a chalk one; S01 counted four people only ever found behind counters; things in the valley
+  with routes headed for the wrong block (routes now shifted like everything else: Biscuit really comes by the
+  crawlspace); the Drafting Hall stairs closed again after a reload (they stay open once lit); the Pile's Heartstitch
+  could land in a wall; a stray given its place on a plank hovered when the plank went (its stitch goes with it).
+  Kept as accepted second ways (they follow the rules; none skips a room's reward): Wren standing on a plate herself in
+  the Bridge Garden and the Pantry; the Loading Bay and the Washhouse filled from their chutes; the Mending Room's pins
+  walked over; the Long Gap's stray pushed into a gap; the Puppet Gallery done with the Needle alone.
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
@@ -198,3 +213,4 @@
 | 2026-11-10 | Late secrets (+6); final-act review fixes (+7); the Great Spool rebuilt to 16 rooms (+1); 308 in all; screenshots | pass |
 | 2026-11-10 | Playthrough legs 8 and 9: fresh game to credits in nine legs (310 in all); three bugs found and fixed | pass |
 | 2026-11-10 | One continuous game, title to credits, no presets (311 in all, 2 min) | pass |
+| 2026-11-10 | Design critique items (+3); the Hanging Gallery (+1); optional dungeons' bug hunt fixes (+7); 322 in all; Loom screenshots | pass |

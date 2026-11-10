@@ -335,7 +335,7 @@ const Needle = {
         if (Inv.stitches.length > this.MAX) {
             const oldest = Inv.stitches[0];
             this.unpick(oldest);
-            const rm = AREAS[oldest.area] && AREAS[oldest.area].rooms ? (AREAS[oldest.area].rooms.find(r => oldest.from[0] >= r.x && oldest.from[1] >= r.y && oldest.from[0] < r.x + r.w && oldest.from[1] < r.y + r.h) || {}).name : null;
+            const rm = oldest.from && AREAS[oldest.area] && AREAS[oldest.area].rooms ? (AREAS[oldest.area].rooms.find(r => oldest.from[0] >= r.x && oldest.from[1] >= r.y && oldest.from[0] < r.x + r.w && oldest.from[1] < r.y + r.h) || {}).name : null;
             UI.toast('Three stitches is all the Needle holds: the oldest comes undone' + (rm ? ' (in ' + rm + ').' : '.'), 160);
         }
     },

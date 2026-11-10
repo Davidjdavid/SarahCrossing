@@ -108,18 +108,18 @@ test('the Great Spool: six Knots, each through a room that pairs its House with 
     go(HW, 'crossing', 14, 5); step(HW, 'left'); HW.Inv.equipped = 'paddle'; paddleTo(HW, ...at('crossing', 6, 5)); step(HW, 'left');
     /* the Ferry Landing: over, and the ferry cut (or it goes home without you) */
     go(HW, 'hub', 9, 1); go(HW, 'climb', 1, 5); go(HW, 'ferry', 14, 5);
-    step(HW, 'left'); HW.Inv.equipped = 'paddle'; paddleTo(HW, ...at('ferry', 6, 5)); step(HW, 'left'); go(HW, 'ferry', 5, 5);
+    step(HW, 'left'); HW.Inv.equipped = 'paddle'; paddleTo(HW, ...at('ferry', 7, 5)); step(HW, 'left'); go(HW, 'ferry', 6, 5);
     HW.face('right'); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(3); HW.skipTalk();
     HW.step(400);
     const ferry = HW.G.map.find('gsFerry');
-    assert.deepEqual([ferry.tx, ferry.ty], at('ferry', 6, 5), 'the ferry stays');
+    assert.deepEqual([ferry.tx, ferry.ty], at('ferry', 7, 5), 'the ferry stays');
     /* the Millrace's Knot */
     go(HW, 'mill', 14, 5);
     step(HW, 'left'); HW.Inv.equipped = 'paddle'; paddleTo(HW, ...at('mill', 6, 5)); step(HW, 'left');
     go(HW, 'mill', 3, 5); act(HW, 'left');
     assert.ok(HW.Progress.flag('untie:mill'));
     go(HW, 'mill', 5, 5); step(HW, 'right'); paddleTo(HW, ...at('mill', 13, 5)); step(HW, 'right');
-    go(HW, 'ferry', 5, 5); step(HW, 'right'); paddleTo(HW, ...at('ferry', 13, 5)); step(HW, 'right');
+    go(HW, 'ferry', 6, 5); step(HW, 'right'); paddleTo(HW, ...at('ferry', 13, 5)); step(HW, 'right');
     /* the Bell Loft: ring the sleeper awake (it goes home), then needle it onto the plate */
     go(HW, 'climb', 18, 5); go(HW, 'loft', 9, 4); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(120);
     const sl = HW.G.map.find('gsBlSleeper');

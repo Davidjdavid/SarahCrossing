@@ -5,7 +5,7 @@ _Last updated: 2026-11-10 (session 1, day 2)._
 ## Status
 **The main adventure is complete from start to credits**: Acts I to IV, all eight Houses, the Makings, both reveals,
 the Drift, the Great Pull, the Great Spool, the Unwinding, the epilogue, the credits and the changed title, and the
-free valley after. Tests cover every room (274 headless tests); the scripted playthrough runs from a fresh game to
+free valley after. Tests cover every room (322 headless tests); the scripted playthrough runs from a fresh game to
 the credits in nine legs; solution tests cover every room, both optional dungeons and the secrets. Presets `afterDrift` and `afterEnding` start late games.
 
 ## Done
@@ -27,7 +27,10 @@ the credits in nine legs; solution tests cover every room, both optional dungeon
   (`src/79_presets.js`) start a game at those points; `afterD3`, `afterD4` too.
 
 ## In progress
-- Nothing half-built. The Makings/Loom review's findings are all fixed (`tests/review_m.test.mjs`).
+- Nothing half-built. The optional dungeons' bug hunt (11 findings) is fixed (`tests/review_opt.test.mjs`, plus S01/S31
+  in `tests/secrets2.test.mjs`); its "rooms solvable without their idea" notes are kept as accepted second ways (QA_REPORT).
+- The design critique's "richer Loom": the Hanging Gallery added (cutting a thing in motion). Still to do from the
+  critique: a fourth Making, more visual variety.
 
 ## Next priorities
 1. Both optional dungeons are built and tested: O1 the Stray House (Linnet's Trail opens it; the bracelet changes the
@@ -61,10 +64,10 @@ the credits in nine legs; solution tests cover every room, both optional dungeon
 - [x] Satisfying conclusion (to be judged by a human; reviewed twice)
 - [~] 10–14 h main (estimated from the scripted run: 68 game-minutes, 113 rooms; not yet timed by a person)
 - [x] Substantial optional content
-- [x] Tested start to finish (scripted; plus per-room tests, 311 in all)
-- [~] No critical bugs or softlocks (every dungeon reviewed by fresh eyes; the optional dungeons' review is under way)
+- [x] Tested start to finish (scripted; plus per-room tests, 322 in all)
+- [x] No critical bugs or softlocks known (every dungeon, both optional ones and the late secrets reviewed by fresh eyes; all findings fixed)
 - [x] Save/load reliable (save/load tests across acts, old-save migration)
 - [x] Launches easily (double-click `hollowell/play.html`)
 
-Still to do before calling it done: the optional dungeons' bug review and fixes; the whole-game design critique's top
-items; a polish pass on art (the Drift, a few plain rooms) and music; then a final full verification.
+Still to do before calling it done: the design critique's last items (a fourth Making, visual variety); a polish pass on
+art (the Drift, a few plain rooms) and music; then a final full verification.

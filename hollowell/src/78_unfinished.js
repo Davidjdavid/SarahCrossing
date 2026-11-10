@@ -42,7 +42,7 @@ defHouse({
             name: 'The Drafting Hall',
             rows: ['#########.##########', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
             ents: [
-                { k: 'door', x: 9, y: 0, type: 'gate', when: 'ufW&ufE', dir: 'h', id: 'ufStairs' },
+                { k: 'door', x: 9, y: 0, type: 'gate', when: 'ufW&ufE', dir: 'h', id: 'ufStairs', keep: true },
                 { k: 'lamp', x: 4, y: 1, sig: 'ufW', look: 'lantern' }, { k: 'lamp', x: 15, y: 1, sig: 'ufE', look: 'lantern' },
                 { k: 'deco', x: 2, y: 7, look: 'desk', solid: [[0, 0], [1, 0]], ox: 0, text: "Mr Ives's drafting table. A plan of the whole House, beautifully drawn, every gap and every bridge; and in the corner, in a shakier hand: FOR WHOEVER COMES NEXT. I'M SORRY IT'S NOT DONE." },
                 { k: 'sign', x: 15, y: 8, text: 'Pencilled on the wall: THE NEEDLE HOLDS THREE. A FOURTH STITCH UNDOES THE FIRST. (WHEREVER IT IS. WHOEVER IS ON IT.)' },
@@ -139,7 +139,10 @@ class ChalkPiece extends Ent {
         this.sewn = false;
         for (const [x, y] of this.tiles()) {
             a.setCell(x, y, 'o');
-            const o = a.at(x, y); if (o && o.landed) o.landed(false);
+            const o = a.at(x, y);
+            /* a thing given its place on the plank: that place is gone, so its stitch goes too (or it would hang there) */
+            if (o && o.stitched) { const rec = Inv.stitches.find(s => s.area === a.id && s.key === Needle.key(o)); if (rec) Needle.unpick(rec); }
+            if (o && o.landed) o.landed(false);
             for (const w of a.ents) if (w.onUnsew) w.onUnsew(x, y);
         }
         if (!quiet && p && p.area === a && this.covers(p.tx, p.ty) && p.state === 'normal') p.startFall('pit');
@@ -223,7 +226,8 @@ SPAWN.chalk = (x, y, p) => new ChalkPiece(x, y, p);
    under him comes undone he drops, and his own old thread hauls him back to the start */
 class IvesWalker extends GridThing {
     constructor(tx, ty, p = {}) {
-        super('npc', tx, ty, Object.assign({ weight: WEIGHT.medium, marked: false, hookable: false, noNeedle: true, noCut: true, noCutLine: "His thread's his own business, he says." }, p));
+        /* (as heavy as a post to the Hookline: it bounces off him rather than haul him about) */
+        super('npc', tx, ty, Object.assign({ weight: WEIGHT.fixed, marked: false, hookable: false, noPush: true, noNeedle: true, noCut: true, noCutLine: "His thread's his own business, he says." }, p));
         this.who = 'mrives'; this.sprId = 'mrives'; this.dir = RIGHT; this.t = 0; this.wait = 60; this.home = [tx, ty]; this.person = true; this.anim = 0;
         this.done = Progress.flag('ives_done');
     }
@@ -246,6 +250,8 @@ class IvesWalker extends GridThing {
         if (this.done || Script.blocking()) return;
         const p = G.player, a = this.area;
         if (!p || p.area !== a || Cam.room !== a.roomAt(this.tx, this.ty)) return;
+        /* moved off his walk somehow: his own old thread hauls him back to the start */
+        if (this.ty !== this.home[1] || a.roomAt(this.tx, this.ty) !== a.roomAt(this.home[0], this.home[1])) { this.warpTo(this.home[0], this.home[1]); this.wait = 120; this.dir = RIGHT; Fx.poof(this.tx * T + 8, this.ty * T + 8); return; }
         if (this.wait > 0) { this.wait--; return; }
         const r = a.roomAt(this.tx, this.ty), nx = this.tx + 1;
         if (nx > r.x + 16) { this.finish(); return; }

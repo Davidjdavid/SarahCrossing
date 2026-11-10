@@ -135,7 +135,8 @@ defHouse({
         /* ---------------- the Ferry Landing (on the way to the Millrace's Knot): a ferry that always goes home ---------------- */
         '1,1': {
             name: 'The Ferry Landing',
-            rows: ['####################', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '......~~~~~~~~......', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '####################'],
+            /* (seven wide: a ferry cut and left on the far side is always in the Hookline's reach from the near one) */
+            rows: ['####################', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '.......~~~~~~~......', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '#......~~~~~~~.....#', '####################'],
             ents: [
                 { k: 'raft', x: 13, y: 5, id: 'gsFerry', patience: 240 },
                 { k: 'sign', x: 3, y: 8, text: "Your dad's hand: THE FERRY ALWAYS GOES HOME. IT'S A GOOD FERRY. (How'll you get back, then?)" },

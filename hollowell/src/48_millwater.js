@@ -83,7 +83,7 @@ defBlock({
         { k: 'chest', x: 44, y: 34, item: 'b50', id: 'mwBasin' },
         { k: 'deco', x: 43, y: 35, look: 'note_bottle', solid: [[0, 0]], text: 'A bottle with a note in it: "If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. - L."' },
         /* reed snappers in the shallows */
-        { k: 'enemy', x: 4, y: 10, type: 'snapper' }, { k: 'enemy', x: 22, y: 18, type: 'snapper' }, { k: 'enemy', x: 42, y: 17, type: 'snapper' },
+        { k: 'enemy', x: 7, y: 13, type: 'snapper' }, { k: 'enemy', x: 22, y: 18, type: 'snapper' }, { k: 'enemy', x: 42, y: 17, type: 'snapper' },
     ],
     regions: [
         { name: 'The Reaches', x: 0, y: 2, w: 42, h: 34 },
