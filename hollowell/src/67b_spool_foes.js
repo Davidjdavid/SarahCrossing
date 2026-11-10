@@ -277,7 +277,7 @@ class Tangle extends Ent {
             if (b.knotted) Spool.untie(b);
             if (b.ret && b.ret.state !== 'home') Return.snap(b);
         }
-        this.hp = 3; this.gone = false; this.lift = 0; this.eyes = false; this.unseal();
+        this.hp = 3; this.knocks = 0; this.gone = false; this.lift = 0; this.eyes = false; this.unseal();
     }
     seal() {
         const h = this.trap(); if (!h) return;
@@ -358,6 +358,8 @@ class Tangle extends Ent {
     struck(by, dmg, dir) {
         if (!this.alive || this.flash > 0) return;
         if (this.state !== 'open' && this.state !== 'down') { Sfx.play('hitthing'); return; }
+        /* (three knocks; between them its loose cords lash about) */
+        if (!knockCounts(this, 7, this.x + 8, this.y + 10, 36, 3)) { this.dazeT = 0; return; }
         this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
         Stats.count('boss:tangle:hit');
         calmBlows(this); this.swell = 0; this.lashT = 0; this.ballT = 90; this.sweepT = 120; this.miteT = 60;

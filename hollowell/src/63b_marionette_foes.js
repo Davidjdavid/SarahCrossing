@@ -244,8 +244,8 @@ class GreatMarionette extends Enemy {
         if (++this.sweepCool < GM.SWEEP || p.state !== 'normal' || p.area !== this.area) return;
         const z = this.sweepZone();
         if (!z.some(([x, y]) => p.tx === x && p.ty === y)) return;
-        this.sweepCool = 0; this.sweepT = tellFor(6, 1) + 10;
-        Hazard.tiles(this, z, { tell: tellFor(6, 1), dmg: 2, live: 10, fx: 'dust', shake: 5, sound: 'hitthing', from: [(this.feet[0][0] + this.feet[1][0] + 1) / 2 * T, this.feet[0][1] * T] });
+        this.sweepCool = 0; this.sweepT = tellFor(6, 1) + 16;
+        Hazard.tiles(this, z, { tell: tellFor(6, 1) + 6, dmg: 2, live: 10, fx: 'dust', shake: 5, sound: 'hitthing', from: [(this.feet[0][0] + this.feet[1][0] + 1) / 2 * T, this.feet[0][1] * T] });
         Stats.count('boss:gm:sweep');
     }
     sweepZone() {
@@ -384,6 +384,9 @@ class GreatMarionette extends Enemy {
     }
     struck(by, dmg, dir) {
         if (!this.alive || this.flash > 0 || (this.state !== 'down' && this.state !== 'trapped')) return;
+        /* (two knocks; between them it flails its arms about) */
+        const [kx, ky] = this.state === 'down' ? [(this.hx + 0.5) * T, (this.hy + 4) * T] : [this.inTrap[0] * T + 8, this.inTrap[1] * T + 6];
+        if (!knockCounts(this, 6, kx, ky, 34)) { this.st = Math.max(0, this.st - 50); return; }
         this.hp--; this.flash = 30; G.hitstop = 10; G.shake = 10; Sfx.play('enemyhit');
         Stats.count('boss:gm:hit');
         calmBlows(this); this.bags = []; this.sweepT = 0; this.sweepCool = 0; this.battenT = 0;
@@ -484,7 +487,7 @@ class GreatMarionette extends Enemy {
         if (im) Gfx.img(flash ? tinted(im, '#ffffff') : im, bx, by);
         /* the arms: sleeves to the elbow pegs, wooden forearms and hands; the right hand holds the stick */
         /* (about to sweep: its stick hand drawn right back and up) */
-        const wind = this.sweepT > 10 ? Math.min(1, (tellFor(6, 1) + 10 - this.sweepT) / 8) : 0;
+        const wind = this.sweepT > 10 ? Math.min(1, (tellFor(6, 1) + 16 - this.sweepT) / 8) : 0;
         const arms = [[bx + 9, by + 29, -1, sw], [bx + 26, by + 29, 1, -sw - wind * 4]];
         if (wind) Tells.bang(bx + 18, by - 14);
         const hands = [];

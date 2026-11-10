@@ -292,7 +292,7 @@ function caught(HW, max = 900) { const p = HW.player(); assert.ok(until(HW, () =
 /* fly Homeward from her grip and come down */
 function homeFromGrip(HW) { const arm = caught(HW); homeward(HW); until(HW, () => HW.player().state === 'normal', 300); return arm; }
 /* she's slumped: knock the nightcap, and the round's line */
-function knock(HW, s) { assert.equal(s.state, 'slump', 'she slumps'); go(HW, 'boss', 9, 6); strike(HW, 'up'); HW.step(10); HW.skipTalk(); HW.step(10); }
+function knock(HW, s) { assert.equal(s.state, 'slump', 'she slumps'); go(HW, 'boss', 9, 6); const hp = s.hp; for (let k = 0; k < 6 && s.alive && s.hp === hp; k++) { strike(HW, 'up'); HW.step(6); } HW.step(10); HW.skipTalk(); HW.step(10); }
 const pitAt = (HW, x, y) => HW.G.map.kind(...at('boss', x, y)).pit;
 /* round 1 played the way it's meant (the Bedroll out past the stars) */
 function roundOne(HW, s) {
@@ -508,14 +508,15 @@ test("mother sloth counts sheep (round 3): a row of the floor glows, then the fl
         roundOne(HW, s); roundTwo(HW, s);
         HW.G.cheats.god = false;
         assert.equal(s.phase, 3);
-        go(HW, 'boss', 9, 7); s.sheepT = 9999;
+        go(HW, 'boss', 9, 7);
+        s.arms.forEach(a => { a.cool = 9999; if (a.state !== 'snapped') { a.state = 'rest'; a.hx = a.sx; a.hy = a.sy + 6; } }); p.pinned = null;   /* (her arms kept to themselves meanwhile) */
+        s.sheepT = 9999;
         assert.ok(until(HW, () => slothBlows(HW, s).some(h => h.flock), 60), 'a row glows');
         const h = slothBlows(HW, s).find(q => q.flock);
         assert.ok(h.tiles.some(([x, y]) => y === p.ty), "it's Wren's row");
         if (p.pinned) { HW.Inv.equipped = 'hook'; }
         const hp = HW.Inv.hp;
         if (dodge) { HW.hold('down'); HW.step(18); HW.release(); assert.ok(!h.tiles.some(([x, y]) => y === p.ty), 'off the row'); }
-        s.arms.forEach(a => { a.cool = 9999; if (a.state !== 'snapped') a.state = 'rest'; }); p.pinned = null;   /* (her arms kept to themselves meanwhile) */
         assert.ok(until(HW, () => h.removed, 200), 'the flock went by');
         if (dodge) assert.equal(HW.Inv.hp, hp, 'they passed her by');
         else assert.equal(HW.Inv.hp, hp - 2, 'bowled over');

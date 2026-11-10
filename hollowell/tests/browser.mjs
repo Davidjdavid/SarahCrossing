@@ -425,6 +425,36 @@ const SCENARIOS = {
         await page.evaluate(() => { HW.global('Controls').close(); HW.global('PauseMenu').close(); });
         if (wantShots) { await page.evaluate(() => HW.step(2)); await page.waitForTimeout(80); await page.screenshot({ path: path.join(SHOTS, 'pad_play.png') }); }
     },
+    /* the portraits in the dialogue (src/35b_portraits.js): on a real canvas every face draws, and differs by expression */
+    async portraits() {
+        await open();
+        const bad = await page.evaluate(() => {
+            const out = [], pixels = c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0, s = ''; for (let i = 3; i < d.length; i += 4) { if (d[i]) n++; s += d[i - 3] + ',' + d[i - 2] + ';'; } return [n, s]; };
+            for (const id of ['wren', ...Object.keys(PEOPLE_DEF)].filter(w => w === 'wren' || PEOPLE_DEF[w].look)) {
+                if (!Portraits.has(id)) { out.push(id + ' has no portrait'); continue; }
+                const faces = new Set();
+                for (const ex of EXPRESSIONS) {
+                    const [n, s] = pixels(Portraits.get(id, ex)), talk = pixels(Portraits.get(id, ex, true))[1], blink = pixels(Portraits.get(id, ex, false, true))[1];
+                    if (n < 500) out.push(`${id} ${ex}: only ${n} pixels drawn`);
+                    if (talk === s) out.push(`${id} ${ex}: the mouth doesn't open`);
+                    if (blink === s && ex !== 'happy') out.push(`${id} ${ex}: the eyes don't shut`);
+                    faces.add(s);
+                }
+                if (faces.size !== EXPRESSIONS.length) out.push(`${id}: ${faces.size} different faces for ${EXPRESSIONS.length} expressions`);
+            }
+            /* and in the box: the bust in its frame at one end */
+            HW.newGame('Wren', { noAutosave: true, skipIntro: true }); HW.step(5); HW.warp('gran_house', 6, 6); HW.step(20); HW.skipTalk();
+            Script.run(function* () { yield* say('gran', '{happy}There you are. Let me look at you.'); }); HW.step(60);
+            Game.render();
+            const x = Dialog.side === 'right' ? 8 + 304 - 5 - 34 : 13, y = Dialog.top ? 18 + 5 : 180 - 50 + 5;
+            const d = Gfx.ctx.getImageData(x + 1, y + 1, 32, 32).data; let skin = 0;
+            for (let i = 0; i < d.length; i += 4) if (d[i] === 0xf2 && d[i + 1] === 0xc4 && d[i + 2] === 0x9b) skin++;
+            if (!Dialog.face || skin < 60) out.push(`no face in the box (${skin} pixels of Gran's skin)`);
+            return out;
+        });
+        errors.push(...bad.map(b => 'portraits: ' + b));
+        await shot('portraits_box');
+    },
     async title() { await open(); await page.evaluate(() => { window.HW._paused = false; }); await page.waitForTimeout(400); await page.evaluate(() => { window.HW._paused = true; }); await shot('title'); },
     async lab() {
         await open();

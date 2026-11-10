@@ -12,6 +12,8 @@ const noErrors = HW => assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 function fresh(tools = []) { const HW = loadGame(); HW.preset('afterD5'); HW.step(10); HW.skipTalk(); for (const t of tools) HW.Inv.giveTool(t); return HW; }
 const inHall = (HW, room = 'foyer', x = 9, y = 9) => { HW.warp('marionette', ...at(room, x, y)); HW.step(30); HW.skipTalk(); HW.step(5); };
 const strike = (HW, dir) => { HW.face(dir); HW.press('atk', 1); HW.step(14); };
+/* (the Great Marionette takes two knocks: between them it flails its arms about) */
+const knock = (HW, g) => { const hp = g.hp; for (let k = 0; k < 6 && g.alive && g.hp === hp; k++) { strike(HW, 'up'); HW.step(6); } };
 function strings(HW, moves) {
     const names = { U: 'up', D: 'down', L: 'left', R: 'right' };
     for (const m of moves) {
@@ -32,19 +34,19 @@ function beatBoss(HW) {
     strings(HW, 'URRR' + 'URRDDLLU');
     until(HW, () => g.state === 'down', 60);
     HW.press('tool', 1); HW.step(3);
-    HW.walkTo(...at('stage', 8, 8)); strike(HW, 'up');
+    HW.walkTo(...at('stage', 8, 8)); knock(HW, g);
     talk();
     HW.walkTo(...at('stage', 16, 9)); HW.face('up'); HW.Inv.equipped = 'crossbar'; HW.press('tool', 1); HW.step(2);
     strings(HW, 'RUUU');
     until(HW, () => g.state === 'trapped', 2400);
     HW.press('tool', 1); HW.step(3);
-    HW.walkTo(...at('stage', 11, 7)); strike(HW, 'up');
+    HW.walkTo(...at('stage', 11, 7)); knock(HW, g);
     talk(); HW.step(60);
     HW.walkTo(...at('stage', 11, 7)); HW.face('up'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); until(HW, () => !!g.bar, 60); HW.step(20);
     HW.Inv.equipped = 'crossbar'; HW.step(2); HW.face('up'); HW.press('tool', 1); HW.step(2);
     strings(HW, 'LD');
     until(HW, () => g.state === 'trapped', 60);
-    HW.walkTo(...at('stage', 11, 7)); strike(HW, 'up');
+    HW.walkTo(...at('stage', 11, 7)); knock(HW, g);
     return g;
 }
 

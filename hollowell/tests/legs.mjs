@@ -545,7 +545,8 @@ export const LEG4 = (HW, chain) => {
     HW.walkTo(...b('bell', 17, 5)); HW.step(30); HW.skipTalk();
     const t = HW.ents('enemy').find(e => e.type === 'tollgrim');
     ok(t && t.state !== 'sleep', 'Tollgrim awake');
-    const strike = () => { walk(t.tx - 1, t.ty); HW.face('right'); HW.press('atk', 1); HW.step(30); HW.skipTalk(); HW.step(5); };
+    /* (two knocks put him back in his bell: between them he flails about) */
+    const strike = () => { walk(t.tx - 1, t.ty); HW.face('right'); const hp = t.hp; for (let k = 0; k < 6 && t.alive && t.hp === hp; k++) { HW.press('atk', 1); HW.step(18); } HW.step(12); HW.skipTalk(); HW.step(5); };
     /* 1: the draught blows the clapper out of the bell's mouth; he leans out; ring */
     walk(...b('bell', 6, 7));
     ok(until(() => t.state === 'peek', 1500), 'he leans out');
@@ -698,7 +699,7 @@ export const LEG5 = (HW, chain) => {
     const sl = HW.G.map.ents.find(e => e.type === 'mothersloth');
     const free = (x, y) => { for (let i = 0; i < 8; i++) { if (HW.walkTo(x, y)) return; if (p().pinned) until(() => !p().pinned, 600); HW.skipTalk(); HW.step(2); } ok(false, `walk ${x},${y}`); };
     const caught = () => ok(until(() => !!p().pinned, 600), 'caught');
-    const knock = n => { ok(sl.state === 'slump', `round ${n}: she slumps`); free(...s('boss', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(20); HW.skipTalk(); HW.step(10); };
+    const knock = n => { ok(sl.state === 'slump', `round ${n}: she slumps`); free(...s('boss', 9, 6)); HW.face('up'); const hp = sl.hp; for (let k = 0; k < 6 && sl.alive && sl.hp === hp; k++) { HW.press('atk', 1); HW.step(20); } HW.skipTalk(); HW.step(10); };
     /* 1: the Bedroll out past the stars; caught, Homeward: snap */
     walk(...s('boss', 2, 9)); lay();
     HW.step(1); walk(...s('boss', 9, 6)); HW.skipTalk(); HW.step(10); HW.skipTalk();
@@ -823,19 +824,20 @@ export const LEG6 = (HW, chain) => {
     strings('URRR' + 'URRDDLLU');
     ok(until(() => g.state === 'down', 60), 'act I: it falls');
     HW.press('tool', 1); HW.step(3);
-    walk(...m('stage', 8, 8)); HW.face('up'); HW.press('atk', 1); HW.step(14); scene();
+    const knock = () => { const hp = g.hp; for (let k = 0; k < 6 && g.alive && g.hp === hp; k++) { HW.press('atk', 1); HW.step(20); } };     /* (two knocks: between them it flails) */
+    walk(...m('stage', 8, 8)); HW.face('up'); knock(); scene();
     /* act II: the third little Wren in its march, so it turns onto the trap */
     walk(...m('stage', 16, 9)); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(2);
     strings('RUUU');
     ok(until(() => g.state === 'trapped', 2400), 'act II: down the trap');
     HW.press('tool', 1); HW.step(3);
-    walk(...m('stage', 11, 7)); HW.face('up'); HW.press('atk', 1); HW.step(14); scene(); HW.step(60);
+    walk(...m('stage', 11, 7)); HW.face('up'); knock(); scene(); HW.step(60);
     /* act III: its bar hooked down, its strings taken up, walked onto the trap */
     walk(...m('stage', 11, 7)); HW.face('up'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); until(() => !!g.bar, 60); HW.step(20);
     HW.Inv.equipped = 'crossbar'; HW.step(2); HW.face('up'); HW.press('tool', 1); HW.step(2);
     strings('LD');
     ok(until(() => g.state === 'trapped', 60), 'act III: walked into the trap');
-    walk(...m('stage', 11, 7)); HW.face('up'); HW.press('atk', 1); HW.step(24);
+    walk(...m('stage', 11, 7)); HW.face('up'); knock(); HW.step(4);
     ok(!g.alive, 'the Great Marionette down');
     /* the curtain, Jory, the Makers in a line; then each of them heard out */
     HW.skipTalk(); HW.step(20);
@@ -963,12 +965,13 @@ export const LEG7 = (HW, chain) => {
     walk(...s('heart', 8, 8)); HW.push('right', 2); HW.step(25);
     hatch('heart', 2, 7, 'down'); walk(...s('uheart', 9, 7)); HW.face('down'); knot(); hatch('uheart', 2, 7, 'down');
     ok(until(() => t.state === 'open', 300), 'the Tangle comes apart');
-    walk(...s('heart', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(30); HW.skipTalk(); HW.step(5);
+    const core = () => { HW.face('up'); const hp = t.hp; for (let k = 0; k < 8 && t.alive && t.hp === hp; k++) { HW.press('atk', 1); HW.step(20); } };     /* (three knocks: between them it lashes) */
+    walk(...s('heart', 9, 6)); core(); HW.step(10); HW.skipTalk(); HW.step(5);
     ok(t.hp === 2 && t.state === 'up', 'up on the hoist');
     /* 2: below, the hoist's counterweight off its plate: down it comes; knock it */
     hatch('heart', 2, 7, 'down'); walk(...s('uheart', 1, 7)); HW.push('up', 1);
     ok(until(() => t.state === 'down', 120), 'let down');
-    hatch('uheart', 2, 7, 'down'); walk(...s('heart', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(30); HW.skipTalk(); HW.step(5);
+    hatch('uheart', 2, 7, 'down'); walk(...s('heart', 9, 6)); core(); HW.step(10); HW.skipTalk(); HW.step(5);
     ok(t.hp === 1 && t.state === 'haul', 'it hauls everything in');
     /* 3: the fourth gripped and held out, the Bell rung with the other hand: everything goes home at once, where it
        was put; knock the core */
@@ -979,7 +982,7 @@ export const LEG7 = (HW, chain) => {
     HW.Inv.equipped = 'bell'; HW.hold(['act', 'tool']); HW.step(1); HW.hold('act');
     ok(until(() => t.state === 'open', 90), 'every thread out at once');
     HW.release(); HW.step(2);
-    walk(...s('heart', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(30);
+    walk(...s('heart', 9, 6)); core(); HW.step(10);
     ok(!t.alive, 'the Tangle undone');
     for (let i = 0; i < 20 && !HW.Progress.flag('d7'); i++) { HW.skipTalk(); HW.step(20); }
     ok(HW.Progress.flag('d7'), 'Gundry: an apprentice');

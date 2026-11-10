@@ -236,7 +236,10 @@ const toll = HW => HW.G.map.find('tollgrim');
 /* walk up beside him where he lies dazed and strike */
 function strikeToll(HW) {
     const t = toll(HW), hp = t.hp;
-    go(HW, 'bell', t.tx - R.bell[0] - 1, t.ty - R.bell[1]); HW.face('right'); HW.press('atk', 1); HW.step(30);
+    go(HW, 'bell', t.tx - R.bell[0] - 1, t.ty - R.bell[1]); HW.face('right');
+    /* (two knocks: between them he flails about) */
+    for (let k = 0; k < 6 && t.alive && t.hp === hp; k++) { HW.press('atk', 1); HW.step(18); }
+    HW.step(12);
     assert.equal(t.hp, hp - 1, 'struck while he was dazed');
     HW.skipTalk(); HW.step(5);
 }

@@ -20,6 +20,8 @@ const go = (HW, room, x, y) => assert.ok(HW.walkTo(...at(room, x, y)), `walk to 
 const thing = (HW, id) => HW.G.map.find(id);
 const until = (HW, fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
 const strike = (HW, dir) => { HW.face(dir); HW.press('atk', 1); HW.step(14); };
+/* (it takes two knocks: between them it flails its arms about) */
+const knock = (HW, g) => { const hp = g.hp; for (let k = 0; k < 6 && g.alive && g.hp === hp; k++) { strike(HW, 'up'); HW.step(6); } };
 const here = (HW, room) => { const p = HW.player(); return [p.tx - R[room][0], p.ty - R[room][1]]; };
 const noErrors = HW => assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 /* walk the puppets on the strings Wren holds: one step per letter */
@@ -229,7 +231,7 @@ function actOne(HW, g) {
     strings(HW, 'URRR' + 'URRDDLLU');
     assert.ok(until(HW, () => g.state === 'down', 60), 'act I: both strings tangled, it falls');
     HW.press('tool', 1); HW.step(3);
-    go(HW, 'stage', 8, 8); strike(HW, 'up');
+    go(HW, 'stage', 8, 8); knock(HW, g);
 }
 const talkThrough = HW => until(HW, () => { if (HW.global('Dialog').active) HW.skipTalk(); return !HW.global('Dialog').active && !HW.global('Script').blocking(); }, 900);
 function actTwo(HW, g) {
@@ -242,7 +244,7 @@ function actTwo(HW, g) {
     assert.ok(until(HW, () => g.state === 'trapped', 2400), 'it turns at the little Wren, down onto the trap, and in');
     assert.deepEqual([g.inTrap[0] - 20, g.inTrap[1]], [11, 6], 'down the stage trap');
     HW.press('tool', 1); HW.step(3);
-    go(HW, 'stage', 11, 7); strike(HW, 'up');
+    go(HW, 'stage', 11, 7); knock(HW, g);
 }
 function actThree(HW, g) {
     talkThrough(HW);
@@ -257,7 +259,7 @@ function actThree(HW, g) {
     strings(HW, 'LD');
     assert.ok(until(HW, () => g.state === 'trapped', 60), 'walked onto the trap: down it goes');
     assert.equal(HW.player().pinned, null, 'the strings jerk out of your hands');
-    go(HW, 'stage', 11, 7); strike(HW, 'up');
+    go(HW, 'stage', 11, 7); knock(HW, g);
 }
 
 test('the great stage, in three acts: its feet tangled; turned onto the trap; walked onto it on its own strings; the curtain (Reveal 1)', () => {

@@ -587,7 +587,7 @@ SPAWN.urn = (x, y, p) => new Pot(x, y, Object.assign({ style: 'urn', patience: 6
    glob of hot glaze where she stands (its shadow first), which lies there a while, still hot; coiled in the pit, it
    rattles and sheds pieces of itself round the pit's edge (their shadows first), and each lies on its thread back to the
    pit till it shivers and flies home along it. Each beat it's knocked into, a heart rolls free. */
-const KW = { near: 40, dart: 54, dartSp: 3.2, cool: [0, 140, 120, 100], glob: 13, puddle: 150, shed: 4 };
+const KW = { near: 40, close: 28, dart: 52, dartSp: 3.2, cool: [0, 140, 120, 100], glob: 13, puddle: 150, shed: 4 };
 class Kilnwyrm extends Enemy {
     constructor(tx, ty) {
         super(tx, ty, { type: 'kilnwyrm', hp: 3 });
@@ -627,7 +627,9 @@ class Kilnwyrm extends Enemy {
         if (this.cool > 0) this.cool--;
         /* close behind her: it rears, hissing, its mouth aglow, and then darts on along her footprints */
         if (this.state === 'rear') { if (++this.st2 >= this.tellN) { this.state = 'dart'; this.dartLeft = KW.dart; Sfx.play('throw'); } return; }
-        if (this.state === 'follow' && this.cool <= 0 && p.state === 'normal' && p.area === a && dist(p.x, p.y, this.x, this.y) < KW.near) {
+        /* (only from a little way behind her: from closer, there'd be no walking away from it) */
+        const gap = dist(p.x, p.y, this.x, this.y);
+        if (this.state === 'follow' && this.cool <= 0 && p.state === 'normal' && p.area === a && gap < KW.near && gap >= KW.close) {
             this.state = 'rear'; this.st2 = 0; this.tellN = tellFor(2); Sfx.play('warn'); Stats.count('boss:kiln:dart'); return;
         }
         const sp = this.state === 'dart' ? KW.dartSp : this.speed * (this.hp === 1 ? 1.5 : this.hp === 2 ? 1.2 : 1);
@@ -713,7 +715,7 @@ class Kilnwyrm extends Enemy {
         const home = [r.x + 9, r.y + 5];
         for (const [x, y] of picks) Hazard.drop(this, x * T + 8, y * T + 10, {
             r: 10, dmg: 1, tell, fx: 'clay', quiet: true, look: Kiln.drawShard,
-            onLand: () => this.area.add(new Flung(this, Flung.between(home, [x, y]), { lying: true, wait: 64, tell: 26, back: 3, dmg: 1, col: THREAD.bram, look: Kiln.drawShard })),
+            onLand: () => this.area.add(new Flung(this, Flung.between(home, [x, y]), { lying: true, kin: true, wait: 64, tell: 26, back: 3, dmg: 1, col: THREAD.bram, look: Kiln.drawShard })),
         });
         this.rattleT = tell; Sfx.play('warn'); Sfx.play('rumble');
         this.cool = KW.cool[3] + 40;

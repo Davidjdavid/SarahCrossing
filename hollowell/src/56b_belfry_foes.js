@@ -200,7 +200,7 @@ class Tollgrim extends Enemy {
         if (this.pounceCool > 0) this.pounceCool--;
         else if (ph === 3 && here && (this.state === 'hide' || this.state === 'peek') && this.pounceZone().some(([x, y]) => p.tx === x && p.ty === y)) {
             if (this.state === 'peek') this.duck();
-            this.state = 'pounce'; this.st = 0; this.tellN = tellFor(4, 3);
+            this.state = 'pounce'; this.st = 0; this.tellN = tellFor(4, 3) + 4;
             Hazard.tiles(this, this.pounceZone(), { tell: this.tellN, dmg: 2, live: 10, fx: 'dust', shake: 6, sound: 'boss' });
             Stats.count('boss:tollgrim:pounce');
         }
@@ -294,6 +294,8 @@ class Tollgrim extends Enemy {
         if (!this.alive) return;
         if (this.state !== 'stunned') { if (this.state === 'peek') this.clang(); return; }
         if (this.flash > 0) return;
+        /* (two knocks to put him back in his bell; between them he flails about on the floor) */
+        if (!knockCounts(this, 4, this.x, this.y + 2, 28)) { this.st = Math.max(0, this.st - 40); return; }
         this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 6; Sfx.play('enemyhit');
         Stats.count('boss:tollgrim:hit');
         calmBlows(this);

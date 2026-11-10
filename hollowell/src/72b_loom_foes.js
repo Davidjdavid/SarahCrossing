@@ -280,7 +280,7 @@ class Weaver extends Ent {
     recover() { this.state = 'climb'; this.st = 0; Sfx.play('twang'); }
     /* back as it was before she came in: in its web, tied in at all four posts, the warp in its well */
     reset() {
-        this.state = 'sleep'; this.st = 0; this.hp = 3; this.told = 1; this.path = null; this.shots = []; this.flash = 0; this.puff = 0; this.warpT = 90; this.mothT = 120;
+        this.state = 'sleep'; this.st = 0; this.hp = 3; this.knocks = 0; this.told = 1; this.path = null; this.shots = []; this.flash = 0; this.puff = 0; this.warpT = 90; this.mothT = 120;
         for (const e of this.area.ents.slice()) if (e.weaverMoth) this.area.remove(e);
         this.x = this.web[0]; this.y = this.web[1]; this.z = WV.webZ;
         for (const n of this.anchors()) n.tie();
@@ -354,7 +354,8 @@ class Weaver extends Ent {
     warp(p) {
         if (--this.warpT > 0) return;
         this.warpT = WV.warp[this.beat];
-        const a = this.area, r = this.room, cols = [p.tx];
+        /* (bound in its silk, she couldn't step aside: the thread it plucks is the next one over) */
+        const a = this.area, r = this.room, cols = [p.pinned === 'silk' ? p.tx + (p.tx > r.x + 9 ? -1 : 1) : p.tx];
         if (this.beat >= 2) cols.push(p.tx + (p.tx > r.x + 9 ? -4 : 4));
         for (const x of cols) {
             const tiles = []; for (let y = r.y + 1; y < r.y + r.h - 1; y++) { const k = a.kind(x, y); if (!k.solid && !k.pit) tiles.push([x, y]); }
@@ -391,6 +392,8 @@ class Weaver extends Ent {
     struck(by, dmg, dir) {
         if (!this.alive || this.flash > 0) return;
         if (this.state !== 'down') { if (by === G.player) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - this.z - 6); } return; }
+        /* (three knocks; between them it thrashes its legs in the old warp) */
+        if (!knockCounts(this, 8, this.x, this.y + 4, 32, 3)) { this.st = Math.max(0, this.st - 60); return; }
         this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
         Stats.count('boss:weaver:hit');
         calmBlows(this); this.puff = 0; this.warpT = 150; this.mothT = 120;

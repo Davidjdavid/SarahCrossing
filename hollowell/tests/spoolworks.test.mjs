@@ -393,6 +393,8 @@ function tangleGame() {
     return [HW, t];
 }
 const B = (HW, id) => thing(HW, id);
+/* (the Tangle takes three knocks to undo: between them its loose cords lash about) */
+const knockCore = HW => { const t = HW.G.map.ents.find(e => e.kind === 'tangle'), hp = t.hp; for (let k = 0; k < 8 && t.alive && t.hp === hp; k++) { strike(HW, 'up'); HW.step(6); } };
 /* phase 1: three stitched away, the fourth pushed off and tied below */
 function phase1(HW, t) {
     until(HW, () => ['tbN', 'tbW', 'tbE', 'tbS'].every(id => HW.Return.isHome(B(HW, id)) && !B(HW, id).mv), 300);
@@ -406,7 +408,7 @@ function phase1(HW, t) {
     assert.ok(B(HW, 'tbS').knotted);
     hatch(HW, 'uheart', 2, 7, 'down');
     assert.ok(until(HW, () => t.state === 'open', 300), 'it comes apart');
-    go(HW, 'heart', 9, 6); strike(HW, 'up');
+    go(HW, 'heart', 9, 6); knockCore(HW);
     assert.equal(t.hp, 2, 'knocked once');
     HW.skipTalk(); HW.step(5);
 }
@@ -420,7 +422,7 @@ function phase2(HW, t) {
     assert.deepEqual(where(HW, 'hhWeight'), at('uheart', 1, 5), 'the weight off its plate');
     assert.ok(until(HW, () => t.state === 'down', 120), 'down it comes');
     hatch(HW, 'uheart', 2, 7, 'down');
-    go(HW, 'heart', 9, 6); strike(HW, 'up');
+    go(HW, 'heart', 9, 6); knockCore(HW);
     assert.equal(t.hp, 1, 'knocked twice');
     HW.skipTalk(); HW.step(5);
 }
@@ -442,7 +444,7 @@ test('the Tangle: three phases. Four threads held out at once; then up on the ho
     HW.Inv.equipped = 'bell'; HW.hold(['act', 'tool']); HW.step(1); HW.hold('act');
     assert.ok(until(HW, () => t.state === 'open', 90), 'every thread out at once: it comes apart');
     HW.release(); HW.step(2);
-    go(HW, 'heart', 9, 6); strike(HW, 'up');
+    go(HW, 'heart', 9, 6); knockCore(HW);
     assert.ok(!t.alive, 'undone');
     for (let i = 0; i < 20 && !HW.Progress.flag('d7'); i++) { HW.skipTalk(); HW.step(20); }
     assert.ok(HW.Progress.flag('d7'));

@@ -236,8 +236,9 @@ class MotherSloth extends Enemy {
                 if (arm.cool > 0) { arm.cool--; break; }
                 /* only one arm out at a time to begin with */
                 if (this.hp === 3 && this.arms.some(o => o !== arm && o.state !== 'rest' && o.state !== 'snapped')) break;
-                /* her hand rises and spreads its fingers (the tell), then reaches */
-                if (dWren < reachPx && p.state === 'normal' && !p.pinned) { arm.state = 'wind'; arm.t = 0; arm.tell = tellFor(5, this.phase); Sfx.play('warn'); }
+                /* her hand rises and spreads its fingers (the tell), then reaches (not for anyone on a row her sheep are
+                   about to come along: she waits for the flock to pass, so nobody is held fast in its way) */
+                if (dWren < reachPx && p.state === 'normal' && !p.pinned && !this.area.ents.some(h => h.flock && h.owner === this && h.tiles.some(([x, y]) => y === p.ty))) { arm.state = 'wind'; arm.t = 0; arm.tell = tellFor(5, this.phase); Sfx.play('warn'); }
                 break;
             case 'wind':
                 this.toward(arm, arm.sx, arm.sy - 6, 1);
@@ -304,8 +305,10 @@ class MotherSloth extends Enemy {
        over the dark and all; it's Wren's row (unless she's held fast: then one she isn't on) */
     sheep(p) {
         const a = this.area, r = this.arena, rows = [];
-        for (let y = r.y + 3; y < r.y + r.h - 1; y++) if (!(p.pinned && y === p.ty)) rows.push(y);
-        const y = p.pinned ? rows[Math.floor(G.rng() * rows.length)] : clamp(p.ty, r.y + 3, r.y + r.h - 2);
+        /* (held, or an arm on its way to her: the flock comes along some other row) */
+        const held = !!p.pinned || this.arms.some(o => ['wind', 'reach', 'hold', 'reel', 'drag'].includes(o.state));
+        for (let y = r.y + 3; y < r.y + r.h - 1; y++) if (!(held && Math.abs(y - p.ty) <= 1)) rows.push(y);
+        const y = held ? rows[Math.floor(G.rng() * rows.length)] : clamp(p.ty, r.y + 3, r.y + r.h - 2);
         const tiles = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) { const k = a.kind(x, y); if (!k.solid && !k.pit) tiles.push([x, y]); }
         const fromLeft = G.rng() < 0.5, x0 = (fromLeft ? r.x : r.x + r.w) * T, x1 = (fromLeft ? r.x + r.w : r.x) * T;
         const live = 48, h = Hazard.tiles(this, tiles, { tell: tellFor(5, 3) + 14, live, dmg: 2, fx: 'dust', sound: 'snort', lookLanded: SlumberFoes.drawSheep });
@@ -330,6 +333,8 @@ class MotherSloth extends Enemy {
     }
     struck(by, dmg, dir) {
         if (!this.alive || this.state !== 'slump' || this.flash > 0) return;
+        /* (two knocks; between them she stirs and flails her pillow about) */
+        if (!knockCounts(this, 5, this.capX, this.capY + 6, 34)) { this.st = Math.max(0, this.st - 50); return; }
         this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
         Fx.poof(this.capX, this.capY - 8);
         Stats.count('boss:sloth:knock');

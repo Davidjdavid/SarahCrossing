@@ -161,6 +161,7 @@ const AI = {
         if (e.mode === 'home') { if (e.goHome(sp * 1.4)) e.mode = 'idle'; return; }
         if (far > leash) { e.mode = 'home'; return; }
         if (D.chase && pd < (D.sight || 4) * T && dist(p.x, p.y, nx, ny) < leash) {
+            if (e.mode !== 'chase') Fx.text(e.x, e.y - (D.tall || 12) - 6, '!', '#f7d64a');     /* (it's seen her: the tell) */
             e.mode = 'chase';
             const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1;
             e.dir = dirOf(dx, dy); e.move(dx / d * sp * (D.chaseMul || 1.3), dy / d * sp * (D.chaseMul || 1.3));
@@ -180,7 +181,10 @@ const AI = {
             e.move(e.vx, e.vy);
             return;
         }
+        /* (crouched, about to spring: it shivers a moment first) */
+        e.shake = e.modeT > 1 && e.modeT <= 10;
         if (--e.modeT > 0) return;
+        e.shake = false;
         e.modeT = 30 + Math.floor(G.rng() * 30);
         const nx = e.hx * T + 8, ny = e.hy * T + 10;
         let tx, ty;
@@ -318,8 +322,10 @@ const Tells = {
 
 /* something a boss flings: it flies out in a line and lands; and being marked, like everything, it lies there with its
    thread running back the way it came. When its patience runs out it shivers and its thread pulls tight (the Return's own
-   tell), and home it flies along it, striking whatever's on the way: Wren, and any creature but the one it belongs to.
-   (Dropped into a pit or deep water it's home at once, as anything is.) path: tiles, its place first */
+   tell), and home it flies along it, striking whatever's on the way: Wren, any creature, and its own thrower too if
+   that's wandered onto its way home (by the thrower's own rules: most just clang), unless it's part of it (`kin`: a
+   piece shed rejoins the whole). (Dropped into a pit or deep water it's home at once, as anything is.) path: tiles,
+   its place first */
 class Flung extends Ent {
     constructor(owner, path, o = {}) {
         super('flung');
@@ -394,7 +400,9 @@ class Flung extends Ent {
         const [fx, fy] = this.path[this.state === 'home' ? Math.min(this.path.length - 1, this.i + 1) : Math.max(0, this.i - 1)];
         if (hurts && p && p.area === a && p.state === 'normal' && p.feetOn(tx, ty)) { p.hurt(this.dmg, fx * T + 8, fy * T + 10); hit = true; }
         for (const e of a.ents.slice()) {
-            if (e === this.owner || e === this || e.removed || e.kind !== 'enemy' || !e.hurtBox) continue;
+            if (e === this || e.removed || e.kind !== 'enemy' || !e.hurtBox) continue;
+            /* (its thrower: only on its way home, and clear of where it was thrown from) */
+            if (e === this.owner && (this.kin || this.state !== 'home' || this.i < 2)) continue;
             const h = e.hurtBox(), cx = tx * T + 8, cy = ty * T + 8;
             if (h && cx + 6 > h.x0 && cx - 6 < h.x1 && cy + 6 > h.y0 && cy - 6 < h.y1) e.struck(this, 1, -1, true);
         }
@@ -415,6 +423,20 @@ class Flung extends Ent {
         if (this.look) this.look(x, y, this);
         else { Gfx.circle(x, y, 3, PAL.ink); Gfx.circle(x, y, 2, this.col); Gfx.rect(x - 1, y - 1, 1, 1, '#ffffff'); }
     }
+}
+/* knocks on a downed boss: from the fourth House on it takes more than one to topple it (KNOCKS, by House), and between
+   knocks it thrashes about, the reach of it drawn round it first (step back out, then in again). Knocks count for the
+   whole beat, so a window cut short loses nothing. True when this knock is the one that topples it. */
+const KNOCKS = [1, 1, 1, 1, 2, 2, 2, 3, 3];
+function knockCounts(boss, house, x, y, r = 30, dmg = 2) {
+    const need = KNOCKS[house] || 1;
+    boss.knocks = (boss.knocks || 0) + 1;
+    if (boss.knocks >= need) { boss.knocks = 0; return true; }
+    boss.flash = 16; G.hitstop = 5; G.shake = 4; Sfx.play('enemyhit'); Fx.spark(x, y - 10);
+    Hazard.ring(boss, x, y, r, { tell: Math.max(18, tellFor(house) - 2), dmg, shake: 4 });
+    Fx.text(x, y - 34, need - boss.knocks === 1 ? 'one more!' : 'again!', '#f7d64a');
+    Stats.count('boss:knock');
+    return false;
 }
 /* a boss knocked off its feet (stunned, struck): whatever it was about to do doesn't come */
 function calmBlows(owner) { const a = owner.area; if (a) for (const e of a.ents.slice()) if (e.kind === 'hazard' && e.owner === owner && !e.landed) a.remove(e); }
