@@ -129,7 +129,8 @@ SPAWN.snapjaw = (x, y, p) => Progress.flag('millrace_snapjaw') ? new Ent('none')
    (GRINDLE_FLOW: [x0, x1, y, way] in the room):
    1. the side races carry floats into its mouth; the ferry race runs up to just below it;
    2. the side races run away from its mouth, and the ferry race runs right into it (an empty ferry fills it too);
-   3. it clamps its jaw for good, and one race runs straight past its teeth: only the pieces of a pot get in. */
+   3. it clamps its jaw for good, and one race runs straight past its teeth: only the pieces of a pot get in.
+   It spits at Wren on the bank (out on the water, its jaws are the danger). */
 const GRINDLE_FLOW = {
     1: [[5, 8, 4, RIGHT], [11, 14, 4, LEFT], [9, 9, 6, UP], [9, 9, 7, UP]],
     2: [[5, 7, 4, LEFT], [12, 14, 4, RIGHT], [9, 9, 5, UP], [9, 9, 6, UP], [9, 9, 7, UP]],
@@ -192,7 +193,7 @@ class Grindle extends GridThing {
                     break;
                 }
                 if (this.state !== 'home') break;
-                if (this.st > GR.spit[this.phase] && p.state === 'normal') { this.spit(p); this.st = 0; }
+                if (this.st > GR.spit[this.phase] && this.ashore(p)) { this.spit(p); this.st = 0; }
                 break;
             }
             case 'chomp':
@@ -214,7 +215,7 @@ class Grindle extends GridThing {
                 if (this.st > 20 && this.ashore(p)) this.turn();
                 break;
             case 'shut':
-                if (this.st > GR.spit[3] && p.state === 'normal') { this.spit(p); this.st = 0; }
+                if (this.st > GR.spit[3] && this.ashore(p)) { this.spit(p); this.st = 0; }
                 break;
         }
     }
