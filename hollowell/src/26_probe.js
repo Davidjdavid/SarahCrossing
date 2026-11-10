@@ -27,9 +27,11 @@ const Probe = {
         let f = null; for (const [ln, name] of this._marks) { if (ln <= n) f = [ln, name]; else break; }
         return f ? `${f[1]}:${n - f[0]}` : '';
     },
+    CALL: {},     /* (passed as the detail: where it was drawn from, worked out only the first time it's seen) */
     note(kind, key, detail) {
         const k = kind + '|' + key, e = this.log.get(k);
         if (e) { e.n++; return; }
+        if (detail === this.CALL) detail = this.caller(4);
         this.log.set(k, { kind, key, detail: detail || '', n: 1, first: this.frameN, where: this.where() });
     },
     okColor(c) { return typeof c !== 'string' || this.COLOR.test(c.trim()); },
@@ -38,52 +40,56 @@ const Probe = {
         if (this._installed) return; this._installed = true;
         const P = this;
         const wrap = (obj, name, check) => { const f = obj[name]; obj[name] = function (...a) { if (P.on) check.apply(this, a); return f.apply(this, a); }; };
-        wrap(Gfx, 'rect', (x, y, w, h, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.caller()); if (!P.num(x, y, w, h)) P.note('position', 'rect ' + [x, y, w, h].join(','), P.caller()); });
-        wrap(Gfx, 'line', (x0, y0, x1, y1, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.caller()); if (!P.num(x0, y0, x1, y1)) P.note('position', 'line', P.caller()); });
-        wrap(Gfx, 'circle', (x, y, r, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.caller()); if (!P.num(x, y, r)) P.note('position', 'circle', P.caller()); });
+        wrap(Gfx, 'rect', (x, y, w, h, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.CALL); if (!P.num(x, y, w, h)) P.note('position', 'rect ' + [x, y, w, h].join(','), P.CALL); });
+        wrap(Gfx, 'line', (x0, y0, x1, y1, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.CALL); if (!P.num(x0, y0, x1, y1)) P.note('position', 'line', P.CALL); });
+        wrap(Gfx, 'circle', (x, y, r, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.CALL); if (!P.num(x, y, r)) P.note('position', 'circle', P.CALL); });
         wrap(Gfx, 'img', (im, x, y) => {
-            if (!im) P.note('picture', 'drawn with no picture', P.caller());
-            else if (!P.num(x, y)) P.note('position', 'img ' + x + ',' + y, P.caller());
-            else if (!im.width || !im.height) P.note('picture', 'empty picture', P.caller());
+            if (!im) P.note('picture', 'drawn with no picture', P.CALL);
+            else if (!P.num(x, y)) P.note('position', 'img ' + x + ',' + y, P.CALL);
+            else if (!im.width || !im.height) P.note('picture', 'empty picture', P.CALL);
         });
         const spr0 = spr;
-        spr = function (name) { const s = spr0(name); if (P.on && !s && name !== undefined) P.note('picture', 'no sprite "' + name + '"', P.caller()); return s; };
+        spr = function (name) { const s = spr0(name); if (P.on && !s && name !== undefined) P.note('picture', 'no sprite "' + name + '"', P.CALL); return s; };
         /* every panel drawn this frame, so text can be checked against the panel it's in */
         const box0 = stitchedBox;
         /* (a panel hides whatever text it's drawn over) */
         stitchedBox = function (x, y, w, h, opts) { if (P.on) { P.boxes.push({ x, y, w, h }); P.texts = P.texts.filter(q => q[2] <= x || q[0] >= x + w || q[3] <= y || q[1] >= y + h); } return box0(x, y, w, h, opts); };
+        /* (words floating in the world may drift off the screen's edge; the checks below are for what's drawn over it:
+           the HUD, notices, dialogue, menus, and whole screens like the title) */
+        for (const k of ['drawHUD', 'draw']) { const f = UI[k]; UI[k] = function (...a) { P.inUI = true; return f.apply(this, a); }; }
         wrap(Font, 'draw', (s, x, y) => {
-            if (typeof s !== 'string') { P.note('text', 'not text: ' + typeof s, P.caller()); return; }
+            if (typeof s !== 'string') { P.note('text', 'not text: ' + typeof s, P.CALL); return; }
+            const ui = P.inUI || G.scene !== 'play';
             /* two lines of text on top of each other */
-            if (P.num(x, y) && !G.credits && P.texts.length < 300) {
+            if (ui && P.num(x, y) && !G.credits && P.texts.length < 300) {
                 const tw = Font.width(s), r = [x, y, x + tw, y + 8];
                 for (const q of P.texts) {
                     if (q[4] === s && q[0] === x && q[1] === y) continue;
                     const ix = Math.min(r[2], q[2]) - Math.max(r[0], q[0]), iy = Math.min(r[3], q[3]) - Math.max(r[1], q[1]);
-                    if (ix > 2 && iy > 2) { P.note('text', `overlaps other text: "${stripMarkup(s).slice(0, 30)}" on "${stripMarkup(q[4]).slice(0, 30)}"`, P.caller()); break; }
+                    if (ix > 2 && iy > 2) { P.note('text', `overlaps other text: "${stripMarkup(s).slice(0, 30)}" on "${stripMarkup(q[4]).slice(0, 30)}"`, P.CALL); break; }
                 }
                 P.texts.push([...r, s]);
             }
             /* inside a panel: it ends inside the panel's stitching, and doesn't hang off its foot */
-            if (P.num(x, y) && !G.credits) {
+            if (ui && P.num(x, y) && !G.credits) {
                 let box = null;
                 for (let i = P.boxes.length - 1; i >= 0; i--) { const b = P.boxes[i]; if (x + 1 >= b.x && x + 1 < b.x + b.w && y + 4 >= b.y && y + 4 < b.y + b.h) { box = b; break; } }
                 const tw = Font.width(s);
-                if (box && (x + tw > box.x + box.w - 3 || y + 8 > box.y + box.h - 1)) P.note('text', `runs out of its panel (${Math.round(x + tw - (box.x + box.w - 3))} px over): ` + stripMarkup(s).slice(0, 60), P.caller());
+                if (box && (x + tw > box.x + box.w - 3 || y + 8 > box.y + box.h - 1)) P.note('text', `runs out of its panel (${Math.round(x + tw - (box.x + box.w - 3))} px over): ` + stripMarkup(s).slice(0, 60), P.CALL);
             }
             /* off the screen's edge (the credits roll in from below on purpose) */
-            if (!G.credits && P.num(x, y) && (x < 0 || y < 0 || x + Font.width(s) > W || y + 8 > H)) P.note('text', `off screen at ${Math.round(x)},${Math.round(y)}: ` + s.slice(0, 50), P.caller());
-            if (/undefined|NaN|\[object|\bnull\b/.test(s)) P.note('text', 'leftover in: ' + s.slice(0, 60), P.caller());
-            if (/\[(act|atk|tool|prev|next|menu|map|up|down|left|right)\]/.test(s)) P.note('text', 'a button left unnamed in: ' + s.slice(0, 60), P.caller());
-            for (const m of s.matchAll(/\{([^}]*)\}/g)) { const t = m[1]; if (t !== '/' && t !== '' && !TEXT_COLORS[t] && !PAL[t]) P.note('text', '{' + t + '} in: ' + s.slice(0, 60), P.caller()); }
-            for (const ch of stripMarkup(s)) if (ch !== ' ' && ch !== '\n' && !FONT[ch]) P.note('text', `no glyph "${ch}" (${ch.charCodeAt(0)}) in: ` + s.slice(0, 50), P.caller());
+            if (ui && !G.credits && P.num(x, y) && (x < 0 || y < 0 || x + Font.width(s) > W || y + 8 > H)) P.note('text', `off screen at ${Math.round(x)},${Math.round(y)}: ` + s.slice(0, 50), P.CALL);
+            if (/undefined|NaN|\[object|\bnull\b/.test(s)) P.note('text', 'leftover in: ' + s.slice(0, 60), P.CALL);
+            if (/\[(act|atk|tool|prev|next|menu|map|up|down|left|right)\]/.test(s)) P.note('text', 'a button left unnamed in: ' + s.slice(0, 60), P.CALL);
+            for (const m of s.matchAll(/\{([^}]*)\}/g)) { const t = m[1]; if (t !== '/' && t !== '' && !TEXT_COLORS[t] && !PAL[t]) P.note('text', '{' + t + '} in: ' + s.slice(0, 60), P.CALL); }
+            for (const ch of stripMarkup(s)) if (ch !== ' ' && ch !== '\n' && !FONT[ch]) P.note('text', `no glyph "${ch}" (${ch.charCodeAt(0)}) in: ` + s.slice(0, 50), P.CALL);
         });
     },
     /* after each drawn frame */
     boxes: [], texts: [],
     frame(ms) {
         if (!this.on) return;
-        this.frameN++; this.boxes = []; this.texts = [];
+        this.frameN++; this.boxes = []; this.texts = []; this.inUI = false;
         const c = Gfx.ctx;
         if (c && c.globalAlpha !== undefined && c.globalAlpha !== 1) { this.note('state', 'see-through left on (' + c.globalAlpha + ')', ''); c.globalAlpha = 1; }
         if (c && c.getTransform && !HEADLESS) { const t = c.getTransform(); if (t.a !== 1 || t.d !== 1 || t.e || t.f) { this.note('state', 'flip/offset left on', ''); c.setTransform(1, 0, 0, 1, 0, 0); } }

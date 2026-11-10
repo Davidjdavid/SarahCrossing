@@ -24,7 +24,12 @@ const Fx = {
     yarn(x, y, col) {
         for (let i = 0; i < 12; i++) { const a = Math.random() * Math.PI * 2; this.add({ x, y, vx: Math.cos(a) * 1.2, vy: Math.sin(a) * 1.2 - 0.5, g: 0.05, life: 26, col, r: 1, curl: true }); }
     },
-    text(x, y, s, col = PAL.white) { this.add({ x, y, vy: -0.5, life: 50, text: s, col }); },
+    /* (the same words already floating up right there: they start again rather than a second copy on top) */
+    text(x, y, s, col = PAL.white) {
+        const same = this.list.find(p => p.text === s && Math.abs(p.x - x) < 16 && Math.abs(p.y - y) < 24);
+        if (same) { same.x = x; same.y = y; same.life = 50; return same; }
+        return this.add({ x, y, vy: -0.5, life: 50, text: s, col });
+    },
     /* a sprite shrinking into a pit */
     fallAt(x, y, im) { if (im) this.add({ x, y, life: 24, im, fall: true }); },
     update() {
@@ -38,8 +43,13 @@ const Fx = {
         this.list = this.list.filter(p => p.life > 0);
     },
     draw(cx, cy) {
+        /* seen from underneath (the third act's Little Houses): what happens in the room above shows through the boards,
+           where that room is drawn */
+        const r = Cam.room, ar = r && r.above && G.map && typeof Layers !== 'undefined' ? Layers.upRoom(G.map, r) : null;
+        const ux = ar ? cx + r.above.dx * T : 0, uy = ar ? cy + r.above.dy * T : 0;
         for (const p of this.list) {
-            const x = p.x - cx, y = p.y - cy;
+            const up = ar && p.x >= ar.x * T && p.x < (ar.x + ar.w) * T && p.y >= ar.y * T && p.y < (ar.y + ar.h) * T;
+            const x = p.x - (up ? ux : cx), y = p.y - (up ? uy : cy);
             if (p.text) { Font.center(p.text, x, y, p.col, PAL.ink); continue; }
             if (p.fall) {
                 const k = p.life / 24, im = p.im;

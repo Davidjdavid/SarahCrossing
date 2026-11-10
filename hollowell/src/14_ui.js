@@ -175,9 +175,10 @@ const UI = {
             if (b.sub) Font.center(b.sub, W / 2, y + 16, PAL.grey3);
             Gfx.alpha(1);
         }
+        /* the fade first: words said over a black screen are on it, not under it */
+        if (this.fadeA > 0) { Gfx.alpha(this.fadeA); Gfx.rect(0, 0, W, H, PAL.night); Gfx.alpha(1); }
         Dialog.draw();
         if (this.menu) this.menu.draw();
-        if (this.fadeA > 0) { Gfx.alpha(this.fadeA); Gfx.rect(0, 0, W, H, PAL.night); Gfx.alpha(1); }
     },
 };
 

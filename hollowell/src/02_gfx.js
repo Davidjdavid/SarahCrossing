@@ -132,17 +132,26 @@ const Gfx = {
     /* part of a canvas */
     sub(im, sx, sy, sw, sh, x, y) { if (im) this.ctx.drawImage(im, sx, sy, sw, sh, Math.round(x), Math.round(y), sw, sh); },
     line(x0, y0, x1, y1, col) {
-        /* pixel line (Bresenham), for threads */
+        /* pixel line (Bresenham), for threads: only the part on screen, and each straight run of pixels in one go */
         x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
         const c = this.ctx; c.fillStyle = col;
         let dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, e = dx + dy;
-        for (let n = 0; n < 2000; n++) {
-            c.fillRect(x0, y0, 1, 1);
+        /* wholly off one side of the screen: nothing to draw */
+        if ((x0 < -2 && x1 < -2) || (x0 > W + 2 && x1 > W + 2) || (y0 < -2 && y1 < -2) || (y0 > H + 2 && y1 > H + 2)) return;
+        let rx = x0, ry = y0, rw = 1, rh = 1;
+        const flush = () => { if (rx + rw >= -1 && rx <= W + 1 && ry + rh >= -1 && ry <= H + 1) c.fillRect(rx, ry, rw, rh); };
+        for (let n = 0; n < 4000; n++) {
             if (x0 === x1 && y0 === y1) break;
             const e2 = 2 * e;
-            if (e2 >= dy) { e += dy; x0 += sx; }
-            if (e2 <= dx) { e += dx; y0 += sy; }
+            let mx = 0, my = 0;
+            if (e2 >= dy) { e += dy; x0 += sx; mx = 1; }
+            if (e2 <= dx) { e += dx; y0 += sy; my = 1; }
+            /* the next pixel carries on the run (same row, or same column), or starts a new one */
+            if (mx && !my && rh === 1 && y0 === ry && (sx > 0 ? x0 === rx + rw : x0 === rx - 1)) { if (sx < 0) rx--; rw++; }
+            else if (my && !mx && rw === 1 && x0 === rx && (sy > 0 ? y0 === ry + rh : y0 === ry - 1)) { if (sy < 0) ry--; rh++; }
+            else { flush(); rx = x0; ry = y0; rw = 1; rh = 1; }
         }
+        flush();
     },
     circle(cx, cy, r, col) {
         const c = this.ctx; c.fillStyle = col;

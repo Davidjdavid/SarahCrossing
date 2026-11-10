@@ -64,7 +64,8 @@ class Tuck extends NPC {
         const r = this.route(g[0], g[1], true), [x, y] = r && r.length ? r[r.length - 1] : [this.tx, this.ty];
         return Math.abs(x - g[0]) + Math.abs(y - g[1]);
     }
-    say(text, bubble) { if (bubble) { this.bubble = bubble; this.bubbleT = 70; } if (text) Fx.text(this.px + 8, this.py - 18, text, '#fbf6ea'); }
+    /* (a new line replaces the one still floating, so two never sit on each other) */
+    say(text, bubble) { if (bubble) { this.bubble = bubble; this.bubbleT = 70; } if (text) { if (this._said) this._said.life = 0; this._said = Fx.text(this.px + 8, this.py - 18, text, '#fbf6ea'); } }
     step(nx, ny) { this.dir = dirOf(nx - this.tx, ny - this.ty); this.startMove(nx, ny, 14); }
     /* a bump: a biter, or a heavy thing on its way home: "Ow!", and back to the start */
     bump(why) {
