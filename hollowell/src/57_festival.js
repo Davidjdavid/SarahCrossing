@@ -59,7 +59,7 @@ const Returnball = {
         if (n >= 5 && !Progress.flag('s29')) {
             Progress.set('s29'); Stats.count('secret:returnball');
             Script.run(function* () {
-                yield* say('pip', 'FIVE! All five! Nobody gets five! Here, it\'s the prize, it\'s a Heart Patch, Mum sewed it!');
+                yield* say('pip', '{surprised}FIVE! All five! Nobody gets five! Here, it\'s the prize, it\'s a Heart Patch, Mum sewed it!');
                 yield* Story.getItem('heartpatch')();
             });
         } else UI.toast(n >= 5 ? 'Five rings! A perfect throw.' : `Returnball: ${n} ring${n === 1 ? '' : 's'}.`, 120);
@@ -104,7 +104,7 @@ const Festival = {
         yield* camLook(X + 32, Y + 20);
         for (let i = 0; i < 60 && gran && (gran.walking || gran.mv); i++) yield 1;
         if (gran) gran.dir = DOWN;
-        yield* say('gran', "There she is! Four Knots! Only two to go, love. The town's put on the Knotting Festival for you, the way it always does for the Wanderer.");
+        yield* say('gran', "{happy}There she is! Four Knots! Only two to go, love. The town's put on the Knotting Festival for you, the way it always does for the Wanderer.");
         /* and four people come hurrying in from four directions, out of breath (from the Kiln, the Millrace, the Belfry
            and the Tidyhouse, though nobody says so) */
         const late = [['bram', X + 20, Y + 20, X + 29, Y + 21, RIGHT, 'clay'], ['ambrose', X + 44, Y + 20, X + 33, Y + 23, LEFT, 'wet'],
@@ -126,12 +126,12 @@ const Festival = {
         }
         yield 30;
         yield* say(null, "Bram has clay up to his elbows. Your dad is soaked to the shoulder. Your mum's hair is full of brass dust. Ives has a feather duster in her apron pocket.", { focus: [X + 31, Y + 22] });
-        yield* say('tess', 'Sorry! Sorry. Busy day.');
-        yield* say('ambrose', 'Very busy.');
-        yield* say('bram', "Pots don't make themselves! HA!");
-        yield* say('ives', '...Tidying.');
+        yield* say('tess', '{worried}Sorry! Sorry. Busy day.');
+        yield* say('ambrose', '{worried}Very busy.');
+        yield* say('bram', "{happy}Pots don't make themselves! HA!");
+        yield* say('ives', '{worried}...Tidying.');
         for (const r of runs) r.n.bubble = null;
-        yield* say('gran', "Well, you're here now. All of you. Music!");
+        yield* say('gran', "{happy}Well, you're here now. All of you. Music!");
         /* the music, and everyone dancing on the spot */
         Music.play('festival');
         for (const e of a.ents) if (e.kind === 'npc' && (e.fest || e.prop)) e.dance = true;
@@ -139,7 +139,7 @@ const Festival = {
         yield* say('gran', "And {name}: when you've eaten something, there's the east road. The old giant's been asleep across it since before I was born. You've a bell now, haven't you?");
         Progress.setGoal('The east road out of town: the sleeping giant. Ring the Recall Bell at it.');
         /* Pip, and over by the bakery, the Returnball rings */
-        yield* say('pip', "And Returnball! By the bakery! Nobody's ever got five!");
+        yield* say('pip', "{happy}And Returnball! By the bakery! Nobody's ever got five!");
         yield* camLook(X + 39, Y + 34);
         yield 50;
         yield* camBack();

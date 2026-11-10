@@ -15,7 +15,7 @@ const Prologue = {
             Music.play('home');
             yield* fadeIn(60);
             yield 40;
-            yield* say('gran', "{name}! Up you get, love! The whole town's waiting on you, and you're still in bed on your Wander day!");
+            yield* say('gran', "{happy}{name}! Up you get, love! The whole town's waiting on you, and you're still in bed on your Wander day!");
             yield 20;
             p.state = 'normal'; p.inBed = null; p.x = 6 * T + 8; p.y = 3 * T + 10; p.dir = DOWN;
             Sfx.play('land'); Fx.dust(p.x, p.y);
@@ -32,9 +32,9 @@ TALK.gran = function* (npc) {
     if (!Progress.flag('ceremony')) {
         if (!Progress.flag('talkedGran')) {
             yield* say('gran', [
-                "There you are. Let me look at you. Scarf on straight, good. Boots? Good.",
+                "{happy}There you are. Let me look at you. Scarf on straight, good. Boots? Good.",
                 "Every Wanderer before you walked out of a house just like this one, on a morning just like this one. And every one of them came home. The Way always brings you home.",
-                "Now off to the Well with you. I'll be right behind.",
+                "{happy}Now off to the Well with you. I'll be right behind.",
             ]);
             Progress.set('talkedGran');
             Progress.setGoal('Go to the Well in the middle of town, where everyone is waiting.');
@@ -52,21 +52,21 @@ const GRAN_ACT1 = [
     "Everything in its place, {name}. You'll see. It's a comfort, when you're grown.",
 ];
 const GRAN_AFTER_D1 = [
-    "Your first Knot! Did you feel it? The whole valley sat up a little straighter.",
+    "{happy}Your first Knot! Did you feel it? The whole valley sat up a little straighter.",
     "Next is the Kiln, out west in Kilnridge. The road's blocked by that old boulder, but you're a clever thing.",
-    "I always knew you'd be good at this. You've your aunt's... well. You've good hands.",
+    "{sad}I always knew you'd be good at this. You've your aunt's... well. You've good hands.",
 ];
 
 const GRAN_AFTER_D4 = [
-    "Four Knots! Only two to go, love. The east road's next: the old giant's asleep across it. You've a bell now.",
+    "{happy}Four Knots! Only two to go, love. The east road's next: the old giant's asleep across it. You've a bell now.",
     "Hushwood's a sleepy old place. Don't let it get into your bones. Come home to your own bed.",
-    "You're so like... well. You're growing up, that's all.",
+    "{sad}You're so like... well. You're growing up, that's all.",
 ];
 const GRAN_AFTER_D5 = [
-    "Five! Only one more House, then home for good. It's out west: Larkspur Fair, down below the high mesa in Kilnridge.",
+    "{happy}Five! Only one more House, then home for good. It's out west: Larkspur Fair, down below the high mesa in Kilnridge.",
     "There's no stair down off the mesa. Folk used to say you'd need a way of coming home before you jumped. You've one now, haven't you?",
     "Your bedroll. Hm. Mind you always roll it up and bring it home. A Wanderer's place is at home, {name}.",
-    "Don't stay out too long. The valley likes everyone where they belong.",
+    "{worried}Don't stay out too long. The valley likes everyone where they belong.",
 ];
 
 /* the ceremony starts when Wren first steps out of the house after talking to Gran */
@@ -91,10 +91,10 @@ const Ceremony = {
         p.dir = UP;
         yield 20;
         yield* say('gran', [
-            "Hollowell! Hush now, hush. Bram, put the pot down.",
+            "{happy}Hollowell! Hush now, hush. Bram, put the pot down.",
             "Every year the Hollow wakes up a little weaker. Strays turn up that won't go home. The Way forgets itself.",
             "So every so often, one of our young ones goes on the Wander: through the six Houses, to tie the six Knots that hold the Hollow in its shape.",
-            "This year, it's {name}.",
+            "{happy}This year, it's {name}.",
         ]);
         for (const n of added) n.bubble = 'heart';
         Sfx.play('appear');
@@ -104,13 +104,13 @@ const Ceremony = {
             "Ahem. The Rules of the Return, as every child knows them.",
             "One: everything has its place. Two: whatever is moved goes back the way it came. Three: nothing is ever lost in the Hollow.",
         ]);
-        yield* say('gran', "And now your Wanderstaff. Your grandad cut it from the old apple tree. It's done this before.");
+        yield* say('gran', "{happy}And now your Wanderstaff. Your grandad cut it from the old apple tree. It's done this before.");
         yield* Story.getItem('staff')();
         yield* say('gran', [
             "First, the Tidyhouse, down in Meadowfold, south of town. Then you'll find the rest; they're not hard to find. They want to be found.",
-            "And whatever happens, love: the Way always brings you home.",
+            "{happy}And whatever happens, love: the Way always brings you home.",
         ]);
-        yield* say('ives', "And wipe your feet!");
+        yield* say('ives', "{cross}And wipe your feet!");
         /* the town goes back to its day: everyone walks off a little way, then about their business */
         for (const n of added) { const away = n.tx < ox + 30 ? [-4, 1] : n.tx > ox + 31 ? [4, 1] : [0, 4]; n.walkTo(n.tx + away[0], n.ty + away[1]); }
         for (let i = 0; i < 70 && added.some(n => n.walking); i++) yield 1;

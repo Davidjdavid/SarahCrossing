@@ -163,13 +163,13 @@ const Reveal2 = {
         Fx.poof(gran.px + 8, gran.py + 8);
         Music.play('silence');
         yield 30;
-        yield* say('gran', "You shouldn't be down here, love.");
+        yield* say('gran', "{sad}You shouldn't be down here, love.");
         yield* say(null, "She looks very small at the top of the hall, and very tired. Her fingers are wound round with threads, every colour, so many that her hands look like spools themselves.");
-        yield* say('gran', "I'd have told you. After the seventh Knot. You'd have understood, then. You'd have seen how much there is to lose.");
-        const i = yield* ask('gran', "Don't look at me like that.", ['Where is Linnet?', 'Let them go, Gran.', '...']);
-        if (i === 0) yield* say('gran', "Gone. Out past the fog, where nothing comes back. Where nobody can find you, or bring you home. I'll not lose another. Not you.");
-        else if (i === 1) yield* say('gran', "Let them go? Let them walk off and never come back? I've done that once, love. Once was enough for a whole life.");
-        else yield* say('gran', "Oh, love. Don't.");
+        yield* say('gran', "{sad}I'd have told you. After the seventh Knot. You'd have understood, then. You'd have seen how much there is to lose.");
+        const i = yield* ask('gran', "{worried}Don't look at me like that.", ['Where is Linnet?', 'Let them go, Gran.', '...']);
+        if (i === 0) yield* say('gran', "{sad}Gone. Out past the fog, where nothing comes back. Where nobody can find you, or bring you home. I'll not lose another. Not you.");
+        else if (i === 1) yield* say('gran', "{cross}Let them go? Let them walk off and never come back? I've done that once, love. Once was enough for a whole life.");
+        else yield* say('gran', "{sad}Oh, love. Don't.");
         yield* say('gran', "Go home now. Go home and go to sleep, and in the morning everything will be in its place.");
         yield* say(null, "She takes your red thread between her finger and thumb, the way she'd take a loose end on a jumper, and pulls.");
         /* yanked home: up, away, a long red line, and bed */
@@ -271,7 +271,7 @@ CONTENT_INIT.push(initReveal2);
         if (!Progress.flag('reveal2')) return yield* g0(n);
         if (!Progress.flag('gundry_r2')) {
             Progress.set('gundry_r2');
-            yield* say('gundry', "You've seen the Hall, then. I can tell. You've got the look. I had it too, forty years back, and I went straight back upstairs and oiled the winch and never said a word. I'm not proud of that.");
+            yield* say('gundry', "{sad}You've seen the Hall, then. I can tell. You've got the look. I had it too, forty years back, and I went straight back upstairs and oiled the winch and never said a word. I'm not proud of that.");
             yield* say('gundry', "The Shears. The First Spinner's own, the only blades in the valley that cut a thread for good. They're in the old Loom, in the Loomwood, past the north gate. Linnet went that way.");
             yield* say('gundry', "Hesper keeps that gate shut with a counterweight, down here in the Seams, east. Nobody can shift it. But nobody had a Needle before, did they?");
             yield* say('gundry', "And take this. The Guild's key to the Loom. Four hundred years we've kept it, and never once turned it. Turn it.");

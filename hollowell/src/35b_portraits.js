@@ -55,16 +55,16 @@ function pSpans(part, spans, ch, dy = 0) {
 }
 
 /* ---- the bodies: the face's shape (half-widths by row), the shoulders; a child's head sits a row lower ---- */
-const PFACE = { 4: 5, 5: 7, 6: 8, 7: 9, 8: 9, 9: 9, 10: 9, 11: 9, 12: 9, 13: 9, 14: 9, 15: 9, 16: 9, 17: 9, 18: 8, 19: 7, 20: 6, 21: 5, 22: 3 };
-const PBODY = {
-    adult: { dy: 0, face: PFACE, torso: { 25: 9, 26: 11, 27: 12, 28: 13, 29: 14, 30: 14, 31: 14 } },
+const P_FACE = { 4: 5, 5: 7, 6: 8, 7: 9, 8: 9, 9: 9, 10: 9, 11: 9, 12: 9, 13: 9, 14: 9, 15: 9, 16: 9, 17: 9, 18: 8, 19: 7, 20: 6, 21: 5, 22: 3 };
+const P_BODY = {
+    adult: { dy: 0, face: P_FACE, torso: { 25: 9, 26: 11, 27: 12, 28: 13, 29: 14, 30: 14, 31: 14 } },
     /* (a child: the same round head a row lower, small shoulders, rosy cheeks, a scarf) */
-    child: { dy: 1, face: Object.assign({}, PFACE, { 18: 8, 19: 8, 20: 7, 21: 5, 22: 3 }), torso: { 26: 7, 27: 9, 28: 10, 29: 11, 30: 11, 31: 11 }, child: true },
-    /* (an elder: a broader jaw, heavier eyelids, rounder shoulders) */
-    elder: { dy: 0, face: Object.assign({}, PFACE, { 18: 9, 19: 8, 20: 7, 21: 5, 22: 3 }), torso: { 25: 8, 26: 11, 27: 12, 28: 13, 29: 13, 30: 14, 31: 14 }, old: true },
+    child: { dy: 1, face: Object.assign({}, P_FACE, { 18: 8, 19: 8, 20: 7, 21: 5, 22: 3 }), torso: { 26: 7, 27: 9, 28: 10, 29: 11, 30: 11, 31: 11 }, child: true },
+    /* (an elder: a broader jaw, rounder shoulders) */
+    elder: { dy: 0, face: Object.assign({}, P_FACE, { 18: 9, 19: 8, 20: 7, 21: 5, 22: 3 }), torso: { 25: 8, 26: 11, 27: 12, 28: 13, 29: 13, 30: 14, 31: 14 } },
 };
 /* where the features sit (before a body's dy) */
-const PF = { eyeY: 13, eyeL: 10, eyeR: 19, browY: 11, noseY: 17, mouthY: 19 };
+const P_FEAT = { eyeY: 13, eyeL: 10, eyeR: 19, browY: 11, noseY: 17, mouthY: 19 };
 
 /* the colours a look paints with */
 function portraitLegend(L) {
@@ -111,26 +111,26 @@ const P_MOUTH = {
 };
 
 /* ---- hair: a dome over the head, then down each column to where the fringe (or the sides) end ---- */
-const DOME = [5, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 4, 5];      /* columns 6 to 25: the top of the hair */
+const P_DOME = [5, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 4, 5];      /* columns 6 to 25: the top of the hair */
 /* each style: how far below the dome it starts, and the lowest row of hair in each column 6..25 (the fringe over the
    forehead, the sides past the ears) */
-const HAIRCUT = {
+const P_HAIRCUT = {
     short: [0, [12, 12, 10, 9, 8, 7, 8, 9, 8, 7, 7, 8, 9, 8, 7, 8, 9, 10, 12, 12]],
     tuft: [1, [12, 12, 10, 9, 8, 7, 8, 9, 8, 7, 7, 8, 9, 8, 7, 8, 9, 10, 12, 12]],
     long: [0, [30, 30, 13, 11, 10, 9, 9, 8, 7, 6, 6, 7, 8, 9, 9, 10, 11, 13, 30, 30]],
-    bun: [2, [11, 10, 8, 7, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 7, 8, 10, 11]],
+    bun: [3, [12, 11, 9, 8, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 8, 9, 11, 12]],
     bob: [0, [19, 19, 13, 9, 9, 8, 9, 9, 9, 8, 9, 9, 9, 8, 9, 9, 9, 13, 19, 19]],
     cap: [0, [12, 12, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 12, 12]],
 };
 function hairPart(L, dy) {
-    const part = pGrid(), style = HAIRCUT[L.hair] ? L.hair : L.hair === 'bald' ? 'bald' : 'short';
+    const part = pGrid(), style = P_HAIRCUT[L.hair] ? L.hair : L.hair === 'bald' ? 'bald' : 'short';
     if (style === 'bald') {
         /* what's left: a tuft over each ear */
         for (const [x, y] of [[5, 11], [6, 10], [6, 11], [5, 12], [6, 12], [5, 13], [6, 13], [26, 11], [25, 10], [25, 11], [26, 12], [25, 12], [26, 13], [25, 13], [7, 11], [24, 11]]) pSet(part, x, y + dy, x >= 24 ? 'H' : 'h');
         pSet(part, 6, 10 + dy, 'l');
         return part;
     }
-    const [down, low] = HAIRCUT[style], top = i => DOME[i] + down;
+    const [down, low] = P_HAIRCUT[style], top = i => P_DOME[i] + down;
     for (let i = 0; i < 20; i++) for (let y = top(i); y <= low[i]; y++) pSet(part, 6 + i, y + dy, 'h');
     /* long hair falls over the shoulders, a little wider than the head; a bob to the jaw */
     if (style === 'long') for (let y = 12; y <= 30; y++) { pSet(part, 5, y + dy, 'h'); pSet(part, 26, y + dy, 'h'); if (y >= 17) { pSet(part, 4, y + dy, 'h'); pSet(part, 27, y + dy, 'h'); } }
@@ -154,18 +154,11 @@ function hairPart(L, dy) {
 
 /* ---- the picture ---- */
 function portraitRows(L, expr = 'neutral', mouthOpen = false, eyesShut = false) {
-    const B = PBODY[L.body] || PBODY.adult, dy = B.dy;
+    const B = P_BODY[L.body] || P_BODY.adult, dy = B.dy;
     const g = pGrid();
     const extra = new Set(L.extra || []);
-    /* behind the head: long hair's back, a bun */
+    /* behind the head: long hair's back */
     if (L.hair === 'long') { const back = pGrid(); for (let y = 12; y <= 29; y++) for (let x = 6; x <= 25; x++) pSet(back, x, y + dy, x > 15 ? 'K' : 'H'); pLay(g, back); }
-    if (L.hair === 'bun') {
-        const bun = pGrid();
-        pSpans(bun, { 0: 2, 1: 3, 2: 4, 3: 4, 4: 3 }, 'h', dy);
-        for (const [x, y] of [[13, 1], [14, 1], [13, 2]]) pSet(bun, x, y + dy, 'l');
-        for (let y = 0; y < 6; y++) for (const x of [17, 18, 19]) if (pAt(bun, x, y + dy) === 'h') pSet(bun, x, y + dy, x === 17 && y < 2 ? 'h' : 'H');
-        pLay(g, bun);
-    }
     /* the shoulders, in the top: the accent down the front (a collar, a placket, an apron's bib) */
     const torso = pSpans(pGrid(), B.torso, 't');
     for (let y = 0; y < PORTRAIT; y++) for (let x = 0; x < PORTRAIT; x++) if (torso[y][x] === 't') {
@@ -189,7 +182,7 @@ function portraitRows(L, expr = 'neutral', mouthOpen = false, eyesShut = false) 
     }
     /* a bald head's scalp, then the face: lit from the top left */
     const face = pGrid();
-    if (L.hair === 'bald') for (let i = 1; i < 19; i++) for (let y = DOME[i] + 1; y <= 8; y++) pSet(face, 6 + i, y + dy, 's');
+    if (L.hair === 'bald') for (let i = 1; i < 19; i++) for (let y = P_DOME[i] + 1; y <= 8; y++) pSet(face, 6 + i, y + dy, 's');
     pSpans(face, B.face, 's', dy);
     for (let y = 0; y < PORTRAIT; y++) {
         const xs = []; for (let x = 0; x < PORTRAIT; x++) if (face[y][x] === 's') xs.push(x);
@@ -207,17 +200,23 @@ function portraitRows(L, expr = 'neutral', mouthOpen = false, eyesShut = false) 
     /* the hair over it; its shadow on the forehead */
     const hair = hairPart(L, dy);
     pLay(g, hair, 'k');
+    /* a bun: a ball of hair sat on top */
+    if (L.hair === 'bun') {
+        const bun = pSpans(pGrid(), { 0: 2, 1: 3, 2: 3, 3: 3, 4: 2 }, 'h', dy);
+        for (const [x, y, c] of [[14, 1, 'l'], [15, 1, 'l'], [14, 2, 'l'], [13, 2, 'l'], [18, 1, 'H'], [18, 2, 'H'], [18, 3, 'H'], [17, 4, 'H'], [16, 4, 'H'], [17, 3, 'H']]) pSet(bun, x, y + dy, c);
+        pLay(g, bun);
+    }
     for (let y = 2; y < PORTRAIT; y++) for (let x = 0; x < PORTRAIT; x++) if (hair[y][x] === '.' && pAt(g, x, y - 1) === 'k' && 'hHlK'.includes(pAt(hair, x, y - 2)) && 'sj'.includes(g[y][x])) g[y][x] = 'S';
     /* the features */
     const kind = eyesShut && expr !== 'happy' ? 'shut' : L.sleepy && expr === 'neutral' ? 'heavy' : P_EYE_FOR[expr] || 'open';
     const [eo, eye] = P_EYES[kind];
-    pStamp(g, eye, PF.eyeL, PF.eyeY + dy + eo);
+    pStamp(g, eye, P_FEAT.eyeL, P_FEAT.eyeY + dy + eo);
     /* (the right eye: mirrored, but its glint stays at the top left of the iris) */
     const right = eye.map(r => { let m = r.split('').reverse().join(''); const i = m.indexOf('w'), j = m.indexOf('e'); if (i >= 0 && j >= 0 && j < i) m = m.slice(0, j) + 'w' + m.slice(j + 1, i) + 'e' + m.slice(i + 1); return m; });
-    pStamp(g, right, PF.eyeR, PF.eyeY + dy + eo);
+    pStamp(g, right, P_FEAT.eyeR, P_FEAT.eyeY + dy + eo);
     const brow = P_BROWS[expr] || P_BROWS.neutral;
-    brow.forEach((d, i) => { pSet(g, PF.eyeL - 1 + i, PF.browY + dy + d, 'b'); pSet(g, PF.eyeR + 3 - i, PF.browY + dy + d, 'b'); });
-    if (!B.child) pSet(g, 16, PF.noseY + dy, 'S');
+    brow.forEach((d, i) => { pSet(g, P_FEAT.eyeL - 1 + i, P_FEAT.browY + dy + d, 'b'); pSet(g, P_FEAT.eyeR + 3 - i, P_FEAT.browY + dy + d, 'b'); });
+    if (!B.child) pSet(g, 16, P_FEAT.noseY + dy, 'S');
     const [shut, open] = P_MOUTH[expr] || P_MOUTH.neutral, mouth = mouthOpen ? open : shut;
     /* extras: a beard (round the mouth), a moustache over it, glasses */
     if (extra.has('beard')) {
@@ -237,15 +236,15 @@ function portraitRows(L, expr = 'neutral', mouthOpen = false, eyesShut = false) 
         ], 7, 13 + dy);
         pLay(g, bd, 'k', (x, y) => y < 19 + dy && x > 9 && x < 22);
     }
-    pStamp(g, mouth, 14, PF.mouthY + dy - (mouth.length > 2 ? 1 : 0));
+    pStamp(g, mouth, 14, P_FEAT.mouthY + dy - (mouth.length > 2 ? 1 : 0));
     if (extra.has('mustache') || extra.has('beard')) { const mu = pGrid(); pStamp(mu, ['.lhhhhH.', 'hhhH.HHH'], 12, 17 + dy); pLay(g, mu, 'k', (x, y) => y < 17 + dy || 'mnW'.includes(pAt(g, x, y)) || extra.has('beard')); }
-    const cy = PF.eyeY + dy + (extra.has('glasses') ? 5 : 4);
+    const cy = P_FEAT.eyeY + dy + (extra.has('glasses') ? 5 : 4);
     if (B.child || L.cheeks) for (const x of [9, 10, 21, 22]) if ('sjS'.includes(pAt(g, x, cy))) pSet(g, x, cy, 'c');
     if (extra.has('glasses')) {
         /* round wire rims a little wider than the eyes, a glint on each, arms back to the ears */
         const gl = pGrid();
-        for (const x0 of [PF.eyeL - 2, PF.eyeR - 1]) { pStamp(gl, ['.gggg.', 'g....g', 'g....g', 'g....g', 'g....g', '.gggg.'], x0, PF.eyeY - 1 + dy); pSet(gl, x0 + 1, PF.eyeY - 1 + dy, 'G'); }
-        pStamp(gl, ['gggg'], 14, PF.eyeY + 1 + dy); pSet(gl, 7, PF.eyeY + dy, 'g'); pSet(gl, 24, PF.eyeY + dy, 'g');
+        for (const x0 of [P_FEAT.eyeL - 2, P_FEAT.eyeR - 1]) { pStamp(gl, ['.gggg.', 'g....g', 'g....g', 'g....g', 'g....g', '.gggg.'], x0, P_FEAT.eyeY - 1 + dy); pSet(gl, x0 + 1, P_FEAT.eyeY - 1 + dy, 'G'); }
+        pStamp(gl, ['gggg'], 14, P_FEAT.eyeY + 1 + dy); pSet(gl, 7, P_FEAT.eyeY + dy, 'g'); pSet(gl, 24, P_FEAT.eyeY + dy, 'g');
         pLay(g, gl, null);
     }
     if (expr === 'worried') pStamp(g, ['.d.', 'dDd', 'ddd', '.d.'], 23, 8 + dy);
@@ -257,7 +256,7 @@ function portraitRows(L, expr = 'neutral', mouthOpen = false, eyesShut = false) 
     /* a cap, over all */
     if (L.hair === 'cap') {
         const cap = pGrid();
-        for (let i = 1; i < 19; i++) for (let y = DOME[i]; y <= 7; y++) pSet(cap, 6 + i, y + dy, 'q');
+        for (let i = 1; i < 19; i++) for (let y = P_DOME[i]; y <= 7; y++) pSet(cap, 6 + i, y + dy, 'q');
         for (let x = 5; x <= 26; x++) pSet(cap, x, 8 + dy, 'Q');
         for (let x = 7; x <= 24; x++) pSet(cap, x, 9 + dy, x >= 17 ? 'Q' : 'q');
         for (let y = 0; y < PORTRAIT; y++) for (let x = 0; x < PORTRAIT; x++) if (cap[y][x] === 'q' && y <= 7 + dy) { if (x >= 21) cap[y][x] = 'Q'; else if (y <= 3 + dy && x >= 9 && x <= 14) cap[y][x] = 'Y'; }

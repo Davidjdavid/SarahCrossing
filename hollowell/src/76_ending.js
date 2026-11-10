@@ -54,7 +54,7 @@ const Ending = {
         yield* camBack(120);
         for (let i = 0; i < 120 && Ending.walks.some(([n, x, y]) => n.tx !== x || n.ty !== y || n.mv); i++) { Ending.nudge(); yield 1; }
         for (const e of ring) if (['ives', 'bram', 'ambrose', 'tess', 'mallow', 'jory'].includes(e.who) && !e.walking && !e.mv) e.dir = Math.abs(p.tx - e.tx) > Math.abs(p.ty - e.ty) ? (p.tx < e.tx ? LEFT : RIGHT) : (p.ty < e.ty ? UP : DOWN);
-        yield* say('ives', "We'll keep our Houses' threads, love. By choice. For the next Wanderer. For play. That's the difference.");
+        yield* say('ives', "{happy}We'll keep our Houses' threads, love. By choice. For the next Wanderer. For play. That's the difference.");
         /* the road north, through what's left of the fog */
         G.mist = { t: 0 };
         yield* camLook(96, 36, 150);

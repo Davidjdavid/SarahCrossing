@@ -595,10 +595,10 @@ const GreatSpool = {
         if (!a.ents.some(e => e.who === 'gran')) a.add(new NPC(s.tx + 1, s.ty + 2, { who: 'gran', face: 'down' }));
         Music.play('pull');
         yield 20;
-        yield* say('gran', "You came back. You walked. I felt you go out past the edge, love, and I pulled, and I pulled, and there was nothing on the end.");
-        yield* say('gran', "So I pulled everything else. Everyone. Down here, safe, where nobody can wander off. Where nobody gets lost.");
+        yield* say('gran', "{sad}You came back. You walked. I felt you go out past the edge, love, and I pulled, and I pulled, and there was nothing on the end.");
+        yield* say('gran', "{worried}So I pulled everything else. Everyone. Down here, safe, where nobody can wander off. Where nobody gets lost.");
         yield* say('wren', "You can't pull me, Gran.");
-        yield* say('gran', "...No. I can't, can I.");
+        yield* say('gran', "{sad}...No. I can't, can I.");
         yield* say(null, "Her hands don't stop. The Spool's six great threads, one to every House, hum like bowstrings. Things come flying off the walls toward the drum: pots, crates, blocks, every marked thing in the valley, wound in.");
         yield* say(null, "The great threads are pulled so taut they ring. Every crate and pot near them shivers, wanting to be wound in.");
         Progress.setGoal('Cut the Spool\'s six great threads, at their posts round the walls. (Too taut to cut, unless something knocks one slack.)');
@@ -610,7 +610,7 @@ const GreatSpool = {
         yield 30;
         const gran = a.ents.find(e => e.who === 'gran');
         yield* say(null, "The last great thread parts. The Spool lurches, and everything it was winding goes slack at once: in the walls, overhead, all the way up the Well, a long, long sigh of thread.");
-        yield* say('gran', "Don't. Don't, love, please. If I let go, I'll lose them. I'll lose you. I lost her.");
+        yield* say('gran', "{worried}Don't. Don't, love, please. If I let go, I'll lose them. I'll lose you. I lost her.");
         const r = a.rooms.find(q => q.name === 'The Top of the Spool');
         /* Linnet, down the Well after you: in at the door and up the room towards her mother (walks here keep round
            you and whatever's to be left clear, not through) */
@@ -627,12 +627,12 @@ const GreatSpool = {
         for (let t = 0; t < 150 && (linnet.walking || linnet.mv); t++) yield 1;
         linnet.dir = UP;
         yield 10;
-        yield* say('linnet', "Mum.");
+        yield* say('linnet', "{sad}Mum.", gran ? { focus: gran } : {});
         yield* say(null, "Gran's hands go still on the Spool.");
-        yield* say('linnet', "I came back. Nobody pulled me. I walked all the way, because I wanted to.");
-        yield* say('linnet', "That's the only way anyone ever really comes home, Mum. You have to let them choose it.");
+        yield* say('linnet', "{happy}I came back. Nobody pulled me. I walked all the way, because I wanted to.", gran ? { focus: gran } : {});
+        yield* say('linnet', "That's the only way anyone ever really comes home, Mum. You have to let them choose it.", gran ? { focus: gran } : {});
         const i = yield* ask(null, "Gran looks at you. You hold out your hand.", ['Let go, Gran.', 'Come home with us.']);
-        yield* say('gran', i === 0 ? "...Let go." : "...Home.");
+        yield* say('gran', i === 0 ? "{sad}...Let go." : "{happy}...Home.");
         /* and she takes her hands off the Spool and comes to you, and Linnet to her other side: one hand in yours, one in
            Linnet's (shown, not told: Ending.hands draws the hands held) */
         if (gran) {
@@ -704,12 +704,12 @@ const GreatSpool = {
     const talk0 = Story.talk;
     Story.talk = function (npc) {
         if (Progress.flag('great_pull') && !Progress.flag('unwound') && npc.area && npc.area.id === 'hollow') {
-            if (Progress.flag('cut:' + npc.who)) return function* () { yield* say(npc.who, "We're all right! Nothing's got hold of us! Go on, Wren!"); };
-            if (npc.dragged) return function* () { yield* say(npc.who, ["I can't... stop... walking. Wren? Is that you?", "My feet won't listen. It's the Well. It wants us.", "Go on, love. Down the Well. Don't mind us."][Math.floor(G.rng() * 3)]); };
+            if (Progress.flag('cut:' + npc.who)) return function* () { yield* say(npc.who, "{happy}We're all right! Nothing's got hold of us! Go on, Wren!"); };
+            if (npc.dragged) return function* () { yield* say(npc.who, ["{worried}I can't... stop... walking. Wren? Is that you?", "{worried}My feet won't listen. It's the Well. It wants us.", "{worried}Go on, love. Down the Well. Don't mind us."][Math.floor(G.rng() * 3)]); };
         }
         /* everyone else with a thread, wherever they are, is holding on to something */
         if (Progress.flag('great_pull') && !Progress.flag('unwound') && !Progress.flag('cut:' + npc.who) && npc.who !== 'gran' && npc.who !== 'linnet' && PEOPLE_DEF[npc.who]) {
-            return function* () { yield* say(npc.who, ["It's pulling. Toward the town, toward the Well. I've got my arm round the post, love, I'm all right. Go on.", "Can you feel it? No. No, you can't, can you. Go on, then. Go and stop it."][Math.floor(G.rng() * 2)]); };
+            return function* () { yield* say(npc.who, ["{worried}It's pulling. Toward the town, toward the Well. I've got my arm round the post, love, I'm all right. Go on.", "Can you feel it? No. No, you can't, can you. Go on, then. Go and stop it."][Math.floor(G.rng() * 2)]); };
         }
         return talk0.call(this, npc);
     };
@@ -764,19 +764,19 @@ CONTENT_INIT.push(initGreatSpool);
                 const i = yield* ask(null, "Linnet's bracelet is in your satchel: green thread, plaited, with a little brass L. Show it to Gran?", ['Show her', 'Not now']);
                 if (i === 0) {
                     Progress.set('bracelet_top'); Stats.count('secret:bracelet_top');
-                    yield* say('gran', "...Where did you... I plaited that. I plaited that for her, the spring before her Wander. She never took it off.");
-                    yield* say('gran', "She left it. She left it for somebody to find. For me to find.");
+                    yield* say('gran', "{surprised}...Where did you... I plaited that. I plaited that for her, the spring before her Wander. She never took it off.");
+                    yield* say('gran', "{sad}She left it. She left it for somebody to find. For me to find.");
                     yield* say(null, "Gran's hands go slack on the Spool. One after another, of their own accord, three of the great threads loosen and part, and she doesn't reach for them.");
                     const left = KNOT_HOUSES.filter(h => !Progress.flag('great:' + h));
                     for (const h of left.slice(0, 3)) Progress.set('great:' + h);
                     G.shake = 8; Sfx.play('snip');
                     if (KNOT_HOUSES.every(h => Progress.flag('great:' + h))) { Script.run(GreatSpool.finale(), { name: 'finale' }); return; }
-                    yield* say('gran', "I can't... I can't let go of the rest, love. My hands won't. You'll have to.");
+                    yield* say('gran', "{worried}I can't... I can't let go of the rest, love. My hands won't. You'll have to.");
                     Save.autosave();
                     return;
                 }
             }
-            yield* say('gran', cycle('gran_spool', ["Go home, love. Please. Go home and let me hold on.", "Twenty-five years I've held on. I can't stop now. If I stop, they'll all go.", "Don't look at me like that. You've your mother's look. And hers."]));
+            yield* say('gran', cycle('gran_spool', ["{worried}Go home, love. Please. Go home and let me hold on.", "{sad}Twenty-five years I've held on. I can't stop now. If I stop, they'll all go.", "{sad}Don't look at me like that. You've your mother's look. And hers."]));
         };
         return talk0.call(this, npc);
     };

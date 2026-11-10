@@ -53,6 +53,8 @@ const FACE_BOX = 34, FACE_GAP = 36;
 const Dialog = {
     active: false, who: null, pages: [], page: 0, shown: 0, choices: null, sel: 0, picked: -1, opts: {},
     open(who, text, opts = {}) {
+        /* (whoever spoke the line before, if it was someone else: the box keeps clear of them too, see coverage) */
+        if (this.who && this.who !== who) this.prevWho = this.who;
         this.active = true; this.who = who; this.opts = opts;
         /* (a line can say how it's said, "{happy}...": read off before anything else sees it) */
         const [expr, rest] = exprOf(String(text));
@@ -71,10 +73,15 @@ const Dialog = {
         const p = G.player, a = G.map;
         const keep = G.t - (this.closedAt || -99) <= 3 && this.lastSide ? this.lastSide : 'left';
         if (G.scene !== 'play' || !p || !a) return keep;
+        /* (where on the screen someone stands: the one of that name nearest Wren) */
         const at = w => {
             if (w === 'wren') return G.hideWren || p.hidden ? null : p.x - Cam.x;
-            const e = a.ents.find(e => e.who === w && !e.hidden && e !== p);
-            return e ? (e.isGrid ? e.px + 8 : e.x) - Cam.x : null;
+            let best = null, bd = Infinity;
+            for (const e of a.ents) if (e.who === w && !e.hidden && e !== p) {
+                const ex = e.isGrid ? e.px + 8 : e.x, d = Math.abs(ex - p.x) + Math.abs((e.isGrid ? e.py + 8 : e.y) - p.y);
+                if (d < bd) { bd = d; best = ex; }
+            }
+            return best === null ? null : best - Cam.x;
         };
         const sx = at(who);
         if (sx === null || sx < -8 || sx > W + 8) return keep;
@@ -104,6 +111,8 @@ const Dialog = {
         const feet = e => e.isGrid ? e.py + 14 : e.y;
         if (!G.hideWren && !p.hidden) add(p.y, 22, 1);
         if (this.who) { const sp = a.ents.find(e => e.who === this.who && !e.hidden && e !== p); if (sp) add(feet(sp), 26, 2); }
+        /* (whoever spoke just before counts too, a little less: an exchange keeps both of them in view) */
+        if (this.prevWho && this.prevWho !== this.who && G.t - (this.closedAt || -999) <= 120) { const pv = a.ents.find(e => e.who === this.prevWho && !e.hidden && e !== p); if (pv) add(feet(pv), 26, 1.5); }
         /* (a boss or mini-boss, whatever hits it has left) */
         for (const e of (a.walkers || []).concat(a.ents)) if (e.alive !== false && !e.hidden && e !== p && isBoss(e)) {
             const sx = (e.isGrid ? e.px + 8 * (e.footW || 1) : e.x) - Cam.x, tall = (ENEMY[e.type] && ENEMY[e.type].tall) || e.tall || 28;

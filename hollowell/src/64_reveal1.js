@@ -9,12 +9,12 @@
 const R1_LINE = { ives: [2, 7], bram: [4, 7], ambrose: [6, 7], tess: [13, 7], mallow: [15, 7], jory: [17, 7] };
 const R1_PROP = { ives: 'duster', bram: 'clay', ambrose: 'wet', tess: 'brass', mallow: 'lamp', jory: 'crossbar' };
 const R1_SAYS = {
-    ives: "The Tidyhouse is mine. We watch from underneath, love: there are little holes. When you're stuck a long while, we nudge something. Just a little, so you'd find it yourself.",
-    bram: "The Kiln's mine! And the going-home? Not us. Well, it IS us that keeps it running: every mark's got a thread, every thread goes down, and somebody winds them all. HA!",
-    ambrose: "The Millrace is mine, love. After every Wander we take them down and build them again. Every room. Every puzzle. Every crate that shivers before it goes home.",
-    tess: "The Belfry's mine. It's a gift, {name}, the Wander. The best thing this town knows how to make. Every one of us had one, and now you've had yours. Well, nearly.",
+    ives: "{happy}The Tidyhouse is mine. We watch from underneath, love: there are little holes. When you're stuck a long while, we nudge something. Just a little, so you'd find it yourself.",
+    bram: "{happy}The Kiln's mine! And the going-home? Not us. Well, it IS us that keeps it running: every mark's got a thread, every thread goes down, and somebody winds them all. HA!",
+    ambrose: "{happy}The Millrace is mine, love. After every Wander we take them down and build them again. Every room. Every puzzle. Every crate that shivers before it goes home.",
+    tess: "{happy}The Belfry's mine. It's a gift, {name}, the Wander. The best thing this town knows how to make. Every one of us had one, and now you've had yours. Well, nearly.",
     mallow: "*yawn* The Slumberhouse. Mine. And all that winding goes on at night, mostly. Which is why nobody in this valley ever gets any sleep in Wander season.",
-    jory: "This old place is mine. And the bosses. Mostly the bosses. Do you know how long the Kilnwyrm took? Three winters. The tail never did work properly.",
+    jory: "{happy}This old place is mine. And the bosses. Mostly the bosses. Do you know how long the Kilnwyrm took? Three winters. The tail never did work properly.",
 };
 
 const Reveal1 = {
@@ -40,7 +40,7 @@ const Reveal1 = {
         p.dir = UP;
         yield 20;
         yield* say(null, "It's Jory up there. Jory the toymaker, who sold you a spinning top for your sixth birthday.", { focus: [br.x + 17, br.y + 3] });
-        yield* say('jory', "Ah. Hello, {name}. This is... awkward. I'd prepared a much better ending. There were going to be fireworks. Hold on. I'll come down.", { focus: [br.x + 17, br.y + 3] });
+        yield* say('jory', "{worried}Ah. Hello, {name}. This is... awkward. I'd prepared a much better ending. There were going to be fireworks. Hold on. I'll come down.", { focus: [br.x + 17, br.y + 3] });
         rig.chair.to = 100;
         for (let i = 0; i < 160 && rig.chair.y < rig.chair.to; i++) { rig.chair.y = Math.min(rig.chair.to, rig.chair.y + 1.2); yield 1; }
         Sfx.play('land'); Fx.dust(L(17.5, 0)[0], L(0, 7)[1] + 12);
@@ -73,13 +73,13 @@ const Reveal1 = {
         const ives = out('ives', 1, 5, 3, 5);
         yield* settle([ives]);
         ives.dir = RIGHT;
-        yield* say('ives', "Jory! You've dropped the whole— oh. Oh, she's looking right at us.");
+        yield* say('ives', "{surprised}Jory! You've dropped the whole— oh. Oh, she's looking right at us.");
         const bram = out('bram', 1, 4, 3, 4);
         yield* settle([bram]);
-        yield* say('bram', "HA! Well! That's torn it!");
+        yield* say('bram', "{happy}HA! Well! That's torn it!");
         const dad = out('ambrose', 1, 6, 4, 6);
         yield* settle([dad]);
-        yield* say('ambrose', "Hello, love. Er. Surprise?");
+        yield* say('ambrose', "{worried}Hello, love. Er. Surprise?");
         const mum = out('tess', 18, 5, 15, 5), mallow = out('mallow', 18, 4, 16, 4);
         yield* settle([mum, mallow]);
         rig.chair = null;
@@ -93,7 +93,7 @@ const Reveal1 = {
         for (const n of cast) n.dir = away[n.who];
         yield 30;
         mum.fixedFace = false;
-        yield* say('tess', "We were going to tell you at the end, {name}. We always tell the Wanderer at the end. You're just... early. The Houses, love: we make them. We always have.");
+        yield* say('tess', "{worried}We were going to tell you at the end, {name}. We always tell the Wanderer at the end. You're just... early. The Houses, love: we make them. We always have.");
         /* yours to walk the stage and hear each of them out */
         for (const n of cast) { n.r1 = true; n.fixedFace = false; n.bubble = 'dots'; n.dir = DOWN; }
         Progress.setGoal('The Makers, lined up on the stage: hear each of them out (0 of 6).');
@@ -114,14 +114,14 @@ const Reveal1 = {
         const cast = a.ents.filter(e => e.kind === 'npc' && e.r1);
         G.hideHud = true;
         yield 20;
-        yield* say('jory', "Here's the thing. The last part of a Wander isn't a House: it's learning to make one. Under the Inn there's a door marked STAFF ONLY. It's open now. Come down and see.");
+        yield* say('jory', "{happy}Here's the thing. The last part of a Wander isn't a House: it's learning to make one. Under the Inn there's a door marked STAFF ONLY. It's open now. Come down and see.");
         /* and all at once they look up */
         for (const n of cast) { n.dir = UP; n.fixedFace = true; }
         Music.play('silence');
         yield 50;
         yield* say(null, "Then, all at the same moment, they look up, at nothing, the way people do when they think they've heard their name called from another room.");
         const mum = cast.find(e => e.who === 'tess'); if (mum) mum.fixedFace = false;
-        yield* say('tess', "...Tie your Knot, love. Gran'll want to hear all about it.");
+        yield* say('tess', "{worried}...Tie your Knot, love. Gran'll want to hear all about it.");
         Progress.set('marionette_boss'); Progress.set('reveal1');
         /* off into the wings, the way they came */
         for (const n of cast) { n.fixedFace = false; n.r1 = false; n.walkTo(n.tx < br.x + 10 ? br.x + 1 : br.x + 18, n.ty - 2, 1); }

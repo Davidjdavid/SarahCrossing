@@ -386,7 +386,7 @@ function fits(texts) {
     for (const t of texts) {
         const s = FILL(t);
         for (const ch of s.replace(/\{[^}]*\}/g, '')) assert.ok(FONT_G[ch], `a character the font hasn't got (${JSON.stringify(ch)}) in "${t}"`);
-        const pages = PG(s, 282, 3);
+        const pages = PG(s, 246, 3);          /* (as narrow as it gets: the box with a portrait in it) */
         assert.ok(pages.length <= 3, `${pages.length} pages: "${t}"`);
         for (let i = 1; i < pages.length; i++) {
             const prev = pages[i - 1].join(' ');
