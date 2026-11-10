@@ -22,7 +22,7 @@ const MAKINGS = [
     { name: 'The Tidyhouse, Underneath', by: 'Ives', entry: { x: 56, y: 16 }, after: "Ives, from somewhere above: \"That's the Foyer you came in by, and the Hall you were so cross in. Now you know what I was doing all that time, love: sitting under you, holding my breath.\"" },
     { name: 'The Housekeeper', by: 'Jory', after: "Jory, from somewhere above: \"A two-hander! Two little players, neither knowing the other's lines. Bravo. BRAVO.\"" },
     { name: 'Tidy and Untidy', by: 'Mallow', after: "Doctor Mallow, from somewhere above, very quietly: \"One makes a mess and one tidies it, and neither of them ever saw you. *yawn* Lovely.\"" },
-    { name: 'The Grand Hall', by: 'every Maker', after: "From somewhere above, all six Makers at once, and then everybody shushing everybody: \"HE DID IT!\" \"Shh!\" \"You shush!\"" },
+    { name: 'The Grand Hall', by: 'every Maker', entry: { x: 56, y: 16 }, after: "Under the hoop, all six Makers at once, and then everybody shushing everybody: \"HE DID IT!\" \"Shh!\" \"You shush!\"" },
 ];
 const MAKING_NAMES = MAKINGS.map(m => m.name);
 const MAKING_COUNT = MAKINGS.length;
