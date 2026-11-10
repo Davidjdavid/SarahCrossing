@@ -162,6 +162,17 @@ test('Making 4: let the far plate\'s heavy one go while he sits in its way, and 
     noErrors(HW);
 });
 
+test('every run of a Little House starts as the Makers set it out: a heavy thing untied last time is tied off again', () => {
+    const HW = making(2);
+    under(HW, 29, 9, 'up'); HW.press('act', 1); HW.step(3);
+    assert.ok(!HW.G.map.find('m2H').knotted, 'let go');
+    HW.global('PauseMenu').backToDoor(); HW.step(60);
+    HW.warp('making2', 3, 16); HW.step(10); HW.skipTalk();
+    const H = HW.G.map.find('m2H');
+    assert.ok(H.knotted && H.ty !== 9, 'set out and tied off again');
+    noErrors(HW);
+});
+
 /* ================= 5: the Tidyhouse, underneath ================= */
 /* the Foyer: Tuck sits by the way west; the block jumps, he pushes it away from himself onto the plate; tied there.
    The Hall of Busts: the button pot; the block jumps, he pushes it into the bust's lane; the bust let go and tugged

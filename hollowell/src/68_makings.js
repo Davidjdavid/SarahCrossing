@@ -254,6 +254,10 @@ const Making = {
     start(a) {
         this.cur = { n: a.def.making, ahas: new Set(), bumps: 0, t0: G.t, sat: 0 };
         this.checkCleared = null;
+        /* every run of a Little House starts as the Makers set it out: what was tied off at the start is tied off again
+           (in the Spoolworks a thing once untied stays untied; here that would quietly take the puzzle away) */
+        const af = Progress.areaFlags[a.id];
+        if (af) for (const k of Object.keys(af)) if (k.startsWith('untied:')) delete af[k];
     },
     note(what, why) { if (!this.cur) return; if (what === 'bump') { this.cur.bumps++; this.cur.why = why; } if (what === 'sat') this.cur.sat++; },
     aha(id) {

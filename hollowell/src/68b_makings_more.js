@@ -134,9 +134,9 @@ const KEEP_DOWN = 360;          /* bowled over, he sits a good while, seeing sta
 class Keeper extends NPC {
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ who: 'otto', marked: false }, p));
-        this.person = true; this.weight = WEIGHT.medium; this.noPush = true; this.showThrough = true; this.noKnot = true; this.keeper = true;
+        this.person = true; this.weight = WEIGHT.medium; this.noPush = true; this.showThrough = true; this.noKnot = true;
         this.home0 = [tx, ty]; this.face0 = this.dir;
-        this.state = 'home'; this.st = 0; this.target = null; this.seen = null; this.wait = 0; this.downs = 0;
+        this.state = 'home'; this.st = 0; this.target = null; this.seen = null; this.wait = 0;
         /* his own thread, down to his X (like everybody's) */
         this.ret = { mx: tx, my: ty, area: null, color: PEOPLE_DEF.otto.col, state: 'home', trace: [[tx, ty]], timer: 0, patience: 1e9, snap: false, strain: 0, pace: 10 };
     }
@@ -233,10 +233,9 @@ class Keeper extends NPC {
     /* bowled over by something coming home through him: he slides a tile and sits down hard */
     shove(d, dur, by) {
         this.startMove(this.tx + DX[d], this.ty + DY[d], dur);
-        this.state = 'down'; this.st = 0; this.target = null; this.tsking = false; this.downs++;
+        this.state = 'down'; this.st = 0; this.target = null; this.tsking = false;
         G.shake = 4; Sfx.play('hitthing'); this.say('OOF!', 'bang');
         Stats.count('otto:down');
-        if (Making.cur) Making.cur.ottoDown = (Making.cur.ottoDown || 0) + 1;
     }
     /* his own thread: a tug and he's back on his X */
     onTug() {
@@ -315,7 +314,10 @@ defMaking(6, {
     '1,1': Object.assign(BELOW_ROOM('Under the Doormat', '1,0', 'w', [
         { k: 'sign', x: 16, y: 8, text: "THE DOORMAT. It only feels somebody standing on it. (Otto always comes at a thing from the side nearest his X. Always. -J.)" },
     ]), { nudge: { solved: () => Making.past(35, true), after: 60 * 60 * 2, at: [9, 4], say: "Otto stands on whichever side of a mess is nearest his X. Where would the block have to be for that side to be the mat?" } }),
-}, { up: 'kilnhouse', thread: THREAD.jory });
+}, {
+    up: 'kilnhouse', thread: THREAD.jory,
+    afterHoop: function* () { yield* say('otto', "Tsk. ...That was quite good. For somebody who keeps putting things out of their place."); },
+});
 
 
 /* ---------------- 7: Tidy and Untidy (Mallow): both of them at once ---------------- */
@@ -351,7 +353,10 @@ defMaking(7, {
     '1,1': Object.assign(BELOW_ROOM('Under the Two Mats', '1,0', 'w', [
         { k: 'sign', x: 16, y: 8, text: "TWO MATS: somebody on each, both at once. One of them sits wherever he gets stuck. The other stands wherever his side of a mess is. -M." },
     ]), { nudge: { solved: () => Making.past(35, true), after: 60 * 60 * 3, at: [10, 5], say: "Tuck sits on the mat by the gate all by himself. The other mat wants Otto, and Otto stands on whichever side of a mess is nearest his X." } }),
-}, { up: 'house', thread: THREAD.mallow });
+}, {
+    up: 'house', thread: THREAD.mallow,
+    afterHoop: function* () { yield* say('otto', "Everything's back in its place. Mostly. Some of it's in NEW places. That's allowed, Mother Ives says. Tsk."); },
+});
 
 /* ---------------- 8: The Grand Hall (every Maker): the Tidyhouse's last room, from underneath ---------------- */
 /* West from the Antechamber (its big door hangs on a weight below: that's what the Pattern really did), into the
@@ -403,6 +408,10 @@ defMaking(8, {
     ]), { nudge: { solved: () => Making.past(40), after: 60 * 60 * 2, at: [2, 5], say: "Up above, the big door. Down here, its weight." } }),
 }, {
     up: 'tidy', thread: THREAD.ives, entry: { x: 56, y: 16 },
+    afterHoop: function* () {
+        yield* say('otto', "I got tidied. By my OWN tidying. Again. ...How does that keep HAPPENING?");
+        yield* say('tuck', "I beat the GRAND Housekeeper! Nobody beats the Grand Housekeeper!");
+    },
     talk: {
         ives: function* () { yield* say('ives', "Shh! Look at him. LOOK at him. Oh, I'm going to cry on the boards."); },
         bram: function* () { yield* say('bram', "HA! (Shh.) HA! (Sorry.) He's got it! Course he's got it."); },

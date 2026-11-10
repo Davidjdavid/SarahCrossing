@@ -269,10 +269,17 @@ tagged NORTH GATE. DO NOT TOUCH. BY ORDER OF THE WARDEN. The peepholes (S23): Ro
 pinning Tuck's drawing beside an old one of a girl in green ribbons; Arlo practising walking; Mabel shelving a
 stray with an L; Seam sewing Tuck's scarf (a list: 3. BRAVE); Burr saying "Go on, then" to nobody; Mallow asleep on
 his plans; Gran writing in a heavy book, looking at the turned portrait, not turning it round.
-## The Makings and Reveal 2 (`src/68_makings.js`, `src/69_reveal2.js`)
-Tuck's Little Wander: four Little Houses the Makers built for him, run by Wren from underneath (see DUNGEON_TRACKER).
-Tuck's own thread hangs under his start like anybody's (the first hint of Reveal 2); tugging it, Ives: "Not the boy's own
-thread, love!" The Makers grade in Ahas; all twelve: Tuck's drawing of "a Maker, whoever helped" (S30).
+## The Makings and Reveal 2 (`src/68_makings.js`, `src/68b_makings_more.js`, `src/69_reveal2.js`)
+Tuck's Little Wander: eight Little Houses the Makers built for him, run by Wren from underneath (see DUNGEON_TRACKER).
+The fifth is Ives's own Tidyhouse rooms built again (the Foyer, the Hall of Busts, the Ballroom): from underneath Wren
+finds the cords under the busts she pushed, the Grand Housekeeper's costume on a rail (it was Ives inside), and Ives's
+notes on how long Wren took in each room. From the sixth Otto (from the square's Housekeeper game) comes along to play
+the Housekeeper, tidying whatever Tuck pushes; the eighth is the Grand Hall, where Otto, as the Housekeeper, is beaten
+the way the real one always was: standing on a thing's way home as he tidies it. Its big door hangs on a counterweight
+(what the Pattern really did), and all six Makers are crouched under the last hoop. Gundry walks over from the Guild
+Hall to say his piece to Wren's face. Tuck's own thread hangs under his start like anybody's (the first hint of
+Reveal 2); tugging it, Ives: "Not the boy's own thread, love!" The Makers grade in Ahas; all of them, three in every
+House: Tuck's drawing of "a Maker, whoever helped" (S30).
 Then Gundry sends Wren for Tuck's fresh spool down the Way Down: the deep store, and past it the Hall of Names: a spool
 for everybody (Arlo's with "Walked to the lake again. Tightened."; Biscuit's peg empty, a snipped end; Hesper's empty,
 in her own hand; Linnet's cut clean; Wren's wound tightest and still turning). Gran's ledger (Layer 2): Linnet cut

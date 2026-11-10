@@ -12,7 +12,7 @@ test('from the third Knot: over the lake, up the cliff stair and the Heights, th
 test('from the fourth Knot: the festival, the giant on the east road, Hushwood and the Slumberhouse to its Knot', () => LEG5(loadGame()));
 test('from the fifth Knot: over to Kilnridge, off the high mesa into Larkspur Fair, the Marionette Hall to its Knot (Reveal 1)', () => LEG6(loadGame()));
 test('from the sixth Knot: the Staff door, the Underside, Gundry, the Spoolworks to the Tangle (the Needle)', () => LEG7(loadGame()));
-test('from the seventh Knot: Gundry\'s job, the four Makings for Tuck, the Way Down and the Hall of Names, the north gate, the Loomwood, the Loom to the Weaver (the Shears)', () => LEG8(loadGame()));
+test('from the seventh Knot: Gundry\'s job, the eight Makings for Tuck, the Way Down and the Hall of Names, the north gate, the Loomwood, the Loom to the Weaver (the Shears)', () => LEG8(loadGame()));
 test('from the eighth Knot: your own thread at the fog, the Drift and Linnet, home on foot into the Pull, down the Well, the Great Spool, the end, and after', () => LEG9(loadGame()));
 
 /* one game, from the title to the credits: each leg carries on from the one before (no presets), only taken to the

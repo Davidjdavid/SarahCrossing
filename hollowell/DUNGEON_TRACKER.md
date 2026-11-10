@@ -16,7 +16,7 @@
 | F | Great Spool | under the Well | Six Knot-locks remixing every House | – | The Spool | tested |
 | O1 | Stray House | Frayed Edge | Nothing returns: order, room, holes filled for good; the Needle gives a stray a place | Linnet's bracelet, Heartstitch | The Pile | tested |
 | O2 | Unfinished House | Hollowell, east bank | Chalk planks sewn real with the Needle: three stitches at once, a fourth undoes the oldest | Long Hook | – (Mr Ives's walk) | tested |
-| M | The Makings (×4) | Underside | Indirect control: Tuck walks by four rules; you work from below | – | – | tested |
+| M | The Makings (×8) | Underside | Indirect control: Tuck walks by four rules (and from the sixth, Otto the Housekeeper by his); you work from below | – | – | tested |
 
 ## Per-dungeon structure (every House)
 
@@ -137,7 +137,7 @@ boss; the bells; an old save's Pattern; the upper floor. Scripted playthrough (L
 | S22 The logbooks | the Underside's Workshops (0,0) | read all six: each Maker reports your real play in their House | built, tested |
 | S23 Peepholes | the Seams, under the town | eight peepholes, eight private moments; all eight: a Heart Patch | built, tested |
 | Gundry's Bench (Heart Patch) | the Spoolworks, 2,0 (above), up from 2,3 | the Needle through the cord of the crate on the trapdoor | built, tested |
-| S30 Tuck's Ahas | the Makings | all three Ahas in all four Makings: Tuck's drawing | built, tested |
+| S30 Tuck's Ahas | the Makings | all three Ahas in all eight Makings: Tuck's drawing | built, tested |
 | S32 The gate counterweight | the Seams (east), 57,16 | the Needle on the north gate's counterweight before Reveal 2 (after it, it's the way on) | built, tested |
 | S33 Fainting, knowing | anywhere after Reveal 2 | faint: a different waking | built, tested |
 | S24 Old Arlo's walk | Hollowell, after the Shears | cut Arlo free and follow him to the river bank: a Heart Patch | built, tested |
@@ -302,27 +302,46 @@ thread-dusted flagstones below.
 
 Keys: two keys (Spool Store, Ropewalk) for two locks (the Kennel; under the Spool Store, north). Pattern: the Heart's big door.
 
-## The Makings: Tuck's Little Wander (`src/68_makings.js`; tests `tests/makings.test.mjs`) - tested
+## The Makings: Tuck's Little Wander (`src/68_makings.js`, `src/68b_makings_more.js`; tests `tests/makings.test.mjs`) - tested
 
-Wren works from underneath only (no hatches up: it's his Wander). Tuck's rules (on the wall below, in his spelling):
-1. he goes for the door (the little hoop); 2. anything that jumps (a tug on a home thing's cord), he goes and pushes;
-3. he won't go near anything that bites (a nibbler not tied up; tied up it's harmless); 4. stuck, he goes as near the
-door as he can and sits. He weighs on plates, pushes what a person can (not heavy), and a heavy thing going home bowls
-him over (a bump: back to his start). His own thread hangs under his start: a tug yanks him back ("Wheee!").
-Ahas (S30: all three in all four): cleared (his own push got him nearer the door), found (he had a go at the thing
-the button was under), unhurt (no bumps).
+Eight Little Houses, each opening once the one before is done (a door each on the Making Floor, a plank across the ones
+not open yet). Wren works from underneath only (no hatches up: it's his Wander). Tuck's rules (on the wall below, in
+his spelling): 1. he goes for the door (the little hoop); 2. anything that jumps (a tug on a home thing's cord), he goes
+and pushes (away from himself, from whichever side he gets to first; only within eight tiles); 3. he won't go near
+anything that bites (a nibbler not tied up; tied up it's harmless); 4. stuck, he goes as near the door as he can and
+sits. He weighs on plates, pushes what a person can (not heavy), and a heavy thing going home (or anything tugged home
+hard) bowls him over (a bump: back to his start). His own thread hangs under his start: a tug yanks him back ("Wheee!").
+From the sixth, Otto comes too, playing the Housekeeper (`Keeper`): 1. he stands on his X (one in every room of his:
+he's always in the room Tuck's in); 2. anything out of its place, he trots to the side of it nearest his X (the next
+nearest if that one's taken) and yanks it home (a snap); 3. held fast, he stands there tsking at it till it isn't;
+4. then back to his X. Something coming home through him bowls him over ("OOF!": he sits a while, and doors that open
+on the Housekeeper beaten open). His own thread puts him back on his X. A doormat (`Mat`) feels only a person on it.
+Ahas (S30: all three in all eight): cleared (his own push got him nearer the door), found (he had a go at the thing the
+button was under), unhurt (no bumps). Every room underneath a puzzle has a nudge. The first three Houses lost their
+empty hoop rooms (the hoop stands at the end of the second room); an old save left in one comes back in a room below.
+Gundry's speech at the end is said to Wren's face: he walks over from the Guild Hall first.
 
 | Making | Room | Idea | Solution |
 |---|---|---|---|
-| 1 The Little Tidyhouse | The Doorway | Jolt to steer | The block on the corner of the L doorway: tug it; he pushes it up into the alcove (Aha). The pot in the corner: tug it, he finds the button |
-| | The Plate | Jolt, then tie off | Tug the block in its slot; he pushes it down onto the plate; tie it off there before it goes home (60) |
-| 2 Mind the Nibbler | The Nest | Creatures have cords | The nibbler chases him near its nest: tug it home and tie it up; the pot in the nook (button); the corner block as before (Aha) |
+| 1 The Little Tidyhouse (Ives) | The Doorway | Jolt to steer | The block on the corner of the L doorway: tug it; he pushes it up into the alcove (Aha). The pot in the corner: tug it, he finds the button |
+| | The Plate | Jolt, then tie off | Tug the block in its slot; he pushes it down onto the plate; tie it off there before it goes home (60). The hoop past the gate |
+| 2 Mind the Nibbler (Bram) | The Nest | Creatures have cords | The nibbler chases him near its nest: tug it home and tie it up; the pot in the nook (button); the corner block as before (Aha) |
 | | The Crossing | Lure, then let go | He sits in the heavy block's lane at the gate: tug the crate in the west nook (he goes to see, and admires it), then untie the heavy block: it crosses home onto the plate and the gate opens. Untie while he sits there and he's bowled over |
-| 3 The Little Wander | The Heavy Door | The Needle | The corner block is heavy: stitch it up into the alcove through its cord; the pot (button) |
+| 3 The Little Wander (Tess) | The Heavy Door | The Needle | The corner block is heavy: stitch it up into the alcove through its cord; the pot (button) |
 | | The Guarded Plate | Everything | Tie the nibbler up first, then tug the block in its slot onto the plate (he pushes) and tie it off |
-| 4 The Long Sulk | The Sulk | Rule 4 turned round | A heavy block tied off in the passage; the nearest he can get is a plate, so he sulks on it and holds the gate on the heavy one's way home open: untie it (through its cord, under its place up the shaft) and it goes, out of his way. The pot (button) |
+| 4 The Long Sulk (Gundry) | The Sulk | Rule 4 turned round | A heavy block tied off in the passage; the nearest he can get is a plate, so he sulks on it and holds the gate on the heavy one's way home open: untie it (through its cord, under its place up the shaft) and it goes, out of his way. The pot (button) |
 | | Two Plates | Where he sits, and when | He sulks on the plate by the gate, right in the way of a heavy one tied off below him whose home is the other plate. Tug the crate nearby (he goes to see), then untie the heavy one: it goes home onto its plate; he comes back and sits on his; the gate opens and stays. Untie while he sits there and he's bowled over |
 | | The Hoop | Jolt to clear | The block in the passage's mouth: tug it; he pushes it out of the way (Aha) |
+| 5 The Tidyhouse, Underneath (Ives; echoes D1's Foyer, Hall of Busts and Ballroom; no Needle in her rooms) | The Foyer | Where he stands decides which way he pushes | The block a step nearer the plate than Wren had it; the plate opens the way west. Tug it while he sits by the west door: he pushes it east onto the plate (Aha); tie it off. Tug it while he walks in and he pushes it north, the wrong way |
+| | The Hall of Busts | A tug on a thing out of its place sends it home now (heavier shoves lighter) | The middle bust set out up its lane and tied. Tug the block by the lane while he sits by the west door: he pushes it east into the lane; untie the bust and tug it: it comes home down the lane, shoves the block onto the plate, and stands in its way home. The pot (button). The bust let go before the block's in its lane: Ives's lever below sets the Hall out again. The bust sent home through him bowls him over |
+| | The Ballroom | (the hoop) | Both busts home, tidy; the hoop at the end of the corridor they jammed in. Below: the Grand Housekeeper's costume on a rail, and Ives's notes from Wren's own Wander (real play time per room) |
+| 6 The Housekeeper (Jory; Otto introduced) | Otto's X | The second child: he tidies what Tuck pushes; a knot only makes him tsk | He sits in the passage, a block in its far mouth, Otto's X just beyond. Tug it: he pushes it out (Aha), and Otto tidies it straight back. Tug it and tie it at once: Otto stands beside it tsking, Tuck walks round. The pot (button): Otto says Tsk! but can't get there |
+| | The Doormat | Where Otto stands (his side) | The way on opens while somebody stands on the doormat. Tug the block while Tuck sits by the gate: he pushes it west; tie it: Otto's side of it is the mat. A block stitched onto the mat does nothing |
+| 7 Tidy and Untidy (Mallow) | Tidy for Good | A stitch gives a thing a place; Otto only minds places | A block in the only junction, Otto's X off it: pushed aside (Aha), Otto puts it back; tied there, Otto stands in the junction tsking, in the way. Stitch it into the stub (before or after he pushes): Otto leaves it be. Or tie it and tug Otto's own thread: he's whisked to his X and Tuck slips by. The pot (button) |
+| | Two Mats | Both sets of rules at once | The gate wants somebody on each mat (and stays open). Tuck sits on the one by the gate by himself. The block sits in a slot on the other mat: pushed west (from the gate side) Otto's side of it is no mat; tug the crate to draw Tuck west, then the block: he pushes it east, tie it, and Otto's side of it is its own place, the mat |
+| 8 The Grand Hall (every Maker; echoes D1's Antechamber and the boss's hall) | The Antechamber | Counterweights (what the Pattern really did) | Four pots (button under one); the big door hangs on a weight below: push it off its plate and he goes through |
+| | The Grand Hall | The Housekeeper tidied by his own tidying | Otto's cross by the way west, which opens only when he's beaten. Tie the nibbler up (it watches the spot he'd push from). Tug the block in the slot between two busts while he sits by the way west: he pushes it east, straight away from Otto; tie it; Otto comes to its side (its own place) once Tuck's gone back; untie it: his own yank brings it home through him, OOF, and the way opens. Untied too soon, he tidies it from beside and stays up |
+| | The Little Hoop | Jolt to clear | The last block in the passage's mouth (Aha). Below: all six Makers, on their knees under the hoop, watching |
 
 ## D8 The Loom (`src/72_loom.js`, `src/72b_loom_foes.js`, kit `src/70_shears_kit.js`; tests `tests/loom.test.mjs`, `tests/shears_kit.test.mjs`) - tested
 
