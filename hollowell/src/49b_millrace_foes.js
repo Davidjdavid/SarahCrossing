@@ -142,7 +142,8 @@ class Grindle extends GridThing {
     constructor(tx, ty, p = {}) {
         super('grindle', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p));
         this.hp = 3; this.phase = 1; this.state = 'sleep'; this.st = 0; this.flash = 0;
-        this.spits = []; this.alive = true; this.footW = 2;
+        this.spits = []; this.alive = true; this.footW = 2; this.tall = 40;    /* (its head and the sluice over it: what the words keep clear of) */
+        this.type = 'grindle';      /* (ENEMY.grindle: its full strength, so words on the screen keep clear of it all fight) */
     }
     onAdd(area) { area.place(this, this.tx, this.ty); area.place(this, this.tx + 1, this.ty); }
     get pond() { return this.area.roomAt(this.tx, this.ty); }
@@ -332,31 +333,31 @@ SPAWN.sluice = (x, y, p) => new Sluice(x, y, p);
 const MillFoes = {
     *snapIntro(s) {
         yield 20;
-        yield* say(null, 'Something long and green surfaces in the race, all teeth and scales, and slaps the water. The door grinds shut behind you.');
+        yield* say(null, 'Something long and green surfaces in the race, all teeth and scales, and slaps the water. The door grinds shut behind you.', { focus: s });
     },
     *snapDown(s) {
         Music.play('silence');
         yield 40;
-        yield* say(null, 'The Snapjaw rolls over, unravels into a ball of blue yarn and bobs away down the race.');
+        yield* say(null, 'The Snapjaw rolls over, unravels into a ball of blue yarn and bobs away down the race.', { focus: s });
         Music.play('millrace');
         Sfx.play('appear');
     },
     *grindleIntro(g) {
         yield 20;
-        yield* say(null, "At the head of the millpond, bolted to the intake, a great iron pike lifts its head and opens a mouth like a mill hopper. OLD GRINDLE, says the brass plate on its nose. It's hungry.");
+        yield* say(null, "At the head of the millpond, bolted to the intake, a great iron pike lifts its head and opens a mouth like a mill hopper. OLD GRINDLE, says the brass plate on its nose. It's hungry.", { focus: g });
     },
     /* the sluice turns: the races run another way, and Grindle with them */
     *turn(g) {
         yield 50;
-        if (g.phase === 2) yield* say(null, "Old Grindle heaves its iron head against the sluice. The great wheel grinds over and the whole millpond turns about: the side races run away from its mouth now, and the ferry race runs straight into it. Its round eye swivels to the raft.");
-        else yield* say(null, "Grindle wrenches the sluice round once more, then clamps its iron jaw shut with a clang. It won't be fed again. One race runs straight past its teeth now; between them, deep in its throat, the gear-heart spins.");
+        if (g.phase === 2) yield* say(null, "Old Grindle heaves its iron head against the sluice. The great wheel grinds over and the whole millpond turns about: the side races run away from its mouth now, and the ferry race runs straight into it. Its round eye swivels to the raft.", { focus: g });
+        else yield* say(null, "Grindle wrenches the sluice round once more, then clamps its iron jaw shut with a clang. It won't be fed again. One race runs straight past its teeth now; between them, deep in its throat, the gear-heart spins.", { focus: g });
         g.state = g.phase === 3 ? 'shut' : 'home'; g.st = 0;
     },
     *grindleDown(g) {
         const a = g.area;
         Music.play('silence');
         yield 40;
-        yield* say(null, "Old Grindle's gears spin loose. Its plates fold up like a fan, and the whole fish sinks with a sigh into the intake, gone back wherever it came from.");
+        yield* say(null, "Old Grindle's gears spin loose. Its plates fold up like a fan, and the whole fish sinks with a sigh into the intake, gone back wherever it came from.", { focus: g });
         for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 17, br.y + 9));       /* at the east end of the bank, clear of the raft's landing and the way out */
@@ -369,6 +370,7 @@ SIGNATURE_TEXT.mill = "Painted on a floorboard in blue, very small: a mill wheel
 
 function initMillraceArt() {
     ENEMY.snapjaw = { hp: 2, swims: true, r: 8, tall: 16, yarn: THREAD.ambrose };
+    ENEMY.grindle = { hp: 3, tall: 40 };
     defSprite('snapjaw', ['........................', '........................', '.........kkkkkk.........', '.......kkggggggkk.......', '......kgggwkkgggGk......', '.....kggggkkkgggGGk.....', '.....kgggggggggGGGk.....', '....kgGgGgGgGgGgGGGk....',
         '....kggggggggggggGGk....', '....krrrrrrrrrrrrrrk....', '....kwkwkwkwkwkwkwkk....', '....krrrrrrrrrrrrrrk....', '.....kggggggggggGGk.....', '......kgGgGgGgGGGk......', '.....kkggggggggGGkk.....', '....kbbkkkkkkkkkkbbk....',
         '...kbBbbBbbBbbBbbBbk....', '..kbbbbbbbbbbbbbbbbbk...', '........................', '........................', '........................', '........................', '........................', '........................'],
@@ -448,6 +450,15 @@ function initMillraceArt() {
         R('#c9925a', 1, 4, 4, 8); R('#e6c08a', 2, 5, 2, 6); R('#9a6438', 2, 6, 2, 1); R('#9a6438', 2, 9, 2, 1); R('#6b4128', 3, 7, 1, 2);
         R('#c9925a', 15, 5, 1, 6);
         x.fillStyle = '#d8f2fc'; x.fillRect(0, 12, 3, 1); x.fillRect(6, 13, 5, 1); x.fillRect(13, 12, 3, 1);
+    });
+    /* the Bell Race's carving, on a post by the landing: a sun, a moon and a star in a row, each ringing */
+    SPR.mill_carving = paintSprite(16, 24, x => {
+        const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        R('#6b4128', 7, 10, 2, 13); R('#9a6438', 7, 10, 1, 13); R('#4a2c1a', 5, 22, 6, 2);
+        R('#9a6438', 0, 1, 16, 10); R('#c9925a', 1, 2, 14, 8); R('#e6c08a', 1, 2, 14, 1);
+        R('#f7d64a', 2, 4, 3, 3); R('#b88a2a', 2, 7, 3, 1); px(x, 1, 5, '#b88a2a'); px(x, 5, 5, '#b88a2a'); px(x, 3, 3, '#b88a2a');
+        R('#9fd4f0', 7, 4, 2, 3); R('#5a8aa8', 9, 4, 1, 3); px(x, 8, 7, '#5a8aa8');
+        px(x, 13, 3, '#f59ac0'); R('#f59ac0', 12, 4, 3, 2); px(x, 12, 6, '#f59ac0'); px(x, 14, 6, '#f59ac0'); px(x, 13, 5, '#fbe0ec');
     });
     /* the Bell Race's carving: a sun, a moon and a star in a row on a board, each ringing */
     ART.mill_mural = paintSprite(44, 15, x => {

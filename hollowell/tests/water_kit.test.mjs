@@ -90,3 +90,22 @@ test('a stone block pushed into deep water sinks and goes home; a stray fills it
     assert.ok(!HW.G.map.kind(7, 6).water, 'filled in');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 });
+
+test('a float that comes home onto the bank with Wren aboard sets her down beside it (never stuck inside it)', () => {
+    const HW = lab();
+    HW.Inv.giveTool('paddle');
+    const c = HW.G.map.find('crate'), p = HW.player();
+    go(HW, 2, 4); HW.push('up', 1);                  // its mark is on the bank: into the race
+    assert.equal(c.ty, 2, 'in the race');
+    go(HW, 9, 3);
+    assert.ok(until(HW, () => c.tx === 9 && !c.mv, 600), 'down the race');
+    HW.hold('up'); HW.step(12); HW.release(); HW.step(2);
+    assert.ok(p.tx === 9 && p.ty === 2, 'standing on it');
+    assert.ok(until(HW, () => HW.Return.isHome(c), 900), 'and home again with Wren aboard, onto the bank');
+    HW.step(2);
+    assert.ok(!(p.tx === c.tx && p.ty === c.ty), 'set down beside it');
+    const x0 = p.x, y0 = p.y;
+    HW.hold('down'); HW.step(20); HW.release();
+    assert.ok(Math.abs(p.x - x0) + Math.abs(p.y - y0) > 8, 'and free to walk off');
+    assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
+});

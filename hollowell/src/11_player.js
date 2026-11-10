@@ -642,7 +642,8 @@ const Thrown = {
             const k = area.kind(tx, ty);
             let stop = (k.solid && !k.deep && !k.pit && !k.ledge && !k.low) || !area.inside(tx, ty);
             const occ = area.at(tx, ty);
-            if (occ && occ !== t.o) {
+            /* (a raft or anything else you can stand on is flown over, not hit: a throw from a raft clears it) */
+            if (occ && occ !== t.o && !occ.walkOn) {
                 stop = true;
                 if (occ.hit) occ.hit(t.o, t.d);
                 else if (!occ.fixed && occ.weight <= t.o.weight && !occ.mv && occ.canPush && occ.canPush(t.d)) { occ.push(t.d, 8); Stats.count('knocks'); }

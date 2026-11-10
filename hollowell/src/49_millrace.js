@@ -4,13 +4,45 @@
    waterwheel on a bank turns while something floats in front of it; the Paddle (from the Snapjaw) steers
    anything floating, and paddling holds a thing where it is. Earlier tools join in: the Hookline reels a
    raft over to you; a pot carried on a ride sends its shards back along the ride; strays fill water in.
-   Old Grindle gulps floating barrels at its intake; full, it settles at its mark and its gear-heart shows. */
+   The House's end begins at the top of the race (the Paddle first): the Two Wheels, then two rooms that fold in
+   the earlier Houses (the Lock: a thing at home blocks the way home, on water; the Bell Race: a pot's pieces ring
+   the bells in the order it last passed them, and a ferry passes them one way going out, the other coming home),
+   and Old Grindle in the Millpond, three rounds, the pond's sluice turning between them (src/49b_millrace_foes.js). */
 
 THEMES.millhouse = { floor: ['#d8b98a', '#b48a5a', '#ecd2a8', '#8a6440'], wall: ['#8c98a4', '#66727e', '#aab6c0', '#3e4852'], stone: ['#a8b0a8', '#848c86', '#c8d0c8', '#5c645e'], water: ['#4fb0e0', '#3586c8', '#9ad8f2', '#22508e'], dark: '#1c2630' };
+/* the mill's floor: wet flagstones laid in courses, the joints dark and green with moss, a shine where the wet catches */
+const MILL_SLABS = [[[9, 7], [6, 10]], [[16], [7, 9]], [[5, 11], [16]], [[10, 6], [4, 7, 5]]];
 FLOORS.millhouse = {
-    floor: (x, th, v) => Paint.planks(x, ['#d2ae78', '#a8804e', '#e8cc98', '#7a5a36'], v, false),
+    floor: (x, th, v) => {
+        fill(x, '#55615a');
+        MILL_SLABS[v].forEach((widths, row) => {
+            let sx = 0;
+            widths.forEach((w, i) => {
+                const y0 = row * 8, k = hash2(v * 7 + row, i, 61);
+                const base = k < 0.33 ? '#96a299' : k < 0.66 ? '#8c988f' : '#a0aba2';
+                fill(x, base, sx + 1, y0 + 1, w - 1, 7);
+                fill(x, '#bec8c0', sx + 1, y0 + 1, w - 1, 1); fill(x, '#76827a', sx + 1, y0 + 7, w - 1, 1);
+                speckle(x, ['#7f8b83', '#a9b4ab'], 71 + v * 5 + row * 3 + i, 0.12, sx + 1, y0 + 2, w - 1, 5);
+                /* a little moss where this slab meets the next, and now and then a wet shine */
+                if (hash2(v, row * 4 + i, 63) < 0.6) { px(x, sx + w, y0 + 3 + Math.floor(k * 3), '#6f9a50'); px(x, sx + w, y0 + 4 + Math.floor(k * 3), '#86b060'); }
+                if (k > 0.7 && w > 5) { px(x, sx + 2 + Math.floor(k * (w - 4)), y0 + 3, '#d6ecef'); px(x, sx + 3 + Math.floor(k * (w - 4)), y0 + 3, '#c4dde2'); }
+                sx += w;
+            });
+        });
+        if (v === 2) { px(x, 0, 7, '#6f9a50'); px(x, 1, 8, '#86b060'); }
+    },
     floor2: (x, th, v) => { fill(x, '#a8b0a8'); speckle(x, ['#949c96', '#bcc4bc'], 40 + v, 0.3); fill(x, '#7c847e', 0, 15, 16, 1); fill(x, '#7c847e', 15, 0, 1, 16); },
-    floor3: (x, th, v) => Paint.planks(x, ['#9a7a52', '#7a5a36', '#b8966a', '#5a4026'], v, true),
+    /* a slatted boardwalk over a channel: boards laid across, the water glinting in the gaps between them */
+    floor3: (x, th, v) => {
+        fill(x, '#1e3f6e');
+        for (let j = 0; j < 4; j++) {
+            const y0 = j * 4, c = ['#b08a5a', '#a07a4c', '#bc9662', '#a8824f'][(j + v) % 4];
+            fill(x, c, 0, y0, 16, 3); fill(x, '#d0aa74', 0, y0, 16, 1); fill(x, shade(c, -0.18), 0, y0 + 2, 16, 1);
+            const n = (j + v) % 2 ? 2 : 13;
+            px(x, n, y0 + 1, '#5a4026'); px(x, 15 - n, y0 + 1, '#5a4026');
+            if (hash2(v, j, 81) < 0.55) { const gx = 3 + Math.floor(hash2(j, v, 83) * 9); fill(x, '#4fb0e0', gx, y0 + 3, 2, 1); }
+        }
+    },
 };
 WALLS.millhouse = {
     edge: '#1c2630',
@@ -72,15 +104,15 @@ defHouse({
             name: 'Wheel Hall',
             rows: [
                 '#########.##########',
-                '#..................#',
+                '#........:.........#',
                 '#..>>>>>>I>>>>>>>~.#',
-                '#..................#',
-                '#..................#',
-                '....................',
-                '#..................#',
-                '#..................#',
-                '#..................#',
-                '#..................#',
+                '#........:.........#',
+                '#........:.........#',
+                '.........:..........',
+                '#........:.........#',
+                '#........:.........#',
+                '#........:.........#',
+                '#........:.........#',
                 '#########.##########',
             ],
             ents: [
@@ -216,12 +248,13 @@ defHouse({
                 { k: 'pot', x: 1, y: 1, id: 'sjPot1' }, { k: 'pot', x: 1, y: 9, id: 'sjPot2' },
             ],
         },
-        /* ---------------- 7 Upstream: paddle up the race to the key, and the big door ---------------- */
+        /* ---------------- 7 Upstream: paddle up the race to the key, the big door, and the upper floor (the lock east) ----------------
+           (the House's last stretch starts at the top of the race either way, so nobody reaches Old Grindle without the Paddle) */
         '1,1': {
             name: 'Upstream',
             rows: [
                 '#########.##########',
-                '#......#...#.......#',
+                '#......#...........#',
                 '#......##V##.......#',
                 '#......##V##.......#',
                 '#......##V##.......#',
@@ -229,15 +262,15 @@ defHouse({
                 '#......##V##.......#',
                 '#......##V##.......#',
                 '#......##~##.......#',
-                '#..................#',
+                '#..........#.......#',
                 '#########.##########',
             ],
             ents: [
                 { k: 'raft', x: 9, y: 8, id: 'upRaft' },
-                { k: 'chest', x: 10, y: 1, item: 'key', id: 'upKey' },
+                { k: 'chest', x: 8, y: 1, item: 'key', id: 'upKey' },
                 { k: 'door', x: 9, y: 0, type: 'big', id: 'upBig' },
                 { k: 'door', x: 18, y: 5, type: 'lock', id: 'upLockE', dir: 'v' },
-                { k: 'sign', x: 8, y: 1, text: "TOP OF THE RACE. The quick way back down is the wet way. (Everything comes home.)" },
+                { k: 'sign', x: 13, y: 1, text: "TOP OF THE RACE. The quick way back down is the wet way. (Everything comes home.)" },
                 { k: 'sign', x: 8, y: 9, text: "UPSTREAM. Nothing goes up the race by itself." },
                 { k: 'pot', x: 1, y: 1, id: 'upPot1' }, { k: 'pot', x: 18, y: 1, id: 'upPot2' }, { k: 'pot', x: 1, y: 9, id: 'upPot3' },
                 { k: 'enemy', x: 3, y: 4, type: 'nibbler' }, { k: 'enemy', x: 15, y: 7, type: 'nibbler' },
@@ -312,10 +345,10 @@ defHouse({
                 '#..................#',
                 '#.#~~>>>>>~........#',
                 '#.#.#######........#',
-                '....................',
+                '::::::::::::::::::::',
                 '#..................#',
-                '#..................#',
-                '#..................#',
+                '#...------------...#',
+                '#...------------...#',
                 '#..................#',
                 '#.##################',
             ],
@@ -344,7 +377,7 @@ defHouse({
                 '#...~~~~~~~~~~~....#',
                 '#...~~~~~~~~~~~~~~~#',
                 '....~~~~~~~~~~~~~~~#',
-                '#..................#',
+                '#::::::::::::::::::#',
                 '#..................#',
                 '#..................#',
                 '#..................#',
@@ -355,10 +388,10 @@ defHouse({
                 { k: 'charm', x: 6, y: 2, seq: 'brs', order: 0, col: 'sun', glyph: true, id: 'brSun' },
                 { k: 'charm', x: 9, y: 2, seq: 'brs', order: 1, col: 'moon', glyph: true, id: 'brMoon' },
                 { k: 'charm', x: 12, y: 2, seq: 'brs', order: 2, col: 'star', glyph: true, id: 'brStar' },
-                { k: 'eyelet', x: 17, y: 1 },
+                { k: 'eyelet', x: 17, y: 2 },
                 { k: 'pot', x: 13, y: 8, id: 'brPot1' }, { k: 'pot', x: 16, y: 8, id: 'brPot2' },
                 { k: 'millpattern', x: 2, y: 4, id: 'brPattern', hidden: true, when: 'brs', big: true },
-                { k: 'deco', x: 2, y: 0, look: 'mill_mural', oy: 1, baseY: -20, text: "Carved over the landing: a sun, then a moon, then a star, each with little lines round it as if it were ringing. In that order, the carving seems to say." },
+                { k: 'sign', x: 1, y: 3, look: 'mill_carving', text: "A carved board on a post by the landing: a sun, then a moon, then a star, each with little lines round it as if it were ringing. In that order, the carving seems to say." },
                 { k: 'sign', x: 1, y: 7, text: "THE BELL RACE. Three clay bells hang over the race. Rung in their proper order, they give up the race's pattern." },
             ],
             nudge: { solved: 'millrace_chest:brPattern', after: 60 * 60 * 4, at: [12, 2], say: "Whatever the pieces passed last, they ring first. Going out, the ferry passes these bells one way round; coming home, the other." },
@@ -401,13 +434,13 @@ defHouse({
                 '#.~~~~~~~~~~~~~~~~..',
                 '#.~~~~~~~A~~~~~~~~.#',
                 '#.~~~~~~~A~~~~~~~~.#',
-                '#..................#',
+                '#......:::::.......#',
                 '#..................#',
                 '#########.##########',
             ],
             ents: [
                 { k: 'grindle', x: 9, y: 3, id: 'grindle' },
-                { k: 'sluice', x: 13, y: 0, id: 'gSluice' },
+                { k: 'sluice', x: 9, y: 0, id: 'gSluice' },
                 /* two barrels on the bank at the heads of the side races */
                 { k: 'barrel', x: 5, y: 3, id: 'gbW' }, { k: 'barrel', x: 14, y: 3, id: 'gbE' },
                 { k: 'raft', x: 9, y: 7, id: 'gRaft', homeWait: 50 },

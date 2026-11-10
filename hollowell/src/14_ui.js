@@ -14,6 +14,10 @@ function stitchedBox(x, y, w, h, opts = {}) {
 }
 
 const VOICES = {};       /* speaker -> blip pitch */
+/* the Houses' bosses and mini-bosses (by type or kind), for whatever needs to keep them in view */
+const BOSS_KINDS = new Set(['housekeeper', 'monger', 'glazer', 'kilnwyrm', 'snapjaw', 'grindle', 'clangor', 'tollgrim', 'matron', 'mothersloth',
+    'captain', 'greatmarionette', 'cog', 'tangle', 'shuttle', 'weaver', 'pile']);
+function isBoss(e) { return !!(e && (e.boss || BOSS_KINDS.has(e.type) || BOSS_KINDS.has(e.kind) || (ENEMY[e.type] && ENEMY[e.type].boss))); }
 /* a speaker's name tag in their colour, lightened until the dark letters on it read easily (crimson, brick, brown) */
 function luminance(h) { return hexRGB(h).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0); }
 function contrast(a, b) { const A = luminance(a), B = luminance(b); return (Math.max(A, B) + 0.05) / (Math.min(A, B) + 0.05); }
@@ -74,8 +78,8 @@ const Dialog = {
         const feet = e => e.isGrid ? e.py + 14 : e.y;
         if (!G.hideWren && !p.hidden) add(p.y, 22, 1);
         if (this.who) { const sp = a.ents.find(e => e.who === this.who && !e.hidden && e !== p); if (sp) add(feet(sp), 26, 2); }
-        /* (a boss: a walker or a thing on the grid with three hits or more in it) */
-        for (const e of (a.walkers || []).concat(a.ents)) if (e.alive !== false && !e.hidden && e !== p && (e.hp >= 3 || (ENEMY[e.type] && ENEMY[e.type].hp >= 3))) {
+        /* (a boss or mini-boss, whatever hits it has left) */
+        for (const e of (a.walkers || []).concat(a.ents)) if (e.alive !== false && !e.hidden && e !== p && isBoss(e)) {
             const sx = (e.isGrid ? e.px + 8 * (e.footW || 1) : e.x) - Cam.x, tall = (ENEMY[e.type] && ENEMY[e.type].tall) || e.tall || 28;
             if (sx > -16 && sx < W + 16) add(feet(e), tall + 6, 2);
         }

@@ -165,7 +165,7 @@ test('snapjaw: reared up, it hunts along the bank and forgets the water: a crate
 test('snapjaw: staying on the edge beside it, Wren gets bitten', () => {
     const HW = snapGame();
     const s = HW.ents('enemy').find(e => e.type === 'snapjaw'), hp = HW.Inv.hp;
-    go(HW, 'snap', 11, 4);
+    go(HW, 'snap', 11, 6);
     assert.ok(until(HW, () => s.state === 'rear', 600));
     HW.step(60);
     assert.ok(HW.Inv.hp < hp, 'snapped');
@@ -191,12 +191,25 @@ test('upstream: paddle up the race against the current to the key; jump in to go
     assert.ok(until(HW, () => isAt(r, 'upstream', 9, 2), 600), 'paddled up');
     HW.release(); HW.step(1);
     stepOff(HW, 'up');
-    HW.face('right'); HW.press('act', 1); HW.skipTalk();
+    HW.face('left'); HW.press('act', 1); HW.skipTalk();
     assert.equal(HW.Inv.keys('mill'), 1, 'the key');
     HW.step(200);                                         /* the raft has drifted off home */
     HW.hold('down'); HW.step(90); HW.release();
     assert.ok(until(HW, () => HW.player().state === 'normal' && HW.player().ty >= at('upstream', 9, 8)[1], 400), 'leaned on the edge, stepped in, and flew home');
     noErrors(HW);
+});
+
+test("upstream: the lock east is on the upper floor, reached from the top of the race (so the House's end needs the Paddle)", () => {
+    const HW = game(['paddle']);
+    HW.warp('millrace', ...at('upstream', 9, 9)); HW.step(5);
+    const path = (from, to) => HW.global('playerPath')(HW.G.map, ...at('upstream', ...from), ...at('upstream', ...to));
+    assert.equal(path([9, 9], [17, 5]), null, 'no way round from the foot of the race');
+    assert.ok(path([9, 1], [17, 5]), 'along from the top');
+    HW.Inv.equipped = 'paddle';
+    board(HW, thing(HW, 'upRaft'), 'upstream', 9, 8, 'up');
+    HW.hold(['tool', 'up']); until(HW, () => isAt(thing(HW, 'upRaft'), 'upstream', 9, 2), 600); HW.release(); HW.step(1);
+    stepOff(HW, 'up');
+    go(HW, 'upstream', 17, 5);
 });
 
 test('upstream: without the Paddle the raft just sits', () => {
@@ -273,6 +286,11 @@ function nextRound(HW, k) {
     HW.skipTalk();
     assert.equal(g.phase, k, 'round ' + k);
 }
+/* (with the Paddle: a stroke up off the landing, then let the current have it) */
+function pushOff(HW, r) {
+    HW.Inv.equipped = 'paddle'; HW.hold(['tool', 'up']);
+    until(HW, () => r.mv, 30); until(HW, () => !r.mv, 60); HW.release(); HW.step(1);
+}
 /* round 1: a barrel down a side race into its mouth; the ferry (rung off at once) to just below it; strike */
 function pondRound1(HW) {
     const g = grindle(HW), r = thing(HW, 'gRaft');
@@ -339,9 +357,12 @@ test('the millpond: round 3, jaw shut: the stick and a thrown pot only clang; a 
     pondRound1(HW); pondRound2(HW);
     const g = grindle(HW), r = thing(HW, 'gRaft');
     assert.equal(g.state, 'shut');
-    /* the ferry race now runs up and on along the races past its teeth: the stick from the raft does nothing */
+    /* the raft's landing is still water now; pushed off, the race takes it up and on past its teeth: the stick from it does nothing */
     go(HW, 'pond', 9, 8);
     board(HW, r, 'pond', 9, 7, 'up', 900);
+    HW.step(200);
+    assert.ok(isAt(r, 'pond', 9, 7), 'it waits at its landing');
+    pushOff(HW, r);
     assert.ok(until(HW, () => isAt(r, 'pond', 9, 4), 400), 'up to its mouth');
     HW.face('up'); HW.press('atk', 1); HW.step(20);
     assert.equal(g.hp, 1, 'clang');
@@ -353,6 +374,7 @@ test('the millpond: round 3, jaw shut: the stick and a thrown pot only clang; a 
     assert.ok(HW.player().carry, 'a pot');
     go(HW, 'pond', 9, 8);
     board(HW, r, 'pond', 9, 7, 'up', 900);
+    pushOff(HW, r);
     assert.ok(until(HW, () => isAt(r, 'pond', 12, 4), 600), 'past its teeth');
     HW.face('right'); HW.press('act', 1);
     assert.ok(until(HW, () => !g.alive, 200), 'down');
@@ -361,13 +383,14 @@ test('the millpond: round 3, jaw shut: the stick and a thrown pot only clang; a 
     assert.ok(HW.ents('hoop')[0], 'the hoop');
     noErrors(HW);
 });
-test('the millpond: round 3, a pot thrown straight at it from below breaks on its jaw and does nothing', () => {
+test('the millpond: round 3, a pot smashed below its mouth sends its pieces home down the race, away from it', () => {
     const HW = pondGame();
     pondRound1(HW); pondRound2(HW);
     const g = grindle(HW), r = thing(HW, 'gRaft');
     go(HW, 'pond', 7, 8); HW.face('down'); HW.press('act', 1); HW.step(10);
     go(HW, 'pond', 9, 8);
     board(HW, r, 'pond', 9, 7, 'up', 900);
+    pushOff(HW, r);
     assert.ok(until(HW, () => isAt(r, 'pond', 9, 5), 400));
     HW.face('up'); HW.press('act', 1); HW.step(120);
     assert.equal(g.hp, 1, 'its pieces flew back down the race, away from it');
@@ -395,8 +418,10 @@ test('the millpond: it spits at Wren on the bank, never while she is out on the 
     const HW = pondGame();
     const g = grindle(HW), r = thing(HW, 'gRaft');
     go(HW, 'pond', 9, 8); board(HW, r, 'pond', 9, 7, 'up', 600);
-    HW.step(400);
-    assert.equal(g.spits.length, 0, 'no spit at a rider');
+    let spat = 0;
+    for (let i = 0; i < 400; i++) { HW.step(1); spat += g.spits.length; }
+    assert.equal(spat, 0, 'no spit at a rider');
+    assert.ok(until(HW, () => isAt(r, 'pond', 9, 7) && HW.Return.isHome(r), 600));
     stepOff(HW, 'down'); go(HW, 'pond', 3, 8);
     assert.ok(until(HW, () => g.spits.length > 0, 400), 'spat at her on the bank');
 });
@@ -420,11 +445,11 @@ function lockGame() {
 test("the lock: hook the log away down the race, put the crate in behind it: the log coming home shoves it onto the wheel's water and holds it there; the gate stays up", () => {
     const HW = lockGame();
     const log = thing(HW, 'lkLog'), crate = thing(HW, 'lkCrate'), gate = thing(HW, 'lkGate');
-    go(HW, 'lock', 11, 3); HW.Inv.equipped = 'hook'; HW.face('left'); HW.press('tool', 1); HW.step(40);
-    assert.ok(isAt(log, 'lock', 10, 3), 'the log reeled down the race');
-    go(HW, 'lock', 8, 1); HW.face('down'); HW.push('down', 1);
+    go(HW, 'lock', 11, 3); HW.Inv.equipped = 'hook'; HW.face('left'); HW.press('tool', 1);
+    assert.ok(until(HW, () => isAt(log, 'lock', 10, 3), 120), 'the log reeled down the race');
+    go(HW, 'lock', 8, 1); HW.face('down'); HW.push('down', 1); go(HW, 'lock', 6, 1);
     assert.ok(until(HW, () => gate.open, 900), 'the gate lifts');
-    assert.ok(isAt(crate, 'lock', 3, 3) && HW.Return.isHome(log), "the crate on the wheel's water, the log home in its way");
+    assert.ok(until(HW, () => isAt(crate, 'lock', 3, 3) && HW.Return.isHome(log), 60), "the crate on the wheel's water, the log home in its way");
     HW.step(1200);
     assert.ok(gate.open && isAt(crate, 'lock', 3, 3), 'and it stays that way');
     go(HW, 'lock', 18, 5); go(HW, 'bells', 1, 5);
@@ -444,7 +469,7 @@ test("the lock: the crate put on the wheel's water any other way heads home, and
 test('the lock: the crate in the race with the log still home just floats down and back', () => {
     const HW = lockGame();
     const gate = thing(HW, 'lkGate');
-    go(HW, 'lock', 8, 1); HW.face('down'); HW.push('down', 1);
+    go(HW, 'lock', 8, 1); HW.face('down'); HW.push('down', 1); go(HW, 'lock', 6, 1);
     HW.step(1200);
     assert.ok(!gate.open && HW.Return.isHome(thing(HW, 'lkCrate')));
 });
@@ -461,7 +486,7 @@ test('the bell race: a pot hooked over to the island, ridden home on the ferry p
     const f = thing(HW, 'brFerry');
     potFromBank(HW);
     go(HW, 'bells', 17, 6); HW.Inv.equipped = 'hook'; HW.face('up'); HW.press('tool', 1); HW.step(40);
-    assert.equal(`${HW.player().tx},${HW.player().ty}`, at('bells', 17, 2).join(','), 'reeled over to the island, pot and all');
+    assert.equal(`${HW.player().tx},${HW.player().ty}`, at('bells', 17, 3).join(','), 'reeled over to the island, pot and all');
     go(HW, 'bells', 15, 2);
     board(HW, f, 'bells', 14, 2, 'left', 1500);
     assert.ok(until(HW, () => isAt(f, 'bells', 4, 2) && HW.Return.isHome(f), 1500), 'home on the ferry');
@@ -492,7 +517,7 @@ test('the bell race: riding out with the pot rings them star, moon, sun: wrong, 
     assert.ok(until(HW, () => isAt(f, 'bells', 14, 2), 900));
     stepOff(HW, 'right'); HW.face('right'); HW.press('act', 1); HW.step(120);
     assert.ok(!HW.Progress.areaFlag('millrace', 'seq:brs'));
-    assert.ok(HW.G.map.ents.filter(e => e.kind === 'charm').every(c => !c.on), 'all quiet again');
+    assert.ok(!thing(HW, 'brMoon').on && !thing(HW, 'brStar').on, 'star and moon rang out of turn: dark again (only the sun, rung last, is right so far)');
 });
 test('the bell race: out and back on the ferry with the pot, the thread unpicks itself and nothing rings', () => {
     const HW = bellGame();
@@ -524,7 +549,7 @@ test("the way to the boss: the Two Wheels' sluice, the Lock, the Bell Race's Pat
     go(HW, 'twowheels', 1, 1); go(HW, 'lock', 1, 9); go(HW, 'lock', 18, 5); go(HW, 'bells', 1, 5);
     go(HW, 'lock', 1, 5); HW.hold('left'); HW.step(60); HW.release(); HW.step(10);
     assert.ok(thing(HW, 'lkBig').open, 'the big door, with the Pattern');
-    go(HW, 'pond', 17, 5); HW.step(30); HW.skipTalk();
+    go(HW, 'pond', 18, 5); HW.hold('left'); HW.step(12); HW.release(); HW.step(30); HW.skipTalk();
     const g = grindle(HW);
     assert.ok(g && g.state !== 'sleep', 'Old Grindle wakes');
     assert.ok(HW.G.map.ents.filter(e => e.group === 'boss').every(d => d.shut), 'both doors shut behind');
@@ -534,8 +559,8 @@ test("the way to the boss: the Two Wheels' sluice, the Lock, the Bell Race's Pat
 /* ---------------- ferry bells ---------------- */
 test('ferry bells: rung on the island, the ferry sets out now; rung from aboard at the island, it starts home now', () => {
     const HW = game();
-    const f = thing(HW, 'fpFerry');
     HW.warp('millrace', ...at('ferry', 4, 2)); HW.step(5);
+    const f = thing(HW, 'fpFerry');
     until(HW, () => HW.Return.isHome(f) && !f.mv, 2500);
     HW.step(5);
     go(HW, 'ferry', 5, 2); HW.face('right'); HW.press('act', 1);

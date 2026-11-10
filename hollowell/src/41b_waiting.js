@@ -28,11 +28,17 @@ const Waiting = {
         const a = G.map, p = G.player;
         w.t++;
         const anyKey = w.t > 10 && ['act', 'atk', 'tool', 'menu', 'up', 'down', 'left', 'right'].some(b => Input.pressed(b));
-        const home = this.away(a, w.room).length === 0;
-        if (home || anyKey || w.t > this.MAX || Dialog.active || p.area !== a || Cam.room !== w.room) {
+        const away = this.away(a, w.room), home = away.length === 0;
+        /* (something wedged on its way home, for good, would make it wait the whole minute: stop once nothing has moved
+           for a while, and say so) */
+        const sig = away.map(e => e.tx + ',' + e.ty + (e.mv ? 'm' : '') + e.ret.state).join('|');
+        if (sig !== w.sig) { w.sig = sig; w.still = 0; } else w.still++;
+        const stuck = !home && w.still > 300;
+        if (home || stuck || anyKey || w.t > this.MAX || Dialog.active || p.area !== a || Cam.room !== w.room) {
             G.waiting = null;
             if (p.state === 'sleep') p.state = 'normal';
             if (home) UI.toast('Everything in here is back where it belongs.', 120);
+            else if (stuck) UI.toast("Some things in here can't get home: something's in their way.", 150);
         }
     },
 };

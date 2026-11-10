@@ -245,7 +245,7 @@ export const LEG3 = (HW, chain) => {
     const thing = id => HW.G.map.find(id);
     const until = (fn, max = 3000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
     const talk = () => { HW.press('act', 1); HW.skipTalk(); };
-    const M = { wheel: [20, 33], ferry: [0, 33], backwash: [40, 33], carousel: [20, 22], snap: [40, 22], upstream: [20, 11], twowheels: [40, 11], pond: [20, 0] };
+    const M = { wheel: [20, 33], ferry: [0, 33], backwash: [40, 33], carousel: [20, 22], snap: [40, 22], upstream: [20, 11], twowheels: [40, 11], pond: [20, 0], lock: [40, 0], bells: [60, 0] };
     const m = (r, x, y) => [M[r][0] + x, M[r][1] + y];
     const at = (o, x, y) => o.tx === x && o.ty === y && !o.mv;
     const board = (raft, [x, y], dir, max = 2000) => { ok(until(() => at(raft, x, y), max), `raft at ${x},${y}`); HW.hold(dir); HW.step(10); HW.release(); HW.step(1); ok(HW.player().tx === x && HW.player().ty === y, 'aboard'); };
@@ -277,6 +277,7 @@ export const LEG3 = (HW, chain) => {
     ok(until(() => at(thing('fpFerry'), ...m('ferry', 6, 3)), 800), 'at the island');
     off('left'); walk(...m('ferry', 4, 3)); HW.face('left'); talk();
     ok(HW.Inv.keys('mill') === 1, 'key 1');
+    if (!at(thing('fpFerry'), ...m('ferry', 6, 3))) { walk(...m('ferry', 5, 2)); HW.face('right'); HW.press('act', 1); }   /* the ferry bell: come now */
     walk(...m('ferry', 5, 3)); board(thing('fpFerry'), m('ferry', 6, 3), 'right', 2500);
     ok(until(() => at(thing('fpFerry'), ...m('ferry', 16, 6)), 800), 'back'); off('right');
     /* backwash: the plan */
@@ -292,22 +293,19 @@ export const LEG3 = (HW, chain) => {
     ok(until(() => at(thing('caRaft'), ...m('carousel', 14, 5)), 900), 'east landing'); off('right');
     walk(...m('carousel', 17, 5)); HW.hold('right'); HW.step(60); HW.release();
     walk(...m('snap', 1, 5)); HW.step(30); HW.skipTalk();
-    /* the Snapjaw */
+    /* the Snapjaw: bait it up on the bank beside a crate, step back out of its reach, push the crate down onto it while it
+       hunts along the bank (twice) */
     const s = HW.ents('enemy').find(e => e.type === 'snapjaw');
     ok(s && s.state === 'swim', 'Snapjaw awake');
-    HW.G.cheats.god = true;      /* (it bites while you bait it; the dodging isn't what this checks) */
-    for (let round = 0; round < 12 && s.alive; round++) {
-        const c = thing(round % 2 ? 'sjCrate2' : 'sjCrate1');
-        until(() => HW.Return.isHome(c) && s.state === 'swim', 2000);
-        walk(...m('snap', 10, c.ty - M.snap[1]));
-        HW.face('right'); HW.push('right', 1);
-        const hp0 = s.hp;
-        walk(...m('snap', 11, 6));
-        until(() => !s.alive || s.hp !== hp0, 700);
-        if (!s.alive) break;
-        walk(...m('snap', 6, 5));
+    for (const [crate, row] of [['sjCrate1', 2], ['sjCrate2', 4]]) {
+        until(() => s.state === 'swim', 600);
+        walk(...m('snap', 11, row));
+        ok(until(() => s.state === 'rear', 600), 'it rears up at Wren on the bank');
+        walk(...m('snap', 10, row));
+        const c = thing(crate), hp0 = s.hp;
+        walk(...m('snap', 10, c.ty - M.snap[1])); HW.face('right'); HW.push('right', 1);
+        ok(until(() => s.hp < hp0 || !s.alive, 300), 'the crate came down onto it');
     }
-    HW.G.cheats.god = false;
     ok(!s.alive, 'Snapjaw beaten'); HW.step(60); HW.skipTalk();
     walk(...m('snap', 4, 6)); HW.face('up'); talk(); ok(HW.Inv.has('paddle'), 'the Paddle');
     /* back round to the north landing and up into Upstream */
@@ -322,42 +320,83 @@ export const LEG3 = (HW, chain) => {
     board(thing('upRaft'), m('upstream', 9, 8), 'up');
     HW.hold(['tool', 'up']); ok(until(() => at(thing('upRaft'), ...m('upstream', 9, 2)), 600), 'paddled up');
     HW.release(); HW.step(1); off('up');
-    HW.face('right'); talk(); ok(HW.Inv.keys('mill') === 2, 'key 3 (and key 1 still)');
-    HW.step(250); HW.hold('down'); until(() => HW.player().state === 'normal' && HW.player().ty >= m('upstream', 9, 8)[1], 500); HW.release(); HW.step(10);
-    /* two wheels: the Pattern */
+    HW.face('left'); talk(); ok(HW.Inv.keys('mill') === 2, 'key 3 (and key 1 still)');
+    /* two wheels (along the upper floor from the top of the race, through the lock): the sluice north */
     walk(...m('upstream', 17, 5)); HW.hold('right'); HW.step(60); HW.release();
     walk(...m('twowheels', 1, 2));
     board(thing('twRaft'), m('twowheels', 2, 2), 'right', 2000);
     ok(until(() => at(thing('twRaft'), ...m('twowheels', 12, 2)), 800), 'at the first wheel');
     HW.hold(['tool']); ok(until(() => HW.Progress.flag('millrace_twoWheels'), 600), 'two wheels'); HW.release(); HW.step(2); off('down');
-    walk(...m('twowheels', 7, 7)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('mill'), 'Pattern');
-    /* up the race again to the big door */
-    walk(...m('twowheels', 1, 5)); walk(...m('upstream', 9, 9));
-    board(thing('upRaft'), m('upstream', 9, 8), 'up', 2000);
-    HW.hold(['tool', 'up']); ok(until(() => at(thing('upRaft'), ...m('upstream', 9, 2)), 600), 'up again'); HW.release(); HW.step(1); off('up');
-    HW.hold('up'); HW.step(50); HW.release(); HW.step(30); HW.skipTalk();
-    walk(...m('pond', 9, 9)); HW.step(30); HW.skipTalk();
-    /* Old Grindle */
-    const g = thing('grindle');
+    ok(until(() => thing('twGate').open, 60), 'the sluice to the north');
+    /* the Lock: the log hooked away down the race, the crate put in behind it; the log comes home, shoves the crate onto the
+       wheel's water and stays in its way: the keeper's gate up for good */
+    walk(...m('twowheels', 1, 1)); walk(...m('lock', 1, 9));
+    walk(...m('lock', 11, 3)); HW.Inv.equipped = 'hook'; HW.face('left'); HW.press('tool', 1);
+    ok(until(() => at(thing('lkLog'), ...m('lock', 10, 3)), 120), 'the log reeled down the race');
+    walk(...m('lock', 8, 1)); HW.face('down'); HW.push('down', 1); walk(...m('lock', 6, 1));
+    ok(until(() => thing('lkGate').open, 900), "the keeper's gate");
+    /* the Bell Race: a pot hooked over to the island, home on the ferry past star, moon and sun, smashed on the landing */
+    walk(...m('lock', 18, 5)); walk(...m('bells', 1, 5));
+    walk(...m('bells', 13, 7)); HW.face('down'); HW.press('act', 1); HW.step(10); ok(HW.player().carry, 'a pot');
+    walk(...m('bells', 17, 6)); HW.Inv.equipped = 'hook'; HW.face('up'); HW.press('tool', 1); HW.step(40);
+    ok(HW.player().tx === m('bells', 17, 0)[0] && HW.player().ty === 3, 'over to the island, pot and all');
+    walk(...m('bells', 15, 2));
+    board(thing('brFerry'), m('bells', 14, 2), 'left', 1500);
+    ok(until(() => at(thing('brFerry'), ...m('bells', 4, 2)) && HW.Return.isHome(thing('brFerry')), 1500), 'home on the ferry'); off('left');
+    HW.face('left'); HW.press('act', 1);
+    ok(until(() => HW.Progress.areaFlag('millrace', 'seq:brs'), 200), 'sun, moon, star');
+    walk(...m('bells', 2, 5)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('mill'), 'Pattern');
+    /* back through the Lock to its big door, and into the Millpond from the side */
+    walk(...m('lock', 1, 5)); HW.hold('left'); HW.step(60); HW.release(); HW.step(10);
+    walk(...m('pond', 18, 5)); HW.hold('left'); HW.step(12); HW.release(); HW.step(30); HW.skipTalk();
+    /* Old Grindle, in three rounds (each round tried again if its spit knocks Wren about) */
+    const g = thing('grindle'), raft = thing('gRaft'), P = () => HW.player();
     ok(g && g.state !== 'sleep', 'Grindle awake');
-    HW.G.cheats.god = true;      /* (dodging its spit isn't what this checks) */
-    for (let round = 0; round < 4 && g.alive; round++) {
-        until(() => g.state === 'home', 900);
-        until(() => HW.Return.isHome(thing('gbW')) && HW.Return.isHome(thing('gbE')), 900);
-        HW.Inv.equipped = 'hook';
-        walk(...m('pond', 2, 2)); HW.push('down', 1); walk(...m('pond', 2, 2));
-        walk(...m('pond', 17, 2)); HW.push('down', 1); walk(...m('pond', 17, 2));
-        ok(until(() => g.state === 'full', 900), 'full');
-        walk(...m('pond', 9, 9));
-        board(thing('gRaft'), m('pond', 9, 8), 'up', 1500);
-        ok(until(() => at(thing('gRaft'), ...m('pond', 9, 4)), 400), 'at its mouth');
-        HW.face('up'); HW.press('atk', 1); HW.step(80);
-        HW.hold('down'); until(() => HW.player().ty >= m('pond', 9, 9)[1] && HW.player().state === 'normal', 600); HW.release();
+    const nextRound = k => { for (let i = 0; i < 900 && g.alive && (g.phase < k || ['turn', 'sulk', 'hurt'].includes(g.state)); i++) { if (HW.Dialog.active) HW.skipTalk(); HW.step(1); } HW.skipTalk(); ok(g.phase === k, 'round ' + k); };
+    /* 1: a barrel down a side race into its mouth fills it; the ferry, rung off at once, up to just below it; strike */
+    for (let n = 0; n < 4 && g.hp === 3; n++) {
+        if (HW.Return.isHome(thing('gbE')) && g.state === 'home') { walk(...m('pond', 14, 2)); HW.face('down'); HW.push('down', 1); }
+        walk(...m('pond', 9, 8)); until(() => at(raft, ...m('pond', 9, 7)) && HW.Return.isHome(raft), 900);
+        HW.hold('up'); HW.step(10); HW.release(); HW.step(1);
+        if (P().ty !== 7) continue;
+        HW.face('left'); HW.press('act', 1); HW.face('up');
+        until(() => at(raft, ...m('pond', 9, 5)) || P().ty > 7, 300);
+        until(() => g.state === 'full' || P().ty > 5, 600);
+        if (P().ty === 5 && g.state === 'full') { HW.face('up'); HW.press('atk', 1); HW.step(20); }
+        until(() => at(raft, ...m('pond', 9, 7)), 600); off('down');
     }
-    HW.G.cheats.god = false;
+    nextRound(2);
+    /* 2: the races turned: it swallows the ferry itself now; ride a barrel up beside its mouth instead (the Paddle) */
+    for (let n = 0; n < 4 && g.hp === 2; n++) {
+        const b = thing('gbW');
+        walk(...m('pond', 5, 2)); HW.face('down');
+        if (HW.Return.isHome(b)) HW.push('down', 1);
+        walk(...m('pond', 5, 3)); HW.hold('down'); HW.step(12); HW.release(); HW.step(2);
+        if (P().ty !== 4) continue;
+        HW.Inv.equipped = 'paddle';
+        for (let i = 0; i < 300 && P().tx < m('pond', 8, 0)[0]; i++) { HW.hold(['tool', 'right']); HW.step(1); }
+        HW.hold(['tool']); until(() => !b.mv, 60);
+        until(() => g.state === 'full', 900);
+        HW.release(); HW.step(1); HW.face('right'); HW.press('atk', 1); HW.step(20);
+        for (let i = 0; i < 300 && P().tx > m('pond', 5, 0)[0]; i++) { HW.hold(['tool', 'left']); HW.step(1); }
+        HW.release(); until(() => !b.mv, 60); off('up');
+    }
+    nextRound(3);
+    /* 3: jaw shut; a pot on the raft (pushed off its still landing) ridden past its teeth, smashed beyond them */
+    for (let n = 0; n < 6 && g.alive; n++) {
+        if (!P().carry) { walk(...m('pond', 7, 8)); HW.face('down'); until(() => HW.Return.isHome(thing('gPot1')), 600); HW.press('act', 1); HW.step(10); }
+        walk(...m('pond', 9, 8)); until(() => at(raft, ...m('pond', 9, 7)) && HW.Return.isHome(raft), 900);
+        HW.hold('up'); HW.step(10); HW.release(); HW.step(1);
+        if (P().ty !== 7) continue;
+        HW.Inv.equipped = 'paddle'; HW.hold(['tool', 'up']); until(() => raft.mv, 30); until(() => !raft.mv, 60); HW.release();
+        until(() => (raft.tx >= m('pond', 11, 0)[0] && !raft.mv) || P().ty > 7, 600);
+        if (P().ty !== 4) continue;
+        HW.face('right'); HW.press('act', 1);
+        until(() => !g.alive, 200);
+    }
     ok(!g.alive, 'Grindle down');
     HW.step(200); HW.skipTalk();
-    if (HW.player().ty < m('pond', 9, 9)[1]) { ok(until(() => at(thing('gRaft'), ...m('pond', 9, 8)), 900), 'raft home'); off('down'); }   /* still afloat: ride back in */
+    if (P().ty < m('pond', 0, 8)[1]) { ok(until(() => at(raft, ...m('pond', 9, 7)) && HW.Return.isHome(raft), 1500), 'raft home'); off('down'); }   /* still afloat: ride back in */
     const hoop = HW.ents('hoop')[0]; ok(hoop, 'the hoop');
     walk(hoop.tx - 1, hoop.ty); HW.face('right'); HW.press('act', 1); HW.skipTalk(0); HW.step(300); HW.skipTalk(); HW.step(10); HW.skipTalk();
     ok(HW.Inv.knots.includes('mill') && HW.Progress.flag('d3'), 'the Running Knot');

@@ -80,23 +80,35 @@ they come home the long way, half speed against the flow. A float whose mark is 
 like a ferry (waits at its mark, goes, waits at the end, comes back). Rafts carry Wren (and what Wren carries).
 Wheels watch a water tile: `pulse` turns a while after a float passes, `hold` only while one sits there. The
 Paddle: hold C on a float to steer it a tile at a time; paddling holds it (no drift, no return). Strays fill
-water in. Deep water can be stepped into on purpose (lean on the edge): Wren sinks and flies home.
+water in. Deep water can be stepped into on purpose (lean on the edge): Wren sinks and flies home. A ferry bell
+(a bell on a post by a landing): rung, its ferry stops waiting (at home it sets off now; at the far end it starts
+home now). A float coming home onto the bank with Wren aboard sets her down beside it.
 
 | Room | Cell | Teaches / puzzle | Solution | Reward |
 |---|---|---|---|---|
 | Wheel Hall | 1,3 | Drift; a pulse wheel | Push the crate into the race; as it floats past the wheel the north gate opens for a while (and again on its way back) | way north |
-| Ferry Pool | 0,3 | A ferry: ride there and back | Board at the landing, ride out to the island, open the chest; it comes back for you on its next run | key 1 |
+| Ferry Pool | 0,3 | A ferry: ride there and back | Board at the landing, ride out to the island, open the chest; it comes back for you, or ring the bell on the island (from aboard it starts home at once) | key 1 |
 | Backwash | 2,3 | Hookline + current | Hook the raft over from the landing; it drifts home along the current with Wren aboard to the platform; hop down the ledge | Plan |
-| The Carousel | 1,2 | A ring current (hub) | The raft goes round the millstone stopping at home; get on and off at the W, N, E landings. W and E doors locked | - |
-| Shard Race | 0,2 | Kiln + rafts | Carry a pot on the ferry under three charms, smash it at the far landing: its shards ride back under them all at once | key 2 |
-| Snapjaw's Race | 2,2 | Mini-boss: the Snapjaw (only what the race brings hurts it) | Push crates into the race when it's below and coming up: they drift into it (3x) | Paddle |
-| Upstream | 1,1 | Paddle against the current | Paddle up the race to the ledge; to get down, lean into the water and fly home. Big door north; E door locked | key 3 |
+| The Carousel | 1,2 | A ring current (hub) | The raft goes round the millstone stopping at home; get on and off at the W, N, E landings. W door locked | - |
+| Shard Race | 0,2 | Kiln + rafts (optional) | Carry a pot on the ferry under three charms, smash it at the far landing: its shards ride back under them all at once | Heart Patch |
+| Snapjaw's Race | 2,2 | Mini-boss: the Snapjaw (only what the race brings hurts it; it ducks anything floating its way, but reared up at Wren on the bank it hunts along the bank a good while, its back to the race) | Bait it up beside a crate, step back out of its reach (the snap misses), push the crate down onto it (2x) | Paddle |
+| Upstream | 1,1 | Paddle against the current | Paddle up the race to the ledge (key); the ledge runs east onto the upper floor and the lock to the Two Wheels (the foot of the race doesn't reach it); to get down, lean into the water and fly home. Big door north | key 2 |
 | Overflow | 0,1 | Strays fill water | Push two pale stray millstones into the double race to make a crossing | way to the Workshop |
-| The Two Wheels | 2,1 | Holding (Paddle or Gloves) | Ride to the first hold-wheel and keep the raft there (paddle, or grip it from the bank) while the sluice lets the crate down to the second; both turn: the Pattern | Pattern |
+| The Two Wheels | 2,1 | Holding (Paddle or Gloves) | Ride to the first hold-wheel and keep the raft there (paddle, or grip it from the bank) while the sluice lets the crate down to the second; both turn: the sluice north lifts | way north |
+| The Lock | 2,0 | Synthesis (Tidyhouse: a thing at home blocks the way home, heavier shoves lighter; Kiln: the Hookline): a hold wheel kept turning with nobody holding | The keeper's wheel lifts the far gate only while something floats on its water, a dead end past the log's mooring. Hook the log (wood: medium, floats) away down the race (or paddle it), push the crate into the race behind it: the log coming home shoves the crate past its mooring onto the wheel's water, then sits in its way home for good | way east; big door W into the Millpond |
+| The Bell Race | 3,0 | Synthesis (Kiln: order, loop erasure, shards follow reels; Millrace: the ferry's way home) | The bells must ring sun, moon, star (the carving); the ferry passes them that way going out, so a pot ridden out rings them backwards, and out-and-back unpicks itself. Get a pot to the far end some other way (hook over to the island; or hook the ferry over from the bank while it waits there; or paddle round) and ride the ferry home past star, moon, sun; smash it on the landing | Pattern (buttons for a game that already held it) |
 | Workshop | 0,0 | Signature (S06) | Blue A.R. on the floor; drafting table, model mill | Heart Patch |
-| The Millpond | 1,0 | Boss: Old Grindle | Push both barrels into the currents; it gulps them and settles; ride the ferry up to its mouth and strike the gear-heart (3x). On its mouth while it's hungry, it bites you into the water | Knot, Heartstitch |
+| The Millpond | 1,0 | Boss: Old Grindle, three rounds. It swallows whatever float comes to rest in its open mouth (a rider is snapped off first); one fills it and it settles, heart showing. Struck, it sulks till Wren is wholly ashore, then turns the sluice (the races run another way). It spits at Wren on the bank, never on the water | 1: a barrel down a side race into its mouth; the ferry (rung off at once) to just below it; strike. 2: the side races run away from it and the ferry race into it: it eats the ferry; ride a barrel up beside it (the Paddle) and strike. 3: jaw shut (only shards: the stick and thrown things clang); one race runs past its teeth, the raft's landing still: push off with a pot aboard, smash it once past the teeth | Knot, Heartstitch |
 
-Keys: 3 keys (Ferry Pool, Shard Race, Upstream), 3 locks (Carousel W and E, Upstream E): any order works.
+Keys: 2 keys (Ferry Pool, Upstream), 2 locks (Carousel W to the Shard Race, Upstream E on the upper floor): any order
+works. The House's end (the Two Wheels, the Lock, the Bell Race, the Millpond's two big doors) starts from the top of
+the race, so nobody meets Old Grindle without the Paddle.
+Dressing: wet mossy flagstones; slatted boardwalks over channels (Wheel Hall, the Lock, the Bell Race, the Millpond's
+landing); the Lock's lower basin; the Millpond's sluice wheel over the intake (it turns between rounds); ferry bells.
+Tests: every room's solution; the Snapjaw's two knocks (no damage) and its duck and bite; each Grindle round, the
+ferry eaten, the clang in round 3, ashore before the sluice turns, no spit on the water, the bite; the Lock (and the
+crate alone or the log home: no); the Bell Race (two ways; ridden out wrong; the round trip unpicks); the way to the
+boss; the bells; an old save's Pattern; the upper floor. Scripted playthrough (LEG3) with no god mode; probe: clean.
 
 ## Overworld secrets and Heart Patches
 
