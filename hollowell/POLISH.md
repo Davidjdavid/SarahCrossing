@@ -148,9 +148,12 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   the Milk Kitchen and the Dreaming Door; bed curtains and night-lights).
 - Done too: House 8 (Loom: the Weaver in three beats, 28 s instead of 81; the Shuttle two hits; two new rooms, the
   Larder and the Warp Walk; the First Spinner's loom drawn, the Weaver's defeat shown). All eight Houses reworked.
-- Running: the Makings act, the Great Spool rebuild, the overworld group A (Meadowfold, Kilnridge, Millwater, the
-  Heights).
-- Then: the overworld group B (Hushwood, Larkspur Fair, the Loomwood, the Drift).
+- Done too: the Makings as an act (eight Little Houses instead of four, two of them the first House from underneath;
+  a second child, Otto; 6 bot-minutes instead of 2.5).
+- Running: the Great Spool rebuild, the overworld group A (Meadowfold, Kilnridge, Millwater, the Heights), the
+  overworld group B (Hushwood, Larkspur Fair, the Loomwood, the Drift).
+- Owed by the coordinator: PROJECT_STATE.md's counts (rooms, Makings); SPOILERS.md and DESIGN_DOCUMENT.md for every
+  House's new boss and rooms.
 - Owed after the Houses: SPOILERS.md and DESIGN_DOCUMENT.md rewritten for every House's new boss and rooms; the
   browser scenarios' screenshot lists extended to the new rooms.
 - Next: (the Great Spool started)
