@@ -1572,7 +1572,9 @@ const Threads = {
             const pts = r.trace.map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
             /* to where the thing is now (mid-move) */
             const ex = (e.carried ? e.cx : e.px + 8) - cx, ey = (e.carried ? e.cy : e.py + 9) - cy;
-            if (pts.length) pts[pts.length - 1] = [ex, ey];
+            /* (a smashed thing's pieces are already flying its thread: the thread ends where its trace does, not at the
+               spot the whole thing was last seen) */
+            if (pts.length && !e.shattered) pts[pts.length - 1] = [ex, ey];
             const col = r.color;
             const tight = r.state === 'returning' || (r.timer < 30 && !Return.held(e));
             for (let i = 0; i + 1 < pts.length; i++) {
