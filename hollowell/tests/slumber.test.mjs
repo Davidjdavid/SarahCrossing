@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
 
-const R = { porch: [20, 33], ward: [20, 22], linen: [0, 22], laundry: [40, 22], study: [60, 22], loft: [40, 33], landing: [20, 11], nursery: [0, 11], moonwalk: [40, 11], fort: [0, 0], boss: [20, 0] };
+const R = { porch: [20, 33], ward: [20, 22], linen: [0, 22], laundry: [40, 22], study: [60, 22], loft: [40, 33], landing: [20, 11], nursery: [0, 11], moonwalk: [40, 11], fort: [0, 0], boss: [20, 0], kitchen: [40, 0], dream: [60, 0] };
 const at = (room, x, y) => [R[room][0] + x, R[room][1] + y];
 function game(tools = []) {
     const HW = loadGame();
@@ -146,7 +146,7 @@ test('the drying loft: the hook bounces off the sleeper on the pillar; ring it h
     noErrors(HW);
 });
 
-test('the landing: Matron Hush follows your footsteps over the boards, which give way under her; three knocks while she is dazed (the Bedroll)', () => {
+test('the landing: Matron Hush follows your footsteps over the boards, which give way under her; two knocks while she is dazed (the Bedroll)', () => {
     const HW = game();
     HW.G.cheats.god = true;
     enter(HW, 'landing', 9, 9);
@@ -154,14 +154,15 @@ test('the landing: Matron Hush follows your footsteps over the boards, which giv
     HW.hold('up'); HW.step(10); HW.release(); HW.skipTalk(); HW.step(5);
     assert.notEqual(m.state, 'sleep', 'she is up');
     assert.ok(!thing(HW, 'laBedroll') || thing(HW, 'laBedroll').hidden, 'no prize yet');
-    for (let round = 0; round < 3; round++) {
+    for (let round = 0; round < 2; round++) {
         go(HW, 'landing', 9, 8); HW.step(round ? 0 : 30);
         stepPath(HW, 'landing', [[9, 7], [9, 6], [9, 5], [9, 4], [9, 3], [9, 2], [9, 1]]);
         assert.ok(until(HW, () => m.state === 'dazed' || !m.alive, 900), `round ${round + 1}: she fell through and flew home, dazed`);
         /* round the edge of the boards (not over them) to her bed */
         go(HW, 'landing', 2, 2); go(HW, 'landing', 4, 7); go(HW, 'landing', 4, 9); strike(HW, 'left');
+        if (!round) assert.ok(m.alive && m.hp === 1, 'one knock: she is up again');
     }
-    assert.ok(!m.alive, 'Matron Hush unravels');
+    assert.ok(!m.alive, 'Matron Hush unravels after two');
     HW.step(60); HW.skipTalk(); HW.step(10);
     go(HW, 'landing', 9, 9); HW.face('up'); HW.press('act', 1); HW.skipTalk();
     assert.ok(HW.Inv.has('bedroll'), 'the Bedroll');
@@ -222,7 +223,7 @@ test('the moonwalk: walking back from the plate, the gate shuts before you get t
     assert.ok(!g.keep && here(HW, 'moonwalk')[1] > 3, 'too slow on foot');
 });
 
-test('pillow fort: lay the Bedroll on the plate; wake a Snoreling; it shuffles after you, then goes to bed on the Bedroll and holds the plate (the Pattern)', () => {
+test('pillow fort: lay the Bedroll on the plate; wake a Snoreling; it shuffles after you, then goes to bed on the Bedroll and holds the plate (key D)', () => {
     const HW = game(['bedroll']);
     HW.G.cheats.god = true;
     enter(HW, 'fort', 9, 9);
@@ -235,7 +236,8 @@ test('pillow fort: lay the Bedroll on the plate; wake a Snoreling; it shuffles a
     assert.equal(HW.global('Bedroll').sleeper, s, 'on the Bedroll, on the plate');
     assert.ok(thing(HW, 'pfGate').open, 'the keep is open');
     go(HW, 'fort', 9, 3); HW.face('up'); HW.press('act', 1); HW.skipTalk();
-    assert.ok(HW.Inv.hasPattern('slumber'), 'the Pattern');
+    assert.equal(HW.Inv.keys('slumber'), 1, 'key D');
+    assert.ok(!HW.Inv.hasPattern('slumber'), 'the Pattern is further on now');
     noErrors(HW);
 });
 
@@ -269,67 +271,309 @@ test('the grate: a float with Wren aboard will not go through', () => {
     assert.ok(!HW.Return.isHome(br) && HW.player().tx <= at('laundry', 18, 0)[0], 'stuck at the grate with her aboard');
 });
 
-/* get caught by one of Mother Sloth's arms, then fly home from its grip */
-function caughtThenHome(HW, s) {
+
+/* ---------------- Mother Sloth: three rounds ---------------- */
+const sloth = HW => HW.G.map.ents.find(e => e.type === 'mothersloth');
+function bossRoom(HW) { HW.Progress.set('slumber_slothAwake'); enter(HW, 'boss', 9, 9); return sloth(HW); }
+function caught(HW, max = 900) { const p = HW.player(); assert.ok(until(HW, () => !!p.pinned, max), `caught (at ${here(HW, 'boss')})`); return p.pinned; }
+/* fly Homeward from her grip and come down */
+function homeFromGrip(HW) { const arm = caught(HW); homeward(HW); until(HW, () => HW.player().state === 'normal', 300); return arm; }
+/* she's slumped: knock the nightcap, and the round's line */
+function knock(HW, s) { assert.equal(s.state, 'slump', 'she slumps'); go(HW, 'boss', 9, 6); strike(HW, 'up'); HW.step(10); HW.skipTalk(); HW.step(10); }
+const pitAt = (HW, x, y) => HW.G.map.kind(...at('boss', x, y)).pit;
+/* round 1 played the way it's meant (the Bedroll out past the stars) */
+function roundOne(HW, s) {
+    go(HW, 'boss', 2, 9); lay(HW);
+    for (let k = 0; k < 4 && s.state !== 'slump'; k++) { go(HW, 'boss', 9, 6); homeFromGrip(HW); }
+    knock(HW, s);
+}
+/* round 2: the Bedroll by the boards, out over them and back in, then let her catch you */
+function roundTwo(HW, s) {
+    go(HW, 'boss', 5, 8); lay(HW);
+    stepPath(HW, 'boss', [[5, 9], [6, 9], [7, 9], [8, 9], [8, 8], [8, 7]]);
+    assert.equal(homeFromGrip(HW).state, 'snapped', 'round 2: the first arm snaps');
+    HW.step(45);
+    stepPath(HW, 'boss', [[5, 9], [6, 9], [7, 9], [8, 9], [9, 9], [10, 9], [11, 9], [12, 9], [13, 9], [13, 8], [12, 8], [12, 7]]);
+    assert.equal(homeFromGrip(HW).state, 'snapped', 'round 2: the second arm snaps');
+    knock(HW, s);
+}
+/* round 3: caught in line with a bedpost, face it and hook it */
+function hookOut(HW, x, y) {
     const p = HW.player();
-    assert.ok(HW.walkTo(...at('boss', 9, 6)) || true);
-    assert.ok(until(HW, () => !!p.pinned, 900), 'caught');
-    const arm = p.pinned;
-    homeward(HW);
-    until(HW, () => p.state === 'normal', 300);
+    go(HW, 'boss', x, y); const arm = caught(HW, 300);
+    HW.hold('down'); HW.step(2); HW.release();
+    HW.Inv.equipped = 'hook'; HW.press('tool', 1);
+    assert.ok(until(HW, () => arm.state === 'snapped' || p.state === 'fall', 120), 'reeled out');
+    until(HW, () => p.state === 'normal', 400);
     return arm;
 }
 
-test("mother sloth: her arms reel you to her bed; from her grip, Homeward to a Bedroll out of reach snaps the arm; both snapped, she slumps; knock her nightcap (x3)", () => {
+test('mother sloth, round 1: the Bedroll out past the stars; caught, fly Homeward: the arm stretches too far and snaps; both, she slumps; knocked, the floor past the stars drops away (the Bedroll with it), all but the old boards along the bottom', () => {
     const HW = game(['bedroll']);
     HW.G.cheats.god = true;
-    HW.Progress.set('slumber_slothAwake');
-    enter(HW, 'boss', 9, 9);
-    const s = HW.G.map.ents.find(e => e.type === 'mothersloth');
+    const s = bossRoom(HW);
     go(HW, 'boss', 2, 9); lay(HW);
-    for (let round = 0; round < 3 && s.alive; round++) {
-        for (let k = 0; k < 4 && s.state !== 'slump'; k++) {
-            const arm = caughtThenHome(HW, s);
-            assert.equal(arm.state, 'snapped', `round ${round + 1}: the arm snapped`);
-        }
-        assert.equal(s.state, 'slump', `round ${round + 1}: both arms gone, she slumps`);
-        go(HW, 'boss', 9, 6); strike(HW, 'up');
-        HW.step(10);
-    }
-    assert.ok(!s.alive, 'Mother Sloth unravels');
-    HW.step(100); HW.skipTalk(); HW.step(20);
+    for (let k = 0; k < 4 && s.state !== 'slump'; k++) { go(HW, 'boss', 9, 6); assert.equal(homeFromGrip(HW).state, 'snapped', 'the arm snapped'); }
+    assert.equal(s.state, 'slump');
+    knock(HW, s);
+    assert.equal(s.hp, 2); assert.equal(s.phase, 2); assert.equal(s.state, 'fight', 'up again');
+    for (const [x, y] of [[1, 3], [2, 7], [4, 8], [2, 9], [15, 9], [16, 7], [17, 2]]) assert.ok(pitAt(HW, x, y), `${x},${y} gone`);
+    for (const x of [5, 7, 9, 11, 13]) assert.equal(HW.G.map.kindName(...at('boss', x, 9)), 'floor', `the old board at ${x},9`);
+    for (const [x, y] of [[3, 7], [5, 8], [2, 5], [9, 8], [3, 3]]) assert.ok(!pitAt(HW, x, y), `${x},${y} (inside the stars) still floor`);
+    assert.equal(HW.Inv.bedroll, null, 'the Bedroll went with the floor, back into the pack');
     noErrors(HW);
+});
+
+test('mother sloth, round 2: Homeward to a Bedroll in reach does nothing now; out over the old boards and back in first, and the flight home goes back over them: snap; the boards mend when you land; knocked, the boards drop and the old bedposts stand', () => {
+    const HW = game(['bedroll']);
+    HW.G.cheats.god = true;
+    const s = bossRoom(HW), p = HW.player();
+    roundOne(HW, s);
+    assert.equal(s.phase, 2);
+    /* the Bedroll anywhere left is inside her reach: flying home from her grip, she holds on */
+    go(HW, 'boss', 5, 8); lay(HW);
+    stepPath(HW, 'boss', [[6, 8]]);
+    const arm = homeFromGrip(HW);
+    assert.notEqual(arm.state, 'snapped', 'in reach: no snap');
+    assert.ok(p.pinned === arm || until(HW, () => p.pinned === arm, 60), 'still in her hand at home');
+    /* (let her tuck Wren in and let go; then home to the Bedroll by the boards) */
+    until(HW, () => !p.pinned, 600);
+    homeward(HW); landed(HW);
+    assert.deepEqual(here(HW, 'boss'), [5, 8], 'back by the boards');
+    stepPath(HW, 'boss', [[5, 9], [6, 9], [7, 9], [8, 9], [8, 8], [8, 7]]);
+    assert.ok(pitAt(HW, 6, 9), 'the boards gave way behind');
+    assert.equal(homeFromGrip(HW).state, 'snapped', 'flown back over the boards that are gone: snapped');
+    assert.ok(!pitAt(HW, 6, 9), 'landed: the boards are back');
+    HW.step(45);
+    stepPath(HW, 'boss', [[5, 9], [6, 9], [7, 9], [8, 9], [9, 9], [10, 9], [11, 9], [12, 9], [13, 9], [13, 8], [12, 8], [12, 7]]);
+    assert.equal(homeFromGrip(HW).state, 'snapped');
+    knock(HW, s);
+    assert.equal(s.phase, 3);
+    for (const x of [5, 9, 13]) assert.ok(pitAt(HW, x, 9), `the board at ${x},9 is gone`);
+    const posts = Array.from(HW.G.map.ents.filter(e => e.slothBit && e.eyelet), e => (e.tx - 20) + ',' + e.ty).sort();
+    assert.deepEqual(posts, ['1,7', '3,9', '15,9', '17,7'].sort(), 'the bedposts');
+    noErrors(HW);
+});
+
+test('mother sloth, round 3: Homeward does nothing; caught, turn about in her grip and hook a bedpost: the reel drags you out of her hand (snap) and you drop into the dark, home unhurt; both: the last knock, and the floor comes back', () => {
+    const HW = game(['bedroll']);
+    HW.G.cheats.god = true;
+    const s = bossRoom(HW), p = HW.player();
+    roundOne(HW, s); roundTwo(HW, s);
+    assert.equal(s.phase, 3);
+    go(HW, 'boss', 9, 6); lay(HW);
+    go(HW, 'boss', 9, 5);
+    const arm0 = homeFromGrip(HW);
+    assert.notEqual(arm0.state, 'snapped', 'Homeward: no snap');
+    until(HW, () => !p.pinned, 600); HW.step(130);
+    /* caught facing the bed, she turns to the post below (she can turn about in a grip) and hooks it */
+    go(HW, 'boss', 3, 4); go(HW, 'boss', 3, 5); HW.face('up');
+    const arm = caught(HW, 300);
+    HW.G.cheats.god = false; const hp = HW.Inv.hp;
+    HW.hold('down'); HW.step(2); HW.release();
+    assert.equal(p.dir, HW.global('DOWN'), 'turned about in her grip');
+    HW.Inv.equipped = 'hook'; HW.press('tool', 1);
+    assert.ok(until(HW, () => arm.state === 'snapped', 120), 'the hook dragged her out of the grip: snapped');
+    until(HW, () => p.state === 'normal', 400);
+    assert.deepEqual(here(HW, 'boss'), [9, 6], 'and down into the dark, and home onto the Bedroll');
+    assert.equal(HW.Inv.hp, hp, 'a fall onto your own Bedroll costs nothing');
+    HW.G.cheats.god = true;
+    assert.equal(hookOut(HW, 15, 5).state, 'snapped', 'the other arm, the other post');
+    knock(HW, s); HW.step(80); HW.skipTalk(); HW.step(30);
+    assert.ok(!s.alive, 'Mother Sloth unravels');
+    for (const [x, y] of [[2, 9], [9, 9], [1, 3], [3, 9]]) assert.ok(!pitAt(HW, x, y), `${x},${y} floor again`);
+    assert.equal(HW.G.map.ents.filter(e => e.slothBit).length, 0, 'the bedposts gone');
+    assert.ok(HW.ents('hoop').length, 'the Knot');
+    noErrors(HW);
+});
+
+test('mother sloth: the whole fight, played straight through, is quick', () => {
+    const HW = game(['bedroll']);
+    HW.G.cheats.god = true;
+    const s = bossRoom(HW), t0 = HW.G.t;
+    roundOne(HW, s); roundTwo(HW, s);
+    go(HW, 'boss', 9, 6); lay(HW);
+    hookOut(HW, 3, 5); hookOut(HW, 15, 5);
+    knock(HW, s);
+    assert.ok(!s.alive);
+    const secs = (HW.G.t - t0) / 60;
+    console.log(`# Mother Sloth, three rounds: ${secs.toFixed(0)} s of game time`);
+    assert.ok(secs < 90, `${secs.toFixed(0)} s`);
 });
 
 test('mother sloth: with the Bedroll inside her reach, flying home from her grip does nothing; she reels you in and tucks you in', () => {
     const HW = game(['bedroll']);
-    HW.Progress.set('slumber_slothAwake');
-    enter(HW, 'boss', 9, 9);
-    const p = HW.player(), s = HW.G.map.ents.find(e => e.type === 'mothersloth');
+    const p = HW.player(), s = bossRoom(HW);
     go(HW, 'boss', 9, 7); lay(HW);
     const hp = HW.Inv.hp;
     go(HW, 'boss', 7, 5);
-    assert.ok(until(HW, () => !!p.pinned, 900), 'caught');
-    const arm = p.pinned;
+    const arm = caught(HW);
     homeward(HW); until(HW, () => p.state === 'normal', 300);
     assert.notEqual(arm.state, 'snapped', 'not far enough to snap');
     assert.ok(until(HW, () => HW.Inv.hp < hp, 900), 'tucked in');
 });
 
-test('mother sloth: fly home to a Bedroll outside her room and the fight waits; the doors open', () => {
+test('mother sloth: fly home to a Bedroll outside her room and the fight waits (the doors open, her arms grow back, the floor comes back); back in, the round starts again on its own floor', () => {
     const HW = game(['bedroll']);
+    HW.G.cheats.god = true;
     HW.Progress.set('slumber_slothAwake');
     HW.Progress.setAreaFlag('slumber', 'door:laBig'); HW.Progress.set('slumber_matron');
     enter(HW, 'landing', 9, 2);
     lay(HW);
-    go(HW, 'landing', 9, 1); go(HW, 'boss', 9, 9);
-    const p = HW.player(), s = HW.G.map.ents.find(e => e.type === 'mothersloth');
+    go(HW, 'landing', 9, 1); go(HW, 'boss', 9, 8);
+    const s = sloth(HW), p = HW.player();
+    assert.equal(s.state, 'fight');
+    /* (round 2, as if the first had gone: the Bedroll still out in the Landing) */
+    s.hp = 2; s.setArena(2);
     go(HW, 'boss', 9, 6);
-    assert.ok(until(HW, () => !!p.pinned, 900), 'caught');
-    homeward(HW); until(HW, () => p.state === 'normal', 300);
-    HW.step(10);
+    const arm = caught(HW);
+    homeward(HW); until(HW, () => p.state === 'normal', 300); HW.step(10);
     assert.equal(here(HW, 'landing')[1], 2, 'home in the landing');
     assert.equal(s.state, 'sleep', 'the fight waits');
-    go(HW, 'landing', 9, 1); go(HW, 'boss', 9, 9);
+    assert.ok(s.arms.every(a => a.state === 'rest'), 'the arm she lost on the way out grows back: no getting round her by the door');
+    assert.ok(!pitAt(HW, 2, 9) && !pitAt(HW, 9, 9), 'the floor is back while she waits');
+    go(HW, 'landing', 9, 1); go(HW, 'boss', 9, 8); HW.step(5);
+    assert.equal(s.state, 'fight'); assert.equal(s.phase, 2, 'still round 2');
+    assert.ok(pitAt(HW, 2, 9) && HW.G.map.kindName(...at('boss', 9, 9)) === 'floor', 'and its floor: the boards along the bottom, and nothing past the stars');
+    noErrors(HW);
+});
+
+test('mother sloth: an arm snaps only out past the stars (caught by one arm, flown across to the far side of the other, it holds)', () => {
+    const HW = game(['bedroll']);
+    HW.G.cheats.god = true;
+    const s = bossRoom(HW), p = HW.player();
+    go(HW, 'boss', 15, 4); lay(HW);
+    /* (over on the far side in a moment, where only the left arm reaches) */
+    const [tx, ty] = at('boss', 3, 4); p.x = tx * 16 + 8; p.y = ty * 16 + 10; HW.step(1);
+    const arm = caught(HW);
+    assert.equal(arm.side, -1, 'the left arm has her');
+    assert.ok(Math.hypot(at('boss', 15, 4)[0] * 16 + 8 - arm.sx, at('boss', 15, 4)[1] * 16 + 4 - arm.sy) > 5.75 * 16, '(the Bedroll is further from her left shoulder than that arm stretches)');
+    homeward(HW); until(HW, () => p.state === 'normal', 300);
+    assert.notEqual(arm.state, 'snapped', 'flown right across the room, but never past the stars: it holds');
+    noErrors(HW);
+});
+
+/* ---------------- the Milk Kitchen and the Dreaming Door (the way to the Pattern) ---------------- */
+/* across on the bedsprings (one way: west) to the far bank */
+function springAcross(HW) {
+    const p = HW.player();
+    go(HW, 'kitchen', 15, 4);
+    HW.hold('left'); until(HW, () => p.state === 'normal' && p.tx <= at('kitchen', 4, 0)[0], 400); HW.release(); HW.step(5);
+    assert.deepEqual(here(HW, 'kitchen'), [2, 4], 'sprung across the gap');
+}
+
+test('the milk kitchen: the Bedroll this side; across on the springs; the jug, Homeward with it; smashed, its pieces fly home the way it came, back over the gap, and ring the bell (the gate)', () => {
+    const HW = game(['bedroll']);
+    enter(HW, 'kitchen', 15, 9);
+    const p = HW.player(), jug = thing(HW, 'mkJug');
+    go(HW, 'kitchen', 15, 6); lay(HW);
+    springAcross(HW);
+    go(HW, 'kitchen', 2, 3); HW.face('up'); HW.press('act', 1); HW.step(10);
+    assert.equal(p.carry, jug, 'the jug');
+    homeward(HW); landed(HW);
+    assert.deepEqual(here(HW, 'kitchen'), [15, 6], 'home, jug and all');
+    assert.ok(jug.ret.trace.some(([x, y]) => x === at('kitchen', 9, 0)[0] && y === at('kitchen', 0, 4)[1]), 'its trace runs back over the gap, under the bell');
+    HW.face('down'); HW.press('act', 1);
+    assert.ok(until(HW, () => thing(HW, 'mkBell').on, 400), 'its pieces rang the bell on their way home');
+    assert.ok(until(HW, () => thing(HW, 'mkGate').open, 60), 'the gate');
+    until(HW, () => HW.Return.isHome(jug) && !jug.shattered, 400);
+    assert.deepEqual([jug.tx, jug.ty], at('kitchen', 2, 2), 'the jug back on its shelf');
+    go(HW, 'kitchen', 18, 5); HW.hold('right'); HW.step(40); HW.release(); HW.step(30);
+    assert.equal(HW.G.map.roomAt(p.tx, p.ty).name, 'The Dreaming Door', 'on to the Dreaming Door');
+    noErrors(HW);
+});
+
+test('the milk kitchen: the springs only go one way; the jug thrown from the far side, or smashed there, never reaches the bell; a fall drops it home', () => {
+    const HW = game(['bedroll']);
+    enter(HW, 'kitchen', 15, 9);
+    const p = HW.player(), jug = thing(HW, 'mkJug'), bell = thing(HW, 'mkBell');
+    go(HW, 'kitchen', 15, 6); lay(HW);
+    springAcross(HW);
+    assert.ok(!HW.walkTo(...at('kitchen', 15, 6)), 'no way back on foot');
+    /* thrown east from the edge: it falls short of the bell, and its pieces fly back west */
+    go(HW, 'kitchen', 2, 3); HW.face('up'); HW.press('act', 1); HW.step(10);
+    go(HW, 'kitchen', 4, 4); HW.face('right'); HW.press('act', 1);
+    until(HW, () => HW.Return.isHome(jug) && !jug.shattered && !jug.pendingHome, 500); HW.step(5);
+    assert.ok(!bell.on, 'thrown from the far side: short of the bell');
+    /* smashed against the wall on the far side */
+    go(HW, 'kitchen', 2, 3); HW.face('up'); HW.press('act', 1); HW.step(10);
+    go(HW, 'kitchen', 1, 6); HW.face('left'); HW.press('act', 1);
+    until(HW, () => HW.Return.isHome(jug) && !jug.shattered && !jug.pendingHome, 500); HW.step(5);
+    assert.ok(!bell.on, 'smashed on the far side: its way home never crossed the gap');
+    /* carried, and a fall: it drops and goes home; Wren goes to the Bedroll */
+    go(HW, 'kitchen', 2, 3); HW.face('up'); HW.press('act', 1); HW.step(10);
+    go(HW, 'kitchen', 4, 6); HW.hold('right'); until(HW, () => p.state === 'fall', 120); HW.release(); landed(HW);
+    assert.ok(!p.carry, 'dropped'); assert.deepEqual(here(HW, 'kitchen'), [15, 6], 'home at the Bedroll');
+    until(HW, () => HW.Return.isHome(jug), 300);
+    assert.ok(!bell.on && !thing(HW, 'mkGate').open);
+    noErrors(HW);
+});
+
+/* out along the old boards to the island at the far end (they give way behind) */
+function dreamWalk(HW) {
+    const path = [[5, 8]]; for (let x = 6; x <= 17; x++) path.push([x, 8]); for (let y = 7; y >= 2; y--) path.push([17, y]); for (let x = 16; x >= 7; x--) path.push([x, 2]); path.push([6, 2]);
+    go(HW, 'dream', 4, 8); stepPath(HW, 'dream', path);
+}
+
+test('the dreaming door: out along the old boards; flown home plain, the good dream lights and then the bad one: shut; ring the Bell between the two and you snap home before the bad one: the door; the Pattern', () => {
+    const HW = game(['bedroll']);
+    enter(HW, 'dream', 1, 5);
+    const p = HW.player(), good = thing(HW, 'dgGood'), bad = thing(HW, 'dgBad'), door = thing(HW, 'dgDoor');
+    go(HW, 'dream', 2, 4); lay(HW);
+    dreamWalk(HW);
+    assert.ok(HW.G.map.kind(...at('dream', 10, 8)).pit, 'the boards gone behind');
+    homeward(HW); landed(HW); HW.step(2);
+    assert.ok(good.lit > 0 && bad.lit > 0, 'flown home through both');
+    assert.ok(!door.open, 'a bad dream: shut');
+    until(HW, () => !good.lit && !bad.lit, 400);
+    dreamWalk(HW);
+    homeward(HW);
+    assert.ok(until(HW, () => good.lit > 0, 200), 'the good dream lit');
+    assert.equal(p.state, 'flight', 'still flying');
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1);
+    landed(HW); HW.step(3);
+    assert.deepEqual(here(HW, 'dream'), [2, 4], 'snapped straight home');
+    assert.ok(good.lit > 0 && !bad.lit, 'the good one lit, the bad one dark');
+    assert.ok(door.open, 'the door');
+    assert.ok(HW.Progress.flag('s18'), 'the Bell rung in flight');
+    go(HW, 'dream', 2, 2); HW.face('up'); HW.press('act', 1); HW.skipTalk();
+    assert.ok(HW.Inv.hasPattern('slumber'), 'the Pattern');
+    noErrors(HW);
+});
+
+test('the dreaming door: rung too soon, nothing is lit; the boards mend under you when you land', () => {
+    const HW = game(['bedroll']);
+    enter(HW, 'dream', 1, 5);
+    const p = HW.player(), good = thing(HW, 'dgGood'), bad = thing(HW, 'dgBad');
+    go(HW, 'dream', 2, 4); lay(HW);
+    dreamWalk(HW);
+    HW.Inv.equipped = 'bell';
+    HW.hold('down'); until(HW, () => p.state === 'flight', 200); HW.release();
+    HW.press('tool', 1); landed(HW);
+    assert.ok(!good.lit && !bad.lit, 'snapped home before either');
+    assert.ok(!HW.G.map.kind(...at('dream', 10, 8)).pit, 'the boards back');
+    assert.ok(!thing(HW, 'dgDoor').open);
+    noErrors(HW);
+});
+
+test("the way on: key C opens the Nursery's lock, the Fort's key D the Moonwalk's north door; the Milk Kitchen, the Dreaming Door", () => {
+    const HW = game(['bedroll']);
+    enter(HW, 'moonwalk', 15, 2);
+    const p = HW.player();
+    HW.hold('up'); HW.step(30); HW.release();
+    assert.equal(HW.G.map.roomAt(p.tx, p.ty).name, 'The Moonwalk', 'locked');
+    HW.Inv.keyCount.slumber = 1;
+    go(HW, 'moonwalk', 15, 1); HW.hold('up'); HW.step(50); HW.release(); HW.step(30);
+    assert.equal(HW.G.map.roomAt(p.tx, p.ty).name, 'The Milk Kitchen');
+    noErrors(HW);
+});
+
+test('an old game that found the Pattern in Pillow Fort: the Fort holds key D now, and the Dreaming Door buttons', () => {
+    const HW = game(['bedroll']);
+    HW.Progress.setAreaFlag('slumber', 'chest:pfPattern'); HW.Inv.patterns.push('slumber');
+    enter(HW, 'fort', 9, 3);
+    assert.ok(!thing(HW, 'pfKey').opened, 'a chest to open');
+    enter(HW, 'dream', 1, 5);
+    assert.equal(thing(HW, 'dgPattern').item, 'b20', 'buttons, not a second Pattern');
     noErrors(HW);
 });

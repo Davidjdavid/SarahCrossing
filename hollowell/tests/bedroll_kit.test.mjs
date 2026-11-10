@@ -85,6 +85,21 @@ test('Homeward carries what Wren carries; a fall drops it', () => {
     noErrors(HW);
 });
 
+test("what Wren carries goes the way she goes, a flight home too: its trace runs along the flight, tile by tile", () => {
+    const HW = lab(['bedroll']);
+    HW.Return.mark(HW.G.map.find('crate'));      /* (the lab's crate is a stray: give it a place, so it has a trace) */
+    go(HW, 3, 6); lay(HW);
+    go(HW, 7, 8); HW.face('left'); HW.press('act', 1); HW.step(10);
+    const c = HW.player().carry;
+    assert.ok(c && c.ret, 'carrying a marked crate');
+    go(HW, 20, 3);
+    homeward(HW); landed(HW);
+    const tr = Array.from(c.ret.trace, q => [q[0], q[1]]);
+    assert.deepEqual(tr[tr.length - 1], [3, 6], 'its trace ends at the Bedroll');
+    assert.ok(tr.every((q, i) => !i || Math.abs(q[0] - tr[i - 1][0]) + Math.abs(q[1] - tr[i - 1][1]) === 1), 'one tile at a time all the way: ' + tr.map(q => q.join(',')).join(' '));
+    noErrors(HW);
+});
+
 test('bouncy moss hops Wren on two tiles', () => {
     const HW = lab([]);
     go(HW, 1, 8); HW.hold('right'); HW.step(50); HW.release(); HW.step(10);

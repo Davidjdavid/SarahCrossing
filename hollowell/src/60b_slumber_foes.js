@@ -1,7 +1,8 @@
 /* The Slumberhouse's own things: the grate floats slip through (but nobody riding one), Matron Hush (the
-   mini-boss: she follows your footsteps exactly, so lead her over boards that have just given way), and
-   Mother Sloth (the boss: her long arms catch you and reel you to her bed; fly home from her grip, further than
-   she can reach, and the arm snaps; with both snapped she slumps, and her nightcap is there to be knocked). */
+   mini-boss: she follows your footsteps exactly, so lead her over boards that have just given way; twice), and
+   Mother Sloth (the boss: her long arms catch you and reel you to her bed; fly from her grip further than she can
+   reach and the arm snaps; both snapped, she slumps and her nightcap is there to be knocked; three rounds, each
+   taking away the way the last one was won). */
 
 /* the grate under the Study: water and a float with nobody on it go through */
 class Grate extends Ent {
@@ -20,7 +21,7 @@ SPAWN.grate = (x, y, p) => new Grate(x, y, p);
 /* ---------------- Matron Hush ---------------- */
 class Matron extends Enemy {
     constructor(tx, ty, p = {}) {
-        super(tx, ty, Object.assign({ type: 'matron', hp: 3 }, p));
+        super(tx, ty, Object.assign({ type: 'matron', hp: 2 }, p));
         this.state = 'sleep'; this.st = 0; this.i = 0; this.weightN = 3; this.z = 0;
     }
     get arena() { return this.area.roomAt(this.hx, this.hy); }
@@ -54,7 +55,7 @@ class Matron extends Enemy {
                 const [gx, gy] = tr[Math.min(this.i, tr.length - 1)];
                 const tx = gx * T + 8, ty = gy * T + 10;
                 const lunge = (this.st % 300) > 240;
-                const sp = (0.95 + (3 - this.hp) * 0.12) * (lunge ? 1.6 : 1);
+                const sp = (0.95 + (2 - this.hp) * 0.15) * (lunge ? 1.6 : 1);
                 const dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy);
                 if (d <= sp) { this.x = tx; this.y = ty; if (this.i < tr.length - 1) this.i++; else { this.x += (p.x - this.x) * 0.05; this.y += (p.y - this.y) * 0.05; } }
                 else { this.x += dx / d * sp; this.y += dy / d * sp; this.dir = dirOf(dx, dy); }
@@ -113,9 +114,18 @@ class Matron extends Enemy {
 SPAWN.matron = (x, y, p) => Progress.flag('slumber_matron') ? new Ent('none') : new Matron(x, y, p);
 
 /* ---------------- Mother Sloth ---------------- */
-const SLOTH = { REACH: 5.5, SNAP: 6.25 };
+/* One rule all fight: her long arms catch Wren and reel her in to be tucked into bed, and an arm stretched further than
+   it reaches (the ring of stars in the carpet) snaps. Fly from her grip far enough and it goes; both gone, she slumps,
+   and her nightcap is there to be knocked. Each knock takes away the way that round was won:
+   1. the floor runs out to the walls: lay the Bedroll out past the stars, let her catch you, fly Homeward;
+   2. past the stars the floor drops into the dark (a Bedroll lying out there tumbles back into Wren's pack), all but a
+      row of old boards along the bottom that give way behind you: nowhere to lay it out of reach now, but a flight home
+      goes back the way you came, so walk out over the boards and back in before she catches you;
+   3. the boards drop away too, and the old bedposts they were laid across stand out in the dark, ringed with brass:
+      caught, turn and hook one, and the reel drags you out of her grip; you drop into the dark and fly home.
+   (POSTS are in the room's own tiles: from each, the reel ends out past the stars, over the drop.) */
+const SLOTH = { REACH: 5.25, SNAP: 5.75, POSTS: [[1, 7], [3, 9], [15, 9], [17, 7]] };
 class MotherSloth extends Enemy {
-    hooked(h) { Sfx.play('hookhit'); }
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ type: 'mothersloth', hp: 3 }, p));
         this.state = 'sleep'; this.st = 0; this.weightN = 9; this.hidden = false; this.pillows = [];
@@ -124,6 +134,40 @@ class MotherSloth extends Enemy {
         this.capX = tx * T + 8; this.capY = (ty + 3) * T;
     }
     get arena() { return this.area.roomAt(this.hx, this.hy); }
+    get phase() { return 4 - Math.max(1, Math.min(3, this.hp)); }
+    /* out past the stars: further from both shoulders than an arm will stretch (the ring is the one line that counts) */
+    outside(x, y) { return this.arms.every(o => Math.hypot(x - o.sx, y - o.sy) > SLOTH.SNAP * T); }
+    /* the floor out past the stars (standing there, Wren would be outside), from the map as it's built */
+    onAdd(area) {
+        const r = area.roomAt(this.hx, this.hy);
+        this.far = [];
+        for (let y = r.y + 1; y < r.y + r.h - 1; y++) for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (!area.kind(x, y).solid && this.outside(x * T + 8, y * T + 4)) this.far.push([x, y, area.chars[y * area.w + x]]);
+    }
+    isFar(x, y) { return this.far.some(q => q[0] === x && q[1] === y); }
+    /* the room as the round has it: 1 floor to the walls; 2 the floor past the stars gone but for the old boards along the
+       bottom; 3 the boards gone too, and the old bedposts left standing out there */
+    setArena(phase, fx) {
+        const a = this.area, r = this.arena, bottom = r.y + r.h - 2;
+        for (const e of a.ents.slice()) if (e.slothBit) a.remove(e);
+        const posts = phase === 3 ? SLOTH.POSTS.map(([x, y]) => [r.x + x, r.y + y]) : [];
+        for (const [x, y, ch] of this.far) {
+            const board = phase === 2 && y === bottom && !this.isFar(x, y - 1), post = posts.some(q => q[0] === x && q[1] === y);
+            a.setCell(x, y, phase === 1 ? ch : board ? 'c' : post ? ',' : 'o');
+            if (board) a.add(new Crumble(x, y)).slothBit = true;
+            if (!fx) continue;
+            if (phase === 1) Fx.sparkle(x * T + 8, y * T + 8, '#d8c8f8');
+            else if (!board) Fx.burst(x * T + 8, y * T + 10, '#4a4e84');
+        }
+        for (const [x, y] of posts) { const e = a.add(SPAWN.eyelet(x, y, {})); e.slothBit = true; if (fx) Fx.poof(x * T + 8, y * T + 6); }
+        /* nobody left standing on nothing */
+        const p = G.player;
+        if (p && p.area === a && p.state === 'normal' && a.kind(p.tx, p.ty).pit) { const [lx, ly] = p.landingSpot(p.tx, p.ty); p.x = lx * T + 8; p.y = ly * T + 10; Fx.dust(p.x, p.y); }
+        /* a Bedroll lying out past the stars goes with the floor (said after she's had her say) */
+        const b = Inv.bedroll;
+        if (phase > 1 && b && b.area === a.id && !Bedroll.float && this.isFar(b.tx, b.ty)) { Bedroll.lost(); G.pendingToast = null; this.rollLost = true; }
+    }
+    /* (the Bedroll gone with the floor: told once she's done talking) */
+    tellRollLost() { if (this.rollLost) { this.rollLost = false; UI.toast('The floor went out from under your Bedroll. It turned up, rolled, in your pack.', 180); } }
     onTile() { return false; }
     feetOn() { return false; }
     blocks(x, y) { return this.alive && x >= this.hx - 2 && x <= this.hx + 3 && y >= this.hy - 1 && y <= this.hy; }
@@ -138,17 +182,22 @@ class MotherSloth extends Enemy {
         if (this.state === 'sleep') {
             if (inRoom && p.state === 'normal' && p.ty < r.y + r.h - 2) {
                 this.state = 'fight'; this.st = 0; this.shutters(true); Music.play(bossSong('slumber'));
+                /* (back in mid-fight: the room goes back the way the round left it) */
+                if (this.phase > 1) { this.setArena(this.phase, true); G.shake = 6; Sfx.play('rumble'); this.tellRollLost(); }
                 if (!Progress.flag('slumber_slothAwake')) { Progress.set('slumber_slothAwake'); Script.run(SlumberFoes.slothIntro(this)); }
             }
             return;
         }
-        /* Wren flew home out of the room: the arms let go, the doors open; back in, it starts again */
+        /* Wren flew home out of the room: the arms let go (a snapped one grows back), the doors open, the floor's as it was;
+           back in, the round starts again */
         if (!inRoom && !p.flying) {
-            for (const arm of this.arms) this.letGo(arm, true);
+            if (p.pinned && this.arms.includes(p.pinned)) p.pinned = null;
+            for (const arm of this.arms) { arm.state = 'rest'; arm.t = 0; arm.cool = 60; arm.hx = arm.sx; arm.hy = arm.sy + 6; }
             this.state = 'sleep'; this.shutters(false); Music.play('slumber');
+            if (this.phase > 1) this.setArena(1);
             return;
         }
-        if (Script.blocking()) return;
+        if (Script.blocking() || this.state === 'turn') return;
         this.st++;
         if (this.state === 'fight') {
             for (const arm of this.arms) this.updateArm(arm, p);
@@ -179,9 +228,13 @@ class MotherSloth extends Enemy {
                 break;
             case 'hold':
             case 'reel': {
-                if (p.state === 'flight') { arm.state = 'drag'; p.pinned = null; break; }
+                /* flown off (Homeward, a fall), or reeled off on the Hookline: the arm holds on and stretches after her */
+                if (p.state === 'flight' || p.state === 'reel') { arm.state = 'drag'; p.pinned = null; break; }
+                if (p.state === 'fall') break;
                 if (p.pinned !== arm) { this.letGo(arm); break; }
                 arm.hx = p.x; arm.hy = p.y - 6;
+                /* held by the wrist, she can still turn about */
+                if (!Script.blocking()) { const ax = Input.axis(); if (ax.x || ax.y) p.dir = ax.x < 0 ? LEFT : ax.x > 0 ? RIGHT : ax.y < 0 ? UP : DOWN; }
                 if (arm.state === 'hold' && arm.t > 45) { arm.state = 'reel'; arm.t = 0; }
                 if (arm.state === 'reel') {
                     /* reeled in to her bed */
@@ -192,13 +245,12 @@ class MotherSloth extends Enemy {
                 break;
             }
             case 'drag':
-                /* holding on while Wren flies off: too far, and it snaps */
+                /* holding on while she flies off: pulled out past the stars, it snaps */
                 arm.hx = p.x; arm.hy = p.y - 6;
-                if (Math.hypot(p.x - arm.sx, p.y - 6 - arm.sy) > SLOTH.SNAP * T) { this.snap(arm); break; }
-                if (p.state !== 'flight') { if (p.state === 'normal') { arm.state = 'hold'; arm.t = 0; p.pinned = arm; } else this.letGo(arm); }
+                if (this.outside(p.x, p.y - 6)) { this.snap(arm); break; }
+                if (p.state !== 'flight' && p.state !== 'reel') { if (p.state === 'normal') { arm.state = 'hold'; arm.t = 0; p.pinned = arm; } else this.letGo(arm); }
                 break;
             case 'snapped':
-                arm.t++;
                 if (arm.t > 900) { arm.state = 'rest'; arm.cool = 60; Fx.sparkle(arm.sx, arm.sy, THREAD.mallow); }
                 break;
         }
@@ -209,7 +261,7 @@ class MotherSloth extends Enemy {
         arm.state = 'snapped'; arm.t = 0; arm.dropX = arm.hx; arm.dropY = arm.hy + 6;
         const p = G.player; if (p && p.pinned === arm) p.pinned = null;
         Sfx.play('unravel'); Sfx.play('hitthing'); G.shake = 8; G.hitstop = 6;
-        Fx.yarn(arm.hx, arm.hy, THREAD.mallow);
+        Fx.yarn(arm.hx, arm.hy, THREAD.mallow); Fx.text(arm.hx, arm.hy - 14, 'snap!', '#f7e08a');
         Stats.count('boss:sloth:snap');
     }
     tuckIn(arm, p) {
@@ -233,15 +285,18 @@ class MotherSloth extends Enemy {
     }
     rise() {
         this.state = 'fight'; this.st = 0;
-        for (const arm of this.arms) { arm.state = 'rest'; arm.cool = 60 + (arm.side > 0 ? 60 : 0); arm.hx = arm.sx; arm.hy = arm.sy + 6; }
+        for (const arm of this.arms) { arm.state = 'rest'; arm.t = 0; arm.cool = 30 + (arm.side > 0 ? 30 : 0); arm.hx = arm.sx; arm.hy = arm.sy + 6; }
         Sfx.play('rumble'); G.shake = 6;
     }
     struck(by, dmg, dir) {
         if (!this.alive || this.state !== 'slump' || this.flash > 0) return;
         this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
         Fx.poof(this.capX, this.capY - 8);
+        Stats.count('boss:sloth:knock');
         if (this.hp <= 0) return this.defeat();
-        this.rise();
+        /* the next round: she wakes, and the room changes under her */
+        this.state = 'turn'; this.st = 0; this.pillows = [];
+        Script.run(SlumberFoes.slothTurn(this));
     }
     shoved() { }
     hooked(h) { Sfx.play('hookhit'); Fx.ring(this.x, this.y - 10); }
@@ -344,11 +399,24 @@ const SlumberFoes = {
         yield* say(null, '"Mmmmh," it says, without opening its eyes. "Another one up past bedtime. Come here, dear. Come to bed. Nothing ever gets away from Mother."');
         yield* say(null, '"...Nothing except what\'s going home, anyway. Mmh."');
     },
+    /* a round lost: she wakes with a start, thumps the mattress, and the room changes under her */
+    *slothTurn(s) {
+        yield 40;
+        G.shake = 14; Sfx.play('rumble'); Sfx.play('crumble');
+        s.setArena(s.phase, true);
+        yield 40;
+        if (s.phase === 2) yield* say(null, 'Mother Sloth yawns, enormously, and thumps the mattress. Out past the stars the floor drops away into the dark, all of it but a row of old boards along the bottom. "There," she murmurs. "Nowhere left to wander off to. Nowhere but bed."', { focus: s });
+        else yield* say(null, 'She thumps the mattress again, harder, and the old boards drop into the dark after the rest. Only the bedposts they were laid across are left standing out there, ringed with brass. "Now then," she murmurs, and stretches. "No more of that."', { focus: s });
+        s.tellRollLost();
+        s.rise();
+    },
     *slothDown(s) {
         const a = s.area;
         Music.play('silence');
         yield 50;
-        yield* say(null, 'Mother Sloth lets go of everything at once with a long, long sigh, and unravels into soft lavender yarn that drifts down, slowly, like a feather, into the floor.');
+        /* the floor comes back up out of the dark, board by board */
+        if (a.ents.some(e => e.slothBit) || s.far.some(([x, y]) => a.kind(x, y).pit)) { s.setArena(1, true); Sfx.play('appear'); yield 24; }
+        yield* say(null, 'Mother Sloth lets go of everything at once with a long, long sigh, and unravels into soft lavender yarn that drifts down, slowly, like a feather, into the floor. Board by board, the floor comes back up out of the dark.');
         s.shutters(false);
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 15, br.y + 6));
@@ -359,7 +427,7 @@ const SlumberFoes = {
 };
 
 function initSlumberFoes() {
-    ENEMY.matron = { hp: 3, r: 7, tall: 26, yarn: THREAD.mallow, harmless: true };
+    ENEMY.matron = { hp: 2, r: 7, tall: 26, yarn: THREAD.mallow, harmless: true };
     ENEMY.mothersloth = { hp: 3, r: 10, tall: 30, yarn: THREAD.mallow, harmless: true, flies: true, swims: true };
     const mt = { g: '#b48ce8', G: '#8a64c4', w: '#fbf6ea', W: '#d8d0e8', s: '#f0c8a8', e: '#2a1f2d', h: '#8a8a8a' };
     const matron = (arms, eyes) => [
@@ -371,14 +439,48 @@ function initSlumberFoes() {
     defSprite('matron_sleep', matron(['...kgggggggk....', '...kgggggggk....'], 'eessee'), mt);
     defSprite('matron_daze', matron(['..kgggggggggk...', '.ksgggggggggsk..'], 'ssesse'), mt);
     ENEMY_DRAW.matron = () => null;
+    /* her four-poster: turned posts, a canopy with a scalloped valance and a gold fringe, a long pillow and a patched quilt
+       (she hangs over it, upside down), and velvet curtains down each side, tied back to the posts with gold cord */
     ART.sloth_bed = paintSprite(96, 60, x => {
         const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
         R('#5a3a2a', 4, 0, 5, 60); R('#5a3a2a', 87, 0, 5, 60); R('#7a4e32', 5, 0, 2, 60); R('#7a4e32', 88, 0, 2, 60);
-        R('#4b3a8a', 0, 0, 96, 6); R('#7d5bc4', 2, 6, 92, 3);
-        for (let i = 0; i < 9; i++) R(i % 2 ? '#b48ce8' : '#9a76d8', 8 + i * 9, 9, 9, 6);
+        for (const px of [4, 87]) for (let y = 12; y < 54; y += 7) { R('#7a4e32', px, y, 5, 1); R('#3e2818', px, y + 1, 5, 1); }
+        /* the drape at the back, behind the pillow (seen when she slumps) */
+        R('#4b3a8a', 9, 9, 78, 22); for (let i = 11; i < 86; i += 6) { R('#5a46a0', i, 9, 2, 22); R('#3e2e6a', i + 3, 9, 1, 22); }
         R('#fbf6ea', 14, 30, 68, 10); R('#d8d0e8', 14, 38, 68, 2);
         R('#b48ce8', 9, 38, 78, 18); R('#9a76d8', 9, 44, 78, 1); R('#9a76d8', 9, 50, 78, 1); R('#d8c8f8', 9, 38, 78, 1);
-        R('#5a3a2a', 4, 55, 88, 5);
+        for (const [qx, qc] of [[12, '#f0b0c8'], [30, '#d8c8f8'], [62, '#f0b0c8'], [76, '#d8c8f8']]) { R(qc, qx, 46, 7, 4); R('#7d5bc4', qx, 50, 7, 1); }
+        R('#5a3a2a', 4, 55, 88, 5); R('#7a4e32', 4, 55, 88, 1);
+        R('#4b3a8a', 0, 0, 96, 6); R('#6a52b0', 0, 1, 96, 1); R('#7d5bc4', 1, 6, 94, 3);
+        for (let i = 0; i < 9; i++) {
+            const sx0 = 3 + i * 10;
+            for (let k = 0; k < 10; k++) { const d = Math.round(Math.sqrt(Math.max(0, 22 - (k - 4.5) * (k - 4.5)))); R(i % 2 ? '#b48ce8' : '#9a76d8', sx0 + k, 9, 1, 1 + d); R(i % 2 ? '#8a64c4' : '#7d5bc4', sx0 + k, 9 + d, 1, 1); }
+            R('#f7d64a', sx0 + 4, 15, 2, 2); R('#c8903a', sx0 + 4, 17, 2, 1);
+        }
+        R('#e8b04a', 1, 9, 94, 1);
+        /* the curtains: folds of velvet from the canopy, gathered to the post by a gold cord, falling loose below it */
+        for (const flip of [false, true]) {
+            const X = v => flip ? 95 - v : v;
+            for (let y = 7; y < 55; y++) {
+                const inner = y < 27 ? Math.round(12 - (y - 7) * 5 / 20) : Math.round(7 + (y - 27) * 4 / 27);
+                for (let v = 0; v <= inner; v++) {
+                    const u = v / Math.max(1, inner), band = Math.min(3, Math.floor(u * 4));
+                    const lit = flip ? 3 - band : band;
+                    R(['#c4a0f0', '#9a76d8', '#b48ce8', '#6a4aa8'][lit], X(v), y, 1, 1);
+                }
+                R('#4b3a8a', X(inner), y, 1, 1);
+            }
+            for (let v = 0; v <= 8; v++) R(v % 2 ? '#c8903a' : '#f7d64a', X(v), 26, 1, 2);
+            R('#f7d64a', X(flip ? 9 : 8), 28, 1, 5); R('#e8b04a', X(flip ? 8 : 9), 28, 1, 5); R('#c8903a', X(flip ? 9 : 8), 33, 2, 1);
+        }
+    });
+    /* a nightstand beside the bed, a night-light on it */
+    ART.nightstand = paintSprite(16, 22, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R('#7a4e32', 1, 9, 14, 13); R('#9a6438', 1, 9, 14, 2); R('#5a3a2a', 1, 20, 14, 2); R('#5a3a2a', 2, 14, 12, 1); R('#e8b04a', 7, 16, 2, 1);
+        R('#5a3a2a', 2, 21, 2, 1); R('#5a3a2a', 12, 21, 2, 1);
+        R('#c8903a', 6, 7, 4, 2); R('#e8b04a', 6, 7, 2, 1);
+        R('#f7e08a', 5, 1, 6, 6); R('#fff4c0', 6, 2, 2, 2); R('#e8b04a', 5, 6, 6, 1);
     });
     const slothBody = (eyes, slump) => paintSprite(80, 56, x => {
         const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };

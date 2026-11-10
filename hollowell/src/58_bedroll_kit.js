@@ -147,6 +147,12 @@ SFX.puff = (o, t) => Audio.hit(o, t, 0.4, 0.14, 600, 2400);
     const enter = World.enter;
     World.enter = function (...args) { Bedroll.stash(); Bedroll.float = null; Bedroll.sleeper = null; return enter.apply(this, args); };
 }
+/* what Wren carries goes the way she goes, a flight home as much as a reel (its trace, and so its shards' way home, runs
+   along the flight, tile by tile; a Bell's snap home goes round, not through, so the trace jumps) */
+{
+    const fly0 = Player.prototype.updateFlight;
+    Player.prototype.updateFlight = function () { const r = fly0.call(this); if (this.carry && this.carry.ret) Return.moved(this.carry, this.tx, this.ty); return r; };
+}
 
 /* the Bedroll where it lies: drawn on the floor (on its float, if it's on one) */
 class BedrollMat extends Ent {
