@@ -85,3 +85,5 @@
 - Nine more secrets around the valley (one of them reached only with the new tool upgrade); tests.
 - Fixes from the final act's review (one way to make the ending impossible, a way to get stuck, several story and text
   inconsistencies, saving inside the last dungeon); regression tests.
+- The final dungeon rebuilt: six new rooms, each pairing an earlier dungeon's idea with a later tool, and a gauntlet on
+  the way to the top; tests.

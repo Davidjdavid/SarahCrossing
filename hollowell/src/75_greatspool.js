@@ -17,21 +17,29 @@ WALLS.spool = {
 };
 const KNOT_HOUSES = ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'];
 const KNOT_COL = { tidy: THREAD.ives, kiln: THREAD.bram, mill: THREAD.ambrose, belfry: THREAD.tess, slumber: THREAD.mallow, marionette: THREAD.jory };
-const GREAT_ENTRY = { x: 29, y: 41 };
+const GREAT_ENTRY = { x: 49, y: 41 };
 defHouse({
     id: 'greatspool', name: 'The Great Spool', place: 'The Great Spool', house: 'greatspool', theme: 'spool', thread: THREAD.hesper, music: 'pull',
     entry: GREAT_ENTRY, noNudges: true,
     legend: { 'O': { k: 'crawl', p: 'wall', ent: 'crawlhole' } },
     cells: {
         /* ---------------- the foot of the Well ---------------- */
-        '1,3': {
+        '2,3': {
             name: 'The Foot of the Well',
             rows: ['#########.##########', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '####################'],
             ents: [
                 { k: 'sign', x: 11, y: 8, text: "Six Knots, tied in six rooms round the Spool's foot: the Wander's, every one you tied. A seventh place waits at the top, an empty peg, for the Wanderer's own." },
             ],
         },
-        /* ---------------- the Slumberhouse's Knot: a drop, and home by the Bedroll ---------------- */
+        /* ---------------- the Nursery Stair (on the way to the Slumberhouse's Knot): hooked over; home by falling, onto your own bed ---------------- */
+        '1,3': {
+            name: 'The Nursery Stair',
+            rows: ['####################', '#.....ooooo........#', '#.....ooooo........#', '#.....ooooo........#', '#.....ooooo........#', '......ooooo.........', '#.....ooooo........#', '#.....ooooo........#', '#.....ooooo........#', '#.....ooooo........#', '####################'],
+            ents: [
+                { k: 'eyelet', x: 4, y: 5 },
+                { k: 'sign', x: 15, y: 2, text: "Mallow's hand, very neat: A HOOK GETS YOU OVER. A FALL GETS YOU HOME, IF YOU'VE A BED TO FALL TO. (Even now. Especially now.)" },
+            ],
+        },
         '0,3': {
             name: "The Slumberhouse's Knot",
             rows: ['####################', '#..................#', '#..................#', '#..................#', '#..................#', '#...................', '#vvvvvvvvvvvvvvvvvv#', '#..................#', '#..................#', '#..................#', '####################'],
@@ -40,8 +48,18 @@ defHouse({
                 { k: 'sign', x: 16, y: 2, text: 'No stairs down, and none up. Somewhere of your own to come back to, then.' },
             ],
         },
-        /* ---------------- the Marionette Hall's Knot: a puppet through the hole onto the plate, then the gate ---------------- */
-        '2,3': {
+        /* ---------------- the Puppet Gallery (on the way to the Marionette Hall's Knot): walk it there, then give it a home ---------------- */
+        '3,3': {
+            name: 'The Puppet Gallery',
+            rows: ['####################', '#..................#', '#..................#', '#^^^^^^^^^^^^^^^^^^#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '####################'],
+            ents: [
+                { k: 'puppet', x: 9, y: 1, id: 'gsGPuppet', patience: 120 },
+                { k: 'plate', x: 2, y: 1, sig: 'gsPg' },
+                { k: 'door', x: 19, y: 5, type: 'gate', when: 'gsPg', dir: 'v', id: 'gsPgGate' },
+                { k: 'sign', x: 16, y: 8, text: "Jory's hand: SHE'LL WALK IT WHERE YOU LIKE. SHE'LL ALWAYS WALK HOME AFTER. UNLESS HOME'S SOMEWHERE ELSE." },
+            ],
+        },
+        '4,3': {
             name: "The Marionette Hall's Knot",
             rows: ['####################', '#.........#........#', '#.........#........#', '#.........#..^^^...#', '#.........O........#', '..........#........#', '#.........#........#', '#####.#####........#', '#.........#........#', '#.........#........#', '####################'],
             ents: [
@@ -52,14 +70,24 @@ defHouse({
             ],
         },
         /* ---------------- the hub: the Winding Room ---------------- */
-        '1,2': {
+        '2,2': {
             name: 'The Winding Room',
             rows: ['#########.##########', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
             ents: [
                 { k: 'deco', x: 7, y: 2, look: 'spoolpost', ox: 0, solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]], text: 'The foot of the Great Spool: a drum of thread as wide as a house, every colour, turning, and every turn a little tighter.' },
             ],
         },
-        /* ---------------- the Tidyhouse's Knot: a place on the plate ---------------- */
+        /* ---------------- the Tidy Parlour (on the way to the Tidyhouse's Knot): a thing on its plate, for good ---------------- */
+        '1,2': {
+            name: 'The Tidy Parlour',
+            rows: ['####################', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '####################'],
+            ents: [
+                { k: 'block', x: 17, y: 5, id: 'gsTpBlock' },
+                { k: 'plate', x: 17, y: 8, sig: 'gsTa' },
+                { k: 'door', x: 0, y: 5, type: 'gate', when: 'gsTa', dir: 'v', id: 'gsTaGate' },
+                { k: 'sign', x: 3, y: 2, text: "Mother Ives: EVERYTHING GOES HOME. (That was the whole idea. Make up your own mind, love.)" },
+            ],
+        },
         '0,2': {
             name: "The Tidyhouse's Knot",
             rows: ['####################', '#....#.............#', '#....#.............#', '#....#.............#', '#....#.............#', '#...................', '#....#.............#', '#....#.............#', '#....#.............#', '#....#.............#', '####################'],
@@ -70,8 +98,19 @@ defHouse({
                 { k: 'knotlock', x: 2, y: 5, house: 'tidy' },
             ],
         },
-        /* ---------------- the Kiln's Knot: the pot's shards fly home past the crystal ---------------- */
-        '2,2': {
+        /* ---------------- the Kiln Crossing (on the way to the Kiln's Knot): a pot carried over the water on a raft; its shards fly home the way it came ---------------- */
+        '3,2': {
+            name: 'The Kiln Crossing',
+            rows: ['####################', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '......~~~~~~~~......', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '####################'],
+            ents: [
+                { k: 'pot', x: 3, y: 3, id: 'gsKPot' },
+                { k: 'raft', x: 6, y: 5, id: 'gsKRaft', marked: false },
+                { k: 'charm', x: 10, y: 5, mode: 'once', sig: 'gsKc', id: 'gsKCharm' },
+                { k: 'door', x: 19, y: 5, type: 'gate', when: 'gsKc', dir: 'v', id: 'gsKGate' },
+                { k: 'sign', x: 2, y: 8, text: "Bram: A CHARM OVER WATER. NOTHING REACHES IT BUT SOMETHING FLYING. (Things fly home the way they came. Come the long way.)" },
+            ],
+        },
+        '4,2': {
             name: "The Kiln's Knot",
             rows: ['####################', '#.........ooo......#', '#.........ooo......#', '#.........ooo......#', '#.........ooo......#', '..........ooo......#', '#.........ooo......#', '#.........ooo......#', '#.........ooo......#', '#.........ooo......#', '####################'],
             ents: [
@@ -82,16 +121,26 @@ defHouse({
                 { k: 'sign', x: 3, y: 2, text: 'A gap no one could jump, and a brass eye on the far side, waiting for a hook.' },
             ],
         },
-        /* ---------------- the climb: Mill west, Belfry east, the top north ---------------- */
-        '1,1': {
+        /* ---------------- the climb: Mill west, Belfry east, the top north; once every Knot's undone, the Pull throws things across it ---------------- */
+        '2,1': {
             name: 'The Climb',
-            rows: ['#########.##########', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
+            rows: ['#########.##########', '#..................#', '#....#.............#', '#..................#', '#.............#....#', '....................', '#....#.............#', '#..................#', '#.............#....#', '#..................#', '#########.##########'],
             ents: [
                 { k: 'door', x: 9, y: 0, type: 'gate', when: 'flag:spool_all', dir: 'h', id: 'gsTop' },
-                { k: 'sign', x: 11, y: 1, text: 'UP: THE SPOOL. (The way opens when every Knot is undone.)' },
+                { k: 'sign', x: 11, y: 9, text: 'UP: THE SPOOL. (The way opens when every Knot is undone.)' },
+                { k: 'junklane', x: 18, y: 2, dir: -1, period: 80, phase: 0 }, { k: 'junklane', x: 1, y: 4, dir: 1, period: 70, phase: 30 },
+                { k: 'junklane', x: 18, y: 6, dir: -1, period: 75, phase: 50 }, { k: 'junklane', x: 1, y: 8, dir: 1, period: 85, phase: 15 },
             ],
         },
-        /* ---------------- the Millrace's Knot: across the race on a raft ---------------- */
+        /* ---------------- the Ferry Landing (on the way to the Millrace's Knot): a ferry that always goes home ---------------- */
+        '1,1': {
+            name: 'The Ferry Landing',
+            rows: ['####################', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '......~~~~~~~~......', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '####################'],
+            ents: [
+                { k: 'raft', x: 13, y: 5, id: 'gsFerry', patience: 240 },
+                { k: 'sign', x: 3, y: 8, text: "Your dad's hand: THE FERRY ALWAYS GOES HOME. IT'S A GOOD FERRY. (How'll you get back, then?)" },
+            ],
+        },
         '0,1': {
             name: "The Millrace's Knot",
             rows: ['####################', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~......', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '####################'],
@@ -101,8 +150,18 @@ defHouse({
                 { k: 'sign', x: 16, y: 8, text: 'Deep water, and a raft tied to nothing at all.' },
             ],
         },
-        /* ---------------- the Belfry's Knot: a sleeper in the doorway; ring it home ---------------- */
-        '2,1': {
+        /* ---------------- the Bell Loft (on the way to the Belfry's Knot): wake it, then give it a place ---------------- */
+        '3,1': {
+            name: 'The Bell Loft',
+            rows: ['####################', '#..................#', '#^^^^^^^^^^^^^^^^^^#', '#^^^^^^^^^^^^^^^^^^#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '####################'],
+            ents: [
+                { k: 'block', x: 12, y: 1, id: 'gsBlSleeper', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [9, 1], trace: [[12, 1], [11, 1], [10, 1], [9, 1]], noPush: true, pushLine: "Asleep, over the pins. Nothing you can reach it with but a bell." },
+                { k: 'plate', x: 15, y: 1, sig: 'gsBl' },
+                { k: 'door', x: 19, y: 5, type: 'gate', when: 'gsBl', dir: 'v', id: 'gsBlGate' },
+                { k: 'sign', x: 3, y: 8, text: "Your mum's hand: A BELL WAKES THINGS. IT DOESN'T TELL THEM WHERE TO GO." },
+            ],
+        },
+        '4,1': {
             name: "The Belfry's Knot",
             rows: ['####################', '#.........#........#', '#.........#........#', '#.........#........#', '#.........#........#', '...................#', '#.........#........#', '#.........#........#', '#.........#........#', '#.........#........#', '####################'],
             ents: [
@@ -110,8 +169,7 @@ defHouse({
                 { k: 'knotlock', x: 16, y: 3, house: 'belfry' },
             ],
         },
-        /* ---------------- the top of the Spool ---------------- */
-        '1,0': {
+        '2,0': {
             name: 'The Top of the Spool',
             rows: ['####################', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
             ents: [
@@ -205,6 +263,35 @@ class SpoolDrum extends Ent {
     }
 }
 SPAWN.greatspool = (x, y, p) => new SpoolDrum(x, y, p);
+
+/* a lane of the Climb: once every Knot is undone, the Pull flings things across it, one way, now and then; one that
+   catches you knocks you back down to the door. A pillar in the lane stops what's flying (stand in its lee) */
+class JunkLane extends Ent {
+    constructor(tx, ty, p = {}) { super('junklane', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.t = p.phase || 0; this.flying = []; }
+    get sortY() { return this.y + 20; }
+    get on() { return Progress.flag('spool_all') && !Progress.flag('unwound'); }
+    update() {
+        if (!this.on || Script.blocking()) return;
+        const a = this.area, p = G.player, r = a.roomAt(this.tx, this.ty);
+        if (++this.t % this.period === 0) this.flying.push({ x: this.tx * T + 8, k: (this.t / this.period) % 3 | 0 });
+        for (const j of this.flying) {
+            j.x += this.dir * 2.2;
+            const tx = Math.floor(j.x / T);
+            if (a.kind(tx, this.ty).solid || a.roomAt(tx, this.ty) !== r) { j.gone = true; Fx.dust(j.x, this.ty * T + 8); continue; }
+            if (p.area === a && p.state === 'normal' && Math.abs(p.x - j.x) < 10 && Math.abs(p.y - 6 - (this.ty * T + 6)) < 9) {
+                j.gone = true; Sfx.play('hitthing'); G.shake = 6; Fx.dust(p.x, p.y);
+                p.x = (r.x + 9) * T + 8; p.y = (r.y + 9) * T + 10; p.unstick(); Fx.poof(p.x, p.y);
+                if (!Progress.flag('junk_hit')) { Progress.set('junk_hit'); G.pendingToast = 'Something flying knocks you clean off your feet and back down to the foot of the Climb.'; }
+            }
+        }
+        this.flying = this.flying.filter(j => !j.gone);
+    }
+    draw(cx, cy) {
+        if (!this.on) return;
+        for (const j of this.flying) Gfx.img(spr(['block_wood', 'pot', 'crate'][j.k]) || spr('block_wood'), j.x - cx - 8, this.ty * T - cy - 4 + Math.sin(j.x / 6) * 2);
+    }
+}
+SPAWN.junklane = (x, y, p) => new JunkLane(x, y, p);
 
 const GreatSpool = {
     /* stepping into the top room: Gran */
@@ -333,7 +420,7 @@ const GreatSpool = {
 }
 AREAS.greatspool.tick = a => GreatSpool.tick(a);
 /* the Well brings you back up (and the foot of the Well is where you'd fall to, if you fell) */
-AREAS.greatspool.ents.push({ k: 'warp', x: 29, y: 42, to: 'hollow', tx2: 95, ty2: 60, face: 'down', room: '1,3' }, { k: 'deco', x: 29, y: 42, look: 'stairs_up', solid: false, baseY: -100, room: '1,3' });
+AREAS.greatspool.ents.push({ k: 'warp', x: 49, y: 42, to: 'hollow', tx2: 95, ty2: 60, face: 'down', room: '2,3' }, { k: 'deco', x: 49, y: 42, look: 'stairs_up', solid: false, baseY: -100, room: '2,3' });
 
 function initGreatSpool() {
     ART.spoolpost = paintSprite(96, 24, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); const cols = ['#e8463c', '#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8']; R('#2a2440', 0, 0, 96, 24); for (let i = 0; i < 22; i++) R(cols[i % 6], 2, 1 + i, 92, 1); });

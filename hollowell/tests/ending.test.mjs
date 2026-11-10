@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
 
-const R = { foot: [20, 33], slumber: [0, 33], mario: [40, 33], hub: [20, 22], tidy: [0, 22], kiln: [40, 22], climb: [20, 11], mill: [0, 11], belfry: [40, 11], top: [20, 0] };
+const R = { foot: [40, 33], nursery: [20, 33], slumber: [0, 33], gallery: [60, 33], mario: [80, 33], hub: [40, 22], parlour: [20, 22], tidy: [0, 22], crossing: [60, 22], kiln: [80, 22], climb: [40, 11], ferry: [20, 11], mill: [0, 11], loft: [60, 11], belfry: [80, 11], top: [40, 0] };
 const at = (r, x, y) => [R[r][0] + x, R[r][1] + y];
 const until = (HW, fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
 const pos = HW => `${HW.G.map.id} ${HW.player().tx},${HW.player().ty}`;
@@ -49,56 +49,103 @@ test('the Great Pull: the town dragged round the Well, its south side open; down
     noErrors(HW);
 });
 
-test('the Great Spool: six Knots, each untied its own House\'s way; the way up opens', () => {
+test('the Great Spool: six Knots, each through a room that pairs its House with a later tool; the way up opens', () => {
     const HW = game('afterDrift');
-    HW.warp('greatspool', 29, 41); HW.step(30); HW.skipTalk();
-    /* the Slumberhouse's: lay the Bedroll, drop, untie, Homeward */
-    go(HW, 'foot', 1, 5); go(HW, 'slumber', 9, 5);
-    HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(3); HW.skipTalk();
-    HW.hold('down'); HW.step(40); HW.release(); HW.step(10);
+    HW.warp('greatspool', ...at('foot', 9, 8)); HW.step(30); HW.skipTalk();
+    const stitch = moves => { const names = { U: 'up', D: 'down', L: 'left', R: 'right' }; HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(2); for (const m of moves) { HW.hold(names[m]); HW.step(2); HW.release(); HW.step(8); } HW.press('tool', 1); HW.step(40); };
+    /* the Nursery Stair: the Bedroll laid on this side, hooked over; the Slumberhouse's Knot: drop, untie, and Homeward
+       flies you all the way back along your trace, over the ledge and the gap, to the Bedroll */
+    go(HW, 'nursery', 14, 5); HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(3); HW.skipTalk();
+    go(HW, 'nursery', 11, 5); HW.face('left'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); HW.step(60);
+    assert.ok(HW.player().tx <= at('nursery', 5, 0)[0], 'hooked over');
+    go(HW, 'slumber', 9, 5); HW.hold('down'); HW.step(40); HW.release(); HW.step(10);
     go(HW, 'slumber', 9, 7); act(HW, 'down');
-    HW.Inv.equipped = 'bedroll'; HW.hold('tool'); HW.step(24); HW.release(); HW.step(60); HW.skipTalk();
     assert.ok(HW.Progress.flag('untie:slumber'));
-    assert.ok(HW.player().ty <= at('slumber', 0, 5)[1], 'home, up over the ledge');
-    /* the Marionette Hall's: a puppet through the hole onto the plate, then through the gate */
-    go(HW, 'foot', 18, 5); go(HW, 'mario', 7, 2); HW.face('down');
-    HW.Inv.equipped = 'crossbar'; HW.press('tool', 1); HW.step(2);
-    const pup = HW.G.map.find('gsPuppet');
-    const walkP = (d, k) => { for (let i = 0; i < k; i++) { HW.hold(d); until(HW, () => pup.mv, 20); until(HW, () => !pup.mv, 30); HW.release(); HW.step(1); } };
+    HW.Inv.equipped = 'bedroll'; HW.hold('tool'); HW.step(24); HW.release(); HW.step(200); HW.skipTalk();
+    assert.deepEqual([HW.player().tx, HW.player().ty], at('nursery', 14, 5), 'home to the Bedroll');
+    /* the Puppet Gallery: walk the puppet near its plate, let go, and give it the plate for a home */
+    go(HW, 'gallery', 3, 4); HW.face('up'); HW.Inv.equipped = 'crossbar'; HW.press('tool', 1); HW.step(2);
+    const pup = HW.G.map.find('gsGPuppet');
+    for (let i = 0; i < 6; i++) { HW.hold('left'); until(HW, () => pup.mv, 20); until(HW, () => !pup.mv, 30); HW.release(); HW.step(1); }
+    assert.deepEqual([pup.tx, pup.ty], at('gallery', 3, 1));
+    HW.press('tool', 1); HW.step(2);
+    stitch('L');
+    assert.ok(until(HW, () => HW.G.map.find('gsPgGate').open, 120), 'the gate, for good');
+    HW.step(300); assert.ok(HW.G.map.find('gsPgGate').open, 'still open');
+    /* the Marionette Hall's Knot */
+    go(HW, 'mario', 7, 2); HW.face('down'); HW.Inv.equipped = 'crossbar'; HW.press('tool', 1); HW.step(2);
+    const mp = HW.G.map.find('gsPuppet');
+    const walkP = (d, k) => { for (let i = 0; i < k; i++) { HW.hold(d); until(HW, () => mp.mv, 20); until(HW, () => !mp.mv, 30); HW.release(); HW.step(1); } };
     walkP('right', 6); walkP('up', 2); walkP('right', 1);
-    assert.ok(HW.G.map.find('gsMGate').open, 'the plate opens the gate');
     HW.press('tool', 1); HW.step(2);
     go(HW, 'mario', 5, 8); act(HW, 'down');
     assert.ok(HW.Progress.flag('untie:marionette'));
     go(HW, 'mario', 5, 6);
-    /* the Tidyhouse's: a block on the plate; through before it goes home */
-    go(HW, 'foot', 9, 1); go(HW, 'hub', 9, 5); go(HW, 'tidy', 18, 5);
-    go(HW, 'tidy', 15, 7); HW.push('left', 2); HW.step(10);
+    /* the Tidy Parlour: the block onto its plate, then cut: it stays */
+    go(HW, 'hub', 1, 5); go(HW, 'parlour', 17, 4); HW.push('down', 3); HW.step(5);
+    go(HW, 'parlour', 17, 7); HW.face('down'); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(3); HW.skipTalk();
+    HW.step(400);
+    assert.ok(HW.G.map.find('gsTaGate').open, 'held open for good');
+    /* the Tidyhouse's Knot */
+    go(HW, 'tidy', 18, 5); go(HW, 'tidy', 15, 7); HW.push('left', 2); HW.step(10);
     go(HW, 'tidy', 12, 8); HW.push('up', 5); HW.step(5);
     go(HW, 'tidy', 3, 5); act(HW, 'left');
     assert.ok(HW.Progress.flag('untie:tidy'));
-    /* the Kiln's: hooked over the gap, and back */
-    go(HW, 'tidy', 18, 5); go(HW, 'hub', 18, 5); go(HW, 'kiln', 9, 5);
-    HW.face('right'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); HW.step(60);
+    /* the Kiln Crossing: carry the pot over the water on the raft; break it: its shards fly home over the water, past the charm */
+    go(HW, 'tidy', 18, 5); go(HW, 'parlour', 18, 5); go(HW, 'hub', 18, 5);
+    go(HW, 'crossing', 3, 4); HW.face('up'); HW.press('act', 1); HW.step(20);
+    assert.ok(HW.player().carry, 'the pot, carried');
+    go(HW, 'crossing', 5, 5); step(HW, 'right');
+    HW.Inv.equipped = 'paddle'; paddleTo(HW, ...at('crossing', 13, 5)); step(HW, 'right');
+    HW.face('right'); HW.press('act', 1); HW.step(120);
+    assert.ok(HW.global('Signals').eval(HW.G.map, 'gsKc'), 'the charm struck');
+    /* the Kiln's Knot */
+    go(HW, 'kiln', 9, 5); HW.face('right'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); HW.step(60);
     go(HW, 'kiln', 15, 5); act(HW, 'right');
     assert.ok(HW.Progress.flag('untie:kiln'));
     go(HW, 'kiln', 13, 8); HW.face('left'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); HW.step(60);
-    assert.ok(HW.player().tx <= at('kiln', 9, 0)[0], 'back over the gap');
-    /* the Millrace's: over on a raft that stays where it's left, and back */
-    go(HW, 'kiln', 1, 5); go(HW, 'hub', 9, 1); go(HW, 'climb', 1, 5); go(HW, 'mill', 14, 5);
+    /* back over the crossing on the raft */
+    go(HW, 'crossing', 14, 5); step(HW, 'left'); HW.Inv.equipped = 'paddle'; paddleTo(HW, ...at('crossing', 6, 5)); step(HW, 'left');
+    /* the Ferry Landing: over, and the ferry cut (or it goes home without you) */
+    go(HW, 'hub', 9, 1); go(HW, 'climb', 1, 5); go(HW, 'ferry', 14, 5);
+    step(HW, 'left'); HW.Inv.equipped = 'paddle'; paddleTo(HW, ...at('ferry', 6, 5)); step(HW, 'left'); go(HW, 'ferry', 5, 5);
+    HW.face('right'); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(3); HW.skipTalk();
+    HW.step(400);
+    const ferry = HW.G.map.find('gsFerry');
+    assert.deepEqual([ferry.tx, ferry.ty], at('ferry', 6, 5), 'the ferry stays');
+    /* the Millrace's Knot */
+    go(HW, 'mill', 14, 5);
     step(HW, 'left'); HW.Inv.equipped = 'paddle'; paddleTo(HW, ...at('mill', 6, 5)); step(HW, 'left');
     go(HW, 'mill', 3, 5); act(HW, 'left');
     assert.ok(HW.Progress.flag('untie:mill'));
     go(HW, 'mill', 5, 5); step(HW, 'right'); paddleTo(HW, ...at('mill', 13, 5)); step(HW, 'right');
-    assert.deepEqual([HW.player().tx, HW.player().ty], at('mill', 14, 5), 'back over the race');
-    /* the Belfry's: a ring of the bell sends the sleeper home, out of the doorway */
-    go(HW, 'mill', 18, 5); go(HW, 'climb', 18, 5); go(HW, 'belfry', 6, 5);
-    HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(120);
+    go(HW, 'ferry', 5, 5); step(HW, 'right'); paddleTo(HW, ...at('ferry', 13, 5)); step(HW, 'right');
+    /* the Bell Loft: ring the sleeper awake (it goes home), then needle it onto the plate */
+    go(HW, 'climb', 18, 5); go(HW, 'loft', 9, 4); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(120);
+    const sl = HW.G.map.find('gsBlSleeper');
+    assert.deepEqual([sl.tx, sl.ty], at('loft', 12, 1), 'awake, and home');
+    go(HW, 'loft', 12, 4); HW.face('up'); stitch('RRR');
+    assert.ok(until(HW, () => HW.G.map.find('gsBlGate').open, 200), 'on the plate');
+    /* the Belfry's Knot */
+    go(HW, 'belfry', 6, 5); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(120);
     go(HW, 'belfry', 16, 4); act(HW, 'up');
-    assert.ok(HW.Progress.flag('untie:belfry'));
     assert.ok(HW.Progress.flag('spool_all'), 'all six');
-    go(HW, 'belfry', 1, 5); go(HW, 'climb', 9, 1); HW.hold('up'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk();
+    /* the Climb, now the Pull throws things across it: up by the pillars' lee */
+    for (const [x, y] of [[15, 9], [15, 8], [15, 7], [3, 7], [3, 6], [3, 5], [15, 5], [15, 4], [15, 3], [3, 3], [3, 2], [3, 1], [9, 1]]) go(HW, 'climb', x, y);
+    HW.hold('up'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk();
     assert.ok(HW.Progress.flag('spool_met'), 'up to Gran');
+    noErrors(HW);
+});
+
+test('the Climb: something flying knocks you back down to its foot', () => {
+    const HW = game('afterDrift');
+    for (const h of HOUSES) HW.Progress.set('untie:' + h);
+    HW.Progress.set('spool_all');
+    HW.warp('greatspool', ...at('climb', 9, 9)); HW.step(20); HW.skipTalk();
+    const p = HW.player();
+    let knocked = false;
+    for (let i = 0; i < 40 && !knocked; i++) { HW.walkTo(...at('climb', 9, 8)); HW.walkTo(...at('climb', 9, 7)); if (HW.Progress.flag('junk_hit')) knocked = true; HW.walkTo(...at('climb', 9, 9)); }
+    assert.ok(knocked, 'knocked back');
     noErrors(HW);
 });
 

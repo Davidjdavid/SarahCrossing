@@ -137,8 +137,8 @@
   Knots; the Drift's goal. S11's seed from Linnet's garden for anyone already cut; the Well's stones readable in the
   Pull (S35). The bracelet handed over. Rest stumps after the cut "remember" rather than tie off. Any fog lets a
   threadless Wren through to the Drift. The changed title is per save, not per browser. Linnet's question has its
-  text. 7 regression tests (`tests/review_end.test.mjs`). Still to do from it: the Great Spool is too thin for a
-  finale (item 9); some UI leftovers (hearts in the Satchel, the key counter in keyless Houses).
+  text. 7 regression tests (`tests/review_end.test.mjs`). Item 9 too: the Great Spool is sixteen rooms now (six
+  antechambers pairing each House with a later tool; the Climb a gauntlet); still to do: some UI leftovers (hearts in the Satchel, the key counter in keyless Houses).
 
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
@@ -162,3 +162,4 @@
 | 2026-11-10 | The Drift, the Great Pull, the Great Spool, the end (+8); Makings/Loom review fixes (+8); 274 in all; screenshots | pass |
 | 2026-11-10 | The Stray House (O1) and Linnet's Trail notes 4, 5, 8 (+11; 285 in all); screenshots | pass |
 | 2026-11-10 | The Unfinished House (O2) (+9; 294 in all); screenshots | pass |
+| 2026-11-10 | Late secrets (+6); final-act review fixes (+7); the Great Spool rebuilt to 16 rooms (+1); 308 in all; screenshots | pass |

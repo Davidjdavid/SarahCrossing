@@ -240,13 +240,15 @@ const SCENARIOS = {
         await shot('en_garden');
         await page.evaluate(() => { HW.warp('hollow', 95, 66); HW.step(400); HW.skipTalk(); HW.step(200); HW.skipTalk(); });
         await shot('en_pull');
-        const rooms = { foot: [29, 39], slumber: [9, 37], mario: [47, 36], hub: [29, 27], tidy: [10, 27], kiln: [49, 27], climb: [29, 16], mill: [16, 16], belfry: [49, 16] };
+        const rooms = { foot: [49, 39], nursery: [29, 37], slumber: [9, 37], gallery: [69, 37], mario: [87, 36], hub: [49, 27], parlour: [29, 27], tidy: [10, 27], crossing: [69, 27], kiln: [89, 27], climb: [49, 20], ferry: [36, 16], mill: [16, 16], loft: [69, 16], belfry: [89, 16] };
         for (const [n, [x, y]] of Object.entries(rooms)) {
             await page.evaluate(([x, y]) => { HW.warp('greatspool', x, y); HW.step(40); HW.skipTalk(); HW.step(5); }, [x, y]);
             await shot('gs_' + n);
         }
-        await page.evaluate(() => { for (const h of ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette']) HW.Progress.set('untie:' + h); HW.Progress.set('spool_all'); HW.warp('greatspool', 29, 8); HW.step(60); HW.skipTalk(); HW.step(200); });
+        await page.evaluate(() => { for (const h of ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette']) HW.Progress.set('untie:' + h); HW.Progress.set('spool_all'); HW.warp('greatspool', 49, 8); HW.step(60); HW.skipTalk(); HW.step(200); });
         await shot('gs_top');
+        await page.evaluate(() => { HW.warp('greatspool', 49, 20); HW.step(150); });
+        await shot('gs_climb_junk');
         await page.evaluate(() => { HW.G.credits = { pages: [['Wanderer:', '', 'Wren']], i: 0, t: 120 }; HW.step(1); });
         await shot('en_credits');
         await page.evaluate(() => { HW.G.credits = null; HW.preset('afterEnding'); HW.step(5); HW.skipTalk(); HW.step(300); });

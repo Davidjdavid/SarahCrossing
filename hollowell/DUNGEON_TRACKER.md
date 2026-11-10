@@ -274,25 +274,32 @@ goes through silk); people cut free; your own thread, at the fog.
 | The Web | 1,0 | Boss: the Weaver | Wakes as you come in. Hung by four anchor threads: cut all four (snip yourself free of its silk with C: caught again while bound, the silk tightens, 1 heart); it drops into the well of its loom (and lands hard on anyone under it); knock it; it climbs and spins new anchors; 3x | Heartstitch; d8 |
 
 
-## F The Great Spool (`src/75_greatspool.js`; the Drift `src/74_drift.js`, the end `src/76_ending.js`; tests `tests/ending.test.mjs`) - tested
+## F The Great Spool (`src/75_greatspool.js`; the Drift `src/74_drift.js`, the end `src/76_ending.js`; tests `tests/ending.test.mjs`, `tests/review_end.test.mjs`) - tested
 
-Reached down the Well during the Great Pull (after the Drift). Wren's own thread is cut: nothing pulls her home,
-falls are climbed out of where they happen, hurts unravel nothing (the Spool's flying junk only knocks her about). No
-nudges. Six Knot rooms round a hub, each its House's grammar with a later tool; the Climb's gate opens when all six are
-undone; at the top, Gran at the Spool and its six great threads.
+Reached down the Well during the Great Pull (after the Drift). Wren's own thread is cut: nothing pulls her home, a fall
+is climbed out of on the side she went in from (unless her Bedroll lies in the place: then a fall takes her to it),
+hurts only knock her about. No nudges. A 5x4 grid: the hub column (the Foot, the Winding Room, the Climb, the Top) and,
+either side, an antechamber that pairs each House with a later tool, then the House's Knot room. The goal counts the
+Knots; each Knot untied and each great thread cut is saved.
 
-| Room | Cell | House | Solution |
+| Room | Cell | Idea | Solution |
 |---|---|---|---|
-| The Foot of the Well | 1,3 | - | The way in (and up again) |
-| The Slumberhouse's Knot | 0,3 | Your own mark | A one-way ledge down to the Knot: lay the Bedroll above, drop, untie, Homeward back up |
-| The Marionette Hall's Knot | 2,3 | Remote bodies | The Crossbar walks the puppet through the hole, over the spikes onto the plate; the gate below latches once passed |
-| The Winding Room | 1,2 | - | Hub |
-| The Tidyhouse's Knot | 0,2 | Patience | Push the block onto the plate and get through the gate before it goes home (the gate latches once passed) |
-| The Kiln's Knot | 2,2 | Hookline | Hook the eyelet over the gap; another eyelet on the near side for the way back |
-| The Climb | 1,1 | - | Its gate opens when all six Knots are undone |
-| The Millrace's Knot | 0,1 | Paddle | A raft tied to nothing: paddle over, and back (it stays where it's left) |
-| The Belfry's Knot | 2,1 | Bell | A sleeper boulder in the doorway: ring the Bell, it goes home out of the way |
-| The Top of the Spool | 1,0 | Shears | Gran pulls everything; cut the six great threads at their posts; Linnet comes; the Unwinding |
+| The Foot of the Well | 2,3 | - | In (from the Well) and up again; west and east |
+| The Nursery Stair | 1,3 | Slumber + Hookline | Lay the Bedroll this side; hook the eyelet over the gap (7 tiles); after the Knot, Homeward flies you all the way back along your trace over the ledge and the gap (or fall into the gap: with the Bedroll laid, a fall takes you to it) |
+| The Slumberhouse's Knot | 0,3 | Your own mark | Down the one-way ledge, untie, Homeward (a hint after a while if no Bedroll's laid) |
+| The Puppet Gallery | 3,3 | Crossbar + Needle | Walk the puppet over the pins to beside the plate, let go, and needle it onto the plate (its new home): the gate stays open; on the plate by Crossbar alone, it walks home before you can reach the gate |
+| The Marionette Hall's Knot | 4,3 | Remote bodies | The puppet through the hole onto the plate; the gate below latches once passed |
+| The Winding Room | 2,2 | Hub | West and east, north |
+| The Tidy Parlour | 1,2 | Patience + Shears | The block onto its plate opens the gate; it goes home too soon to run for; cut its thread on the plate and it stays (or needle it there) |
+| The Tidyhouse's Knot | 0,2 | Patience | Push the block onto the plate and get through before it goes home (the gate latches once passed) |
+| The Kiln Crossing | 3,2 | Kiln + Paddle | Carry the pot onto the raft, paddle over, break it: its shards fly home the way it came, over the water, and strike the charm hung there (only flying things reach it): the gate |
+| The Kiln's Knot | 4,2 | Hookline | Hook the eyelet over the gap; another on the near side for the way back |
+| The Climb | 2,1 | Gauntlet | Its gate opens when all six Knots are undone; then the Pull flings things across four lanes, one way each, and a hit knocks you back to the foot; a pillar in each lane shelters its lee (a zigzag up), or time a dash |
+| The Ferry Landing | 1,1 | Mill + Shears | A ferry that always goes home: over, and then cut its thread (or needle it, or have the Bedroll this side), or it's gone home without you |
+| The Millrace's Knot | 0,1 | Paddle | A raft tied to nothing: paddle over, and back |
+| The Bell Loft | 3,1 | Bell + Needle | A boulder asleep over the pins: the Bell wakes it and it goes home (still over the pins); awake, the Needle gives it the plate for a home: the gate |
+| The Belfry's Knot | 4,1 | Bell | A sleeper in the doorway: ring it home, round the corner |
+| The Top of the Spool | 2,0 | Shears | Gran pulls everything; cut the six great threads at their posts; Linnet comes; the Unwinding |
 
 A save between the last cut and the Unwinding picks the end up again on entering the top room.
 

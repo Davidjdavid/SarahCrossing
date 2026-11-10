@@ -33,7 +33,7 @@ Great Spool, the end). Presets `afterDrift` and `afterEnding` start late games.
 ## Next priorities
 1. Both optional dungeons are built and tested: O1 the Stray House (Linnet's Trail opens it; the bracelet changes the
    ending) and O2 the Unfinished House (the Guild pin or the Loom; the Long Hook).
-2. Secrets: all built but S17 and S21 (dropped, see SPOILERS.md). Next: the final-act review's 18 findings (one critical), then a richer Great Spool.
+2. Secrets: all built but S17 and S21 (dropped, see SPOILERS.md). The final-act review's findings are fixed and the Great Spool is rebuilt (16 rooms).
 3. Playthrough legs 8 (the Makings to the Loom) and 9 (the fog to the credits); a fresh-eyes review of the final
    act; a full-length QA playthrough.
 4. Music and art passes (the Drift is plain; the epilogue could use more on screen); pacing and playtime review.
