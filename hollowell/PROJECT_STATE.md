@@ -3,6 +3,13 @@
 _Last updated: 2026-11-10 (session 1, day 2)._
 
 ## Status
+**Polish campaign in progress (POLISH.md, from 10 November):** David asked for a long, thorough polish pass. So far:
+every House reworked (bosses in three beats, mini-bosses two hits, new rooms that combine earlier rules, floors and
+set pieces), the Makings grown to eight Little Houses with a second child, all music lengthened (a fight tune per
+House), the story's big scenes staged, and two rounds of fixes from a full live run and a critic's review. Running:
+the Great Spool's rebuild and the overworld regions. Then: live run 2, picture reviews, blind solvers, the critic
+again. Room counts and the length estimate below are from before the campaign and will be re-measured.
+
 **COMPLETE (2026-11-10).** Every item of GAME_BRIEF.md §13 is met (checklist below); final verification passed: 328
 headless tests including one continuous scripted game from the title to the credits, every browser scenario (the game
 opened from `play.html` as a double-click would), and two rounds of fresh-eyes bug hunts over the newest content with
