@@ -120,6 +120,8 @@
   Loading Bay; the Far Shelf's planks side by side); the Needle couldn't sew past a sewn plank or pick which to unpick
   (it now offers Unpick this one / Sew the next one along); long toasts ran off the screen (they wrap now, game-wide).
 
+- 2026-11-10: the late secrets (`tests/secrets2.test.mjs`, 6): S01, S03, S07, S08, S09, S10, S14, S25, S31.
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 

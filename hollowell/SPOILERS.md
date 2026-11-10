@@ -115,8 +115,8 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
    Ever felt your own?" + the Frayed Ribbon (cosmetic scarf). *Unusual interaction / NPC.*
 2. **S02 The turned portrait** (Gran's study): pull it with the Gloves and grip it: Linnet's face. Talk to
    Gran meanwhile for her line. Starts Linnet's Trail (note 1 is behind the frame). *Hub / chain start.*
-3. **S03 Biscuit's route**: follow the cat (it changes per act); after D1 it slips behind the bakery to a
-   crawlspace: Heart Patch. *Hub / environmental.*
+3. **S03 Biscuit's route**: follow the cat; one of its stops is a gap under the bakery's back step (hub 105,67);
+   interact there while Biscuit sits by it: it fetches out a Heart Patch. *Hub / environmental.*
 4. **S04 Staff Only** (D1): the door in the Tidyhouse's pantry; hold the returning cupboard with a block on
    its trace, slip through: Mother Ives below, "Nothing to see! Shoo!" (door slams; Underside glimpse).
 5. **S05 The warm pie** (D1 kitchen): heals all; note "for my favourite Wanderer, don't tell".
@@ -130,22 +130,21 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
     holding a Drift-bloom seed (plant it in Gran's garden; blooms in the epilogue).
 12. **S12 Kids' Housekeeper** (after D1): the kids re-enact the Tidyhouse boss in the square; Otto tidies any crate moved, coming at it from his side; push one straight away from him and step aside, and his own yank bowls him over: the Playground badge.
 13. **S13 The Wren puppet** (D6): walk it through the stage set of the Tidyhouse foyer.
-14. **S14 Bosses come back** (after each boss, revisit its arena): the boss re-formed, asleep; pet it.
+14. **S14 Bosses come back** (after each boss, revisit its arena): the boss re-formed, asleep; pet it (all seven: a Heart Patch).
 15. **S15 Echo room** (D4): ring bell-stones in the order of Gran's lullaby (hummed by Gran at bedtime,
     Linnet's theme): hidden room with a Heart Patch and Linnet's note 4.
 16. **S16 The sleeping giant's cave** (Hushwood): after Old Hummock goes home (the Recall Bell), the hollow he slept
     in leads down; only with the Bedroll laid up top (or climb the roots back out, the hard way). Below: a small round
     door painted the colour of the rock, a red X over the keyhole, somebody sawing and humming behind it (the
     Underside); Linnet's note 6 across crumbling boards.
-17. **S17 Re-mark a sheep** (Needle): give a Meadowfold sheep a place in town; it lives there forever.
+17. **S17 Re-mark a sheep** (Needle): not built (sheep are critters, not things the Needle takes).
 18. **S18 Bell-and-bedroll**: ring the Bell while flying Homeward: Wren snaps home instantly (speed tech).
 19. **S19 Behind the falls** (Millwater): ride a float down the east side of the outlet river (needs the
     Paddle to get onto it): the current turns in behind the falls to a hidden pool with a Heart Patch chest;
     the float takes you back upstream when it goes home. Below the falls, a beach with Linnet's bottle.
 20. **S20 Shard sniper** (Kilnridge): carry a pot along the cliff path past the hawk's nest, shatter it
     at the bottom: the shards go back up the path and knock the Heart Patch out of the nest.
-21. **S21 The Lost & Found**: 16 strays across the valley (each scratched "L"); return them to Auntie Mabel;
-    each has a story; all: Mabel tells Linnet's story + the Stray Charm (thrown things stay where they land).
+21. **S21 The Lost & Found**: not built (it would be a fetch list; Linnet's Trail and the Stray House tell her story).
 22. **S22 The logbooks** (Act III): each Maker's workshop logbook reports Wren's real play.
 23. **S23 Underside peepholes** (Act III): eight peepholes in the hub's Underside; private moments.
 24. **S24 Old Arlo's walk** (Act IV): cut Arlo free; follow him to the lake.
@@ -157,7 +156,7 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 29. **S29 Returnball** (festival and after): carry the ball through the five rings and let it go; each ring it goes back through scores; five in one go: a Heart Patch from Pip.
 30. **S30 Tuck's Aha!s** (Act III): get three Ahas in every Making: Tuck's drawing of Wren (Gran's fridge,
     shows in the epilogue).
-31. **S31 Moth Matron's silk** (Loomwood): optional mini-boss in a hollow birch; Long silk for the Hookline.
+31. **S31 The far isle** (Millwater lake, with the Long Hook from O2): an eyelet on a tiny island ten tiles off the west shore (THE ISLE OF NOWHERE sign); hook over, a Heart Patch, and an eyelet on the shore for the way back. (Was: the Moth Matron's silk; the Long Hook took its place.)
 32. **S32 The gate counterweight** (Act III): from the Underside, re-thread the north gate early.
 33. **S33 Fainting on purpose in Act III**: get pulled home by Gran while Wren *knows*: different wake-up scene.
 34. **S34 Hints off**: play Act I–II with Hints off: the logbooks say "The Wanderer asked us not to help.

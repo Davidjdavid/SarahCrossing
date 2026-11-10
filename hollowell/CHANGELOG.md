@@ -82,3 +82,4 @@
 - The second optional dungeon: six rooms built around a new use of a late tool, with an old character's last walk as
   its finale and a tool upgrade as its reward; tests for every room and screenshots.
 - Long notices wrap onto more lines instead of running off the screen.
+- Nine more secrets around the valley (one of them reached only with the new tool upgrade); tests.
