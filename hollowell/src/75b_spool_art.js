@@ -24,7 +24,7 @@ for (const [name, L] of Object.entries(SPOOL_LOOKS)) {
             for (const o of [0, 8]) { fill(x, b2, o, 0, 1, 16); fill(x, b3, o + 7, 0, 1, 16); }
             const e = (v * 5 + 3) % 16; fill(x, b3, 1, e, 6, 1); fill(x, b3, 9, (e + 9) % 16, 6, 1);
             speckle(x, [b1], 40 + v, 0.1);
-            x.globalAlpha = 0.45; fill(x, L.run[v % L.run.length], 3 + (v * 3) % 10, 0, 1, 16); x.globalAlpha = 1;
+            if (v === 0) { x.globalAlpha = 0.4; const c = L.run[1 % L.run.length]; px(x, 11, 4, c); px(x, 12, 5, c); px(x, 12, 6, c); px(x, 13, 7, c); x.globalAlpha = 1; }
         },
         floor2: (x, th, v) => { fill(x, b1); speckle(x, [b0, b3], 30 + v, 0.25); },
         floor3: (x, th, v) => { fill(x, b3); for (let i = 1; i < 16; i += 3) fill(x, b1, i, 0, 1, 16); },
@@ -74,15 +74,20 @@ const SpoolArt = {
        being wound in, its thread drawn tight up to the face */
     ground(a, cx, cy) {
         const r = Cam.room; if (!r || !Pull.on(a)) return;
-        const L = this.look(a, r.x + 1, r.y + 1), run = L.run;
-        for (let ty = r.y + 1; ty < r.y + r.h - 1; ty++) for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) {
-            const k = a.kind(tx, ty);
-            if (k.solid && !k.arch) continue;
-            const sx = tx * T - cx, sy = ty * T - cy;
-            Gfx.alpha(k.water ? 0.16 : k.pit ? 0.5 : 0.32);
-            for (let n = 0; n < 2; n++) {
-                const ox = 2 + Math.floor(hash2(tx * 3 + n, ty, 11) * 12), ph = (G.t * 0.35 + hash2(tx, ty * 5 + n, 13) * 16) % 16;
-                Gfx.rect(sx + ox, sy + 16 - ph - 4, 1, 4, run[(tx + ty + n) % run.length]);
+        const L = this.look(a, r.x + 1, r.y + 1), run = L.run, len = (r.h - 2) * T, bot = (r.y + r.h - 1) * T;
+        /* the valley's threads: a few long lines running north over the floor into the face, a fibre now and then
+           travelling up one (slowly: they're being wound, not falling) */
+        const n = Math.max(3, Math.round((r.w - 2) / 2.5));
+        for (let i = 0; i < n; i++) {
+            const lx = r.x * T + T + Math.floor((i + 0.25 + hash2(i, r.x, r.y) * 0.5) * (r.w - 2) * T / n), tx = Math.floor(lx / T), sx = lx - cx, col = run[i % run.length];
+            for (let ty = r.y + 1; ty < r.y + r.h - 1; ty++) {
+                const k = a.kind(tx, ty); if (k.solid && !k.arch) continue;
+                Gfx.alpha(k.water ? 0.1 : 0.18); Gfx.rect(sx, ty * T - cy, 1, T, col);
+            }
+            for (let f = 0; f < 2; f++) {
+                const y = bot - (G.t * 0.3 + hash2(i, f, r.x * 7 + r.y) * len) % len, k = a.kind(tx, Math.floor(y / T));
+                if (k.solid && !k.arch) continue;
+                Gfx.alpha(k.water ? 0.3 : 0.6); Gfx.rect(sx, Math.round(y) - cy, 1, 3, shade(col, 0.45));
             }
         }
         Gfx.alpha(1);
@@ -232,6 +237,37 @@ function initSpoolArt() {
         const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
         R('#6b4128', 1, 4, 14, 20); R('#9a6438', 2, 5, 12, 2); R('#9a6438', 2, 13, 12, 2); R('#3a2418', 2, 7, 12, 6); R('#3a2418', 2, 15, 12, 8);
         R('#d98f3a', 3, 8, 3, 5); R('#e8946a', 8, 9, 3, 4); R('#c4623a', 4, 17, 4, 6); R('#d98f3a', 10, 18, 3, 5);
+    });
+    /* the Prompt Box's stage dressing: a costume rail, the ghost light left burning on an empty stage, painted flats */
+    ART.gs_rail = paintSprite(32, 24, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        R('#2a1f2d', 2, 1, 28, 3); R('#c9a24a', 3, 2, 26, 1); R('#2a1f2d', 2, 1, 3, 21); R('#2a1f2d', 27, 1, 3, 21); R('#c9a24a', 3, 2, 1, 19); R('#c9a24a', 28, 2, 1, 19);
+        R('#2a1f2d', 0, 20, 8, 2); R('#2a1f2d', 24, 20, 8, 2); R('#5a5264', 1, 22, 2, 2); R('#5a5264', 5, 22, 2, 2); R('#5a5264', 25, 22, 2, 2); R('#5a5264', 29, 22, 2, 2);
+        for (const [a, w, h, c] of [[6, 7, 14, '#d6304e'], [14, 6, 10, '#e8c04a'], [21, 6, 16, '#4f6fb0']]) {
+            R('#2a1f2d', a + (w >> 1), 3, 1, 2); R('#2a1f2d', a - 1, 5, w + 2, h + 1); R(c, a, 5, w, h); R(shade(c, 0.3), a, 5, 1, h); R(shade(c, -0.3), a + w - 2, 6, 2, h - 1);
+        }
+        R('#f7d64a', 9, 7, 1, 1); R('#f7d64a', 9, 10, 1, 1); R('#f7e08a', 16, 7, 2, 1);
+    });
+    ART.gs_ghostlight = paintSprite(16, 32, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        x.globalAlpha = 0.18; R('#fff4c0', 1, 0, 14, 12); x.globalAlpha = 0.3; R('#fff4c0', 3, 1, 10, 9); x.globalAlpha = 1;
+        R('#2a1f2d', 5, 2, 6, 7); R('#fff4c0', 6, 3, 4, 5); R('#ffffff', 7, 4, 1, 2); R('#5a5264', 5, 5, 6, 1); R('#5a5264', 7, 2, 1, 7);
+        R('#2a1f2d', 7, 9, 2, 19); R('#7f7688', 7, 9, 1, 19);
+        R('#2a1f2d', 3, 27, 10, 2); R('#2a1f2d', 2, 29, 3, 3); R('#2a1f2d', 11, 29, 3, 3); R('#2a1f2d', 7, 28, 2, 4); R('#5a5264', 3, 27, 10, 1);
+    });
+    ART.gs_flats = paintSprite(32, 24, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        R('#2a1f2d', 1, 2, 18, 22); R('#c9925a', 2, 3, 16, 20); R('#9a6438', 2, 3, 16, 2); R('#9a6438', 9, 3, 2, 20); R('#9a6438', 2, 12, 16, 2);
+        R('#2a1f2d', 12, 4, 19, 20); R('#7fb0d8', 13, 5, 17, 18); R('#a5dcf7', 13, 5, 17, 4); R('#f7f2e0', 24, 7, 3, 3);
+        R('#5a5264', 15, 12, 6, 11); R('#7f7688', 15, 12, 6, 2); R('#5a5264', 14, 10, 2, 3); R('#5a5264', 17, 10, 2, 3); R('#5a5264', 20, 10, 2, 3); R('#2a1f2d', 17, 17, 2, 6);
+        R('#3a8a4a', 22, 15, 8, 8); R('#5fb060', 23, 14, 6, 3); R('#6b4128', 25, 21, 2, 2);
+    });
+    /* the Gale Loft's practice table: handbells, mouths down on a cloth */
+    ART.gs_handbells = paintSprite(32, 24, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        R('#2a1f2d', 1, 13, 30, 3); R('#6b4128', 2, 14, 28, 2); R('#2a1f2d', 3, 16, 2, 8); R('#2a1f2d', 27, 16, 2, 8); R('#4a301e', 3, 16, 1, 7); R('#4a301e', 27, 16, 1, 7);
+        R('#e8c04a', 2, 12, 28, 2); R('#fff4c0', 2, 12, 28, 1);
+        for (const [a, h] of [[4, 6], [10, 5], [16, 7], [23, 5]]) { R('#2a1f2d', a, 12 - h, 6, h); R('#c8903a', a + 1, 13 - h, 4, h - 1); R('#f7e08a', a + 1, 13 - h, 1, h - 2); R('#6b4128', a + 2, 9 - h, 2, 3); R('#2a1f2d', a + 2, 9 - h, 2, 1); }
     });
     ART.gs_millhouse = paintSprite(16, 24, x => {
         const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);

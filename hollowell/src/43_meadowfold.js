@@ -45,7 +45,7 @@ const MEADOW_ROWS = [
 ];
 
 defBlock({
-    id: 'meadow', bx: 1, by: 2, name: 'Meadowfold', theme: 'meadow', music: 'meadow',
+    id: 'meadow', bx: 1, by: 2, name: 'Meadowfold', theme: 'meadow', music: 'meadow', owArt: true, soft: 4,
     rows: MEADOW_ROWS,
     forest: ['tree', 'tree2', 'tree_apple', 'tree'],
     ents: [

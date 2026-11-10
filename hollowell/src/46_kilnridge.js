@@ -46,7 +46,7 @@ const KILNRIDGE_ROWS = [
 ];
 
 defBlock({
-    id: 'kilnridge', bx: 0, by: 2, name: 'Kilnridge', theme: 'kiln', music: 'kiln',
+    id: 'kilnridge', bx: 0, by: 2, name: 'Kilnridge', theme: 'kiln', music: 'kiln', owArt: true, soft: 3,
     rows: KILNRIDGE_ROWS,
     forest: ['tree_autumn'],
     legend: {},
@@ -137,3 +137,9 @@ function initKilnridgeArt() {
     defSym('urn_cracked', ['........', '......kk', '.....kyo', '.....kkk', '....kook', '...kyoko', '..kyooko', '..kookoo', '..koOooo', '..kookOo', '..kOokoo', '...kOooo', '....kOOO', '.....kkk', '........', '........'], { o: '#a8805a', O: '#7a5a3a', y: '#c8a07a' }, { y: 'o' });
 }
 CONTENT_INIT.push(initKilnridgeArt);
+
+/* Kilnridge's rock: red sandstone in layers */
+OWA.cliffs.kiln = {
+    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { tint: ['#d67a54', '#c4623a', '#e8946a', '#b8583a'], band1: [0, 3, 7, 10, 13], band2: [0, 4, 8, 12], seed: 3 }),
+    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { topCol: '#d48a62', tuft: ['#b8904a', '#d8b060'], seed: 3 }),
+};

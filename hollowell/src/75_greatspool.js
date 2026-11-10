@@ -294,6 +294,7 @@ defHouse({
                 { k: 'knotlock', x: 17, y: 2, house: 'belfry' },
                 { k: 'ratchet', x: 1, y: 7 },
                 { k: 'sign', x: 2, y: 9, text: "Your mum's hand, on a ringing card pinned up by the door: TUESDAY PRACTICE, SIX SHARP. BRING A SCARF. (IT'S DRAUGHTY.)" },
+                { k: 'gsdeco', x: 17, y: 9, look: 'gs_handbells', solid: [[0, 0], [1, 0]], text: "Handbells laid out for practice, mouths down on a brass-coloured cloth, so they won't ring by themselves." },
             ],
             nudge: { solved: 'untie:belfry', after: 60 * 150, at: [12, 6], say: GS_SAY.belfry + " twitches across the draught, at the boulder's empty place." },
         },
@@ -314,7 +315,7 @@ defHouse({
             rows: ['####################', '##########.........#', '#....~.............#', '#....~....#........#', '#####U#####........#', '#~~~~~..............', '#~~~~~~~~~~~~......#', '#~~~~~~~~~~~~......#', '#~~~~~~~~~~~~......#', '#~~~~~~~~~~~~......#', '####################'],
             ents: [
                 { k: 'raft', x: 12, y: 7, id: 'gsSRaft' },
-                { k: 'knotlock', x: 8, y: 2, house: 'slumber' },
+                { k: 'knotlock', x: 6, y: 3, house: 'slumber' },
                 { k: 'lever', x: 9, y: 3, id: 'gsSLever', sig: 'gsSl' },
                 { k: 'door', x: 10, y: 2, type: 'gate', when: 'gsSl', dir: 'v', passed: 'right', id: 'gsSGate' },
                 { k: 'deco', x: 2, y: 2, look: 'bed', solid: [[0, 0], [0, 1]], oy: 0, baseY: 30, text: "Doctor Mallow's spare bed, turned down and waiting, a hot-water bottle in it gone cold." },
@@ -336,6 +337,9 @@ defHouse({
                 { k: 'knotlock', x: 18, y: 2, house: 'marionette' },
                 { k: 'ratchet', x: 1, y: 7 },
                 { k: 'sign', x: 8, y: 9, text: "Pencilled on the prompt box in Jory's hand: UNDERSTUDY: IN THROUGH THE LITTLE DOOR. THE ROCK STAYS ON ITS MARK. (IT'S PAINTED. IT'S VERY HEAVY PAINT.)" },
+                { k: 'gsdeco', x: 1, y: 9, look: 'gs_rail', solid: [[0, 0], [1, 0]], text: "A rail of costumes for a show that never opened: a crimson cape, a gold doublet, a blue gown, every one with JORY stitched in its collar." },
+                { k: 'gsdeco', x: 5, y: 9, look: 'gs_ghostlight', text: "A ghost light: one bare bulb on a stand, left burning on an empty stage so nobody falls off it in the dark." },
+                { k: 'gsdeco', x: 12, y: 9, look: 'gs_flats', solid: [[0, 0], [1, 0]] },
             ],
             nudge: { solved: 'untie:marionette', after: 60 * 150, at: [13, 5], say: GS_SAY.marionette + ' twitches inside the prompt box, under the painted rock.' },
         },
@@ -475,16 +479,18 @@ class SpoolDrum extends Ent {
         /* Gran pulls everything else: things fly in from the walls toward the Spool (they'd knock you flat, if there were
            anything left in you to unravel; as it is, they knock you about) */
         if (Progress.flag('spool_met') && !Progress.flag('unwound') && !Script.blocking()) {
-            /* the Pull: a thing out of its place, lying under a great thread, is dragged along it into the drum, and the
-               thread goes slack a moment; the Spool spits the thing back onto its shelf after */
+            /* the Pull: a thing out of its place, lying under a great thread (or being wound in across one: they're the
+               Pull's own lines), is dragged along it into the drum, and the thread goes slack a moment; the Spool spits
+               the thing back onto its shelf after */
             const posts = a.ents.filter(e => e.kind === 'greatpost' && !e.cut);
             for (const e of a.ents) {
-                if (!e.ret || !e.isGrid || e.removed || e.carried || e.mv || e.pendingHome || e.kind === 'greatpost' || a.roomAt(e.tx, e.ty) !== a.roomAt(this.tx, this.ty)) continue;
-                if (Return.atHome ? Return.atHome(e) : (e.tx === e.ret.mx && e.ty === e.ret.my)) { e.yankT = 0; continue; }
+                if (!e.ret || !e.isGrid || e.removed || e.carried || e.flying || e.pendingHome || e.kind === 'greatpost' || a.roomAt(e.tx, e.ty) !== a.roomAt(this.tx, this.ty)) continue;
+                if (e.ret.state === 'home') { e.yankT = 0; continue; }
                 const hit = posts.filter(q => q.under(e.tx, e.ty));
                 if (!hit.length) { e.yankT = 0; continue; }
-                if (++e.yankT < 24) continue;
+                if (e.ret.state !== 'returning' && ++e.yankT < 24) continue;
                 e.yankT = 0;
+                if (e.mv) { a.unplace(e, e.mv.fx, e.mv.fy); e.mv = null; }
                 for (const q of hit) { q.slack = 300; Sfx.play('twang'); Fx.ring(q.tx * T + 8, q.ty * T, KNOT_COL[q.house]); }
                 this.junk.push({ x: e.tx * T + 8, y: e.ty * T + 8, tx: (this.tx + 2) * T, ty: (this.ty + 1) * T + 8, k: 2, thing: e, harmless: true });
                 a.unplace(e, e.tx, e.ty); e.hiddenYank = true; e.inert = true; e.tx = -10; e.ty = -10; e.x = -160; e.y = -160;

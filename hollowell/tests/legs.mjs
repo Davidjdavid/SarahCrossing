@@ -18,24 +18,29 @@ export function hearMakers(HW) {
     }
 }
 
-/* at the top: carry a crate under a great thread near its post, let the Pull drag it along (slack), and cut */
+/* at the top: throw a crate so it lands on a great thread near its post, let the Pull drag it along (slack), and cut */
 export function slackAndCut(HW, post, origin) {
-    const a = HW.G.map, p = HW.player();
-    const crate = a.ents.find(e => e.kind === 'crate' && !e.removed && !e.hiddenYank && e.ret && e.tx === e.ret.mx && e.ty === e.ret.my);
+    const a = HW.G.map, p = HW.player(), top = a.roomAt(post.tx, post.ty);
+    const crate = a.ents.find(e => e.kind === 'crate' && !e.removed && !e.hiddenYank && e.ret && e.tx === e.ret.mx && e.ty === e.ret.my && a.roomAt(e.tx, e.ty) === top);
     assert.ok(crate, 'a crate on its shelf');
     for (let k = 0; k < 4 && !HW.walkTo(crate.tx, crate.ty - 1); k++) HW.step(20);
     HW.face('down'); HW.press('act', 1); HW.step(20);
     assert.ok(p.carry, 'carrying a crate');
-    /* a tile under the thread, two along from the post, with a free tile beside it to stand on */
-    const t = post.tiles[1] || post.tiles[0];
-    const spots = [[t[0], t[1] + 1, 'up'], [t[0], t[1] - 1, 'down'], [t[0] - 1, t[1], 'right'], [t[0] + 1, t[1], 'left']];
-    let placed = false;
-    for (const [x, y, d] of spots) {
-        if (a.kind(x, y).solid || a.at(x, y) || post.under(x, y)) continue;
-        if (!HW.walkTo(x, y)) continue;
-        HW.face(d); HW.press('act', 1); HW.step(10); placed = !p.carry; if (placed) break;
+    /* a throw lands four tiles on: from a spot four off a tile of this thread (nothing in between, and under no other
+       thread on the way), so the crate comes down on the thread */
+    const others = a.ents.filter(e => e.kind === 'greatpost' && e !== post);
+    const open = (x, y) => !a.kind(x, y).solid && !a.at(x, y) && a.roomAt(x, y) === top;
+    let thrown = false;
+    for (const t of post.tiles.slice(0, 5)) {
+        for (const [dx, dy, d] of [[0, 1, 'up'], [1, 0, 'left'], [-1, 0, 'right'], [0, -1, 'down']]) {
+            const sx = t[0] + dx * 4, sy = t[1] + dy * 4, way = [1, 2, 3].map(k => [t[0] + dx * k, t[1] + dy * k]);
+            if (!open(sx, sy) || !open(t[0], t[1]) || !way.every(([x, y]) => open(x, y) && !post.under(x, y) && !others.some(q => q.under(x, y)))) continue;
+            if (!HW.walkTo(sx, sy)) continue;
+            HW.face(d); HW.press('act', 1); HW.step(30); thrown = !p.carry; if (thrown) break;
+        }
+        if (thrown) break;
     }
-    assert.ok(placed, 'crate set down under the thread');
+    assert.ok(thrown, 'crate thrown onto the thread');
     for (let i = 0; i < 200 && post.slack <= 0; i++) HW.step(1);
     assert.ok(post.slack > 0, 'dragged along it: slack');
     const sx = post.tx + (post.tx < origin[0] + 10 ? 1 : -1), d = post.tx < origin[0] + 10 ? 'left' : 'right';

@@ -50,7 +50,7 @@ const MILLWATER_ROWS = [
 ];
 
 defBlock({
-    id: 'millwater', bx: 2, by: 2, name: 'Millwater', sub: 'the Reaches', theme: 'water', music: 'water',
+    id: 'millwater', bx: 2, by: 2, name: 'Millwater', sub: 'the Reaches', theme: 'water', music: 'water', owArt: true, soft: 3,
     rows: MILLWATER_ROWS,
     forest: ['tree', 'tree2', 'tree_birch'],
     legend: {},

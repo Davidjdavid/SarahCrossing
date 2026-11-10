@@ -6353,6 +6353,332 @@ SPAWN.rest = (tx, ty, p) => {
     return pr;
 };
 
+// ---- 33_overworld_art.js ----
+/* The overworld's art kit (src/32_overworld.js's blocks opt in; drawing only, nothing here changes what can be walked on).
+   - Ground painted per region: OWA.ground[theme][painter] = (x, th, v) => paints a tile (grass, path, forest...).
+   - Painters that look at their neighbours: OWA.paint[painter] = { mask(a, tx, ty), draw(x, th, v, mask, tn, f), frames }.
+   - Cliffs drawn by the lie of the land (OWA.cliffs[theme] = { top, face }): a block's `levels` ([[x, y, level]...], seeds
+     flooded over open ground) says which ground is higher; a cliff is a face where it drops to lower ground south of it
+     (one or two tiles of face), the top of its plateau everywhere else, with a rim where it falls away to the sides or
+     behind. The valley's rim (the map's edge) counts as high.
+   - Soft seams: a block with `soft: n` frays into each neighbour with another palette over its own n tiles nearest the
+     seam (the seam itself in the neighbour's colours; ground by a wandering edge, rock and water by shading across), and
+     the trees there mix. Of two soft blocks only one does it (the softer... the larger `soft`, then the earlier id).
+   - A tile's own theme: b.themeAt(lx, ly) (block coordinates) may name another (a canyon's mouth in its canyon's rock).
+   - Each block's drawGround(a, cx, cy) and drawOver(a, cx, cy), and ripples round Wren's feet in shallow water. */
+
+const OWA = {
+    ground: {}, paint: {}, cliffs: {},
+    blockAt(tx, ty) { return OW.blocks[Math.floor(tx / OW.bw) + ',' + Math.floor(ty / OW.bh)] || null; },
+    /* the theme a tile is drawn in */
+    themeOf(a, tx, ty) {
+        const b = this.blockAt(tx, ty);
+        if (!b) return 'town';
+        const t = b.themeAt && b.themeAt(tx - b.bx * OW.bw, ty - b.by * OW.bh);
+        return t || b.theme;
+    },
+    /* ---------- smooth noise, the same everywhere every time ---------- */
+    n1(x, s) { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return lerp(hash2(i, 7, s), hash2(i + 1, 7, s), u); },
+    n2(x, y, s) {
+        const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, u = fx * fx * (3 - 2 * fx), w = fy * fy * (3 - 2 * fy);
+        return lerp(lerp(hash2(i, j, s), hash2(i + 1, j, s), u), lerp(hash2(i, j + 1, s), hash2(i + 1, j + 1, s), u), w);
+    },
+    /* ---------- levels of the ground (for cliffs) ---------- */
+    RIM: 9,
+    levels(a) {
+        if (a._owLv) return a._owLv;
+        const lv = new Int8Array(a.w * a.h).fill(-1);
+        const wall = (x, y) => { const k = a.cell(x, y).k; return k === 'cliff' || k === 'rock' || k === 'stairs' || k === 'ledge' || k === 'void' || k === 'fog'; };
+        for (const b of Object.values(OW.blocks)) for (const [sx, sy, L] of b.levels || []) {
+            const x0 = b.bx * OW.bw + sx, y0 = b.by * OW.bh + sy;
+            if (!a.inside(x0, y0) || wall(x0, y0) || lv[y0 * a.w + x0] >= 0) continue;
+            const q = [[x0, y0]]; lv[y0 * a.w + x0] = L;
+            while (q.length) {
+                const [x, y] = q.pop();
+                for (let d = 0; d < 4; d++) {
+                    const nx = x + DX[d], ny = y + DY[d];
+                    if (!a.inside(nx, ny) || lv[ny * a.w + nx] >= 0 || wall(nx, ny)) continue;
+                    lv[ny * a.w + nx] = L; q.push([nx, ny]);
+                }
+            }
+        }
+        return (a._owLv = lv);
+    },
+    /* the level of open ground at a tile (through stairs and ledges, the way the scan was going); the rim is high */
+    lvAt(a, x, y, dy = 0) {
+        for (let n = 0; n < 6; n++) {
+            if (!a.inside(x, y)) return this.RIM;
+            const k = a.cell(x, y).k;
+            if (k === 'fog' || k === 'void') return this.RIM;
+            if ((k === 'stairs' || k === 'ledge') && dy) { y += dy; continue; }
+            if (k === 'cliff' || k === 'rock') return null;
+            const L = this.levels(a)[y * a.w + x];
+            return L < 0 ? 0 : L;
+        }
+        return 0;
+    },
+    isCliff(a, x, y) { const k = a.cell(x, y).k; return (k === 'cliff' || k === 'rock') && a.cell(x, y).p === 'cliff'; },
+    /* what a cliff tile is: the face (and how far up it) or the plateau's top, and which of its sides fall away */
+    cliffMask(a, tx, ty) {
+        const cl = (x, y) => a.inside(x, y) && this.isCliff(a, x, y);
+        const info = (x, y) => {
+            let ya = y; while (ya > 0 && cl(x, ya - 1)) ya--; ya--;
+            let yb = y; while (yb < a.h - 1 && cl(x, yb + 1)) yb++; yb++;
+            const La = this.lvAt(a, x, ya, -1), Lb = this.lvAt(a, x, yb, 1);
+            const run = yb - ya - 1, up = yb - y;
+            const faceH = run >= 3 ? 2 : 1;
+            const hi = La === null || Lb === null ? this.RIM : Math.max(La, Lb);
+            const face = La !== null && Lb !== null && La > Lb && up <= faceH;
+            return { face, up, hi, La, Lb };
+        };
+        const me = info(tx, ty);
+        const side = dx => {
+            const x = tx + dx;
+            if (!a.inside(x, ty)) return 's';                         /* (off the map: the same) */
+            if (cl(x, ty)) { const o = info(x, ty); return o.face === me.face ? 's' : o.face ? 'f' : 't'; }
+            const L = this.lvAt(a, x, ty); return L === null || L >= me.hi ? 's' : 'o';
+        };
+        const l = side(-1), r = side(1);
+        if (me.face) {
+            const above = cl(tx, ty - 1) ? (info(tx, ty - 1).face ? 'f' : 't') : 'o';
+            const below = cl(tx, ty + 1) ? 'f' : 'o';
+            return 'F' + me.up + above + below + l + r;
+        }
+        const aboveOpen = !cl(tx, ty - 1) && (() => { const L = this.lvAt(a, tx, ty - 1, -1); return L !== null && L < me.hi; })();
+        const belowOpen = !cl(tx, ty + 1) && (() => { const L = this.lvAt(a, tx, ty + 1, 1); return L !== null && L < me.hi; })();
+        return 'T' + (aboveOpen ? 'u' : '-') + (belowOpen ? 'd' : '-') + l + r;
+    },
+    /* ---------- soft seams ---------- */
+    owns(b, n) {
+        if (!b.soft) return false;
+        if (!n.soft) return true;
+        return b.soft !== n.soft ? b.soft > n.soft : b.id < n.id;
+    },
+    seamOf(a, tx, ty) {
+        const b = this.blockAt(tx, ty); if (!b || !b.soft) return null;
+        const lx = tx - b.bx * OW.bw, ly = ty - b.by * OW.bh, band = b.soft;
+        const me = this.themeOf(a, tx, ty);
+        let best = null;
+        const tryS = (side, d, nbx, nby) => {
+            if (d >= band) return;
+            const n = OW.blocks[nbx + ',' + nby]; if (!n || !this.owns(b, n)) return;
+            const ax = side === 'l' ? b.bx * OW.bw - 1 : side === 'r' ? (b.bx + 1) * OW.bw : tx, ay = side === 'u' ? b.by * OW.bh - 1 : side === 'd' ? (b.by + 1) * OW.bh : ty;
+            const tn = this.themeOf(a, ax, ay);
+            if (tn === me || !THEMES[tn]) return;
+            if (!best || d < best.d) best = { side, d, tn, band };
+        };
+        tryS('l', lx, b.bx - 1, b.by); tryS('r', OW.bw - 1 - lx, b.bx + 1, b.by);
+        tryS('u', ly, b.bx, b.by - 1); tryS('d', OW.bh - 1 - ly, b.bx, b.by + 1);
+        /* (ground only frays into ground: not across a cliff between it and the seam) */
+        if (best && !this.isCliff(a, tx, ty)) {
+            const [ddx, ddy] = { l: [-1, 0], r: [1, 0], u: [0, -1], d: [0, 1] }[best.side];
+            for (let i = 1; i <= best.d; i++) if (this.isCliff(a, tx + ddx * i, ty + ddy * i)) return null;
+        }
+        return best;
+    },
+    /* a palette between two themes */
+    mixTheme(ta, tb, w) {
+        const name = 'ow~' + ta + '~' + tb + '~' + w.toFixed(2);
+        if (!THEMES[name]) {
+            const A = THEMES[ta], B = THEMES[tb], o = {};
+            for (const k of Object.keys(A)) {
+                if (Array.isArray(A[k]) && Array.isArray(B[k])) o[k] = A[k].map((c, i) => B[k][i] ? mix(c, B[k][i], w) : c);
+                else if (typeof A[k] === 'string' && typeof B[k] === 'string') o[k] = mix(A[k], B[k], w);
+                else o[k] = A[k];
+            }
+            THEMES[name] = o; this.styleOf[name] = ta;       /* (drawn as this side draws it, in colours between the two) */
+        }
+        return name;
+    },
+    styleOf: {},
+    /* ---------- painting a tile ---------- */
+    BLEND_BY_SHADE: { cliff: 1, stairs: 1, ledge: 1, water: 1, deep: 1, current: 1, bridgeH: 1, bridgeV: 1, pit: 1 },
+    canvasIn(a, tx, ty, tn) {
+        const L = a.cell(tx, ty), p = L.p, th = THEMES[tn], v = Math.floor(hash2(tx, ty, 99) * 4);
+        const style = this.styleOf[tn] || tn;
+        const P = this.paint[p];
+        if (P && (!P.themes || P.themes.includes(style))) {
+            const m = P.mask ? P.mask(a, tx, ty) : '', f = P.frames ? Math.floor(TileDraw.frame / (P.rate || 20)) % P.frames : 0;
+            return tileCanvas(`ow:${tn}:${p}:${v}:${m}:${f}`, x => P.draw(x, th, v, m, style, f, tx, ty));
+        }
+        if (p === 'cliff' && this.cliffs[style]) {
+            const m = this.cliffMask(a, tx, ty);
+            return tileCanvas(`ow:${tn}:cliff:${v}:${m}`, x => (m[0] === 'F' ? this.cliffs[style].face : this.cliffs[style].top)(x, th, v, m));
+        }
+        const g = this.ground[style] && this.ground[style][p];
+        if (g) return tileCanvas(`ow:${tn}:${p}:${v}`, x => g(x, th, v));
+        return this.capture(a, tx, ty, tn);
+    },
+    /* the game's own painter, in a given theme (what it would have drawn there) */
+    capture(a, tx, ty, tn) {
+        const d = a.def, ta = d.themeAt, img = Gfx.img; let got = null;
+        d.themeAt = () => tn; Gfx.img = c => { got = c; };
+        try { OWA.draw0.call(TileDraw, a, tx, ty, 0, 0); } finally { d.themeAt = ta; Gfx.img = img; }
+        return got;
+    },
+    _ids: new WeakMap(), _n: 0,
+    idOf(c) { let i = this._ids.get(c); if (!i) { i = ++this._n; this._ids.set(c, i); } return i; },
+    tile(a, tx, ty) {
+        const b = this.blockAt(tx, ty);
+        if (!b || !b.owArt) return null;
+        const tn = this.themeOf(a, tx, ty);
+        const s = this.seamOf(a, tx, ty);
+        if (!s) return this.canvasIn(a, tx, ty, tn);
+        const p = a.cell(tx, ty).p;
+        if (this.BLEND_BY_SHADE[p] || (this.paint[p] && this.paint[p].shade)) {
+            /* rock and water: shaded across, tile by tile */
+            const w = 1 - (s.d + 0.5) / s.band;
+            return this.canvasIn(a, tx, ty, this.mixTheme(tn, s.tn, Math.round(w * 6) / 6));
+        }
+        const c0 = this.canvasIn(a, tx, ty, tn), c1 = this.canvasIn(a, tx, ty, s.tn);
+        if (!c0 || !c1 || HEADLESS) return c0;
+        const k = `seam:${tx},${ty}:${this.idOf(c0)}:${this.idOf(c1)}`;
+        return tileCanvas(k, x => {
+            const A = c0.getContext('2d').getImageData(0, 0, T, T), B = c1.getContext('2d').getImageData(0, 0, T, T), o = A.data, q = B.data;
+            const bp = s.band * T;
+            for (let py = 0; py < T; py++) for (let px = 0; px < T; px++) {
+                const gx = tx * T + px, gy = ty * T + py;
+                const along = s.side === 'l' || s.side === 'r' ? gy : gx;
+                const dist = s.side === 'l' ? gx - b.bx * OW.bw * T : s.side === 'r' ? (b.bx + 1) * OW.bw * T - 1 - gx : s.side === 'u' ? gy - b.by * OW.bh * T : (b.by + 1) * OW.bh * T - 1 - gy;
+                const lim = bp * (0.22 + 0.58 * this.n1(along / 41, 3) * 0.6 + 0.58 * 0.4 * this.n1(along / 13, 9)) + (this.n2(gx / 4, gy / 4, 5) - 0.5) * 9;
+                if (dist < lim) { const i = (py * T + px) * 4; o[i] = q[i]; o[i + 1] = q[i + 1]; o[i + 2] = q[i + 2]; o[i + 3] = q[i + 3]; }
+            }
+            x.putImageData(A, 0, 0);
+        });
+    },
+};
+
+/* every tile of a block that opts in goes through the kit; the rest as before */
+{
+    OWA.draw0 = TileDraw.draw;
+    TileDraw.draw = function (area, tx, ty, sx, sy) {
+        if (area.id === 'hollow') {
+            const c = OWA.tile(area, tx, ty);
+            if (c) { Gfx.img(c, sx, sy); return; }
+        }
+        return OWA.draw0.call(this, area, tx, ty, sx, sy);
+    };
+}
+
+/* the trees along a soft seam are a mixture of both sides' trees */
+CONTENT_INIT.push(() => {
+    const d = AREAS.hollow; if (!d) return;
+    for (const e of d.ents) {
+        if (e.k !== 'tree' || !e.deco) continue;
+        const b = OWA.blockAt(e.x, e.y); if (!b || !b.soft || !b.owArt) continue;
+        const lx = e.x - b.bx * OW.bw, ly = e.y - b.by * OW.bh;
+        const near = [['l', lx, b.bx - 1, b.by], ['r', OW.bw - 2 - lx, b.bx + 1, b.by], ['u', ly, b.bx, b.by - 1], ['d', OW.bh - 2 - ly, b.bx, b.by + 1]]
+            .filter(([s, dd, nx, ny]) => dd < b.soft + 1 && OW.blocks[nx + ',' + ny] && OWA.owns(b, OW.blocks[nx + ',' + ny]))
+            .sort((m, n) => m[1] - n[1])[0];
+        if (!near) continue;
+        const n = OW.blocks[near[2] + ',' + near[3]], looks = n.forest || ['tree', 'tree2'];
+        if (hash2(e.x, e.y, 41) < 0.75 - near[1] / (b.soft + 1) * 0.6) e.look = looks[Math.floor(hash2(e.x, e.y, 43) * looks.length)];
+    }
+    /* each block's own ground and overlays */
+    const g0 = d.drawGround, o0 = d.drawOver;
+    d.drawGround = (a, cx, cy) => { if (g0) g0(a, cx, cy); for (const b of Object.values(OW.blocks)) if (b.drawGround) b.drawGround(a, cx, cy); };
+    d.drawOver = (a, cx, cy) => { if (o0) o0(a, cx, cy); for (const b of Object.values(OW.blocks)) if (b.drawOver) b.drawOver(a, cx, cy); };
+});
+
+/* ---------- wading: rings round Wren's feet in shallow water, her ankles in it ---------- */
+{
+    const draw0 = Player.prototype.draw;
+    Player.prototype.draw = function (cx, cy) {
+        draw0.call(this, cx, cy);
+        const a = this.area;
+        if (!a || this.hidden || this.state === 'fall' || this.z > 0 || this.flying || this.ride) return;
+        const k = a.kind(this.tx, this.ty);
+        if (!(k.water && k.slow)) return;
+        if (this.inv > 0 && this.state === 'normal' && (this.inv >> 2) % 2 && this.inv < 69) return;
+        const x = Math.round(this.x - cx), y = Math.round(this.y - cy);
+        const tn = a.def.themeAt ? a.def.themeAt(this.tx, this.ty) : a.themeName, th = THEMES[OWA.styleOf[tn] || tn] || a.theme;
+        const wcol = (th.water || THEMES.town.water);
+        /* the water over her feet */
+        Gfx.alpha(0.55); Gfx.rect(x - 6, y - 1, 12, 3, wcol[0]); Gfx.alpha(1);
+        Gfx.rect(x - 5, y - 1, 10, 1, wcol[2]);
+        /* rings spreading as she moves (still, a slow one) */
+        const t = this.walking ? (G.t % 24) / 24 : (G.t % 60) / 60;
+        const r = 5 + t * (this.walking ? 6 : 4);
+        Gfx.alpha(0.75 * (1 - t));
+        for (let i = 0; i < 16; i++) { const an = i / 16 * Math.PI * 2; Gfx.rect(x + Math.cos(an) * r, y + 1 + Math.sin(an) * r * 0.45, 1, 1, '#eaf8ff'); }
+        Gfx.alpha(1);
+        if (this.walking && (G.t >> 3) % 2) { Gfx.rect(x - 7 + ((G.t >> 2) % 3), y - 2, 1, 1, '#ffffff'); Gfx.rect(x + 6 - ((G.t >> 2) % 3), y - 3, 1, 1, '#ffffff'); }
+    };
+}
+
+/* ---------- rock, drawn by the kit's cliffs: o = { band: [heights...], tint: colours, joint, lip, moss, blocks, seed } ---------- */
+OWA.rockFace = function (x, th, v, m, o = {}) {
+    const [s0, s1, s2, s3] = th.stone;
+    const up = +m[1], above = m[2], below = m[3], l = m[4], r = m[5];
+    const sd = o.seed || 1;
+    /* bands of rock across the face: the same heights all along a row of face, so they run on tile to tile */
+    const bands = (up === 2 ? o.band2 : o.band1) || (up === 2 ? [0, 5, 10] : [0, 4, 8, 12]);
+    const tint = o.tint || [s0, mix(s0, s1, 0.5), s1];
+    for (let bi = 0; bi < bands.length; bi++) {
+        const y0 = bands[bi], y1 = bi + 1 < bands.length ? bands[bi + 1] : 16, c = tint[(bi + up) % tint.length];
+        fill(x, c, 0, y0, 16, y1 - y0);
+        speckle(x, [mix(c, s2, 0.35)], sd * 7 + v * 3 + bi, 0.08, 0, y0, 16, y1 - y0);
+        speckle(x, [mix(c, s1, 0.5)], sd * 5 + v + bi * 9, 0.10, 0, y0, 16, y1 - y0);
+        fill(x, mix(c, s2, 0.55), 0, y0, 16, 1);                                  /* each layer's lit top */
+        if (y1 - y0 > 2) fill(x, mix(c, s3, 0.55), 0, y1 - 1, 16, 1);           /* and its shadowed foot */
+        /* joints: vertical cracks, a few per band (blocks: more of them) */
+        const n = o.blocks ? 2 : 1;
+        for (let j = 0; j < n; j++) {
+            const jx = Math.floor(hash2(v * 5 + j, bi + up * 7, sd) * 15) + (o.blocks ? j * 8 : 0);
+            if (jx > 15 || hash2(v, bi * 3 + j, sd + 2) < (o.blocks ? 0.1 : 0.35)) continue;
+            fill(x, o.joint || s3, jx % 16, y0 + 1, 1, Math.max(1, y1 - y0 - 1));
+            px(x, (jx + 1) % 16, y0 + 1, mix(c, s2, 0.5));
+        }
+    }
+    if (o.moss) for (let i = 0; i < 6; i++) { const mx = Math.floor(hash2(v, i, sd + 11) * 16), my = bands[Math.floor(hash2(i, v, sd + 12) * bands.length)]; if (hash2(mx, my, sd) < 0.6) { px(x, mx, my, o.moss[0]); px(x, (mx + 1) % 16, my, o.moss[1] || o.moss[0]); } }
+    if (o.lichen) for (let i = 0; i < 3; i++) { const lx = Math.floor(hash2(v + 3, i, sd + 13) * 14) + 1, ly = Math.floor(hash2(i, v + 3, sd + 14) * 12) + 2; px(x, lx, ly, o.lichen[i % o.lichen.length]); if (i % 2) px(x, lx + 1, ly, o.lichen[0]); }
+    /* the top: the ground above hanging over the face (grass, or the plateau's rock), its edge a little ragged */
+    if (above !== 'f') {
+        const lip = above === 'o' ? (o.lip || th.grass) : (o.rimTop || [s2, s0, s1]);
+        for (let i = 0; i < 16; i++) {
+            const h = 2 + (hash2(i, v, sd + 21) < 0.3 ? 1 : 0);
+            fill(x, lip[0], i, 0, 1, h); px(x, i, h, mix(lip[0], s3, 0.6));
+            if (hash2(i, v, sd + 22) < 0.35) px(x, i, h + 1, mix(s1, s3, 0.4));
+        }
+        fill(x, lip[2] || shade(lip[0], 0.3), 0, 0, 16, 1);
+    }
+    /* the foot: shadow, and a little scree */
+    if (below === 'o') {
+        fill(x, mix(s1, s3, 0.6), 0, 14, 16, 1); fill(x, shade(s3, -0.25), 0, 15, 16, 1);
+        for (let i = 0; i < 3; i++) { const sx = Math.floor(hash2(v, i, sd + 31) * 14); px(x, sx, 13, s0); px(x, sx + 1, 13, s2); px(x, sx, 14, s1); }
+    }
+    /* corners where the face ends (lit on the left, shadowed on the right) */
+    if (l === 'o' || l === 't') { fill(x, shade(s3, -0.3), 0, 0, 1, 16); fill(x, mix(s2, s0, 0.4), 1, 0, 1, 16); }
+    if (r === 'o' || r === 't') { fill(x, mix(s1, s3, 0.5), 13, 0, 2, 16); fill(x, shade(s3, -0.3), 15, 0, 1, 16); }
+};
+/* the top of a plateau's edge: rock with tufts in its cracks (o.surface paints something else), rimmed where it falls away */
+OWA.rockTop = function (x, th, v, m, o = {}) {
+    const [s0, s1, s2, s3] = th.stone;
+    const u = m[1] === 'u', d = m[2] === 'd', l = m[3], r = m[4];
+    const sd = o.seed || 1;
+    if (o.surface) o.surface(x, th, v);
+    else {
+        const base = o.topCol || mix(s0, s2, 0.25);
+        fill(x, base);
+        speckle(x, [mix(base, s1, 0.5)], sd * 3 + v, 0.18);
+        speckle(x, [mix(base, s2, 0.6)], sd * 4 + v, 0.08);
+        /* slabs: a few cracks */
+        for (let i = 0; i < 3; i++) {
+            const cx = Math.floor(hash2(v, i, sd + 41) * 13) + 1, cy = Math.floor(hash2(i, v, sd + 42) * 13) + 1, len = 2 + Math.floor(hash2(v + i, 3, sd) * 4);
+            for (let k = 0; k < len; k++) px(x, Math.min(15, cx + k), Math.min(15, cy + (k > 1 && i % 2 ? 1 : 0)), mix(base, s3, 0.55));
+        }
+        if (o.tuft) for (let i = 0; i < 2; i++) { const tx = 2 + Math.floor(hash2(v, i, sd + 51) * 12), ty = 3 + Math.floor(hash2(i, v, sd + 52) * 10); px(x, tx, ty, o.tuft[0]); px(x, tx + 1, ty - 1, o.tuft[1] || o.tuft[0]); px(x, tx - 1, ty - 1, o.tuft[0]); }
+    }
+    /* behind: a drop to lower ground (a dark edge and a glimpse of the back of the rock) */
+    if (u) { fill(x, shade(s3, -0.3), 0, 0, 16, 1); fill(x, mix(s1, s3, 0.4), 0, 1, 16, 1); }
+    if (d) { fill(x, mix(s1, s3, 0.5), 0, 14, 16, 1); fill(x, shade(s3, -0.3), 0, 15, 16, 1); }
+    /* sides: a lit rim falling away to the west, a shadowed one to the east */
+    if (l === 'o') { fill(x, shade(s3, -0.3), 0, 0, 1, 16); fill(x, mix(s2, '#ffffff', 0.2), 1, 0, 1, 16); fill(x, mix(s0, s2, 0.5), 2, 0, 1, 16); }
+    if (r === 'o') { fill(x, mix(s1, s3, 0.35), 12, 0, 2, 16); fill(x, mix(s1, s3, 0.7), 14, 0, 1, 16); fill(x, shade(s3, -0.3), 15, 0, 1, 16); }
+    if (l === 'f') fill(x, mix(s1, s3, 0.5), 0, 0, 1, 16);
+    if (r === 'f') fill(x, mix(s1, s3, 0.5), 15, 0, 1, 16);
+};
+
 // ---- 34_furniture.js ----
 /* Furniture and things indoors, painted in code. */
 
@@ -9188,7 +9514,7 @@ const MEADOW_ROWS = [
 ];
 
 defBlock({
-    id: 'meadow', bx: 1, by: 2, name: 'Meadowfold', theme: 'meadow', music: 'meadow',
+    id: 'meadow', bx: 1, by: 2, name: 'Meadowfold', theme: 'meadow', music: 'meadow', owArt: true, soft: 4,
     rows: MEADOW_ROWS,
     forest: ['tree', 'tree2', 'tree_apple', 'tree'],
     ents: [
@@ -10358,7 +10684,7 @@ const KILNRIDGE_ROWS = [
 ];
 
 defBlock({
-    id: 'kilnridge', bx: 0, by: 2, name: 'Kilnridge', theme: 'kiln', music: 'kiln',
+    id: 'kilnridge', bx: 0, by: 2, name: 'Kilnridge', theme: 'kiln', music: 'kiln', owArt: true, soft: 3,
     rows: KILNRIDGE_ROWS,
     forest: ['tree_autumn'],
     legend: {},
@@ -10449,6 +10775,12 @@ function initKilnridgeArt() {
     defSym('urn_cracked', ['........', '......kk', '.....kyo', '.....kkk', '....kook', '...kyoko', '..kyooko', '..kookoo', '..koOooo', '..kookOo', '..kOokoo', '...kOooo', '....kOOO', '.....kkk', '........', '........'], { o: '#a8805a', O: '#7a5a3a', y: '#c8a07a' }, { y: 'o' });
 }
 CONTENT_INIT.push(initKilnridgeArt);
+
+/* Kilnridge's rock: red sandstone in layers */
+OWA.cliffs.kiln = {
+    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { tint: ['#d67a54', '#c4623a', '#e8946a', '#b8583a'], band1: [0, 3, 7, 10, 13], band2: [0, 4, 8, 12], seed: 3 }),
+    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { topCol: '#d48a62', tuft: ['#b8904a', '#d8b060'], seed: 3 }),
+};
 
 // ---- 47_water_kit.js ----
 /* Water, for the Millrace and Millwater. Currents carry floating things away (the trace grows as they go,
@@ -10723,7 +11055,7 @@ const MILLWATER_ROWS = [
 ];
 
 defBlock({
-    id: 'millwater', bx: 2, by: 2, name: 'Millwater', sub: 'the Reaches', theme: 'water', music: 'water',
+    id: 'millwater', bx: 2, by: 2, name: 'Millwater', sub: 'the Reaches', theme: 'water', music: 'water', owArt: true, soft: 3,
     rows: MILLWATER_ROWS,
     forest: ['tree', 'tree2', 'tree_birch'],
     legend: {},
@@ -12700,7 +13032,9 @@ const HEIGHTS_ROWS = [
 ];
 
 defBlock({
-    id: 'heights', bx: 2, by: 0, name: 'Belfry Heights', theme: 'heights', music: 'heights',
+    id: 'heights', bx: 2, by: 0, name: 'Belfry Heights', theme: 'heights', music: 'heights', owArt: true, soft: 3,
+    /* the terraces, from the lake up: each a level higher */
+    levels: [[20, 34, 0], [20, 23, 1], [20, 14, 2], [20, 4, 3]],
     rows: HEIGHTS_ROWS,
     forest: ['pine', 'tree_birch'],
     legend: {},
@@ -12756,6 +13090,12 @@ TALK.tess = function* () {
 };
 BUDGE.brindle = 'Brindle: "Mind the goats."';
 BUDGE.tess = 'Mum: "Oof! Hello, love."';
+
+/* the Heights' rock: grey-violet blocks, lichen; heather on top */
+OWA.cliffs.heights = {
+    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { blocks: true, band1: [0, 5, 10], band2: [0, 6, 11], lichen: ['#c8d890', '#e8e0a0', '#a8c0a0'], seed: 5 }),
+    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { tuft: ['#9a6aa8', '#c48ad0'], seed: 5 }),
+};
 
 // ---- 56_belfry.js ----
 /* House 4: the Belfry, on Belfry Heights. Mum's House (Tess), brass threads. A tower climbed floor by floor.
@@ -23595,6 +23935,7 @@ defHouse({
                 { k: 'knotlock', x: 17, y: 2, house: 'belfry' },
                 { k: 'ratchet', x: 1, y: 7 },
                 { k: 'sign', x: 2, y: 9, text: "Your mum's hand, on a ringing card pinned up by the door: TUESDAY PRACTICE, SIX SHARP. BRING A SCARF. (IT'S DRAUGHTY.)" },
+                { k: 'gsdeco', x: 17, y: 9, look: 'gs_handbells', solid: [[0, 0], [1, 0]], text: "Handbells laid out for practice, mouths down on a brass-coloured cloth, so they won't ring by themselves." },
             ],
             nudge: { solved: 'untie:belfry', after: 60 * 150, at: [12, 6], say: GS_SAY.belfry + " twitches across the draught, at the boulder's empty place." },
         },
@@ -23615,7 +23956,7 @@ defHouse({
             rows: ['####################', '##########.........#', '#....~.............#', '#....~....#........#', '#####U#####........#', '#~~~~~..............', '#~~~~~~~~~~~~......#', '#~~~~~~~~~~~~......#', '#~~~~~~~~~~~~......#', '#~~~~~~~~~~~~......#', '####################'],
             ents: [
                 { k: 'raft', x: 12, y: 7, id: 'gsSRaft' },
-                { k: 'knotlock', x: 8, y: 2, house: 'slumber' },
+                { k: 'knotlock', x: 6, y: 3, house: 'slumber' },
                 { k: 'lever', x: 9, y: 3, id: 'gsSLever', sig: 'gsSl' },
                 { k: 'door', x: 10, y: 2, type: 'gate', when: 'gsSl', dir: 'v', passed: 'right', id: 'gsSGate' },
                 { k: 'deco', x: 2, y: 2, look: 'bed', solid: [[0, 0], [0, 1]], oy: 0, baseY: 30, text: "Doctor Mallow's spare bed, turned down and waiting, a hot-water bottle in it gone cold." },
@@ -23637,6 +23978,9 @@ defHouse({
                 { k: 'knotlock', x: 18, y: 2, house: 'marionette' },
                 { k: 'ratchet', x: 1, y: 7 },
                 { k: 'sign', x: 8, y: 9, text: "Pencilled on the prompt box in Jory's hand: UNDERSTUDY: IN THROUGH THE LITTLE DOOR. THE ROCK STAYS ON ITS MARK. (IT'S PAINTED. IT'S VERY HEAVY PAINT.)" },
+                { k: 'gsdeco', x: 1, y: 9, look: 'gs_rail', solid: [[0, 0], [1, 0]], text: "A rail of costumes for a show that never opened: a crimson cape, a gold doublet, a blue gown, every one with JORY stitched in its collar." },
+                { k: 'gsdeco', x: 5, y: 9, look: 'gs_ghostlight', text: "A ghost light: one bare bulb on a stand, left burning on an empty stage so nobody falls off it in the dark." },
+                { k: 'gsdeco', x: 12, y: 9, look: 'gs_flats', solid: [[0, 0], [1, 0]] },
             ],
             nudge: { solved: 'untie:marionette', after: 60 * 150, at: [13, 5], say: GS_SAY.marionette + ' twitches inside the prompt box, under the painted rock.' },
         },
@@ -23776,16 +24120,18 @@ class SpoolDrum extends Ent {
         /* Gran pulls everything else: things fly in from the walls toward the Spool (they'd knock you flat, if there were
            anything left in you to unravel; as it is, they knock you about) */
         if (Progress.flag('spool_met') && !Progress.flag('unwound') && !Script.blocking()) {
-            /* the Pull: a thing out of its place, lying under a great thread, is dragged along it into the drum, and the
-               thread goes slack a moment; the Spool spits the thing back onto its shelf after */
+            /* the Pull: a thing out of its place, lying under a great thread (or being wound in across one: they're the
+               Pull's own lines), is dragged along it into the drum, and the thread goes slack a moment; the Spool spits
+               the thing back onto its shelf after */
             const posts = a.ents.filter(e => e.kind === 'greatpost' && !e.cut);
             for (const e of a.ents) {
-                if (!e.ret || !e.isGrid || e.removed || e.carried || e.mv || e.pendingHome || e.kind === 'greatpost' || a.roomAt(e.tx, e.ty) !== a.roomAt(this.tx, this.ty)) continue;
-                if (Return.atHome ? Return.atHome(e) : (e.tx === e.ret.mx && e.ty === e.ret.my)) { e.yankT = 0; continue; }
+                if (!e.ret || !e.isGrid || e.removed || e.carried || e.flying || e.pendingHome || e.kind === 'greatpost' || a.roomAt(e.tx, e.ty) !== a.roomAt(this.tx, this.ty)) continue;
+                if (e.ret.state === 'home') { e.yankT = 0; continue; }
                 const hit = posts.filter(q => q.under(e.tx, e.ty));
                 if (!hit.length) { e.yankT = 0; continue; }
-                if (++e.yankT < 24) continue;
+                if (e.ret.state !== 'returning' && ++e.yankT < 24) continue;
                 e.yankT = 0;
+                if (e.mv) { a.unplace(e, e.mv.fx, e.mv.fy); e.mv = null; }
                 for (const q of hit) { q.slack = 300; Sfx.play('twang'); Fx.ring(q.tx * T + 8, q.ty * T, KNOT_COL[q.house]); }
                 this.junk.push({ x: e.tx * T + 8, y: e.ty * T + 8, tx: (this.tx + 2) * T, ty: (this.ty + 1) * T + 8, k: 2, thing: e, harmless: true });
                 a.unplace(e, e.tx, e.ty); e.hiddenYank = true; e.inert = true; e.tx = -10; e.ty = -10; e.x = -160; e.y = -160;
@@ -24115,7 +24461,7 @@ for (const [name, L] of Object.entries(SPOOL_LOOKS)) {
             for (const o of [0, 8]) { fill(x, b2, o, 0, 1, 16); fill(x, b3, o + 7, 0, 1, 16); }
             const e = (v * 5 + 3) % 16; fill(x, b3, 1, e, 6, 1); fill(x, b3, 9, (e + 9) % 16, 6, 1);
             speckle(x, [b1], 40 + v, 0.1);
-            x.globalAlpha = 0.45; fill(x, L.run[v % L.run.length], 3 + (v * 3) % 10, 0, 1, 16); x.globalAlpha = 1;
+            if (v === 0) { x.globalAlpha = 0.4; const c = L.run[1 % L.run.length]; px(x, 11, 4, c); px(x, 12, 5, c); px(x, 12, 6, c); px(x, 13, 7, c); x.globalAlpha = 1; }
         },
         floor2: (x, th, v) => { fill(x, b1); speckle(x, [b0, b3], 30 + v, 0.25); },
         floor3: (x, th, v) => { fill(x, b3); for (let i = 1; i < 16; i += 3) fill(x, b1, i, 0, 1, 16); },
@@ -24165,15 +24511,20 @@ const SpoolArt = {
        being wound in, its thread drawn tight up to the face */
     ground(a, cx, cy) {
         const r = Cam.room; if (!r || !Pull.on(a)) return;
-        const L = this.look(a, r.x + 1, r.y + 1), run = L.run;
-        for (let ty = r.y + 1; ty < r.y + r.h - 1; ty++) for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) {
-            const k = a.kind(tx, ty);
-            if (k.solid && !k.arch) continue;
-            const sx = tx * T - cx, sy = ty * T - cy;
-            Gfx.alpha(k.water ? 0.16 : k.pit ? 0.5 : 0.32);
-            for (let n = 0; n < 2; n++) {
-                const ox = 2 + Math.floor(hash2(tx * 3 + n, ty, 11) * 12), ph = (G.t * 0.35 + hash2(tx, ty * 5 + n, 13) * 16) % 16;
-                Gfx.rect(sx + ox, sy + 16 - ph - 4, 1, 4, run[(tx + ty + n) % run.length]);
+        const L = this.look(a, r.x + 1, r.y + 1), run = L.run, len = (r.h - 2) * T, bot = (r.y + r.h - 1) * T;
+        /* the valley's threads: a few long lines running north over the floor into the face, a fibre now and then
+           travelling up one (slowly: they're being wound, not falling) */
+        const n = Math.max(3, Math.round((r.w - 2) / 2.5));
+        for (let i = 0; i < n; i++) {
+            const lx = r.x * T + T + Math.floor((i + 0.25 + hash2(i, r.x, r.y) * 0.5) * (r.w - 2) * T / n), tx = Math.floor(lx / T), sx = lx - cx, col = run[i % run.length];
+            for (let ty = r.y + 1; ty < r.y + r.h - 1; ty++) {
+                const k = a.kind(tx, ty); if (k.solid && !k.arch) continue;
+                Gfx.alpha(k.water ? 0.1 : 0.18); Gfx.rect(sx, ty * T - cy, 1, T, col);
+            }
+            for (let f = 0; f < 2; f++) {
+                const y = bot - (G.t * 0.3 + hash2(i, f, r.x * 7 + r.y) * len) % len, k = a.kind(tx, Math.floor(y / T));
+                if (k.solid && !k.arch) continue;
+                Gfx.alpha(k.water ? 0.3 : 0.6); Gfx.rect(sx, Math.round(y) - cy, 1, 3, shade(col, 0.45));
             }
         }
         Gfx.alpha(1);
@@ -24323,6 +24674,37 @@ function initSpoolArt() {
         const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
         R('#6b4128', 1, 4, 14, 20); R('#9a6438', 2, 5, 12, 2); R('#9a6438', 2, 13, 12, 2); R('#3a2418', 2, 7, 12, 6); R('#3a2418', 2, 15, 12, 8);
         R('#d98f3a', 3, 8, 3, 5); R('#e8946a', 8, 9, 3, 4); R('#c4623a', 4, 17, 4, 6); R('#d98f3a', 10, 18, 3, 5);
+    });
+    /* the Prompt Box's stage dressing: a costume rail, the ghost light left burning on an empty stage, painted flats */
+    ART.gs_rail = paintSprite(32, 24, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        R('#2a1f2d', 2, 1, 28, 3); R('#c9a24a', 3, 2, 26, 1); R('#2a1f2d', 2, 1, 3, 21); R('#2a1f2d', 27, 1, 3, 21); R('#c9a24a', 3, 2, 1, 19); R('#c9a24a', 28, 2, 1, 19);
+        R('#2a1f2d', 0, 20, 8, 2); R('#2a1f2d', 24, 20, 8, 2); R('#5a5264', 1, 22, 2, 2); R('#5a5264', 5, 22, 2, 2); R('#5a5264', 25, 22, 2, 2); R('#5a5264', 29, 22, 2, 2);
+        for (const [a, w, h, c] of [[6, 7, 14, '#d6304e'], [14, 6, 10, '#e8c04a'], [21, 6, 16, '#4f6fb0']]) {
+            R('#2a1f2d', a + (w >> 1), 3, 1, 2); R('#2a1f2d', a - 1, 5, w + 2, h + 1); R(c, a, 5, w, h); R(shade(c, 0.3), a, 5, 1, h); R(shade(c, -0.3), a + w - 2, 6, 2, h - 1);
+        }
+        R('#f7d64a', 9, 7, 1, 1); R('#f7d64a', 9, 10, 1, 1); R('#f7e08a', 16, 7, 2, 1);
+    });
+    ART.gs_ghostlight = paintSprite(16, 32, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        x.globalAlpha = 0.18; R('#fff4c0', 1, 0, 14, 12); x.globalAlpha = 0.3; R('#fff4c0', 3, 1, 10, 9); x.globalAlpha = 1;
+        R('#2a1f2d', 5, 2, 6, 7); R('#fff4c0', 6, 3, 4, 5); R('#ffffff', 7, 4, 1, 2); R('#5a5264', 5, 5, 6, 1); R('#5a5264', 7, 2, 1, 7);
+        R('#2a1f2d', 7, 9, 2, 19); R('#7f7688', 7, 9, 1, 19);
+        R('#2a1f2d', 3, 27, 10, 2); R('#2a1f2d', 2, 29, 3, 3); R('#2a1f2d', 11, 29, 3, 3); R('#2a1f2d', 7, 28, 2, 4); R('#5a5264', 3, 27, 10, 1);
+    });
+    ART.gs_flats = paintSprite(32, 24, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        R('#2a1f2d', 1, 2, 18, 22); R('#c9925a', 2, 3, 16, 20); R('#9a6438', 2, 3, 16, 2); R('#9a6438', 9, 3, 2, 20); R('#9a6438', 2, 12, 16, 2);
+        R('#2a1f2d', 12, 4, 19, 20); R('#7fb0d8', 13, 5, 17, 18); R('#a5dcf7', 13, 5, 17, 4); R('#f7f2e0', 24, 7, 3, 3);
+        R('#5a5264', 15, 12, 6, 11); R('#7f7688', 15, 12, 6, 2); R('#5a5264', 14, 10, 2, 3); R('#5a5264', 17, 10, 2, 3); R('#5a5264', 20, 10, 2, 3); R('#2a1f2d', 17, 17, 2, 6);
+        R('#3a8a4a', 22, 15, 8, 8); R('#5fb060', 23, 14, 6, 3); R('#6b4128', 25, 21, 2, 2);
+    });
+    /* the Gale Loft's practice table: handbells, mouths down on a cloth */
+    ART.gs_handbells = paintSprite(32, 24, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        R('#2a1f2d', 1, 13, 30, 3); R('#6b4128', 2, 14, 28, 2); R('#2a1f2d', 3, 16, 2, 8); R('#2a1f2d', 27, 16, 2, 8); R('#4a301e', 3, 16, 1, 7); R('#4a301e', 27, 16, 1, 7);
+        R('#e8c04a', 2, 12, 28, 2); R('#fff4c0', 2, 12, 28, 1);
+        for (const [a, h] of [[4, 6], [10, 5], [16, 7], [23, 5]]) { R('#2a1f2d', a, 12 - h, 6, h); R('#c8903a', a + 1, 13 - h, 4, h - 1); R('#f7e08a', a + 1, 13 - h, 1, h - 2); R('#6b4128', a + 2, 9 - h, 2, 3); R('#2a1f2d', a + 2, 9 - h, 2, 1); }
     });
     ART.gs_millhouse = paintSprite(16, 24, x => {
         const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);

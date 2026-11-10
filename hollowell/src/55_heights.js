@@ -50,7 +50,9 @@ const HEIGHTS_ROWS = [
 ];
 
 defBlock({
-    id: 'heights', bx: 2, by: 0, name: 'Belfry Heights', theme: 'heights', music: 'heights',
+    id: 'heights', bx: 2, by: 0, name: 'Belfry Heights', theme: 'heights', music: 'heights', owArt: true, soft: 3,
+    /* the terraces, from the lake up: each a level higher */
+    levels: [[20, 34, 0], [20, 23, 1], [20, 14, 2], [20, 4, 3]],
     rows: HEIGHTS_ROWS,
     forest: ['pine', 'tree_birch'],
     legend: {},
@@ -106,3 +108,9 @@ TALK.tess = function* () {
 };
 BUDGE.brindle = 'Brindle: "Mind the goats."';
 BUDGE.tess = 'Mum: "Oof! Hello, love."';
+
+/* the Heights' rock: grey-violet blocks, lichen; heather on top */
+OWA.cliffs.heights = {
+    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { blocks: true, band1: [0, 5, 10], band2: [0, 6, 11], lichen: ['#c8d890', '#e8e0a0', '#a8c0a0'], seed: 5 }),
+    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { tuft: ['#9a6aa8', '#c48ad0'], seed: 5 }),
+};
