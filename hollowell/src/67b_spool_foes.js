@@ -409,7 +409,8 @@ class Tangle extends Ent {
                 Gfx.circle(ex, hy, 4, PAL.ink); Gfx.circle(ex, hy, 3, '#e8b04a'); Gfx.rect(ex - 2, hy - 2, 2, 1, '#fff0b0');
                 Gfx.rect(ex - 1, hy, 1, 1, '#5a3a1a'); Gfx.rect(ex + 1, hy, 1, 1, '#5a3a1a');
             } else for (const ex of [x - 6, x + 6]) { Gfx.rect(ex - 3, hy, 7, 1, PAL.ink); for (const d of [-2, 0, 2]) Gfx.rect(ex + d, hy - 1, 1, 3, PAL.ink); }
-            if (this.lashT > 0 && (this.t >> 1) % 2) Gfx.circle(x, hy + 2, R + 4, THREAD.guild);
+            /* about to lash: its cords bristle out all round it (a ring of them, flickering) */
+            if (this.lashT > 0 && (this.t >> 1) % 2) for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + this.t / 9; Gfx.line(x + Math.cos(a) * (R - 2), hy + 2 + Math.sin(a) * (R - 2), x + Math.cos(a) * (R + 6), hy + 2 + Math.sin(a) * (R + 6), i % 2 ? THREAD.guild : '#f7d64a'); }
             /* swelling, about to throw: it puffs out and glows */
             if (this.swell > 0) { const k = 1 - this.swell / tellFor(7, this.beat); Gfx.alpha(0.25 + 0.35 * k); Gfx.circle(x, hy + 2, R + 2 + Math.round(k * 3), '#f7d64a'); Gfx.alpha(1); Tells.bang(x, hy - R - 16); }
             if (this.flash > 0 && (this.flash >> 1) % 2) { Gfx.alpha(0.5); Gfx.circle(x, hy + 2, R, '#ffffff'); Gfx.alpha(1); }
