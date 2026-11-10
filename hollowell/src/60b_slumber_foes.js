@@ -308,7 +308,7 @@ class MotherSloth extends Enemy {
         const y = p.pinned ? rows[Math.floor(G.rng() * rows.length)] : clamp(p.ty, r.y + 3, r.y + r.h - 2);
         const tiles = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) { const k = a.kind(x, y); if (!k.solid && !k.pit) tiles.push([x, y]); }
         const fromLeft = G.rng() < 0.5, x0 = (fromLeft ? r.x : r.x + r.w) * T, x1 = (fromLeft ? r.x + r.w : r.x) * T;
-        const live = 48, h = Hazard.tiles(this, tiles, { tell: tellFor(5, 3) + 14, live, dmg: 2, col: '#e8e0ff', fx: 'dust', sound: 'snort', lookLanded: SlumberFoes.drawSheep });
+        const live = 48, h = Hazard.tiles(this, tiles, { tell: tellFor(5, 3) + 14, live, dmg: 2, fx: 'dust', sound: 'snort', lookLanded: SlumberFoes.drawSheep });
         if (!h) return;
         h.flock = { y: y * T + 10, x0, x1 };
         /* (what hurts is the flock itself, where it's got to along the row) */

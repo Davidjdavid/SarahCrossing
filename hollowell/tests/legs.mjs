@@ -240,6 +240,7 @@ export const LEG2 = (HW, chain) => {
     walk(...k('vats', 1, 5)); HW.hold('left'); HW.step(50); HW.release(); HW.hold('left'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk();
     const w = HW.ents('enemy').find(e => e.type === 'kilnwyrm');
     ok(w, 'the Kilnwyrm');
+    HW.G.cheats.god = true;      /* (its darts, glaze and shed pieces: the dodging isn't what this checks) */
     const settle = () => { until(() => w.state === 'hurt' || !w.alive, 220); HW.Inv.hp = 16; HW.step(70); HW.skipTalk(); };
     /* 1: along its trail */
     walk(...k('boss', 17, 3)); lift('up');
@@ -259,6 +260,7 @@ export const LEG2 = (HW, chain) => {
     HW.step(150); HW.skipTalk();
     const hoop = HW.ents('hoop')[0]; ok(hoop, 'hoop');
     walk(hoop.tx, hoop.ty + 1); HW.face('up'); HW.press('act', 1); HW.skipTalk(0); HW.step(300); HW.skipTalk(); HW.step(10); HW.skipTalk();
+    HW.G.cheats.god = false;
     ok(HW.Inv.knots.includes('kiln') && HW.Progress.flag('d2'), 'the Fired Knot');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 };
@@ -376,6 +378,7 @@ export const LEG3 = (HW, chain) => {
     walk(...m('pond', 18, 5)); HW.hold('left'); HW.step(12); HW.release(); HW.step(30); HW.skipTalk();
     /* Old Grindle, in three rounds (each round tried again if its spit knocks Wren about) */
     const g = thing('grindle'), raft = thing('gRaft'), P = () => HW.player();
+    HW.G.cheats.god = true;      /* (its spit, wash and rivets: the dodging isn't what this checks) */
     ok(g && g.state !== 'sleep', 'Grindle awake');
     const nextRound = k => { for (let i = 0; i < 900 && g.alive && (g.phase < k || ['turn', 'sulk', 'hurt'].includes(g.state)); i++) { if (HW.Dialog.active) HW.skipTalk(); HW.step(1); } HW.skipTalk(); ok(g.phase === k, 'round ' + k); };
     /* 1: a barrel down a side race into its mouth fills it; the ferry, rung off at once, up to just below it; strike */
@@ -424,6 +427,7 @@ export const LEG3 = (HW, chain) => {
     if (P().ty < m('pond', 0, 8)[1]) { ok(until(() => at(raft, ...m('pond', 9, 7)) && HW.Return.isHome(raft), 1500), 'raft home'); off('down'); }   /* still afloat: ride back in */
     const hoop = HW.ents('hoop')[0]; ok(hoop, 'the hoop');
     walk(hoop.tx - 1, hoop.ty); HW.face('right'); HW.press('act', 1); HW.skipTalk(0); HW.step(300); HW.skipTalk(); HW.step(10); HW.skipTalk();
+    HW.G.cheats.god = false;
     ok(HW.Inv.knots.includes('mill') && HW.Progress.flag('d3'), 'the Running Knot');
     const exit = HW.ents('warp').find(w => w.to === 'hollow' && w.ty < 11);
     ok(exit, 'a way out');

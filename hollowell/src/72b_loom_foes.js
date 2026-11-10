@@ -27,7 +27,7 @@ class Shuttle extends Ent {
         /* its one dangerous move is its flight: waiting at its end, its lane is lit, wall to wall, before it comes (a heart
            and a half if it finds Wren in it) */
         if (this.state === 'wait') {
-            if (this.st === 1) { const t = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (!a.kind(x, this.lane).solid) t.push([x, this.lane]); Hazard.tiles(this, t, { tell: 50, dmg: 0, live: 0, col: '#e4ecf5' }); }
+            if (this.st === 1) { const t = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (!a.kind(x, this.lane).solid) t.push([x, this.lane]); Hazard.tiles(this, t, { tell: 50, dmg: 0, live: 0 }); }
             if (this.st > 50) { this.state = 'fly'; this.st = 0; }
             return;
         }
@@ -358,7 +358,7 @@ class Weaver extends Ent {
         if (this.beat >= 2) cols.push(p.tx + (p.tx > r.x + 9 ? -4 : 4));
         for (const x of cols) {
             const tiles = []; for (let y = r.y + 1; y < r.y + r.h - 1; y++) { const k = a.kind(x, y); if (!k.solid && !k.pit) tiles.push([x, y]); }
-            Hazard.tiles(this, tiles, { tell: tellFor(8, this.beat) + 8, dmg: 3, live: 8, col: '#e4ecf5', fx: 'silk', shake: 4, look: LoomFoes.drawWarp });
+            Hazard.tiles(this, tiles, { tell: tellFor(8, this.beat) + 8, dmg: 3, live: 8, fxCol: '#e4ecf5', fx: 'silk', shake: 4, look: LoomFoes.drawWarp });
         }
         Stats.count('boss:weaver:warp');
     }

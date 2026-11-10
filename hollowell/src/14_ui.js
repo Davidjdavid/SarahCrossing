@@ -48,14 +48,40 @@ function paginate(text, w, n = 3) {
     return pages.map(p => Font.wrap(p, w));
 }
 
+/* a speaker's portrait sits in the box, at one end, the words beside it (src/35b_portraits.js) */
+const FACE_BOX = 34, FACE_GAP = 36;
 const Dialog = {
     active: false, who: null, pages: [], page: 0, shown: 0, choices: null, sel: 0, picked: -1, opts: {},
     open(who, text, opts = {}) {
         this.active = true; this.who = who; this.opts = opts;
-        this.pages = paginate(Story.fill(text), 282, 3);
+        /* (a line can say how it's said, "{happy}...": read off before anything else sees it) */
+        const [expr, rest] = exprOf(String(text));
+        this.expr = expr;
+        this.face = !opts.noFace && Portraits.has(who) ? who : null;
+        this.side = this.face ? this.chooseSide(who) : null;
+        this.pages = paginate(Story.fill(rest), this.face ? 282 - FACE_GAP : 282, 3);
         this.top = this.chooseTop(opts);
         this.page = 0; this.shown = 0; this.choices = opts.choices || null; this.sel = 0; this.picked = -1;
         this.t = 0;
+    },
+    /* which end of the box the portrait goes: the speaker's side of the screen against whoever they're talking to
+       (Wren; or, when Wren speaks, whoever spoke to her last); not clear (nobody about, or one above the other): the
+       side the line before had, when it was just now, or else the left */
+    chooseSide(who) {
+        const p = G.player, a = G.map;
+        const keep = G.t - (this.closedAt || -99) <= 3 && this.lastSide ? this.lastSide : 'left';
+        if (G.scene !== 'play' || !p || !a) return keep;
+        const at = w => {
+            if (w === 'wren') return G.hideWren || p.hidden ? null : p.x - Cam.x;
+            const e = a.ents.find(e => e.who === w && !e.hidden && e !== p);
+            return e ? (e.isGrid ? e.px + 8 : e.x) - Cam.x : null;
+        };
+        const sx = at(who);
+        if (sx === null || sx < -8 || sx > W + 8) return keep;
+        const other = who === 'wren' ? (this.lastWho && this.lastWho !== 'wren' ? at(this.lastWho) : null) : at('wren');
+        if (other !== null && Math.abs(sx - other) >= 6) return sx < other ? 'left' : 'right';
+        if (Math.abs(sx - W / 2) >= 24) return sx < W / 2 ? 'left' : 'right';
+        return keep;
     },
     pageLen() { return this.pages[this.page].reduce((n, l) => n + stripMarkup(l).length, 0); },
     /* top or bottom of the screen: the side that hides least of what the line is about. Wren counts, whoever is
@@ -110,36 +136,53 @@ const Dialog = {
             if (last) this.close(); else { this.page++; this.shown = 0; this.t = 0; }
         }
     },
-    close() { this.active = false; this.closedAt = G.t; this.lastTop = this.top; Input.swallow(); },
+    close() { this.active = false; this.closedAt = G.t; this.lastTop = this.top; if (this.face) { this.lastWho = this.face; this.lastSide = this.side; } Input.swallow(); },
+    /* the portrait, in a little frame in the speaker's colour: the mouth going while the words come out, a blink now
+       and then (each speaker on a clock of their own) */
+    drawFace(fx, fy) {
+        const fill = mix(tagFill(SPEAKER_COL[this.face] || '#f0c070'), '#fbf3df', 0.45);
+        Gfx.rect(fx + 1, fy, FACE_BOX - 2, FACE_BOX, PAL.ink); Gfx.rect(fx, fy + 1, FACE_BOX, FACE_BOX - 2, PAL.ink);
+        Gfx.rect(fx + 1, fy + 1, FACE_BOX - 2, FACE_BOX - 2, fill);
+        Gfx.rect(fx + 1, fy + FACE_BOX - 9, FACE_BOX - 2, 8, shade(fill, -0.08));
+        const talking = this.shown < this.pageLen() && Math.floor(this.t / 5) % 2 === 0;
+        let ph = 0; for (const ch of this.face) ph = (ph * 31 + ch.charCodeAt(0)) % 997;
+        const b = (G.t + ph * 7) % 211, blink = b < 6 || (ph % 3 === 0 && b >= 14 && b < 19);
+        Gfx.img(Portraits.get(this.face, this.expr, talking, blink), fx + 1, fy + 1);
+    },
     draw() {
         if (!this.active) return;
         const top = !!this.top;
         const x = 8, w = 304, h = 44, y = top ? 18 : H - h - 6;
         stitchedBox(x, y, w, h);
+        /* (the portrait at one end, the words beside it) */
+        const face = !!this.face, left = face && this.side !== 'right', right = face && !left;
+        if (face) this.drawFace(left ? x + 5 : x + w - 5 - FACE_BOX, y + 5);
+        const tx = x + 9 + (left ? FACE_GAP : 0);
         let n = Math.floor(this.shown);
         const lines = this.pages[this.page] || [];
         lines.forEach((l, i) => {
             const len = stripMarkup(l).length;
-            Font.draw(l, x + 9, y + 7 + i * 10, PAL.ink, Math.max(0, n));
+            Font.draw(l, tx, y + 7 + i * 10, PAL.ink, Math.max(0, n));
             n -= len;
         });
         if (this.who) {
             const name = Story.name(this.who);
             const tw = Font.width(name) + 12;
-            const ty = y - 10;
+            const ty = y - 10, nx = right ? x + w - 6 - tw : x + 6;
             const fill = tagFill(SPEAKER_COL[this.who] || '#f0c070');
-            stitchedBox(x + 6, ty, tw, 15, { fill, stitch: '#ffffff', shadow: shade(fill, -0.15) });
-            Font.draw(name, x + 12, ty + 4, PAL.ink);
+            stitchedBox(nx, ty, tw, 15, { fill, stitch: '#ffffff', shadow: shade(fill, -0.15) });
+            Font.draw(name, nx + 6, ty + 4, PAL.ink);
         }
         const done = this.shown >= this.pageLen();
         const last = this.page === this.pages.length - 1;
+        const room = w - 6 - (right ? FACE_GAP : 0);
         if (done && last && this.choices) {
             const cw = Math.max(...this.choices.map(c => Font.width(c))) + 20, chh = this.choices.length * 11 + 8;
-            /* inside the box, at its right, when the question leaves the room (so the scene isn't covered); else above
-               the box, or (when the box is at the top of the screen) below it: always on screen */
-            const used = Math.max(0, ...lines.map(l => Font.width(l))) + 9;
-            const inside = this.choices.length <= 3 && used + cw + 8 <= w - 6;
-            const cx = x + w - cw - (inside ? 6 : 4), cy = inside ? y + Math.round((h - chh) / 2) : top ? y + h + 2 : y - chh - 2;
+            /* inside the box, at its right (short of a portrait there), when the question leaves the room (so the scene
+               isn't covered); else above the box, or (when the box is at the top of the screen) below it: always on screen */
+            const used = Math.max(0, ...lines.map(l => Font.width(l))) + tx - x;
+            const inside = this.choices.length <= 3 && used + cw + 8 <= room;
+            const cx = inside ? x + room - cw : x + w - cw - 4, cy = inside ? y + Math.round((h - chh) / 2) : top ? y + h + 2 : y - chh - 2;
             if (inside) { Gfx.rect(cx - 4, y + 5, 1, h - 10, '#e3d3ae'); this.inside = true; }
             else stitchedBox(cx, cy, cw, chh);
             this.choices.forEach((c, i) => {
@@ -147,7 +190,8 @@ const Dialog = {
                 Font.draw(c, cx + 12, cy + 5 + i * 11, i === this.sel ? PAL.ink : PAL.grey3);
             });
         } else if (done && (G.t >> 4) % 2) {
-            Gfx.rect(x + w - 12, y + h - 9, 5, 1, PAL.red2); Gfx.rect(x + w - 11, y + h - 8, 3, 1, PAL.red2); Gfx.rect(x + w - 10, y + h - 7, 1, 1, PAL.red2);
+            const ax = x + room - 6;
+            Gfx.rect(ax, y + h - 9, 5, 1, PAL.red2); Gfx.rect(ax + 1, y + h - 8, 3, 1, PAL.red2); Gfx.rect(ax + 2, y + h - 7, 1, 1, PAL.red2);
         }
     },
 };

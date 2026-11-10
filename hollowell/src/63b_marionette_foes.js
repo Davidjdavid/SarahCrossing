@@ -36,7 +36,7 @@ class Captain extends Enemy {
             if (this.twirl > 0) { if (--this.twirl === 0) this.fling(); return; }
             if (++this.batonT > 240 && p.state === 'normal' && !a.ents.some(e => e.kind === 'flung' && e.owner === this)) {
                 this.batonT = 0; this.twirl = tellFor(6) + 4; this.aim = Flung.line(a, [this.tx, this.ty], [p.tx, p.ty], 7);
-                Hazard.tiles(this, this.aim.slice(1), { tell: this.twirl, dmg: 0, live: 0, col: '#e8b04a' });
+                Hazard.tiles(this, this.aim.slice(1), { tell: this.twirl, dmg: 0, live: 0 });
                 Sfx.play('warn'); Stats.count('boss:tin:baton');
                 return;
             }
@@ -245,7 +245,7 @@ class GreatMarionette extends Enemy {
         const z = this.sweepZone();
         if (!z.some(([x, y]) => p.tx === x && p.ty === y)) return;
         this.sweepCool = 0; this.sweepT = tellFor(6, 1) + 10;
-        Hazard.tiles(this, z, { tell: tellFor(6, 1), dmg: 2, live: 10, col: '#e7ad3c', fx: 'dust', shake: 5, sound: 'hitthing', from: [(this.feet[0][0] + this.feet[1][0] + 1) / 2 * T, this.feet[0][1] * T] });
+        Hazard.tiles(this, z, { tell: tellFor(6, 1), dmg: 2, live: 10, fx: 'dust', shake: 5, sound: 'hitthing', from: [(this.feet[0][0] + this.feet[1][0] + 1) / 2 * T, this.feet[0][1] * T] });
         Stats.count('boss:gm:sweep');
     }
     sweepZone() {
@@ -261,7 +261,7 @@ class GreatMarionette extends Enemy {
         for (let y = r.y + 2; y < r.y + r.h - 1; y++) if (!(this.heldBy && y === p.ty)) rows.push(y);
         const y = this.heldBy || !rows.includes(p.ty) ? rows[Math.floor(G.rng() * rows.length)] : p.ty;
         const tiles = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (!a.kind(x, y).solid) tiles.push([x, y]);
-        Hazard.tiles(this, tiles, { tell: tellFor(6, 3) + 12, dmg: 2, live: 8, col: '#c9925a', fx: 'dust', shake: 8, sound: 'land', look: GMArt.batten });
+        Hazard.tiles(this, tiles, { tell: tellFor(6, 3) + 12, dmg: 2, live: 8, fx: 'dust', shake: 8, sound: 'land', look: GMArt.batten });
         Stats.count('boss:gm:batten');
     }
     updateBags(p) {

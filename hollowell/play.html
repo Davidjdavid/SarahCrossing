@@ -3361,14 +3361,40 @@ function paginate(text, w, n = 3) {
     return pages.map(p => Font.wrap(p, w));
 }
 
+/* a speaker's portrait sits in the box, at one end, the words beside it (src/35b_portraits.js) */
+const FACE_BOX = 34, FACE_GAP = 36;
 const Dialog = {
     active: false, who: null, pages: [], page: 0, shown: 0, choices: null, sel: 0, picked: -1, opts: {},
     open(who, text, opts = {}) {
         this.active = true; this.who = who; this.opts = opts;
-        this.pages = paginate(Story.fill(text), 282, 3);
+        /* (a line can say how it's said, "{happy}...": read off before anything else sees it) */
+        const [expr, rest] = exprOf(String(text));
+        this.expr = expr;
+        this.face = !opts.noFace && Portraits.has(who) ? who : null;
+        this.side = this.face ? this.chooseSide(who) : null;
+        this.pages = paginate(Story.fill(rest), this.face ? 282 - FACE_GAP : 282, 3);
         this.top = this.chooseTop(opts);
         this.page = 0; this.shown = 0; this.choices = opts.choices || null; this.sel = 0; this.picked = -1;
         this.t = 0;
+    },
+    /* which end of the box the portrait goes: the speaker's side of the screen against whoever they're talking to
+       (Wren; or, when Wren speaks, whoever spoke to her last); not clear (nobody about, or one above the other): the
+       side the line before had, when it was just now, or else the left */
+    chooseSide(who) {
+        const p = G.player, a = G.map;
+        const keep = G.t - (this.closedAt || -99) <= 3 && this.lastSide ? this.lastSide : 'left';
+        if (G.scene !== 'play' || !p || !a) return keep;
+        const at = w => {
+            if (w === 'wren') return G.hideWren || p.hidden ? null : p.x - Cam.x;
+            const e = a.ents.find(e => e.who === w && !e.hidden && e !== p);
+            return e ? (e.isGrid ? e.px + 8 : e.x) - Cam.x : null;
+        };
+        const sx = at(who);
+        if (sx === null || sx < -8 || sx > W + 8) return keep;
+        const other = who === 'wren' ? (this.lastWho && this.lastWho !== 'wren' ? at(this.lastWho) : null) : at('wren');
+        if (other !== null && Math.abs(sx - other) >= 6) return sx < other ? 'left' : 'right';
+        if (Math.abs(sx - W / 2) >= 24) return sx < W / 2 ? 'left' : 'right';
+        return keep;
     },
     pageLen() { return this.pages[this.page].reduce((n, l) => n + stripMarkup(l).length, 0); },
     /* top or bottom of the screen: the side that hides least of what the line is about. Wren counts, whoever is
@@ -3423,36 +3449,53 @@ const Dialog = {
             if (last) this.close(); else { this.page++; this.shown = 0; this.t = 0; }
         }
     },
-    close() { this.active = false; this.closedAt = G.t; this.lastTop = this.top; Input.swallow(); },
+    close() { this.active = false; this.closedAt = G.t; this.lastTop = this.top; if (this.face) { this.lastWho = this.face; this.lastSide = this.side; } Input.swallow(); },
+    /* the portrait, in a little frame in the speaker's colour: the mouth going while the words come out, a blink now
+       and then (each speaker on a clock of their own) */
+    drawFace(fx, fy) {
+        const fill = mix(tagFill(SPEAKER_COL[this.face] || '#f0c070'), '#fbf3df', 0.45);
+        Gfx.rect(fx + 1, fy, FACE_BOX - 2, FACE_BOX, PAL.ink); Gfx.rect(fx, fy + 1, FACE_BOX, FACE_BOX - 2, PAL.ink);
+        Gfx.rect(fx + 1, fy + 1, FACE_BOX - 2, FACE_BOX - 2, fill);
+        Gfx.rect(fx + 1, fy + FACE_BOX - 9, FACE_BOX - 2, 8, shade(fill, -0.08));
+        const talking = this.shown < this.pageLen() && Math.floor(this.t / 5) % 2 === 0;
+        let ph = 0; for (const ch of this.face) ph = (ph * 31 + ch.charCodeAt(0)) % 997;
+        const b = (G.t + ph * 7) % 211, blink = b < 6 || (ph % 3 === 0 && b >= 14 && b < 19);
+        Gfx.img(Portraits.get(this.face, this.expr, talking, blink), fx + 1, fy + 1);
+    },
     draw() {
         if (!this.active) return;
         const top = !!this.top;
         const x = 8, w = 304, h = 44, y = top ? 18 : H - h - 6;
         stitchedBox(x, y, w, h);
+        /* (the portrait at one end, the words beside it) */
+        const face = !!this.face, left = face && this.side !== 'right', right = face && !left;
+        if (face) this.drawFace(left ? x + 5 : x + w - 5 - FACE_BOX, y + 5);
+        const tx = x + 9 + (left ? FACE_GAP : 0);
         let n = Math.floor(this.shown);
         const lines = this.pages[this.page] || [];
         lines.forEach((l, i) => {
             const len = stripMarkup(l).length;
-            Font.draw(l, x + 9, y + 7 + i * 10, PAL.ink, Math.max(0, n));
+            Font.draw(l, tx, y + 7 + i * 10, PAL.ink, Math.max(0, n));
             n -= len;
         });
         if (this.who) {
             const name = Story.name(this.who);
             const tw = Font.width(name) + 12;
-            const ty = y - 10;
+            const ty = y - 10, nx = right ? x + w - 6 - tw : x + 6;
             const fill = tagFill(SPEAKER_COL[this.who] || '#f0c070');
-            stitchedBox(x + 6, ty, tw, 15, { fill, stitch: '#ffffff', shadow: shade(fill, -0.15) });
-            Font.draw(name, x + 12, ty + 4, PAL.ink);
+            stitchedBox(nx, ty, tw, 15, { fill, stitch: '#ffffff', shadow: shade(fill, -0.15) });
+            Font.draw(name, nx + 6, ty + 4, PAL.ink);
         }
         const done = this.shown >= this.pageLen();
         const last = this.page === this.pages.length - 1;
+        const room = w - 6 - (right ? FACE_GAP : 0);
         if (done && last && this.choices) {
             const cw = Math.max(...this.choices.map(c => Font.width(c))) + 20, chh = this.choices.length * 11 + 8;
-            /* inside the box, at its right, when the question leaves the room (so the scene isn't covered); else above
-               the box, or (when the box is at the top of the screen) below it: always on screen */
-            const used = Math.max(0, ...lines.map(l => Font.width(l))) + 9;
-            const inside = this.choices.length <= 3 && used + cw + 8 <= w - 6;
-            const cx = x + w - cw - (inside ? 6 : 4), cy = inside ? y + Math.round((h - chh) / 2) : top ? y + h + 2 : y - chh - 2;
+            /* inside the box, at its right (short of a portrait there), when the question leaves the room (so the scene
+               isn't covered); else above the box, or (when the box is at the top of the screen) below it: always on screen */
+            const used = Math.max(0, ...lines.map(l => Font.width(l))) + tx - x;
+            const inside = this.choices.length <= 3 && used + cw + 8 <= room;
+            const cx = inside ? x + room - cw : x + w - cw - 4, cy = inside ? y + Math.round((h - chh) / 2) : top ? y + h + 2 : y - chh - 2;
             if (inside) { Gfx.rect(cx - 4, y + 5, 1, h - 10, '#e3d3ae'); this.inside = true; }
             else stitchedBox(cx, cy, cw, chh);
             this.choices.forEach((c, i) => {
@@ -3460,7 +3503,8 @@ const Dialog = {
                 Font.draw(c, cx + 12, cy + 5 + i * 11, i === this.sel ? PAL.ink : PAL.grey3);
             });
         } else if (done && (G.t >> 4) % 2) {
-            Gfx.rect(x + w - 12, y + h - 9, 5, 1, PAL.red2); Gfx.rect(x + w - 11, y + h - 8, 3, 1, PAL.red2); Gfx.rect(x + w - 10, y + h - 7, 1, 1, PAL.red2);
+            const ax = x + room - 6;
+            Gfx.rect(ax, y + h - 9, 5, 1, PAL.red2); Gfx.rect(ax + 1, y + h - 8, 3, 1, PAL.red2); Gfx.rect(ax + 2, y + h - 7, 1, 1, PAL.red2);
         }
     },
 };
@@ -4519,7 +4563,7 @@ class Hazard extends Ent {
         for (const [x, y] of pts) {
             if (this.fx === 'splash') Fx.splash(x, y);
             else if (this.fx === 'sparks' || this.fx === 'clay') Fx.burst(x, y - 3, this.fx === 'clay' ? '#c4623a' : '#f7d64a');
-            else if (this.fx === 'yarn' || this.fx === 'silk') Fx.yarn(x, y - 3, this.col);
+            else if (this.fx === 'yarn' || this.fx === 'silk') Fx.yarn(x, y - 3, this.fxCol || '#e4ecf5');
             else Fx.dust(x, y);
         }
         if (this.shape !== 'tiles') Fx.ring(this.x, this.y, this.shape === 'ring' ? shade(this.col, 0.4) : '#ffffff');
@@ -4530,9 +4574,10 @@ class Hazard extends Ent {
         /* faster and brighter as it comes */
         const blink = !this.landed && ((t / Math.max(3, Math.round(10 - 7 * k))) | 0) % 2 === 0;
         if (this.shape === 'tiles') {
+            if (this.landed && this.lookLanded) { this.lookLanded(this.x - cx, this.y - cy, this); return; }
             for (const [tx, ty] of this.tiles) {
                 const x = tx * T - cx, y = ty * T - cy;
-                Gfx.alpha(this.landed ? 0.45 : 0.1 + 0.25 * k + (blink ? 0.08 : 0)); Gfx.rect(x + 1, y + 1, 14, 14, this.landed ? '#ffffff' : col); Gfx.alpha(1);
+                Gfx.alpha(this.landed ? 0.45 : 0.14 + 0.3 * k + (blink ? 0.08 : 0)); Gfx.rect(x + 1, y + 1, 14, 14, this.landed ? '#ffffff' : col); Gfx.alpha(1);
                 if (!this.landed) Tells.stitchTile(x, y, blink ? shade(col, 0.45) : col);
             }
             return;
@@ -4547,7 +4592,7 @@ class Hazard extends Ent {
                 if (blink) Tells.stitchRing(x, y, r + 2, col, 14);
             }
         } else if (!this.landed) {
-            Gfx.alpha(0.06 + 0.12 * k); Tells.ellipse(x, y, this.r, col); Gfx.alpha(1);
+            Gfx.alpha(0.1 + 0.18 * k); Tells.ellipse(x, y, this.r, col); Gfx.alpha(1);
             Tells.stitchRing(x, y, this.r, blink ? shade(col, 0.45) : col, Math.max(16, Math.round(this.r / 2.5)));
         }
         /* what's coming down, from up out of sight */
@@ -7355,6 +7400,296 @@ const CRITTER_TALK = {};
 SPAWN.critter = (x, y, p) => new Critter(x, y, p);
 SPAWN.npc = (x, y, p) => new NPC(x, y, p);
 
+// ---- 35b_portraits.js ----
+/* Portraits: a bust of whoever's speaking, in the dialogue box beside their words. Each is generated from the person's
+   look (the same body, hair, colours and extras as their sprite: src/19_people.js), so every townsperson has one, with
+   the main cast tuned by hand (PORTRAIT_TUNE). 32x32 pixels in the house style: a dark outline, two or three shades a
+   colour, the light from the top left. Built as a pixel grid like every sprite, then compiled once per person,
+   expression, mouth (shut or open, for talking) and eyes (open or shut, for blinking).
+   A line picks its face with a leading mark: "{happy}Four Knots!" (EXPRESSIONS); a line without one is neutral. */
+
+const EXPRESSIONS = ['neutral', 'happy', 'sad', 'surprised', 'cross', 'worried'];
+const PORTRAIT = 32;
+/* (the skin tones are makePerson's: a person's portrait and sprite always agree) */
+const PORTRAIT_SKIN = { light: ['#f2c49b', '#d8956b'], tan: ['#d9a070', '#b0744a'], brown: ['#a8684a', '#7e4a32'], dark: ['#7a4a32', '#5a3220'], pale: ['#f6d8bc', '#dcae8c'] };
+/* Wren has a sprite of her own rather than a look: this is the same person */
+const WREN_LOOK = { body: 'child', hair: 'bob', hairC: '#a5532a', top: '#e7ad3c', accent: '#e8463c', bottom: '#3a5fae', skin: 'light' };
+/* the main cast, by hand, where the look alone falls short (and, with when(), a face kept back until the story's ready
+   to show it: none of the cast needs it now, as nobody speaks in costume before Reveal 1) */
+const PORTRAIT_TUNE = {
+    gran: { cheeks: true },
+    ives: { cheeks: true },
+    tess: { cheeks: true },
+    mallow: { sleepy: true },
+    jory: { glassC: '#c9a040' },
+    mrives: { glassC: '#4a3a40' },
+    quill: { glassC: '#4a3a40' },
+    /* (the girl in green ribbons on the old playbill, and in Miss Quill's old drawing) */
+    linnet: { ribbon: true, ribbonC: '#5ab85a' },
+};
+
+/* a leading expression mark, if the line has one: ['happy', 'the rest'] */
+function exprOf(text) {
+    const m = /^\{([a-z]+)\}/.exec(text || '');
+    return m && EXPRESSIONS.includes(m[1]) ? [m[1], text.slice(m[0].length)] : ['neutral', text];
+}
+
+/* ---- the grid: 32 rows of 32 characters, '.' clear ---- */
+function pGrid() { return Array.from({ length: PORTRAIT }, () => Array(PORTRAIT).fill('.')); }
+function pIn(x, y) { return x >= 0 && y >= 0 && x < PORTRAIT && y < PORTRAIT; }
+function pAt(g, x, y) { return pIn(x, y) ? g[y][x] : '.'; }
+function pSet(g, x, y, ch) { if (pIn(x, y)) g[y][x] = ch; }
+/* a part, painted on its own layer, then laid on the picture with a dark edge round it where it meets what's behind
+   (skip(x, y): where it gets none) */
+function pLay(g, part, edge = 'k', skip = null) {
+    if (edge) for (let y = 0; y < PORTRAIT; y++) for (let x = 0; x < PORTRAIT; x++) {
+        if (part[y][x] !== '.') continue;
+        const near = pAt(part, x - 1, y) !== '.' || pAt(part, x + 1, y) !== '.' || pAt(part, x, y - 1) !== '.' || pAt(part, x, y + 1) !== '.';
+        if (near && !(skip && skip(x, y))) g[y][x] = edge;
+    }
+    for (let y = 0; y < PORTRAIT; y++) for (let x = 0; x < PORTRAIT; x++) if (part[y][x] !== '.') g[y][x] = part[y][x];
+}
+/* rows of characters stamped at (x0, y0); '.' leaves what's there */
+function pStamp(g, rows, x0, y0) { rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) if (r[i] !== '.') pSet(g, x0 + i, y0 + j, r[i]); }); }
+/* a shape from half-widths by row ({ y: hw }): symmetric about the middle (columns 16 - hw to 15 + hw) */
+function pSpans(part, spans, ch, dy = 0) {
+    for (const [y, hw] of Object.entries(spans)) for (let x = 16 - hw; x <= 15 + hw; x++) pSet(part, x, +y + dy, ch);
+    return part;
+}
+
+/* ---- the bodies: the face's shape (half-widths by row), the shoulders; a child's head sits a row lower ---- */
+const PFACE = { 4: 5, 5: 7, 6: 8, 7: 9, 8: 9, 9: 9, 10: 9, 11: 9, 12: 9, 13: 9, 14: 9, 15: 9, 16: 9, 17: 9, 18: 8, 19: 7, 20: 6, 21: 5, 22: 3 };
+const PBODY = {
+    adult: { dy: 0, face: PFACE, torso: { 25: 9, 26: 11, 27: 12, 28: 13, 29: 14, 30: 14, 31: 14 } },
+    /* (a child: the same round head a row lower, small shoulders, rosy cheeks, a scarf) */
+    child: { dy: 1, face: Object.assign({}, PFACE, { 18: 8, 19: 8, 20: 7, 21: 5, 22: 3 }), torso: { 26: 7, 27: 9, 28: 10, 29: 11, 30: 11, 31: 11 }, child: true },
+    /* (an elder: a broader jaw, heavier eyelids, rounder shoulders) */
+    elder: { dy: 0, face: Object.assign({}, PFACE, { 18: 9, 19: 8, 20: 7, 21: 5, 22: 3 }), torso: { 25: 8, 26: 11, 27: 12, 28: 13, 29: 13, 30: 14, 31: 14 }, old: true },
+};
+/* where the features sit (before a body's dy) */
+const PF = { eyeY: 13, eyeL: 10, eyeR: 19, browY: 11, noseY: 17, mouthY: 19 };
+
+/* the colours a look paints with */
+function portraitLegend(L) {
+    const [s1, s2] = PORTRAIT_SKIN[L.skin || 'light'] || PORTRAIT_SKIN.light;
+    const hair = L.hairC || '#6b4128', top = L.top || '#5a8ad0', acc = L.accent || top;
+    const pale = luminance(hair) > 0.45, dark = luminance(hair) < 0.03, cap = L.capC || acc;
+    return {
+        k: PAL.ink, e: '#3d2c3e', E: L.eyeC || '#7a5a6a', w: '#fbf6ea',
+        j: shade(s1, 0.28), s: s1, S: s2, J: shade(s2, -0.25),
+        c: mix(s1, '#ee6a6a', 0.4),
+        m: shade(s2, -0.5), n: '#8e2f3c', W: '#fbf6ea',
+        h: hair, H: shade(hair, pale ? -0.22 : -0.3), l: dark ? mix(hair, '#9a8aa8', 0.45) : shade(hair, pale ? 0.5 : 0.3), K: shade(hair, pale ? -0.45 : -0.55),
+        b: pale ? shade(hair, -0.4) : dark ? hair : shade(hair, -0.35),
+        t: top, T: shade(top, -0.28), u: shade(top, 0.22),
+        a: acc, A: shade(acc, -0.28), y: shade(acc, 0.25),
+        q: cap, Q: shade(cap, -0.3), Y: shade(cap, 0.25),
+        g: L.glassC || '#8a7880', G: '#ffffff', d: '#7ec8f0', D: '#e4f6ff',
+        r: L.ribbonC || '#5ab85a', R: shade(L.ribbonC || '#5ab85a', -0.3),
+    };
+}
+
+/* ---- the features by expression: the left eye (the right is its mirror, with the glint still on the left, where
+   the light comes from), the brows, the mouth ---- */
+const P_EYES = {
+    open: [0, ['kkk', 'wee', 'eee', '.eE']],
+    shut: [0, ['...', '...', 'kkk', '...']],
+    happy: [0, ['...', '.k.', 'k.k', '...']],
+    sad: [0, ['...', 'kkk', 'wee', '.eE']],
+    wide: [-1, ['kkk', 'wee', 'eee', 'eee', '.E.']],
+    narrow: [0, ['...', 'kk.', 'wek', '.eE']],
+    heavy: [0, ['...', 'kkk', 'wee', '.eE']],
+};
+const P_EYE_FOR = { neutral: 'open', happy: 'happy', sad: 'sad', surprised: 'wide', cross: 'narrow', worried: 'open' };
+/* brows: for the left eye, four pixels from its outer end in, each the row it sits on (from browY) */
+const P_BROWS = { neutral: [0, 0, 0, 0], happy: [0, -1, -1, 0], sad: [1, 0, 0, -1], surprised: [-1, -2, -2, -1], cross: [-1, 0, 1, 1], worried: [1, 1, 0, -1] };
+/* the mouth, centred under the nose: shut, and open (talking) */
+const P_MOUTH = {
+    neutral: [['.mm.'], ['.mm.', 'mnnm', '.mm.']],
+    happy: [['m..m', '.mm.'], ['mmmm', 'mnnm', '.mm.']],
+    sad: [['.mm.', 'm..m'], ['.mm.', 'mnnm', 'm..m']],
+    surprised: [['.mm.', 'mnnm', '.mm.'], ['.mm.', 'mnnm', 'mnnm', '.mm.']],
+    cross: [['mmmm', 'm..m'], ['mmmm', 'mWWm', '.mm.']],
+    worried: [['..m.', 'mm.m'], ['.mm.', 'mnnm', 'm..m']],
+};
+
+/* ---- hair: a dome over the head, then down each column to where the fringe (or the sides) end ---- */
+const DOME = [5, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 4, 5];      /* columns 6 to 25: the top of the hair */
+/* each style: how far below the dome it starts, and the lowest row of hair in each column 6..25 (the fringe over the
+   forehead, the sides past the ears) */
+const HAIRCUT = {
+    short: [0, [12, 12, 10, 9, 8, 7, 8, 9, 8, 7, 7, 8, 9, 8, 7, 8, 9, 10, 12, 12]],
+    tuft: [1, [12, 12, 10, 9, 8, 7, 8, 9, 8, 7, 7, 8, 9, 8, 7, 8, 9, 10, 12, 12]],
+    long: [0, [30, 30, 13, 11, 10, 9, 9, 8, 7, 6, 6, 7, 8, 9, 9, 10, 11, 13, 30, 30]],
+    bun: [2, [11, 10, 8, 7, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 7, 8, 10, 11]],
+    bob: [0, [19, 19, 13, 9, 9, 8, 9, 9, 9, 8, 9, 9, 9, 8, 9, 9, 9, 13, 19, 19]],
+    cap: [0, [12, 12, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 12, 12]],
+};
+function hairPart(L, dy) {
+    const part = pGrid(), style = HAIRCUT[L.hair] ? L.hair : L.hair === 'bald' ? 'bald' : 'short';
+    if (style === 'bald') {
+        /* what's left: a tuft over each ear */
+        for (const [x, y] of [[5, 11], [6, 10], [6, 11], [5, 12], [6, 12], [5, 13], [6, 13], [26, 11], [25, 10], [25, 11], [26, 12], [25, 12], [26, 13], [25, 13], [7, 11], [24, 11]]) pSet(part, x, y + dy, x >= 24 ? 'H' : 'h');
+        pSet(part, 6, 10 + dy, 'l');
+        return part;
+    }
+    const [down, low] = HAIRCUT[style], top = i => DOME[i] + down;
+    for (let i = 0; i < 20; i++) for (let y = top(i); y <= low[i]; y++) pSet(part, 6 + i, y + dy, 'h');
+    /* long hair falls over the shoulders, a little wider than the head; a bob to the jaw */
+    if (style === 'long') for (let y = 12; y <= 30; y++) { pSet(part, 5, y + dy, 'h'); pSet(part, 26, y + dy, 'h'); if (y >= 17) { pSet(part, 4, y + dy, 'h'); pSet(part, 27, y + dy, 'h'); } }
+    if (style === 'bob') for (let y = 7; y <= 18; y++) { pSet(part, 5, y + dy, 'h'); pSet(part, 26, y + dy, 'h'); }
+    if (style === 'tuft') for (const [x, y] of [[13, 1], [14, 0], [14, 1], [15, 1], [16, -1], [16, 0], [16, 1], [17, 0], [17, 1], [18, 1]]) pSet(part, x, y + dy, 'h');
+    /* light from the top left: a shine across the crown; shade to the right, at the tips and between the locks */
+    for (let y = 0; y < PORTRAIT; y++) for (let x = 0; x < PORTRAIT; x++) {
+        if (part[y][x] !== 'h') continue;
+        const i = clamp(x - 6, 0, 19), t = top(i) + dy, bot = pAt(part, x, y + 1) === '.';
+        if (x >= 24 || (x >= 21 && y > t + 1) || x <= 4) part[y][x] = 'H';
+        if (bot && y > t + 2) part[y][x] = x >= 15 ? 'K' : 'H';
+        else if (y === t + 2 && x >= 8 && x <= 15 && x % 4 !== 3) part[y][x] = 'l';
+        else if (y === t + 1 && x >= 10 && x <= 13) part[y][x] = 'l';
+    }
+    /* the locks: a darker line up from each notch in the fringe; long hair's strands */
+    for (let i = 1; i < 19; i++) if (low[i] < low[i - 1] && low[i] <= low[i + 1] && low[i] < 12) for (let k = 1; k <= 2; k++) if (pAt(part, 6 + i, low[i] - k + dy) === 'h') pSet(part, 6 + i, low[i] - k + dy, 'H');
+    if (style === 'long') for (let y = 14; y <= 30; y++) { if (pAt(part, 6, y + dy) === 'h') pSet(part, 6, y + dy, 'H'); if (pAt(part, 25, y + dy) !== '.') pSet(part, 25, y + dy, 'K'); if (y <= 22 && pAt(part, 5, y + dy) === 'h' && y % 5) pSet(part, 5, y + dy, 'l'); }
+    if (style === 'bob') for (let y = 10; y <= 18; y++) { if (pAt(part, 7, y + dy) === 'h') pSet(part, 7, y + dy, 'H'); if (y <= 15 && pAt(part, 5, y + dy) === 'h') pSet(part, 5, y + dy, 'l'); }
+    return part;
+}
+
+/* ---- the picture ---- */
+function portraitRows(L, expr = 'neutral', mouthOpen = false, eyesShut = false) {
+    const B = PBODY[L.body] || PBODY.adult, dy = B.dy;
+    const g = pGrid();
+    const extra = new Set(L.extra || []);
+    /* behind the head: long hair's back, a bun */
+    if (L.hair === 'long') { const back = pGrid(); for (let y = 12; y <= 29; y++) for (let x = 6; x <= 25; x++) pSet(back, x, y + dy, x > 15 ? 'K' : 'H'); pLay(g, back); }
+    if (L.hair === 'bun') {
+        const bun = pGrid();
+        pSpans(bun, { 0: 2, 1: 3, 2: 4, 3: 4, 4: 3 }, 'h', dy);
+        for (const [x, y] of [[13, 1], [14, 1], [13, 2]]) pSet(bun, x, y + dy, 'l');
+        for (let y = 0; y < 6; y++) for (const x of [17, 18, 19]) if (pAt(bun, x, y + dy) === 'h') pSet(bun, x, y + dy, x === 17 && y < 2 ? 'h' : 'H');
+        pLay(g, bun);
+    }
+    /* the shoulders, in the top: the accent down the front (a collar, a placket, an apron's bib) */
+    const torso = pSpans(pGrid(), B.torso, 't');
+    for (let y = 0; y < PORTRAIT; y++) for (let x = 0; x < PORTRAIT; x++) if (torso[y][x] === 't') {
+        const hw = B.torso[y] || 0, rx = 15 + hw;
+        if (x >= rx - 2 || (x >= 19 && y >= 30)) torso[y][x] = 'T'; else if (x <= 16 - hw + 2 && y <= 28) torso[y][x] = 'u';
+    }
+    if (!B.child) for (let y = 26; y < PORTRAIT; y++) for (let x = 14; x <= 17; x++) torso[y][x] = x === 17 ? 'A' : 'a';
+    pLay(g, torso);
+    /* the neck, in the shade of the chin; a collar round it */
+    const neck = pGrid();
+    for (let y = 22; y <= 26; y++) for (let x = 13; x <= 18; x++) pSet(neck, x, y + dy, y <= 23 || x >= 17 ? 'J' : 'S');
+    pLay(g, neck);
+    if (!B.child) { const col = pGrid(); for (const [x, y, c] of [[11, 25, 'y'], [12, 25, 'a'], [12, 26, 'a'], [13, 26, 'y'], [13, 27, 'a'], [20, 25, 'A'], [19, 25, 'a'], [19, 26, 'A'], [18, 26, 'a'], [18, 27, 'A']]) pSet(col, x, y, c); pLay(g, col); }
+    if (B.child) {
+        /* a child's scarf, its end hanging down the front */
+        const scarf = pGrid();
+        pSpans(scarf, { 24: 5, 25: 6, 26: 6 }, 'a');
+        for (let x = 0; x < PORTRAIT; x++) { if (scarf[26][x] === 'a') scarf[26][x] = 'A'; if (x >= 19 && scarf[25][x] === 'a') scarf[25][x] = 'A'; if (x <= 12 && scarf[24][x] === 'a') scarf[24][x] = 'y'; }
+        for (let y = 27; y <= 31; y++) { scarf[y][18] = 'a'; scarf[y][19] = 'a'; scarf[y][20] = 'A'; }
+        pLay(g, scarf);
+    }
+    /* a bald head's scalp, then the face: lit from the top left */
+    const face = pGrid();
+    if (L.hair === 'bald') for (let i = 1; i < 19; i++) for (let y = DOME[i] + 1; y <= 8; y++) pSet(face, 6 + i, y + dy, 's');
+    pSpans(face, B.face, 's', dy);
+    for (let y = 0; y < PORTRAIT; y++) {
+        const xs = []; for (let x = 0; x < PORTRAIT; x++) if (face[y][x] === 's') xs.push(x);
+        if (!xs.length) continue;
+        const x0 = xs[0], x1 = xs[xs.length - 1];
+        face[y][x1] = 'S'; if (y >= 12 + dy && y <= 21 + dy) face[y][x1 - 1] = 'S';
+        if (y >= 21 + dy) for (let x = 17; x <= x1; x++) face[y][x] = 'S';
+        if (y === 22 + dy) for (let x = x0; x <= x1; x++) face[y][x] = 'S';
+        if (y <= 12 + dy && x0 + 1 < x1) face[y][x0 + 1] = 'j';
+    }
+    if (L.hair === 'bald') for (const [x, y] of [[11, 3], [12, 3], [10, 4], [11, 4], [10, 5], [13, 2]]) pSet(face, x, y + dy, 'j');
+    /* the ears */
+    for (const ex of [6, 25]) for (let y = 13; y <= 16; y++) pSet(face, ex, y + dy, ex === 25 || y === 16 ? 'S' : 's');
+    pLay(g, face);
+    /* the hair over it; its shadow on the forehead */
+    const hair = hairPart(L, dy);
+    pLay(g, hair, 'k');
+    for (let y = 2; y < PORTRAIT; y++) for (let x = 0; x < PORTRAIT; x++) if (hair[y][x] === '.' && pAt(g, x, y - 1) === 'k' && 'hHlK'.includes(pAt(hair, x, y - 2)) && 'sj'.includes(g[y][x])) g[y][x] = 'S';
+    /* the features */
+    const kind = eyesShut && expr !== 'happy' ? 'shut' : L.sleepy && expr === 'neutral' ? 'heavy' : P_EYE_FOR[expr] || 'open';
+    const [eo, eye] = P_EYES[kind];
+    pStamp(g, eye, PF.eyeL, PF.eyeY + dy + eo);
+    /* (the right eye: mirrored, but its glint stays at the top left of the iris) */
+    const right = eye.map(r => { let m = r.split('').reverse().join(''); const i = m.indexOf('w'), j = m.indexOf('e'); if (i >= 0 && j >= 0 && j < i) m = m.slice(0, j) + 'w' + m.slice(j + 1, i) + 'e' + m.slice(i + 1); return m; });
+    pStamp(g, right, PF.eyeR, PF.eyeY + dy + eo);
+    const brow = P_BROWS[expr] || P_BROWS.neutral;
+    brow.forEach((d, i) => { pSet(g, PF.eyeL - 1 + i, PF.browY + dy + d, 'b'); pSet(g, PF.eyeR + 3 - i, PF.browY + dy + d, 'b'); });
+    if (!B.child) pSet(g, 16, PF.noseY + dy, 'S');
+    const [shut, open] = P_MOUTH[expr] || P_MOUTH.neutral, mouth = mouthOpen ? open : shut;
+    /* extras: a beard (round the mouth), a moustache over it, glasses */
+    if (extra.has('beard')) {
+        const bd = pGrid();
+        pStamp(bd, [
+            'hh..............HH',
+            'hh..............HH',
+            'hhh............HHH',
+            'hhh............HHH',
+            'hhhh..........HHHH',
+            'lhhhh........hhHHH',
+            '.lhhhh......hhhHH.',
+            '.lhhhhh....hhhhHH.',
+            '..lhhhhhhhhhhhHH..',
+            '...hhhhhhhhhhhH...',
+            '.....hhhhhhhH.....',
+        ], 7, 13 + dy);
+        pLay(g, bd, 'k', (x, y) => y < 19 + dy && x > 9 && x < 22);
+    }
+    pStamp(g, mouth, 14, PF.mouthY + dy - (mouth.length > 2 ? 1 : 0));
+    if (extra.has('mustache') || extra.has('beard')) { const mu = pGrid(); pStamp(mu, ['.lhhhhH.', 'hhhH.HHH'], 12, 17 + dy); pLay(g, mu, 'k', (x, y) => y < 17 + dy || 'mnW'.includes(pAt(g, x, y)) || extra.has('beard')); }
+    const cy = PF.eyeY + dy + (extra.has('glasses') ? 5 : 4);
+    if (B.child || L.cheeks) for (const x of [9, 10, 21, 22]) if ('sjS'.includes(pAt(g, x, cy))) pSet(g, x, cy, 'c');
+    if (extra.has('glasses')) {
+        /* round wire rims a little wider than the eyes, a glint on each, arms back to the ears */
+        const gl = pGrid();
+        for (const x0 of [PF.eyeL - 2, PF.eyeR - 1]) { pStamp(gl, ['.gggg.', 'g....g', 'g....g', 'g....g', 'g....g', '.gggg.'], x0, PF.eyeY - 1 + dy); pSet(gl, x0 + 1, PF.eyeY - 1 + dy, 'G'); }
+        pStamp(gl, ['gggg'], 14, PF.eyeY + 1 + dy); pSet(gl, 7, PF.eyeY + dy, 'g'); pSet(gl, 24, PF.eyeY + dy, 'g');
+        pLay(g, gl, null);
+    }
+    if (expr === 'worried') pStamp(g, ['.d.', 'dDd', 'ddd', '.d.'], 23, 8 + dy);
+    if (L.ribbon) for (const [x0, flip] of [[4, false], [24, true]]) {
+        const bow = pGrid();
+        pStamp(bow, flip ? ['rr.r', 'RrRr', 'r..R'] : ['r.rr', 'rRrR', 'R..r'], x0, 10 + dy);
+        pLay(g, bow);
+    }
+    /* a cap, over all */
+    if (L.hair === 'cap') {
+        const cap = pGrid();
+        for (let i = 1; i < 19; i++) for (let y = DOME[i]; y <= 7; y++) pSet(cap, 6 + i, y + dy, 'q');
+        for (let x = 5; x <= 26; x++) pSet(cap, x, 8 + dy, 'Q');
+        for (let x = 7; x <= 24; x++) pSet(cap, x, 9 + dy, x >= 17 ? 'Q' : 'q');
+        for (let y = 0; y < PORTRAIT; y++) for (let x = 0; x < PORTRAIT; x++) if (cap[y][x] === 'q' && y <= 7 + dy) { if (x >= 21) cap[y][x] = 'Q'; else if (y <= 3 + dy && x >= 9 && x <= 14) cap[y][x] = 'Y'; }
+        pLay(g, cap);
+    }
+    return g.map(r => r.join(''));
+}
+
+const Portraits = {
+    cache: new Map(),
+    /* the look a portrait is built from: Wren's own, or a person's with any tuning (null: no portrait) */
+    look(who) {
+        if (who === 'wren') return WREN_LOOK;
+        const d = PEOPLE_DEF[who], t = PORTRAIT_TUNE[who];
+        if (!d || !d.look || (t && t.when && !t.when())) return null;
+        return t ? Object.assign({}, d.look, t) : d.look;
+    },
+    has(who) { return !!(who && this.look(who)); },
+    rows(who, expr, mouth, eyes) { const L = this.look(who); return L ? portraitRows(L, expr, mouth, eyes) : null; },
+    get(who, expr = 'neutral', mouth = false, eyes = false) {
+        const k = who + '|' + expr + '|' + (mouth ? 1 : 0) + (eyes ? 1 : 0);
+        if (this.cache.has(k)) return this.cache.get(k);
+        const L = this.look(who); if (!L) return null;
+        const c = compileGrid(portraitRows(L, expr, mouth, eyes), Object.assign({}, LEGEND, portraitLegend(L)));
+        this.cache.set(k, c);
+        return c;
+    },
+};
+
 // ---- 36_hub.js ----
 /* Hollowell, the town in the middle of the Hollow (block 1,1 of the overworld). Buildings, the Well, the
    townsfolk and where they stand. Who says what is in the story files. */
@@ -9642,7 +9977,7 @@ AI.monger = (e, p) => {
     if (++e.flopT > 280 && !(e.hopT > 0) && p.state === 'normal' && p.area === a && Cam.room && Cam.room.key === '2,1') {
         e.flopT = 0;
         e.flop = { t: 0, crouch: tellFor(1), air: 28, fx: e.x, fy: e.y, tx: p.x, ty: p.y };
-        Hazard.drop(e, p.x, p.y, { r: 20, dmg: 2, tell: e.flop.crouch + e.flop.air, shake: 8, col: '#b0a698' });
+        Hazard.drop(e, p.x, p.y, { r: 20, dmg: 2, tell: e.flop.crouch + e.flop.air, shake: 8 });
         return;
     }
     AI.hop(e, p);
@@ -9785,16 +10120,16 @@ class Housekeeper extends Enemy {
         let x = tileOf(this.x), y = tileOf(this.y);
         this.laneAt = this.chargeDir === LEFT || this.chargeDir === RIGHT ? y : x;
         for (let i = 0; i < 20; i++) { x += DX[this.chargeDir]; y += DY[this.chargeDir]; if (!a.inside(x, y) || a.kind(x, y).solid || a.at(x, y)) break; tiles.push([x, y]); }
-        this.lane = Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 0, live: 0, col: '#e8463c' });
+        this.lane = Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 0, live: 0 });
     }
     rear(phase) {
         this.tellN = tellFor(1, phase); this.setState('rear'); Stats.count('boss:tidy:stamp');
-        Hazard.ring(this, this.x, this.y + 2, HK.stamp, { tell: this.tellN, dmg: 1, col: '#3fc1b5', shake: 8 });
+        Hazard.ring(this, this.x, this.y + 2, HK.stamp, { tell: this.tellN, dmg: 1, shake: 8 });
     }
     aimHanger(p) {
         this.tellN = tellFor(1, 3); this.setState('aimH'); Sfx.play('twang');
         this.hangerPath = Flung.line(this.area, [this.homeX, this.homeY], [p.tx, p.ty], HK.hanger);
-        Hazard.tiles(this, this.hangerPath.slice(1), { tell: this.tellN, dmg: 0, live: 0, col: '#c9925a', quiet: true });
+        Hazard.tiles(this, this.hangerPath.slice(1), { tell: this.tellN, dmg: 0, live: 0, quiet: true });
     }
     throwHanger() {
         const path = this.hangerPath; this.hangerPath = null;
@@ -11162,14 +11497,14 @@ class Glazer extends Enemy {
         this.tellN = tellFor(2); this.setState('aim');
         const tiles = []; let x = this.tx, y = this.ty;
         for (let i = 0; i < 9; i++) { x += DX[this.dir]; y += DY[this.dir]; const k = this.area.kind(x, y); if ((k.solid && !k.low) || this.area.at(x, y)) break; tiles.push([x, y]); }
-        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 0, live: 0, col: '#f39a3c' });
+        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 0, live: 0 });
     }
     /* the barge: shield up, and the two tiles ahead of it lit; then it comes through them (a full heart) */
     brace(d) {
         this.dir = d; this.tellN = tellFor(2); this.setState('brace');
         const tiles = []; let x = this.tx, y = this.ty;
         for (let i = 0; i < 3; i++) { x += DX[d]; y += DY[d]; const k = this.area.kind(x, y); if (k.solid || this.area.at(x, y)) break; tiles.push([x, y]); }
-        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 2, live: 9, col: '#e8463c', from: [this.x, this.y] });
+        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 2, live: 9, from: [this.x, this.y] });
         Stats.count('boss:glazer:barge');
     }
     throwShot() {
@@ -11208,7 +11543,13 @@ class Glazer extends Enemy {
         /* bracing: crouched behind its shield, shivering, its "!" up */
         const sh = this.state === 'brace' ? ((this.st >> 1) % 2 ? 1 : -1) : 0, low = this.state === 'brace' ? 2 : 0;
         Gfx.img(img, this.x - cx - 8 + sh, this.y - cy - 22 + low, this.dir === LEFT);
-        if (this.state === 'brace') { Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 16, 14, 12, '#5ad1c5'); Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 16, 14, 1, '#bff3ee'); Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 5, 14, 1, '#2e9a96'); Tells.bang(this.x - cx, this.y - cy - 36); }
+        /* (its glazed shield up before it, toward her) */
+        if (this.state === 'brace') {
+            const sx = Math.round(this.x - cx + DX[this.dir] * 5) + sh, sy = Math.round(this.y - cy) - 17 + low + (this.dir === UP ? -3 : 0);
+            Gfx.rect(sx - 5, sy, 10, 11, PAL.ink); Gfx.rect(sx - 4, sy + 1, 8, 9, '#5ad1c5'); Gfx.rect(sx - 4, sy + 1, 8, 1, '#bff3ee'); Gfx.rect(sx - 4, sy + 9, 8, 1, '#2e9a96');
+            Gfx.rect(sx - 2, sy + 11, 4, 1, PAL.ink); Gfx.rect(sx - 1, sy + 3, 2, 4, '#e8a070');
+            Tells.bang(this.x - cx, this.y - cy - 36);
+        }
     }
 }
 SPAWN.glazer = (x, y) => Progress.flag('kiln_glazer') ? new Ent('none') : new Glazer(x, y);
@@ -11356,7 +11697,7 @@ class Kilnwyrm extends Enemy {
     glob(p, phase) {
         const tell = tellFor(2, phase);
         this.glowT = tell; Sfx.play('warn');
-        Hazard.drop(this, p.x, p.y, { r: KW.glob, dmg: 1, tell: tell + 18, live: KW.puddle, fx: 'clay', col: '#f39a3c', quiet: true, look: Kiln.drawGlob, lookLanded: Kiln.drawPuddle });
+        Hazard.drop(this, p.x, p.y, { r: KW.glob, dmg: 1, tell: tell + 18, live: KW.puddle, fx: 'clay', quiet: true, look: Kiln.drawGlob, lookLanded: Kiln.drawPuddle });
         this.cool = KW.cool[phase];
         Stats.count('boss:kiln:glob');
     }
@@ -11373,7 +11714,7 @@ class Kilnwyrm extends Enemy {
         const near = cand.splice(0, 6); take(near, 2); take(cand, KW.shed - 2);
         const home = [r.x + 9, r.y + 5];
         for (const [x, y] of picks) Hazard.drop(this, x * T + 8, y * T + 10, {
-            r: 10, dmg: 1, tell, fx: 'clay', col: '#c4623a', quiet: true, look: Kiln.drawShard,
+            r: 10, dmg: 1, tell, fx: 'clay', quiet: true, look: Kiln.drawShard,
             onLand: () => this.area.add(new Flung(this, Flung.between(home, [x, y]), { lying: true, wait: 64, tell: 26, back: 3, dmg: 1, col: THREAD.bram, look: Kiln.drawShard })),
         });
         this.rattleT = tell; Sfx.play('warn'); Sfx.play('rumble');
@@ -13050,7 +13391,7 @@ class Snapjaw extends Enemy {
                 /* up out of the race, jaws open (a clear moment to step back), then the snap: its one dangerous move, a
                    full heart (the bank's edge it can reach lit while its jaws are open) */
                 const beside = p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 16;
-                if (this.st === 1) { const ty = this.ty; Hazard.tiles(this, [[this.hx - 1, ty - 1], [this.hx - 1, ty], [this.hx - 1, ty + 1]].filter(([x, y]) => !this.area.kind(x, y).solid), { tell: SJ.bite, dmg: 0, live: 0, col: '#e8463c' }); }
+                if (this.st === 1) { const ty = this.ty; Hazard.tiles(this, [[this.hx - 1, ty - 1], [this.hx - 1, ty], [this.hx - 1, ty + 1]].filter(([x, y]) => !this.area.kind(x, y).solid), { tell: SJ.bite, dmg: 0, live: 0 }); }
                 if (this.st === SJ.bite) {
                     Sfx.play('splash'); Fx.splash(this.x - 10, this.y - 4);
                     if (beside) p.hurt(2, this.x, this.y);
@@ -13238,12 +13579,12 @@ class Grindle extends GridThing {
                 if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => a.kind(x + dx, y + dy).water)) tiles.push([x, y]);
             }
             nb.tell += 8;
-            Hazard.tiles(this, tiles, { tell: nb.tell, dmg: 2, live: 8, fx: 'splash', col: '#bfe8fb', quiet: true, from: [p.x, p.y - 12] });
+            Hazard.tiles(this, tiles, { tell: nb.tell, dmg: 2, live: 8, fx: 'splash', quiet: true, from: [p.x, p.y - 12] });
         } else if (kind === 'rivets') {
             /* its plates spring: two rivets will fly, one at her and one beside, along the lines lit */
             const side = G.rng() < 0.5 ? -1 : 1, aims = [[p.tx, p.ty], [p.tx + side * 2, p.ty]];
             nb.paths = aims.map(([x, y], i) => Flung.between([this.tx + i, this.ty], [x, y]));
-            for (const q of nb.paths) Hazard.tiles(this, q.slice(1), { tell: nb.tell, dmg: 0, live: 0, col: '#a8b0a8', quiet: true });
+            for (const q of nb.paths) Hazard.tiles(this, q.slice(1), { tell: nb.tell, dmg: 0, live: 0, quiet: true });
         }
     }
     wash() { Sfx.play('boss'); G.shake = 8; Stats.count('boss:grindle:wash'); }
@@ -14041,7 +14382,7 @@ const TownLooks = {
      1. The Guild's crates (the Gloves): two crates nose to nose in the lane by Thimble's, each on the other's way home.
      2. The kite (the Hookline): caught in the tree by the Inn, and its way home runs back up through the branches.
      3. Tuck and the odd marble: a stray, for the one boy in town who wants a thing that stays where he puts it.
-     4. Mabel's table of strays (the Recall Bell): one of them isn't a stray at all; it's asleep.
+     4. Mabel's floor of strays (the Recall Bell): one of them isn't a stray at all; it's asleep.
      5. Jory's back room (the Crossbar): a parcel locked in, straining at the door toward Tuck's house.
      6. Rosa's saucer (the Needle): the cream she puts out for Biscuit walks itself home before the cat comes.
    The townsfolk's side of it is FAVOUR_TALK (called from their talk, src/51_town_talk.js and src/52_kidgame.js). */
@@ -14086,7 +14427,6 @@ FAVOUR_TALK.thimble = function* () {
     return false;
 };
 
-
 /* ---------------- 2. the children's kite, caught in the tree by the Inn (the Hookline) ---------------- */
 /* Blown off its peg one windy day, it went up through the tree and caught in the branches, and its way home runs back
    the way it came: up through the branches. Hooked down, it flies home after a moment and catches again. Carried back
@@ -14106,7 +14446,7 @@ class Kite extends Liftable {
     canPush(d) { return !this.caught && super.canPush(d); }
     canBeShoved(d) { return !this.caught && super.canBeShoved(d); }
     /* the stick or a throw: up in the branches it only rustles; down, it's knocked along like anything light */
-    hit(by, d) { if (this.caught) { this.rustle = 20; Sfx.play('hitthing'); return; } if (!this.mv && d !== undefined) this.push(d, 8); }
+    hit(by, d) { if (this.caught) { this.rustle = 20; Sfx.play('hitthing'); return; } if (!this.mv && d >= 0) this.push(d, 8); }
     interact() {
         if (!this.caught) return false;
         Script.run(function* () { yield* say(null, "The children's kite: a red diamond with a ribbon tail, caught fast high up in the branches. Its thread runs down out of the tree and away to its peg, pulled tight. It's far too high to reach."); });
@@ -14163,6 +14503,8 @@ ITEM_LINES.marble = () => "You got the children's {blue}odd marble{/}! A glass m
 ITEM_LINES.string = () => "You got a {blue}ball of string{/}! Thimble's best. It doesn't do anything. It's string.";
 /* the children: what they'd like, and the string */
 function* kiteString() {
+    /* (a game saved while this was being made may hold a hank of "Guild twine": it's string) */
+    if (Inv.items.twine) { Inv.items.string = (Inv.items.string || 0) + Inv.items.twine; delete Inv.items.twine; }
     if (!Inv.items.string) { yield* say('nell', "It's HOME! You got it down! ...Only the string snapped, when it blew away. A kite's no good without a string. We need string. Proper string."); return; }
     yield* say('nell', "It's HOME! You got it down! ...Only the string snapped when it blew off. A kite's no good without string.");
     const i = yield* ask(null, 'Give Nell a ball of string?', ['Give it', 'Not now']);
@@ -14239,8 +14581,8 @@ SPAWN.tuckmarble = (tx, ty) => {
 };
 OW.blocks['1,1'].ents.push({ k: 'tuckmarble', x: 0, y: 0, if: 'fav_marble' });
 
-/* ---------------- 4. Auntie Mabel's table of strays (the Recall Bell) ---------------- */
-/* Everything on the floor round her table is a stray, she says: nothing ever pulls it home. One of them is a battered
+/* ---------------- 4. Auntie Mabel's floor of strays (the Recall Bell) ---------------- */
+/* Everything on her floor is a stray, she says: nothing ever pulls it home. One of them is a battered
    sewing tin, and it snores. Rung awake, it snaps home along its thread to the little table by her counter, shoving
    the light strays aside; the heavy one in its way it can't shift, and waits, until that's moved off its thread. */
 const TIN_TRACE = [[1, 3], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [8, 4], [8, 5], [9, 5]];
@@ -14348,30 +14690,6 @@ OW.blocks['1,1'].ents.push({ k: 'stickthread', x: 0, y: 0, if: '!fav_stick' });
         return r;
     };
 }
-FAVOUR_TALK.rosa = function* () {
-    /* 6, below: the saucer */
-    if (Progress.flag('fav_saucerPlaced') && !Progress.flag('fav_saucer')) {
-        Progress.set('fav_saucer'); Stats.count('favour:saucer');
-        yield* say('rosa', "The saucer's on the back step, and it's STAYING there! Biscuit's been round already, look: licked clean, and him washing his whiskers on my step like a lord.");
-        yield* say('rosa', "I don't know how you did it and I'm not going to ask. Twenty buttons. And a bun, any time you're in, for nothing. Any time at all.");
-        Favours.buttons(20);
-        return true;
-    }
-    if (Progress.flag('fav_saucer') && Inv.hp < Inv.maxHp) {
-        Inv.hp = Inv.maxHp; Sfx.play('heart');
-        yield* say('rosa', saucerPlaced() ? "Bun, love. On the house. Always." : "Bun, love, on the house. ...The saucer's walked itself round the front again, mind. Biscuit looked ever so put out.");
-        return true;
-    }
-    if (Progress.flag('fav_stick') && !Progress.flag('fav_stickRosa') && Progress.flag('met:rosa')) {
-        Progress.set('fav_stickRosa');
-        yield* say('rosa', "Tuck says a stick flew in at his window and landed on his bed, with his name burnt on it. Jory's work, that is. Jory's been gone all season. ...Was that you, love?");
-        return true;
-    }
-    if (!Progress.flag('fav_saucerPlaced') && Progress.flag('met:rosa'))
-        return yield* Favours.once('fav_saucerTold', 'rosa', "Every night I put a saucer of cream out on the back step for Biscuit. Every morning it's walked itself round to the front again, still full. That poor cat's never had a drop.");
-    return false;
-};
-
 /* ---------------- 6. Rosa's saucer for Biscuit (the Needle) ---------------- */
 /* The saucer belongs on the bakery's front sill, so whenever Rosa sets it out on the back step it walks itself home,
    round the corner, long before the cat comes by (Biscuit's round stops at the back step, by its crawlspace). Given a
@@ -14400,6 +14718,29 @@ class Saucer extends Liftable {
 }
 SPAWN.saucer = (x, y, p) => new Saucer(x, y, p);
 OW.blocks['1,1'].ents.push({ k: 'saucer', x: SAUCER_HOME[0], y: SAUCER_HOME[1], id: 'saucer' });
+/* Rosa: the saucer (and Tuck's stick, which she's heard about) */
+FAVOUR_TALK.rosa = function* () {
+    if (Progress.flag('fav_saucerPlaced') && !Progress.flag('fav_saucer')) {
+        Progress.set('fav_saucer'); Stats.count('favour:saucer');
+        yield* say('rosa', "The saucer's on the back step, and it's STAYING there! Biscuit's been round already, look: licked clean, and him washing his whiskers on my step like a lord.");
+        yield* say('rosa', "I don't know how you did it and I'm not going to ask. Twenty buttons. And a bun, any time you're in, for nothing. Any time at all.");
+        Favours.buttons(20);
+        return true;
+    }
+    if (Progress.flag('fav_saucer') && Inv.hp < Inv.maxHp) {
+        Inv.hp = Inv.maxHp; Sfx.play('heart');
+        yield* say('rosa', saucerPlaced() ? "Bun, love. On the house. Always." : "Bun, love, on the house. ...The saucer's walked itself round the front again, mind. Biscuit looked ever so put out.");
+        return true;
+    }
+    if (Progress.flag('fav_stick') && !Progress.flag('fav_stickRosa') && Progress.flag('met:rosa')) {
+        Progress.set('fav_stickRosa');
+        yield* say('rosa', "Tuck says a stick flew in at his window and landed on his bed, with his name burnt on it. Jory's work, that is. Jory's been gone all season. ...Was that you, love?");
+        return true;
+    }
+    if (!Progress.flag('fav_saucerPlaced') && Progress.flag('met:rosa'))
+        return yield* Favours.once('fav_saucerTold', 'rosa', "Every night I put a saucer of cream out on the back step for Biscuit. Every morning it's walked itself round to the front again, still full. That poor cat's never had a drop.");
+    return false;
+};
 
 /* ---------------- the town's tick for them: the crates home ---------------- */
 {
@@ -16029,7 +16370,7 @@ class Clangor extends Enemy {
                 if ((this.st > 200 || (near && this.st > 90))) {
                     this.state = 'windup'; this.st = 0; Sfx.play('twang');
                     /* its one dangerous move: the ring's reach drawn round it on the floor while it winds up (a full heart) */
-                    Hazard.ring(this, this.x, this.y, 30, { tell: 41, dmg: 2, col: '#e8b04a', fx: 'sparks', shake: 6, sound: 'bell' });
+                    Hazard.ring(this, this.x, this.y, 30, { tell: 41, dmg: 2, fx: 'sparks', shake: 6, sound: 'bell' });
                 }
                 break;
             }
@@ -16171,7 +16512,7 @@ class Tollgrim extends Enemy {
         else if (ph === 3 && here && (this.state === 'hide' || this.state === 'peek') && this.pounceZone().some(([x, y]) => p.tx === x && p.ty === y)) {
             if (this.state === 'peek') this.duck();
             this.state = 'pounce'; this.st = 0; this.tellN = tellFor(4, 3);
-            Hazard.tiles(this, this.pounceZone(), { tell: this.tellN, dmg: 2, live: 10, col: '#ff5a4a', fx: 'dust', shake: 6, sound: 'boss' });
+            Hazard.tiles(this, this.pounceZone(), { tell: this.tellN, dmg: 2, live: 10, fx: 'dust', shake: 6, sound: 'boss' });
             Stats.count('boss:tollgrim:pounce');
         }
         switch (this.state) {
@@ -16217,7 +16558,7 @@ class Tollgrim extends Enemy {
         const near = cand.splice(0, 5), picks = [];
         const take = (from, n) => { for (let i = 0; i < n && from.length; i++) picks.push(from.splice(Math.floor(G.rng() * from.length), 1)[0]); };
         take(near, 2); take(cand, TOLL.rubble - 2);
-        for (const [x, y] of picks) Hazard.drop(this, x * T + 8, y * T + 10, { r: 11, dmg: 2, tell, fx: 'dust', col: '#7f7688', quiet: true, look: BelfryFoes.drawRubble });
+        for (const [x, y] of picks) Hazard.drop(this, x * T + 8, y * T + 10, { r: 11, dmg: 2, tell, fx: 'dust', quiet: true, look: BelfryFoes.drawRubble });
         this.tollCool = TOLL.toll[ph]; this.pounding = tell;
         Sfx.play('warn'); Sfx.play('boss'); G.shake = 4;
         Stats.count('boss:tollgrim:toll');
@@ -19026,7 +19367,7 @@ class MotherSloth extends Enemy {
         const y = p.pinned ? rows[Math.floor(G.rng() * rows.length)] : clamp(p.ty, r.y + 3, r.y + r.h - 2);
         const tiles = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) { const k = a.kind(x, y); if (!k.solid && !k.pit) tiles.push([x, y]); }
         const fromLeft = G.rng() < 0.5, x0 = (fromLeft ? r.x : r.x + r.w) * T, x1 = (fromLeft ? r.x + r.w : r.x) * T;
-        const live = 48, h = Hazard.tiles(this, tiles, { tell: tellFor(5, 3) + 14, live, dmg: 2, col: '#e8e0ff', fx: 'dust', sound: 'snort', lookLanded: SlumberFoes.drawSheep });
+        const live = 48, h = Hazard.tiles(this, tiles, { tell: tellFor(5, 3) + 14, live, dmg: 2, fx: 'dust', sound: 'snort', lookLanded: SlumberFoes.drawSheep });
         if (!h) return;
         h.flock = { y: y * T + 10, x0, x1 };
         /* (what hurts is the flock itself, where it's got to along the row) */
@@ -20595,7 +20936,7 @@ class Captain extends Enemy {
             if (this.twirl > 0) { if (--this.twirl === 0) this.fling(); return; }
             if (++this.batonT > 240 && p.state === 'normal' && !a.ents.some(e => e.kind === 'flung' && e.owner === this)) {
                 this.batonT = 0; this.twirl = tellFor(6) + 4; this.aim = Flung.line(a, [this.tx, this.ty], [p.tx, p.ty], 7);
-                Hazard.tiles(this, this.aim.slice(1), { tell: this.twirl, dmg: 0, live: 0, col: '#e8b04a' });
+                Hazard.tiles(this, this.aim.slice(1), { tell: this.twirl, dmg: 0, live: 0 });
                 Sfx.play('warn'); Stats.count('boss:tin:baton');
                 return;
             }
@@ -20804,7 +21145,7 @@ class GreatMarionette extends Enemy {
         const z = this.sweepZone();
         if (!z.some(([x, y]) => p.tx === x && p.ty === y)) return;
         this.sweepCool = 0; this.sweepT = tellFor(6, 1) + 10;
-        Hazard.tiles(this, z, { tell: tellFor(6, 1), dmg: 2, live: 10, col: '#e7ad3c', fx: 'dust', shake: 5, sound: 'hitthing', from: [(this.feet[0][0] + this.feet[1][0] + 1) / 2 * T, this.feet[0][1] * T] });
+        Hazard.tiles(this, z, { tell: tellFor(6, 1), dmg: 2, live: 10, fx: 'dust', shake: 5, sound: 'hitthing', from: [(this.feet[0][0] + this.feet[1][0] + 1) / 2 * T, this.feet[0][1] * T] });
         Stats.count('boss:gm:sweep');
     }
     sweepZone() {
@@ -20820,7 +21161,7 @@ class GreatMarionette extends Enemy {
         for (let y = r.y + 2; y < r.y + r.h - 1; y++) if (!(this.heldBy && y === p.ty)) rows.push(y);
         const y = this.heldBy || !rows.includes(p.ty) ? rows[Math.floor(G.rng() * rows.length)] : p.ty;
         const tiles = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (!a.kind(x, y).solid) tiles.push([x, y]);
-        Hazard.tiles(this, tiles, { tell: tellFor(6, 3) + 12, dmg: 2, live: 8, col: '#c9925a', fx: 'dust', shake: 8, sound: 'land', look: GMArt.batten });
+        Hazard.tiles(this, tiles, { tell: tellFor(6, 3) + 12, dmg: 2, live: 8, fx: 'dust', shake: 8, sound: 'land', look: GMArt.batten });
         Stats.count('boss:gm:batten');
     }
     updateBags(p) {
@@ -23212,7 +23553,7 @@ class Cog extends Enemy {
                 const dx = p.x - this.x, dy = p.y - this.y, d = Math.hypot(dx, dy) || 1;
                 /* his one dangerous move: a few strides off he crouches, tail whirring, and pounces on the spot where Wren
                    stands (its shadow there first): a heart and a half if she's still on it */
-                if (d < 56 && d > 20 && this.st > 90) { this.state = 'crouch'; this.st = 0; this.leap = { fx: this.x, fy: this.y, tx: p.x, ty: p.y, tell: tellFor(7) + 6 }; Hazard.drop(this, p.x, p.y, { r: 16, dmg: 3, tell: this.leap.tell + 16, col: THREAD.guild, shake: 6 }); Sfx.play('snort'); Stats.count('boss:cog:pounce'); break; }
+                if (d < 56 && d > 20 && this.st > 90) { this.state = 'crouch'; this.st = 0; this.leap = { fx: this.x, fy: this.y, tx: p.x, ty: p.y, tell: tellFor(7) + 6 }; Hazard.drop(this, p.x, p.y, { r: 16, dmg: 3, tell: this.leap.tell + 16, shake: 6 }); Sfx.play('snort'); Stats.count('boss:cog:pounce'); break; }
                 this.dir = dirOf(dx, dy);
                 this.move(dx / d * sp, dy / d * sp); this.anim++;
                 if (Math.abs(dx) < 10 && Math.abs(dy) < 8) p.hurt(1, this.x, this.y);
@@ -23471,7 +23812,7 @@ class Tangle extends Ent {
         if (this.lashT > 0) { this.lashT--; return; }
         if (near && this.st % 40 === 0) {
             this.lashT = tellFor(7, this.beat) + 4;
-            Hazard.ring(this, this.x + 8, this.y + 10, 38, { tell: this.lashT, dmg: 3, col: THREAD.guild, fx: 'yarn', shake: 4 });
+            Hazard.ring(this, this.x + 8, this.y + 10, 38, { tell: this.lashT, dmg: 3, fxCol: THREAD.guild, fx: 'yarn', shake: 4 });
             Stats.count('boss:tangle:lash');
         }
     }
@@ -23485,7 +23826,7 @@ class Tangle extends Ent {
         const col = () => { const t = []; for (let y = r.y + 1; y < r.y + r.h - 1; y++) if (Math.abs(y - this.ty) > 1 && !a.kind(this.tx, y).solid) t.push([this.tx, y]); return t; };
         if (this.beat === 3) lines.push(row(), col());
         else lines.push(p.ty === this.ty ? row() : p.tx === this.tx ? col() : (this.sweepN++ % 2 ? row() : col()));
-        for (const t of lines) Hazard.tiles(this, t, { tell: tellFor(7, this.beat) + 6, dmg: 3, live: 8, col: '#e8b04a', fx: 'yarn', shake: 5 });
+        for (const t of lines) Hazard.tiles(this, t, { tell: tellFor(7, this.beat) + 6, dmg: 3, live: 8, fxCol: '#e8b04a', fx: 'yarn', shake: 5 });
         Stats.count('boss:tangle:sweep');
     }
     /* (2) hung in the rafters, it lets spoolmites down on their threads (three about at most) */
@@ -26078,7 +26419,7 @@ class Shuttle extends Ent {
         /* its one dangerous move is its flight: waiting at its end, its lane is lit, wall to wall, before it comes (a heart
            and a half if it finds Wren in it) */
         if (this.state === 'wait') {
-            if (this.st === 1) { const t = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (!a.kind(x, this.lane).solid) t.push([x, this.lane]); Hazard.tiles(this, t, { tell: 50, dmg: 0, live: 0, col: '#e4ecf5' }); }
+            if (this.st === 1) { const t = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (!a.kind(x, this.lane).solid) t.push([x, this.lane]); Hazard.tiles(this, t, { tell: 50, dmg: 0, live: 0 }); }
             if (this.st > 50) { this.state = 'fly'; this.st = 0; }
             return;
         }
@@ -26409,7 +26750,7 @@ class Weaver extends Ent {
         if (this.beat >= 2) cols.push(p.tx + (p.tx > r.x + 9 ? -4 : 4));
         for (const x of cols) {
             const tiles = []; for (let y = r.y + 1; y < r.y + r.h - 1; y++) { const k = a.kind(x, y); if (!k.solid && !k.pit) tiles.push([x, y]); }
-            Hazard.tiles(this, tiles, { tell: tellFor(8, this.beat) + 8, dmg: 3, live: 8, col: '#e4ecf5', fx: 'silk', shake: 4, look: LoomFoes.drawWarp });
+            Hazard.tiles(this, tiles, { tell: tellFor(8, this.beat) + 8, dmg: 3, live: 8, fxCol: '#e4ecf5', fx: 'silk', shake: 4, look: LoomFoes.drawWarp });
         }
         Stats.count('boss:weaver:warp');
     }

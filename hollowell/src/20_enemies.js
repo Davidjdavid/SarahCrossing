@@ -269,7 +269,7 @@ class Hazard extends Ent {
         for (const [x, y] of pts) {
             if (this.fx === 'splash') Fx.splash(x, y);
             else if (this.fx === 'sparks' || this.fx === 'clay') Fx.burst(x, y - 3, this.fx === 'clay' ? '#c4623a' : '#f7d64a');
-            else if (this.fx === 'yarn' || this.fx === 'silk') Fx.yarn(x, y - 3, this.col);
+            else if (this.fx === 'yarn' || this.fx === 'silk') Fx.yarn(x, y - 3, this.fxCol || '#e4ecf5');
             else Fx.dust(x, y);
         }
         if (this.shape !== 'tiles') Fx.ring(this.x, this.y, this.shape === 'ring' ? shade(this.col, 0.4) : '#ffffff');
@@ -280,9 +280,10 @@ class Hazard extends Ent {
         /* faster and brighter as it comes */
         const blink = !this.landed && ((t / Math.max(3, Math.round(10 - 7 * k))) | 0) % 2 === 0;
         if (this.shape === 'tiles') {
+            if (this.landed && this.lookLanded) { this.lookLanded(this.x - cx, this.y - cy, this); return; }
             for (const [tx, ty] of this.tiles) {
                 const x = tx * T - cx, y = ty * T - cy;
-                Gfx.alpha(this.landed ? 0.45 : 0.1 + 0.25 * k + (blink ? 0.08 : 0)); Gfx.rect(x + 1, y + 1, 14, 14, this.landed ? '#ffffff' : col); Gfx.alpha(1);
+                Gfx.alpha(this.landed ? 0.45 : 0.14 + 0.3 * k + (blink ? 0.08 : 0)); Gfx.rect(x + 1, y + 1, 14, 14, this.landed ? '#ffffff' : col); Gfx.alpha(1);
                 if (!this.landed) Tells.stitchTile(x, y, blink ? shade(col, 0.45) : col);
             }
             return;
@@ -297,7 +298,7 @@ class Hazard extends Ent {
                 if (blink) Tells.stitchRing(x, y, r + 2, col, 14);
             }
         } else if (!this.landed) {
-            Gfx.alpha(0.06 + 0.12 * k); Tells.ellipse(x, y, this.r, col); Gfx.alpha(1);
+            Gfx.alpha(0.1 + 0.18 * k); Tells.ellipse(x, y, this.r, col); Gfx.alpha(1);
             Tells.stitchRing(x, y, this.r, blink ? shade(col, 0.45) : col, Math.max(16, Math.round(this.r / 2.5)));
         }
         /* what's coming down, from up out of sight */

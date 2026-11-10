@@ -531,7 +531,7 @@ AI.monger = (e, p) => {
     if (++e.flopT > 280 && !(e.hopT > 0) && p.state === 'normal' && p.area === a && Cam.room && Cam.room.key === '2,1') {
         e.flopT = 0;
         e.flop = { t: 0, crouch: tellFor(1), air: 28, fx: e.x, fy: e.y, tx: p.x, ty: p.y };
-        Hazard.drop(e, p.x, p.y, { r: 20, dmg: 2, tell: e.flop.crouch + e.flop.air, shake: 8, col: '#b0a698' });
+        Hazard.drop(e, p.x, p.y, { r: 20, dmg: 2, tell: e.flop.crouch + e.flop.air, shake: 8 });
         return;
     }
     AI.hop(e, p);
@@ -674,16 +674,16 @@ class Housekeeper extends Enemy {
         let x = tileOf(this.x), y = tileOf(this.y);
         this.laneAt = this.chargeDir === LEFT || this.chargeDir === RIGHT ? y : x;
         for (let i = 0; i < 20; i++) { x += DX[this.chargeDir]; y += DY[this.chargeDir]; if (!a.inside(x, y) || a.kind(x, y).solid || a.at(x, y)) break; tiles.push([x, y]); }
-        this.lane = Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 0, live: 0, col: '#e8463c' });
+        this.lane = Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 0, live: 0 });
     }
     rear(phase) {
         this.tellN = tellFor(1, phase); this.setState('rear'); Stats.count('boss:tidy:stamp');
-        Hazard.ring(this, this.x, this.y + 2, HK.stamp, { tell: this.tellN, dmg: 1, col: '#3fc1b5', shake: 8 });
+        Hazard.ring(this, this.x, this.y + 2, HK.stamp, { tell: this.tellN, dmg: 1, shake: 8 });
     }
     aimHanger(p) {
         this.tellN = tellFor(1, 3); this.setState('aimH'); Sfx.play('twang');
         this.hangerPath = Flung.line(this.area, [this.homeX, this.homeY], [p.tx, p.ty], HK.hanger);
-        Hazard.tiles(this, this.hangerPath.slice(1), { tell: this.tellN, dmg: 0, live: 0, col: '#c9925a', quiet: true });
+        Hazard.tiles(this, this.hangerPath.slice(1), { tell: this.tellN, dmg: 0, live: 0, quiet: true });
     }
     throwHanger() {
         const path = this.hangerPath; this.hangerPath = null;

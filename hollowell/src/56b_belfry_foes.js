@@ -59,7 +59,7 @@ class Clangor extends Enemy {
                 if ((this.st > 200 || (near && this.st > 90))) {
                     this.state = 'windup'; this.st = 0; Sfx.play('twang');
                     /* its one dangerous move: the ring's reach drawn round it on the floor while it winds up (a full heart) */
-                    Hazard.ring(this, this.x, this.y, 30, { tell: 41, dmg: 2, col: '#e8b04a', fx: 'sparks', shake: 6, sound: 'bell' });
+                    Hazard.ring(this, this.x, this.y, 30, { tell: 41, dmg: 2, fx: 'sparks', shake: 6, sound: 'bell' });
                 }
                 break;
             }
@@ -201,7 +201,7 @@ class Tollgrim extends Enemy {
         else if (ph === 3 && here && (this.state === 'hide' || this.state === 'peek') && this.pounceZone().some(([x, y]) => p.tx === x && p.ty === y)) {
             if (this.state === 'peek') this.duck();
             this.state = 'pounce'; this.st = 0; this.tellN = tellFor(4, 3);
-            Hazard.tiles(this, this.pounceZone(), { tell: this.tellN, dmg: 2, live: 10, col: '#ff5a4a', fx: 'dust', shake: 6, sound: 'boss' });
+            Hazard.tiles(this, this.pounceZone(), { tell: this.tellN, dmg: 2, live: 10, fx: 'dust', shake: 6, sound: 'boss' });
             Stats.count('boss:tollgrim:pounce');
         }
         switch (this.state) {
@@ -247,7 +247,7 @@ class Tollgrim extends Enemy {
         const near = cand.splice(0, 5), picks = [];
         const take = (from, n) => { for (let i = 0; i < n && from.length; i++) picks.push(from.splice(Math.floor(G.rng() * from.length), 1)[0]); };
         take(near, 2); take(cand, TOLL.rubble - 2);
-        for (const [x, y] of picks) Hazard.drop(this, x * T + 8, y * T + 10, { r: 11, dmg: 2, tell, fx: 'dust', col: '#7f7688', quiet: true, look: BelfryFoes.drawRubble });
+        for (const [x, y] of picks) Hazard.drop(this, x * T + 8, y * T + 10, { r: 11, dmg: 2, tell, fx: 'dust', quiet: true, look: BelfryFoes.drawRubble });
         this.tollCool = TOLL.toll[ph]; this.pounding = tell;
         Sfx.play('warn'); Sfx.play('boss'); G.shake = 4;
         Stats.count('boss:tollgrim:toll');

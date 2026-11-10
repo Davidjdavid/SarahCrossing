@@ -5,7 +5,7 @@
      1. The Guild's crates (the Gloves): two crates nose to nose in the lane by Thimble's, each on the other's way home.
      2. The kite (the Hookline): caught in the tree by the Inn, and its way home runs back up through the branches.
      3. Tuck and the odd marble: a stray, for the one boy in town who wants a thing that stays where he puts it.
-     4. Mabel's table of strays (the Recall Bell): one of them isn't a stray at all; it's asleep.
+     4. Mabel's floor of strays (the Recall Bell): one of them isn't a stray at all; it's asleep.
      5. Jory's back room (the Crossbar): a parcel locked in, straining at the door toward Tuck's house.
      6. Rosa's saucer (the Needle): the cream she puts out for Biscuit walks itself home before the cat comes.
    The townsfolk's side of it is FAVOUR_TALK (called from their talk, src/51_town_talk.js and src/52_kidgame.js). */
@@ -50,7 +50,6 @@ FAVOUR_TALK.thimble = function* () {
     return false;
 };
 
-
 /* ---------------- 2. the children's kite, caught in the tree by the Inn (the Hookline) ---------------- */
 /* Blown off its peg one windy day, it went up through the tree and caught in the branches, and its way home runs back
    the way it came: up through the branches. Hooked down, it flies home after a moment and catches again. Carried back
@@ -70,7 +69,7 @@ class Kite extends Liftable {
     canPush(d) { return !this.caught && super.canPush(d); }
     canBeShoved(d) { return !this.caught && super.canBeShoved(d); }
     /* the stick or a throw: up in the branches it only rustles; down, it's knocked along like anything light */
-    hit(by, d) { if (this.caught) { this.rustle = 20; Sfx.play('hitthing'); return; } if (!this.mv && d !== undefined) this.push(d, 8); }
+    hit(by, d) { if (this.caught) { this.rustle = 20; Sfx.play('hitthing'); return; } if (!this.mv && d >= 0) this.push(d, 8); }
     interact() {
         if (!this.caught) return false;
         Script.run(function* () { yield* say(null, "The children's kite: a red diamond with a ribbon tail, caught fast high up in the branches. Its thread runs down out of the tree and away to its peg, pulled tight. It's far too high to reach."); });
@@ -127,6 +126,8 @@ ITEM_LINES.marble = () => "You got the children's {blue}odd marble{/}! A glass m
 ITEM_LINES.string = () => "You got a {blue}ball of string{/}! Thimble's best. It doesn't do anything. It's string.";
 /* the children: what they'd like, and the string */
 function* kiteString() {
+    /* (a game saved while this was being made may hold a hank of "Guild twine": it's string) */
+    if (Inv.items.twine) { Inv.items.string = (Inv.items.string || 0) + Inv.items.twine; delete Inv.items.twine; }
     if (!Inv.items.string) { yield* say('nell', "It's HOME! You got it down! ...Only the string snapped, when it blew away. A kite's no good without a string. We need string. Proper string."); return; }
     yield* say('nell', "It's HOME! You got it down! ...Only the string snapped when it blew off. A kite's no good without string.");
     const i = yield* ask(null, 'Give Nell a ball of string?', ['Give it', 'Not now']);
@@ -203,8 +204,8 @@ SPAWN.tuckmarble = (tx, ty) => {
 };
 OW.blocks['1,1'].ents.push({ k: 'tuckmarble', x: 0, y: 0, if: 'fav_marble' });
 
-/* ---------------- 4. Auntie Mabel's table of strays (the Recall Bell) ---------------- */
-/* Everything on the floor round her table is a stray, she says: nothing ever pulls it home. One of them is a battered
+/* ---------------- 4. Auntie Mabel's floor of strays (the Recall Bell) ---------------- */
+/* Everything on her floor is a stray, she says: nothing ever pulls it home. One of them is a battered
    sewing tin, and it snores. Rung awake, it snaps home along its thread to the little table by her counter, shoving
    the light strays aside; the heavy one in its way it can't shift, and waits, until that's moved off its thread. */
 const TIN_TRACE = [[1, 3], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [8, 4], [8, 5], [9, 5]];
@@ -312,30 +313,6 @@ OW.blocks['1,1'].ents.push({ k: 'stickthread', x: 0, y: 0, if: '!fav_stick' });
         return r;
     };
 }
-FAVOUR_TALK.rosa = function* () {
-    /* 6, below: the saucer */
-    if (Progress.flag('fav_saucerPlaced') && !Progress.flag('fav_saucer')) {
-        Progress.set('fav_saucer'); Stats.count('favour:saucer');
-        yield* say('rosa', "The saucer's on the back step, and it's STAYING there! Biscuit's been round already, look: licked clean, and him washing his whiskers on my step like a lord.");
-        yield* say('rosa', "I don't know how you did it and I'm not going to ask. Twenty buttons. And a bun, any time you're in, for nothing. Any time at all.");
-        Favours.buttons(20);
-        return true;
-    }
-    if (Progress.flag('fav_saucer') && Inv.hp < Inv.maxHp) {
-        Inv.hp = Inv.maxHp; Sfx.play('heart');
-        yield* say('rosa', saucerPlaced() ? "Bun, love. On the house. Always." : "Bun, love, on the house. ...The saucer's walked itself round the front again, mind. Biscuit looked ever so put out.");
-        return true;
-    }
-    if (Progress.flag('fav_stick') && !Progress.flag('fav_stickRosa') && Progress.flag('met:rosa')) {
-        Progress.set('fav_stickRosa');
-        yield* say('rosa', "Tuck says a stick flew in at his window and landed on his bed, with his name burnt on it. Jory's work, that is. Jory's been gone all season. ...Was that you, love?");
-        return true;
-    }
-    if (!Progress.flag('fav_saucerPlaced') && Progress.flag('met:rosa'))
-        return yield* Favours.once('fav_saucerTold', 'rosa', "Every night I put a saucer of cream out on the back step for Biscuit. Every morning it's walked itself round to the front again, still full. That poor cat's never had a drop.");
-    return false;
-};
-
 /* ---------------- 6. Rosa's saucer for Biscuit (the Needle) ---------------- */
 /* The saucer belongs on the bakery's front sill, so whenever Rosa sets it out on the back step it walks itself home,
    round the corner, long before the cat comes by (Biscuit's round stops at the back step, by its crawlspace). Given a
@@ -364,6 +341,29 @@ class Saucer extends Liftable {
 }
 SPAWN.saucer = (x, y, p) => new Saucer(x, y, p);
 OW.blocks['1,1'].ents.push({ k: 'saucer', x: SAUCER_HOME[0], y: SAUCER_HOME[1], id: 'saucer' });
+/* Rosa: the saucer (and Tuck's stick, which she's heard about) */
+FAVOUR_TALK.rosa = function* () {
+    if (Progress.flag('fav_saucerPlaced') && !Progress.flag('fav_saucer')) {
+        Progress.set('fav_saucer'); Stats.count('favour:saucer');
+        yield* say('rosa', "The saucer's on the back step, and it's STAYING there! Biscuit's been round already, look: licked clean, and him washing his whiskers on my step like a lord.");
+        yield* say('rosa', "I don't know how you did it and I'm not going to ask. Twenty buttons. And a bun, any time you're in, for nothing. Any time at all.");
+        Favours.buttons(20);
+        return true;
+    }
+    if (Progress.flag('fav_saucer') && Inv.hp < Inv.maxHp) {
+        Inv.hp = Inv.maxHp; Sfx.play('heart');
+        yield* say('rosa', saucerPlaced() ? "Bun, love. On the house. Always." : "Bun, love, on the house. ...The saucer's walked itself round the front again, mind. Biscuit looked ever so put out.");
+        return true;
+    }
+    if (Progress.flag('fav_stick') && !Progress.flag('fav_stickRosa') && Progress.flag('met:rosa')) {
+        Progress.set('fav_stickRosa');
+        yield* say('rosa', "Tuck says a stick flew in at his window and landed on his bed, with his name burnt on it. Jory's work, that is. Jory's been gone all season. ...Was that you, love?");
+        return true;
+    }
+    if (!Progress.flag('fav_saucerPlaced') && Progress.flag('met:rosa'))
+        return yield* Favours.once('fav_saucerTold', 'rosa', "Every night I put a saucer of cream out on the back step for Biscuit. Every morning it's walked itself round to the front again, still full. That poor cat's never had a drop.");
+    return false;
+};
 
 /* ---------------- the town's tick for them: the crates home ---------------- */
 {

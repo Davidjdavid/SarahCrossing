@@ -58,7 +58,7 @@ class Snapjaw extends Enemy {
                 /* up out of the race, jaws open (a clear moment to step back), then the snap: its one dangerous move, a
                    full heart (the bank's edge it can reach lit while its jaws are open) */
                 const beside = p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 16;
-                if (this.st === 1) { const ty = this.ty; Hazard.tiles(this, [[this.hx - 1, ty - 1], [this.hx - 1, ty], [this.hx - 1, ty + 1]].filter(([x, y]) => !this.area.kind(x, y).solid), { tell: SJ.bite, dmg: 0, live: 0, col: '#e8463c' }); }
+                if (this.st === 1) { const ty = this.ty; Hazard.tiles(this, [[this.hx - 1, ty - 1], [this.hx - 1, ty], [this.hx - 1, ty + 1]].filter(([x, y]) => !this.area.kind(x, y).solid), { tell: SJ.bite, dmg: 0, live: 0 }); }
                 if (this.st === SJ.bite) {
                     Sfx.play('splash'); Fx.splash(this.x - 10, this.y - 4);
                     if (beside) p.hurt(2, this.x, this.y);
@@ -246,12 +246,12 @@ class Grindle extends GridThing {
                 if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => a.kind(x + dx, y + dy).water)) tiles.push([x, y]);
             }
             nb.tell += 8;
-            Hazard.tiles(this, tiles, { tell: nb.tell, dmg: 2, live: 8, fx: 'splash', col: '#bfe8fb', quiet: true, from: [p.x, p.y - 12] });
+            Hazard.tiles(this, tiles, { tell: nb.tell, dmg: 2, live: 8, fx: 'splash', quiet: true, from: [p.x, p.y - 12] });
         } else if (kind === 'rivets') {
             /* its plates spring: two rivets will fly, one at her and one beside, along the lines lit */
             const side = G.rng() < 0.5 ? -1 : 1, aims = [[p.tx, p.ty], [p.tx + side * 2, p.ty]];
             nb.paths = aims.map(([x, y], i) => Flung.between([this.tx + i, this.ty], [x, y]));
-            for (const q of nb.paths) Hazard.tiles(this, q.slice(1), { tell: nb.tell, dmg: 0, live: 0, col: '#a8b0a8', quiet: true });
+            for (const q of nb.paths) Hazard.tiles(this, q.slice(1), { tell: nb.tell, dmg: 0, live: 0, quiet: true });
         }
     }
     wash() { Sfx.play('boss'); G.shake = 8; Stats.count('boss:grindle:wash'); }

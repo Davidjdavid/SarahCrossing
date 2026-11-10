@@ -52,7 +52,7 @@ class Cog extends Enemy {
                 const dx = p.x - this.x, dy = p.y - this.y, d = Math.hypot(dx, dy) || 1;
                 /* his one dangerous move: a few strides off he crouches, tail whirring, and pounces on the spot where Wren
                    stands (its shadow there first): a heart and a half if she's still on it */
-                if (d < 56 && d > 20 && this.st > 90) { this.state = 'crouch'; this.st = 0; this.leap = { fx: this.x, fy: this.y, tx: p.x, ty: p.y, tell: tellFor(7) + 6 }; Hazard.drop(this, p.x, p.y, { r: 16, dmg: 3, tell: this.leap.tell + 16, col: THREAD.guild, shake: 6 }); Sfx.play('snort'); Stats.count('boss:cog:pounce'); break; }
+                if (d < 56 && d > 20 && this.st > 90) { this.state = 'crouch'; this.st = 0; this.leap = { fx: this.x, fy: this.y, tx: p.x, ty: p.y, tell: tellFor(7) + 6 }; Hazard.drop(this, p.x, p.y, { r: 16, dmg: 3, tell: this.leap.tell + 16, shake: 6 }); Sfx.play('snort'); Stats.count('boss:cog:pounce'); break; }
                 this.dir = dirOf(dx, dy);
                 this.move(dx / d * sp, dy / d * sp); this.anim++;
                 if (Math.abs(dx) < 10 && Math.abs(dy) < 8) p.hurt(1, this.x, this.y);
@@ -311,7 +311,7 @@ class Tangle extends Ent {
         if (this.lashT > 0) { this.lashT--; return; }
         if (near && this.st % 40 === 0) {
             this.lashT = tellFor(7, this.beat) + 4;
-            Hazard.ring(this, this.x + 8, this.y + 10, 38, { tell: this.lashT, dmg: 3, col: THREAD.guild, fx: 'yarn', shake: 4 });
+            Hazard.ring(this, this.x + 8, this.y + 10, 38, { tell: this.lashT, dmg: 3, fxCol: THREAD.guild, fx: 'yarn', shake: 4 });
             Stats.count('boss:tangle:lash');
         }
     }
@@ -325,7 +325,7 @@ class Tangle extends Ent {
         const col = () => { const t = []; for (let y = r.y + 1; y < r.y + r.h - 1; y++) if (Math.abs(y - this.ty) > 1 && !a.kind(this.tx, y).solid) t.push([this.tx, y]); return t; };
         if (this.beat === 3) lines.push(row(), col());
         else lines.push(p.ty === this.ty ? row() : p.tx === this.tx ? col() : (this.sweepN++ % 2 ? row() : col()));
-        for (const t of lines) Hazard.tiles(this, t, { tell: tellFor(7, this.beat) + 6, dmg: 3, live: 8, col: '#e8b04a', fx: 'yarn', shake: 5 });
+        for (const t of lines) Hazard.tiles(this, t, { tell: tellFor(7, this.beat) + 6, dmg: 3, live: 8, fxCol: '#e8b04a', fx: 'yarn', shake: 5 });
         Stats.count('boss:tangle:sweep');
     }
     /* (2) hung in the rafters, it lets spoolmites down on their threads (three about at most) */

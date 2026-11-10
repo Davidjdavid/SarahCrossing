@@ -495,14 +495,14 @@ class Glazer extends Enemy {
         this.tellN = tellFor(2); this.setState('aim');
         const tiles = []; let x = this.tx, y = this.ty;
         for (let i = 0; i < 9; i++) { x += DX[this.dir]; y += DY[this.dir]; const k = this.area.kind(x, y); if ((k.solid && !k.low) || this.area.at(x, y)) break; tiles.push([x, y]); }
-        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 0, live: 0, col: '#f39a3c' });
+        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 0, live: 0 });
     }
     /* the barge: shield up, and the two tiles ahead of it lit; then it comes through them (a full heart) */
     brace(d) {
         this.dir = d; this.tellN = tellFor(2); this.setState('brace');
         const tiles = []; let x = this.tx, y = this.ty;
         for (let i = 0; i < 3; i++) { x += DX[d]; y += DY[d]; const k = this.area.kind(x, y); if (k.solid || this.area.at(x, y)) break; tiles.push([x, y]); }
-        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 2, live: 9, col: '#e8463c', from: [this.x, this.y] });
+        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 2, live: 9, from: [this.x, this.y] });
         Stats.count('boss:glazer:barge');
     }
     throwShot() {
@@ -541,7 +541,13 @@ class Glazer extends Enemy {
         /* bracing: crouched behind its shield, shivering, its "!" up */
         const sh = this.state === 'brace' ? ((this.st >> 1) % 2 ? 1 : -1) : 0, low = this.state === 'brace' ? 2 : 0;
         Gfx.img(img, this.x - cx - 8 + sh, this.y - cy - 22 + low, this.dir === LEFT);
-        if (this.state === 'brace') { Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 16, 14, 12, '#5ad1c5'); Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 16, 14, 1, '#bff3ee'); Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 5, 14, 1, '#2e9a96'); Tells.bang(this.x - cx, this.y - cy - 36); }
+        /* (its glazed shield up before it, toward her) */
+        if (this.state === 'brace') {
+            const sx = Math.round(this.x - cx + DX[this.dir] * 5) + sh, sy = Math.round(this.y - cy) - 17 + low + (this.dir === UP ? -3 : 0);
+            Gfx.rect(sx - 5, sy, 10, 11, PAL.ink); Gfx.rect(sx - 4, sy + 1, 8, 9, '#5ad1c5'); Gfx.rect(sx - 4, sy + 1, 8, 1, '#bff3ee'); Gfx.rect(sx - 4, sy + 9, 8, 1, '#2e9a96');
+            Gfx.rect(sx - 2, sy + 11, 4, 1, PAL.ink); Gfx.rect(sx - 1, sy + 3, 2, 4, '#e8a070');
+            Tells.bang(this.x - cx, this.y - cy - 36);
+        }
     }
 }
 SPAWN.glazer = (x, y) => Progress.flag('kiln_glazer') ? new Ent('none') : new Glazer(x, y);
@@ -689,7 +695,7 @@ class Kilnwyrm extends Enemy {
     glob(p, phase) {
         const tell = tellFor(2, phase);
         this.glowT = tell; Sfx.play('warn');
-        Hazard.drop(this, p.x, p.y, { r: KW.glob, dmg: 1, tell: tell + 18, live: KW.puddle, fx: 'clay', col: '#f39a3c', quiet: true, look: Kiln.drawGlob, lookLanded: Kiln.drawPuddle });
+        Hazard.drop(this, p.x, p.y, { r: KW.glob, dmg: 1, tell: tell + 18, live: KW.puddle, fx: 'clay', quiet: true, look: Kiln.drawGlob, lookLanded: Kiln.drawPuddle });
         this.cool = KW.cool[phase];
         Stats.count('boss:kiln:glob');
     }
@@ -706,7 +712,7 @@ class Kilnwyrm extends Enemy {
         const near = cand.splice(0, 6); take(near, 2); take(cand, KW.shed - 2);
         const home = [r.x + 9, r.y + 5];
         for (const [x, y] of picks) Hazard.drop(this, x * T + 8, y * T + 10, {
-            r: 10, dmg: 1, tell, fx: 'clay', col: '#c4623a', quiet: true, look: Kiln.drawShard,
+            r: 10, dmg: 1, tell, fx: 'clay', quiet: true, look: Kiln.drawShard,
             onLand: () => this.area.add(new Flung(this, Flung.between(home, [x, y]), { lying: true, wait: 64, tell: 26, back: 3, dmg: 1, col: THREAD.bram, look: Kiln.drawShard })),
         });
         this.rattleT = tell; Sfx.play('warn'); Sfx.play('rumble');
