@@ -199,9 +199,18 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   once at the newest stage; the town changes visibly; six favours, each problem in town from the start, chained
   (crates, string, kite, marble, Tuck), no Heart Patches; the journal lists what's open, newest first; the north gate's
   opening shown; a "You found the b30!" bug fixed; tests/town.test.mjs (26).
-- Running: the bosses and combat; two blind solvers (A: Houses 7-8 and the Great Spool; B: Houses 5-6 and the new
-  world puzzles); what's owed (owed_brief.md: Millwater's revisits, a Larkspur Needle teaser, the quilt's counts, the
-  satchel, the Heart Patch count with a test, Linnet's expressions).
+- Done too: bosses and combat (bosses_brief.md). Feel: a 2-frame hit-stop and spark on a strike's first contact;
+  being hit flashes, knocks back both ways, then 70 frames of safety with a blink. A shared kit in src/20_enemies.js:
+  tells by House (40 frames in House 1 down to 20 in House 8, shorter in later beats; a two-note warning), hazards
+  drawn where a blow lands, flung things lying on their threads that fly home along them (the thrower too can be hit
+  by its own rules), knocks to topple a downed boss (2 in Houses 4-6, 3 in 7-8), a heart dropped each beat. Damage:
+  half to one heart in Houses 1-2, one in 3-6, one and a half in 7-8 (the Weaver's drop two). Each boss two to four
+  moves, a new one in its last beat; every mini-boss one dangerous move. Fainting unchanged (David). Bot wins 23-52 s;
+  a player who knows a late fight about 1.5-2.5 minutes. Probe over legs 1-8 drawn every step: 0 errors.
+- Full suite at this point: 560/560 (npm test, everything combined).
+- Running: two blind solvers (A: Houses 7-8 and the Great Spool; B: Houses 5-6 and the new world puzzles); what's owed
+  (owed_brief.md: Millwater's revisits, a Larkspur Needle teaser, the quilt's counts, the satchel, the Heart Patch
+  count with a test, Linnet's expressions); dressing for Houses 1 and 2 (dressing_brief.md).
 - David's direction of 10 November (vibes, not a list; the game stays its own thing, not a copy): puzzles simple in
   the first House and the land open then, harder House by House up to real ahas that combine tools; no hints unless
   asked (the opt-in nudges stay as they are; no new hint character), no answer signs; the road to later Houses takes

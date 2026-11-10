@@ -159,4 +159,6 @@
 - Faces in the dialogue: everyone who speaks has a portrait with expressions, a moving mouth and blinking eyes.
 - The town moves on between Houses: new things to hear after every step of the story, and small favours that the
   newest tool can finally fix, one leading to the next.
+- Bosses worth beating: each has moves of its own with a clear warning before every attack, quicker as the fight
+  goes on, harder House by House; hits land with weight, and being hit leaves a moment's safety.
 
