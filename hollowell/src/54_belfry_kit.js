@@ -180,14 +180,24 @@ class Vane extends GridThing {
         this.ang += g.on ? 0.3 : g.soon ? 0.12 : 0.01;
     }
     draw(cx, cy) {
-        const x = this.tx * T - cx + 8, y = this.ty * T - cy;
-        Gfx.rect(x - 1, y - 10, 2, 22, '#6a635e'); Gfx.rect(x - 4, y + 10, 8, 3, '#4a4a5a');
-        const d = this.g ? this.g.d : RIGHT;
-        const s = Math.sin(this.ang) * 2;
-        const ax = DX[d] * 7, ay = DY[d] * 4;
-        Gfx.line(x - ax, y - 10 - ay + s, x + ax, y - 10 + ay + s, '#e8b04a');
-        Gfx.rect(Math.round(x + ax) - 1, Math.round(y - 10 + ay + s) - 1, 3, 3, '#f7d64a');
-        Gfx.rect(Math.round(x - ax) - 2, Math.round(y - 10 - ay + s) - 2, 3, 4, '#c42b4a');
+        const x = this.tx * T - cx + 8, y = this.ty * T - cy, g = this.g;
+        /* an iron foot and pole */
+        Gfx.rect(x - 5, y + 9, 10, 5, PAL.ink); Gfx.rect(x - 4, y + 10, 8, 3, '#6a635e'); Gfx.rect(x - 4, y + 10, 8, 1, '#a39aa8');
+        Gfx.rect(x - 1, y - 16, 3, 26, PAL.ink); Gfx.rect(x - 1, y - 15, 2, 25, '#6a635e'); Gfx.rect(x - 1, y - 15, 1, 25, '#a39aa8');
+        /* the compass cross: east and west across, north and south running back into the picture, a brass knob at
+           each end (north's a little star) */
+        const c0 = y - 5;
+        Gfx.rect(x - 6, c0 - 1, 13, 3, PAL.ink); Gfx.rect(x - 5, c0, 11, 1, '#6a635e');
+        Gfx.line(x + 4, c0 - 4, x - 3, c0 + 3, PAL.ink); Gfx.line(x + 3, c0 - 4, x - 3, c0 + 2, '#6a635e');
+        Gfx.rect(x - 7, c0, 1, 1, '#e8b04a'); Gfx.rect(x + 7, c0, 1, 1, '#e8b04a'); Gfx.rect(x - 4, c0 + 3, 1, 1, '#e8b04a');
+        Gfx.rect(x + 4, c0 - 6, 1, 3, '#f7d64a'); Gfx.rect(x + 3, c0 - 5, 3, 1, '#f7d64a');
+        /* the arrow on top points where the next gust will blow: as a gust comes it spins round and round, then
+           points again, quivering while the wind blows */
+        let d = g ? g.d : RIGHT, jx = 0, jy = 0;
+        if (g && g.soon && !g.on) d = [RIGHT, DOWN, LEFT, UP][Math.floor(this.ang * 2.2) % 4];
+        else if (g && g.on && (G.t >> 2) % 2) { if (d === LEFT || d === RIGHT) jy = 1; else jx = 1; }
+        const im = spr('vane_' + (d === LEFT ? 'right' : DIR_NAME[d]));
+        if (im) Gfx.img(im, x - Math.floor(im.width / 2) + jx + (d === LEFT || d === RIGHT ? 0 : 1), y - 17 - Math.floor(im.height / 2) + jy, d === LEFT);
     }
 }
 SPAWN.vane = (x, y, p) => new Vane(x, y, p);
@@ -230,6 +240,11 @@ function initBelfryKit() {
         { g: '#a39aa8', G: '#7f7688', w: '#c4bccb' });
     defSprite('bell_hang', ['......kkkk......', '.....kyyyyk.....', '....kyywyyyk....', '....kyywyyyk....', '...kyyyyyyyyk...', '...kyyyyyyyyk...', '..kyyyyyyyyyyk..', '..kYYYYYYYYYYk..',
         '.kkkkkkkkkkkkkk.', '.......kk.......', '......kYYk......', '.......kk.......'], { y: '#e8b04a', Y: '#b88a2a', w: '#fff4c0' });
+    /* the weathervane's arrow, pointing each way (left is right, flipped); seen end on, it's foreshortened */
+    const va = { y: '#f7d64a', Y: '#c8903a', s: '#e8b04a', r: '#e8463c', R: '#a82a26' };
+    defSprite('vane_right', ['kk.........k....', 'krk........kk...', '.krkkkkkkkkkyk..', '..krssssssssyyk.', '.kRkkkkkkkkkYk..', 'kRk........kk...', 'kk.........k....'], va);
+    defSprite('vane_down', ['k.....k', 'krk.krk', '.krkRk.', '..ksk..', '..ksk..', '..ksk..', 'kkksYkk', 'kyyyyYk', '.kyyYk.', '..kYk..', '...k...'], va);
+    defSprite('vane_up', ['...k...', '..kyk..', '.kyyYk.', 'kyyyYYk', 'kkksskk', '..ksk..', '..ksk..', '..ksk..', '.krkRk.', 'krk.kRk', 'k.....k'], va);
     ART.shrine_post = paintSprite(10, 16, x => { x.fillStyle = '#7a4e32'; x.fillRect(3, 0, 4, 16); x.fillStyle = '#9a6438'; x.fillRect(3, 0, 2, 16); x.fillStyle = '#a39aa8'; x.fillRect(0, 12, 10, 4); });
 }
 CONTENT_INIT.push(initBelfryKit);

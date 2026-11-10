@@ -105,7 +105,7 @@ class GreatMarionette extends Enemy {
         const p = G.player, a = this.area, r = this.arena;
         if (this.state === 'sleep') {
             if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 1) {
-                this.state = 'dance'; this.st = 0; this.shutters(true); Music.play('boss');
+                this.state = 'dance'; this.st = 0; this.shutters(true); Music.play(bossSong('marionette'));
                 if (!Progress.flag('marionette_gmAwake')) { Progress.set('marionette_gmAwake'); Script.run(MarionetteFoes.gmIntro(this)); }
             }
             return;
@@ -270,7 +270,18 @@ function initMarionetteFoes() {
     const furn = (w, h, fn) => paintSprite(w, h, x => fn((c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); }));
     ART.poster = furn(16, 30, R => { R('#c8a070', 2, 0, 12, 22); R('#fbf6ea', 3, 1, 10, 20); R('#e8463c', 5, 6, 6, 10); R('#8a5a3a', 6, 3, 4, 4); R('#9a6438', 11, 5, 1, 12); R('#5a3a2a', 7, 22, 2, 8); });
     ART.booth = furn(32, 28, R => { R('#9a1e36', 0, 6, 32, 22); R('#f7d64a', 0, 6, 32, 2); R('#3a0a16', 6, 10, 20, 10); R('#fbf6ea', 8, 12, 16, 6); R('#c8a070', 0, 24, 32, 4); R('#f7d64a', 10, 0, 12, 6); R('#9a1e36', 11, 1, 10, 4); });
-    ART.seats = furn(96, 18, R => { for (let i = 0; i < 6; i++) { R('#5a1428', i * 16 + 1, 2, 14, 14); R('#c42b4a', i * 16 + 2, 3, 12, 8); R('#9a1e36', i * 16 + 2, 11, 12, 4); } R('#3a0a16', 0, 16, 96, 2); });
+    /* six theatre seats seen from behind, facing the stage: plush backs with a rolled top, pleats and a brass number,
+       wooden armrests between them, all on one dark riser with its shadow on the boards */
+    ART.seats = paintSprite(96, 18, x => {
+        const seat = ['....kkkkkkkk....', '...khhhhhhrRk...', '..khrrrrrrrrRk..', '..khrrrrrrrrRk..', '..kRRRRRRRRRDk..', '..krrprrrprrDk..', '..krrprggprrDk..',
+            '.kkrrprrrprrDkk.', 'kgkrrprrrprrDkgk', 'kakrrprrrprrDkak', 'kAkrrprrrprrDkAk', 'kAkRRRRRRRRRDkAk', 'kAkDDDDDDDDDDkAk'];
+        const L = { k: PAL.ink, h: '#ec6a80', r: '#c42b4a', p: '#ad2440', R: '#9a1e36', D: '#6e1428', g: '#e8b04a', a: '#c9925a', A: '#8a5a34' };
+        for (let i = 0; i < 6; i++) stampPx(x, seat, L, i * 16, 0);
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R(PAL.ink, 0, 13, 96, 3); R('#4a2e22', 1, 13, 94, 2); R('#6b4128', 1, 13, 94, 1);
+        for (let i = 0; i < 6; i++) R('#3a0a16', i * 16 + 3, 14, 10, 1);
+        x.globalAlpha = 0.3; R(PAL.ink, 1, 16, 94, 2); x.globalAlpha = 1;
+    }, false);
     ART.drum = furn(16, 18, R => { R('#d6304e', 1, 4, 14, 12); R('#fbf6ea', 1, 2, 14, 4); R('#f7d64a', 1, 8, 14, 1); R('#f7d64a', 1, 12, 14, 1); R('#9a6438', 3, 0, 1, 4); R('#9a6438', 12, 0, 1, 4); });
     ART.prompter = furn(16, 22, R => { R('#3a2a30', 0, 6, 16, 16); R('#c8a070', 0, 4, 16, 3); R('#fff4c0', 4, 10, 8, 4); });
     ART.set_tidy = furn(64, 24, R => { R('#efe4cc', 0, 4, 64, 20); R('#5fb7a8', 0, 0, 64, 6); R('#3c8a80', 0, 6, 64, 1); for (let i = 4; i < 64; i += 16) { R('#9a3a4a', i, 10, 8, 10); } R('#c8a070', 28, 8, 8, 16); R('#f7d64a', 31, 2, 2, 4); });

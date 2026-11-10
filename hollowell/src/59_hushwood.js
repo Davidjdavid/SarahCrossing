@@ -350,7 +350,7 @@ FACADES.slumber = function () {
         }
         R('#4b3a8a', 22, top - 1, w - 44, 2); R('#e0d0fa', 23, top + 1, w - 46, 1);
         /* moons and stars cut in the roof, glowing a little */
-        R('#f7e08a', 40, 26, 5, 5); R('#b48ce8', 42, 25, 4, 5); R('#f7e08a', 110, 30, 2, 2); R('#f7e08a', 78, 22, 2, 2); R('#fff4c0', 60, 34, 1, 1); R('#fff4c0', 96, 36, 1, 1);
+        stampPx(x, ['..yy.', '.yw..', 'yw...', 'yw...', 'yw...', '.yw..', '..yy.'], { y: '#f7e08a', w: '#fff4c0' }, 40, 24); R('#f7e08a', 110, 30, 2, 2); R('#f7e08a', 78, 22, 2, 2); R('#fff4c0', 60, 34, 1, 1); R('#fff4c0', 96, 36, 1, 1);
         /* eaves */
         R('#4b3a8a', 0, 52, w, 3); R('#9a76d8', 0, 55, w, 1);
         /* walls: cream plaster, timber framed */
@@ -369,10 +369,12 @@ FACADES.slumber = function () {
         R('#4b3a8a', 68, 62, 24, 34); R('#2e2450', 70, 64, 20, 32);
         for (let j = 0; j < 6; j++) R('#4b3a8a', 68 + j, 62 - (6 - j) / 2, 24 - 2 * j, 1);
         R('#7d5bc4', 72, 66, 16, 30); R('#9a76d8', 72, 66, 2, 30);
-        R('#f7e08a', 78, 72, 6, 6); R('#7d5bc4', 80, 71, 5, 6);
+        stampPx(x, ['..yy.', '.yy..', 'yy...', 'yy...', 'yY...', '.yY..', '..YY.'], { y: '#f7e08a', Y: '#d9a33a' }, 78, 70);
         R('#e8b04a', 85, 82, 2, 2);
         /* the moon sign over the door, and a lantern by it */
-        R('#5a3a2a', 62, 56, 36, 5); R('#f7e08a', 77, 50, 8, 8); R('#4b3a8a', 80, 49, 6, 7);
+        R('#5a3a2a', 62, 56, 36, 5);
+        stampPx(x, ['...kkkk...', '..kwyyk...', '.kwyyk....', 'kwyyk.....', 'kyyyk.....', 'kyyYk.....', 'kyyYYk....', '.kyyYYkkk.', '..kYYYYYk.', '...kkkkk..'],
+            { k: '#2a1f2d', w: '#fff4c0', y: '#f7e08a', Y: '#d9a33a' }, 76, 47);
         R('#3e3250', 98, 64, 2, 14); R('#f7d64a', 96, 70, 6, 7); R('#fff4c0', 97, 71, 4, 4); R('#3e3250', 96, 69, 6, 1);
         /* the ground line, and a sleepy cat on the step */
         R('#5a4a6a', 0, 96, w, 6); R('#7a6a8a', 0, 96, w, 1);

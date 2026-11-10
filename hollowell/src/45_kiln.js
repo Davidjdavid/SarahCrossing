@@ -571,7 +571,7 @@ class Kilnwyrm extends Enemy {
             if (p.area === a && Cam.room && Cam.room.key === '1,0' && !Cam.busy) {
                 this.state = 'follow'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
-                Music.play('boss');
+                Music.play(bossSong('kiln'));
                 Script.run(Kiln.bossIntro(this));
             }
             return;
@@ -693,10 +693,24 @@ function initKilnArt() {
         x.fillStyle = '#6a2e22'; x.fillRect(13, 0, 6, 9); x.fillStyle = '#8a7a6a'; x.fillRect(12, 0, 8, 2);
     });
     ART.mural = paintSprite(48, 22, x => {
+        const P = (c, a, b) => { x.fillStyle = c; x.fillRect(a, b, 1, 1); };
+        /* a slab of smoothed clay, a darker rim, then the three painted in the charms' colours, outlined like glaze */
         x.fillStyle = '#e8b884'; x.fillRect(0, 0, 48, 22); x.fillStyle = '#a86e3e'; x.fillRect(0, 0, 48, 1); x.fillRect(0, 21, 48, 1);
-        x.fillStyle = '#f7d64a'; x.fillRect(5, 7, 8, 8); x.fillStyle = '#f39a3c'; x.fillRect(7, 5, 4, 1); x.fillRect(7, 16, 4, 1); x.fillRect(3, 9, 1, 4); x.fillRect(14, 9, 1, 4);
-        x.fillStyle = '#9fd4f0'; x.fillRect(21, 6, 7, 10); x.fillStyle = '#e8b884'; x.fillRect(24, 6, 4, 8);
-        x.fillStyle = '#f59ac0'; x.fillRect(38, 6, 2, 10); x.fillRect(34, 10, 10, 2); x.fillRect(36, 8, 6, 6);
+        x.fillStyle = '#f2cca0'; x.fillRect(0, 1, 48, 1); x.fillStyle = '#d29a68'; x.fillRect(0, 20, 48, 1);
+        /* the sun: a round gold face, lit from the top left, and eight rays */
+        for (let j = -5; j <= 5; j++) for (let i = -5; i <= 5; i++) {
+            const d = Math.hypot(i, j);
+            if (d <= 3.7) P(i + j < -3 ? '#fbe88a' : i + j > 2 ? '#e8b04a' : '#f7d64a', 10 + i, 11 + j);
+            else if (d <= 4.6) P('#8a4a2a', 10 + i, 11 + j);
+        }
+        for (const [a, b] of [[0, -7], [0, 6], [-7, 0], [6, 0]]) { x.fillStyle = '#f39a3c'; x.fillRect(10 + a, 11 + b, a ? 2 : 1, a ? 1 : 2); }
+        for (const [a, b] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) P('#f39a3c', 10 + a, 11 + b);
+        /* the moon: a crescent, horns to the right */
+        stampPx(x, ['...kkkk...', '..kwbbk...', '.kwbbk....', 'kwbbk.....', 'kbbbk.....', 'kbbBk.....', 'kbbBBk....', '.kbbBBkkk.', '..kBBBBBk.', '...kkkkk..'],
+            { k: '#8a4a2a', w: '#d8f0fc', b: '#9fd4f0', B: '#6aa8d0' }, 20, 6);
+        /* the star: five points */
+        stampPx(x, ['......k......', '.....kpk.....', '.....kwk.....', '....kpwpk....', 'kkkkkpwppkkkk', 'kwwwpppppppPk', '.kppppppppPk.', '..kpppppPPk..', '..kppppppPk..', '.kppPkkkpPPk.', '.kpPk...kPPk.', 'kPPk.....kPPk', 'kkk.......kkk'],
+            { k: '#8a4a2a', w: '#fde0ec', p: '#f59ac0', P: '#d0608e' }, 32, 4);
     });
     ART.rack = paintSprite(16, 24, x => { x.fillStyle = '#7a4e32'; x.fillRect(1, 0, 2, 24); x.fillRect(13, 0, 2, 24); for (let j = 4; j < 24; j += 7) { x.fillStyle = '#9a6438'; x.fillRect(1, j, 14, 2); x.fillStyle = '#d98f3a'; x.fillRect(3, j - 4, 4, 4); x.fillRect(9, j - 3, 3, 3); } });
     ART.mosaic = paintSprite(40, 24, x => {

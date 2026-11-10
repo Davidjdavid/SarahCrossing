@@ -283,6 +283,26 @@ const FLOORS = {
         floor: (x, th) => Paint.checker(x, '#efe4cc', '#3a4656'),
         floor2: (x, th, v) => Paint.carpet(x, '#9a3a4a', '#c45a6a', '#6e2232'),
         floor3: (x, th, v) => Paint.planks(x, ['#c9925a', '#9a6438', '#e6c08a', '#6b4128'], v, true),
+        /* a kitchen counter, low enough to throw things over: a tiled cream top with a lip, painted cupboard doors (or
+           drawers) under it, and its shadow on the boards at its foot */
+        counter: (x, th, v) => {
+            FLOORS.tidy.floor3(x, th, v);
+            fill(x, '#3a2a30', 0, 0, 16, 1); fill(x, '#f4ecdc', 0, 1, 16, 5); fill(x, '#fffaf0', 0, 1, 16, 1);
+            for (const i of [3, 7, 11, 15]) fill(x, '#ddd0b6', i, 2, 1, 4);
+            fill(x, '#ddd0b6', 0, 3, 16, 1);
+            fill(x, '#fbf6ea', 0, 6, 16, 1); fill(x, '#a89878', 0, 7, 16, 1);
+            fill(x, '#245a54', 0, 8, 16, 6);
+            if (v === 3) {
+                for (const j of [8, 10, 12]) { fill(x, '#4fa89c', 1, j, 14, 1); fill(x, '#3c8a80', 1, j + 1, 14, 1); px(x, 7, j + 1, '#e8b04a'); px(x, 8, j + 1, '#e8b04a'); }
+            } else {
+                fill(x, '#3c8a80', 1, 8, 6, 5); fill(x, '#3c8a80', 9, 8, 6, 5);
+                fill(x, '#5fb7a8', 1, 8, 6, 1); fill(x, '#5fb7a8', 9, 8, 6, 1); fill(x, '#5fb7a8', 1, 8, 1, 5); fill(x, '#5fb7a8', 9, 8, 1, 5);
+                fill(x, '#2e7068', 3, 10, 3, 2); fill(x, '#2e7068', 11, 10, 3, 2);
+                px(x, 6, 10, '#e8b04a'); px(x, 9, 10, '#e8b04a');
+            }
+            fill(x, '#2a1f2d', 0, 13, 16, 2);
+            x.globalAlpha = 0.4; fill(x, '#2a1f2d', 0, 15, 16, 1); x.globalAlpha = 1;
+        },
     },
     house: {
         floor: (x, th, v) => Paint.planks(x, ['#c9925a', '#9a6438', '#e6c08a', '#7b4a2c'], v, false),

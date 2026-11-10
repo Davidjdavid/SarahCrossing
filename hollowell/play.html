@@ -480,6 +480,7 @@ for (const line of FONT_SRC.split('\n')) {
 }
 FONT[' '] = { w: 3, rows: [] };
 FONT['\u2014'] = { w: 6, rows: ['......', '......', '......', '######', '......', '......', '......', '......'] };    /* a dash, as in "Wipe your- oh" */
+FONT['\u00a0'] = { w: 3, rows: [] };    /* a space that never breaks a line ("4 of 6") */
 FONT['\xb7'] = { w: 3, rows: ['...', '...', '...', '.#.', '...', '...', '...', '...'] };    /* a middle dot, between the buttons on the title */
 /* a few icons in the text: \x01 heart, \x02 arrow, \x03 button, \x04 spool */
 FONT['\x01'] = { w: 7, rows: ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...', '.......', '.......'] };
@@ -1214,6 +1215,26 @@ const FLOORS = {
         floor: (x, th) => Paint.checker(x, '#efe4cc', '#3a4656'),
         floor2: (x, th, v) => Paint.carpet(x, '#9a3a4a', '#c45a6a', '#6e2232'),
         floor3: (x, th, v) => Paint.planks(x, ['#c9925a', '#9a6438', '#e6c08a', '#6b4128'], v, true),
+        /* a kitchen counter, low enough to throw things over: a tiled cream top with a lip, painted cupboard doors (or
+           drawers) under it, and its shadow on the boards at its foot */
+        counter: (x, th, v) => {
+            FLOORS.tidy.floor3(x, th, v);
+            fill(x, '#3a2a30', 0, 0, 16, 1); fill(x, '#f4ecdc', 0, 1, 16, 5); fill(x, '#fffaf0', 0, 1, 16, 1);
+            for (const i of [3, 7, 11, 15]) fill(x, '#ddd0b6', i, 2, 1, 4);
+            fill(x, '#ddd0b6', 0, 3, 16, 1);
+            fill(x, '#fbf6ea', 0, 6, 16, 1); fill(x, '#a89878', 0, 7, 16, 1);
+            fill(x, '#245a54', 0, 8, 16, 6);
+            if (v === 3) {
+                for (const j of [8, 10, 12]) { fill(x, '#4fa89c', 1, j, 14, 1); fill(x, '#3c8a80', 1, j + 1, 14, 1); px(x, 7, j + 1, '#e8b04a'); px(x, 8, j + 1, '#e8b04a'); }
+            } else {
+                fill(x, '#3c8a80', 1, 8, 6, 5); fill(x, '#3c8a80', 9, 8, 6, 5);
+                fill(x, '#5fb7a8', 1, 8, 6, 1); fill(x, '#5fb7a8', 9, 8, 6, 1); fill(x, '#5fb7a8', 1, 8, 1, 5); fill(x, '#5fb7a8', 9, 8, 1, 5);
+                fill(x, '#2e7068', 3, 10, 3, 2); fill(x, '#2e7068', 11, 10, 3, 2);
+                px(x, 6, 10, '#e8b04a'); px(x, 9, 10, '#e8b04a');
+            }
+            fill(x, '#2a1f2d', 0, 13, 16, 2);
+            x.globalAlpha = 0.4; fill(x, '#2a1f2d', 0, 15, 16, 1); x.globalAlpha = 1;
+        },
     },
     house: {
         floor: (x, th, v) => Paint.planks(x, ['#c9925a', '#9a6438', '#e6c08a', '#7b4a2c'], v, false),
@@ -1544,7 +1565,7 @@ const Threads = {
         const c = Gfx.ctx;
         for (const e of area.ents) {
             const r = e.ret;
-            if (!r || r.state === 'home' || e.hideThread) continue;
+            if (!r || r.state === 'home' || e.hideThread || e.hiddenYank) continue;
             if (r.area && r.area !== area.id) continue;
             const pts = r.trace.map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
             /* to where the thing is now (mid-move) */
@@ -1557,6 +1578,15 @@ const Threads = {
                 Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], tight ? shade(col, 0.4) : col);
             }
             Marks.draw(r.mx * T - cx, r.my * T - cy, col, true);
+            /* how long it'll wait: a ring of stitches round its mark, unpicking as its patience runs down (full and
+               steady while something holds it) */
+            if (r.state === 'away' && r.patience > 0 && !e.quietHome) {
+                const held = Return.held(e), k = held ? 1 : Math.max(0, r.timer / r.patience);
+                const n = Math.ceil(k * 16), mx = r.mx * T + 8 - cx, my = r.my * T + 8 - cy;
+                Gfx.alpha(held ? 0.45 : 0.85);
+                for (let i = 0; i < n; i++) { const t = -Math.PI / 2 + i / 16 * Math.PI * 2; Gfx.rect(Math.round(mx + Math.cos(t) * 7) - 1, Math.round(my + Math.sin(t) * 6), 2, 1, col); }
+                Gfx.alpha(1);
+            }
         }
     },
 };
@@ -1616,10 +1646,30 @@ function initThingSprites() {
         '..kyoooo', '..kooooo', '..kooooo', '..kOoooo', '...kOOoo', '....kOOO', '.....kkk', '........'];
     defSym('pot', potHalf, { o: '#d98f3a', O: '#a8602a', y: '#f2bc78' }, { y: 'o' });
     defSym('pot_teal', potHalf, { o: '#4fb8b0', O: '#2e7e78', y: '#9ae0d8' }, { y: 'o' });
-    /* marble bust on a plinth (heavy) */
-    defSym('bust', ['......kk', '.....kgg', '....kggg', '....kwgg', '....kggg', '....kGgg', '.....kGg', '....kggg',
-        '...kgggg', '..kGGGGG', '..kkkkkk', '..kwwwww', '..kggggg', '..kGgggg', '..kGGGGG', '..kkkkkk'],
-        { g: '#efe8de', G: '#c8bcae', w: '#ffffff' }, { w: 'g' });
+    /* marble bust on a plinth (heavy): a curly head with a face, shoulders cut in a curve, on a stone block (taller
+       than its tile, like anything standing up; lit from the top left) */
+    defSprite('bust', [
+        '......kkkk......',
+        '....kkwwgwkk....',
+        '...kwwgwgwgGk...',
+        '...kwgGwgGgGk...',
+        '...kgxggxgGGk...',
+        '...kggwGgggGk...',
+        '....kgxxggGk....',
+        '.....kgGGGk.....',
+        '......kgGk......',
+        '..kkkkwggGkkkk..',
+        '.kwwwgggggggGGk.',
+        '.kwgggggggggGGk.',
+        '.kgggggggggGGxk.',
+        '..kgggggggGGxk..',
+        '...kkGGGGGGkk...',
+        '......kxxk......',
+        '....kkwggGkk....',
+        '..kssssssssssk..',
+        '..kpppppppppPk..',
+        '..kkkkkkkkkkkk..'],
+        { g: '#efe8de', G: '#cdbfb0', x: '#a39486', w: '#ffffff', s: '#b8aea2', p: '#8c8378', P: '#6a635e' });
     /* chest */
     defSym('chest', ['........', '........', '..kkkkkk', '.kuuuuuu', '.kuUUUUU', '.kuuuuuu', '.kkkkkkk', '.kbbbbyy',
         '.kbbbbyk', '.kbbbbbb', '.kbBBBBB', '.kbbbbbb', '.kBBBBBB', '.kkkkkkk', '........', '........'],
@@ -2213,7 +2263,8 @@ const Fx = {
         for (const p of this.list) {
             const up = ar && p.x >= ar.x * T && p.x < (ar.x + ar.w) * T && p.y >= ar.y * T && p.y < (ar.y + ar.h) * T;
             const x = p.x - (up ? ux : cx), y = p.y - (up ? uy : cy);
-            if (p.text) { Font.center(p.text, x, y, p.col, PAL.ink); continue; }
+            /* (floating words keep on the screen, clear of the HUD's strip, however near the edge they started) */
+            if (p.text) { const hw = Font.width(p.text) / 2; Font.center(p.text, clamp(x, hw + 2, W - hw - 2), Math.max(y, 24), p.col, PAL.ink); continue; }
             if (p.fall) {
                 const k = p.life / 24, im = p.im;
                 if (HEADLESS || !im) continue;
@@ -3127,6 +3178,8 @@ function faceSpeaker(who) {
     const dx = p.tx - n.tx, dy = p.ty - n.ty;
     if (Math.abs(dx) + Math.abs(dy) > 6 || (dx === 0 && dy === 0)) return;
     n.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? LEFT : RIGHT) : (dy < 0 ? UP : DOWN);
+    /* and she to them, if she's standing about with her hands free */
+    if (p.state === 'normal' && !p.carry && !p.ride && !p.walking && Math.abs(dx) + Math.abs(dy) <= 4) p.dir = OPP[n.dir];
 }
 function* say(who, text, opts = {}) {
     const lines = Array.isArray(text) ? text : [text];
@@ -3340,7 +3393,11 @@ const UI = {
     toast(s, dur = 120) {
         s = Story.fill(s); if (this.toasts.some(t => t.s === s)) return;
         let low = false;
-        if (G.scene === 'play' && G.map && G.player) { const c = Dialog.coverage(); low = c(20, 52) > c(H - 40, H - 6) + 0.2; }
+        if (G.scene === 'play' && G.map && G.player) {
+            /* (where it would go at the top: under a banner and any notices already showing there) */
+            const y0 = (this.banner ? (this.banner.sub ? 62 : 52) : 22) + this.toasts.filter(t => !t.low).reduce((n, t) => n + 11 + 10 * (t.lines ? t.lines.length : 1), 0);
+            const c = Dialog.coverage(); low = c(y0 - 2, y0 + 22) > c(H - 40, H - 6) + 0.2;
+        }
         this.toasts.push({ s, t: 0, dur, low });
     },
     showBanner(s, sub) { this.banner = { s, sub, t: 0 }; },
@@ -4677,6 +4734,7 @@ const PauseMenu = {
             if (Input.pressed('act')) {
                 if (this.sel === 0) { Save.write(); Sfx.play('save'); this.saveMsg = 90; }
                 else if (this.sel === 1) { Save.write(); this.close(); Title.open(); }
+                else if (this.saveItems()[this.sel].startsWith('Sit')) { this.close(); Waiting.start(); }
                 else { this.close(); PauseMenu.backToDoor(); }
             }
             if (this.saveMsg) this.saveMsg--;
@@ -4715,6 +4773,7 @@ const PauseMenu = {
     saveItems() {
         const a = G.map, l = ['Save here', 'Save and go to the title'];
         if (a && a.def.house && AREAS[a.id].entry && G.player && G.player.state === 'normal') l.push(a.def.making ? 'Out to the Making Floor' : "Back to the House's door");
+        if (Waiting.canWait()) l.push('Sit and wait for things to come home');
         return l;
     },
     backToDoor() {
@@ -5531,7 +5590,7 @@ defArea({
 defHouse({
     id: 'lab7', name: 'Lab 7', theme: 'tidy', house: 'lab', thread: THREAD.guild,
     themeAt: (x, y) => y >= 11 ? 'underside' : 'tidy',
-    drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy),
+    drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy), drawFront: (a, cx, cy) => Spool.drawAboveFront(a, cx, cy),
     entry: { x: 2, y: 2 },
     cells: {
         '0,0': {
@@ -5629,6 +5688,10 @@ function discPx(x, cx, cy, r, colFn) {
         const col = colFn(cx + i, cy + j, i / r, j / r);
         if (col) { x.fillStyle = col; x.fillRect(cx + i, cy + j, 1, 1); }
     }
+}
+/* paint a little pixel picture (rows of characters, a legend of colours; '.' or no colour is clear) at ox, oy */
+function stampPx(x, rows, legend, ox, oy) {
+    rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) { const c = legend[r[i]]; if (c) { x.fillStyle = c; x.fillRect(ox + i, oy + j, 1, 1); } } });
 }
 
 const ART = {};          /* name -> canvas */
@@ -6214,9 +6277,23 @@ function initFurniture() {
         x.fillStyle = '#f0c070'; x.fillRect(6, 6, 36, 20); x.fillStyle = '#b0434a'; x.fillRect(9, 9, 30, 14);
         for (let i = 12; i < 36; i += 6) { x.fillStyle = '#f0c070'; x.fillRect(i, 15, 3, 2); }
     }, false);
+    /* a small woven rug: a dark edge, a border band with a running stitch, a cream line, a field with a diamond
+       medallion and little corner diamonds, a fringe on the short ends */
     ART.rug_small = paintSprite(32, 16, x => {
-        x.fillStyle = '#4a7ac4'; x.fillRect(0, 0, 32, 16); x.fillStyle = '#6a9ae0'; x.fillRect(2, 2, 28, 12);
-        for (let i = 4; i < 30; i += 4) { x.fillStyle = '#fbf6ea'; x.fillRect(i, 7, 2, 2); }
+        const P = (c, a, b) => { x.fillStyle = c; x.fillRect(a, b, 1, 1); };
+        for (let j = 0; j < 16; j++) for (let i = 2; i < 30; i++) {
+            const e = Math.min(i - 2, 29 - i, j, 15 - j);
+            let c = e === 0 ? '#2e4a88' : e < 3 ? '#3f6cb8' : e === 3 ? '#e8dcc0' : '#6a9ae0';
+            if (e === 1 && (i + j) % 4 === 0) c = '#e8b04a';
+            if (e > 3) {
+                const dd = Math.abs(i - 15.5) / 2 + Math.abs(j - 7.5);
+                if (dd < 1.6) c = '#e8b04a'; else if (dd < 2.6) c = '#c0505a'; else if (dd < 3.6) c = '#fbf6ea'; else if (dd < 4.3) c = '#4f80c8';
+                if ((Math.abs(i - 6.5) + Math.abs(j - 7.5) < 1.6) || (Math.abs(i - 24.5) + Math.abs(j - 7.5) < 1.6)) c = '#fbf6ea';
+                if (j === 4 || j === 11) if (c === '#6a9ae0') c = '#7eaae8';
+            }
+            P(c, i, j);
+        }
+        for (let j = 1; j < 15; j++) { P(j % 2 ? '#fbf6ea' : '#d8ccb0', 1, j); if (j % 2) P('#fbf6ea', 0, j); P(j % 2 ? '#fbf6ea' : '#d8ccb0', 30, j); if (j % 2) P('#fbf6ea', 31, j); }
     }, false);
     ART.portrait_turned = paintSprite(16, 18, x => {
         x.fillStyle = '#9a6438'; x.fillRect(1, 1, 14, 16); x.fillStyle = '#c9925a'; x.fillRect(2, 2, 12, 14);
@@ -6978,6 +7055,9 @@ SONGS.pull = {
     ],
 };
 
+/* a House's boss has its own tune when there is one (its House's motif, arranged for the fight); else the boss tune */
+function bossSong(h) { return SONGS['boss_' + h] ? 'boss_' + h : 'boss'; }
+
 // ---- 41_house_kit.js ----
 /* Things every House uses: levers, Knot hoops, House doors to the outside, nudges (the Hints option:
    if Wren is stuck in a room a long while, something in the room shifts a little), and the
@@ -7122,6 +7202,25 @@ const Nudges = {
         if (n.solved && Nudges.solved(a, n.solved)) return;
         const st = Stats.rooms[a.id + ':' + r.i];
         if (!st || st.t < (n.after || 60 * 60 * 3)) return;
+        if (Script.blocking() || Dialog.active) return;
+        /* the first time, the House asks whether it should (the answer stands; Options > Hints changes it) */
+        if (!Progress.flag('hintsAsked')) { Progress.set('hintsAsked'); Script.run(Nudges.ask(a, r, n)); return; }
+        Nudges.fire(a, r, n);
+    },
+    *ask(a, r, n) {
+        const who = { tidy: "rather like Mother Ives's", kiln: "deep and gruff, rather like Bram's", mill: "rather like your dad's", belfry: "rather like your mum's",
+            slumber: "soft and sleepy, rather like Doctor Mallow's", marionette: "rather like Jory's", spoolworks: "rather like Gundry's", loom: "very old" }[a.def.house] || 'muffled';
+        const known = Progress.flag('reveal1');
+        yield* say(null, known ? 'Somewhere behind the walls, one of the Makers clears their throat.' : `Somewhere behind the walls, someone clears their throat. A voice, ${who}:`);
+        const i = yield* ask(null, '"Stuck, are we? We could... the House could give you a nudge now and then, when you\'ve been stuck a good while. Would you like that?"', ['Yes, please.', "No, I'll work it out."]);
+        if (i === 0) { yield* say(null, '"Right you are." Something behind the wall goes twang.'); Nudges.fire(a, r, n); }
+        else {
+            Settings.hints = false; Settings.save();
+            yield* say(null, '"Quite right too." A door closes softly, somewhere. (Hints can be turned on in Options, if you change your mind.)');
+        }
+    },
+    fire(a, r, n) {
+        const key = a.id + ':' + r.key, st = Stats.rooms[a.id + ':' + r.i];
         Progress.setAreaFlag(a.id, 'nudged:' + r.key);
         st.nudges = (st.nudges || 0) + 1;
         Stats.count('nudges');
@@ -7170,6 +7269,46 @@ function initHouseKit() {
         '........kbk.....', '...kkkkkkkk.....', '..kgggggggGk....', '..kgggggggGk....', '..kGGGGGGGGk....', '...kkkkkkkk.....', '................', '................'], { b: '#9a6438', g: '#9a9188', G: '#6a635e', w: '#5ad1c5' });
 }
 CONTENT_INIT.push(initHouseKit);
+
+// ---- 41b_waiting.js ----
+/* Sitting and waiting (from the pause menu, in a House): whatever's out of its place in the room comes home in its own
+   time, and the game simply runs faster until it has (or until anything else happens). Nothing new under the law: it's
+   the waiting a player would do anyway, without the standing about. Not offered with anything awake and dangerous in
+   the room, nor anything out of place that would never come home by itself. */
+const Waiting = {
+    MAX: 60 * 60,      /* game frames at most (a minute of the House's time) */
+    away(a, r) {
+        return a.ents.filter(e => e.ret && !e.removed && e.ret.state !== 'home' && a.roomAt(e.tx, e.ty) === r && !e.carried);
+    },
+    canWait() {
+        const a = G.map, p = G.player, r = Cam.room;
+        if (!a || !p || !r || !a.def.house || p.state !== 'normal' || p.ride || p.carry) return false;
+        if ((a.walkers || []).some(e => e.alive !== false && !e.hidden && !e.harmless && !(ENEMY[e.type] && ENEMY[e.type].harmless) && a.roomAt(Math.floor(e.x / T), Math.floor(e.y / T)) === r)) return false;
+        const away = this.away(a, r);
+        /* (tied off, asleep or held: they'd never come home on their own, so waiting would wait for ever) */
+        return away.length > 0 && away.every(e => !e.tiedOff && !Return.asleep(e) && !e.heldBy && !e.paddled);
+    },
+    start() {
+        const p = G.player;
+        G.waiting = { t: 0, room: Cam.room };
+        p.state = 'sleep'; p.walking = false;
+        UI.toast('You sit down to wait...', 90);
+        Stats.count('waited');
+    },
+    /* each step: done when the room's things are all home (or something else needs Wren) */
+    tick() {
+        const w = G.waiting; if (!w) return;
+        const a = G.map, p = G.player;
+        w.t++;
+        const anyKey = w.t > 10 && ['act', 'atk', 'tool', 'menu', 'up', 'down', 'left', 'right'].some(b => Input.pressed(b));
+        const home = this.away(a, w.room).length === 0;
+        if (home || anyKey || w.t > this.MAX || Dialog.active || p.area !== a || Cam.room !== w.room) {
+            G.waiting = null;
+            if (p.state === 'sleep') p.state = 'normal';
+            if (home) UI.toast('Everything in here is back where it belongs.', 120);
+        }
+    },
+};
 
 // ---- 42_tidyhouse.js ----
 /* House 1: the Tidyhouse, in Meadowfold. The Return itself: patience as a timer, plates pressed in
@@ -7713,7 +7852,7 @@ class Housekeeper extends Enemy {
             if (p.area === a && Cam.room && Cam.room.key === '1,0' && !Cam.busy) {
                 this.state = 'wake'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
-                Music.play('boss');
+                Music.play(bossSong('tidy'));
                 Script.run(Tidy.bossIntro(this));
             }
             return;
@@ -7871,7 +8010,29 @@ function initTidyArt() {
     ART.book = paintSprite(14, 8, x => { x.fillStyle = '#fbf6ea'; x.fillRect(1, 1, 12, 6); x.fillStyle = '#9a3a4a'; x.fillRect(0, 2, 14, 1); x.fillRect(6, 1, 2, 6); x.fillStyle = '#9a9188'; for (let i = 2; i < 6; i += 2) { x.fillRect(2, i + 1, 3, 1); x.fillRect(9, i + 1, 3, 1); } });
     ART.sampler_ives = paintSprite(28, 22, x => { x.fillStyle = '#9a6438'; x.fillRect(0, 0, 28, 22); x.fillStyle = '#fbf3df'; x.fillRect(2, 2, 24, 18); x.fillStyle = '#3fc1b5'; x.fillRect(6, 7, 8, 7); x.fillRect(5, 6, 10, 1); x.fillRect(16, 9, 2, 5); x.fillRect(20, 12, 4, 2); x.fillStyle = '#2e9a96'; x.fillRect(18, 16, 2, 1); x.fillRect(21, 16, 2, 1); for (let i = 3; i < 25; i += 2) { x.fillRect(i, 3, 1, 1); x.fillRect(i, 18, 1, 1); } });
     ART.monogram_tidy = paintSprite(16, 10, x => { x.fillStyle = '#3fc1b5'; x.fillRect(2, 2, 1, 6); x.fillRect(3, 3, 1, 1); x.fillRect(4, 4, 1, 1); x.fillRect(5, 3, 1, 1); x.fillRect(6, 2, 1, 6); x.fillRect(9, 2, 1, 6); x.fillRect(8, 2, 3, 1); x.fillRect(8, 7, 3, 1); x.fillStyle = '#2e9a96'; x.fillRect(12, 4, 3, 1); x.fillRect(13, 5, 1, 3); }, false);
-    ART.exitlight = paintSprite(16, 16, x => { x.globalAlpha = 0.5; x.fillStyle = '#fff6c0'; x.fillRect(3, 0, 10, 16); x.globalAlpha = 1; x.fillStyle = '#fff6e0'; x.fillRect(6, 2, 4, 12); }, false);
+    /* the way out after a House's Knot: a doorway of daylight cut through the wall at the foot of the room (the
+       picture's lower half lies over that wall), framed in wood, a stone step, the grass outside, and the light
+       spilling in across the floor with a few motes in it */
+    ART.exitlight = paintSprite(16, 32, x => {
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        for (let j = 2; j < 16; j++) {
+            const k = (j - 2) / 13, half = Math.round(8 - k * 2), a = Math.min(1, (j - 1) / 5);
+            x.globalAlpha = a * (0.3 + 0.25 * k); R('#fff1b8', 8 - half, j, half * 2, 1);
+            x.globalAlpha = a * (0.2 + 0.3 * k); R('#fffbe8', 8 - half + 2, j, half * 2 - 4, 1);
+        }
+        x.globalAlpha = 0.9;
+        for (const [a, b] of [[5, 5], [11, 7], [7, 10], [12, 12], [3, 9]]) R('#ffffff', a, b, 1, 1);
+        x.globalAlpha = 1;
+        /* the opening, the step and the outdoors */
+        R('#2a1f2d', 0, 16, 16, 16);
+        R('#fffbe8', 2, 16, 12, 16); R('#fff4c8', 2, 21, 12, 5); R('#e4f2b0', 2, 26, 12, 3); R('#b8e08a', 2, 29, 12, 3);
+        R('#cfc6b8', 2, 16, 12, 2); R('#efe8de', 2, 16, 12, 1);
+        for (const a of [4, 9, 12]) R('#8fcc6a', a, 30, 1, 2);
+        /* the frame */
+        R('#8a5a34', 0, 16, 2, 16); R('#c9925a', 0, 16, 1, 16); R('#8a5a34', 14, 16, 2, 16); R('#c9925a', 14, 16, 1, 16);
+        R('#2a1f2d', 2, 18, 1, 14); R('#2a1f2d', 13, 18, 1, 14);
+        R('#e6c08a', 0, 16, 16, 1);
+    }, false);
     /* a tall single bookcase, as tall as the others, so it hides what's behind it */
     {
         const wood = ['#c9925a', '#9a6438', '#6b4128', '#3a2418'];
@@ -8586,7 +8747,7 @@ defHouse({
                 { k: 'pot', x: 16, y: 2, id: 'fPot' }, { k: 'pot', x: 16, y: 8, id: 'fPot2' },
                 { k: 'door', x: 0, y: 5, type: 'lock', dir: 'v', id: 'fW' },
                 { k: 'deco', x: 14, y: 4, look: 'kilnbig', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
-                { k: 'sign', x: 12, y: 9, text: 'No hooks over the furnace pit, please. Nothing over there to hook on to anyway. (The crate does not count.)' },
+                { k: 'sign', x: 12, y: 9, text: 'No hooks over the furnace pit, please. Nothing over there to hook on to anyway.' },
             ],
             nudge: { solved: 'kiln_fW', after: 60 * 60 * 3, at: [3, 5], say: "Where the crate sits, there's a little stitched cross. Knock the crate off it and there'd be nothing on that cross at all..." },
         },
@@ -8879,7 +9040,7 @@ class Kilnwyrm extends Enemy {
             if (p.area === a && Cam.room && Cam.room.key === '1,0' && !Cam.busy) {
                 this.state = 'follow'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
-                Music.play('boss');
+                Music.play(bossSong('kiln'));
                 Script.run(Kiln.bossIntro(this));
             }
             return;
@@ -9001,10 +9162,24 @@ function initKilnArt() {
         x.fillStyle = '#6a2e22'; x.fillRect(13, 0, 6, 9); x.fillStyle = '#8a7a6a'; x.fillRect(12, 0, 8, 2);
     });
     ART.mural = paintSprite(48, 22, x => {
+        const P = (c, a, b) => { x.fillStyle = c; x.fillRect(a, b, 1, 1); };
+        /* a slab of smoothed clay, a darker rim, then the three painted in the charms' colours, outlined like glaze */
         x.fillStyle = '#e8b884'; x.fillRect(0, 0, 48, 22); x.fillStyle = '#a86e3e'; x.fillRect(0, 0, 48, 1); x.fillRect(0, 21, 48, 1);
-        x.fillStyle = '#f7d64a'; x.fillRect(5, 7, 8, 8); x.fillStyle = '#f39a3c'; x.fillRect(7, 5, 4, 1); x.fillRect(7, 16, 4, 1); x.fillRect(3, 9, 1, 4); x.fillRect(14, 9, 1, 4);
-        x.fillStyle = '#9fd4f0'; x.fillRect(21, 6, 7, 10); x.fillStyle = '#e8b884'; x.fillRect(24, 6, 4, 8);
-        x.fillStyle = '#f59ac0'; x.fillRect(38, 6, 2, 10); x.fillRect(34, 10, 10, 2); x.fillRect(36, 8, 6, 6);
+        x.fillStyle = '#f2cca0'; x.fillRect(0, 1, 48, 1); x.fillStyle = '#d29a68'; x.fillRect(0, 20, 48, 1);
+        /* the sun: a round gold face, lit from the top left, and eight rays */
+        for (let j = -5; j <= 5; j++) for (let i = -5; i <= 5; i++) {
+            const d = Math.hypot(i, j);
+            if (d <= 3.7) P(i + j < -3 ? '#fbe88a' : i + j > 2 ? '#e8b04a' : '#f7d64a', 10 + i, 11 + j);
+            else if (d <= 4.6) P('#8a4a2a', 10 + i, 11 + j);
+        }
+        for (const [a, b] of [[0, -7], [0, 6], [-7, 0], [6, 0]]) { x.fillStyle = '#f39a3c'; x.fillRect(10 + a, 11 + b, a ? 2 : 1, a ? 1 : 2); }
+        for (const [a, b] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) P('#f39a3c', 10 + a, 11 + b);
+        /* the moon: a crescent, horns to the right */
+        stampPx(x, ['...kkkk...', '..kwbbk...', '.kwbbk....', 'kwbbk.....', 'kbbbk.....', 'kbbBk.....', 'kbbBBk....', '.kbbBBkkk.', '..kBBBBBk.', '...kkkkk..'],
+            { k: '#8a4a2a', w: '#d8f0fc', b: '#9fd4f0', B: '#6aa8d0' }, 20, 6);
+        /* the star: five points */
+        stampPx(x, ['......k......', '.....kpk.....', '.....kwk.....', '....kpwpk....', 'kkkkkpwppkkkk', 'kwwwpppppppPk', '.kppppppppPk.', '..kpppppPPk..', '..kppppppPk..', '.kppPkkkpPPk.', '.kpPk...kPPk.', 'kPPk.....kPPk', 'kkk.......kkk'],
+            { k: '#8a4a2a', w: '#fde0ec', p: '#f59ac0', P: '#d0608e' }, 32, 4);
     });
     ART.rack = paintSprite(16, 24, x => { x.fillStyle = '#7a4e32'; x.fillRect(1, 0, 2, 24); x.fillRect(13, 0, 2, 24); for (let j = 4; j < 24; j += 7) { x.fillStyle = '#9a6438'; x.fillRect(1, j, 14, 2); x.fillStyle = '#d98f3a'; x.fillRect(3, j - 4, 4, 4); x.fillRect(9, j - 3, 3, 3); } });
     ART.mosaic = paintSprite(40, 24, x => {
@@ -9635,7 +9810,7 @@ defHouse({
                 { k: 'chest', x: 10, y: 2, item: 'plan', id: 'bwPlan' },
                 { k: 'pot', x: 1, y: 9, id: 'bwPot' }, { k: 'pot', x: 18, y: 6, id: 'bwPot2' },
                 { k: 'enemy', x: 15, y: 7, type: 'snapper' },
-                { k: 'sign', x: 1, y: 6, text: "BACKWASH. What you pull to you, the water takes back. (Hold on.)" },
+                { k: 'sign', x: 1, y: 6, text: "BACKWASH. What you pull to you, the water takes back." },
             ],
             nudge: { solved: 'millrace_chest:bwPlan', after: 60 * 60 * 3, thing: 'bwRaft', say: "The raft's a long way off across the water. If only something could reach it from the landing." },
         },
@@ -10001,7 +10176,7 @@ class Grindle extends GridThing {
             if (p.area === a && Cam.room === r && !Cam.busy && p.ty < r.y + r.h - 1) {     /* (in off the doorstep, so the shutter doesn't close on Wren) */
                 this.state = 'home'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
-                Music.play('boss');
+                Music.play(bossSong('mill'));
                 Script.run(MillFoes.grindleIntro(this));
             }
             return;
@@ -10977,14 +11152,40 @@ class Vane extends GridThing {
         this.ang += g.on ? 0.3 : g.soon ? 0.12 : 0.01;
     }
     draw(cx, cy) {
-        const x = this.tx * T - cx + 8, y = this.ty * T - cy;
-        Gfx.rect(x - 1, y - 10, 2, 22, '#6a635e'); Gfx.rect(x - 4, y + 10, 8, 3, '#4a4a5a');
-        const d = this.g ? this.g.d : RIGHT;
-        const s = Math.sin(this.ang) * 2;
-        const ax = DX[d] * 7, ay = DY[d] * 4;
-        Gfx.line(x - ax, y - 10 - ay + s, x + ax, y - 10 + ay + s, '#e8b04a');
-        Gfx.rect(Math.round(x + ax) - 1, Math.round(y - 10 + ay + s) - 1, 3, 3, '#f7d64a');
-        Gfx.rect(Math.round(x - ax) - 2, Math.round(y - 10 - ay + s) - 2, 3, 4, '#c42b4a');
+        const x = this.tx * T - cx + 8, y = this.ty * T - cy, g = this.g;
+        /* an iron foot and pole */
+        Gfx.rect(x - 5, y + 9, 10, 5, PAL.ink); Gfx.rect(x - 4, y + 10, 8, 3, '#6a635e'); Gfx.rect(x - 4, y + 10, 8, 1, '#a39aa8');
+        Gfx.rect(x - 2, y - 15, 4, 25, PAL.ink); Gfx.rect(x - 1, y - 14, 2, 24, '#6a635e'); Gfx.rect(x - 1, y - 14, 1, 24, '#a39aa8');
+        /* the compass cross under the arrow: east and west across, north and south running back into the picture, a
+           brass knob on each arm, the north one bigger */
+        const cy0 = y - 7;
+        Gfx.rect(x - 7, cy0 - 1, 14, 3, PAL.ink); Gfx.rect(x - 6, cy0, 12, 1, '#6a635e');
+        Gfx.line(x + 4, cy0 - 3, x - 4, cy0 + 3, PAL.ink); Gfx.line(x + 3, cy0 - 3, x - 4, cy0 + 2, '#6a635e');
+        for (const [kx, ky, r] of [[-7, 0, 1], [7, 0, 1], [4, -3, 2], [-4, 3, 1]]) { Gfx.rect(x + kx - r, cy0 + ky - r, r * 2 + 1, r * 2 + 1, PAL.ink); Gfx.rect(x + kx - r + 1, cy0 + ky - r + 1, r * 2 - 1, r * 2 - 1, '#e8b04a'); }
+        /* the arrow on top points where the next gust will blow; it swings about as the wind gets up, and quivers in it */
+        const d = g ? g.d : RIGHT;
+        const th = [Math.PI / 2, Math.PI, 0, -Math.PI / 2][d] + (g && (g.on || g.soon) ? Math.sin(this.ang * 1.7) * (g.on ? 0.1 : 0.4) : Math.sin(this.ang) * 0.05);
+        const px = x, py = y - 17, ux = Math.cos(th), uy = Math.sin(th) * 0.7, vx = -Math.sin(th), vy = Math.cos(th) * 0.7;
+        const at = (a, b) => [px + ux * a + vx * b, py + uy * a + vy * b];
+        Vane.tri(...at(8, 0), ...at(3, -3), ...at(3, 3), '#f7d64a', '#c8903a');
+        Vane.tri(...at(-8, -3), ...at(-4, 0), ...at(-8, 3), '#e8463c', '#a82a26');
+        Vane.tri(...at(-8, -3), ...at(-5, -3), ...at(-4, 0), '#e8463c', '#a82a26');
+        Vane.tri(...at(-8, 3), ...at(-5, 3), ...at(-4, 0), '#e8463c', '#a82a26');
+        const [t0x, t0y] = at(-5, 0), [t1x, t1y] = at(4, 0);
+        Gfx.line(t0x, t0y + 1, t1x, t1y + 1, PAL.ink); Gfx.line(t0x, t0y, t1x, t1y, '#e8b04a');
+        Gfx.rect(px - 1, py - 1, 2, 2, PAL.ink);
+    }
+    /* a little filled triangle with an ink edge (its lower right side in the shade colour), for the arrow and its fin */
+    static tri(ax, ay, bx, by, qx, qy, col, dark) {
+        const x0 = Math.floor(Math.min(ax, bx, qx)) - 1, x1 = Math.ceil(Math.max(ax, bx, qx)) + 1, y0 = Math.floor(Math.min(ay, by, qy)) - 1, y1 = Math.ceil(Math.max(ay, by, qy)) + 1;
+        const ed = (x1_, y1_, x2_, y2_, x, y) => ((x2_ - x1_) * (y - y1_) - (y2_ - y1_) * (x - x1_)) / (Math.hypot(x2_ - x1_, y2_ - y1_) || 1);
+        const s = Math.sign(ed(ax, ay, bx, by, qx, qy)) || 1;
+        for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) {
+            const cxp = i + 0.5, cyp = j + 0.5;
+            const m = Math.min(s * ed(ax, ay, bx, by, cxp, cyp), s * ed(bx, by, qx, qy, cxp, cyp), s * ed(qx, qy, ax, ay, cxp, cyp));
+            if (m >= 0.35) Gfx.rect(i, j, 1, 1, cyp > (ay + by + qy) / 3 + 0.5 ? dark : col);
+            else if (m > -0.75) Gfx.rect(i, j, 1, 1, PAL.ink);
+        }
     }
 }
 SPAWN.vane = (x, y, p) => new Vane(x, y, p);
@@ -11436,7 +11637,7 @@ defHouse({
                 { k: 'crate', x: 17, y: 3, id: 'brC2' },
                 { k: 'chest', x: 9, y: 7, item: 'pattern', id: 'brPattern', hidden: true, when: 'flag:belfry_ropes', big: true },
                 { k: 'block', x: 0, y: 4, id: 'brWall', look: 'wallblock', sleeper: true, tiedOff: true, startAt: [0, 5], trace: [[0, 4], [0, 5]], noPush: true, pushLine: 'A slab of wall, a bit too clean. It feels warm, like something asleep.' },
-                { k: 'sign', x: 18, y: 9, text: "BELL ROPES. The pattern shows when the left plate is pressed and the right one isn't. Hold fast, and ring." },
+                { k: 'sign', x: 18, y: 9, text: "BELL ROPES. The pattern shows when the left plate is pressed and the right one isn't." },
                 { k: 'enemy', x: 3, y: 8, type: 'bat' }, { k: 'enemy', x: 16, y: 8, type: 'bat' },
             ],
             nudge: { solved: 'belfry_ropes', after: 60 * 60 * 4, thing: 'brC2', say: "Ring here and both crates come running. Unless one of them is being held." },
@@ -11682,7 +11883,7 @@ class Tollgrim extends Enemy {
                 this.state = 'hide'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = true;
                 Progress.set('belfry_tollAwake');
-                Music.play('boss');
+                Music.play(bossSong('belfry'));
                 Script.run(BelfryFoes.tollIntro(this));
             }
             return;
@@ -12791,7 +12992,7 @@ FACADES.slumber = function () {
         }
         R('#4b3a8a', 22, top - 1, w - 44, 2); R('#e0d0fa', 23, top + 1, w - 46, 1);
         /* moons and stars cut in the roof, glowing a little */
-        R('#f7e08a', 40, 26, 5, 5); R('#b48ce8', 42, 25, 4, 5); R('#f7e08a', 110, 30, 2, 2); R('#f7e08a', 78, 22, 2, 2); R('#fff4c0', 60, 34, 1, 1); R('#fff4c0', 96, 36, 1, 1);
+        stampPx(x, ['..yy.', '.yw..', 'yw...', 'yw...', 'yw...', '.yw..', '..yy.'], { y: '#f7e08a', w: '#fff4c0' }, 40, 24); R('#f7e08a', 110, 30, 2, 2); R('#f7e08a', 78, 22, 2, 2); R('#fff4c0', 60, 34, 1, 1); R('#fff4c0', 96, 36, 1, 1);
         /* eaves */
         R('#4b3a8a', 0, 52, w, 3); R('#9a76d8', 0, 55, w, 1);
         /* walls: cream plaster, timber framed */
@@ -12810,10 +13011,12 @@ FACADES.slumber = function () {
         R('#4b3a8a', 68, 62, 24, 34); R('#2e2450', 70, 64, 20, 32);
         for (let j = 0; j < 6; j++) R('#4b3a8a', 68 + j, 62 - (6 - j) / 2, 24 - 2 * j, 1);
         R('#7d5bc4', 72, 66, 16, 30); R('#9a76d8', 72, 66, 2, 30);
-        R('#f7e08a', 78, 72, 6, 6); R('#7d5bc4', 80, 71, 5, 6);
+        stampPx(x, ['..yy.', '.yy..', 'yy...', 'yy...', 'yY...', '.yY..', '..YY.'], { y: '#f7e08a', Y: '#d9a33a' }, 78, 70);
         R('#e8b04a', 85, 82, 2, 2);
         /* the moon sign over the door, and a lantern by it */
-        R('#5a3a2a', 62, 56, 36, 5); R('#f7e08a', 77, 50, 8, 8); R('#4b3a8a', 80, 49, 6, 7);
+        R('#5a3a2a', 62, 56, 36, 5);
+        stampPx(x, ['...kkkk...', '..kwyyk...', '.kwyyk....', 'kwyyk.....', 'kyyyk.....', 'kyyYk.....', 'kyyYYk....', '.kyyYYkkk.', '..kYYYYYk.', '...kkkkk..'],
+            { k: '#2a1f2d', w: '#fff4c0', y: '#f7e08a', Y: '#d9a33a' }, 76, 47);
         R('#3e3250', 98, 64, 2, 14); R('#f7d64a', 96, 70, 6, 7); R('#fff4c0', 97, 71, 4, 4); R('#3e3250', 96, 69, 6, 1);
         /* the ground line, and a sleepy cat on the step */
         R('#5a4a6a', 0, 96, w, 6); R('#7a6a8a', 0, 96, w, 1);
@@ -13215,7 +13418,7 @@ defHouse({
                 { k: 'snoreling', x: 3, y: 2, id: 'pfSnore1' }, { k: 'snoreling', x: 17, y: 2, id: 'pfSnore2' },
                 { k: 'deco', x: 2, y: 7, look: 'pillowpile', solid: [[0, 0], [1, 0]], oy: -4, text: 'A heap of pillows, still warm.' },
                 { k: 'deco', x: 13, y: 6, look: 'pillowpile', solid: [[0, 0], [1, 0]], oy: -4, text: 'A heap of pillows. Somebody has built a little wall of them, and a little flag on top: a sock.' },
-                { k: 'sign', x: 18, y: 9, text: 'PILLOW FORT. The keep opens while someone holds down the plate. Snorelings will sleep anywhere that looks like a bed.' },
+                { k: 'sign', x: 18, y: 9, text: 'PILLOW FORT. The keep opens while someone holds down the plate. (Lights out at eight. Everybody in bed. ANY bed.)' },
             ],
             nudge: { solved: () => Inv.hasPattern('slumber'), after: 60 * 60 * 4, at: [16, 8], say: 'A Snoreling, woken, shuffles about and then goes to the nearest bed it can find. Any bed at all. Even one somebody has just laid out.' },
         },
@@ -13441,7 +13644,7 @@ class MotherSloth extends Enemy {
         const inRoom = p.area === a && Cam.room === r && !Cam.busy;
         if (this.state === 'sleep') {
             if (inRoom && p.state === 'normal' && p.ty < r.y + r.h - 2) {
-                this.state = 'fight'; this.st = 0; this.shutters(true); Music.play('boss');
+                this.state = 'fight'; this.st = 0; this.shutters(true); Music.play(bossSong('slumber'));
                 if (!Progress.flag('slumber_slothAwake')) { Progress.set('slumber_slothAwake'); Script.run(SlumberFoes.slothIntro(this)); }
             }
             return;
@@ -14214,8 +14417,16 @@ FACADES.marionette = function () {
         for (const cxo of [10, 50, 166, 206]) { R('#f4e6c8', cxo - 4, 37, 10, 75); R('#d8c8a8', cxo + 4, 37, 2, 75); R('#f7d64a', cxo - 6, 37, 14, 3); }
         /* the doors under a lit sign */
         R('#2a1f2d', 84, 60, 56, 52); R('#c42b4a', 88, 64, 22, 48); R('#c42b4a', 114, 64, 22, 48); R('#f7d64a', 108, 84, 2, 6); R('#f7d64a', 114, 84, 2, 6);
-        R('#2a1f2d', 70, 42, 84, 14); R('#f7d64a', 72, 44, 80, 10);
-        for (let i = 0; i < 20; i++) R(i % 2 ? '#fff4c0' : '#e8b04a', 72 + i * 4, 40, 2, 2);
+        R('#2a1f2d', 70, 42, 84, 14); R('#f7d64a', 72, 44, 80, 10); R('#fff4c0', 72, 44, 80, 1); R('#d9a33a', 72, 53, 80, 1);
+        for (let i = 0; i < 20; i++) { R(i % 2 ? '#fff4c0' : '#e8b04a', 72 + i * 4, 40, 2, 2); R(i % 2 ? '#e8b04a' : '#fff4c0', 72 + i * 4, 56, 2, 2); }
+        /* its name, in the game's own letters, painted crimson with a gold shadow */
+        const name = 'MARIONETTE';
+        let lx = 112 - Math.floor((name.split('').reduce((s, ch) => s + FONT[ch].w + 1, 0) - 1) / 2);
+        for (const ch of name) {
+            FONT[ch].rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) if (r[i] === '#') { R('#d9a33a', lx + i + 1, 46 + j, 1, 1); } });
+            FONT[ch].rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) if (r[i] === '#') R('#9a1e36', lx + i, 45 + j, 1, 1); });
+            lx += FONT[ch].w + 1;
+        }
         /* posters either side: a puppet, and a girl with a stick */
         R('#fbf6ea', 20, 56, 22, 30); R('#d6304e', 26, 62, 10, 16); R('#e6c08a', 28, 58, 6, 6); R('#2a1f2d', 30, 50, 1, 8);
         R('#fbf6ea', 182, 56, 22, 30); R('#e8463c', 188, 64, 10, 14); R('#8a5a3a', 189, 58, 8, 6); R('#9a6438', 198, 60, 2, 18);
@@ -14385,7 +14596,7 @@ defHouse({
                 { k: 'soldier', x: 5, y: 9, facing: 'right', turn: 'right', id: 'opSol' },
                 { k: 'block', x: 10, y: 2, id: 'opBlock', marked: false },
                 { k: 'deco', x: 14, y: 6, look: 'drum', solid: [[0, 0]], text: 'A big drum. Somebody has painted on it: PLAYED BY B.' },
-                { k: 'sign', x: 17, y: 1, text: "THE ORCHESTRA PIT. Our drummer marches round and round the edge, turning right at every wall. He has never once crossed the middle. (The gate by the music stands opens a moment for each footfall on the drum-plate: wait for it there.)" },
+                { k: 'sign', x: 17, y: 1, text: "THE ORCHESTRA PIT. Our drummer marches round and round the edge, turning right at every wall. He has never once crossed the middle. (The gate by the music stands keeps time with the drum-plate.)" },
             ],
             nudge: { solved: 'marionette_chest:opKey', after: 60 * 60 * 3, thing: 'opBlock', say: 'The drummer turns right at anything in his way, not only walls. Put something in his way, see where he goes instead, and be waiting at the gate when he crosses the plate.' },
         },
@@ -14491,7 +14702,7 @@ defHouse({
                 { k: 'plate', x: 12, y: 4, sig: 'pp1' }, { k: 'plate', x: 11, y: 5, sig: 'pp2' }, { k: 'plate', x: 11, y: 6, sig: 'pp3' },
                 { k: 'chest', x: 16, y: 8, item: 'pattern', id: 'psPattern', hidden: true, when: 'pp1&pp2&pp3', big: true },
                 { k: 'puppet', x: 2, y: 3, id: 'psLone' },
-                { k: 'sign', x: 18, y: 9, text: 'THE PROP STORE. Three on a string: where one goes, they all go, as far as each can.' },
+                { k: 'sign', x: 18, y: 9, text: 'THE PROP STORE. Three understudies on one string. They do everything together. Everything.' },
             ],
             nudge: { solved: () => Inv.hasPattern('marionette'), after: 60 * 60 * 4, at: [9, 8], say: 'The three puppets step together, but a wall stops one and not the others. That is the whole trick: let the walls hold some back.' },
         },
@@ -14695,7 +14906,7 @@ class GreatMarionette extends Enemy {
         const p = G.player, a = this.area, r = this.arena;
         if (this.state === 'sleep') {
             if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 1) {
-                this.state = 'dance'; this.st = 0; this.shutters(true); Music.play('boss');
+                this.state = 'dance'; this.st = 0; this.shutters(true); Music.play(bossSong('marionette'));
                 if (!Progress.flag('marionette_gmAwake')) { Progress.set('marionette_gmAwake'); Script.run(MarionetteFoes.gmIntro(this)); }
             }
             return;
@@ -14860,7 +15071,18 @@ function initMarionetteFoes() {
     const furn = (w, h, fn) => paintSprite(w, h, x => fn((c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); }));
     ART.poster = furn(16, 30, R => { R('#c8a070', 2, 0, 12, 22); R('#fbf6ea', 3, 1, 10, 20); R('#e8463c', 5, 6, 6, 10); R('#8a5a3a', 6, 3, 4, 4); R('#9a6438', 11, 5, 1, 12); R('#5a3a2a', 7, 22, 2, 8); });
     ART.booth = furn(32, 28, R => { R('#9a1e36', 0, 6, 32, 22); R('#f7d64a', 0, 6, 32, 2); R('#3a0a16', 6, 10, 20, 10); R('#fbf6ea', 8, 12, 16, 6); R('#c8a070', 0, 24, 32, 4); R('#f7d64a', 10, 0, 12, 6); R('#9a1e36', 11, 1, 10, 4); });
-    ART.seats = furn(96, 18, R => { for (let i = 0; i < 6; i++) { R('#5a1428', i * 16 + 1, 2, 14, 14); R('#c42b4a', i * 16 + 2, 3, 12, 8); R('#9a1e36', i * 16 + 2, 11, 12, 4); } R('#3a0a16', 0, 16, 96, 2); });
+    /* six theatre seats seen from behind, facing the stage: plush backs with a rolled top, pleats and a brass number,
+       wooden armrests between them, all on one dark riser with its shadow on the boards */
+    ART.seats = paintSprite(96, 18, x => {
+        const seat = ['....kkkkkkkk....', '...khhhhhhrRk...', '..khrrrrrrrrRk..', '..khrrrrrrrrRk..', '..kRRRRRRRRRDk..', '..krrprrrprrDk..', '..krrprggprrDk..',
+            '.kkrrprrrprrDkk.', 'kgkrrprrrprrDkgk', 'kakrrprrrprrDkak', 'kAkrrprrrprrDkAk', 'kAkRRRRRRRRRDkAk', 'kAkDDDDDDDDDDkAk'];
+        const L = { k: PAL.ink, h: '#ec6a80', r: '#c42b4a', p: '#ad2440', R: '#9a1e36', D: '#6e1428', g: '#e8b04a', a: '#c9925a', A: '#8a5a34' };
+        for (let i = 0; i < 6; i++) stampPx(x, seat, L, i * 16, 0);
+        const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+        R(PAL.ink, 0, 13, 96, 3); R('#4a2e22', 1, 13, 94, 2); R('#6b4128', 1, 13, 94, 1);
+        for (let i = 0; i < 6; i++) R('#3a0a16', i * 16 + 3, 14, 10, 1);
+        x.globalAlpha = 0.3; R(PAL.ink, 1, 16, 94, 2); x.globalAlpha = 1;
+    }, false);
     ART.drum = furn(16, 18, R => { R('#d6304e', 1, 4, 14, 12); R('#fbf6ea', 1, 2, 14, 4); R('#f7d64a', 1, 8, 14, 1); R('#f7d64a', 1, 12, 14, 1); R('#9a6438', 3, 0, 1, 4); R('#9a6438', 12, 0, 1, 4); });
     ART.prompter = furn(16, 22, R => { R('#3a2a30', 0, 6, 16, 16); R('#c8a070', 0, 4, 16, 3); R('#fff4c0', 4, 10, 8, 4); });
     ART.set_tidy = furn(64, 24, R => { R('#efe4cc', 0, 4, 64, 20); R('#5fb7a8', 0, 0, 64, 6); R('#3c8a80', 0, 6, 64, 1); for (let i = 4; i < 64; i += 16) { R('#9a3a4a', i, 10, 8, 10); } R('#c8a070', 28, 8, 8, 16); R('#f7d64a', 31, 2, 2, 4); });
@@ -15098,10 +15320,17 @@ const Spool = {
         g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.35; g.fillStyle = '#cfe0ff'; g.fillRect(0, 0, W, H);
         g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
         Gfx.alpha(0.55); ctx0.drawImage(c, 0, 0); Gfx.alpha(1);
-        /* who matters up there (somebody you're looking after, things that bite) shows clearly through the boards */
+    },
+    /* who matters up there (somebody you're looking after, things that bite) shows clearly through the boards, over
+       everything down here, Wren too: the moment upstairs (the boy finding the button) is never hidden behind her */
+    drawAboveFront(a, cx, cy) {
+        const r = Cam.room, ar = Layers.upRoom(a, r);
+        if (!ar || HEADLESS) return;
+        const ux = cx + r.above.dx * T, uy = cy + r.above.dy * T;
         try {
             const inR = e => { const tx = e.tx !== undefined ? e.tx : tileOf(e.x), ty = e.ty !== undefined ? e.ty : tileOf(e.y); return tx >= ar.x && ty >= ar.y && tx < ar.x + ar.w && ty < ar.y + ar.h; };
-            for (const e of a.ents) if (e.showThrough && !e.removed && inR(e)) e.draw(ux, uy);
+            const front = a.ents.filter(e => e.showThrough && !e.removed && inR(e));
+            for (const e of front) e.draw(ux, uy);
         } catch (e) { reportError(e); }
     },
     /* up above: a thing tied off from below shows its cord going down through the floor */
@@ -15711,7 +15940,7 @@ defHouse({
     id: 'spoolworks', name: 'The Spoolworks', place: 'The Spoolworks', house: 'spoolworks', theme: 'spoolworks', thread: THREAD.guild, music: 'spoolworks',
     entry: SPOOL_ENTRY,
     themeAt: (x, y) => y >= 33 ? 'underside' : 'spoolworks',
-    drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy),
+    drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy), drawFront: (a, cx, cy) => Spool.drawAboveFront(a, cx, cy),
     cells: {
         /* ================= the Works floor (up top) ================= */
         /* ---------------- 1 The Gatehouse: a crate held fast from underneath ---------------- */
@@ -16186,7 +16415,7 @@ class Tangle extends Ent {
         if (this.state === 'sleep') {
             if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 2) {
                 this.rethread(false, true);
-                this.state = 'whole'; this.st = 0; this.shutters(true); Music.play('boss');
+                this.state = 'whole'; this.st = 0; this.shutters(true); Music.play(bossSong('spoolworks'));
                 Script.run(SpoolFoes.tangleIntro(this));
             }
             return;
@@ -16687,7 +16916,7 @@ function defMaking(n, cells) {
         id: 'making' + n, name: MAKING_NAMES[n - 1], place: 'The Making Floor', house: 'making' + n, making: n, theme: 'tidy', thread: THREAD.ives, music: 'underside',
         entry: { x: 3, y: 16 },
         themeAt: (x, y) => y >= 11 ? 'underside' : ['tidy', 'kilnhouse', 'house', 'millhouse'][n - 1],
-        drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy),
+        drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy), drawFront: (a, cx, cy) => Spool.drawAboveFront(a, cx, cy),
         tick: a => Making.tick(a),
         onEnter: a => Making.start(a),
         cells,
@@ -16948,11 +17177,11 @@ defHouse({
 
 /* Tuck's fresh spool: the errand */
 SPAWN.freshspool = (x, y, p) => {
-    const pr = new Prop(x, y, { im: ART.freshspool, solid: [[0, 0]], oy: -4 });
+    const pr = new Prop(x, y, { im: Inv.items.tuckspool ? ART.freshspool_gone : ART.freshspool, solid: [[0, 0]], oy: -4 });
     pr.interact = () => {
         if (Inv.items.tuckspool) return false;
         Script.run(function* () {
-            Inv.items.tuckspool = 1; Sfx.play('smallitem');
+            Inv.items.tuckspool = 1; Sfx.play('smallitem'); pr.im = ART.freshspool_gone;
             yield* say(null, 'A fresh spool on a little stand, bright green, labelled TUCK in Gundry\'s big square letters. You tuck it in your satchel.');
             yield* say(null, "From the old hall beyond, very faintly, comes a sound like a winch turning. Click. Click. Click.");
             Progress.setGoal("Tuck's spool is in your satchel. (And there's a door east, into the old hall...)");
@@ -17038,13 +17267,15 @@ const Reveal2 = {
         Progress.set('reveal2');
         Progress.set('well_locked');
         Stats.count('reveal2');
-        World.enter('gran_room', 4, 3, { dir: DOWN });
-        G.player.state = 'sleep';
+        World.enter('gran_room', 6, 3, { dir: DOWN });
+        const me = G.player;
+        me.state = 'sleep'; me.inBed = G.map.ents.find(e => e.skey === 'wrenbed');
         yield 60;
         yield* fadeIn(60);
-        G.player.state = 'normal'; G.hideHud = false;
         Music.play('lullaby');
         yield* say(null, "You wake in your own bed. It's morning. The house is very quiet.");
+        me.state = 'normal'; me.inBed = null; G.hideHud = false; Sfx.play('land'); Fx.dust(me.x, me.y);
+        yield 20;
         yield* say(null, "Gran's chair is empty. On the kitchen table, a cup of tea gone cold. And the door to the well cellar, which is never locked, is locked.");
         yield* say(null, "When you look down at your hands, you can see your own thread, faintly, running from your heart down through the floor. You can see everybody's now.");
         Progress.setGoal("Linnet cut herself loose with the First Spinner's Shears, from the old Loom. Gundry, under the Inn, may know where that is.");
@@ -17059,6 +17290,18 @@ const Reveal2 = {
         if (Progress.flag('reveal2') && !Progress.flag('cut:' + this.who) && this.who !== 'biscuit' && this.who !== 'linnet') {
             const x = this.px + 8 - cx, y = this.py + 4 - cy;
             Gfx.alpha(0.35); Gfx.line(x, y, x, y + 12, (PEOPLE_DEF[this.who] && PEOPLE_DEF[this.who].col) || THREAD.town); Gfx.alpha(1);
+        }
+        return draw0.call(this, cx, cy);
+    };
+}
+
+/* ...and Wren's own, red, from her heart down through the floor (until she cuts it) */
+{
+    const draw0 = Player.prototype.draw;
+    Player.prototype.draw = function (cx, cy) {
+        if (Progress.flag('reveal2') && !Progress.flag('cut_self') && !this.hidden && this.state === 'normal' && G.map && !G.map.def.house) {
+            const x = this.x - cx, y = this.y - cy - 4 - (this.z || 0);
+            Gfx.alpha(0.4); Gfx.line(x, y, x, y + 12, THREAD.wren); Gfx.alpha(1);
         }
         return draw0.call(this, cx, cy);
     };
@@ -17101,6 +17344,8 @@ SPAWN.gateweight = (x, y, p) => {
 
 function initReveal2() {
     ART.freshspool = paintSprite(16, 20, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#4a4054', 3, 16, 10, 4); R('#8a8096', 3, 4, 10, 2); R('#8a8096', 3, 14, 10, 2); R('#5ab85a', 4, 6, 8, 8); R('#8ad88a', 4, 6, 8, 1); R('#3a7a3a', 4, 13, 8, 1); });
+    /* (the stand, once the spool's in the satchel) */
+    ART.freshspool_gone = paintSprite(16, 20, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#4a4054', 3, 16, 10, 4); R('#6a6078', 7, 6, 2, 10); });
     defSprite('ledger', ['................', '................', '..kkkkkkkkkkkk..', '.kwwwwwkwwwwwwk.', '.kwkkwwkwkkkwwk.', '.kwwwwwkwwwwwwk.', '.kwkkkwkwkkwwwk.', '.kwwwwwkwwwwwwk.', '..kkkkkkkkkkkk..', '.......kk.......', '.......dd.......', '.......dd.......', '.......dd.......', '.....kddddk.....', '....kkkkkkkk....', '................'], { w: '#efe4cc', d: '#5a3a26' });
 }
 CONTENT_INIT.push(initReveal2);
@@ -17690,7 +17935,7 @@ defHouse({
                 { k: 'loomweight', x: 16, y: 8, id: 'hgW2', group: 'hang', tiedOff: true, hookable: false, noPush: true, startAt: [2, 4], trace: HANG_PATH(16, 8, 2) },
                 { k: 'lever', x: 17, y: 2, release: 'hang' },
                 { k: 'chest', x: 9, y: 8, item: 'key', id: 'wrKey' },
-                { k: 'sign', x: 10, y: 1, text: 'Carved small on the wall: WHAT HANGS FROM A THREAD FALLS WHEN IT IS CUT. (And, smaller: a slack thread slides off the blades. A tight one parts anywhere. Wasted one? There are spares in the chute upstairs. -L.)' },
+                { k: 'sign', x: 10, y: 1, text: 'Carved small on the wall: WHAT HANGS FROM A THREAD FALLS WHEN IT IS CUT. (And, smaller: wasted one? There are spares in the chute upstairs. -L.)' },
             ],
         },
         /* ---------------- 7 The Bridge Room: silk won't hold iron (the Pattern) ---------------- */
@@ -17913,7 +18158,7 @@ class Weaver extends Ent {
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area, r = this.arena;
         if (this.state === 'sleep') {
-            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal') { this.state = 'aloft'; this.st = 0; this.shutters(true); Music.play('boss'); Script.run(LoomFoes.weaverIntro(this)); }
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal') { this.state = 'aloft'; this.st = 0; this.shutters(true); Music.play(bossSong('loom')); Script.run(LoomFoes.weaverIntro(this)); }
             return;
         }
         /* silk on Wren wears off in time (or the Shears snip it) */
@@ -18521,7 +18766,7 @@ class KnotLock extends GridThing {
             if (i !== 0) return;
             Progress.set('untie:' + h); Sfx.play('unclick'); Sfx.play('knot'); G.shake = 6; Stats.count('untied');
             const n = KNOT_HOUSES.filter(k => Progress.flag('untie:' + k)).length;
-            yield* say(null, n < 6 ? `It comes undone in your fingers, and somewhere above, the Spool shudders and slows. (${n} of 6.)` : 'The sixth Knot comes undone. Overhead, the Great Spool groans, and stops turning, and for the first time in your life there is no sound of winding anywhere.');
+            yield* say(null, n < 6 ? `It comes undone in your fingers, and somewhere above, the Spool shudders and slows. (${n}\u00a0of\u00a06.)` : 'The sixth Knot comes undone. Overhead, the Great Spool groans, and stops turning, and for the first time in your life there is no sound of winding anywhere.');
             if (n >= 6) { Progress.set('spool_all'); Progress.setGoal('Up the Climb to the top of the Spool. Gran is there.'); }
             else Progress.setGoal(`Untie the Knots of the Wander, in the rooms round the Spool's foot (${n} of 6).`);
             Save.autosave();
@@ -18561,7 +18806,7 @@ class GreatPost extends GridThing {
         Progress.set('great:' + this.house); Sfx.play('snip'); G.shake = 8; Fx.ring(this.tx * T + 8, this.ty * T, KNOT_COL[this.house]);
         const n = KNOT_HOUSES.filter(h => Progress.flag('great:' + h)).length;
         if (n >= 6) Script.run(GreatSpool.finale(), { name: 'finale' });
-        else { UI.toast(`A great thread parts with a sound like a bell cracking. (${n} of 6.)`, 120); Save.autosave(); }
+        else { UI.toast(`A great thread parts with a sound like a bell cracking. (${n}\u00a0of\u00a06.)`, 120); Save.autosave(); }
     }
     draw(cx, cy) {
         const x = this.tx * T - cx, y = this.ty * T - cy, col = KNOT_COL[this.house];
@@ -19520,7 +19765,7 @@ defHouse({
                 { k: 'chalk', x: 7, y: 5, type: 'bridge', id: 'lgC' }, { k: 'chalk', x: 4, y: 5, type: 'bridge', id: 'lgD' },
                 { k: 'stray', x: 16, y: 8, id: 'lgStray' },
                 { k: 'lever', x: 2, y: 8, id: 'lgLever', sig: 'ufW' },
-                { k: 'sign', x: 17, y: 2, text: "Four gaps, and the Needle holds three stitches. Mr Ives's note: STAND ON SOLID GROUND WHEN YOU SEW THE NEXT ONE." },
+                { k: 'sign', x: 17, y: 2, text: "Four gaps, and the Needle holds three stitches. (Mr Ives fell in here a great deal.)" },
             ],
         },
         /* ---------------- 4 The Far Shelf (off the Long Gap): four planks side by side, and the Needle holds three ---------------- */
@@ -19544,7 +19789,7 @@ defHouse({
                 { k: 'stray', x: 5, y: 3, id: 'lbS1' }, { k: 'stray', x: 5, y: 7, id: 'lbS2' },
                 { k: 'plate', x: 15, y: 5, sig: 'ufE' },
                 { k: 'chute', x: 1, y: 9, drop: [2, 8], id: 'lbChute' },
-                { k: 'sign', x: 16, y: 2, text: "THE LOADING BAY. Something heavy on the plate lights the east lamp. (You can't see past a thing you're pushing to sew what's in front of it. Some things don't need stitches. -I.)" },
+                { k: 'sign', x: 16, y: 2, text: "THE LOADING BAY. Something heavy on the plate lights the east lamp. (You can't see past a thing you're pushing to sew what's in front of it. -I.)" },
             ],
         },
         /* ---------------- 6 The Gallery: Mr Ives's walk to his chair ---------------- */
@@ -20317,6 +20562,7 @@ const Game = {
                 if (Input.pressed('next')) Inv.cycleTool(1);
             }
             Script.update();
+            if (G.waiting) Waiting.tick();
             if (G.pendingToast) { UI.toast(G.pendingToast, 180); G.pendingToast = null; }
             Stats.tick();
             Music.tick();
@@ -20368,6 +20614,7 @@ const Game = {
             G.onScreen = floor.concat(stand);
             stand.sort((m, n) => m.sortY - n.sortY);
             for (const e of stand) e.draw(cx, cy);
+            if (a.def.drawFront) a.def.drawFront(a, cx, cy);
             if (p.state === 'flight' && p.flight) {
                 /* Wren's own thread, red, during the flight home */
                 const f = p.flight, pts = f.pts;
@@ -20434,7 +20681,8 @@ function boot() {
         else Title.open();
         const loop = now => {
             const n = Pace.frame(now);
-            for (let i = 0; i < n; i++) if (!HW._paused) Game.step();
+            /* (sitting and waiting: four steps for every one, until it's over) */
+            for (let i = 0; i < n * (G.waiting ? 4 : 1); i++) if (!HW._paused) Game.step();
             if (n > 0 || Pace.dirty) { Game.render(); Gfx.present(); Pace.dirty = false; }
             requestAnimationFrame(loop);
         };

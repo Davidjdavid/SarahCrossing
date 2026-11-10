@@ -18,6 +18,10 @@ function discPx(x, cx, cy, r, colFn) {
         if (col) { x.fillStyle = col; x.fillRect(cx + i, cy + j, 1, 1); }
     }
 }
+/* paint a little pixel picture (rows of characters, a legend of colours; '.' or no colour is clear) at ox, oy */
+function stampPx(x, rows, legend, ox, oy) {
+    rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) { const c = legend[r[i]]; if (c) { x.fillStyle = c; x.fillRect(ox + i, oy + j, 1, 1); } } });
+}
 
 const ART = {};          /* name -> canvas */
 

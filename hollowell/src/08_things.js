@@ -39,10 +39,30 @@ function initThingSprites() {
         '..kyoooo', '..kooooo', '..kooooo', '..kOoooo', '...kOOoo', '....kOOO', '.....kkk', '........'];
     defSym('pot', potHalf, { o: '#d98f3a', O: '#a8602a', y: '#f2bc78' }, { y: 'o' });
     defSym('pot_teal', potHalf, { o: '#4fb8b0', O: '#2e7e78', y: '#9ae0d8' }, { y: 'o' });
-    /* marble bust on a plinth (heavy) */
-    defSym('bust', ['......kk', '.....kgg', '....kggg', '....kwgg', '....kggg', '....kGgg', '.....kGg', '....kggg',
-        '...kgggg', '..kGGGGG', '..kkkkkk', '..kwwwww', '..kggggg', '..kGgggg', '..kGGGGG', '..kkkkkk'],
-        { g: '#efe8de', G: '#c8bcae', w: '#ffffff' }, { w: 'g' });
+    /* marble bust on a plinth (heavy): a curly head with a face, shoulders cut in a curve, on a stone block (taller
+       than its tile, like anything standing up; lit from the top left) */
+    defSprite('bust', [
+        '......kkkk......',
+        '....kkwwgwkk....',
+        '...kwwgwgwgGk...',
+        '...kwgGwgGgGk...',
+        '...kgxggxgGGk...',
+        '...kggwGgggGk...',
+        '....kgxxggGk....',
+        '.....kgGGGk.....',
+        '......kgGk......',
+        '..kkkkwggGkkkk..',
+        '.kwwwgggggggGGk.',
+        '.kwgggggggggGGk.',
+        '.kgggggggggGGxk.',
+        '..kgggggggGGxk..',
+        '...kkGGGGGGkk...',
+        '......kxxk......',
+        '....kkwggGkk....',
+        '..kssssssssssk..',
+        '..kpppppppppPk..',
+        '..kkkkkkkkkkkk..'],
+        { g: '#efe8de', G: '#cdbfb0', x: '#a39486', w: '#ffffff', s: '#b8aea2', p: '#8c8378', P: '#6a635e' });
     /* chest */
     defSym('chest', ['........', '........', '..kkkkkk', '.kuuuuuu', '.kuUUUUU', '.kuuuuuu', '.kkkkkkk', '.kbbbbyy',
         '.kbbbbyk', '.kbbbbbb', '.kbBBBBB', '.kbbbbbb', '.kBBBBBB', '.kkkkkkk', '........', '........'],

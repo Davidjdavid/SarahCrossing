@@ -49,9 +49,23 @@ function initFurniture() {
         x.fillStyle = '#f0c070'; x.fillRect(6, 6, 36, 20); x.fillStyle = '#b0434a'; x.fillRect(9, 9, 30, 14);
         for (let i = 12; i < 36; i += 6) { x.fillStyle = '#f0c070'; x.fillRect(i, 15, 3, 2); }
     }, false);
+    /* a small woven rug: a dark edge, a border band with a running stitch, a cream line, a field with a diamond
+       medallion and little corner diamonds, a fringe on the short ends */
     ART.rug_small = paintSprite(32, 16, x => {
-        x.fillStyle = '#4a7ac4'; x.fillRect(0, 0, 32, 16); x.fillStyle = '#6a9ae0'; x.fillRect(2, 2, 28, 12);
-        for (let i = 4; i < 30; i += 4) { x.fillStyle = '#fbf6ea'; x.fillRect(i, 7, 2, 2); }
+        const P = (c, a, b) => { x.fillStyle = c; x.fillRect(a, b, 1, 1); };
+        for (let j = 0; j < 16; j++) for (let i = 2; i < 30; i++) {
+            const e = Math.min(i - 2, 29 - i, j, 15 - j);
+            let c = e === 0 ? '#2e4a88' : e < 3 ? '#3f6cb8' : e === 3 ? '#e8dcc0' : '#6a9ae0';
+            if (e === 1 && (i + j) % 4 === 0) c = '#e8b04a';
+            if (e > 3) {
+                const dd = Math.abs(i - 15.5) / 2 + Math.abs(j - 7.5);
+                if (dd < 1.6) c = '#e8b04a'; else if (dd < 2.6) c = '#c0505a'; else if (dd < 3.6) c = '#fbf6ea'; else if (dd < 4.3) c = '#4f80c8';
+                if ((Math.abs(i - 6.5) + Math.abs(j - 7.5) < 1.6) || (Math.abs(i - 24.5) + Math.abs(j - 7.5) < 1.6)) c = '#fbf6ea';
+                if (j === 4 || j === 11) if (c === '#6a9ae0') c = '#7eaae8';
+            }
+            P(c, i, j);
+        }
+        for (let j = 1; j < 15; j++) { P(j % 2 ? '#fbf6ea' : '#d8ccb0', 1, j); if (j % 2) P('#fbf6ea', 0, j); P(j % 2 ? '#fbf6ea' : '#d8ccb0', 30, j); if (j % 2) P('#fbf6ea', 31, j); }
     }, false);
     ART.portrait_turned = paintSprite(16, 18, x => {
         x.fillStyle = '#9a6438'; x.fillRect(1, 1, 14, 16); x.fillStyle = '#c9925a'; x.fillRect(2, 2, 12, 14);

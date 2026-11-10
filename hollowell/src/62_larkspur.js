@@ -265,8 +265,16 @@ FACADES.marionette = function () {
         for (const cxo of [10, 50, 166, 206]) { R('#f4e6c8', cxo - 4, 37, 10, 75); R('#d8c8a8', cxo + 4, 37, 2, 75); R('#f7d64a', cxo - 6, 37, 14, 3); }
         /* the doors under a lit sign */
         R('#2a1f2d', 84, 60, 56, 52); R('#c42b4a', 88, 64, 22, 48); R('#c42b4a', 114, 64, 22, 48); R('#f7d64a', 108, 84, 2, 6); R('#f7d64a', 114, 84, 2, 6);
-        R('#2a1f2d', 70, 42, 84, 14); R('#f7d64a', 72, 44, 80, 10);
-        for (let i = 0; i < 20; i++) R(i % 2 ? '#fff4c0' : '#e8b04a', 72 + i * 4, 40, 2, 2);
+        R('#2a1f2d', 70, 42, 84, 14); R('#f7d64a', 72, 44, 80, 10); R('#fff4c0', 72, 44, 80, 1); R('#d9a33a', 72, 53, 80, 1);
+        for (let i = 0; i < 20; i++) { R(i % 2 ? '#fff4c0' : '#e8b04a', 72 + i * 4, 40, 2, 2); R(i % 2 ? '#e8b04a' : '#fff4c0', 72 + i * 4, 56, 2, 2); }
+        /* its name, in the game's own letters, painted crimson with a gold shadow */
+        const name = 'MARIONETTE';
+        let lx = 112 - Math.floor((name.split('').reduce((s, ch) => s + FONT[ch].w + 1, 0) - 1) / 2);
+        for (const ch of name) {
+            FONT[ch].rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) if (r[i] === '#') { R('#d9a33a', lx + i + 1, 46 + j, 1, 1); } });
+            FONT[ch].rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) if (r[i] === '#') R('#9a1e36', lx + i, 45 + j, 1, 1); });
+            lx += FONT[ch].w + 1;
+        }
         /* posters either side: a puppet, and a girl with a stick */
         R('#fbf6ea', 20, 56, 22, 30); R('#d6304e', 26, 62, 10, 16); R('#e6c08a', 28, 58, 6, 6); R('#2a1f2d', 30, 50, 1, 8);
         R('#fbf6ea', 182, 56, 22, 30); R('#e8463c', 188, 64, 10, 14); R('#8a5a3a', 189, 58, 8, 6); R('#9a6438', 198, 60, 2, 18);
