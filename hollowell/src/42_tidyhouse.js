@@ -494,7 +494,7 @@ SPAWN.shutter = (x, y, p) => {
 /* the Dust Monger: a huge dust bunny. The stick bounces off its fluff; it fears coming-home furniture */
 SPAWN.monger = (tx, ty) => {
     if (Progress.flag('tidy_monger')) return new Ent('none');
-    const e = new Enemy(tx, ty, { type: 'monger', hp: 4 });
+    const e = new Enemy(tx, ty, { type: 'monger', hp: 2 });     /* (two hits: a mini-boss shouldn't outstay its idea) */
     e.onDie = () => {
         Progress.set('tidy_monger');
         for (const s of e.area.ents) if (s.kind === 'door' && s.group === 'monger') s.shut = false;
@@ -504,7 +504,7 @@ SPAWN.monger = (tx, ty) => {
     e.wakeT = 0;
     return e;
 };
-ENEMY.monger = { hp: 4, speed: 1.4, leash: 12, sight: 12, ai: 'monger', yarn: '#e4dcd0', r: 10, tall: 20, armored: true, dmg: 2, drop: 0, weight: WEIGHT.medium };
+ENEMY.monger = { hp: 2, speed: 1.4, leash: 12, sight: 12, ai: 'monger', yarn: '#e4dcd0', r: 10, tall: 20, armored: true, dmg: 2, drop: 0, weight: WEIGHT.medium };
 ENEMY_DRAW.monger = e => spr(e.z > 1 ? 'monger_1' : 'monger_0');
 AI.monger = (e, p) => {
     const a = e.area;
