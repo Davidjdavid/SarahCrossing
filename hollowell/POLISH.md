@@ -173,7 +173,8 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   to the difficulty, overworld and town helpers.
 - David, later still: boss fights may be longer and should be a real challenge, with moves to learn, some taking a few
   tries (not an easy game for anyone); combat should feel good. A helper is on it (bosses_brief.md): combat feel
-  game-wide (hit-stop, knockback, invulnerable frames, telegraphs, fair hitboxes, a quick retry at the arena door),
+  game-wide (hit-stop, knockback, invulnerable frames, telegraphs, fair hitboxes; fainting in a fight works as it does
+  anywhere else: David asked for no quick boss retry),
   each boss a moveset of two to four telegraphed attacks escalating per phase alongside its three puzzle beats, the
   curve gentle in House 1 to hard in Houses 7-8; longer means more fighting, never more waiting.
 - Owed by the coordinator: PROJECT_STATE.md's counts (rooms, Makings); SPOILERS.md and DESIGN_DOCUMENT.md for every
