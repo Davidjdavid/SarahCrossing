@@ -286,7 +286,7 @@ defHouse({
                 { k: 'crate', x: 17, y: 3, id: 'brC2' },
                 { k: 'chest', x: 9, y: 7, item: 'pattern', id: 'brPattern', hidden: true, when: 'flag:belfry_ropes', big: true },
                 { k: 'block', x: 0, y: 4, id: 'brWall', look: 'wallblock', sleeper: true, tiedOff: true, startAt: [0, 5], trace: [[0, 4], [0, 5]], noPush: true, pushLine: 'A slab of wall, a bit too clean. It feels warm, like something asleep.' },
-                { k: 'sign', x: 18, y: 9, text: "BELL ROPES. The pattern shows when the left plate is pressed and the right one isn't. Hold fast, and ring." },
+                { k: 'sign', x: 18, y: 9, text: "BELL ROPES. The pattern shows when the left plate is pressed and the right one isn't." },
                 { k: 'enemy', x: 3, y: 8, type: 'bat' }, { k: 'enemy', x: 16, y: 8, type: 'bat' },
             ],
             nudge: { solved: 'belfry_ropes', after: 60 * 60 * 4, thing: 'brC2', say: "Ring here and both crates come running. Unless one of them is being held." },

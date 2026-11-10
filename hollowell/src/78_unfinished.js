@@ -57,7 +57,7 @@ defHouse({
                 { k: 'chalk', x: 7, y: 5, type: 'bridge', id: 'lgC' }, { k: 'chalk', x: 4, y: 5, type: 'bridge', id: 'lgD' },
                 { k: 'stray', x: 16, y: 8, id: 'lgStray' },
                 { k: 'lever', x: 2, y: 8, id: 'lgLever', sig: 'ufW' },
-                { k: 'sign', x: 17, y: 2, text: "Four gaps, and the Needle holds three stitches. Mr Ives's note: STAND ON SOLID GROUND WHEN YOU SEW THE NEXT ONE." },
+                { k: 'sign', x: 17, y: 2, text: "Four gaps, and the Needle holds three stitches. (Mr Ives fell in here a great deal.)" },
             ],
         },
         /* ---------------- 4 The Far Shelf (off the Long Gap): four planks side by side, and the Needle holds three ---------------- */
@@ -81,7 +81,7 @@ defHouse({
                 { k: 'stray', x: 5, y: 3, id: 'lbS1' }, { k: 'stray', x: 5, y: 7, id: 'lbS2' },
                 { k: 'plate', x: 15, y: 5, sig: 'ufE' },
                 { k: 'chute', x: 1, y: 9, drop: [2, 8], id: 'lbChute' },
-                { k: 'sign', x: 16, y: 2, text: "THE LOADING BAY. Something heavy on the plate lights the east lamp. (You can't see past a thing you're pushing to sew what's in front of it. Some things don't need stitches. -I.)" },
+                { k: 'sign', x: 16, y: 2, text: "THE LOADING BAY. Something heavy on the plate lights the east lamp. (You can't see past a thing you're pushing to sew what's in front of it. -I.)" },
             ],
         },
         /* ---------------- 6 The Gallery: Mr Ives's walk to his chair ---------------- */

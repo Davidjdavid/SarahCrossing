@@ -103,7 +103,7 @@ defHouse({
                 { k: 'chest', x: 10, y: 2, item: 'plan', id: 'bwPlan' },
                 { k: 'pot', x: 1, y: 9, id: 'bwPot' }, { k: 'pot', x: 18, y: 6, id: 'bwPot2' },
                 { k: 'enemy', x: 15, y: 7, type: 'snapper' },
-                { k: 'sign', x: 1, y: 6, text: "BACKWASH. What you pull to you, the water takes back. (Hold on.)" },
+                { k: 'sign', x: 1, y: 6, text: "BACKWASH. What you pull to you, the water takes back." },
             ],
             nudge: { solved: 'millrace_chest:bwPlan', after: 60 * 60 * 3, thing: 'bwRaft', say: "The raft's a long way off across the water. If only something could reach it from the landing." },
         },

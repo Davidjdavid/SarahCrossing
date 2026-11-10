@@ -234,6 +234,7 @@ const PauseMenu = {
             if (Input.pressed('act')) {
                 if (this.sel === 0) { Save.write(); Sfx.play('save'); this.saveMsg = 90; }
                 else if (this.sel === 1) { Save.write(); this.close(); Title.open(); }
+                else if (this.saveItems()[this.sel].startsWith('Sit')) { this.close(); Waiting.start(); }
                 else { this.close(); PauseMenu.backToDoor(); }
             }
             if (this.saveMsg) this.saveMsg--;
@@ -272,6 +273,7 @@ const PauseMenu = {
     saveItems() {
         const a = G.map, l = ['Save here', 'Save and go to the title'];
         if (a && a.def.house && AREAS[a.id].entry && G.player && G.player.state === 'normal') l.push(a.def.making ? 'Out to the Making Floor' : "Back to the House's door");
+        if (Waiting.canWait()) l.push('Sit and wait for things to come home');
         return l;
     },
     backToDoor() {

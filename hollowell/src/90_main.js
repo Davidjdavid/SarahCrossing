@@ -42,6 +42,7 @@ const Game = {
                 if (Input.pressed('next')) Inv.cycleTool(1);
             }
             Script.update();
+            if (G.waiting) Waiting.tick();
             if (G.pendingToast) { UI.toast(G.pendingToast, 180); G.pendingToast = null; }
             Stats.tick();
             Music.tick();
@@ -159,7 +160,8 @@ function boot() {
         else Title.open();
         const loop = now => {
             const n = Pace.frame(now);
-            for (let i = 0; i < n; i++) if (!HW._paused) Game.step();
+            /* (sitting and waiting: four steps for every one, until it's over) */
+            for (let i = 0; i < n * (G.waiting ? 4 : 1); i++) if (!HW._paused) Game.step();
             if (n > 0 || Pace.dirty) { Game.render(); Gfx.present(); Pace.dirty = false; }
             requestAnimationFrame(loop);
         };

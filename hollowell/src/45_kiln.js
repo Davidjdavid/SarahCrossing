@@ -278,7 +278,7 @@ defHouse({
                 { k: 'pot', x: 16, y: 2, id: 'fPot' }, { k: 'pot', x: 16, y: 8, id: 'fPot2' },
                 { k: 'door', x: 0, y: 5, type: 'lock', dir: 'v', id: 'fW' },
                 { k: 'deco', x: 14, y: 4, look: 'kilnbig', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
-                { k: 'sign', x: 12, y: 9, text: 'No hooks over the furnace pit, please. Nothing over there to hook on to anyway. (The crate does not count.)' },
+                { k: 'sign', x: 12, y: 9, text: 'No hooks over the furnace pit, please. Nothing over there to hook on to anyway.' },
             ],
             nudge: { solved: 'kiln_fW', after: 60 * 60 * 3, at: [3, 5], say: "Where the crate sits, there's a little stitched cross. Knock the crate off it and there'd be nothing on that cross at all..." },
         },

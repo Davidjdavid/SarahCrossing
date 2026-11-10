@@ -282,7 +282,7 @@ defHouse({
                 { k: 'snoreling', x: 3, y: 2, id: 'pfSnore1' }, { k: 'snoreling', x: 17, y: 2, id: 'pfSnore2' },
                 { k: 'deco', x: 2, y: 7, look: 'pillowpile', solid: [[0, 0], [1, 0]], oy: -4, text: 'A heap of pillows, still warm.' },
                 { k: 'deco', x: 13, y: 6, look: 'pillowpile', solid: [[0, 0], [1, 0]], oy: -4, text: 'A heap of pillows. Somebody has built a little wall of them, and a little flag on top: a sock.' },
-                { k: 'sign', x: 18, y: 9, text: 'PILLOW FORT. The keep opens while someone holds down the plate. Snorelings will sleep anywhere that looks like a bed.' },
+                { k: 'sign', x: 18, y: 9, text: 'PILLOW FORT. The keep opens while someone holds down the plate. (Lights out at eight. Everybody in bed. ANY bed.)' },
             ],
             nudge: { solved: () => Inv.hasPattern('slumber'), after: 60 * 60 * 4, at: [16, 8], say: 'A Snoreling, woken, shuffles about and then goes to the nearest bed it can find. Any bed at all. Even one somebody has just laid out.' },
         },

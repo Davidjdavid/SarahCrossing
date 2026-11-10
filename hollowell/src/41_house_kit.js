@@ -141,6 +141,25 @@ const Nudges = {
         if (n.solved && Nudges.solved(a, n.solved)) return;
         const st = Stats.rooms[a.id + ':' + r.i];
         if (!st || st.t < (n.after || 60 * 60 * 3)) return;
+        if (Script.blocking() || Dialog.active) return;
+        /* the first time, the House asks whether it should (the answer stands; Options > Hints changes it) */
+        if (!Progress.flag('hintsAsked')) { Progress.set('hintsAsked'); Script.run(Nudges.ask(a, r, n)); return; }
+        Nudges.fire(a, r, n);
+    },
+    *ask(a, r, n) {
+        const who = { tidy: "rather like Mother Ives's", kiln: "deep and gruff, rather like Bram's", mill: "rather like your dad's", belfry: "rather like your mum's",
+            slumber: "soft and sleepy, rather like Doctor Mallow's", marionette: "rather like Jory's", spoolworks: "rather like Gundry's", loom: "very old" }[a.def.house] || 'muffled';
+        const known = Progress.flag('reveal1');
+        yield* say(null, known ? 'Somewhere behind the walls, one of the Makers clears their throat.' : `Somewhere behind the walls, someone clears their throat. A voice, ${who}:`);
+        const i = yield* ask(null, '"Stuck, are we? We could... the House could give you a nudge now and then, when you\'ve been stuck a good while. Would you like that?"', ['Yes, please.', "No, I'll work it out."]);
+        if (i === 0) { yield* say(null, '"Right you are." Something behind the wall goes twang.'); Nudges.fire(a, r, n); }
+        else {
+            Settings.hints = false; Settings.save();
+            yield* say(null, '"Quite right too." A door closes softly, somewhere. (Hints can be turned on in Options, if you change your mind.)');
+        }
+    },
+    fire(a, r, n) {
+        const key = a.id + ':' + r.key, st = Stats.rooms[a.id + ':' + r.i];
         Progress.setAreaFlag(a.id, 'nudged:' + r.key);
         st.nudges = (st.nudges || 0) + 1;
         Stats.count('nudges');

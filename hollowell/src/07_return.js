@@ -280,6 +280,15 @@ const Threads = {
                 Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], tight ? shade(col, 0.4) : col);
             }
             Marks.draw(r.mx * T - cx, r.my * T - cy, col, true);
+            /* how long it'll wait: a ring of stitches round its mark, unpicking as its patience runs down (full and
+               steady while something holds it) */
+            if (r.state === 'away' && r.patience > 0 && !e.quietHome) {
+                const held = Return.held(e), k = held ? 1 : Math.max(0, r.timer / r.patience);
+                const n = Math.ceil(k * 16), mx = r.mx * T + 8 - cx, my = r.my * T + 8 - cy;
+                Gfx.alpha(held ? 0.45 : 0.85);
+                for (let i = 0; i < n; i++) { const t = -Math.PI / 2 + i / 16 * Math.PI * 2; Gfx.rect(Math.round(mx + Math.cos(t) * 7) - 1, Math.round(my + Math.sin(t) * 6), 2, 1, col); }
+                Gfx.alpha(1);
+            }
         }
     },
 };
