@@ -231,3 +231,29 @@ defHouse({
     },
 });
 
+
+/* the Shears: a block cut free fills a pit; a silk wall cut down; a silk bridge cut away; a person; the fog */
+defArea({
+    id: 'lab8', name: 'Lab 8', family: 'outdoor', theme: 'town',
+    rows: [
+        '%%%%%%%%%%%%%%%%%%%%',
+        '%..........#.......%',
+        '%..........#.......%',
+        '%..........#.......%',
+        '%....o.....#.......%',
+        '%..........#.......%',
+        '%..........#.......%',
+        '%...ooooo..#.......%',
+        '%..........#.......%',
+        '%..................%',
+        '%%%%%%%%%%%%%%%%%%%%',
+    ],
+    ents: [
+        { k: 'block', x: 5, y: 2, id: 'cB' },
+        { k: 'warpthread', x: 11, y: 9, len: 1, dir: 'v', id: 'cWall' },
+        { k: 'silkbridge', x: 4, y: 7, len: 5, dir: 'h', id: 'cBridge' },
+        { k: 'npc', who: 'hob', x: 8, y: 3, face: 'down' },
+    ],
+    rooms: [{ x: 0, y: 0, w: 20, h: 11 }],
+    entry: { x: 3, y: 2 },
+});
