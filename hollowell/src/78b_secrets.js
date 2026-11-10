@@ -48,7 +48,7 @@ SPAWN.backwindow = (tx, ty) => {
         Script.run(function* () {
             if (!Progress.flag('d2')) { yield* say(null, "The back window of Seam's. The curtains are drawn."); return; }
             if (!Progress.flag('s07')) { Progress.set('s07'); Stats.count('secret:costume'); }
-            yield* say(null, Progress.flag('reveal1') ? "Seam's back window. On the dummy now: a felt bat's head, half stitched, for somebody's House. You know what it's for now. You smile anyway." : "Through the gap in Seam's back curtains: Sebastian Seam, a mouthful of pins, stitching glazed scales onto a long padded tube. A serpent's head sits on the dummy beside him. It looks a great deal like the Kilnwyrm. He hasn't seen you.");
+            yield* say(null, Progress.flag('reveal1') ? "Seam's back window. On the dummy now: a felt bat's head, half stitched, for somebody's House. You know what it's for now. You smile anyway." : Progress.flag('d4') ? "Through the gap in Seam's back curtains: Sebastian Seam, a mouthful of pins, stitching glazed scales onto a long padded tube. A head sits on the dummy beside it, with a jaw like a kiln door. He hasn't seen you." : "Through the gap in Seam's back curtains: Sebastian Seam, a mouthful of pins, stitching orange scales onto something very long. A tag on it says FESTIVAL. He hasn't seen you.");
         });
         return true;
     };

@@ -18443,9 +18443,9 @@ const StrayHouse = {
 }
 
 /* Linnet's Trail: notes 4 (the Belfry's Echo Room) and 5 (below the falls) were scenery; now they're notes like the rest */
-LINNET_NOTES[4] = { title: 'A note pinned in the Echo Room', text: 'Sang her to sleep with the stones. Low, high, middle, high, low. She never knew I could. - L.' };
-LINNET_NOTES[5] = { title: 'A note in a bottle below the falls', text: 'If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. - L.' };
-LINNET_NOTES[8] = { title: 'A note inside the Stray House', text: "If you're reading this, you're a Wanderer too. The Stray House is for you. Nothing in it comes back. Don't be frightened of that. - L." };
+LINNET_NOTES[4] = { title: 'A note pinned in the Echo Room', text: "Sang her to sleep with the stones, the way she sings it: low, high, middle, high, low. She sings it to the cellar too, late at night, very quietly. Something down there turns one click for every Knot I tie. I counted. - L." };
+LINNET_NOTES[5] = { title: 'A note in a bottle below the falls', text: "If you're reading this, you rode over the falls too. Go to where the river runs into the fog and put your hand in it. It isn't mist. It's thread, fine as hair, millions of them, every one pulled tight toward home. - L." };
+LINNET_NOTES[8] = { title: 'A note inside the Stray House', text: "If you're reading this, you're a Wanderer too. The Stray House is for you. Nothing in it comes back. Don't be frightened of that. I'm out past the fog, cutting a little at a time from the outside, until she can let go. - L." };
 for (const k of [4, 5, 8]) NOTES['linnet' + k] = { title: LINNET_NOTES[k].title, text: LINNET_NOTES[k].text };
 {
     const belfry = AREAS.belfry.ents.find(e => e.look === 'note_paper' && e.if === 'belfry_echo');
@@ -18867,7 +18867,7 @@ SPAWN.backwindow = (tx, ty) => {
         Script.run(function* () {
             if (!Progress.flag('d2')) { yield* say(null, "The back window of Seam's. The curtains are drawn."); return; }
             if (!Progress.flag('s07')) { Progress.set('s07'); Stats.count('secret:costume'); }
-            yield* say(null, Progress.flag('reveal1') ? "Seam's back window. On the dummy now: a felt bat's head, half stitched, for somebody's House. You know what it's for now. You smile anyway." : "Through the gap in Seam's back curtains: Sebastian Seam, a mouthful of pins, stitching glazed scales onto a long padded tube. A serpent's head sits on the dummy beside him. It looks a great deal like the Kilnwyrm. He hasn't seen you.");
+            yield* say(null, Progress.flag('reveal1') ? "Seam's back window. On the dummy now: a felt bat's head, half stitched, for somebody's House. You know what it's for now. You smile anyway." : Progress.flag('d4') ? "Through the gap in Seam's back curtains: Sebastian Seam, a mouthful of pins, stitching glazed scales onto a long padded tube. A head sits on the dummy beside it, with a jaw like a kiln door. He hasn't seen you." : "Through the gap in Seam's back curtains: Sebastian Seam, a mouthful of pins, stitching orange scales onto something very long. A tag on it says FESTIVAL. He hasn't seen you.");
         });
         return true;
     };
@@ -19006,6 +19006,70 @@ function initSecrets() {
     ART.crawlspace = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#8a6448', 1, 6, 14, 4); R('#6a4a32', 1, 9, 14, 2); R('#1a1410', 3, 11, 10, 5); R('#2a201a', 4, 12, 8, 4); if (true) R('#f7e08a', 9, 14, 1, 1); });
 }
 CONTENT_INIT.push(initSecrets);
+
+// ---- 78c_polish.js ----
+/* Polish from the design critique: the Rules on the schoolroom blackboard keep changing as the Hollow does; the Makers'
+   logbooks tell how often you fell in their House and whether you found their mark; the Great Pull, seen. */
+
+/* ---------- the blackboard: the Rules, after each turn of the story ---------- */
+{
+    const bb0 = Story.blackboard;
+    Story.blackboard = function* () {
+        if (Progress.flag('unwound')) {
+            yield* say(null, "THE RULES OF THE HOLLOW (NEW). In Miss Quill's best hand:\n1. Things have places.\n2. People choose theirs.\n3. Some things get lost. That's allowed.\n4. Come home for tea, if you like.");
+            return;
+        }
+        yield* bb0();
+        if (Progress.flag('reveal1')) yield* say(null, "Under the rules, in chalk, in a child's hand: '6. The Makers make it ALL. (Dont tell the little ones.)'");
+        if (Progress.flag('reveal2')) yield* say(null, "And under that, in a hand that pressed so hard the chalk snapped: '7. Everyone has a place. EVERYONE.' Nobody owns up to writing it.");
+    };
+}
+
+/* ---------- the logbooks: falls in each House, and whether you found the Maker's mark ---------- */
+{
+    const fall0 = Player.prototype.startFall;
+    Player.prototype.startFall = function (why) { if (this.area && why !== 'doze') Stats.count('falls@' + this.area.id); return fall0.apply(this, arguments); };
+    const MARK_OF = { tidy: 'tidy', kiln: 'kiln', millrace: 'mill', belfry: 'belfry', slumber: 'slumber', marionette: 'marionette' };
+    const lines0 = Logbook.lines;
+    Logbook.lines = function (area) {
+        const out = lines0.call(this, area);
+        if (!this.facts(area).been) return out;
+        const who = LOGBOOK_HOUSES[area][0], falls = Stats.c['falls@' + area] || 0;
+        out.push(falls === 0 ? 'Falls: none. Not one. Feet like a cat.' : `Falls: ${falls}. ${who === 'mallow' ? 'Lovely ones. Very restful.' : 'We caught you every time. That is the job.'}`);
+        out.push(Progress.flag('sig:' + MARK_OF[area]) ? 'Found my mark! Nobody finds my mark. (I may have cried.)' : "Walked right past my mark. It's still there, if you go and look.");
+        return out;
+    };
+}
+
+/* ---------- the Great Pull, seen: the town tinted, and threads from every marked thing in sight running to the Well ---------- */
+{
+    const draw0 = UI.draw;
+    UI.draw = function () {
+        const a = G.map;
+        if (a && a.id === 'hollow' && G.scene === 'play' && Progress.flag('great_pull') && !Progress.flag('unwound') && !G.credits) {
+            const t = G.t;
+            Gfx.alpha(0.16 + Math.sin(t / 40) * 0.04); Gfx.rect(0, 0, W, H, '#5a2030'); Gfx.alpha(1);
+            /* the fog's edge leaning in on every side */
+            for (let i = 0; i < 6; i++) { Gfx.alpha(0.07); Gfx.rect(0, 0, W, 6 + i * 4, '#e4ecf5'); Gfx.rect(0, H - 6 - i * 4, W, 6 + i * 4, '#e4ecf5'); Gfx.rect(0, 0, 6 + i * 4, H, '#e4ecf5'); Gfx.rect(W - 6 - i * 4, 0, 6 + i * 4, H, '#e4ecf5'); } Gfx.alpha(1);
+            const wx = 95 * T + 8 - Cam.x, wy = 58 * T + 8 - Cam.y;
+            const cols = [THREAD.ives, THREAD.bram, THREAD.ambrose, THREAD.tess, THREAD.mallow, THREAD.jory, THREAD.guild, THREAD.town];
+            let n = 0;
+            for (const e of a.ents) {
+                if (!e.ret || e.cutFree || e.removed || e.kind === 'npc' || n > 60) continue;
+                const x = e.x - Cam.x + 8, y = e.y - Cam.y + 6;
+                if (x < -40 || y < -40 || x > W + 40 || y > H + 40) continue;
+                n++;
+                Gfx.alpha(0.6); Gfx.line(x, y, wx + Math.sin(t / 20 + n) * 2, wy, cols[n % cols.length]); Gfx.alpha(1);
+            }
+            /* and, from off every edge of the screen, threads from the rest of the valley */
+            for (let i = 0; i < 24; i++) {
+                const ang = i / 24 * Math.PI * 2 + t / 600, ex = W / 2 + Math.cos(ang) * W, ey = H / 2 + Math.sin(ang) * H;
+                Gfx.alpha(0.4); Gfx.line(ex, ey, wx, wy, cols[i % cols.length]); Gfx.line(ex + 1, ey, wx + 1, wy, cols[i % cols.length]); Gfx.alpha(1);
+            }
+        }
+        return draw0.call(this);
+    };
+}
 
 // ---- 79_presets.js ----
 /* Presets: game states at the start of each stretch, for the debug panel and the tests. */
