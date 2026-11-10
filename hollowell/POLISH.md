@@ -137,8 +137,11 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
 - Done too: story staging (the festival with the whole town and the latecomers running in; the first reveal staged
   and heard out Maker by Maker, 25 pages to 15; the finale's last moment; the epilogue as shots; the Underside's first
   room drawn as described).
-- Running: House 7 (Spoolworks), House 4 (Belfry), House 5 (Slumberhouse).
-- Next: House 6 (Marionette Hall), House 8 (Loom); then the Great Spool
+- Done too: House 7 (Spoolworks: the Tangle in three beats, 45 s instead of 161, the third combining the Bell and
+  the Gloves with the Needle's new homes; Cog two hits and his defeat staged; two new rooms, the Practice Floor and the
+  Ropewalk; the nine picture-review fixes; floors of its own above and below).
+- Running: House 4 (Belfry), House 5 (Slumberhouse), House 6 (Marionette Hall).
+- Next: House 8 (Loom); then the Great Spool
   rebuild; the Makings act; the overworld (two helpers by region); portraits for the dialogue (the design's promised
   portrait strip with expressions, generated from each person's look); dressing for Houses 1 and 2 (set pieces);
   then live run 2, picture reviews, blind solvers, the critic again, a writing pass.
