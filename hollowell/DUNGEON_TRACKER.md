@@ -176,14 +176,16 @@ Bell Ropes E (opened by the Pattern's plates), the Bell Frame, the Cistern, the 
 (the old stair north from Bell Ropes opens from above once Tollgrim's beaten). A game that opened the big door when it was in
 Bell Ropes finds it open (same id). No softlock: the frame's gate stays open once passed, its boulder lies down again while
 it isn't; the Cistern's drawbridge lever is on the far side.
-Dressing: oak boards laid across, nailed with brass (not the plank floor of the other Houses); the Bell Frame's beams with a
+Dressing: broad oak boards laid across, nailed with brass (not the plank floor of the other Houses), a brass-bound ringers'
+runner up the Porch and the Stair; the Bell Frame's beams with a
 bell and bell-ropes; the Cistern's broken lip, trickles into the shaft, puddles, downpipe and hauled-up drawbridge; the Great
 Bell's east shutters (open in the second and third beats).
 Tests: every room's solution; Clangor's two knocks; each of Tollgrim's beats (the stick clangs, he doesn't duck in beat 1, he
 ducks at a ring he hears in beat 2, the old bell, he stays in by the clapper in beat 3 and a thrown pot at the old bell does
 nothing, the pot's pieces from afar); the Bell Frame (long way round, thrown from the mouth, the thread undoing itself, rung
 first, Wren sandwiched lifts the crate); the Cistern (the ride, waiting and paddling never cross, the empty mark); the way up and
-the stair; an old save's big door; the kit's hook-held and switched-off gusts. Scripted playthrough (LEG4); probe: clean.
+the stair; an old save's big door; saving and loading (the drawbridge stays down, a fight saved mid-way starts over); both new
+rooms' nudges; the kit's hook-held and switched-off gusts. Scripted playthrough (LEG4); probe: clean.
 
 ## D5 Slumberhouse (`src/60_slumber.js`, `src/60b_slumber_foes.js`, kit `src/58_bedroll_kit.js`; tests `tests/slumber.test.mjs`, `tests/bedroll_kit.test.mjs`, `tests/hushwood.test.mjs`) - tested
 
