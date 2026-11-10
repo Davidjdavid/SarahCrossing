@@ -48,6 +48,14 @@ class Enemy extends Ent {
         if (dy && free(this.x, this.y + dy)) { this.y += dy; moved = true; }
         return moved;
     }
+    /* come down from a leap onto open floor: the nearest tile it can stand on */
+    settle() {
+        if (!this.solidAt(this.tx, this.ty)) return;
+        for (let r = 1; r <= 4; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || this.solidAt(this.tx + dx, this.ty + dy)) continue;
+            this.x = (this.tx + dx) * T + 8; this.y = (this.ty + dy) * T + 10; return;
+        }
+    }
     traceStep() {
         const tx = this.tx, ty = this.ty, tr = this.trace, last = tr[tr.length - 1];
         if (last[0] === tx && last[1] === ty) return;
@@ -136,7 +144,8 @@ class Enemy extends Ent {
         if (!im) return;
         Gfx.alpha(0.25); Gfx.rect(this.x - cx - 5, this.y - cy + 2, 10, 2, PAL.ink); Gfx.alpha(1);
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        Gfx.img(img, this.x - cx - im.width / 2, this.y - cy - im.height + 4 - (this.z || 0), this.dir === LEFT && !this.D.noFlip);
+        const sh = this.shake ? ((this.t >> 1) % 2 ? 1 : -1) : 0;     /* (shivering: about to do something) */
+        Gfx.img(img, this.x - cx - im.width / 2 + sh, this.y - cy - im.height + 4 - (this.z || 0), this.dir === LEFT && !this.D.noFlip);
     }
 }
 const ENEMY_DRAW = {};
@@ -241,7 +250,7 @@ class Hazard extends Ent {
         this.t++;
         if (this.t === 1 && !this.quiet) Sfx.play('warn');
         if (this.t === this.tell) this.land();
-        if (this.landed && this.t < this.tell + this.live) {
+        if (this.landed && this.dmg > 0 && this.t < this.tell + this.live) {
             const p = G.player;
             if (p && p.area === this.area && p.state === 'normal' && this.covers(p.x, p.y)) {
                 const [fx, fy] = this.from || [this.x, this.y + 4];
@@ -251,6 +260,8 @@ class Hazard extends Ent {
         if (this.t >= this.tell + this.live + 10) this.area.remove(this);
     }
     land() {
+        /* (a warning only, for a blow the thing itself delivers: a charge down its lane) */
+        if (this.dmg <= 0) { if (this.onLand) this.onLand(this); return; }
         G.shake = Math.max(G.shake, this.shake);
         Sfx.play(this.sound || (this.fx === 'splash' ? 'splash' : this.fx === 'yarn' || this.fx === 'silk' ? 'twang' : 'land'));
         const pts = this.shape === 'tiles' ? this.tiles.map(([x, y]) => [x * T + 8, y * T + 9]) : [[this.x, this.y]];
