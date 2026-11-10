@@ -43,6 +43,7 @@ const Game = {
             }
             Script.update();
             if (G.waiting) Waiting.tick();
+            if (G.heartsLeaving > 0 && --G.heartsLeaving === 0) G.keepHearts = false;
             if (G.pendingToast) { UI.toast(G.pendingToast, 180); G.pendingToast = null; }
             Stats.tick();
             Music.tick();
@@ -108,6 +109,7 @@ const Game = {
             Fx.draw(cx, cy);
             Bells.drawFx(cx, cy); Bells.drawSleep(a, cx, cy);
             Knots.draw(cx, cy);
+            if (G.selfThread) Shears.drawSelfThread(cx, cy);
             if (G.holdUp) {
                 const im = spr(G.holdUp.id === 'pattern' && G.map ? patternIcon(G.map.def.house) : ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);
                 if (im) Gfx.img(im, p.x - cx - im.width / 2, p.y - cy - 30);

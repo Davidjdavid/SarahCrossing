@@ -89,13 +89,31 @@ const Shears = {
     },
     /* at the fog: your own */
     *selfCut() {
+        /* her own thread, shown: from her heart away home to the Well, across the whole valley */
+        G.selfThread = { t: 0, cut: -1 };
         const i = yield* ask(null, "The fog leans on you, threads in it like rain. Nothing is in front of you but your own red thread, going home. Cut it?", ['Cut my thread', 'Not yet']);
-        if (i !== 0) return;
-        yield* say(null, "You take the Shears to your own thread. It's thin. It's never seemed so thin. Snip.");
-        Sfx.play('snip'); G.shake = 6;
+        if (i !== 0) { G.selfThread = null; return; }
+        yield* say(null, "You take the Shears to your own thread. It's thin. It's never seemed so thin.");
+        Sfx.play('snip'); G.shake = 6; G.selfThread.cut = 0;
+        G.keepHearts = true;
         Progress.set('cut_self'); Stats.count('cut:self'); Inv.hp = Inv.maxHp;
-        yield* say(null, "Nothing pulls. For the first time in your life, nothing at all is pulling you anywhere.");
+        yield 50;
+        yield* say(null, "Snip. Nothing pulls. For the first time in your life, nothing at all is pulling you anywhere.");
+        G.selfThread = null;
         if (Shears.onSelfCut) yield* Shears.onSelfCut();
+        G.keepHearts = false;
+    },
+    /* (the thread drawn: whole, then cut, its far end whipping away home and the near end falling slack) */
+    drawSelfThread(cx, cy) {
+        const s = G.selfThread, p = G.player; if (!s || !p) return;
+        s.t++; if (s.cut >= 0) s.cut++;
+        const x0 = p.x - cx, y0 = p.y - cy - 6, hx = 95 * T + 8 - cx, hy = 58 * T + 8 - cy;
+        const d = Math.hypot(hx - x0, hy - y0) || 1, ux = (hx - x0) / d, uy = (hy - y0) / d;
+        const wob = Math.sin(s.t / 9) * 1.5;
+        if (s.cut < 0) { Gfx.line(x0, y0, x0 + ux * 400, y0 + uy * 400 + wob, THREAD.wren); Gfx.line(x0, y0 + 1, x0 + ux * 400, y0 + uy * 400 + wob + 1, shade(THREAD.wren, -0.3)); return; }
+        const gone = Math.min(1, s.cut / 30), gap = 6 + gone * 380;
+        Gfx.line(x0 + ux * gap, y0 + uy * gap, x0 + ux * 400, y0 + uy * 400, THREAD.wren);
+        Gfx.alpha(Math.max(0, 1 - s.cut / 60)); Gfx.line(x0, y0, x0 + ux * 4, y0 + 6 + gone * 4, THREAD.wren); Gfx.alpha(1);
     },
     /* the place built afresh: whatever was cut stays a stray, where it was left */
     apply(a) {

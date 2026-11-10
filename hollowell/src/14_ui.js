@@ -207,19 +207,22 @@ const UI = {
     },
     _hud(p) {
         if (G.trial) Trials.draw();
-        /* Wren's thread: a little red spool (until it's cut) */
-        if (!Progress.flag('cut_self')) {
+        /* Wren's thread: a little red spool (until it's cut); and her hearts (which, once it's cut, come undone and
+           drift away while she's told so) */
+        const leaving = G.heartsLeaving > 0 ? G.heartsLeaving : 0;
+        if (!Progress.flag('cut_self') || G.keepHearts) {
+            const k = leaving ? leaving / 120 : 1, a0 = Gfx.ctx && Gfx.ctx.globalAlpha !== undefined ? Gfx.ctx.globalAlpha : 1;
+            if (leaving) Gfx.alpha(a0 * k);
             const sp = (p && (p.state === 'flight')) ? Math.floor(G.t / 3) % 3 : 0;
-            Gfx.img(spr('hud_spool' + sp), 4, 3);
-        }
-        /* hearts */
-        if (!Progress.flag('cut_self')) {
+            Gfx.img(spr('hud_spool' + sp), 4, 3 - Math.round((1 - k) * 10));
             const n = Math.ceil(Inv.maxHp / 2);
             for (let i = 0; i < n; i++) {
-                const hx = 16 + (i % 10) * 9, hy = 3 + Math.floor(i / 10) * 8;
+                const hx = 16 + (i % 10) * 9 + (leaving ? Math.round(Math.sin(i * 1.7 + leaving / 9) * (1 - k) * 6) : 0);
+                const hy = 3 + Math.floor(i / 10) * 8 - (leaving ? Math.round((1 - k) * (14 + (i * 7) % 11)) : 0);
                 const v = Inv.hp - i * 2;
                 Gfx.img(spr(v >= 2 ? 'hud_heart' : v === 1 ? 'hud_heart_half' : 'hud_heart_empty'), hx, hy);
             }
+            if (leaving) Gfx.alpha(a0);
         }
         /* buttons */
         /* (the count right-aligned to the edge, however many) */

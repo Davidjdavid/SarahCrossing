@@ -127,7 +127,9 @@ TALK.linnet = function* (n) { yield* Drift.meet(n); };
     };
 }
 Shears.onSelfCut = function* () {
+    G.heartsLeaving = 120;
     yield* say(null, "The hearts you've carried all your life come undone and drift away. There's nothing left to unravel.");
+    while (G.heartsLeaving > 0) yield 1;
     Progress.setGoal('Into the fog, at the Frayed Edge. Nothing will pull you back now.');
 };
 
