@@ -285,7 +285,8 @@ test('a save from the Great Spool as it was first built starts again at the foot
     delete s.progress.flags.gs2; delete s.progress.flags.gs_foot_told;
     s.pos = { area: 'greatspool', x: 49 * 16 + 8, y: 27 * 16 + 10, dir: 0, mark: { area: 'greatspool', tx: 49, ty: 27 } };
     s.progress.areaFlags.greatspool = { 'door:gsTaGate': true };
-    const H2 = loadGame(); H2.global('Game').load(H2.Save.migrate(s)); H2.step(30); H2.skipTalk();
+    const H2 = loadGame(); H2.global('Game').load(H2.Save.migrate(s)); H2.step(90); H2.skipTalk();
+    assert.ok(H2.Progress.flag('gs_foot_told'), 'told again how things are down here');
     assert.equal(H2.G.map.id, 'greatspool');
     assert.deepEqual(loc('foot', H2.player()), [9, 8], 'at the foot of the Well');
     assert.ok(H2.Progress.flag('untie:kiln') && H2.Progress.flag('untie:mill'), 'its Knots still untied');

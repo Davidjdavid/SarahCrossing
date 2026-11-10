@@ -72,7 +72,7 @@ const Probe = {
             if (ui && P.num(x, y) && !G.credits && P.texts.length < 300) {
                 const tw = Font.width(s), r = [x, y, x + tw, y + 8];
                 for (const q of P.texts) {
-                    if (q[4] === s && q[0] === x && q[1] === y) continue;
+                    if (q[4] === s && Math.abs(q[0] - x) <= 1 && Math.abs(q[1] - y) <= 1) continue;   /* (the same words a pixel apart: a shadow or an engraving) */
                     const ix = Math.min(r[2], q[2]) - Math.max(r[0], q[0]), iy = Math.min(r[3], q[3]) - Math.max(r[1], q[1]);
                     if (ix > 2 && iy > 2) { P.note('text', `overlaps other text: "${stripMarkup(s).slice(0, 30)}" on "${stripMarkup(q[4]).slice(0, 30)}"`, P.CALL); break; }
                 }
@@ -115,7 +115,7 @@ const Probe = {
             if (e.isGrid) {
                 if (!this.num(e.tx, e.ty, e.x, e.y)) { this.note('thing', 'not a number: ' + (e.id || e.kind), ''); continue; }
                 if (!e.mv && !e.pendingHome && !e.flying && a.inside(e.tx, e.ty) && a.at(e.tx, e.ty) !== e && !e.noGrid) this.note('thing', `${e.id || e.kind} isn't on the tile it's at (${a.id} ${e.tx},${e.ty})`, '');
-                if (e.kind === 'npc' && !e.mv && !e.counter && a.inside(e.tx, e.ty)) {   /* (a keeper behind a counter stands against the back wall, as drawn) */ const k = a.kind(e.tx, e.ty); if (k.solid || k.pit || k.deep) this.note('placement', `${e.who || e.id} stands on ${a.kindName(e.tx, e.ty)} (${a.id} ${e.tx},${e.ty})`, ''); }
+                if (e.kind === 'npc' && !e.mv && !e.counter && !e.seated && a.inside(e.tx, e.ty)) {   /* (a keeper behind a counter stands against the back wall, as drawn; someone seated sits on their seat) */ const k = a.kind(e.tx, e.ty); if (k.solid || k.pit || k.deep) this.note('placement', `${e.who || e.id} stands on ${a.kindName(e.tx, e.ty)} (${a.id} ${e.tx},${e.ty})`, ''); }
             } else if (e.kind === 'critter' && this.num(e.x, e.y)) {
                 const tx = Math.floor(e.x / T), ty = Math.floor((e.y - 2) / T);
                 if (a.inside(tx, ty) && bad(a.kind(tx, ty)) && !e.flies) this.note('placement', `${e.who || e.look} (critter) over ${a.kindName(tx, ty)} (${a.id} ${tx},${ty})`, '');

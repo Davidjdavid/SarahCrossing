@@ -206,8 +206,8 @@ TK.arch = { solid: true, water: true, deep: true, arch: true };
 const KNOT_HOUSES = ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'];
 const KNOT_COL = { tidy: THREAD.ives, kiln: THREAD.bram, mill: THREAD.ambrose, belfry: THREAD.tess, slumber: THREAD.mallow, marionette: THREAD.jory };
 const HOUSE_NAMES = { tidy: 'Tidyhouse', kiln: 'Kiln', mill: 'Millrace', belfry: 'Belfry', slumber: 'Slumberhouse', marionette: 'Marionette Hall' };
-/* where each room is (its top-left tile), and whose thread each Knot's room is wound with */
-const GS_ROOMS = { top: [20, 0], slumber: [0, 11], climb: [20, 11], mario: [40, 11], mill: [0, 22], hub: [20, 22], belfry: [40, 22], tidy: [0, 33], foot: [20, 33], kiln: [40, 33] };
+/* whose thread each Knot's room is wound with, by cell (the top, the Climb and the Winding Room above the Foot, up the
+   middle; a Knot's room either side of each of the lower three) */
 const GS_ROOM_HOUSE = { '0,3': 'tidy', '2,3': 'kiln', '0,2': 'mill', '2,2': 'belfry', '0,1': 'slumber', '2,1': 'marionette' };
 const GREAT_ENTRY = { x: 29, y: 41 };
 const GS_SAY = { tidy: "Mother Ives's teal thread", kiln: "Bram's ochre thread", mill: "Your dad's blue thread", belfry: "Your mum's brass thread", slumber: "Doctor Mallow's lavender thread", marionette: "Jory's crimson thread" };
@@ -228,7 +228,7 @@ defHouse({
                 { k: 'crate', x: 8, y: 7, id: 'gsFCrate' },
                 { k: 'sign', x: 13, y: 9, text: "Six Knots, tied in six rooms round the Spool's foot: the Wander's, every one you tied. A seventh place waits at the top, an empty peg, for the Wanderer's own." },
             ],
-            nudge: { solved: 'greatspool_gsFGate', after: 60 * 100, at: [5, 3], say: 'A thread in the wall twitches over the plate, in the lee of the post.' },
+            nudge: { solved: 'greatspool_gsFGate', after: 60 * 100, at: [5, 3], say: 'A thread in the wall twitches over the plate, in the lee of the pillar.' },
         },
         /* ---------------- the Tidyhouse's Knot: the drum lays a thing back the moment its place is clear ---------------- */
         '0,3': {
@@ -333,7 +333,7 @@ defHouse({
                 { k: 'deco', x: 2, y: 2, look: 'bed', solid: [[0, 0], [0, 1]], oy: 0, baseY: 30, text: "Doctor Mallow's spare bed, turned down and waiting, a hot-water bottle in it gone cold." },
                 { k: 'nightlight', x: 3, y: 1 }, { k: 'nightlight', x: 7, y: 1 },
                 { k: 'ratchet', x: 18, y: 6 },
-                { k: 'sign', x: 15, y: 9, text: "A card in Doctor Mallow's hand: LIGHTS OUT AT EIGHT. THE NIGHT FERRY GOES UP AT NINE. (The bedroom's through the arch. Mind your heads.)" },
+                { k: 'sign', x: 15, y: 9, text: "A card in Doctor Mallow's hand: LIGHTS OUT AT EIGHT. NO RIDING THE FERRY TO BED. (The bedroom's through the arch. Mind your heads.)" },
             ],
             nudge: { solved: 'untie:slumber', after: 60 * 150, at: [5, 5], say: GS_SAY.slumber + ' twitches under the arch: something floating there by itself would go under.' },
         },
@@ -802,10 +802,8 @@ CONTENT_INIT.push(initGreatSpool);
         if (s.progress.areaFlags && s.progress.areaFlags.greatspool) delete s.progress.areaFlags.greatspool;
         if (s.inv && s.inv.bedroll && s.inv.bedroll.area === 'greatspool') s.inv.bedroll = null;
         if (s.inv && Array.isArray(s.inv.stitches)) s.inv.stitches = s.inv.stitches.filter(r => r.area !== 'greatspool');
-        if (s.pos && s.pos.area === 'greatspool') {
-            s.pos = { area: 'greatspool', x: GREAT_ENTRY.x * T + 8, y: GREAT_ENTRY.y * T + 10, dir: UP, mark: { area: 'greatspool', tx: GREAT_ENTRY.x, ty: GREAT_ENTRY.y } };
-            f.gs_foot_told = true;
-        }
+        /* (at the foot it's told again how things are down here now) */
+        if (s.pos && s.pos.area === 'greatspool') s.pos = { area: 'greatspool', x: GREAT_ENTRY.x * T + 8, y: GREAT_ENTRY.y * T + 10, dir: UP, mark: { area: 'greatspool', tx: GREAT_ENTRY.x, ty: GREAT_ENTRY.y } };
         f.gs2 = true;
         return s;
     };
