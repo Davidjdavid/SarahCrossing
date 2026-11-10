@@ -269,8 +269,9 @@ const Underside = {
             Progress.set('underside_first');
             Script.run(function* () {
                 yield 20;
-                yield* say(null, "Under the Inn, under the town: low beams, warm lamps, and everywhere, hanging from the boards overhead, threads. Thousands of them, every colour, running away into the dark like roots.");
-                yield* say(null, 'Somewhere a long way off, a machine is going round and round. It sounds like a heartbeat, if a heart were made of wood.');
+                /* (the beams, the lamps and the threads are drawn: StaffStairs, below; the box keeps clear of them) */
+                yield* say(null, "Under the Inn, under the town: threads. Thousands of them, every colour, running away into the dark like roots.", { focus: [29, 14] });
+                yield* say(null, 'Somewhere a long way off, a machine is going round and round. It sounds like a heartbeat, if a heart were made of wood.', { focus: [29, 14] });
             });
         }
     },
@@ -302,3 +303,95 @@ function initUnderside() {
     defSprite('logbook', ['................', '................', '...kkkkkkkkkk...', '..kbbbbbbbbbbk..', '..kbwwwwbwwwbk..', '..kbwkkwbwkwbk..', '..kbwwwwbwwwbk..', '..kbwkwwbwkkbk..', '..kbwwwwbwwwbk..', '..kbbbbbbbbbbk..', '..kkkkkkkkkkkk..', '...kddddddddk...', '...kd......dk...', '...kd......dk...', '...kk......kk...', '................'], { b: '#7a4e32', w: '#fbf6ea', d: '#5a3a26' });
 }
 CONTENT_INIT.push(initUnderside);
+
+/* the Staff Stairs as you first see them: two low beams across the room, warm lamps hung from them, and threads,
+   every colour, lying along the beams, hanging from them, and running off over the walls and through the doorways
+   into the dark like roots (over the room; the lamps' light lies on the floor under it). Painted once; only the
+   loose ends sway and the lamps flicker */
+const StaffStairs = {
+    ox: 20 * T, oy: 11 * T, beams: [50, 100], lamps: [[72, 0], [160, 0], [248, 0], [116, 1], [204, 1]],
+    cols: ['#e8463c', '#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8', '#d6304e', '#8fd46a', '#f59ac0', '#fbf6ea', '#5ad1c5', '#f0b060'],
+    on(a, cx, cy) { return a.id === 'underside' && this.ox - cx < W && this.ox + 320 - cx > 0 && this.oy - cy < H && this.oy + 176 - cy > 0; },
+    paint() {
+        return paintSprite(320, 176, x => {
+            const P = (c, a, b) => { x.fillStyle = c; x.fillRect(a, b, 1, 1); };
+            const line = (x0, y0, x1, y1, c) => { x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1); const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy; for (let n = 0; n < 900; n++) { P(c, x0, y0); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } };
+            const path = (pts, c) => { for (let i = 0; i + 1 < pts.length; i++) line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], c); };
+            const col = k => this.cols[k % this.cols.length];
+            /* roots: from the beams up over the back wall and out through the three doorways, splaying as they go
+               (under the beams, so they seem to come from behind them) */
+            const root = (x0, y0, x1, y1, n, seed, spread) => {
+                for (let k = 0; k < n; k++) {
+                    const s = (k - (n - 1) / 2) * spread, w = hash2(k, seed, 9) * 6.28, pts = [];
+                    for (let i = 0; i <= 16; i++) { const t = i / 16, e = t * t; pts.push([x0 + (x1 - x0) * t + s * e * 3 + Math.sin(t * 9 + w) * 2 * t, y0 + (y1 - y0) * t + s * (1 - e) * 0.4]); }
+                    path(pts, col(k * 7 + seed));
+                }
+            };
+            x.globalAlpha = 0.7;
+            for (const [rx, n] of [[30, 3], [98, 4], [200, 4], [276, 3]]) root(rx, this.beams[0] + 2, rx + (rx < 160 ? -14 : 14), -4, n, rx, 2);
+            root(140, this.beams[0] + 2, 152, -4, 6, 3, 1.4);
+            root(56, this.beams[0] + 4, -6, 86, 4, 5, 1.6); root(48, this.beams[1] + 4, -6, 92, 4, 11, 1.6);
+            root(264, this.beams[0] + 4, 326, 86, 4, 13, 1.6); root(272, this.beams[1] + 4, 326, 92, 4, 17, 1.6);
+            x.globalAlpha = 1;
+            /* the beams: an inked edge, a lit top, a darker face with the grain, pegged where they meet the walls */
+            for (const by of this.beams) {
+                x.fillStyle = PAL.ink; x.fillRect(8, by - 1, 304, 10);
+                x.fillStyle = '#9a7a5a'; x.fillRect(9, by, 302, 2);
+                x.fillStyle = '#6a4e38'; x.fillRect(9, by + 2, 302, 5);
+                x.fillStyle = '#4a3626'; x.fillRect(9, by + 7, 302, 1);
+                for (let i = 9; i < 311; i++) if (hash2(i, by, 3) < 0.12) P('#5a3e2a', i, by + 3 + Math.floor(hash2(by, i, 4) * 3));
+                for (const px of [12, 304]) { x.fillStyle = '#c9a24a'; x.fillRect(px, by + 3, 2, 2); }
+            }
+            /* threads along each beam: a few lying on its top, and loops hanging under it between nails */
+            this.beams.forEach((by, b) => {
+                for (let k = 0; k < 3; k++) for (let px = 9; px < 311; px++) if (hash2(px >> 4, k, b + 30) < 0.6) P(col(k * 4 + b), px, by + (k % 2));
+                x.globalAlpha = 0.85;
+                for (let k = 0; k < 7; k++) {
+                    const span = 36 + Math.floor(hash2(k, b, 7) * 30), deep = 2 + Math.floor(hash2(b, k, 8) * 8), sh = Math.floor(hash2(k, b, 6) * span), pts = [];
+                    for (let px = 9; px <= 311; px += 3) { const f = ((px + sh) % span) / span; pts.push([px, by + 8 + Math.sin(f * Math.PI) * deep]); }
+                    path(pts, col(k * 5 + b * 3));
+                }
+                x.globalAlpha = 1;
+            });
+        }, false);
+    },
+    /* the lamps' light, warm on the boards below them */
+    ground(a, cx, cy) {
+        if (!this.on(a, cx, cy)) return;
+        for (const [lx, b] of this.lamps) {
+            const x0 = this.ox + lx - cx, y0 = this.oy + this.beams[b] + 32 - cy, fl = 0.02 * Math.sin(G.t / 13 + lx);
+            for (const [rx, ry, al] of [[30, 13, 0.07], [20, 9, 0.08], [11, 5, 0.09]]) {
+                Gfx.alpha(al + fl);
+                for (let j = -ry; j <= ry; j++) { const w = Math.round(rx * Math.sqrt(1 - (j * j) / (ry * ry))); Gfx.rect(x0 - w, y0 + j, w * 2 + 1, 1, '#ffcf70'); }
+            }
+        }
+        Gfx.alpha(1);
+    },
+    /* over everything: the beams and their threads, the loose ends swaying, the lamps glowing */
+    front(a, cx, cy) {
+        if (!this.on(a, cx, cy)) return;
+        if (!this.art) this.art = this.paint();
+        const X = this.ox - cx, Y = this.oy - cy;
+        Gfx.img(this.art, X, Y);
+        this.beams.forEach((by, b) => {
+            for (let k = 0; k < 26; k++) {
+                const px = 14 + Math.floor(hash2(k, b, 21) * 292), len = 3 + Math.floor(hash2(b, k, 22) * 11), sw = Math.round(Math.sin(G.t / 47 + k * 1.7) * Math.min(1, len / 8));
+                const c = this.cols[(k * 3 + b) % this.cols.length];
+                Gfx.rect(X + px, Y + by + 7, 1, Math.ceil(len / 2), c); Gfx.rect(X + px + sw, Y + by + 7 + Math.ceil(len / 2), 1, Math.floor(len / 2), c);
+            }
+        });
+        for (const [lx, b] of this.lamps) {
+            const x0 = X + lx, y0 = Y + this.beams[b] + 7, fl = Math.sin(G.t / 13 + lx);
+            Gfx.rect(x0, y0, 1, 4, '#3a2a1e');
+            Gfx.alpha(0.13 + 0.03 * fl); Gfx.circle(x0, y0 + 9, 11, '#ffcf70'); Gfx.alpha(0.22 + 0.04 * fl); Gfx.circle(x0, y0 + 9, 6, '#ffe08a'); Gfx.alpha(1);
+            Gfx.rect(x0 - 3, y0 + 3, 7, 2, PAL.ink); Gfx.rect(x0 - 2, y0 + 3, 5, 1, '#c9a24a');
+            Gfx.rect(x0 - 3, y0 + 5, 7, 8, PAL.ink); Gfx.rect(x0 - 2, y0 + 5, 5, 7, '#ffd77a'); Gfx.rect(x0 - 1, y0 + 6, 3, 4, '#fff4c8'); Gfx.rect(x0 - 2, y0 + 5, 1, 7, '#e0a848');
+            Gfx.rect(x0 - 2, y0 + 12, 5, 2, PAL.ink); Gfx.rect(x0 - 1, y0 + 12, 3, 1, '#a6772a');
+        }
+    },
+};
+{
+    const g0 = AREAS.underside.drawGround, f0 = AREAS.underside.drawFront;
+    AREAS.underside.drawGround = (a, cx, cy) => { if (g0) g0(a, cx, cy); StaffStairs.ground(a, cx, cy); };
+    AREAS.underside.drawFront = (a, cx, cy) => { if (f0) f0(a, cx, cy); StaffStairs.front(a, cx, cy); };
+}

@@ -380,16 +380,35 @@ const GreatSpool = {
         yield* say(null, "The last great thread parts. The Spool lurches, and everything it was winding goes slack at once: in the walls, overhead, all the way up the Well, a long, long sigh of thread.");
         yield* say('gran', "Don't. Don't, love, please. If I let go, I'll lose them. I'll lose you. I lost her.");
         const r = a.rooms.find(q => q.name === 'The Top of the Spool');
-        const linnet = a.add(new NPC(r.x + 9, r.y + 9, { who: 'linnet', face: 'up' }));
-        Fx.poof(linnet.px + 8, linnet.py + 8);
-        yield 20;
+        /* Linnet, down the Well after you: in at the door and a few steps up the room */
+        const free = (x, y, who) => a.inside(x, y) && !a.kind(x, y).solid && (!a.at(x, y) || a.at(x, y) === who) && !(p.tx === x && p.ty === y);
+        const linnet = a.add(new NPC(r.x + 9, free(r.x + 9, r.y + 10) ? r.y + 10 : r.y + 9, { who: 'linnet', face: 'up' }));
+        linnet.free = true; linnet.walkTo(r.x + 9, free(r.x + 9, r.y + 7, linnet) ? r.y + 7 : linnet.ty, 0.8);
+        for (let t = 0; t < 120 && (linnet.walking || linnet.mv); t++) yield 1;
+        linnet.dir = UP;
+        yield 10;
         yield* say('linnet', "Mum.");
         yield* say(null, "Gran's hands go still on the Spool.");
         yield* say('linnet', "I came back. Nobody pulled me. I walked all the way, because I wanted to.");
         yield* say('linnet', "That's the only way anyone ever really comes home, Mum. You have to let them choose it.");
         const i = yield* ask(null, "Gran looks at you. You hold out your hand.", ['Let go, Gran.', 'Come home with us.']);
         yield* say('gran', i === 0 ? "...Let go." : "...Home.");
-        yield* say(null, "And she takes her hands off the Spool, and puts one in yours, and one in Linnet's.");
+        /* and she takes her hands off the Spool and comes to you, and Linnet to her other side: one hand in yours, one in
+           Linnet's (shown, not told: Ending.hands draws the hands held) */
+        const fits = s => free(p.tx + s, p.ty, gran) && free(p.tx + 2 * s, p.ty, linnet) && findPath(a, gran.tx, gran.ty, p.tx + s, p.ty, gran) && findPath(a, linnet.tx, linnet.ty, p.tx + 2 * s, p.ty, linnet);
+        let s = p.tx < r.x + 10 ? 1 : -1;
+        if (!fits(s)) s = -s;
+        if (!fits(s)) { yield* walkTo(p, r.x + 8, r.y + 6); s = 1; }
+        p.dir = s > 0 ? RIGHT : LEFT;
+        gran.free = true; gran.walkTo(p.tx + s, p.ty, 0.6);
+        yield 40;
+        linnet.walkTo(p.tx + 2 * s, p.ty, 0.8);
+        for (let t = 0; t < 600 && (gran.walking || gran.mv || linnet.walking || linnet.mv); t++) yield 1;
+        for (const [n, k] of [[gran, 1], [linnet, 2]]) if (n.tx !== p.tx + k * s || n.ty !== p.ty) { a.unplace(n, n.tx, n.ty); n.path = null; n.walking = false; n.tx = p.tx + k * s; n.ty = p.ty; n.x = n.tx * T; n.y = n.ty * T; a.place(n, n.tx, n.ty); }
+        yield 12;
+        p.dir = gran.dir = linnet.dir = DOWN; gran.fixedFace = linnet.fixedFace = true;
+        Ending.hands = s > 0 ? [p, gran, linnet] : [linnet, gran, p];
+        yield 100;
         yield* Ending.unwinding();
     },
 };

@@ -19,8 +19,8 @@ const Water = {
         if (d === undefined || e.mv) { e.driftT = 0; return; }
         if (e.carried || e.heldBy || e.tiedOff || e.shattered || e.flying || e.paddled) { e.driftT = 0; return; }
         if (e.ret && e.ret.state === 'returning') return;         /* the Return outpulls the river */
-        /* at its own mark it bobs a while before the river takes it (a ferry waits at its landing) */
-        const wait = e.ret && e.ret.state === 'home' ? this.HOME_WAIT : this.DRIFT_WAIT;
+        /* at its own mark it bobs a while before the river takes it (a ferry waits at its landing; some less) */
+        const wait = e.ret && e.ret.state === 'home' ? (e.homeWait || this.HOME_WAIT) : this.DRIFT_WAIT;
         if ((e.driftT = (e.driftT || 0) + 1) < wait) return;
         e.driftT = 0;
         const nx = e.tx + DX[d], ny = e.ty + DY[d];

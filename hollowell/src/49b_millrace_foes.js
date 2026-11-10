@@ -129,12 +129,13 @@ SPAWN.snapjaw = (x, y, p) => Progress.flag('millrace_snapjaw') ? new Ent('none')
    (GRINDLE_FLOW: [x0, x1, y, way] in the room):
    1. the side races carry floats into its mouth; the ferry race runs up to just below it;
    2. the side races run away from its mouth, and the ferry race runs right into it (an empty ferry fills it too);
-   3. it clamps its jaw for good, and one race runs straight past its teeth: only the pieces of a pot get in.
+   3. it clamps its jaw for good, and one race runs straight past its teeth (the raft's landing is still water now: it
+      goes when it's pushed off): only the pieces of a pot get in.
    It spits at Wren on the bank (out on the water, its jaws are the danger). */
 const GRINDLE_FLOW = {
     1: [[5, 8, 4, RIGHT], [11, 14, 4, LEFT], [9, 9, 6, UP], [9, 9, 7, UP]],
     2: [[5, 7, 4, LEFT], [12, 14, 4, RIGHT], [9, 9, 5, UP], [9, 9, 6, UP], [9, 9, 7, UP]],
-    3: [[5, 14, 4, RIGHT], [9, 9, 5, UP], [9, 9, 6, UP], [9, 9, 7, UP]],
+    3: [[5, 14, 4, RIGHT], [9, 9, 5, UP], [9, 9, 6, UP]],
 };
 const GR = { spit: { 1: 200, 2: 170, 3: 140 }, spitSpeed: { 1: 1.7, 2: 1.9, 3: 2.1 }, full: 900 };
 class Grindle extends GridThing {
@@ -439,5 +440,24 @@ function initMillraceArt() {
     ART.model_mill = paintSprite(32, 20, x => { x.fillStyle = '#9a6438'; x.fillRect(0, 10, 32, 4); x.fillRect(2, 14, 2, 6); x.fillRect(28, 14, 2, 6); x.fillStyle = '#4fb0e0'; x.fillRect(3, 6, 26, 4); x.fillStyle = '#c9925a'; x.fillRect(18, 1, 8, 6); x.fillStyle = '#62506a'; x.fillRect(17, 0, 10, 2); x.fillStyle = '#e6c08a'; x.fillRect(7, 5, 6, 2); x.fillStyle = '#e8463c'; x.fillRect(10, 2, 1, 4); });
     ART.flourbag = paintSprite(14, 16, x => { x.fillStyle = '#efe4cc'; x.fillRect(1, 3, 12, 12); x.fillRect(3, 1, 8, 3); x.fillStyle = '#c8b898'; x.fillRect(1, 13, 12, 2); x.fillStyle = '#4f9be0'; x.beginPath(); x.arc(7, 9, 3, 0, Math.PI * 2); x.fill(); });
     ART.monogram_mill = paintSprite(16, 10, x => { x.fillStyle = '#4f9be0'; x.fillRect(1, 2, 1, 6); x.fillRect(2, 2, 2, 1); x.fillRect(4, 3, 1, 5); x.fillRect(2, 5, 2, 1); x.fillRect(7, 2, 1, 6); x.fillRect(8, 2, 2, 1); x.fillRect(10, 3, 1, 1); x.fillRect(8, 4, 2, 1); x.fillRect(10, 5, 1, 3); x.fillStyle = '#2e6ab0'; x.beginPath(); x.arc(13, 5, 2, 0, Math.PI * 2); x.fill(); }, false);
+    /* the Lock's log: a short length of trunk afloat, its cut end showing the rings, the water lapping round it */
+    SPR.mill_log = paintSprite(16, 16, x => {
+        const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        R('#6b4128', 4, 4, 11, 8); R('#9a6438', 4, 5, 11, 2); R('#4a2c1a', 4, 10, 11, 2);
+        for (const [bx, by, bw] of [[6, 7, 4], [10, 9, 3], [8, 5, 2], [12, 6, 2]]) R('#4a2c1a', bx, by, bw, 1);
+        R('#c9925a', 1, 4, 4, 8); R('#e6c08a', 2, 5, 2, 6); R('#9a6438', 2, 6, 2, 1); R('#9a6438', 2, 9, 2, 1); R('#6b4128', 3, 7, 1, 2);
+        R('#c9925a', 15, 5, 1, 6);
+        x.fillStyle = '#d8f2fc'; x.fillRect(0, 12, 3, 1); x.fillRect(6, 13, 5, 1); x.fillRect(13, 12, 3, 1);
+    });
+    /* the Bell Race's carving: a sun, a moon and a star in a row on a board, each ringing */
+    ART.mill_mural = paintSprite(44, 15, x => {
+        const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        R('#9a6438', 0, 0, 44, 15); R('#c9925a', 1, 1, 42, 13); R('#e6c08a', 1, 1, 42, 1);
+        const ring = (cx, cy, c) => { for (const [dx, dy] of [[-5, 0], [5, 0], [0, -5], [0, 5], [-4, -4], [4, -4], [-4, 4], [4, 4]]) R('#6b4128', cx + dx, cy + dy, 1, 1); R(c, cx - 2, cy - 2, 5, 5); };
+        ring(8, 7, '#f7d64a'); R('#fff4c0', 7, 6, 1, 1);
+        ring(22, 7, '#9fd4f0'); R('#c9925a', 23, 5, 2, 3);
+        ring(36, 7, '#f59ac0'); R('#c9925a', 34, 5, 1, 1); R('#c9925a', 38, 5, 1, 1); R('#c9925a', 34, 9, 1, 1); R('#c9925a', 38, 9, 1, 1);
+        R('#6b4128', 15, 7, 2, 1); R('#6b4128', 29, 7, 2, 1);
+    });
 }
 CONTENT_INIT.push(initMillraceArt);

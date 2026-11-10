@@ -34,7 +34,7 @@ class BellRope extends GridThing {
         Stats.count('ferrybell');
         const f = this.area.find(this.ferry);
         if (!f || f.removed || f.swallowed || !f.ret || f.mv || f.ret.state === 'returning') return true;   /* (already on its way) */
-        if (f.ret.state === 'home') f.driftT = Water.HOME_WAIT - 1;
+        if (f.ret.state === 'home') f.driftT = (f.homeWait || Water.HOME_WAIT) - 1;
         else if (!Return.held(f)) f.ret.timer = 1;
         return true;
     }
@@ -56,6 +56,8 @@ class BellRope extends GridThing {
     }
 }
 SPAWN.bellrope = (x, y, p) => new BellRope(x, y, p);
+/* the House's Pattern, at the end of the Bell Race (a game that already holds it, from where it used to be, finds buttons) */
+SPAWN.millpattern = (x, y, p) => new Chest(x, y, Object.assign(p, { item: Inv.hasPattern('mill') && !Progress.areaFlag('millrace', 'chest:' + p.id) ? 'b20' : 'pattern' }));
 
 defHouse({
     id: 'millrace', name: 'The Millrace', place: 'The Millrace', house: 'mill', theme: 'millhouse', thread: THREAD.ambrose, music: 'millrace',
@@ -109,6 +111,7 @@ defHouse({
             ],
             ents: [
                 { k: 'raft', x: 16, y: 6, id: 'fpFerry' },
+                { k: 'bellrope', x: 6, y: 2, ferry: 'fpFerry', id: 'fpBellFar' }, { k: 'bellrope', x: 16, y: 7, ferry: 'fpFerry', id: 'fpBellHome' },
                 { k: 'chest', x: 3, y: 3, item: 'key', id: 'fpKey' },
                 { k: 'pot', x: 2, y: 2, id: 'fpPot' },
                 { k: 'sign', x: 18, y: 8, text: "FERRY POOL. The ferry goes out to the island and comes back by itself. If you miss it, it'll be along again." },
@@ -267,12 +270,12 @@ defHouse({
             ],
             nudge: { solved: () => [1, 2, 3, 4, 5, 6, 7, 8].some(y => Progress.areaFlag('millrace', `fill:8,${11 + y}`) && Progress.areaFlag('millrace', `fill:9,${11 + y}`)), after: 60 * 60 * 3, thing: 'ovStray1', say: "The pale millstones don't seem to belong anywhere. Things that belong nowhere stay wherever they end up." },
         },
-        /* ---------------- 9 The Two Wheels: hold the raft on one wheel until the crate reaches the other (Pattern) ---------------- */
+        /* ---------------- 9 The Two Wheels: hold the raft on one wheel until the crate reaches the other (the sluice north) ---------------- */
         '2,1': {
             name: 'The Two Wheels',
             rows: [
-                '####################',
-                '############.#######',
+                '#.##################',
+                '#.##########.#######',
                 '#.>>>>>>>>>>~#######',
                 '#.............#V####',
                 '#.............#V####',
@@ -289,11 +292,76 @@ defHouse({
                 { k: 'door', x: 15, y: 4, type: 'gate', when: 'tw1', id: 'twSluice', dir: 'h' },
                 { k: 'crate', x: 15, y: 3, id: 'twCrate' },
                 { k: 'wheel', x: 16, y: 9, face: 'left', sig: 'tw2', mode: 'hold', id: 'twWheel2' },
-                { k: 'chest', x: 7, y: 6, item: 'pattern', id: 'twPattern', hidden: true, when: 'flag:millrace_twoWheels', big: true },
-                { k: 'sign', x: 1, y: 9, text: "TWO WHEELS. When both turn together, the race gives up its pattern. (One wheel, one sluice: a long way between.)" },
+                { k: 'door', x: 1, y: 0, type: 'gate', when: 'flag:millrace_twoWheels', id: 'twGate', passed: 'up' },
+                { k: 'sign', x: 1, y: 9, text: "TWO WHEELS. When both turn together, the sluice to the north lifts. (One wheel, one sluice: a long way between.)" },
                 { k: 'enemy', x: 5, y: 8, type: 'dustbunny' },
             ],
             nudge: { solved: 'millrace_twoWheels', after: 60 * 60 * 4, thing: 'twRaft', say: "The raft only sits on the first wheel a moment before it heads home. Something would have to keep it there." },
+        },
+        /* ---------------- 12 The Lock (Tidyhouse + Kiln + Millrace): a hold wheel kept turning with nobody holding ----------------
+           The keeper's wheel lifts the far gate only while something floats on its water (a dead end past the log's mooring).
+           Anything put there heads home the way it came, so the gate drops again; unless its way home runs through the log's
+           mooring and the log is home first (a thing at home blocks the way home). Hook the log away down the race (or paddle
+           it), put the crate in the race behind it: the log coming home shoves the lighter crate ahead of it, past its
+           mooring and onto the wheel's water, and then sits in the crate's way home for good. */
+        '2,0': {
+            name: 'The Lock',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#.#~~>>>>>~........#',
+                '#.#.#######........#',
+                '....................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#.##################',
+            ],
+            ents: [
+                { k: 'wheel', x: 3, y: 2, face: 'down', sig: 'lk', mode: 'hold', id: 'lkWheel' },
+                { k: 'wood', x: 4, y: 3, id: 'lkLog', look: 'mill_log' },
+                { k: 'crate', x: 8, y: 2, id: 'lkCrate' },
+                { k: 'door', x: 19, y: 5, type: 'gate', when: 'lk', id: 'lkGate', passed: 'right', dir: 'v' },
+                { k: 'door', x: 0, y: 5, type: 'big', id: 'lkBig', dir: 'v' },
+                { k: 'sign', x: 3, y: 7, text: "THE LOCK. The keeper's wheel holds the far gate up while anything floats on its water, and drops it the moment it's gone." },
+                { k: 'pot', x: 18, y: 9, id: 'lkPot1' }, { k: 'pot', x: 18, y: 1, id: 'lkPot2' },
+            ],
+            nudge: { solved: 'millrace_lkGate', after: 60 * 60 * 3, thing: 'lkLog', say: "The log bobs at its mooring, very settled. Nothing gets past it once it's home." },
+        },
+        /* ---------------- 13 The Bell Race (Kiln + Millrace): three bells in order, from a ferry that only passes them one way out ----------------
+           The bells hang over the race and must ring sun, moon, star. A pot carried on the ride sends its pieces home along
+           it, ringing the last bell it passed first: riding out rings them star, moon, sun (wrong), and a ride out and back
+           unpicks itself (the thread can't knot). The pot has to reach the far end some other way (the Hookline across to
+           the island, or the ferry hooked over and ridden home, or paddled round) and ride home past star, moon, sun. */
+        '3,0': {
+            name: 'The Bell Race',
+            rows: [
+                '####################',
+                '#...~~~~~~~~~~~....#',
+                '#...>>>>>>>>>>~....#',
+                '#...~~~~~~~~~~~....#',
+                '#...~~~~~~~~~~~~~~~#',
+                '....~~~~~~~~~~~~~~~#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'raft', x: 4, y: 2, id: 'brFerry', homeWait: 40 },
+                { k: 'charm', x: 6, y: 2, seq: 'brs', order: 0, col: 'sun', glyph: true, id: 'brSun' },
+                { k: 'charm', x: 9, y: 2, seq: 'brs', order: 1, col: 'moon', glyph: true, id: 'brMoon' },
+                { k: 'charm', x: 12, y: 2, seq: 'brs', order: 2, col: 'star', glyph: true, id: 'brStar' },
+                { k: 'eyelet', x: 17, y: 1 },
+                { k: 'pot', x: 13, y: 8, id: 'brPot1' }, { k: 'pot', x: 16, y: 8, id: 'brPot2' },
+                { k: 'millpattern', x: 2, y: 4, id: 'brPattern', hidden: true, when: 'brs', big: true },
+                { k: 'deco', x: 2, y: 0, look: 'mill_mural', oy: 1, baseY: -20, text: "Carved over the landing: a sun, then a moon, then a star, each with little lines round it as if it were ringing. In that order, the carving seems to say." },
+                { k: 'sign', x: 1, y: 7, text: "THE BELL RACE. Three clay bells hang over the race. Rung in their proper order, they give up the race's pattern." },
+            ],
+            nudge: { solved: 'millrace_chest:brPattern', after: 60 * 60 * 4, at: [12, 2], say: "Whatever the pieces passed last, they ring first. Going out, the ferry passes these bells one way round; coming home, the other." },
         },
         /* ---------------- 10 Dad's workshop (signature room) ---------------- */
         '0,0': {
@@ -342,7 +410,7 @@ defHouse({
                 { k: 'sluice', x: 13, y: 0, id: 'gSluice' },
                 /* two barrels on the bank at the heads of the side races */
                 { k: 'barrel', x: 5, y: 3, id: 'gbW' }, { k: 'barrel', x: 14, y: 3, id: 'gbE' },
-                { k: 'raft', x: 9, y: 7, id: 'gRaft' },
+                { k: 'raft', x: 9, y: 7, id: 'gRaft', homeWait: 50 },
                 { k: 'bellrope', x: 8, y: 7, ferry: 'gRaft', id: 'gBell' },
                 { k: 'pot', x: 7, y: 9, id: 'gPot1' }, { k: 'pot', x: 12, y: 9, id: 'gPot2' },
                 { k: 'sign', x: 2, y: 2, text: 'THE MILLPOND. Do not feed the machinery.' },
