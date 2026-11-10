@@ -12,7 +12,7 @@
 | D5 | Slumberhouse | Hushwood | Your own mark; falls as travel; the trace remembers | Bedroll | Mother Sloth | tested |
 | D6 | Marionette Hall | Larkspur Fair | Remote bodies: marching soldiers, flats, puppets at a distance, puppets in step | Crossbar | Great Marionette | tested |
 | D7 | Spoolworks | Underside | Two layers: cords under marks (tug, tie off), hatches, counterweights; re-marking | Needle | The Tangle | tested |
-| D8 | Loom | Loomwood | Permanence; warp threads; cutting | Shears | The Weaver | planned |
+| D8 | Loom | Loomwood | Permanence: offcuts (strays), the old weights cut free, silk walls and bridges; no nudges | Shears | The Weaver | tested |
 | F | Great Spool | under the Well | Six Knot-locks remixing every House | – | The Spool | planned |
 | O1 | Stray House | Frayed Edge | Nothing returns | Twin Bedroll | The Pile | planned |
 | O2 | Unfinished House | Hollowell hills | Finish chalk rooms with the Needle | Long Hook | – | planned |
@@ -128,6 +128,9 @@ Keys: 3 keys (Ferry Pool, Shard Race, Upstream), 3 locks (Carousel W and E, Upst
 | S30 Tuck's Ahas | the Makings | all three Ahas in all three Makings: Tuck's drawing | built, tested |
 | S32 The gate counterweight | the Seams (east), 57,16 | the Needle on the north gate's counterweight before Reveal 2 (after it, it's the way on) | built, tested |
 | S33 Fainting, knowing | anywhere after Reveal 2 | faint: a different waking | built, tested |
+| S24 Old Arlo's walk | Hollowell, after the Shears | cut Arlo free and follow him to the river bank: a Heart Patch | built, tested |
+| Loomwood clearing (Heart Patch) | Loomwood, east of the stream (57,10 in the block) | cut the silk strand across the gap (56,16) | built |
+| The Spinner's Room (Heart Patch) | the Loom, west of the Shuttle Run | cut the silk across the west doorway | built, tested |
 | S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |
 
 ## D4 Belfry (`src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`; tests `tests/belfry.test.mjs`, `tests/belfry_kit.test.mjs`, `tests/heights.test.mjs`) - tested
@@ -247,4 +250,23 @@ the button was under), unhurt (no bumps).
 | | The Crossing | Lure, then let go | He sits in the heavy block's lane at the gate: tug the crate in the west nook (he goes to see, and admires it), then untie the heavy block: it crosses home onto the plate and the gate opens. Untie while he sits there and he's bowled over |
 | 3 The Little Wander | The Heavy Door | The Needle | The corner block is heavy: stitch it up into the alcove through its cord; the pot (button) |
 | | The Guarded Plate | Everything | Tie the nibbler up first, then tug the block in its slot onto the plate (he pushes) and tie it off |
+
+## D8 The Loom (`src/72_loom.js`, `src/72b_loom_foes.js`, kit `src/70_shears_kit.js`; tests `tests/loom.test.mjs`, `tests/shears_kit.test.mjs`) - tested
+
+Rules: nothing in the Loom has a thread but its own old weights and its silk; the blocks lying about are offcuts
+(strays): pushed, they stay; into a pit, they fill it for good. Offcut chutes drop another when one's jammed. No
+nudges (nobody watches here). The Shears (from the Shuttle): C at a thing (or its cord from below) cuts its thread:
+a stray for good, kept where it's left (even after the place is rebuilt); silk walls fall; silk bridges drop (and iron
+goes through silk); people cut free; your own thread, at the fog.
+
+| Room | Cell | Idea | Solution | Reward |
+|---|---|---|---|---|
+| The Threshold | 1,3 | Strays | A two-deep trench: one offcut into it, another pushed in on top of it, and across | the way in |
+| The Warp Hall | 1,2 | Hub | West open; east a silk wall (Shears); north a lock | - |
+| The Offcut Yard | 0,2 | Order | Three offcuts up one column of three pits to the key in its nook (chute for spares) | key |
+| The Shuttle Run | 1,1 | Mini-boss: the Shuttle | It flies its lane through anything soft; an offcut pushed into the lane jams it; knock it while jammed (it shakes the offcut out of the lane each time); 3x | the Shears |
+| The Spinner's Room | 0,1 | Shears on silk | Cut the silk across the Run's west door | the tapestry (lore), Heart Patch |
+| The Weighing Room | 2,2 | Shears on weights | Three old weights: cut each free and push it into the chasm's middle row, one after another | key |
+| The Bridge Room | 2,1 | Iron through silk | Cut a weight free and push it onto the silk bridge: it breaks, the weight fills the gap for good; push the other across onto the heavy plate | Pattern |
+| The Web | 1,0 | Boss: the Weaver | Hung by four anchor threads: cut all four (snip yourself free of its silk with C); it drops into its loom; knock it; it climbs and spins new anchors; 3x | Heartstitch; d8 |
 

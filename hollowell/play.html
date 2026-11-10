@@ -3721,6 +3721,7 @@ class NPC extends GridThing {
         this.walking = false; this.anim = 0;
         this.pushedT = 0;
         this.noPush = true;           /* pushing works differently: they budge */
+        this.person = true;           /* (no Needle in people) */
         this.idle = props.idle || null;
         this.path = null;
         this.patience = props.patience || 100;
@@ -5748,7 +5749,7 @@ defBlock({
         { k: 'npc', who: 'bea', x: 40, y: 16, face: 'down', if: 'd1' },
         { k: 'crate', x: 35, y: 17, id: 'kc1', if: 'd1' }, { k: 'crate', x: 41, y: 20, id: 'kc2', if: 'd1' },
         { k: 'npc', who: 'gundry', x: 33, y: 20, face: 'left' },
-        { k: 'npc', who: 'gran', x: 29, y: 20, face: 'down', if: 'ceremony' },
+        { k: 'npc', who: 'gran', x: 29, y: 20, face: 'down', if: 'ceremony&!reveal2' },
         { k: 'critter', who: 'biscuit', look: 'cat', x: 14, y: 14, speed: 0.5, route: [[14, 14, 200], [19, 22, 90], [28, 25, 300], [35, 33, 120], [41, 33, 200], [44, 14, 160], [22, 12, 90]] },
         { k: 'critter', who: 'pudding', look: 'dog', x: 40, y: 22, speed: 1.0, route: [[40, 22, 40], [41, 16, 20], [36, 25, 30], [40, 25, 20]], if: '!dogStopped' },
     ],
@@ -6199,6 +6200,24 @@ SONGS.spoolworks = {
     ],
 };
 
+/* the Loomwood: thin, high, old: a shuttle going to and fro (D minor, sparse, a little cold) */
+SONGS.loomwood = {
+    bpm: 84, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.12, vib: true, n: 'A5 - - - . . F5 - | E5 - - - . . D5 - | C5 - - - E5 - D5 - | A4 - - - - - . . | A5 - - - . . C6 - | Bb5 - - - A5 - G5 - | F5 - E5 - D5 - C#5 - | D5 - - - - - . . ' },
+        { wave: 'p12', vol: 0.03, n: 'D4 F4 A4 D5 A4 F4 D4 F4 | C4 E4 A4 C5 A4 E4 C4 E4 | Bb3 D4 F4 Bb4 F4 D4 Bb3 D4 | A3 C#4 E4 A4 E4 C#4 A3 C#4 | D4 F4 A4 D5 A4 F4 D4 F4 | G3 Bb3 D4 G4 D4 Bb3 G3 Bb3 | A3 C#4 E4 A4 E4 C#4 A3 C#4 | D4 F4 A4 D5 A4 F4 D4 . ' },
+        { wave: 'triangle', vol: 0.15, n: 'D3 - - - - - - - | A2 - - - - - - - | Bb2 - - - - - - - | A2 - - - - - - - | D3 - - - - - - - | G2 - - - - - - - | A2 - - - - - - - | D3 - - - - - - - ' },
+    ],
+};
+/* the Loom: the First Spinner's, a great slow machine nobody has run in an age (D phrygian, very still) */
+SONGS.loom = {
+    bpm: 70, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.13, n: 'D5 - - - Eb5 - - - | D5 - - - C5 - - - | Bb4 - - - C5 - D5 - | A4 - - - - - - - | D5 - - - F5 - - - | Eb5 - - - D5 - - - | C5 - Bb4 - A4 - G4 - | A4 - - - - - - - ' },
+        { wave: 'p25', vol: 0.03, n: 'D3 . A3 . D3 . A3 . | D3 . A3 . D3 . A3 . | Eb3 . Bb3 . Eb3 . Bb3 . | D3 . A3 . D3 . A3 . | D3 . A3 . D3 . A3 . | G2 . D3 . G2 . D3 . | Eb3 . Bb3 . Eb3 . Bb3 . | D3 . A3 . D3 . . . ' },
+        { drum: true, vol: 0.025, n: 'k . . . h . . . | . . h . . . h . ' },
+    ],
+};
 
 // ---- 41_house_kit.js ----
 /* Things every House uses: levers, Knot hoops, House doors to the outside, nudges (the Hints option:
@@ -6336,7 +6355,7 @@ const Nudges = {
         });
     },
     update(a) {
-        if (!Settings.hints || !a.def.house || Progress.flag('noNudges')) return;
+        if (!Settings.hints || !a.def.house || a.def.noNudges || Progress.flag('noNudges')) return;
         const r = Cam.room; if (!r || !r.nudge) return;
         const n = r.nudge;
         const key = a.id + ':' + r.key;
@@ -11242,6 +11261,11 @@ const Bedroll = {
         Stats.count('homeward');
         if (b.area === p.area.id) {
             if (p.tx === b.tx && p.ty === b.ty) { UI.toast("You're home already."); return; }
+            /* up above and down below are two places: a floor's in the way */
+            if (typeof Layers !== 'undefined' && Layers.layered(p.area)) {
+                const r0 = p.area.roomAt(p.tx, p.ty), r1 = p.area.roomAt(b.tx, b.ty);
+                if (r0 && r1 && !!r0.above !== !!r1.above) { UI.toast(r1.above ? 'Your Bedroll is down below. The floor is in the way.' : 'Your Bedroll is up above. The floor is in the way.'); return; }
+            }
             /* a bed took over as the mark since: fly straight to the Bedroll */
             const straight = !(p.mark && p.mark.bed === 'roll');
             p.mark = this.mark();
@@ -14229,8 +14253,13 @@ const Spool = {
         const have = area._cords || (area._cords = new Set());
         for (const e of area.ents) {
             if (!(e.isGrid || e.cordable) || !e.ret || e.noCord || e.removed || have.has(e)) continue;
-            /* tied off from the start (set out that way) */
-            if (e.knotted && e._fixed0 === undefined) { e.knotted = false; this.knot(e, true); }
+            /* tied off from the start (set out that way), unless it's been untied before */
+            if (e.knotted && e._fixed0 === undefined) {
+                e.knotted = false;
+                if (e.id && Progress.areaFlag(area.id, 'untied:' + e.id)) {
+                    if (e.ret && e.isGrid && (e.tx !== e.ret.mx || e.ty !== e.ret.my) && !area.at(e.ret.mx, e.ret.my)) { area.unplace(e, e.tx, e.ty); e.tx = e.ret.mx; e.ty = e.ret.my; e.x = e.tx * T; e.y = e.ty * T; area.place(e, e.tx, e.ty); e.ret.trace = [[e.tx, e.ty]]; e.ret.state = 'home'; }
+                } else { this.knot(e, true); e.knotStart = true; }
+            }
             if (!Layers.belowOf(area, area.roomAt(e.ret.mx, e.ret.my))) continue;
             have.add(e); area.add(new Cord(e));
         }
@@ -14277,6 +14306,7 @@ const Spool = {
         if (!e.knotted) return;
         e.knotted = false; e.fixed = e._fixed0; e.liftable = e._lift0;
         Return.disturb(e);
+        if (e.knotStart && e.id && e.area) Progress.setAreaFlag(e.area.id, 'untied:' + e.id);
         if (e.onUntie) e.onUntie();
         Sfx.play('unclick');
     },
@@ -14342,7 +14372,7 @@ class Hatch extends GridThing {
         const [dx, dy] = up ? [up[0] - this.tx, up[1] - this.ty] : [down[0] - this.tx, down[1] - this.ty];
         const there = a.at(p.tx + dx, p.ty + dy);
         if (there && !there.removed && !(there.floats && Water.rideable(there))) {
-            UI.toast(to === 'up' ? "The trapdoor won't lift: something heavy is sitting on it, up there." : 'Something is in the way underneath.');
+            UI.toast(to === 'up' ? "The trapdoor won't lift: something is standing just where you'd come up." : 'Something is standing just where you would come down.');
             Sfx.play('hitthing'); return true;
         }
         Script.run(function* () {
@@ -14350,6 +14380,7 @@ class Hatch extends GridThing {
             yield* fadeOut(10);
             p.x += dx * T; p.y += dy * T;
             p.unstick();
+            if (p.mark && p.mark.bed) p.dropBed();
             Cam.snap(p); p.setMark();
             Stats.enterRoom(a, Cam.room); if (G.onRoomEnter) G.onRoomEnter(a, Cam.room);
             if (!Progress.flag('hatch_' + to)) {
@@ -14407,7 +14438,9 @@ const Needle = {
     },
     begin(p, t) {
         const e = t.thing;
-        this.st = { thing: e, path: [[e.tx, e.ty]], off: t.off || [0, 0], rep: 0, room: e.area.roomAt(e.tx, e.ty) };
+        if (e.mv) { UI.toast("Wait till it's still."); return; }
+        this.st = { thing: e, path: [[e.tx, e.ty]], off: t.off || [0, 0], rep: 0, room: e.area.roomAt(e.tx, e.ty), held0: e.heldBy };
+        e.heldBy = e.heldBy || { needle: true };
         p.pinned = 'needle';
         Sfx.play('twang');
         if (!Progress.flag('needle_first')) { Progress.set('needle_first'); UI.toast('Arrows walk the needle (up to 4). C: that\'s its place now. Z: never mind.', 200); }
@@ -14434,7 +14467,7 @@ const Needle = {
         if (s.path.length - 1 >= this.REACH || !this.stepOk(s.thing, nx, ny)) { s.rep = 7; Sfx.play('hitthing', 0.2); return; }
         s.path.push([nx, ny]); s.rep = 7; Sfx.play('blip', 0.4);
     },
-    cancel(p) { this.st = null; if (p && p.pinned === 'needle') p.pinned = null; },
+    cancel(p) { const s = this.st; if (s && s.thing && s.thing.heldBy && s.thing.heldBy.needle) s.thing.heldBy = s.held0 || null; this.st = null; if (p && p.pinned === 'needle') p.pinned = null; },
     confirm(p) {
         const s = this.st;
         if (s.path.length < 2) { this.cancel(p); return; }
@@ -14463,7 +14496,8 @@ const Needle = {
         if (Inv.stitches.length > this.MAX) {
             const oldest = Inv.stitches[0];
             this.unpick(oldest);
-            UI.toast('Three stitches is all the Needle holds: the oldest comes undone.', 140);
+            const rm = AREAS[oldest.area] && AREAS[oldest.area].rooms ? (AREAS[oldest.area].rooms.find(r => oldest.from[0] >= r.x && oldest.from[1] >= r.y && oldest.from[0] < r.x + r.w && oldest.from[1] < r.y + r.h) || {}).name : null;
+            UI.toast('Three stitches is all the Needle holds: the oldest comes undone' + (rm ? ' (in ' + rm + ').' : '.'), 160);
         }
     },
     /* a stitch undone: the thing's old place back, and its way home is the way it came */
@@ -14497,7 +14531,6 @@ const Needle = {
             const r = e.ret;
             r.mx = x; r.my = y; r.trace = [[x, y]]; r.state = 'home'; r.snap = false; r.timer = 0;
             r.color0 = rec.color0 || r.color; r.color = THREAD.wren; e.stitched = true;
-            e.tiedOff = false; e.sleeper = e.sleeper && e.resetSleep ? e.sleeper : e.sleeper;
         }
     },
     draw(cx, cy) {
@@ -14982,12 +15015,12 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'door', x: 4, y: 2, type: 'gate', when: 'ss1', dir: 'v', id: 'ssGate' },
+                { k: 'door', x: 4, y: 2, type: 'gate', when: 'ss1', dir: 'v', id: 'ssGate', passed: 'left' },
                 { k: 'chest', x: 2, y: 2, item: 'key', id: 'ssKey' },
-                { k: 'plate', x: 11, y: 6, sig: 'ss1' },
-                { k: 'wood', x: 11, y: 3, id: 'ssBlock', patience: 300 },
+                { k: 'plate', x: 15, y: 6, sig: 'ss1' },
+                { k: 'wood', x: 15, y: 3, id: 'ssBlock', patience: 120 },
                 { k: 'deco', x: 15, y: 1, look: 'spoolrack', ox: 0, solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 6, y: 8, look: 'spoolrack', ox: 0, solid: [[0, 0], [1, 0]] },
-                { k: 'sign', x: 17, y: 4, text: "THE SPOOL STORE. The gate's on the plate. The plate's on whatever you put on it, for as long as it stays put. -G." },
+                { k: 'sign', x: 18, y: 8, text: "THE SPOOL STORE. The gate's on the plate. The plate's on whatever you put on it, for as long as it stays put. -G." },
             ],
             nudge: { solved: 'spoolworks_chest:ssKey', after: 60 * 60 * 3, at: [15, 8], say: 'The block goes back before you can get round to the gate. Up here, nothing will keep it on the plate. Down there, something might.' },
         },
@@ -15034,8 +15067,8 @@ defHouse({
                 { k: 'plate', x: 3, y: 3, sig: 'bl1', minWeight: 3 }, { k: 'plate', x: 15, y: 3, sig: 'bl2', minWeight: 3 },
                 { k: 'plate', x: 3, y: 8, sig: 'bl3', minWeight: 3 }, { k: 'plate', x: 15, y: 8, sig: 'bl4', minWeight: 3 },
                 { k: 'bobbin', x: 6, y: 4, id: 'blB1' }, { k: 'bobbin', x: 12, y: 4, id: 'blB2' }, { k: 'bobbin', x: 6, y: 7, id: 'blB3' }, { k: 'bobbin', x: 12, y: 7, id: 'blB4' },
-                { k: 'chest', x: 9, y: 2, item: 'pattern', id: 'blPattern', hidden: true, when: 'bl1&bl2&bl3&bl4' },
-                { k: 'door', x: 9, y: 10, type: 'gate', when: 'bl1&bl2&bl3&bl4', keep: true, id: 'blExit' },
+                { k: 'chest', x: 9, y: 2, item: 'pattern', id: 'blPattern', hidden: true, when: 'blHeld' },
+                { k: 'door', x: 9, y: 10, type: 'gate', when: 'blHeld', keep: true, id: 'blExit' },
                 { k: 'sign', x: 1, y: 1, text: 'THE BOBBIN LOFT. Four plates, four bobbins (iron cored: only a bobbin will do). The way out wants all four at once.' },
             ],
             nudge: { solved: 'spoolworks_chest:blPattern', after: 60 * 60 * 4, at: [9, 8], say: 'Three bobbins can be given new places on their plates. The fourth needs holding there, and nobody up here has a free hand.' },
@@ -15089,7 +15122,7 @@ defHouse({
         '1,5': {
             name: 'Under the Gatehouse', above: '1,2',
             rows: [
-                '#########.##########',
+                '####################',
                 '#..................#',
                 '#..................#',
                 '#..................#',
@@ -15115,12 +15148,12 @@ defHouse({
                 '#..................#',
                 '#..................#',
                 '#..................#',
-                '...................#',
                 '#..................#',
                 '#..................#',
                 '#..................#',
                 '#..................#',
-                '#########.##########',
+                '#..................#',
+                '####################',
             ],
             ents: [
                 { k: 'hatch', x: 17, y: 8 },
@@ -15140,7 +15173,7 @@ defHouse({
                 '##..################',
                 '##.#################',
                 '#..................#',
-                '#...................',
+                '#..................#',
                 '#..................#',
                 '#..................#',
                 '#..................#',
@@ -15148,7 +15181,7 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'hatch', x: 15, y: 8 },
+                { k: 'hatch', x: 16, y: 5 },
                 { k: 'weight', x: 2, y: 2, id: 'usWeight', noPush: true, pushLine: "An iron counterweight, bolted to nothing, far too heavy to shift an inch. Its mark is only a stitch in the floor, though." },
                 { k: 'chest', x: 5, y: 8, item: 'plan', id: 'usPlan' },
                 { k: 'sign', x: 5, y: 4, text: 'NORTH: UNDER THE LOFT. (A weight in the way. Too heavy for anybody. Its place is only stitched.)' },
@@ -15237,12 +15270,18 @@ defHouse({
 });
 
 const Spoolworks = {
-    tick(a) { },
+    tick(a) {
+        /* the Bobbin Loft opens when all four plates have been held down together a moment (not a single frame) */
+        const all = ['bl1', 'bl2', 'bl3', 'bl4'].every(s => Signals.get(a, s));
+        this.blT = all ? (this.blT || 0) + 1 : 0;
+        if (this.blT === 1 && !Progress.areaFlag('spoolworks', 'blHeld')) { Sfx.play('rumble'); G.pendingToast = "All four plates down: somewhere in the wall, a winch begins, very slowly, to turn."; }
+        if (this.blT > 300 || Progress.areaFlag('spoolworks', 'blHeld')) { Signals.set(a, 'blHeld'); if (!Progress.areaFlag('spoolworks', 'blHeld')) Progress.setAreaFlag('spoolworks', 'blHeld'); }
+    },
 };
 SIGNATURE_TEXT.spoolworks = "Burnt into the bench with a hot needle: a little spool, and G.G. Under it, much smaller, much older: L. WAS HERE TOO.";
 
 /* bobbins: iron-cored, heavy, slow to go home */
-SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'bobbin', patience: 360 }, p));
+SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'bobbin', patience: 240 }, p));
 
 // ---- 67b_spool_foes.js ----
 /* The Spoolworks' creatures: spoolmites (little bobbin-bugs), Cog the Guild hound (the mini-boss: brass hide, but his
@@ -15337,6 +15376,7 @@ class Cog extends Enemy {
     defeat() {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
         if (this.knotted) { this.knotted = false; }
+        this.ret = null; this.cordable = false;
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 8, THREAD.guild);
         Progress.set('spool_cog');
         this.shutters(false);
@@ -15386,14 +15426,19 @@ class Tangle extends Ent {
             }
             return;
         }
-        this.updateBalls(r);
         if (Script.blocking()) return;
+        this.updateBalls(r);
         this.st++;
         const bs = this.bobbins(), n = bs.filter(b => this.out(b)).length;
         this.pulled = n;
+        for (const b of bs) {
+            if (this.out(b) && !b.knotted && !b.stitched && !b.heldBy && !b.mv && b.ret && b.ret.state !== 'returning') {
+                if (++b.tangleT > (this.state === 'open' ? 3 : 360)) { b.tangleT = 0; Return.snap(b); Sfx.play('twang'); Fx.text(b.px + 8, b.py - 8, 'yanked!', THREAD.guild); }
+            } else b.tangleT = 0;
+        }
         if (this.state === 'whole') {
-            /* all four threads drawn out of it at once, held a moment: it comes apart */
-            if (n >= 4) {
+            /* all four threads drawn out of it and held out (stitched or tied off), a moment: it comes apart */
+            if (n >= 4 && bs.every(b => b.knotted || b.stitched)) {
                 if (++this.outT > 90) { this.state = 'open'; this.openT = 0; this.st = 0; Sfx.play('unravel'); G.shake = 8; Fx.yarn(this.x + 8, this.y + 4, THREAD.guild); if (!Progress.flag('tangle_open')) { Progress.set('tangle_open'); G.pendingToast = 'Every thread pulled out of it at once, the Tangle falls apart round a little hard knot at its heart.'; } }
             } else this.outT = 0;
             if (Cam.room === r && p.state === 'normal') this.attack(p);
@@ -16431,6 +16476,727 @@ class WarpThread extends Ent {
 SPAWN.warpthread = (x, y, p) => new WarpThread(x, y, p);
 SPAWN.silkbridge = (x, y, p) => new WarpThread(x, y, Object.assign({ bridge: true }, p));
 
+// ---- 71_loomwood.js ----
+/* The Loomwood (block 1,0): north of town, past the stone gate on the North Road (opened by the gate's counterweight
+   in the Seams, src/69_reveal2.js). Silver birches, silk strung between the trees, moths, the fog close on the north
+   and the west: the Frayed Edge, where strays turn up and Linnet's Stray House waits (O1, later). The Loom itself,
+   the First Spinner's old place, in the north: nobody made it, nobody watches from underneath (D8, src/72_loom.js).
+   Silk strands are walls here until the Shears cut them; one hides a clearing with a Heart Patch. */
+
+const LOOMWOOD_ROWS = [
+    '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%YYYY',
+    '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%YYYY',
+    '%%%...........YYYYYYYYY........................~--~.........YYYY',
+    '%%%.XXXXXXXX..YYYYYYYYY.XXXXXXXXXXXXXXXX.YYYYY.~--~.YYYYYYYYYYYY',
+    '%%%.XXXXXXXX..YYYYYYYYY.XXXXXXXXXXXXXXXX.YYYYY"~--~.YYYYYYYYYYYY',
+    '%%%.XXXXXXXX..YYYYYYYYY.XXXXXXXXXXXXXXXX.YYYYY.~--~.YYYYYYYYYYYY',
+    '%%%.XXXXXXXX..YYYYYYYYY.XXXXXXXXXXXXXXXX.YYYYY.~--~.YYYYYYYYYYYY',
+    '%%%...........YYYYYYYYY.XXXXXXXXXXXXXXXX.YYYYY.~--~.YYYYYYYYYYYY',
+    '%%%.,...::....YYYYYYYYY.XXXXXXXXXXXXXXXX.YYYYY.~--~.YYY....YYYYY',
+    '%%%.....::........"...".XXXXXXXXXXXXXXXX.YYYYY"~--~.YYY....YYYYY',
+    '%%%.....::..............::::::::::::::::.YYYYY.~--~.YYY....YYYYY',
+    '%%%.....::..YYYYYYYYYYY.......::.........YYYYY.~--~.YYY....YYYYY',
+    '%%%.....::..YYYYYYYYYYY.......::..YYYYYYYYYYYY.~--~.YYY....YYYYY',
+    '%%%.....::..YYYYYYYYYYY.......::..YYYYYYYYYYYY.~--~.YYYY.YYYYYYY',
+    '%%%.....::."YYYYYYYYYYY.......::..YYYYYYYYYYYY.~--~.YYYY.YYYYYYY',
+    '%%%.....::."YYYYYYYYYYY,..."..::..YYYYYYY.,....~--~"YYYY.YYYYYYY',
+    '%%%.....::..YYYYYYYYYYY...,...::..YYYYYYY......~--~.YYYY.YYYYYYY',
+    '%%%.....::..YYYYYYYYYYY...."..::...............~--~.........YYYY',
+    '%%%.....::..."........,.......::::::::::::::::______..."....YYYY',
+    '%%%...,.::....................::...............~--~.."......YYYY',
+    '%%%.....::::::::::::::::::::::::...............~--~.YYYYYYYYYYYY',
+    '%%%.....::::::::::::::::::::::::...............~--~.YYYYYYYYYYYY',
+    '%%%...........................::.".............~--~.YYYYYYYYYYYY',
+    '%%%...................,.".....::...............~--~.YYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYY...............::...............~--~,YYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYY...............::...............~--~.YYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYY.YYYYYYYYYYYY..::::..YYYYYYYYYY.~--~.YYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYY.YYYYYYYYYYYY..::::..YYYYYYYYYY.~--~.YYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYY.YYYYYYYYYYYY..::::..YYYYYYYYYY.~--~"YYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYY.YYYYYYYYYYYY..::::..YYYYYYYYYY.~--~.YYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYY.YYYYYYYYYYYY..::::..YYYYYYYYYY.~--~.YYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYY.YYYYYYYYYYYY..::::..YYYYYYYYYY.~--~.YYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYY.YYYYYYYYYYYY..::::..YYYYYYYYYY.~--~.YYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYY.YYYYYYYYYYYY..::::..YYYYYYYYYY.~--~.YYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYY.YYYYYYYYYYYY..::::..YYYYYYYYYY.~--~"YYYYYYYYYYYY',
+    '%%%...........................::::.............~--~.........YYYY',
+    '%%%^^^^^^^^^^^^^^^^^^^^^^^^^^^====^^^^^^^^^^^^^^^^^^^^^^^^^^YYYY',
+    '%%%^^^^^^^^^^^^^^^^^^^^^^^^^^^====^^^^^^^^^^^^^^^^^^^^^^^^^^YYYY',
+    '%%%YYYYYYYYYYYYYYYYYYYYYYYYYYY====YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
+    '%%%YYYYYYYYYYYYYYYYYYYYYYYYYYY====YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
+];
+/* the Loom's door */
+LOOMWOOD_ROWS[9] = LOOMWOOD_ROWS[9].slice(0, 31) + ':' + LOOMWOOD_ROWS[9].slice(32);
+
+const LOOM_ENTRY = { x: 29, y: 42 };    /* inside the Loom's first hall (src/72_loom.js) */
+const LOOM_OUT = { x: 64 + 31, y: 10 };
+
+defBlock({
+    id: 'loomwood', bx: 1, by: 0, name: 'The Loomwood', theme: 'loom', music: 'loomwood',
+    rows: LOOMWOOD_ROWS,
+    forest: ['birch', 'birch2'],
+    ents: [
+        /* the north gate, held shut from the Seams */
+        { k: 'door', x: 30, y: 37, type: 'gate', when: 'flag:north_gate', dir: 'h', id: 'northGateA' }, { k: 'door', x: 31, y: 37, type: 'gate', when: 'flag:north_gate', dir: 'h', id: 'northGateB' },
+        { k: 'door', x: 32, y: 37, type: 'gate', when: 'flag:north_gate', dir: 'h', id: 'northGateC' }, { k: 'door', x: 33, y: 37, type: 'gate', when: 'flag:north_gate', dir: 'h', id: 'northGateD' },
+        { k: 'sign', x: 34, y: 35, text: 'THE LOOMWOOD. Nobody tends it. Nothing in it comes when it is called.' },
+        { k: 'rest', x: 28, y: 33 },
+        /* the Loom */
+        { k: 'building', x: 24, y: 3, w: 16, h: 7, door: 7, art: 'loom' },
+        { k: 'warp', x: 31, y: 9, to: 'loom', tx2: LOOM_ENTRY.x, ty2: LOOM_ENTRY.y, face: 'up', dir: 'up' },
+        /* silk strung across the way into the hidden clearing; a Heart Patch inside */
+        { k: 'warpthread', x: 56, y: 16, len: 1, dir: 'v', id: 'lwSilk' },
+        { k: 'chest', x: 57, y: 10, item: 'heartpatch', id: 'lwPatch' },
+        /* moths in the birches */
+        { k: 'moth', x: 20, y: 22 }, { k: 'moth', x: 38, y: 22 }, { k: 'moth', x: 12, y: 9 }, { k: 'moth', x: 55, y: 18 },
+        /* the Frayed Edge: Linnet's Stray House, and strays left lying about */
+        { k: 'building', x: 4, y: 3, w: 8, h: 4, door: 4, style: 'cottage', variant: 'stray' },
+        { k: 'strayhouse', x: 8, y: 6 },
+        { k: 'stray', x: 6, y: 12, id: 'feStray1' }, { k: 'stray', x: 4, y: 17, id: 'feStray2' },
+        { k: 'sign', x: 10, y: 19, text: 'THE FRAYED EDGE. (Scratched underneath, small: L.)' },
+    ],
+    regions: [
+        { name: 'The Frayed Edge', x: 3, y: 2, w: 12, h: 22 },
+        { name: 'The Loom', x: 22, y: 2, w: 20, h: 10 },
+        { name: 'The North Gate', x: 26, y: 34, w: 12, h: 6, mark: false },
+    ],
+});
+
+/* moths: drawn to anything moving (Wren walking); still, she's nothing to them */
+AI.moth = (e, p) => {
+    e.modeT++; e.anim++;
+    const D = e.D, nx = e.hx * T + 8, ny = e.hy * T + 10;
+    const moving = p && p.area === e.area && p.walking && p.state === 'normal';
+    const pd = p && p.area === e.area ? dist(p.x, p.y, e.x, e.y) : 999;
+    if (moving && pd < 6 * T && dist(p.x, p.y, nx, ny) < 8 * T) {
+        const dx = p.x - e.x, dy = p.y - 8 - e.y, d = Math.hypot(dx, dy) || 1;
+        e.x += dx / d * 0.75; e.y += dy / d * 0.75; e.dir = dirOf(dx, dy); e.mode = 'chase';
+    } else {
+        /* flutter in a loop round home */
+        const t = e.modeT / 40 + e.hx;
+        const gx = nx + Math.cos(t) * 12, gy = ny + Math.sin(t * 1.3) * 8;
+        e.x += (gx - e.x) * 0.05; e.y += (gy - e.y) * 0.05; e.mode = 'idle';
+    }
+    e.z = 6 + Math.round(Math.sin(e.modeT / 6) * 2);
+};
+SPAWN.moth = (x, y, p) => new Enemy(x, y, Object.assign({ type: 'moth' }, p));
+
+/* the Stray House's door: Linnet's (O1) */
+SPAWN.strayhouse = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: null, solid: [[0, 0]] });
+    pr.interact = () => { Script.run(function* () {
+        if (typeof StrayHouse !== 'undefined' && StrayHouse.open()) return yield* StrayHouse.enter();
+        yield* say(null, "A low door, painted green once, with no knob, no lock and no keyhole: just a carved L, and a little slot under it the size of a folded note.");
+    }); return true; };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    pr.draw = () => { };
+    return pr;
+};
+
+/* the north gate: a gate of stone, swung open by its counterweight below the town */
+{
+    const tick0 = OW.blocks['1,0'].tick;
+    OW.blocks['1,0'].tick = a => {
+        if (tick0) tick0(a);
+        if (Progress.flag('north_gate') && !Progress.flag('north_gate_seen') && G.player && G.player.ty > 33 && G.player.ty < 41 && G.player.tx > 88 && G.player.tx < 102) {
+            Progress.set('north_gate_seen');
+            G.pendingToast = 'The north gate stands open, for the first time in anybody\'s memory. Beyond it, silver trees.';
+        }
+    };
+}
+/* Constable Burr steps aside once the gate is open */
+TALK.burr_gate = null;
+{
+    const t0 = TALK.burr;
+    TALK.burr = function* (n) {
+        if (Progress.flag('north_gate')) { yield* say('burr', cycle('burr_gate', ["The gate's open. Twenty years I've stood here and it's open. I don't... I don't know what my post's for now.", "Go on, then. Go on. Somebody ought to.", "Mind the moths up there. They go for anything that moves."])); return; }
+        yield* t0(n);
+    };
+}
+
+function initLoomwood() {
+    treeArt('birch', { leaf: ['#b8d4b8', '#d0e4cc', '#eef6ea', '#88a890'], bark: ['#f4f4f0', '#c8c8c0', '#4a4a50'] }, 7);
+    treeArt('birch2', { leaf: ['#a8c8b0', '#c4dcc0', '#e2f0dc', '#78988a'], bark: ['#eeeeea', '#bcbcb4', '#3a3a40'] }, 11);
+    ENEMY.moth = { hp: 1, ai: 'moth', r: 5, tall: 10, flies: true, yarn: THREAD.loom, drop: 0.4, dmg: 1 };
+    const mo = { w: '#e4ecf5', W: '#aab7c8', b: '#6a7080', e: '#2a1f2d' };
+    defSprite('moth_0', ['................', '................', '................', '..kk........kk..', '.kwwk..kk..kwwk.', '.kwWwkkbbkkwWwk.', '..kwwkbebbkwwk..', '...kkkbbbbkkk...', '..kwwkbbbbkwwk..', '.kwWwk.kk.kwWwk.', '..kkk......kkk..', '................', '................', '................', '................', '................'], mo);
+    defSprite('moth_1', ['................', '................', '................', '................', '.....kk..kk.....', '....kwwkkwwk....', '...kwWwbbwWwk...', '...kwwbebbwwk...', '....kkbbbbkk....', '....kwbbbbwk....', '...kwWk..kWwk...', '....kk....kk....', '................', '................', '................', '................'], mo);
+    ENEMY_DRAW.moth = e => spr('moth_' + ((e.anim >> 2) % 2));
+    FACADES.loom = () => {
+        const w = 256, h = 120;
+        ART.f_loom = paintSprite(w, h, x => {
+            const R = (c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); };
+            /* an old grey stone hall, long and low, a great wooden loom-frame standing up through its roof */
+            R('#5a6070', 30, 0, 12, 60); R('#5a6070', 214, 0, 12, 60); R('#4a4f5c', 30, 0, 196, 10); R('#7a8090', 32, 2, 192, 4);
+            for (let i = 0; i < 24; i++) { x.fillStyle = i % 2 ? '#e4ecf5' : '#aab7c8'; x.fillRect(46 + i * 7, 10, 1, 40); }
+            R('#8a94a4', 0, 44, w, 8); R('#6a7484', 0, 50, w, 3);
+            R('#a4aebe', 4, 53, w - 8, 61);
+            for (let j = 53; j < 114; j += 8) { R('#8a94a4', 4, j + 7, w - 8, 1); for (let i = ((j / 8) % 2) * 12; i < w - 8; i += 24) R('#8a94a4', 4 + i, j, 1, 7); }
+            /* the arch door, dark, threads across it like a curtain */
+            R('#2a2e38', 104, 72, 48, 42); R('#4a5060', 100, 68, 56, 4);
+            for (let i = 0; i < 12; i++) { x.fillStyle = '#c8d0dc'; x.fillRect(107 + i * 4, 74, 1, 40); }
+            /* narrow windows, every one with a thread across it */
+            for (const wx of [24, 60, 184, 220]) { R('#2a2e38', wx, 66, 12, 26); R('#e4ecf5', wx + 6, 66, 1, 26); }
+            R('#e4ecf5', 0, 114, w, 2); R('#6a7484', 0, 116, w, 4);
+        });
+    };
+}
+CONTENT_INIT.push(initLoomwood);
+
+// ---- 72_loom.js ----
+/* The Loom (D8): the First Spinner's own old place, in the Loomwood. Nobody made it for a Wanderer, nobody watches
+   from underneath, nobody nudges. Nothing in it has a thread but the Loom's own old weights and its silk: the blocks
+   lying about are offcuts, strays, and what you push stays pushed (a pit filled is filled for good; a block jammed in a
+   corner is jammed: the offcut chutes drop another). The Shuttle guards the Shears. Then the weights' threads cut,
+   iron dropped through silk, and the Weaver in its web over its own loom. */
+
+THEMES.loomhouse = { floor: ['#a4aebe', '#8a94a4', '#c8d0dc', '#5a6070'], wall: ['#6a7484', '#4a4f5c', '#8a94a4', '#2a2e38'], stone: ['#8a94a4', '#6a7484', '#a4aebe', '#3a404c'], water: ['#8ac8e4', '#64a4cc', '#c0e4f4', '#3a6a96'], dark: '#1a1e26' };
+FLOORS.loomhouse = {
+    /* worn flagstones; a woven runner; the loom pit's dark */
+    floor: (x, th, v) => { fill(x, '#a4aebe'); speckle(x, ['#b4bece', '#949eae'], 30 + v, 0.3); fill(x, '#7a8496', 0, 15, 16, 1); fill(x, '#7a8496', 15, 0, 1, 16); },
+    floor2: (x, th, v) => { fill(x, '#c8d0dc'); for (let i = 0; i < 16; i += 2) fill(x, '#aab7c8', 0, i, 16, 1); fill(x, '#e4ecf5', 0, 0, 1, 16); },
+    floor3: (x, th, v) => { fill(x, '#3a404c'); for (let i = 1; i < 16; i += 3) fill(x, '#5a6070', i, 0, 1, 16); },
+};
+WALLS.loomhouse = {
+    edge: '#1a1e26',
+    top: (x) => { fill(x, '#3a404c'); speckle(x, ['#4a5060'], 10, 0.2); },
+    face: (x, th, v) => { fill(x, '#6a7484'); for (let y = 3; y < 14; y += 5) fill(x, '#5a6070', 0, y, 16, 1); fill(x, '#e4ecf5', (v * 5) % 15, 0, 1, 14); fill(x, '#1a1e26', 0, 15, 16, 1); },
+};
+
+defHouse({
+    id: 'loom', name: 'The Loom', place: 'The Loom', house: 'loom', theme: 'loomhouse', thread: THREAD.loom, music: 'loom',
+    entry: LOOM_ENTRY, noNudges: true,
+    cells: {
+        /* ---------------- 1 The Threshold: nothing here comes back ---------------- */
+        '1,3': {
+            name: 'The Threshold',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#ooooooooooooooooo.#',
+                '#ooooooooooooooooo##',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'warp', x: 9, y: 10, to: 'hollow', tx2: LOOM_OUT.x, ty2: LOOM_OUT.y, face: 'down', dir: 'down' },
+                { k: 'stray', x: 5, y: 7, id: 'thStray1' }, { k: 'stray', x: 12, y: 7, id: 'thStray2' },
+                { k: 'chute', x: 15, y: 9, drop: [15, 7], id: 'thChute' },
+                { k: 'sign', x: 3, y: 9, text: 'Carved deep, very old: NOTHING HERE COMES BACK. (And under it, newer, small: SO MIND WHERE YOU PUSH IT. -L.)' },
+            ],
+        },
+        /* ---------------- 2 The Warp Hall: the middle of the Loom ---------------- */
+        '1,2': {
+            name: 'The Warp Hall',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '....................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'lock', id: 'whLock' },
+                { k: 'warpthread', x: 19, y: 5, len: 1, dir: 'v', id: 'whSilkE' },
+                { k: 'deco', x: 6, y: 4, look: 'loomframe', ox: 0, solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]], text: 'A loom, bigger than a house, its warp threads running up into the dark. Half a cloth hangs from it, every colour of the valley, unfinished. The shuttle that should be in it is gone.' },
+            ],
+        },
+        /* ---------------- 3 The Offcut Yard: strays, pits, and order (key) ---------------- */
+        '0,2': {
+            name: 'The Offcut Yard',
+            rows: [
+                '####################',
+                '#..#........#......#',
+                '#..#........#......#',
+                '#ooo........#......#',
+                '#ooo...............#',
+                '#ooo................',
+                '#..................#',
+                '#.........######.###',
+                '#.........#........#',
+                '#.........#........#',
+                '####################',
+            ],
+            ents: [
+                { k: 'chest', x: 1, y: 1, item: 'key', id: 'oyKey' },
+                { k: 'stray', x: 6, y: 6, id: 'oyS1' }, { k: 'stray', x: 8, y: 4, id: 'oyS2' }, { k: 'stray', x: 5, y: 8, id: 'oyS3' },
+                { k: 'chute', x: 15, y: 9, drop: [14, 8], id: 'oyChute' },
+                { k: 'sign', x: 17, y: 4, text: 'OFFCUTS. (Pull the chute and another drops. There are always more offcuts.)' },
+            ],
+        },
+        /* ---------------- 4 The Shuttle Run: the Shuttle (the Shears) ---------------- */
+        '1,1': {
+            name: 'The Shuttle Run',
+            rows: [
+                '#########.##########',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '.,,,,,,,,,,,,,,,,,,.',
+                '#,,,,,,,,,,,,,,,,,,#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'big', id: 'srBig' },
+                { k: 'shuttle', x: 1, y: 5, id: 'shuttle' },
+                { k: 'warpthread', x: 0, y: 5, len: 1, dir: 'v', id: 'srSilkW' },
+                { k: 'chute', x: 9, y: 9, drop: [9, 7], id: 'srChute' },
+                { k: 'chest', x: 9, y: 2, item: 'shears', id: 'srShears', hidden: true, when: 'flag:loom_shuttle', big: true },
+                { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'shuttle' }, { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'shuttle' },
+            ],
+        },
+        /* ---------------- 5 The Spinner's Room (behind the silk, west of the Run): the tapestry ---------------- */
+        '0,1': {
+            name: "The Spinner's Room",
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#...................',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '####################',
+            ],
+            ents: [
+                { k: 'deco', x: 6, y: 1, look: 'tapestry', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]], text: "A tapestry, faded silver. A woman at a loom in a hard winter, tying a thread to everyone in a little valley so nobody would be lost in the snow. In the last panel the snow has melted, and she is still at the loom, holding all the threads, and she has not let go. Stitched underneath: SHE MEANT TO UNPICK THEM IN THE SPRING." },
+                { k: 'chest', x: 16, y: 2, item: 'heartpatch', id: 'spPatch' },
+                { k: 'sign', x: 3, y: 8, text: 'Scratched into the floor, small: L. CUT HER WAY OUT OF HERE. YOU CAN TOO.' },
+            ],
+        },
+        /* ---------------- 6 The Weighing Room: the old loom weights, cut free, fill the floor ---------------- */
+        '2,2': {
+            name: 'The Weighing Room',
+            rows: [
+                '###############.####',
+                '#.......ooo........#',
+                '#.......ooo........#',
+                '#.......ooo........#',
+                '#.......ooo........#',
+                '........ooo........#',
+                '#.......ooo........#',
+                '#.......ooo........#',
+                '#.......ooo........#',
+                '#.......ooo........#',
+                '####################',
+            ],
+            ents: [
+                { k: 'loomweight', x: 4, y: 2, id: 'wrW1' }, { k: 'loomweight', x: 4, y: 8, id: 'wrW2' }, { k: 'loomweight', x: 5, y: 5, id: 'wrW3' },
+                { k: 'chest', x: 16, y: 8, item: 'key', id: 'wrKey' },
+                { k: 'chute', x: 1, y: 9, drop: [2, 8], id: 'wrChute' },
+                { k: 'sign', x: 2, y: 9, text: 'The old loom weights, each on its silver thread. They have hung in the same places for longer than anyone remembers.' },
+            ],
+        },
+        /* ---------------- 7 The Bridge Room: silk won't hold iron (the Pattern) ---------------- */
+        '2,1': {
+            name: 'The Bridge Room',
+            rows: [
+                '####################',
+                '#........o.........#',
+                '#........o.........#',
+                '#........o.........#',
+                '#........o.........#',
+                '.........o.........#',
+                '#........o.........#',
+                '#........o.........#',
+                '#........o.........#',
+                '#........o.........#',
+                '###############.####',
+            ],
+            ents: [
+                { k: 'door', x: 15, y: 10, type: 'lock', id: 'brLock' },
+                { k: 'chute', x: 1, y: 1, drop: [2, 2], id: 'brChute' },
+                { k: 'silkbridge', x: 9, y: 5, len: 1, dir: 'h', id: 'brBridge' },
+                { k: 'loomweight', x: 4, y: 3, id: 'brW1' }, { k: 'loomweight', x: 4, y: 7, id: 'brW2' },
+                { k: 'plate', x: 14, y: 5, sig: 'brPlate', minWeight: 3 },
+                { k: 'chest', x: 16, y: 2, item: 'pattern', id: 'brPattern', hidden: true, when: 'brPlate' },
+                { k: 'sign', x: 2, y: 9, text: 'Silk will hold a girl. Silk will not hold iron.' },
+            ],
+        },
+        /* ---------------- 8 The Web: the Weaver ---------------- */
+        '1,0': {
+            name: 'The Web',
+            rows: [
+                '####################',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#........::........#',
+                '#........::........#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
+                '#########.##########',
+            ],
+            ents: [
+                { k: 'weaver', x: 9, y: 3, id: 'weaver' },
+                { k: 'anchor', x: 2, y: 2, id: 'anA' }, { k: 'anchor', x: 17, y: 2, id: 'anB' }, { k: 'anchor', x: 2, y: 8, id: 'anC' }, { k: 'anchor', x: 17, y: 8, id: 'anD' },
+                { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'weaver' },
+            ],
+        },
+    },
+    afterKnot: function* () { },
+});
+
+/* the offcut chute: pull it, and another offcut (a stray block) drops where the last one would land */
+class Chute extends GridThing {
+    constructor(tx, ty, p = {}) { super('chute', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, p)); }
+    interact() {
+        const a = this.area, [x, y] = this.drop.map((v, i) => v + (i ? a.roomAt(this.tx, this.ty).y : a.roomAt(this.tx, this.ty).x));
+        const p = G.player, k = a.kind(x, y);
+        if (a.at(x, y) || (p.tx === x && p.ty === y) || k.solid || k.pit) { UI.toast("The chute rattles. There's no room under it for another."); Sfx.play('hitthing'); return true; }
+        const b = a.add(new Block(x, y, { marked: false }));
+        b.skey = 'chute:' + G.t;
+        Fx.poof(x * T + 8, y * T + 4); Sfx.play('land'); G.shake = 3; Stats.count('offcuts');
+        return true;
+    }
+    sprite() { return spr('chute'); }
+}
+SPAWN.chute = (x, y, p) => new Chute(x, y, p);
+
+/* the Loom's old weights: heavy iron, each on its own silver thread (cut it, and it's an offcut like the rest) */
+SPAWN.loomweight = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'loomweight', thread: THREAD.loom, patience: 150 }, p));
+/* silk won't hold iron: a heavy thing on a silk bridge goes through it */
+{
+    const landed0 = GridThing.prototype.landed;
+    GridThing.prototype.landed = function (returning) {
+        if (this.weight >= WEIGHT.heavy && this.area) {
+            const br = this.area.ents.find(e => e.kind === 'warpthread' && e.bridge && !e.gone && e.cutAt(this.tx, this.ty));
+            if (br) { Sfx.play('snip'); br.onCut(); return; }
+        }
+        return landed0.call(this, returning);
+    };
+}
+
+const LoomHouse = {
+    *afterWeaver(w) {
+        const a = w.area, r = a.rooms.find(q => q.key === '1,0');
+        Music.play('silence');
+        yield 40;
+        yield* say(null, "The Weaver drops into the well of its own loom and lies there, a heap of grey silk, still at last. The web it hung in sags and parts and drifts down like snow.");
+        yield* say(null, "Under the web, on the loom's breast-beam, someone long ago cut a line of words with a very sharp blade: I MEANT TO UNPICK THEM IN THE SPRING. -THE FIRST SPINNER.");
+        a.add(new Pickup((r.x + 9) * T, (r.y + 8) * T, { what: 'heartstitch', id: 'loomHeart' }));
+        Sfx.play('appear');
+        Progress.set('loom_boss'); Progress.set('d8');
+        Progress.setGoal("The Shears can cut anyone free. The town, first? And then the fog at the Frayed Edge, and your own thread.");
+        Music.play('loom');
+        Save.autosave();
+    },
+};
+HOUSE_AFTER.loom = { flag: 'd8', room: '1,0', heart: [9, 8], heartId: 'loomHeart', noHoop: true };
+
+function initLoom() {
+    defSprite('chute', ['....kkkkkkkk....', '....kmmmmmmk....', '....kmkkkkmk....', '....kmk..kmk....', '....kmk..kmk....', '...kkmkkkkmkk...', '...kmmmmmmmmk...', '...kmMMMMMMmk...', '...kkkkkkkkkk...', '.....k....k.....', '....kkk..kkk....', '...kwwwk.kwwk...', '...kkkk..kkkk...', '................', '................', '................'], { m: '#8a94a4', M: '#6a7484', w: '#e4ecf5' });
+    defSprite('loomweight', ['.......kk.......', '.......ww.......', '.......ww.......', '......kkkk......', '.....kiiiik.....', '....kiIiiiik....', '...kiiiiiiiik...', '...kiiiiiiiik...', '..kiiiiiiiiiik..', '..kiiiiiiiiiik..', '..kiiiiiiiiiik..', '..kIiiiiiiiiIk..', '..kIIIIIIIIIIk..', '...kkkkkkkkkk...', '................', '................'], { i: '#7a8496', I: '#5a6070', w: '#e4ecf5' });
+    ART.loomframe = paintSprite(128, 40, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3a26', 0, 30, 128, 6); R('#6a4630', 2, 0, 6, 36); R('#6a4630', 120, 0, 6, 36); R('#8a5a3a', 0, 2, 128, 4); for (let i = 0; i < 40; i++) { x.fillStyle = i % 2 ? '#e4ecf5' : '#aab7c8'; x.fillRect(10 + i * 2.7, 6, 1, 24); } const cols = [THREAD.ives, THREAD.bram, THREAD.ambrose, THREAD.tess, THREAD.mallow, THREAD.jory, THREAD.guild, THREAD.wren]; for (let j = 0; j < 8; j++) R(cols[j], 10, 18 + j, 70, 1); });
+    ART.tapestry = paintSprite(128, 28, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#6a7484', 0, 0, 128, 28); R('#c8d0dc', 2, 2, 124, 24); for (let k = 0; k < 4; k++) { R('#e4ecf5', 4 + k * 31, 4, 28, 20); R('#5a6070', 12 + k * 31, 8, 6, 12); for (let i = 0; i < 6; i++) R(['#e8463c', '#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8'][i], 18 + k * 31 + i, 10, 1, 8 + k * 2); } R('#8fd46a', 104, 6, 20, 4); });
+    SPR.loomframe = ART.loomframe; SPR.tapestry = ART.tapestry;
+}
+CONTENT_INIT.push(initLoom);
+ITEM_LINES.shears = () => "You found the {red}Shears{/}: the First Spinner's own. Face something with a thread (or its cord, from below) and press C: snip. It's a stray now, for good. People too. And, at the fog, your own.";
+ITEM_AFTER.shears = function* () { Inv.equipped = 'shears'; };
+
+// ---- 72b_loom_foes.js ----
+/* The Loom's two guardians. The Shuttle: a great wooden shuttle that flies to and fro along its lane, through anything
+   soft; put an offcut (a stray block) in its way and it jams on it, and while it's jammed it can be knocked; it shakes
+   the offcut out of the lane and starts again. The Weaver: hung in its web over its own loom by four anchor threads,
+   spitting silk that binds you (the Shears snip you free); cut all four anchors and down it comes into the loom, where
+   it can be knocked; it climbs back and spins new anchors. Three times. */
+
+/* ---------------- the Shuttle ---------------- */
+class Shuttle extends Ent {
+    constructor(tx, ty, p = {}) {
+        super('shuttle', p);
+        this.x = tx * T + 8; this.y = ty * T + 8; this.lane = ty; this.hx = tx;
+        this.hp = 3; this.state = 'sleep'; this.st = 0; this.t = 0; this.dir = 1; this.flash = 0; this.alive = true;
+    }
+    get sortY() { return this.y + 8; }
+    get arena() { return this.area.roomAt(this.hx, this.lane); }
+    shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'shuttle') s.shut = shut; }
+    hurtBox() { return this.alive && this.state === 'stuck' ? { x0: this.x - 14, x1: this.x + 14, y0: this.y - 10, y1: this.y + 6 } : (this.alive && this.state !== 'sleep' ? { x0: this.x - 14, x1: this.x + 14, y0: this.y - 10, y1: this.y + 6 } : null); }
+    update() {
+        if (!this.alive) return;
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area, r = this.arena;
+        if (this.state === 'sleep') {
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal') { this.state = 'wait'; this.st = 0; this.shutters(true); Music.play('boss'); Script.run(LoomFoes.shuttleIntro(this)); }
+            return;
+        }
+        if (Script.blocking()) return;
+        this.st++;
+        const sp = 2.6 + (3 - this.hp) * 0.5;
+        if (this.state === 'wait') { if (this.st > 50) { this.state = 'fly'; this.st = 0; } return; }
+        if (this.state === 'fly') {
+            const nx = this.x + this.dir * sp, tx = tileOf(nx + this.dir * 8), o = a.at(tx, this.lane);
+            /* an offcut in the lane: it jams */
+            if (o && o.isGrid && !o.fixed) { this.state = 'stuck'; this.st = 0; this.jam = o; G.shake = 6; Sfx.play('hitthing'); Fx.dust(this.x + this.dir * 10, this.y); if (!Progress.flag('shuttle_jam')) { Progress.set('shuttle_jam'); G.pendingToast = 'The Shuttle jams on the offcut and sticks there, quivering.'; } return; }
+            const end = this.dir > 0 ? (r.x + r.w - 2) * T + 8 : (r.x + 1) * T + 8;
+            if ((this.dir > 0 && nx >= end) || (this.dir < 0 && nx <= end)) { this.x = end; this.dir = -this.dir; this.state = 'wait'; this.st = 0; return; }
+            this.x = nx;
+            if (p.state === 'normal' && Math.abs(p.x - this.x) < 14 && Math.abs(p.y - 4 - this.y) < 9) p.hurt(1, this.x, this.y);
+        } else if (this.state === 'stuck') {
+            if (this.st > 240) this.unjam();
+        }
+    }
+    /* it shakes the offcut out of its lane and goes back to its end */
+    unjam() {
+        const o = this.jam, a = this.area;
+        if (o && !o.removed && o.tx !== undefined) {
+            for (const dy of [1, -1]) if (a.freeForThing(o.tx, o.ty + dy, o) && !a.kind(o.tx, o.ty + dy).pit) { o.startMove(o.tx, o.ty + dy, 10); break; }
+        }
+        this.jam = null; this.dir = -this.dir; this.state = 'fly'; this.st = 0;
+    }
+    struck(by, dmg, dir) {
+        if (!this.alive || this.flash > 0) return;
+        if (this.state !== 'stuck') { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 4); return; }
+        this.hp--; this.flash = 30; G.hitstop = 6; G.shake = 6; Sfx.play('enemyhit');
+        if (this.hp <= 0) return this.defeat();
+        this.unjam();
+    }
+    defeat() {
+        this.alive = false; Sfx.play('unravel'); Fx.yarn(this.x, this.y, THREAD.loom);
+        Progress.set('loom_shuttle'); this.shutters(false); Music.play('loom');
+        Script.run(LoomFoes.shuttleDown(this));
+    }
+    draw(cx, cy) {
+        if (!this.alive) return;
+        const r = this.arena, x = this.x - cx, y = this.y - cy;
+        /* its lane's thread, glowing while it waits to go */
+        Gfx.line((r.x + 1) * T - cx, y, (r.x + r.w - 1) * T - cx, y, this.state === 'wait' && (this.t >> 2) % 2 ? '#ffffff' : '#aab7c8');
+        const im = spr('shuttle');
+        if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, x - 16, y - 10, this.dir < 0);
+        if (this.state === 'stuck' && (this.t >> 3) % 2) Font.draw('*', x - 4, y - 18, '#f7d64a');
+    }
+}
+SPAWN.shuttle = (x, y, p) => Progress.flag('loom_shuttle') ? new Ent('none') : new Shuttle(x, y, p);
+
+/* ---------------- the Weaver ---------------- */
+class Anchor extends GridThing {
+    constructor(tx, ty, p = {}) { super('anchor', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, p)); this.cuttable = true; this.cut = false; }
+    onCut() { if (this.cut) return; this.cut = true; Fx.ring(this.tx * T + 8, this.ty * T, '#e4ecf5'); }
+    draw(cx, cy) {
+        const x = this.tx * T - cx, y = this.ty * T - cy;
+        Gfx.rect(x + 5, y - 8, 6, 22, '#5a6070'); Gfx.rect(x + 6, y - 8, 4, 22, '#7a8496'); Gfx.rect(x + 3, y - 10, 10, 3, '#4a5060');
+        Gfx.rect(x + 5, y - 4, 6, 2, this.cut ? '#5a6070' : '#e4ecf5');
+    }
+}
+SPAWN.anchor = (x, y, p) => new Anchor(x, y, p);
+
+class Weaver extends Ent {
+    constructor(tx, ty, p = {}) {
+        super('weaver', p);
+        this.tx = tx; this.ty = ty; this.x = tx * T + 8; this.y = ty * T + 8; this.hy = this.y;
+        this.hp = 3; this.state = 'sleep'; this.st = 0; this.t = 0; this.flash = 0; this.alive = true; this.shots = []; this.z = 40;
+    }
+    get sortY() { return this.state === 'down' ? this.y + 20 : this.y + 200; }
+    get arena() { return this.area.roomAt(this.tx, this.ty); }
+    anchors() { return this.area.ents.filter(e => e.kind === 'anchor'); }
+    shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'weaver') s.shut = shut; }
+    hurtBox() { return this.alive && this.state === 'down' ? { x0: this.x - 14, x1: this.x + 14, y0: this.y - 12, y1: this.y + 8 } : null; }
+    update() {
+        if (!this.alive) return;
+        this.t++; if (this.flash > 0) this.flash--;
+        const p = G.player, a = this.area, r = this.arena;
+        if (this.state === 'sleep') {
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 2) { this.state = 'aloft'; this.st = 0; this.shutters(true); Music.play('boss'); Script.run(LoomFoes.weaverIntro(this)); }
+            return;
+        }
+        /* silk on Wren wears off in time (or the Shears snip it) */
+        if (p.pinned === 'silk' && --this.bindT <= 0) { p.pinned = null; }
+        if (Script.blocking()) return;
+        this.st++;
+        this.updateShots(p, r);
+        if (this.state === 'aloft') {
+            this.z = 40 + Math.sin(this.t / 30) * 3;
+            const period = [0, 70, 95, 120][this.hp];
+            if (this.st % period === 0 && p.state === 'normal' && p.pinned !== 'silk') {
+                const dx = p.x - this.x, dy = p.y - 6 - (this.y - this.z), d = Math.hypot(dx, dy) || 1, sp = 1.6 + (3 - this.hp) * 0.4;
+                this.shots.push({ x: this.x, y: this.y - this.z, vx: dx / d * sp, vy: dy / d * sp, life: 240 });
+                Sfx.play('throw');
+            }
+            if (this.anchors().every(n => n.cut)) { this.state = 'fall'; this.st = 0; Sfx.play('fall'); }
+        } else if (this.state === 'fall') {
+            this.z = Math.max(0, 40 - this.st * 2);
+            if (this.z <= 0) { this.state = 'down'; this.st = 0; G.shake = 10; Sfx.play('land'); Fx.dust(this.x, this.y); if (!Progress.flag('weaver_down')) { Progress.set('weaver_down'); G.pendingToast = 'Its last anchor gone, the Weaver drops into the well of its own loom, tangled.'; } }
+        } else if (this.state === 'down') {
+            if (this.st > 420) this.climb();
+        } else if (this.state === 'climb') {
+            this.z = Math.min(40, this.st * 1.5);
+            if (this.z >= 40) { this.state = 'aloft'; this.st = 0; }
+        }
+    }
+    climb() {
+        this.state = 'climb'; this.st = 0;
+        for (const n of this.anchors()) n.cut = false;
+        Sfx.play('twang'); Fx.text(this.x, this.y - 30, 'it spins new anchors!', '#e4ecf5');
+    }
+    updateShots(p, r) {
+        const a = this.area;
+        for (const s of this.shots) {
+            s.x += s.vx; s.y += s.vy; s.life--;
+            if (a.kind(tileOf(s.x), tileOf(s.y)).solid || a.roomAt(tileOf(s.x), tileOf(s.y)) !== r) s.life = 0;
+            if (p.area === a && p.state === 'normal' && Math.abs(p.x - s.x) < 7 && Math.abs(p.y - 6 - s.y) < 8) {
+                s.life = 0; p.pinned = 'silk'; this.bindT = 150; Sfx.play('hook'); Fx.text(p.x, p.y - 22, 'bound!', '#e4ecf5');
+                if (!Progress.flag('silk_bound')) { Progress.set('silk_bound'); G.pendingToast = 'Silk, wound tight round you. The Shears would make short work of it. (C)'; }
+            }
+        }
+        this.shots = this.shots.filter(s => s.life > 0);
+    }
+    struck(by, dmg, dir) {
+        if (!this.alive || this.flash > 0 || this.state !== 'down') return;
+        this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
+        if (this.hp <= 0) return this.defeat();
+        this.climb();
+    }
+    defeat() {
+        this.alive = false; this.shots = [];
+        const p = G.player; if (p.pinned === 'silk') p.pinned = null;
+        Sfx.play('unravel'); Fx.yarn(this.x, this.y, THREAD.loom);
+        this.shutters(false);
+        Script.run(LoomHouse.afterWeaver(this));
+    }
+    draw(cx, cy) {
+        if (!this.alive) return;
+        const x = this.x - cx, y = this.y - cy - this.z;
+        /* anchor threads and the web between them */
+        const ans = this.anchors();
+        for (const n of ans) if (!n.cut && this.state !== 'down') Gfx.line(x, y, n.tx * T + 8 - cx, n.ty * T - 6 - cy, '#e4ecf5');
+        if (this.state !== 'down') for (let i = 0; i < ans.length; i++) { const m = ans[i], n = ans[(i + 1) % ans.length]; if (!m.cut && !n.cut) { Gfx.alpha(0.3); Gfx.line(m.tx * T + 8 - cx, m.ty * T - 6 - cy, n.tx * T + 8 - cx, n.ty * T - 6 - cy, '#e4ecf5'); Gfx.alpha(1); } }
+        Gfx.alpha(0.25); Gfx.circle(x, this.y - cy + 6, 10, PAL.ink); Gfx.alpha(1);
+        const im = spr(this.state === 'down' ? 'weaver_down' : 'weaver');
+        if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, x - im.width / 2, y - im.height + 8);
+        for (const s of this.shots) { Gfx.circle(s.x - cx, s.y - cy, 3, '#e4ecf5'); Gfx.rect(s.x - cx - 1, s.y - cy - 1, 2, 2, '#ffffff'); }
+        const p = G.player;
+        if (p && p.pinned === 'silk') for (let i = 0; i < 4; i++) Gfx.line(p.x - cx - 7, p.y - cy - 14 + i * 4, p.x - cx + 7, p.y - cy - 12 + i * 4, '#e4ecf5');
+    }
+}
+SPAWN.weaver = (x, y, p) => Progress.flag('loom_boss') ? new Ent('none') : new Weaver(x, y, p);
+
+/* bound in silk: the Shears snip you free */
+{
+    const use0 = Shears.use;
+    Shears.use = function (p) {
+        if (p.pinned === 'silk') { p.pinned = null; Sfx.play('snip'); Fx.ring(p.x, p.y - 8, '#e4ecf5'); Stats.count('silk:snipped'); return; }
+        return use0.call(this, p);
+    };
+}
+
+const LoomFoes = {
+    *shuttleIntro(s) {
+        yield 20;
+        yield* say(null, "Something long and smooth and wooden lifts itself off the floor and hangs at the end of a silver thread stretched wall to wall: the loom's lost shuttle, big as a boat.");
+        yield* say(null, "It flies. Back and forth, back and forth, the way it was made to, through anything soft enough to let it.");
+    },
+    *shuttleDown(s) {
+        yield 30;
+        yield* say(null, 'The Shuttle splits along its grain, and all the silver thread wound in it unspools across the floor. In the middle of the room, a lid lifts.');
+    },
+    *weaverIntro(w) {
+        yield 20;
+        yield* say(null, "Over the old loom, in a web strung to four great posts, hangs the Weaver: grey, many-legged, very old, spinning. It has been keeping this loom for the First Spinner since she stopped coming.");
+        yield* say(null, 'It does not want the cloth finished. It does not want anything to change at all.');
+    },
+};
+
+function initLoomFoes() {
+    defSprite('shuttle', ['................................', '................................', '......kkkkkkkkkkkkkkkkkkkk......', '....kkbbbbbbbbbbbbbbbbbbbbkk....', '..kkbbBBBBBBBBkkkkBBBBBBBBbbkk..', 'kkbbBBBBBBBBBBkwwkBBBBBBBBBBbbkk', 'kbbbBBBBBBBBBBkwwkBBBBBBBBBBbbbk', 'kkbbBBBBBBBBBBkkkkBBBBBBBBBBbbkk', '..kkbbBBBBBBBBBBBBBBBBBBBBbbkk..', '....kkbbbbbbbbbbbbbbbbbbbbkk....', '......kkkkkkkkkkkkkkkkkkkk......', '................................', '................................', '................................', '................................', '................................'], { b: '#a8784a', B: '#c9925a', w: '#e4ecf5' });
+    const wv = { g: '#8a94a4', G: '#6a7484', w: '#e4ecf5', e: '#d6304e', k: '#2a2e38' };
+    defSprite('weaver', ['..k......kk......k..', '...k....kggk....k...', 'k...k..kggggk..k...k', '.k...kkgGGGGgkk...k.', '..k..kgGeGGeGgk..k..', '...kkgGGGGGGGGgkk...', '....kgGGwGGwGGGk....', 'kkkkgGGGGGGGGGGGkkkk', '....kgGGGGGGGGGk....', '...kkgGGGwwGGGgkk...', '..k..kgGGGGGGgk..k..', '.k...kkgGGGGgkk...k.', 'k...k..kggggk..k...k', '...k....kggk....k...', '..k......kk......k..', '....................'], wv);
+    defSprite('weaver_down', ['....................', '....................', '....................', '....................', '....................', '....................', '..kk.kkkkkkkkkk.kk..', '.kwgkgGGGGGGGGgkgwk.', 'kwgGgGGkGGGkGGgGgGwk', 'kgGGGGGGGGGGGGGGGGgk', '.kkgGGGwwwwwwGGGgkk.', '..kkkkkkkkkkkkkkkk..', '....................', '....................', '....................', '....................'], wv);
+}
+CONTENT_INIT.push(initLoomFoes);
+
+// ---- 73_freed.js ----
+/* Cut free: townsfolk whose threads the Shears have cut walk where they like (a little round of their own, in town),
+   say something new, and do things they haven't done in years. Old Arlo walks down to the river (S24). */
+
+const CUT_LINES = {
+    quill: "Miss Quill blinks, takes off her spectacles, and looks at the schoolhouse as if she'd never seen it from outside. \"I used to walk the children up the hill,\" she says. \"Every spring. Why did we stop?\"",
+    arlo: "Old Arlo stands up without his stick. \"Well,\" he says. \"WELL.\" And he sets off east, towards the river, not fast, but going.",
+    bram: "Bram rolls his shoulders, laughs like a kiln door banging open, and says, \"I've a mind to go and dig some new clay. FRESH clay. From somewhere I've never been!\"",
+    hob: "Fisher Hob looks at the river. Then up it. \"There's a pool up past the bend,\" he says slowly. \"My dad fished it. I haven't been since I was your age.\"",
+    gundry: "Gundry wipes his hands on his apron for a long time. \"Forty years oiling one winch,\" he says. \"I think I'll go and look at the sea. Is there a sea? There must be a sea.\"",
+    burr: "Constable Burr takes off his helmet. He looks at his post. He looks at the open road north. \"Go on, then,\" he says, to himself this time, and laughs.",
+    tuck: "Tuck goes very still, and then very fast. \"I can go ANYWHERE!\" He doesn't go anywhere. He hugs your leg. Then he goes everywhere.",
+    rosa: "Rosa puts down her rolling pin. \"I've always wanted to bake for somebody who doesn't live here,\" she says. \"Is that silly?\"",
+    thimble: "Thimble counts her buttons, stops halfway, and laughs. \"I'll go to market. A real one. In another town!\"",
+    seam: "Sebastian Seam lets out the breath he's been holding for twenty years and starts measuring you for a travelling coat.",
+    mabel: "Auntie Mabel looks at her shelves of strays, every one with its little L, and starts to cry, and then to smile.",
+    mallow: "Doctor Mallow yawns, stretches, and for the first time in your memory, looks wide awake.",
+    ives: "Mother Ives straightens your collar. \"I'll keep the Tidyhouse,\" she says. \"Because I want to. Not because I'm tied to it. That's the difference, love.\"",
+    ambrose: "Your dad picks you up and swings you round, the way he did when you were small. \"Let's go and see where the river goes,\" he says. \"All of us.\"",
+    tess: "Your mum rings a little bell she keeps in her pocket, just once, just for the sound. \"There,\" she says. \"I've always wanted to ring something for no reason at all.\"",
+    jory: "Jory clicks his heels. \"A touring show!\" he says. \"The Marionette Hall, on wheels! Why not?\"",
+    nell: "Nell runs. All the way to the posts. And past them. And back again, shrieking.",
+    otto: "Otto puts the crate down where it is and walks away from it, and it stays there, and he looks back at it, astonished.",
+    bea: "Bea starts a game of tag and doesn't stop.",
+};
+/* each freed townsperson's own little round in town (hub tiles), and where Arlo's walk ends */
+const FREE_ROUTES = {
+    quill: [[10, 30, 120], [20, 27, 60], [28, 24, 90]],
+    arlo: [[40, 24, 30], [46, 26, 9999]],
+    bram: [[34, 24, 90], [38, 29, 60], [30, 27, 60]],
+    hob: [[48, 22, 90], [47, 33, 200]],
+    gundry: [[33, 20, 60], [29, 27, 60], [24, 22, 80]],
+    burr: [[32, 6, 60], [31, 14, 60], [33, 20, 90]],
+    tuck: [[7, 32, 40], [15, 28, 30], [22, 26, 30], [12, 24, 30]],
+};
+const HUB_OFF = [64, 40];
+function freeRoute(who) { const r = FREE_ROUTES[who]; return r ? r.map(([x, y, w]) => [x + HUB_OFF[0], y + HUB_OFF[1], w]) : null; }
+const Freed = {
+    count() { return Object.keys(Progress.flags).filter(k => k.startsWith('cut:') && k !== 'cut_self').length; },
+    free(n) {
+        n.ret = null; n.cutFree = true;
+        const r = n.area && n.area.id === 'hollow' ? freeRoute(n.who) : null;
+        if (r) { n.route = r; n.ri = 0; n.routeWait = 20; n.free = true; }
+    },
+    tick(a) {
+        /* S24: Old Arlo at the river, if you followed him */
+        if (Progress.flag('cut:arlo') && !Progress.flag('s24')) {
+            const arlo = a.ents.find(e => e.kind === 'npc' && e.who === 'arlo'), p = G.player;
+            if (arlo && p && arlo.tx === 46 + HUB_OFF[0] && arlo.ty === 26 + HUB_OFF[1] && Math.hypot(p.tx - arlo.tx, p.ty - arlo.ty) <= 3 && !Script.blocking()) {
+                Progress.set('s24'); Stats.count('secret:arlo');
+                Script.run(function* () {
+                    yield* say('arlo', "Ah. You followed me. Good. I wanted somebody to see.");
+                    yield* say('arlo', "This is where the lake comes down, if you keep on along the bank. I used to walk it every morning, when I was a lad. Then I didn't. I don't remember deciding to stop.");
+                    yield* say('arlo', "Here. Found this in the water years ago and could never walk far enough to give it back. I think it's meant for a Wanderer.");
+                    yield* Story.getItem('heartpatch', 'arloPatch')();
+                });
+            }
+        }
+    },
+};
+Shears.onPersonCut = n => Freed.free(n);
+{
+    const build0 = World.build;
+    World.build = function (id) {
+        const a = build0.call(this, id);
+        for (const e of a.ents) if (e.kind === 'npc' && Progress.flag('cut:' + e.who)) Freed.free(e);
+        return a;
+    };
+    const tick0 = OW.blocks['1,1'].tick;
+    OW.blocks['1,1'].tick = a => { if (tick0) tick0(a); Freed.tick(a); };
+}
+
 // ---- 79_presets.js ----
 /* Presets: game states at the start of each stretch, for the debug panel and the tests. */
 function presetBase(name = 'Wren') {
@@ -16485,7 +17251,7 @@ PRESETS.afterD6 = () => {
 };
 PRESETS.afterD7 = () => {
     PRESETS.afterD6();
-    Inv.giveTool('needle'); Inv.addHeart();
+    Inv.giveTool('needle'); Inv.addHeart(); Progress.setAreaFlag('spoolworks', 'got:spoolHeart');
     for (const f of ['d7', 'spool_boss', 'spool_cog', 'met_gundry_below', 'underside_first', 'needle_first', 'hatch_down', 'hatch_up', 'tug_first', 'knot_first', 'tangle_open']) Progress.set(f);
     Progress.setGoal('Up to the Guild Hall, under the Inn: Gundry has a job for you.');
     World.enter('underside', 29, 4, { dir: DOWN });
@@ -16503,6 +17269,13 @@ PRESETS.afterReveal2 = () => {
     Inv.items.tuckspool = 1;
     Progress.setGoal("Linnet cut herself loose with the First Spinner's Shears, from the old Loom. Gundry, under the Inn, may know where that is.");
     World.enter('gran_room', 4, 3, { dir: DOWN });
+};
+PRESETS.afterD8 = () => {
+    PRESETS.afterReveal2();
+    for (const f of ['gundry_r2', 'north_gate', 'north_gate_seen', 'loom_shuttle', 'loom_boss', 'd8', 'cut_first', 'silk_bound', 'weaver_down', 'shuttle_jam']) Progress.set(f);
+    Inv.giveTool('shears'); Inv.addHeart(); Progress.setAreaFlag('loom', 'got:loomHeart');
+    Progress.setGoal("The Shears can cut anyone free. The town, first? And then the fog at the Frayed Edge, and your own thread.");
+    World.enter('hollow', LOOM_OUT.x, LOOM_OUT.y, { dir: DOWN });
 };
 
 // ---- 80_story_core.js ----

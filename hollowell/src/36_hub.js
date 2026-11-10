@@ -100,7 +100,7 @@ defBlock({
         { k: 'npc', who: 'bea', x: 40, y: 16, face: 'down', if: 'd1' },
         { k: 'crate', x: 35, y: 17, id: 'kc1', if: 'd1' }, { k: 'crate', x: 41, y: 20, id: 'kc2', if: 'd1' },
         { k: 'npc', who: 'gundry', x: 33, y: 20, face: 'left' },
-        { k: 'npc', who: 'gran', x: 29, y: 20, face: 'down', if: 'ceremony' },
+        { k: 'npc', who: 'gran', x: 29, y: 20, face: 'down', if: 'ceremony&!reveal2' },
         { k: 'critter', who: 'biscuit', look: 'cat', x: 14, y: 14, speed: 0.5, route: [[14, 14, 200], [19, 22, 90], [28, 25, 300], [35, 33, 120], [41, 33, 200], [44, 14, 160], [22, 12, 90]] },
         { k: 'critter', who: 'pudding', look: 'dog', x: 40, y: 22, speed: 1.0, route: [[40, 22, 40], [41, 16, 20], [36, 25, 30], [40, 25, 20]], if: '!dogStopped' },
     ],

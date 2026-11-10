@@ -90,6 +90,7 @@ class Cog extends Enemy {
     defeat() {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
         if (this.knotted) { this.knotted = false; }
+        this.ret = null; this.cordable = false;
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 8, THREAD.guild);
         Progress.set('spool_cog');
         this.shutters(false);
@@ -139,14 +140,19 @@ class Tangle extends Ent {
             }
             return;
         }
-        this.updateBalls(r);
         if (Script.blocking()) return;
+        this.updateBalls(r);
         this.st++;
         const bs = this.bobbins(), n = bs.filter(b => this.out(b)).length;
         this.pulled = n;
+        for (const b of bs) {
+            if (this.out(b) && !b.knotted && !b.stitched && !b.heldBy && !b.mv && b.ret && b.ret.state !== 'returning') {
+                if (++b.tangleT > (this.state === 'open' ? 3 : 360)) { b.tangleT = 0; Return.snap(b); Sfx.play('twang'); Fx.text(b.px + 8, b.py - 8, 'yanked!', THREAD.guild); }
+            } else b.tangleT = 0;
+        }
         if (this.state === 'whole') {
-            /* all four threads drawn out of it at once, held a moment: it comes apart */
-            if (n >= 4) {
+            /* all four threads drawn out of it and held out (stitched or tied off), a moment: it comes apart */
+            if (n >= 4 && bs.every(b => b.knotted || b.stitched)) {
                 if (++this.outT > 90) { this.state = 'open'; this.openT = 0; this.st = 0; Sfx.play('unravel'); G.shake = 8; Fx.yarn(this.x + 8, this.y + 4, THREAD.guild); if (!Progress.flag('tangle_open')) { Progress.set('tangle_open'); G.pendingToast = 'Every thread pulled out of it at once, the Tangle falls apart round a little hard knot at its heart.'; } }
             } else this.outT = 0;
             if (Cam.room === r && p.state === 'normal') this.attack(p);

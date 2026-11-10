@@ -690,10 +690,10 @@ test('from the sixth Knot: the Staff door, the Underside, Gundry, the Spoolworks
     ok(thing('swGateW').open, 'the Spool Store gate');
     walk(...s('wind', 1, 5)); HW.hold('left'); HW.step(40); HW.release(); HW.step(30);
     /* the Spool Store: on the plate, tied off below; the Plan; the key */
-    walk(...s('store', 11, 2)); HW.push('down', 3); HW.step(25);
-    hatch('store', 15, 7, 'down'); walk(...s('ustore', 11, 4)); HW.face('up'); knot();
+    walk(...s('store', 15, 2)); HW.push('down', 3); HW.step(25);
+    hatch('store', 15, 5, 'right'); walk(...s('ustore', 15, 4)); HW.face('up'); knot();
     walk(...s('ustore', 5, 7)); HW.face('down'); talk(); ok(HW.Inv.plans.includes('spoolworks'), 'the Plan');
-    hatch('ustore', 15, 7, 'down');
+    hatch('ustore', 15, 5, 'right');
     walk(...s('store', 2, 3)); HW.face('up'); talk(); ok(HW.Inv.keys('spoolworks') === 1, 'the key');
     /* the Kennel: Cog */
     walk(...s('wind', 18, 5)); HW.hold('right'); HW.step(40); HW.release(); HW.step(20); HW.skipTalk(); HW.step(5);
@@ -706,7 +706,7 @@ test('from the sixth Knot: the Staff door, the Underside, Gundry, the Spoolworks
     ok(!cog.alive, 'Cog runs down'); HW.step(30); HW.skipTalk(); HW.step(10);
     walk(...s('kennel', 5, 3)); HW.face('up'); talk(); ok(HW.Inv.has('needle'), 'the Needle');
     /* under the Spool Store: the weight in the way, given a new place */
-    walk(...s('kennel', 1, 5)); hatch('wind', 17, 7, 'down');
+    walk(...s('kennel', 1, 5)); hatch('store', 15, 5, 'right');
     walk(...s('ustore', 2, 4)); HW.face('up'); stitch('R'); until(() => HW.Return.isHome(thing('usWeight')), 60);
     /* the Bobbin Loft: three stitched, the fourth tied off below */
     hatch('uloft', 9, 7, 'down');
@@ -715,7 +715,7 @@ test('from the sixth Knot: the Staff door, the Underside, Gundry, the Spoolworks
     walk(...s('loft', 6, 6)); HW.face('down'); stitch('LLLD'); until(() => HW.Return.isHome(thing('blB3')), 120);
     walk(...s('loft', 11, 7)); HW.push('right', 3); HW.step(25); walk(...s('loft', 15, 6)); HW.push('down', 1); HW.step(25);
     hatch('loft', 9, 7, 'down'); walk(...s('uloft', 11, 7)); HW.face('right'); knot(); hatch('uloft', 9, 7, 'down');
-    walk(...s('loft', 9, 3)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('spoolworks'), 'the Pattern');
+    HW.step(310); walk(...s('loft', 9, 3)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('spoolworks'), 'the Pattern');
     /* out of the Loft, through the Store and the Hall, up through the big door: the Tangle */
     walk(...s('store', 9, 1)); walk(...s('wind', 9, 1)); HW.hold('up'); HW.step(40); HW.release(); HW.step(30);
     walk(...s('heart', 6, 7)); HW.skipTalk(); HW.step(5);

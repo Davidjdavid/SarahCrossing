@@ -51,7 +51,7 @@ PRESETS.afterD6 = () => {
 };
 PRESETS.afterD7 = () => {
     PRESETS.afterD6();
-    Inv.giveTool('needle'); Inv.addHeart();
+    Inv.giveTool('needle'); Inv.addHeart(); Progress.setAreaFlag('spoolworks', 'got:spoolHeart');
     for (const f of ['d7', 'spool_boss', 'spool_cog', 'met_gundry_below', 'underside_first', 'needle_first', 'hatch_down', 'hatch_up', 'tug_first', 'knot_first', 'tangle_open']) Progress.set(f);
     Progress.setGoal('Up to the Guild Hall, under the Inn: Gundry has a job for you.');
     World.enter('underside', 29, 4, { dir: DOWN });
@@ -69,4 +69,11 @@ PRESETS.afterReveal2 = () => {
     Inv.items.tuckspool = 1;
     Progress.setGoal("Linnet cut herself loose with the First Spinner's Shears, from the old Loom. Gundry, under the Inn, may know where that is.");
     World.enter('gran_room', 4, 3, { dir: DOWN });
+};
+PRESETS.afterD8 = () => {
+    PRESETS.afterReveal2();
+    for (const f of ['gundry_r2', 'north_gate', 'north_gate_seen', 'loom_shuttle', 'loom_boss', 'd8', 'cut_first', 'silk_bound', 'weaver_down', 'shuttle_jam']) Progress.set(f);
+    Inv.giveTool('shears'); Inv.addHeart(); Progress.setAreaFlag('loom', 'got:loomHeart');
+    Progress.setGoal("The Shears can cut anyone free. The town, first? And then the fog at the Frayed Edge, and your own thread.");
+    World.enter('hollow', LOOM_OUT.x, LOOM_OUT.y, { dir: DOWN });
 };

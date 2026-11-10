@@ -133,7 +133,7 @@ const Nudges = {
         });
     },
     update(a) {
-        if (!Settings.hints || !a.def.house || Progress.flag('noNudges')) return;
+        if (!Settings.hints || !a.def.house || a.def.noNudges || Progress.flag('noNudges')) return;
         const r = Cam.room; if (!r || !r.nudge) return;
         const n = r.nudge;
         const key = a.id + ':' + r.key;

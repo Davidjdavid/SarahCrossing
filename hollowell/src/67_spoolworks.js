@@ -98,12 +98,12 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'door', x: 4, y: 2, type: 'gate', when: 'ss1', dir: 'v', id: 'ssGate' },
+                { k: 'door', x: 4, y: 2, type: 'gate', when: 'ss1', dir: 'v', id: 'ssGate', passed: 'left' },
                 { k: 'chest', x: 2, y: 2, item: 'key', id: 'ssKey' },
-                { k: 'plate', x: 11, y: 6, sig: 'ss1' },
-                { k: 'wood', x: 11, y: 3, id: 'ssBlock', patience: 300 },
+                { k: 'plate', x: 15, y: 6, sig: 'ss1' },
+                { k: 'wood', x: 15, y: 3, id: 'ssBlock', patience: 120 },
                 { k: 'deco', x: 15, y: 1, look: 'spoolrack', ox: 0, solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 6, y: 8, look: 'spoolrack', ox: 0, solid: [[0, 0], [1, 0]] },
-                { k: 'sign', x: 17, y: 4, text: "THE SPOOL STORE. The gate's on the plate. The plate's on whatever you put on it, for as long as it stays put. -G." },
+                { k: 'sign', x: 18, y: 8, text: "THE SPOOL STORE. The gate's on the plate. The plate's on whatever you put on it, for as long as it stays put. -G." },
             ],
             nudge: { solved: 'spoolworks_chest:ssKey', after: 60 * 60 * 3, at: [15, 8], say: 'The block goes back before you can get round to the gate. Up here, nothing will keep it on the plate. Down there, something might.' },
         },
@@ -150,8 +150,8 @@ defHouse({
                 { k: 'plate', x: 3, y: 3, sig: 'bl1', minWeight: 3 }, { k: 'plate', x: 15, y: 3, sig: 'bl2', minWeight: 3 },
                 { k: 'plate', x: 3, y: 8, sig: 'bl3', minWeight: 3 }, { k: 'plate', x: 15, y: 8, sig: 'bl4', minWeight: 3 },
                 { k: 'bobbin', x: 6, y: 4, id: 'blB1' }, { k: 'bobbin', x: 12, y: 4, id: 'blB2' }, { k: 'bobbin', x: 6, y: 7, id: 'blB3' }, { k: 'bobbin', x: 12, y: 7, id: 'blB4' },
-                { k: 'chest', x: 9, y: 2, item: 'pattern', id: 'blPattern', hidden: true, when: 'bl1&bl2&bl3&bl4' },
-                { k: 'door', x: 9, y: 10, type: 'gate', when: 'bl1&bl2&bl3&bl4', keep: true, id: 'blExit' },
+                { k: 'chest', x: 9, y: 2, item: 'pattern', id: 'blPattern', hidden: true, when: 'blHeld' },
+                { k: 'door', x: 9, y: 10, type: 'gate', when: 'blHeld', keep: true, id: 'blExit' },
                 { k: 'sign', x: 1, y: 1, text: 'THE BOBBIN LOFT. Four plates, four bobbins (iron cored: only a bobbin will do). The way out wants all four at once.' },
             ],
             nudge: { solved: 'spoolworks_chest:blPattern', after: 60 * 60 * 4, at: [9, 8], say: 'Three bobbins can be given new places on their plates. The fourth needs holding there, and nobody up here has a free hand.' },
@@ -205,7 +205,7 @@ defHouse({
         '1,5': {
             name: 'Under the Gatehouse', above: '1,2',
             rows: [
-                '#########.##########',
+                '####################',
                 '#..................#',
                 '#..................#',
                 '#..................#',
@@ -231,12 +231,12 @@ defHouse({
                 '#..................#',
                 '#..................#',
                 '#..................#',
-                '...................#',
                 '#..................#',
                 '#..................#',
                 '#..................#',
                 '#..................#',
-                '#########.##########',
+                '#..................#',
+                '####################',
             ],
             ents: [
                 { k: 'hatch', x: 17, y: 8 },
@@ -256,7 +256,7 @@ defHouse({
                 '##..################',
                 '##.#################',
                 '#..................#',
-                '#...................',
+                '#..................#',
                 '#..................#',
                 '#..................#',
                 '#..................#',
@@ -264,7 +264,7 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'hatch', x: 15, y: 8 },
+                { k: 'hatch', x: 16, y: 5 },
                 { k: 'weight', x: 2, y: 2, id: 'usWeight', noPush: true, pushLine: "An iron counterweight, bolted to nothing, far too heavy to shift an inch. Its mark is only a stitch in the floor, though." },
                 { k: 'chest', x: 5, y: 8, item: 'plan', id: 'usPlan' },
                 { k: 'sign', x: 5, y: 4, text: 'NORTH: UNDER THE LOFT. (A weight in the way. Too heavy for anybody. Its place is only stitched.)' },
@@ -353,9 +353,15 @@ defHouse({
 });
 
 const Spoolworks = {
-    tick(a) { },
+    tick(a) {
+        /* the Bobbin Loft opens when all four plates have been held down together a moment (not a single frame) */
+        const all = ['bl1', 'bl2', 'bl3', 'bl4'].every(s => Signals.get(a, s));
+        this.blT = all ? (this.blT || 0) + 1 : 0;
+        if (this.blT === 1 && !Progress.areaFlag('spoolworks', 'blHeld')) { Sfx.play('rumble'); G.pendingToast = "All four plates down: somewhere in the wall, a winch begins, very slowly, to turn."; }
+        if (this.blT > 300 || Progress.areaFlag('spoolworks', 'blHeld')) { Signals.set(a, 'blHeld'); if (!Progress.areaFlag('spoolworks', 'blHeld')) Progress.setAreaFlag('spoolworks', 'blHeld'); }
+    },
 };
 SIGNATURE_TEXT.spoolworks = "Burnt into the bench with a hot needle: a little spool, and G.G. Under it, much smaller, much older: L. WAS HERE TOO.";
 
 /* bobbins: iron-cored, heavy, slow to go home */
-SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'bobbin', patience: 360 }, p));
+SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'bobbin', patience: 240 }, p));

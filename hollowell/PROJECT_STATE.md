@@ -3,12 +3,9 @@
 _Last updated: 2026-11-09 (session 1, day 1, late)._
 
 ## Status
-**Acts I to III done: seven Houses, the Makings (the genre turn) and Reveal 2.** Hollowell (hub); Meadowfold and the
-Tidyhouse (D1); Kilnridge and the Kiln (D2); Millwater and the Millrace (D3); Belfry Heights and the Belfry (D4); the
-festival; Hushwood and the Slumberhouse (D5); Larkspur Fair and the Marionette Hall (D6; Reveal 1); the Underside and the
-Spoolworks (D7, the Needle); the Makings (Tuck's Little Wander, run from below: three Little Houses); the Hall of Names
-(Reveal 2). The north gate opens with the Needle. Tests cover every room; scripted playthrough legs run from a fresh
-game to the end of D7, and the Makings and Reveal 2 have their own solution tests.
+**Acts I to III done; Act IV under way: the north gate, the Loomwood, the Loom (D8, the Shears) and cutting townsfolk
+free are in.** All eight tools exist. Tests cover every room; scripted playthrough legs run from a fresh game to the
+end of D7; the Makings, Reveal 2, the Loom and cutting free have their own solution tests.
 
 ## Done
 - Brief recorded verbatim (GAME_BRIEF.md).
@@ -29,15 +26,13 @@ game to the end of D7, and the Makings and Reveal 2 have their own solution test
   (`src/79_presets.js`) start a game at those points; `afterD3`, `afterD4` too.
 
 ## In progress
-- A fresh-eyes review of D7 and the Underside (running); then one of the Makings and Reveal 2.
-- Act IV: the north gate and the Loomwood (with the Frayed Edge), the Loom (D8, the Shears), cutting townsfolk free,
-  cutting Wren's own thread at the fog, the Drift and Linnet, the Great Pull, the Great Spool (final), the ending.
+- The ending: cutting Wren's own thread at the fog, the Drift (blank map, nothing returns, Linnet's cottage), the
+  Great Pull, the Great Spool (final dungeon, six Knot-locks), the Unwinding, epilogue, credits, the title change.
 
 ## Next priorities
-1. Act IV and the ending.
-2. Optional dungeons O1 (the Stray House) and O2 (the Unfinished House); the remaining secrets (S01, S03, S07-S10,
-   S14, S17, S21, S24-S27, S31, S35, Linnet's note 8); S11's seed planted in Gran's garden.
-3. Music and art passes; a full QA pass; reviews.
+1. The ending (above).
+2. Optional dungeons O1 (the Stray House) and O2 (the Unfinished House); the remaining secrets; S11's seed planted.
+3. Reviews of the Makings/Reveal 2 and the Loom; music and art passes; a full QA pass.
 
 ## Known bugs
 - Busts look a little like chess pawns (art).

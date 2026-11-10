@@ -71,6 +71,11 @@ const Bedroll = {
         Stats.count('homeward');
         if (b.area === p.area.id) {
             if (p.tx === b.tx && p.ty === b.ty) { UI.toast("You're home already."); return; }
+            /* up above and down below are two places: a floor's in the way */
+            if (typeof Layers !== 'undefined' && Layers.layered(p.area)) {
+                const r0 = p.area.roomAt(p.tx, p.ty), r1 = p.area.roomAt(b.tx, b.ty);
+                if (r0 && r1 && !!r0.above !== !!r1.above) { UI.toast(r1.above ? 'Your Bedroll is down below. The floor is in the way.' : 'Your Bedroll is up above. The floor is in the way.'); return; }
+            }
             /* a bed took over as the mark since: fly straight to the Bedroll */
             const straight = !(p.mark && p.mark.bed === 'roll');
             p.mark = this.mark();

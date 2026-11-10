@@ -210,3 +210,21 @@ SONGS.spoolworks = {
     ],
 };
 
+/* the Loomwood: thin, high, old: a shuttle going to and fro (D minor, sparse, a little cold) */
+SONGS.loomwood = {
+    bpm: 84, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.12, vib: true, n: 'A5 - - - . . F5 - | E5 - - - . . D5 - | C5 - - - E5 - D5 - | A4 - - - - - . . | A5 - - - . . C6 - | Bb5 - - - A5 - G5 - | F5 - E5 - D5 - C#5 - | D5 - - - - - . . ' },
+        { wave: 'p12', vol: 0.03, n: 'D4 F4 A4 D5 A4 F4 D4 F4 | C4 E4 A4 C5 A4 E4 C4 E4 | Bb3 D4 F4 Bb4 F4 D4 Bb3 D4 | A3 C#4 E4 A4 E4 C#4 A3 C#4 | D4 F4 A4 D5 A4 F4 D4 F4 | G3 Bb3 D4 G4 D4 Bb3 G3 Bb3 | A3 C#4 E4 A4 E4 C#4 A3 C#4 | D4 F4 A4 D5 A4 F4 D4 . ' },
+        { wave: 'triangle', vol: 0.15, n: 'D3 - - - - - - - | A2 - - - - - - - | Bb2 - - - - - - - | A2 - - - - - - - | D3 - - - - - - - | G2 - - - - - - - | A2 - - - - - - - | D3 - - - - - - - ' },
+    ],
+};
+/* the Loom: the First Spinner's, a great slow machine nobody has run in an age (D phrygian, very still) */
+SONGS.loom = {
+    bpm: 70, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.13, n: 'D5 - - - Eb5 - - - | D5 - - - C5 - - - | Bb4 - - - C5 - D5 - | A4 - - - - - - - | D5 - - - F5 - - - | Eb5 - - - D5 - - - | C5 - Bb4 - A4 - G4 - | A4 - - - - - - - ' },
+        { wave: 'p25', vol: 0.03, n: 'D3 . A3 . D3 . A3 . | D3 . A3 . D3 . A3 . | Eb3 . Bb3 . Eb3 . Bb3 . | D3 . A3 . D3 . A3 . | D3 . A3 . D3 . A3 . | G2 . D3 . G2 . D3 . | Eb3 . Bb3 . Eb3 . Bb3 . | D3 . A3 . D3 . . . ' },
+        { drum: true, vol: 0.025, n: 'k . . . h . . . | . . h . . . h . ' },
+    ],
+};

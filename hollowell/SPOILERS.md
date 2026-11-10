@@ -205,8 +205,10 @@ be frightened of that." The Stray House's last room: Linnet's bracelet (for the 
   off from below) and it comes apart round a little hard knot: knock it. It yanks every thread back (stitches unpicked,
   knots slipped, bobbins snapped home): again, 3x, with yarn balls and lashing cords. Gundry: "That's all a Maker is.
   Somebody who knows where the threads go." Apprenticeship.
-- **The Weaver (D8)**: cut the web strands that bind Wren; cut the anchors holding it aloft; it drops into
-  its own loom.
+- **The Shuttle (D8 mini-boss)**: the loom's lost shuttle flying its lane; an offcut in its way jams it; knock it.
+- **The Weaver (D8)**: hung by four anchor threads over its loom, spitting silk that binds (snip free with the
+  Shears); cut the anchors and it drops into its own loom; knock it; it spins new anchors; 3x. Under its web: I MEANT TO
+  UNPICK THEM IN THE SPRING. -THE FIRST SPINNER.
 - **The Spool (Final)**: see DUNGEON_TRACKER.md.
 
 ## The Knotting Festival (after Knot 4, `src/57_festival.js`)
@@ -252,4 +254,10 @@ doesn't argue; a choice of three words; she pulls Wren's thread and Wren wakes i
 (a short line from each townsperson), the well cellar is locked, Gundry tells of the Shears in the Loom past the north
 gate and the gate's counterweight in the Seams (the Needle gives it a new place: S32 if before Reveal 2); a faint now
 wakes with Gran's hand felt on the thread (S33).
+## Act IV so far: the north gate, the Loomwood, the Loom, cutting free (`src/71_loomwood.js`, `src/72_loom.js`, `src/73_freed.js`)
+The north gate opens when its counterweight in the Seams takes a new place from the Needle. Burr, after: "Go on, then."
+The Loomwood: silver birches, moths that go for movement, silk strands, the Frayed Edge (strays; the Stray House's
+door with a slot for a folded note: Linnet's note 8, O1). The Loom: the First Spinner's; its tapestry tells she tied
+the valley in a hard winter and meant to unpick it in spring; L. cut her way out of here. With the Shears, townsfolk
+cut free say something new and walk a little round of their own (CUT_LINES); Old Arlo walks to the river (S24).
 

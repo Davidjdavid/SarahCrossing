@@ -96,6 +96,7 @@ class NPC extends GridThing {
         this.walking = false; this.anim = 0;
         this.pushedT = 0;
         this.noPush = true;           /* pushing works differently: they budge */
+        this.person = true;           /* (no Needle in people) */
         this.idle = props.idle || null;
         this.path = null;
         this.patience = props.patience || 100;

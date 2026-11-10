@@ -219,6 +219,19 @@ const SCENARIOS = {
         await page.evaluate(() => { HW.preset('afterReveal2'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 96, 58); HW.step(60); HW.skipTalk(); });
         await shot('r2_town');
     },
+    async loom() {
+        await open();
+        await page.evaluate(() => { HW.preset('afterReveal2'); HW.step(5); HW.skipTalk(); HW.Progress.set('north_gate'); HW.Inv.giveTool('shears'); });
+        for (const [n, x, y] of [['lw_gate', 96, 38], ['lw_road', 95, 22], ['lw_edge', 72, 12], ['lw_loom', 95, 12]]) {
+            await page.evaluate(([x, y]) => { HW.warp('hollow', x, y); HW.step(60); HW.skipTalk(); }, [x, y]);
+            await shot(n);
+        }
+        const rooms = { th: [29, 40], wh: [29, 29], oy: [12, 28], sr: [29, 19], sp: [9, 16], wr: [52, 27], br: [52, 16], web: [29, 9] };
+        for (const [n, [x, y]] of Object.entries(rooms)) {
+            await page.evaluate(([x, y]) => { HW.warp('loom', x, y); HW.step(40); HW.skipTalk(); HW.step(30); HW.skipTalk(); }, [x, y]);
+            await shot('lm_' + n);
+        }
+    },
     async larkspur() {
         await open();
         await page.evaluate(() => { HW.preset('afterD5'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 12, 84); HW.step(40); HW.skipTalk(); });

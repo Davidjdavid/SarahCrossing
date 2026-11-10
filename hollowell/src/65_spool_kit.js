@@ -91,8 +91,13 @@ const Spool = {
         const have = area._cords || (area._cords = new Set());
         for (const e of area.ents) {
             if (!(e.isGrid || e.cordable) || !e.ret || e.noCord || e.removed || have.has(e)) continue;
-            /* tied off from the start (set out that way) */
-            if (e.knotted && e._fixed0 === undefined) { e.knotted = false; this.knot(e, true); }
+            /* tied off from the start (set out that way), unless it's been untied before */
+            if (e.knotted && e._fixed0 === undefined) {
+                e.knotted = false;
+                if (e.id && Progress.areaFlag(area.id, 'untied:' + e.id)) {
+                    if (e.ret && e.isGrid && (e.tx !== e.ret.mx || e.ty !== e.ret.my) && !area.at(e.ret.mx, e.ret.my)) { area.unplace(e, e.tx, e.ty); e.tx = e.ret.mx; e.ty = e.ret.my; e.x = e.tx * T; e.y = e.ty * T; area.place(e, e.tx, e.ty); e.ret.trace = [[e.tx, e.ty]]; e.ret.state = 'home'; }
+                } else { this.knot(e, true); e.knotStart = true; }
+            }
             if (!Layers.belowOf(area, area.roomAt(e.ret.mx, e.ret.my))) continue;
             have.add(e); area.add(new Cord(e));
         }
@@ -139,6 +144,7 @@ const Spool = {
         if (!e.knotted) return;
         e.knotted = false; e.fixed = e._fixed0; e.liftable = e._lift0;
         Return.disturb(e);
+        if (e.knotStart && e.id && e.area) Progress.setAreaFlag(e.area.id, 'untied:' + e.id);
         if (e.onUntie) e.onUntie();
         Sfx.play('unclick');
     },
@@ -204,7 +210,7 @@ class Hatch extends GridThing {
         const [dx, dy] = up ? [up[0] - this.tx, up[1] - this.ty] : [down[0] - this.tx, down[1] - this.ty];
         const there = a.at(p.tx + dx, p.ty + dy);
         if (there && !there.removed && !(there.floats && Water.rideable(there))) {
-            UI.toast(to === 'up' ? "The trapdoor won't lift: something heavy is sitting on it, up there." : 'Something is in the way underneath.');
+            UI.toast(to === 'up' ? "The trapdoor won't lift: something is standing just where you'd come up." : 'Something is standing just where you would come down.');
             Sfx.play('hitthing'); return true;
         }
         Script.run(function* () {
@@ -212,6 +218,7 @@ class Hatch extends GridThing {
             yield* fadeOut(10);
             p.x += dx * T; p.y += dy * T;
             p.unstick();
+            if (p.mark && p.mark.bed) p.dropBed();
             Cam.snap(p); p.setMark();
             Stats.enterRoom(a, Cam.room); if (G.onRoomEnter) G.onRoomEnter(a, Cam.room);
             if (!Progress.flag('hatch_' + to)) {
@@ -269,7 +276,9 @@ const Needle = {
     },
     begin(p, t) {
         const e = t.thing;
-        this.st = { thing: e, path: [[e.tx, e.ty]], off: t.off || [0, 0], rep: 0, room: e.area.roomAt(e.tx, e.ty) };
+        if (e.mv) { UI.toast("Wait till it's still."); return; }
+        this.st = { thing: e, path: [[e.tx, e.ty]], off: t.off || [0, 0], rep: 0, room: e.area.roomAt(e.tx, e.ty), held0: e.heldBy };
+        e.heldBy = e.heldBy || { needle: true };
         p.pinned = 'needle';
         Sfx.play('twang');
         if (!Progress.flag('needle_first')) { Progress.set('needle_first'); UI.toast('Arrows walk the needle (up to 4). C: that\'s its place now. Z: never mind.', 200); }
@@ -296,7 +305,7 @@ const Needle = {
         if (s.path.length - 1 >= this.REACH || !this.stepOk(s.thing, nx, ny)) { s.rep = 7; Sfx.play('hitthing', 0.2); return; }
         s.path.push([nx, ny]); s.rep = 7; Sfx.play('blip', 0.4);
     },
-    cancel(p) { this.st = null; if (p && p.pinned === 'needle') p.pinned = null; },
+    cancel(p) { const s = this.st; if (s && s.thing && s.thing.heldBy && s.thing.heldBy.needle) s.thing.heldBy = s.held0 || null; this.st = null; if (p && p.pinned === 'needle') p.pinned = null; },
     confirm(p) {
         const s = this.st;
         if (s.path.length < 2) { this.cancel(p); return; }
@@ -325,7 +334,8 @@ const Needle = {
         if (Inv.stitches.length > this.MAX) {
             const oldest = Inv.stitches[0];
             this.unpick(oldest);
-            UI.toast('Three stitches is all the Needle holds: the oldest comes undone.', 140);
+            const rm = AREAS[oldest.area] && AREAS[oldest.area].rooms ? (AREAS[oldest.area].rooms.find(r => oldest.from[0] >= r.x && oldest.from[1] >= r.y && oldest.from[0] < r.x + r.w && oldest.from[1] < r.y + r.h) || {}).name : null;
+            UI.toast('Three stitches is all the Needle holds: the oldest comes undone' + (rm ? ' (in ' + rm + ').' : '.'), 160);
         }
     },
     /* a stitch undone: the thing's old place back, and its way home is the way it came */
@@ -359,7 +369,6 @@ const Needle = {
             const r = e.ret;
             r.mx = x; r.my = y; r.trace = [[x, y]]; r.state = 'home'; r.snap = false; r.timer = 0;
             r.color0 = rec.color0 || r.color; r.color = THREAD.wren; e.stitched = true;
-            e.tiedOff = false; e.sleeper = e.sleeper && e.resetSleep ? e.sleeper : e.sleeper;
         }
     },
     draw(cx, cy) {

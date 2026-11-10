@@ -66,4 +66,8 @@
 - Fixed: the road from the fair's gate into town was blocked by a fence that never opened.
 - The genre turn: three small houses run from underneath, for someone else (nine "Aha" moments to earn), with tests.
 - The third act's story turn, its new hall, and what changes after it; two more secrets; tests.
+- Fixes from the seventh dungeon's review: its under-layer shortcuts closed; rooms that could be beaten without their
+  idea made to need it; a few stale states fixed; regression tests.
+- The final act begins: the last tool; the northern woods behind a gate; the last main dungeon (eight rooms, a mid-boss,
+  a boss, no hints); townsfolk can be freed and go their own ways; tests for all of it.
 
