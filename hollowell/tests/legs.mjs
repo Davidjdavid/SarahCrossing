@@ -429,7 +429,7 @@ export const LEG4 = (HW, chain) => {
     const at = (o, x, y) => o.tx === x && o.ty === y && !o.mv;
     const off = dir => { HW.hold(dir); HW.step(14); HW.release(); HW.step(2); };
     const paddleTo = (x, y) => { for (let i = 0; i < 2000 && (p().tx !== x || p().ty !== y); i++) { const d = p().tx < x ? 'right' : p().tx > x ? 'left' : p().ty < y ? 'down' : 'up'; HW.hold(['tool', d]); HW.step(1); } HW.release(); HW.step(2); ok(p().tx === x && p().ty === y, `paddled to ${x},${y}`); };
-    const B = { porch: [20, 44], draught: [0, 44], windward: [40, 44], stair: [20, 33], weather: [0, 33], loft: [20, 22], reach: [0, 22], ropes: [20, 11], bell: [20, 0] };
+    const B = { porch: [20, 44], draught: [0, 44], windward: [40, 44], stair: [20, 33], weather: [0, 33], loft: [20, 22], reach: [0, 22], ropes: [20, 11], bell: [20, 0], frame: [40, 11], cistern: [40, 0] };
     const b = (r, x, y) => [B[r][0] + x, B[r][1] + y];
     if (chain) chain('afterD3'); else HW.preset('afterD3'); HW.step(10); HW.skipTalk();
     HW.Inv.maxHp = HW.Inv.hp = 24;
@@ -505,18 +505,47 @@ export const LEG4 = (HW, chain) => {
     ok(HW.Progress.flag('belfry_ropes'), 'the ropes');
     HW.face('right'); HW.press('act', 1); HW.step(30);
     walk(...b('ropes', 9, 8)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('belfry'), 'Pattern');
-    /* the great bell */
-    walk(...b('ropes', 9, 1)); HW.hold('up'); HW.step(60); HW.release(); HW.step(30); HW.skipTalk();
-    walk(...b('bell', 9, 9)); HW.step(30); HW.skipTalk();
+    /* the Bell Frame (east, through the gate the Pattern's plates opened): the crate the long way round, up the east side,
+       thrown down the gap from above onto the plate; ring: the boulder is home first and holds it there */
+    walk(...b('ropes', 18, 5)); walk(...b('frame', 9, 9)); HW.face('up'); talk(); ok(p().carry, 'the crate');
+    walk(...b('frame', 12, 9)); walk(...b('frame', 12, 4)); walk(...b('frame', 5, 3));
+    HW.face('down'); HW.press('act', 1); HW.step(40);
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(60);
+    ok(until(() => thing('fbGate').open, 200), 'the Bell Frame gate');
+    walk(...b('frame', 14, 1)); HW.hold('up'); HW.step(70); HW.release(); HW.step(10);
+    /* the Cistern: the raft hooked over the shaft, boarded where the gale pins it at the pool's foot; rung from aboard, it
+       snaps home across with Wren on it; the drawbridge down behind; the big door */
+    const raft = thing('csRaft');
+    walk(...b('cistern', 11, 1)); HW.Inv.equipped = 'hook'; HW.face('left'); HW.press('tool', 1);
+    ok(until(() => !raft.mv && raft.tx === b('cistern', 10, 0)[0] && raft.ty === b('cistern', 0, 7)[1], 600), 'the raft over and pinned');
+    walk(...b('cistern', 11, 7)); off('left'); ok(p().tx === raft.tx && p().ty === raft.ty, 'aboard');
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1);
+    ok(until(() => HW.Return.isHome(raft), 120), 'home across the shaft'); off('left');
+    walk(...b('cistern', 2, 8)); HW.face('down'); HW.press('act', 1); HW.step(20);
+    walk(...b('cistern', 1, 5)); HW.hold('left'); HW.step(60); HW.release(); HW.step(20);
+    /* the great bell: Tollgrim in three beats */
+    HW.walkTo(...b('bell', 17, 5)); HW.step(30); HW.skipTalk();
     const t = HW.ents('enemy').find(e => e.type === 'tollgrim');
     ok(t && t.state !== 'sleep', 'Tollgrim awake');
-    for (let round = 0; round < 5 && t.alive; round++) {
-        walk(...b('bell', 6, 7));
-        ok(until(() => t.state === 'peek', 1500), 'he leans out');
-        HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(4);
-        ok(until(() => t.state === 'stunned', 60), 'slammed'); HW.step(20);
-        p().x = t.x - 16; p().y = t.y; HW.face('right'); HW.press('atk', 1); HW.step(30);
-    }
+    const strike = () => { walk(t.tx - 1, t.ty); HW.face('right'); HW.press('atk', 1); HW.step(30); HW.skipTalk(); HW.step(5); };
+    /* 1: the draught blows the clapper out of the bell's mouth; he leans out; ring */
+    walk(...b('bell', 6, 7));
+    ok(until(() => t.state === 'peek', 1500), 'he leans out');
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(4);
+    ok(until(() => t.state === 'stunned', 60), 'slammed'); strike();
+    ok(t.hp === 2, 'the second beat');
+    /* 2: the gale lays the clapper against the west wall; ring from beside it, beyond his hearing */
+    walk(...b('bell', 1, 6));
+    ok(until(() => t.state === 'peek', 1500), 'he leans out');
+    HW.press('tool', 1); HW.step(4);
+    ok(until(() => t.state === 'stunned', 60), 'slammed'); strike();
+    ok(t.hp === 1, 'the third beat');
+    /* 3: a pot carried under the old bell and far off, smashed: its pieces fly home under the old bell and ring it */
+    walk(...b('bell', 1, 8)); HW.face('down'); talk(); ok(p().carry, 'a pot');
+    walk(...b('bell', 2, 8)); walk(...b('bell', 10, 8));
+    ok(until(() => t.state === 'peek' && HW.Return.away(thing('clapper')), 1500), 'he leans out');
+    HW.face('right'); HW.press('act', 1);
+    ok(until(() => t.state === 'stunned', 200), 'slammed'); strike();
     ok(!t.alive, 'Tollgrim down');
     HW.step(200); HW.skipTalk();
     HW.G.cheats.god = false;

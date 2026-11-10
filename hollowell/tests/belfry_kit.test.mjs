@@ -60,3 +60,23 @@ test('the Recall Bell rings wherever Wren is', () => {
     assert.ok(until(HW, () => HW.Return.isHome(s), 60));
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 });
+
+test('a thing on the Hookline is held by the line: the wind does not blow it (it blows it once let go)', () => {
+    const HW = lab();
+    const c = HW.G.map.find('crate'), g = HW.G.map.find('gust');
+    assert.ok(until(HW, () => !g.on && g.soon, 900), 'a gust about to blow');
+    /* (the Hookline marks what it holds as it reels it in, all the way to the end of the pull) */
+    c.hookPulled = true;
+    assert.ok(until(HW, () => g.on, 120)); HW.step(60);
+    assert.equal(c.tx, 2, 'on the line: not blown');
+    c.hookPulled = false;
+    assert.ok(until(HW, () => c.tx > 2, 60), 'let go: blown along');
+});
+
+test('a gust that is switched off shows no sign of coming', () => {
+    const HW = lab();
+    const g = HW.G.map.find('gust');
+    g.off = true;
+    let soon = false; for (let i = 0; i < 500; i++) { HW.step(1); if (g.soon || g.on) soon = true; }
+    assert.ok(!soon);
+});

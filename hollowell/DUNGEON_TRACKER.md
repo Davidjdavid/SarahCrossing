@@ -145,13 +145,14 @@ boss; the bells; an old save's Pattern; the upper floor. Scripted playthrough (L
 | The Spinner's Room (Heart Patch) | the Loom, west of the Shuttle Run | cut the silk across the west doorway | built, tested |
 | S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |
 
-## D4 Belfry (`src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`; tests `tests/belfry.test.mjs`, `tests/belfry_kit.test.mjs`, `tests/heights.test.mjs`) - tested
+## D4 Belfry (`src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`; tests `tests/belfry.test.mjs`, `tests/belfry_kit.test.mjs`, `tests/review_d4.test.mjs`, `tests/heights.test.mjs`) - tested
 
 Rules: a bell (struck by the stick, a throw or shards) or the Recall Bell rings: every marked thing out of place
 within 7 tiles snaps home at once (fast, force +1). Holding a thing (carry, grip, paddle) keeps it from
 snapping; the Recall Bell can be rung while gripping. A ring wakes sleepers (things tied off where they lie: they
 go home) and bats. Gusts blow loose light/medium things a tile at a time downwind (not things going home) and
-push Wren (she walks at 1.3 a frame; a gust pushes 0.7-1.2); gripping something heavy holds her put.
+push Wren (she walks at 1.3 a frame; a gust pushes 0.7-1.2); gripping something heavy holds her put. A thing on the
+Hookline is held by the line (no wind moves it). A ring is heard, like a sleeper hears it, seven strides off.
 
 | Room | Cell | Teaches / puzzle | Solution | Reward |
 |---|---|---|---|---|
@@ -161,14 +162,28 @@ push Wren (she walks at 1.3 a frame; a gust pushes 0.7-1.2); gripping something 
 | The Stair | 1,3 | Hub | Bats; north door and east door locked | - |
 | Weathercock Walk | 0,3 | Hold on | Cross the walk between pits; when it blows, grip the bust above you | key 2 |
 | The Rafters | 2,3 | Optional | Ring: the sleeping slab of wall goes home (and six bats wake) | Heart Patch |
-| Clangor's Loft | 1,2 | Mini-boss: Clangor (its own ring snaps things home through it) | Push a bust out so Clangor stands on its way home when it rings: slammed, helm off, hit it (3x) | Recall Bell |
+| Clangor's Loft | 1,2 | Mini-boss: Clangor (its own ring snaps things home through it) | Push a bust out so Clangor stands on its way home when it rings: slammed, helm off, hit it (2x) | Recall Bell |
 | The Reach | 0,2 | Ring from the right place | Ring near the far sleeper only: it goes home onto the plate and the gate opens while the other sleeps on; wake both and it stays shut (leave the room and they lie down again) | key 3 |
 | Echo Room | 2,2 | S15, behind a sleeping slab | Strike the stones in Gran's lullaby: low, high, middle, high, low | Heart Patch, Linnet's note 4 |
-| Bell Ropes | 1,1 | Holding beats ringing | Pick up (or grip) the right-hand crate off its plate and ring: the sleeper comes home to the left plate with the right one empty (it counts when it arrives; leave the room and it lies down again) | Pattern |
+| Bell Ropes | 1,1 | Holding beats ringing | Pick up (or grip) the right-hand crate off its plate and ring: the sleeper comes home to the left plate with the right one empty (it counts when it arrives; leave the room and it lies down again). The east gate opens with it; the bell stair north is barred from above until Tollgrim's beaten | Pattern, way east |
 | Workshop | 0,1 | Signature, behind a sleeping slab | Brass T; bell moulds; tuning forks | Heart Patch |
-| The Great Bell | 1,0 | Boss: Tollgrim | The gust blows the clapper out; Tollgrim leans out of the mouth to spit; ring the Recall Bell: the clapper snaps home into him, he drops out dazed; hit him (3x) | Knot, Heartstitch |
+| The Bell Frame | 2,1 | Synthesis (Tidyhouse: a thing at home blocks the way home; Kiln: a thing goes home the way it went, and a thread can't knot): the boulder home first holds the crate on the plate | The plate in the frame's narrow gap holds the north gate; the sleeping boulder's place is the gap's top. Carry the crate the long way round (up the east side), throw it down the gap (or carry it down through the boulder's place and the plate), ring: the boulder is home before the crate and it waits on the plate. Carried up the gap and back, the thread undoes itself; thrown up onto the plate after the boulder's home, it goes home long before Wren's at the gate | way north |
+| The Cistern | 2,0 | Synthesis (Kiln: the Hookline, a returning thing hangs on its thread over a drop; Millrace: a float going home carries its rider; Belfry: nothing walks home through a strong wind, a snap does) | The floor's fallen in: a shaft between the near pool and the far channel. Hook the raft over from its mooring; the gale (it never lets up) pins it at the foot of the pool; step aboard, ring: it snaps home across the shaft with Wren on it. Waiting aboard, or paddled to the edge, it never goes; its empty mark hooked, Wren lands in the water. A lever on the far side lets the drawbridge down (down anyway once Tollgrim's beaten) | big door W (Pattern) |
+| The Great Bell | 1,0 | Boss: Tollgrim (only the clapper coming home hard knocks him out of the bell's mouth), three beats | 1: the draught down through the bell blows the clapper out; he leans out to spit; ring: it slams home into him; he drops out dazed: hit him. 2: he heaves the bell round, the east shutters bang open and a gale blows along under it without a let-up (the vanes swing), laying the clapper by the west wall; and he listens: a ring within seven strides of him and he ducks before it's home. Ring from beside the clapper, out of his hearing, or strike the old bell in the west bay. 3: he watches Wren (his eyes in the bell's mouth go red when she's in reach of the clapper) and stays in while she could ring it: carry a pot under the old bell and off to the far side, smash it: its pieces fly home under the old bell and ring it from afar. About 30 s for a player who never hesitates (was 96) | Knot, Heartstitch |
 
-Keys: 3 keys (Draught, Weathercock, Reach), 3 locks (Stair N, Stair E to the Rafters, Loft N).
+Keys: 3 keys (Draught, Weathercock, Reach), 3 locks (Stair N, Stair E to the Rafters, Loft N). The way up after the Pattern:
+Bell Ropes E (opened by the Pattern's plates), the Bell Frame, the Cistern, the big door into the Great Bell from the east
+(the old stair north from Bell Ropes opens from above once Tollgrim's beaten). A game that opened the big door when it was in
+Bell Ropes finds it open (same id). No softlock: the frame's gate stays open once passed, its boulder lies down again while
+it isn't; the Cistern's drawbridge lever is on the far side.
+Dressing: oak boards laid across, nailed with brass (not the plank floor of the other Houses); the Bell Frame's beams with a
+bell and bell-ropes; the Cistern's broken lip, trickles into the shaft, puddles, downpipe and hauled-up drawbridge; the Great
+Bell's east shutters (open in the second and third beats).
+Tests: every room's solution; Clangor's two knocks; each of Tollgrim's beats (the stick clangs, he doesn't duck in beat 1, he
+ducks at a ring he hears in beat 2, the old bell, he stays in by the clapper in beat 3 and a thrown pot at the old bell does
+nothing, the pot's pieces from afar); the Bell Frame (long way round, thrown from the mouth, the thread undoing itself, rung
+first, Wren sandwiched lifts the crate); the Cistern (the ride, waiting and paddling never cross, the empty mark); the way up and
+the stair; an old save's big door; the kit's hook-held and switched-off gusts. Scripted playthrough (LEG4); probe: clean.
 
 ## D5 Slumberhouse (`src/60_slumber.js`, `src/60b_slumber_foes.js`, kit `src/58_bedroll_kit.js`; tests `tests/slumber.test.mjs`, `tests/bedroll_kit.test.mjs`, `tests/hushwood.test.mjs`) - tested
 

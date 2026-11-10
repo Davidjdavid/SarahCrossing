@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
 
-const R = { porch: [20, 44], draught: [0, 44], windward: [40, 44], stair: [20, 33], weather: [0, 33], rafters: [40, 33], loft: [20, 22], reach: [0, 22], echo: [40, 22], ropes: [20, 11], workshop: [0, 11], bell: [20, 0] };
+const R = { porch: [20, 44], draught: [0, 44], windward: [40, 44], stair: [20, 33], weather: [0, 33], rafters: [40, 33], loft: [20, 22], reach: [0, 22], echo: [40, 22], ropes: [20, 11], workshop: [0, 11], bell: [20, 0], frame: [40, 11], cistern: [40, 0] };
 const at = (room, x, y) => [R[room][0] + x, R[room][1] + y];
 function game(tools = []) {
     const HW = loadGame();
@@ -105,13 +105,14 @@ test('the rafters: ring, and the sleeping slab of wall goes home (and the bats w
     assert.equal(HW.Inv.patches, 1);
 });
 
-test("clangor: the stick bounces off; a bust out of place snaps home through it when it rings", () => {
+test("clangor: the stick bounces off; a bust out of place snaps home through it when it rings (two knocks)", () => {
     const HW = game();
     HW.G.cheats.god = true;
     enter(HW, 'loft', 9, 8);
     const c = HW.ents('enemy').find(e => e.type === 'clangor');
     assert.ok(c && c.state !== 'sleep', 'awake');
-    for (let round = 0; round < 3 && c.alive; round++) {
+    let knocks = 0;
+    for (let round = 0; round < 3 && c.alive; round++, knocks++) {
         const b = thing(HW, 'clB1');
         until(HW, () => HW.Return.isHome(b), 600);
         c.state = 'ring'; c.st = -100000; c.x = at('loft', 16, 8)[0] * 16 + 8; c.y = at('loft', 16, 8)[1] * 16 + 10;   /* (held still while the test sets up) */
@@ -125,6 +126,7 @@ test("clangor: the stick bounces off; a bust out of place snaps home through it 
         const p = HW.player(); p.x = c.x + 16; p.y = c.y; HW.face('left'); HW.press('atk', 1); HW.step(30);
     }
     assert.ok(!c.alive, 'down');
+    assert.equal(knocks, 2, 'two knocks, not three');
     HW.step(100); HW.skipTalk();
     go(HW, 'loft', 9, 7); HW.face('up'); HW.press('act', 1); HW.skipTalk();
     assert.ok(HW.Inv.has('bell'), 'the Recall Bell');
@@ -200,23 +202,325 @@ test('the workshop (signature), behind the sleeping wall', () => {
     noErrors(HW);
 });
 
-test('the great bell: the gust blows the clapper out, Tollgrim leans out; ring, and it slams home into him (x3)', () => {
+/* ---------------- the Great Bell: Tollgrim in three beats ---------------- */
+/* into the hall the way the House goes: through the big door from the Cistern */
+function bellGame() {
     const HW = game(['bell']);
     HW.Inv.patterns.push('belfry');
     HW.G.cheats.god = true;
-    enter(HW, 'bell', 9, 9);
-    const t = HW.ents('enemy').find(e => e.type === 'tollgrim');
-    assert.ok(t && t.state !== 'sleep', 'awake');
-    for (let round = 0; round < 4 && t.alive; round++) {
-        go(HW, 'bell', 6, 7);
-        assert.ok(until(HW, () => t.state === 'peek', 1500), 'he leans out');
-        ring(HW);
-        assert.ok(until(HW, () => t.state === 'stunned', 60), 'slammed');
-        HW.step(20);
-        const p = HW.player(); p.x = t.x - 16; p.y = t.y; HW.face('right'); HW.press('atk', 1); HW.step(30);
-    }
+    HW.warp('belfry', ...at('cistern', 1, 5)); HW.step(20);
+    HW.hold('left'); HW.step(50); HW.release(); HW.step(20);
+    HW.walkTo(...at('bell', 17, 5)); HW.step(30); HW.skipTalk(); HW.step(5);
+    return HW;
+}
+const toll = HW => HW.G.map.find('tollgrim');
+/* walk up beside him where he lies dazed and strike */
+function strikeToll(HW) {
+    const t = toll(HW), hp = t.hp;
+    go(HW, 'bell', t.tx - R.bell[0] - 1, t.ty - R.bell[1]); HW.face('right'); HW.press('atk', 1); HW.step(30);
+    assert.equal(t.hp, hp - 1, 'struck while he was dazed');
+    HW.skipTalk(); HW.step(5);
+}
+/* 1: the draught blows the clapper out; he leans out; ring from anywhere it reaches: it slams home into him */
+function beat1(HW) {
+    const t = toll(HW);
+    go(HW, 'bell', 6, 7);
+    assert.ok(until(HW, () => t.state === 'peek', 900), 'he leans out');
+    assert.equal(thing(HW, 'clapper').tx, at('bell', 9, 0)[0], 'the draught blew the clapper straight down out of the mouth');
+    ring(HW);
+    assert.ok(until(HW, () => t.state === 'stunned', 60), 'slammed by the clapper');
+    strikeToll(HW);
+    assert.equal(t.phase, 2);
+}
+/* 2: the wind turned; ring for the clapper from beyond his hearing (the west wall, by the clapper) */
+function beat2(HW) {
+    const t = toll(HW);
+    go(HW, 'bell', 1, 6);
+    assert.ok(until(HW, () => t.state === 'peek', 900), 'he leans out');
+    ring(HW);
+    assert.ok(until(HW, () => t.state === 'stunned', 60), 'slammed: he never heard it');
+    strikeToll(HW);
+    assert.equal(t.phase, 3);
+}
+test('the great bell, beat 1: the draught down through the bell blows the clapper out; Tollgrim leans out; ring, and it slams home into him', () => {
+    const HW = bellGame();
+    const t = toll(HW);
+    assert.ok(t && t.state !== 'sleep' && t.phase === 1, 'awake');
+    assert.ok(thing(HW, 'gbGale').off, 'no gale yet');
+    /* the stick only clangs off him while he leans out */
+    go(HW, 'bell', 8, 4);
+    assert.ok(until(HW, () => t.state === 'peek', 900));
+    HW.face('right'); HW.press('atk', 1); HW.step(20);
+    assert.equal(t.hp, 3, 'stone: it clangs');
+    beat1(HW);
+    noErrors(HW);
+});
+test('the great bell, beat 2: the wind turns (the shutters open, the vanes swing, the clapper lies by the west wall); a ring he can hear and he ducks before it is home', () => {
+    const HW = bellGame();
+    beat1(HW);
+    const t = toll(HW), clap = thing(HW, 'clapper');
+    assert.ok(thing(HW, 'gbGust').off && !thing(HW, 'gbGale').off, 'the gale along under the bell now');
+    const hall = HW.G.map.roomAt(t.hx, t.hy);
+    assert.ok(HW.ents('vane').filter(v => HW.G.map.roomAt(v.tx, v.ty) === hall).every(v => v.gust === 'gbGale'), "the hall's vanes swing round");
+    assert.ok(HW.ents('vane').filter(v => HW.G.map.roomAt(v.tx, v.ty) !== hall).every(v => v.gust !== 'gbGale'), "(and nobody else's)");
+    assert.ok(until(HW, () => t.state === 'peek', 900), 'he leans out');
+    assert.deepEqual([clap.tx, clap.ty], at('bell', 1, 4), 'the gale laid the clapper against the west wall');
+    /* rung from beside the bell, as before: he hears it and is back inside before it's home */
+    go(HW, 'bell', 6, 7);
+    assert.ok(until(HW, () => t.state === 'peek', 900));
+    ring(HW);
+    assert.equal(t.state, 'hide', 'ducked at the first note');
+    HW.step(60);
+    assert.notEqual(t.state, 'stunned', 'the clapper came home to an empty mouth');
+    assert.equal(t.hp, 2);
+    HW.skipTalk();
+    beat2(HW);
+    noErrors(HW);
+});
+test('the great bell, beat 2: the old bell in the west bay, struck, is out of his hearing and in reach of the clapper', () => {
+    const HW = bellGame();
+    beat1(HW);
+    const t = toll(HW);
+    go(HW, 'bell', 2, 9);
+    assert.ok(until(HW, () => t.state === 'peek', 900));
+    HW.face('up'); HW.press('atk', 1);
+    assert.ok(until(HW, () => t.state === 'stunned', 60), 'slammed');
+    noErrors(HW);
+});
+test('the great bell, beat 3: he watches Wren, and while she is in reach of the clapper he keeps his head in; a pot carried under the old bell and smashed far off rings it from afar', () => {
+    const HW = bellGame();
+    beat1(HW); beat2(HW);
+    const t = toll(HW), clap = thing(HW, 'clapper');
+    HW.step(120);
+    /* near the clapper, nothing brings him out: not the old bell struck, nor the Recall Bell */
+    go(HW, 'bell', 2, 9);
+    let out = false;
+    for (let i = 0; i < 300; i++) { HW.step(1); if (t.state === 'peek') out = true; }
+    assert.ok(!out, 'never leans out while she is by the clapper');
+    HW.face('up'); HW.press('atk', 1); HW.step(30); ring(HW); HW.step(60);
+    assert.equal(t.hp, 1, 'nothing to slam');
+    /* and if she walks into reach of the clapper while he is out, he ducks */
+    go(HW, 'bell', 12, 8);
+    assert.ok(until(HW, () => t.state === 'peek', 900), 'out once she is far off');
+    go(HW, 'bell', 4, 6);
+    assert.equal(t.state, 'hide', 'back in as she comes near');
+    /* a pot thrown at the old bell from as far as a throw reaches: he is in */
+    go(HW, 'bell', 1, 8); HW.face('down'); HW.press('act', 1); HW.step(10);
+    assert.ok(HW.player().carry, 'a pot');
+    go(HW, 'bell', 6, 8); HW.face('left'); HW.press('act', 1); HW.step(120);
+    assert.equal(t.hp, 1, 'the throw rang it, but he was in');
+    /* the pot, carried under the old bell and off to the far side, smashed: its pieces fly home under the bell and ring it */
+    until(HW, () => HW.Return.isHome(thing(HW, 'gbPot1')), 300);
+    go(HW, 'bell', 1, 8); HW.face('down'); HW.press('act', 1); HW.step(10);
+    go(HW, 'bell', 2, 8); go(HW, 'bell', 10, 8);
+    assert.ok(until(HW, () => t.state === 'peek' && HW.Return.away(clap), 900), 'he leans out');
+    HW.face('right'); HW.press('act', 1);
+    assert.ok(until(HW, () => t.state === 'stunned', 200), 'slammed by a ring from afar');
+    strikeToll(HW);
     assert.ok(!t.alive, 'down');
     HW.step(100); HW.skipTalk();
     assert.ok(HW.ents('hoop')[0], 'the hoop');
+    assert.ok(thing(HW, 'gbGust').off && thing(HW, 'gbGale').off, 'the hall falls still');
     noErrors(HW);
+});
+test('the great bell, beat 1: a ring he hears does not make him duck yet (he learns that after)', () => {
+    const HW = bellGame();
+    const t = toll(HW);
+    go(HW, 'bell', 7, 6);
+    assert.ok(until(HW, () => t.state === 'peek', 900));
+    ring(HW);
+    assert.ok(until(HW, () => t.state === 'stunned', 60), 'slammed though he was right by her');
+});
+
+/* ---------------- the Bell Frame: the boulder home first, the crate behind it ---------------- */
+function frameGame() {
+    const HW = game(['bell']);
+    HW.Progress.set('belfry_ropes');     /* (the way in from Bell Ropes is open) */
+    HW.warp('belfry', ...at('frame', 1, 5)); HW.step(20);
+    return HW;
+}
+const liftCrate = HW => { go(HW, 'frame', 9, 9); HW.face('up'); HW.press('act', 1); HW.step(10); assert.ok(HW.player().carry, 'the crate'); };
+const frameIs = (HW, id, x, y) => { const o = thing(HW, id); return o.tx === at('frame', x, y)[0] && o.ty === at('frame', x, y)[1]; };
+test('the bell frame: the crate the long way round and down through the boulder\'s empty place onto the plate; ring: the boulder is home first and holds it there', () => {
+    const HW = frameGame();
+    liftCrate(HW);
+    go(HW, 'frame', 12, 9); go(HW, 'frame', 12, 4); go(HW, 'frame', 5, 3);
+    HW.face('down'); HW.press('act', 1); HW.step(40);
+    assert.ok(frameIs(HW, 'fbCrate', 5, 7), 'thrown down the gap onto the plate');
+    ring(HW); HW.step(60);
+    assert.ok(HW.Return.isHome(thing(HW, 'fbRock')), 'the boulder woke and went home');
+    HW.step(600);
+    assert.ok(frameIs(HW, 'fbCrate', 5, 7), 'the crate waits on the plate behind it');
+    assert.ok(thing(HW, 'fbGate').open, 'the gate');
+    go(HW, 'frame', 14, 1); HW.hold('up'); HW.step(70); HW.release(); HW.step(10);
+    assert.equal(HW.G.map.roomAt(HW.player().tx, HW.player().ty).name, 'The Cistern');
+    assert.ok(HW.Progress.flag('belfry_frame'), 'the boulder stays awake now');
+    noErrors(HW);
+});
+test('the bell frame: or thrown from the gap\'s mouth, it lands below; the ring brings it back up onto the plate', () => {
+    const HW = frameGame();
+    liftCrate(HW);
+    go(HW, 'frame', 12, 9); go(HW, 'frame', 12, 4); go(HW, 'frame', 5, 5);
+    HW.face('down'); HW.press('act', 1); HW.step(40);
+    assert.ok(frameIs(HW, 'fbCrate', 5, 9), 'below the gap');
+    ring(HW); HW.step(80);
+    assert.ok(frameIs(HW, 'fbCrate', 5, 7) && thing(HW, 'fbGate').open, 'stopped on the plate');
+    assert.ok(!frameIs(HW, 'fbRock', 4, 5) && HW.player().ty === at('frame', 0, 5)[1], 'Wren, in the way, was shoved aside');
+    noErrors(HW);
+});
+test('the bell frame: carried up the gap and thrown back down, the thread undoes itself and the crate goes home', () => {
+    const HW = frameGame();
+    liftCrate(HW);
+    go(HW, 'frame', 5, 9); go(HW, 'frame', 5, 3);
+    HW.face('down'); HW.press('act', 1); HW.step(40);
+    ring(HW); HW.step(400);
+    assert.ok(HW.Return.isHome(thing(HW, 'fbCrate')) && !thing(HW, 'fbGate').open, 'home, gate shut');
+    noErrors(HW);
+});
+test('the bell frame: rung first, the crate thrown up onto the plate from below lands there, then goes home long before Wren is at the gate', () => {
+    const HW = frameGame();
+    go(HW, 'frame', 5, 3); ring(HW); HW.step(30);
+    liftCrate(HW);
+    go(HW, 'frame', 5, 8); HW.face('up'); HW.press('act', 1); HW.step(20);
+    assert.ok(frameIs(HW, 'fbCrate', 5, 7) && thing(HW, 'fbGate').open, 'on the plate a moment');
+    go(HW, 'frame', 5, 9); go(HW, 'frame', 12, 9); go(HW, 'frame', 14, 1);
+    assert.ok(!thing(HW, 'fbGate').open, 'shut again by the time she gets there');
+    /* and leaving the room, the boulder lies down again for another go */
+    go(HW, 'frame', 1, 5); go(HW, 'ropes', 17, 5); HW.step(10); go(HW, 'frame', 1, 5); HW.step(10);
+    assert.ok(thing(HW, 'fbRock').tiedOff, 'asleep again');
+    noErrors(HW);
+});
+test('the bell frame: rung while standing in the gap, Wren is shoved down onto the plate under the crate coming home: she can lift it and go', () => {
+    const HW = frameGame();
+    liftCrate(HW);
+    go(HW, 'frame', 12, 9); go(HW, 'frame', 12, 4); go(HW, 'frame', 5, 5);
+    HW.face('down'); HW.press('act', 1); HW.step(40);
+    go(HW, 'frame', 5, 6); ring(HW); HW.step(120);
+    const p = HW.player();
+    assert.equal(`${p.tx},${p.ty}`, at('frame', 5, 7).join(','), 'shoved onto the plate');
+    assert.ok(frameIs(HW, 'fbCrate', 5, 8), 'the crate waits below her (never on top of her)');
+    HW.face('down'); HW.press('act', 1); HW.step(10);
+    assert.ok(p.carry, 'lifted it');
+    go(HW, 'frame', 5, 9);
+    noErrors(HW);
+});
+
+/* ---------------- the Cistern: ride the raft home across the shaft ---------------- */
+function cisternGame() {
+    const HW = game(['bell']);
+    HW.warp('belfry', ...at('cistern', 14, 9)); HW.step(20);
+    return HW;
+}
+function hookRaft(HW) {
+    const raft = thing(HW, 'csRaft');
+    go(HW, 'cistern', 11, 1); HW.Inv.equipped = 'hook'; HW.face('left'); HW.press('tool', 1);
+    assert.ok(until(HW, () => raft.tx >= at('cistern', 9, 0)[0], 120), 'hooked over the shaft');
+    assert.ok(until(HW, () => !raft.mv && raft.ty === at('cistern', 0, 7)[1], 600), 'the gale blows it down the pool');
+    assert.equal(raft.tx, at('cistern', 10, 0)[0], 'still in the pool');
+    go(HW, 'cistern', 11, 7); HW.hold('left'); HW.step(12); HW.release(); HW.step(2);
+    assert.equal(`${HW.player().tx},${HW.player().ty}`, at('cistern', 10, 7).join(','), 'aboard');
+    return raft;
+}
+test('the cistern: hook the raft over the shaft, step aboard where the gale leaves it, ring: it snaps home across with Wren aboard; the drawbridge; the big door', () => {
+    const HW = cisternGame();
+    const raft = hookRaft(HW), p = HW.player();
+    ring(HW);
+    assert.ok(until(HW, () => HW.Return.isHome(raft), 120), 'home');
+    assert.equal(`${p.tx},${p.ty}`, at('cistern', 5, 1).join(','), 'carried across');
+    HW.hold('left'); HW.step(14); HW.release(); HW.step(4);
+    assert.equal(`${p.tx},${p.ty}`, at('cistern', 4, 1).join(','), 'on the far side');
+    assert.equal(HW.Inv.hp, 40, 'not a scratch');
+    /* the lever lets the drawbridge down: the way back */
+    go(HW, 'cistern', 2, 8); HW.face('down'); HW.press('act', 1); HW.step(20);
+    go(HW, 'cistern', 12, 9);
+    go(HW, 'cistern', 1, 5);
+    HW.hold('left'); HW.step(40); HW.release();
+    assert.equal(HW.player().tx, at('cistern', 1, 0)[0], 'the big door wants the Pattern');
+    HW.Inv.patterns.push('belfry');
+    HW.hold('left'); HW.step(60); HW.release(); HW.step(10);
+    assert.equal(HW.G.map.roomAt(HW.player().tx, HW.player().ty).name, 'The Great Bell');
+    noErrors(HW);
+});
+test('the cistern: aboard, waiting, the gale never lets the raft go home; paddled to the edge of the shaft and let go, it is caught again', () => {
+    const HW = cisternGame();
+    const raft = hookRaft(HW), p = HW.player();
+    let crossed = false;
+    for (let i = 0; i < 2400; i++) { HW.step(1); if (raft.tx < at('cistern', 9, 0)[0]) crossed = true; }
+    assert.ok(!crossed && p.tx === raft.tx, 'still in the pool, Wren aboard');
+    HW.Inv.equipped = 'paddle';
+    for (let i = 0; i < 600 && (p.tx !== at('cistern', 9, 0)[0] || p.ty !== 1); i++) { HW.hold(['tool', p.ty > 1 ? 'up' : 'left']); HW.step(1); }
+    HW.release(); HW.step(2);
+    assert.equal(`${p.tx},${p.ty}`, at('cistern', 9, 1).join(','), 'at the shaft\'s edge');
+    for (let i = 0; i < 2400; i++) { HW.step(1); if (raft.tx < at('cistern', 9, 0)[0]) crossed = true; }
+    assert.ok(!crossed, 'never crossed by itself');
+    noErrors(HW);
+});
+test("the cistern: the raft's empty mark hooked from the bank: down in the water, and home along the thread", () => {
+    const HW = cisternGame();
+    const raft = thing(HW, 'csRaft');
+    go(HW, 'cistern', 11, 1); HW.Inv.equipped = 'hook'; HW.face('left'); HW.press('tool', 1);
+    assert.ok(until(HW, () => raft.ty >= 3, 600), 'the gale took it off the hook row');
+    const hp = HW.Inv.hp;
+    HW.face('left'); HW.press('tool', 1); HW.step(200);
+    assert.equal(HW.Inv.hp, hp - 1, 'a ducking');
+    assert.ok(HW.player().tx > at('cistern', 10, 0)[0], 'back on the near side');
+    noErrors(HW);
+});
+test('the way up: the east gate in Bell Ropes opens with its Pattern; the bell stair is barred from above until Tollgrim is beaten, and then everything up there is open', () => {
+    const HW = game(['bell']);
+    enter(HW, 'ropes', 17, 5);
+    assert.equal(thing(HW, 'brEast').open, false, 'shut');
+    assert.equal(thing(HW, 'brStair').open, false, 'barred');
+    HW.Progress.set('belfry_ropes'); HW.step(5);
+    assert.ok(thing(HW, 'brEast').open, 'open with the Pattern');
+    go(HW, 'frame', 3, 5);
+    /* after Tollgrim: the stair, the Bell Frame's gate and the drawbridge (a game that beat him before these rooms were built
+       walks home from the hall either way) */
+    HW.Progress.set('belfry_boss'); HW.Progress.setAreaFlag('belfry', 'door:brBig');
+    HW.warp('belfry', ...at('bell', 9, 9)); HW.step(20);
+    assert.ok(thing(HW, 'brStair').open, 'the stair down');
+    go(HW, 'ropes', 9, 5);
+    HW.warp('belfry', ...at('bell', 17, 5)); HW.step(20);
+    go(HW, 'cistern', 2, 5); go(HW, 'cistern', 14, 9); go(HW, 'frame', 14, 2); go(HW, 'frame', 1, 5);
+    noErrors(HW);
+});
+test('old saves: a game that had opened the big door (it was in Bell Ropes) finds the big door open at the top of the Cistern', () => {
+    const HW = game(['bell']);
+    HW.Progress.setAreaFlag('belfry', 'door:brBig');
+    HW.warp('belfry', ...at('cistern', 2, 5)); HW.step(20);
+    assert.ok(thing(HW, 'brBig').open);
+    noErrors(HW);
+});
+test('saving and loading: the drawbridge stays down; a game saved mid-fight starts the fight over from the hall\'s doorway', () => {
+    const HW = cisternGame();
+    const raft = hookRaft(HW);
+    ring(HW); until(HW, () => HW.Return.isHome(raft), 120);
+    HW.hold('left'); HW.step(14); HW.release(); HW.step(4);
+    go(HW, 'cistern', 2, 8); HW.face('down'); HW.press('act', 1); HW.step(20);
+    HW.Save.write(1); HW.Save.apply(HW.Save.read(1)); HW.step(20);
+    go(HW, 'cistern', 4, 9); go(HW, 'cistern', 12, 9);
+    /* and in the hall, a beat into the fight */
+    HW.Inv.patterns.push('belfry');
+    go(HW, 'cistern', 1, 5); HW.hold('left'); HW.step(60); HW.release(); HW.step(20);
+    HW.walkTo(...at('bell', 17, 5)); HW.step(30); HW.skipTalk();
+    HW.Save.write(1); HW.Save.apply(HW.Save.read(1)); HW.step(30); HW.skipTalk(); HW.step(5);
+    const t = toll(HW);
+    assert.ok(t && t.alive && t.hp === 3 && t.state !== 'sleep', 'the fight from its first beat');
+    assert.equal(HW.G.map.roomAt(HW.player().tx, HW.player().ty).name, 'The Great Bell');
+    noErrors(HW);
+});
+test('the Bell Frame and the Cistern nudge after a long while stuck, and not once they are solved', () => {
+    for (const [room, x, y, solve] of [['frame', 1, 5, H => H.Progress.setAreaFlag('belfry', 'door:fbGate')], ['cistern', 14, 9, H => H.Progress.setAreaFlag('belfry', 'cs:over')]]) {
+        for (const solved of [false, true]) {
+            const HW = game(['bell']);
+            HW.Progress.set('belfry_ropes'); HW.Progress.set('hintsAsked'); HW.global('Settings').hints = true;
+            if (solved) solve(HW);
+            HW.warp('belfry', ...at(room, x, y)); HW.step(10);
+            const r = HW.Cam.room;
+            assert.ok(r.nudge, room + ' has a nudge');
+            HW.Stats.rooms['belfry:' + r.i].t = r.nudge.after; HW.step(5);
+            assert.equal(!!HW.Progress.areaFlag('belfry', 'nudged:' + r.key), !solved, `${room}: ${solved ? 'no nudge once solved' : 'nudged'}`);
+            noErrors(HW);
+        }
+    }
 });

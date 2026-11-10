@@ -119,7 +119,7 @@ class Gust extends Ent {
         this.t = 0; this.floor = true; this.force = p.force || 0.7;     /* how hard it pushes Wren, pixels a frame (she walks at 1.3) */
     }
     get on() { return !this.off && ((this.t + this.phase) % this.period) < this.len; }
-    get soon() { const k = (this.t + this.phase) % this.period; return k > this.period - 60; }
+    get soon() { if (this.off) return false; const k = (this.t + this.phase) % this.period; return k > this.period - 60; }   /* (a wind that's off isn't coming) */
     inside(tx, ty) { return tx >= this.tx && ty >= this.ty && tx < this.tx + this.w && ty < this.ty + this.h; }
     update() {
         this.t++;
@@ -130,7 +130,7 @@ class Gust extends Ent {
         if (this.beats) for (const e of a.ents) if (e.isGrid && e.ret && e.ret.state === 'returning' && !e.ret.snap && e.weight <= WEIGHT.medium && this.inside(e.tx, e.ty)) Return.disturb(e);
         if (this.t % 10 === 0) {
             /* blow loose things one tile downwind, the downwind ones first so a row moves together */
-            const things = a.ents.filter(e => e.isGrid && !e.fixed && !e.mv && e.weight <= WEIGHT.medium && !e.carried && !Return.held(e) && !e.noWind && this.inside(e.tx, e.ty))
+            const things = a.ents.filter(e => e.isGrid && !e.fixed && !e.mv && e.weight <= WEIGHT.medium && !e.carried && !Return.held(e) && !e.noWind && !e.hookPulled && this.inside(e.tx, e.ty))   /* (a thing on the Hookline is held by the line) */
                 .sort((m, n) => (DX[d] * (n.tx - m.tx) + DY[d] * (n.ty - m.ty)));
             for (const e of things) {
                 /* going home, it leans into the wind; a strong wind (beats) blows back anything but a bell's snap */

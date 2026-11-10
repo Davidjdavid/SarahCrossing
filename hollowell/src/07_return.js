@@ -250,6 +250,7 @@ class GridThing extends Ent {
     }
     sprite() { return null; }
     draw(cx, cy) {
+        if (this.carried) return;      /* (Wren draws what she carries, over her head: not here as well) */
         const im = this.sprite();
         if (!im) return;
         const sx = this.px - cx, sy = this.py - cy - (im.height - T) - this.z;

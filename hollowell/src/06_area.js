@@ -99,6 +99,7 @@ class Area {
         /* the player and walkers occupy tiles too */
         const pl = G.player;
         if (e && e.isGrid && pl && pl.area === this && !pl.dead && pl.onTile(x, y) && e !== pl && !(e.floats && pl.tx === e.tx && pl.ty === e.ty)) return false;   /* (a float isn't blocked by whoever's riding it) */
+        if (e && e.isGrid && pl && pl.area === this && pl.shove && tileOf(pl.shove.tx) === x && tileOf(pl.shove.ty) === y) return false;   /* (nor where she's being shoved to: two can't land on one tile) */
         for (const m of this.walkers) if (m !== e && m.alive !== false && m.onTile && m.onTile(x, y)) return false;
         return true;
     }
