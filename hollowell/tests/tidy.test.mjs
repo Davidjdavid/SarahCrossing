@@ -306,28 +306,52 @@ test('the Housekeeper: slammed by a bust coming home, then struck while its door
     noErrors(HW);
 });
 
-test('the Housekeeper, for real: push a bust out toward the wall; it comes to tidy it and its own yank slams it', () => {
+const until = (HW, fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
+test('the Housekeeper, for real, three different ways: its own yank; a way home through its cross; a held bust drags it', () => {
     const HW = game();
+    HW.Inv.giveTool('gloves');                  /* (found mid-House, before the boss) */
     HW.Inv.patterns.push('tidy');
     HW.warp('tidy', ...at('ante', 1, 5));
     HW.hold('left'); HW.step(50); HW.release();
     HW.hold('left'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk();
     const k = HW.ents('enemy').find(e => e.type === 'housekeeper');
-    for (let round = 0; round < 3 && k.alive; round++) {
-        /* (a person times this: step up to the bust just as it settles on its spot) */
-        go(HW, 'boss', 4, 3);
-        for (let i = 0; i < 900 && k.state !== 'home'; i++) HW.step(1);
-        go(HW, 'boss', 4, 4);
-        k.setState('home');
-        HW.push('left', 1);                         // the left bust (3,4) -> (2,4), out toward the wall
-        go(HW, 'boss', 3, 8);                       // out of the way
-        for (let i = 0; i < 600 && k.state !== 'stunned' && k.alive; i++) HW.step(1);
-        assert.equal(k.state, 'stunned', 'slammed by the bust it yanked home');
+    const strike = () => {
         for (let i = 0; i < 12; i++) HW.step(1);
         const p = HW.player(); p.x = k.x + 18; p.y = k.y; HW.face('left');
         HW.press('atk', 1); HW.step(40);
-        for (let i = 0; i < 400 && k.alive && k.state !== 'home'; i++) HW.step(1);
-    }
+        for (let i = 0; i < 600 && k.alive && !(k.state === 'home' && k.atHome()); i++) HW.step(1);
+    };
+    /* 1: push a bust out toward the wall; it comes over to tidy it, stands in the way, and its own yank slams it */
+    go(HW, 'boss', 4, 3);
+    for (let i = 0; i < 900 && k.state !== 'home'; i++) HW.step(1);
+    go(HW, 'boss', 4, 4);
+    k.setState('home');
+    HW.push('left', 1);                         // the left bust (3,4) -> (2,4), out toward the wall
+    go(HW, 'boss', 3, 8);                       // out of the way
+    for (let i = 0; i < 600 && k.state !== 'stunned' && k.alive; i++) HW.step(1);
+    assert.equal(k.state, 'stunned', 'slammed by the bust it yanked home');
+    strike();
+    assert.equal(k.hp, 2, 'one down');
+    /* 2: it won't go over any more. Bait a charge (stand in line with it), and while it's off its cross, push the top
+       bust down across the cross: home again, it yanks the bust back the way it came, through itself */
+    HW.skipTalk(); HW.step(30);
+    go(HW, 'boss', 13, 4); HW.face('left');
+    assert.ok(until(HW, () => k.state === 'charge' || k.state === 'recoil', 400), 'it charges');
+    go(HW, 'boss', 9, 1);
+    HW.push('down', 3);                         // (9,2) -> (9,5): across its cross
+    go(HW, 'boss', 6, 6);                       // out of the way
+    assert.ok(until(HW, () => k.state === 'stunned' || !k.alive, 900), 'slammed by the bust coming home through its cross');
+    strike();
+    assert.equal(k.hp, 1, 'two down');
+    /* 3: it never leaves its cross and yanks at once: grip a bust and pull it out, and hold on: it's dragged into it */
+    HW.skipTalk(); HW.step(30);
+    go(HW, 'boss', 3, 3); HW.face('down');
+    HW.hold(['act']); HW.step(4);
+    assert.ok(HW.player().grip, 'gripping the bust');
+    HW.hold(['act', 'up']); HW.step(22); HW.hold(['act']);
+    assert.ok(until(HW, () => k.state === 'stunned' || !k.alive, 400), 'dragged into the bust it was yanking');
+    HW.release(); HW.step(4);
+    strike();
     HW.step(100); HW.skipTalk();
     assert.ok(HW.Progress.flag('tidy_boss'), 'down for good');
     noErrors(HW);

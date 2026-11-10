@@ -548,13 +548,24 @@ class Housekeeper extends Enemy {
         this.st++;
         if (this.kx || this.ky) { this.move(this.kx, this.ky); this.kx *= 0.8; this.ky *= 0.8; if (Math.abs(this.kx) + Math.abs(this.ky) < 0.3) this.kx = this.ky = 0; this.traceStep(); }
         const angry = this.hp <= 1;
+        /* three beats: (1) it walks over to the mess and yanks it, so it can stand in the way of its own yank;
+           (2) it has learnt: it yanks from its cross and never goes over, so the way home has to pass through its
+           cross (it leaves it only to charge); (3) it never leaves its cross and yanks the moment anything's out of
+           place: hold the thing (the Gloves) and the yank drags the Housekeeper to it instead */
+        const phase = 4 - Math.max(1, Math.min(3, this.hp));
         switch (this.state) {
             case 'wake': if (this.st > 30) this.setState('home'); break;
             /* it stands on its spot and watches. Mess: it goes and tidies it. Line up with it: it charges */
             case 'home': {
+                if (phase > (this.told || 1) && this.atHome()) {
+                    this.told = phase;
+                    UI.toast(phase === 2 ? "The Housekeeper plants itself on its cross. It won't go to the mess any more: it yanks things home from where it stands."
+                        : "Its doors bang. It won't leave its cross for anything now, and it yanks the moment anything's out of its place.", 260);
+                }
                 const mess = this.mess();
-                if (mess && this.st > 20) { this.target = mess; this.tsk(); this.setState('tidy'); break; }
-                if (this.st > (angry ? 40 : 70)) {
+                if (mess && phase === 1 && this.st > 20) { this.target = mess; this.tsk(); this.setState('tidy'); break; }
+                if (mess && phase > 1 && this.st > (phase === 3 ? 8 : 24) && this.atHome()) { this.target = mess; this.tsk(); this.setState('reach'); break; }
+                if (phase < 3 && this.st > (angry ? 40 : 70)) {
                     const ax = Math.abs(p.x - this.x), ay = Math.abs(p.y - this.y);
                     if (ax < 12 || ay < 12) { this.chargeDir = ax < 12 ? (p.y < this.y ? UP : DOWN) : (p.x < this.x ? LEFT : RIGHT); this.dir = this.chargeDir; this.setState('windup'); }
                 }
@@ -573,6 +584,26 @@ class Housekeeper extends Enemy {
                 break;
             }
             case 'watch': if (this.st > 40) this.setState('return'); break;
+            /* (2, 3) a thread out from where it stands, and a yank */
+            case 'reach': {
+                const m = this.target;
+                if (!m || !m.ret || m.ret.state === 'home') { this.setState('home'); break; }
+                if (this.st === 10) { Return.snap(m); Sfx.play('tug'); this.rattle = 1; }
+                /* held fast: the thread goes taut, and the one that comes is the Housekeeper */
+                if (this.st > 12 && phase === 3 && Return.held(m)) { this.setState('dragged'); Sfx.play('tug'); break; }
+                if (this.st > 50) this.setState('home');
+                break;
+            }
+            case 'dragged': {
+                const m = this.target;
+                if (!m || !Return.held(m) || this.st > 120) { this.setState('return'); break; }
+                const gx = m.px + 8, gy = m.py + 10, dx = gx - this.x, dy = gy - this.y, d = Math.hypot(dx, dy) || 1;
+                if (d > 20 && this.move(dx / d * 3.2, dy / d * 3.2)) { this.traceStep(); this.anim++; break; }
+                /* into the thing it was pulling on: bang */
+                G.shake = 12; G.hitstop = 6; Sfx.play('hitthing'); Sfx.play('boss'); Fx.dust(this.x, this.y);
+                this.setState('stunned'); Stats.count('boss:tidy:dragged');
+                break;
+            }
             case 'windup': {
                 /* it can't abide mess: tidying comes before charging */
                 const mess = this.mess();
@@ -582,11 +613,12 @@ class Housekeeper extends Enemy {
             }
             case 'charge': {
                 const sp = angry ? 3.4 : 2.8;
-                if (!this.move(DX[this.chargeDir] * sp, DY[this.chargeDir] * sp) || this.st > 90) { G.shake = 10; Sfx.play('push'); Fx.dust(this.x, this.y); this.setState('recoil'); }
+                if (!this.move(DX[this.chargeDir] * sp, DY[this.chargeDir] * sp) || this.st > 90) { G.shake = 10; Sfx.play('push'); Fx.dust(this.x, this.y); this.charged = true; this.setState('recoil'); }
                 this.traceStep();
                 break;
             }
-            case 'recoil': if (this.st > 36) this.setState('return'); break;
+            /* (in its second beat it's slower to come home after a charge: long enough to get round to a bust) */
+            case 'recoil': if (this.st > (phase === 2 && this.charged ? 110 : 36)) { this.charged = false; this.setState('return'); } break;
             /* everything goes back the way it came: so does it */
             case 'return': {
                 if (this.trace.length < 2) { this.x = this.homeX * T + 8; this.y = this.homeY * T + 10; this.trace = [[this.homeX, this.homeY]]; this.setState('home'); break; }
@@ -650,6 +682,11 @@ class Housekeeper extends Enemy {
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
         Gfx.img(img, x - 16 + ox, y - 34);
         if (this.bang > 0) Gfx.img(spr('bubble_bang'), x - 4, y - 46);
+        /* its reaching thread, out to what it's yanking (taut and bright while it's being dragged) */
+        if ((this.state === 'reach' || this.state === 'dragged') && this.target && !this.target.removed) {
+            const m = this.target, mx = m.px + 8 - cx, my = m.py + 8 - cy;
+            Gfx.line(x, y - 16, mx, my, this.state === 'dragged' ? shade(THREAD.ives, 0.5) : THREAD.ives);
+        }
     }
 }
 SPAWN.housekeeper = (tx, ty) => Progress.flag('tidy_boss') ? new Ent('none') : new Housekeeper(tx, ty);
