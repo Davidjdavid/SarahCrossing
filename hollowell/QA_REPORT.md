@@ -156,6 +156,12 @@
   she's still in it. And a gap in the legs: the fair gate's bolt must be drawn on the way home after the Marionette
   Hall (the preset had done it).
 
+- 2026-11-10: playtime. The continuous scripted game takes 67.8 minutes of game time and sees 113 rooms on the main
+  path, solving every puzzle at once, never lost, skipping all text. A first-time player spends minutes per puzzle room
+  and reads everything: at 3 to 5 minutes a room plus travel, reading, exploring and retries, the main adventure comes
+  to roughly 10 to 13 hours (the brief's target is 10 to 14). The optional dungeons (15 rooms), Linnet's Trail and the
+  30-odd secrets add several hours more.
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 

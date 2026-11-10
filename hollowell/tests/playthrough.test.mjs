@@ -977,4 +977,5 @@ test('one game, from the title to the credits, nothing set up between', () => {
     const chain = name => { const H0 = loadGame(); H0.preset(name); const id = H0.G.map.id, p = H0.player(); HW.warp(id, p.tx, p.ty); HW.step(5); HW.skipTalk(); };
     LEG1(HW); LEG2(HW, chain); LEG3(HW, chain); LEG4(HW, chain); LEG5(HW, chain); LEG6(HW, chain); LEG7(HW, chain); LEG8(HW, chain); LEG9(HW, chain);
     assert.ok(HW.Progress.flag('unwound'), 'the end');
+    console.log(`# played: ${(HW.Stats.playFrames / 3600).toFixed(1)} min of game time; ${Object.keys(HW.Stats.rooms).length} rooms seen`);
 });
