@@ -43,23 +43,28 @@ the credits in nine legs; solution tests cover every room, both optional dungeon
 - Enemies don't show their threads (by design for now).
 
 ## Definition of done checklist (from GAME_BRIEF.md §13)
-- [ ] Substantial, fully playable adventure
-- [ ] ≥ 7 overworld regions
-- [ ] ≥ 8 fully developed main dungeons
-- [ ] ≥ 2 optional dungeons
-- [ ] Evolving hub
-- [ ] Interconnected overworld
-- [ ] Abilities expand exploration
-- [ ] Distinct dungeon mechanics
-- [ ] Earlier mechanics recombined
-- [ ] Genre transformation
-- [ ] Meta narrative
-- [ ] Foreshadowed reveal
-- [ ] ≥ 25 optional discoveries
-- [ ] Satisfying conclusion
-- [ ] 10–14 h main
-- [ ] Substantial optional content
-- [ ] Tested start to finish
-- [ ] No critical bugs or softlocks
-- [ ] Save/load reliable
-- [ ] Launches easily (double-click `hollowell/play.html`)
+- [x] Substantial, fully playable adventure (a fresh game plays through to the credits; scripted, continuous)
+- [x] ≥ 7 overworld regions (Hollowell, Meadowfold, Kilnridge, Millwater, Belfry Heights, Hushwood, Larkspur Fair, the
+  Loomwood and the Frayed Edge; and the Drift past the fog)
+- [x] ≥ 8 fully developed main dungeons (Tidyhouse, Kiln, Millrace, Belfry, Slumberhouse, Marionette Hall, Spoolworks,
+  Loom; and the Great Spool as the finale)
+- [x] ≥ 2 optional dungeons (the Stray House, the Unfinished House)
+- [x] Evolving hub (per act; the Pull; the free valley after)
+- [x] Interconnected overworld
+- [x] Abilities expand exploration
+- [x] Distinct dungeon mechanics
+- [x] Earlier mechanics recombined (the Makings; the Great Spool's antechambers; the Unfinished House)
+- [x] Genre transformation (the Makings)
+- [x] Meta narrative
+- [x] Foreshadowed reveal
+- [x] ≥ 25 optional discoveries (about 33 secrets, Linnet's Trail of 8, 16+ Heart Patches)
+- [x] Satisfying conclusion (to be judged by a human; reviewed twice)
+- [~] 10–14 h main (estimated from the scripted run: 68 game-minutes, 113 rooms; not yet timed by a person)
+- [x] Substantial optional content
+- [x] Tested start to finish (scripted; plus per-room tests, 311 in all)
+- [~] No critical bugs or softlocks (every dungeon reviewed by fresh eyes; the optional dungeons' review is under way)
+- [x] Save/load reliable (save/load tests across acts, old-save migration)
+- [x] Launches easily (double-click `hollowell/play.html`)
+
+Still to do before calling it done: the optional dungeons' bug review and fixes; the whole-game design critique's top
+items; a polish pass on art (the Drift, a few plain rooms) and music; then a final full verification.
