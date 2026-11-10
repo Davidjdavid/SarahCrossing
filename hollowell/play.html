@@ -3140,15 +3140,32 @@ const Cam = {
             if (p.grip) p.release();
             return;
         }
-        const t = this.target(p);
+        /* a scene can point the camera somewhere else for a while (Cam.look: a point in the world), panned to gently;
+           (once no scene is running, it comes back to Wren whatever the scene forgot) */
+        if (this.look && !Script.blocking()) { this.look = null; this.lookEase = true; }
+        const t = this.target(this.look ? { x: this.look.x, y: this.look.y + 6 } : p);
         /* outdoors, a gentle follow; indoors, exact */
-        if (p.area.family === 'outdoor') {
-            this.x = Math.round(lerp(this.x, t.x, 0.2)); this.y = Math.round(lerp(this.y, t.y, 0.2));
+        if (p.area.family === 'outdoor' || this.look || this.lookEase) {
+            const k = this.look || this.lookEase ? 0.08 : 0.2;
+            this.x = Math.round(lerp(this.x, t.x, k)); this.y = Math.round(lerp(this.y, t.y, k));
+            if (this.lookEase && Math.abs(this.x - t.x) < 1 && Math.abs(this.y - t.y) < 1) this.lookEase = false;
             if (Math.abs(this.x - t.x) < 1) this.x = t.x; if (Math.abs(this.y - t.y) < 1) this.y = t.y;
         } else { this.x = t.x; this.y = t.y; }
     },
     get busy() { return !!this.trans; },
 };
+/* for scenes: look at a tile (or a thing) and wait till the camera's there; then back to Wren */
+function* camLook(x, y, max = 90) {
+    Cam.look = typeof x === 'object' ? { x: (x.isGrid ? x.px : x.x) + 8, y: (x.isGrid ? x.py : x.y) + 8 } : { x: x * T + 8, y: y * T + 8 };
+    const p = G.player;
+    for (let i = 0; i < max; i++) { const t = Cam.target({ x: Cam.look.x, y: Cam.look.y + 6 }); if (Math.abs(Cam.x - t.x) < 2 && Math.abs(Cam.y - t.y) < 2) break; yield 1; }
+}
+function* camBack(max = 90) {
+    Cam.look = null; Cam.lookEase = true;
+    const p = G.player;
+    for (let i = 0; i < max && Cam.lookEase; i++) yield 1;
+    Cam.lookEase = false;
+}
 
 // ---- 13_script.js ----
 /* Scripts: cutscenes, conversations and events written as generator functions.
@@ -19812,9 +19829,12 @@ const GreatSpool = {
             Progress.set('pull_seen');
             const nd = a.ents.filter(e => e.dragged).length;
             Script.run(function* () {
+                /* (the camera goes to the square while it's told: the ring of people round the Well, the threads) */
+                yield* camLook(95, 59);
                 if (nd) yield* say(null, "The town square. " + (nd > 6 ? 'Everyone you know is' : 'The few with threads still on them are') + " shuffling towards the Well, step by step, threads streaming from them down into it. Their feet don't want to; their threads do.");
                 else yield* say(null, "The town square. Everyone you cut free is standing about the Well, watching. Threads are pouring into it from every direction: from the hills, the river, the fields, every marked thing in the valley. Nobody here is being pulled. You saw to that.");
                 yield* say(null, "The Well's cap is gone. Threads pour into the dark like water going down a drain.");
+                yield* camBack();
                 Progress.setGoal('Down the Well, to the Great Spool.');
             });
         }

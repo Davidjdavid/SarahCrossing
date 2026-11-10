@@ -415,9 +415,12 @@ const GreatSpool = {
             Progress.set('pull_seen');
             const nd = a.ents.filter(e => e.dragged).length;
             Script.run(function* () {
+                /* (the camera goes to the square while it's told: the ring of people round the Well, the threads) */
+                yield* camLook(95, 59);
                 if (nd) yield* say(null, "The town square. " + (nd > 6 ? 'Everyone you know is' : 'The few with threads still on them are') + " shuffling towards the Well, step by step, threads streaming from them down into it. Their feet don't want to; their threads do.");
                 else yield* say(null, "The town square. Everyone you cut free is standing about the Well, watching. Threads are pouring into it from every direction: from the hills, the river, the fields, every marked thing in the valley. Nobody here is being pulled. You saw to that.");
                 yield* say(null, "The Well's cap is gone. Threads pour into the dark like water going down a drain.");
+                yield* camBack();
                 Progress.setGoal('Down the Well, to the Great Spool.');
             });
         }
