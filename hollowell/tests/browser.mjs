@@ -258,6 +258,18 @@ const SCENARIOS = {
         await shot('en_title');
         await page.evaluate(() => localStorage.removeItem('hollowell-ended'));
     },
+    async strayhouse() {
+        await open();
+        await page.evaluate(() => { HW.preset('afterD8'); HW.step(5); HW.skipTalk(); HW.Progress.set('strayhouse_open'); HW.warp('hollow', 72, 8); HW.step(40); HW.skipTalk(); });
+        await shot('sh_door');
+        const rooms = { porch: [29, 40], parlour: [29, 29], pantry: [17, 27], garden: [41, 27], stair: [29, 18], wash: [17, 16], mend: [41, 16], pile: [29, 9], linnet: [9, 6] };
+        for (const [n, [x, y]] of Object.entries(rooms)) {
+            await page.evaluate(([x, y]) => { HW.warp('strayhouse', x, y); HW.step(40); HW.skipTalk(); HW.step(5); }, [x, y]);
+            await shot('sh_' + n);
+        }
+        await page.evaluate(() => { HW.step(200); HW.skipTalk(); HW.step(100); });
+        await shot('sh_pile2');
+    },
     async larkspur() {
         await open();
         await page.evaluate(() => { HW.preset('afterD5'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 12, 84); HW.step(40); HW.skipTalk(); });

@@ -106,7 +106,7 @@ TOOLS.shears = { use(p) { Shears.use(p); } };
     World.enter = function (...args) { if (G.map) Shears.remember(G.map); return enter0.apply(this, args); };
     /* a cut thing that fills a pit is gone for good */
     const fill0 = GridThing.prototype.fillPit;
-    GridThing.prototype.fillPit = function () { const k = Shears.key(this); if (this.cutFree && k) Progress.setAreaFlag(this.area.id, 'gone:' + k); return fill0.call(this); };
+    GridThing.prototype.fillPit = function () { const k = Shears.key(this); if ((this.cutFree || (!this.ret && this.marked === false)) && k) Progress.setAreaFlag(this.area.id, 'gone:' + k); return fill0.call(this); };      /* (a stray that filled a hole is gone for good, not back next time) */
     /* a save mid-place keeps the strays where they are too */
     const snap0 = Save.snapshot;
     Save.snapshot = function () { if (G.map) Shears.remember(G.map); return snap0.call(this); };

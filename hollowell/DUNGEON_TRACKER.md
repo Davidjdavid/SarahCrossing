@@ -13,8 +13,8 @@
 | D6 | Marionette Hall | Larkspur Fair | Remote bodies: marching soldiers, flats, puppets at a distance, puppets in step | Crossbar | Great Marionette | tested |
 | D7 | Spoolworks | Underside | Two layers: cords under marks (tug, tie off), hatches, counterweights; re-marking | Needle | The Tangle | tested |
 | D8 | Loom | Loomwood | Permanence: offcuts (strays), the old weights cut free, silk walls and bridges; no nudges | Shears | The Weaver | tested |
-| F | Great Spool | under the Well | Six Knot-locks remixing every House | – | The Spool | planned |
-| O1 | Stray House | Frayed Edge | Nothing returns | Twin Bedroll | The Pile | planned |
+| F | Great Spool | under the Well | Six Knot-locks remixing every House | – | The Spool | tested |
+| O1 | Stray House | Frayed Edge | Nothing returns: order, room, holes filled for good; the Needle gives a stray a place | Linnet's bracelet, Heartstitch | The Pile | tested |
 | O2 | Unfinished House | Hollowell hills | Finish chalk rooms with the Needle | Long Hook | – | planned |
 | M | The Makings (×3) | Underside | Indirect control: Tuck walks by four rules; you work from below | – | – | tested |
 
@@ -295,3 +295,22 @@ undone; at the top, Gran at the Spool and its six great threads.
 | The Top of the Spool | 1,0 | Shears | Gran pulls everything; cut the six great threads at their posts; Linnet comes; the Unwinding |
 
 A save between the last cut and the Unwinding picks the end up again on entering the top room.
+
+## O1 The Stray House (`src/77_strayhouse.js`; tests `tests/strayhouse.test.mjs`) - tested
+
+Linnet's, at the Frayed Edge (door 72,6). It opens when Wren posts Linnet's seven notes through its slot (the Trail:
+notes 1-7; the eighth is inside). Nothing in it has a thread: every block is a stray (pushed, it stays; into a hole or
+water, it fills it and is gone for good; loose ones are back where they started when you come in again). Spare-stray
+chutes in the rooms where holes are filled. No nudges. Music: Linnet's.
+
+| Room | Cell | Idea | Solution | Reward |
+|---|---|---|---|---|
+| The Porch | 1,3 | Strays | Push the stray up into the row of holes and across (a spare by the wall); note 8 | the way in |
+| The Parlour | 1,2 | Hub | West the Pantry, east the Garden; north a lock | - |
+| The Pantry | 0,2 | Order and room | Three strays onto three plates: from the door the middle one can only go west; the north one comes out its shelf gap and goes west; the south one comes out and goes east; second gaps in each shelf let you walk round | key |
+| The Bridge Garden | 2,2 | A trench | Three strays into the three holes in turn, each pushed over the last; the fourth over the filled trench onto the plate (spares from the chute) | key |
+| The Stair Hall | 1,1 | Hub | Two strays up the column of holes to the chest (Heart Patch); the stairs open when both lanterns are lit (west and east levers) | Heart Patch |
+| The Washhouse | 0,1 | Paddle, Hookline | Two stones into the water; from the second, the tub is just in Hookline reach: hook it over, paddle across; the lever | west lantern |
+| The Mending Room | 2,1 | Needle | Strays on a pincushion you can't get behind: needle two straight onto plates; needle the third out, unpick it (a stray again), push it onto the last | east lantern |
+| The Pile | 1,0 | Boss | It shoves after you (2x2); four corner nooks each with a slit too narrow for it: wait in one, slip out of the slit, and while it strains after you, push a stray across the nook's open side: boxed, it bursts and flings the strays about; 3x. Boxing it anywhere works too | Heartstitch |
+| Linnet's Room | 0,0 | - | Her desk (diary), the window onto the Drift | Linnet's bracelet (the fuller ending) |

@@ -98,6 +98,12 @@ Down the Well (Hollowell square, 95,59) once the Great Pull begins. A 3x4 grid o
 Knot rooms either side of the Winding Room (1,2) and the Climb (1,1), the Top (1,0). Up the foot's stair: back to the
 square (95,60).
 
+## The Stray House (map `strayhouse`, O1)
+Through the green door at the Frayed Edge (72,6), once Linnet's seven notes are posted. A 3x4 grid of rooms: the Porch
+(1,3, in and out), the Parlour (1,2) with the Pantry west and the Bridge Garden east, the Stair Hall (1,1, locked from
+the Parlour) with the Washhouse west and the Mending Room east (locked), the Pile (1,0, up the stairs), Linnet's Room
+(0,0, west of the Pile).
+
 ## Interiors
 Gran's house (Wren's room, study, well cellar), Inn (ground, attic, cellar), shops, school, clinic,
 Lost & Found, Jory's toy shop, Tuck's house, Dad's mill house, Mum's bell-keeper's lodge, Linnet's cottage.

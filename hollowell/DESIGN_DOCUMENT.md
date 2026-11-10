@@ -133,7 +133,7 @@ light things back one tile, which displaces them).
 
 Other progression: **hearts** (stitched patches; 3 to start, +1 per boss, +1 per 4 Heart Patches: 16
 patches in the world), **buttons** (money), dungeon **keys**, each House's **Pattern** (its master key)
-and **Plan** (its map), **Knots** (one per House). Optional upgrades: Long Hook (O2), Twin Bedroll (O1),
+and **Plan** (its map), **Knots** (one per House). Optional upgrades: Long Hook (O2), Linnet's bracelet and a Heartstitch (O1),
 Stray Charm (Lost & Found).
 
 ## 6. Story and acts (summary; details in SPOILERS.md)
@@ -247,7 +247,7 @@ Unwinding festival and the open road (epilogue).
 | D7 | Spoolworks | The Guild / Gundry (umber) | Two layers: cords from above, tug, tie-off, counterweights, linked cords, hatches | Needle | The Tangle |
 | D8 | Loom | the First Spinner (silver) | Permanence: strays, warp threads as bridges and walls, cutting | Shears | The Weaver (binds you to its web) |
 | F | Great Spool | Gran Hesper (all colours) | Six Knot-locks, each a remix of a House with everything since; the Great Pull | – | The Spool |
-| O1 | Stray House | Linnet (no thread) | Nothing returns: real Sokoban with strays; build your own bridges | Twin Bedroll | The Pile |
+| O1 | Stray House | Linnet (no thread) | Nothing returns: real Sokoban with strays; build your own bridges | Linnet's bracelet, Heartstitch | The Pile |
 | O2 | Unfinished House | Mr Ives (chalk) | Finish chalk-outlined rooms with the Needle; design a room for its Maker | Long Hook | – (Mr Ives walks it) |
 
 Each House: an entrance hall that introduces its grammar safely; 4–6 rooms of experimentation; the tool

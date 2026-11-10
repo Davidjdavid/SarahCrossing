@@ -181,6 +181,11 @@ the Shears; the fog is thread; "I'm going. I'll cut a little at a time from outs
 "If you're reading this, you're a Wanderer too. The Stray House is for you. Nothing in it comes back. Don't
 be frightened of that." The Stray House's last room: Linnet's bracelet (for the full ending).
 
+As built: notes 4 and 5 were scenery first (the Echo Room's pinned note, the bottle below the falls) and are trail
+notes now. The Stray House's door takes the seven notes through its slot ("Post them") and opens; note 8 lies in the
+Porch. The Stray House: DUNGEON_TRACKER.md "O1". Its reward is the bracelet (the ending: Linnet gives it to Hesper)
+and a Heartstitch; the Twin Bedroll was dropped (one Bedroll is enough for everything in the game).
+
 ## 5. Boss solutions
 
 - **Grand Housekeeper (D1)**: it charges along the floor's tracks toward you; displace heavy busts so their

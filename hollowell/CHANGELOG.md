@@ -76,3 +76,6 @@
 - Fixes from the third/fourth-act review (12 findings): a crash, an early way into the last main dungeon closed, two
   of its rooms made to need their idea, a way out of the small houses, kinder timing in one of them, a boss that can
   now actually hurt you, and smaller things; regression tests.
+- The first optional dungeon: nine rooms and a boss, opened by the long secret chain (two of its links fixed so they
+  count), with its reward feeding the ending; a small rule change (a loose block used to fill a hole is gone for good);
+  tests for every room and screenshots.

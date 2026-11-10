@@ -106,6 +106,13 @@
   finish Making 1 (a creative solution; the Ahas still reward the intended way). 8 regression tests
   (`tests/review_m.test.mjs`).
 
+- 2026-11-10: the Stray House (`tests/strayhouse.test.mjs`, 11): the door wants all seven notes; notes 4 and 5 count;
+  every room's solution; a stray that filled a hole stays gone; the Pile's first round played the way a person would
+  (lure it into a corner nook, out by the slit, a stray across its mouth while it strains), the other two by setting
+  strays round it; the bracelet in the ending. Found and fixed while writing them: the Pantry's shelf compartments had
+  one gap each, so pushing their stray out shut you in behind it (second gaps); the Pile couldn't fairly be boxed by
+  a person (corner nooks with slits, and it strains a while when it can't get nearer). Browser shots of every room.
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
@@ -126,3 +133,4 @@
 | 2026-11-10 | The Makings, Reveal 2 (238 in all); screenshots of the Making Floor, the Little Houses, the Hall of Names | pass |
 | 2026-11-10 | D7 review fixes (+7); Shears kit, Loomwood, the Loom, cutting free (258 in all); screenshots | pass |
 | 2026-11-10 | The Drift, the Great Pull, the Great Spool, the end (+8); Makings/Loom review fixes (+8); 274 in all; screenshots | pass |
+| 2026-11-10 | The Stray House (O1) and Linnet's Trail notes 4, 5, 8 (+11; 285 in all); screenshots | pass |
