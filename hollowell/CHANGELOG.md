@@ -119,3 +119,19 @@
 - The game in its own page with instructions beside it (a private link).
 - Music changes with a short crossfade instead of a cut.
 
+### Polish round 2 (a critic's review and four picture reviews of a full run)
+- The dialogue box goes to the side of the screen that hides least (never over the person speaking or a boss coming
+  on); people turn to face whoever they're talking to; pages end where sentences end.
+- Notices, name tags and the HUD's words redrawn to read clearly on anything; the HUD steps back over puzzle pieces.
+- Signs describe how things work, never the answer; the first time a hint would come, the House asks whether you'd
+  like hints at all.
+- In a House: "Sit and wait for things to come home" in the menu, and a ring round a moved thing's place shows how
+  long it will stay put.
+- The map names the regions, marks the Houses' doors and the Well, and flags where you're headed; the journal says
+  what's new in town.
+- Longer music: fourteen tunes now loop over 45 to 110 seconds instead of 7 to 37; the first four Houses' bosses have
+  their own fight tunes.
+- Art redrawn where it looked unfinished (a sleeping giant, a giant puppet, busts, moons, doors, signs, seats...).
+- Scenes staged to match their words (asleep in bed, lying down, the camera on what's being told, her own thread).
+- The Knot ceremony is quicker after the first, and what you hear after it changes each time.
+

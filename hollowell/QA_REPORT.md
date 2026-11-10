@@ -226,3 +226,4 @@
 | 2026-11-10 | Design critique items (+3); the Hanging Gallery (+1); optional dungeons' bug hunt fixes (+7); Making 4 (+2); 324 in all; Loom and Making screenshots | pass |
 | 2026-11-10 | Second fresh-eyes hunt's fixes (+4); 328 in all; every browser scenario (the isle's rocks checked) | pass |
 | 2026-11-10 | Polish round 1 (POLISH.md findings 1-15): pacing, scaling, probe runs (45 kinds -> 4), menu sweep, controller, live run 1 (792 pictures, 0 errors); 335 in all; browser checks incl. `scaling` and `gamepad` | pass |
+| 2026-11-10 | Polish round 2 (POLISH.md findings 16-28; the critic's list items 4, 7, 10, 15 and parts of 6, 8, 11, 12, 13): box placement, pagination, hint question, sit-and-wait, patience ring, map and journal, music set 1, art fixes, staging; tests/polish2.test.mjs (7); 342 in all; browser checks; live runs of legs 1-3 (0 probe issues) | pass |
