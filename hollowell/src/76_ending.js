@@ -27,7 +27,7 @@ const Ending = {
         yield* say(null, 'Over the north woods the fog has thinned to nothing but a morning mist, and through it, there is a road.');
         const seed = Progress.flag('seed_planted');
         yield* say(null, "In Gran's garden, Gran and Linnet sit on the bench together, not saying much. Biscuit sits between them, purring like a winch." + (seed ? ' By the gate, the seed you brought back from past the fog has opened: a tall flower the colour of a sky after rain.' : ''));
-        if (Inv.items.bracelet) { yield* say(null, "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
+        if (Inv.items.bracelet) { yield* say(null, Progress.flag('bracelet_top') ? "Gran has Linnet's bracelet on her wrist now, the green thread a little faded. Every so often she turns it round, and Linnet pretends not to see." : "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
         if (Progress.flag('s30')) yield* say(null, "On Gran's kitchen dresser, propped against the teapot: Tuck's drawing of you, in every colour he had.");
         yield* say(null, "And a week later, somebody re-carves the Well.");
         yield* fadeOut(60);

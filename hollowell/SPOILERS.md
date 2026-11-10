@@ -62,7 +62,9 @@ As built (`src/74_drift.js`, `75_greatspool.js`, `76_ending.js`): the Shears at 
 Drift (map blank until walked). Linnet in her garden tells her story; Hesper feels it and the Great Pull begins
 (townsfolk in town are dragged in an arc round the Well, threads streaming into it; the Well's cap is off). Down the
 Well: the Great Spool (DUNGEON_TRACKER.md: sixteen rooms, each Knot through an antechamber pairing its House with a
-later tool, and the Climb a gauntlet once the Knots are undone). At the top Hesper pulls everything else (junk flies at the Spool); six
+later tool, and the Climb a gauntlet once the Knots are undone). At the top Hesper pulls everything else (junk flies at the Spool); the six great threads are
+too taut to cut until something the Pull is dragging is dragged along one (Wren lays a crate under a thread near its post;
+the thread sags a moment); with Linnet's bracelet, shown to Hesper, she lets three go herself; six
 great threads cut; Linnet comes down ("Mum."); a choice of words (Let go / Come home), the same result; the Unwinding
 (the birds fly away and come back, people walk where they like, the Makers keep their Houses by choice, the fog thins
 to a road; Gran and Linnet in the garden; the Drift-bloom by the gate if S11's seed was planted); credits (the Makers,

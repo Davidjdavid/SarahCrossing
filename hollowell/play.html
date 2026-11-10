@@ -17626,6 +17626,8 @@ defHouse({
                 { k: 'greatspool', x: 8, y: 1, id: 'theSpool' },
                 { k: 'greatpost', x: 1, y: 2, house: 'tidy' }, { k: 'greatpost', x: 18, y: 2, house: 'kiln' }, { k: 'greatpost', x: 1, y: 5, house: 'mill' },
                 { k: 'greatpost', x: 18, y: 5, house: 'belfry' }, { k: 'greatpost', x: 1, y: 8, house: 'slumber' }, { k: 'greatpost', x: 18, y: 8, house: 'marionette' },
+                /* things on their shelves, for the Pull to drag */
+                { k: 'crate', x: 6, y: 9, id: 'gsCrateA' }, { k: 'crate', x: 13, y: 9, id: 'gsCrateB' }, { k: 'crate', x: 4, y: 9, id: 'gsCrateC' },
             ],
         },
     },
@@ -17663,10 +17665,23 @@ const HOUSE_NAMES = { tidy: 'Tidyhouse', kiln: 'Kiln', mill: 'Millrace', belfry:
 
 /* ---------------- the top: the Spool, its six great threads, Gran ---------------- */
 class GreatPost extends GridThing {
-    constructor(tx, ty, p = {}) { super('greatpost', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false, noNeedle: true }, p)); this.cuttable = true; }
+    constructor(tx, ty, p = {}) { super('greatpost', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false, noNeedle: true }, p)); this.cuttable = true; this.slack = 0; }
     get cut() { return Progress.flag('great:' + this.house); }
+    /* the tiles its thread runs over, from beside the post to the drum's foot */
+    get tiles() {
+        if (this._tiles) return this._tiles;
+        const s = this.area.find('theSpool'), out = [];
+        if (!s) return out;
+        const x1 = s.tx + 2, y1 = s.ty + 2, n = Math.max(Math.abs(x1 - this.tx), Math.abs(y1 - this.ty));
+        for (let i = 1; i < n; i++) { const x = Math.round(this.tx + (x1 - this.tx) * i / n), y = Math.round(this.ty + (y1 - this.ty) * i / n); if (!out.some(([u, v]) => u === x && v === y) && !(x === this.tx && y === this.ty)) out.push([x, y]); }
+        return (this._tiles = out);
+    }
+    under(x, y) { return !this.cut && this.tiles.some(([u, v]) => u === x && v === y); }
+    update() { if (this.slack > 0) this.slack--; }
     onCut() {
         if (this.cut || !Progress.flag('spool_met')) return;
+        /* the Spool keeps its threads taut: the Shears only bite one that something's just been dragged along */
+        if (this.slack <= 0) { Sfx.play('hitthing'); UI.toast(Progress.flag('taut_told') ? 'Too taut.' : "Too taut: the Shears skid right off it. If something were dragged along it, it might go slack for a moment...", 200); Progress.set('taut_told'); return; }
         Progress.set('great:' + this.house); Sfx.play('snip'); G.shake = 8; Fx.ring(this.tx * T + 8, this.ty * T, KNOT_COL[this.house]);
         const n = KNOT_HOUSES.filter(h => Progress.flag('great:' + h)).length;
         if (n >= 6) Script.run(GreatSpool.finale(), { name: 'finale' });
@@ -17675,7 +17690,17 @@ class GreatPost extends GridThing {
     draw(cx, cy) {
         const x = this.tx * T - cx, y = this.ty * T - cy, col = KNOT_COL[this.house];
         Gfx.rect(x + 3, y - 10, 10, 26, '#4a4466'); Gfx.rect(x + 4, y - 10, 8, 26, '#6a6488'); Gfx.rect(x + 2, y - 12, 12, 3, col);
-        if (!this.cut) { const s = this.area.find('theSpool'); if (s) { Gfx.line(x + 8, y - 6, s.tx * T + 32 - cx, s.ty * T + 16 - cy, col); Gfx.line(x + 8, y - 5, s.tx * T + 32 - cx, s.ty * T + 17 - cy, shade(col, -0.3)); } }
+        if (!this.cut) {
+            const s = this.area.find('theSpool');
+            if (s) {
+                const x1 = s.tx * T + 32 - cx, y1 = s.ty * T + 16 - cy;
+                if (this.slack > 0) {
+                    /* slack: it sags, wobbling */
+                    const sag = 10 + Math.sin(G.t / 4) * 3; let px = x + 8, py = y - 6;
+                    for (let i = 1; i <= 12; i++) { const k = i / 12, nx = x + 8 + (x1 - x - 8) * k, ny = y - 6 + (y1 - y + 6) * k + Math.sin(k * Math.PI) * sag; Gfx.line(px, py, nx, ny, shade(col, 0.3)); px = nx; py = ny; }
+                } else { Gfx.line(x + 8, y - 6, x1, y1, col); Gfx.line(x + 8, y - 5, x1, y1 + 1, shade(col, -0.3)); }
+            }
+        }
         else Gfx.line(x + 8, y - 6, x + 14, y + 4, shade(col, -0.4));
     }
 }
@@ -17690,15 +17715,36 @@ class SpoolDrum extends Ent {
         /* Gran pulls everything else: things fly in from the walls toward the Spool (they'd knock you flat, if there were
            anything left in you to unravel; as it is, they knock you about) */
         if (Progress.flag('spool_met') && !Progress.flag('unwound') && !Script.blocking()) {
-            if (this.t % 80 === 0) {
+            /* the Pull: a thing out of its place, lying under a great thread, is dragged along it into the drum, and the
+               thread goes slack a moment; the Spool spits the thing back onto its shelf after */
+            const posts = a.ents.filter(e => e.kind === 'greatpost' && !e.cut);
+            for (const e of a.ents) {
+                if (!e.ret || !e.isGrid || e.removed || e.carried || e.mv || e.kind === 'greatpost' || a.roomAt(e.tx, e.ty) !== a.roomAt(this.tx, this.ty)) continue;
+                if (Return.atHome ? Return.atHome(e) : (e.tx === e.ret.mx && e.ty === e.ret.my)) { e.yankT = 0; continue; }
+                const hit = posts.filter(q => q.under(e.tx, e.ty));
+                if (!hit.length) { e.yankT = 0; continue; }
+                if (++e.yankT < 24) continue;
+                e.yankT = 0;
+                for (const q of hit) { q.slack = 300; Sfx.play('twang'); Fx.ring(q.tx * T + 8, q.ty * T, KNOT_COL[q.house]); }
+                this.junk.push({ x: e.tx * T + 8, y: e.ty * T + 8, tx: (this.tx + 2) * T, ty: (this.ty + 1) * T + 8, k: 2, thing: e, harmless: true });
+                a.unplace(e, e.tx, e.ty); e.hiddenYank = true; e.inert = true; e.tx = -10; e.ty = -10; e.x = -160; e.y = -160;
+                if (!Progress.flag('slack_seen')) { Progress.set('slack_seen'); G.pendingToast = 'The Pull drags it along the great thread into the drum, and the thread goes slack behind it, sagging. Just for a moment.'; }
+            }
+            if (this.t % 140 === 0) {
                 const r = a.roomAt(this.tx, this.ty), y = r.y + 3 + Math.floor(G.rng() * 6), fromL = G.rng() < 0.5;
                 this.junk.push({ x: (fromL ? r.x + 1 : r.x + r.w - 2) * T + 8, y: y * T + 8, tx: (this.tx + 2) * T, ty: (this.ty + 1) * T + 8, k: Math.floor(G.rng() * 3) });
             }
             for (const j of this.junk) {
                 const dx = j.tx - j.x, dy = j.ty - j.y, d = Math.hypot(dx, dy);
-                if (d < 4) { j.gone = true; continue; }
+                if (d < 4) {
+                    j.gone = true;
+                    /* spat back onto its shelf */
+                    const e = j.thing;
+                    if (e && !e.removed) { const [hx, hy] = [e.ret.mx, e.ret.my]; e.tx = hx; e.ty = hy; e.x = hx * T; e.y = hy * T; e.hiddenYank = false; e.inert = false; e.ret.trace = [[hx, hy]]; e.ret.state = 'home'; a.place(e, hx, hy); Fx.poof(hx * T + 8, hy * T + 8); }
+                    continue;
+                }
                 j.x += dx / d * 1.6; j.y += dy / d * 1.6;
-                if (p.area === a && p.state === 'normal' && Math.abs(p.x - j.x) < 8 && Math.abs(p.y - 6 - j.y) < 8) { p.hurt(1, j.x, j.y); j.gone = true; }
+                if (!j.harmless && p.area === a && p.state === 'normal' && Math.abs(p.x - j.x) < 8 && Math.abs(p.y - 6 - j.y) < 8) { p.hurt(1, j.x, j.y); j.gone = true; }
             }
             this.junk = this.junk.filter(j => !j.gone);
         }
@@ -17771,7 +17817,8 @@ const GreatSpool = {
         yield* say('wren', "You can't pull me, Gran.");
         yield* say('gran', "...No. I can't, can I.");
         yield* say(null, "Her hands don't stop. The Spool's six great threads, one to every House, hum like bowstrings. Things come flying off the walls toward the drum: pots, crates, blocks, every marked thing in the valley, wound in.");
-        Progress.setGoal('Cut the Spool\'s six great threads, at their posts round the walls.');
+        yield* say(null, "The great threads are pulled so taut they ring. Every crate and pot near them shivers, wanting to be wound in.");
+        Progress.setGoal('Cut the Spool\'s six great threads, at their posts round the walls. (Too taut to cut, unless something knocks one slack.)');
     },
     *finale() {
         const a = G.map, p = G.player;
@@ -17882,7 +17929,26 @@ CONTENT_INIT.push(initGreatSpool);
 {
     const talk0 = Story.talk;
     Story.talk = function (npc) {
-        if (npc.who === 'gran' && npc.area && npc.area.id === 'greatspool' && !Progress.flag('unwound')) return function* () { yield* say('gran', cycle('gran_spool', ["Go home, love. Please. Go home and let me hold on.", "Twenty-five years I've held on. I can't stop now. If I stop, they'll all go.", "Don't look at me like that. You've your mother's look. And hers."])); };
+        if (npc.who === 'gran' && npc.area && npc.area.id === 'greatspool' && !Progress.flag('unwound')) return function* () {
+            /* Linnet's bracelet, from the Stray House: shown to her, it does what nothing else could */
+            if (Inv.items.bracelet && !Progress.flag('bracelet_top') && Progress.flag('spool_met')) {
+                const i = yield* ask(null, "Linnet's bracelet is in your satchel: green thread, plaited, with a little brass L. Show it to Gran?", ['Show her', 'Not now']);
+                if (i === 0) {
+                    Progress.set('bracelet_top'); Stats.count('secret:bracelet_top');
+                    yield* say('gran', "...Where did you... I plaited that. I plaited that for her, the spring before her Wander. She never took it off.");
+                    yield* say('gran', "She left it. She left it for somebody to find. For me to find.");
+                    yield* say(null, "Gran's hands go slack on the Spool. One after another, of their own accord, three of the great threads loosen and part, and she doesn't reach for them.");
+                    const left = KNOT_HOUSES.filter(h => !Progress.flag('great:' + h));
+                    for (const h of left.slice(0, 3)) Progress.set('great:' + h);
+                    G.shake = 8; Sfx.play('snip');
+                    if (KNOT_HOUSES.every(h => Progress.flag('great:' + h))) { Script.run(GreatSpool.finale(), { name: 'finale' }); return; }
+                    yield* say('gran', "I can't... I can't let go of the rest, love. My hands won't. You'll have to.");
+                    Save.autosave();
+                    return;
+                }
+            }
+            yield* say('gran', cycle('gran_spool', ["Go home, love. Please. Go home and let me hold on.", "Twenty-five years I've held on. I can't stop now. If I stop, they'll all go.", "Don't look at me like that. You've your mother's look. And hers."]));
+        };
         return talk0.call(this, npc);
     };
 }
@@ -17927,7 +17993,7 @@ const Ending = {
         yield* say(null, 'Over the north woods the fog has thinned to nothing but a morning mist, and through it, there is a road.');
         const seed = Progress.flag('seed_planted');
         yield* say(null, "In Gran's garden, Gran and Linnet sit on the bench together, not saying much. Biscuit sits between them, purring like a winch." + (seed ? ' By the gate, the seed you brought back from past the fog has opened: a tall flower the colour of a sky after rain.' : ''));
-        if (Inv.items.bracelet) { yield* say(null, "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
+        if (Inv.items.bracelet) { yield* say(null, Progress.flag('bracelet_top') ? "Gran has Linnet's bracelet on her wrist now, the green thread a little faded. Every so often she turns it round, and Linnet pretends not to see." : "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
         if (Progress.flag('s30')) yield* say(null, "On Gran's kitchen dresser, propped against the teapot: Tuck's drawing of you, in every colour he had.");
         yield* say(null, "And a week later, somebody re-carves the Well.");
         yield* fadeOut(60);

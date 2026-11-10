@@ -299,7 +299,7 @@ Knots; each Knot untied and each great thread cut is saved.
 | The Millrace's Knot | 0,1 | Paddle | A raft tied to nothing: paddle over, and back |
 | The Bell Loft | 3,1 | Bell + Needle | A boulder asleep over the pins: the Bell wakes it and it goes home (still over the pins); awake, the Needle gives it the plate for a home: the gate |
 | The Belfry's Knot | 4,1 | Bell | A sleeper in the doorway: ring it home, round the corner |
-| The Top of the Spool | 2,0 | Shears | Gran pulls everything; cut the six great threads at their posts; Linnet comes; the Unwinding |
+| The Top of the Spool | 2,0 | The Pull + Shears | Gran pulls everything. The six great threads are too taut to cut; anything out of its place lying under one is dragged along it into the drum (and spat back onto its shelf after), and the thread hangs slack a few seconds: carry a crate under a thread near its post, let the Pull drag it, and cut. With Linnet's bracelet (O1), show it to Gran: she lets three threads go herself. Linnet comes; the Unwinding |
 
 A save between the last cut and the Unwinding picks the end up again on entering the top room.
 

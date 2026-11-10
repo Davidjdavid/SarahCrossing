@@ -162,6 +162,15 @@
   to roughly 10 to 13 hours (the brief's target is 10 to 14). The optional dungeons (15 rooms), Linnet's Trail and the
   30-odd secrets add several hours more.
 
+- 2026-11-10: whole-game design critique (fresh eyes): 12 improvements ranked. Done so far: Linnet's notes 4, 5 and 8
+  carry the clues SPOILERS promised (the cellar winch clicking per Knot, the fog is thread, cutting from outside); the
+  blackboard's rules change after each reveal and after the end; the logbooks tell falls and the Maker's mark; the
+  tailor's window is no giveaway before the festival; the Great Pull is shown (tint, threads from everywhere into the
+  Well, the fog leaning in); the finale is systemic (threads too taut to cut until the Pull drags something along them)
+  with the bracelet as a second way. (The Hall of Names' labels it flagged are a brief entry overlay; after it, the
+  room reads cleanly.) Still to do from it: a richer Loom, a fourth Making, late tools in early regions, a discovery
+  tally that survives the cut, O1/O2 touches, visual variety, the Unwinding shown rather than told.
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 

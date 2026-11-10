@@ -157,15 +157,42 @@ function atTop() {
     HW.walkTo(...at('climb', 9, 1)); HW.hold('up'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk(); HW.step(20); HW.skipTalk();
     return HW;
 }
+
+/* at the top: carry a crate under a great thread near its post, let the Pull drag it along (slack), and cut */
+function slackAndCut(HW, post, origin) {
+    const a = HW.G.map, p = HW.player();
+    const crate = a.ents.find(e => e.kind === 'crate' && !e.removed && !e.hiddenYank && e.ret && e.tx === e.ret.mx && e.ty === e.ret.my);
+    assert.ok(crate, 'a crate on its shelf');
+    for (let k = 0; k < 4 && !HW.walkTo(crate.tx, crate.ty - 1); k++) HW.step(20);
+    HW.face('down'); HW.press('act', 1); HW.step(20);
+    assert.ok(p.carry, 'carrying a crate');
+    /* a tile under the thread, two along from the post, with a free tile beside it to stand on */
+    const t = post.tiles[1] || post.tiles[0];
+    const spots = [[t[0], t[1] + 1, 'up'], [t[0], t[1] - 1, 'down'], [t[0] - 1, t[1], 'right'], [t[0] + 1, t[1], 'left']];
+    let placed = false;
+    for (const [x, y, d] of spots) {
+        if (a.kind(x, y).solid || a.at(x, y) || post.under(x, y)) continue;
+        if (!HW.walkTo(x, y)) continue;
+        HW.face(d); HW.press('act', 1); HW.step(10); placed = !p.carry; if (placed) break;
+    }
+    assert.ok(placed, 'crate set down under the thread');
+    for (let i = 0; i < 200 && post.slack <= 0; i++) HW.step(1);
+    assert.ok(post.slack > 0, 'dragged along it: slack');
+    const sx = post.tx + (post.tx < origin[0] + 10 ? 1 : -1), d = post.tx < origin[0] + 10 ? 'left' : 'right';
+    assert.ok(HW.walkTo(sx, post.ty), 'beside the post');
+    HW.face(d); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(10); HW.skipTalk();
+}
 const finish = HW => { for (let i = 0; i < 120 && !HW.Progress.flag('unwound'); i++) { HW.skipTalk(); HW.step(20); } for (let i = 0; i < 400 && (HW.G.hideHud || HW.G.credits); i++) { HW.skipTalk(); HW.step(20); } };
 
 test('the top: six great threads cut, Gran lets go; the Unwinding, the credits, and the free valley after', () => {
     const HW = atTop();
     assert.ok(HW.Progress.flag('spool_met'));
     HW.G.cheats.god = true;
-    for (const [x, y, d] of [[2, 2, 'left'], [17, 2, 'right'], [2, 5, 'left'], [17, 5, 'right'], [2, 8, 'left'], [17, 8, 'right']]) {
-        go(HW, 'top', x, y); HW.face(d); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(10); HW.skipTalk();
-    }
+    /* too taut to cut, at first */
+    const posts = HW.G.map.ents.filter(e => e.kind === 'greatpost');
+    go(HW, 'top', 2, 2); HW.face('left'); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(5); HW.skipTalk();
+    assert.ok(!HW.Progress.flag('great:tidy'), 'taut');
+    for (const post of posts) slackAndCut(HW, post, R.top);
     assert.ok(HOUSES.every(h => HW.Progress.flag('great:' + h)), 'all six');
     finish(HW);
     assert.ok(HW.Progress.flag('unwound'), 'the Unwinding');
@@ -233,5 +260,14 @@ test('the Drift: no falling home (you climb out where you fell); its map is draw
     HW.hold('right'); HW.step(60); HW.release(); HW.step(60);
     assert.equal(HW.G.map.id, 'drift', 'still in the Drift');
     assert.equal(HW.player().state, 'normal');
+    noErrors(HW);
+});
+
+test('Linnet\'s bracelet shown to Gran at the Spool: she lets three great threads go herself', () => {
+    const HW = atTop();
+    HW.Inv.items.bracelet = 1;
+    const gran = HW.G.map.ents.find(e => e.who === 'gran');
+    HW.global('Script').run(HW.global('Story').talk(gran), { name: 'talk' }); HW.step(3); HW.skipTalk(0);
+    assert.equal(HOUSES.filter(h => HW.Progress.flag('great:' + h)).length, 3, 'three let go');
     noErrors(HW);
 });

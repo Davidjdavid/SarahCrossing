@@ -7,6 +7,32 @@ import { loadGame } from './harness.mjs';
 const TIDY = { foyer: [20, 33], kitchen: [0, 33], gallery: [40, 33], hall: [20, 22], pantry: [0, 22], parlor: [40, 22], cons: [60, 22], linen: [40, 11], laundry: [60, 11], ball: [20, 11], library: [0, 11], attic: [0, 0], ante: [40, 0], boss: [20, 0] };
 function t(room, x, y) { const [ox, oy] = TIDY[room]; return [ox + x, oy + y]; }
 
+
+/* at the top: carry a crate under a great thread near its post, let the Pull drag it along (slack), and cut */
+function slackAndCut(HW, post, origin) {
+    const a = HW.G.map, p = HW.player();
+    const crate = a.ents.find(e => e.kind === 'crate' && !e.removed && !e.hiddenYank && e.ret && e.tx === e.ret.mx && e.ty === e.ret.my);
+    assert.ok(crate, 'a crate on its shelf');
+    for (let k = 0; k < 4 && !HW.walkTo(crate.tx, crate.ty - 1); k++) HW.step(20);
+    HW.face('down'); HW.press('act', 1); HW.step(20);
+    assert.ok(p.carry, 'carrying a crate');
+    /* a tile under the thread, two along from the post, with a free tile beside it to stand on */
+    const t = post.tiles[1] || post.tiles[0];
+    const spots = [[t[0], t[1] + 1, 'up'], [t[0], t[1] - 1, 'down'], [t[0] - 1, t[1], 'right'], [t[0] + 1, t[1], 'left']];
+    let placed = false;
+    for (const [x, y, d] of spots) {
+        if (a.kind(x, y).solid || a.at(x, y) || post.under(x, y)) continue;
+        if (!HW.walkTo(x, y)) continue;
+        HW.face(d); HW.press('act', 1); HW.step(10); placed = !p.carry; if (placed) break;
+    }
+    assert.ok(placed, 'crate set down under the thread');
+    for (let i = 0; i < 200 && post.slack <= 0; i++) HW.step(1);
+    assert.ok(post.slack > 0, 'dragged along it: slack');
+    const sx = post.tx + (post.tx < origin[0] + 10 ? 1 : -1), d = post.tx < origin[0] + 10 ? 'left' : 'right';
+    assert.ok(HW.walkTo(sx, post.ty), 'beside the post');
+    HW.face(d); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(10); HW.skipTalk();
+}
+
 const LEG1 = (HW, chain) => {
     const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
     const walk = (x, y, m) => {
@@ -956,7 +982,7 @@ const LEG9 = (HW, chain) => {
     HW.hold('up'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk(); HW.step(20); HW.skipTalk();
     ok(HW.Progress.flag('spool_met'), 'Gran at the Spool');
     HW.G.cheats.god = true;     /* (the junk only knocks you about; this keeps the walk tidy) */
-    for (const [x, y, d] of [[2, 2, 'left'], [17, 2, 'right'], [2, 5, 'left'], [17, 5, 'right'], [2, 8, 'left'], [17, 8, 'right']]) { go('top', x, y); tool('shears', d); }
+    for (const post of HW.G.map.ents.filter(e => e.kind === 'greatpost')) slackAndCut(HW, post, G.top);
     for (let i = 0; i < 120 && !HW.Progress.flag('unwound'); i++) { HW.skipTalk(); HW.step(20); }
     ok(HW.Progress.flag('unwound'), 'the Unwinding');
     for (let i = 0; i < 400 && (HW.G.hideHud || HW.G.credits); i++) { HW.skipTalk(); HW.step(20); }
