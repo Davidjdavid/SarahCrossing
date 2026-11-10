@@ -92,3 +92,5 @@
 - One whole game played through by the tests from the title to the credits on a single save; an engine bug it found fixed.
 - The final encounter reworked into a puzzle that uses the game's own rules, with a second way through for those who
   found the long secret chain; the climax's look strengthened; clues placed where the story promised them.
+- The end shown, not only told; a tally of discoveries kept somewhere you can read it; three early places that only the
+  late game opens; small touches in the optional houses and past the edge.

@@ -166,6 +166,11 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
     We respected that. (We were proud.)"
 35. **S35 The motto**: read the Well's motto in each act (four texts: before Reveal 1; after it, with Bram's scratched
     note; after Reveal 2, tighter; after the Unwinding, re-carved); all four read: the secret.
+37. **Fog-silk hollows** (Act IV, the Shears): three nooks by the southern fog in Meadowfold (cut from the side), Kilnridge
+    and Millwater (cut from above), grown shut with the fog's own thread; buttons and a keepsake each.
+38. **The Wander quilt** (Wren's room, by the bed): a tally of everything found, by kind, never where (secrets, Linnet's
+    notes, Makers' marks, old foes patted, fog-silk hollows, the two optional houses).
+39. **Nothing returns, Wren included** (the Stray House): a fall in there leaves her where she fell.
 36. **Heart Patches** (16 total) placements are listed in DUNGEON_TRACKER.md "Overworld secrets".
 
 ### Linnet's Trail (the major secret chain)

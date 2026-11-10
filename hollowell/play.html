@@ -17447,6 +17447,22 @@ OW.blocks.fogpass = {
     },
 };
 
+/* things Linnet cut loose at the edge over the years, lying about the Drift where they ended up, each with its L */
+AREAS.drift.ents.push(
+    { k: 'driftstray', x: 24, y: 6, look: 'drift_churn', text: "A milk churn, lying on its side in the grass, an L scratched into its lid. It used to stand outside a dairy in Meadowfold. Nobody came looking." },
+    { k: 'driftstray', x: 55, y: 9, look: 'drift_kite', text: "A kite, caught in the long grass, its string cut clean. A little L inked on the tail. Somebody's child lost it over the fog, and it just... kept going." },
+    { k: 'driftstray', x: 30, y: 25, look: 'drift_gnome', text: "A garden gnome, grinning, an L scratched on his hat. He's been out here so long a bird has nested in the crook of his arm." },
+);
+SPAWN.driftstray = (tx, ty, p) => {
+    const pr = SPAWN.deco(tx, ty, { look: p.look, solid: [[0, 0]], text: p.text });
+    return pr;
+};
+CONTENT_INIT.push(() => {
+    ART.drift_churn = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#a8b0b8', 2, 8, 12, 6); R('#c8d0d8', 3, 9, 10, 3); R('#8a929a', 12, 7, 3, 8); R('#6a727a', 14, 9, 2, 4); R('#5a3a26', 7, 10, 1, 2); });
+    ART.drift_kite = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#e8463c', 6, 2, 4, 2); R('#e8463c', 5, 4, 6, 2); R('#f7d64a', 6, 6, 4, 2); R('#4f9be0', 7, 8, 2, 2); R('#5a3a26', 8, 10, 1, 2); R('#e4ecf5', 9, 12, 1, 1); R('#e4ecf5', 10, 13, 1, 1); });
+    ART.drift_gnome = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#e8463c', 6, 1, 4, 2); R('#e8463c', 5, 3, 6, 2); R('#f2c6a0', 6, 5, 4, 3); R('#fbf6ea', 5, 7, 6, 3); R('#4f9be0', 5, 10, 6, 4); R('#3a2e24', 5, 14, 2, 2); R('#3a2e24', 9, 14, 2, 2); });
+});
+
 // ---- 75_greatspool.js ----
 /* The Great Pull and the Great Spool. Back from the Drift on foot, Wren finds Gran winding the whole valley in:
    everyone with a thread (everyone not cut free) dragged in a ring round the Well, threads streaming down it. The
@@ -17982,12 +17998,18 @@ const Ending = {
         G.hideHud = true;
         yield* fadeIn(80);
         Music.play('drift');
-        yield 60;
-        yield* say(null, 'Up over the roofs, a flock of birds lifts off the bell tower and flies away, out over the edge of the valley, further than anything has ever flown from here.');
-        yield 60;
+        /* the birds: off the roofs, away over the edge of the valley, a long while, and back again (shown) */
+        G.birds = { t: 0, n: 14 };
+        for (let i = 0; i < 200; i++) { G.birds.t++; yield 1; }
+        yield* say(null, 'Up over the roofs, a flock of birds lifts off and flies away, out over the edge of the valley, further than anything has ever flown from here.');
+        for (let i = 0; i < 160; i++) { G.birds.t++; yield 1; }
         yield* say(null, 'You watch the sky a long time.');
-        yield 40;
+        for (let i = 0; i < 220; i++) { G.birds.t++; yield 1; }
         yield* say(null, 'They come back.');
+        for (let i = 0; i < 80; i++) { G.birds.t++; yield 1; }
+        G.birds = null;
+        /* everyone steps off their spot: let them walk a while before anybody says so */
+        for (let i = 0; i < 240; i++) yield 1;
         yield* say(null, 'Old Arlo walks down to the river. Miss Quill takes the children up the hill. Fisher Hob gets into a boat. Nobody, anywhere, is standing on their spot.');
         yield* say('ives', "We'll keep our Houses' threads, love. By choice. For the next Wanderer. For play. That's the difference.");
         yield* say(null, 'Over the north woods the fog has thinned to nothing but a morning mist, and through it, there is a road.');
@@ -18213,6 +18235,26 @@ const AFTER_LINES = {
     Story.cellarDoor = function* () {
         if (Progress.flag('unwound')) { yield* say(null, "The cellar door, standing open. Down the steps, the Well's winch, at rest, with a cushion on it. Gran comes down to sit here sometimes, she says, for the quiet."); return; }
         return yield* c0();
+    };
+}
+
+/* the birds of the Unwinding: out over the edge of the screen, and, a good while later, back */
+{
+    const draw0 = UI.draw;
+    UI.draw = function () {
+        const b = G.birds;
+        if (b && !G.credits) {
+            for (let i = 0; i < b.n; i++) {
+                const t = b.t, out = t < 380, k = out ? t / 380 : Math.max(0, 1 - (t - 380) / 280);
+                const sx = W / 2 + (i - b.n / 2) * 7, sy = H * 0.55 + (i % 3) * 5;
+                const ex = W * 1.3 + (i % 4) * 20, ey = -40 - (i % 5) * 12;
+                const x = sx + (ex - sx) * k + Math.sin((t + i * 13) / 9) * 2, y = sy + (ey - sy) * k;
+                if (y < -20 || x > W + 20) continue;
+                const f = ((t >> 3) + i) % 2;
+                Gfx.rect(x - 3, y + f, 3, 1, '#3a2e34'); Gfx.rect(x, y + 1 - f, 3, 1, '#3a2e34'); Gfx.rect(x - 1, y + 1, 2, 1, '#5a4a4e');
+            }
+        }
+        return draw0.call(this);
     };
 }
 
@@ -18536,6 +18578,23 @@ function initStrayHouse() {
     defSprite('icon_bracelet', ['................', '.....kkkkkk.....', '...kkggGGggkk...', '..kgGk....kGgk..', '.kgGk......kGgk.', '.kgk........kgk.', 'kgGk........kGgk', 'kgk..........kgk', 'kgk..........kgk', 'kgGk........kGgk', '.kgk...kk...kgk.', '.kgGk.kyyk.kGgk.', '..kgGkkyykkGgk..', '...kkggkkggkk...', '.....kkkkkk.....', '................'], { g: '#5ab85a', G: '#8fd46a', y: '#e8c04a' });
 }
 CONTENT_INIT.push(initStrayHouse);
+
+/* in the Stray House nothing pulls anything back, Wren included: a fall is just a fall, and she climbs out on the side
+   she went in from (as she will everywhere, once her own thread is cut) */
+{
+    const fall0 = Player.prototype.updateFall;
+    Player.prototype.updateFall = function () {
+        if (this.area && this.area.id === 'strayhouse' && !Progress.flag('cut_self') && this.stateT >= 26 && this.fallWhy !== 'doze' && !(Inv.bedroll && Inv.bedroll.area === this.area.id)) {
+            const bx = this.tx - DX[this.dir], by = this.ty - DY[this.dir], back = this.landingSpot(bx, by);
+            const [lx, ly] = back[0] === bx && back[1] === by ? back : this.landingSpot(this.tx, this.ty);
+            this.x = lx * T + 8; this.y = ly * T + 10; this.state = 'normal'; this.inv = 40;
+            Fx.dust(this.x, this.y); Sfx.play('land');
+            if (!Progress.flag('sh_fell')) { Progress.set('sh_fell'); G.pendingToast = 'Nothing pulls you home in here. You climb out, scraped, on the side you fell in from.'; }
+            return;
+        }
+        return fall0.call(this);
+    };
+}
 
 // ---- 78_unfinished.js ----
 /* The Unfinished House (O2, optional): old Mr Ives's, up the bank east of the river. He was a Maker; forty years ago he
@@ -19073,6 +19132,30 @@ function initSecrets() {
 }
 CONTENT_INIT.push(initSecrets);
 
+/* ---------- fog-silk hollows: little nooks by the fog's edge, grown shut with the fog's own thread; only the Shears part
+   it, so the early places hold something for the end of the Wander ---------- */
+const SILK_HOLLOWS = [
+    { block: '1,2', x: 11, y: 36, id: 'silkMeadow', keep: "Caught in the fog-silk long ago: a child's red shoe, a teaspoon, a ribbon off a prize ewe. Things the fog took and never quite let go of." },
+    { block: '0,2', x: 21, y: 37, id: 'silkKiln', keep: "Behind the silk, in a dry hollow of the rock: a potter's stamp with an L cut into it, and a jar of glaze gone solid. Somebody hid here once, and watched the fog." },
+    { block: '2,2', x: 16, y: 36, id: 'silkMill', keep: "Tangled in the silk at the back: a fishing float, a cork, a little wooden boat with a name painted on it, worn away. The fog keeps what drifts to it." },
+];
+for (const h of SILK_HOLLOWS) {
+    const B = OW.blocks[h.block];
+    B.rows[h.y] = B.rows[h.y].slice(0, h.x - 1) + '...' + B.rows[h.y].slice(h.x + 2);
+    B.ents.push(
+        { k: 'warpthread', x: h.x - 1, y: h.y - 1, len: 3, dir: 'h', id: h.id + 'Silk' },
+        { k: 'chest', x: h.x, y: h.y, item: 'b20', id: h.id },
+        { k: 'deco', x: h.x + 1, y: h.y, look: 'rock', solid: [[0, 0]], text: h.keep });
+}
+{
+    const int0 = Chest.prototype.interact;
+    Chest.prototype.interact = function (p) {
+        const r = int0.call(this, p);
+        if (this.opened && SILK_HOLLOWS.some(h => h.id === this.id) && !Progress.flag('silk:' + this.id)) { Progress.set('silk:' + this.id); Stats.count('secret:silk'); }
+        return r;
+    };
+}
+
 // ---- 78c_polish.js ----
 /* Polish from the design critique: the Rules on the schoolroom blackboard keep changing as the Hollow does; the Makers'
    logbooks tell how often you fell in their House and whether you found their mark; the Great Pull, seen. */
@@ -19136,6 +19219,48 @@ CONTENT_INIT.push(initSecrets);
         return draw0.call(this);
     };
 }
+
+/* ---------- the Wander quilt, on the chair by Wren's bed: a patch sewn on for everything found (counts, never where) ---------- */
+const QUILT = [
+    ['Secrets of the valley', [
+        () => Progress.flag('linnet1'), () => Progress.flag('s01'), () => Progress.flag('s03'), () => Progress.flag('staffonly'), () => Progress.flag('pie'),
+        () => Progress.flag('s07'), () => Progress.flag('s08'), () => Progress.flag('s09'), () => Progress.flag('s10'), () => Progress.flag('s11'),
+        () => Progress.flag('s12'), () => Progress.flag('s13'), () => Progress.flag('s14'), () => Progress.flag('belfry_echo'), () => Progress.flag('linnet6'),
+        () => Progress.flag('s18'), () => Progress.areaFlag('hollow', 'chest:mwCave'), () => Progress.areaFlag('hollow', 'got:hawkPatch'), () => Progress.flag('s22'),
+        () => Progress.flag('s23'), () => Progress.flag('s24'), () => Progress.flag('s25'), () => Progress.flag('s28'), () => Progress.flag('s29'),
+        () => Progress.flag('s30'), () => Progress.flag('s31'), () => Progress.flag('s32'), () => Progress.flag('s33'), () => Progress.flag('s35'),
+    ]],
+    ["Linnet's notes", [1, 2, 3, 4, 5, 6, 7, 8].map(n => () => Progress.flag('linnet' + n))],
+    ["The Makers' marks", ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'].map(h => () => Progress.flag('sig:' + h))],
+    ['Old foes, asleep and patted', ['tidy', 'kiln', 'millrace', 'belfry', 'slumber', 'marionette', 'spoolworks'].map(h => () => Progress.flag('pet:' + h))],
+    ['Hollows in the fog-silk', ['silkMeadow', 'silkKiln', 'silkMill'].map(id => () => Progress.flag('silk:' + id))],
+    ['The two houses nobody has to visit', [() => Progress.flag('sh_pile'), () => Progress.flag('ives_done')]],
+];
+const Quilt = {
+    tally() { return QUILT.map(([name, list]) => [name, list.filter(f => f()).length, list.length]); },
+    *read() {
+        const t = this.tally(), all = t.reduce((s, r) => s + r[1], 0), of = t.reduce((s, r) => s + r[2], 0);
+        yield* say(null, Progress.flag('unwound') ? `The Wander quilt, folded on the chair. Gran's been adding to it: ${all} patches now, every one a thing you found.` : `Your Wander quilt, folded on the chair. Gran sews a patch on for everything you find. ${all} so far.`);
+        yield* say(null, t.map(([name, n, m]) => `${name}: ${n} of ${m}`).join('\n'));
+        if (all === of) yield* say(null, "Every patch. Gran has stitched a little red thread all the way round the border, and then, at the very end, deliberately, left it loose.");
+    },
+};
+SPAWN.quilt = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.quilt, solid: [[0, 0]], oy: -2 });
+    pr.interact = () => { Script.run(Quilt.read()); return true; };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+AREAS.gran_room.ents.push({ k: 'quilt', x: 7, y: 5 });
+CONTENT_INIT.push(() => {
+    ART.quilt = paintSprite(16, 16, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        R('#6b4128', 3, 10, 2, 5); R('#6b4128', 11, 10, 2, 5); R('#8a5a38', 2, 8, 12, 3);
+        const cols = ['#e8463c', '#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8', '#8fd46a', '#d6304e'];
+        for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) R(cols[(i + j * 3) % 8], 2 + i * 3, 3 + j * 3, 3, 3);
+        R('#fbf6ea', 2, 3, 12, 1);
+    });
+});
 
 // ---- 79_presets.js ----
 /* Presets: game states at the start of each stretch, for the debug panel and the tests. */

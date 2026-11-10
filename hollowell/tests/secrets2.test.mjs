@@ -77,3 +77,29 @@ test('S25: with six of Linnet\'s notes, Biscuit\'s collar; S31: the far isle, by
     assert.deepEqual([HW.player().tx, HW.player().ty], [128 + 4, 80 + 10], 'and back');
     noErrors(HW);
 });
+
+test('fog-silk hollows in three early regions: shut until the Shears; the quilt counts them', () => {
+    const HW = game();
+    /* (Meadowfold's is cut from the side: the sheep pen's fence is above it) */
+    for (const [bx, by, x, y, ax, ay, d] of [[1, 2, 11, 36, -2, -1, 'right'], [0, 2, 21, 37, 0, -2, 'down'], [2, 2, 16, 36, 0, -2, 'down']]) {
+        const gx = bx * 64 + x, gy = by * 40 + y;
+        HW.warp('hollow', gx + ax, gy + ay); HW.step(10); HW.skipTalk();
+        assert.equal(HW.walkTo(gx, gy - 1), false, 'shut');
+        HW.walkTo(gx + ax, gy + ay); HW.face(d); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(10); HW.skipTalk();
+        assert.ok(HW.walkTo(gx, gy - 1), 'cut open');
+        HW.face('down'); HW.press('act', 1); HW.step(3); HW.skipTalk();
+    }
+    const silk = HW.global('Quilt').tally().find(r => /silk/.test(r[0]));
+    assert.ok(silk[1] === 3 && silk[2] === 3, 'all three counted');
+    noErrors(HW);
+});
+
+test('the quilt by Wren\'s bed reads out the tally', () => {
+    const HW = game();
+    HW.Progress.set('s01'); HW.Progress.set('linnet3');
+    HW.warp('gran_room', 7, 4); HW.step(10); HW.skipTalk();
+    HW.face('down'); HW.press('act', 1); HW.step(3);
+    assert.match(HW.global('Dialog').pages.flat().join(' '), /2 so far/);
+    HW.skipTalk();
+    noErrors(HW);
+});

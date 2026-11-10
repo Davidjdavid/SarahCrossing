@@ -60,3 +60,45 @@
         return draw0.call(this);
     };
 }
+
+/* ---------- the Wander quilt, on the chair by Wren's bed: a patch sewn on for everything found (counts, never where) ---------- */
+const QUILT = [
+    ['Secrets of the valley', [
+        () => Progress.flag('linnet1'), () => Progress.flag('s01'), () => Progress.flag('s03'), () => Progress.flag('staffonly'), () => Progress.flag('pie'),
+        () => Progress.flag('s07'), () => Progress.flag('s08'), () => Progress.flag('s09'), () => Progress.flag('s10'), () => Progress.flag('s11'),
+        () => Progress.flag('s12'), () => Progress.flag('s13'), () => Progress.flag('s14'), () => Progress.flag('belfry_echo'), () => Progress.flag('linnet6'),
+        () => Progress.flag('s18'), () => Progress.areaFlag('hollow', 'chest:mwCave'), () => Progress.areaFlag('hollow', 'got:hawkPatch'), () => Progress.flag('s22'),
+        () => Progress.flag('s23'), () => Progress.flag('s24'), () => Progress.flag('s25'), () => Progress.flag('s28'), () => Progress.flag('s29'),
+        () => Progress.flag('s30'), () => Progress.flag('s31'), () => Progress.flag('s32'), () => Progress.flag('s33'), () => Progress.flag('s35'),
+    ]],
+    ["Linnet's notes", [1, 2, 3, 4, 5, 6, 7, 8].map(n => () => Progress.flag('linnet' + n))],
+    ["The Makers' marks", ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'].map(h => () => Progress.flag('sig:' + h))],
+    ['Old foes, asleep and patted', ['tidy', 'kiln', 'millrace', 'belfry', 'slumber', 'marionette', 'spoolworks'].map(h => () => Progress.flag('pet:' + h))],
+    ['Hollows in the fog-silk', ['silkMeadow', 'silkKiln', 'silkMill'].map(id => () => Progress.flag('silk:' + id))],
+    ['The two houses nobody has to visit', [() => Progress.flag('sh_pile'), () => Progress.flag('ives_done')]],
+];
+const Quilt = {
+    tally() { return QUILT.map(([name, list]) => [name, list.filter(f => f()).length, list.length]); },
+    *read() {
+        const t = this.tally(), all = t.reduce((s, r) => s + r[1], 0), of = t.reduce((s, r) => s + r[2], 0);
+        yield* say(null, Progress.flag('unwound') ? `The Wander quilt, folded on the chair. Gran's been adding to it: ${all} patches now, every one a thing you found.` : `Your Wander quilt, folded on the chair. Gran sews a patch on for everything you find. ${all} so far.`);
+        yield* say(null, t.map(([name, n, m]) => `${name}: ${n} of ${m}`).join('\n'));
+        if (all === of) yield* say(null, "Every patch. Gran has stitched a little red thread all the way round the border, and then, at the very end, deliberately, left it loose.");
+    },
+};
+SPAWN.quilt = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.quilt, solid: [[0, 0]], oy: -2 });
+    pr.interact = () => { Script.run(Quilt.read()); return true; };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+AREAS.gran_room.ents.push({ k: 'quilt', x: 7, y: 5 });
+CONTENT_INIT.push(() => {
+    ART.quilt = paintSprite(16, 16, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        R('#6b4128', 3, 10, 2, 5); R('#6b4128', 11, 10, 2, 5); R('#8a5a38', 2, 8, 12, 3);
+        const cols = ['#e8463c', '#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8', '#8fd46a', '#d6304e'];
+        for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) R(cols[(i + j * 3) % 8], 2 + i * 3, 3 + j * 3, 3, 3);
+        R('#fbf6ea', 2, 3, 12, 1);
+    });
+});

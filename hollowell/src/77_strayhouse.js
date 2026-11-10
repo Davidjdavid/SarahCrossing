@@ -317,3 +317,20 @@ function initStrayHouse() {
     defSprite('icon_bracelet', ['................', '.....kkkkkk.....', '...kkggGGggkk...', '..kgGk....kGgk..', '.kgGk......kGgk.', '.kgk........kgk.', 'kgGk........kGgk', 'kgk..........kgk', 'kgk..........kgk', 'kgGk........kGgk', '.kgk...kk...kgk.', '.kgGk.kyyk.kGgk.', '..kgGkkyykkGgk..', '...kkggkkggkk...', '.....kkkkkk.....', '................'], { g: '#5ab85a', G: '#8fd46a', y: '#e8c04a' });
 }
 CONTENT_INIT.push(initStrayHouse);
+
+/* in the Stray House nothing pulls anything back, Wren included: a fall is just a fall, and she climbs out on the side
+   she went in from (as she will everywhere, once her own thread is cut) */
+{
+    const fall0 = Player.prototype.updateFall;
+    Player.prototype.updateFall = function () {
+        if (this.area && this.area.id === 'strayhouse' && !Progress.flag('cut_self') && this.stateT >= 26 && this.fallWhy !== 'doze' && !(Inv.bedroll && Inv.bedroll.area === this.area.id)) {
+            const bx = this.tx - DX[this.dir], by = this.ty - DY[this.dir], back = this.landingSpot(bx, by);
+            const [lx, ly] = back[0] === bx && back[1] === by ? back : this.landingSpot(this.tx, this.ty);
+            this.x = lx * T + 8; this.y = ly * T + 10; this.state = 'normal'; this.inv = 40;
+            Fx.dust(this.x, this.y); Sfx.play('land');
+            if (!Progress.flag('sh_fell')) { Progress.set('sh_fell'); G.pendingToast = 'Nothing pulls you home in here. You climb out, scraped, on the side you fell in from.'; }
+            return;
+        }
+        return fall0.call(this);
+    };
+}

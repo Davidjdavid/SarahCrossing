@@ -168,8 +168,10 @@
   tailor's window is no giveaway before the festival; the Great Pull is shown (tint, threads from everywhere into the
   Well, the fog leaning in); the finale is systemic (threads too taut to cut until the Pull drags something along them)
   with the bracelet as a second way. (The Hall of Names' labels it flagged are a brief entry overlay; after it, the
-  room reads cleanly.) Still to do from it: a richer Loom, a fourth Making, late tools in early regions, a discovery
-  tally that survives the cut, O1/O2 touches, visual variety, the Unwinding shown rather than told.
+  room reads cleanly.) Then: the Unwinding shows its birds leaving and coming back and people stepping off their
+  spots before anything is said; the Wander quilt (a tally by kind, never where); fog-silk hollows in Meadowfold,
+  Kilnridge and Millwater that only the Shears open; the Stray House leaves a fallen Wren where she fell; Linnet's cut-loose
+  things lying about the Drift (+2 tests). Still to do from it: a richer Loom, a fourth Making, more visual variety.
 
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.

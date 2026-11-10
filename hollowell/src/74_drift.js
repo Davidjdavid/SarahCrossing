@@ -197,3 +197,19 @@ OW.blocks.fogpass = {
         }
     },
 };
+
+/* things Linnet cut loose at the edge over the years, lying about the Drift where they ended up, each with its L */
+AREAS.drift.ents.push(
+    { k: 'driftstray', x: 24, y: 6, look: 'drift_churn', text: "A milk churn, lying on its side in the grass, an L scratched into its lid. It used to stand outside a dairy in Meadowfold. Nobody came looking." },
+    { k: 'driftstray', x: 55, y: 9, look: 'drift_kite', text: "A kite, caught in the long grass, its string cut clean. A little L inked on the tail. Somebody's child lost it over the fog, and it just... kept going." },
+    { k: 'driftstray', x: 30, y: 25, look: 'drift_gnome', text: "A garden gnome, grinning, an L scratched on his hat. He's been out here so long a bird has nested in the crook of his arm." },
+);
+SPAWN.driftstray = (tx, ty, p) => {
+    const pr = SPAWN.deco(tx, ty, { look: p.look, solid: [[0, 0]], text: p.text });
+    return pr;
+};
+CONTENT_INIT.push(() => {
+    ART.drift_churn = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#a8b0b8', 2, 8, 12, 6); R('#c8d0d8', 3, 9, 10, 3); R('#8a929a', 12, 7, 3, 8); R('#6a727a', 14, 9, 2, 4); R('#5a3a26', 7, 10, 1, 2); });
+    ART.drift_kite = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#e8463c', 6, 2, 4, 2); R('#e8463c', 5, 4, 6, 2); R('#f7d64a', 6, 6, 4, 2); R('#4f9be0', 7, 8, 2, 2); R('#5a3a26', 8, 10, 1, 2); R('#e4ecf5', 9, 12, 1, 1); R('#e4ecf5', 10, 13, 1, 1); });
+    ART.drift_gnome = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#e8463c', 6, 1, 4, 2); R('#e8463c', 5, 3, 6, 2); R('#f2c6a0', 6, 5, 4, 3); R('#fbf6ea', 5, 7, 6, 3); R('#4f9be0', 5, 10, 6, 4); R('#3a2e24', 5, 14, 2, 2); R('#3a2e24', 9, 14, 2, 2); });
+});

@@ -16,12 +16,18 @@ const Ending = {
         G.hideHud = true;
         yield* fadeIn(80);
         Music.play('drift');
-        yield 60;
-        yield* say(null, 'Up over the roofs, a flock of birds lifts off the bell tower and flies away, out over the edge of the valley, further than anything has ever flown from here.');
-        yield 60;
+        /* the birds: off the roofs, away over the edge of the valley, a long while, and back again (shown) */
+        G.birds = { t: 0, n: 14 };
+        for (let i = 0; i < 200; i++) { G.birds.t++; yield 1; }
+        yield* say(null, 'Up over the roofs, a flock of birds lifts off and flies away, out over the edge of the valley, further than anything has ever flown from here.');
+        for (let i = 0; i < 160; i++) { G.birds.t++; yield 1; }
         yield* say(null, 'You watch the sky a long time.');
-        yield 40;
+        for (let i = 0; i < 220; i++) { G.birds.t++; yield 1; }
         yield* say(null, 'They come back.');
+        for (let i = 0; i < 80; i++) { G.birds.t++; yield 1; }
+        G.birds = null;
+        /* everyone steps off their spot: let them walk a while before anybody says so */
+        for (let i = 0; i < 240; i++) yield 1;
         yield* say(null, 'Old Arlo walks down to the river. Miss Quill takes the children up the hill. Fisher Hob gets into a boat. Nobody, anywhere, is standing on their spot.');
         yield* say('ives', "We'll keep our Houses' threads, love. By choice. For the next Wanderer. For play. That's the difference.");
         yield* say(null, 'Over the north woods the fog has thinned to nothing but a morning mist, and through it, there is a road.');
@@ -247,5 +253,25 @@ const AFTER_LINES = {
     Story.cellarDoor = function* () {
         if (Progress.flag('unwound')) { yield* say(null, "The cellar door, standing open. Down the steps, the Well's winch, at rest, with a cushion on it. Gran comes down to sit here sometimes, she says, for the quiet."); return; }
         return yield* c0();
+    };
+}
+
+/* the birds of the Unwinding: out over the edge of the screen, and, a good while later, back */
+{
+    const draw0 = UI.draw;
+    UI.draw = function () {
+        const b = G.birds;
+        if (b && !G.credits) {
+            for (let i = 0; i < b.n; i++) {
+                const t = b.t, out = t < 380, k = out ? t / 380 : Math.max(0, 1 - (t - 380) / 280);
+                const sx = W / 2 + (i - b.n / 2) * 7, sy = H * 0.55 + (i % 3) * 5;
+                const ex = W * 1.3 + (i % 4) * 20, ey = -40 - (i % 5) * 12;
+                const x = sx + (ex - sx) * k + Math.sin((t + i * 13) / 9) * 2, y = sy + (ey - sy) * k;
+                if (y < -20 || x > W + 20) continue;
+                const f = ((t >> 3) + i) % 2;
+                Gfx.rect(x - 3, y + f, 3, 1, '#3a2e34'); Gfx.rect(x, y + 1 - f, 3, 1, '#3a2e34'); Gfx.rect(x - 1, y + 1, 2, 1, '#5a4a4e');
+            }
+        }
+        return draw0.call(this);
     };
 }

@@ -187,3 +187,27 @@ function initSecrets() {
     ART.crawlspace = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#8a6448', 1, 6, 14, 4); R('#6a4a32', 1, 9, 14, 2); R('#1a1410', 3, 11, 10, 5); R('#2a201a', 4, 12, 8, 4); if (true) R('#f7e08a', 9, 14, 1, 1); });
 }
 CONTENT_INIT.push(initSecrets);
+
+/* ---------- fog-silk hollows: little nooks by the fog's edge, grown shut with the fog's own thread; only the Shears part
+   it, so the early places hold something for the end of the Wander ---------- */
+const SILK_HOLLOWS = [
+    { block: '1,2', x: 11, y: 36, id: 'silkMeadow', keep: "Caught in the fog-silk long ago: a child's red shoe, a teaspoon, a ribbon off a prize ewe. Things the fog took and never quite let go of." },
+    { block: '0,2', x: 21, y: 37, id: 'silkKiln', keep: "Behind the silk, in a dry hollow of the rock: a potter's stamp with an L cut into it, and a jar of glaze gone solid. Somebody hid here once, and watched the fog." },
+    { block: '2,2', x: 16, y: 36, id: 'silkMill', keep: "Tangled in the silk at the back: a fishing float, a cork, a little wooden boat with a name painted on it, worn away. The fog keeps what drifts to it." },
+];
+for (const h of SILK_HOLLOWS) {
+    const B = OW.blocks[h.block];
+    B.rows[h.y] = B.rows[h.y].slice(0, h.x - 1) + '...' + B.rows[h.y].slice(h.x + 2);
+    B.ents.push(
+        { k: 'warpthread', x: h.x - 1, y: h.y - 1, len: 3, dir: 'h', id: h.id + 'Silk' },
+        { k: 'chest', x: h.x, y: h.y, item: 'b20', id: h.id },
+        { k: 'deco', x: h.x + 1, y: h.y, look: 'rock', solid: [[0, 0]], text: h.keep });
+}
+{
+    const int0 = Chest.prototype.interact;
+    Chest.prototype.interact = function (p) {
+        const r = int0.call(this, p);
+        if (this.opened && SILK_HOLLOWS.some(h => h.id === this.id) && !Progress.flag('silk:' + this.id)) { Progress.set('silk:' + this.id); Stats.count('secret:silk'); }
+        return r;
+    };
+}
