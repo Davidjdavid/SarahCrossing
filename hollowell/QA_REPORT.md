@@ -149,6 +149,13 @@
   time the Underside was built (after Making 3 there was no way on until you left and came back); the Shuttle Run's
   chute stood in its own doorway, so it couldn't be walked into from the Warp Hall (the room test had warped in).
 
+- 2026-11-10: one game, from the title to the credits, nothing set up between (`tests/playthrough.test.mjs`, the last
+  test: the nine legs chained on one save, each only taken to where the next leg starts). It found: an area's per-frame
+  logic ran once more after Wren had gone through a door, with her new position (so walking into the Tidyhouse set
+  "reached Kilnridge", and the canyon boulder was already moved when she got there): an area's tick now only runs while
+  she's still in it. And a gap in the legs: the fair gate's bolt must be drawn on the way home after the Marionette
+  Hall (the preset had done it).
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
@@ -173,3 +180,4 @@
 | 2026-11-10 | The Unfinished House (O2) (+9; 294 in all); screenshots | pass |
 | 2026-11-10 | Late secrets (+6); final-act review fixes (+7); the Great Spool rebuilt to 16 rooms (+1); 308 in all; screenshots | pass |
 | 2026-11-10 | Playthrough legs 8 and 9: fresh game to credits in nine legs (310 in all); three bugs found and fixed | pass |
+| 2026-11-10 | One continuous game, title to credits, no presets (311 in all, 2 min) | pass |

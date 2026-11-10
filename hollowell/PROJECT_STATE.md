@@ -34,7 +34,7 @@ the credits in nine legs; solution tests cover every room, both optional dungeon
    ending) and O2 the Unfinished House (the Guild pin or the Loom; the Long Hook).
 2. Secrets: all built but S17 and S21 (dropped, see SPOILERS.md). The final-act review's findings are fixed and the Great Spool is rebuilt (16 rooms).
 3. Done: playthrough legs 8 and 9 (a fresh game to the credits, scripted, in nine legs). Next: a fresh-eyes review of
-   the whole game's pacing and the two optional dungeons; a single continuous run with no presets between legs.
+   the whole game's pacing and the two optional dungeons; a single continuous run with no presets between legs is done too (the last test in tests/playthrough.test.mjs).
 4. Music and art passes (the Drift is plain; the epilogue could use more on screen); pacing and playtime review.
 
 ## Known bugs

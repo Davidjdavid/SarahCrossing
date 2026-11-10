@@ -89,3 +89,4 @@
   the way to the top; tests.
 - The scripted playthrough reaches the credits (two more legs); three bugs it found fixed (two ways to get stuck on the
   way, a blocked doorway).
+- One whole game played through by the tests from the title to the credits on a single save; an engine bug it found fixed.

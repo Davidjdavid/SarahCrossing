@@ -7,8 +7,7 @@ import { loadGame } from './harness.mjs';
 const TIDY = { foyer: [20, 33], kitchen: [0, 33], gallery: [40, 33], hall: [20, 22], pantry: [0, 22], parlor: [40, 22], cons: [60, 22], linen: [40, 11], laundry: [60, 11], ball: [20, 11], library: [0, 11], attic: [0, 0], ante: [40, 0], boss: [20, 0] };
 function t(room, x, y) { const [ox, oy] = TIDY[room]; return [ox + x, oy + y]; }
 
-test('a fresh game: prologue, ceremony, the Tidyhouse to its Knot, and home', () => {
-    const HW = loadGame();
+const LEG1 = (HW, chain) => {
     const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
     const walk = (x, y, m) => {
         let r = HW.walkTo(x, y);
@@ -108,12 +107,12 @@ test('a fresh game: prologue, ceremony, the Tidyhouse to its Knot, and home', ()
     walk(exit.tx, exit.ty - 1); HW.hold('down'); until(() => area() === 'hollow', 200); HW.release(); HW.step(30);
     ok(area() === 'hollow', 'back outside');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
-});
+};
+test('a fresh game: prologue, ceremony, the Tidyhouse to its Knot, and home', () => LEG1(loadGame()));
 
-test('from the first Knot: the canyon road, Kilnridge, the Kiln to its Knot', () => {
-    const HW = loadGame();
+const LEG2 = (HW, chain) => {
     const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
-    const walk = (x, y, m) => { let r = HW.walkTo(x, y); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y); } ok(r, m || `walk ${x},${y}`); };
+    const walk = (x, y, m) => { let r = HW.walkTo(x, y); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y); } const o = HW.G.map.at(x, y); ok(r, (m || `walk ${x},${y}`) + (o ? ` [${o.kind} ${o.id || o.skey || o.who || ''}]` : '')); };
     const area = () => HW.G.map.id;
     const thing = id => HW.G.map.find(id);
     const until = (fn, max = 3000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
@@ -122,7 +121,7 @@ test('from the first Knot: the canyon road, Kilnridge, the Kiln to its Knot', ()
     const k = (r, x, y) => [K[r][0] + x, K[r][1] + y];
     const lift = d => { HW.face(d); HW.press('act', 1); ok(HW.player().carry, 'lifted'); };
     const toss = d => { HW.face(d); HW.press('act', 1); };
-    HW.preset('afterD1'); HW.step(10);
+    if (chain) chain('afterD1'); else HW.preset('afterD1'); HW.step(10);
     HW.Inv.maxHp = HW.Inv.hp = 16;
 
     /* the canyon road: the boulder only moves for a grip */
@@ -202,10 +201,10 @@ test('from the first Knot: the canyon road, Kilnridge, the Kiln to its Knot', ()
     walk(hoop.tx, hoop.ty + 1); HW.face('up'); HW.press('act', 1); HW.skipTalk(0); HW.step(300); HW.skipTalk(); HW.step(10); HW.skipTalk();
     ok(HW.Inv.knots.includes('kiln') && HW.Progress.flag('d2'), 'the Fired Knot');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
-});
+};
+test('from the first Knot: the canyon road, Kilnridge, the Kiln to its Knot', () => LEG2(loadGame()));
 
-test('from the second Knot: the broken bridge, Millwater, the ferry, the Millrace to its Knot', () => {
-    const HW = loadGame();
+const LEG3 = (HW, chain) => {
     const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
     const walk = (x, y, m) => { let r = HW.walkTo(x, y); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y); } ok(r, m || `walk ${x},${y}`); };
     const area = () => HW.G.map.id;
@@ -217,7 +216,7 @@ test('from the second Knot: the broken bridge, Millwater, the ferry, the Millrac
     const at = (o, x, y) => o.tx === x && o.ty === y && !o.mv;
     const board = (raft, [x, y], dir, max = 2000) => { ok(until(() => at(raft, x, y), max), `raft at ${x},${y}`); HW.hold(dir); HW.step(10); HW.release(); HW.step(1); ok(HW.player().tx === x && HW.player().ty === y, 'aboard'); };
     const off = dir => { HW.hold(dir); HW.step(14); HW.release(); HW.step(2); };
-    HW.preset('afterD2'); HW.step(10);
+    if (chain) chain('afterD2'); else HW.preset('afterD2'); HW.step(10);
     HW.Inv.maxHp = HW.Inv.hp = 24;
 
     /* the broken bridge in Meadowfold: hook the eyelet on the far side */
@@ -333,10 +332,10 @@ test('from the second Knot: the broken bridge, Millwater, the ferry, the Millrac
     walk(exit.tx + 1, exit.ty); HW.hold('left'); until(() => area() === 'hollow', 200); HW.release(); HW.step(30);
     ok(area() === 'hollow', 'back outside');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
-});
+};
+test('from the second Knot: the broken bridge, Millwater, the ferry, the Millrace to its Knot', () => LEG3(loadGame()));
 
-test('from the third Knot: over the lake, up the cliff stair and the Heights, the Belfry to its Knot', () => {
-    const HW = loadGame();
+const LEG4 = (HW, chain) => {
     const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
     const walk = (x, y, m) => { let r = HW.walkTo(x, y); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y); } ok(r, m || `walk ${x},${y}`); };
     const area = () => HW.G.map.id;
@@ -349,7 +348,7 @@ test('from the third Knot: over the lake, up the cliff stair and the Heights, th
     const paddleTo = (x, y) => { for (let i = 0; i < 2000 && (p().tx !== x || p().ty !== y); i++) { const d = p().tx < x ? 'right' : p().tx > x ? 'left' : p().ty < y ? 'down' : 'up'; HW.hold(['tool', d]); HW.step(1); } HW.release(); HW.step(2); ok(p().tx === x && p().ty === y, `paddled to ${x},${y}`); };
     const B = { porch: [20, 44], draught: [0, 44], windward: [40, 44], stair: [20, 33], weather: [0, 33], loft: [20, 22], reach: [0, 22], ropes: [20, 11], bell: [20, 0] };
     const b = (r, x, y) => [B[r][0] + x, B[r][1] + y];
-    HW.preset('afterD3'); HW.step(10); HW.skipTalk();
+    if (chain) chain('afterD3'); else HW.preset('afterD3'); HW.step(10); HW.skipTalk();
     HW.Inv.maxHp = HW.Inv.hp = 24;
 
     /* back over the river on the ferry, round to Wick's pier, paddle over the lake */
@@ -446,10 +445,10 @@ test('from the third Knot: over the lake, up the cliff stair and the Heights, th
     walk(exit.tx + 1, exit.ty); HW.hold('left'); until(() => area() === 'hollow', 200); HW.release(); HW.step(30);
     ok(area() === 'hollow', 'back outside');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
-});
+};
+test('from the third Knot: over the lake, up the cliff stair and the Heights, the Belfry to its Knot', () => LEG4(loadGame()));
 
-test('from the fourth Knot: the festival, the giant on the east road, Hushwood and the Slumberhouse to its Knot', () => {
-    const HW = loadGame();
+const LEG5 = (HW, chain) => {
     const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
     const walk = (x, y, m) => { let r = HW.walkTo(x, y); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y); } ok(r, m || `walk ${x},${y}`); };
     const area = () => HW.G.map.id;
@@ -464,7 +463,7 @@ test('from the fourth Knot: the festival, the giant on the east road, Hushwood a
     const s = (r, x, y) => [S[r][0] + x, S[r][1] + y];
     const steps = (r, path) => { for (const [x, y] of path) { const [tx, ty] = s(r, x, y), d = tx > p().tx ? 'right' : tx < p().tx ? 'left' : ty > p().ty ? 'down' : 'up'; for (let i = 0; i < 60 && (p().tx !== tx || p().ty !== ty); i++) { HW.hold(d); HW.step(1); } const along = d === 'left' || d === 'right' ? () => Math.abs(p().x - (tx * 16 + 8)) : () => Math.abs(p().y - (ty * 16 + 10)); for (let i = 0; i < 12 && along() > 2; i++) { HW.hold(d); HW.step(1); } HW.release(); ok(p().state === 'normal' && p().tx === tx && p().ty === ty, `stepped to ${r} ${x},${y}`); } };
     const fallHome = dir => { HW.hold(dir); until(() => p().state === 'fall', 200); HW.release(); landed(); };
-    HW.preset('afterD4'); HW.step(10); HW.skipTalk();
+    if (chain) chain('afterD4'); else HW.preset('afterD4'); HW.step(10); HW.skipTalk();
     HW.Inv.maxHp = HW.Inv.hp = 28;
 
     /* home for the festival (the way down from the Heights is the way up, played in the leg before) */
@@ -561,10 +560,10 @@ test('from the fourth Knot: the festival, the giant on the east road, Hushwood a
     walk(exit.tx + 1, exit.ty); HW.hold('left'); until(() => area() === 'hollow', 200); HW.release(); HW.step(30);
     ok(area() === 'hollow', 'back outside');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
-});
+};
+test('from the fourth Knot: the festival, the giant on the east road, Hushwood and the Slumberhouse to its Knot', () => LEG5(loadGame()));
 
-test('from the fifth Knot: over to Kilnridge, off the high mesa into Larkspur Fair, the Marionette Hall to its Knot (Reveal 1)', () => {
-    const HW = loadGame();
+const LEG6 = (HW, chain) => {
     const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
     const walk = (x, y, m, max) => { let r = HW.walkTo(x, y, max); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y, max); } ok(r, m || `walk ${x},${y}`); };
     const area = () => HW.G.map.id;
@@ -575,7 +574,7 @@ test('from the fifth Knot: over to Kilnridge, off the high mesa into Larkspur Fa
     const strings = moves => { const names = { U: 'up', D: 'down', L: 'left', R: 'right' }; for (const m of moves) { const ps = HW.global('Crossbar').ctl.puppets; HW.hold(names[m]); until(() => ps.some(e => e.mv), 12); until(() => !ps.some(e => e.mv), 30); HW.release(); HW.step(3); } };
     const M = { foyer: [20, 33], box: [40, 33], aud: [20, 22], pit: [0, 22], reh: [40, 22], wings: [20, 11], dress: [0, 11], props: [40, 11], stage: [20, 0] };
     const m = (r, x, y) => [M[r][0] + x, M[r][1] + y];
-    HW.preset('afterD5'); HW.step(10); HW.skipTalk();
+    if (chain) chain('afterD5'); else HW.preset('afterD5'); HW.step(10); HW.skipTalk();
     HW.Inv.maxHp = HW.Inv.hp = 32;
 
     /* back over the stream, along the road, through town and the canyon, up to the high mesa */
@@ -647,10 +646,10 @@ test('from the fifth Knot: over to Kilnridge, off the high mesa into Larkspur Fa
     walk(exit.tx + 1, exit.ty); HW.hold('left'); until(() => area() === 'hollow', 200); HW.release(); HW.step(30);
     ok(area() === 'hollow', 'back outside');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
-});
+};
+test('from the fifth Knot: over to Kilnridge, off the high mesa into Larkspur Fair, the Marionette Hall to its Knot (Reveal 1)', () => LEG6(loadGame()));
 
-test('from the sixth Knot: the Staff door, the Underside, Gundry, the Spoolworks to the Tangle (the Needle)', () => {
-    const HW = loadGame();
+const LEG7 = (HW, chain) => {
     const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
     const walk = (x, y, m, max) => { let r = HW.walkTo(x, y, max); for (let i = 0; i < 3 && !r; i++) { HW.skipTalk(); HW.step(5); r = HW.walkTo(x, y, max); } ok(r, m || `walk ${x},${y}`); };
     const area = () => HW.G.map.id;
@@ -663,10 +662,11 @@ test('from the sixth Knot: the Staff door, the Underside, Gundry, the Spoolworks
     const hatch = (r, x, y, d) => { walk(...s(r, x, y)); HW.face(d); HW.press('act', 1); HW.step(40); };
     const knot = () => { HW.hold('act'); HW.step(20); HW.release(); HW.step(2); };
     const stitch = moves => { const names = { U: 'up', D: 'down', L: 'left', R: 'right' }; HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(2); for (const m of moves) { HW.hold(names[m]); HW.step(2); HW.release(); HW.step(8); } HW.press('tool', 1); HW.step(2); };
-    HW.preset('afterD6'); HW.step(10); HW.skipTalk();
+    if (chain) chain('afterD6'); else HW.preset('afterD6'); HW.step(10); HW.skipTalk();
     HW.Inv.maxHp = HW.Inv.hp = 34;
 
-    /* home through the fair gate, to the Inn and its Staff door */
+    /* home through the fair gate (its bolt drawn, on the fair's side), to the Inn and its Staff door */
+    if (!HW.Progress.flag('fair_gate')) { walk(59, 59, 'to the fair gate\'s bolt', 60000); HW.face('up'); talk(); ok(HW.Progress.flag('fair_gate'), 'the bolt drawn'); }
     const door = HW.G.map.ents.find(e => e.kind === 'warp' && e.to === 'inn');
     walk(door.tx, door.ty + 1, 'to the Inn', 60000); HW.hold('up'); until(() => area() === 'inn', 120); HW.release(); HW.step(30);
     walk(13, 3); HW.face('up'); HW.press('act', 1); until(() => area() === 'underside', 120); HW.step(30); HW.skipTalk(); HW.step(5);
@@ -736,11 +736,11 @@ test('from the sixth Knot: the Staff door, the Underside, Gundry, the Spoolworks
     walk(...s('heart', 9, 5)); HW.step(5);
     ok(HW.Inv.maxHp === 36, 'a new heart');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
-});
+};
+test('from the sixth Knot: the Staff door, the Underside, Gundry, the Spoolworks to the Tangle (the Needle)', () => LEG7(loadGame()));
 
-test('from the seventh Knot: Gundry\'s job, the three Makings for Tuck, the Way Down and the Hall of Names, the north gate, the Loomwood, the Loom to the Weaver (the Shears)', () => {
-    const HW = loadGame();
-    HW.preset('afterD7'); HW.step(10); HW.skipTalk();
+const LEG8 = (HW, chain) => {
+    if (chain) chain('afterD7'); else HW.preset('afterD7'); HW.step(10); HW.skipTalk();
     const ok = (c, m) => assert.ok(c, m);
     const until = (fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
     const pos = () => `${HW.G.map.id} ${HW.player().tx},${HW.player().ty}`;
@@ -875,11 +875,11 @@ test('from the seventh Knot: Gundry\'s job, the three Makings for Tuck, the Way 
     for (let i = 0; i < 20 && !HW.Progress.flag('d8'); i++) { HW.skipTalk(); HW.step(20); }
     ok(HW.Progress.flag('d8'), 'the Loom done');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
-});
+};
+test('from the seventh Knot: Gundry\'s job, the three Makings for Tuck, the Way Down and the Hall of Names, the north gate, the Loomwood, the Loom to the Weaver (the Shears)', () => LEG8(loadGame()));
 
-test('from the eighth Knot: your own thread at the fog, the Drift and Linnet, home on foot into the Pull, down the Well, the Great Spool, the end, and after', () => {
-    const HW = loadGame();
-    HW.preset('afterD8'); HW.step(10); HW.skipTalk();
+const LEG9 = (HW, chain) => {
+    if (chain) chain('afterD8'); else HW.preset('afterD8'); HW.step(10); HW.skipTalk();
     const ok = (c, m) => assert.ok(c, m);
     const until = (fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
     const pos = () => `${HW.G.map.id} ${HW.player().tx},${HW.player().ty}`;
@@ -966,4 +966,15 @@ test('from the eighth Knot: your own thread at the fog, the Drift and Linnet, ho
     const s = HW.Save.snapshot();
     ok(s.progress.flags.unwound, 'saved as over');
     assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
+};
+test('from the eighth Knot: your own thread at the fog, the Drift and Linnet, home on foot into the Pull, down the Well, the Great Spool, the end, and after', () => LEG9(loadGame()));
+
+
+/* one game, from the title to the credits: each leg carries on from the one before (no presets), only taken to the
+   place where the next leg starts, as the one before had walked there */
+test('one game, from the title to the credits, nothing set up between', () => {
+    const HW = loadGame();
+    const chain = name => { const H0 = loadGame(); H0.preset(name); const id = H0.G.map.id, p = H0.player(); HW.warp(id, p.tx, p.ty); HW.step(5); HW.skipTalk(); };
+    LEG1(HW); LEG2(HW, chain); LEG3(HW, chain); LEG4(HW, chain); LEG5(HW, chain); LEG6(HW, chain); LEG7(HW, chain); LEG8(HW, chain); LEG9(HW, chain);
+    assert.ok(HW.Progress.flag('unwound'), 'the end');
 });

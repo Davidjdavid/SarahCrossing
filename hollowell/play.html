@@ -19174,6 +19174,8 @@ const Game = {
             for (const e of a.ents.slice()) if (e.floor && !e.removed) e.update();
             Thrown.update(a); Shards.update(a); Tools.update(a); GlazerShots.update(a);
             Fx.update();
+            /* (if Wren went through a door this frame, the place she left doesn't get its say with her new position) */
+            if (G.map !== a) return;
             if (a.def.tick) a.def.tick(a);
             if (Story.tick) Story.tick(a);
             Nudges.update(a);
