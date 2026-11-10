@@ -152,7 +152,8 @@
 - The last dungeon rebuilt: a rule of its own, shown before it's needed; rooms that each want several steps and an
   idea, in any order; a look and a tune of its own; a long climb that no longer sends you all the way back down.
 - Four regions of the valley redrawn with their own ground and landmarks, each with a puzzle place of its own and
-  spots that later tools open; the seams where regions meet are gone.
+  spots that later tools open; the seams where regions meet are gone. Then the other four the same way, with the
+  roads to the later Houses made of puzzles, finds that matter later, and the fog drawn as a bank of threads.
 - Every puzzle room rated for difficulty against a curve that starts gentle and ends hard; rooms that could be
   solved without their idea now want it, and signs that described a step now say only how the place behaves.
 

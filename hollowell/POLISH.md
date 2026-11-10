@@ -172,9 +172,19 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   (a short cut closed); five answer signs rewritten (the Laundry, the Weathercock Walk, the Reach, the Bell Frame, the
   Moonwalk). Curve after: H1 2 2 3 2 2 3 2 3; H2 2 3 3 3 3 3 3; H3 2 1 2 2 3 4 4; H4 1 2 3 3 3 3 4 4; H5 2 3 3 2 3 2 3 4
   5; H6 1 3 2 2 3 5 4; H7 2 3 2 1 3 4 5; H8 2 3 2 3 4 5 3. Round 2 running: 6-8 more rooms in Houses 5-8 raised.
-- Running: the overworld group B (Hushwood, Larkspur Fair, the Loomwood, the Drift), the difficulty curve round 2
-  (Houses 5-8), the town between Houses, the bosses and combat; a full-spoiler overview document for a reviewer
-  (David won't read it).
+- Done too: overworld group B (Hushwood, Larkspur Fair, the Loomwood and Frayed Edge, the Drift): their own ground and
+  light; seams that fray (src/33x_soft_edges.js); the fog drawn as a bank of threads (src/33w_fog.js); the later
+  Houses' roads as puzzles of several steps (House 5: three Snorelings asleep in their cradles; House 6: two toy
+  soldiers trapped on drum pads with strays; House 8: a warp lifted by four stray weights, four ways through); revisits
+  (the Crossbar's wooden Snoreling, Lantern Pond's four lanterns with the Needle and the Gloves); an old loom weight
+  found on the first raft trip that fits a Loomwood socket; a balloon cut loose at the fair that turns up in the
+  Drift; the Drift redrawn with an old mill whose pond drains for good. Heart Patches: net +1. The full-spoiler
+  overview for a reviewer is done (a private doc, plus PDF and Markdown copies sent to David as download cards).
+- Owed from the overworld work: Millwater's revisits; a Needle teaser in Larkspur; the Wander quilt (78c_polish.js)
+  to count group B's and the town's new finds; the satchel past 24 things (its description can overlap the footer:
+  make it fit for good); tests/review_opt.test.mjs "new 1/2" still looks for the Loom's old brW1; the Loomwood reads
+  very pale (check in the picture reviews); the docs' Heart Patch count (about 41 now; the design said 16).
+- Running: the difficulty curve round 2 (Houses 5-8), the town between Houses, the bosses and combat, portraits.
 - David's direction of 10 November (vibes, not a list; the game stays its own thing, not a copy): puzzles simple in
   the first House and the land open then, harder House by House up to real ahas that combine tools; no hints unless
   asked (the opt-in nudges stay as they are; no new hint character), no answer signs; the road to later Houses takes
