@@ -9,7 +9,7 @@
 
 /* ---------------- Captain Tin ---------------- */
 class Captain extends Enemy {
-    constructor(tx, ty, p = {}) { super(tx, ty, Object.assign({ type: 'captain', hp: 2 }, p)); this.state = 'sleep'; this.st = 0; this.march = RIGHT; this.weightN = 3.5; }     /* (two knocks: a mini-boss shouldn't outstay its idea) */
+    constructor(tx, ty, p = {}) { super(tx, ty, Object.assign({ type: 'captain', hp: 2 }, p)); this.state = 'sleep'; this.st = 0; this.march = RIGHT; this.weightN = 3.5; this.twirl = 0; this.batonT = 120; }     /* (two knocks: a mini-boss shouldn't outstay its idea) */
     get arena() { return this.area.roomAt(this.hx, this.hy); }
     onTile() { return false; }
     feetOn(x, y) { return this.alive && this.state === 'march' && this.tx === x && this.ty === y; }
@@ -30,6 +30,16 @@ class Captain extends Enemy {
         if (Script.blocking()) return;
         this.st++;
         if (this.state === 'march') {
+            /* his one dangerous move: now and then he twirls his baton overhead (the line it'll fly lit on the floor) and
+               flings it at Wren; it lies on its thread, then comes home along it to where he threw it from (a full heart,
+               out or back) */
+            if (this.twirl > 0) { if (--this.twirl === 0) this.fling(); return; }
+            if (++this.batonT > 240 && p.state === 'normal' && !a.ents.some(e => e.kind === 'flung' && e.owner === this)) {
+                this.batonT = 0; this.twirl = tellFor(6) + 4; this.aim = Flung.line(a, [this.tx, this.ty], [p.tx, p.ty], 7);
+                Hazard.tiles(this, this.aim.slice(1), { tell: this.twirl, dmg: 0, live: 0, col: '#e8b04a' });
+                Sfx.play('warn'); Stats.count('boss:tin:baton');
+                return;
+            }
             /* tile by tile: on to the next tile's middle, or about turn at anything standing there */
             const sp = 0.7 + (2 - this.hp) * 0.25;
             const gx = (this.tx + DX[this.march]) * T + 8, gy = this.ty * T + 10;
@@ -37,7 +47,7 @@ class Captain extends Enemy {
             const blocked = k.solid || a.at(nx, this.ty) || a.blockers.some(b => b !== this && b.blocks(nx, this.ty, this));
             if (blocked && Math.abs(this.x - (this.tx * T + 8)) < sp + 0.5) { this.x = this.tx * T + 8; this.march = OPP[this.march]; Sfx.play('hitthing', 0.4); }
             else { this.x += DX[this.march] * sp; this.dir = this.march; this.anim++; }
-            if (a.kind(this.tx, this.ty).pit && Math.abs(this.x - (this.tx * T + 8)) < 3) { this.state = 'fall'; this.st = 0; Sfx.play('fall'); G.shake = 6; Stats.count('boss:tin:fall'); }
+            if (a.kind(this.tx, this.ty).pit && Math.abs(this.x - (this.tx * T + 8)) < 3) { this.state = 'fall'; this.st = 0; this.twirl = 0; calmBlows(this); Sfx.play('fall'); G.shake = 6; Stats.count('boss:tin:fall'); }
             if (p.state === 'normal' && Math.abs(p.x - this.x) < 11 && Math.abs(p.y - this.y) < 8) p.hurt(1, this.x, this.y);
         } else if (this.state === 'fall') {
             if (this.st > 20) { this.state = 'dazed'; this.st = 0; }
@@ -45,13 +55,14 @@ class Captain extends Enemy {
             if (this.st > 240) this.climbOut();
         }
     }
+    fling() { if (this.aim && this.aim.length > 1) { this.area.add(new Flung(this, this.aim, { pace: 2, back: 2, wait: 80, tell: 26, dmg: 2, col: THREAD.jory, look: MarionetteFoes.drawBaton })); Sfx.play('throw'); } this.aim = null; }
     climbOut() {
         this.state = 'march'; this.st = 0;
         this.x = this.hx * T + 8; this.y = this.hy * T + 10; this.march = this.march === RIGHT ? LEFT : RIGHT;
         Fx.dust(this.x, this.y); Sfx.play('land');
     }
     reset() {
-        this.state = 'sleep'; this.st = 0; this.x = this.hx * T + 8; this.y = this.hy * T + 10;
+        this.state = 'sleep'; this.st = 0; this.x = this.hx * T + 8; this.y = this.hy * T + 10; this.twirl = 0; this.batonT = 0;
         this.shutters(false); Music.play('marionette');
         for (const f of this.area.ents) if (f.kind === 'flat' && f.respring && f.down) { f.springT = 1; }
     }
@@ -80,6 +91,8 @@ class Captain extends Enemy {
         Gfx.alpha(0.25); Gfx.rect(x - 7, y + 1, 14, 3, PAL.ink); Gfx.alpha(1);
         const im = spr('captain_' + ((this.anim >> 4) % 2));
         if (im) Gfx.img(im, x - 10, y - 22, this.march === LEFT);     /* (his boots on his shadow) */
+        /* twirling his baton overhead, about to fling it */
+        if (this.twirl > 0) { const a = G.t * 0.5; Gfx.line(x - Math.cos(a) * 7, y - 30 - Math.sin(a) * 3, x + Math.cos(a) * 7, y - 30 + Math.sin(a) * 3, '#e8b04a'); Gfx.rect(x + Math.round(Math.cos(a) * 7) - 1, y - 31 + Math.round(Math.sin(a) * 3), 2, 2, '#ffffff'); Tells.bang(x, y - 44); }
     }
 }
 SPAWN.captain = (x, y, p) => Progress.flag('marionette_tin') ? new Ent('none') : new Captain(x, y, p);
@@ -96,7 +109,12 @@ SPAWN.captain = (x, y, p) => Progress.flag('marionette_tin') ? new Ent('none') :
         and its control bar swings low over the stage. The Hookline brings the bar down to Wren; a crossbar's a crossbar,
         and its strings take up like any rack's: walked onto the trap (on its strings it won't step off an edge, but the
         trap's shut till it's on it), down it goes. Let go, the bar's hauled back up and it walks home to its marks. */
-const GM = { STAGE: [5, 7], MARCH: 12, STEP: 12, BAR_HI: 0, BAR_LO: 25, BAR_WAIT: 240, DOWN: 420, TRAPPED: 360, SAG: 19, AWAY: 120 };
+const GM = { STAGE: [5, 7], MARCH: 12, STEP: 12, BAR_HI: 0, BAR_LO: 25, BAR_WAIT: 240, DOWN: 420, TRAPPED: 360, SAG: 19, AWAY: 120, BAGS: [0, 240, 260, 230], SWEEP: 170, BATTEN: 210 };
+/* Its blows (TELL[6]): sandbags out of the flies where Wren stands, their shadows first (one; then two; then three); in
+   act I, dancing on its marks, its stick drawn back and swept along the boards in front of its feet (the boards lit
+   first); marching, it stamps on whoever's on its beat; and in act III, its strings slack, the stage itself comes down on
+   Wren: a batten crashing along a whole row of the stage (the row lit first; never the row she's working its strings
+   from). All a full heart. Each act it's knocked into, a heart falls out of the flies. */
 const TURN_RIGHT = [LEFT, UP, DOWN, RIGHT];     /* (marching down its right is left; left, up; right, down; up, right) */
 class GreatMarionette extends Enemy {
     constructor(tx, ty, p = {}) {
@@ -110,7 +128,7 @@ class GreatMarionette extends Enemy {
         this.bags = [];
         this.march = RIGHT; this.mv = null; this.stepN = 0;
         this.walk = [this.home[0].slice()];     /* act III: where it's been walked (its left foot), loops erased: its way home */
-        this.awayT = 0; this.strain = 0;
+        this.awayT = 0; this.strain = 0; this.sweepT = 0; this.sweepCool = 60; this.battenT = 0;
         this.bar = null;            /* act III: { tx, ty, t, k } while the Hookline has its bar down by Wren */
         this.sag = 0; this.lowT = 0; this.inTrap = null;
     }
@@ -143,7 +161,7 @@ class GreatMarionette extends Enemy {
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area, r = this.arena;
         this.animate();
-        this.updateBags(p);
+        if (!Script.blocking()) this.updateBags(p);
         if (this.state === 'sleep') {
             if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 1) this.begin();
             return;
@@ -155,12 +173,13 @@ class GreatMarionette extends Enemy {
             case 'dance':
                 if (this.act === 1) {
                     this.windUp();
-                    this.dropBags(p, 300);
-                    if (this.tangled[0] && this.tangled[1]) { this.state = 'down'; this.st = 0; G.shake = 14; Sfx.play('rumble'); Sfx.play('hitthing'); Stats.count('boss:gm:fall'); }
-                } else this.actThree();
+                    this.dropBags(p, GM.BAGS[1]);
+                    this.sweep(p);
+                    if (this.tangled[0] && this.tangled[1]) { this.state = 'down'; this.st = 0; this.sweepT = 0; calmBlows(this); G.shake = 14; Sfx.play('rumble'); Sfx.play('hitthing'); Stats.count('boss:gm:fall'); }
+                } else { this.actThree(); this.dropBags(p, GM.BAGS[3]); this.batten(p); }
                 break;
             case 'down': if (this.st > GM.DOWN) this.rise(); break;
-            case 'march': this.marchOn(p); this.dropBags(p, 420); break;
+            case 'march': this.marchOn(p); this.dropBags(p, GM.BAGS[2]); break;
             case 'trapped': if (this.st > GM.TRAPPED) this.climbOut(); break;
         }
     }
@@ -185,7 +204,7 @@ class GreatMarionette extends Enemy {
     reset() {
         this.state = 'sleep'; this.st = 0; this.shutters(false); this.untangle(); this.bags = [];
         this.feet = this.home.map(f => f.slice()); this.mv = null; this.walk = [this.home[0].slice()]; this.awayT = 0;
-        this.bar = null; this.inTrap = null; this.heldBy = null; this.worked = false; this.sag = 0; this.lowT = 0;
+        this.bar = null; this.inTrap = null; this.heldBy = null; this.worked = false; this.sag = 0; this.lowT = 0; this.sweepT = 0; this.sweepCool = 60; this.battenT = 0;
         const t = this.trap(); if (t) t.shut(true);
         const c = this.third(); if (c) this.area.remove(c);
         this.syncXY();
@@ -212,14 +231,46 @@ class GreatMarionette extends Enemy {
     }
     untangle() { this.tangled = [false, false]; this.wind.clear(); }
     /* sandbags drop out of the flies where Wren stands, now and then (a shadow first) */
-    dropBags(p, every) { if (this.st > every && this.st % every === 100 && p.state === 'normal' && p.area === this.area) this.bags.push({ x: p.x, y: p.y, t: 0 }); }
+    /* sandbags out of the flies where Wren stands (and, later on, either side of her): their shadows first */
+    dropBags(p, every) {
+        if (!(this.st > every && this.st % every === 100 && p.state === 'normal' && p.area === this.area)) return;
+        const n = this.act, side = G.rng() < 0.5 ? -1 : 1;
+        [[0, 0], [side * 24, -8], [-side * 20, 14]].slice(0, n).forEach(([dx, dy]) => this.bags.push({ x: p.x + dx, y: p.y + dy, t: 0 }));
+        Sfx.play('warn'); Stats.count('boss:gm:bags');
+    }
+    /* (I) close in front of its feet: its stick drawn back, the boards there lit, then swept along them */
+    sweep(p) {
+        if (this.sweepT > 0) { this.sweepT--; return; }
+        if (++this.sweepCool < GM.SWEEP || p.state !== 'normal' || p.area !== this.area) return;
+        const z = this.sweepZone();
+        if (!z.some(([x, y]) => p.tx === x && p.ty === y)) return;
+        this.sweepCool = 0; this.sweepT = tellFor(6, 1) + 10;
+        Hazard.tiles(this, z, { tell: tellFor(6, 1), dmg: 2, live: 10, col: '#e7ad3c', fx: 'dust', shake: 5, sound: 'hitthing', from: [(this.feet[0][0] + this.feet[1][0] + 1) / 2 * T, this.feet[0][1] * T] });
+        Stats.count('boss:gm:sweep');
+    }
+    sweepZone() {
+        const a = this.area, [[lx, ly], [rx]] = this.feet, z = [];
+        for (let y = ly + 1; y <= ly + 2; y++) for (let x = lx - 1; x <= rx + 1; x++) if (!a.kind(x, y).solid && !a.at(x, y)) z.push([x, y]);
+        return z;
+    }
+    /* (III) the stage comes down: a batten crashes along a whole row of it (never the row she's working its strings from) */
+    batten(p) {
+        if (++this.battenT < GM.BATTEN || p.state !== 'normal' || p.area !== this.area) return;
+        this.battenT = 0;
+        const a = this.area, r = this.arena, rows = [];
+        for (let y = r.y + 2; y < r.y + r.h - 1; y++) if (!(this.heldBy && y === p.ty)) rows.push(y);
+        const y = this.heldBy || !rows.includes(p.ty) ? rows[Math.floor(G.rng() * rows.length)] : p.ty;
+        const tiles = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (!a.kind(x, y).solid) tiles.push([x, y]);
+        Hazard.tiles(this, tiles, { tell: tellFor(6, 3) + 12, dmg: 2, live: 8, col: '#c9925a', fx: 'dust', shake: 8, sound: 'land', look: GMArt.batten });
+        Stats.count('boss:gm:batten');
+    }
     updateBags(p) {
         const t = this.trap();
         for (const b of this.bags) {
             b.t++;
             if (b.t !== 60) continue;
             Sfx.play('land'); Fx.dust(b.x, b.y);
-            if (p.state === 'normal' && p.area === this.area && Math.abs(p.x - b.x) < 10 && Math.abs(p.y - b.y) < 9) { const hp = Inv.hp; p.hurt(1, b.x, b.y - 4); if (Inv.hp < hp && Crossbar.ctl) Crossbar.release(p); }
+            if (p.state === 'normal' && p.area === this.area && Math.abs(p.x - b.x) < 10 && Math.abs(p.y - b.y) < 9) { const hp = Inv.hp; p.hurt(2, b.x, b.y - 4); if (Inv.hp < hp && Crossbar.ctl) Crossbar.release(p); }
             /* (a sandbag's heavy: landing on the stage trap, it goes straight through) */
             else if (t && !t.open && tileOf(b.x) === t.tx && tileOf(b.y) === t.ty) { t.drop('bag'); b.gone = true; }
         }
@@ -268,7 +319,7 @@ class GreatMarionette extends Enemy {
     }
     stomp(p) {
         if (!p || p.area !== this.area || p.state !== 'normal') return;
-        for (const [fx, fy] of this.feet) if (p.onTile(fx, fy)) { const hp = Inv.hp; p.hurt(1, fx * T + 8, fy * T + 8); p.unstick(); if (Inv.hp < hp && Crossbar.ctl) Crossbar.release(p); break; }
+        for (const [fx, fy] of this.feet) if (p.onTile(fx, fy)) { const hp = Inv.hp; p.hurt(2, fx * T + 8, fy * T + 8); p.unstick(); if (Inv.hp < hp && Crossbar.ctl) Crossbar.release(p); break; }
     }
     /* down the trap, to the chin: its head's on the boards */
     fallIn(t) {
@@ -335,7 +386,9 @@ class GreatMarionette extends Enemy {
         if (!this.alive || this.flash > 0 || (this.state !== 'down' && this.state !== 'trapped')) return;
         this.hp--; this.flash = 30; G.hitstop = 10; G.shake = 10; Sfx.play('enemyhit');
         Stats.count('boss:gm:hit');
+        calmBlows(this); this.bags = []; this.sweepT = 0; this.sweepCool = 0; this.battenT = 0;
         if (this.hp <= 0) return this.defeat();
+        { const p = G.player; bossHeart(this.area, p.x, p.y + 18); }      /* (a heart falls out of the flies) */
         Script.run(this.hp === 2 ? MarionetteFoes.toAct2(this) : MarionetteFoes.toAct3(this));
     }
     shoved() { }
@@ -430,7 +483,10 @@ class GreatMarionette extends Enemy {
         });
         if (im) Gfx.img(flash ? tinted(im, '#ffffff') : im, bx, by);
         /* the arms: sleeves to the elbow pegs, wooden forearms and hands; the right hand holds the stick */
-        const arms = [[bx + 9, by + 29, -1, sw], [bx + 26, by + 29, 1, -sw]];
+        /* (about to sweep: its stick hand drawn right back and up) */
+        const wind = this.sweepT > 10 ? Math.min(1, (tellFor(6, 1) + 10 - this.sweepT) / 8) : 0;
+        const arms = [[bx + 9, by + 29, -1, sw], [bx + 26, by + 29, 1, -sw - wind * 4]];
+        if (wind) Tells.bang(bx + 18, by - 14);
         const hands = [];
         for (const [sx, sy, side, s] of arms) {
             const ex = sx + side * 6, ey = sy + 7 + Math.round(s * 2), hx = sx + side * (side > 0 ? 9 : 8), hy = sy + (side > 0 ? 12 : 15) + Math.round(s * 3);
@@ -507,6 +563,12 @@ SPAWN.stagetrap = (x, y, p) => new StageTrap(x, y, p);
 /* drawing the Great Marionette's wooden parts: rods with an ink edge and a lit edge, round pegs at the joints. R is a
    rect function, so the same parts draw on the screen or into a picture as it's painted */
 const GMArt = {
+    /* a batten from the flies: a long painted bar the width of the row, on two ropes */
+    batten(x, y, h) {
+        const ox = h.x - x, x0 = h.tiles[0][0] * T - ox, x1 = (h.tiles[h.tiles.length - 1][0] + 1) * T - ox;
+        Gfx.rect(x0, y - 9, x1 - x0, 7, PAL.ink); Gfx.rect(x0 + 1, y - 8, x1 - x0 - 2, 5, '#9a6438'); Gfx.rect(x0 + 1, y - 8, x1 - x0 - 2, 1, '#c9925a');
+        for (const rx of [x0 + 12, x1 - 12]) Gfx.rect(rx, y - 60, 1, 52, '#cfc6b8');
+    },
     line(R, x0, y0, x1, y1, c) {
         x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
         const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
@@ -558,6 +620,12 @@ SPAWN.marionette = (x, y, p) => Progress.flag('marionette_boss') ? new Ent('none
 }
 
 const MarionetteFoes = {
+    /* Captain Tin's baton: a gilt stick with a white ball at each end, spinning as it flies */
+    drawBaton(x, y, f) {
+        const a = f.state === 'lie' ? 0 : G.t * 0.6, dx = Math.round(Math.cos(a) * 6), dy = Math.round(Math.sin(a) * 3);
+        Gfx.line(x - dx, y - dy + 1, x + dx, y + dy + 1, PAL.ink); Gfx.line(x - dx, y - dy, x + dx, y + dy, '#e8b04a');
+        Gfx.rect(x - dx - 1, y - dy - 1, 2, 2, '#fbf6ea'); Gfx.rect(x + dx - 1, y + dy - 1, 2, 2, '#fbf6ea');
+    },
     *tinIntro(c) {
         yield 20;
         yield* say(null, 'A drum roll from nowhere. A toy soldier taller than your dad marches out of the wings, a drum on his chest and a feather in his hat. "LEFT! RIGHT! LEFT! RIGHT!" He marches between two painted flats, and about-turns at each.');

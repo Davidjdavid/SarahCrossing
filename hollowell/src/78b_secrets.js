@@ -225,3 +225,14 @@ for (const h of SILK_HOLLOWS) {
         return r;
     };
 }
+
+/* ---------- the town's favours (src/51c_town_favours.js) go on in the free valley: a thank-you still owing, or a want,
+   comes before everyone's new lines there (src/76_ending.js) ---------- */
+{
+    const talk0 = Story.talk;
+    Story.talk = function (npc) {
+        const base = talk0.call(this, npc);
+        if (!Progress.flag('unwound') || !FAVOUR_TALK[npc.who] || !npc.area || (npc.area.id !== 'hollow' && npc.area.family !== 'interior')) return base;
+        return function* () { if (yield* Favours.talk(npc.who, npc)) return; yield* base(); };
+    };
+}

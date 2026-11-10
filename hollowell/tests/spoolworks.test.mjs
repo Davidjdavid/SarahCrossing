@@ -60,23 +60,39 @@ test('the Gatehouse: the crate at the passage mouth is tied off from underneath;
     noErrors(HW);
 });
 
-test('under the Winding Hall: push the counterweight off its plate and stand a stray in its way home; the Spool Store gate opens', () => {
+test('under the Winding Hall: the counterweight pushed off its plate past the sleeping boulder\'s place; the boulder rung awake from across the room, out of the weight\'s hearing: home in a flash, it stands in the weight\'s way home; the Spool Store gate opens', () => {
     const HW = game();
     enter(HW, 'uwind', 9, 8);
-    const w = thing(HW, 'hwWeight'), g = thing(HW, 'swGateW');
+    const w = thing(HW, 'hwWeight'), r = thing(HW, 'hwRock'), g = thing(HW, 'swGateW');
     HW.step(3);
     assert.ok(!g.open, 'shut');
     go(HW, 'uwind', 11, 5); HW.push('right', 2); HW.step(25);
     assert.deepEqual([w.tx, w.ty], at('uwind', 14, 5));
-    go(HW, 'uwind', 13, 7); HW.push('up', 1); HW.step(25);
-    assert.deepEqual(where(HW, 'hwStray'), at('uwind', 13, 5), 'the stray in the way');
-    HW.step(300);
+    go(HW, 'uwind', 4, 2); HW.Inv.equipped = 'bell'; HW.press('tool', 1);
+    assert.ok(until(HW, () => HW.Return.isHome(r), 120), 'the boulder home in a flash');
+    assert.ok(w.ret.state !== 'home' && !w.ret.snap, 'the weight never heard it');
+    HW.step(400);
     assert.deepEqual([w.tx, w.ty], at('uwind', 14, 5), 'the weight waits behind it');
     assert.ok(g.open, 'the gate up above is open');
     hatch(HW, 'uwind', 17, 7, 'down');
     go(HW, 'wind', 1, 5); HW.hold('left'); HW.step(30); HW.release(); HW.step(30);
     assert.equal(HW.global('Cam').room.name, 'The Spool Store');
     assert.ok(HW.Progress.areaFlag('spoolworks', 'door:swGateW'), 'latched once passed');
+    noErrors(HW);
+});
+
+test('under the Winding Hall: rung awake first, the boulder lies home beside the weight and stands in no way of it; up and back down, it sleeps again', () => {
+    const HW = game();
+    enter(HW, 'uwind', 9, 8);
+    const w = thing(HW, 'hwWeight'), r = thing(HW, 'hwRock');
+    go(HW, 'uwind', 4, 2); HW.Inv.equipped = 'bell'; HW.press('tool', 1);
+    assert.ok(until(HW, () => HW.Return.isHome(r), 120));
+    go(HW, 'uwind', 11, 5); HW.push('right', 1); HW.step(25);
+    assert.deepEqual([w.tx, w.ty], at('uwind', 12, 5), 'no way past it');
+    go(HW, 'uwind', 13, 6); HW.push('up', 1); HW.step(10);
+    assert.deepEqual([r.tx, r.ty], at('uwind', 13, 5), 'and no shifting it');
+    hatch(HW, 'uwind', 17, 7, 'down'); HW.step(10); hatch(HW, 'wind', 17, 7, 'down'); HW.step(10);
+    assert.ok(HW.Return.asleep(r) && r.tx === at('uwind', 3, 1)[0], 'asleep again across the room');
     noErrors(HW);
 });
 
@@ -190,23 +206,24 @@ test("the Kennel's south door: nobody can push the weight in the way; the Needle
    the other; both on their plates, the door to the Gatehouse is open while they stay */
 function practice(HW) {
     enter(HW, 'practice', 9, 3);
+    /* the boy's cord hangs over a hole below, out of reach: his plate is made his place (the Needle, from up here) */
+    go(HW, 'practice', 13, 2); HW.face('down'); stitch(HW, 'DDD');
+    until(HW, () => HW.Return.isHome(thing(HW, 'paBoy')), 120);
+    assert.deepEqual(where(HW, 'paBoy'), at('practice', 13, 6), 'the boy on his plate, his place now');
     hatch(HW, 'practice', 3, 7, 'down');
     assert.deepEqual(here(HW, 'upractice'), [3, 7], 'under the Practice Floor');
+    assert.equal(HW.walkTo(...at('upractice', 13, 4)), false, "nowhere to stand by the boy's cord");
     go(HW, 'upractice', 12, 4); HW.face('up');
-    rack(HW, 'DDD');
-    assert.deepEqual(where(HW, 'paBoy'), at('practice', 13, 6), 'the boy on his plate');
-    assert.deepEqual(where(HW, 'paWren'), at('practice', 11, 6), 'the little Wren two short of hers');
-    go(HW, 'upractice', 13, 4); HW.face('up'); knot(HW);
-    assert.ok(thing(HW, 'paBoy').knotted, 'the boy held where he stands');
-    go(HW, 'upractice', 12, 4); HW.face('up');
-    rack(HW, 'DD');
-    assert.deepEqual(where(HW, 'paBoy'), at('practice', 13, 6), "a knotted puppet doesn't step with its rack");
+    rack(HW, 'DDDDD');
     assert.deepEqual(where(HW, 'paWren'), at('practice', 11, 8), 'the little Wren on hers');
+    assert.notDeepEqual(where(HW, 'paBoy'), at('practice', 13, 6), 'the rack took the boy on past his');
     go(HW, 'upractice', 11, 4); HW.face('up'); knot(HW);
     assert.ok(thing(HW, 'paWren').knotted);
+    assert.ok(until(HW, () => HW.Return.isHome(thing(HW, 'paBoy')), 600), 'let go, the boy walks home');
+    assert.deepEqual(where(HW, 'paBoy'), at('practice', 13, 6), 'home: his plate');
 }
 
-test('the Practice Floor: the rack below walks the puppets up above; knots hold them on their plates; up and out through the Gatehouse door', () => {
+test('the Practice Floor: the boy\'s cord is out of reach below, so his plate is made his place (the Needle); the little Wren walked onto hers from the rack and tied; let go, he walks home onto his; up and out through the Gatehouse door', () => {
     const HW = game(['needle']);
     HW.step(1);
     practice(HW);
@@ -347,6 +364,24 @@ test("Gundry's Bench: the trapdoor won't lift while the crate sits on it; the Ne
     noErrors(HW);
 });
 
+/* Cog's pounce: a few strides off he crouches, tail whirring, and the spot Wren stands on darkens; off it before he lands */
+test("Cog's pounce: he crouches a few strides off, its shadow on Wren; a step aside and he lands on nothing (a heart and a half if not)", () => {
+    for (const dodge of [true, false]) {
+        const HW = game();
+        const c = wakeCog(HW), p = HW.player();
+        c.state = 'chase'; c.st = 100; c.x = p.x + 36; c.y = p.y; HW.step(1);
+        assert.ok(until(HW, () => c.state === 'crouch', 10), 'he crouches');
+        const sh = HW.G.map.ents.find(e => e.kind === 'hazard' && e.owner === c);
+        assert.ok(sh && sh.covers(p.x, p.y) && sh.tell >= 30, "the shadow on her, with time to move");
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('up'); HW.step(22); HW.release(); }
+        assert.ok(until(HW, () => c.state === 'recover', 80), 'he lands');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'on nothing');
+        else assert.ok(HW.Inv.hp <= hp - 3, 'on her');
+        noErrors(HW);
+    }
+});
+
 /* ---------------- the Tangle ---------------- */
 function tangleGame() {
     const HW = game(['needle']);
@@ -414,6 +449,69 @@ test('the Tangle: three phases. Four threads held out at once; then up on the ho
     noErrors(HW);
 });
 
+/* its blows, each with its tell, each dodged (or not): the beats reached with them harmless, then real */
+const tgBlows = (HW, t) => HW.G.map.ents.filter(e => e.kind === 'hazard' && e.owner === t);
+test("the Tangle's cord: whipped right across the hall along its row or column, the line lit first; off the line and it cracks past (a heart and a half if not)", () => {
+    for (const dodge of [true, false]) {
+        const [HW, t] = tangleGame(); HW.G.cheats.god = false;
+        const p = HW.player();
+        go(HW, 'heart', 15, 5); t.sweepT = 1; t.ballT = 999; t.st = 1;
+        assert.ok(until(HW, () => tgBlows(HW, t).some(h => h.dmg === 3 && h.shape === 'tiles'), 10), 'a line lit');
+        const h = tgBlows(HW, t).find(q => q.dmg === 3 && q.shape === 'tiles');
+        assert.ok(h.tiles.some(([x, y]) => x === p.tx && y === p.ty), "along Wren's row");
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('down'); HW.step(16); HW.release(); }
+        assert.ok(until(HW, () => h.removed, 80), 'it cracked');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'past her');
+        else assert.equal(HW.Inv.hp, hp - 3, 'lashed');
+        noErrors(HW);
+    }
+});
+test("the Tangle's lash: too close, and its reach is drawn on the floor round it before the cords come out; back out of it", () => {
+    for (const dodge of [true, false]) {
+        const [HW, t] = tangleGame(); HW.G.cheats.god = false;
+        const p = HW.player();
+        go(HW, 'heart', 11, 5); HW.step(10); t.sweepT = 999; t.ballT = 999;
+        assert.ok(until(HW, () => tgBlows(HW, t).some(h => h.shape === 'ring'), 60), 'its reach drawn');
+        const ring = tgBlows(HW, t).find(h => h.shape === 'ring');
+        assert.ok(ring.covers(p.x, p.y), 'Wren inside it');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold(['down', 'right']); HW.step(22); HW.release(); assert.ok(!ring.covers(p.x, p.y), 'out of it'); }
+        assert.ok(until(HW, () => ring.removed, 80), 'it lashed');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'out of reach');
+        else assert.equal(HW.Inv.hp, hp - 3, 'lashed');
+        noErrors(HW);
+    }
+});
+test("the Tangle's yarn balls: it swells and glows first; a step aside as they come (three fanned in its last beat, one always at her)", () => {
+    for (const dodge of [true, false]) {
+        const [HW, t] = tangleGame(); HW.G.cheats.god = false;
+        const p = HW.player();
+        go(HW, 'heart', 3, 2); t.sweepT = 999; t.ballT = 1;
+        assert.ok(until(HW, () => t.swell > 0, 10), 'it swells');
+        assert.ok(until(HW, () => t.balls.length > 0, 40), 'and throws');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('down'); HW.step(40); HW.release(); }
+        else HW.step(40);
+        HW.step(40);
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'past her');
+        else assert.ok(HW.Inv.hp < hp, 'hit');
+        noErrors(HW);
+    }
+});
+test("the Tangle up in the rafters lets spoolmites down; they're beaten like any (and come back no more)", () => {
+    const [HW, t] = tangleGame();
+    phase1(HW, t);
+    assert.equal(t.state, 'up');
+    t.miteT = 1;
+    assert.ok(until(HW, () => HW.G.map.ents.some(e => e.tangleMite), 400), 'spoolmites let down');
+    const m = HW.G.map.ents.find(e => e.tangleMite);
+    for (let k = 0; k < 4 && m.alive; k++) { m.flash = 0; m.struck(HW.player(), 1, 0); HW.step(2); }
+    assert.ok(!m.alive, 'beaten');
+    HW.step(80);
+    assert.ok(!HW.G.map.ents.includes(m), "gone: its yarn ran off");
+    noErrors(HW);
+});
 test("the Tangle's second phase: up on the hoist it can't be reached, Wren walks under it; let the weight home and it's hauled up again", () => {
     const [HW, t] = tangleGame();
     phase1(HW, t);

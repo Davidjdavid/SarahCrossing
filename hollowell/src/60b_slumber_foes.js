@@ -54,15 +54,21 @@ class Matron extends Enemy {
                 if (this.i >= tr.length || this.st === 1) this.i = this.nearest(tr);
                 const [gx, gy] = tr[Math.min(this.i, tr.length - 1)];
                 const tx = gx * T + 8, ty = gy * T + 10;
-                const lunge = (this.st % 300) > 240;
-                const sp = (0.95 + (2 - this.hp) * 0.15) * (lunge ? 1.6 : 1);
+                /* her one dangerous move: now and then she stops dead, puffs herself up (her "!"), and then comes on along
+                   the footsteps twice as fast for a second (a full heart if she reaches Wren) */
+                this.lt = (this.lt || 0) + 1;
+                if (this.lt === 240) { this.brace = tellFor(5); Sfx.play('warn'); Stats.count('boss:matron:lunge'); }
+                if (this.brace > 0) { if (--this.brace === 0) this.lunge = 60; this.anim = 0; break; }
+                const lunge = this.lunge > 0 && this.lunge--;
+                if (this.lt > 320) this.lt = 0;
+                const sp = (0.95 + (2 - this.hp) * 0.15) * (lunge ? 2 : 1);
                 const dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy);
                 if (d <= sp) { this.x = tx; this.y = ty; if (this.i < tr.length - 1) this.i++; else { this.x += (p.x - this.x) * 0.05; this.y += (p.y - this.y) * 0.05; } }
                 else { this.x += dx / d * sp; this.y += dy / d * sp; this.dir = dirOf(dx, dy); }
                 this.anim++;
                 /* her footing gone: down she goes */
-                if (a.kind(this.tx, this.ty).pit) { this.state = 'fall'; this.st = 0; Sfx.play('fall'); Stats.count('boss:matron:fall'); break; }
-                if (p.state === 'normal' && Math.abs(p.x - this.x) < 9 && Math.abs(p.y - this.y) < 8) { p.hurt(1, this.x, this.y); Fx.text(p.x, p.y - 20, 'tucked in!', '#d8c8f8'); }
+                if (a.kind(this.tx, this.ty).pit) { this.state = 'fall'; this.st = 0; this.brace = this.lunge = 0; Sfx.play('fall'); Stats.count('boss:matron:fall'); break; }
+                if (p.state === 'normal' && Math.abs(p.x - this.x) < 9 && Math.abs(p.y - this.y) < 8) { p.hurt(lunge ? 2 : 1, this.x, this.y); Fx.text(p.x, p.y - 20, 'tucked in!', '#d8c8f8'); }
                 break;
             }
             case 'fall':
@@ -80,7 +86,7 @@ class Matron extends Enemy {
         }
     }
     nearest(tr) { let b = 0, bd = Infinity; for (let i = 0; i < tr.length; i++) { const d = Math.hypot(tr[i][0] * T + 8 - this.x, tr[i][1] * T + 10 - this.y); if (d < bd) { bd = d; b = i; } } return b; }
-    toBed() { this.x = this.hx * T + 8; this.y = this.hy * T + 10; this.z = 0; this.st = 0; Crumble.mendAll(this.area, this.arena); }
+    toBed() { this.x = this.hx * T + 8; this.y = this.hy * T + 10; this.z = 0; this.st = 0; this.lt = this.brace = this.lunge = 0; Crumble.mendAll(this.area, this.arena); }
     struck(by, dmg, dir) {
         if (!this.alive || this.flash > 0) return;
         if (this.state !== 'dazed') { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 10); if (by === G.player) Fx.text(this.x, this.y - 28, 'too starchy!', '#fbf6ea'); return; }
@@ -107,7 +113,10 @@ class Matron extends Enemy {
         Gfx.alpha(0.25); Gfx.rect(x - 6, y + 1, 12, 3, PAL.ink); Gfx.alpha(1);
         const im = spr(this.state === 'dazed' ? 'matron_daze' : this.state === 'sleep' ? 'matron_sleep' : 'matron_' + ((this.anim >> 4) % 2));
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        Gfx.img(img, x - 8, y - 26 - Math.round(this.z || 0));
+        /* puffed up, about to come on fast: she shivers, her "!" up */
+        const sh = this.brace > 0 ? ((this.t >> 1) % 2 ? 1 : -1) : 0;
+        Gfx.img(img, x - 8 + sh, y - 26 - Math.round(this.z || 0) - (this.brace > 0 ? 1 : 0));
+        if (this.brace > 0) Tells.bang(x, y - 40);
         if (this.state === 'dazed' && (this.t >> 3) % 2) Font.draw('z', x + 6, y - 30, '#e8e0ff');
     }
 }
@@ -124,11 +133,16 @@ SPAWN.matron = (x, y, p) => Progress.flag('slumber_matron') ? new Ent('none') : 
    3. the boards drop away too, and the old bedposts they were laid across stand out in the dark, ringed with brass:
       caught, turn and hook one, and the reel drags you out of her grip; you drop into the dark and fly home.
    (POSTS are in the room's own tiles: from each, the reel ends out past the stars, over the drop.) */
-const SLOTH = { REACH: 5.25, SNAP: 5.75, POSTS: [[1, 7], [3, 9], [15, 9], [17, 7]] };
+const SLOTH = { REACH: 5.25, SNAP: 5.75, POSTS: [[1, 7], [3, 9], [15, 9], [17, 7]], SHEEP: 250 };
+/* Her blows (TELL[5]): an arm's hand rises and spreads its fingers before it reaches (being caught is half the trick;
+   reeled all the way in and tucked up costs a full heart); out of reach, she lifts pillows over her head and lobs them
+   (one, then two, then three); and in the last round she counts sheep: a row of the floor glows, and a flock of dream
+   sheep bounds along it, over the dark and all (a full heart). Each round she's knocked into, a heart falls off the
+   bed. Nothing is thrown at Wren while she's held fast, but the sheep. */
 class MotherSloth extends Enemy {
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ type: 'mothersloth', hp: 3 }, p));
-        this.state = 'sleep'; this.st = 0; this.weightN = 9; this.hidden = false; this.pillows = [];
+        this.state = 'sleep'; this.st = 0; this.weightN = 9; this.hidden = false; this.pillows = []; this.lift = 0; this.sheepT = 0;
         const sx = tx * T + 8, sy = ty * T + 18;
         this.arms = [{ side: -1, sx: sx - 34, sy, hx: sx - 34, hy: sy + 6, state: 'rest', t: 0, cool: 30 }, { side: 1, sx: sx + 34, sy, hx: sx + 34, hy: sy + 6, state: 'rest', t: 0, cool: 90 }];
         this.capX = tx * T + 8; this.capY = (ty + 3) * T;
@@ -177,7 +191,7 @@ class MotherSloth extends Enemy {
         if (!this.alive) return this.updateYarn();
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area, r = this.arena;
-        this.updatePillows(p);
+        if (!Script.blocking()) this.updatePillows(p);
         const inRoom = p.area === a && Cam.room === r && !Cam.busy;
         if (this.state === 'sleep') {
             if (inRoom && p.state === 'normal' && p.ty < r.y + r.h - 2) {
@@ -193,7 +207,7 @@ class MotherSloth extends Enemy {
         if (!inRoom && !p.flying) {
             if (p.pinned && this.arms.includes(p.pinned)) p.pinned = null;
             for (const arm of this.arms) { arm.state = 'rest'; arm.t = 0; arm.cool = 60; arm.hx = arm.sx; arm.hy = arm.sy + 6; }
-            this.state = 'sleep'; this.shutters(false); Music.play('slumber');
+            this.state = 'sleep'; this.shutters(false); Music.play('slumber'); this.lift = 0; this.sheepT = 0; this.pillows = [];
             if (this.phase > 1) this.setArena(1);
             return;
         }
@@ -201,9 +215,12 @@ class MotherSloth extends Enemy {
         this.st++;
         if (this.state === 'fight') {
             for (const arm of this.arms) this.updateArm(arm, p);
-            /* she lobs a pillow at anyone keeping out of reach */
+            /* she lobs pillows at anyone keeping out of reach: up over her head first (the tell), then thrown */
             const out = this.arms.every(arm => Math.hypot(p.x - arm.sx, p.y - arm.sy) > SLOTH.REACH * T);
-            if (out && p.state === 'normal' && this.st % (this.hp === 1 ? 110 : 170) === 90) this.throwPillow(p);
+            if (this.lift > 0) { if (--this.lift === 0) this.throwPillow(p); }
+            else if (out && p.state === 'normal' && this.st % (this.hp === 1 ? 110 : 170) === 90) { this.lift = tellFor(5, this.phase); Sfx.play('warn'); }
+            /* (3) counting sheep */
+            if (this.phase === 3 && p.state !== 'faint' && ++this.sheepT > SLOTH.SHEEP) { this.sheepT = 0; this.sheep(p); }
             if (this.arms.every(arm => arm.state === 'snapped')) { this.state = 'slump'; this.st = 0; G.shake = 10; Sfx.play('rumble'); Fx.text(this.capX, this.capY - 30, 'z Z z', '#e8e0ff'); }
         } else if (this.state === 'slump') {
             if (this.st > 330) this.rise();
@@ -219,7 +236,12 @@ class MotherSloth extends Enemy {
                 if (arm.cool > 0) { arm.cool--; break; }
                 /* only one arm out at a time to begin with */
                 if (this.hp === 3 && this.arms.some(o => o !== arm && o.state !== 'rest' && o.state !== 'snapped')) break;
-                if (dWren < reachPx && p.state === 'normal' && !p.pinned) { arm.state = 'reach'; arm.t = 0; Sfx.play('twang'); }
+                /* her hand rises and spreads its fingers (the tell), then reaches */
+                if (dWren < reachPx && p.state === 'normal' && !p.pinned) { arm.state = 'wind'; arm.t = 0; arm.tell = tellFor(5, this.phase); Sfx.play('warn'); }
+                break;
+            case 'wind':
+                this.toward(arm, arm.sx, arm.sy - 6, 1);
+                if (arm.t >= arm.tell) { arm.state = 'reach'; arm.t = 0; Sfx.play('twang'); }
                 break;
             case 'reach':
                 if (dWren > reachPx + 8 || p.state !== 'normal' || (p.pinned && p.pinned !== arm)) { arm.state = 'rest'; arm.cool = 40; break; }
@@ -266,14 +288,32 @@ class MotherSloth extends Enemy {
     }
     tuckIn(arm, p) {
         p.pinned = null; this.letGo(arm);
-        p.inv = 0; p.hurt(1, this.capX, this.capY - 20);
+        p.inv = 0; p.hurt(2, this.capX, this.capY - 20);
         Fx.text(p.x, p.y - 22, 'tucked in!', '#d8c8f8');
         arm.cool = 120;
     }
+    /* one pillow, then two, then three, fanned out at her */
     throwPillow(p) {
-        const sx = this.capX, sy = this.capY - 10, d = Math.hypot(p.x - sx, p.y - sy) || 1, sp = 1.6 + (3 - this.hp) * 0.3;
-        this.pillows.push({ x: sx, y: sy, vx: (p.x - sx) / d * sp, vy: (p.y - 6 - sy) / d * sp, t: 0 });
-        Sfx.play('throw');
+        if (p.state !== 'normal' || p.pinned) return;
+        const sx = this.capX, sy = this.capY - 10, sp = 1.6 + (3 - this.hp) * 0.3, n = this.phase, a0 = Math.atan2(p.y - 6 - sy, p.x - sx);
+        /* (one always straight at her; the others either side of it) */
+        for (const o of [0, 0.3, -0.3].slice(0, n)) { const a = a0 + o; this.pillows.push({ x: sx, y: sy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0 }); }
+        Sfx.play('throw'); Stats.count('boss:sloth:pillow');
+    }
+    /* (3) she counts sheep: a row of the floor glows, and a flock of dream sheep bounds along it from one wall to the other,
+       over the dark and all; it's Wren's row (unless she's held fast: then one she isn't on) */
+    sheep(p) {
+        const a = this.area, r = this.arena, rows = [];
+        for (let y = r.y + 3; y < r.y + r.h - 1; y++) if (!(p.pinned && y === p.ty)) rows.push(y);
+        const y = p.pinned ? rows[Math.floor(G.rng() * rows.length)] : clamp(p.ty, r.y + 3, r.y + r.h - 2);
+        const tiles = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) { const k = a.kind(x, y); if (!k.solid && !k.pit) tiles.push([x, y]); }
+        const fromLeft = G.rng() < 0.5, x0 = (fromLeft ? r.x : r.x + r.w) * T, x1 = (fromLeft ? r.x + r.w : r.x) * T;
+        const live = 48, h = Hazard.tiles(this, tiles, { tell: tellFor(5, 3) + 14, live, dmg: 2, col: '#e8e0ff', fx: 'dust', sound: 'snort', lookLanded: SlumberFoes.drawSheep });
+        if (!h) return;
+        h.flock = { y: y * T + 10, x0, x1 };
+        /* (what hurts is the flock itself, where it's got to along the row) */
+        h.coverAt = (x, yy, hz) => { const f = hz.flock, k = (hz.t - hz.tell) / live, lead = lerp(f.x0, f.x1, k), back = lead - Math.sign(f.x1 - f.x0) * 44; return tileOf(yy) === tileOf(f.y) && x >= Math.min(lead, back) - 6 && x <= Math.max(lead, back) + 6; };
+        Stats.count('boss:sloth:sheep');
     }
     updatePillows(p) {
         for (const s of this.pillows) {
@@ -293,7 +333,9 @@ class MotherSloth extends Enemy {
         this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
         Fx.poof(this.capX, this.capY - 8);
         Stats.count('boss:sloth:knock');
+        calmBlows(this); this.lift = 0; this.sheepT = 0;
         if (this.hp <= 0) return this.defeat();
+        bossHeart(this.area, this.capX, this.capY + 36);       /* (a heart falls off the bed) */
         /* the next round: she wakes, and the room changes under her */
         this.state = 'turn'; this.st = 0; this.pillows = [];
         Script.run(SlumberFoes.slothTurn(this));
@@ -325,6 +367,8 @@ class MotherSloth extends Enemy {
         const body = spr(this.state === 'slump' ? 'sloth_slump' : this.state === 'sleep' ? 'sloth_sleep' : 'sloth_awake');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(body, '#ffffff') : body;
         if (img) Gfx.img(img, this.hx * T - cx + 8 - img.width / 2, this.hy * T - cy - 30 + (this.state === 'slump' ? 22 : 0) + Math.round(Math.sin(this.t / 40) * 1.5));
+        /* pillows held up over her nightcap, about to be lobbed */
+        if (this.lift > 0) for (let i = 0; i < this.phase; i++) { const px = this.capX - cx - 4 + (i - (this.phase - 1) / 2) * 10, py = this.capY - cy - 46 - ((this.t >> 3) % 2); Gfx.rect(px - 1, py - 1, 10, 8, PAL.ink); Gfx.rect(px, py, 8, 6, '#fbf6ea'); Gfx.rect(px, py + 5, 8, 1, '#d8c8f8'); }
         for (const arm of this.arms) this.drawArm(arm, cx, cy);
     }
     drawArm(arm, cx, cy) {
@@ -338,7 +382,8 @@ class MotherSloth extends Enemy {
         /* a long furry arm: a thick line with a lavender thread through it */
         for (let o = -2; o <= 2; o++) Gfx.line(x0 + o * 0.5, y0 + o, x1 + o * 0.5, y1 + o, o === 0 ? '#a8845e' : '#7a5a3e');
         Gfx.line(x0, y0, x1, y1, THREAD.mallow);
-        this.drawHand(x1, y1, arm.side);
+        this.drawHand(x1, y1, arm.side, arm.state === 'wind');
+        if (arm.state === 'wind' && (arm.t >> 2) % 2) Tells.bang(x1, y1 - 20);
     }
     /* what's left of her: a soft lavender feather that rocks to and fro as it drifts down off the bed, and sinks into
        the floor (drawn pixel by pixel at its tilt: a quill, a vane wider on one side, a notch or two in it) */
@@ -369,14 +414,27 @@ class MotherSloth extends Enemy {
         }
         Gfx.alpha(1);
     }
-    drawHand(x, y, side) {
+    /* (spread: about to reach, its fingers splayed wide) */
+    drawHand(x, y, side, spread) {
         Gfx.circle(x, y, 4, '#7a5a3e'); Gfx.circle(x, y, 3, '#a8845e');
+        if (spread) { for (let i = -2; i <= 2; i++) Gfx.line(x + i * 2, y - 1, x + i * 4, y - 6, '#3e2e22'); return; }
         for (let i = -1; i <= 1; i++) Gfx.line(x + i * 2, y + 2, x + i * 3 + side, y + 6, '#3e2e22');
     }
 }
 SPAWN.mothersloth = (x, y, p) => Progress.flag('slumber_boss') ? new Ent('none') : new MotherSloth(x, y, p);
 
 const SlumberFoes = {
+    /* the dream sheep: three woolly sheep bounding along their row (over the dark too), where they've got to */
+    drawSheep(x, y, h) {
+        const f = h.flock, k = (h.t - h.tell) / h.live, cx = x - h.x, cy = y - h.y, dir = Math.sign(f.x1 - f.x0) || 1;
+        for (let i = 0; i < 3; i++) {
+            const sx = Math.round(lerp(f.x0, f.x1, k) - dir * i * 18 + cx), sy = Math.round(f.y + cy - 6 - Math.abs(Math.sin((h.t + i * 7) / 5)) * 5);
+            Gfx.alpha(0.25); Gfx.rect(sx - 5, Math.round(f.y + cy), 10, 2, PAL.ink); Gfx.alpha(1);
+            Gfx.circle(sx, sy, 6, PAL.ink); Gfx.circle(sx, sy, 5, '#fbf6ea'); Gfx.circle(sx - 2 * dir, sy - 2, 2, '#ffffff');
+            Gfx.rect(sx + dir * 4 - 1, sy - 2, 4, 4, '#4a3a5a'); Gfx.rect(sx + dir * 5, sy - 1, 1, 1, '#ffffff');
+            Gfx.rect(sx - 3, sy + 4, 1, 3, '#4a3a5a'); Gfx.rect(sx + 2, sy + 4, 1, 3, '#4a3a5a');
+        }
+    },
     *matronIntro(m) {
         yield 20;
         if (Progress.flag('matron_met')) { yield* say(null, '"LIGHTS OUT," says Matron Hush, bolt upright again. "I SAID. BACK. TO. BED."'); return; }

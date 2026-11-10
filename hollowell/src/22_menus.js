@@ -347,7 +347,8 @@ const PauseMenu = {
         goal.forEach((l, i) => Font.draw(l, 24, 46 + i * 10, PAL.ink));
         let ny = 46 + goal.length * 10 + 6;
         /* what's going on in town that's new, until it's done (so a new thing is told, not stumbled on) */
-        const news = TOWN_NEWS.filter(([on, done]) => on() && !done()).map(n => n[2]);
+        /* (the newest first: what opened up with the latest turn of the Wander is what you'll want to hear of) */
+        const news = TOWN_NEWS.filter(([on, done]) => on() && !done()).sort((a, b) => (b[3] || 0) - (a[3] || 0)).map(n => n[2]);
         if (news.length) {
             /* as many as fit in three lines; the rest counted ("and 2 more"), never cut off mid-word */
             const text = k => '{red}Also in town:{/} ' + news.slice(0, k).join('; ') + (k < news.length ? `; and ${news.length - k} more` : '') + '.';
@@ -373,11 +374,12 @@ const PauseMenu = {
     notes() { return Progress.notes.filter(n => NOTES[n]).slice().reverse(); },
 };
 const NOTES = {};      /* id -> { title, text } */
-/* new things to do in town: [shown when, done when, what] */
+/* new things to do in town: [shown when, done when, what, how far into the Wander it opens (the newest are told first)]
+   (the town's favours add theirs: src/51c_town_favours.js) */
 const TOWN_NEWS = [
-    [() => Progress.flag('d1'), () => Progress.flag('s12'), "Otto's game in the square"],
-    [() => Progress.flag('d1'), () => Progress.flag('s28'), "the Tidiness Trials up the Inn's attic stairs"],
-    [() => Progress.flag('d4'), () => Progress.flag('s29'), 'Returnball, by the south road'],
+    [() => Progress.flag('d1'), () => Progress.flag('s12'), "Otto's game in the square", 1],
+    [() => Progress.flag('d1'), () => Progress.flag('s28'), "the Tidiness Trials up the Inn's attic stairs", 1],
+    [() => Progress.flag('d4'), () => Progress.flag('s29'), 'Returnball, by the south road', 4],
 ];
 
 const Options = {

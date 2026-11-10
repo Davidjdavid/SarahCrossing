@@ -159,7 +159,7 @@ defHouse({
                 { k: 'soldier', x: 5, y: 9, facing: 'right', turn: 'right', id: 'opSol' },
                 { k: 'block', x: 10, y: 2, id: 'opBlock', marked: false },
                 { k: 'deco', x: 14, y: 6, look: 'drum', solid: [[0, 0]], text: 'A big drum. Somebody has painted on it: PLAYED BY B.' },
-                { k: 'sign', x: 17, y: 1, text: "THE ORCHESTRA PIT. Our drummer marches round and round the edge, turning right at every wall. He has never once crossed the middle. (The gate by the music stands keeps time with the drum-plate.)" },
+                { k: 'sign', x: 17, y: 1, text: "THE ORCHESTRA PIT. Our drummer marches round and round the edge, turning right at every wall. (The gate by the music stands keeps time with the drum-plate.)" },
             ],
             nudge: { solved: 'marionette_chest:opKey', after: 60 * 60 * 3, thing: 'opBlock', say: 'The drummer turns right at anything in his way, not only walls. Put something in his way, see where he goes instead, and be waiting at the gate when he crosses the plate.' },
         },

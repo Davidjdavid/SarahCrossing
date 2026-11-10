@@ -196,6 +196,14 @@ class Tollgrim extends Enemy {
         const here = p.area === a && p.state === 'normal' && a.roomAt(p.tx, p.ty) === a.roomAt(this.hx, this.hy);
         /* (2, 3) he pounds on the bell, in it or leaning out, and mortar shakes down from the rafters */
         if (ph >= 2 && (this.state === 'hide' || this.state === 'peek') && here && --this.tollCool <= 0) this.toll(p, ph);
+        /* (3) red-eyed, watching her: up close under the bell's mouth, and he lunges out at her (from in it or leaning out) */
+        if (this.pounceCool > 0) this.pounceCool--;
+        else if (ph === 3 && here && (this.state === 'hide' || this.state === 'peek') && this.pounceZone().some(([x, y]) => p.tx === x && p.ty === y)) {
+            if (this.state === 'peek') this.duck();
+            this.state = 'pounce'; this.st = 0; this.tellN = tellFor(4, 3);
+            Hazard.tiles(this, this.pounceZone(), { tell: this.tellN, dmg: 2, live: 10, col: '#ff5a4a', fx: 'dust', shake: 6, sound: 'boss' });
+            Stats.count('boss:tollgrim:pounce');
+        }
         switch (this.state) {
             case 'hide':
                 this.hidden = true; this.x = this.hx * T + 8; this.y = this.hy * T + 10;
@@ -204,13 +212,6 @@ class Tollgrim extends Enemy {
                 if (out && this.st > TOLL.lean[ph] && !a.at(mx, my) && !(p.tx === mx && p.ty === my) && !(ph === 3 && this.nearClapper(p, clap))) {
                     this.state = 'peek'; this.st = 0; this.wary = 0; this.x = mx * T + 8; this.y = my * T + 10; this.hidden = false; Sfx.play('blip');
                     break;
-                }
-                if (this.pounceCool > 0) this.pounceCool--;
-                /* (3) red-eyed, watching her: up close under the bell's mouth, and he lunges out at her */
-                if (ph === 3 && here && this.pounceCool <= 0 && this.pounceZone().some(([x, y]) => p.tx === x && p.ty === y)) {
-                    this.state = 'pounce'; this.st = 0; this.tellN = tellFor(4, 3);
-                    Hazard.tiles(this, this.pounceZone(), { tell: this.tellN, dmg: 2, live: 10, col: '#ff5a4a', fx: 'dust', shake: 6, sound: 'boss' });
-                    Stats.count('boss:tollgrim:pounce');
                 }
                 break;
             case 'pounce':

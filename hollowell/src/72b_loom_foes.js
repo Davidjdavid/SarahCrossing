@@ -24,7 +24,13 @@ class Shuttle extends Ent {
         if (Script.blocking()) return;
         this.st++;
         const sp = 2.6 + (2 - this.hp) * 0.6;
-        if (this.state === 'wait') { if (this.st > 50) { this.state = 'fly'; this.st = 0; } return; }
+        /* its one dangerous move is its flight: waiting at its end, its lane is lit, wall to wall, before it comes (a heart
+           and a half if it finds Wren in it) */
+        if (this.state === 'wait') {
+            if (this.st === 1) { const t = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (!a.kind(x, this.lane).solid) t.push([x, this.lane]); Hazard.tiles(this, t, { tell: 50, dmg: 0, live: 0, col: '#e4ecf5' }); }
+            if (this.st > 50) { this.state = 'fly'; this.st = 0; }
+            return;
+        }
         if (this.state === 'fly') {
             const nx = this.x + this.dir * sp, tx = tileOf(nx + this.dir * 8), o = a.at(tx, this.lane);
             /* an offcut in the lane: it jams */
@@ -32,7 +38,7 @@ class Shuttle extends Ent {
             const end = this.dir > 0 ? (r.x + r.w - 2) * T + 8 : (r.x + 1) * T + 8;
             if ((this.dir > 0 && nx >= end) || (this.dir < 0 && nx <= end)) { this.x = end; this.dir = -this.dir; this.state = 'wait'; this.st = 0; return; }
             this.x = nx;
-            if (p.state === 'normal' && Math.abs(p.x - this.x) < 14 && Math.abs(p.y - 4 - this.y) < 9) p.hurt(1, this.x, this.y);
+            if (p.state === 'normal' && Math.abs(p.x - this.x) < 14 && tileOf(p.y) === this.lane) p.hurt(3, this.x, this.y);
         } else if (this.state === 'stuck') {
             if (this.st > 240) this.unjam();
         }
@@ -85,8 +91,14 @@ SPAWN.shuttle = (x, y, p) => Progress.flag('loom_shuttle') ? new Ent('none') : n
       from below, it's hauled down its own well toward you, and hangs there dazed, low over the well, before it climbs
       home: cut it at the thing itself (or its thread, on the way home) while it's over the well.
    Nothing to set up again between beats: the posts stay bare once cut; it climbs to its new perch by itself. */
+/* Its blows (TELL[8], the last and hardest): silk spat after it rears back, its belly aglow (bound, the Shears cut you
+   free; caught again while bound, a heart and a half; two at once in the last beat); a warp thread under Wren plucked
+   taut, the column lit first, then snapping down it (a heart and a half; two columns from the second beat); its drop
+   from the breast-beam (its shadow first: two hearts); and in the last beat, silk moths shaken down out of the web. Each
+   beat it's knocked into, a heart drifts down. */
 const WV = {
     spit: [0, 70, 0, 54], spitSp: [0, 1.7, 1.8, 2.0],      /* (by beat) */
+    warp: [0, 200, 180, 160], moths: 300, maxMoths: 3,
     webZ: 30, perchZ: 8, fall: 4, down: 240,
     perchWait: 60, aim: 44, dropSp: 5, bottom: 46, climb: 1.15,
     drag: 5, hang: 84, scurry: 3, reach: 14,
@@ -119,6 +131,7 @@ class Weaver extends Ent {
         this.tx = tx; this.ty = ty; this.x = tx * T + 8; this.y = ty * T + 8;
         this.hp = 3; this.state = 'sleep'; this.st = 0; this.t = 0; this.flash = 0; this.alive = true; this.shots = [];
         this.z = WV.webZ; this.path = null; this.L = 0; this.s = 0; this.lowZ = 0; this.told = 1; this.bindT = 0;
+        this.puff = 0; this.warpT = 90; this.mothT = 120;
     }
     onAdd(area) {
         const r = this.room = area.roomAt(this.tx, this.ty);
@@ -158,10 +171,16 @@ class Weaver extends Ent {
         this.st++;
         this.updateShots(p, r);
         const here = p.area === a && Cam.room === r && p.state === 'normal';
+        /* a spit coming: it rears back, its belly aglow (the tell), then the silk */
+        if (this.puff > 0 && --this.puff === 0) { this.spit(p); if (this.beat === 3) this.spit(p, 0.3); }
+        /* (its blows while it's up and about, not while it's down in its well) */
+        const busy = this.state === 'down' || this.state === 'fall' || this.state === 'climb';
+        if (here && !busy) { this.warp(p); if (this.beat === 3) this.moths(p); }
+        for (const e of a.ents.slice()) if (e.weaverMoth && !e.alive && e.yarnT > 50) a.remove(e);
         switch (this.state) {
             case 'web':
                 this.x = this.web[0]; this.y = this.web[1]; this.z = WV.webZ + Math.sin(this.t / 30) * 3;
-                if (here && this.st % WV.spit[1] === 20) this.spit(p);
+                if (here && this.st % WV.spit[1] === 20) this.rear();
                 if (this.anchors().every(n => n.cut)) { this.state = 'fall'; this.st = 0; Sfx.play('fall'); }
                 break;
             case 'fall':
@@ -183,9 +202,9 @@ class Weaver extends Ent {
             case 'perch':
                 this.x = this.perch[0]; this.y = this.perch[1]; this.z = WV.perchZ + Math.sin(this.t / 24) * 1.5;
                 if (this.beat === 2) {
-                    if (here && this.st === 18) this.spit(p);
+                    if (here && this.st === 18) this.rear();
                     if (here && this.st > WV.perchWait) this.aim(p);
-                } else if (here && this.st % WV.spit[3] === 24) this.spit(p);
+                } else if (here && this.st % WV.spit[3] === 24) this.rear();
                 break;
             case 'aim':
                 if (this.st > WV.aim) this.drop();
@@ -249,7 +268,7 @@ class Weaver extends Ent {
     }
     touchDown(p) {
         this.state = 'bottom'; this.st = 0; G.shake = 6; Sfx.play('land'); Fx.dust(this.x, this.y);
-        if (p.area === this.area && p.state === 'normal' && Math.abs(p.x - this.x) < 14 && Math.abs(p.y - this.y) < 12) p.hurt(2, this.x, this.y - 6);
+        if (p.area === this.area && p.state === 'normal' && Math.abs(p.x - this.x) < 14 && Math.abs(p.y - this.y) < 12) p.hurt(4, this.x, this.y - 6);
     }
     /* into the well, tangled in the old warp at the bottom */
     landIn() {
@@ -261,7 +280,8 @@ class Weaver extends Ent {
     recover() { this.state = 'climb'; this.st = 0; Sfx.play('twang'); }
     /* back as it was before she came in: in its web, tied in at all four posts, the warp in its well */
     reset() {
-        this.state = 'sleep'; this.st = 0; this.hp = 3; this.told = 1; this.path = null; this.shots = []; this.flash = 0;
+        this.state = 'sleep'; this.st = 0; this.hp = 3; this.told = 1; this.path = null; this.shots = []; this.flash = 0; this.puff = 0; this.warpT = 90; this.mothT = 120;
+        for (const e of this.area.ents.slice()) if (e.weaverMoth) this.area.remove(e);
         this.x = this.web[0]; this.y = this.web[1]; this.z = WV.webZ;
         for (const n of this.anchors()) n.tie();
         const w = this.well(); if (w) w.bare = false;
@@ -323,11 +343,36 @@ class Weaver extends Ent {
         this.state = 'land'; this.st = 0;
         if (!Progress.flag('weaver_feet')) { Progress.set('weaver_feet'); G.pendingToast = 'It lands on its feet on the stone, and scuttles straight back up the loom on a fresh thread.'; }
     }
-    spit(p) {
+    rear() { this.puff = tellFor(8, this.beat); Sfx.play('warn'); }
+    spit(p, off = 0) {
         if (p.state !== 'normal') return;
-        const sx = this.x, sy = this.y - this.z - 6, dx = p.x - sx, dy = p.y - 6 - sy, d = Math.hypot(dx, dy) || 1, sp = WV.spitSp[this.beat];
-        this.shots.push({ x: sx, y: sy, vx: dx / d * sp, vy: dy / d * sp, life: 240 });
-        Sfx.play('throw');
+        const sx = this.x, sy = this.y - this.z - 6, sp = WV.spitSp[this.beat], a = Math.atan2(p.y - 6 - sy, p.x - sx) + off;
+        this.shots.push({ x: sx, y: sy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 240 });
+        Sfx.play('throw'); Stats.count('boss:weaver:spit');
+    }
+    /* a warp thread plucked taut down the column Wren's in (and, later, another), lit first, then snapping down it */
+    warp(p) {
+        if (--this.warpT > 0) return;
+        this.warpT = WV.warp[this.beat];
+        const a = this.area, r = this.room, cols = [p.tx];
+        if (this.beat >= 2) cols.push(p.tx + (p.tx > r.x + 9 ? -4 : 4));
+        for (const x of cols) {
+            const tiles = []; for (let y = r.y + 1; y < r.y + r.h - 1; y++) { const k = a.kind(x, y); if (!k.solid && !k.pit) tiles.push([x, y]); }
+            Hazard.tiles(this, tiles, { tell: tellFor(8, this.beat) + 8, dmg: 3, live: 8, col: '#e4ecf5', fx: 'silk', shake: 4, look: LoomFoes.drawWarp });
+        }
+        Stats.count('boss:weaver:warp');
+    }
+    /* (3) it shakes the web, and silk moths flutter down out of it (three about at most) */
+    moths(p) {
+        if (--this.mothT > 0) return;
+        this.mothT = WV.moths;
+        const a = this.area, r = this.room, live = a.ents.filter(e => e.weaverMoth && e.alive).length;
+        for (let i = 0; i < 2 && live + i < WV.maxMoths; i++) {
+            const x = r.x + (i ? 15 : 4), y = r.y + 3;
+            const m = a.add(new Enemy(x, y, { type: 'moth' }));
+            m.weaverMoth = true; Fx.poof(m.x, m.y - 8);
+        }
+        Sfx.play('twang'); Stats.count('boss:weaver:moths');
     }
     updateShots(p, r) {
         const a = this.area;
@@ -336,7 +381,7 @@ class Weaver extends Ent {
             /* (spat from up on the loom, it's clear of the beams before anything solid can stop it) */
             if ((s.t > 16 && a.kind(tileOf(s.x), tileOf(s.y)).solid) || a.roomAt(tileOf(s.x), tileOf(s.y)) !== r) s.life = 0;
             if (p.area === a && p.state === 'normal' && Math.abs(p.x - s.x) < 7 && Math.abs(p.y - 6 - s.y) < 8) {
-                s.life = 0; if (p.pinned === 'silk') p.hurt(1, s.x, s.y); p.pinned = 'silk'; this.bindT = 150; Sfx.play('hook');
+                s.life = 0; if (p.pinned === 'silk') p.hurt(3, s.x, s.y); p.pinned = 'silk'; this.bindT = 150; Sfx.play('hook');
                 Fx.text(p.x, p.y - 22, 'bound!', '#e4ecf5');
                 if (!Progress.flag('silk_bound')) { Progress.set('silk_bound'); G.pendingToast = 'Silk, wound tight round you. The Shears would make short work of it. ([tool])'; }
             }
@@ -348,7 +393,9 @@ class Weaver extends Ent {
         if (this.state !== 'down') { if (by === G.player) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - this.z - 6); } return; }
         this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
         Stats.count('boss:weaver:hit');
+        calmBlows(this); this.puff = 0; this.warpT = 150; this.mothT = 120;
         if (this.hp <= 0) return this.defeat();
+        { const p = G.player; bossHeart(this.area, p.x, p.y + 18); }      /* (a heart drifts down) */
         this.shots = []; this.state = 'climb'; this.st = 0;
         this.beginBeat(this.beat);
     }
@@ -363,6 +410,7 @@ class Weaver extends Ent {
     }
     defeat() {
         this.alive = false; this.shots = []; this.path = null; this.state = 'dead';
+        for (const e of this.area.ents.slice()) if (e.weaverMoth) { if (e.alive) Fx.yarn(e.x, e.y - 8, THREAD.loom); this.area.remove(e); }
         const p = G.player; if (p.pinned === 'silk') p.pinned = null;
         Sfx.play('unravel'); Fx.yarn(this.x, this.y, THREAD.loom);
         this.shutters(false);
@@ -437,6 +485,8 @@ class Weaver extends Ent {
                 const sh = this.state === 'hung' ? ((this.t >> 2) % 2 ? 1 : -1) : 0;
                 Gfx.img(im, x - im.width / 2 + sh, top - im.height + 10);
             }
+            /* rearing back to spit: its belly aglow */
+            if (this.puff > 0) { const k = 1 - this.puff / tellFor(8, this.beat); Tells.glow(x, top - 2, k, '#e4ecf5'); Tells.bang(x, top - 30); }
             /* (3) eyes gone red: it won't come down */
             if (this.beat === 3 && this.state === 'perch' && (this.t >> 4) % 2) { Gfx.rect(x - 4, top - 4, 2, 2, '#ff5a4a'); Gfx.rect(x + 2, top - 4, 2, 2, '#ff5a4a'); }
         }
@@ -466,6 +516,12 @@ SPAWN.weaver = (x, y, p) => Progress.flag('loom_boss') ? new WeaverHeap(x, y) : 
 }
 
 const LoomFoes = {
+    /* a warp thread plucked taut down its column, thrumming, about to snap (the column itself is lit) */
+    drawWarp(x, y, h) {
+        const camY = h.y - y - (h.tell - h.t) * 5, top = h.tiles[0][1] * T - camY, bot = (h.tiles[h.tiles.length - 1][1] + 1) * T - camY;
+        const w = Math.round(Math.sin(h.t * 1.7) * 2 * (1 - h.t / h.tell + 0.3));
+        Gfx.line(x + w, top, x - w, bot, '#ffffff'); Gfx.line(x + w + 1, top, x - w + 1, bot, '#aab7c8');
+    },
     *shuttleIntro(s) {
         yield 20;
         yield* say(null, "Something long and smooth and wooden lifts itself off the floor and hangs at the end of a silver thread stretched wall to wall: the loom's lost shuttle, big as a boat.");

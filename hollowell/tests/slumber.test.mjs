@@ -125,24 +125,37 @@ test('the laundry: ride all the way round and the trace folds back on itself: th
     assert.ok(!(thing(HW, 'ldRing1').lit && thing(HW, 'ldRing2').lit && thing(HW, 'ldRing3').lit), 'not all three');
 });
 
-test('the drying loft: the hook bounces off the sleeper on the pillar; ring it home; hook over; fall home (key B)', () => {
+test('the drying loft: the sleeping boulder\'s own place is out on the island, empty: the hook catches on it; take the key; fall home (key B)', () => {
     const HW = game();
     enter(HW, 'loft', 9, 1);
     HW.G.cheats.god = true;
     const p = HW.player(), bo = thing(HW, 'dlBoulder');
     go(HW, 'loft', 3, 1); HW.face('left'); HW.press('act', 1); HW.skipTalk();
-    go(HW, 'loft', 13, 3); HW.Inv.equipped = 'hook'; HW.face('down'); HW.press('tool', 1); HW.step(60);
-    assert.deepEqual(here(HW, 'loft'), [13, 3], 'the hook comes back off the sleeping boulder');
-    go(HW, 'loft', 16, 2); ring(HW);
-    assert.ok(until(HW, () => HW.Return.isHome(bo), 200), 'the boulder rolled home over the drop');
-    assert.ok(thing(HW, 'dlSnore1').mode === 'chase' || thing(HW, 'dlSnore2').mode === 'chase', 'and the ring woke the Snorelings');
     go(HW, 'loft', 13, 3); HW.Inv.equipped = 'hook'; HW.face('down'); HW.press('tool', 1); HW.step(80);
-    assert.deepEqual(here(HW, 'loft'), [13, 8], 'reeled over to the island');
+    assert.deepEqual(here(HW, 'loft'), [13, 8], 'reeled over onto its empty place');
     go(HW, 'loft', 14, 8); HW.face('right'); HW.press('act', 1); HW.skipTalk();
     assert.equal(HW.Inv.keys('slumber'), 1, 'key B');
     HW.hold('left'); until(HW, () => p.state === 'fall', 200); HW.release();
     landed(HW);
     assert.deepEqual(here(HW, 'loft'), [3, 1], 'home by the bed');
+    noErrors(HW);
+});
+
+test('the drying loft: rung awake, the boulder fills its own place on the island, and the hook only drops you in the drop; leave, and it lies down again', () => {
+    const HW = game();
+    enter(HW, 'loft', 9, 1);
+    HW.G.cheats.god = true;
+    const p = HW.player(), bo = thing(HW, 'dlBoulder');
+    go(HW, 'loft', 8, 2); ring(HW);
+    assert.ok(until(HW, () => HW.Return.isHome(bo), 200), 'home over the drop, onto the island');
+    /* (the ring woke the Snorelings too: let them shuffle off to a bed) */
+    until(HW, () => !HW.G.map.ents.some(e => e.type === 'snoreling' && e.mode === 'chase'), 1500);
+    go(HW, 'loft', 13, 3); HW.Inv.equipped = 'hook'; HW.face('down'); HW.press('tool', 1);
+    assert.ok(until(HW, () => p.state === 'fall', 120), 'set down in front of it: in the drop');
+    landed(HW);
+    go(HW, 'loft', 9, 1); HW.hold('up'); HW.step(30); HW.release(); HW.step(10);
+    HW.hold('down'); HW.step(30); HW.release(); HW.step(10);
+    assert.ok(HW.Return.asleep(bo) && bo.tx === at('loft', 6, 2)[0], 'asleep again, its place empty');
     noErrors(HW);
 });
 
@@ -451,6 +464,81 @@ test('mother sloth: an arm snaps only out past the stars (caught by one arm, flo
     homeward(HW); until(HW, () => p.state === 'normal', 300);
     assert.notEqual(arm.state, 'snapped', 'flown right across the room, but never past the stars: it holds');
     noErrors(HW);
+});
+
+/* her blows, each with its tell, each dodged (or not) */
+const slothBlows = (HW, s) => HW.G.map.ents.filter(e => e.kind === 'hazard' && e.owner === s);
+test("mother sloth's reach: her hand rises and spreads its fingers first; back out of her reach then and it gives up (stay, and it catches)", () => {
+    for (const dodge of [true, false]) {
+        const HW = game(['bedroll']);
+        const s = bossRoom(HW), p = HW.player();
+        go(HW, 'boss', 9, 7);
+        assert.ok(until(HW, () => s.arms.some(a => a.state === 'wind'), 300), 'a hand rises');
+        const arm = s.arms.find(a => a.state === 'wind');
+        assert.ok(arm.tell >= 24, 'a fair tell');
+        if (dodge) { HW.hold('down'); HW.step(8); HW.release(); go(HW, 'boss', 9, 9); HW.hold('down'); HW.step(30); HW.release(); }
+        HW.step(160);
+        if (dodge) assert.ok(!p.pinned, 'out of reach: not caught');
+        else assert.ok(p.pinned === arm, 'caught');
+        noErrors(HW);
+    }
+});
+test("mother sloth's pillows: out of reach she lifts them over her head first (one, then two, then three); a step aside as they come", () => {
+    for (const dodge of [true, false]) {
+        const HW = game(['bedroll']);
+        const s = bossRoom(HW), p = HW.player();
+        s.hp = 2; s.state = 'fight';                 // (round 2: two at once)
+        p.x = at('boss', 1, 9)[0] * 16 + 8; p.y = at('boss', 1, 9)[1] * 16 + 10; HW.step(1);
+        assert.ok(until(HW, () => s.lift > 0, 400), 'pillows lifted');
+        assert.ok(until(HW, () => s.pillows.length === 2, 60), 'two thrown');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('right'); HW.step(50); HW.release(); }
+        else HW.step(50);
+        HW.step(30);
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'past her');
+        else assert.ok(HW.Inv.hp < hp, 'a pillow in the face');
+        noErrors(HW);
+    }
+});
+test("mother sloth counts sheep (round 3): a row of the floor glows, then the flock bounds along it; off the row and they pass (on it, a full heart)", () => {
+    for (const dodge of [true, false]) {
+        const HW = game(['bedroll']);
+        HW.G.cheats.god = true;
+        const s = bossRoom(HW), p = HW.player();
+        roundOne(HW, s); roundTwo(HW, s);
+        HW.G.cheats.god = false;
+        assert.equal(s.phase, 3);
+        go(HW, 'boss', 9, 7); s.sheepT = 9999;
+        assert.ok(until(HW, () => slothBlows(HW, s).some(h => h.flock), 60), 'a row glows');
+        const h = slothBlows(HW, s).find(q => q.flock);
+        assert.ok(h.tiles.some(([x, y]) => y === p.ty), "it's Wren's row");
+        if (p.pinned) { HW.Inv.equipped = 'hook'; }
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('down'); HW.step(18); HW.release(); assert.ok(!h.tiles.some(([x, y]) => y === p.ty), 'off the row'); }
+        s.arms.forEach(a => { a.cool = 9999; if (a.state !== 'snapped') a.state = 'rest'; }); p.pinned = null;   /* (her arms kept to themselves meanwhile) */
+        assert.ok(until(HW, () => h.removed, 200), 'the flock went by');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'they passed her by');
+        else assert.equal(HW.Inv.hp, hp - 2, 'bowled over');
+        noErrors(HW);
+    }
+});
+test("Matron Hush: now and then she stops dead and puffs up (her \"!\"), then comes on twice as fast along the footsteps; keep walking and stay ahead", () => {
+    for (const dodge of [true, false]) {
+        const HW = game();
+        enter(HW, 'landing', 9, 9);
+        const m = thing(HW, 'matron'), p = HW.player();
+        HW.hold('up'); HW.step(10); HW.release(); HW.skipTalk(); HW.step(5);
+        go(HW, 'landing', 13, 9); go(HW, 'landing', 16, 9); go(HW, 'landing', 16, 8);
+        /* (she's caught up to two steps behind) */
+        const [bx, by] = at('landing', 14, 9); m.x = bx * 16 + 8; m.y = by * 16 + 10; m.i = m.nearest(p.trace); m.lt = 239;
+        assert.ok(until(HW, () => m.brace > 0, 10), 'she puffs up');
+        const hp = HW.Inv.hp;
+        if (dodge) { for (const [x, y] of [[17, 8], [17, 2], [12, 2]]) go(HW, 'landing', x, y); }
+        else HW.step(120);
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'kept ahead of her');
+        else assert.ok(HW.Inv.hp <= hp - 2, 'caught: a full heart');
+        noErrors(HW);
+    }
 });
 
 /* ---------------- the Milk Kitchen and the Dreaming Door (the way to the Pattern) ---------------- */

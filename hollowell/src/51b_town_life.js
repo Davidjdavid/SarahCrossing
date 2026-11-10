@@ -90,11 +90,12 @@ const GRAN_AFTER_D7 = [
 ];
 
 const Town = {
-    /* the newest turn of the Wander that this person has lines for */
+    /* the newest turn of the Wander there's been, if this person has something to say about it (nothing said late: a
+       line about the third Knot is never said after the fifth) */
     stage(who) {
         for (let i = TOWN_STAGES.length - 1; i >= 0; i--) {
             const s = TOWN_STAGES[i];
-            if (Progress.flag(s) && TOWN_LINES[s][who]) return s;
+            if (Progress.flag(s)) return TOWN_LINES[s][who] ? s : null;
         }
         return null;
     },
@@ -118,16 +119,14 @@ const Town = {
     },
     /* every line, for the checks (with each function's answer both ways) */
     allLines() {
-        const out = [];
-        const flags = Progress.flags;
+        const out = [], saved = Progress.flags;
         for (const s of TOWN_STAGES) for (const [who, L] of Object.entries(TOWN_LINES[s])) for (const l of L) {
             if (typeof l !== 'function') { out.push([who, l]); continue; }
             for (const v of [false, true]) {
-                const saved = Object.assign({}, flags);
-                for (const f of ['cut:hob', 'cut:nell']) Progress.flags[f] = v;
+                Progress.flags = Object.assign({}, saved, { 'cut:hob': v, 'cut:nell': v });
                 out.push([who, l()]);
-                Progress.flags = saved;
             }
+            Progress.flags = saved;
         }
         return out.concat(GRAN_AFTER_R1.map(l => ['gran', l]), GRAN_AFTER_D7.map(l => ['gran', l]));
     },

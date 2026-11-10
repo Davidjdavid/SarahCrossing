@@ -26,6 +26,9 @@ WALLS.loomhouse = {
 };
 
 /* the Hanging Gallery's weights: hung out at the trench's west end, home along it, then down the far side to the east */
+/* the Bridge Room's weight, wedged in its nook (and any spare dropped into the nook after it) */
+const BR_WEDGED = { noPull: true, stitchName: 'the wedged weight',
+    onPushed(p, d) { if (!this.canPush(d)) UI.toast('Wedged in its nook, iron to the stone: no hand will get it out.', 120); } };
 function HANG_PATH(hx, hy, sx) {
     const p = [[hx, hy], [hx, 7]];
     for (let x = hx - 1; x >= 14; x--) p.push([x, 7]);
@@ -214,8 +217,8 @@ defHouse({
             rows: [
                 '####################',
                 '#........o.........#',
-                '#........o.........#',
-                '#........o.........#',
+                '#......#.o.........#',
+                '#.......#o.........#',
                 '#........o.........#',
                 '.........o..........',
                 '#........o.........#',
@@ -227,13 +230,20 @@ defHouse({
             ents: [
                 { k: 'deco', x: 3, y: 0, look: 'wallbobbins', solid: false, baseY: -100 },
                 { k: 'door', x: 15, y: 10, type: 'gate', when: 'brPlate', keep: true, dir: 'h', id: 'brLock' },     /* (a lock once: an old save that used its key here keeps the way open) */
-                { k: 'chute', x: 1, y: 1, drop: [2, 2], id: 'brChute', weights: true },
                 { k: 'door', x: 0, y: 5, type: 'gate', when: 'brPlate', dir: 'v', id: 'brWest' },
                 { k: 'silkbridge', x: 9, y: 5, len: 1, dir: 'h', id: 'brBridge' },
-                { k: 'loomweight', x: 4, y: 3, id: 'brW1' }, { k: 'loomweight', x: 4, y: 7, id: 'brW2' },
-                { k: 'plate', x: 14, y: 5, sig: 'brPlate', minWeight: 3 },
+                /* the one weight, wedged in a nook in the far wall of the drop, out over a strand of silk: no hand shifts it, so
+                   only a stitch does; and a thing on its way to its place hangs on its thread over whatever's gone from under
+                   it. (Old weights here, brW1 and brW2, are gone: whatever an older save did with them, this one is new.) The
+                   chute in the nook's ceiling (worked from the far side) drops another only when the nook is empty; the
+                   offcuts on this side can fill the strand's gap if it's gone before the weight has crossed */
+                { k: 'loomweight', x: 8, y: 2, id: 'brW3', ...BR_WEDGED },
+                { k: 'silkbridge', x: 9, y: 2, len: 1, dir: 'h', id: 'brNook' },
+                { k: 'chute', x: 8, y: 1, drop: [8, 2], id: 'brChute', weights: true, spare: BR_WEDGED },
+                { k: 'chute', x: 13, y: 1, drop: [13, 2], id: 'brOffcuts' },
+                { k: 'plate', x: 12, y: 2, sig: 'brPlate', minWeight: 3 },
                 { k: 'chest', x: 16, y: 2, item: 'pattern', id: 'brPattern', hidden: true, when: 'brPlate' },
-                { k: 'sign', x: 2, y: 9, text: 'Silk will hold a girl. Silk will not hold iron.' },
+                { k: 'sign', x: 18, y: 4, text: 'Silk will hold a girl. Silk will not hold iron.' },
             ],
         },
         /* ---------------- 7a The Larder, east of the Weighing Room (the Hanging Gallery's key): the Weaver's. It wraps the
@@ -334,7 +344,7 @@ class Chute extends GridThing {
         const p = G.player, k = a.kind(x, y);
         if (a.at(x, y) || (p.tx === x && p.ty === y) || k.solid || k.pit) { UI.toast("The chute rattles. There's no room under it for another."); Sfx.play('hitthing'); return true; }
         /* offcuts are middling things (silk holds them; an iron plate doesn't notice them); some chutes drop spare weights */
-        const b = a.add(this.weights ? new Block(x, y, { weight: WEIGHT.heavy, look: 'loomweight', thread: THREAD.loom, patience: 150 }) : new Block(x, y, { marked: false, weight: WEIGHT.medium }));
+        const b = a.add(this.weights ? new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'loomweight', thread: THREAD.loom, patience: 150 }, this.spare || {})) : new Block(x, y, { marked: false, weight: WEIGHT.medium }));
         b.skey = 'chute:' + G.t;
         if (this.weights && !Progress.flag('spare_weight')) { Progress.set('spare_weight'); G.pendingToast = 'A spare weight clanks down, on its own silver thread.'; }
         Fx.poof(x * T + 8, y * T + 4); Sfx.play('land'); G.shake = 3; Stats.count('offcuts');

@@ -286,6 +286,79 @@ test('the great stage, in three acts: its feet tangled; turned onto the trap; wa
     noErrors(HW);
 });
 
+/* its blows, each with its tell, each dodged (or not) */
+const gmBlows = (HW, g) => HW.G.map.ents.filter(e => e.kind === 'hazard' && e.owner === g);
+test("the Great Marionette's stick (act I): close in front of its feet, its stick hand drawn back and the boards there lit; back off them and it sweeps the air (a full heart if not)", () => {
+    for (const dodge of [true, false]) {
+        const HW = game(['crossbar']);
+        HW.Progress.set('marionette_gmAwake');
+        enter(HW, 'stage', 9, 9);
+        const g = HW.G.map.ents.find(e => e.type === 'greatmarionette');
+        talkThrough(HW);
+        go(HW, 'stage', 9, 7); g.sweepCool = 999;
+        assert.ok(until(HW, () => g.sweepT > 0, 30), 'its stick drawn back');
+        const z = gmBlows(HW, g).find(h => h.dmg === 2);
+        assert.ok(z && z.covers(HW.player().x, HW.player().y), 'the boards in front of its feet lit, Wren on them');
+        g.bags = []; g.st = 1;                       /* (no sandbags just now) */
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold(['down', 'left']); HW.step(20); HW.release(); assert.ok(!z.covers(HW.player().x, HW.player().y), 'off the lit boards (round the rack)'); }
+        assert.ok(until(HW, () => z.removed, 80), 'swept');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'swept the air');
+        else assert.equal(HW.Inv.hp, hp - 2, 'swept off her feet');
+        noErrors(HW);
+    }
+});
+test("the Great Marionette's sandbags (two at once in act II): their shadows first, where Wren stands and beside her; out from under them", () => {
+    for (const dodge of [true, false]) {
+        const [HW, g] = atAct(2);
+        HW.G.cheats.god = false;
+        go(HW, 'stage', 15, 9); g.st = 2 * 260 + 99;
+        assert.ok(until(HW, () => g.bags.length === 2, 10), 'two shadows');
+        const hp = HW.Inv.hp, p = HW.player(), b0 = g.bags[0];
+        if (dodge) { const away = g.bags[1].x > p.x ? 'left' : 'right'; HW.hold('up'); HW.step(14); HW.hold(away); HW.step(24); HW.release(); }
+        assert.ok(until(HW, () => g.bags.every(b => b.t >= 60), 80)); HW.step(2);
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'out from under them');
+        else assert.equal(HW.Inv.hp, hp - 2, 'a sandbag');
+        noErrors(HW);
+    }
+});
+test("the Great Marionette's battens (act III): a whole row of the stage lit, then a batten crashes down along it; off the row and it misses", () => {
+    for (const dodge of [true, false]) {
+        const [HW, g] = atAct(3);
+        HW.G.cheats.god = false;
+        go(HW, 'stage', 4, 8); g.battenT = 9999; g.bags = []; g.st = 1;
+        assert.ok(until(HW, () => gmBlows(HW, g).some(h => h.look), 10), 'a row lit');
+        const h = gmBlows(HW, g).find(q => q.look), p = HW.player();
+        assert.ok(h.tiles.some(([x, y]) => y === p.ty), "Wren's row");
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('down'); HW.step(18); HW.release(); assert.ok(!h.tiles.some(([x, y]) => y === p.ty), 'off the row'); }
+        assert.ok(until(HW, () => h.removed, 80), 'it came down');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'missed');
+        else assert.equal(HW.Inv.hp, hp - 2, 'a batten');
+        noErrors(HW);
+    }
+});
+test("Captain Tin's baton: he twirls it overhead, its line lit, and flings it; off the line, and off its thread when it comes home", () => {
+    for (const dodge of [true, false]) {
+        const HW = game();
+        enter(HW, 'wings', 9, 9);
+        HW.hold('up'); HW.step(10); HW.release(); HW.skipTalk(); HW.step(5);
+        const c = thing(HW, 'tin'), p = HW.player();
+        go(HW, 'wings', 9, 3); c.batonT = 999;
+        assert.ok(until(HW, () => c.twirl > 0, 30), 'he twirls his baton');
+        const aim = c.aim, on = () => aim.some(([x, y]) => x === p.tx && y === p.ty);
+        assert.ok(on(), 'Wren on the lit line');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('right'); HW.step(22); HW.release(); assert.ok(!on(), 'off it'); }
+        const fl = () => HW.G.map.ents.filter(e => e.kind === 'flung' && e.owner === c);
+        assert.ok(until(HW, () => fl().length > 0, 60), 'flung');
+        assert.ok(until(HW, () => !fl().length, 300), 'home along its thread');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'missed both ways');
+        else assert.ok(HW.Inv.hp <= hp - 2, 'struck');
+        noErrors(HW);
+    }
+});
+
 /* each act's rule, on its own */
 function atAct(n) {
     const HW = game(['crossbar']);

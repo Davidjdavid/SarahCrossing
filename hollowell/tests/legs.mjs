@@ -629,9 +629,8 @@ export const LEG5 = (HW, chain) => {
     HW.hold('up'); until(() => p().ty === s('laundry', 0, 1)[1] && !p().ride, 120); HW.step(10); HW.release();
     fallHome('down'); HW.step(5);
     walk(...s('laundry', 2, 1)); HW.face('left'); talk(); ok(HW.Inv.plans.includes('slumber'), 'the Plan');
-    /* the drying loft: key B */
+    /* the drying loft: key B (the sleeping boulder left asleep: its own place on the island is empty, and the hook catches on it) */
     walk(...s('laundry', 9, 9)); walk(...s('loft', 9, 1)); walk(...s('loft', 3, 1)); HW.face('left'); talk();
-    walk(...s('loft', 16, 2)); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(120);
     walk(...s('loft', 13, 3)); HW.Inv.equipped = 'hook'; HW.face('down'); HW.press('tool', 1); HW.step(80);
     walk(...s('loft', 14, 8)); HW.face('right'); talk(); ok(HW.Inv.keys('slumber') === 1, 'key B');
     fallHome('left');
@@ -886,10 +885,12 @@ export const LEG7 = (HW, chain) => {
     ok(until(() => HW.Return.isHome(thing('gaBlock')), 400), 'the crate goes home');
     hatch('ugate', 16, 7, 'down');
     walk(...s('gate', 9, 1)); HW.hold('up'); until(() => HW.Cam.room && HW.Cam.room.name === 'The Winding Hall' && !HW.Cam.busy, 200); HW.release(); HW.step(5);
-    /* under the Winding Hall: the counterweight off, the stray in its way */
+    /* under the Winding Hall: the counterweight pushed off its plate past the sleeping boulder's place; the boulder rung
+       awake from across the room, out of the weight's hearing: home in a flash, in the weight's way home */
     hatch('wind', 17, 7, 'down');
     walk(...s('uwind', 11, 5)); HW.push('right', 2); HW.step(25);
-    walk(...s('uwind', 13, 7)); HW.push('up', 1); HW.step(25);
+    walk(...s('uwind', 4, 2)); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(60);
+    ok(HW.Return.isHome(thing('hwRock')) && !HW.Return.isHome(thing('hwWeight')), 'the boulder in the weight\'s way');
     hatch('uwind', 17, 7, 'down');
     ok(thing('swGateW').open, 'the Spool Store gate');
     walk(...s('wind', 1, 5)); HW.hold('left'); HW.step(40); HW.release(); HW.step(30);
@@ -912,13 +913,13 @@ export const LEG7 = (HW, chain) => {
     walk(...s('kennel', 5, 3)); HW.face('up'); talk(); ok(HW.Inv.has('needle'), 'the Needle');
     /* the Kennel's south door: the weight in the way, given a new place */
     walk(...s('practice', 9, 0)); HW.face('down'); stitch('R'); ok(until(() => HW.Return.isHome(thing('paWeight')), 60), 'the weight in its nook');
-    /* the Practice Floor, from the rack below: the boy onto his plate and tied off; the little Wren on, alone, and tied */
+    /* the Practice Floor: the boy's cord hangs over a hole below, out of reach, so his plate is made his place (the
+       Needle, from up here); from the rack below the little Wren walked onto hers and tied; let go, the boy walks home: his plate */
+    walk(...s('practice', 13, 2)); HW.face('down'); stitch('DDD'); until(() => HW.Return.isHome(thing('paBoy')), 120);
     walk(...s('practice', 9, 3)); hatch('practice', 3, 7, 'down');
-    walk(...s('upractice', 12, 4)); HW.face('up'); rack('DDD');
-    walk(...s('upractice', 13, 4)); HW.face('up'); knot();
-    walk(...s('upractice', 12, 4)); HW.face('up'); rack('DD');
+    walk(...s('upractice', 12, 4)); HW.face('up'); rack('DDDDD');
     walk(...s('upractice', 11, 4)); HW.face('up'); knot();
-    ok(thing('paWren').knotted && thing('paBoy').knotted, 'both puppets held on their plates');
+    ok(until(() => thing('paWren').knotted && HW.Return.isHome(thing('paBoy')) && thing('paBoy').ty === s('practice', 0, 6)[1], 600), 'both puppets on their plates');
     hatch('upractice', 3, 7, 'down');
     walk(...s('practice', 1, 5)); into('The Gatehouse', 'left');
     walk(...s('gate', 3, 5)); ok(HW.Progress.areaFlag('spoolworks', 'door:gaGateE'), 'out through the Gatehouse door');
@@ -1172,11 +1173,11 @@ export const LEG8 = (HW, chain) => {
     snip('left'); HW.push('left', 3); HW.step(30);
     ok(!HW.G.map.kind(...l('ww', 1, 5)).pit, 'the Warp Walk: the gap filled');
     lgo('ww', 2, 5); HW.hold('left'); HW.step(40); HW.release(); HW.step(20);
-    /* the Bridge Room, in from the east: a weight cut free breaks the silk and fills the gap; the other over onto the plate */
-    lgo('br', 12, 5); lgo('br', 6, 5);
-    lgo('br', 3, 3); snip('right');
-    lpush('br', 4, 2, 'down', 2); lpush('br', 3, 5, 'right', 5);
-    lpush('br', 4, 8, 'up', 2); lpush('br', 3, 5, 'right', 10);
+    /* the Bridge Room, in from the east: the one weight wedged in its nook past a strand of silk; stitched past the strand
+       (the Needle), it tears through, hanging on its thread, and lands across; pushed onto the plate and cut there */
+    lgo('br', 12, 2); HW.face('left'); stitch('RRR'); HW.step(20);
+    ok(HW.G.map.find('brW3').tx === l('br', 11, 2)[0], 'the weight across the strand');
+    lpush('br', 10, 2, 'right', 1); lgo('br', 11, 2); snip('right');
     HW.step(5); lgo('br', 16, 3); act('up'); ok(HW.Inv.hasPattern('loom'), 'the Pattern');
     /* down its south gate (open for good now) and round to the Run, and up through the big door: the Web */
     lgo('wr', 15, 1); lgo('wh', 18, 5); lgo('sr', 9, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();

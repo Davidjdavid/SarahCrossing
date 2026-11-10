@@ -377,14 +377,17 @@ test('Tollgrim pounds the bell (beat 2 on): mortar shakes down from the rafters,
         const t = toll(HW);
         go(HW, 'bell', 14, 7);
         assert.ok(until(HW, () => hz(HW, t).length >= 4, 900), 'shadows on the floor');
-        const sh = hz(HW, t), hp = HW.Inv.hp, p = HW.player();
+        const sh = hz(HW, t), p = HW.player();
+        let hp = HW.Inv.hp;
         assert.ok(sh.every(h => h.tell >= 30), 'a fair tell');
         if (dodge) {
             const spot = freeTile(HW, (x, y) => sh.some(h => h.covers(x * 16 + 8, y * 16 + 10) || Math.hypot(h.x - (x * 16 + 8), h.y - (y * 16 + 10)) < 20), p);
             assert.ok(HW.walkTo(spot[0], spot[1]), 'out from under every shadow');
         } else {
+            t.spits = []; t.duck(); t.st = -100000;      /* (held in the bell: nothing else comes at her just then) */
             const h = sh.slice().sort((m, n) => Math.hypot(m.x - p.x, m.y - p.y) - Math.hypot(n.x - p.x, n.y - p.y))[0];
             assert.ok(HW.walkTo(Math.floor(h.x / 16), Math.floor(h.y / 16)), 'under a shadow');
+            p.inv = 0; hp = HW.Inv.hp;
         }
         assert.ok(until(HW, () => hz(HW, t).every(h => h.landed), 100)); HW.step(4);
         if (dodge) assert.equal(HW.Inv.hp, hp, 'all of it missed');

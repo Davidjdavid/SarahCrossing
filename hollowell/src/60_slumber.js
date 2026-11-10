@@ -161,7 +161,9 @@ defHouse({
                 { k: 'chest', x: 16, y: 2, item: 'heartpatch', id: 'stPatch' },
             ],
         },
-        /* ---------------- 6 The Drying Loft: ring the sleeper off the pillar, hook over, fall home (key B) ---------------- */
+        /* ---------------- 6 The Drying Loft: the sleeping boulder's own place is out on the island, empty while it sleeps: the
+           Hookline catches on an empty mark. Wake it (the obvious thing) and it goes home and fills it; leave, and it lies
+           down again. Then fall home (key B) ---------------- */
         '2,3': {
             name: 'The Drying Loft',
             rows: [
@@ -178,14 +180,13 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'block', x: 6, y: 1, id: 'dlBoulder', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [13, 5], trace: [[6, 1], [6, 2], [6, 3], [7, 3], [8, 3], [9, 3], [10, 3], [11, 3], [12, 3], [13, 3], [13, 4], [13, 5]], pushLine: 'A boulder, asleep on a pillar out in the drop. How did it get out there? How does anything?' },
-                { k: 'eyelet', x: 13, y: 9 },
+                { k: 'block', x: 13, y: 8, id: 'dlBoulder', look: 'boulder_b', sleeper: true, tiedOff: true, resetSleep: true, startAt: [6, 2], trace: [[13, 8], [13, 7], [13, 6], [13, 5], [13, 4], [13, 3], [12, 3], [11, 3], [10, 3], [9, 3], [8, 3], [7, 3], [6, 3], [6, 2]], pushLine: 'A boulder, fast asleep and snoring like a kettle. How did it get up here? How does anything?' },
                 { k: 'chest', x: 15, y: 8, item: 'key', id: 'dlKey' },
                 { k: 'bed', x: 2, y: 1, id: 'dlBed' },
                 { k: 'snoreling', x: 4, y: 2, id: 'dlSnore1' }, { k: 'snoreling', x: 17, y: 2, id: 'dlSnore2' },
                 { k: 'sign', x: 17, y: 3, text: 'THE DRYING LOFT. Sheets, socks, and a long way down.' },
             ],
-            nudge: { solved: 'slumber_chest:dlKey', after: 60 * 60 * 3, thing: 'dlBoulder', say: 'Out on its pillar, the sleeping boulder sits exactly between you and the ring on the island. A bell would wake it. A bell would wake everything.' },
+            nudge: { solved: 'slumber_chest:dlKey', after: 60 * 60 * 3, thing: 'dlBoulder', say: 'While the boulder sleeps, its own place out on the island stands empty. Wake it, and it won\'t be.' },
         },
         /* ---------------- 7 The Landing (mini-boss): Matron Hush follows your footsteps (the Bedroll) ---------------- */
         '1,1': {

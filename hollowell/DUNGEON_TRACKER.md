@@ -155,6 +155,14 @@ boss; the bells; an old save's Pattern; the upper floor. Scripted playthrough (L
 | The Crags (Heart Patch, the Ringers' Stone) | Heights (131–152, 11–17) | the Hookline across four ways: eyelet, a mark the gust empties, a sleeper's empty mark, a pot's mark emptied by hand | built, tested |
 | The Eyrie (Heart Patch) | Heights (183–188, 1–3) | the Shears on the crate the draught drops into the crevice: it fills it for good | built, tested |
 | The ringers' old bell | Heights (161,32) | hang the clapper from the Old Fold; a strike wakes the cave's boulder before the Recall Bell | built, tested |
+| Mallow's nursery (the way into the Slumberhouse) | Hushwood, the bank before the door (143–152, 54–56) | all three Snorelings asleep in the cradles: rung awake from the north bank they file in behind Wren; a puffball hooked from across the stream over each (far one first); or one at a time | built, tested (LEG5) |
+| The wooden one (30 buttons) | Hushwood, by the Slumberhouse (142,47) | with the three asleep, the Crossbar walks the wooden Snoreling through the hole in the hedge into the fourth cradle | built, tested |
+| Lantern Pond (Heart Patch) | Hushwood (151–165, 65–73) | four lanterns lit while their plates hold the mossy stones: three stitches, the fourth stone pushed on and gripped; the isle's chest (158,68) | built, tested |
+| The old loom weight | Hushwood, Lantern Pond's isle (159,69) | on the isle from the first raft trip; fits any Loomwood socket for good | built, tested |
+| The parade gate (the way into the Hall) | Larkspur, the forecourt (29–33, 51–53) | trap each toy soldier on its drum pad with a pale stray crate from the west of the fair; the fair's own go home | built, tested (LEG6) |
+| The balloon | Larkspur by the fog (5,70) → the Drift (58,6) | cut its thread; later, in the Drift, its basket: the whole Drift on the map; Linnet saw it | built, tested |
+| The warp (the way into the Loom) | Loomwood, the Loom's door (94–96,10) | four sockets: three stitches and one pushed on by the door; or the Bedroll and Homeward; or the old weight | built, tested (LEG8) |
+| The old mill (50 buttons) | the Drift (37–48, 2–13) | the wheel turns only for a riderless float: the Needle gives a barrel its place by the wheel, or the stray boulder dams the race under it; the pond runs out for good: the old road, its milestone, a toll box (41,10) | built, tested |
 
 ## D4 Belfry (`src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`; tests `tests/belfry.test.mjs`, `tests/belfry_kit.test.mjs`, `tests/review_d4.test.mjs`, `tests/heights.test.mjs`) - tested
 

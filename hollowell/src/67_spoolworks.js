@@ -359,11 +359,15 @@ defHouse({
                 { k: 'hatch', x: 17, y: 8 },
                 { k: 'plate', x: 12, y: 5, sig: 'hw1' },
                 { k: 'weight', x: 12, y: 5, id: 'hwWeight', patience: 240 },
-                { k: 'stray', x: 13, y: 6, id: 'hwStray' },
+                /* a boulder asleep across the room, its place right beside the plate. Woken, it's home in a flash; and once
+                   the weight is held off its plate by it, it stays awake (till then, leave and it lies down again) */
+                { k: 'block', x: 13, y: 5, id: 'hwRock', look: 'boulder_b', sleeper: true, tiedOff: true, resetSleep: 'spool_cw', noPush: true, noPull: true,
+                    startAt: [3, 1], trace: [[13, 5], [13, 4], [13, 3], [13, 2], [13, 1], [12, 1], [11, 1], [10, 1], [9, 1], [8, 1], [7, 1], [6, 1], [5, 1], [4, 1], [3, 1]],
+                    pushLine: 'A boulder, much too heavy to shift by hand.' },
                 { k: 'sign', x: 15, y: 9, text: "COUNTERWEIGHT: SPOOL STORE GATE. On its plate, the gate's shut. Off it, it's open, till the weight goes home." },
                 { k: 'spoolmite', x: 6, y: 3 },
             ],
-            nudge: { solved: 'spoolworks_swGateW', after: 60 * 60 * 3, thing: 'hwStray', say: 'The weight always goes back the way it came. Unless something heavy is standing in that way.' },
+            nudge: { solved: 'spoolworks_swGateW', after: 60 * 60 * 3, thing: 'hwRock', say: 'The weight always goes back the way it came. Unless something heavy is standing in that way.' },
         },
         '0,4': {
             name: 'Under the Spool Store', above: '0,1',
@@ -408,12 +412,13 @@ defHouse({
         },
         '2,5': {
             name: 'Under the Practice Floor', above: '2,2',
+            /* (the boards have gone round under the boy's stand: his cord hangs down a hole, out of reach) */
             rows: [
                 '####################',
                 '#..................#',
-                '#..................#',
-                '#..................#',
-                '#..................#',
+                '#............oo....#',
+                '#............oo....#',
+                '#............oo....#',
                 '#..................#',
                 '#..................#',
                 '#..................#',
@@ -426,7 +431,7 @@ defHouse({
                 { k: 'underrack', x: 12, y: 3, group: 'pa', id: 'paRack' },
                 { k: 'sign', x: 15, y: 2, text: "THE PRACTICE RACK. Its strings go up through the boards to the puppets on the floor above. Take it and they walk; let go, and home they go. -G." },
             ],
-            nudge: { solved: 'spoolworks_gaGateE', after: 60 * 60 * 3, at: [12, 3], say: 'Let go of the rack and the puppets walk home. Unless something holds them where they stand.' },
+            nudge: { solved: 'spoolworks_gaGateE', after: 60 * 60 * 3, at: [12, 3], say: 'Let go of the rack and each puppet walks home, to whatever its place is.' },
         },
         '0,5': {
             name: 'Under the Ropewalk', above: '0,2',
@@ -521,6 +526,12 @@ const Spoolworks = {
        stitch for nothing shouldn't take up one of the Needle's three) */
     build(a) { if (Inv.stitches) Inv.stitches = Inv.stitches.filter(r => !(r.area === 'spoolworks' && r.key === 'usWeight')); },
     tick(a) {
+        /* under the Winding Hall: the counterweight held off its plate by the boulder home in its way (the boulder stays
+           awake from then on) */
+        if (!Progress.flag('spool_cw')) {
+            const w = a.find('hwWeight'), r = a.find('hwRock');
+            if (w && r && w.ret && r.ret && w.ret.state !== 'home' && r.ret.state === 'home' && !Return.asleep(r) && w.ret.trace.some(([x, y]) => x === r.ret.mx && y === r.ret.my)) Progress.set('spool_cw');
+        }
         /* the Bobbin Loft opens when all four plates have been held down together a moment (not a single frame) */
         const all = ['bl1', 'bl2', 'bl3', 'bl4'].every(s => Signals.get(a, s));
         this.blT = all ? (this.blT || 0) + 1 : 0;

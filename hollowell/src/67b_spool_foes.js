@@ -22,7 +22,7 @@ class Cog extends Enemy {
     get down() { return this.state === 'rundown' || this.state === 'toppled'; }
     hurtBox() { return this.alive && this.state !== 'sleep' && !this.down ? { x0: this.x - 8, x1: this.x + 8, y0: this.y - 14, y1: this.y + 3 } : null; }
     shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'cog') s.shut = shut; }
-    onKnot() { this.state = 'held'; this.st = 0; Fx.text(this.x, this.y - 22, 'yip!', '#f7d64a'); }
+    onKnot() { this.state = 'held'; this.st = 0; this.z = 0; calmBlows(this); Fx.text(this.x, this.y - 22, 'yip!', '#f7d64a'); }
     onUntie() { if (this.state === 'held') { this.state = 'bolt'; this.st = 0; } }
     update() {
         if (!this.alive) return this.updateYarn();
@@ -45,16 +45,28 @@ class Cog extends Enemy {
         const up = p.area === a && Cam.room === r && p.state === 'normal';
         const sp = 0.85 + (2 - this.hp) * 0.3;
         /* tugged home from below: off he goes, fast */
-        if (this.ret.snap && this.state !== 'bolt') { this.state = 'bolt'; this.st = 0; }
+        if (this.ret.snap && this.state !== 'bolt') { this.state = 'bolt'; this.st = 0; this.z = 0; calmBlows(this); }
         switch (this.state) {
             case 'chase': {
                 if (!up) { this.state = 'sniff'; this.st = 0; break; }
                 const dx = p.x - this.x, dy = p.y - this.y, d = Math.hypot(dx, dy) || 1;
+                /* his one dangerous move: a few strides off he crouches, tail whirring, and pounces on the spot where Wren
+                   stands (its shadow there first): a heart and a half if she's still on it */
+                if (d < 56 && d > 20 && this.st > 90) { this.state = 'crouch'; this.st = 0; this.leap = { fx: this.x, fy: this.y, tx: p.x, ty: p.y, tell: tellFor(7) + 6 }; Hazard.drop(this, p.x, p.y, { r: 16, dmg: 3, tell: this.leap.tell + 16, col: THREAD.guild, shake: 6 }); Sfx.play('snort'); Stats.count('boss:cog:pounce'); break; }
                 this.dir = dirOf(dx, dy);
                 this.move(dx / d * sp, dy / d * sp); this.anim++;
                 if (Math.abs(dx) < 10 && Math.abs(dy) < 8) p.hurt(1, this.x, this.y);
                 break;
             }
+            case 'crouch': {
+                const l = this.leap;
+                if (this.st <= l.tell) break;
+                const k = Math.min(1, (this.st - l.tell) / 16);
+                this.x = lerp(l.fx, l.tx, k); this.y = lerp(l.fy, l.ty, k); this.z = Math.sin(k * Math.PI) * 14; this.anim += 2;
+                if (k >= 1) { this.z = 0; this.settle(); this.state = 'recover'; this.st = 0; Fx.dust(this.x, this.y); }
+                break;
+            }
+            case 'recover': if (this.st > 30) { this.state = 'chase'; this.st = 0; } break;
             case 'sniff':
                 /* where did she go? nose to the floor a while, then home */
                 if (up && this.st > 20) { this.state = 'chase'; this.st = 0; break; }
@@ -114,8 +126,10 @@ class Cog extends Enemy {
         let im = spr(this.state === 'toppled' ? 'cog_down' : this.state === 'held' ? 'cog_held' : this.state === 'sit' || this.state === 'sleep' || this.state === 'rundown' ? 'cog_sit' : 'cog_' + ((this.anim >> 3) % 2));
         if (this.flash > 0 && (this.flash >> 1) % 2) im = tinted(im, '#ffffff');
         const shake = this.state === 'held' ? ((this.t >> 1) % 2 ? 1 : -1) : this.state === 'rundown' && this.st < 40 ? ((this.st >> 2) % 2) : 0;
-        /* (his feet, on the sprite's row 13, on his shadow) */
-        Gfx.img(im, x - 10 + shake, y - 13, this.dir === LEFT);
+        /* (his feet, on the sprite's row 13, on his shadow); crouched to pounce: low, his tail a blur, his "!" */
+        const crouch = this.state === 'crouch' && this.st <= this.leap.tell;
+        Gfx.img(im, x - 10 + shake + (crouch ? ((this.t >> 1) % 2 ? 1 : -1) : 0), y - 13 + (crouch ? 2 : 0) - Math.round(this.z || 0), this.dir === LEFT);
+        if (crouch) Tells.bang(x, y - 30);
         if (this.state === 'held') {
             /* his cord, taut, straight down through the floor */
             Gfx.line(x, y - 2, x, y + 4, THREAD.guild); Gfx.rect(x - 1, y + 3, 3, 2, '#c9a24a');
@@ -125,7 +139,13 @@ class Cog extends Enemy {
 }
 SPAWN.cog = (x, y, p) => Progress.flag('spool_cog') ? new Ent('none') : new Cog(x, y, p);
 
-/* ---------------- the Tangle ---------------- */
+/* ---------------- the Tangle ----------------
+   Its blows (TELL[7], the hardest so far): yarn balls, after it swells and glows (one; two at once from the rafters;
+   three fanned); its cords lashing out round it when Wren's close, the reach drawn on the floor first (a heart and a
+   half); and, on the floor, a long cord whipped along its row or its column, right across the hall, the line lit first
+   (a heart and a half; in the last beat, row and column at once). Hung up in the rafters, it lets spoolmites down on
+   their threads. While it gathers its threads to haul, it throws nothing. Each beat it's knocked into, a heart drops. */
+const TG = { ball: [0, 130, 110, 100], sweep: [0, 190, 0, 170], mites: 230, maxMites: 3 };
 class Tangle extends Ent {
     constructor(tx, ty, p = {}) {
         super('tangle', p);
@@ -133,7 +153,7 @@ class Tangle extends Ent {
         this.hp = 3; this.state = 'sleep'; this.st = 0; this.t = 0; this.flash = 0; this.alive = true;
         this.balls = []; this.outT = 0; this.dazeT = 0; this.lashT = 0; this.pulled = 0;
         this.lift = 0; this.eyes = false; this.haulT = 0; this.gone = false;     /* gone: the hoist torn down */
-        this.HAUL = 120;
+        this.HAUL = 120; this.swell = 0; this.ballT = 60; this.sweepT = 90; this.miteT = 60; this.sweepN = 0;
     }
     /* (hung up in the rafters, it's in front of everything under it) */
     get sortY() { return this.y + 22 + (this.lift > 8 ? 400 : 0); }
@@ -172,15 +192,16 @@ class Tangle extends Ent {
         const bs = this.bobbins();
         this.pulled = bs.filter(b => this.out(b)).length;
         const here = p.area === a && Cam.room === r && p.state === 'normal';
+        this.cleanMites();
         switch (this.state) {
             case 'whole':
                 this.reel(bs);
                 if (this.allOut(bs)) { if (++this.outT > 30) this.apart(); } else this.outT = 0;
-                if (here) { this.throwAt(p, 110, 1.4); this.lash(p); }
+                if (here) { this.balls1(p, 1.4); this.lash(p); this.cordSweep(p); }
                 break;
             case 'up':
                 if (!this.hoisted() && this.lift > 30) this.drop();
-                else if (here && this.lift > 30) this.throwAt(p, 72, 1.7);
+                else if (here && this.lift > 30) { this.balls1(p, 1.7); this.mites(p); }
                 break;
             case 'down':
                 /* let down, it lies loose; hauled up again once the weight's been back on its plate a moment */
@@ -190,7 +211,8 @@ class Tangle extends Ent {
                 if (++this.haulT >= this.HAUL) { this.haulT = 0; this.haul(bs); }
                 else if (this.haulT === this.HAUL - 30) Sfx.play('tug', 0.4);
                 if (this.allOut(bs)) { if (++this.outT > 20) this.apart(); } else this.outT = 0;
-                if (here) this.lash(p);
+                /* (gathering its threads to haul, it throws nothing: a breath of peace, every beat) */
+                if (here && this.haulT < this.HAUL - 30) { this.lash(p); this.balls1(p, 1.9); this.cordSweep(p); }
                 break;
             case 'open':
                 /* pulled apart, it lies dazed while every thread's held out, and a moment after one comes back */
@@ -270,18 +292,58 @@ class Tangle extends Ent {
         }
     }
     unseal() { const h = this.trap(); if (h) h.sealed = false; }
-    throwAt(p, period, sp) {
-        if (this.st % period !== 0) return;
-        const cx = this.x + 8, cy = this.y + 4 - this.lift, dx = p.x - cx, dy = p.y - 6 - cy, d = Math.hypot(dx, dy) || 1;
-        this.balls.push({ x: cx, y: cy, vx: dx / d * sp, vy: dy / d * sp, life: 300 });
-        Sfx.play('throw');
+    get beat() { return 4 - clamp(this.hp, 1, 3); }
+    /* yarn balls: it swells and glows first (the tell), then one, two at once, or three fanned, at her */
+    balls1(p, sp) {
+        if (this.swell > 0) {
+            if (--this.swell > 0) return;
+            const cx = this.x + 8, cy = this.y + 4 - this.lift, a0 = Math.atan2(p.y - 6 - cy, p.x - cx), n = this.beat;
+            for (const o of [0, 0.28, -0.28].slice(0, n)) this.balls.push({ x: cx, y: cy, vx: Math.cos(a0 + o) * sp, vy: Math.sin(a0 + o) * sp, life: 300 });
+            Sfx.play('throw'); Stats.count('boss:tangle:balls');
+            return;
+        }
+        if (--this.ballT > 0 || p.state !== 'normal') return;
+        this.ballT = TG.ball[this.beat]; this.swell = tellFor(7, this.beat); Sfx.play('warn');
     }
-    /* too close: its cords lash out (a shiver first) */
+    /* too close: its cords lash out all round it (the reach drawn on the floor first) */
     lash(p) {
-        const near = Math.hypot(p.x - (this.x + 8), p.y - (this.y + 10)) < 34;
-        if (this.lashT > 0) { if (--this.lashT === 0 && near) { p.hurt(1, this.x + 8, this.y + 8); Fx.ring(this.x + 8, this.y + 6, THREAD.guild); Sfx.play('twang'); } }
-        else if (near && this.st % 40 === 0) this.lashT = 26;
+        const dx = (p.x - (this.x + 8)) / 38, dy = (p.y - (this.y + 10)) / (38 * 0.7), near = dx * dx + dy * dy < 1;     /* (inside the ring it'd draw) */
+        if (this.lashT > 0) { this.lashT--; return; }
+        if (near && this.st % 40 === 0) {
+            this.lashT = tellFor(7, this.beat) + 4;
+            Hazard.ring(this, this.x + 8, this.y + 10, 38, { tell: this.lashT, dmg: 3, col: THREAD.guild, fx: 'yarn', shake: 4 });
+            Stats.count('boss:tangle:lash');
+        }
     }
+    /* (1, 3) a long cord whipped across the hall along its row or its column (in the last beat both at once), the line
+       lit first: Wren's line if she's on one */
+    cordSweep(p) {
+        if (--this.sweepT > 0 || p.state !== 'normal') return;
+        this.sweepT = TG.sweep[this.beat] || 200;
+        const a = this.area, r = this.hall, lines = [];
+        const row = () => { const t = []; for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (Math.abs(x - this.tx) > 1 && !a.kind(x, this.ty).solid) t.push([x, this.ty]); return t; };
+        const col = () => { const t = []; for (let y = r.y + 1; y < r.y + r.h - 1; y++) if (Math.abs(y - this.ty) > 1 && !a.kind(this.tx, y).solid) t.push([this.tx, y]); return t; };
+        if (this.beat === 3) lines.push(row(), col());
+        else lines.push(p.ty === this.ty ? row() : p.tx === this.tx ? col() : (this.sweepN++ % 2 ? row() : col()));
+        for (const t of lines) Hazard.tiles(this, t, { tell: tellFor(7, this.beat) + 6, dmg: 3, live: 8, col: '#e8b04a', fx: 'yarn', shake: 5 });
+        Stats.count('boss:tangle:sweep');
+    }
+    /* (2) hung in the rafters, it lets spoolmites down on their threads (three about at most) */
+    mites(p) {
+        if (--this.miteT > 0) return;
+        this.miteT = TG.mites;
+        const a = this.area, r = this.hall, live = a.ents.filter(e => e.tangleMite && e.alive).length;
+        if (live >= TG.maxMites) return;
+        for (let i = 0; i < 2 && live + i < TG.maxMites; i++) {
+            const x = clamp(p.tx + (i ? 3 : -3), r.x + 2, r.x + r.w - 3), y = clamp(p.ty + (i ? -2 : 2), r.y + 2, r.y + r.h - 3);
+            if (a.kind(x, y).solid || a.at(x, y) || this.blocks(x, y, null)) continue;
+            const m = a.add(new Enemy(x, y, { type: 'spoolmite' }));
+            m.tangleMite = true; m.mode = 'chase'; Fx.poof(m.x, m.y - 6); Sfx.play('twang');
+        }
+        Stats.count('boss:tangle:mites');
+    }
+    /* its spoolmites, beaten, don't come back (their yarn runs off down the cracks) */
+    cleanMites() { for (const e of this.area.ents.slice()) if (e.tangleMite && !e.alive && e.yarnT > 50) this.area.remove(e); }
     updateBalls(r) {
         const a = this.area, p = G.player;
         for (const b of this.balls) {
@@ -298,12 +360,15 @@ class Tangle extends Ent {
         if (this.state !== 'open' && this.state !== 'down') { Sfx.play('hitthing'); return; }
         this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
         Stats.count('boss:tangle:hit');
+        calmBlows(this); this.swell = 0; this.lashT = 0; this.ballT = 90; this.sweepT = 120; this.miteT = 60;
         if (this.hp <= 0) return this.defeat();
+        { const p = G.player; bossHeart(this.area, p.x, p.y + 18); }
         this.balls = [];
         Script.run(this.hp === 2 ? SpoolFoes.tangleUp(this) : SpoolFoes.tangleHaul(this));
     }
     defeat() {
         this.alive = false; this.balls = []; this.gone = true; this.unseal();
+        for (const e of this.area.ents.slice()) if (e.tangleMite) { if (e.alive) Fx.yarn(e.x, e.y - 6, THREAD.guild); this.area.remove(e); }
         Sfx.play('unravel'); Fx.yarn(this.x + 8, this.y, THREAD.guild);
         Script.run(SpoolFoes.tangleDown(this));
     }
@@ -345,6 +410,8 @@ class Tangle extends Ent {
                 Gfx.rect(ex - 1, hy, 1, 1, '#5a3a1a'); Gfx.rect(ex + 1, hy, 1, 1, '#5a3a1a');
             } else for (const ex of [x - 6, x + 6]) { Gfx.rect(ex - 3, hy, 7, 1, PAL.ink); for (const d of [-2, 0, 2]) Gfx.rect(ex + d, hy - 1, 1, 3, PAL.ink); }
             if (this.lashT > 0 && (this.t >> 1) % 2) Gfx.circle(x, hy + 2, R + 4, THREAD.guild);
+            /* swelling, about to throw: it puffs out and glows */
+            if (this.swell > 0) { const k = 1 - this.swell / tellFor(7, this.beat); Gfx.alpha(0.25 + 0.35 * k); Gfx.circle(x, hy + 2, R + 2 + Math.round(k * 3), '#f7d64a'); Gfx.alpha(1); Tells.bang(x, hy - R - 16); }
             if (this.flash > 0 && (this.flash >> 1) % 2) { Gfx.alpha(0.5); Gfx.circle(x, hy + 2, R, '#ffffff'); Gfx.alpha(1); }
         }
         for (const b of this.balls) { Gfx.circle(b.x - cx, b.y - cy, 3, THREAD.guild); Gfx.rect(b.x - cx - 2, b.y - cy - 1, 3, 1, '#e6c08a'); }

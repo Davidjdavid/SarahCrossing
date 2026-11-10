@@ -1,6 +1,6 @@
 /* Small favours in town. Each is something that has been wrong in Hollowell for a while, there to be seen long before
    there's anything to be done about it, and put right with the newest thing found and the way things go home. Nobody
-   says how; people only say what they'd like. Some lead on to the next: Thimble's twine flies the children's kite,
+   says how; people only say what they'd like. Some lead on to the next: Thimble's string flies the children's kite,
    the children give away the only kind of thing a child can give (a stray), and Tuck has wanted one all his life.
      1. The Guild's crates (the Gloves): two crates nose to nose in the lane by Thimble's, each on the other's way home.
      2. The kite (the Hookline): caught in the tree by the Inn, and its way home runs back up through the branches.
@@ -41,22 +41,22 @@ FAVOUR_TALK.thimble = function* () {
         Progress.set('fav_crates'); Stats.count('favour:crates');
         yield* say('thimble', "My crates! Both home, and the lane clear as a whistle! How ever did you- no, don't tell me, I'd only fret. Here, thirty buttons for your trouble.");
         Favours.buttons(30);
-        yield* say('thimble', "And a hank of the Guild's own twine. Strong as anything. Nobody's ever managed to snap it, and I've watched people try.");
-        yield* Story.getItem('twine')();
+        yield* say('thimble', "And a ball of string. The good stuff: the very same the Guild buys by the mile. Nobody's ever managed to snap it, and I've watched people try.");
+        yield* Story.getItem('string')();
         return true;
     }
     if (!Progress.flag('fav_cratesHome') && Progress.flag('met:thimble'))
         return yield* Favours.once('fav_cratesTold', 'thimble', "Two crates of the Guild's string came off the carter's barrow in the lane by my shop, and there they've stuck. Nose to nose, each waiting for the other to go home first. Like a pair of old goats. I've been selling string off the end of the last reel.");
     return false;
 };
-ITEMS.twine = { name: "The Guild's twine", kind: 'quest', desc: "A hank of the Guild's own twine, from Thimble. Strong as anything: nobody has ever managed to snap it." };
+
 
 /* ---------------- 2. the children's kite, caught in the tree by the Inn (the Hookline) ---------------- */
 /* Blown off its peg one windy day, it went up through the tree and caught in the branches, and its way home runs back
    the way it came: up through the branches. Hooked down, it flies home after a moment and catches again. Carried back
    over its own thread below the tree (a thread can't knot: where it crosses itself the loop drops out) its way home no
    longer goes up there. (Or drop it in the river: anything that sinks is home at once.) Then the string: it snapped. */
-const KITE_HOME = [46, 18];
+const KITE_HOME = [45, 17];
 const KITE_CANOPY = new Set([key2(...hubAt(46, 15)), key2(...hubAt(47, 15))]);
 class Kite extends Liftable {
     constructor(tx, ty, p = {}) {
@@ -99,19 +99,22 @@ class Kite extends Liftable {
 }
 SPAWN.kite = (x, y, p) => new Kite(x, y, p);
 OW.blocks['1,1'].ents.push(
-    { k: 'kite', x: KITE_HOME[0], y: KITE_HOME[1], id: 'kite', caught: true, startAt: [46, 15], trace: [[46, 18], [46, 17], [46, 16], [46, 15]], if: '!fav_kiteHome' },
+    { k: 'kite', x: KITE_HOME[0], y: KITE_HOME[1], id: 'kite', caught: true, startAt: [46, 15], trace: [[45, 17], [46, 17], [46, 16], [46, 15]], if: '!fav_kiteHome' },
     { k: 'kite', x: KITE_HOME[0], y: KITE_HOME[1], id: 'kite', if: 'fav_kiteHome&!fav_kite' },
     { k: 'kitefly', x: 34, y: 19, if: 'fav_kite' },
 );
 /* flying, on its string, over whoever's holding it (Nell) */
 SPAWN.kitefly = (tx, ty) => {
     const e = new Ent('kitefly', { x: tx * T, y: ty * T });
-    e.update = function () { const n = this.area.ents.find(o => o.kind === 'npc' && o.who === 'nell'); this.nell = n; if (n) { this.x = n.px; this.y = n.py; } };
+    e.update = function () {
+        if (!this.nell || this.nell.removed) this.nell = this.area.ents.find(o => o.kind === 'npc' && o.who === 'nell');
+        const n = this.nell; if (n) { this.x = n.px; this.y = n.py; }
+    };
     Object.defineProperty(e, 'sortY', { get() { return this.y + 200; } });
     e.draw = function (cx, cy) {
         const n = this.nell; if (!n || n.hidden) return;
         const t = G.t / 40, hx = n.px - cx + 12, hy = n.py - cy + 2;
-        const kx = hx + 26 + Math.round(Math.sin(t) * 4), ky = hy - 58 + Math.round(Math.cos(t * 1.3) * 3);
+        const kx = hx + 26 + Math.round(Math.sin(t) * 4), ky = hy - 34 + Math.round(Math.cos(t * 1.3) * 3);
         /* the string sags a little between her hand and the kite */
         const mx = (hx + kx) / 2 - 3, my = (hy + ky) / 2 + 6;
         Gfx.alpha(0.85); Gfx.line(hx, hy, mx, my, '#efe4cc'); Gfx.line(mx, my, kx + 6, ky + 12, '#efe4cc'); Gfx.alpha(1);
@@ -120,17 +123,17 @@ SPAWN.kitefly = (tx, ty) => {
     return e;
 };
 ITEMS.marble = { name: 'Odd marble', kind: 'quest', desc: "A glass marble with a little L scratched into it. A stray: it never goes home, because it hasn't got one. The children found it by the fog." };
+ITEM_LINES.marble = () => "You got the children's {blue}odd marble{/}! A glass marble with a little L scratched into it. It never goes home: it hasn't got one.";
+ITEM_LINES.string = () => "You got a {blue}ball of string{/}! Thimble's best. It doesn't do anything. It's string.";
 /* the children: what they'd like, and the string */
 function* kiteString() {
-    const twine = Inv.items.twine, string = Inv.items.string;
-    if (!twine && !string) { yield* say('nell', "It's HOME! You got it down! ...Only the string snapped, when it blew away. A kite's no good without a string. We need string. Proper string."); return; }
-    const what = twine ? "the Guild's twine" : 'a ball of string';
+    if (!Inv.items.string) { yield* say('nell', "It's HOME! You got it down! ...Only the string snapped, when it blew away. A kite's no good without a string. We need string. Proper string."); return; }
     yield* say('nell', "It's HOME! You got it down! ...Only the string snapped when it blew off. A kite's no good without string.");
-    const i = yield* ask(null, `Give Nell ${what}?`, ['Give it', 'Not now']);
+    const i = yield* ask(null, 'Give Nell a ball of string?', ['Give it', 'Not now']);
     if (i !== 0) { yield* say('nell', 'Aw.'); return; }
-    if (twine) delete Inv.items.twine; else if (--Inv.items.string <= 0) delete Inv.items.string;
+    if (--Inv.items.string <= 0) delete Inv.items.string;
     Progress.set('fav_kite'); Stats.count('favour:kite');
-    yield* say('nell', twine ? "The Guild's twine! That's the good stuff! Otto, Bea, look, it won't EVER snap!" : "String! Real string! Otto, Bea, look!");
+    yield* say('nell', "String! Real string! Otto, Bea, look, it's the good stuff! It won't EVER snap!");
     yield* say('bea', "We've got something for you. It's the only thing we've got that's really ours to give. Everything else goes home.");
     yield* say('otto', "We found it by the fog. It doesn't go back anywhere. We think it's broken.");
     yield* Story.getItem('marble')();
@@ -163,8 +166,9 @@ FAVOUR_TALK.tuck = function* () {
         Progress.set('fav_marble'); Stats.count('favour:marble');
         yield* say('tuck', "Watch. I'm putting it HERE. ...And now I'm walking away. ...And now I'm looking.");
         yield* say('tuck', "It STAYED. It's staying! Look at it STAY! That's MY place for it! Because I said!");
-        yield* say('tuck', "You can have my badge. I made it for being brave. I've got the marble now, so I'm brave enough.");
-        yield* Story.getItem('tuckbadge')();
+        yield* say('tuck', "You can have my buttons. All of them. ...Except the blue one. The blue one's my best one. I've got the marble now, so that's fair.");
+        Favours.buttons(11);
+        yield* say(null, 'Tuck counts eleven buttons into your hand, one at a time, very seriously.');
         return true;
     }
     if (Progress.flag('fav_stick') && !Progress.flag('fav_stickTuck')) {
@@ -173,11 +177,11 @@ FAVOUR_TALK.tuck = function* () {
         yield* say('tuck', "Mum says it's for later. I'm only holding it. Holding's not using.");
         return true;
     }
-    if (!Progress.flag('fav_marble') && Progress.flag('met:tuck') && Progress.flag('d1'))
+    if (!Progress.flag('fav_marble') && Progress.flag('met:tuck'))
         return yield* Favours.once('fav_tuckTold', 'tuck', "Everything I put down goes back where Mum put it. Or back where it was before Mum. I want ONE thing that stays where I put it. Just one.");
     return false;
 };
-ITEMS.tuckbadge = { name: "Tuck's badge", kind: 'keepsake', desc: 'A cardboard badge in wax crayon: BRAVEST WANDERER (AFTER ME). Tuck coloured the letters in himself, mostly inside the lines.' };
+
 /* where Tuck last put it (it's a stray: nothing moves it but him) */
 const MARBLE_SPOTS = [['reveal2', 31, 21], ['reveal1', 24, 10], ['d4', 23, 24], ['', 9, 33]];
 SPAWN.tuckmarble = (tx, ty) => {
@@ -216,7 +220,7 @@ class SewingTin extends Liftable {
         Progress.set('fav_tin'); Stats.count('favour:tin');
         Script.run(function* () {
             yield 20;
-            yield* say('mabel', "...That's my mother's sewing tin. Thimble, needles, the lot. It's been on that floor with the strays thirty years. I've dusted it every Tuesday.");
+            yield* say('mabel', "...That's my mother's sewing tin. Her thimble, her needles, the lot. It's been on that floor with the strays thirty years. I've dusted it every Tuesday.");
             yield* say('mabel', "I called it a stray. It wasn't a stray at all. It was only asleep.");
             yield* say('mabel', "Here. Have a stray of your own, a real one. They're the only things in Hollowell a body can give away.");
             yield* Story.getItem('oddsock')();
@@ -235,7 +239,8 @@ AREAS.lostfound.ents.push(
     { k: 'crate', x: 9, y: 6, marked: false, id: 'mabelCrate2' },
     { k: 'stray', x: 7, y: 6, id: 'mabelStone2' },
 );
-ITEMS.oddsock = { name: 'The odd sock', kind: 'keepsake', desc: "A striped sock from Auntie Mabel's strays. Its pair is somewhere. It doesn't seem to mind." };
+ITEMS.oddsock = { name: 'Odd sock', kind: 'keepsake', desc: "A striped sock from Auntie Mabel's strays. Its pair is somewhere. It doesn't seem to mind." };
+ITEM_LINES.oddsock = () => "You got an {blue}odd sock{/}! A stray, striped, from Auntie Mabel's floor. Its pair is somewhere. It doesn't seem to mind.";
 FAVOUR_TALK.mabel = function* () {
     if (Progress.flag('fav_tin') && Progress.flag('reveal2'))
         return yield* Favours.once('fav_tinR2', 'mabel', "Asleep, you said. Not lost. Just asleep, all those years, with me calling it a stray. I keep wondering how much else in this town is only asleep.");
@@ -278,7 +283,7 @@ AREAS.toys.ents.push(
     { k: 'deco', x: 4, y: 1, look: 'jory_note', solid: [[0, 0]], oy: 2, baseY: -100, text: "A note pinned up in Jory's hand: TUCK'S. FOR LATER. NOT BEFORE. And underneath, smaller: If you can read this, you're good with strings. Have a look in the chest. - J." },
 );
 /* out in the street, the parcel's thread: from Jory's door, down through the square, to Tuck's (drawn on the ground) */
-const STICK_THREAD = [[24, 9], [24, 13], [23, 14], [23, 25], [24, 26], [26, 27], [26, 31], [20, 32], [18, 32], [18, 36]];
+const STICK_THREAD = [[24, 9], [24, 12], [23, 13], [23, 25], [25, 26], [25, 31], [19, 31], [18, 32], [18, 35]];
 SPAWN.stickthread = () => {
     const e = new Ent('stickthread', { x: 0, y: 0 });
     e.floor = true;
@@ -336,7 +341,8 @@ FAVOUR_TALK.rosa = function* () {
    round the corner, long before the cat comes by (Biscuit's round stops at the back step, by its crawlspace). Given a
    new place on the back step, it stays. It's too full to throw: set it down. */
 const SAUCER_HOME = [40, 32];
-const BACKSTEP = new Set([[40, 26], [41, 26], [42, 26], [40, 27], [42, 27], [42, 28]].map(([x, y]) => key2(...hubAt(x, y))));
+/* (round the back step, where it can be seen: right under the eaves the bakery's roof hides it) */
+const BACKSTEP = new Set([[39, 26], [40, 26], [41, 26], [42, 27], [42, 28]].map(([x, y]) => key2(...hubAt(x, y))));
 const saucerPlaced = () => Inv.stitches.some(r => r.area === 'hollow' && r.key === 'saucer' && BACKSTEP.has(key2(r.to[0], r.to[1])));
 class Saucer extends Liftable {
     constructor(tx, ty, p = {}) { super('saucer', tx, ty, p); this.noThrow = true; this.lap = 0; this.licked = false; this.stitchName = "Rosa's saucer"; }
@@ -348,12 +354,12 @@ class Saucer extends Liftable {
         if (this.lap > 0) this.lap--;
         if (!placed || this.licked) return;
         const cat = this.area.ents.find(e => e.kind === 'critter' && e.who === 'biscuit');
-        if (cat && Math.hypot(cat.x - (this.tx * T + 8), cat.y - (this.ty * T + 10)) < 24) { this.lap = 150; this.licked = true; this.cat = cat; }
+        if (cat && cat.wait > 0 && Math.hypot(cat.x - (this.tx * T + 8), cat.y - (this.ty * T + 10)) < 40) { this.lap = 150; this.licked = true; this.cat = cat; }
     }
     draw(cx, cy) {
         GridThing.prototype.draw.call(this, cx, cy);
         const c = this.cat;
-        if (this.lap > 0 && c) { const b = spr('bubble_heart'); if (b) Gfx.img(b, c.x - cx - 4, c.y - cy - 28 - ((150 - this.lap) >> 4)); }
+        if (this.lap > 0 && c) { const b = spr('bubble_heart'); if (b) Gfx.img(b, c.x - cx - 4, c.y - cy - 22 - ((150 - this.lap) >> 5)); }
     }
 }
 SPAWN.saucer = (x, y, p) => new Saucer(x, y, p);
@@ -372,12 +378,12 @@ OW.blocks['1,1'].ents.push({ k: 'saucer', x: SAUCER_HOME[0], y: SAUCER_HOME[1], 
 
 /* what's new in town, for the journal, until it's done */
 TOWN_NEWS.push(
-    [() => Progress.flag('d1'), () => Progress.flag('fav_cratesHome'), "Thimble's crates, stuck in the lane by her shop"],
-    [() => Progress.flag('d2'), () => Progress.flag('fav_kite'), "the children's kite, up the tree by the Inn"],
-    [() => !!Inv.items.marble, () => Progress.flag('fav_marble'), "Tuck, who's never had a thing that stays put"],
-    [() => Progress.flag('d4'), () => Progress.flag('fav_tin'), "Auntie Mabel's floor of strays"],
-    [() => Progress.flag('reveal1'), () => Progress.flag('fav_stick'), "the puppet in Jory's shop window"],
-    [() => Progress.flag('d7'), () => Progress.flag('fav_saucerPlaced'), "Rosa's saucer of cream for Biscuit"],
+    [() => Progress.flag('d1'), () => Progress.flag('fav_cratesHome'), "Thimble's crates, stuck in the lane by her shop", 1],
+    [() => Progress.flag('d2'), () => Progress.flag('fav_kite'), "the children's kite, up the tree by the Inn", 2],
+    [() => !!Inv.items.marble, () => Progress.flag('fav_marble'), "Tuck, who's never had a thing that stays put", 9],
+    [() => Progress.flag('d4'), () => Progress.flag('fav_tin'), "Auntie Mabel's floor of strays", 4],
+    [() => Progress.flag('reveal1'), () => Progress.flag('fav_stick'), "the puppet in Jory's shop window", 6],
+    [() => Progress.flag('d7'), () => Progress.flag('fav_saucerPlaced'), "Rosa's saucer of cream for Biscuit", 7],
 );
 
 /* a handful of buttons out of a chest is named for what it is ("You found 50 buttons!") */
@@ -410,15 +416,9 @@ function initTownFavours() {
     defSprite('saucer_empty', ['................', '................', '................', '................', '................', '................', '................', '................',
         '................', '................', '...kkkkkkkkkk...', '..kAAAAAAAAAAk..', '.kWAAAAAAAAAAWk.', '.kkWWWWWWWWWWkk.', '...kkkkkkkkkk...', '................'],
         { W: '#cfd8e0', A: '#9aa8b8' });
-    defSprite('icon_twine', ['................', '................', '....kkkkkkk.....', '...kddDddDdk....', '..kdDddDddDdk...', '..kddDddDddDk...', '..kdDddDddDdk...', '..kddDddDddDk...',
-        '..kdDddDddDdk...', '...kddDddDdk....', '....kkkkkkkd....', '...........d....', '............d...', '.............d..', '................', '................'],
-        { d: '#b08a5a', D: '#7a5a34' });
     defSprite('icon_marble', ['................', '................', '................', '................', '.....kkkkk......', '....kaawaak.....', '...kaawwaaak....', '...kaaaaaZak....',
         '...kaaaZaaak....', '...kaaZaaaak....', '....kaaaaak.....', '.....kkkkk......', '................', '................', '................', '................'],
         { a: '#8fd4c8', w: '#ffffff', Z: '#3a8a7a' });
-    defSprite('icon_tuckbadge', ['................', '....kkkkkkkk....', '...kwwwwwwwwk...', '..kwrwrwbwbwwk..', '..kwrrwwbbwwwk..', '..kwrwrwbwbwwk..', '..kwwwwwwwwwwk..', '..kwyyyyyyyywk..',
-        '..kwwwwwwwwwwk..', '...kwwwwwwwwk...', '....kkkkkkkk....', '.....kgk.kgk....', '.....kgk.kgk....', '.....kk...kk....', '................', '................'],
-        { r: '#e8463c', b: '#4f9be0', y: '#f7d64a', g: '#5ab85a' });
     defSprite('icon_oddsock', ['................', '.....kkkkk......', '.....krrrk......', '.....kwwwk......', '.....krrrk......', '.....kwwwk......', '.....krrrk......', '.....kwwwk......',
         '.....krrrkk.....', '.....kwwwwwkk...', '.....krrrrrrrk..', '......kwwwwwwk..', '.......kkkkkk...', '................', '................', '................'],
         { r: '#4f9be0', w: '#f7d64a' });

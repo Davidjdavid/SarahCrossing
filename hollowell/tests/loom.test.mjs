@@ -31,6 +31,7 @@ const wgo = (HW, room, x, y) => { for (let k = 0; k < 40; k++) { free(HW); if (H
 
 test('the Loomwood: through the north gate, up the road to the Loom', () => {
     const HW = game();
+    HW.Progress.set('loom_open');                         /* (the warp across its door: tests/loomwood.test.mjs) */
     HW.warp('hollow', 96, 44); HW.step(10);
     assert.ok(HW.walkTo(95, 10, 30000), 'to the door of the Loom');
     HW.hold('up'); until(HW, () => HW.G.map.id === 'loom', 120); HW.release(); HW.step(20); HW.skipTalk();
@@ -147,24 +148,68 @@ test('the Hanging Gallery: a slack thread slides off; a tight one is cut anywher
     noErrors(HW);
 });
 
-test('the Bridge Room (in from the Warp Walk): a weight cut free breaks the silk and fills the gap; the other across onto the plate (the Pattern); its south gate open for good after', () => {
+test('the Bridge Room (in from the Warp Walk): the one weight is wedged in its nook, past a strand of silk; no hand shifts it, and the Needle won\'t set it on the silk; stitched past the strand it tears through, hanging on its thread, and lands across; onto the plate and cut there (the Pattern); its south gate open for good after', () => {
     const HW = game(true);
+    HW.Inv.giveTool('needle');
     enter(HW, 'br', 18, 5);
-    assert.ok(!thing(HW, 'brLock').open, 'the way down to the weights shut');
-    go(HW, 'br', 12, 5); go(HW, 'br', 6, 5);
-    go(HW, 'br', 3, 3); HW.face('right'); snip(HW);
-    pushAt(HW, 'br', 4, 2, 'down', 2);
-    pushAt(HW, 'br', 3, 5, 'right', 5);
-    assert.ok(!HW.G.map.kind(...at('br', 9, 5)).pit, 'the gap filled, for good');
-    pushAt(HW, 'br', 4, 8, 'up', 2);
-    pushAt(HW, 'br', 3, 5, 'right', 10);
-    assert.deepEqual([thing(HW, 'brW2').tx, thing(HW, 'brW2').ty], at('br', 14, 5), 'on the plate');
-    HW.step(5);
+    assert.ok(!thing(HW, 'brLock').open, 'the way down shut');
+    const w = thing(HW, 'brW3'), a = HW.G.map;
+    /* hands: from the strand itself (silk holds a girl), it won't be pushed or pulled */
+    go(HW, 'br', 10, 2); go(HW, 'br', 9, 2); HW.push('left', 1); HW.step(5);
+    HW.face('left'); HW.hold('act'); HW.step(4); HW.hold(['act', 'right']); HW.step(30); HW.release(); HW.step(5);
+    assert.deepEqual([w.tx, w.ty], at('br', 8, 2), 'wedged');
+    /* the Needle won't give iron a place on the silk */
+    go(HW, 'br', 11, 2); HW.face('left'); stitch(HW, 'R');
+    assert.equal(HW.Inv.stitches.length, 0, 'no stitch onto the silk');
+    HW.press('act', 1); HW.step(5);
+    /* past it: the strand tears under the weight, which hangs on its thread across and lands */
+    go(HW, 'br', 12, 2); HW.face('left'); stitch(HW, 'RRR');
+    assert.deepEqual([w.tx, w.ty], at('br', 11, 2), 'across');
+    assert.ok(thing(HW, 'brNook').gone && a.kind(...at('br', 9, 2)).pit, 'the strand torn');
+    /* onto the plate, and cut there: a stray for good */
+    go(HW, 'br', 10, 2); HW.push('right', 1); HW.step(10); go(HW, 'br', 11, 2); HW.face('right'); snip(HW);
+    assert.deepEqual([w.tx, w.ty], at('br', 12, 2), 'on the plate');
+    assert.ok(!w.ret, 'cut free');
     go(HW, 'br', 16, 3); HW.face('up'); HW.press('act', 1); HW.skipTalk();
     assert.ok(HW.Inv.hasPattern('loom'));
-    until(HW, () => thing(HW, 'brW2').ret.state === 'home', 900);
-    assert.ok(thing(HW, 'brLock').open, 'the south gate stays open once the plate has been held');
+    HW.step(600);
+    assert.ok(thing(HW, 'brLock').open && thing(HW, 'brWest').open, 'both ways open, for good');
     go(HW, 'wr', 15, 1);
+    noErrors(HW);
+});
+
+test('the Bridge Room: the strand cut first, the weight is stranded till an offcut fills the gap; the nook\'s chute only drops a spare into an empty nook', () => {
+    const HW = game(true);
+    HW.Inv.giveTool('needle');
+    enter(HW, 'br', 18, 5);
+    const w = thing(HW, 'brW3'), a = HW.G.map;
+    go(HW, 'br', 10, 2); HW.face('left'); snip(HW);
+    assert.ok(thing(HW, 'brNook').gone, 'the strand cut');
+    go(HW, 'br', 12, 2); HW.face('left'); stitch(HW, 'RRR');
+    assert.deepEqual([w.tx, w.ty], at('br', 8, 2), 'no stitch over a hole');
+    HW.press('act', 1); HW.step(5);
+    go(HW, 'br', 14, 1); HW.face('left'); HW.press('act', 1); HW.step(10); HW.skipTalk();
+    go(HW, 'br', 14, 2); HW.push('left', 4); HW.step(20);
+    assert.ok(!a.kind(...at('br', 9, 2)).pit, 'an offcut fills it');
+    go(HW, 'br', 12, 2); HW.face('left'); stitch(HW, 'RRR');
+    assert.deepEqual([w.tx, w.ty], at('br', 11, 2), 'stitched over');
+    /* over the old crossing, to the chute in the nook's ceiling: the nook is empty now, so a spare drops in, wedged too */
+    go(HW, 'br', 7, 1); HW.face('right'); HW.press('act', 1); HW.step(10); HW.skipTalk();
+    const sp = a.at(...at('br', 8, 2));
+    assert.ok(sp && sp.weight === 3 && sp.noPull, 'a spare, wedged in the nook');
+    noErrors(HW);
+});
+
+test('the Bridge Room: an older save that spent the room\'s old weights (one in the gap, one cut on the old plate) still finishes it', () => {
+    const HW = game(true);
+    HW.Inv.giveTool('needle');
+    for (const [k, v] of [['gone:brW1', true], ['cut:brW2', at('br', 14, 5).join(',')], [`fill:${at('br', 9, 5).join(',')}`, true]]) HW.Progress.setAreaFlag('loom', k, v);
+    enter(HW, 'br', 18, 5);
+    assert.ok(!thing(HW, 'brPattern') || thing(HW, 'brPattern').hidden, 'no Pattern yet');
+    go(HW, 'br', 12, 2); HW.face('left'); stitch(HW, 'RRR');
+    go(HW, 'br', 10, 2); HW.push('right', 1); HW.step(10); go(HW, 'br', 11, 2); HW.face('right'); snip(HW);
+    go(HW, 'br', 16, 3); HW.face('up'); HW.press('act', 1); HW.skipTalk();
+    assert.ok(HW.Inv.hasPattern('loom'));
     noErrors(HW);
 });
 
@@ -267,6 +312,88 @@ test('the Web: four anchors cut at their posts; then its own thread cut while it
     noErrors(HW);
 });
 
+/* its blows, each with its tell, each dodged (or not): the beats reached with them harmless, then real */
+const wvBlows = (HW, w) => HW.G.map.ents.filter(e => e.kind === 'hazard' && e.owner === w);
+test("the Weaver's warp: the column Wren's in lit, a thread thrumming down it, then it snaps; a step to the side and it misses (a heart and a half if not)", () => {
+    for (const dodge of [true, false]) {
+        const [HW, w] = webGame(); HW.G.cheats.god = false;
+        const p = HW.player();
+        w.rear = () => { };                         /* (no silk just now: the warp on its own) */
+        wgo(HW, 'web', 3, 8); HW.global('calmBlows')(w); w.warpT = 1; w.puff = 0; w.st = 1;
+        assert.ok(until(HW, () => wvBlows(HW, w).length > 0, 10), 'a column lit');
+        const h = wvBlows(HW, w)[0];
+        assert.ok(h.tiles.every(([x]) => x === p.tx) && h.tell >= 24, "Wren's column, with time to move");
+        w.shots = [];
+        const hp = HW.Inv.hp;
+        if (dodge) { free(HW); HW.hold('right'); HW.step(18); HW.release(); assert.ok(!h.covers(p.x, p.y), 'a column over'); }
+        assert.ok(until(HW, () => h.removed, 80), 'it snapped'); w.shots = [];
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'missed');
+        else assert.equal(HW.Inv.hp, hp - 3, 'snapped across her');
+        noErrors(HW);
+    }
+});
+test("the Weaver's silk: it rears back, its belly aglow, before it spits; a step aside as it comes (bound again while bound, a heart and a half)", () => {
+    for (const dodge of [true, false]) {
+        const [HW, w] = webGame(); HW.G.cheats.god = false;
+        const p = HW.player();
+        wgo(HW, 'web', 3, 8); w.warpT = 9999; w.st = 19;
+        assert.ok(until(HW, () => w.puff > 0, 10), 'it rears back');
+        assert.ok(until(HW, () => w.shots.length > 0, 40), 'and spits');
+        w.rear = () => { };                         /* (just the one) */
+        if (dodge) { HW.hold('right'); HW.step(36); HW.release(); HW.step(70); }
+        else { HW.step(110); }
+        if (dodge) assert.notEqual(p.pinned, 'silk', 'it flew past');
+        else assert.equal(p.pinned, 'silk', 'bound');
+        noErrors(HW);
+    }
+});
+test("the Weaver's drop (beat 2): its shadow grows where Wren stands; out from under it, or two hearts", () => {
+    for (const dodge of [true, false]) {
+        const [HW, w] = webGame();
+        beat1(HW, w); HW.G.cheats.god = false;
+        const p = HW.player();
+        w.rear = () => { };                         /* (no silk just now: the drop on its own) */
+        wgo(HW, 'web', 4, 8); w.warpT = 9999;
+        assert.ok(until(HW, () => w.state === 'aim', 900), 'it picks its spot');
+        free(HW); w.shots = []; w.puff = 0;
+        const [gx, gy] = w.target;
+        wgo(HW, 'web', (gx >> 4) - R.web[0], (gy >> 4) - R.web[1]);     /* (the shadow's where she stood: she's back on it) */
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold(gx > 160 + R.web[0] * 16 ? 'left' : 'right'); HW.step(30); HW.release(); }
+        assert.ok(until(HW, () => w.state === 'bottom', 200), 'it drops');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'missed');
+        else assert.equal(HW.Inv.hp, hp - 4, 'landed on her');
+        noErrors(HW);
+    }
+});
+test('the Web, beat 3: silk moths shaken down out of the web; beaten like any, and gone when the Weaver is', () => {
+    const [HW, w] = webGame();
+    beat1(HW, w); beat2(HW, w);
+    w.mothT = 1; w.warpT = 9999;
+    assert.ok(until(HW, () => HW.G.map.ents.some(e => e.weaverMoth), 200), 'moths');
+    beat3(HW, w);
+    assert.ok(!w.alive, 'the Weaver');
+    assert.ok(!HW.G.map.ents.some(e => e.weaverMoth), 'its moths gone with it');
+    noErrors(HW);
+});
+test("the Shuttle: waiting at its end, its lane is lit wall to wall; out of the lane when it flies (a heart and a half if not)", () => {
+    for (const dodge of [true, false]) {
+        const HW = game();
+        enter(HW, 'sr', 9, 9); HW.skipTalk();
+        const s = HW.G.map.ents.find(e => e.kind === 'shuttle'), p = HW.player();
+        go(HW, 'sr', 9, 7);
+        assert.ok(until(HW, () => s.state === 'wait' && s.st === 2, 300), 'it waits at its end');
+        HW.hold('up'); HW.step(24); HW.release();
+        const lit = HW.G.map.ents.find(e => e.kind === 'hazard' && e.owner === s);
+        assert.ok(lit && lit.covers(p.x, p.y), 'Wren in its lit lane');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('down'); HW.step(24); HW.release(); assert.ok(!lit.covers(p.x, p.y), 'out of it'); }
+        assert.ok(until(HW, () => s.state === 'wait' && s.st === 2, 300), 'it flew the lane');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'missed');
+        else assert.equal(HW.Inv.hp, hp - 3, 'struck');
+        noErrors(HW);
+    }
+});
 test('the Web, beat 1: caught in its silk while bound, it tightens; the posts cut, it drops into its well (and climbs back and ties in again if left)', () => {
     const [HW, w] = webGame();
     HW.G.cheats.god = false;

@@ -89,8 +89,8 @@ class Enemy extends Ent {
         const ai = this.D.ai || 'wander';
         AI[ai](this, p);
         this.traceStep();
-        /* touching Wren (not while it's up in the air over her) */
-        if (p && p.area === this.area && p.state === 'normal' && !this.D.harmless && this.mode !== 'home' && this.mode !== 'sleep' && !this.hidden && !((this.z || 0) > 4)) {
+        /* touching Wren (not while it's leapt up in the air over her: fliers are at home up there) */
+        if (p && p.area === this.area && p.state === 'normal' && !this.D.harmless && this.mode !== 'home' && this.mode !== 'sleep' && !this.hidden && !((this.z || 0) > 4 && !this.D.flies)) {
             if (Math.abs(p.x - this.x) < (this.D.r || 5) + 4 && Math.abs(p.y - this.y) < 7) p.hurt(this.D.dmg || 1, this.x, this.y);
         }
         /* pits and water */
@@ -240,6 +240,7 @@ class Hazard extends Ent {
     get sortY() { return this.look && this.t > this.tell - 30 ? this.y + 200 : -900 + this.y; }
     get landed() { return this.t >= this.tell; }
     covers(x, y) {
+        if (this.coverAt && this.landed) return this.coverAt(x, y, this);
         if (this.shape === 'tiles') return this.tiles.some(([tx, ty]) => tileOf(x) === tx && tileOf(y) === ty);
         const dx = x - this.x, dy = (y - this.y) / 0.7;
         return dx * dx + dy * dy < this.r * this.r;

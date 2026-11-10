@@ -68,20 +68,23 @@ test('3: offcuts are middling: silk holds them and the iron plate ignores them; 
     assert.equal(HW.walkTo(...at('br', 3, 5)), false, 'no way from the Run into the Bridge Room');
     /* (in from the Warp Walk, east) */
     enterLoom(HW, 'br', 18, 5);
-    /* the chute here drops a spare weight on its own thread */
-    go(HW, ...at('br', 2, 1)); HW.face('left'); HW.press('act', 1); HW.step(10); HW.skipTalk();
-    const w = HW.G.map.at(...at('br', 2, 2));
-    assert.ok(w && w.weight === 3 && w.ret, 'a spare weight, marked');
-    /* an offcut over the silk bridge and onto the plate: holds, and the plate doesn't notice */
     const a = HW.G.map, Block = HW.global('Block');
     const M = HW.global('WEIGHT').medium;
+    /* (over the silk bridge, which holds a girl) the chute in the wedged weight's nook drops no spare while the weight is there */
+    go(HW, ...at('br', 7, 1)); HW.face('right'); HW.press('act', 1); HW.step(10); HW.skipTalk();
+    const br = a.roomAt(...at('br', 9, 5));
+    assert.equal(a.ents.filter(e => e.look === 'loomweight' && !e.removed && a.roomAt(e.tx, e.ty) === br).length, 1, 'still the one weight');
+    /* an offcut over the silk bridge: it holds */
     const b = a.add(new Block(...at('br', 11, 5), { marked: false, weight: M }));
     go(HW, ...at('br', 12, 5)); HW.push('left', 3); HW.step(20);
     assert.deepEqual([b.tx, b.ty], at('br', 8, 5), 'over the silk');
     assert.ok(!a.kind(...at('br', 9, 5)).pit, 'the silk held');
-    const b2 = a.add(new Block(...at('br', 13, 5), { marked: false, weight: M }));
-    go(HW, ...at('br', 12, 5)); HW.push('right', 1); HW.step(20);
-    assert.deepEqual([b2.tx, b2.ty], at('br', 14, 5), 'onto the plate');
+    /* the offcuts' chute: an offcut onto the iron plate, which doesn't notice it */
+    go(HW, ...at('br', 9, 5)); go(HW, ...at('br', 14, 1)); HW.face('left'); HW.press('act', 1); HW.step(10); HW.skipTalk();
+    const b2 = a.at(...at('br', 13, 2));
+    assert.ok(b2 && b2.weight === M && !b2.ret, 'an offcut');
+    go(HW, ...at('br', 14, 2)); HW.push('left', 1); HW.step(20);
+    assert.deepEqual([b2.tx, b2.ty], at('br', 12, 2), 'onto the plate');
     assert.ok(!HW.G.map.find('brPattern') || HW.G.map.find('brPattern').hidden, 'no Pattern for an offcut');
     assert.ok(!HW.G.map.find('brWest').open, 'the west way still shut');
     noErrors(HW);
