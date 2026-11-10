@@ -144,10 +144,12 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   Frame and the Cistern; oak-and-brass floors and set dressing).
 - Done too: House 6 (Marionette Hall: the Great Marionette in three acts; Captain Tin two hits; the Prop Store one
   short way; two new rooms, the Fly Tower and the Trap Room; stage boards, footlights, rigging).
-- Running: House 5 (Slumberhouse), House 8 (Loom), the Makings act.
+- Done too: House 5 (Slumberhouse: Mother Sloth in three rounds, 50 s instead of 102; Matron two hits; two new rooms,
+  the Milk Kitchen and the Dreaming Door; bed curtains and night-lights).
+- Running: House 8 (Loom), the Makings act, the Great Spool rebuild.
 - Owed after the Houses: SPOILERS.md and DESIGN_DOCUMENT.md rewritten for every House's new boss and rooms; the
   browser scenarios' screenshot lists extended to the new rooms.
-- Next: the Great Spool
+- Next: (the Great Spool started)
   rebuild; the Makings act; the overworld (two helpers by region); portraits for the dialogue (the design's promised
   portrait strip with expressions, generated from each person's look); dressing for Houses 1 and 2 (set pieces);
   then live run 2, picture reviews, blind solvers, the critic again, a writing pass.
