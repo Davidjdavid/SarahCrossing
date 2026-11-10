@@ -135,3 +135,17 @@
 - Scenes staged to match their words (asleep in bed, lying down, the camera on what's being told, her own thread).
 - The Knot ceremony is quicker after the first, and what you hear after it changes each time.
 
+### Polish round 3 (the critic's bigger list, under way)
+- Every House's boss now has three different beats (the second changes the arena or the rule, the third wants
+  something learnt earlier too), with nothing to set up again between them; fights that took a never-hesitating
+  player 100-200 seconds now take 25-50. Every mini-boss falls in two hits.
+- New rooms on the main path in Houses 3 to 7 that need two or three earlier ideas together; the fiddliest old room
+  (a long rack sequence) has one short way through.
+- Each House has its own floor and some set pieces (sluices, bell frames, bed curtains, stage rigging, a hoist).
+- All the music is longer (every tune loops over 24 to 110 seconds), with a fight tune per House and a theme of its
+  own for the last House.
+- Story scenes show what they tell: the festival's crowd and latecomers, the first big moment staged and heard out
+  person by person (about half the boxes), the last moments and the epilogue as a sequence of shots.
+- Creatures show their threads home; a smashed thing's thread no longer runs off sideways; a carried thing is no
+  longer drawn twice; the camera eases all the way to what a scene shows.
+
