@@ -142,7 +142,9 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   Ropewalk; the nine picture-review fixes; floors of its own above and below).
 - Done too: House 4 (Belfry: Tollgrim in three beats, 29 s instead of 96; Clangor two hits; two new rooms, the Bell
   Frame and the Cistern; oak-and-brass floors and set dressing).
-- Running: House 5 (Slumberhouse), House 6 (Marionette Hall), House 8 (Loom).
+- Done too: House 6 (Marionette Hall: the Great Marionette in three acts; Captain Tin two hits; the Prop Store one
+  short way; two new rooms, the Fly Tower and the Trap Room; stage boards, footlights, rigging).
+- Running: House 5 (Slumberhouse), House 8 (Loom), the Makings act.
 - Owed after the Houses: SPOILERS.md and DESIGN_DOCUMENT.md rewritten for every House's new boss and rooms; the
   browser scenarios' screenshot lists extended to the new rooms.
 - Next: the Great Spool
