@@ -128,6 +128,16 @@ but fair (cues exact, refusals say why); wants to be told where to go and shown 
 | 27 | critic | The page's key-hint line sat over the game | fixed: the title screen draws its own controls line with the bound keys |
 | 28 | review A | Threads drawn as long diagonals | by design: a thread shows the exact way the thing will come home, and a thrown or flown stretch comes home in a straight line |
 
+## Work queue (helpers; at most three or four at once: twelve at once hit the usage limit)
+Briefs are in the session scratchpad (house_brief.md, staging_brief.md, greatspool_brief.md, makings_brief.md,
+overworld_brief.md); each helper reports, then the coordinator reviews, tests and commits.
+- Done by the coordinator: House 1's and House 2's bosses in three beats, their mini-bosses two hits.
+- Running: House 3 (Millrace), House 7 (Spoolworks), story staging (festival, first reveal, finale, epilogue, the
+  Underside's first room), composer 2 (the rest of the tunes, four House boss tunes, the Great Spool's tune).
+- Next: House 4 (Belfry), House 5 (Slumberhouse), House 6 (Marionette Hall), House 8 (Loom); then the Great Spool
+  rebuild; the Makings act; the overworld (two helpers by region); then live run 2, picture reviews, blind solvers,
+  the critic again, a writing pass.
+
 ## The critic's ranked list (review of 10 November; score 6.5/10)
 Full review: scratchpad review_critic/REVIEW.md (spoilers; not in the repository). Plan and status, most impact first:
 1. **Bosses that escalate** (every boss is "the trick three times"; one boss tune): each boss gets three different beats (phase 2 changes the arena or its rule; phase 3 wants an earlier tool too); mini-bosses two hits; a boss tune per House (each House's motif). *Planned: one helper per House, two at a time.*
