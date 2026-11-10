@@ -6218,6 +6218,24 @@ SONGS.loom = {
         { drum: true, vol: 0.025, n: 'k . . . h . . . | . . h . . . h . ' },
     ],
 };
+/* the Drift: open air, nothing tied down (G major, wide, unhurried; the lullaby's tune, freed) */
+SONGS.drift = {
+    bpm: 88, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.14, vib: true, n: 'D5 - - - B4 - D5 - | G5 - - - - - . . | E5 - - - C5 - E5 - | D5 - - - - - . . | B4 - - - G4 - B4 - | A4 - - - D5 - - - | G4 - - - - - - - | . . . . . . . . ' },
+        { wave: 'p12', vol: 0.035, n: 'G3 B3 D4 B3 G3 B3 D4 B3 | G3 B3 D4 B3 G3 B3 D4 B3 | C4 E4 G4 E4 C4 E4 G4 E4 | G3 B3 D4 B3 G3 B3 D4 B3 | E3 G3 B3 G3 E3 G3 B3 G3 | D3 F#3 A3 F#3 D3 F#3 A3 F#3 | G3 B3 D4 B3 G3 B3 D4 B3 | G3 . . . . . . . ' },
+        { wave: 'triangle', vol: 0.15, n: 'G2 - - - - - - - | G2 - - - - - - - | C3 - - - - - - - | G2 - - - - - - - | E2 - - - - - - - | D2 - - - - - - - | G2 - - - - - - - | G2 - - - - - - - ' },
+    ],
+};
+/* the Great Pull: everything wound in at once (C minor, relentless) */
+SONGS.pull = {
+    bpm: 132, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.07, n: 'C5 . Eb5 . G5 . C6 . | B5 . G5 . D5 . B4 . | C5 . Eb5 . Ab5 . C6 . | Bb5 . G5 . Eb5 . D5 . | C5 . Eb5 . G5 . C6 . | D6 . B5 . G5 . F5 . | Eb5 . D5 . C5 . B4 . | C5 - - - . . . . ' },
+        { wave: 'triangle', vol: 0.18, n: 'C2 C3 C2 C3 C2 C3 C2 C3 | G1 G2 G1 G2 G1 G2 G1 G2 | Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | C2 C3 C2 C3 C2 C3 C2 C3 | G1 G2 G1 G2 G1 G2 G1 G2 | Ab1 Ab2 Ab1 Ab2 G1 G2 G1 G2 | C2 C3 C2 C3 C2 . . . ' },
+        { drum: true, vol: 0.07, n: 'k . h k s . h . | k k h . s . h h ' },
+    ],
+};
 
 // ---- 41_house_kit.js ----
 /* Things every House uses: levers, Knot hoops, House doors to the outside, nudges (the Hints option:
@@ -17197,6 +17215,731 @@ Shears.onPersonCut = n => Freed.free(n);
     OW.blocks['1,1'].tick = a => { if (tick0) tick0(a); Freed.tick(a); };
 }
 
+// ---- 74_drift.js ----
+/* Past the fog: the Drift. With her own thread cut, Wren can walk into the fog at the Frayed Edge and out the other
+   side, into the wide world, where nothing has a thread and nothing comes back: no hearts (nothing to unravel), no
+   falling home (you climb out where you fell), a map that's blank until you walk it. Linnet lives out here, in a
+   cottage with a garden. Meeting her, Wren's gone-ness reaches Gran: the Great Pull begins (src/75_greatspool.js). */
+
+const DRIFT_ROWS = [
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
+    '..............."............,........"..~...........^.......%%%%',
+    '..YYYYYYYY...,......,,..,,..YYYYYYYY....~...........^.......%%%%',
+    '..YYYYYYYY..,........,......YYYYYYYY..".~.,.......",,.",..."%%%%',
+    '..YYYYYYYY......,,....,.....YYYYYYYY....~...........^.......%%%%',
+    '..YYYYYYYY..................YYYYYYYY,...~...........^"......%%%%',
+    '..YYYYYYYY......,.,...,.....YYYYYYYY....~."...."....^,..,...%%%%',
+    ',.YYYYYYYY".,........,......YYYYYYYY....~.,.........^.......%%%%',
+    '..YYYYYYYY......,..........,YYYYYYYY.,..~.".......,,........%%%%',
+    '..YYYYYYYY,....,..".........."..........~.,......,..^.......%%%%',
+    '..."....,..............,......"...,.....~.....,.....^.".....%%%%',
+    '..............XXXXXXXX..................~.....,..,.,^.......%%%%',
+    '"..........".,XXXXXXXX..................~.,"........^.....,.%%%%',
+    '........"...,.XXXXXXXX....,.......".....~.,.............,...%%%%',
+    '..............XXXXXXXX.......,....."....~.....,.....^.,.....%%%%',
+    '..............XXXXXXXX...........,....."~........,.,^,...,..%%%%',
+    '.................:........,,............~...".......^.......%%%%',
+    '::::::::::::::::::::::::::::::::::::::::~:::::::::::::::::::%%%%',
+    '::::::::::::::::::::::::::::::::::::::::~:::::::::::::::::::%%%%',
+    '...........,,,,,,,,,,,,,,,....,.........~...........^......,%%%%',
+    '...........,,,,,,,,,,,,,,,,.............~.........".^.......%%%%',
+    '...........,,,,,,,,,,,,,,,.,."..........~.,.........^"...,..%%%%',
+    '..,........,,,,,,,,,,,,,,,..............~...."......^...."..%%%%',
+    '...........,,,,,,,,,,,,,,,.,............~...YYYYYYY.........%%%%',
+    '......"....,,,,,,,,,,,,,,,.....,...."...~.,.YYYYYYY.^.......%%%%',
+    '....,.....,...............".......,.....~...YYYYYYY.^.......%%%%',
+    '....YYYYYYYYY.............YYYYYYYYY.....~...YYYYYYY.^.".....%%%%',
+    ',.,.YYYYYYYYY.............YYYYYYYYY.."".~...YYYYYYY.^....,..%%%%',
+    '....YYYYYYYYY.............YYYYYYYYY....,~.,.YYYYYYY.........%%%%',
+    '....YYYYYYYYY.............YYYYYYYYY.,,..~...YYYYYYY"^.....,.%%%%',
+    '....YYYYYYYYY...,.........YYYYYYYYY.,..,~...YYYYYYY.^.......%%%%',
+    '....YYYYYYYYY.............YYYYYYYYY.....~...YYYYYYY.^.....,.%%%%',
+    ',...YYYYYYYYY.............YYYYYYYYY.,...~...YYYYYYY.^.......%%%%',
+    '....YYYYYYYYY.............YYYYYYYYY,....~................,..%%%%',
+    '....YYYYYYYYY..........."..........,....~..,."..,...^.......%%%%',
+    '..............................,".".,....~...,......,^.......%%%%',
+    '...."..............,...............,....~......"".,.^.......%%%%',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY%%%%',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY%%%%',
+];
+
+PEOPLE_DEF.linnet = { name: 'Linnet', col: THREAD.linnet, look: { body: 'adult', hair: 'long', hairC: '#8a4a2a', top: '#5ab85a', accent: '#8fd46a', bottom: '#3a6a3a', skin: 'light' } };
+
+defArea({
+    id: 'drift', name: 'The Drift', family: 'outdoor', theme: 'drift', music: 'drift', blankMap: true,
+    rows: DRIFT_ROWS,
+    ents: [
+        /* Linnet's cottage and garden */
+        { k: 'building', x: 14, y: 12, w: 8, h: 5, door: null, style: 'cottage', variant: 'linnet' },
+        { k: 'npc', who: 'linnet', x: 18, y: 21, face: 'down', id: 'linnet' },
+        { k: 'deco', x: 13, y: 22, look: 'driftbloom', solid: [[0, 0]], text: 'A tall flower the colour of a sky after rain. It grows nowhere in the Hollow.' },
+        { k: 'deco', x: 23, y: 23, look: 'driftbloom', solid: [[0, 0]] }, { k: 'deco', x: 16, y: 24, look: 'driftbloom', solid: [[0, 0]] },
+        { k: 'sign', x: 22, y: 17, text: "LINNET'S. (Knock. Or don't: I'm in the garden.)" },
+        /* a stray boulder by the stream (nothing out here comes back: push it in and it stays in) */
+        { k: 'stray', x: 43, y: 16, id: 'drBoulder' }, { k: 'stray', x: 46, y: 21, id: 'drBoulder2' },
+        { k: 'sign', x: 55, y: 17, text: 'An old marker stone, half sunk. Carved on it, worn nearly smooth: THE HOLLOW ENDS HERE.' },
+        { k: 'rest', x: 30, y: 20 },
+    ],
+    regions: [
+        { name: 'The Drift', x: 0, y: 0, w: 60, h: 40 },
+        { name: "Linnet's Garden", x: 10, y: 11, w: 17, h: 16 },
+    ],
+    entry: { x: 58, y: 18 },
+    tick: a => Drift.tick(a),
+});
+
+const Drift = {
+    tick(a) {
+        const p = G.player; if (!p || Script.blocking()) return;
+        /* back east into the fog: home, on foot */
+        if (p.tx >= 60 && p.state === 'normal') World.go('hollow', 67, p.ty < 20 ? 19 : 20, { dir: RIGHT, fade: true });
+    },
+    *meet(n) {
+        if (Progress.flag('met_linnet')) { yield* say('linnet', cycle('linnet_after', ["Go on, Wren. I'll come. I promise I'll come.", "She can't pull you. Remember that. Nothing can, now, unless you let it.", "Tell Biscuit I said hello. Ha! He knows."])); return; }
+        Progress.set('met_linnet'); Stats.count('met:linnet');
+        yield* say('linnet', "Hello? ...Oh. Oh, look at you. You've got Tess's chin. You're Tess's girl. You're Wren.");
+        yield* say('linnet', "You've cut your own thread. I can see it: there's nothing on you. Nothing pulling at all. How does it feel?");
+        const i = yield* ask('linnet', "", ['Light.', 'Frightening.', 'Come home.']);
+        yield* say('linnet', ["Light. Yes. It's the lightest thing in the world. You'll get used to it. Or you won't, and that's all right too.", "It is. It's frightening. Nobody's going to bring you back if you get lost. That's the whole of it. That's the price, and it's worth it.", "Home. ...I've thought about it every day for twenty-five years."][i]);
+        yield* say('linnet', "I found the Hall of Names on my Wander, the same as you. I read her ledger. I took the old Shears out of the Loom and cut myself loose and walked out into the fog, and the fog let me go.");
+        yield* say('linnet', "And I've been cutting from out here ever since. Little threads, at the edge, a few a year. Strays. I wanted her to see that the valley didn't come apart. That things could be lost and it would be all right. I wanted her to let go.");
+        yield* say('linnet', "I never went back. I was frightened she'd tie me again. She would have.");
+        G.shake = 14; Sfx.play('rumble'); Music.play('silence');
+        yield 40;
+        yield* say(null, "Far off in the east, beyond the fog, something enormous takes up slack. You feel it in your teeth. The fog leans the wrong way: towards the Hollow, not away.");
+        yield* say('linnet', "That's her. She's felt you go. She's pulling everything. Every thread in the valley. Everyone.");
+        yield* say('linnet', "Go, Wren. Walk. She can't pull you, not now; but she'll pull everyone else down the Well with her if she can. The Spool's under the Well. Go.");
+        yield* say('linnet', "...I'll come. I'll come after you. I just need a moment to find my nerve. I've had twenty-five years and I still need a moment.");
+        Progress.set('great_pull');
+        Progress.setGoal("Back to Hollowell, on foot. Gran is pulling the whole valley down the Well.");
+        Music.play('pull');
+        Save.autosave();
+    },
+};
+TALK.linnet = function* (n) { yield* Drift.meet(n); };
+
+/* walking into the fog with no thread: out the other side */
+{
+    const tick0 = OW.blocks['1,0'].tick;
+    OW.blocks['1,0'].tick = a => {
+        if (tick0) tick0(a);
+        const p = G.player;
+        if (p && Progress.flag('cut_self') && p.state === 'normal' && !Script.blocking() && p.tx <= 65 && a.kind(p.tx, p.ty).fog && !World.going) {
+            World.go('drift', 58, clamp(p.ty, 3, 36), { dir: LEFT, fade: true });
+            if (!Progress.flag('drift_first')) { Progress.set('drift_first'); G.pendingToast = 'Through the fog, the threads in it parting round you like a bead curtain, and out.'; }
+        }
+    };
+}
+Shears.onSelfCut = function* () {
+    yield* say(null, "The hearts you've carried all your life come undone and drift away. There's nothing left to unravel.");
+    Progress.setGoal('Into the fog, at the Frayed Edge. Nothing will pull you back now.');
+};
+
+/* nothing to pull you home: falls are just falls (you climb out), and hurts have nothing to unravel */
+{
+    const fall0 = Player.prototype.updateFall;
+    Player.prototype.updateFall = function () {
+        if (Progress.flag('cut_self') && this.stateT >= 26 && !(Inv.bedroll && Inv.bedroll.area === this.area.id)) {
+            const [lx, ly] = this.landingSpot(this.tx, this.ty);
+            this.x = lx * T + 8; this.y = ly * T + 10; this.state = 'normal'; this.inv = 40;
+            Fx.dust(this.x, this.y); Sfx.play('land');
+            return;
+        }
+        return fall0.call(this);
+    };
+    const hurt0 = Player.prototype.hurt;
+    Player.prototype.hurt = function (n, fx, fy) {
+        if (Progress.flag('cut_self')) { const hp = Inv.hp; hurt0.call(this, n, fx, fy); Inv.hp = hp; return; }
+        return hurt0.call(this, n, fx, fy);
+    };
+}
+/* the map of the Drift is blank until you walk it */
+{
+    const draw0 = MapView.draw;
+    MapView.draw = function (x, y, w, h) {
+        const a = G.map;
+        if (a && a.def.blankMap) {
+            const sc = Math.max(1, Math.min(Math.floor((w - 8) / a.w), Math.floor((h - 16) / a.h)));
+            const ox = x + Math.floor((w - a.w * sc) / 2), oy = y + 14 + Math.floor((h - 16 - a.h * sc) / 2);
+            Font.draw(a.name + ' (you draw it as you go)', x + 4, y + 2, PAL.ink);
+            const seen = Stats.visited[a.id] || {};
+            for (let ty = 0; ty < a.h; ty++) for (let tx = 0; tx < a.w; tx++) {
+                if (!seen[(tx >> 2) + ',' + (ty >> 2)]) continue;
+                Gfx.rect(ox + tx * sc, oy + ty * sc, sc, sc, MAP_COL[a.cell(tx, ty).k] || '#c8e0a0');
+            }
+            const p = G.player;
+            if ((G.t >> 3) % 2) Gfx.rect(ox + (p.x / T) * sc - 1, oy + (p.y / T) * sc - 1, 3, 3, PAL.red);
+            return;
+        }
+        return draw0.call(this, x, y, w, h);
+    };
+}
+
+function initDrift() {
+    ART.driftbloom = paintSprite(16, 24, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#4a8a3a', 7, 8, 2, 16); R('#6ab84a', 4, 14, 4, 2); R('#6ab84a', 9, 18, 4, 2); R('#9ad0f0', 4, 2, 8, 6); R('#c8e8fa', 5, 1, 6, 2); R('#f7e08a', 7, 4, 2, 2); });
+}
+CONTENT_INIT.push(initDrift);
+
+// ---- 75_greatspool.js ----
+/* The Great Pull and the Great Spool. Back from the Drift on foot, Wren finds Gran winding the whole valley in:
+   everyone with a thread (everyone not cut free) dragged in a ring round the Well, threads streaming down it. The
+   Well's cap is gone; down it, the Great Spool: the six Knots of the Wander, each tied in a room that remembers its
+   House (and everything learnt since), to be untied; and at the top, Gran at the Spool. She can't pull Wren. She pulls
+   everything else. Six great threads hold the Spool to the walls; the Shears. Then Linnet comes down the Well. */
+
+THEMES.spool = { floor: ['#2a2840', '#201e34', '#3a3854', '#141224'], wall: ['#3a3456', '#2a2440', '#52487a', '#141024'], stone: ['#4a4466', '#36304e', '#6a6488', '#1e1a2e'], water: ['#3f6f98', '#2e5478', '#6f9fc8', '#1c3450'], dark: '#0c0a16' };
+FLOORS.spool = {
+    floor: (x, th, v) => { fill(x, '#2a2840'); speckle(x, ['#24223a', '#322f4a'], 20 + v, 0.25); const cols = ['#e8463c', '#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8', '#d6304e', '#a8784a']; if (v % 3 === 0) fill(x, shade(cols[v % 8], -0.35), 0, 7, 16, 1); },
+    floor2: (x, th, v) => { fill(x, '#3a3854'); speckle(x, ['#4a4864', '#2a2840'], 30 + v, 0.3); },
+    floor3: (x, th, v) => { fill(x, '#141224'); for (let i = 1; i < 16; i += 2) fill(x, '#2a2440', i, 0, 1, 16); },
+};
+WALLS.spool = {
+    edge: '#0c0a16',
+    top: (x) => { fill(x, '#1e1a2e'); speckle(x, ['#2a2440'], 10, 0.2); },
+    face: (x, th, v) => { fill(x, '#3a3456'); const cols = ['#e8463c', '#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8']; for (let y = 1; y < 15; y += 2) fill(x, cols[(y + v) % 6], 0, y, 16, 1); fill(x, '#0c0a16', 0, 15, 16, 1); },
+};
+const KNOT_HOUSES = ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'];
+const KNOT_COL = { tidy: THREAD.ives, kiln: THREAD.bram, mill: THREAD.ambrose, belfry: THREAD.tess, slumber: THREAD.mallow, marionette: THREAD.jory };
+const GREAT_ENTRY = { x: 29, y: 41 };
+defHouse({
+    id: 'greatspool', name: 'The Great Spool', place: 'The Great Spool', house: 'greatspool', theme: 'spool', thread: THREAD.hesper, music: 'pull',
+    entry: GREAT_ENTRY, noNudges: true,
+    legend: { 'O': { k: 'crawl', p: 'wall', ent: 'crawlhole' } },
+    cells: {
+        /* ---------------- the foot of the Well ---------------- */
+        '1,3': {
+            name: 'The Foot of the Well',
+            rows: ['#########.##########', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '####################'],
+            ents: [
+                { k: 'sign', x: 11, y: 8, text: "Six Knots, tied in six rooms round the Spool's foot: the Wander's, every one you tied. A seventh place waits at the top, an empty peg, for the Wanderer's own." },
+            ],
+        },
+        /* ---------------- the Slumberhouse's Knot: a drop, and home by the Bedroll ---------------- */
+        '0,3': {
+            name: "The Slumberhouse's Knot",
+            rows: ['####################', '#..................#', '#..................#', '#..................#', '#..................#', '#...................', '#vvvvvvvvvvvvvvvvvv#', '#..................#', '#..................#', '#..................#', '####################'],
+            ents: [
+                { k: 'knotlock', x: 9, y: 8, house: 'slumber' },
+                { k: 'sign', x: 16, y: 2, text: 'No stairs down, and none up. Somewhere of your own to come back to, then.' },
+            ],
+        },
+        /* ---------------- the Marionette Hall's Knot: a puppet through the hole onto the plate, then the gate ---------------- */
+        '2,3': {
+            name: "The Marionette Hall's Knot",
+            rows: ['####################', '#.........#........#', '#.........#........#', '#.........#..^^^...#', '#.........O........#', '..........#........#', '#.........#........#', '#####.#####........#', '#.........#........#', '#.........#........#', '####################'],
+            ents: [
+                { k: 'puppet', x: 7, y: 4, id: 'gsPuppet' },
+                { k: 'plate', x: 14, y: 2, sig: 'gsMp' },
+                { k: 'door', x: 5, y: 7, type: 'gate', when: 'gsMp', dir: 'h', passed: 'down', id: 'gsMGate' },
+                { k: 'knotlock', x: 5, y: 9, house: 'marionette' },
+            ],
+        },
+        /* ---------------- the hub: the Winding Room ---------------- */
+        '1,2': {
+            name: 'The Winding Room',
+            rows: ['#########.##########', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
+            ents: [
+                { k: 'deco', x: 7, y: 2, look: 'spoolpost', ox: 0, solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]], text: 'The foot of the Great Spool: a drum of thread as wide as a house, every colour, turning, and every turn a little tighter.' },
+            ],
+        },
+        /* ---------------- the Tidyhouse's Knot: a place on the plate ---------------- */
+        '0,2': {
+            name: "The Tidyhouse's Knot",
+            rows: ['####################', '#....#.............#', '#....#.............#', '#....#.............#', '#....#.............#', '#...................', '#....#.............#', '#....#.............#', '#....#.............#', '#....#.............#', '####################'],
+            ents: [
+                { k: 'door', x: 5, y: 5, type: 'gate', when: 'gsTp', dir: 'v', passed: 'left', id: 'gsTGate' },
+                { k: 'plate', x: 12, y: 2, sig: 'gsTp' },
+                { k: 'block', x: 14, y: 7, id: 'gsTBlock' },
+                { k: 'knotlock', x: 2, y: 5, house: 'tidy' },
+            ],
+        },
+        /* ---------------- the Kiln's Knot: the pot's shards fly home past the crystal ---------------- */
+        '2,2': {
+            name: "The Kiln's Knot",
+            rows: ['####################', '#.........ooo......#', '#.........ooo......#', '#.........ooo......#', '#.........ooo......#', '..........ooo......#', '#.........ooo......#', '#.........ooo......#', '#.........ooo......#', '#.........ooo......#', '####################'],
+            ents: [
+                { k: 'eyelet', x: 14, y: 5 },
+                /* and one on the near side, for the way back */
+                { k: 'eyelet', x: 8, y: 8 },
+                { k: 'knotlock', x: 16, y: 5, house: 'kiln' },
+                { k: 'sign', x: 3, y: 2, text: 'A gap no one could jump, and a brass eye on the far side, waiting for a hook.' },
+            ],
+        },
+        /* ---------------- the climb: Mill west, Belfry east, the top north ---------------- */
+        '1,1': {
+            name: 'The Climb',
+            rows: ['#########.##########', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
+            ents: [
+                { k: 'door', x: 9, y: 0, type: 'gate', when: 'flag:spool_all', dir: 'h', id: 'gsTop' },
+                { k: 'sign', x: 11, y: 1, text: 'UP: THE SPOOL. (The way opens when every Knot is undone.)' },
+            ],
+        },
+        /* ---------------- the Millrace's Knot: across the race on a raft ---------------- */
+        '0,1': {
+            name: "The Millrace's Knot",
+            rows: ['####################', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~......', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '#.....~~~~~~~~.....#', '####################'],
+            ents: [
+                { k: 'raft', x: 13, y: 5, id: 'gsRaft', marked: false },
+                { k: 'knotlock', x: 2, y: 5, house: 'mill' },
+                { k: 'sign', x: 16, y: 8, text: 'Deep water, and a raft tied to nothing at all.' },
+            ],
+        },
+        /* ---------------- the Belfry's Knot: a sleeper in the doorway; ring it home ---------------- */
+        '2,1': {
+            name: "The Belfry's Knot",
+            rows: ['####################', '#.........#........#', '#.........#........#', '#.........#........#', '#.........#........#', '...................#', '#.........#........#', '#.........#........#', '#.........#........#', '#.........#........#', '####################'],
+            ents: [
+                { k: 'block', x: 10, y: 5, id: 'gsBBoulder', sleeper: true, tiedOff: true, startAt: [10, 5], trace: [[13, 8], [12, 8], [11, 8], [11, 7], [11, 6], [11, 5], [10, 5]], pushLine: "A boulder fast asleep in the doorway. It won't budge for anything but a bell." },
+                { k: 'knotlock', x: 16, y: 3, house: 'belfry' },
+            ],
+        },
+        /* ---------------- the top of the Spool ---------------- */
+        '1,0': {
+            name: 'The Top of the Spool',
+            rows: ['####################', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
+            ents: [
+                { k: 'greatspool', x: 8, y: 1, id: 'theSpool' },
+                { k: 'greatpost', x: 1, y: 2, house: 'tidy' }, { k: 'greatpost', x: 18, y: 2, house: 'kiln' }, { k: 'greatpost', x: 1, y: 5, house: 'mill' },
+                { k: 'greatpost', x: 18, y: 5, house: 'belfry' }, { k: 'greatpost', x: 1, y: 8, house: 'slumber' }, { k: 'greatpost', x: 18, y: 8, house: 'marionette' },
+            ],
+        },
+    },
+});
+
+/* a Knot of the Wander, tied into the Spool: untie it */
+class KnotLock extends GridThing {
+    constructor(tx, ty, p = {}) { super('knotlock', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false, noNeedle: true, noCut: true, noCutLine: "It isn't a thread to cut. It's a Knot. Knots are undone with fingers." }, p)); }
+    get undone() { return Progress.flag('untie:' + this.house); }
+    interact() {
+        if (this.undone) { UI.toast('Undone. Its thread hangs slack.'); return true; }
+        const h = this.house;
+        Script.run(function* () {
+            const i = yield* ask(null, `The ${HOUSE_NAMES[h]}'s Knot: the one you tied, pulled tight into the Spool's own thread. Untie it?`, ['Untie it', 'Not yet']);
+            if (i !== 0) return;
+            Progress.set('untie:' + h); Sfx.play('unclick'); Sfx.play('knot'); G.shake = 6; Stats.count('untied');
+            const n = KNOT_HOUSES.filter(k => Progress.flag('untie:' + k)).length;
+            yield* say(null, n < 6 ? `It comes undone in your fingers, and somewhere above, the Spool shudders and slows. (${n} of 6.)` : 'The sixth Knot comes undone. Overhead, the Great Spool groans, and stops turning, and for the first time in your life there is no sound of winding anywhere.');
+            if (n >= 6) { Progress.set('spool_all'); Progress.setGoal('Up the Climb to the top of the Spool. Gran is there.'); }
+        });
+        return true;
+    }
+    draw(cx, cy) {
+        const x = this.tx * T - cx, y = this.ty * T - cy, col = KNOT_COL[this.house];
+        Gfx.line(x + 8, y - 30, x + 8, y + 2, this.undone ? shade(col, -0.4) : col);
+        if (this.undone) { Gfx.line(x + 8, y + 2, x + 4, y + 12, shade(col, -0.4)); return; }
+        Gfx.circle(x + 8, y + 6, 6, col); Gfx.circle(x + 8, y + 6, 3, shade(col, 0.35)); Gfx.rect(x + 4, y + 4, 8, 1, shade(col, -0.4));
+        if ((G.t >> 4) % 2) Gfx.rect(x + 7, y - 2, 2, 2, '#ffffff');
+    }
+}
+SPAWN.knotlock = (x, y, p) => new KnotLock(x, y, p);
+const HOUSE_NAMES = { tidy: 'Tidyhouse', kiln: 'Kiln', mill: 'Millrace', belfry: 'Belfry', slumber: 'Slumberhouse', marionette: 'Marionette Hall' };
+
+/* ---------------- the top: the Spool, its six great threads, Gran ---------------- */
+class GreatPost extends GridThing {
+    constructor(tx, ty, p = {}) { super('greatpost', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false, noNeedle: true }, p)); this.cuttable = true; }
+    get cut() { return Progress.flag('great:' + this.house); }
+    onCut() {
+        if (this.cut || !Progress.flag('spool_met')) return;
+        Progress.set('great:' + this.house); Sfx.play('snip'); G.shake = 8; Fx.ring(this.tx * T + 8, this.ty * T, KNOT_COL[this.house]);
+        const n = KNOT_HOUSES.filter(h => Progress.flag('great:' + h)).length;
+        if (n >= 6) Script.run(GreatSpool.finale(), { name: 'finale' });
+        else UI.toast(`A great thread parts with a sound like a bell cracking. (${n} of 6.)`, 120);
+    }
+    draw(cx, cy) {
+        const x = this.tx * T - cx, y = this.ty * T - cy, col = KNOT_COL[this.house];
+        Gfx.rect(x + 3, y - 10, 10, 26, '#4a4466'); Gfx.rect(x + 4, y - 10, 8, 26, '#6a6488'); Gfx.rect(x + 2, y - 12, 12, 3, col);
+        if (!this.cut) { const s = this.area.find('theSpool'); if (s) { Gfx.line(x + 8, y - 6, s.tx * T + 32 - cx, s.ty * T + 16 - cy, col); Gfx.line(x + 8, y - 5, s.tx * T + 32 - cx, s.ty * T + 17 - cy, shade(col, -0.3)); } }
+        else Gfx.line(x + 8, y - 6, x + 14, y + 4, shade(col, -0.4));
+    }
+}
+SPAWN.greatpost = (x, y, p) => new GreatPost(x, y, p);
+class SpoolDrum extends Ent {
+    constructor(tx, ty, p = {}) { super('greatspool', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.t = 0; this.junk = []; }
+    get sortY() { return this.y + 40; }
+    onAdd(area) { for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) area.staticSolid.add((this.ty + j) * 4096 + this.tx + i); }
+    update() {
+        this.t++;
+        const p = G.player, a = this.area;
+        /* Gran pulls everything else: things fly in from the walls toward the Spool (they'd knock you flat, if there were
+           anything left in you to unravel; as it is, they knock you about) */
+        if (Progress.flag('spool_met') && !Progress.flag('unwound') && !Script.blocking()) {
+            if (this.t % 80 === 0) {
+                const r = a.roomAt(this.tx, this.ty), y = r.y + 3 + Math.floor(G.rng() * 6), fromL = G.rng() < 0.5;
+                this.junk.push({ x: (fromL ? r.x + 1 : r.x + r.w - 2) * T + 8, y: y * T + 8, tx: (this.tx + 2) * T, ty: (this.ty + 1) * T + 8, k: Math.floor(G.rng() * 3) });
+            }
+            for (const j of this.junk) {
+                const dx = j.tx - j.x, dy = j.ty - j.y, d = Math.hypot(dx, dy);
+                if (d < 4) { j.gone = true; continue; }
+                j.x += dx / d * 1.6; j.y += dy / d * 1.6;
+                if (p.area === a && p.state === 'normal' && Math.abs(p.x - j.x) < 8 && Math.abs(p.y - 6 - j.y) < 8) { p.hurt(1, j.x, j.y); j.gone = true; }
+            }
+            this.junk = this.junk.filter(j => !j.gone);
+        }
+    }
+    draw(cx, cy) {
+        const x = this.x - cx, y = this.y - cy;
+        const cols = ['#e8463c', '#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8', '#d6304e', '#a8784a', '#f0e6d0'];
+        Gfx.rect(x - 4, y - 6, 72, 6, '#4a4466'); Gfx.rect(x - 4, y + 28, 72, 6, '#4a4466');
+        const turn = Progress.flag('spool_all') ? 0 : this.t;
+        for (let i = 0; i < 28; i++) Gfx.rect(x, y + i, 64, 1, cols[(i + (turn >> 3)) % cols.length]);
+        for (const j of this.junk) Gfx.img(spr(['block_wood', 'pot', 'crate'][j.k]) || spr('block_wood'), j.x - cx - 8, j.y - cy - 12);
+    }
+}
+SPAWN.greatspool = (x, y, p) => new SpoolDrum(x, y, p);
+
+const GreatSpool = {
+    /* stepping into the top room: Gran */
+    tick(a) {
+        const p = G.player, r = Cam.room;
+        if (!Progress.flag('spool_met') && r && r.name === 'The Top of the Spool' && p.state === 'normal' && !Script.blocking() && !Cam.busy) Script.run(this.meet());
+        /* back after a save: Gran is still at the Spool; and if every great thread was cut, the end goes on */
+        if (Progress.flag('spool_met') && !Progress.flag('unwound')) {
+            const s = a.find('theSpool');
+            if (s && !a.ents.some(e => e.who === 'gran')) a.add(new NPC(s.tx + 1, s.ty + 2, { who: 'gran', face: 'down' }));
+            if (KNOT_HOUSES.every(h => Progress.flag('great:' + h)) && !Script.running('finale') && !Script.blocking()) Script.run(this.finale(), { name: 'finale' });
+        }
+    },
+    *meet() {
+        Progress.set('spool_met');
+        const a = G.map, s = a.find('theSpool');
+        if (!a.ents.some(e => e.who === 'gran')) a.add(new NPC(s.tx + 1, s.ty + 2, { who: 'gran', face: 'down' }));
+        Music.play('pull');
+        yield 20;
+        yield* say('gran', "You came back. You walked. I felt you go out past the edge, love, and I pulled, and I pulled, and there was nothing on the end.");
+        yield* say('gran', "So I pulled everything else. Everyone. Down here, safe, where nobody can wander off. Where nobody gets lost.");
+        yield* say('wren', "You can't pull me, Gran.");
+        yield* say('gran', "...No. I can't, can I.");
+        yield* say(null, "Her hands don't stop. The Spool's six great threads, one to every House, hum like bowstrings. Things come flying off the walls toward the drum: pots, crates, blocks, every marked thing in the valley, wound in.");
+        Progress.setGoal('Cut the Spool\'s six great threads, at their posts round the walls.');
+    },
+    *finale() {
+        const a = G.map, p = G.player;
+        Progress.set('spool_cut');
+        G.shake = 14; Sfx.play('rumble');
+        yield 30;
+        const gran = a.ents.find(e => e.who === 'gran');
+        yield* say(null, "The last great thread parts. The Spool lurches, and everything it was winding goes slack at once: in the walls, overhead, all the way up the Well, a long, long sigh of thread.");
+        yield* say('gran', "Don't. Don't, love, please. If I let go, I'll lose them. I'll lose you. I lost her.");
+        const r = a.rooms.find(q => q.name === 'The Top of the Spool');
+        const linnet = a.add(new NPC(r.x + 9, r.y + 9, { who: 'linnet', face: 'up' }));
+        Fx.poof(linnet.px + 8, linnet.py + 8);
+        yield 20;
+        yield* say('linnet', "Mum.");
+        yield* say(null, "Gran's hands go still on the Spool.");
+        yield* say('linnet', "I came back. Nobody pulled me. I walked all the way, because I wanted to.");
+        yield* say('linnet', "That's the only way anyone ever really comes home, Mum. You have to let them choose it.");
+        const i = yield* ask(null, "Gran looks at you. You hold out your hand.", ['Let go, Gran.', 'Come home with us.']);
+        yield* say('gran', i === 0 ? "...Let go." : "...Home.");
+        yield* say(null, "And she takes her hands off the Spool, and puts one in yours, and one in Linnet's.");
+        yield* Ending.unwinding();
+    },
+};
+
+/* ---------------- the Great Pull, up in the town ---------------- */
+{
+    const tick0 = OW.blocks['1,1'].tick;
+    OW.blocks['1,1'].tick = a => {
+        if (tick0) tick0(a);
+        if (!Progress.flag('great_pull') || Progress.flag('unwound')) return;
+        /* everyone with a thread is dragged in a ring round the Well */
+        /* (the townsfolk, in town: in an arc round the Well, its south side left open so you can get to it) */
+        const pulled = a.ents.filter(n => n.kind === 'npc' && !n.cutFree && !Progress.flag('cut:' + n.who) && n.who !== 'gran' && n.who !== 'linnet' && n.tx >= 64 && n.tx < 128 && n.ty >= 40 && n.ty < 80);
+        const fresh = pulled.filter(n => !n.dragged);
+        if (fresh.length) pulled.forEach((n, i) => {
+            const t = Math.PI / 2 + 0.75 + (2 * Math.PI - 1.5) * i / Math.max(1, pulled.length - 1);
+            let rx = 95 + Math.round(Math.cos(t) * 6), ry = 59 + Math.round(Math.sin(t) * 4);
+            while (pulled.some(q => q !== n && q.dragTo && q.dragTo[0] === rx && q.dragTo[1] === ry)) ry--;
+            n.dragTo = [rx, ry];
+            n.route = [[rx, ry, 9999]]; n.ri = 0; n.routeWait = 0; n.routeSpeed = 0.5; n.free = true; n.dragged = true; n.path = null;
+        });
+        if (!Progress.flag('pull_seen') && G.player && G.player.area === a && Math.hypot(G.player.tx - 95, G.player.ty - 60) < 14) {
+            Progress.set('pull_seen');
+            Script.run(function* () {
+                yield* say(null, "The town square. Everyone you know is shuffling towards the Well, step by step, threads streaming from them down into it. Their feet don't want to; their threads do.");
+                yield* say(null, "The Well's cap is gone. Threads pour into the dark like water going down a drain.");
+                Progress.setGoal('Down the Well, to the Great Spool.');
+            });
+        }
+    };
+    /* while the Pull goes on, the dragged are drawn with their threads streaming to the Well */
+    const draw0 = NPC.prototype.draw;
+    NPC.prototype.draw = function (cx, cy) {
+        if (this.dragged && Progress.flag('great_pull') && !Progress.flag('unwound') && this.area && this.area.id === 'hollow') {
+            const col = (PEOPLE_DEF[this.who] && PEOPLE_DEF[this.who].col) || THREAD.town;
+            Gfx.alpha(0.6); Gfx.line(this.px + 8 - cx, this.py + 6 - cy, 95 * T + 8 - cx, 59 * T - cy, col); Gfx.alpha(1);
+        }
+        return draw0.call(this, cx, cy);
+    };
+    /* talking to them meanwhile */
+    const talk0 = Story.talk;
+    Story.talk = function (npc) {
+        if (Progress.flag('great_pull') && !Progress.flag('unwound') && npc.area && npc.area.id === 'hollow') {
+            if (npc.dragged) return function* () { yield* say(npc.who, ["I can't... stop... walking. Wren? Is that you?", "My feet won't listen. It's the Well. It wants us.", "Go on, love. Down the Well. Don't mind us."][Math.floor(G.rng() * 3)]); };
+            if (Progress.flag('cut:' + npc.who)) return function* () { yield* say(npc.who, "We're all right! Nothing's got hold of us! Go on, Wren!"); };
+        }
+        return talk0.call(this, npc);
+    };
+}
+/* the Well, open */
+{
+    const deco0 = SPAWN.deco;
+    SPAWN.deco = (tx, ty, p) => {
+        const pr = deco0(tx, ty, p);
+        if (p.id === 'well') {
+            const i0 = pr.interact;
+            pr.interact = () => {
+                if (Progress.flag('great_pull') && !Progress.flag('unwound')) {
+                    Script.run(function* () {
+                        const i = yield* ask(null, "The Well's cap is gone. Every thread in the valley pours down into the dark. Go down?", ['Down the Well', 'Not yet']);
+                        if (i === 0) World.go('greatspool', GREAT_ENTRY.x, GREAT_ENTRY.y, { dir: UP, fade: true });
+                    });
+                    return true;
+                }
+                return i0 ? i0() : false;
+            };
+        }
+        return pr;
+    };
+}
+AREAS.greatspool.tick = a => GreatSpool.tick(a);
+/* the Well brings you back up (and the foot of the Well is where you'd fall to, if you fell) */
+AREAS.greatspool.ents.push({ k: 'warp', x: 29, y: 42, to: 'hollow', tx2: 95, ty2: 60, face: 'down', room: '1,3' }, { k: 'deco', x: 29, y: 42, look: 'stairs_up', solid: false, baseY: -100, room: '1,3' });
+
+function initGreatSpool() {
+    ART.spoolpost = paintSprite(96, 24, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); const cols = ['#e8463c', '#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8']; R('#2a2440', 0, 0, 96, 24); for (let i = 0; i < 22; i++) R(cols[i % 6], 2, 1 + i, 92, 1); });
+    SPR.spoolpost = ART.spoolpost;
+}
+CONTENT_INIT.push(initGreatSpool);
+
+// ---- 76_ending.js ----
+/* The Unwinding, the epilogue and the credits; and after: the free valley (everyone walks where they like), the
+   Well's new motto (S35), Gran's garden (S11's seed), and a title screen that's changed. */
+
+const Ending = {
+    *unwinding() {
+        const p = G.player;
+        Music.play('silence');
+        G.hideHud = true;
+        yield 30;
+        UI.fadeA = 0; yield* fadeOut(60);
+        yield* say(null, 'Every thread in the valley goes slack at once.');
+        yield* say(null, 'Then, for a long moment, nothing at all.');
+        Progress.set('unwound'); Stats.count('unwound');
+        for (const w of ['wren', ...Object.keys(PEOPLE_DEF)]) if (w !== 'wren') Progress.set('cut:' + w);
+        World.enter('hollow', 95, 63, { dir: UP, noSave: true });
+        G.hideHud = true;
+        yield* fadeIn(80);
+        Music.play('drift');
+        yield 60;
+        yield* say(null, 'Up over the roofs, a flock of birds lifts off the bell tower and flies away, out over the edge of the valley, further than anything has ever flown from here.');
+        yield 60;
+        yield* say(null, 'You watch the sky a long time.');
+        yield 40;
+        yield* say(null, 'They come back.');
+        yield* say(null, 'Old Arlo walks down to the river. Miss Quill takes the children up the hill. Fisher Hob gets into a boat. Nobody, anywhere, is standing on their spot.');
+        yield* say('ives', "We'll keep our Houses' threads, love. By choice. For the next Wanderer. For play. That's the difference.");
+        yield* say(null, 'Over the north woods the fog has thinned to nothing but a morning mist, and through it, there is a road.');
+        const seed = Progress.flag('seed_planted');
+        yield* say(null, "In Gran's garden, Gran and Linnet sit on the bench together, not saying much. Biscuit sits between them, purring like a winch." + (seed ? ' By the gate, the seed you brought back from past the fog has opened: a tall flower the colour of a sky after rain.' : ''));
+        if (Inv.items.bracelet) yield* say(null, "Linnet gives Gran a bracelet, plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to.");
+        if (Progress.flag('s30')) yield* say(null, "On Gran's kitchen dresser, propped against the teapot: Tuck's drawing of you, in every colour he had.");
+        yield* say(null, "And a week later, somebody re-carves the Well.");
+        yield* fadeOut(60);
+        yield* Ending.credits();
+        localSet('hollowell-ended', '1');
+        Progress.setGoal('The valley is yours. Carry on.');
+        World.enter('hollow', 95, 63, { dir: DOWN });
+        G.hideHud = false;
+        yield* fadeIn(40);
+        Save.autosave();
+    },
+    /* the credits: the Makers, and you */
+    *credits() {
+        const name = G.wanderer || 'Wren';
+        const pages = [
+            ['HOLLOWELL', '', 'a Wander'],
+            ['Made by the Makers of Hollowell', '', 'Mother Ives, the Tidyhouse', 'Bram, the Kiln', 'Ambrose, the Millrace', 'Tess, the Belfry', 'Doctor Mallow, the Slumberhouse', 'Jory, the Marionette Hall', 'Gundry and the Guild, the Spoolworks'],
+            ['and the Loom', '', 'the First Spinner, long ago,', 'who only meant to keep things safe'],
+            ['Wanderer:', '', name],
+            ['with Linnet, who came home', 'and Hesper, who let go', '', 'and Biscuit, who never needed telling'],
+            ['The End.', '', '(Carry on.)'],
+        ];
+        G.credits = { pages, i: 0, t: 0 };
+        for (let i = 0; i < pages.length; i++) {
+            G.credits.i = i; G.credits.t = 0;
+            for (let t = 0; t < 240; t++) { G.credits.t = t; if (t > 40 && (Input.pressed('act') || Input.pressed('atk'))) break; yield 1; }
+        }
+        G.credits = null;
+    },
+    drawCredits() {
+        const c = G.credits; if (!c) return;
+        Gfx.rect(0, 0, W, H, '#14101c');
+        for (let x = 12; x < W - 12; x += 6) { Gfx.rect(x, 10, 3, 1, '#3a3456'); Gfx.rect(x, H - 11, 3, 1, '#3a3456'); }
+        if (c.pages[c.i][0] === 'Wanderer:') { const im = typeof personFrame === 'function' && personFrame('wren', DOWN, (c.t >> 4) % 2 ? 1 : 2); if (im) Gfx.img(im, W / 2 - 8, H / 2 + 26); }
+        const a = Math.min(1, c.t / 30, (240 - c.t) / 30);
+        Gfx.alpha(Math.max(0, a));
+        const lines = c.pages[c.i], y0 = H / 2 - lines.length * 6;
+        lines.forEach((l, i) => Font.center(l, W / 2, y0 + i * 12, i === 0 ? '#f7e08a' : '#e4ecf5'));
+        Gfx.alpha(1);
+    },
+};
+function localSet(k, v) { try { localStorage.setItem(k, v); } catch { } }
+function localGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+{
+    const draw0 = UI.draw;
+    UI.draw = function () { draw0.call(this); if (G.credits) Ending.drawCredits(); };
+}
+
+/* the Well's motto, read in every act (S35), changes at the end */
+const MOTTO = [
+    ['act1', () => !Progress.flag('reveal1'), 'The Well. Carved round its stones: EVERYTHING IN ITS PLACE.'],
+    ['act2', () => Progress.flag('reveal1') && !Progress.flag('reveal2'), "The Well. EVERYTHING IN ITS PLACE. Underneath, very small, freshly scratched: (AND WE PUT IT THERE. -B.)"],
+    ['act3', () => Progress.flag('reveal2') && !Progress.flag('unwound'), "The Well. EVERYTHING IN ITS PLACE. The letters look deeper than you remember. Tighter, somehow."],
+    ['act4', () => Progress.flag('unwound'), "The Well, its cap off and its winch at rest. Re-carved: EVERYTHING IN ITS PLACE, AND EVERYONE IN THEIRS. WHEREVER THAT IS."],
+];
+{
+    const deco0 = SPAWN.deco;
+    SPAWN.deco = (tx, ty, p) => {
+        const pr = deco0(tx, ty, p);
+        if (p.id === 'well') {
+            const i0 = pr.interact;
+            pr.interact = () => {
+                if (Progress.flag('great_pull') && !Progress.flag('unwound')) return i0();
+                const m = MOTTO.find(([, when]) => when());
+                Script.run(function* () {
+                    yield* say(null, m[2]);
+                    Progress.set('motto:' + m[0]);
+                    if (MOTTO.every(([k]) => Progress.flag('motto:' + k)) && !Progress.flag('s35')) { Progress.set('s35'); Stats.count('secret:motto'); yield* say(null, 'You have read the Well four times now, and it has said four different things.'); }
+                });
+                return true;
+            };
+        }
+        return pr;
+    };
+}
+
+/* Gran's garden: the Drift-bloom seed (S11) goes in by the gate */
+SPAWN.gardenplot = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.gardenplot, solid: [[0, 0]], oy: 0 });
+    pr.baseY = -20;
+    pr.interact = () => {
+        Script.run(function* () {
+            if (Progress.flag('seed_planted')) { yield* say(null, Progress.flag('unwound') ? "The Drift-bloom: a tall flower the colour of a sky after rain. Nothing like it grows anywhere else in the Hollow." : 'Where you planted the seed, a green shoot. It seems in no hurry.'); return; }
+            if (!Inv.items.driftseed) { yield* say(null, "A bare patch by Gran's gate, dug over and ready, as if she'd meant to plant something there for years."); return; }
+            const i = yield* ask(null, "A bare patch by Gran's gate. Plant the Drift-bloom seed here?", ['Plant it', 'Not yet']);
+            if (i !== 0) return;
+            delete Inv.items.driftseed; Progress.set('seed_planted'); Stats.count('seed_planted'); Sfx.play('appear');
+            yield* say(null, 'You press it into the earth and water it from the butt. Something past the fog, growing in the Hollow.');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    pr.draw = (cx, cy) => { Gfx.img(ART.gardenplot, tx * T - cx, ty * T - cy); if (Progress.flag('seed_planted')) { const im = Progress.flag('unwound') ? ART.driftbloom : null; if (im) Gfx.img(im, tx * T - cx, ty * T - cy - 10); else { Gfx.rect(tx * T - cx + 7, ty * T - cy + 6, 2, 6, '#4a8a3a'); Gfx.rect(tx * T - cx + 5, ty * T - cy + 7, 3, 2, '#6ab84a'); } } };
+    return pr;
+};
+OW.blocks['1,1'].ents.push({ k: 'gardenplot', x: 9, y: 11 });
+
+/* after the Unwinding: everyone free, wandering a little round of their own */
+{
+    const build0 = World.build;
+    World.build = function (id) {
+        const a = build0.call(this, id);
+        if (Progress.flag('unwound') && id === 'hollow') {
+            let k = 0;
+            for (const e of a.ents) {
+                if (e.kind !== 'npc' || e.route || e.who === 'gran' || e.who === 'linnet') continue;
+                e.ret = null; e.cutFree = true; e.free = true;
+                const x0 = e.tx, y0 = e.ty, d = 3 + (k++ % 3);
+                e.route = [[x0, y0, 60 + k * 7], [x0 + d, y0, 40], [x0 + d, y0 + 2, 50], [x0, y0 + 2, 30]].filter(([x, y]) => a.inside(x, y) && !a.kind(x, y).solid);
+                e.ri = 0; e.routeWait = 20 + k * 5;
+            }
+        }
+        return a;
+    };
+}
+
+/* the title, once the Wander's done: no mist, no thread in the Well, and Carry on */
+{
+    const items0 = Title.items;
+    Title.items = function () { const it = items0.call(this); return localGet('hollowell-ended') ? it.map(s => s === 'Continue' ? 'Carry on' : s) : it; };
+    const upd0 = Title.update;
+    Title.update = function () {
+        if (localGet('hollowell-ended') && this.mode === 'main' && (Input.pressed('act') || Input.pressed('menu'))) {
+            const c = this.items()[this.sel];
+            if (c === 'Carry on') { Sfx.play('select'); this.mode = 'slots'; this.slotSel = 0; this.slotAction = 'load'; return; }
+        }
+        return upd0.call(this);
+    };
+    const art0 = TitleArt.draw;
+    TitleArt.draw = function (t) {
+        if (!localGet('hollowell-ended')) return art0.call(this, t);
+        for (let y = 0; y < H; y++) Gfx.rect(0, y, W, 1, mix('#8fd0f4', '#fff0c8', y / H));
+        const hill = (base, amp, col, seed) => { for (let x = 0; x < W; x++) { const h = base + Math.sin(x / 40 + seed) * amp + Math.sin(x / 17 + seed * 2) * amp * 0.3; Gfx.rect(x, h, 1, H - h, col); } };
+        hill(70, 10, '#b8d8b8', 1); hill(88, 8, '#98c888', 2); hill(104, 6, '#84bc70', 3); hill(122, 4, '#74b05c', 4);
+        /* a road from the Well out over the hills, people walking it, and birds going wherever they like */
+        const road = t0 => [W / 2 + 22 + t0 * 96 + Math.sin(t0 * 6) * 10 * (1 - t0), 106 - t0 * 36];
+        for (let i = 0; i <= 80; i++) { const [rx, ry] = road(i / 80); Gfx.rect(rx, ry, Math.max(1, 4 - i / 25), 1, '#e8cc98'); }
+        for (let k = 0; k < 3; k++) {
+            const q = ((t * 0.0015) + k / 3) % 1, [rx, ry] = road(q), sc = 1 - q * 0.6;
+            Gfx.rect(rx, ry - 4 * sc, Math.max(1, 2 * sc), Math.max(1, 3 * sc), ['#e8463c', '#5ab85a', '#4f9be0'][k]); Gfx.rect(rx, ry - 5 * sc, Math.max(1, 2 * sc), 1, '#f2c6a0');
+        }
+        for (let i = 0; i < 5; i++) { const bx = (t * 0.4 + i * 70) % (W + 40) - 20, by = 10 + i * 3 + Math.sin(t / 40 + i) * 3, f = (t >> 3) % 2; Gfx.rect(bx, by + f, 3, 1, '#5a4a4e'); Gfx.rect(bx + 3, by + 1 - f, 3, 1, '#5a4a4e'); }
+        const wx = W / 2, wy = 98;
+        Gfx.rect(wx - 18, wy, 36, 10, '#8a7a6a'); Gfx.rect(wx - 18, wy, 36, 2, '#c8b8a4');
+        Gfx.rect(wx - 14, wy - 18, 3, 18, '#6b4128'); Gfx.rect(wx + 11, wy - 18, 3, 18, '#6b4128');
+        Gfx.rect(wx - 18, wy - 22, 36, 5, '#9a4a3a'); Gfx.rect(wx - 16, wy - 24, 32, 2, '#c45a4a');
+        const title = 'HOLLOWELL';
+        let x = W / 2 - 80;
+        for (let i = 0; i < title.length; i++) { const y = 26 + Math.sin(t / 30 + i * 0.6) * 1.5; BigFont.draw(title[i], x + 2, y + 2, '#5a3a3a'); BigFont.draw(title[i], x, y, '#fbf6ea'); x += 18; }
+        Font.center('a Wander (and after)', W / 2, 58, '#5a4a4e');
+    };
+}
+
+function initEnding() {
+    ART.gardenplot = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3e2a', 3, 5, 10, 9); R('#5a3e2a', 2, 6, 12, 7); R('#7a5638', 3, 6, 10, 7); for (let i = 0; i < 3; i++) R('#4a3222', 4, 7 + i * 2, 8, 1); R('#9a7050', 5, 6, 2, 1); R('#9a7050', 9, 10, 2, 1); }, false);
+}
+CONTENT_INIT.push(initEnding);
+
+/* after: Gran and Linnet in Gran's garden, Linnet gone from the Drift, and what everyone says now they're free */
+OW.blocks['1,1'].ents.push(
+    { k: 'npc', who: 'gran', x: 14, y: 11, face: 'down', if: 'unwound', id: 'granAfter' },
+    { k: 'npc', who: 'linnet', x: 15, y: 11, face: 'down', if: 'unwound', id: 'linnetAfter' });
+for (const e of AREAS.drift.ents) if (e.who === 'linnet') e.if = '!unwound';
+const AFTER_LINES = {
+    gran: ["Sit with us a while, love. There's no hurry. There's never going to be a hurry again.", "I held on so tight I nearly lost everything. Don't you ever hold on like that. Not to anyone.", "Your aunt says the world goes on a long way past the fog. Go and see it. Then come and tell me. If you like."],
+    linnet: ["Twenty-five years. The garden's exactly where I left it. Well. Mum would see to that.", "I used to cut the strays loose at the edge and scratch an L on them, so somebody would know. You knew.", "There's a road through the fog now. I'll show you my garden on the other side, one day."],
+    ives: ["The Tidyhouse is open, love, any time you fancy a puzzle. For fun, now.", "Do you know, I put a box in the wrong place yesterday. On purpose. It was thrilling."],
+    bram: ["Fresh clay! From past the ridge! It's terrible clay. I love it.", "Bring me a pot from somewhere else, Wanderer. Anywhere else."],
+    ambrose: ["Your mum and I are taking the boat out past the falls tomorrow. Just to see.", "I'll keep the Millrace running for the next Wanderer. The river can do as it likes the rest of the time."],
+    tess: ["I rang the big bell this morning for nothing at all. Half the town came out to see. I'll do it again tomorrow.", "Proud of you, Wren. Not for the Knots. For the other thing."],
+    mallow: ["I slept in my own bed last night and woke up somewhere completely different. Well, the same bed. But I felt different.", "Go anywhere you like. Come home when you like. Doctor's orders."],
+    jory: ["The touring show! I'm painting the wagon. What colour's a road?", "Every puppet in the Hall's on a string, and every one of them's glad of it. That's what strings are FOR."],
+    gundry: ["I went to look for the sea. I didn't find it. I'm going again Thursday.", "The Guild votes to keep the Spoolworks turning. For play. Motion carried. Then we all went for a walk."],
+    quill: ["We walked up the hill this morning, the whole school. Nobody wanted to come down.", "Lesson for today: anything at all. Isn't it marvellous?"],
+    arlo: ["Down to the lake and back every morning now. My knees complain. I don't listen.", "Seventy years in this valley and I'm only just seeing it."],
+    hob: ["The pool past the bend. My dad's pool. Caught nothing all morning. Best morning of my life.", "Fish go where they like. Turns out so do I."],
+    burr: ["No post to stand at. I keep going back to it out of habit, and then I go somewhere else.", "Move along! Anywhere you like! Ha!"],
+    tuck: ["I drew a map of EVERYWHERE. It's mostly the bakery.", "I'm going to be a Maker AND a Wanderer. Both. At once."],
+    rosa: ["A cart came through from past the fog and bought every loaf I had. Every one!", "Bread for strangers. Who knew it'd taste better?"],
+    thimble: ["I'm off to a market two valleys over. I've packed forty buttons. In case.", "I lost a button yesterday and I didn't even mind."],
+    seam: ["Your travelling coat's nearly done. Room in the pockets for anything you find out there.", "Every seam in this town was straight. I'm trying a crooked one. For fun."],
+    mabel: ["I'm giving the strays away. To anyone who wants them. They can go where they like too.", "Every one with an L. She was trying to tell us, all those years."],
+    nell: ["I ran right past the posts and NOTHING HAPPENED!", "Race you to the fog! It's not even fog any more!"],
+    otto: ["That crate's still where I left it. I go and look at it sometimes. It's my favourite crate.", "I moved my house's chair to the window. It's stayed there two whole days."],
+    bea: ["Tag! You're it! You'll always be it!", "We played hide-and-seek and I hid past the river and nobody pulled me back!"],
+};
+{
+    const talk0 = Story.talk;
+    Story.talk = function (npc) {
+        if (Progress.flag('unwound') && npc.area && npc.area.id === 'hollow' && AFTER_LINES[npc.who]) {
+            const L = AFTER_LINES[npc.who];
+            return function* () { yield* say(npc.who, cycle('after_' + npc.who, L)); };
+        }
+        return talk0.call(this, npc);
+    };
+}
+
 // ---- 79_presets.js ----
 /* Presets: game states at the start of each stretch, for the debug panel and the tests. */
 function presetBase(name = 'Wren') {
@@ -17276,6 +18019,18 @@ PRESETS.afterD8 = () => {
     Inv.giveTool('shears'); Inv.addHeart(); Progress.setAreaFlag('loom', 'got:loomHeart');
     Progress.setGoal("The Shears can cut anyone free. The town, first? And then the fog at the Frayed Edge, and your own thread.");
     World.enter('hollow', LOOM_OUT.x, LOOM_OUT.y, { dir: DOWN });
+};
+PRESETS.afterDrift = () => {
+    PRESETS.afterD8();
+    for (const f of ['cut_first', 'cut_self', 'drift_first', 'met_linnet', 'great_pull']) Progress.set(f);
+    Progress.setGoal("Back to Hollowell, on foot. Gran is pulling the whole valley down the Well.");
+    World.enter('hollow', 95, 66, { dir: UP });
+};
+PRESETS.afterEnding = () => {
+    PRESETS.afterDrift();
+    for (const f of ['pull_seen', 'spool_met', 'spool_all', 'spool_cut', 'unwound', ...KNOT_HOUSES.map(h => 'untie:' + h), ...KNOT_HOUSES.map(h => 'great:' + h), ...Object.keys(PEOPLE_DEF).map(w => 'cut:' + w)]) Progress.set(f);
+    Progress.setGoal('The valley is yours. Carry on.');
+    World.enter('hollow', 95, 63, { dir: DOWN });
 };
 
 // ---- 80_story_core.js ----

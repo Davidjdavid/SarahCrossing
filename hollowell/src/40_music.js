@@ -228,3 +228,21 @@ SONGS.loom = {
         { drum: true, vol: 0.025, n: 'k . . . h . . . | . . h . . . h . ' },
     ],
 };
+/* the Drift: open air, nothing tied down (G major, wide, unhurried; the lullaby's tune, freed) */
+SONGS.drift = {
+    bpm: 88, div: 2,
+    ch: [
+        { wave: 'triangle', vol: 0.14, vib: true, n: 'D5 - - - B4 - D5 - | G5 - - - - - . . | E5 - - - C5 - E5 - | D5 - - - - - . . | B4 - - - G4 - B4 - | A4 - - - D5 - - - | G4 - - - - - - - | . . . . . . . . ' },
+        { wave: 'p12', vol: 0.035, n: 'G3 B3 D4 B3 G3 B3 D4 B3 | G3 B3 D4 B3 G3 B3 D4 B3 | C4 E4 G4 E4 C4 E4 G4 E4 | G3 B3 D4 B3 G3 B3 D4 B3 | E3 G3 B3 G3 E3 G3 B3 G3 | D3 F#3 A3 F#3 D3 F#3 A3 F#3 | G3 B3 D4 B3 G3 B3 D4 B3 | G3 . . . . . . . ' },
+        { wave: 'triangle', vol: 0.15, n: 'G2 - - - - - - - | G2 - - - - - - - | C3 - - - - - - - | G2 - - - - - - - | E2 - - - - - - - | D2 - - - - - - - | G2 - - - - - - - | G2 - - - - - - - ' },
+    ],
+};
+/* the Great Pull: everything wound in at once (C minor, relentless) */
+SONGS.pull = {
+    bpm: 132, div: 2,
+    ch: [
+        { wave: 'p25', vol: 0.07, n: 'C5 . Eb5 . G5 . C6 . | B5 . G5 . D5 . B4 . | C5 . Eb5 . Ab5 . C6 . | Bb5 . G5 . Eb5 . D5 . | C5 . Eb5 . G5 . C6 . | D6 . B5 . G5 . F5 . | Eb5 . D5 . C5 . B4 . | C5 - - - . . . . ' },
+        { wave: 'triangle', vol: 0.18, n: 'C2 C3 C2 C3 C2 C3 C2 C3 | G1 G2 G1 G2 G1 G2 G1 G2 | Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | C2 C3 C2 C3 C2 C3 C2 C3 | G1 G2 G1 G2 G1 G2 G1 G2 | Ab1 Ab2 Ab1 Ab2 G1 G2 G1 G2 | C2 C3 C2 C3 C2 . . . ' },
+        { drum: true, vol: 0.07, n: 'k . h k s . h . | k k h . s . h h ' },
+    ],
+};

@@ -77,3 +77,15 @@ PRESETS.afterD8 = () => {
     Progress.setGoal("The Shears can cut anyone free. The town, first? And then the fog at the Frayed Edge, and your own thread.");
     World.enter('hollow', LOOM_OUT.x, LOOM_OUT.y, { dir: DOWN });
 };
+PRESETS.afterDrift = () => {
+    PRESETS.afterD8();
+    for (const f of ['cut_first', 'cut_self', 'drift_first', 'met_linnet', 'great_pull']) Progress.set(f);
+    Progress.setGoal("Back to Hollowell, on foot. Gran is pulling the whole valley down the Well.");
+    World.enter('hollow', 95, 66, { dir: UP });
+};
+PRESETS.afterEnding = () => {
+    PRESETS.afterDrift();
+    for (const f of ['pull_seen', 'spool_met', 'spool_all', 'spool_cut', 'unwound', ...KNOT_HOUSES.map(h => 'untie:' + h), ...KNOT_HOUSES.map(h => 'great:' + h), ...Object.keys(PEOPLE_DEF).map(w => 'cut:' + w)]) Progress.set(f);
+    Progress.setGoal('The valley is yours. Carry on.');
+    World.enter('hollow', 95, 63, { dir: DOWN });
+};

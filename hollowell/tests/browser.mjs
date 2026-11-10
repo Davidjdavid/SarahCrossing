@@ -232,6 +232,32 @@ const SCENARIOS = {
             await shot('lm_' + n);
         }
     },
+    async ending() {
+        await open();
+        await page.evaluate(() => { HW.preset('afterDrift'); HW.step(5); HW.skipTalk(); HW.warp('drift', 56, 18); HW.step(60); HW.skipTalk(); });
+        await shot('en_drift');
+        await page.evaluate(() => { HW.warp('drift', 18, 24); HW.step(60); HW.skipTalk(); });
+        await shot('en_garden');
+        await page.evaluate(() => { HW.warp('hollow', 95, 66); HW.step(400); HW.skipTalk(); HW.step(200); HW.skipTalk(); });
+        await shot('en_pull');
+        const rooms = { foot: [29, 39], slumber: [9, 37], mario: [47, 36], hub: [29, 27], tidy: [10, 27], kiln: [49, 27], climb: [29, 16], mill: [16, 16], belfry: [49, 16] };
+        for (const [n, [x, y]] of Object.entries(rooms)) {
+            await page.evaluate(([x, y]) => { HW.warp('greatspool', x, y); HW.step(40); HW.skipTalk(); HW.step(5); }, [x, y]);
+            await shot('gs_' + n);
+        }
+        await page.evaluate(() => { for (const h of ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette']) HW.Progress.set('untie:' + h); HW.Progress.set('spool_all'); HW.warp('greatspool', 29, 8); HW.step(60); HW.skipTalk(); HW.step(200); });
+        await shot('gs_top');
+        await page.evaluate(() => { HW.G.credits = { pages: [['Wanderer:', '', 'Wren']], i: 0, t: 120 }; HW.step(1); });
+        await shot('en_credits');
+        await page.evaluate(() => { HW.G.credits = null; HW.preset('afterEnding'); HW.step(5); HW.skipTalk(); HW.step(300); });
+        await shot('en_after');
+        await page.evaluate(() => { HW.warp('hollow', 77, 53); HW.step(60); });
+        await shot('en_gran');
+        await page.evaluate(() => { localStorage.setItem('hollowell-ended', '1'); Title.open(); });
+        await page.waitForTimeout(300);
+        await shot('en_title');
+        await page.evaluate(() => localStorage.removeItem('hollowell-ended'));
+    },
     async larkspur() {
         await open();
         await page.evaluate(() => { HW.preset('afterD5'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 12, 84); HW.step(40); HW.skipTalk(); });
