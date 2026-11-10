@@ -196,6 +196,29 @@ const SCENARIOS = {
             await shot('sw_' + n);
         }
     },
+    async makings() {
+        await open();
+        await page.evaluate(() => { HW.preset('afterD7'); HW.step(5); HW.skipTalk(); HW.warp('underside', 49, 5); HW.step(40); HW.skipTalk(); });
+        await shot('mk_floor');
+        await page.evaluate(() => { HW.warp('making1', 3, 16); HW.step(10); HW.skipTalk(); HW.step(250); HW.walkTo(10, 18); HW.walkTo(11, 17); HW.walkTo(10, 17); HW.walkTo(8, 18); });
+        await shot('mk_1a_sit');
+        await page.evaluate(() => { HW.walkTo(10, 17); HW.face('up'); });
+        await page.evaluate(() => { HW.press('act', 1); HW.step(40); });
+        await shot('mk_1a_push');
+        await page.evaluate(() => { HW.Progress.set('making1'); HW.warp('making2', 3, 16); HW.step(10); HW.skipTalk(); HW.step(120); HW.walkTo(9, 14); HW.face('up'); });
+        await shot('mk_2a_nib');
+        await page.evaluate(() => { HW.Progress.set('making2'); HW.warp('making3', 3, 16); HW.step(10); HW.skipTalk(); HW.step(300); HW.walkTo(24, 15); });
+        await shot('mk_3b');
+    },
+    async reveal2() {
+        await open();
+        await page.evaluate(() => { HW.preset('afterMakings'); HW.step(5); HW.skipTalk(); HW.warp('deep', 9, 7); HW.step(40); HW.skipTalk(); });
+        await shot('r2_store');
+        await page.evaluate(() => { HW.warp('deep', 30, 5); HW.step(40); HW.skipTalk(); });
+        await shot('r2_hall');
+        await page.evaluate(() => { HW.preset('afterReveal2'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 96, 58); HW.step(60); HW.skipTalk(); });
+        await shot('r2_town');
+    },
     async larkspur() {
         await open();
         await page.evaluate(() => { HW.preset('afterD5'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 12, 84); HW.step(40); HW.skipTalk(); });

@@ -165,6 +165,11 @@ const Spool = {
         g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.35; g.fillStyle = '#cfe0ff'; g.fillRect(0, 0, W, H);
         g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
         Gfx.alpha(0.55); ctx0.drawImage(c, 0, 0); Gfx.alpha(1);
+        /* who matters up there (somebody you're looking after, things that bite) shows clearly through the boards */
+        try {
+            const inR = e => { const tx = e.tx !== undefined ? e.tx : tileOf(e.x), ty = e.ty !== undefined ? e.ty : tileOf(e.y); return tx >= ar.x && ty >= ar.y && tx < ar.x + ar.w && ty < ar.y + ar.h; };
+            for (const e of a.ents) if (e.showThrough && !e.removed && inR(e)) e.draw(ux, uy);
+        } catch (e) { reportError(e); }
     },
     /* up above: a thing tied off from below shows its cord going down through the floor */
     draw(cx, cy) {

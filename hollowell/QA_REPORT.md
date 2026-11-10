@@ -69,6 +69,12 @@
   blocked by a fence that never opened (fixed: drawing the bolt opens the town's side too). Browser shots of every new
   room checked (two layers read clearly: the room above faint over the boards, cords under every mark).
 
+- 2026-11-10: the Makings (6 tests: each Little House solved for all three Ahas, a bump, S30) and Reveal 2 (4 tests:
+  the Way Down to the Hall of Names and home, the north gate's counterweight, S32, S33); `npm test` 238/238. Found while
+  building: a straight one-tile doorway can't be cleared by a push along it (the doorways became corners); a lure too
+  short for a fair window (Tuck now admires what he pushed for a second); a Making with no way to earn one of its
+  Ahas (a corner block added). Screenshots checked: Tuck and the nibblers show clearly through the boards.
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
@@ -86,3 +92,4 @@
 | 2026-11-09 | D5 review fixes (17 issues, 5 softlocks; +11 regression tests, 199 in all) | pass |
 | 2026-11-09 | D6 review fixes (9 problems; +9 regression tests); the seventh tool's kit (+7); 215 in all; D6 browser shots | pass |
 | 2026-11-09 | Underside, Spoolworks (D7), playthrough leg 7 (228 in all); browser shots of all 20 new rooms | pass |
+| 2026-11-10 | The Makings, Reveal 2 (238 in all); screenshots of the Making Floor, the Little Houses, the Hall of Names | pass |

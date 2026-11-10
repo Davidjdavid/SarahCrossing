@@ -16,7 +16,7 @@
 | F | Great Spool | under the Well | Six Knot-locks remixing every House | – | The Spool | planned |
 | O1 | Stray House | Frayed Edge | Nothing returns | Twin Bedroll | The Pile | planned |
 | O2 | Unfinished House | Hollowell hills | Finish chalk rooms with the Needle | Long Hook | – | planned |
-| M | The Makings (×3) | Underside | Indirect control: Tuck | – | – | planned |
+| M | The Makings (×3) | Underside | Indirect control: Tuck walks by four rules; you work from below | – | – | tested |
 
 ## Per-dungeon structure (every House)
 
@@ -125,6 +125,9 @@ Keys: 3 keys (Ferry Pool, Shard Race, Upstream), 3 locks (Carousel W and E, Upst
 | S22 The logbooks | the Underside's Workshops (0,0) | read all six: each Maker reports your real play in their House | built, tested |
 | S23 Peepholes | the Seams, under the town | eight peepholes, eight private moments; all eight: a Heart Patch | built, tested |
 | Gundry's Bench (Heart Patch) | the Spoolworks, 2,0 (above), up from 2,3 | the Needle through the cord of the crate on the trapdoor | built, tested |
+| S30 Tuck's Ahas | the Makings | all three Ahas in all three Makings: Tuck's drawing | built, tested |
+| S32 The gate counterweight | the Seams (east), 57,16 | the Needle on the north gate's counterweight before Reveal 2 (after it, it's the way on) | built, tested |
+| S33 Fainting, knowing | anywhere after Reveal 2 | faint: a different waking | built, tested |
 | S28 Tidiness Trials | the Inn's attic, after Knot 1 (`src/53_trials.js`) | 1: block into a pocket, second block on its mouth (20 s); 2: a pot with a 112-tile way home: smash it or carry it back over its own path (15 s); 3: ring the bell, fall into the pit, fly home onto the plate (4 s). 20 + 30 buttons, a Heart Patch; Ives then gives the teal scarf | built, tested |
 
 ## D4 Belfry (`src/56_belfry.js`, `src/56b_belfry_foes.js`, kit `src/54_belfry_kit.js`; tests `tests/belfry.test.mjs`, `tests/belfry_kit.test.mjs`, `tests/heights.test.mjs`) - tested
@@ -225,4 +228,23 @@ on a stitched thing offers to unpick it.
 | The Heart of the Works / Under | 1,0 / 1,3 | Boss: the Tangle | Four bobbins tie it together: all four off their first places at once (for a moment) and it comes apart round its core: three stitched away, the fourth pushed off and tied below; knock the core; it yanks every thread back (stitches undone, knots slipped); 3x. Yarn balls and lashes meanwhile | Heartstitch; apprenticeship (d7) |
 
 Keys: one key (Spool Store) for one lock (the Kennel). Pattern: the Heart's big door.
+
+## The Makings: Tuck's Little Wander (`src/68_makings.js`; tests `tests/makings.test.mjs`) - tested
+
+Wren works from underneath only (no hatches up: it's his Wander). Tuck's rules (on the wall below, in his spelling):
+1. he goes for the door (the little hoop); 2. anything that jumps (a tug on a home thing's cord), he goes and pushes;
+3. he won't go near anything that bites (a nibbler not tied up; tied up it's harmless); 4. stuck, he goes as near the
+door as he can and sits. He weighs on plates, pushes what a person can (not heavy), and a heavy thing going home bowls
+him over (a bump: back to his start). His own thread hangs under his start: a tug yanks him back ("Wheee!").
+Ahas (S30: all three in all three): cleared (his own push got him nearer the door), found (he had a go at the thing
+the button was under), unhurt (no bumps).
+
+| Making | Room | Idea | Solution |
+|---|---|---|---|
+| 1 The Little Tidyhouse | The Doorway | Jolt to steer | The block on the corner of the L doorway: tug it; he pushes it up into the alcove (Aha). The pot in the corner: tug it, he finds the button |
+| | The Plate | Jolt, then tie off | Tug the block in its slot; he pushes it down onto the plate; tie it off there before it goes home (60) |
+| 2 Mind the Nibbler | The Nest | Creatures have cords | The nibbler chases him near its nest: tug it home and tie it up; the pot in the nook (button); the corner block as before (Aha) |
+| | The Crossing | Lure, then let go | He sits in the heavy block's lane at the gate: tug the crate in the west nook (he goes to see, and admires it), then untie the heavy block: it crosses home onto the plate and the gate opens. Untie while he sits there and he's bowled over |
+| 3 The Little Wander | The Heavy Door | The Needle | The corner block is heavy: stitch it up into the alcove through its cord; the pot (button) |
+| | The Guarded Plate | Everything | Tie the nibbler up first, then tug the block in its slot onto the plate (he pushes) and tie it off |
 

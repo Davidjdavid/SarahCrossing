@@ -64,4 +64,6 @@
   tunnels with peepholes) and a two-layer dungeon (seven room pairs, a mid-boss, a boss) with the seventh tool; tests
   for every room and a playthrough leg; music for both.
 - Fixed: the road from the fair's gate into town was blocked by a fence that never opened.
+- The genre turn: three small houses run from underneath, for someone else (nine "Aha" moments to earn), with tests.
+- The third act's story turn, its new hall, and what changes after it; two more secrets; tests.
 

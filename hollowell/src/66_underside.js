@@ -130,7 +130,8 @@ defHouse({
             ],
             ents: [
                 { k: 'chest', x: 18, y: 1, item: 'heartpatch', id: 'seamsPatch', hidden: true, when: 'flag:s23' },
-                { k: 'deco', x: 17, y: 5, look: 'counterweight', ox: 0, solid: [[0, 0], [1, 0]], text: "A great iron counterweight hangs in a shaft, its rope running up and away north. A tag: NORTH GATE. DO NOT TOUCH. BY ORDER OF THE WARDEN." },
+                { k: 'gateweight', x: 17, y: 5 },
+                { k: 'sign', x: 17, y: 7, text: "A great iron counterweight, its rope running up and away north. A tag: NORTH GATE. DO NOT TOUCH. BY ORDER OF THE WARDEN." },
             ],
         },
         /* ---------------- the Making Floor (Tuck's Little Wander: src/68_makings.js) ---------------- */

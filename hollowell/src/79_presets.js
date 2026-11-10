@@ -56,3 +56,17 @@ PRESETS.afterD7 = () => {
     Progress.setGoal('Up to the Guild Hall, under the Inn: Gundry has a job for you.');
     World.enter('underside', 29, 4, { dir: DOWN });
 };
+PRESETS.afterMakings = () => {
+    PRESETS.afterD7();
+    for (const f of ['gundry_job', 'making1', 'making2', 'making3', 'makings_done']) Progress.set(f);
+    for (const n of [1, 2, 3]) Progress.set('making' + n + '_ahas', 3);
+    Progress.setGoal("The Way Down, off the Making Floor: fetch Tuck's fresh spool from the deep store.");
+    World.enter('underside', 49, 5, { dir: DOWN });
+};
+PRESETS.afterReveal2 = () => {
+    PRESETS.afterMakings();
+    for (const f of ['reveal2', 'well_locked']) Progress.set(f);
+    Inv.items.tuckspool = 1;
+    Progress.setGoal("Linnet cut herself loose with the First Spinner's Shears, from the old Loom. Gundry, under the Inn, may know where that is.");
+    World.enter('gran_room', 4, 3, { dir: DOWN });
+};

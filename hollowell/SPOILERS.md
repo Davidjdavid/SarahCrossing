@@ -239,4 +239,17 @@ tagged NORTH GATE. DO NOT TOUCH. BY ORDER OF THE WARDEN. The peepholes (S23): Ro
 pinning Tuck's drawing beside an old one of a girl in green ribbons; Arlo practising walking; Mabel shelving a
 stray with an L; Seam sewing Tuck's scarf (a list: 3. BRAVE); Burr saying "Go on, then" to nobody; Mallow asleep on
 his plans; Gran writing in a heavy book, looking at the turned portrait, not turning it round.
+## The Makings and Reveal 2 (`src/68_makings.js`, `src/69_reveal2.js`)
+Tuck's Little Wander: three Little Houses the Makers built for him, run by Wren from underneath (see DUNGEON_TRACKER).
+Tuck's own thread hangs under his start like anybody's (the first hint of Reveal 2); tugging it, Ives: "Not the boy's own
+thread, love!" The Makers grade in Ahas; all nine: Tuck's drawing of "a Maker, whoever helped" (S30).
+Then Gundry sends Wren for Tuck's fresh spool down the Way Down: the deep store, and past it the Hall of Names: a spool
+for everybody (Arlo's with "Walked to the lake again. Tightened."; Biscuit's peg empty, a snipped end; Hesper's empty,
+in her own hand; Linnet's cut clean; Wren's wound tightest and still turning). Gran's ledger (Layer 2): Linnet cut
+herself loose with the First Spinner's Shears from the old Loom; Gran pulled every spool tight; the Knots are turns of
+her winch; the seventh Knot, the Wanderer's own at the Well, would make Wren the next Spinner. Gran comes down. She
+doesn't argue; a choice of three words; she pulls Wren's thread and Wren wakes in bed. After: everyone's thread shows
+(a short line from each townsperson), the well cellar is locked, Gundry tells of the Shears in the Loom past the north
+gate and the gate's counterweight in the Seams (the Needle gives it a new place: S32 if before Reveal 2); a faint now
+wakes with Gran's hand felt on the thread (S33).
 
