@@ -61,8 +61,12 @@ As built (`src/74_drift.js`, `75_greatspool.js`, `76_ending.js`): the Shears at 
 (hearts come undone: nothing left to unravel; falls are climbed out of where they happen). Into the fog, out in the
 Drift (map blank until walked). Linnet in her garden tells her story; Hesper feels it and the Great Pull begins
 (townsfolk in town are dragged in an arc round the Well, threads streaming into it; the Well's cap is off). Down the
-Well: the Great Spool (DUNGEON_TRACKER.md: sixteen rooms, each Knot through an antechamber pairing its House with a
-later tool, and the Climb a gauntlet once the Knots are undone). At the top Hesper pulls everything else (junk flies at the Spool); the six great threads are
+Well: the Great Spool (DUNGEON_TRACKER.md: the Foot, six Knot rooms round the Winding Room, the Climb and the top; under
+the Pull, whatever is off its place is wound north into the turning drum, a tile at a time, and dropped back on its
+place once that's clear (the Return's other rules still hold on the way: held things wait, heavier shoves lighter,
+plates pressed in passing); the Shears and Needle are refused down there (too taut); the Bedroll is the one place
+that stays put; each Knot room is its House's grammar with another House's tool, several steps and an aha, a ratchet
+by its door to lay it back; the Climb sends a hit back to the start of its lane only). At the top Hesper pulls everything else (junk flies at the Spool); the six great threads are
 too taut to cut until something the Pull is dragging is dragged along one (Wren lays a crate under a thread near its post;
 the thread sags a moment); with Linnet's bracelet, shown to Hesper, she lets three go herself; six
 great threads cut; Linnet comes down ("Mum."); a choice of words (Let go / Come home), the same result; the Unwinding

@@ -148,4 +148,7 @@
   person by person (about half the boxes), the last moments and the epilogue as a sequence of shots.
 - Creatures show their threads home; a smashed thing's thread no longer runs off sideways; a carried thing is no
   longer drawn twice; the camera eases all the way to what a scene shows.
+- House 8 reworked like the others; the act after the first big moment is twice as long, with new kinds of rooms.
+- The last dungeon rebuilt: a rule of its own, shown before it's needed; rooms that each want several steps and an
+  idea, in any order; a look and a tune of its own; a long climb that no longer sends you all the way back down.
 

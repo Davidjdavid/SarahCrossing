@@ -247,7 +247,7 @@ Unwinding festival and the open road (epilogue).
 | D6 | Marionette Hall | Jory (crimson) | Remote bodies: puppets, synchronised puppets, painted flats that are cardboard | Crossbar | The Great Marionette → Reveal 1 |
 | D7 | Spoolworks | The Guild / Gundry (umber) | Two layers: cords from above, tug, tie-off, counterweights, linked cords, hatches | Needle | The Tangle |
 | D8 | Loom | the First Spinner (silver) | Permanence: strays, warp threads as bridges and walls, cutting | Shears | The Weaver (binds you to its web) |
-| F | Great Spool | Gran Hesper (all colours) | Six Knot-locks, each a remix of a House with everything since; the Great Pull | – | The Spool |
+| F | Great Spool | Gran Hesper (all colours) | One new rule, the Pull (whatever is off its place is wound in toward the drum, not home; the Bedroll the one place that stays); six Knot rooms, each its House's grammar with another House's tool, several steps and an aha, any order; a ratchet by each door lays a room back; the Climb with a checkpoint per lane; the Great Pull at the top | – | The Spool |
 | O1 | Stray House | Linnet (no thread) | Nothing returns: real Sokoban with strays; build your own bridges | Linnet's bracelet, Heartstitch | The Pile |
 | O2 | Unfinished House | Mr Ives (chalk) | Finish chalk-outlined rooms with the Needle; design a room for its Maker | Long Hook | – (Mr Ives walks it) |
 

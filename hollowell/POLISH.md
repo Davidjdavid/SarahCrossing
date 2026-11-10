@@ -150,8 +150,14 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   Larder and the Warp Walk; the First Spinner's loom drawn, the Weaver's defeat shown). All eight Houses reworked.
 - Done too: the Makings as an act (eight Little Houses instead of four, two of them the first House from underneath;
   a second child, Otto; 6 bot-minutes instead of 2.5).
-- Running: the Great Spool rebuild, the overworld group A (Meadowfold, Kilnridge, Millwater, the Heights), the
-  overworld group B (Hushwood, Larkspur Fair, the Loomwood, the Drift).
+- Done too: the Great Spool rebuilt (a new rule under the Pull: off its place, a thing is wound north into the drum and
+  dropped back on its place once clear; the Bedroll the one stable place; seven rooms besides the Foot, the Climb and
+  the top, each Knot room its House's grammar plus another House's tool, several steps; a ratchet by each door; the
+  Climb's hit sends you back to the lane's start; walls of wound thread, the drum turning, each Knot room in its
+  Maker's colours; its own tune). Tests 40/40 (greatspool, ending, review_end, review_opt); probe over LEG9 clean in
+  the Spool (two false alarms in the epilogue fixed in the probe: a seated person, an engraved motto).
+- Running: the overworld group A (Meadowfold, Kilnridge, Millwater, the Heights), the overworld group B (Hushwood,
+  Larkspur Fair, the Loomwood, the Drift), the difficulty curve (Houses 1-8), the town between Houses.
 - David's direction of 10 November (vibes, not a list; the game stays its own thing, not a copy): puzzles simple in
   the first House and the land open then, harder House by House up to real ahas that combine tools; no hints unless
   asked (the opt-in nudges stay as they are; no new hint character), no answer signs; the road to later Houses takes
