@@ -21,19 +21,30 @@ function strings(HW, moves) {
     }
 }
 const take = (HW, dir) => { HW.Inv.equipped = 'crossbar'; HW.face(dir); HW.press('tool', 1); HW.step(2); return HW.global('Crossbar').ctl; };
+/* the Great Marionette's three acts: its feet tangled; turned onto the stage trap by a little Wren in its march; its bar
+   hooked down, its strings taken up, walked onto the trap */
 function beatBoss(HW) {
     HW.Inv.giveTool('crossbar'); HW.G.cheats.god = true;
     inHall(HW, 'stage', 9, 9); HW.skipTalk();
     const g = HW.G.map.ents.find(e => e.type === 'greatmarionette');
-    for (let round = 0; round < 3 && g.alive; round++) {
-        HW.walkTo(...at('stage', 9, 9)); HW.face('up'); HW.Inv.equipped = 'crossbar'; HW.press('tool', 1); HW.step(2);
-        strings(HW, 'URRR' + 'URRDDLLU');
-        until(HW, () => g.state === 'down', 60);
-        HW.press('tool', 1); HW.step(3);
-        HW.walkTo(...at('stage', 8, 8)); strike(HW, 'up');
-        HW.step(10);
-        if (g.alive) until(HW, () => HW.G.map.find('gsWrenA').ret.state === 'home' && HW.G.map.find('gsWrenB').ret.state === 'home', 600);
-    }
+    const talk = () => until(HW, () => { if (HW.global('Dialog').active) HW.skipTalk(); return !HW.global('Dialog').active && !HW.global('Script').blocking(); }, 900);
+    HW.walkTo(...at('stage', 9, 9)); HW.face('up'); HW.Inv.equipped = 'crossbar'; HW.press('tool', 1); HW.step(2);
+    strings(HW, 'URRR' + 'URRDDLLU');
+    until(HW, () => g.state === 'down', 60);
+    HW.press('tool', 1); HW.step(3);
+    HW.walkTo(...at('stage', 8, 8)); strike(HW, 'up');
+    talk();
+    HW.walkTo(...at('stage', 16, 9)); HW.face('up'); HW.Inv.equipped = 'crossbar'; HW.press('tool', 1); HW.step(2);
+    strings(HW, 'RUUU');
+    until(HW, () => g.state === 'trapped', 2400);
+    HW.press('tool', 1); HW.step(3);
+    HW.walkTo(...at('stage', 11, 7)); strike(HW, 'up');
+    talk(); HW.step(60);
+    HW.walkTo(...at('stage', 11, 7)); HW.face('up'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); until(HW, () => !!g.bar, 60); HW.step(20);
+    HW.Inv.equipped = 'crossbar'; HW.step(2); HW.face('up'); HW.press('tool', 1); HW.step(2);
+    strings(HW, 'LD');
+    until(HW, () => g.state === 'trapped', 60);
+    HW.walkTo(...at('stage', 11, 7)); strike(HW, 'up');
     return g;
 }
 

@@ -570,7 +570,7 @@ export const LEG5 = (HW, chain) => {
     const landed = () => until(() => p().state === 'normal', 600);
     const lay = () => { HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(2); };
     const homeward = () => { HW.Inv.equipped = 'bedroll'; HW.hold('tool'); HW.step(24); HW.release(); HW.step(1); landed(); };
-    const S = { porch: [20, 33], ward: [20, 22], linen: [0, 22], laundry: [40, 22], loft: [40, 33], landing: [20, 11], nursery: [0, 11], moonwalk: [40, 11], fort: [0, 0], boss: [20, 0] };
+    const S = { porch: [20, 33], ward: [20, 22], linen: [0, 22], laundry: [40, 22], loft: [40, 33], landing: [20, 11], nursery: [0, 11], moonwalk: [40, 11], fort: [0, 0], boss: [20, 0], kitchen: [40, 0], dream: [60, 0] };
     const s = (r, x, y) => [S[r][0] + x, S[r][1] + y];
     const steps = (r, path) => { for (const [x, y] of path) { const [tx, ty] = s(r, x, y), d = tx > p().tx ? 'right' : tx < p().tx ? 'left' : ty > p().ty ? 'down' : 'up'; for (let i = 0; i < 60 && (p().tx !== tx || p().ty !== ty); i++) { HW.hold(d); HW.step(1); } const along = d === 'left' || d === 'right' ? () => Math.abs(p().x - (tx * 16 + 8)) : () => Math.abs(p().y - (ty * 16 + 10)); for (let i = 0; i < 12 && along() > 2; i++) { HW.hold(d); HW.step(1); } HW.release(); ok(p().state === 'normal' && p().tx === tx && p().ty === ty, `stepped to ${r} ${x},${y}`); } };
     const fallHome = dir => { HW.hold(dir); until(() => p().state === 'fall', 200); HW.release(); landed(); };
@@ -621,7 +621,7 @@ export const LEG5 = (HW, chain) => {
     const m = thing('matron');
     walk(...s('landing', 9, 8)); HW.step(10); HW.skipTalk(); HW.step(20);
     ok(m.state !== 'sleep', 'Matron awake');
-    for (let round = 0; round < 3 && m.alive; round++) {
+    for (let round = 0; round < 2 && m.alive; round++) {
         walk(...s('landing', 9, 8));
         steps('landing', [[9, 7], [9, 6], [9, 5], [9, 4], [9, 3], [9, 2], [9, 1]]);
         ok(until(() => m.state === 'dazed', 900), 'Matron fell through');
@@ -633,7 +633,7 @@ export const LEG5 = (HW, chain) => {
     walk(...s('landing', 18, 5)); walk(...s('moonwalk', 2, 4)); lay();
     walk(...s('moonwalk', 15, 9)); HW.push('right', 1); homeward();
     walk(...s('moonwalk', 2, 2)); HW.face('up'); talk(); ok(HW.Inv.keys('slumber') === 1, 'key C');
-    /* the nursery: the toy home over the drop; the fort: the Pattern */
+    /* the nursery: the toy home over the drop; the fort: key D */
     walk(...s('moonwalk', 1, 5)); walk(...s('landing', 1, 5)); walk(...s('nursery', 8, 3)); lay();
     walk(...s('nursery', 4, 5)); HW.hold('down'); until(() => p().ty === s('nursery', 0, 7)[1] && p().state === 'normal', 120); HW.release();
     HW.face('down'); HW.press('act', 1); HW.step(10); ok(p().carry, 'the toy');
@@ -645,22 +645,57 @@ export const LEG5 = (HW, chain) => {
     for (let i = 0; i < 6 && sn.mode !== 'chase'; i++) { walk(...s('fort', 15, 3)); walk(...s('fort', 18, 3)); }
     walk(...s('fort', 14, 9));
     ok(until(() => sn.mode === 'sleep' && thing('pfGate').open, 1500), 'a Snoreling asleep on the Bedroll, on the plate');
-    walk(...s('fort', 9, 3)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('slumber'), 'the Pattern');
-    /* Mother Sloth */
-    walk(...s('fort', 9, 9)); walk(...s('nursery', 9, 1)); walk(...s('nursery', 18, 5)); walk(...s('landing', 9, 1));
+    walk(...s('fort', 9, 3)); HW.face('up'); talk(); ok(HW.Inv.keys('slumber') === 1, 'key D');
+    /* the moonwalk's north lock; the milk kitchen: across on the springs, the jug home by air, smashed: the bell, the gate */
+    walk(...s('fort', 9, 9)); walk(...s('nursery', 9, 1)); walk(...s('nursery', 18, 5)); walk(...s('landing', 18, 5)); walk(...s('moonwalk', 15, 1));
+    HW.hold('up'); HW.step(50); HW.release(); HW.step(30);
+    ok(HW.G.map.roomAt(p().tx, p().ty).name === 'The Milk Kitchen', 'into the milk kitchen');
+    walk(...s('kitchen', 15, 6)); lay();
+    walk(...s('kitchen', 15, 4)); HW.hold('left'); until(() => p().state === 'normal' && p().tx <= s('kitchen', 4, 0)[0], 400); HW.release(); HW.step(5);
+    walk(...s('kitchen', 2, 3)); HW.face('up'); HW.press('act', 1); HW.step(10); ok(p().carry, 'the jug');
+    homeward(); HW.face('down'); HW.press('act', 1);
+    ok(until(() => thing('mkGate').open, 400), 'its pieces rang the milk bell: the gate');
+    /* the dreaming door: out along the old boards, home with the Bell rung between the good dream and the bad: the Pattern */
+    walk(...s('kitchen', 18, 5)); HW.hold('right'); HW.step(40); HW.release(); HW.step(30);
+    walk(...s('dream', 2, 4)); lay();
+    const dpath = [[5, 8]]; for (let x = 6; x <= 17; x++) dpath.push([x, 8]); for (let y = 7; y >= 2; y--) dpath.push([17, y]); for (let x = 16; x >= 6; x--) dpath.push([x, 2]);
+    walk(...s('dream', 4, 8)); steps('dream', dpath);
+    HW.Inv.equipped = 'bedroll'; HW.hold('tool'); until(() => p().state === 'flight', 60); HW.release();
+    ok(until(() => thing('dgGood').lit > 0, 200), 'the good dream lit');
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1); landed();
+    ok(thing('dgDoor').open && !thing('dgBad').lit, 'snapped home before the bad dream: the door');
+    walk(...s('dream', 2, 2)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('slumber'), 'the Pattern');
+    /* back round to the landing's big door */
+    walk(...s('dream', 1, 5)); HW.hold('left'); HW.step(30); HW.release(); HW.step(30);
+    walk(...s('kitchen', 15, 9)); HW.hold('down'); HW.step(40); HW.release(); HW.step(30);
+    walk(...s('moonwalk', 1, 5)); walk(...s('landing', 9, 1));
     HW.hold('up'); HW.step(60); HW.release(); HW.step(30);
+    /* Mother Sloth: three rounds */
+    const sl = HW.G.map.ents.find(e => e.type === 'mothersloth');
+    const free = (x, y) => { for (let i = 0; i < 8; i++) { if (HW.walkTo(x, y)) return; if (p().pinned) until(() => !p().pinned, 600); HW.skipTalk(); HW.step(2); } ok(false, `walk ${x},${y}`); };
+    const caught = () => ok(until(() => !!p().pinned, 600), 'caught');
+    const knock = n => { ok(sl.state === 'slump', `round ${n}: she slumps`); free(...s('boss', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(20); HW.skipTalk(); HW.step(10); };
+    /* 1: the Bedroll out past the stars; caught, Homeward: snap */
     walk(...s('boss', 2, 9)); lay();
     HW.step(1); walk(...s('boss', 9, 6)); HW.skipTalk(); HW.step(10); HW.skipTalk();
-    const sl = HW.G.map.ents.find(e => e.type === 'mothersloth');
-    for (let round = 0; round < 3 && sl.alive; round++) {
-        for (let k = 0; k < 4 && sl.state !== 'slump'; k++) {
-            HW.walkTo(...s('boss', 9, 6));
-            ok(until(() => !!p().pinned, 900), 'caught');
-            homeward();
-        }
-        ok(sl.state === 'slump', 'she slumps');
-        walk(...s('boss', 9, 6)); HW.face('up'); HW.press('atk', 1); HW.step(20);
+    for (let k = 0; k < 4 && sl.state !== 'slump'; k++) { HW.walkTo(...s('boss', 9, 6)); caught(); homeward(); }
+    knock(1);
+    /* 2: the floor past the stars gone; out over the old boards and back in, then caught: the flight goes back over them */
+    ok(sl.phase === 2, 'round 2');
+    free(...s('boss', 5, 8)); lay();
+    steps('boss', [[5, 9], [6, 9], [7, 9], [8, 9], [8, 8], [8, 7]]); caught(); homeward();
+    HW.step(45);
+    steps('boss', [[5, 9], [6, 9], [7, 9], [8, 9], [9, 9], [10, 9], [11, 9], [12, 9], [13, 9], [13, 8], [12, 8], [12, 7]]); caught(); homeward();
+    knock(2);
+    /* 3: the boards gone, the bedposts left: caught in line with one, turn and hook it, and drop home */
+    ok(sl.phase === 3, 'round 3');
+    for (const x of [3, 15]) {
+        free(...s('boss', x, 5)); lay(); caught();
+        HW.hold('down'); HW.step(2); HW.release(); HW.Inv.equipped = 'hook'; HW.press('tool', 1);
+        ok(until(() => sl.arms.some(a => a.state === 'snapped' && a.side === (x < 9 ? -1 : 1)), 120), 'hooked out of her grip: snap');
+        landed();
     }
+    knock(3);
     ok(!sl.alive, 'Mother Sloth down'); HW.step(100); HW.skipTalk(); HW.step(10);
     HW.G.cheats.god = false;
     const hoop = HW.ents('hoop')[0]; ok(hoop, 'the hoop');
@@ -682,7 +717,7 @@ export const LEG6 = (HW, chain) => {
     const talk = () => { HW.press('act', 1); HW.skipTalk(); };
     const p = () => HW.player();
     const strings = moves => { const names = { U: 'up', D: 'down', L: 'left', R: 'right' }; for (const m of moves) { const ps = HW.global('Crossbar').ctl.puppets; HW.hold(names[m]); until(() => ps.some(e => e.mv), 12); until(() => !ps.some(e => e.mv), 30); HW.release(); HW.step(3); } };
-    const M = { foyer: [20, 33], box: [40, 33], aud: [20, 22], pit: [0, 22], reh: [40, 22], wings: [20, 11], dress: [0, 11], props: [40, 11], stage: [20, 0] };
+    const M = { foyer: [20, 33], box: [40, 33], aud: [20, 22], pit: [0, 22], reh: [40, 22], wings: [20, 11], dress: [0, 11], props: [40, 11], stage: [20, 0], fly: [60, 11], traps: [60, 22] };
     const m = (r, x, y) => [M[r][0] + x, M[r][1] + y];
     if (chain) chain('afterD5'); else HW.preset('afterD5'); HW.step(10); HW.skipTalk();
     HW.Inv.maxHp = HW.Inv.hp = 32;
@@ -727,23 +762,46 @@ export const LEG6 = (HW, chain) => {
     walk(...m('wings', 1, 5)); walk(...m('dress', 2, 9)); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(2);
     strings('UUUUURR' + 'RRRRRRRRRRRRR'); HW.step(5); HW.press('tool', 1); HW.step(5);
     walk(...m('dress', 9, 7)); HW.face('right'); talk(); ok(HW.Inv.keys('marionette') === 1, 'key C');
-    /* the prop store (lock C): the Pattern */
+    /* the prop store: the shelves stop the ones in front; the way east */
     walk(...m('dress', 18, 5)); walk(...m('wings', 18, 5)); HW.hold('right'); HW.step(40); HW.release(); HW.step(30);
     walk(...m('props', 9, 9)); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(2);
-    strings('DRDRDRRDRURUR'); HW.step(5); HW.press('tool', 1); HW.step(5);
-    walk(...m('props', 16, 9)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('marionette'), 'the Pattern');
-    /* the great stage */
-    walk(...m('props', 1, 5)); walk(...m('wings', 9, 1)); HW.hold('up'); HW.step(60); HW.release(); HW.step(30); HW.skipTalk(); HW.step(20); HW.skipTalk();
+    strings('RRRRRRRRDDDD'); HW.step(5); HW.press('tool', 1); HW.step(5);
+    ok(thing('psGateE').open, 'the prop store: the way east');
+    /* the fly tower: round the catwalk, then rung home with the Bell over all three plates at once */
+    walk(...m('fly', 2, 5)); HW.Inv.equipped = 'crossbar'; HW.face('right'); HW.press('tool', 1); HW.step(2);
+    strings('UURRRRDDDDLLLLU');
+    HW.Inv.equipped = 'bell'; HW.step(2); HW.press('tool', 1);
+    ok(until(() => thing('faGate').open, 120), 'the fly tower: the fly door');
+    /* the trap room: the understudies stepped off their stands; hooked across from stand to stand; the Pattern */
+    const hooked = () => p().state === 'normal' && !HW.global('TOOLS').hook.h;
+    walk(...m('traps', 9, 2)); HW.Inv.equipped = 'crossbar'; HW.face('right'); HW.press('tool', 1); HW.step(2);
+    strings('LLL');
+    HW.Inv.equipped = 'hook'; HW.step(2); HW.face('down'); HW.press('tool', 1); until(hooked, 120);
+    walk(...m('traps', 10, 5)); HW.face('down'); HW.press('tool', 1); until(hooked, 120);
+    ok(p().ty === m('traps', 0, 8)[1], 'across the traps');
+    walk(...m('traps', 14, 8)); HW.face('down'); talk(); ok(HW.Inv.hasPattern('marionette'), 'the Pattern');
+    /* out through the rehearsal room (unbolted now), the auditorium, the wings: the great stage */
+    walk(...m('reh', 1, 5)); walk(...m('aud', 9, 1)); walk(...m('wings', 9, 1)); HW.hold('up'); HW.step(60); HW.release(); HW.step(30); HW.skipTalk(); HW.step(20); HW.skipTalk();
     const g = HW.G.map.ents.find(e => e.type === 'greatmarionette');
-    HW.Inv.equipped = 'crossbar';
-    for (let round = 0; round < 3 && g.alive; round++) {
-        walk(...m('stage', 9, 9)); HW.face('up'); HW.press('tool', 1); HW.step(2);
-        strings('URRR' + 'URRDDLLU');
-        ok(until(() => g.state === 'down', 60), 'it falls');
-        HW.press('tool', 1); HW.step(3);
-        walk(...m('stage', 8, 8)); HW.face('up'); HW.press('atk', 1); HW.step(24);
-        if (g.alive) until(() => thing('gsWrenA').ret.state === 'home' && thing('gsWrenB').ret.state === 'home', 600);
-    }
+    const scene = () => until(() => { if (HW.global('Dialog').active) HW.skipTalk(); return !HW.global('Dialog').active && !HW.global('Script').blocking(); }, 900);
+    /* act I: the two little Wrens round its feet */
+    walk(...m('stage', 9, 9)); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(2);
+    strings('URRR' + 'URRDDLLU');
+    ok(until(() => g.state === 'down', 60), 'act I: it falls');
+    HW.press('tool', 1); HW.step(3);
+    walk(...m('stage', 8, 8)); HW.face('up'); HW.press('atk', 1); HW.step(14); scene();
+    /* act II: the third little Wren in its march, so it turns onto the trap */
+    walk(...m('stage', 16, 9)); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(2);
+    strings('RUUU');
+    ok(until(() => g.state === 'trapped', 2400), 'act II: down the trap');
+    HW.press('tool', 1); HW.step(3);
+    walk(...m('stage', 11, 7)); HW.face('up'); HW.press('atk', 1); HW.step(14); scene(); HW.step(60);
+    /* act III: its bar hooked down, its strings taken up, walked onto the trap */
+    walk(...m('stage', 11, 7)); HW.face('up'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); until(() => !!g.bar, 60); HW.step(20);
+    HW.Inv.equipped = 'crossbar'; HW.step(2); HW.face('up'); HW.press('tool', 1); HW.step(2);
+    strings('LD');
+    ok(until(() => g.state === 'trapped', 60), 'act III: walked into the trap');
+    walk(...m('stage', 11, 7)); HW.face('up'); HW.press('atk', 1); HW.step(24);
     ok(!g.alive, 'the Great Marionette down');
     /* the curtain, Jory, the Makers in a line; then each of them heard out */
     HW.skipTalk(); HW.step(20);

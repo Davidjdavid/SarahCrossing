@@ -13,19 +13,18 @@ FLOORS.marionette = {
     /* stage boards: laid up and down the stage the way a real stage's are, each lit down one edge, a butt joint here and
        there with a nail head either side of it (not the plain planks of the mills and works) */
     floor: (x, th, v) => {
-        const B = ['#c8a070', '#a87e4c', '#e0bc88', '#6e4e2e'];
-        fill(x, B[0]);
-        for (let i = 0; i < 4; i++) {
-            const o = i * 4;
-            fill(x, B[2], o, 0, 1, 16); fill(x, B[3], o + 3, 0, 1, 16);
-            const g = Math.floor(hash2(i, v, 59) * 12) + 2; px(x, o + 1, g, B[1]); px(x, o + 2, g + 1, B[1]); px(x, o + 1, (g + 5) % 16, B[1]);
-            if (hash2(v, i, 58) < 0.6) {
+        const B = ['#c8a070', '#a87e4c', '#dcb886', '#6e4e2e'], D = '#bc9464';
+        for (let i = 0; i < 2; i++) {
+            const o = i * 8;
+            fill(x, (i + v) % 2 ? D : B[0], o, 0, 8, 16); fill(x, B[2], o, 0, 1, 16); fill(x, B[3], o + 7, 0, 1, 16);
+            for (let n = 0; n < 2; n++) { const g = Math.floor(hash2(i * 3 + n, v, 59) * 14) + 1, gx = o + 2 + Math.floor(hash2(n, i + v, 60) * 4); fill(x, B[1], gx, g, 1, 2); }
+            if (hash2(v, i, 58) < 0.5) {
                 const j = Math.floor(hash2(i, v, 57) * 11) + 3;
-                fill(x, B[3], o, j, 3, 1); fill(x, B[2], o, j + 1, 3, 1);
-                px(x, o + 1, j - 2, '#4a3424'); px(x, o + 1, j + 3, '#4a3424');
+                fill(x, B[3], o + 1, j, 6, 1); fill(x, B[2], o + 1, j + 1, 6, 1);
+                px(x, o + 2, j - 2, '#4a3424'); px(x, o + 5, j + 3, '#4a3424');
             }
         }
-        speckle(x, [B[1]], 92 + v, 0.03);
+        speckle(x, [B[1]], 92 + v, 0.02);
     },
     /* red carpet with a gold edge, the dark of the wings */
     floor2: (x, th, v) => { fill(x, '#a8203a'); speckle(x, ['#b8304a', '#982038'], 50 + v, 0.3); fill(x, '#f7d64a', 0, 0, 16, 1); },
@@ -315,7 +314,7 @@ defHouse({
             ],
             ents: [
                 { k: 'marionette', x: 9, y: 3, id: 'greatMarionette' },
-                { k: 'stagetrap', x: 10, y: 6, id: 'gsTrap' },
+                { k: 'stagetrap', x: 11, y: 6, id: 'gsTrap' },
                 { k: 'rack', x: 9, y: 8, group: 'boss', id: 'gsRack', hookable: false },
                 { k: 'puppet', x: 3, y: 6, id: 'gsWrenA', look: 'puppet_wren', group: 'boss' }, { k: 'puppet', x: 9, y: 6, id: 'gsWrenB', look: 'puppet_wren', group: 'boss' },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'boss' },
@@ -356,7 +355,7 @@ defHouse({
                 { k: 'deco', x: 19, y: 1, look: 'pinrail', solid: [], ox: 2, oy: -6, baseY: 4, flip: true },
                 { k: 'deco', x: 17, y: 2, look: 'sandbags', solid: [[0, 0], [1, 0]] },
                 { k: 'deco', x: 12, y: 8, look: 'sandbags', solid: [[0, 0], [1, 0]] },
-                { k: 'sign', x: 16, y: 9, text: "THE FLY TOWER. The fly door opens while all three plates on the catwalk are down at once. They spring back up in a blink. Please don't lean on the rail. -J." },
+                { k: 'sign', x: 16, y: 9, text: "THE FLY TOWER. The fly door opens while all three plates on the catwalk are down at once. They spring back up in a blink. Please don't lean on the rail." },
             ],
             nudge: { solved: 'marionette_faGate', after: 60 * 60 * 3, thing: 'faPuppet', say: "Walked round, the puppet only ever has a foot on one plate. Its way home runs over all three. If only it came home a good deal quicker than it walks." },
         },

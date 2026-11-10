@@ -1,12 +1,15 @@
 /* The Marionette Hall's performers. Captain Tin, the drum major (mini-boss): marches back and forth between two
    painted flats, about-turning at each; knock one down as he comes and he marches on, into the trapdoor behind it;
-   dazed in the trap, his tin hat is off: hit him (3x). The Great Marionette (boss): dances on its strings over two
-   great feet; walk your two little wooden Wrens (one rack) all the way round its feet and the strings tangle; it
-   falls, and its head is there to knock (3x). Then the curtain. */
+   dazed in the trap, his tin hat is off: hit him (two knocks see him off). The Great Marionette (boss), in three acts:
+   it dances on its marks (walk your two little wooden Wrens, one rack, right round its feet and the strings tangle: it
+   falls, its head on the boards); it marches round the stage like a toy soldier, turning at whatever's in its way (put a
+   puppet in its way so it turns onto the stage trap, which gives under anything heavy); its strings let out slack, its
+   bar swinging low over the stage (hook the bar down, take up its strings like any rack's and walk it onto the trap
+   yourself). Then the curtain. */
 
 /* ---------------- Captain Tin ---------------- */
 class Captain extends Enemy {
-    constructor(tx, ty, p = {}) { super(tx, ty, Object.assign({ type: 'captain', hp: 3 }, p)); this.state = 'sleep'; this.st = 0; this.march = RIGHT; this.weightN = 3.5; }
+    constructor(tx, ty, p = {}) { super(tx, ty, Object.assign({ type: 'captain', hp: 2 }, p)); this.state = 'sleep'; this.st = 0; this.march = RIGHT; this.weightN = 3.5; }     /* (two knocks: a mini-boss shouldn't outstay its idea) */
     get arena() { return this.area.roomAt(this.hx, this.hy); }
     onTile() { return false; }
     feetOn(x, y) { return this.alive && this.state === 'march' && this.tx === x && this.ty === y; }
@@ -28,7 +31,7 @@ class Captain extends Enemy {
         this.st++;
         if (this.state === 'march') {
             /* tile by tile: on to the next tile's middle, or about turn at anything standing there */
-            const sp = 0.7 + (3 - this.hp) * 0.2;
+            const sp = 0.7 + (2 - this.hp) * 0.25;
             const gx = (this.tx + DX[this.march]) * T + 8, gy = this.ty * T + 10;
             const nx = this.tx + DX[this.march], k = a.kind(nx, this.ty);
             const blocked = k.solid || a.at(nx, this.ty) || a.blockers.some(b => b !== this && b.blocks(nx, this.ty, this));
@@ -82,48 +85,113 @@ class Captain extends Enemy {
 SPAWN.captain = (x, y, p) => Progress.flag('marionette_tin') ? new Ent('none') : new Captain(x, y, p);
 
 /* ---------------- The Great Marionette ---------------- */
+/* Three acts (its hp, 3 to 1):
+   I.   it dances on its marks: two little Wrens walked (one rack) right round its feet wind their strings round them;
+        both tangled, it falls in a heap, its head on the boards to knock.
+   II.  it climbs up its strings and marches round its stage like a toy soldier, a step a beat, turning right at anything in
+        its way (Wren it just stamps past; and it doesn't look down, so a trap is no obstacle). Its stage is the boards from
+        row STAGE[0] to STAGE[1]: the apron in front is past the end of its strings. The stage trap at centre stage gives
+        under anything heavy (a sandbag shows it as the act begins): turned onto it, it drops in to the chin.
+   III. back on its marks, its strings let out long and slack: it sags, a string wound round its feet slips straight off,
+        and its control bar swings low over the stage. The Hookline brings the bar down to Wren; a crossbar's a crossbar,
+        and its strings take up like any rack's: walked onto the trap (on its strings it won't step off an edge, but the
+        trap's shut till it's on it), down it goes. Let go, the bar's hauled back up and it walks home to its marks. */
+const GM = { STAGE: [5, 7], MARCH: 12, STEP: 12, BAR_HI: 0, BAR_LO: 25, BAR_WAIT: 240, DOWN: 420, TRAPPED: 360, SAG: 19, AWAY: 120 };
+const TURN_RIGHT = [LEFT, UP, DOWN, RIGHT];     /* (marching down its right is left; left, up; right, down; up, right) */
 class GreatMarionette extends Enemy {
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ type: 'greatmarionette', hp: 3 }, p));
-        this.state = 'sleep'; this.st = 0; this.weightN = 9;
-        /* its two great feet, on the stage below it */
-        this.feet = [[tx - 2, ty + 2], [tx + 3, ty + 2]];
+        this.state = 'sleep'; this.st = 0; this.weightN = 9; this.noThread = true;
+        /* its marks on the stage, where its two great feet stand */
+        this.home = [[tx - 2, ty + 2], [tx + 3, ty + 2]];
+        this.feet = this.home.map(f => f.slice());
         this.tangled = [false, false];
         this.wind = new Map();      /* puppet uid -> [winding round foot 0, foot 1] */
         this.bags = [];
+        this.march = RIGHT; this.mv = null; this.stepN = 0;
+        this.walk = [this.home[0].slice()];     /* act III: where it's been walked (its left foot), loops erased: its way home */
+        this.awayT = 0; this.strain = 0;
+        this.bar = null;            /* act III: { tx, ty, t, k } while the Hookline has its bar down by Wren */
+        this.sag = 0; this.lowT = 0; this.inTrap = null;
     }
+    onAdd(area) { area.add(new GMBar(this)); }
     get arena() { return this.area.roomAt(this.hx, this.hy); }
+    get act() { return 4 - Math.max(1, Math.min(3, this.hp)); }
+    /* (the Crossbar's string, held, runs to its head) */
+    get px() { return this.x - 8; }
+    get py() { return this.feet[0][1] * T - 46 + Math.round(this.sag); }
+    get standing() { return this.state === 'dance' || this.state === 'march' || this.state === 'interval' || this.state === 'sleep'; }
     onTile() { return false; }
     feetOn() { return false; }
-    blocks(x, y) { return this.alive && this.state !== 'down' && this.feet.some(([fx, fy]) => fx === x && fy === y); }
-    hurtBox() { if (!this.alive || this.state !== 'down') return null; const hx = (this.hx + 0.5) * T, hy = (this.hy + 4) * T; return { x0: hx - 14, x1: hx + 14, y0: hy - 12, y1: hy + 8 }; }
+    blocks(x, y) { return this.alive && this.standing && this.feet.some(([fx, fy]) => fx === x && fy === y); }
+    hurtBox() {
+        if (!this.alive) return null;
+        if (this.state === 'down') { const hx = (this.hx + 0.5) * T, hy = (this.hy + 4) * T; return { x0: hx - 14, x1: hx + 14, y0: hy - 12, y1: hy + 8 }; }
+        if (this.state === 'trapped' && this.inTrap) { const [x, y] = this.inTrap; return { x0: x * T - 6, x1: x * T + 22, y0: y * T - 20, y1: y * T + 10 }; }
+        return null;
+    }
+    hooked() { Sfx.play('hookhit'); }
     shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = shut; }
     puppets() { return this.area.ents.filter(e => e.kind === 'puppet' && e.group === 'boss' && !e.removed); }
+    trap() { return this.area.ents.find(e => e.kind === 'stagetrap' && !e.removed && this.area.roomAt(e.tx, e.ty) === this.arena); }
+    third() { return this.area.ents.find(e => e.id === 'gsWrenC' && !e.removed); }
+    syncXY() { const [[a, b], [c]] = this.feet; this.x = ((a + c) / 2 + 0.5) * T; this.y = (b - 2) * T + 10; }
+    /* is Wren facing it (reaching for its strings from the boards)? */
+    faces(p) { const dx = this.x - p.x, dy = this.y - 20 - p.y; return DX[p.dir] * dx + DY[p.dir] * dy > 8 && Math.hypot(dx, dy) < 9 * T; }
     update() {
         if (!this.alive) return this.updateYarn();
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area, r = this.arena;
+        this.animate();
+        this.updateBags(p);
         if (this.state === 'sleep') {
-            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 1) {
-                this.state = 'dance'; this.st = 0; this.shutters(true); Music.play(bossSong('marionette'));
-                if (!Progress.flag('marionette_gmAwake')) { Progress.set('marionette_gmAwake'); Script.run(MarionetteFoes.gmIntro(this)); }
-            }
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 1) this.begin();
             return;
         }
-        if (p.area !== a || (Cam.room !== r && !p.flying && !Cam.busy)) { this.state = 'sleep'; this.shutters(false); this.untangle(); Music.play('marionette'); return; }
+        if (p.area !== a || (Cam.room !== r && !p.flying && !Cam.busy)) { this.reset(); return; }
         if (Script.blocking()) return;
         this.st++;
-        this.updateBags(p);
-        if (this.state === 'dance') {
-            this.windUp();
-            /* sandbags drop where Wren stands, now and then (a shadow first) */
-            if (this.st > 360 && this.st % (this.hp === 1 ? 180 : this.hp === 2 ? 240 : 300) === 100 && p.state === 'normal') this.bags.push({ x: p.x, y: p.y, t: 0 });
-            if (this.tangled[0] && this.tangled[1]) { this.state = 'down'; this.st = 0; G.shake = 14; Sfx.play('rumble'); Sfx.play('hitthing'); Stats.count('boss:gm:fall'); }
-        } else if (this.state === 'down') {
-            if (this.st > 420) this.rise();
+        switch (this.state) {
+            case 'dance':
+                if (this.act === 1) {
+                    this.windUp();
+                    this.dropBags(p, 300);
+                    if (this.tangled[0] && this.tangled[1]) { this.state = 'down'; this.st = 0; G.shake = 14; Sfx.play('rumble'); Sfx.play('hitthing'); Stats.count('boss:gm:fall'); }
+                } else this.actThree();
+                break;
+            case 'down': if (this.st > GM.DOWN) this.rise(); break;
+            case 'march': this.marchOn(p); this.dropBags(p, 420); break;
+            case 'trapped': if (this.st > GM.TRAPPED) this.climbOut(); break;
         }
     }
-    /* how far each puppet has gone round each foot: a full lap ties that foot's string */
+    /* (things that move whatever's going on: its step, its sag, the third Wren coming down or going up) */
+    animate() {
+        const m = this.mv;
+        if (m && ++m.t >= m.dur) { this.mv = null; this.landed(); }
+        const act3 = this.act === 3 && this.standing && this.state !== 'sleep';
+        this.sag = approach(this.sag, act3 ? GM.SAG : 0, 0.5); this.lowT = approach(this.lowT, act3 ? 1 : 0, 0.02);
+        if (this.bar) this.bar.k = Math.min(1, this.bar.k + 0.08);
+        const c = this.third();
+        if (c && c.dropY > 0) c.dropY = Math.max(0, c.dropY - 3);
+        if (c && c.hauled) { c.hauled += 4; if (c.hauled > 110) { Fx.poof(c.px + 8, c.py - 60); this.area.remove(c); } }
+    }
+    /* the curtain goes up (or back up, on whichever act it had got to) */
+    begin() {
+        this.state = this.act === 2 ? 'march' : 'dance'; this.st = 0; this.march = LEFT;
+        this.shutters(true); Music.play(bossSong('marionette'));
+        if (!Progress.flag('marionette_gmAwake')) { Progress.set('marionette_gmAwake'); Script.run(MarionetteFoes.gmIntro(this)); }
+        else if (this.act === 2) this.lowerThird(true);
+    }
+    reset() {
+        this.state = 'sleep'; this.st = 0; this.shutters(false); this.untangle(); this.bags = [];
+        this.feet = this.home.map(f => f.slice()); this.mv = null; this.walk = [this.home[0].slice()]; this.awayT = 0;
+        this.bar = null; this.inTrap = null; this.heldBy = null; this.worked = false; this.sag = 0; this.lowT = 0;
+        const t = this.trap(); if (t) t.shut(true);
+        const c = this.third(); if (c) this.area.remove(c);
+        this.syncXY();
+        Music.play('marionette');
+    }
+    /* how far each puppet has gone round each foot: a full lap ties that foot's string (in act III, slack, it slips off) */
     windUp() {
         for (const e of this.puppets()) {
             const cx = e.px + 8, cy = e.py + 8;
@@ -135,6 +203,7 @@ class GreatMarionette extends Enemy {
                 let d = ang - w.last[i]; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
                 w.sum[i] += d; w.last[i] = ang;
                 if (!this.tangled[i] && Math.abs(w.sum[i]) > Math.PI * 2 - 0.2) {
+                    if (this.act === 3) { w.sum[i] = 0; Fx.text(fx * T + 8, fy * T - 10, 'slips off!', '#cfc6b8'); Sfx.play('unclick'); return; }
                     this.tangled[i] = true; Sfx.play('twang'); G.shake = 4;
                     Fx.text(fx * T + 8, fy * T - 10, 'tangled!', '#f7d64a');
                 }
@@ -142,33 +211,144 @@ class GreatMarionette extends Enemy {
         }
     }
     untangle() { this.tangled = [false, false]; this.wind.clear(); }
+    /* sandbags drop out of the flies where Wren stands, now and then (a shadow first) */
+    dropBags(p, every) { if (this.st > every && this.st % every === 100 && p.state === 'normal' && p.area === this.area) this.bags.push({ x: p.x, y: p.y, t: 0 }); }
     updateBags(p) {
+        const t = this.trap();
         for (const b of this.bags) {
             b.t++;
-            if (b.t === 60) { Sfx.play('land'); Fx.dust(b.x, b.y); if (p.state === 'normal' && Math.abs(p.x - b.x) < 10 && Math.abs(p.y - b.y) < 9) { const hp = Inv.hp; p.hurt(1, b.x, b.y - 4); if (Inv.hp < hp && Crossbar.ctl) Crossbar.release(p); } }
+            if (b.t !== 60) continue;
+            Sfx.play('land'); Fx.dust(b.x, b.y);
+            if (p.state === 'normal' && p.area === this.area && Math.abs(p.x - b.x) < 10 && Math.abs(p.y - b.y) < 9) { const hp = Inv.hp; p.hurt(1, b.x, b.y - 4); if (Inv.hp < hp && Crossbar.ctl) Crossbar.release(p); }
+            /* (a sandbag's heavy: landing on the stage trap, it goes straight through) */
+            else if (t && !t.open && tileOf(b.x) === t.tx && tileOf(b.y) === t.ty) { t.drop('bag'); b.gone = true; }
         }
-        this.bags = this.bags.filter(b => b.t < 80);
+        this.bags = this.bags.filter(b => b.t < 80 && !b.gone);
     }
+    /* act I, missed: it pulls itself up again, and the little Wrens head home */
     rise() {
         this.state = 'dance'; this.st = 0; this.untangle();
         for (const e of this.puppets()) if (!e.heldBy && e.ret && e.ret.state !== 'home') { e.ret.state = 'returning'; e.ret.timer = 0; }
         Sfx.play('rumble'); G.shake = 6;
     }
+    /* can its feet both step a tile that way? On its stage, nothing standing there; walked on its strings, not over an edge
+       and not onto Wren (marching, it stamps past her and doesn't look down) */
+    canStep(d, marching) {
+        const a = this.area, r = this.arena, p = G.player;
+        for (const [fx, fy] of this.feet) {
+            const nx = fx + DX[d], ny = fy + DY[d];
+            if (ny < r.y + GM.STAGE[0] || ny > r.y + GM.STAGE[1] || nx <= r.x || nx >= r.x + r.w - 1) return false;
+            const k = a.kind(nx, ny);
+            if (k.solid || (k.pit && !marching)) return false;
+            if (a.at(nx, ny) || a.blockers.some(b => b !== this && b.blocks(nx, ny, this))) return false;
+            if (!marching && p && p.area === a && p.onTile(nx, ny)) return false;
+        }
+        return true;
+    }
+    moveFeet(d, dur, home) {
+        for (const f of this.feet) { f[0] += DX[d]; f[1] += DY[d]; }
+        this.mv = { d, t: 0, dur }; this.stepN++;
+        this.syncXY();
+        if (!home) { const [x, y] = this.feet[0], w = this.walk, i = w.findIndex(q => q[0] === x && q[1] === y); if (i >= 0) w.length = i + 1; else w.push([x, y]); }
+        Sfx.play('land', 0.4); G.shake = Math.max(G.shake, 2);
+    }
+    /* a foot come down on the stage trap: it gives */
+    landed() {
+        const t = this.trap();
+        if (!t || !this.standing) return;
+        if (this.feet.some(([fx, fy]) => fx === t.tx && fy === t.ty)) { t.drop(this); this.fallIn(t); }
+    }
+    /* act II: a step a beat, straight on; anything in the way and it turns right */
+    marchOn(p) {
+        if (this.mv || this.st % GM.MARCH) return;
+        const d = this.march;
+        if (!this.canStep(d, true)) { this.march = TURN_RIGHT[d]; Sfx.play('hitthing', 0.25); return; }
+        this.moveFeet(d, GM.MARCH - 2);
+        this.stomp(p);
+    }
+    stomp(p) {
+        if (!p || p.area !== this.area || p.state !== 'normal') return;
+        for (const [fx, fy] of this.feet) if (p.onTile(fx, fy)) { const hp = Inv.hp; p.hurt(1, fx * T + 8, fy * T + 8); p.unstick(); if (Inv.hp < hp && Crossbar.ctl) Crossbar.release(p); break; }
+    }
+    /* down the trap, to the chin: its head's on the boards */
+    fallIn(t) {
+        this.state = 'trapped'; this.st = 0; this.inTrap = [t.tx, t.ty]; this.bags = []; this.bar = null;
+        if (Crossbar.ctl && Crossbar.ctl.giant) Crossbar.release(G.player);
+        this.heldBy = null; this.worked = false;
+        G.shake = 12; Sfx.play('fall'); Sfx.play('rumble'); Fx.dust(t.tx * T + 8, t.ty * T + 12);
+        Stats.count('boss:gm:trap');
+    }
+    /* out of the trap and back on its marks (and on with its act) */
+    climbOut(quiet) {
+        const t = this.trap(); if (t) t.shut();
+        this.inTrap = null; this.mv = null; this.feet = this.home.map(f => f.slice()); this.walk = [this.home[0].slice()]; this.awayT = 0; this.syncXY();
+        const p = G.player;
+        if (!quiet) { this.stomp(p); this.state = this.act === 2 ? 'march' : 'dance'; this.st = 0; this.march = LEFT; }
+        else if (p && p.area === this.area) for (const [fx, fy] of this.feet) if (p.onTile(fx, fy)) p.unstick();
+        for (const [fx, fy] of this.feet) Fx.dust(fx * T + 8, fy * T + 12);
+        Sfx.play('land'); G.shake = 6;
+    }
+    /* act III: hooked, its bar comes down to hang in front of Wren a while; taken up, Wren walks it (step); let go, the bar
+       goes back up and it walks home after a moment, the way it was walked */
+    actThree() {
+        this.windUp();
+        const b = this.bar;
+        if (b && !this.heldBy && --b.t <= 0) { this.bar = null; Sfx.play('twang'); Fx.ring(b.tx * T + 8, b.ty * T - 10, '#cfc6b8'); }
+        if (this.heldBy || this.mv) { this.awayT = 0; return; }
+        if (this.walk.length < 2 || ++this.awayT < GM.AWAY || this.awayT % GM.STEP) return;
+        const [x, y] = this.walk[this.walk.length - 2], d = dirOf(x - this.feet[0][0], y - this.feet[0][1]);
+        if (this.canStep(d, false)) { this.walk.pop(); this.moveFeet(d, GM.STEP, true); this.strain = 0; }
+        /* (something's sat down in its way for good: the strings haul it straight back onto its marks) */
+        else if (++this.strain > 10) { this.strain = 0; this.climbOut(true); }
+    }
+    pullBar(h) {
+        const p = h.p, f = p.front();
+        this.bar = { tx: f.tx, ty: f.ty, t: GM.BAR_WAIT, k: 0 };
+        Sfx.play('tug'); G.shake = 3;
+        Stats.count('boss:gm:bar');
+    }
+    /* taken up on the Crossbar: a step for every step (both feet, or not at all) */
+    step(d) {
+        if (this.mv || this.state !== 'dance' || this.act !== 3 || !this.bar) return false;
+        if (!this.canStep(d, false)) return false;
+        this.moveFeet(d, GM.STEP);
+        return true;
+    }
+    letGo() { if (this.state === 'dance' && this.bar) this.bar.t = Math.min(this.bar.t, 40); this.awayT = 0; }
+    /* the third little Wren, on a string of its own, let down onto the apron (or quickly, coming back to the fight) */
+    lowerThird(quick) {
+        if (this.third()) return;
+        const a = this.area, r = this.arena, p = G.player;
+        const spot = [[16, 8], [16, 9], [15, 8], [17, 8]].map(([x, y]) => [r.x + x, r.y + y]).find(([x, y]) => !a.at(x, y) && !(p && p.onTile(x, y))) || [r.x + 16, r.y + 8];
+        const c = a.add(new Puppet(spot[0], spot[1], { id: 'gsWrenC', look: 'puppet_wren' }));
+        c.dropY = quick ? 0 : 96;
+        const d0 = c.draw;
+        c.draw = function (cx, cy) {
+            const k = (this.dropY || 0) + (this.hauled || 0);
+            /* its own string, up into the flies */
+            Gfx.alpha(0.85); Gfx.line(this.px - cx + 8, -2, this.px - cx + 8, this.py - cy - k - 13, '#cfc6b8'); Gfx.alpha(1);
+            d0.call(this, cx, cy + k);
+        };
+        Sfx.play('twang');
+    }
     struck(by, dmg, dir) {
-        if (!this.alive || this.state !== 'down' || this.flash > 0) return;
+        if (!this.alive || this.flash > 0 || (this.state !== 'down' && this.state !== 'trapped')) return;
         this.hp--; this.flash = 30; G.hitstop = 10; G.shake = 10; Sfx.play('enemyhit');
+        Stats.count('boss:gm:hit');
         if (this.hp <= 0) return this.defeat();
-        this.rise();
+        Script.run(this.hp === 2 ? MarionetteFoes.toAct2(this) : MarionetteFoes.toAct3(this));
     }
     shoved() { }
     defeat() {
-        this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]]; this.bags = [];
+        this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]]; this.bags = []; this.bar = null; this.inTrap = null;
         if (Crossbar.ctl) Crossbar.release(G.player);
+        const t = this.trap(); if (t) t.shut(true);
+        const c = this.third(); if (c) { Fx.poof(c.px + 8, c.py + 4); this.area.remove(c); }
         Sfx.play('unravel');
         Script.run(MarionetteFoes.curtain(this));
     }
     draw(cx, cy) { this.drawBody(cx, cy); }
-    /* the sandbags: drawn over everything (src: TOOLS._gmBags), so their shadows show where they'll land */
+    /* the sandbags, and its bar when it's down by Wren: drawn over everything (src: TOOLS._gmBags) */
     drawBags(cx, cy) {
         for (const b of this.bags) {
             const k = Math.min(1, b.t / 60);
@@ -176,11 +356,43 @@ class GreatMarionette extends Enemy {
             if (b.t < 60) { const y = b.y - cy - 120 * (1 - k); Gfx.line(b.x - cx, y - 40, b.x - cx, y - 6, '#cfc6b8'); Gfx.rect(b.x - cx - 4, y - 8, 8, 9, '#a88a5a'); }
             else Gfx.rect(b.x - cx - 4, b.y - cy - 6, 8, 7, '#a88a5a');
         }
+        if (this.alive && this.standing && (this.bar || this.heldBy)) this.drawStrings(cx, cy, true);
+    }
+    /* where its bar is drawn (on the screen): up over the stage, hooked down in front of Wren, or in her hands */
+    barAt(cx, cy, mx) {
+        const top = this.arena.y * T - cy + Math.round(lerp(GM.BAR_HI, GM.BAR_LO, this.lowT));
+        const p = G.player;
+        if (this.heldBy && p) return [Math.round(p.x - cx), Math.round(p.y - cy - 25), 0.45];
+        const b = this.bar;
+        if (b) { const k = b.k * b.k * (3 - 2 * b.k), tx = b.tx * T + 8 - cx, ty = b.ty * T - 4 - cy; return [Math.round(lerp(mx, tx, k)), Math.round(lerp(top, ty, k)), 1 - 0.5 * k]; }
+        return [Math.round(mx), top, 1];
+    }
+    /* its strings: from the bar to its head, hands and knees; slack in act III (sagging between) */
+    drawStrings(cx, cy, over) {
+        const g = this.geom; if (!g) return;
+        const [bar, barY, wide] = this.barAt(cx, cy, g.mx);
+        const low = !!(this.bar || this.heldBy);
+        if (low !== over) return;
+        const SL = '#cfc6b8', slack = this.act === 3 && !this.heldBy, half = Math.round(36 * wide);
+        const str = (x0, y0, x1, y1, col = SL) => {
+            if (!slack) return Gfx.line(x0, y0, x1, y1, col);
+            const mxx = (x0 + x1) / 2, myy = (y0 + y1) / 2 + 7;
+            Gfx.line(x0, y0, mxx, myy, col); Gfx.line(mxx, myy, x1, y1, col);
+        };
+        g.knees.forEach(([sx, sy], i) => str(sx, sy, bar + (i ? 1 : -1) * Math.round(35 * wide), barY + 2, this.tangled[i] ? '#f7d64a' : SL));
+        str(bar, barY + 7, g.headX, g.headY);
+        g.hands.forEach(([hx, hy], i) => str(bar + (i ? 15 : -15) * wide, barY + 3, hx, hy - 2));
+        const R = (c, x, y, w, h) => Gfx.rect(x, y, w, h, c);
+        /* the rope it hangs from runs on up into the flies (held, it's in Wren's hands) */
+        if (!this.heldBy) R(SL, bar, -12, 1, barY + 10);
+        R(PAL.ink, bar - half - 1, barY - 1, half * 2 + 3, 5); R('#9a6438', bar - half, barY, half * 2 + 1, 3); R('#c9925a', bar - half, barY, half * 2 + 1, 1); R('#6b4128', bar - half, barY + 2, half * 2 + 1, 1);
+        R(PAL.ink, bar - 2, barY - 4, 5, 13); R('#9a6438', bar - 1, barY - 3, 3, 11); R('#c9925a', bar - 1, barY - 3, 1, 11);
+        for (const ex of [-half, half, -Math.round(15 * wide), Math.round(15 * wide)]) R('#e8b04a', bar + ex, barY + 1, 1, 1);
     }
     drawBody(cx, cy) {
         if (!this.alive) return;
-        const dance = this.state === 'dance', t = this.t, sway = dance ? Math.round(Math.sin(t / 20) * 3) : 0;
         const flash = this.flash > 0 && (this.flash >> 1) % 2;
+        if (this.state === 'trapped') return this.drawTrapped(cx, cy, flash);
         if (this.state === 'down') {
             const im = ART.gm_down; if (!im) return;
             const dx = Math.round((this.hx + 0.5) * T - cx - im.width / 2), dy = (this.hy + 2) * T - cy + 40 - im.height;
@@ -191,25 +403,31 @@ class GreatMarionette extends Enemy {
         }
         /* a great wooden you on strings: a carved head with your hair and a painted face, your scarf, jointed arms and
            legs pegged at every joint, a stick in its hand; its feet stand on the stage, and every string runs up to the
-           control bar overhead */
+           control bar overhead. Marching, it lifts a foot a step; in act III it sags on its slack strings, knees out */
+        const t = this.t, act3 = this.act === 3, march = this.state === 'march';
+        const dance = !march, sway = dance && !act3 ? Math.round(Math.sin(t / 20) * 3) : act3 ? Math.round(Math.sin(t / 34)) : 0;
         const R = (c, x, y, w, h) => Gfx.rect(x, y, w, h, c);
-        const [[f0x, f0y], [f1x, f1y]] = this.feet;
-        const mx = ((f0x + f1x) / 2 + 0.5) * T - cx + sway, top = f0y * T - cy - 74;
-        const hop = dance ? Math.round(Math.abs(Math.sin(t / 20)) * 2) : 0, sw = dance ? Math.sin(t / 10) : 0;
-        const im = ART.gm_body, bx = Math.round(mx) - 18, by = top + 6 - hop, bar = Math.round(mx), barY = 2;
-        const SL = '#cfc6b8';
+        const m = this.mv, k = m ? 1 - m.t / m.dur : 0;
+        const F = this.feet.map(([fx, fy]) => [Math.round((fx - (m ? DX[m.d] * k : 0)) * T - cx), Math.round((fy - (m ? DY[m.d] * k : 0)) * T - cy)]);
+        const sag = Math.round(this.sag);
+        const mx = (F[0][0] + F[1][0]) / 2 + 8 + sway, top = F[0][1] - 74 + sag;
+        const hop = dance && !act3 ? Math.round(Math.abs(Math.sin(t / 20)) * 2) : march && m ? Math.round(Math.sin((1 - k) * Math.PI) * 2) : 0;
+        const sw = dance && !act3 ? Math.sin(t / 10) : march ? Math.sin(this.stepN * Math.PI / 2 + (m ? (1 - k) * Math.PI / 2 : 0)) : Math.sin(t / 30) * 0.4;
+        const im = ART.gm_body, bx = Math.round(mx) - 18, by = top + 6 - hop;
+        const knees = [];
         /* the legs: a hip peg, a thigh, a knee peg (the knees kick out as it dances), a shin down to the boot */
-        for (const [i, [fx, fy]] of this.feet.entries()) {
-            const sx = fx * T - cx + 8, sy = fy * T - cy + 6, side = i ? 1 : -1;
+        F.forEach(([fx, fy], i) => {
+            const lift = march && m && (this.stepN & 1) === i ? Math.round(Math.sin((1 - k) * Math.PI) * 5) : 0;
+            const sx = fx + 8, sy = fy + 6 - lift, side = i ? 1 : -1;
             const hx = bx + (i ? 23 : 12), hy = by + 47, ax = sx, ay = sy - 5;
-            const kick = 5 + (dance ? Math.sin(t / 10 + i * Math.PI) * 3 : 0);
-            const kx = Math.round((hx + ax) / 2 + side * kick * 0.4), ky = Math.round((hy + ay) / 2 - kick);
-            Gfx.line(sx, sy - 7, bar + side * 35, barY + 2, this.tangled[i] ? '#f7d64a' : SL);
+            const kick = 5 + (dance && !act3 ? Math.sin(t / 10 + i * Math.PI) * 3 : 0) + lift * 0.6;
+            const kx = Math.round((hx + ax) / 2 + side * (kick * 0.4 + sag * 0.5)), ky = Math.round((hy + ay) / 2 - kick - sag * 0.4);
+            knees.push([sx, sy - 7]);
             Gfx.img(spr('gm_foot'), sx - 8, sy - 10);
             GMArt.rod(R, kx, ky, ax, ay, 2, '#3a5fae', '#5a80c8');
             GMArt.rod(R, hx, hy, kx, ky, 2, '#3a5fae', '#5a80c8');
             GMArt.peg(R, kx, ky); GMArt.peg(R, hx, hy);
-        }
+        });
         if (im) Gfx.img(flash ? tinted(im, '#ffffff') : im, bx, by);
         /* the arms: sleeves to the elbow pegs, wooden forearms and hands; the right hand holds the stick */
         const arms = [[bx + 9, by + 29, -1, sw], [bx + 26, by + 29, 1, -sw]];
@@ -223,20 +441,69 @@ class GreatMarionette extends Enemy {
             GMArt.peg(R, ex, ey); GMArt.peg(R, sx, sy);
             GMArt.disc(R, hx, hy, 3, PAL.ink); GMArt.disc(R, hx, hy, 2, '#ecc895'); R('#fff0d0', hx - 1, hy - 1, 1, 1); R('#d4a46a', hx + 1, hy + 1, 1, 1);
         }
-        /* the strings, and the control bar they hang from (a rope runs on up from it into the flies) */
-        Gfx.line(bar, barY + 7, bx + 18, by + 1, SL);
-        hands.forEach(([hx, hy], i) => Gfx.line(bar + (i ? 15 : -15), barY + 3, hx, hy - 2, SL));
-        R(SL, bar, -12, 1, barY + 10);
-        R(PAL.ink, bar - 37, barY - 1, 75, 5); R('#9a6438', bar - 36, barY, 73, 3); R('#c9925a', bar - 36, barY, 73, 1); R('#6b4128', bar - 36, barY + 2, 73, 1);
-        R(PAL.ink, bar - 2, barY - 4, 5, 13); R('#9a6438', bar - 1, barY - 3, 3, 11); R('#c9925a', bar - 1, barY - 3, 1, 11);
-        for (const ex of [-36, 36, -15, 15]) R('#e8b04a', bar + ex, barY + 1, 1, 1);
+        this.geom = { mx, knees, hands, headX: bx + 18, headY: by + 1 };
+        this.drawStrings(cx, cy, false);
         /* the puppets' strings round its feet: where each little Wren has been, faintly */
         for (const e of this.puppets()) {
             const w = this.wind.get(e.uid); if (!w) continue;
             this.feet.forEach(([fx, fy], i) => { const f = Math.min(1, Math.abs(w.sum[i]) / (Math.PI * 2)); if (f > 0.2) { Gfx.alpha(0.6); Gfx.circle(fx * T - cx + 8, fy * T - cy + 8, Math.round(6 + 6 * f), THREAD.jory); Gfx.alpha(1); } });
         }
     }
+    /* down the stage trap to the chin: its head on the boards, its arms flung out either side, its strings slack */
+    drawTrapped(cx, cy, flash) {
+        const [tx, ty] = this.inTrap || this.home[0], im = ART.gm_body;
+        const x = tx * T + 8 - cx, y = ty * T - cy, R = (c, a, b, w, h) => Gfx.rect(a, b, w, h, c);
+        for (const s of [-1, 1]) { Gfx.line(x + s * 30, -10, x + s * 26, y - 6, '#cfc6b8'); Gfx.line(x + s * 26, y - 6, x + s * 22, y + 4, '#cfc6b8'); }
+        Gfx.line(x + 1, -10, x, y - 18, '#cfc6b8');
+        for (const side of [-1, 1]) {
+            const sx = x + side * 7, sy = y + 3, ex = x + side * 15, ey = y + 4, hx = x + side * 22, hy = y + 6;
+            GMArt.rod(R, sx, sy, ex, ey, 2, '#e7ad3c', '#f4c860'); GMArt.rod(R, ex, ey, hx, hy, 1, '#ecc895', '#fff0d0'); GMArt.peg(R, ex, ey);
+            GMArt.disc(R, hx, hy, 3, PAL.ink); GMArt.disc(R, hx, hy, 2, '#ecc895'); R('#fff0d0', hx - 1, hy - 1, 1, 1);
+        }
+        GMArt.rod(R, x + 14, y + 9, x + 34, y + 2, 1, '#9a6438', '#c9925a');
+        if (im) Gfx.sub(flash ? tinted(im, '#ffffff') : im, 0, 0, 36, 27, x - 18, y - 19);
+        if ((this.t >> 3) % 2) { Font.draw('*', x - 14, y - 26, '#f7d64a'); Font.draw('*', x + 10, y - 22, '#f7d64a'); }
+    }
 }
+/* the Great Marionette's control bar, for the Hookline to catch: only in its third act, low over the stage (before then
+   it's up in the flies, out of anyone's reach) */
+class GMBar extends Ent {
+    constructor(g) { super('gmbar'); this.g = g; }
+    get x() { return this.g.x; }
+    get y() { return this.g.y; }
+    hurtBox() {
+        const g = this.g;
+        if (!g.alive || g.state !== 'dance' || g.act !== 3 || g.lowT < 1 || g.bar || g.heldBy) return null;
+        const bx = ((g.feet[0][0] + g.feet[1][0]) / 2 + 0.5) * T, by = g.arena.y * T + GM.BAR_LO;
+        return { x0: bx - 34, x1: bx + 34, y0: by - 4, y1: by + 9 };
+    }
+    hooked(h) { this.g.pullBar(h); }
+    struck() { Sfx.play('hitthing', 0.4); }
+}
+
+/* the stage trap: a hatch let into the boards at centre stage. It holds anyone standing on it (a person, a puppet); anything
+   heavy (a sandbag, the Great Marionette's foot) and down it drops; it swings shut again once it's empty */
+class StageTrap extends Ent {
+    constructor(tx, ty, p = {}) { super('stagetrap', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.floor = true; this.openT = 0; this.holding = null; }
+    get sortY() { return -1000 + this.y; }
+    get open() { return this.openT > 0 || !!this.holding; }
+    drop(what) {
+        const a = this.area, p = G.player;
+        if (!this.open) { a.setCell(this.tx, this.ty, 'T'); Sfx.play('door'); Fx.dust(this.tx * T + 8, this.ty * T + 12); }
+        this.openT = 50; if (what && what !== 'bag') this.holding = what;
+        /* whoever's standing on it goes down too (and home, as falls do) */
+        if (p && p.area === a && p.state === 'normal' && p.feetOn(this.tx, this.ty)) p.startFall('pit');
+        Stats.count('stagetrap');
+    }
+    shut(quiet) {
+        this.holding = null; this.openT = 0;
+        if (this.area.kind(this.tx, this.ty).pit) this.area.setCell(this.tx, this.ty, '.');
+        if (!quiet) Sfx.play('doorshut');
+    }
+    update() { if (!this.holding && this.openT > 0 && --this.openT === 0) this.shut(); }
+    draw(cx, cy) { if (!this.open) Gfx.img(spr('stagetrap'), this.x - cx, this.y - cy); }
+}
+SPAWN.stagetrap = (x, y, p) => new StageTrap(x, y, p);
 /* drawing the Great Marionette's wooden parts: rods with an ink edge and a lit edge, round pegs at the joints. R is a
    rect function, so the same parts draw on the screen or into a picture as it's painted */
 const GMArt = {
@@ -265,6 +532,31 @@ const GMArt = {
 TOOLS._gmBags = { draw(cx, cy) { const a = G.map; if (!a || a.id !== 'marionette') return; for (const e of a.ents) if (e instanceof GreatMarionette) e.drawBags(cx, cy); } };
 SPAWN.marionette = (x, y, p) => Progress.flag('marionette_boss') ? new Ent('none') : new GreatMarionette(x, y, p);
 
+/* a crossbar's a crossbar: the Great Marionette's own bar, hooked down in front of Wren, takes up like any rack. (Reached
+   for from the boards before then, its strings run up out of reach.) */
+{
+    const target0 = Crossbar.target, take0 = Crossbar.take, release0 = Crossbar.release;
+    const giant = a => a && a.ents.find(e => e instanceof GreatMarionette && e.alive);
+    Crossbar.target = function (p) {
+        const g = giant(p.area);
+        if (g && g.bar && g.state === 'dance') { const f = p.front(); if (f.tx === g.bar.tx && f.ty === g.bar.ty) return { puppets: [g], giant: true }; }
+        return target0.call(this, p);
+    };
+    Crossbar.take = function (p) {
+        const g = giant(p.area);
+        if (g && g.standing && g.state !== 'sleep' && !this.target(p) && g.faces(p)) {
+            UI.toast(g.act === 3 ? 'Its bar swings low over the stage now, but still well over your head.' : 'Its strings run up past the lights into the flies, far out of your reach.', 150);
+            Sfx.play('hitthing', 0.3); return;
+        }
+        return take0.call(this, p);
+    };
+    Crossbar.release = function (p) {
+        const c = this.ctl;
+        release0.call(this, p);
+        if (c && c.giant) for (const g of c.puppets) g.letGo();
+    };
+}
+
 const MarionetteFoes = {
     *tinIntro(c) {
         yield 20;
@@ -281,6 +573,39 @@ const MarionetteFoes = {
         yield* say(null, 'The curtain rises on its own. Centre stage, on strings that go up and up into the dark, a marionette three times your height begins to dance. It has your scarf. It has your stick. It has your face.');
         yield* say(null, 'At the front of the stage, a crossbar on a stand, and two little wooden Wrens on its strings.');
     },
+    /* the first knock: it climbs back up its strings, and the second act's a march */
+    *toAct2(g) {
+        const p = G.player, t = g.trap();
+        g.untangle(); g.bags = [];
+        if (Crossbar.ctl) Crossbar.release(p);
+        /* (the little Wrens are whisked home on their strings: nothing to set out again) */
+        for (const e of g.puppets()) Return.snap(e);
+        yield 36;
+        g.state = 'interval'; g.st = 0;
+        for (const [fx, fy] of g.feet) { Fx.dust(fx * T + 8, fy * T + 12); if (p.onTile(fx, fy)) p.unstick(); }
+        if (t && p.feetOn(t.tx, t.ty)) { p.y += T; p.unstick(); }
+        Sfx.play('rumble'); G.shake = 8;
+        yield 30;
+        /* a sandbag out of the flies, onto the stage trap, and straight through it */
+        if (t) { g.bags.push({ x: t.tx * T + 8, y: t.ty * T + 10, t: 0 }); yield 76; }
+        g.lowerThird(false);
+        yield 36;
+        yield* say(null, "A sandbag drops onto the trap at centre stage and goes straight through. The Great Marionette clambers up and marches off round the stage like a toy soldier, turning at whatever's in its way; and down a string of its own comes a third little Wren.", { focus: g });
+        g.state = 'march'; g.st = 0; g.march = LEFT;
+    },
+    /* the second: out of the trap, its strings let out long and slack, its bar down low */
+    *toAct3(g) {
+        const p = G.player;
+        g.bags = [];
+        if (Crossbar.ctl) Crossbar.release(p);
+        yield 30;
+        g.climbOut(true); g.state = 'interval'; g.st = 0;
+        const c = g.third(); if (c) { if (c.heldBy) Crossbar.release(p); c.hauled = 1; Sfx.play('twang'); }
+        for (const e of g.puppets()) Return.snap(e);
+        yield 40;
+        yield* say(null, 'It heaves itself out of the trap. Up in the flies something gives: its strings run out long and slack, and down comes the bar that works it, to swing low over the stage, still well over your head.', { focus: g });
+        g.state = 'dance'; g.st = 0;
+    },
     *curtain(g) {
         const a = g.area;
         Music.play('silence');
@@ -295,7 +620,7 @@ const MarionetteFoes = {
 };
 
 function initMarionetteFoes() {
-    ENEMY.captain = { hp: 3, r: 8, tall: 30, yarn: THREAD.jory, harmless: true };
+    ENEMY.captain = { hp: 2, r: 8, tall: 30, yarn: THREAD.jory, harmless: true };
     ENEMY.greatmarionette = { hp: 3, r: 12, tall: 40, yarn: THREAD.jory, harmless: true, flies: true, swims: true };
     const cp = { r: '#d6304e', R: '#9a1e36', b: '#2e3a7a', B: '#1e2a5a', g: '#f7d64a', G: '#c8a83a', s: '#f0c8a0', w: '#fbf6ea', f: '#fbf6ea' };
     const capt = leg => ['.........ff.........', '........fwwf........', '.......kbbbbk.......', '......kbbbbbbk......', '......kbbbbbbk......', '......kbbbbbbk......', '.....kkggggggkk.....', '......kssssssk......', '......kswsswsk......', '......kssssssk......', '.......kssssk.......', '.....kkrrrrrrkk.....', '....krRrggggrRrk....', '...ksrrrggggrrrsk...', '...kskrrggggrrksk...', '...kk.krrrrrrk.kk...', '.....kwwwwwwwwk.....', '.....kwgwgwgwgk.....', '.....kwwwwwwwwk.....', '......kbbbbbbk......', '......kbBkkbBk......', '......kbBk' + leg + 'Bk......'.slice(0, 20), '......kkkk.kkkk.....', '....................'];
@@ -379,6 +704,10 @@ function initMarionetteFoes() {
     defSprite('gm_foot', ['................', '................', '................', '................', '................', '......kkkk......', '.....kbdbBk.....', '.....kbbbBk.....',
         '.....kbbbBk.....', '....kkbbbBkk....', '...kbubbbbbBk...', '..kbuubbbbbBBk..', '..kbbbbbbbbbBk..', '..kSSSSSSSSSSk..', '...kkkkkkkkkk...', '................'], { b: '#7a4a2c', B: '#5a341e', u: '#9a6a44', S: '#45281c', d: '#3a2418' });
     defSprite('gm_down', ['................................................................', '..........kkkkkkkkkkkk..........................................', '.........khhhhhhhhhhhhk...kkkkkkkkkkkkkkkkkkkkkkkkkkkk...........', '........khwwwwwwwwwwwwhk.krrrrrrrrrrrrrrrrrrrrrrrrrrrrk...........', '........kwwxwwwwwwxwwwwkkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrk..kkkkkk...', '........kwwwwwwwwwwwwwwkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrkkkddddddk..', '.........kwwwwwRRwwwwwk.kRRRRRRRRRRRRRRRRRRRRRRRRRRRRk.kddddddk..', '..........kkkkkkkkkkkk...kkkkkkkkkkkkkkkkkkkkkkkkkkkkk..kkkkkkk..', '................................................................'], Object.assign({ x: '#2a1f2d' }, gm));
+    /* the stage trap shut: a square hatch let into the boards, its own short boards across, two iron hinges, a ring to lift it */
+    defSprite('stagetrap', ['ssssssssssssssss', 'swwwwwwwwwwwwwws', 'shhhuuuuuuuuhhhs', 'shhhUUUUUUUUhhhs', 'suuuuuuuuuuuuuus', 'sUUUUUUUUUUUUUUs', 'swwwwwwwwwwwwwws', 'suuuuuuuuuuuuuus',
+        'sUUUUUUUUUUUUUUs', 'swwwwwwwwwwwwwws', 'suuuuuuiiuuuuuus', 'sUUUUUiUUiUUUUUs', 'swwwwwwiiwwwwwws', 'suuuuuuuuuuuuuus', 'sUUUUUUUUUUUUUUs', 'ssssssssssssssss'],
+        { s: '#5a3e26', u: '#b8925e', U: '#9a7448', w: '#d4ae78', h: '#4a4450', i: '#e8b04a' });
     ART.flat_red = null;
     defSprite('flat_red', ['kkkkkkkkkkkkkkkk', 'krrrrrrrrrrrrrrk', 'krRrrrrrrrrrrRrk', 'krrrrrrrrrrrrrrk', 'krrrrRrrrrrRrrrk', 'krrrrrrrrrrrrrrk', 'kRrrrrrrrrrrrrrk', 'krrrrrrRrrrrrrrk', 'krrrrrrrrrrrrrrk', 'krrRrrrrrrrrrRrk', 'krrrrrrrrrrrrrrk', 'kggggggggggggggk', 'kccccccccccccccc', 'kccccccccccccccc', 'kkkkkkkkkkkkkkkk', '................'], { r: '#9a1e36', R: '#7a1428', g: '#f7d64a', c: '#c8a070' });
     const furn = (w, h, fn) => paintSprite(w, h, x => fn((c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); }));

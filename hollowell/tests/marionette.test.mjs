@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
 import { hearMakers } from './legs.mjs';
 
-const R = { foyer: [20, 33], box: [40, 33], aud: [20, 22], pit: [0, 22], reh: [40, 22], wings: [20, 11], dress: [0, 11], props: [40, 11], shop: [40, 0], stage: [20, 0] };
+const R = { foyer: [20, 33], box: [40, 33], aud: [20, 22], pit: [0, 22], reh: [40, 22], wings: [20, 11], dress: [0, 11], props: [40, 11], shop: [40, 0], stage: [20, 0], fly: [60, 11], traps: [60, 22] };
 const at = (room, x, y) => [R[room][0] + x, R[room][1] + y];
 function game(tools = []) {
     const HW = loadGame();
@@ -69,14 +69,16 @@ test('the rehearsal room: lay the Bedroll, drop through the trapdoor for the key
     noErrors(HW);
 });
 
-test('the wings: Captain Tin marches between the flats; knock one as he comes and he marches on into the trap (the Crossbar)', () => {
+test('the wings: Captain Tin marches between the flats; knock one as he comes and he marches on into the trap; two knocks (the Crossbar)', () => {
     const HW = game();
     HW.G.cheats.god = true;
     enter(HW, 'wings', 9, 9);
     HW.hold('up'); HW.step(10); HW.release(); HW.skipTalk(); HW.step(5);
     const c = thing(HW, 'tin');
     assert.notEqual(c.state, 'sleep', 'he marches');
+    let rounds = 0;
     for (let round = 0; round < 3 && c.alive; round++) {
+        rounds++;
         go(HW, 'wings', 4, 5);
         assert.ok(until(HW, () => c.state === 'march' && c.march === 1 && c.x < at('wings', 8, 0)[0] * 16, 1200), 'coming left');
         strike(HW, 'down');
@@ -85,6 +87,7 @@ test('the wings: Captain Tin marches between the flats; knock one as he comes an
         HW.step(330);
     }
     assert.ok(!c.alive, 'Captain Tin unravels');
+    assert.equal(rounds, 2, 'two knocks see him off');
     HW.step(60); HW.skipTalk(); HW.step(10);
     go(HW, 'wings', 9, 4); HW.face('up'); HW.press('act', 1); HW.skipTalk();
     assert.ok(HW.Inv.has('crossbar'), 'the Crossbar');
@@ -105,16 +108,91 @@ test('the dressing rooms: take the puppet, walk it through the little doors and 
     noErrors(HW);
 });
 
-test('the prop store: three puppets on one rack; the walls hold some back; all three on the plates (the Pattern)', () => {
+test('the prop store: three puppets on one rack; the shelves stop the ones in front; all three on the plates open the way east', () => {
     const HW = game(['crossbar']);
     enter(HW, 'props', 1, 5);
     go(HW, 'props', 9, 9); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(2);
-    strings(HW, 'DRDRDRRDRURUR');
+    strings(HW, 'RRRRRRRR');
+    assert.deepEqual(['psA', 'psB', 'psC'].map(id => thing(HW, id).tx - 40), [7, 9, 13], 'each stopped by its shelf (or the wall)');
+    strings(HW, 'DDDD');
     HW.step(5);
-    assert.ok(!thing(HW, 'psPattern').hidden, 'all three plates down: the chest');
-    HW.press('tool', 1); HW.step(5);
-    go(HW, 'props', 16, 9); HW.face('up'); HW.press('act', 1); HW.skipTalk();
+    assert.ok(thing(HW, 'psGateE').open, 'all three plates down: the gate east');
+    HW.press('tool', 1); HW.step(300);
+    assert.ok(thing(HW, 'psGateE').open, 'and it stays open');
+    assert.ok(HW.walkTo(...at('fly', 1, 5)), 'into the fly tower');
+    noErrors(HW);
+});
+
+test('the fly tower: walked round the catwalk, or let walk home, the puppet lights the plates one at a time; rung home with the Bell it lights all three at once', () => {
+    const HW = game(['crossbar']);
+    enter(HW, 'fly', 1, 5);
+    const gate = thing(HW, 'faGate'), pup = thing(HW, 'faPuppet');
+    const out = () => { go(HW, 'fly', 2, 5); HW.Inv.equipped = 'crossbar'; HW.face('right'); HW.press('tool', 1); HW.step(2); strings(HW, 'UURRRRDDDDLLLLU'); };
+    out();
+    assert.deepEqual(here(HW, 'fly'), [2, 5], 'Wren stood still');
+    assert.deepEqual([pup.tx - 60, pup.ty - 11], [5, 6], 'right round the catwalk, one short of its stand');
+    assert.ok(!gate.open, 'walked over them one at a time: shut');
+    HW.press('tool', 1);
+    assert.ok(until(HW, () => HW.Return.isHome(pup), 900), 'let go, it walks home');
+    assert.ok(!gate.open, 'walking home over them at its own pace: still shut');
+    out();
+    HW.Inv.equipped = 'bell'; HW.step(2); HW.press('tool', 1);
+    assert.ok(until(HW, () => gate.open, 120), 'rung home along its trace: all three at once, the fly door opens');
+    HW.step(200);
+    assert.ok(gate.open, 'for good');
+    assert.ok(HW.walkTo(...at('traps', 14, 1)), 'down to the trap room');
+    noErrors(HW);
+});
+
+test("the fly tower's rule: a ring sends it home along its trace, so a plate the trace has skipped stays up", () => {
+    const HW = game(['crossbar']);
+    enter(HW, 'fly', 1, 5);
+    const gate = thing(HW, 'faGate'), pup = thing(HW, 'faPuppet');
+    go(HW, 'fly', 2, 5); HW.Inv.equipped = 'crossbar'; HW.face('right'); HW.press('tool', 1); HW.step(2);
+    /* out to the far plate one way and back the same way: the loop's erased, the trace runs over one plate */
+    strings(HW, 'UURRRRDD' + 'UULLLLD');
+    assert.deepEqual([pup.tx - 60, pup.ty - 11], [5, 4], 'back near its stand');
+    HW.Inv.equipped = 'bell'; HW.step(2); HW.press('tool', 1); HW.step(120);
+    assert.ok(HW.Return.isHome(pup), 'home');
+    assert.ok(!gate.open, 'only what the trace ran over lit up: shut');
+    noErrors(HW);
+});
+
+test("the trap room: step the understudies off their stands, then hook the empty stands, island and far side, before they're home (the Pattern)", () => {
+    const HW = game(['crossbar']);
+    enter(HW, 'traps', 14, 1);
+    const p = HW.player(), hookDone = () => p.state === 'normal' && !HW.global('TOOLS').hook.h;
+    /* the hook just bounces off a puppet on its stand */
+    go(HW, 'traps', 9, 2); HW.Inv.equipped = 'hook'; HW.face('down'); HW.press('tool', 1); until(HW, hookDone, 120);
+    assert.deepEqual(here(HW, 'traps'), [9, 2], 'only strings move a puppet');
+    HW.Inv.equipped = 'crossbar'; HW.face('right'); HW.press('tool', 1); HW.step(2);
+    strings(HW, 'LLL');
+    assert.deepEqual([thing(HW, 'trP1').tx - 60, thing(HW, 'trP2').tx - 60], [8, 7], 'both off their stands');
+    HW.Inv.equipped = 'hook'; HW.step(2); HW.face('down'); HW.press('tool', 1); until(HW, hookDone, 120);
+    assert.deepEqual(here(HW, 'traps'), [9, 5], 'reeled over the traps onto the island stand');
+    go(HW, 'traps', 10, 5); HW.face('down'); HW.press('tool', 1); until(HW, hookDone, 120);
+    assert.deepEqual(here(HW, 'traps'), [10, 8], 'and on to the far one');
+    go(HW, 'traps', 14, 8); HW.face('down'); HW.press('act', 1); HW.skipTalk();
     assert.ok(HW.Inv.hasPattern('marionette'), 'the Pattern');
+    HW.step(5);
+    assert.ok(thing(HW, 'rhGateE').open, 'the way west, into the rehearsal room, unbolted');
+    assert.ok(HW.walkTo(...at('reh', 1, 5)), 'and through it');
+    noErrors(HW);
+});
+
+test('the trap room, stepped the wrong way: the far stand is out of line from the island; a fall home, and try again', () => {
+    const HW = game(['crossbar']);
+    enter(HW, 'traps', 14, 1);
+    const p = HW.player(), hookDone = () => p.state === 'normal' && !HW.global('TOOLS').hook.h;
+    go(HW, 'traps', 9, 2); HW.Inv.equipped = 'crossbar'; HW.face('right'); HW.press('tool', 1); HW.step(2);
+    strings(HW, 'R');
+    HW.Inv.equipped = 'hook'; HW.step(2); HW.face('down'); HW.press('tool', 1); until(HW, hookDone, 120);
+    assert.deepEqual(here(HW, 'traps'), [9, 5], 'on the island');
+    assert.ok(!HW.walkTo(...at('traps', 10, 5)), 'the first understudy is in the way');
+    HW.face('down'); HW.press('tool', 1); until(HW, hookDone, 120);
+    assert.deepEqual(here(HW, 'traps'), [9, 5], 'nothing to catch on straight below');
+    HW.hold('left'); until(HW, () => p.state === 'normal' && here(HW, 'traps')[1] < 3, 400); HW.release();
+    assert.ok(here(HW, 'traps')[1] < 3, 'into a trap, and home to the doorway');
     noErrors(HW);
 });
 
@@ -144,23 +222,55 @@ test('S13: the little wooden Wren walked onto the mark on the stage set', () => 
     assert.ok(HW.Inv.patches >= 1, 'a Heart Patch');
 });
 
-test('the great stage: line your two little Wrens up against its feet, walk them round, the strings tangle, it falls; three knocks; the curtain (Reveal 1)', () => {
+/* the Great Marionette's three acts, played straight */
+function actOne(HW, g) {
+    go(HW, 'stage', 9, 9); HW.face('up'); HW.Inv.equipped = 'crossbar'; HW.press('tool', 1); HW.step(2);
+    assert.equal(HW.player().pinned, 'crossbar', 'holding the rack');
+    strings(HW, 'URRR' + 'URRDDLLU');
+    assert.ok(until(HW, () => g.state === 'down', 60), 'act I: both strings tangled, it falls');
+    HW.press('tool', 1); HW.step(3);
+    go(HW, 'stage', 8, 8); strike(HW, 'up');
+}
+const talkThrough = HW => until(HW, () => { if (HW.global('Dialog').active) HW.skipTalk(); return !HW.global('Dialog').active && !HW.global('Script').blocking(); }, 900);
+function actTwo(HW, g) {
+    talkThrough(HW);
+    assert.equal(g.state, 'march', 'act II: it marches');
+    const c = thing(HW, 'gsWrenC'); assert.ok(c, 'a third little Wren, on its own string');
+    go(HW, 'stage', 16, 9); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(2);
+    strings(HW, 'RUUU');
+    assert.deepEqual([c.tx - 20, c.ty], [17, 5], 'in its way, a foot to the right of where the trap lines up with its left foot');
+    assert.ok(until(HW, () => g.state === 'trapped', 2400), 'it turns at the little Wren, down onto the trap, and in');
+    assert.deepEqual([g.inTrap[0] - 20, g.inTrap[1]], [11, 6], 'down the stage trap');
+    HW.press('tool', 1); HW.step(3);
+    go(HW, 'stage', 11, 7); strike(HW, 'up');
+}
+function actThree(HW, g) {
+    talkThrough(HW);
+    assert.equal(g.state, 'dance', 'act III: back on its marks');
+    assert.ok(!thing(HW, 'gsWrenC'), 'the third little Wren hauled back up');
+    HW.step(60);
+    go(HW, 'stage', 11, 7); HW.face('up'); HW.Inv.equipped = 'hook'; HW.press('tool', 1);
+    assert.ok(until(HW, () => !!g.bar, 60), 'the Hookline catches its bar and brings it down');
+    HW.step(20);
+    HW.Inv.equipped = 'crossbar'; HW.step(2); HW.face('up'); HW.press('tool', 1); HW.step(2);
+    assert.ok(HW.global('Crossbar').ctl && HW.global('Crossbar').ctl.giant, 'its strings taken up');
+    strings(HW, 'LD');
+    assert.ok(until(HW, () => g.state === 'trapped', 60), 'walked onto the trap: down it goes');
+    assert.equal(HW.player().pinned, null, 'the strings jerk out of your hands');
+    go(HW, 'stage', 11, 7); strike(HW, 'up');
+}
+
+test('the great stage, in three acts: its feet tangled; turned onto the trap; walked onto it on its own strings; the curtain (Reveal 1)', () => {
     const HW = game(['crossbar']);
     HW.G.cheats.god = true;
     HW.Progress.set('marionette_gmAwake');
     enter(HW, 'stage', 9, 9);
     const g = HW.G.map.ents.find(e => e.type === 'greatmarionette');
-    HW.Inv.equipped = 'crossbar';
-    for (let round = 0; round < 3 && g.alive; round++) {
-        go(HW, 'stage', 9, 9); HW.face('up'); HW.press('tool', 1); HW.step(2);
-        assert.equal(HW.player().pinned, 'crossbar', 'holding the rack');
-        strings(HW, 'URRR' + 'URRDDLLU');
-        assert.ok(until(HW, () => g.state === 'down', 60), `round ${round + 1}: both strings tangled, it falls`);
-        HW.press('tool', 1); HW.step(3);
-        go(HW, 'stage', 8, 8); strike(HW, 'up');
-        HW.step(10);
-        if (g.alive) until(HW, () => thing(HW, 'gsWrenA').ret.state === 'home' && thing(HW, 'gsWrenB').ret.state === 'home', 600);
-    }
+    actOne(HW, g);
+    assert.equal(g.hp, 2, 'one knock');
+    actTwo(HW, g);
+    assert.equal(g.hp, 1, 'two');
+    actThree(HW, g);
     assert.ok(!g.alive, 'down for good');
     /* the curtain, Jory, the Makers lined up on the stage, each heard out in turn; then the end of it */
     HW.skipTalk(); HW.step(20);
@@ -173,5 +283,150 @@ test('the great stage: line your two little Wrens up against its feet, walk them
     const hoop = HW.ents('hoop')[0]; assert.ok(hoop, 'the hoop');
     HW.walkTo(hoop.tx - 1, hoop.ty); HW.face('right'); HW.press('act', 1); HW.skipTalk(0); HW.step(300); HW.skipTalk(); HW.step(10); HW.skipTalk();
     assert.ok(HW.Progress.flag('d6') && HW.Inv.knots.includes('marionette'), 'the Dancing Knot');
+    noErrors(HW);
+});
+
+/* each act's rule, on its own */
+function atAct(n) {
+    const HW = game(['crossbar']);
+    HW.G.cheats.god = true;
+    HW.Progress.set('marionette_gmAwake');
+    enter(HW, 'stage', 9, 9);
+    const g = HW.G.map.ents.find(e => e.type === 'greatmarionette');
+    if (n >= 2) actOne(HW, g);
+    if (n >= 3) actTwo(HW, g);
+    if (n >= 2) talkThrough(HW);
+    return [HW, g];
+}
+
+test('the stage trap holds Wren and a puppet; anything heavy (a sandbag) drops through it, and it shuts again', () => {
+    const [HW, g] = atAct(1);
+    const t = HW.G.map.find('gsTrap');
+    go(HW, 'stage', 11, 6); HW.step(30);
+    assert.ok(!t.open && HW.player().state === 'normal', 'Wren stands on it');
+    go(HW, 'stage', 11, 7);
+    g.bags.push({ x: t.tx * 16 + 8, y: t.ty * 16 + 10, t: 0 });
+    assert.ok(until(HW, () => t.open, 80), 'a sandbag drops it open');
+    assert.ok(HW.G.map.kind(t.tx, t.ty).pit, 'a hole in the stage');
+    assert.ok(until(HW, () => !t.open, 120), 'and it swings shut');
+    noErrors(HW);
+});
+
+test('act II: it marches, turning right at whatever is in its way (the wall, a puppet)', () => {
+    const [HW, g] = atAct(2);
+    assert.equal(g.state, 'march');
+    /* west along the back first, round at the wall (up is off its stage, so right round), back east */
+    const seen = new Set();
+    until(HW, () => { seen.add(g.march); return g.feet[1][0] === 38; }, 900);
+    assert.ok(seen.has(1) && seen.has(2), 'west, then back east');
+    assert.ok(until(HW, () => g.march === 0, 200), 'at the east wall, turned right: south');
+    /* a little Wren on its beat along the back: it turns there instead of at the wall */
+    const c = thing(HW, 'gsWrenC');
+    go(HW, 'stage', 16, 9); HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(2);
+    strings(HW, 'LLLLUUU');
+    assert.deepEqual([c.tx - 20, c.ty], [12, 5], 'the little Wren on the back row');
+    assert.ok(until(HW, () => g.march === 2 && g.feet[1][0] < 30, 900), 'coming east along the back again');
+    assert.ok(until(HW, () => g.march === 0, 400), 'turned right at the little Wren');
+    assert.equal(g.feet[1][0] - 20, 11, 'right in front of it');
+    assert.ok(until(HW, () => g.state === 'trapped', 120), 'and that turn takes its right foot onto the trap');
+    HW.press('tool', 1); HW.step(3);
+    noErrors(HW);
+});
+
+test('act II: Wren on its beat gets stamped on (it turns at things, not people)', () => {
+    const [HW, g] = atAct(2);
+    HW.G.cheats.god = false;
+    const hp = HW.Inv.hp;
+    until(HW, () => g.march === 2, 400);
+    go(HW, 'stage', 14, 5);
+    assert.ok(until(HW, () => HW.Inv.hp < hp, 600), 'stamped on');
+    assert.ok(g.state === 'march', 'and on it goes');
+    noErrors(HW);
+});
+
+test("act III: slack strings slip off its feet; its strings can't be taken from the boards; hooked down, its bar's hauled back up if not taken; let go, it walks home to its marks", () => {
+    const [HW, g] = atAct(3);
+    assert.equal(g.state, 'dance');
+    /* the rack's two round its feet again: they slip off */
+    go(HW, 'stage', 9, 9); HW.face('up'); HW.Inv.equipped = 'crossbar'; HW.press('tool', 1); HW.step(2);
+    strings(HW, 'URRR' + 'URRDDLLU');
+    HW.step(30);
+    assert.ok(g.state === 'dance' && !g.tangled[0] && !g.tangled[1], 'no tangle: it dances on');
+    HW.press('tool', 1); HW.step(3);
+    until(HW, () => ['gsWrenA', 'gsWrenB'].every(id => HW.Return.isHome(thing(HW, id))), 600);
+    /* reaching for its strings from the boards */
+    go(HW, 'stage', 11, 7); HW.face('up'); HW.press('tool', 1); HW.step(2);
+    assert.equal(HW.player().pinned, null, 'out of reach');
+    /* hooked down and left: back up it goes */
+    HW.Inv.equipped = 'hook'; HW.press('tool', 1);
+    assert.ok(until(HW, () => !!g.bar, 60), 'down');
+    assert.ok(until(HW, () => !g.bar, 400), 'and hauled back up');
+    /* hooked, taken, walked away from the trap and let go: home it walks, the way it came */
+    HW.step(30); HW.press('tool', 1); until(HW, () => !!g.bar, 60); HW.step(20);
+    HW.Inv.equipped = 'crossbar'; HW.step(2); HW.face('up'); HW.press('tool', 1); HW.step(2);
+    strings(HW, 'LL');
+    assert.deepEqual([g.feet[0][0] - 20, g.feet[1][0] - 20], [5, 10], 'walked');
+    HW.press('tool', 1);
+    assert.ok(until(HW, () => g.feet[0][0] === 27 && !g.mv, 600), 'let go: home to its marks');
+    noErrors(HW);
+});
+
+test('act III: on its strings it will not step off an edge (the trap open), but onto the trap shut it goes, and down', () => {
+    const [HW, g] = atAct(3);
+    const t = HW.G.map.find('gsTrap');
+    go(HW, 'stage', 11, 7); HW.face('up'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); until(HW, () => !!g.bar, 60); HW.step(20);
+    HW.Inv.equipped = 'crossbar'; HW.step(2); HW.face('up'); HW.press('tool', 1); HW.step(2);
+    strings(HW, 'L');
+    t.drop('bag'); HW.step(2);
+    strings(HW, 'D');
+    assert.deepEqual([g.feet[0][1], g.feet[1][1]], [5, 5], 'it will not step into the open trap');
+    until(HW, () => !t.open, 120);
+    strings(HW, 'D');
+    assert.ok(until(HW, () => g.state === 'trapped', 60), 'shut, onto it, and down');
+    noErrors(HW);
+});
+
+test('leaving mid-fight (Homeward to the Bedroll in the wings): back on the stage, it takes up the same act again', () => {
+    const HW = game(['crossbar']);
+    HW.G.cheats.god = true; HW.Progress.set('marionette_gmAwake');
+    HW.Inv.patterns.push('marionette');
+    enter(HW, 'wings', 9, 2);
+    HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(2);
+    HW.hold('up'); until(HW, () => Math.floor(HW.player().ty / 11) === 0 && !HW.Cam.busy, 200); HW.release(); HW.step(20);
+    const g = HW.G.map.ents.find(e => e.type === 'greatmarionette');
+    actOne(HW, g); talkThrough(HW);
+    assert.equal(g.act, 2);
+    const away = () => { HW.Inv.equipped = 'bedroll'; HW.hold('tool'); HW.step(24); HW.release(); until(HW, () => HW.player().state === 'normal', 300); HW.step(10); };
+    away();
+    assert.deepEqual(here(HW, 'wings'), [9, 2], 'home to the Bedroll in the wings');
+    assert.equal(g.state, 'sleep', 'out of the room: it waits');
+    assert.ok(!thing(HW, 'gsWrenC'), 'no third Wren left on the stage');
+    go(HW, 'stage', 9, 9); HW.step(10);
+    assert.equal(g.state, 'march', 'back: act II again');
+    assert.ok(thing(HW, 'gsWrenC'), 'its third Wren let down again');
+    actTwo(HW, g); talkThrough(HW);
+    away();
+    go(HW, 'stage', 9, 9); HW.step(10);
+    assert.equal(g.state, 'dance', 'and act III');
+    HW.step(80);
+    go(HW, 'stage', 11, 7); HW.face('up'); HW.Inv.equipped = 'hook'; HW.press('tool', 1);
+    assert.ok(until(HW, () => !!g.bar, 60), 'its bar low enough to hook again');
+    noErrors(HW);
+});
+
+test("the trap room's way west is bolted on the far side till the Pattern's found; a game that found the Pattern in the old prop store finds buttons there", () => {
+    const HW = game(['crossbar']);
+    enter(HW, 'reh', 17, 8);
+    assert.ok(!thing(HW, 'rhGateE').open, 'shut from the rehearsal room');
+    /* (a game saved with the Pattern from the old prop store: the House is built with it held) */
+    HW.Inv.patterns.push('marionette');
+    enter(HW, 'reh', 17, 8);
+    HW.step(3);
+    assert.ok(thing(HW, 'rhGateE').open, 'open once the Pattern is had');
+    const b0 = HW.Inv.buttons;
+    assert.ok(HW.walkTo(...at('traps', 14, 8)), 'through to the far side');
+    HW.face('down'); HW.press('act', 1); HW.skipTalk();
+    assert.equal(HW.Inv.buttons, b0 + 20, 'buttons, not a second Pattern');
+    assert.equal(HW.Inv.patterns.filter(h => h === 'marionette').length, 1);
     noErrors(HW);
 });

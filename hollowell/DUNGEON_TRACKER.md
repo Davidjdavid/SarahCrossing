@@ -187,15 +187,18 @@ first, Wren sandwiched lifts the crate); the Cistern (the ride, waiting and padd
 the stair; an old save's big door; saving and loading (the drawbridge stays down, a fight saved mid-way starts over); both new
 rooms' nudges; the kit's hook-held and switched-off gusts. Scripted playthrough (LEG4); probe: clean.
 
-## D5 Slumberhouse (`src/60_slumber.js`, `src/60b_slumber_foes.js`, kit `src/58_bedroll_kit.js`; tests `tests/slumber.test.mjs`, `tests/bedroll_kit.test.mjs`, `tests/hushwood.test.mjs`) - tested
+## D5 Slumberhouse (`src/60_slumber.js`, `src/60b_slumber_foes.js`, kit `src/58_bedroll_kit.js`; tests `tests/slumber.test.mjs`, `tests/bedroll_kit.test.mjs`, `tests/review_d5.test.mjs`, `tests/hushwood.test.mjs`) - tested
 
 Rules: lie in a bed and it is Wren's mark till she leaves the House or chooses another; rooms don't move it, and a
 fall (or a doze in sleep spores) home onto your own bed costs nothing. Flights home follow Wren's trace (loops
 erased), over anything that is gone now: crumbling boards give way after whatever stood on them steps off (they
 mend when Wren lands from a flight home or leaves the room); dreamcatchers light when a flight passes through. The
 Bedroll (from Matron Hush): tap C to lay it anywhere (on a float it goes where the float goes), hold C to fly
-Homeward along the trace (from another place, straight to it); what Wren carries comes too. Snorelings wake when
-someone walks near them a while, shuffle after you, then go to the nearest bed (a Bedroll counts).
+Homeward along the trace (from another place, straight to it); what Wren carries comes too, and its trace (so its
+shards' way home) runs along the flight as along a reel. The Recall Bell rung in mid-flight snaps Wren home at once
+(S18), round, not through: nothing the rest of the flight would have passed hears of it. Snorelings wake when someone
+walks near them a while, shuffle after you, then go to the nearest bed (a Bedroll counts). Bedsprings: indoor bouncy
+moss, sprung one way, three tiles.
 
 | Room | Cell | Teaches / puzzle | Solution | Reward |
 |---|---|---|---|---|
@@ -205,22 +208,40 @@ someone walks near them a while, shuffle after you, then go to the nearest bed (
 | The Laundry | 2,2 | The trace remembers a ride | Ride the basket round the current under all three dreamcatchers; step ashore before the loop comes round (or the trace folds up); dive in: flying home lights them all | Plan |
 | Mallow's Study | 3,2 | Signature (S06) | Lay the Bedroll on the sleeping barrel by the grate, ring: it snaps home through the grate (riderless floats only); Homeward: you land on it in the study | Heart Patch, Maker's mark |
 | The Drying Loft | 2,3 | Bell + Hookline + falls | The hook bounces off the boulder asleep on the pillar; ring it home (and the Snorelings wake); hook over to the island; fall home | key B |
-| The Landing | 1,1 | Mini-boss: Matron Hush | She follows your footsteps exactly: cross the boards, they give way under her, she falls and flies home dazed; hit her (3x) | Bedroll |
+| The Landing | 1,1 | Mini-boss: Matron Hush | She follows your footsteps exactly: cross the boards, they give way under her, she falls and flies home dazed; hit her (2x) | Bedroll |
 | The Nursery | 0,1 | Homeward carries | Lay the Bedroll up top, drop into the playpen, pick up the stray toy block (too big to throw), Homeward with it, set it down in the pit under the north door | the way to the fort (lock C) |
-| The Moonwalk | 2,1 | Homeward is quicker | Lay the Bedroll by the gate, push the block onto the far plate, Homeward, through the gate before the block goes home | key C |
-| Pillow Fort | 0,0 | Bait | Lay the Bedroll on the plate; wake a Snoreling; it chases, gives up and goes to the nearest bed, the Bedroll, and holds the plate | Pattern |
-| Mother Sloth's Room | 1,0 | Boss: Mother Sloth | Her arms catch you and reel you to her bed; lay the Bedroll out of reach (the star ring); caught, fly Homeward: too far, the arm snaps; both snapped, she slumps: knock her nightcap (3x). Out of reach she throws pillows | Knot, Heartstitch |
+| The Moonwalk | 2,1 | Homeward is quicker | Lay the Bedroll by the gate, push the block onto the far plate, Homeward, through the gate before the block goes home. North: lock D to the Milk Kitchen | key C |
+| Pillow Fort | 0,0 | Bait | Lay the Bedroll on the plate; wake a Snoreling; it chases, gives up and goes to the nearest bed, the Bedroll, and holds the plate | key D |
+| The Milk Kitchen | 2,0 | Synthesis (Kiln: a broken pot's pieces fly home the way it was carried, ringing a bell hung where only flying things reach; Slumber: Homeward carries, the Bedroll as the way back) | A gap the full height of the room; the old bedsprings go one way only, west, across it; the milk jug on the far side; the little bell hangs over the middle of the gap, five tiles from either side (no throw reaches it). Lay the Bedroll this side, spring across, take the jug, Homeward with it (its trace follows the flight back over the gap), smash it: its pieces fly home that way and ring the bell. Smashed or thrown on the far side, its way home never crosses; a fall drops it home | the gate E |
+| The Dreaming Door | 3,0 | Synthesis (Belfry: the Recall Bell, rung in flight; Slumber: flights follow the trace and light dreamcatchers, boards remembered) | The door opens while the good dream is lit and the bad one dark. Old boards (they give way behind) run out round the room to an island, under the bad dreamcatcher near the start and the good one near the end. Lay the Bedroll by the door, walk out, fly home (Homeward or a fall): the good one lights first, the bad one last (the door blinks open mid-flight between them); ring the Bell after the good one lights: Wren snaps home before the bad one, through the door. Rung too soon, nothing lights | Pattern |
+| Mother Sloth's Room | 1,0 | Boss: Mother Sloth (her arms catch you and reel you to her bed to be tucked in; an arm pulled out past the ring of stars snaps; both snapped, she slumps: knock her nightcap), three rounds, each taking the last one's way away | 1: lay the Bedroll out past the stars; caught, fly Homeward: snap. 2: she thumps the bed and the floor past the stars drops into the dark (a Bedroll lying there falls back into the pack), all but a row of old boards along the bottom: nowhere to lay it out of reach, but the flight follows the trace: out over the boards (they give way behind) and back in, then caught, Homeward goes back over them: snap. 3: the boards drop too; the old bedposts they lay across stand out in the dark, ringed with brass: caught in line with one, turn in her grip and hook it: the reel drags Wren out past the stars (snap) and she drops home onto the Bedroll, unhurt. Out of reach she throws pillows; flown out of the room the fight waits, its arms grown back. About 50 s for a player who never hesitates (was 102) | Knot, Heartstitch |
 
-Keys: 3 keys (Linen, Loft, Moonwalk), 3 locks (Ward E, Ward N, Nursery N). Pattern: the Landing's north door.
+Keys: 4 keys (Linen, Loft, Moonwalk, Fort), 4 locks (Ward E, Ward N, Nursery N, Moonwalk N). Pattern: the Dreaming Door,
+for the Landing's north door. Any order works and none strands you (spent elsewhere, key C skips the Nursery and the Fort,
+which are then optional). The way back from the Dreaming Door: the Milk Kitchen's east bank and its south door, the
+Moonwalk, the Landing. A game that found the Pattern in Pillow Fort before these rooms were built finds key D there (a new
+chest) and buttons in the Dreaming Door.
+Dressing: Mother Sloth's four-poster with velvet curtains tied back with gold cord, a scalloped valance with tassels and a
+draped back; nightstands with night-lights either side; night-lights along the walls of the Long Ward, the Milk Kitchen and
+the Dreaming Door (their glow falls on the floor below, not on a drop); the Milk Kitchen's stove, table and milk jug; the
+bedsprings; the Dreaming Door's dreamcatchers, the good and the bad, and the little pair either side of the door that light
+with them. The House keeps its own soft starry carpet.
+Tests: every room's solution; Matron's two knocks; each of Mother Sloth's rounds (her floor in each, the Bedroll lost with the
+floor, Homeward in reach holds, over the boards and back snaps, the boards mend on landing, the bedposts, turning in her grip
+and hooking out unhurt, the floor back after), an arm snaps only past the stars, the whole fight's time, waiting while Wren's
+out of the room (arms regrown, floor restored and back again); the Milk Kitchen (the solution; thrown or smashed on the far
+side, the springs one way, a fall); the Dreaming Door (both lit on a plain flight, the Bell between them, rung too soon); the
+way through lock D; an old save's Pattern; the kit's carried trace along a flight. Scripted playthrough (LEG5); probe: clean.
 
-## D6 Marionette Hall (`src/63_marionette.js`, `src/63b_marionette_foes.js`, kit `src/61_crossbar_kit.js`, the reveal `src/64_reveal1.js`; tests `tests/marionette.test.mjs`, `tests/crossbar_kit.test.mjs`, `tests/larkspur.test.mjs`) - tested
+## D6 Marionette Hall (`src/63_marionette.js`, `src/63b_marionette_foes.js`, kit `src/61_crossbar_kit.js`, the reveal `src/64_reveal1.js`; tests `tests/marionette.test.mjs`, `tests/crossbar_kit.test.mjs`, `tests/review_d6.test.mjs`, `tests/larkspur.test.mjs`) - tested
 
 Rules: toy soldiers march straight on and turn at anything in their way (about-turn, or turn right); they weigh on
 plates as they pass. Painted flats stand in for walls until knocked down (cardboard). The Crossbar: C at a puppet in
 sight (8 tiles, the same room, the side Wren faces) takes its strings; Wren stands still and the arrows walk it a
 tile at a time; C or Z lets go and it goes home after its patience. Puppets weigh on plates, fit through the little
 holes in walls (tile kind `crawl`), don't mind spikes, won't walk off an edge. A rack holds several puppets: they step
-together, the leading ones first, each that can.
+together, the leading ones first, each that can. The stage trap (the Great Stage's hatch) holds a person or a puppet;
+anything heavy (a sandbag, the Great Marionette's foot) drops it open, and it shuts again once it's empty.
 
 | Room | Cell | Teaches / puzzle | Solution | Reward |
 |---|---|---|---|---|
@@ -229,13 +250,27 @@ together, the leading ones first, each that can.
 | The Auditorium | 1,2 | Hub | Seats; W open, E (lock) and N (lock) | - |
 | The Orchestra Pit | 0,2 | Shape a soldier's beat | The drummer goes round the room's edge turning right; push the stray block into the top of his beat: he turns down early, across the plate (a pulse: the gate opens a moment per footfall), and Wren, waiting at the gate, slips through | key A |
 | The Rehearsal Room | 2,2 | Bedroll | Lay it up top, drop through the trapdoor to the key, Homeward (or the hole in the under-stage floor, which hurts). S13 later | key B |
-| The Wings | 1,1 | Mini-boss: Captain Tin | He marches between two flats; knock one as he comes and he marches on into the trapdoor behind it; dazed, hit him (3x). The flats spring back up; the east door opens when he falls | Crossbar |
+| The Wings | 1,1 | Mini-boss: Captain Tin | He marches between two flats; knock one as he comes and he marches on into the trapdoor behind it; dazed, hit him (2x). The flats spring back up; the east door opens when he falls | Crossbar |
 | The Dressing Rooms | 0,1 | Crossbar | The puppet through three little holes and over the nails onto the plate | key C |
-| The Prop Store | 2,1 | A rack | Three puppets on one rack, walls holding some back: DRDRDRRDRURUR puts all three on the plates | Pattern |
+| The Prop Store | 2,1 | A rack | Three puppets on one rack in a column, three plates along the bottom of the store: hold right till the shelves stop the leading ones (two shelves, then the wall), hold down: all three on the plates (RRRRRRRR DDDD, the only shortest way) | the way east (gate, stays open) |
 | Jory's Workshop | 2,0 | Signature | A lone puppet through the little hole in the Prop Store's north wall onto the plate inside: the door opens for good | Maker's mark, 50 buttons |
-| The Great Stage | 1,0 | Boss: the Great Marionette | Two little Wrens on a rack: line them up against its feet (walk them so the feet stop them), then walk them all the way round: both strings tangle, it falls; knock its head (3x). Sandbags fall where you stand (a hit makes you let go) | Knot, Heartstitch; Reveal 1 |
+| The Fly Tower | 3,1 | Synthesis (Belfry: a ring snaps things home fast; Tidyhouse: plates pressed in passing; Kiln: the way home is the trace, loops erased) | A puppet (one-string rack, no sight needed) on a walled catwalk round the fly well; three timed plates on the catwalk (36 frames) and the fly door opens while all three are down at once. Walked, it's on one at a time; let go, it walks home over them too slowly. Walk it right round the catwalk to one short of its stand (a trace over all three; out and back the same way erases the loop and skips a plate), switch to the Bell and ring: it snaps home over all three at once | the way south (gate, stays open) |
+| The Trap Room | 3,2 | Synthesis (Kiln: the Hookline latches onto an empty mark; the Return's patience) | Every trapdoor open between the near side, an island and the far side; two understudies on one rack stand on their stands (marks) on the island and the far side (the hook bounces off a puppet). Step them both off their stands to the left (to the right, the island's one stands in the line to the far stand), let go, hook the island's empty stand, step right, hook the far one, before they walk home. Fall in: home to the doorway | Pattern (buttons for a game that already had it); the way west into the Rehearsal Room unbolts |
+| The Great Stage | 1,0 | Boss: the Great Marionette, three acts (its hp 3, 2, 1). Its feet block; its marks are (7,5) and (12,5); the stage trap at (11,6); its stage, for marching and walking, is rows 5 to 7 (the apron's past the end of its strings) | I: it dances on its marks: two little Wrens on a rack, lined up against its feet, walked right round them: both strings tangle, it falls; knock its head. II (a sandbag drops through the trap to show it; the little Wrens are whisked home): it marches round its stage like a toy soldier, turning right at anything in its way (the wall; Wren it stamps past); a third little Wren on its own string comes down on the apron: walk it into the march where the turn takes a foot onto the trap (east along the back, a foot to the right of where its left foot lines up: (17,5) or (12,5); along the front (10,7) or (5,7)); down to the chin: knock its head. III: back on its marks, its strings slack (a string wound round its feet slips off) and its bar low over the stage, out of reach: the Hookline brings the bar down in front of Wren; the Crossbar takes its strings like a rack's; walk it onto the trap (it won't step into the trap open, but the trap's shut till it's on it): down; knock. Let go, the bar's hauled back up and it walks home along its way. Sandbags fall where you stand in I and II (a hit makes you let go) | Knot, Heartstitch; Reveal 1 |
 
-Keys: 3 keys (Pit, Rehearsal, Dressing), 2 locks (Auditorium E, Auditorium N): one spare whichever order. Pattern: the Wings' north door.
+Keys: 3 keys (Pit, Rehearsal, Dressing), 2 locks (Auditorium E, Auditorium N): one spare whichever order. The late House:
+the Wings (Tin falls: the gate east) to the Prop Store, the Fly Tower, the Trap Room (the Pattern), back west through the
+Rehearsal Room (its east gate unbolts with the Pattern; a lock on the Auditorium side still opens with the spare key from
+either side), the Auditorium, the Wings' north door (the Pattern). Dressing: stage boards laid up and down the stage, two
+to a tile with butt joints and nails (the House's own floor); the Great Stage's footlights along its front and rigging up
+its side walls (lines, sandbags, cleats); the fly tower's catwalk (slats over the dark, iron-edged) round the fly well, its
+pin rail and sandbags; every trapdoor in the trap room open, lids hanging; the traps' winch. Tests: every room's
+solution; the Fly Tower's walk and let-go (shut) and the out-and-back trace (shut); the Trap Room the wrong way round;
+each act (the trap holds people and puppets and drops under a sandbag; the march turning at the wall and at a puppet;
+Wren stamped; slack strings slip; the bar out of reach from the boards, hauled back up if not taken; let go it walks
+home; on its strings it won't step into the open trap); leaving mid-fight (Homeward) and coming back to the same act;
+the shortcut bolted till the Pattern; an old game's Pattern. Scripted playthrough (LEG6); probe: clean. The fight takes a
+scripted bot 23 s of game time (it was 21 s for three of the same).
 
 ## D7 The Spoolworks (`src/67_spoolworks.js`, `src/67b_spool_foes.js`, kit `src/65_spool_kit.js`; tests `tests/spoolworks.test.mjs`, `tests/spool_kit.test.mjs`, `tests/review_d7.test.mjs`) - tested
 
