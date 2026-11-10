@@ -205,7 +205,9 @@ class KnotLock extends GridThing {
     }
     draw(cx, cy) {
         const x = this.tx * T - cx, y = this.ty * T - cy, col = KNOT_COL[this.house];
-        Gfx.line(x + 8, y - 30, x + 8, y + 2, this.undone ? shade(col, -0.4) : col);
+        /* its thread comes down out of the dark overhead (from the top of the room), pulled into the Spool's own */
+        const r = this._room || (this._room = this.area.roomAt(this.tx, this.ty)), top = (r ? (r.y + 1) * T - 3 : this.ty * T - 30) - cy;
+        Gfx.line(x + 8, top, x + 8, y + 2, this.undone ? shade(col, -0.4) : col); Gfx.line(x + 9, top, x + 9, y + 2, shade(col, this.undone ? -0.6 : -0.3));
         if (this.undone) { Gfx.line(x + 8, y + 2, x + 4, y + 12, shade(col, -0.4)); return; }
         Gfx.circle(x + 8, y + 6, 6, col); Gfx.circle(x + 8, y + 6, 3, shade(col, 0.35)); Gfx.rect(x + 4, y + 4, 8, 1, shade(col, -0.4));
         if ((G.t >> 4) % 2) Gfx.rect(x + 7, y - 2, 2, 2, '#ffffff');
@@ -508,7 +510,16 @@ AREAS.greatspool.tick = a => GreatSpool.tick(a);
 AREAS.greatspool.ents.push({ k: 'warp', x: 49, y: 42, to: 'hollow', tx2: 95, ty2: 60, face: 'down', room: '2,3' }, { k: 'deco', x: 49, y: 42, look: 'stairs_up', solid: false, baseY: -100, room: '2,3' });
 
 function initGreatSpool() {
-    ART.spoolpost = paintSprite(96, 24, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); const cols = ['#e8463c', '#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8']; R('#2a2440', 0, 0, 96, 24); for (let i = 0; i < 22; i++) R(cols[i % 6], 2, 1 + i, 92, 1); });
+    /* the foot of the Great Spool: a drum wound with every colour, round (shaded darker toward its sides, a gleam down
+       one side), rising out of sight, standing in a great wooden flange */
+    ART.spoolpost = paintSprite(96, 40, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x), cols = ['#e8463c', '#3fc1b5', '#e0913a', '#4f9be0', '#e8c04a', '#b48ce8', '#d6304e', '#8fd46a'];
+        for (let yy = 0; yy < 34; yy++) for (let xx = 5; xx < 91; xx++) {
+            const u = (xx - 48) / 43, k = Math.sqrt(Math.max(0, 1 - u * u)), c = cols[(Math.floor(yy / 2) + (xx % 9 === 0 ? 1 : 0)) % cols.length];
+            x.fillStyle = shade(c, -0.6 + 0.62 * k + (Math.abs(u + 0.4) < 0.07 ? 0.3 : 0)); x.fillRect(xx, yy, 1, 1);
+        }
+        R('#4a301e', 0, 32, 96, 8); R('#7a4e32', 2, 32, 92, 3); R('#a8744c', 4, 32, 88, 1); R('#2a1a10', 1, 39, 94, 1);
+    });
     SPR.spoolpost = ART.spoolpost;
 }
 CONTENT_INIT.push(initGreatSpool);
