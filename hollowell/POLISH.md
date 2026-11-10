@@ -184,7 +184,15 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   to count group B's and the town's new finds; the satchel past 24 things (its description can overlap the footer:
   make it fit for good); tests/review_opt.test.mjs "new 1/2" still looks for the Loom's old brW1; the Loomwood reads
   very pale (check in the picture reviews); the docs' Heart Patch count (about 41 now; the design said 16).
-- Running: the difficulty curve round 2 (Houses 5-8), the town between Houses, the bosses and combat, portraits.
+- Done too: the difficulty curve, round 2 (Houses 5-8): the Drying Loft 2->4 (a sleeper's empty place is the hook's
+  target; ringing it awake, the obvious move, drops you in the pit), the Winding Hall below 3->5 (the Bell's snap
+  planned against a counterweight's way home), the Practice Floor 3->4 (the Needle makes a plate a puppet's place),
+  the Bridge Room 3->4 (stitched past a strand of silk, a weight hangs on its thread over the drop; an old save inside
+  the Loom finishes by the new route); one more sign reworded. Curve now: H5 2 3 3 4 3 2 3 4 5; H6 1 3 2 2 3 5 4; H7 2 5
+  2 1 4 4 5; H8 2 3 2 3 4 5 4. Left: H6's early rooms (each can be skipped: two of three key rooms for two locks), H8's
+  Hanging Gallery (every harder version was a timing test, not an idea). Tests 117/117 for those Houses.
+- Running: the town between Houses, the bosses and combat, portraits; blind solvers next (fresh eyes on the late
+  puzzles and the new places, nobody told the answers).
 - David's direction of 10 November (vibes, not a list; the game stays its own thing, not a copy): puzzles simple in
   the first House and the land open then, harder House by House up to real ahas that combine tools; no hints unless
   asked (the opt-in nudges stay as they are; no new hint character), no answer signs; the road to later Houses takes
