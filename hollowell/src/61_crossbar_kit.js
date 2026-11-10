@@ -110,6 +110,7 @@ class Puppet extends GridThing {
     constructor(tx, ty, p = {}) {
         super('puppet', tx, ty, Object.assign({ weight: WEIGHT.medium, thread: THREAD.jory }, p));
         this.small = true; this.dir = DOWN; this.bob = 0;
+        this.noCut = true; this.noCutLine = 'Its strings are its own. The Shears slide off them.';
     }
     canPush(d) { return false; }
     /* walked by its strings: a tile in a direction (light things in the way get a nudge) */

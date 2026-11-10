@@ -72,12 +72,13 @@ SPAWN.rest = (tx, ty, p) => {
     pr.interact = () => {
         Script.run(function* () {
             const pl = G.player;
-            const i = yield* ask(null, 'A stump with a little red cross stitched into the bark. Tie off your thread here?', ['Tie off (save)', 'Not now']);
+            const cut = Progress.flag('cut_self');
+            const i = yield* ask(null, cut ? "A stump with a little red cross stitched into the bark. There's nothing to tie off any more. Remember this place?" : 'A stump with a little red cross stitched into the bark. Tie off your thread here?', [cut ? 'Remember it (save)' : 'Tie off (save)', 'Not now']);
             if (i === 0) {
                 pl.setMark(tx, ty + 1);
                 Inv.hp = Math.max(Inv.hp, Math.min(Inv.maxHp, Inv.hp + 2));
                 Save.write(); Sfx.play('save');
-                UI.toast('Tied off. (Saved.)');
+                UI.toast(Progress.flag('cut_self') ? 'Remembered. (Saved.)' : 'Tied off. (Saved.)');
                 Progress.set('rested');
             }
         });

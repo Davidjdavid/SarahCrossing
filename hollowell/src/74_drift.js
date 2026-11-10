@@ -50,14 +50,15 @@ PEOPLE_DEF.linnet = { name: 'Linnet', col: THREAD.linnet, look: { body: 'adult',
 
 defArea({
     id: 'drift', name: 'The Drift', family: 'outdoor', theme: 'drift', music: 'drift', blankMap: true,
-    rows: DRIFT_ROWS,
+    rows: DRIFT_ROWS, legend: OW_LEGEND,
     ents: [
         /* Linnet's cottage and garden */
         { k: 'building', x: 14, y: 12, w: 8, h: 5, door: null, style: 'cottage', variant: 'linnet' },
         { k: 'npc', who: 'linnet', x: 18, y: 21, face: 'down', id: 'linnet' },
-        { k: 'deco', x: 13, y: 22, look: 'driftbloom', solid: [[0, 0]], text: 'A tall flower the colour of a sky after rain. It grows nowhere in the Hollow.' },
+        { k: 'driftbloomseed', x: 13, y: 22 },
         { k: 'deco', x: 23, y: 23, look: 'driftbloom', solid: [[0, 0]] }, { k: 'deco', x: 16, y: 24, look: 'driftbloom', solid: [[0, 0]] },
-        { k: 'sign', x: 22, y: 17, text: "LINNET'S. (Knock. Or don't: I'm in the garden.)" },
+        { k: 'sign', x: 22, y: 17, text: "LINNET'S. (Knock. Or don't: I'm in the garden.)", if: '!unwound' },
+        { k: 'sign', x: 22, y: 17, text: "LINNET'S. (Gone home to Mum's. Back now and then. Take a flower.)", if: 'unwound' },
         /* a stray boulder by the stream (nothing out here comes back: push it in and it stays in) */
         { k: 'stray', x: 43, y: 16, id: 'drBoulder' }, { k: 'stray', x: 46, y: 21, id: 'drBoulder2' },
         { k: 'sign', x: 55, y: 17, text: 'An old marker stone, half sunk. Carved on it, worn nearly smooth: THE HOLLOW ENDS HERE.' },
@@ -81,8 +82,8 @@ const Drift = {
         if (Progress.flag('met_linnet')) { yield* say('linnet', cycle('linnet_after', ["Go on, Wren. I'll come. I promise I'll come.", "She can't pull you. Remember that. Nothing can, now, unless you let it.", "Tell Biscuit I said hello. Ha! He knows."])); return; }
         Progress.set('met_linnet'); Stats.count('met:linnet');
         yield* say('linnet', "Hello? ...Oh. Oh, look at you. You've got Tess's chin. You're Tess's girl. You're Wren.");
-        yield* say('linnet', "You've cut your own thread. I can see it: there's nothing on you. Nothing pulling at all. How does it feel?");
-        const i = yield* ask('linnet', "", ['Light.', 'Frightening.', 'Come home.']);
+        yield* say('linnet', "You've cut your own thread. I can see it: there's nothing on you. Nothing pulling at all.");
+        const i = yield* ask('linnet', "How does it feel?", ['Light.', 'Frightening.', 'Come home.']);
         yield* say('linnet', ["Light. Yes. It's the lightest thing in the world. You'll get used to it. Or you won't, and that's all right too.", "It is. It's frightening. Nobody's going to bring you back if you get lost. That's the whole of it. That's the price, and it's worth it.", "Home. ...I've thought about it every day for twenty-five years."][i]);
         yield* say('linnet', "I found the Hall of Names on my Wander, the same as you. I read her ledger. I took the old Shears out of the Loom and cut myself loose and walked out into the fog, and the fog let me go.");
         yield* say('linnet', "And I've been cutting from out here ever since. Little threads, at the edge, a few a year. Strays. I wanted her to see that the valley didn't come apart. That things could be lost and it would be all right. I wanted her to let go.");
@@ -109,7 +110,7 @@ TALK.linnet = function* (n) { yield* Drift.meet(n); };
         const p = G.player;
         if (p && Progress.flag('cut_self') && p.state === 'normal' && !Script.blocking() && p.tx <= 65 && a.kind(p.tx, p.ty).fog && !World.going) {
             World.go('drift', 58, clamp(p.ty, 3, 36), { dir: LEFT, fade: true });
-            if (!Progress.flag('drift_first')) { Progress.set('drift_first'); G.pendingToast = 'Through the fog, the threads in it parting round you like a bead curtain, and out.'; }
+            if (!Progress.flag('drift_first')) { Progress.set('drift_first'); G.pendingToast = 'Through the fog, the threads in it parting round you like a bead curtain, and out.'; if (!Progress.flag('met_linnet')) Progress.setGoal('Somewhere out here, west across the stream, a cottage with a garden, and someone in it.'); }
         }
     };
 }
@@ -123,7 +124,9 @@ Shears.onSelfCut = function* () {
     const fall0 = Player.prototype.updateFall;
     Player.prototype.updateFall = function () {
         if (Progress.flag('cut_self') && this.stateT >= 26 && !(Inv.bedroll && Inv.bedroll.area === this.area.id)) {
-            const [lx, ly] = this.landingSpot(this.tx, this.ty);
+            /* out on the side you went in from, if there's ground there */
+            const bx = this.tx - DX[this.dir], by = this.ty - DY[this.dir], back = this.landingSpot(bx, by);
+            const [lx, ly] = back[0] === bx && back[1] === by ? back : this.landingSpot(this.tx, this.ty);
             this.x = lx * T + 8; this.y = ly * T + 10; this.state = 'normal'; this.inv = 40;
             Fx.dust(this.x, this.y); Sfx.play('land');
             return;
@@ -132,7 +135,7 @@ Shears.onSelfCut = function* () {
     };
     const hurt0 = Player.prototype.hurt;
     Player.prototype.hurt = function (n, fx, fy) {
-        if (Progress.flag('cut_self')) { const hp = Inv.hp; hurt0.call(this, n, fx, fy); Inv.hp = hp; return; }
+        if (Progress.flag('cut_self')) { Inv.hp = Inv.maxHp; hurt0.call(this, n, fx, fy); Inv.hp = Inv.maxHp; return; }
         return hurt0.call(this, n, fx, fy);
     };
 }
@@ -162,3 +165,35 @@ function initDrift() {
     ART.driftbloom = paintSprite(16, 24, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#4a8a3a', 7, 8, 2, 16); R('#6ab84a', 4, 14, 4, 2); R('#6ab84a', 9, 18, 4, 2); R('#9ad0f0', 4, 2, 8, 6); R('#c8e8fa', 5, 1, 6, 2); R('#f7e08a', 7, 4, 2, 2); });
 }
 CONTENT_INIT.push(initDrift);
+
+/* the Drift's woods: every 2x2 of forest is a tree, as in the Hollow */
+for (let y = 0; y < DRIFT_ROWS.length - 1; y += 2) for (let x = (y / 2) % 2; x < DRIFT_ROWS[0].length - 1; x += 2) {
+    const R = DRIFT_ROWS;
+    if (R[y][x] === 'Y' && R[y + 1][x] === 'Y' && R[y][x + 1] === 'Y' && R[y + 1][x + 1] === 'Y') AREAS.drift.ents.push({ k: 'tree', x, y, look: ['birch', 'tree', 'tree2'][Math.floor(hash2(x, y, 7) * 3)], deco: true });
+}
+/* a Drift-bloom gone to seed by Linnet's gate: one seed (S11), for anybody who never got one from the fog */
+SPAWN.driftbloomseed = (tx, ty) => {
+    const pr = SPAWN.deco(tx, ty, { look: 'driftbloom', solid: [[0, 0]] });
+    pr.interact = () => {
+        Script.run(function* () {
+            if (Progress.flag('s11') || Progress.flag('seed_planted') || Inv.items.driftseed) { yield* say(null, 'A tall flower the colour of a sky after rain. It grows nowhere in the Hollow.'); return; }
+            Progress.set('s11'); Stats.count('secret:driftseed');
+            yield* say(null, 'A Drift-bloom gone to seed. A seed head comes away in your hand, warm, as if it wanted to.');
+            yield* Story.getItem('driftseed')();
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+
+/* (not a block of the map: just a tick the Hollow runs with its blocks') */
+OW.blocks.fogpass = {
+    tick: a => {
+        const p = G.player;
+        if (p && Progress.flag('cut_self') && p.state === 'normal' && !Script.blocking() && !World.going && a.kind(p.tx, p.ty).fog) {
+            World.go('drift', 58, clamp(p.ty < 40 ? p.ty : Math.round(p.ty / 4), 3, 36), { dir: LEFT, fade: true });
+            if (!Progress.flag('drift_first')) { Progress.set('drift_first'); G.pendingToast = 'Through the fog, the threads in it parting round you like a bead curtain, and out.'; if (!Progress.flag('met_linnet')) Progress.setGoal('Somewhere out here, west across the stream, a cottage with a garden, and someone in it.'); }
+        }
+    },
+};

@@ -37,7 +37,7 @@ function freeRoute(who) { const r = FREE_ROUTES[who]; return r ? r.map(([x, y, w
 const Freed = {
     count() { return Object.keys(Progress.flags).filter(k => k.startsWith('cut:') && k !== 'cut_self').length; },
     free(n) {
-        n.ret = null; n.cutFree = true;
+        n.ret = null; n.cutFree = true; n.dragged = false; n.dragTo = null; n.route = null; n.path = null;
         const r = n.area && n.area.id === 'hollow' ? freeRoute(n.who) : null;
         if (r) { n.route = r; n.ri = 0; n.routeWait = 20; n.free = true; }
     },

@@ -106,7 +106,7 @@ defHouse({
             name: "The Belfry's Knot",
             rows: ['####################', '#.........#........#', '#.........#........#', '#.........#........#', '#.........#........#', '...................#', '#.........#........#', '#.........#........#', '#.........#........#', '#.........#........#', '####################'],
             ents: [
-                { k: 'block', x: 10, y: 5, id: 'gsBBoulder', sleeper: true, tiedOff: true, startAt: [10, 5], trace: [[13, 8], [12, 8], [11, 8], [11, 7], [11, 6], [11, 5], [10, 5]], pushLine: "A boulder fast asleep in the doorway. It won't budge for anything but a bell." },
+                { k: 'block', x: 13, y: 8, id: 'gsBBoulder', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [10, 5], trace: [[13, 8], [12, 8], [11, 8], [11, 7], [11, 6], [11, 5], [10, 5]], noPush: true, pushLine: "A boulder fast asleep in the doorway. It won't budge for anything but a bell." },
                 { k: 'knotlock', x: 16, y: 3, house: 'belfry' },
             ],
         },
@@ -137,6 +137,8 @@ class KnotLock extends GridThing {
             const n = KNOT_HOUSES.filter(k => Progress.flag('untie:' + k)).length;
             yield* say(null, n < 6 ? `It comes undone in your fingers, and somewhere above, the Spool shudders and slows. (${n} of 6.)` : 'The sixth Knot comes undone. Overhead, the Great Spool groans, and stops turning, and for the first time in your life there is no sound of winding anywhere.');
             if (n >= 6) { Progress.set('spool_all'); Progress.setGoal('Up the Climb to the top of the Spool. Gran is there.'); }
+            else Progress.setGoal(`Untie the Knots of the Wander, in the rooms round the Spool's foot (${n} of 6).`);
+            Save.autosave();
         });
         return true;
     }
@@ -160,7 +162,7 @@ class GreatPost extends GridThing {
         Progress.set('great:' + this.house); Sfx.play('snip'); G.shake = 8; Fx.ring(this.tx * T + 8, this.ty * T, KNOT_COL[this.house]);
         const n = KNOT_HOUSES.filter(h => Progress.flag('great:' + h)).length;
         if (n >= 6) Script.run(GreatSpool.finale(), { name: 'finale' });
-        else UI.toast(`A great thread parts with a sound like a bell cracking. (${n} of 6.)`, 120);
+        else { UI.toast(`A great thread parts with a sound like a bell cracking. (${n} of 6.)`, 120); Save.autosave(); }
     }
     draw(cx, cy) {
         const x = this.tx * T - cx, y = this.ty * T - cy, col = KNOT_COL[this.house];
@@ -208,6 +210,11 @@ const GreatSpool = {
     /* stepping into the top room: Gran */
     tick(a) {
         const p = G.player, r = Cam.room;
+        if (!Progress.flag('spool_all') && !Progress.flag('gs_entered')) { Progress.set('gs_entered'); Progress.setGoal(`Untie the Knots of the Wander, in the rooms round the Spool's foot (${KNOT_HOUSES.filter(k => Progress.flag('untie:' + k)).length} of 6).`); }
+        if (r && r.key === '0,3' && p.ty >= r.y + 7 && !(Inv.bedroll && Inv.bedroll.area === a.id && Inv.bedroll.ty < r.y + 6)) {
+            this.below = (this.below || 0) + 1;
+            if (this.below === 900) UI.toast("No way back up from down here. (Pause, then Save: Back to the House's door.)", 240);
+        } else this.below = 0;
         if (!Progress.flag('spool_met') && r && r.name === 'The Top of the Spool' && p.state === 'normal' && !Script.blocking() && !Cam.busy) Script.run(this.meet());
         /* back after a save: Gran is still at the Spool; and if every great thread was cut, the end goes on */
         if (Progress.flag('spool_met') && !Progress.flag('unwound')) {
@@ -271,8 +278,10 @@ const GreatSpool = {
         });
         if (!Progress.flag('pull_seen') && G.player && G.player.area === a && Math.hypot(G.player.tx - 95, G.player.ty - 60) < 14) {
             Progress.set('pull_seen');
+            const nd = a.ents.filter(e => e.dragged).length;
             Script.run(function* () {
-                yield* say(null, "The town square. Everyone you know is shuffling towards the Well, step by step, threads streaming from them down into it. Their feet don't want to; their threads do.");
+                if (nd) yield* say(null, "The town square. " + (nd > 6 ? 'Everyone you know is' : 'The few with threads still on them are') + " shuffling towards the Well, step by step, threads streaming from them down into it. Their feet don't want to; their threads do.");
+                else yield* say(null, "The town square. Everyone you cut free is standing about the Well, watching. Threads are pouring into it from every direction: from the hills, the river, the fields, every marked thing in the valley. Nobody here is being pulled. You saw to that.");
                 yield* say(null, "The Well's cap is gone. Threads pour into the dark like water going down a drain.");
                 Progress.setGoal('Down the Well, to the Great Spool.');
             });
@@ -281,7 +290,7 @@ const GreatSpool = {
     /* while the Pull goes on, the dragged are drawn with their threads streaming to the Well */
     const draw0 = NPC.prototype.draw;
     NPC.prototype.draw = function (cx, cy) {
-        if (this.dragged && Progress.flag('great_pull') && !Progress.flag('unwound') && this.area && this.area.id === 'hollow') {
+        if (this.dragged && !this.cutFree && Progress.flag('great_pull') && !Progress.flag('unwound') && this.area && this.area.id === 'hollow') {
             const col = (PEOPLE_DEF[this.who] && PEOPLE_DEF[this.who].col) || THREAD.town;
             Gfx.alpha(0.6); Gfx.line(this.px + 8 - cx, this.py + 6 - cy, 95 * T + 8 - cx, 59 * T - cy, col); Gfx.alpha(1);
         }
@@ -291,8 +300,12 @@ const GreatSpool = {
     const talk0 = Story.talk;
     Story.talk = function (npc) {
         if (Progress.flag('great_pull') && !Progress.flag('unwound') && npc.area && npc.area.id === 'hollow') {
-            if (npc.dragged) return function* () { yield* say(npc.who, ["I can't... stop... walking. Wren? Is that you?", "My feet won't listen. It's the Well. It wants us.", "Go on, love. Down the Well. Don't mind us."][Math.floor(G.rng() * 3)]); };
             if (Progress.flag('cut:' + npc.who)) return function* () { yield* say(npc.who, "We're all right! Nothing's got hold of us! Go on, Wren!"); };
+            if (npc.dragged) return function* () { yield* say(npc.who, ["I can't... stop... walking. Wren? Is that you?", "My feet won't listen. It's the Well. It wants us.", "Go on, love. Down the Well. Don't mind us."][Math.floor(G.rng() * 3)]); };
+        }
+        /* everyone else with a thread, wherever they are, is holding on to something */
+        if (Progress.flag('great_pull') && !Progress.flag('unwound') && !Progress.flag('cut:' + npc.who) && npc.who !== 'gran' && npc.who !== 'linnet' && PEOPLE_DEF[npc.who]) {
+            return function* () { yield* say(npc.who, ["It's pulling. Toward the town, toward the Well. I've got my arm round the post, love, I'm all right. Go on.", "Can you feel it? No. No, you can't, can you. Go on, then. Go and stop it."][Math.floor(G.rng() * 2)]); };
         }
         return talk0.call(this, npc);
     };
@@ -327,3 +340,22 @@ function initGreatSpool() {
     SPR.spoolpost = ART.spoolpost;
 }
 CONTENT_INIT.push(initGreatSpool);
+
+/* Gran at the Spool: talking to her, before it's over */
+{
+    const talk0 = Story.talk;
+    Story.talk = function (npc) {
+        if (npc.who === 'gran' && npc.area && npc.area.id === 'greatspool' && !Progress.flag('unwound')) return function* () { yield* say('gran', cycle('gran_spool', ["Go home, love. Please. Go home and let me hold on.", "Twenty-five years I've held on. I can't stop now. If I stop, they'll all go.", "Don't look at me like that. You've your mother's look. And hers."])); };
+        return talk0.call(this, npc);
+    };
+}
+/* while the Pull goes on, nobody with a thread is indoors or down below: they're all out at the Well, or holding on */
+{
+    const build0 = World.build;
+    World.build = function (id) {
+        const a = build0.call(this, id);
+        if (Progress.flag('great_pull') && !Progress.flag('unwound') && (a.family === 'interior' || id === 'underside'))
+            for (const e of a.ents.slice()) if (e.kind === 'npc' && PEOPLE_DEF[e.who] && !Progress.flag('cut:' + e.who) && e.who !== 'gran') a.remove(e);
+        return a;
+    };
+}

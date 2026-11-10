@@ -122,6 +122,24 @@
 
 - 2026-11-10: the late secrets (`tests/secrets2.test.mjs`, 6): S01, S03, S07, S08, S09, S10, S14, S25, S31.
 
+- 2026-11-10: fresh-eyes review of the final act: 18 findings. Fixed: cutting a sleeping thing left it asleep with no
+  thread for the Bell to wake (the Belfry Knot's boulder: the end became impossible; the Heights' cave rock: a Heart
+  Patch lost); a cut thing is now an awake, pushable stray. A cut puppet could be stranded out of reach (puppets keep
+  their strings). With her own thread cut Wren could still faint and be pulled home (hearts stay full; a hurt only
+  knocks her about). The Drift had no trees (it has the Hollow's woods now, so its stream must be crossed with a stray
+  boulder) and climbing out of a fall could put her on the far bank (she comes out on the side she went in from).
+  Gran at the Spool spoke an Act II line and could be "cut"; Linnet could be "cut" (neither now). Cutting someone in the
+  Pull didn't free them; the Pull's narration said everyone was pulled when nobody was; folk indoors and the Makers
+  below carried on as normal (the narration counts; interiors and the Underside are empty meanwhile; anyone holding on
+  elsewhere says so). The Belfry Knot's sleeper had the doorway as its home (it's round the corner now). A hint for
+  anyone down the Slumberhouse ledge with no Bedroll. Lines after the end only applied outdoors (everywhere now, and
+  for nine more people); Gran's cellar after. Autosave after each Knot and each great thread; a goal that counts the
+  Knots; the Drift's goal. S11's seed from Linnet's garden for anyone already cut; the Well's stones readable in the
+  Pull (S35). The bracelet handed over. Rest stumps after the cut "remember" rather than tie off. Any fog lets a
+  threadless Wren through to the Drift. The changed title is per save, not per browser. Linnet's question has its
+  text. 7 regression tests (`tests/review_end.test.mjs`). Still to do from it: the Great Spool is too thin for a
+  finale (item 9); some UI leftovers (hearts in the Satchel, the key counter in keyless Houses).
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 

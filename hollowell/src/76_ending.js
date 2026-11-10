@@ -27,12 +27,11 @@ const Ending = {
         yield* say(null, 'Over the north woods the fog has thinned to nothing but a morning mist, and through it, there is a road.');
         const seed = Progress.flag('seed_planted');
         yield* say(null, "In Gran's garden, Gran and Linnet sit on the bench together, not saying much. Biscuit sits between them, purring like a winch." + (seed ? ' By the gate, the seed you brought back from past the fog has opened: a tall flower the colour of a sky after rain.' : ''));
-        if (Inv.items.bracelet) yield* say(null, "Linnet gives Gran a bracelet, plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to.");
+        if (Inv.items.bracelet) { yield* say(null, "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
         if (Progress.flag('s30')) yield* say(null, "On Gran's kitchen dresser, propped against the teapot: Tuck's drawing of you, in every colour he had.");
         yield* say(null, "And a week later, somebody re-carves the Well.");
         yield* fadeOut(60);
         yield* Ending.credits();
-        localSet('hollowell-ended', '1');
         Progress.setGoal('The valley is yours. Carry on.');
         World.enter('hollow', 95, 63, { dir: DOWN });
         G.hideHud = false;
@@ -90,7 +89,14 @@ const MOTTO = [
         if (p.id === 'well') {
             const i0 = pr.interact;
             pr.interact = () => {
-                if (Progress.flag('great_pull') && !Progress.flag('unwound')) return i0();
+                if (Progress.flag('great_pull') && !Progress.flag('unwound')) {
+                    Script.run(function* () {
+                        const i = yield* ask(null, "The Well's cap is gone. Every thread in the valley pours down into the dark.", ['Down the Well', 'Read the stones', 'Not yet']);
+                        if (i === 0) World.go('greatspool', GREAT_ENTRY.x, GREAT_ENTRY.y, { dir: UP, fade: true });
+                        if (i === 1) { yield* say(null, MOTTO[2][2]); Progress.set('motto:act3'); }
+                    });
+                    return true;
+                }
                 const m = MOTTO.find(([, when]) => when());
                 Script.run(function* () {
                     yield* say(null, m[2]);
@@ -147,10 +153,11 @@ OW.blocks['1,1'].ents.push({ k: 'gardenplot', x: 9, y: 11 });
 /* the title, once the Wander's done: no mist, no thread in the Well, and Carry on */
 {
     const items0 = Title.items;
-    Title.items = function () { const it = items0.call(this); return localGet('hollowell-ended') ? it.map(s => s === 'Continue' ? 'Carry on' : s) : it; };
+    Title.ended = function () { return (this.slots || []).some(s => s.s && s.s.progress && s.s.progress.flags && s.s.progress.flags.unwound); };
+    Title.items = function () { const it = items0.call(this); return this.ended() ? it.map(s => s === 'Continue' ? 'Carry on' : s) : it; };
     const upd0 = Title.update;
     Title.update = function () {
-        if (localGet('hollowell-ended') && this.mode === 'main' && (Input.pressed('act') || Input.pressed('menu'))) {
+        if (this.ended() && this.mode === 'main' && (Input.pressed('act') || Input.pressed('menu'))) {
             const c = this.items()[this.sel];
             if (c === 'Carry on') { Sfx.play('select'); this.mode = 'slots'; this.slotSel = 0; this.slotAction = 'load'; return; }
         }
@@ -158,7 +165,7 @@ OW.blocks['1,1'].ents.push({ k: 'gardenplot', x: 9, y: 11 });
     };
     const art0 = TitleArt.draw;
     TitleArt.draw = function (t) {
-        if (!localGet('hollowell-ended')) return art0.call(this, t);
+        if (!Title.ended()) return art0.call(this, t);
         for (let y = 0; y < H; y++) Gfx.rect(0, y, W, 1, mix('#8fd0f4', '#fff0c8', y / H));
         const hill = (base, amp, col, seed) => { for (let x = 0; x < W; x++) { const h = base + Math.sin(x / 40 + seed) * amp + Math.sin(x / 17 + seed * 2) * amp * 0.3; Gfx.rect(x, h, 1, H - h, col); } };
         hill(70, 10, '#b8d8b8', 1); hill(88, 8, '#98c888', 2); hill(104, 6, '#84bc70', 3); hill(122, 4, '#74b05c', 4);
@@ -207,6 +214,15 @@ const AFTER_LINES = {
     burr: ["No post to stand at. I keep going back to it out of habit, and then I go somewhere else.", "Move along! Anywhere you like! Ha!"],
     tuck: ["I drew a map of EVERYWHERE. It's mostly the bakery.", "I'm going to be a Maker AND a Wanderer. Both. At once."],
     rosa: ["A cart came through from past the fog and bought every loaf I had. Every one!", "Bread for strangers. Who knew it'd taste better?"],
+    annie: ["Broke a pot this morning. It stayed broken. I made a mosaic out of it. Best thing I've ever made.", "The canyon's the same as ever. I'm not. Funny, that."],
+    tal: ["Things break now and stay broken, so you mend them. I'd forgotten mending.", "Mind my tools. I left them where I liked, and they stayed there."],
+    pip: ["The sheep wander off now! I go and find them. It takes ALL DAY. It's brilliant.", "Baa. Sorry. Still a habit."],
+    fen: ["Cut a field of barley yesterday. It's still cut. I'll have to plant it again. Imagine.", "The scarecrow fell over in the night. I left him. He looked comfy."],
+    wick: ["The fish don't swim home any more. They swim wherever. So do I!", "I went down the river past the falls and nobody came to fetch me. I came back for tea."],
+    hettie: ["The giant's walked off over the hills. Left a dent in the woods the size of a house. I miss him.", "The old roots don't creak home at night now. It's very quiet in Hushwood."],
+    rook: ["My crystal ball shows... the future. Isn't that something? It never used to. It used to show the same afternoon.", "The fair's going on tour. I've told everyone's fortune and they're all different now."],
+    pell: ["The carousel horses walked off into the fields. We'll get them back. Or we won't. The fair'll be different.", "Roll up! Roll up! Nobody has to. That's the beauty of it."],
+    brindle: ["The wind up here blows things away now, and they stay blown. I've lost three hats. Wonderful.", "The bells ring for no reason now. Your mum's doing, mostly."],
     thimble: ["I'm off to a market two valleys over. I've packed forty buttons. In case.", "I lost a button yesterday and I didn't even mind."],
     seam: ["Your travelling coat's nearly done. Room in the pockets for anything you find out there.", "Every seam in this town was straight. I'm trying a crooked one. For fun."],
     mabel: ["I'm giving the strays away. To anyone who wants them. They can go where they like too.", "Every one with an L. She was trying to tell us, all those years."],
@@ -217,10 +233,19 @@ const AFTER_LINES = {
 {
     const talk0 = Story.talk;
     Story.talk = function (npc) {
-        if (Progress.flag('unwound') && npc.area && npc.area.id === 'hollow' && AFTER_LINES[npc.who]) {
+        if (Progress.flag('unwound') && AFTER_LINES[npc.who]) {
             const L = AFTER_LINES[npc.who];
             return function* () { yield* say(npc.who, cycle('after_' + npc.who, L)); };
         }
         return talk0.call(this, npc);
+    };
+}
+
+/* the cellar door, after */
+{
+    const c0 = Story.cellarDoor;
+    Story.cellarDoor = function* () {
+        if (Progress.flag('unwound')) { yield* say(null, "The cellar door, standing open. Down the steps, the Well's winch, at rest, with a cushion on it. Gran comes down to sit here sometimes, she says, for the quiet."); return; }
+        return yield* c0();
     };
 }

@@ -26,6 +26,9 @@ test('the fog: your own thread cut, through into the Drift; Linnet; and home on 
     assert.equal(HW.Inv.hp, hp, 'nothing left to unravel');
     HW.hold('left'); until(HW, () => HW.G.map.id === 'drift', 200); HW.release(); HW.step(40); HW.skipTalk();
     assert.equal(HW.G.map.id, 'drift', 'out the other side');
+    /* the stream: a stray boulder pushed into it, and over */
+    walk(HW, 44, 16, 30000); HW.push('left', 3); HW.step(20);
+    assert.ok(!HW.G.map.kind(40, 16).water, 'the stream filled');
     walk(HW, 18, 22, 30000); act(HW, 'up'); HW.skipTalk();
     assert.ok(HW.Progress.flag('met_linnet') && HW.Progress.flag('great_pull'), 'Linnet, and the Pull');
     walk(HW, 59, 19, 30000);

@@ -83,3 +83,5 @@
   its finale and a tool upgrade as its reward; tests for every room and screenshots.
 - Long notices wrap onto more lines instead of running off the screen.
 - Nine more secrets around the valley (one of them reached only with the new tool upgrade); tests.
+- Fixes from the final act's review (one way to make the ending impossible, a way to get stuck, several story and text
+  inconsistencies, saving inside the last dungeon); regression tests.

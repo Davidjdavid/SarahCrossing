@@ -30,6 +30,8 @@ const Shears = {
             this.hinted = true; return;
         }
         if (e.noCut) { UI.toast(e.noCutLine || "The Shears won't close on that."); return; }
+        if (e.kind === 'npc' && e.who === 'gran') { UI.toast("Gran holds every thread in the valley. Her own isn't one the Shears can reach.", 160); return; }
+        if (e.kind === 'npc' && e.who === 'linnet') { UI.toast("Nothing to cut. Linnet did that herself, twenty-five years ago.", 140); return; }
         if (e.kind === 'npc') return Script.run(Shears.cutPerson(e));
         this.cut(e);
     },
@@ -43,6 +45,8 @@ const Shears = {
         if (e.onCut) { e.onCut(); }
         else if (e.ret) {
             e.ret = null; e.stitched = false; e.cutFree = true;
+            /* (a cut thing is tied to nothing: a sleeper wakes a stray, and can be pushed) */
+            if (e.sleeper) { e.sleeper = false; e.tiedOff = false; e.noPush = false; }
             if (e.isGrid) { e.marked = false; if (e.mv) { e.mv = null; a.unplace(e, e.tx, e.ty); e.x = e.tx * T; e.y = e.ty * T; a.place(e, e.tx, e.ty); } }
             if (k) Progress.setAreaFlag(a.id, 'cut:' + k, e.tx + ',' + e.ty);
         }
@@ -71,7 +75,7 @@ const Shears = {
         if (i !== 0) return;
         yield* say(null, "You take the Shears to your own thread. It's thin. It's never seemed so thin. Snip.");
         Sfx.play('snip'); G.shake = 6;
-        Progress.set('cut_self'); Stats.count('cut:self');
+        Progress.set('cut_self'); Stats.count('cut:self'); Inv.hp = Inv.maxHp;
         yield* say(null, "Nothing pulls. For the first time in your life, nothing at all is pulling you anywhere.");
         if (Shears.onSelfCut) yield* Shears.onSelfCut();
     },
@@ -84,6 +88,7 @@ const Shears = {
             const v = af['cut:' + k]; if (!v) continue;
             if (e.onCut) { e.onCut(true); continue; }
             e.ret = null; e.cutFree = true; e.stitched = false;
+            if (e.sleeper) { e.sleeper = false; e.tiedOff = false; e.noPush = false; }
             if (e.isGrid) {
                 e.marked = false;
                 const [x, y] = String(v).split(',').map(Number);
