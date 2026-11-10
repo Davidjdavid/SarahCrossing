@@ -162,13 +162,16 @@ test('snapjaw: reared up, it hunts along the bank and forgets the water: a crate
     noErrors(HW);
 });
 
-test('snapjaw: staying on the edge beside it, Wren gets bitten', () => {
+test('snapjaw: rearing, the edge of the bank it can reach is lit while its jaws are open; staying there beside it, Wren gets bitten (a full heart)', () => {
     const HW = snapGame();
     const s = HW.ents('enemy').find(e => e.type === 'snapjaw'), hp = HW.Inv.hp;
     go(HW, 'snap', 11, 6);
     assert.ok(until(HW, () => s.state === 'rear', 600));
+    HW.step(2);
+    const lit = HW.G.map.ents.find(e => e.kind === 'hazard' && e.owner === s);
+    assert.ok(lit && lit.tiles.some(([x, y]) => x === HW.player().tx && y === HW.player().ty), 'the edge beside it lit, Wren on it');
     HW.step(60);
-    assert.ok(HW.Inv.hp < hp, 'snapped');
+    assert.equal(HW.Inv.hp, hp - 2, 'snapped');
 });
 
 test('keys: the way to the Paddle is never locked, so no order of unlocking strands you', () => {
@@ -271,9 +274,11 @@ test('two wheels: left alone, the raft heads home before the crate gets there', 
     assert.equal(HW.Progress.flag('millrace_twoWheels'), false);
 });
 
-/* the Millpond: Old Grindle in three rounds (the sluice turns the races between them) */
-function pondGame() {
+/* the Millpond: Old Grindle in three rounds (the sluice turns the races between them), its blows going all the while
+   (they land but don't hurt in the rounds' tests: the dodging is checked on its own below) */
+function pondGame(god = true) {
     const HW = game(['paddle']);
+    HW.G.cheats.god = god;
     HW.Inv.patterns.push('mill');
     HW.warp('millrace', ...at('pond', 9, 9)); HW.step(30); HW.skipTalk(); HW.step(5);
     return HW;
@@ -344,6 +349,7 @@ test('the millpond: round 2, the races run the other way: a barrel pushed in dri
 test('the millpond: round 2, riding the ferry up, Wren is snapped off it into the pond (and it eats the raft)', () => {
     const HW = pondGame();
     pondRound1(HW);
+    HW.G.cheats.god = false;
     const g = grindle(HW), r = thing(HW, 'gRaft'), hp = HW.Inv.hp;
     go(HW, 'pond', 9, 8);
     board(HW, r, 'pond', 9, 7, 'up', 600);
@@ -425,8 +431,69 @@ test('the millpond: it spits at Wren on the bank, never while she is out on the 
     stepOff(HW, 'down'); go(HW, 'pond', 3, 8);
     assert.ok(until(HW, () => g.spits.length > 0, 400), 'spat at her on the bank');
 });
+/* its blows, each with its tell, each dodged (or not) */
+function blowAt(HW, g, kind, max = 900) {
+    for (let i = 0; i < max; i++) { if (g.blow && g.blow.kind === kind && g.blow.t === 1) return g.blow; HW.step(1); }
+    return null;
+}
+test("the millpond: Grindle's spit (it rears back, cheeks aglow): a step aside and it flies past; stood still, hit", () => {
+    for (const dodge of [true, false]) {
+        const HW = pondGame(false);
+        const g = grindle(HW);
+        go(HW, 'pond', 4, 8);
+        const b = blowAt(HW, g, 'spit');
+        assert.ok(b && b.tell >= 28, 'a spit, with its tell');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('right'); HW.step(b.tell + 30); HW.release(); }
+        else HW.step(b.tell + 80);
+        HW.step(40);
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'flew past');
+        else assert.ok(HW.Inv.hp < hp, 'hit');
+        noErrors(HW);
+    }
+});
+test("the millpond: from round 2 it slaps the pond: the bank's edge near Wren lit white, then the wave comes over it (a full heart); a step back from the water and it misses", () => {
+    for (const dodge of [true, false]) {
+        const HW = pondGame();
+        pondRound1(HW);
+        HW.G.cheats.god = false;
+        const g = grindle(HW);
+        go(HW, 'pond', 4, 8);
+        const b = blowAt(HW, g, 'wash');
+        assert.ok(b, 'a wash');
+        const lit = HW.G.map.ents.find(e => e.kind === 'hazard' && e.owner === g && e.dmg > 0);
+        assert.ok(lit && lit.covers(HW.player().x, HW.player().y), 'the edge she stands on lit');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('down'); HW.step(16); HW.release(); assert.ok(!lit.covers(HW.player().x, HW.player().y), 'stepped back'); }
+        HW.step(b.tell + 10);
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'the wave fell short');
+        else assert.equal(HW.Inv.hp, hp - 2, 'washed over');
+        noErrors(HW);
+    }
+});
+test("the millpond: clamped shut, it shoots rivets from its sprung plates (their lines lit); off the lines, and off their threads as they come home", () => {
+    for (const dodge of [true, false]) {
+        const HW = pondGame();
+        pondRound1(HW); pondRound2(HW);
+        HW.G.cheats.god = false;
+        const g = grindle(HW);
+        go(HW, 'pond', 15, 9);
+        const b = blowAt(HW, g, 'rivets', 1500);
+        assert.ok(b, 'rivets');
+        const hp = HW.Inv.hp;
+        const on = () => b.paths.some(q => q.some(([x, y]) => x === HW.player().tx && y === HW.player().ty));
+        assert.ok(on(), 'Wren on a lit line');
+        if (dodge) { const q = b.paths[1], away = q[q.length - 1][0] < HW.player().tx ? 'right' : 'left'; HW.hold(away); HW.step(20); HW.release(); assert.ok(!on(), 'off the lines'); }
+        const fl = () => HW.G.map.ents.filter(e => e.kind === 'flung' && e.owner === g);
+        assert.ok(until(HW, () => fl().length > 0, 100), 'shot');
+        assert.ok(until(HW, () => !fl().length, 300), 'home along their threads');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'missed both ways');
+        else assert.ok(HW.Inv.hp < hp, 'struck');
+        noErrors(HW);
+    }
+});
 test('the millpond: on a float at its mouth while it is hungry, it bites', () => {
-    const HW = pondGame();
+    const HW = pondGame(false);
     const g = grindle(HW), r = thing(HW, 'gRaft'), hp = HW.Inv.hp;
     go(HW, 'pond', 9, 8); board(HW, r, 'pond', 9, 7, 'up', 600);
     until(HW, () => isAt(r, 'pond', 9, 5), 400);

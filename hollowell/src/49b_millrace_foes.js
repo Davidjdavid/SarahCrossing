@@ -55,11 +55,13 @@ class Snapjaw extends Enemy {
                 if (this.st > 50 && !this.floatNear()) { this.state = 'swim'; this.st = 0; this.hidden = false; }
                 break;
             case 'rear': {
-                /* up out of the race, jaws open (a clear moment to step back), then the snap */
+                /* up out of the race, jaws open (a clear moment to step back), then the snap: its one dangerous move, a
+                   full heart (the bank's edge it can reach lit while its jaws are open) */
                 const beside = p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 16;
+                if (this.st === 1) { const ty = this.ty; Hazard.tiles(this, [[this.hx - 1, ty - 1], [this.hx - 1, ty], [this.hx - 1, ty + 1]].filter(([x, y]) => !this.area.kind(x, y).solid), { tell: SJ.bite, dmg: 0, live: 0, col: '#e8463c' }); }
                 if (this.st === SJ.bite) {
                     Sfx.play('splash'); Fx.splash(this.x - 10, this.y - 4);
-                    if (beside) p.hurt(1, this.x, this.y);
+                    if (beside) p.hurt(2, this.x, this.y);
                 }
                 /* then it stays up, hunting along the bank for her with its back to the race (anything the water brings
                    down now hits it square); back within reach, she gets another snap */
@@ -131,18 +133,23 @@ SPAWN.snapjaw = (x, y, p) => Progress.flag('millrace_snapjaw') ? new Ent('none')
    2. the side races run away from its mouth, and the ferry race runs right into it (an empty ferry fills it too);
    3. it clamps its jaw for good, and one race runs straight past its teeth (the raft's landing is still water now: it
       goes when it's pushed off): only the pieces of a pot get in.
-   It spits at Wren on the bank (out on the water, its jaws are the danger). */
+   On the bank its blows come in turn every few seconds (out on the water, its jaws are the danger), each with its tell
+   (TELL[3]): a spit (it rears back, its cheeks aglow: one blob, then two, then three); from the second round, a slap of
+   the pond that sends a wave over the bank's edge near Wren (the edge lit white first: step back from the water, a full
+   heart if not); clamped shut in the third, rivets shot from its sprung plates, which lie on their threads and come home
+   along them. Each round it's knocked into, a heart washes up. */
 const GRINDLE_FLOW = {
     1: [[5, 8, 4, RIGHT], [11, 14, 4, LEFT], [9, 9, 6, UP], [9, 9, 7, UP]],
     2: [[5, 7, 4, LEFT], [12, 14, 4, RIGHT], [9, 9, 5, UP], [9, 9, 6, UP], [9, 9, 7, UP]],
     3: [[5, 14, 4, RIGHT], [9, 9, 5, UP], [9, 9, 6, UP]],
 };
-const GR = { spit: { 1: 200, 2: 170, 3: 140 }, spitSpeed: { 1: 1.7, 2: 1.9, 3: 2.1 }, full: 900 };
+const GR = { spitSpeed: { 1: 1.7, 2: 1.9, 3: 2.1 }, full: 900, cool: { 1: 130, 2: 110, 3: 95 }, cycle: { 1: ['spit'], 2: ['spit', 'wash'], 3: ['spit', 'rivets', 'wash'] } };
 class Grindle extends GridThing {
     constructor(tx, ty, p = {}) {
         super('grindle', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p));
         this.hp = 3; this.phase = 1; this.state = 'sleep'; this.st = 0; this.flash = 0;
         this.spits = []; this.alive = true; this.footW = 2; this.tall = 40;    /* (its head and the sluice over it: what the words keep clear of) */
+        this.cool = 90; this.blow = null; this.blowN = 0;
         this.type = 'grindle';      /* (ENEMY.grindle: its full strength, so words on the screen keep clear of it all fight) */
     }
     onAdd(area) { area.place(this, this.tx, this.ty); area.place(this, this.tx + 1, this.ty); }
@@ -181,9 +188,10 @@ class Grindle extends GridThing {
             }
             return;
         }
-        this.updateSpits();
         if (Script.blocking()) return;
+        this.updateSpits();
         this.st++;
+        this.blows(p);
         switch (this.state) {
             case 'home': {
                 /* whatever floats to rest in its open mouth, it swallows; whoever's riding it is snapped off first */
@@ -194,8 +202,6 @@ class Grindle extends GridThing {
                     else this.gulp(o);
                     break;
                 }
-                if (this.state !== 'home') break;
-                if (this.st > GR.spit[this.phase] && this.ashore(p)) { this.spit(p); this.st = 0; }
                 break;
             }
             case 'chomp':
@@ -216,10 +222,42 @@ class Grindle extends GridThing {
                 /* sunk low and sulking till Wren is back on the bank; then it heaves at the sluice */
                 if (this.st > 20 && this.ashore(p)) this.turn();
                 break;
-            case 'shut':
-                if (this.st > GR.spit[3] && this.ashore(p)) { this.spit(p); this.st = 0; }
-                break;
         }
+    }
+    /* its blows, in turn, while Wren's on the bank and its mouth isn't full: a tell first, then the blow */
+    blows(p) {
+        /* (full from the second round on, its mouth's stuffed but its head's free: it slaps the pond instead of spitting) */
+        const full = this.state === 'full' && this.phase > 1, armed = this.state === 'home' || this.state === 'shut' || full, b = this.blow;
+        if (b) {
+            if (!armed) { this.blow = null; calmBlows(this); return; }
+            if (++b.t >= b.tell) { this.blow = null; this[b.kind](p, b); }
+            return;
+        }
+        if (!armed || !this.ashore(p) || --this.cool > 0) return;
+        const cyc = GR.cycle[this.phase], kind = full ? 'wash' : cyc[this.blowN++ % cyc.length], tell = tellFor(3, this.phase);
+        const nb = this.blow = { kind, t: 0, tell };
+        Sfx.play('warn');
+        this.cool = GR.cool[this.phase];
+        if (kind === 'wash') {
+            /* the bank's edge near her, where the wave will come over: lit white */
+            const a = this.area, r = this.pond, tiles = [];
+            for (let y = r.y + 1; y < r.y + r.h - 1; y++) for (let x = r.x + 1; x < r.x + r.w - 1; x++) {
+                if (Math.max(Math.abs(x - p.tx), Math.abs(y - p.ty)) > 3 || a.kind(x, y).water || a.kind(x, y).solid) continue;
+                if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => a.kind(x + dx, y + dy).water)) tiles.push([x, y]);
+            }
+            nb.tell += 8;
+            Hazard.tiles(this, tiles, { tell: nb.tell, dmg: 2, live: 8, fx: 'splash', col: '#bfe8fb', quiet: true, from: [p.x, p.y - 12] });
+        } else if (kind === 'rivets') {
+            /* its plates spring: two rivets will fly, one at her and one beside, along the lines lit */
+            const side = G.rng() < 0.5 ? -1 : 1, aims = [[p.tx, p.ty], [p.tx + side * 2, p.ty]];
+            nb.paths = aims.map(([x, y], i) => Flung.between([this.tx + i, this.ty], [x, y]));
+            for (const q of nb.paths) Hazard.tiles(this, q.slice(1), { tell: nb.tell, dmg: 0, live: 0, col: '#a8b0a8', quiet: true });
+        }
+    }
+    wash() { Sfx.play('boss'); G.shake = 8; Stats.count('boss:grindle:wash'); }
+    rivets(p, b) {
+        for (const q of b.paths) if (q.length > 1) this.area.add(new Flung(this, q, { pace: 2, back: 2, wait: 70, tell: 26, dmg: 1, col: '#a8b0a8', look: MillFoes.drawRivet }));
+        Sfx.play('hitthing'); Sfx.play('throw'); Stats.count('boss:grindle:rivets');
     }
     gulp(o) {
         this.area.unplace(o, o.tx, o.ty);
@@ -243,13 +281,16 @@ class Grindle extends GridThing {
         const s = this.area.ents.find(e => e.kind === 'sluice'); if (s) s.spin = 90;
         Sfx.play('rumble'); G.shake = 10;
         Stats.count('boss:grindle:turn');
+        bossHeart(this.area, G.player.x, G.player.y + 18);       /* (a heart washes up on the bank) */
+        this.cool = 100; this.blowN = 0;
         Script.run(MillFoes.turn(this));
     }
+    /* one blob at her, then two, then three, fanned */
     spit(p) {
-        const sx = this.tx * T + 16, sy = this.ty * T + 6;
-        const d = Math.hypot(p.x - sx, p.y - sy) || 1, sp = GR.spitSpeed[this.phase];
-        this.spits.push({ x: sx, y: sy, vx: (p.x - sx) / d * sp, vy: (p.y - sy) / d * sp, t: 0 });
-        Sfx.play('splash');
+        const sx = this.tx * T + 16, sy = this.ty * T + 6, n = this.phase, sp = GR.spitSpeed[this.phase];
+        const a0 = Math.atan2(p.y - sy, p.x - sx);
+        for (let i = 0; i < n; i++) { const a = a0 + (i - (n - 1) / 2) * 0.3; this.spits.push({ x: sx, y: sy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0 }); }
+        Sfx.play('splash'); Stats.count('boss:grindle:spit');
     }
     updateSpits() {
         const p = G.player;
@@ -272,6 +313,7 @@ class Grindle extends GridThing {
     hurt() {
         this.hp--; this.flash = 40; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
         Stats.count('boss:grindle:hit');
+        this.blow = null; calmBlows(this);
         if (this.hp <= 0) return this.defeat();
         this.state = 'hurt'; this.st = 0;
     }
@@ -287,12 +329,18 @@ class Grindle extends GridThing {
         for (const s of this.spits) { Gfx.circle(s.x - cx, s.y - cy, 3, '#a5dcf7'); Gfx.rect(s.x - cx - 1, s.y - cy - 2, 2, 2, '#ffffff'); }
         if (!this.alive) return;
         const x = this.tx * T - cx, y = this.ty * T - cy;
-        const low = this.state === 'full' || this.state === 'hurt' || this.state === 'sulk' ? 5 : this.state === 'turn' ? 3 : 0;
+        let low = this.state === 'full' || this.state === 'hurt' || this.state === 'sulk' ? 5 : this.state === 'turn' ? 3 : 0;
         const bob = this.state === 'sulk' ? 0 : Math.round(Math.sin(G.t / 20) * 1);
+        /* its tells: rearing back to spit; its head reared right up to slap the pond; its plates rattling before rivets */
+        const b = this.blow, k = b ? b.t / b.tell : 0, sh = b ? ((G.t >> 1) % 2 ? 1 : -1) : 0;
+        if (b) low -= Math.round((b.kind === 'wash' ? 6 : 3) * Math.min(1, k * 1.5));
         const look = this.state === 'chomp' && this.st > 12 ? 'grindle_open' : this.state === 'shut' ? 'grindle_shut' : this.open ? 'grindle_hungry' : 'grindle';
         const im = spr(look);
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        Gfx.img(img, x, y - 18 + low + bob);
+        Gfx.img(img, x + sh, y - 18 + low + bob);
+        if (b && b.kind === 'spit') Tells.glow(x + 16 + sh, y + 2 + low + bob, k, '#a5dcf7');
+        if (b && b.kind === 'rivets') for (const ex of [x + 3, x + 28]) if ((G.t >> 2) % 2) Gfx.rect(ex + sh, y - 4 + low + bob, 2, 2, '#fff6c0');
+        if (b) Tells.bang(x + 16, y - 32 + low);
         if (this.state === 'full' || this.state === 'hurt') Gfx.img(spr('grindle_heart'), x + 11, y - 16 + low + bob);
         if (this.state === 'shut') { Gfx.alpha(0.35 + 0.25 * Math.sin(G.t / 6)); Gfx.rect(x + 9, y + 3 + bob, 14, 3, '#e8463c'); Gfx.alpha(1); }
         Gfx.alpha(0.55); Gfx.rect(x - 2, y + 12, 36, 2, '#ffffff'); Gfx.alpha(1);
@@ -331,6 +379,8 @@ SPAWN.sluice = (x, y, p) => new Sluice(x, y, p);
 }
 
 const MillFoes = {
+    /* one of Old Grindle's rivets: an iron stud with a brass head */
+    drawRivet(x, y) { Gfx.rect(x - 2, y - 2, 5, 5, PAL.ink); Gfx.rect(x - 1, y - 1, 3, 3, '#a8b0a8'); Gfx.rect(x - 1, y - 1, 1, 1, '#e2b45a'); },
     *snapIntro(s) {
         yield 20;
         yield* say(null, 'Something long and green surfaces in the race, all teeth and scales, and slaps the water. The door grinds shut behind you.', { focus: s });

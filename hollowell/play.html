@@ -13033,11 +13033,13 @@ class Snapjaw extends Enemy {
                 if (this.st > 50 && !this.floatNear()) { this.state = 'swim'; this.st = 0; this.hidden = false; }
                 break;
             case 'rear': {
-                /* up out of the race, jaws open (a clear moment to step back), then the snap */
+                /* up out of the race, jaws open (a clear moment to step back), then the snap: its one dangerous move, a
+                   full heart (the bank's edge it can reach lit while its jaws are open) */
                 const beside = p.state === 'normal' && p.tx === this.hx - 1 && Math.abs(p.y - this.y) < 16;
+                if (this.st === 1) { const ty = this.ty; Hazard.tiles(this, [[this.hx - 1, ty - 1], [this.hx - 1, ty], [this.hx - 1, ty + 1]].filter(([x, y]) => !this.area.kind(x, y).solid), { tell: SJ.bite, dmg: 0, live: 0, col: '#e8463c' }); }
                 if (this.st === SJ.bite) {
                     Sfx.play('splash'); Fx.splash(this.x - 10, this.y - 4);
-                    if (beside) p.hurt(1, this.x, this.y);
+                    if (beside) p.hurt(2, this.x, this.y);
                 }
                 /* then it stays up, hunting along the bank for her with its back to the race (anything the water brings
                    down now hits it square); back within reach, she gets another snap */
@@ -13109,18 +13111,23 @@ SPAWN.snapjaw = (x, y, p) => Progress.flag('millrace_snapjaw') ? new Ent('none')
    2. the side races run away from its mouth, and the ferry race runs right into it (an empty ferry fills it too);
    3. it clamps its jaw for good, and one race runs straight past its teeth (the raft's landing is still water now: it
       goes when it's pushed off): only the pieces of a pot get in.
-   It spits at Wren on the bank (out on the water, its jaws are the danger). */
+   On the bank its blows come in turn every few seconds (out on the water, its jaws are the danger), each with its tell
+   (TELL[3]): a spit (it rears back, its cheeks aglow: one blob, then two, then three); from the second round, a slap of
+   the pond that sends a wave over the bank's edge near Wren (the edge lit white first: step back from the water, a full
+   heart if not); clamped shut in the third, rivets shot from its sprung plates, which lie on their threads and come home
+   along them. Each round it's knocked into, a heart washes up. */
 const GRINDLE_FLOW = {
     1: [[5, 8, 4, RIGHT], [11, 14, 4, LEFT], [9, 9, 6, UP], [9, 9, 7, UP]],
     2: [[5, 7, 4, LEFT], [12, 14, 4, RIGHT], [9, 9, 5, UP], [9, 9, 6, UP], [9, 9, 7, UP]],
     3: [[5, 14, 4, RIGHT], [9, 9, 5, UP], [9, 9, 6, UP]],
 };
-const GR = { spit: { 1: 200, 2: 170, 3: 140 }, spitSpeed: { 1: 1.7, 2: 1.9, 3: 2.1 }, full: 900 };
+const GR = { spitSpeed: { 1: 1.7, 2: 1.9, 3: 2.1 }, full: 900, cool: { 1: 130, 2: 110, 3: 95 }, cycle: { 1: ['spit'], 2: ['spit', 'wash'], 3: ['spit', 'rivets', 'wash'] } };
 class Grindle extends GridThing {
     constructor(tx, ty, p = {}) {
         super('grindle', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p));
         this.hp = 3; this.phase = 1; this.state = 'sleep'; this.st = 0; this.flash = 0;
         this.spits = []; this.alive = true; this.footW = 2; this.tall = 40;    /* (its head and the sluice over it: what the words keep clear of) */
+        this.cool = 90; this.blow = null; this.blowN = 0;
         this.type = 'grindle';      /* (ENEMY.grindle: its full strength, so words on the screen keep clear of it all fight) */
     }
     onAdd(area) { area.place(this, this.tx, this.ty); area.place(this, this.tx + 1, this.ty); }
@@ -13159,9 +13166,10 @@ class Grindle extends GridThing {
             }
             return;
         }
-        this.updateSpits();
         if (Script.blocking()) return;
+        this.updateSpits();
         this.st++;
+        this.blows(p);
         switch (this.state) {
             case 'home': {
                 /* whatever floats to rest in its open mouth, it swallows; whoever's riding it is snapped off first */
@@ -13172,8 +13180,6 @@ class Grindle extends GridThing {
                     else this.gulp(o);
                     break;
                 }
-                if (this.state !== 'home') break;
-                if (this.st > GR.spit[this.phase] && this.ashore(p)) { this.spit(p); this.st = 0; }
                 break;
             }
             case 'chomp':
@@ -13194,10 +13200,42 @@ class Grindle extends GridThing {
                 /* sunk low and sulking till Wren is back on the bank; then it heaves at the sluice */
                 if (this.st > 20 && this.ashore(p)) this.turn();
                 break;
-            case 'shut':
-                if (this.st > GR.spit[3] && this.ashore(p)) { this.spit(p); this.st = 0; }
-                break;
         }
+    }
+    /* its blows, in turn, while Wren's on the bank and its mouth isn't full: a tell first, then the blow */
+    blows(p) {
+        /* (full from the second round on, its mouth's stuffed but its head's free: it slaps the pond instead of spitting) */
+        const full = this.state === 'full' && this.phase > 1, armed = this.state === 'home' || this.state === 'shut' || full, b = this.blow;
+        if (b) {
+            if (!armed) { this.blow = null; calmBlows(this); return; }
+            if (++b.t >= b.tell) { this.blow = null; this[b.kind](p, b); }
+            return;
+        }
+        if (!armed || !this.ashore(p) || --this.cool > 0) return;
+        const cyc = GR.cycle[this.phase], kind = full ? 'wash' : cyc[this.blowN++ % cyc.length], tell = tellFor(3, this.phase);
+        const nb = this.blow = { kind, t: 0, tell };
+        Sfx.play('warn');
+        this.cool = GR.cool[this.phase];
+        if (kind === 'wash') {
+            /* the bank's edge near her, where the wave will come over: lit white */
+            const a = this.area, r = this.pond, tiles = [];
+            for (let y = r.y + 1; y < r.y + r.h - 1; y++) for (let x = r.x + 1; x < r.x + r.w - 1; x++) {
+                if (Math.max(Math.abs(x - p.tx), Math.abs(y - p.ty)) > 3 || a.kind(x, y).water || a.kind(x, y).solid) continue;
+                if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => a.kind(x + dx, y + dy).water)) tiles.push([x, y]);
+            }
+            nb.tell += 8;
+            Hazard.tiles(this, tiles, { tell: nb.tell, dmg: 2, live: 8, fx: 'splash', col: '#bfe8fb', quiet: true, from: [p.x, p.y - 12] });
+        } else if (kind === 'rivets') {
+            /* its plates spring: two rivets will fly, one at her and one beside, along the lines lit */
+            const side = G.rng() < 0.5 ? -1 : 1, aims = [[p.tx, p.ty], [p.tx + side * 2, p.ty]];
+            nb.paths = aims.map(([x, y], i) => Flung.between([this.tx + i, this.ty], [x, y]));
+            for (const q of nb.paths) Hazard.tiles(this, q.slice(1), { tell: nb.tell, dmg: 0, live: 0, col: '#a8b0a8', quiet: true });
+        }
+    }
+    wash() { Sfx.play('boss'); G.shake = 8; Stats.count('boss:grindle:wash'); }
+    rivets(p, b) {
+        for (const q of b.paths) if (q.length > 1) this.area.add(new Flung(this, q, { pace: 2, back: 2, wait: 70, tell: 26, dmg: 1, col: '#a8b0a8', look: MillFoes.drawRivet }));
+        Sfx.play('hitthing'); Sfx.play('throw'); Stats.count('boss:grindle:rivets');
     }
     gulp(o) {
         this.area.unplace(o, o.tx, o.ty);
@@ -13221,13 +13259,16 @@ class Grindle extends GridThing {
         const s = this.area.ents.find(e => e.kind === 'sluice'); if (s) s.spin = 90;
         Sfx.play('rumble'); G.shake = 10;
         Stats.count('boss:grindle:turn');
+        bossHeart(this.area, G.player.x, G.player.y + 18);       /* (a heart washes up on the bank) */
+        this.cool = 100; this.blowN = 0;
         Script.run(MillFoes.turn(this));
     }
+    /* one blob at her, then two, then three, fanned */
     spit(p) {
-        const sx = this.tx * T + 16, sy = this.ty * T + 6;
-        const d = Math.hypot(p.x - sx, p.y - sy) || 1, sp = GR.spitSpeed[this.phase];
-        this.spits.push({ x: sx, y: sy, vx: (p.x - sx) / d * sp, vy: (p.y - sy) / d * sp, t: 0 });
-        Sfx.play('splash');
+        const sx = this.tx * T + 16, sy = this.ty * T + 6, n = this.phase, sp = GR.spitSpeed[this.phase];
+        const a0 = Math.atan2(p.y - sy, p.x - sx);
+        for (let i = 0; i < n; i++) { const a = a0 + (i - (n - 1) / 2) * 0.3; this.spits.push({ x: sx, y: sy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0 }); }
+        Sfx.play('splash'); Stats.count('boss:grindle:spit');
     }
     updateSpits() {
         const p = G.player;
@@ -13250,6 +13291,7 @@ class Grindle extends GridThing {
     hurt() {
         this.hp--; this.flash = 40; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
         Stats.count('boss:grindle:hit');
+        this.blow = null; calmBlows(this);
         if (this.hp <= 0) return this.defeat();
         this.state = 'hurt'; this.st = 0;
     }
@@ -13265,12 +13307,18 @@ class Grindle extends GridThing {
         for (const s of this.spits) { Gfx.circle(s.x - cx, s.y - cy, 3, '#a5dcf7'); Gfx.rect(s.x - cx - 1, s.y - cy - 2, 2, 2, '#ffffff'); }
         if (!this.alive) return;
         const x = this.tx * T - cx, y = this.ty * T - cy;
-        const low = this.state === 'full' || this.state === 'hurt' || this.state === 'sulk' ? 5 : this.state === 'turn' ? 3 : 0;
+        let low = this.state === 'full' || this.state === 'hurt' || this.state === 'sulk' ? 5 : this.state === 'turn' ? 3 : 0;
         const bob = this.state === 'sulk' ? 0 : Math.round(Math.sin(G.t / 20) * 1);
+        /* its tells: rearing back to spit; its head reared right up to slap the pond; its plates rattling before rivets */
+        const b = this.blow, k = b ? b.t / b.tell : 0, sh = b ? ((G.t >> 1) % 2 ? 1 : -1) : 0;
+        if (b) low -= Math.round((b.kind === 'wash' ? 6 : 3) * Math.min(1, k * 1.5));
         const look = this.state === 'chomp' && this.st > 12 ? 'grindle_open' : this.state === 'shut' ? 'grindle_shut' : this.open ? 'grindle_hungry' : 'grindle';
         const im = spr(look);
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        Gfx.img(img, x, y - 18 + low + bob);
+        Gfx.img(img, x + sh, y - 18 + low + bob);
+        if (b && b.kind === 'spit') Tells.glow(x + 16 + sh, y + 2 + low + bob, k, '#a5dcf7');
+        if (b && b.kind === 'rivets') for (const ex of [x + 3, x + 28]) if ((G.t >> 2) % 2) Gfx.rect(ex + sh, y - 4 + low + bob, 2, 2, '#fff6c0');
+        if (b) Tells.bang(x + 16, y - 32 + low);
         if (this.state === 'full' || this.state === 'hurt') Gfx.img(spr('grindle_heart'), x + 11, y - 16 + low + bob);
         if (this.state === 'shut') { Gfx.alpha(0.35 + 0.25 * Math.sin(G.t / 6)); Gfx.rect(x + 9, y + 3 + bob, 14, 3, '#e8463c'); Gfx.alpha(1); }
         Gfx.alpha(0.55); Gfx.rect(x - 2, y + 12, 36, 2, '#ffffff'); Gfx.alpha(1);
@@ -13309,6 +13357,8 @@ SPAWN.sluice = (x, y, p) => new Sluice(x, y, p);
 }
 
 const MillFoes = {
+    /* one of Old Grindle's rivets: an iron stud with a brass head */
+    drawRivet(x, y) { Gfx.rect(x - 2, y - 2, 5, 5, PAL.ink); Gfx.rect(x - 1, y - 1, 3, 3, '#a8b0a8'); Gfx.rect(x - 1, y - 1, 1, 1, '#e2b45a'); },
     *snapIntro(s) {
         yield 20;
         yield* say(null, 'Something long and green surfaces in the race, all teeth and scales, and slaps the water. The door grinds shut behind you.', { focus: s });
@@ -13951,6 +14001,438 @@ const TownLooks = {
     B.tick = a => { if (tick0) tick0(a); TownLooks.tick(a); };
     B.onEnter = (a, o) => { if (enter0) enter0(a, o); TownLooks.enter(a, o); };
 }
+
+// ---- 51c_town_favours.js ----
+/* Small favours in town. Each is something that has been wrong in Hollowell for a while, there to be seen long before
+   there's anything to be done about it, and put right with the newest thing found and the way things go home. Nobody
+   says how; people only say what they'd like. Some lead on to the next: Thimble's twine flies the children's kite,
+   the children give away the only kind of thing a child can give (a stray), and Tuck has wanted one all his life.
+     1. The Guild's crates (the Gloves): two crates nose to nose in the lane by Thimble's, each on the other's way home.
+     2. The kite (the Hookline): caught in the tree by the Inn, and its way home runs back up through the branches.
+     3. Tuck and the odd marble: a stray, for the one boy in town who wants a thing that stays where he puts it.
+     4. Mabel's table of strays (the Recall Bell): one of them isn't a stray at all; it's asleep.
+     5. Jory's back room (the Crossbar): a parcel locked in, straining at the door toward Tuck's house.
+     6. Rosa's saucer (the Needle): the cream she puts out for Biscuit walks itself home before the cat comes.
+   The townsfolk's side of it is FAVOUR_TALK (called from their talk, src/51_town_talk.js and src/52_kidgame.js). */
+
+const FAV_OFF = [64, 40];                         /* the town's block in the Hollow */
+const hubAt = (x, y) => [x + FAV_OFF[0], y + FAV_OFF[1]];
+const Favours = {
+    /* someone has something to say about a favour: said, and true */
+    *talk(who, npc) { const f = FAVOUR_TALK[who]; return f ? !!(yield* f(npc)) : false; },
+    /* a line said once (and true), or false if it's been said */
+    *once(flag, who, text) { if (Progress.flag(flag)) return false; Progress.set(flag); yield* say(who, text); return true; },
+    buttons(n) { Inv.buttons += n; Sfx.play('button'); },
+};
+const FAVOUR_TALK = {};
+
+/* ---------------- 1. the Guild's crates, in the lane by Thimble's (the Gloves) ---------------- */
+/* Two crates of the Guild's string came off the carter's barrow in the lane between Thimble's and the fence. Each is on
+   the other's way home: the north one belongs at the south end and the south one at the north, and in a lane one wide
+   neither can pass. Push either and it only meets the other. Pulled out of line into the gap in the fence (only the
+   Gloves pull) and held there, one lets the other by; let go, it follows it home. */
+SPAWN.guildcrate = (x, y, p) => new Block(x, y, Object.assign({ style: 'wood', look: 'guild_crate', thread: THREAD.guild, stitchName: "the Guild's crate" }, p));
+OW.blocks['1,1'].ents.push(
+    { k: 'deco', x: 23, y: 27, look: 'fence_v', solid: [[0, 0]] },
+    { k: 'deco', x: 23, y: 29, look: 'fence_v', solid: [[0, 0]] },
+    { k: 'deco', x: 23, y: 30, look: 'fence_v', solid: [[0, 0]] },
+    { k: 'guildcrate', x: 22, y: 30, id: 'guildA', startAt: [22, 28], trace: [[22, 30], [22, 29], [22, 28]], if: '!fav_cratesHome' },
+    { k: 'guildcrate', x: 22, y: 27, id: 'guildB', startAt: [22, 29], trace: [[22, 27], [22, 28], [22, 29]], if: '!fav_cratesHome' },
+    { k: 'guildcrate', x: 22, y: 30, id: 'guildA', if: 'fav_cratesHome' },
+    { k: 'guildcrate', x: 22, y: 27, id: 'guildB', if: 'fav_cratesHome' },
+);
+FAVOUR_TALK.thimble = function* () {
+    if (Progress.flag('fav_cratesHome') && !Progress.flag('fav_crates')) {
+        Progress.set('fav_crates'); Stats.count('favour:crates');
+        yield* say('thimble', "My crates! Both home, and the lane clear as a whistle! How ever did you- no, don't tell me, I'd only fret. Here, thirty buttons for your trouble.");
+        Favours.buttons(30);
+        yield* say('thimble', "And a hank of the Guild's own twine. Strong as anything. Nobody's ever managed to snap it, and I've watched people try.");
+        yield* Story.getItem('twine')();
+        return true;
+    }
+    if (!Progress.flag('fav_cratesHome') && Progress.flag('met:thimble'))
+        return yield* Favours.once('fav_cratesTold', 'thimble', "Two crates of the Guild's string came off the carter's barrow in the lane by my shop, and there they've stuck. Nose to nose, each waiting for the other to go home first. Like a pair of old goats. I've been selling string off the end of the last reel.");
+    return false;
+};
+ITEMS.twine = { name: "The Guild's twine", kind: 'quest', desc: "A hank of the Guild's own twine, from Thimble. Strong as anything: nobody has ever managed to snap it." };
+
+/* ---------------- 2. the children's kite, caught in the tree by the Inn (the Hookline) ---------------- */
+/* Blown off its peg one windy day, it went up through the tree and caught in the branches, and its way home runs back
+   the way it came: up through the branches. Hooked down, it flies home after a moment and catches again. Carried back
+   over its own thread below the tree (a thread can't knot: where it crosses itself the loop drops out) its way home no
+   longer goes up there. (Or drop it in the river: anything that sinks is home at once.) Then the string: it snapped. */
+const KITE_HOME = [46, 18];
+const KITE_CANOPY = new Set([key2(...hubAt(46, 15)), key2(...hubAt(47, 15))]);
+class Kite extends Liftable {
+    constructor(tx, ty, p = {}) {
+        super('kite', tx, ty, p);
+        this.caught = !!p.caught; this.rustle = 0;
+        this.noNeedle = true; this.noCut = true; this.noCutLine = "It's the children's kite. You'd not cut it loose from them.";
+        this.stitchName = 'the kite';
+    }
+    isHeld() { return this.caught; }
+    get noGrip() { return this.caught; }
+    canPush(d) { return !this.caught && super.canPush(d); }
+    canBeShoved(d) { return !this.caught && super.canBeShoved(d); }
+    /* the stick or a throw: up in the branches it only rustles; down, it's knocked along like anything light */
+    hit(by, d) { if (this.caught) { this.rustle = 20; Sfx.play('hitthing'); return; } if (!this.mv && d !== undefined) this.push(d, 8); }
+    interact() {
+        if (!this.caught) return false;
+        Script.run(function* () { yield* say(null, "The children's kite: a red diamond with a ribbon tail, caught fast high up in the branches. Its thread runs down out of the tree and away to its peg, pulled tight. It's far too high to reach."); });
+        return true;
+    }
+    startMove(nx, ny, dur, returning) { this.caught = false; super.startMove(nx, ny, dur, returning); }
+    /* wherever it comes down among the branches, it catches again (and waits there, as anything held does) */
+    onLanded() { if (!this.carried && !this.caught && KITE_CANOPY.has(key2(this.tx, this.ty))) this.snag(); }
+    snag() {
+        this.caught = true; this.rustle = 24;
+        if (this.ret && this.ret.state !== 'home') { this.ret.state = 'away'; this.ret.snap = false; this.ret.timer = this.ret.patience; }
+        if (this.area === G.map) Sfx.play('hitthing');
+    }
+    onHome() { if (!Progress.flag('fav_kiteHome')) { Progress.set('fav_kiteHome'); UI.toast('The kite settles back on its peg, home at last.', 160); } }
+    tick() { if (this.rustle > 0) this.rustle--; }
+    get sortY() { return this.caught ? this.ty * T + 40 : this.py + 15; }
+    sprite() { return spr('kite'); }
+    draw(cx, cy) {
+        if (this.carried) return;
+        const im = spr('kite'), x = this.px - cx, y = this.py - cy;
+        if (this.caught) { const s = this.rustle > 0 && (G.t >> 1) % 2 ? 1 : 0; Gfx.img(im, x + 2 + s, y - 14, false); return; }
+        const home = this.ret && this.ret.state === 'home';
+        if (home) { Gfx.img(spr('kite_peg'), x + 6, y + 2); Gfx.img(im, x, y - 8); return; }
+        GridThing.prototype.draw.call(this, cx, cy);
+    }
+}
+SPAWN.kite = (x, y, p) => new Kite(x, y, p);
+OW.blocks['1,1'].ents.push(
+    { k: 'kite', x: KITE_HOME[0], y: KITE_HOME[1], id: 'kite', caught: true, startAt: [46, 15], trace: [[46, 18], [46, 17], [46, 16], [46, 15]], if: '!fav_kiteHome' },
+    { k: 'kite', x: KITE_HOME[0], y: KITE_HOME[1], id: 'kite', if: 'fav_kiteHome&!fav_kite' },
+    { k: 'kitefly', x: 34, y: 19, if: 'fav_kite' },
+);
+/* flying, on its string, over whoever's holding it (Nell) */
+SPAWN.kitefly = (tx, ty) => {
+    const e = new Ent('kitefly', { x: tx * T, y: ty * T });
+    e.update = function () { const n = this.area.ents.find(o => o.kind === 'npc' && o.who === 'nell'); this.nell = n; if (n) { this.x = n.px; this.y = n.py; } };
+    Object.defineProperty(e, 'sortY', { get() { return this.y + 200; } });
+    e.draw = function (cx, cy) {
+        const n = this.nell; if (!n || n.hidden) return;
+        const t = G.t / 40, hx = n.px - cx + 12, hy = n.py - cy + 2;
+        const kx = hx + 26 + Math.round(Math.sin(t) * 4), ky = hy - 58 + Math.round(Math.cos(t * 1.3) * 3);
+        /* the string sags a little between her hand and the kite */
+        const mx = (hx + kx) / 2 - 3, my = (hy + ky) / 2 + 6;
+        Gfx.alpha(0.85); Gfx.line(hx, hy, mx, my, '#efe4cc'); Gfx.line(mx, my, kx + 6, ky + 12, '#efe4cc'); Gfx.alpha(1);
+        Gfx.img(spr('kite'), kx - 2, ky);
+    };
+    return e;
+};
+ITEMS.marble = { name: 'Odd marble', kind: 'quest', desc: "A glass marble with a little L scratched into it. A stray: it never goes home, because it hasn't got one. The children found it by the fog." };
+/* the children: what they'd like, and the string */
+function* kiteString() {
+    const twine = Inv.items.twine, string = Inv.items.string;
+    if (!twine && !string) { yield* say('nell', "It's HOME! You got it down! ...Only the string snapped, when it blew away. A kite's no good without a string. We need string. Proper string."); return; }
+    const what = twine ? "the Guild's twine" : 'a ball of string';
+    yield* say('nell', "It's HOME! You got it down! ...Only the string snapped when it blew off. A kite's no good without string.");
+    const i = yield* ask(null, `Give Nell ${what}?`, ['Give it', 'Not now']);
+    if (i !== 0) { yield* say('nell', 'Aw.'); return; }
+    if (twine) delete Inv.items.twine; else if (--Inv.items.string <= 0) delete Inv.items.string;
+    Progress.set('fav_kite'); Stats.count('favour:kite');
+    yield* say('nell', twine ? "The Guild's twine! That's the good stuff! Otto, Bea, look, it won't EVER snap!" : "String! Real string! Otto, Bea, look!");
+    yield* say('bea', "We've got something for you. It's the only thing we've got that's really ours to give. Everything else goes home.");
+    yield* say('otto', "We found it by the fog. It doesn't go back anywhere. We think it's broken.");
+    yield* Story.getItem('marble')();
+    yield* say('nell', "And fifteen buttons. That's the whole club. Don't spend it on anything boring.");
+    Favours.buttons(15);
+}
+FAVOUR_TALK.nell = function* () {
+    if (Progress.flag('fav_kiteHome') && !Progress.flag('fav_kite')) { yield* kiteString(); return true; }
+    if (!Progress.flag('fav_kiteHome') && Progress.flag('ceremony'))
+        return yield* Favours.once('fav_kiteTold', 'nell', "My kite's stuck up the tree by the Inn. Since spring. It keeps TRYING to come home: look at its thread, all pulled tight. Trees don't let go.");
+    return false;
+};
+FAVOUR_TALK.otto = function* () { if (Progress.flag('fav_kiteHome') && !Progress.flag('fav_kite')) { yield* say('otto', "The kite's home! Nell's doing the talking. Nell always does the talking."); return true; } return false; };
+FAVOUR_TALK.bea = function* () {
+    if (Progress.flag('fav_kiteHome') && !Progress.flag('fav_kite')) { yield* say('bea', "Ask Nell. It's Nell's kite. I'm the audience."); return true; }
+    if (Progress.flag('fav_kite')) return yield* Favours.once('fav_kiteBea', 'bea', "It goes up and up and the string pulls it back. That's the best bit. Isn't it? That it comes back?");
+    return false;
+};
+
+/* ---------------- 3. Tuck, and a thing that stays where he puts it ---------------- */
+/* Everything in Hollowell goes back where it belongs, and everything Tuck puts down goes back where his mum put it
+   first. A stray goes nowhere. Given it, he puts it somewhere, and next time you come by it's somewhere else in town:
+   wherever he put it last. */
+FAVOUR_TALK.tuck = function* () {
+    if (Inv.items.marble && !Progress.flag('fav_marble')) {
+        yield* say('tuck', "What's that? Is that a STRAY? A real one? That doesn't go back anywhere?");
+        const i = yield* ask(null, 'Give Tuck the odd marble?', ['Give it', 'Not now']);
+        if (i !== 0) { yield* say('tuck', "That's all right. It's yours. Strays are whoever's they are."); return true; }
+        delete Inv.items.marble;
+        Progress.set('fav_marble'); Stats.count('favour:marble');
+        yield* say('tuck', "Watch. I'm putting it HERE. ...And now I'm walking away. ...And now I'm looking.");
+        yield* say('tuck', "It STAYED. It's staying! Look at it STAY! That's MY place for it! Because I said!");
+        yield* say('tuck', "You can have my badge. I made it for being brave. I've got the marble now, so I'm brave enough.");
+        yield* Story.getItem('tuckbadge')();
+        return true;
+    }
+    if (Progress.flag('fav_stick') && !Progress.flag('fav_stickTuck')) {
+        Progress.set('fav_stickTuck');
+        yield* say('tuck', "LOOK! A stick! A real Wanderer's stick! It came in my window all by itself and landed on my bed! It's got TUCK burnt on it!");
+        yield* say('tuck', "Mum says it's for later. I'm only holding it. Holding's not using.");
+        return true;
+    }
+    if (!Progress.flag('fav_marble') && Progress.flag('met:tuck') && Progress.flag('d1'))
+        return yield* Favours.once('fav_tuckTold', 'tuck', "Everything I put down goes back where Mum put it. Or back where it was before Mum. I want ONE thing that stays where I put it. Just one.");
+    return false;
+};
+ITEMS.tuckbadge = { name: "Tuck's badge", kind: 'keepsake', desc: 'A cardboard badge in wax crayon: BRAVEST WANDERER (AFTER ME). Tuck coloured the letters in himself, mostly inside the lines.' };
+/* where Tuck last put it (it's a stray: nothing moves it but him) */
+const MARBLE_SPOTS = [['reveal2', 31, 21], ['reveal1', 24, 10], ['d4', 23, 24], ['', 9, 33]];
+SPAWN.tuckmarble = (tx, ty) => {
+    const [, mx, my] = MARBLE_SPOTS.find(([f]) => !f || Progress.flag(f));
+    const [x, y] = hubAt(mx, my);
+    const pr = new Prop(x, y, { im: ART.tuck_marble, solid: [], ox: 5, oy: 7 });
+    pr.baseY = -50;
+    pr.interact = () => {
+        Script.run(function* () {
+            yield* say(null, Progress.flag('great_pull') && !Progress.flag('unwound')
+                ? "Tuck's marble, where he left it by the Well. Every marked thing in the square is straining toward the Well's mouth; the marble just sits. Nothing's pulling it. Nothing ever did."
+                : Progress.flag('reveal2') ? "Tuck's marble, by the Well. Everybody in town has a thread now, if you look. The marble hasn't. It's only where Tuck put it."
+                    : "Tuck's odd marble, exactly where he left it this time. Nothing tidies it away. Nothing pulls it home.");
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    return pr;
+};
+OW.blocks['1,1'].ents.push({ k: 'tuckmarble', x: 0, y: 0, if: 'fav_marble' });
+
+/* ---------------- 4. Auntie Mabel's table of strays (the Recall Bell) ---------------- */
+/* Everything on the floor round her table is a stray, she says: nothing ever pulls it home. One of them is a battered
+   sewing tin, and it snores. Rung awake, it snaps home along its thread to the little table by her counter, shoving
+   the light strays aside; the heavy one in its way it can't shift, and waits, until that's moved off its thread. */
+const TIN_TRACE = [[1, 3], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [8, 4], [8, 5], [9, 5]];
+class SewingTin extends Liftable {
+    constructor(tx, ty, p = {}) { super('tin', tx, ty, p); this.noNeedle = true; this.noCut = true; this.noCutLine = "It's Mabel's. It's only just come home."; this.stitchName = 'the sewing tin'; }
+    sprite() { return spr('sewing_tin'); }
+    draw(cx, cy) {
+        if (this.ret && this.ret.state === 'home' && !this.carried && !this.mv) Gfx.img(spr('tin_table'), this.px - cx, this.py - cy);
+        GridThing.prototype.draw.call(this, cx, cy);
+    }
+    onHome() {
+        if (Progress.flag('fav_tin')) return;
+        Progress.set('fav_tin'); Stats.count('favour:tin');
+        Script.run(function* () {
+            yield 20;
+            yield* say('mabel', "...That's my mother's sewing tin. Thimble, needles, the lot. It's been on that floor with the strays thirty years. I've dusted it every Tuesday.");
+            yield* say('mabel', "I called it a stray. It wasn't a stray at all. It was only asleep.");
+            yield* say('mabel', "Here. Have a stray of your own, a real one. They're the only things in Hollowell a body can give away.");
+            yield* Story.getItem('oddsock')();
+            yield* say('mabel', "And forty buttons. Don't argue. I've a whole jar of them nobody ever comes back for.");
+            Favours.buttons(40);
+        });
+    }
+}
+SPAWN.tin = (x, y, p) => new SewingTin(x, y, p);
+AREAS.lostfound.ents.push(
+    { k: 'tin', x: 1, y: 3, id: 'mabelTin', sleeper: true, tiedOff: true, startAt: [9, 5], trace: TIN_TRACE, pushLine: "A battered sewing tin among the strays, fast asleep. It snores, very faintly, like a kettle a long way off.", if: '!fav_tin' },
+    { k: 'tin', x: 1, y: 3, id: 'mabelTin', if: 'fav_tin' },
+    /* the strays on the floor: never home, because they've none (pushed, they stay pushed) */
+    { k: 'stray', x: 5, y: 4, id: 'mabelStone' },
+    { k: 'crate', x: 8, y: 5, marked: false, id: 'mabelCrate' },
+    { k: 'crate', x: 9, y: 6, marked: false, id: 'mabelCrate2' },
+    { k: 'stray', x: 7, y: 6, id: 'mabelStone2' },
+);
+ITEMS.oddsock = { name: 'The odd sock', kind: 'keepsake', desc: "A striped sock from Auntie Mabel's strays. Its pair is somewhere. It doesn't seem to mind." };
+FAVOUR_TALK.mabel = function* () {
+    if (Progress.flag('fav_tin') && Progress.flag('reveal2'))
+        return yield* Favours.once('fav_tinR2', 'mabel', "Asleep, you said. Not lost. Just asleep, all those years, with me calling it a stray. I keep wondering how much else in this town is only asleep.");
+    if (!Progress.flag('fav_tin') && Progress.flag('met:mabel'))
+        return yield* Favours.once('fav_tinTold', 'mabel', "Everything on my floor there is a stray. Things nobody comes back for, that nothing pulls home. Not one of them has moved an inch on its own in thirty years.");
+    return false;
+};
+
+/* ---------------- 5. Jory's back room (the Crossbar) ---------------- */
+/* Jory made Tuck a Wanderer's stick, gave it its place on Tuck's bed (a Maker gives a gift by giving it its place), and
+   locked it in his back room for later. Its crimson thread runs under the door, across the shop, out into the street
+   and all the way to Tuck's. The door opens from inside, from a plate; the only way in is a little hole low in the wall,
+   and the only thing that fits is the shop's puppet. On its plate, the door swings open and the parcel's off home. */
+class Parcel extends GridThing {
+    constructor(tx, ty, p = {}) {
+        super('parcel', tx, ty, Object.assign({ weight: WEIGHT.light, thread: THREAD.jory }, p));
+        this.noPush = true; this.noNeedle = true; this.noCut = true; this.noCutLine = "It's not yours to cut loose. It's Tuck's."; this.noGrip = true;
+    }
+    sprite() { return spr('parcel'); }
+    interact() {
+        Script.run(function* () { yield* say(null, "A long parcel in brown paper, tied with red string. A label in Jory's hand: TUCK. FOR LATER. It strains at the door like a dog on a lead."); });
+        return true;
+    }
+    /* home is out of the door and away up the street: there it goes */
+    onHome() {
+        if (Progress.flag('fav_stick')) return;
+        Progress.set('fav_stick'); Stats.count('favour:stick');
+        Fx.poof(this.px + 8, this.py + 8); Sfx.play('home');
+        this.area.remove(this);
+        UI.toast('The parcel shoots out of the door and away up the street, as if it knows exactly where it\'s going.', 200);
+    }
+}
+SPAWN.parcel = (x, y, p) => new Parcel(x, y, p);
+AREAS.toys.ents.push(
+    { k: 'puppet', x: 10, y: 7, id: 'jPuppet' },
+    { k: 'plate', x: 10, y: 2, sig: 'jLatch' },
+    { k: 'door', x: 3, y: 4, type: 'gate', when: 'jLatch', dir: 'h', id: 'jDoor', passed: 'up' },
+    { k: 'parcel', x: 6, y: 8, id: 'jParcel', startAt: [3, 3], trace: [[6, 8], [6, 7], [5, 7], [5, 6], [4, 6], [4, 5], [3, 5], [3, 4], [3, 3]], if: '!fav_stick' },
+    { k: 'chest', x: 1, y: 2, item: 'b50', id: 'jChest' },
+    { k: 'deco', x: 4, y: 1, look: 'jory_note', solid: [[0, 0]], oy: 2, baseY: -100, text: "A note pinned up in Jory's hand: TUCK'S. FOR LATER. NOT BEFORE. And underneath, smaller: If you can read this, you're good with strings. Have a look in the chest. - J." },
+);
+/* out in the street, the parcel's thread: from Jory's door, down through the square, to Tuck's (drawn on the ground) */
+const STICK_THREAD = [[24, 9], [24, 13], [23, 14], [23, 25], [24, 26], [26, 27], [26, 31], [20, 32], [18, 32], [18, 36]];
+SPAWN.stickthread = () => {
+    const e = new Ent('stickthread', { x: 0, y: 0 });
+    e.floor = true;
+    Object.defineProperty(e, 'sortY', { get() { return -2000; } });
+    e.draw = function (cx, cy) {
+        const pts = STICK_THREAD.map(([x, y]) => hubAt(x, y)).map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
+        for (let i = 0; i + 1 < pts.length; i++) {
+            Gfx.alpha(0.35); Gfx.line(pts[i][0], pts[i][1] + 1, pts[i + 1][0], pts[i + 1][1] + 1, '#1a1018'); Gfx.alpha(0.8);
+            Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], THREAD.jory); Gfx.alpha(1);
+        }
+    };
+    /* (on the screen wherever the camera is: the culling looks at x and y) */
+    e.update = function () { this.x = Cam.x + 100; this.y = Cam.y + 60; };
+    return e;
+};
+OW.blocks['1,1'].ents.push({ k: 'stickthread', x: 0, y: 0, if: '!fav_stick' });
+/* Tuck, holding his stick (for later; holding's not using) */
+{
+    const draw0 = NPC.prototype.draw;
+    NPC.prototype.draw = function (cx, cy) {
+        const r = draw0.call(this, cx, cy);
+        if (this.who === 'tuck' && Progress.flag('fav_stick') && this.area && this.area.id === 'hollow') {
+            const x = this.px - cx + (this.dir === LEFT ? 1 : 13), y = this.py - cy;
+            Gfx.rect(x, y - 7, 2, 18, PAL.ink); Gfx.rect(x, y - 6, 1, 16, '#c9925a'); Gfx.rect(x - 1, y - 8, 4, 3, PAL.ink); Gfx.rect(x, y - 7, 2, 1, THREAD.wren);
+        }
+        return r;
+    };
+}
+FAVOUR_TALK.rosa = function* () {
+    /* 6, below: the saucer */
+    if (Progress.flag('fav_saucerPlaced') && !Progress.flag('fav_saucer')) {
+        Progress.set('fav_saucer'); Stats.count('favour:saucer');
+        yield* say('rosa', "The saucer's on the back step, and it's STAYING there! Biscuit's been round already, look: licked clean, and him washing his whiskers on my step like a lord.");
+        yield* say('rosa', "I don't know how you did it and I'm not going to ask. Twenty buttons. And a bun, any time you're in, for nothing. Any time at all.");
+        Favours.buttons(20);
+        return true;
+    }
+    if (Progress.flag('fav_saucer') && Inv.hp < Inv.maxHp) {
+        Inv.hp = Inv.maxHp; Sfx.play('heart');
+        yield* say('rosa', saucerPlaced() ? "Bun, love. On the house. Always." : "Bun, love, on the house. ...The saucer's walked itself round the front again, mind. Biscuit looked ever so put out.");
+        return true;
+    }
+    if (Progress.flag('fav_stick') && !Progress.flag('fav_stickRosa') && Progress.flag('met:rosa')) {
+        Progress.set('fav_stickRosa');
+        yield* say('rosa', "Tuck says a stick flew in at his window and landed on his bed, with his name burnt on it. Jory's work, that is. Jory's been gone all season. ...Was that you, love?");
+        return true;
+    }
+    if (!Progress.flag('fav_saucerPlaced') && Progress.flag('met:rosa'))
+        return yield* Favours.once('fav_saucerTold', 'rosa', "Every night I put a saucer of cream out on the back step for Biscuit. Every morning it's walked itself round to the front again, still full. That poor cat's never had a drop.");
+    return false;
+};
+
+/* ---------------- 6. Rosa's saucer for Biscuit (the Needle) ---------------- */
+/* The saucer belongs on the bakery's front sill, so whenever Rosa sets it out on the back step it walks itself home,
+   round the corner, long before the cat comes by (Biscuit's round stops at the back step, by its crawlspace). Given a
+   new place on the back step, it stays. It's too full to throw: set it down. */
+const SAUCER_HOME = [40, 32];
+const BACKSTEP = new Set([[40, 26], [41, 26], [42, 26], [40, 27], [42, 27], [42, 28]].map(([x, y]) => key2(...hubAt(x, y))));
+const saucerPlaced = () => Inv.stitches.some(r => r.area === 'hollow' && r.key === 'saucer' && BACKSTEP.has(key2(r.to[0], r.to[1])));
+class Saucer extends Liftable {
+    constructor(tx, ty, p = {}) { super('saucer', tx, ty, p); this.noThrow = true; this.lap = 0; this.licked = false; this.stitchName = "Rosa's saucer"; }
+    sprite() { return spr(this.licked ? 'saucer_empty' : 'saucer'); }
+    tick() {
+        const r = this.ret;
+        const placed = r && r.state === 'home' && !this.carried && BACKSTEP.has(key2(r.mx, r.my));
+        if (placed && !Progress.flag('fav_saucerPlaced')) { Progress.set('fav_saucerPlaced'); UI.toast('The saucer settles on the back step. Its place, now.', 160); }
+        if (this.lap > 0) this.lap--;
+        if (!placed || this.licked) return;
+        const cat = this.area.ents.find(e => e.kind === 'critter' && e.who === 'biscuit');
+        if (cat && Math.hypot(cat.x - (this.tx * T + 8), cat.y - (this.ty * T + 10)) < 24) { this.lap = 150; this.licked = true; this.cat = cat; }
+    }
+    draw(cx, cy) {
+        GridThing.prototype.draw.call(this, cx, cy);
+        const c = this.cat;
+        if (this.lap > 0 && c) { const b = spr('bubble_heart'); if (b) Gfx.img(b, c.x - cx - 4, c.y - cy - 28 - ((150 - this.lap) >> 4)); }
+    }
+}
+SPAWN.saucer = (x, y, p) => new Saucer(x, y, p);
+OW.blocks['1,1'].ents.push({ k: 'saucer', x: SAUCER_HOME[0], y: SAUCER_HOME[1], id: 'saucer' });
+
+/* ---------------- the town's tick for them: the crates home ---------------- */
+{
+    const B = OW.blocks['1,1'], tick0 = B.tick;
+    B.tick = a => {
+        if (tick0) tick0(a);
+        if (Progress.flag('fav_cratesHome')) return;
+        const A = a.find('guildA'), C = a.find('guildB');
+        if (A && C && Return.isHome(A) && Return.isHome(C)) { Progress.set('fav_cratesHome'); UI.toast("Both crates home at last, and the lane clear. Somewhere inside, Thimble whoops.", 180); }
+    };
+}
+
+/* what's new in town, for the journal, until it's done */
+TOWN_NEWS.push(
+    [() => Progress.flag('d1'), () => Progress.flag('fav_cratesHome'), "Thimble's crates, stuck in the lane by her shop"],
+    [() => Progress.flag('d2'), () => Progress.flag('fav_kite'), "the children's kite, up the tree by the Inn"],
+    [() => !!Inv.items.marble, () => Progress.flag('fav_marble'), "Tuck, who's never had a thing that stays put"],
+    [() => Progress.flag('d4'), () => Progress.flag('fav_tin'), "Auntie Mabel's floor of strays"],
+    [() => Progress.flag('reveal1'), () => Progress.flag('fav_stick'), "the puppet in Jory's shop window"],
+    [() => Progress.flag('d7'), () => Progress.flag('fav_saucerPlaced'), "Rosa's saucer of cream for Biscuit"],
+);
+
+/* a handful of buttons out of a chest is named for what it is ("You found 50 buttons!") */
+for (const n of [5, 10, 20, 30, 40, 50, 100]) if (!ITEM_LINES['b' + n]) ITEM_LINES['b' + n] = () => `You found {blue}${n} buttons{/}!`;
+
+function initTownFavours() {
+    defSprite('guild_crate', [
+        '.kkkkkkkkkkkkkk.', 'kuuuuuuuuuuuuuuk', 'kuUUUUUUUUUUUUuk', 'kuuuuuuuuuuuuuuk', 'kBBBBBBBBBBBBBBk',
+        'kbbbbbbbbbbbbbbk', 'kbbbbkkkkkkbbbbk', 'kbbbbkddddkbbbbk', 'kbbbbbkddkbbbbbk', 'kbbbbbkddkbbbbbk',
+        'kbbbbkddddkbbbbk', 'kbbbbkkkkkkbbbbk', 'kbbbbbbbbbbbbbbk', 'kbBbbbbbbbbbbBbk', 'kBBBBBBBBBBBBBBk', '.kkkkkkkkkkkkkk.'],
+        { u: '#e6b47a', U: '#c48a52', b: '#b47a44', B: '#7e4e2a', d: '#8a6a3a' });
+    defSprite('kite', [
+        '.......k........', '......krk.......', '.....krrrk......', '....krrkrrk.....', '...krrrkrrrk....', '..krrwrkrrrrk...',
+        '.kkkkkkkkkkkkk..', '..kRRRRkRRRRk...', '...kRRRkRRRk....', '....kRRkRRk.....', '.....kRkRk......', '......kkk.......',
+        '.......kk.......', '........yk......', '.......ky.......', '........yk......'],
+        { r: '#e8463c', R: '#a82a26', w: '#ffd0c8', y: '#f7d64a' });
+    defSprite('kite_peg', ['.kk.', 'kbbk', '.kk.', '.kb.', '.kb.', '.kb.', '.kb.', '.kb.', '.kb.', '.kb.', '.kb.', 'kbbk', 'kkkk'], { b: '#9a6438' });
+    defSprite('sewing_tin', ['................', '................', '................', '................', '...kkkkkkkkkk...', '..kaaaaaaaaaak..', '..kaAwwwwwwAak..', '..kaAwiiiiwAak..',
+        '..kkkkkkkkkkkk..', '..kzzzzzzzzzzk..', '..kzzZzzzzZzzk..', '..kzzzzzzzzzzk..', '..kZZZZZZZZZZk..', '...kkkkkkkkkk...', '................', '................'],
+        { a: '#7fb6d8', A: '#4f86b0', w: '#fbf6ea', i: '#e86a8e', z: '#5f9ac4', Z: '#3a6a94' });
+    defSprite('tin_table', ['................', '................', '................', '................', '................', '................', '................', '................',
+        '................', '................', '................', '.kkkkkkkkkkkkkk.', 'kuuuuuuuuuuuuuuk', 'kUUUUUUUUUUUUUUk', '.kbk........kbk.', '.kbk........kbk.'],
+        { u: '#c9925a', U: '#9a6438', b: '#7a4e32' });
+    defSprite('parcel', ['................', '................', '................', '................', '................', '..kkkkkkkkkkkk..', '.kwwwwrwwwwwwwk.', '.kuuuurrrrrrrrkk',
+        '.kuuuuruuuuuuurk', '.kUUUUrUUUUUUUk.', '..kkkkrkkkkkkk..', '......rr........', '................', '................', '................', '................'],
+        { w: '#e6c08a', u: '#c9925a', U: '#9a6438', r: '#c42b4a' });
+    defSprite('saucer', ['................', '................', '................', '................', '................', '................', '................', '................',
+        '................', '................', '...kkkkkkkkkk...', '..kwwwwwwwwwwk..', '.kWwwwwwwwwwwWk.', '.kkWWWWWWWWWWkk.', '...kkkkkkkkkk...', '................'],
+        { W: '#cfd8e0' });
+    defSprite('saucer_empty', ['................', '................', '................', '................', '................', '................', '................', '................',
+        '................', '................', '...kkkkkkkkkk...', '..kAAAAAAAAAAk..', '.kWAAAAAAAAAAWk.', '.kkWWWWWWWWWWkk.', '...kkkkkkkkkk...', '................'],
+        { W: '#cfd8e0', A: '#9aa8b8' });
+    defSprite('icon_twine', ['................', '................', '....kkkkkkk.....', '...kddDddDdk....', '..kdDddDddDdk...', '..kddDddDddDk...', '..kdDddDddDdk...', '..kddDddDddDk...',
+        '..kdDddDddDdk...', '...kddDddDdk....', '....kkkkkkkd....', '...........d....', '............d...', '.............d..', '................', '................'],
+        { d: '#b08a5a', D: '#7a5a34' });
+    defSprite('icon_marble', ['................', '................', '................', '................', '.....kkkkk......', '....kaawaak.....', '...kaawwaaak....', '...kaaaaaZak....',
+        '...kaaaZaaak....', '...kaaZaaaak....', '....kaaaaak.....', '.....kkkkk......', '................', '................', '................', '................'],
+        { a: '#8fd4c8', w: '#ffffff', Z: '#3a8a7a' });
+    defSprite('icon_tuckbadge', ['................', '....kkkkkkkk....', '...kwwwwwwwwk...', '..kwrwrwbwbwwk..', '..kwrrwwbbwwwk..', '..kwrwrwbwbwwk..', '..kwwwwwwwwwwk..', '..kwyyyyyyyywk..',
+        '..kwwwwwwwwwwk..', '...kwwwwwwwwk...', '....kkkkkkkk....', '.....kgk.kgk....', '.....kgk.kgk....', '.....kk...kk....', '................', '................'],
+        { r: '#e8463c', b: '#4f9be0', y: '#f7d64a', g: '#5ab85a' });
+    defSprite('icon_oddsock', ['................', '.....kkkkk......', '.....krrrk......', '.....kwwwk......', '.....krrrk......', '.....kwwwk......', '.....krrrk......', '.....kwwwk......',
+        '.....krrrkk.....', '.....kwwwwwkk...', '.....krrrrrrrk..', '......kwwwwwwk..', '.......kkkkkk...', '................', '................', '................'],
+        { r: '#4f9be0', w: '#f7d64a' });
+    ART.tuck_marble = paintSprite(6, 6, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#8fd4c8', 1, 1, 4, 4); R('#ffffff', 2, 1, 1, 1); R('#3a8a7a', 3, 3, 1, 1); R('#3a8a7a', 4, 2, 1, 1); });
+    ART.jory_note = paintSprite(12, 12, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#fbf6ea', 1, 2, 10, 9); R('#c42b4a', 5, 1, 2, 2); for (let i = 0; i < 4; i++) R('#7a6a5a', 3, 4 + i * 2, 6 - (i % 2) * 2, 1); });
+    ART.staff_light = paintSprite(16, 16, x => { x.globalAlpha = 0.35; x.fillStyle = '#f7d27a'; x.beginPath(); x.moveTo(3, 0); x.lineTo(13, 0); x.lineTo(15, 16); x.lineTo(1, 16); x.fill(); x.globalAlpha = 0.25; x.fillStyle = '#fff4c0'; x.fillRect(5, 0, 6, 10); }, false);
+    ART.pudding_ball = paintSprite(8, 8, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#e8463c', 1, 1, 6, 6); R('#ffffff', 2, 2, 2, 1); R('#a82a26', 2, 5, 4, 1); });
+}
+CONTENT_INIT.push(initTownFavours);
 
 // ---- 52_kidgame.js ----
 /* The kids' game in the square (S12, after the first Knot): "Housekeeper". Otto stands on a chalk X and
@@ -25965,7 +26447,7 @@ defArea({
     /* the ground, then the fog bank seen from outside (its threads, its edge spilling onto the grass) */
     drawGround: (a, cx, cy) => { DriftArt.ground(a, cx, cy); Fog.draw(a, cx, cy); },
     rows: DRIFT_ROWS, legend: DRIFT_LEGEND,
-    build: a => Mill.build(a),
+    build: a => DriftMill.build(a),
     ents: [
         /* Linnet's cottage and garden */
         { k: 'building', x: 14, y: 12, w: 8, h: 5, door: null, style: 'cottage', variant: 'linnet' },
@@ -25982,11 +26464,11 @@ defArea({
            the mill pond's dam, but only while it's turning, and nothing out here comes round twice */
         { k: 'driftmill', x: 37, y: 3 },
         { k: 'millwheel', x: 43, y: 6, face: 'right', sig: 'millWheel', time: MILL.TIME },
-        { k: 'sluice', x: 40, y: 13, id: 'drSluice' },
+        { k: 'millsluice', x: 40, y: 13, id: 'drSluice' },
         { k: 'barrel', x: 46, y: 3, id: 'drBarrel', marked: false },
         { k: 'barrel', x: 48, y: 5, id: 'drBarrel2', marked: false },
         { k: 'stray', x: 47, y: 7, id: 'drBoulder3' },
-        /* on the pond's bed, under the water: the old road, its milestone (Mill.build), a toll box */
+        /* on the pond's bed, under the water: the old road, its milestone (DriftMill.build), a toll box */
         { k: 'chest', x: 41, y: 10, item: 'b50', id: 'drToll', hidden: true, when: 'flag:drift_millpond' },
         /* what came over the fog from the fair, if it was cut loose */
         { k: 'driftballoon', x: 58, y: 6, if: 'balloon_away' },
@@ -26158,6 +26640,396 @@ CONTENT_INIT.push(() => {
     ART.drift_kite = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#e8463c', 6, 2, 4, 2); R('#e8463c', 5, 4, 6, 2); R('#f7d64a', 6, 6, 4, 2); R('#4f9be0', 7, 8, 2, 2); R('#5a3a26', 8, 10, 1, 2); R('#e4ecf5', 9, 12, 1, 1); R('#e4ecf5', 10, 13, 1, 1); });
     ART.drift_gnome = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#e8463c', 6, 1, 4, 2); R('#e8463c', 5, 3, 6, 2); R('#f2c6a0', 6, 5, 4, 3); R('#fbf6ea', 5, 7, 6, 3); R('#4f9be0', 5, 10, 6, 4); R('#3a2e24', 5, 14, 2, 2); R('#3a2e24', 9, 14, 2, 2); });
 });
+
+/* ---------- the Drift's look: a wide wild meadow; wildflowers in drifts of one kind, long grass, heather; an old cart
+   track; dry-stone walls. The greens change softly from patch to patch: each tile's corners say which patch they're in,
+   and the tile goes from one to the next between them, dithered, so no change of ground runs along a tile's edge ---------- */
+const DriftArt = {
+    MEADOW: [
+        ['#98c862', '#88b856', '#b0d878', '#6a9446'],      /* lush, in the hollows */
+        ['#a8d26a', '#96c25e', '#c0e084', '#76a24a'],      /* the meadow */
+        ['#bade7c', '#a8ce6e', '#d2ea98', '#86ae56'],      /* sunlit, on the rises */
+    ],
+    BLOOMS: [
+        { head: '#e2483a', hi: '#f6826a', eye: '#3a2424' },      /* poppies */
+        { head: '#5a84e0', hi: '#94b6f4', eye: '#2e4aa0' },      /* cornflowers */
+        { head: '#fbfaf2', hi: '#ffffff', eye: '#f2c040' },      /* ox-eye daisies */
+        { head: '#f4d443', hi: '#fff09a', eye: '#c89a28' },      /* buttercups */
+    ],
+    cs: null,
+    corner(x, y) { const n = OWA.n2(x / 6, y / 6, 51) * 0.75 + OWA.n2(x / 2.5, y / 2.5, 52) * 0.25; return n < 0.42 ? 0 : n < 0.6 ? 1 : 2; },
+    corners(a, tx, ty) {
+        if (!this.cs || this.cs.length !== a.w * a.h) this.cs = new Array(a.w * a.h);
+        const i = ty * a.w + tx;
+        return this.cs[i] || (this.cs[i] = '' + this.corner(tx, ty) + this.corner(tx + 1, ty) + this.corner(tx, ty + 1) + this.corner(tx + 1, ty + 1));
+    },
+    bloom(tx, ty) { return Math.min(3, Math.floor(OWA.n2(tx / 4, ty / 4, 53) * 4)); },
+    /* which neighbours are (or aren't) like this tile: up 1, down 2, left 4, right 8 */
+    mask(a, tx, ty, f) { let m = 0; [[0, -1], [0, 1], [-1, 0], [1, 0]].forEach(([dx, dy], b) => { if (f(a.cell(tx + dx, ty + dy))) m |= 1 << b; }); return m; },
+    /* the meadow's greens across a tile, from its corners */
+    meadow(x, cs, v, busy = 1) {
+        const P = this.MEADOW.map(r => r.map(hexRGB)), c = [+cs[0], +cs[1], +cs[2], +cs[3]];
+        const id = x.createImageData(T, T), d = id.data;
+        for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) {
+            const u = (i + 0.5) / T, w = (j + 0.5) / T;
+            const m = c[0] * (1 - u) * (1 - w) + c[1] * u * (1 - w) + c[2] * (1 - u) * w + c[3] * u * w;
+            const k = clamp(Math.round(m + (hash2(i, j, 61 + v) - 0.5) * 0.8), 0, 2), r = hash2(i, j, 71 + v);
+            const col = P[k][r < 0.13 * busy ? 1 : r > 1 - 0.06 * busy ? 2 : 0], o = (j * T + i) * 4;
+            d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
+        }
+        x.putImageData(id, 0, 0);
+        /* blades: short dark strokes, each with a lit tip */
+        for (let n = 0; n < 5 * busy; n++) {
+            const bx = Math.floor(hash2(n, v, 81) * 15), by = 2 + Math.floor(hash2(v, n, 82) * 12), k = c[(bx > 7 ? 1 : 0) + (by > 7 ? 2 : 0)];
+            fill(x, this.MEADOW[k][3], bx, by, 1, 2); px(x, bx, by - 1, this.MEADOW[k][2]);
+        }
+        return c;
+    },
+    grass(x, cs, v) {
+        this.meadow(x, cs, v);
+        const cols = ['#f8f4e4', '#f4d84a', '#d0b0ec'];
+        for (let n = 0; n < 2; n++) if (hash2(n, v, 91) < 0.45) px(x, 1 + Math.floor(hash2(v, n, 92) * 14), 1 + Math.floor(hash2(n, v, 93) * 14), cols[Math.floor(hash2(n, v, 94) * 3)]);
+    },
+    flowers(x, cs, v, kind) {
+        this.meadow(x, cs, v);
+        const B = this.BLOOMS[kind];
+        for (let n = 0; n < 6; n++) {
+            const fx = 2 + Math.floor(hash2(n, v + kind * 4, 101) * 12), fy = 1 + Math.floor(hash2(v + kind * 4, n, 102) * 11);
+            fill(x, '#4e8436', fx, fy + 2, 1, 2);
+            if (kind === 2) { px(x, fx - 1, fy, B.head); px(x, fx + 1, fy, B.head); px(x, fx, fy - 1, B.head); px(x, fx, fy + 1, B.head); px(x, fx, fy, B.eye); }
+            else { fill(x, B.head, fx, fy, 2, 2); px(x, fx, fy, B.hi); if (kind === 0) px(x, fx + 1, fy + 1, B.eye); }
+        }
+    },
+    tall(x, cs, v) {
+        const c = this.meadow(x, cs, v, 0.6);
+        for (let n = 0; n < 8; n++) {
+            const sx = 1 + Math.floor(hash2(n, v, 121) * 14), h = 5 + Math.floor(hash2(v, n, 122) * 5), sy = 15 - h - Math.floor(hash2(n, v, 123) * 3);
+            const P = this.MEADOW[c[(sx > 7 ? 1 : 0) + (sy > 7 ? 2 : 0)]];
+            fill(x, P[3], sx, sy, 1, h); px(x, sx + 1, sy + 2, P[2]);
+            fill(x, n % 3 ? '#e2d49a' : '#c8b878', sx, sy - 2, 1, 2);
+        }
+    },
+    oldroad(x, cs, v) {
+        this.meadow(x, cs, v, 0.7);
+        for (let n = 0; n < 5; n++) {
+            const cx = 1 + Math.floor(hash2(n, v, 131) * 11), cy = 2 + Math.floor(hash2(v, n, 132) * 11), w = 3 + (n % 2);
+            fill(x, '#a8a294', cx, cy, w, 2); fill(x, '#c4beb0', cx, cy, w - 1, 1); fill(x, '#7a7466', cx, cy + 2, w, 1);
+            if (hash2(n, v, 133) < 0.5) px(x, cx + w - 1, cy, this.MEADOW[1][0]);
+        }
+    },
+    /* heather and dry grass, its edge against the meadow ragged */
+    heath(x, m, cs, v) {
+        fill(x, '#8a9856'); speckle(x, ['#7c8a4c', '#9aa864'], 141 + v, 0.3); speckle(x, ['#cabf86'], 143 + v, 0.08);
+        for (let n = 0; n < 4; n++) {
+            const hx = 2 + Math.floor(hash2(n, v, 145) * 11), hy = 2 + Math.floor(hash2(v, n, 146) * 11);
+            for (let j = -2; j <= 2; j++) for (let i = -3; i <= 3; i++) {
+                if (i * i / 9 + j * j / 4 > 1 + hash2(i, j, n + v) * 0.4) continue;
+                px(x, clamp(hx + i, 0, 15), clamp(hy + j, 0, 15), j < 0 && i < 1 ? '#b88ac6' : j > 0 ? '#7c4e8c' : '#a072b0');
+            }
+        }
+        const P = this.MEADOW[+cs[0]];
+        for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) {
+            let d = 99;
+            if (m & 1) d = Math.min(d, j); if (m & 2) d = Math.min(d, 15 - j); if (m & 4) d = Math.min(d, i); if (m & 8) d = Math.min(d, 15 - i);
+            if (d < hash2(i, j, 147 + v) * 5) px(x, i, j, hash2(i, j, 148) < 0.2 ? P[1] : P[0]);
+        }
+    },
+    /* the cart track: two ruts (one to a lane where it's two wide), grass at its edges and down the middle */
+    track(x, m, cs, v) {
+        fill(x, '#d6c292'); speckle(x, ['#c6ae80', '#e4d4a8'], 111 + v, 0.22); speckle(x, ['#ae9e80'], 113 + v, 0.04);
+        const up = m & 1, dn = m & 2, lf = m & 4, rt = m & 8;
+        const rut = y => { fill(x, '#e8dab4', 0, y - 1, 16, 1); fill(x, '#bca272', 0, y, 16, 1); };
+        if (dn && !up) rut(9); else if (up && !dn) rut(6); else if (!up && !dn) rut(8); else { rut(4); rut(11); }
+        const P = this.MEADOW[+cs[0]];
+        for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) {
+            let d = 99;
+            if (!up) d = Math.min(d, j); if (!dn) d = Math.min(d, 15 - j); if (!lf) d = Math.min(d, i); if (!rt) d = Math.min(d, 15 - i);
+            /* the hump between two lanes */
+            if (dn && !up) d = Math.min(d, 15 - j + 1); if (up && !dn) d = Math.min(d, j + 1);
+            if (d < 0.6 + hash2(i, j, 115 + v) * 2.4) px(x, i, j, hash2(i, j, 116 + v) < 0.25 ? P[3] : P[0]);
+        }
+    },
+    forest(x, v) {
+        fill(x, '#3e5a34'); speckle(x, ['#4c6a3e', '#334c2c'], 151 + v, 0.3);
+        for (let n = 0; n < 3; n++) { const fx = 2 + Math.floor(hash2(n, v, 153) * 11), fy = 3 + Math.floor(hash2(v, n, 154) * 10); px(x, fx, fy, '#5c7e44'); px(x, fx - 1, fy - 1, '#5c7e44'); px(x, fx + 1, fy - 1, '#5c7e44'); px(x, fx, fy + 1, '#4c6a3e'); }
+    },
+    /* a dry-stone wall: rough stones laid without mortar, moss on top; a run north-south or east-west */
+    drywall(x, m, cs, v) {
+        this.meadow(x, cs, v, 0.5);
+        const vert = (m & 3) || !(m & 12), hor = m & 12;
+        const x0 = vert ? 3 : 0, x1 = vert ? (hor ? 16 : 13) : 16, y0 = hor && !vert ? 3 : (m & 1) ? 0 : 2, y1 = hor && !vert ? 13 : (m & 2) ? 16 : 14;
+        const xs = hor && vert ? 0 : x0;
+        fill(x, '#5e5a50', xs, y0, x1 - xs, y1 - y0);
+        const cols = ['#b4ae9e', '#a09a8a', '#c8c2b2', '#8c8676'];
+        for (let y = y0; y < y1; y += 3) for (let i = xs + ((y >> 1) % 2) * 2 - 2; i < x1; i += 4) {
+            const a = Math.max(i, xs), b = Math.min(i + 3 + (hash2(i, y, 161 + v) < 0.4 ? 1 : 0), x1);
+            if (b - a < 1) continue;
+            const c = cols[Math.floor(hash2(i, y, 162 + v) * 4)];
+            fill(x, c, a, y, b - a, 2); fill(x, shade(c, 0.25), a, y, b - a, 1);
+        }
+        for (let n = 0; n < 4; n++) px(x, xs + Math.floor(hash2(n, v, 163) * (x1 - xs)), y0 + Math.floor(hash2(v, n, 164) * (y1 - y0)), '#7a9a48');
+    },
+    /* the mill's dressed stone: big blocks, mortared, moss in the joints */
+    racewall(x, v) {
+        fill(x, '#9c968a');
+        for (let y = 0; y < 16; y += 5) {
+            fill(x, '#6e6a62', 0, y, 16, 1); fill(x, '#b8b2a4', 0, y + 1, 16, 1);
+            const off = ((y / 5) % 2) * 5 + (v % 2) * 2;
+            for (let i = off; i < 16; i += 9) fill(x, '#6e6a62', i, y, 1, 5);
+        }
+        speckle(x, ['#7a8a4a', '#8a8478'], 171 + v, 0.05);
+    },
+    /* the mill pond's bed, run out: wet mud, puddles, weed, the odd shell */
+    mud(x, v) {
+        fill(x, '#7a6a4c'); speckle(x, ['#6a5a3e', '#84744e'], 181 + v, 0.3); speckle(x, ['#9a8a6a'], 183 + v, 0.05);
+        if (v % 2 === 0) { fill(x, '#6e8ea4', 4 + v, 6, 6, 3); fill(x, '#6e8ea4', 5 + v, 5, 4, 5); px(x, 5 + v, 6, '#a8c8dc'); px(x, 6 + v, 6, '#a8c8dc'); }
+        for (let n = 0; n < 3; n++) { const wx = 1 + Math.floor(hash2(n, v, 185) * 14), wy = 2 + Math.floor(hash2(v, n, 186) * 11); fill(x, '#5a7a3a', wx, wy, 1, 3); px(x, wx + 1, wy, '#6a8a44'); }
+        if (v === 3) px(x, 11, 12, '#ece4d0');
+    },
+    tile(a, tx, ty) {
+        const L = a.cell(tx, ty), p = L.p, v = Math.floor(hash2(tx, ty, 99) * 4);
+        switch (p) {
+            case 'grass': { const cs = this.corners(a, tx, ty); return tileCanvas(`drift2:grass:${cs}:${v}`, x => this.grass(x, cs, v)); }
+            case 'flowers': { const cs = this.corners(a, tx, ty), k = this.bloom(tx, ty); return tileCanvas(`drift2:fl:${cs}:${v}:${k}`, x => this.flowers(x, cs, v, k)); }
+            case 'tallgrass': { const cs = this.corners(a, tx, ty); return tileCanvas(`drift2:tall:${cs}:${v}`, x => this.tall(x, cs, v)); }
+            case 'oldroad': { const cs = this.corners(a, tx, ty); return tileCanvas(`drift2:road:${cs}:${v}`, x => this.oldroad(x, cs, v)); }
+            case 'heath': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.k === 'grass' && c.p !== 'heath'); return tileCanvas(`drift2:heath:${m}:${cs[0]}:${v}`, x => this.heath(x, m, cs, v)); }
+            case 'path': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.p === 'path'); return tileCanvas(`drift2:track:${m}:${cs[0]}:${v}`, x => this.track(x, m, cs, v)); }
+            case 'forest': return tileCanvas(`drift2:forest:${v}`, x => this.forest(x, v));
+            case 'drywall': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.p === 'drywall'); return tileCanvas(`drift2:wall:${m}:${cs}:${v}`, x => this.drywall(x, m, cs, v)); }
+            case 'racewall': return tileCanvas(`drift2:race:${v}`, x => this.racewall(x, v));
+            case 'mud': return tileCanvas(`drift2:mud:${v}`, x => this.mud(x, v));
+        }
+        return null;
+    },
+    /* over the ground: the old bridge's ends where the track meets the stream; under the mill pond while it's full, the
+       drowned road and what stands on it; the grating the race goes under the mill by */
+    ground(a, cx, cy) {
+        if (HEADLESS) return;
+        const at = (tx, ty) => [tx * T - cx, ty * T - cy], on = ([x, y]) => x > -40 && x < W + 40 && y > -40 && y < H + 40;
+        for (const y of [18, 19]) {
+            let [x, yy] = at(39, y);
+            if (on([x, yy])) { Gfx.rect(x + 11, yy, 5, 16, '#8c8676'); Gfx.rect(x + 11, yy, 5, 1, '#c8c2b2'); Gfx.rect(x + 11, yy + 7, 5, 1, '#5e5a50'); Gfx.rect(x + 10, yy, 1, 16, '#5e5a50'); }
+            [x, yy] = at(41, y);
+            if (on([x, yy])) { Gfx.rect(x, yy, 5, 16, '#8c8676'); Gfx.rect(x, yy, 5, 1, '#c8c2b2'); Gfx.rect(x, yy + 7, 5, 1, '#5e5a50'); Gfx.rect(x + 5, yy, 1, 16, '#5e5a50'); }
+        }
+        const [sx, sy] = at(40, 18); if (on([sx, sy])) { Gfx.rect(sx + 3, sy + 11, 4, 3, '#7a7466'); Gfx.rect(sx + 3, sy + 11, 4, 1, '#a8a294'); Gfx.rect(sx + 9, sy + 20, 3, 2, '#7a7466'); }
+        if (a.kind(37, 10).water) {
+            Gfx.alpha(0.28);
+            for (let tx = 35; tx <= 42; tx++) { const [x, y] = at(tx, 11); for (let i = 0; i < 4; i++) Gfx.rect(x + 1 + i * 4, y + 5 + (i % 2) * 3, 3, 2, '#1e3a5a'); }
+            const [mx, my] = at(37, 10); Gfx.rect(mx + 4, my + 2, 8, 12, '#1e3a5a'); Gfx.rect(mx + 5, my + 1, 6, 1, '#1e3a5a');
+            const [bx, by] = at(41, 10); Gfx.rect(bx + 2, by + 6, 12, 8, '#1e3a5a');
+            Gfx.alpha(1);
+            if ((G.t >> 5) % 4 === 0) { Gfx.alpha(0.5); Gfx.rect(mx + 3, my + 1, 10, 1, '#d8eef8'); Gfx.alpha(1); }
+        }
+        const [gx, gy] = at(44, 9);
+        if (on([gx, gy])) { Gfx.rect(gx + 1, gy, 14, 7, '#2a3038'); for (let i = 2; i < 15; i += 3) Gfx.rect(gx + i, gy, 1, 7, '#8a8a90'); Gfx.rect(gx + 1, gy + 7, 14, 1, '#5e5a50'); }
+    },
+};
+{
+    const draw0 = TileDraw.draw;
+    TileDraw.draw = function (area, tx, ty, sx, sy) {
+        if (area.id === 'drift') { const c = DriftArt.tile(area, tx, ty); if (c) { Gfx.img(c, sx, sy); return; } }
+        return draw0.call(this, area, tx, ty, sx, sy);
+    };
+}
+/* a tree of the Drift's woods, not quite in line with the next */
+SPAWN.drifttree = (tx, ty, p) => {
+    const pr = SPAWN.tree(tx, ty, Object.assign({ deco: true }, p));
+    pr.x += Math.round((hash2(tx, ty, 13) - 0.5) * 8); pr.y += Math.round((hash2(ty, tx, 14) - 0.5) * 6);
+    return pr;
+};
+
+/* ---------- the old mill: a wheel on the race winds up the sluice in the dam of the pond below, but only while it
+   turns, and it only turns while something floats past it on its own (nobody aboard: the paddles want the race's push).
+   Out here a barrel goes down the race once, and that's all: it fetches up at the grating under the mill. Wound right up,
+   the sluice's catch holds, and the pond runs out for good ---------- */
+const DriftMill = {
+    build(a) {
+        if (!Progress.areaFlag('drift', 'millpond')) return;
+        this.drainAll(a);
+        if (!Progress.flag('drift_millpond')) Progress.set('drift_millpond');
+        this.addStone(a);
+    },
+    drainAll(a) { const [x0, y0, w, h] = MILL.pond; for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (a.kind(x, y).water) a.setCell(x, y, 'd'); },
+    addStone(a) { if (!a.ents.some(e => e.milestone)) { const s = MILL.stone, e = SPAWN.deco(s.x, s.y, { look: s.look, text: s.text }); e.milestone = true; a.add(e); } },
+};
+class MillWheel extends Wheel {
+    tick() {
+        const [wx, wy] = this.watch, o = this.area.at(wx, wy), p = G.player;
+        const turning = !!(o && o.floats && !o.paddled && !(p && p.area === this.area && p.ride === o));
+        if (turning) { if (!this.turning) Sfx.play('click'); this.timer = this.time; this.ang += 0.09; }
+        else if (this.timer > 0) { this.timer--; this.ang += 0.05 * this.timer / this.time; }
+        this.turning = turning;
+        this.on = this.timer > 0;
+        if (this.on) Signals.set(this.area, this.sig);
+    }
+    get sortY() { return this.y + 22; }
+    draw(cx, cy) {
+        const x = (this.tx + 1) * T - cx, y = this.ty * T - cy + 4;
+        /* the axle out of the mill's wall, the rim, the spokes and the paddles going round, the race slopping off them */
+        Gfx.rect(x - 9, y - 2, 9, 4, '#4a2e1c');
+        Gfx.circle(x, y, 15, '#3a2418'); Gfx.circle(x, y, 13, '#7a5030'); Gfx.circle(x, y, 11, '#3a2418');
+        for (let i = 0; i < 8; i++) {
+            const t = this.ang + i * Math.PI / 4, c = Math.cos(t), s = Math.sin(t);
+            Gfx.line(x, y, x + c * 12, y + s * 12, '#9a6a3e');
+            Gfx.rect(Math.round(x + c * 14) - 2, Math.round(y + s * 14) - 2, 4, 4, '#c08a52');
+            Gfx.rect(Math.round(x + c * 14) - 2, Math.round(y + s * 14) - 2, 4, 1, '#e0b07a');
+        }
+        Gfx.circle(x, y, 4, '#3a2418'); Gfx.circle(x, y, 2, '#8a8a90');
+        if (this.on && (G.t >> 2) % 2) { Gfx.alpha(0.8); Gfx.rect(x + 2, y + 13, 3, 1, '#ffffff'); Gfx.rect(x + 8, y + 10, 2, 2, '#d8f2fc'); Gfx.rect(x + 5, y + 15, 2, 1, '#d8f2fc'); Gfx.alpha(1); }
+    }
+}
+SPAWN.millwheel = (x, y, p) => new MillWheel(x, y, p);
+
+class MillSluice extends Ent {
+    constructor(tx, ty, p = {}) { super('millsluice', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.lift = 0; this.open = false; this.drain = -1; }
+    onAdd(a) { if (Progress.areaFlag('drift', 'millpond')) { this.open = true; this.lift = MILL.FULL; } }
+    blocks(x, y) { return !this.open && x === this.tx && y === this.ty; }     /* (nothing floats out of the pond past it) */
+    update() {
+        const a = this.area;
+        if (this.drain >= 0) { this.drainStep(a); return; }
+        if (this.open) return;
+        /* wound up while the wheel turns; its own weight lets it back down a notch at a time when it stops */
+        if (Signals.get(a, 'millWheel')) this.lift = Math.min(MILL.FULL, this.lift + 1);
+        else this.lift = Math.max(0, this.lift - 3);
+        if (this.lift > 0 && this.lift % 90 === 0) Sfx.play('click', 0.4);
+        if (this.lift >= MILL.FULL) this.release(a);
+    }
+    release(a) {
+        this.open = true; this.drain = 0;
+        Progress.setAreaFlag('drift', 'millpond'); Stats.count('secret:millpond');
+        Sfx.play('unlock'); Sfx.play('splash'); G.shake = 10;
+        G.pendingToast = 'Clank: the sluice\'s catch drops into its last notch and holds, and the mill pond starts to run out through it.';
+    }
+    /* the pond runs out from the sluice outward */
+    drainStep(a) {
+        this.drain++;
+        if (this.drain % 6) return;
+        const k = this.drain / 6, [x0, y0, w, h] = MILL.pond, [sx, sy] = MILL.sluice;
+        for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (Math.abs(x - sx) + (sy - 1 - y) === k && a.kind(x, y).water) { a.setCell(x, y, 'd'); if ((x + y) % 2) Fx.splash(x * T + 8, y * T + 8); }
+        if (k >= w + h) {
+            this.drain = -1;
+            Progress.set('drift_millpond'); DriftMill.addStone(a);
+            Sfx.play('chime');
+        }
+    }
+    get sortY() { return this.y + 16; }
+    draw(cx, cy) {
+        const x = this.tx * T - cx, y = this.ty * T - cy, r = Math.round(Math.min(1, this.lift / MILL.FULL) * 13);
+        /* the chain up to the mill, over the pond */
+        for (let j = 8 * T - cy; j < y - 10; j += 3) Gfx.rect(x + 8 + (Math.round(j / 3) % 2), j, 1, 2, '#3a3030');
+        /* the frame: two posts and a beam with the winding drum */
+        Gfx.rect(x, y - 12, 2, 26, '#5a3a24'); Gfx.rect(x + 14, y - 12, 2, 26, '#5a3a24');
+        Gfx.rect(x - 1, y - 13, 18, 3, '#7a5234'); Gfx.rect(x + 5, y - 15, 6, 4, '#3a2a20'); Gfx.rect(x + 6, y - 14, 4, 1, '#8a8a90');
+        /* the water going under it, the more the higher it's wound */
+        if (r > 0) {
+            Gfx.rect(x + 2, y + 15 - r, 12, r, '#2e66b0');
+            for (let i = 0; i < 3; i++) Gfx.rect(x + 3 + i * 4, y + 15 - r + ((G.t >> 1) + i * 3) % Math.max(1, r), 1, 2, '#d8f2fc');
+        }
+        /* the gate */
+        const gy = y + 1 - r;
+        Gfx.rect(x + 2, gy, 12, 14, '#8a5a32');
+        for (let i = 0; i < 3; i++) Gfx.rect(x + 2 + i * 4, gy, 1, 14, '#6a4226');
+        Gfx.rect(x + 2, gy + 3, 12, 2, '#4a4a52'); Gfx.rect(x + 2, gy + 10, 12, 2, '#4a4a52');
+        Gfx.rect(x + 2, gy, 12, 1, '#b07a48');
+    }
+}
+SPAWN.millsluice = (x, y, p) => new MillSluice(x, y, p);
+
+SPAWN.driftmill = (tx, ty) => {
+    const im = ART.drift_mill;
+    const pr = new Prop(tx, ty, { im, solid: [], ox: -2, oy: 5 * T - im.height + 2 });
+    pr.baseY = im.height - 2;
+    pr.interact = () => { Script.run(function* () { yield* say(null, "The old mill. Its door has swollen tight in its frame; through a knot-hole there's only dust, and the millstones, still. A chain runs down from the wall into the pond, out to the sluice in the dam."); }); return true; };
+    pr.talkBox = (pl, f) => f.ty === ty + 4 && f.tx >= tx && f.tx < tx + 6;
+    return pr;
+};
+
+/* ---------- the fair's balloon, cut loose in Larkspur: it came down over here, snagged in a treetop by the old wall ---------- */
+SPAWN.driftballoon = (tx, ty) => {
+    const im = ART.drift_balloon;
+    const pr = new Prop(tx, ty, { im, solid: [[0, 0]], ox: -48, oy: T - im.height });
+    pr.baseY = im.height;
+    pr.interact = () => {
+        Script.run(function* () {
+            if (Progress.flag('drift_balloon')) { yield* say(null, "The fair's balloon, snagged in the treetop. The basket creaks whenever the wind gets under it."); return; }
+            yield* say(null, "The balloon from the fair! It came down out here, its envelope snagged over a treetop, the basket hanging just clear of the grass. CLOSED, it still says on the side.");
+            yield* say(null, "You climb in. It sways, and holds. From up here you can see over the trees: the stream coming down past an old mill, a cottage with a garden, the old wall, and away west, hills and hills, further than anything goes in the Hollow.");
+            const a = G.map, s = Stats.visited[a.id] = Stats.visited[a.id] || {};
+            for (let y = 0; y < a.h; y += 4) for (let x = 0; x < a.w; x += 4) s[(x >> 2) + ',' + (y >> 2)] = 1;
+            Progress.set('drift_balloon'); Stats.count('secret:balloon');
+            UI.toast('The whole of the Drift, drawn on your map.');
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+
+function initDriftArt() {
+    const R = (x, c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+    /* the Drift's trees: a wild oak, broad and lumpy; a yellower one; a rowan in berry */
+    treeArt('tree_wild', { leaf: ['#5e9a40', '#78b450', '#9ccc68', '#3e7034'], bark: ['#8a6a52', '#6a5040', '#4a3828'] }, 11, { clumps: [[16, 13, 11], [8, 17, 7], [24, 16, 8], [11, 8, 7], [21, 7, 7], [16, 21, 8], [5, 12, 5]] });
+    treeArt('tree_wild2', { leaf: ['#78a63e', '#92bc4e', '#b6d66a', '#527a30'], bark: ['#8a6a52', '#6a5040', '#4a3828'] }, 23, { clumps: [[15, 14, 10], [24, 12, 7], [8, 15, 7], [17, 6, 7], [10, 21, 6], [22, 20, 7]] });
+    treeArt('tree_rowan', { leaf: ['#4e8a3c', '#68a44a', '#8cc062', '#346a30'], bark: ['#b4b2a8', '#8a8a80', '#5e5e56'], fruit: '#d83a2a' }, 17, { clumps: [[16, 12, 9], [9, 15, 6], [23, 15, 6], [12, 7, 6], [20, 7, 6], [16, 19, 7]] });
+    /* the mill: rubble-stone walls, a slate roof with a hoist hood on its front, a door boarded shut, two small windows */
+    ART.drift_mill = paintSprite(100, 112, x => {
+        /* the roof: back slope, ridge, front slope */
+        R(x, '#4e5a68', 2, 6, 96, 64);
+        for (let y = 8; y < 26; y += 3) { R(x, '#5a6676', 3, y, 94, 2); for (let i = 3 + (y % 2) * 4; i < 96; i += 8) R(x, '#46505e', i, y, 1, 2); }
+        R(x, '#8a96a6', 2, 26, 96, 3); R(x, '#3a4450', 2, 29, 96, 1);
+        for (let y = 30; y < 68; y += 4) { R(x, '#6e7c8e', 3, y, 94, 3); R(x, '#7e8c9e', 3, y, 94, 1); for (let i = 2 + (y % 8 ? 0 : 5); i < 96; i += 10) R(x, '#56626e', i, y, 1, 3); }
+        for (let n = 0; n < 40; n++) R(x, n % 3 ? '#7a9a4a' : '#5e7e3a', 4 + Math.floor(hash2(n, 1, 201) * 90), 8 + Math.floor(hash2(1, n, 202) * 58), 2, 1);
+        /* the hoist hood on the roof's front, its beam and rope */
+        R(x, '#c8b494', 62, 40, 20, 28); R(x, '#a8946c', 62, 40, 2, 28); R(x, '#5a4a3a', 66, 50, 12, 16);
+        R(x, '#6e7c8e', 59, 34, 26, 7); R(x, '#8a96a6', 59, 34, 26, 2);
+        R(x, '#6a4a30', 70, 44, 4, 4); R(x, '#d8c8a0', 72, 48, 1, 14); R(x, '#c8a868', 69, 62, 7, 6); R(x, '#a8884c', 69, 66, 7, 2);
+        /* under the eaves */
+        R(x, '#3a3440', 2, 70, 96, 3);
+        /* the front wall: rubble stone */
+        R(x, '#8a8070', 2, 73, 96, 39);
+        for (let y = 73; y < 110; y += 4) for (let i = 2 + ((y >> 2) % 2) * 3; i < 98; i += 6 + Math.floor(hash2(i, y, 203) * 3)) {
+            const c = ['#bdb3a0', '#a89e8a', '#d0c8b6', '#b2a892'][Math.floor(hash2(i, y, 204) * 4)];
+            R(x, c, i, y, 5, 3); R(x, shade(c, 0.2), i, y, 5, 1);
+        }
+        R(x, '#6a6050', 2, 108, 96, 4);
+        /* the door, boarded */
+        R(x, '#3a2a20', 40, 84, 20, 26); R(x, '#7a5434', 42, 86, 16, 24);
+        for (let i = 42; i < 58; i += 4) R(x, '#6a4428', i, 86, 1, 24);
+        R(x, '#9a6c44', 40, 92, 20, 3); R(x, '#9a6c44', 40, 102, 20, 3);
+        for (let i = 0; i < 16; i++) R(x, '#8a6038', 42 + i, 106 - i, 2, 2);
+        R(x, '#4a4a52', 44, 93, 1, 1); R(x, '#4a4a52', 55, 103, 1, 1);
+        /* the windows */
+        for (const wx of [14, 76]) { R(x, '#e8e0d0', wx - 1, 80, 12, 12); R(x, '#2e2a30', wx, 81, 10, 10); R(x, '#e8e0d0', wx + 4, 81, 2, 10); R(x, '#e8e0d0', wx, 85, 10, 2); R(x, '#5a6a7a', wx + 1, 82, 3, 3); }
+        /* moss and weed where the wall meets the ground */
+        for (let n = 0; n < 30; n++) R(x, n % 2 ? '#6a8a3e' : '#7a9a4a', 2 + Math.floor(hash2(n, 3, 205) * 94), 104 + Math.floor(hash2(3, n, 206) * 6), 2, 1);
+    });
+    /* the milestone on the drowned road */
+    ART.drift_milestone = paintSprite(16, 24, x => {
+        R(x, '#8a8476', 3, 6, 10, 18); R(x, '#a8a294', 4, 4, 8, 19); R(x, '#a8a294', 5, 3, 6, 1); R(x, '#c4beb0', 4, 4, 3, 18);
+        R(x, '#5e5a50', 6, 9, 1, 4); R(x, '#5e5a50', 9, 9, 1, 4); R(x, '#5e5a50', 6, 11, 4, 1);
+        R(x, '#5e5a50', 6, 15, 4, 1); R(x, '#5e5a50', 9, 16, 1, 2); R(x, '#5e5a50', 6, 18, 4, 1);
+        R(x, '#5a8a3a', 3, 20, 2, 4); R(x, '#5a8a3a', 11, 19, 2, 5); R(x, '#6a9a44', 7, 21, 1, 3); R(x, '#4a7a30', 4, 22, 8, 2);
+    });
+    /* the fair's balloon, its envelope fallen in over a treetop, the ropes down to its basket */
+    ART.drift_balloon = paintSprite(64, 84, x => {
+        const S = ['#e8463c', '#f7d64a', '#4f9be0'];
+        /* the envelope, slack, draped: stripes running down its folds */
+        for (let j = 0; j < 22; j++) {
+            const w = 30 - Math.abs(j - 9) * 1.2, x0 = Math.round(26 + Math.sin(j / 3) * 2);
+            for (let i = 0; i < w; i++) { const k = Math.floor((i + (j > 12 ? j - 12 : 0)) / 5) % 3; R(x, j % 4 === 3 && i % 7 === 0 ? shade(S[k], -0.3) : S[k], x0 + i, 26 + j, 1, 1); }
+        }
+        R(x, '#c43a32', 30, 47, 18, 2); R(x, '#f7d64a', 44, 44, 6, 3);
+        /* the ropes */
+        for (let j = 0; j < 20; j++) { R(x, '#6a5040', 46 + Math.round(j * 0.15), 48 + j, 1, 1); R(x, '#6a5040', 56 + Math.round(j * 0.2), 46 + j, 1, 1); }
+        /* the basket: wicker, a rim, CLOSED on a board */
+        R(x, '#7a5228', 47, 68, 17, 3); R(x, '#c8964a', 48, 71, 15, 12); R(x, '#a8763a', 48, 82, 15, 2);
+        for (let j = 72; j < 82; j += 2) for (let i = 48 + (j % 4 === 0 ? 0 : 2); i < 63; i += 4) R(x, '#e4b870', i, j, 2, 1);
+        R(x, '#f0e6d0', 50, 75, 11, 4); R(x, '#c42b4a', 51, 76, 9, 2);
+    });
+}
+CONTENT_INIT.push(initDriftArt);
 
 // ---- 75_greatspool.js ----
 /* The Great Pull and the Great Spool. Back from the Drift on foot, Wren finds Gran winding the whole valley in:

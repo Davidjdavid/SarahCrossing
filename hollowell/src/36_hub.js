@@ -83,12 +83,16 @@ defBlock({
         { k: 'deco', x: 3, y: 19, look: 'fence_v', solid: [[0, 0]], id: 'westGateA', if: '!fair_gate' }, { k: 'deco', x: 3, y: 20, look: 'fence_v', solid: [[0, 0]], id: 'westGateB', if: '!fair_gate' },
         { k: 'rest', x: 28, y: 34 },
         /* townsfolk */
-        { k: 'npc', who: 'burr', x: 32, y: 3, face: 'down', if: '!act3' },
+        /* (after the fifth Knot Burr moves his post in a few steps: the fog's closer, he says) */
+        { k: 'npc', who: 'burr', x: 32, y: 3, face: 'down', if: '!act3&!d5' },
+        { k: 'npc', who: 'burr', x: 32, y: 7, face: 'down', if: '!act3&d5' },
         { k: 'npc', who: 'quill', x: 10, y: 30, face: 'down' },
         { k: 'npc', who: 'tuck', x: 7, y: 32, face: 'right' },
         { k: 'npc', who: 'arlo', x: 27, y: 23, face: 'left' },
         { k: 'npc', who: 'bram', x: 34, y: 24, face: 'down' },
-        { k: 'npc', who: 'hob', x: 48, y: 24, face: 'right', route: [[48, 22, 120], [48, 28, 120]] },
+        /* Hob walks the bank, until the third Knot; then he only stands */
+        { k: 'npc', who: 'hob', x: 48, y: 24, face: 'right', route: [[48, 22, 120], [48, 28, 120]], if: '!d3' },
+        { k: 'npc', who: 'hob', x: 48, y: 24, face: 'right', if: 'd3' },
         /* before the first Knot the kids play tag; after it, Housekeeper (S12, src/52_kidgame.js) */
         { k: 'npc', who: 'nell', x: 24, y: 16, face: 'right', route: [[24, 16, 20], [27, 21, 10], [23, 21, 20]], if: '!d1' },
         { k: 'npc', who: 'otto', x: 38, y: 16, face: 'left', route: [[38, 16, 30], [35, 21, 10], [39, 21, 10]], if: '!d1' },
@@ -102,7 +106,10 @@ defBlock({
         { k: 'npc', who: 'gundry', x: 33, y: 20, face: 'left' },
         { k: 'npc', who: 'gran', x: 29, y: 20, face: 'down', if: 'ceremony&!reveal2' },
         { k: 'critter', who: 'biscuit', look: 'cat', x: 14, y: 14, speed: 0.5, route: [[14, 14, 200], [19, 22, 90], [28, 25, 300], [35, 33, 120], [41, 33, 200], [44, 14, 160], [22, 12, 90]] },
-        { k: 'critter', who: 'pudding', look: 'dog', x: 40, y: 22, speed: 1.0, route: [[40, 22, 40], [41, 16, 20], [36, 25, 30], [40, 25, 20]], if: '!dogStopped' },
+        /* Pudding chases his ball, until the fourth Knot; then he lies and looks at it (and after the Unwinding, chases it again) */
+        { k: 'critter', who: 'pudding', look: 'dog', x: 40, y: 22, speed: 1.0, route: [[40, 22, 40], [41, 16, 20], [36, 25, 30], [40, 25, 20]], if: () => !Progress.flag('dogStopped') && (!Progress.flag('d4') || Progress.flag('unwound')) },
+        { k: 'critter', who: 'pudding', look: 'dog', x: 40, y: 25, if: () => Progress.flag('d4') && !Progress.flag('unwound') },
+        { k: 'deco', x: 39, y: 25, look: 'pudding_ball', solid: false, ox: 4, oy: 6, baseY: -50, if: () => Progress.flag('d4') && !Progress.flag('unwound') },
     ],
     onEnter: a => Ceremony.check(a),
     regions: [

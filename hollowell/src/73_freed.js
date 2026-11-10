@@ -22,6 +22,30 @@ const CUT_LINES = {
     otto: "Otto puts the crate down where it is and walks away from it, and it stays there, and he looks back at it, astonished.",
     bea: "Bea starts a game of tag and doesn't stop.",
 };
+/* and after that, what they say now (src/51b_town_life.js asks, every time, once they're cut) */
+const FREE_LINES = {
+    quill: ["I took the children up the hill this morning. All of them. We stood at the top and nobody knew what to do next. It was wonderful.", "Lesson for today: look at something you've never looked at. I'm still deciding what mine is."],
+    arlo: ["The water goes somewhere. All this time, it was going somewhere, and I never once followed it.", "My knees are furious with me. I've never been happier."],
+    bram: ["Fresh clay, from up the north road! It's AWFUL clay. I've never been so happy in my life. HA!"],
+    hob: ["Up past the bend. My dad's pool. I'm going back tomorrow. And the day after. Because I can."],
+    gundry: ["Still looking for the sea. I'm told it's further than the fog. Most things are, it turns out."],
+    burr: ["No post. Feels like a missing tooth. Nice, though. Mostly nice."],
+    tuck: ["I went ALL the way to the bridge and back by myself and nobody pulled me! I'm going to the bridge again in a minute."],
+    rosa: ["I've baked a loaf for nobody in particular and set it on the step. It's still there. Nothing's told it to go anywhere."],
+    thimble: ["I've written to a market two valleys over. I don't know if letters get out. We'll see!"],
+    seam: ["Your travelling coat's coming on. Big pockets. You'll be going places, I think. Everybody will."],
+    mabel: ["I've let three of my strays go already. Set them on the step and watched them not come back. Lovely, it was."],
+    mallow: ["I'm awake. I've been awake for hours. I don't know what to do with all of it."],
+    ives: ["I left a teacup on the wrong shelf. On purpose. Then I had to go and sit down for a bit. It was all too exciting."],
+    nell: ["Past the posts and back, and past the posts and back! Nobody stops me! NOBODY!"],
+    otto: ["I put my crate down by the bench. It's STILL there. I keep going to check."],
+    bea: ["Tag! ...You're supposed to run. Everybody can run now."],
+};
+/* (Burr's talk is the north gate's, src/71_loomwood.js, once it's open: cut free, he's moved on from that too) */
+{
+    const b0 = TALK.burr;
+    TALK.burr = function* (n) { if (Progress.flag('cut:burr') && (yield* Town.news('burr'))) return; yield* b0(n); };
+}
 /* each freed townsperson's own little round in town (hub tiles), and where Arlo's walk ends */
 const FREE_ROUTES = {
     quill: [[10, 30, 120], [20, 27, 60], [28, 24, 90]],

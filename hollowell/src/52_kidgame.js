@@ -106,6 +106,7 @@ const KidGame = {
 ITEMS.kidbadge = { name: 'Playground badge', kind: 'keepsake', desc: "A button with a feather duster drawn on it in ink: the Hollowell kids' highest honour." };
 
 TALK.otto = function* () {
+    if ((yield* Favours.talk('otto')) || (yield* Town.news('otto'))) return;
     if (Progress.flag('s12')) { yield* say('otto', cycle('otto3', ["Rematch? ...No. My X is comfy.", "I'm going to be a Wanderer when I'm big. Or a Housekeeper. Whichever goes further.", "Bea says I fell over funny. I did not fall over funny."])); return; }
     if (Progress.flag('d1')) {
         if (Progress.flag('tagStopped')) { yield* say('otto', cycle('otto2', ["I'm the Housekeeper. I stand on my X. I like my X. Tsk.", "Move a crate, go on. I'll tidy it. I always tidy it."])); return; }
@@ -116,6 +117,7 @@ TALK.otto = function* () {
     yield* say('otto', "I'm IT! Unless you're IT. Are you playing?");
 };
 TALK.nell = function* () {
+    if ((yield* Favours.talk('nell')) || (yield* Town.news('nell'))) return;
     if (Progress.flag('s12')) { yield* say('nell', "You're the best Wanderer ever. Don't tell Gran I said."); return; }
     if (Progress.flag('d1')) {
         if (Progress.flag('tagStopped')) { yield* say('nell', cycle('nell2', ["We don't play tag any more. Housekeeper's better. You don't have to go anywhere.", "Otto's been the Housekeeper all week. Nobody's ever beaten him."])); return; }
@@ -126,6 +128,7 @@ TALK.nell = function* () {
     yield* say('nell', "Can't talk! Otto's IT!");
 };
 TALK.bea = function* () {
+    if ((yield* Favours.talk('bea')) || (yield* Town.news('bea'))) return;
     if (Progress.flag('s12')) { yield* say('bea', 'Look after the badge! It took three goes to draw the duster.'); return; }
     if (Progress.flag('d1')) {
         yield* firstThen('bea', "You beat the real one, didn't you? How? Did you hit it with your stick?",

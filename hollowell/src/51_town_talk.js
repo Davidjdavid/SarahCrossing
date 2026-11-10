@@ -1,4 +1,6 @@
-/* What the townsfolk say. Lines move on with the Wander (flags d1..d6 and the rest). */
+/* What the townsfolk say. Lines move on with the Wander (flags d1..d6 and the rest). Before their usual lines, two
+   things get their say: a favour of theirs (src/51c_town_favours.js) and anything new since the last turn of the Wander
+   (src/51b_town_life.js), each said once. */
 
 function cycle(id, lines) {
     const k = 'talk:' + id;
@@ -21,21 +23,25 @@ TALK.quill = function* () {
         else yield* say('quill', "Stays? In the Hollow? Goodness, no. Come back when you've thought it over.");
         return;
     }
+    if (yield* Town.news('quill')) return;
     yield* firstThen('quill', "Miss Quill. I taught you your letters, and the Rules. The blackboard in the schoolhouse has them all, if you've forgotten any.",
         ["The schoolhouse is open, if you want to read the Rules again.", "A Wanderer who thinks before pushing is worth two who don't.", "Tuck has drawn eleven pictures of you this week. Eleven."]);
 };
 TALK.tuck = function* () {
+    if ((yield* Favours.talk('tuck')) || (yield* Town.news('tuck'))) return;
     if (Progress.flag('d1')) { yield* say('tuck', cycle('tuck1', ["Was there a monster? Was it HUGE? I bet it was huge.", "When I do my Wander I'm going to do it faster than you. No offence.", "Mum says I'm too little. I'm NOT too little."])); return; }
     yield* firstThen('tuck', "Are you going? Are you going NOW? When I'm big I'm going on a Wander too! I'm going to do ALL the Houses!",
         ["I'm practising. Watch. *pushes the sand* ...It came back. It always comes back.", "Bring me something from the Tidyhouse! A spoon or something!", "My mum says the Houses are older than the town. Older than Gran even!"]);
 };
 TALK.hob = function* () {
+    if (yield* Town.news('hob')) return;
     if (Progress.flag('d3')) { yield* say('hob', "Used to walk the bank every day. Now I just... stand here. The fish don't mind."); return; }
     if (Progress.flag('d2')) { yield* say('hob', cycle('hob2', ["Two Knots, they say. The river's running a touch slower this week. Could be nothing. Fish don't seem to mind.", "Caught the same fish three days running. Same fish, same rock. I've named him Gerald.", "Folks up at the Kiln, eh? Clay always did come down the river with the spring."])); return; }
     yield* firstThen('hob', "Morning, Wanderer. Fish come back too, you know. Throw one in, back it swims to its own rock. Never lost a fish yet.",
         ["The river comes down from the north, past the posts. Nobody's been up there. Nobody ever needs to.", "Mind the water. The deep bits'll send you home soaking.", "Best spot's right here. Always has been. Funny how a spot gets to be yours."]);
 };
 TALK.arlo = function* () {
+    if (yield* Town.news('arlo')) return;
     yield* firstThen('arlo', "Sit down, sit down. Ah, the Wander. I remember mine. Long time ago now. Before the posts went up.",
         ["When I was a lad, folk used to walk about. Up the hills, down to the lake, just for the doing of it. Can't think why we stopped.",
             "Your aunt did her Wander from this very square. Your Gran won't talk of it, so I won't either.",
@@ -53,20 +59,24 @@ TALK.ives = function* () {
         yield* say('ives', "You did it! I do hope it was tidy in there. Oh, and if you're ever at a loose end: up in the attic I've set out some tidying for anyone who's quick. Trials, I call them. The stairs are just there.");
         return;
     }
+    if (yield* Town.news('ives')) return;
     if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["Have you tried my Trials? Up the attic stairs. Quick hands, that's the thing.", "You did it! I do hope it was tidy in there. Was it tidy?", "A Knot! Well. That calls for a good sweep of the step.", "If you need a lie-down, the beds upstairs are made. They're always made."])); return; }
     yield* firstThen('ives', "Welcome to the Spool & Thimble! Wipe your— oh, it's you, {name}! Off to the Tidyhouse? You'll love it. Everyone does.",
         ["A place for everything and everything in its place, that's what I always say. What everybody says, I suppose.", "If you need a lie-down, the beds upstairs are made. They're always made.", "Busy, busy. I'm always busy when there's a Wander on."]);
 };
 TALK.bram = function* () {
+    if (yield* Town.news('bram')) return;
     if (Progress.flag('d1') && !Progress.flag('d2')) { yield* say('bram', cycle('bram1', ["The Kiln? Hot place, I'd guess. Very hot. Bring water. Not that I've— ha! Go on.", "Smash a pot out there and watch the bits fly home. Prettiest thing in the Hollow.", "Big boulder in the canyon road, west of Meadowfold. Pushing won't do it. You'll want a grip on it."])); return; }
     yield* firstThen('bram', "HA! The Wanderer! Here, smash one of my pots. Go on! It comes back. That's the beauty of the Hollow: nothing's ever really broken.",
         ["Pots, jugs, bowls. All come home to the shelf. Makes the trade a bit slow, I'll grant you.", "Ever notice the bits fly back the way the pot went? Not the short way. The way it WENT.", "My dad made pots. His dad made pots. Same pots, some of them."]);
 };
 TALK.gundry = function* () {
+    if (yield* Town.news('gundry')) return;
     yield* firstThen('gundry', "Gundry. I keep the Well. Oil the winch, sweep the step, that sort of thing.",
         ["This old winch turns by itself some nights. Wind, I expect.", "Don't go dropping things down the Well, Wanderer. They come back up, and they're not happy about it.", "Your Gran's the Warden. I just do the oiling. She does... the rest."]);
 };
 TALK.burr = function* () {
+    if (yield* Town.news('burr')) return;
     yield* firstThen('burr', "Halt! Oh, it's the Wanderer. North Road's closed past the posts. Always has been. Warden's orders.",
         ["Nothing up there but fog and trees and more fog.", "Nobody's ever gone past the posts. Nobody's ever wanted to. That's how you know it's a good rule.", "I've stood at this post twenty years. Good post."]);
 };
@@ -78,23 +88,28 @@ TALK.mallow = function* () {
         Inv.hp = Inv.maxHp; return;
     }
     if (Inv.hp < Inv.maxHp) { Inv.hp = Inv.maxHp; Sfx.play('heart'); yield* say('mallow', "*yawn* Let's have a look... all better. Off you go. Doctor's orders: a nap, soon as you can."); return; }
+    if (yield* Town.news('mallow')) return;
     yield* firstThen('mallow', "Doctor Mallow. Hurt? Tired? Both? Come and see me, I'll patch you up. *yaaawn* Long night. Very long night.",
         Progress.flag('d5') ? ["Matron Hush? Never heard of her. Strict sort, was she? Hm.", "If you ever need to come home in a hurry, lie down. That's my advice. Lie down, and think of home.", "Sleep is the best medicine. Also the second best."] : ["Sleep is the best medicine. Also the second best.", "You look healthy. Disgustingly healthy. Come back when you're not.", "If you ever feel a sort of... tug... behind the ribs? That's normal. Perfectly normal. Everyone has it."]);
 };
 TALK.mabel = function* () {
+    if ((yield* Favours.talk('mabel')) || (yield* Town.news('mabel'))) return;
     yield* firstThen('mabel', "Lost and Found. Mostly Found. Nothing's ever lost in the Hollow, they say. And yet I keep this shop.",
         ["If you ever find a thing that doesn't go home, bring it here. A stray, we call it. I collect them.", "Strays are turning up more these days. Out by the edges, mostly. Odd little things.", "Everything in its place. Except my things. My things are in MY place."]);
 };
 TALK.thimble = function* () {
-    yield* firstThen('thimble', "Thimble & Things! Wander supplies, bandages, string, things. Mostly things.", ["Buttons spend fine here, Wanderer.", "Bandages, for the bumps. Everyone comes home with bumps.", "String's selling well this year. The Guild orders by the mile."]);
+    if (!(yield* Favours.talk('thimble')) && !(yield* Town.news('thimble')))
+        yield* firstThen('thimble', "Thimble & Things! Wander supplies, bandages, string, things. Mostly things.", ["Buttons spend fine here, Wanderer.", "Bandages, for the bumps. Everyone comes home with bumps.", "String's selling well this year. The Guild orders by the mile."]);
     yield* Shop.run('thimble');
 };
 TALK.rosa = function* () {
+    if ((yield* Favours.talk('rosa')) || (yield* Town.news('rosa'))) return;
     yield* firstThen('rosa', "Hello love! Tuck won't stop talking about you. Eleven drawings. ELEVEN. Here, have a bun for the road.",
         ["Bread's warm, if you want some. A bun puts a bit of heart back in you.", "When Tuck's Wander comes I'll be a mess. Don't tell him.", "I bake the same loaves every morning. Same tins, same shelf. You'd think I'd get bored."]);
     if (!Progress.flag('rosaBun')) { Progress.set('rosaBun'); Inv.heal(4); Sfx.play('heart'); }
 };
 TALK.seam = function* () {
+    if (yield* Town.news('seam')) return;
     yield* firstThen('seam', "Sebastian Seam, tailor. That scarf: red, of course. A Wanderer's colour. You wear it beautifully.",
         ["I'm working on something very big for a client. Very hush-hush.", "Everyone's thread is a different colour, you know. Figuratively. Mostly figuratively.", "Come back when you've a few buttons and I'll make you something with presence."]);
 };
@@ -122,7 +137,10 @@ CRITTER_TALK.biscuit = () => function* () {
     const n = (Progress.get('biscuitPets') || 0) + 1; Progress.set('biscuitPets', n);
     yield* say(null, n === 1 ? "Biscuit, the town cat. The cat goes wherever it likes. You've never once seen it go back to anywhere." : n === 2 ? "Biscuit purrs and looks at you as if it knows something you don't. Cats always look like that." : "Biscuit. Purring.");
 };
-CRITTER_TALK.pudding = () => function* () { yield* say(null, "Pudding chases a ball. It rolls back to Pudding every time. Pudding has never once been surprised by this."); };
+CRITTER_TALK.pudding = () => function* () {
+    if (Progress.flag('d4') && !Progress.flag('unwound')) { yield* say(null, "Pudding lies with his nose on his paws, looking at his ball. He doesn't chase it any more. His tail thumps once when you crouch down, and then he goes back to looking."); return; }
+    yield* say(null, "Pudding chases a ball. It rolls back to Pudding every time. Pudding has never once been surprised by this.");
+};
 
 /* the schoolhouse blackboard: the Rules */
 Story.blackboard = function* () {

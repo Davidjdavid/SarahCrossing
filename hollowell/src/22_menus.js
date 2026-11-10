@@ -349,7 +349,11 @@ const PauseMenu = {
         /* what's going on in town that's new, until it's done (so a new thing is told, not stumbled on) */
         const news = TOWN_NEWS.filter(([on, done]) => on() && !done()).map(n => n[2]);
         if (news.length) {
-            const lines = Font.wrap('{red}Also in town:{/} ' + news.join('; ') + '.', 270).slice(0, 2);
+            /* as many as fit in three lines; the rest counted ("and 2 more"), never cut off mid-word */
+            const text = k => '{red}Also in town:{/} ' + news.slice(0, k).join('; ') + (k < news.length ? `; and ${news.length - k} more` : '') + '.';
+            let k = news.length;
+            while (k > 1 && Font.wrap(text(k), 270).length > 3) k--;
+            const lines = Font.wrap(text(k), 270).slice(0, 3);
             lines.forEach((l, i) => Font.draw(l, 24, ny + i * 10, PAL.ink));
             ny += lines.length * 10 + 6;
         }
