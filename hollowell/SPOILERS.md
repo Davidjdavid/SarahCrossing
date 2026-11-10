@@ -291,7 +291,8 @@ same two-note warning, and red stitches on the floor where it will land (a lane,
 for 40 frames in House 1 down to 20 in House 8 (`TELL`, a little shorter in later beats); it only lands through Wren's
 own hurt(), so stepping out of the marked place is always enough, and nothing lands while anyone is talking. Things a
 boss flings obey the Return: they lie on their thread, shiver when their patience runs out, and fly home along it,
-hitting whatever's on the line (`Flung`). Damage climbs with the curve: half a heart to a heart early, a heart for the
+hitting whatever's on the line (`Flung`): Wren, any creature, and the thrower itself if it's got in the way home, by
+its own rules (most just clang; one caught dazed or stunned is hurt; a shard shed by the Kilnwyrm only rejoins it). Damage climbs with the curve: half a heart to a heart early, a heart for the
 big blows in Houses 3-6, a heart and a half in Houses 7-8 (two for the Weaver's drop). From House 4 on a downed boss
 takes two knocks (Houses 4-6) or three (7-8) to topple, thrashing between them, its reach drawn first (`knockCounts`;
 knocks count for the whole beat). Each beat a boss is knocked into, a heart drops (`bossHeart`). Fainting works as
