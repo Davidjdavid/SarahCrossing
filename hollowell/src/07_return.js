@@ -290,6 +290,17 @@ const Threads = {
                 Gfx.alpha(1);
             }
         }
+        /* creatures keep the law too: each walks home along its own trail to its nest, so its thread shows, faintly
+           (lure one away and its way home is plain to see, plates and all); not the big ones, who keep their own */
+        for (const m of area.walkers || []) {
+            if (m.alive === false || m.hidden || !m.trace || m.trace.length < 2 || m.hp >= 3 || m.noThread) continue;
+            const col = m.thread || (m.D && m.D.yarn) || THREAD.none, tr = m.trace;
+            Gfx.alpha(0.5);
+            for (let i = 0; i + 1 < tr.length; i++) Gfx.line(tr[i][0] * T + 8 - cx, tr[i][1] * T + 9 - cy, tr[i + 1][0] * T + 8 - cx, tr[i + 1][1] * T + 9 - cy, col);
+            const [lx, ly] = tr[tr.length - 1]; Gfx.line(lx * T + 8 - cx, ly * T + 9 - cy, m.x - cx, m.y - cy - 2, col);
+            Gfx.alpha(1);
+            Marks.draw(tr[0][0] * T - cx, tr[0][1] * T - cy, col, true);
+        }
     },
 };
 /* the little stitched cross that is a thing's place */
