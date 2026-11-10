@@ -135,8 +135,9 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
 - Running: House 3 (Millrace), House 7 (Spoolworks), story staging (festival, first reveal, finale, epilogue, the
   Underside's first room), composer 2 (the rest of the tunes, four House boss tunes, the Great Spool's tune).
 - Next: House 4 (Belfry), House 5 (Slumberhouse), House 6 (Marionette Hall), House 8 (Loom); then the Great Spool
-  rebuild; the Makings act; the overworld (two helpers by region); then live run 2, picture reviews, blind solvers,
-  the critic again, a writing pass.
+  rebuild; the Makings act; the overworld (two helpers by region); portraits for the dialogue (the design's promised
+  portrait strip with expressions, generated from each person's look); dressing for Houses 1 and 2 (set pieces);
+  then live run 2, picture reviews, blind solvers, the critic again, a writing pass.
 
 ## The critic's ranked list (review of 10 November; score 6.5/10)
 Full review: scratchpad review_critic/REVIEW.md (spoilers; not in the repository). Plan and status, most impact first:
