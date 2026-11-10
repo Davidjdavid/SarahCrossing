@@ -213,4 +213,4 @@
 | 2026-11-10 | Late secrets (+6); final-act review fixes (+7); the Great Spool rebuilt to 16 rooms (+1); 308 in all; screenshots | pass |
 | 2026-11-10 | Playthrough legs 8 and 9: fresh game to credits in nine legs (310 in all); three bugs found and fixed | pass |
 | 2026-11-10 | One continuous game, title to credits, no presets (311 in all, 2 min) | pass |
-| 2026-11-10 | Design critique items (+3); the Hanging Gallery (+1); optional dungeons' bug hunt fixes (+7); 322 in all; Loom screenshots | pass |
+| 2026-11-10 | Design critique items (+3); the Hanging Gallery (+1); optional dungeons' bug hunt fixes (+7); Making 4 (+2); 324 in all; Loom and Making screenshots | pass |

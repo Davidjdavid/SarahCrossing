@@ -58,8 +58,8 @@ PRESETS.afterD7 = () => {
 };
 PRESETS.afterMakings = () => {
     PRESETS.afterD7();
-    for (const f of ['gundry_job', 'making1', 'making2', 'making3', 'makings_done']) Progress.set(f);
-    for (const n of [1, 2, 3]) Progress.set('making' + n + '_ahas', 3);
+    for (const f of ['gundry_job', 'making1', 'making2', 'making3', 'making4', 'makings_done']) Progress.set(f);
+    for (const n of [1, 2, 3, 4]) Progress.set('making' + n + '_ahas', 3);
     Progress.setGoal("The Way Down, off the Making Floor: fetch Tuck's fresh spool from the deep store.");
     World.enter('underside', 49, 5, { dir: DOWN });
 };

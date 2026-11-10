@@ -12,7 +12,7 @@ const knot = HW => { HW.hold('act'); HW.step(20); HW.release(); HW.step(2); };
 function making(n) {
     const HW = loadGame();
     HW.preset('afterD7'); HW.step(10); HW.skipTalk();
-    if (n > 1) HW.Progress.set('making' + (n - 1));
+    for (let i = 1; i < n; i++) HW.Progress.set('making' + i);
     HW.warp('making' + n, 3, 16); HW.step(10); HW.skipTalk();
     return HW;
 }
@@ -123,9 +123,47 @@ test('Making 3 (the Little Wander): a new place for the heavy one; the biter by 
     noErrors(HW);
 });
 
-test('all three Makings, all three Ahas each: S30, the drawing; the Way Down is next', () => {
-    const HW = making(3);
-    HW.Progress.set('making1_ahas', 3); HW.Progress.set('making2_ahas', 3); HW.Progress.set('making3_ahas', 3);
+test('Making 4 (the Long Sulk): he sulks on the plate, so the heavy one can go home; he holds one plate while the other\'s heavy one comes home, not over him; the block out of the passage', () => {
+    const HW = making(4);
+    const t = tuck(HW);
+    under(HW, 2, 1, 'down'); tug(HW);
+    assert.ok(until(HW, () => ahas(HW).includes('found'), 400), 'the button');
+    assert.ok(until(HW, () => t.state === 'sit', 900));
+    assert.deepEqual([t.tx, t.ty], [10, 5], 'sulking on the plate');
+    under(HW, 11, 1, 'down'); HW.press('act', 1); HW.step(3);
+    assert.ok(!HW.G.map.find('m4H').knotted, 'let go');
+    assert.ok(until(HW, () => t.state === 'sit' && t.tx > 20, 1200), 'and through, to sulk next door');
+    assert.deepEqual([t.tx, t.ty], [38, 5], 'on the near plate by the gate (right in the heavy one\'s way)');
+    under(HW, 32, 3, 'down'); tug(HW);
+    assert.ok(until(HW, () => t.tx <= 34, 300), 'off to see the crate');
+    under(HW, 38, 1, 'down'); HW.press('act', 1); HW.step(3);
+    const H2 = HW.G.map.find('m4H2');
+    assert.ok(until(HW, () => H2.ret.state === 'home', 300), 'home on the far plate');
+    assert.ok(until(HW, () => t.state === 'sit' && t.tx > 40, 900), 'through the gate, sitting in the passage');
+    under(HW, 46, 5, 'down'); tug(HW);
+    assert.ok(until(HW, () => ahas(HW).includes('cleared'), 300), 'he cleared his own way');
+    go(HW, 45, 16);
+    assert.deepEqual(finish(HW, 4), ['cleared', 'found', 'unhurt']);
+    assert.ok(HW.Progress.flag('makings_done'), 'the last of them: the Way Down is next');
+    noErrors(HW);
+});
+
+test('Making 4: let the far plate\'s heavy one go while he sits in its way, and he is bowled over', () => {
+    const HW = making(4);
+    const t = tuck(HW);
+    assert.ok(until(HW, () => t.state === 'sit', 900));
+    under(HW, 11, 1, 'down'); HW.press('act', 1); HW.step(3);
+    assert.ok(until(HW, () => t.state === 'sit' && t.tx === 38, 1200), 'on the plate');
+    under(HW, 38, 1, 'down'); HW.press('act', 1); HW.step(3);
+    assert.ok(until(HW, () => HW.global('Making').cur.bumps === 1, 300), 'Ow!');
+    assert.ok(t.tx < 10, 'back at the start');
+    noErrors(HW);
+});
+
+test('all four Makings, all three Ahas each: S30, the drawing; the Way Down is next', () => {
+    const HW = making(4);
+    for (const n of [1, 2, 3, 4]) HW.Progress.set('making' + n + '_ahas', 3);
+    for (const n of [1, 2, 3]) HW.Progress.set('making' + n);
     HW.global('Making').finish(HW.G.map);
     for (let i = 0; i < 20; i++) { HW.skipTalk(); HW.step(20); }
     assert.ok(HW.Progress.flag('s30'));

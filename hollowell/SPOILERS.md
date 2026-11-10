@@ -270,9 +270,9 @@ pinning Tuck's drawing beside an old one of a girl in green ribbons; Arlo practi
 stray with an L; Seam sewing Tuck's scarf (a list: 3. BRAVE); Burr saying "Go on, then" to nobody; Mallow asleep on
 his plans; Gran writing in a heavy book, looking at the turned portrait, not turning it round.
 ## The Makings and Reveal 2 (`src/68_makings.js`, `src/69_reveal2.js`)
-Tuck's Little Wander: three Little Houses the Makers built for him, run by Wren from underneath (see DUNGEON_TRACKER).
+Tuck's Little Wander: four Little Houses the Makers built for him, run by Wren from underneath (see DUNGEON_TRACKER).
 Tuck's own thread hangs under his start like anybody's (the first hint of Reveal 2); tugging it, Ives: "Not the boy's own
-thread, love!" The Makers grade in Ahas; all nine: Tuck's drawing of "a Maker, whoever helped" (S30).
+thread, love!" The Makers grade in Ahas; all twelve: Tuck's drawing of "a Maker, whoever helped" (S30).
 Then Gundry sends Wren for Tuck's fresh spool down the Way Down: the deep store, and past it the Hall of Names: a spool
 for everybody (Arlo's with "Walked to the lake again. Tightened."; Biscuit's peg empty, a snipped end; Hesper's empty,
 in her own hand; Linnet's cut clean; Wren's wound tightest and still turning). Gran's ledger (Layer 2): Linnet cut

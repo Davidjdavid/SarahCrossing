@@ -98,3 +98,4 @@
 - Fixes from the optional dungeons' bug hunt (11 findings: two ways to get stuck for good, a way to skip a dungeon's
   finale, a crash, a secret that couldn't be finished, wandering townsfolk and animals heading the wrong way, and smaller
   things); regression tests.
+- A fourth part to the third act's change of pace (three rooms that turn one of its rules round), with tests.

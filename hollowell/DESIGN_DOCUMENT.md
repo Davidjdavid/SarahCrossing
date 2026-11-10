@@ -151,7 +151,7 @@ falls and the toymaker Jory is caught at its controls: **Reveal 1, the Houses ar
 
 **Act III, Below (D7 + the Makings).** The Makers take Wren under the Inn into the Underside: the Seams
 (tunnels), the workshops under each House, the Spoolworks (D7, the Needle). Wren is made an apprentice and
-runs little Tuck's first Wander from below (three Makings). Deep in the Underside: the Hall of Names, a
+runs little Tuck's first Wander from below (four Makings). Deep in the Underside: the Hall of Names, a
 spool for every person in the valley (Wren's too) and Linnet's, cut, and Gran's ledger: **Reveal 2, the
 Return holds people, and Gran has been tightening it**. Gran yanks Wren home to bed.
 

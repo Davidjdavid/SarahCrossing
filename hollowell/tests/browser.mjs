@@ -209,6 +209,10 @@ const SCENARIOS = {
         await shot('mk_2a_nib');
         await page.evaluate(() => { HW.Progress.set('making2'); HW.warp('making3', 3, 16); HW.step(10); HW.skipTalk(); HW.step(300); HW.walkTo(24, 15); });
         await shot('mk_3b');
+        await page.evaluate(() => { HW.Progress.set('making3'); HW.warp('making4', 3, 16); HW.step(10); HW.skipTalk(); HW.step(500); HW.walkTo(9, 14); HW.face('up'); });
+        await shot('mk_4a_sulk');
+        await page.evaluate(() => { HW.walkTo(11, 13); HW.face('up'); HW.press('act', 1); HW.step(600); HW.walkTo(30, 15); HW.face('up'); });
+        await shot('mk_4b_plates');
     },
     async reveal2() {
         await open();

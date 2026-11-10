@@ -809,6 +809,16 @@ const LEG8 = (HW, chain) => {
     until(() => t.state === 'sit' && t.tx > 20, 900);
     const K3 = HW.G.map.find('m3K'); under(28, 6, 'down'); tug(); until(() => K3.ty === 7 && !K3.mv, 400); knot();
     walk(45, 16); finishMaking(3);
+    /* Making 4: he sulks on the plate; untie the heavy one; lure him off the near plate, then untie the far one */
+    littleDoor(58); t = tuck();
+    under(2, 1, 'down'); tug(); until(() => ahas().includes('found'), 400); until(() => t.state === 'sit', 900);
+    under(11, 1, 'down'); HW.press('act', 1); HW.step(3);
+    until(() => t.state === 'sit' && t.tx > 20, 1200);
+    under(32, 3, 'down'); tug(); until(() => t.tx <= 34, 300);
+    under(38, 1, 'down'); HW.press('act', 1); HW.step(3);
+    until(() => t.state === 'sit' && t.tx > 40, 1200);
+    under(46, 5, 'down'); tug();
+    walk(45, 16); finishMaking(4);
     for (let i = 0; i < 10; i++) { HW.skipTalk(); HW.step(10); }
     ok(HW.Progress.flag('makings_done'), 'the Makings');
     /* the Way Down; Tuck's spool in the deep store; the Hall of Names; Wren's own spool; the ledger */

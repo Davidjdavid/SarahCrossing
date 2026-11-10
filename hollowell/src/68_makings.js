@@ -1,4 +1,4 @@
-/* The Makings: Tuck's Little Wander. Three little Houses the Makers built for Tuck (six, very brave), run by Wren
+/* The Makings: Tuck's Little Wander. Four little Houses the Makers built for Tuck (six, very brave), run by Wren
    from underneath. Wren can't go up; Tuck walks on his own, by four simple rules you can watch him follow:
      1. he goes for the door (the little hoop at the end);
      2. anything that jumps, he goes and gives it a push (a tug on a home thing's cord makes it jump);
@@ -7,9 +7,11 @@
    He's as heavy as a person (plates feel him), pushes what a person can, and a heavy thing going home will bowl
    him over (a bump: "Ow!", and he's back at the start). His own thread hangs under his start, like everybody's.
    The Makers grade the Little Wander in Ahas: Tuck clearing his own way with a push; Tuck finding the hidden button;
-   not a scratch on him. (S30: all three, every time.) */
+   not a scratch on him. (S30: all three, every time.) The fourth (Gundry's) turns rule 4 round: where he sits is up to you.
+   A Little House can be any number; the Way Down opens once all four are done. */
 
-const MAKING_NAMES = ['The Little Tidyhouse', 'Mind the Nibbler', 'The Little Wander'];
+const MAKING_NAMES = ['The Little Tidyhouse', 'Mind the Nibbler', 'The Little Wander', 'The Long Sulk'];
+const MAKING_COUNT = MAKING_NAMES.length;
 
 /* ---------------- Tuck ---------------- */
 class Tuck extends NPC {
@@ -270,9 +272,10 @@ const Making = {
                 ["Ives, from somewhere above: \"He thinks he did it all himself. That's the whole trick of it, love.\""],
                 ["Bram, from somewhere above: \"HA! He never even saw you. Not once. That's the job.\""],
                 ["Tess, from somewhere above: \"Oh, his face. Did you see his face?\""],
+                ["Gundry, from somewhere above: \"He sulked exactly where we needed him to. Took me forty years to learn that one.\""],
             ][n - 1];
             yield* say(null, lines[0]);
-            if ([1, 2, 3].every(i => (Progress.get('making' + i + '_ahas') || 0) >= 3) && !Progress.flag('s30')) {
+            if ([1, 2, 3, 4].every(i => (Progress.get('making' + i + '_ahas') || 0) >= 3) && !Progress.flag('s30')) {
                 Progress.set('s30'); Stats.count('secret:ahas');
                 yield* say('tuck', "I drew you a picture! It's you. Well, it's a Maker. I don't know which one. It's whoever helped. Somebody helped. I could tell.");
                 Inv.items.tuckdrawing = 1;
@@ -281,7 +284,7 @@ const Making = {
             yield* fadeOut(20);
             World.enter('underside', 49, 3, { dir: DOWN });
             yield* fadeIn(20);
-            if (n === 3 && !Progress.flag('makings_done')) yield* Making.afterAll();
+            if (!Progress.flag('makings_done') && MAKING_NAMES.every((_, i) => Progress.flag('making' + (i + 1)))) yield* Making.afterAll();
             Save.autosave();
         });
     },
@@ -291,7 +294,7 @@ const Making = {
         const a = G.map;
         if (a && a.id === 'underside' && !a.ents.some(e => e.kind === 'warp' && e.to === 'deep'))
             for (const e of AREAS.underside.ents.filter(d => d.if === 'makings_done')) { const ent = SPAWN[e.k](e.x, e.y, Object.assign({}, e)); ent.skey = '@' + e.x + ',' + e.y; a.add(ent); }
-        yield* say('gundry', "Three Little Houses, and he never once saw your hands. You're a Maker, apprentice. Near enough.");
+        yield* say('gundry', "Four Little Houses, and he never once saw your hands. You're a Maker, apprentice. Near enough.");
         yield* say('gundry', "One more job, and it's an honour: every Wanderer gets a fresh spool of their own for the Wander, a new thread. Tuck's is in the deep store, down the Way Down. Go and fetch it.");
         yield* say('gundry', "Mind, it's old down there. Older than the Guild. Don't touch the big ones.");
         Progress.setGoal("The Way Down, off the Making Floor: fetch Tuck's fresh spool from the deep store.");
@@ -304,7 +307,7 @@ function defMaking(n, cells) {
     defHouse({
         id: 'making' + n, name: MAKING_NAMES[n - 1], place: 'The Making Floor', house: 'making' + n, making: n, theme: 'tidy', thread: THREAD.ives, music: 'underside',
         entry: { x: 3, y: 16 },
-        themeAt: (x, y) => y >= 11 ? 'underside' : ['tidy', 'kilnhouse', 'house'][n - 1],
+        themeAt: (x, y) => y >= 11 ? 'underside' : ['tidy', 'kilnhouse', 'house', 'millhouse'][n - 1],
         drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy),
         tick: a => Making.tick(a),
         onEnter: a => Making.start(a),
@@ -388,7 +391,41 @@ defMaking(3, {
     '2,1': BELOW_ROOM('Under the Hoop', '2,0'),
 });
 
-/* the Making Floor's three doors (the Underside, cell 2,0) */
+/* ---------------- 4: The Long Sulk (Gundry): stuck, he sits as near the door as he can; make that a plate ---------------- */
+defMaking(4, {
+    '0,0': {
+        name: 'The Sulk',
+        rows: ['####################', '#.........#.########', '#.........#.########', '#.........#.########', '#.........#.########', '#...................', '#.........##########', '#.........##########', '#.........##########', '#.........##########', '####################'],
+        ents: [
+            { k: 'tuck', x: 3, y: 5, id: 'tuck' }, { k: 'pot', x: 2, y: 1, id: 'm4Pot' }, { k: 'treasure', x: 2, y: 1 },
+            /* the heavy one, tied off in the passage; its place is up the shaft, behind a gate the plate opens */
+            { k: 'block', x: 11, y: 1, id: 'm4H', startAt: [11, 5], trace: [[11, 1], [11, 2], [11, 3], [11, 4], [11, 5]], knotted: true, patience: 20 },
+            { k: 'plate', x: 10, y: 5, sig: 'm4a' },
+            { k: 'door', x: 11, y: 4, type: 'gate', when: 'm4a', dir: 'h', id: 'm4Gate', keep: true },
+        ],
+    },
+    '1,0': {
+        name: 'Two Plates',
+        rows: ['####################', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '####################'],
+        ents: [
+            { k: 'plate', x: 18, y: 5, sig: 'm4b' }, { k: 'plate', x: 18, y: 1, sig: 'm4c' },
+            { k: 'door', x: 19, y: 5, type: 'gate', when: 'm4b&m4c', dir: 'v', id: 'm4Gate2', keep: true },
+            /* home on the far plate, tied off at the bottom: its way home runs straight through where he'll sit */
+            { k: 'block', x: 18, y: 1, id: 'm4H2', startAt: [18, 8], trace: [[18, 1], [18, 2], [18, 3], [18, 4], [18, 5], [18, 6], [18, 7], [18, 8]], knotted: true, patience: 20 },
+            { k: 'crate', x: 12, y: 3, id: 'm4Crate' },
+        ],
+    },
+    '2,0': {
+        name: 'The Hoop',
+        rows: ['####################', '######.............#', '######.............#', '######.............#', '######.............#', '...................#', '######.............#', '######.............#', '######.............#', '######.............#', '####################'],
+        ents: [{ k: 'littlehoop', x: 12, y: 5 }, { k: 'wood', x: 6, y: 5, id: 'm4W' }],
+    },
+    '0,1': BELOW_ROOM('Under the Sulk', '0,0', false, [{ k: 'sign', x: 6, y: 2, text: "Stuck, he sits as near the door as he can get. Where that is, love, is up to you. -G." }]),
+    '1,1': BELOW_ROOM('Under the Two Plates', '1,0', true, [{ k: 'sign', x: 16, y: 2, text: "TWO PLATES. He'll hold one for you, if you let him. But a heavy thing going home goes straight through whatever's sat in its way. -G." }]),
+    '2,1': BELOW_ROOM('Under the Hoop', '2,0'),
+});
+
+/* the Making Floor's doors (the Underside, cell 2,0) */
 AREAS.underside.ents.push(
     { k: 'warp', x: 44, y: 1, to: 'making1', tx2: 3, ty2: 16, dir: 'up', face: 'right', room: '2,0' },
     { k: 'deco', x: 44, y: 0, look: 'littledoor', solid: false, baseY: -100, room: '2,0' },
@@ -399,18 +436,21 @@ AREAS.underside.ents.push(
     { k: 'warp', x: 54, y: 1, to: 'making3', tx2: 3, ty2: 16, dir: 'up', face: 'right', room: '2,0', if: 'making2' },
     { k: 'deco', x: 54, y: 0, look: 'littledoor', solid: false, baseY: -100, room: '2,0' },
     { k: 'sign', x: 53, y: 2, text: 'MAKING 3: THE LITTLE WANDER. (Tess) Opens when the second is done.', room: '2,0' },
+    { k: 'warp', x: 58, y: 1, to: 'making4', tx2: 3, ty2: 16, dir: 'up', face: 'right', room: '2,0', if: 'making3' },
+    { k: 'deco', x: 58, y: 0, look: 'littledoor', solid: false, baseY: -100, room: '2,0' },
+    { k: 'sign', x: 57, y: 2, text: 'MAKING 4: THE LONG SULK. (Gundry) Opens when the third is done.', room: '2,0' },
     { k: 'npc', who: 'tuck', x: 47, y: 6, face: 'down', room: '2,0', if: 'd7&!makings_done' },
 );
 UNDER_TALK.tuck = function* () {
     if (!Progress.flag('making1')) { yield* say('tuck', "{name}! I'm doing a WANDER! A little one! The Makers built it! You're not allowed to help. It's MY Wander."); return; }
-    if (!Progress.flag('making3')) { yield* say('tuck', cycle('tuck_mk', ["Did you see me? Did you SEE? The block just jumped and I pushed it!", "There was a nibbler. I wasn't scared. Much.", "Next one's harder. Bram said. I'm not scared."])); return; }
+    if (!Progress.flag('making4')) { yield* say('tuck', cycle('tuck_mk', ["Did you see me? Did you SEE? The block just jumped and I pushed it!", "There was a nibbler. I wasn't scared. Much.", "Next one's harder. Bram said. I'm not scared.", "Gundry's one is last. He says I'll sulk. I WON'T sulk."])); return; }
     yield* say('tuck', "I did my whole Little Wander! Next year I'm doing a real one.");
 };
 const UNDER_TALK_GUNDRY = UNDER_TALK.gundry;
 UNDER_TALK.gundry = function* (n) {
     if (Progress.flag('d7') && !Progress.flag('making1') && !Progress.flag('gundry_job')) {
         Progress.set('gundry_job');
-        yield* say('gundry', "Right, apprentice. The job. Tuck's been on at everybody for a Wander since he could walk. He's six. So the Makers built him a Little one: three little Houses, up above the Making Floor.");
+        yield* say('gundry', "Right, apprentice. The job. Tuck's been on at everybody for a Wander since he could walk. He's six. So the Makers built him a Little one: four little Houses, up above the Making Floor.");
         yield* say('gundry', "You'll run it. From underneath. He walks, you work. Get him through, don't let him get hurt, and if you're any good, he'll work something out himself and never know you were there.");
         yield* say('gundry', "Read his rules on the wall down there. He wrote them himself. Spelling's his own.");
         Progress.setGoal("The Making Floor, east of the Guild Hall: run Tuck's Little Wander from underneath.");

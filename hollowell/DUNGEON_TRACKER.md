@@ -16,7 +16,7 @@
 | F | Great Spool | under the Well | Six Knot-locks remixing every House | – | The Spool | tested |
 | O1 | Stray House | Frayed Edge | Nothing returns: order, room, holes filled for good; the Needle gives a stray a place | Linnet's bracelet, Heartstitch | The Pile | tested |
 | O2 | Unfinished House | Hollowell, east bank | Chalk planks sewn real with the Needle: three stitches at once, a fourth undoes the oldest | Long Hook | – (Mr Ives's walk) | tested |
-| M | The Makings (×3) | Underside | Indirect control: Tuck walks by four rules; you work from below | – | – | tested |
+| M | The Makings (×4) | Underside | Indirect control: Tuck walks by four rules; you work from below | – | – | tested |
 
 ## Per-dungeon structure (every House)
 
@@ -125,7 +125,7 @@ Keys: 3 keys (Ferry Pool, Shard Race, Upstream), 3 locks (Carousel W and E, Upst
 | S22 The logbooks | the Underside's Workshops (0,0) | read all six: each Maker reports your real play in their House | built, tested |
 | S23 Peepholes | the Seams, under the town | eight peepholes, eight private moments; all eight: a Heart Patch | built, tested |
 | Gundry's Bench (Heart Patch) | the Spoolworks, 2,0 (above), up from 2,3 | the Needle through the cord of the crate on the trapdoor | built, tested |
-| S30 Tuck's Ahas | the Makings | all three Ahas in all three Makings: Tuck's drawing | built, tested |
+| S30 Tuck's Ahas | the Makings | all three Ahas in all four Makings: Tuck's drawing | built, tested |
 | S32 The gate counterweight | the Seams (east), 57,16 | the Needle on the north gate's counterweight before Reveal 2 (after it, it's the way on) | built, tested |
 | S33 Fainting, knowing | anywhere after Reveal 2 | faint: a different waking | built, tested |
 | S24 Old Arlo's walk | Hollowell, after the Shears | cut Arlo free and follow him to the river bank: a Heart Patch | built, tested |
@@ -239,7 +239,7 @@ Wren works from underneath only (no hatches up: it's his Wander). Tuck's rules (
 3. he won't go near anything that bites (a nibbler not tied up; tied up it's harmless); 4. stuck, he goes as near the
 door as he can and sits. He weighs on plates, pushes what a person can (not heavy), and a heavy thing going home bowls
 him over (a bump: back to his start). His own thread hangs under his start: a tug yanks him back ("Wheee!").
-Ahas (S30: all three in all three): cleared (his own push got him nearer the door), found (he had a go at the thing
+Ahas (S30: all three in all four): cleared (his own push got him nearer the door), found (he had a go at the thing
 the button was under), unhurt (no bumps).
 
 | Making | Room | Idea | Solution |
@@ -250,6 +250,9 @@ the button was under), unhurt (no bumps).
 | | The Crossing | Lure, then let go | He sits in the heavy block's lane at the gate: tug the crate in the west nook (he goes to see, and admires it), then untie the heavy block: it crosses home onto the plate and the gate opens. Untie while he sits there and he's bowled over |
 | 3 The Little Wander | The Heavy Door | The Needle | The corner block is heavy: stitch it up into the alcove through its cord; the pot (button) |
 | | The Guarded Plate | Everything | Tie the nibbler up first, then tug the block in its slot onto the plate (he pushes) and tie it off |
+| 4 The Long Sulk | The Sulk | Rule 4 turned round | A heavy block tied off in the passage; the nearest he can get is a plate, so he sulks on it and holds the gate on the heavy one's way home open: untie it (through its cord, under its place up the shaft) and it goes, out of his way. The pot (button) |
+| | Two Plates | Where he sits, and when | He sulks on the plate by the gate, right in the way of a heavy one tied off below him whose home is the other plate. Tug the crate nearby (he goes to see), then untie the heavy one: it goes home onto its plate; he comes back and sits on his; the gate opens and stays. Untie while he sits there and he's bowled over |
+| | The Hoop | Jolt to clear | The block in the passage's mouth: tug it; he pushes it out of the way (Aha) |
 
 ## D8 The Loom (`src/72_loom.js`, `src/72b_loom_foes.js`, kit `src/70_shears_kit.js`; tests `tests/loom.test.mjs`, `tests/shears_kit.test.mjs`) - tested
 
