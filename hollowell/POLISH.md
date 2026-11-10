@@ -156,8 +156,18 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   Climb's hit sends you back to the lane's start; walls of wound thread, the drum turning, each Knot room in its
   Maker's colours; its own tune). Tests 40/40 (greatspool, ending, review_end, review_opt); probe over LEG9 clean in
   the Spool (two false alarms in the epilogue fixed in the probe: a seated person, an engraved motto).
-- Running: the overworld group A (Meadowfold, Kilnridge, Millwater, the Heights), the overworld group B (Hushwood,
-  Larkspur Fair, the Loomwood, the Drift), the difficulty curve (Houses 1-8), the town between Houses.
+- Done too: overworld group A (Meadowfold, Kilnridge, Belfry Heights, Millwater): each its own ground and landmarks
+  (meadow flowers, hedgerows and dry-stone walls; a red canyon of mesas with steam vents that fire pots and wet clay
+  that holds what lands in it; heather, gorse and cairns with a chasm that has lips and mist; continuous reedy
+  shallows); a landmark place each (the Old Fold, the sheep counted home; the Firing Ground; the Crags, one chasm
+  crossed four ways; Heron Rock); revisits with later tools (the Bell, the Needle, the Shears); S17 built (the
+  sheep); a find early on, the ringers' clapper, that wakes a sleeper on the Heights long before the Bell; the Kiln's
+  forecourt gate wants a pot fired first; seams softened; a ripple when wading. Not done: Millwater's revisits.
+  Tests 37/37 for its regions. Heart Patches in the world now about 40 (4 to a heart; the design said 16): the
+  other helpers were asked to add few or none; the docs' count to be fixed at the end.
+- Running: the overworld group B (Hushwood, Larkspur Fair, the Loomwood, the Drift), the difficulty curve (Houses
+  1-8), the town between Houses, the bosses and combat; a full-spoiler overview document for a reviewer (David
+  won't read it).
 - David's direction of 10 November (vibes, not a list; the game stays its own thing, not a copy): puzzles simple in
   the first House and the land open then, harder House by House up to real ahas that combine tools; no hints unless
   asked (the opt-in nudges stay as they are; no new hint character), no answer signs; the road to later Houses takes

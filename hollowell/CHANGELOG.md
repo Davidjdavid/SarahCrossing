@@ -151,4 +151,6 @@
 - House 8 reworked like the others; the act after the first big moment is twice as long, with new kinds of rooms.
 - The last dungeon rebuilt: a rule of its own, shown before it's needed; rooms that each want several steps and an
   idea, in any order; a look and a tune of its own; a long climb that no longer sends you all the way back down.
+- Four regions of the valley redrawn with their own ground and landmarks, each with a puzzle place of its own and
+  spots that later tools open; the seams where regions meet are gone.
 
