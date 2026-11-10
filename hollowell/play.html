@@ -5456,7 +5456,7 @@ const Probe = {
             if (ui && P.num(x, y) && !G.credits && P.texts.length < 300) {
                 const tw = Font.width(s), r = [x, y, x + tw, y + 8];
                 for (const q of P.texts) {
-                    if (q[4] === s && q[0] === x && q[1] === y) continue;
+                    if (q[4] === s && Math.abs(q[0] - x) <= 1 && Math.abs(q[1] - y) <= 1) continue;   /* (the same words a pixel apart: a shadow or an engraving) */
                     const ix = Math.min(r[2], q[2]) - Math.max(r[0], q[0]), iy = Math.min(r[3], q[3]) - Math.max(r[1], q[1]);
                     if (ix > 2 && iy > 2) { P.note('text', `overlaps other text: "${stripMarkup(s).slice(0, 30)}" on "${stripMarkup(q[4]).slice(0, 30)}"`, P.CALL); break; }
                 }
@@ -5499,7 +5499,7 @@ const Probe = {
             if (e.isGrid) {
                 if (!this.num(e.tx, e.ty, e.x, e.y)) { this.note('thing', 'not a number: ' + (e.id || e.kind), ''); continue; }
                 if (!e.mv && !e.pendingHome && !e.flying && a.inside(e.tx, e.ty) && a.at(e.tx, e.ty) !== e && !e.noGrid) this.note('thing', `${e.id || e.kind} isn't on the tile it's at (${a.id} ${e.tx},${e.ty})`, '');
-                if (e.kind === 'npc' && !e.mv && !e.counter && a.inside(e.tx, e.ty)) {   /* (a keeper behind a counter stands against the back wall, as drawn) */ const k = a.kind(e.tx, e.ty); if (k.solid || k.pit || k.deep) this.note('placement', `${e.who || e.id} stands on ${a.kindName(e.tx, e.ty)} (${a.id} ${e.tx},${e.ty})`, ''); }
+                if (e.kind === 'npc' && !e.mv && !e.counter && !e.seated && a.inside(e.tx, e.ty)) {   /* (a keeper behind a counter stands against the back wall, as drawn; someone seated sits on their seat) */ const k = a.kind(e.tx, e.ty); if (k.solid || k.pit || k.deep) this.note('placement', `${e.who || e.id} stands on ${a.kindName(e.tx, e.ty)} (${a.id} ${e.tx},${e.ty})`, ''); }
             } else if (e.kind === 'critter' && this.num(e.x, e.y)) {
                 const tx = Math.floor(e.x / T), ty = Math.floor((e.y - 2) / T);
                 if (a.inside(tx, ty) && bad(a.kind(tx, ty)) && !e.flies) this.note('placement', `${e.who || e.look} (critter) over ${a.kindName(tx, ty)} (${a.id} ${tx},${ty})`, '');
@@ -9654,52 +9654,61 @@ ITEM_AFTER.gloves = function* () { Progress.set('gotGloves'); };
    road west to Kilnridge (a boulder only Gloves can shift) and the broken bridge east to Millwater. */
 
 const MEADOW_ROWS = [
-        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY::::YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
-        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY::::YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
-        'YYYY......,...."".,."...."....::::.,"....".".....-~~~-....,.YYYY',
-        'YYYY.."...,.....,...,.,,..T.",::::.bbbbb,....,...-~~~-......YYYY',
-        'YYYY,.T,,...,.............,...::::....,".........-~~~-."...,YYYY',
-        'YYYY"...,........"............::::..,......",....-~~~-.T....YYYY',
-        'YYYY....,...,....".XXX......,.::::..T..,...."....-~~~-."....YYYY',
-        'YYYY....,...,".....XXX..",....::::".,....,"......-~~~-..."..YYYY',
-        'YYYY,..,,.T........XXX".,...",::::......XXXXXXXXX-~~~-....,.YYYY',
-        'YYYY......,...................::::."..".XXXXXXXXX-~~~-......YYYY',
-        'YYYY..."..,.".......,......"..::::.,.,..XXXXXXXXX-~~~-,.....YYYY',
-        'YYYY...............,..."......::::".....XXXXXXXXX-~~~-......YYYY',
-        'YYYY.....,......,....,".T.....::::.."...XXXX:XXXX-~~~-...T..YYYY',
-        'YYYY............,,............::::...,.."..:::...-~~~-......YYYY',
-        'YYYY..,.,.bbbbbb...,........r.::::..,..."..:::.".-~~~-......YYYY',
-        'YYYY........."".,,...........,::::.,.".....:::...-~~~-.r....YYYY',
-        'YYYY.r......".........."".....::::...,.....:::...-~~~-....,.YYYY',
-        'YYYY........,...",..."........::::.........:::...-~~~-......YYYY',
-        'YYYY..........T..............,:::::::::::::::::::-~~~-......YYYY',
-        'YYYY"...".........,.,.........:::::::::::::::::::-~~~-......YYYY',
-        '########................."....::::...............-~~~-..T...YYYY',
-        '####::##,........,...,........::::...............-~~~-......YYYY',
-        '####::##::::::::::::::::::::::::::......T,.....".-~~~-......YYYY',
-        '::::::::::::::::::::::::::::::::::.......,.."....-~~~-,.....YYYY',
-        '########........,.,.....,.....::::,.....,........-~~~-......YYYY',
-        '########..............r...."..::::...."...,.,....-~~~-......YYYY',
-        'YYYY"".."...,."..,.,..."......:::::::::::::::::::_~~~_::::::::::',
-        'YYYY....fffff.fffff,........".:::::::::::::::::::_~~~_::::::::::',
-        'YYYY....l......"."l.,..................,.........-~~~-...".,YYYY',
-        'YYYY....l.........l.........................,....-~~~-......YYYY',
-        'YYYY..T.l.,.".....l."...-----"..............,."r.-~~~-..."..YYYY',
-        'YYYY.,..l.........l....-~~~~~-.."....."....,.....-~~~-......YYYY',
-        'YYYY....l,......,.l....-~~~~~-.",....T..,".......-~~~-...T..YYYY',
-        'YYYY....l....."...l..,.-~~~~~-,....,.......,T....-~~~-.,..."YYYY',
-        'YYYY..,.fffffffffff.....~~~~~..,.......,.........-~~~-."....YYYY',
-        'YYYY..".........,........"....".".....r....."..."-~~~-.."...YYYY',
-        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
-        'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY%%%%%YYYYYYYYYY',
-        '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',
-        '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY::::YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY::::YYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+    'YYYY......,.yyyyyyyyyyyyyyyy.g::::.,"....".".....-~~~-....,.YYYY',
+    'YYYY.."...,.yyyyyyyy.yyyyyTy"g::::gbbbbb,....,...R~~~-......YYYY',
+    'YYYY,.T,,...yyyyyyy...yyyyyy.g::::....,".........R~~~-."...,YYYY',
+    'YYYY"...,...yyyyyyy...yyyyyy.g::::g.,......",....R~~~-.T....YYYY',
+    'YYYY....,...,....".XXX......,.::::g.T..,...."....R~~~-."....YYYY',
+    'YYYY....,...,".....XXX..",...g::::g.,....,"......R~~~-..."..YYYY',
+    'YYYY,..,,.T........XXX".,..."g::::g.....XXXXXXXXXR~~~-....,.YYYY',
+    'YYYY........yyyyyyy...yyyyyy.g::::."..".XXXXXXXXX-~~~-......YYYY',
+    'YYYYWWWWWWWWWWWWWWW.,......".g::::.,.,..XXXXXXXXX-~~~R,.....YYYY',
+    'YYYYW.............W,...".....g::::g.....XXXXXXXXX-~~~R......YYYY',
+    'YYYYW.............W..,".T.....::::g."...XXXX:XXXX-~~~R...T..YYYY',
+    'YYYYW....WWWWW....W...........::::g..,.."..:::...-~~~R......YYYY',
+    'YYYYW....W...W....W,........rg::::..,..."..:::.".-~~~R......YYYY',
+    'YYYYW....WW.WW....W..........g::::g,.".....:::...-~~~R.r....YYYY',
+    'YYYYW.............W....""....g::::g..,.....:::...-~~~-....,.YYYY',
+    'YYYYW.............W.."........::::.........:::...-~~~-......YYYY',
+    'YYYYWWWWWWW.WWWWWWW..........,:::::::::::::::::::-~~~-......YYYY',
+    'YYYY................,.........:::::::::::::::::::-~~~-......YYYY',
+    '########................."....::::...............-~~~-..T...YYYY',
+    '####::##,........,...,........::::...............-~~~-......YYYY',
+    '####::##::::::::::::::::::::::::::......T,.....".-~~~-......YYYY',
+    '::::::::::::::::::::::::::::::::::.......,.."....-~~~-,.....YYYY',
+    '########........,.,.....,.....::::,.....,........-~~~-......YYYY',
+    '########..............r...."..::::...."...,.,....-~~~-......YYYY',
+    'YYYY"".."...,."..,.,..."......:::::::::::::::::::_~~~_::::::::::',
+    'YYYY....fffff.fffff,........".:::::::::::::::::::_~~~_::::::::::',
+    'YYYY....l......"."l.,..................,.........-~~~-...".,YYYY',
+    'YYYY....l.........l......RRR................,....R~~~-......YYYY',
+    'YYYY..T.l.,.".....l."...R~~~-...............,."r.R~~~R..."..YYYY',
+    'YYYY.,..l.........l....R~~~~~R.."....."....,.....R~~~R......YYYY',
+    'YYYY....l,......,.l....-~~~~~-.",....T..,".......R~~~R...T..YYYY',
+    'YYYY....l....."...l..,.R~~~~~-.....,.......,T....R~~~R.,..."YYYY',
+    'YYYY..,.fffffffffff.....-~~~R..,.......,.........-~~~R."....YYYY',
+    'YYYY..".........,........RR.....".....r....."..."-~~~-.."...YYYY',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY-~~~-YYYYYYYYYY',
+    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY%%%%%YYYYYYYYYY',
+    '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',
+    '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',
 ];
 
 defBlock({
     id: 'meadow', bx: 1, by: 2, name: 'Meadowfold', theme: 'meadow', music: 'meadow', owArt: true, soft: 4,
     rows: MEADOW_ROWS,
     forest: ['tree', 'tree2', 'tree_apple', 'tree'],
+    legend: {
+        /* (Meadowfold's own: dry-stone walls, hedgerows, wheat, reeds in the shallows) */
+        'W': { k: 'fence', p: 'drystone' },
+        'g': { k: 'tree', p: 'hedgerow' },
+        'y': { k: 'grass', p: 'wheat' },
+        'R': { k: 'shallow', p: 'reeds' },
+    },
+    /* the canyon's walls are Kilnridge's red rock */
+    themeAt: (lx, ly) => lx <= 7 && ly >= 20 && ly <= 25 && MEADOW_ROWS[ly][lx] === '#' ? 'kiln' : null,
     ents: [
         { k: 'building', x: 40, y: 8, w: 9, h: 5, door: 4, art: 'tidyhouse' },
         { k: 'warp', x: 44, y: 12, to: 'tidy', tx2: 29, ty2: 42, face: 'up', dir: 'up' },
@@ -9716,10 +9725,30 @@ defBlock({
         { k: 'linnetnote', x: 36, y: 30, note: 2, under: 'strayBale' },
         { k: 'pickup', x: 20, y: 4, what: 'heartpatch', id: 'meadowPatch' },
         { k: 'npc', who: 'pip', x: 13, y: 26, face: 'down' },
-        { k: 'critter', who: 'sheep', look: 'sheep', x: 10, y: 29, speed: 0.3, route: [[10, 29, 120], [14, 31, 90], [11, 32, 150]] },
-        { k: 'critter', who: 'sheep', look: 'sheep', x: 16, y: 30, speed: 0.3, route: [[16, 30, 150], [12, 29, 100], [15, 32, 80]] },
-        { k: 'critter', who: 'sheep', look: 'sheep', x: 12, y: 32, speed: 0.25, route: [[12, 32, 200], [16, 28, 120]] },
-        { k: 'enemy', x: 10, y: 10, type: 'nibbler' }, { k: 'enemy', x: 25, y: 18, type: 'nibbler' }, { k: 'enemy', x: 56, y: 9, type: 'nibbler' },
+        /* Pip's flock: they wander a step and come home, all day */
+        { k: 'sheep', x: 10, y: 29, id: 'penSheep1', grazes: true }, { k: 'sheep', x: 16, y: 30, id: 'penSheep2', grazes: true, face: 'right' }, { k: 'sheep', x: 12, y: 32, id: 'penSheep3', grazes: true },
+        /* the Old Fold: three counting stones that count sheep coming home; Nettle's place by the gate; Old Tup asleep in the
+           bothy's doorway since before Pip was born (a ring would wake him) */
+        { k: 'sheep', x: 6, y: 16, id: 'nettle', talk: "Nettle, it says on the tag in her ear. She has a look about her as if she's been counting something and lost her place." },
+        { k: 'tally', x: 14, y: 14, n: 1, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 15, y: 14, n: 1, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 16, y: 14, n: 1, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 17, y: 14, n: 1, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 11, y: 11, n: 2, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 11, y: 12, n: 2, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 5, y: 14, n: 3, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 6, y: 14, n: 3, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 7, y: 14, n: 3, group: 'fold', done: 'fold_counted' },
+        { k: 'tally', x: 8, y: 14, n: 3, group: 'fold', done: 'fold_counted' },
+        { k: 'chest', x: 17, y: 11, item: 'clapper', id: 'foldChest', hidden: true, when: 'flag:fold_counted' },
+        { k: 'sign', x: 12, y: 19, text: "THE OLD FOLD. Built by Pip's great-grandad. Sheep counted home here every night for a hundred years." },
+        { k: 'sheep', x: 12, y: 16, id: 'oldTup', ram: true, sleeper: true, tiedOff: true, startAt: [11, 15], trace: [[12, 16], [11, 16], [11, 15]], pushLine: "Old Tup, asleep in the bothy's doorway. Pip says he's been asleep there since before she was born. He snores like a gate.",
+            talk: "Old Tup, the ram, asleep across the bothy's doorway. He is enormous, and he smells of rain." },
+        { k: 'chest', x: 12, y: 14, item: 'heartpatch', id: 'bothyPatch' },
+        { k: 'deco', x: 10, y: 14, look: 'tally_book', solid: [[0, 0]], oy: 2, text: "A tally book, on a shelf of stone. Every page, a column of little strokes: yan, tan, tethera, a sheep each, counted home. The last page is in a child's writing: GRANDAD SAYS THE STONES DO THE COUNTING AND HE JUST WRITES IT DOWN. I SAID THAT'S CHEATING. HE SAID THAT'S SHEPHERDING. - P." },
+        /* Lucky: born over the river, and that's her place, so that's where she goes */
+        { k: 'sheep', x: 55, y: 32, id: 'lucky', lamb: true, grazes: true, talk: "A lamb with a red cross dyed on her and LUCKY painted on her bell. She bleats at the river, and at you, and at the river again." },
+        { k: 'enemy', x: 24, y: 13, type: 'nibbler' }, { k: 'enemy', x: 25, y: 18, type: 'nibbler' }, { k: 'enemy', x: 56, y: 9, type: 'nibbler' },
         { k: 'enemy', x: 40, y: 33, type: 'nibbler' },
     ],
     regions: [
@@ -9729,10 +9758,25 @@ defBlock({
 
 PEOPLE_DEF.pip = { name: 'Pip', col: '#c8e66a', look: { body: 'child', hair: 'cap', hairC: '#c9925a', top: '#8fd46a', accent: '#f4e6c8', bottom: '#6b4128', skin: 'tan' } };
 TALK.pip = function* () {
-    if (Progress.flag('d2')) { yield* say('pip', cycle('pip2', ["The sheep came home early today. All three, straight to their spots, before I'd even called. Good sheep.", "Did you go up the canyon? Mum says nobody's been up there in ages. She says it like it's a rule.", "I tried to teach the sheep a new spot. They looked at me like I'd said something rude."])); return; }
-    if (Progress.flag('d1')) { yield* say('pip', cycle('pip1', ["You came out of the Tidyhouse! Was it clean? I bet it was clean.", "There's a big boulder in the canyon, west of the pen. Been there since before Grandad. Somebody with a good grip could shift it, maybe.", "A Knot! Can I see it? ...It looks like a knot."])); return; }
+    /* S17: Lucky's place is on this side of the river now (the Needle) */
+    const lucky = (Inv.stitches || []).find(r => r.area === 'hollow' && r.key === 'lucky');
+    if (lucky && lucky.to[0] < 64 + 49 && !Progress.flag('s17')) {
+        Progress.set('s17'); Stats.count('secret:lucky');
+        yield* say('pip', "LUCKY! She's on our side! She's lying down on this side like it's her spot. It IS her spot. How did you DO that?");
+        yield* say('pip', "Grandad said whoever brought her home was to have this. I always thought that would be me. I don't mind. Much.");
+        yield* Story.getItem('heartpatch', 'luckyPatch')();
+        return;
+    }
+    if (Progress.flag('s17')) { yield* say('pip', cycle('pip17', ["Lucky's home. She still shouts at the river, but now it's out of habit.", "I counted them tonight. Four. FOUR. I counted them three times."])); return; }
+    const extra = [
+        "See Lucky over the river? Born over there the spring of the big flood, and that's her spot now. She won't come over. She CAN'T come over. She just stands there and shouts at me.",
+        Progress.areaFlag('hollow', 'woke:oldTup') ? "Old Tup's UP. A bell rang somewhere and he just got up and walked off, after all these years. Grandad would have cried." : "Old Tup sleeps in Grandad's bothy doorway, up in the Old Fold. He's been asleep there since before I was born. Grandad used to say a good bell would shift him.",
+        Progress.flag('fold_counted') ? "You got the stones in the Old Fold to count! Nobody's done that since Grandad. He always said the counting was the stones' job, not his." : "Grandad counted the sheep home at the Old Fold every night. Yan, tan, tethera. He said the stones did the counting, really. I never knew what he meant.",
+    ];
+    if (Progress.flag('d2')) { yield* say('pip', cycle('pip2', ["The sheep came home early today. All three, straight to their spots, before I'd even called. Good sheep.", "Did you go up the canyon? Mum says nobody's been up there in ages. She says it like it's a rule.", "I tried to teach the sheep a new spot. They looked at me like I'd said something rude."].concat(extra))); return; }
+    if (Progress.flag('d1')) { yield* say('pip', cycle('pip1', ["You came out of the Tidyhouse! Was it clean? I bet it was clean.", "There's a big boulder in the canyon, west of the pen. Been there since before Grandad. Somebody with a good grip could shift it, maybe.", "A Knot! Can I see it? ...It looks like a knot."].concat(extra))); return; }
     yield* firstThen('pip', "I'm Pip. I mind the sheep. Well, the sheep mind themselves, mostly. Wander off, wander back. Same three spots, every day, forever.",
-        ["See that hay bale under the big tree? It got moved in a storm years ago and it never went back. Gives me the shivers.", "Count them every night: same three sheep. Never one more, never one less. Restful, that.", "The Tidyhouse is just east. My mum says it's the oldest house in the Hollow. It's always so clean."]);
+        ["See that hay bale under the big tree? It got moved in a storm years ago and it never went back. Gives me the shivers.", "Count them every night: same three sheep. Never one more, never one less. Restful, that.", "The Tidyhouse is just east. My mum says it's the oldest house in the Hollow. It's always so clean."].concat(extra));
 };
 BUDGE.pip = 'Pip: "Baa. Sorry. Habit."';
 CRITTER_TALK.sheep = () => function* () { yield* say(null, ['A sheep. It looks at you, chews, and looks away.', 'Baa.', "The sheep has a little red cross dyed into its fleece. So do all of them."][Math.floor(G.rng() * 3)]); };
@@ -9892,10 +9936,11 @@ class TallyStone extends FloorThing {
         const a = this.area, all = a.ents.filter(e => e.kind === 'tally' && e.group === this.group);
         if (Progress.flag(this.done)) return;
         const st = a.tally = a.tally || {}, want = (st[this.group] || 0) + 1;
+        if (this.n === want - 1) return;          /* (another stone of the band just counted) */
         if (this.n === want) {
-            st[this.group] = want; this.lit = true; Sfx.play('click');
+            st[this.group] = want; for (const e of all) if (e.n === this.n) e.lit = true; Sfx.play('click');
             Fx.text(this.x + 8, this.y - 6, TALLY_WORDS[this.n - 1] + '!', '#fff4c0');
-            if (want === all.length) { Progress.set(this.done); Sfx.play('appear'); Stats.count('secret:fold'); }
+            if (!all.some(e => e.n > want)) { Progress.set(this.done); Sfx.play('appear'); Stats.count('secret:fold'); }
         } else {
             st[this.group] = 0; for (const e of all) e.lit = false;
             Sfx.play('unclick'); Fx.text(this.x + 8, this.y - 6, '...', PAL.grey2);
@@ -9914,6 +9959,142 @@ SPAWN.tally = (x, y, p) => new TallyStone(x, y, p);
 /* the clapper of the old ringers' bell (Grandad brought it down off the Heights to call the flock in with) */
 ITEMS.clapper = { name: "Ringers' clapper", kind: 'quest', desc: "An old bell's clapper, heavy as a fist. It came off a bell up on the Heights, Pip's grandad said." };
 ITEM_LINES.clapper = () => "You found an old {blue}bell's clapper{/}, wrapped in sacking: a heavy iron tongue with a ring through the top. Somewhere there's a bell missing it.";
+
+/* ---------- Meadowfold's look: lush grass with clover, drifts of wild flowers, hay meadow, hedgerows, dry-stone walls ---------- */
+const MEADOW_BLOOMS = [['#e8463c', '#2a1f2d'], ['#6a8ae8', '#fbf6ea'], ['#f7d64a', '#e8a030'], ['#fbf6ea', '#f7d64a'], ['#f59ac0', '#fbf6ea']];
+OWA.ground.meadow = {
+    grass: {
+        field: (tx, ty) => OWA.field(tx, ty, 23, 8, 5, -0.1),
+        draw(x, th, v, fl) {
+            const [g0, g1, g2, g3] = th.grass;
+            fill(x, g0); speckle(x, [g1], 11 + v * 13, 0.12); speckle(x, [g2], 23 + v * 7, 0.05);
+            for (let n = 0; n < 3; n++) { const bx = Math.floor(hash2(v, n, 3) * 14) + 1, by = Math.floor(hash2(n, v, 5) * 13) + 2; px(x, bx, by, g3); px(x, bx, by - 1, g1); px(x, bx + 1, by - 1, g3); }
+            /* clover */
+            if (v % 2) { const cx = 4 + v * 2, cy = 10 - v; px(x, cx, cy, '#5aa848'); px(x, cx + 1, cy, '#5aa848'); px(x, cx, cy + 1, '#5aa848'); px(x, cx + 1, cy - 1, '#78c060'); }
+            /* wild flowers, thicker where the meadow's left long */
+            for (let n = 0; n < [0, 1, 2, 4][fl]; n++) {
+                const [pe, mi] = MEADOW_BLOOMS[Math.floor(hash2(v + fl * 3, n, 9) * MEADOW_BLOOMS.length)];
+                const fx = 2 + Math.floor(hash2(n, v + fl, 1) * 12), fy = 2 + Math.floor(hash2(v + 3 + fl, n, 2) * 11);
+                px(x, fx, fy, pe); px(x, fx + 1, fy, pe); px(x, fx, fy + 1, pe); px(x, fx + 1, fy + 1, mi); px(x, fx, fy + 2, g3);
+            }
+        },
+    },
+    flowers(x, th, v) {
+        OWA.ground.meadow.grass.draw(x, th, v, 2);
+        for (let n = 0; n < 2; n++) {
+            const [pe, mi] = MEADOW_BLOOMS[Math.floor(hash2(v, n, 19) * MEADOW_BLOOMS.length)], fx = 3 + Math.floor(hash2(n, v, 11) * 9), fy = 3 + Math.floor(hash2(v + 5, n, 12) * 9);
+            px(x, fx, fy - 1, pe); px(x, fx - 1, fy, pe); px(x, fx + 1, fy, pe); px(x, fx, fy + 1, pe); px(x, fx, fy, mi); px(x, fx, fy + 2, th.grass[3]);
+        }
+    },
+    /* hay meadow: tall grass with seed heads, buttercups down in it */
+    tallgrass(x, th, v) {
+        const [g0, g1, g2, g3] = th.grass;
+        fill(x, g0); speckle(x, [g1], 31 + v, 0.1);
+        for (let i = 0; i < 6; i++) {
+            const bx = 1 + i * 2 + (i % 2), h = 7 + Math.floor(hash2(i, v, 4) * 5);
+            for (let j = 0; j < h; j++) px(x, bx + (j > h - 3 ? 1 : 0), 15 - j, j > h - 2 ? '#d8d090' : j > h - 4 ? g2 : g1);
+            px(x, bx, 15, g3);
+        }
+        if (v % 2) { px(x, 6, 12, '#f7d64a'); px(x, 7, 12, '#f7d64a'); }
+    },
+    /* the lanes: packed earth, a strip of grass up the middle where nobody treads */
+    path(x, th, v) {
+        const [p0, p1, p2] = th.path;
+        fill(x, p0); speckle(x, [p1], 31 + v, 0.14); speckle(x, [p2], 41 + v, 0.06);
+        for (let n = 0; n < 2; n++) { const sx = Math.floor(hash2(v, n, 12) * 13) + 1, sy = Math.floor(hash2(n, v, 13) * 13) + 1; px(x, sx, sy, p1); px(x, sx + 1, sy, p1); px(x, sx, sy + 1, p2); }
+        if (v === 2) { px(x, 7, 4, '#84c95a'); px(x, 8, 3, '#9adb6c'); px(x, 8, 10, '#84c95a'); }
+    },
+    forest(x, th, v) { fill(x, '#3e6a34'); speckle(x, ['#4a7a3e', '#32582c'], v + 9, 0.3); speckle(x, ['#6a9a4a'], v + 21, 0.05); },
+    /* wheat, gold, nodding */
+    wheat(x, th, v) {
+        fill(x, '#c8a048'); speckle(x, ['#b89038', '#d8b058'], 61 + v, 0.25);
+        for (let i = 0; i < 8; i++) {
+            const bx = i * 2 + (v % 2), h = 9 + Math.floor(hash2(i, v, 64) * 4);
+            for (let j = 0; j < h; j++) px(x, bx, 15 - j, j < h - 3 ? '#a88430' : '#e8c868');
+            px(x, bx, 15 - h, '#f4dc88'); px(x, bx + 1, 16 - h, '#c8a048');
+        }
+    },
+    /* reeds standing in the shallows */
+    reeds(x, th, v) {
+        const [w0, w1, w2] = th.water;
+        fill(x, w0); speckle(x, [w1], 71 + v, 0.12);
+        for (let i = 0; i < 5; i++) {
+            const bx = 1 + i * 3 + (v % 2), h = 9 + Math.floor(hash2(i, v, 74) * 5);
+            for (let j = 0; j < h; j++) px(x, bx, 15 - j, j > h - 4 ? '#8ab060' : '#5a8a40');
+            if (i % 2) { fill(x, '#8a5a2a', bx, 16 - h - 2, 1, 3); }
+            px(x, bx - 1, 14, w2);
+        }
+    },
+};
+OWA.cliffs.meadow = {
+    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { blocks: true, band1: [0, 5, 10], band2: [0, 6, 11], moss: ['#6aa84a', '#8ac860'], seed: 7 }),
+    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { topCol: '#b8ae9c', tuft: ['#5aa848', '#84c95a'], seed: 7 }),
+};
+/* a hedgerow: thick, round-topped, joined to its neighbours, hawthorn flowers and dog roses in it */
+OWA.paint.hedgerow = {
+    mask(a, tx, ty) { const h = (x, y) => a.cell(x, y).p === 'hedgerow'; return (h(tx, ty - 1) ? 'n' : '-') + (h(tx, ty + 1) ? 's' : '-') + (h(tx - 1, ty) ? 'w' : '-') + (h(tx + 1, ty) ? 'e' : '-'); },
+    draw(x, th, v, m) {
+        const n = m[0] === 'n', s = m[1] === 's', w = m[2] === 'w', e = m[3] === 'e';
+        const [g0, g1, g2, g3] = ['#3e8a3e', '#56a44a', '#82c868', '#2a5e30'];
+        OWA.ground.meadow.grass.draw(x, th, v, 0);
+        const top = n ? 0 : 2, bot = s ? 16 : 13, l = w ? 0 : 1, r = e ? 16 : 15;
+        for (let j = top; j < bot; j++) for (let i = l; i < r; i++) {
+            const u = (i - 8) / 8, vv = (j - 7) / 8, edge = (!w && i < l + 1) || (!e && i > r - 2) || (!n && j < top + 1);
+            const L = -u * 0.4 - vv * 0.9 + (hash2(i + v * 16, j, 81) - 0.5) * 0.9;
+            px(x, i, j, edge ? g3 : L > 0.55 ? g2 : L > -0.1 ? g1 : L > -0.7 ? g0 : g3);
+        }
+        if (!s) { fill(x, '#2a5e30', l, bot - 1, r - l, 1); x.globalAlpha = 0.35; fill(x, '#1d3a22', l, bot, r - l, 2); x.globalAlpha = 1; }
+        if (!n) fill(x, '#2a1f2d', l, top, r - l, 1);
+        if (!w) fill(x, '#2a1f2d', 0, top, 1, bot - top);
+        if (!e) fill(x, '#2a1f2d', 15, top, 1, bot - top);
+        for (let k = 0; k < 3; k++) { const fx = 2 + Math.floor(hash2(v, k, 83) * 11), fy = top + 1 + Math.floor(hash2(k, v, 84) * (bot - top - 3)); px(x, fx, fy, k === 2 ? '#f59ac0' : '#fbf6ea'); px(x, fx + 1, fy, k === 2 ? '#f7d64a' : '#f4ecd8'); }
+    },
+};
+/* a dry-stone wall: flat stones laid without mortar, a coping of upright stones, moss */
+OWA.paint.drystone = {
+    mask(a, tx, ty) { const h = (x, y) => a.cell(x, y).p === 'drystone'; return (h(tx, ty - 1) ? 'n' : '-') + (h(tx, ty + 1) ? 's' : '-') + (h(tx - 1, ty) ? 'w' : '-') + (h(tx + 1, ty) ? 'e' : '-'); },
+    draw(x, th, v, m) {
+        const n = m[0] === 'n', s = m[1] === 's', w = m[2] === 'w', e = m[3] === 'e';
+        OWA.ground.meadow.grass.draw(x, th, v, 0);
+        const vert = (n || s) && !(w || e);
+        const l = vert && !w ? 3 : 0, r = vert && !e ? 13 : 16, top = vert ? 0 : 4, bot = vert ? 16 : 14;
+        fill(x, '#7a7468', l, n ? 0 : top, r - l, (s ? 16 : bot) - (n ? 0 : top));
+        for (let row = 0; row < 6; row++) {
+            const y0 = (n ? 0 : top) + row * 3; if (y0 >= (s ? 16 : bot)) break;
+            for (let i = l - (row % 2) * 2; i < r; i += 4 + ((i + row + v) % 2)) {
+                const c = ['#b8b0a0', '#a8a090', '#c8c0b0', '#9a9284'][(i + row * 3 + v) % 4];
+                fill(x, c, Math.max(l, i), y0, Math.min(3, r - Math.max(l, i)), 2);
+                px(x, Math.max(l, i), y0, '#dcd4c4');
+            }
+        }
+        /* coping stones on top and moss on them */
+        if (!vert) { for (let i = 0; i < 16; i += 2) { fill(x, '#a8a090', i, top - 2, 1, 3); px(x, i, top - 2, '#d0c8b8'); } if (v % 2) { px(x, 3, top - 1, '#6aa84a'); px(x, 11, top, '#6aa84a'); } }
+        if (!n && vert) fill(x, '#2a1f2d', l, 0, r - l, 1);
+        if (!s) { fill(x, '#4a463e', l, (vert ? 16 : bot) - 1, r - l, 1); x.globalAlpha = 0.3; fill(x, '#1d2a1a', l, vert ? 15 : bot, r - l, 2); x.globalAlpha = 1; }
+        if (vert) { if (!w) fill(x, '#2a1f2d', l - 1, 0, 1, 16); if (!e) fill(x, '#2a1f2d', r, 0, 1, 16); }
+        else { if (!w) fill(x, '#2a1f2d', 0, top - 2, 1, bot - top + 2); if (!e) fill(x, '#2a1f2d', 15, top - 2, 1, bot - top + 2); }
+    },
+};
+
+function initMeadowArt2() {
+    ART.tally_book = paintSprite(14, 10, x => { x.fillStyle = '#7a4e32'; x.fillRect(0, 2, 14, 8); x.fillStyle = '#f4e6c8'; x.fillRect(1, 1, 12, 6); x.fillStyle = '#9a8a6a'; for (let i = 2; i < 12; i += 2) x.fillRect(i, 3, 1, 3); x.fillStyle = '#e8463c'; x.fillRect(11, 2, 1, 4); });
+    defSprite('icon_clapper', ['................', '.......kk.......', '......kyyk......', '.......kk.......', '.......kxk......', '.......kxk......', '.......kxk......', '.......kxk......',
+        '.......kxk......', '......kxxxk.....', '.....kxxxxxk....', '.....kxXxxxk....', '.....kxxxXxk....', '......kxxxk.....', '.......kkk......', '................'], { x: '#7a7468', X: '#4a463e', y: '#c9925a' });
+    /* the ram: big, curly-horned, a black face */
+    defSprite('ram_0', ['................', '.........kkkkk..', '.......kkwwwwwk.', '..kkk.kwwwwwwwwk', '.kyYyk.wwwwwrwwk', 'kyyYyykwwwwrrrwk', 'kyxxxyywwwwwrwwk', 'kxexxxkwwwwwwwwk',
+        'kxxxxxkwwwwwwwwk', '.kxxxkkwwwwwwwk.', '..kkk..kwwwwwk..', '......kxk..kxk..', '......kxk..kxk..', '......kk....kk..', '................', '................'], { w: '#f0eadc', x: '#3a3436', r: '#e8463c', y: '#c8b88a', Y: '#9a8a62' });
+    defSprite('ram_1', ['................', '.........kkkkk..', '.......kkwwwwwk.', '..kkk.kwwwwwwwwk', '.kyYyk.wwwwwrwwk', 'kyyYyykwwwwrrrwk', 'kyxxxyywwwwwrwwk', 'kxexxxkwwwwwwwwk',
+        'kxxxxxkwwwwwwwwk', '.kxxxkkwwwwwwwk.', '..kkk..kwwwwwk..', '.....kxk....kxk.', '.....kxk....kxk.', '.....kk......kk.', '................', '................'], { w: '#f0eadc', x: '#3a3436', r: '#e8463c', y: '#c8b88a', Y: '#9a8a62' });
+    /* a lamb: small and new */
+    defSprite('lamb_0', ['................', '................', '................', '................', '................', '................', '.......kkkk.....', '.....kkwwwwk....',
+        '..kk.kwwwrwwk...', '.kxxkwwwrrrwk...', '.kexkwwwwrwwk...', '..kk.kwwwwwk....', '.....kxk.kxk....', '.....kk..kk.....', '................', '................'], { w: '#fffbf0', x: '#4a4040', r: '#e8463c' });
+    defSprite('lamb_1', ['................', '................', '................', '................', '................', '................', '.......kkkk.....', '.....kkwwwwk....',
+        '..kk.kwwwrwwk...', '.kxxkwwwrrrwk...', '.kexkwwwwrwwk...', '..kk.kwwwwwk....', '....kxk...kxk...', '....kk....kk....', '................', '................'], { w: '#fffbf0', x: '#4a4040', r: '#e8463c' });
+    /* a counting stone: flat, worn, set in the turf */
+    defSprite('tallystone', ['................', '................', '...kkkkkkkkkk...', '..kggwwggggggk..', '.kgwggggggggGGk.', '.kggggggggggGGk.', '.kggggggggggGGk.', '.kggggggggggGGk.',
+        '.kggggggggggGGk.', '.kgGGGGGGGGGGGk.', '..kGGGGGGGGGGk..', '...kkkkkkkkkk...', '................', '................', '................', '................'], { g: '#c8c0b0', G: '#9a9284', w: '#e8e0d0' });
+}
+CONTENT_INIT.push(initMeadowArt2);
 
 // ---- 44_kiln_kit.js ----
 /* What the Kiln brings: charms hung from the ceiling over walkable floor (only flying things reach them:
@@ -10971,7 +11152,7 @@ defBlock({
     legend: { 'c': { k: 'clay', p: 'wetclay' } },
     /* the canyon floor; the Kiln Mesa's top (its chimney a hollow in it); the hawk's mesa; the High Mesa over the fair; the
        slot behind the dam; the firing hole; the pit and the kiln yard down in it */
-    levels: [[30, 20, 1], [20, 6, 2], [16, 8, 1], [52, 10, 2], [20, 3, 3], [59, 10, 1], [13, 26, 1], [15, 30, 0], [25, 30, 0]],
+    levels: [[30, 20, 1], [20, 6, 2], [14, 8, 3], [52, 10, 2], [20, 3, 3], [59, 10, 1], [13, 26, 1], [15, 30, 0], [25, 30, 0]],
     faceH: 2,
     rim: [[1, 0, 2, 39], [3, 0, 63, 2], [61, 0, 63, 21], [61, 25, 63, 37], [3, 37, 60, 37]],
     ents: [
@@ -11649,23 +11830,23 @@ const MILLRACE_ENTRY = { x: 29, y: 42 };
 const MILLWATER_ROWS = [
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYVVYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYVVYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
-    'YYY...,...............---"-""VV-.-"-##.......###################',
-    'YYY,T...........-"-"-"~~~~~~~~~~|~~~~~~~~~~-~~~~~~~~~~~~~~~~~###',
-    'YYY..........-"-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY......""--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY...,..............RR--RR--VV----R##.......###################',
+    'YYY,T..........R------~~~~~~~~~~|~~~~~~~~~~-~~~~~~~~~~~~~~~~~###',
+    'YYY.........R-R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY.....RRR--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY...,--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY..."~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY.."~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYYb."~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY..R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY..-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYYbR-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY.-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY.."~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY..."~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY....-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY.....-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY......-""~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY.........---"~~|~~~~~~~~~~~~~~~~~~~~VVV~~~~~~~~~~~~~~~~~~~###',
-    'YYY.............""|-"~~~~~~~~~~~~~~~~~~VVV--~~~~~~~~~~~~~~~~~###',
-    'YYY...............|..--."--.--.-.-.---"VVV...................###',
+    'YYY.--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY..-R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQQQQ~~~~~~~###',
+    'YYY...--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q..^Q~~~~~~~###',
+    'YYY....R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q...Q~~~~~~~###',
+    'YYY.....R-R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQ~QQ~~~~~~~###',
+    'YYY........R--R-~~|~~~~~~~~~~~~~~~~~~~~VVV~~~~~~~~~~~~~~~~~~~###',
+    'YYY............R-"|--~~~~~~~~~~~~~~~~~~VVV--~~~~~~~~~~~~~~~~~###',
+    'YYY...............|.R------------R---R-VVV...................###',
     'YYY........r..;;;;;;;;;...XXXXXX...T...VVV...................###',
     'YYY......T....;;;;;;;;;...XXXXXX.......VVV...................###',
     'YYY....r..................XXXXXX....b..VVV...................###',
@@ -11694,6 +11875,7 @@ defBlock({
     rows: MILLWATER_ROWS,
     forest: ['tree', 'tree2', 'tree_birch'],
     legend: {},
+    drawGround: (a, cx, cy) => MillLook.ground(a, cx, cy),
     ents: [
         /* Dad's mill on the shore, its wheel in the lake */
         { k: 'building', x: 26, y: 19, w: 6, h: 3, style: 'cottage', door: null, windows: [0, 1, 4, 5], wallH: 20, chimneyX: 8, variant: 'dadmill' },
@@ -11722,12 +11904,21 @@ defBlock({
         { k: 'chest', x: 44, y: 30, item: 'heartpatch', id: 'mwCave' },
         { k: 'chest', x: 44, y: 34, item: 'b50', id: 'mwBasin' },
         { k: 'deco', x: 43, y: 35, look: 'note_bottle', solid: [[0, 0]], text: 'A bottle with a note in it: "If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. - L."' },
+        /* Heron Rock: an islet off the south shore of the east reach, low rocks all round it but on the south; an old
+           barrel lives on it (its place is out there; reeled ashore it leaves an empty mark, and a mark is something to
+           hook onto, if the barrel's out of the line) */
+        { k: 'deco', x: 50, y: 13, look: 'heron_stone', solid: [[0, 0]], oy: -10, text: 'A heron carved in stone, up on one leg on its rock, looking down into the lake. Gulls have left their opinions on it.' },
+        { k: 'chest', x: 51, y: 13, item: 'heartpatch', id: 'mwHeron' },
+        { k: 'barrel', x: 51, y: 14, id: 'heronBarrel' },
+        /* the eel-catcher's post on the shore (a way back off the rock, for anyone with a line) */
+        { k: 'eyelet', x: 50, y: 19 },
         /* reed snappers in the shallows */
         { k: 'enemy', x: 7, y: 13, type: 'snapper' }, { k: 'enemy', x: 22, y: 18, type: 'snapper' }, { k: 'enemy', x: 42, y: 17, type: 'snapper' },
     ],
     regions: [
         { name: 'The Reaches', x: 0, y: 2, w: 42, h: 34 },
         { name: 'North Shore', x: 38, y: 0, w: 7, h: 3 },
+        { name: 'Heron Rock', x: 48, y: 11, w: 7, h: 6 },
         { name: 'Millrace Falls', x: 42, y: 18, w: 19, h: 12 },
     ],
 });
@@ -11785,6 +11976,80 @@ function initMillwaterArt() {
     ART.note_bottle = paintSprite(10, 14, x => { x.fillStyle = '#6ab08a'; x.fillRect(2, 4, 6, 9); x.fillRect(4, 1, 2, 3); x.fillStyle = '#a8e0c0'; x.fillRect(3, 5, 1, 6); x.fillStyle = '#fbf3df'; x.fillRect(4, 6, 3, 5); x.fillStyle = '#9a6438'; x.fillRect(4, 0, 2, 2); });
 }
 CONTENT_INIT.push(initMillwaterArt);
+
+/* ---------- Millwater's look: rushes and reeds along the banks, lily pads on the still water, a soft shore ---------- */
+const MILL_LILIES = [];
+{
+    /* lily pads on the still water near the banks (never on a raft's way, nor the current) */
+    const R = MILLWATER_ROWS, away = new Set(['18', '16', '39', '40']);
+    for (let y = 3; y <= 17; y++) for (let x = 4; x <= 60; x++) {
+        if (R[y][x] !== '~') continue;
+        let shore = false;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const c = (R[y + dy] || '')[x + dx]; if (c === '-' || c === 'R') shore = true; }
+        if (!shore || away.has(String(x)) || y === 6 || (x >= 11 && x <= 16 && y >= 7 && y <= 12) || (x >= 48 && x <= 54 && y >= 11 && y <= 16)) continue;
+        if (hash2(x, y, 57) < 0.34) MILL_LILIES.push([x, y, hash2(y, x, 58)]);
+    }
+}
+const MillLook = {
+    ground(a, cx, cy) {
+        const B = OW.blocks['2,2'], ox = B.bx * OW.bw, oy = B.by * OW.bh;
+        for (const [lx, ly, h] of MILL_LILIES) {
+            const sx = (ox + lx) * T - cx, sy = (oy + ly) * T - cy;
+            if (sx < -T || sy < -T || sx > W + T || sy > H + T) continue;
+            const bob = Math.round(Math.sin(G.t / 50 + h * 6.3) * 0.6);
+            /* two or three pads a tile, each a round leaf with its notch, and now and then a flower */
+            for (let n = 0; n < 2 + (h > 0.6 ? 1 : 0); n++) {
+                const px0 = sx + 3 + Math.floor(hash2(lx + n, ly, 59) * 9), py0 = sy + 3 + Math.floor(hash2(ly, lx + n, 60) * 9) + bob, r = n === 0 ? 4 : 3;
+                Gfx.alpha(0.3); Gfx.circle(px0 + 1, py0 + 2, r, '#1d4a6a'); Gfx.alpha(1);
+                Gfx.circle(px0, py0, r, '#2f7a3a'); Gfx.circle(px0, py0 - 1, r - 1, '#58a848'); Gfx.rect(px0 - 1, py0 - r + 1, 1, 1, '#9ad870');
+                Gfx.rect(px0, py0 - r, 1, r, '#2f7a3a');
+                if (n === 0 && h > 0.72) { Gfx.rect(px0 - 1, py0 - 2, 3, 2, '#fbf6ea'); Gfx.rect(px0, py0 - 3, 1, 1, '#f59ac0'); Gfx.rect(px0, py0 - 2, 1, 1, '#f7d64a'); }
+            }
+        }
+    },
+};
+OWA.ground.water = {
+    /* lakeside grass: soft and green, clover, forget-me-nots near the water */
+    grass: {
+        field: (tx, ty) => OWA.field(tx, ty, 31, 7, 5, -0.25),
+        draw(x, th, v, fl) {
+            const [g0, g1, g2, g3] = th.grass;
+            fill(x, g0); speckle(x, [g1], 13 + v * 11, 0.12); speckle(x, [g2], 29 + v * 5, 0.05);
+            for (let n = 0; n < 3; n++) { const bx = Math.floor(hash2(v, n, 33) * 14) + 1, by = Math.floor(hash2(n, v, 35) * 13) + 2; px(x, bx, by, g3); px(x, bx, by - 1, g1); px(x, bx + 1, by - 1, g3); }
+            if (v % 3 === 1) { const cx2 = 3 + v * 2, cy2 = 11 - v; px(x, cx2, cy2, '#4e9a56'); px(x, cx2 + 1, cy2, '#4e9a56'); px(x, cx2, cy2 + 1, '#4e9a56'); px(x, cx2 + 1, cy2 - 1, '#6fbd68'); }
+            for (let n = 0; n < [0, 0, 1, 3][fl]; n++) {
+                const fx = 2 + Math.floor(hash2(n, v + fl, 37) * 12), fy = 2 + Math.floor(hash2(v + fl, n, 38) * 11), c = n % 2 ? '#fbf6ea' : '#7aa8f0';
+                px(x, fx, fy, c); px(x, fx + 1, fy, c); px(x, fx, fy + 1, c); px(x, fx + 1, fy + 1, '#f7d64a'); px(x, fx, fy + 2, g3);
+            }
+        },
+    },
+    flowers(x, th, v) { OWA.ground.water.grass.draw(x, th, v, 3); },
+    tallgrass(x, th, v) { OWA.ground.meadow.tallgrass(x, th, v); },
+    path(x, th, v) { OWA.ground.meadow.path(x, th, v); },
+    forest(x, th, v) { fill(x, '#355e3e'); speckle(x, ['#40704a', '#2c5034'], v + 9, 0.3); speckle(x, ['#5a9058'], v + 21, 0.05); },
+    /* rushes standing in the shallows, a bulrush or two */
+    reeds(x, th, v) { OWA.ground.meadow.reeds(x, th, v); },
+};
+OWA.cliffs.water = {
+    face: (x, th, v, m) => OWA.rockFace(x, th, v, m, { blocks: true, band1: [0, 5, 10], band2: [0, 6, 11], moss: ['#4e9a56', '#6fbd68'], seed: 9 }),
+    top: (x, th, v, m) => OWA.rockTop(x, th, v, m, { topCol: '#9aa29a', tuft: ['#4e9a56', '#6fbd68'], seed: 9 }),
+};
+function initMillwaterLook() {
+    /* the stone heron on its rock */
+    ART.heron_stone = paintSprite(16, 26, x => {
+        const o = '#2a1f2d', s0 = '#b8bcb4', s1 = '#949a92', s2 = '#dfe2d8', s3 = '#70766e';
+        const R2 = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        /* the rock it stands on */
+        R2(o, 2, 20, 12, 6); R2(s3, 3, 21, 10, 4); R2(s1, 4, 21, 7, 2); R2('#5a8a40', 3, 21, 2, 1); R2('#5a8a40', 11, 22, 2, 1);
+        /* the leg, the body, the neck in an S, the beak */
+        R2(o, 7, 12, 3, 9); R2(s1, 8, 13, 1, 8);
+        R2(o, 3, 6, 10, 8); R2(s0, 4, 7, 8, 6); R2(s2, 5, 7, 5, 2); R2(s3, 4, 11, 7, 2); R2(s3, 11, 9, 1, 3);
+        R2(o, 9, 1, 4, 7); R2(s0, 10, 2, 2, 5); R2(s2, 10, 2, 1, 2);
+        R2(o, 12, 1, 4, 3); R2('#c8b070', 13, 2, 3, 1);
+        R2(o, 9, 0, 3, 2); R2('#3a3a3a', 10, 1, 1, 1);
+    });
+}
+CONTENT_INIT.push(initMillwaterLook);
 
 // ---- 49_millrace.js ----
 /* House 3: the Millrace, above the falls in Millwater. Dad's House (Ambrose), blue threads. Water carries
@@ -13684,6 +13949,8 @@ defBlock({
         { k: 'deco', x: 14, y: 32, look: 'shrine_post', solid: [[0, 0]], oy: -4, text: 'A little shrine with a bell on a bracket. Carved underneath: RING, AND ALL COMES HOME.' },
         { k: 'block', x: 11, y: 30, id: 'hBoulder', look: 'boulder_b', sleeper: true, tiedOff: true, startAt: [12, 29], trace: [[11, 30], [12, 30], [12, 29]], noPush: true, pushLine: "A boulder, fast asleep on the stair. It doesn't budge. It snores, faintly." },
         { k: 'sign', x: 44, y: 31, text: 'BELFRY HEIGHTS. Mind the wind. Mind the drop. Mind your mother.' },
+        /* the ringers' old bell by the little cave, dumb: its clapper went down the hill years ago (it's in Meadowfold's Old Fold) */
+        { k: 'oldbell', x: 33, y: 32, id: 'oldBell' },
         { k: 'rest', x: 46, y: 33 },
         { k: 'npc', who: 'brindle', x: 30, y: 34, face: 'down', route: [[30, 34, 240], [22, 36, 200]] },
         { k: 'critter', who: 'goat', look: 'sheep', x: 26, y: 35, speed: 0.4, route: [[26, 35, 200], [33, 37, 160]] },
@@ -13742,8 +14009,7 @@ PEOPLE_DEF.tess = PEOPLE_DEF.tess || { name: 'Mum', col: '#e8b04a', look: { body
 TALK.brindle = function* () {
     yield* firstThen('brindle', "Goats, heather and wind. That's the Heights. The goats are mostly wind too, some days.",
         ["That boulder on the stair? Rolled down in a storm and fell asleep there. Ring the shrine bell. Wakes anything.", "The Bluster blows on and off, regular as a clock. Watch the vanes.", "Your mum's up top. She's been up top since before the sun.",
-            "The old ringers used to cross the Crags for luck, past the chasm. The wind does half the work, they'd say. I never did know what they meant, and I never asked. Too windy to ask.",
-            "Something keeps tumbling into the crevice up by the old eyrie. Pops right back out again, every time. Like a kettle. A wooden kettle."]);
+            "The old ringers used to cross the Crags for luck, past the chasm. The wind does half the work, they'd say. I never did know what they meant, and I never asked. Too windy to ask."]);
 };
 TALK.tess = function* () {
     if (Progress.flag('d4')) { yield* say('tess', cycle('tess4', ["Four Knots! Did you hear the bells ringing for you? That was me. Well. Some of it.", "Get yourself home for the festival. Everyone'll be there. Everyone always is.", "My bell-ringer's bairn. Go on, then."])); return; }
@@ -13757,6 +14023,28 @@ TALK.tess = function* () {
     yield* say('tess', cycle('tess1', ["A ring reaches as far as you can throw a shout. Seven strides, about.", "When it's windy, everything wanders. When the bell goes, everything comes back. That's the Heights for you.", "Did your dad feed you? He never feeds you."]));
 };
 BUDGE.brindle = 'Brindle: "Mind the goats."';
+
+/* the ringers' old bell: with its clapper back it rings like any bell (and wakes what sleeps in reach) */
+class OldBell extends Bell {
+    constructor(tx, ty, p) { super(tx, ty, p); this.fitted = false; }
+    onAdd(area) { if (Progress.areaFlag(area.id, 'oldbell')) this.fitted = true; }
+    ring() { if (this.fitted) return super.ring(); if (this.cool > 0) return; this.cool = 30; this.swing = 20; Sfx.play('hitthing'); Fx.text(this.x + 8, this.y - 14, 'clonk', PAL.grey2); }
+    interact() {
+        const b = this;
+        Script.run(function* () {
+            if (b.fitted) { yield* say(null, "The ringers' old bell, its clapper back where it belongs. A good knock would ring it."); return; }
+            if (!Inv.items.clapper) { yield* say(null, "An old bell on a post, green with age. Somebody's taken its clapper: it hangs there with nothing inside, dumb. Carved on the post: RUNG FOR THE FLOCK. RUNG FOR THE LOST."); return; }
+            const i = yield* ask(null, "An old bell with no clapper. The one you found in the Old Fold would fit it. Hang it in?", ['Hang it in', 'Not now']);
+            if (i !== 0) return;
+            b.fitted = true; Progress.setAreaFlag(b.area.id, 'oldbell'); Sfx.play('unlock'); Stats.count('secret:oldbell');
+            yield* say(null, 'The clapper drops into place with a little ting, as if it had been waiting.');
+        });
+        return true;
+    }
+    talkBox(pl, f) { return f.tx === this.tx && f.ty === this.ty; }
+    draw(cx, cy) { super.draw(cx, cy); const x = this.x - cx, y = this.y - cy; Gfx.rect(x + 7, y - 2, 2, 18, '#6b4128'); Gfx.rect(x + 7, y - 2, 1, 18, '#9a6438'); }
+}
+SPAWN.oldbell = (x, y, p) => new OldBell(x, y, p);
 
 /* the Ringers' Stone, at the far end of the Crags: everyone who got across carved their initial and a little bell */
 SPAWN.ringstone = (tx, ty) => {
@@ -13950,7 +14238,7 @@ function initHeightsArt() {
         x.fillStyle = '#8ac87a'; x.fillRect(16, 5, 4, 1); x.fillStyle = '#d8ecc8'; x.fillRect(19, 5, 2, 1);
     });
     /* a proper birch: white bark ringed with black, a crown of small bright leaves (it was washed out before) */
-    treeArt('tree_birch', { leaf: ['#7ab86a', '#9cd07a', '#cce8a0', '#4e8a52'], bark: ['#f4f2ea', '#d6d6cc', '#3a3a3a'] }, 6, { clumps: [[16, 12, 8], [10, 16, 6], [22, 15, 6], [13, 7, 5], [20, 7, 5], [16, 19, 6]] });
+    treeArt('tree_birch', { leaf: ['#5f9e46', '#7dbc52', '#a8d470', '#3a7038'], bark: ['#f4f2ea', '#d6d6cc', '#3a3a3a'] }, 6, { clumps: [[16, 12, 8], [10, 16, 6], [22, 15, 6], [13, 7, 5], [20, 7, 5], [16, 19, 6]] });
     {
         const c = ART.tree_birch; if (!HEADLESS) { const x = c.getContext('2d'); x.fillStyle = '#3a3a3a'; for (const [a, b] of [[14, 27], [16, 30], [15, 32], [17, 25]]) x.fillRect(a, b, 2, 1); }
     }
@@ -15750,8 +16038,8 @@ const HUSHWOOD_ROWS = [
     'YY.........................~~.......YYYY##:::##YYYYYYYYYYYYYYYYY',
     'YY..................M......~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
     'YY......:.k...qM........"..~~..YYYYYYYYY##:::##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:.......kYYYYYYY...~~..YYYYYYYYY##:H:##YYYYYYYYYYYYYYYYY',
-    'YYYYY...:.......,YYYYYYY...~~.....YYYYYY##:::##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:.......kYYYYYYY...~~........YYY##:H:##YYYYYYYYYYYYYYYYY',
+    'YYYYY...:.......,YYYYYYY...~~........YYY##:::##YYYYYYYYYYYYYYYYY',
     'YYYYY...:..b"....YYYYYY.,"~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
     'YYYYY...:..M.....YYYYYYY.-~~~~~~~~~...YY##:::##YYYYYYYYYYYYYYYYY',
     'YYYYY.".:........,".....:-~~~~..~~~...YY##:::##YYYYYYYYYYYYYYYYY',
@@ -15823,7 +16111,7 @@ defBlock({
         { k: 'sign', x: 43, y: 37, text: 'THE CLIFF STAIR. Up to Belfry Heights. (Hushwood is through the trees. Nobody goes into Hushwood.)' },
         { k: 'rest', x: 44, y: 20 },
         /* Lantern Pond's lanterns: each lit while something heavy stands on the stone at its foot; the stones go home */
-        { k: 'pondlantern', x: 30, y: 24, sig: 'lpN' }, { k: 'lanternstone', x: 30, y: 25, sig: 'lpN', minWeight: WEIGHT.heavy },
+        { k: 'pondlantern', x: 30, y: 26, sig: 'lpN' }, { k: 'lanternstone', x: 30, y: 25, sig: 'lpN', minWeight: WEIGHT.heavy },
         { k: 'pondlantern', x: 37, y: 27, sig: 'lpE' }, { k: 'lanternstone', x: 36, y: 27, sig: 'lpE', minWeight: WEIGHT.heavy },
         { k: 'pondlantern', x: 32, y: 33, sig: 'lpS' }, { k: 'lanternstone', x: 32, y: 32, sig: 'lpS', minWeight: WEIGHT.heavy },
         { k: 'pondlantern', x: 23, y: 26, sig: 'lpW' }, { k: 'lanternstone', x: 24, y: 26, sig: 'lpW', minWeight: WEIGHT.heavy },
@@ -15847,7 +16135,7 @@ defBlock({
         { k: 'puppet', x: 17, y: 10, id: 'nuDolly', look: 'puppet_snore' },
         { k: 'chest', x: 13, y: 9, item: 'heartpatch', id: 'nuPatch', hidden: true, when: 'nuA&nuB&nuC&nuD' },
         /* something lost on the isle, long ago */
-        { k: 'loomweight', x: 31, y: 29 },
+        { k: 'lostweight', x: 31, y: 29 },
     ],
     regions: [
         { name: 'The Sleeping Road', x: 0, y: 14, w: 20, h: 8 },
@@ -16422,15 +16710,15 @@ SPAWN.greatlantern = (x, y) => {
 };
 
 /* an old loom weight, lost on the isle in Lantern Pond (it fits somewhere in the north, much later) */
-ITEMS.loomweight = { name: 'old loom weight', kind: 'quest', desc: 'A fist-sized lump of grey stone with a hole worn through it, far heavier than it looks.' };
-SPAWN.loomweight = (x, y) => {
+ITEMS.oldweight = { name: 'old loom weight', kind: 'quest', desc: 'A fist-sized lump of grey stone with a hole worn through it, far heavier than it looks.' };
+SPAWN.lostweight = (x, y) => {
     const pr = new Prop(x, y, { im: ART.loomweight_ground, solid: [], oy: 0 });
     pr.baseY = 4; pr.inert = false;
-    const gone = () => Progress.flag('loomweight_got');
+    const gone = () => Progress.flag('oldweight_got');
     pr.draw = function (cx, cy) { if (!gone()) Gfx.img(this.im, this.x - cx, this.y - cy); };
     pr.interact = () => {
         if (gone()) return false;
-        Script.run(function* () { Progress.set('loomweight_got'); Stats.count('secret:loomweight'); yield* Story.getItem('loomweight')(); });
+        Script.run(function* () { Progress.set('oldweight_got'); Stats.count('secret:oldweight'); yield* Story.getItem('oldweight')(); });
         return true;
     };
     pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
@@ -16659,7 +16947,7 @@ function initHushArt2() {
         discPx(x, 8, 10, 4, (px0, py0, u, v) => { const l = -u * 0.6 - v * 0.8 + (hash2(px0, py0, 6) - 0.5) * 0.4; return l > 0.5 ? '#c4c0cc' : l > -0.1 ? '#9a96a6' : l > -0.7 ? '#76728a' : '#58546c'; });
         R(x, '#2a1f2d', 7, 9, 2, 2); R(x, '#4c8457', 3, 13, 3, 1); R(x, '#4c8457', 11, 13, 2, 1);
     });
-    defSprite('icon_loomweight', ['................', '................', '......kkkk......', '....kkwggxkk....', '...kwggggggxk...', '...kgggggggxk...', '..kwggkkkggxxk..', '..kgggk..kgxxk..', '..kgggk..kgxxk..', '..kgggkkkkgxxk..', '...kggggggxxk...', '...kgggggxxxk...', '....kkxxxxkk....', '......kkkk......', '................', '................']);
+    defSprite('icon_oldweight', ['................', '................', '......kkkk......', '....kkwggxkk....', '...kwggggggxk...', '...kgggggggxk...', '..kwggkkkggxxk..', '..kgggk..kgxxk..', '..kgggk..kgxxk..', '..kgggkkkkgxxk..', '...kggggggxxk...', '...kgggggxxxk...', '....kkxxxxkk....', '......kkkk......', '................', '................']);
     /* things on the ground: moss cushions, a fern sprig, the town's grass in a tuft, fallen leaves, a toadstool */
     for (let i = 0; i < 3; i++) ART['hw_moss' + i] = paintSprite(6 + i, 4, x => { R(x, '#84bc7a', 1, 0, 3 + i, 1); R(x, '#68a266', 0, 1, 5 + i, 2); R(x, '#4c7e52', 1, 3, 3 + i, 1); R(x, '#a8d890', 1, 1, 1, 1); }, false);
     ART.hw_fern = paintSprite(7, 6, x => { R(x, '#3c6a48', 3, 1, 1, 5); for (const j of [1, 3]) { R(x, '#4e8a58', 0, j, 3, 1); R(x, '#4e8a58', 4, j + 1, 3, 1); } R(x, '#6aa86a', 3, 0, 1, 1); }, false);
@@ -18001,7 +18289,9 @@ CONTENT_INIT.push(initCrossbarKit);
    carousel (Linnet's note 7 under its wooden horse), the fortune teller's tent, a painted hedge, a pen with a
    bed of nails, toy soldiers on parade, and the Marionette Hall (House 6, Jory's). After the Hall, the Crossbar
    works the puppet on the mesa that winds the lift. The fog on the west: lay a Bedroll by it, walk in, and come
-   back holding something (S11). Map drafted by tools/mapgen/larkspur.py. */
+   back holding something (S11). The Hall's forecourt is shut by a portcullis that winds up only while both its
+   parade pads are held down; a toy soldier marches up and down over each, in its own little pen. A balloon strains at
+   its tether by the fog. Map drafted by tools/mapgen/larkspur.py. */
 
 const MARIONETTE_ENTRY = { x: 29, y: 42 };
 const LARK = (x, y) => [x, 40 + y];
@@ -18017,11 +18307,11 @@ const LARKSPUR_ROWS = [
     '%%%YYYY"bb.bb".."......".XXXXXXXXXXXXXX..".w......l.!!!!!.l"YYYY',
     '%%%......................XXXXXXXXXXXXXX........w..l.."....l.YYYY',
     '%%%...,......w...........XXXXXX:XXXXXXX...........lfffOfffl.YYYY',
-    '%%%.................,".........:.........::::::::::::.......YYYY',
-    '%%%................."..........:.........:..................YYYY',
-    '%%%.....:....,.................:.........:................."YYYY',
-    '%%%...".:..,w..................:.........:..........w.".....YYYY',
-    '%%%.,...:.............===================:......"..,.......wYYYY',
+    '%%%.................,"......l..:..l......::::::::::::.......YYYY',
+    '%%%.................".......fff:fff......:..................YYYY',
+    '%%%.....:....,..............l.l:l.l......:................."YYYY',
+    '%%%...".:..,w.................l:l........:..........w.".....YYYY',
+    '%%%.,...:.............=======4===4=======:......"..,.......wYYYY',
     '%%%.....:.,...........===================...................YYYY',
     '%%%.....:....,.,......===================....,...,........,.YYYY',
     '%%%.....:.............===================.......w...........YYYY',
@@ -18050,10 +18340,16 @@ const LARKSPUR_ROWS = [
 ];
 
 defBlock({
-    id: 'larkspur', bx: 0, by: 1, name: 'Larkspur Fair', theme: 'fair', music: 'fair',
+    id: 'larkspur', bx: 0, by: 1, name: 'Larkspur Fair', theme: 'fair', music: 'fair', owArt: true, soft: 4, blobSeam: true,
     rows: LARKSPUR_ROWS,
-    forest: ['tree', 'tree2'],
-    legend: { 'O': { k: 'crawl', p: 'fence', ent: 'crawlhole' }, '!': { k: 'spikes', p: 'spikes' } },
+    forest: ['tree', 'tree2', 'tree_fair'],
+    legend: {
+        'O': { k: 'crawl', p: 'fence', ent: 'crawlhole' }, '!': { k: 'spikes', p: 'spikes' },
+        /* a fence post set in the square's cobbles */
+        '4': { k: 'path', p: 'cobble', ent: 'deco', props: { look: 'fence_v' } },
+    },
+    drawGround: (a, cx, cy) => Larkspur.ground(a, cx, cy),
+    drawOver: (a, cx, cy) => Larkspur.over(a, cx, cy),
     ents: [
         /* where you come down: straw bales under the mesa */
         { k: 'deco', x: 11, y: 35, look: 'haystack', solid: [[0, 0]], oy: -6, text: 'A great heap of straw. There is a dent in the top of it the exact shape of somebody falling off a mesa.' },
@@ -18083,7 +18379,21 @@ defBlock({
         /* the theatre */
         { k: 'building', x: 25, y: 3, w: 14, h: 7, door: 6, art: 'marionette' },
         { k: 'warp', x: 31, y: 9, to: 'marionette', tx2: MARIONETTE_ENTRY.x, ty2: MARIONETTE_ENTRY.y, face: 'up', dir: 'up' },
-        { k: 'npc', who: 'pell', x: 33, y: 11, face: 'down' },
+        { k: 'npc', who: 'pell', x: 36, y: 12, face: 'left' },
+        /* the forecourt's portcullis: it winds up only while both parade pads are held down; a soldier in each pen */
+        { k: 'portcullis', x: 31, y: 11, when: 'pgA&pgB|flag:hall_open|flag:d6', id: 'pgGate' },
+        { k: 'drumpad', x: 29, y: 12, sig: 'pgA' }, { k: 'drumpad', x: 33, y: 12, sig: 'pgB' },
+        { k: 'deco', x: 21, y: 14, look: 'fairpole', solid: [[0, 0]] }, { k: 'deco', x: 42, y: 15, look: 'fairpole', solid: [[0, 0]] },
+        { k: 'deco', x: 21, y: 27, look: 'fairpole', solid: [[0, 0]] }, { k: 'deco', x: 42, y: 27, look: 'fairpole', solid: [[0, 0]] },
+        { k: 'soldier', x: 29, y: 13, facing: 'up', id: 'pgSolA' }, { k: 'soldier', x: 33, y: 12, facing: 'down', id: 'pgSolB' },
+        /* the fair's prop crates (they know where they live), and two pale ones by the fog with an L on each */
+        { k: 'crate', x: 25, y: 12, id: 'lkProp1' }, { k: 'crate', x: 37, y: 14, id: 'lkProp2' },
+        { k: 'crate', x: 4, y: 14, id: 'lkStray1', marked: false, noThrow: true, look: 'crate_l' },
+        { k: 'crate', x: 4, y: 33, id: 'lkStray2', marked: false, noThrow: true, look: 'crate_l' },
+        /* the balloon ascent, closed: its basket tugging west at a single glowing thread */
+        { k: 'balloon', x: 5, y: 30, id: 'lkBalloon' },
+        /* the big wheel in the west meadow, stopped */
+        { k: 'deco', x: 15, y: 22, look: 'bigwheel', solid: [[0, 0], [1, 0], [2, 0], [3, 0]], ox: -16, text: 'The big wheel, stopped with one car at the top. Nobody has ridden it in a long time: there are birds nesting in the top car.' },
         /* the east gate to town, bolted on this side */
         { k: 'door', x: 61, y: 19, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateA' },
         { k: 'door', x: 61, y: 20, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateB' },
@@ -18310,6 +18620,172 @@ function initLarkspurArt() {
     ART.leap_edge = paintSprite(16, 10, x => { const R = (c, a, b, ww, hh) => sq(c, a, b, ww, hh, x); R('#c4623a', 0, 4, 16, 2); R('#8a3c26', 0, 6, 16, 2); R('#e8b884', 3, 2, 3, 2); R('#e8b884', 10, 2, 3, 2); });
 }
 CONTENT_INIT.push(initLarkspurArt);
+
+/* ---------- the Hall's forecourt: a portcullis wound up by two parade pads ---------- */
+/* it winds up slowly while what it wants holds, and drops fast when it doesn't (never onto anybody) */
+class Portcullis extends Door {
+    constructor(tx, ty, p = {}) { super(tx, ty, Object.assign({ type: 'gate', dir: 'h' }, p)); this.rise = 0; }
+    onAdd(area) { super.onAdd(area); if (Signals.eval(area, (this.when || '').split('|').filter(t => t.startsWith('flag:')).join('|'))) { this.rise = 60; this.open = true; } }
+    update() {
+        const want = Signals.eval(this.area, this.when), was = this.open;
+        if (want) { if (this.rise < 60 && ++this.rise % 12 === 1) Sfx.play('click', 0.35); }
+        else if (this.rise > 0) { const p = G.player; if (!(p && p.area === this.area && p.onTile(this.tx, this.ty))) this.rise = Math.max(0, this.rise - 6); }
+        this.open = this.rise >= 60;
+        if (this.open && !was) Sfx.play('door');
+        if (!this.open && was) Sfx.play('doorshut');
+    }
+    get sortY() { return this.y + 15; }
+    draw(cx, cy) {
+        const sx = this.x - cx, sy = this.y - cy, h = Math.round(26 * (1 - this.rise / 60));
+        /* the grille, rising into the red bar overhead (which stays) */
+        if (h > 0) {
+            for (let i = 1; i < 16; i += 4) { Gfx.rect(sx + i, sy - 10, 2, h, PAL.ink); Gfx.rect(sx + i, sy - 10, 1, h, '#e8c86a'); }
+            for (let j = 2; j < h; j += 6) { Gfx.rect(sx, sy - 10 + j, 16, 2, PAL.ink); Gfx.rect(sx, sy - 10 + j, 16, 1, '#c9a24a'); }
+            for (let i = 1; i < 16; i += 4) Gfx.rect(sx + i, sy - 10 + h, 2, 1, '#8a6a2a');
+        }
+        Gfx.rect(sx - 1, sy - 14, 18, 5, PAL.ink); Gfx.rect(sx, sy - 13, 16, 3, '#d6304e'); Gfx.rect(sx, sy - 13, 16, 1, '#f07080');
+    }
+}
+SPAWN.portcullis = (x, y, p) => new Portcullis(x, y, p);
+/* a parade pad: a drum let into the ground; anything standing on it holds it down */
+SPAWN.drumpad = (x, y, p) => {
+    const c = new Plate(x, y, p);
+    c.draw = function (cx, cy) { Gfx.img(ART[this.down ? 'drumpad_down' : 'drumpad'], this.x - cx, this.y - cy); };
+    return c;
+};
+/* once you've been in, the forecourt's open to you */
+{
+    const enter0 = World.enter;
+    World.enter = function (id, ...rest) {
+        if ((id === 'marionette' || (Progress.areaFlags && Progress.areaFlags.marionette)) && !Progress.flag('hall_open')) Progress.set('hall_open');
+        return enter0.call(this, id, ...rest);
+    };
+}
+
+/* ---------- the balloon ascent: a basket by the fog, its balloon pulling west at a single bright thread ---------- */
+class Balloon extends GridThing {
+    constructor(tx, ty, p = {}) { super('balloon', tx, ty, Object.assign({ weight: WEIGHT.medium, noPush: true, thread: THREAD.jory }, p)); this.t = 0; this.away = null; }
+    canPush() { return false; }
+    tick() { this.t++; }
+    interact() {
+        Script.run(function* () { yield* say(null, 'A wicker basket under a striped balloon, CLOSED painted on its side. The balloon leans west over the fog, straining, held down by one bright thread to a peg in the grass.'); });
+        return true;
+    }
+    /* cut, up it goes, west over the fog, and away */
+    onCut(quiet) {
+        if (quiet) { this.area.remove(this); return; }
+        Progress.set('balloon_away'); Stats.count('balloon');
+        this.away = { t: 0 }; this.area.unplace(this, this.tx, this.ty);
+        G.pendingToast = 'Snip. The basket lifts off the grass, and up, and drifts away west over the fog.';
+    }
+    update() {
+        super.update();
+        if (this.away && ++this.away.t > 240) this.area.remove(this);
+    }
+    get sortY() { return this.y + 30; }
+    draw(cx, cy) {
+        const k = this.away ? this.away.t / 240 : 0, bob = Math.round(Math.sin(this.t / 30) * 1.5);
+        const x = this.x - cx - 8 - Math.round(k * k * 120), y = this.y - cy - 40 + bob - Math.round(k * 60);
+        if (!this.away) {
+            /* the tether, glowing, to its peg */
+            Gfx.line(x + 16, y + 48, this.x - cx + 14, this.y - cy + 13, THREAD.jory);
+            Gfx.rect(this.x - cx + 13, this.y - cy + 12, 3, 3, '#6b4128');
+            Gfx.alpha(0.25); Gfx.rect(this.x - cx + 2, this.y - cy + 13, 12, 2, PAL.ink); Gfx.alpha(1);
+        }
+        Gfx.img(ART.balloon, x, y, false, this.away ? Math.max(0, 1 - k * 1.2) : 1);
+    }
+}
+SPAWN.balloon = (x, y, p) => Progress.flag('balloon_away') ? new Ent('none') : new Balloon(x, y, p);
+
+/* ---------- the fair's look: trampled meadow, sawdust walks, larkspur in the grass, bunting over the square ---------- */
+OWA.ground.fair = {
+    /* meadow grass, trodden paler in patches, clover */
+    grass(x, th, v) {
+        const [g0, g1, g2, g3] = th.grass;
+        fill(x, g0); speckle(x, [g1], 11 + v * 13, 0.12); speckle(x, [g2], 23 + v * 7, 0.04);
+        /* now and then a trodden spot, the grass flattened paler */
+        if (v === 3) for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) { const d = Math.hypot((i - 9) * 1.3, j - 10); if (d < 3 + hash2(i, j, 5) * 2) px(x, i, j, hash2(i, j, 6) < 0.5 ? '#b4d088' : '#a8c87c'); }
+        for (let n = 0; n < 3; n++) { const bx = 1 + Math.floor(hash2(v, n, 3) * 14), by = 2 + Math.floor(hash2(n, v, 5) * 13); px(x, bx, by, g3); px(x, bx, by - 1, g1); }
+        if (v === 2) { px(x, 4, 5, '#5a9a4a'); px(x, 5, 5, '#5a9a4a'); px(x, 4, 4, '#7cc06a'); px(x, 5, 6, g3); }
+    },
+    /* larkspur: spikes of blue and violet flowers */
+    flowers(x, th, v) {
+        OWA.ground.fair.grass(x, th, v);
+        const cols = [['#7a8ae8', '#b4c0f8'], ['#9a6ad8', '#c8a8f0'], ['#e87aa8', '#f8c0d8']];
+        for (let n = 0; n < 2; n++) {
+            const [c0, c1] = cols[(n + v) % 3], fx = 3 + Math.floor(hash2(n, v, 1) * 10), fy = 6 + Math.floor(hash2(v + 3, n, 2) * 6);
+            px(x, fx, fy + 4, th.grass[3]); px(x, fx, fy + 3, '#4a8a3a');
+            for (let j = 0; j < 4; j++) { px(x, fx, fy - j, j % 2 ? c1 : c0); if (j < 3) px(x, fx + (j % 2 ? -1 : 1), fy - j, c0); }
+        }
+    },
+    /* sawdust: pale shavings over trodden earth */
+    path(x, th, v) {
+        const [p0, p1, p2] = th.path;
+        fill(x, p0); speckle(x, [p1], 31 + v, 0.16); speckle(x, ['#f8ecc8'], 41 + v, 0.1);
+        for (let n = 0; n < 4; n++) { const sx = Math.floor(hash2(v, n, 12) * 14), sy = Math.floor(hash2(n, v, 13) * 15); px(x, sx, sy, '#c89a5a'); px(x, sx + 1, sy, '#e8c08a'); px(x, sx + 2, sy + (n % 2), '#c89a5a'); }
+        if (v === 3) { fill(x, '#fbf6ea', 10, 4, 3, 2); px(x, 10, 4, '#e8463c'); px(x, 12, 5, '#e8463c'); }
+    },
+    tallgrass(x, th, v) {
+        const [g0, g1, g2, g3] = th.grass;
+        fill(x, g0);
+        for (let i = 0; i < 7; i++) { const bx = 1 + i * 2, h = 7 + Math.floor(hash2(i, v, 4) * 6); for (let j = 0; j < h; j++) px(x, Math.min(15, bx + (j > h - 4 ? 1 : 0)), 15 - j, j > h - 3 ? '#d8e8a0' : j > h / 2 ? g2 : g1); px(x, bx, 15, g3); }
+    },
+    forest(x, th, v) { fill(x, '#3a6a32'); speckle(x, ['#467a3a', '#2e5a2a'], v + 9, 0.3); },
+};
+Object.assign(Larkspur, {
+    ground() { },
+    /* bunting strung from pole to pole over the square, swaying */
+    RUNS: [[[21, 14], [42, 15]], [[21, 27], [42, 27]]],
+    over(a, cx, cy) {
+        if (HEADLESS || cx > 64 * T || cx + W < 0 || cy + H < 40 * T || cy > 80 * T) return;
+        const cols = ['#e8463c', '#f7d64a', '#4f9be0', '#fbf6ea', '#5ab85a', '#d0608e'];
+        for (const [[x0, y0], [x1, y1]] of this.RUNS) {
+            const ax = x0 * T + 8 - cx, ay = (40 + y0) * T - 34 - cy, bx = x1 * T + 8 - cx, by = (40 + y1) * T - 34 - cy;
+            if (Math.max(ax, bx) < -20 || Math.min(ax, bx) > W + 20 || Math.max(ay, by) < -30 || Math.min(ay, by) > H + 30) continue;
+            const n = Math.max(2, Math.round(Math.hypot(bx - ax, by - ay) / 7)), sway = Math.sin(G.t / 50 + x0) * 2;
+            let px0 = ax, py0 = ay;
+            for (let i = 1; i <= n; i++) {
+                const u = i / n, sag = Math.sin(u * Math.PI) * (14 + sway), qx = ax + (bx - ax) * u, qy = ay + (by - ay) * u + sag;
+                Gfx.line(px0, py0, qx, qy, '#5a3a2a');
+                if (i < n) { const c = cols[i % cols.length]; Gfx.rect(qx - 2, qy + 1, 5, 1, c); Gfx.rect(qx - 1, qy + 2, 3, 1, c); Gfx.rect(qx, qy + 3, 1, 1, c); }
+                px0 = qx; py0 = qy;
+            }
+        }
+    },
+});
+
+function initLarkspurArt2() {
+    const R = (x, c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+    treeArt('tree_fair', { leaf: ['#4fa84a', '#6fc65a', '#a0e078', '#2e7a43'], bark: ['#9a6438', '#6b4128', '#45281c'], fruit: '#f59ac0' }, 8);
+    /* a stray crate with an L scratched in its side */
+    defSprite('crate_l', SPR_SRC.crate.rows.map((r, j) => j === 8 ? '..kbbkbbbbbbbk..' : j === 9 ? '..kbbkbbbBbbbk..' : j === 10 ? '..kbbkkkbBbbbk..' : r), { u: '#f0f8e0', U: '#d8e8b8', b: '#c8dca8', B: '#98b07a' });
+    /* a parade pad: a drum let into the ground, red rim and a white skin (held down: the skin sunk and shadowed) */
+    for (const down of [false, true]) ART[down ? 'drumpad_down' : 'drumpad'] = paintSprite(16, 16, x => {
+        discPx(x, 8, 8, 7, (px0, py0, u, v) => { const d = u * u + v * v; if (d > 0.62) return v < 0 ? '#e8463c' : '#9a1e36'; const l = -u * 0.4 - v * 0.6 - (down ? 0.6 : 0); return l > 0.2 ? '#fbf6ea' : l > -0.3 ? '#e8dcc8' : '#c8b898'; });
+        for (const [a, b] of [[2, 8], [14, 8], [8, 2], [8, 14]]) R(x, '#f7d64a', a - (a > 8 ? 1 : 0), b - (b > 8 ? 1 : 0), 1, 1);
+    });
+    /* a striped pole for the bunting, a gilded knob on top */
+    ART.fairpole = paintSprite(8, 44, x => { for (let j = 4; j < 44; j++) { R(x, (j >> 2) % 2 ? '#e8463c' : '#fbf6ea', 2, j, 4, 1); R(x, '#2a1f2d', 5, j, 1, 1); } R(x, '#f7d64a', 1, 0, 6, 5); R(x, '#fff4c0', 2, 1, 2, 2); });
+    /* the balloon: a striped envelope, its ropes, the wicker basket */
+    ART.balloon = paintSprite(32, 56, x => {
+        for (let j = 0; j < 34; j++) { const w = Math.round(Math.sqrt(Math.max(0, 1 - ((j - 15) / 17) ** 2)) * 14 * (j > 24 ? 1 - (j - 24) / 16 : 1)); for (let i = -w; i < w; i++) { const band = Math.floor((i + 14) / 4) % 2, l = -i / 14 * 0.6 - (j - 12) / 20; R(x, band ? (l > 0.3 ? '#ff8a7a' : l > -0.2 ? '#e8463c' : '#a82a26') : (l > 0.3 ? '#ffffff' : l > -0.2 ? '#f4ecdc' : '#c8bca8'), 16 + i, j, 1, 1); } }
+        R(x, '#7a4e32', 9, 34, 1, 10); R(x, '#7a4e32', 22, 34, 1, 10); R(x, '#7a4e32', 13, 33, 1, 11); R(x, '#7a4e32', 18, 33, 1, 11);
+        R(x, '#9a6438', 8, 44, 16, 10); for (let j = 44; j < 54; j += 2) R(x, '#c9925a', 8, j, 16, 1); for (let i = 8; i < 24; i += 3) R(x, '#6b4128', i, 44, 1, 10); R(x, '#e6c08a', 8, 44, 16, 1);
+    });
+    /* the big wheel: a rim of red and white on spokes, gondolas hanging, an A-frame of timber */
+    ART.bigwheel = paintSprite(96, 112, x => {
+        const cx = 48, cy = 46, r = 40;
+        R(x, '#6b4128', 20, 50, 4, 62); R(x, '#6b4128', 72, 50, 4, 62);
+        for (let j = 0; j < 62; j++) { R(x, '#9a6438', 22 + Math.round(j * 0.42), 46 + j, 3, 1); R(x, '#7a4e32', 72 - Math.round(j * 0.42), 46 + j, 3, 1); }
+        for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; for (let t = 4; t < r; t++) R(x, '#d8c8a8', Math.round(cx + Math.cos(a) * t), Math.round(cy + Math.sin(a) * t), 1, 1); }
+        for (let k = 0; k < 360; k++) { const a = k / 360 * Math.PI * 2; R(x, Math.floor(k / 15) % 2 ? '#e8463c' : '#fbf6ea', Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r), 2, 2); }
+        R(x, '#f7d64a', cx - 4, cy - 4, 8, 8); R(x, '#a8742a', cx - 2, cy - 2, 4, 4);
+        const gc = ['#4f9be0', '#5ab85a', '#f7d64a', '#d0608e', '#7d5bc4', '#e0913a', '#3fc1b5', '#e8463c'];
+        for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 - Math.PI / 2, gx = Math.round(cx + Math.cos(a) * r), gy = Math.round(cy + Math.sin(a) * r); R(x, '#5a3a2a', gx, gy, 1, 4); R(x, gc[k], gx - 5, gy + 4, 11, 6); R(x, shade(gc[k], -0.35), gx - 5, gy + 9, 11, 1); R(x, '#fbf6ea', gx - 3, gy + 5, 3, 2); }
+        R(x, '#8a7a6a', 14, 106, 68, 6); R(x, '#a89c8c', 14, 106, 68, 2);
+    });
+}
+CONTENT_INIT.push(initLarkspurArt2);
 
 // ---- 63_marionette.js ----
 /* House 6: the Marionette Hall, at Larkspur Fair. Jory's House, crimson threads. A theatre with nobody in the
@@ -23310,7 +23786,9 @@ SPAWN.silkbridge = (x, y, p) => new WarpThread(x, y, Object.assign({ bridge: tru
    in the Seams, src/69_reveal2.js). Silver birches, silk strung between the trees, moths, the fog close on the north
    and the west: the Frayed Edge, where strays turn up and Linnet's Stray House waits (O1, later). The Loom itself,
    the First Spinner's old place, in the north: nobody made it, nobody watches from underneath (D8, src/72_loom.js).
-   Silk strands are walls here until the Shears cut them; one hides a clearing with a Heart Patch. */
+   Silk strands are walls here until the Shears cut them; one hides a clearing with a Heart Patch. Across the Loom's
+   door hangs a short warp, its four cords running away through the birches to four stone sockets: it lifts only while
+   all four hold a weight (one socket is far off over the stream); the Needle holds three. */
 
 const LOOMWOOD_ROWS = [
     '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%YYYY',
@@ -23361,9 +23839,11 @@ const LOOM_ENTRY = { x: 29, y: 42 };    /* inside the Loom's first hall (src/72_
 const LOOM_OUT = { x: 64 + 31, y: 10 };
 
 defBlock({
-    id: 'loomwood', bx: 1, by: 0, name: 'The Loomwood', theme: 'loom', music: 'loomwood',
+    id: 'loomwood', bx: 1, by: 0, name: 'The Loomwood', theme: 'loom', music: 'loomwood', owArt: true, soft: 2, blobSeam: true,
     rows: LOOMWOOD_ROWS,
-    forest: ['birch', 'birch2'],
+    forest: ['birch', 'birch2', 'birch', 'birch3'],
+    drawGround: (a, cx, cy) => Loomwood.ground(a, cx, cy),
+    drawOver: (a, cx, cy) => Loomwood.over(a, cx, cy),
     ents: [
         /* the north gate, held shut from the Seams */
         { k: 'door', x: 30, y: 37, type: 'gate', when: 'flag:north_gate', dir: 'h', id: 'northGateA' }, { k: 'door', x: 31, y: 37, type: 'gate', when: 'flag:north_gate', dir: 'h', id: 'northGateB' },
@@ -23373,6 +23853,12 @@ defBlock({
         /* the Loom */
         { k: 'building', x: 24, y: 3, w: 16, h: 7, door: 7, art: 'loom' },
         { k: 'warp', x: 31, y: 9, to: 'loom', tx2: LOOM_ENTRY.x, ty2: LOOM_ENTRY.y, face: 'up', dir: 'up', when: 'flag:gundry_r2', lockedLine: 'The great doors are locked: an old lock, older than the Houses, with a keyhole as big as your hand. The Guild had a key to everything, once.' },
+        /* the warp across the Loom's door, its four sockets, and the weights lying about */
+        { k: 'warpgate', x: 30, y: 10, len: 3, id: 'lgWarp', when: 'lgS1&lgS2&lgS3&lgS4|flag:loom_open|flag:d8' },
+        { k: 'socket', x: 26, y: 12, sig: 'lgS1', id: 'lgS1' }, { k: 'socket', x: 36, y: 11, sig: 'lgS2', id: 'lgS2' },
+        { k: 'socket', x: 24, y: 17, sig: 'lgS3', id: 'lgS3' }, { k: 'socket', x: 57, y: 17, sig: 'lgS4', id: 'lgS4' },
+        { k: 'loomweight', x: 26, y: 14, id: 'lgW1', stitchName: 'a loom weight' }, { k: 'loomweight', x: 38, y: 11, id: 'lgW2', stitchName: 'a loom weight' },
+        { k: 'loomweight', x: 24, y: 19, id: 'lgW3', stitchName: 'a loom weight' }, { k: 'loomweight', x: 55, y: 17, id: 'lgW4', stitchName: 'a loom weight' },
         /* silk strung across the way into the hidden clearing; a Heart Patch inside */
         { k: 'warpthread', x: 56, y: 16, len: 1, dir: 'v', id: 'lwSilk' },
         { k: 'chest', x: 57, y: 10, item: 'heartpatch', id: 'lwPatch' },
@@ -23471,6 +23957,169 @@ function initLoomwood() {
     };
 }
 CONTENT_INIT.push(initLoomwood);
+
+/* ---------- the warp across the Loom's door ---------- */
+/* a short warp of silk on a beam: it lifts (slowly) while all four of its cords' sockets hold a weight, and drops when
+   they don't (never onto anybody); silk all the same, so the Shears cut it for good */
+class WarpGate extends WarpThread {
+    constructor(tx, ty, p = {}) { super(tx, ty, Object.assign({ dir: 'h' }, p)); this.lift = 0; this.lifted = false; }
+    onAdd(area) {
+        super.onAdd(area);
+        if (Signals.eval(area, (this.when || '').split('|').filter(t => t.startsWith('flag:')).join('|'))) { this.lift = 24; this.lifted = true; }
+    }
+    blocks(x, y) { return !this.gone && !this.lifted && this.tiles().some(([a, b]) => a === x && b === y); }
+    update() {
+        if (this.gone) return;
+        const want = Signals.eval(this.area, this.when), p = G.player;
+        const under = p && p.area === this.area && this.tiles().some(([a, b]) => p.onTile(a, b));
+        if (want) this.lift = Math.min(24, this.lift + 1); else if (!under) this.lift = Math.max(0, this.lift - 3);
+        const was = this.lifted; this.lifted = this.lift >= 24;
+        if (this.lifted && !was) Sfx.play('door');
+        if (!this.lifted && was) Sfx.play('doorshut');
+    }
+    get sortY() { return this.y + 14; }
+    draw(cx, cy) {
+        const x0 = this.tx * T - cx, y0 = this.ty * T - cy, w = this.len * T, k = this.lift / 24;
+        /* the beam, on two posts */
+        Gfx.rect(x0 - 3, y0 - 18, 3, 34, PAL.ink); Gfx.rect(x0 - 2, y0 - 17, 1, 32, '#8a7a6a');
+        Gfx.rect(x0 + w, y0 - 18, 3, 34, PAL.ink); Gfx.rect(x0 + w + 1, y0 - 17, 1, 32, '#8a7a6a');
+        Gfx.rect(x0 - 4, y0 - 20, w + 8, 5, PAL.ink); Gfx.rect(x0 - 3, y0 - 19, w + 6, 3, '#a89c8c'); Gfx.rect(x0 - 3, y0 - 19, w + 6, 1, '#d8ccbc');
+        if (this.gone) return;
+        /* the threads, drawn up into the beam as it lifts */
+        const bot = y0 + 15 - Math.round(k * 28);
+        for (let i = 2; i < w; i += 3) {
+            const sh = Math.round(Math.sin((G.t + i * 7) / 30) * (1 - k));
+            if (bot > y0 - 15) Gfx.line(x0 + i, y0 - 15, x0 + i + sh, bot, i % 6 === 2 ? '#e4ecf5' : '#9aa8b8');
+            if (bot > y0 - 13) Gfx.rect(x0 + i - 1 + sh, bot, 3, 2, '#7a8496');
+        }
+    }
+}
+SPAWN.warpgate = (x, y, p) => new WarpGate(x, y, p);
+/* a socket: a round stone worn hollow by a weight; anything heavy in it holds it down. The old weight from the isle fits */
+SPAWN.socket = (x, y, p) => {
+    const c = new Plate(x, y, Object.assign({ minWeight: WEIGHT.heavy }, p));
+    c.draw = function (cx, cy) { Gfx.img(ART[this.down ? 'socket_down' : 'socket'], this.x - cx, this.y - cy); };
+    const add0 = c.onAdd;
+    c.onAdd = function (area) {
+        if (add0) add0.call(this, area);
+        if (Progress.get('oldweight_at') === this.id) area.add(new Block(this.tx, this.ty, { marked: false, weight: WEIGHT.heavy, look: 'oldweight_block', noPush: true }));
+    };
+    c.interact = () => {
+        const a = c.area;
+        if (!Inv.items.oldweight || a.at(c.tx, c.ty) || Progress.get('oldweight_at')) {
+            Script.run(function* () { yield* say(null, 'A round stone set in the ground, worn hollow in the middle by something heavy that sat in it a long time. A cord runs from it, away through the trees.'); });
+            return true;
+        }
+        Script.run(function* () {
+            const i = yield* ask(null, 'A round stone worn hollow in the middle. The old loom weight from the isle is heavy in your satchel.', ['Set it in', 'Not now']);
+            if (i !== 0) return;
+            delete Inv.items.oldweight; Progress.set('oldweight_at', c.id); Stats.count('secret:oldweight_set');
+            a.add(new Block(c.tx, c.ty, { marked: false, weight: WEIGHT.heavy, look: 'oldweight_block', noPush: true }));
+            Sfx.play('land'); G.shake = 3;
+            yield* say(null, 'It drops into the hollow with a thump, and fits it exactly, as if it had been made for it. Somewhere, a cord goes tight.');
+        });
+        return true;
+    };
+    c.talkBox = (pl, f) => f.tx === c.tx && f.ty === c.ty;
+    return c;
+};
+/* once you've been in, the warp's lifted for you */
+{
+    const enter0 = World.enter;
+    World.enter = function (id, ...rest) {
+        if ((id === 'loom' || (Progress.areaFlags && Progress.areaFlags.loom)) && !Progress.flag('loom_open')) Progress.set('loom_open');
+        return enter0.call(this, id, ...rest);
+    };
+}
+
+/* ---------- the Loomwood's look: silvery grass with silk lying in it, birch leaves, the ground fraying toward the fog;
+   silk strung between the birches; the warp's cords running away to their sockets ---------- */
+THEMES.loom.grass = ['#b6d2b0', '#9ec29c', '#d2e6c8', '#789c7e'];
+THEMES.loom.path = ['#dcd8ca', '#c2bcaa', '#eeebe0'];
+OWA.ground.loom = {
+    grass(x, th, v) {
+        const [g0, g1, g2, g3] = th.grass;
+        fill(x, g0); speckle(x, [g1], 11 + v * 13, 0.13); speckle(x, [g2], 23 + v * 7, 0.05);
+        for (let n = 0; n < 3; n++) { const bx = 1 + Math.floor(hash2(v, n, 3) * 14), by = 2 + Math.floor(hash2(n, v, 5) * 13); px(x, bx, by, g3); px(x, bx + 1, by - 1, g1); }
+        /* now and then a strand of silk lying in the grass */
+        if (v === 1) { let sy = 4 + Math.floor(hash2(v, 1, 7) * 8); for (let i = 3; i < 12; i++) { if (hash2(i, v, 8) < 0.25) sy += 1; if (sy >= 0 && sy < 16) px(x, i, sy, i % 4 ? '#dfe8ee' : '#ffffff'); } }
+        /* a fallen birch leaf, gold */
+        if (v === 3) { px(x, 4, 10, '#e8c84a'); px(x, 5, 10, '#f4dc6a'); px(x, 5, 11, '#c8a83a'); px(x, 11, 4, '#e8c84a'); px(x, 12, 4, '#c8a83a'); }
+    },
+    flowers(x, th, v) {
+        OWA.ground.loom.grass(x, th, v);
+        for (let n = 0; n < 2; n++) { const fx = 3 + Math.floor(hash2(n, v, 1) * 10), fy = 3 + Math.floor(hash2(v + 3, n, 2) * 10); px(x, fx, fy, '#ffffff'); px(x, fx - 1, fy, '#e4ecf5'); px(x, fx + 1, fy, '#e4ecf5'); px(x, fx, fy - 1, '#e4ecf5'); px(x, fx, fy + 1, '#c8d4c0'); px(x, fx, fy + 2, th.grass[3]); }
+    },
+    path(x, th, v) {
+        const [p0, p1, p2] = th.path;
+        fill(x, p0); speckle(x, [p1], 31 + v, 0.2); speckle(x, [p2], 41 + v, 0.08);
+        for (let n = 0; n < 3; n++) { const sx = Math.floor(hash2(v, n, 12) * 14), sy = Math.floor(hash2(n, v, 13) * 14); px(x, sx, sy, '#a8a294'); px(x, sx + 1, sy, '#bcb6a6'); }
+    },
+    forest(x, th, v) { fill(x, '#5e7468'); speckle(x, ['#6a8274', '#4e6258'], v + 9, 0.28); speckle(x, ['#c8b04a'], v + 19, 0.03); },
+};
+const Loomwood = {
+    /* the ground fraying toward the fog: loose thread-ends lying on the grass, pointing into it */
+    ground(a, cx, cy) {
+        if (HEADLESS || cx > 128 * T || cx + W < 64 * T || cy > 40 * T) return;
+        const F = typeof Fog !== 'undefined' ? Fog.info(a) : null;
+        const tx0 = Math.max(64, Math.floor(cx / T)), tx1 = Math.min(127, Math.floor((cx + W) / T)), ty0 = Math.max(0, Math.floor(cy / T)), ty1 = Math.min(39, Math.floor((cy + H) / T));
+        for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+            const k = a.cell(tx, ty).k; if (k !== 'grass' && k !== 'path') continue;
+            let near = 9; for (let d = 1; d <= 4 && near === 9; d++) if (a.cell(tx - d, ty).k === 'fog' || a.cell(tx, ty - d).k === 'fog') near = d;
+            if (near > 4) continue;
+            const left = a.cell(tx - near, ty).k === 'fog';
+            for (let n = 0; n < 5 - near; n++) {
+                const ox = Math.floor(hash2(tx, ty * 5 + n, 301) * 14), oy = Math.floor(hash2(ty, tx * 5 + n, 302) * 14), len = 3 + Math.floor(hash2(n, tx + ty, 303) * 5);
+                const x = tx * T - cx + ox, y = ty * T - cy + oy, col = n % 2 ? '#ffffff' : '#dfe6ef';
+                if (left) for (let i = 0; i < len; i++) Gfx.rect(x - i, y + (i > 2 ? (n % 2 ? 1 : -1) : 0), 1, 1, col);
+                else for (let i = 0; i < len; i++) Gfx.rect(x + (i > 2 ? (n % 2 ? 1 : -1) : 0), y - i, 1, 1, col);
+            }
+            void F;
+        }
+        /* the warp's cords, from its beam to each socket (taut while the socket's held) */
+        const wx = (64 + 31) * T + 8 - cx, wy = 10 * T - 16 - cy;
+        for (const [id, sx, sy] of [['lgS1', 26, 12], ['lgS2', 36, 11], ['lgS3', 24, 17], ['lgS4', 57, 17]]) {
+            const ex = (64 + sx) * T + 8 - cx, ey = sy * T + 8 - cy;
+            if (Math.max(wx, ex) < -10 || Math.min(wx, ex) > W + 10 || Math.max(wy, ey) < -10 || Math.min(wy, ey) > H + 10) continue;
+            const held = Signals.get(a, id), n = Math.max(2, Math.round(Math.hypot(ex - wx, ey - wy) / 10));
+            let px0 = wx, py0 = wy;
+            Gfx.alpha(held ? 0.9 : 0.55);
+            for (let i = 1; i <= n; i++) { const u = i / n, qx = wx + (ex - wx) * u, qy = wy + (ey - wy) * u + (held ? 0 : Math.sin(u * Math.PI) * 6); Gfx.line(px0, py0 + 1, qx, qy + 1, 'rgba(20,10,20,0.35)'); Gfx.line(px0, py0, qx, qy, held ? '#ffffff' : '#c8d0dc'); px0 = qx; py0 = qy; }
+            Gfx.alpha(1);
+        }
+    },
+    /* silk strung between the birches, glinting now and then */
+    over(a, cx, cy) {
+        if (HEADLESS || cx > 128 * T || cx + W < 64 * T || cy > 40 * T) return;
+        const trees = this.trees || (this.trees = a.ents.filter(e => e.kind === 'prop' && e.im && (e.im === ART.birch || e.im === ART.birch2 || e.im === ART.birch3)));
+        for (let i = 0; i < trees.length; i++) {
+            const t = trees[i], ax = t.x - cx + 16, ay = t.y - cy + 14;
+            if (ax < -40 || ax > W + 40 || ay < -40 || ay > H + 40 || hash2(t.tx, t.ty, 311) > 0.45) continue;
+            const o = trees[(i + 1 + Math.floor(hash2(t.tx, t.ty, 312) * 3)) % trees.length]; if (!o || Math.hypot(o.tx - t.tx, o.ty - t.ty) > 4) continue;
+            const bx = o.x - cx + 16, by = o.y - cy + 14, glint = (G.t + i * 37) % 300 < 20;
+            Gfx.alpha(glint ? 0.8 : 0.35); Gfx.line(ax, ay, bx, by, '#ffffff'); Gfx.alpha(1);
+        }
+    },
+};
+{
+    /* (the tree list is the place's own: built afresh each time) */
+    const build0 = World.build;
+    World.build = function (id) { const a = build0.call(this, id); if (id === 'hollow') Loomwood.trees = null; return a; };
+}
+CONTENT_INIT.push(() => {
+    const R = (x, c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+    /* the birches again, bolder: brighter leaves with real shade in them, white bark ringed with black */
+    treeArt('birch', { leaf: ['#8cc07e', '#acd696', '#d8eebc', '#4e8058'], bark: ['#f6f6f0', '#cacac0', '#2e2e34'] }, 7, { clumps: [[16, 12, 8], [10, 16, 6], [22, 15, 6], [13, 7, 5], [20, 7, 5], [16, 19, 6]] });
+    treeArt('birch2', { leaf: ['#9cc488', '#bcdaa2', '#e2f2c6', '#5a8a5e'], bark: ['#f0f0ea', '#c4c4ba', '#2e2e34'] }, 11, { clumps: [[16, 13, 9], [9, 17, 6], [23, 16, 6], [12, 8, 6], [21, 8, 5], [16, 20, 6]] });
+    treeArt('birch3', { leaf: ['#d4b84a', '#e8d070', '#f8ecac', '#9a8a3a'], bark: ['#f6f6f0', '#cacac0', '#2e2e34'] }, 13, { clumps: [[16, 12, 8], [10, 16, 6], [22, 15, 6], [13, 7, 5], [20, 7, 5], [16, 19, 6]] });
+    for (const n of ['birch', 'birch2', 'birch3']) { const c = ART[n]; if (!HEADLESS) { const x = c.getContext('2d'); x.fillStyle = '#2e2e34'; for (const [a, b] of [[14, 27], [16, 30], [15, 32], [17, 25]]) x.fillRect(a, b, 2, 1); } }
+    /* a socket stone (held: the hollow full and dark) */
+    for (const down of [false, true]) ART[down ? 'socket_down' : 'socket'] = paintSprite(16, 16, x => {
+        discPx(x, 8, 8, 7, (px0, py0, u, v) => { const d = u * u + v * v, l = -u * 0.5 - v * 0.7 + (hash2(px0, py0, 4) - 0.5) * 0.3; if (d < 0.3) return down ? '#3a3e4a' : (l > 0 ? '#6a7080' : '#545a68'); return l > 0.45 ? '#e4e8ef' : l > -0.15 ? '#b8c0cc' : l > -0.7 ? '#8a94a4' : '#6a7484'; });
+        R(x, '#e4ecf5', 14, 7, 2, 1);
+    });
+    defSprite('oldweight_block', ['................', '................', '.....kkkkkk.....', '....kwggggxk....', '...kwgggggxxk...', '..kwggkkkkgxxk..', '..kgggk..kgxxk..', '..kgggk..kgxxk..', '..kgggkkkkgxxk..', '..kggggggggxxk..', '..kgggggggxxxk..', '...kggggggxxk...', '....kxxxxxxk....', '.....kkkkkk.....', '................', '................']);
+});
 
 // ---- 72_loom.js ----
 /* The Loom (D8): the First Spinner's own old place, in the Loomwood. Nobody made it for a Wanderer, nobody watches
@@ -27754,7 +28403,7 @@ const Game = {
             const floor = a.ents.filter(e => e.floor && e.x > cx - 40 && e.x < cx + W + 40 && e.y > cy - 40 && e.y < cy + H + 40);
             for (const e of floor) e.draw(cx, cy);
             Threads.draw(a, cx, cy);
-            const stand = a.ents.filter(e => !e.floor && e.x > cx - 80 && e.x < cx + W + 40 && e.y > cy - 80 && e.y < cy + H + 80);
+            const stand = a.ents.filter(e => !e.floor && e.x > cx - 80 - (e.im ? e.im.width : 0) && e.x < cx + W + 40 && e.y > cy - 80 - (e.im ? e.im.height : 0) && e.y < cy + H + 80);    /* (a tall thing whose foot is still on screen: a big building's facade) */
             stand.push(p);
             G.onScreen = floor.concat(stand);
             stand.sort((m, n) => m.sortY - n.sortY);

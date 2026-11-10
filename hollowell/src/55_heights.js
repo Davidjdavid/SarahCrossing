@@ -356,7 +356,7 @@ function initHeightsArt() {
         x.fillStyle = '#8ac87a'; x.fillRect(16, 5, 4, 1); x.fillStyle = '#d8ecc8'; x.fillRect(19, 5, 2, 1);
     });
     /* a proper birch: white bark ringed with black, a crown of small bright leaves (it was washed out before) */
-    treeArt('tree_birch', { leaf: ['#7ab86a', '#9cd07a', '#cce8a0', '#4e8a52'], bark: ['#f4f2ea', '#d6d6cc', '#3a3a3a'] }, 6, { clumps: [[16, 12, 8], [10, 16, 6], [22, 15, 6], [13, 7, 5], [20, 7, 5], [16, 19, 6]] });
+    treeArt('tree_birch', { leaf: ['#5f9e46', '#7dbc52', '#a8d470', '#3a7038'], bark: ['#f4f2ea', '#d6d6cc', '#3a3a3a'] }, 6, { clumps: [[16, 12, 8], [10, 16, 6], [22, 15, 6], [13, 7, 5], [20, 7, 5], [16, 19, 6]] });
     {
         const c = ART.tree_birch; if (!HEADLESS) { const x = c.getContext('2d'); x.fillStyle = '#3a3a3a'; for (const [a, b] of [[14, 27], [16, 30], [15, 32], [17, 25]]) x.fillRect(a, b, 2, 1); }
     }

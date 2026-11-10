@@ -164,8 +164,20 @@ const OWA = {
     capture(a, tx, ty, tn) {
         const d = a.def, ta = d.themeAt, img = Gfx.img; let got = null;
         d.themeAt = () => tn; Gfx.img = c => { got = c; };
-        try { OWA.draw0.call(TileDraw, a, tx, ty, 0, 0); } finally { d.themeAt = ta; Gfx.img = img; }
+        try { OWA.draw0.call(TileDraw, this.wet(a, tx, ty), tx, ty, 0, 0); } finally { d.themeAt = ta; Gfx.img = img; }
         return got;
+    },
+    /* a low rock standing in the water is water to the water round it (no ring of foam round each stone, as if each
+       stood in a pool of its own): in the blocks that ask (b.lowRocks), the water's painter sees water there */
+    WET: { k: 'water', p: 'deep' },
+    wet(a, tx, ty) {
+        const b = this.blockAt(tx, ty), p = a.cell(tx, ty).p;
+        if (!b || !b.lowRocks || !(p === 'deep' || p === 'water' || p === 'current')) return a;
+        const lo = (x, y) => { const q = a.cell(x, y); return q.k === 'low' && q.p === 'deep'; };
+        if (!(lo(tx, ty) || lo(tx - 1, ty) || lo(tx + 1, ty) || lo(tx, ty - 1) || lo(tx, ty + 1))) return a;
+        const px = Object.create(a);
+        px.cell = (x, y) => lo(x, y) ? this.WET : a.cell(x, y);
+        return px;
     },
     _ids: new WeakMap(), _n: 0,
     idOf(c) { let i = this._ids.get(c); if (!i) { i = ++this._n; this._ids.set(c, i); } return i; },

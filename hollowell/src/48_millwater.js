@@ -14,13 +14,13 @@ const MILLWATER_ROWS = [
     'YYY.........R-R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY.....RRR--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY...,--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY..--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY..R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY..-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYYb--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYYbR-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY.-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY.--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY..--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQQQQ~~~~~~~###',
-    'YYY...--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q..^Q~~~~~~~###',
+    'YYY..-R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQQQQ~~~~~~~###',
+    'YYY...--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q..rQ~~~~~~~###',
     'YYY....R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q...Q~~~~~~~###',
     'YYY.....R-R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQ~QQ~~~~~~~###',
     'YYY........R--R-~~|~~~~~~~~~~~~~~~~~~~~VVV~~~~~~~~~~~~~~~~~~~###',
@@ -50,10 +50,11 @@ const MILLWATER_ROWS = [
 ];
 
 defBlock({
-    id: 'millwater', bx: 2, by: 2, name: 'Millwater', sub: 'the Reaches', theme: 'water', music: 'water', owArt: true, soft: 3,
+    id: 'millwater', bx: 2, by: 2, name: 'Millwater', sub: 'the Reaches', theme: 'water', music: 'water', owArt: true, soft: 3, lowRocks: true,
     rows: MILLWATER_ROWS,
     forest: ['tree', 'tree2', 'tree_birch'],
     legend: {},
+    drawGround: (a, cx, cy) => MillLook.ground(a, cx, cy),
     ents: [
         /* Dad's mill on the shore, its wheel in the lake */
         { k: 'building', x: 26, y: 19, w: 6, h: 3, style: 'cottage', door: null, windows: [0, 1, 4, 5], wallH: 20, chimneyX: 8, variant: 'dadmill' },
@@ -82,12 +83,21 @@ defBlock({
         { k: 'chest', x: 44, y: 30, item: 'heartpatch', id: 'mwCave' },
         { k: 'chest', x: 44, y: 34, item: 'b50', id: 'mwBasin' },
         { k: 'deco', x: 43, y: 35, look: 'note_bottle', solid: [[0, 0]], text: 'A bottle with a note in it: "If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. - L."' },
+        /* Heron Rock: an islet off the south shore of the east reach, low rocks all round it but on the south; an old
+           barrel lives on it (its place is out there; reeled ashore it leaves an empty mark, and a mark is something to
+           hook onto, if the barrel's out of the line) */
+        { k: 'deco', x: 50, y: 13, look: 'heron_stone', solid: [[0, 0]], oy: -10, text: 'A heron carved in stone, up on one leg on its rock, looking down into the lake. Gulls have left their opinions on it.' },
+        { k: 'chest', x: 51, y: 13, item: 'heartpatch', id: 'mwHeron' },
+        { k: 'barrel', x: 51, y: 14, id: 'heronBarrel' },
+        /* the eel-catcher's post on the shore (a way back off the rock, for anyone with a line) */
+        { k: 'eyelet', x: 50, y: 19 },
         /* reed snappers in the shallows */
         { k: 'enemy', x: 7, y: 13, type: 'snapper' }, { k: 'enemy', x: 22, y: 18, type: 'snapper' }, { k: 'enemy', x: 42, y: 17, type: 'snapper' },
     ],
     regions: [
         { name: 'The Reaches', x: 0, y: 2, w: 42, h: 34 },
         { name: 'North Shore', x: 38, y: 0, w: 7, h: 3 },
+        { name: 'Heron Rock', x: 48, y: 11, w: 7, h: 6 },
         { name: 'Millrace Falls', x: 42, y: 18, w: 19, h: 12 },
     ],
 });
@@ -145,3 +155,86 @@ function initMillwaterArt() {
     ART.note_bottle = paintSprite(10, 14, x => { x.fillStyle = '#6ab08a'; x.fillRect(2, 4, 6, 9); x.fillRect(4, 1, 2, 3); x.fillStyle = '#a8e0c0'; x.fillRect(3, 5, 1, 6); x.fillStyle = '#fbf3df'; x.fillRect(4, 6, 3, 5); x.fillStyle = '#9a6438'; x.fillRect(4, 0, 2, 2); });
 }
 CONTENT_INIT.push(initMillwaterArt);
+
+/* ---------- Millwater's look: rushes and reeds along the banks, lily pads on the still water, a soft shore ---------- */
+const MILL_LILIES = [];
+{
+    /* lily pads on the still water near the banks (never on a raft's way, nor the current) */
+    const R = MILLWATER_ROWS, away = new Set(['18', '16', '39', '40']);
+    for (let y = 3; y <= 17; y++) for (let x = 4; x <= 60; x++) {
+        if (R[y][x] !== '~') continue;
+        let shore = false;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const c = (R[y + dy] || '')[x + dx]; if (c === '-' || c === 'R') shore = true; }
+        if (!shore || away.has(String(x)) || y === 6 || (x >= 11 && x <= 16 && y >= 7 && y <= 12) || (x >= 48 && x <= 54 && y >= 11 && y <= 16)) continue;
+        if (hash2(x, y, 57) < 0.34) MILL_LILIES.push([x, y, hash2(y, x, 58)]);
+    }
+}
+const MillLook = {
+    ground(a, cx, cy) {
+        const B = OW.blocks['2,2'], ox = B.bx * OW.bw, oy = B.by * OW.bh;
+        for (const [lx, ly, h] of MILL_LILIES) {
+            const sx = (ox + lx) * T - cx, sy = (oy + ly) * T - cy;
+            if (sx < -T || sy < -T || sx > W + T || sy > H + T) continue;
+            const bob = Math.round(Math.sin(G.t / 50 + h * 6.3) * 0.6);
+            /* two or three pads a tile, lying flat: round leaves split to the middle, now and then a flower on one */
+            for (let n = 0; n < 2 + (h > 0.6 ? 1 : 0); n++) {
+                const x0 = sx + 4 + Math.floor(hash2(lx + n, ly, 59) * 8), y0 = sy + 3 + Math.floor(hash2(ly, lx + n, 60) * 10) + bob;
+                const r = n === 0 ? 4 : 3, hh = r === 4 ? 2 : 1, cut = Math.floor(hash2(lx, ly + n, 61) * 4);
+                Gfx.alpha(0.25); Gfx.rect(x0 - r + 1, y0 + hh + 1, 2 * r - 1, 1, '#123a5a'); Gfx.alpha(1);
+                for (let j = -hh; j <= hh; j++) {
+                    const w = Math.round(r * Math.sqrt(1 - (j / (hh + 0.6)) ** 2));
+                    Gfx.rect(x0 - w, y0 + j, 2 * w + 1, 1, j === hh ? '#2f6e34' : j < 0 ? '#6cbc50' : '#4a9a3e');
+                }
+                /* the split, from the middle out to the rim */
+                const sx2 = [1, -1, 1, -1][cut], sy2 = cut < 2 ? -1 : 1;
+                for (let k = 1; k <= r - 1; k++) Gfx.rect(x0 + sx2 * k, y0 + (k > 1 ? sy2 : 0), 1, 1, '#2f6e34');
+                Gfx.rect(x0 - r + 1, y0 - hh, 2, 1, '#9ad870');
+                if (n === 0 && h > 0.72) { Gfx.rect(x0 - 1, y0 - 2, 3, 2, '#fbf6ea'); Gfx.rect(x0, y0 - 3, 1, 1, '#f59ac0'); Gfx.rect(x0, y0 - 2, 1, 1, '#f7d64a'); }
+            }
+        }
+    },
+};
+OWA.ground.water = {
+    /* lakeside grass: soft and green, clover, forget-me-nots near the water */
+    grass: {
+        field: (tx, ty) => OWA.field(tx, ty, 31, 7, 5, -0.25),
+        draw(x, th, v, fl) {
+            const [g0, g1, g2, g3] = th.grass;
+            fill(x, g0); speckle(x, [g1], 13 + v * 11, 0.12); speckle(x, [g2], 29 + v * 5, 0.05);
+            for (let n = 0; n < 3; n++) { const bx = Math.floor(hash2(v, n, 33) * 14) + 1, by = Math.floor(hash2(n, v, 35) * 13) + 2; px(x, bx, by, g3); px(x, bx, by - 1, g1); px(x, bx + 1, by - 1, g3); }
+            if (v % 3 === 1) { const cx2 = 3 + v * 2, cy2 = 11 - v; px(x, cx2, cy2, '#4e9a56'); px(x, cx2 + 1, cy2, '#4e9a56'); px(x, cx2, cy2 + 1, '#4e9a56'); px(x, cx2 + 1, cy2 - 1, '#6fbd68'); }
+            for (let n = 0; n < [0, 0, 1, 3][fl]; n++) {
+                const fx = 2 + Math.floor(hash2(n, v + fl, 37) * 12), fy = 2 + Math.floor(hash2(v + fl, n, 38) * 11), c = n % 2 ? '#fbf6ea' : '#7aa8f0';
+                px(x, fx, fy, c); px(x, fx + 1, fy, c); px(x, fx, fy + 1, c); px(x, fx + 1, fy + 1, '#f7d64a'); px(x, fx, fy + 2, g3);
+            }
+        },
+    },
+    flowers(x, th, v) { OWA.ground.water.grass.draw(x, th, v, 3); },
+    tallgrass(x, th, v) { OWA.ground.meadow.tallgrass(x, th, v); },
+    /* (the road's the same road as Meadowfold's, over the bridge) */
+    path(x, th, v) { OWA.ground.meadow.path(x, THEMES.meadow, v); },
+    forest(x, th, v) { fill(x, '#355e3e'); speckle(x, ['#40704a', '#2c5034'], v + 9, 0.3); speckle(x, ['#5a9058'], v + 21, 0.05); },
+    /* rushes standing in the shallows, a bulrush or two */
+    reeds(x, th, v) { OWA.ground.meadow.reeds(x, th, v); },
+};
+/* the rock along the north shore is the same grey rock as the Heights' */
+OWA.cliffs.water = {
+    face: (x, th, v, m) => OWA.cliffs.heights.face(x, THEMES.heights, v, m),
+    top: (x, th, v, m) => OWA.cliffs.heights.top(x, THEMES.heights, v, m),
+};
+function initMillwaterLook() {
+    /* the stone heron on its rock */
+    ART.heron_stone = paintSprite(16, 26, x => {
+        const o = '#2a1f2d', s0 = '#b8bcb4', s1 = '#949a92', s2 = '#dfe2d8', s3 = '#70766e';
+        const R2 = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        /* the rock it stands on */
+        R2(o, 2, 20, 12, 6); R2(s3, 3, 21, 10, 4); R2(s1, 4, 21, 7, 2); R2('#5a8a40', 3, 21, 2, 1); R2('#5a8a40', 11, 22, 2, 1);
+        /* the leg, the body, the neck in an S, the beak */
+        R2(o, 7, 12, 3, 9); R2(s1, 8, 13, 1, 8);
+        R2(o, 3, 6, 10, 8); R2(s0, 4, 7, 8, 6); R2(s2, 5, 7, 5, 2); R2(s3, 4, 11, 7, 2); R2(s3, 11, 9, 1, 3);
+        R2(o, 9, 1, 4, 7); R2(s0, 10, 2, 2, 5); R2(s2, 10, 2, 1, 2);
+        R2(o, 12, 1, 4, 3); R2('#c8b070', 13, 2, 3, 1);
+        R2(o, 9, 0, 3, 2); R2('#3a3a3a', 10, 1, 1, 1);
+    });
+}
+CONTENT_INIT.push(initMillwaterLook);
