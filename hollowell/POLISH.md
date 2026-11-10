@@ -191,8 +191,17 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   the Loom finishes by the new route); one more sign reworded. Curve now: H5 2 3 3 4 3 2 3 4 5; H6 1 3 2 2 3 5 4; H7 2 5
   2 1 4 4 5; H8 2 3 2 3 4 5 4. Left: H6's early rooms (each can be skipped: two of three key rooms for two locks), H8's
   Hanging Gallery (every harder version was a timing test, not an idea). Tests 117/117 for those Houses.
-- Running: the town between Houses, the bosses and combat, portraits; blind solvers next (fresh eyes on the late
-  puzzles and the new places, nobody told the answers).
+- Done too: portraits (src/35b_portraits.js: everyone with a look, 32 people, a 32x32 bust from the look in six
+  expressions with a mouth that moves and eyes that blink; the side follows the speaker; 57 story lines marked how
+  they're said; text beside a face wraps at 246 px; tests/portraits.test.mjs, a browser scenario). The box now keeps
+  clear of whoever spoke just before too (an exchange keeps both in view), and the finale's lines to Gran keep her
+  in view. The town between Houses (src/51b_town_life.js, 51c_town_favours.js): 52 new lines across the stages, said
+  once at the newest stage; the town changes visibly; six favours, each problem in town from the start, chained
+  (crates, string, kite, marble, Tuck), no Heart Patches; the journal lists what's open, newest first; the north gate's
+  opening shown; a "You found the b30!" bug fixed; tests/town.test.mjs (26).
+- Running: the bosses and combat; two blind solvers (A: Houses 7-8 and the Great Spool; B: Houses 5-6 and the new
+  world puzzles); what's owed (owed_brief.md: Millwater's revisits, a Larkspur Needle teaser, the quilt's counts, the
+  satchel, the Heart Patch count with a test, Linnet's expressions).
 - David's direction of 10 November (vibes, not a list; the game stays its own thing, not a copy): puzzles simple in
   the first House and the land open then, harder House by House up to real ahas that combine tools; no hints unless
   asked (the opt-in nudges stay as they are; no new hint character), no answer signs; the road to later Houses takes

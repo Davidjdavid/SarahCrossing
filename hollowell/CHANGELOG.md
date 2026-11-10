@@ -156,4 +156,7 @@
   roads to the later Houses made of puzzles, finds that matter later, and the fog drawn as a bank of threads.
 - Every puzzle room rated for difficulty against a curve that starts gentle and ends hard; rooms that could be
   solved without their idea now want it, and signs that described a step now say only how the place behaves.
+- Faces in the dialogue: everyone who speaks has a portrait with expressions, a moving mouth and blinking eyes.
+- The town moves on between Houses: new things to hear after every step of the story, and small favours that the
+  newest tool can finally fix, one leading to the next.
 
