@@ -397,7 +397,7 @@ const Needle = {
     drawHud() {
         if (Inv.equipped !== 'needle') return;
         for (let i = 0; i < this.MAX; i++) {
-            const x = W - 56 + i * 6, y = 23, used = i < (Inv.stitches || []).length;
+            const x = W - 56 + i * 6, y = 31, used = i < (Inv.stitches || []).length;     /* under the key that uses it */
             Gfx.rect(x, y, 4, 4, PAL.ink); Gfx.rect(x + 1, y + 1, 2, 2, used ? THREAD.wren : '#fbf3df');
         }
     },
@@ -423,7 +423,7 @@ TOOLS._spool = { update(area) { Spool.update(area); }, draw(cx, cy) { Spool.draw
         return a;
     };
     const hud0 = UI.drawHUD;
-    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud) Needle.drawHud(); };
+    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud) { Gfx.alpha(this.hudA === undefined ? 1 : this.hudA); Needle.drawHud(); Gfx.alpha(1); } };
 }
 
 function initSpoolKit() {

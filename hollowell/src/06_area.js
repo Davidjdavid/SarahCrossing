@@ -128,7 +128,11 @@ class Area {
         const i = this.ents.indexOf(e); if (i >= 0) this.ents.splice(i, 1);
         const j = this.blockers.indexOf(e); if (j >= 0) this.blockers.splice(j, 1);
         const k = this.walkers.indexOf(e); if (k >= 0) this.walkers.splice(k, 1);
-        if (e.isGrid) this.unplace(e, e.tx, e.ty);
+        if (e.isGrid) {
+            this.unplace(e, e.tx, e.ty);
+            /* (a thing taken away mid-step, or wider than a tile, holds other tiles too: let them all go) */
+            for (const [k, o] of [...this.occ]) if (o === e) this.occ.delete(k);
+        }
     }
     find(id) { return this.ents.find(e => e.id === id); }
     all(kind) { return this.ents.filter(e => e.kind === kind); }

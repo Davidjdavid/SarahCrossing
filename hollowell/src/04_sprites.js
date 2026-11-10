@@ -181,6 +181,7 @@ function initWrenSprites() {
     defSprite('wren_lift_right', armsUp(WREN_RIGHT, false), WREN_LEGEND);
     /* asleep: lying down, eyes shut */
     defSprite('wren_sleep', swapChars(WREN_DOWN, { e: 'S', c: 's' }), WREN_LEGEND);
+    defSprite('wren_sleep_head', swapChars(WREN_DOWN, { e: 'S', c: 's' }).slice(0, 9), WREN_LEGEND);
 }
 
 /* sprite name for a person facing a direction on a walk frame */

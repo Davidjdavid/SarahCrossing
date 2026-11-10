@@ -40,7 +40,15 @@ const Probe = {
         if (this._installed) return; this._installed = true;
         const P = this;
         const wrap = (obj, name, check) => { const f = obj[name]; obj[name] = function (...a) { if (P.on) check.apply(this, a); return f.apply(this, a); }; };
-        wrap(Gfx, 'rect', (x, y, w, h, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.CALL); if (!P.num(x, y, w, h)) P.note('position', 'rect ' + [x, y, w, h].join(','), P.CALL); });
+        wrap(Gfx, 'rect', (x, y, w, h, col) => {
+            if (!P.okColor(col)) P.note('colour', String(col), P.CALL); if (!P.num(x, y, w, h)) P.note('position', 'rect ' + [x, y, w, h].join(','), P.CALL);
+            /* little marks drawn over the screen (a counter's dots, a pip) mustn't land on words, nor words on them */
+            if (P.inUI && !P.inFont && G.scene === 'play' && w <= 8 && h <= 8 && P.num(x, y, w, h)) {
+                const r = [x, y, x + w, y + h];
+                for (const q of P.texts) if (Math.min(r[2], q[2]) - Math.max(r[0], q[0]) > 1 && Math.min(r[3], q[3]) - Math.max(r[1], q[1]) > 1) { P.note('text', `a mark drawn over the words "${stripMarkup(q[4]).slice(0, 30)}"`, P.CALL); break; }
+                P.marks.push(r);
+            }
+        });
         wrap(Gfx, 'line', (x0, y0, x1, y1, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.CALL); if (!P.num(x0, y0, x1, y1)) P.note('position', 'line', P.CALL); });
         wrap(Gfx, 'circle', (x, y, r, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.CALL); if (!P.num(x, y, r)) P.note('position', 'circle', P.CALL); });
         wrap(Gfx, 'img', (im, x, y) => {
@@ -69,6 +77,7 @@ const Probe = {
                     if (ix > 2 && iy > 2) { P.note('text', `overlaps other text: "${stripMarkup(s).slice(0, 30)}" on "${stripMarkup(q[4]).slice(0, 30)}"`, P.CALL); break; }
                 }
                 P.texts.push([...r, s]);
+                for (const q of P.marks) if (Math.min(r[2], q[2]) - Math.max(r[0], q[0]) > 1 && Math.min(r[3], q[3]) - Math.max(r[1], q[1]) > 1) { P.note('text', `words drawn over a mark: "${stripMarkup(s).slice(0, 30)}"`, P.CALL); break; }
             }
             /* inside a panel: it ends inside the panel's stitching, and doesn't hang off its foot */
             if (ui && P.num(x, y) && !G.credits) {
@@ -84,12 +93,13 @@ const Probe = {
             for (const m of s.matchAll(/\{([^}]*)\}/g)) { const t = m[1]; if (t !== '/' && t !== '' && !TEXT_COLORS[t] && !PAL[t]) P.note('text', '{' + t + '} in: ' + s.slice(0, 60), P.CALL); }
             for (const ch of stripMarkup(s)) if (ch !== ' ' && ch !== '\n' && !FONT[ch]) P.note('text', `no glyph "${ch}" (${ch.charCodeAt(0)}) in: ` + s.slice(0, 50), P.CALL);
         });
+        const fd = Font.draw; Font.draw = function (...a) { P.inFont = true; try { return fd.apply(this, a); } finally { P.inFont = false; } };
     },
     /* after each drawn frame */
-    boxes: [], texts: [],
+    boxes: [], texts: [], marks: [],
     frame(ms) {
         if (!this.on) return;
-        this.frameN++; this.boxes = []; this.texts = []; this.inUI = false;
+        this.frameN++; this.boxes = []; this.texts = []; this.marks = []; this.inUI = false;
         const c = Gfx.ctx;
         if (c && c.globalAlpha !== undefined && c.globalAlpha !== 1) { this.note('state', 'see-through left on (' + c.globalAlpha + ')', ''); c.globalAlpha = 1; }
         if (c && c.getTransform && !HEADLESS) { const t = c.getTransform(); if (t.a !== 1 || t.d !== 1 || t.e || t.f) { this.note('state', 'flip/offset left on', ''); c.setTransform(1, 0, 0, 1, 0, 0); } }
@@ -105,7 +115,7 @@ const Probe = {
             if (e.isGrid) {
                 if (!this.num(e.tx, e.ty, e.x, e.y)) { this.note('thing', 'not a number: ' + (e.id || e.kind), ''); continue; }
                 if (!e.mv && !e.pendingHome && !e.flying && a.inside(e.tx, e.ty) && a.at(e.tx, e.ty) !== e && !e.noGrid) this.note('thing', `${e.id || e.kind} isn't on the tile it's at (${a.id} ${e.tx},${e.ty})`, '');
-                if (e.kind === 'npc' && !e.mv && a.inside(e.tx, e.ty)) { const k = a.kind(e.tx, e.ty); if (k.solid || k.pit || k.deep) this.note('placement', `${e.who || e.id} stands on ${a.kindName(e.tx, e.ty)} (${a.id} ${e.tx},${e.ty})`, ''); }
+                if (e.kind === 'npc' && !e.mv && !e.counter && a.inside(e.tx, e.ty)) {   /* (a keeper behind a counter stands against the back wall, as drawn) */ const k = a.kind(e.tx, e.ty); if (k.solid || k.pit || k.deep) this.note('placement', `${e.who || e.id} stands on ${a.kindName(e.tx, e.ty)} (${a.id} ${e.tx},${e.ty})`, ''); }
             } else if (e.kind === 'critter' && this.num(e.x, e.y)) {
                 const tx = Math.floor(e.x / T), ty = Math.floor((e.y - 2) / T);
                 if (a.inside(tx, ty) && bad(a.kind(tx, ty)) && !e.flies) this.note('placement', `${e.who || e.look} (critter) over ${a.kindName(tx, ty)} (${a.id} ${tx},${ty})`, '');

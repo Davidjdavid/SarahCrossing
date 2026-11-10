@@ -7,13 +7,10 @@
 <style>
 html, body { margin: 0; height: 100%; background: #17121a; overflow: hidden; }
 canvas { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display: block; outline: none; image-rendering: pixelated; }
-#hint { position: fixed; bottom: 6px; left: 0; right: 0; text-align: center; color: #6a5f6e;
-  font: 12px/1.2 system-ui, sans-serif; pointer-events: none; transition: opacity 1s; }
 </style>
 </head>
 <body>
 <canvas id="game" tabindex="0"></canvas>
-<div id="hint">Arrows/WASD move &middot; Z action &middot; X stick &middot; C tool &middot; Enter menu &middot; F11 full screen</div>
 <script>
 
 // ---- 00_core.js ----
@@ -483,6 +480,7 @@ for (const line of FONT_SRC.split('\n')) {
 }
 FONT[' '] = { w: 3, rows: [] };
 FONT['\u2014'] = { w: 6, rows: ['......', '......', '......', '######', '......', '......', '......', '......'] };    /* a dash, as in "Wipe your- oh" */
+FONT['\xb7'] = { w: 3, rows: ['...', '...', '...', '.#.', '...', '...', '...', '...'] };    /* a middle dot, between the buttons on the title */
 /* a few icons in the text: \x01 heart, \x02 arrow, \x03 button, \x04 spool */
 FONT['\x01'] = { w: 7, rows: ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...', '.......', '.......'] };
 FONT['\x02'] = { w: 4, rows: ['#...', '##..', '###.', '####', '###.', '##..', '#...', '....'] };
@@ -731,6 +729,7 @@ function initWrenSprites() {
     defSprite('wren_lift_right', armsUp(WREN_RIGHT, false), WREN_LEGEND);
     /* asleep: lying down, eyes shut */
     defSprite('wren_sleep', swapChars(WREN_DOWN, { e: 'S', c: 's' }), WREN_LEGEND);
+    defSprite('wren_sleep_head', swapChars(WREN_DOWN, { e: 'S', c: 's' }).slice(0, 9), WREN_LEGEND);
 }
 
 /* sprite name for a person facing a direction on a walk frame */
@@ -1060,7 +1059,11 @@ class Area {
         const i = this.ents.indexOf(e); if (i >= 0) this.ents.splice(i, 1);
         const j = this.blockers.indexOf(e); if (j >= 0) this.blockers.splice(j, 1);
         const k = this.walkers.indexOf(e); if (k >= 0) this.walkers.splice(k, 1);
-        if (e.isGrid) this.unplace(e, e.tx, e.ty);
+        if (e.isGrid) {
+            this.unplace(e, e.tx, e.ty);
+            /* (a thing taken away mid-step, or wider than a tile, holds other tiles too: let them all go) */
+            for (const [k, o] of [...this.occ]) if (o === e) this.occ.delete(k);
+        }
     }
     find(id) { return this.ents.find(e => e.id === id); }
     all(kind) { return this.ents.filter(e => e.kind === kind); }
@@ -1627,6 +1630,9 @@ function initThingSprites() {
     defSym('chest_big', ['........', '..kkkkkk', '.kyyyyyy', '.kuuuuuu', '.kuUUUUU', '.kuuuuuu', '.kkkkkkk', '.kbbbyyy',
         '.kbbbykk', '.kbbbbyy', '.kbBBBBB', '.kybbbbb', '.kBBBBBB', '.kkkkkkk', '........', '........'],
         { u: '#6ab0e0', U: '#3a7ab8', b: '#2e5a98', B: '#1e3a6a', y: '#f7d64a' });
+    defSym('chest_big_open', ['........', '..kkkkkk', '.kyyyyyy', '.kUUUUUU', '.kKKKKKK', '.kKKKKKK', '.kkkkkkk', '.kbbbyyy',
+        '.kbbbykk', '.kbbbbyy', '.kbBBBBB', '.kybbbbb', '.kBBBBBB', '.kkkkkkk', '........', '........'],
+        { u: '#6ab0e0', U: '#3a7ab8', b: '#2e5a98', B: '#1e3a6a', y: '#f7d64a', K: '#141c30' });
     /* pressure plate: a raised stone pad in a brass frame; pressed, it sinks flush */
     defSprite('plate', ['................', '................', '..kkkkkkkkkkkk..', '.kbbbbbbbbbbbbk.', '.kbwwwwwwwwwwBk.', '.kbwppppppppPBk.', '.kbwppppppppPBk.',
         '.kbwppppppppPBk.', '.kbwppppppppPBk.', '.kbwppppppppPBk.', '.kbwPPPPPPPPPBk.', '.kbBBBBBBBBBBBk.', '.kxxxxxxxxxxxxk.', '..kkkkkkkkkkkk..', '................', '................'],
@@ -1891,7 +1897,7 @@ class Chest extends GridThing {
         Script.run(Story.getItem(this.item));
         return true;
     }
-    sprite() { return this.hidden ? null : spr(this.opened ? 'chest_open' : this.big ? 'chest_big' : 'chest'); }
+    sprite() { return this.hidden ? null : spr(this.opened ? (this.big ? 'chest_big_open' : 'chest_open') : this.big ? 'chest_big' : 'chest'); }
 }
 
 /* ---------- signs and other things you read ---------- */
@@ -2259,7 +2265,7 @@ class Player extends Ent {
         this.shove = null;
         this.hop = null;
     }
-    get sortY() { return this.y + 2; }
+    get sortY() { return this.state === 'sleep' && this.inBed ? this.inBed.y + 40 : this.y + 2; }     /* (asleep, she's in the bed, not behind it) */
     get tx() { return tileOf(this.x); }
     get ty() { return tileOf(this.y); }
     /* does the hitbox overlap a tile? */
@@ -2804,6 +2810,8 @@ class Player extends Ent {
         let fr = 0;
         if (this.walking) fr = [0, 1, 0, 2][Math.floor(this.anim / 8) % 4];
         if (this.carry || this.liftT > 0 || this.state === 'hold') {
+            /* (holding up a find, she turns to us: from behind it looked as if she were lifting the chest) */
+            if (this.state === 'hold' && G.holdUp) return { im: spr('wren_lift_down'), flip: false };
             const d = this.dir === LEFT ? 'right' : this.dir === RIGHT ? 'right' : this.dir === UP ? 'up' : 'down';
             return { im: spr(`wren_lift_${d}`), flip: this.dir === LEFT };
         }
@@ -2826,6 +2834,8 @@ class Player extends Ent {
             return;
         }
         if (this.inv > 0 && this.state === 'normal' && (this.inv >> 2) % 2 && this.inv < 69) return;
+        /* asleep in a bed: her head on its pillow, the rest of her under its quilt */
+        if (this.state === 'sleep' && this.inBed && !this.inBed.removed) { const b = this.inBed, h = spr('wren_sleep_head'); if (h) Gfx.img(h, b.x - cx + Math.round((b.im ? b.im.width : 16) / 2) - 8, b.y - cy + 2); return; }
         const { im, flip } = this.sprite();
         const z = this.z || 0;
         /* shadow */
@@ -3108,8 +3118,19 @@ const Script = {
 
 /* ---- script helpers (use with yield*) ---- */
 function* wait(n) { yield n; }
+/* whoever speaks to Wren turns to her (when they're close, standing still, and the scene hasn't fixed their facing) */
+function faceSpeaker(who) {
+    const a = G.map, p = G.player;
+    if (!who || !a || !p || p.hidden) return;
+    const n = a.ents.find(e => e.kind === 'npc' && e.who === who && !e.hidden);
+    if (!n || n.mv || n.walking || n.fixedFace || n.counter) return;
+    const dx = p.tx - n.tx, dy = p.ty - n.ty;
+    if (Math.abs(dx) + Math.abs(dy) > 6 || (dx === 0 && dy === 0)) return;
+    n.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? LEFT : RIGHT) : (dy < 0 ? UP : DOWN);
+}
 function* say(who, text, opts = {}) {
     const lines = Array.isArray(text) ? text : [text];
+    faceSpeaker(who);
     for (const t of lines) {
         Dialog.open(who, t, opts);
         yield () => !Dialog.active;
@@ -3117,6 +3138,7 @@ function* say(who, text, opts = {}) {
 }
 /* a question: returns the index picked */
 function* ask(who, text, choices, opts = {}) {
+    faceSpeaker(who);
     Dialog.open(who, text, Object.assign({}, opts, { choices }));
     yield () => !Dialog.active;
     return Dialog.picked;
@@ -3124,7 +3146,22 @@ function* ask(who, text, choices, opts = {}) {
 function* fadeOut(n = 20) { UI.fade = { from: UI.fadeA, to: 1, t: 0, dur: n }; yield n; }
 function* fadeIn(n = 20) { UI.fade = { from: UI.fadeA, to: 0, t: 0, dur: n }; yield n; }
 /* walk a grid walker (townsfolk) or Wren to a tile */
+/* a scripted walk goes across then along, unless something stands in that way: then round it, a tile at a time */
+function straightBlocked(a, sx, sy, gx, gy) {
+    const stop = (x, y) => { const k = a.kind(x, y); return !a.inside(x, y) || k.solid || k.pit || k.deep || k.void || !!a.at(x, y); };
+    for (let x = sx; x !== gx;) { x += Math.sign(gx - sx); if (stop(x, sy)) return true; }
+    for (let y = sy; y !== gy;) { y += Math.sign(gy - sy); if (stop(gx, y)) return true; }
+    return false;
+}
 function* walkTo(e, tx, ty, speed = 1) {
+    if (e === G.player && G.map && !G.map.def.noRoute && straightBlocked(G.map, e.tx, e.ty, tx, ty)) {
+        const path = critterPath(G.map, e.tx, e.ty, tx, ty);
+        const end = path[path.length - 1];
+        if (end && end[0] === tx && end[1] === ty) { for (const [x, y] of path) yield* walkStraight(e, x, y, speed); return; }
+    }
+    yield* walkStraight(e, tx, ty, speed);
+}
+function* walkStraight(e, tx, ty, speed = 1) {
     if (e === G.player) {
         const p = e;
         const gx = tx * T + 8, gy = ty * T + 10;
@@ -3156,23 +3193,81 @@ function stitchedBox(x, y, w, h, opts = {}) {
     /* shading at the bottom */
     Gfx.rect(x + 1, y + h - 3, w - 2, 2, opts.shadow || '#e9dcbc');
     /* the running stitch */
-    for (let i = x + 4; i < x + w - 4; i += 4) { Gfx.rect(i, y + 3, 2, 1, stitch); Gfx.rect(i, y + h - 4, 2, 1, stitch); }
+    /* (not along the top and bottom of a box too short to keep it clear of its line of words) */
+    if (h >= 18) for (let i = x + 4; i < x + w - 4; i += 4) { Gfx.rect(i, y + 3, 2, 1, stitch); Gfx.rect(i, y + h - 4, 2, 1, stitch); }
     for (let j = y + 5; j < y + h - 5; j += 4) { Gfx.rect(x + 3, j, 1, 2, stitch); Gfx.rect(x + w - 4, j, 1, 2, stitch); }
 }
 
 const VOICES = {};       /* speaker -> blip pitch */
+/* a speaker's name tag in their colour, lightened until the dark letters on it read easily (crimson, brick, brown) */
+function luminance(h) { return hexRGB(h).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0); }
+function contrast(a, b) { const A = luminance(a), B = luminance(b); return (Math.max(A, B) + 0.05) / (Math.min(A, B) + 0.05); }
+function tagFill(col) { let c = col; for (let i = 0; i < 10 && contrast(c, PAL.ink) < 4.5; i++) c = shade(c, 0.1); return c; }
+
+/* the box's lines in pages of three, a page ending where a sentence ends whenever it can: no page left holding the
+   last word or two of a sentence ("thread."); a sentence too long for one page is split evenly (two and two, not
+   three and one) */
+function paginate(text, w, n = 3) {
+    const lines = Font.wrap(text, w);
+    if (lines.length <= n || text.includes('\n')) { const out = []; for (let i = 0; i < lines.length; i += n) out.push(lines.slice(i, i + n)); return out; }
+    const sents = []; let cur = '';
+    for (const wd of text.split(' ')) {
+        cur = cur ? cur + ' ' + wd : wd;
+        if (/[.!?\u2026]["')\]]*(\{\/\})?["')]*$/.test(wd) && !/^(Mr|Mrs|Dr|St)\.$/.test(wd)) { sents.push(cur); cur = ''; }
+    }
+    if (cur) sents.push(cur);
+    const pages = []; let page = '';
+    for (const s of sents) {
+        const cand = page ? page + ' ' + s : s;
+        if (Font.wrap(cand, w).length <= n) { page = cand; continue; }
+        if (page) pages.push(page);
+        page = s;
+        let L = Font.wrap(page, w);
+        while (L.length > n) { const m = L.length > 2 * n ? n : Math.ceil(L.length / 2); pages.push(L.slice(0, m).join(' ')); page = L.slice(m).join(' '); L = Font.wrap(page, w); }
+    }
+    if (page) pages.push(page);
+    return pages.map(p => Font.wrap(p, w));
+}
 
 const Dialog = {
     active: false, who: null, pages: [], page: 0, shown: 0, choices: null, sel: 0, picked: -1, opts: {},
     open(who, text, opts = {}) {
         this.active = true; this.who = who; this.opts = opts;
-        const lines = Font.wrap(Story.fill(text), 282);
-        this.pages = [];
-        for (let i = 0; i < lines.length; i += 3) this.pages.push(lines.slice(i, i + 3));
+        this.pages = paginate(Story.fill(text), 282, 3);
+        this.top = this.chooseTop(opts);
         this.page = 0; this.shown = 0; this.choices = opts.choices || null; this.sel = 0; this.picked = -1;
         this.t = 0;
     },
     pageLen() { return this.pages[this.page].reduce((n, l) => n + stripMarkup(l).length, 0); },
+    /* top or bottom of the screen: the side that hides least of what the line is about. Wren counts, whoever is
+       speaking counts double, a boss on screen double, and whatever the scene points at (opts.focus: a tile or a thing)
+       treble; a tie keeps the side the last line had (so an exchange doesn't hop about), or else the bottom */
+    chooseTop(opts) {
+        const p = G.player, a = G.map;
+        if (G.scene !== 'play' || !p || !a) return false;
+        const cover = this.coverage(opts);
+        const top = cover(9, 62), bottom = cover(H - 59, H - 6);
+        if (Math.abs(top - bottom) < 0.05) return G.t - (this.closedAt || -99) <= 3 ? !!this.lastTop : false;
+        return bottom > top;
+    },
+    /* how much of what matters on screen a strip of the screen (y0 to y1) would hide */
+    coverage(opts = {}) {
+        const p = G.player, a = G.map;
+        if (!p || !a) return () => 0;
+        const spans = [];
+        const add = (feet, tall, wgt) => spans.push([feet - tall - Cam.y, feet + 2 - Cam.y, wgt]);
+        const feet = e => e.isGrid ? e.py + 14 : e.y;
+        if (!G.hideWren && !p.hidden) add(p.y, 22, 1);
+        if (this.who) { const sp = a.ents.find(e => e.who === this.who && !e.hidden && e !== p); if (sp) add(feet(sp), 26, 2); }
+        /* (a boss: a walker or a thing on the grid with three hits or more in it) */
+        for (const e of (a.walkers || []).concat(a.ents)) if (e.alive !== false && !e.hidden && e !== p && (e.hp >= 3 || (ENEMY[e.type] && ENEMY[e.type].hp >= 3))) {
+            const sx = (e.isGrid ? e.px + 8 * (e.footW || 1) : e.x) - Cam.x, tall = (ENEMY[e.type] && ENEMY[e.type].tall) || e.tall || 28;
+            if (sx > -16 && sx < W + 16) add(feet(e), tall + 6, 2);
+        }
+        const f = opts.focus;
+        if (f) { if (Array.isArray(f)) add(f[1] * T + 14, f[2] || 20, 3); else add(feet(f), f.tall || 24, 3); }
+        return (y0, y1) => spans.reduce((s, [a0, a1, w]) => s + w * Math.max(0, Math.min(a1, y1) - Math.max(a0, y0)) / Math.max(1, a1 - a0), 0);
+    },
     update() {
         if (!this.active) return;
         this.t++;
@@ -3196,11 +3291,10 @@ const Dialog = {
             if (last) this.close(); else { this.page++; this.shown = 0; this.t = 0; }
         }
     },
-    close() { this.active = false; Input.swallow(); },
+    close() { this.active = false; this.closedAt = G.t; this.lastTop = this.top; Input.swallow(); },
     draw() {
         if (!this.active) return;
-        const p = G.player;
-        const top = p && (p.y - Cam.y) > 110;
+        const top = !!this.top;
         const x = 8, w = 304, h = 44, y = top ? 18 : H - h - 6;
         stitchedBox(x, y, w, h);
         let n = Math.floor(this.shown);
@@ -3213,17 +3307,22 @@ const Dialog = {
         if (this.who) {
             const name = Story.name(this.who);
             const tw = Font.width(name) + 12;
-            const ty = y - 9;
-            stitchedBox(x + 6, ty, tw, 14, { fill: SPEAKER_COL[this.who] || '#f0c070', stitch: '#ffffff', shadow: shade(SPEAKER_COL[this.who] || '#f0c070', -0.15) });
-            Font.draw(name, x + 12, ty + 3, PAL.ink);
+            const ty = y - 10;
+            const fill = tagFill(SPEAKER_COL[this.who] || '#f0c070');
+            stitchedBox(x + 6, ty, tw, 15, { fill, stitch: '#ffffff', shadow: shade(fill, -0.15) });
+            Font.draw(name, x + 12, ty + 4, PAL.ink);
         }
         const done = this.shown >= this.pageLen();
         const last = this.page === this.pages.length - 1;
         if (done && last && this.choices) {
             const cw = Math.max(...this.choices.map(c => Font.width(c))) + 20, chh = this.choices.length * 11 + 8;
-            /* above the box, or (when the box is at the top of the screen) below it: always on screen */
-            const cx = x + w - cw - 4, cy = top ? y + h + 2 : y - chh - 2;
-            stitchedBox(cx, cy, cw, chh);
+            /* inside the box, at its right, when the question leaves the room (so the scene isn't covered); else above
+               the box, or (when the box is at the top of the screen) below it: always on screen */
+            const used = Math.max(0, ...lines.map(l => Font.width(l))) + 9;
+            const inside = this.choices.length <= 3 && used + cw + 8 <= w - 6;
+            const cx = x + w - cw - (inside ? 6 : 4), cy = inside ? y + Math.round((h - chh) / 2) : top ? y + h + 2 : y - chh - 2;
+            if (inside) { Gfx.rect(cx - 4, y + 5, 1, h - 10, '#e3d3ae'); this.inside = true; }
+            else stitchedBox(cx, cy, cw, chh);
             this.choices.forEach((c, i) => {
                 if (i === this.sel) Font.draw('\x02', cx + 5, cy + 5 + i * 11, PAL.red2);
                 Font.draw(c, cx + 12, cy + 5 + i * 11, i === this.sel ? PAL.ink : PAL.grey3);
@@ -3238,7 +3337,12 @@ const SPEAKER_COL = {};
 const UI = {
     fadeA: 0, fade: null, toasts: [], banner: null, menu: null,
     modal() { return Dialog.active || !!this.menu; },
-    toast(s, dur = 120) { s = Story.fill(s); if (this.toasts.some(t => t.s === s)) return; this.toasts.push({ s, t: 0, dur }); },
+    toast(s, dur = 120) {
+        s = Story.fill(s); if (this.toasts.some(t => t.s === s)) return;
+        let low = false;
+        if (G.scene === 'play' && G.map && G.player) { const c = Dialog.coverage(); low = c(20, 52) > c(H - 40, H - 6) + 0.2; }
+        this.toasts.push({ s, t: 0, dur, low });
+    },
     showBanner(s, sub) { this.banner = { s, sub, t: 0 }; },
     update() {
         if (this.fade) {
@@ -3254,11 +3358,33 @@ const UI = {
         if (G.hideHud) return;
         const p = G.player;
         /* when Wren (or a doorway) is up under the HUD, it steps back */
-        const under = p && (p.y - Cam.y) < 40;
+        const under = (p && (p.y - Cam.y) < 46) || (Dialog.active && Dialog.top) || this.hudCovers();
         this.hudA = approach(this.hudA === undefined ? 1 : this.hudA, under ? 0.35 : 1, 0.08);
         Gfx.alpha(this.hudA);
         this._hud(p);
         Gfx.alpha(1);
+    },
+    /* is anything that matters (a chest, a door, a plate, a person, a creature, a thing's home cross) under the HUD's
+       corners? then the HUD steps back, as it does for Wren (looked at every few frames) */
+    hudCovers() {
+        if (G.t % 8 && this._hc !== undefined) return this._hc;
+        let hit = false;
+        const a = G.map;
+        if (a && G.scene === 'play' && G.onScreen) {
+            const n = Math.ceil(Inv.maxHp / 2), rows = n > 10 ? 2 : 1;
+            const boxes = [[0, 0, 18 + 9 * Math.min(n, 10), 4 + 8 * rows], [W - 96, 0, W, Inv.equipped ? 32 : 16]];
+            const over = (x0, y0, x1, y1) => boxes.some(b => x1 > b[0] + 1 && x0 < b[2] - 1 && y1 > b[1] + 1 && y0 < b[3] - 1);
+            for (const e of G.onScreen) {
+                if (e === G.player || e.hidden || e instanceof Prop) continue;
+                if (e.isGrid || e instanceof Door || e instanceof FloorThing) {
+                    const x = (e.isGrid ? e.px : e.tx * T) - Cam.x, y = (e.isGrid ? e.py : e.ty * T) - Cam.y;
+                    if (over(x, y, x + 16, y + 16)) { hit = true; break; }
+                    if (e.ret && e.ret.area === a.id) { const mx = e.ret.mx * T - Cam.x, my = e.ret.my * T - Cam.y; if (over(mx, my, mx + 16, my + 16)) { hit = true; break; } }
+                }
+            }
+            if (!hit) for (const e of a.walkers || []) { if (e.alive === false || e.hidden) continue; const x = e.x - Cam.x, y = e.y - Cam.y; if (over(x - 8, y - 18, x + 8, y)) { hit = true; break; } }
+        }
+        return this._hc = hit;
     },
     _hud(p) {
         if (G.trial) Trials.draw();
@@ -3280,15 +3406,15 @@ const UI = {
         /* (the count right-aligned to the edge, however many) */
         const bs = String(Inv.buttons), bx = W - 5 - Font.width(bs);
         Gfx.img(spr('hud_button'), bx - 10, 4);
-        Font.draw(bs, bx, 5, PAL.white, Infinity, PAL.ink);
+        hudText(bs, bx, 5);
         /* the tool in hand */
         const tool = Inv.equipped;
         if (tool) {
             stitchedBox(W - 58, 1, 20, 20, { fill: '#fbf3df' });
             const ic = spr('icon_' + tool); if (ic) Gfx.img(ic, W - 56, 3);
-            /* the key (or button) that uses it, under the box */
-            const kl = keyLabel('tool');
-            Font.draw(kl, Math.round(W - 48 - Font.width(kl) / 2), 23, PAL.white, Infinity, PAL.ink);
+            /* the key (or button) that uses it, under the box (the gloves work through the action button) */
+            const kl = keyLabel(tool === 'gloves' ? 'act' : 'tool');
+            hudText(kl, Math.round(W - 48 - Font.width(kl) / 2), 23);
         }
         /* keys in a House */
         const area = G.map;
@@ -3298,21 +3424,24 @@ const UI = {
             const k = Inv.keys(area.def.house);
             const kx = tool ? W - 84 : W - 62;
             Gfx.img(spr('key'), kx, 1);
-            Font.draw('x' + k, kx + 12, 6, PAL.white, Infinity, PAL.ink);
-            if (Inv.hasPattern(area.def.house)) Gfx.img(spr('hud_pattern'), kx - 12, 6);
+            hudText('x' + k, kx + 12, 6);
+            if (Inv.hasPattern(area.def.house)) Gfx.img(spr(patternIcon(area.def.house)), kx - 12, 6);
         }
     },
     draw() {
+        /* the fade first: words said, and notices and banners shown, over a black screen are on it, not under it */
+        if (this.fadeA > 0) { Gfx.alpha(this.fadeA); Gfx.rect(0, 0, W, H, PAL.night); Gfx.alpha(1); }
         /* toasts */
         const ty0 = this.banner ? (this.banner.sub ? 62 : 52) : 22;
-        let y = ty0;
+        let y = ty0, yl = Dialog.active && !Dialog.top ? H - 62 : H - 6;
         for (const t of this.toasts) {
             /* a long one wraps onto more lines */
             const lines = t.lines || (t.lines = Font.width(t.s) > W - 40 ? Font.wrap(t.s, W - 40) : [t.s]);
-            const w = Math.max(...lines.map(l => Font.width(l))) + 16, x = (W - w) / 2, h = 4 + lines.length * 10;
+            const w = Math.max(...lines.map(l => Font.width(l))) + 16, x = (W - w) / 2, h = 9 + lines.length * 10;
             const a = t.t < 8 ? t.t / 8 : t.t > t.dur - 10 ? (t.dur - t.t) / 10 : 1;
-            Gfx.alpha(a); stitchedBox(x, y, w, h); lines.forEach((l, j) => Font.draw(l, x + 8, y + 3 + j * 10, PAL.ink)); Gfx.alpha(1);
-            y += h + 2;
+            const ty = t.low ? (yl -= h + 2) + 2 : y;
+            Gfx.alpha(a); stitchedBox(x, ty, w, h); lines.forEach((l, j) => Font.draw(l, x + 8, ty + 5 + j * 10, PAL.ink)); Gfx.alpha(1);
+            if (!t.low) y += h + 2;
         }
         if (this.banner) {
             const b = this.banner, a = b.t < 20 ? b.t / 20 : b.t > 170 ? (200 - b.t) / 30 : 1;
@@ -3323,13 +3452,19 @@ const UI = {
             if (b.sub) Font.center(b.sub, W / 2, y + 16, PAL.grey3);
             Gfx.alpha(1);
         }
-        /* the fade first: words said over a black screen are on it, not under it */
-        if (this.fadeA > 0) { Gfx.alpha(this.fadeA); Gfx.rect(0, 0, W, H, PAL.night); Gfx.alpha(1); }
         Dialog.draw();
         if (this.menu) this.menu.draw();
     },
 };
 
+/* a few words on the HUD over a soft dark backing, so they read on any floor (sand, snow, water, a bed) */
+function hudText(s, x, y) {
+    const w = Font.width(s);
+    Gfx.alpha(Gfx.ctx && Gfx.ctx.globalAlpha !== undefined ? Gfx.ctx.globalAlpha * 0.55 : 0.55);
+    Gfx.rect(x - 2, y - 1, w + 4, 10, PAL.ink); Gfx.rect(x - 3, y, w + 6, 8, PAL.ink);
+    Gfx.alpha(UI.hudA === undefined ? 1 : UI.hudA);
+    Font.draw(s, x, y, PAL.white, Infinity, PAL.ink);
+}
 function initUISprites() {
     defSym('hud_heart', ['.kk.', 'krrk', 'krwr', 'krrr', '.kRr', '..kR', '...k'], {}, { w: 'r' });
     defSprite('hud_heart_half', ['.kk.kk.', 'krrkxxk', 'krwrxxk', 'krrrxxk', '.kRrxk.', '..kRk..', '...k...'], { x: '#6a4a52' });
@@ -3341,7 +3476,12 @@ function initUISprites() {
     }
     defSprite('hud_button', ['..kkkk..', '.kyyyyk.', 'kyykkyyk', 'kyyyyyyk', 'kyykkyyk', 'kYyyyyYk', '.kYYYYk.', '..kkkk..'], { y: '#e8b04a', Y: '#a8742a' });
     defSprite('hud_pattern', ['kkkkkkkk', 'kaAaAaAk', 'kAaAaAak', 'kaAaAaAk', 'kAaAaAak', 'kkkkkkkk'], { a: '#6ab0e0', A: '#f7d64a' });
+    /* each House's Pattern is cloth in its Maker's thread colour (the words say which: PATTERN_CLOTH) */
+    for (const h in PATTERN_CLOTH) { const c = PATTERN_CLOTH[h][1]; defSprite('hud_pattern_' + h, ['kkkkkkkk', 'kaAaAaAk', 'kAaAaAak', 'kaAaAaAk', 'kAaAaAak', 'kkkkkkkk'], { a: c, A: h === 'belfry' || h === 'loom' ? '#5a4a6a' : '#f7d64a' }); }
 }
+const PATTERN_CLOTH = { tidy: ['teal', THREAD.ives], kiln: ['orange', THREAD.bram], mill: ['blue', THREAD.ambrose], belfry: ['gold', THREAD.tess],
+    slumber: ['lavender', THREAD.mallow], marionette: ['crimson', THREAD.jory], spoolworks: ['brown', THREAD.guild], loom: ['white', THREAD.loom] };
+function patternIcon(h) { return spr('hud_pattern_' + h) ? 'hud_pattern_' + h : 'hud_pattern'; }
 
 // ---- 15_state.js ----
 /* The player's things (Inv), the story's flags (Progress), what the Makers would write down (Stats),
@@ -4253,11 +4393,11 @@ const Story = {
                 yield* fadeIn(30);
                 yield* say(null, 'You come to by the door of the House, with no idea how you got here.');
             } else {
-                World.enter('gran_room', 4, 3, { dir: DOWN });
-                G.player.state = 'sleep';
+                World.enter('gran_room', 6, 3, { dir: DOWN });
+                G.player.state = 'sleep'; G.player.inBed = G.map.ents.find(e => e.skey === 'wrenbed');
                 yield* fadeIn(40);
                 yield 40;
-                G.player.state = 'normal';
+                G.player.state = 'normal'; G.player.inBed = null;
                 yield* Story.wakeAfterFaint();
             }
         };
@@ -4369,6 +4509,9 @@ const Title = {
             else Font.center(c, W / 2, y, col);
         });
         Font.draw('v' + VERSION, 4, H - 10, '#8a7a7e');
+        /* the buttons, as they're bound now (keys or a controller, whichever was touched last) */
+        const mv = keyLabel('up'), hint = `${mv === 'the arrows' ? 'Arrows' : 'D-pad'} move \xb7 ${keyLabel('act')} act \xb7 ${keyLabel('atk')} stick \xb7 ${keyLabel('tool')} tool \xb7 ${keyLabel('menu')} menu`;
+        if (Font.width(hint) <= W - 40) Font.draw(hint, W - 4 - Font.width(hint), H - 10, '#8a7a7e');
     },
 };
 
@@ -4969,7 +5112,8 @@ const HW = {
     },
     walkTo(tx, ty, max = 3000) {
         if (!Auto.walk(tx, ty)) return false;
-        for (let n = 0; n < max && Auto.active(); n++) { Auto.update(); Game.step(); }
+        /* (a line said on the way stops the walk: nobody walks while they're being talked to, so waiting is pointless) */
+        for (let n = 0; n < max && Auto.active() && !Dialog.active; n++) { Auto.update(); Game.step(); }
         Input.virt = {};
         const p = G.player;
         return p.tx === tx && p.ty === ty;
@@ -5093,7 +5237,15 @@ const Probe = {
         if (this._installed) return; this._installed = true;
         const P = this;
         const wrap = (obj, name, check) => { const f = obj[name]; obj[name] = function (...a) { if (P.on) check.apply(this, a); return f.apply(this, a); }; };
-        wrap(Gfx, 'rect', (x, y, w, h, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.CALL); if (!P.num(x, y, w, h)) P.note('position', 'rect ' + [x, y, w, h].join(','), P.CALL); });
+        wrap(Gfx, 'rect', (x, y, w, h, col) => {
+            if (!P.okColor(col)) P.note('colour', String(col), P.CALL); if (!P.num(x, y, w, h)) P.note('position', 'rect ' + [x, y, w, h].join(','), P.CALL);
+            /* little marks drawn over the screen (a counter's dots, a pip) mustn't land on words, nor words on them */
+            if (P.inUI && !P.inFont && G.scene === 'play' && w <= 8 && h <= 8 && P.num(x, y, w, h)) {
+                const r = [x, y, x + w, y + h];
+                for (const q of P.texts) if (Math.min(r[2], q[2]) - Math.max(r[0], q[0]) > 1 && Math.min(r[3], q[3]) - Math.max(r[1], q[1]) > 1) { P.note('text', `a mark drawn over the words "${stripMarkup(q[4]).slice(0, 30)}"`, P.CALL); break; }
+                P.marks.push(r);
+            }
+        });
         wrap(Gfx, 'line', (x0, y0, x1, y1, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.CALL); if (!P.num(x0, y0, x1, y1)) P.note('position', 'line', P.CALL); });
         wrap(Gfx, 'circle', (x, y, r, col) => { if (!P.okColor(col)) P.note('colour', String(col), P.CALL); if (!P.num(x, y, r)) P.note('position', 'circle', P.CALL); });
         wrap(Gfx, 'img', (im, x, y) => {
@@ -5122,6 +5274,7 @@ const Probe = {
                     if (ix > 2 && iy > 2) { P.note('text', `overlaps other text: "${stripMarkup(s).slice(0, 30)}" on "${stripMarkup(q[4]).slice(0, 30)}"`, P.CALL); break; }
                 }
                 P.texts.push([...r, s]);
+                for (const q of P.marks) if (Math.min(r[2], q[2]) - Math.max(r[0], q[0]) > 1 && Math.min(r[3], q[3]) - Math.max(r[1], q[1]) > 1) { P.note('text', `words drawn over a mark: "${stripMarkup(s).slice(0, 30)}"`, P.CALL); break; }
             }
             /* inside a panel: it ends inside the panel's stitching, and doesn't hang off its foot */
             if (ui && P.num(x, y) && !G.credits) {
@@ -5137,12 +5290,13 @@ const Probe = {
             for (const m of s.matchAll(/\{([^}]*)\}/g)) { const t = m[1]; if (t !== '/' && t !== '' && !TEXT_COLORS[t] && !PAL[t]) P.note('text', '{' + t + '} in: ' + s.slice(0, 60), P.CALL); }
             for (const ch of stripMarkup(s)) if (ch !== ' ' && ch !== '\n' && !FONT[ch]) P.note('text', `no glyph "${ch}" (${ch.charCodeAt(0)}) in: ` + s.slice(0, 50), P.CALL);
         });
+        const fd = Font.draw; Font.draw = function (...a) { P.inFont = true; try { return fd.apply(this, a); } finally { P.inFont = false; } };
     },
     /* after each drawn frame */
-    boxes: [], texts: [],
+    boxes: [], texts: [], marks: [],
     frame(ms) {
         if (!this.on) return;
-        this.frameN++; this.boxes = []; this.texts = []; this.inUI = false;
+        this.frameN++; this.boxes = []; this.texts = []; this.marks = []; this.inUI = false;
         const c = Gfx.ctx;
         if (c && c.globalAlpha !== undefined && c.globalAlpha !== 1) { this.note('state', 'see-through left on (' + c.globalAlpha + ')', ''); c.globalAlpha = 1; }
         if (c && c.getTransform && !HEADLESS) { const t = c.getTransform(); if (t.a !== 1 || t.d !== 1 || t.e || t.f) { this.note('state', 'flip/offset left on', ''); c.setTransform(1, 0, 0, 1, 0, 0); } }
@@ -5158,7 +5312,7 @@ const Probe = {
             if (e.isGrid) {
                 if (!this.num(e.tx, e.ty, e.x, e.y)) { this.note('thing', 'not a number: ' + (e.id || e.kind), ''); continue; }
                 if (!e.mv && !e.pendingHome && !e.flying && a.inside(e.tx, e.ty) && a.at(e.tx, e.ty) !== e && !e.noGrid) this.note('thing', `${e.id || e.kind} isn't on the tile it's at (${a.id} ${e.tx},${e.ty})`, '');
-                if (e.kind === 'npc' && !e.mv && a.inside(e.tx, e.ty)) { const k = a.kind(e.tx, e.ty); if (k.solid || k.pit || k.deep) this.note('placement', `${e.who || e.id} stands on ${a.kindName(e.tx, e.ty)} (${a.id} ${e.tx},${e.ty})`, ''); }
+                if (e.kind === 'npc' && !e.mv && !e.counter && a.inside(e.tx, e.ty)) {   /* (a keeper behind a counter stands against the back wall, as drawn) */ const k = a.kind(e.tx, e.ty); if (k.solid || k.pit || k.deep) this.note('placement', `${e.who || e.id} stands on ${a.kindName(e.tx, e.ty)} (${a.id} ${e.tx},${e.ty})`, ''); }
             } else if (e.kind === 'critter' && this.num(e.x, e.y)) {
                 const tx = Math.floor(e.x / T), ty = Math.floor((e.y - 2) / T);
                 if (a.inside(tx, ty) && bad(a.kind(tx, ty)) && !e.flies) this.note('placement', `${e.who || e.look} (critter) over ${a.kindName(tx, ty)} (${a.id} ${tx},${ty})`, '');
@@ -5754,7 +5908,10 @@ SPAWN.tree = (tx, ty, p) => {
 };
 SPAWN.deco = (tx, ty, p) => {
     const im = ART[p.look];
-    const pr = new Prop(tx, ty, { im, solid: p.solid === false ? [] : (p.solid || [[0, 0]]), ox: p.ox !== undefined ? p.ox : Math.round((16 - im.width) / 2), oy: p.oy !== undefined ? p.oy : 16 - im.height, flip: p.flip });
+    const solid = p.solid === false ? [] : (p.solid || [[0, 0]]);
+    /* drawn centred over the tiles it stands on (a bed two wide, a row of seats six wide), not over its first tile */
+    const xs = solid.length ? solid.map(q => q[0]) : [0], x0 = Math.min(...xs) * T, fw = (Math.max(...xs) + 1) * T - x0;
+    const pr = new Prop(tx, ty, { im, solid, ox: p.ox !== undefined ? p.ox : x0 + Math.round((fw - im.width) / 2), oy: p.oy !== undefined ? p.oy : 16 - im.height, flip: p.flip });
     pr.baseY = p.baseY !== undefined ? p.baseY : im.height;
     if (p.text) { pr.interact = () => { Script.run(function* () { yield* say(null, p.text); }); return true; }; pr.talkBox = (pl, f) => pr.solid.some(([dx, dy]) => tx + dx === f.tx && ty + dy === f.ty); }
     return pr;
@@ -6412,7 +6569,7 @@ interior({
         { k: 'deco', x: 2, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
         { k: 'deco', x: 12, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
         { k: 'deco', x: 5, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
-        { k: 'deco', x: 2, y: 5, look: 'table', solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 10, y: 5, look: 'table', solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 2, y: 5, look: 'table', solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 11, y: 5, look: 'table', solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 11, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 9, y: 2, look: 'pedestal', id: 'pedestal', text: 'An empty velvet cushion under glass. A brass plate: THE WANDERER\'S KNOT.' },
         { k: 'staffdoor', x: 13, y: 2 },
@@ -7758,8 +7915,8 @@ function initTidyArt() {
     defSprite('keeper_open', open.map(r => r.slice(0, 32).padEnd(32, '.')), Object.assign({}, KL, { K: '#1e3a3a', m: '#e8463c' }));
 }
 CONTENT_INIT.push(initTidyArt);
-ITEM_LINES.plan = () => 'You found the {blue}House plan{/}! Every room of the Tidyhouse, drawn in a neat hand. (Open the map with M.)';
-ITEM_LINES.pattern = () => "You found the {blue}Pattern{/}! A square of teal cloth stitched in a pattern like a lock's insides. The big door in this House is stitched to match.";
+ITEM_LINES.plan = () => `You found the {blue}House plan{/}! Every room of ${G.map && G.map.def.name ? G.map.def.name.replace(/^The /, 'the ') : 'the House'}, drawn in a neat hand. (Open the map with [map].)`;
+ITEM_LINES.pattern = () => `You found the {blue}Pattern{/}! A square of ${(PATTERN_CLOTH[G.map && G.map.def.house] || ['teal'])[0]} cloth stitched in a pattern like a lock's insides. The big door in this House is stitched to match.`;
 ITEM_LINES.gloves = () => 'You found the {red}Gloves{/}! Hold [act] against something to grip it: while you hold on, it stays put. Step back while gripping to pull it.';
 ITEM_LINES.heartstitch = () => 'A {red}Heartstitch{/}! Your hearts grow by one.';
 ITEM_LINES.key = () => 'A {blue}small key{/}! It opens one locked door in this House.';
@@ -8612,7 +8769,7 @@ class Glazer extends Enemy {
                 this.state = 'walk'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = true;
                 Music.play('boss');
-                Script.run(function* () { yield* say(null, 'A clay knight with a glazed shield gets up from the potting bench, rolling a ball of clay between its hands.'); });
+                Script.run(function* () { yield* say(null, 'A clay knight with a glazed shield clanks to its feet, rolling a ball of clay between its hands.'); });
             }
             return;
         }
@@ -8660,7 +8817,7 @@ class Glazer extends Enemy {
             Progress.set('kiln_glazer');
             for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = false;
             Music.play('kilnhouse');
-            Script.run(function* () { yield 40; yield* say(null, 'The Glazer cracks from head to foot and falls apart into a heap of pottery. Its own shot, coming home, was the one thing its shield never faced.'); });
+            Script.run(function* () { yield 40; yield* say(null, 'The Glazer cracks from head to foot and crumbles away to dust. Its own shot, coming home, was the one thing its shield never faced.'); });
         }
     }
     draw(cx, cy) {
@@ -9969,7 +10126,7 @@ const MillFoes = {
     },
     *grindleIntro(g) {
         yield 20;
-        yield* say(null, "In the middle of the millpond, bolted to the intake, a great iron pike lifts its head and opens a mouth like a mill hopper. OLD GRINDLE, says the brass plate on its nose. It's hungry.");
+        yield* say(null, "At the head of the millpond, bolted to the intake, a great iron pike lifts its head and opens a mouth like a mill hopper. OLD GRINDLE, says the brass plate on its nose. It's hungry.");
     },
     *grindleDown(g) {
         const a = g.area;
@@ -10028,7 +10185,7 @@ const Prologue = {
         G.hideHud = true;
         World.enter('gran_room', 6, 3, { dir: DOWN, noSave: true });
         const p = G.player;
-        p.x = 7 * T + 8; p.y = 2 * T + 10; p.state = 'sleep';
+        p.x = 7 * T + 8; p.y = 2 * T + 10; p.state = 'sleep'; p.inBed = G.map.ents.find(e => e.skey === 'wrenbed');
         UI.fadeA = 1;
         Progress.setGoal('Get up and go downstairs to see Gran.');
         Script.run(function* () {
@@ -10040,7 +10197,7 @@ const Prologue = {
             yield 40;
             yield* say('gran', "{name}! Up you get, love! The whole town's waiting on you, and you're still in bed on your Wander day!");
             yield 20;
-            p.state = 'normal'; p.x = 6 * T + 8; p.y = 3 * T + 10; p.dir = DOWN;
+            p.state = 'normal'; p.inBed = null; p.x = 6 * T + 8; p.y = 3 * T + 10; p.dir = DOWN;
             Sfx.play('land'); Fx.dust(p.x, p.y);
             yield 20;
             G.hideHud = false;
@@ -10081,7 +10238,7 @@ const GRAN_AFTER_D1 = [
 ];
 
 const GRAN_AFTER_D4 = [
-    "Four Knots! Halfway, love. The east road's next: the old giant's asleep across it. You've a bell now.",
+    "Four Knots! Only two to go, love. The east road's next: the old giant's asleep across it. You've a bell now.",
     "Hushwood's a sleepy old place. Don't let it get into your bones. Come home to your own bed.",
     "You're so like... well. You're growing up, that's all.",
 ];
@@ -10110,8 +10267,7 @@ const Ceremony = {
         if (!gran) gran = a.add(new NPC(ox + 29, oy + 20, { who: 'gran', face: 'down' }));
         G.hideHud = true;
         yield 20;
-        yield* walkTo(p, ox + 30, oy + 23);
-        yield* walkTo(p, ox + 30, oy + 21 + 2);
+        yield* walkTo(p, ox + 30, oy + 21);
         p.dir = UP;
         yield 20;
         yield* say('gran', [
@@ -10135,11 +10291,13 @@ const Ceremony = {
             "And whatever happens, love: the Way always brings you home.",
         ]);
         yield* say('ives', "And wipe your feet!");
-        for (const n of added) a.remove(n);
-        Fx.poof(p.x, p.y - 20);
+        /* the town goes back to its day: everyone walks off a little way, then about their business */
+        for (const n of added) { const away = n.tx < ox + 30 ? [-4, 1] : n.tx > ox + 31 ? [4, 1] : [0, 4]; n.walkTo(n.tx + away[0], n.ty + away[1]); }
+        for (let i = 0; i < 70 && added.some(n => n.walking); i++) yield 1;
+        for (const n of added) { Fx.poof(n.px + 8, n.py + 8); a.remove(n); yield 3; }
         G.hideHud = false;
         Progress.setGoal('Find the Tidyhouse in Meadowfold, south of town, and tie its Knot.');
-        UI.toast('X swings the Wanderstaff.', 200);
+        UI.toast('[atk] swings the Wanderstaff.', 200);
         Save.autosave();
     },
 };
@@ -11614,7 +11772,7 @@ const BelfryFoes = {
     *clangorDown(c) {
         Music.play('silence');
         yield 40;
-        yield* say(null, 'Clangor falls to pieces with a noise like a dropped cutlery drawer. The bell-helm rolls away into a corner and stops, mouth up.');
+        yield* say(null, 'Clangor falls to pieces with a noise like a dropped cutlery drawer. Somewhere in the room, something goes clunk.');
         Music.play('belfry'); Sfx.play('appear');
     },
     *tollIntro(t) {
@@ -11760,7 +11918,7 @@ const Festival = {
     *scene() {
         Music.play('festival');
         yield* say(null, 'The square is strung with bunting, there are lanterns on every lamp, and the whole of Hollowell is out.');
-        yield* say('gran', "There she is! Four Knots! Halfway, love. The town's put on the Knotting Festival for you, the way it always does for the Wanderer.");
+        yield* say('gran', "There she is! Four Knots! Only two to go, love. The town's put on the Knotting Festival for you, the way it always does for the Wanderer.");
         yield* say(null, 'Just then four people come hurrying into the square from four different directions, out of breath: Ives, Bram, your dad and your mum.');
         yield* say(null, "Bram has clay up to his elbows. Your dad's sleeves are soaked to the shoulder. Your mum's hair is full of brass dust. Ives has a feather duster sticking out of her apron pocket.");
         yield* say('tess', 'Sorry! Sorry. Busy day.');
@@ -11997,7 +12155,9 @@ SPAWN.bed = (tx, ty, p = {}) => {
             Sfx.play('lay');
             if (!Progress.flag('bed_first')) {
                 Progress.set('bed_first');
+                pl.state = 'sleep'; pl.inBed = pr;
                 yield* say(null, 'You lie down, just for a moment. The quilt smells of lavender. Somewhere a long way off, somebody is humming.');
+                pl.state = 'normal'; pl.inBed = null;
                 yield* say(null, 'When you get up, the bed keeps the shape of you. However far you wander in this place, this is where you would wake.');
             }
             pl.mark = { area: pl.area.id, tx: pl.tx, ty: pl.ty, bed: 'bed' };
@@ -12523,7 +12683,7 @@ const Hushwood = {
         Progress.set('giant_home');
         G.player.area.add(SPAWN.hollowhole(128 + 3, 40 + 16, {}));
         Music.play('hush');
-        yield* say(null, 'Where he lay there is a long dent in the ground, the shape of a giant, and in the middle of it a deep dark hollow.');
+        yield* say(null, 'Where he lay, the moss is pressed flat, and in the middle of it is a deep dark hollow.');
         Progress.setGoal('Hushwood: find the Slumberhouse, over the stream.');
     },
     *hole() {
@@ -13439,9 +13599,9 @@ SPAWN.mothersloth = (x, y, p) => Progress.flag('slumber_boss') ? new Ent('none')
 const SlumberFoes = {
     *matronIntro(m) {
         yield 20;
-        if (Progress.flag('matron_met')) { yield* say(null, '"LIGHTS OUT," says Matron Hush, sitting bolt upright again. "I SAID. BACK. TO. BED."'); return; }
+        if (Progress.flag('matron_met')) { yield* say(null, '"LIGHTS OUT," says Matron Hush, bolt upright again. "I SAID. BACK. TO. BED."'); return; }
         Progress.set('matron_met');
-        yield* say(null, 'In the starched bed by the wall, somebody sits bolt upright: a tall, tall nurse in a cap, her eyes tight shut. "LIGHTS OUT," she says. "Back to bed. NOW."');
+        yield* say(null, 'Beside the starched bed by the wall, somebody stands bolt upright: a tall nurse in a cap, her eyes tight shut. "LIGHTS OUT," she says. "Back to bed. NOW."');
         yield* say(null, 'She gets up, still asleep, and comes after you, putting her feet exactly where you put yours. The doors swing shut.');
     },
     *matronDown(m) {
@@ -14010,7 +14170,7 @@ const Larkspur = {
         Sfx.play('land');
         yield* fadeIn(30);
         Fx.dust(p.x, p.y);
-        if (!Progress.flag('leapt')) { Progress.set('leapt'); yield* say(null, 'You land in the straw with a whump, and lie there a moment, looking up at the mesa. It is a very long way up.'); }
+        if (!Progress.flag('leapt')) { Progress.set('leapt'); const pl = G.player; pl.state = 'sleep'; yield* say(null, 'You land by the haystacks with a whump, and lie there a moment, looking up at the mesa. It is a very long way up.'); pl.state = 'normal'; }
     },
 };
 
@@ -14506,7 +14666,7 @@ class Captain extends Enemy {
         }
         Gfx.alpha(0.25); Gfx.rect(x - 7, y + 1, 14, 3, PAL.ink); Gfx.alpha(1);
         const im = spr('captain_' + ((this.anim >> 4) % 2));
-        if (im) Gfx.img(im, x - 10, y - 30, this.march === LEFT);
+        if (im) Gfx.img(im, x - 10, y - 22, this.march === LEFT);     /* (his boots on his shadow) */
     }
 }
 SPAWN.captain = (x, y, p) => Progress.flag('marionette_tin') ? new Ent('none') : new Captain(x, y, p);
@@ -14752,7 +14912,7 @@ const Reveal1 = {
         a.add(new Pickup((br.x + 4) * T, (br.y + 6) * T, { what: 'heartstitch', id: 'marionetteHeart' }));
         Music.play('marionette');
         Progress.setGoal('Tie the Dancing Knot. Then: the Inn in Hollowell, the door marked STAFF ONLY.');
-        UI.toast("The Options' Hints are the Makers' nudges now.", 200);
+        UI.toast("Hints (in Options) now come from the Makers themselves.", 200);
     },
 };
 {
@@ -15163,7 +15323,7 @@ const Needle = {
     drawHud() {
         if (Inv.equipped !== 'needle') return;
         for (let i = 0; i < this.MAX; i++) {
-            const x = W - 56 + i * 6, y = 23, used = i < (Inv.stitches || []).length;
+            const x = W - 56 + i * 6, y = 31, used = i < (Inv.stitches || []).length;     /* under the key that uses it */
             Gfx.rect(x, y, 4, 4, PAL.ink); Gfx.rect(x + 1, y + 1, 2, 2, used ? THREAD.wren : '#fbf3df');
         }
     },
@@ -15189,7 +15349,7 @@ TOOLS._spool = { update(area) { Spool.update(area); }, draw(cx, cy) { Spool.draw
         return a;
     };
     const hud0 = UI.drawHUD;
-    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud) Needle.drawHud(); };
+    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud) { Gfx.alpha(this.hudA === undefined ? 1 : this.hudA); Needle.drawHud(); Gfx.alpha(1); } };
 }
 
 function initSpoolKit() {
@@ -20205,6 +20365,7 @@ const Game = {
             Threads.draw(a, cx, cy);
             const stand = a.ents.filter(e => !e.floor && e.x > cx - 80 && e.x < cx + W + 40 && e.y > cy - 80 && e.y < cy + H + 80);
             stand.push(p);
+            G.onScreen = floor.concat(stand);
             stand.sort((m, n) => m.sortY - n.sortY);
             for (const e of stand) e.draw(cx, cy);
             if (p.state === 'flight' && p.flight) {
@@ -20221,7 +20382,7 @@ const Game = {
             Bells.drawFx(cx, cy); Bells.drawSleep(a, cx, cy);
             Knots.draw(cx, cy);
             if (G.holdUp) {
-                const im = spr(ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);
+                const im = spr(G.holdUp.id === 'pattern' && G.map ? patternIcon(G.map.def.house) : ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);
                 if (im) Gfx.img(im, p.x - cx - im.width / 2, p.y - cy - 30);
             }
             if (a.def.dark) Lighting.draw(a, cx, cy);
@@ -20278,7 +20439,6 @@ function boot() {
             requestAnimationFrame(loop);
         };
         requestAnimationFrame(loop);
-        setTimeout(() => { const h = document.getElementById('hint'); if (h) h.style.opacity = '0'; }, 9000);
         addEventListener('beforeunload', () => { if (G.scene === 'play') Save.autosave(); });
     } else {
         G.scene = 'title';

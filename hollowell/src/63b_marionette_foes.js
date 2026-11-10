@@ -76,7 +76,7 @@ class Captain extends Enemy {
         }
         Gfx.alpha(0.25); Gfx.rect(x - 7, y + 1, 14, 3, PAL.ink); Gfx.alpha(1);
         const im = spr('captain_' + ((this.anim >> 4) % 2));
-        if (im) Gfx.img(im, x - 10, y - 30, this.march === LEFT);
+        if (im) Gfx.img(im, x - 10, y - 22, this.march === LEFT);     /* (his boots on his shadow) */
     }
 }
 SPAWN.captain = (x, y, p) => Progress.flag('marionette_tin') ? new Ent('none') : new Captain(x, y, p);

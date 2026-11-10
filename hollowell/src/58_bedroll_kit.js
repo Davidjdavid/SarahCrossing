@@ -204,7 +204,9 @@ SPAWN.bed = (tx, ty, p = {}) => {
             Sfx.play('lay');
             if (!Progress.flag('bed_first')) {
                 Progress.set('bed_first');
+                pl.state = 'sleep'; pl.inBed = pr;
                 yield* say(null, 'You lie down, just for a moment. The quilt smells of lavender. Somewhere a long way off, somebody is humming.');
+                pl.state = 'normal'; pl.inBed = null;
                 yield* say(null, 'When you get up, the bed keeps the shape of you. However far you wander in this place, this is where you would wake.');
             }
             pl.mark = { area: pl.area.id, tx: pl.tx, ty: pl.ty, bed: 'bed' };

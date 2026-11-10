@@ -66,7 +66,7 @@ interior({
         { k: 'deco', x: 2, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
         { k: 'deco', x: 12, y: 1, look: 'window', ox: 0, oy: -8, solid: false, baseY: -100 },
         { k: 'deco', x: 5, y: 2, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
-        { k: 'deco', x: 2, y: 5, look: 'table', solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 10, y: 5, look: 'table', solid: [[0, 0], [1, 0]] },
+        { k: 'deco', x: 2, y: 5, look: 'table', solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 11, y: 5, look: 'table', solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 11, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 9, y: 2, look: 'pedestal', id: 'pedestal', text: 'An empty velvet cushion under glass. A brass plate: THE WANDERER\'S KNOT.' },
         { k: 'staffdoor', x: 13, y: 2 },

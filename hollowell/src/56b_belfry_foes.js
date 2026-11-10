@@ -234,7 +234,7 @@ const BelfryFoes = {
     *clangorDown(c) {
         Music.play('silence');
         yield 40;
-        yield* say(null, 'Clangor falls to pieces with a noise like a dropped cutlery drawer. The bell-helm rolls away into a corner and stops, mouth up.');
+        yield* say(null, 'Clangor falls to pieces with a noise like a dropped cutlery drawer. Somewhere in the room, something goes clunk.');
         Music.play('belfry'); Sfx.play('appear');
     },
     *tollIntro(t) {

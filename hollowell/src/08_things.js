@@ -53,6 +53,9 @@ function initThingSprites() {
     defSym('chest_big', ['........', '..kkkkkk', '.kyyyyyy', '.kuuuuuu', '.kuUUUUU', '.kuuuuuu', '.kkkkkkk', '.kbbbyyy',
         '.kbbbykk', '.kbbbbyy', '.kbBBBBB', '.kybbbbb', '.kBBBBBB', '.kkkkkkk', '........', '........'],
         { u: '#6ab0e0', U: '#3a7ab8', b: '#2e5a98', B: '#1e3a6a', y: '#f7d64a' });
+    defSym('chest_big_open', ['........', '..kkkkkk', '.kyyyyyy', '.kUUUUUU', '.kKKKKKK', '.kKKKKKK', '.kkkkkkk', '.kbbbyyy',
+        '.kbbbykk', '.kbbbbyy', '.kbBBBBB', '.kybbbbb', '.kBBBBBB', '.kkkkkkk', '........', '........'],
+        { u: '#6ab0e0', U: '#3a7ab8', b: '#2e5a98', B: '#1e3a6a', y: '#f7d64a', K: '#141c30' });
     /* pressure plate: a raised stone pad in a brass frame; pressed, it sinks flush */
     defSprite('plate', ['................', '................', '..kkkkkkkkkkkk..', '.kbbbbbbbbbbbbk.', '.kbwwwwwwwwwwBk.', '.kbwppppppppPBk.', '.kbwppppppppPBk.',
         '.kbwppppppppPBk.', '.kbwppppppppPBk.', '.kbwppppppppPBk.', '.kbwPPPPPPPPPBk.', '.kbBBBBBBBBBBBk.', '.kxxxxxxxxxxxxk.', '..kkkkkkkkkkkk..', '................', '................'],
@@ -317,7 +320,7 @@ class Chest extends GridThing {
         Script.run(Story.getItem(this.item));
         return true;
     }
-    sprite() { return this.hidden ? null : spr(this.opened ? 'chest_open' : this.big ? 'chest_big' : 'chest'); }
+    sprite() { return this.hidden ? null : spr(this.opened ? (this.big ? 'chest_big_open' : 'chest_open') : this.big ? 'chest_big' : 'chest'); }
 }
 
 /* ---------- signs and other things you read ---------- */

@@ -38,7 +38,7 @@ const Reveal1 = {
         a.add(new Pickup((br.x + 4) * T, (br.y + 6) * T, { what: 'heartstitch', id: 'marionetteHeart' }));
         Music.play('marionette');
         Progress.setGoal('Tie the Dancing Knot. Then: the Inn in Hollowell, the door marked STAFF ONLY.');
-        UI.toast("The Options' Hints are the Makers' nudges now.", 200);
+        UI.toast("Hints (in Options) now come from the Makers themselves.", 200);
     },
 };
 {

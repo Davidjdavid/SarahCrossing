@@ -296,7 +296,10 @@ SPAWN.tree = (tx, ty, p) => {
 };
 SPAWN.deco = (tx, ty, p) => {
     const im = ART[p.look];
-    const pr = new Prop(tx, ty, { im, solid: p.solid === false ? [] : (p.solid || [[0, 0]]), ox: p.ox !== undefined ? p.ox : Math.round((16 - im.width) / 2), oy: p.oy !== undefined ? p.oy : 16 - im.height, flip: p.flip });
+    const solid = p.solid === false ? [] : (p.solid || [[0, 0]]);
+    /* drawn centred over the tiles it stands on (a bed two wide, a row of seats six wide), not over its first tile */
+    const xs = solid.length ? solid.map(q => q[0]) : [0], x0 = Math.min(...xs) * T, fw = (Math.max(...xs) + 1) * T - x0;
+    const pr = new Prop(tx, ty, { im, solid, ox: p.ox !== undefined ? p.ox : x0 + Math.round((fw - im.width) / 2), oy: p.oy !== undefined ? p.oy : 16 - im.height, flip: p.flip });
     pr.baseY = p.baseY !== undefined ? p.baseY : im.height;
     if (p.text) { pr.interact = () => { Script.run(function* () { yield* say(null, p.text); }); return true; }; pr.talkBox = (pl, f) => pr.solid.some(([dx, dy]) => tx + dx === f.tx && ty + dy === f.ty); }
     return pr;

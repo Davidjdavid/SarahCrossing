@@ -5,7 +5,7 @@ const Prologue = {
         G.hideHud = true;
         World.enter('gran_room', 6, 3, { dir: DOWN, noSave: true });
         const p = G.player;
-        p.x = 7 * T + 8; p.y = 2 * T + 10; p.state = 'sleep';
+        p.x = 7 * T + 8; p.y = 2 * T + 10; p.state = 'sleep'; p.inBed = G.map.ents.find(e => e.skey === 'wrenbed');
         UI.fadeA = 1;
         Progress.setGoal('Get up and go downstairs to see Gran.');
         Script.run(function* () {
@@ -17,7 +17,7 @@ const Prologue = {
             yield 40;
             yield* say('gran', "{name}! Up you get, love! The whole town's waiting on you, and you're still in bed on your Wander day!");
             yield 20;
-            p.state = 'normal'; p.x = 6 * T + 8; p.y = 3 * T + 10; p.dir = DOWN;
+            p.state = 'normal'; p.inBed = null; p.x = 6 * T + 8; p.y = 3 * T + 10; p.dir = DOWN;
             Sfx.play('land'); Fx.dust(p.x, p.y);
             yield 20;
             G.hideHud = false;
@@ -58,7 +58,7 @@ const GRAN_AFTER_D1 = [
 ];
 
 const GRAN_AFTER_D4 = [
-    "Four Knots! Halfway, love. The east road's next: the old giant's asleep across it. You've a bell now.",
+    "Four Knots! Only two to go, love. The east road's next: the old giant's asleep across it. You've a bell now.",
     "Hushwood's a sleepy old place. Don't let it get into your bones. Come home to your own bed.",
     "You're so like... well. You're growing up, that's all.",
 ];
@@ -87,8 +87,7 @@ const Ceremony = {
         if (!gran) gran = a.add(new NPC(ox + 29, oy + 20, { who: 'gran', face: 'down' }));
         G.hideHud = true;
         yield 20;
-        yield* walkTo(p, ox + 30, oy + 23);
-        yield* walkTo(p, ox + 30, oy + 21 + 2);
+        yield* walkTo(p, ox + 30, oy + 21);
         p.dir = UP;
         yield 20;
         yield* say('gran', [
@@ -112,11 +111,13 @@ const Ceremony = {
             "And whatever happens, love: the Way always brings you home.",
         ]);
         yield* say('ives', "And wipe your feet!");
-        for (const n of added) a.remove(n);
-        Fx.poof(p.x, p.y - 20);
+        /* the town goes back to its day: everyone walks off a little way, then about their business */
+        for (const n of added) { const away = n.tx < ox + 30 ? [-4, 1] : n.tx > ox + 31 ? [4, 1] : [0, 4]; n.walkTo(n.tx + away[0], n.ty + away[1]); }
+        for (let i = 0; i < 70 && added.some(n => n.walking); i++) yield 1;
+        for (const n of added) { Fx.poof(n.px + 8, n.py + 8); a.remove(n); yield 3; }
         G.hideHud = false;
         Progress.setGoal('Find the Tidyhouse in Meadowfold, south of town, and tie its Knot.');
-        UI.toast('X swings the Wanderstaff.', 200);
+        UI.toast('[atk] swings the Wanderstaff.', 200);
         Save.autosave();
     },
 };

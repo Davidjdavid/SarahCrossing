@@ -76,11 +76,11 @@ const Story = {
                 yield* fadeIn(30);
                 yield* say(null, 'You come to by the door of the House, with no idea how you got here.');
             } else {
-                World.enter('gran_room', 4, 3, { dir: DOWN });
-                G.player.state = 'sleep';
+                World.enter('gran_room', 6, 3, { dir: DOWN });
+                G.player.state = 'sleep'; G.player.inBed = G.map.ents.find(e => e.skey === 'wrenbed');
                 yield* fadeIn(40);
                 yield 40;
-                G.player.state = 'normal';
+                G.player.state = 'normal'; G.player.inBed = null;
                 yield* Story.wakeAfterFaint();
             }
         };

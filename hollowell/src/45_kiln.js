@@ -461,7 +461,7 @@ class Glazer extends Enemy {
                 this.state = 'walk'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = true;
                 Music.play('boss');
-                Script.run(function* () { yield* say(null, 'A clay knight with a glazed shield gets up from the potting bench, rolling a ball of clay between its hands.'); });
+                Script.run(function* () { yield* say(null, 'A clay knight with a glazed shield clanks to its feet, rolling a ball of clay between its hands.'); });
             }
             return;
         }
@@ -509,7 +509,7 @@ class Glazer extends Enemy {
             Progress.set('kiln_glazer');
             for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = false;
             Music.play('kilnhouse');
-            Script.run(function* () { yield 40; yield* say(null, 'The Glazer cracks from head to foot and falls apart into a heap of pottery. Its own shot, coming home, was the one thing its shield never faced.'); });
+            Script.run(function* () { yield 40; yield* say(null, 'The Glazer cracks from head to foot and crumbles away to dust. Its own shot, coming home, was the one thing its shield never faced.'); });
         }
     }
     draw(cx, cy) {

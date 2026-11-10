@@ -73,7 +73,7 @@ const Festival = {
     *scene() {
         Music.play('festival');
         yield* say(null, 'The square is strung with bunting, there are lanterns on every lamp, and the whole of Hollowell is out.');
-        yield* say('gran', "There she is! Four Knots! Halfway, love. The town's put on the Knotting Festival for you, the way it always does for the Wanderer.");
+        yield* say('gran', "There she is! Four Knots! Only two to go, love. The town's put on the Knotting Festival for you, the way it always does for the Wanderer.");
         yield* say(null, 'Just then four people come hurrying into the square from four different directions, out of breath: Ives, Bram, your dad and your mum.');
         yield* say(null, "Bram has clay up to his elbows. Your dad's sleeves are soaked to the shoulder. Your mum's hair is full of brass dust. Ives has a feather duster sticking out of her apron pocket.");
         yield* say('tess', 'Sorry! Sorry. Busy day.');

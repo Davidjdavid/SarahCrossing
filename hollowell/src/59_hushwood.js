@@ -242,7 +242,7 @@ const Hushwood = {
         Progress.set('giant_home');
         G.player.area.add(SPAWN.hollowhole(128 + 3, 40 + 16, {}));
         Music.play('hush');
-        yield* say(null, 'Where he lay there is a long dent in the ground, the shape of a giant, and in the middle of it a deep dark hollow.');
+        yield* say(null, 'Where he lay, the moss is pressed flat, and in the middle of it is a deep dark hollow.');
         Progress.setGoal('Hushwood: find the Slumberhouse, over the stream.');
     },
     *hole() {

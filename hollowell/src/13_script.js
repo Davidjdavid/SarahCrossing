@@ -39,8 +39,19 @@ const Script = {
 
 /* ---- script helpers (use with yield*) ---- */
 function* wait(n) { yield n; }
+/* whoever speaks to Wren turns to her (when they're close, standing still, and the scene hasn't fixed their facing) */
+function faceSpeaker(who) {
+    const a = G.map, p = G.player;
+    if (!who || !a || !p || p.hidden) return;
+    const n = a.ents.find(e => e.kind === 'npc' && e.who === who && !e.hidden);
+    if (!n || n.mv || n.walking || n.fixedFace || n.counter) return;
+    const dx = p.tx - n.tx, dy = p.ty - n.ty;
+    if (Math.abs(dx) + Math.abs(dy) > 6 || (dx === 0 && dy === 0)) return;
+    n.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? LEFT : RIGHT) : (dy < 0 ? UP : DOWN);
+}
 function* say(who, text, opts = {}) {
     const lines = Array.isArray(text) ? text : [text];
+    faceSpeaker(who);
     for (const t of lines) {
         Dialog.open(who, t, opts);
         yield () => !Dialog.active;
@@ -48,6 +59,7 @@ function* say(who, text, opts = {}) {
 }
 /* a question: returns the index picked */
 function* ask(who, text, choices, opts = {}) {
+    faceSpeaker(who);
     Dialog.open(who, text, Object.assign({}, opts, { choices }));
     yield () => !Dialog.active;
     return Dialog.picked;
@@ -55,7 +67,22 @@ function* ask(who, text, choices, opts = {}) {
 function* fadeOut(n = 20) { UI.fade = { from: UI.fadeA, to: 1, t: 0, dur: n }; yield n; }
 function* fadeIn(n = 20) { UI.fade = { from: UI.fadeA, to: 0, t: 0, dur: n }; yield n; }
 /* walk a grid walker (townsfolk) or Wren to a tile */
+/* a scripted walk goes across then along, unless something stands in that way: then round it, a tile at a time */
+function straightBlocked(a, sx, sy, gx, gy) {
+    const stop = (x, y) => { const k = a.kind(x, y); return !a.inside(x, y) || k.solid || k.pit || k.deep || k.void || !!a.at(x, y); };
+    for (let x = sx; x !== gx;) { x += Math.sign(gx - sx); if (stop(x, sy)) return true; }
+    for (let y = sy; y !== gy;) { y += Math.sign(gy - sy); if (stop(gx, y)) return true; }
+    return false;
+}
 function* walkTo(e, tx, ty, speed = 1) {
+    if (e === G.player && G.map && !G.map.def.noRoute && straightBlocked(G.map, e.tx, e.ty, tx, ty)) {
+        const path = critterPath(G.map, e.tx, e.ty, tx, ty);
+        const end = path[path.length - 1];
+        if (end && end[0] === tx && end[1] === ty) { for (const [x, y] of path) yield* walkStraight(e, x, y, speed); return; }
+    }
+    yield* walkStraight(e, tx, ty, speed);
+}
+function* walkStraight(e, tx, ty, speed = 1) {
     if (e === G.player) {
         const p = e;
         const gx = tx * T + 8, gy = ty * T + 10;

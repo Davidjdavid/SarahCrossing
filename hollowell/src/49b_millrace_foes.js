@@ -256,7 +256,7 @@ const MillFoes = {
     },
     *grindleIntro(g) {
         yield 20;
-        yield* say(null, "In the middle of the millpond, bolted to the intake, a great iron pike lifts its head and opens a mouth like a mill hopper. OLD GRINDLE, says the brass plate on its nose. It's hungry.");
+        yield* say(null, "At the head of the millpond, bolted to the intake, a great iron pike lifts its head and opens a mouth like a mill hopper. OLD GRINDLE, says the brass plate on its nose. It's hungry.");
     },
     *grindleDown(g) {
         const a = g.area;

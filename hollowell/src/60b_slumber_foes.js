@@ -295,9 +295,9 @@ SPAWN.mothersloth = (x, y, p) => Progress.flag('slumber_boss') ? new Ent('none')
 const SlumberFoes = {
     *matronIntro(m) {
         yield 20;
-        if (Progress.flag('matron_met')) { yield* say(null, '"LIGHTS OUT," says Matron Hush, sitting bolt upright again. "I SAID. BACK. TO. BED."'); return; }
+        if (Progress.flag('matron_met')) { yield* say(null, '"LIGHTS OUT," says Matron Hush, bolt upright again. "I SAID. BACK. TO. BED."'); return; }
         Progress.set('matron_met');
-        yield* say(null, 'In the starched bed by the wall, somebody sits bolt upright: a tall, tall nurse in a cap, her eyes tight shut. "LIGHTS OUT," she says. "Back to bed. NOW."');
+        yield* say(null, 'Beside the starched bed by the wall, somebody stands bolt upright: a tall nurse in a cap, her eyes tight shut. "LIGHTS OUT," she says. "Back to bed. NOW."');
         yield* say(null, 'She gets up, still asleep, and comes after you, putting her feet exactly where you put yours. The doors swing shut.');
     },
     *matronDown(m) {

@@ -80,7 +80,8 @@ const HW = {
     },
     walkTo(tx, ty, max = 3000) {
         if (!Auto.walk(tx, ty)) return false;
-        for (let n = 0; n < max && Auto.active(); n++) { Auto.update(); Game.step(); }
+        /* (a line said on the way stops the walk: nobody walks while they're being talked to, so waiting is pointless) */
+        for (let n = 0; n < max && Auto.active() && !Dialog.active; n++) { Auto.update(); Game.step(); }
         Input.virt = {};
         const p = G.player;
         return p.tx === tx && p.ty === ty;

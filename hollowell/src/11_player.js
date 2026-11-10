@@ -20,7 +20,7 @@ class Player extends Ent {
         this.shove = null;
         this.hop = null;
     }
-    get sortY() { return this.y + 2; }
+    get sortY() { return this.state === 'sleep' && this.inBed ? this.inBed.y + 40 : this.y + 2; }     /* (asleep, she's in the bed, not behind it) */
     get tx() { return tileOf(this.x); }
     get ty() { return tileOf(this.y); }
     /* does the hitbox overlap a tile? */
@@ -565,6 +565,8 @@ class Player extends Ent {
         let fr = 0;
         if (this.walking) fr = [0, 1, 0, 2][Math.floor(this.anim / 8) % 4];
         if (this.carry || this.liftT > 0 || this.state === 'hold') {
+            /* (holding up a find, she turns to us: from behind it looked as if she were lifting the chest) */
+            if (this.state === 'hold' && G.holdUp) return { im: spr('wren_lift_down'), flip: false };
             const d = this.dir === LEFT ? 'right' : this.dir === RIGHT ? 'right' : this.dir === UP ? 'up' : 'down';
             return { im: spr(`wren_lift_${d}`), flip: this.dir === LEFT };
         }
@@ -587,6 +589,8 @@ class Player extends Ent {
             return;
         }
         if (this.inv > 0 && this.state === 'normal' && (this.inv >> 2) % 2 && this.inv < 69) return;
+        /* asleep in a bed: her head on its pillow, the rest of her under its quilt */
+        if (this.state === 'sleep' && this.inBed && !this.inBed.removed) { const b = this.inBed, h = spr('wren_sleep_head'); if (h) Gfx.img(h, b.x - cx + Math.round((b.im ? b.im.width : 16) / 2) - 8, b.y - cy + 2); return; }
         const { im, flip } = this.sprite();
         const z = this.z || 0;
         /* shadow */

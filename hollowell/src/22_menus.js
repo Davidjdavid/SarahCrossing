@@ -66,6 +66,9 @@ const Title = {
             else Font.center(c, W / 2, y, col);
         });
         Font.draw('v' + VERSION, 4, H - 10, '#8a7a7e');
+        /* the buttons, as they're bound now (keys or a controller, whichever was touched last) */
+        const mv = keyLabel('up'), hint = `${mv === 'the arrows' ? 'Arrows' : 'D-pad'} move \xb7 ${keyLabel('act')} act \xb7 ${keyLabel('atk')} stick \xb7 ${keyLabel('tool')} tool \xb7 ${keyLabel('menu')} menu`;
+        if (Font.width(hint) <= W - 40) Font.draw(hint, W - 4 - Font.width(hint), H - 10, '#8a7a7e');
     },
 };
 

@@ -90,6 +90,7 @@ const Game = {
             Threads.draw(a, cx, cy);
             const stand = a.ents.filter(e => !e.floor && e.x > cx - 80 && e.x < cx + W + 40 && e.y > cy - 80 && e.y < cy + H + 80);
             stand.push(p);
+            G.onScreen = floor.concat(stand);
             stand.sort((m, n) => m.sortY - n.sortY);
             for (const e of stand) e.draw(cx, cy);
             if (p.state === 'flight' && p.flight) {
@@ -106,7 +107,7 @@ const Game = {
             Bells.drawFx(cx, cy); Bells.drawSleep(a, cx, cy);
             Knots.draw(cx, cy);
             if (G.holdUp) {
-                const im = spr(ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);
+                const im = spr(G.holdUp.id === 'pattern' && G.map ? patternIcon(G.map.def.house) : ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);
                 if (im) Gfx.img(im, p.x - cx - im.width / 2, p.y - cy - 30);
             }
             if (a.def.dark) Lighting.draw(a, cx, cy);
@@ -163,7 +164,6 @@ function boot() {
             requestAnimationFrame(loop);
         };
         requestAnimationFrame(loop);
-        setTimeout(() => { const h = document.getElementById('hint'); if (h) h.style.opacity = '0'; }, 9000);
         addEventListener('beforeunload', () => { if (G.scene === 'play') Save.autosave(); });
     } else {
         G.scene = 'title';

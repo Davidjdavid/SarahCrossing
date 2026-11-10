@@ -279,7 +279,9 @@ test('the millpond: on the raft at its mouth while it is hungry, it bites', () =
     board(HW, r, 'pond', 9, 8, 'up', 1200);
     HW.G.cheats.god = false;
     const hp = HW.Inv.hp;
-    until(HW, () => HW.Inv.hp < hp, 600);
+    /* (a spit may hit first on the way, and the raft pauses on its way down the pond: wait for the bite itself) */
+    const g = HW.G.map.ents.find(e => e.kind === 'grindle');
+    assert.ok(until(HW, () => g.state === 'chomp' && g.st > 27, 1500), 'it snaps at the raft at its mouth');
     assert.notEqual(HW.player().ride, r, 'knocked off into the water');
     assert.ok(HW.Inv.hp < hp, 'bitten');
 });
