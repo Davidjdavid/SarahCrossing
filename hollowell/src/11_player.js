@@ -735,6 +735,8 @@ const Shards = {
         if (o && o !== s.o && o.hit) o.hit(s.o, -1, true);
         for (const e of area.ents) if (e.strike && e.tx === tx && e.ty === ty) e.strike(s.o);
         for (const e of area.ents) {
+            /* (a long thing can be hit anywhere along it, not just at its head) */
+            if (e.hitsTile && e.hitsTile(tx, ty)) { e.struck(s.o, 1, -1, true); continue; }
             if (!e.hurtBox) continue;
             const h = e.hurtBox();
             const cx = tx * T + 8, cy = ty * T + 8;

@@ -448,7 +448,7 @@ SPAWN.crock = (x, y, p) => {
    hand along the same line, and the Glazer is still standing on that line */
 class Glazer extends Enemy {
     constructor(tx, ty) {
-        super(tx, ty, { type: 'glazer', hp: 3 });
+        super(tx, ty, { type: 'glazer', hp: 2 });     /* (two hits: a mini-boss shouldn't outstay its idea) */
         this.state = 'sleep'; this.st = 0;
     }
     hurtBox() { if (!this.alive) return null; return { x0: this.x - 8, x1: this.x + 8, y0: this.y - 22, y1: this.y + 4 }; }
@@ -578,10 +578,16 @@ class Kilnwyrm extends Enemy {
         }
         if (Script.blocking()) return;
         this.st++;
+        /* three beats: (1) it follows Wren's footprints, so shards carried home along them meet it; (2) it gives up on
+           footprints and runs round the room's rim: the shards' way home has to cross the rim (and loop erasure will cut
+           a careless loop out of it) just as it comes by; (3) it coils down in a pit at the Kiln's heart: only a way
+           home that flies over the pit (a Hookline reel, carrying) reaches it */
+        const phase = 4 - Math.max(1, Math.min(3, this.hp));
+        if (this.state === 'hurt') { if (this.st > 50) { this.state = phase === 1 ? 'follow' : phase === 2 ? 'rim' : 'pit'; this.st = 0; if (phase > (this.told || 1)) this.beginPhase(phase); } return; }
+        if (this.state === 'rim' || this.state === 'pit') return this.ring(phase, p);
         /* the path it follows: every step Wren takes */
         const last = this.path[this.path.length - 1];
         if (p.state !== 'flight' && (!last || dist(last[0], last[1], p.x, p.y) > 3)) this.path.push([p.x, p.y]);
-        if (this.state === 'hurt') { if (this.st > 50) this.state = 'follow'; return; }
         const sp = this.speed * (this.hp === 1 ? 1.5 : this.hp === 2 ? 1.2 : 1);
         let left = sp;
         while (left > 0 && this.path.length) {
@@ -592,6 +598,55 @@ class Kilnwyrm extends Enemy {
         }
         if (this.trail.length > 200) this.trail.length = 200;
         if (p.state === 'normal' && dist(p.x, p.y, this.x, this.y) < 12) { p.hurt(1, this.x, this.y); }
+    }
+    /* the room it's in (the Kiln's Heart), in tiles */
+    get room() { return this._room || (this._room = this.area.rooms.find(r => r.key === '1,0')); }
+    beginPhase(n) {
+        this.told = n; this.path = [];
+        const r = this.room, a = this.area, p = G.player;
+        if (n === 2) {
+            this.state = 'rim'; this.s = this.rimNear();
+            UI.toast("The Kilnwyrm stops sniffing for your footprints. It pours itself off round the edge of the room, the long way round, faster and faster.", 260);
+        } else if (n === 3) {
+            this.state = 'pit';
+            /* the floor at the Kiln's heart cracks open (anything standing there hops back off it first) */
+            for (let y = 3; y <= 7; y++) for (let x = 7; x <= 11; x++) a.setCell(r.x + x, r.y + y, 'o');
+            if (p.tx >= r.x + 7 && p.tx <= r.x + 11 && p.ty >= r.y + 3 && p.ty <= r.y + 7) { p.x = (p.tx < r.x + 9 ? r.x + 6 : r.x + 12) * T + 8; Fx.dust(p.x, p.y); }
+            for (const [x, y] of [[5, 5], [13, 5]]) a.add(SPAWN.eyelet(r.x + x, r.y + y, {}));
+            G.shake = 14; Sfx.play('rumble');
+            UI.toast("The floor at the heart of the Kiln cracks open into a glowing pit. The Kilnwyrm coils itself down into it, out of reach. Brass eyes stand at either side.", 300);
+        }
+    }
+    /* (2) round the rim of the room, (3) round and round in the pit */
+    rimPt(s) {
+        const r = this.room, x0 = (r.x + 1) * T + 8, y0 = (r.y + 1) * T + 10, w = 17 * T, h = 8 * T, L = 2 * (w + h);
+        s = ((s % L) + L) % L;
+        if (s < w) return [x0 + s, y0]; s -= w;
+        if (s < h) return [x0 + w, y0 + s]; s -= h;
+        if (s < w) return [x0 + w - s, y0 + h]; s -= w;
+        return [x0, y0 + h - s];
+    }
+    rimNear() { let best = 0, bd = 1e9; for (let s = 0; s < 800; s += 4) { const [x, y] = this.rimPt(s); const d = dist(x, y, this.x, this.y); if (d < bd) { bd = d; best = s; } } return best; }
+    ring(phase, p) {
+        const r = this.room;
+        if (phase === 2) {
+            this.s += 1.35;
+            const [nx, ny] = this.rimPt(this.s);
+            this.dir = dirOf(nx - this.x, ny - this.y); this.x = nx; this.y = ny;
+            if (p.state === 'normal' && dist(p.x, p.y, this.x, this.y) < 12) p.hurt(1, this.x, this.y);
+        } else {
+            this.s = (this.s || 0) + 0.035;
+            const cx = (r.x + 9) * T + 8, cy = (r.y + 5) * T + 10, nx = cx + Math.cos(this.s) * 26, ny = cy + Math.sin(this.s) * 22;
+            this.dir = dirOf(nx - this.x, ny - this.y); this.x = nx; this.y = ny;
+        }
+        this.trail.unshift([this.x, this.y]); if (this.trail.length > 200) this.trail.length = 200;
+    }
+    /* shards break it wherever they meet it, head or coil */
+    hitsTile(tx, ty) {
+        if (!this.alive || this.flash > 0 || this.state === 'sleep') return false;
+        const cx = tx * T + 8, cy = ty * T + 8;
+        for (let i = 0; i <= this.segs; i++) { const sg = i ? this.trail[Math.min(this.trail.length - 1, i * 11)] : [this.x, this.y]; if (Math.abs(sg[0] - cx) < 11 && Math.abs(sg[1] - 6 - cy) < 11) return true; }
+        return false;
     }
     struck(by, dmg, dir, shard) {
         if (!this.alive || this.flash > 0) return;
@@ -605,6 +660,8 @@ class Kilnwyrm extends Enemy {
     }
     defeat() {
         this.alive = false;
+        /* (the pit closes over: the floor the Knot's hoop will stand on) */
+        if (this.told === 3) { const r = this.room; for (let y = 3; y <= 7; y++) for (let x = 7; x <= 11; x++) this.area.setCell(r.x + x, r.y + y, '.'); }
         Sfx.play('unravel'); for (let i = 0; i < this.segs; i++) { const s = this.trail[Math.min(this.trail.length - 1, i * 10)]; Fx.burst(s[0], s[1] - 6, '#c4623a'); }
         Progress.set('kiln_boss');
         Script.run(Kiln.bossDown(this));

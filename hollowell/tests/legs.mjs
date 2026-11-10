@@ -215,11 +215,22 @@ export const LEG2 = (HW, chain) => {
     walk(...k('vats', 1, 5)); HW.hold('left'); HW.step(50); HW.release(); HW.hold('left'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk();
     const w = HW.ents('enemy').find(e => e.type === 'kilnwyrm');
     ok(w, 'the Kilnwyrm');
-    for (let round = 0; round < 8 && w.alive; round++) {
-        walk(...k('boss', 17, 3)); lift('up');
-        walk(...k('boss', 12, 3)); walk(...k('boss', 12, 7)); walk(...k('boss', 5, 7)); toss('left');
-        until(() => w.state === 'hurt' || !w.alive, 200); HW.Inv.hp = 16; HW.step(60);
-    }
+    const settle = () => { until(() => w.state === 'hurt' || !w.alive, 220); HW.Inv.hp = 16; HW.step(70); HW.skipTalk(); };
+    /* 1: along its trail */
+    walk(...k('boss', 17, 3)); lift('up');
+    walk(...k('boss', 12, 3)); walk(...k('boss', 12, 7)); walk(...k('boss', 5, 7)); toss('left'); settle();
+    ok(w.hp === 2, 'the Kilnwyrm cracked once');
+    /* 2: across its rim as it comes round the left side */
+    walk(...k('boss', 2, 7)); lift('down');
+    walk(...k('boss', 1, 7)); walk(...k('boss', 1, 6)); walk(...k('boss', 2, 6)); walk(...k('boss', 4, 6));
+    until(() => { HW.Inv.hp = 16; return Math.abs(w.x - ((K.boss[0] + 1) * 16 + 8)) < 2 && w.y > (K.boss[1] + 8) * 16 && w.y < (K.boss[1] + 9) * 16 + 12; }, 1200);
+    toss('right'); settle();
+    ok(w.hp === 1, 'twice');
+    /* 3: reeled over its pit, carrying an urn */
+    walk(...k('boss', 2, 3)); lift('up');
+    walk(...k('boss', 6, 5)); HW.face('right'); HW.Inv.equipped = 'hook'; HW.press('tool', 1);
+    until(() => HW.player().state === 'normal' && HW.player().tx === K.boss[0] + 12, 120);
+    toss('right'); settle();
     HW.step(150); HW.skipTalk();
     const hoop = HW.ents('hoop')[0]; ok(hoop, 'hoop');
     walk(hoop.tx, hoop.ty + 1); HW.face('up'); HW.press('act', 1); HW.skipTalk(0); HW.step(300); HW.skipTalk(); HW.step(10); HW.skipTalk();

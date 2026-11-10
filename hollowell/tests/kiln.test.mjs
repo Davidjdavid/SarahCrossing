@@ -192,22 +192,37 @@ test('drying racks: a thrown pot breaks the hollow wall into the potting shed (s
     noErrors(HW);
 });
 
-test('the Kilnwyrm: it follows your footsteps, and so do the pieces', () => {
-    const HW = game();
+test('the Kilnwyrm, three ways: shards along its trail; shards across its rim as it comes round; shards reeled over its pit', () => {
+    const HW = game(['hook']);
     HW.Inv.patterns.push('kiln'); HW.Inv.maxHp = HW.Inv.hp = 20;
     HW.warp('kiln', ...at('vats', 1, 5)); HW.hold('left'); HW.step(50); HW.release();
     HW.hold('left'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk();
     const w = HW.ents('enemy').find(e => e.type === 'kilnwyrm');
     assert.ok(w, 'the wyrm');
-    for (let round = 0; round < 6 && w.alive; round++) {
-        go(HW, 'boss', 17, 3); lift(HW, 'up');         /* urn at (17,2) */
-        go(HW, 'boss', 12, 3); go(HW, 'boss', 12, 7); go(HW, 'boss', 5, 7);
-        toss(HW, 'left');
-        for (let i = 0; i < 200 && w.state !== 'hurt' && w.alive; i++) HW.step(1);
-        HW.Inv.hp = 20;
-        for (let i = 0; i < 60; i++) HW.step(1);
-    }
+    const R0 = R.boss, settle = () => { for (let i = 0; i < 220 && w.state !== 'hurt' && w.alive; i++) HW.step(1); HW.Inv.hp = 20; for (let i = 0; i < 70; i++) HW.step(1); HW.skipTalk(); };
+    /* 1: it follows your footprints, and the urn's pieces come home along them */
+    go(HW, 'boss', 17, 3); lift(HW, 'up');         /* urn at (17,2) */
+    go(HW, 'boss', 12, 3); go(HW, 'boss', 12, 7); go(HW, 'boss', 5, 7);
+    toss(HW, 'left'); settle();
+    assert.equal(w.hp, 2, 'one');
+    assert.equal(w.state, 'rim', 'off round the rim');
+    /* 2: carry an urn out across the rim and back in another way (no loop), and throw as it comes round */
+    go(HW, 'boss', 2, 7); lift(HW, 'down');          /* urn at (2,8) */
+    go(HW, 'boss', 1, 7); go(HW, 'boss', 1, 6); go(HW, 'boss', 2, 6); go(HW, 'boss', 4, 6);
+    /* wait till it's coming up the left side, just short of where the urn's way home crosses the rim */
+    const near = () => Math.abs(w.x - ((R0[0] + 1) * 16 + 8)) < 2 && w.y > (R0[1] + 8) * 16 && w.y < (R0[1] + 9) * 16 + 12;
+    for (let i = 0; i < 1200 && !near(); i++) { HW.step(1); HW.Inv.hp = 20; }
+    toss(HW, 'right'); settle();
+    assert.equal(w.hp, 1, 'two');
+    assert.equal(w.state, 'pit', 'down in the pit');
+    /* 3: an urn carried over the pit on the Hookline: its pieces fly home back over the pit, and through the coils */
+    go(HW, 'boss', 2, 3); lift(HW, 'up');            /* urn at (2,2) */
+    go(HW, 'boss', 6, 5); HW.face('right'); HW.Inv.equipped = 'hook'; HW.press('tool', 1);
+    for (let i = 0; i < 120 && (HW.player().state !== 'normal' || HW.player().tx < R0[0] + 12); i++) HW.step(1);
+    assert.equal(HW.player().tx, R0[0] + 12, 'reeled over the pit');
+    toss(HW, 'right'); settle();
     HW.step(120); HW.skipTalk();
     assert.ok(flag(HW, 'kiln_boss'), 'the Kilnwyrm is broken');
+    assert.ok(!HW.G.map.kind(R0[0] + 9, R0[1] + 4).pit, 'the pit closed over');
     noErrors(HW);
 });
