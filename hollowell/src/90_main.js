@@ -119,6 +119,33 @@ const Game = {
 const ITEM_ICON = { heartpatch: 'heartpatch', key: 'key', knot: 'knot', heartstitch: 'heart', pattern: 'hud_pattern' };
 const Lighting = { draw() { } };
 
+/* Frame pacing. The game steps 60 times a second; the screen refreshes at its own rate, and the time between refreshes
+   jitters. Steps are paid for out of the time since the last refresh, averaged over the last four and snapped to a whole
+   refresh (or whole 60ths) when it's that within a whisker: so on a 60 Hz screen every refresh gets exactly one step,
+   never none then two (a visible stutter), and at 120 Hz it's one every other refresh, evenly. A long pause (a tab put
+   away) costs one step, not a burst. */
+const Pace = {
+    STEP: 1000 / FPS, RATES: [60, 120, 144, 165, 240, 75, 90, 100, 50, 30], last: null, acc: 0, hist: [], dirty: true,
+    snap(dt) {
+        const m = Math.round(dt / this.STEP);
+        if (m >= 1 && Math.abs(dt - m * this.STEP) < 1) return m * this.STEP;
+        for (const r of this.RATES) if (Math.abs(dt - 1000 / r) < 0.4) return 1000 / r;
+        return dt;
+    },
+    frame(now) {
+        if (this.last === null) { this.last = now; return 0; }
+        let dt = now - this.last; this.last = now;
+        if (dt > 250 || dt < 0) { this.hist = []; this.acc = 0; return 1; }
+        this.hist.push(dt); if (this.hist.length > 4) this.hist.shift();
+        const avg = this.hist.reduce((s, v) => s + v, 0) / this.hist.length;
+        this.acc += this.snap(avg);
+        let n = 0;
+        while (this.acc >= this.STEP - 1e-6 && n < 4) { this.acc -= this.STEP; n++; }
+        if (n === 4 || this.acc < 0) this.acc = 0;
+        return n;
+    },
+};
+
 function boot() {
     Gfx.init();
     Input.init();
@@ -129,12 +156,10 @@ function boot() {
         G.debug = /[?&]debug/.test(location.search);
         if (location.search.includes('notitle') && G.debug) { Game.newGame('Wren', { skipIntro: true }); }
         else Title.open();
-        let last = performance.now(), acc = 0;
         const loop = now => {
-            acc += Math.min(100, now - last); last = now;
-            let n = 0;
-            while (acc >= 1000 / FPS && n < 4) { if (!HW._paused) Game.step(); acc -= 1000 / FPS; n++; }
-            Game.render();
+            const n = Pace.frame(now);
+            for (let i = 0; i < n; i++) if (!HW._paused) Game.step();
+            if (n > 0 || Pace.dirty) { Game.render(); Gfx.present(); Pace.dirty = false; }
             requestAnimationFrame(loop);
         };
         requestAnimationFrame(loop);

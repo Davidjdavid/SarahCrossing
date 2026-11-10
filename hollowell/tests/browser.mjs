@@ -329,6 +329,44 @@ const SCENARIOS = {
         await page.evaluate(() => { HW.step(200); HW.walkTo(34, 4); HW.step(10); });
         await shot('br_snoreling');
     },
+    /* crisp pixels on scaled screens: the page's canvas is exactly the screen's pixels; the game is drawn at a whole
+       number of them per game pixel; and in a real screenshot every game pixel comes out that many screen pixels wide */
+    async scaling() {
+        for (const [dpr, w, h] of [[1, 960, 540], [1, 1366, 768], [1.25, 1536, 864], [1.5, 1280, 720], [1.5, 1280, 610], [1.75, 1097, 617], [2, 1440, 900]]) {
+            const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: dpr });
+            const pg = await ctx.newPage();
+            pg.on('pageerror', e => errors.push('scaling: ' + e));
+            await pg.goto('file://' + path.join(ROOT, 'play.html') + '?debug');
+            await pg.waitForFunction(() => window.HW && window.HW.G);
+            await pg.evaluate(() => { HW.newGame('Wren', { area: 'hollow', x: 95, y: 60, noAutosave: true, skipIntro: true }); HW.step(30); });
+            await pg.waitForTimeout(150);
+            const g = await pg.evaluate(() => { const s = document.getElementById('game'); return { sw: s.width, sh: s.height, v: HW.global('Gfx').view }; });
+            const tag = `scaling ${dpr}x ${w}x${h}`;
+            if (Math.abs(g.sw - Math.round(w * dpr)) > 1 || Math.abs(g.sh - Math.round(h * dpr)) > 1) errors.push(`${tag}: canvas ${g.sw}x${g.sh}`);
+            const sc = g.v.sc, whole = Math.abs(sc - Math.round(sc)) < 1e-9;
+            if (!whole) errors.push(`${tag}: ${sc.toFixed(3)} screen pixels a game pixel`);
+            /* a real screenshot, read back: runs of one colour along a row through the game are whole multiples of the scale */
+            const png = (await pg.screenshot()).toString('base64');
+            const bad = await pg.evaluate(async ({ png, v }) => {
+                const im = new Image(); im.src = 'data:image/png;base64,' + png; await im.decode();
+                const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+                const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+                let odd = 0, runs = 0;
+                for (const fy of [0.31, 0.52, 0.77]) {
+                    const y = Math.floor(v.y + v.h * fy), d = x.getImageData(v.x, y, v.w, 1).data;
+                    let start = 0;
+                    for (let i = 1; i <= v.w; i++) {
+                        const same = i < v.w && d[i * 4] === d[(i - 1) * 4] && d[i * 4 + 1] === d[(i - 1) * 4 + 1] && d[i * 4 + 2] === d[(i - 1) * 4 + 2];
+                        if (!same) { const len = i - start; runs++; if (len % Math.round(v.sc) !== 0 || start % Math.round(v.sc) !== 0) odd++; start = i; }
+                    }
+                }
+                return { odd, runs, w: im.width };
+            }, { png, v: g.v });
+            if (bad.w !== Math.round(w * dpr) || bad.odd > 0) errors.push(`${tag}: ${bad.odd} of ${bad.runs} pixel runs uneven (screenshot ${bad.w} wide)`);
+            if (wantShots) fs.writeFileSync(path.join(SHOTS, `scale_${dpr}_${w}x${h}.png`), Buffer.from(png, 'base64'));
+            await ctx.close();
+        }
+    },
     async title() { await open(); await page.evaluate(() => { window.HW._paused = false; }); await page.waitForTimeout(400); await page.evaluate(() => { window.HW._paused = true; }); await shot('title'); },
     async lab() {
         await open();

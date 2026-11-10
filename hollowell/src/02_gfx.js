@@ -19,20 +19,52 @@ const Gfx = {
 
     init() {
         if (HEADLESS) { this.canvas = nullCanvas(W, H); this.ctx = NULL_CTX; return; }
-        this.canvas = document.getElementById('game');
-        this.canvas.width = W; this.canvas.height = H;
+        /* the game draws into its own 320x180 canvas; each frame is then copied onto the page's canvas, which covers the
+           window and is exactly as many pixels as the screen shows there (on a screen scaled to 125% or 150% too), at a
+           whole number of real pixels per game pixel when that fills most of the window: crisp, every column the same
+           width, nothing for the browser to stretch */
+        this.screen = document.getElementById('game');
+        this.sctx = this.screen.getContext('2d', { alpha: false });
+        this.canvas = this.makeCanvas(W, H);
         this.ctx = this.canvas.getContext('2d');
         this.ctx.imageSmoothingEnabled = false;
-        const fit = () => {
-            const s = Math.max(1, Math.floor(Math.min(innerWidth / W, innerHeight / H)));
-            const fs = Math.min(innerWidth / W, innerHeight / H);
-            /* whole-number scale when it fills most of the window, else fill it */
-            this.scale = (s / fs > 0.86) ? s : fs;
-            this.canvas.style.width = Math.floor(W * this.scale) + 'px';
-            this.canvas.style.height = Math.floor(H * this.scale) + 'px';
+        this.view = { sc: 1, x: 0, y: 0, w: W, h: H };
+        const fit = (devW, devH) => {
+            const dpr = window.devicePixelRatio || 1;
+            const dw = Math.max(1, devW || Math.round(innerWidth * dpr)), dh = Math.max(1, devH || Math.round(innerHeight * dpr));
+            if (this.screen.width !== dw) this.screen.width = dw;
+            if (this.screen.height !== dh) this.screen.height = dh;
+            const fs = Math.min(dw / W, dh / H), s = Math.max(1, Math.floor(fs + 0.001));
+            const sc = (s / fs > 0.86) ? s : fs;
+            const cw = Math.round(W * sc), ch = Math.round(H * sc);
+            this.view = { sc, x: Math.floor((dw - cw) / 2), y: Math.floor((dh - ch) / 2), w: cw, h: ch };
+            this.dpr = dpr; this.scale = sc / dpr;
+            if (typeof Pace !== 'undefined') Pace.dirty = true;
+            this.present();
         };
-        addEventListener('resize', fit); fit();
-        this.canvas.focus();
+        this.fit = fit;
+        let watched = false;
+        try {
+            /* (the exact count when the browser gives one that agrees with the page's size times the scaling; else that product) */
+            const ro = new ResizeObserver(es => {
+                const e = es[0], b = e.devicePixelContentBoxSize && e.devicePixelContentBoxSize[0], c = e.contentBoxSize && e.contentBoxSize[0], dpr = window.devicePixelRatio || 1;
+                if (b && c && Math.abs(b.inlineSize - c.inlineSize * dpr) <= 2 && Math.abs(b.blockSize - c.blockSize * dpr) <= 2) fit(b.inlineSize, b.blockSize);
+                else if (c) fit(Math.round(c.inlineSize * dpr), Math.round(c.blockSize * dpr));
+                else fit();
+            });
+            ro.observe(this.screen, { box: 'device-pixel-content-box' }); watched = true;
+        } catch (e) { /* (older browsers: the window's size) */ }
+        if (!watched) addEventListener('resize', () => fit());
+        fit();
+        this.screen.focus();
+    },
+    /* the frame onto the screen */
+    present() {
+        if (HEADLESS || !this.sctx) return;
+        const v = this.view, x = this.sctx;
+        x.imageSmoothingEnabled = false;
+        x.fillStyle = '#17121a'; x.fillRect(0, 0, this.screen.width, this.screen.height);
+        x.drawImage(this.canvas, 0, 0, W, H, v.x, v.y, v.w, v.h);
     },
 
     makeCanvas(w, h) {

@@ -26,8 +26,7 @@ const html = `<!doctype html>
 <title>Hollowell</title>
 <style>
 html, body { margin: 0; height: 100%; background: #17121a; overflow: hidden; }
-body { display: flex; align-items: center; justify-content: center; }
-canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; outline: none; }
+canvas { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display: block; outline: none; image-rendering: pixelated; }
 #hint { position: fixed; bottom: 6px; left: 0; right: 0; text-align: center; color: #6a5f6e;
   font: 12px/1.2 system-ui, sans-serif; pointer-events: none; transition: opacity 1s; }
 </style>

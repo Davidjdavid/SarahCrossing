@@ -6,8 +6,7 @@
 <title>Hollowell</title>
 <style>
 html, body { margin: 0; height: 100%; background: #17121a; overflow: hidden; }
-body { display: flex; align-items: center; justify-content: center; }
-canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; outline: none; }
+canvas { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display: block; outline: none; image-rendering: pixelated; }
 #hint { position: fixed; bottom: 6px; left: 0; right: 0; text-align: center; color: #6a5f6e;
   font: 12px/1.2 system-ui, sans-serif; pointer-events: none; transition: opacity 1s; }
 </style>
@@ -198,20 +197,52 @@ const Gfx = {
 
     init() {
         if (HEADLESS) { this.canvas = nullCanvas(W, H); this.ctx = NULL_CTX; return; }
-        this.canvas = document.getElementById('game');
-        this.canvas.width = W; this.canvas.height = H;
+        /* the game draws into its own 320x180 canvas; each frame is then copied onto the page's canvas, which covers the
+           window and is exactly as many pixels as the screen shows there (on a screen scaled to 125% or 150% too), at a
+           whole number of real pixels per game pixel when that fills most of the window: crisp, every column the same
+           width, nothing for the browser to stretch */
+        this.screen = document.getElementById('game');
+        this.sctx = this.screen.getContext('2d', { alpha: false });
+        this.canvas = this.makeCanvas(W, H);
         this.ctx = this.canvas.getContext('2d');
         this.ctx.imageSmoothingEnabled = false;
-        const fit = () => {
-            const s = Math.max(1, Math.floor(Math.min(innerWidth / W, innerHeight / H)));
-            const fs = Math.min(innerWidth / W, innerHeight / H);
-            /* whole-number scale when it fills most of the window, else fill it */
-            this.scale = (s / fs > 0.86) ? s : fs;
-            this.canvas.style.width = Math.floor(W * this.scale) + 'px';
-            this.canvas.style.height = Math.floor(H * this.scale) + 'px';
+        this.view = { sc: 1, x: 0, y: 0, w: W, h: H };
+        const fit = (devW, devH) => {
+            const dpr = window.devicePixelRatio || 1;
+            const dw = Math.max(1, devW || Math.round(innerWidth * dpr)), dh = Math.max(1, devH || Math.round(innerHeight * dpr));
+            if (this.screen.width !== dw) this.screen.width = dw;
+            if (this.screen.height !== dh) this.screen.height = dh;
+            const fs = Math.min(dw / W, dh / H), s = Math.max(1, Math.floor(fs + 0.001));
+            const sc = (s / fs > 0.86) ? s : fs;
+            const cw = Math.round(W * sc), ch = Math.round(H * sc);
+            this.view = { sc, x: Math.floor((dw - cw) / 2), y: Math.floor((dh - ch) / 2), w: cw, h: ch };
+            this.dpr = dpr; this.scale = sc / dpr;
+            if (typeof Pace !== 'undefined') Pace.dirty = true;
+            this.present();
         };
-        addEventListener('resize', fit); fit();
-        this.canvas.focus();
+        this.fit = fit;
+        let watched = false;
+        try {
+            /* (the exact count when the browser gives one that agrees with the page's size times the scaling; else that product) */
+            const ro = new ResizeObserver(es => {
+                const e = es[0], b = e.devicePixelContentBoxSize && e.devicePixelContentBoxSize[0], c = e.contentBoxSize && e.contentBoxSize[0], dpr = window.devicePixelRatio || 1;
+                if (b && c && Math.abs(b.inlineSize - c.inlineSize * dpr) <= 2 && Math.abs(b.blockSize - c.blockSize * dpr) <= 2) fit(b.inlineSize, b.blockSize);
+                else if (c) fit(Math.round(c.inlineSize * dpr), Math.round(c.blockSize * dpr));
+                else fit();
+            });
+            ro.observe(this.screen, { box: 'device-pixel-content-box' }); watched = true;
+        } catch (e) { /* (older browsers: the window's size) */ }
+        if (!watched) addEventListener('resize', () => fit());
+        fit();
+        this.screen.focus();
+    },
+    /* the frame onto the screen */
+    present() {
+        if (HEADLESS || !this.sctx) return;
+        const v = this.view, x = this.sctx;
+        x.imageSmoothingEnabled = false;
+        x.fillStyle = '#17121a'; x.fillRect(0, 0, this.screen.width, this.screen.height);
+        x.drawImage(this.canvas, 0, 0, W, H, v.x, v.y, v.w, v.h);
     },
 
     makeCanvas(w, h) {
@@ -19645,6 +19676,33 @@ const Game = {
 const ITEM_ICON = { heartpatch: 'heartpatch', key: 'key', knot: 'knot', heartstitch: 'heart', pattern: 'hud_pattern' };
 const Lighting = { draw() { } };
 
+/* Frame pacing. The game steps 60 times a second; the screen refreshes at its own rate, and the time between refreshes
+   jitters. Steps are paid for out of the time since the last refresh, averaged over the last four and snapped to a whole
+   refresh (or whole 60ths) when it's that within a whisker: so on a 60 Hz screen every refresh gets exactly one step,
+   never none then two (a visible stutter), and at 120 Hz it's one every other refresh, evenly. A long pause (a tab put
+   away) costs one step, not a burst. */
+const Pace = {
+    STEP: 1000 / FPS, RATES: [60, 120, 144, 165, 240, 75, 90, 100, 50, 30], last: null, acc: 0, hist: [], dirty: true,
+    snap(dt) {
+        const m = Math.round(dt / this.STEP);
+        if (m >= 1 && Math.abs(dt - m * this.STEP) < 1) return m * this.STEP;
+        for (const r of this.RATES) if (Math.abs(dt - 1000 / r) < 0.4) return 1000 / r;
+        return dt;
+    },
+    frame(now) {
+        if (this.last === null) { this.last = now; return 0; }
+        let dt = now - this.last; this.last = now;
+        if (dt > 250 || dt < 0) { this.hist = []; this.acc = 0; return 1; }
+        this.hist.push(dt); if (this.hist.length > 4) this.hist.shift();
+        const avg = this.hist.reduce((s, v) => s + v, 0) / this.hist.length;
+        this.acc += this.snap(avg);
+        let n = 0;
+        while (this.acc >= this.STEP - 1e-6 && n < 4) { this.acc -= this.STEP; n++; }
+        if (n === 4 || this.acc < 0) this.acc = 0;
+        return n;
+    },
+};
+
 function boot() {
     Gfx.init();
     Input.init();
@@ -19655,12 +19713,10 @@ function boot() {
         G.debug = /[?&]debug/.test(location.search);
         if (location.search.includes('notitle') && G.debug) { Game.newGame('Wren', { skipIntro: true }); }
         else Title.open();
-        let last = performance.now(), acc = 0;
         const loop = now => {
-            acc += Math.min(100, now - last); last = now;
-            let n = 0;
-            while (acc >= 1000 / FPS && n < 4) { if (!HW._paused) Game.step(); acc -= 1000 / FPS; n++; }
-            Game.render();
+            const n = Pace.frame(now);
+            for (let i = 0; i < n; i++) if (!HW._paused) Game.step();
+            if (n > 0 || Pace.dirty) { Game.render(); Gfx.present(); Pace.dirty = false; }
             requestAnimationFrame(loop);
         };
         requestAnimationFrame(loop);
