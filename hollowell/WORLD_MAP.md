@@ -34,7 +34,7 @@ walking into the fog pulls Wren back along their trace (until Act IV).
 
 | Id | Region | Approx. tiles | Music | Notes |
 |---|---|---|---|---|
-| `hollowell` | Hollowell (hub) | x 50–150, y 38–78 | `town` (fuller after D4, open after the ending) | The Well in the square; river through the east side; bridge; school; playground; shops; Gran's house NW of the square; the Inn E; the north road to the stone gate; the hills (O2) N. |
+| `hollowell` | Hollowell (hub) | x 50–150, y 38–78 | `town` (fuller after D4, open after the ending) | The Well in the square; river through the east side; bridge; school; playground; shops; Gran's house NW of the square; the Inn E; the north road to the stone gate; the hills (O2) N. The town's favours (`src/51c_town_favours.js`, hub tiles): the Guild's crates in the lane by Thimble's (22,27-30, the gap in its fence at 23,28); the kite's tree by the Inn (46,15) and its peg (45,17); Rosa's saucer on the bakery's front sill (40,32), its back step by Biscuit's crawlspace (40,27); Tuck's marble, wherever he last put it. Burr's post moves in from (32,3) to (32,7) after the fifth Knot; Pudding lies by his ball at (40,25) from the fourth. |
 | `meadow` | Meadowfold | block 1,2: x 64–127, y 80–119 (`src/43_meadowfold.js`) | `meadow` | Hay meadow, wheat, hedgerows and dry-stone walls; the pen by the pond (sheep that shy from Wren and amble home the way they were driven); windmill; the Tidyhouse (D1) on a rise SE; the Old Fold (68–82, 90–98: counting stones, Old Tup's bothy); Lucky the lamb across the river (S17, 119,112); the canyon west to Kilnridge, red rock both sides. |
 | `kiln` | Kilnridge | block 0,2: x 0–63, y 80–119 (`src/46_kilnridge.js`) | `kiln` | Red canyon of level mesas; steam vents (fire what's in their mouths) and wet clay (holds what lands in it); the pass from town is blocked by a boulder in a niche (Gloves); the Kiln (D2) in the Kiln Mesa, its forecourt gate shut till the firing hole by the road is fired (22,96); the Firing Ground (pit 11–28, 108–114); the sleeping vent and the mesa's chimney (14,94 / 14,88); the clay dam in the slot (60,96); a hawk's nest cliff path; a high mesa overlooking Larkspur (one-way drop). |
 | `millwater` | Millwater (the Reaches) | block 2,2: x 128–191, y 80–119 (`src/48_millwater.js`) | `water` | The big lake (north half), Dad's mill on its shore, reeds and snappers, Fen and Wick; the road in from the broken bridge (rows 106-107); the outlet river south over the falls; the self-running ferry at the end of the road (167,106) across to Millrace Falls, the far bank (only reached by water) with the Millrace door (175,105); the hidden pool behind the falls (S19, 171,110) and the basin below; a band of shallows and reeds all round the lake, lily pads; Heron Rock off the east reach's south shore (177–181, 91–95). |
@@ -88,10 +88,18 @@ room, `above` in its cell). Entrance from the Guild Hall into the Gatehouse (29,
 
 ## The Drift (map `drift`)
 Beyond the north-west fog (entered from the Frayed Edge after cutting: walk into the fog at x <= 65, come out at
-58,y). Open wild country drawn blank on the map until walked (`blankMap`). Linnet's cottage and garden (Drift-blooms,
-her bench at 18,21), a stream with stray boulders, the old marker stone (THE HOLLOW ENDS HERE), a rest stump. East
-(x >= 60) walks you back into the fog and out at the Hollow (67,19/20). Nothing returns. After the Unwinding Linnet
-lives in Gran's garden instead.
+58,y). Open wild country drawn blank on the map until walked (`blankMap`): a wild meadow in soft patches, wildflowers in
+drifts of one kind, heather (NW, along the fog, SE), groves of oak, rowan, birch and pine, an old cart track (rows
+18-19) whose bridge is gone (its ends either side of the stream at x 40), a dry-stone wall (x 52-53) with gaps. Linnet's
+cottage (14-21, 12-16) and her fenced garden (10-26, 20-27, gate 21-22,20; Drift-blooms, Linnet at 18,21), the stream
+(x 40 past the track, wandering south) with stray boulders (43,16 and 46,21: pushed in, they fill it for good), the old
+marker stone (THE HOLLOW ENDS HERE, 55,17), a rest stump (30,20). The old mill (37-42, 3-7) on a race out of the north
+woods (x 44, a current, walled; gaps in its east wall at 45,3 and 45,7; it ends at a grating, 44,9): its wheel (43,6)
+winds up the sluice (40,13) in the dam of the mill pond (35-42, 9-12) while it turns; two barrels and a stray boulder on
+the east bank. The pond, run out, shows the old road (row 11, in from 24,11) with its milestone (37,10) and a toll box
+(41,10). A lone rowan by the wall (56,4): the fair's balloon in it, if it was cut loose (basket 58,6). East (x >= 60)
+walks you back into the fog and out at the Hollow (67,19/20). Nothing returns. After the Unwinding Linnet lives in Gran's
+garden instead.
 
 ## The Great Spool (map `greatspool`, the final dungeon)
 Down the Well (Hollowell square, 95,59) once the Great Pull begins. A 3x4 grid of rooms: the foot (1,3), the six
@@ -110,6 +118,9 @@ in and out), the Drafting Hall (1,2), the Long Gap (0,2) with the Far Shelf (0,1
 the Gallery (1,1, up the stairs).
 
 ## Interiors
+(The Lost & Found is 12x9 now: Mabel's counter, her shelves and her floor of strays, the sewing tin's little table by the
+counter at 1,3. Jory's Toys is 12x10: the front shop, and behind a wall with a door at 3,4 and a little hole at 8,4, the
+back room with the latch plate at 10,2, Jory's note and a chest.)
 Gran's house (Wren's room, study, well cellar), Inn (ground, attic, cellar), shops, school, clinic,
 Lost & Found, Jory's toy shop, Tuck's house, Dad's mill house, Mum's bell-keeper's lodge, Linnet's cottage.
 
@@ -144,3 +155,24 @@ the north shore, each going home to its own side (the Paddle).
   draught blows a crate into the crevice and it pops home; cut loose (the Shears) it fills it for good: Heart Patch
   (187,2). **The ringers' old bell** (161,32): dumb without its clapper (from the Old Fold); hung, a strike wakes the
   cave's boulder (158,29) long before the Recall Bell.
+
+### Hushwood, Larkspur, the Loomwood (group B additions)
+- **Hushwood** (block 2,1; +128, +40): its own floor (moss, mushroom loam, a lane of dusk) frayed into the town's at the
+  seam (`blobSeam`). Mallow's nursery before the Slumberhouse door (147,48): three cradles on the bank (144/148/152,54),
+  a puffball by each (143/147/151,54), three Snorelings asleep on the green below (136/144/148,56); the door opens while all
+  three sleep in the cradles (or once the Slumberhouse is open). Bouncy moss over the stream (140,55 up; 138,51 down).
+  A fourth cradle by the house behind a little round hole in the hedge (142,47), the wooden one (145,50): 30 buttons
+  (141,49) with all four asleep. **Lantern Pond**: four lanterns on the shore (158,66; 165,67; 160,73; 151,66), each lit
+  while its stone plate (heavy) is held down; four mossy stones; all four lit, the isle's chest (158,68: Heart Patch);
+  the old loom weight on the isle (159,69).
+- **Larkspur Fair** (block 0,1; +0, +40): trampled meadow and sawdust walks, bunting over the square. The parade
+  forecourt before the Marionette Hall: a portcullis (31,51) wound up by two drum pads (29,52 and 33,52) while held, a
+  toy soldier marching over each in its pen; Pell (36,52). The fair's own crates (25,52; 37,54) go home; two pale stray
+  crates out west (4,54; 4,73) stay where they're put. The balloon ascent by the fog (5,70), held by one thread. The big
+  wheel (15,62).
+- **The Loomwood** (block 1,0; +64, +0): birch wood with silk between the trees, frayed thread-ends by the fog. The warp
+  across the Loom's door (94-96,10) lifts while all four sockets (90,12; 100,11; 88,17; 121,17) hold a weight; the
+  weights (90,14; 102,11; 88,19; 119,17) are strays. The old weight from Lantern Pond fits any socket for good.
+- **The fog** (`src/33w_fog.js`): drawn as a bank of threads, billowing, its edge spilling over the ground in tongues
+  that come and go; the threads glint, tremble during the Pull and are gone after the Unwinding.
+

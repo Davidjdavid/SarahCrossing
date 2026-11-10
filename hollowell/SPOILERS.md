@@ -101,16 +101,17 @@ gives after Reveal 2.
 
 | After | Changes in Hollowell |
 |---|---|
-| Start | Ceremony. Kids play tag (they move). Fisher Hob walks the bank. Pudding the dog chases a ball. Biscuit wanders. |
-| D1 | Inn attic open: Tidiness Trials. Kids' pretend Tidyhouse in the playground (micro-puzzle). Mother Ives slips ("mind the second step in the linen closet"). Knot chime: threads flash toward the Well. |
-| D2 | Kids stop playing tag ("don't feel like running"). Tailor's back room shows the Kilnwyrm costume through the window. Thimble sells the Hook pouch. |
-| D3 | Dad comes to town, damp. Fisher Hob only stands now. |
-| D4 | **Knotting Festival**: bunting, music, dance in place, Returnball. Mum in town. Pudding stops chasing. |
-| D5 | Tuck asks about Wanders. Gran tired. Constable Burr moves his posts in ("the fog's closer"). |
-| D6 (Reveal 1) | Makers come clean; workshop doors open; the Inn's Staff door → the Underside; Options "Hints" becomes "Makers' nudges"; Jory's shop opens. |
-| D7 | Wren's apprentice room in the Guild Hall; peepholes; Tuck's Little Wander announced. |
-| Reveal 2 | Gran shuts herself in the well cellar; townsfolk's threads now drawn (Wren can see them); unease. |
-| D8 (Shears) | Cutting townsfolk frees them one by one: schedules, new lines, new activities (Arlo's walk to the lake, Hob in a boat, tag again, a market). |
+| Start | Ceremony. Kids play tag (they move). Fisher Hob walks the bank. Pudding the dog chases a ball. Biscuit wanders. Seen in passing, and nothing to be done yet (the favours, §4, 51-56): two Guild crates jammed in the lane by Thimble's; the children's kite up the tree by the Inn, its thread pulled tight; a sewing tin asleep among Mabel's strays; a crimson thread from Jory's shut toy shop all the way to Tuck's door; Rosa's saucer of cream on the bakery's front sill. |
+| D1 | Inn attic open: Tidiness Trials. Kids' pretend Tidyhouse in the playground (micro-puzzle). Mother Ives slips ("mind the second step in the linen closet"). Knot chime: threads flash toward the Well. New lines: Quill (rule four, "always the morning after a Wanderer's first Knot"), Gundry (the winch turned on its own), Rosa, Arlo (felt it in his knees), Mabel. The crates can be fixed (51). |
+| D2 | Kids stop playing tag ("don't feel like running"). Tailor's back room shows the Kilnwyrm costume through the window. Thimble sells the Hook pouch. New lines: Bram ("did his tail stick?"), Seam (an order of glazed scales), Quill, Burr (the fog thicker), Mallow; Gran (the Kiln, no eyebrows). The kite can be got down (52, then 53). |
+| D3 | Dad comes to town, damp (Rosa tells of it: wet to the knees, and he winked). Fisher Hob only stands now (his round stops). New lines: Rosa, Ives ("I've been here all week. Tidying."), Gundry, Arlo (Hob's taken root), Thimble (four miles of string for the Guild); Gran. |
+| D4 | **Knotting Festival**: bunting, music, dance in place, Returnball. Pudding stops chasing: he lies by his ball and looks at it (till the Unwinding). New lines: Ives and Bram (late, "several somethings"), Quill (a sixth rule chalked and rubbed out), Hob (Pudding), Tuck (held the bunting). Mabel's tin can be woken (54). |
+| D5 | Tuck asks about Wanders ("will they WAIT for me?"). Gran tired (Rosa saw her at the Well half the night). Constable Burr moves his post in a few steps ("the fog's closer"). New lines: Arlo (the town used to walk out to meet the Wanderer), Seam (lavender thread in the Bedroll). |
+| D6 (Reveal 1) | Makers come clean; workshop doors open; the Inn's Staff door → the Underside (it stands ajar, lamplight on the floor: a notice the first time in); Options "Hints" becomes "Makers' nudges". Jory's shop stays shut, but its back room can be opened (55). New lines: Bram, Ives, Mallow (the sloth's arms on pulleys), and the grown-ups who knew all along: Rosa ("I cried for a week. Then I baked."), Quill ("don't tell the little ones"), Seam; Gran ("the seventh's mine to give you. Not yet."). |
+| D7 | Wren's apprentice room in the Guild Hall; peepholes; Tuck's Little Wander announced. New lines: Tuck, Rosa (let him get a little bit stuck), Thimble (so THAT's what the string's for), Ives, Arlo (sawdust and thread), Nell (jealous); Gran. Rosa's saucer can be given its place (56). |
+| Reveal 2 | Gran shuts herself in the well cellar; townsfolk's threads now drawn (Wren can see them); unease. New lines: Arlo (the look your aunt had), Burr (fussing quietly), Quill (the seventh rule; not sure she's allowed to rub it out), Rosa (Gran's loaf went home before she opened the door), Hob (the thread from his boots), Bea (keeping a list); Mabel, if her tin's home ("I keep wondering how much else in this town is only asleep"). |
+| North gate open | The first time Wren comes out of a door into town after it opens: a look up the North Road at it, standing open. |
+| D8 (Shears) | Cutting townsfolk frees them one by one: schedules, new lines, new activities (Arlo's walk to the lake, Hob in a boat, tag again, a market). The uncut have lines about it (Quill wants to see the Shears "purely as an educator"); each freed person has lines of their own from then on (`FREE_LINES`, src/73_freed.js). |
 | Ending | The Unwinding festival; the road out is open; Linnet visits; Tuck's Wander posters. |
 
 ## 4. Secrets and optional discoveries (with solutions)
@@ -192,6 +193,70 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
     chimney: 50 buttons); the clay dam (a pot given its place in the vent's mouth with the Needle breaks it: Heart Patch).
 44. **Heron Rock** (Millwater): reel the barrel ashore, set it out of the line, hook its empty mark: a Heart Patch; the
     eel-catcher's post brings you back.
+45. **Mallow's nursery** (Hushwood, the road to the Slumberhouse): the door opens while all three Snorelings sleep in the
+    cradles on the bank. Ring the Bell from the north bank (they wake and chase), walk to the far cradle so they file in
+    behind you, and hook each puffball from across the stream, the far one first (a Snoreling dozes off where it is, in
+    its cradle); or wake and bed them one at a time. **The wooden one** (with the Crossbar, all three asleep): walk the
+    little wooden Snoreling through the hole in the hedge into the fourth cradle: 30 buttons.
+46. **Lantern Pond** (Hushwood): each lantern burns while its stone plate holds something heavy; the mossy stones are
+    marked, so they go home. The Needle gives three of them a place on their plates for good (it holds only three); the
+    fourth pushed on and held there with the Gloves: the great lantern lights, the isle's chest: a Heart Patch. On the isle from the first visit (the raft): the old loom weight, which fits any of the Loomwood's sockets for
+    good (found early, used later).
+47. **The parade gate** (Larkspur, the road to the Marionette Hall): the portcullis winds up while both drum pads are held;
+    a toy soldier marches over each in its pen. Trap each one on its pad: a pale stray crate (from the west of the fair)
+    set down in the pen's open end stays there; the fair's own crates go home. One trapped isn't enough.
+48. **The balloon** (Larkspur, by the fog): its one thread cut with the Shears, it lifts off and drifts away west over the
+    fog. In the Drift it's caught in the lone rowan by the old wall: climb into the basket and the whole Drift is drawn on
+    the map; Linnet saw it come over (a consequence elsewhere, never announced).
+49. **The warp across the Loom's door** (the Loomwood, the road to the Loom): it lifts while all four sockets hold a
+    weight; the weights are strays. Three stitches (the Needle) give three of them their sockets for good, the far one
+    among them; the last one pushed on by the door, and through before it goes home; or the Bedroll laid by the door and
+    Homeward after pushing on the far one; or the old weight from Lantern Pond in a socket for good.
+50. **The old mill** (the Drift): its wheel winds up the sluice of the mill pond only while something floats past it on
+    its own (nobody aboard), and the sluice sinks back when it stops; a barrel goes down the race once, and that's all.
+    Give a barrel a place by the wheel with the Needle: it goes down, comes back, over and over, and the sluice's catch
+    holds. Or dam the race under the wheel with the stray boulder (it fills for good): a barrel stops in front of the
+    wheel and it never stops. The pond runs out for good: the old road on its bed, its milestone (HOLLOWELL 3, AND THE
+    WIDE WORLD: the road went in, once, before the fog), a toll box (50 buttons). Linnet tried it her first year.
+
+51. **The Guild's crates** (the town, after Knot 1; Thimble): two of the Guild's crates of string came off the carter's barrow
+    in the one-wide lane between Thimble's and a fence (hub 22,27-30), each on the other's way home (the north one belongs
+    at the south end and the south one at the north), and there they've stuck, nose to nose. Pushing only drives one into
+    the other. With the Gloves: from the gap in the fence (23,28) grip the one in front of it and step back: it comes out
+    into the gap; hold on while the other goes by, home; let go and it follows. Thimble: 30 buttons and a ball of the good
+    string (the shop's own "it doesn't do anything" string), which is the first link of a chain (52, 53).
+52. **The kite** (after Knot 2; the children): blown off its peg by the signpost east of the square, it went up through the
+    tree by the Inn (hub 46,15) and caught in the branches, its thread running back down through the trunk to its peg. Only
+    the Hookline gets it down (hooked from the west or the north; from the east it snags on the next branch). Left alone it
+    flies home the way it came, up through the branches, and catches again. Carry it back over its own thread below the
+    tree (the loop up the tree drops out of its trace) and it goes home to its peg; or drop it in the river, and it's home
+    at once. Then the string: it snapped; give Nell a ball of string (Thimble's from 51, or one from her shop for 3
+    buttons). The children give the only thing they own that can be given away, a stray (an odd marble with an L, found by
+    the fog), and 15 buttons; the kite flies over Nell from then on, at the festival too.
+53. **Tuck's marble** (the chain's end): Tuck has wanted one thing that stays where he puts it all his life (everything else
+    goes back where his mum put it first). Given the stray marble, he puts it down, walks away, and it STAYS; his 11 buttons
+    (not the blue one). From then on it's wherever he last put it: on the sand, then by the square, then at the toy shop,
+    then by the Well; during the Great Pull it's the one thing in the square with no thread to the Well.
+54. **Mabel's floor of strays** (after Knot 4): everything on her floor is a stray, she says, and none of them has moved an
+    inch in thirty years; one of them, a sewing tin, snores (z's). The Recall Bell wakes it and it snaps home toward the
+    little table by her counter, shoving the light strays aside, but it can't shift the heavy stray stone on its thread:
+    it waits there till the stone is pushed off its way (strays stay pushed). Rung but left, it lies down again. Mabel: it
+    was her mother's, and only ever asleep; a stray of Wren's own, the odd sock ("the only things in Hollowell a body can
+    give away"), and 40 buttons. After Reveal 2 she wonders how much else in town is only asleep.
+55. **Jory's back room** (after Reveal 1): Jory made Tuck a Wanderer's stick, gave it its place on Tuck's bed (a Maker gives
+    by giving the place), and locked it in his back room for later. Its crimson thread runs under the back room's door,
+    out of the shop and across town to Tuck's. The door opens from a plate inside; the only way in is a little hole low in
+    the wall; the shop's puppet, on the Crossbar, fits it. On the plate: the door opens and the parcel shoots off home.
+    Nobody announces it: Tuck has a stick from then on (in his hand, in town) and tells you it flew in at his window; Rosa
+    asks if it was you. Inside the back room: Jory's note ("If you can read this, you're good with strings") and a chest
+    of 50 buttons. The door stays open once you've been through.
+56. **Rosa's saucer** (after Knot 7, the Needle): every night Rosa sets a saucer of cream on the back step for Biscuit (whose
+    round stops there, by its crawlspace); every morning it has walked itself home round to the front sill, full. Carry it
+    round (it's too full to throw: it's set down), and with the Needle give it a place on the back step before it walks
+    off (stand in its way and it waits). Biscuit laps it up when he comes by. Rosa: 20 buttons, and a bun on the house
+    whenever Wren's hurt. It's one of the Needle's three stitches: if a fourth lets it go, it walks round to the front again
+    (Rosa notices). A save at any stage can start or finish every favour its tools allow; a thank-you still owing is said
+    even after the Unwinding.
 
 ### Linnet's Trail (the major secret chain)
 Eight notes from Linnet's own Wander, each by a carved "L.", each needing a different mechanic:

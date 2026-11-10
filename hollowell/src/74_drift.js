@@ -1,15 +1,18 @@
 /* Past the fog: the Drift. With her own thread cut, Wren can walk into the fog at the Frayed Edge and out the other
    side, into the wide world, where nothing has a thread and nothing comes back: no hearts (nothing to unravel), no
    falling home (you climb out where you fell), a map that's blank until you walk it. Linnet lives out here, in a
-   cottage with a garden. Meeting her, Wren's gone-ness reaches Gran: the Great Pull begins (src/75_greatspool.js). */
+   cottage with a garden. Meeting her, Wren's gone-ness reaches Gran: the Great Pull begins (src/75_greatspool.js).
+   Its own look (a wild meadow in soft patches, heather, an old cart track, dry-stone walls) and its one puzzle place,
+   the old mill up the stream: its wheel winds up the sluice of the mill pond only while something floats past it on
+   its own, and out here that happens once, unless somebody gives a float a reason to come round again. */
 
 const DRIFT_ROWS = [
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYVYYYYYYYYYYYYYYY%%%%',
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYVYYYYYYYYYYYYYYY%%%%',
     'YYYYYYYYYYYYYYYYhhhhhhYY.....",,YYYY..YY..YKVK,..,,,.k..YYYY%%%%',
     'YYYYYYYYYYYYYYYYhhhhhhYY...""","YYYY"XXXXXXKV....,,,.k..YYYY%%%%',
-    'YYYYYYYYYYYYYYhhhhhhhhhhh.."""YYYYYY"XXXXXXKVK...,.,,k.hYYhh%%%%',
-    'YYYYYYYYYYYYYYhhhhhhhhhhhh,"""YYYYYY"XXXXXXKVK..,,,,,khhYY.h%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhh.."""YYYYYY"XXXXXXKVK...,.,,k.h..hh%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhhh,"""YYYYYY"XXXXXXKVK..,,,,,khh...h%%%%',
     'YYYYYYYYYYYYYYhhhhhhhhhhhhh...YYYY.""XXXXXX.VK..,,,,,kh....h%%%%',
     'YYYYYYYYYYYYYYhhhhhhhhhhhhh...YYYY.."XXXXXXKV....,,,,k.hh..h%%%%',
     'YYYYYYYYYYYYYYhhhhhhhhhhhh..,,.............KVK..,,,,,k..hhhh%%%%',
@@ -91,7 +94,7 @@ defArea({
         { k: 'sign', x: 22, y: 17, text: "LINNET'S. (Gone home to Mum's. Back now and then. Take a flower.)", if: 'unwound' },
         /* a stray boulder by the stream (nothing out here comes back: push it in and it stays in) */
         { k: 'stray', x: 43, y: 16, id: 'drBoulder' }, { k: 'stray', x: 46, y: 21, id: 'drBoulder2' },
-        { k: 'sign', x: 55, y: 17, text: 'An old marker stone, half sunk. Carved on it, worn nearly smooth: THE HOLLOW ENDS HERE.' },
+        { k: 'deco', x: 55, y: 17, look: 'drift_milestone', text: 'An old marker stone, half sunk. Carved on it, worn nearly smooth: THE HOLLOW ENDS HERE.' },
         { k: 'rest', x: 30, y: 20 },
         /* the old mill, up the stream: a race down out of the woods turns its wheel; the wheel winds up the sluice in
            the mill pond's dam, but only while it's turning, and nothing out here comes round twice */
@@ -103,12 +106,15 @@ defArea({
         { k: 'stray', x: 47, y: 7, id: 'drBoulder3' },
         /* on the pond's bed, under the water: the old road, its milestone (DriftMill.build), a toll box */
         { k: 'chest', x: 41, y: 10, item: 'b50', id: 'drToll', hidden: true, when: 'flag:drift_millpond' },
-        /* what came over the fog from the fair, if it was cut loose */
+        /* a lone rowan by the old wall, and caught in it, what came over the fog from the fair, if it was cut loose */
+        { k: 'tree', x: 56, y: 4, look: 'tree_rowan' },
         { k: 'driftballoon', x: 58, y: 6, if: 'balloon_away' },
     ],
+    /* (the first that holds Wren is hers: the small places first) */
     regions: [
+        { name: "Linnet's Garden", x: 10, y: 11, w: 17, h: 17 },
+        { name: 'The Old Mill', x: 34, y: 2, w: 16, h: 12 },
         { name: 'The Drift', x: 0, y: 0, w: 60, h: 40 },
-        { name: "Linnet's Garden", x: 10, y: 11, w: 17, h: 16 },
     ],
     entry: { x: 58, y: 18 },
     tick: a => Drift.tick(a),
@@ -419,7 +425,8 @@ const DriftArt = {
     /* the mill pond's bed, run out: wet mud, puddles, weed, the odd shell */
     mud(x, v) {
         fill(x, '#7a6a4c'); speckle(x, ['#6a5a3e', '#84744e'], 181 + v, 0.3); speckle(x, ['#9a8a6a'], 183 + v, 0.05);
-        if (v % 2 === 0) { fill(x, '#6e8ea4', 4 + v, 6, 6, 3); fill(x, '#6e8ea4', 5 + v, 5, 4, 5); px(x, 5 + v, 6, '#a8c8dc'); px(x, 6 + v, 6, '#a8c8dc'); }
+        if (v === 0) { fill(x, '#6e8ea4', 7, 9, 6, 3); fill(x, '#6e8ea4', 8, 8, 4, 5); px(x, 8, 9, '#a8c8dc'); px(x, 9, 9, '#a8c8dc'); }
+        if (v === 2) { fill(x, '#6e8ea4', 2, 3, 4, 2); px(x, 3, 3, '#a8c8dc'); }
         for (let n = 0; n < 3; n++) { const wx = 1 + Math.floor(hash2(n, v, 185) * 14), wy = 2 + Math.floor(hash2(v, n, 186) * 11); fill(x, '#5a7a3a', wx, wy, 1, 3); px(x, wx + 1, wy, '#6a8a44'); }
         if (v === 3) px(x, 11, 12, '#ece4d0');
     },
@@ -462,6 +469,11 @@ const DriftArt = {
             const [bx, by] = at(41, 10); Gfx.rect(bx + 2, by + 6, 12, 8, '#1e3a5a');
             Gfx.alpha(1);
             if ((G.t >> 5) % 4 === 0) { Gfx.alpha(0.5); Gfx.rect(mx + 3, my + 1, 10, 1, '#d8eef8'); Gfx.alpha(1); }
+        }
+        /* run out, the old road shows across its bed */
+        if (!a.kind(37, 11).water && a.cell(37, 11).p === 'mud') for (let tx = 35; tx <= 42; tx++) {
+            const [x, y] = at(tx, 11); if (!on([x, y])) continue;
+            for (let i = 0; i < 4; i++) { const cx = x + 1 + i * 4, cy = y + 4 + ((i + tx) % 2) * 4; Gfx.rect(cx, cy, 3, 2, '#8e887a'); Gfx.rect(cx, cy, 2, 1, '#aaa496'); Gfx.rect(cx, cy + 2, 3, 1, '#5e584a'); }
         }
         const [gx, gy] = at(44, 9);
         if (on([gx, gy])) { Gfx.rect(gx + 1, gy, 14, 7, '#2a3038'); for (let i = 2; i < 15; i += 3) Gfx.rect(gx + i, gy, 1, 7, '#8a8a90'); Gfx.rect(gx + 1, gy + 7, 14, 1, '#5e5a50'); }
