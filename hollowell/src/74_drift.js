@@ -6,42 +6,42 @@
 const DRIFT_ROWS = [
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYVYYYYYYYYYYYYYYY%%%%',
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYVYYYYYYYYYYYYYYY%%%%',
-    'YYYYYYYYYYYYYYYY.....hYYhh...",,YYYY..YY..YKVK,..,,,.khhYYYY%%%%',
-    'YYYYYYYYYYYYYYYY....hhYYhh.""","YYYY"XXXXXXKV....,,,.khhYYYY%%%%',
-    'YYYYYYYYYYYYYY..hhhhhhhhhh."""YYYYYY"XXXXXXKVK...,.,,kh.YY..%%%%',
-    'YYYYYYYYYYYYYY..hhhhhhhhhh,"""YYYYYY"XXXXXXKVK..,,,,,k..YY..%%%%',
-    'YYYYYYYYYYYYYY..hhhhhhhh.h,...YYYY.""XXXXXX.VK..,,,,,k......%%%%',
-    'YYYYYYYYYYYYYY..hhhhhhhh.h....YYYY.."XXXXXXKV....,,,,k......%%%%',
-    'YYYYYYYYYYYYYY..hhhhhhhh....,,.............KVK..,,,,,k......%%%%',
-    'YYYYYYYYYYYYYY...hhhhhh.....,,,,...~~~~~~~~KKK..,,,,,.hh....%%%%',
-    'YYYY,,.,,,........hhhh...""",,,,...~~~~~~~~.....,,,,,.hhh,,,%%%%',
-    'YYYY,.....,...........""jjjjjjjjjjj~~~~~~~~......,,,.khhhh.,%%%%',
-    'YY........,.""XXXXXXXX""",,""".....~~~~~~~~.........kkhhhh..%%%%',
-    'YY........,...XXXXXXXX"",,,"".....KKKKKK~KKK........k.hhhh..%%%%',
-    'YY........,...XXXXXXXX..,,,.............~...........k.hhhhh.%%%%',
-    'YY............XXXXXXXX..,,,.....".......~......."...k.hhhhhh%%%%',
-    'YY............XXXXXXXX..,,,...."""""....~......"""..k.hhhhhh%%%%',
-    'YY..............".......,,::::::""".....~.......".....hhhhhh%%%%',
-    '......::::::::::::::::::::::::::::::::..~.::::::::::::::::::%%%%',
-    '::::::::::::::::::::::::::,,,,,,::::::..~.::::::::::::::::::%%%%',
-    'YY,""..."",....,..,,...,,,.,,,,,........~...,,........hhhhhh%%%%',
-    'YY,""...""..,,.,,,..,....,,,,,,,........~...........k.hhhhhh%%%%',
-    'YY.""..."".,..,..,....,,,.,,,,,.........~"..........k,hhhhh.%%%%',
-    'YY....,....,,.,,,,,..,..,..,,.........."~"..........k.hhhhh.%%%%',
-    'YY...,,,YY.,.,,....,,.,....,...........~~"..YYYYYY,,k.hhhh..%%%%',
-    'YY...,,,YY,.,.,,..,,,,.,.,,,...........~,,..YYYYYY,,k.hhhh..%%%%',
-    'YY....YYYYYY..,,....,,.,,..,YYYY.......~""..YYYYYYYYk.hhhh..%%%%',
-    'YY....YYYYYY................YYYY.......~""".YYYYYYYY.kh.....%%%%',
-    'YYYYYYYYYYYYYYYY..........YYYYYYYY,,,..~""".YYYYYYYYYY".....%%%%',
-    'YYYYYYYYYYYYYYYY..........YYYYYYYY,,,,~~"...YYYYYYYYYY.....h%%%%',
-    'YY..YYYYYYYYYY............YYYYYYYYYY,,~.....YYYYYYYY"k.....h%%%%',
-    'YY..YYYYYYYYYY............YYYYYYYYYY,,~.....YYYYYYYY"k.....h%%%%',
-    'YY..YYYYYYYYYY....."".....YYYYYYYY,,,,~,..,.YYYYYYYY.k......%%%%',
-    'YY..YYYYYYYYYY....."""....YYYYYYYY.,,,~...,.YYYYYYYY.k,,....%%%%',
-    'YYYYYYYYYYYY"......""""...,.YYYYYY...,~~..,...........,,....%%%%',
-    'YYYYYYYYYYYY,........"".....YYYYYY..,,,~,,,,,h........,,,...%%%%',
-    'YYYY.,YYYY.,,...YY....""".YY..YYYY.,,,Y~,,YYYYYY..YY.k,,,.YY%%%%',
-    'YYYY..YYYY.,,...YY....."".YY..YYYY.,,,Y~,,YYYYYY..YY.k....YY%%%%',
+    'YYYYYYYYYYYYYYYYhhhhhhYY.....",,YYYY..YY..YKVK,..,,,.k..YYYY%%%%',
+    'YYYYYYYYYYYYYYYYhhhhhhYY...""","YYYY"XXXXXXKV....,,,.k..YYYY%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhh.."""YYYYYY"XXXXXXKVK...,.,,k.hYYhh%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhhh,"""YYYYYY"XXXXXXKVK..,,,,,khhYY.h%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhhhh...YYYY.""XXXXXX.VK..,,,,,kh....h%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhhhh...YYYY.."XXXXXXKV....,,,,k.hh..h%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhhh..,,.............KVK..,,,,,k..hhhh%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhh...,,,,...~~~~~~~~KKK..,,,,,.......%%%%',
+    'YYYY,,.,,,....hh..hhhhh..""",,,,...~~~~~~~~.....,,,,,...,,,,%%%%',
+    'YYYY,.....,...........""jjjjjjjjjjj~~~~~~~~......,,,.k.....,%%%%',
+    'YY........,.""XXXXXXXX""",,""".....~~~~~~~~.........kk......%%%%',
+    'YY........,...XXXXXXXX"",,,"".....KKKKKK~KKK........k.......%%%%',
+    'YY........,...XXXXXXXX..,,,.............~...........k.......%%%%',
+    'YY............XXXXXXXX..,,,.....".......~......."...k.......%%%%',
+    'YY............XXXXXXXX..,,,...."""""....~......"""..k...""..%%%%',
+    'YY..............".......,,::::::""".....~......."...........%%%%',
+    '......::::::::::::::::::::::::::::::::::~:::::::::::::::::::%%%%',
+    '::::::::::::::::::::::::::,,,,,,::::::::~:::::::::::::::::::%%%%',
+    'YY,""...""fffffffffff..ffff,,,,,........~...,,.........hhhh.%%%%',
+    'YY,""...""l.,,.,,,..,....,l,,,,,........~...........k.,hhhhh%%%%',
+    'YY.""...""l,..,..,....,,,.l,,,,.........~"..........k,,hhhhh%%%%',
+    'YY....,...l,,.,,,,,..,..,.l,,.........."~"..........k..hhhhh%%%%',
+    'YY...,,,YYl,.,,....,,.,...l,...........~~"..YYYYYY,,k..hhhhh%%%%',
+    'YY...,,,YYl.,.,,..,,,,.,.,l,...........~,,..YYYYYY,,k..hhhhh%%%%',
+    'YY....YYYYl,..,,....,,.,,.l,YYYY.......~""..YYYYYYYYk.hhhhhh%%%%',
+    'YY....YYYYfffffffffffffffff.YYYY.......~""".YYYYYYYY.khhhhhh%%%%',
+    'YYYYYYYYYYYYYYYY..........YYYYYYYY,,,..~""".YYYYYYYYYYhhhhhh%%%%',
+    'YYYYYYYYYYYYYYYY..........YYYYYYYY,,,,~~"...YYYYYYYYYYhhhhhh%%%%',
+    'YY..YYYYYYYYYY............YYYYYYYYYY,,~.....YYYYYYYY"khhhhh.%%%%',
+    'YY..YYYYYYYYYY............YYYYYYYYYY,,~.....YYYYYYYY"khhhhh.%%%%',
+    'YY..YYYYYYYYYY....."".....YYYYYYYY,,,,~,..,.YYYYYYYY.khhhh..%%%%',
+    'YY..YYYYYYYYYY....."""....YYYYYYYY.,,,~...,.YYYYYYYY.k,hh...%%%%',
+    'YYYYYYYYYYYY"......""""...,.YYYYYY...,~~..,..hhhhhhhh.,,....%%%%',
+    'YYYYYYYYYYYY,........"".....YYYYYY..,,,~,,,,,hhhhhhhh.,,,...%%%%',
+    'YYYY.,YYYY.,,...YY....""".YY..YYYY.,,,Y~,,YYYYYYhhYYhk,,,.YY%%%%',
+    'YYYY..YYYY.,,...YY....."".YY..YYYY.,,,Y~,,YYYYYYhhYY.k....YY%%%%',
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY~YYYYYYYYYYYYYYYYYYYY%%%%',
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY~YYYYYYYYYYYYYYYYYYYY%%%%',
 ];
@@ -279,9 +279,9 @@ CONTENT_INIT.push(() => {
    and the tile goes from one to the next between them, dithered, so no change of ground runs along a tile's edge ---------- */
 const DriftArt = {
     MEADOW: [
-        ['#98c862', '#88b856', '#b0d878', '#6a9446'],      /* lush, in the hollows */
+        ['#9ccb64', '#8cbb58', '#b2d87a', '#6c9648'],      /* lush, in the hollows */
         ['#a8d26a', '#96c25e', '#c0e084', '#76a24a'],      /* the meadow */
-        ['#bade7c', '#a8ce6e', '#d2ea98', '#86ae56'],      /* sunlit, on the rises */
+        ['#b4d974', '#a2c966', '#cce692', '#80aa52'],      /* sunlit, on the rises */
     ],
     BLOOMS: [
         { head: '#e2483a', hi: '#f6826a', eye: '#3a2424' },      /* poppies */
@@ -306,7 +306,7 @@ const DriftArt = {
         for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) {
             const u = (i + 0.5) / T, w = (j + 0.5) / T;
             const m = c[0] * (1 - u) * (1 - w) + c[1] * u * (1 - w) + c[2] * (1 - u) * w + c[3] * u * w;
-            const k = clamp(Math.round(m + (hash2(i, j, 61 + v) - 0.5) * 0.8), 0, 2), r = hash2(i, j, 71 + v);
+            const k = clamp(Math.round(m + (hash2(i, j, 61 + v) - 0.5) * 1.5), 0, 2), r = hash2(i, j, 71 + v);
             const col = P[k][r < 0.13 * busy ? 1 : r > 1 - 0.06 * busy ? 2 : 0], o = (j * T + i) * 4;
             d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
         }
@@ -350,21 +350,25 @@ const DriftArt = {
             if (hash2(n, v, 133) < 0.5) px(x, cx + w - 1, cy, this.MEADOW[1][0]);
         }
     },
-    /* heather and dry grass, its edge against the meadow ragged */
-    heath(x, m, cs, v) {
-        fill(x, '#8a9856'); speckle(x, ['#7c8a4c', '#9aa864'], 141 + v, 0.3); speckle(x, ['#cabf86'], 143 + v, 0.08);
-        for (let n = 0; n < 4; n++) {
-            const hx = 2 + Math.floor(hash2(n, v, 145) * 11), hy = 2 + Math.floor(hash2(v, n, 146) * 11);
-            for (let j = -2; j <= 2; j++) for (let i = -3; i <= 3; i++) {
-                if (i * i / 9 + j * j / 4 > 1 + hash2(i, j, n + v) * 0.4) continue;
-                px(x, clamp(hx + i, 0, 15), clamp(hy + j, 0, 15), j < 0 && i < 1 ? '#b88ac6' : j > 0 ? '#7c4e8c' : '#a072b0');
+    /* heather and dry grass: low clumps of heather here and there in it, and its edge against the meadow wide and ragged */
+    heath(x, m, cs, v, rich) {
+        fill(x, rich ? '#8e9a58' : '#9aa662'); speckle(x, ['#84904c', '#a6b26e'], 141 + v, 0.34); speckle(x, ['#cabf86', '#b8ae74'], 143 + v, 0.1);
+        for (let n = 0; n < 5; n++) { const bx = Math.floor(hash2(n, v, 149) * 15), by = 2 + Math.floor(hash2(v, n, 150) * 13); fill(x, '#cabf86', bx, by - 2, 1, 2); px(x, bx, by, '#6e7a40'); }
+        /* the heather grows in clumps, thick in some places and hardly at all in others */
+        const clumps = rich === 2 ? 3 : rich === 1 ? 1 + (v % 2) : (v % 4 === 0 ? 1 : 0);
+        for (let n = 0; n < clumps; n++) {
+            const hx = 3 + Math.floor(hash2(n, v, 145) * 10), hy = 3 + Math.floor(hash2(v, n, 146) * 10), rx = 3 + (n + v) % 2, ry = 2 + (n % 2);
+            for (let j = -ry; j <= ry; j++) for (let i = -rx; i <= rx; i++) {
+                if (i * i / (rx * rx) + j * j / (ry * ry) > 0.75 + hash2(i + hx, j + hy, 147) * 0.6) continue;
+                const r = hash2(i + n, j + v, 144);
+                px(x, clamp(hx + i, 0, 15), clamp(hy + j, 0, 15), r < 0.08 ? '#e0a8dc' : j < 0 ? (r < 0.5 ? '#c294d0' : '#a674b8') : j === ry ? '#6a4e60' : '#8e5e9c');
             }
         }
         const P = this.MEADOW[+cs[0]];
         for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) {
             let d = 99;
             if (m & 1) d = Math.min(d, j); if (m & 2) d = Math.min(d, 15 - j); if (m & 4) d = Math.min(d, i); if (m & 8) d = Math.min(d, 15 - i);
-            if (d < hash2(i, j, 147 + v) * 5) px(x, i, j, hash2(i, j, 148) < 0.2 ? P[1] : P[0]);
+            if (d < 1.5 + OWA.n2((i + v * 16) / 3, j / 3, 148) * 7) px(x, i, j, hash2(i, j, 148) < 0.2 ? P[1] : P[0]);
         }
     },
     /* the cart track: two ruts (one to a lane where it's two wide), grass at its edges and down the middle */
@@ -377,9 +381,9 @@ const DriftArt = {
         for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) {
             let d = 99;
             if (!up) d = Math.min(d, j); if (!dn) d = Math.min(d, 15 - j); if (!lf) d = Math.min(d, i); if (!rt) d = Math.min(d, 15 - i);
-            /* the hump between two lanes */
-            if (dn && !up) d = Math.min(d, 15 - j + 1); if (up && !dn) d = Math.min(d, j + 1);
             if (d < 0.6 + hash2(i, j, 115 + v) * 2.4) px(x, i, j, hash2(i, j, 116 + v) < 0.25 ? P[3] : P[0]);
+            /* a few tufts down the middle, between two lanes */
+            else if (((dn && !up && j >= 14) || (up && !dn && j <= 1)) && hash2(i, j, 117 + v) < 0.3) px(x, i, j, P[hash2(i, j, 118) < 0.4 ? 3 : 0]);
         }
     },
     forest(x, v) {
@@ -426,7 +430,11 @@ const DriftArt = {
             case 'flowers': { const cs = this.corners(a, tx, ty), k = this.bloom(tx, ty); return tileCanvas(`drift2:fl:${cs}:${v}:${k}`, x => this.flowers(x, cs, v, k)); }
             case 'tallgrass': { const cs = this.corners(a, tx, ty); return tileCanvas(`drift2:tall:${cs}:${v}`, x => this.tall(x, cs, v)); }
             case 'oldroad': { const cs = this.corners(a, tx, ty); return tileCanvas(`drift2:road:${cs}:${v}`, x => this.oldroad(x, cs, v)); }
-            case 'heath': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.k === 'grass' && c.p !== 'heath'); return tileCanvas(`drift2:heath:${m}:${cs[0]}:${v}`, x => this.heath(x, m, cs, v)); }
+            case 'heath': {
+                const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.k === 'grass' && c.p !== 'heath'), v8 = Math.floor(hash2(tx, ty, 98) * 8);
+                const n = OWA.n2(tx / 2.5, ty / 2.5, 155), rich = n > 0.62 ? 2 : n > 0.45 ? 1 : 0;
+                return tileCanvas(`drift2:heath:${m}:${cs[0]}:${v8}:${rich}`, x => this.heath(x, m, cs, v8, rich));
+            }
             case 'path': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.p === 'path'); return tileCanvas(`drift2:track:${m}:${cs[0]}:${v}`, x => this.track(x, m, cs, v)); }
             case 'forest': return tileCanvas(`drift2:forest:${v}`, x => this.forest(x, v));
             case 'drywall': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.p === 'drywall'); return tileCanvas(`drift2:wall:${m}:${cs}:${v}`, x => this.drywall(x, m, cs, v)); }

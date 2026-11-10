@@ -141,14 +141,16 @@ test('a chest that appears waits for the floor to be clear', () => {
     noErrors(HW);
 });
 
-test('Tollgrim spits as soon as he leans out', () => {
+test('Tollgrim spits as soon as he leans out (after the puff of his cheeks that tells it)', () => {
     const HW = game(['bell']);
     enter(HW, 'bell', 9, 9);
     HW.step(60); HW.skipTalk();
     const t = HW.G.map.ents.find(e => e.type === 'tollgrim');
     assert.ok(until(HW, () => t.state === 'peek', 900), 'leans out');
-    HW.step(12);
-    assert.ok(t.spits.length > 0, 'spat straight away');
+    HW.step(4);
+    assert.ok(t.puff > 0 && t.spits.length === 0, 'his cheeks puff first');
+    HW.step(30);
+    assert.ok(t.spits.length > 0, 'and he spits');
 });
 
 test('Returnball: a throw cut short (leaving town) scores nothing next time', () => {

@@ -14261,7 +14261,7 @@ class SewingTin extends Liftable {
 }
 SPAWN.tin = (x, y, p) => new SewingTin(x, y, p);
 AREAS.lostfound.ents.push(
-    { k: 'tin', x: 1, y: 3, id: 'mabelTin', sleeper: true, tiedOff: true, startAt: [9, 5], trace: TIN_TRACE, pushLine: "A battered sewing tin among the strays, fast asleep. It snores, very faintly, like a kettle a long way off.", if: '!fav_tin' },
+    { k: 'tin', x: 1, y: 3, id: 'mabelTin', sleeper: true, tiedOff: true, resetSleep: true, startAt: [9, 5], trace: TIN_TRACE, pushLine: "A battered sewing tin among the strays, fast asleep. It snores, very faintly, like a kettle a long way off.", if: '!fav_tin' },
     { k: 'tin', x: 1, y: 3, id: 'mabelTin', if: 'fav_tin' },
     /* the strays on the floor: never home, because they've none (pushed, they stay pushed) */
     { k: 'stray', x: 5, y: 4, id: 'mabelStone' },
@@ -16024,7 +16024,11 @@ class Clangor extends Enemy {
             case 'walk': {
                 const dx = p.x - this.x, dy = p.y - this.y, d = Math.hypot(dx, dy) || 1;
                 if (d > 18) { this.move(dx / d * 0.45, dy / d * 0.45); this.dir = dirOf(dx, dy); this.anim++; this.traceStep(); }
-                if ((this.st > 200 || (near && this.st > 90))) { this.state = 'windup'; this.st = 0; Sfx.play('twang'); }
+                if ((this.st > 200 || (near && this.st > 90))) {
+                    this.state = 'windup'; this.st = 0; Sfx.play('twang');
+                    /* its one dangerous move: the ring's reach drawn round it on the floor while it winds up (a full heart) */
+                    Hazard.ring(this, this.x, this.y, 30, { tell: 41, dmg: 2, col: '#e8b04a', fx: 'sparks', shake: 6, sound: 'bell' });
+                }
                 break;
             }
             case 'windup':
@@ -16032,7 +16036,6 @@ class Clangor extends Enemy {
                     this.state = 'ring'; this.st = 0;
                     Bells.ring(a, this.x, this.y - 8, 6);
                     G.shake = 6;
-                    if (p.state === 'normal' && dist(p.x, p.y, this.x, this.y) < 26) p.hurt(1, this.x, this.y);
                 }
                 break;
             case 'ring': if (this.st > 30) { this.state = 'walk'; this.st = 0; } break;
@@ -16044,7 +16047,7 @@ class Clangor extends Enemy {
     shoved(d, pace, by) {
         if (!this.alive || this.state === 'stunned') return;
         this.kx = DX[d] * 3; this.ky = DY[d] * 3;
-        this.state = 'stunned'; this.st = 0;
+        this.state = 'stunned'; this.st = 0; calmBlows(this);
         G.shake = 10; G.hitstop = 6; Sfx.play('hitthing'); Sfx.play('boss');
         Stats.count('boss:clangor:slam');
         if (!Progress.flag('cl_tip')) { Progress.set('cl_tip'); UI.toast("Its bell-helm's knocked crooked! Quick!", 140); }
@@ -16103,13 +16106,17 @@ SPAWN.clapper = (x, y, p) => new Clapper(x, y, p);
    3. he watches Wren: while she's near enough to ring the clapper home, he keeps his head in (his eyes in the bell's
       mouth go red). Something else has to ring near the clapper while she's far off: a pot carried under the old
       bell and smashed out of his sight sends its pieces home past it (the Kiln's way), and the old bell rings. */
-const TOLL = { lean: [0, 30, 20, 20], spit: [0, 75, 70, 70], spitSp: [0, 1.7, 1.9, 2.0], peek: [0, 330, 600, 600], daze: 200, wary: 8 };
+/* His blows (TELL[4]): leaning out, he spits gravel, his cheeks puffing first (one stone; then a burst of three; then a
+   fan of three); from the second beat, hidden in the bell, he pounds on it and mortar shakes down from the rafters
+   (shadows first: a full heart); in the third, red-eyed, he lunges out at Wren if she comes up under the bell's mouth
+   (the floor there lit first: a full heart). Each beat he's knocked into, a heart drops from the rafters. */
+const TOLL = { lean: [0, 30, 20, 20], spit: [0, 75, 70, 70], spitSp: [0, 1.7, 1.9, 2.0], peek: [0, 330, 600, 600], daze: 200, wary: 8, toll: [0, 0, 220, 190], rubble: 5 };
 class Tollgrim extends Enemy {
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ type: 'tollgrim', hp: 3 }, p));
         this.state = 'sleep'; this.st = 0; this.weightN = 2.5; this.hidden = true;
         this.mouth = [tx - 1, ty + 1];       /* where he leans out (the clapper's own place) */
-        this.spits = []; this.told = 1; this.wary = 0;
+        this.spits = []; this.told = 1; this.wary = 0; this.puff = 0; this.burst = 0; this.tollCool = 120; this.pounceCool = 60;
     }
     get phase() { return 4 - Math.max(1, Math.min(3, this.hp)); }
     onTile(x, y) { return this.alive && this.state === 'peek' && x === this.mouth[0] && y === this.mouth[1]; }
@@ -16134,7 +16141,7 @@ class Tollgrim extends Enemy {
         if (!this.alive) return this.updateYarn();
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area;
-        this.updateSpits();
+        if (!Script.blocking()) this.updateSpits();
         this.weather();
         if (this.state === 'sleep') {
             const r = a.roomAt(this.hx, this.hy);
@@ -16154,6 +16161,9 @@ class Tollgrim extends Enemy {
         const clap = a.find('clapper');
         const out = clap && clap.ret && clap.ret.state === 'away';     /* (not while it's on its way home: he isn't daft) */
         const [mx, my] = this.mouth, ph = this.phase;
+        const here = p.area === a && p.state === 'normal' && a.roomAt(p.tx, p.ty) === a.roomAt(this.hx, this.hy);
+        /* (2, 3) he pounds on the bell, in it or leaning out, and mortar shakes down from the rafters */
+        if (ph >= 2 && (this.state === 'hide' || this.state === 'peek') && here && --this.tollCool <= 0) this.toll(p, ph);
         switch (this.state) {
             case 'hide':
                 this.hidden = true; this.x = this.hx * T + 8; this.y = this.hy * T + 10;
@@ -16161,15 +16171,29 @@ class Tollgrim extends Enemy {
                    ring it home) */
                 if (out && this.st > TOLL.lean[ph] && !a.at(mx, my) && !(p.tx === mx && p.ty === my) && !(ph === 3 && this.nearClapper(p, clap))) {
                     this.state = 'peek'; this.st = 0; this.wary = 0; this.x = mx * T + 8; this.y = my * T + 10; this.hidden = false; Sfx.play('blip');
+                    break;
                 }
+                if (this.pounceCool > 0) this.pounceCool--;
+                /* (3) red-eyed, watching her: up close under the bell's mouth, and he lunges out at her */
+                if (ph === 3 && here && this.pounceCool <= 0 && this.pounceZone().some(([x, y]) => p.tx === x && p.ty === y)) {
+                    this.state = 'pounce'; this.st = 0; this.tellN = tellFor(4, 3);
+                    Hazard.tiles(this, this.pounceZone(), { tell: this.tellN, dmg: 2, live: 10, col: '#ff5a4a', fx: 'dust', shake: 6, sound: 'boss' });
+                    Stats.count('boss:tollgrim:pounce');
+                }
+                break;
+            case 'pounce':
+                /* the tell (his eyes flaring in the dark), then out at her and straight back in */
+                if (this.st >= this.tellN + 16) { this.state = 'hide'; this.st = 0; this.pounceCool = 150; }
                 break;
             case 'peek':
                 this.hidden = false;
                 /* (3) she's come within ringing distance of the clapper: back in */
                 if (ph === 3 && out && this.nearClapper(p, clap)) { if (++this.wary > TOLL.wary) { this.duck(); break; } } else this.wary = 0;
-                /* he comes out spitting: the first one straight away */
-                if (this.st === 8 || this.st % TOLL.spit[ph] === 30) this.spit(p);
-                if (this.st > TOLL.peek[ph]) { this.state = 'hide'; this.st = 0; }
+                /* he comes out spitting: cheeks puffed (the tell), then the gravel; again every so often */
+                if (this.st === 2 || (this.st > 2 && this.st % TOLL.spit[ph] === 2)) this.puff = tellFor(4, ph);
+                if (this.puff > 0 && --this.puff === 0) { this.spit(p); if (ph === 2) this.burst = 2; }
+                if (this.burst > 0 && (this.st % 8) === 0) { this.burst--; this.spit(p); }
+                if (this.st > TOLL.peek[ph]) { this.state = 'hide'; this.st = 0; this.puff = this.burst = 0; }
                 break;
             case 'stunned':
                 this.hidden = false;
@@ -16178,7 +16202,23 @@ class Tollgrim extends Enemy {
                 break;
         }
     }
-    duck() { this.state = 'hide'; this.st = 0; this.wary = 0; this.hidden = true; this.x = this.hx * T + 8; this.y = this.hy * T + 10; Sfx.play('blip'); }
+    duck() { this.state = 'hide'; this.st = 0; this.wary = 0; this.puff = this.burst = 0; this.hidden = true; this.x = this.hx * T + 8; this.y = this.hy * T + 10; Sfx.play('blip'); }
+    /* the floor up under the bell's mouth: what he can reach, lunging out */
+    pounceZone() { const [mx, my] = this.mouth, a = this.area, z = []; for (let y = my; y <= my + 1; y++) for (let x = mx - 1; x <= mx + 2; x++) if (!a.kind(x, y).solid) z.push([x, y]); return z; }
+    /* he pounds on the bell from inside: dust and mortar shake down from the rafters, two lumps near Wren and the rest
+       anywhere in the hall (their shadows first) */
+    toll(p, ph) {
+        const a = this.area, r = a.roomAt(this.hx, this.hy), tell = tellFor(4, ph) + 10, cand = [];
+        for (let y = r.y + 4; y < r.y + r.h - 1; y++) for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (!a.kind(x, y).solid && !a.at(x, y)) cand.push([x, y]);
+        cand.sort((m, n) => dist(m[0], m[1], p.tx, p.ty) - dist(n[0], n[1], p.tx, p.ty));
+        const near = cand.splice(0, 5), picks = [];
+        const take = (from, n) => { for (let i = 0; i < n && from.length; i++) picks.push(from.splice(Math.floor(G.rng() * from.length), 1)[0]); };
+        take(near, 2); take(cand, TOLL.rubble - 2);
+        for (const [x, y] of picks) Hazard.drop(this, x * T + 8, y * T + 10, { r: 11, dmg: 2, tell, fx: 'dust', col: '#7f7688', quiet: true, look: BelfryFoes.drawRubble });
+        this.tollCool = TOLL.toll[ph]; this.pounding = tell;
+        Sfx.play('warn'); Sfx.play('boss'); G.shake = 4;
+        Stats.count('boss:tollgrim:toll');
+    }
     /* (2, 3) he hears a ring as anything hears one: within a bell's reach. Heard, he's back inside before the clapper
        is home (the snap still takes it home: there's just no one in its way) */
     hear(x, y) {
@@ -16223,8 +16263,10 @@ class Tollgrim extends Enemy {
         if (this.flash > 0) return;
         this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 6; Sfx.play('enemyhit');
         Stats.count('boss:tollgrim:hit');
+        calmBlows(this);
         if (this.hp <= 0) return this.defeat();
-        this.duck();
+        bossHeart(this.area, this.x, this.y + 16);        /* (a heart drops from the rafters) */
+        this.duck(); this.tollCool = 150;
         this.beginPhase(this.phase);
     }
     /* a new beat: the hall changes with it (the bell heaved round, the wind turned), and a line says how he's changed */
@@ -16252,11 +16294,24 @@ class Tollgrim extends Enemy {
             if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.tess); }
             return;
         }
+        /* pounding on the bell from inside: dust sifting down round its rim, his eyes showing */
+        if (this.pounding > 0) {
+            this.pounding--;
+            if ((this.t >> 2) % 2) for (const ox of [-18, 0, 18]) Gfx.rect(this.hx * T - cx + 4 + ox + ((this.t >> 3) % 3), this.hy * T - cy - 18 + ((this.t * 3) % 22), 1, 2, '#cfc6b8');
+        }
+        /* about to lunge: his eyes flaring wide in the mouth of the bell, then out he comes and back */
+        if (this.state === 'pounce') {
+            const ex = this.hx * T - cx + 1, ey = this.hy * T - cy + 5;
+            if (this.st < this.tellN) { const big = (this.t >> 2) % 2 ? 3 : 2; Gfx.rect(ex, ey, big, big, '#ff5a4a'); Gfx.rect(ex + 6, ey, big, big, '#ff5a4a'); Tells.bang(ex + 4, ey - 34); return; }
+            const im = spr('toll'), [mx, my] = this.mouth, k = Math.sin(Math.min(1, (this.st - this.tellN) / 16) * Math.PI);
+            Gfx.img(im, mx * T + 8 - cx - 10, my * T + 10 - cy - 20 + Math.round(k * 14));
+            return;
+        }
         if (this.state === 'hide' || this.state === 'sleep') {
             /* his eyes in the dark of the bell's mouth: now and then early on; in the third beat always, following Wren,
                and red while she's near enough to ring the clapper home */
             const watch = this.state === 'hide' && this.phase === 3, p = G.player;
-            if (!watch && (this.t >> 4) % 4 !== 0) return;
+            if (!watch && !this.pounding && (this.t >> 4) % 4 !== 0) return;
             const near = watch && this.nearClapper(p, this.area.find('clapper'));
             const lx = watch && p ? clamp(Math.round((p.x - this.x) / 40), -1, 1) : 0, ly = watch && p && p.y > this.y + 20 ? 1 : 0;
             /* (in the dark band of the bell's mouth) */
@@ -16266,7 +16321,10 @@ class Tollgrim extends Enemy {
         }
         const im = spr(this.state === 'stunned' ? 'toll_daze' : 'toll');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        Gfx.img(img, this.x - cx - 10, this.y - cy - 20);
+        /* cheeks puffed: about to spit (he swells a little, and the gravel glows in his mouth) */
+        const sw = this.puff > 0 ? ((this.t >> 1) % 2 ? 1 : 0) : 0;
+        Gfx.img(img, this.x - cx - 10 - sw, this.y - cy - 20 - sw);
+        if (this.puff > 0) Tells.glow(this.x - cx, this.y - cy - 8, 1 - this.puff / tellFor(4, this.phase), '#c4bccb');
     }
 }
 SPAWN.tollgrim = (x, y, p) => Progress.flag('belfry_boss') ? new Ent('none') : new Tollgrim(x, y, p);
@@ -16293,6 +16351,8 @@ class Louvre extends Ent {
 SPAWN.louvre = (x, y, p) => new Louvre(x, y, p);
 
 const BelfryFoes = {
+    /* a lump of old mortar, coming down from the rafters */
+    drawRubble(x, y) { Gfx.rect(x - 4, y - 7, 8, 6, PAL.ink); Gfx.rect(x - 3, y - 6, 6, 4, '#a89fb0'); Gfx.rect(x - 3, y - 6, 3, 1, '#d8d0de'); },
     *clangorIntro(c) {
         yield 20;
         yield* say(null, "A suit of armour clanks to life. Where its head should be there's a bell, upside down, and inside the bell a clapper swinging like a tongue. CLANG, it says. The doors grind shut.");
@@ -26429,42 +26489,42 @@ Shears.onPersonCut = n => Freed.free(n);
 const DRIFT_ROWS = [
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYVYYYYYYYYYYYYYYY%%%%',
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYVYYYYYYYYYYYYYYY%%%%',
-    'YYYYYYYYYYYYYYYY.....hYYhh...",,YYYY..YY..YKVK,..,,,.khhYYYY%%%%',
-    'YYYYYYYYYYYYYYYY....hhYYhh.""","YYYY"XXXXXXKV....,,,.khhYYYY%%%%',
-    'YYYYYYYYYYYYYY..hhhhhhhhhh."""YYYYYY"XXXXXXKVK...,.,,kh.YY..%%%%',
-    'YYYYYYYYYYYYYY..hhhhhhhhhh,"""YYYYYY"XXXXXXKVK..,,,,,k..YY..%%%%',
-    'YYYYYYYYYYYYYY..hhhhhhhh.h,...YYYY.""XXXXXX.VK..,,,,,k......%%%%',
-    'YYYYYYYYYYYYYY..hhhhhhhh.h....YYYY.."XXXXXXKV....,,,,k......%%%%',
-    'YYYYYYYYYYYYYY..hhhhhhhh....,,.............KVK..,,,,,k......%%%%',
-    'YYYYYYYYYYYYYY...hhhhhh.....,,,,...~~~~~~~~KKK..,,,,,.hh....%%%%',
-    'YYYY,,.,,,........hhhh...""",,,,...~~~~~~~~.....,,,,,.hhh,,,%%%%',
-    'YYYY,.....,...........""jjjjjjjjjjj~~~~~~~~......,,,.khhhh.,%%%%',
-    'YY........,.""XXXXXXXX""",,""".....~~~~~~~~.........kkhhhh..%%%%',
-    'YY........,...XXXXXXXX"",,,"".....KKKKKK~KKK........k.hhhh..%%%%',
-    'YY........,...XXXXXXXX..,,,.............~...........k.hhhhh.%%%%',
-    'YY............XXXXXXXX..,,,.....".......~......."...k.hhhhhh%%%%',
-    'YY............XXXXXXXX..,,,...."""""....~......"""..k.hhhhhh%%%%',
-    'YY..............".......,,::::::""".....~.......".....hhhhhh%%%%',
-    '......::::::::::::::::::::::::::::::::..~.::::::::::::::::::%%%%',
-    '::::::::::::::::::::::::::,,,,,,::::::..~.::::::::::::::::::%%%%',
-    'YY,""..."",....,..,,...,,,.,,,,,........~...,,........hhhhhh%%%%',
-    'YY,""...""..,,.,,,..,....,,,,,,,........~...........k.hhhhhh%%%%',
-    'YY.""..."".,..,..,....,,,.,,,,,.........~"..........k,hhhhh.%%%%',
-    'YY....,....,,.,,,,,..,..,..,,.........."~"..........k.hhhhh.%%%%',
-    'YY...,,,YY.,.,,....,,.,....,...........~~"..YYYYYY,,k.hhhh..%%%%',
-    'YY...,,,YY,.,.,,..,,,,.,.,,,...........~,,..YYYYYY,,k.hhhh..%%%%',
-    'YY....YYYYYY..,,....,,.,,..,YYYY.......~""..YYYYYYYYk.hhhh..%%%%',
-    'YY....YYYYYY................YYYY.......~""".YYYYYYYY.kh.....%%%%',
-    'YYYYYYYYYYYYYYYY..........YYYYYYYY,,,..~""".YYYYYYYYYY".....%%%%',
-    'YYYYYYYYYYYYYYYY..........YYYYYYYY,,,,~~"...YYYYYYYYYY.....h%%%%',
-    'YY..YYYYYYYYYY............YYYYYYYYYY,,~.....YYYYYYYY"k.....h%%%%',
-    'YY..YYYYYYYYYY............YYYYYYYYYY,,~.....YYYYYYYY"k.....h%%%%',
-    'YY..YYYYYYYYYY....."".....YYYYYYYY,,,,~,..,.YYYYYYYY.k......%%%%',
-    'YY..YYYYYYYYYY....."""....YYYYYYYY.,,,~...,.YYYYYYYY.k,,....%%%%',
-    'YYYYYYYYYYYY"......""""...,.YYYYYY...,~~..,...........,,....%%%%',
-    'YYYYYYYYYYYY,........"".....YYYYYY..,,,~,,,,,h........,,,...%%%%',
-    'YYYY.,YYYY.,,...YY....""".YY..YYYY.,,,Y~,,YYYYYY..YY.k,,,.YY%%%%',
-    'YYYY..YYYY.,,...YY....."".YY..YYYY.,,,Y~,,YYYYYY..YY.k....YY%%%%',
+    'YYYYYYYYYYYYYYYYhhhhhhYY.....",,YYYY..YY..YKVK,..,,,.k..YYYY%%%%',
+    'YYYYYYYYYYYYYYYYhhhhhhYY...""","YYYY"XXXXXXKV....,,,.k..YYYY%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhh.."""YYYYYY"XXXXXXKVK...,.,,k.hYYhh%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhhh,"""YYYYYY"XXXXXXKVK..,,,,,khhYY.h%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhhhh...YYYY.""XXXXXX.VK..,,,,,kh....h%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhhhh...YYYY.."XXXXXXKV....,,,,k.hh..h%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhhh..,,.............KVK..,,,,,k..hhhh%%%%',
+    'YYYYYYYYYYYYYYhhhhhhhhhhh...,,,,...~~~~~~~~KKK..,,,,,.......%%%%',
+    'YYYY,,.,,,....hh..hhhhh..""",,,,...~~~~~~~~.....,,,,,...,,,,%%%%',
+    'YYYY,.....,...........""jjjjjjjjjjj~~~~~~~~......,,,.k.....,%%%%',
+    'YY........,.""XXXXXXXX""",,""".....~~~~~~~~.........kk......%%%%',
+    'YY........,...XXXXXXXX"",,,"".....KKKKKK~KKK........k.......%%%%',
+    'YY........,...XXXXXXXX..,,,.............~...........k.......%%%%',
+    'YY............XXXXXXXX..,,,.....".......~......."...k.......%%%%',
+    'YY............XXXXXXXX..,,,...."""""....~......"""..k...""..%%%%',
+    'YY..............".......,,::::::""".....~......."...........%%%%',
+    '......::::::::::::::::::::::::::::::::::~:::::::::::::::::::%%%%',
+    '::::::::::::::::::::::::::,,,,,,::::::::~:::::::::::::::::::%%%%',
+    'YY,""..."",....,..,,...,,,.,,,,,........~...,,.........hhhh.%%%%',
+    'YY,""...""..,,.,,,..,....,,,,,,,........~...........k.,hhhhh%%%%',
+    'YY.""..."".,..,..,....,,,.,,,,,.........~"..........k,,hhhhh%%%%',
+    'YY....,....,,.,,,,,..,..,..,,.........."~"..........k..hhhhh%%%%',
+    'YY...,,,YY.,.,,....,,.,....,...........~~"..YYYYYY,,k..hhhhh%%%%',
+    'YY...,,,YY,.,.,,..,,,,.,.,,,...........~,,..YYYYYY,,k..hhhhh%%%%',
+    'YY....YYYYYY..,,....,,.,,..,YYYY.......~""..YYYYYYYYk.hhhhhh%%%%',
+    'YY....YYYYYY................YYYY.......~""".YYYYYYYY.khhhhhh%%%%',
+    'YYYYYYYYYYYYYYYY..........YYYYYYYY,,,..~""".YYYYYYYYYYhhhhhh%%%%',
+    'YYYYYYYYYYYYYYYY..........YYYYYYYY,,,,~~"...YYYYYYYYYYhhhhhh%%%%',
+    'YY..YYYYYYYYYY............YYYYYYYYYY,,~.....YYYYYYYY"khhhhh.%%%%',
+    'YY..YYYYYYYYYY............YYYYYYYYYY,,~.....YYYYYYYY"khhhhh.%%%%',
+    'YY..YYYYYYYYYY....."".....YYYYYYYY,,,,~,..,.YYYYYYYY.khhhh..%%%%',
+    'YY..YYYYYYYYYY....."""....YYYYYYYY.,,,~...,.YYYYYYYY.k,hh...%%%%',
+    'YYYYYYYYYYYY"......""""...,.YYYYYY...,~~..,..hhhhhhhh.,,....%%%%',
+    'YYYYYYYYYYYY,........"".....YYYYYY..,,,~,,,,,hhhhhhhh.,,,...%%%%',
+    'YYYY.,YYYY.,,...YY....""".YY..YYYY.,,,Y~,,YYYYYYhhYYhk,,,.YY%%%%',
+    'YYYY..YYYY.,,...YY....."".YY..YYYY.,,,Y~,,YYYYYYhhYY.k....YY%%%%',
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY~YYYYYYYYYYYYYYYYYYYY%%%%',
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY~YYYYYYYYYYYYYYYYYYYY%%%%',
 ];
@@ -26702,9 +26762,9 @@ CONTENT_INIT.push(() => {
    and the tile goes from one to the next between them, dithered, so no change of ground runs along a tile's edge ---------- */
 const DriftArt = {
     MEADOW: [
-        ['#98c862', '#88b856', '#b0d878', '#6a9446'],      /* lush, in the hollows */
+        ['#9ccb64', '#8cbb58', '#b2d87a', '#6c9648'],      /* lush, in the hollows */
         ['#a8d26a', '#96c25e', '#c0e084', '#76a24a'],      /* the meadow */
-        ['#bade7c', '#a8ce6e', '#d2ea98', '#86ae56'],      /* sunlit, on the rises */
+        ['#b4d974', '#a2c966', '#cce692', '#80aa52'],      /* sunlit, on the rises */
     ],
     BLOOMS: [
         { head: '#e2483a', hi: '#f6826a', eye: '#3a2424' },      /* poppies */
@@ -26729,7 +26789,7 @@ const DriftArt = {
         for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) {
             const u = (i + 0.5) / T, w = (j + 0.5) / T;
             const m = c[0] * (1 - u) * (1 - w) + c[1] * u * (1 - w) + c[2] * (1 - u) * w + c[3] * u * w;
-            const k = clamp(Math.round(m + (hash2(i, j, 61 + v) - 0.5) * 0.8), 0, 2), r = hash2(i, j, 71 + v);
+            const k = clamp(Math.round(m + (hash2(i, j, 61 + v) - 0.5) * 1.5), 0, 2), r = hash2(i, j, 71 + v);
             const col = P[k][r < 0.13 * busy ? 1 : r > 1 - 0.06 * busy ? 2 : 0], o = (j * T + i) * 4;
             d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
         }
@@ -26773,21 +26833,25 @@ const DriftArt = {
             if (hash2(n, v, 133) < 0.5) px(x, cx + w - 1, cy, this.MEADOW[1][0]);
         }
     },
-    /* heather and dry grass, its edge against the meadow ragged */
-    heath(x, m, cs, v) {
-        fill(x, '#8a9856'); speckle(x, ['#7c8a4c', '#9aa864'], 141 + v, 0.3); speckle(x, ['#cabf86'], 143 + v, 0.08);
-        for (let n = 0; n < 4; n++) {
-            const hx = 2 + Math.floor(hash2(n, v, 145) * 11), hy = 2 + Math.floor(hash2(v, n, 146) * 11);
-            for (let j = -2; j <= 2; j++) for (let i = -3; i <= 3; i++) {
-                if (i * i / 9 + j * j / 4 > 1 + hash2(i, j, n + v) * 0.4) continue;
-                px(x, clamp(hx + i, 0, 15), clamp(hy + j, 0, 15), j < 0 && i < 1 ? '#b88ac6' : j > 0 ? '#7c4e8c' : '#a072b0');
+    /* heather and dry grass: low clumps of heather here and there in it, and its edge against the meadow wide and ragged */
+    heath(x, m, cs, v, rich) {
+        fill(x, rich ? '#8e9a58' : '#9aa662'); speckle(x, ['#84904c', '#a6b26e'], 141 + v, 0.34); speckle(x, ['#cabf86', '#b8ae74'], 143 + v, 0.1);
+        for (let n = 0; n < 5; n++) { const bx = Math.floor(hash2(n, v, 149) * 15), by = 2 + Math.floor(hash2(v, n, 150) * 13); fill(x, '#cabf86', bx, by - 2, 1, 2); px(x, bx, by, '#6e7a40'); }
+        /* the heather grows in clumps, thick in some places and hardly at all in others */
+        const clumps = rich === 2 ? 3 : rich === 1 ? 1 + (v % 2) : (v % 4 === 0 ? 1 : 0);
+        for (let n = 0; n < clumps; n++) {
+            const hx = 3 + Math.floor(hash2(n, v, 145) * 10), hy = 3 + Math.floor(hash2(v, n, 146) * 10), rx = 3 + (n + v) % 2, ry = 2 + (n % 2);
+            for (let j = -ry; j <= ry; j++) for (let i = -rx; i <= rx; i++) {
+                if (i * i / (rx * rx) + j * j / (ry * ry) > 0.75 + hash2(i + hx, j + hy, 147) * 0.6) continue;
+                const r = hash2(i + n, j + v, 144);
+                px(x, clamp(hx + i, 0, 15), clamp(hy + j, 0, 15), r < 0.08 ? '#e0a8dc' : j < 0 ? (r < 0.5 ? '#c294d0' : '#a674b8') : j === ry ? '#6a4e60' : '#8e5e9c');
             }
         }
         const P = this.MEADOW[+cs[0]];
         for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) {
             let d = 99;
             if (m & 1) d = Math.min(d, j); if (m & 2) d = Math.min(d, 15 - j); if (m & 4) d = Math.min(d, i); if (m & 8) d = Math.min(d, 15 - i);
-            if (d < hash2(i, j, 147 + v) * 5) px(x, i, j, hash2(i, j, 148) < 0.2 ? P[1] : P[0]);
+            if (d < 1.5 + OWA.n2((i + v * 16) / 3, j / 3, 148) * 7) px(x, i, j, hash2(i, j, 148) < 0.2 ? P[1] : P[0]);
         }
     },
     /* the cart track: two ruts (one to a lane where it's two wide), grass at its edges and down the middle */
@@ -26800,9 +26864,9 @@ const DriftArt = {
         for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) {
             let d = 99;
             if (!up) d = Math.min(d, j); if (!dn) d = Math.min(d, 15 - j); if (!lf) d = Math.min(d, i); if (!rt) d = Math.min(d, 15 - i);
-            /* the hump between two lanes */
-            if (dn && !up) d = Math.min(d, 15 - j + 1); if (up && !dn) d = Math.min(d, j + 1);
             if (d < 0.6 + hash2(i, j, 115 + v) * 2.4) px(x, i, j, hash2(i, j, 116 + v) < 0.25 ? P[3] : P[0]);
+            /* a few tufts down the middle, between two lanes */
+            else if (((dn && !up && j >= 14) || (up && !dn && j <= 1)) && hash2(i, j, 117 + v) < 0.3) px(x, i, j, P[hash2(i, j, 118) < 0.4 ? 3 : 0]);
         }
     },
     forest(x, v) {
@@ -26849,7 +26913,11 @@ const DriftArt = {
             case 'flowers': { const cs = this.corners(a, tx, ty), k = this.bloom(tx, ty); return tileCanvas(`drift2:fl:${cs}:${v}:${k}`, x => this.flowers(x, cs, v, k)); }
             case 'tallgrass': { const cs = this.corners(a, tx, ty); return tileCanvas(`drift2:tall:${cs}:${v}`, x => this.tall(x, cs, v)); }
             case 'oldroad': { const cs = this.corners(a, tx, ty); return tileCanvas(`drift2:road:${cs}:${v}`, x => this.oldroad(x, cs, v)); }
-            case 'heath': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.k === 'grass' && c.p !== 'heath'); return tileCanvas(`drift2:heath:${m}:${cs[0]}:${v}`, x => this.heath(x, m, cs, v)); }
+            case 'heath': {
+                const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.k === 'grass' && c.p !== 'heath'), v8 = Math.floor(hash2(tx, ty, 98) * 8);
+                const n = OWA.n2(tx / 2.5, ty / 2.5, 155), rich = n > 0.62 ? 2 : n > 0.45 ? 1 : 0;
+                return tileCanvas(`drift2:heath:${m}:${cs[0]}:${v8}:${rich}`, x => this.heath(x, m, cs, v8, rich));
+            }
             case 'path': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.p === 'path'); return tileCanvas(`drift2:track:${m}:${cs[0]}:${v}`, x => this.track(x, m, cs, v)); }
             case 'forest': return tileCanvas(`drift2:forest:${v}`, x => this.forest(x, v));
             case 'drywall': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.p === 'drywall'); return tileCanvas(`drift2:wall:${m}:${cs}:${v}`, x => this.drywall(x, m, cs, v)); }

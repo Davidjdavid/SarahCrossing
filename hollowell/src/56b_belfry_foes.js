@@ -56,7 +56,11 @@ class Clangor extends Enemy {
             case 'walk': {
                 const dx = p.x - this.x, dy = p.y - this.y, d = Math.hypot(dx, dy) || 1;
                 if (d > 18) { this.move(dx / d * 0.45, dy / d * 0.45); this.dir = dirOf(dx, dy); this.anim++; this.traceStep(); }
-                if ((this.st > 200 || (near && this.st > 90))) { this.state = 'windup'; this.st = 0; Sfx.play('twang'); }
+                if ((this.st > 200 || (near && this.st > 90))) {
+                    this.state = 'windup'; this.st = 0; Sfx.play('twang');
+                    /* its one dangerous move: the ring's reach drawn round it on the floor while it winds up (a full heart) */
+                    Hazard.ring(this, this.x, this.y, 30, { tell: 41, dmg: 2, col: '#e8b04a', fx: 'sparks', shake: 6, sound: 'bell' });
+                }
                 break;
             }
             case 'windup':
@@ -64,7 +68,6 @@ class Clangor extends Enemy {
                     this.state = 'ring'; this.st = 0;
                     Bells.ring(a, this.x, this.y - 8, 6);
                     G.shake = 6;
-                    if (p.state === 'normal' && dist(p.x, p.y, this.x, this.y) < 26) p.hurt(1, this.x, this.y);
                 }
                 break;
             case 'ring': if (this.st > 30) { this.state = 'walk'; this.st = 0; } break;
@@ -76,7 +79,7 @@ class Clangor extends Enemy {
     shoved(d, pace, by) {
         if (!this.alive || this.state === 'stunned') return;
         this.kx = DX[d] * 3; this.ky = DY[d] * 3;
-        this.state = 'stunned'; this.st = 0;
+        this.state = 'stunned'; this.st = 0; calmBlows(this);
         G.shake = 10; G.hitstop = 6; Sfx.play('hitthing'); Sfx.play('boss');
         Stats.count('boss:clangor:slam');
         if (!Progress.flag('cl_tip')) { Progress.set('cl_tip'); UI.toast("Its bell-helm's knocked crooked! Quick!", 140); }
@@ -135,13 +138,17 @@ SPAWN.clapper = (x, y, p) => new Clapper(x, y, p);
    3. he watches Wren: while she's near enough to ring the clapper home, he keeps his head in (his eyes in the bell's
       mouth go red). Something else has to ring near the clapper while she's far off: a pot carried under the old
       bell and smashed out of his sight sends its pieces home past it (the Kiln's way), and the old bell rings. */
-const TOLL = { lean: [0, 30, 20, 20], spit: [0, 75, 70, 70], spitSp: [0, 1.7, 1.9, 2.0], peek: [0, 330, 600, 600], daze: 200, wary: 8 };
+/* His blows (TELL[4]): leaning out, he spits gravel, his cheeks puffing first (one stone; then a burst of three; then a
+   fan of three); from the second beat, hidden in the bell, he pounds on it and mortar shakes down from the rafters
+   (shadows first: a full heart); in the third, red-eyed, he lunges out at Wren if she comes up under the bell's mouth
+   (the floor there lit first: a full heart). Each beat he's knocked into, a heart drops from the rafters. */
+const TOLL = { lean: [0, 30, 20, 20], spit: [0, 75, 70, 70], spitSp: [0, 1.7, 1.9, 2.0], peek: [0, 330, 600, 600], daze: 200, wary: 8, toll: [0, 0, 220, 190], rubble: 5 };
 class Tollgrim extends Enemy {
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ type: 'tollgrim', hp: 3 }, p));
         this.state = 'sleep'; this.st = 0; this.weightN = 2.5; this.hidden = true;
         this.mouth = [tx - 1, ty + 1];       /* where he leans out (the clapper's own place) */
-        this.spits = []; this.told = 1; this.wary = 0;
+        this.spits = []; this.told = 1; this.wary = 0; this.puff = 0; this.burst = 0; this.tollCool = 120; this.pounceCool = 60;
     }
     get phase() { return 4 - Math.max(1, Math.min(3, this.hp)); }
     onTile(x, y) { return this.alive && this.state === 'peek' && x === this.mouth[0] && y === this.mouth[1]; }
@@ -166,7 +173,7 @@ class Tollgrim extends Enemy {
         if (!this.alive) return this.updateYarn();
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area;
-        this.updateSpits();
+        if (!Script.blocking()) this.updateSpits();
         this.weather();
         if (this.state === 'sleep') {
             const r = a.roomAt(this.hx, this.hy);
@@ -186,6 +193,9 @@ class Tollgrim extends Enemy {
         const clap = a.find('clapper');
         const out = clap && clap.ret && clap.ret.state === 'away';     /* (not while it's on its way home: he isn't daft) */
         const [mx, my] = this.mouth, ph = this.phase;
+        const here = p.area === a && p.state === 'normal' && a.roomAt(p.tx, p.ty) === a.roomAt(this.hx, this.hy);
+        /* (2, 3) he pounds on the bell, in it or leaning out, and mortar shakes down from the rafters */
+        if (ph >= 2 && (this.state === 'hide' || this.state === 'peek') && here && --this.tollCool <= 0) this.toll(p, ph);
         switch (this.state) {
             case 'hide':
                 this.hidden = true; this.x = this.hx * T + 8; this.y = this.hy * T + 10;
@@ -193,15 +203,29 @@ class Tollgrim extends Enemy {
                    ring it home) */
                 if (out && this.st > TOLL.lean[ph] && !a.at(mx, my) && !(p.tx === mx && p.ty === my) && !(ph === 3 && this.nearClapper(p, clap))) {
                     this.state = 'peek'; this.st = 0; this.wary = 0; this.x = mx * T + 8; this.y = my * T + 10; this.hidden = false; Sfx.play('blip');
+                    break;
                 }
+                if (this.pounceCool > 0) this.pounceCool--;
+                /* (3) red-eyed, watching her: up close under the bell's mouth, and he lunges out at her */
+                if (ph === 3 && here && this.pounceCool <= 0 && this.pounceZone().some(([x, y]) => p.tx === x && p.ty === y)) {
+                    this.state = 'pounce'; this.st = 0; this.tellN = tellFor(4, 3);
+                    Hazard.tiles(this, this.pounceZone(), { tell: this.tellN, dmg: 2, live: 10, col: '#ff5a4a', fx: 'dust', shake: 6, sound: 'boss' });
+                    Stats.count('boss:tollgrim:pounce');
+                }
+                break;
+            case 'pounce':
+                /* the tell (his eyes flaring in the dark), then out at her and straight back in */
+                if (this.st >= this.tellN + 16) { this.state = 'hide'; this.st = 0; this.pounceCool = 150; }
                 break;
             case 'peek':
                 this.hidden = false;
                 /* (3) she's come within ringing distance of the clapper: back in */
                 if (ph === 3 && out && this.nearClapper(p, clap)) { if (++this.wary > TOLL.wary) { this.duck(); break; } } else this.wary = 0;
-                /* he comes out spitting: the first one straight away */
-                if (this.st === 8 || this.st % TOLL.spit[ph] === 30) this.spit(p);
-                if (this.st > TOLL.peek[ph]) { this.state = 'hide'; this.st = 0; }
+                /* he comes out spitting: cheeks puffed (the tell), then the gravel; again every so often */
+                if (this.st === 2 || (this.st > 2 && this.st % TOLL.spit[ph] === 2)) this.puff = tellFor(4, ph);
+                if (this.puff > 0 && --this.puff === 0) { this.spit(p); if (ph === 2) this.burst = 2; }
+                if (this.burst > 0 && (this.st % 8) === 0) { this.burst--; this.spit(p); }
+                if (this.st > TOLL.peek[ph]) { this.state = 'hide'; this.st = 0; this.puff = this.burst = 0; }
                 break;
             case 'stunned':
                 this.hidden = false;
@@ -210,7 +234,23 @@ class Tollgrim extends Enemy {
                 break;
         }
     }
-    duck() { this.state = 'hide'; this.st = 0; this.wary = 0; this.hidden = true; this.x = this.hx * T + 8; this.y = this.hy * T + 10; Sfx.play('blip'); }
+    duck() { this.state = 'hide'; this.st = 0; this.wary = 0; this.puff = this.burst = 0; this.hidden = true; this.x = this.hx * T + 8; this.y = this.hy * T + 10; Sfx.play('blip'); }
+    /* the floor up under the bell's mouth: what he can reach, lunging out */
+    pounceZone() { const [mx, my] = this.mouth, a = this.area, z = []; for (let y = my; y <= my + 1; y++) for (let x = mx - 1; x <= mx + 2; x++) if (!a.kind(x, y).solid) z.push([x, y]); return z; }
+    /* he pounds on the bell from inside: dust and mortar shake down from the rafters, two lumps near Wren and the rest
+       anywhere in the hall (their shadows first) */
+    toll(p, ph) {
+        const a = this.area, r = a.roomAt(this.hx, this.hy), tell = tellFor(4, ph) + 10, cand = [];
+        for (let y = r.y + 4; y < r.y + r.h - 1; y++) for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (!a.kind(x, y).solid && !a.at(x, y)) cand.push([x, y]);
+        cand.sort((m, n) => dist(m[0], m[1], p.tx, p.ty) - dist(n[0], n[1], p.tx, p.ty));
+        const near = cand.splice(0, 5), picks = [];
+        const take = (from, n) => { for (let i = 0; i < n && from.length; i++) picks.push(from.splice(Math.floor(G.rng() * from.length), 1)[0]); };
+        take(near, 2); take(cand, TOLL.rubble - 2);
+        for (const [x, y] of picks) Hazard.drop(this, x * T + 8, y * T + 10, { r: 11, dmg: 2, tell, fx: 'dust', col: '#7f7688', quiet: true, look: BelfryFoes.drawRubble });
+        this.tollCool = TOLL.toll[ph]; this.pounding = tell;
+        Sfx.play('warn'); Sfx.play('boss'); G.shake = 4;
+        Stats.count('boss:tollgrim:toll');
+    }
     /* (2, 3) he hears a ring as anything hears one: within a bell's reach. Heard, he's back inside before the clapper
        is home (the snap still takes it home: there's just no one in its way) */
     hear(x, y) {
@@ -255,8 +295,10 @@ class Tollgrim extends Enemy {
         if (this.flash > 0) return;
         this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 6; Sfx.play('enemyhit');
         Stats.count('boss:tollgrim:hit');
+        calmBlows(this);
         if (this.hp <= 0) return this.defeat();
-        this.duck();
+        bossHeart(this.area, this.x, this.y + 16);        /* (a heart drops from the rafters) */
+        this.duck(); this.tollCool = 150;
         this.beginPhase(this.phase);
     }
     /* a new beat: the hall changes with it (the bell heaved round, the wind turned), and a line says how he's changed */
@@ -284,11 +326,24 @@ class Tollgrim extends Enemy {
             if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.tess); }
             return;
         }
+        /* pounding on the bell from inside: dust sifting down round its rim, his eyes showing */
+        if (this.pounding > 0) {
+            this.pounding--;
+            if ((this.t >> 2) % 2) for (const ox of [-18, 0, 18]) Gfx.rect(this.hx * T - cx + 4 + ox + ((this.t >> 3) % 3), this.hy * T - cy - 18 + ((this.t * 3) % 22), 1, 2, '#cfc6b8');
+        }
+        /* about to lunge: his eyes flaring wide in the mouth of the bell, then out he comes and back */
+        if (this.state === 'pounce') {
+            const ex = this.hx * T - cx + 1, ey = this.hy * T - cy + 5;
+            if (this.st < this.tellN) { const big = (this.t >> 2) % 2 ? 3 : 2; Gfx.rect(ex, ey, big, big, '#ff5a4a'); Gfx.rect(ex + 6, ey, big, big, '#ff5a4a'); Tells.bang(ex + 4, ey - 34); return; }
+            const im = spr('toll'), [mx, my] = this.mouth, k = Math.sin(Math.min(1, (this.st - this.tellN) / 16) * Math.PI);
+            Gfx.img(im, mx * T + 8 - cx - 10, my * T + 10 - cy - 20 + Math.round(k * 14));
+            return;
+        }
         if (this.state === 'hide' || this.state === 'sleep') {
             /* his eyes in the dark of the bell's mouth: now and then early on; in the third beat always, following Wren,
                and red while she's near enough to ring the clapper home */
             const watch = this.state === 'hide' && this.phase === 3, p = G.player;
-            if (!watch && (this.t >> 4) % 4 !== 0) return;
+            if (!watch && !this.pounding && (this.t >> 4) % 4 !== 0) return;
             const near = watch && this.nearClapper(p, this.area.find('clapper'));
             const lx = watch && p ? clamp(Math.round((p.x - this.x) / 40), -1, 1) : 0, ly = watch && p && p.y > this.y + 20 ? 1 : 0;
             /* (in the dark band of the bell's mouth) */
@@ -298,7 +353,10 @@ class Tollgrim extends Enemy {
         }
         const im = spr(this.state === 'stunned' ? 'toll_daze' : 'toll');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        Gfx.img(img, this.x - cx - 10, this.y - cy - 20);
+        /* cheeks puffed: about to spit (he swells a little, and the gravel glows in his mouth) */
+        const sw = this.puff > 0 ? ((this.t >> 1) % 2 ? 1 : 0) : 0;
+        Gfx.img(img, this.x - cx - 10 - sw, this.y - cy - 20 - sw);
+        if (this.puff > 0) Tells.glow(this.x - cx, this.y - cy - 8, 1 - this.puff / tellFor(4, this.phase), '#c4bccb');
     }
 }
 SPAWN.tollgrim = (x, y, p) => Progress.flag('belfry_boss') ? new Ent('none') : new Tollgrim(x, y, p);
@@ -325,6 +383,8 @@ class Louvre extends Ent {
 SPAWN.louvre = (x, y, p) => new Louvre(x, y, p);
 
 const BelfryFoes = {
+    /* a lump of old mortar, coming down from the rafters */
+    drawRubble(x, y) { Gfx.rect(x - 4, y - 7, 8, 6, PAL.ink); Gfx.rect(x - 3, y - 6, 6, 4, '#a89fb0'); Gfx.rect(x - 3, y - 6, 3, 1, '#d8d0de'); },
     *clangorIntro(c) {
         yield 20;
         yield* say(null, "A suit of armour clanks to life. Where its head should be there's a bell, upside down, and inside the bell a clapper swinging like a tongue. CLANG, it says. The doors grind shut.");

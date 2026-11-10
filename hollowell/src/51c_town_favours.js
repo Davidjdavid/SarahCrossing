@@ -227,7 +227,7 @@ class SewingTin extends Liftable {
 }
 SPAWN.tin = (x, y, p) => new SewingTin(x, y, p);
 AREAS.lostfound.ents.push(
-    { k: 'tin', x: 1, y: 3, id: 'mabelTin', sleeper: true, tiedOff: true, startAt: [9, 5], trace: TIN_TRACE, pushLine: "A battered sewing tin among the strays, fast asleep. It snores, very faintly, like a kettle a long way off.", if: '!fav_tin' },
+    { k: 'tin', x: 1, y: 3, id: 'mabelTin', sleeper: true, tiedOff: true, resetSleep: true, startAt: [9, 5], trace: TIN_TRACE, pushLine: "A battered sewing tin among the strays, fast asleep. It snores, very faintly, like a kettle a long way off.", if: '!fav_tin' },
     { k: 'tin', x: 1, y: 3, id: 'mabelTin', if: 'fav_tin' },
     /* the strays on the floor: never home, because they've none (pushed, they stay pushed) */
     { k: 'stray', x: 5, y: 4, id: 'mabelStone' },

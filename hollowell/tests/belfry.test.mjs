@@ -105,6 +105,25 @@ test('the rafters: ring, and the sleeping slab of wall goes home (and the bats w
     assert.equal(HW.Inv.patches, 1);
 });
 
+test("clangor's ring: its reach drawn round it on the floor while it winds up; out of the ring, nothing (in it, a full heart)", () => {
+    for (const dodge of [true, false]) {
+        const HW = game();
+        enter(HW, 'loft', 9, 8);
+        const c = HW.ents('enemy').find(e => e.type === 'clangor');
+        go(HW, 'loft', 9, 6);
+        c.x = HW.player().x + 20; c.y = HW.player().y; c.st = 300;
+        assert.ok(until(HW, () => c.state === 'windup', 10), 'it winds up');
+        const ring = HW.G.map.ents.find(e => e.kind === 'hazard' && e.owner === c);
+        assert.ok(ring && ring.covers(HW.player().x, HW.player().y), 'Wren inside the ring');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('left'); HW.step(24); HW.release(); assert.ok(!ring.covers(HW.player().x, HW.player().y), 'out of it'); }
+        assert.ok(until(HW, () => c.state === 'ring', 60), 'it rings');
+        HW.step(2);
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'out of reach');
+        else assert.equal(HW.Inv.hp, hp - 2, 'rung off her feet');
+        noErrors(HW);
+    }
+});
 test("clangor: the stick bounces off; a bust out of place snaps home through it when it rings (two knocks)", () => {
     const HW = game();
     HW.G.cheats.god = true;
@@ -321,7 +340,75 @@ test('the great bell, beat 3: he watches Wren, and while she is in reach of the 
     HW.step(100); HW.skipTalk();
     assert.ok(HW.ents('hoop')[0], 'the hoop');
     assert.ok(thing(HW, 'gbGust').off && thing(HW, 'gbGale').off, 'the hall falls still');
+    assert.ok(HW.Stats.c['boss:tollgrim:toll'] >= 1, 'he pounded the bell (its blows landed but, here, did not hurt)');
     noErrors(HW);
+});
+/* his blows, each with its tell, each dodged (or not): the beats reached with them harmless, then real */
+const hz = (HW, o) => HW.G.map.ents.filter(e => e.kind === 'hazard' && e.owner === o);
+const freeTile = (HW, bad, near) => {
+    let best = null;
+    for (let y = 4; y <= 9; y++) for (let x = 1; x <= 18; x++) {
+        const [tx, ty] = at('bell', x, y), k = HW.G.map.kind(tx, ty);
+        if (k.solid || HW.G.map.at(tx, ty) || bad(tx, ty)) continue;
+        const d = Math.abs(tx - near.tx) + Math.abs(ty - near.ty);
+        if (!best || d < best[2]) best = [tx, ty, d];
+    }
+    return best;
+};
+test("Tollgrim's spit: leaning out, his cheeks puff (the gravel aglow in his mouth); a step aside as it comes and it flies past", () => {
+    for (const dodge of [true, false]) {
+        const HW = bellGame(); HW.G.cheats.god = false;
+        const t = toll(HW);
+        go(HW, 'bell', 4, 8);
+        assert.ok(until(HW, () => t.puff > 0, 900), 'his cheeks puff');
+        const hp = HW.Inv.hp;
+        assert.ok(until(HW, () => t.spits.length > 0, 60), 'he spits');
+        if (dodge) { HW.hold('down'); HW.step(8); HW.hold('right'); HW.step(50); HW.release(); }
+        else HW.step(60);
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'flew past');
+        else assert.ok(HW.Inv.hp < hp, 'hit');
+        noErrors(HW);
+    }
+});
+test('Tollgrim pounds the bell (beat 2 on): mortar shakes down from the rafters, its shadows first; out from under them (a full heart if not)', () => {
+    for (const dodge of [true, false]) {
+        const HW = bellGame();
+        beat1(HW); HW.G.cheats.god = false;
+        const t = toll(HW);
+        go(HW, 'bell', 14, 7);
+        assert.ok(until(HW, () => hz(HW, t).length >= 4, 900), 'shadows on the floor');
+        const sh = hz(HW, t), hp = HW.Inv.hp, p = HW.player();
+        assert.ok(sh.every(h => h.tell >= 30), 'a fair tell');
+        if (dodge) {
+            const spot = freeTile(HW, (x, y) => sh.some(h => h.covers(x * 16 + 8, y * 16 + 10) || Math.hypot(h.x - (x * 16 + 8), h.y - (y * 16 + 10)) < 20), p);
+            assert.ok(HW.walkTo(spot[0], spot[1]), 'out from under every shadow');
+        } else {
+            const h = sh.slice().sort((m, n) => Math.hypot(m.x - p.x, m.y - p.y) - Math.hypot(n.x - p.x, n.y - p.y))[0];
+            assert.ok(HW.walkTo(Math.floor(h.x / 16), Math.floor(h.y / 16)), 'under a shadow');
+        }
+        assert.ok(until(HW, () => hz(HW, t).every(h => h.landed), 100)); HW.step(4);
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'all of it missed');
+        else assert.equal(HW.Inv.hp, hp - 2, 'a lump of mortar');
+        noErrors(HW);
+    }
+});
+test("Tollgrim's lunge (beat 3): up close under the bell's mouth, his red eyes flare and the floor there lights; back off it and he snaps at the air", () => {
+    for (const dodge of [true, false]) {
+        const HW = bellGame();
+        beat1(HW); beat2(HW); HW.G.cheats.god = false;
+        const t = toll(HW);
+        HW.step(60); HW.skipTalk();
+        go(HW, 'bell', 9, 5);
+        assert.ok(until(HW, () => t.state === 'pounce', 300), 'his eyes flare');
+        const z = hz(HW, t).find(h => h.dmg === 2 && h.shape === 'tiles');
+        assert.ok(z && z.covers(HW.player().x, HW.player().y), 'the floor under the mouth lit, Wren on it');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('down'); HW.step(20); HW.release(); }
+        assert.ok(until(HW, () => t.state === 'hide', 100), 'back in');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'backed off: missed');
+        else assert.ok(HW.Inv.hp <= hp - 2, 'caught: a full heart');
+        noErrors(HW);
+    }
 });
 test('the great bell, beat 1: a ring he hears does not make him duck yet (he learns that after)', () => {
     const HW = bellGame();
