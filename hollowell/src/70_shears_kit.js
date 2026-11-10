@@ -64,9 +64,10 @@ const Shears = {
                 if (e.mv) { a.unplace(e, e.mv.fx, e.mv.fy); e.mv = null; a.unplace(e, e.tx, e.ty); e.x = e.tx * T; e.y = e.ty * T; a.place(e, e.tx, e.ty); }
             }
             /* cut loose over a hole or deep water (hanging on its thread a moment ago): down it goes, and fills it */
-            const k = a.kind(e.tx, e.ty);
-            if (e.isGrid && e.landed && !e.removed && (k.pit || (k.deep && !e.floats))) e.landed(false);
-            if (k) Progress.setAreaFlag(a.id, 'cut:' + k, e.tx + ',' + e.ty);
+            const kind = a.kind(e.tx, e.ty);
+            if (e.isGrid && e.landed && !e.removed && (kind.pit || (kind.deep && !e.floats))) e.landed(false);
+            /* (where it was cut, kept by its own key: the place built afresh puts it back there) */
+            if (k && !e.removed) Progress.setAreaFlag(a.id, 'cut:' + k, e.tx + ',' + e.ty);
         }
         if (!quiet) {
             Sfx.play('snip'); Fx.ring((e.px !== undefined ? e.px : e.x) + 8, (e.py !== undefined ? e.py : e.y) + 4, '#e4ecf5');

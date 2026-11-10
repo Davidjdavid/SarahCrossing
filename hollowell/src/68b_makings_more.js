@@ -1,0 +1,300 @@
+/* The Makings, the second half (after src/68_makings.js): Little Houses five to eight.
+   5 The Tidyhouse, Underneath (Ives): the first rooms of Wren's own Wander, the Foyer, the Hall of Busts and the
+     Ballroom, built again for Tuck the way she had them, and worked from underneath: now you see the cords under the busts
+     you pushed. New: where he stands when it jumps decides which way he pushes it; and a tug on something out of its
+     place sends it home now, shoving harder (the Hall of Busts' own trick, done from below). No Needle in Ives's rooms.
+   6 The Housekeeper (Jory): Otto comes along to play the Housekeeper, with rules of his own (anything out of its
+     place he goes and tidies home, coming at it from his side; a thing held fast he stands and tsks at; then back
+     to his X). New: a second child, and what he does with what Tuck does.
+   7 Tidy and Untidy (Mallow): both of them at once; the Needle makes a thing tidy for good.
+   8 The Grand Hall (every Maker): the Tidyhouse's last room, from underneath; Otto is the Housekeeper on its cross,
+     and the way past him is the one the real Housekeeper fell for. */
+
+/* ---------------- a note on the wall: words worked out when it's read (the Makers' notes from Wren's own Wander) ---------------- */
+class Memo extends Sign {
+    interact() { const t = typeof this.say === 'function' ? this.say() : this.text; Script.run(function* () { for (const l of [].concat(t)) yield* say(null, l); }); return true; }
+}
+SPAWN.memo = (x, y, p) => new Memo(x, y, p);
+/* how long Wren spent in one of the Tidyhouse's rooms on her own Wander, in whole minutes (0: no page for it) */
+function tidyMinutes(name) {
+    const def = AREAS.tidy, i = def && def.rooms ? def.rooms.findIndex(r => r.name === name) : -1;
+    const r = i >= 0 && Stats.rooms['tidy:' + i];
+    return r && r.t ? Math.max(1, Math.round(r.t / 3600)) : 0;
+}
+function tidyNudged(name) {
+    const def = AREAS.tidy, i = def && def.rooms ? def.rooms.findIndex(r => r.name === name) : -1;
+    const r = i >= 0 && Stats.rooms['tidy:' + i];
+    return !!(r && r.nudges);
+}
+
+/* ---------------- no Needle in Ives's rooms ---------------- */
+{
+    const use0 = Needle.use;
+    Needle.use = function (p) {
+        if (p && p.area && p.area.def.noNeedle && !this.st) { UI.toast(p.area.def.noNeedle, 200); Sfx.play('cancel'); return; }
+        return use0.call(this, p);
+    };
+}
+
+/* ---------------- 5: The Tidyhouse, Underneath (Ives) ---------------- */
+/* Laid out west to east: the Ballroom, the Hall of Busts, the Foyer; Tuck comes in at the Foyer's front door, as Wren
+   did. Each room's own trick, the other side of the floor. */
+defMaking(5, {
+    /* the Ballroom: both busts home, tidied (as Wren left it); the hoop at the end of the corridor they used to jam in */
+    '0,0': {
+        name: 'The Ballroom',
+        rows: ['####################', '#..................#', '#..................#', '#..................#', '#....##########....#', '#...................', '#...o##########....#', '##..o...........ooo#', '#.ooo...........o.o#', '##..............ooo#', '###.################'],
+        ents: [
+            { k: 'littlehoop', x: 3, y: 5 },
+            { k: 'bust', x: 2, y: 2, id: 'm5BA' }, { k: 'bust', x: 17, y: 3, id: 'm5BB' },
+            { k: 'lever', x: 6, y: 9 },
+            { k: 'door', x: 3, y: 10, type: 'lock', id: 'm5LockS' },
+        ],
+    },
+    /* the Hall of Busts: the middle bust set out up its lane and tied there; its way home runs down past the plate */
+    '1,0': {
+        name: 'The Hall of Busts',
+        rows: ['###.################', '#..................#', '#..................#', '########...........#', '#,,,,,,,,,,,,,,,,,,#', ',,,,,,,,,,,,,,,,,,,,', '#,,,,,,,,,,,,,,,,,,#', '#,,,,,,,,,,,,,,,,,,#', '#,,,,,,,,,,,,,,,,,,#', '#,,,,,,,,,,,,,,,,,,#', '#########,##########'],
+        ents: [
+            { k: 'bust', x: 9, y: 6, id: 'm5B', startAt: [9, 3], trace: [[9, 6], [9, 5], [9, 4], [9, 3]], knotted: true },
+            { k: 'plate', x: 9, y: 7, sig: 'm5h' },
+            { k: 'wood', x: 8, y: 5, id: 'm5K' },
+            { k: 'bust', x: 2, y: 8, id: 'm5B2' }, { k: 'bust', x: 17, y: 8, id: 'm5B3' },
+            { k: 'pot', x: 2, y: 1, id: 'm5Pot', style: 'pot_teal' }, { k: 'treasure', x: 2, y: 1 },
+            { k: 'door', x: 0, y: 5, type: 'gate', when: 'm5h', dir: 'v', id: 'm5Gate' },
+            { k: 'door', x: 3, y: 0, type: 'lock', id: 'm5LockN' }, { k: 'door', x: 9, y: 10, type: 'lock', id: 'm5LockH' },
+        ],
+    },
+    /* the Foyer: the block a step nearer the plate than Wren had it (he's six); the plate opens the way west */
+    '2,0': {
+        name: 'The Foyer',
+        rows: ['#########.##########', '#..................#', '#.,,,,,,,,,,,,,,,,.#', '#.,..............,.#', '#.,..............,.#', '.................,..', '#.,..............,.#', '#.,..............,.#', '#.,,,,,,,,,,,,,,,,.#', '#..................#', '#########.##########'],
+        ents: [
+            { k: 'tuck', x: 9, y: 9, id: 'tuck' },
+            { k: 'wood', x: 6, y: 5, id: 'm5F', patience: 60 },
+            { k: 'plate', x: 7, y: 5, sig: 'm5f' },
+            { k: 'door', x: 0, y: 5, type: 'gate', when: 'm5f', dir: 'v', id: 'm5FGate' },
+            { k: 'bust', x: 3, y: 3, id: 'm5F1' }, { k: 'bust', x: 16, y: 3, id: 'm5F2' }, { k: 'bust', x: 3, y: 7, id: 'm5F3' }, { k: 'bust', x: 16, y: 7, id: 'm5F4' },
+            { k: 'door', x: 9, y: 0, type: 'lock', id: 'm5LockF' }, { k: 'door', x: 19, y: 5, type: 'lock', dir: 'v', id: 'm5LockE' },
+        ],
+    },
+    '0,1': BELOW_ROOM('Under the Ballroom', '0,0', 'e', [
+        { k: 'deco', x: 4, y: 3, look: 'keeper_costume', solid: [[0, 0], [1, 0]], text: "On a rail under the Ballroom hangs a wardrobe with polished feet, its doors open: leather straps inside, two handholds worn smooth, a cushion. The Grand Housekeeper. A label: MINE. WHEELS WANT OILING. DON'T TELL GUNDRY. -I." },
+        { k: 'memo', x: 15, y: 2, say: () => "THE BALLROOM. Two busts, one corridor. You held the one and let the other by, and then you sat on the floor and laughed. I heard you. -I." },
+    ]),
+    '1,1': Object.assign(BELOW_ROOM('Under the Hall of Busts', '1,0', 'we', [
+        { k: 'memo', x: 16, y: 2, say: () => { const m = tidyMinutes('Hall of Busts'); return m ? `THE HALL OF BUSTS: ${G.wanderer || 'Wren'}, ${m} minute${m === 1 ? '' : 's'}. Stood on the plate, pushed the big bust up the lane, and let it come home through the block. I nearly clapped and gave us all away. -I.` : "THE HALL OF BUSTS. (The page is blank. That's not like me.) -I."; } },
+        { k: 'sign', x: 2, y: 8, text: "A HEAVY THING GOING HOME GOES THROUGH WHATEVER'S LIGHTER. (Mind the boy.) And a tug on a thing that's out of its place sends it home now. -I." },
+    ]), { nudge: { solved: () => Making.past(20), after: 60 * 60 * 2, at: [9, 6], say: "The bust up the lane would come home through anything lighter that got in its way. Nothing's in its way. Yet." } }),
+    '2,1': Object.assign(BELOW_ROOM('Under the Foyer', '2,0', 'w', [
+        { k: 'sign', x: 2, y: 2, text: "THE TIDYHOUSE, UNDERNEATH. My first three rooms, the way your Wander went, built again for Tuck. No Needle in my rooms, love: you didn't have one either. -I." },
+        { k: 'memo', x: 16, y: 8, say: () => { const m = tidyMinutes('Foyer'); return m ? [`THE FOYER: ${G.wanderer || 'Wren'}, ${m} minute${m === 1 ? '' : 's'}. Raced that block to the gate like a hare. Never once looked down.`, tidyNudged('Foyer') ? "(I ticked, once, behind the wall. You didn't need it. You'd have got it.) -I." : "(I never had to tick once.) -I."] : "THE FOYER. (A blank page, and a little drawing of a block.) -I."; } },
+    ]), { nudge: { solved: () => Making.past(40), after: 60 * 60 * 2, at: [6, 5], say: "Up there, whatever jumps, Tuck pushes away from wherever he's standing. Where's he standing now?" } }),
+}, {
+    up: 'tidy', thread: THREAD.ives, noNeedle: "Not in Ives's rooms: you hang the Needle on its hook. (You didn't have one in the Tidyhouse either.)",
+});
+
+/* ---------------- Otto, the Housekeeper ---------------- */
+/* His rules (on the wall below, in his own spelling): 1. stand on my X; 2. anything out of its place, tidy it home
+   (he trots round to the side of it facing his X, the nearest free side if that one's taken, and yanks it, which
+   sends it home at once, hard); 3. if it's held, stand there and tsk at it till it isn't; 4. then back to my X.
+   He weighs what Tuck weighs, and a thing he yanks home through him bowls him over ("OOF!"), as it did in the square. */
+const KEEP_STEP = 12;           /* frames a tile: he trots */
+const KEEP_DOWN = 360;          /* bowled over, he sits a good while, seeing stars */
+class Keeper extends NPC {
+    constructor(tx, ty, p = {}) {
+        super(tx, ty, Object.assign({ who: 'otto', marked: false }, p));
+        this.person = true; this.weight = WEIGHT.medium; this.noPush = true; this.showThrough = true; this.noKnot = true; this.keeper = true;
+        this.home0 = [tx, ty]; this.face0 = this.dir;
+        this.state = 'home'; this.st = 0; this.target = null; this.seen = null; this.wait = 0; this.downs = 0;
+        /* his own thread, down to his X (like everybody's) */
+        this.ret = { mx: tx, my: ty, area: null, color: PEOPLE_DEF.otto.col, state: 'home', trace: [[tx, ty]], timer: 0, patience: 1e9, snap: false, strain: 0, pace: 10 };
+    }
+    onAdd(area) { area.place(this, this.tx, this.ty); }
+    scary() { return []; }
+    say(text, bubble) { return Tuck.prototype.say.call(this, text, bubble); }
+    /* things out of their place, in his room up top: the nearest to his X first */
+    mess() {
+        const a = this.area, room = a.roomAt(this.home0[0], this.home0[1]);
+        let best = null, bd = 1e9;
+        for (const e of a.ents) {
+            if (!e.isGrid || !e.ret || e.person || e.removed || e.carried || e.mv || e.hiddenYank || e.pendingHome) continue;
+            if (e.ret.state !== 'away' || a.roomAt(e.tx, e.ty) !== room) continue;
+            const d = Math.hypot(e.tx - this.home0[0], e.ty - this.home0[1]);
+            if (d < bd) { bd = d; best = e; }
+        }
+        return best;
+    }
+    /* the side of it he comes at it from: the one facing his X, or the next nearest he can get to */
+    side(m) {
+        const [hx, hy] = this.home0;
+        const sides = [UP, DOWN, LEFT, RIGHT].map(d => [m.tx + DX[d], m.ty + DY[d]]).sort((p, q) => Math.hypot(p[0] - hx, p[1] - hy) - Math.hypot(q[0] - hx, q[1] - hy));
+        for (const [x, y] of sides) {
+            if (x === this.tx && y === this.ty) return [x, y];
+            if (this.walkable(x, y) && this.route(x, y, false)) return [x, y];
+        }
+        return null;
+    }
+    stepTo(gx, gy) {
+        const r = this.route(gx, gy, false) || this.route(gx, gy, true);
+        if (r && r.length) { this.dir = dirOf(r[0][0] - this.tx, r[0][1] - this.ty); this.startMove(r[0][0], r[0][1], KEEP_STEP); return true; }
+        this.wait = 12; return false;
+    }
+    /* he has an X in every room of his; he's always in the room the boy's in (round the back, ahead of him) */
+    follow() {
+        const a = this.area, t = a.find('tuck'), r = t && !t.mv ? a.roomAt(t.tx, t.ty) : null;
+        if (!r || r === a.roomAt(this.home0[0], this.home0[1])) return false;
+        const x = a.ents.find(e => e.kind === 'keeperx' && a.roomAt(e.tx, e.ty) === r);
+        if (!x || (a.at(x.tx, x.ty) && a.at(x.tx, x.ty) !== this)) return false;
+        a.unplace(this, this.tx, this.ty); Fx.poof(this.px + 8, this.py + 8);
+        this.home0 = [x.tx, x.ty]; this.face0 = x.face !== undefined ? dirByName(x.face) : DOWN; this.dir = this.face0;
+        this.tx = x.tx; this.ty = x.ty; this.x = x.tx * T; this.y = x.ty * T; a.place(this, x.tx, x.ty);
+        this.ret.mx = x.tx; this.ret.my = x.ty; this.ret.trace = [[x.tx, x.ty]]; this.ret.state = 'home';
+        Fx.poof(this.px + 8, this.py + 8);
+        this.state = 'home'; this.st = 0; this.target = null; this.seen = null; this.tsking = false; this.wait = 20;
+        return true;
+    }
+    update() {
+        this.stepMove();
+        if (this.bubbleT > 0 && --this.bubbleT === 0) this.bubble = null;
+        if (this.mv) { this.anim++; return; }
+        if (Script.blocking() || this.knotted) return;
+        if (this.state !== 'down' && this.follow()) return;
+        this.st++;
+        if (this.wait > 0) { this.wait--; return; }
+        const [hx, hy] = this.home0;
+        switch (this.state) {
+            case 'down':
+                if (this.st > KEEP_DOWN) { this.state = 'home'; this.st = 0; this.say('...Tidied. By my own tidying.', 'dots'); this.wait = 30; }
+                return;
+            case 'home': {
+                const m = this.mess();
+                if (m) {
+                    if (this.seen !== m) { this.seen = m; this.st = 0; this.say('Tsk!', 'bang'); Sfx.play('twang'); this.dir = dirOf(m.tx - this.tx, m.ty - this.ty); return; }
+                    if (this.st > 24) { this.target = m; this.state = 'tidy'; this.st = 0; }
+                    return;
+                }
+                this.seen = null;
+                if (this.tx !== hx || this.ty !== hy) { this.stepTo(hx, hy); return; }
+                if (this.dir !== this.face0 && this.st > 30) this.dir = this.face0;
+                return;
+            }
+            case 'tidy': {
+                const m = this.target;
+                if (!m || m.removed || !m.ret || m.ret.state !== 'away' || m.carried) { this.state = 'home'; this.st = 0; this.target = null; return; }
+                const sd = this.side(m);
+                if (!sd) { this.wait = 20; if (this.st > 40 && this.st % 90 === 41) this.say('Hmph!', 'dots'); return; }
+                if (this.tx !== sd[0] || this.ty !== sd[1]) { this.stepTo(sd[0], sd[1]); return; }
+                this.dir = dirOf(m.tx - this.tx, m.ty - this.ty);
+                if (m.mv) return;
+                /* held fast: he stands there and tsks at it */
+                if (Return.held(m)) { if (!this.tsking) { this.tsking = true; this.st = 0; } if (this.st % 70 === 1) this.say(this.st < 2 ? 'Tsk! Tsk!' : ['Tsk.', 'TSK.', 'Tsk tsk tsk.', 'Hmph. Tsk.'][(this.st / 70 | 0) % 4], 'bang'); return; }
+                this.tsking = false;
+                Return.snap(m); Sfx.play('tug'); this.say('Tidy!');
+                Stats.count('otto:tidy');
+                this.state = 'watch'; this.st = 0;
+                return;
+            }
+            case 'watch': if (this.st > 40) { this.state = 'home'; this.st = 0; this.target = null; } return;
+        }
+    }
+    /* bowled over by something coming home through him: he slides a tile and sits down hard */
+    shove(d, dur, by) {
+        this.startMove(this.tx + DX[d], this.ty + DY[d], dur);
+        this.state = 'down'; this.st = 0; this.target = null; this.tsking = false; this.downs++;
+        G.shake = 4; Sfx.play('hitthing'); this.say('OOF!', 'bang');
+        Stats.count('otto:down');
+        if (Making.cur) Making.cur.ottoDown = (Making.cur.ottoDown || 0) + 1;
+    }
+    /* his own thread: a tug and he's back on his X */
+    onTug() {
+        Sfx.play('flight'); Stats.count('otto:yanked');
+        const a = this.area, [hx, hy] = this.home0;
+        a.unplace(this, this.tx, this.ty); if (this.mv) a.unplace(this, this.mv.fx, this.mv.fy);
+        this.mv = null; Fx.poof(this.px + 8, this.py + 8);
+        let [x, y] = [hx, hy];
+        if (a.at(x, y)) { const f = [[hx, hy + 1], [hx + 1, hy], [hx - 1, hy], [hx, hy - 1]].find(([u, v]) => this.walkable(u, v)); if (f) [x, y] = f; }
+        this.tx = x; this.ty = y; this.x = x * T; this.y = y * T; a.place(this, x, y);
+        Fx.poof(this.px + 8, this.py + 8);
+        this.state = 'home'; this.st = 0; this.target = null; this.seen = null; this.tsking = false; this.wait = 30;
+        this.say('Hey! I was TIDYING!', 'bang');
+    }
+    onNoKnot() { this.say("Housekeepers don't get tied!", 'bang'); UI.toast("He's the Housekeeper: you can give his thread a tug, but you won't tie him down.", 150); }
+    sprite() {
+        if (this.state === 'down' && !this.mv) return personFrame('otto', DOWN, 0);
+        return super.sprite();
+    }
+    draw(cx, cy) {
+        super.draw(cx, cy);
+        const im = this.sprite(); if (!im) return;
+        const sx = this.px - cx, top = this.py - cy - (im.height - T) - 2;
+        if (this.state === 'down') { if (!this.mv) for (let i = 0; i < 3; i++) { const a = G.t / 9 + i * 2.1; Gfx.rect(sx + 7 + Math.round(Math.cos(a) * 6), top - 2 + Math.round(Math.sin(a) * 2), 2, 2, PAL.yellow); } return; }
+        /* a folded paper hat and a feather duster, as in the square */
+        Gfx.img(spr('kid_hat'), sx + 3, top - 3);
+        if (this.state === 'tidy' || this.state === 'watch') Gfx.img(spr('kid_duster'), sx + (this.dir === LEFT ? -4 : 12), top + 6, this.dir === LEFT);
+    }
+}
+for (const k of ['walkable', 'route']) Keeper.prototype[k] = Tuck.prototype[k];
+SPAWN.keeper = (x, y, p) => new Keeper(x, y, p);
+/* his chalk X, on the floor where he stands guard */
+class KeeperX extends FloorThing {
+    constructor(tx, ty, p = {}) { super('keeperx', tx, ty, p); }
+    draw(cx, cy) { if (ART.chalk_x) { Gfx.alpha(0.8); Gfx.img(ART.chalk_x, this.x - cx, this.y - cy); Gfx.alpha(1); } }
+}
+SPAWN.keeperx = (x, y, p) => new KeeperX(x, y, p);
+/* a doormat: it only feels somebody standing on it (a person, not a thing) */
+class Mat extends Plate {
+    weighed() { const o = this.area.at(this.tx, this.ty); return !!(o && o.person && !o.mv); }
+    draw(cx, cy) { Gfx.img(spr(this.down ? 'mat_down' : 'mat'), this.x - cx, this.y - cy); }
+}
+SPAWN.mat = (x, y, p) => new Mat(x, y, p);
+
+
+/* ---------------- 6: The Housekeeper (Jory): Otto comes along ---------------- */
+const OTTO_RULES = "OTTO'S RULES (THE HOUSEKEEPER'S, as written by Otto): 1. STAND ON MY X. (I HAVE ONE IN EVERY ROOM. I GO ROUND THE BACK.) 2. IF A THING IS OUT OF ITS PLACE, TIDY IT. I COME AT IT FROM MY SIDE. 3. IF IT WONT GO, TSK AT IT TILL IT DOES. 4. THEN BACK TO MY X. -O. (And a note: He's playing the Housekeeper, love. He isn't on a Wander, so he won't go near the hoop. -J.)";
+defMaking(6, {
+    /* the only way through is a passage in the wall, a block at its far mouth; Otto's X just beyond: whatever Tuck
+       pushes out of the way, Otto tidies straight back into it */
+    '0,0': {
+        name: "Otto's X",
+        rows: ['####################', '#........#.........#', '#........#.........#', '#........#.........#', '#........#.........#', '#...................', '#........#.........#', '#........#.........#', '#........#.........#', '#........#.........#', '####################'],
+        ents: [
+            { k: 'tuck', x: 3, y: 5, id: 'tuck' },
+            { k: 'keeperx', x: 11, y: 3, face: 'down' }, { k: 'keeper', x: 11, y: 3, id: 'otto', face: 'down' },
+            { k: 'wood', x: 10, y: 5, id: 'm6W' },
+            { k: 'pot', x: 2, y: 8, id: 'm6Pot' }, { k: 'treasure', x: 2, y: 8 },
+        ],
+    },
+    /* the way on opens while somebody stands on the doormat; Otto won't, unless he's got something to tsk at there */
+    '1,0': {
+        name: 'The Doormat',
+        rows: ['####################', '#.............#....#', '#.............#....#', '#.............#....#', '#.............#....#', '...............,...#', '#.............#....#', '#.............#....#', '#.............#....#', '#.............#....#', '####################'],
+        ents: [
+            { k: 'keeperx', x: 10, y: 1, face: 'down' },
+            { k: 'wood', x: 10, y: 5, id: 'm6B' },
+            { k: 'mat', x: 9, y: 4, sig: 'm6m' },
+            { k: 'door', x: 14, y: 5, type: 'gate', when: 'm6m', dir: 'v', id: 'm6Gate' },
+            { k: 'littlehoop', x: 17, y: 5 },
+        ],
+    },
+    '0,1': Object.assign(BELOW_ROOM("Under Otto's X", '0,0', 'e', [
+        { k: 'sign', x: 3, y: 2, text: OTTO_RULES },
+    ]), { nudge: { solved: () => Making.past(20, true), after: 60 * 60 * 2, at: [10, 5], say: "Otto can't bear a thing out of its place. And he can't tidy a thing that's held fast; he can only stand there tsking at it." } }),
+    '1,1': Object.assign(BELOW_ROOM('Under the Doormat', '1,0', 'w', [
+        { k: 'sign', x: 16, y: 8, text: "THE DOORMAT. It only feels somebody standing on it. (Otto always comes at a thing from the side nearest his X. Always. -J.)" },
+    ]), { nudge: { solved: () => Making.past(35, true), after: 60 * 60 * 2, at: [9, 4], say: "Otto stands on whichever side of a mess is nearest his X. Where would the block have to be for that side to be the mat?" } }),
+}, { up: 'kilnhouse', thread: THREAD.jory });
+
+/* Tuck's got west of x (the Little Houses run west to east, or east to west: a room's done once he's out of it) */
+Making.past = function (x, east) {
+    const a = G.map, t = a && a.def.making ? a.find('tuck') : null;
+    return !t || t.state === 'done' || (east ? t.tx >= x : t.tx < x);
+};
+
+function initMakingsMore() {
+    ART.keeper_costume = SPR.keeper_open;
+    /* a woven doormat with a red border; pressed, it squashes flat */
+    defSprite('mat', ['................', '................', '................', '..kkkkkkkkkkkk..', '..krrrrrrrrrrk..', '..krmMmMmMmMrk..', '..krMmMmMmMmrk..', '..krmMmMmMmMrk..', '..krMmMmMmMmrk..', '..krmMmMmMmMrk..', '..krMmMmMmMmrk..', '..krrrrrrrrrrk..', '..kkkkkkkkkkkk..', '................', '................', '................'], { r: '#c42b4a', m: '#c9a46a', M: '#a8844a' });
+    defSprite('mat_down', ['................', '................', '................', '................', '..kkkkkkkkkkkk..', '..krrrrrrrrrrk..', '..krmMmMmMmMrk..', '..krMmMmMmMmrk..', '..krmMmMmMmMrk..', '..krMmMmMmMmrk..', '..krmMmMmMmMrk..', '..krrrrrrrrrrk..', '..kkkkkkkkkkkk..', '................', '................', '................'], { r: '#a8243e', m: '#b4925a', M: '#94743e' });
+}
+CONTENT_INIT.push(initMakingsMore);
