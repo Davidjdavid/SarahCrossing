@@ -307,8 +307,9 @@ test('the Housekeeper: slammed by a bust coming home, then struck while its door
 });
 
 const until = (HW, fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
-test('the Housekeeper, for real, three different ways: its own yank; a way home through its cross; a held bust drags it', () => {
+test('the Housekeeper, for real, three different ways, its moves going all the while: its own yank; a way home through its cross; a held bust drags it', () => {
     const HW = game();
+    HW.G.cheats.god = true;                     /* (its blows land but don't hurt here: the dodging is checked below) */
     HW.Inv.giveTool('gloves');                  /* (found mid-House, before the boss) */
     HW.Inv.patterns.push('tidy');
     HW.warp('tidy', ...at('ante', 1, 5));
@@ -354,5 +355,101 @@ test('the Housekeeper, for real, three different ways: its own yank; a way home 
     strike();
     HW.step(100); HW.skipTalk();
     assert.ok(HW.Progress.flag('tidy_boss'), 'down for good');
+    assert.ok(HW.Stats.c['boss:tidy:charge'] >= 1, 'it charged');
     noErrors(HW);
+});
+
+/* into the Grand Hall and through its introduction: the Housekeeper on its cross, awake */
+function hall(HW) {
+    HW.Inv.patterns.push('tidy');
+    HW.warp('tidy', ...at('ante', 1, 5));
+    HW.hold('left'); HW.step(50); HW.release();
+    HW.hold('left'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk();
+    const k = HW.ents('enemy').find(e => e.type === 'housekeeper');
+    until(HW, () => k.state === 'home', 300);
+    return k;
+}
+const hazards = HW => HW.G.map.ents.filter(e => e.kind === 'hazard');
+test("the Housekeeper's charge: its lane lit to the wall for the whole tell; out of the lane it thunders by, in it it costs a heart", () => {
+    for (const dodge of [true, false]) {
+        const HW = game();
+        HW.Inv.maxHp = HW.Inv.hp = 10;
+        const k = hall(HW);
+        go(HW, 'boss', 14, 4); HW.face('left');
+        assert.ok(until(HW, () => k.state === 'windup', 400), 'it winds up');
+        const lane = hazards(HW).find(h => h.owner === k);
+        assert.ok(lane && lane.tiles.some(([x, y]) => x === at('boss', 14, 4)[0] && y === at('boss', 14, 4)[1]), 'its lane lit, Wren in it');
+        assert.ok(lane.tell >= 36, 'a long first-House tell');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('up'); HW.step(26); HW.release(); }
+        assert.ok(until(HW, () => k.state === 'recoil', 200), 'it charged');
+        HW.step(20);
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'stepped out of its lane: missed');
+        else assert.equal(HW.Inv.hp, hp - 2, 'stood in its lane: a full heart');
+        noErrors(HW);
+    }
+});
+test("the Housekeeper's stamp: up on its toes, a ring on the floor round it; out of the ring, nothing", () => {
+    for (const dodge of [true, false]) {
+        const HW = game();
+        HW.Inv.maxHp = HW.Inv.hp = 10;
+        const k = hall(HW);
+        go(HW, 'boss', 10, 5);                   // close by, but not in line with it
+        assert.ok(until(HW, () => k.state === 'rear', 300), 'it rears');
+        const ring = hazards(HW).find(h => h.owner === k && h.shape === 'ring');
+        assert.ok(ring && ring.covers(HW.player().x, HW.player().y), 'Wren inside the ring');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('down'); HW.step(30); HW.release(); assert.ok(!ring.covers(HW.player().x, HW.player().y), 'out of it'); }
+        assert.ok(until(HW, () => k.state === 'stamped', 100), 'it stamps');
+        HW.step(10);
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'out of the ring: missed');
+        else assert.ok(HW.Inv.hp < hp, 'in the ring: shaken off her feet');
+        noErrors(HW);
+    }
+});
+test("the Housekeeper's hanger (once it won't leave its cross): its line shown; off the line, and off it again as it comes home", () => {
+    for (const dodge of [true, false]) {
+        const HW = game();
+        HW.Inv.maxHp = HW.Inv.hp = 10;
+        const k = hall(HW);
+        k.hp = 1; k.told = 3;                    // (its third beat)
+        go(HW, 'boss', 15, 8);
+        assert.ok(until(HW, () => k.state === 'aimH', 400), 'it aims a hanger');
+        const line = hazards(HW).find(h => h.owner === k);
+        assert.ok(line && line.tiles.some(([x, y]) => x === HW.player().tx && y === HW.player().ty), 'Wren on its line');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('left'); HW.step(20); HW.release(); }
+        const f = () => HW.G.map.ents.find(e => e.kind === 'flung');
+        assert.ok(until(HW, () => !!f(), 100), 'flung');
+        assert.ok(until(HW, () => !f() || f().state === 'lie', 100), 'it lands');
+        if (dodge) {
+            assert.equal(HW.Inv.hp, hp, 'missed');
+            const h = f();
+            assert.ok(!h.path.some(([x, y]) => x === HW.player().tx && y === HW.player().ty), 'off its thread');
+            assert.ok(until(HW, () => !f(), 300), 'home along its thread');
+            assert.equal(HW.Inv.hp, hp, 'and missed again');
+        } else assert.ok(HW.Inv.hp < hp, 'stood on its line: hit');
+        noErrors(HW);
+    }
+});
+test('the Dust Monger: it crouches, and comes down where Wren stood (its shadow first): out from under it', () => {
+    for (const dodge of [true, false]) {
+        const HW = game();
+        HW.Inv.maxHp = HW.Inv.hp = 10;
+        HW.warp('tidy', ...at('linen', 16, 9));
+        HW.step(60); HW.skipTalk();
+        const m = HW.ents('enemy').find(e => e.type === 'monger');
+        go(HW, 'linen', 14, 5);
+        m.flopT = 400;
+        assert.ok(until(HW, () => !!m.flop, 200), 'it crouches');
+        const sh = hazards(HW).find(h => h.owner === m);
+        assert.ok(sh && sh.covers(HW.player().x, HW.player().y), 'its shadow on Wren');
+        const hp = HW.Inv.hp;
+        if (dodge) { HW.hold('up'); HW.step(24); HW.release(); }
+        else HW.G.player.inv = 0;
+        assert.ok(until(HW, () => !m.flop, 200), 'it lands');
+        if (dodge) assert.equal(HW.Inv.hp, hp, 'out from under it');
+        else assert.ok(HW.Inv.hp <= hp - 2, 'under it: a full heart');
+        noErrors(HW);
+    }
 });

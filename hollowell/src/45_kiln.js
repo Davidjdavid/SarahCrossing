@@ -472,18 +472,39 @@ class Glazer extends Enemy {
                 /* line up with Wren */
                 const dx = p.x - this.x, dy = p.y - this.y;
                 const ax = Math.abs(dx), ay = Math.abs(dy);
-                if ((ax < 8 || ay < 8) && this.st > 40) { this.dir = ax < 8 ? (dy < 0 ? UP : DOWN) : (dx < 0 ? LEFT : RIGHT); this.setState('aim'); break; }
+                /* (its one dangerous move: come too close and it braces behind its shield, then barges two tiles on) */
+                if (Math.hypot(dx, dy) < 30 && this.st > 30 && p.state === 'normal') { this.brace(dirOf(dx, dy)); break; }
+                if ((ax < 8 || ay < 8) && this.st > 40) { this.dir = ax < 8 ? (dy < 0 ? UP : DOWN) : (dx < 0 ? LEFT : RIGHT); this.aim(); break; }
                 if (ax < ay) this.move(sign(dx) * 0.7, 0); else this.move(0, sign(dy) * 0.7);
                 this.anim++;
                 break;
             }
-            case 'aim': if (this.st > 26) { this.throwShot(); this.setState('hold'); } break;
+            case 'aim': if (this.st >= this.tellN) { this.throwShot(); this.setState('hold'); } break;
             case 'hold': if (this.st > 70) this.setState('walk'); break;
             case 'hurt': if (this.st > 30) this.setState('walk'); break;
+            case 'brace': if (this.st >= this.tellN) { this.setState('barge'); Sfx.play('boss'); } break;
+            case 'barge':
+                if (this.st > 8 || !this.move(DX[this.dir] * 4, DY[this.dir] * 4)) { G.shake = 6; Fx.dust(this.x, this.y); this.setState('hold'); }
+                break;
         }
         if (p.state === 'normal' && Math.abs(p.x - this.x) < 11 && Math.abs(p.y - this.y) < 8) p.hurt(1, this.x, this.y);
     }
     setState(s) { this.state = s; this.st = 0; }
+    /* the shot's tell: it rolls the clay in its hands, and the line it'll fly lights up (and the way it'll come home) */
+    aim() {
+        this.tellN = tellFor(2); this.setState('aim');
+        const tiles = []; let x = this.tx, y = this.ty;
+        for (let i = 0; i < 9; i++) { x += DX[this.dir]; y += DY[this.dir]; const k = this.area.kind(x, y); if ((k.solid && !k.low) || this.area.at(x, y)) break; tiles.push([x, y]); }
+        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 0, live: 0, col: '#f39a3c' });
+    }
+    /* the barge: shield up, and the two tiles ahead of it lit; then it comes through them (a full heart) */
+    brace(d) {
+        this.dir = d; this.tellN = tellFor(2); this.setState('brace');
+        const tiles = []; let x = this.tx, y = this.ty;
+        for (let i = 0; i < 3; i++) { x += DX[d]; y += DY[d]; const k = this.area.kind(x, y); if (k.solid || this.area.at(x, y)) break; tiles.push([x, y]); }
+        Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 2, live: 9, col: '#e8463c', from: [this.x, this.y] });
+        Stats.count('boss:glazer:barge');
+    }
     throwShot() {
         Sfx.play('throw');
         const path = [[this.tx, this.ty]];
@@ -502,7 +523,7 @@ class Glazer extends Enemy {
     struck(by, dmg, dir, shard) {
         if (!this.alive || this.flash > 0) return;
         if (!shard) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 10); return; }   /* the stick bounces off its glaze */
-        this.hp--; this.flash = 30; Sfx.play('enemyhit'); G.hitstop = 6; this.setState('hurt');
+        this.hp--; this.flash = 30; Sfx.play('enemyhit'); G.hitstop = 6; this.setState('hurt'); calmBlows(this);
         Stats.count('boss:glazer:shards');
         if (this.hp <= 0) {
             this.alive = false; Sfx.play('shatter'); Fx.burst(this.x, this.y - 10, '#c4623a'); Fx.burst(this.x, this.y - 4, '#5ad1c5');
@@ -517,7 +538,10 @@ class Glazer extends Enemy {
         const im = spr(this.state === 'aim' ? 'glazer_aim' : 'glazer');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
         Gfx.alpha(0.25); Gfx.rect(this.x - cx - 7, this.y - cy + 1, 14, 3, PAL.ink); Gfx.alpha(1);
-        Gfx.img(img, this.x - cx - 8, this.y - cy - 22, this.dir === LEFT);
+        /* bracing: crouched behind its shield, shivering, its "!" up */
+        const sh = this.state === 'brace' ? ((this.st >> 1) % 2 ? 1 : -1) : 0, low = this.state === 'brace' ? 2 : 0;
+        Gfx.img(img, this.x - cx - 8 + sh, this.y - cy - 22 + low, this.dir === LEFT);
+        if (this.state === 'brace') { Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 16, 14, 12, '#5ad1c5'); Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 16, 14, 1, '#bff3ee'); Gfx.rect(this.x - cx - 7 + sh, this.y - cy - 5, 14, 1, '#2e9a96'); Tells.bang(this.x - cx, this.y - cy - 36); }
     }
 }
 SPAWN.glazer = (x, y) => Progress.flag('kiln_glazer') ? new Ent('none') : new Glazer(x, y);

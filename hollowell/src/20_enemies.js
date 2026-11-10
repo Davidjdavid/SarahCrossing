@@ -404,5 +404,7 @@ class Flung extends Ent {
         else { Gfx.circle(x, y, 3, PAL.ink); Gfx.circle(x, y, 2, this.col); Gfx.rect(x - 1, y - 1, 1, 1, '#ffffff'); }
     }
 }
+/* a boss knocked off its feet (stunned, struck): whatever it was about to do doesn't come */
+function calmBlows(owner) { const a = owner.area; if (a) for (const e of a.ents.slice()) if (e.kind === 'hazard' && e.owner === owner && !e.landed) a.remove(e); }
 /* a heart shaken loose in a long fight (a boss knocked into its next beat drops one) */
 function bossHeart(area, x, y) { const h = area.add(new Pickup(Math.round(x) - 8, Math.round(y) - 12, { what: 'heart', vz: 2.5, life: 900 })); return h; }

@@ -537,11 +537,15 @@ AI.monger = (e, p) => {
     AI.hop(e, p);
 };
 
-/* the Grand Housekeeper: a wardrobe that keeps the hall tidy */
+/* the Grand Housekeeper: a wardrobe that keeps the hall tidy. Its moves, for a first boss, all slow to come with plain
+   tells (TELL[1]): a charge down a lane lit on the floor (a full heart), a stamp that shakes the ring of floor drawn round
+   it (half a heart) when Wren comes too close, and, once it won't leave its cross, a coat-hanger flung at her that lies
+   on its thread and then comes home along it (half a heart, each way). Each beat it's knocked into, a heart falls out. */
+const HK = { near: 34, stamp: 36, cool: [0, 110, 90, 80], hanger: 7 };
 class Housekeeper extends Enemy {
     constructor(tx, ty) {
         super(tx, ty, { type: 'housekeeper', hp: 3 });
-        this.state = 'sleep'; this.st = 0; this.cd = 90; this.doors = 0;
+        this.state = 'sleep'; this.st = 0; this.cd = 90; this.doors = 0; this.cool = 60;
         this.weightN = WEIGHT.medium + 0.5;
         this.homeX = tx; this.homeY = ty;
     }
@@ -584,10 +588,17 @@ class Housekeeper extends Enemy {
                 if (mess && phase > 1 && this.st > (phase === 3 ? 8 : 24) && this.atHome()) { this.target = mess; this.tsk(); this.setState('reach'); break; }
                 if (phase < 3 && this.st > (angry ? 40 : 70)) {
                     const ax = Math.abs(p.x - this.x), ay = Math.abs(p.y - this.y);
-                    if (ax < 12 || ay < 12) { this.chargeDir = ax < 12 ? (p.y < this.y ? UP : DOWN) : (p.x < this.x ? LEFT : RIGHT); this.dir = this.chargeDir; this.setState('windup'); }
+                    if (ax < 12 || ay < 12) { this.chargeDir = ax < 12 ? (p.y < this.y ? UP : DOWN) : (p.x < this.x ? LEFT : RIGHT); this.dir = this.chargeDir; this.windup(phase); break; }
                 }
+                /* too close: it rises on its toes and stamps (a ring on the floor shows how far the floor shakes) */
+                if (this.cool <= 0 && this.atHome() && p.state === 'normal' && p.area === a && this.ringHas(p, HK.near)) { this.rear(phase); break; }
+                /* (3) out of reach: a coat-hanger flung at her, and back it comes along its own thread */
+                if (phase === 3 && this.cool <= 0 && this.st > 40 && this.atHome() && p.state === 'normal' && Cam.room && Cam.room.key === '1,0' && !a.ents.some(e => e.kind === 'flung' && e.owner === this)) { this.aimHanger(p); break; }
                 break;
             }
+            case 'rear': if (this.st >= this.tellN) { this.setState('stamped'); this.cool = HK.cool[phase]; Sfx.play('boss'); } break;
+            case 'stamped': if (this.st > 24) this.setState('home'); break;
+            case 'aimH': if (this.st >= this.tellN) { this.throwHanger(); this.cool = HK.cool[phase] + 60; this.setState('home'); } break;
             /* walk over to the stray furniture and yank it home (look where you stand, Housekeeper) */
             case 'tidy': {
                 const m = this.target;
@@ -624,14 +635,17 @@ class Housekeeper extends Enemy {
             case 'windup': {
                 /* it can't abide mess: tidying comes before charging */
                 const mess = this.mess();
-                if (mess) { this.target = mess; this.tsk(); this.setState('tidy'); break; }
-                if (this.st > (angry ? 28 : 36)) { this.setState('charge'); Sfx.play('boss'); }
+                if (mess) { this.target = mess; this.tsk(); if (this.lane) { this.area.remove(this.lane); this.lane = null; } this.setState('tidy'); break; }
+                if (this.st >= this.tellN) { this.setState('charge'); Sfx.play('boss'); }
                 break;
             }
             case 'charge': {
                 const sp = angry ? 3.4 : 2.8;
                 if (!this.move(DX[this.chargeDir] * sp, DY[this.chargeDir] * sp) || this.st > 90) { G.shake = 10; Sfx.play('push'); Fx.dust(this.x, this.y); this.charged = true; this.setState('recoil'); }
                 this.traceStep();
+                /* down its lane, the width of it: a full heart */
+                const lane = this.chargeDir === LEFT || this.chargeDir === RIGHT ? tileOf(p.y) === this.laneAt && Math.abs(p.x - this.x) < 14 : tileOf(p.x) === this.laneAt && Math.abs(p.y - this.y) < 12;
+                if (p.state === 'normal' && lane) p.hurt(2, this.x, this.y);
                 break;
             }
             /* (in its second beat it's slower to come home after a charge: long enough to get round to a bust) */
@@ -647,9 +661,36 @@ class Housekeeper extends Enemy {
                 if (this.st > 150) { this.doors = 0; this.setState('return'); }
                 break;
         }
-        if (p.state === 'normal' && this.state !== 'stunned' && Math.abs(p.x - this.x) < 13 && Math.abs(p.y - this.y) < 9) p.hurt(this.state === 'charge' ? 2 : 1, this.x, this.y);
+        if (this.cool > 0) this.cool--;
+        if (p.state === 'normal' && this.state !== 'stunned' && this.state !== 'charge' && Math.abs(p.x - this.x) < 13 && Math.abs(p.y - this.y) < 9) p.hurt(1, this.x, this.y);
     }
     setState(s) { this.state = s; this.st = 0; }
+    /* is Wren inside the ring its stamp would shake (as drawn: a ring on the floor, squashed as the floor is seen)? */
+    ringHas(p, r) { const dx = p.x - this.x, dy = (p.y - this.y) / 0.7; return dx * dx + dy * dy < r * r; }
+    /* the charge's tell: it rattles, its "!", and its lane lit on the floor to the wall */
+    windup(phase) {
+        this.tellN = tellFor(1, phase); this.setState('windup'); this.bang = this.tellN; Stats.count('boss:tidy:charge');
+        const a = this.area, tiles = [];
+        let x = tileOf(this.x), y = tileOf(this.y);
+        this.laneAt = this.chargeDir === LEFT || this.chargeDir === RIGHT ? y : x;
+        for (let i = 0; i < 20; i++) { x += DX[this.chargeDir]; y += DY[this.chargeDir]; if (!a.inside(x, y) || a.kind(x, y).solid || a.at(x, y)) break; tiles.push([x, y]); }
+        this.lane = Hazard.tiles(this, tiles, { tell: this.tellN, dmg: 0, live: 0, col: '#e8463c' });
+    }
+    rear(phase) {
+        this.tellN = tellFor(1, phase); this.setState('rear'); Stats.count('boss:tidy:stamp');
+        Hazard.ring(this, this.x, this.y + 2, HK.stamp, { tell: this.tellN, dmg: 1, col: '#3fc1b5', shake: 8 });
+    }
+    aimHanger(p) {
+        this.tellN = tellFor(1, 3); this.setState('aimH'); Sfx.play('twang');
+        this.hangerPath = Flung.line(this.area, [this.homeX, this.homeY], [p.tx, p.ty], HK.hanger);
+        Hazard.tiles(this, this.hangerPath.slice(1), { tell: this.tellN, dmg: 0, live: 0, col: '#c9925a', quiet: true });
+    }
+    throwHanger() {
+        const path = this.hangerPath; this.hangerPath = null;
+        if (!path || path.length < 2) return;
+        this.area.add(new Flung(this, path, { pace: 2, back: 2, wait: 100, tell: 30, dmg: 1, col: THREAD.ives, look: Tidy.drawHanger }));
+        Sfx.play('throw'); this.rattle = 1; Stats.count('boss:tidy:hanger');
+    }
     /* heavy furniture out of its place in its own hall (not the rest of the House) */
     mess() {
         const a = this.area, room = a.roomAt(this.homeX, this.homeY);
@@ -665,7 +706,7 @@ class Housekeeper extends Enemy {
         if (!this.alive || this.state === 'stunned') return;
         this.kx = DX[d] * 3; this.ky = DY[d] * 3;
         G.shake = 12; G.hitstop = 6; Sfx.play('hitthing'); Sfx.play('boss');
-        this.setState('stunned');
+        this.setState('stunned'); calmBlows(this);
         Stats.count('boss:tidy:slam');
     }
     struck(by, dmg, dir, shard) {
@@ -674,8 +715,9 @@ class Housekeeper extends Enemy {
         if (this.state !== 'stunned' || this.doors < 1) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 14); return; }
         if (this.flash > 0) return;
         this.hp--; this.flash = 30; Sfx.play('enemyhit'); G.hitstop = 8; G.shake = 6;
-        this.setState('recoil'); this.doors = 0;
+        this.setState('recoil'); this.doors = 0; this.cool = 90;
         if (this.hp <= 0) this.defeat();
+        else bossHeart(this.area, this.x, this.y + 26);       /* (something drops out of its doors: a heart) */
     }
     defeat() {
         this.alive = false; this.yarnT = 0; this.trace = [[this.tx, this.ty]];
@@ -692,13 +734,18 @@ class Housekeeper extends Enemy {
         const x = this.x - cx, y = this.y - cy;
         /* its own mark, under where it stands guard */
         if (!this.atHome()) Marks.draw(this.homeX * T - cx, this.homeY * T - cy, THREAD.ives, true);
-        let ox = 0;
-        if (this.state === 'windup' || (this.state === 'home' && this.rattle && (this.t >> 3) % 3 === 0)) ox = (this.st >> 1) % 2 ? 1 : -1;
+        let ox = 0, oy = 0;
+        if (this.state === 'windup' || this.state === 'rear' || this.state === 'aimH' || (this.state === 'home' && this.rattle && (this.t >> 3) % 3 === 0)) ox = (this.st >> 1) % 2 ? 1 : -1;
+        /* about to stamp: up on its toes, higher as it comes; stamped, down flat with a jolt */
+        if (this.state === 'rear') oy = -Math.round(4 * Math.min(1, this.st / (this.tellN || 30)));
+        if (this.state === 'stamped' && this.st < 6) oy = 1;
         Gfx.alpha(0.3); Gfx.rect(x - 12, y - 1, 24, 3, PAL.ink); Gfx.alpha(1);
         const im = spr(this.state === 'stunned' && this.doors >= 1 ? 'keeper_open' : 'keeper');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        Gfx.img(img, x - 16 + ox, y - 34);
-        if (this.bang > 0) Gfx.img(spr('bubble_bang'), x - 4, y - 46);
+        Gfx.img(img, x - 16 + ox, y - 34 + oy);
+        /* a hanger about to be flung: its doors ajar a crack, and the hanger glinting in the gap */
+        if (this.state === 'aimH') { Gfx.rect(x - 1 + ox, y - 30, 3, 15, '#1e3a3a'); if ((this.st >> 2) % 2) Gfx.rect(x + ox, y - 26, 1, 3, '#fff6c0'); }
+        if (this.bang > 0) Gfx.img(spr('bubble_bang'), x - 4, y - 46 + oy);
         /* its reaching thread, out to what it's yanking (taut and bright while it's being dragged) */
         if ((this.state === 'reach' || this.state === 'dragged') && this.target && !this.target.removed) {
             const m = this.target, mx = m.px + 8 - cx, my = m.py + 8 - cy;
@@ -709,6 +756,14 @@ class Housekeeper extends Enemy {
 SPAWN.housekeeper = (tx, ty) => Progress.flag('tidy_boss') ? new Ent('none') : new Housekeeper(tx, ty);
 
 const Tidy = {
+    /* the Housekeeper's coat-hanger: a wooden bar with sloping shoulders and a wire hook, spinning as it flies */
+    drawHanger(x, y, f) {
+        const R = (c, a, b, w, h) => Gfx.rect(a, b, w, h, c);
+        if (f.state !== 'lie' && (G.t >> 2) % 2) { R(PAL.ink, x - 2, y - 5, 4, 10); R('#c9925a', x - 1, y - 4, 2, 8); R('#c8d0dc', x - 1, y - 7, 1, 2); return; }
+        R(PAL.ink, x - 6, y, 13, 3); R('#c9925a', x - 5, y + 1, 11, 1);
+        Gfx.line(x - 5, y + 1, x, y - 3, '#9a6438'); Gfx.line(x + 5, y + 1, x, y - 3, '#9a6438');
+        R('#c8d0dc', x, y - 6, 1, 3); R('#c8d0dc', x + 1, y - 7, 2, 1); R('#c8d0dc', x + 3, y - 6, 1, 1);
+    },
     *bossIntro(k) {
         yield 20;
         yield* say(null, 'The great wardrobe at the end of the hall creaks, unfolds a pair of polished feet, and turns to face you. Its doors rattle like teeth.');
