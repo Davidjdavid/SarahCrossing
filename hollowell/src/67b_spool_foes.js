@@ -1,31 +1,39 @@
 /* The Spoolworks' creatures: spoolmites (little bobbin-bugs), Cog the Guild hound (the mini-boss: brass hide, but his
-   cord hangs under his kennel; tied off from below he's held wherever he is, struggling, and a knock makes him bolt),
-   and the Tangle (the boss: a knot of the Works' old threads, held together by its four bobbins' threads; pull all four
-   bobbins off their places at once and it comes apart round its core; knock the core and it yanks everything back). */
+   cord hangs under his kennel; tied off from below he's held wherever he is, struggling, and a knock makes him bolt;
+   two knocks and he runs down), and the Tangle (the boss: a knot of the Works' old threads, held together by its four
+   bobbins' threads). Pull all four bobbins away from it at once and hold them there, and it comes apart round its core:
+   knock the core. Knocked, it yanks every thread (knots slip; a stitched bobbin is at home, so it stays) and learns:
+   first it hangs itself on the Heart's old hoist, up out of reach (the hoist answers to its counterweight below); then
+   it winds the hoist line round the trapdoor and hauls every thread it can in, all the time, even a stitched one off
+   its new place (holding beats it; and a ring sends everything home at once, wherever home now is). */
 
 /* ---------------- Cog ---------------- */
 class Cog extends Enemy {
     constructor(tx, ty, p = {}) {
-        super(tx, ty, Object.assign({ type: 'cog', hp: 3 }, p));
+        super(tx, ty, Object.assign({ type: 'cog', hp: 2 }, p));     /* (two knocks: a mini-boss shouldn't outstay its idea) */
         this.state = 'sleep'; this.st = 0; this.cordable = true; this.weightN = 3;
+        this.noThread = true;     /* (his way home is his cord's, drawn from his mark) */
         /* his place, for his cord: the kennel's mark */
         this.ret = { mx: tx, my: ty, area: null, color: THREAD.guild, state: 'home', trace: [[tx, ty]], timer: 99, patience: 99, snap: false, strain: 0, pace: 10 };
     }
     get px() { return this.x - 8; }
     get py() { return this.y - 10; }
     get arena() { return this.area.roomAt(this.hx, this.hy); }
-    hurtBox() { return this.alive && this.state !== 'sleep' ? { x0: this.x - 8, x1: this.x + 8, y0: this.y - 14, y1: this.y + 3 } : null; }
+    get down() { return this.state === 'rundown' || this.state === 'toppled'; }
+    hurtBox() { return this.alive && this.state !== 'sleep' && !this.down ? { x0: this.x - 8, x1: this.x + 8, y0: this.y - 14, y1: this.y + 3 } : null; }
     shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'cog') s.shut = shut; }
     onKnot() { this.state = 'held'; this.st = 0; Fx.text(this.x, this.y - 22, 'yip!', '#f7d64a'); }
     onUntie() { if (this.state === 'held') { this.state = 'bolt'; this.st = 0; } }
     update() {
         if (!this.alive) return this.updateYarn();
         this.t++; if (this.flash > 0) this.flash--;
+        if (this.down) { this.st++; this.anim = 0; return; }
         const p = G.player, a = this.area, r = this.arena;
         const home = this.tx === this.hx && this.ty === this.hy;
         if (!this.ret.snap) this.ret.state = home ? 'home' : 'away';
         if (this.state === 'sleep') {
-            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal') {
+            /* (not till Wren's well inside: the door can't shut on her standing in it) */
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.tx >= r.x + 2) {
                 this.state = 'chase'; this.st = 0; this.shutters(true); Music.play('boss');
                 Script.run(SpoolFoes.cogIntro(this));
             }
@@ -35,7 +43,7 @@ class Cog extends Enemy {
         this.st++;
         if (this.knotted) { this.state = 'held'; this.anim++; return; }
         const up = p.area === a && Cam.room === r && p.state === 'normal';
-        const sp = 0.85 + (3 - this.hp) * 0.22;
+        const sp = 0.85 + (2 - this.hp) * 0.3;
         /* tugged home from below: off he goes, fast */
         if (this.ret.snap && this.state !== 'bolt') { this.state = 'bolt'; this.st = 0; }
         switch (this.state) {
@@ -71,7 +79,7 @@ class Cog extends Enemy {
         this.traceStep();
     }
     struck(by, dmg, dir) {
-        if (!this.alive || this.flash > 0) return;
+        if (!this.alive || this.flash > 0 || this.down) return;
         if (this.state !== 'held') {
             Sfx.play('hitthing'); Fx.ring(this.x, this.y - 8);
             if (by === G.player) Fx.text(this.x, this.y - 24, 'clang!', '#f7d64a');
@@ -87,28 +95,32 @@ class Cog extends Enemy {
         Fx.text(this.x, this.y - 24, 'yelp!', '#fbf6ea');
     }
     shoved() { }
+    /* he runs down where he stands: sits, topples over, and only then does the thread wound in him come loose (the
+       words follow what's seen: src SpoolFoes.cogDown) */
     defeat() {
-        this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
-        if (this.knotted) { this.knotted = false; }
-        this.ret = null; this.cordable = false;
-        Sfx.play('unravel'); Fx.yarn(this.x, this.y - 8, THREAD.guild);
-        Progress.set('spool_cog');
-        this.shutters(false);
+        if (this.knotted) { this.knotted = false; this.fixed = this._fixed0; }
+        this.state = 'rundown'; this.st = 0;
         Script.run(SpoolFoes.cogDown(this));
+    }
+    unravel() {
+        this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
+        this.ret = null; this.cordable = false;
+        Sfx.play('unravel'); Fx.yarn(this.x, this.y - 6, THREAD.guild);
     }
     draw(cx, cy) {
         if (!this.alive) { if ((this.yarnT || 0) < 90) { const k = 1 - this.yarnT / 90; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(7 * k), THREAD.guild); } return; }
         const x = this.x - cx, y = this.y - cy;
         Gfx.alpha(0.25); Gfx.rect(x - 7, y + 1, 14, 3, PAL.ink); Gfx.alpha(1);
-        let im = spr(this.state === 'held' ? 'cog_held' : this.state === 'sit' || this.state === 'sleep' ? 'cog_sit' : 'cog_' + ((this.anim >> 3) % 2));
+        let im = spr(this.state === 'toppled' ? 'cog_down' : this.state === 'held' ? 'cog_held' : this.state === 'sit' || this.state === 'sleep' || this.state === 'rundown' ? 'cog_sit' : 'cog_' + ((this.anim >> 3) % 2));
         if (this.flash > 0 && (this.flash >> 1) % 2) im = tinted(im, '#ffffff');
-        const shake = this.state === 'held' ? ((this.t >> 1) % 2 ? 1 : -1) : 0;
-        Gfx.img(im, x - 10 + shake, y - 18, this.dir === LEFT);
+        const shake = this.state === 'held' ? ((this.t >> 1) % 2 ? 1 : -1) : this.state === 'rundown' && this.st < 40 ? ((this.st >> 2) % 2) : 0;
+        /* (his feet, on the sprite's row 13, on his shadow) */
+        Gfx.img(im, x - 10 + shake, y - 13, this.dir === LEFT);
         if (this.state === 'held') {
             /* his cord, taut, straight down through the floor */
-            Gfx.line(x, y - 6, x, y + 4, THREAD.guild); Gfx.rect(x - 1, y + 3, 3, 2, '#c9a24a');
+            Gfx.line(x, y - 2, x, y + 4, THREAD.guild); Gfx.rect(x - 1, y + 3, 3, 2, '#c9a24a');
         }
-        if (this.state === 'sniff' && (this.t >> 4) % 2) Font.draw('?', x + 8, y - 26, '#fbf6ea');
+        if (this.state === 'sniff' && (this.t >> 4) % 2) Font.draw('?', x + 8, y - 21, '#fbf6ea');
     }
 }
 SPAWN.cog = (x, y, p) => Progress.flag('spool_cog') ? new Ent('none') : new Cog(x, y, p);
@@ -119,57 +131,153 @@ class Tangle extends Ent {
         super('tangle', p);
         this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T;
         this.hp = 3; this.state = 'sleep'; this.st = 0; this.t = 0; this.flash = 0; this.alive = true;
-        this.balls = []; this.outT = 0; this.openT = 0; this.lashT = 0; this.pulled = 0;
+        this.balls = []; this.outT = 0; this.dazeT = 0; this.lashT = 0; this.pulled = 0;
+        this.lift = 0; this.eyes = false; this.haulT = 0; this.gone = false;     /* gone: the hoist torn down */
+        this.HAUL = 120;
     }
-    get sortY() { return this.y + 22; }
-    blocks(x, y) { return this.alive && this.state !== 'open' && Math.abs(x - this.tx) <= 1 && Math.abs(y - this.ty) <= 1; }
+    /* (hung up in the rafters, it's in front of everything under it) */
+    get sortY() { return this.y + 22 + (this.lift > 8 ? 400 : 0); }
+    get hall() { return this.area.roomAt(this.tx, this.ty); }
+    /* it fills the middle three by three, except pulled apart, or up in the rafters (Wren walks under it then) */
+    blocks(x, y, who) { return this.alive && this.state !== 'open' && this.state !== 'down' && !(this.state === 'up' && who === G.player) && Math.abs(x - this.tx) <= 1 && Math.abs(y - this.ty) <= 1; }
     onTile(x, y) { return this.blocks(x, y); }
     get isWalker() { return false; }
     bobbins() { return this.area.ents.filter(e => e.tbobbin && !e.removed); }
     out(b) { return b.tx !== b.first[0] || b.ty !== b.first[1]; }
+    /* a thread is held out while its bobbin is off its first place and stays there: held (tied off below, gripped...),
+       or at home somewhere else (stitched) */
+    keeps(b) { return Return.held(b) || (!!b.stitched && Return.isHome(b) && !b.mv); }
+    heldOut(b) { return this.out(b) && this.keeps(b); }
+    allOut(bs) { return bs.length >= 4 && bs.every(b => this.heldOut(b)); }
+    hoisted() { return !this.gone && Signals.get(this.area, 'hoist'); }
     shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'tangle') s.shut = shut; }
+    trap() { const r = this.hall; return this.area.ents.find(e => e.kind === 'hatch' && !e.removed && this.area.roomAt(e.tx, e.ty) === r); }
     update() {
         if (!this.alive) return;
         this.t++; if (this.flash > 0) this.flash--;
-        const p = G.player, a = this.area, r = a.roomAt(this.tx, this.ty);
+        const p = G.player, a = this.area, r = this.hall;
         if (this.state === 'sleep') {
             if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 2) {
-                this.rethread(false, true);
+                this.fresh();
                 this.state = 'whole'; this.st = 0; this.shutters(true); Music.play(bossSong('spoolworks'));
                 Script.run(SpoolFoes.tangleIntro(this));
             }
             return;
         }
+        /* hauled up into the rafters, or let down (through the words too) */
+        this.lift = approach(this.lift, this.state === 'up' ? 40 : 0, this.state === 'up' ? 1.5 : 5);
         if (Script.blocking()) return;
         this.updateBalls(r);
         this.st++;
-        const bs = this.bobbins(), n = bs.filter(b => this.out(b)).length;
-        this.pulled = n;
-        for (const b of bs) {
-            if (this.out(b) && !b.knotted && !b.stitched && !b.heldBy && !b.mv && b.ret && b.ret.state !== 'returning') {
-                if (++b.tangleT > (this.state === 'open' ? 3 : 360)) { b.tangleT = 0; Return.snap(b); Sfx.play('twang'); Fx.text(b.px + 8, b.py - 8, 'yanked!', THREAD.guild); }
-            } else b.tangleT = 0;
-        }
-        if (this.state === 'whole') {
-            /* all four threads drawn out of it and held out (stitched or tied off), a moment: it comes apart */
-            if (n >= 4 && bs.every(b => b.knotted || b.stitched)) {
-                if (++this.outT > 90) { this.state = 'open'; this.openT = 0; this.st = 0; Sfx.play('unravel'); G.shake = 8; Fx.yarn(this.x + 8, this.y + 4, THREAD.guild); if (!Progress.flag('tangle_open')) { Progress.set('tangle_open'); G.pendingToast = 'Every thread pulled out of it at once, the Tangle falls apart round a little hard knot at its heart.'; } }
-            } else this.outT = 0;
-            if (Cam.room === r && p.state === 'normal') this.attack(p);
-        } else if (this.state === 'open') {
-            this.openT++;
-            /* a bobbin back on its place, and it ties itself up again */
-            if (n < 4 || this.openT > 600) this.rethread(false);
+        const bs = this.bobbins();
+        this.pulled = bs.filter(b => this.out(b)).length;
+        const here = p.area === a && Cam.room === r && p.state === 'normal';
+        switch (this.state) {
+            case 'whole':
+                this.reel(bs);
+                if (this.allOut(bs)) { if (++this.outT > 30) this.apart(); } else this.outT = 0;
+                if (here) { this.throwAt(p, 110, 1.4); this.lash(p); }
+                break;
+            case 'up':
+                if (!this.hoisted() && this.lift > 30) this.drop();
+                else if (here && this.lift > 30) this.throwAt(p, 72, 1.7);
+                break;
+            case 'down':
+                /* let down, it lies loose; hauled up again once the weight's been back on its plate a moment */
+                if (this.hoisted()) { if (++this.dazeT > 120) { this.state = 'up'; this.st = 0; this.dazeT = 0; Sfx.play('twang'); } } else this.dazeT = 0;
+                break;
+            case 'haul':
+                if (++this.haulT >= this.HAUL) { this.haulT = 0; this.haul(bs); }
+                else if (this.haulT === this.HAUL - 30) Sfx.play('tug', 0.4);
+                if (this.allOut(bs)) { if (++this.outT > 20) this.apart(); } else this.outT = 0;
+                if (here) this.lash(p);
+                break;
+            case 'open':
+                /* pulled apart, it lies dazed while every thread's held out, and a moment after one comes back */
+                if (this.allOut(bs)) this.dazeT = 0; else if (++this.dazeT > 120) this.rewind();
+                break;
         }
     }
-    attack(p) {
-        const period = [0, 70, 95, 120][this.hp];
-        if (this.st % period === 0) {
-            const cx = this.x + 8, cy = this.y + 4, dx = p.x - cx, dy = p.y - 6 - cy, d = Math.hypot(dx, dy) || 1, sp = 1.3 + (3 - this.hp) * 0.35;
-            this.balls.push({ x: cx, y: cy, vx: dx / d * sp, vy: dy / d * sp, life: 300 });
-            Sfx.play('throw');
+    /* phase 1: a bobbin left out and not held, it reels back in after a while */
+    reel(bs) {
+        for (const b of bs) {
+            if (this.out(b) && !this.keeps(b) && !b.mv && b.ret && b.ret.state !== 'returning') {
+                if (++b.tangleT > 360) { b.tangleT = 0; Return.snap(b); Sfx.play('twang'); Fx.text(b.px + 8, b.py - 8, 'yanked!', THREAD.guild); }
+            } else b.tangleT = 0;
         }
-        /* too close: its cords lash out (a shiver first) */
+    }
+    /* phase 3: on its beat it hauls each thread it can in by a tile, toward the bobbin's first place. Held things (tied
+       off, gripped) it can't shift; a stitched bobbin it drags off its new place all the same (it'll want to go home) */
+    haul(bs) {
+        let n = 0;
+        for (const b of bs) {
+            if (!this.out(b) || Return.held(b) || b.mv || (b.ret && b.ret.snap)) continue;
+            const dx = b.first[0] - b.tx, dy = b.first[1] - b.ty;
+            const tries = Math.abs(dx) >= Math.abs(dy) ? [[sign(dx), 0], [0, sign(dy)]] : [[0, sign(dy)], [sign(dx), 0]];
+            for (const [sx, sy] of tries) if ((sx || sy) && this.area.freeForThing(b.tx + sx, b.ty + sy, b)) { b.startMove(b.tx + sx, b.ty + sy, 10); n++; break; }
+        }
+        if (n) { Sfx.play('twang'); G.shake = 2; }
+    }
+    apart() {
+        this.state = 'open'; this.st = 0; this.dazeT = 0; this.outT = 0; this.balls = [];
+        Sfx.play('unravel'); G.shake = 8; Fx.yarn(this.x + 8, this.y + 4, THREAD.guild);
+        if (!Progress.flag('tangle_open')) { Progress.set('tangle_open'); G.pendingToast = 'Every thread pulled out of it at once, the Tangle falls apart round a little hard knot at its heart.'; }
+    }
+    /* phase 2: the hook let down, it drops in a loose heap */
+    drop() {
+        this.state = 'down'; this.st = 0; this.dazeT = 0; this.balls = [];
+        Sfx.play('land'); Sfx.play('unravel'); G.shake = 10; Fx.yarn(this.x + 8, this.y + 4, THREAD.guild);
+        if (!Progress.flag('tangle_drop')) { Progress.set('tangle_drop'); G.pendingToast = 'The hook comes down, and the Tangle with it, in a loose heap round its hard little heart.'; }
+    }
+    /* a chance missed: it winds itself up again; bobbins left out unheld snap home (knots and stitches stay) */
+    rewind() {
+        for (const b of this.bobbins()) if (b.ret && b.ret.state !== 'home' && !Return.held(b)) Return.snap(b);
+        this.state = this.hp === 1 ? 'haul' : 'whole'; this.st = 0; this.outT = 0; this.dazeT = 0; this.haulT = 0;
+        Sfx.play('twang'); G.shake = 4;
+        this.squeeze();
+    }
+    /* winding itself up where Wren stands: out she comes, with a knock */
+    squeeze() { const p = G.player; if (p.area === this.area && this.blocks(p.tx, p.ty, null)) { p.hurt(1, this.x + 8, this.y + 8); p.unstick(); } }
+    /* a knock: it yanks every thread; knots slip, anything out and not held snaps home (a stitched bobbin is home) */
+    yank() {
+        let slipped = false;
+        for (const b of this.bobbins()) {
+            if (b.knotted) { Spool.untie(b); slipped = true; }
+            if (b.ret && b.ret.state !== 'home' && !Return.held(b)) Return.snap(b);
+        }
+        return slipped;
+    }
+    /* the fight starts clean, whatever was left from last time */
+    fresh() {
+        for (const b of this.bobbins()) {
+            const rec = Inv.stitches.find(s => s.area === this.area.id && s.key === Needle.key(b));
+            if (rec) Needle.unpick(rec);
+            if (b.knotted) Spool.untie(b);
+            if (b.ret && b.ret.state !== 'home') Return.snap(b);
+        }
+        this.hp = 3; this.gone = false; this.lift = 0; this.eyes = false; this.unseal();
+    }
+    seal() {
+        const h = this.trap(); if (!h) return;
+        h.sealed = true;
+        if (!h.sealable) {
+            h.sealable = true;
+            h.interact = function (p) {
+                if (!this.sealed) return Hatch.prototype.interact.call(this, p);
+                UI.toast("The Tangle's threads are wound round and round the trapdoor. It won't lift."); Sfx.play('hitthing');
+                return true;
+            };
+        }
+    }
+    unseal() { const h = this.trap(); if (h) h.sealed = false; }
+    throwAt(p, period, sp) {
+        if (this.st % period !== 0) return;
+        const cx = this.x + 8, cy = this.y + 4 - this.lift, dx = p.x - cx, dy = p.y - 6 - cy, d = Math.hypot(dx, dy) || 1;
+        this.balls.push({ x: cx, y: cy, vx: dx / d * sp, vy: dy / d * sp, life: 300 });
+        Sfx.play('throw');
+    }
+    /* too close: its cords lash out (a shiver first) */
+    lash(p) {
         const near = Math.hypot(p.x - (this.x + 8), p.y - (this.y + 10)) < 34;
         if (this.lashT > 0) { if (--this.lashT === 0 && near) { p.hurt(1, this.x + 8, this.y + 8); Fx.ring(this.x + 8, this.y + 6, THREAD.guild); Sfx.play('twang'); } }
         else if (near && this.st % 40 === 0) this.lashT = 26;
@@ -184,71 +292,67 @@ class Tangle extends Ent {
         }
         this.balls = this.balls.filter(b => b.life > 0);
     }
-    hurtBox() { return this.alive && this.state === 'open' ? { x0: this.x - 2, x1: this.x + 18, y0: this.y - 8, y1: this.y + 16 } : null; }
+    hurtBox() { return this.alive && (this.state === 'open' || this.state === 'down') ? { x0: this.x - 2, x1: this.x + 18, y0: this.y - 8, y1: this.y + 16 } : null; }
     struck(by, dmg, dir) {
         if (!this.alive || this.flash > 0) return;
-        if (this.state !== 'open') { Sfx.play('hitthing'); return; }
+        if (this.state !== 'open' && this.state !== 'down') { Sfx.play('hitthing'); return; }
         this.hp--; this.flash = 30; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
         Stats.count('boss:tangle:hit');
         if (this.hp <= 0) return this.defeat();
-        this.rethread(true);
-    }
-    /* it yanks every thread back into itself: stitches undone, knots slipped, bobbins snapped home */
-    rethread(hit, quiet) {
-        for (const b of this.bobbins()) {
-            const rec = Inv.stitches.find(s => s.area === this.area.id && s.key === Needle.key(b));
-            if (rec) Needle.unpick(rec);
-            if (b.knotted) Spool.untie(b);
-            if (b.ret && b.ret.state !== 'home') Return.snap(b);
-        }
-        this.state = 'whole'; this.st = 0; this.outT = 0; this.openT = 0;
-        if (quiet) return;
-        Sfx.play('twang'); G.shake = 6;
-        if (hit) Fx.text(this.x + 8, this.y - 20, 'it re-knots!', '#f7d64a');
-        const p = G.player;
-        if (p.area === this.area && this.blocks(p.tx, p.ty)) { p.hurt(1, this.x + 8, this.y + 8); p.unstick(); }
+        this.balls = [];
+        Script.run(this.hp === 2 ? SpoolFoes.tangleUp(this) : SpoolFoes.tangleHaul(this));
     }
     defeat() {
-        this.alive = false; this.balls = [];
+        this.alive = false; this.balls = []; this.gone = true; this.unseal();
         Sfx.play('unravel'); Fx.yarn(this.x + 8, this.y, THREAD.guild);
         Script.run(SpoolFoes.tangleDown(this));
     }
     draw(cx, cy) {
         if (!this.alive) return;
-        const x = this.x + 8 - cx, y = this.y + 4 - cy;
-        /* threads from it to each bobbin: taut when pulled out */
+        const x = this.x + 8 - cx, y = this.y + 4 - cy, L = Math.round(this.lift), hy = y - L;
+        const gather = this.state === 'haul' && this.haulT > this.HAUL - 30;
+        /* threads from it to each bobbin: taut and gold when drawn out; hung up in the rafters they droop to them; on
+           its hauling beat they flicker, drawing tight */
         for (const b of this.bobbins()) {
             const bx = b.px + 8 - cx, by = b.py + 6 - cy, o = this.out(b);
-            Gfx.line(x, y, bx, by, o ? '#f7d64a' : THREAD.guild);
+            const col = gather && (G.t >> 1) % 2 ? '#fff4c0' : o ? '#f7d64a' : THREAD.guild;
+            if (L > 4) { const mx = (x + bx) / 2, my = Math.max(hy, by) + 4; Gfx.line(x, hy, mx, my, col); Gfx.line(mx, my, bx, by, col); }
+            else Gfx.line(x, hy, bx, by, col);
         }
-        if (this.state === 'open' || this.state === 'sleep' && false) { }
-        if (this.state === 'open') {
+        const R = 22 - this.pulled * 3;
+        if (this.state === 'open' || this.state === 'down') {
             /* the core: a small hard knot, dazed, threads lying loose */
+            Gfx.alpha(0.3); Gfx.circle(x, y + 16, 10, PAL.ink); Gfx.alpha(1);
             for (let i = 0; i < 10; i++) { const t = i / 10 * Math.PI * 2; Gfx.line(x, y + 4, x + Math.cos(t) * 20, y + 4 + Math.sin(t) * 12, shade(THREAD.guild, -0.2)); }
             const im = spr('tangle_core');
             if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, x - 8, y - 6);
             if ((this.t >> 3) % 2) Font.draw('*', x + 8, y - 12, '#f7d64a');
         } else {
-            /* the Tangle itself: a ball of knotted cord, smaller for every thread drawn out of it */
-            const R = 22 - this.pulled * 3, wob = this.state === 'sleep' ? 0 : Math.sin(this.t / 10) * 1.5;
-            Gfx.alpha(0.3); Gfx.circle(x, y + 16, R - 4, PAL.ink); Gfx.alpha(1);
-            Gfx.circle(x, y + 2, R + wob, '#4a3020');
+            /* its shadow on the floor, smaller the higher it hangs; then the Tangle: a ball of knotted cord, smaller for
+               every thread drawn out of it */
+            Gfx.alpha(0.3); Gfx.circle(x, y + 16, Math.max(5, R - 4 - Math.round(L / 4)), PAL.ink); Gfx.alpha(1);
+            const wob = this.state === 'sleep' ? 0 : Math.sin(this.t / 10) * 1.5;
+            Gfx.circle(x, hy + 2, R + wob, '#4a3020');
             const cols = [THREAD.guild, '#c9925a', '#7a5233', THREAD.ives, THREAD.bram, THREAD.ambrose, THREAD.tess, THREAD.mallow, THREAD.jory];
             for (let i = 0; i < 26; i++) {
                 const a0 = i * 2.39 + this.t / 120, rr = (R - 3) * (0.35 + 0.65 * ((i * 37) % 10) / 10);
-                const x0 = x + Math.cos(a0) * rr, y0 = y + 2 + Math.sin(a0) * rr * 0.9, x1 = x + Math.cos(a0 + 2.1) * rr, y1 = y + 2 + Math.sin(a0 + 2.1) * rr * 0.9;
+                const x0 = x + Math.cos(a0) * rr, y0 = hy + 2 + Math.sin(a0) * rr * 0.9, x1 = x + Math.cos(a0 + 2.1) * rr, y1 = hy + 2 + Math.sin(a0 + 2.1) * rr * 0.9;
                 Gfx.line(x0, y0, x1, y1, cols[i % cols.length]);
             }
-            if (this.state !== 'sleep') { Gfx.rect(x - 6, y - 2, 3, 3, '#fbf6ea'); Gfx.rect(x + 3, y - 2, 3, 3, '#fbf6ea'); Gfx.rect(x - 5, y - 1, 1, 1, PAL.ink); Gfx.rect(x + 4, y - 1, 1, 1, PAL.ink); }
-            if (this.lashT > 0 && (this.t >> 1) % 2) Gfx.circle(x, y + 2, R + 4, THREAD.guild);
-            if (this.flash > 0 && (this.flash >> 1) % 2) { Gfx.alpha(0.5); Gfx.circle(x, y + 2, R, '#ffffff'); Gfx.alpha(1); }
+            /* its eyes: stitched shut, till it opens them (two buttons, two holes each) */
+            if (this.eyes) for (const ex of [x - 5, x + 5]) {
+                Gfx.rect(ex - 1, hy - 3, 3, 1, PAL.ink); Gfx.rect(ex - 1, hy + 1, 3, 1, PAL.ink); Gfx.rect(ex - 2, hy - 2, 1, 3, PAL.ink); Gfx.rect(ex + 2, hy - 2, 1, 3, PAL.ink);
+                Gfx.rect(ex - 1, hy - 2, 3, 3, '#e8b04a'); Gfx.rect(ex - 1, hy - 2, 1, 1, '#fff0b0'); Gfx.rect(ex - 1, hy - 1, 1, 1, '#5a3a1a'); Gfx.rect(ex + 1, hy - 1, 1, 1, '#5a3a1a');
+            } else { Gfx.rect(x - 7, hy - 1, 5, 1, PAL.ink); Gfx.rect(x + 3, hy - 1, 5, 1, PAL.ink); for (const ex of [x - 6, x - 4, x + 4, x + 6]) Gfx.rect(ex, hy, 1, 1, PAL.ink); }
+            if (this.lashT > 0 && (this.t >> 1) % 2) Gfx.circle(x, hy + 2, R + 4, THREAD.guild);
+            if (this.flash > 0 && (this.flash >> 1) % 2) { Gfx.alpha(0.5); Gfx.circle(x, hy + 2, R, '#ffffff'); Gfx.alpha(1); }
         }
         for (const b of this.balls) { Gfx.circle(b.x - cx, b.y - cy, 3, THREAD.guild); Gfx.rect(b.x - cx - 2, b.y - cy - 1, 3, 1, '#e6c08a'); }
     }
 }
 SPAWN.tangle = (x, y, p) => Progress.flag('spool_boss') ? new Ent('none') : new Tangle(x, y, p);
 /* the Tangle's bobbins: wooden, patient; their first places are what the Tangle's threads are measured from */
-SPAWN.tbobbin = (x, y, p) => { const b = new Block(x, y, Object.assign({ style: 'wood', look: 'bobbin_t', patience: 360 }, p)); b.tbobbin = true; b.first = [x, y]; return b; };
+SPAWN.tbobbin = (x, y, p) => { const b = new Block(x, y, Object.assign({ style: 'wood', look: 'bobbin_t', patience: 360 }, p)); b.tbobbin = true; b.first = [x, y]; b.tangleT = 0; return b; };
 
 /* ---------------- spoolmites ---------------- */
 SPAWN.spoolmite = (x, y, p) => new Enemy(x, y, Object.assign({ type: 'spoolmite' }, p));
@@ -256,19 +360,49 @@ SPAWN.spoolmite = (x, y, p) => new Enemy(x, y, Object.assign({ type: 'spoolmite'
 const SpoolFoes = {
     *cogIntro(c) {
         yield 20;
-        yield* say(null, 'In the kennel something whirs, clanks and unfolds: a hound of brass and springs and a great deal of thread, wound so tight it hums. COG, says the plate on its collar.');
-        yield* say(null, 'It sees you. Its tail begins to spin. The door behind you slams.');
+        yield* say(null, 'In the kennel something whirs, clanks and unfolds: a hound of brass and springs and a great deal of thread, wound so tight it hums. COG, says the plate on its collar.', { focus: c });
+        yield* say(null, 'It sees you. Its tail begins to spin. The door behind you slams.', { focus: c });
     },
+    /* staged as it's told: he sits, he topples, his thread runs off, and then the chest comes up */
     *cogDown(c) {
+        Sfx.play('unravel');
+        yield 50;
+        c.state = 'toppled'; c.st = 0; G.shake = 4; Sfx.play('land'); Fx.dust(c.x, c.y);
         yield 30;
-        yield* say(null, 'Cog runs down with a long, sad whirr, sits, and topples over. All the thread wound in him comes loose and runs away down the cracks in the floor like water.');
-        yield* say(null, 'By the kennel, a lid springs open with a little ping.');
+        yield* say(null, 'Cog runs down with a long, sad whirr, sits, and topples over.', { focus: c });
+        c.unravel();
+        yield 50;
+        yield* say(null, 'All the thread wound in him comes loose and runs away down the cracks in the floor like water.');
+        Progress.set('spool_cog');
+        yield 25;
+        yield* say(null, 'By the kennel, a little trap in the floor springs open with a ping, and up comes a chest.');
+        c.shutters(false);
         Music.play('spoolworks');
     },
     *tangleIntro(t) {
         yield 20;
-        yield* say(null, 'In the heart of the Works, held in the middle of the floor by four threads to four bobbins, sits a great knot of old cord: every colour, every House, every Wander there has ever been, all wound into one.');
-        yield* say(null, 'It opens two eyes made of buttons. It has been here a very long time, and it does not want to be undone.');
+        yield* say(null, 'In the heart of the Works, held in the middle of the floor by four threads to four bobbins, sits a great knot of old cord: every colour, every House, every Wander there has ever been, all wound into one.', { focus: t });
+        t.eyes = true; Sfx.play('click');
+        yield 20;
+        yield* say(null, 'It opens two eyes made of buttons. It has been here a very long time, and it does not want to be undone.', { focus: t });
+    },
+    /* knocked once: up on the hoist */
+    *tangleUp(t) {
+        const slipped = t.yank();
+        t.state = 'up'; t.st = 0; G.shake = 6; Sfx.play('twang');
+        yield 40;
+        yield* say(null, (slipped ? 'It thrashes, and down below your knot gives with a crack. ' : 'It thrashes. ') + 'Then it flings a loose end over the old hoist hook, and the hoist hauls it up into the rafters, out of reach.', { focus: t });
+        yield* say(null, "The hoist's line creaks, taut, over its pulley and away down through the floor.");
+    },
+    /* knocked twice: the hoist torn down and wound round the trapdoor, and then it hauls */
+    *tangleHaul(t) {
+        const slipped = t.yank();
+        t.state = 'haul'; t.st = 0; t.haulT = 0; t.gone = true; t.seal();
+        G.shake = 8; Sfx.play('rumble');
+        yield 40;
+        const h = t.trap();
+        yield* say(null, (slipped ? 'Your knot below gives with a crack. ' : '') + 'The Tangle tears the hoist line down after it and winds it round and round the trapdoor.', { focus: h || t });
+        yield* say(null, 'Then every thread it has goes taut, and it begins, slowly, to haul everything back in.', { focus: t });
     },
     *tangleDown(t) {
         const a = t.area, r = a.roomAt(t.tx, t.ty);
@@ -291,6 +425,39 @@ const SpoolFoes = {
         Music.play('spoolworks');
         Save.autosave();
     },
+    hoistGone(a) { const t = a && a.ents.find(e => e.kind === 'tangle' && !e.removed); return !!(t && t.gone); },
+    /* the Heart's old hoist, over the room: a pulley on the north wall, its hook over the middle, its line along the wall
+       and down the west wall into the floor (to the counterweight below); torn down for good in the fight. And the
+       hoist line wound round the trapdoor */
+    drawHoist(a, cx, cy) {
+        const r = a.rooms.find(q => q.key === '1,0');
+        if (!r || Cam.room !== r) return;
+        const t = a.ents.find(e => e.kind === 'tangle' && !e.removed), gone = Progress.flag('d7') || (t && t.gone);
+        const ox = r.x * T - cx, oy = r.y * T - cy, px0 = ox + 9 * T + 8, py0 = oy + 12, wx = ox + 13, gy = oy + 6 * T + 8;
+        if (!gone) {
+            const up = Signals.get(a, 'hoist');
+            /* (hooked into the top of the Tangle while it hangs there or lies let down; else empty, up or down) */
+            const top = t ? oy + 5 * T + 6 - Math.round(t.lift) - (22 - t.pulled * 3) : 0;
+            const hookY = t && (t.state === 'up' || t.state === 'down' || t.lift > 1) ? top - 2 : up ? oy + 30 : oy + 4 * T;
+            Gfx.line(px0 + 3, py0, px0 + 3, hookY, '#d8c8a8'); Gfx.line(px0 + 4, py0, px0 + 4, hookY, '#8a7a5a');
+            Gfx.line(wx, py0 + 2, px0 - 3, py0 + 2, '#d8c8a8'); Gfx.line(wx, py0 + 2, wx, gy, '#d8c8a8'); Gfx.line(wx + 1, py0 + 3, wx + 1, gy, '#8a7a5a');
+            Gfx.rect(wx - 1, gy, 6, 2, '#c9a24a'); Gfx.rect(wx, gy - 1, 4, 1, '#f7d64a');
+            /* the hook */
+            Gfx.rect(px0 + 2, hookY, 3, 3, '#c9a24a'); Gfx.rect(px0 + 1, hookY + 3, 2, 3, '#c9a24a'); Gfx.rect(px0 + 2, hookY + 6, 4, 1, '#c9a24a'); Gfx.rect(px0 + 5, hookY + 4, 1, 2, '#c9a24a');
+        }
+        /* the pulley block, on its bracket (stays up, torn line or not) */
+        Gfx.rect(px0 - 2, py0 - 6, 10, 3, PAL.ink); Gfx.rect(px0 - 1, py0 - 5, 8, 1, '#6a4630');
+        Gfx.circle(px0 + 3, py0, 4, PAL.ink); Gfx.circle(px0 + 3, py0, 3, '#c9a24a'); Gfx.rect(px0 + 3, py0, 1, 1, PAL.ink);
+        /* the trapdoor, wound shut */
+        const h = t && t.trap();
+        if (h && h.sealed) {
+            const x = h.px - cx, y = h.py - cy;
+            for (let i = 0; i < 7; i++) {
+                const c = [THREAD.guild, '#d8c8a8', THREAD.bram, THREAD.ambrose, '#d8c8a8', THREAD.ives, THREAD.guild][i];
+                Gfx.line(x - 1 + i * 3, y - 1, x + 17 - i * 2, y + 15, c); Gfx.line(x + 17 - i * 3, y, x - 1 + i * 2, y + 16, shade(c, -0.2));
+            }
+        }
+    },
 };
 
 function initSpoolFoes() {
@@ -299,12 +466,15 @@ function initSpoolFoes() {
     const mite = legs => ['................', '................', '................', '................', '.....kkkkkk.....', '....kwwwwwwk....', '...kbbbbbbbbk...', '...kBeBBBBeBk...', '...kbbbbbbbbk...', '...kBBBBBBBBk...', '....kwwwwwwk....', '.....kkkkkk.....', legs, '................', '................', '................'];
     defSprite('spoolmite_0', mite('....kl.kl.kl....'), sm); defSprite('spoolmite_1', mite('...kl.kl.kl.....'), sm);
     ENEMY_DRAW.spoolmite = e => spr('spoolmite_' + ((e.anim >> 3) % 2));
-    ENEMY.cog = { hp: 3, r: 7, tall: 14, yarn: THREAD.guild, weight: WEIGHT.heavy };
+    ENEMY.cog = { hp: 2, r: 7, tall: 14, yarn: THREAD.guild, weight: WEIGHT.heavy };
     const cg = { b: '#c9a24a', B: '#8a6a2a', w: '#f7e8b8', e: '#2a1f2d', t: THREAD.guild, r: '#d6304e' };
     const dog = (legs, tail) => ['....................', '..............kk....', '.............kbbk...', '............kbbbbk..', '............kbebbkk.', '...' + tail + '.....kbbbbbbk', '..kk..kkkkkkkbbbbkk.', '..kbkkbbbbbbbbbkk...', '...kbbbbbbbbbbbk....', '...kbBbBbBbBbBbk....', '...kbbbbbbbbbbbk....', '....kttttttttttk....', '....' + legs + '....', '....kk..kk..kk..kk..'.slice(0, 20), '....................', '....................', '....................', '....................'];
     defSprite('cog_0', dog('kbk.kbk..kbk.kbk', 'kk'), cg); defSprite('cog_1', dog('.kbkkbk...kbkkbk', 'k.'), cg);
     defSprite('cog_sit', dog('kbbk......kbbk..', '..'), cg);
     defSprite('cog_held', dog('kbk.kbk..kbk.kbk', 'kk').map((r, i) => i === 11 ? '....krrrrrrrrrrk....' : r), cg);
+    /* run down: over on his side, legs out, his key still in his back */
+    defSprite('cog_down', ['....................', '....................', '....................', '....................', '....................', '....................', '....................',
+        '.......k............', '......kbk...........', '..kkkkkbkkkkkkk.....', '.kbbbbbbbbbbbbbkkk..', 'kbBbBbBbBbBbBbbbebk.', 'kbbbbbbbbbbbbbbbbbk.', '.kttttttttttttkkkk..', '..kbk.kbk.kbk.kbk...', '..kk..kk..kk..kk....', '....................', '....................'], cg);
     defSprite('tangle_core', ['................', '.....kkkkkk.....', '....kttTTttk....', '...ktTkkkkTtk...', '...kTk.ww.kTk...', '..ktk.wwww.ktk..', '..kTk.wkkw.kTk..', '..ktk.wwww.ktk..', '...kTk.ww.kTk...', '...ktTkkkkTtk...', '....kttTTttk....', '.....kkkkkk.....', '................', '................', '................', '................'], { t: THREAD.guild, T: '#7a5233', w: '#fbf6ea' });
     defSprite('bobbin', ['................', '..kkkkkkkkkkkk..', '..kiiiiiiiiiik..', '..kkkkkkkkkkkk..', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '..kkkkkkkkkkkk..', '..kiiiiiiiiiik..', '..kIIIIIIIIIIk..', '..kkkkkkkkkkkk..', '................'], { i: '#6a6e78', I: '#484c56', c: '#a8784a', C: '#7a5233' });
     defSprite('bobbin_t', ['................', '..kkkkkkkkkkkk..', '..kwwwwwwwwwwk..', '..kkkkkkkkkkkk..', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '..kkkkkkkkkkkk..', '..kwwwwwwwwwwk..', '..kWWWWWWWWWWk..', '..kkkkkkkkkkkk..', '................'], { w: '#c9925a', W: '#9a6438', c: THREAD.guild, C: '#7a5233' });

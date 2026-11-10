@@ -39,7 +39,8 @@ class Cord extends Ent {
     set x(v) { } set y(v) { }
     get tx() { return this.pos ? this.pos[0] : -1; }
     get ty() { return this.pos ? this.pos[1] : -1; }
-    get sortY() { return this.y + 6; }
+    /* (sorted with the back of its tile: whoever stands just north of it is in front of it, not run through by it) */
+    get sortY() { return this.y - 6; }
     talkBox(p, f) { return !!this.pos && f.tx === this.pos[0] && f.ty === this.pos[1]; }
     interact(p) { Spool.grab(p, this); return true; }
     update() {
@@ -54,11 +55,11 @@ class Cord extends Ent {
         const x = this.pos[0] * T + 8 - cx, y = this.pos[1] * T - cy;
         const col = r.color, dark = shade(col, -0.45);
         /* the grommet up in the boards overhead, a brass ring */
-        Gfx.rect(x - 2, y - 14, 5, 2, '#c9a24a'); Gfx.rect(x - 1, y - 15, 3, 1, '#f7d64a');
+        Gfx.rect(x - 2, y - 10, 5, 2, '#c9a24a'); Gfx.rect(x - 1, y - 11, 3, 1, '#f7d64a');
         const away = r.state !== 'home', pulling = Spool.pull && Spool.pull.cord === this;
         if (e.knotted) {
             /* tied off to a cleat in the floor, taut */
-            Gfx.line(x, y - 13, x, y + 10, col); Gfx.line(x + 1, y - 13, x + 1, y + 10, dark);
+            Gfx.line(x, y - 9, x, y + 10, col); Gfx.line(x + 1, y - 9, x + 1, y + 10, dark);
             Gfx.rect(x - 4, y + 10, 10, 3, '#4a3626'); Gfx.rect(x - 3, y + 9, 8, 1, '#8a6a4e');
             Gfx.rect(x - 2, y + 5, 5, 4, col); Gfx.rect(x - 1, y + 6, 3, 2, shade(col, 0.3)); Gfx.rect(x - 2, y + 8, 5, 1, dark);
             return;
@@ -68,14 +69,14 @@ class Cord extends Ent {
             const d = Layers.down(a, e.tx, e.ty);
             const lean = d ? clamp((d[0] - this.pos[0]) * 2, -6, 6) : 0;
             const shiver = (r.state === 'returning' || r.timer < 30) && (G.t >> 1) % 2 ? 1 : 0;
-            Gfx.line(x, y - 13, x + lean + shiver, y + 2, col);
+            Gfx.line(x, y - 9, x + lean + shiver, y + 2, col);
             Gfx.rect(x + lean + shiver - 1, y + 2, 3, 3, '#8a6a4e');
             return;
         }
         /* hanging slack, a wooden pull at the end; swinging a little */
         const sw = Math.round(Math.sin((this.t + this.pos[0] * 13) / 40) * (pulling ? 0 : 1));
         const down = pulling ? 3 : 0;
-        Gfx.line(x, y - 13, x + sw, y + 6 + down, col); Gfx.line(x + 1, y - 13, x + 1 + sw, y + 6 + down, dark);
+        Gfx.line(x, y - 9, x + sw, y + 6 + down, col); Gfx.line(x + 1, y - 9, x + 1 + sw, y + 6 + down, dark);
         Gfx.rect(x - 1 + sw, y + 6 + down, 4, 5, '#a8784a'); Gfx.rect(x - 1 + sw, y + 10 + down, 4, 1, '#6a4e38');
         Gfx.alpha(0.2); Gfx.rect(x - 3, y + 13, 8, 2, PAL.ink); Gfx.alpha(1);
     }
@@ -158,8 +159,16 @@ const Spool = {
         g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(0, 0, W, H);
         const ctx0 = Gfx.ctx; Gfx.ctx = g;
         try {
-            /* the floor up there is the boards overhead: only its walls, holes and water show, and what stands on it */
-            for (let ty = ar.y; ty < ar.y + ar.h; ty++) for (let tx = ar.x; tx < ar.x + ar.w; tx++) if (a.kindName(tx, ty) !== 'floor') TileDraw.draw(a, tx, ty, tx * T - ux, ty * T - uy);
+            /* the floor up there is the boards overhead: only its walls, holes and water show, and what stands on it. Walls
+               up there over open floor down here are drawn as their plan, hatched and dashed round (a wall drawn as a wall
+               would make the floor under it look solid); a hole lets the light down; walls over walls aren't drawn */
+            for (let ty = ar.y; ty < ar.y + ar.h; ty++) for (let tx = ar.x; tx < ar.x + ar.w; tx++) {
+                const k = a.kindName(tx, ty), sx = tx * T - ux, sy = ty * T - uy;
+                if (k === 'floor') continue;
+                if (k === 'wall' || k === 'void') { if (!a.kind(tx - r.above.dx, ty - r.above.dy).solid) this.plan(a, tx, ty, sx, sy); }
+                else if (k === 'pit') Gfx.img(tileCanvas('spool:hole', x => { fill(x, '#fff3d0'); for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) if ((i * 3 + j * 5) % 11 === 0) px(x, i, j, '#ffe6a0'); }), sx, sy);
+                else TileDraw.draw(a, tx, ty, sx, sy);
+            }
             const inR = e => { const tx = e.tx !== undefined ? e.tx : tileOf(e.x), ty = e.ty !== undefined ? e.ty : tileOf(e.y); return tx >= ar.x && ty >= ar.y && tx < ar.x + ar.w && ty < ar.y + ar.h; };
             const list = a.ents.filter(e => e.kind !== 'cord' && !e.removed && inR(e));
             for (const e of list) if (e.floor) e.draw(ux, uy);
@@ -172,6 +181,17 @@ const Spool = {
         g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.35; g.fillStyle = '#cfe0ff'; g.fillRect(0, 0, W, H);
         g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
         Gfx.alpha(0.55); ctx0.drawImage(c, 0, 0); Gfx.alpha(1);
+    },
+    /* a wall up above, seen from below: its plan, hatched, its edges dashed */
+    plan(a, tx, ty, sx, sy) {
+        const wall = (x, y) => { const k = a.kindName(x, y); return k === 'wall' || k === 'void'; };
+        Gfx.img(tileCanvas('spool:plan', x => { for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) if ((i + j) % 4 === 0) px(x, i, j, '#efe2c4'); }), sx, sy);
+        for (let i = 0; i < 16; i += 4) {
+            if (!wall(tx, ty - 1)) Gfx.rect(sx + i, sy, 2, 1, '#fff6dc');
+            if (!wall(tx, ty + 1)) Gfx.rect(sx + i, sy + 15, 2, 1, '#fff6dc');
+            if (!wall(tx - 1, ty)) Gfx.rect(sx, sy + i, 1, 2, '#fff6dc');
+            if (!wall(tx + 1, ty)) Gfx.rect(sx + 15, sy + i, 1, 2, '#fff6dc');
+        }
     },
     /* who matters up there (somebody you're looking after, things that bite) shows clearly through the boards, over
        everything down here, Wren too: the moment upstairs (the boy finding the button) is never hidden behind her */
@@ -248,6 +268,7 @@ SPAWN.hatch = (x, y, p) => new Hatch(x, y, p);
 SPAWN.weight = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'block_weight' }, p));
 
 /* ---------------- the Needle ---------------- */
+const NEEDLE_NOUNS = { block_weight: 'the iron weight', bobbin: 'a bobbin', bobbin_t: 'a bobbin', 'block:wood': 'the wooden block', 'block:stone': 'the stone block', crate: 'the crate', pot: 'the pot', puppet: 'the puppet' };
 const Needle = {
     MAX: 3, REACH: 4,
     st: null,                /* { thing, path, off: [dx, dy] (drawn under, through a cord), rep } while stitching */
@@ -337,14 +358,23 @@ const Needle = {
         if (!old) r.color0 = r.color;
         r.color = THREAD.wren;
         e.stitched = true;
-        Inv.stitches.push({ area: a.id, key, from, to: end.slice(), trace: way, stray, color0: r.color0 });
+        Inv.stitches.push({ area: a.id, key, from, to: end.slice(), trace: way, stray, color0: r.color0, noun: this.noun(e) });
         Sfx.play('twang'); Stats.count('stitches');
         if (Inv.stitches.length > this.MAX) {
             const oldest = Inv.stitches[0];
             this.unpick(oldest);
-            const rm = oldest.from && AREAS[oldest.area] && AREAS[oldest.area].rooms ? (AREAS[oldest.area].rooms.find(r => oldest.from[0] >= r.x && oldest.from[1] >= r.y && oldest.from[0] < r.x + r.w && oldest.from[1] < r.y + r.h) || {}).name : null;
-            UI.toast('Three stitches is all the Needle holds: the oldest comes undone' + (rm ? ' (in ' + rm + ').' : '.'), 160);
+            UI.toast(this.letGo(oldest), 200);
         }
+    },
+    /* what a stitched thing is called, for saying which one let go */
+    noun(e) { return e.stitchName || NEEDLE_NOUNS[e.look] || NEEDLE_NOUNS[e.kind + ':' + e.style] || NEEDLE_NOUNS[e.kind] || 'the ' + e.kind; },
+    /* the oldest stitch let go: say plainly what it was and where (older saves' stitches don't know what they were) */
+    letGo(rec) {
+        const def = AREAS[rec.area], at = rec.from || rec.to;
+        const room = at && def && def.rooms ? def.rooms.find(r => at[0] >= r.x && at[1] >= r.y && at[0] < r.x + r.w && at[1] < r.y + r.h) : null;
+        const here = room && G.map && G.map.id === rec.area && Cam.room && Cam.room.key === room.key, n = room && room.name;
+        const where = here ? ' here' : !n ? '' : /^Under /.test(n) ? ' under ' + n.slice(6) : /Floor$/.test(n) ? ' on ' + n.replace(/^The /, 'the ') : ' in ' + n.replace(/^The /, 'the ');
+        return 'The Needle only holds three stitches, so your oldest lets go: ' + (rec.noun || (rec.chalk ? 'a sewn plank' : 'something')) + where + (rec.chalk ? ' goes back to chalk.' : ' goes back to its old place.');
     },
     /* a stitch undone: the thing's old place back, and its way home is the way it came */
     unpick(rec) {
@@ -434,12 +464,13 @@ TOOLS._spool = { update(area) { Spool.update(area); }, draw(cx, cy) { Spool.draw
 }
 
 function initSpoolKit() {
-    ART.hatch_up = paintSprite(16, 24, x => {
-        /* a ladder up to a square of light */
-        x.fillStyle = '#f7e8b8'; x.fillRect(2, 0, 12, 4); x.fillStyle = '#c9a24a'; x.fillRect(1, 0, 1, 5); x.fillRect(14, 0, 1, 5);
-        x.fillStyle = '#6a4e38'; x.fillRect(3, 4, 2, 20); x.fillRect(11, 4, 2, 20);
-        x.fillStyle = '#a8784a'; for (let y = 7; y < 24; y += 4) x.fillRect(3, y, 10, 2);
-        x.fillStyle = '#2a1e16'; for (let y = 9; y < 24; y += 4) x.fillRect(5, y, 6, 1);
+    ART.hatch_up = paintSprite(16, 16, x => {
+        /* a ladder up to a square of light, all in its own tile (so it never stands up over whoever's just behind it) */
+        x.fillStyle = '#f7e8b8'; x.fillRect(3, 0, 10, 3); x.fillStyle = '#fffbe8'; x.fillRect(5, 0, 6, 1);
+        x.fillStyle = '#c9a24a'; x.fillRect(2, 0, 1, 4); x.fillRect(13, 0, 1, 4); x.fillRect(2, 3, 12, 1);
+        x.fillStyle = '#6a4e38'; x.fillRect(3, 4, 2, 12); x.fillRect(11, 4, 2, 12);
+        x.fillStyle = '#a8784a'; for (let y = 6; y < 16; y += 3) x.fillRect(3, y, 10, 2);
+        x.fillStyle = '#2a1e16'; for (let y = 8; y < 16; y += 3) x.fillRect(5, y, 6, 1);
     });
     ART.hatch_down = paintSprite(16, 16, x => {
         /* a trapdoor in the floor with an iron ring */
