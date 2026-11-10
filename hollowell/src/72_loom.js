@@ -155,7 +155,7 @@ defHouse({
             ents: [
                 { k: 'loomweight', x: 4, y: 2, id: 'wrW1' }, { k: 'loomweight', x: 4, y: 8, id: 'wrW2' }, { k: 'loomweight', x: 5, y: 5, id: 'wrW3' },
                 { k: 'chest', x: 16, y: 8, item: 'key', id: 'wrKey' },
-                { k: 'chute', x: 1, y: 9, drop: [2, 8], id: 'wrChute' },
+                { k: 'chute', x: 1, y: 9, drop: [2, 8], id: 'wrChute', weights: true },
                 { k: 'sign', x: 2, y: 9, text: 'The old loom weights, each on its silver thread. They have hung in the same places for longer than anyone remembers.' },
             ],
         },
@@ -177,7 +177,8 @@ defHouse({
             ],
             ents: [
                 { k: 'door', x: 15, y: 10, type: 'lock', id: 'brLock' },
-                { k: 'chute', x: 1, y: 1, drop: [2, 2], id: 'brChute' },
+                { k: 'chute', x: 1, y: 1, drop: [2, 2], id: 'brChute', weights: true },
+                { k: 'door', x: 0, y: 5, type: 'gate', when: 'brPlate', dir: 'v', id: 'brWest' },
                 { k: 'silkbridge', x: 9, y: 5, len: 1, dir: 'h', id: 'brBridge' },
                 { k: 'loomweight', x: 4, y: 3, id: 'brW1' }, { k: 'loomweight', x: 4, y: 7, id: 'brW2' },
                 { k: 'plate', x: 14, y: 5, sig: 'brPlate', minWeight: 3 },
@@ -202,7 +203,7 @@ defHouse({
                 '#########.##########',
             ],
             ents: [
-                { k: 'weaver', x: 9, y: 3, id: 'weaver' },
+                { k: 'weaver', x: 9, y: 5, id: 'weaver' },
                 { k: 'anchor', x: 2, y: 2, id: 'anA' }, { k: 'anchor', x: 17, y: 2, id: 'anB' }, { k: 'anchor', x: 2, y: 8, id: 'anC' }, { k: 'anchor', x: 17, y: 8, id: 'anD' },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'weaver' },
             ],
@@ -218,8 +219,10 @@ class Chute extends GridThing {
         const a = this.area, [x, y] = this.drop.map((v, i) => v + (i ? a.roomAt(this.tx, this.ty).y : a.roomAt(this.tx, this.ty).x));
         const p = G.player, k = a.kind(x, y);
         if (a.at(x, y) || (p.tx === x && p.ty === y) || k.solid || k.pit) { UI.toast("The chute rattles. There's no room under it for another."); Sfx.play('hitthing'); return true; }
-        const b = a.add(new Block(x, y, { marked: false }));
+        /* offcuts are middling things (silk holds them; an iron plate doesn't notice them); some chutes drop spare weights */
+        const b = a.add(this.weights ? new Block(x, y, { weight: WEIGHT.heavy, look: 'loomweight', thread: THREAD.loom, patience: 150 }) : new Block(x, y, { marked: false, weight: WEIGHT.medium }));
         b.skey = 'chute:' + G.t;
+        if (this.weights && !Progress.flag('spare_weight')) { Progress.set('spare_weight'); G.pendingToast = 'A spare weight clanks down, on its own silver thread.'; }
         Fx.poof(x * T + 8, y * T + 4); Sfx.play('land'); G.shake = 3; Stats.count('offcuts');
         return true;
     }

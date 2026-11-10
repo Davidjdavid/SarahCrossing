@@ -26,10 +26,10 @@ class Warp extends FloorThing {
         if (!p || p.area !== this.area || p.state !== 'normal' || Script.blocking()) return;
         const on = p.feetOn(this.tx, this.ty);
         /* only fires after Wren has stepped off it once (arriving on a warp doesn't send you back) */
-        if (!on) { this.armed = true; return; }
+        if (!on) { this.armed = true; this.told = false; return; }
         if (!this.armed) return;
         if (this.dir !== undefined && p.dir !== dirByName(this.dir)) return;
-        if (this.when && !Signals.eval(this.area, this.when)) return;
+        if (this.when && !Signals.eval(this.area, this.when)) { if (this.lockedLine && !this.told) { this.told = true; UI.toast(this.lockedLine, 160); Sfx.play('hitthing'); } return; }
         this.armed = false;
         let x2 = this.tx2, y2 = this.ty2;
         if (x2 === 'door') [x2, y2] = INTERIOR_DOOR[this.to];

@@ -108,7 +108,7 @@ const PAL = {
 const THREAD = {
     none: '#cfc6b8', wren: '#e8463c', ives: '#3fc1b5', bram: '#e0913a', ambrose: '#4f9be0',
     tess: '#e8c04a', mallow: '#b48ce8', jory: '#d6304e', guild: '#a8784a', loom: '#e4ecf5',
-    hesper: '#f0e6d0', linnet: '#8fd46a', chalk: '#eeeeee', town: '#d9c9a8',
+    hesper: '#f0e6d0', linnet: '#8fd46a', tuck: '#5ab85a', chalk: '#eeeeee', town: '#d9c9a8',
 };
 
 function hexRGB(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }

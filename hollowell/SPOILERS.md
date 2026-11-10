@@ -52,9 +52,24 @@ Makers keep their Houses' threads by choice, for play. The fog thins to an open 
 in the garden. Credits: "Made by the Makers of Hollowell", then "Wanderer: <name>". The title screen
 changes: no fog, people walking, "Carry on".
 
-With the bracelet from Linnet's Trail (secret chain), the ending adds Hesper putting the bracelet on, and
-the epilogue opens the bridge over the Drift (post-game area) and a last scene at the Well, where the
-motto has been re-carved: "EVERYTHING IN ITS PLACE, AND EVERYONE IN THEIRS. WHEREVER THAT IS."
+With the bracelet from Linnet's Trail (secret chain), the ending adds Linnet giving Hesper the bracelet and Hesper
+putting it on (the post-game bridge over the Drift is still to build with O1). With Tuck's drawing (S30) it's on
+Gran's dresser. Either way, a week later somebody re-carves the Well's motto: "EVERYTHING IN ITS PLACE, AND EVERYONE IN
+THEIRS. WHEREVER THAT IS." (S35 reads it in each act.)
+
+As built (`src/74_drift.js`, `75_greatspool.js`, `76_ending.js`): the Shears at the fog ask to cut Wren's own thread
+(hearts come undone: nothing left to unravel; falls are climbed out of where they happen). Into the fog, out in the
+Drift (map blank until walked). Linnet in her garden tells her story; Hesper feels it and the Great Pull begins
+(townsfolk in town are dragged in an arc round the Well, threads streaming into it; the Well's cap is off). Down the
+Well: the Great Spool (DUNGEON_TRACKER.md). At the top Hesper pulls everything else (junk flies at the Spool); six
+great threads cut; Linnet comes down ("Mum."); a choice of words (Let go / Come home), the same result; the Unwinding
+(the birds fly away and come back, people walk where they like, the Makers keep their Houses by choice, the fog thins
+to a road; Gran and Linnet in the garden; the Drift-bloom by the gate if S11's seed was planted); credits (the Makers,
+the Loom and the First Spinner, "Wanderer: <name>", Linnet, Hesper, Biscuit); then the free valley: everyone on a
+round of their own with new lines (`AFTER_LINES`), Gran and Linnet by Gran's house, the goal "The valley is yours.
+Carry on." The title (localStorage `hollowell-ended`): no mist, a road out over the hills with people walking it,
+birds, "a Wander (and after)", Continue becomes "Carry on". The Loom itself is opened by the Guild's key, which Gundry
+gives after Reveal 2.
 
 ## 2. The convention ledger (what each convention really was)
 
@@ -147,7 +162,8 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 33. **S33 Fainting on purpose in Act III**: get pulled home by Gran while Wren *knows*: different wake-up scene.
 34. **S34 Hints off**: play Act I–II with Hints off: the logbooks say "The Wanderer asked us not to help.
     We respected that. (We were proud.)"
-35. **S35 The motto**: read the Well's motto in each act; it changes in the epilogue.
+35. **S35 The motto**: read the Well's motto in each act (four texts: before Reveal 1; after it, with Bram's scratched
+    note; after Reveal 2, tighter; after the Unwinding, re-carved); all four read: the secret.
 36. **Heart Patches** (16 total) placements are listed in DUNGEON_TRACKER.md "Overworld secrets".
 
 ### Linnet's Trail (the major secret chain)

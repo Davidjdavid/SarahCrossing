@@ -287,7 +287,7 @@ const PAL = {
 const THREAD = {
     none: '#cfc6b8', wren: '#e8463c', ives: '#3fc1b5', bram: '#e0913a', ambrose: '#4f9be0',
     tess: '#e8c04a', mallow: '#b48ce8', jory: '#d6304e', guild: '#a8784a', loom: '#e4ecf5',
-    hesper: '#f0e6d0', linnet: '#8fd46a', chalk: '#eeeeee', town: '#d9c9a8',
+    hesper: '#f0e6d0', linnet: '#8fd46a', tuck: '#5ab85a', chalk: '#eeeeee', town: '#d9c9a8',
 };
 
 function hexRGB(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
@@ -3370,10 +3370,10 @@ class Warp extends FloorThing {
         if (!p || p.area !== this.area || p.state !== 'normal' || Script.blocking()) return;
         const on = p.feetOn(this.tx, this.ty);
         /* only fires after Wren has stepped off it once (arriving on a warp doesn't send you back) */
-        if (!on) { this.armed = true; return; }
+        if (!on) { this.armed = true; this.told = false; return; }
         if (!this.armed) return;
         if (this.dir !== undefined && p.dir !== dirByName(this.dir)) return;
-        if (this.when && !Signals.eval(this.area, this.when)) return;
+        if (this.when && !Signals.eval(this.area, this.when)) { if (this.lockedLine && !this.told) { this.told = true; UI.toast(this.lockedLine, 160); Sfx.play('hitthing'); } return; }
         this.armed = false;
         let x2 = this.tx2, y2 = this.ty2;
         if (x2 === 'door') [x2, y2] = INTERIOR_DOOR[this.to];
@@ -4374,14 +4374,16 @@ const PauseMenu = {
     /* in a House there's always a way out: back to its door, as if you'd fainted (but without the fainting) */
     saveItems() {
         const a = G.map, l = ['Save here', 'Save and go to the title'];
-        if (a && a.def.house && AREAS[a.id].entry && G.player && G.player.state === 'normal') l.push("Back to the House's door");
+        if (a && a.def.house && AREAS[a.id].entry && G.player && G.player.state === 'normal') l.push(a.def.making ? 'Out to the Making Floor' : "Back to the House's door");
         return l;
     },
     backToDoor() {
         Script.run(function* () {
             const e = AREAS[G.map.id].entry;
             yield* fadeOut(20);
-            World.enter(G.map.id, e.x, e.y, { dir: UP });
+            /* (a Making's door is on the Making Floor: out, and in again starts it afresh) */
+            if (G.map.def.making) World.enter('underside', 49, 3, { dir: DOWN });
+            else World.enter(G.map.id, e.x, e.y, { dir: UP });
             Stats.count('backToDoor');
             yield* fadeIn(20);
         });
@@ -14313,6 +14315,7 @@ const Spool = {
     },
     knot(e, quiet) {
         if (e.knotted) return;
+        if (e.noKnot) { if (e.onNoKnot) e.onNoKnot(); return; }
         e.knotted = true; e._fixed0 = !!e.fixed; e.fixed = true; e._lift0 = e.liftable; e.liftable = false;
         if (e.heldBy && e.heldBy.release && e.heldBy !== G.player) e.heldBy.release();
         if (e.onKnot) e.onKnot();
@@ -15649,9 +15652,9 @@ class Tuck extends NPC {
         this.person = true; this.weight = WEIGHT.medium; this.noPush = true; this.showThrough = true;
         this.home0 = [tx, ty];
         this.state = 'go'; this.st = 0; this.wait = 0; this.cur = null; this.seen = 0; this.sitSpot = null;
-        this.bumps = 0; this.held = false;
+        this.bumps = 0; this.held = false; this.noKnot = true;
         /* his own thread, down to his start (like everybody's) */
-        this.ret = { mx: tx, my: ty, area: null, color: THREAD.wren, state: 'home', trace: [[tx, ty]], timer: 0, patience: 1e9, snap: false, strain: 0, pace: 10 };
+        this.ret = { mx: tx, my: ty, area: null, color: THREAD.tuck, state: 'home', trace: [[tx, ty]], timer: 0, patience: 1e9, snap: false, strain: 0, pace: 10 };
     }
     onAdd(area) { area.place(this, this.tx, this.ty); }
     get making() { return Making.cur; }
@@ -15721,7 +15724,7 @@ class Tuck extends NPC {
         Sfx.play('flight'); this.yank(false); Stats.count('tuck:yanked');
         if (!Progress.flag('tuck_yanked')) { Progress.set('tuck_yanked'); G.pendingToast = "Ives, from somewhere above: \"Not the boy's own thread, love! ...He did like it, mind.\""; }
     }
-    onKnot() { this.say('Hey! I can\'t move!', 'bang'); }
+    onNoKnot() { this.say('Hey! Let go!', 'bang'); UI.toast("It's his Wander: you can give his thread a tug, but you won't tie him down.", 150); }
     onUntie() { this.say('Phew.'); }
     canBeShoved(d) { return !this.mv; }
     shove(d, dur, by) { this.bump('shoved'); }
@@ -15747,7 +15750,7 @@ class Tuck extends NPC {
         /* 2: something jumped: go and push it */
         const j = Spool.jolt;
         if (j && j.t > this.seen && G.t - j.t < 240 && !j.e.removed && a.roomAt(j.e.tx, j.e.ty) === a.roomAt(this.tx, this.ty) && Math.max(Math.abs(j.e.tx - this.tx), Math.abs(j.e.ty - this.ty)) <= 8) {
-            this.seen = j.t; this.cur = j.e; this.curT = 0; this.say('Ooh! It jumped!', 'bang');
+            this.seen = j.t; this.cur = j.e; this.curT = 0; this.curJolt = true; this.say('Ooh! It jumped!', 'bang');
         }
         if (this.cur) {
             const o = this.cur;
@@ -15756,9 +15759,9 @@ class Tuck extends NPC {
                 const adj = Math.abs(o.tx - this.tx) + Math.abs(o.ty - this.ty) === 1;
                 if (adj) {
                     const d = dirOf(o.tx - this.tx, o.ty - this.ty); this.dir = d;
-                    this.cur = null; this.wait = 60;      /* (and then he admires it a moment) */
+                    this.cur = null; this.wait = this.curJolt ? 210 : 60; this.curJolt = false;      /* (and then he admires it a moment: a good while, if it jumped) */
                     const tr = a.ents.find(e => e.kind === 'treasure' && !e.found && e.tx === o.tx && e.ty === o.ty);
-                    if (tr) { tr.found = true; a.remove(tr); Making.aha('found'); this.say('Ooh! A shiny button under it!', 'heart'); Sfx.play('button'); Inv.buttons += 5; }
+                    if (tr) { tr.found = true; a.remove(tr); Making.aha('found'); this.say('Ooh! A shiny button under it!', 'heart'); Sfx.play('button'); if (!Progress.areaFlag(a.id, 'got:button')) { Progress.setAreaFlag(a.id, 'got:button'); Inv.buttons += 5; } }
                     if (o.weight > WEIGHT.medium || o.fixed || o.mv) { if (!tr) this.say('Hnnngh!', 'dots'); return; }
                     const before = this.reach(g);
                     if (o.push(d, 16)) {
@@ -15791,7 +15794,7 @@ class Tuck extends NPC {
     draw(cx, cy) {
         super.draw(cx, cy);
         if (this.state === 'sit' && !this.mv && (G.t >> 5) % 2) Font.draw('z', this.px - cx + 12, this.py - cy - 18, '#cfc6b8');
-        if (this.knotted) { const x = this.px + 8 - cx, y = this.py + 14 - cy; Gfx.line(x, y, x, y + 3, THREAD.wren); }
+        if (this.knotted) { const x = this.px + 8 - cx, y = this.py + 14 - cy; Gfx.line(x, y, x, y + 3, THREAD.tuck); }
     }
 }
 SPAWN.tuck = (x, y, p) => new Tuck(x, y, p);
@@ -15800,12 +15803,13 @@ SPAWN.tuck = (x, y, p) => new Tuck(x, y, p);
 class Nibbler extends Enemy {
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ type: 'nibbler', hp: 99 }, p));
-        this.kind = 'nibbler'; this.cordable = true; this.st = 0; this.showThrough = true;
+        this.kind = 'nibbler'; this.cordable = true; this.st = 0; this.showThrough = true; this.noCut = true;
         this.ret = { mx: tx, my: ty, area: null, color: '#8a6a4e', state: 'home', trace: [[tx, ty]], timer: 99, patience: 99, snap: false, strain: 0, pace: 10 };
     }
     get px() { return this.x - 8; }
     get py() { return this.y - 10; }
     hurtBox() { return null; }
+    onCut() { }      /* (a nibbler's cord is the Makers'; an old save's cut flag does nothing) */
     onTile(x, y) { return this.alive && this.tx === x && this.ty === y; }
     update() {
         if (!this.alive) return;
@@ -15880,7 +15884,7 @@ const Making = {
             this.checkCleared = null;
             const g = this.goal(a);
             /* his own push got him nearer the door than he could get before */
-            if (g && c.by.reach(g) < c.before) this.aha('cleared');
+            if (g && c.by.reach(g) < c.before) { this.aha('cleared'); c.by.wait = Math.min(c.by.wait, 40); }      /* (his way's clear: off he goes) */
         }
     },
     finish(a) {
@@ -15911,7 +15915,7 @@ const Making = {
             yield* fadeOut(20);
             World.enter('underside', 49, 3, { dir: DOWN });
             yield* fadeIn(20);
-            if (n === 3) yield* Making.afterAll();
+            if (n === 3 && !Progress.flag('makings_done')) yield* Making.afterAll();
             Save.autosave();
         });
     },
@@ -16321,12 +16325,17 @@ CONTENT_INIT.push(initReveal2);
             yield* say('gundry', "You've seen the Hall, then. I can tell. You've got the look. I had it too, forty years back, and I went straight back upstairs and oiled the winch and never said a word. I'm not proud of that.");
             yield* say('gundry', "The Shears. The First Spinner's own, the only blades in the valley that cut a thread for good. They're in the old Loom, in the Loomwood, past the north gate. Linnet went that way.");
             yield* say('gundry', "Hesper keeps that gate shut with a counterweight, down here in the Seams, east. Nobody can shift it. But nobody had a Needle before, did they?");
-            Progress.setGoal('The north gate: its counterweight is in the Seams (east), under the town. Give it a new place.');
+            yield* say('gundry', "And take this. The Guild's key to the Loom. Four hundred years we've kept it, and never once turned it. Turn it.");
+            Inv.items.guildkey = 1; Sfx.play('item');
+            yield* say(null, "You got the Guild's key: iron, as long as your forearm, with a spool for a bow.");
+            Progress.setGoal(Progress.flag('north_gate') ? 'Through the north gate, up the Loomwood road to the Loom.' : 'The north gate: its counterweight is in the Seams (east), under the town. Give it a new place.');
             return;
         }
         yield* say('gundry', cycle('gundry_r2b', ["The Seams, east end. The counterweight. Mind your fingers.", "Past the gate it's the Loomwood. Old. Older than the Houses. Nobody's built anything there; nobody watches from underneath. You'll be on your own.", "If you see Linnet... tell her the Guild still has her name on the bench."]));
     };
 }
+
+ITEMS.guildkey = { name: "The Guild's key", kind: 'quest', desc: 'Iron, as long as your forearm, with a spool for a bow. It opens the Loom.' };
 
 // ---- 70_shears_kit.js ----
 /* The Shears: the First Spinner's own blades, the only ones that cut a thread for good. Face something with a thread
@@ -16343,7 +16352,7 @@ const Shears = {
         const cord = a.ents.find(e => e.kind === 'cord' && e.talkBox(p, f));
         if (cord) return cord.thing;
         const o = a.at(f.tx, f.ty);
-        if (o && o.kind === 'npc' && o.who !== 'tuck') return o;
+        if (o && o.kind === 'npc') return o;
         if (o && (o.ret || o.cuttable)) return o;
         const w = a.ents.find(e => e.cuttable && !e.isGrid && e.cutAt && e.cutAt(f.tx, f.ty));
         if (w) return w;
@@ -16351,6 +16360,8 @@ const Shears = {
         return null;
     },
     use(p) {
+        /* the Makings are Tuck's Wander, and the Makers' kit: not for cutting */
+        if (p.area.def.making) { UI.toast("Not in a Making. Everything here is the Makers' kit, for Tuck's Wander."); return; }
         const e = this.target(p);
         if (!e) {
             const a = p.area, f = p.front();
@@ -16561,7 +16572,7 @@ defBlock({
         { k: 'rest', x: 28, y: 33 },
         /* the Loom */
         { k: 'building', x: 24, y: 3, w: 16, h: 7, door: 7, art: 'loom' },
-        { k: 'warp', x: 31, y: 9, to: 'loom', tx2: LOOM_ENTRY.x, ty2: LOOM_ENTRY.y, face: 'up', dir: 'up' },
+        { k: 'warp', x: 31, y: 9, to: 'loom', tx2: LOOM_ENTRY.x, ty2: LOOM_ENTRY.y, face: 'up', dir: 'up', when: 'flag:gundry_r2', lockedLine: 'The great doors are locked: an old lock, older than the Houses, with a keyhole as big as your hand. The Guild had a key to everything, once.' },
         /* silk strung across the way into the hidden clearing; a Heart Patch inside */
         { k: 'warpthread', x: 56, y: 16, len: 1, dir: 'v', id: 'lwSilk' },
         { k: 'chest', x: 57, y: 10, item: 'heartpatch', id: 'lwPatch' },
@@ -16819,7 +16830,7 @@ defHouse({
             ents: [
                 { k: 'loomweight', x: 4, y: 2, id: 'wrW1' }, { k: 'loomweight', x: 4, y: 8, id: 'wrW2' }, { k: 'loomweight', x: 5, y: 5, id: 'wrW3' },
                 { k: 'chest', x: 16, y: 8, item: 'key', id: 'wrKey' },
-                { k: 'chute', x: 1, y: 9, drop: [2, 8], id: 'wrChute' },
+                { k: 'chute', x: 1, y: 9, drop: [2, 8], id: 'wrChute', weights: true },
                 { k: 'sign', x: 2, y: 9, text: 'The old loom weights, each on its silver thread. They have hung in the same places for longer than anyone remembers.' },
             ],
         },
@@ -16841,7 +16852,8 @@ defHouse({
             ],
             ents: [
                 { k: 'door', x: 15, y: 10, type: 'lock', id: 'brLock' },
-                { k: 'chute', x: 1, y: 1, drop: [2, 2], id: 'brChute' },
+                { k: 'chute', x: 1, y: 1, drop: [2, 2], id: 'brChute', weights: true },
+                { k: 'door', x: 0, y: 5, type: 'gate', when: 'brPlate', dir: 'v', id: 'brWest' },
                 { k: 'silkbridge', x: 9, y: 5, len: 1, dir: 'h', id: 'brBridge' },
                 { k: 'loomweight', x: 4, y: 3, id: 'brW1' }, { k: 'loomweight', x: 4, y: 7, id: 'brW2' },
                 { k: 'plate', x: 14, y: 5, sig: 'brPlate', minWeight: 3 },
@@ -16866,7 +16878,7 @@ defHouse({
                 '#########.##########',
             ],
             ents: [
-                { k: 'weaver', x: 9, y: 3, id: 'weaver' },
+                { k: 'weaver', x: 9, y: 5, id: 'weaver' },
                 { k: 'anchor', x: 2, y: 2, id: 'anA' }, { k: 'anchor', x: 17, y: 2, id: 'anB' }, { k: 'anchor', x: 2, y: 8, id: 'anC' }, { k: 'anchor', x: 17, y: 8, id: 'anD' },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'weaver' },
             ],
@@ -16882,8 +16894,10 @@ class Chute extends GridThing {
         const a = this.area, [x, y] = this.drop.map((v, i) => v + (i ? a.roomAt(this.tx, this.ty).y : a.roomAt(this.tx, this.ty).x));
         const p = G.player, k = a.kind(x, y);
         if (a.at(x, y) || (p.tx === x && p.ty === y) || k.solid || k.pit) { UI.toast("The chute rattles. There's no room under it for another."); Sfx.play('hitthing'); return true; }
-        const b = a.add(new Block(x, y, { marked: false }));
+        /* offcuts are middling things (silk holds them; an iron plate doesn't notice them); some chutes drop spare weights */
+        const b = a.add(this.weights ? new Block(x, y, { weight: WEIGHT.heavy, look: 'loomweight', thread: THREAD.loom, patience: 150 }) : new Block(x, y, { marked: false, weight: WEIGHT.medium }));
         b.skey = 'chute:' + G.t;
+        if (this.weights && !Progress.flag('spare_weight')) { Progress.set('spare_weight'); G.pendingToast = 'A spare weight clanks down, on its own silver thread.'; }
         Fx.poof(x * T + 8, y * T + 4); Sfx.play('land'); G.shake = 3; Stats.count('offcuts');
         return true;
     }
@@ -17035,7 +17049,7 @@ class Weaver extends Ent {
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area, r = this.arena;
         if (this.state === 'sleep') {
-            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 2) { this.state = 'aloft'; this.st = 0; this.shutters(true); Music.play('boss'); Script.run(LoomFoes.weaverIntro(this)); }
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal') { this.state = 'aloft'; this.st = 0; this.shutters(true); Music.play('boss'); Script.run(LoomFoes.weaverIntro(this)); }
             return;
         }
         /* silk on Wren wears off in time (or the Shears snip it) */
@@ -17046,7 +17060,7 @@ class Weaver extends Ent {
         if (this.state === 'aloft') {
             this.z = 40 + Math.sin(this.t / 30) * 3;
             const period = [0, 70, 95, 120][this.hp];
-            if (this.st % period === 0 && p.state === 'normal' && p.pinned !== 'silk') {
+            if (this.st % period === 0 && p.state === 'normal') {
                 const dx = p.x - this.x, dy = p.y - 6 - (this.y - this.z), d = Math.hypot(dx, dy) || 1, sp = 1.6 + (3 - this.hp) * 0.4;
                 this.shots.push({ x: this.x, y: this.y - this.z, vx: dx / d * sp, vy: dy / d * sp, life: 240 });
                 Sfx.play('throw');
@@ -17054,7 +17068,7 @@ class Weaver extends Ent {
             if (this.anchors().every(n => n.cut)) { this.state = 'fall'; this.st = 0; Sfx.play('fall'); }
         } else if (this.state === 'fall') {
             this.z = Math.max(0, 40 - this.st * 2);
-            if (this.z <= 0) { this.state = 'down'; this.st = 0; G.shake = 10; Sfx.play('land'); Fx.dust(this.x, this.y); if (!Progress.flag('weaver_down')) { Progress.set('weaver_down'); G.pendingToast = 'Its last anchor gone, the Weaver drops into the well of its own loom, tangled.'; } }
+            if (this.z <= 0) { this.state = 'down'; this.st = 0; G.shake = 10; Sfx.play('land'); Fx.dust(this.x, this.y); if (p.area === a && Math.abs(p.x - this.x) < 20 && Math.abs(p.y - this.y) < 18) p.hurt(2, this.x, this.y); if (!Progress.flag('weaver_down')) { Progress.set('weaver_down'); G.pendingToast = 'Its last anchor gone, the Weaver drops into the well of its own loom, tangled.'; } }
         } else if (this.state === 'down') {
             if (this.st > 420) this.climb();
         } else if (this.state === 'climb') {
@@ -17073,7 +17087,7 @@ class Weaver extends Ent {
             s.x += s.vx; s.y += s.vy; s.life--;
             if (a.kind(tileOf(s.x), tileOf(s.y)).solid || a.roomAt(tileOf(s.x), tileOf(s.y)) !== r) s.life = 0;
             if (p.area === a && p.state === 'normal' && Math.abs(p.x - s.x) < 7 && Math.abs(p.y - 6 - s.y) < 8) {
-                s.life = 0; p.pinned = 'silk'; this.bindT = 150; Sfx.play('hook'); Fx.text(p.x, p.y - 22, 'bound!', '#e4ecf5');
+                s.life = 0; if (p.pinned === 'silk') p.hurt(1, s.x, s.y); p.pinned = 'silk'; this.bindT = 150; Sfx.play('hook'); Fx.text(p.x, p.y - 22, 'bound!', '#e4ecf5');
                 if (!Progress.flag('silk_bound')) { Progress.set('silk_bound'); G.pendingToast = 'Silk, wound tight round you. The Shears would make short work of it. (C)'; }
             }
         }

@@ -12,7 +12,7 @@ const Shears = {
         const cord = a.ents.find(e => e.kind === 'cord' && e.talkBox(p, f));
         if (cord) return cord.thing;
         const o = a.at(f.tx, f.ty);
-        if (o && o.kind === 'npc' && o.who !== 'tuck') return o;
+        if (o && o.kind === 'npc') return o;
         if (o && (o.ret || o.cuttable)) return o;
         const w = a.ents.find(e => e.cuttable && !e.isGrid && e.cutAt && e.cutAt(f.tx, f.ty));
         if (w) return w;
@@ -20,6 +20,8 @@ const Shears = {
         return null;
     },
     use(p) {
+        /* the Makings are Tuck's Wander, and the Makers' kit: not for cutting */
+        if (p.area.def.making) { UI.toast("Not in a Making. Everything here is the Makers' kit, for Tuck's Wander."); return; }
         const e = this.target(p);
         if (!e) {
             const a = p.area, f = p.front();

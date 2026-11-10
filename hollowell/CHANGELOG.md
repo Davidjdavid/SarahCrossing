@@ -71,3 +71,8 @@
 - The final act begins: the last tool; the northern woods behind a gate; the last main dungeon (eight rooms, a mid-boss,
   a boss, no hints); townsfolk can be freed and go their own ways; tests for all of it.
 
+- The end of the game: the last act's second half, a final dungeon of ten rooms that recombines every House, the
+  ending scenes, credits, what changes afterwards, two more secrets; presets and tests for all of it.
+- Fixes from the third/fourth-act review (12 findings): a crash, an early way into the last main dungeon closed, two
+  of its rooms made to need their idea, a way out of the small houses, kinder timing in one of them, a boss that can
+  now actually hurt you, and smaller things; regression tests.

@@ -133,6 +133,7 @@ const Spool = {
     },
     knot(e, quiet) {
         if (e.knotted) return;
+        if (e.noKnot) { if (e.onNoKnot) e.onNoKnot(); return; }
         e.knotted = true; e._fixed0 = !!e.fixed; e.fixed = true; e._lift0 = e.liftable; e.liftable = false;
         if (e.heldBy && e.heldBy.release && e.heldBy !== G.player) e.heldBy.release();
         if (e.onKnot) e.onKnot();

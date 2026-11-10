@@ -254,7 +254,10 @@ the button was under), unhurt (no bumps).
 ## D8 The Loom (`src/72_loom.js`, `src/72b_loom_foes.js`, kit `src/70_shears_kit.js`; tests `tests/loom.test.mjs`, `tests/shears_kit.test.mjs`) - tested
 
 Rules: nothing in the Loom has a thread but its own old weights and its silk; the blocks lying about are offcuts
-(strays): pushed, they stay; into a pit, they fill it for good. Offcut chutes drop another when one's jammed. No
+(strays, middling weight: silk holds them and the iron plate ignores them): pushed, they stay; into a pit, they fill it
+for good. Offcut chutes drop another when one's jammed; the Weighing and Bridge rooms' chutes drop spare weights (on
+their own threads, to be cut like the rest). The Loom's doors want the Guild's key (Gundry gives it after Reveal 2), so
+the north gate opened early (S32) only opens the Loomwood. No
 nudges (nobody watches here). The Shears (from the Shuttle): C at a thing (or its cord from below) cuts its thread:
 a stray for good, kept where it's left (even after the place is rebuilt); silk walls fall; silk bridges drop (and iron
 goes through silk); people cut free; your own thread, at the fog.
@@ -267,6 +270,28 @@ goes through silk); people cut free; your own thread, at the fog.
 | The Shuttle Run | 1,1 | Mini-boss: the Shuttle | It flies its lane through anything soft; an offcut pushed into the lane jams it; knock it while jammed (it shakes the offcut out of the lane each time); 3x | the Shears |
 | The Spinner's Room | 0,1 | Shears on silk | Cut the silk across the Run's west door | the tapestry (lore), Heart Patch |
 | The Weighing Room | 2,2 | Shears on weights | Three old weights: cut each free and push it into the chasm's middle row, one after another | key |
-| The Bridge Room | 2,1 | Iron through silk | Cut a weight free and push it onto the silk bridge: it breaks, the weight fills the gap for good; push the other across onto the heavy plate | Pattern |
-| The Web | 1,0 | Boss: the Weaver | Hung by four anchor threads: cut all four (snip yourself free of its silk with C); it drops into its loom; knock it; it climbs and spins new anchors; 3x | Heartstitch; d8 |
+| The Bridge Room | 2,1 | Iron through silk | Cut a weight free and push it onto the silk bridge: it breaks, the weight fills the gap for good; push the other across onto the heavy plate (reached only through the Weighing Room's lock; its west way to the Run opens once the plate is held) | Pattern |
+| The Web | 1,0 | Boss: the Weaver | Wakes as you come in. Hung by four anchor threads: cut all four (snip yourself free of its silk with C: caught again while bound, the silk tightens, 1 heart); it drops into the well of its loom (and lands hard on anyone under it); knock it; it climbs and spins new anchors; 3x | Heartstitch; d8 |
 
+
+## F The Great Spool (`src/75_greatspool.js`; the Drift `src/74_drift.js`, the end `src/76_ending.js`; tests `tests/ending.test.mjs`) - tested
+
+Reached down the Well during the Great Pull (after the Drift). Wren's own thread is cut: nothing pulls her home,
+falls are climbed out of where they happen, hurts unravel nothing (the Spool's flying junk only knocks her about). No
+nudges. Six Knot rooms round a hub, each its House's grammar with a later tool; the Climb's gate opens when all six are
+undone; at the top, Gran at the Spool and its six great threads.
+
+| Room | Cell | House | Solution |
+|---|---|---|---|
+| The Foot of the Well | 1,3 | - | The way in (and up again) |
+| The Slumberhouse's Knot | 0,3 | Your own mark | A one-way ledge down to the Knot: lay the Bedroll above, drop, untie, Homeward back up |
+| The Marionette Hall's Knot | 2,3 | Remote bodies | The Crossbar walks the puppet through the hole, over the spikes onto the plate; the gate below latches once passed |
+| The Winding Room | 1,2 | - | Hub |
+| The Tidyhouse's Knot | 0,2 | Patience | Push the block onto the plate and get through the gate before it goes home (the gate latches once passed) |
+| The Kiln's Knot | 2,2 | Hookline | Hook the eyelet over the gap; another eyelet on the near side for the way back |
+| The Climb | 1,1 | - | Its gate opens when all six Knots are undone |
+| The Millrace's Knot | 0,1 | Paddle | A raft tied to nothing: paddle over, and back (it stays where it's left) |
+| The Belfry's Knot | 2,1 | Bell | A sleeper boulder in the doorway: ring the Bell, it goes home out of the way |
+| The Top of the Spool | 1,0 | Shears | Gran pulls everything; cut the six great threads at their posts; Linnet comes; the Unwinding |
+
+A save between the last cut and the Unwinding picks the end up again on entering the top room.

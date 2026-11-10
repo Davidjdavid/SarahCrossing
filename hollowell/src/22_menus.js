@@ -220,14 +220,16 @@ const PauseMenu = {
     /* in a House there's always a way out: back to its door, as if you'd fainted (but without the fainting) */
     saveItems() {
         const a = G.map, l = ['Save here', 'Save and go to the title'];
-        if (a && a.def.house && AREAS[a.id].entry && G.player && G.player.state === 'normal') l.push("Back to the House's door");
+        if (a && a.def.house && AREAS[a.id].entry && G.player && G.player.state === 'normal') l.push(a.def.making ? 'Out to the Making Floor' : "Back to the House's door");
         return l;
     },
     backToDoor() {
         Script.run(function* () {
             const e = AREAS[G.map.id].entry;
             yield* fadeOut(20);
-            World.enter(G.map.id, e.x, e.y, { dir: UP });
+            /* (a Making's door is on the Making Floor: out, and in again starts it afresh) */
+            if (G.map.def.making) World.enter('underside', 49, 3, { dir: DOWN });
+            else World.enter(G.map.id, e.x, e.y, { dir: UP });
             Stats.count('backToDoor');
             yield* fadeIn(20);
         });

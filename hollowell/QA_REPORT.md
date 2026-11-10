@@ -85,6 +85,27 @@
 - 2026-11-10: the Shears kit (4), the Loom and the Loomwood (7), cutting free (2); browser shots of the Loomwood and
   every Loom room.
 
+- 2026-11-10: the end (`tests/ending.test.mjs`, 8): your own thread at the fog, the Drift and Linnet, the Great Pull
+  (the town in an arc round the Well, its south side open), all six Knot rooms, the six great threads and the end, a
+  save between the last cut and the Unwinding, the free valley after (save and load), S35 and S11. Found and fixed
+  while writing them: the Millrace Knot's raft went home and stranded Wren on the far side (now a stray); the Kiln Knot
+  had no way back over its gap (a second eyelet); the Great Pull dragged people from all over the valley (now the town
+  only, in an arc that leaves the Well's south side open). Browser shots of the Drift, the Pull, every Great Spool
+  room, the credits, the epilogue and the changed title.
+- 2026-11-10: fresh-eyes review of the Makings, Reveal 2, the Shears, the Loomwood and the Loom: 12 findings. Fixed:
+  cutting a nibbler crashed every frame (the Shears do nothing in a Making; nibblers can't be cut; an old save's flag is
+  harmless); the north gate opened early (S32) let Wren into the Loom before Reveal 2 (the Loom's doors want the Guild's
+  key, which Gundry gives after Reveal 2); offcuts did the Loom weights' job (offcuts are medium: silk holds them, the
+  iron plate ignores them; the Weighing and Bridge rooms' chutes drop spare weights; the Bridge Room's west way opens
+  only once its plate is held, so it's reached through the Weighing Room's lock); Making 2's lure window was under a
+  second (Tuck admires a thing that jumped for 3.5 s; untying the heavy one before he arrives stays a valid second
+  solution); replaying Making 3 rewound the goal and paid the button again; no way out of a Making (the menu's option
+  goes out to the Making Floor); stranded east of a cut silk bridge (only reachable through the lock now, which stays
+  open); the Weaver couldn't hurt Wren (wakes on entry, silk tightens if caught while bound, lands hard, in its well);
+  Tuck's thread was Wren's red (his own green); Tuck could be tied off (refused: tug only). Kept: the Needle alone can
+  finish Making 1 (a creative solution; the Ahas still reward the intended way). 8 regression tests
+  (`tests/review_m.test.mjs`).
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
@@ -104,3 +125,4 @@
 | 2026-11-09 | Underside, Spoolworks (D7), playthrough leg 7 (228 in all); browser shots of all 20 new rooms | pass |
 | 2026-11-10 | The Makings, Reveal 2 (238 in all); screenshots of the Making Floor, the Little Houses, the Hall of Names | pass |
 | 2026-11-10 | D7 review fixes (+7); Shears kit, Loomwood, the Loom, cutting free (258 in all); screenshots | pass |
+| 2026-11-10 | The Drift, the Great Pull, the Great Spool, the end (+8); Makings/Loom review fixes (+8); 274 in all; screenshots | pass |

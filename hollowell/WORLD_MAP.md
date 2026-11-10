@@ -87,9 +87,16 @@ Two layers: the Works floor on rows 0–2 of cells, the Under-works on rows 3–
 room, `above` in its cell). Entrance from the Guild Hall into the Gatehouse (29,31); out the same way.
 
 ## The Drift (map `drift`)
-Beyond the north-west fog (entered from the Frayed Edge after cutting). Open wild country drawn blank on
-the map until walked. Linnet's cottage, a meadow of Drift-blooms, a stream, ruins of the old valley edge.
-Nothing returns.
+Beyond the north-west fog (entered from the Frayed Edge after cutting: walk into the fog at x <= 65, come out at
+58,y). Open wild country drawn blank on the map until walked (`blankMap`). Linnet's cottage and garden (Drift-blooms,
+her bench at 18,21), a stream with stray boulders, the old marker stone (THE HOLLOW ENDS HERE), a rest stump. East
+(x >= 60) walks you back into the fog and out at the Hollow (67,19/20). Nothing returns. After the Unwinding Linnet
+lives in Gran's garden instead.
+
+## The Great Spool (map `greatspool`, the final dungeon)
+Down the Well (Hollowell square, 95,59) once the Great Pull begins. A 3x4 grid of rooms: the foot (1,3), the six
+Knot rooms either side of the Winding Room (1,2) and the Climb (1,1), the Top (1,0). Up the foot's stair: back to the
+square (95,60).
 
 ## Interiors
 Gran's house (Wren's room, study, well cellar), Inn (ground, attic, cellar), shops, school, clinic,

@@ -15,7 +15,7 @@ const snip = HW => { HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(3)
 function game(shears) {
     const HW = loadGame();
     HW.preset('afterReveal2'); HW.step(10); HW.skipTalk();
-    HW.Progress.set('north_gate');
+    HW.Progress.set('north_gate'); HW.Progress.set('gundry_r2');
     if (shears) HW.Inv.giveTool('shears');
     HW.Inv.maxHp = HW.Inv.hp = 36;
     return HW;
@@ -143,7 +143,7 @@ test('the Web: cut the four anchors (and the silk that binds you); it drops into
         assert.ok(until(HW, () => w.state === 'down', 200), `round ${round + 1}: down it comes`);
         for (let k = 0; k < 6; k++) { free(); if (HW.walkTo(...at('web', 9, 4), 120)) break; }
         const hp = w.hp;
-        for (let k = 0; k < 8 && w.hp === hp && w.state === 'down'; k++) { free(); strike(HW, 'up'); }
+        for (let k = 0; k < 8 && w.hp === hp && w.state === 'down'; k++) { free(); strike(HW, 'down'); }
         HW.step(10);
     }
     assert.ok(!w.alive, 'the Weaver');

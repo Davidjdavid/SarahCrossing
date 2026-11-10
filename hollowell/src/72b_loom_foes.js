@@ -99,7 +99,7 @@ class Weaver extends Ent {
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area, r = this.arena;
         if (this.state === 'sleep') {
-            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 2) { this.state = 'aloft'; this.st = 0; this.shutters(true); Music.play('boss'); Script.run(LoomFoes.weaverIntro(this)); }
+            if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal') { this.state = 'aloft'; this.st = 0; this.shutters(true); Music.play('boss'); Script.run(LoomFoes.weaverIntro(this)); }
             return;
         }
         /* silk on Wren wears off in time (or the Shears snip it) */
@@ -110,7 +110,7 @@ class Weaver extends Ent {
         if (this.state === 'aloft') {
             this.z = 40 + Math.sin(this.t / 30) * 3;
             const period = [0, 70, 95, 120][this.hp];
-            if (this.st % period === 0 && p.state === 'normal' && p.pinned !== 'silk') {
+            if (this.st % period === 0 && p.state === 'normal') {
                 const dx = p.x - this.x, dy = p.y - 6 - (this.y - this.z), d = Math.hypot(dx, dy) || 1, sp = 1.6 + (3 - this.hp) * 0.4;
                 this.shots.push({ x: this.x, y: this.y - this.z, vx: dx / d * sp, vy: dy / d * sp, life: 240 });
                 Sfx.play('throw');
@@ -118,7 +118,7 @@ class Weaver extends Ent {
             if (this.anchors().every(n => n.cut)) { this.state = 'fall'; this.st = 0; Sfx.play('fall'); }
         } else if (this.state === 'fall') {
             this.z = Math.max(0, 40 - this.st * 2);
-            if (this.z <= 0) { this.state = 'down'; this.st = 0; G.shake = 10; Sfx.play('land'); Fx.dust(this.x, this.y); if (!Progress.flag('weaver_down')) { Progress.set('weaver_down'); G.pendingToast = 'Its last anchor gone, the Weaver drops into the well of its own loom, tangled.'; } }
+            if (this.z <= 0) { this.state = 'down'; this.st = 0; G.shake = 10; Sfx.play('land'); Fx.dust(this.x, this.y); if (p.area === a && Math.abs(p.x - this.x) < 20 && Math.abs(p.y - this.y) < 18) p.hurt(2, this.x, this.y); if (!Progress.flag('weaver_down')) { Progress.set('weaver_down'); G.pendingToast = 'Its last anchor gone, the Weaver drops into the well of its own loom, tangled.'; } }
         } else if (this.state === 'down') {
             if (this.st > 420) this.climb();
         } else if (this.state === 'climb') {
@@ -137,7 +137,7 @@ class Weaver extends Ent {
             s.x += s.vx; s.y += s.vy; s.life--;
             if (a.kind(tileOf(s.x), tileOf(s.y)).solid || a.roomAt(tileOf(s.x), tileOf(s.y)) !== r) s.life = 0;
             if (p.area === a && p.state === 'normal' && Math.abs(p.x - s.x) < 7 && Math.abs(p.y - 6 - s.y) < 8) {
-                s.life = 0; p.pinned = 'silk'; this.bindT = 150; Sfx.play('hook'); Fx.text(p.x, p.y - 22, 'bound!', '#e4ecf5');
+                s.life = 0; if (p.pinned === 'silk') p.hurt(1, s.x, s.y); p.pinned = 'silk'; this.bindT = 150; Sfx.play('hook'); Fx.text(p.x, p.y - 22, 'bound!', '#e4ecf5');
                 if (!Progress.flag('silk_bound')) { Progress.set('silk_bound'); G.pendingToast = 'Silk, wound tight round you. The Shears would make short work of it. (C)'; }
             }
         }

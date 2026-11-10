@@ -258,9 +258,14 @@ CONTENT_INIT.push(initReveal2);
             yield* say('gundry', "You've seen the Hall, then. I can tell. You've got the look. I had it too, forty years back, and I went straight back upstairs and oiled the winch and never said a word. I'm not proud of that.");
             yield* say('gundry', "The Shears. The First Spinner's own, the only blades in the valley that cut a thread for good. They're in the old Loom, in the Loomwood, past the north gate. Linnet went that way.");
             yield* say('gundry', "Hesper keeps that gate shut with a counterweight, down here in the Seams, east. Nobody can shift it. But nobody had a Needle before, did they?");
-            Progress.setGoal('The north gate: its counterweight is in the Seams (east), under the town. Give it a new place.');
+            yield* say('gundry', "And take this. The Guild's key to the Loom. Four hundred years we've kept it, and never once turned it. Turn it.");
+            Inv.items.guildkey = 1; Sfx.play('item');
+            yield* say(null, "You got the Guild's key: iron, as long as your forearm, with a spool for a bow.");
+            Progress.setGoal(Progress.flag('north_gate') ? 'Through the north gate, up the Loomwood road to the Loom.' : 'The north gate: its counterweight is in the Seams (east), under the town. Give it a new place.');
             return;
         }
         yield* say('gundry', cycle('gundry_r2b', ["The Seams, east end. The counterweight. Mind your fingers.", "Past the gate it's the Loomwood. Old. Older than the Houses. Nobody's built anything there; nobody watches from underneath. You'll be on your own.", "If you see Linnet... tell her the Guild still has her name on the bench."]));
     };
 }
+
+ITEMS.guildkey = { name: "The Guild's key", kind: 'quest', desc: 'Iron, as long as your forearm, with a spool for a bow. It opens the Loom.' };

@@ -18,9 +18,9 @@ class Tuck extends NPC {
         this.person = true; this.weight = WEIGHT.medium; this.noPush = true; this.showThrough = true;
         this.home0 = [tx, ty];
         this.state = 'go'; this.st = 0; this.wait = 0; this.cur = null; this.seen = 0; this.sitSpot = null;
-        this.bumps = 0; this.held = false;
+        this.bumps = 0; this.held = false; this.noKnot = true;
         /* his own thread, down to his start (like everybody's) */
-        this.ret = { mx: tx, my: ty, area: null, color: THREAD.wren, state: 'home', trace: [[tx, ty]], timer: 0, patience: 1e9, snap: false, strain: 0, pace: 10 };
+        this.ret = { mx: tx, my: ty, area: null, color: THREAD.tuck, state: 'home', trace: [[tx, ty]], timer: 0, patience: 1e9, snap: false, strain: 0, pace: 10 };
     }
     onAdd(area) { area.place(this, this.tx, this.ty); }
     get making() { return Making.cur; }
@@ -90,7 +90,7 @@ class Tuck extends NPC {
         Sfx.play('flight'); this.yank(false); Stats.count('tuck:yanked');
         if (!Progress.flag('tuck_yanked')) { Progress.set('tuck_yanked'); G.pendingToast = "Ives, from somewhere above: \"Not the boy's own thread, love! ...He did like it, mind.\""; }
     }
-    onKnot() { this.say('Hey! I can\'t move!', 'bang'); }
+    onNoKnot() { this.say('Hey! Let go!', 'bang'); UI.toast("It's his Wander: you can give his thread a tug, but you won't tie him down.", 150); }
     onUntie() { this.say('Phew.'); }
     canBeShoved(d) { return !this.mv; }
     shove(d, dur, by) { this.bump('shoved'); }
@@ -116,7 +116,7 @@ class Tuck extends NPC {
         /* 2: something jumped: go and push it */
         const j = Spool.jolt;
         if (j && j.t > this.seen && G.t - j.t < 240 && !j.e.removed && a.roomAt(j.e.tx, j.e.ty) === a.roomAt(this.tx, this.ty) && Math.max(Math.abs(j.e.tx - this.tx), Math.abs(j.e.ty - this.ty)) <= 8) {
-            this.seen = j.t; this.cur = j.e; this.curT = 0; this.say('Ooh! It jumped!', 'bang');
+            this.seen = j.t; this.cur = j.e; this.curT = 0; this.curJolt = true; this.say('Ooh! It jumped!', 'bang');
         }
         if (this.cur) {
             const o = this.cur;
@@ -125,9 +125,9 @@ class Tuck extends NPC {
                 const adj = Math.abs(o.tx - this.tx) + Math.abs(o.ty - this.ty) === 1;
                 if (adj) {
                     const d = dirOf(o.tx - this.tx, o.ty - this.ty); this.dir = d;
-                    this.cur = null; this.wait = 60;      /* (and then he admires it a moment) */
+                    this.cur = null; this.wait = this.curJolt ? 210 : 60; this.curJolt = false;      /* (and then he admires it a moment: a good while, if it jumped) */
                     const tr = a.ents.find(e => e.kind === 'treasure' && !e.found && e.tx === o.tx && e.ty === o.ty);
-                    if (tr) { tr.found = true; a.remove(tr); Making.aha('found'); this.say('Ooh! A shiny button under it!', 'heart'); Sfx.play('button'); Inv.buttons += 5; }
+                    if (tr) { tr.found = true; a.remove(tr); Making.aha('found'); this.say('Ooh! A shiny button under it!', 'heart'); Sfx.play('button'); if (!Progress.areaFlag(a.id, 'got:button')) { Progress.setAreaFlag(a.id, 'got:button'); Inv.buttons += 5; } }
                     if (o.weight > WEIGHT.medium || o.fixed || o.mv) { if (!tr) this.say('Hnnngh!', 'dots'); return; }
                     const before = this.reach(g);
                     if (o.push(d, 16)) {
@@ -160,7 +160,7 @@ class Tuck extends NPC {
     draw(cx, cy) {
         super.draw(cx, cy);
         if (this.state === 'sit' && !this.mv && (G.t >> 5) % 2) Font.draw('z', this.px - cx + 12, this.py - cy - 18, '#cfc6b8');
-        if (this.knotted) { const x = this.px + 8 - cx, y = this.py + 14 - cy; Gfx.line(x, y, x, y + 3, THREAD.wren); }
+        if (this.knotted) { const x = this.px + 8 - cx, y = this.py + 14 - cy; Gfx.line(x, y, x, y + 3, THREAD.tuck); }
     }
 }
 SPAWN.tuck = (x, y, p) => new Tuck(x, y, p);
@@ -169,12 +169,13 @@ SPAWN.tuck = (x, y, p) => new Tuck(x, y, p);
 class Nibbler extends Enemy {
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ type: 'nibbler', hp: 99 }, p));
-        this.kind = 'nibbler'; this.cordable = true; this.st = 0; this.showThrough = true;
+        this.kind = 'nibbler'; this.cordable = true; this.st = 0; this.showThrough = true; this.noCut = true;
         this.ret = { mx: tx, my: ty, area: null, color: '#8a6a4e', state: 'home', trace: [[tx, ty]], timer: 99, patience: 99, snap: false, strain: 0, pace: 10 };
     }
     get px() { return this.x - 8; }
     get py() { return this.y - 10; }
     hurtBox() { return null; }
+    onCut() { }      /* (a nibbler's cord is the Makers'; an old save's cut flag does nothing) */
     onTile(x, y) { return this.alive && this.tx === x && this.ty === y; }
     update() {
         if (!this.alive) return;
@@ -249,7 +250,7 @@ const Making = {
             this.checkCleared = null;
             const g = this.goal(a);
             /* his own push got him nearer the door than he could get before */
-            if (g && c.by.reach(g) < c.before) this.aha('cleared');
+            if (g && c.by.reach(g) < c.before) { this.aha('cleared'); c.by.wait = Math.min(c.by.wait, 40); }      /* (his way's clear: off he goes) */
         }
     },
     finish(a) {
@@ -280,7 +281,7 @@ const Making = {
             yield* fadeOut(20);
             World.enter('underside', 49, 3, { dir: DOWN });
             yield* fadeIn(20);
-            if (n === 3) yield* Making.afterAll();
+            if (n === 3 && !Progress.flag('makings_done')) yield* Making.afterAll();
             Save.autosave();
         });
     },

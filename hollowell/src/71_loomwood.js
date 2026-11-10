@@ -64,7 +64,7 @@ defBlock({
         { k: 'rest', x: 28, y: 33 },
         /* the Loom */
         { k: 'building', x: 24, y: 3, w: 16, h: 7, door: 7, art: 'loom' },
-        { k: 'warp', x: 31, y: 9, to: 'loom', tx2: LOOM_ENTRY.x, ty2: LOOM_ENTRY.y, face: 'up', dir: 'up' },
+        { k: 'warp', x: 31, y: 9, to: 'loom', tx2: LOOM_ENTRY.x, ty2: LOOM_ENTRY.y, face: 'up', dir: 'up', when: 'flag:gundry_r2', lockedLine: 'The great doors are locked: an old lock, older than the Houses, with a keyhole as big as your hand. The Guild had a key to everything, once.' },
         /* silk strung across the way into the hidden clearing; a Heart Patch inside */
         { k: 'warpthread', x: 56, y: 16, len: 1, dir: 'v', id: 'lwSilk' },
         { k: 'chest', x: 57, y: 10, item: 'heartpatch', id: 'lwPatch' },
