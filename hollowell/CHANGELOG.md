@@ -99,3 +99,4 @@
   finale, a crash, a secret that couldn't be finished, wandering townsfolk and animals heading the wrong way, and smaller
   things); regression tests.
 - A fourth part to the third act's change of pace (three rooms that turn one of its rules round), with tests.
+- Art: more variety in the last main dungeon (worn floors, small things on the walls) and movement in the air past the fog.

@@ -50,6 +50,18 @@ PEOPLE_DEF.linnet = { name: 'Linnet', col: THREAD.linnet, look: { body: 'adult',
 
 defArea({
     id: 'drift', name: 'The Drift', family: 'outdoor', theme: 'drift', music: 'drift', blankMap: true,
+    /* loose ends on the wind: bits of thread with nothing on either end, drifting west to east (only an effect) */
+    drawOver: (a, cx, cy) => {
+        const cols = [THREAD.town, THREAD.linnet, '#e4ecf5', THREAD.wren, '#c9a24a'];
+        for (let i = 0; i < 9; i++) {
+            const sp = 0.18 + (i % 4) * 0.06, span = W + 80;
+            const x = ((i * 113 + G.t * sp) % span) - 40, y = ((i * 47) % (H - 30)) + 12 + Math.sin(G.t / 50 + i) * 6;
+            const c = cols[i % cols.length];
+            Gfx.alpha(0.55);
+            for (let k = 0; k < 7; k++) Gfx.rect(Math.round(x - k * 2), Math.round(y + Math.sin(G.t / 18 + i + k * 0.8) * 2), 2, 1, c);
+            Gfx.alpha(1);
+        }
+    },
     rows: DRIFT_ROWS, legend: OW_LEGEND,
     ents: [
         /* Linnet's cottage and garden */

@@ -30,8 +30,9 @@ the credits in nine legs; solution tests cover every room, both optional dungeon
 - Nothing half-built. The optional dungeons' bug hunt (11 findings) is fixed (`tests/review_opt.test.mjs`, plus S01/S31
   in `tests/secrets2.test.mjs`); its "rooms solvable without their idea" notes are kept as accepted second ways (QA_REPORT).
 - The design critique's "richer Loom": the Hanging Gallery added (cutting a thing in motion); and a fourth Making
-  (Gundry's "The Long Sulk": rule 4 turned round, where Tuck sulks is up to you). Still to do from the critique: more
-  visual variety.
+  (Gundry's "The Long Sulk": rule 4 turned round, where Tuck sulks is up to you); visual variety (the Loom's floor worn
+  four ways and small things on its walls; loose thread-ends drifting on the wind in the Drift). The critique's list is
+  done.
 
 ## Next priorities
 1. Both optional dungeons are built and tested: O1 the Stray House (Linnet's Trail opens it; the bracelet changes the
@@ -70,5 +71,5 @@ the credits in nine legs; solution tests cover every room, both optional dungeon
 - [x] Save/load reliable (save/load tests across acts, old-save migration)
 - [x] Launches easily (double-click `hollowell/play.html`)
 
-Still to do before calling it done: the design critique's last item (visual variety); a polish pass on art (the Drift,
-a few plain rooms) and music; then a final full verification.
+Still to do before calling it done: a fresh-eyes check of the newest content (the Hanging Gallery, Making 4, the bug
+fixes), then a final full verification.
