@@ -134,9 +134,11 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
 - Done: House 1's and House 2's bosses in three beats, their mini-bosses two hits (coordinator); House 3 (Millrace:
   boss in three rounds, 40 s instead of 208; the Snapjaw two hits; two new rooms, the Lock and the Bell Race; a floor
   of its own); all music (two composers: every tune 24-110 s, a fight tune per House, the Great Spool's own theme).
-- Running: House 7 (Spoolworks), House 4 (Belfry), story staging (festival, first reveal, finale, epilogue, the
-  Underside's first room).
-- Next: House 5 (Slumberhouse), House 6 (Marionette Hall), House 8 (Loom); then the Great Spool
+- Done too: story staging (the festival with the whole town and the latecomers running in; the first reveal staged
+  and heard out Maker by Maker, 25 pages to 15; the finale's last moment; the epilogue as shots; the Underside's first
+  room drawn as described).
+- Running: House 7 (Spoolworks), House 4 (Belfry), House 5 (Slumberhouse).
+- Next: House 6 (Marionette Hall), House 8 (Loom); then the Great Spool
   rebuild; the Makings act; the overworld (two helpers by region); portraits for the dialogue (the design's promised
   portrait strip with expressions, generated from each person's look); dressing for Houses 1 and 2 (set pieces);
   then live run 2, picture reviews, blind solvers, the critic again, a writing pass.
