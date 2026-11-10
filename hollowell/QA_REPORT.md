@@ -113,6 +113,13 @@
   one gap each, so pushing their stray out shut you in behind it (second gaps); the Pile couldn't fairly be boxed by
   a person (corner nooks with slits, and it strains a while when it can't get nearer). Browser shots of every room.
 
+- 2026-11-10: the Unfinished House (`tests/unfinished.test.mjs`, 9): its door and the Guild pin; every room's
+  solution; sewing a fourth while standing on the oldest drops you; Mr Ives's walk with the planks sewn ahead of him,
+  and dropping back when one's undone under him; sewn planks survive a save and load; the Long Hook's reach. Found and
+  fixed while building: its first Hook Loft and Far Shelf didn't work with the Needle's reach of four (replaced: the
+  Loading Bay; the Far Shelf's planks side by side); the Needle couldn't sew past a sewn plank or pick which to unpick
+  (it now offers Unpick this one / Sew the next one along); long toasts ran off the screen (they wrap now, game-wide).
+
 ## Unresolved issues
 - Boss tests place the boss for the scripted hit (a person lures it); the luring itself is only played by hand.
 
@@ -134,3 +141,4 @@
 | 2026-11-10 | D7 review fixes (+7); Shears kit, Loomwood, the Loom, cutting free (258 in all); screenshots | pass |
 | 2026-11-10 | The Drift, the Great Pull, the Great Spool, the end (+8); Makings/Loom review fixes (+8); 274 in all; screenshots | pass |
 | 2026-11-10 | The Stray House (O1) and Linnet's Trail notes 4, 5, 8 (+11; 285 in all); screenshots | pass |
+| 2026-11-10 | The Unfinished House (O2) (+9; 294 in all); screenshots | pass |

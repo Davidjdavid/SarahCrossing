@@ -151,7 +151,7 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 24. **S24 Old Arlo's walk** (Act IV): cut Arlo free; follow him to the lake.
 25. **S25 Biscuit's collar** (Act IV, with Linnet's Trail ≥ 6): the tag reads "L.R."; the cat follows Wren
     into the Drift and leads to the cottage's back way.
-26. **S26 The Unfinished House** (O2, optional dungeon).
+26. **S26 The Unfinished House** (O2, optional dungeon): Mr Ives's chalk House, sewn real with the Needle (DUNGEON_TRACKER.md "O2"). His walk to his chair at the end; the Long Hook. The Guild pin (S06) opens it before the Loom.
 27. **S27 The Stray House** (O1, optional dungeon).
 28. **S28 Tidiness Trials** (Inn attic, after D1): three timed rooms (two at once; the long way home; home time: falling flies you home), prize: buttons, a Heart Patch and Ives' teal scarf (every stitch the same size: a quiet clue).
 29. **S29 Returnball** (festival and after): carry the ball through the five rings and let it go; each ring it goes back through scores; five in one go: a Heart Patch from Pip.

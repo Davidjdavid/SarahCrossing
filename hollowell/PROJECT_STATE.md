@@ -31,9 +31,9 @@ Great Spool, the end). Presets `afterDrift` and `afterEnding` start late games.
 - Nothing half-built. The Makings/Loom review's findings are all fixed (`tests/review_m.test.mjs`).
 
 ## Next priorities
-1. Optional dungeon O2 (the Unfinished House: the Guild pin from S06, Mr Ives). O1, the Stray House, is built and
-   tested (Linnet's Trail opens it; the bracelet changes the ending).
-2. The remaining secrets: S01, S03, S07-S10, S14, S17, S21, S25, S26, S31.
+1. Both optional dungeons are built and tested: O1 the Stray House (Linnet's Trail opens it; the bracelet changes the
+   ending) and O2 the Unfinished House (the Guild pin or the Loom; the Long Hook).
+2. The remaining secrets: S01, S03, S07-S10, S14, S17, S21, S25, S31; a use or two for the Long Hook in the world.
 3. Playthrough legs 8 (the Makings to the Loom) and 9 (the fog to the credits); a fresh-eyes review of the final
    act; a full-length QA playthrough.
 4. Music and art passes (the Drift is plain; the epilogue could use more on screen); pacing and playtime review.

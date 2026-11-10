@@ -15,7 +15,7 @@
 | D8 | Loom | Loomwood | Permanence: offcuts (strays), the old weights cut free, silk walls and bridges; no nudges | Shears | The Weaver | tested |
 | F | Great Spool | under the Well | Six Knot-locks remixing every House | – | The Spool | tested |
 | O1 | Stray House | Frayed Edge | Nothing returns: order, room, holes filled for good; the Needle gives a stray a place | Linnet's bracelet, Heartstitch | The Pile | tested |
-| O2 | Unfinished House | Hollowell hills | Finish chalk rooms with the Needle | Long Hook | – | planned |
+| O2 | Unfinished House | Hollowell, east bank | Chalk planks sewn real with the Needle: three stitches at once, a fourth undoes the oldest | Long Hook | – (Mr Ives's walk) | tested |
 | M | The Makings (×3) | Underside | Indirect control: Tuck walks by four rules; you work from below | – | – | tested |
 
 ## Per-dungeon structure (every House)
@@ -314,3 +314,21 @@ chutes in the rooms where holes are filled. No nudges. Music: Linnet's.
 | The Mending Room | 2,1 | Needle | Strays on a pincushion you can't get behind: needle two straight onto plates; needle the third out, unpick it (a stray again), push it onto the last | east lantern |
 | The Pile | 1,0 | Boss | It shoves after you (2x2); four corner nooks each with a slit too narrow for it: wait in one, slip out of the slit, and while it strains after you, push a stray across the nook's open side: boxed, it bursts and flings the strays about; 3x. Boxing it anywhere works too | Heartstitch |
 | Linnet's Room | 0,0 | - | Her desk (diary), the window onto the Drift | Linnet's bracelet (the fuller ending) |
+
+## O2 The Unfinished House (`src/78_unfinished.js`; tests `tests/unfinished.test.mjs`) - tested
+
+Old Mr Ives's, up the bank east of the river in town (door 120,45; he stands outside from Reveal 1). He drew a whole
+House in chalk forty years ago and never built it. In with the Needle and either the Guild pin (Gundry gives it for all
+six Maker's marks: S06) or the Loom done. The Needle sews a chalk plank real: the nearest in line (reach 4); at a sewn
+one it offers Unpick this one / Sew the next one along / Leave it. The Needle holds three stitches (planks and things
+together): a fourth undoes the oldest, wherever it is, and whoever's on it drops through. The Shears snip a sewn plank.
+A gap filled for good with a stray needs no plank. No nudges.
+
+| Room | Cell | Idea | Solution | Reward |
+|---|---|---|---|---|
+| The Front Room | 1,3 | Sewing | Sew the two-tile chalk plank over the gap and cross; Mr Ives | the way in |
+| The Drafting Hall | 1,2 | Hub | West the Long Gap, east the Loading Bay; the stairs open when both lamps are lit | - |
+| The Long Gap | 0,2 | Three at once | Four separate gaps: sew two from the bank, the third from between, the fourth from between (the first comes undone behind you); the lever (west lamp) | west lamp |
+| The Far Shelf | 0,1 | Mind where you stand | Four planks side by side: sew three from the bank, stand on the second, sew the fourth (the first goes); back: from the third, unpick the second and sew it again (newest now), stand on it, sew the first (the third goes, behind you). Or fall in and start again at the door | Heart Patch |
+| The Loading Bay | 2,2 | You can't sew past what you push | Four planks side by side and a stray to push over them: you can't sew past it, and three is all you get, so fill one gap for good with the other stray, sew the other three, push it over onto the plate (east lamp); a chute drops spares | east lamp |
+| The Gallery | 1,1 | Mr Ives's walk | From the walkway below, sew the five planks ahead of him as he walks to his chair (undo one under him and he drops back to the start) | the Long Hook (the Hookline reaches 10) |

@@ -79,3 +79,6 @@
 - The first optional dungeon: nine rooms and a boss, opened by the long secret chain (two of its links fixed so they
   count), with its reward feeding the ending; a small rule change (a loose block used to fill a hole is gone for good);
   tests for every room and screenshots.
+- The second optional dungeon: six rooms built around a new use of a late tool, with an old character's last walk as
+  its finale and a tool upgrade as its reward; tests for every room and screenshots.
+- Long notices wrap onto more lines instead of running off the screen.

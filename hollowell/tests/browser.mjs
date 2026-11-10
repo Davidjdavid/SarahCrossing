@@ -270,6 +270,18 @@ const SCENARIOS = {
         await page.evaluate(() => { HW.step(200); HW.skipTalk(); HW.step(100); });
         await shot('sh_pile2');
     },
+    async unfinished() {
+        await open();
+        await page.evaluate(() => { HW.preset('afterD8'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 120, 47); HW.step(40); HW.skipTalk(); });
+        await shot('uf_door');
+        const rooms = { front: [29, 40], hall: [29, 29], gap: [17, 27], shelf: [2, 20], bay: [41, 27], gallery: [29, 19] };
+        for (const [n, [x, y]] of Object.entries(rooms)) {
+            await page.evaluate(([x, y]) => { HW.warp('unfinished', x, y); HW.step(40); HW.skipTalk(); HW.step(5); }, [x, y]);
+            await shot('uf_' + n);
+        }
+        await page.evaluate(() => { HW.warp('unfinished', 29, 39); HW.step(20); HW.skipTalk(); HW.Inv.equipped = 'needle'; HW.face('up'); HW.walkTo(29, 39); HW.face('up'); HW.press('tool', 1); HW.step(20); });
+        await shot('uf_sewn');
+    },
     async larkspur() {
         await open();
         await page.evaluate(() => { HW.preset('afterD5'); HW.step(5); HW.skipTalk(); HW.warp('hollow', 12, 84); HW.step(40); HW.skipTalk(); });

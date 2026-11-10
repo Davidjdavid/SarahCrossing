@@ -104,6 +104,11 @@ Through the green door at the Frayed Edge (72,6), once Linnet's seven notes are 
 the Parlour) with the Washhouse west and the Mending Room east (locked), the Pile (1,0, up the stairs), Linnet's Room
 (0,0, west of the Pile).
 
+## The Unfinished House (map `unfinished`, O2)
+Mr Ives's, in Hollowell up the east bank (hub 54-58, 3-5; door at 120,45). A 3x4 grid of rooms: the Front Room (1,3,
+in and out), the Drafting Hall (1,2), the Long Gap (0,2) with the Far Shelf (0,1) north of it, the Loading Bay (2,2),
+the Gallery (1,1, up the stairs).
+
 ## Interiors
 Gran's house (Wren's room, study, well cellar), Inn (ground, attic, cellar), shops, school, clinic,
 Lost & Found, Jory's toy shop, Tuck's house, Dad's mill house, Mum's bell-keeper's lodge, Linnet's cottage.

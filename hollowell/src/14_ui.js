@@ -150,11 +150,15 @@ const UI = {
     draw() {
         /* toasts */
         const ty0 = this.banner ? (this.banner.sub ? 62 : 52) : 22;
-        this.toasts.forEach((t, i) => {
-            const w = Font.width(t.s) + 16, x = (W - w) / 2, y = ty0 + i * 16;
+        let y = ty0;
+        for (const t of this.toasts) {
+            /* a long one wraps onto more lines */
+            const lines = t.lines || (t.lines = Font.width(t.s) > W - 40 ? Font.wrap(t.s, W - 40) : [t.s]);
+            const w = Math.max(...lines.map(l => Font.width(l))) + 16, x = (W - w) / 2, h = 4 + lines.length * 10;
             const a = t.t < 8 ? t.t / 8 : t.t > t.dur - 10 ? (t.dur - t.t) / 10 : 1;
-            Gfx.alpha(a); stitchedBox(x, y, w, 14); Font.draw(t.s, x + 8, y + 3, PAL.ink); Gfx.alpha(1);
-        });
+            Gfx.alpha(a); stitchedBox(x, y, w, h); lines.forEach((l, j) => Font.draw(l, x + 8, y + 3 + j * 10, PAL.ink)); Gfx.alpha(1);
+            y += h + 2;
+        }
         if (this.banner) {
             const b = this.banner, a = b.t < 20 ? b.t / 20 : b.t > 170 ? (200 - b.t) / 30 : 1;
             const w = Math.max(Font.width(b.s), b.sub ? Font.width(b.sub) : 0) + 30, x = (W - w) / 2, y = 30;
