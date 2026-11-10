@@ -65,8 +65,8 @@ test('3: offcuts are middling: silk holds them and the iron plate ignores them; 
     const HW = loom();
     enterLoom(HW, 'sr', 17, 5);
     assert.equal(HW.walkTo(...at('br', 3, 5)), false, 'no way from the Run into the Bridge Room');
-    HW.Inv.keyCount.loom = 1;
-    enterLoom(HW, 'wr', 15, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30);
+    /* (in from the Warp Walk, east) */
+    enterLoom(HW, 'br', 18, 5);
     /* the chute here drops a spare weight on its own thread */
     go(HW, ...at('br', 2, 1)); HW.face('left'); HW.press('act', 1); HW.step(10); HW.skipTalk();
     const w = HW.G.map.at(...at('br', 2, 2));

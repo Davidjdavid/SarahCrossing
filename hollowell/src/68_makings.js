@@ -378,10 +378,10 @@ defMaking(1, {
         rows: ['####################', '#.............#....#', '#.............#....#', '#.............#....#', '#.............#....#', '...................#', '#......#.#....#....#', '#......#.#....#....#', '#......###....#....#', '#.............#....#', '####################'],
         ents: [{ k: 'wood', x: 8, y: 6, id: 'm1K', patience: 60 }, { k: 'plate', x: 8, y: 7, sig: 'm1p' }, { k: 'door', x: 14, y: 5, type: 'gate', when: 'm1p', dir: 'v', id: 'm1Gate' }, { k: 'littlehoop', x: 17, y: 5 }],
     },
-    '0,1': BELOW_ROOM('Under the Doorway', '0,0', 'e', [
+    '0,1': Object.assign(BELOW_ROOM('Under the Doorway', '0,0', 'e', [
         { k: 'sign', x: 6, y: 2, text: "TUCK'S RULES (as written by Tuck): 1. GO TO THE DOOR. 2. IF A THING JUMPS GO AND PUSH IT. 3. NOT NEAR BITEY THINGS. 4. IF STUCK, SIT DOWN. -T. (And a note: You can't go up, love. It's his Wander. -I.)" },
-    ]),
-    '1,1': BELOW_ROOM('Under the Plate', '1,0', 'w'),
+    ]), { nudge: { solved: () => Making.past(20, true), after: 60 * 60 * 2, at: [10, 5], say: "Up there, the block in the doorway. Whatever jumps, he goes and gives a push." } }),
+    '1,1': Object.assign(BELOW_ROOM('Under the Plate', '1,0', 'w'), { nudge: { solved: () => Making.past(35, true), after: 60 * 60 * 2, at: [8, 6], say: "The block goes home before he's through the gate. Something underneath could hold it there." } }),
 });
 
 /* ---------------- 2: Mind the Nibbler (Bram): tie the biter up; get him out of the way of a heavy thing ---------------- */
@@ -402,8 +402,8 @@ defMaking(2, {
             { k: 'littlehoop', x: 17, y: 5 },
         ],
     },
-    '0,1': BELOW_ROOM('Under the Nest', '0,0', 'e', [{ k: 'sign', x: 2, y: 2, text: "NIBBLERS: they won't hurt YOU. Tied up, they won't hurt anybody. -B." }]),
-    '1,1': BELOW_ROOM('Under the Crossing', '1,0', 'w', [{ k: 'sign', x: 16, y: 2, text: 'MIND THE BOY. Heavy things going home go straight through anything in the way. -B.' }]),
+    '0,1': Object.assign(BELOW_ROOM('Under the Nest', '0,0', 'e', [{ k: 'sign', x: 2, y: 2, text: "NIBBLERS: they won't hurt YOU. Tied up, they won't hurt anybody. -B." }]), { nudge: { solved: () => Making.past(20, true), after: 60 * 60 * 2, at: [10, 2], say: "The nibbler hangs on a thread like anything else. Tied up, it can't bite." } }),
+    '1,1': Object.assign(BELOW_ROOM('Under the Crossing', '1,0', 'w', [{ k: 'sign', x: 16, y: 2, text: 'MIND THE BOY. Heavy things going home go straight through anything in the way. -B.' }]), { nudge: { solved: () => Making.past(31, true), after: 60 * 60 * 2, at: [3, 3], say: "He's sat right in the heavy one's way. Give him something else to look at first." } }),
 });
 
 /* ---------------- 3: The Little Wander (Tess): a new place for the heavy one; the biter by the plate ---------------- */
@@ -423,8 +423,8 @@ defMaking(3, {
             { k: 'littlehoop', x: 17, y: 5 },
         ],
     },
-    '0,1': BELOW_ROOM('Under the Heavy Door', '0,0', 'e', [{ k: 'sign', x: 2, y: 2, text: "Heavy things he can't shift. A Needle can. -T." }]),
-    '1,1': BELOW_ROOM('Under the Guarded Plate', '1,0', 'w'),
+    '0,1': Object.assign(BELOW_ROOM('Under the Heavy Door', '0,0', 'e', [{ k: 'sign', x: 2, y: 2, text: "Heavy things he can't shift. A Needle can. -T." }]), { nudge: { solved: () => Making.past(14, true), after: 60 * 60 * 2, at: [10, 5], say: "He'll never shift that one. Somebody with a Needle could give it a new place, though." } }),
+    '1,1': Object.assign(BELOW_ROOM('Under the Guarded Plate', '1,0', 'w'), { nudge: { solved: () => Making.past(35, true), after: 60 * 60 * 2, at: [5, 3], say: "The biter first. Then the block, and something to hold it." } }),
 });
 
 /* ---------------- 4: The Long Sulk (Gundry): stuck, he sits as near the door as he can; make that a plate ---------------- */
@@ -457,9 +457,9 @@ defMaking(4, {
         rows: ['####################', '######.............#', '######.............#', '######.............#', '######.............#', '...................#', '######.............#', '######.............#', '######.............#', '######.............#', '####################'],
         ents: [{ k: 'littlehoop', x: 12, y: 5 }, { k: 'wood', x: 6, y: 5, id: 'm4W' }],
     },
-    '0,1': BELOW_ROOM('Under the Sulk', '0,0', 'e', [{ k: 'sign', x: 6, y: 2, text: "Stuck, he sits as near the door as he can get. Where that is, love, is up to you. -G." }]),
-    '1,1': BELOW_ROOM('Under the Two Plates', '1,0', 'we', [{ k: 'sign', x: 16, y: 2, text: "TWO PLATES. He'll hold one for you, if you let him. But a heavy thing going home goes straight through whatever's sat in its way. -G." }]),
-    '2,1': BELOW_ROOM('Under the Hoop', '2,0', 'w', [{ k: 'sign', x: 16, y: 2, text: "THE HOOP. Last thing in his way, love: a block in the passage. He knows what to do with things that jump. -G." }]),
+    '0,1': Object.assign(BELOW_ROOM('Under the Sulk', '0,0', 'e', [{ k: 'sign', x: 6, y: 2, text: "Stuck, he sits as near the door as he can get. Where that is, love, is up to you. -G." }]), { nudge: { solved: () => Making.past(20, true), after: 60 * 60 * 2, at: [11, 1], say: "Look where he's sitting. Now, what's waiting for the plate he's sat on?" } }),
+    '1,1': Object.assign(BELOW_ROOM('Under the Two Plates', '1,0', 'we', [{ k: 'sign', x: 16, y: 2, text: "TWO PLATES. He'll hold one for you, if you let him. But a heavy thing going home goes straight through whatever's sat in its way. -G." }]), { nudge: { solved: () => Making.past(40, true), after: 60 * 60 * 2, at: [12, 3], say: "He holds the near plate. Get him off it a while before the far one's heavy block comes home." } }),
+    '2,1': Object.assign(BELOW_ROOM('Under the Hoop', '2,0', 'w', [{ k: 'sign', x: 16, y: 2, text: "THE HOOP. Last thing in his way, love: a block in the passage. He knows what to do with things that jump. -G." }]), { nudge: { solved: () => Making.past(47, true), after: 60 * 60 * 2, at: [6, 5], say: "One last thing in his way. He knows what to do with things that jump." } }),
 });
 
 /* the Making Floor's doors (the Underside, cell 2,0): a little door up into each Little House, in a row along the north
@@ -470,12 +470,17 @@ defMaking(4, {
         const x = MAKING_DOOR_X[i], n = i + 1, when = i ? 'making' + i : undefined;
         AREAS.underside.ents.push(
             Object.assign({ k: 'warp', x, y: 1, to: 'making' + n, tx2: (m.entry || { x: 3 }).x, ty2: (m.entry || { y: 16 }).y, dir: 'up', face: 'right', room: '2,0' }, when ? { if: when } : {}),
-            { k: 'deco', x, y: 0, look: 'littledoor', solid: false, baseY: -100, room: '2,0' },
+            Object.assign({ k: 'deco', x, y: 0, look: 'littledoor', solid: false, baseY: -100, room: '2,0' }, when ? { if: when } : {}),
+            /* (not open yet: barred) */
+            ...(when ? [{ k: 'deco', x, y: 0, look: 'littledoor_shut', solid: false, baseY: -100, room: '2,0', if: '!' + when }] : []),
             { k: 'sign', x: x - 1, y: 1, text: `MAKING ${n}: ${m.name.toUpperCase()}. (${m.by})` + (i ? ` Opens when the ${ORD[i - 1]} is done.` : ''), room: '2,0' },
         );
     });
 }
-AREAS.underside.ents.push({ k: 'npc', who: 'tuck', x: 47, y: 6, face: 'down', room: '2,0', if: 'd7&!makings_done' });
+AREAS.underside.ents.push({ k: 'npc', who: 'tuck', x: 47, y: 6, face: 'down', room: '2,0', if: 'd7&!makings_done' }, { k: 'npc', who: 'otto', x: 50, y: 6, face: 'down', room: '2,0', if: 'making5&!makings_done' });
+UNDER_TALK.otto = function* () {
+    yield* say('otto', cycle('otto_mk', ["I'm the Housekeeper. Anything out of its place, I tidy. I come at it from my side. That's the rules.", "Tuck pushes things and I put them back. That's how a Wander works. Mother Ives said.", "If a thing won't come, I stand there and tsk at it. Tsk! Like that.", "I'm not doing a Wander. I'm doing the HOUSE. It's harder."]));
+};
 UNDER_TALK.tuck = function* () {
     if (!Progress.flag('making1')) { yield* say('tuck', "{name}! I'm doing a WANDER! A little one! The Makers built it! You're not allowed to help. It's MY Wander."); return; }
     if (!Progress.flag('makings_done')) {
@@ -505,6 +510,9 @@ function initMakings() {
     defSprite('nibbler_0', nib('....k.k.k.k.....'), nb); defSprite('nibbler_1', nib('.....k.k.k.k....'), nb);
     ART.littledoor = paintSprite(16, 20, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3a26', 1, 2, 14, 18); R('#a8784a', 2, 3, 12, 17); R('#f7d64a', 11, 11, 2, 2); R('#5ab85a', 4, 6, 8, 4); });
     SPR.littledoor = ART.littledoor;
+    /* a little door that isn't open yet: a plank nailed across it */
+    ART.littledoor_shut = paintSprite(16, 20, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3a26', 1, 2, 14, 18); R('#8a6040', 2, 3, 12, 17); R('#4a6a4a', 4, 6, 8, 4); R('#3a2618', 0, 10, 16, 4); R('#c9925a', 0, 10, 16, 3); R('#5a3a26', 2, 11, 1, 1); R('#5a3a26', 13, 11, 1, 1); });
+    SPR.littledoor_shut = ART.littledoor_shut;
 }
 CONTENT_INIT.push(initMakings);
 

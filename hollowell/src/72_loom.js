@@ -244,7 +244,7 @@ defHouse({
         '3,2': {
             name: 'The Larder',
             rows: [
-                '################.###',
+                '#############.######',
                 '###########o.......#',
                 '###########o.......#',
                 '#..........o.......#',
@@ -257,16 +257,16 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'door', x: 16, y: 0, type: 'gate', when: 'lrPlate', dir: 'h', keep: true, id: 'lrGate' },
+                { k: 'door', x: 13, y: 0, type: 'gate', when: 'lrPlate', dir: 'h', keep: true, id: 'lrGate' },
                 { k: 'plate', x: 18, y: 2, sig: 'lrPlate', minWeight: 3 },
                 /* (each lies where startAt says; its home and the way it was dragged there are its trace) */
                 { k: 'wrapped', x: 18, y: 2, id: 'lrW2', startAt: [16, 5], trace: [[18, 2], [18, 3], [18, 4], [17, 4], [16, 4], [16, 5]] },
-                { k: 'wrapped', x: 13, y: 1, id: 'lrW1', resetSleep: true, startAt: [14, 7],
-                    trace: [[13, 1], [13, 2], [13, 3], [12, 3], [11, 3], [10, 3], [10, 4], [10, 5], [10, 6], [10, 7], [11, 7], [12, 7], [13, 7], [14, 7]] },
+                { k: 'wrapped', x: 15, y: 1, id: 'lrW1', resetSleep: true, startAt: [14, 7],
+                    trace: [[15, 1], [15, 2], [15, 3], [14, 3], [13, 3], [12, 3], [11, 3], [10, 3], [10, 4], [10, 5], [10, 6], [10, 7], [11, 7], [12, 7], [13, 7], [14, 7]] },
                 { k: 'deco', x: 9, y: 7, look: 'warppost', text: "An old warping post, sunk deep in the floor: a great spool on top, its wood worn silver where a thousand threads were wound." },
                 { k: 'deco', x: 2, y: 8, look: 'cocoon', text: 'Something wrapped round and round in grey silk, the size of a sack of flour. Whatever it was, the Weaver meant to keep it.' },
                 { k: 'deco', x: 4, y: 9, look: 'cocoon2', solid: [[0, 0]] }, { k: 'deco', x: 1, y: 3, look: 'cocoon2', solid: [[0, 0]] },
-                { k: 'deco', x: 5, y: 2, look: 'wallhank', solid: false, baseY: -100 }, { k: 'deco', x: 15, y: 0, look: 'wallhank', solid: false, baseY: -100 },
+                { k: 'deco', x: 5, y: 2, look: 'wallhank', solid: false, baseY: -100 }, { k: 'deco', x: 17, y: 0, look: 'wallhank', solid: false, baseY: -100 },
                 { k: 'sign', x: 3, y: 5, text: 'Scratched small on a flagstone: IT WRAPS UP WHAT IT KEEPS AND LAYS IT DOWN TO SLEEP. NOTHING WAKES THEM BUT A BELL. -L.' },
             ],
         },
@@ -282,12 +282,12 @@ defHouse({
                 '#########..........#',
                 '#########..........#',
                 '#########..........#',
-                '.o......o..........#',
-                '#oooooooo..........#',
-                '#########..........#',
-                '#########..........#',
-                '#########..........#',
-                '################.###',
+                '.o,,,,,,o,,,,,.....#',
+                '#oooooooo....,.....#',
+                '#########....,.....#',
+                '#########....,.....#',
+                '#########....,.....#',
+                '#############.######',
             ],
             ents: [
                 { k: 'loomweight', x: 7, y: 5, id: 'wwW', stitchName: 'the old weight' },
@@ -295,7 +295,7 @@ defHouse({
                 { k: 'deco', x: 17, y: 8, look: 'spinwheel', text: "A spinning wheel, very old. Its treadle still turns. Its spindle's wound with grey silk, not silver: the Weaver's been at it." },
                 { k: 'deco', x: 3, y: 4, look: 'wallhank', solid: false, baseY: -100 }, { k: 'deco', x: 6, y: 4, look: 'wallbobbins', solid: false, baseY: -100 },
                 { k: 'deco', x: 10, y: 0, look: 'wallbobbins', solid: false, baseY: -100 },
-                { k: 'sign', x: 16, y: 5, text: 'THE WARP WALK. The old weights hung along here once, keeping the warp straight and true. Mind the drop.' },
+                { k: 'sign', x: 15, y: 9, text: 'THE WARP WALK. The old weights hung along here once, keeping the warp straight and true. Mind the drop.' },
             ],
         },
         /* ---------------- 8 The Web: the Weaver, over the well of the First Spinner's own loom ---------------- */
@@ -473,8 +473,10 @@ function initLoom() {
         R('#6a4630', 4, 8, 8, 16); R('#8a5a3a', 4, 8, 2, 16); R('#4a301e', 10, 8, 2, 16); R('#3a404c', 3, 15, 10, 2); R('#8a94a4', 3, 15, 10, 1);
         R('#8a5a3a', 1, 0, 14, 2); R('#e4ecf5', 2, 2, 12, 5); R('#aab7c8', 2, 3, 12, 1); R('#aab7c8', 2, 5, 12, 1); R('#8a5a3a', 1, 7, 14, 2); R('#b07848', 2, 0, 6, 1);
     });
-    ART.cocoon = paintSprite(16, 14, x => { oval(x, 8, 8, 7, 5, (i, j, X, Y) => j < -0.4 && i < 0.3 ? '#e4ecf5' : ((X * 2 + Y) % 5 === 0 ? '#9aa4b2' : '#c8d0dc')); line(x, 2, 10, 13, 5, '#aab7c8'); });
-    ART.cocoon2 = paintSprite(14, 12, x => { oval(x, 7, 7, 6, 4, (i, j, X, Y) => j < -0.4 ? '#e4ecf5' : ((X + Y * 2) % 4 === 0 ? '#9aa4b2' : '#c8d0dc')); line(x, 3, 4, 10, 9, '#aab7c8'); });
+    /* (wound round and round: bands of darker silk across a pale bundle, a loose end trailing) */
+    const wrapped = (i, j, X, Y, k) => (j < -0.5 && i < 0.1) ? '#f4f7fb' : ((X + Y * k) % 4 === 0 ? '#8a94a4' : (i + j > 0.7 ? '#aab7c8' : '#d4dbe5'));
+    ART.cocoon = paintSprite(14, 20, x => { oval(x, 7, 11, 5, 8, (i, j, X, Y) => wrapped(i, j, X, Y, 2)); line(x, 7, 0, 7, 3, '#c8d0dc'); line(x, 9, 18, 12, 19, '#aab7c8'); });
+    ART.cocoon2 = paintSprite(18, 12, x => { oval(x, 9, 6, 8, 4, (i, j, X, Y) => wrapped(i, j, X, Y, -2)); line(x, 16, 8, 17, 11, '#aab7c8'); });
     defSprite('loomweight_wrapped', ['.......kk.......', '.......ww.......', '......kwwk......', '......kkkk......', '.....kwwiik.....', '....kiIwwiik....', '...kiiiiwwiik...', '...kwwiiiiwwk...', '..kiiwwiiiiiwk..', '..kiiiiwwiiiik..', '..kwiiiiiwwiik..', '..kIwwiiiiiwwk..', '..kIIIIwwIIIIk..', '...kkkkkkkkkk...', '................', '................'], { i: '#7a8496', I: '#5a6070', w: '#e4ecf5' });
     /* the Warp Walk: a creel of spools, full and never used; an old spinning wheel with the Weaver's grey silk on it */
     ART.creel = paintSprite(64, 26, x => {

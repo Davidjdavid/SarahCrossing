@@ -213,6 +213,17 @@ const SCENARIOS = {
         await shot('mk_4a_sulk');
         await page.evaluate(() => { HW.walkTo(11, 13); HW.face('up'); HW.press('act', 1); HW.step(600); HW.walkTo(30, 15); HW.face('up'); });
         await shot('mk_4b_plates');
+        /* the second half: the Tidyhouse underneath; Otto the Housekeeper; both of them; the Grand Hall */
+        for (const [n, x, y, name] of [[5, 46, 17, 'mk_5_foyer'], [6, 10, 17, 'mk_6_otto'], [7, 9, 17, 'mk_7_junction'], [8, 26, 17, 'mk_8_hall']]) {
+            await page.evaluate(([n, x, y]) => {
+                for (let i = 1; i < n; i++) HW.Progress.set('making' + i);
+                const e = HW.global('MAKINGS')[n - 1].entry || { x: 3, y: 16 };
+                HW.warp('making' + n, e.x, e.y); HW.step(10); HW.skipTalk(); HW.step(300);
+                if (n === 8) { const t = HW.G.map.find('tuck'); HW.G.map.unplace(t, t.tx, t.ty); t.tx = 21; t.ty = 5; t.x = 21 * 16; t.y = 5 * 16; HW.G.map.place(t, 21, 5); }
+                HW.walkTo(x, y); HW.face('up'); HW.step(60);
+            }, [n, x, y]);
+            await shot(name);
+        }
     },
     async reveal2() {
         await open();

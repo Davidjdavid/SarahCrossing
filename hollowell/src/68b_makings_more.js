@@ -36,6 +36,34 @@ function tidyNudged(name) {
     };
 }
 
+/* a Maker's lever, underneath: the room up above set out again, the way it was before the boy came in (what the Makers
+   do behind every Wanderer): things set out go back out, tied as they were; anything else out of its place goes home */
+class ResetLever extends Lever {
+    interact() {
+        const a = this.area, r = Layers.upRoom(a, a.roomAt(this.tx, this.ty));
+        if (!r) return false;
+        const inR = (x, y) => x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
+        let moved = 0, stuck = false;
+        for (const e of a.ents) {
+            if (!e.isGrid || !e.ret || e.person || e.removed || e.mv || !inR(e.ret.mx, e.ret.my)) continue;
+            if (e.startAt) {
+                const [sx, sy] = e.startAt;
+                if (e.tx === sx && e.ty === sy) continue;
+                if (a.at(sx, sy) || !a.freeForThing(sx, sy, e)) { stuck = true; continue; }
+                if (e.knotted) { e.knotted = false; e.fixed = e._fixed0; e.liftable = e._lift0; }
+                a.unplace(e, e.tx, e.ty); e.tx = sx; e.ty = sy; e.x = sx * T; e.y = sy * T; a.place(e, sx, sy);
+                e.ret.trace = (e.trace || [[e.ret.mx, e.ret.my], [sx, sy]]).map(q => q.slice()); e.ret.state = 'away'; e.ret.snap = false; e.ret.timer = e.ret.patience;
+                if (e.knotStart) Spool.knot(e, true);
+                Fx.poof(sx * T + 8, sy * T + 8); moved++;
+            } else if (Return.away(e) && !e.knotted) { Return.snap(e); moved++; }
+        }
+        this.on = !this.on; Sfx.play('click'); Sfx.play('door');
+        UI.toast(stuck ? "Something up there is standing just where a thing goes. It won't set out over it." : moved ? 'Up above, the room creaks and clicks, and everything is set out as it was.' : 'Everything up there is already set out as it was.', 160);
+        return true;
+    }
+}
+SPAWN.resetlever = (x, y, p) => new ResetLever(x, y, p);
+
 /* ---------------- 5: The Tidyhouse, Underneath (Ives) ---------------- */
 /* Laid out west to east: the Ballroom, the Hall of Busts, the Foyer; Tuck comes in at the Foyer's front door, as Wren
    did. Each room's own trick, the other side of the floor. */
@@ -84,7 +112,9 @@ defMaking(5, {
     ]),
     '1,1': Object.assign(BELOW_ROOM('Under the Hall of Busts', '1,0', 'we', [
         { k: 'memo', x: 16, y: 2, say: () => { const m = tidyMinutes('Hall of Busts'); return m ? `THE HALL OF BUSTS: ${G.wanderer || 'Wren'}, ${m} minute${m === 1 ? '' : 's'}. Stood on the plate, pushed the big bust up the lane, and let it come home through the block. I nearly clapped and gave us all away. -I.` : "THE HALL OF BUSTS. (The page is blank. That's not like me.) -I."; } },
-        { k: 'sign', x: 2, y: 8, text: "A HEAVY THING GOING HOME GOES THROUGH WHATEVER'S LIGHTER. (Mind the boy.) And a tug on a thing that's out of its place sends it home now. -I." },
+        { k: 'sign', x: 5, y: 9, text: "A HEAVY THING GOING HOME GOES THROUGH WHATEVER'S LIGHTER. (Mind the boy.) And a tug on a thing that's out of its place sends it home now. -I." },
+        { k: 'resetlever', x: 13, y: 9 },
+        { k: 'sign', x: 14, y: 9, text: "IVES'S LEVER. Sets the Hall out again the way it was for him: the big bust back up its lane, tied. (We do it behind every Wanderer, love. You never once noticed.) -I." },
     ]), { nudge: { solved: () => Making.past(20), after: 60 * 60 * 2, at: [9, 6], say: "The bust up the lane would come home through anything lighter that got in its way. Nothing's in its way. Yet." } }),
     '2,1': Object.assign(BELOW_ROOM('Under the Foyer', '2,0', 'w', [
         { k: 'sign', x: 2, y: 2, text: "THE TIDYHOUSE, UNDERNEATH. My first three rooms, the way your Wander went, built again for Tuck. No Needle in my rooms, love: you didn't have one either. -I." },
@@ -152,6 +182,7 @@ class Keeper extends NPC {
         this.ret.mx = x.tx; this.ret.my = x.ty; this.ret.trace = [[x.tx, x.ty]]; this.ret.state = 'home';
         Fx.poof(this.px + 8, this.py + 8);
         this.state = 'home'; this.st = 0; this.target = null; this.seen = null; this.tsking = false; this.wait = 20;
+        if (x.line) this.say(x.line, 'bang');
         return true;
     }
     update() {
@@ -271,7 +302,7 @@ defMaking(6, {
         name: 'The Doormat',
         rows: ['####################', '#.............#....#', '#.............#....#', '#.............#....#', '#.............#....#', '...............,...#', '#.............#....#', '#.............#....#', '#.............#....#', '#.............#....#', '####################'],
         ents: [
-            { k: 'keeperx', x: 10, y: 1, face: 'down' },
+            { k: 'keeperx', x: 10, y: 1, face: 'down', line: 'Round the back! Tsk!' },
             { k: 'wood', x: 10, y: 5, id: 'm6B' },
             { k: 'mat', x: 9, y: 4, sig: 'm6m' },
             { k: 'door', x: 14, y: 5, type: 'gate', when: 'm6m', dir: 'v', id: 'm6Gate' },
@@ -304,11 +335,12 @@ defMaking(7, {
     /* the gate wants somebody on each doormat at once (and stays open after); Tuck will sit on the one by the gate */
     '1,0': {
         name: 'Two Mats',
-        rows: ['####################', '#..............#...#', '#..............#...#', '#..............#...#', '#..............#...#', '................,..#', '#..............#...#', '#..............#...#', '#..............#...#', '#..............#...#', '####################'],
+        rows: ['####################', '#..............#...#', '#..............#...#', '#..............#...#', '#.........#....#...#', '................,..#', '#.........#....#...#', '#..............#...#', '#..............#...#', '#..............#...#', '####################'],
         ents: [
-            { k: 'keeperx', x: 6, y: 1, face: 'down' },
+            { k: 'keeperx', x: 6, y: 1, face: 'down', line: 'Two mats. I stand on NEITHER. Tsk!' },
             { k: 'wood', x: 10, y: 5, id: 'm7K' },
             { k: 'mat', x: 10, y: 5, sig: 'm7a' }, { k: 'mat', x: 14, y: 5, sig: 'm7b' },
+            { k: 'crate', x: 7, y: 2, id: 'm7C' },
             { k: 'door', x: 15, y: 5, type: 'gate', when: 'm7a&m7b', dir: 'v', keep: true },
             { k: 'littlehoop', x: 17, y: 5 },
         ],
@@ -326,22 +358,27 @@ defMaking(7, {
    Grand Hall, where Otto is the Grand Housekeeper on its cross: the way west opens only when the Housekeeper's
    beaten, and the one thing that ever beat a Housekeeper is its own tidying. Then the little hoop, and the Makers. */
 defMaking(8, {
+    /* one last thing in the passage's mouth, and the hoop */
     '0,0': {
         name: 'The Little Hoop',
-        rows: ['####################', '######.............#', '######.............#', '######.............#', '######.............#', '....................', '######.............#', '######.............#', '######.............#', '######.............#', '####################'],
-        ents: [{ k: 'littlehoop', x: 12, y: 5 }, { k: 'wood', x: 6, y: 5, id: 'm8W2' }],
+        rows: ['####################', '#.............######', '#.............######', '#.............######', '#.............######', '#...................', '#.............######', '#.............######', '#.............######', '#.............######', '####################'],
+        ents: [{ k: 'littlehoop', x: 6, y: 5 }, { k: 'wood', x: 13, y: 5, id: 'm8W2' }],
     },
+    /* the Housekeeper's cross by the way west, which opens only once he's beaten; a block in a slot between two
+       busts, and a nibbler that has its eye on the spot Tuck would push it from */
     '1,0': {
         name: 'The Grand Hall',
         rows: ['####################', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '####################'],
         ents: [
-            { k: 'keeperx', x: 9, y: 4, face: 'down' }, { k: 'keeper', x: 9, y: 4, id: 'otto', face: 'down', grand: true },
-            { k: 'bust', x: 3, y: 4, id: 'm8B1' }, { k: 'bust', x: 16, y: 4, id: 'm8B2' }, { k: 'bust', x: 9, y: 8, id: 'm8B3' }, { k: 'bust', x: 9, y: 2, id: 'm8B4' },
-            { k: 'wood', x: 12, y: 5, id: 'm8W' },
-            { k: 'nibbler', x: 11, y: 8, id: 'm8Nib' },
+            { k: 'keeperx', x: 2, y: 3, face: 'right', line: "I'm the GRAND Housekeeper. Nobody gets past the Grand Housekeeper!" }, { k: 'keeper', x: 2, y: 3, id: 'otto', face: 'right' },
+            { k: 'bust', x: 6, y: 4, id: 'm8B1' }, { k: 'bust', x: 6, y: 6, id: 'm8B2' }, { k: 'bust', x: 16, y: 4, id: 'm8B3' }, { k: 'bust', x: 12, y: 8, id: 'm8B4' },
+            { k: 'wood', x: 6, y: 5, id: 'm8W' },
+            { k: 'nibbler', x: 5, y: 7, id: 'm8Nib' },
+            { k: 'pot', x: 1, y: 1, style: 'pot_teal' }, { k: 'pot', x: 18, y: 9, style: 'pot_teal' },
             { k: 'door', x: 0, y: 5, type: 'gate', when: 'ottoDown', dir: 'v', keep: true, id: 'm8Shut' },
         ],
     },
+    /* the Antechamber: four pots (one with a button under it), and the big door to the Grand Hall */
     '2,0': {
         name: 'The Antechamber',
         rows: ['####################', '#..................#', '#.,,,,,,,,,,,,,,,,.#', '#.,..............,.#', '#.,..............,.#', '..,..............,.#', '#.,..............,.#', '#.,..............,.#', '#.,,,,,,,,,,,,,,,,.#', '#..................#', '#########.##########'],
@@ -349,20 +386,20 @@ defMaking(8, {
             { k: 'tuck', x: 9, y: 9, id: 'tuck' },
             { k: 'door', x: 0, y: 5, type: 'gate', when: '!m8w', dir: 'v', id: 'm8Big' },
             { k: 'pot', x: 4, y: 3, id: 'm8P1', style: 'pot_teal' }, { k: 'pot', x: 15, y: 3, id: 'm8P2', style: 'pot_teal' },
-            { k: 'pot', x: 4, y: 7, id: 'm8P3', style: 'pot_teal' }, { k: 'pot', x: 15, y: 7, id: 'm8P4', style: 'pot_teal' }, { k: 'treasure', x: 15, y: 7 },
+            { k: 'pot', x: 4, y: 7, id: 'm8P3', style: 'pot_teal' }, { k: 'treasure', x: 4, y: 7 }, { k: 'pot', x: 15, y: 7, id: 'm8P4', style: 'pot_teal' },
         ],
     },
     '0,1': Object.assign(BELOW_ROOM('Under the Little Hoop', '0,0', 'e', [
         { k: 'npc', who: 'ives', x: 9, y: 3, face: 'up' }, { k: 'npc', who: 'bram', x: 11, y: 3, face: 'up' }, { k: 'npc', who: 'ambrose', x: 13, y: 3, face: 'up' },
         { k: 'npc', who: 'tess', x: 9, y: 7, face: 'up' }, { k: 'npc', who: 'mallow', x: 11, y: 7, face: 'up' }, { k: 'npc', who: 'jory', x: 13, y: 7, face: 'up' },
-    ]), { nudge: { solved: () => Making.past(1, true) && !G.map.find('m8W2') || Making.past(30), after: 60 * 60 * 2, at: [6, 5], say: "One last thing in his way. He knows what to do with things that jump." } }),
+    ]), { nudge: { solved: () => Making.past(13), after: 60 * 60 * 2, at: [13, 5], say: "One last thing in his way. He knows what to do with things that jump." } }),
     '1,1': Object.assign(BELOW_ROOM('Under the Grand Hall', '1,0', 'we', [
         { k: 'sign', x: 16, y: 2, text: "THE GRAND HALL. Mine, the real one. The Housekeeper always went and stood exactly where a thing was coming home to. Every Wanderer's beaten it that way, and every one thought they'd thought of it first. (You did think of it first, love.) -I." },
         { k: 'sign', x: 2, y: 8, text: "MIND THE NIBBLER. Tuck won't go near it, and it's got its eye on the very spot you'll want him in. -B." },
-    ]), { nudge: { solved: () => Making.past(20), after: 60 * 60 * 3, at: [12, 5], say: "The Housekeeper only ever gets beaten one way: standing on a thing's way home when it tidies it. Hold the thing till he's standing there. Then let go." } }),
+    ]), { nudge: { solved: () => Making.past(20), after: 60 * 60 * 3, at: [6, 5], say: "The Housekeeper only ever gets beaten one way: standing on a thing's way home when it tidies it. Hold the thing till he's standing there. Then let go." } }),
     '2,1': Object.assign(BELOW_ROOM('Under the Antechamber', '2,0', 'w', [
         { k: 'plate', x: 2, y: 5, sig: 'm8w' }, { k: 'weight', x: 2, y: 5, id: 'm8Weight', patience: 90 },
-        { k: 'sign', x: 4, y: 7, text: "COUNTERWEIGHT: THE BIG DOOR. On its plate, the door's shut. Off it, open, till it goes home. (So that's what your Pattern did, love: I heard it in the lock, and pushed. -I.)" },
+        { k: 'sign', x: 6, y: 8, text: "COUNTERWEIGHT: THE BIG DOOR. On its plate, the door's shut. Off it, open, till it goes home. (So that's what your Pattern did, love: I heard it in the lock, and pushed. -I.)" },
     ]), { nudge: { solved: () => Making.past(40), after: 60 * 60 * 2, at: [2, 5], say: "Up above, the big door. Down here, its weight." } }),
 }, {
     up: 'tidy', thread: THREAD.ives, entry: { x: 56, y: 16 },
@@ -375,6 +412,16 @@ defMaking(8, {
         jory: function* () { yield* say('jory', "Places, everyone! ...No, wait, we're already in them. Carry on."); },
     },
 });
+
+/* after the fifth, the first time: Otto turns up on the Making Floor, in a paper hat, with a duster */
+MAKINGS[4].then = function* () {
+    const a = G.map, p = G.player, o = a && a.ents.find(e => e.kind === 'npc' && e.who === 'otto');
+    if (o && p) { yield* say(null, "Somebody else is on the Making Floor: Otto, from the square, in a folded paper hat, holding a feather duster like a sword."); yield* Making.fetch(o, p); }
+    yield* say('otto', "I'm in the next ones! Jory said every Wander needs a Housekeeper. So I'm the Housekeeper. Tsk!");
+    yield* say('tuck', "He's not ON the Wander. He's just TIDYING. It's MY Wander.");
+    yield* say('otto', "Anything out of its place, I tidy. From my side. I wrote my rules down. They're on the wall underneath.");
+    Progress.setGoal('The Making Floor: the sixth Little House is open. Otto is coming too, as the Housekeeper.');
+};
 
 /* Tuck's got west of x (the Little Houses run west to east, or east to west: a room's done once he's out of it) */
 Making.past = function (x, east) {

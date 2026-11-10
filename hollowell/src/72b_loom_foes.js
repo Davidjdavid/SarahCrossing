@@ -149,6 +149,9 @@ class Weaver extends Ent {
             }
             return;
         }
+        /* (Wren gone from the room mid-fight, however she managed it: it settles back into its web and the room opens
+           again; the fight starts afresh when she comes back) */
+        if (p.area === a && p.state === 'normal' && Cam.room !== r && !Cam.busy) return this.reset();
         /* silk on Wren wears off in time (or the Shears snip it) */
         if (p.pinned === 'silk' && --this.bindT <= 0) p.pinned = null;
         if (Script.blocking()) return;
@@ -221,7 +224,7 @@ class Weaver extends Ent {
             }
         }
     }
-    /* along its thread: the point s pixels down it from the perch, and how high it hangs there */
+    /* the point s pixels along its thread from the perch */
     pointAt(s) {
         const pts = this.path;
         for (let i = 0; i + 1 < pts.length; i++) {
@@ -256,6 +259,15 @@ class Weaver extends Ent {
     }
     /* not knocked in time: back up where it was (in its web, it ties itself in again) */
     recover() { this.state = 'climb'; this.st = 0; Sfx.play('twang'); }
+    /* back as it was before she came in: in its web, tied in at all four posts, the warp in its well */
+    reset() {
+        this.state = 'sleep'; this.st = 0; this.hp = 3; this.told = 1; this.path = null; this.shots = []; this.flash = 0;
+        this.x = this.web[0]; this.y = this.web[1]; this.z = WV.webZ;
+        for (const n of this.anchors()) n.tie();
+        const w = this.well(); if (w) w.bare = false;
+        if (G.player && G.player.pinned === 'silk') G.player.pinned = null;
+        this.shutters(false); Music.play('loom');
+    }
     arrive() {
         if (this.beat === 1) {
             const ans = this.anchors();
@@ -276,7 +288,7 @@ class Weaver extends Ent {
         this.state = 'dragged'; this.st = 0; Sfx.play('hookhit'); Sfx.play('tug'); G.shake = 4;
         Stats.count('boss:weaver:hooked');
     }
-    /* is its body over that tile (and low enough to reach)? */
+    /* is its body over that tile? */
     covers(tx, ty) {
         const x0 = tx * T, y0 = ty * T;
         return this.x + 10 > x0 && this.x - 10 < x0 + T && this.y + 8 > y0 && this.y - 8 < y0 + T;
@@ -291,8 +303,12 @@ class Weaver extends Ent {
     /* the Shears at its thread: at the thing itself (when it's low enough to reach), or anywhere along the thread while it's
        pulled tight (hauling itself home); lying slack, the blades slide off */
     snip(p) {
-        if (!this.alive || !this.path || this.beat < 2) return false;
+        if (!this.alive || this.beat < 2) return false;
         const f = p.front();
+        if (!this.path) {
+            if (this.state === 'perch' || this.state === 'aim') { if (!this.covers(f.tx, f.ty)) return false; UI.toast("It's up on the breast-beam, out of reach of the blades.", 120); return true; }
+            return false;
+        }
         const at = this.z <= WV.reach && this.covers(f.tx, f.ty), on = this.threadOver(f.tx, f.ty);
         if (!at && !on) return false;
         if (!at && this.state !== 'home') { UI.toast("The thread's lying slack there: it only slides off the blades. Cut it at the thing itself, or while it's pulled tight.", 200); return true; }

@@ -12,7 +12,7 @@
 | D5 | Slumberhouse | Hushwood | Your own mark; falls as travel; the trace remembers | Bedroll | Mother Sloth | tested |
 | D6 | Marionette Hall | Larkspur Fair | Remote bodies: marching soldiers, flats, puppets at a distance, puppets in step | Crossbar | Great Marionette | tested |
 | D7 | Spoolworks | Underside | Two layers: cords under marks (tug, tie off), hatches, counterweights; re-marking | Needle | The Tangle | tested |
-| D8 | Loom | Loomwood | Permanence: offcuts (strays), the old weights cut free, silk walls and bridges; no nudges | Shears | The Weaver | tested |
+| D8 | Loom | Loomwood | Permanence: offcuts (strays), the old weights cut free, silk walls and bridges, a thread pulled tight cut anywhere; no nudges | Shears | The Weaver | tested |
 | F | Great Spool | under the Well | Six Knot-locks remixing every House | – | The Spool | tested |
 | O1 | Stray House | Frayed Edge | Nothing returns: order, room, holes filled for good; the Needle gives a stray a place | Linnet's bracelet, Heartstitch | The Pile | tested |
 | O2 | Unfinished House | Hollowell, east bank | Chalk planks sewn real with the Needle: three stitches at once, a fourth undoes the oldest | Long Hook | – (Mr Ives's walk) | tested |
@@ -333,19 +333,25 @@ their own threads, to be cut like the rest). The Loom's doors want the Guild's k
 the north gate opened early (S32) only opens the Loomwood. No
 nudges (nobody watches here). The Shears (from the Shuttle): C at a thing (or its cord from below) cuts its thread:
 a stray for good, kept where it's left (even after the place is rebuilt); silk walls fall; silk bridges drop (and iron
-goes through silk); people cut free; your own thread, at the fog.
+goes through silk; no heavy thing can be given a place on silk); a thread pulled tight is cut anywhere along it;
+people cut free; your own thread, at the fog. The way: Threshold, Warp Hall, Offcut Yard (key 1), the Run (the
+Shears), the Weighing Room, the Hanging Gallery (key 2), the Weighing Room's east lock, the Larder, the Warp Walk, the
+Bridge Room (Pattern; its south gate, a lock in older saves, opens for good once its plate is held), the Run's big
+door, the Web. Tests also: `tests/review_m.test.mjs` (3, 8); the scripted run's leg 8.
 
 | Room | Cell | Idea | Solution | Reward |
 |---|---|---|---|---|
 | The Threshold | 1,3 | Strays | A two-deep trench: one offcut into it, another pushed in on top of it, and across | the way in |
 | The Warp Hall | 1,2 | Hub | West open; east a silk wall (Shears); north a lock | - |
 | The Offcut Yard | 0,2 | Order | Three offcuts up one column of three pits to the key in its nook (chute for spares) | key |
-| The Shuttle Run | 1,1 | Mini-boss: the Shuttle | It flies its lane through anything soft; an offcut pushed into the lane jams it; knock it while jammed (it shakes the offcut out of the lane each time); 3x | the Shears |
+| The Shuttle Run | 1,1 | Mini-boss: the Shuttle | It flies its lane through anything soft; an offcut pushed into the lane jams it; knock it while jammed (it shakes the offcut out of the lane after the first); 2x | the Shears |
 | The Spinner's Room | 0,1 | Shears on silk | Cut the silk across the Run's west door | the tapestry (lore), Heart Patch |
 | The Weighing Room | 2,2 | Shears on weights | Three old weights: cut each free and push it into the chasm's middle row, one after another; the way on is the door in its floor | - |
 | The Hanging Gallery | 2,3 | Cutting a thing in motion | Two weights hang tied out over a one-row trench, their homes on the far side (out of the Hookline's line). The lever lets them go: they come home along the trench, hanging. A thread pulled tight (a thing on its way home) can be cut anywhere along it, so face a trench tile ahead of a weight and snip: it drops where it hangs and fills that tile. A slack thread slides off the blades. Missed: pull the lever back to set them out again | key |
-| The Bridge Room | 2,1 | Iron through silk | Cut a weight free and push it onto the silk bridge: it breaks, the weight fills the gap for good; push the other across onto the heavy plate (reached only through the Weighing Room's lock; its west way to the Run opens once the plate is held) | Pattern |
-| The Web | 1,0 | Boss: the Weaver | Wakes as you come in. Hung by four anchor threads: cut all four (snip yourself free of its silk with C: caught again while bound, the silk tightens, 1 heart); it drops into the well of its loom (and lands hard on anyone under it); knock it; it climbs and spins new anchors; 3x | Heartstitch; d8 |
+| The Larder | 3,2 | Bell + blocking + a tight cut (Belfry, Tidyhouse, Loom) | East of the Weighing Room (key 2). A wrapped weight sleeps beyond a one-wide gap; its thread runs back over the gap, along this side and over again to its home on the far side. Rung from anywhere it's home in a flash, both ways (and the other sleeper goes home onto the plate that opens the far gate, for good); leave and it lies down again. Stand at the turn of its thread with the warping post at your back and ring: it can't shove you, so it waits over the gap, pulled tight: cut it (at it, or along its thread) and it drops in and fills the gap (or block it at the top turn, the wall at your back, cut it there and push it in) | the way on |
+| The Warp Walk | 3,1 | Needle + Hookline + cut (Spoolworks, Kiln, Loom) | A ledge along the wall over a drop, its one weight at the near edge across a gap, the way out beyond one more gap at the far end. Hooked, the weight reels you to the tile in front of it: the gap (a fall). The Needle reaches over the gap: give it a place further along the walk, hook over to it, cut it free and push it into the last gap (marked, it would only go home) | the way to the Bridge Room |
+| The Bridge Room | 2,1 | Iron through silk | In from the Warp Walk (east). Cut a weight free and push it onto the silk bridge: it breaks, the weight fills the gap for good; push the other across onto the heavy plate (its west way to the Run opens while the plate is held; its south gate for good) | Pattern |
+| The Web | 1,0 | Boss: the Weaver | The First Spinner's loom across the north (the breast-beam, its words under silk), its well a deep slot down the middle, four great posts. Wakes as you come in. 1: hung by four anchor threads: cut each at its post (its silk binds: snip free; caught again while bound, it tightens); it drops into the well, tangled; knock it (left, it climbs back and ties in again). 2: up on the breast-beam by one thread of its own, the posts bare: it drops on you (its shadow first; lands hard), crouches (its thread slack: snips slide off), then hauls itself home up the well, thread tight: cut it ahead of it while it's over the well and it drops in (over the stone it lands on its feet and runs back up); knock it. 3: it hauls the warp out of the well and clings to the breast-beam and won't come down: hook it (the Hookline: it's hauled down its own well toward you and hangs there, dazed, low over the well), cut it at the thing (or its thread as it climbs home), knock it. At the end a heap of grey silk in the well, the web drifting down like snow, the words on the breast-beam | Heartstitch; d8 |
 
 
 ## F The Great Spool (`src/75_greatspool.js`; the Drift `src/74_drift.js`, the end `src/76_ending.js`; tests `tests/ending.test.mjs`, `tests/review_end.test.mjs`) - tested

@@ -966,36 +966,37 @@ export const LEG8 = (HW, chain) => {
     const finishMaking = n => { const t = tuck(); ok(until(() => t.state === 'done', 2500), `Tuck reaches the hoop (${t.tx},${t.ty} ${t.state})`); for (let i = 0; i < 16 && HW.G.map.id !== 'underside'; i++) { HW.skipTalk(); HW.step(20); } for (let i = 0; i < 6; i++) { HW.skipTalk(); HW.step(10); } ok(HW.Progress.flag('making' + n), 'Making ' + n); };
     const littleDoor = x => { walk(x, 2); HW.hold('up'); until(() => HW.G.map.id !== 'underside', 120); HW.release(); HW.step(20); HW.skipTalk(); HW.step(5); };
     HW.Inv.stitches = [];
+    const door = n => HW.global('MAKING_DOOR_X')[n - 1];
     /* Gundry, in the Guild Hall: the job */
     walk(31, 4); act('up');
     ok(HW.Progress.flag('gundry_job'), "Gundry's job");
     /* Making 1 */
-    littleDoor(44); ok(HW.G.map.id === 'making1', 'into Making 1');
+    littleDoor(door(1)); ok(HW.G.map.id === 'making1', 'into Making 1');
     let t = tuck();
     under(2, 1, 'down'); tug(); until(() => ahas().includes('found'), 400); until(() => t.state === 'sit', 600);
     under(10, 5, 'down'); tug(); until(() => t.state === 'sit' && t.tx > 20, 900);
     const K1 = HW.G.map.find('m1K'); under(28, 6, 'down'); tug(); until(() => K1.ty === 7 && !K1.mv, 400); knot();
-    walk(45, 16); finishMaking(1);
+    finishMaking(1);
     /* Making 2 */
-    littleDoor(49); t = tuck();
+    littleDoor(door(2)); t = tuck();
     under(5, 8, 'up'); tug(); until(() => ahas().includes('found'), 400);
     under(10, 2, 'down'); tug(); HW.step(20); knot();
     until(() => t.state === 'sit' && t.tx === 16, 900);
     under(16, 5, 'down'); tug(); until(() => t.tx >= 20 && t.state === 'sit', 1200);
     under(23, 3, 'down'); tug(); until(() => t.tx <= 25, 200);
     under(29, 9, 'up'); HW.press('act', 1); HW.step(3);
-    walk(45, 16); finishMaking(2);
+    finishMaking(2);
     /* Making 3 */
-    littleDoor(54); t = tuck();
+    littleDoor(door(3)); t = tuck();
     under(5, 8, 'up'); tug(); until(() => ahas().includes('found'), 400); until(() => t.state === 'sit', 600);
     under(10, 5, 'down'); stitch('U');
     until(() => t.tx >= 14, 400);
     under(25, 3, 'down'); tug(); HW.step(20); knot();
     until(() => t.state === 'sit' && t.tx > 20, 900);
     const K3 = HW.G.map.find('m3K'); under(28, 6, 'down'); tug(); until(() => K3.ty === 7 && !K3.mv, 400); knot();
-    walk(45, 16); finishMaking(3);
+    finishMaking(3);
     /* Making 4: he sulks on the plate; untie the heavy one; lure him off the near plate, then untie the far one */
-    littleDoor(58); t = tuck();
+    littleDoor(door(4)); t = tuck();
     under(2, 1, 'down'); tug(); until(() => ahas().includes('found'), 400); until(() => t.state === 'sit', 900);
     under(11, 1, 'down'); HW.press('act', 1); HW.step(3);
     until(() => t.state === 'sit' && t.tx > 20, 1200);
@@ -1004,7 +1005,54 @@ export const LEG8 = (HW, chain) => {
     until(() => t.state === 'sit' && t.tx > 40, 1200);
     under(46, 5, 'down'); tug();
     walk(45, 16); finishMaking(4);
+    /* Making 5, the Tidyhouse underneath: the Foyer's block pushed onto its plate (he sits west of it) and tied; the
+       Hall's block pushed into the lane, the bust let go and tugged home down it */
+    littleDoor(door(5)); t = tuck();
+    until(() => t.state === 'sit', 600);
+    const F5 = HW.G.map.find('m5F'); under(46, 5); tug(); until(() => F5.tx === 47 && F5.ret.state === 'away' && !F5.mv, 400); knot();
+    until(() => t.state === 'sit' && t.tx < 40, 900);
+    under(22, 1); tug(); until(() => ahas().includes('found'), 600); until(() => t.state === 'sit', 900);
+    const K5 = HW.G.map.find('m5K'); under(28, 5); tug(); until(() => K5.tx === 29 && K5.ret.state === 'away' && !K5.mv, 400);
+    under(29, 6); tug(); tug();
+    finishMaking(5);
     for (let i = 0; i < 10; i++) { HW.skipTalk(); HW.step(10); }
+    /* Making 6, with Otto: the block he clears from the passage tied where he pushed it (Otto tsks at it); the next
+       block pushed west and tied, so Otto's side of it is the doormat */
+    littleDoor(door(6)); t = tuck(); let o = HW.G.map.find('otto');
+    until(() => t.state === 'sit', 600);
+    under(2, 8, 'up'); tug(); until(() => ahas().includes('found'), 500); until(() => t.state === 'sit' && t.tx === 9, 900);
+    under(10, 5); tug(); knot();
+    until(() => t.tx >= 20, 900); until(() => t.state === 'sit', 900);
+    const B6 = HW.G.map.find('m6B'); under(30, 5); tug(); until(() => B6.ret.state === 'away' && !B6.mv, 400); knot();
+    finishMaking(6);
+    /* Making 7: the junction's block pushed aside and tied (Otto tsks in the way), Otto's own thread tugged and Tuck
+       slips by; the crate draws him west, the block pushed east and tied: Otto on one mat, Tuck on the other */
+    littleDoor(door(7)); t = tuck(); o = HW.G.map.find('otto');
+    until(() => t.state === 'sit', 900);
+    under(1, 9, 'up'); tug(); until(() => ahas().includes('found'), 500); until(() => t.state === 'sit' && t.tx === 8, 900);
+    under(9, 5); tug(); knot(); until(() => o.tsking, 300);
+    under(9, 6); tug();
+    until(() => t.tx >= 20, 1500); until(() => t.state === 'sit', 900);
+    const C7 = HW.G.map.find('m7C'), K7 = HW.G.map.find('m7K');
+    under(27, 2); tug(); until(() => C7.ret.state !== 'home', 400); HW.step(150);
+    under(30, 5); tug(); until(() => K7.ret.state === 'away' && !K7.mv, 600); knot();
+    finishMaking(7);
+    /* Making 8, the Grand Hall: the big door's counterweight; the nibbler tied; the block pushed out of its slot and
+       tied till the Housekeeper stands on its way home, then let go; the last block */
+    littleDoor(door(8)); t = tuck(); o = HW.G.map.find('otto');
+    until(() => t.state === 'sit', 900);
+    under(44, 7, 'up'); tug(); until(() => ahas().includes('found'), 500); until(() => t.state === 'sit', 900);
+    walk(43, 16); HW.face('left'); HW.push('left', 1); HW.step(5);
+    until(() => t.tx < 40, 600); until(() => t.state === 'sit', 900);
+    under(25, 7); tug(); HW.step(20); knot();
+    const W8 = HW.G.map.find('m8W'); under(26, 5); tug(); until(() => W8.ret.state === 'away' && !W8.mv, 500); knot();
+    until(() => t.state === 'sit' && t.tx <= 22, 900); ok(until(() => o.tx === 26 && o.ty === 5 && o.tsking, 900), 'the Housekeeper on its way home');
+    HW.press('act', 1); HW.step(3);
+    ok(until(() => o.state === 'down', 60), 'the Housekeeper tidied by his own tidying');
+    until(() => t.tx < 20, 600); until(() => t.state === 'sit', 900);
+    under(13, 5); tug();
+    finishMaking(8);
+    for (let i = 0; i < 40 && (!HW.Progress.flag('makings_done') || HW.global('Dialog').active || HW.global('Script').blocking()); i++) { HW.skipTalk(); HW.step(10); }
     ok(HW.Progress.flag('makings_done'), 'the Makings');
     /* the Way Down; Tuck's spool in the deep store; the Hall of Names; Wren's own spool; the ledger */
     walk(57, 8); HW.hold('down'); HW.step(30); HW.release(); HW.step(40); HW.skipTalk();
@@ -1027,12 +1075,13 @@ export const LEG8 = (HW, chain) => {
     HW.warp('hollow', 96, 44); HW.step(20); HW.skipTalk();
     walk(95, 10, 30000); HW.hold('up'); until(() => HW.G.map.id === 'loom', 120); HW.release(); HW.step(20); HW.skipTalk();
     ok(HW.G.map.id === 'loom', 'into the Loom');
-    const L = { th: [20, 33], wh: [20, 22], oy: [0, 22], sr: [20, 11], wr: [40, 22], br: [40, 11], web: [20, 0], hg: [40, 33] };
+    const L = { th: [20, 33], wh: [20, 22], oy: [0, 22], sr: [20, 11], wr: [40, 22], br: [40, 11], web: [20, 0], hg: [40, 33], lr: [60, 22], ww: [60, 11] };
     const l = (r, x, y) => [L[r][0] + x, L[r][1] + y];
     const lgo = (r, x, y) => walk(...l(r, x, y));
     const lpush = (r, x, y, d, n) => { lgo(r, x, y); HW.push(d, n); HW.step(25); };
     const snip = d => { HW.face(d); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(3); HW.skipTalk(); };
     const strike = d => { HW.face(d); HW.press('atk', 1); HW.step(14); };
+    const ltool = (t, d) => { HW.face(d); HW.Inv.equipped = t; HW.press('tool', 1); HW.step(3); HW.skipTalk(); };
     /* the Threshold: two offcuts into the trench */
     lpush('th', 5, 8, 'up', 2); lpush('th', 13, 7, 'left', 7); lpush('th', 5, 8, 'up', 3);
     /* the Offcut Yard: the key */
@@ -1041,7 +1090,7 @@ export const LEG8 = (HW, chain) => {
     lpush('oy', 8, 3, 'down', 2); lpush('oy', 9, 6, 'left', 6); lpush('oy', 2, 7, 'up', 2);
     lpush('oy', 5, 9, 'up', 2); lpush('oy', 6, 6, 'left', 3); lpush('oy', 2, 7, 'up', 3);
     lgo('oy', 1, 2); act('up'); ok(HW.Inv.keys('loom') === 1, 'a key');
-    /* the Warp Hall's lock; the Shuttle Run: an offcut jams the Shuttle; three knocks; the Shears */
+    /* the Warp Hall's lock; the Shuttle Run: an offcut jams the Shuttle; two knocks; the Shears */
     lgo('wh', 9, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();
     HW.G.cheats.god = true;
     const sh = HW.G.map.ents.find(e => e.kind === 'shuttle');
@@ -1070,30 +1119,50 @@ export const LEG8 = (HW, chain) => {
     /* down to the Hanging Gallery: the weights let go, one cut as it hangs over the trench; across to the key */
     lgo('hg', 16, 2); act('right'); lgo('hg', 12, 3); snip('down');
     lgo('hg', 9, 7); act('down'); ok(HW.Inv.keys('loom') === 1, 'the key');
-    /* the Bridge Room, by its lock: a weight cut free breaks the silk and fills the gap; the other over onto the plate */
-    lgo('wr', 15, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30);
+    /* the Weighing Room's east lock (the key); the Larder: at the turn of the sleeper's thread, the warping post at your back,
+       ring it awake: it can't shove you, so it waits over the gap, pulled tight; cut it, and it fills the gap */
+    lgo('wr', 18, 5); HW.hold('right'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();
+    lgo('lr', 10, 7); ltool('bell', 'right'); HW.step(40);
+    snip('right'); ok(!HW.G.map.kind(...l('lr', 11, 7)).pit, 'the Larder: the gap filled');
+    lgo('lr', 13, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();
+    /* the Warp Walk: the weight given a place further along the walk (the Needle), the Hookline over to it, cut, and
+       pushed into the last gap */
+    lgo('ww', 9, 5); HW.face('left'); stitch('LLL');
+    ltool('hook', 'left'); HW.step(60);
+    snip('left'); HW.push('left', 3); HW.step(30);
+    ok(!HW.G.map.kind(...l('ww', 1, 5)).pit, 'the Warp Walk: the gap filled');
+    lgo('ww', 2, 5); HW.hold('left'); HW.step(40); HW.release(); HW.step(20);
+    /* the Bridge Room, in from the east: a weight cut free breaks the silk and fills the gap; the other over onto the plate */
     lgo('br', 12, 5); lgo('br', 6, 5);
     lgo('br', 3, 3); snip('right');
     lpush('br', 4, 2, 'down', 2); lpush('br', 3, 5, 'right', 5);
     lpush('br', 4, 8, 'up', 2); lpush('br', 3, 5, 'right', 10);
     HW.step(5); lgo('br', 16, 3); act('up'); ok(HW.Inv.hasPattern('loom'), 'the Pattern');
-    /* back round to the Run and up through the big door: the Web */
+    /* down its south gate (open for good now) and round to the Run, and up through the big door: the Web */
     lgo('wr', 15, 1); lgo('wh', 18, 5); lgo('sr', 9, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();
     HW.G.cheats.god = true;
-    HW.walkTo(...l('web', 9, 7)); HW.step(5); HW.skipTalk();
+    HW.step(30); HW.skipTalk(); HW.step(5); HW.skipTalk();
     const w = HW.G.map.ents.find(e => e.kind === 'weaver');
     const free = () => { if (HW.player().pinned === 'silk') { HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(2); } };
-    for (let round = 0; round < 3 && w.alive; round++) {
-        until(() => w.state === 'aloft', 400);
-        for (const [x, y, f] of [[3, 2, 'left'], [16, 2, 'right'], [3, 8, 'left'], [16, 8, 'right']]) {
-            for (let k = 0; k < 4; k++) { free(); if (HW.walkTo(...l('web', x, y))) break; HW.step(5); }
-            free(); snip(f);
-        }
-        until(() => w.state === 'down', 200);
-        for (let k = 0; k < 6; k++) { free(); if (HW.walkTo(...l('web', 9, 4), 120)) break; }
-        const hp = w.hp; for (let k = 0; k < 8 && w.hp === hp && w.state === 'down'; k++) { free(); strike('down'); }
-        HW.step(10);
-    }
+    const wgo = (x, y) => { for (let k = 0; k < 40; k++) { HW.skipTalk(); free(); if (HW.walkTo(...l('web', x, y), 30)) return; } ok(false, `walk to the Web's ${x},${y} (at ${pos()})`); };
+    const wx = l('web', 10, 0)[0] * 16;
+    /* 1: its four anchors cut at their posts: down into its well; knock it */
+    for (const [x, y, f] of [[4, 4, 'right'], [4, 7, 'right'], [15, 7, 'left'], [15, 4, 'left']]) { wgo(x, y); free(); snip(f); }
+    ok(until(() => w.state === 'down', 300), 'the Weaver down in its well');
+    wgo(8, 6); for (let k = 0; k < 8 && w.hp === 3; k++) { free(); strike('right'); }
+    for (let i = 0; i < 4; i++) { HW.step(10); HW.skipTalk(); }
+    /* 2: it drops on you from the breast-beam; its thread cut while it hauls itself home up the well */
+    wgo(8, 7); ok(until(() => w.state === 'aim', 900), 'it picks its spot');
+    wgo(8, 5); HW.face('right');
+    ok(until(() => w.state === 'home' && w.x === wx && w.y < 112, 400), 'hauling itself home up the well');
+    free(); snip('right'); ok(until(() => w.state === 'down', 120), 'cut over the well: down it goes');
+    wgo(8, Math.min(8, Math.max(3, w.y >> 4))); for (let k = 0; k < 8 && w.hp === 2; k++) { free(); strike('right'); }
+    for (let i = 0; i < 4; i++) { HW.step(10); HW.skipTalk(); }
+    /* 3: it won't come down: hooked down its own well, and cut while it hangs there */
+    wgo(9, 9); ok(until(() => w.state === 'perch', 600), 'up on the breast-beam');
+    free(); ltool('hook', 'up'); ok(until(() => w.state === 'hung', 120), 'hooked down the well');
+    free(); snip('up'); ok(until(() => w.state === 'down', 120), 'cut while it hangs over the well');
+    for (let k = 0; k < 8 && w.alive; k++) { free(); strike('up'); }
     ok(!w.alive, 'the Weaver');
     for (let i = 0; i < 20 && !HW.Progress.flag('d8'); i++) { HW.skipTalk(); HW.step(20); }
     ok(HW.Progress.flag('d8'), 'the Loom done');

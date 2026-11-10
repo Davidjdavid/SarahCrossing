@@ -179,7 +179,7 @@ test('the Larder: rung from anywhere, the sleeper goes home over the gap and bac
     assert.equal(HW.walkTo(...at('lr', 13, 7)), false, 'the gap');
     /* a ring from the middle of the floor: both home in a flash, the one over the gap and back again */
     go(HW, 'lr', 9, 5); tool(HW, 'bell'); HW.step(80);
-    assert.deepEqual([W1.tx, W1.ty], at('lr', 13, 1), 'home on the far side');
+    assert.deepEqual([W1.tx, W1.ty], at('lr', 15, 1), 'home on the far side');
     assert.ok(a.kind(...at('lr', 11, 7)).pit && a.kind(...at('lr', 11, 3)).pit, 'nothing filled');
     assert.ok(thing(HW, 'lrGate').open, 'the other one home on its plate: the gate opens (and stays)');
     go(HW, 'wr', 17, 5); go(HW, 'lr', 2, 5); HW.step(5);
@@ -192,19 +192,19 @@ test('the Larder: rung from anywhere, the sleeper goes home over the gap and bac
     assert.deepEqual([HW.player().tx, HW.player().ty], at('lr', 10, 7), 'not shoved');
     tool(HW, 'shears', 'right');
     assert.ok(W1.removed && !a.kind(...at('lr', 11, 7)).pit, 'cut: it drops where it hangs, and fills the gap');
-    go(HW, 'lr', 16, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();
+    go(HW, 'lr', 13, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();
     assert.equal(HW.G.map.roomAt(HW.player().tx, HW.player().ty).name, 'The Warp Walk');
     noErrors(HW);
 });
 
 test('the Warp Walk: the hook sets you down in front of the weight, in the gap; given a place further along the walk (the Needle), it lands you on the walk; cut, it fills the last gap', () => {
     const HW = game(true);
-    enter(HW, 'ww', 16, 9);
+    enter(HW, 'ww', 13, 9);
     const a = HW.G.map, W = thing(HW, 'wwW');
     go(HW, 'ww', 9, 5); tool(HW, 'hook', 'left'); HW.step(80); HW.skipTalk(); HW.step(10);
-    assert.deepEqual([HW.player().tx, HW.player().ty], at('ww', 16, 9), 'down the gap and back to the doorway');
+    assert.deepEqual([HW.player().tx, HW.player().ty], at('ww', 13, 9), 'down the gap and back to the doorway');
     /* the Needle reaches over the gap; a new place three along the walk */
-    go(HW, 'ww', 9, 5); HW.face('left'); stitch('LLL');
+    go(HW, 'ww', 9, 5); HW.face('left'); stitch(HW, 'LLL');
     assert.deepEqual([W.tx, W.ty], at('ww', 4, 5), 'its new place');
     tool(HW, 'hook', 'left'); HW.step(60);
     assert.deepEqual([HW.player().tx, HW.player().ty], at('ww', 5, 5), 'on the walk');
@@ -289,16 +289,16 @@ test('the Web, beat 2: no anchors now; its thread slides off the blades while it
     wgo(HW, 'web', 4, 5); HW.face('right'); snip(HW);
     assert.equal(w.hp, 2, 'a bare post: nothing to cut');
     /* it comes down on you; crouched where it landed, its thread lies slack along the floor */
-    wgo(HW, 'web', 13, 9);
-    assert.ok(until(HW, () => w.state === 'aim', 900)); wgo(HW, 'web', 13, 7);
+    wgo(HW, 'web', 13, 7);
+    assert.ok(until(HW, () => w.state === 'aim', 900));
+    wgo(HW, 'web', 11, 8); HW.face('up');
     assert.ok(until(HW, () => w.state === 'bottom', 200));
-    wgo(HW, 'web', 11, 8); HW.face('right'); snip(HW);
+    assert.ok(w.threadOver(...at('web', 11, 7)), 'its thread lies along the floor in front of her');
+    free(HW); HW.face('up'); snip(HW);
     assert.equal(w.state, 'bottom', 'slack: it slides off');
     /* climbing home, pulled tight, but not yet over the well: cut, it lands on its feet and runs back up */
     assert.ok(until(HW, () => w.state === 'home', 200));
-    wgo(HW, 'web', 11, 9); HW.face('up');
-    assert.ok(w.threadOver(...at('web', 11, 9 - 1)) || w.covers(...at('web', 11, 8)), 'its thread runs over the tile in front');
-    free(HW); HW.face('up'); snip(HW);
+    HW.step(4); free(HW); HW.face('up'); snip(HW);
     assert.ok(['land', 'scurry'].includes(w.state), 'it lands on its feet: ' + w.state);
     assert.ok(until(HW, () => w.state === 'perch', 300), 'and runs straight back up');
     assert.equal(w.hp, 2);
@@ -320,5 +320,27 @@ test('the Web, beat 3: it stays up, out of reach; the Hookline hauls it down its
     assert.ok(until(HW, () => w.state === 'perch', 400));
     beat3(HW, w);
     assert.ok(!w.alive);
+    noErrors(HW);
+});
+
+test('old saves: one that spent its key on the Bridge Room\'s old lock keeps that way open; and the Needle won\'t give iron a place on silk', () => {
+    const HW = game(true);
+    HW.Inv.giveTool('needle');
+    HW.Progress.setAreaFlag('loom', 'door:brLock', true);
+    enter(HW, 'wr', 16, 5);
+    assert.ok(thing(HW, 'brLock').open, 'open, as it was');
+    go(HW, 'wr', 15, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(20);
+    assert.equal(HW.G.map.roomAt(HW.player().tx, HW.player().ty).name, 'The Bridge Room');
+    /* a weight by the silk bridge: stitched onto the silk, it's refused (the needle stays out, to go somewhere else) */
+    const a = HW.G.map, Block = HW.global('Block'), N = HW.global('Needle');
+    const w = a.add(new Block(...at('br', 7, 5), { weight: 3, look: 'loomweight', patience: 150, id: 'tW' }));
+    go(HW, 'br', 6, 5); HW.face('right'); HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(2);
+    for (let k = 0; k < 2; k++) { HW.hold('right'); HW.step(2); HW.release(); HW.step(8); }
+    HW.press('tool', 1); HW.step(5);
+    assert.equal(HW.Inv.stitches.length, 0, 'no stitch');
+    assert.ok(N.st && !thing(HW, 'brBridge').gone, 'still stitching; the silk whole');
+    assert.deepEqual([w.tx, w.ty], at('br', 7, 5));
+    HW.press('act', 1); HW.step(5);
+    assert.ok(!N.st, 'put away');
     noErrors(HW);
 });
