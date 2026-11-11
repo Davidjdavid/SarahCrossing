@@ -153,6 +153,9 @@ but fair (cues exact, refusals say why); wants to be told where to go and shown 
 | 52 | pictures 2a | The item-get pose reads as lifting the chest whenever it's opened from below (about 18 pictures; finding 24 back); the Kilnwyrm's landed glaze puddle drawn over Wren; the warm pie hidden behind the kitchen table | open (fix round C: art) |
 | 53 | pictures 2a | The Slumberhouse's threads at about 1.3:1 on its floor; hard rectangular seams between outdoor ground regions | open (fix round C: art) |
 | 54 | pictures 2a | The opening ceremony: Mabel covers Wren all scene; Mother Sloth "fast asleep" with open eyes; the giant's hollow two tiles off; a dozen text-not-drawn nits | open (fix round C: scenes) |
+| 55 | AI blind solver C | The fifth House's chain is a 5 and the best puzzle seen, but Wren's trace isn't drawn while she walks (the route is planned in the head and one revisited tile silently erases rings), and three lamps lit by separate dreams look like success but give no Pattern | open (fix round D) |
+| 56 | AI blind solver C | Bugs: a bed that's Wren's mark is lost on loading a save; Homeward does nothing right after a ledge drop until a step; a dream ring on a flight's second tile isn't caught; the journal says "find the Slumberhouse" for the whole House; snorelings follow through doorways and keep hitting; after the ninth Little House locks, the Needle still records stitches that move nothing | open (fix round D) |
+| 57 | AI blind solver C | The ninth Little House feels one-shot (no visible way to set it out again after a run), and tying (hold Action on a cord) is untaught there for a player who skipped ahead | open (fix round D) |
 
 ## Work queue (helpers; at most three or four at once: twelve at once hit the usage limit)
 Briefs are in the session scratchpad (house_brief.md, staging_brief.md, greatspool_brief.md, makings_brief.md,
