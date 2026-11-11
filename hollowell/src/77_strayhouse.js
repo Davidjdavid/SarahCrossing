@@ -295,7 +295,8 @@ const StrayHouse = {
 
 /* Linnet's Trail: notes 4 (the Belfry's Echo Room) and 5 (below the falls) were scenery; now they're notes like the rest */
 LINNET_NOTES[4] = { title: 'A note pinned in the Echo Room', text: "Sang her to sleep with the stones, the way she sings it: low, high, middle, high, low. She sings it to the cellar too, late at night, very quietly. Something down there turns one click for every Knot I tie. I counted. - L." };
-LINNET_NOTES[5] = { title: 'A note in a bottle below the falls', text: "If you're reading this, you rode over the falls too. Go to where the river runs into the fog and put your hand in it. It isn't mist. It's thread, fine as hair, millions of them, every one pulled tight toward home. - L." };
+/* (note 5 says where and what to try, not what you'll find: the river's mouth in Meadowfold shows it, src/80c_fog_hand.js) */
+LINNET_NOTES[5] = { title: 'A note in a bottle below the falls', text: "If you're reading this, you rode over the falls too. Go to where the river runs into the fog and put your hand in it. Then tell me it's mist. - L." };
 LINNET_NOTES[8] = { title: 'A note inside the Stray House', text: "If you're reading this, you're a Wanderer too. The Stray House is for you. Nothing in it comes back. Don't be frightened of that. I'm out past the fog, cutting a little at a time from the outside, until she can let go. - L." };
 for (const k of [4, 5, 8]) NOTES['linnet' + k] = { title: LINNET_NOTES[k].title, text: LINNET_NOTES[k].text };
 {

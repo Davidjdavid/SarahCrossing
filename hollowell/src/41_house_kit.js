@@ -164,6 +164,17 @@ const KNOT_LINES = [
     'Two Knots of six.', 'Three Knots of six.', 'Four Knots of six.', 'Five Knots of six.', 'Six Knots! The Wander is nearly done.',
 ];
 
+/* the voice behind the walls the first time it asks, before anyone owns up: each House's Maker in their own words (Ives's
+   tidiness, Bram's laugh, Dad's Wander rules, Mum's bairn, Mallow's yawn, a whisper from the wings) */
+const NUDGE_VOICES = {
+    tidy: { ask: 'Stuck, are we, dear? Not very tidy, being stuck.', yes: '"Right you are, dear."', no: '"Quite right too." A door closes softly, somewhere, and somebody starts sweeping.' },
+    kiln: { ask: 'HA— ahem. Stuck, are we?', yes: '"Right you are! Go on!"', no: '"HA! Quite right too." A door closes, not very softly, somewhere.' },
+    mill: { ask: "Stuck, are we, love? Not that I'm allowed to help, mind. Wander rules.", offer: "But if I WERE... if the House were, it could give you a nudge now and then, when you've been stuck a good while.", yes: '"Right you are. Don\'t tell anyone."' },
+    belfry: { ask: 'Stuck, are we, bairn?', yes: '"Right you are, bairn."', no: '"Quite right too. Go on, then." A door closes softly, somewhere.' },
+    slumber: { ask: 'Stuck, are we? *yaaawn* Pardon me.', yes: '"Splendid."', no: '"Quite right too. Sleep on it." A door closes softly, somewhere.' },
+    marionette: { pre: 'Somewhere behind the scenery, someone whispers, very loudly: "Psst!"', yes: '"Bravo."', no: '"Quite right too. Your scene." A door closes softly, somewhere in the wings.' },
+};
+
 /* nudges: the Hints option. A room can say how to tell it's solved and what to nudge */
 const Nudges = {
     /* "<house>_<id>" means that thing of the House is done: a chest opened, a door or gate opened, a lever pulled;
@@ -196,15 +207,14 @@ const Nudges = {
         Nudges.fire(a, r, n);
     },
     *ask(a, r, n) {
-        const who = { tidy: "rather like Mother Ives's", kiln: "deep and gruff, rather like Bram's", mill: "rather like your dad's", belfry: "rather like your mum's",
-            slumber: "soft and sleepy, rather like Doctor Mallow's", marionette: "rather like Jory's", spoolworks: "rather like Gundry's", loom: "very old" }[a.def.house] || 'muffled';
-        const known = Progress.flag('reveal1');
-        yield* say(null, known ? 'Somewhere behind the walls, one of the Makers clears their throat.' : `Somewhere behind the walls, someone clears their throat. A voice, ${who}:`);
-        const i = yield* ask(null, '"Stuck, are we? We could... the House could give you a nudge now and then, when you\'ve been stuck a good while. Would you like that?"', ['Yes, please.', "No, I'll work it out."]);
-        if (i === 0) { yield* say(null, '"Right you are." Something behind the wall goes twang.'); Nudges.fire(a, r, n); }
+        /* before the Makers own up (Reveal 1) the voice isn't named: it talks the way its Maker always does */
+        const v = (!Progress.flag('reveal1') && NUDGE_VOICES[a.def.house]) || {};
+        yield* say(null, Progress.flag('reveal1') ? 'Somewhere behind the walls, one of the Makers clears their throat.' : v.pre || 'Somewhere behind the walls, someone clears their throat.');
+        const i = yield* ask(null, `"${v.ask || 'Stuck, are we?'} ${v.offer || "We could... the House could give you a nudge now and then, when you've been stuck a good while."} Would you like that?"`, ['Yes, please.', "No, I'll work it out."]);
+        if (i === 0) { yield* say(null, (v.yes || '"Right you are."') + ' Something behind the wall goes twang.'); Nudges.fire(a, r, n); }
         else {
             Settings.hints = false; Settings.save();
-            yield* say(null, '"Quite right too." A door closes softly, somewhere. (Hints can be turned on in Options, if you change your mind.)');
+            yield* say(null, (v.no || '"Quite right too." A door closes softly, somewhere.') + ' (Hints can be turned on in Options, if you change your mind.)');
         }
     },
     fire(a, r, n) {

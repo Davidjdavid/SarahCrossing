@@ -184,11 +184,23 @@ const SpoolArt = {
         if ((G.t >> 4) % 2) Gfx.rect(x + 6, y + 3, 2, 2, '#ffffff');
     },
     /* the Climb: what's flying, and once it's begun, a stitched line along the near side of each lane (a hit puts you back
-       behind it) */
+       behind it). Before each throw the lane's tell: the whole lane lit, blinking faster as it comes (as a boss's charge
+       lane is), and a glow gathering at the end it'll come from */
     lane(l, cx, cy) {
         if (!l.on) return;
-        const r = l.area.roomAt(l.tx, l.ty);
-        if (r) for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) { if (l.area.kind(tx, l.ty + 1).solid) continue; const sx = tx * T - cx, sy = (l.ty + 1) * T - cy; Gfx.rect(sx + 2, sy, 4, 1, '#e8463c'); Gfx.rect(sx + 10, sy, 4, 1, '#e8463c'); }
+        const r = l.area.roomAt(l.tx, l.ty), red = '#e8463c';
+        if (r) for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) { if (l.area.kind(tx, l.ty + 1).solid) continue; const sx = tx * T - cx, sy = (l.ty + 1) * T - cy; Gfx.rect(sx + 2, sy, 4, 1, red); Gfx.rect(sx + 10, sy, 4, 1, red); }
+        const k = l.tellK;
+        if (r && k > 0) {
+            const t = l.t % l.period, blink = ((t / Math.max(3, Math.round(10 - 7 * k))) | 0) % 2 === 0;
+            for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) {
+                if (l.area.kind(tx, l.ty).solid) continue;
+                const x = tx * T - cx, y = l.ty * T - cy;
+                Gfx.alpha(0.1 + 0.25 * k + (blink ? 0.08 : 0)); Gfx.rect(x + 1, y + 1, 14, 14, red); Gfx.alpha(1);
+                Tells.stitchTile(x, y, blink ? shade(red, 0.45) : red);
+            }
+        }
+        if (k > 0 || l.throwing) Tells.glow(l.tx * T + 8 - l.dir * 5 - cx, l.ty * T + 7 - cy, l.throwing ? 1 : k, '#f7d64a');
         for (const j of l.flying) Gfx.img(spr(['block_wood', 'pot', 'crate'][j.k]) || spr('block_wood'), j.x - cx - 8, l.ty * T - cy - 4 + Math.sin(j.x / 6) * 2);
     },
     /* the Kiln's cracked charm: a split down it */

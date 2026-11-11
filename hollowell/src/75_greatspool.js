@@ -313,12 +313,13 @@ defHouse({
         /* ---------------- the climb: Slumberhouse west, Marionette Hall east, the top north; once every Knot's undone, the Pull throws things across it ---------------- */
         '1,1': {
             name: 'The Climb',
-            rows: ['#########.##########', '#..................#', '#....#.............#', '#..................#', '#.............#....#', '....................', '#....#.............#', '#..................#', '#.............#....#', '#..................#', '#########.##########'],
+            rows: ['#########.##########', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
             ents: [
                 { k: 'door', x: 9, y: 0, type: 'gate', when: 'flag:spool_all', dir: 'h', id: 'gsTop' },
                 { k: 'sign', x: 11, y: 9, text: 'UP: THE SPOOL. (The way opens when every Knot is undone.)' },
-                { k: 'junklane', x: 18, y: 2, dir: -1, period: 80, phase: 0 }, { k: 'junklane', x: 1, y: 4, dir: 1, period: 70, phase: 30 },
-                { k: 'junklane', x: 18, y: 6, dir: -1, period: 75, phase: 50 }, { k: 'junklane', x: 1, y: 8, dir: 1, period: 85, phase: 15 },
+                /* (four lanes, each on a beat of its own, a train of five from one end; between them, rows nothing crosses) */
+                { k: 'junklane', x: 18, y: 2, dir: -1, period: 104, phase: 0 }, { k: 'junklane', x: 1, y: 4, dir: 1, period: 112, phase: 40 },
+                { k: 'junklane', x: 18, y: 6, dir: -1, period: 100, phase: 70 }, { k: 'junklane', x: 1, y: 8, dir: 1, period: 108, phase: 25 },
             ],
         },
         /* ---------------- the Slumberhouse's Knot: the arch is too low to ride under; send your place, then go home to it ---------------- */
@@ -532,30 +533,59 @@ class SpoolDrum extends Ent {
 }
 SPAWN.greatspool = (x, y, p) => new SpoolDrum(x, y, p);
 
-/* a lane of the Climb: once every Knot is undone, the Pull flings things across it, one way, now and then. One that
-   catches you knocks you back to the start of that lane (the row you came up from), never further. A pillar in the lane
-   stops what's flying (stand in its lee) */
+/* a lane of the Climb: once every Knot is undone, the Pull flings things along it from one end, a train of them at a
+   time, on a beat. Every throw shows itself first, as every blow in the valley does: the whole lane lights up, blinking
+   faster as it comes, a glow gathers at the end it'll come from, and a warning chirps if it's the lane in front of you.
+   One that catches you knocks you back to the start of that lane (the row you came up from), never further, and
+   leaves you dazed a moment. Nothing in a lane shelters you: you watch it, and go behind a train */
+const CLIMB_DAZE = 40;
 class JunkLane extends Ent {
-    constructor(tx, ty, p = {}) { super('junklane', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.t = p.phase || 0; this.flying = []; }
+    constructor(tx, ty, p = {}) {
+        super('junklane', p);
+        this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.t = p.phase || 0; this.flying = [];
+        this.n = p.n || 5; this.every = p.every || 8; this.speed = p.speed || 2.6; this.tellN = p.tell || 36; this.dazed = 0;
+    }
     get sortY() { return this.y + 20; }
     get on() { return Progress.flag('spool_all') && !Progress.flag('unwound'); }
+    /* how far into the tell of the next throw (0 till it starts, nearly 1 as the throw comes) */
+    get tellK() { const left = this.period - (this.t % this.period); return left <= this.tellN ? 1 - left / this.tellN : 0; }
+    /* still flinging this throw's train */
+    get throwing() { return this.t % this.period < this.n * this.every; }
+    hits(p, x) { return Math.abs(p.x - x) < 10 && Math.abs(p.y - 6 - (this.ty * T + 6)) < 9; }
     update() {
+        const p = G.player;
+        if (this.dazed > 0 && --this.dazed === 0 && p && p.pinned === 'dazed') p.pinned = null;
         if (!this.on || Script.blocking()) return;
-        const a = this.area, p = G.player, r = a.roomAt(this.tx, this.ty);
-        if (++this.t % this.period === 0) this.flying.push({ x: this.tx * T + 8, k: (this.t / this.period) % 3 | 0 });
+        const a = this.area, r = a.roomAt(this.tx, this.ty), k = ++this.t % this.period;
+        /* (the chirp for the lane in front of you only: four at once would be no warning at all) */
+        if (k === this.period - this.tellN && p && p.area === a && p.state === 'normal' && Math.abs(p.ty - this.ty - 0.5) <= 1) Sfx.play('warn', 0.6);
+        if (k < this.n * this.every && k % this.every === 0) this.flying.push({ x: this.tx * T + 8, k: (Math.floor(this.t / this.period) + k / this.every) % 3 | 0 });
         for (const j of this.flying) {
-            j.x += this.dir * 2.2;
+            j.x += this.dir * this.speed;
             const tx = Math.floor(j.x / T);
             if (a.kind(tx, this.ty).solid || a.roomAt(tx, this.ty) !== r) { j.gone = true; Fx.dust(j.x, this.ty * T + 8); continue; }
-            if (p.area === a && p.state === 'normal' && Math.abs(p.x - j.x) < 10 && Math.abs(p.y - 6 - (this.ty * T + 6)) < 9) {
+            if (p.area === a && p.state === 'normal' && this.hits(p, j.x)) {
                 j.gone = true; Sfx.play('hitthing'); G.shake = 6; Fx.dust(p.x, p.y);
-                /* back to the start of this lane: the row below it */
+                /* back to the start of this lane: the row below it; knocked silly a moment (no walking; a tool still works) */
                 const [lx, ly] = p.landingSpot(clamp(p.tx, r.x + 1, r.x + r.w - 2), this.ty + 1);
                 p.x = lx * T + 8; p.y = ly * T + 10; p.kx = p.ky = 0; p.unstick(); Fx.poof(p.x, p.y);
+                if (!p.pinned) { p.pinned = 'dazed'; this.dazed = CLIMB_DAZE; }
+                Fx.text(p.x, p.y - 24, '* * *', '#f7d64a'); Stats.count('climb:hit');
                 if (!Progress.flag('junk_hit')) { Progress.set('junk_hit'); G.pendingToast = 'Something flying knocks you clean off your feet, back to the start of the lane.'; }
             }
         }
         this.flying = this.flying.filter(j => !j.gone);
+    }
+    /* is anything coming past pixel column x in the next n frames, flying now or thrown meanwhile? (what a careful eye
+       reads off the lane; the tests' climber reads it too) */
+    passing(x, n, w = 13) {
+        const x0 = this.tx * T + 8, sp = this.dir * this.speed;
+        for (const j of this.flying) for (let f = 0; f <= n; f++) if (Math.abs(j.x + sp * f - x) < w) return true;
+        for (let f = 1; f <= n; f++) {
+            const k = (this.t + f) % this.period;
+            if (k < this.n * this.every && k % this.every === 0) for (let g = 1; f + g - 1 <= n; g++) if (Math.abs(x0 + sp * g - x) < w) return true;
+        }
+        return false;
     }
     draw(cx, cy) { SpoolArt.lane(this, cx, cy); }
 }
@@ -790,6 +820,17 @@ CONTENT_INIT.push(initGreatSpool);
         if (Progress.flag('great_pull') && !Progress.flag('unwound') && (a.family === 'interior' || id === 'underside'))
             for (const e of a.ents.slice()) if (e.kind === 'npc' && PEOPLE_DEF[e.who] && !Progress.flag('cut:' + e.who) && e.who !== 'gran') a.remove(e);
         return a;
+    };
+}
+/* a load in the Night Ferry's bedroom west of the channel would leave Wren cut off there (the place is built afresh with
+   the ferry back at its landing): she starts east of the channel instead, by the lever, which is the way out */
+{
+    const apply0 = Save.apply;
+    Save.apply = function (s) {
+        apply0.call(this, s);
+        const p = G.player, a = G.map, r = p && a && a.id === 'greatspool' ? a.roomAt(p.tx, p.ty) : null;
+        if (!r || r.key !== '0,1' || p.tx - r.x > 4 || p.ty - r.y > 3) return;
+        p.x = (r.x + 8) * T + 8; p.y = (r.y + 2) * T + 10; p.unstick(); p.setMark(); Cam.snap(p);
     };
 }
 /* a save made in the Great Spool as it was first built (sixteen rooms on another map) starts again at the foot of the

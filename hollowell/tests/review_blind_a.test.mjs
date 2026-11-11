@@ -172,3 +172,49 @@ test('the Bell: a ring shows its reach, a ring at exactly its range that holds a
     assert.ok(G.ringFx === f, 'still there to be read after two thirds of a second');
     noErrors(HW);
 });
+
+/* ---------------- 5: a reload in the Night Ferry's bedroom ---------------- */
+const step1 = (HW, d) => { HW.hold(d); HW.step(16); HW.release(); HW.step(4); };
+const paddleTo = (HW, x, y) => { const p = HW.player(); HW.Inv.equipped = 'paddle'; for (let i = 0; i < 3000 && (p.tx !== x || p.ty !== y); i++) { HW.hold(['tool', p.tx < x ? 'right' : p.tx > x ? 'left' : p.ty < y ? 'down' : 'up']); HW.step(1); } HW.release(); HW.step(4); };
+/* up into the bedroom the Knot's way: the Bedroll laid on the ferry, the ferry sent under the arch, Homeward to it; then
+   west off the ferry into the bedroom's far half (the channel between) */
+function toFarBedroom(HW) {
+    inSpool(HW, 'slumber', 18, 5);
+    assert.ok(HW.walkTo(...gs('slumber', 13, 7))); step1(HW, 'left');
+    paddleTo(HW, ...gs('slumber', 5, 7)); paddleTo(HW, ...gs('slumber', 5, 5)); HW.step(20);
+    HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(3); step1(HW, 'right'); HW.step(300);
+    HW.Inv.equipped = 'bedroll'; HW.hold('tool'); HW.step(24); HW.release(); HW.step(150); HW.skipTalk();
+    assert.deepEqual([HW.player().tx, HW.player().ty], gs('slumber', 5, 2), 'home on the ferry, up in the bedroom');
+    step1(HW, 'left');
+    assert.deepEqual([HW.player().tx, HW.player().ty], gs('slumber', 4, 2), 'west of the channel');
+}
+function reload(HW) {
+    const s = JSON.parse(JSON.stringify(HW.Save.snapshot()));
+    const H2 = loadGame(); H2.newGame('Wren', { skipIntro: true, noAutosave: true });
+    H2.Save.apply(H2.Save.migrate(s)); H2.step(10); H2.skipTalk(); H2.step(5);
+    return H2;
+}
+const outOfFerry = (HW) => { const ok = HW.walkTo(...gs('slumber', 18, 5), 3000); return ok; };
+
+test('the Night Ferry: saved west of the channel with the Bedroll on the ferry, a reload starts Wren on the ferry where it is now (at its landing), not cut off', () => {
+    const HW = spool(); toFarBedroom(HW);
+    const H2 = reload(HW), p = H2.player(), raft = H2.find('gsSRaft');
+    assert.deepEqual([raft.tx, raft.ty], gs('slumber', 12, 7), 'the ferry back at its landing');
+    assert.ok(p.tx === raft.tx && p.ty === raft.ty && p.onRaft(), 'and Wren on it, with her Bedroll');
+    step1(H2, 'right');
+    assert.ok(outOfFerry(H2), 'ashore and out, no Homeward needed');
+    noErrors(H2);
+});
+
+test('the Night Ferry: saved west of the channel with the Bedroll laid there, a reload starts Wren east of the channel, by the lever (the way out)', () => {
+    const HW = spool(); toFarBedroom(HW);
+    step1(HW, 'left');                                        /* (a step away from the ferry: a tap beside it would roll it up) */
+    HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(5);
+    assert.ok(HW.Inv.bedroll && HW.Inv.bedroll.tx === gs('slumber', 3, 2)[0] && !HW.Inv.bedroll.fid, 'the Bedroll laid in the far half');
+    const H2 = reload(HW), p = H2.player();
+    assert.ok(p.tx - GS.slumber[0] >= 6 && p.ty - GS.slumber[1] <= 3, 'east of the channel, in the bedroom');
+    assert.ok(H2.walkTo(...gs('slumber', 8, 3))); H2.face('right'); H2.press('act', 1); H2.step(30); H2.skipTalk();
+    assert.ok(H2.find('gsSLever').on, 'the lever');
+    assert.ok(outOfFerry(H2), 'and out');
+    noErrors(H2);
+});

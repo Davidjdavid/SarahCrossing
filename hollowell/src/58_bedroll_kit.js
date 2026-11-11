@@ -142,6 +142,23 @@ SFX.crumble = (o, t) => { Audio.hit(o, t, 0.3, 0.18, 120, 900); Audio.tone(o, t,
 SFX.snort = (o, t) => { Audio.hit(o, t, 0.1, 0.14, 200, 700); Audio.tone(o, t + 0.05, 140, 0.12, 'p50', 0.1, { slide: 220 }); };
 SFX.puff = (o, t) => Audio.hit(o, t, 0.4, 0.14, 600, 2400);
 
+/* a load in a House starts at Wren's mark: the Bedroll, if it lies there. Laid on a float, it went where the float
+   went, and the place built afresh has the float back at its own home: she starts on it there, not where it was when
+   she saved (which may be somewhere only the float could take her) */
+{
+    const apply0 = Save.apply;
+    Save.apply = function (s) {
+        apply0.call(this, s);
+        const p = G.player, a = G.map, b = Inv.bedroll, m = s && s.pos && s.pos.mark;
+        if (!p || !a || !a.def.house || !m || m.bed !== 'roll' || !b || !b.fid || b.area !== a.id) return;
+        Bedroll.update(a);
+        const nb = Inv.bedroll;
+        if (!nb || nb.area !== a.id || (nb.tx === m.tx && nb.ty === m.ty)) return;
+        const [lx, ly] = p.landingSpot(nb.tx, nb.ty);
+        p.x = lx * T + 8; p.y = ly * T + 10; p.setMark(); Cam.snap(p);
+    };
+}
+
 /* keep the trace in the Bedroll's place when Wren goes elsewhere, so it still leads home on her return */
 {
     const enter = World.enter;

@@ -135,7 +135,7 @@ Object.assign(BUDGE, {
 });
 CRITTER_TALK.biscuit = () => function* () {
     const n = (Progress.get('biscuitPets') || 0) + 1; Progress.set('biscuitPets', n);
-    yield* say(null, n === 1 ? "Biscuit, the town cat. The cat goes wherever it likes. You've never once seen it go back to anywhere." : n === 2 ? "Biscuit purrs and looks at you as if it knows something you don't. Cats always look like that." : "Biscuit. Purring.");
+    yield* say(null, n === 1 ? "Biscuit, the town cat." : n === 2 ? "Biscuit purrs and looks at you as if it knows something you don't. Cats always look like that." : "Biscuit. Purring.");
 };
 CRITTER_TALK.pudding = () => function* () {
     if (Progress.flag('d4') && !Progress.flag('unwound')) { yield* say(null, "Pudding lies with his nose on his paws, looking at his ball. He doesn't chase it any more. His tail thumps once when you crouch down, and then he goes back to looking."); return; }
