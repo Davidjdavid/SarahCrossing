@@ -115,7 +115,7 @@ const Pull = {
     sleepAgain(e) {
         const a = e.area, [sx, sy] = e._sleep0.at;
         if (Return.asleep(e) && e.tx === sx && e.ty === sy) return false;
-        if (a.at(sx, sy) && a.at(sx, sy) !== e) return false;
+        if ((a.at(sx, sy) && a.at(sx, sy) !== e) || Return.wrenOn(a, sx, sy)) return false;
         if (e.mv) { a.unplace(e, e.mv.fx, e.mv.fy); e.mv = null; }
         a.unplace(e, e.tx, e.ty); e.pendingHome = false;
         e.tx = sx; e.ty = sy; e.x = sx * T; e.y = sy * T; a.place(e, sx, sy);
@@ -129,9 +129,8 @@ const Pull = {
 {
     const update0 = Return.update;
     Return.update = function (e) {
-        const r = e.ret, p = G.player;
-        /* the drum holds a thing over its place while Wren stands there (a float too: she isn't riding it) */
-        if (e.pendingHome && p && p.area === e.area && p.onTile(e.tx, e.ty) && Pull.on(e.area)) return;
+        const r = e.ret;
+        /* (the drum holds a thing over its place while Wren stands there: the Return's own pop home sees to that) */
         if (r && !e.removed && !e.pendingHome && r.state === 'returning' && !e.mv && !r.sewing && Pull.on(e.area) && !this.held(e)) return Pull.step(e);
         return update0.call(this, e);
     };
@@ -238,7 +237,8 @@ defHouse({
                 { k: 'knotlock', x: 2, y: 1, house: 'tidy' },
                 { k: 'door', x: 4, y: 2, type: 'gate', when: 'gsTp', dir: 'v', passed: 'left', id: 'gsTGate' },
                 { k: 'plate', x: 14, y: 7, sig: 'gsTp' },
-                { k: 'block', x: 16, y: 3, style: 'wood', id: 'gsTBlock' },
+                /* (patient: time to put the slot behind you and ring from across the room, out of its hearing) */
+                { k: 'block', x: 16, y: 3, style: 'wood', id: 'gsTBlock', patience: 300 },
                 /* the old mangle: it lives at the top of the slot, and it's asleep across the room */
                 { k: 'block', x: 14, y: 6, id: 'gsTMangle', look: 'gs_mangle', sleeper: true, tiedOff: true, resetSleep: 'untie:tidy', startAt: [9, 3], trace: [[14, 6], [14, 5], [13, 5], [12, 5], [11, 5], [10, 5], [9, 5], [9, 4], [9, 3]], noPush: true, pushLine: "The old mangle, fast asleep where somebody left it. It won't budge for anything but a bell." },
                 { k: 'ratchet', x: 18, y: 4 },
@@ -516,9 +516,10 @@ class SpoolDrum extends Ent {
                 const dx = j.tx - j.x, dy = j.ty - j.y, d = Math.hypot(dx, dy);
                 if (d < 4) {
                     j.gone = true;
-                    /* spat back onto its shelf */
+                    /* spat back onto its shelf: the moment the shelf is clear, as anything the drum lays back (while Wren or
+                       anything else is on it, it hangs over it, waiting) */
                     const e = j.thing;
-                    if (e && !e.removed && e.ret) { const [hx, hy] = [e.ret.mx, e.ret.my]; e.tx = hx; e.ty = hy; e.x = hx * T; e.y = hy * T; e.hiddenYank = false; e.inert = false; e.ret.trace = [[hx, hy]]; e.ret.state = 'home'; a.place(e, hx, hy); Fx.poof(hx * T + 8, hy * T + 8); }
+                    if (e && !e.removed && e.ret) { e.hiddenYank = false; e.inert = false; Return.sendHome(e); }
                     continue;
                 }
                 j.x += dx / d * 1.6; j.y += dy / d * 1.6;

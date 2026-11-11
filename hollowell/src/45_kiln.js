@@ -894,8 +894,9 @@ ITEM_LINES.hook = () => "You found the {red}Hookline{/}! [tool] to throw the hoo
    A colour script for the Kiln: fired brick, darkened with soot the nearer the fires; clay-dusted flagstones underfoot,
    brick paving round the hearths; the orange of the fires; turquoise glaze in the glazing rooms. The work rooms keep the
    flags and the brick; the glazing rooms are glazed tile to the dado over a chequer of glazed floor tiles; the furnace
-   hall and the Kiln's heart are blackened with soot; Bram's potting shed is whitewashed over warm boards. Floors are a
-   flag or a tile to a tile, the dust only in the joints, so the ochre marks and threads stay clear. Then a few great
+   hall and the Kiln's heart are blackened with soot; Bram's potting shed is whitewashed over weathered boards. Floors are
+   a flag or a tile to a tile, the dust only in the joints, each picked to keep the ochre threads, their empty marks and
+   rings of stitches plain (the flags cool and a little dark, the paving darker and duller than the walls). Then a few great
    things that say what each room is: bottle kilns (in place of the old ones), the great kiln and a long dragon kiln built
    into the rooms' own walls, clay bins, woodpiles, racks of greenware, glaze stores, kiln mouths (KILN_DRESS, laid over
    the floor like the Tidyhouse's: RoomLook), with their fires flickering (KILN_GLOW). */
@@ -919,11 +920,11 @@ const KilnFloor = {
     /* brick paving, for the hearths and aprons and the old passages: laid flat in a basket weave (the walls are in a
        running bond, so the floor never reads as a wall), duller than the walls, the mortar dark */
     brick: (x, th, v) => {
-        fill(x, '#74402e');
+        fill(x, '#683c36');
         for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
             const X = i * 8, Y = j * 8, along = (i + j) % 2 === 0;
             for (let k = 0; k < 2; k++) {
-                const t = ['#a2604a', '#986044', '#a86850'][(i + j * 2 + k + v) % 3];
+                const t = ['#844c46', '#7e4842', '#8a524a'][(i + j * 2 + k + v) % 3];
                 if (along) { fill(x, t, X, Y + k * 4, 7, 3); fill(x, shade(t, 0.12), X, Y + k * 4, 7, 1); }
                 else { fill(x, t, X + k * 4, Y, 3, 7); fill(x, shade(t, 0.12), X + k * 4, Y, 3, 1); }
             }
@@ -936,10 +937,10 @@ const KilnFloor = {
     },
 };
 const KILN_LOOKS = {
-    work: { floor: KilnFloor.flag(['#b8aa94', '#cbbfaa', '#8e8170', '#e2d6c0', '#a6977f']), brick: ['#c4623a', '#93432c', '#e08a5e', '#5e261c'], soot: 0.35, firebox: true },
-    heart: { floor: KilnFloor.flag(['#a39582', '#b6a994', '#7a6e5e', '#cfc2ac', '#8f826e']), brick: ['#a8523a', '#7a3424', '#c46a48', '#4a1c14'], soot: 0.6, firebox: true },
+    work: { floor: KilnFloor.flag(['#a29888', '#b6ac9c', '#7c7264', '#cfc6b4', '#8e8476']), brick: ['#c4623a', '#93432c', '#e08a5e', '#5e261c'], soot: 0.35, firebox: true },
+    heart: { floor: KilnFloor.flag(['#928676', '#a69a8a', '#6e6458', '#bcb2a0', '#82766a']), brick: ['#a8523a', '#7a3424', '#c46a48', '#4a1c14'], soot: 0.6, firebox: true },
     glaze: { floor: KilnFloor.glazed(['#efe6d2', '#fbf6ea', '#c8bca4']), alt: KilnFloor.glazed(['#b2e0d8', '#cfeee8', '#7cb4ac']), brick: ['#c4623a', '#93432c', '#e08a5e', '#5e261c'], soot: 0.25, dado: true },
-    shed: { floor: TidyFloor.boards({ dir: 'h', tone: ['#b07a4a', '#a87444', '#b8824e'], hi: '#c8925a', seam: '#6e4426', nail: '#4e2e1c' }), brick: ['#ece2cc', '#d8ccb4', '#f6eedf', '#b8ab92'], soot: 0.12 },
+    shed: { floor: TidyFloor.boards({ dir: 'h', tone: ['#968676', '#908070', '#9c8c7c'], hi: '#aa9a88', seam: '#6a5c50', nail: '#4e4238' }), brick: ['#ece2cc', '#d8ccb4', '#f6eedf', '#b8ab92'], soot: 0.12 },
 };
 const KilnWall = {
     face(x, L, v) {

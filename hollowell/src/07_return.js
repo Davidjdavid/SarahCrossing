@@ -78,12 +78,20 @@ const Return = {
     held(e) {
         return !!(e.heldBy || e.carried || e.tiedOff || e.flying || e.shattered || e.paddled || (e.isHeld && e.isHeld()));
     },
+    /* is Wren on the tile (or coming down onto it, mid-hop)? */
+    wrenOn(a, x, y) {
+        const p = G.player;
+        if (!p || p.area !== a || p.dead) return false;
+        return p.onTile(x, y) || !!(p.state === 'hop' && p.hop && tileOf(p.hop.tx) === x && tileOf(p.hop.ty) === y);
+    },
 
     /* one step for a grid thing */
     update(e) {
         const r = e.ret; if (!r || e.removed) return;
         if (e.pendingHome) {
-            if (e.area.freeForThing(e.tx, e.ty, e) || e.area.at(e.tx, e.ty) === e) {
+            /* nothing pops home onto Wren, whatever it is (a float too: she isn't riding it): while she's on its place it
+               waits over it, and comes down the moment she steps off */
+            if (!this.wrenOn(e.area, e.tx, e.ty) && (e.area.freeForThing(e.tx, e.ty, e) || e.area.at(e.tx, e.ty) === e)) {
                 e.pendingHome = false; e.area.place(e, e.tx, e.ty);
                 Fx.poof(e.tx * T + 8, e.ty * T + 8); if (e.area === G.map) Sfx.play('pop');
                 if (e.onHome) e.onHome();
@@ -253,6 +261,11 @@ class GridThing extends Ent {
         if (this.carried) return;      /* (Wren draws what she carries, over her head: not here as well) */
         const im = this.sprite();
         if (!im) return;
+        /* waiting to come down on its place (something's standing on it): it hovers there, faint, over its mark */
+        if (this.pendingHome) {
+            Gfx.alpha(0.45); Gfx.img(im, this.tx * T - cx + (this.ox || 0), this.ty * T - cy - (im.height - T) - 7 + Math.round(Math.sin(G.t / 10)) + (this.oy || 0)); Gfx.alpha(1);
+            return;
+        }
         const sx = this.px - cx, sy = this.py - cy - (im.height - T) - this.z;
         let shake = 0;
         const r = this.ret;
@@ -268,6 +281,8 @@ const Threads = {
         const c = Gfx.ctx;
         for (const e of area.ents) {
             const r = e.ret;
+            /* (one waiting to come down on its place: its mark shows, under whoever's standing on it) */
+            if (r && e.pendingHome && !e.removed && (!r.area || r.area === area.id)) { Marks.draw(r.mx * T - cx, r.my * T - cy, r.color, true); continue; }
             if (!r || r.state === 'home' || e.hideThread || e.hiddenYank) continue;
             if (r.area && r.area !== area.id) continue;
             const pts = r.trace.map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);

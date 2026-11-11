@@ -1377,12 +1377,20 @@ const Return = {
     held(e) {
         return !!(e.heldBy || e.carried || e.tiedOff || e.flying || e.shattered || e.paddled || (e.isHeld && e.isHeld()));
     },
+    /* is Wren on the tile (or coming down onto it, mid-hop)? */
+    wrenOn(a, x, y) {
+        const p = G.player;
+        if (!p || p.area !== a || p.dead) return false;
+        return p.onTile(x, y) || !!(p.state === 'hop' && p.hop && tileOf(p.hop.tx) === x && tileOf(p.hop.ty) === y);
+    },
 
     /* one step for a grid thing */
     update(e) {
         const r = e.ret; if (!r || e.removed) return;
         if (e.pendingHome) {
-            if (e.area.freeForThing(e.tx, e.ty, e) || e.area.at(e.tx, e.ty) === e) {
+            /* nothing pops home onto Wren, whatever it is (a float too: she isn't riding it): while she's on its place it
+               waits over it, and comes down the moment she steps off */
+            if (!this.wrenOn(e.area, e.tx, e.ty) && (e.area.freeForThing(e.tx, e.ty, e) || e.area.at(e.tx, e.ty) === e)) {
                 e.pendingHome = false; e.area.place(e, e.tx, e.ty);
                 Fx.poof(e.tx * T + 8, e.ty * T + 8); if (e.area === G.map) Sfx.play('pop');
                 if (e.onHome) e.onHome();
@@ -1552,6 +1560,11 @@ class GridThing extends Ent {
         if (this.carried) return;      /* (Wren draws what she carries, over her head: not here as well) */
         const im = this.sprite();
         if (!im) return;
+        /* waiting to come down on its place (something's standing on it): it hovers there, faint, over its mark */
+        if (this.pendingHome) {
+            Gfx.alpha(0.45); Gfx.img(im, this.tx * T - cx + (this.ox || 0), this.ty * T - cy - (im.height - T) - 7 + Math.round(Math.sin(G.t / 10)) + (this.oy || 0)); Gfx.alpha(1);
+            return;
+        }
         const sx = this.px - cx, sy = this.py - cy - (im.height - T) - this.z;
         let shake = 0;
         const r = this.ret;
@@ -1567,6 +1580,8 @@ const Threads = {
         const c = Gfx.ctx;
         for (const e of area.ents) {
             const r = e.ret;
+            /* (one waiting to come down on its place: its mark shows, under whoever's standing on it) */
+            if (r && e.pendingHome && !e.removed && (!r.area || r.area === area.id)) { Marks.draw(r.mx * T - cx, r.my * T - cy, r.color, true); continue; }
             if (!r || r.state === 'home' || e.hideThread || e.hiddenYank) continue;
             if (r.area && r.area !== area.id) continue;
             const pts = r.trace.map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
@@ -3175,7 +3190,7 @@ const Cam = {
         /* a scene can point the camera somewhere else for a while (Cam.look: a point in the world), panned to gently;
            (once no scene is running, it comes back to Wren whatever the scene forgot) */
         if (this.look && !Script.blocking()) { this.look = null; this.lookEase = true; }
-        const t = this.target(this.look ? { x: this.look.x, y: this.look.y + 6 } : p);
+        const t = this.target(this.look ? { x: this.look.x, y: this.look.y + 6 } : p, this.look && this.look.room);
         /* outdoors, a gentle follow; indoors, exact */
         if (p.area.family === 'outdoor' || this.look || this.lookEase) {
             const k = this.look || this.lookEase ? 0.08 : 0.2;
@@ -3192,8 +3207,10 @@ const Cam = {
 /* for scenes: look at a tile (or a thing) and wait till the camera's there; then back to Wren */
 function* camLook(x, y, max = 90) {
     Cam.look = typeof x === 'object' ? { x: (x.isGrid ? x.px : x.x) + 8, y: (x.isGrid ? x.py : x.y) + 8 } : { x: x * T + 8, y: y * T + 8 };
-    const p = G.player;
-    for (let i = 0; i < max; i++) { const t = Cam.target({ x: Cam.look.x, y: Cam.look.y + 6 }); if (Math.abs(Cam.x - t.x) < 2 && Math.abs(Cam.y - t.y) < 2) break; yield 1; }
+    /* (a look into another room of the place: the camera keeps to that room while it looks) */
+    const a = G.map, lr = a && a.rooms && a.rooms.length > 1 ? a.roomAt(tileOf(Cam.look.x), tileOf(Cam.look.y)) : null;
+    if (lr && lr !== Cam.room) Cam.look.room = lr;
+    for (let i = 0; i < max; i++) { const t = Cam.target({ x: Cam.look.x, y: Cam.look.y + 6 }, Cam.look.room); if (Math.abs(Cam.x - t.x) < 2 && Math.abs(Cam.y - t.y) < 2) break; yield 1; }
 }
 function* camBack(max = 90) {
     Cam.look = null; Cam.lookEase = true;
@@ -10388,9 +10405,11 @@ ITEM_AFTER.gloves = function* () { Progress.set('gotGloves'); };
    A colour script for the House: teal and cream throughout, crimson underfoot, gilt for the trim. Each room papered and
    floored its own way within it: the halls a polished marble chequer under teal damask and white panelling (the
    gallery's walls picture-gallery red); block parquet in the parlour and the library (walnut) and the ballroom (golden
-   oak); white tile over scrubbed flags in the kitchen, limewash in the pantry, slate in the laundry, painted boards in the
+   oak); white tile over quarry tiles in the kitchen, limewash in the pantry, slate in the laundry, painted boards in the
    linen room, walls of glass round the conservatory, bare boards under the attic's rafters. Floors come a slab, a block or
-   two boards to a tile, with soft joints and no speckle, so a mark always sits on one quiet surface. Then a few things in
+   two boards to a tile, with soft joints and no speckle, so a mark always sits on one quiet surface; and every floor's
+   colours are picked to keep the teal thread, its empty mark and its ring of stitches plain on it (the linen room's boards
+   washed lavender, the laundry's slate purple-grey, the conservatory's tiles cream and sandstone). Then a few things in
    each room that say what it is (a range, a piano, a mangle, linen presses...): hung on its walls, laid on its floor
    (TIDY_DRESS, painted into the room's own picture: TidyLook), or standing where something already stood. */
 const TIDY_ROOM_LOOK = { '1,3': 'hall', '0,3': 'kitchen', '2,3': 'gallery', '1,2': 'hall', '0,2': 'pantry', '2,2': 'parlour', '3,2': 'garden',
@@ -10411,7 +10430,6 @@ const TidyFloor = {
         if (c[4] && v === 0) { px(x, 0, 0, c[4]); px(x, 1, 0, c[4]); px(x, 0, 1, c[4]); px(x, 15, 15, c[5]); px(x, 14, 15, c[5]); px(x, 15, 14, c[5]); }
         fill(x, c[1], 0, 0, 15, 1); fill(x, c[1], 0, 1, 1, 14);
         fill(x, c[2], 0, 15, 16, 1); fill(x, c[2], 15, 0, 1, 15);
-        if (c[6]) { const j = 3 + v * 3; px(x, 1, j, c[6]); px(x, 1, j + 1, c[6]); px(x, 14, 15 - j, c[6]); }
     },
     /* a block of parquet, a tile to itself: four slats laid one way (the next block the other way), soft seams, a short
        grain mark in each slat near its end, the block's joint dark */
@@ -10454,9 +10472,9 @@ const TIDY_LOOKS = {
     ball: { floor: TidyFloor.block(TF_OAK, false), alt: TidyFloor.block(TF_OAK, true), paper: 'gilt', pc: ['#f2e8d0', '#e6d8b8', '#d9a33a', '#f6d880'], dado: 'cream' },
     kitchen: { floor: TidyFloor.slab(['#e0c79c', '#eed9b4', '#b89c70']), alt: TidyFloor.slab(['#b35c40', '#c8745a', '#86402c']), paper: 'tile', pc: ['#f3efe4', '#cfc7b6', '#ffffff', '#5fb7a8', '#3c8a80'] },
     pantry: { floor: TidyFloor.slab(['#c9b894', '#dacba8', '#a08c68', '#bead88']), paper: 'lime', pc: ['#ece3cf', '#e2d8c2', '#f4ecdc'], dado: 'paint' },
-    laundry: { floor: TidyFloor.slab(['#9ba6aa', '#b6c1c4', '#6e797e', null, '#88949a', '#5f6a70', '#d0e0e6']), paper: 'tile', pc: ['#e9eff0', '#c2cbcc', '#ffffff', '#5fb7a8', '#3c8a80'] },
-    linen: { floor: TidyFloor.boards({ dir: 'v', tone: ['#9fb0bc', '#98aab6', '#a5b5c0'], hi: '#b9c8d2', seam: '#7a8b9c', nail: '#5e6e80' }), paper: 'ticking', pc: ['#efe6d4', '#8a9cc0', '#b8c4dc'], dado: 'paint' },
-    garden: { floor: TidyFloor.slab(['#e4e0c8', '#f0ecda', '#b8b498', null, '#c0704a', '#c0704a']), alt: TidyFloor.slab(['#a9bc94', '#bccca8', '#839a70', null, '#c0704a', '#c0704a']), paper: 'glass', pc: ['#d2ece8', '#aed6a6', '#eef2ea', '#6aa060', '#c8ccc0'] },
+    laundry: { floor: TidyFloor.slab(['#968e9e', '#aea6b6', '#6e6878']), paper: 'tile', pc: ['#e9eff0', '#c2cbcc', '#ffffff', '#5fb7a8', '#3c8a80'] },
+    linen: { floor: TidyFloor.boards({ dir: 'v', tone: ['#a89aae', '#a394a9', '#ad9fb3'], hi: '#bcb0c4', seam: '#8a7c92', nail: '#7a6c82' }), paper: 'ticking', pc: ['#efe6d4', '#8a9cc0', '#b8c4dc'], dado: 'paint' },
+    garden: { floor: TidyFloor.slab(['#e4e0c8', '#f0ecda', '#b8b498', null, '#c0704a', '#c0704a']), alt: TidyFloor.slab(['#bca088', '#ccb39c', '#967c66', null, '#c0704a', '#c0704a']), paper: 'glass', pc: ['#d2ece8', '#aed6a6', '#eef2ea', '#6aa060', '#c8ccc0'] },
     attic: { floor: TidyFloor.boards({ dir: 'h', tone: ['#b8946a', '#b08c62', '#bf9b70'], hi: '#ccac82', seam: '#7e5e3c', nail: '#5e4430' }), paper: 'plaster', pc: ['#d8ccb4', '#cec1a8', '#e2d8c4'], dado: 'plain' },
 };
 const TidyWall = {
@@ -12448,8 +12466,9 @@ ITEM_LINES.hook = () => "You found the {red}Hookline{/}! [tool] to throw the hoo
    A colour script for the Kiln: fired brick, darkened with soot the nearer the fires; clay-dusted flagstones underfoot,
    brick paving round the hearths; the orange of the fires; turquoise glaze in the glazing rooms. The work rooms keep the
    flags and the brick; the glazing rooms are glazed tile to the dado over a chequer of glazed floor tiles; the furnace
-   hall and the Kiln's heart are blackened with soot; Bram's potting shed is whitewashed over warm boards. Floors are a
-   flag or a tile to a tile, the dust only in the joints, so the ochre marks and threads stay clear. Then a few great
+   hall and the Kiln's heart are blackened with soot; Bram's potting shed is whitewashed over weathered boards. Floors are
+   a flag or a tile to a tile, the dust only in the joints, each picked to keep the ochre threads, their empty marks and
+   rings of stitches plain (the flags cool and a little dark, the paving darker and duller than the walls). Then a few great
    things that say what each room is: bottle kilns (in place of the old ones), the great kiln and a long dragon kiln built
    into the rooms' own walls, clay bins, woodpiles, racks of greenware, glaze stores, kiln mouths (KILN_DRESS, laid over
    the floor like the Tidyhouse's: RoomLook), with their fires flickering (KILN_GLOW). */
@@ -12473,11 +12492,11 @@ const KilnFloor = {
     /* brick paving, for the hearths and aprons and the old passages: laid flat in a basket weave (the walls are in a
        running bond, so the floor never reads as a wall), duller than the walls, the mortar dark */
     brick: (x, th, v) => {
-        fill(x, '#74402e');
+        fill(x, '#683c36');
         for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
             const X = i * 8, Y = j * 8, along = (i + j) % 2 === 0;
             for (let k = 0; k < 2; k++) {
-                const t = ['#a2604a', '#986044', '#a86850'][(i + j * 2 + k + v) % 3];
+                const t = ['#844c46', '#7e4842', '#8a524a'][(i + j * 2 + k + v) % 3];
                 if (along) { fill(x, t, X, Y + k * 4, 7, 3); fill(x, shade(t, 0.12), X, Y + k * 4, 7, 1); }
                 else { fill(x, t, X + k * 4, Y, 3, 7); fill(x, shade(t, 0.12), X + k * 4, Y, 3, 1); }
             }
@@ -12490,10 +12509,10 @@ const KilnFloor = {
     },
 };
 const KILN_LOOKS = {
-    work: { floor: KilnFloor.flag(['#b8aa94', '#cbbfaa', '#8e8170', '#e2d6c0', '#a6977f']), brick: ['#c4623a', '#93432c', '#e08a5e', '#5e261c'], soot: 0.35, firebox: true },
-    heart: { floor: KilnFloor.flag(['#a39582', '#b6a994', '#7a6e5e', '#cfc2ac', '#8f826e']), brick: ['#a8523a', '#7a3424', '#c46a48', '#4a1c14'], soot: 0.6, firebox: true },
+    work: { floor: KilnFloor.flag(['#a29888', '#b6ac9c', '#7c7264', '#cfc6b4', '#8e8476']), brick: ['#c4623a', '#93432c', '#e08a5e', '#5e261c'], soot: 0.35, firebox: true },
+    heart: { floor: KilnFloor.flag(['#928676', '#a69a8a', '#6e6458', '#bcb2a0', '#82766a']), brick: ['#a8523a', '#7a3424', '#c46a48', '#4a1c14'], soot: 0.6, firebox: true },
     glaze: { floor: KilnFloor.glazed(['#efe6d2', '#fbf6ea', '#c8bca4']), alt: KilnFloor.glazed(['#b2e0d8', '#cfeee8', '#7cb4ac']), brick: ['#c4623a', '#93432c', '#e08a5e', '#5e261c'], soot: 0.25, dado: true },
-    shed: { floor: TidyFloor.boards({ dir: 'h', tone: ['#b07a4a', '#a87444', '#b8824e'], hi: '#c8925a', seam: '#6e4426', nail: '#4e2e1c' }), brick: ['#ece2cc', '#d8ccb4', '#f6eedf', '#b8ab92'], soot: 0.12 },
+    shed: { floor: TidyFloor.boards({ dir: 'h', tone: ['#968676', '#908070', '#9c8c7c'], hi: '#aa9a88', seam: '#6a5c50', nail: '#4e4238' }), brick: ['#ece2cc', '#d8ccb4', '#f6eedf', '#b8ab92'], soot: 0.12 },
 };
 const KilnWall = {
     face(x, L, v) {
@@ -24558,7 +24577,8 @@ defHouse({
             ],
             ents: [
                 { k: 'hatch', x: 16, y: 5 },
-                { k: 'door', x: 2, y: 1, type: 'lock', dir: 'h', id: 'usLock' },
+                /* (the Loft's own lock: only its spare key turns in it, the one kept in the Ropewalk, past the Needle's rooms) */
+                { k: 'door', x: 2, y: 1, type: 'lock', dir: 'h', id: 'usLock', spare: 'rwKey' },
                 { k: 'chest', x: 5, y: 8, item: 'plan', id: 'usPlan' },
                 { k: 'sign', x: 5, y: 4, text: "NORTH: UNDER THE LOFT. Kept locked since the Tangle got into the Loft that time. The spare key's kept in the Ropewalk. -G." },
             ],
@@ -24694,9 +24714,17 @@ defHouse({
 });
 
 const Spoolworks = {
-    /* (an older save may hold a stitch for the weight that used to stand under the Spool Store: it's gone now, and a
-       stitch for nothing shouldn't take up one of the Needle's three) */
-    build(a) { if (Inv.stitches) Inv.stitches = Inv.stitches.filter(r => !(r.area === 'spoolworks' && r.key === 'usWeight')); },
+    build(a) {
+        /* (an older save may hold a stitch for the weight that used to stand under the Spool Store: it's gone now, and a
+           stitch for nothing shouldn't take up one of the Needle's three) */
+        if (Inv.stitches) Inv.stitches = Inv.stitches.filter(r => !(r.area === 'spoolworks' && r.key === 'usWeight'));
+        /* (the Loft's lock once took any key: a save that spent the Spool Store's key on it, with the Kennel still shut, has
+           no way to the Needle. The Kennel's lock is let go for it instead, as if that's where the key went) */
+        if (Progress.areaFlag('spoolworks', 'door:usLock') && !Progress.areaFlag('spoolworks', 'door:swLockE')) {
+            Progress.setAreaFlag('spoolworks', 'door:swLockE');
+            const d = a.find('swLockE'); if (d) { d.open = true; d.anim = 8; d.openedOnce = true; d.keep = true; }
+        }
+    },
     tick(a) {
         /* under the Winding Hall: the counterweight held off its plate by the boulder home in its way (the boulder stays
            awake from then on) */
@@ -24712,6 +24740,33 @@ const Spoolworks = {
         /* once through the Practice Floor's door, the Ropewalk's opens; once the Ropewalk's key is taken, its far door */
         if (Progress.areaFlag('spoolworks', 'door:gaGateE')) Signals.set(a, 'paDone');
         if (Progress.areaFlag('spoolworks', 'chest:rwKey')) Signals.set(a, 'rwOut');
+        this.doorsSeen(a);
+    },
+    /* the Practice Floor's plates open a door that's in the Gatehouse, out of sight of the floor and of the rack below:
+       when it opens, the camera goes and looks (the first time at all, and the first time the puppets stay on their
+       plates by themselves, nobody at the rack); and the Ropewalk's door, across the Gatehouse, opens with a chime */
+    doorsSeen(a) {
+        const ge = a.find('gaGateE'), gw = a.find('gaGateW'), p = G.player, r = Cam.room;
+        const opened = ge && ge.open && !this.geOpen, wOpened = gw && gw.open && !this.gwOpen;
+        this.geOpen = !!(ge && ge.open); this.gwOpen = !!(gw && gw.open);
+        if (!p || p.area !== a || !r) return;
+        if (opened && !Progress.areaFlag('spoolworks', 'door:gaGateE') && (r.key === '2,2' || r.key === '2,5')) {
+            const held = !!Crossbar.ctl, first = !Progress.areaFlag('spoolworks', 'paLook'), own = !held && !Progress.areaFlag('spoolworks', 'paLook2');
+            if (first || own) {
+                Progress.setAreaFlag('spoolworks', 'paLook'); if (!held) Progress.setAreaFlag('spoolworks', 'paLook2');
+                Script.run(function* () {
+                    yield 6; Sfx.play('appear');
+                    yield* camLook(ge.tx, ge.ty, 90);
+                    Fx.sparkle(ge.x + 8, ge.y + 8, THREAD.guild);
+                    yield 50;
+                    yield* camBack(90);
+                }, { name: 'paLook' });
+            }
+        }
+        if (wOpened && !Progress.areaFlag('spoolworks', 'paLookW') && r.key === '1,2') {
+            Progress.setAreaFlag('spoolworks', 'paLookW');
+            Sfx.play('appear'); Fx.sparkle(gw.x + 8, gw.y + 8, THREAD.guild); Fx.dust(gw.x + 8, gw.y + 12);
+        }
     },
     /* over the room: the Heart's hoist (and the thread it winds round the trapdoor) */
     drawFront(a, cx, cy) {
@@ -24719,6 +24774,19 @@ const Spoolworks = {
     },
 };
 SIGNATURE_TEXT.spoolworks = "Burnt into the bench with a hot needle: a little spool, and G.G. Under it, much smaller, much older: L. WAS HERE TOO.";
+
+/* a lock with a key of its own (`spare`: the chest it's kept in): no other key turns in it */
+{
+    const unlock0 = Door.prototype.tryUnlock;
+    Door.prototype.tryUnlock = function (p) {
+        if (this.spare && this.type === 'lock' && !this.open && !Progress.areaFlag(this.area.id, 'chest:' + this.spare)) {
+            Sfx.play('hitthing');
+            UI.toast(Inv.keys(this.area.def.house) > 0 ? "Your key won't turn in this lock. It takes its own: the spare, kept in the Ropewalk." : 'Locked. It takes its own key: the spare, kept in the Ropewalk.', 170);
+            return false;
+        }
+        return unlock0.call(this, p);
+    };
+}
 
 /* bobbins: iron-cored, heavy, slow to go home */
 SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'bobbin', patience: 240 },
@@ -26380,7 +26448,37 @@ WALLS.hallnames = {
     face: (x, th, v) => { fill(x, '#4a4054'); for (let i = 1; i < 16; i += 5) fill(x, '#3a3244', i, 0, 1, 14); fill(x, '#c0b8d0', 0, 13, 16, 1); fill(x, '#0c0a10', 0, 15, 16, 1); },
 };
 
-/* everybody's spool, by name: [peg label, who, colour, how it's wound] */
+/* Tuck's and Wren's spools show what's been done to them (Wren's tally and Tuck's pulls, src/80b_tally.js; a save that
+   can't say gets the words without a number) */
+function tuckSpoolText() {
+    const n = Tally.tuck(), base = 'Small and new, wound loose and full of slack';
+    if (n === null) return Progress.flag('tuck_yanked') ? base + ', but for the last few turns, pulled snug.' : base + ', the way a spool is before anybody has pulled on it.';
+    return n ? `${base}, but for the last ${n === 1 ? 'turn' : numWords(n) + ' turns'}, pulled snug.` : base + ', the way a spool is before anybody has pulled on it.';
+}
+function wrenSpoolText() {
+    const n = Tally.home();
+    return 'Your own name. A red spool, wound tighter than any other in the hall, so tight the thread has gone shiny, and still being wound: as you watch, it turns, a little. ' +
+        (n === null ? "A card is pinned under it: a tally in Gran's hand, five strokes to a gate."
+            : n === 0 ? "A card is pinned under it, ruled for a tally in Gran's hand. There isn't a stroke on it."
+                : `A card is pinned under it: a tally in Gran's hand, five strokes to a gate. ${numWords(n)[0].toUpperCase() + numWords(n).slice(1)}.`);
+}
+/* the ledger's last page: the same tally, a row for each place she was brought home from */
+function ledgerTallyPage() {
+    const rows = Tally.rows(), ruled = 'ruled for a tally, five strokes to a gate, a row for each place, every row headed in capitals';
+    if (!rows) return `The last page isn't words. It's ${ruled}. Under them all, underlined: "Every one, home."`;
+    if (!rows.length) return `The last page is ${ruled}, and there isn't a stroke in any of them. Under them all: "Not one fall. I wound her in anyway, every night."`;
+    const [head, n] = rows[0];
+    return rows.length === 1 ? `The last page isn't words. It's ${ruled}. Only one row has anything in it: ${head}, ${numWords(n)}. Under it, underlined: "Every one, home."`
+        : `The last page isn't words. It's ${ruled}. The longest row is ${head}: ${numWords(n)}. Under them all, underlined: "Every one, home."`;
+}
+/* Gran on the boy's own thread, pulled from below in his Little Houses */
+function granOnTuck() {
+    const n = Tally.tuck();
+    if (n === null) return Progress.flag('tuck_yanked') ? "{sad}You pulled that boy home by his own thread, love. Then you know how easy it is." : null;
+    return n ? `{sad}You pulled that boy home ${numTimes(n)}, love, by his own thread. Then you know how easy it is.` : "{sad}You never once pulled that boy's thread, down there. I could never leave yours alone.";
+}
+
+/* everybody's spool, by name: [peg label, who, colour, how it's wound (or a function that says)] */
 const NAME_SPOOLS = [
     ['GRAN... no: HESPER', 'hesper', THREAD.hesper, 'An empty peg. Its label says HESPER, in her own hand, and it has never held a spool.'],
     ['MISS QUILL', 'quill', '#c8d8f0', 'Wound neat and even, every turn the same.'],
@@ -26394,12 +26492,12 @@ const NAME_SPOOLS = [
     ['NELL', 'nell', '#f59ac0', 'A child\'s spool, small. Tight. A note: "Ran to the posts. Tightened."'],
     ['OTTO', 'otto', '#9fdcf5', 'Small. Tight.'],
     ['BEA', 'bea', '#c8e66a', 'Small. Tight.'],
-    ['TUCK', 'tuck', '#5ab85a', 'Small and new, wound loose and full of slack, the way a spool is before anybody has pulled on it.'],
+    ['TUCK', 'tuck', '#5ab85a', tuckSpoolText],
     ['BISCUIT', 'biscuit', '#cfc6b8', 'The peg is empty. A snipped end of thread hangs from it. Whatever was tied to it walked off a long time ago, and came back of its own accord.'],
     ['MOTHER IVES', 'ives', THREAD.ives, 'Tight.'], ['BRAM', 'bram', THREAD.bram, 'Tight.'], ['AMBROSE (DAD)', 'ambrose', THREAD.ambrose, 'Tight.'], ['TESS (MUM)', 'tess', THREAD.tess, 'Tight.'],
     ['DOCTOR MALLOW', 'mallow', THREAD.mallow, 'Tight.'], ['JORY', 'jory', THREAD.jory, 'Tight.'], ['GUNDRY', 'gundry', THREAD.guild, 'Tight.'],
     ['LINNET', 'linnet', THREAD.linnet, 'A green spool, nearly full, and its thread cut clean through a hand\'s length from the peg. Cut with something sharp. Something old.'],
-    ['WREN', 'wren', THREAD.wren, 'Your own name. A red spool, wound tighter than any other in the hall, so tight the thread has gone shiny, and still being wound: as you watch, it turns, a little.'],
+    ['WREN', 'wren', THREAD.wren, wrenSpoolText],
 ];
 
 defHouse({
@@ -26450,6 +26548,7 @@ defHouse({
         },
     },
     build: a => Reveal2.build(a),
+    drawOver: (a, cx, cy) => Reveal2.drawPull(a, cx, cy),
 });
 
 /* Tuck's fresh spool: the errand */
@@ -26473,7 +26572,7 @@ ITEMS.tuckspool = { name: "Tuck's spool", kind: 'quest', desc: 'A fresh green sp
 /* a spool on its peg, with a name */
 class NameSpool extends GridThing {
     constructor(tx, ty, p = {}) { super('namespool', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false, noNeedle: true }, p)); }
-    interact() { const [label, , , text] = this.spec; Script.run(function* () { yield* say(null, label + '. ' + text); }); Stats.count('names:' + this.spec[1]); return true; }
+    interact() { const [label, , , text] = this.spec, t = typeof text === 'function' ? text() : text; Script.run(function* () { yield* say(null, label + '. ' + t); }); Stats.count('names:' + this.spec[1]); return true; }
     draw(cx, cy) {
         const x = this.px - cx, y = this.py - cy, [, who, col] = this.spec;
         Gfx.rect(x + 7, y - 6, 2, 8, '#6a6078');
@@ -26516,6 +26615,7 @@ const Reveal2 = {
             "\"Arlo walked to the lake again. Tightened him. Hob halfway up the river. Tightened. The children run so far. Tightened. Tightened.\"",
             "\"The Wander. Six Houses, six Knots. Every Knot the Wanderer ties turns my winch a little further. They never notice. They are always so proud.\"",
             "\"Wren is so like her. Tightened again. The seventh Knot is the Wanderer's own, at the Well: when Wren ties it she will take my place at the Spool, and nobody, nobody, will ever be lost again. Wren mustn't go. Wren mustn't.\"",
+            ledgerTallyPage(),
         ];
         for (const p of pages) yield* say(null, p);
         G.shake = 4; Sfx.play('rumble');
@@ -26529,18 +26629,23 @@ const Reveal2 = {
         yield* say('gran', "{sad}You shouldn't be down here, love.");
         yield* say(null, "She looks very small at the top of the hall, and very tired. Her fingers are wound round with threads, every colour, so many that her hands look like spools themselves.");
         yield* say('gran', "{sad}I'd have told you. After the seventh Knot. You'd have understood, then. You'd have seen how much there is to lose.");
+        const tuckLine = granOnTuck();
+        if (tuckLine) yield* say('gran', tuckLine);
         const i = yield* ask('gran', "{worried}Don't look at me like that.", ['Where is Linnet?', 'Let them go, Gran.', '...']);
         if (i === 0) yield* say('gran', "{sad}Gone. Out past the fog, where nothing comes back. Where nobody can find you, or bring you home. I'll not lose another. Not you.");
         else if (i === 1) yield* say('gran', "{cross}Let them go? Let them walk off and never come back? I've done that once, love. Once was enough for a whole life.");
         else yield* say('gran', "{sad}Oh, love. Don't.");
         yield* say('gran', "Go home now. Go home and go to sleep, and in the morning everything will be in its place.");
         yield* say(null, "She takes your red thread between her finger and thumb, the way she'd take a loose end on a jumper, and pulls.");
+        yield* Reveal2.pull(gran);
         /* yanked home: up, away, a long red line, and bed */
         Sfx.play('flight'); G.shake = 10;
         G.hideHud = true;
-        for (let t = 0; t < 40; t++) { p.z = t * 2; yield 1; }
+        const z0 = p.z || 0;
+        for (let t = 0; t < 40; t++) { p.z = z0 + t * 2; yield 1; }
         yield* fadeOut(30);
-        p.z = 0;
+        p.z = 0; Reveal2.taut = null;
+        Stats.count('home:yank');
         Progress.set('reveal2');
         Progress.set('well_locked');
         Stats.count('reveal2');
@@ -26557,6 +26662,45 @@ const Reveal2 = {
         yield* say(null, "When you look down at your hands, you can see your own thread, faintly, running from your heart down through the floor. You can see everybody's now.");
         Progress.setGoal("Linnet cut herself loose with the First Spinner's Shears, from the old Loom. Gundry, under the Inn, may know where that is.");
         Save.autosave();
+    },
+    /* Gran's pull. Held things wait (the Return's third rule), and Wren is one of the valley's things: holding on to the
+       lectern, she can't be taken, and Gran waits for as long as it takes. Let go, or never take hold, and she's yanked
+       home as she would have been. (A deliberate hold counts, not the tap that closed the last line; there's no hurry
+       once she has hold, and letting go is always there.) */
+    taut: null,
+    *pull(gran) {
+        const p = G.player, lect = G.map.ents.find(e => e.kind === 'ledger');
+        G.hideHud = true;
+        const s = this.taut = { gran, held: 0, jerk: 6 };
+        let t = 0, down = 0;
+        Sfx.play('tug');
+        for (;;) {
+            down = Input.down('act') ? down + 1 : 0;
+            if (down >= 8 && lect && Inv.has('gloves') && p.adjacentTo(lect)) {
+                if (!s.held) { p.grip = lect; lect.heldBy = p; Sfx.play('click'); Progress.set('hall_held'); }
+                const h = ++s.held; p.z = 0;
+                if (h === 40 || h === 100) { Sfx.play('tug'); s.jerk = 8; }       /* she tries, twice */
+                if (h === 170) UI.toast('Gran: "I can wait, love."', 300);
+            } else {
+                if (s.held) break;                                                   /* let go */
+                if (++t >= 180) break;                                               /* never took hold */
+                p.z = Math.round(Math.min(3, t / 50));                               /* up on her toes */
+                if (t % 45 === 0) { Sfx.play('tug'); s.jerk = 6; }
+            }
+            if (s.jerk > 0) s.jerk--;
+            yield 1;
+        }
+        if (p.grip) p.release();
+        if (s.held) Stats.count('hall:held', s.held);
+    },
+    /* the thread she's pulling on, from Wren's heart to Gran's fingers, taut (it shakes when she pulls) */
+    drawPull(a, cx, cy) {
+        const s = this.taut, p = G.player;
+        if (!s || !p || s.gran.removed) return;
+        const g = s.gran, j = s.jerk > 0 ? Math.round((Math.random() - 0.5) * 2) : 0;
+        const x0 = p.x - cx, y0 = p.y - cy - 4 - (p.z || 0), x1 = g.px + 12 - cx, y1 = g.py + 9 - cy;
+        Gfx.alpha(0.5); Gfx.line(x0, y0 + 1, x1, y1 + 1, PAL.ink); Gfx.alpha(1);
+        Gfx.line(x0, y0 + j, x1, y1, THREAD.wren);
     },
 };
 
@@ -29224,7 +29368,7 @@ const Pull = {
     sleepAgain(e) {
         const a = e.area, [sx, sy] = e._sleep0.at;
         if (Return.asleep(e) && e.tx === sx && e.ty === sy) return false;
-        if (a.at(sx, sy) && a.at(sx, sy) !== e) return false;
+        if ((a.at(sx, sy) && a.at(sx, sy) !== e) || Return.wrenOn(a, sx, sy)) return false;
         if (e.mv) { a.unplace(e, e.mv.fx, e.mv.fy); e.mv = null; }
         a.unplace(e, e.tx, e.ty); e.pendingHome = false;
         e.tx = sx; e.ty = sy; e.x = sx * T; e.y = sy * T; a.place(e, sx, sy);
@@ -29238,9 +29382,8 @@ const Pull = {
 {
     const update0 = Return.update;
     Return.update = function (e) {
-        const r = e.ret, p = G.player;
-        /* the drum holds a thing over its place while Wren stands there (a float too: she isn't riding it) */
-        if (e.pendingHome && p && p.area === e.area && p.onTile(e.tx, e.ty) && Pull.on(e.area)) return;
+        const r = e.ret;
+        /* (the drum holds a thing over its place while Wren stands there: the Return's own pop home sees to that) */
         if (r && !e.removed && !e.pendingHome && r.state === 'returning' && !e.mv && !r.sewing && Pull.on(e.area) && !this.held(e)) return Pull.step(e);
         return update0.call(this, e);
     };
@@ -29625,9 +29768,10 @@ class SpoolDrum extends Ent {
                 const dx = j.tx - j.x, dy = j.ty - j.y, d = Math.hypot(dx, dy);
                 if (d < 4) {
                     j.gone = true;
-                    /* spat back onto its shelf */
+                    /* spat back onto its shelf: the moment the shelf is clear, as anything the drum lays back (while Wren or
+                       anything else is on it, it hangs over it, waiting) */
                     const e = j.thing;
-                    if (e && !e.removed && e.ret) { const [hx, hy] = [e.ret.mx, e.ret.my]; e.tx = hx; e.ty = hy; e.x = hx * T; e.y = hy * T; e.hiddenYank = false; e.inert = false; e.ret.trace = [[hx, hy]]; e.ret.state = 'home'; a.place(e, hx, hy); Fx.poof(hx * T + 8, hy * T + 8); }
+                    if (e && !e.removed && e.ret) { e.hiddenYank = false; e.inert = false; Return.sendHome(e); }
                     continue;
                 }
                 j.x += dx / d * 1.6; j.y += dy / d * 1.6;
@@ -31850,6 +31994,7 @@ CONTENT_INIT.push(() => {
 /* Presets: game states at the start of each stretch, for the debug panel and the tests. */
 function presetBase(name = 'Wren') {
     Game.newGame(name, { skipIntro: true, area: 'gran_room', x: 6, y: 3 });
+    delete Stats.c.tally;     /* (the play a preset skips was never counted: its tallies don't claim a number, src/80b_tally.js) */
     Script.clear(); Dialog.active = false; UI.fadeA = 0; G.hideHud = false;
     for (const f of ['talkedGran', 'ceremony']) Progress.set(f);
     Inv.items.staff = 1;
@@ -31955,6 +32100,79 @@ Story.placeName = function (id) {
 
 function initContent() {
     for (const f of CONTENT_INIT) f();
+}
+
+// ---- 80b_tally.js ----
+/* Wren's tally: every time she's been brought home without choosing it, counted from the start of the Wander. A fall,
+   a sink or a doze flown home along her thread (by where it happened); a faint (to bed, or to a House's door); the fog
+   turning her back; Gran's own pull in the Hall of Names. A Homeward flight to the Bedroll is Wren's doing, so it isn't
+   counted; nor is a fall where nothing pulls (the Stray House, or once her thread is cut: she climbs out).
+   The Hall of Names shows it (her spool, the ledger's last page, src/69_reveal2.js); the Spool can too.
+   A Wander begun with this counting in place says so (Stats.c.tally); an older save hasn't the mark, nor has a preset
+   (it skips the play before it), and then whatever reads the tally says it without a number: never a number that's
+   short, never "not once" for someone who did. (Everything here lives in the save's own counters and flags: nothing
+   for Save.migrate to change; an old save simply has none of it.) */
+
+const Tally = {
+    /* do the counts go back to the start of this Wander? */
+    kept() { return !!(Stats.c && Stats.c.tally); },
+    fogs() { return Progress.get('fogTries') || 0; },
+    /* times brought home in all, or null if this save can't say */
+    home() {
+        if (!this.kept()) return null;
+        const c = Stats.c;
+        return (c['home:fall'] || 0) + (c.faints || 0) + this.fogs() + (c['home:yank'] || 0);
+    },
+    /* the rows of the tally, longest first: [heading, count]. Falls by the place they happened, then FAINTED, then THE
+       FOG (null if this save can't say) */
+    rows() {
+        if (!this.kept()) return null;
+        const rows = [];
+        for (const [k, n] of Object.entries(Stats.c)) if (k.startsWith('home@') && n > 0) rows.push([this.heading(k.slice(5)), n]);
+        if (Stats.c.faints) rows.push(['FAINTED', Stats.c.faints]);
+        if (this.fogs()) rows.push(['THE FOG', this.fogs()]);
+        return rows.sort((a, b) => b[1] - a[1]);
+    },
+    /* where a fall happened: a House by its name, the valley by its region ("hollow:millwater") */
+    placeOf(area, tx, ty) {
+        if (area.id !== 'hollow' || typeof OW === 'undefined') return area.id;
+        const b = OW.blocks[Math.floor(tx / OW.bw) + ',' + Math.floor(ty / OW.bh)];
+        return 'hollow:' + (b && b.id ? b.id : '');
+    },
+    heading(place) {
+        const [id, blk] = place.split(':');
+        const b = blk && typeof OW !== 'undefined' && Object.values(OW.blocks).find(q => q.id === blk);
+        const name = (b && b.name) || (AREAS[id] && AREAS[id].name) || 'THE VALLEY';
+        return name.replace(/^The /, '').toUpperCase();
+    },
+    /* Wren's pulls on Tuck's own thread in his Little Houses (src/68_makings.js counts them, from the day the Makings
+       were built; but a preset skips them, so only a kept tally gives the number) */
+    tuck() { return this.kept() ? (Stats.c['tuck:yanked'] || 0) : null; },
+};
+
+/* a number as Gran writes it (figures past a few hundred) */
+function numWords(n) {
+    const ONES = ['nought', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+    const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+    if (n < 20) return ONES[n];
+    if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? '-' + ONES[n % 10] : '');
+    if (n < 1000) return (n < 200 ? 'a hundred' : ONES[Math.floor(n / 100)] + ' hundred') + (n % 100 ? ' and ' + numWords(n % 100) : '');
+    return String(n);
+}
+function numTimes(n) { return n === 1 ? 'once' : n === 2 ? 'twice' : numWords(n) + ' times'; }
+
+/* a new Wander keeps the tally from its first step */
+{
+    const begin0 = Story.begin;
+    Story.begin = function () { Stats.c.tally = 1; return begin0.apply(this, arguments); };
+}
+/* a fall, a sink or a doze, flown home along her thread (not a Homeward flight: that one she chose) */
+{
+    const fly0 = Player.prototype.flyHome;
+    Player.prototype.flyHome = function (opts = {}) {
+        if (this.state === 'fall' && !opts.homeward && this.area) { Stats.count('home:fall'); Stats.count('home@' + Tally.placeOf(this.area, this.tx, this.ty)); }
+        return fly0.apply(this, arguments);
+    };
 }
 
 // ---- 90_main.js ----

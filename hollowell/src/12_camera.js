@@ -57,7 +57,7 @@ const Cam = {
         /* a scene can point the camera somewhere else for a while (Cam.look: a point in the world), panned to gently;
            (once no scene is running, it comes back to Wren whatever the scene forgot) */
         if (this.look && !Script.blocking()) { this.look = null; this.lookEase = true; }
-        const t = this.target(this.look ? { x: this.look.x, y: this.look.y + 6 } : p);
+        const t = this.target(this.look ? { x: this.look.x, y: this.look.y + 6 } : p, this.look && this.look.room);
         /* outdoors, a gentle follow; indoors, exact */
         if (p.area.family === 'outdoor' || this.look || this.lookEase) {
             const k = this.look || this.lookEase ? 0.08 : 0.2;
@@ -74,8 +74,10 @@ const Cam = {
 /* for scenes: look at a tile (or a thing) and wait till the camera's there; then back to Wren */
 function* camLook(x, y, max = 90) {
     Cam.look = typeof x === 'object' ? { x: (x.isGrid ? x.px : x.x) + 8, y: (x.isGrid ? x.py : x.y) + 8 } : { x: x * T + 8, y: y * T + 8 };
-    const p = G.player;
-    for (let i = 0; i < max; i++) { const t = Cam.target({ x: Cam.look.x, y: Cam.look.y + 6 }); if (Math.abs(Cam.x - t.x) < 2 && Math.abs(Cam.y - t.y) < 2) break; yield 1; }
+    /* (a look into another room of the place: the camera keeps to that room while it looks) */
+    const a = G.map, lr = a && a.rooms && a.rooms.length > 1 ? a.roomAt(tileOf(Cam.look.x), tileOf(Cam.look.y)) : null;
+    if (lr && lr !== Cam.room) Cam.look.room = lr;
+    for (let i = 0; i < max; i++) { const t = Cam.target({ x: Cam.look.x, y: Cam.look.y + 6 }, Cam.look.room); if (Math.abs(Cam.x - t.x) < 2 && Math.abs(Cam.y - t.y) < 2) break; yield 1; }
 }
 function* camBack(max = 90) {
     Cam.look = null; Cam.lookEase = true;

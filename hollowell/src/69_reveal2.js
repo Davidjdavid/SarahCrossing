@@ -17,7 +17,37 @@ WALLS.hallnames = {
     face: (x, th, v) => { fill(x, '#4a4054'); for (let i = 1; i < 16; i += 5) fill(x, '#3a3244', i, 0, 1, 14); fill(x, '#c0b8d0', 0, 13, 16, 1); fill(x, '#0c0a10', 0, 15, 16, 1); },
 };
 
-/* everybody's spool, by name: [peg label, who, colour, how it's wound] */
+/* Tuck's and Wren's spools show what's been done to them (Wren's tally and Tuck's pulls, src/80b_tally.js; a save that
+   can't say gets the words without a number) */
+function tuckSpoolText() {
+    const n = Tally.tuck(), base = 'Small and new, wound loose and full of slack';
+    if (n === null) return Progress.flag('tuck_yanked') ? base + ', but for the last few turns, pulled snug.' : base + ', the way a spool is before anybody has pulled on it.';
+    return n ? `${base}, but for the last ${n === 1 ? 'turn' : numWords(n) + ' turns'}, pulled snug.` : base + ', the way a spool is before anybody has pulled on it.';
+}
+function wrenSpoolText() {
+    const n = Tally.home();
+    return 'Your own name. A red spool, wound tighter than any other in the hall, so tight the thread has gone shiny, and still being wound: as you watch, it turns, a little. ' +
+        (n === null ? "A card is pinned under it: a tally in Gran's hand, five strokes to a gate."
+            : n === 0 ? "A card is pinned under it, ruled for a tally in Gran's hand. There isn't a stroke on it."
+                : `A card is pinned under it: a tally in Gran's hand, five strokes to a gate. ${numWords(n)[0].toUpperCase() + numWords(n).slice(1)}.`);
+}
+/* the ledger's last page: the same tally, a row for each place she was brought home from */
+function ledgerTallyPage() {
+    const rows = Tally.rows(), ruled = 'ruled for a tally, five strokes to a gate, a row for each place, every row headed in capitals';
+    if (!rows) return `The last page isn't words. It's ${ruled}. Under them all, underlined: "Every one, home."`;
+    if (!rows.length) return `The last page is ${ruled}, and there isn't a stroke in any of them. Under them all: "Not one fall. I wound her in anyway, every night."`;
+    const [head, n] = rows[0];
+    return rows.length === 1 ? `The last page isn't words. It's ${ruled}. Only one row has anything in it: ${head}, ${numWords(n)}. Under it, underlined: "Every one, home."`
+        : `The last page isn't words. It's ${ruled}. The longest row is ${head}: ${numWords(n)}. Under them all, underlined: "Every one, home."`;
+}
+/* Gran on the boy's own thread, pulled from below in his Little Houses */
+function granOnTuck() {
+    const n = Tally.tuck();
+    if (n === null) return Progress.flag('tuck_yanked') ? "{sad}You pulled that boy home by his own thread, love. Then you know how easy it is." : null;
+    return n ? `{sad}You pulled that boy home ${numTimes(n)}, love, by his own thread. Then you know how easy it is.` : "{sad}You never once pulled that boy's thread, down there. I could never leave yours alone.";
+}
+
+/* everybody's spool, by name: [peg label, who, colour, how it's wound (or a function that says)] */
 const NAME_SPOOLS = [
     ['GRAN... no: HESPER', 'hesper', THREAD.hesper, 'An empty peg. Its label says HESPER, in her own hand, and it has never held a spool.'],
     ['MISS QUILL', 'quill', '#c8d8f0', 'Wound neat and even, every turn the same.'],
@@ -31,12 +61,12 @@ const NAME_SPOOLS = [
     ['NELL', 'nell', '#f59ac0', 'A child\'s spool, small. Tight. A note: "Ran to the posts. Tightened."'],
     ['OTTO', 'otto', '#9fdcf5', 'Small. Tight.'],
     ['BEA', 'bea', '#c8e66a', 'Small. Tight.'],
-    ['TUCK', 'tuck', '#5ab85a', 'Small and new, wound loose and full of slack, the way a spool is before anybody has pulled on it.'],
+    ['TUCK', 'tuck', '#5ab85a', tuckSpoolText],
     ['BISCUIT', 'biscuit', '#cfc6b8', 'The peg is empty. A snipped end of thread hangs from it. Whatever was tied to it walked off a long time ago, and came back of its own accord.'],
     ['MOTHER IVES', 'ives', THREAD.ives, 'Tight.'], ['BRAM', 'bram', THREAD.bram, 'Tight.'], ['AMBROSE (DAD)', 'ambrose', THREAD.ambrose, 'Tight.'], ['TESS (MUM)', 'tess', THREAD.tess, 'Tight.'],
     ['DOCTOR MALLOW', 'mallow', THREAD.mallow, 'Tight.'], ['JORY', 'jory', THREAD.jory, 'Tight.'], ['GUNDRY', 'gundry', THREAD.guild, 'Tight.'],
     ['LINNET', 'linnet', THREAD.linnet, 'A green spool, nearly full, and its thread cut clean through a hand\'s length from the peg. Cut with something sharp. Something old.'],
-    ['WREN', 'wren', THREAD.wren, 'Your own name. A red spool, wound tighter than any other in the hall, so tight the thread has gone shiny, and still being wound: as you watch, it turns, a little.'],
+    ['WREN', 'wren', THREAD.wren, wrenSpoolText],
 ];
 
 defHouse({
@@ -87,6 +117,7 @@ defHouse({
         },
     },
     build: a => Reveal2.build(a),
+    drawOver: (a, cx, cy) => Reveal2.drawPull(a, cx, cy),
 });
 
 /* Tuck's fresh spool: the errand */
@@ -110,7 +141,7 @@ ITEMS.tuckspool = { name: "Tuck's spool", kind: 'quest', desc: 'A fresh green sp
 /* a spool on its peg, with a name */
 class NameSpool extends GridThing {
     constructor(tx, ty, p = {}) { super('namespool', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false, noNeedle: true }, p)); }
-    interact() { const [label, , , text] = this.spec; Script.run(function* () { yield* say(null, label + '. ' + text); }); Stats.count('names:' + this.spec[1]); return true; }
+    interact() { const [label, , , text] = this.spec, t = typeof text === 'function' ? text() : text; Script.run(function* () { yield* say(null, label + '. ' + t); }); Stats.count('names:' + this.spec[1]); return true; }
     draw(cx, cy) {
         const x = this.px - cx, y = this.py - cy, [, who, col] = this.spec;
         Gfx.rect(x + 7, y - 6, 2, 8, '#6a6078');
@@ -153,6 +184,7 @@ const Reveal2 = {
             "\"Arlo walked to the lake again. Tightened him. Hob halfway up the river. Tightened. The children run so far. Tightened. Tightened.\"",
             "\"The Wander. Six Houses, six Knots. Every Knot the Wanderer ties turns my winch a little further. They never notice. They are always so proud.\"",
             "\"Wren is so like her. Tightened again. The seventh Knot is the Wanderer's own, at the Well: when Wren ties it she will take my place at the Spool, and nobody, nobody, will ever be lost again. Wren mustn't go. Wren mustn't.\"",
+            ledgerTallyPage(),
         ];
         for (const p of pages) yield* say(null, p);
         G.shake = 4; Sfx.play('rumble');
@@ -166,18 +198,23 @@ const Reveal2 = {
         yield* say('gran', "{sad}You shouldn't be down here, love.");
         yield* say(null, "She looks very small at the top of the hall, and very tired. Her fingers are wound round with threads, every colour, so many that her hands look like spools themselves.");
         yield* say('gran', "{sad}I'd have told you. After the seventh Knot. You'd have understood, then. You'd have seen how much there is to lose.");
+        const tuckLine = granOnTuck();
+        if (tuckLine) yield* say('gran', tuckLine);
         const i = yield* ask('gran', "{worried}Don't look at me like that.", ['Where is Linnet?', 'Let them go, Gran.', '...']);
         if (i === 0) yield* say('gran', "{sad}Gone. Out past the fog, where nothing comes back. Where nobody can find you, or bring you home. I'll not lose another. Not you.");
         else if (i === 1) yield* say('gran', "{cross}Let them go? Let them walk off and never come back? I've done that once, love. Once was enough for a whole life.");
         else yield* say('gran', "{sad}Oh, love. Don't.");
         yield* say('gran', "Go home now. Go home and go to sleep, and in the morning everything will be in its place.");
         yield* say(null, "She takes your red thread between her finger and thumb, the way she'd take a loose end on a jumper, and pulls.");
+        yield* Reveal2.pull(gran);
         /* yanked home: up, away, a long red line, and bed */
         Sfx.play('flight'); G.shake = 10;
         G.hideHud = true;
-        for (let t = 0; t < 40; t++) { p.z = t * 2; yield 1; }
+        const z0 = p.z || 0;
+        for (let t = 0; t < 40; t++) { p.z = z0 + t * 2; yield 1; }
         yield* fadeOut(30);
-        p.z = 0;
+        p.z = 0; Reveal2.taut = null;
+        Stats.count('home:yank');
         Progress.set('reveal2');
         Progress.set('well_locked');
         Stats.count('reveal2');
@@ -194,6 +231,45 @@ const Reveal2 = {
         yield* say(null, "When you look down at your hands, you can see your own thread, faintly, running from your heart down through the floor. You can see everybody's now.");
         Progress.setGoal("Linnet cut herself loose with the First Spinner's Shears, from the old Loom. Gundry, under the Inn, may know where that is.");
         Save.autosave();
+    },
+    /* Gran's pull. Held things wait (the Return's third rule), and Wren is one of the valley's things: holding on to the
+       lectern, she can't be taken, and Gran waits for as long as it takes. Let go, or never take hold, and she's yanked
+       home as she would have been. (A deliberate hold counts, not the tap that closed the last line; there's no hurry
+       once she has hold, and letting go is always there.) */
+    taut: null,
+    *pull(gran) {
+        const p = G.player, lect = G.map.ents.find(e => e.kind === 'ledger');
+        G.hideHud = true;
+        const s = this.taut = { gran, held: 0, jerk: 6 };
+        let t = 0, down = 0;
+        Sfx.play('tug');
+        for (;;) {
+            down = Input.down('act') ? down + 1 : 0;
+            if (down >= 8 && lect && Inv.has('gloves') && p.adjacentTo(lect)) {
+                if (!s.held) { p.grip = lect; lect.heldBy = p; Sfx.play('click'); Progress.set('hall_held'); }
+                const h = ++s.held; p.z = 0;
+                if (h === 40 || h === 100) { Sfx.play('tug'); s.jerk = 8; }       /* she tries, twice */
+                if (h === 170) UI.toast('Gran: "I can wait, love."', 300);
+            } else {
+                if (s.held) break;                                                   /* let go */
+                if (++t >= 180) break;                                               /* never took hold */
+                p.z = Math.round(Math.min(3, t / 50));                               /* up on her toes */
+                if (t % 45 === 0) { Sfx.play('tug'); s.jerk = 6; }
+            }
+            if (s.jerk > 0) s.jerk--;
+            yield 1;
+        }
+        if (p.grip) p.release();
+        if (s.held) Stats.count('hall:held', s.held);
+    },
+    /* the thread she's pulling on, from Wren's heart to Gran's fingers, taut (it shakes when she pulls) */
+    drawPull(a, cx, cy) {
+        const s = this.taut, p = G.player;
+        if (!s || !p || s.gran.removed) return;
+        const g = s.gran, j = s.jerk > 0 ? Math.round((Math.random() - 0.5) * 2) : 0;
+        const x0 = p.x - cx, y0 = p.y - cy - 4 - (p.z || 0), x1 = g.px + 12 - cx, y1 = g.py + 9 - cy;
+        Gfx.alpha(0.5); Gfx.line(x0, y0 + 1, x1, y1 + 1, PAL.ink); Gfx.alpha(1);
+        Gfx.line(x0, y0 + j, x1, y1, THREAD.wren);
     },
 };
 

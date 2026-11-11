@@ -12,9 +12,10 @@ const Bells = {
     ring(area, x, y, reach = this.REACH, opts = {}) {
         Sfx.play('bell');
         Fx.ring(x, y - 6, '#f7d64a'); Fx.ring(x, y - 6, '#fff4c0');
-        G.ringFx = { x, y, t: 0, r: reach * T, area };
         /* a ring fills the room it's rung in, and no further: walls stop it */
         const room = area.rooms && area.rooms.length > 1 ? area.roomAt(tileOf(x), tileOf(y)) : null;
+        /* (its reach, drawn: anything whose middle is inside this ring hears it) */
+        G.ringFx = { x, y, t: 0, r: reach * T + 4, area, room };
         const here = (tx, ty) => !room || area.roomAt(tx, ty) === room;
         let n = 0;
         for (const e of area.ents) {
@@ -34,14 +35,21 @@ const Bells = {
         Stats.count('rings'); if (n) Stats.count('snapped', n);
         return n;
     },
+    /* the ring of its reach: out to it quickly, then held there a moment so where it reached (and where it didn't) is
+       plain, stopping at the walls of the room it was rung in */
+    FX_T: 50,
     drawFx(cx, cy) {
         const f = G.ringFx; if (!f || f.area !== G.map) return;
         f.t++;
-        const r = f.r * Math.min(1, f.t / 18);
-        Gfx.alpha(Math.max(0, 0.6 - f.t / 40));
-        for (let i = 0; i < 40; i++) { const t = i / 40 * Math.PI * 2; Gfx.rect(f.x - cx + Math.cos(t) * r, f.y - cy - 6 + Math.sin(t) * r, 2, 2, '#fff4c0'); }
+        const r = f.r * Math.min(1, f.t / 8), fade = f.t < 30 ? 1 : Math.max(0, 1 - (f.t - 30) / (this.FX_T - 30)), m = f.room, n = Math.max(32, Math.round(f.r / 2.5));
+        for (let i = 0; i < n; i++) {
+            const a = i / n * Math.PI * 2, x = f.x + Math.cos(a) * r, y = f.y + Math.sin(a) * r;
+            if (m && (x < m.x * T || y < m.y * T || x >= (m.x + m.w) * T || y >= (m.y + m.h) * T)) continue;
+            const sx = Math.round(x - cx) - 1, sy = Math.round(y - cy) - 1;
+            Gfx.alpha(0.5 * fade); Gfx.rect(sx, sy + 1, 2, 2, PAL.ink); Gfx.alpha(0.9 * fade); Gfx.rect(sx, sy, 2, 2, (i % 2) ? '#fff4c0' : '#f7d64a');
+        }
         Gfx.alpha(1);
-        if (f.t > 30) G.ringFx = null;
+        if (f.t > this.FX_T) G.ringFx = null;
     },
     /* sleepers show it: a slow z drifting up */
     drawSleep(a, cx, cy) {

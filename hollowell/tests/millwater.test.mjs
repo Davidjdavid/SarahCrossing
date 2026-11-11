@@ -152,7 +152,7 @@ test('the old mill pond: without a Bedroll on it the barrel goes in alone, and c
     noErr(HW);
 });
 
-test("the Gulls' Rock: nothing there to catch a hook, and the cleft lets nobody through; the float pulled over onto the rock is no way across", () => {
+test("the Gulls' Rock: nothing there to catch a hook, and the cleft lets nobody through; the float reeled up onto the pier is no way across", () => {
     const HW = game('afterD6');
     const a = at(HW, 41, 2), f = a.find('gullFloat'), p = HW.player();
     const onRock = () => p.tx >= mw(56, 0)[0] && p.tx <= mw(58, 0)[0] && p.ty >= mw(0, 8)[1] && p.ty <= mw(0, 10)[1];
@@ -175,7 +175,7 @@ test("the Gulls' Rock: nothing there to catch a hook, and the cleft lets nobody 
     noErr(HW);
 });
 
-test("the Gulls' Rock: the Needle gives the float a place on the rock; pulled off it, its empty mark is something to hook onto; the gulls' hoard; off by the eel-catcher's post", () => {
+test("the Gulls' Rock: the Needle gives the float a place on the rock; pulled off it, its empty mark is something to hook onto; the gulls' hoard; back by the eel-catcher's post", () => {
     const HW = game('afterD7');
     const a = at(HW, 41, 2), f = a.find('gullFloat'), p = HW.player();
     go(HW, ...mw(57, 5));

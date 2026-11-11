@@ -1,6 +1,7 @@
 /* Presets: game states at the start of each stretch, for the debug panel and the tests. */
 function presetBase(name = 'Wren') {
     Game.newGame(name, { skipIntro: true, area: 'gran_room', x: 6, y: 3 });
+    delete Stats.c.tally;     /* (the play a preset skips was never counted: its tallies don't claim a number, src/80b_tally.js) */
     Script.clear(); Dialog.active = false; UI.fadeA = 0; G.hideHud = false;
     for (const f of ['talkedGran', 'ceremony']) Progress.set(f);
     Inv.items.staff = 1;

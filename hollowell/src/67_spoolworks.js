@@ -386,7 +386,8 @@ defHouse({
             ],
             ents: [
                 { k: 'hatch', x: 16, y: 5 },
-                { k: 'door', x: 2, y: 1, type: 'lock', dir: 'h', id: 'usLock' },
+                /* (the Loft's own lock: only its spare key turns in it, the one kept in the Ropewalk, past the Needle's rooms) */
+                { k: 'door', x: 2, y: 1, type: 'lock', dir: 'h', id: 'usLock', spare: 'rwKey' },
                 { k: 'chest', x: 5, y: 8, item: 'plan', id: 'usPlan' },
                 { k: 'sign', x: 5, y: 4, text: "NORTH: UNDER THE LOFT. Kept locked since the Tangle got into the Loft that time. The spare key's kept in the Ropewalk. -G." },
             ],
@@ -522,9 +523,17 @@ defHouse({
 });
 
 const Spoolworks = {
-    /* (an older save may hold a stitch for the weight that used to stand under the Spool Store: it's gone now, and a
-       stitch for nothing shouldn't take up one of the Needle's three) */
-    build(a) { if (Inv.stitches) Inv.stitches = Inv.stitches.filter(r => !(r.area === 'spoolworks' && r.key === 'usWeight')); },
+    build(a) {
+        /* (an older save may hold a stitch for the weight that used to stand under the Spool Store: it's gone now, and a
+           stitch for nothing shouldn't take up one of the Needle's three) */
+        if (Inv.stitches) Inv.stitches = Inv.stitches.filter(r => !(r.area === 'spoolworks' && r.key === 'usWeight'));
+        /* (the Loft's lock once took any key: a save that spent the Spool Store's key on it, with the Kennel still shut, has
+           no way to the Needle. The Kennel's lock is let go for it instead, as if that's where the key went) */
+        if (Progress.areaFlag('spoolworks', 'door:usLock') && !Progress.areaFlag('spoolworks', 'door:swLockE')) {
+            Progress.setAreaFlag('spoolworks', 'door:swLockE');
+            const d = a.find('swLockE'); if (d) { d.open = true; d.anim = 8; d.openedOnce = true; d.keep = true; }
+        }
+    },
     tick(a) {
         /* under the Winding Hall: the counterweight held off its plate by the boulder home in its way (the boulder stays
            awake from then on) */
@@ -540,6 +549,33 @@ const Spoolworks = {
         /* once through the Practice Floor's door, the Ropewalk's opens; once the Ropewalk's key is taken, its far door */
         if (Progress.areaFlag('spoolworks', 'door:gaGateE')) Signals.set(a, 'paDone');
         if (Progress.areaFlag('spoolworks', 'chest:rwKey')) Signals.set(a, 'rwOut');
+        this.doorsSeen(a);
+    },
+    /* the Practice Floor's plates open a door that's in the Gatehouse, out of sight of the floor and of the rack below:
+       when it opens, the camera goes and looks (the first time at all, and the first time the puppets stay on their
+       plates by themselves, nobody at the rack); and the Ropewalk's door, across the Gatehouse, opens with a chime */
+    doorsSeen(a) {
+        const ge = a.find('gaGateE'), gw = a.find('gaGateW'), p = G.player, r = Cam.room;
+        const opened = ge && ge.open && !this.geOpen, wOpened = gw && gw.open && !this.gwOpen;
+        this.geOpen = !!(ge && ge.open); this.gwOpen = !!(gw && gw.open);
+        if (!p || p.area !== a || !r) return;
+        if (opened && !Progress.areaFlag('spoolworks', 'door:gaGateE') && (r.key === '2,2' || r.key === '2,5')) {
+            const held = !!Crossbar.ctl, first = !Progress.areaFlag('spoolworks', 'paLook'), own = !held && !Progress.areaFlag('spoolworks', 'paLook2');
+            if (first || own) {
+                Progress.setAreaFlag('spoolworks', 'paLook'); if (!held) Progress.setAreaFlag('spoolworks', 'paLook2');
+                Script.run(function* () {
+                    yield 6; Sfx.play('appear');
+                    yield* camLook(ge.tx, ge.ty, 90);
+                    Fx.sparkle(ge.x + 8, ge.y + 8, THREAD.guild);
+                    yield 50;
+                    yield* camBack(90);
+                }, { name: 'paLook' });
+            }
+        }
+        if (wOpened && !Progress.areaFlag('spoolworks', 'paLookW') && r.key === '1,2') {
+            Progress.setAreaFlag('spoolworks', 'paLookW');
+            Sfx.play('appear'); Fx.sparkle(gw.x + 8, gw.y + 8, THREAD.guild); Fx.dust(gw.x + 8, gw.y + 12);
+        }
     },
     /* over the room: the Heart's hoist (and the thread it winds round the trapdoor) */
     drawFront(a, cx, cy) {
@@ -547,6 +583,19 @@ const Spoolworks = {
     },
 };
 SIGNATURE_TEXT.spoolworks = "Burnt into the bench with a hot needle: a little spool, and G.G. Under it, much smaller, much older: L. WAS HERE TOO.";
+
+/* a lock with a key of its own (`spare`: the chest it's kept in): no other key turns in it */
+{
+    const unlock0 = Door.prototype.tryUnlock;
+    Door.prototype.tryUnlock = function (p) {
+        if (this.spare && this.type === 'lock' && !this.open && !Progress.areaFlag(this.area.id, 'chest:' + this.spare)) {
+            Sfx.play('hitthing');
+            UI.toast(Inv.keys(this.area.def.house) > 0 ? "Your key won't turn in this lock. It takes its own: the spare, kept in the Ropewalk." : 'Locked. It takes its own key: the spare, kept in the Ropewalk.', 170);
+            return false;
+        }
+        return unlock0.call(this, p);
+    };
+}
 
 /* bobbins: iron-cored, heavy, slow to go home */
 SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'bobbin', patience: 240 },

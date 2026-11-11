@@ -887,9 +887,11 @@ ITEM_AFTER.gloves = function* () { Progress.set('gotGloves'); };
    A colour script for the House: teal and cream throughout, crimson underfoot, gilt for the trim. Each room papered and
    floored its own way within it: the halls a polished marble chequer under teal damask and white panelling (the
    gallery's walls picture-gallery red); block parquet in the parlour and the library (walnut) and the ballroom (golden
-   oak); white tile over scrubbed flags in the kitchen, limewash in the pantry, slate in the laundry, painted boards in the
+   oak); white tile over quarry tiles in the kitchen, limewash in the pantry, slate in the laundry, painted boards in the
    linen room, walls of glass round the conservatory, bare boards under the attic's rafters. Floors come a slab, a block or
-   two boards to a tile, with soft joints and no speckle, so a mark always sits on one quiet surface. Then a few things in
+   two boards to a tile, with soft joints and no speckle, so a mark always sits on one quiet surface; and every floor's
+   colours are picked to keep the teal thread, its empty mark and its ring of stitches plain on it (the linen room's boards
+   washed lavender, the laundry's slate purple-grey, the conservatory's tiles cream and sandstone). Then a few things in
    each room that say what it is (a range, a piano, a mangle, linen presses...): hung on its walls, laid on its floor
    (TIDY_DRESS, painted into the room's own picture: TidyLook), or standing where something already stood. */
 const TIDY_ROOM_LOOK = { '1,3': 'hall', '0,3': 'kitchen', '2,3': 'gallery', '1,2': 'hall', '0,2': 'pantry', '2,2': 'parlour', '3,2': 'garden',
@@ -910,7 +912,6 @@ const TidyFloor = {
         if (c[4] && v === 0) { px(x, 0, 0, c[4]); px(x, 1, 0, c[4]); px(x, 0, 1, c[4]); px(x, 15, 15, c[5]); px(x, 14, 15, c[5]); px(x, 15, 14, c[5]); }
         fill(x, c[1], 0, 0, 15, 1); fill(x, c[1], 0, 1, 1, 14);
         fill(x, c[2], 0, 15, 16, 1); fill(x, c[2], 15, 0, 1, 15);
-        if (c[6]) { const j = 3 + v * 3; px(x, 1, j, c[6]); px(x, 1, j + 1, c[6]); px(x, 14, 15 - j, c[6]); }
     },
     /* a block of parquet, a tile to itself: four slats laid one way (the next block the other way), soft seams, a short
        grain mark in each slat near its end, the block's joint dark */
@@ -953,9 +954,9 @@ const TIDY_LOOKS = {
     ball: { floor: TidyFloor.block(TF_OAK, false), alt: TidyFloor.block(TF_OAK, true), paper: 'gilt', pc: ['#f2e8d0', '#e6d8b8', '#d9a33a', '#f6d880'], dado: 'cream' },
     kitchen: { floor: TidyFloor.slab(['#e0c79c', '#eed9b4', '#b89c70']), alt: TidyFloor.slab(['#b35c40', '#c8745a', '#86402c']), paper: 'tile', pc: ['#f3efe4', '#cfc7b6', '#ffffff', '#5fb7a8', '#3c8a80'] },
     pantry: { floor: TidyFloor.slab(['#c9b894', '#dacba8', '#a08c68', '#bead88']), paper: 'lime', pc: ['#ece3cf', '#e2d8c2', '#f4ecdc'], dado: 'paint' },
-    laundry: { floor: TidyFloor.slab(['#9ba6aa', '#b6c1c4', '#6e797e', null, '#88949a', '#5f6a70', '#d0e0e6']), paper: 'tile', pc: ['#e9eff0', '#c2cbcc', '#ffffff', '#5fb7a8', '#3c8a80'] },
-    linen: { floor: TidyFloor.boards({ dir: 'v', tone: ['#9fb0bc', '#98aab6', '#a5b5c0'], hi: '#b9c8d2', seam: '#7a8b9c', nail: '#5e6e80' }), paper: 'ticking', pc: ['#efe6d4', '#8a9cc0', '#b8c4dc'], dado: 'paint' },
-    garden: { floor: TidyFloor.slab(['#e4e0c8', '#f0ecda', '#b8b498', null, '#c0704a', '#c0704a']), alt: TidyFloor.slab(['#a9bc94', '#bccca8', '#839a70', null, '#c0704a', '#c0704a']), paper: 'glass', pc: ['#d2ece8', '#aed6a6', '#eef2ea', '#6aa060', '#c8ccc0'] },
+    laundry: { floor: TidyFloor.slab(['#968e9e', '#aea6b6', '#6e6878']), paper: 'tile', pc: ['#e9eff0', '#c2cbcc', '#ffffff', '#5fb7a8', '#3c8a80'] },
+    linen: { floor: TidyFloor.boards({ dir: 'v', tone: ['#a89aae', '#a394a9', '#ad9fb3'], hi: '#bcb0c4', seam: '#8a7c92', nail: '#7a6c82' }), paper: 'ticking', pc: ['#efe6d4', '#8a9cc0', '#b8c4dc'], dado: 'paint' },
+    garden: { floor: TidyFloor.slab(['#e4e0c8', '#f0ecda', '#b8b498', null, '#c0704a', '#c0704a']), alt: TidyFloor.slab(['#bca088', '#ccb39c', '#967c66', null, '#c0704a', '#c0704a']), paper: 'glass', pc: ['#d2ece8', '#aed6a6', '#eef2ea', '#6aa060', '#c8ccc0'] },
     attic: { floor: TidyFloor.boards({ dir: 'h', tone: ['#b8946a', '#b08c62', '#bf9b70'], hi: '#ccac82', seam: '#7e5e3c', nail: '#5e4430' }), paper: 'plaster', pc: ['#d8ccb4', '#cec1a8', '#e2d8c4'], dado: 'plain' },
 };
 const TidyWall = {

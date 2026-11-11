@@ -39,6 +39,6 @@ test('every Heart Patch is found, and the design document and SPOILERS.md give t
     assert.equal(new Set(ids).size, ids.length, 'no two patches share an id');
     const dd = fs.readFileSync(path.join(ROOT, 'DESIGN_DOCUMENT.md'), 'utf8'), sp = fs.readFileSync(path.join(ROOT, 'SPOILERS.md'), 'utf8');
     const said = (re, s) => { const m = re.exec(s); return m ? +m[1] : null; };
-    assert.equal(said(/(\d+) patches in the world/, dd), h.total, `DESIGN_DOCUMENT.md §5 (the game has ${h.total})`);
+    assert.equal(said(/(\d+)\s+patches in the world/, dd), h.total, `DESIGN_DOCUMENT.md §5 (the game has ${h.total})`);
     assert.equal(said(/\*\*Heart Patches\*\* \((\d+) total\b/, sp), h.total, `SPOILERS.md item 36 (the game has ${h.total})`);
 });
