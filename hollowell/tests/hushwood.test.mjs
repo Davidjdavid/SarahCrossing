@@ -59,57 +59,143 @@ test('bouncy moss hops Wren over the stream to the Slumberhouse and back (its do
 });
 
 /* the garden: Mallow's three Snorelings asleep in the meadow; three cradles in the hedge along the stream's south bank,
-   a puffball west of each. They follow Wren; a cradle with somebody in it lets nobody else in; a puffball's spores put
-   whoever's in reach to sleep where they stand. All three asleep in the cradles, the door opens */
+   a puffball west of each, and over the door a lamp for each, on a cord to it. Snorelings keep the same rule here as in the
+   House: woken, they follow Wren a while, then lie down in the nearest bed they can get to (their own spot, a cradle nobody's
+   in, the Bedroll); a cradle with somebody in it lets nobody else in; a puffball's spores put whoever's in reach to sleep
+   where they stand. Somebody asleep in each cradle, the door opens */
 const ids = ['nuSnoreA', 'nuSnoreB', 'nuSnoreC'];
 const cradled = (HW, c) => ids.map(i => HW.G.map.find(i)).find(e => e.tx === hw(c, 0)[0] && e.ty === hw(0, 14)[1]);
+const asleepIn = (HW, c) => HW.G.map.ents.some(e => e.type === 'snoreling' && e.alive && e.mode === 'sleep' && e.tx === hw(c, 0)[0] && e.ty === hw(0, 14)[1]);
 const north = HW => { const p = HW.player(); go(HW, ...hw(12, 16)); HW.hold('up'); until(HW, () => p.ty <= hw(0, 11)[1] && p.state === 'normal', 120); HW.release(); HW.step(4); };
-const south = HW => { const p = HW.player(); go(HW, ...hw(11, 11)); HW.hold('left'); until(HW, () => p.ty >= hw(0, 15)[1] && p.state === 'normal', 120); HW.release(); HW.step(4); };
+const south = HW => { const p = HW.player(); go(HW, ...hw(11, 11)); HW.hold('left'); until(HW, () => p.ty >= hw(0, 15)[1] && p.state === 'normal', 120); HW.release(); HW.step(4); go(HW, ...hw(10, 17)); };
+/* walk to and fro beside a sleeper (on row y) till it stirs: treading near wakes it */
+const stir = (HW, id, y) => { const e = HW.G.map.find(id), x = e.tx - 128; for (let i = 0; i < 30 && e.mode === 'sleep'; i++) go(HW, ...hw(x + (i % 2 ? 1 : -1), y)); return e.mode !== 'sleep'; };
 const puff = (HW, c) => { go(HW, ...hw(c - 1, 11)); HW.face('down'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); HW.step(70); };
 const intoSlumber = HW => { go(HW, ...hw(19, 10)); go(HW, ...hw(19, 9)); HW.hold('up'); HW.step(40); HW.release(); HW.step(30); };
 export function gardenByBell(HW) {
-    /* rung from the west end of the north bank they all come; walked along to the far cradle, they file in behind, one
-       to a cradle; put down from the far end back, each cloud only reaches its own */
+    /* rung from the north bank by the far cradles, the two nearest wake and come, pressing into the cradles under her (the
+       only way toward her over the water); done chasing, each lies down in the bed it's standing in. The third, too far off
+       to hear, is woken by treading near it and led round to the first cradle, where it gives up and lies down too */
     north(HW);
-    go(HW, ...hw(13, 11));
+    go(HW, ...hw(20, 11));
     HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(10);
     go(HW, ...hw(24, 11));
-    until(HW, () => [16, 20, 24].every(c => cradled(HW, c)), 900);
-    for (const c of [24, 20, 16]) puff(HW, c);
+    assert.ok(until(HW, () => asleepIn(HW, 20) && asleepIn(HW, 24), 900), 'two asleep in the far cradles');
+    south(HW);
+    assert.ok(stir(HW, 'nuSnoreA', 16), 'the third woken');
+    north(HW); go(HW, ...hw(16, 11));
+    assert.ok(until(HW, () => asleepIn(HW, 16), 900), 'and asleep in the first');
 }
-test('the garden: rung awake from across the stream, they file into the cradles; put down one by one, the door opens', () => {
+test('the garden: rung awake from across the stream, two come and lie down in the far cradles; the third led to the first; the door opens', () => {
     const HW = inWood();
     const S = HW.global('Signals'), a = HW.G.map;
     gardenByBell(HW);
     assert.ok(['nuA', 'nuB', 'nuC'].every(s => S.get(a, s)), 'three asleep in three cradles');
     assert.ok(ids.every(i => a.find(i).mode === 'sleep'));
+    assert.ok(['nuPuffA', 'nuPuffB', 'nuPuffC'].every(i => a.find(i).state === 'ripe'), '(no puffball needed)');
     intoSlumber(HW);
     assert.equal(HW.G.map.id, 'slumber', 'the door open');
     assert.ok(HW.Progress.flag('slumber_open'), 'and open to her from now on');
     noErrors(HW);
 });
-test('the garden, the other way: woken one at a time by walking near; each into the first free cradle', () => {
+test('the garden, the other way: woken one at a time by treading near; each led to a free cradle and left to give up there', () => {
     const HW = inWood();
-    const S = HW.global('Signals'), a = HW.G.map, sn = i => a.find(i);
-    const inCradle = e => [16, 20, 24].includes(e.tx - 128) && e.ty === hw(0, 14)[1];
-    const free = () => [16, 20, 24].filter(c => !S.get(a, { 16: 'nuA', 20: 'nuB', 24: 'nuC' }[c]));
-    go(HW, ...hw(12, 16)); north(HW);
-    for (let round = 0; round < 8 && free().length; round++) {
-        if (!ids.some(i => sn(i).mode !== 'sleep')) {
-            /* (one asleep anywhere but a cradle: over the stream, and walk about near it till it stirs) */
-            const e = ids.map(sn).find(m => !inCradle(m)), x = e.tx - 128, y = Math.max(16, e.ty - 40 + 2);
-            south(HW); go(HW, ...hw(10, 17)); go(HW, ...hw(12, 18));
-            for (let i = 0; i < 30 && e.mode === 'sleep'; i++) go(HW, ...hw(x + (i % 2 ? 1 : -1), y));
-            go(HW, ...hw(12, 17)); north(HW);
-        }
-        go(HW, ...hw(free()[0], 11));
-        const inFree = () => ids.map(sn).find(e => e.mode !== 'sleep' && e.ty === hw(0, 14)[1] && free().includes(e.tx - 128));
-        until(HW, () => !!inFree(), 900);
-        const e = inFree(); if (e) puff(HW, e.tx - 128);
+    const S = HW.global('Signals'), a = HW.G.map;
+    north(HW);
+    /* the first two led round by the moss and along the far bank: each slips into the first free cradle under her */
+    for (const [id, c, y] of [['nuSnoreA', 16, 17], ['nuSnoreB', 20, 18]]) {
+        south(HW);
+        assert.ok(stir(HW, id, y), id + ' woken (from the row behind it: the one asleep in a cradle sleeps on)');
+        north(HW); go(HW, ...hw(c, 11));
+        assert.ok(until(HW, () => asleepIn(HW, c), 900), id + ' asleep in cradle ' + c);
     }
+    /* the third needn't go round: led along this bank to beside the last cradle, it lies down in it when it gives up */
+    south(HW); go(HW, ...hw(18, 18));
+    assert.ok(stir(HW, 'nuSnoreC', 18), 'the third woken');
+    for (let i = 0; i < 12 && !asleepIn(HW, 24); i++) { go(HW, ...hw(26, 17)); go(HW, ...hw(26, 15)); }
+    assert.ok(until(HW, () => asleepIn(HW, 24), 900), 'asleep in the last');
     assert.ok(['nuA', 'nuB', 'nuC'].every(s => S.get(a, s)), 'all three');
+    go(HW, ...hw(12, 18)); north(HW);
     intoSlumber(HW);
     assert.equal(HW.G.map.id, 'slumber');
+    noErrors(HW);
+});
+test('the garden: the puffballs still put one down where it stands, in a cradle at once, if you would rather not wait', () => {
+    const HW = inWood();
+    const a = HW.G.map;
+    north(HW); go(HW, ...hw(20, 11));
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(10);
+    go(HW, ...hw(24, 11));
+    assert.ok(until(HW, () => { const e = cradled(HW, 24); return e && e.mode !== 'sleep'; }, 400), 'one awake in the far cradle, still after her');
+    puff(HW, 24);
+    assert.ok(asleepIn(HW, 24), 'asleep there now');
+    noErrors(HW);
+});
+/* (the blind solver's findings, round B: one law everywhere, and the door's link to its cradles seen) */
+test("the House's rule in the wood: woken and followed, a Snoreling done chasing lies down in the nearest bed it can get to, a cradle as soon as its own spot", () => {
+    const HW = inWood();
+    const a = HW.G.map, e = a.find('nuSnoreB');
+    north(HW); south(HW); go(HW, ...hw(16, 18));
+    assert.ok(stir(HW, 'nuSnoreB', 18), 'woken');
+    north(HW); go(HW, ...hw(16, 11));
+    assert.ok(until(HW, () => e.mode === 'sleep', 1200), 'it gave up in good time (as quick as the ones in the House)');
+    assert.deepEqual([e.tx, e.ty], hw(16, 14), 'in the cradle it was standing in, not back in its own spot');
+    assert.ok(['nuPuffA', 'nuPuffB', 'nuPuffC'].every(i => a.find(i).state === 'ripe'), 'no puffball had a hand in it');
+    /* led nowhere near a cradle, it goes back to its own spot */
+    const c = a.find('nuSnoreC');
+    south(HW); go(HW, ...hw(18, 18));
+    assert.ok(stir(HW, 'nuSnoreC', 18), 'another woken');
+    go(HW, ...hw(12, 20)); go(HW, ...hw(4, 20));
+    assert.ok(until(HW, () => c.mode === 'sleep', 1200), 'gave up');
+    assert.deepEqual([c.tx, c.ty], hw(20, 16), 'and back to its own spot, the nearest bed from where it was');
+    noErrors(HW);
+});
+test('the road in: one asleep in the road wakes as you pass, follows a while, and lies down in a bed that is not its own', () => {
+    const HW = inWood();
+    const a = HW.G.map, e = a.find('hwSnore1');
+    assert.ok(HW.G.map.kind(e.tx, e.ty) === HW.G.map.kind(...hw(4, 20)) && e.mode === 'sleep', 'asleep in the road');
+    /* (the giant gone, walked in from town along the road, and stopped at the turn up to the moss) */
+    HW.warp('hollow', ...hw(0, 20)); HW.step(10);
+    go(HW, ...hw(6, 20)); go(HW, ...hw(12, 19));
+    assert.ok(e.mode !== 'sleep', 'it woke as she went by');
+    assert.ok(until(HW, () => e.mode === 'sleep', 1200), 'and gave up after a while');
+    assert.deepEqual([e.tx, e.ty], hw(13, 21), 'in the cradle by the road');
+    /* led on over the moss instead, it's a garden cradle it lies down in (and its lamp lights over the door) */
+    const H2 = inWood(), e2 = H2.G.map.find('hwSnore1');
+    H2.warp('hollow', ...hw(0, 20)); H2.step(10);
+    go(H2, ...hw(6, 20)); go(H2, ...hw(12, 19)); north(H2); go(H2, ...hw(19, 10));
+    assert.ok(until(H2, () => e2.mode === 'sleep', 1200), 'gave up');
+    assert.deepEqual([e2.tx, e2.ty], hw(16, 14), 'in the first garden cradle');
+    assert.ok(H2.global('Signals').get(H2.G.map, 'nuA'), 'which counts');
+    noErrors(HW); noErrors(H2);
+});
+test("the door's three lamps: one for each cradle, on a cord to it, lit while somebody's in it", () => {
+    const HW = inWood();
+    HW.warp('hollow', ...hw(19, 11)); HW.step(30);
+    const a = HW.G.map, G = HW.global('Gfx'), Game = HW.global('Game');
+    const lamps = () => {
+        const lit = [], dark = [], c0 = G.circle;
+        G.circle = function (x, y, r, col) { if (r === 3 && col === '#f7e08a') lit.push(x); if (r === 3 && col === '#5a4a8a') dark.push(x); return c0.apply(this, arguments); };
+        try { Game.render(); } finally { G.circle = c0; }
+        return [lit.length, dark.length];
+    };
+    assert.deepEqual(lamps(), [0, 3], 'three dark lamps over the shut door');
+    const put = (id, c) => { const e = a.find(id); e.x = hw(c, 0)[0] * 16 + 8; e.y = hw(0, 14)[1] * 16 + 10; };
+    put('nuSnoreB', 20); HW.step(3);
+    assert.deepEqual(lamps(), [1, 2], 'one lit for the cradle with somebody in it');
+    put('nuSnoreA', 16); put('nuSnoreC', 24); HW.step(3);
+    assert.deepEqual(lamps(), [3, 0], 'all three');
+    noErrors(HW);
+});
+test("nobody gives the step away: Hettie, the Moonwalk's sign and Pillow Fort's say how things are, not what to do", () => {
+    const HW = inWood();
+    const hettie = String(HW.global('TALK').hettie);
+    assert.ok(!/any bed|not fussy/i.test(hettie), "Hettie doesn't say any bed will do");
+    HW.warp('slumber', 29, 42); HW.step(10); HW.skipTalk();
+    const signs = HW.G.map.ents.filter(e => e.kind === 'sign').map(e => e.text).join(' / ');
+    assert.ok(signs.includes('PILLOW FORT') && signs.includes('THE MOONWALK'), 'both signs there');
+    assert.ok(!/ANY bed/.test(signs), "Pillow Fort's sign doesn't say any bed");
+    assert.ok(!/walked it in time/.test(signs), "the Moonwalk's sign doesn't say walking won't do");
     noErrors(HW);
 });
 test('the garden: a cradle feels whoever is in it, Wren too, and lets nobody else in', () => {

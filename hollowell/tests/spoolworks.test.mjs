@@ -309,7 +309,11 @@ test('under the Spool Store: the way north is locked; the key from the Ropewalk 
     enter(HW, 'ustore', 2, 5);
     go(HW, 'ustore', 2, 2); HW.hold('up'); HW.step(30); HW.release(); HW.step(5);
     assert.deepEqual(here(HW, 'ustore'), [2, 2], 'locked');
+    /* (the Loft's own lock: only its spare, the Ropewalk's, turns in it) */
     HW.Inv.keyCount.spoolworks = 1;
+    HW.hold('up'); HW.step(60); HW.release(); HW.step(5);
+    assert.ok(HW.Inv.keys('spoolworks') === 1 && !thing(HW, 'usLock').open, 'any other key won\'t');
+    HW.Progress.setAreaFlag('spoolworks', 'chest:rwKey');
     HW.hold('up'); HW.step(60); HW.release(); HW.step(5);
     assert.equal(HW.Inv.keys('spoolworks'), 0, 'the key used');
     go(HW, 'uloft', 2, 9);

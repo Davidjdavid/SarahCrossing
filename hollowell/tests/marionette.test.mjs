@@ -182,6 +182,46 @@ test("the trap room: step the understudies off their stands, then hook the empty
     noErrors(HW);
 });
 
+/* (the blind solver's findings, round B: a person needs time to let go, change hands and aim; and a thing coming home
+   never lands on Wren as she's reeled onto its stand) */
+test('the trap room at a person\'s pace: let go, a few seconds to change to the Hookline and aim, and both stands are still empty to catch', () => {
+    const HW = game(['crossbar']);
+    enter(HW, 'traps', 14, 1);
+    const p = HW.player(), hookDone = () => p.state === 'normal' && !HW.global('TOOLS').hook.h;
+    go(HW, 'traps', 9, 2); HW.Inv.equipped = 'crossbar'; HW.face('right'); HW.press('tool', 1); HW.step(2);
+    strings(HW, 'LLL');
+    HW.press('tool', 1); HW.step(2);
+    assert.ok(!HW.global('Crossbar').ctl, 'let go');
+    /* two and a half seconds to think, change hands, face the island (an understudy used to wait two) */
+    HW.step(150); HW.Inv.equipped = 'hook'; HW.face('down'); HW.press('tool', 1); until(HW, hookDone, 120);
+    assert.deepEqual(here(HW, 'traps'), [9, 5], 'the island stand was still empty');
+    HW.step(60); go(HW, 'traps', 10, 5); HW.step(40); HW.face('down'); HW.press('tool', 1); until(HW, hookDone, 120);
+    assert.deepEqual(here(HW, 'traps'), [10, 8], 'and so was the far one');
+    go(HW, 'traps', 14, 8); HW.face('down'); HW.press('act', 1); HW.skipTalk();
+    assert.ok(HW.Inv.hasPattern('marionette'), 'the Pattern');
+    noErrors(HW);
+});
+
+test('the trap room: an understudy starting home as Wren is reeled onto its stand waits behind her (whatever the timing, never on her tile)', () => {
+    for (let left = 0; left <= 40; left += 2) {
+        const HW = game(['crossbar']);
+        enter(HW, 'traps', 14, 1);
+        const a = HW.G.map, p = HW.player(), u = thing(HW, 'trP2'), hookDone = () => p.state === 'normal' && !HW.global('TOOLS').hook.h;
+        /* Wren on the island (put there); the far understudy a step off its stand with `left` frames of patience to go */
+        [p.x, p.y] = [at('traps', 10, 5)[0] * 16 + 8, at('traps', 10, 5)[1] * 16 + 10]; HW.step(2);
+        a.unplace(u, u.tx, u.ty); [u.tx, u.ty] = at('traps', 9, 8); u.x = u.tx * 16; u.y = u.ty * 16; a.place(u, u.tx, u.ty);
+        u.ret.trace = [at('traps', 10, 8), at('traps', 9, 8)]; u.ret.state = 'away'; u.ret.timer = left;
+        HW.face('down'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); until(HW, hookDone, 120); HW.step(20);
+        const [wx, wy] = here(HW, 'traps');
+        assert.ok(!(u.tx === p.tx && u.ty === p.ty), `${left}: never on one tile (Wren ${wx},${wy})`);
+        if (wy === 8) {
+            assert.ok(HW.walkTo(...at('traps', 12, 8)), `${left}: she walks off the stand`);
+            assert.ok(until(HW, () => HW.Return.isHome(u), 200), `${left}: and it goes home behind her`);
+        } else assert.ok(HW.Return.isHome(u) || u.ret.state === 'returning', `${left}: home first, so the hook bounced off it`);
+        noErrors(HW);
+    }
+});
+
 test('the trap room, stepped the wrong way: the far stand is out of line from the island; a fall home, and try again', () => {
     const HW = game(['crossbar']);
     enter(HW, 'traps', 14, 1);

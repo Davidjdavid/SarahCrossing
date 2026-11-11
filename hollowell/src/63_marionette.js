@@ -378,11 +378,13 @@ defHouse({
             ],
             ents: [
                 { k: 'rack', x: 10, y: 2, group: 'trap', id: 'trRack', hookable: false },
-                { k: 'puppet', x: 9, y: 5, id: 'trP1', group: 'trap' }, { k: 'puppet', x: 10, y: 8, id: 'trP2', group: 'trap' },
+                /* understudies wait longer than most (7 s: the ring round each empty stand shows it unpicking), so stepping
+                   them off, changing hands and hooking both stands is a matter of seeing it, not of quick thumbs */
+                { k: 'puppet', x: 9, y: 5, id: 'trP1', group: 'trap', patience: 420 }, { k: 'puppet', x: 10, y: 8, id: 'trP2', group: 'trap', patience: 420 },
                 { k: 'mhpattern', x: 14, y: 9, id: 'trPattern', big: true },
                 { k: 'deco', x: 2, y: 2, look: 'trapwinch', solid: [[0, 0], [1, 0]], text: 'The winch that works the traps, chained off. A label: OILING. DO NOT WIND. -J.' },
                 { k: 'deco', x: 16, y: 9, look: 'sandbags', solid: [[0, 0], [1, 0]] },
-                { k: 'sign', x: 17, y: 2, text: 'THE TRAP ROOM. Every trapdoor in the stage, propped open for oiling. Mind your feet. The understudies wait on their marks across the way.' },
+                { k: 'sign', x: 17, y: 2, text: 'THE TRAP ROOM. Every trapdoor in the stage, propped open for oiling. Mind your feet. The understudies wait on their marks across the way. (Understudies are used to waiting.)' },
             ],
             nudge: { solved: () => Inv.hasPattern('marionette'), after: 60 * 60 * 3, at: [9, 5], say: "The Hookline bounces off a puppet. But a puppet's stand is a mark like any other, and an empty mark is something to catch on." },
         },
