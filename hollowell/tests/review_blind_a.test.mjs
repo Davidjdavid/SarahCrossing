@@ -144,3 +144,31 @@ test('the Practice Floor: its plates open a door out of sight, in the Gatehouse;
     assert.ok(HW.find('gaGateW').open && HW.Progress.areaFlag('spoolworks', 'paLookW'), 'the Ropewalk\'s door opens, heard and seen');
     noErrors(HW);
 });
+
+/* ---------------- 4: the Airing Cupboard's timing; the Bell's reach, drawn ---------------- */
+test('the Airing Cupboard: rung from across the room, out of the block\'s hearing, at a person\'s pace (a second to spare and more)', () => {
+    const HW = spool(); inSpool(HW, 'tidy', 17, 5);
+    const A = HW.find('gsTBlock'), B = HW.find('gsTMangle');
+    assert.ok(HW.walkTo(...gs('tidy', 17, 3))); HW.push('left', 2); HW.step(5);
+    assert.ok(HW.walkTo(...gs('tidy', 14, 2))); HW.push('down', 4); HW.step(5);
+    assert.deepEqual([A.tx, A.ty], gs('tidy', 14, 7), 'the block in the slot, on the plate');
+    assert.ok(HW.walkTo(...gs('tidy', 6, 5)), 'across the room');
+    HW.step(60);                                              /* (a second's dither) */
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(240);
+    assert.deepEqual([B.tx, B.ty], gs('tidy', 14, 6), 'the mangle home on top of the slot');
+    assert.deepEqual([A.tx, A.ty], gs('tidy', 14, 7), 'the block waits under it');
+    assert.ok(HW.find('gsTGate').open, 'the gate');
+    noErrors(HW);
+});
+
+test('the Bell: a ring shows its reach, a ring at exactly its range that holds a moment (and stops at the room\'s walls)', () => {
+    const HW = spool(); inSpool(HW, 'tidy', 6, 5);
+    const Bells = HW.global('Bells'), G = HW.G;
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(2);
+    const f = G.ringFx;
+    assert.ok(f && f.r === Bells.REACH * 16 + 4, 'drawn at its reach');
+    assert.ok(f.room && f.room.name === 'The Airing Cupboard', 'within its room');
+    for (let i = 0; i < 40; i++) Bells.drawFx(0, 0);
+    assert.ok(G.ringFx === f, 'still there to be read after two thirds of a second');
+    noErrors(HW);
+});

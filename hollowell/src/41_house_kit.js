@@ -93,14 +93,56 @@ const Knots = {
             p.state = 'hold';
             yield* say(null, `You tied the ${a.def.knotName || 'Knot'}! ` + KNOT_LINES[Inv.knots.length - 1]);
             G.holdUp = null; p.state = 'normal';
-            yield* say(null, WELL_CREAKS[Math.min(Inv.knots.length, WELL_CREAKS.length) - 1]);
+            yield* Knots.winch();
             G.hideHud = false;
             if (a.def.afterKnot) yield* a.def.afterKnot();
             Save.autosave();
         };
     },
+    /* then, far away, the Well's winch turns a notch by itself, and the Knot's thread winds on beside the others: a moment's
+       picture, no words (Gundry: "turns by itself some nights"). It times itself, so a load in the middle can't leave it up. */
+    *winch() {
+        G.winch = { t0: G.t, n: Inv.knots.length, knots: Inv.knots.slice() };
+        for (let t = 0; t < WINCH_T; t++) {
+            if (t === WINCH_NOTCH) { Sfx.play('winch'); if (G.winch.n >= KNOT_LINES.length) { Sfx.play('rumble'); G.shake = 3; } }
+            yield 1;
+        }
+        G.winch = null;
+    },
+    drawWinch() {
+        const c = G.winch, t = c ? G.t - c.t0 : WINCH_T;
+        if (t < 0 || t >= WINCH_T) { G.winch = null; return; }
+        const w = 112, h = 76, x = (W - w) >> 1, y = 22, n = c.n;
+        const turn = clamp((t - WINCH_NOTCH) / 10, 0, 1), ease = turn * turn * (3 - 2 * turn);
+        Gfx.alpha(t < 10 ? t / 10 : t > WINCH_T - 16 ? (WINCH_T - t) / 16 : 1);
+        stitchedBox(x - 2, y - 2, w + 4, h + 4, { fill: '#1a1828', stitch: '#3e3a58', shadow: '#141220' });
+        for (let i = 0; i < 12; i++) Gfx.rect(x + 6 + Math.floor(hash2(i, 5, 71) * (w - 12)), y + 4 + Math.floor(hash2(5, i, 72) * 14), 1, 1, i % 3 ? '#7a76a0' : '#d8d4f0');
+        /* the Well: its stone side, its rim, the dark inside */
+        for (let j = 0; j < 16; j++) for (let i = 0; i < 76; i += 2) Gfx.rect(x + 18 + i, y + 54 + j, 2, 1, (j % 4 === 3 || (i + (j >> 2) * 4) % 12 === 0) ? '#5e5648' : ((i >> 3) + (j >> 2)) % 2 ? '#a89a86' : '#94877a');
+        Gfx.rect(x + 16, y + 50, 80, 4, '#cfc3ae'); Gfx.rect(x + 22, y + 51, 68, 2, '#0c0a10');
+        /* the posts and the drum between them */
+        for (const px of [22, 86]) { Gfx.rect(x + px, y + 12, 4, 40, '#7a4e32'); Gfx.rect(x + px, y + 12, 2, 40, '#9a6438'); }
+        Gfx.rect(x + 26, y + 22, 60, 10, '#c9925a'); Gfx.rect(x + 26, y + 22, 60, 1, '#e6c08a'); Gfx.rect(x + 26, y + 31, 60, 1, '#8a5a38');
+        /* a band of thread on the drum for each Knot, in its House's colour, running down into the dark; the newest winds
+           on as the winch turns */
+        const quiver = n >= KNOT_LINES.length && turn >= 1 ? Math.round((Math.random() - 0.5) * 1.6) : 0;
+        for (let i = 0; i < n; i++) {
+            const col = KNOT_THREAD[c.knots[i]] || THREAD.town, bx = x + 30 + i * 8, bw = i === n - 1 ? Math.round(7 * ease) : 7;
+            if (bw <= 0) continue;
+            for (let r = 0; r < 12; r++) Gfx.rect(bx, y + 21 + r, bw, 1, (r + Math.floor(ease * 4)) % 2 ? shade(col, -0.2) : shade(col, 0.15));
+            Gfx.line(bx + 3, y + 33, bx + 3 + quiver, y + 51, col);
+        }
+        /* the crank on the right-hand post, turned a notch by nobody, and the pawl that clicks */
+        const hx = x + 92, hy = y + 27, an = -Math.PI / 2 + (n - 1 + ease) * Math.PI / 4;
+        Gfx.line(hx, hy, hx + Math.round(Math.cos(an) * 9), hy + Math.round(Math.sin(an) * 9), '#45281c');
+        Gfx.rect(hx + Math.round(Math.cos(an) * 9) - 1, hy + Math.round(Math.sin(an) * 9) - 1, 3, 3, '#6b4128');
+        Gfx.rect(hx - 1, hy - 1, 3, 3, '#3a3440');
+        Gfx.rect(hx - 1, hy - 4 + (turn > 0 && turn < 1 ? 1 : 0), 1, 2, '#8a8096');
+        Gfx.alpha(1);
+    },
     /* every thread in the House streaming into the hoop (drawn over the room) */
     draw(cx, cy) {
+        if (G.winch) this.drawWinch();
         const t = G.knotFx; if (!t) return;
         const p = G.player;
         const tx = p.x - cx, ty = p.y - cy - 20;
@@ -112,14 +154,11 @@ const Knots = {
         Gfx.alpha(Math.min(0.6, t / 160)); Gfx.rect(0, 0, W, H, '#fff6e0'); Gfx.alpha(1);
     },
 };
-const WELL_CREAKS = [
-    'Far away, at the bottom of the Hollow, the Well creaks once, like a winch taking up slack.',
-    'Far away, the Well creaks again, a little longer this time.',
-    'Somewhere a long way under your feet, something winds one turn tighter. The Well creaks.',
-    'The Well creaks. This time you could swear you felt it, in your chest, like a stitch pulled snug.',
-    'The Well creaks, long and slow, and for a moment every thread in the room leans the same way: home.',
-    'Far off, the Well gives a groan like a rope at full stretch. Then it is quiet. Very quiet.',
-];
+/* the winch's moment after a Knot: how long, and when it turns; each Knot's thread on its drum is its House's colour */
+const WINCH_T = 100, WINCH_NOTCH = 34;
+const KNOT_THREAD = { tidy: THREAD.ives, kiln: THREAD.bram, mill: THREAD.ambrose, belfry: THREAD.tess, slumber: THREAD.mallow, marionette: THREAD.jory };
+/* (a winch taking up a notch: a long wooden creak, then the pawl's click) */
+SFX.winch = (o, t) => { Audio.tone(o, t, 150, 0.4, 'p25', 0.06, { slide: 95 }); Audio.hit(o, t + 0.3, 0.05, 0.2, 1500, 6000); Audio.tone(o, t + 0.3, 240, 0.05, 'p50', 0.1); };
 const KNOT_LINES = [
     'One Knot of six. You feel steadier, somehow, as if the ground under you had been pinned down a little tighter.',
     'Two Knots of six.', 'Three Knots of six.', 'Four Knots of six.', 'Five Knots of six.', 'Six Knots! The Wander is nearly done.',
