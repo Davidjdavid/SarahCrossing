@@ -275,7 +275,14 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   count at the Spool).
 - Fix round B done (fixB_brief.md; suite 626/626 at its finish; LEG2, LEG5, LEG6, LEG8 play with the probe on).
   Running now: the signature chain (chain_brief.md: P9, the fifth House's Long Way Home).
-- Running: P10 "Make one", the Makings' capstone (a Little House Wren sets out and Tuck walks, graded by the existing
+- Done too: P10 "Make one" (src/68c_makings_capstone.js, Little House 9: Wren sets out an empty Little House with her
+  own tools, hides the button, lets Tuck in; the existing Aha grading; at most three Makers react to what really
+  happened; Jory's first-finish line pays off his Reveal 1 promise; can't strand the act; resets on demand; S30 now
+  wants all nine; tests/capstone.test.mjs, 19) and P7 (the quilt: a count with no total, observation-only secrets
+  off it, finds noticed while Gran is shut in); the Ballroom memo says which solution the player really used.
+- Running now too: inference for the two late bosses (latebosses_brief.md: the Weaver's beat 1 read four ways, the
+  Tangle's beat 3 failing informatively).
+- Running (earlier line, for the record): P10 "Make one", the Makings' capstone (a Little House Wren sets out and Tuck walks, graded by the existing
   Ahas; pays off Jory's line; the Making 5 memo says which solution she really used) with P7 (the quilt) in
   capstone_brief.md.
 - Running (earlier line kept for the record): AI blind solver B; what's owed (owed_brief.md); dressing for Houses 1 and 2 (dressing_brief.md); fix round A
