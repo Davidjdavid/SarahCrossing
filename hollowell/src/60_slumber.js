@@ -565,9 +565,9 @@ const Dreams = {
             Sfx.play('appear');
             const first = !Progress.flag('slumber_dreamt');
             Progress.set('slumber_dreamt');
-            /* (the third lit, but never all three on one way home: said, so three lamps aren't taken for the Pattern) */
+            /* (the third lit, but never all three on one way home: said as it's seen, so three lamps aren't taken for the Pattern) */
             const all = this.ROOMS.every(r => this.latched(r));
-            G.pendingToast = all ? 'The last night-light comes on. All three burn now, but apart: they were never dreamt on one way home.' : first ? 'A good dream, all the way home. Somewhere in the House a night-light comes on, and stays on.' : 'Another good dream: another night-light comes on, and stays on.';
+            G.pendingToast = all ? 'The last night-light comes on. All three burn now, each on its own.' : first ? 'A good dream, all the way home. Somewhere in the House a night-light comes on, and stays on.' : 'Another good dream: another night-light comes on, and stays on.';
         }
     },
     /* a little lamp on a bracket: cold glass till its room is dreamt, then lit for good (a flare for a while after a flight

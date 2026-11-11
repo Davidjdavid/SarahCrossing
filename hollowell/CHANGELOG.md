@@ -175,3 +175,13 @@
 - The late game's writing trimmed: fewer lines, each about what someone is doing rather than what it all meant.
 - A puzzle that spans a whole House; two late bosses that want working out; a capstone to the middle of the game.
 
+
+## 2026-11-11 (polish campaign, continued)
+- Words on screen keep out of the way: notices and place names take the side that hides least, never pile up, wait
+  while a scene talks and stay in the place they belong to; in scenes the view leans so the hero and whatever the
+  line is about both show; floating words stay on screen on a backing; long lines break at natural pauses.
+- A long puzzle now shows the way you've walked as you go, and a near miss no longer looks like the real thing.
+- Fixed: a resting place forgotten when a save was loaded; a button press lost during a drop; a catch missed one
+  step into a move; a stale journal goal; creatures following through doorways; a tool heard in the next room.
+- Options: a grip can be held or toggled, so nothing needs two buttons under one thumb on a controller.
+- A room that can be played again says so after the first time.

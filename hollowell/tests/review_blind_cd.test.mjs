@@ -130,7 +130,7 @@ test("the night-lights over the doors: lit on different ways home, all three bur
     const D = HW.global('Dreams');
     assert.ok(['linen', 'kitchen', 'laundry'].every(r => D.latched(r)), 'all three lit');
     assert.ok(!HW.Progress.flag('slumber_longway'), 'no Pattern');
-    assert.match(said(HW), /All three burn now, but apart: they were never dreamt on one way home\./, 'and it says so');
+    assert.match(said(HW), /All three burn now, each on its own\./, 'and it says so');
     /* over the ward's north door (and the big door): no thread between them yet */
     enter(HW, 'ward', 9, 2);
     /* (gold threads drawn on the screen: the lamps of a door off it are drawn too, out of sight) */

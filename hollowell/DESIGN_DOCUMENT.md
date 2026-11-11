@@ -62,7 +62,9 @@ the threads, leaving, and coming back by choice.
 | Menu (tools, map, journal, options, save) | Enter / Esc | Start |
 | Map | Tab / M | Select |
 
-Holding Action against a block with the Gloves pulls it; holding Action on a displaced thing grips it.
+Holding Action against a block with the Gloves pulls it; holding Action on a displaced thing grips it. Options >
+Grip: hold (the default) or toggle (a tap takes hold, the next lets go; two glove marks show on what's held), so a
+grip and a tool are never two buttons at once under one thumb.
 
 ## 4. The core law: the Return
 
@@ -295,5 +297,5 @@ Numbered list in SPOILERS.md §4 with locations and solutions; tracked in DUNGEO
 
 ## 15. Accessibility and comfort
 
-Rebindable keys (Options), volume sliders (music, effects), screen shake on/off, text speed, Hints on/off,
+Rebindable keys (Options), volume sliders (music, effects), screen shake on/off, text speed, Hints on/off, Grip hold/toggle,
 colour-safe tells (traces are also dotted/patterned per Maker, not only coloured).
