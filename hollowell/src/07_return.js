@@ -281,6 +281,43 @@ class GridThing extends Ent {
 
 /* draw every displaced thing's trace and its empty mark (under the things) */
 const Threads = {
+    /* every thread is a 1 px line of its colour over a dark 1 px under-stroke (under a shallow stretch, right of a steep
+       one: the light is from the top left), so it reads on any floor: a light floor by the dark, a dark one by the
+       colour (tests/contrast.test.mjs measures each House's against its floors) */
+    UNDER: 'rgba(20,10,20,0.85)',
+    /* a polyline: every under-stroke first, so no stretch's shadow falls across the line where it turns */
+    path(pts, col, under = this.UNDER) {
+        for (let i = 0; i + 1 < pts.length; i++) {
+            const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], st = Math.abs(y1 - y0) > Math.abs(x1 - x0) ? 1 : 0;
+            Gfx.line(x0 + st, y0 + 1 - st, x1 + st, y1 + 1 - st, under);
+        }
+        for (let i = 0; i + 1 < pts.length; i++) Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], col);
+    },
+    stroke(x0, y0, x1, y1, col, under) { this.path([[x0, y0], [x1, y1]], col, under); },
+    /* a creature's own way home, fainter than a thing's thread: the same cord, every other stitch */
+    dotted(pts, col) {
+        let n = 0;
+        const dot = (x, y) => { if (n++ % 2 === 0) { Gfx.rect(x, y + 1, 1, 1, this.UNDER); Gfx.rect(x, y, 1, 1, col); } };
+        for (let i = 0; i + 1 < pts.length; i++) {
+            let [x0, y0] = pts[i].map(Math.round); const [x1, y1] = pts[i + 1].map(Math.round);
+            const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+            let e = dx + dy;
+            for (let k = 0; k < 4000 && (x0 !== x1 || y0 !== y1); k++) {
+                dot(x0, y0);
+                const e2 = 2 * e;
+                if (e2 >= dy) { e += dy; x0 += sx; }
+                if (e2 <= dx) { e += dx; y0 += sy; }
+            }
+        }
+    },
+    /* how long a thing will wait: a ring of stitches round its mark, unpicking as its patience runs down (k: what's left) */
+    ring(mx, my, k, col, held) {
+        const n = Math.ceil(k * 16);
+        Gfx.alpha(held ? 0.45 : 0.85);
+        for (let i = 0; i < n; i++) { const t = -Math.PI / 2 + i / 16 * Math.PI * 2; Gfx.rect(Math.round(mx + Math.cos(t) * 7) - 1, Math.round(my + Math.sin(t) * 6) + 1, 2, 1, this.UNDER); }
+        for (let i = 0; i < n; i++) { const t = -Math.PI / 2 + i / 16 * Math.PI * 2; Gfx.rect(Math.round(mx + Math.cos(t) * 7) - 1, Math.round(my + Math.sin(t) * 6), 2, 1, col); }
+        Gfx.alpha(1);
+    },
     draw(area, cx, cy) {
         const c = Gfx.ctx;
         for (const e of area.ents) {
@@ -297,19 +334,12 @@ const Threads = {
             if (pts.length && !e.shattered) pts[pts.length - 1] = [ex, ey];
             const col = r.color;
             const tight = r.state === 'returning' || (r.timer < 30 && !Return.held(e));
-            for (let i = 0; i + 1 < pts.length; i++) {
-                Gfx.line(pts[i][0], pts[i][1] + 1, pts[i + 1][0], pts[i + 1][1] + 1, 'rgba(20,10,20,0.35)');
-                Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], tight ? shade(col, 0.4) : col);
-            }
+            this.path(pts, tight ? shade(col, 0.4) : col);
             Marks.draw(r.mx * T - cx, r.my * T - cy, col, true);
-            /* how long it'll wait: a ring of stitches round its mark, unpicking as its patience runs down (full and
-               steady while something holds it) */
+            /* how long it'll wait (full and steady while something holds it) */
             if (r.state === 'away' && r.patience > 0 && !e.quietHome) {
-                const held = Return.held(e), k = held ? 1 : Math.max(0, r.timer / r.patience);
-                const n = Math.ceil(k * 16), mx = r.mx * T + 8 - cx, my = r.my * T + 8 - cy;
-                Gfx.alpha(held ? 0.45 : 0.85);
-                for (let i = 0; i < n; i++) { const t = -Math.PI / 2 + i / 16 * Math.PI * 2; Gfx.rect(Math.round(mx + Math.cos(t) * 7) - 1, Math.round(my + Math.sin(t) * 6), 2, 1, col); }
-                Gfx.alpha(1);
+                const held = Return.held(e);
+                this.ring(r.mx * T + 8 - cx, r.my * T + 8 - cy, held ? 1 : Math.max(0, r.timer / r.patience), col, held);
             }
         }
         /* creatures keep the law too: each walks home along its own trail to its nest, so its thread shows, faintly
@@ -317,10 +347,7 @@ const Threads = {
         for (const m of area.walkers || []) {
             if (m.alive === false || m.hidden || !m.trace || m.trace.length < 2 || m.hp >= 3 || m.noThread) continue;
             const col = m.thread || (m.D && m.D.yarn) || THREAD.none, tr = m.trace;
-            Gfx.alpha(0.5);
-            for (let i = 0; i + 1 < tr.length; i++) Gfx.line(tr[i][0] * T + 8 - cx, tr[i][1] * T + 9 - cy, tr[i + 1][0] * T + 8 - cx, tr[i + 1][1] * T + 9 - cy, col);
-            const [lx, ly] = tr[tr.length - 1]; Gfx.line(lx * T + 8 - cx, ly * T + 9 - cy, m.x - cx, m.y - cy - 2, col);
-            Gfx.alpha(1);
+            this.dotted(tr.map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]).concat([[m.x - cx, m.y - cy - 2]]), col);
             Marks.draw(tr[0][0] * T - cx, tr[0][1] * T - cy, col, true);
         }
     },
@@ -328,8 +355,8 @@ const Threads = {
 /* the little stitched cross that is a thing's place */
 const Marks = {
     draw(sx, sy, col, empty) {
-        const x0 = sx + 4, y0 = sy + 4;
-        const dark = shade(col, -0.45);
+        /* (its stitches are thread too: each over the same dark under-stroke) */
+        const x0 = sx + 4, y0 = sy + 4, dark = Threads.UNDER;
         for (let i = 0; i < 8; i++) {
             if (i === 3 || i === 4) continue;
             Gfx.rect(x0 + i, y0 + i + 1, 1, 1, dark); Gfx.rect(x0 + 7 - i, y0 + i + 1, 1, 1, dark);
